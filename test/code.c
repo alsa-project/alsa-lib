@@ -63,7 +63,7 @@ static inline void atomic_add(volatile int *dst, int v)
 	__asm__ __volatile__(
 		LOCK_PREFIX "addl %1,%0"
 		:"=m" (*dst)
-		:"ir" (v));
+		:"ir" (v), "m" (*dst));
 }
 
 static double detect_cpu_clock()
@@ -88,18 +88,18 @@ static double detect_cpu_clock()
 void mix_areas_srv(unsigned int size,
 		   const s16 *src,
 		   volatile s32 *sum,
-		   unsigned int src_step)
+		   unsigned int src_step, unsigned int sum_step)
 {
         while (size-- > 0) {
                 atomic_add(sum, *src);
                 ((char*)src) += src_step;
-                sum++;
+                ((char*)sum) += sum_step;
         }
 }
 
 void saturate(unsigned int size,
               s16 *dst, const s32 *sum,
-              unsigned int dst_step)
+              unsigned int dst_step, unsigned int sum_step)
 {
         while (size-- > 0) {
                 s32 sample = *sum;
@@ -110,7 +110,7 @@ void saturate(unsigned int size,
                 else
                         *dst = sample;
                 ((char*)dst) += dst_step;
-                sum++;
+                ((char*)sum) += sum_step;
         }
 }
 
@@ -385,7 +385,7 @@ void setscheduler(void)
 	printf("!!!Scheduler set to Round Robin with priority %i FAILED!!!\n", sched_param.sched_priority);
 }
 
-#define CACHE_SIZE (1024*1024)
+int cache_size = 1024*1024;
 
 void init(s16 *dst, s32 *sum, int size)
 {
@@ -396,8 +396,8 @@ void init(s16 *dst, s32 *sum, int size)
 		*sum++ = 0;
 	for (count = size - 1; count >= 0; count--)
 		*dst++ = 0;
-	a = malloc(CACHE_SIZE);
-	for (count = CACHE_SIZE - 1; count >= 0; count--) {
+	a = malloc(cache_size);
+	for (count = cache_size - 1; count >= 0; count--) {
 		a[count] = count & 0xff;
 		a[count] ^= 0x55;
 		a[count] ^= 0xaa;
@@ -419,11 +419,13 @@ int main(int argc, char **argv)
 #else
         printf("CPU clock: %fMhz (SMP)\n\n", cpu_clock / 10e5);
 #endif
-	if (argc == 4) {
+	if (argc > 3) {
 		size = atoi(argv[1]);
 		n = atoi(argv[2]);
 		max = atoi(argv[3]);
 	}
+	if (argc > 4)
+		cache_size = atoi(argv[4]) * 1024;
 	s16 *dst = malloc(sizeof(*dst) * size);
 	s32 *sum = calloc(size, sizeof(*sum));
 	s16 **srcs = malloc(sizeof(*srcs) * n);
@@ -440,9 +442,9 @@ int main(int argc, char **argv)
 		init(dst, sum, size);
 		rdtscll(begin);
 		for (i = 0; i < n; i++) {
-			mix_areas_srv(size, srcs[i], sum, 2);
+			mix_areas_srv(size, srcs[i], sum, 2, 4);
 		}
-		saturate(size, dst, sum, 2);
+		saturate(size, dst, sum, 2, 4);
 		rdtscll(end);
 		diff = end - begin;
 		if (diff < diffS)
