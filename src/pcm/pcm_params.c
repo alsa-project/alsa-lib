@@ -1051,7 +1051,7 @@ typedef struct _snd_pcm_hw_strategy_simple_choices {
 } snd_pcm_hw_strategy_simple_choices_t;
 
 int snd_pcm_hw_param_test(const snd_pcm_hw_params_t *params,
-			   snd_pcm_hw_param_t var, unsigned int val)
+			  snd_pcm_hw_param_t var, unsigned int val)
 {
 	if (hw_is_mask(var)) {
 		const mask_t *mask = hw_param_mask_c(params, var);

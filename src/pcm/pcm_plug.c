@@ -199,8 +199,8 @@ static int snd_pcm_plug_hw_link(snd_pcm_hw_params_t *params,
 				snd_pcm_t *slave,
 				unsigned long private ATTRIBUTE_UNUSED)
 {
-	int rate_always, channels_always, format_always, access_always;
-	int rate_never, channels_never, format_never, access_never;
+	int rate_always, channels_always, format_always;
+	int rate_never, channels_never, format_never;
 	unsigned int links = (SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
 	const mask_t *format_mask, *sformat_mask;
@@ -268,13 +268,6 @@ static int snd_pcm_plug_hw_link(snd_pcm_hw_params_t *params,
 		      snd_pcm_hw_param_never_eq(params,
 						SND_PCM_HW_PARAM_RATE,
 						sparams));
-	access_always = snd_pcm_hw_param_always_eq(params,
-						   SND_PCM_HW_PARAM_ACCESS,
-						   sparams);
-	access_never = (!access_always &&
-			snd_pcm_hw_param_never_eq(params,
-						  SND_PCM_HW_PARAM_ACCESS,
-						  sparams));
 
 	if (rate_always)
 		links |= (SND_PCM_HW_PARBIT_RATE |
@@ -610,7 +603,10 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	clt_params.channels = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_CHANNELS, 0);
 	clt_params.rate = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_RATE, 0);
 
-	slv_params.access = snd_pcm_hw_param_first(slave, &sparams, SND_PCM_HW_PARAM_ACCESS, 0);
+	if (snd_pcm_hw_param_test(params, SND_PCM_HW_PARAM_ACCESS, clt_params.access))
+		slv_params.access = clt_params.access;
+	else
+		slv_params.access = snd_pcm_hw_param_first(slave, &sparams, SND_PCM_HW_PARAM_ACCESS, 0);
 	slv_params.format = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_FORMAT, 0);
 	slv_params.channels = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_CHANNELS, 0);
 	slv_params.rate = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_RATE, 0);

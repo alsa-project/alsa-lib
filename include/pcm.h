@@ -106,6 +106,8 @@ int mask_single(const mask_t *mask);
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_param_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			 snd_pcm_hw_param_t var);
+int snd_pcm_hw_param_test(const snd_pcm_hw_params_t *params,
+			  snd_pcm_hw_param_t var, unsigned int val);
 int snd_pcm_hw_param_setinteger(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 				snd_pcm_hw_param_t var);
 int snd_pcm_hw_param_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
