@@ -620,19 +620,11 @@ static int snd_pcm_plug_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *inf
 
 static int snd_pcm_plug_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-#if 0
-	snd_pcm_plugin_t *plug = pcm->private;
-	return snd_pcm_mmap(plug->slave);
-#endif
 	return 0;
 }
 
 static int snd_pcm_plug_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-#if 0
-	snd_pcm_plugin_t *plug = pcm->private;
-	return snd_pcm_munmap(plug->slave);
-#endif
 	return 0;
 }
 

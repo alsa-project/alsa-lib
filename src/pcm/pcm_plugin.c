@@ -321,15 +321,13 @@ int snd_pcm_plugin_set_avail_min(snd_pcm_t *pcm, size_t frames)
 int snd_pcm_plugin_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plug = pcm->private;
-	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
-		size_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
-		int id = shmget(IPC_PRIVATE, size, 0666);
-		if (id < 0) {
-			SYSERR("shmget failed");
-			return -errno;
-		}
-		plug->shmid = id;
+	size_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
+	int id = shmget(IPC_PRIVATE, size, 0666);
+	if (id < 0) {
+		SYSERR("shmget failed");
+		return -errno;
 	}
+	plug->shmid = id;
 	return 0;
 }
 

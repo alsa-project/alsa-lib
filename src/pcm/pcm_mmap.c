@@ -378,11 +378,16 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 		size = PAGE_ALIGN(size);
 		switch (i->type) {
 		case SND_PCM_AREA_MMAP:
+#if 0
+			/* Tricky here: for alsa-oss */
+			errno = 12345;
+#endif
 			err = munmap(i->addr, size);
 			if (err < 0) {
 				SYSERR("mmap failed");
 				return -errno;
 			}
+			errno = 0;
 			break;
 		case SND_PCM_AREA_SHM:
 			err = shmdt(i->addr);
