@@ -8,7 +8,7 @@ Version: %ver
 Release: %rel
 Copyright: GPL
 Group: System/Libraries
-Source: ftp://alsa.jcu.cz/pub/lib/alsa-lib-%{ver}.tar.gz
+Source: ftp://ftp.alsa-project.org/pub/lib/alsa-lib-%{ver}.tar.gz
 BuildRoot: /tmp/alsa-lib-%{ver}
 Packager: Helge Jensen <slog@slog.dk>
 URL: http://alsa.jcu.cz
@@ -18,32 +18,6 @@ Requires: alsa-driver
 %description
 
 Advanced Linux Sound Architecture (ALSA) - Library
-
-Features
-========
-
-* general
-  - modularized architecture with support for 2.0 and latest 2.1 kernels
-  - support for versioned and exported symbols
-  - full proc filesystem support - /proc/sound
-* ISA soundcards
-  - support for 128k ISA DMA buffer
-* mixer
-  - new enhanced API for applications
-  - support for unlimited number of channels
-  - volume can be set in three ways (percentual (0-100), exact and decibel)
-  - support for mute (and hardware mute if hardware supports it)
-  - support for mixer events
-    - this allows two or more applications to be synchronized
-* digital audio (PCM)
-  - new enhanced API for applications
-  - full real duplex support
-  - full duplex support for SoundBlaster 16/AWE soundcards
-  - digital audio data for playback and record should be read back using
-    proc filesystem
-* OSS/Lite compatibility
-  - full mixer compatibity
-  - full PCM (/dev/dsp) compatibility
 
 %changelog
 
