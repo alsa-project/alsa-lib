@@ -376,7 +376,7 @@ static const char *assoc(int value, assoc_t *alist)
 static assoc_t states[] = { STATE(NOTREADY), STATE(READY), STATE(PREPARED),
 			    STATE(RUNNING), STATE(XRUN), STATE(PAUSED), END };
 static assoc_t streams[] = { STREAM(PLAYBACK), STREAM(CAPTURE), END };
-static assoc_t xruns[] = { XRUN(ASAP), XRUN(FRAGMENT), END };
+static assoc_t xruns[] = { XRUN(ASAP), XRUN(FRAGMENT), XRUN(NONE), END };
 static assoc_t fmts[] = {
 	SFMT(S8, "Signed 8-bit"), 
 	SFMT(U8, "Unsigned 8-bit"),
