@@ -210,7 +210,7 @@ static void mix_areas2(unsigned int size,
 				sample = -0x800000;
 			else
 				sample = old_sample;
-			*dst = sample;
+			*dst = sample << 8;
 		} while (*sum != old_sample);
 		((char *)src) += src_step;
 		((char *)dst) += dst_step;
