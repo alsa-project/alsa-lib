@@ -1,11 +1,11 @@
 /**
- * \file <alsa/mixer_simple.h>
+ * \file <alsa/mixer_ordinary.h>
  * \brief Application interface library for the ALSA driver
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2003
  *
  * Application interface library for the ALSA driver.
- * See the \ref mixer_simple page for more details.
+ * See the \ref mixer_ordinary page for more details.
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -29,91 +29,91 @@
 
 #include <alsa/asoundlib.h>
 
-/** Simple Mixer latency type */
-enum snds_mixer_io_type {
+/** Ordinary Mixer latency type */
+enum sndo_mixer_io_type {
 
 	/*
 	 *  playback section
 	 */
 
 	/** master volume - left (0-1000) */
-	SNDS_MIO_MASTER_LVOL = 0,
+	SNDO_MIO_MASTER_LVOL = 0,
 	/** master volume - right (0-1000) */
-	SNDS_MIO_MASTER_RVOL,
+	SNDO_MIO_MASTER_RVOL,
 	/** master volume - left mute (0 = off, 1 = on) */
-	SNDS_MIO_MASTER_LMUTE,
+	SNDO_MIO_MASTER_LMUTE,
 	/** master volume - right mute (0 = off, 1 = on) */
-	SNDS_MIO_MASTER_RMUTE,
+	SNDO_MIO_MASTER_RMUTE,
 
 	/** pcm volume - left (0-1000) */
-	SNDS_MIO_Mixer_LVOL,
+	SNDO_MIO_Mixer_LVOL,
 	/** pcm volume - right (0-1000) */
-	SNDS_MIO_Mixer_RVOL,
+	SNDO_MIO_Mixer_RVOL,
 	/** pcm volume - left mute (0 = off, 1 = on) */
-	SNDS_MIO_Mixer_LMUTE,
+	SNDO_MIO_Mixer_LMUTE,
 	/** pcm volume - right mute (0 = off, 1 = on) */
-	SNDS_MIO_Mixer_RMUTE,
+	SNDO_MIO_Mixer_RMUTE,
 
 	/** CD volume - left (0-1000) */
-	SNDS_MIO_CD_LVOL,
+	SNDO_MIO_CD_LVOL,
 	/** CD volume - right (0-1000) */
-	SNDS_MIO_CD_RVOL,
+	SNDO_MIO_CD_RVOL,
 	/** CD volume - left mute (0 = off, 1 = on) */
-	SNDS_MIO_CD_LMUTE,
+	SNDO_MIO_CD_LMUTE,
 	/** CD volume - right mute (0 = off, 1 = on) */
-	SNDS_MIO_CD_RMUTE,
+	SNDO_MIO_CD_RMUTE,
 
 	/** AUX volume - left (0-1000) */
-	SNDS_MIO_AUX_LVOL,
+	SNDO_MIO_AUX_LVOL,
 	/** CD volume - right (0-1000) */
-	SNDS_MIO_AUX_RVOL,
+	SNDO_MIO_AUX_RVOL,
 	/** CD volume - left mute (0 = off, 1 = on) */
-	SNDS_MIO_AUX_LMUTE,
+	SNDO_MIO_AUX_LMUTE,
 	/** CD volume - right mute (0 = off, 1 = on) */
-	SNDS_MIO_AUX_RMUTE,
+	SNDO_MIO_AUX_RMUTE,
 
 	/*
 	 *  capture section
 	 */
 
 	/** capture gain - left (0-1000) */
-	SNDS_MIO_CGAIN_LVOL = 0x1000,
+	SNDO_MIO_CGAIN_LVOL = 0x1000,
 	/** capture gain - right (0-1000) */
-	SNDS_MIO_CGAIN_RVOL,
+	SNDO_MIO_CGAIN_RVOL,
 
 
 	/** capture source - mic switch (0 = off, 1 = on) */
-	SNDS_MIO_CSOURCE_MIC = 0x1100,
+	SNDO_MIO_CSOURCE_MIC = 0x1100,
 	/** capture source - line switch (0 = off, 1 = on)*/
-	SNDS_MIO_CSOURCE_LINE,
+	SNDO_MIO_CSOURCE_LINE,
 	/** capture source - CD switch (0 = off, 1 = on) */
-	SNDS_MIO_CSOURCE_CD,
+	SNDO_MIO_CSOURCE_CD,
 	/** capture source - AUX switch (0 = off, 1 = on) */
-	SNDS_MIO_CSOURCE_AUX,
+	SNDO_MIO_CSOURCE_AUX,
 	/** capture source - mix switch (0 = off, 1 = on) */
-	SNDS_MIO_CSOURCE_MIX
+	SNDO_MIO_CSOURCE_MIX
 };
 
-typedef struct snds_mixer snds_mixer_t;
+typedef struct sndo_mixer sndo_mixer_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- *  \defgroup Mixer_simple Mixer Simple Interface
- *  See the \ref mixer_simple page for more details.
+ *  \defgroup Mixer_ordinary Mixer Ordinary Interface
+ *  See the \ref mixer_ordinary page for more details.
  *  \{
  */
 
-int snds_mixer_open(snds_mixer_t **pmixer, const char *playback_name, const char *capture_name, snd_config_t *lconf);
-int snds_mixer_close(snds_mixer_t *mixer);
-int snds_mixer_poll_descriptors_count(snds_mixer_t *mixer);
-int snds_mixer_poll_descriptors(snds_mixer_t *mixer, struct pollfd *pfds, unsigned int space);
-int snds_mixer_poll_descriptors_revents(snds_mixer_t *mixer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
-int snds_mixer_io_get(snds_mixer_t *mixer, enum snds_mixer_io_type type, int *val);
-int snds_mixer_io_set(snds_mixer_t *mixer, enum snds_mixer_io_type type, int val);
-int snds_mixer_io_change(snds_mixer_t *mixer, enum snds_mixer_io_type *changed, int changed_array_size);
+int sndo_mixer_open(sndo_mixer_t **pmixer, const char *playback_name, const char *capture_name, snd_config_t *lconf);
+int sndo_mixer_close(sndo_mixer_t *mixer);
+int sndo_mixer_poll_descriptors_count(sndo_mixer_t *mixer);
+int sndo_mixer_poll_descriptors(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int space);
+int sndo_mixer_poll_descriptors_revents(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
+int sndo_mixer_io_get(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val);
+int sndo_mixer_io_set(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int val);
+int sndo_mixer_io_change(sndo_mixer_t *mixer, enum sndo_mixer_io_type *changed, int changed_array_size);
 
 /** \} */
 

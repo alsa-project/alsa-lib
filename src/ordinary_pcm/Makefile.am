@@ -1,13 +1,13 @@
 SUBDIRS =
 DIST_SUBDIRS =
 
-EXTRA_LTLIBRARIES = libsimplepcm.la
+EXTRA_LTLIBRARIES = libordinarypcm.la
 
-libsimplepcm_la_SOURCES = simple_pcm.c
+libordinarypcm_la_SOURCES = ordinary_pcm.c
 noinst_HEADERS =
 
 alsadir = $(datadir)/alsa
 
-all: libsimplepcm.la
+all: libordinarypcm.la
 
 INCLUDES=-I$(top_srcdir)/include
