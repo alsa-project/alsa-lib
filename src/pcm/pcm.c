@@ -6285,11 +6285,12 @@ static void snd_pcm_unlink_ptr(snd_pcm_t *pcm, snd_pcm_rbptr_t *pcm_rbptr,
 	int idx;
 
 	a = slave_rbptr->link_dst;
-	for (idx = 0; idx < slave_rbptr->link_dst_count; idx++)
+	for (idx = 0; idx < slave_rbptr->link_dst_count; idx++) {
 		if (a[idx] == pcm) {
 			a[idx] = NULL;
 			goto __found;
 		}
+	}
 	assert(0);
 	return;
 

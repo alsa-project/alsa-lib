@@ -589,6 +589,7 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int
 #endif
 			}
 		}
+		break;
 	}
 	case 32: {
 		u_int32_t silence = snd_pcm_format_silence_64(format);
