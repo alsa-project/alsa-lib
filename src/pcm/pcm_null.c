@@ -70,9 +70,11 @@ static int snd_pcm_null_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	memset(info, 0, sizeof(*info));
 	info->stream = pcm->stream;
 	info->card = -1;
-	strncpy(info->id, pcm->name, sizeof(info->id));
-	strncpy(info->name, pcm->name, sizeof(info->name));
-	strncpy(info->subname, pcm->name, sizeof(info->subname));
+	if (pcm->name) {
+		strncpy(info->id, pcm->name, sizeof(info->id));
+		strncpy(info->name, pcm->name, sizeof(info->name));
+		strncpy(info->subname, pcm->name, sizeof(info->subname));
+	}
 	info->subdevices_count = 1;
 	return 0;
 }
