@@ -298,7 +298,7 @@ static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fra
 		SYSERR("SNDRV_PCM_IOCTL_REWIND failed");
 		return -errno;
 	}
-	return 0;
+	return frames;
 }
 
 static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
