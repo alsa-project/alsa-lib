@@ -2,4 +2,4 @@
  *
  */
  
-#endif /* __SOUNDLIB_H */
+#endif /* __ASOUNDLIB_H */

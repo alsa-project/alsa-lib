@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef __SOUNDLIB_H
-#define __SOUNDLIB_H
+#ifndef __ASOUNDLIB_H
+#define __ASOUNDLIB_H
 
 #include <linux/asound.h>
 #include <unistd.h>
