@@ -50,6 +50,16 @@ to store just 5.46 seconds of sound in a megabyte of memory when using
 to reduce memory and communication costs by compressing the recorded
 signal but this is beyond the scope of this document. </P>
 
+\section pcm_general_overview General overview
+
+ALSA uses the ring buffer to store outgoing (playback) and incoming (capture,
+record) samples. There are two pointers being mantained to allow
+a precise communication between application and device pointing to current
+processed sample by hardware and last processed sample by application.
+The modern audio chips allows to program the transfer time periods.
+It means that the stream of samples is divided to small chunks. Device
+acknowledges to application when the transfer of a chunk is complete.
+
 \section pcm_open_behaviour Blocked and non-blocked open
 
 The ALSA PCM API uses a different behaviour when the device is opened
@@ -132,5 +142,16 @@ the capability with the \link ::snd_pcm_hw_params_can_resume() \endlink.
 In other case, the calls \link ::snd_pcm_prepare() \endlink,
 \link ::snd_pcm_drop() \endlink, \link ::snd_pcm_drain() \endlink can be used
 to leave this state.
+
+\section pcm_formats PCM formats
+
+The full list of formats present the \link ::snd_pcm_format_t \endlink type.
+The 24-bit linear samples uses 32-bit physical space, but the sample is
+stored in low three bits. Some hardware does not support processing of full
+range, thus you may get the significative bits for linear samples via
+\link ::snd_pcm_hw_params_get_sbits \endlink function. The example: ICE1712
+chips support 32-bit sample processing, but low byte is ignored (playback)
+or zero (capture). The function \link ::snd_pcm_hw_params_get_sbits() \endlink
+returns 24 in the case.
 
 */
