@@ -666,6 +666,7 @@ static const char *snd_ctl_elem_type_names[] = {
 	TYPE(ENUMERATED),
 	TYPE(BYTES),
 	TYPE(IEC958),
+	TYPE(INTEGER64),
 };
 
 static const char *snd_ctl_elem_iface_names[] = {
@@ -1597,6 +1598,42 @@ long snd_ctl_elem_info_get_step(const snd_ctl_elem_info_t *obj)
 	assert(obj);
 	assert(obj->type == SND_CTL_ELEM_TYPE_INTEGER);
 	return obj->value.integer.step;
+}
+
+/**
+ * \brief Get minimum value from a #SND_CTL_ELEM_TYPE_INTEGER64 CTL element id/info
+ * \param obj CTL element id/info
+ * \return Minimum value
+ */
+long long snd_ctl_elem_info_get_min64(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_ELEM_TYPE_INTEGER64);
+	return obj->value.integer64.min;
+}
+
+/**
+ * \brief Get maximum value from a #SND_CTL_ELEM_TYPE_INTEGER64 CTL element id/info
+ * \param obj CTL element id/info
+ * \return Maximum value
+ */
+long long snd_ctl_elem_info_get_max64(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_ELEM_TYPE_INTEGER64);
+	return obj->value.integer64.max;
+}
+
+/**
+ * \brief Get value step from a #SND_CTL_ELEM_TYPE_INTEGER64 CTL element id/info
+ * \param obj CTL element id/info
+ * \return Step
+ */
+long long snd_ctl_elem_info_get_step64(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_ELEM_TYPE_INTEGER64);
+	return obj->value.integer64.step;
 }
 
 /**

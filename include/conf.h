@@ -47,6 +47,8 @@ extern "C" {
 typedef enum _snd_config_type {
 	/** Integer number */
         SND_CONFIG_TYPE_INTEGER,
+	/** 64 bit Integer number */
+        SND_CONFIG_TYPE_INTEGER64,
 	/** Real number */
         SND_CONFIG_TYPE_REAL,
 	/** Character string */
@@ -98,12 +100,14 @@ int snd_config_copy(snd_config_t **dst, snd_config_t *src);
 int snd_config_make(snd_config_t **config, const char *key,
 		    snd_config_type_t type);
 int snd_config_make_integer(snd_config_t **config, const char *key);
+int snd_config_make_integer64(snd_config_t **config, const char *key);
 int snd_config_make_real(snd_config_t **config, const char *key);
 int snd_config_make_string(snd_config_t **config, const char *key);
 int snd_config_make_pointer(snd_config_t **config, const char *key);
 int snd_config_make_compound(snd_config_t **config, const char *key, int join);
 
 int snd_config_imake_integer(snd_config_t **config, const char *key, const long value);
+int snd_config_imake_integer64(snd_config_t **config, const char *key, const long long value);
 int snd_config_imake_real(snd_config_t **config, const char *key, const double value);
 int snd_config_imake_string(snd_config_t **config, const char *key, const char *ascii);
 int snd_config_imake_pointer(snd_config_t **config, const char *key, const void *ptr);
@@ -112,12 +116,14 @@ snd_config_type_t snd_config_get_type(const snd_config_t *config);
 
 int snd_config_set_id(snd_config_t *config, const char *id);
 int snd_config_set_integer(snd_config_t *config, long value);
+int snd_config_set_integer64(snd_config_t *config, long long value);
 int snd_config_set_real(snd_config_t *config, double value);
 int snd_config_set_string(snd_config_t *config, const char *value);
 int snd_config_set_ascii(snd_config_t *config, const char *ascii);
 int snd_config_set_pointer(snd_config_t *config, const void *ptr);
 int snd_config_get_id(const snd_config_t *config, const char **value);
 int snd_config_get_integer(const snd_config_t *config, long *value);
+int snd_config_get_integer64(const snd_config_t *config, long long *value);
 int snd_config_get_real(const snd_config_t *config, double *value);
 int snd_config_get_ireal(const snd_config_t *config, double *value);
 int snd_config_get_string(const snd_config_t *config, const char **value);

@@ -415,6 +415,7 @@ compound node.</P>
 #include <stdarg.h>
 #include <wordexp.h>
 #include <dlfcn.h>
+#include <limits.h>
 #include <sys/stat.h>
 #include <pthread.h>
 #include "local.h"
@@ -426,6 +427,7 @@ struct _snd_config {
 	snd_config_type_t type;
 	union {
 		long integer;
+		long long integer64;
 		char *string;
 		double real;
 		const void *ptr;
@@ -457,6 +459,18 @@ typedef struct {
 	int unget;
 	int ch;
 } input_t;
+
+int safe_strtoll(const char *str, long long *val)
+{
+	long long v;
+	if (!*str)
+		return -EINVAL;
+	errno = 0;
+	if (sscanf(str, "%Ld", &v) != 1)
+		return -EINVAL;
+	*val = v;
+	return 0;
+}
 
 int safe_strtol(const char *str, long *val)
 {
@@ -882,9 +896,9 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 		return 0;
 	}
 	if (err == 0 && ((s[0] >= '0' && s[0] <= '9') || s[0] == '-')) {
-		long i;
+		long long i;
 		errno = 0;
-		err = safe_strtol(s, &i);
+		err = safe_strtoll(s, &i);
 		if (err < 0) {
 			double r;
 			err = safe_strtod(s, &r);
@@ -907,16 +921,22 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 		} else {
 			free(s);
 			if (n) {
-				if (n->type != SND_CONFIG_TYPE_INTEGER) {
+				if (n->type != SND_CONFIG_TYPE_INTEGER && n->type != SND_CONFIG_TYPE_INTEGER64) {
 					SNDERR("%s is not an integer", *id);
 					return -EINVAL;
 				}
 			} else {
-				err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER, father);
+				if (i <= INT_MAX) 
+					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER, father);
+				else
+					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER64, father);
 				if (err < 0)
 					return err;
 			}
-			n->u.integer = i;
+			if (n->type == SND_CONFIG_TYPE_INTEGER) 
+				n->u.integer = (long) i;
+			else 
+				n->u.integer64 = i;
 			*_n = n;
 			return 0;
 		}
@@ -1291,6 +1311,9 @@ static int _snd_config_save_leaf(snd_config_t *n, snd_output_t *out,
 	case SND_CONFIG_TYPE_INTEGER:
 		snd_output_printf(out, "%ld", n->u.integer);
 		break;
+	case SND_CONFIG_TYPE_INTEGER64:
+		snd_output_printf(out, "%Ld", n->u.integer64);
+		break;
 	case SND_CONFIG_TYPE_REAL:
 		snd_output_printf(out, "%-16g", n->u.real);
 		break;
@@ -1412,6 +1435,10 @@ int snd_config_get_type_ascii(const char *ascii, snd_config_type_t *type)
 	assert(ascii && type);
 	if (!strcmp(ascii, "integer")) {
 		*type = SND_CONFIG_TYPE_INTEGER;
+		return 0;
+	}
+	if (!strcmp(ascii, "integer64")) {
+		*type = SND_CONFIG_TYPE_INTEGER64;
 		return 0;
 	}
 	if (!strcmp(ascii, "real")) {
@@ -1690,6 +1717,17 @@ int snd_config_make_integer(snd_config_t **config, const char *id)
 }
 
 /**
+ * \brief Build an integer64 config node
+ * \param config Returned config node handle pointer
+ * \param id Node id
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_make_integer64(snd_config_t **config, const char *id)
+{
+	return snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER64);
+}
+
+/**
  * \brief Build a real config node
  * \param config Returned config node handle pointer
  * \param id Node id
@@ -1755,6 +1793,24 @@ int snd_config_imake_integer(snd_config_t **config, const char *id, const long v
 	if (err < 0)
 		return err;
 	(*config)->u.integer = value;
+	return 0;
+}
+
+/**
+ * \brief Build an integer64 config node and use given initial value
+ * \param config Returned config node handle pointer
+ * \param id Node id
+ * \param value Initial value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_imake_integer64(snd_config_t **config, const char *id, const long long value)
+{
+	int err;
+	
+	err = snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER64);
+	if (err < 0)
+		return err;
+	(*config)->u.integer64 = value;
 	return 0;
 }
 
@@ -1838,6 +1894,21 @@ int snd_config_set_integer(snd_config_t *config, long value)
 }
 
 /**
+ * \brief Change the value of an integer64 config node
+ * \param config Config node handle
+ * \param value Value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_set_integer64(snd_config_t *config, long long value)
+{
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_INTEGER64)
+		return -EINVAL;
+	config->u.integer64 = value;
+	return 0;
+}
+
+/**
  * \brief Change the value of a real config node
  * \param config Config node handle
  * \param value Value
@@ -1909,6 +1980,15 @@ int snd_config_set_ascii(snd_config_t *config, const char *ascii)
 			config->u.integer = i;
 		}
 		break;
+	case SND_CONFIG_TYPE_INTEGER64:
+		{
+			long long i;
+			int err = safe_strtoll(ascii, &i);
+			if (err < 0)
+				return err;
+			config->u.integer64 = i;
+		}
+		break;
 	case SND_CONFIG_TYPE_REAL:
 		{
 			double d;
@@ -1948,6 +2028,21 @@ int snd_config_get_integer(const snd_config_t *config, long *ptr)
 }
 
 /**
+ * \brief Get the value of an integer64 config node
+ * \param config Config node handle
+ * \param ptr Returned value pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_get_integer64(const snd_config_t *config, long long *ptr)
+{
+	assert(config && ptr);
+	if (config->type != SND_CONFIG_TYPE_INTEGER64)
+		return -EINVAL;
+	*ptr = config->u.integer64;
+	return 0;
+}
+
+/**
  * \brief Get the value of a real config node
  * \param config Config node handle
  * \param ptr Returned value pointer
@@ -1968,7 +2063,7 @@ int snd_config_get_real(const snd_config_t *config, double *ptr)
  * \param ptr Returned value pointer
  * \return 0 on success otherwise a negative error code
  *
- * Note: If the config type is integer, it is converted
+ * Note: If the config type is integer/integer64, it is converted
  * to the double type on the fly.
  */
 int snd_config_get_ireal(const snd_config_t *config, double *ptr)
@@ -1978,6 +2073,8 @@ int snd_config_get_ireal(const snd_config_t *config, double *ptr)
 		*ptr = config->u.real;
 	else if (config->type == SND_CONFIG_TYPE_INTEGER)
 		*ptr = config->u.integer;
+	else if (config->type == SND_CONFIG_TYPE_INTEGER64)
+		*ptr = config->u.integer64;
 	else
 		return -EINVAL;
 	return 0;
@@ -2028,6 +2125,18 @@ int snd_config_get_ascii(const snd_config_t *config, char **ascii)
 			char res[12];
 			int err;
 			err = snprintf(res, sizeof(res), "%li", config->u.integer);
+			if (err < 0 || err == sizeof(res)) {
+				assert(0);
+				return -ENOMEM;
+			}
+			*ascii = strdup(res);
+		}
+		break;
+	case SND_CONFIG_TYPE_INTEGER64:
+		{
+			char res[32];
+			int err;
+			err = snprintf(res, sizeof(res), "%Li", config->u.integer64);
 			if (err < 0 || err == sizeof(res)) {
 				assert(0);
 				return -ENOMEM;
@@ -3054,6 +3163,14 @@ static int _snd_config_copy(snd_config_t *src,
 			snd_config_set_integer(*dst, v);
 			break;
 		}
+		case SND_CONFIG_TYPE_INTEGER64:
+		{
+			long long v;
+			err = snd_config_get_integer64(src, &v);
+			assert(err >= 0);
+			snd_config_set_integer64(*dst, v);
+			break;
+		}
 		case SND_CONFIG_TYPE_REAL:
 		{
 			double v;
@@ -3120,6 +3237,16 @@ static int _snd_config_expand(snd_config_t *src,
 			err = snd_config_get_integer(src, &v);
 			assert(err >= 0);
 			err = snd_config_imake_integer(dst, id, v);
+			if (err < 0)
+				return err;
+			break;
+		}
+		case SND_CONFIG_TYPE_INTEGER64:
+		{
+			long long v;
+			err = snd_config_get_integer64(src, &v);
+			assert(err >= 0);
+			err = snd_config_imake_integer64(dst, id, v);
 			if (err < 0)
 				return err;
 			break;
@@ -3611,6 +3738,19 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 				goto _err;
 			}
 			err = snd_config_set_integer(sub, v);
+			if (err < 0)
+				goto _err;
+		} else if (strcmp(tmp, "integer64") == 0) {
+			long long v;
+			err = snd_config_make(&sub, var, SND_CONFIG_TYPE_INTEGER64);
+			if (err < 0)
+				goto _err;
+			err = safe_strtoll(val, &v);
+			if (err < 0) {
+				SNDERR("Parameter %s must be an integer", var);
+				goto _err;
+			}
+			err = snd_config_set_integer64(sub, v);
 			if (err < 0)
 				goto _err;
 		} else if (strcmp(tmp, "real") == 0) {
