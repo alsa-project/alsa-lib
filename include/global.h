@@ -28,6 +28,9 @@
 #ifndef __ALSA_GLOBAL_H_
 #define __ALSA_GLOBAL_H_
 
+/* for timeval and timespec */
+#include <time.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
