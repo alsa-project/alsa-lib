@@ -94,11 +94,15 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	if (err < 0 || snd_config_get_string(rawmidi_conf, &name1) >= 0) {
 		int card, dev, subdev;
 		err = sscanf(name1, "hw:%d,%d,%d", &card, &dev, &subdev);
-		if (err == 3)
-			return snd_rawmidi_hw_open(inputp, outputp, name, card, dev, subdev, mode);
+		if (err == 3) {
+			err = snd_rawmidi_hw_open(inputp, outputp, name, card, dev, subdev, mode);
+			goto _init;
+		}
 		err = sscanf(name1, "hw:%d,%d", &card, &dev);
-		if (err == 2)
-			return snd_rawmidi_hw_open(inputp, outputp, name, card, dev, -1, mode);
+		if (err == 2) {
+			err = snd_rawmidi_hw_open(inputp, outputp, name, card, dev, -1, mode);
+			goto _init;
+		}
 		SNDERR("Unknown RAWMIDI %s", name1);
 		return -ENOENT;
 	}
@@ -161,6 +165,7 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		return -ENXIO;
 	}
 	err = open_func(inputp, outputp, name, rawmidi_conf, mode);
+ _init:
 	if (err < 0)
 		return err;
 	if (inputp) {
