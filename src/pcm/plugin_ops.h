@@ -444,44 +444,44 @@ put32_1234_4329: as_u32(dst) = bswap_32(sample) ^ 0x80; goto PUT32_END;
 }
 #endif
 
-#ifdef GET_LABELS
+#ifdef GETU_LABELS
 /* width endswap sign_toggle */
-static void *get_labels[4 * 2 * 2] = {
-	&&get_1_1,		/*  8h ->  8h */
-	&&get_1_9,		/*  8h ^>  8h */
-	&&get_1_1,		/*  8s ->  8h */
-	&&get_1_9,		/*  8s ^>  8h */
-	&&get_12_12,		/* 16h -> 16h */
-	&&get_12_92,		/* 16h ^> 16h */
-	&&get_12_21,		/* 16s -> 16h */
-	&&get_12_A1,		/* 16s ^> 16h */
-	&&get_0123_0123,	/* 24h -> 24h */
-	&&get_0123_0923,	/* 24h ^> 24h */
-	&&get_1230_0321,	/* 24s -> 24h */
-	&&get_1230_0B21,	/* 24s ^> 24h */
-	&&get_1234_1234,	/* 32h -> 32h */
-	&&get_1234_9234,	/* 32h ^> 32h */
-	&&get_1234_4321,	/* 32s -> 32h */
-	&&get_1234_C321,	/* 32s ^> 32h */
+static void *getu_labels[4 * 2 * 2] = {
+	&&getu_1_1,		/*  8h ->  8h */
+	&&getu_1_9,		/*  8h ^>  8h */
+	&&getu_1_1,		/*  8s ->  8h */
+	&&getu_1_9,		/*  8s ^>  8h */
+	&&getu_12_12,		/* 16h -> 16h */
+	&&getu_12_92,		/* 16h ^> 16h */
+	&&getu_12_21,		/* 16s -> 16h */
+	&&getu_12_A1,		/* 16s ^> 16h */
+	&&getu_0123_0123,	/* 24h -> 24h */
+	&&getu_0123_0923,	/* 24h ^> 24h */
+	&&getu_1230_0321,	/* 24s -> 24h */
+	&&getu_1230_0B21,	/* 24s ^> 24h */
+	&&getu_1234_1234,	/* 32h -> 32h */
+	&&getu_1234_9234,	/* 32h ^> 32h */
+	&&getu_1234_4321,	/* 32s -> 32h */
+	&&getu_1234_C321,	/* 32s ^> 32h */
 };
 #endif
 
-#ifdef GET_END
+#ifdef GETU_END
 while (0) {
-get_1_1: sample = as_u8(src); goto GET_END;
-get_1_9: sample = as_u8(src) ^ 0x80; goto GET_END;
-get_12_12: sample = as_u16(src); goto GET_END;
-get_12_92: sample = as_u16(src) ^ 0x8000; goto GET_END;
-get_12_21: sample = bswap_16(as_u16(src)); goto GET_END;
-get_12_A1: sample = bswap_16(as_u16(src) ^ 0x80); goto GET_END;
-get_0123_0123: sample = as_u32(src); goto GET_END;
-get_0123_0923: sample = (as_u32(src) ^ 0x800000); goto GET_END;
-get_1230_0321: sample = bswap_32(as_u32(src)); goto GET_END;
-get_1230_0B21: sample = bswap_32(as_u32(src) ^ 0x8000); goto GET_END;
-get_1234_1234: sample = as_u32(src); goto GET_END;
-get_1234_9234: sample = as_u32(src) ^ 0x80000000; goto GET_END;
-get_1234_4321: sample = bswap_32(as_u32(src)); goto GET_END;
-get_1234_C321: sample = bswap_32(as_u32(src) ^ 0x80); goto GET_END;
+getu_1_1: sample = as_u8(src); goto GETU_END;
+getu_1_9: sample = as_u8(src) ^ 0x80; goto GETU_END;
+getu_12_12: sample = as_u16(src); goto GETU_END;
+getu_12_92: sample = as_u16(src) ^ 0x8000; goto GETU_END;
+getu_12_21: sample = bswap_16(as_u16(src)); goto GETU_END;
+getu_12_A1: sample = bswap_16(as_u16(src) ^ 0x80); goto GETU_END;
+getu_0123_0123: sample = as_u32(src); goto GETU_END;
+getu_0123_0923: sample = (as_u32(src) ^ 0x800000); goto GETU_END;
+getu_1230_0321: sample = bswap_32(as_u32(src)); goto GETU_END;
+getu_1230_0B21: sample = bswap_32(as_u32(src) ^ 0x8000); goto GETU_END;
+getu_1234_1234: sample = as_u32(src); goto GETU_END;
+getu_1234_9234: sample = as_u32(src) ^ 0x80000000; goto GETU_END;
+getu_1234_4321: sample = bswap_32(as_u32(src)); goto GETU_END;
+getu_1234_C321: sample = bswap_32(as_u32(src) ^ 0x80); goto GETU_END;
 }
 #endif
 

@@ -151,10 +151,10 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 				 const snd_pcm_route_ttable_dst_t* ttable,
 				 const snd_pcm_route_params_t *params)
 {
-#define GET_LABELS
+#define GETU_LABELS
 #define PUT32_LABELS
 #include "plugin_ops.h"
-#undef GET_LABELS
+#undef GETU_LABELS
 #undef PUT32_LABELS
 	static void *zero_labels[3] = { &&zero_int32, &&zero_int64,
 #if ROUTE_PLUGIN_FLOAT
@@ -226,7 +226,7 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 	}
 
 	zero = zero_labels[params->sum_idx];
-	get = get_labels[params->get_idx];
+	get = getu_labels[params->get_idx];
 	add = add_labels[params->sum_idx * 2 + ttable->att];
 	norm = norm_labels[params->sum_idx * 8 + ttable->att * 4 + 4 - params->src_size];
 	put32 = put32_labels[params->put_idx];
@@ -256,9 +256,9 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 			
 			/* Get sample */
 			goto *get;
-#define GET_END after_get
+#define GETU_END after_get
 #include "plugin_ops.h"
-#undef GET_END
+#undef GETU_END
 		after_get:
 
 			/* Sum */
