@@ -630,7 +630,7 @@ int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 	snd_pcm_info_t *info;
 	char ctl_name[16];
 	snd_ctl_t *ctl;
-	snd_sctl_t *sctl;
+	snd_sctl_t *sctl = NULL;
 	snd_config_t *pcm_conf = NULL;
 	snd_pcm_hook_t *h_hw_params = NULL, *h_hw_free = NULL, *h_close = NULL;
 	assert(conf);
@@ -676,7 +676,8 @@ int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 		snd_pcm_hook_remove(h_hw_free);
 	if (h_close)
 		snd_pcm_hook_remove(h_close);
-	snd_sctl_free(sctl);
+	if (sctl)
+		snd_sctl_free(sctl);
 	if (pcm_conf)
 		snd_config_delete(pcm_conf);
 	return err;
