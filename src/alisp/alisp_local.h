@@ -24,6 +24,8 @@
 enum alisp_tokens {
 	ALISP_IDENTIFIER,
 	ALISP_INTEGER,
+	ALISP_FLOAT,
+	ALISP_FLOATE,
 	ALISP_STRING
 };
 
@@ -31,6 +33,7 @@ enum alisp_objects {
 	ALISP_OBJ_NIL,
 	ALISP_OBJ_T,
 	ALISP_OBJ_INTEGER,
+	ALISP_OBJ_FLOAT,
 	ALISP_OBJ_IDENTIFIER,
 	ALISP_OBJ_STRING,
 	ALISP_OBJ_CONS
@@ -42,7 +45,8 @@ struct alisp_object {
 	union {
 		char	*id;
 		char	*s;
-		int	i;
+		long	i;
+		double	f;
 		struct {
 			struct alisp_object *car;
 			struct alisp_object *cdr;
