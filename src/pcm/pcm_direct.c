@@ -199,8 +199,10 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm)
 }
 
 #if 0
+#define SERVER_JOB_DEBUG
 #define server_printf(fmt, args...) printf(fmt, ##args)
 #else
+#undef SERVER_JOB_DEBUG
 #define server_printf(fmt, args...) /* nothing */
 #endif
 
@@ -212,7 +214,11 @@ static void server_job(snd_pcm_direct_t *dmix)
 
 	/* close all files to free resources */
 	i = sysconf(_SC_OPEN_MAX);
+#ifdef SERVER_JOB_DEBUG
 	while (--i >= 3) {
+#else
+	while (--i >= 0) {
+#endif
 		if (i != dmix->server_fd && i != dmix->hw_fd)
 			close(i);
 	}
@@ -291,7 +297,9 @@ static void server_job(snd_pcm_direct_t *dmix)
 	snd_pcm_direct_shm_discard(dmix);
 	snd_pcm_direct_semaphore_discard(dmix);
 	server_printf("DIRECT SERVER EXIT\n");
+#ifdef SERVER_JOB_DEBUG
 	close(0); close(1); close(2);
+#endif
 	_exit(EXIT_SUCCESS);
 }
 
