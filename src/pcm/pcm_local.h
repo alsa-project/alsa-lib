@@ -113,8 +113,8 @@ struct _snd_pcm {
 	size_t boundary;		/* pointers wrap point */
 	unsigned int info;		/* Info for returned setup */
 	unsigned int msbits;		/* used most significant bits */
-	unsigned int rate_master;	/* Exact rate is rate_master / */
-	unsigned int rate_divisor;	/* rate_divisor */
+	unsigned int rate_num;		/* rate numerator */
+	unsigned int rate_den;		/* rate denominator */
 	size_t fifo_size;		/* chip FIFO size in frames */
 	size_t buffer_size;
 	size_t bits_per_sample;

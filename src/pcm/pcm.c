@@ -585,7 +585,7 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp)
 	fprintf(fp, "subformat    : %s\n", assoc(pcm->subformat, snd_pcm_subformat_names));
 	fprintf(fp, "channels     : %d\n", pcm->channels);
 	fprintf(fp, "rate         : %d\n", pcm->rate);
-	fprintf(fp, "exact rate   : %g (%d/%d)\n", (double) pcm->rate_master / pcm->rate_divisor, pcm->rate_master, pcm->rate_divisor);
+	fprintf(fp, "exact rate   : %g (%d/%d)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
 	fprintf(fp, "msbits       : %d\n", pcm->msbits);
 	fprintf(fp, "fragment_size: %ld\n", (long)pcm->fragment_size);
 	fprintf(fp, "fragments    : %d\n", pcm->fragments);
@@ -1427,10 +1427,10 @@ int snd_pcm_hw_info_complete(snd_pcm_hw_info_t *info)
 		if (bits_min == bits_max)
 			info->msbits = bits_min;
 	}
-	if (info->rate_divisor == 0 &&
+	if (info->rate_den == 0 &&
 	    info->rate_min == info->rate_max) {
-		info->rate_master = info->rate_min;
-		info->rate_divisor = 1;
+		info->rate_num = info->rate_min;
+		info->rate_den = 1;
 	}
 	return 0;
 }
@@ -1815,7 +1815,6 @@ long snd_pcm_hw_info_par_nearest_next(const snd_pcm_hw_info_t *info,
 				      snd_pcm_t *pcm)
 {
 	unsigned long min, max;
-	unsigned long d1, d2;
 	unsigned long max1, min2;
 	snd_pcm_hw_info_t i1, i2;
 	int err1 = -EINVAL;
@@ -1825,23 +1824,24 @@ long snd_pcm_hw_info_par_nearest_next(const snd_pcm_hw_info_t *info,
 	i1 = *info;
 	i2 = *info;
 	if (value < 0) {
-		d1 = 0;
-		d2 = 0;
+		max1 = best;
+		min2 = best + 1;
 	} else {
 		long diff = value - best;
 		if (diff < 0) {
-			d1 = -diff + 1;
-			d2 = -diff;
+			if (value > 1)
+				max1 = value - 1;
+			else
+				max1 = 0;
+			min2 = best - diff;
 		} else {
-			d1 = diff + 1;
-			d2 = diff + 1;
+			if (best > (unsigned long) diff)
+				max1 = best - diff - 1;
+			else
+				max1 = 0;
+			min2 = value + 1;
 		}
 	}
-	if (best > d1)
-		max1 = best - d1;
-	else
-		max1 = 0;
-	min2 = best + d2;
 	max1 = snd_pcm_hw_info_par_refine_max(&i1, param, max1);
 	min2 = snd_pcm_hw_info_par_refine_min(&i2, param, min2);
 	if (min <= max1) {
@@ -1959,8 +1959,8 @@ int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 	pcm->info = info.info;
 	pcm->msbits = info.msbits;
-	pcm->rate_master = info.rate_master;
-	pcm->rate_divisor = info.rate_divisor;
+	pcm->rate_num = info.rate_num;
+	pcm->rate_den = info.rate_den;
 	pcm->fifo_size = info.fifo_size;
 
 	/* Default sw params */
