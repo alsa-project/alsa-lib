@@ -161,11 +161,11 @@ static void route1_many(snd_pcm_channel_area_t *src_areas,
 			ttable_dst_t* ttable,
 			route_params_t *params)
 {
-#define GET_U_LABELS
-#define PUT_U32_LABELS
+#define GET_LABELS
+#define PUT32_LABELS
 #include "plugin_ops.h"
-#undef GET_U_LABELS
-#undef PUT_U32_LABELS
+#undef GET_LABELS
+#undef PUT32_LABELS
 	static void *zero_labels[3] = { &&zero_int32, &&zero_int64,
 #if ROUTE_PLUGIN_FLOAT
 				 &&zero_float
@@ -206,7 +206,7 @@ static void route1_many(snd_pcm_channel_area_t *src_areas,
 					 &&norm_float_24,
 #endif
 	};
-	void *zero, *get, *add, *norm, *put_u32;
+	void *zero, *get, *add, *norm, *put32;
 	int nsrcs = ttable->nsrcs;
 	char *dst;
 	int dst_step;
@@ -239,10 +239,10 @@ static void route1_many(snd_pcm_channel_area_t *src_areas,
 	dst_area->enabled = 1;
 #endif
 	zero = zero_labels[params->sum_idx];
-	get = get_u_labels[params->get_idx];
+	get = get_labels[params->get_idx];
 	add = add_labels[params->sum_idx * 2 + ttable->att];
 	norm = norm_labels[params->sum_idx * 8 + ttable->att * 4 + 4 - params->src_size];
-	put_u32 = put_u32_labels[params->put_idx];
+	put32 = put32_labels[params->put_idx];
 	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 	dst_step = snd_pcm_channel_area_step(dst_area);
 
@@ -269,9 +269,9 @@ static void route1_many(snd_pcm_channel_area_t *src_areas,
 			
 			/* Get sample */
 			goto *get;
-#define GET_U_END after_get
+#define GET_END after_get
 #include "plugin_ops.h"
-#undef GET_U_END
+#undef GET_END
 		after_get:
 
 			/* Sum */
@@ -376,11 +376,11 @@ static void route1_many(snd_pcm_channel_area_t *src_areas,
 	after_norm:
 		
 		/* Put sample */
-		goto *put_u32;
-#define PUT_U32_END after_put_u32
+		goto *put32;
+#define PUT32_END after_put32
 #include "plugin_ops.h"
-#undef PUT_U32_END
-	after_put_u32:
+#undef PUT32_END
+	after_put32:
 		
 		dst += dst_step;
 	}
@@ -531,8 +531,8 @@ static int snd_pcm_route_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 		src_format = route->sformat;
 		dst_format = route->cformat;
 	}
-	route->params.get_idx = getput_index(src_format);
-	route->params.put_idx = getput_index(dst_format);
+	route->params.get_idx = get_index(src_format, SND_PCM_SFMT_U16);
+	route->params.put_idx = put_index(SND_PCM_SFMT_U32, dst_format);
 	route->params.conv_idx = conv_index(src_format, dst_format);
 	route->params.src_size = snd_pcm_format_width(src_format) / 8;
 	route->params.dst_sfmt = dst_format;

@@ -59,7 +59,8 @@ int snd_pcm_plugin_munmap_control(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap(snd_pcm_t *pcm);
 int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm);
 int snd_pcm_plugin_channels_mask(snd_pcm_t *pcm, bitset_t *cmask);
-int getput_index(int format);
+int get_index(int src_format, int dst_format);
+int put_index(int src_format, int dst_format);
 int conv_index(int src_format, int dst_format);
 
 #define SND_PCM_LINEAR_FORMATS (SND_PCM_FMT_S8 | SND_PCM_FMT_U8 | \

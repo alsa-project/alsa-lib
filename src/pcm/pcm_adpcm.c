@@ -204,10 +204,10 @@ static void adpcm_decode(snd_pcm_channel_area_t *src_areas,
 			 size_t frames, size_t channels, int putidx,
 			 adpcm_state_t *states)
 {
-#define PUT_S16_LABELS
+#define PUT16_LABELS
 #include "plugin_ops.h"
-#undef PUT_S16_LABELS
-	void *put = put_s16_labels[putidx];
+#undef PUT16_LABELS
+	void *put = put16_labels[putidx];
 	size_t channel;
 	for (channel = 0; channel < channels; ++channel, ++states) {
 		char *src;
@@ -243,9 +243,9 @@ static void adpcm_decode(snd_pcm_channel_area_t *src_areas,
 				v = (*src >> 4) & 0x0f;
 			sample = adpcm_decoder(v, states);
 			goto *put;
-#define PUT_S16_END after
+#define PUT16_END after
 #include "plugin_ops.h"
-#undef PUT_S16_END
+#undef PUT16_END
 		after:
 			src += src_step;
 			srcbit += srcbit_step;
@@ -265,10 +265,10 @@ static void adpcm_encode(snd_pcm_channel_area_t *src_areas,
 			 size_t frames, size_t channels, int getidx,
 			 adpcm_state_t *states)
 {
-#define GET_S16_LABELS
+#define GET16_LABELS
 #include "plugin_ops.h"
-#undef GET_S16_LABELS
-	void *get = get_s16_labels[getidx];
+#undef GET16_LABELS
+	void *get = get16_labels[getidx];
 	size_t channel;
 	int16_t sample = 0;
 	for (channel = 0; channel < channels; ++channel, ++states) {
@@ -299,9 +299,9 @@ static void adpcm_encode(snd_pcm_channel_area_t *src_areas,
 		while (frames1-- > 0) {
 			int v;
 			goto *get;
-#define GET_S16_END after
+#define GET16_END after
 #include "plugin_ops.h"
-#undef GET_S16_END
+#undef GET16_END
 		after:
 			v = adpcm_encoder(sample, states);
 			if (dstbit)
@@ -409,18 +409,18 @@ static int snd_pcm_adpcm_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 	setup->mmap_bytes = 0;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (adpcm->sformat == SND_PCM_SFMT_IMA_ADPCM) {
-			adpcm->getput_idx = getput_index(adpcm->cformat);
+			adpcm->getput_idx = get_index(adpcm->cformat, SND_PCM_SFMT_S16);
 			adpcm->func = adpcm_encode;
 		} else {
-			adpcm->getput_idx = getput_index(adpcm->sformat);
+			adpcm->getput_idx = put_index(SND_PCM_SFMT_S16, adpcm->sformat);
 			adpcm->func = adpcm_decode;
 		}
 	} else {
 		if (adpcm->sformat == SND_PCM_SFMT_IMA_ADPCM) {
-			adpcm->getput_idx = getput_index(adpcm->cformat);
+			adpcm->getput_idx = put_index(SND_PCM_SFMT_S16, adpcm->cformat);
 			adpcm->func = adpcm_decode;
 		} else {
-			adpcm->getput_idx = getput_index(adpcm->sformat);
+			adpcm->getput_idx = get_index(adpcm->sformat, SND_PCM_SFMT_S16);
 			adpcm->func = adpcm_encode;
 		}
 	}

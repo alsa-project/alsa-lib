@@ -67,13 +67,13 @@ static size_t resample_expand(snd_pcm_channel_area_t *src_areas,
 			      unsigned int get_threshold,
 			      rate_state_t *states)
 {
-#define GET_S16_LABELS
-#define PUT_S16_LABELS
+#define GET16_LABELS
+#define PUT16_LABELS
 #include "plugin_ops.h"
-#undef GET_S16_LABELS
-#undef PUT_S16_LABELS
-	void *get = get_s16_labels[getidx];
-	void *put = put_s16_labels[putidx];
+#undef GET16_LABELS
+#undef PUT16_LABELS
+	void *get = get16_labels[getidx];
+	void *put = put16_labels[putidx];
 	unsigned int channel;
 	size_t src_frames1 = 0;
 	size_t dst_frames1 = 0;
@@ -112,9 +112,9 @@ static size_t resample_expand(snd_pcm_channel_area_t *src_areas,
 					break;
 				pos -= get_threshold;
 				goto *get;
-#define GET_S16_END after_get
+#define GET16_END after_get
 #include "plugin_ops.h"
-#undef GET_S16_END
+#undef GET16_END
 			after_get:
 				src += src_step;
 				src_frames1++;
@@ -124,9 +124,9 @@ static size_t resample_expand(snd_pcm_channel_area_t *src_areas,
 			} else
 				sample = old_sample;
 			goto *put;
-#define PUT_S16_END after_put
+#define PUT16_END after_put
 #include "plugin_ops.h"
-#undef PUT_S16_END
+#undef PUT16_END
 		after_put:
 			dst += dst_step;
 			dst_frames1++;
@@ -149,13 +149,13 @@ static size_t resample_shrink(snd_pcm_channel_area_t *src_areas,
 			      unsigned int get_increment,
 			      rate_state_t *states)
 {
-#define GET_S16_LABELS
-#define PUT_S16_LABELS
+#define GET16_LABELS
+#define PUT16_LABELS
 #include "plugin_ops.h"
-#undef GET_S16_LABELS
-#undef PUT_S16_LABELS
-	void *get = get_s16_labels[getidx];
-	void *put = put_s16_labels[putidx];
+#undef GET16_LABELS
+#undef PUT16_LABELS
+	void *get = get16_labels[getidx];
+	void *put = put16_labels[putidx];
 	unsigned int channel;
 	size_t src_frames1 = 0;
 	size_t dst_frames1 = 0;
@@ -192,9 +192,9 @@ static size_t resample_shrink(snd_pcm_channel_area_t *src_areas,
 		while (src_frames1 < src_frames) {
 			
 			goto *get;
-#define GET_S16_END after_get
+#define GET16_END after_get
 #include "plugin_ops.h"
-#undef GET_S16_END
+#undef GET16_END
 		after_get:
 			src += src_step;
 			src_frames1++;
@@ -206,9 +206,9 @@ static size_t resample_shrink(snd_pcm_channel_area_t *src_areas,
 				sum /= DIV;
 				sample = sum;
 				goto *put;
-#define PUT_S16_END after_put
+#define PUT16_END after_put
 #include "plugin_ops.h"
-#undef PUT_S16_END
+#undef PUT16_END
 			after_put:
 				dst += dst_step;
 				sum = s * pos;
@@ -372,8 +372,8 @@ static int snd_pcm_rate_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 		src_rate = rate->srate;
 		dst_rate = rate->crate;
 	}
-	rate->get_idx = getput_index(src_format);
-	rate->put_idx = getput_index(dst_format);
+	rate->get_idx = get_index(src_format, SND_PCM_SFMT_S16);
+	rate->put_idx = put_index(SND_PCM_SFMT_S16, dst_format);
 	if (src_rate < dst_rate) {
 		rate->func = resample_expand;
 		/* pitch is get_threshold */

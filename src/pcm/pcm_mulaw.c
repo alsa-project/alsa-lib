@@ -145,10 +145,10 @@ static void mulaw_decode(snd_pcm_channel_area_t *src_areas,
 			 size_t dst_offset,
 			 size_t frames, size_t channels, int putidx)
 {
-#define PUT_S16_LABELS
+#define PUT16_LABELS
 #include "plugin_ops.h"
-#undef PUT_S16_LABELS
-	void *put = put_s16_labels[putidx];
+#undef PUT16_LABELS
+	void *put = put16_labels[putidx];
 	size_t channel;
 	for (channel = 0; channel < channels; ++channel) {
 		char *src;
@@ -174,9 +174,9 @@ static void mulaw_decode(snd_pcm_channel_area_t *src_areas,
 		while (frames1-- > 0) {
 			int16_t sample = ulaw_to_s16(*src);
 			goto *put;
-#define PUT_S16_END after
+#define PUT16_END after
 #include "plugin_ops.h"
-#undef PUT_S16_END
+#undef PUT16_END
 		after:
 			src += src_step;
 			dst += dst_step;
@@ -190,10 +190,10 @@ static void mulaw_encode(snd_pcm_channel_area_t *src_areas,
 			 size_t dst_offset,
 			 size_t frames, size_t channels, int getidx)
 {
-#define GET_S16_LABELS
+#define GET16_LABELS
 #include "plugin_ops.h"
-#undef GET_S16_LABELS
-	void *get = get_s16_labels[getidx];
+#undef GET16_LABELS
+	void *get = get16_labels[getidx];
 	size_t channel;
 	int16_t sample = 0;
 	for (channel = 0; channel < channels; ++channel) {
@@ -219,9 +219,9 @@ static void mulaw_encode(snd_pcm_channel_area_t *src_areas,
 		frames1 = frames;
 		while (frames1-- > 0) {
 			goto *get;
-#define GET_S16_END after
+#define GET16_END after
 #include "plugin_ops.h"
-#undef GET_S16_END
+#undef GET16_END
 		after:
 			*dst = s16_to_ulaw(sample);
 			src += src_step;
@@ -308,18 +308,18 @@ static int snd_pcm_mulaw_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 	setup->mmap_bytes = 0;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (mulaw->sformat == SND_PCM_SFMT_MU_LAW) {
-			mulaw->getput_idx = getput_index(mulaw->cformat);
+			mulaw->getput_idx = get_index(mulaw->cformat, SND_PCM_SFMT_S16);
 			mulaw->func = mulaw_encode;
 		} else {
-			mulaw->getput_idx = getput_index(mulaw->sformat);
+			mulaw->getput_idx = put_index(SND_PCM_SFMT_S16, mulaw->sformat);
 			mulaw->func = mulaw_decode;
 		}
 	} else {
 		if (mulaw->sformat == SND_PCM_SFMT_MU_LAW) {
-			mulaw->getput_idx = getput_index(mulaw->cformat);
+			mulaw->getput_idx = put_index(SND_PCM_SFMT_S16, mulaw->cformat);
 			mulaw->func = mulaw_decode;
 		} else {
-			mulaw->getput_idx = getput_index(mulaw->sformat);
+			mulaw->getput_idx = get_index(mulaw->sformat, SND_PCM_SFMT_S16);
 			mulaw->func = mulaw_encode;
 		}
 	}

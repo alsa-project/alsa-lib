@@ -280,104 +280,103 @@ conv_1234_123C: as_u32(dst) = as_u32(src) ^ 0x80; goto CONV_END;
 }
 #endif
 
-#ifdef GET_S16_LABELS
-/* src_wid src_endswap unsigned */
-static void *get_s16_labels[4 * 2 * 2] = {
-	&&get_s16_xxx1_xx10,	 /*  8h -> 16h */
-	&&get_s16_xxx1_xx90,	 /*  8h ^> 16h */
-	&&get_s16_xxx1_xx10,	 /*  8s -> 16h */
-	&&get_s16_xxx1_xx90,	 /*  8s ^> 16h */
-	&&get_s16_xx12_xx12,	 /* 16h -> 16h */
-	&&get_s16_xx12_xx92,	 /* 16h ^> 16h */
-	&&get_s16_xx12_xx21,	 /* 16s -> 16h */
-	&&get_s16_xx12_xxA1,	 /* 16s ^> 16h */
-	&&get_s16_x123_xx12,	 /* 24h -> 16h */
-	&&get_s16_x123_xx92,	 /* 24h ^> 16h */
-	&&get_s16_123x_xx32,	 /* 24s -> 16h */
-	&&get_s16_123x_xxB2,	 /* 24s ^> 16h */
-	&&get_s16_1234_xx12,	 /* 32h -> 16h */
-	&&get_s16_1234_xx92,	 /* 32h ^> 16h */
-	&&get_s16_1234_xx43,	 /* 32s -> 16h */
-	&&get_s16_1234_xxC3,	 /* 32s ^> 16h */
+#ifdef GET16_LABELS
+/* src_wid src_endswap sign_toggle */
+static void *get16_labels[4 * 2 * 2] = {
+	&&get16_1_10,	 /*  8h -> 16h */
+	&&get16_1_90,	 /*  8h ^> 16h */
+	&&get16_1_10,	 /*  8s -> 16h */
+	&&get16_1_90,	 /*  8s ^> 16h */
+	&&get16_12_12,	 /* 16h -> 16h */
+	&&get16_12_92,	 /* 16h ^> 16h */
+	&&get16_12_21,	 /* 16s -> 16h */
+	&&get16_12_A1,	 /* 16s ^> 16h */
+	&&get16_0123_12, /* 24h -> 16h */
+	&&get16_0123_92, /* 24h ^> 16h */
+	&&get16_1230_32, /* 24s -> 16h */
+	&&get16_1230_B2, /* 24s ^> 16h */
+	&&get16_1234_12, /* 32h -> 16h */
+	&&get16_1234_92, /* 32h ^> 16h */
+	&&get16_1234_43, /* 32s -> 16h */
+	&&get16_1234_C3, /* 32s ^> 16h */
 };
 #endif
 
-#ifdef GET_S16_END
+#ifdef GET16_END
 while(0) {
-get_s16_xxx1_xx10: sample = (u_int16_t)as_u8(src) << 8; goto GET_S16_END;
-get_s16_xxx1_xx90: sample = (u_int16_t)(as_u8(src) ^ 0x80) << 8; goto GET_S16_END;
-get_s16_xx12_xx12: sample = as_u16(src); goto GET_S16_END;
-get_s16_xx12_xx92: sample = as_u16(src) ^ 0x8000; goto GET_S16_END;
-get_s16_xx12_xx21: sample = bswap_16(as_u16(src)); goto GET_S16_END;
-get_s16_xx12_xxA1: sample = bswap_16(as_u16(src) ^ 0x80); goto GET_S16_END;
-get_s16_x123_xx12: sample = as_u32(src) >> 8; goto GET_S16_END;
-get_s16_x123_xx92: sample = (as_u32(src) >> 8) ^ 0x8000; goto GET_S16_END;
-get_s16_123x_xx32: sample = bswap_16(as_u32(src) >> 8); goto GET_S16_END;
-get_s16_123x_xxB2: sample = bswap_16((as_u32(src) >> 8) ^ 0x8000); goto GET_S16_END;
-get_s16_1234_xx12: sample = as_u32(src) >> 16; goto GET_S16_END;
-get_s16_1234_xx92: sample = (as_u32(src) >> 16) ^ 0x8000; goto GET_S16_END;
-get_s16_1234_xx43: sample = bswap_16(as_u32(src)); goto GET_S16_END;
-get_s16_1234_xxC3: sample = bswap_16(as_u32(src) ^ 0x80); goto GET_S16_END;
+get16_1_10: sample = (u_int16_t)as_u8(src) << 8; goto GET16_END;
+get16_1_90: sample = (u_int16_t)(as_u8(src) ^ 0x80) << 8; goto GET16_END;
+get16_12_12: sample = as_u16(src); goto GET16_END;
+get16_12_92: sample = as_u16(src) ^ 0x8000; goto GET16_END;
+get16_12_21: sample = bswap_16(as_u16(src)); goto GET16_END;
+get16_12_A1: sample = bswap_16(as_u16(src) ^ 0x80); goto GET16_END;
+get16_0123_12: sample = as_u32(src) >> 8; goto GET16_END;
+get16_0123_92: sample = (as_u32(src) >> 8) ^ 0x8000; goto GET16_END;
+get16_1230_32: sample = bswap_16(as_u32(src) >> 8); goto GET16_END;
+get16_1230_B2: sample = bswap_16((as_u32(src) >> 8) ^ 0x8000); goto GET16_END;
+get16_1234_12: sample = as_u32(src) >> 16; goto GET16_END;
+get16_1234_92: sample = (as_u32(src) >> 16) ^ 0x8000; goto GET16_END;
+get16_1234_43: sample = bswap_16(as_u32(src)); goto GET16_END;
+get16_1234_C3: sample = bswap_16(as_u32(src) ^ 0x80); goto GET16_END;
 }
 #endif
 
-#ifdef PUT_S16_LABELS
-/* dst_wid dst_endswap unsigned */
-static void *put_s16_labels[4 * 2 * 2 * 4 * 2] = {
-	&&put_s16_xx12_xxx1,	 /* 16h ->  8h */
-	&&put_s16_xx12_xxx9,	 /* 16h ^>  8h */
-	&&put_s16_xx12_xxx1,	 /* 16h ->  8s */
-	&&put_s16_xx12_xxx9,	 /* 16h ^>  8s */
-	&&put_s16_xx12_xx12,	 /* 16h -> 16h */
-	&&put_s16_xx12_xx92,	 /* 16h ^> 16h */
-	&&put_s16_xx12_xx21,	 /* 16h -> 16s */
-	&&put_s16_xx12_xx29,	 /* 16h ^> 16s */
-	&&put_s16_xx12_x120,	 /* 16h -> 24h */
-	&&put_s16_xx12_x920,	 /* 16h ^> 24h */
-	&&put_s16_xx12_021x,	 /* 16h -> 24s */
-	&&put_s16_xx12_029x,	 /* 16h ^> 24s */
-	&&put_s16_xx12_1200,	 /* 16h -> 32h */
-	&&put_s16_xx12_9200,	 /* 16h ^> 32h */
-	&&put_s16_xx12_0021,	 /* 16h -> 32s */
-	&&put_s16_xx12_0029,	 /* 16h ^> 32s */
+#ifdef PUT16_LABELS
+/* dst_wid dst_endswap sign_toggle */
+static void *put16_labels[4 * 2 * 2 * 4 * 2] = {
+	&&put16_12_1,	 /* 16h ->  8h */
+	&&put16_12_9,	 /* 16h ^>  8h */
+	&&put16_12_1,	 /* 16h ->  8s */
+	&&put16_12_9,	 /* 16h ^>  8s */
+	&&put16_12_12,	 /* 16h -> 16h */
+	&&put16_12_92,	 /* 16h ^> 16h */
+	&&put16_12_21,	 /* 16h -> 16s */
+	&&put16_12_29,	 /* 16h ^> 16s */
+	&&put16_12_0120,	 /* 16h -> 24h */
+	&&put16_12_0920,	 /* 16h ^> 24h */
+	&&put16_12_0210,	 /* 16h -> 24s */
+	&&put16_12_0290,	 /* 16h ^> 24s */
+	&&put16_12_1200,	 /* 16h -> 32h */
+	&&put16_12_9200,	 /* 16h ^> 32h */
+	&&put16_12_0021,	 /* 16h -> 32s */
+	&&put16_12_0029,	 /* 16h ^> 32s */
 };
 #endif
 
-#ifdef PUT_S16_END
+#ifdef PUT16_END
 while (0) {
-put_s16_xx12_xxx1: as_u8(dst) = sample >> 8; goto PUT_S16_END;
-put_s16_xx12_xxx9: as_u8(dst) = (sample >> 8) ^ 0x80; goto PUT_S16_END;
-put_s16_xx12_xx12: as_u16(dst) = sample; goto PUT_S16_END;
-put_s16_xx12_xx92: as_u16(dst) = sample ^ 0x8000; goto PUT_S16_END;
-put_s16_xx12_xx21: as_u16(dst) = bswap_16(sample); goto PUT_S16_END;
-put_s16_xx12_xx29: as_u16(dst) = bswap_16(sample) ^ 0x80; goto PUT_S16_END;
-put_s16_xx12_x120: as_u32(dst) = (u_int32_t)sample << 8; goto PUT_S16_END;
-put_s16_xx12_x920: as_u32(dst) = (u_int32_t)(sample ^ 0x8000) << 8; goto PUT_S16_END;
-put_s16_xx12_021x: as_u32(dst) = (u_int32_t)bswap_16(sample) << 8; goto PUT_S16_END;
-put_s16_xx12_029x: as_u32(dst) = (u_int32_t)(bswap_16(sample) ^ 0x80) << 8; goto PUT_S16_END;
-put_s16_xx12_1200: as_u32(dst) = (u_int32_t)sample << 16; goto PUT_S16_END;
-put_s16_xx12_9200: as_u32(dst) = (u_int32_t)(sample ^ 0x8000) << 16; goto PUT_S16_END;
-put_s16_xx12_0021: as_u32(dst) = (u_int32_t)bswap_16(sample); goto PUT_S16_END;
-put_s16_xx12_0029: as_u32(dst) = (u_int32_t)bswap_16(sample) ^ 0x80; goto PUT_S16_END;
+put16_12_1: as_u8(dst) = sample >> 8; goto PUT16_END;
+put16_12_9: as_u8(dst) = (sample >> 8) ^ 0x80; goto PUT16_END;
+put16_12_12: as_u16(dst) = sample; goto PUT16_END;
+put16_12_92: as_u16(dst) = sample ^ 0x8000; goto PUT16_END;
+put16_12_21: as_u16(dst) = bswap_16(sample); goto PUT16_END;
+put16_12_29: as_u16(dst) = bswap_16(sample) ^ 0x80; goto PUT16_END;
+put16_12_0120: as_u32(dst) = (u_int32_t)sample << 8; goto PUT16_END;
+put16_12_0920: as_u32(dst) = (u_int32_t)(sample ^ 0x8000) << 8; goto PUT16_END;
+put16_12_0210: as_u32(dst) = (u_int32_t)bswap_16(sample) << 8; goto PUT16_END;
+put16_12_0290: as_u32(dst) = (u_int32_t)(bswap_16(sample) ^ 0x80) << 8; goto PUT16_END;
+put16_12_1200: as_u32(dst) = (u_int32_t)sample << 16; goto PUT16_END;
+put16_12_9200: as_u32(dst) = (u_int32_t)(sample ^ 0x8000) << 16; goto PUT16_END;
+put16_12_0021: as_u32(dst) = (u_int32_t)bswap_16(sample); goto PUT16_END;
+put16_12_0029: as_u32(dst) = (u_int32_t)bswap_16(sample) ^ 0x80; goto PUT16_END;
 }
 #endif
 
-#if 0
 #ifdef GET32_LABELS
-/* src_wid src_endswap unsigned */
+/* src_wid src_endswap sign_toggle */
 static void *get32_labels[4 * 2 * 2] = {
-	&&get32_xxx1_1000,	 /*  8h -> 32h */
-	&&get32_xxx1_9000,	 /*  8h ^> 32h */
-	&&get32_xxx1_1000,	 /*  8s -> 32h */
-	&&get32_xxx1_9000,	 /*  8s ^> 32h */
-	&&get32_xx12_1200,	 /* 16h -> 32h */
-	&&get32_xx12_9200,	 /* 16h ^> 32h */
-	&&get32_xx12_2100,	 /* 16s -> 32h */
-	&&get32_xx12_A100,	 /* 16s ^> 32h */
-	&&get32_x123_1230,	 /* 24h -> 32h */
-	&&get32_x123_9230,	 /* 24h ^> 32h */
-	&&get32_123x_3210,	 /* 24s -> 32h */
-	&&get32_123x_B210,	 /* 24s ^> 32h */
+	&&get32_1_1000,	 	/*  8h -> 32h */
+	&&get32_1_9000,	 	/*  8h ^> 32h */
+	&&get32_1_1000,	 	/*  8s -> 32h */
+	&&get32_1_9000,		 /*  8s ^> 32h */
+	&&get32_12_1200,	 /* 16h -> 32h */
+	&&get32_12_9200,	 /* 16h ^> 32h */
+	&&get32_12_2100,	 /* 16s -> 32h */
+	&&get32_12_A100,	 /* 16s ^> 32h */
+	&&get32_0123_1230,	 /* 24h -> 32h */
+	&&get32_0123_9230,	 /* 24h ^> 32h */
+	&&get32_1230_3210,	 /* 24s -> 32h */
+	&&get32_1230_B210,	 /* 24s ^> 32h */
 	&&get32_1234_1234,	 /* 32h -> 32h */
 	&&get32_1234_9234,	 /* 32h ^> 32h */
 	&&get32_1234_4321,	 /* 32s -> 32h */
@@ -387,145 +386,142 @@ static void *get32_labels[4 * 2 * 2] = {
 
 #ifdef GET32_END
 while (0) {
-get32_xxx1_1000: sample = (u_int32_t)as_u8(src) << 24; goto GET32_END;
-get32_xxx1_9000: sample = (u_int32_t)(as_u8(src) ^ 0x80) << 24; goto GET32_END;
-get32_xx12_1200: sample = (u_int32_t)as_u16(src) << 16; goto GET32_END;
-get32_xx12_9200: sample = (u_int32_t)(as_u16(src) ^ 0x8000) << 16; goto GET32_END;
-get32_xx12_2100: sample = (u_int32_t)bswap_16(as_u16(src)) << 16; goto GET32_END;
-get32_xx12_A100: sample = (u_int32_t)bswap_16(as_u16(src) ^ 0x80) << 16; goto GET32_END;
-get32_x123_1230: sample = as_u32(src) << 8; goto GET32_END;
-get32_x123_9230: sample = (as_u32(src) << 8) ^ 0x80000000; goto GET32_END;
-get32_123x_3210: sample = bswap_32(as_u32(src) >> 8); goto GET32_END;
-get32_123x_B210: sample = bswap_32((as_u32(src) >> 8) ^ 0x80); goto GET32_END;
+get32_1_1000: sample = (u_int32_t)as_u8(src) << 24; goto GET32_END;
+get32_1_9000: sample = (u_int32_t)(as_u8(src) ^ 0x80) << 24; goto GET32_END;
+get32_12_1200: sample = (u_int32_t)as_u16(src) << 16; goto GET32_END;
+get32_12_9200: sample = (u_int32_t)(as_u16(src) ^ 0x8000) << 16; goto GET32_END;
+get32_12_2100: sample = (u_int32_t)bswap_16(as_u16(src)) << 16; goto GET32_END;
+get32_12_A100: sample = (u_int32_t)bswap_16(as_u16(src) ^ 0x80) << 16; goto GET32_END;
+get32_0123_1230: sample = as_u32(src) << 8; goto GET32_END;
+get32_0123_9230: sample = (as_u32(src) << 8) ^ 0x80000000; goto GET32_END;
+get32_1230_3210: sample = bswap_32(as_u32(src) >> 8); goto GET32_END;
+get32_1230_B210: sample = bswap_32((as_u32(src) >> 8) ^ 0x80); goto GET32_END;
 get32_1234_1234: sample = as_u32(src); goto GET32_END;
 get32_1234_9234: sample = as_u32(src) ^ 0x80000000; goto GET32_END;
 get32_1234_4321: sample = bswap_32(as_u32(src)); goto GET32_END;
 get32_1234_C321: sample = bswap_32(as_u32(src) ^ 0x80); goto GET32_END;
 }
 #endif
-#endif
 
-#ifdef PUT_U32_LABELS
-/* dst_wid dst_endswap unsigned */
-static void *put_u32_labels[4 * 2 * 2] = {
-	&&put_u32_1234_xxx9,	 /* u32h ->  s8h */
-	&&put_u32_1234_xxx1,	 /* u32h ->  u8h */
-	&&put_u32_1234_xxx9,	 /* u32h ->  s8s */
-	&&put_u32_1234_xxx1,	 /* u32h ->  u8s */
-	&&put_u32_1234_xx92,	 /* u32h -> s16h */
-	&&put_u32_1234_xx12,	 /* u32h -> u16h */
-	&&put_u32_1234_xx29,	 /* u32h -> s16s */
-	&&put_u32_1234_xx21,	 /* u32h -> u16s */
-	&&put_u32_1234_x923,	 /* u32h -> s24h */
-	&&put_u32_1234_x123,	 /* u32h -> u24h */
-	&&put_u32_1234_329x,	 /* u32h -> s24s */
-	&&put_u32_1234_321x,	 /* u32h -> u24s */
-	&&put_u32_1234_9234,	 /* u32h -> s32h */
-	&&put_u32_1234_1234,	 /* u32h -> u32h */
-	&&put_u32_1234_4329,	 /* u32h -> s32s */
-	&&put_u32_1234_4321,	 /* u32h -> u32s */
+#ifdef PUT32_LABELS
+/* dst_wid dst_endswap sign_toggle */
+static void *put32_labels[4 * 2 * 2] = {
+	&&put32_1234_1,	 	/* 32h ->  8h */
+	&&put32_1234_9,	 	/* 32h ^>  8h */
+	&&put32_1234_1,	 	/* 32h ->  8s */
+	&&put32_1234_9,	 	/* 32h ^>  8s */
+	&&put32_1234_12,	 /* 32h -> 16h */
+	&&put32_1234_92,	 /* 32h ^> 16h */
+	&&put32_1234_21,	 /* 32h -> 16s */
+	&&put32_1234_29,	 /* 32h ^> 16s */
+	&&put32_1234_0123,	 /* 32h -> 24h */
+	&&put32_1234_0923,	 /* 32h ^> 24h */
+	&&put32_1234_3210,	 /* 32h -> 24s */
+	&&put32_1234_3290,	 /* 32h ^> 24s */
+	&&put32_1234_1234,	 /* 32h -> 32h */
+	&&put32_1234_9234,	 /* 32h ^> 32h */
+	&&put32_1234_4321,	 /* 32h -> 32s */
+	&&put32_1234_4329,	 /* 32h ^> 32s */
 };
 #endif
 
-#ifdef PUT_U32_END
+#ifdef PUT32_END
 while (0) {
-put_u32_1234_xxx1: as_u8(dst) = sample >> 24; goto PUT_U32_END;
-put_u32_1234_xxx9: as_u8(dst) = (sample >> 24) ^ 0x80; goto PUT_U32_END;
-put_u32_1234_xx12: as_u16(dst) = sample >> 16; goto PUT_U32_END;
-put_u32_1234_xx92: as_u16(dst) = (sample >> 16) ^ 0x8000; goto PUT_U32_END;
-put_u32_1234_xx21: as_u16(dst) = bswap_16(sample >> 16); goto PUT_U32_END;
-put_u32_1234_xx29: as_u16(dst) = bswap_16(sample >> 16) ^ 0x80; goto PUT_U32_END;
-put_u32_1234_x123: as_u32(dst) = sample >> 8; goto PUT_U32_END;
-put_u32_1234_x923: as_u32(dst) = (sample >> 8) ^ 0x800000; goto PUT_U32_END;
-put_u32_1234_321x: as_u32(dst) = bswap_32(sample) << 8; goto PUT_U32_END;
-put_u32_1234_329x: as_u32(dst) = (bswap_32(sample) ^ 0x80) << 8; goto PUT_U32_END;
-put_u32_1234_1234: as_u32(dst) = sample; goto PUT_U32_END;
-put_u32_1234_9234: as_u32(dst) = sample ^ 0x80000000; goto PUT_U32_END;
-put_u32_1234_4321: as_u32(dst) = bswap_32(sample); goto PUT_U32_END;
-put_u32_1234_4329: as_u32(dst) = bswap_32(sample) ^ 0x80; goto PUT_U32_END;
+put32_1234_1: as_u8(dst) = sample >> 24; goto PUT32_END;
+put32_1234_9: as_u8(dst) = (sample >> 24) ^ 0x80; goto PUT32_END;
+put32_1234_12: as_u16(dst) = sample >> 16; goto PUT32_END;
+put32_1234_92: as_u16(dst) = (sample >> 16) ^ 0x8000; goto PUT32_END;
+put32_1234_21: as_u16(dst) = bswap_16(sample >> 16); goto PUT32_END;
+put32_1234_29: as_u16(dst) = bswap_16(sample >> 16) ^ 0x80; goto PUT32_END;
+put32_1234_0123: as_u32(dst) = sample >> 8; goto PUT32_END;
+put32_1234_0923: as_u32(dst) = (sample >> 8) ^ 0x800000; goto PUT32_END;
+put32_1234_3210: as_u32(dst) = bswap_32(sample) << 8; goto PUT32_END;
+put32_1234_3290: as_u32(dst) = (bswap_32(sample) ^ 0x80) << 8; goto PUT32_END;
+put32_1234_1234: as_u32(dst) = sample; goto PUT32_END;
+put32_1234_9234: as_u32(dst) = sample ^ 0x80000000; goto PUT32_END;
+put32_1234_4321: as_u32(dst) = bswap_32(sample); goto PUT32_END;
+put32_1234_4329: as_u32(dst) = bswap_32(sample) ^ 0x80; goto PUT32_END;
 }
 #endif
 
-#ifdef GET_U_LABELS
-/* width endswap unsigned*/
-static void *get_u_labels[4 * 2 * 2] = {
-	&&get_u_s8,	/* s8  ->  u8  */
-	&&get_u_u8,	/* u8  ->  u8  */
-	&&get_u_s8,	/* s8  ->  u8  */
-	&&get_u_u8,	/* u8  ->  u8  */
-	&&get_u_s16h,	/* s16h -> u16h */
-	&&get_u_u16h,	/* u16h -> u16h */
-	&&get_u_s16s,	/* s16s -> u16h */
-	&&get_u_u16s,	/* u16s -> u16h */
-	&&get_u_s24h,	/* s24h -> u32h */
-	&&get_u_u24h,	/* u24h -> u32h */
-	&&get_u_s24s,	/* s24s -> u32h */
-	&&get_u_u24s,	/* u24s -> u32h */
-	&&get_u_s32h,	/* s32h -> u32h */
-	&&get_u_u32h,	/* u32h -> u32h */
-	&&get_u_s32s,	/* s32s -> u32h */
-	&&get_u_u32s,	/* u32s -> u32h */
+#ifdef GET_LABELS
+/* width endswap sign_toggle */
+static void *get_labels[4 * 2 * 2] = {
+	&&get_1_1,		/*  8h ->  8h */
+	&&get_1_9,		/*  8h ^>  8h */
+	&&get_1_1,		/*  8s ->  8h */
+	&&get_1_9,		/*  8s ^>  8h */
+	&&get_12_12,		/* 16h -> 16h */
+	&&get_12_92,		/* 16h ^> 16h */
+	&&get_12_21,		/* 16s -> 16h */
+	&&get_12_A1,		/* 16s ^> 16h */
+	&&get_0123_0123,	/* 24h -> 24h */
+	&&get_0123_0923,	/* 24h ^> 24h */
+	&&get_1230_0321,	/* 24s -> 24h */
+	&&get_1230_0B21,	/* 24s ^> 24h */
+	&&get_1234_1234,	/* 32h -> 32h */
+	&&get_1234_9234,	/* 32h ^> 32h */
+	&&get_1234_4321,	/* 32s -> 32h */
+	&&get_1234_C321,	/* 32s ^> 32h */
 };
 #endif
 
-#ifdef GET_U_END
+#ifdef GET_END
 while (0) {
-get_u_s8: sample = as_u8(src) ^ 0x80; goto GET_U_END;
-get_u_u8: sample = as_u8(src); goto GET_U_END;
-get_u_s16h: sample = as_u16(src) ^ 0x8000; goto GET_U_END;
-get_u_u16h: sample = as_u16(src); goto GET_U_END;
-get_u_s16s: sample = bswap_16(as_u16(src) ^ 0x80); goto GET_U_END;
-get_u_u16s: sample = bswap_16(as_u16(src)); goto GET_U_END;
-get_u_s24h: sample = (as_u32(src) ^ 0x800000); goto GET_U_END;
-get_u_u24h: sample = as_u32(src); goto GET_U_END;
-get_u_s24s: sample = bswap_32(as_u32(src) ^ 0x800000); goto GET_U_END;
-get_u_u24s: sample = bswap_32(as_u32(src)); goto GET_U_END;
-get_u_s32h: sample = as_u32(src) ^ 0x80000000; goto GET_U_END;
-get_u_u32h: sample = as_u32(src); goto GET_U_END;
-get_u_s32s: sample = bswap_32(as_u32(src) ^ 0x80); goto GET_U_END;
-get_u_u32s: sample = bswap_32(as_u32(src)); goto GET_U_END;
+get_1_1: sample = as_u8(src); goto GET_END;
+get_1_9: sample = as_u8(src) ^ 0x80; goto GET_END;
+get_12_12: sample = as_u16(src); goto GET_END;
+get_12_92: sample = as_u16(src) ^ 0x8000; goto GET_END;
+get_12_21: sample = bswap_16(as_u16(src)); goto GET_END;
+get_12_A1: sample = bswap_16(as_u16(src) ^ 0x80); goto GET_END;
+get_0123_0123: sample = as_u32(src); goto GET_END;
+get_0123_0923: sample = (as_u32(src) ^ 0x800000); goto GET_END;
+get_1230_0321: sample = bswap_32(as_u32(src)); goto GET_END;
+get_1230_0B21: sample = bswap_32(as_u32(src) ^ 0x8000); goto GET_END;
+get_1234_1234: sample = as_u32(src); goto GET_END;
+get_1234_9234: sample = as_u32(src) ^ 0x80000000; goto GET_END;
+get_1234_4321: sample = bswap_32(as_u32(src)); goto GET_END;
+get_1234_C321: sample = bswap_32(as_u32(src) ^ 0x80); goto GET_END;
 }
 #endif
 
-#if 0
 #ifdef PUT_LABELS
-/* width endswap unsigned */
+/* width endswap sign_toggle */
 static void *put_labels[4 * 2 * 2] = {
-	&&put_s8,	/* s8  ->  s8  */
-	&&put_u8,	/* u8  ->  s8  */
-	&&put_s8,	/* s8  ->  s8  */
-	&&put_u8,	/* u8  ->  s8  */
-	&&put_s16h,	/* s16h -> s16h */
-	&&put_u16h,	/* u16h -> s16h */
-	&&put_s16s,	/* s16s -> s16h */
-	&&put_u16s,	/* u16s -> s16h */
-	&&put_s24h,	/* s24h -> s32h */
-	&&put_u24h,	/* u24h -> s32h */
-	&&put_s24s,	/* s24s -> s32h */
-	&&put_u24s,	/* u24s -> s32h */
-	&&put_s32h,	/* s32h -> s32h */
-	&&put_u32h,	/* u32h -> s32h */
-	&&put_s32s,	/* s32s -> s32h */
-	&&put_u32s,	/* u32s -> s32h */
+	&&put_1_1,		/*  8h ->  8h */
+	&&put_1_9,		/*  8h ^>  8h */
+	&&put_1_1,		/*  8h ->  8s */
+	&&put_1_9,		/*  8h ^>  8s */
+	&&put_12_12,		/* 16h -> 16h */
+	&&put_12_92,		/* 16h ^> 16h */
+	&&put_12_21,		/* 16h -> 16s */
+	&&put_12_A1,		/* 16h ^> 16s */
+	&&put_0123_0123,	/* 24h -> 24h */
+	&&put_0123_0923,	/* 24h ^> 24h */
+	&&put_0123_3210,	/* 24h -> 24s */
+	&&put_0123_3290,	/* 24h ^> 24s */
+	&&put_1234_1234,	/* 32h -> 32h */
+	&&put_1234_9234,	/* 32h ^> 32h */
+	&&put_1234_4321,	/* 32h -> 32s */
+	&&put_1234_4329,	/* 32h ^> 32s */
 };
 #endif
 
 #ifdef PUT_END
-put_s8: as_s8(dst) = sample; goto PUT_END;
-put_u8: as_u8(dst) = sample ^ 0x80; goto PUT_END;
-put_s16h: as_s16(dst) = sample; goto PUT_END;
-put_u16h: as_u16(dst) = sample ^ 0x8000; goto PUT_END;
-put_s16s: as_s16(dst) = bswap_16(sample); goto PUT_END;
-put_u16s: as_u16(dst) = bswap_16(sample ^ 0x80); goto PUT_END;
-put_s24h: as_s24(dst) = sample & 0xffffff; goto PUT_END;
-put_u24h: as_u24(dst) = sample ^ 0x80000000; goto PUT_END;
-put_s24s: as_s24(dst) = bswap_32(sample & 0xffffff); goto PUT_END;
-put_u24s: as_u24(dst) = bswap_32(sample ^ 0x80); goto PUT_END;
-put_s32h: as_s32(dst) = sample; goto PUT_END;
-put_u32h: as_u32(dst) = sample ^ 0x80000000; goto PUT_END;
-put_s32s: as_s32(dst) = bswap_32(sample); goto PUT_END;
-put_u32s: as_u32(dst) = bswap_32(sample ^ 0x80); goto PUT_END;
-#endif
+put_1_1: as_s8(dst) = sample; goto PUT_END;
+put_1_9: as_u8(dst) = sample ^ 0x80; goto PUT_END;
+put_12_12: as_s16(dst) = sample; goto PUT_END;
+put_12_92: as_u16(dst) = sample ^ 0x8000; goto PUT_END;
+put_12_21: as_s16(dst) = bswap_16(sample); goto PUT_END;
+put_12_A1: as_u16(dst) = bswap_16(sample ^ 0x80); goto PUT_END;
+put_0123_0123: as_s24(dst) = sample; goto PUT_END;
+put_0123_0923: as_u24(dst) = sample ^ 0x800000; goto PUT_END;
+put_0123_3210: as_s24(dst) = bswap_32(sample); goto PUT_END;
+put_0123_3290: as_u24(dst) = bswap_32(sample) ^ 0x8000; goto PUT_END;
+put_1234_1234: as_s32(dst) = sample; goto PUT_END;
+put_1234_9234: as_u32(dst) = sample ^ 0x80000000; goto PUT_END;
+put_1234_4321: as_s32(dst) = bswap_32(sample); goto PUT_END;
+put_1234_4329: as_u32(dst) = bswap_32(sample) ^ 0x80; goto PUT_END;
 #endif
 
 #undef as_u8
