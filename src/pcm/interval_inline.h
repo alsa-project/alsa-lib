@@ -31,6 +31,12 @@ INLINE void interval_all(interval_t *i)
 	i->max = UINT_MAX;
 }
 
+INLINE int interval_checkempty(const interval_t *i)
+{
+	return (i->min > i->max ||
+		(i->min == i->max && (i->openmin || i->openmax)));
+}
+
 INLINE int interval_empty(const interval_t *i)
 {
 	return i->empty;

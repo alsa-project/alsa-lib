@@ -107,8 +107,7 @@ int interval_refine_min(interval_t *i, unsigned int min)
 			i->openmin = 0;
 		}
 	}
-	if (i->min > i->max ||
-	    (i->min == i->max && (i->openmin || i->openmax))) {
+	if (interval_checkempty(i)) {
 		i->empty = 1;
 		return -EINVAL;
 	}
@@ -135,8 +134,7 @@ int interval_refine_max(interval_t *i, unsigned int max)
 			i->openmax = 0;
 		}
 	}
-	if (i->min > i->max ||
-	    (i->min == i->max && (i->openmin || i->openmax))) {
+	if (interval_checkempty(i)) {
 		i->empty = 1;
 		return -EINVAL;
 	}
@@ -174,8 +172,7 @@ int interval_refine(interval_t *i, const interval_t *v)
 			i->openmax = 0;
 		}
 	}
-	if (i->min > i->max ||
-	    (i->min == i->max && (i->openmin || i->openmax))) {
+	if (interval_checkempty(i)) {
 		i->empty = 1;
 		return -EINVAL;
 	}
