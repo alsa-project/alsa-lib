@@ -116,6 +116,9 @@ pcm.NAME {
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
   }
+  file STR		# File name
+  # or
+  file INT		# File descriptor
   [format STR]		# File format (NYI)
 
 
