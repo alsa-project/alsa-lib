@@ -188,7 +188,7 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 	}
 #endif
 
-	err = snd_pcm_mmap_frame_data(stream, frames);
+	err = snd_pcm_frame_data(stream, frames);
 	if (err < 0)
 		return err;
 	if (snd_pcm_mmap_state(stream) == SND_PCM_STATE_PREPARED &&
@@ -216,7 +216,7 @@ static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
 	stream = plugin->plug->slave;
 
 	/* FIXME: not here the increment */
-	err = snd_pcm_mmap_frame_data(stream, frames);
+	err = snd_pcm_frame_data(stream, frames);
 	if (err < 0)
 		return err;
 
