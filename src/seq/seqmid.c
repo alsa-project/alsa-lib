@@ -40,8 +40,10 @@
  * This function sets up general queue control event and sends it.
  * To send at scheduled time, set the schedule in \a ev.
  * If \a ev is NULL, the event is composed locally and sent immediately
- * to the specified queue.  In any cases, you need to call #snd_seq_drain_event
+ * to the specified queue.  In any cases, you need to call #snd_seq_drain_output()
  * appropriately to feed the event.
+ *
+ * \sa snd_seq_alloc_queue()
  */
 int snd_seq_control_queue(snd_seq_t *seq, int q, int type, int value, snd_seq_event_t *ev)
 {
@@ -65,6 +67,8 @@ int snd_seq_control_queue(snd_seq_t *seq, int q, int type, int value, snd_seq_ev
  * \return the created port number or negative error code
  *
  * Creates a port with the given capability and type bits.
+ *
+ * \sa snd_seq_create_port(), snd_seq_delete_simple_port()
  */
 int snd_seq_create_simple_port(snd_seq_t *seq, const char *name,
 			       unsigned int caps, unsigned int type)
@@ -93,6 +97,8 @@ int snd_seq_create_simple_port(snd_seq_t *seq, const char *name,
  * \param seq sequencer handle
  * \param port port id
  * \return 0 on success or negative error code
+ *
+ * \sa snd_seq_delete_port(), snd_seq_create_simple_port()
  */
 int snd_seq_delete_simple_port(snd_seq_t *seq, int port)
 {
@@ -108,6 +114,8 @@ int snd_seq_delete_simple_port(snd_seq_t *seq, int port)
  *
  * Connect from the given sender client:port to the given destination port in the
  * current client.
+ *
+ * \sa snd_seq_subscribe_port(), snd_seq_disconnect_from()
  */
 int snd_seq_connect_from(snd_seq_t *seq, int myport, int src_client, int src_port)
 {
@@ -132,6 +140,8 @@ int snd_seq_connect_from(snd_seq_t *seq, int myport, int src_client, int src_por
  *
  * Connect from the given receiver port in the current client
  * to the given destination client:port.
+ *
+ * \sa snd_seq_subscribe_port(), snd_seq_disconnect_to()
  */
 int snd_seq_connect_to(snd_seq_t *seq, int myport, int dest_client, int dest_port)
 {
@@ -156,6 +166,8 @@ int snd_seq_connect_to(snd_seq_t *seq, int myport, int dest_client, int dest_por
  *
  * Remove connection from the given sender client:port
  * to the given destination port in the current client.
+ *
+ * \sa snd_seq_unsubscribe_port(), snd_seq_connect_from()
  */
 int snd_seq_disconnect_from(snd_seq_t *seq, int myport, int src_client, int src_port)
 {
@@ -180,6 +192,8 @@ int snd_seq_disconnect_from(snd_seq_t *seq, int myport, int src_client, int src_
  *
  * Remove connection from the given sender client:port
  * to the given destination port in the current client.
+ *
+ * \sa snd_seq_unsubscribe_port(), snd_seq_connect_to()
  */
 int snd_seq_disconnect_to(snd_seq_t *seq, int myport, int dest_client, int dest_port)
 {
@@ -204,6 +218,8 @@ int snd_seq_disconnect_to(snd_seq_t *seq, int myport, int dest_client, int dest_
  * \param seq sequencer handle
  * \param name name string
  * \return 0 on success or negative error code
+ *
+ * \sa snd_seq_set_client_info()
  */
 int snd_seq_set_client_name(snd_seq_t *seq, const char *name)
 {
@@ -221,6 +237,8 @@ int snd_seq_set_client_name(snd_seq_t *seq, const char *name)
  * \param seq sequencer handle
  * \param event_type event type to be added
  * \return 0 on success or negative error code
+ *
+ * \sa snd_seq_set_client_info()
  */
 int snd_seq_set_client_event_filter(snd_seq_t *seq, int event_type)
 {
@@ -239,6 +257,8 @@ int snd_seq_set_client_event_filter(snd_seq_t *seq, int event_type)
  * \param seq sequencer handle
  * \param size output pool size
  * \return 0 on success or negative error code
+ *
+ * \sa snd_seq_set_client_pool()
  */
 int snd_seq_set_client_pool_output(snd_seq_t *seq, size_t size)
 {
@@ -256,6 +276,8 @@ int snd_seq_set_client_pool_output(snd_seq_t *seq, size_t size)
  * \param seq sequencer handle
  * \param size output room size
  * \return 0 on success or negative error code
+ *
+ * \sa snd_seq_set_client_pool()
  */
 int snd_seq_set_client_pool_output_room(snd_seq_t *seq, size_t size)
 {
@@ -273,6 +295,8 @@ int snd_seq_set_client_pool_output_room(snd_seq_t *seq, size_t size)
  * \param seq sequencer handle
  * \param size input pool size
  * \return 0 on success or negative error code
+ *
+ * \sa snd_seq_set_client_pool()
  */
 int snd_seq_set_client_pool_input(snd_seq_t *seq, size_t size)
 {
@@ -289,34 +313,34 @@ int snd_seq_set_client_pool_input(snd_seq_t *seq, size_t size)
  * \brief reset client output pool
  * \param seq sequencer handle
  * \return 0 on success or negative error code
+ *
+ * So far, this works ideically like #snd_seq_drop_output().
  */
 int snd_seq_reset_pool_output(snd_seq_t *seq)
 {
-	struct sndrv_seq_remove_events rmp;
-
-	memset(&rmp, 0, sizeof(rmp));
-	rmp.remove_mode = SNDRV_SEQ_REMOVE_OUTPUT; /* remove all outputs */
-	return snd_seq_remove_events(seq, &rmp);
+	return snd_seq_drop_output(seq);
 }
 
 /**
  * \brief reset client input pool
  * \param seq sequencer handle
  * \return 0 on success or negative error code
+ *
+ * So far, this works ideically like #snd_seq_drop_input().
  */
 int snd_seq_reset_pool_input(snd_seq_t *seq)
 {
-	snd_seq_remove_events_t rmp;
-
-	memset(&rmp, 0, sizeof(rmp));
-	rmp.remove_mode = SNDRV_SEQ_REMOVE_INPUT; /* remove all inputs */
-	return snd_seq_remove_events(seq, &rmp);
+	return snd_seq_drop_input(seq);
 }
 
 /**
- * \brief drain output queue
+ * \brief wait until all events are processed
  * \param seq sequencer handle
  * \return 0 on success or negative error code
+ *
+ * This function waits until all events of this client are processed.
+ *
+ * \sa snd_seq_drain_output()
  */
 int snd_seq_sync_output_queue(snd_seq_t *seq)
 {

@@ -42,6 +42,8 @@ extern "C" {
 /**
  * \brief initialize event record
  * \param ev event record pointer
+ * 
+ * This macro clears the given event record pointer to the default status.
  */
 #define snd_seq_ev_clear(ev) \
 	memset(ev, 0, sizeof(snd_seq_event_t))
@@ -51,6 +53,10 @@ extern "C" {
  * \param ev event record
  * \param c destination client id
  * \param p destination port id
+ *
+ * This macro sets the client and port id numbers to the given event record.
+ *
+ * \sa snd_seq_ev_set_subs()
  */
 #define snd_seq_ev_set_dest(ev,c,p) \
 	((ev)->dest.client = (c), (ev)->dest.port = (p))
@@ -58,6 +64,10 @@ extern "C" {
 /**
  * \brief set broadcasting to subscribers
  * \param ev event record
+ *
+ * This macro sets the destination as the subscribers.
+ *
+ * \sa snd_seq_ev_set_dest()
  */
 #define snd_seq_ev_set_subs(ev) \
 	((ev)->dest.client = SND_SEQ_ADDRESS_SUBSCRIBERS,\
@@ -66,6 +76,10 @@ extern "C" {
 /**
  * \brief set broadcasting to all clients/ports
  * \param ev event record
+ *
+ * This macro sets the destination as the broadcasting.
+ *
+ * \sa snd_seq_ev_set_dest()
  */
 #define snd_seq_ev_set_broadcast(ev) \
 	((ev)->dest.client = SND_SEQ_ADDRESS_BROADCAST,\
@@ -75,6 +89,8 @@ extern "C" {
  * \brief set the source port
  * \param ev event record
  * \param p source port id
+ *
+ * This macro sets the source port id number.
  */
 #define snd_seq_ev_set_source(ev,p) \
 	((ev)->source.port = (p))
@@ -82,6 +98,11 @@ extern "C" {
 /**
  * \brief set direct passing mode (without queued)
  * \param ev event instance
+ *
+ * This macro sets the event to the direct passing mode
+ * to be delivered immediately without queueing.
+ * 
+ * \sa snd_seq_ev_schedule_tick(), snd_seq_ev_schedule_real()
  */
 #define snd_seq_ev_set_direct(ev) \
 	((ev)->queue = SND_SEQ_QUEUE_DIRECT)
@@ -92,6 +113,11 @@ extern "C" {
  * \param q queue id to schedule
  * \param relative relative time-stamp if non-zero
  * \param ttick tick time-stamp to be delivered
+ *
+ * This macro sets the scheduling of the event in the
+ * MIDI tick mode.
+ *
+ * \sa snd_seq_ev_schedule_real(), snd_seq_ev_set_direct()
  */
 #define snd_seq_ev_schedule_tick(ev, q, relative, ttick) \
 	((ev)->flags &= ~(SND_SEQ_TIME_STAMP_MASK | SND_SEQ_TIME_MODE_MASK),\
@@ -106,6 +132,11 @@ extern "C" {
  * \param q queue id to schedule
  * \param relative relative time-stamp if non-zero
  * \param rtime time-stamp to be delivered
+ *
+ * This macro sets the scheduling of the event in the
+ * realtime mode.
+ *
+ * \sa snd_seq_ev_schedule_tick(), snd_seq_ev_set_direct()
  */
 #define snd_seq_ev_schedule_real(ev, q, relative, rtime) \
 	((ev)->flags &= ~(SND_SEQ_TIME_STAMP_MASK | SND_SEQ_TIME_MODE_MASK),\
@@ -128,6 +159,8 @@ extern "C" {
  * \param ev event instance
  *
  * Sets the event length mode as fixed size.
+ *
+ * \sa snd_seq_ev_set_variable(), snd_seq_ev_set_varusr()
  */
 #define snd_seq_ev_set_fixed(ev) \
 	((ev)->flags &= ~SND_SEQ_EVENT_LENGTH_MASK,\
@@ -140,6 +173,8 @@ extern "C" {
  * \param dataptr pointer of the external data
  *
  * Sets the event length mode as variable length and stores the data.
+ *
+ * \sa snd_seq_ev_set_fixed(), snd_seq_ev_set_varusr()
  */
 #define snd_seq_ev_set_variable(ev, datalen, dataptr) \
 	((ev)->flags &= ~SND_SEQ_EVENT_LENGTH_MASK,\
@@ -154,6 +189,8 @@ extern "C" {
  * \param ptr pointer of the external data
  *
  * Sets the event length mode as variable user-space data and stores the data.
+ *
+ * \sa snd_seq_ev_set_fixed(), snd_seq_ev_set_variable()
  */
 #define snd_seq_ev_set_varusr(ev, datalen, dataptr) \
 	((ev)->flags &= ~SND_SEQ_EVENT_LENGTH_MASK,\
@@ -178,6 +215,8 @@ extern "C" {
  * \brief set the start queue event
  * \param ev event record
  * \param q queue id to start
+ *
+ * \sa snd_seq_ev_set_queue_stop(), snd_seq_ev_set_queue_continue()
  */
 #define snd_seq_ev_set_queue_start(ev, q) \
 	snd_seq_ev_set_queue_control(ev, SND_SEQ_EVENT_START, q, 0)
@@ -186,6 +225,8 @@ extern "C" {
  * \brief set the stop queue event
  * \param ev event record
  * \param q queue id to stop
+ *
+ * \sa snd_seq_ev_set_queue_start(), snd_seq_ev_set_queue_continue()
  */
 #define snd_seq_ev_set_queue_stop(ev, q) \
 	snd_seq_ev_set_queue_control(ev, SND_SEQ_EVENT_STOP, q, 0)
@@ -194,6 +235,8 @@ extern "C" {
  * \brief set the stop queue event
  * \param ev event record
  * \param q queue id to continue
+ *
+ * \sa snd_seq_ev_set_queue_start(), snd_seq_ev_set_queue_stop()
  */
 #define snd_seq_ev_set_queue_continue(ev, q) \
 	snd_seq_ev_set_queue_control(ev, SND_SEQ_EVENT_CONTINUE, q, 0)
