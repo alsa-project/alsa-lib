@@ -57,7 +57,7 @@ int snd_mixer_element_has_info(snd_mixer_eid_t *eid)
 	return 0;
 }
 
-int snd_mixer_element_info_build(void *handle, snd_mixer_element_info_t *element)
+int snd_mixer_element_info_build(snd_mixer_t *handle, snd_mixer_element_info_t *element)
 {
 	int err;
 	
@@ -204,7 +204,7 @@ int snd_mixer_element_has_control(snd_mixer_eid_t *eid)
 	return 0;
 }
 
-int snd_mixer_element_build(void *handle, snd_mixer_element_t *element)
+int snd_mixer_element_build(snd_mixer_t *handle, snd_mixer_element_t *element)
 {
 	int err;
 	

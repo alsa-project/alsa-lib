@@ -31,11 +31,11 @@
 #define SND_FILE_TIMER		"/dev/snd/timer"
 #define SND_TIMER_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
 
-typedef struct {
+struct snd_timer {
 	int fd;
-} snd_timer_t;
+};
 
-int snd_timer_open(void **handle)
+int snd_timer_open(snd_timer_t **handle)
 {
 	int fd, ver;
 	snd_timer_t *tmr;
@@ -65,12 +65,12 @@ int snd_timer_open(void **handle)
 	return 0;
 }
 
-int snd_timer_close(void *handle)
+int snd_timer_close(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
 	int res;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
 	res = close(tmr->fd) < 0 ? -errno : 0;
@@ -78,21 +78,21 @@ int snd_timer_close(void *handle)
 	return res;
 }
 
-int snd_timer_file_descriptor(void *handle)
+int snd_timer_file_descriptor(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
 	return tmr->fd;
 }
 
-int snd_timer_general_info(void *handle, snd_timer_general_info_t * info)
+int snd_timer_general_info(snd_timer_t *handle, snd_timer_general_info_t * info)
 {
 	snd_timer_t *tmr;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr || !info)
 		return -EINVAL;
 	if (ioctl(tmr->fd, SND_TIMER_IOCTL_GINFO, info) < 0)
@@ -100,11 +100,11 @@ int snd_timer_general_info(void *handle, snd_timer_general_info_t * info)
 	return 0;
 }
 
-int snd_timer_select(void *handle, snd_timer_select_t * tselect)
+int snd_timer_select(snd_timer_t *handle, snd_timer_select_t * tselect)
 {
 	snd_timer_t *tmr;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr || !tselect)
 		return -EINVAL;
 	if (ioctl(tmr->fd, SND_TIMER_IOCTL_SELECT, tselect) < 0)
@@ -112,11 +112,11 @@ int snd_timer_select(void *handle, snd_timer_select_t * tselect)
 	return 0;
 }
 
-int snd_timer_info(void *handle, snd_timer_info_t * info)
+int snd_timer_info(snd_timer_t *handle, snd_timer_info_t * info)
 {
 	snd_timer_t *tmr;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr || !info)
 		return -EINVAL;
 	if (ioctl(tmr->fd, SND_TIMER_IOCTL_INFO, info) < 0)
@@ -124,11 +124,11 @@ int snd_timer_info(void *handle, snd_timer_info_t * info)
 	return 0;
 }
 
-int snd_timer_params(void *handle, snd_timer_params_t * params)
+int snd_timer_params(snd_timer_t *handle, snd_timer_params_t * params)
 {
 	snd_timer_t *tmr;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr || !params)
 		return -EINVAL;
 	if (ioctl(tmr->fd, SND_TIMER_IOCTL_PARAMS, params) < 0)
@@ -136,11 +136,11 @@ int snd_timer_params(void *handle, snd_timer_params_t * params)
 	return 0;
 }
 
-int snd_timer_status(void *handle, snd_timer_status_t * status)
+int snd_timer_status(snd_timer_t *handle, snd_timer_status_t * status)
 {
 	snd_timer_t *tmr;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr || !status)
 		return -EINVAL;
 	if (ioctl(tmr->fd, SND_TIMER_IOCTL_STATUS, status) < 0)
@@ -148,11 +148,11 @@ int snd_timer_status(void *handle, snd_timer_status_t * status)
 	return 0;
 }
 
-int snd_timer_start(void *handle)
+int snd_timer_start(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
 	if (ioctl(tmr->fd, SND_TIMER_IOCTL_START) < 0)
@@ -160,11 +160,11 @@ int snd_timer_start(void *handle)
 	return 0;
 }
 
-int snd_timer_stop(void *handle)
+int snd_timer_stop(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
 	if (ioctl(tmr->fd, SND_TIMER_IOCTL_STOP) < 0)
@@ -172,11 +172,11 @@ int snd_timer_stop(void *handle)
 	return 0;
 }
 
-int snd_timer_continue(void *handle)
+int snd_timer_continue(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
 	if (ioctl(tmr->fd, SND_TIMER_IOCTL_CONTINUE) < 0)
@@ -184,12 +184,12 @@ int snd_timer_continue(void *handle)
 	return 0;
 }
 
-ssize_t snd_timer_read(void *handle, void *buffer, size_t size)
+ssize_t snd_timer_read(snd_timer_t *handle, void *buffer, size_t size)
 {
 	snd_timer_t *tmr;
 	ssize_t result;
 
-	tmr = (snd_timer_t *) handle;
+	tmr = handle;
 	if (!tmr || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
 	result = read(tmr->fd, buffer, size);

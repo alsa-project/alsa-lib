@@ -13,20 +13,22 @@
 extern "C" {
 #endif
 
-int snd_rawmidi_open(void **handle, int card, int device, int mode);
-int snd_rawmidi_close(void *handle);
-int snd_rawmidi_file_descriptor(void *handle);
-int snd_rawmidi_block_mode(void *handle, int enable);
-int snd_rawmidi_info(void *handle, snd_rawmidi_info_t * info);
-int snd_rawmidi_output_params(void *handle, snd_rawmidi_output_params_t * params);
-int snd_rawmidi_input_params(void *handle, snd_rawmidi_input_params_t * params);
-int snd_rawmidi_output_status(void *handle, snd_rawmidi_output_status_t * status);
-int snd_rawmidi_input_status(void *handle, snd_rawmidi_input_status_t * status);
-int snd_rawmidi_drain_output(void *handle);
-int snd_rawmidi_flush_output(void *handle);
-int snd_rawmidi_flush_input(void *handle);
-ssize_t snd_rawmidi_write(void *handle, const void *buffer, size_t size);
-ssize_t snd_rawmidi_read(void *handle, void *buffer, size_t size);
+typedef struct snd_rawmidi snd_rawmidi_t;
+
+int snd_rawmidi_open(snd_rawmidi_t **handle, int card, int device, int mode);
+int snd_rawmidi_close(snd_rawmidi_t *handle);
+int snd_rawmidi_file_descriptor(snd_rawmidi_t *handle);
+int snd_rawmidi_block_mode(snd_rawmidi_t *handle, int enable);
+int snd_rawmidi_info(snd_rawmidi_t *handle, snd_rawmidi_info_t * info);
+int snd_rawmidi_output_params(snd_rawmidi_t *handle, snd_rawmidi_output_params_t * params);
+int snd_rawmidi_input_params(snd_rawmidi_t *handle, snd_rawmidi_input_params_t * params);
+int snd_rawmidi_output_status(snd_rawmidi_t *handle, snd_rawmidi_output_status_t * status);
+int snd_rawmidi_input_status(snd_rawmidi_t *handle, snd_rawmidi_input_status_t * status);
+int snd_rawmidi_drain_output(snd_rawmidi_t *handle);
+int snd_rawmidi_flush_output(snd_rawmidi_t *handle);
+int snd_rawmidi_flush_input(snd_rawmidi_t *handle);
+ssize_t snd_rawmidi_write(snd_rawmidi_t *handle, const void *buffer, size_t size);
+ssize_t snd_rawmidi_read(snd_rawmidi_t *handle, void *buffer, size_t size);
 
 #ifdef __cplusplus
 }

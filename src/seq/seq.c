@@ -38,7 +38,7 @@ typedef struct snd_stru_seq_cell {
 	struct snd_stru_seq_cell *next;
 } snd_seq_cell_t;
 
-typedef struct {
+struct snd_seq {
 	int client;		/* client number */
 	int fd;
 	/* buffers */
@@ -51,9 +51,9 @@ typedef struct {
 	int cells;
 	snd_seq_cell_t *head;
 	snd_seq_cell_t *tail;
-} snd_seq_t;
+};
 
-int snd_seq_open(void **handle, int mode)
+int snd_seq_open(snd_seq_t **handle, int mode)
 {
 	int fd, ver, client, flg;
 	char filename[32];
@@ -108,12 +108,12 @@ int snd_seq_open(void **handle, int mode)
 	return 0;
 }
 
-int snd_seq_close(void *handle)
+int snd_seq_close(snd_seq_t *handle)
 {
 	snd_seq_t *seq;
 	int res;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	res = close(seq->fd) < 0 ? -errno : 0;
@@ -121,22 +121,22 @@ int snd_seq_close(void *handle)
 	return res;
 }
 
-int snd_seq_file_descriptor(void *handle)
+int snd_seq_file_descriptor(snd_seq_t *handle)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	return seq->fd;
 }
 
-int snd_seq_block_mode(void *handle, int enable)
+int snd_seq_block_mode(snd_seq_t *handle, int enable)
 {
 	snd_seq_t *seq;
 	long flags;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	if ((flags = fcntl(seq->fd, F_GETFL)) < 0)
@@ -150,21 +150,21 @@ int snd_seq_block_mode(void *handle, int enable)
 	return 0;
 }
 
-int snd_seq_client_id(void *handle)
+int snd_seq_client_id(snd_seq_t *handle)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	return seq->client;
 }
 
-int snd_seq_system_info(void *handle, snd_seq_system_info_t * info)
+int snd_seq_system_info(snd_seq_t *handle, snd_seq_system_info_t * info)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_SYSTEM_INFO, info) < 0)
@@ -172,21 +172,21 @@ int snd_seq_system_info(void *handle, snd_seq_system_info_t * info)
 	return 0;
 }
 
-int snd_seq_get_client_info(void *handle, snd_seq_client_info_t * info)
+int snd_seq_get_client_info(snd_seq_t *handle, snd_seq_client_info_t * info)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
 	return snd_seq_get_any_client_info(handle, seq->client, info);
 }
 
-int snd_seq_get_any_client_info(void *handle, int client, snd_seq_client_info_t * info)
+int snd_seq_get_any_client_info(snd_seq_t *handle, int client, snd_seq_client_info_t * info)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !info || client < 0)
 		return -EINVAL;
 	bzero(info, sizeof(snd_seq_client_info_t));
@@ -196,11 +196,11 @@ int snd_seq_get_any_client_info(void *handle, int client, snd_seq_client_info_t 
 	return 0;
 }
 
-int snd_seq_set_client_info(void *handle, snd_seq_client_info_t * info)
+int snd_seq_set_client_info(snd_seq_t *handle, snd_seq_client_info_t * info)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
 	info->client = seq->client;
@@ -210,11 +210,11 @@ int snd_seq_set_client_info(void *handle, snd_seq_client_info_t * info)
 	return 0;
 }
 
-int snd_seq_create_port(void *handle, snd_seq_port_info_t * port)
+int snd_seq_create_port(snd_seq_t *handle, snd_seq_port_info_t * port)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !port)
 		return -EINVAL;
 	port->client = seq->client;
@@ -223,11 +223,11 @@ int snd_seq_create_port(void *handle, snd_seq_port_info_t * port)
 	return 0;
 }
 
-int snd_seq_delete_port(void *handle, snd_seq_port_info_t * port)
+int snd_seq_delete_port(snd_seq_t *handle, snd_seq_port_info_t * port)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !port)
 		return -EINVAL;
 	port->client = seq->client;
@@ -236,21 +236,21 @@ int snd_seq_delete_port(void *handle, snd_seq_port_info_t * port)
 	return 0;
 }
 
-int snd_seq_get_port_info(void *handle, int port, snd_seq_port_info_t * info)
+int snd_seq_get_port_info(snd_seq_t *handle, int port, snd_seq_port_info_t * info)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !info || port < 0)
 		return -EINVAL;
 	return snd_seq_get_any_port_info(handle, seq->client, port, info);
 }
 
-int snd_seq_get_any_port_info(void *handle, int client, int port, snd_seq_port_info_t * info)
+int snd_seq_get_any_port_info(snd_seq_t *handle, int client, int port, snd_seq_port_info_t * info)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !info || client < 0 || port < 0)
 		return -EINVAL;
 	bzero(info, sizeof(snd_seq_port_info_t));
@@ -261,11 +261,11 @@ int snd_seq_get_any_port_info(void *handle, int client, int port, snd_seq_port_i
 	return 0;
 }
 
-int snd_seq_set_port_info(void *handle, int port, snd_seq_port_info_t * info)
+int snd_seq_set_port_info(snd_seq_t *handle, int port, snd_seq_port_info_t * info)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !info || port < 0)
 		return -EINVAL;
 	info->port = port;
@@ -274,11 +274,11 @@ int snd_seq_set_port_info(void *handle, int port, snd_seq_port_info_t * info)
 	return 0;
 }
 
-int snd_seq_subscribe_port(void *handle, snd_seq_port_subscribe_t * sub)
+int snd_seq_subscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t * sub)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !sub)
 		return -EINVAL;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_SUBSCRIBE_PORT, sub) < 0)
@@ -286,11 +286,11 @@ int snd_seq_subscribe_port(void *handle, snd_seq_port_subscribe_t * sub)
 	return 0;
 }
 
-int snd_seq_unsubscribe_port(void *handle, snd_seq_port_subscribe_t * sub)
+int snd_seq_unsubscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t * sub)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !sub)
 		return -EINVAL;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_UNSUBSCRIBE_PORT, sub) < 0)
@@ -298,11 +298,11 @@ int snd_seq_unsubscribe_port(void *handle, snd_seq_port_subscribe_t * sub)
 	return 0;
 }
 
-int snd_seq_get_queue_status(void *handle, int q, snd_seq_queue_status_t * status)
+int snd_seq_get_queue_status(snd_seq_t *handle, int q, snd_seq_queue_status_t * status)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !status)
 		return -EINVAL;
 	bzero(status, sizeof(snd_seq_queue_status_t));
@@ -312,11 +312,11 @@ int snd_seq_get_queue_status(void *handle, int q, snd_seq_queue_status_t * statu
 	return 0;
 }
 
-int snd_seq_get_queue_tempo(void *handle, int q, snd_seq_queue_tempo_t * tempo)
+int snd_seq_get_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t * tempo)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !tempo)
 		return -EINVAL;
 	bzero(tempo, sizeof(snd_seq_queue_tempo_t));
@@ -326,11 +326,11 @@ int snd_seq_get_queue_tempo(void *handle, int q, snd_seq_queue_tempo_t * tempo)
 	return 0;
 }
 
-int snd_seq_set_queue_tempo(void *handle, int q, snd_seq_queue_tempo_t * tempo)
+int snd_seq_set_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t * tempo)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !tempo)
 		return -EINVAL;
 	tempo->queue = q;
@@ -339,11 +339,11 @@ int snd_seq_set_queue_tempo(void *handle, int q, snd_seq_queue_tempo_t * tempo)
 	return 0;
 }
 
-int snd_seq_get_queue_owner(void *handle, int q, snd_seq_queue_owner_t * owner)
+int snd_seq_get_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t * owner)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !owner)
 		return -EINVAL;
 	bzero(owner, sizeof(snd_seq_queue_owner_t));
@@ -353,11 +353,11 @@ int snd_seq_get_queue_owner(void *handle, int q, snd_seq_queue_owner_t * owner)
 	return 0;
 }
 
-int snd_seq_set_queue_owner(void *handle, int q, snd_seq_queue_owner_t * owner)
+int snd_seq_set_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t * owner)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !owner)
 		return -EINVAL;
 	owner->queue = q;
@@ -366,11 +366,11 @@ int snd_seq_set_queue_owner(void *handle, int q, snd_seq_queue_owner_t * owner)
 	return 0;
 }
 
-int snd_seq_get_queue_timer(void *handle, int q, snd_seq_queue_timer_t * timer)
+int snd_seq_get_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t * timer)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !timer)
 		return -EINVAL;
 	bzero(timer, sizeof(snd_seq_queue_timer_t));
@@ -380,11 +380,11 @@ int snd_seq_get_queue_timer(void *handle, int q, snd_seq_queue_timer_t * timer)
 	return 0;
 }
 
-int snd_seq_set_queue_timer(void *handle, int q, snd_seq_queue_timer_t * timer)
+int snd_seq_set_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t * timer)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !timer)
 		return -EINVAL;
 	timer->queue = q;
@@ -393,11 +393,11 @@ int snd_seq_set_queue_timer(void *handle, int q, snd_seq_queue_timer_t * timer)
 	return 0;
 }
 
-int snd_seq_get_queue_sync(void *handle, int q, snd_seq_queue_sync_t * sync)
+int snd_seq_get_queue_sync(snd_seq_t *handle, int q, snd_seq_queue_sync_t * sync)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !sync)
 		return -EINVAL;
 	bzero(sync, sizeof(snd_seq_queue_sync_t));
@@ -407,11 +407,11 @@ int snd_seq_get_queue_sync(void *handle, int q, snd_seq_queue_sync_t * sync)
 	return 0;
 }
 
-int snd_seq_set_queue_sync(void *handle, int q, snd_seq_queue_sync_t * sync)
+int snd_seq_set_queue_sync(snd_seq_t *handle, int q, snd_seq_queue_sync_t * sync)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !sync)
 		return -EINVAL;
 	sync->queue = q;
@@ -420,11 +420,11 @@ int snd_seq_set_queue_sync(void *handle, int q, snd_seq_queue_sync_t * sync)
 	return 0;
 }
 
-int snd_seq_get_queue_client(void *handle, int q, snd_seq_queue_client_t * info)
+int snd_seq_get_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t * info)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
 	bzero(info, sizeof(snd_seq_queue_client_t));
@@ -435,11 +435,11 @@ int snd_seq_get_queue_client(void *handle, int q, snd_seq_queue_client_t * info)
 	return 0;
 }
 
-int snd_seq_set_queue_client(void *handle, int q, snd_seq_queue_client_t * info)
+int snd_seq_set_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t * info)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
 	info->queue = q;
@@ -449,14 +449,14 @@ int snd_seq_set_queue_client(void *handle, int q, snd_seq_queue_client_t * info)
 	return 0;
 }
 
-int snd_seq_alloc_queue(void *handle)
+int snd_seq_alloc_queue(snd_seq_t *handle)
 {
 	int i, err;
 	snd_seq_system_info_t sysinfo;
 	snd_seq_queue_owner_t owner;
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;	
 	if ((err = snd_seq_system_info(handle, &sysinfo))<0)
@@ -475,13 +475,13 @@ int snd_seq_alloc_queue(void *handle)
 	return -EBUSY;
 }
 
-int snd_seq_free_queue(void *handle, int q)
+int snd_seq_free_queue(snd_seq_t *handle, int q)
 {
 	int err;
 	snd_seq_t *seq;
 	snd_seq_queue_owner_t owner;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;	
 	if ((err = snd_seq_get_queue_owner(handle, q, &owner))<0)
@@ -537,12 +537,12 @@ int snd_seq_event_length(snd_seq_event_t *ev)
 	return len;
 }
 
-int snd_seq_event_output(void *handle, snd_seq_event_t *ev)
+int snd_seq_event_output(snd_seq_t *handle, snd_seq_event_t *ev)
 {
 	int len;
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq || !ev)
 		return -EINVAL;
 	len = snd_seq_event_length(ev);
@@ -659,7 +659,7 @@ static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev)
  *  Current implementation uses FIFO cache.
  */
 
-int snd_seq_event_input(void *handle, snd_seq_event_t **ev)
+int snd_seq_event_input(snd_seq_t *handle, snd_seq_event_t **ev)
 {
 	snd_seq_t *seq;
 	snd_seq_cell_t *cell;
@@ -667,7 +667,7 @@ int snd_seq_event_input(void *handle, snd_seq_event_t **ev)
 	int count;
 
 	*ev = NULL;
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	if (snd_seq_input_cell_available(seq)) {
@@ -705,12 +705,12 @@ int snd_seq_event_input(void *handle, snd_seq_event_t **ev)
 	return seq->cells;
 }
 
-int snd_seq_flush_output(void *handle)
+int snd_seq_flush_output(snd_seq_t *handle)
 {
 	snd_seq_t *seq;
 	int result;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	if (seq->obufused <= 0)
@@ -726,22 +726,22 @@ int snd_seq_flush_output(void *handle)
 	return seq->obufused;
 }
 
-int snd_seq_drain_output(void *handle)
+int snd_seq_drain_output(snd_seq_t *handle)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	seq->obufused = 0;
 	return 0;
 }
 
-int snd_seq_drain_input(void *handle)
+int snd_seq_drain_input(snd_seq_t *handle)
 {
 	snd_seq_t *seq;
 
-	seq = (snd_seq_t *) handle;
+	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	while (snd_seq_input_cell_available(seq))

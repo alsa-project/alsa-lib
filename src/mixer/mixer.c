@@ -31,13 +31,13 @@
 #define SND_FILE_MIXER		"/dev/snd/mixerC%iD%i"
 #define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
 
-typedef struct {
+struct snd_mixer {
 	int card;
 	int device;
 	int fd;
-} snd_mixer_t;
+} ;
 
-int snd_mixer_open(void **handle, int card, int device)
+int snd_mixer_open(snd_mixer_t **handle, int card, int device)
 {
 	int fd, ver;
 	char filename[32];
@@ -73,12 +73,12 @@ int snd_mixer_open(void **handle, int card, int device)
 	return 0;
 }
 
-int snd_mixer_close(void *handle)
+int snd_mixer_close(snd_mixer_t *handle)
 {
 	snd_mixer_t *mixer;
 	int res;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	res = close(mixer->fd) < 0 ? -errno : 0;
@@ -86,21 +86,21 @@ int snd_mixer_close(void *handle)
 	return res;
 }
 
-int snd_mixer_file_descriptor(void *handle)
+int snd_mixer_file_descriptor(snd_mixer_t *handle)
 {
 	snd_mixer_t *mixer;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	return mixer->fd;
 }
 
-int snd_mixer_info(void *handle, snd_mixer_info_t * info)
+int snd_mixer_info(snd_mixer_t *handle, snd_mixer_info_t * info)
 {
 	snd_mixer_t *mixer;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer || !info)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_INFO, info) < 0)
@@ -108,11 +108,11 @@ int snd_mixer_info(void *handle, snd_mixer_info_t * info)
 	return 0;
 }
 
-int snd_mixer_elements(void *handle, snd_mixer_elements_t * elements)
+int snd_mixer_elements(snd_mixer_t *handle, snd_mixer_elements_t * elements)
 {
 	snd_mixer_t *mixer;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_ELEMENTS, elements) < 0)
@@ -120,11 +120,11 @@ int snd_mixer_elements(void *handle, snd_mixer_elements_t * elements)
 	return 0;
 }
 
-int snd_mixer_routes(void *handle, snd_mixer_routes_t * routes)
+int snd_mixer_routes(snd_mixer_t *handle, snd_mixer_routes_t * routes)
 {
 	snd_mixer_t *mixer;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_ROUTES, routes) < 0)
@@ -132,11 +132,11 @@ int snd_mixer_routes(void *handle, snd_mixer_routes_t * routes)
 	return 0;
 }
 
-int snd_mixer_groups(void *handle, snd_mixer_groups_t * groups)
+int snd_mixer_groups(snd_mixer_t *handle, snd_mixer_groups_t * groups)
 {
 	snd_mixer_t *mixer;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_GROUPS, groups) < 0)
@@ -144,11 +144,11 @@ int snd_mixer_groups(void *handle, snd_mixer_groups_t * groups)
 	return 0;
 }
 
-int snd_mixer_group(void *handle, snd_mixer_group_t * group)
+int snd_mixer_group(snd_mixer_t *handle, snd_mixer_group_t * group)
 {
 	snd_mixer_t *mixer;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_GROUP, group) < 0)
@@ -156,11 +156,11 @@ int snd_mixer_group(void *handle, snd_mixer_group_t * group)
 	return 0;
 }
 
-int snd_mixer_element_info(void *handle, snd_mixer_element_info_t * info)
+int snd_mixer_element_info(snd_mixer_t *handle, snd_mixer_element_info_t * info)
 {
 	snd_mixer_t *mixer;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_ELEMENT_INFO, info) < 0)
@@ -169,11 +169,11 @@ int snd_mixer_element_info(void *handle, snd_mixer_element_info_t * info)
 }
 
 
-int snd_mixer_element_read(void *handle, snd_mixer_element_t * element)
+int snd_mixer_element_read(snd_mixer_t *handle, snd_mixer_element_t * element)
 {
 	snd_mixer_t *mixer;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_ELEMENT_READ, element) < 0)
@@ -181,11 +181,11 @@ int snd_mixer_element_read(void *handle, snd_mixer_element_t * element)
 	return 0;
 }
 
-int snd_mixer_element_write(void *handle, snd_mixer_element_t * element)
+int snd_mixer_element_write(snd_mixer_t *handle, snd_mixer_element_t * element)
 {
 	snd_mixer_t *mixer;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_ELEMENT_WRITE, element) < 0)
@@ -193,13 +193,13 @@ int snd_mixer_element_write(void *handle, snd_mixer_element_t * element)
 	return 0;
 }
 
-int snd_mixer_read(void *handle, snd_mixer_callbacks_t * callbacks)
+int snd_mixer_read(snd_mixer_t *handle, snd_mixer_callbacks_t * callbacks)
 {
 	snd_mixer_t *mixer;
 	int result, count;
 	snd_mixer_read_t r;
 
-	mixer = (snd_mixer_t *) handle;
+	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
 	count = 0;

@@ -94,7 +94,7 @@ unsigned int snd_cards_mask(void)
 int snd_card_name(const char *string)
 {
 	int card, bitmask;
-	void *handle;
+	snd_ctl_t *handle;
 	struct snd_ctl_hw_info info;
 
 	if (!string || *string == '\0')

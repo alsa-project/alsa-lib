@@ -18,7 +18,7 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
+  
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -31,13 +31,13 @@
 #define SND_FILE_PCM		"/dev/snd/pcmC%iD%i"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 1 )
 
-typedef struct {
+struct snd_pcm {
 	int card;
 	int device;
 	int fd;
-} snd_pcm_t;
+};
 
-int snd_pcm_open(void **handle, int card, int device, int mode)
+int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode)
 {
 	int fd, ver;
 	char filename[32];
@@ -73,12 +73,12 @@ int snd_pcm_open(void **handle, int card, int device, int mode)
 	return 0;
 }
 
-int snd_pcm_close(void *handle)
+int snd_pcm_close(snd_pcm_t *handle)
 {
 	snd_pcm_t *pcm;
 	int res;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	res = close(pcm->fd) < 0 ? -errno : 0;
@@ -86,22 +86,22 @@ int snd_pcm_close(void *handle)
 	return res;
 }
 
-int snd_pcm_file_descriptor(void *handle)
+int snd_pcm_file_descriptor(snd_pcm_t *handle)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	return pcm->fd;
 }
 
-int snd_pcm_block_mode(void *handle, int enable)
+int snd_pcm_block_mode(snd_pcm_t *handle, int enable)
 {
 	snd_pcm_t *pcm;
 	long flags;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	if ((flags = fcntl(pcm->fd, F_GETFL)) < 0)
@@ -115,11 +115,11 @@ int snd_pcm_block_mode(void *handle, int enable)
 	return 0;
 }
 
-int snd_pcm_info(void *handle, snd_pcm_info_t * info)
+int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t * info)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || !info)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_INFO, info) < 0)
@@ -127,11 +127,11 @@ int snd_pcm_info(void *handle, snd_pcm_info_t * info)
 	return 0;
 }
 
-int snd_pcm_playback_info(void *handle, snd_pcm_playback_info_t * info)
+int snd_pcm_playback_info(snd_pcm_t *handle, snd_pcm_playback_info_t * info)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || !info)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_INFO, info) < 0)
@@ -139,11 +139,11 @@ int snd_pcm_playback_info(void *handle, snd_pcm_playback_info_t * info)
 	return 0;
 }
 
-int snd_pcm_record_info(void *handle, snd_pcm_record_info_t * info)
+int snd_pcm_record_info(snd_pcm_t *handle, snd_pcm_record_info_t * info)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || !info)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_INFO, info) < 0)
@@ -151,11 +151,11 @@ int snd_pcm_record_info(void *handle, snd_pcm_record_info_t * info)
 	return 0;
 }
 
-int snd_pcm_playback_format(void *handle, snd_pcm_format_t * format)
+int snd_pcm_playback_format(snd_pcm_t *handle, snd_pcm_format_t * format)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || !format)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_FORMAT, format) < 0)
@@ -163,11 +163,11 @@ int snd_pcm_playback_format(void *handle, snd_pcm_format_t * format)
 	return 0;
 }
 
-int snd_pcm_record_format(void *handle, snd_pcm_format_t * format)
+int snd_pcm_record_format(snd_pcm_t *handle, snd_pcm_format_t * format)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || !format)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_FORMAT, format) < 0)
@@ -175,11 +175,11 @@ int snd_pcm_record_format(void *handle, snd_pcm_format_t * format)
 	return 0;
 }
 
-int snd_pcm_playback_params(void *handle, snd_pcm_playback_params_t * params)
+int snd_pcm_playback_params(snd_pcm_t *handle, snd_pcm_playback_params_t * params)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || !params)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_PARAMS, params) < 0)
@@ -187,11 +187,11 @@ int snd_pcm_playback_params(void *handle, snd_pcm_playback_params_t * params)
 	return 0;
 }
 
-int snd_pcm_record_params(void *handle, snd_pcm_record_params_t * params)
+int snd_pcm_record_params(snd_pcm_t *handle, snd_pcm_record_params_t * params)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || !params)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_PARAMS, params) < 0)
@@ -199,11 +199,11 @@ int snd_pcm_record_params(void *handle, snd_pcm_record_params_t * params)
 	return 0;
 }
 
-int snd_pcm_playback_status(void *handle, snd_pcm_playback_status_t * status)
+int snd_pcm_playback_status(snd_pcm_t *handle, snd_pcm_playback_status_t * status)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || !status)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_STATUS, status) < 0)
@@ -211,11 +211,11 @@ int snd_pcm_playback_status(void *handle, snd_pcm_playback_status_t * status)
 	return 0;
 }
 
-int snd_pcm_record_status(void *handle, snd_pcm_record_status_t * status)
+int snd_pcm_record_status(snd_pcm_t *handle, snd_pcm_record_status_t * status)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || !status)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_STATUS, status) < 0)
@@ -223,11 +223,11 @@ int snd_pcm_record_status(void *handle, snd_pcm_record_status_t * status)
 	return 0;
 }
 
-int snd_pcm_drain_playback(void *handle)
+int snd_pcm_drain_playback(snd_pcm_t *handle)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_DRAIN_PLAYBACK) < 0)
@@ -235,11 +235,11 @@ int snd_pcm_drain_playback(void *handle)
 	return 0;
 }
 
-int snd_pcm_flush_playback(void *handle)
+int snd_pcm_flush_playback(snd_pcm_t *handle)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_FLUSH_PLAYBACK) < 0)
@@ -247,11 +247,11 @@ int snd_pcm_flush_playback(void *handle)
 	return 0;
 }
 
-int snd_pcm_flush_record(void *handle)
+int snd_pcm_flush_record(snd_pcm_t *handle)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_FLUSH_RECORD) < 0)
@@ -259,11 +259,11 @@ int snd_pcm_flush_record(void *handle)
 	return 0;
 }
 
-int snd_pcm_playback_pause(void *handle, int enable)
+int snd_pcm_playback_pause(snd_pcm_t *handle, int enable)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_PAUSE, &enable) < 0)
@@ -271,11 +271,11 @@ int snd_pcm_playback_pause(void *handle, int enable)
 	return 0;
 }
 
-int snd_pcm_playback_time(void *handle, int enable)
+int snd_pcm_playback_time(snd_pcm_t *handle, int enable)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_TIME, &enable) < 0)
@@ -283,11 +283,11 @@ int snd_pcm_playback_time(void *handle, int enable)
 	return 0;
 }
 
-int snd_pcm_record_time(void *handle, int enable)
+int snd_pcm_record_time(snd_pcm_t *handle, int enable)
 {
 	snd_pcm_t *pcm;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_TIME, &enable) < 0)
@@ -295,12 +295,12 @@ int snd_pcm_record_time(void *handle, int enable)
 	return 0;
 }
 
-ssize_t snd_pcm_write(void *handle, const void *buffer, size_t size)
+ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
 {
 	snd_pcm_t *pcm;
 	ssize_t result;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
 	result = write(pcm->fd, buffer, size);
@@ -309,12 +309,12 @@ ssize_t snd_pcm_write(void *handle, const void *buffer, size_t size)
 	return result;
 }
 
-ssize_t snd_pcm_read(void *handle, void *buffer, size_t size)
+ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
 {
 	snd_pcm_t *pcm;
 	ssize_t result;
 
-	pcm = (snd_pcm_t *) handle;
+	pcm = handle;
 	if (!pcm || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
 	result = read(pcm->fd, buffer, size);

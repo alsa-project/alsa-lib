@@ -18,7 +18,7 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
+  
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -31,13 +31,13 @@
 #define SND_FILE_PCM_LB		"/proc/asound/%i/pcm%i%s"
 #define SND_PCM_LB_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
 
-typedef struct {
+struct snd_pcm_loopback {
 	int card;
 	int device;
 	int fd;
-} snd_pcm_loopback_t;
+} ;
 
-int snd_pcm_loopback_open(void **handle, int card, int device, int mode)
+int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int mode)
 {
 	int fd, ver;
 	char filename[32];
@@ -74,12 +74,12 @@ int snd_pcm_loopback_open(void **handle, int card, int device, int mode)
 	return 0;
 }
 
-int snd_pcm_loopback_close(void *handle)
+int snd_pcm_loopback_close(snd_pcm_loopback_t *handle)
 {
 	snd_pcm_loopback_t *lb;
 	int res;
 
-	lb = (snd_pcm_loopback_t *) handle;
+	lb = handle;
 	if (!lb)
 		return -EINVAL;
 	res = close(lb->fd) < 0 ? -errno : 0;
@@ -87,22 +87,22 @@ int snd_pcm_loopback_close(void *handle)
 	return res;
 }
 
-int snd_pcm_loopback_file_descriptor(void *handle)
+int snd_pcm_loopback_file_descriptor(snd_pcm_loopback_t *handle)
 {
 	snd_pcm_loopback_t *lb;
 
-	lb = (snd_pcm_loopback_t *) handle;
+	lb = handle;
 	if (!lb)
 		return -EINVAL;
 	return lb->fd;
 }
 
-int snd_pcm_loopback_block_mode(void *handle, int enable)
+int snd_pcm_loopback_block_mode(snd_pcm_loopback_t *handle, int enable)
 {
 	snd_pcm_loopback_t *lb;
 	long flags;
 
-	lb = (snd_pcm_loopback_t *) handle;
+	lb = handle;
 	if (!lb)
 		return -EINVAL;
 	if ((flags = fcntl(lb->fd, F_GETFL)) < 0)
@@ -116,12 +116,12 @@ int snd_pcm_loopback_block_mode(void *handle, int enable)
 	return 0;
 }
 
-int snd_pcm_loopback_stream_mode(void *handle, int mode)
+int snd_pcm_loopback_stream_mode(snd_pcm_loopback_t *handle, int mode)
 {
 	snd_pcm_loopback_t *lb;
 	long lmode = mode;
 
-	lb = (snd_pcm_loopback_t *) handle;
+	lb = handle;
 	if (!lb)
 		return -EINVAL;
 	if (ioctl(lb->fd, SND_PCM_LB_IOCTL_STREAM_MODE, &lmode) < 0)
@@ -129,11 +129,11 @@ int snd_pcm_loopback_stream_mode(void *handle, int mode)
 	return 0;
 }
 
-int snd_pcm_loopback_format(void *handle, snd_pcm_format_t * format)
+int snd_pcm_loopback_format(snd_pcm_loopback_t *handle, snd_pcm_format_t * format)
 {
 	snd_pcm_loopback_t *lb;
 
-	lb = (snd_pcm_loopback_t *) handle;
+	lb = handle;
 	if (!lb)
 		return -EINVAL;
 	if (ioctl(lb->fd, SND_PCM_LB_IOCTL_FORMAT, format) < 0)
@@ -141,12 +141,12 @@ int snd_pcm_loopback_format(void *handle, snd_pcm_format_t * format)
 	return 0;
 }
 
-ssize_t snd_pcm_loopback_read(void *handle, void *buffer, size_t size)
+ssize_t snd_pcm_loopback_read(snd_pcm_loopback_t *handle, void *buffer, size_t size)
 {
 	snd_pcm_loopback_t *lb;
 	ssize_t result;
 
-	lb = (snd_pcm_loopback_t *) handle;
+	lb = handle;
 	if (!lb)
 		return -EINVAL;
 	result = read(lb->fd, buffer, size);

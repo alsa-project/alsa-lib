@@ -31,12 +31,12 @@
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
 #define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
 
-typedef struct {
+struct snd_ctl {
 	int card;
 	int fd;
-} snd_ctl_t;
+};
 
-int snd_ctl_open(void **handle, int card)
+int snd_ctl_open(snd_ctl_t **handle, int card)
 {
 	int fd, ver;
 	char filename[32];
@@ -72,12 +72,12 @@ int snd_ctl_open(void **handle, int card)
 	return 0;
 }
 
-int snd_ctl_close(void *handle)
+int snd_ctl_close(snd_ctl_t *handle)
 {
 	snd_ctl_t *ctl;
 	int res;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl)
 		return -EINVAL;
 	res = close(ctl->fd) < 0 ? -errno : 0;
@@ -85,21 +85,21 @@ int snd_ctl_close(void *handle)
 	return res;
 }
 
-int snd_ctl_file_descriptor(void *handle)
+int snd_ctl_file_descriptor(snd_ctl_t *handle)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl)
 		return -EINVAL;
 	return ctl->fd;
 }
 
-int snd_ctl_hw_info(void *handle, struct snd_ctl_hw_info *info)
+int snd_ctl_hw_info(snd_ctl_t *handle, struct snd_ctl_hw_info *info)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !info)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_HW_INFO, info) < 0)
@@ -107,11 +107,11 @@ int snd_ctl_hw_info(void *handle, struct snd_ctl_hw_info *info)
 	return 0;
 }
 
-int snd_ctl_switch_list(void *handle, snd_switch_list_t *list)
+int snd_ctl_switch_list(snd_ctl_t *handle, snd_switch_list_t *list)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !list)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCH_LIST, list) < 0)
@@ -119,11 +119,11 @@ int snd_ctl_switch_list(void *handle, snd_switch_list_t *list)
 	return 0;
 }
 
-int snd_ctl_switch_read(void *handle, snd_switch_t *sw)
+int snd_ctl_switch_read(snd_ctl_t *handle, snd_switch_t *sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCH_READ, sw) < 0)
@@ -131,11 +131,11 @@ int snd_ctl_switch_read(void *handle, snd_switch_t *sw)
 	return 0;
 }
 
-int snd_ctl_switch_write(void *handle, snd_switch_t *sw)
+int snd_ctl_switch_write(snd_ctl_t *handle, snd_switch_t *sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCH_WRITE, sw) < 0)
@@ -143,11 +143,11 @@ int snd_ctl_switch_write(void *handle, snd_switch_t *sw)
 	return 0;
 }
 
-int snd_ctl_pcm_info(void *handle, int dev, snd_pcm_info_t * info)
+int snd_ctl_pcm_info(snd_ctl_t *handle, int dev, snd_pcm_info_t * info)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !info || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
@@ -157,11 +157,11 @@ int snd_ctl_pcm_info(void *handle, int dev, snd_pcm_info_t * info)
 	return 0;
 }
 
-int snd_ctl_pcm_playback_info(void *handle, int dev, snd_pcm_playback_info_t * info)
+int snd_ctl_pcm_playback_info(snd_ctl_t *handle, int dev, snd_pcm_playback_info_t * info)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !info || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
@@ -171,11 +171,11 @@ int snd_ctl_pcm_playback_info(void *handle, int dev, snd_pcm_playback_info_t * i
 	return 0;
 }
 
-int snd_ctl_pcm_record_info(void *handle, int dev, snd_pcm_record_info_t * info)
+int snd_ctl_pcm_record_info(snd_ctl_t *handle, int dev, snd_pcm_record_info_t * info)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !info || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
@@ -185,11 +185,11 @@ int snd_ctl_pcm_record_info(void *handle, int dev, snd_pcm_record_info_t * info)
 	return 0;
 }
 
-int snd_ctl_pcm_playback_switch_list(void *handle, int dev, snd_switch_list_t *list)
+int snd_ctl_pcm_playback_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || dev < 0 || !list)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
@@ -199,11 +199,11 @@ int snd_ctl_pcm_playback_switch_list(void *handle, int dev, snd_switch_list_t *l
 	return 0;
 }
 
-int snd_ctl_pcm_playback_switch_read(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_pcm_playback_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
@@ -213,11 +213,11 @@ int snd_ctl_pcm_playback_switch_read(void *handle, int dev, snd_switch_t * sw)
 	return 0;
 }
 
-int snd_ctl_pcm_playback_switch_write(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_pcm_playback_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
@@ -227,11 +227,11 @@ int snd_ctl_pcm_playback_switch_write(void *handle, int dev, snd_switch_t * sw)
 	return 0;
 }
 
-int snd_ctl_pcm_record_switch_list(void *handle, int dev, snd_switch_list_t * list)
+int snd_ctl_pcm_record_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t * list)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !list || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
@@ -241,11 +241,11 @@ int snd_ctl_pcm_record_switch_list(void *handle, int dev, snd_switch_list_t * li
 	return 0;
 }
 
-int snd_ctl_pcm_record_switch_read(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_pcm_record_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
@@ -255,11 +255,11 @@ int snd_ctl_pcm_record_switch_read(void *handle, int dev, snd_switch_t * sw)
 	return 0;
 }
 
-int snd_ctl_pcm_record_switch_write(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_pcm_record_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
@@ -269,11 +269,11 @@ int snd_ctl_pcm_record_switch_write(void *handle, int dev, snd_switch_t * sw)
 	return 0;
 }
 
-int snd_ctl_mixer_info(void *handle, int dev, snd_mixer_info_t * info)
+int snd_ctl_mixer_info(snd_ctl_t *handle, int dev, snd_mixer_info_t * info)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !info || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
@@ -283,11 +283,11 @@ int snd_ctl_mixer_info(void *handle, int dev, snd_mixer_info_t * info)
 	return 0;
 }
 
-int snd_ctl_mixer_switch_list(void *handle, int dev, snd_switch_list_t * list)
+int snd_ctl_mixer_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t * list)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !list || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
@@ -297,11 +297,11 @@ int snd_ctl_mixer_switch_list(void *handle, int dev, snd_switch_list_t * list)
 	return 0;
 }
 
-int snd_ctl_mixer_switch_read(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_mixer_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
@@ -311,11 +311,11 @@ int snd_ctl_mixer_switch_read(void *handle, int dev, snd_switch_t * sw)
 	return 0;
 }
 
-int snd_ctl_mixer_switch_write(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_mixer_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
@@ -325,11 +325,11 @@ int snd_ctl_mixer_switch_write(void *handle, int dev, snd_switch_t * sw)
 	return 0;
 }
 
-int snd_ctl_rawmidi_info(void *handle, int dev, snd_rawmidi_info_t * info)
+int snd_ctl_rawmidi_info(snd_ctl_t *handle, int dev, snd_rawmidi_info_t * info)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !info)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
@@ -339,11 +339,11 @@ int snd_ctl_rawmidi_info(void *handle, int dev, snd_rawmidi_info_t * info)
 	return 0;
 }
 
-int snd_ctl_rawmidi_output_info(void *handle, int dev, snd_rawmidi_output_info_t * info)
+int snd_ctl_rawmidi_output_info(snd_ctl_t *handle, int dev, snd_rawmidi_output_info_t * info)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !info || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
@@ -353,11 +353,11 @@ int snd_ctl_rawmidi_output_info(void *handle, int dev, snd_rawmidi_output_info_t
 	return 0;
 }
 
-int snd_ctl_rawmidi_input_info(void *handle, int dev, snd_rawmidi_input_info_t * info)
+int snd_ctl_rawmidi_input_info(snd_ctl_t *handle, int dev, snd_rawmidi_input_info_t * info)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !info || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
@@ -367,11 +367,11 @@ int snd_ctl_rawmidi_input_info(void *handle, int dev, snd_rawmidi_input_info_t *
 	return 0;
 }
 
-int snd_ctl_rawmidi_output_switch_list(void *handle, int dev, snd_switch_list_t *list)
+int snd_ctl_rawmidi_output_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !list || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
@@ -381,11 +381,11 @@ int snd_ctl_rawmidi_output_switch_list(void *handle, int dev, snd_switch_list_t 
 	return 0;
 }
 
-int snd_ctl_rawmidi_output_switch_read(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_rawmidi_output_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
@@ -395,11 +395,11 @@ int snd_ctl_rawmidi_output_switch_read(void *handle, int dev, snd_switch_t * sw)
 	return 0;
 }
 
-int snd_ctl_rawmidi_output_switch_write(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_rawmidi_output_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
@@ -409,11 +409,11 @@ int snd_ctl_rawmidi_output_switch_write(void *handle, int dev, snd_switch_t * sw
 	return 0;
 }
 
-int snd_ctl_rawmidi_input_switch_list(void *handle, int dev, snd_switch_list_t *list)
+int snd_ctl_rawmidi_input_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !list || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
@@ -423,11 +423,11 @@ int snd_ctl_rawmidi_input_switch_list(void *handle, int dev, snd_switch_list_t *
 	return 0;
 }
 
-int snd_ctl_rawmidi_input_switch_read(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_rawmidi_input_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
@@ -437,11 +437,11 @@ int snd_ctl_rawmidi_input_switch_read(void *handle, int dev, snd_switch_t * sw)
 	return 0;
 }
 
-int snd_ctl_rawmidi_input_switch_write(void *handle, int dev, snd_switch_t * sw)
+int snd_ctl_rawmidi_input_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
@@ -451,13 +451,13 @@ int snd_ctl_rawmidi_input_switch_write(void *handle, int dev, snd_switch_t * sw)
 	return 0;
 }
 
-int snd_control_read(void *handle, snd_ctl_callbacks_t * callbacks)
+int snd_control_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
 {
 	snd_ctl_t *ctl;
 	int result, count;
 	snd_ctl_read_t r;
 
-	ctl = (snd_ctl_t *) handle;
+	ctl = handle;
 	if (!ctl)
 		return -EINVAL;
 	count = 0;

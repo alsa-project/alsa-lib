@@ -17,27 +17,29 @@ typedef struct snd_mixer_callbacks {
 extern "C" {
 #endif
 
-int snd_mixer_open(void **handle, int card, int device);
-int snd_mixer_close(void *handle);
-int snd_mixer_file_descriptor(void *handle);
-int snd_mixer_info(void *handle, snd_mixer_info_t * info);
-int snd_mixer_elements(void *handle, snd_mixer_elements_t * elements);
-int snd_mixer_routes(void *handle, snd_mixer_routes_t * routes);
-int snd_mixer_groups(void *handle, snd_mixer_groups_t * groups);
-int snd_mixer_group(void *handle, snd_mixer_group_t * group);
-int snd_mixer_element_info(void *handle, snd_mixer_element_info_t * info);
-int snd_mixer_element_read(void *handle, snd_mixer_element_t * element);
-int snd_mixer_element_write(void *handle, snd_mixer_element_t * element);
-int snd_mixer_read(void *handle, snd_mixer_callbacks_t * callbacks);
+typedef struct snd_mixer snd_mixer_t;
+
+int snd_mixer_open(snd_mixer_t **handle, int card, int device);
+int snd_mixer_close(snd_mixer_t *handle);
+int snd_mixer_file_descriptor(snd_mixer_t *handle);
+int snd_mixer_info(snd_mixer_t *handle, snd_mixer_info_t * info);
+int snd_mixer_elements(snd_mixer_t *handle, snd_mixer_elements_t * elements);
+int snd_mixer_routes(snd_mixer_t *handle, snd_mixer_routes_t * routes);
+int snd_mixer_groups(snd_mixer_t *handle, snd_mixer_groups_t * groups);
+int snd_mixer_group(snd_mixer_t *handle, snd_mixer_group_t * group);
+int snd_mixer_element_info(snd_mixer_t *handle, snd_mixer_element_info_t * info);
+int snd_mixer_element_read(snd_mixer_t *handle, snd_mixer_element_t * element);
+int snd_mixer_element_write(snd_mixer_t *handle, snd_mixer_element_t * element);
+int snd_mixer_read(snd_mixer_t *handle, snd_mixer_callbacks_t * callbacks);
 
 void snd_mixer_set_bit(unsigned int *bitmap, int bit, int val);
 int snd_mixer_get_bit(unsigned int *bitmap, int bit);
 
 int snd_mixer_element_has_info(snd_mixer_eid_t *eid);
-int snd_mixer_element_info_build(void *handle, snd_mixer_element_info_t * info);
+int snd_mixer_element_info_build(snd_mixer_t *handle, snd_mixer_element_info_t * info);
 int snd_mixer_element_info_free(snd_mixer_element_info_t * info);
 int snd_mixer_element_has_control(snd_mixer_eid_t *eid);
-int snd_mixer_element_build(void *handle, snd_mixer_element_t * element);
+int snd_mixer_element_build(snd_mixer_t *handle, snd_mixer_element_t * element);
 int snd_mixer_element_free(snd_mixer_element_t * element);
 
 #ifdef __cplusplus
