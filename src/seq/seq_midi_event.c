@@ -445,7 +445,7 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 		case SNDRV_SEQ_EVENT_LENGTH_FIXED:
 			return -EINVAL;	/* invalid event */
 		}
-		memcpy(dev->buf, ev->data.ext.ptr, qlen);
+		memcpy(buf, ev->data.ext.ptr, qlen);
 		return qlen;
 	} else {
 		unsigned char xbuf[4];
