@@ -84,6 +84,11 @@ extern struct snd_dlsym_link *snd_dlsym_start;
 
 #endif
 
+#ifndef __STRING
+/** \brief Return 'x' argument as string */
+#define __STRING(x)     #x
+#endif
+
 /** \brief Returns the version of a dynamic symbol as a string. */
 #define SND_DLSYM_VERSION(version) __STRING(version)
 
