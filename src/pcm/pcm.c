@@ -363,7 +363,7 @@ int snd_pcm_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
 	return 0;
 }
 
-int snd_pcm_drain_playback(snd_pcm_t *pcm)
+int snd_pcm_playback_drain(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
@@ -374,7 +374,7 @@ int snd_pcm_drain_playback(snd_pcm_t *pcm)
 	return 0;
 }
 
-int snd_pcm_flush_playback(snd_pcm_t *pcm)
+int snd_pcm_playback_flush(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
@@ -385,7 +385,7 @@ int snd_pcm_flush_playback(snd_pcm_t *pcm)
 	return 0;
 }
 
-int snd_pcm_flush_capture(snd_pcm_t *pcm)
+int snd_pcm_capture_flush(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
@@ -396,13 +396,13 @@ int snd_pcm_flush_capture(snd_pcm_t *pcm)
 	return 0;
 }
 
-int snd_pcm_flush_channel(snd_pcm_t *pcm, int channel)
+int snd_pcm_channel_flush(snd_pcm_t *pcm, int channel)
 {
 	switch (channel) {
 	case SND_PCM_CHANNEL_PLAYBACK:
-		return snd_pcm_flush_playback(pcm);
+		return snd_pcm_playback_flush(pcm);
 	case SND_PCM_CHANNEL_CAPTURE:
-		return snd_pcm_flush_capture(pcm);
+		return snd_pcm_capture_flush(pcm);
 	default:
 		return -EIO;
 	}

@@ -358,7 +358,7 @@ int snd_pcm_plugin_drain_playback(snd_pcm_t *pcm)
 
 	if ((err = snd_pcm_plugin_action(pcm, SND_PCM_CHANNEL_PLAYBACK, DRAIN))<0)
 		return err;
-	return snd_pcm_drain_playback(pcm);
+	return snd_pcm_playback_drain(pcm);
 }
 
 int snd_pcm_plugin_flush(snd_pcm_t *pcm, int channel)
@@ -368,7 +368,7 @@ int snd_pcm_plugin_flush(snd_pcm_t *pcm, int channel)
 	pdprintf("flush\n");
 	if ((err = snd_pcm_plugin_action(pcm, channel, FLUSH))<0)
 		return err;
-	return snd_pcm_flush_channel(pcm, channel);
+	return snd_pcm_channel_flush(pcm, channel);
 }
 
 int snd_pcm_plugin_pointer(snd_pcm_t *pcm, int channel, void **ptr, size_t *size)

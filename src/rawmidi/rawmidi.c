@@ -122,67 +122,57 @@ int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 	return 0;
 }
 
-int snd_rawmidi_output_params(snd_rawmidi_t *rmidi, snd_rawmidi_output_params_t * params)
+int snd_rawmidi_channel_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
 {
 	if (!rmidi || !params)
 		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OUTPUT_PARAMS, params) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_rawmidi_input_params(snd_rawmidi_t *rmidi, snd_rawmidi_input_params_t * params)
-{
-	if (!rmidi || !params)
+	if (params->channel < 0 || params->channel > 1)
 		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_INPUT_PARAMS, params) < 0)
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_CHANNEL_PARAMS, params) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_rawmidi_output_status(snd_rawmidi_t *rmidi, snd_rawmidi_output_status_t * status)
+int snd_rawmidi_output_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
 	if (!rmidi || !status)
 		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OUTPUT_STATUS, status) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_rawmidi_input_status(snd_rawmidi_t *rmidi, snd_rawmidi_input_status_t * status)
-{
-	if (!rmidi || !status)
+	if (status->channel < 0 || status->channel > 1)
 		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_INPUT_STATUS, status) < 0)
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_CHANNEL_STATUS, status) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_rawmidi_drain_output(snd_rawmidi_t *rmidi)
+int snd_rawmidi_output_drain(snd_rawmidi_t *rmidi)
+{
+	int chn = SND_RAWMIDI_CHANNEL_OUTPUT;
+	if (!rmidi)
+		return -EINVAL;
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_CHANNEL_DRAIN, &chn) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_rawmidi_channel_flush(snd_rawmidi_t *rmidi, int chn)
 {
 	if (!rmidi)
 		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_DRAIN_OUTPUT) < 0)
+	if (chn < 0 || chn > 1)
+		return -EINVAL;
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_CHANNEL_FLUSH) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_rawmidi_flush_output(snd_rawmidi_t *rmidi)
+int snd_rawmidi_output_flush(snd_rawmidi_t *rmidi)
 {
-	if (!rmidi)
-		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_FLUSH_OUTPUT) < 0)
-		return -errno;
-	return 0;
+	return snd_rawmidi_channel_flush(rmidi, SND_RAWMIDI_CHANNEL_OUTPUT);
 }
 
-int snd_rawmidi_flush_input(snd_rawmidi_t *rmidi)
+int snd_rawmidi_input_flush(snd_rawmidi_t *rmidi)
 {
-	if (!rmidi)
-		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_FLUSH_INPUT) < 0)
-		return -errno;
-	return 0;
+	return snd_rawmidi_channel_flush(rmidi, SND_RAWMIDI_CHANNEL_INPUT);
 }
 
 ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
