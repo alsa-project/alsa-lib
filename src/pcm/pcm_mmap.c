@@ -440,7 +440,9 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		{
 			const snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);
 			const char *buf = snd_pcm_channel_area_addr(a, offset);
-			err = _snd_pcm_writei(pcm, buf, size);
+			err = _snd_pcm_writei(pcm, buf, frames);
+			if (err >= 0)
+				frames = err;
 			break;
 		}
 		case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
@@ -453,7 +455,9 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 				const snd_pcm_channel_area_t *a = &areas[c];
 				bufs[c] = snd_pcm_channel_area_addr(a, offset);
 			}
-			err = _snd_pcm_writen(pcm, bufs, size);
+			err = _snd_pcm_writen(pcm, bufs, frames);
+			if (err >= 0)
+				frames = err;
 			break;
 		}
 		default:
@@ -486,7 +490,9 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		{
 			const snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);
 			char *buf = snd_pcm_channel_area_addr(a, offset);
-			err = _snd_pcm_readi(pcm, buf, size);
+			err = _snd_pcm_readi(pcm, buf, frames);
+			if (err >= 0)
+				frames = err;
 			break;
 		}
 		case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
@@ -499,7 +505,9 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 				const snd_pcm_channel_area_t *a = &areas[c];
 				bufs[c] = snd_pcm_channel_area_addr(a, offset);
 			}
-			err = _snd_pcm_readn(pcm->fast_op_arg, bufs, size);
+			err = _snd_pcm_readn(pcm->fast_op_arg, bufs, frames);
+			if (err >= 0)
+				frames = err;
 		}
 		default:
 			assert(0);
