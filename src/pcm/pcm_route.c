@@ -428,7 +428,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 		goto norm_float;
 	norm_float_0:
 	norm_float:
-		sum.as_float = floor(sum.as_float + 0.5);
+		sum.as_float = rint(sum.as_float);
 		if (sum.as_float > (int64_t)0x7fffffff)
 			sample = 0x7fffffff;	/* maximum positive value */
 		else if (sum.as_float < (int64_t)-0x80000000)
