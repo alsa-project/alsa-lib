@@ -595,19 +595,31 @@ static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *s
 static int snd_pcm_plug_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	return snd_pcm_mmap_status(plug->slave, NULL);
+	int err = snd_pcm_mmap_status(plug->slave, NULL);
+	if (err < 0)
+		return err;
+	pcm->mmap_status = plug->slave->mmap_status;
+	return 0;
 }
 
 static int snd_pcm_plug_mmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	return snd_pcm_mmap_control(plug->slave, NULL);
+	int err = snd_pcm_mmap_control(plug->slave, NULL);
+	if (err < 0)
+		return err;
+	pcm->mmap_control = plug->slave->mmap_control;
+	return 0;
 }
 
 static int snd_pcm_plug_mmap_data(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	return snd_pcm_mmap_data(plug->slave, NULL);
+	int err = snd_pcm_mmap_data(plug->slave, NULL);
+	if (err < 0)
+		return err;
+	pcm->mmap_data = plug->slave->mmap_data;
+	return 0;
 }
 
 static int snd_pcm_plug_munmap_status(snd_pcm_t *pcm)

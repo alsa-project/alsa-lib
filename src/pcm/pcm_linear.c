@@ -179,7 +179,7 @@ static ssize_t snd_pcm_linear_write_areas(snd_pcm_t *pcm,
 	while (xfer < size) {
 		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		linear_transfer(areas, offset, 
-				slave->mmap_areas, snd_pcm_mmap_offset(slave),
+				snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 				frames, pcm->setup.format.channels, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
@@ -212,7 +212,7 @@ static ssize_t snd_pcm_linear_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		linear_transfer(slave->mmap_areas, snd_pcm_mmap_offset(slave),
+		linear_transfer(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 				areas, offset, 
 				frames, pcm->setup.format.channels, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);

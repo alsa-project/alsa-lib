@@ -466,7 +466,7 @@ static ssize_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
 	while (xfer < size) {
 		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		adpcm->func(areas, offset, 
-			    slave->mmap_areas, snd_pcm_mmap_offset(slave),
+			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			    frames, pcm->setup.format.channels,
 			    adpcm->getput_idx, adpcm->states);
 		err = snd_pcm_mmap_forward(slave, frames);
@@ -500,7 +500,7 @@ static ssize_t snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		adpcm->func(slave->mmap_areas, snd_pcm_mmap_offset(slave),
+		adpcm->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			    areas, offset, 
 			    frames, pcm->setup.format.channels,
 			    adpcm->getput_idx, adpcm->states);

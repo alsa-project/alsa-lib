@@ -470,7 +470,7 @@ static int snd_pcm_client_shm_munmap_status(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 	/* FIXME: not mmap */
-	if (munmap(pcm->mmap_status, sizeof(*pcm->mmap_status)) < 0)
+	if (munmap((void*)pcm->mmap_status, sizeof(*pcm->mmap_status)) < 0)
 		return -errno;
 	return ctrl->result;
 }

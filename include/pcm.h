@@ -110,8 +110,9 @@ typedef enum {
 	SND_PCM_TYPE_ADPCM,
 	SND_PCM_TYPE_RATE,
 	SND_PCM_TYPE_ROUTE,
-	SND_PCM_TYPE_COPY,
 	SND_PCM_TYPE_PLUG,
+	SND_PCM_TYPE_SHARE,
+	SND_PCM_TYPE_MIX,
 	SND_PCM_TYPE_DROUTE,
 	SND_PCM_TYPE_LBSERVER,
 } snd_pcm_type_t;
@@ -127,56 +128,57 @@ int snd_pcm_plug_open_subdevice(snd_pcm_t **handle, int card, int device, int su
 int snd_pcm_plug_open_device(snd_pcm_t **handle, int card, int device, int stream, int mode);
 #define snd_pcm_write snd_pcm_writei
 #define snd_pcm_read snd_pcm_readi
-ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, int count);
-ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, int count);
+ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count);
+ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count);
 
 
-snd_pcm_type_t snd_pcm_type(snd_pcm_t *handle);
-int snd_pcm_close(snd_pcm_t *handle);
-int snd_pcm_poll_descriptor(snd_pcm_t *handle);
-int snd_pcm_nonblock(snd_pcm_t *handle, int nonblock);
-int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t *info);
-int snd_pcm_params_info(snd_pcm_t *handle, snd_pcm_params_info_t *info);
-int snd_pcm_params(snd_pcm_t *handle, snd_pcm_params_t *params);
-int snd_pcm_setup(snd_pcm_t *handle, snd_pcm_setup_t *setup);
-int snd_pcm_channel_info(snd_pcm_t *handle, snd_pcm_channel_info_t *info);
-int snd_pcm_channel_params(snd_pcm_t *handle, snd_pcm_channel_params_t *params);
-int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup);
-int snd_pcm_status(snd_pcm_t *handle, snd_pcm_status_t *status);
-int snd_pcm_prepare(snd_pcm_t *handle);
-int snd_pcm_start(snd_pcm_t *handle);
-int snd_pcm_drop(snd_pcm_t *handle);
-int snd_pcm_drain(snd_pcm_t *handle);
-int snd_pcm_pause(snd_pcm_t *handle, int enable);
-int snd_pcm_state(snd_pcm_t *handle);
-int snd_pcm_delay(snd_pcm_t *handle, ssize_t *delayp);
-ssize_t snd_pcm_rewind(snd_pcm_t *handle, size_t frames);
-ssize_t snd_pcm_writei(snd_pcm_t *handle, const void *buffer, size_t size);
-ssize_t snd_pcm_readi(snd_pcm_t *handle, void *buffer, size_t size);
-ssize_t snd_pcm_writen(snd_pcm_t *handle, void **bufs, size_t size);
-ssize_t snd_pcm_readn(snd_pcm_t *handle, void **bufs, size_t size);
-int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp);
-int snd_pcm_dump(snd_pcm_t *handle, FILE *fp);
+snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
+int snd_pcm_close(snd_pcm_t *pcm);
+int snd_pcm_poll_descriptor(snd_pcm_t *pcm);
+int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock);
+int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info);
+int snd_pcm_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info);
+int snd_pcm_params(snd_pcm_t *pcm, snd_pcm_params_t *params);
+int snd_pcm_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup);
+int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
+int snd_pcm_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params);
+int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup);
+int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status);
+int snd_pcm_prepare(snd_pcm_t *pcm);
+int snd_pcm_start(snd_pcm_t *pcm);
+int snd_pcm_drop(snd_pcm_t *pcm);
+int snd_pcm_drain(snd_pcm_t *pcm);
+int snd_pcm_pause(snd_pcm_t *pcm, int enable);
+int snd_pcm_state(snd_pcm_t *pcm);
+int snd_pcm_delay(snd_pcm_t *pcm, ssize_t *delayp);
+ssize_t snd_pcm_rewind(snd_pcm_t *pcm, size_t frames);
+ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size);
+ssize_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size);
+ssize_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size);
+ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size);
+int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp);
+int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp);
 int snd_pcm_dump_status(snd_pcm_status_t *status, FILE *fp);
-int snd_pcm_link(snd_pcm_t *handle1, snd_pcm_t *handle2);
-int snd_pcm_unlink(snd_pcm_t *handle);
+int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
+int snd_pcm_unlink(snd_pcm_t *pcm);
 
-int snd_pcm_channels_mask(snd_pcm_t *handle, bitset_t *cmask);
+int snd_pcm_channels_mask(snd_pcm_t *pcm, bitset_t *cmask);
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 ssize_t snd_pcm_avail_update(snd_pcm_t *pcm);
 
 
 /* mmap */
-int snd_pcm_mmap(snd_pcm_t *handle, void **buffer);
-int snd_pcm_munmap(snd_pcm_t *handle);
-int snd_pcm_mmap_get_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *areas);
+int snd_pcm_mmap(snd_pcm_t *pcm, void **buffer);
+int snd_pcm_munmap(snd_pcm_t *pcm);
+snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);
+int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *stopped_areas, snd_pcm_channel_area_t *running_areas);
 ssize_t snd_pcm_mmap_forward(snd_pcm_t *pcm, size_t size);
 size_t snd_pcm_mmap_offset(snd_pcm_t *pcm);
 size_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, size_t size);
-ssize_t snd_pcm_mmap_writei(snd_pcm_t *handle, const void *buffer, size_t size);
-ssize_t snd_pcm_mmap_readi(snd_pcm_t *handle, void *buffer, size_t size);
-ssize_t snd_pcm_mmap_writen(snd_pcm_t *handle, void **bufs, size_t size);
-ssize_t snd_pcm_mmap_readn(snd_pcm_t *handle, void **bufs, size_t size);
+ssize_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, size_t size);
+ssize_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, size_t size);
+ssize_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, size_t size);
+ssize_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, size_t size);
 
 const char *snd_pcm_format_name(int format);
 const char *snd_pcm_format_description(int format);

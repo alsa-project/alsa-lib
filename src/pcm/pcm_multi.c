@@ -165,9 +165,6 @@ static int snd_pcm_multi_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 				return err;
 		}
 		p.format.channels = multi->slaves[i].channels_count;
-#if 1
-		p.xrun_mode = SND_PCM_XRUN_NONE;
-#endif
 		err = snd_pcm_params(slave, &p);
 		if (err < 0) {
 			params->fail_mask = p.fail_mask;
@@ -180,7 +177,7 @@ static int snd_pcm_multi_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 		snd_pcm_mmap_data(slave, NULL);
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
 		    err == 0)
-			snd_pcm_areas_silence(slave->mmap_areas, 0, slave->setup.format.channels, 
+			snd_pcm_areas_silence(snd_pcm_mmap_areas(slave), 0, slave->setup.format.channels, 
 					      slave->setup.buffer_size, slave->setup.format.sfmt);
 	}
 	if (err == 0)
@@ -368,11 +365,15 @@ static int snd_pcm_multi_mmap_data(snd_pcm_t *pcm)
 			return err;
 		setup = &slave->setup;
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-			snd_pcm_channel_area_t areas[setup->format.channels];
-			err = snd_pcm_mmap_get_areas(slave, areas);
+			snd_pcm_channel_area_t r[setup->format.channels];
+			snd_pcm_channel_area_t s[setup->format.channels];
+			err = snd_pcm_mmap_get_areas(slave, s, r);
 			if (err < 0)
 				return err;
-			err = snd_pcm_areas_silence(areas, 0, setup->format.channels, setup->buffer_size, setup->format.sfmt);
+			err = snd_pcm_areas_silence(s, 0, setup->format.channels, setup->buffer_size, setup->format.sfmt);
+			if (err < 0)
+				return err;
+			err = snd_pcm_areas_silence(r, 0, setup->format.channels, setup->buffer_size, setup->format.sfmt);
 			if (err < 0)
 				return err;
 		}

@@ -137,16 +137,19 @@ static int snd_pcm_hw_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * se
 		return -errno;
 	if (hw->mmap_emulation) {
 		if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
-			setup->area.addr = pcm->mmap_data;
-			setup->area.first = setup->channel * pcm->bits_per_sample;
-			setup->area.step = pcm->bits_per_frame;
+			setup->running_area.addr = pcm->mmap_data;
+			setup->running_area.first = setup->channel * pcm->bits_per_sample;
+			setup->running_area.step = pcm->bits_per_frame;
 		} else {
-			setup->area.addr = pcm->mmap_data + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
-			setup->area.first = 0;
-			setup->area.step = pcm->bits_per_sample;
+			setup->running_area.addr = pcm->mmap_data + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
+			setup->running_area.first = 0;
+			setup->running_area.step = pcm->bits_per_sample;
 		}
-	} else
-		setup->area.addr = (char *)pcm->mmap_data + (long)setup->area.addr;
+		setup->stopped_area = setup->running_area;
+	} else {
+		setup->running_area.addr = (char *)pcm->mmap_data + (long)setup->running_area.addr;
+		setup->stopped_area.addr = setup->running_area.addr;
+	}
 	return 0;
 }
 
@@ -220,18 +223,18 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 
 static ssize_t snd_pcm_hw_rewind(snd_pcm_t *pcm, size_t frames)
 {
-	ssize_t used;
+	ssize_t hw_avail;
 	if (pcm->setup.xrun_mode == SND_PCM_XRUN_ASAP) {
 		ssize_t d;
 		int err = snd_pcm_hw_delay(pcm, &d);
 		if (err < 0)
 			return 0;
 	}
-	used = pcm->setup.buffer_size - snd_pcm_mmap_avail(pcm);
-	if (used <= 0)
+	hw_avail = snd_pcm_mmap_hw_avail(pcm);
+	if (hw_avail <= 0)
 		return 0;
-	if (frames > (size_t)used)
-		frames = used;
+	if (frames > (size_t)hw_avail)
+		frames = hw_avail;
 	snd_pcm_mmap_appl_backward(pcm, frames);
 	return frames;
 }
@@ -339,7 +342,7 @@ static int snd_pcm_hw_mmap_data(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 {
-	if (munmap(pcm->mmap_status, sizeof(*pcm->mmap_status)) < 0)
+	if (munmap((void*)pcm->mmap_status, sizeof(*pcm->mmap_status)) < 0)
 		return -errno;
 	return 0;
 }
@@ -377,7 +380,8 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 	int fd = hw->fd;
 	size_t avail;
 	ssize_t err;
-	if (pcm->setup.ready_mode == SND_PCM_READY_ASAP) {
+	if (pcm->setup.ready_mode == SND_PCM_READY_ASAP ||
+	    pcm->setup.xrun_mode == SND_PCM_XRUN_ASAP) {
 		ssize_t d;
 		int err = ioctl(fd, SND_PCM_IOCTL_DELAY, &d);
 		if (err < 0)
@@ -395,6 +399,8 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 			return err;
 		}
 	}
+	if (avail >= pcm->setup.buffer_size)
+		return -EPIPE;
 	return avail;
 }
 

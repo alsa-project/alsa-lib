@@ -469,7 +469,7 @@ static ssize_t snd_pcm_rate_write_areas(snd_pcm_t *pcm,
 		src_frames = client_size - client_xfer;
 		dst_frames = snd_pcm_mmap_playback_xfer(slave, slave_size - slave_xfer);
 		src_frames = rate->func(areas, client_offset, src_frames,
-					slave->mmap_areas, snd_pcm_mmap_offset(slave),
+					snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 					&dst_frames, 
 					pcm->setup.format.channels,
 					rate->get_idx, rate->put_idx,
@@ -514,7 +514,7 @@ static ssize_t snd_pcm_rate_read_areas(snd_pcm_t *pcm,
 		size_t src_frames, dst_frames;
 		dst_frames = client_size - client_xfer;
 		src_frames = snd_pcm_mmap_capture_xfer(slave, slave_size - slave_xfer);
-		src_frames = rate->func(slave->mmap_areas, snd_pcm_mmap_offset(slave),
+		src_frames = rate->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 					src_frames,
 					areas, client_offset, &dst_frames,
 					pcm->setup.format.channels,

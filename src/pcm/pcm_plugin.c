@@ -65,14 +65,15 @@ int snd_pcm_plugin_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup
 	if (err < 0)
 		return err;
 	if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
-		setup->area.addr = pcm->mmap_data;
-		setup->area.first = setup->channel * pcm->bits_per_sample;
-		setup->area.step = pcm->bits_per_frame;
+		setup->running_area.addr = pcm->mmap_data;
+		setup->running_area.first = setup->channel * pcm->bits_per_sample;
+		setup->running_area.step = pcm->bits_per_frame;
 	} else {
-		setup->area.addr = pcm->mmap_data + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
-		setup->area.first = 0;
-		setup->area.step = pcm->bits_per_sample;
+		setup->running_area.addr = pcm->mmap_data + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
+		setup->running_area.first = 0;
+		setup->running_area.step = pcm->bits_per_sample;
 	}
+	setup->stopped_area = setup->running_area;
 	return 0;
 }
 
@@ -95,17 +96,13 @@ int snd_pcm_plugin_state(snd_pcm_t *pcm)
 int snd_pcm_plugin_delay(snd_pcm_t *pcm, ssize_t *delayp)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	ssize_t sd, d;
+	ssize_t sd;
 	int err = snd_pcm_delay(plugin->slave, &sd);
 	if (err < 0)
 		return err;
 	if (plugin->client_frames)
 		sd = plugin->client_frames(pcm, sd);
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		d = pcm->setup.buffer_size - snd_pcm_mmap_playback_avail(pcm);
-	else
-		d = snd_pcm_mmap_capture_avail(pcm);
-	*delayp = sd + d;
+	*delayp = sd + snd_pcm_mmap_delay(pcm);
 	return 0;
 }
 
@@ -152,7 +149,7 @@ int snd_pcm_plugin_pause(snd_pcm_t *pcm, int enable)
 ssize_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, size_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	ssize_t n = pcm->setup.buffer_size - snd_pcm_mmap_avail(pcm);
+	ssize_t n = snd_pcm_mmap_hw_avail(pcm);
 	assert(n >= 0);
 	if (n > 0) {
 		if ((size_t)n > frames)
@@ -248,7 +245,7 @@ ssize_t snd_pcm_plugin_mmap_forward(snd_pcm_t *pcm, size_t client_size)
 		size_t cont = pcm->setup.buffer_size - offset;
 		if (cont < client_frames)
 			client_frames = cont;
-		err = plugin->write(pcm, pcm->mmap_areas, offset,
+		err = plugin->write(pcm, pcm->running_areas, offset,
 				    client_frames, &slave_frames);
 		if (err < 0)
 			break;
@@ -286,7 +283,7 @@ ssize_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 		size_t cont = pcm->setup.buffer_size - offset;
 		if (cont < client_frames)
 			client_frames = cont;
-		err = plugin->read(pcm, pcm->mmap_areas, offset,
+		err = plugin->read(pcm, pcm->running_areas, offset,
 				   client_frames, &slave_frames);
 		if (err < 0)
 			break;

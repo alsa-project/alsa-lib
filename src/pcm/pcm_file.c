@@ -141,19 +141,23 @@ static void snd_pcm_file_write_areas(snd_pcm_t *pcm,
 {
 	snd_pcm_file_t *file = pcm->private;
 	size_t bytes = snd_pcm_frames_to_bytes(pcm, frames);
-	char buf[bytes];
+	char *buf;
 	size_t channels = pcm->setup.format.channels;
 	snd_pcm_channel_area_t buf_areas[channels];
 	size_t channel;
 	ssize_t r;
-	for (channel = 0; channel < channels; ++channel) {
-		snd_pcm_channel_area_t *a = &buf_areas[channel];
-		a->addr = buf;
-		a->first = pcm->bits_per_sample * channel;
-		a->step = pcm->bits_per_frame;
-	}
-	snd_pcm_areas_copy(areas, offset, buf_areas, 0, 
-			   channels, frames, pcm->setup.format.sfmt);
+	if (pcm->setup.mmap_shape != SND_PCM_MMAP_INTERLEAVED) {
+		buf = alloca(bytes);
+		for (channel = 0; channel < channels; ++channel) {
+			snd_pcm_channel_area_t *a = &buf_areas[channel];
+			a->addr = buf;
+			a->first = pcm->bits_per_sample * channel;
+			a->step = pcm->bits_per_frame;
+		}
+		snd_pcm_areas_copy(areas, offset, buf_areas, 0, 
+				   channels, frames, pcm->setup.format.sfmt);
+	} else
+		buf = snd_pcm_channel_area_addr(areas, offset);
 	r = write(file->fd, buf, bytes);
 	assert(r == (ssize_t)bytes);
 }
@@ -219,7 +223,7 @@ static ssize_t snd_pcm_file_mmap_forward(snd_pcm_t *pcm, size_t size)
 		size_t cont = pcm->setup.buffer_size - ofs;
 		if (cont < frames)
 			frames = cont;
-		snd_pcm_file_write_areas(pcm, pcm->mmap_areas, ofs, frames);
+		snd_pcm_file_write_areas(pcm, snd_pcm_mmap_areas(file->slave), ofs, frames);
 		ofs += frames;
 		if (ofs == pcm->setup.buffer_size)
 			ofs = 0;
@@ -237,19 +241,31 @@ static ssize_t snd_pcm_file_avail_update(snd_pcm_t *pcm)
 static int snd_pcm_file_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_mmap_status(file->slave, &pcm->mmap_status);
+	int err = snd_pcm_mmap_status(file->slave, &pcm->mmap_status);
+	if (err < 0)
+		return err;
+	pcm->mmap_status = file->slave->mmap_status;
+	return 0;
 }
 
 static int snd_pcm_file_mmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_mmap_control(file->slave, &pcm->mmap_control);
+	int err = snd_pcm_mmap_control(file->slave, &pcm->mmap_control);
+	if (err < 0)
+		return err;
+	pcm->mmap_control = file->slave->mmap_control;
+	return 0;
 }
 
 static int snd_pcm_file_mmap_data(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_mmap_data(file->slave, &pcm->mmap_data);
+	int err = snd_pcm_mmap_data(file->slave, &pcm->mmap_data);
+	if (err < 0)
+		return err;
+	pcm->mmap_data = file->slave->mmap_data;
+	return 0;
 }
 
 static int snd_pcm_file_munmap_status(snd_pcm_t *pcm)

@@ -653,6 +653,7 @@ ssize_t snd_pcm_avail_update(snd_pcm_t *pcm)
 ssize_t snd_pcm_mmap_forward(snd_pcm_t *pcm, size_t size)
 {
 	assert(size > 0);
+	assert(size <= snd_pcm_mmap_avail(pcm));
 	return pcm->fast_ops->mmap_forward(pcm->fast_op_arg, size);
 }
 

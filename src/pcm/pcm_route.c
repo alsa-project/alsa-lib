@@ -572,7 +572,7 @@ static ssize_t snd_pcm_route_write_areas(snd_pcm_t *pcm,
 	while (xfer < size) {
 		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		route_transfer(areas, offset, 
-			       slave->mmap_areas, snd_pcm_mmap_offset(slave),
+			       snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			       frames, route->schannels, &route->params);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
@@ -600,14 +600,15 @@ static int snd_pcm_route_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *
 		return err;
 #endif
 	if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
-		setup->area.addr = pcm->mmap_data;
-		setup->area.first = setup->channel * pcm->bits_per_sample;
-		setup->area.step = pcm->bits_per_frame;
+		setup->running_area.addr = pcm->mmap_data;
+		setup->running_area.first = setup->channel * pcm->bits_per_sample;
+		setup->running_area.step = pcm->bits_per_frame;
 	} else {
-		setup->area.addr = pcm->mmap_data + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
-		setup->area.first = 0;
-		setup->area.step = pcm->bits_per_sample;
+		setup->running_area.addr = pcm->mmap_data + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
+		setup->running_area.first = 0;
+		setup->running_area.step = pcm->bits_per_sample;
 	}
+	setup->stopped_area = setup->running_area;
 	return 0;
 }
 
@@ -626,7 +627,7 @@ static ssize_t snd_pcm_route_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		route_transfer(slave->mmap_areas, snd_pcm_mmap_offset(slave),
+		route_transfer(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			       areas, offset, 
 			       frames, route->cchannels, &route->params);
 		err = snd_pcm_mmap_forward(slave, frames);
