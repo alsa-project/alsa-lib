@@ -1312,7 +1312,7 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 		if (err < 0)
 			return err;
 	}
-	if (! pcm->poll_fd < 0) {
+	if (pcm->poll_fd < 0) {
 		SNDMSG("poll_fd < 0");
 		return -EIO;
 	}
@@ -1907,7 +1907,7 @@ int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm,
  */
 snd_pcm_t *snd_async_handler_get_pcm(snd_async_handler_t *handler)
 {
-	if (handler->type == SND_ASYNC_HANDLER_PCM) {
+	if (handler->type != SND_ASYNC_HANDLER_PCM) {
 		SNDMSG("invalid handler type %d", handler->type);
 		return NULL;
 	}
