@@ -20,9 +20,9 @@
  */
   
 #ifdef __KERNEL__
-#include "../include/driver.h"
-#include "../include/pcm.h"
-#include "../include/pcm_plugin.h"
+#include <sound/driver.h>
+#include <sound/pcm.h>
+#include <sound/pcm_plugin.h>
 #define bswap_16 swab16
 #define bswap_32 swab32
 #define bswap_64 swab64
