@@ -604,6 +604,8 @@ static void mix_areas1(unsigned int size,
 		"\tcmp $0, %%edx\n"
 		"jz 6f\n"
 
+		"\t.p2align 4,,15\n"
+
 		"1:"
 
 		/*
@@ -653,6 +655,8 @@ static void mix_areas1(unsigned int size,
 		 *  sample > 0x7fff
 		 */
 
+		"\t.p2align 4,,15\n"
+
 		"4:"
 		"\tmovw $0x7fff, %%ax\n"
 		"\tmovw %%ax, (%%edi)\n"
@@ -668,6 +672,8 @@ static void mix_areas1(unsigned int size,
 		/*
 		 *  sample < -0x8000
 		 */
+
+		"\t.p2align 4,,15\n"
 
 		"5:"
 		"\tmovw $-0x8000, %%ax\n"
@@ -721,6 +727,8 @@ static void mix_areas1_mmx(unsigned int size,
 		 */
 		"\tcmp $0, %%edx\n"
 		"jz 6f\n"
+
+		"\t.p2align 4,,15\n"
 
 		"1:"
 
