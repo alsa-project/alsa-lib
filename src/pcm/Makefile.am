@@ -8,7 +8,7 @@ libpcm_la_SOURCES = mask.c interval.c \
 	            pcm_shm.c pcm_file.c pcm_share.c pcm_null.c \
 		    pcm_params.c
 noinst_HEADERS = pcm_local.h pcm_plugin.h mask.h mask_inline.h \
-	         interval.h interval_inline.h
+	         interval.h interval_inline.h plugin_ops.h
 
 all: libpcm.la
 
