@@ -25,8 +25,10 @@
 #define __SOUND_AINSTR_FM_H
 
 #ifndef __KERNEL__
+#define __KERNEL__
 #include <asm/types.h>
 #include <asm/byteorder.h>
+#undef __KERNEL__
 #endif
 
 /*
