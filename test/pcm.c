@@ -414,6 +414,138 @@ static int async_loop(snd_pcm_t *handle,
 }
 
 /*
+ *   Transfer method - asynchronous notification + direct write
+ */
+
+static void async_direct_callback(snd_async_handler_t *ahandler)
+{
+	snd_pcm_t *handle = snd_async_handler_get_pcm(ahandler);
+	struct async_private_data *data = snd_async_handler_get_callback_private(ahandler);
+	const snd_pcm_channel_area_t *my_areas;
+	snd_pcm_uframes_t offset, frames, size;
+	snd_pcm_sframes_t avail, commitres;
+	snd_pcm_state_t state;
+	int first = 0, err;
+	
+	while (1) {
+		state = snd_pcm_state(handle);
+		if (state == SND_PCM_STATE_XRUN) {
+			err = xrun_recovery(handle, -EPIPE);
+			if (err < 0) {
+				printf("XRUN recovery failed: %s\n", snd_strerror(err));
+				exit(EXIT_FAILURE);
+			}
+			first = 1;
+		} else if (state == SND_PCM_STATE_SUSPENDED) {
+			err = xrun_recovery(handle, -ESTRPIPE);
+			if (err < 0) {
+				printf("SUSPEND recovery failed: %s\n", snd_strerror(err));
+				exit(EXIT_FAILURE);
+			}
+		}
+		avail = snd_pcm_avail_update(handle);
+		if (avail < 0) {
+			err = xrun_recovery(handle, avail);
+			if (err < 0) {
+				printf("avail update failed: %s\n", snd_strerror(err));
+				exit(EXIT_FAILURE);
+			}
+			first = 1;
+			continue;
+		}
+		if (avail < period_size) {
+			if (first) {
+				first = 0;
+				err = snd_pcm_start(handle);
+				if (err < 0) {
+					printf("Start error: %s\n", snd_strerror(err));
+					exit(EXIT_FAILURE);
+				}
+			} else {
+				break;
+			}
+			continue;
+		}
+		size = period_size;
+		while (size > 0) {
+			frames = size;
+			err = snd_pcm_mmap_begin(handle, &my_areas, &offset, &frames);
+			if (err < 0) {
+				if ((err = xrun_recovery(handle, err)) < 0) {
+					printf("MMAP begin avail error: %s\n", snd_strerror(err));
+					exit(EXIT_FAILURE);
+				}
+				first = 1;
+			}
+			generate_sine(my_areas, offset, frames, &data->phase);
+			commitres = snd_pcm_mmap_commit(handle, offset, frames);
+			if (commitres < 0 || commitres != frames) {
+				if ((err = xrun_recovery(handle, commitres >= 0 ? -EPIPE : commitres)) < 0) {
+					printf("MMAP commit error: %s\n", snd_strerror(err));
+					exit(EXIT_FAILURE);
+				}
+				first = 1;
+			}
+			size -= frames;
+		}
+	}
+}
+
+static int async_direct_loop(snd_pcm_t *handle,
+			     signed short *samples,
+			     snd_pcm_channel_area_t *areas)
+{
+	struct async_private_data data;
+	snd_async_handler_t *ahandler;
+	const snd_pcm_channel_area_t *my_areas;
+	snd_pcm_uframes_t offset, frames, size;
+	snd_pcm_sframes_t commitres;
+	int err, count;
+
+	data.samples = NULL;	/* we do not require the global sample area for direct write */
+	data.areas = NULL;	/* we do not require the global areas for direct write */
+	data.phase = 0;
+	err = snd_async_add_pcm_handler(&ahandler, handle, async_direct_callback, &data);
+	if (err < 0) {
+		printf("Unable to register async handler\n");
+		exit(EXIT_FAILURE);
+	}
+	for (count = 0; count < 2; count++) {
+		size = period_size;
+		while (size > 0) {
+			frames = size;
+			err = snd_pcm_mmap_begin(handle, &my_areas, &offset, &frames);
+			if (err < 0) {
+				if ((err = xrun_recovery(handle, err)) < 0) {
+					printf("MMAP begin avail error: %s\n", snd_strerror(err));
+					exit(EXIT_FAILURE);
+				}
+			}
+			generate_sine(my_areas, offset, frames, &data.phase);
+			commitres = snd_pcm_mmap_commit(handle, offset, frames);
+			if (commitres < 0 || commitres != frames) {
+				if ((err = xrun_recovery(handle, commitres >= 0 ? -EPIPE : commitres)) < 0) {
+					printf("MMAP commit error: %s\n", snd_strerror(err));
+					exit(EXIT_FAILURE);
+				}
+			}
+			size -= frames;
+		}
+	}
+	err = snd_pcm_start(handle);
+	if (err < 0) {
+		printf("Start error: %s\n", snd_strerror(err));
+		exit(EXIT_FAILURE);
+	}
+
+	/* because all other work is done in the signal handler,
+	   suspend the process */
+	while (1) {
+		sleep(1);
+	}
+}
+
+/*
  *   Transfer method - direct write only
  */
 
@@ -548,6 +680,7 @@ static struct transfer_method transfer_methods[] = {
 	{ "write", SND_PCM_ACCESS_RW_INTERLEAVED, write_loop },
 	{ "write_and_poll", SND_PCM_ACCESS_RW_INTERLEAVED, write_and_poll_loop },
 	{ "async", SND_PCM_ACCESS_RW_INTERLEAVED, async_loop },
+	{ "async_direct", SND_PCM_ACCESS_MMAP_INTERLEAVED, async_direct_loop },
 	{ "direct_interleaved", SND_PCM_ACCESS_MMAP_INTERLEAVED, direct_loop },
 	{ "direct_noninterleaved", SND_PCM_ACCESS_MMAP_NONINTERLEAVED, direct_loop },
 	{ "direct_write", SND_PCM_ACCESS_MMAP_INTERLEAVED, direct_write_loop },
@@ -557,18 +690,17 @@ static struct transfer_method transfer_methods[] = {
 static void help(void)
 {
 	int k;
-	printf("\
-Usage: latency [OPTION]... [FILE]...
--h,--help       help
--D,--device     playback device
--r,--rate	stream rate in Hz
--c,--channels	count of channels in stream
--f,--frequency  sine wave frequency in Hz
--b,--buffer     ring buffer size in us
--p,--period     period size in us
--m,--method     transfer method
-
-");
+	printf(
+"Usage: latency [OPTION]... [FILE]...\n"
+"-h,--help	help\n"
+"-D,--device	playback device\n"
+"-r,--rate	stream rate in Hz\n"
+"-c,--channels	count of channels in stream\n"
+"-f,--frequency	sine wave frequency in Hz\n"
+"-b,--buffer	ring buffer size in us\n"
+"-p,--period	period size in us\n"
+"-m,--method	transfer method\n"
+"\n");
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++(unsigned long) k) {
                 const char *s = snd_pcm_format_name(k);
