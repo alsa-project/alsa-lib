@@ -604,7 +604,7 @@ static int snd_pcm_multi_mmap_data(snd_pcm_t *pcm, void **buffer, size_t bsize A
 		if (err < 0)
 			return err;
 		setup = &handle->setup;
-		{
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 			snd_pcm_channel_area_t areas[setup->format.channels];
 			err = snd_pcm_mmap_get_areas(handle, areas);
 			if (err < 0)
