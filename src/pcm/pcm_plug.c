@@ -617,7 +617,7 @@ static ssize_t snd_pcm_plug_stream_seek(snd_pcm_t *pcm, int stream, off_t offset
 	ssize_t ret;
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	if (snd_pcm_plug_direct(pcm, stream))
-		return snd_pcm_seek(plug->slave, stream, offset);
+		return snd_pcm_stream_seek(plug->slave, stream, offset);
 	if (offset < 0) {
 		offset = snd_pcm_plug_slave_size(pcm, stream, -offset);
 		if (offset < 0)
@@ -628,7 +628,7 @@ static ssize_t snd_pcm_plug_stream_seek(snd_pcm_t *pcm, int stream, off_t offset
 		if (offset < 0)
 			return offset;
 	}
-	ret = snd_pcm_seek(plug->slave, stream, offset);
+	ret = snd_pcm_stream_seek(plug->slave, stream, offset);
 	if (ret < 0)
 		return ret;
 	return snd_pcm_plug_client_size(pcm, stream, ret);
