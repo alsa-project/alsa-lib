@@ -1152,7 +1152,8 @@ const char *snd_pcm_stream_name(snd_pcm_stream_t stream)
  */
 const char *snd_pcm_access_name(snd_pcm_access_t acc)
 {
-	assert(acc <= SND_PCM_ACCESS_LAST);
+	if (acc > SND_PCM_ACCESS_LAST)
+		return NULL;
 	return snd_pcm_access_names[acc];
 }
 
@@ -1163,7 +1164,8 @@ const char *snd_pcm_access_name(snd_pcm_access_t acc)
  */
 const char *snd_pcm_format_name(snd_pcm_format_t format)
 {
-	assert(format <= SND_PCM_FORMAT_LAST);
+	if (format > SND_PCM_FORMAT_LAST)
+		return NULL;
 	return snd_pcm_format_names[format];
 }
 
@@ -1174,7 +1176,8 @@ const char *snd_pcm_format_name(snd_pcm_format_t format)
  */
 const char *snd_pcm_format_description(snd_pcm_format_t format)
 {
-	assert(format <= SND_PCM_FORMAT_LAST);
+	if (format > SND_PCM_FORMAT_LAST)
+		return NULL;
 	return snd_pcm_format_descriptions[format];
 }
 
@@ -1202,7 +1205,8 @@ snd_pcm_format_t snd_pcm_format_value(const char* name)
  */
 const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat)
 {
-	assert(subformat <= SND_PCM_SUBFORMAT_LAST);
+	if (subformat > SND_PCM_SUBFORMAT_LAST)
+		return NULL;
 	return snd_pcm_subformat_names[subformat];
 }
 
@@ -1213,7 +1217,8 @@ const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat)
  */
 const char *snd_pcm_subformat_description(snd_pcm_subformat_t subformat)
 {
-	assert(subformat <= SND_PCM_SUBFORMAT_LAST);
+	if (subformat > SND_PCM_SUBFORMAT_LAST)
+		return NULL;
 	return snd_pcm_subformat_descriptions[subformat];
 }
 
@@ -1254,7 +1259,8 @@ link_warning(snd_pcm_xrun_mode_name, "Warning: xrun_mode is deprecated, consider
  */
 const char *snd_pcm_tstamp_mode_name(snd_pcm_tstamp_t mode)
 {
-	assert(mode <= SND_PCM_TSTAMP_LAST);
+	if (mode > SND_PCM_TSTAMP_LAST)
+		return NULL;
 	return snd_pcm_tstamp_mode_names[mode];
 }
 
@@ -1265,7 +1271,8 @@ const char *snd_pcm_tstamp_mode_name(snd_pcm_tstamp_t mode)
  */
 const char *snd_pcm_state_name(snd_pcm_state_t state)
 {
-	assert(state <= SND_PCM_STATE_LAST);
+	if (state > SND_PCM_STATE_LAST)
+		return NULL;
 	return snd_pcm_state_names[state];
 }
 
