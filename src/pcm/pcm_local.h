@@ -89,15 +89,8 @@ struct snd_pcm_stream {
 	size_t frames_per_frag;
 	snd_pcm_mmap_control_t *mmap_control;
 	size_t mmap_control_size;
-	int mmap_control_emulation;
 	char *mmap_data;
 	size_t mmap_data_size;
-	int mmap_data_emulation;
-	pthread_t mmap_thread;
-	int mmap_thread_stop;
-	pthread_mutex_t mutex;
-	pthread_cond_t status_cond;
-	pthread_cond_t ready_cond;
 };
 
 struct snd_pcm {
@@ -107,8 +100,6 @@ struct snd_pcm {
 	struct snd_pcm_stream stream[2];
 	int private[0];
 };
-
-void snd_pcm_mmap_status_streamge(snd_pcm_t *pcm, int stream, int newstatus);
 
 int snd_pcm_abstract_open(snd_pcm_t **handle, int mode, snd_pcm_type_t type, size_t extra);
 

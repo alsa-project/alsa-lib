@@ -566,7 +566,7 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 	if (srcparams->format.channels == 1)
 		srcparams->format.interleave = dstparams.format.interleave;
 
-	/* Format streamge (linearization) */
+	/* Format change (linearization) */
 	if ((srcparams->format.format != dstparams.format.format ||
 	     srcparams->format.rate != dstparams.format.rate ||
 	     srcparams->format.channels != dstparams.format.channels) &&
@@ -603,7 +603,7 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 		default:
 			return -EINVAL;
 		}
-		pdprintf("params format streamge: src=%i, dst=%i returns %i\n", srcparams->format.format, tmpparams.format.format, err);
+		pdprintf("params format change: src=%i, dst=%i returns %i\n", srcparams->format.format, tmpparams.format.format, err);
 		if (err < 0)
 			return err;
 		err = snd_pcm_plugin_append(plugin);
@@ -727,7 +727,7 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 		srcparams->format = tmpparams.format;
 	}
 
-	/* format streamge */
+	/* format change */
 	if (srcparams->format.format != dstparams.format.format) {
 		tmpparams.format.format = dstparams.format.format;
 		tmpparams.format.interleave = dstparams.format.interleave;
@@ -764,7 +764,7 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 		}
 		else
 			return -EINVAL;
-		pdprintf("params format streamge: src=%i, dst=%i returns %i\n", srcparams->format.format, tmpparams.format.format, err);
+		pdprintf("params format change: src=%i, dst=%i returns %i\n", srcparams->format.format, tmpparams.format.format, err);
 		if (err < 0)
 			return err;
 		err = snd_pcm_plugin_append(plugin);
@@ -783,7 +783,7 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 						&srcparams->format,
 						&tmpparams.format,
 						&plugin);
-		pdprintf("interleave streamge: src=%i, dst=%i returns %i\n", srcparams->format.interleave, tmpparams.format.interleave, err);
+		pdprintf("interleave change: src=%i, dst=%i returns %i\n", srcparams->format.interleave, tmpparams.format.interleave, err);
 		if (err < 0)
 			return err;
 		err = snd_pcm_plugin_append(plugin);

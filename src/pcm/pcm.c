@@ -225,34 +225,24 @@ int snd_pcm_stream_status(snd_pcm_t *pcm, snd_pcm_stream_status_t *status)
 
 int snd_pcm_stream_update(snd_pcm_t *pcm, int stream)
 {
-	int err;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
 		return -EINVAL;
 	if (!pcm->stream[stream].open)
 		return -EBADFD;
-	err = pcm->ops->stream_update(pcm, stream);
-	if (err < 0)
-		return err;
-	snd_pcm_mmap_status_streamge(pcm, stream, -1);
-	return 0;
+	return pcm->ops->stream_update(pcm, stream);
 }
 
 int snd_pcm_stream_prepare(snd_pcm_t *pcm, int stream)
 {
-	int err;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
 		return -EINVAL;
 	if (!pcm->stream[stream].open)
 		return -EBADFD;
-	err = pcm->ops->stream_prepare(pcm, stream);
-	if (err < 0)
-		return err;
-	snd_pcm_mmap_status_streamge(pcm, stream, SND_PCM_STATUS_PREPARED);
-	return 0;
+	return pcm->ops->stream_prepare(pcm, stream);
 }
 
 int snd_pcm_playback_prepare(snd_pcm_t *pcm)
@@ -265,24 +255,8 @@ int snd_pcm_capture_prepare(snd_pcm_t *pcm)
 	return snd_pcm_stream_prepare(pcm, SND_PCM_STREAM_CAPTURE);
 }
 
-static int mmap_playback_go(snd_pcm_t *pcm, int stream)
-{
-	struct snd_pcm_stream *str = &pcm->stream[stream];
-	if (str->mmap_control->status != SND_PCM_STATUS_PREPARED)
-		return -EBADFD;
-	if (str->mmap_control->byte_data == 0)
-		return -EIO;
-	str->mmap_control->status = SND_PCM_STATUS_RUNNING;
-	pthread_mutex_lock(&str->mutex);
-	pthread_cond_signal(&str->status_cond);
-	pthread_cond_wait(&str->ready_cond, &str->mutex);
-	pthread_mutex_unlock(&str->mutex);
-	return 0;
-}
-
 int snd_pcm_stream_go(snd_pcm_t *pcm, int stream)
 {
-	int err;
 	struct snd_pcm_stream *str;
 	if (!pcm)
 		return -EFAULT;
@@ -291,18 +265,7 @@ int snd_pcm_stream_go(snd_pcm_t *pcm, int stream)
 	str = &pcm->stream[stream];
 	if (!str->open)
 		return -EBADFD;
-	if (stream == SND_PCM_STREAM_PLAYBACK &&
-	    str->mmap_data_emulation) {
-		err = mmap_playback_go(pcm, stream);
-		if (err < 0)
-			return err;
-	}
-	err = pcm->ops->stream_go(pcm, stream);
-	if (err < 0)
-		return err;
-	if (stream == SND_PCM_STREAM_CAPTURE)
-		snd_pcm_mmap_status_streamge(pcm, stream, SND_PCM_STATUS_RUNNING);
-	return 0;
+	return pcm->ops->stream_go(pcm, stream);
 }
 
 int snd_pcm_playback_go(snd_pcm_t *pcm)
@@ -317,22 +280,16 @@ int snd_pcm_capture_go(snd_pcm_t *pcm)
 
 int snd_pcm_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
 {
-	int err;
 	if (!pcm || !sync)
 		return -EFAULT;
 	if (!pcm->stream[SND_PCM_STREAM_PLAYBACK].open &&
 	    !pcm->stream[SND_PCM_STREAM_CAPTURE].open)
 		return -EBADFD;
-	err = pcm->ops->sync_go(pcm, sync);
-	if (err < 0)
-		return err;
-	/* NYI: mmap emulation */
-	return 0;
+	return pcm->ops->sync_go(pcm, sync);
 }
 
 int snd_pcm_stream_drain(snd_pcm_t *pcm, int stream)
 {
-	int err;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
@@ -341,11 +298,7 @@ int snd_pcm_stream_drain(snd_pcm_t *pcm, int stream)
 		return -EBADFD;
 	if (stream != SND_PCM_STREAM_PLAYBACK)
 		return -EBADFD;
-	err = pcm->ops->stream_drain(pcm, stream);
-	if (err < 0)
-		return err;
-	snd_pcm_mmap_status_streamge(pcm, stream, SND_PCM_STATUS_READY);
-	return 0;
+	return pcm->ops->stream_drain(pcm, stream);
 }
 
 int snd_pcm_playback_drain(snd_pcm_t *pcm)
@@ -362,11 +315,7 @@ int snd_pcm_stream_flush(snd_pcm_t *pcm, int stream)
 		return -EINVAL;
 	if (!pcm->stream[stream].open)
 		return -EBADFD;
-	err = pcm->ops->stream_flush(pcm, stream);
-	if (err < 0)
-		return err;
-	snd_pcm_mmap_status_streamge(pcm, stream, SND_PCM_STATUS_READY);
-	return 0;
+	return pcm->ops->stream_flush(pcm, stream);
 }
 
 int snd_pcm_playback_flush(snd_pcm_t *pcm)
@@ -390,11 +339,7 @@ int snd_pcm_stream_pause(snd_pcm_t *pcm, int stream, int enable)
 		return -EBADFD;
 	if (stream != SND_PCM_STREAM_PLAYBACK)
 		return -EBADFD;
-	err = pcm->ops->stream_pause(pcm, stream, enable);
-	if (err < 0)
-		return err;
-	snd_pcm_mmap_status_streamge(pcm, stream, SND_PCM_STATUS_PAUSED);
-	return 0;
+	return pcm->ops->stream_pause(pcm, stream, enable);
 }
 
 int snd_pcm_playback_pause(snd_pcm_t *pcm, int enable)

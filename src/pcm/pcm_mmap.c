@@ -26,39 +26,6 @@
 #include <sys/uio.h>
 #include "pcm_local.h"
 
-static void snd_pcm_mmap_clear(snd_pcm_t *pcm, int stream)
-{
-	struct snd_pcm_stream *str = &pcm->stream[stream];
-	str->mmap_control->byte_io = 0;
-	str->mmap_control->byte_data = 0;
-}
-
-void snd_pcm_mmap_status_streamge(snd_pcm_t *pcm, int stream, int newstatus)
-{
-	struct snd_pcm_stream *str = &pcm->stream[stream];
-
-	if (!str->mmap_control_emulation)
-		return;
-	if (newstatus < 0) {
-		snd_pcm_stream_status_t status;
-		status.stream = stream;
-		if (snd_pcm_stream_status(pcm, &status) < 0)
-			newstatus = SND_PCM_STATUS_NOTREADY;
-		else
-			newstatus = status.status;
-	}
-	if (str->mmap_control->status != newstatus) {
-		if (newstatus == SND_PCM_STATUS_READY ||
-		    (newstatus == SND_PCM_STATUS_PREPARED &&
-		     str->mmap_control->status != SND_PCM_STATUS_READY))
-			snd_pcm_mmap_clear(pcm, stream);
-		str->mmap_control->status = newstatus;
-		pthread_mutex_lock(&str->mutex);
-		pthread_cond_signal(&str->status_cond);
-		pthread_mutex_unlock(&str->mutex);
-	}
-}
-
 static inline ssize_t snd_pcm_mmap_playback_bytes_used(struct snd_pcm_stream *str)
 {
 	ssize_t bytes_used;
@@ -686,168 +653,6 @@ static ssize_t mmap_capture_bytes_xfer(struct snd_pcm_stream *str)
 	return bytes;
 }
 
-static void *playback_mmap(void *d)
-{
-	snd_pcm_t *pcm = d;
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
-	snd_pcm_mmap_control_t *control;
-	char *data;
-	size_t channel_size;
-	int channels;
-	control = str->mmap_control;
-	data = str->mmap_data;
-	channels = str->setup.format.channels;
-	channel_size = str->mmap_data_size / channels;
-	while (1) {
-		int err;
-		struct pollfd pfd;
-		size_t pos, p, bytes;
-		if (str->mmap_thread_stop)
-			break;
-
-		pthread_mutex_lock(&str->mutex);
-		if (control->status != SND_PCM_STATUS_RUNNING) {
-			pthread_cond_wait(&str->status_cond, &str->mutex);
-			pthread_mutex_unlock(&str->mutex);
-			continue;
-		}
-		pthread_mutex_unlock(&str->mutex);
-
-		pfd.fd = snd_pcm_file_descriptor(pcm, SND_PCM_STREAM_PLAYBACK);
-		pfd.events = POLLOUT | POLLERR;
-		err = poll(&pfd, 1, -1);
-		if (err < 0) {
-			fprintf(stderr, "poll err=%d\n", err);
-			continue;
-		}
-		if (pfd.revents & POLLERR) {
-			snd_pcm_mmap_status_streamge(pcm, SND_PCM_STREAM_PLAYBACK, -1);
-			fprintf(stderr, "pollerr %d\n", control->status);
-			continue;
-		}
-
-		pos = control->byte_io;
-		bytes = mmap_playback_bytes_xfer(str);
-		if (bytes <= 0) {
-			fprintf(stderr, "underrun\n");
-			usleep(10000);
-			continue;
-		}
-		p = pos % str->setup.buffer_size;
-		if (str->setup.format.interleave) {
-			err = snd_pcm_write(pcm, data + pos, bytes);
-		} else {
-			struct iovec vector[channels];
-			struct iovec *v = vector;
-			int channel;
-			size_t size = bytes / channels;
-			size_t posv = p / channels;
-			for (channel = 0; channel < channels; ++channel) {
-				v->iov_base = data + channel_size * channel + posv;
-				v->iov_len = size;
-				v++;
-			}
-			err = snd_pcm_writev(pcm, vector, channels);
-		}
-		if (err <= 0) {
-			fprintf(stderr, "write err=%d\n", err);
-			snd_pcm_mmap_status_streamge(pcm, SND_PCM_STREAM_PLAYBACK, -1);
-			continue;
-		}
-		pthread_mutex_lock(&str->mutex);
-		pthread_cond_signal(&str->ready_cond);
-		pthread_mutex_unlock(&str->mutex);
-		pos += bytes;
-		if (pos == str->setup.byte_boundary)
-			pos = 0;
-		control->byte_io = pos;
-	}
-	return 0;
-}
-
-static void *capture_mmap(void *d)
-{
-	snd_pcm_t *pcm = d;
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
-	snd_pcm_mmap_control_t *control;
-	char *data;
-	int frags;
-	int frag_size, channel_size, channel_frag_size;
-	int channels;
-	control = str->mmap_control;
-	data = str->mmap_data;
-	frags = str->setup.frags;
-	frag_size = str->setup.frag_size;
-	channels = str->setup.format.channels;
-	channel_size = str->mmap_data_size / channels;
-	channel_frag_size = channel_size / frags;
-	while (1) {
-		int err;
-		struct pollfd pfd;
-		size_t pos, p, bytes;
-		if (str->mmap_thread_stop)
-			break;
-
-		pthread_mutex_lock(&str->mutex);
-		if (control->status != SND_PCM_STATUS_RUNNING) {
-			pthread_cond_wait(&str->status_cond, &str->mutex);
-			pthread_mutex_unlock(&str->mutex);
-			continue;
-		}
-		pthread_mutex_unlock(&str->mutex);
-
-		pfd.fd = snd_pcm_file_descriptor(pcm, SND_PCM_STREAM_CAPTURE);
-		pfd.events = POLLIN | POLLERR;
-		err = poll(&pfd, 1, -1);
-		if (err < 0) {
-			fprintf(stderr, "poll err=%d\n", err);
-			continue;
-		}
-		if (pfd.revents & POLLERR) {
-			snd_pcm_mmap_status_streamge(pcm, SND_PCM_STREAM_CAPTURE, -1);
-			fprintf(stderr, "pollerr %d\n", control->status);
-			continue;
-		}
-
-		pos = control->byte_io;
-		bytes = mmap_capture_bytes_xfer(str);
-		if (bytes <= 0) {
-			fprintf(stderr, "overrun\n");
-			usleep(10000);
-			continue;
-		}
-		p = pos % str->setup.buffer_size;
-		if (str->setup.format.interleave) {
-			err = snd_pcm_read(pcm, data + pos, bytes);
-		} else {
-			struct iovec vector[channels];
-			struct iovec *v = vector;
-			int channel;
-			size_t size = bytes / channels;
-			size_t posv = p / channels;
-			for (channel = 0; channel < channels; ++channel) {
-				v->iov_base = data + channel_size * channel + posv;
-				v->iov_len = size;
-				v++;
-			}
-			err = snd_pcm_readv(pcm, vector, channels);
-		}
-		if (err < 0) {
-			fprintf(stderr, "read err=%d\n", err);
-			snd_pcm_mmap_status_streamge(pcm, SND_PCM_STREAM_CAPTURE, -1);
-			continue;
-		}
-		pthread_mutex_lock(&str->mutex);
-		pthread_cond_signal(&str->ready_cond);
-		pthread_mutex_unlock(&str->mutex);
-		pos += bytes;
-		if (pos == str->setup.byte_boundary)
-			pos = 0;
-		control->byte_io = pos;
-	}
-	return 0;
-}
-
 int snd_pcm_mmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control)
 {
 	struct snd_pcm_stream *str;
@@ -869,17 +674,8 @@ int snd_pcm_mmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **co
 		return -EBADFD;
 	csize = sizeof(snd_pcm_mmap_control_t);
 
-	info.stream = stream;
-	err = snd_pcm_stream_info(pcm, &info);
-	if (err < 0)
+	if ((err = pcm->ops->mmap_control(pcm, stream, control, csize)) < 0)
 		return err;
-	if (info.flags & SND_PCM_STREAM_INFO_MMAP) {
-		if ((err = pcm->ops->mmap_control(pcm, stream, control, csize)) < 0)
-			return err;
-	} else {
-		*control = calloc(1, csize);
-		str->mmap_control_emulation = 1;
-	}
 	str->mmap_control = *control;
 	str->mmap_control_size = csize;
 	return 0;
@@ -940,30 +736,10 @@ int snd_pcm_mmap_data(snd_pcm_t *pcm, int stream, void **data)
 	if (err < 0)
 		return err;
 	bsize = info.mmap_size;
-	if (info.flags & SND_PCM_STREAM_INFO_MMAP) {
-		if ((err = pcm->ops->mmap_data(pcm, stream, data, bsize)) < 0)
-			return err;
-	} else {
-		*data = calloc(1, bsize);
-
-		pthread_mutex_init(&str->mutex, NULL);
-		pthread_cond_init(&str->status_cond, NULL);
-		pthread_cond_init(&str->ready_cond, NULL);
-		str->mmap_thread_stop = 0;
-		if (stream == SND_PCM_STREAM_PLAYBACK)
-			err = pthread_create(&str->mmap_thread, NULL, playback_mmap, pcm);
-		else
-			err = pthread_create(&str->mmap_thread, NULL, capture_mmap, pcm);
-		if (err < 0) {
-			pthread_cond_destroy(&str->status_cond);
-			pthread_cond_destroy(&str->ready_cond);
-			pthread_mutex_destroy(&str->mutex);
-			free(*data);
-			*data = 0;
-			return err;
-		}
-		str->mmap_data_emulation = 1;
-	}
+	if (!(info.flags & SND_PCM_STREAM_INFO_MMAP))
+		return -ENXIO;
+	if ((err = pcm->ops->mmap_data(pcm, stream, data, bsize)) < 0)
+		return err;
 	str->mmap_data = *data;
 	str->mmap_data_size = bsize;
 	err = snd_pcm_mmap_get_areas(pcm, stream, NULL);
@@ -999,13 +775,8 @@ int snd_pcm_munmap_control(snd_pcm_t *pcm, int stream)
 		return -EBADFD;
 	if (!str->mmap_control)
 		return -EINVAL;
-	if (str->mmap_control_emulation) {
-		free(str->mmap_control);
-		str->mmap_control_emulation = 0;
-	} else {
-		if ((err = pcm->ops->munmap_control(pcm, stream, str->mmap_control, str->mmap_control_size)) < 0)
-			return err;
-	}
+	if ((err = pcm->ops->munmap_control(pcm, stream, str->mmap_control, str->mmap_control_size)) < 0)
+		return err;
 	str->mmap_control = 0;
 	str->mmap_control_size = 0;
 	return 0;
@@ -1024,21 +795,8 @@ int snd_pcm_munmap_data(snd_pcm_t *pcm, int stream)
 		return -EBADFD;
 	if (!str->mmap_data)
 		return -EINVAL;
-	if (str->mmap_data_emulation) {
-		str->mmap_thread_stop = 1;
-		pthread_mutex_lock(&str->mutex);
-		pthread_cond_signal(&str->status_cond);
-		pthread_mutex_unlock(&str->mutex);
-		pthread_join(str->mmap_thread, NULL);
-		pthread_cond_destroy(&str->status_cond);
-		pthread_cond_destroy(&str->ready_cond);
-		pthread_mutex_destroy(&str->mutex);
-		free(str->mmap_data);
-		str->mmap_data_emulation = 0;
-	} else {
-		if ((err = pcm->ops->munmap_data(pcm, stream, str->mmap_data, str->mmap_data_size)) < 0)
-			return err;
-	}
+	if ((err = pcm->ops->munmap_data(pcm, stream, str->mmap_data, str->mmap_data_size)) < 0)
+		return err;
 	free(str->channels);
 	str->mmap_data = 0;
 	str->mmap_data_size = 0;
