@@ -135,7 +135,7 @@ size_t snd_rawmidi_status_sizeof(void);
 int snd_rawmidi_status_malloc(snd_rawmidi_status_t **ptr);
 void snd_rawmidi_status_free(snd_rawmidi_status_t *obj);
 void snd_rawmidi_status_copy(snd_rawmidi_status_t *dst, const snd_rawmidi_status_t *src);
-void snd_rawmidi_status_get_tstamp(const snd_rawmidi_status_t *obj, snd_timestamp_t *ptr);
+void snd_rawmidi_status_get_tstamp(const snd_rawmidi_status_t *obj, snd_htimestamp_t *ptr);
 size_t snd_rawmidi_status_get_avail(const snd_rawmidi_status_t *obj);
 size_t snd_rawmidi_status_get_xruns(const snd_rawmidi_status_t *obj);
 int snd_rawmidi_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status);

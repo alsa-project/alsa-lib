@@ -171,7 +171,7 @@ int snd_timer_status_malloc(snd_timer_status_t **ptr);
 void snd_timer_status_free(snd_timer_status_t *obj);
 void snd_timer_status_copy(snd_timer_status_t *dst, const snd_timer_status_t *src);
 
-struct timeval snd_timer_status_get_timestamp(snd_timer_status_t * status);
+snd_htimestamp_t snd_timer_status_get_timestamp(snd_timer_status_t * status);
 long snd_timer_status_get_resolution(snd_timer_status_t * status);
 long snd_timer_status_get_lost(snd_timer_status_t * status);
 long snd_timer_status_get_overrun(snd_timer_status_t * status);

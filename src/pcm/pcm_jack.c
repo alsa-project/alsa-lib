@@ -51,7 +51,7 @@ typedef enum _jack_format {
 typedef struct {
 	int fd;
 	int activated;		/* jack is activated? */
-	snd_timestamp_t trigger_tstamp;
+	snd_htimestamp_t trigger_tstamp;
 	snd_pcm_uframes_t avail_max;
 	snd_pcm_state_t state;
 	snd_pcm_uframes_t appl_ptr;
@@ -162,7 +162,7 @@ static int snd_pcm_jack_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	memset(status, 0, sizeof(*status));
 	status->state = jack->state;
 	status->trigger_tstamp = jack->trigger_tstamp;
-	gettimeofday(&status->tstamp, 0);
+	// gettimeofday(&status->tstamp, 0);
 	status->avail = pcm->buffer_size;
 	status->avail_max = jack->avail_max;
 	return 0;
@@ -255,7 +255,10 @@ snd_pcm_jack_process_cb (jack_nframes_t nframes, snd_pcm_t *pcm)
 	if (pcm->stop_threshold < pcm->boundary) {
 		samples = snd_pcm_mmap_avail(pcm);
 		if (samples >= pcm->stop_threshold) {
-			gettimeofday(&jack->trigger_tstamp, 0);
+			struct timeval tv;
+			gettimeofday(&tv, 0);
+			jack->trigger_tstamp.tv_sec = tv.tv_sec;
+			jack->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
 			jack->state = SND_PCM_STATE_XRUN;
 			jack->avail_max = samples;
 		}
@@ -319,6 +322,7 @@ static int snd_pcm_jack_start(snd_pcm_t *pcm)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
 	unsigned int i;
+	struct timeval tv;
 	
 	assert(jack->state == SND_PCM_STATE_PREPARED);
 
@@ -374,6 +378,9 @@ static int snd_pcm_jack_start(snd_pcm_t *pcm)
 		}
 	}
 	
+	gettimeofday(&tv, 0);
+	jack->trigger_tstamp.tv_sec = tv.tv_sec;
+	jack->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
 	jack->state = SND_PCM_STATE_RUNNING;
 
 	return 0;

@@ -66,6 +66,7 @@ const char *_snd_module_pcm_dmix = "";
  */
  
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
+struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm);
 
 typedef void (mix_areas1_t)(unsigned int size,
 			volatile signed short *dst, signed short *src,
@@ -117,7 +118,7 @@ typedef struct {
 	snd_pcm_uframes_t slave_appl_ptr;
 	snd_pcm_uframes_t slave_hw_ptr;
 	snd_pcm_state_t state;
-	snd_timestamp_t trigger_tstamp;
+	snd_htimestamp_t trigger_tstamp;
 	int server, client;
 	int comm_fd;	/* communication file descriptor (socket) */
 	int hw_fd;	/* hardware file descriptor */
@@ -748,7 +749,10 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	if (pcm->stop_threshold >= pcm->boundary)	/* don't care */
 		return 0;
 	if ((avail = snd_pcm_mmap_playback_avail(pcm)) >= pcm->stop_threshold) {
-		gettimeofday(&dmix->trigger_tstamp, 0);
+		struct timeval tv;
+		gettimeofday(&tv, 0);
+		dmix->trigger_tstamp.tv_sec = tv.tv_sec;
+		dmix->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
 		dmix->state = SND_PCM_STATE_XRUN;
 		dmix->avail_max = avail;
 		return -EPIPE;
@@ -936,7 +940,7 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	memset(status, 0, sizeof(*status));
 	status->state = dmix->state;
 	status->trigger_tstamp = dmix->trigger_tstamp;
-	gettimeofday(&status->tstamp, 0);
+	status->tstamp = snd_pcm_hw_fast_tstamp(dmix->spcm);
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
 	status->avail_max = status->avail > dmix->avail_max ? status->avail : dmix->avail_max;
 	dmix->avail_max = 0;
@@ -1013,6 +1017,7 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
 	snd_pcm_sframes_t avail;
+	struct timeval tv;
 	int err;
 	
 	if (dmix->state != SND_PCM_STATE_PREPARED)
@@ -1028,7 +1033,9 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 	if (avail > (snd_pcm_sframes_t)pcm->buffer_size)
 		avail = pcm->buffer_size;
 	snd_pcm_dmix_sync_area(pcm, avail);
-	gettimeofday(&dmix->trigger_tstamp, 0);
+	gettimeofday(&tv, 0);
+	dmix->trigger_tstamp.tv_sec = tv.tv_sec;
+	dmix->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
 	return 0;
 }
 

@@ -39,7 +39,7 @@ const char *_snd_module_pcm_null = "";
 
 #ifndef DOC_HIDDEN
 typedef struct {
-	snd_timestamp_t trigger_tstamp;
+	snd_htimestamp_t trigger_tstamp;
 	snd_pcm_state_t state;
 	snd_pcm_uframes_t appl_ptr;
 	snd_pcm_uframes_t hw_ptr;
@@ -85,10 +85,13 @@ static int snd_pcm_null_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * in
 static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_null_t *null = pcm->private_data;
+	struct timeval tv;
 	memset(status, 0, sizeof(*status));
 	status->state = null->state;
 	status->trigger_tstamp = null->trigger_tstamp;
-	gettimeofday(&status->tstamp, 0);
+	gettimeofday(&tv, 0);
+	status->tstamp.tv_sec = tv.tv_sec;
+	status->tstamp.tv_nsec = tv.tv_usec * 1000L;
 	status->avail = pcm->buffer_size;
 	status->avail_max = status->avail;
 	return 0;

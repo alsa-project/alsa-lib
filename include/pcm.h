@@ -288,8 +288,6 @@ typedef enum _snd_pcm_tstamp {
 typedef unsigned long snd_pcm_uframes_t;
 /** Signed frames quantity */
 typedef long snd_pcm_sframes_t;
-/** Timestamp */
-typedef struct timeval snd_timestamp_t;
 
 /** Non blocking mode (flag for open mode) \hideinitializer */
 #define SND_PCM_NONBLOCK		0x0001

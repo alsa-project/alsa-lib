@@ -114,6 +114,11 @@ int snd_async_handler_get_fd(snd_async_handler_t *handler);
 int snd_async_handler_get_signo(snd_async_handler_t *handler);
 void *snd_async_handler_get_callback_private(snd_async_handler_t *handler);
 
+/** Timestamp */
+typedef struct timeval snd_timestamp_t;
+/** Hi-res timestamp */
+typedef struct timespec snd_htimestamp_t;
+
 /** \} */
 
 #ifdef __cplusplus

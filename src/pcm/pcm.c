@@ -1585,9 +1585,9 @@ int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
 	assert(status);
 	snd_output_printf(out, "state       : %s\n", snd_pcm_state_name((snd_pcm_state_t) status->state));
 	snd_output_printf(out, "trigger_time: %ld.%06ld\n",
-		status->trigger_tstamp.tv_sec, status->trigger_tstamp.tv_usec);
+		status->trigger_tstamp.tv_sec, status->trigger_tstamp.tv_nsec);
 	snd_output_printf(out, "tstamp      : %ld.%06ld\n",
-		status->tstamp.tv_sec, status->tstamp.tv_usec);
+		status->tstamp.tv_sec, status->tstamp.tv_nsec);
 	snd_output_printf(out, "delay       : %ld\n", (long)status->delay);
 	snd_output_printf(out, "avail       : %ld\n", (long)status->avail);
 	snd_output_printf(out, "avail_max   : %ld\n", (long)status->avail_max);
@@ -5538,7 +5538,8 @@ snd_pcm_state_t snd_pcm_status_get_state(const snd_pcm_status_t *obj)
 void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr)
 {
 	assert(obj && ptr);
-	*ptr = obj->trigger_tstamp;
+	ptr->tv_sec = obj->trigger_tstamp.tv_sec;
+	ptr->tv_usec = obj->trigger_tstamp.tv_nsec / 1000L;
 }
 
 /** 
@@ -5548,7 +5549,8 @@ void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestam
 void snd_pcm_status_get_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr)
 {
 	assert(obj && ptr);
-	*ptr = obj->tstamp;
+	ptr->tv_sec = obj->tstamp.tv_sec;
+	ptr->tv_usec = obj->tstamp.tv_nsec / 1000L;
 }
 
 /** 

@@ -893,7 +893,7 @@ void snd_rawmidi_status_copy(snd_rawmidi_status_t *dst, const snd_rawmidi_status
  * \param status pointer to a snd_rawmidi_status_t structure
  * \param tstamp returned timestamp value
  */
-void snd_rawmidi_status_get_tstamp(const snd_rawmidi_status_t *status, snd_timestamp_t *tstamp)
+void snd_rawmidi_status_get_tstamp(const snd_rawmidi_status_t *status, snd_htimestamp_t *tstamp)
 {
 	assert(status && tstamp);
 	*tstamp = status->tstamp;

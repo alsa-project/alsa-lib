@@ -687,7 +687,7 @@ void snd_timer_status_copy(snd_timer_status_t *dst, const snd_timer_status_t *sr
  * \param status pointer to #snd_timer_status_t structure
  * \return timestamp
  */
-struct timeval snd_timer_status_get_timestamp(snd_timer_status_t * status)
+snd_htimestamp_t snd_timer_status_get_timestamp(snd_timer_status_t * status)
 {
 	assert(status);
 	return status->tstamp;

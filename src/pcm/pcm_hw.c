@@ -112,8 +112,16 @@ typedef struct {
 	       hw->appl_ptr = hw->mmap_control->appl_ptr; } while (0)
 #define FAST_PCM_STATE(hw) \
 	((enum sndrv_pcm_state) (hw)->mmap_status->state)
+#define FAST_PCM_TSTAMP(hw) \
+	((hw)->mmap_status->tstamp)
 
 #endif /* DOC_HIDDEN */
+
+struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	return FAST_PCM_TSTAMP(hw);
+}
 
 static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 {
