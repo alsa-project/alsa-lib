@@ -134,6 +134,7 @@ void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin)
 	memset(plugin, 0, sizeof(snd_pcm_plugin_t));
 	plugin->undo_read = snd_pcm_plugin_undo_read;
 	plugin->undo_write = snd_pcm_plugin_undo_write;
+	snd_atomic_write_init(&plugin->watom);
 }
 
 int snd_pcm_plugin_close(snd_pcm_t *pcm)
