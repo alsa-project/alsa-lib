@@ -81,6 +81,9 @@ struct _snd_pcm_rate {
 	unsigned int srate;
 	snd_pcm_channel_area_t *pareas;	/* areas for splitted period (rate pcm) */
 	snd_pcm_channel_area_t *sareas;	/* areas for splitted period (slave pcm) */
+	int16_t *old_sample;
+	int16_t *new_sample;
+	unsigned int pos;
 };
 
 static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
@@ -102,6 +105,7 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 	snd_pcm_uframes_t src_frames1;
 	snd_pcm_uframes_t dst_frames1;
 	int16_t sample = 0;
+	unsigned int pos;
 	
 	for (channel = 0; channel < channels; ++channel) {
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
@@ -109,36 +113,30 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 		const char *src;
 		char *dst;
 		int src_step, dst_step;
-		int16_t old_sample = 0;
-		int16_t new_sample = 0;
+		int16_t old_sample;
+		int16_t new_sample;
 		int old_weight, new_weight;
-		unsigned int pos = 0;
-		int init;
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area);
 		dst_step = snd_pcm_channel_area_step(dst_area);
 		src_frames1 = 0;
 		dst_frames1 = 0;
-		init = 1;
+		old_sample = rate->old_sample[channel];
+		new_sample = rate->new_sample[channel];
+		pos = rate->pos;
 		while (dst_frames1 < dst_frames) {
 			if (pos >= get_threshold) {
-				src += src_step;
-				src_frames1++;
+				pos -= get_threshold;
+				old_sample = new_sample;
 				if (src_frames1 < src_frames) {
-					old_sample = new_sample;
 					goto *get;
 #define GET16_END after_get
 #include "plugin_ops.h"
 #undef GET16_END
 				after_get:
 					new_sample = sample;
-					if (init) {
-						init = 0;
-						continue;
-					}
 				}
-				pos -= get_threshold;
 			}
 			new_weight = (pos << (16 - rate->pitch_shift)) / (get_threshold >> rate->pitch_shift);
 			old_weight = 0x10000 - new_weight;
@@ -151,8 +149,15 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 			dst += dst_step;
 			dst_frames1++;
 			pos += LINEAR_DIV;
+			if (pos >= get_threshold) {
+				src += src_step;
+				src_frames1++;
+			}
 		} 
+		rate->old_sample[channel] = old_sample;
+		rate->new_sample[channel] = new_sample;
 	}
+	rate->pos = pos;
 }
 
 /* optimized version for S16 format */
@@ -167,6 +172,7 @@ static void snd_pcm_rate_expand_s16(const snd_pcm_channel_area_t *dst_areas,
 	snd_pcm_uframes_t src_frames1;
 	snd_pcm_uframes_t dst_frames1;
 	unsigned int get_threshold = rate->pitch;
+	unsigned int pos;
 	
 	for (channel = 0; channel < channels; ++channel) {
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
@@ -177,24 +183,21 @@ static void snd_pcm_rate_expand_s16(const snd_pcm_channel_area_t *dst_areas,
 		int16_t old_sample;
 		int16_t new_sample;
 		int old_weight, new_weight;
-		unsigned int pos;
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area) >> 1;
 		dst_step = snd_pcm_channel_area_step(dst_area) >> 1;
 		src_frames1 = 0;
 		dst_frames1 = 0;
-		old_sample = new_sample = *src;
-		pos = get_threshold;
+		old_sample = rate->old_sample[channel];
+		new_sample = rate->new_sample[channel];
+		pos = rate->pos;
 		while (dst_frames1 < dst_frames) {
 			if (pos >= get_threshold) {
 				pos -= get_threshold;
-				src += src_step;
-				src_frames1++;
-				if (src_frames1 < src_frames) {
-					old_sample = new_sample;
+				old_sample = new_sample;
+				if (src_frames1 < src_frames)
 					new_sample = *src;
-				}
 			}
 			new_weight = (pos << (16 - rate->pitch_shift)) / (get_threshold >> rate->pitch_shift);
 			old_weight = 0x10000 - new_weight;
@@ -202,8 +205,15 @@ static void snd_pcm_rate_expand_s16(const snd_pcm_channel_area_t *dst_areas,
 			dst += dst_step;
 			dst_frames1++;
 			pos += LINEAR_DIV;
+			if (pos >= get_threshold) {
+				src += src_step;
+				src_frames1++;
+			}
 		} 
+		rate->old_sample[channel] = old_sample;
+		rate->new_sample[channel] = new_sample;
 	}
+	rate->pos = pos;
 }
 
 static void snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
@@ -577,6 +587,12 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	rate->pareas = malloc(2 * channels * sizeof(*rate->pareas));
 	if (rate->pareas == NULL)
 		return -ENOMEM;
+	free(rate->old_sample);
+	free(rate->new_sample);
+	rate->old_sample = malloc(sizeof(*rate->old_sample) * channels);
+	rate->new_sample = malloc(sizeof(*rate->new_sample) * channels);
+	if (rate->old_sample == NULL || rate->new_sample == NULL)
+		return -ENOMEM;
 	pwidth = snd_pcm_format_physical_width(pformat);
 	swidth = snd_pcm_format_physical_width(sformat);
 	rate->pareas[0].addr = malloc(((pwidth * channels * period_size) / 8) +
@@ -607,6 +623,8 @@ static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 		rate->pareas = NULL;
 		rate->sareas = NULL;
 	}
+	free(rate->old_sample);
+	free(rate->new_sample);
 	return snd_pcm_hw_free(rate->gen.slave);
 }
 
@@ -743,6 +761,10 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 	snd_pcm_rate_t *rate = pcm->private_data;
 	switch (rate->type) {
 	case RATE_TYPE_LINEAR:
+		/* for expand */
+		rate->pos = rate->pitch;
+		memset(rate->old_sample, 0, sizeof(*rate->old_sample) * pcm->channels);
+		memset(rate->new_sample, 0, sizeof(*rate->new_sample) * pcm->channels);
 		break;
 	default:
 		assert(0);
