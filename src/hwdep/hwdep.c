@@ -101,9 +101,9 @@ int snd_hwdep_block_mode(snd_hwdep_t *hwdep, int enable)
 	if ((flags = fcntl(hwdep->fd, F_GETFL)) < 0)
 		return -errno;
 	if (enable)
-		flags &= ~O_NONBLOCK;
-	else
 		flags |= O_NONBLOCK;
+	else
+		flags &= ~O_NONBLOCK;
 	if (fcntl(hwdep->fd, F_SETFL, flags) < 0)
 		return -errno;
 	return 0;

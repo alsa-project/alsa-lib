@@ -53,9 +53,9 @@ static int snd_seq_hw_nonblock(snd_seq_t *seq, int nonblock)
 		return -errno;
 	}
 	if (nonblock)
-		flags &= ~O_NONBLOCK;
-	else
 		flags |= O_NONBLOCK;
+	else
+		flags &= ~O_NONBLOCK;
 	if (fcntl(hw->fd, F_SETFL, flags) < 0) {
 		SYSERR("F_SETFL for O_NONBLOCK failed");
 		return -errno;

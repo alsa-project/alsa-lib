@@ -62,9 +62,9 @@ static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 		return -errno;
 	}
 	if (nonblock)
-		flags &= ~O_NONBLOCK;
-	else
 		flags |= O_NONBLOCK;
+	else
+		flags &= ~O_NONBLOCK;
 	if (fcntl(hw->fd, F_SETFL, flags) < 0) {
 		SYSERR("F_SETFL for O_NONBLOCK failed");
 		return -errno;
