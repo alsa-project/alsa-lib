@@ -22,6 +22,8 @@
 #ifndef __LOCAL_H
 #define __LOCAL_H
 
+#define ALSA_LIB "libasound.so"
+
 #ifndef DATADIR
 #define DATADIR "/usr/share"
 #endif

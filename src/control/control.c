@@ -444,7 +444,7 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 		snprintf(buf, sizeof(buf), "_snd_ctl_%s_open", str);
 	}
 	if (!lib)
-		lib = "libasound.so";
+		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);

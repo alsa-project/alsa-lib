@@ -96,7 +96,6 @@ snd_pcm_stream_t snd_pcm_stream(snd_pcm_t *pcm)
  */
 int snd_pcm_close(snd_pcm_t *pcm)
 {
-	int ret = 0;
 	int err;
 	assert(pcm);
 	if (pcm->setup) {
@@ -107,11 +106,11 @@ int snd_pcm_close(snd_pcm_t *pcm)
 			snd_pcm_drain(pcm);
 		err = snd_pcm_hw_free(pcm);
 		if (err < 0)
-			ret = err;
+			return err;
 	}
-	if ((err = pcm->ops->close(pcm->op_arg)) < 0)
-		ret = err;
-	pcm->setup = 0;
+	err = pcm->ops->close(pcm->op_arg);
+	if (err < 0)
+		return err;
 	if (pcm->name)
 		free(pcm->name);
 	free(pcm);
@@ -190,8 +189,9 @@ int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	int err;
 	assert(pcm && params);
 	err = _snd_pcm_hw_params(pcm, params);
-	if (err >= 0)
-		err = snd_pcm_prepare(pcm);
+	if (err < 0)
+		return err;
+	err = snd_pcm_prepare(pcm);
 	return err;
 }
 
@@ -211,7 +211,9 @@ int snd_pcm_hw_free(snd_pcm_t *pcm)
 	}
 	err = pcm->ops->hw_free(pcm->op_arg);
 	pcm->setup = 0;
-	return err;
+	if (err < 0)
+		return err;
+	return 0;
 }
 
 /** \brief Install PCM software configuration defined by params
@@ -975,7 +977,7 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		snprintf(buf, sizeof(buf), "_snd_pcm_%s_open", str);
 	}
 	if (!lib)
-		lib = "libasound.so";
+		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
@@ -987,7 +989,10 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		dlclose(h);
 		return -ENXIO;
 	}
-	return open_func(pcmp, name, pcm_conf, stream, mode);
+	err = open_func(pcmp, name, pcm_conf, stream, mode);
+	if (err < 0)
+		return err;
+	return 0;
 }
 
 static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, const char *name, 
@@ -4283,6 +4288,10 @@ int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf,
 			return err;
 		}
 	}
+	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("Invalid slave definition");
+		return -EINVAL;
+	}
 	va_start(args, count);
 	for (k = 0; k < count; ++k) {
 		fields[k].index = va_arg(args, int);
@@ -4354,4 +4363,16 @@ int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf,
 	return 0;
 }
 		
+
+int snd_pcm_conf_generic_id(const char *id)
+{
+	static const char *ids[] = { "comment", "type" };
+	unsigned int k;
+	for (k = 0; k < sizeof(ids) / sizeof(ids[0]); ++k) {
+		if (strcmp(id, ids[k]) == 0)
+			return 1;
+	}
+	return 0;
+}
+
 #endif

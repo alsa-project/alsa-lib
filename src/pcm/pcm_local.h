@@ -31,6 +31,7 @@
 #define _snd_pcm_subformat_mask _snd_mask
 
 #include "local.h"
+#include "list.h"
 
 #define SND_INTERVAL_INLINE
 #include "interval.h"
@@ -169,7 +170,6 @@ struct _snd_pcm {
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
 	snd_pcm_channel_area_t *stopped_areas;
-	void *stopped;
 	snd_pcm_ops_t *ops;
 	snd_pcm_fast_ops_t *fast_ops;
 	snd_pcm_t *op_arg;
@@ -532,6 +532,7 @@ int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf,
 
 int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *conf,
 		       snd_pcm_stream_t stream, int mode);
+int snd_pcm_conf_generic_id(const char *id);
 
 #define SND_PCM_HW_PARBIT_ACCESS	(1U << SND_PCM_HW_PARAM_ACCESS)
 #define SND_PCM_HW_PARBIT_FORMAT	(1U << SND_PCM_HW_PARAM_FORMAT)

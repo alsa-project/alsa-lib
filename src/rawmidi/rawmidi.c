@@ -127,7 +127,7 @@ int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		snprintf(buf, sizeof(buf), "_snd_rawmidi_%s_open", str);
 	}
 	if (!lib)
-		lib = "libasound.so";
+		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);

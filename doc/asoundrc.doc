@@ -18,6 +18,12 @@ pcm_scope_type.NAME {
   [open STR]		# Open function (default _snd_pcm_scope_NAME_open)
 }
 
+# PCM scope definition
+pcm_scope.NAME {
+  type STR		# Scope type
+  ...
+}
+
 # Slave PCM definition
 pcm_slave.NAME {
   pcm STR		# PCM name
@@ -31,10 +37,25 @@ pcm_slave.NAME {
   etc.
 }
 
+# Hook arguments definition
+hook_args.NAME {
+  ...			# Arbitrary arguments
+}
+
+# PCM hook definition
+pcm_hook.NAME {
+  [lib STR]		# Library file (default libasound.so)
+  [install STR]		# Install function (default _snd_pcm_hook_NAME_install)
+  [args STR]		# Arguments for install function (see hook_args)
+  # or
+  [args { }]		# Arguments for install function
+}
+
 # PCM definition
 pcm.NAME {
   type STR		# Type
   [comment ANY]		# Saved comments
+
 
 # PCM types:
   type hw 		# Kernel PCM
@@ -43,10 +64,24 @@ pcm.NAME {
   [subdevice] INT	# Subdevice number, -1 first available (default -1)
 
 
-  type plug		# Format adjusted PCM
-  slave STR		# Slave name
+  type hooks 		# PCM with hooks
+  slave STR		# Slave name (see pcm_slave)
   # or
-  slave {		# Slave definition or name
+  slave {		# Slave definition
+    pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
+  }
+  hooks {
+    ID STR		# Hook name (see pcm_hook)
+    # or
+    ID { }		# Hook definition (see pcm_hook)
+  }
+
+  type plug		# Format adjusted PCM
+  slave STR		# Slave name (see pcm_slave)
+  # or
+  slave {		# Slave definition
     pcm STR		# Slave PCM name
     # or
     pcm { }		# Slave PCM definition
@@ -59,13 +94,23 @@ pcm.NAME {
   }
 
 
+  type copy		# Copy conversion PCM
+  slave STR		# Slave name (see pcm_slave)
+  # or
+  slave {		# Slave definition
+    pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
+  }
+
+
   type linear		# Linear format conversion PCM
   type adpcm		# IMA-ADPCM format conversion PCM
   type alaw		# A-Law format conversion PCM
   type mulaw		# Mu-Law format conversion PCM
-  slave STR		# Slave name
+  slave STR		# Slave name (see pcm_slave)
   # or
-  slave {		# Slave definition or name
+  slave {		# Slave definition
     pcm STR		# Slave PCM name
     # or
     pcm { }		# Slave PCM definition
@@ -74,9 +119,9 @@ pcm.NAME {
 
 
   type rate		# Rate conversion PCM
-  slave STR		# Slave name
+  slave STR		# Slave name (see pcm_slave)
   # or
-  slave {		# Slave definition or name
+  slave {		# Slave definition
     pcm STR		# Slave PCM name
     # or
     pcm { }		# Slave PCM definition
@@ -86,9 +131,9 @@ pcm.NAME {
 
 
   type route		# Attenuated static route PCM
-  slave STR		# Slave name
+  slave STR		# Slave name (see pcm_slave)
   # or
-  slave {		# Slave definition or name
+  slave {		# Slave definition
     pcm STR		# Slave PCM name
     # or
     pcm { }		# Slave PCM definition
@@ -105,9 +150,9 @@ pcm.NAME {
 
   type multi		# Linked PCMs (exclusive access to selected channels)
   slaves {		# Slaves definitions
-    N STR		# Slave name for slave N
+    ID STR		# Slave name for slave N (see pcm_slave)
     # or
-    N {			# Slave definition for slave N
+    ID {		# Slave definition for slave N
       pcm STR		# Slave PCM name
     # or
       pcm { }		# Slave PCM definition
@@ -123,9 +168,9 @@ pcm.NAME {
 
 
   type file		# File plugin
-  slave STR		# Slave name
+  slave STR		# Slave name (see pcm_slave)
   # or
-  slave {		# Slave definition or name
+  slave {		# Slave definition
     pcm STR		# Slave PCM name
     # or
     pcm { }		# Slave PCM definition
@@ -137,7 +182,7 @@ pcm.NAME {
 
 
   type meter		# Meter PCM
-  slave STR		# Slave name
+  slave STR		# Slave name (see pcm_slave)
   # or
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
@@ -146,17 +191,16 @@ pcm.NAME {
   }
   [frequency INT]	# Updates per second
   scopes {		# Scopes
-    N {			# Scope definition
-      type STR		# Scope type
-      [PARAMS]		# Scope params
-    }
+    ID STR		# Scope name (see pcm_scope)
+  # or
+    ID { }		# Scope definition (see pcm_scope)
   }
 
 
   type droute		# Attenuated dynamic route PCM (NYI)
-  slave STR		# Slave name
+  slave STR		# Slave name (see pcm_slave)
   # or
-  slave {		# Slave definition or name
+  slave {		# Slave definition
     pcm STR		# Slave PCM name
     # or
     pcm { }		# Slave PCM definition
@@ -165,7 +209,7 @@ pcm.NAME {
   }
   ctl STR		# Ctl name
   bindings {		# Bindings table
-    N {			# Binding entry
+    ID {		# Binding entry
       cchannels {	# Client channels
         C INT		# Client channel
       }
@@ -179,9 +223,9 @@ pcm.NAME {
 
   type loopback		# Loopback server (NYI)
   server STR		# Server name
-  slave STR		# Slave name
+  slave STR		# Slave name (see pcm_slave)
   # or
-  slave {		# Slave definition or name
+  slave {		# Slave definition
     pcm STR		# Slave PCM name
     # or
     pcm { }		# Slave PCM definition
@@ -198,14 +242,14 @@ pcm.NAME {
 
 
   type share		# Share PCM
-  slave STR		# Slave name
+  slave STR		# Slave name (see pcm_slave)
   bindings {		# Bindings table
     N INT		# Slave channel for client channel N
   }
 
 
   type mix		# Mix PCM
-  slave STR		# Slave name
+  slave STR		# Slave name (see pcm_slave)
   bindings {		# Bindings table
     N INT		# Slave channel for client channel N
   }
@@ -317,19 +361,7 @@ pcm.m {
 	}
 }
 
-scope_type.level {
+pcm_scope_type.level {
 	lib /home/abramo/scopes/liblevel.so
 } 
-
-Special PCM names:
-hw:CARD,DEV,SUBDEV
-hw:CARD,DEV
-plug:CARD,DEV,SUBDEV
-plug:CARD,DEV
-plug:SLAVE_PCM
-shm:SOCKET,PCM
-file:FNAME,FMT,SLAVE_PCM
-file:FNAME,FMT
-file:FNAME
-null
 

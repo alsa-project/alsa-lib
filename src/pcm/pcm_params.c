@@ -2067,7 +2067,7 @@ int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (pcm->setup) {
 		err = snd_pcm_hw_free(pcm);
 		if (err < 0)
-			return 0;
+			return err;
 	}
 	err = pcm->ops->hw_params(pcm->op_arg, params);
 	if (err < 0)
@@ -2110,6 +2110,8 @@ int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	    pcm->access == SND_PCM_ACCESS_MMAP_COMPLEX) {
 		err = snd_pcm_mmap(pcm);
 	}
-	return err;
+	if (err < 0)
+		return err;
+	return 0;
 }
 

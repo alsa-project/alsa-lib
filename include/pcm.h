@@ -235,6 +235,8 @@ typedef struct _snd_pcm snd_pcm_t;
 enum _snd_pcm_type {
 	/** Kernel level PCM */
 	SND_PCM_TYPE_HW,
+	/** Hooked PCM */
+	SND_PCM_TYPE_HOOKS,
 	/** One ore more linked PCM with exclusive access to selected
 	    channels */
 	SND_PCM_TYPE_MULTI,
@@ -717,6 +719,22 @@ unsigned int snd_pcm_info_get_subdevices_avail(const snd_pcm_info_t *obj);
 void snd_pcm_info_set_device(snd_pcm_info_t *obj, unsigned int val);
 void snd_pcm_info_set_subdevice(snd_pcm_info_t *obj, unsigned int val);
 void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val);
+
+typedef enum _snd_pcm_hook_type {
+	SND_PCM_HOOK_HW_PARAMS,
+	SND_PCM_HOOK_HW_FREE,
+	SND_PCM_HOOK_CLOSE,
+	SND_PCM_HOOK_LAST = SND_PCM_HOOK_CLOSE,
+} snd_pcm_hook_type_t;
+
+typedef struct _snd_pcm_hook snd_pcm_hook_t;
+typedef int (*snd_pcm_hook_func_t)(snd_pcm_hook_t *hook);
+snd_pcm_t *snd_pcm_hook_get_pcm(snd_pcm_hook_t *hook);
+void *snd_pcm_hook_get_private(snd_pcm_hook_t *hook);
+int snd_pcm_hook_add(snd_pcm_hook_t **hookp, snd_pcm_t *pcm,
+		     snd_pcm_hook_type_t type,
+		     snd_pcm_hook_func_t func, void *private_data);
+int snd_pcm_hook_remove(snd_pcm_hook_t *hook);
 
 #ifdef __cplusplus
 }

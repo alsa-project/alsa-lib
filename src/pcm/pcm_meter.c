@@ -653,6 +653,18 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 			 snd_config_t *);
 	void *h;
 	int err;
+	err = snd_config_get_string(conf, &str);
+	if (err >= 0) {
+		err = snd_config_search_alias(snd_config, "pcm_scope", str, &conf);
+		if (err < 0) {
+			SNDERR("unknown pcm_scope %s", str);
+			return err;
+		}
+	}
+	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("Invalid type for scope %s", str);
+		return -EINVAL;
+	}
 	err = snd_config_search(conf, "type", &c);
 	if (err < 0) {
 		SNDERR("type is not defined");
@@ -695,7 +707,7 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 		snprintf(buf, sizeof(buf), "_snd_pcm_scope_%s_open", str);
 	}
 	if (!lib)
-		lib = "libasound.so";
+		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
@@ -724,9 +736,7 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
-		if (strcmp(id, "comment") == 0)
-			continue;
-		if (strcmp(id, "type") == 0)
+		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "slave") == 0) {
 			slave = n;
@@ -762,8 +772,10 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 	err = snd_pcm_meter_open(pcmp, name, frequency > 0 ? (unsigned int) frequency : FREQUENCY, spcm, 1);
-	if (err < 0)
+	if (err < 0) {
 		snd_pcm_close(spcm);
+		return err;
+	}
 	if (!scopes)
 		return 0;
 	snd_config_for_each(i, next, scopes) {
@@ -772,7 +784,7 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 		err = snd_pcm_meter_add_scope_conf(*pcmp, id, n);
 		if (err < 0) {
 			snd_pcm_close(*pcmp);
-			return -EINVAL;
+			return err;
 		}
 	}
 	return 0;

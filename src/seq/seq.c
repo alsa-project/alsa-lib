@@ -102,7 +102,7 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 		snprintf(buf, sizeof(buf), "_snd_seq_%s_open", str);
 	}
 	if (!lib)
-		lib = "libasound.so";
+		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
