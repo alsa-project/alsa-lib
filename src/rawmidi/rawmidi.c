@@ -171,7 +171,7 @@ int snd_rawmidi_stream_flush(snd_rawmidi_t *rmidi, int str)
 		return -EINVAL;
 	if (str < 0 || str > 1)
 		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_STREAM_FLUSH) < 0)
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_STREAM_FLUSH, &str) < 0)
 		return -errno;
 	return 0;
 }
