@@ -36,8 +36,7 @@ struct voices_private_data {
 	int src_voices;
 	int dst_voices;
 	int width;		/* in bites */
-	int flg_merge: 1,
-	    flg_signed: 1;
+	int flg_signed: 1;
 };
 
 static void divide_8bit(char *src_ptr, char *dst_ptr, int size)
@@ -60,8 +59,9 @@ static void merge_8bit_unsigned(unsigned char *src_ptr,
 			        unsigned char *dst_ptr,
 			        int size)
 {
+	printf("unsigned!!\n");
 	while (size-- > 0) {
-		*dst_ptr++ = (*src_ptr + *(src_ptr + 1)) / 2;
+		*dst_ptr++ = ((int)*src_ptr + (int)*(src_ptr + 1)) / 2;
 		src_ptr += 2;
 	}
 }
@@ -71,7 +71,7 @@ static void merge_8bit_signed(signed char *src_ptr,
 			      int size)
 {
 	while (size-- > 0) {
-		*dst_ptr++ = (*src_ptr + *(src_ptr + 1)) / 2;
+		*dst_ptr++ = ((int)*src_ptr + (int)*(src_ptr + 1)) / 2;
 		src_ptr += 2;
 	}
 }
@@ -81,7 +81,7 @@ static void merge_16bit_unsigned(unsigned short *src_ptr,
 			         int size)
 {
 	while (size-- > 0) {
-		*dst_ptr++ = (*src_ptr + *(src_ptr + 1)) / 2;
+		*dst_ptr++ = ((int)*src_ptr + (int)*(src_ptr + 1)) / 2;
 		src_ptr += 2;
 	}
 }
@@ -91,7 +91,7 @@ static void merge_16bit_signed(signed short *src_ptr,
 			       int size)
 {
 	while (size-- > 0) {
-		*dst_ptr++ = (*src_ptr + *(src_ptr + 1)) / 2;
+		*dst_ptr++ = ((int)*src_ptr + (int)*(src_ptr + 1)) / 2;
 		src_ptr += 2;
 	}
 }
@@ -118,10 +118,8 @@ static ssize_t voices_transfer(snd_pcm_plugin_t *plugin,
 			} else {
 				merge_8bit_unsigned(src_ptr, dst_ptr, src_size / 2);
 			}
-			return (src_size * data->src_voices) / data->dst_voices;
 		} else {
 			divide_8bit(src_ptr, dst_ptr, src_size);
-			return (src_size * data->dst_voices) / data->src_voices;
 		}
 		break;
 	case 16:
@@ -131,15 +129,14 @@ static ssize_t voices_transfer(snd_pcm_plugin_t *plugin,
 			} else {
 				merge_16bit_unsigned((short *)src_ptr, (short *)dst_ptr, src_size / 4);
 			}
-			return (src_size * data->src_voices) / data->dst_voices;
 		} else {
 			divide_16bit((short *)src_ptr, (short *)dst_ptr, src_size / 2);
-			return (src_size * data->dst_voices) / data->src_voices;
 		}
 		break;
 	default:
 		return -EINVAL;
 	} 
+	return (src_size * data->dst_voices) / data->src_voices;
 }
 
 static ssize_t voices_src_size(snd_pcm_plugin_t *plugin, size_t size)
@@ -149,10 +146,7 @@ static ssize_t voices_src_size(snd_pcm_plugin_t *plugin, size_t size)
 	if (!plugin || size <= 0)
 		return -EINVAL;
 	data = (struct voices_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data->src_voices < data->dst_voices)
-		return (size * data->src_voices) / data->dst_voices;
-	else
-		return (size * data->dst_voices) / data->src_voices;
+	return (size * data->src_voices) / data->dst_voices;
 }
 
 static ssize_t voices_dst_size(snd_pcm_plugin_t *plugin, size_t size)
@@ -162,10 +156,7 @@ static ssize_t voices_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 	if (!plugin || size <= 0)
 		return -EINVAL;
 	data = (struct voices_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data->src_voices > data->dst_voices)
-		return (size * data->src_voices) / data->dst_voices;
-	else
-		return (size * data->dst_voices) / data->src_voices;
+	return (size * data->dst_voices) / data->src_voices;
 }
 
 int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
@@ -204,7 +195,6 @@ int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
 	data->src_voices = src_format->voices;
 	data->dst_voices = dst_format->voices;
 	data->width = snd_pcm_format_width(src_format->format);
-	data->flg_merge = src_format->voices > dst_format->voices;
 	data->flg_signed = snd_pcm_format_signed(src_format->format);
 	plugin->transfer = voices_transfer;
 	plugin->src_size = voices_src_size;

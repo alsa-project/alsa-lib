@@ -42,6 +42,7 @@ struct rate_private_data {
 	int dst_voices;
 	int src_rate;
 	int dst_rate;
+	int sample_size;
 	unsigned int pitch;
 	unsigned int pos;
 	signed short last_S1[MAX_VOICES];
@@ -50,9 +51,9 @@ struct rate_private_data {
 };
 
 
-static void mix(struct rate_private_data *data, int voices,
-		signed short *src_ptr, int src_size,
-		signed short *dst_ptr, int dst_size)
+static void mix16(struct rate_private_data *data, int voices,
+		  signed short *src_ptr, int src_size,
+		  signed short *dst_ptr, int dst_size)
 {
 	unsigned int pos;
 	signed int val;
@@ -79,7 +80,8 @@ static void mix(struct rate_private_data *data, int voices,
 				src += (pos >> SHIFT) * voices;
 				pos &= MASK;
 				S1 = S2;
-				S2 = *src;
+				if ((src - src_ptr) < src_size * voices)
+					S2 = *src;
 			}
 			val = S1 + ((S2 - S1) * (signed int)pos) / BITS;
 			if (val < -32768)
@@ -92,8 +94,55 @@ static void mix(struct rate_private_data *data, int voices,
 		}
 		data->last_S1[voice] = S1;
 		data->last_S2[voice] = S2;
+		data->pos = pos;
 	}
-	data->pos = pos;
+}
+
+static void mix8(struct rate_private_data *data, int voices,
+		 unsigned char *src_ptr, int src_size,
+		 unsigned char *dst_ptr, int dst_size)
+{
+	unsigned int pos;
+	signed int val;
+	signed short S1, S2;
+	int voice;
+	unsigned char *src, *dst;
+	int size;
+	
+	for (voice = 0; voice < voices; ++voice) {
+		pos = data->pos;
+		S1 = data->last_S1[voice];
+		S2 = data->last_S2[voice];
+		src = src_ptr + voice;
+		dst = dst_ptr + voice;
+		size = dst_size;
+		if (pos >> SHIFT) {
+			src += ((pos >> SHIFT) - 1) * voices;
+			pos &= MASK;
+			S1 = S2;
+			S2 = (*src << 8) ^ 0x8000;
+		}
+		while (size-- > 0) {
+			if (pos >> SHIFT) {
+				src += (pos >> SHIFT) * voices;
+				pos &= MASK;
+				S1 = S2;
+				if ((src - src_ptr) < src_size * voices)
+					S2 = (*src << 8) ^ 0x8000;
+			}
+			val = S1 + ((S2 - S1) * (signed int)pos) / BITS;
+			if (val < -32768)
+				val = -32768;
+			else if (val > 32767)
+				val = 32767;
+			*dst = (val >> 8) ^ 0x0080;
+			dst += voices;
+			pos += data->pitch;
+		}
+		data->last_S1[voice] = S1;
+		data->last_S2[voice] = S2;
+		data->pos = pos;
+	}
 }
 
 static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
@@ -110,10 +159,16 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (data == NULL)
 		return -EINVAL;
-	mix(data, data->src_voices,
-	    (signed short *)src_ptr, src_size / (data->src_voices * 2),
-	    (signed short *)dst_ptr, dst_size / (data->dst_voices * 2));
-	return dst_size / (2 * data->src_voices) * (2 * data->src_voices);
+	if (data->sample_size == 2) {
+		mix16(data, data->src_voices,
+		      (signed short *)src_ptr, src_size / (data->src_voices * 2),
+		      (signed short *)dst_ptr, dst_size / (data->dst_voices * 2));
+	} else {
+		mix8(data, data->src_voices,
+		     src_ptr, src_size / data->src_voices,
+		     dst_ptr, dst_size / data->dst_voices);
+	}
+	return dst_size / (data->sample_size * data->src_voices) * (data->sample_size * data->src_voices);
 }
 
 static int rate_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
@@ -147,14 +202,16 @@ static ssize_t rate_src_size(snd_pcm_plugin_t *plugin, size_t size)
 		return -EINVAL;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
 	res = (((size * data->pitch) + (BITS/2)) >> SHIFT);
-	res = res / (data->src_voices*2) * (data->src_voices*2);
-	/* Why this? */
-	if (size < 128*1024) {
-		if (data->old_src_size == size)
-			return data->old_dst_size;
-		data->old_src_size = size;
-		data->old_dst_size = res;
+	res = res / (data->src_voices*data->sample_size) * (data->src_voices*data->sample_size);
+	if (data->old_src_size > 0) {
+		if ((data->old_src_size % size) == 0) { 
+			return (data->old_dst_size * data->old_src_size) / size;
+		} else if ((size % data->old_src_size) == 0) {
+			return (data->old_dst_size * size) / data->old_src_size;
+		}
 	}
+	data->old_src_size = size;
+	data->old_dst_size = res;
 	return res;
 }
 
@@ -167,14 +224,16 @@ static ssize_t rate_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 		return -EINVAL;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
 	res = (((size << SHIFT) + (data->pitch / 2)) / data->pitch);
-	res = res / (data->dst_voices*2) * (data->dst_voices*2);
-	/* Why this? */
-	if (size < 128*1024) {
-		if (data->old_dst_size == size)
-			return data->old_src_size;
-		data->old_dst_size = size;
-		data->old_src_size = res;
+	res = res / (data->dst_voices*data->sample_size) * (data->dst_voices*data->sample_size);
+	if (data->old_dst_size > 0) {
+		if ((data->old_dst_size % size) == 0) {
+			return (data->old_src_size * data->old_dst_size) / size;
+		} else if ((size % data->old_dst_size) == 0) {
+			return (data->old_src_size * size) / data->old_dst_size;
+		}
 	}
+	data->old_dst_size = size;
+	data->old_src_size = res;
 	return res;
 }
 
@@ -201,8 +260,8 @@ int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
 	if (dst_format->voices < 1 || dst_format->voices > MAX_VOICES)
 		return -EINVAL;
 
-	if (src_format->format != SND_PCM_SFMT_S16_LE ||
-	    dst_format->format != SND_PCM_SFMT_S16_LE)
+	if (src_format->format != SND_PCM_SFMT_S16_LE &&
+	    src_format->format != SND_PCM_SFMT_U8)
 		return -EINVAL;
 	if (src_format->rate == dst_format->rate)
 		return -EINVAL;
@@ -211,6 +270,7 @@ int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
 	if (plugin == NULL)
 		return -ENOMEM;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
+	data->sample_size = src_format->format == SND_PCM_SFMT_S16_LE ? 2 : 1;
 	data->src_voices = src_format->voices;
 	data->dst_voices = dst_format->voices;
 	data->src_rate = src_format->rate;
