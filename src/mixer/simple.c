@@ -97,8 +97,10 @@ static struct mixer_name_table {
 	const char *longname;
 	const char *shortname;
 } name_table[] = {
+	{"Tone Control - Switch", "Tone"},
 	{"Tone Control - Bass", "Bass"},
 	{"Tone Control - Treble", "Treble"},
+	{"Synth Tone Control - Switch", "Synth Tone"},
 	{"Synth Tone Control - Bass", "Synth Bass"},
 	{"Synth Tone Control - Treble", "Synth Treble"},
 	{0, 0},
@@ -136,6 +138,7 @@ static int get_compare_weight(const char *name, unsigned int idx)
 	static const char *names[] = {
 		"Master",
 		"Headphone",
+		"Tone",
 		"Bass",
 		"Treble",
 		"3D Control",
@@ -179,6 +182,9 @@ static int get_compare_weight(const char *name, unsigned int idx)
 		"Center",
 		"Output",
 		"Boost",
+		"Tone",
+		"Bass",
+		"Treble",
 		NULL,
 	};
 	const char *name1;
