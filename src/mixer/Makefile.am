@@ -2,6 +2,8 @@ EXTRA_LTLIBRARIES=libmixer.la
 
 libmixer_la_SOURCES = bag.c mixer.c mixer_m4.c simple.c
 
+noinst_HEADERS = mixer_local.h
+
 all: libmixer.la
 
 
