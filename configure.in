@@ -26,7 +26,7 @@ AC_ARG_WITH(kernel,
   [kerneldir="$withval"], [kerneldir=""])
 if test "$kerneldir" != "" -a -d $kerneldir/include ; then
   ALSA_CFLAGS="$ALSA_CFLAGS -I$kerneldir/include"
-  CFLAGS="-I$kerneldir/include"
+  CFLAGS="$CFLAGS -I$kerneldir/include"
 fi
 AC_MSG_RESULT($ALSA_CFLAGS)
 
