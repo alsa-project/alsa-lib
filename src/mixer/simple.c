@@ -542,6 +542,7 @@ int snd_mixer_simple_build(snd_mixer_t *handle)
 		"Master Digital",
 		"PCM",
 		"Synth",
+		"FM",
 		"Wave",
 		"Music",
 		"Line",
