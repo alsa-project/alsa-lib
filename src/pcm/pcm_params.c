@@ -1877,7 +1877,7 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 			if (!doit)
 				continue;
 #ifdef RULES_DEBUG
-			snd_output_printf(log, "Rule %d: ", k);
+			snd_output_printf(log, "Rule %d (%p): ", k, r->func);
 			if (r->var >= 0) {
 				snd_output_printf(log, "%s=", snd_pcm_hw_param_name(r->var));
 				snd_pcm_hw_param_dump(params, r->var, log);
@@ -1888,9 +1888,8 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 #ifdef RULES_DEBUG
 			if (r->var >= 0)
 				snd_pcm_hw_param_dump(params, r->var, log);
-			snd_output_putc(log, ' ');
 			for (d = 0; r->deps[d] >= 0; d++) {
-				snd_output_printf(log, "%s=", snd_pcm_hw_param_name(r->deps[d]));
+				snd_output_printf(log, " %s=", snd_pcm_hw_param_name(r->deps[d]));
 				snd_pcm_hw_param_dump(params, r->deps[d], log);
 			}
 			snd_output_putc(log, '\n');

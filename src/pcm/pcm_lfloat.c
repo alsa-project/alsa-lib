@@ -23,6 +23,9 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+typedef float float_t;
+typedef double double_t;
+
 #ifndef PIC
 /* entry for static linking */
 const char *_snd_module_pcm_float = "";
@@ -31,83 +34,65 @@ const char *_snd_module_pcm_float = "";
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
-	unsigned int conv_idx;
+	unsigned int int32_idx;
+	unsigned int float32_idx;
 	snd_pcm_format_t sformat;
+	void (*func)(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+		     const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
+		     unsigned int channels, snd_pcm_uframes_t frames,
+		     unsigned int get32idx, unsigned int put32floatidx);
 } snd_pcm_lfloat_t;
 
-int snd_pcm_lfloat_convert_index(snd_pcm_format_t src_format,
-				 snd_pcm_format_t dst_format)
+int snd_pcm_lfloat_get_s32_index(snd_pcm_format_t format)
 {
-	int src_endian, dst_endian, sign, src_width, dst_width;
+	int width, endian;
 
-	sign = (snd_pcm_format_signed(src_format) !=
-		snd_pcm_format_signed(dst_format));
+	switch (format) {
+	case SND_PCM_FORMAT_FLOAT_LE:
+	case SND_PCM_FORMAT_FLOAT_BE:
+		width = 32;
+		break;
+	case SND_PCM_FORMAT_FLOAT64_LE:
+	case SND_PCM_FORMAT_FLOAT64_BE:
+		width = 64;
+		break;
+	default:
+		return -EINVAL;
+	}
 #ifdef SND_LITTLE_ENDIAN
-	src_endian = snd_pcm_format_big_endian(src_format);
-	dst_endian = snd_pcm_format_big_endian(dst_format);
+	endian = snd_pcm_format_big_endian(format);
 #else
-	src_endian = snd_pcm_format_little_endian(src_format);
-	dst_endian = snd_pcm_format_little_endian(dst_format);
+	endian = snd_pcm_format_little_endian(format);
 #endif
-
-	if (src_endian < 0)
-		src_endian = 0;
-	if (dst_endian < 0)
-		dst_endian = 0;
-
-	src_width = snd_pcm_format_width(src_format) / 8 - 1;
-	dst_width = snd_pcm_format_width(dst_format) / 8 - 1;
-
-	return src_width * 32 + src_endian * 16 + sign * 8 + dst_width * 2 + dst_endian;
+	return ((width / 32)-1) * 2 + endian;
 }
 
-int snd_pcm_lfloat_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
+int snd_pcm_lfloat_put_s32_index(snd_pcm_format_t format)
 {
-	int sign, width, endian;
-	sign = (snd_pcm_format_signed(src_format) != 
-		snd_pcm_format_signed(dst_format));
-	width = snd_pcm_format_width(src_format) / 8 - 1;
-#ifdef SND_LITTLE_ENDIAN
-	endian = snd_pcm_format_big_endian(src_format);
-#else
-	endian = snd_pcm_format_little_endian(src_format);
-#endif
-	if (endian < 0)
-		endian = 0;
-	return width * 4 + endian * 2 + sign;
+	return snd_pcm_lfloat_get_s32_index(format);
 }
 
-int snd_pcm_lfloat_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
+void snd_pcm_lfloat_convert_integer_float(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+					  const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
+					  unsigned int channels, snd_pcm_uframes_t frames,
+					  unsigned int get32idx, unsigned int put32floatidx)
 {
-	int sign, width, endian;
-	sign = (snd_pcm_format_signed(src_format) != 
-		snd_pcm_format_signed(dst_format));
-	width = snd_pcm_format_width(dst_format) / 8 - 1;
-#ifdef SND_LITTLE_ENDIAN
-	endian = snd_pcm_format_big_endian(dst_format);
-#else
-	endian = snd_pcm_format_little_endian(dst_format);
-#endif
-	if (endian < 0)
-		endian = 0;
-	return width * 4 + endian * 2 + sign;
-}
-
-void snd_pcm_lfloat_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
-			    const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
-			    unsigned int channels, snd_pcm_uframes_t frames,
-			    unsigned int convidx)
-{
-#define CONV_LABELS
+#define GET32_LABELS
+#define PUT32F_LABELS
 #include "plugin_ops.h"
-#undef CONV_LABELS
-	void *conv = conv_labels[convidx];
+#undef PUT32F_LABELS
+#undef GET32_LABELS
+	void *get32 = get32_labels[get32idx];
+	void *put32float = put32float_labels[put32floatidx];
 	unsigned int channel;
 	for (channel = 0; channel < channels; ++channel) {
 		const char *src;
 		char *dst;
 		int src_step, dst_step;
 		snd_pcm_uframes_t frames1;
+		int32_t sample = 0;
+		float tmp_float;
+		double tmp_double;
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
@@ -116,11 +101,62 @@ void snd_pcm_lfloat_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_ufr
 		dst_step = snd_pcm_channel_area_step(dst_area);
 		frames1 = frames;
 		while (frames1-- > 0) {
-			goto *conv;
-#define CONV_END after
+			goto *get32;
+#define GET32_END sample_loaded
 #include "plugin_ops.h"
-#undef CONV_END
-		after:
+#undef GET32_END
+		sample_loaded:
+			goto *put32float;
+#define PUT32F_END sample_put
+#include "plugin_ops.h"
+#undef PUT32F_END
+		sample_put:
+			src += src_step;
+			dst += dst_step;
+		}
+	}
+}
+
+void snd_pcm_lfloat_convert_float_integer(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+					  const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
+					  unsigned int channels, snd_pcm_uframes_t frames,
+					  unsigned int put32idx, unsigned int get32floatidx)
+{
+#define PUT32_LABELS
+#define GET32F_LABELS
+#include "plugin_ops.h"
+#undef GET32F_LABELS
+#undef PUT32_LABELS
+	void *put32 = put32_labels[put32idx];
+	void *get32float = get32float_labels[get32floatidx];
+	unsigned int channel;
+	for (channel = 0; channel < channels; ++channel) {
+		const char *src;
+		char *dst;
+		int src_step, dst_step;
+		snd_pcm_uframes_t frames1;
+		int32_t sample;
+		int64_t sample64;
+		float tmp_float;
+		double tmp_double;
+		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
+		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
+		src = snd_pcm_channel_area_addr(src_area, src_offset);
+		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
+		src_step = snd_pcm_channel_area_step(src_area);
+		dst_step = snd_pcm_channel_area_step(dst_area);
+		frames1 = frames;
+		while (frames1-- > 0) {
+			goto *get32float;
+#define GET32F_END sample_loaded
+#include "plugin_ops.h"
+#undef GET32F_END
+		sample_loaded:
+			goto *put32;
+#define PUT32_END sample_put
+#include "plugin_ops.h"
+#undef PUT32_END
+		sample_put:
 			src += src_step;
 			dst += dst_step;
 		}
@@ -211,6 +247,8 @@ static int snd_pcm_lfloat_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 static int snd_pcm_lfloat_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_lfloat_t *lfloat = pcm->private_data;
+	snd_pcm_t *slave = lfloat->plug.slave;
+	snd_pcm_format_t src_format, dst_format;
 	int err = snd_pcm_hw_params_slave(pcm, params,
 					  snd_pcm_lfloat_hw_refine_cchange,
 					  snd_pcm_lfloat_hw_refine_sprepare,
@@ -218,12 +256,22 @@ static int snd_pcm_lfloat_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					  snd_pcm_plugin_hw_params_slave);
 	if (err < 0)
 		return err;
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		lfloat->conv_idx = snd_pcm_lfloat_convert_index(snd_pcm_hw_params_get_format(params),
-								lfloat->sformat);
-	else
-		lfloat->conv_idx = snd_pcm_lfloat_convert_index(lfloat->sformat,
-								snd_pcm_hw_params_get_format(params));
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		src_format = snd_pcm_hw_params_get_format(params);
+		dst_format = slave->format;
+	} else {
+		src_format = slave->format;
+		dst_format = snd_pcm_hw_params_get_format(params);
+	}
+	if (snd_pcm_format_linear(src_format)) {
+		lfloat->int32_idx = snd_pcm_linear_get_index(src_format, SND_PCM_FORMAT_S32);
+		lfloat->float32_idx = snd_pcm_lfloat_put_s32_index(dst_format);
+		lfloat->func = snd_pcm_lfloat_convert_integer_float;
+	} else {
+		lfloat->int32_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S32, dst_format);
+		lfloat->float32_idx = snd_pcm_lfloat_get_s32_index(src_format);
+		lfloat->func = snd_pcm_lfloat_convert_float_integer;
+	}
 	return 0;
 }
 
@@ -239,9 +287,10 @@ snd_pcm_lfloat_write_areas(snd_pcm_t *pcm,
 	snd_pcm_lfloat_t *lfloat = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	snd_pcm_lfloat_convert(slave_areas, slave_offset,
-			       areas, offset, 
-			       pcm->channels, size, lfloat->conv_idx);
+	lfloat->func(slave_areas, slave_offset,
+		     areas, offset, 
+		     pcm->channels, size,
+		     lfloat->int32_idx, lfloat->float32_idx);
 	*slave_sizep = size;
 	return size;
 }
@@ -258,9 +307,10 @@ snd_pcm_lfloat_read_areas(snd_pcm_t *pcm,
 	snd_pcm_lfloat_t *lfloat = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	snd_pcm_lfloat_convert(areas, offset, 
-			       slave_areas, slave_offset,
-			       pcm->channels, size, lfloat->conv_idx);
+	lfloat->func(areas, offset, 
+		     slave_areas, slave_offset,
+		     pcm->channels, size,
+		     lfloat->int32_idx, lfloat->float32_idx);
 	*slave_sizep = size;
 	return size;
 }
@@ -324,7 +374,7 @@ int snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	pcm->hw_ptr = &lfloat->plug.hw_ptr;
 	pcm->appl_ptr = &lfloat->plug.appl_ptr;
 	*pcmp = pcm;
-
+	
 	return 0;
 }
 

@@ -100,17 +100,6 @@ static snd_pcm_format_t linear_preferred_formats[] = {
 	SND_PCM_FORMAT_U16_LE,
 #endif
 #ifdef SND_LITTLE_ENDIAN
-	SND_PCM_FORMAT_S24_LE,
-	SND_PCM_FORMAT_U24_LE,
-	SND_PCM_FORMAT_S24_BE,
-	SND_PCM_FORMAT_U24_BE,
-#else
-	SND_PCM_FORMAT_S24_BE,
-	SND_PCM_FORMAT_U24_BE,
-	SND_PCM_FORMAT_S24_LE,
-	SND_PCM_FORMAT_U24_LE,
-#endif
-#ifdef SND_LITTLE_ENDIAN
 	SND_PCM_FORMAT_S32_LE,
 	SND_PCM_FORMAT_U32_LE,
 	SND_PCM_FORMAT_S32_BE,
@@ -122,7 +111,29 @@ static snd_pcm_format_t linear_preferred_formats[] = {
 	SND_PCM_FORMAT_U32_LE,
 #endif
 	SND_PCM_FORMAT_S8,
-	SND_PCM_FORMAT_U8
+	SND_PCM_FORMAT_U8,
+#ifdef SND_LITTLE_ENDIAN
+	SND_PCM_FORMAT_FLOAT_LE,
+	SND_PCM_FORMAT_FLOAT64_LE,
+	SND_PCM_FORMAT_FLOAT_BE,
+	SND_PCM_FORMAT_FLOAT64_BE,
+#else
+	SND_PCM_FORMAT_FLOAT_BE,
+	SND_PCM_FORMAT_FLOAT64_BE,
+	SND_PCM_FORMAT_FLOAT_LE,
+	SND_PCM_FORMAT_FLOAT64_LE,
+#endif
+#ifdef SND_LITTLE_ENDIAN
+	SND_PCM_FORMAT_S24_LE,
+	SND_PCM_FORMAT_U24_LE,
+	SND_PCM_FORMAT_S24_BE,
+	SND_PCM_FORMAT_U24_BE,
+#else
+	SND_PCM_FORMAT_S24_BE,
+	SND_PCM_FORMAT_U24_BE,
+	SND_PCM_FORMAT_S24_LE,
+	SND_PCM_FORMAT_U24_LE,
+#endif
 };
 
 static snd_pcm_format_t nonlinear_preferred_formats[] = {
@@ -131,13 +142,29 @@ static snd_pcm_format_t nonlinear_preferred_formats[] = {
 	SND_PCM_FORMAT_IMA_ADPCM,
 };
 
+static snd_pcm_format_t float_preferred_formats[] = {
+#ifdef SND_LITTLE_ENDIAN
+	SND_PCM_FORMAT_FLOAT_LE,
+	SND_PCM_FORMAT_FLOAT64_LE,
+	SND_PCM_FORMAT_FLOAT_BE,
+	SND_PCM_FORMAT_FLOAT64_BE,
+#else
+	SND_PCM_FORMAT_FLOAT_BE,
+	SND_PCM_FORMAT_FLOAT64_BE,
+	SND_PCM_FORMAT_FLOAT_LE,
+	SND_PCM_FORMAT_FLOAT64_LE,
+#endif
+};
+
 static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const snd_pcm_format_mask_t *format_mask)
 {
 	int w, u, e, wid, w1, dw;
 	snd_pcm_format_mask_t lin = { SND_PCM_FMTBIT_LINEAR };
+	snd_pcm_format_mask_t fl = { SND_PCM_FMTBIT_FLOAT };
 	if (snd_pcm_format_mask_test(format_mask, format))
 		return format;
-	if (!snd_pcm_format_mask_test(&lin, format)) {
+	if (!snd_pcm_format_mask_test(&lin, format) &&
+	    !snd_pcm_format_mask_test(&fl, format)) {
 		unsigned int i;
 		switch (format) {
 		case SND_PCM_FORMAT_MU_LAW:
@@ -155,7 +182,8 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 
 	}
 	snd_mask_intersect(&lin, format_mask);
-	if (snd_mask_empty(&lin)) {
+	snd_mask_intersect(&fl, format_mask);
+	if (snd_mask_empty(&lin) && snd_mask_empty(&fl)) {
 		unsigned int i;
 		for (i = 0; i < sizeof(nonlinear_preferred_formats) / sizeof(nonlinear_preferred_formats[0]); ++i) {
 			snd_pcm_format_t f = nonlinear_preferred_formats[i];
@@ -164,9 +192,31 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 		}
 		return SND_PCM_FORMAT_UNKNOWN;
 	}
-	w = snd_pcm_format_width(format);
-	u = snd_pcm_format_unsigned(format);
-	e = snd_pcm_format_big_endian(format);
+	if (snd_pcm_format_float(format)) {
+		if (snd_pcm_format_mask_test(&fl, format)) {
+			unsigned int i;
+			for (i = 0; i < sizeof(float_preferred_formats) / sizeof(float_preferred_formats[0]); ++i) {
+				snd_pcm_format_t f = float_preferred_formats[i];
+				if (snd_pcm_format_mask_test(format_mask, f))
+					return f;
+			}
+		}
+		w = 32;
+		u = 0;
+		e = snd_pcm_format_big_endian(format);
+	} else if (snd_mask_empty(&lin)) {
+		unsigned int i;
+		for (i = 0; i < sizeof(float_preferred_formats) / sizeof(float_preferred_formats[0]); ++i) {
+			snd_pcm_format_t f = float_preferred_formats[i];
+			if (snd_pcm_format_mask_test(format_mask, f))
+				return f;
+		}
+		return SND_PCM_FORMAT_UNKNOWN;
+	} else {
+		w = snd_pcm_format_width(format);
+		u = snd_pcm_format_unsigned(format);
+		e = snd_pcm_format_big_endian(format);
+	}
 	w1 = w;
 	dw = 8;
 	for (wid = 0; wid < 4; ++wid) {
@@ -192,12 +242,6 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 	}
 	return SND_PCM_FORMAT_UNKNOWN;
 }
-
-#define SND_PCM_FMTBIT_PLUG (SND_PCM_FMTBIT_LINEAR | \
-			     (1 << SND_PCM_FORMAT_MU_LAW) | \
-			     (1 << SND_PCM_FORMAT_A_LAW) | \
-			     (1 << SND_PCM_FORMAT_IMA_ADPCM))
-
 
 static void snd_pcm_plug_clear(snd_pcm_t *pcm)
 {
@@ -361,9 +405,26 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 			f = snd_pcm_adpcm_open;
 			break;
 		default:
-			assert(snd_pcm_format_linear(clt->format));
-			f = snd_pcm_linear_open;
+			if (snd_pcm_format_float(clt->format)) {
+				f = snd_pcm_lfloat_open;
+			} else {
+				assert(snd_pcm_format_linear(clt->format));
+				f = snd_pcm_linear_open;
+			}
 			break;
+		}
+	} else if (snd_pcm_format_float(slv->format)) {
+		/* Conversion is done in another plugin */
+		if (clt->format == slv->format &&
+		    clt->rate == slv->rate &&
+		    clt->channels == slv->channels)
+			return 0;
+		cfmt = clt->format;
+		if (snd_pcm_format_linear(clt->format))
+			f = snd_pcm_lfloat_open;
+		else {
+			assert(0);	/* TODO */
+			return -EINVAL;
 		}
 	} else {
 		/* No conversion is needed */
@@ -466,12 +527,16 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 
 static int snd_pcm_plug_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
-	unsigned int rate_min;
+	unsigned int rate_min, channels_max;
 
 	/* HACK: to avoid overflow in PARTBIT_RATE code */
 	rate_min = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, NULL);
 	if (rate_min < 4000)
-		_snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE, 4000, 1);
+		_snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE, 4000, 0);
+	/* HACK: to avoid overflow in PERIOD_SIZE code */
+	channels_max = snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+	if (channels_max > 10000)
+		_snd_pcm_hw_param_set_max(params, SND_PCM_HW_PARAM_CHANNELS, 10000, 0);
 	return 0;
 }
 
@@ -633,6 +698,21 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 			snd_pcm_format_mask_set(&fmt_mask, format);
 		}
 
+		if (snd_pcm_format_mask_empty(&fmt_mask)) {
+			SNDERR("Unable to find an useable client format");
+			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
+				if (!snd_pcm_format_mask_test(format_mask, format))
+					continue;
+				SNDERR("Format: %s", snd_pcm_format_name(format));
+			}
+			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
+				if (!snd_pcm_format_mask_test(sformat_mask, format))
+					continue;
+				SNDERR("Slave format: %s", snd_pcm_format_name(format));
+			}
+			return -EINVAL;
+		}
+		
 		err = _snd_pcm_hw_param_set_mask(params, 
 						 SND_PCM_HW_PARAM_FORMAT, &fmt_mask);
 		if (err < 0)

@@ -194,6 +194,11 @@ snd_pcm_ladspa_write_areas(snd_pcm_t *pcm,
 	// snd_pcm_ladspa_t *ladspa = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
+#if 1	// no processing - for testing purposes only
+	snd_pcm_areas_copy(slave_areas, slave_offset,
+			   areas, offset,
+			   pcm->channels, size, pcm->format);
+#endif
 	*slave_sizep = size;
 	return size;
 }
@@ -210,6 +215,11 @@ snd_pcm_ladspa_read_areas(snd_pcm_t *pcm,
 	// snd_pcm_ladspa_t *ladspa = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
+#if 1	// no processing - for testing purposes only
+	snd_pcm_areas_copy(areas, offset,
+			   slave_areas, slave_offset,
+			   pcm->channels, size, pcm->format);
+#endif
 	*slave_sizep = size;
 	return size;
 }
