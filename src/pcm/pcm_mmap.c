@@ -105,7 +105,10 @@ static snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 {
 	snd_pcm_uframes_t xfer = 0;
 
-	assert(snd_pcm_mmap_playback_avail(pcm) >= size);
+	if (snd_pcm_mmap_playback_avail(pcm) < size) {
+		SNDMSG("too short avail %ld to size %ld", snd_pcm_mmap_playback_avail(pcm), size);
+		return -EPIPE;
+	}
 	while (size > 0) {
 		const snd_pcm_channel_area_t *pcm_areas;
 		snd_pcm_uframes_t pcm_offset;
@@ -134,7 +137,10 @@ static snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 {
 	snd_pcm_uframes_t xfer = 0;
 
-	assert(snd_pcm_mmap_capture_avail(pcm) >= size);
+	if (snd_pcm_mmap_capture_avail(pcm) < size) {
+		SNDMSG("too short avail %ld to size %ld", snd_pcm_mmap_capture_avail(pcm), size);
+		return -EPIPE;
+	}
 	while (size > 0) {
 		const snd_pcm_channel_area_t *pcm_areas;
 		snd_pcm_uframes_t pcm_offset;
@@ -275,8 +281,8 @@ int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int s
 		info->step = pcm->sample_bits;
 		break;
 	default:
-		assert(0);
-		break;
+		SNDMSG("invalid access type %d", pcm->access);
+		return -EINVAL;
 	}
 	info->addr = 0;
 	info->type = SND_PCM_AREA_SHM;
@@ -290,8 +296,14 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 	int err;
 	unsigned int c;
 	assert(pcm);
-	assert(pcm->setup);
-	assert(!pcm->mmap_channels);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	if (CHECK_SANITY(pcm->mmap_channels || pcm->running_areas)) {
+		SNDMSG("Already mmapped");
+		return -EBUSY;
+	}
 	err = pcm->ops->mmap(pcm);
 	if (err < 0)
 		return err;
@@ -300,7 +312,6 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 	pcm->mmap_channels = calloc(pcm->channels, sizeof(pcm->mmap_channels[0]));
 	if (!pcm->mmap_channels)
 		return -ENOMEM;
-	assert(!pcm->running_areas);
 	pcm->running_areas = calloc(pcm->channels, sizeof(pcm->running_areas[0]));
 	if (!pcm->running_areas) {
 		free(pcm->mmap_channels);
@@ -433,7 +444,10 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 	int err;
 	unsigned int c;
 	assert(pcm);
-	assert(pcm->mmap_channels);
+	if (CHECK_SANITY(! pcm->mmap_channels)) {
+		SNDMSG("Not mmapped");
+		return -ENXIO;
+	}
 	if (pcm->mmap_shadow)
 		return pcm->ops->munmap(pcm);
 	for (c = 0; c < pcm->channels; ++c) {
@@ -499,7 +513,8 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
-	assert(size > 0);
+	if (! size)
+		return 0;
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = size - xfer;
 		snd_pcm_uframes_t offset = snd_pcm_mmap_hw_offset(pcm);
@@ -532,9 +547,8 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 			break;
 		}
 		default:
-			assert(0);
-			err = -EINVAL;
-			break;
+			SNDMSG("invalid access type %d", pcm->access);
+			return -EINVAL;
 		}
 		if (err < 0)
 			break;
@@ -549,7 +563,8 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
-	assert(size > 0);
+	if (! size)
+		return 0;
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = size - xfer;
 		snd_pcm_uframes_t offset = snd_pcm_mmap_hw_offset(pcm);
@@ -581,9 +596,8 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 				frames = err;
 		}
 		default:
-			assert(0);
-			err = -EINVAL;
-			break;
+			SNDMSG("invalid access type %d", pcm->access);
+			return -EINVAL;
 		}
 		if (err < 0)
 			break;

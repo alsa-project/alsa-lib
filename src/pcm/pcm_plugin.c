@@ -373,7 +373,11 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 			break;
 		frames = plugin->write(pcm, areas, offset, frames,
 				       slave_areas, slave_offset, &slave_frames);
-		assert(slave_frames <= snd_pcm_mmap_playback_avail(slave));
+		if (CHECK_SANITY(slave_frames > snd_pcm_mmap_playback_avail(slave))) {
+			SNDMSG("write overflow %ld > %ld", slave_frames,
+			       snd_pcm_mmap_playback_avail(slave));
+			return -EPIPE;
+		}
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, frames);
 		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
@@ -415,7 +419,11 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 			break;
 		frames = plugin->read(pcm, areas, offset, frames,
 				      slave_areas, slave_offset, &slave_frames);
-		assert(slave_frames <= snd_pcm_mmap_capture_avail(slave));
+		if (CHECK_SANITY(slave_frames > snd_pcm_mmap_capture_avail(slave))) {
+			SNDMSG("read overflow %ld > %ld", slave_frames,
+			       snd_pcm_mmap_playback_avail(slave));
+			return -EPIPE;
+		}
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, frames);
 		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
@@ -531,7 +539,10 @@ snd_pcm_sframes_t snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 		slave_size -= frames;
 		xfer += frames;
 	}
-	assert(size == 0);
+	if (CHECK_SANITY(size)) {
+		SNDMSG("short commit: %ld", size);
+		return -EPIPE;
+	}
 	return xfer;
 }
 

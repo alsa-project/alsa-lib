@@ -238,8 +238,13 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 				missing = 1;
 			}
 			err = snd_pcm_mmap_commit(spcm, snd_pcm_mmap_offset(spcm), frames);
-			assert(err == frames);
-			slave_avail -= frames;
+			if (err < 0) {
+				SYSMSG("snd_pcm_mmap_commit error");
+				return INT_MAX;
+			}
+			if (err != frames)
+				SYSMSG("commit returns %ld for size %ld", err, frames);
+			slave_avail -= err;
 		} else {
 			if (safety_missing == 0)
 				missing = 1;
@@ -278,8 +283,8 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 		running = 1;
 		break;
 	default:
-		assert(0);
-		break;
+		SNDERR("invalid shared PCM state %d", share->state);
+		return INT_MAX;
 	}
 
  update_poll:
@@ -357,10 +362,16 @@ static void *snd_pcm_share_thread(void *data)
 	pfd[0].fd = slave->poll[0];
 	pfd[0].events = POLLIN;
 	err = snd_pcm_poll_descriptors(spcm, &pfd[1], 1);
-	assert(err == 1);
+	if (err != 1) {
+		SNDERR("invalid poll descriptors %d", err);
+		return NULL;
+	}
 	Pthread_mutex_lock(&slave->mutex);
 	err = pipe(slave->poll);
-	assert(err >= 0);
+	if (err < 0) {
+		SYSERR("can't create a pipe");
+		return NULL;
+	}
 	while (slave->open_count > 0) {
 		snd_pcm_uframes_t missing;
 		// printf("begin min_missing\n");
@@ -383,7 +394,10 @@ static void *snd_pcm_share_thread(void *data)
 			if ((snd_pcm_uframes_t)avail_min != spcm->avail_min) {
 				snd_pcm_sw_params_set_avail_min(spcm, &slave->sw_params, avail_min);
 				err = snd_pcm_sw_params(spcm, &slave->sw_params);
-				assert(err >= 0);
+				if (err < 0) {
+					SYSERR("snd_pcm_sw_params error");
+					return NULL;
+				}
 			}
 			slave->polling = 1;
 			Pthread_mutex_unlock(&slave->mutex);
@@ -433,7 +447,10 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 			int err;
 			snd_pcm_sw_params_set_avail_min(spcm, &slave->sw_params, avail_min);
 			err = snd_pcm_sw_params(spcm, &slave->sw_params);
-			assert(err >= 0);
+			if (err < 0) {
+				SYSERR("snd_pcm_sw_params error");
+				return;
+			}
 		}
 	}
 }
@@ -818,7 +835,14 @@ static snd_pcm_sframes_t _snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
 		if (frames > 0) {
 			snd_pcm_sframes_t err;
 			err = snd_pcm_mmap_commit(spcm, snd_pcm_mmap_offset(spcm), frames);
-			assert(err == frames);
+			if (err < 0) {
+				SYSMSG("snd_pcm_mmap_commit error");
+				return err;
+			}
+			if (err != frames) {
+				SYSMSG("commit returns %ld for size %ld", err, frames);
+				return err;
+			}
 		}
 		_snd_pcm_share_update(pcm);
 	}

@@ -14,3 +14,17 @@ this API, because they are no longer used:
 
 #define ALSA_PCM_NEW_HW_PARAMS_API
 #define ALSA_PCM_NEW_SW_PARAMS_API
+
+
+Verbose Error Messages
+======================
+
+Since version 1.0.8, assert() for some non-fatal errors are removed
+and error messages are no longer shown to stderr as default.  Instead,
+the error messages appear only when the environment variable
+LIBASOUND_DEBUG is set.  When LIBASOUND_DEBUG=assert is set, the
+default error message handler calls assert() to catch with a
+debugger.
+
+This feature is disabled when --with-debug=no is passed to configure,
+i.e. no strict checking is done in alsa-lib.

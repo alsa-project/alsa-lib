@@ -166,7 +166,10 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 				src_frames1++;
 				states->u.linear.init = 2; /* get a new sample */
 				//printf("new_src_pos = %i\n", (src - (char *)snd_pcm_channel_area_addr(src_area, src_offset)) / src_step);
-				assert(src_frames1 <= src_frames);
+				if (CHECK_SANITY(src_frames1 > src_frames)) {
+					SNDERR("src_frames overflow");
+					break;
+				}
 			}
 		} 
 		if (dst_frames != dst_frames1) {
@@ -243,7 +246,10 @@ static void snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
 			after_put:
 				dst += dst_step;
 				dst_frames1++;
-				assert(dst_frames1 <= dst_frames);
+				if (CHECK_SANITY(dst_frames1 > dst_frames)) {
+					SNDERR("dst_frames overflow");
+					break;
+				}
 			}
 			old_sample = new_sample;
 		}
@@ -501,8 +507,10 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		/* pitch is get_increment */
 	}
 	rate->pitch = (((u_int64_t)dst_rate * LINEAR_DIV) + (src_rate / 2)) / src_rate;
-	assert(!rate->states);
-	assert(!rate->pareas);
+	if (CHECK_SANITY(rate->states || rate->pareas)) {
+		SNDMSG("rate plugin already in use");
+		return -EBUSY;
+	}
 	rate->states = malloc(channels * sizeof(*rate->states));
 	if (rate->states == NULL)
 		return -ENOMEM;
@@ -616,7 +624,11 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 				}
 			}
 		} while (1);
-		assert((snd_pcm_uframes_t)snd_pcm_rate_client_frames(pcm, slave->period_size ) == pcm->period_size );
+		if ((snd_pcm_uframes_t)snd_pcm_rate_client_frames(pcm, slave->period_size ) != pcm->period_size) {
+			SNDERR("invalid slave period_size %ld for pcm period_size %ld",
+			       slave->period_size, pcm->period_size);
+			return -EIO;
+		}
 	} else {
 		rate->pitch = (((u_int64_t)pcm->period_size * LINEAR_DIV) + (slave->period_size/2) ) / slave->period_size;
 		do {
@@ -639,7 +651,11 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 				}
 			}
 		} while (1);
-		assert((snd_pcm_uframes_t)snd_pcm_rate_slave_frames(pcm, pcm->period_size ) == slave->period_size );
+		if ((snd_pcm_uframes_t)snd_pcm_rate_slave_frames(pcm, pcm->period_size ) != slave->period_size) {
+			SNDERR("invalid pcm period_size %ld for slave period_size",
+			       pcm->period_size, slave->period_size);
+			return -EIO;
+		}
 	}
 	recalc(pcm, &sparams->avail_min);
 	rate->orig_avail_min = sparams->avail_min;
@@ -1044,7 +1060,10 @@ static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t app
 		result = snd_pcm_mmap_begin(rate->slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
-		assert(slave_offset == 0);
+		if (slave_offset) {
+			SNDERR("non-zero slave_offset %ld", slave_offset);
+			return -EIO;
+		}
 		snd_pcm_areas_copy(slave_areas, slave_offset,
 				   rate->sareas, xfer,
 				   pcm->channels, cont,
@@ -1124,7 +1143,10 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 		result = snd_pcm_mmap_begin(rate->slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
-		assert(slave_offset == 0);
+		if (slave_offset) {
+			SNDERR("non-zero slave_offset %ld", slave_offset);
+			return -EIO;
+		}
 		snd_pcm_areas_copy(rate->sareas, xfer,
 		                   slave_areas, slave_offset,
 				   pcm->channels, cont,

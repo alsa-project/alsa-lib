@@ -155,6 +155,22 @@ int safe_strtol(const char *str, long *val);
 int snd_send_fd(int sock, void *data, size_t len, int fd);
 int snd_receive_fd(int sock, void *data, size_t len, int *fd);
 
+/*
+ * error messages
+ */
+#ifndef NDEBUG
+#define CHECK_SANITY(x) x
+extern snd_lib_error_handler_t snd_err_msg;
+#define SNDMSG(args...) snd_err_msg(__FILE__, __LINE__, __FUNCTION__, 0, ##args)
+#define SYSMSG(args...) snd_err_msg(__FILE__, __LINE__, __FUNCTION__, errno, ##args)
+#else
+#define CHECK_SANITY(x) 0 /* not evaluated */
+#define SNDMSG(args...) /* nop */
+#define SYSMSG(args...) /* nop */
+#endif
+
+/*
+ */
 #define HAVE_GNU_LD
 #define HAVE_ELF
 #define HAVE_ASM_PREVIOUS_DIRECTIVE
