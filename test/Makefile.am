@@ -1,5 +1,6 @@
 check_PROGRAMS=control pcm latency seq \
-	       playmidi1 timer rawmidi midiloop
+	       playmidi1 timer rawmidi midiloop \
+	       code
 
 control_LDADD=../src/libasound.la
 pcm_LDADD=../src/libasound.la
