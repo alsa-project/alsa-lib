@@ -353,34 +353,6 @@ int snd_ctl_rawmidi_info(snd_ctl_t *handle, int dev, snd_rawmidi_info_t * info)
 	return 0;
 }
 
-int snd_ctl_rawmidi_output_info(snd_ctl_t *handle, int dev, snd_rawmidi_output_info_t * info)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !info || dev < 0)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_OUTPUT_INFO, info) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_rawmidi_input_info(snd_ctl_t *handle, int dev, snd_rawmidi_input_info_t * info)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !info || dev < 0)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_INPUT_INFO, info) < 0)
-		return -errno;
-	return 0;
-}
-
 int snd_ctl_rawmidi_output_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list)
 {
 	snd_ctl_t *ctl;

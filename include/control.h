@@ -58,8 +58,6 @@ int snd_ctl_mixer_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *lis
 int snd_ctl_mixer_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw);
 int snd_ctl_mixer_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw);
 int snd_ctl_rawmidi_info(snd_ctl_t *handle, int dev, snd_rawmidi_info_t * info);
-int snd_ctl_rawmidi_output_info(snd_ctl_t *handle, int dev, snd_rawmidi_output_info_t * info);
-int snd_ctl_rawmidi_input_info(snd_ctl_t *handle, int dev, snd_rawmidi_input_info_t * info);
 int snd_ctl_rawmidi_output_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list);
 int snd_ctl_rawmidi_output_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw);
 int snd_ctl_rawmidi_output_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw);
