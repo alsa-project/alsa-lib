@@ -56,6 +56,7 @@ extern "C" {
 
 int snd_pcm_loopback_open( void **handle, int card, int device, int mode );
 int snd_pcm_loopback_close( void *handle );
+int snd_pcm_loopback_file_descriptor( void *handle );
 int snd_pcm_loopback_stream_mode( void *handle, int mode );
 int snd_pcm_loopback_format( void *handle, snd_pcm_format_t *format );
 ssize_t snd_pcm_loopback_read( void *handle, void *buffer, size_t size );
