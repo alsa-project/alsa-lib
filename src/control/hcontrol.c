@@ -99,9 +99,9 @@ static int _snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id, in
 	while (l < u) {
 		idx = (l + u) / 2;
 		c = hctl->compare((snd_hctl_elem_t *) id, hctl->pelems[idx]);
-		if (c < 0)
+		if (c > 0)
 			u = idx;
-		else if (c > 0)
+		else if (c < 0)
 			l = idx + 1;
 		else
 			break;
@@ -154,7 +154,8 @@ static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 		}
 		memmove(hctl->pelems + idx + 1,
 			hctl->pelems + idx,
-			hctl->count - idx);
+			(hctl->count - idx) * sizeof(snd_hctl_elem_t *));
+		hctl->pelems[idx] = elem;
 	}
 	hctl->count++;
 	return snd_hctl_throw_event(hctl, SND_CTL_EVENT_ADD, elem);
@@ -170,7 +171,9 @@ static void snd_hctl_elem_remove(snd_hctl_t *hctl, unsigned int idx)
 	hctl->count--;
 	m = hctl->count - idx;
 	if (m > 0)
-		memmove(hctl->pelems + idx, hctl->pelems + idx + 1, m);
+		memmove(hctl->pelems + idx,
+			hctl->pelems + idx + 1,
+			m * sizeof(snd_hctl_elem_t *));
 }
 
 int snd_hctl_free(snd_hctl_t *hctl)

@@ -233,9 +233,9 @@ static int _snd_mixer_find_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem, int 
 	while (l < u) {
 		idx = (l + u) / 2;
 		c = mixer->compare(elem, mixer->pelems[idx]);
-		if (c < 0)
+		if (c > 0)
 			u = idx;
-		else if (c > 0)
+		else if (c < 0)
 			l = idx + 1;
 		else
 			break;
@@ -274,7 +274,8 @@ int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class)
 		}
 		memmove(mixer->pelems + idx + 1,
 			mixer->pelems + idx,
-			mixer->count - idx);
+			(mixer->count - idx) * sizeof(snd_mixer_elem_t *));
+		mixer->pelems[idx] = elem;
 	}
 	mixer->count++;
 	return snd_mixer_throw_event(mixer, SND_CTL_EVENT_ADD, elem);
@@ -286,16 +287,21 @@ int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 	int err, idx, dir;
 	unsigned int m;
 	assert(elem);
+	assert(mixer->count);
 	idx = _snd_mixer_find_elem(mixer, elem, &dir);
 	if (dir != 0)
 		return -EINVAL;
 	err = snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_REMOVE);
 	list_del(&elem->list);
+	if (elem->private_free)
+		elem->private_free(elem);
 	free(elem);
 	mixer->count--;
 	m = mixer->count - idx;
 	if (m > 0)
-		memmove(mixer->pelems + idx, mixer->pelems + idx + 1, m);
+		memmove(mixer->pelems + idx,
+			mixer->pelems + idx + 1,
+			m * sizeof(snd_mixer_elem_t *));
 	return err;
 }
 
@@ -330,14 +336,13 @@ int snd_mixer_class_register(snd_mixer_class_t *class, snd_mixer_t *mixer)
 
 int snd_mixer_class_unregister(snd_mixer_class_t *class)
 {
-	struct list_head *pos, *next;
+	unsigned int k;
+	snd_mixer_elem_t *e;
 	snd_mixer_t *mixer = class->mixer;
-	list_for_each(pos, next, &mixer->elems) {
-		snd_mixer_elem_t *e;
-		e = list_entry(pos, snd_mixer_elem_t, list);
-		if (e->class == class && e->private_free)
-			e->private_free(e);
-		snd_mixer_elem_remove(e);
+	for (k = mixer->count; k > 0; k--) {
+		e = mixer->pelems[k-1];
+		if (e->class == class)
+			snd_mixer_elem_remove(e);
 	}
 	if (class->private_free)
 		class->private_free(class);
@@ -380,6 +385,7 @@ int snd_mixer_close(snd_mixer_t *mixer)
 		snd_mixer_class_unregister(c);
 	}
 	assert(list_empty(&mixer->elems));
+	assert(mixer->count == 0);
 	if (mixer->pelems) {
 		free(mixer->pelems);
 		mixer->pelems = NULL;
