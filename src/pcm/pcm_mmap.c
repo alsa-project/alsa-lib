@@ -173,6 +173,15 @@ ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset)
 	return appl_ptr;
 }
 
+void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, size_t frames)
+{
+	ssize_t appl_ptr = pcm->mmap_control->appl_ptr;
+	appl_ptr -= frames;
+	if (appl_ptr < 0)
+		appl_ptr += pcm->setup.boundary;
+	pcm->mmap_control->appl_ptr = appl_ptr;
+}
+
 void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, size_t frames)
 {
 	size_t appl_ptr = pcm->mmap_control->appl_ptr;

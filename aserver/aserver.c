@@ -401,8 +401,8 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_CHANNEL_SETUP:
 		ctrl->result = snd_pcm_channel_setup(pcm, &ctrl->u.channel_setup);
 		break;
-	case SND_PCM_IOCTL_APPL_PTR:
-		ctrl->result = snd_pcm_appl_ptr(pcm, ctrl->u.appl_ptr);
+	case SND_PCM_IOCTL_REWIND:
+		ctrl->result = snd_pcm_rewind(pcm, ctrl->u.rewind);
 		break;
 	case SND_PCM_IOCTL_LINK:
 	{

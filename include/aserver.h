@@ -31,7 +31,7 @@
 #define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xf9)
 
 typedef struct {
-	int result;
+	long result;
 	int cmd;
 	union {
 		snd_pcm_info_t info;
@@ -44,8 +44,7 @@ typedef struct {
 		snd_pcm_channel_info_t channel_info;
 		snd_pcm_channel_params_t channel_params;
 		snd_pcm_channel_setup_t channel_setup;
-		off_t appl_ptr;
-		int hw_ptr;
+		ssize_t rewind;
 		int link;
 		size_t mmap_forward;
 	} u;

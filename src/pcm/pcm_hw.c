@@ -225,17 +225,22 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 	return 0;
 }
 
-static ssize_t snd_pcm_hw_appl_ptr(snd_pcm_t *pcm, off_t offset)
+static ssize_t snd_pcm_hw_rewind(snd_pcm_t *pcm, size_t frames)
 {
-	ssize_t result;
-	snd_pcm_hw_t *hw = pcm->private;
-	int fd = hw->fd;
-	if (pcm->mmap_status && pcm->mmap_control)
-		return snd_pcm_mmap_appl_ptr(pcm, offset);
-	result = ioctl(fd, SND_PCM_IOCTL_APPL_PTR, offset);
-	if (result < 0)
-		return -errno;
-	return result;
+	ssize_t used;
+	if (pcm->setup.xrun_mode == SND_PCM_XRUN_ASAP) {
+		ssize_t d;
+		int err = snd_pcm_hw_delay(pcm, &d);
+		if (err < 0)
+			return 0;
+	}
+	used = pcm->setup.buffer_size - snd_pcm_mmap_avail(pcm);
+	if (used <= 0)
+		return 0;
+	if (frames > (size_t)used)
+		frames = used;
+	snd_pcm_mmap_appl_backward(pcm, frames);
+	return frames;
 }
 
 static ssize_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
@@ -451,7 +456,7 @@ struct snd_pcm_fast_ops snd_pcm_hw_fast_ops = {
 	stop: snd_pcm_hw_stop,
 	flush: snd_pcm_hw_flush,
 	pause: snd_pcm_hw_pause,
-	appl_ptr: snd_pcm_hw_appl_ptr,
+	rewind: snd_pcm_hw_rewind,
 	writei: snd_pcm_hw_writei,
 	writen: snd_pcm_hw_writen,
 	readi: snd_pcm_hw_readi,

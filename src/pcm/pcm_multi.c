@@ -196,7 +196,6 @@ static int snd_pcm_multi_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
 			return err;
 		if (setup->format.rate != s.format.rate)
 			return -EINVAL;
-		/* mmap is not feasible */
 		if (setup->buffer_size != s.buffer_size)
 			return -EINVAL;
 		if (setup->mmap_shape != SND_PCM_MMAP_NONINTERLEAVED ||
@@ -327,31 +326,28 @@ static int snd_pcm_multi_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *
 	return 0;
 }
 
-static ssize_t snd_pcm_multi_appl_ptr(snd_pcm_t *pcm, off_t offset)
+static ssize_t snd_pcm_multi_rewind(snd_pcm_t *pcm, size_t frames)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	ssize_t pos, newpos;
 	unsigned int i;
-	snd_pcm_t *handle_0 = multi->slaves[0].handle;
-
-	pos = snd_pcm_appl_ptr(handle_0, 0);
-	newpos = snd_pcm_appl_ptr(handle_0, offset);
-	if (newpos < 0)
-		return newpos;
-	offset = newpos - pos;
-	if (offset < 0)
-		offset += handle_0->setup.boundary;
-
-	for (i = 1; i < multi->slaves_count; ++i) {
+	size_t pos[multi->slaves_count];
+	memset(pos, 0, sizeof(pos));
+	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_t *handle_i = multi->slaves[i].handle;
-		ssize_t newpos_i;
-		newpos_i = snd_pcm_appl_ptr(handle_i, offset);
-		if (newpos_i < 0)
-			return newpos_i;
-		if (newpos_i != newpos)
-			return -EBADFD;
+		ssize_t f = snd_pcm_rewind(handle_i, frames);
+		if (f < 0)
+			return f;
+		pos[i] = f;
+		frames = f;
 	}
-	return newpos;
+	/* Realign the pointers */
+	for (i = 0; i < multi->slaves_count; ++i) {
+		snd_pcm_t *handle_i = multi->slaves[i].handle;
+		size_t f = pos[i] - frames;
+		if (f > 0)
+			snd_pcm_mmap_appl_forward(handle_i, f);
+	}
+	return frames;
 }
 
 static int snd_pcm_multi_mmap_status(snd_pcm_t *pcm)
@@ -531,7 +527,7 @@ struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
 	writen: snd_pcm_mmap_writen,
 	readi: snd_pcm_mmap_readi,
 	readn: snd_pcm_mmap_readn,
-	appl_ptr: snd_pcm_multi_appl_ptr,
+	rewind: snd_pcm_multi_rewind,
 	poll_descriptor: snd_pcm_multi_poll_descriptor,
 	channels_mask: snd_pcm_multi_channels_mask,
 	avail_update: snd_pcm_multi_avail_update,

@@ -44,7 +44,7 @@ int snd_pcm_plugin_start(snd_pcm_t *pcm);
 int snd_pcm_plugin_stop(snd_pcm_t *pcm);
 int snd_pcm_plugin_flush(snd_pcm_t *pcm);
 int snd_pcm_plugin_pause(snd_pcm_t *pcm, int enable);
-ssize_t snd_pcm_plugin_appl_ptr(snd_pcm_t *pcm, off_t offset);
+ssize_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, size_t frames);
 ssize_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, size_t size);
 ssize_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, size_t size);
 ssize_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, size_t size);

@@ -122,10 +122,17 @@ static int snd_pcm_file_pause(snd_pcm_t *pcm, int enable)
 	return snd_pcm_pause(file->slave, enable);
 }
 
-static ssize_t snd_pcm_file_appl_ptr(snd_pcm_t *pcm, off_t offset)
+static ssize_t snd_pcm_file_rewind(snd_pcm_t *pcm, size_t frames)
 {
 	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_appl_ptr(file->slave, offset);
+	ssize_t f = snd_pcm_rewind(file->slave, frames);
+	off_t err;
+	if (f > 0) {
+		err = lseek(file->fd, -snd_pcm_frames_to_bytes(pcm, f), SEEK_CUR);
+		if (err < 0)
+			return err;
+	}
+	return f;
 }
 
 static void snd_pcm_file_write_areas(snd_pcm_t *pcm, 
@@ -336,7 +343,7 @@ struct snd_pcm_fast_ops snd_pcm_file_fast_ops = {
 	stop: snd_pcm_file_stop,
 	flush: snd_pcm_file_flush,
 	pause: snd_pcm_file_pause,
-	appl_ptr: snd_pcm_file_appl_ptr,
+	rewind: snd_pcm_file_rewind,
 	writei: snd_pcm_file_writei,
 	writen: snd_pcm_file_writen,
 	readi: snd_pcm_file_readi,

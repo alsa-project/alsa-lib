@@ -204,15 +204,12 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 }
 
 
-ssize_t snd_pcm_appl_ptr(snd_pcm_t *pcm, off_t offset)
+ssize_t snd_pcm_rewind(snd_pcm_t *pcm, size_t frames)
 {
 	assert(pcm);
 	assert(pcm->valid_setup);
-	if (pcm->mmap_control) {
-		if (offset == 0)
-			return pcm->mmap_control->appl_ptr;
-	}
-	return pcm->fast_ops->appl_ptr(pcm->fast_op_arg, offset);
+	assert(frames > 0);
+	return pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
 }
 
 ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
@@ -657,11 +654,6 @@ ssize_t snd_pcm_mmap_forward(snd_pcm_t *pcm, size_t size)
 {
 	assert(size > 0);
 	return pcm->fast_ops->mmap_forward(pcm->fast_op_arg, size);
-}
-
-size_t snd_pcm_hw_ptr(snd_pcm_t *pcm)
-{
-	return pcm->mmap_status->hw_ptr;
 }
 
 int snd_pcm_area_silence(snd_pcm_channel_area_t *dst_area, size_t dst_offset,

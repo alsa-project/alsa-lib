@@ -54,7 +54,7 @@ struct snd_pcm_fast_ops {
 	int (*pause)(snd_pcm_t *pcm, int enable);
 	int (*state)(snd_pcm_t *pcm);
 	int (*delay)(snd_pcm_t *pcm, ssize_t *delayp);
-	ssize_t (*appl_ptr)(snd_pcm_t *pcm, off_t offset);
+	ssize_t (*rewind)(snd_pcm_t *pcm, size_t frames);
 	ssize_t (*writei)(snd_pcm_t *pcm, const void *buffer, size_t size);
 	ssize_t (*writen)(snd_pcm_t *pcm, void **bufs, size_t size);
 	ssize_t (*readi)(snd_pcm_t *pcm, void *buffer, size_t size);
@@ -96,6 +96,7 @@ int snd_pcm_munmap_control(snd_pcm_t *pcm);
 int snd_pcm_munmap_data(snd_pcm_t *pcm);
 int snd_pcm_mmap_ready(snd_pcm_t *pcm);
 ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset);
+void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, size_t frames);
 void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, size_t frames);
 void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, size_t frames);
 size_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm);

@@ -387,13 +387,13 @@ static int snd_pcm_client_shm_pause(snd_pcm_t *pcm, int enable)
 	return ctrl->result;
 }
 
-static ssize_t snd_pcm_client_shm_appl_ptr(snd_pcm_t *pcm, off_t offset)
+static ssize_t snd_pcm_client_shm_rewind(snd_pcm_t *pcm, size_t frames)
 {
 	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_APPL_PTR;
-	ctrl->u.appl_ptr = offset;
+	ctrl->cmd = SND_PCM_IOCTL_REWIND;
+	ctrl->u.rewind = frames;
 	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
@@ -569,7 +569,7 @@ struct snd_pcm_fast_ops snd_pcm_client_fast_ops = {
 	stop: snd_pcm_client_shm_stop,
 	flush: snd_pcm_client_shm_flush,
 	pause: snd_pcm_client_shm_pause,
-	appl_ptr: snd_pcm_client_shm_appl_ptr,
+	rewind: snd_pcm_client_shm_rewind,
 	writei: snd_pcm_mmap_writei,
 	writen: snd_pcm_mmap_writen,
 	readi: snd_pcm_mmap_readi,

@@ -154,10 +154,28 @@ int snd_pcm_plugin_pause(snd_pcm_t *pcm, int enable)
 	return snd_pcm_pause(plugin->slave, enable);
 }
 
-ssize_t snd_pcm_plugin_appl_ptr(snd_pcm_t *pcm, off_t offset)
+ssize_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, size_t frames)
 {
-	/* FIXME */
-	return -ENOSYS;
+	snd_pcm_plugin_t *plugin = pcm->private;
+	ssize_t n = pcm->setup.buffer_size - snd_pcm_mmap_avail(pcm);
+	if (n > 0) {
+		if ((size_t)n > frames)
+			n = frames;
+		snd_pcm_mmap_appl_backward(pcm, n);
+		frames -= n;
+	}
+	if (frames > 0) {
+		ssize_t err = snd_pcm_rewind(plugin->slave, frames);
+		if (err < 0) {
+			if (n > 0)
+				return n;
+			return err;
+		}
+		if (plugin->client_frames)
+			err = plugin->client_frames(pcm, err);
+		n += err;
+	}
+	return n;
 }
 
 ssize_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
@@ -381,7 +399,7 @@ struct snd_pcm_fast_ops snd_pcm_plugin_fast_ops = {
 	stop: snd_pcm_plugin_stop,
 	flush: snd_pcm_plugin_flush,
 	pause: snd_pcm_plugin_pause,
-	appl_ptr: snd_pcm_plugin_appl_ptr,
+	rewind: snd_pcm_plugin_rewind,
 	writei: snd_pcm_plugin_writei,
 	writen: snd_pcm_plugin_writen,
 	readi: snd_pcm_plugin_readi,
