@@ -53,4 +53,7 @@ cvsclean: mrproper
 
 pack: mrproper
 	chown -R root.root ../alsa-lib
-	tar cvz -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.gz alsa-lib
+	mv ../alsa-lib ../alsa-lib-$(SND_LIB_VERSION)
+	tar cvz -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.gz alsa-lib-$(SND_LIB_VERSION)
+	mv ../alsa-lib-$(SND_LIB_VERSION) ../alsa-lib
+
