@@ -42,51 +42,7 @@
 understanding it as general digital audio processing with volume samples
 generated in continuous time periods.</P>
 
-<P>Digital audio is the most commonly used method of representing
-sound inside a computer. In this method sound is stored as a sequence of
-samples taken from the audio signal using constant time intervals. 
-A sample represents volume of the signal at the moment when it
-was measured. In uncompressed digital audio each sample require one
-or more bytes of storage. The number of bytes required depends on number
-of channels (mono, stereo) and sample format (8 or 16 bits, mu-Law, etc.).
-The length of this interval determines the sampling rate. Commonly used
-sampling rates are between 8kHz (telephone quality) and
-48kHz (DAT tapes).</P>
-
-<P>The physical devices used in digital audio are called the
-ADC (Analog to Digital Converter) and DAC (Digital to Analog Converter).
-A device containing both ADC and DAC is commonly known as a codec. 
-The codec device used in a Sound Blaster cards is called a DSP which
-is somewhat misleading since DSP also stands for Digital Signal Processor
-(the SB DSP chip is very limited when compared to "true" DSP chips).</P>
-
-<P>Sampling parameters affect the quality of sound which can be
-reproduced from the recorded signal. The most fundamental parameter
-is sampling rate which limits the highest frequency that can be stored.
-It is well known (Nyquist's Sampling Theorem) that the highest frequency
-that can be stored in a sampled signal is at most 1/2 of the sampling
-frequency. For example, an 8 kHz sampling rate permits the recording of
-a signal in which the highest frequency is less than 4 kHz. Higher frequency
-signals must be filtered out before feeding them to ADC.</P>
-
-<P>Sample encoding limits the dynamic range of a recorded signal
-(difference between the faintest and the loudest signal that can be
-recorded). In theory the maximum dynamic range of signal is number_of_bits *
-6dB. This means that 8 bits sampling resolution gives dynamic range of
-48dB and 16 bit resolution gives 96dB.</P>
-
-<P>Quality has price. The number of bytes required to store an audio
-sequence depends on sampling rate, number of channels and sampling
-resolution. For example just 8000 bytes of memory is required to store
-one second of sound using 8kHz/8 bits/mono but 48kHz/16bit/stereo takes
-192 kilobytes. A 64 kbps ISDN channel is required to transfer a
-8kHz/8bit/mono audio stream in real time, and about 1.5Mbps is required
-for DAT quality (48kHz/16bit/stereo). On the other hand it is possible
-to store just 5.46 seconds of sound in a megabyte of memory when using
-48kHz/16bit/stereo sampling. With 8kHz/8bits/mono it is possible to store
-131 seconds of sound using the same amount of memory. It is possible
-to reduce memory and communication costs by compressing the recorded
-signal but this is beyond the scope of this document. </P>
+<P>Write some description about digital audio here.</P>
 
 \section pcm_general_overview General overview
 
