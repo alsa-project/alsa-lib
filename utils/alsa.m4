@@ -53,6 +53,9 @@ fi
 
 dnl add the alsa library
 ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl"
+LIBS=patsubst("$LIBS", "-lm")
+LIBS=patsubst("$LIBS", "-ldl")
+LIBS=patsubst("$LIBS", "  ")
 LIBS="$ALSA_LIBS $LIBS"
 AC_MSG_RESULT($ALSA_LIBS)
 
