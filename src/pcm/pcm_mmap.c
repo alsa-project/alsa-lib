@@ -126,6 +126,23 @@ static snd_pcm_uframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 	return xfer;
 }
 
+/**
+ * \brief Write interleaved frames to a PCM using direct buffer (mmap)
+ * \param pcm PCM handle
+ * \param buffer frames containing buffer
+ * \param size frames to be written
+ * \return a positive number of frames actually written otherwise a
+ * negative error code
+ * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
+ * \retval -EPIPE an underrun occured
+ * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ *
+ * If the blocking behaviour is selected, then routine waits until
+ * all requested bytes are played or put to the playback ring buffer.
+ * The count of bytes can be less only if a signal or underrun occured.
+ *
+ * If the non-blocking behaviour is selected, then routine doesn't wait at all.
+ */
 snd_pcm_sframes_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
@@ -134,6 +151,23 @@ snd_pcm_sframes_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, snd_pc
 				   snd_pcm_mmap_write_areas);
 }
 
+/**
+ * \brief Write non interleaved frames to a PCM using direct buffer (mmap)
+ * \param pcm PCM handle
+ * \param bufs frames containing buffers (one for each channel)
+ * \param size frames to be written
+ * \return a positive number of frames actually written otherwise a
+ * negative error code
+ * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
+ * \retval -EPIPE an underrun occured
+ * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ *
+ * If the blocking behaviour is selected, then routine waits until
+ * all requested bytes are played or put to the playback ring buffer.
+ * The count of bytes can be less only if a signal or underrun occured.
+ *
+ * If the non-blocking behaviour is selected, then routine doesn't wait at all.
+ */
 snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
@@ -142,6 +176,23 @@ snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_ufram
 				   snd_pcm_mmap_write_areas);
 }
 
+/**
+ * \brief Read interleaved frames from a PCM using direct buffer (mmap)
+ * \param pcm PCM handle
+ * \param buffer frames containing buffer
+ * \param size frames to be written
+ * \return a positive number of frames actually read otherwise a
+ * negative error code
+ * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
+ * \retval -EPIPE an overrun occured
+ * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ *
+ * If the blocking behaviour was selected, then routine waits until
+ * all requested bytes are filled. The count of bytes can be less only
+ * if a signal or underrun occured.
+ *
+ * If the non-blocking behaviour is selected, then routine doesn't wait at all.
+ */
 snd_pcm_sframes_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
@@ -150,6 +201,23 @@ snd_pcm_sframes_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_ufram
 				  snd_pcm_mmap_read_areas);
 }
 
+/**
+ * \brief Read non interleaved frames to a PCM using direct buffer (mmap)
+ * \param pcm PCM handle
+ * \param bufs frames containing buffers (one for each channel)
+ * \param size frames to be written
+ * \return a positive number of frames actually read otherwise a
+ * negative error code
+ * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
+ * \retval -EPIPE an overrun occured
+ * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ *
+ * If the blocking behaviour was selected, then routine waits until
+ * all requested bytes are filled. The count of bytes can be less only
+ * if a signal or underrun occured.
+ *
+ * If the non-blocking behaviour is selected, then routine doesn't wait at all.
+ */
 snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
