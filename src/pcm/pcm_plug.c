@@ -504,11 +504,18 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	snd_pcm_format_t format;
 	snd_interval_t t, buffer_size;
 	const snd_interval_t *srate, *crate;
+	unsigned int srate_min;
 	if (plug->srate == -2)
 		links |= SND_PCM_HW_PARBIT_RATE;
-	else
+	else {
 		snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_RATE,
 					     params);
+		/* HACK: to avoid overflow in PARTBIT_RATE code */
+		srate_min = snd_pcm_hw_param_get_min(sparams, SND_PCM_HW_PARAM_RATE, NULL);
+		if (srate_min < 4000)
+			_snd_pcm_hw_param_set_min(sparams, SND_PCM_HW_PARAM_RATE, srate_min, 1);
+	}
+	
 	if (plug->schannels == -2)
 		links |= SND_PCM_HW_PARBIT_CHANNELS;
 	else
