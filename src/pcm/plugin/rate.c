@@ -239,7 +239,7 @@ static ssize_t rate_src_size(snd_pcm_plugin_t *plugin, size_t size)
 	struct rate_private_data *data;
 	ssize_t res;
 
-	if (!plugin || size <= 0)
+	if (plugin == NULL || size <= 0)
 		return -EINVAL;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (data->expand) {
@@ -271,7 +271,7 @@ static ssize_t rate_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 	struct rate_private_data *data;
 	ssize_t res;
 
-	if (!plugin || size <= 0)
+	if (plugin == NULL || size <= 0)
 		return -EINVAL;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (data->expand) {
@@ -366,7 +366,7 @@ int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
 	snd_pcm_plugin_t *plugin;
 	int voice;
 
-	if (!r_plugin)
+	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 

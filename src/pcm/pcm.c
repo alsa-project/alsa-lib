@@ -29,8 +29,8 @@
 #include <sys/mman.h>
 #include "pcm_local.h"
 
-#define SND_FILE_PCM		"/dev/snd/pcmC%iD%i"
-#define SND_FILE_PCM_CONTROL	"/dev/snd/pcmcontrol"
+#define SND_FILE_PCM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
+#define SND_FILE_PCM_CAPTURE		"/dev/snd/pcmC%iD%ic"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
 
 int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode)
@@ -38,13 +38,66 @@ int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode)
 	return snd_pcm_open_subdevice(handle, card, device, -1, mode);
 }
 
+static int snd_pcm_open_channel(int card, int device, int channel, int subdevice, int fmode, snd_ctl_t *ctl, int *ver)
+{
+	char filename[32];
+	char *filefmt;
+	int err, fd;
+	int attempt = 0;
+	snd_pcm_channel_info_t info;
+	switch (channel) {
+	case SND_PCM_CHANNEL_PLAYBACK:
+		filefmt = SND_FILE_PCM_PLAYBACK;
+		break;
+	case SND_PCM_CHANNEL_CAPTURE:
+		filefmt = SND_FILE_PCM_CAPTURE;
+		break;
+	default:
+		return -EINVAL;
+	}
+	if ((err = snd_ctl_pcm_channel_prefer_subdevice(ctl, device, channel, subdevice)) < 0)
+		return err;
+	sprintf(filename, filefmt, card, device);
+
+      __again:
+      	if (attempt++ > 3) {
+      		snd_ctl_close(ctl);
+      		return -EBUSY;
+      	}
+	if ((fd = open(filename, fmode)) < 0) {
+		err = -errno;
+		return err;
+	}
+	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, ver) < 0) {
+		err = -errno;
+		close(fd);
+		return err;
+	}
+	if (SND_PROTOCOL_INCOMPATIBLE(*ver, SND_PCM_VERSION_MAX)) {
+		close(fd);
+		return -SND_ERROR_INCOMPATIBLE_VERSION;
+	}
+	if (subdevice >= 0) {
+		memset(&info, 0, sizeof(info));
+		if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, &info) < 0) {
+			err = -errno;
+			close(fd);
+			return err;
+		}
+		if (info.subdevice != subdevice) {
+			close(fd);
+			goto __again;
+		}
+	}
+	return fd;
+}
+
 int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int mode)
 {
-	int fd, fmode, ver, err, attempt = 0;
-	char filename[32];
+	int fmode, ver, err;
 	snd_pcm_t *pcm;
 	snd_ctl_t *ctl;
-	snd_pcm_channel_info_t info;
+	int pfd = -1, cfd = -1;
 
 	*handle = NULL;
 	
@@ -52,142 +105,124 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 		return -EINVAL;
 	if ((err = snd_ctl_open(&ctl, card)) < 0)
 		return err;
-	if ((mode & (SND_PCM_OPEN_PLAYBACK|SND_PCM_OPEN_CAPTURE)) ==
-	            (SND_PCM_OPEN_PLAYBACK|SND_PCM_OPEN_CAPTURE)) {
-		fmode = O_RDWR;
-	} else if (mode & SND_PCM_OPEN_PLAYBACK) {
-		fmode = O_WRONLY;
-	} else if (mode & SND_PCM_OPEN_CAPTURE) {
-		fmode = O_RDONLY;
-	} else {
-		snd_ctl_close(ctl);
-		return -EINVAL;
-	}
+	fmode = O_RDWR;
 	if (mode & SND_PCM_OPEN_NONBLOCK)
 		fmode |= O_NONBLOCK;
-      __again:
-      	if (attempt++ > 3) {
-      		snd_ctl_close(ctl);
-      		return -EBUSY;
-      	}
-	if ((err = snd_ctl_pcm_prefer_subdevice(ctl, device, subdevice)) < 0) {
-		snd_ctl_close(ctl);
-		return err;
-	}
-	sprintf(filename, SND_FILE_PCM, card, device);
-	if ((fd = open(filename, fmode)) < 0) {
-		err = -errno;
-		snd_ctl_close(ctl);
-		return err;
-	}
-	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
-		err = -errno;
-		close(fd);
-		snd_ctl_close(ctl);
-		return err;
-	}
-	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_PCM_VERSION_MAX)) {
-		close(fd);
-		snd_ctl_close(ctl);
-		return -SND_ERROR_INCOMPATIBLE_VERSION;
-	}
-	if (subdevice >= 0 && (mode & SND_PCM_OPEN_PLAYBACK) != 0) {
-		memset(&info, 0, sizeof(info));
-		info.channel = SND_PCM_CHANNEL_PLAYBACK;
-		if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, &info) < 0) {
-			err = -errno;
-			close(fd);
+	if (mode & SND_PCM_OPEN_PLAYBACK) {
+		pfd = snd_pcm_open_channel(card, device, SND_PCM_CHANNEL_PLAYBACK,
+					  subdevice, fmode, ctl, &ver);
+		if (pfd < 0) {
 			snd_ctl_close(ctl);
-			return err;
-		}
-		if (info.subdevice != subdevice) {
-			close(fd);
-			goto __again;
+			return pfd;
 		}
 	}
-	if (subdevice >= 0 && (mode & SND_PCM_OPEN_CAPTURE) != 0) {
-		memset(&info, 0, sizeof(info));
-		info.channel = SND_PCM_CHANNEL_CAPTURE;
-		if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, &info) < 0) {
-			err = -errno;
-			close(fd);
+	if (mode & SND_PCM_OPEN_CAPTURE) {
+		cfd = snd_pcm_open_channel(card, device, SND_PCM_CHANNEL_CAPTURE,
+					  subdevice, fmode, ctl, &ver);
+		if (cfd < 0) {
+			if (pfd >= 0)
+				close(pfd);
 			snd_ctl_close(ctl);
-			return err;
-		}
-		if (info.subdevice != subdevice) {
-			close(fd);
-			goto __again;
+			return cfd;
 		}
 	}
 	snd_ctl_close(ctl);
+	if (pfd < 0 && cfd < 0)
+		return -EINVAL;
 	pcm = (snd_pcm_t *) calloc(1, sizeof(snd_pcm_t));
 	if (pcm == NULL) {
-		close(fd);
+		if (pfd >= 0)
+			close(pfd);
+		if (cfd >= 0)
+			close(cfd);
 		return -ENOMEM;
 	}
 	pcm->card = card;
 	pcm->device = device;
-	pcm->fd = fd;
+	pcm->fd[SND_PCM_CHANNEL_PLAYBACK] = pfd;
+	pcm->fd[SND_PCM_CHANNEL_CAPTURE] = cfd;
 	pcm->mode = mode;
 	pcm->ver = ver;
-	pcm->mmap_ctrl_fd[0] = pcm->mmap_ctrl_fd[1] = -1;
 	*handle = pcm;
 	return 0;
 }
 
 int snd_pcm_close(snd_pcm_t *pcm)
 {
-	int res;
+	int res = -EINVAL;
+	int channel;
 
 	if (!pcm)
 		return -EINVAL;
-	snd_pcm_munmap(pcm, SND_PCM_CHANNEL_PLAYBACK);
-	snd_pcm_munmap(pcm, SND_PCM_CHANNEL_CAPTURE);
-	snd_pcm_plugin_clear(pcm, SND_PCM_CHANNEL_PLAYBACK);
-	snd_pcm_plugin_clear(pcm, SND_PCM_CHANNEL_CAPTURE);
-	res = close(pcm->fd) < 0 ? -errno : 0;
+	for (channel = 0; channel < 2; ++channel) {
+		snd_pcm_munmap(pcm, channel);
+		snd_pcm_plugin_clear(pcm, channel);
+		if (pcm->fd[channel] >= 0)
+			if (close(pcm->fd[channel]))
+				res = -errno;
+	}
 	free(pcm);
 	return res;
 }
 
-int snd_pcm_file_descriptor(snd_pcm_t *pcm)
+int snd_pcm_file_descriptor(snd_pcm_t *pcm, int channel)
 {
 	if (!pcm)
 		return -EINVAL;
-	return pcm->fd;
+	if (channel < 0 || channel > 1)
+		return -EINVAL;
+	return pcm->fd[channel];
 }
 
 int snd_pcm_nonblock_mode(snd_pcm_t *pcm, int nonblock)
 {
 	long flags;
+	int fd, channel;
 
 	if (!pcm)
 		return -EINVAL;
-	if ((flags = fcntl(pcm->fd, F_GETFL)) < 0)
-		return -errno;
-	if (nonblock)
-		flags |= O_NONBLOCK;
-	else
-		flags &= ~O_NONBLOCK;
-	if (fcntl(pcm->fd, F_SETFL, flags) < 0)
-		return -errno;
+	for (channel = 0; channel < 2; ++channel) {
+		fd = pcm->fd[channel];
+		if (fd < 0)
+			continue;
+		if ((flags = fcntl(fd, F_GETFL)) < 0)
+			return -errno;
+		if (nonblock)
+			flags |= O_NONBLOCK;
+		else
+			flags &= ~O_NONBLOCK;
+		if (fcntl(fd, F_SETFL, flags) < 0)
+			return -errno;
+	}
 	return 0;
 }
 
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
+	int fd, channel;
 	if (!pcm || !info)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_INFO, info) < 0)
+	for (channel = 0; channel < 2; ++channel) {
+		fd = pcm->fd[channel];
+		if (fd >= 0)
+			break;
+	}
+	if (ioctl(fd, SND_PCM_IOCTL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
 int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
+	int fd;
 	if (!pcm || !info)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CHANNEL_INFO, info) < 0)
+	if (info->channel < 0 || info->channel > 1)
+		return -EINVAL;
+	fd = pcm->fd[info->channel];
+	if (fd < 0)
+		return -EINVAL;
+	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -195,12 +230,16 @@ int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 int snd_pcm_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
 {
 	int err;
+	int fd;
 
 	if (!pcm || !params)
 		return -EINVAL;
 	if (params->channel < 0 || params->channel > 1)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CHANNEL_PARAMS, params) < 0)
+	fd = pcm->fd[params->channel];
+	if (fd < 0)
+		return -EINVAL;
+	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_PARAMS, params) < 0)
 		return -errno;
 	pcm->setup_is_valid[params->channel] = 0;
 	memset(&pcm->setup[params->channel], 0, sizeof(snd_pcm_channel_setup_t));
@@ -213,14 +252,18 @@ int snd_pcm_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
 
 int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
 {
+	int fd;
 	if (!pcm || !setup)
 		return -EINVAL;
 	if (setup->channel < 0 || setup->channel > 1)
 		return -EINVAL;
+	fd = pcm->fd[setup->channel];
+	if (fd < 0)
+		return -EINVAL;
 	if (pcm->setup_is_valid[setup->channel]) {
 		memcpy(setup, &pcm->setup[setup->channel], sizeof(*setup));
 	} else {
-		if (ioctl(pcm->fd, SND_PCM_IOCTL_CHANNEL_SETUP, setup) < 0)
+		if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_SETUP, setup) < 0)
 			return -errno;
 		memcpy(&pcm->setup[setup->channel], setup, sizeof(*setup));
 		pcm->setup_is_valid[setup->channel] = 1;
@@ -230,9 +273,13 @@ int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
 
 int snd_pcm_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t * status)
 {
+	int fd;
 	if (!pcm || !status)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CHANNEL_STATUS, status) < 0)
+	fd = pcm->fd[status->channel];
+	if (fd < 0)
+		return -EINVAL;
+	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_STATUS, status) < 0)
 		return -errno;
 	return 0;
 }
@@ -241,7 +288,9 @@ int snd_pcm_playback_prepare(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_PREPARE) < 0)
+	if (pcm->fd[SND_PCM_CHANNEL_PLAYBACK] < 0)
+		return -EINVAL;
+	if (ioctl(pcm->fd[SND_PCM_CHANNEL_PLAYBACK], SND_PCM_IOCTL_CHANNEL_PREPARE) < 0)
 		return -errno;
 	return 0;
 }
@@ -250,7 +299,9 @@ int snd_pcm_capture_prepare(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_PREPARE) < 0)
+	if (pcm->fd[SND_PCM_CHANNEL_CAPTURE] < 0)
+		return -EINVAL;
+	if (ioctl(pcm->fd[SND_PCM_CHANNEL_CAPTURE], SND_PCM_IOCTL_CHANNEL_PREPARE) < 0)
 		return -errno;
 	return 0;
 }
@@ -271,7 +322,9 @@ int snd_pcm_playback_go(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_GO) < 0)
+	if (pcm->fd[SND_PCM_CHANNEL_PLAYBACK] < 0)
+		return -EINVAL;
+	if (ioctl(pcm->fd[SND_PCM_CHANNEL_PLAYBACK], SND_PCM_IOCTL_CHANNEL_GO) < 0)
 		return -errno;
 	return 0;
 }
@@ -280,7 +333,9 @@ int snd_pcm_capture_go(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_GO) < 0)
+	if (pcm->fd[SND_PCM_CHANNEL_CAPTURE] < 0)
+		return -EINVAL;
+	if (ioctl(pcm->fd[SND_PCM_CHANNEL_CAPTURE], SND_PCM_IOCTL_CHANNEL_GO) < 0)
 		return -errno;
 	return 0;
 }
@@ -301,7 +356,9 @@ int snd_pcm_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
 {
 	if (!pcm || !sync)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_SYNC_GO, sync) < 0)
+	if (pcm->fd[SND_PCM_CHANNEL_PLAYBACK] < 0)
+		return -EINVAL;
+	if (ioctl(pcm->fd[SND_PCM_CHANNEL_PLAYBACK], SND_PCM_IOCTL_SYNC_GO, sync) < 0)
 		return -errno;
 	return 0;
 }
@@ -310,7 +367,9 @@ int snd_pcm_drain_playback(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_DRAIN_PLAYBACK) < 0)
+	if (pcm->fd[SND_PCM_CHANNEL_PLAYBACK] < 0)
+		return -EINVAL;
+	if (ioctl(pcm->fd[SND_PCM_CHANNEL_PLAYBACK], SND_PCM_IOCTL_CHANNEL_DRAIN) < 0)
 		return -errno;
 	return 0;
 }
@@ -319,7 +378,9 @@ int snd_pcm_flush_playback(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_FLUSH_PLAYBACK) < 0)
+	if (pcm->fd[SND_PCM_CHANNEL_PLAYBACK] < 0)
+		return -EINVAL;
+	if (ioctl(pcm->fd[SND_PCM_CHANNEL_PLAYBACK], SND_PCM_IOCTL_CHANNEL_FLUSH) < 0)
 		return -errno;
 	return 0;
 }
@@ -328,7 +389,9 @@ int snd_pcm_flush_capture(snd_pcm_t *pcm)
 {
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_FLUSH_CAPTURE) < 0)
+	if (pcm->fd[SND_PCM_CHANNEL_CAPTURE] < 0)
+		return -EINVAL;
+	if (ioctl(pcm->fd[SND_PCM_CHANNEL_CAPTURE], SND_PCM_IOCTL_CHANNEL_FLUSH) < 0)
 		return -errno;
 	return 0;
 }
@@ -349,7 +412,9 @@ int snd_pcm_playback_pause(snd_pcm_t *pcm, int enable)
 {
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_PAUSE, &enable) < 0)
+	if (pcm->fd[SND_PCM_CHANNEL_PLAYBACK] < 0)
+		return -EINVAL;
+	if (ioctl(pcm->fd[SND_PCM_CHANNEL_PLAYBACK], SND_PCM_IOCTL_CHANNEL_PAUSE, &enable) < 0)
 		return -errno;
 	return 0;
 }
@@ -371,7 +436,9 @@ ssize_t snd_pcm_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 
 	if (!pcm || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
-	result = write(pcm->fd, buffer, size);
+	if (pcm->fd[SND_PCM_CHANNEL_PLAYBACK] < 0)
+		return -EINVAL;
+	result = write(pcm->fd[SND_PCM_CHANNEL_PLAYBACK], buffer, size);
 	if (result < 0)
 		return -errno;
 	return result;
@@ -383,7 +450,9 @@ ssize_t snd_pcm_read(snd_pcm_t *pcm, void *buffer, size_t size)
 
 	if (!pcm || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
-	result = read(pcm->fd, buffer, size);
+	if (pcm->fd[SND_PCM_CHANNEL_CAPTURE] < 0)
+		return -EINVAL;
+	result = read(pcm->fd[SND_PCM_CHANNEL_CAPTURE], buffer, size);
 	if (result < 0)
 		return -errno;
 	return result;
@@ -392,8 +461,7 @@ ssize_t snd_pcm_read(snd_pcm_t *pcm, void *buffer, size_t size)
 int snd_pcm_mmap(snd_pcm_t *pcm, int channel, snd_pcm_mmap_control_t **control, void **buffer)
 {
 	snd_pcm_channel_info_t info;
-	snd_pcm_mmap_select_t sel;
-	int err, ctrl_fd, ver, prot;
+	int err, fd, prot;
 	void *caddr, *daddr;
 
 	if (control)
@@ -402,48 +470,26 @@ int snd_pcm_mmap(snd_pcm_t *pcm, int channel, snd_pcm_mmap_control_t **control, 
 		*buffer = NULL;
 	if (!pcm || channel < 0 || channel > 1 || !control || !buffer)
 		return -EINVAL;
+	fd = pcm->fd[channel];
+	if (fd < 0)
+		return -EINVAL;
 	memset(&info, 0, sizeof(info));
 	info.channel = channel;
 	if ((err = snd_pcm_channel_info(pcm, &info))<0)
 		return err;
-	ctrl_fd = open(SND_FILE_PCM_CONTROL, O_RDWR);
-	if (ctrl_fd < 0)
+	caddr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, SND_PCM_MMAP_OFFSET_CONTROL);
+	if (caddr == (caddr_t)-1 || caddr == NULL)
 		return -errno;
-	if (ioctl(ctrl_fd, SND_PCM_CTRL_IOCTL_PVERSION, &ver) < 0) {
-		err = -errno;
-		close(ctrl_fd);
-		return err;
-	}
-	if (pcm->ver != ver) {
-		close(ctrl_fd);
-		return -SND_ERROR_INCOMPATIBLE_VERSION;
-	}
-	sel.card = pcm->card;
-	sel.device = pcm->device;
-	sel.subdevice = info.subdevice;
-	sel.channel = channel;
-	if (ioctl(ctrl_fd, SND_PCM_CTRL_IOCTL_SELECT, &sel) < 0) {
-		err = -errno;
-		close(ctrl_fd);
-		return err;
-	}
-	caddr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, ctrl_fd, SND_PCM_MMAP_OFFSET_CONTROL);
-	if (caddr == (caddr_t)-1 || caddr == NULL) {
-		close(ctrl_fd);
-		return -errno;
-	}
 	prot = channel == SND_PCM_CHANNEL_PLAYBACK ? PROT_WRITE : PROT_READ;
-	daddr = mmap(NULL, info.mmap_size, prot, MAP_FILE|MAP_SHARED, ctrl_fd, SND_PCM_MMAP_OFFSET_DATA);
+	daddr = mmap(NULL, info.mmap_size, prot, MAP_FILE|MAP_SHARED, fd, SND_PCM_MMAP_OFFSET_DATA);
 	if (daddr == (caddr_t)-1 || daddr == NULL) {
 		err = -errno;
 		munmap(caddr, sizeof(snd_pcm_mmap_control_t));
-		close(ctrl_fd);
 		return err;
 	}
 	*control = pcm->mmap_caddr[channel] = caddr;
 	*buffer = pcm->mmap_daddr[channel] = daddr;
 	pcm->mmap_size[channel] = info.mmap_size;
-	pcm->mmap_ctrl_fd[channel] = ctrl_fd;
 	return 0;
 }
 
@@ -459,10 +505,6 @@ int snd_pcm_munmap(snd_pcm_t *pcm, int channel)
 		munmap(pcm->mmap_daddr[channel], pcm->mmap_size[channel]);
 		pcm->mmap_daddr[channel] = NULL;
 		pcm->mmap_size[channel] = 0;
-	}
-	if (pcm->mmap_ctrl_fd[channel] >= 0) {
-		close(pcm->mmap_ctrl_fd[channel]);
-		pcm->mmap_ctrl_fd[channel] = -1;
 	}
 	return 0;
 }

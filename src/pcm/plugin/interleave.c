@@ -191,7 +191,7 @@ int snd_pcm_plugin_build_interleave(snd_pcm_format_t *src_format,
 	combination_t cmd;
 	int size;
 
-	if (!r_plugin)
+	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 

@@ -24,12 +24,11 @@
 struct snd_pcm {
 	int card;
 	int device;
-	int fd;
 	int mode;
 	int ver;
+	int fd[2];
 	int setup_is_valid[2];
 	snd_pcm_channel_setup_t setup[2];
-	int mmap_ctrl_fd[2];
 	snd_pcm_mmap_control_t *mmap_caddr[2];
 	char *mmap_daddr[2];
 	long mmap_size[2];
@@ -46,7 +45,7 @@ unsigned int snd_pcm_plugin_formats(unsigned int formats);
 int snd_pcm_plugin_hwparams(snd_pcm_channel_params_t *params,
 			    snd_pcm_channel_info_t *hwinfo,
 			    snd_pcm_channel_params_t *hwparams);
-int snd_pcm_plugin_format(snd_pcm_t *pcm, 
+int snd_pcm_plugin_format(snd_pcm_t *pcm,
 			  snd_pcm_channel_params_t *params, 
 			  snd_pcm_channel_params_t *hwparams, 
 			  snd_pcm_channel_info_t *hwinfo);

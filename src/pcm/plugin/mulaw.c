@@ -378,7 +378,7 @@ static ssize_t mulaw_src_size(snd_pcm_plugin_t *plugin, size_t size)
 {
 	struct mulaw_private_data *data;
 
-	if (!plugin || size <= 0)
+	if (plugin == NULL || size <= 0)
 		return -EINVAL;
 	data = (struct mulaw_private_data *)snd_pcm_plugin_extra_data(plugin);
 	switch (data->cmd) {
@@ -406,7 +406,7 @@ static ssize_t mulaw_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 {
 	struct mulaw_private_data *data;
 
-	if (!plugin || size <= 0)
+	if (plugin == NULL || size <= 0)
 		return -EINVAL;
 	data = (struct mulaw_private_data *)snd_pcm_plugin_extra_data(plugin);
 	switch (data->cmd) {
@@ -438,7 +438,7 @@ int snd_pcm_plugin_build_mulaw(snd_pcm_format_t *src_format,
 	snd_pcm_plugin_t *plugin;
 	combination_t cmd;
 
-	if (!r_plugin)
+	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 

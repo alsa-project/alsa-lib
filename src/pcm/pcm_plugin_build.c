@@ -40,7 +40,7 @@ ssize_t snd_pcm_plugin_transfer_size(PLUGIN_BASE *pb, int channel, size_t drv_si
 {
 	snd_pcm_plugin_t *plugin, *plugin_prev, *plugin_next;
 	
-	if (!pb || (channel != SND_PCM_CHANNEL_PLAYBACK &&
+	if (pb == NULL || (channel != SND_PCM_CHANNEL_PLAYBACK &&
 		    channel != SND_PCM_CHANNEL_CAPTURE))
 		return -EINVAL;
 	if (drv_size == 0)
@@ -71,7 +71,7 @@ ssize_t snd_pcm_plugin_hardware_size(PLUGIN_BASE *pb, int channel, size_t trf_si
 {
 	snd_pcm_plugin_t *plugin, *plugin_prev, *plugin_next;
 	
-	if (!pb || (channel != SND_PCM_CHANNEL_PLAYBACK &&
+	if (pb == NULL || (channel != SND_PCM_CHANNEL_PLAYBACK &&
 		     channel != SND_PCM_CHANNEL_CAPTURE))
 		return -EINVAL;
 	if (trf_size == 0)
@@ -237,14 +237,19 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 	snd_pcm_plugin_t *plugin;
 	int err;
 	
-	if (params->channel == SND_PCM_CHANNEL_PLAYBACK) {
+	switch (params->channel) {
+	case SND_PCM_CHANNEL_PLAYBACK:
 		memcpy(&dstparams, hwparams, sizeof(*hwparams));
 		srcparams = hwparams;
 		memcpy(srcparams, params, sizeof(*params));
-	} else {
+		break;
+	case SND_PCM_CHANNEL_CAPTURE:
 		memcpy(&dstparams, params, sizeof(*params));
 		srcparams = params;
 		memcpy(srcparams, hwparams, sizeof(*hwparams));
+		break;
+	default:
+		return -EINVAL;
 	}
 	memcpy(&tmpparams, srcparams, sizeof(*srcparams));
 		

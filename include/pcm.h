@@ -20,7 +20,7 @@ typedef struct snd_pcm_loopback snd_pcm_loopback_t;
 int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode);
 int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int mode);
 int snd_pcm_close(snd_pcm_t *handle);
-int snd_pcm_file_descriptor(snd_pcm_t *handle);
+int snd_pcm_file_descriptor(snd_pcm_t *handle, int channel);
 int snd_pcm_nonblock_mode(snd_pcm_t *handle, int nonblock);
 int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t * info);
 int snd_pcm_channel_info(snd_pcm_t *handle, snd_pcm_channel_info_t * info);

@@ -148,7 +148,7 @@ static ssize_t voices_src_size(snd_pcm_plugin_t *plugin, size_t size)
 {
 	struct voices_private_data *data;
 
-	if (!plugin || size <= 0)
+	if (plugin == NULL || size <= 0)
 		return -EINVAL;
 	data = (struct voices_private_data *)snd_pcm_plugin_extra_data(plugin);
 	return (size * data->src_voices) / data->dst_voices;
@@ -158,7 +158,7 @@ static ssize_t voices_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 {
 	struct voices_private_data *data;
 
-	if (!plugin || size <= 0)
+	if (plugin == NULL || size <= 0)
 		return -EINVAL;
 	data = (struct voices_private_data *)snd_pcm_plugin_extra_data(plugin);
 	return (size * data->dst_voices) / data->src_voices;
@@ -171,7 +171,7 @@ int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
 	struct voices_private_data *data;
 	snd_pcm_plugin_t *plugin;
 
-	if (!r_plugin)
+	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 

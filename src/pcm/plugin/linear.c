@@ -321,7 +321,7 @@ static ssize_t linear_src_size(snd_pcm_plugin_t *plugin, size_t size)
 {
 	struct linear_private_data *data;
 
-	if (!plugin || size <= 0)
+	if (plugin == NULL || size <= 0)
 		return -EINVAL;
 	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (data == NULL)
@@ -333,7 +333,7 @@ static ssize_t linear_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 {
 	struct linear_private_data *data;
 
-	if (!plugin || size <= 0)
+	if (plugin == NULL || size <= 0)
 		return -EINVAL;
 	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (data == NULL)
@@ -351,7 +351,7 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 	int src_endian, dst_endian, sign, src_width, dst_width;
 	int src_sample_size, dst_sample_size;
 
-	if (!r_plugin)
+	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 
@@ -424,7 +424,7 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 	if (src_endian < 0)
 		src_endian = 0;
 	if (dst_endian < 0)
-		src_endian = 0;
+		dst_endian = 0;
 
 	func = convert_functions[src_width][dst_width][src_endian][dst_endian][sign];
 
