@@ -819,6 +819,8 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	int err;
 	assert(pcm->setup);		/* the hw_params must be set at first!!! */
+	if (! params->avail_min || ! params->xfer_align)
+		return -EINVAL;
 	if (params->start_threshold <= pcm->buffer_size &&
 	    params->start_threshold > (pcm->buffer_size / params->avail_min) * params->avail_min) {
 		SNDERR("snd_pcm_sw_params: params->avail_min problem for start_threshold");
