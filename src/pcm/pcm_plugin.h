@@ -19,6 +19,8 @@
  *
  */
   
+#include "atomic.h"
+
 typedef snd_pcm_uframes_t (*snd_pcm_slave_xfer_areas_func_t)
      (snd_pcm_t *pcm, 
       const snd_pcm_channel_area_t *areas,
@@ -38,6 +40,7 @@ typedef struct {
 	int (*init)(snd_pcm_t *pcm);
 	int shmid;
 	snd_pcm_uframes_t appl_ptr, hw_ptr;
+	snd_atomic_write_t watom;
 } snd_pcm_plugin_t;	
 
 int snd_pcm_plugin_close(snd_pcm_t *pcm);

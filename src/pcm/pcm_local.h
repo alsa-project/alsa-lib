@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/uio.h>
+#include <asm/system.h>
 
 #define _snd_pcm_access_mask _snd_mask
 #define _snd_pcm_format_mask _snd_mask
@@ -486,3 +487,4 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int orde
 #define SND_PCM_ACCBIT_MMAP ((1 << (unsigned long) SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
 			     (1 << (unsigned long) SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
 			     (1 << (unsigned long) SND_PCM_ACCESS_MMAP_COMPLEX))
+
