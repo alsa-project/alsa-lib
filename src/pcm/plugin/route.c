@@ -280,6 +280,7 @@ static void route_to_channel(snd_pcm_plugin_t *plugin,
 		}
 		
 		/* Normalization */
+		goto *norm;
 	norm_int32_8_att:
 		sum.as_uint64 = sum.as_uint32;
 	norm_int64_8_att:
