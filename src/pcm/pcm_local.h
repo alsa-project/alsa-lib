@@ -144,6 +144,7 @@ typedef struct {
 	int (*drain)(snd_pcm_t *pcm);
 	int (*pause)(snd_pcm_t *pcm, int enable);
 	snd_pcm_state_t (*state)(snd_pcm_t *pcm);
+	int (*avail)(snd_pcm_t *pcm, snd_pcm_uframes_t *availp);
 	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 	int (*resume)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
@@ -323,31 +324,12 @@ static inline snd_pcm_uframes_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
 
 static inline snd_pcm_uframes_t snd_pcm_mmap_playback_delay(snd_pcm_t *pcm)
 {
-	snd_pcm_state_t state = snd_pcm_state(pcm);
-	
-	switch (state) {
-	case SND_PCM_STATE_RUNNING:
-	case SND_PCM_STATE_DRAINING:
-		return snd_pcm_mmap_playback_hw_avail(pcm);
-	case SND_PCM_STATE_XRUN:
-		return -EPIPE;
-	default:
-		return -EBADFD;
-	}
+	return snd_pcm_mmap_playback_hw_avail(pcm);
 }
 
 static inline snd_pcm_uframes_t snd_pcm_mmap_capture_delay(snd_pcm_t *pcm)
 {
-	snd_pcm_state_t state = snd_pcm_state(pcm);
-	
-	switch (state) {
-	case SND_PCM_STATE_RUNNING:
-		return snd_pcm_mmap_capture_hw_avail(pcm);
-	case SND_PCM_STATE_XRUN:
-		return -EPIPE;
-	default:
-		return -EBADFD;
-	}
+	return snd_pcm_mmap_capture_hw_avail(pcm);
 }
 
 static inline snd_pcm_sframes_t snd_pcm_mmap_delay(snd_pcm_t *pcm)

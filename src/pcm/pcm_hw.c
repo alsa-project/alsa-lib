@@ -77,9 +77,11 @@ struct sndrv_pcm_hw_params_old {
 #define SND_PCM_IOCTL_HW_REFINE_OLD _IOWR('A', 0x10, struct sndrv_pcm_hw_params_old)
 #define SND_PCM_IOCTL_HW_PARAMS_OLD _IOWR('A', 0x11, struct sndrv_pcm_hw_params_old)
 
-#define SND_PCM_IOCTL_XRUN _IO('A', 0x48)
+#define SND_PCM_IOCTL_AVAIL _IOR('A', 0x22, sndrv_pcm_uframes_t)
+#define SND_PCM_IOCTL_XRUN  _IO ('A', 0x48)
 
 static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t *params);
+static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm);
 
 /*
  *
@@ -101,7 +103,7 @@ typedef struct {
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
 #define SNDRV_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
-#define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 2)
+#define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 3)
 
 /* update appl_ptr with driver */
 #define UPDATE_SHADOW_PTR(hw) \
@@ -389,6 +391,33 @@ static int snd_pcm_hw_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	if (ioctl(fd, SNDRV_PCM_IOCTL_DELAY, delayp) < 0) {
 		// SYSERR("SNDRV_PCM_IOCTL_DELAY failed");
 		return -errno;
+	}
+	return 0;
+}
+
+static int snd_pcm_hw_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	int fd = hw->fd;
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 3) <= hw->version) {
+		if (ioctl(fd, SND_PCM_IOCTL_AVAIL, availp) < 0) {
+			// SYSERR("SND_PCM_IOCTL_AVAIL failed");
+			return -errno;
+		}
+	} else {
+		snd_pcm_sframes_t delay;
+		int err = snd_pcm_hw_delay(pcm, &delay);
+		if (err < 0) {
+			delay = snd_pcm_hw_avail_update(pcm);
+			if (delay < 0)
+				return delay;
+			*availp = delay;
+		} else {
+			delay = pcm->stream == SND_PCM_STREAM_PLAYBACK ? pcm->buffer_size - delay : delay;
+			if (delay < 0)
+				delay = 0;
+			*availp = delay;
+		}
 	}
 	return 0;
 }
@@ -757,6 +786,7 @@ static snd_pcm_ops_t snd_pcm_hw_ops = {
 static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	status: snd_pcm_hw_status,
 	state: snd_pcm_hw_state,
+	avail: snd_pcm_hw_avail,
 	delay: snd_pcm_hw_delay,
 	prepare: snd_pcm_hw_prepare,
 	reset: snd_pcm_hw_reset,

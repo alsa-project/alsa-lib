@@ -162,6 +162,12 @@ static snd_pcm_state_t snd_pcm_file_state(snd_pcm_t *pcm)
 	return snd_pcm_state(file->slave);
 }
 
+static int snd_pcm_file_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	return snd_pcm_avail(file->slave, availp);
+}
+
 static int snd_pcm_file_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -406,6 +412,7 @@ static snd_pcm_ops_t snd_pcm_file_ops = {
 static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	status: snd_pcm_file_status,
 	state: snd_pcm_file_state,
+	avail: snd_pcm_file_avail,
 	delay: snd_pcm_file_delay,
 	prepare: snd_pcm_file_prepare,
 	reset: snd_pcm_file_reset,

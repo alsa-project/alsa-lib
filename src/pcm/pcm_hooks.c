@@ -116,6 +116,12 @@ static snd_pcm_state_t snd_pcm_hooks_state(snd_pcm_t *pcm)
 	return snd_pcm_state(h->slave);
 }
 
+static int snd_pcm_hooks_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+{
+	snd_pcm_hooks_t *h = pcm->private_data;
+	return snd_pcm_avail(h->slave, availp);
+}
+
 static int snd_pcm_hooks_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
@@ -292,6 +298,7 @@ static snd_pcm_ops_t snd_pcm_hooks_ops = {
 static snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	status: snd_pcm_hooks_status,
 	state: snd_pcm_hooks_state,
+	avail: snd_pcm_hooks_avail,
 	delay: snd_pcm_hooks_delay,
 	prepare: snd_pcm_hooks_prepare,
 	reset: snd_pcm_hooks_reset,

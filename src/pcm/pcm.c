@@ -359,9 +359,9 @@ network I/O etc.). If application wants to manage the ahead samples itself,
 the \link ::snd_pcm_rewind() \endlink function allows to forget the last
 samples in the stream.
 
-\section pcm_status Obtaining device status
+\section pcm_status Obtaining stream status
 
-The device status is stored in \link ::snd_pcm_status_t \endlink structure.
+The stream status is stored in \link ::snd_pcm_status_t \endlink structure.
 These parameters can be obtained: the current stream state -
 \link ::snd_pcm_status_get_state \endlink, timestamp of trigger -
 \link ::snd_pcm_status_get_trigger_tstamp \endlink, timestamp of last
@@ -373,21 +373,33 @@ samples - \link ::snd_pcm_status_get_overrange \endlink. The last two
 parameters - avail_max and overrange are reset to zero after the status
 call.
 
-\subsection pcm_status_fast Obtaining device status fast
+\subsection pcm_status_fast Obtaining stream state fast and update r/w pointer
 
 The function \link ::snd_pcm_avail_update \endlink updates the current
 available count of samples for writing (playback) or filled samples for
-reading (capture). It is a light version of
-\link ::snd_pcm_status_get_avail \endlink, because it does not require
-the user <-> kernel context switch, but the value is less accurate,
-because ring buffer pointers are updated in kernel drivers only when
-an interrupt occurs.
+reading (capture). This call is mandatory for updating actual r/w pointer.
+Using standalone, it is a light method to obtain current stream position,
+because it does not require the user <-> kernel context switch, but the value
+is less accurate, because ring buffer pointers are updated in kernel drivers
+only when an interrupt occurs. If you want to get accurate stream state,
+use functions \link ::snd_pcm_avail \endlink or \link ::snd_pcm_delay \endlink.
+Note that both of these functions do not update the current r/w pointer
+for applications, so the function \link ::snd_pcm_avail_update \endlink must
+be called afterwards before any read/write begin+commit operations.
+<p>
+The function \link ::snd_pcm_avail \endlink returns current available space
+in the ring buffer. Note that this function does not update the current r/w
+pointer for applications, so the function \link ::snd_pcm_avail_update \endlink
+must be called afterwards before any read/write/begin+commit operations.
 <p>
 The function \link ::snd_pcm_delay \endlink returns the delay in samples.
 For playback, it means count of samples in the ring buffer before
 the next sample will be sent to DAC. For capture, it means count of samples
 in the ring buffer before the next sample will be captured from ADC. It works
-only when the stream is in the running or draining state.
+only when the stream is in the running or draining (playback only) state.
+Note that this function does not update the current r/w pointer for applications,
+so the function \link ::snd_pcm_avail_update \endlink must be called afterwards
+before any read/write begin+commit operations.
 
 \section pcm_action Managing the stream state
 
@@ -812,6 +824,30 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 }
 
 /**
+ * \brief Obtain available frames for a running PCM handle
+ * \param pcm PCM handle
+ * \param availp Returned available frames
+ * \return 0 on success otherwise a negative error code
+ *
+ * Returns available frames to be filled inside ring buffer.
+ * This value might be greater than buffer size when
+ * underrun (playback) or overrun (capture) occurs.
+ *
+ * This function returns accurate value, because it updates
+ * stream position from hardware.
+ *
+ * Note this function does not update the actual r/w pointer
+ * for applications. The function \link ::snd_pcm_avail_update \endlink
+ * have to be called before any read/write/begin+commit operation.
+ */
+int snd_pcm_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+{
+	assert(pcm);
+	assert(pcm->setup);
+	return pcm->fast_ops->avail(pcm->fast_op_arg, availp);
+}
+
+/**
  * \brief Obtain delay for a running PCM handle
  * \param pcm PCM handle
  * \param delayp Returned delay in frames
@@ -822,6 +858,10 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
  * It's positive and less than buffer size in normal situation,
  * negative on playback underrun and greater than buffer size on
  * capture overrun.
+ *
+ * Note this function does not update the actual r/w pointer
+ * for applications. The function \link ::snd_pcm_avail_update \endlink
+ * have to be called before any read/write/begin+commit operation.
  */
 int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
@@ -5728,6 +5768,8 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		break;
 	case SND_PCM_STATE_XRUN:
 		return -EPIPE;
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
 	default:
 		return -EBADFD;
 	}
@@ -5736,19 +5778,21 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
 	_again:
+		if (pcm->sleep_min == 0 && state == SND_PCM_STATE_RUNNING) {
+			snd_pcm_sframes_t delay;
+			/* update hw_ptr */
+			err = snd_pcm_delay(pcm, &delay);
+			if (err < 0)
+				goto _end;
+		}
 		avail = snd_pcm_avail_update(pcm);
 		if (avail < 0) {
 			err = avail;
 			goto _end;
 		}
-		if ((state == SND_PCM_STATE_PAUSED) ||
-		    (state == SND_PCM_STATE_DRAINING)) {
-			if ((snd_pcm_uframes_t)avail < pcm->xfer_align) {
-				err = -EPIPE;
-				goto _end;
-			}
-		} else if (((snd_pcm_uframes_t)avail < pcm->avail_min && size > (snd_pcm_uframes_t)avail) ||
-		           (size >= pcm->xfer_align && (snd_pcm_uframes_t)avail < pcm->xfer_align)) {
+		if (((snd_pcm_uframes_t)avail < pcm->avail_min && size > (snd_pcm_uframes_t)avail) ||
+		    (size >= pcm->xfer_align && (snd_pcm_uframes_t)avail < pcm->xfer_align)) {
+
 			if (pcm->mode & SND_PCM_NONBLOCK) {
 				err = -EAGAIN;
 				goto _end;
@@ -5774,13 +5818,6 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		offset += frames;
 		size -= frames;
 		xfer += frames;
-#if 0
-		state = snd_pcm_state(pcm);
-		if (state == SND_PCM_STATE_XRUN) {
-			err = -EPIPE;
-			goto _end;
-		}
-#endif
 	}
  _end:
 	return xfer > 0 ? (snd_pcm_sframes_t) xfer : err;
@@ -5805,6 +5842,8 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		break;
 	case SND_PCM_STATE_XRUN:
 		return -EPIPE;
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
 	default:
 		return -EBADFD;
 	}
@@ -5824,15 +5863,9 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		if (avail < 0) {
 			err = avail;
 			goto _end;
-		}
-		if (state == SND_PCM_STATE_PAUSED ||
-		    state == SND_PCM_STATE_PREPARED) {
-			if ((snd_pcm_uframes_t)avail < pcm->xfer_align) {
-				err = -EPIPE;
-				goto _end;
-			}
 		} else if (((snd_pcm_uframes_t)avail < pcm->avail_min && size > (snd_pcm_uframes_t)avail) ||
 		           (size >= pcm->xfer_align && (snd_pcm_uframes_t)avail < pcm->xfer_align)) {
+
 			if (pcm->mode & SND_PCM_NONBLOCK) {
 				err = -EAGAIN;
 				goto _end;
@@ -5858,13 +5891,6 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		offset += frames;
 		size -= frames;
 		xfer += frames;
-#if 0
-		state = snd_pcm_state(pcm);
-		if (state == SND_PCM_STATE_XRUN) {
-			err = -EPIPE;
-			goto _end;
-		}
-#endif
 		if (state == SND_PCM_STATE_PREPARED) {
 			snd_pcm_sframes_t hw_avail = pcm->buffer_size - avail;
 			hw_avail += frames;

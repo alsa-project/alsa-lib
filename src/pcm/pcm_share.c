@@ -713,12 +713,34 @@ static snd_pcm_state_t snd_pcm_share_state(snd_pcm_t *pcm)
 	return share->state;
 }
 
+static int _snd_pcm_share_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+{
+	snd_pcm_share_t *share = pcm->private_data;
+	snd_pcm_share_slave_t *slave = share->slave;
+	switch (share->state) {
+	case SND_PCM_STATE_XRUN:
+		return -EPIPE;
+	default:
+		break;
+	}
+	return snd_pcm_avail(slave->pcm, availp);
+}
+
+static int snd_pcm_share_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+{
+	snd_pcm_share_t *share = pcm->private_data;
+	snd_pcm_share_slave_t *slave = share->slave;
+	int err;
+	Pthread_mutex_lock(&slave->mutex);
+	err = _snd_pcm_share_avail(pcm, availp);
+	Pthread_mutex_unlock(&slave->mutex);
+	return err;
+}
+
 static int _snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
-	int err = 0;
-	snd_pcm_sframes_t sd;
 	switch (share->state) {
 	case SND_PCM_STATE_XRUN:
 		return -EPIPE;
@@ -731,11 +753,7 @@ static int _snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	default:
 		return -EBADFD;
 	}
-	err = snd_pcm_delay(slave->pcm, &sd);
-	if (err < 0)
-		return err;
-	*delayp = sd + snd_pcm_mmap_delay(pcm);
-	return 0;
+	return snd_pcm_delay(slave->pcm, delayp);
 }
 
 static int snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
@@ -1215,6 +1233,7 @@ static snd_pcm_ops_t snd_pcm_share_ops = {
 static snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	status: snd_pcm_share_status,
 	state: snd_pcm_share_state,
+	avail: snd_pcm_share_avail,
 	delay: snd_pcm_share_delay,
 	prepare: snd_pcm_share_prepare,
 	reset: snd_pcm_share_reset,
