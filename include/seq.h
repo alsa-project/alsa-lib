@@ -120,8 +120,8 @@ int snd_seq_client_info_get_event_lost(const snd_seq_client_info_t *info);
 
 void snd_seq_client_info_set_client(snd_seq_client_info_t *info, int client);
 void snd_seq_client_info_set_name(snd_seq_client_info_t *info, const char *name);
-void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int bool);
-void snd_seq_client_info_set_error_bounce(snd_seq_client_info_t *info, int bool);
+void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int val);
+void snd_seq_client_info_set_error_bounce(snd_seq_client_info_t *info, int val);
 void snd_seq_client_info_set_event_filter(snd_seq_client_info_t *info, unsigned char *filter);
 
 int snd_seq_get_client_info(snd_seq_t *handle, snd_seq_client_info_t *info);
@@ -230,7 +230,7 @@ void snd_seq_port_info_set_type(snd_seq_port_info_t *info, unsigned int type);
 void snd_seq_port_info_set_midi_channels(snd_seq_port_info_t *info, int channels);
 void snd_seq_port_info_set_midi_voices(snd_seq_port_info_t *info, int voices);
 void snd_seq_port_info_set_synth_voices(snd_seq_port_info_t *info, int voices);
-void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int bool);
+void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int val);
 
 int snd_seq_create_port(snd_seq_t *handle, snd_seq_port_info_t *info);
 int snd_seq_delete_port(snd_seq_t *handle, int port);
@@ -270,9 +270,9 @@ int snd_seq_port_subscribe_get_time_real(const snd_seq_port_subscribe_t *info);
 void snd_seq_port_subscribe_set_sender(snd_seq_port_subscribe_t *info, const snd_seq_addr_t *addr);
 void snd_seq_port_subscribe_set_dest(snd_seq_port_subscribe_t *info, const snd_seq_addr_t *addr);
 void snd_seq_port_subscribe_set_queue(snd_seq_port_subscribe_t *info, int q);
-void snd_seq_port_subscribe_set_exclusive(snd_seq_port_subscribe_t *info, int bool);
-void snd_seq_port_subscribe_set_time_update(snd_seq_port_subscribe_t *info, int bool);
-void snd_seq_port_subscribe_set_time_real(snd_seq_port_subscribe_t *info, int bool);
+void snd_seq_port_subscribe_set_exclusive(snd_seq_port_subscribe_t *info, int val);
+void snd_seq_port_subscribe_set_time_update(snd_seq_port_subscribe_t *info, int val);
+void snd_seq_port_subscribe_set_time_real(snd_seq_port_subscribe_t *info, int val);
 
 int snd_seq_get_port_subscription(snd_seq_t *handle, snd_seq_port_subscribe_t *sub);
 int snd_seq_subscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t *sub);

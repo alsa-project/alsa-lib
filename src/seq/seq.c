@@ -682,12 +682,12 @@ void snd_seq_client_info_set_name(snd_seq_client_info_t *info, const char *name)
 /**
  * \brief Set the broadcast filter usage of a client_info container
  * \param info client_info container
- * \param bool non-zero if broadcast is accepted
+ * \param val non-zero if broadcast is accepted
  */
-void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int bool)
+void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int val)
 {
 	assert(info);
-	if (bool)
+	if (val)
 		info->filter |= SNDRV_SEQ_FILTER_BROADCAST;
 	else
 		info->filter &= ~SNDRV_SEQ_FILTER_BROADCAST;
@@ -696,12 +696,12 @@ void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int b
 /**
  * \brief Set the error-bounce usage of a client_info container
  * \param info client_info container
- * \param bool non-zero if error is bounced
+ * \param val non-zero if error is bounced
  */
-void snd_seq_client_info_set_error_bounce(snd_seq_client_info_t *info, int bool)
+void snd_seq_client_info_set_error_bounce(snd_seq_client_info_t *info, int val)
 {
 	assert(info);
-	if (bool)
+	if (val)
 		info->filter |= SNDRV_SEQ_FILTER_BOUNCE;
 	else
 		info->filter &= ~SNDRV_SEQ_FILTER_BOUNCE;
@@ -1080,12 +1080,12 @@ void snd_seq_port_info_set_synth_voices(snd_seq_port_info_t *info, int voices)
 /**
  * \brief Set the port-specifiied mode of a port_info container
  * \param info port_info container
- * \param bool non-zero if specifying the port id at creation
+ * \param val non-zero if specifying the port id at creation
  */
-void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int bool)
+void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int val)
 {
 	assert(info);
-	if (bool)
+	if (val)
 		info->flags |= SNDRV_SEQ_PORT_FLG_GIVEN_PORT;
 	else
 		info->flags &= ~SNDRV_SEQ_PORT_FLG_GIVEN_PORT;
@@ -1376,12 +1376,12 @@ void snd_seq_port_subscribe_set_queue(snd_seq_port_subscribe_t *info, int q)
 /**
  * \brief Set the exclusive mode of a port_subscribe container
  * \param info port_subscribe container
- * \param bool non-zero to enable
+ * \param val non-zero to enable
  */
-void snd_seq_port_subscribe_set_exclusive(snd_seq_port_subscribe_t *info, int bool)
+void snd_seq_port_subscribe_set_exclusive(snd_seq_port_subscribe_t *info, int val)
 {
 	assert(info);
-	if (bool)
+	if (val)
 		info->flags |= SNDRV_SEQ_PORT_SUBS_EXCLUSIVE;
 	else
 		info->flags &= ~SNDRV_SEQ_PORT_SUBS_EXCLUSIVE;
@@ -1390,12 +1390,12 @@ void snd_seq_port_subscribe_set_exclusive(snd_seq_port_subscribe_t *info, int bo
 /**
  * \brief Set the time-update mode of a port_subscribe container
  * \param info port_subscribe container
- * \param bool non-zero to enable
+ * \param val non-zero to enable
  */
-void snd_seq_port_subscribe_set_time_update(snd_seq_port_subscribe_t *info, int bool)
+void snd_seq_port_subscribe_set_time_update(snd_seq_port_subscribe_t *info, int val)
 {
 	assert(info);
-	if (bool)
+	if (val)
 		info->flags |= SNDRV_SEQ_PORT_SUBS_TIMESTAMP;
 	else
 		info->flags &= ~SNDRV_SEQ_PORT_SUBS_TIMESTAMP;
@@ -1404,12 +1404,12 @@ void snd_seq_port_subscribe_set_time_update(snd_seq_port_subscribe_t *info, int 
 /**
  * \brief Set the real-time mode of a port_subscribe container
  * \param info port_subscribe container
- * \param bool non-zero to enable
+ * \param val non-zero to enable
  */
-void snd_seq_port_subscribe_set_time_real(snd_seq_port_subscribe_t *info, int bool)
+void snd_seq_port_subscribe_set_time_real(snd_seq_port_subscribe_t *info, int val)
 {
 	assert(info);
-	if (bool)
+	if (val)
 		info->flags |= SNDRV_SEQ_PORT_SUBS_TIME_REAL;
 	else
 		info->flags &= ~SNDRV_SEQ_PORT_SUBS_TIME_REAL;
@@ -3578,12 +3578,12 @@ void snd_instr_header_set_alias(snd_instr_header_t *info, const snd_seq_instr_t 
 /**
  * \brief Set the flag to follow alias of an instr_header container
  * \param info instr_header container
- * \param bool 1 if follow alias
+ * \param val 1 if follow alias
  */
-void snd_instr_header_set_follow_alias(snd_instr_header_t *info, int bool)
+void snd_instr_header_set_follow_alias(snd_instr_header_t *info, int val)
 {
 	assert(info);
-	if (bool)
+	if (val)
 		info->flags |= SNDRV_SEQ_INSTR_QUERY_FOLLOW_ALIAS;
 	else
 		info->flags &= ~SNDRV_SEQ_INSTR_QUERY_FOLLOW_ALIAS;
