@@ -54,7 +54,7 @@ int snd_pcm_loopback_open(void **handle, int card, int device, int mode)
 		if ((fd = open(filename, mode)) < 0) 
 			return -errno;
 	}
-	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
+	if (ioctl(fd, SND_PCM_LB_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;
 	}
