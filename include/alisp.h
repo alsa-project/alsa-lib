@@ -25,6 +25,7 @@ struct alisp_cfg {
 	    debug: 1;
 	snd_input_t *in;	/* program code */
 	snd_output_t *out;	/* program output */
+	snd_output_t *eout;	/* error output */
 	snd_output_t *vout;	/* verbose output */
 	snd_output_t *wout;	/* warning output */
 	snd_output_t *dout;	/* debug output */

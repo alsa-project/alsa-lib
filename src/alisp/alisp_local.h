@@ -66,6 +66,7 @@ struct alisp_instance {
 	/* i/o */
 	snd_input_t *in;
 	snd_output_t *out;
+	snd_output_t *eout;	/* error output */
 	snd_output_t *vout;	/* verbose output */
 	snd_output_t *wout;	/* warning output */
 	snd_output_t *dout;	/* debug output */

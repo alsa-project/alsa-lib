@@ -65,7 +65,7 @@ static void interpret_filename(const char *file)
 		cfg.warning = warning;
 		cfg.debug = debug;
 		cfg.in = in;
-		cfg.out = cfg.vout = cfg.wout = cfg.dout = out;
+		cfg.out = cfg.eout = cfg.vout = cfg.wout = cfg.dout = out;
 		cfg.root = root;
 		cfg.node = root;
 		err = alsa_lisp(&cfg);
@@ -73,7 +73,7 @@ static void interpret_filename(const char *file)
 	if (err < 0)
 		fprintf(stderr, "alsa lisp returned error %i (%s)\n", err, strerror(err));
 	else if (verbose)
-		printf("file %s passed ok via alsa lisp interpreter", file);
+		printf("file %s passed ok via alsa lisp interpreter\n", file);
 	snd_config_save(root, out);
 	snd_output_close(out);
 	snd_input_close(in);

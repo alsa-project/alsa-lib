@@ -64,6 +64,20 @@ static void lisp_verbose(struct alisp_instance *instance, const char *fmt, ...)
 	va_start(ap, fmt);
 	snd_output_printf(instance->vout, "alisp: ");
 	snd_output_vprintf(instance->vout, fmt, ap);
+	snd_output_putc(instance->vout, '\n');
+	va_end(ap);
+}
+
+static void lisp_error(struct alisp_instance *instance, const char *fmt, ...)
+{
+	va_list ap;
+
+	if (!instance->warning)
+		return;
+	va_start(ap, fmt);
+	snd_output_printf(instance->eout, "alisp error: ");
+	snd_output_vprintf(instance->eout, fmt, ap);
+	snd_output_putc(instance->eout, '\n');
 	va_end(ap);
 }
 
@@ -76,6 +90,7 @@ static void lisp_warn(struct alisp_instance *instance, const char *fmt, ...)
 	va_start(ap, fmt);
 	snd_output_printf(instance->wout, "alisp warning: ");
 	snd_output_vprintf(instance->wout, fmt, ap);
+	snd_output_putc(instance->wout, '\n');
 	va_end(ap);
 }
 
@@ -88,6 +103,7 @@ static void lisp_debug(struct alisp_instance *instance, const char *fmt, ...)
 	va_start(ap, fmt);
 	snd_output_printf(instance->dout, "alisp debug: ");
 	snd_output_vprintf(instance->dout, fmt, ap);
+	snd_output_putc(instance->dout, '\n');
 	va_end(ap);
 }
 
@@ -173,9 +189,9 @@ void alsa_lisp_init_objects(void)
 
 static int xgetc(struct alisp_instance *instance)
 {
-	if (instance->lex_bufp > instance->lex_buf)
-		*--(instance->lex_bufp);
 	instance->charno++;
+	if (instance->lex_bufp > instance->lex_buf)
+		return *--(instance->lex_bufp);
 	return snd_input_getc(instance->in);
 }
 
@@ -357,13 +373,17 @@ static struct alisp_object * parse_form(struct alisp_instance *instance)
 		 */
 		if (thistoken == '.') {
 			thistoken = gettoken(instance);
-			if (prev == NULL)
-				errx(1, "unexpected `.'");
+			if (prev == NULL) {
+				lisp_error(instance, "unexpected `.'");
+				return NULL;
+			}
 			prev->value.c.cdr = parse_object(instance, 1);
 			if (prev->value.c.cdr == NULL)
 				return NULL;
-			if ((thistoken = gettoken(instance)) != ')')
-				errx(1, "expected `)'");
+			if ((thistoken = gettoken(instance)) != ')') {
+				lisp_error(instance, "expected `)'");
+				return NULL;
+			}
 			break;
 		}
 
@@ -380,7 +400,7 @@ static struct alisp_object * parse_form(struct alisp_instance *instance)
 		if (p->value.c.car == NULL)
 			return NULL;
 		prev = p;
-	};
+	}
 
 	if (first == NULL)
 		return &alsa_lisp_nil;
@@ -560,12 +580,12 @@ static void print_obj_lists(struct alisp_instance *instance, snd_output_t *out)
 {
 	struct alisp_object * p;
 
-	snd_output_printf(out, "** used objects");
+	snd_output_printf(out, "** used objects\n");
 	for (p = instance->used_objs_list; p != NULL; p = p->next)
-		snd_output_printf(out, "**   %p (%s)", p, obj_type_str(p));
-	snd_output_printf(out, "** free objects");
+		snd_output_printf(out, "**   %p (%s)\n", p, obj_type_str(p));
+	snd_output_printf(out, "** free objects\n");
 	for (p = instance->free_objs_list; p != NULL; p = p->next)
-		snd_output_printf(out, "**   %p (%s)", p, obj_type_str(p));
+		snd_output_printf(out, "**   %p (%s)\n", p, obj_type_str(p));
 }
 
 static void dump_obj_lists(struct alisp_instance *instance, const char *fname)
@@ -1537,7 +1557,7 @@ static struct alisp_object * eval_cons(struct alisp_instance *instance, struct a
 {
 	struct alisp_object * p1 = car(p), * p2 = cdr(p), * p3;
 
-	if (p1 != &alsa_lisp_nil && p1->type == ALISP_IDENTIFIER) {
+	if (p1 != &alsa_lisp_nil && p1->type == ALISP_OBJ_IDENTIFIER) {
 		struct intrinsic key, *item;
 
 		if (!strcmp(p1->value.id, "lambda"))
@@ -1597,6 +1617,7 @@ int alsa_lisp(struct alisp_cfg *cfg)
 	instance->in = cfg->in;
 	instance->out = cfg->out;
 	instance->vout = cfg->vout;
+	instance->eout = cfg->eout;
 	instance->wout = cfg->wout;
 	instance->dout = cfg->dout;
 	
@@ -1605,11 +1626,17 @@ int alsa_lisp(struct alisp_cfg *cfg)
 	for (;;) {
 		if ((p = parse_object(instance, 0)) == NULL)
 			break;
-		if (instance->verbose)
+		if (instance->verbose) {
+			lisp_verbose(instance, "** code");
 			princ_object(instance->vout, p);
+			snd_output_putc(instance->vout, '\n');
+		}
 		p1 = eval(instance, p);
-		if (instance->verbose)
+		if (instance->verbose) {
+			lisp_verbose(instance, "** result");
 			princ_object(instance->vout, p1);
+			snd_output_putc(instance->vout, '\n');
+		}
 		if (instance->debug) {
 			lisp_debug(instance, "** objects before collection");
 			print_obj_lists(instance, instance->dout);
