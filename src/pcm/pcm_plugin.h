@@ -77,22 +77,6 @@ int snd_pcm_plugin_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigne
 int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
-#define SND_PCM_FMTBIT_LINEAR \
-	((1 << (unsigned long) SND_PCM_FORMAT_S8) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U8) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S16_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S16_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U16_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U16_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S24_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S24_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U24_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U24_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S32_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S32_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U32_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U32_BE))
-
 extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
 #define RATE_MIN 4000
@@ -118,11 +102,6 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_t *slave, int close_slave);
 int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, int srate, snd_pcm_t *slave, int close_slave);
 
-
-#define SND_PCM_ACCBIT_PLUGIN ((1 << (unsigned long) SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
-			       (1 << (unsigned long) SND_PCM_ACCESS_RW_INTERLEAVED) | \
-			       (1 << (unsigned long) SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
-			       (1 << (unsigned long) SND_PCM_ACCESS_RW_NONINTERLEAVED))
 
 void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 			    const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,

@@ -544,6 +544,9 @@ static inline int32_t getS(const void *src, int src_sign, int src_wid, int src_e
 		if (src_end)
 			s = bswap_32(s);
 		break;
+	default:
+		assert(0);
+		return 0;
 	}
 	if (!src_sign)
 		s -= 1U << (src_wid - 1);

@@ -210,7 +210,7 @@ snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
 static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err;
-	snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_PLUGIN };
+	snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_SHM };
 	snd_pcm_format_mask_t format_mask = { SND_PCM_FMTBIT_LINEAR };
 	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_ACCESS,
 					 &access_mask);

@@ -417,7 +417,7 @@ static snd_pcm_sframes_t snd_pcm_meter_avail_update(snd_pcm_t *pcm)
 static int snd_pcm_meter_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err;
-	snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_PLUGIN };
+	snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_SHM };
 	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_ACCESS,
 					 &access_mask);
 	if (err < 0)
@@ -500,7 +500,13 @@ static int snd_pcm_meter_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	buf_size_bytes = snd_pcm_frames_to_bytes(slave, meter->buf_size);
 	assert(!meter->buf);
 	meter->buf = malloc(buf_size_bytes);
+	if (!meter->buf)
+		return -ENOMEM;
 	meter->buf_areas = malloc(sizeof(*meter->buf_areas) * slave->channels);
+	if (!meter->buf_areas) {
+		free(meter->buf);
+		return -ENOMEM;
+	}
 	for (channel = 0; channel < slave->channels; ++channel) {
 		snd_pcm_channel_area_t *a = &meter->buf_areas[channel];
 		a->addr = meter->buf + buf_size_bytes / slave->channels * channel;

@@ -67,11 +67,10 @@ typedef struct {
 	snd_pcm_format_t format;
 	int rate;
 	unsigned int channels;
-	int period_time;
-	int buffer_time;
+	snd_pcm_sframes_t period_time;
+	snd_pcm_sframes_t buffer_time;
 	unsigned int open_count;
 	unsigned int setup_count;
-	unsigned int mmap_count;
 	unsigned int prepared_count;
 	unsigned int running_count;
 	snd_pcm_uframes_t safety_threshold;
@@ -92,8 +91,8 @@ typedef struct {
 	struct list_head list;
 	snd_pcm_t *pcm;
 	snd_pcm_share_slave_t *slave;
-	unsigned int channels_count;
-	int *slave_channels;
+	unsigned int channels;
+	unsigned int *slave_channels;
 	int drain_silenced;
 	struct timeval trigger_tstamp;
 	snd_pcm_state_t state;
@@ -453,7 +452,7 @@ static int snd_pcm_share_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 	if (err < 0)
 		return err;
 	err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_CHANNELS,
-				    share->channels_count, 0);
+				    share->channels, 0);
 	if (err < 0)
 		return err;
 	if (slave->format != SND_PCM_FORMAT_UNKNOWN) {
@@ -589,8 +588,7 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_t *spcm = slave->pcm;
 	int err = 0;
 	Pthread_mutex_lock(&slave->mutex);
-	if (slave->setup_count > 1 || 
-	    (slave->setup_count == 1 && !pcm->setup)) {
+	if (slave->setup_count) {
 		err = _snd_pcm_hw_params_set_format(params, spcm->format);
 		if (err < 0)
 			goto _err;
@@ -613,7 +611,7 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					    spcm->tick_time, 0);
 	_err:
 		if (err < 0) {
-			SNDERR("slave is already running with different setup");
+			SNDERR("slave is already running with incompatible setup");
 			err = -EBUSY;
 			goto _end;
 		}
@@ -964,10 +962,12 @@ static void _snd_pcm_share_stop(snd_pcm_t *pcm, snd_pcm_state_t state)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
+#if 0
 	if (!pcm->mmap_channels) {
 		/* PCM closing already begun in the main thread */
 		return;
 	}
+#endif
 	gettimeofday(&share->trigger_tstamp, 0);
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
 		snd_pcm_areas_copy(pcm->stopped_areas, 0,
@@ -1097,11 +1097,11 @@ static int snd_pcm_share_close(snd_pcm_t *pcm)
 	Pthread_mutex_lock(&slave->mutex);
 	slave->open_count--;
 	if (slave->open_count == 0) {
-		err = snd_pcm_close(slave->pcm);
 		pthread_cond_signal(&slave->poll_cond);
 		Pthread_mutex_unlock(&slave->mutex);
 		err = pthread_join(slave->thread, 0);
 		assert(err == 0);
+		err = snd_pcm_close(slave->pcm);
 		pthread_mutex_destroy(&slave->mutex);
 		pthread_cond_destroy(&slave->poll_cond);
 		list_del(&slave->list);
@@ -1136,7 +1136,7 @@ static void snd_pcm_share_dump(snd_pcm_t *pcm, snd_output_t *out)
 	unsigned int k;
 	snd_output_printf(out, "Share PCM\n");
 	snd_output_printf(out, "\nChannel bindings:\n");
-	for (k = 0; k < share->channels_count; ++k)
+	for (k = 0; k < share->channels; ++k)
 		snd_output_printf(out, "%d: %d\n", k, share->slave_channels[k]);
 	if (pcm->setup) {
 		snd_output_printf(out, "\nIts setup is:\n");
@@ -1182,9 +1182,9 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 
 int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		       snd_pcm_format_t sformat, int srate,
-		       unsigned int schannels_count,
+		       unsigned int schannels,
 		       int speriod_time, int sbuffer_time,
-		       unsigned int channels_count, int *channels_map,
+		       unsigned int channels, unsigned int *channels_map,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
@@ -1197,10 +1197,10 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	int sd[2];
 
 	assert(pcmp);
-	assert(channels_count > 0 && sname && channels_map);
+	assert(channels > 0 && sname && channels_map);
 
-	for (k = 0; k < channels_count; ++k) {
-		if (channels_map[k] < 0 || channels_map[k] > 31) {
+	for (k = 0; k < channels; ++k) {
+		if (channels_map[k] >= sizeof(slave_map) / sizeof(slave_map[0])) {
 			SNDERR("Invalid slave channel (%d) in binding", channels_map[k]);
 			return -EINVAL;
 		}
@@ -1209,20 +1209,20 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 			return -EINVAL;
 		}
 		slave_map[channels_map[k]] = 1;
-		assert((unsigned)channels_map[k] < schannels_count);
+		assert((unsigned)channels_map[k] < schannels);
 	}
 
 	share = calloc(1, sizeof(snd_pcm_share_t));
 	if (!share)
 		return -ENOMEM;
 
-	share->channels_count = channels_count;
-	share->slave_channels = calloc(channels_count, sizeof(*share->slave_channels));
+	share->channels = channels;
+	share->slave_channels = calloc(channels, sizeof(*share->slave_channels));
 	if (!share->slave_channels) {
 		free(share);
 		return -ENOMEM;
 	}
-	memcpy(share->slave_channels, channels_map, channels_count * sizeof(*share->slave_channels));
+	memcpy(share->slave_channels, channels_map, channels * sizeof(*share->slave_channels));
 
 	pcm = calloc(1, sizeof(snd_pcm_t));
 	if (!pcm) {
@@ -1297,7 +1297,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		}
 		INIT_LIST_HEAD(&slave->clients);
 		slave->pcm = spcm;
-		slave->channels = schannels_count;
+		slave->channels = schannels;
 		slave->format = sformat;
 		slave->rate = srate;
 		slave->period_time = speriod_time;
@@ -1315,7 +1315,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		list_for_each(i, &slave->clients) {
 			snd_pcm_share_t *sh = list_entry(i, snd_pcm_share_t, list);
 			unsigned int k;
-			for (k = 0; k < sh->channels_count; ++k) {
+			for (k = 0; k < sh->channels; ++k) {
 				if (slave_map[sh->slave_channels[k]]) {
 					SNDERR("Slave channel %d is already in use", sh->slave_channels[k]);
 					Pthread_mutex_unlock(&slave->mutex);
@@ -1367,9 +1367,8 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	snd_config_t *bindings = NULL;
 	int err;
 	snd_config_t *slave = NULL;
-	unsigned int idx;
-	int *channels_map;
-	unsigned int channels_count = 0;
+	unsigned int *channels_map;
+	unsigned int channels = 0;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int schannels = -1;
 	int srate = -1;
@@ -1408,8 +1407,8 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(slave, &sname, 5,
-				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels,
+				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
 				 SND_PCM_HW_PARAM_RATE, 0, &srate,
 				 SND_PCM_HW_PARAM_PERIOD_TIME, 0, &speriod_time,
 				 SND_PCM_HW_PARAM_BUFFER_TIME, 0, &sbuffer_time);
@@ -1430,16 +1429,14 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			SNDERR("Invalid client channel in binding: %s", id);
 			return -EINVAL;
 		}
-		if ((unsigned)cchannel >= channels_count)
-			channels_count = cchannel + 1;
+		if ((unsigned)cchannel >= channels)
+			channels = cchannel + 1;
 	}
-	if (channels_count == 0) {
+	if (channels == 0) {
 		SNDERR("No bindings defined");
 		return -EINVAL;
 	}
-	channels_map = calloc(channels_count, sizeof(*channels_map));
-	for (idx = 0; idx < channels_count; ++idx)
-		channels_map[idx] = -1;
+	channels_map = calloc(channels, sizeof(*channels_map));
 
 	snd_config_for_each(i, next, bindings) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1450,6 +1447,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		err = snd_config_get_integer(n, &schannel);
 		if (err < 0)
 			goto _free;
+		assert(schannel >= 0);
 		assert(schannels <= 0 || schannel < schannels);
 		channels_map[cchannel] = schannel;
 		if ((unsigned)schannel > schannel_max)
@@ -1459,7 +1457,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		schannels = schannel_max + 1;
 	    err = snd_pcm_share_open(pcmp, name, sname, sformat, srate, 
 				     schannels, speriod_time, sbuffer_time,
-				     channels_count, channels_map, stream, mode);
+				     channels, channels_map, stream, mode);
 _free:
 	free(channels_map);
 	return err;

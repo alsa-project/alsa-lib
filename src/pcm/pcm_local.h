@@ -512,3 +512,25 @@ int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
 			     (1 << (unsigned long) SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
 			     (1 << (unsigned long) SND_PCM_ACCESS_MMAP_COMPLEX))
 
+#define SND_PCM_ACCBIT_SHM ((1 << (unsigned long) SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
+			    (1 << (unsigned long) SND_PCM_ACCESS_RW_INTERLEAVED) | \
+			    (1 << (unsigned long) SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
+			    (1 << (unsigned long) SND_PCM_ACCESS_RW_NONINTERLEAVED))
+
+#define SND_PCM_FMTBIT_LINEAR \
+	((1 << (unsigned long) SND_PCM_FORMAT_S8) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U8) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S16_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S16_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U16_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U16_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S24_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S24_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U24_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U24_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S32_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S32_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U32_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U32_BE))
+
+
