@@ -699,80 +699,9 @@ typedef struct { volatile int counter; } atomic_t;
  */
 #define atomic_set(v,i)	((v)->counter = (i))
 
-#ifndef CONFIG_CPU_HAS_LLSC
-
 /*
- * The MIPS I implementation is only atomic with respect to
- * interrupts.  R3000 based multiprocessor machines are rare anyway ...
- *
- * atomic_add - add integer to atomic variable
- * @i: integer value to add
- * @v: pointer of type atomic_t
- *
- * Atomically adds @i to @v.  Note that the guaranteed useful range
- * of an atomic_t is only 24 bits.
- */
-extern __inline__ void atomic_add(int i, atomic_t * v)
-{
-	int	flags;
-
-	save_flags(flags);
-	cli();
-	v->counter += i;
-	restore_flags(flags);
-}
-
-/*
- * atomic_sub - subtract the atomic variable
- * @i: integer value to subtract
- * @v: pointer of type atomic_t
- *
- * Atomically subtracts @i from @v.  Note that the guaranteed
- * useful range of an atomic_t is only 24 bits.
- */
-extern __inline__ void atomic_sub(int i, atomic_t * v)
-{
-	int	flags;
-
-	save_flags(flags);
-	cli();
-	v->counter -= i;
-	restore_flags(flags);
-}
-
-extern __inline__ int atomic_add_return(int i, atomic_t * v)
-{
-	int	temp, flags;
-
-	save_flags(flags);
-	cli();
-	temp = v->counter;
-	temp += i;
-	v->counter = temp;
-	restore_flags(flags);
-
-	return temp;
-}
-
-extern __inline__ int atomic_sub_return(int i, atomic_t * v)
-{
-	int	temp, flags;
-
-	save_flags(flags);
-	cli();
-	temp = v->counter;
-	temp -= i;
-	v->counter = temp;
-	restore_flags(flags);
-
-	return temp;
-}
-
-#else
-
-/*
- * ... while for MIPS II and better we can use ll/sc instruction.  This
- * implementation is SMP safe ...
+ * for MIPS II and better we can use ll/sc instruction, and kernel 2.4.3+
+ * will emulate it on MIPS I.
  */
 
 /*
@@ -788,10 +717,13 @@ extern __inline__ void atomic_add(int i, atomic_t * v)
 	unsigned long temp;
 
 	__asm__ __volatile__(
+		".set push                            \n"
+		".set mips2                           \n"
 		"1:   ll      %0, %1      # atomic_add\n"
 		"     addu    %0, %2                  \n"
 		"     sc      %0, %1                  \n"
 		"     beqz    %0, 1b                  \n"
+		".set pop                             \n"
 		: "=&r" (temp), "=m" (v->counter)
 		: "Ir" (i), "m" (v->counter));
 }
@@ -809,10 +741,13 @@ extern __inline__ void atomic_sub(int i, atomic_t * v)
 	unsigned long temp;
 
 	__asm__ __volatile__(
+		".set push                            \n"
+		".set mips2                           \n"
 		"1:   ll      %0, %1      # atomic_sub\n"
 		"     subu    %0, %2                  \n"
 		"     sc      %0, %1                  \n"
 		"     beqz    %0, 1b                  \n"
+		".set pop                             \n"
 		: "=&r" (temp), "=m" (v->counter)
 		: "Ir" (i), "m" (v->counter));
 }
@@ -827,6 +762,7 @@ extern __inline__ int atomic_add_return(int i, atomic_t * v)
 	__asm__ __volatile__(
 		".set push               # atomic_add_return\n"
 		".set noreorder                             \n"
+		".set mips2                                 \n"
 		"1:   ll      %1, %2                        \n"
 		"     addu    %0, %1, %3                    \n"
 		"     sc      %0, %2                        \n"
@@ -846,6 +782,7 @@ extern __inline__ int atomic_sub_return(int i, atomic_t * v)
 
 	__asm__ __volatile__(
 		".set push                                   \n"
+		".set mips2                                  \n"
 		".set noreorder           # atomic_sub_return\n"
 		"1:   ll    %1, %2                           \n"
 		"     subu  %0, %1, %3                       \n"
@@ -859,7 +796,6 @@ extern __inline__ int atomic_sub_return(int i, atomic_t * v)
 
 	return result;
 }
-#endif
 
 #define atomic_dec_return(v) atomic_sub_return(1,(v))
 #define atomic_inc_return(v) atomic_add_return(1,(v))
