@@ -5390,9 +5390,9 @@ int snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params, s
  * #snd_pcm_sw_params_set_silence_threshold)
  *
  * The special case is when silence size value is equal or greater than
- * boundary. The whole ring buffer is filled with silence at start.
- * Later, only just processed area is filled with silence.
- * Note: silence_threshold must be set to zero.
+ * boundary. The unused portion of the ring buffer (initial written samples
+ * are untouched) is filled with silence at start. Later, only just processed
+ * sample area is filled with silence. Note: silence_threshold must be set to zero.
  */
 #ifndef DOXYGEN
 int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
