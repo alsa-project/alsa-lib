@@ -770,6 +770,9 @@ int snd_pcm_hw_params_current(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
  * The configuration is chosen fixing single parameters in this order:
  * first access, first format, first subformat, min channels, min rate, 
  * min period time, max buffer size, min tick time
+ *
+ * After this call, #snd_pcm_prepare() is called automatically and
+ * the stream is brought to \c #SND_PCM_STATE_PREPARED state.
  */
 int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
@@ -845,6 +848,9 @@ int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
  * \brief Return PCM state
  * \param pcm PCM handle
  * \return PCM state #snd_pcm_state_t of given PCM handle
+ *
+ * This is a faster way to obtain only the PCM state without calling
+ * \link ::snd_pcm_status() \endlink.
  */
 snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 {
@@ -900,7 +906,7 @@ int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
  *
  * This function can be used when the stream is in the suspend state
  * to do the fine resume from this state. Not all hardware supports
- * this feature, when an -ENOSYS error is returned, use the snd_pcm_prepare
+ * this feature, when an -ENOSYS error is returned, use the \link ::snd_pcm_prepare() \endlink
  * function to recovery.
  */
 int snd_pcm_resume(snd_pcm_t *pcm)
@@ -952,6 +958,12 @@ int snd_pcm_start(snd_pcm_t *pcm)
  * \brief Stop a PCM dropping pending frames
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
+ *
+ * This function stops the PCM <i>immediately</i>.
+ * The pending samples on the buffer are ignored.
+ *
+ * For processing all pending samples, use \link ::snd_pcm_drain() \endlink
+ * instead.
  */
 int snd_pcm_drop(snd_pcm_t *pcm)
 {
@@ -969,6 +981,9 @@ int snd_pcm_drop(snd_pcm_t *pcm)
  * For playback wait for all pending frames to be played and then stop
  * the PCM.
  * For capture stop PCM permitting to retrieve residual frames.
+ *
+ * For stopping the PCM stream immediately, use \link ::snd_pcm_drop() \endlink
+ * instead.
  */
 int snd_pcm_drain(snd_pcm_t *pcm)
 {
@@ -982,6 +997,10 @@ int snd_pcm_drain(snd_pcm_t *pcm)
  * \param pcm PCM handle
  * \param pause 0 = resume, 1 = pause
  * \return 0 on success otherwise a negative error code
+ *
+ * Note that this function works only on the hardware which supports
+ * pause feature.  You can check it via \link ::snd_pcm_hw_params_can_pause() \endlink
+ * function.
  */
 int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 {
@@ -1183,6 +1202,14 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
  * \param pfds array of poll descriptors
  * \param space space in the poll descriptor array
  * \return count of filled descriptors
+ *
+ * This function fills the given poll descriptor structs for the specified
+ * PCM handle.  The poll desctiptor array should have the size returned by
+ * \link ::snd_pcm_poll_descriptors_count() \endlink function.
+ *
+ * For reading the returned events of poll descriptor after poll() system
+ * call, use \link ::snd_pcm_poll_descriptors_revent() \endlink function.
+ * The field values in pollfd structs may be bogus.
  */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
@@ -1393,9 +1420,9 @@ static const char *snd_pcm_tstamp_mode_names[] = {
 #endif
 
 /**
- * \brief get name of PCM stream
- * \param stream PCM stream
- * \return ascii name of PCM stream
+ * \brief get name of PCM stream type
+ * \param stream PCM stream type
+ * \return ascii name of PCM stream type
  */
 const char *snd_pcm_stream_name(snd_pcm_stream_t stream)
 {
@@ -1998,7 +2025,8 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
  * \param pcm PCM handle
  * \param timeout maximum time in milliseconds to wait
  * \return a positive value on success otherwise a negative error code
- *         (-EPIPE for the xrun and -ESTRPIPE for the suspended status) 
+ *         (-EPIPE for the xrun and -ESTRPIPE for the suspended status,
+ *          others for general errors) 
  * \retval 0 timeout occurred
  * \retval 1 PCM stream is ready for I/O
  */
