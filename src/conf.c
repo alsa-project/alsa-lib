@@ -1417,7 +1417,7 @@ int snd_config_searchv(snd_config_t *config,
 {
 	snd_config_t *n;
 	va_list arg;
-	assert(config && result);
+	assert(config);
 	va_start(arg, result);
 	while (1) {
 		const char *k = va_arg(arg, const char *);
@@ -1430,7 +1430,8 @@ int snd_config_searchv(snd_config_t *config,
 		config = n;
 	}
 	va_end(arg);
-	*result = n;
+	if (result)
+		*result = n;
 	return 0;
 }
 
@@ -1449,23 +1450,26 @@ int snd_config_search_alias(snd_config_t *config,
 			    const char *base, const char *key,
 			    snd_config_t **result)
 {
+	snd_config_t *res;
 	int err;
-	assert(config && key && result);
+	assert(config && key);
 	if (base) {
-		err = snd_config_searchv(config, result, base, key, 0);
+		err = snd_config_searchv(config, &res, base, key, 0);
 		if (err < 0)
 			return err;
-		while (snd_config_get_string(*result, &key) >= 0 &&
-		       snd_config_searchv(config, result, base, key, 0) >= 0)
+		while (snd_config_get_string(res, &key) >= 0 &&
+		       snd_config_searchv(config, &res, base, key, 0) >= 0)
 			;
 	} else {
-		err = snd_config_search(config, key, result);
+		err = snd_config_search(config, key, &res);
 		if (err < 0)
 			return err;
-		while (snd_config_get_string(*result, &key) >= 0 &&
-		       snd_config_search(config, key, result) >= 0)
+		while (snd_config_get_string(res, &key) >= 0 &&
+		       snd_config_search(config, key, &res) >= 0)
 			;
 	}
+	if (result)
+		*result = res;
 	return 0;
 }
 
