@@ -792,12 +792,7 @@ static int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t st
 		dptr->nsrcs = nsrcs;
 		if (nsrcs == 0)
 			dptr->func = snd_pcm_route_convert1_zero;
-		else if (nsrcs == 1 && !att) {
-			if (params->use_getput)
-				dptr->func = snd_pcm_route_convert1_one_getput;
-			else
-				dptr->func = snd_pcm_route_convert1_one;
-		} else
+		else
 			dptr->func = snd_pcm_route_convert1_many;
 		if (nsrcs > 0) {
 			dptr->srcs = calloc((unsigned int) nsrcs, sizeof(*srcs));
