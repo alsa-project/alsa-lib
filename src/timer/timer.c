@@ -486,7 +486,7 @@ void snd_timer_params_set_ticks(snd_timer_params_t * params, long ticks)
  * \param params pointer to #snd_timer_params_t structure
  * \return timer ticks
  */
-int snd_timer_params_get_ticks(snd_timer_params_t * params)
+long snd_timer_params_get_ticks(snd_timer_params_t * params)
 {
 	assert(params);
 	return params->ticks;

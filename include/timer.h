@@ -25,7 +25,10 @@ typedef struct _snd_timer_params snd_timer_params_t;
 /** timer status structure */
 typedef struct _snd_timer_status snd_timer_status_t;
 /** timer read structure */
-typedef struct sndrv_timer_read snd_timer_read_t;
+typedef struct _snd_timer_read {
+	unsigned int resolution;	/**< tick resolution in nanoseconds */
+        unsigned int ticks;		/**< count of happened ticks */
+} snd_timer_read_t;
 
 /** timer master class */
 typedef enum _snd_timer_class {
@@ -68,6 +71,7 @@ typedef enum _snd_timer_type {
 typedef struct _snd_timer_query snd_timer_query_t;
 /** timer handle */
 typedef struct _snd_timer snd_timer_t;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -130,7 +134,7 @@ void snd_timer_params_copy(snd_timer_params_t *dst, const snd_timer_params_t *sr
 
 void snd_timer_params_set_auto_start(snd_timer_params_t * params, int auto_start);
 void snd_timer_params_set_ticks(snd_timer_params_t * params, long ticks);
-int snd_timer_params_get_ticks(snd_timer_params_t * params);
+long snd_timer_params_get_ticks(snd_timer_params_t * params);
 void snd_timer_params_set_queue_size(snd_timer_params_t * params, long queue_size);
 long snd_timer_params_get_queue_size(snd_timer_params_t * params);
 

@@ -42,7 +42,7 @@ static int snd_timer_query_open_conf(snd_timer_query_t **timer,
 	const char *str;
 	char buf[256];
 	int err;
-	snd_config_t *conf, *type_conf;
+	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_timer_query_t **, const char *, snd_config_t *, snd_config_t *, int) = NULL;
@@ -130,7 +130,7 @@ static int snd_timer_query_open_noupdate(snd_timer_query_t **timer, snd_config_t
 {
 	int err;
 	snd_config_t *timer_conf;
-	err = snd_config_search_definition(root, "timer", name, &timer_conf);
+	err = snd_config_search_definition(root, "timer_query", name, &timer_conf);
 	if (err < 0) {
 		SNDERR("Unknown timer %s", name);
 		return err;
