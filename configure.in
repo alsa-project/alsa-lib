@@ -8,7 +8,7 @@ dnl add API = c+1:0:a+1
 dnl remove API = c+1:0:0
 dnl *************************************************
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(alsa-lib, 0.9.0rc1)
+AM_INIT_AUTOMAKE(alsa-lib, 0.9.0rc2)
 eval LIBTOOL_VERSION_INFO="2:0:0"
 dnl *************************************************
 AM_CONDITIONAL(INSTALL_M4, test "x${ACLOCAL}" = "xaclocal")
