@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <sched.h>
+#include <sys/time.h>
 
 #define rdtscll(val) \
      __asm__ __volatile__("rdtsc" : "=A" (val))
@@ -11,7 +14,9 @@
 typedef short int s16;
 typedef int s32;
 
+#if 0
 #define CONFIG_SMP
+#endif
 
 #ifdef CONFIG_SMP
 #define LOCK_PREFIX "lock ; "
@@ -61,6 +66,25 @@ static inline void atomic_add(volatile int *dst, int v)
 		:"ir" (v));
 }
 
+static double detect_cpu_clock()
+{
+	struct timeval tm_begin, tm_end;
+	unsigned long long tsc_begin, tsc_end;
+
+	/* Warm cache */
+	gettimeofday(&tm_begin, 0);
+
+	rdtscll(tsc_begin);
+	gettimeofday(&tm_begin, 0);
+
+	usleep(1000000);
+
+	rdtscll(tsc_end);
+	gettimeofday(&tm_end, 0);
+
+	return (tsc_end - tsc_begin) / (tm_end.tv_sec - tm_begin.tv_sec + (tm_end.tv_usec - tm_begin.tv_usec) / 1e6);
+}
+
 void mix_areas0(unsigned int size,
 		volatile s16 *dst, s16 *src,
 		volatile s32 *sum,
@@ -70,12 +94,15 @@ void mix_areas0(unsigned int size,
 {
 	while (size-- > 0) {
 		s32 sample = *dst + *src;
-		if (unlikely(sample & 0xffff0000))
-			*dst = sample > 0 ? 0x7fff : -0x8000;
+		if (unlikely(sample < -0x8000))
+			*dst = -0x8000;
+		else if (unlikely(sample > 0x7fff))
+			*dst = 0x7fff;
 		else
 			*dst = sample;
 		((char *)dst) += dst_step;
 		((char *)src) += src_step;
+		((char *)sum) += sum_step;
 	}
 }
 
@@ -109,6 +136,8 @@ void mix_areas1(unsigned int size,
 		"\tcmp $0, %%edx\n"
 		"jz 6f\n"
 
+		"\t.p2align 4,,15\n"
+
 		"1:"
 
 		/*
@@ -119,12 +148,12 @@ void mix_areas1(unsigned int size,
 		 */
 		"\tmovw $0, %%ax\n"
 		"\tmovw $1, %%cx\n"
-		"\tlock; cmpxchgw %%cx, (%%edi)\n"
+		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
 		"\tmovswl (%%esi), %%ecx\n"
 		"\tjnz 2f\n"
 		"\tsubl (%%ebx), %%ecx\n"
 		"2:"
-		"\tlock; addl %%ecx, (%%ebx)\n"
+		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
 
 		/*
 		 *   do {
@@ -158,9 +187,10 @@ void mix_areas1(unsigned int size,
 		 *  sample > 0x7fff
 		 */
 
+		"\t.p2align 4,,15\n"
+
 		"4:"
-		"\tmovw $0x7fff, %%ax\n"
-		"\tmovw %%ax, (%%edi)\n"
+		"\tmovw $0x7fff, (%%edi)\n"
 		"\tcmpl %%ecx,(%%ebx)\n"
 		"\tjnz 3b\n"
 		"\tadd %4, %%edi\n"
@@ -174,9 +204,10 @@ void mix_areas1(unsigned int size,
 		 *  sample < -0x8000
 		 */
 
+		"\t.p2align 4,,15\n"
+
 		"5:"
-		"\tmovw $-0x8000, %%ax\n"
-		"\tmovw %%ax, (%%edi)\n"
+		"\tmovw $-0x8000, (%%edi)\n"
 		"\tcmpl %%ecx, (%%ebx)\n"
 		"\tjnz 3b\n"
 		"\tadd %4, %%edi\n"
@@ -223,7 +254,9 @@ void mix_areas1_mmx(unsigned int size,
 		 * while (size-- > 0) {
 		 */
 		"\tcmp $0, %%edx\n"
-		"jz 6f\n"
+		"\tjz 6f\n"
+
+		"\t.p2align 4,,15\n"
 
 		"1:"
 
@@ -235,12 +268,12 @@ void mix_areas1_mmx(unsigned int size,
 		 */
 		"\tmovw $0, %%ax\n"
 		"\tmovw $1, %%cx\n"
-		"\tlock; cmpxchgw %%cx, (%%edi)\n"
+		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
 		"\tmovswl (%%esi), %%ecx\n"
 		"\tjnz 2f\n"
 		"\tsubl (%%ebx), %%ecx\n"
 		"2:"
-		"\tlock; addl %%ecx, (%%ebx)\n"
+		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
 
 		/*
 		 *   do {
@@ -281,11 +314,10 @@ void mix_areas1_mmx(unsigned int size,
 
 
 void mix_areas2(unsigned int size,
-		volatile s16 *dst, s16 *src,
+		volatile s16 *dst, const s16 *src,
 		volatile s32 *sum,
 		unsigned int dst_step,
-		unsigned int src_step,
-		unsigned int sum_step)
+		unsigned int src_step)
 {
 	while (size-- > 0) {
 		s32 sample = *src;
@@ -294,25 +326,66 @@ void mix_areas2(unsigned int size,
 		atomic_add(sum, sample);
 		do {
 			sample = *sum;
-			s16 s;
-			if (unlikely(sample & 0x7fff0000))
-				s = sample > 0 ? 0x7fff : -0x8000;
+			if (unlikely(sample < -0x8000))
+				*dst = -0x8000;
+			else if (unlikely(sample > 0x7fff))
+				*dst = 0x7fff;
 			else
-				s = sample;
-			*dst = s;
+				*dst = sample;
 		} while (unlikely(sample != *sum));
-		((char *)sum) += sum_step;
+		sum++;
 		((char *)dst) += dst_step;
 		((char *)src) += src_step;
 	}
 }
 
+void setscheduler(void)
+{
+	struct sched_param sched_param;
+
+	if (sched_getparam(0, &sched_param) < 0) {
+		printf("Scheduler getparam failed...\n");
+		return;
+	}
+	sched_param.sched_priority = sched_get_priority_max(SCHED_RR);
+	if (!sched_setscheduler(0, SCHED_RR, &sched_param)) {
+		printf("Scheduler set to Round Robin with priority %i...\n", sched_param.sched_priority);
+		fflush(stdout);
+		return;
+	}
+	printf("!!!Scheduler set to Round Robin with priority %i FAILED!!!\n", sched_param.sched_priority);
+}
+
+#define CACHE_SIZE (1024*1024)
+
+void init(s16 *dst, s32 *sum, int size)
+{
+	int count;
+	char *a;
+	
+	for (count = size - 1; count >= 0; count--)
+		*sum++ = 0;
+	for (count = size - 1; count >= 0; count--)
+		*dst++ = 0;
+	a = malloc(CACHE_SIZE);
+	for (count = CACHE_SIZE - 1; count >= 0; count--) {
+		a[count] = count & 0xff;
+		a[count] ^= 0x55;
+		a[count] ^= 0xaa;
+	}
+	free(a);
+}
+
 int main(int argc, char **argv)
 {
-	int size = 2048, n = 4, max = 0x7fff;
-	int i;
-	unsigned long long begin, end;
+	int size = 2048, n = 4, max = 32267;
+	int LOOP = 30;
+	int i, t;
+	unsigned long long begin, end, diff, diff0, diff1, diff1_mmx, diff2;
+        double cpu_clock = detect_cpu_clock();
 
+	setscheduler();
+        printf("CPU clock: %fMhz\n\n", cpu_clock / 10e5);
 	if (argc == 4) {
 		size = atoi(argv[1]);
 		n = atoi(argv[2]);
@@ -329,29 +402,65 @@ int main(int argc, char **argv)
 			*s = (rand() % (max * 2)) - max;
 		}
 	}
-	rdtscll(begin);
-	for (i = 0; i < n; i++) {
-		mix_areas0(size, dst, srcs[i], sum, 2, 2, 4);
+
+	for (t = 0, diff0 = -1; t < LOOP; t++) {
+		init(dst, sum, size);
+		rdtscll(begin);
+		for (i = 0; i < n; i++) {
+			mix_areas0(size, dst, srcs[i], sum, 2, 2, 4);
+		}
+		rdtscll(end);
+		diff = end - begin;
+		if (diff < diff0)
+			diff0 = diff;
+		printf("mix_areas0    : %lld               \r", diff); fflush(stdout);
 	}
-	rdtscll(end);
-	printf("mix_areas0    : %lld\n", end - begin);
-	rdtscll(begin);
-	for (i = 0; i < n; i++) {
-		mix_areas1(size, dst, srcs[i], sum, 2, 2, 4);
+
+	for (t = 0, diff1 = -1; t < LOOP; t++) {
+		init(dst, sum, size);
+		rdtscll(begin);
+		for (i = 0; i < n; i++) {
+			mix_areas1(size, dst, srcs[i], sum, 2, 2, 4);
+		}
+		rdtscll(end);
+		diff = end - begin;
+		if (diff < diff1)
+			diff1 = diff;
+		printf("mix_areas1    : %lld              \r", diff); fflush(stdout);
 	}
-	rdtscll(end);
-	printf("mix_areas1    : %lld\n", end - begin);
-	rdtscll(begin);
-	for (i = 0; i < n; i++) {
-		mix_areas1_mmx(size, dst, srcs[i], sum, 2, 2, 4);
+
+	for (t = 0, diff1_mmx = -1; t < LOOP; t++) {
+		init(dst, sum, size);
+		rdtscll(begin);
+		for (i = 0; i < n; i++) {
+			mix_areas1_mmx(size, dst, srcs[i], sum, 2, 2, 4);
+		}
+		rdtscll(end);
+		diff = end - begin;
+		if (diff < diff1_mmx)
+			diff1_mmx = diff;
+		printf("mix_areas1_mmx: %lld              \r", diff); fflush(stdout);
 	}
-	rdtscll(end);
-	printf("mix_areas1_mmx: %lld\n", end - begin);
-	rdtscll(begin);
-	for (i = 0; i < n; i++) {
-		mix_areas2(size, dst, srcs[i], sum, 2, 2, 4);
+
+	for (t = 0, diff2 = -1; t < LOOP; t++) {
+		init(dst, sum, size);
+		rdtscll(begin);
+		for (i = 0; i < n; i++) {
+			mix_areas2(size, dst, srcs[i], sum, 2, 2);
+		}
+		rdtscll(end);
+		diff = end - begin;
+		if (diff < diff2)
+			diff2 = diff;
+		printf("mix_areas2    : %lld              \r", diff); fflush(stdout);
 	}
-	rdtscll(end);
-	printf("mix_areas2    : %lld\n", end - begin);
+
+	printf("                                                                           \r");
+	printf("Summary (the best times):\n");
+	printf("mix_areas0    : %lld\n", diff0);
+	printf("mix_areas1    : %lld\n", diff1);
+	printf("mix_areas1_mmx: %lld\n", diff1_mmx);
+	printf("mix_areas2    : %lld\n", diff2);
+
 	return 0;
 }
