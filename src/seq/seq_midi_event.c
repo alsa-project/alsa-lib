@@ -270,7 +270,7 @@ int snd_midi_event_resize_buffer(snd_midi_event_t *dev, size_t bufsize)
  * If complete sequencer event is available, ev->type is not
  * equal to #SND_SEQ_EVENT_NONE.
  */
-long snd_midi_event_encode(snd_midi_event_t *dev, unsigned char *buf, long count, snd_seq_event_t *ev)
+long snd_midi_event_encode(snd_midi_event_t *dev, const unsigned char *buf, long count, snd_seq_event_t *ev)
 {
 	long result = 0;
 	int rc;
@@ -411,7 +411,7 @@ static void songpos_event(snd_midi_event_t *dev, snd_seq_event_t *ev)
  *
  * Decode sequencer event to MIDI byte stream.
  */
-long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count, snd_seq_event_t *ev)
+long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count, const snd_seq_event_t *ev)
 {
 	int cmd;
 	long qlen;
