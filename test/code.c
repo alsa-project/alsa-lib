@@ -385,7 +385,11 @@ int main(int argc, char **argv)
         double cpu_clock = detect_cpu_clock();
 
 	setscheduler();
-        printf("CPU clock: %fMhz\n\n", cpu_clock / 10e5);
+#ifndef CONFIG_SMP
+        printf("CPU clock: %fMhz (UP)\n\n", cpu_clock / 10e5);
+#else
+        printf("CPU clock: %fMhz (SMP)\n\n", cpu_clock / 10e5);
+#endif
 	if (argc == 4) {
 		size = atoi(argv[1]);
 		n = atoi(argv[2]);
