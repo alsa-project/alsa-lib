@@ -243,7 +243,6 @@
 #endif
 
 typedef struct {
-	unsigned int card;			/* card type */
 	unsigned int internal_tram_size;	/* in samples */
 	unsigned int external_tram_size;	/* in samples */
 	char fxbus_names[16][32];		/* names of FXBUSes */
