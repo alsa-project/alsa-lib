@@ -1587,6 +1587,88 @@ int snd_config_make_compound(snd_config_t **config, const char *id,
 }
 
 /**
+ * \brief Build an integer config node and use given initial value
+ * \param config Returned config node handle pointer
+ * \param id Node id
+ * \param value Initial value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_imake_integer(snd_config_t **config, const char *id, const long value)
+{
+	int err;
+	
+	err = snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER);
+	if (err < 0)
+		return err;
+	(*config)->u.integer = value;
+	return 0;
+}
+
+/**
+ * \brief Build a real config node and use given initial value
+ * \param config Returned config node handle pointer
+ * \param id Node id
+ * \param value Initial value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_imake_real(snd_config_t **config, const char *id, const double value)
+{
+	int err;
+	
+	err = snd_config_make(config, id, SND_CONFIG_TYPE_REAL);
+	if (err < 0)
+		return err;
+	(*config)->u.real = value;
+	return 0;
+}
+
+/**
+ * \brief Build a string config node and use given initial value
+ * \param config Returned config node handle pointer
+ * \param id Node id
+ * \param value Initial value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_imake_string(snd_config_t **config, const char *id, const char *value)
+{
+	int err;
+	snd_config_t *tmp;
+	
+	err = snd_config_make(&tmp, id, SND_CONFIG_TYPE_STRING);
+	if (err < 0)
+		return err;
+	if (value) {
+		tmp->u.string = strdup(value);
+		if (!tmp->u.string) {
+			snd_config_delete(tmp);
+			return -ENOMEM;
+		}
+	} else {
+		tmp->u.string = NULL;
+	}
+	*config = tmp;
+	return 0;
+}
+
+/**
+ * \brief Build a pointer config node and use given initial value
+ * \param config Returned config node handle pointer
+ * \param id Node id
+ * \param value Initial value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_imake_pointer(snd_config_t **config, const char *id, const void *value)
+{
+	int err;
+	
+	err = snd_config_make(config, id, SND_CONFIG_TYPE_POINTER);
+	if (err < 0)
+		return err;
+	(*config)->u.ptr = value;
+	return 0;
+}
+
+/**
  * \brief Change the value of an integer config node
  * \param config Config node handle
  * \param value Value
@@ -1629,9 +1711,13 @@ int snd_config_set_string(snd_config_t *config, const char *value)
 		return -EINVAL;
 	if (config->u.string)
 		free(config->u.string);
-	config->u.string = strdup(value);
-	if (!config->u.string)
-		return -ENOMEM;
+	if (value) {
+		config->u.string = strdup(value);
+		if (!config->u.string)
+			return -ENOMEM;
+	} else {
+		config->u.string = NULL;
+	}
 	return 0;
 }
 
@@ -2394,10 +2480,9 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			err = snd_determine_driver(card, &fdriver);
 			if (err < 0)
 				return err;
-			err = snd_config_make_string(&private_data, "string");
+			err = snd_config_imake_string(&private_data, "string", fdriver);
 			if (err < 0)
 				goto __err;
-			snd_config_set_string(private_data, fdriver);
 			if (snd_config_search(root, fdriver, &n) >= 0) {
 				if (snd_config_get_string(n, &driver) < 0)
 					continue;
@@ -2763,23 +2848,21 @@ static int _snd_config_expand(snd_config_t *src,
 		case SND_CONFIG_TYPE_INTEGER:
 		{
 			long v;
-			err = snd_config_make(dst, id, type);
-			if (err < 0)
-				return err;
 			err = snd_config_get_integer(src, &v);
 			assert(err >= 0);
-			snd_config_set_integer(*dst, v);
+			err = snd_config_imake_integer(dst, id, v);
+			if (err < 0)
+				return err;
 			break;
 		}
 		case SND_CONFIG_TYPE_REAL:
 		{
 			double v;
-			err = snd_config_make(dst, id, type);
-			if (err < 0)
-				return err;
 			err = snd_config_get_real(src, &v);
 			assert(err >= 0);
-			snd_config_set_real(*dst, v);
+			err = snd_config_imake_real(dst, id, v);
+			if (err < 0)
+				return err;
 			break;
 		}
 		case SND_CONFIG_TYPE_STRING:
@@ -2801,14 +2884,9 @@ static int _snd_config_expand(snd_config_t *src,
 					return err;
 				}
 			} else {
-				err = snd_config_make(dst, id, type);
+				err = snd_config_imake_string(dst, id, s);
 				if (err < 0)
 					return err;
-				err = snd_config_set_string(*dst, s);
-				if (err < 0) {
-					snd_config_delete(*dst);
-					return err;
-				}
 			}
 			break;
 		}

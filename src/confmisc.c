@@ -283,11 +283,8 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	if (err >= 0) {
 		const char *id;
 		err = snd_config_get_id(src, &id);
-		if (err >= 0) {
-			err = snd_config_make_string(dst, id);
-			if (err >= 0)
-				snd_config_set_string(*dst, res);
-		}
+		if (err >= 0)
+			err = snd_config_imake_string(dst, id, res);
 		free(res);
 	}
       __error:
@@ -336,10 +333,9 @@ int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	err = snd_config_get_id(src, &id);
 	if (err < 0)
 		return err;
-	err = snd_config_make_integer(dst, id);
+	err = snd_config_imake_integer(dst, id, v);
 	if (err < 0)
 		return err;
-	snd_config_set_integer(*dst, v);
 	return 0;
 }
 #ifndef DOC_HIDDEN
@@ -424,11 +420,8 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		goto __error;
 	}
 	err = snd_config_get_id(src, &id);
-	if (err >= 0) {
-		err = snd_config_make_string(dst, id);
-		if (err >= 0)
-			snd_config_set_string(*dst, res);
-	}
+	if (err >= 0)
+		err = snd_config_imake_string(dst, id, res);
 	free(res);
       __error:
 	return err;
@@ -461,10 +454,7 @@ int snd_func_datadir(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 	err = snd_config_get_id(src, &id);
 	if (err < 0)
 		return err;
-	err = snd_config_make_string(dst, id);
-	if (err >= 0)
-		err = snd_config_set_string(*dst, DATADIR "/alsa");
-	return err;
+	return snd_config_imake_string(dst, id, DATADIR "/alsa");
 }
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_datadir, SND_CONFIG_DLSYM_VERSION_EVALUATE);
@@ -527,11 +517,8 @@ int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNU
 		return err;
 	}
 	err = snd_config_get_id(src, &id);
-	if (err >= 0) {
-		err = snd_config_make_string(dst, id);
-		if (err >= 0)
-			err = snd_config_set_string(*dst, str);
-	}
+	if (err >= 0)
+		err = snd_config_imake_string(dst, id, str);
 	return err;
 }
 #ifndef DOC_HIDDEN
@@ -609,11 +596,8 @@ int snd_func_private_card_driver(snd_config_t **dst, snd_config_t *root ATTRIBUT
 	if ((err = snd_determine_driver(card, &driver)) < 0)
 		return err;
 	err = snd_config_get_id(src, &id);
-	if (err >= 0) {
-		err = snd_config_make_string(dst, id);
-		if (err >= 0)
-			err = snd_config_set_string(*dst, driver);
-	}
+	if (err >= 0)
+		err = snd_config_imake_string(dst, id, driver);
 	free(driver);
 	return err;
 }
@@ -667,10 +651,9 @@ int snd_func_card_driver(snd_config_t **dst, snd_config_t *root, snd_config_t *s
 		return v;
 	}
 	free(str);
-	err = snd_config_make_integer(&val, "card");
+	err = snd_config_imake_integer(&val, "card", v);
 	if (err < 0)
 		return err;
-	snd_config_set_integer(val, v);
 	err = snd_func_private_card_driver(dst, root, src, val);
 	snd_config_delete(val);
 	return err;
@@ -738,11 +721,8 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		goto __error;
 	}
 	err = snd_config_get_id(src, &id);
-	if (err >= 0) {
-		err = snd_config_make_string(dst, id);
-		if (err >= 0)
-			err = snd_config_set_string(*dst, res);
-	}
+	if (err >= 0)
+		err = snd_config_imake_string(dst, id, res);
 	free(res);
       __error:
       	if (ctl)
@@ -836,11 +816,8 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		goto __error;
 	}
 	err = snd_config_get_id(src, &id);
-	if (err >= 0) {
-		err = snd_config_make_string(dst, id);
-		if (err >= 0)
-			err = snd_config_set_string(*dst, snd_pcm_info_get_id(info));
-	}
+	if (err >= 0)
+		err = snd_config_imake_string(dst, id, snd_pcm_info_get_id(info));
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
@@ -893,11 +870,8 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 		return err;
 	}
 	err = snd_config_get_id(src, &id);
-	if (err >= 0) {
-		err = snd_config_make_integer(dst, id);
-		if (err >= 0)
-			err = snd_config_set_integer(*dst, snd_pcm_info_get_subdevice(info));
-	}
+	if (err >= 0)
+		err = snd_config_imake_integer(dst, id, snd_pcm_info_get_subdevice(info));
 	return err;
 }
 #ifndef DOC_HIDDEN

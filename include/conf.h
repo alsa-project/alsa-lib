@@ -96,6 +96,11 @@ int snd_config_make_string(snd_config_t **config, const char *key);
 int snd_config_make_pointer(snd_config_t **config, const char *key);
 int snd_config_make_compound(snd_config_t **config, const char *key, int join);
 
+int snd_config_imake_integer(snd_config_t **config, const char *key, const long value);
+int snd_config_imake_real(snd_config_t **config, const char *key, const double value);
+int snd_config_imake_string(snd_config_t **config, const char *key, const char *ascii);
+int snd_config_imake_pointer(snd_config_t **config, const char *key, const void *ptr);
+
 snd_config_type_t snd_config_get_type(snd_config_t *config);
 
 int snd_config_set_id(snd_config_t *config, const char *id);

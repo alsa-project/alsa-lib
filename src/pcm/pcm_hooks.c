@@ -650,10 +650,9 @@ int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 		SNDERR("Cannot open CTL %s", ctl_name);
 		return err;
 	}
-	err = snd_config_make_pointer(&pcm_conf, "pcm_handle");
+	err = snd_config_imake_pointer(&pcm_conf, "pcm_handle", pcm);
 	if (err < 0)
 		goto _err;
-	snd_config_set_pointer(pcm_conf, pcm);
 	err = snd_sctl_build(&sctl, ctl, conf, pcm_conf, 0);
 	if (err < 0)
 		goto _err;
