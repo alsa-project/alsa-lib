@@ -152,8 +152,8 @@ static int hctl_elem_event_handler(snd_hctl_elem_t *helem,
 	}
 	if (mask & (SND_CTL_EVENT_MASK_VALUE | SND_CTL_EVENT_MASK_INFO)) {
 		int err = 0;
-		bag_iterator_t i;
-		bag_for_each(i, bag) {
+		bag_iterator_t i, n;
+		bag_for_each_safe(i, n, bag) {
 			snd_mixer_elem_t *melem = bag_iterator_entry(i);
 			snd_mixer_class_t *class = melem->class;
 			err = class->event(class, mask, helem, melem);
