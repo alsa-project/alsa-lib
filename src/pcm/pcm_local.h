@@ -51,8 +51,16 @@ int snd_pcm_plugin_format(snd_pcm_t *pcm,
 			  snd_pcm_channel_params_t *hwparams,
 			  snd_pcm_channel_info_t *hwinfo);
 
-#if 0
-#define PLUGIN_DEBUG
+#define ROUTE_PLUGIN_RESOLUTION 16
+
+int getput_index(int format);
+int copy_index(int src_format, int dst_format);
+
+void zero_voice(snd_pcm_plugin_t *plugin,
+		const snd_pcm_plugin_voice_t *dst_voice,
+		size_t samples);
+
+#ifdef PLUGIN_DEBUG
 #define pdprintf( args... ) printf( "plugin: " ##args)
 #else
 #define pdprintf( args... ) { ; }
