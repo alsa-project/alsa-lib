@@ -78,10 +78,4 @@ could still need some floating point emulator.
 Jack plugin
 -----------
 
-To build the jack pcm plugin, use this sequence:
-
-cd alsa-lib/src/pcm/ext
-make jack
-make jack-install
-
-The default directory for add-on modules is ${prefix}/lib/alsa-lib.
+JACK plugin is moved to alsa-plugins package.
