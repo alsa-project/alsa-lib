@@ -1453,6 +1453,33 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 	} \
 }
 
+#define SND_CONFIG_SEARCHA(root, config, key, result, fcn, extra_code) \
+{ \
+	snd_config_t *n; \
+	int err; \
+	const char *p; \
+	assert(config && key); \
+	while (1) { \
+		if (config->type != SND_CONFIG_TYPE_COMPOUND) { \
+			if (snd_config_get_string(config, &p) < 0) \
+				return -ENOENT; \
+			err = fcn(root, root, p, &config); \
+			if (err < 0) \
+				return err; \
+		} \
+		{ extra_code ; } \
+		p = strchr(key, '.'); \
+		if (p) { \
+			err = _snd_config_search(config, key, p - key, &n); \
+			if (err < 0) \
+				return err; \
+			config = n; \
+			key = p + 1; \
+		} else \
+			return _snd_config_search(config, key, -1, result); \
+	} \
+}
+
 #define SND_CONFIG_SEARCHV(config, result, fcn) \
 { \
 	snd_config_t *n; \
@@ -1475,17 +1502,39 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 	return 0; \
 }
 
+#define SND_CONFIG_SEARCHVA(root, config, result, fcn) \
+{ \
+	snd_config_t *n; \
+	va_list arg; \
+	assert(config); \
+	va_start(arg, result); \
+	while (1) { \
+		const char *k = va_arg(arg, const char *); \
+		int err; \
+		if (!k) \
+			break; \
+		err = fcn(root, config, k, &n); \
+		if (err < 0) \
+			return err; \
+		config = n; \
+	} \
+	va_end(arg); \
+	if (result) \
+		*result = n; \
+	return 0; \
+}
+
 #define SND_CONFIG_SEARCH_ALIAS(config, base, key, result, fcn1, fcn2) \
 { \
 	snd_config_t *res = NULL; \
 	int err, first = 1; \
 	assert(config && key); \
 	do { \
-		err = first && base ? -EIO : fcn1(config, key, &res); \
+		err = first && base ? -EIO : fcn1(config, config, key, &res); \
 		if (err < 0) { \
 			if (!base) \
 				break; \
-			err = fcn2(config, &res, base, key, NULL); \
+			err = fcn2(config, config, &res, base, key, NULL); \
 			if (err < 0) \
 				break; \
 		} \
@@ -1512,6 +1561,18 @@ int snd_config_search(snd_config_t *config, const char *key, snd_config_t **resu
 }
 
 /**
+ * \brief Search a node inside a config tree and expand aliases, excluding the top one
+ * \param config Config node handle
+ * \param key Dot separated search key
+ * \param result Pointer to found node
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_searcha(snd_config_t *root, snd_config_t *config, const char *key, snd_config_t **result)
+{
+	SND_CONFIG_SEARCHA(root, config, key, result, snd_config_searcha, );
+}
+
+/**
  * \brief Search a node inside a config tree
  * \param config Config node handle
  * \param result Pointer to found node
@@ -1521,6 +1582,18 @@ int snd_config_search(snd_config_t *config, const char *key, snd_config_t **resu
 int snd_config_searchv(snd_config_t *config, snd_config_t **result, ...)
 {
 	SND_CONFIG_SEARCHV(config, result, snd_config_search);
+}
+
+/**
+ * \brief Search a node inside a config tree and expand aliases, excluding the top one
+ * \param config Config node handle
+ * \param result Pointer to found node
+ * \param ... one or more concatenated dot separated search key
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_searchva(snd_config_t *root, snd_config_t *config, snd_config_t **result, ...)
+{
+	SND_CONFIG_SEARCHVA(root, config, result, snd_config_searcha);
 }
 
 /**
@@ -1540,7 +1613,7 @@ int snd_config_search_alias(snd_config_t *config,
 			    snd_config_t **result)
 {
 	SND_CONFIG_SEARCH_ALIAS(config, base, key, result,
-				snd_config_search, snd_config_searchv);
+				snd_config_searcha, snd_config_searchva);
 }
 
 /**
@@ -1561,16 +1634,34 @@ int snd_config_search_hooks(snd_config_t *config, const char *key, snd_config_t 
 }
 
 /**
- * \brief Search a node inside a config tree and expand hooks
+ * \brief Search a node inside a config tree and expand aliases and hooks
  * \param config Config node handle
+ * \param key Dot separated search key
  * \param result Pointer to found node
- * \param ... one or more concatenated dot separated search keyqq
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_searchv_hooks(snd_config_t *config,
-			     snd_config_t **result, ...)
+int snd_config_searcha_hooks(snd_config_t *root, snd_config_t *config, const char *key, snd_config_t **result)
 {
-	SND_CONFIG_SEARCHV(config, result, snd_config_search_hooks);
+	static int snd_config_hooks(snd_config_t *config, void *private_data);
+	SND_CONFIG_SEARCHA(root, config, key, result,
+					snd_config_searcha_hooks,
+					err = snd_config_hooks(config, NULL); \
+					if (err < 0) \
+						return err; \
+			 );
+}
+
+/**
+ * \brief Search a node inside a config tree and expand hooks and aliases
+ * \param config Config node handle
+ * \param result Pointer to found node
+ * \param ... one or more concatenated dot separated search key
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_searchva_hooks(snd_config_t *root, snd_config_t *config,
+			      snd_config_t **result, ...)
+{
+	SND_CONFIG_SEARCHVA(root, config, result, snd_config_searcha_hooks);
 }
 
 /**
@@ -1590,8 +1681,8 @@ int snd_config_search_alias_hooks(snd_config_t *config,
 				  snd_config_t **result)
 {
 	SND_CONFIG_SEARCH_ALIAS(config, base, key, result,
-				snd_config_search_hooks,
-				snd_config_searchv_hooks);
+				snd_config_searcha_hooks,
+				snd_config_searchva_hooks);
 }
 
 /** Environment variable containing files list for #snd_config_update */
@@ -1861,6 +1952,8 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 	return err;
 }
 
+int snd_determine_driver(int card, char **driver);
+
 int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data ATTRIBUTE_UNUSED)
 {
 	int card = -1, err;
@@ -1870,8 +1963,29 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 		if (err < 0)
 			return err;
 		if (card >= 0) {
-			snd_config_t *nroot;
-			err = snd_config_hook_load(root, config, &nroot, (void *)(unsigned long)card);
+			snd_config_t *n;
+			const char *driver;
+			char *fdriver = NULL;
+			err = snd_determine_driver(card, &fdriver);
+			if (err < 0)
+				return err;
+			if (snd_config_search(root, fdriver, &n) >= 0) {
+				if (snd_config_get_string(n, &driver) < 0)
+					continue;
+				while (1) {
+					char *s = strchr(driver, '.');
+					if (s == NULL)
+						break;
+					driver = s + 1;
+				}
+				if (snd_config_search(root, driver, &n) >= 0)
+					continue;
+			} else {
+				driver = fdriver;
+			}
+			err = snd_config_hook_load(root, config, &n, (void *)driver);
+			if (fdriver)
+				free(fdriver);
 			if (err < 0)
 				return err;
 		}

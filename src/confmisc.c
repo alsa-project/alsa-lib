@@ -428,18 +428,29 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
-int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
+int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
+{
+	int err;
+
+	if (private_data == NULL)
+		return snd_config_copy(dst, src);
+	err = snd_config_make_string(dst, snd_config_get_id(src));
+	if (err >= 0)
+		err = snd_config_set_string(*dst, (char *)private_data);
+	return err;
+}
+
+int snd_determine_driver(int card, char **driver)
 {
 	snd_ctl_t *ctl = NULL;
 	snd_ctl_card_info_t *info;
-	long v;
+	char *res = NULL;
 	int err;
-	
-	v = (long)private_data;
-	assert(v >= 0 && v <= 32);
-	err = open_ctl(v, &ctl);
+
+	assert(card >= 0 && card <= 32);
+	err = open_ctl(card, &ctl);
 	if (err < 0) {
-		SNDERR("could not open control for card %li", v);
+		SNDERR("could not open control for card %li", card);
 		goto __error;
 	}
 	snd_ctl_card_info_alloca(&info);
@@ -448,12 +459,30 @@ int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBU
 		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
 		goto __error;
 	}
+	res = strdup(snd_ctl_card_info_get_driver(info));
+	if (res == NULL)
+		err = -ENOMEM;
+	else {
+		*driver = res;
+		err = 0;
+	}
+      __error:
+	if (ctl)
+		snd_ctl_close(ctl);
+	return err;
+}
+
+int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
+{
+	char *driver;
+	int err;
+
+	if ((err = snd_determine_driver((long)private_data, &driver)) < 0)
+		return err;
 	err = snd_config_make_string(dst, snd_config_get_id(src));
 	if (err >= 0)
-		err = snd_config_set_string(*dst, snd_ctl_card_info_get_driver(info));
-      __error:
-      	if (ctl)
-      		snd_ctl_close(ctl);
+		err = snd_config_set_string(*dst, driver);
+	free(driver);
 	return err;
 }
 
