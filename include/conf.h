@@ -72,5 +72,5 @@ static inline char *snd_config_id(snd_config_t *config)
 	return config->id;
 }
 
-snd_config_t *snd_config;
+extern snd_config_t *snd_config;
 int snd_config_update();
