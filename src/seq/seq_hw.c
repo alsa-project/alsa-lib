@@ -414,7 +414,7 @@ snd_seq_ops_t snd_seq_hw_ops = {
 
 int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 {
-	int fd, ver, client, fmode;
+	int fd, ver, client, fmode, ret;
 	char filename[32];
 	snd_seq_t *seq;
 	snd_seq_hw_t *hw;
@@ -455,8 +455,9 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 	}
 	if (ioctl(fd, SNDRV_SEQ_IOCTL_PVERSION, &ver) < 0) {
 		SYSERR("SNDRV_SEQ_IOCTL_PVERSION failed");
+		ret = -errno;
 		close(fd);
-		return -errno;
+		return ret;
 	}
 	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_SEQ_VERSION_MAX)) {
 		close(fd);
