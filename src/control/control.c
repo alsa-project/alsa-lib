@@ -795,6 +795,15 @@ void snd_ctl_elem_id_free(snd_ctl_elem_id_t *obj)
 }
 
 /**
+ * \brief clear given #snd_ctl_elem_id_t object
+ * \param obj pointer to object to clear
+ */
+void snd_ctl_elem_id_clear(snd_ctl_elem_id_t *obj)
+{
+	memset(obj, 0, sizeof(snd_ctl_elem_id_t));
+}
+
+/**
  * \brief copy one #snd_ctl_elem_id_t to another
  * \param dst pointer to destination
  * \param src pointer to source
@@ -970,6 +979,15 @@ void snd_ctl_card_info_free(snd_ctl_card_info_t *obj)
 }
 
 /**
+ * \brief clear given #snd_ctl_card_info_t object
+ * \param obj pointer to object to clear
+ */
+void snd_ctl_card_info_clear(snd_ctl_card_info_t *obj)
+{
+	memset(obj, 0, sizeof(snd_ctl_card_info_t));
+}
+
+/**
  * \brief copy one #snd_ctl_card_info_t to another
  * \param dst pointer to destination
  * \param src pointer to source
@@ -1090,6 +1108,15 @@ void snd_ctl_event_free(snd_ctl_event_t *obj)
 }
 
 /**
+ * \brief clear given #snd_ctl_event_t object
+ * \param obj pointer to object to clear
+ */
+void snd_ctl_event_clear(snd_ctl_event_t *obj)
+{
+	memset(obj, 0, sizeof(snd_ctl_event_t));
+}
+
+/**
  * \brief copy one #snd_ctl_event_t to another
  * \param dst pointer to destination
  * \param src pointer to source
@@ -1141,6 +1168,15 @@ int snd_ctl_elem_list_malloc(snd_ctl_elem_list_t **ptr)
 void snd_ctl_elem_list_free(snd_ctl_elem_list_t *obj)
 {
 	free(obj);
+}
+
+/**
+ * \brief clear given #snd_ctl_elem_list_t object
+ * \param obj pointer to object to clear
+ */
+void snd_ctl_elem_list_clear(snd_ctl_elem_list_t *obj)
+{
+	memset(obj, 0, sizeof(snd_ctl_elem_list_t));
 }
 
 /**
@@ -1308,6 +1344,15 @@ int snd_ctl_elem_info_malloc(snd_ctl_elem_info_t **ptr)
 void snd_ctl_elem_info_free(snd_ctl_elem_info_t *obj)
 {
 	free(obj);
+}
+
+/**
+ * \brief clear given #snd_ctl_elem_info_t object
+ * \param obj pointer to object to clear
+ */
+void snd_ctl_elem_info_clear(snd_ctl_elem_info_t *obj)
+{
+	memset(obj, 0, sizeof(snd_ctl_elem_info_t));
 }
 
 /**
@@ -1686,6 +1731,15 @@ int snd_ctl_elem_value_malloc(snd_ctl_elem_value_t **ptr)
 void snd_ctl_elem_value_free(snd_ctl_elem_value_t *obj)
 {
 	free(obj);
+}
+
+/**
+ * \brief clear given #snd_ctl_elem_value_t object
+ * \param obj pointer to object to clear
+ */
+void snd_ctl_elem_value_clear(snd_ctl_elem_value_t *obj)
+{
+	memset(obj, 0, sizeof(snd_ctl_elem_value_t));
 }
 
 /**

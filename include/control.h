@@ -182,6 +182,7 @@ size_t snd_ctl_elem_id_sizeof(void);
 #define snd_ctl_elem_id_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_elem_id_t *) alloca(snd_ctl_elem_id_sizeof()); memset(*ptr, 0, snd_ctl_elem_id_sizeof()); } while (0)
 int snd_ctl_elem_id_malloc(snd_ctl_elem_id_t **ptr);
 void snd_ctl_elem_id_free(snd_ctl_elem_id_t *obj);
+void snd_ctl_elem_id_clear(snd_ctl_elem_id_t *obj);
 void snd_ctl_elem_id_copy(snd_ctl_elem_id_t *dst, const snd_ctl_elem_id_t *src);
 unsigned int snd_ctl_elem_id_get_numid(const snd_ctl_elem_id_t *obj);
 snd_ctl_elem_iface_t snd_ctl_elem_id_get_interface(const snd_ctl_elem_id_t *obj);
@@ -204,6 +205,7 @@ size_t snd_ctl_card_info_sizeof(void);
 #define snd_ctl_card_info_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_card_info_t *) alloca(snd_ctl_card_info_sizeof()); memset(*ptr, 0, snd_ctl_card_info_sizeof()); } while (0)
 int snd_ctl_card_info_malloc(snd_ctl_card_info_t **ptr);
 void snd_ctl_card_info_free(snd_ctl_card_info_t *obj);
+void snd_ctl_card_info_clear(snd_ctl_card_info_t *obj);
 void snd_ctl_card_info_copy(snd_ctl_card_info_t *dst, const snd_ctl_card_info_t *src);
 int snd_ctl_card_info_get_card(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj);
@@ -221,6 +223,7 @@ size_t snd_ctl_event_sizeof(void);
 #define snd_ctl_event_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_event_t *) alloca(snd_ctl_event_sizeof()); memset(*ptr, 0, snd_ctl_event_sizeof()); } while (0)
 int snd_ctl_event_malloc(snd_ctl_event_t **ptr);
 void snd_ctl_event_free(snd_ctl_event_t *obj);
+void snd_ctl_event_clear(snd_ctl_event_t *obj);
 void snd_ctl_event_copy(snd_ctl_event_t *dst, const snd_ctl_event_t *src);
 snd_ctl_event_type_t snd_ctl_event_get_type(const snd_ctl_event_t *obj);
 
@@ -232,6 +235,7 @@ size_t snd_ctl_elem_list_sizeof(void);
 #define snd_ctl_elem_list_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_elem_list_t *) alloca(snd_ctl_elem_list_sizeof()); memset(*ptr, 0, snd_ctl_elem_list_sizeof()); } while (0)
 int snd_ctl_elem_list_malloc(snd_ctl_elem_list_t **ptr);
 void snd_ctl_elem_list_free(snd_ctl_elem_list_t *obj);
+void snd_ctl_elem_list_clear(snd_ctl_elem_list_t *obj);
 void snd_ctl_elem_list_copy(snd_ctl_elem_list_t *dst, const snd_ctl_elem_list_t *src);
 void snd_ctl_elem_list_set_offset(snd_ctl_elem_list_t *obj, unsigned int val);
 unsigned int snd_ctl_elem_list_get_used(const snd_ctl_elem_list_t *obj);
@@ -252,6 +256,7 @@ size_t snd_ctl_elem_info_sizeof(void);
 #define snd_ctl_elem_info_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_elem_info_t *) alloca(snd_ctl_elem_info_sizeof()); memset(*ptr, 0, snd_ctl_elem_info_sizeof()); } while (0)
 int snd_ctl_elem_info_malloc(snd_ctl_elem_info_t **ptr);
 void snd_ctl_elem_info_free(snd_ctl_elem_info_t *obj);
+void snd_ctl_elem_info_clear(snd_ctl_elem_info_t *obj);
 void snd_ctl_elem_info_copy(snd_ctl_elem_info_t *dst, const snd_ctl_elem_info_t *src);
 snd_ctl_elem_type_t snd_ctl_elem_info_get_type(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_readable(const snd_ctl_elem_info_t *obj);
@@ -292,6 +297,7 @@ size_t snd_ctl_elem_value_sizeof(void);
 #define snd_ctl_elem_value_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_elem_value_t *) alloca(snd_ctl_elem_value_sizeof()); memset(*ptr, 0, snd_ctl_elem_value_sizeof()); } while (0)
 int snd_ctl_elem_value_malloc(snd_ctl_elem_value_t **ptr);
 void snd_ctl_elem_value_free(snd_ctl_elem_value_t *obj);
+void snd_ctl_elem_value_clear(snd_ctl_elem_value_t *obj);
 void snd_ctl_elem_value_copy(snd_ctl_elem_value_t *dst, const snd_ctl_elem_value_t *src);
 void snd_ctl_elem_value_get_id(const snd_ctl_elem_value_t *obj, snd_ctl_elem_id_t *ptr);
 unsigned int snd_ctl_elem_value_get_numid(const snd_ctl_elem_value_t *obj);
