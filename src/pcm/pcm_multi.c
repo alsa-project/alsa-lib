@@ -125,12 +125,12 @@ static int snd_pcm_multi_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 			    i.subformat_mask != sinfo.subformat_mask ||
 			    i.rate_min != sinfo.rate_min ||
 			    i.rate_max != sinfo.rate_max ||
-			    i.fragment_size_min != sinfo.fragment_size_min ||
-			    i.fragment_size_max != sinfo.fragment_size_max ||
+			    i.fragment_length_min != sinfo.fragment_length_min ||
+			    i.fragment_length_max != sinfo.fragment_length_max ||
 			    i.fragments_min != sinfo.fragments_min ||
 			    i.fragments_max != sinfo.fragments_max ||
-			    i.buffer_size_min != sinfo.buffer_size_min ||
-			    i.buffer_size_max != sinfo.buffer_size_max)
+			    i.buffer_length_min != sinfo.buffer_length_min ||
+			    i.buffer_length_max != sinfo.buffer_length_max)
 				changed++;
 			saccess_mask &= sinfo.access_mask;
 			i = sinfo;

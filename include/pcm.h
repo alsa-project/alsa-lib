@@ -109,7 +109,7 @@ typedef struct _snd_pcm_strategy snd_pcm_strategy_t;
 
 /* choices need to be sorted on ascending badness */
 typedef struct _snd_pcm_strategy_simple_choices_list {
-	unsigned long value;
+	unsigned int value;
 	unsigned int badness;
 } snd_pcm_strategy_simple_choices_list_t;
 
@@ -122,7 +122,7 @@ int snd_pcm_strategy_simple(snd_pcm_strategy_t **strategyp,
 			    unsigned int badness_max);
 int snd_pcm_strategy_simple_near(snd_pcm_strategy_t *strategy, int order,
 				 unsigned int param,
-				 unsigned long best,
+				 unsigned int best,
 				 unsigned int mul);
 int snd_pcm_strategy_simple_choices(snd_pcm_strategy_t *strategy, int order,
 				    unsigned int param,

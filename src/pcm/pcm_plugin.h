@@ -74,31 +74,6 @@ int conv_index(int src_format, int dst_format);
 
 extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
-static inline ssize_t muldiv(ssize_t a, ssize_t b, ssize_t d, ssize_t corr)
-{
-	double v = ((double) a * b + corr) / d;
-	if (v > LONG_MAX)
-		return LONG_MAX;
-	if (v < LONG_MIN)
-		return LONG_MIN;
-	return v;
-}
-
-static inline ssize_t muldiv_down(ssize_t a, ssize_t b, ssize_t d)
-{
-	return muldiv(a, b, d, 0);
-}
-
-static inline ssize_t muldiv_up(ssize_t a, ssize_t b, ssize_t d)
-{
-	return muldiv(a, b, d, d - 1);
-}
-
-static inline ssize_t muldiv_near(ssize_t a, ssize_t b, ssize_t d)
-{
-	return muldiv(a, b, d, d / 2);
-}
-
 #define RATE_MIN 4000
 #define RATE_MAX 192000
 

@@ -154,8 +154,6 @@ static int snd_pcm_plug_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	snd_pcm_t *slave = plug->req_slave;
 	snd_pcm_hw_info_t sinfo;
 	int err;
-	size_t size;
-	unsigned int n;
 	
 	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
 			      SND_PCM_ACCBIT_RW_INTERLEAVED |
@@ -193,74 +191,16 @@ static int snd_pcm_plug_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	sinfo.channels_max = UINT_MAX;
 	sinfo.rate_min = RATE_MIN;
 	sinfo.rate_max = RATE_MAX;
-	sinfo.fragment_size_min = muldiv_down(info->fragment_size_min, sinfo.rate_min, info->rate_max);
-	sinfo.fragment_size_max = muldiv_up(info->fragment_size_max, sinfo.rate_max, info->rate_min);
-	sinfo.buffer_size_min = muldiv_down(info->buffer_size_min, sinfo.rate_min, info->rate_max);
-	sinfo.buffer_size_max = muldiv_up(info->buffer_size_max, sinfo.rate_max, info->rate_min);
 
-	/* FIXME: tricky here. This is not the right way to cope with this */
-	if (info->rate_min == info->rate_max) {
-		snd_pcm_hw_info_t i1 = sinfo;
-		snd_pcm_hw_info_t i2 = sinfo;
-		int err1, err2;
-		unsigned int rate = info->rate_min;
-		i1.rate_max = rate;
-		err1 = snd_pcm_hw_info(slave, &i1);
-		if (err1 < 0 || rate - i1.rate_max > 1) {
-			i2.rate_min = rate + 1;
-			err2 = snd_pcm_hw_info(slave, &i2);
-		} else
-			err2 = -EINVAL;
-		if (err1 < 0) {
-			sinfo = i2;
-			if (err2 >= 0)
-				sinfo.rate_max = sinfo.rate_min;
-			err = err2;
-		} else {
-			if (err2 < 0 ||
-			    rate - i1.rate_max <= i2.rate_min - rate) {
-				sinfo = i1;
-				sinfo.rate_min = sinfo.rate_max;
-				err = err1;
-			} else {
-				sinfo = i2;
-				sinfo.rate_max = sinfo.rate_min;
-				err = err2;
-			}
-		}
-	} else
-		err = snd_pcm_hw_info(slave, &sinfo);
+	err = snd_pcm_hw_info(slave, &sinfo);
 	info->subformat_mask = sinfo.subformat_mask;
+	info->fragment_length_min = sinfo.fragment_length_min;
+	info->fragment_length_max = sinfo.fragment_length_max;
 	info->fragments_min = sinfo.fragments_min;
 	info->fragments_max = sinfo.fragments_max;
+	info->buffer_length_min = sinfo.buffer_length_min;
+	info->buffer_length_max = sinfo.buffer_length_max;
 	
-	size = muldiv_down(sinfo.fragment_size_min, info->rate_min, sinfo.rate_max);
-	if (info->fragment_size_min < size)
-		info->fragment_size_min = size;
-	size = muldiv_up(sinfo.fragment_size_max, info->rate_max, sinfo.rate_min);
-	if (info->fragment_size_max > size)
-		info->fragment_size_max = size;
-	if (info->fragment_size_min > info->fragment_size_max)
-		return -EINVAL;
-
-	size = muldiv_down(sinfo.buffer_size_min, info->rate_min, sinfo.rate_max);
-	if (info->buffer_size_min < size)
-		info->buffer_size_min = size;
-	size = muldiv_up(sinfo.buffer_size_max, info->rate_max, sinfo.rate_min);
-	if (info->buffer_size_max > size)
-		info->buffer_size_max = size;
-	if (info->buffer_size_min > info->buffer_size_max)
-		return -EINVAL;
-
-	n = info->buffer_size_min / info->fragment_size_max;
-	if (info->fragments_min < n)
-		info->fragments_min = n;
-	n = info->buffer_size_max / info->fragment_size_min;
-	if (info->fragments_max > n)
-		info->fragments_max = n;
-	if (info->fragments_min > info->fragments_max)
-		return -EINVAL;
-
 	if (err < 0)
 		return err;
 	info->info = sinfo.info & ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
@@ -484,10 +424,6 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	sinfo.rate_max = RATE_MAX;
 	sinfo.fragments_min = params->fragments;
 	sinfo.fragments_max = params->fragments;
-	sinfo.fragment_size_min = 1;
-	sinfo.fragment_size_max = ULONG_MAX;
-	sinfo.buffer_size_min = 1;
-	sinfo.buffer_size_max = ULONG_MAX;
 	err = snd_pcm_strategy_simple(&strategy, 1000000, 2000000);
 	if (err < 0)
 		return err;
