@@ -644,7 +644,7 @@ static void mix_areas1(unsigned int size,
 
 		"4:"
 		"\tmovw $0x7fff, %%ax\n"
-		"\tmovw (%%edi), %%ax\n"
+		"\tmovw %%ax, (%%edi)\n"
 		"\tcmpl %%ecx,(%%ebx)\n"
 		"\tjnz 3b\n"
 		"\tadd %4, %%edi\n"
@@ -660,8 +660,8 @@ static void mix_areas1(unsigned int size,
 
 		"5:"
 		"\tmovw $-0x8000, %%ax\n"
-		"\tmovw (%%edi), %%ax\n"
-		"\tcmpl %%ecx,(%%ebx)\n"
+		"\tmovw %%ax, (%%edi)\n"
+		"\tcmpl %%ecx, (%%ebx)\n"
 		"\tjnz 3b\n"
 		"\tadd %4, %%edi\n"
 		"\tadd %5, %%esi\n"
