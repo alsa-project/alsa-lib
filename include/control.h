@@ -15,7 +15,12 @@
 #define SND_CONTROL_DLSYM_VERSION	_dlsym_control_001
 
 /** IEC958 structure */
-typedef struct sndrv_aes_iec958 snd_aes_iec958_t;
+typedef struct snd_aes_iec958 {
+	unsigned char status[24];	/**< AES/IEC958 channel status bits */
+	unsigned char subcode[147];	/**< AES/IEC958 subcode bits */
+	unsigned char pad;		/**< nothing */
+	unsigned char dig_subframe[4];	/**< AES/IEC958 subframe bits */
+} snd_aes_iec958_t;
 
 /** CTL card info container */
 typedef struct _snd_ctl_card_info snd_ctl_card_info_t;

@@ -230,9 +230,9 @@ typedef enum _snd_pcm_tstamp {
 } snd_pcm_tstamp_t;
 
 /** Unsigned frames quantity */
-typedef sndrv_pcm_uframes_t snd_pcm_uframes_t;
+typedef unsigned long snd_pcm_uframes_t;
 /** Signed frames quantity */
-typedef sndrv_pcm_sframes_t snd_pcm_sframes_t;
+typedef long snd_pcm_sframes_t;
 /** Timestamp */
 typedef struct timeval snd_timestamp_t;
 
