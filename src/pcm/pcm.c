@@ -1916,6 +1916,16 @@ int snd_pcm_hw_params_set_access_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
 	return snd_pcm_hw_param_set_mask(pcm, params, SND_TRY, SND_PCM_HW_PARAM_ACCESS, (snd_mask_t *) mask);
 }
 
+/**
+ * \brief Get access mask from a configuration space
+ * \param params Configuration space
+ * \param mask Returned Access mask
+ */
+void snd_pcm_hw_params_get_access_mask(snd_pcm_hw_params_t *params, snd_pcm_access_mask_t *mask)
+{
+	snd_pcm_access_mask_copy(mask, (snd_pcm_access_mask_t*) &params->masks[SND_PCM_HW_PARAM_ACCESS - SND_PCM_HW_PARAM_FIRST_MASK]);
+}
+
 
 /**
  * \brief Extract format from a configuration space
@@ -1985,6 +1995,16 @@ int snd_pcm_hw_params_set_format_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
 	return snd_pcm_hw_param_set_mask(pcm, params, SND_TRY, SND_PCM_HW_PARAM_FORMAT, (snd_mask_t *) mask);
 }
 
+/**
+ * \brief Get format mask from a configuration space
+ * \param params Configuration space
+ * \param mask Returned Format mask
+ */
+void snd_pcm_hw_params_get_format_mask(snd_pcm_hw_params_t *params, snd_pcm_format_mask_t *mask)
+{
+	snd_pcm_format_mask_copy(mask, (snd_pcm_format_mask_t*) &params->masks[SND_PCM_HW_PARAM_FORMAT - SND_PCM_HW_PARAM_FIRST_MASK]);
+}
+
 
 /**
  * \brief Verify if a subformat is available inside a configuration space for a PCM
@@ -2052,6 +2072,16 @@ snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_last(snd_pcm_t *pcm, snd_pcm
 int snd_pcm_hw_params_set_subformat_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_mask_t *mask)
 {
 	return snd_pcm_hw_param_set_mask(pcm, params, SND_TRY, SND_PCM_HW_PARAM_SUBFORMAT, (snd_mask_t *) mask);
+}
+
+/**
+ * \brief Get subformat mask from a configuration space
+ * \param params Configuration space
+ * \param mask Returned Subformat mask
+ */
+void snd_pcm_hw_params_get_subformat_mask(snd_pcm_hw_params_t *params, snd_pcm_subformat_mask_t *mask)
+{
+	snd_pcm_subformat_mask_copy(mask, (snd_pcm_subformat_mask_t*) &params->masks[SND_PCM_HW_PARAM_SUBFORMAT - SND_PCM_HW_PARAM_FIRST_MASK]);
 }
 
 
