@@ -1,0 +1,136 @@
+/*! \page pcm PCM (digital audio) interface
+
+<P>Although abbreviation PCM stands for Pulse Code Modulation, we are
+understanding it as general digital audio processing with volume samples
+generated in continuous time periods.</P>
+
+<P>Digital audio is the most commonly used method of representing
+sound inside a computer. In this method sound is stored as a sequence of
+samples taken from the audio signal using constant time intervals. 
+A sample represents volume of the signal at the moment when it
+was measured. In uncompressed digital audio each sample require one
+or more bytes of storage. The number of bytes required depends on number
+of channels (mono, stereo) and sample format (8 or 16 bits, mu-Law, etc.).
+The length of this interval determines the sampling rate. Commonly used
+sampling rates are between 8kHz (telephone quality) and
+48kHz (DAT tapes).</P>
+
+<P>The physical devices used in digital audio are called the
+ADC (Analog to Digital Converter) and DAC (Digital to Analog Converter).
+A device containing both ADC and DAC is commonly known as a codec. 
+The codec device used in a Sound Blaster cards is called a DSP which
+is somewhat misleading since DSP also stands for Digital Signal Processor
+(the SB DSP chip is very limited when compared to "true" DSP chips).</P>
+
+<P>Sampling parameters affect the quality of sound which can be
+reproduced from the recorded signal. The most fundamental parameter
+is sampling rate which limits the highest frequency that can be stored.
+It is well known (Nyquist's Sampling Theorem) that the highest frequency
+that can be stored in a sampled signal is at most 1/2 of the sampling
+frequency. For example, an 8 kHz sampling rate permits the recording of
+a signal in which the highest frequency is less than 4 kHz. Higher frequency
+signals must be filtered out before feeding them to ADC.</P>
+
+<P>Sample encoding limits the dynamic range of a recorded signal
+(difference between the faintest and the loudest signal that can be
+recorded). In theory the maximum dynamic range of signal is number_of_bits *
+6dB. This means that 8 bits sampling resolution gives dynamic range of
+48dB and 16 bit resolution gives 96dB.</P>
+
+<P>Quality has price. The number of bytes required to store an audio
+sequence depends on sampling rate, number of channels and sampling
+resolution. For example just 8000 bytes of memory is required to store
+one second of sound using 8kHz/8 bits/mono but 48kHz/16bit/stereo takes
+192 kilobytes. A 64 kbps ISDN channel is required to transfer a
+8kHz/8bit/mono audio stream in real time, and about 1.5Mbps is required
+for DAT quality (48kHz/16bit/stereo). On the other hand it is possible
+to store just 5.46 seconds of sound in a megabyte of memory when using
+48kHz/16bit/stereo sampling. With 8kHz/8bits/mono it is possible to store
+131 seconds of sound using the same amount of memory. It is possible
+to reduce memory and communication costs by compressing the recorded
+signal but this is beyond the scope of this document. </P>
+
+\section pcm_open_behaviour Blocked and non-blocked open
+
+The ALSA PCM API uses a different behaviour when the device is opened
+with blocked or non-blocked mode. The mode can be specified with
+\a mode argument in \link ::snd_pcm_open() \endlink function.
+The blocked mode is the default (without \link ::SND_PCM_NONBLOCK \endlink mode).
+In this mode, the behaviour is that if the resources have already used
+with another application, then it blocks the caller, until resources are
+free. The non-blocked behaviour (with \link ::SND_PCM_NONBLOCK \endlink)
+doesn't block the caller in any way and returns -EBUSY error when the
+resources are not available. Note that the mode also determines the
+behaviour of standard I/O calls, returning -EAGAIN when non-blocked mode is
+used and the ring buffer is full (playback) or empty (capture).
+The operation mode for I/O calls can be changed later with
+the \link snd_pcm_nonblock() \endlink function.
+
+\section pcm_async Asynchronous mode
+
+There is also possibility to receive asynchronous notification after
+specified time periods. You may see the \link ::SND_PCM_ASYNC \endlink
+mode for \link ::snd_pcm_open() \endlink function and
+\link ::snd_async_add_pcm_handler() \endlink function for further details.
+
+\section pcm_handshake Handshake between application and library
+
+The ALSA PCM API design uses the states to determine the communication
+phase between application and library. The actual state can be determined
+using \link ::snd_pcm_state() \endlink call. There are these states:
+
+\par SND_PCM_STATE_OPEN
+The PCM device is in the open state. After the \link ::snd_pcm_open() \endlink open call,
+the device is in this state. Also, when \link ::snd_pcm_hw_params() \endlink call fails,
+then this state is entered to force application calling 
+\link ::snd_pcm_hw_params() \endlink function to set right communication
+parameters.
+
+\par SND_PCM_STATE_SETUP
+The PCM device has accepted communication parameters and it is waiting
+for \link ::snd_pcm_prepare() \endlink call to prepare the hardware for
+selected operation (playback or capture).
+
+\par SND_PCM_STATE_PREPARE
+The PCM device is prepared for operation. Application can use
+\link ::snd_pcm_start() \endlink call, write or read data to start
+the operation.
+
+\par SND_PCM_STATE_RUNNING
+The PCM device is running. It processes the samples. The stream can
+be stopped using the \link ::snd_pcm_drop() \endlink or
+\link ::snd_pcm_drain \endlink calls.
+
+\par SND_PCM_STATE_XRUN
+The PCM device reached overrun (capture) or underrun (playback).
+You can use the -EPIPE return code from I/O functions
+(\link ::snd_pcm_writei() \endlink, \link ::snd_pcm_writen() \endlink,
+ \link ::snd_pcm_readi() \endlink, \link ::snd_pcm_readi() \endlink)
+to determine this state without checking
+the actual state via \link ::snd_pcm_state() \endlink call. You can recover from
+this state with \link ::snd_pcm_prepare() \endlink,
+\link ::snd_pcm_drop() \endlink or \link ::snd_pcm_drain() \endlink calls.
+
+\par SND_PCM_STATE_DRAINING
+The device is in this state when application using the capture mode
+called \link ::snd_pcm_drain() \endlink function. Until all data are
+read from the internal ring buffer using I/O routines
+(\link ::snd_pcm_readi() \endlink, \link ::snd_pcm_readn() \endlink),
+then the device stays in this state.
+
+\par SND_PCM_STATE_PAUSED
+The device is in this state when application called
+the \link ::snd_pcm_pause() \endlink function until the pause is released.
+Not all hardware supports this feature. Application should check the
+capability with the \link ::snd_pcm_hw_params_can_pause() \endlink.
+
+\par SND_PCM_STATE_SUSPENDED
+The device is in the suspend state provoked with the power management
+system. The stream can be resumed using \link ::snd_pcm_resume() \endlink
+call, but not all hardware supports this feature. Application should check
+the capability with the \link ::snd_pcm_hw_params_can_resume() \endlink.
+In other case, the calls \link ::snd_pcm_prepare() \endlink,
+\link ::snd_pcm_drop() \endlink, \link ::snd_pcm_drain() \endlink can be used
+to leave this state.
+
+*/
