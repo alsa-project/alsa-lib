@@ -49,7 +49,6 @@ struct _snd_rawmidi {
 	size_t buffer_size;
 	size_t avail_min;
 	unsigned int no_active_sensing: 1;
-	snd_rawmidi_t *other;
 };
 
 int snd_rawmidi_hw_open(snd_rawmidi_t **input, snd_rawmidi_t **output,

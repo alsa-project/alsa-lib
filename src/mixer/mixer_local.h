@@ -86,35 +86,14 @@ struct _snd_mixer_selem_id {
 	unsigned int index;
 };
 
-#define CAP_VOLUME		(1<<0)
-#define CAP_JOIN_VOLUME		(1<<1)
-#define CAP_MUTE		(1<<2)
-#define CAP_JOIN_MUTE		(1<<3)
-#define CAP_CAPTURE		(1<<4)
-#define CAP_JOIN_CAPTURE	(1<<5)
-#define CAP_EXCL_CAPTURE	(1<<6)
-
-struct _snd_mixer_selem_info {
-	unsigned int caps;		/* capabilities */
-	unsigned int channels;		/* bitmap of active channels */
-	int capture_group;		/* capture group (for exclusive capture) */
-	long min;			/* minimum value */
-	long max;			/* maximum value */
-};
-
-struct _snd_mixer_selem_value {
-	unsigned int mute;		/* RW: bitmap of muted channels */
-	unsigned int capture;		/* RW: bitmap of capture channels */
-	long volume[32];
-};
-
 int snd_mixer_class_register(snd_mixer_class_t *class, snd_mixer_t *mixer);
 int snd_mixer_add_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem);
 int snd_mixer_remove_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem);
 int snd_mixer_elem_throw_event(snd_mixer_elem_t *elem, unsigned int mask);
 int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class);
 int snd_mixer_elem_remove(snd_mixer_elem_t *elem);
-int snd_mixer_elem_change(snd_mixer_elem_t *elem);
+int snd_mixer_elem_info(snd_mixer_elem_t *elem);
+int snd_mixer_elem_value(snd_mixer_elem_t *elem);
 int snd_mixer_elem_attach(snd_mixer_elem_t *melem,
 			  snd_hctl_elem_t *helem);
 int snd_mixer_elem_detach(snd_mixer_elem_t *melem,

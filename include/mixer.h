@@ -77,8 +77,6 @@ enum _snd_mixer_selem_channel_id {
 
 /* Simple mixer */
 
-typedef struct _snd_mixer_selem_info snd_mixer_selem_info_t;
-typedef struct _snd_mixer_selem_value snd_mixer_selem_value_t;
 typedef struct _snd_mixer_selem_id snd_mixer_selem_id_t;
 
 #ifdef SND_ENUM_TYPECHECK
@@ -103,29 +101,46 @@ extern "C" {
 
 const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel);
 
-int snd_mixer_selem_register(snd_mixer_t *mixer, snd_mixer_class_t **classp);
+int snd_mixer_selem_register(snd_mixer_t *mixer, void *arg,
+			     snd_mixer_class_t **classp);
 void snd_mixer_selem_get_id(snd_mixer_elem_t *element,
 			    snd_mixer_selem_id_t *id);
 snd_mixer_elem_t *snd_mixer_find_selem(snd_mixer_t *mixer,
 				       const snd_mixer_selem_id_t *id);
-int snd_mixer_selem_info(snd_mixer_elem_t *element,
-			 snd_mixer_selem_info_t *info);
-int snd_mixer_selem_read(snd_mixer_elem_t *element,
-			 snd_mixer_selem_value_t *value);
-int snd_mixer_selem_write(snd_mixer_elem_t *element,
-			  const snd_mixer_selem_value_t *value);
 
-int snd_mixer_selem_info_is_mono(const snd_mixer_selem_info_t *info);
-int snd_mixer_selem_info_has_channel(const snd_mixer_selem_info_t *obj, snd_mixer_selem_channel_id_t channel);
-long snd_mixer_selem_value_get_volume(const snd_mixer_selem_value_t *obj, snd_mixer_selem_channel_id_t channel);
-void snd_mixer_selem_value_set_volume(snd_mixer_selem_value_t *obj, snd_mixer_selem_channel_id_t channel, long value);
-int snd_mixer_selem_value_get_mute(const snd_mixer_selem_value_t *obj, snd_mixer_selem_channel_id_t channel);
-int snd_mixer_selem_value_get_capture(const snd_mixer_selem_value_t *obj, snd_mixer_selem_channel_id_t channel);
-void snd_mixer_selem_value_set_mute(snd_mixer_selem_value_t *obj, snd_mixer_selem_channel_id_t channel, int mute);
-void snd_mixer_selem_value_set_capture(snd_mixer_selem_value_t *obj, snd_mixer_selem_channel_id_t channel, int capture);
-void snd_mixer_selem_value_set_mute_all(snd_mixer_selem_value_t *obj, int mute);
-void snd_mixer_selem_value_set_capture_all(snd_mixer_selem_value_t *obj, int capture);
-void snd_mixer_selem_value_set_volume_all(snd_mixer_selem_value_t *obj, long value);
+int snd_mixer_selem_is_playback_mono(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_playback_channel(snd_mixer_elem_t *obj, snd_mixer_selem_channel_id_t channel);
+int snd_mixer_selem_get_playback_min(snd_mixer_elem_t *elem);
+int snd_mixer_selem_get_playback_max(snd_mixer_elem_t *elem);
+int snd_mixer_selem_is_capture_mono(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_capture_channel(snd_mixer_elem_t *obj, snd_mixer_selem_channel_id_t channel);
+int snd_mixer_selem_get_capture_min(snd_mixer_elem_t *elem);
+int snd_mixer_selem_get_capture_max(snd_mixer_elem_t *elem);
+int snd_mixer_selem_get_capture_group(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_common_volume(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_playback_volume(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_playback_volume_joined(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_capture_volume(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_capture_volume_joined(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_common_switch(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_playback_switch(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_playback_switch_joined(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_capture_switch(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_capture_switch_joined(snd_mixer_elem_t *elem);
+int snd_mixer_selem_has_capture_switch_exclusive(snd_mixer_elem_t *elem);
+
+int snd_mixer_selem_get_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value);
+int snd_mixer_selem_get_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value);
+int snd_mixer_selem_get_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int *value);
+int snd_mixer_selem_get_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int *value);
+int snd_mixer_selem_set_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value);
+int snd_mixer_selem_set_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value);
+int snd_mixer_selem_set_playback_volume_all(snd_mixer_elem_t *elem, long value);
+int snd_mixer_selem_set_capture_volume_all(snd_mixer_elem_t *elem, long value);
+int snd_mixer_selem_set_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value);
+int snd_mixer_selem_set_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value);
+int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value);
+int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value);
 
 #ifdef __cplusplus
 }

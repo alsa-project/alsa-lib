@@ -292,11 +292,15 @@ int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 	return err;
 }
 
-int snd_mixer_elem_change(snd_mixer_elem_t *elem)
+int snd_mixer_elem_info(snd_mixer_elem_t *elem)
 {
 	return snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_MASK_INFO);
 }
 
+int snd_mixer_elem_value(snd_mixer_elem_t *elem)
+{
+	return snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_MASK_VALUE);
+}
 
 int snd_mixer_class_register(snd_mixer_class_t *class, snd_mixer_t *mixer)
 {

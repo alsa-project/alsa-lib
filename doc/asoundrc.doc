@@ -2,7 +2,6 @@
 PCM common fields:
 type		PCM type
 [comment]	Saved comments
-[stream]	capture or playback (default both)
 
 PCM types:
 
