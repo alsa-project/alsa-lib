@@ -32,6 +32,7 @@
 #include <getopt.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <limits.h>
 
 #include "asoundlib.h"
 #include "aserver.h"
