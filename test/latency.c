@@ -34,7 +34,7 @@ static char *xitoa(int aaa)
  *  Used format is 44100Hz, Signed Little Endian 16-bit, Stereo.
  */
 
-int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *bufsize)
+int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 {
 	int err;
 	snd_pcm_params_t params;
@@ -89,10 +89,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *bufsize)
 		printf("Playback prepare error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_prepare(chandle)) < 0) {
-		printf("Capture prepare error: %s\n", snd_strerror(err));
-		exit(0);
-	}
+
 	snd_pcm_dump(phandle, stdout);
 	snd_pcm_dump(chandle, stdout);
 	printf("Trying latency %i...\n", *bufsize);
@@ -191,11 +188,9 @@ int main(void)
 	int ccard = 0, cdevice = 0;
 	int err, latency = LATENCY_MIN - 4;
 	int size, ok;
-	int sync;
 	snd_pcm_status_t pstatus, cstatus;
 	ssize_t r;
 	size_t frames_in, frames_out;
-	snd_pcm_synchro_request_t sync_req[2];
 
 	setscheduler();
 	if ((err = snd_pcm_plug_open(&phandle, pcard, pdevice, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK)) < 0) {
@@ -206,10 +201,11 @@ int main(void)
 		printf("Record open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-	memset(sync_req, 0, sizeof(sync_req));
-	sync_req[0].handle = phandle;
-	sync_req[0].result = -3;
-	sync_req[1].handle = chandle;
+	if ((err = snd_pcm_link(phandle, chandle)) < 0) {
+		printf("Streams link error: %s\n", snd_strerror(err));
+		exit(0);
+	}
+	  
 #ifdef USE_FRAGMENT_MODE
 	printf("Using fragment mode...\n");
 #else
@@ -218,7 +214,7 @@ int main(void)
 	printf("Loop limit is %li frames\n", LOOP_LIMIT);
 	while (1) {
 		frames_in = frames_out = 0;
-		if (setparams(phandle, chandle, sync, &latency) < 0)
+		if (setparams(phandle, chandle, &latency) < 0)
 			break;
 		if (snd_pcm_format_set_silence(SND_PCM_SFMT_S16_LE, buffer, latency*2) < 0) {
 			fprintf(stderr, "silence error\n");
@@ -229,13 +225,9 @@ int main(void)
 			break;
 		}
 
-		if ((err = snd_pcm_synchro(SND_PCM_SYNCHRO_GO, 2, sync_req, SND_PCM_SYNC_MODE_NORMAL)) < 0) {
-			printf("Sync go error: %s\n", snd_strerror(err));
+		if ((err = snd_pcm_go(phandle)) < 0) {
+			printf("Go error: %s\n", snd_strerror(err));
 			exit(0);
-		}
-		if (sync_req[0].tstamp.tv_sec == sync_req[1].tstamp.tv_sec &&
-		    sync_req[0].tstamp.tv_usec == sync_req[1].tstamp.tv_usec) {
-			printf("Hardware sync\n");
 		}
 		ok = 1;
 		size = 0;
@@ -249,15 +241,19 @@ int main(void)
 		showstat(phandle, &pstatus, frames_out);
 		printf("Capture:\n");
 		showstat(chandle, &cstatus, frames_in);
-		snd_pcm_flush(chandle);
+		if (pstatus.trigger_time.tv_sec == cstatus.trigger_time.tv_sec &&
+		    pstatus.trigger_time.tv_usec == cstatus.trigger_time.tv_usec)
+			printf("Hardware sync\n");
 		snd_pcm_flush(phandle);
 		if (ok) {
+#if 0
 			printf("Playback time = %li.%i, Record time = %li.%i, diff = %li\n",
-			       pstatus.stime.tv_sec,
-			       (int)pstatus.stime.tv_usec,
-			       cstatus.stime.tv_sec,
-			       (int)cstatus.stime.tv_usec,
-			       timediff(pstatus.stime, cstatus.stime));
+			       pstatus.trigger_time.tv_sec,
+			       (int)pstatus.trigger_time.tv_usec,
+			       cstatus.trigger_time.tv_sec,
+			       (int)cstatus.trigger_time.tv_usec,
+			       timediff(pstatus.trigger_time, cstatus.trigger_time));
+#endif
 			break;
 		}
 	}
