@@ -28,9 +28,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "control_local.h"
-#ifdef SUPPORT_RESMGR
-#include <resmgr.h>
-#endif
 
 #ifndef PIC
 /* entry for static linking */
@@ -340,18 +337,10 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 		fmode |= O_NONBLOCK;
 	if (mode & SND_CTL_ASYNC)
 		fmode |= O_ASYNC;
-#ifdef SUPPORT_RESMGR
-	fd = rsm_open_device(filename, fmode);
-#else
-	fd = open(filename, fmode);
-#endif
+	fd = snd_open_device(filename, fmode);
 	if (fd < 0) {
 		snd_card_load(card);
-#ifdef SUPPORT_RESMGR
-		fd = rsm_open_device(filename, fmode);
-#else
-		fd = open(filename, fmode);
-#endif
+		fd = snd_open_device(filename, fmode);
 		if (fd < 0)
 			return -errno;
 	}

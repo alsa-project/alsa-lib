@@ -33,9 +33,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "control_local.h"
-#ifdef SUPPORT_RESMGR
-#include <resmgr.h>
-#endif
 
 #ifndef DOC_HIDDEN
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
@@ -54,19 +51,11 @@ int snd_card_load(int card)
 
 	sprintf(control, SND_FILE_CONTROL, card);
 
-#ifdef SUPPORT_RESMGR
-	open_dev = rsm_open_device(control, O_RDONLY);
-#else
-	open_dev = open(control, O_RDONLY);
-#endif
+	open_dev = snd_open_device(control, O_RDONLY);
 	if (open_dev < 0) {
 		char aload[32];
 		sprintf(aload, SND_FILE_LOAD, card);
-#ifdef SUPPORT_RESMGR
-		open_dev = rsm_open_device(aload, O_RDONLY);
-#else
-		open_dev = open(aload, O_RDONLY);
-#endif
+		open_dev = snd_open_device(aload, O_RDONLY);
 	}
 	if (open_dev >= 0) {
 		close (open_dev);

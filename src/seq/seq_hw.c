@@ -23,9 +23,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "seq_local.h"
-#ifdef SUPPORT_RESMGR
-#include <resmgr.h>
-#endif
 
 #ifndef PIC
 /* entry for static linking */
@@ -443,24 +440,12 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		fmode |= O_NONBLOCK;
 
 	filename = SNDRV_FILE_SEQ;
-#ifdef SUPPORT_RESMGR
-	fd = rsm_open_device(filename, fmode);
-#else
-	fd = open(filename, fmode);
-#endif
+	fd = snd_open_device(filename, fmode);
 	if (fd < 0) {
-#ifdef SUPPORT_RESMGR
-		fd = open(SNDRV_FILE_ALOADSEQ, O_RDWR);
-#else
-		fd = open(SNDRV_FILE_ALOADSEQ, fmode);
-#endif
+		fd = snd_open_device(SNDRV_FILE_ALOADSEQ, fmode);
 		if (fd >= 0)
 			close(fd);
-#ifdef SUPPORT_RESMGR
-		fd = rsm_open_device(filename, fmode);
-#else
-		fd = open(filename, fmode);
-#endif
+		fd = snd_open_device(filename, fmode);
 		if (fd < 0) {
 			SYSERR("open %s failed", filename);
 			return -errno;

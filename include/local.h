@@ -34,6 +34,9 @@
 #include <errno.h>
 
 #include "config.h"
+#ifdef SUPPORT_RESMGR
+#include <resmgr.h>
+#endif
 
 #define _snd_config_iterator list_head
 #define _snd_interval sndrv_interval
@@ -214,6 +217,19 @@ extern snd_lib_error_handler_t snd_err_msg;
 #else
 /* We will never be heard; they will all die horribly.  */
 # define link_warning(symbol, msg)
+#endif
+
+/* open with resmgr */
+#ifdef SUPPORT_RESMGR
+static inline int snd_open_device(const char *filename, int fmode)
+{
+	int fd = open(filename, fmode);
+	if (fd >= 0)
+		return fd;
+	return rsm_open_device(filename, fmode);
+}
+#else
+#define snd_open_device(filename, fmode) open(filename, fmode);
 #endif
 
 #endif
