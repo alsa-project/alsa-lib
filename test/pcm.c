@@ -226,22 +226,17 @@ static int write_loop(snd_pcm_t *handle,
  *   Transfer method - write and wait for room in buffer using poll
  */
 
-static int wait_for_poll(struct pollfd *ufds, int count)
+static int wait_for_poll(snd_pcm_t *handle, struct pollfd *ufds, unsigned int count)
 {
-	int i;
-	unsigned int events;
+	unsigned short revents;
 
 	while (1) {
 		poll(ufds, count, -1);
-		for (i = 0; i < count; i++) {
-			events = ufds[i].revents;
-			if (events & POLLERR) {
-				printf("Poll - POLLERR detected\n");
-				return -EIO;
-			}
-			if (events & POLLOUT)
-				return 0;
-		}
+		snd_pcm_poll_descriptors_revents(handle, ufds, count, &revents);
+		if (revents & POLLERR)
+			return -EIO;
+		if (revents & POLLOUT)
+			return 0;
 	}
 }
 
@@ -252,7 +247,7 @@ static int write_and_poll_loop(snd_pcm_t *handle,
 	struct pollfd *ufds;
 	double phase = 0;
 	signed short *ptr;
-	int err, count, cptr;
+	int err, count, cptr, init;
 
 	count = snd_pcm_poll_descriptors_count (handle);
 	if (count <= 0) {
@@ -270,11 +265,24 @@ static int write_and_poll_loop(snd_pcm_t *handle,
 		return err;
 	}
 
+	init = 1;
 	while (1) {
-		err = wait_for_poll(ufds, count);
-		if (err < 0) {
-			printf("Wait for poll failed\n");
-			return err;
+		if (!init) {
+			err = wait_for_poll(handle, ufds, count);
+			if (err < 0) {
+				if (snd_pcm_state(handle) == SND_PCM_STATE_XRUN ||
+				    snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
+					err = snd_pcm_state(handle) == SND_PCM_STATE_XRUN ? -EPIPE : -ESTRPIPE;
+					if (xrun_recovery(handle, err) < 0) {
+						printf("Write error: %s\n", snd_strerror(err));
+						exit(EXIT_FAILURE);
+					}
+					init = 1;
+				} else {
+					printf("Wait for poll failed\n");
+					return err;
+				}
+			}
 		}
 
 		generate_sine(areas, 0, period_size, &phase);
@@ -287,18 +295,31 @@ static int write_and_poll_loop(snd_pcm_t *handle,
 					printf("Write error: %s\n", snd_strerror(err));
 					exit(EXIT_FAILURE);
 				}
+				init = 1;
 				break;	/* skip one period */
 			}
+			if (snd_pcm_state(handle) == SND_PCM_STATE_RUNNING)
+				init = 0;
 			ptr += err * channels;
 			cptr -= err;
 			if (cptr == 0)
 				break;
 			/* it is possible, that initial buffer cannot store */
 			/* all data from last period, so wait awhile */
-			err = wait_for_poll(ufds, count);
+			err = wait_for_poll(handle, ufds, count);
 			if (err < 0) {
-				printf("Wait for poll failed\n");
-				return err;
+				if (snd_pcm_state(handle) == SND_PCM_STATE_XRUN ||
+				    snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
+					err = snd_pcm_state(handle) == SND_PCM_STATE_XRUN ? -EPIPE : -ESTRPIPE;
+					if (xrun_recovery(handle, err) < 0) {
+						printf("Write error: %s\n", snd_strerror(err));
+						exit(EXIT_FAILURE);
+					}
+					init = 1;
+				} else {
+					printf("Wait for poll failed\n");
+					return err;
+				}
 			}
 		}
 	}

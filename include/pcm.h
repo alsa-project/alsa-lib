@@ -362,6 +362,7 @@ snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
 snd_pcm_stream_t snd_pcm_stream(snd_pcm_t *pcm);
 int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm);
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
+int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm, 
 			      snd_async_callback_t callback, void *private_data);
@@ -710,7 +711,7 @@ void snd_pcm_subformat_mask_copy(snd_pcm_subformat_mask_t *dst, const snd_pcm_su
 void snd_pcm_subformat_mask_none(snd_pcm_subformat_mask_t *mask);
 void snd_pcm_subformat_mask_any(snd_pcm_subformat_mask_t *mask);
 int snd_pcm_subformat_mask_test(const snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val);
-int snd_pcm_subformat_mask_empty(const snd_pcm_format_mask_t *mask);
+int snd_pcm_subformat_mask_empty(const snd_pcm_subformat_mask_t *mask);
 void snd_pcm_subformat_mask_set(snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val);
 void snd_pcm_subformat_mask_reset(snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val);
 

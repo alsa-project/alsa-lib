@@ -260,13 +260,13 @@ int snd_hwdep_poll_descriptors(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned
 		pfds->fd = hwdep->poll_fd;
 		switch (hwdep->mode & O_ACCMODE) {
 		case O_WRONLY:
-			pfds->events = POLLOUT;
+			pfds->events = POLLOUT|POLLERR;
 			break;
 		case O_RDONLY:
-			pfds->events = POLLIN;
+			pfds->events = POLLIN|POLLERR;
 			break;
 		case O_RDWR:
-			pfds->events = POLLOUT|POLLIN;
+			pfds->events = POLLOUT|POLLIN|POLLERR;
 			break;
 		default:
 			return -EIO;
@@ -276,6 +276,24 @@ int snd_hwdep_poll_descriptors(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned
 	return 0;
 }
 
+/**
+ * \brief get returned events from poll descriptors
+ * \param hwdep HwDep  handle
+ * \param pfds array of poll descriptors
+ * \param nfds count of poll descriptors
+ * \param revents returned events
+ * \return zero if success, otherwise a negative error code
+ */
+int snd_hwdep_poll_descriptors_revents(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+        assert(hwdep && pfds && revents);
+        if (nfds == 1) {
+                *revents = pfds->revents;
+                return 0;
+        }
+        return -EINVAL;
+}                                                                       
+                                                                       
 /**
  * \brief set nonblock mode
  * \param hwdep HwDep handle

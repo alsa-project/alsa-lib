@@ -160,13 +160,31 @@ int snd_ctl_poll_descriptors_count(snd_ctl_t *ctl)
  */
 int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int space)
 {
-	assert(ctl);
+	assert(ctl && pfds);
 	if (space > 0) {
 		pfds->fd = ctl->poll_fd;
-		pfds->events = POLLIN;
+		pfds->events = POLLIN|POLLERR;
 		return 1;
 	}
 	return 0;
+}
+
+/**
+ * \brief get returned events from poll descriptors
+ * \param ctl CTL handle
+ * \param pfds array of poll descriptors
+ * \param nfds count of poll descriptors
+ * \param revents returned events
+ * \return zero if success, otherwise a negative error code
+ */
+int snd_ctl_poll_descriptors_revents(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	assert(ctl && pfds && revents);
+	if (nfds == 1) {
+		*revents = pfds->revents;
+                return 0;
+	}
+	return -EINVAL;
 }
 
 /**

@@ -305,17 +305,35 @@ int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int s
 	assert(seq);
 	if ((events & POLLIN) && space >= 1) {
 		assert(seq->streams & SND_SEQ_OPEN_INPUT);
-		revents |= POLLIN;
+		revents |= POLLIN|POLLERR;
 	}
 	if ((events & POLLOUT) && space >= 1) {
 		assert(seq->streams & SND_SEQ_OPEN_INPUT);
-		revents |= POLLOUT;
+		revents |= POLLOUT|POLLERR;
 	}
 	if (!revents)
 		return 0;
 	pfds->fd = seq->poll_fd;
 	pfds->events = revents;
 	return 1;
+}
+
+/**
+ * \brief get returned events from poll descriptors
+ * \param seq sequencer handle
+ * \param pfds array of poll descriptors
+ * \param nfds count of poll descriptors
+ * \param revents returned events
+ * \return zero if success, otherwise a negative error code
+ */
+int snd_seq_poll_descriptors_revents(snd_seq_t *seq, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+        assert(seq && pfds && revents);
+        if (nfds == 1) {
+                *revents = pfds->revents;
+                return 0;
+        }
+        return -EINVAL;
 }
 
 /**

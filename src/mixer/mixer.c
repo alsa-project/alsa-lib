@@ -600,6 +600,28 @@ int snd_mixer_poll_descriptors(snd_mixer_t *mixer, struct pollfd *pfds, unsigned
 }
 
 /**
+ * \brief get returned events from poll descriptors
+ * \param mixer Mixer handle
+ * \param pfds array of poll descriptors
+ * \param nfds count of poll descriptors
+ * \param revents returned events
+ * \return zero if success, otherwise a negative error code
+ */
+int snd_mixer_poll_descriptors_revents(snd_mixer_t *mixer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	unsigned int idx;
+	unsigned short res;
+        assert(mixer && pfds && revents);
+	if (nfds == 0)
+		return -EINVAL;
+	res = 0;
+	for (idx = 0; idx < nfds; idx++)
+		res |= pfds->revents & (POLLIN|POLLERR);
+	*revents = res;
+	return 0;
+}
+
+/**
  * \brief Wait for a mixer to become ready (i.e. at least one event pending)
  * \param mixer Mixer handle
  * \param timeout maximum time in milliseconds to wait

@@ -313,10 +313,28 @@ int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rawmidi, struct pollfd *pfds, un
 	assert(rawmidi);
 	if (space >= 1) {
 		pfds->fd = rawmidi->poll_fd;
-		pfds->events = rawmidi->stream == SND_RAWMIDI_STREAM_OUTPUT ? POLLOUT : POLLIN;
+		pfds->events = rawmidi->stream == SND_RAWMIDI_STREAM_OUTPUT ? (POLLOUT|POLLERR) : (POLLIN|POLLERR);
 		return 1;
 	}
 	return 0;
+}
+
+/**
+ * \brief get returned events from poll descriptors
+ * \param pcm rawmidi RawMidi handle
+ * \param pfds array of poll descriptors
+ * \param nfds count of poll descriptors
+ * \param revents returned events
+ * \return zero if success, otherwise a negative error code
+ */
+int snd_rawmidi_poll_descriptors_revents(snd_rawmidi_t *rawmidi, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+        assert(rawmidi && pfds && revents);
+        if (nfds == 1) {
+                *revents = pfds->revents;
+                return 0;
+        }
+        return -EINVAL;
 }
 
 /**

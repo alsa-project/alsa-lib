@@ -90,6 +90,7 @@ int snd_mixer_attach(snd_mixer_t *mixer, const char *name);
 int snd_mixer_detach(snd_mixer_t *mixer, const char *name);
 int snd_mixer_poll_descriptors_count(snd_mixer_t *mixer);
 int snd_mixer_poll_descriptors(snd_mixer_t *mixer, struct pollfd *pfds, unsigned int space);
+int snd_mixer_poll_descriptors_revents(snd_mixer_t *mixer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_mixer_load(snd_mixer_t *mixer);
 void snd_mixer_free(snd_mixer_t *mixer);
 int snd_mixer_wait(snd_mixer_t *mixer, int timeout);

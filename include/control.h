@@ -201,6 +201,7 @@ int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl,
 snd_ctl_t *snd_async_handler_get_ctl(snd_async_handler_t *handler);
 int snd_ctl_poll_descriptors_count(snd_ctl_t *ctl);
 int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int space);
+int snd_ctl_poll_descriptors_revents(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_ctl_subscribe_events(snd_ctl_t *ctl, int subscribe);
 int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info);
 int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t * list);

@@ -1003,12 +1003,31 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
  */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
-	assert(pcm);
-	if (space >= 1) {
+	assert(pcm && pfds);
+	if (space >= 1 && pfds) {
 		pfds->fd = pcm->poll_fd;
-		pfds->events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
-	}
+		pfds->events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? (POLLOUT|POLLERR) : (POLLIN|POLLERR);
+	} else
+		return 0;
 	return 1;
+}
+
+/**
+ * \brief get returned events from poll descriptors
+ * \param pcm PCM handle
+ * \param pfds array of poll descriptors
+ * \param nfds count of poll descriptors
+ * \param revents returned events
+ * \return zero if success, otherwise a negative error code
+ */
+int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	assert(pcm && pfds && revents);
+	if (nfds == 1) {
+		*revents = pfds->revents;
+		return 0;
+	}
+	return -EINVAL;
 }
 
 #ifndef DOC_HIDDEN

@@ -90,6 +90,7 @@ snd_seq_type_t snd_seq_type(snd_seq_t *seq);
 int snd_seq_close(snd_seq_t *handle);
 int snd_seq_poll_descriptors_count(snd_seq_t *handle, short events);
 int snd_seq_poll_descriptors(snd_seq_t *handle, struct pollfd *pfds, unsigned int space, short events);
+int snd_seq_poll_descriptors_revents(snd_seq_t *seq, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_seq_nonblock(snd_seq_t *handle, int nonblock);
 int snd_seq_client_id(snd_seq_t *handle);
 

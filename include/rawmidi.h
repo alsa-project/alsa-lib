@@ -84,6 +84,7 @@ int snd_rawmidi_open_lconf(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 int snd_rawmidi_close(snd_rawmidi_t *rmidi);
 int snd_rawmidi_poll_descriptors_count(snd_rawmidi_t *rmidi);
 int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsigned int space);
+int snd_rawmidi_poll_descriptors_revents(snd_rawmidi_t *rawmidi, struct pollfd *pfds, unsigned int nfds, unsigned short *revent);
 int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock);
 size_t snd_rawmidi_info_sizeof(void);
 /** \hideinitializer

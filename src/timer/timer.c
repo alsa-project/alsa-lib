@@ -261,13 +261,13 @@ int snd_timer_poll_descriptors(snd_timer_t *timer, struct pollfd *pfds, unsigned
 		pfds->fd = timer->poll_fd;
 		switch (timer->mode & O_ACCMODE) {
 		case O_WRONLY:
-			pfds->events = POLLOUT;
+			pfds->events = POLLOUT|POLLERR;
 			break;
 		case O_RDONLY:
-			pfds->events = POLLIN;
+			pfds->events = POLLIN|POLLERR;
 			break;
 		case O_RDWR:
-			pfds->events = POLLOUT|POLLIN;
+			pfds->events = POLLOUT|POLLIN|POLLERR;
 			break;
 		default:
 			return -EIO;
@@ -275,6 +275,24 @@ int snd_timer_poll_descriptors(snd_timer_t *timer, struct pollfd *pfds, unsigned
 		return 1;
 	}
 	return 0;
+}
+
+/**
+ * \brief get returned events from poll descriptors
+ * \param timer timer handle
+ * \param pfds array of poll descriptors
+ * \param nfds count of poll descriptors
+ * \param revents returned events
+ * \return zero if success, otherwise a negative error code
+ */
+int snd_timer_poll_descriptors_revents(snd_timer_t *timer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+        assert(timer && pfds && revents);
+        if (nfds == 1) {
+                *revents = pfds->revents;
+                return 0;
+        }
+        return -EINVAL;
 }
 
 /**

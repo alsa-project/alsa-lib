@@ -110,6 +110,7 @@ int snd_timer_open_lconf(snd_timer_t **handle, const char *name, int mode, snd_c
 int snd_timer_close(snd_timer_t *handle);
 int snd_timer_poll_descriptors_count(snd_timer_t *handle);
 int snd_timer_poll_descriptors(snd_timer_t *handle, struct pollfd *pfds, unsigned int space);
+int snd_timer_poll_descriptors_revents(snd_timer_t *timer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_timer_info(snd_timer_t *handle, snd_timer_info_t *timer);
 int snd_timer_params(snd_timer_t *handle, snd_timer_params_t *params);
 int snd_timer_status(snd_timer_t *handle, snd_timer_status_t *status);
