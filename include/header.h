@@ -1,6 +1,7 @@
 /*
  *  Application interface library for the ALSA driver
  *  Copyright (c) by Jaroslav Kysela <perex@suse.cz>
+ *                   Abramo Bagnara <abramo@alsa-project.org>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

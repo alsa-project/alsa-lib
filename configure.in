@@ -43,6 +43,6 @@ AC_OUTPUT(Makefile doc/Makefile include/Makefile src/Makefile \
           src/control/Makefile src/mixer/Makefile src/pcm/Makefile \
 	  src/pcm/plugin/Makefile src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/instr/Makefile \
-          src/compat/Makefile \
+          src/compat/Makefile src/conf/Makefile \
           test/Makefile utils/Makefile \
           utils/alsa-lib.spec)
