@@ -110,36 +110,40 @@ int make_inet_socket(int port)
 int send_fd(int socket, void *data, size_t len, int fd)
 {
     int ret;
-    struct cmsg_fd cmsg;
+    size_t cmsg_len = CMSG_LEN(sizeof(int));
+    struct cmsghdr *cmsg = alloca(cmsg_len);
+    int *fds = (int *) CMSG_DATA(cmsg);
     struct msghdr msghdr;
     struct iovec vec;
 
     vec.iov_base = (void *)&data;
     vec.iov_len = len;
 
-    cmsg.len = sizeof(cmsg);
-    cmsg.level = SOL_SOCKET;
-    cmsg.type = SCM_RIGHTS;
-    cmsg.fd = fd;
+    cmsg->cmsg_len = cmsg_len;
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_RIGHTS;
+    *fds = fd;
 
     msghdr.msg_name = NULL;
     msghdr.msg_namelen = 0;
     msghdr.msg_iov = &vec;
     msghdr.msg_iovlen = 1;
-    msghdr.msg_control = &cmsg;
-    msghdr.msg_controllen = sizeof(cmsg);
+    msghdr.msg_control = cmsg;
+    msghdr.msg_controllen = cmsg_len;
     msghdr.msg_flags = 0;
 
     ret = sendmsg(socket, &msghdr, 0 );
-    if (ret < 0)
+    if (ret < 0) {
+	    perrno("sendmsg");
 	    return -errno;
+    }
     return ret;
 }
 
 typedef struct client client_t;
 
 typedef struct {
-	int (*open)(client_t *client, long *cookie);
+	int (*open)(client_t *client, int *cookie);
 	int (*cmd)(client_t *client);
 	int (*close)(client_t *client);
 	int (*poll_prepare)(client_t *client, struct pollfd *pfds, int pindex);
@@ -198,7 +202,7 @@ struct client {
 client_t clients[CLIENTS_MAX];
 int clients_count = 0;
 
-int pcm_shm_open(client_t *client, long *cookie)
+int pcm_shm_open(client_t *client, int *cookie)
 {
 	int shmid;
 	snd_pcm_t *pcm;
@@ -566,8 +570,6 @@ void snd_client_open(client_t *client)
 	}
 
  _answer:
-	ans.result = htonl(ans.result);
-	ans.cookie = htonl(ans.cookie);
 	err = write(client->ctrl.fd, &ans, sizeof(ans));
 	if (err != sizeof(ans)) {
 		perrno("write");

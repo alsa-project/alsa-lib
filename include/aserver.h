@@ -65,7 +65,7 @@ typedef struct {
 
 typedef struct {
 	long result;
-	long cookie;
+	int cookie;
 } snd_client_open_answer_t;
 
 struct cmsg_fd
