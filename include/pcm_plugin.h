@@ -133,6 +133,9 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 			      unsigned int tt_csize, unsigned int tt_ssize,
 			      unsigned int *tt_cused, unsigned int *tt_sused,
 			      int schannels);
+int snd_pcm_route_determine_ttable(snd_config_t *tt,
+				   unsigned int *tt_csize,
+				   unsigned int *tt_ssize);
 int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_format_t sformat, int schannels,
 		       snd_pcm_route_ttable_entry_t *ttable,
