@@ -44,7 +44,7 @@ const char *snd_strerror(int errnum)
 	return snd_error_codes[errnum];
 }
 
-void snd_lib_error(const char *file, int line, const char *function, int err, const char *fmt, ...)
+static void snd_lib_error_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
 {
 	va_list arg;
 	va_start(arg, fmt);
@@ -56,3 +56,10 @@ void snd_lib_error(const char *file, int line, const char *function, int err, co
 	va_end(arg);
 }
 
+snd_lib_error_handler_t *snd_lib_error = snd_lib_error_default;
+
+int snd_lib_error_set_handler(snd_lib_error_handler_t *handler)
+{
+	snd_lib_error = handler == NULL ? snd_lib_error_default : handler;
+	return 0;
+}
