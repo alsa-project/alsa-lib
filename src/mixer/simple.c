@@ -730,8 +730,8 @@ int snd_mixer_simple_build(snd_mixer_t *handle)
 		"Phone",
 		"PC Speaker",
 		"Aux",
-		"Playback Volume",
-		"Capture Volume",
+		"Playback",
+		"Capture",
 		NULL
 	};
 	char **input = inputs;
