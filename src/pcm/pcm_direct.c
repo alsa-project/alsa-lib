@@ -410,15 +410,23 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	unsigned short events;
-	static snd_timer_read_t rbuf[5];	/* can be overwriten by multiple plugins, we don't need the value */
+	/* rbuf might be overwriten by multiple plugins */
+	/* we don't need the value */
+	static snd_timer_read_t rbuf[5];
 
 	assert(pfds && nfds == 1 && revents);
 	events = pfds[0].revents;
 	if (events & POLLIN) {
-		events |= POLLOUT;
-		events &= ~POLLIN;
+		int empty = 0;
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+			events |= POLLOUT;
+			events &= ~POLLIN;
+			empty = snd_pcm_mmap_playback_avail(pcm) < pcm->avail_min;
+		} else {
+			empty = snd_pcm_mmap_capture_avail(pcm) < pcm->avail_min;
+		}
 		/* empty the timer read queue */
-		while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf)) ;
+		while (empty && snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf)) ;
 	}
 	*revents = events;
 	return 0;

@@ -292,6 +292,7 @@ static int snd_pcm_dshare_start(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 	dshare->state = SND_PCM_STATE_RUNNING;
+	snd_pcm_hwsync(dshare->spcm);
 	dshare->slave_appl_ptr = dshare->slave_hw_ptr = *dshare->spcm->hw.ptr;
 	avail = snd_pcm_mmap_playback_hw_avail(pcm);
 	if (avail < 0)

@@ -407,7 +407,6 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	}
 	dmix->hw_ptr += diff;
 	dmix->hw_ptr %= pcm->boundary;
-	// printf("sync ptr diff = %li\n", diff);
 	if (pcm->stop_threshold >= pcm->boundary)	/* don't care */
 		return 0;
 	if ((avail = snd_pcm_mmap_playback_avail(pcm)) >= pcm->stop_threshold) {
@@ -545,6 +544,7 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 	dmix->state = SND_PCM_STATE_RUNNING;
+	snd_pcm_hwsync(dmix->spcm);
 	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
 	avail = snd_pcm_mmap_playback_hw_avail(pcm);
 	if (avail < 0)

@@ -274,6 +274,7 @@ static int snd_pcm_dsnoop_start(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 	dsnoop->state = SND_PCM_STATE_RUNNING;
+	snd_pcm_hwsync(dsnoop->spcm);
 	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr = *dsnoop->spcm->hw.ptr;
 	gettimeofday(&tv, 0);
 	dsnoop->trigger_tstamp.tv_sec = tv.tv_sec;
