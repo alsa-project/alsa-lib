@@ -516,10 +516,13 @@ static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 		slave_format->sfmt = slave_fmt;
 	}
 	slave_info.req_mask |= SND_PCM_PARAMS_SFMT;
-	err = snd_pcm_params_info(slave, &slave_info);
-	assert(err >= 0);
-	if (err < 0)
-		return err;
+
+	if (slave_info.formats != 1U << slave_format->sfmt) {
+		err = snd_pcm_params_info(slave, &slave_info);
+		assert(err >= 0);
+		if (err < 0)
+			return err;
+	}
 
       	if (format->channels < slave_info.min_channels)
 		slave_format->channels = slave_info.min_channels;
