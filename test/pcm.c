@@ -127,7 +127,7 @@ static int set_hwparams(snd_pcm_t *handle,
 		return err;
 	}
 	err = snd_pcm_hw_params_get_period_size(params, &period_size, &dir);
-	if (err > 0) {
+	if (err < 0) {
 		printf("Unable to get period size for playback: %s\n", snd_strerror(err));
 		return err;
 	}
