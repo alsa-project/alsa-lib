@@ -887,12 +887,20 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 	case CTL_GLOBAL_SWITCH:
 	case CTL_PLAYBACK_SWITCH:
 	case CTL_CAPTURE_SWITCH:
+		if (info.type == SND_CTL_ELEM_TYPE_ENUMERATED) {
+			type = CTL_ENUMLIST;
+			break;
+		}
 		if (info.type != SND_CTL_ELEM_TYPE_BOOLEAN)
 			return 0;
 		break;
 	case CTL_GLOBAL_VOLUME:
 	case CTL_PLAYBACK_VOLUME:
 	case CTL_CAPTURE_VOLUME:
+		if (info.type == SND_CTL_ELEM_TYPE_ENUMERATED) {
+			type = CTL_ENUMLIST;
+			break;
+		}
 		if (info.type != SND_CTL_ELEM_TYPE_INTEGER)
 			return 0;
 		break;
