@@ -3113,6 +3113,10 @@ int snd_config_update_free_global(void)
 		snd_config_update_free(snd_config_global_update);
 	snd_config_global_update = NULL;
 	pthread_mutex_unlock(&snd_config_update_mutex);
+
+	/* FIXME: better to place this in another place... */
+	snd_dlobj_cache_cleanup();
+
 	return 0;
 }
 

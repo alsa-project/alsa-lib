@@ -232,4 +232,9 @@ static inline int snd_open_device(const char *filename, int fmode)
 #define snd_open_device(filename, fmode) open(filename, fmode);
 #endif
 
+/* dlobj cache */
+void *snd_dlobj_cache_lookup(const char *name);
+int snd_dlobj_cache_add(const char *name, void *dlobj, void *open_func);
+void snd_dlobj_cache_cleanup(void);
+
 #endif

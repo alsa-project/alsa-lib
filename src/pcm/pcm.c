@@ -2019,6 +2019,11 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 #ifndef PIC
 	snd_pcm_open_symbols();	/* this call is for static linking only */
 #endif
+	open_func = snd_dlobj_cache_lookup(open_name);
+	if (open_func) {
+		err = 0;
+		goto _err;
+	}
 	h = snd_dlopen(lib, RTLD_NOW);
 	if (h)
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION));
@@ -2032,17 +2037,22 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		err = -ENXIO;
 	}
        _err:
-	if (type_conf)
-		snd_config_delete(type_conf);
 	if (err >= 0) {
 		err = open_func(pcmp, name, pcm_root, pcm_conf, stream, mode);
 		if (err >= 0) {
+			if (h /*&& (mode & SND_PCM_KEEP_ALIVE)*/) {
+				snd_dlobj_cache_add(open_name, h, open_func);
+				h = NULL;
+			}
 			(*pcmp)->dl_handle = h;
 			err = 0;
 		} else {
-			snd_dlclose(h);
+			if (h)
+				snd_dlclose(h);
 		}
 	}
+	if (type_conf)
+		snd_config_delete(type_conf);
 	if (buf)
 		free(buf);
 	if (buf1)

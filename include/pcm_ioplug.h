@@ -37,10 +37,13 @@ enum {
 typedef struct snd_pcm_ioplug snd_pcm_ioplug_t;
 typedef struct snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
 
+#define SND_PCM_IOPLUG_FLAG_LISTED	(1<<0)
+
 /* exported pcm data */
 struct snd_pcm_ioplug {
 	/* must be filled before calling snd_pcm_ioplug_create() */
 	const char *name;
+	unsigned int flags;	/* SND_PCM_IOPLUG_FLAG_XXX */
 	int poll_fd;
 	unsigned int poll_events;
 	unsigned int mmap_rw;		/* pseudo mmap */

@@ -29,6 +29,7 @@
 
 #define _GNU_SOURCE
 #include <dlfcn.h>
+#include "list.h"
 #include "local.h"
 
 #ifndef DOC_HIDDEN
@@ -142,4 +143,71 @@ void *snd_dlsym(void *handle, const char *name, const char *version)
 	if (err < 0)
 		return NULL;
 	return dlsym(handle, name);
+}
+
+/*
+ * dlobj cache
+ *
+ * FIXME: add reference counter and proper locking
+ */
+
+struct dlobj_cache {
+	const char *name;
+	void *obj;
+	void *func;
+	struct list_head list;
+};
+
+static LIST_HEAD(pcm_dlobj_list);
+
+void *snd_dlobj_cache_lookup(const char *name)
+{
+	struct list_head *p;
+	struct dlobj_cache *c;
+
+	list_for_each(p, &pcm_dlobj_list) {
+		c = list_entry(p, struct dlobj_cache, list);
+		if (strcmp(c->name, name) == 0)
+			return c->func;
+	}
+	return NULL;
+}
+
+int snd_dlobj_cache_add(const char *name, void *dlobj, void *open_func)
+{
+	struct list_head *p;
+	struct dlobj_cache *c;
+
+	list_for_each(p, &pcm_dlobj_list) {
+		c = list_entry(p, struct dlobj_cache, list);
+		if (strcmp(c->name, name) == 0)
+			return 0; /* already exists */
+	}
+	c = malloc(sizeof(*c));
+	if (! c)
+		return -ENOMEM;
+	c->name = strdup(name);
+	if (! c->name) {
+		free(c);
+		return -ENOMEM;
+	}
+	c->obj = dlobj;
+	c->func = open_func;
+	list_add_tail(&c->list, &pcm_dlobj_list);
+	return 0;
+}
+
+void snd_dlobj_cache_cleanup(void)
+{
+	struct list_head *p;
+	struct dlobj_cache *c;
+
+	while (! list_empty(&pcm_dlobj_list)) {
+		p = pcm_dlobj_list.next;
+		c = list_entry(p, struct dlobj_cache, list);
+		list_del(p);
+		snd_dlclose(c->obj);
+		free(c->name);
+		free(c);
+	}
 }
