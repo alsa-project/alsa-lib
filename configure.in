@@ -72,8 +72,24 @@ AC_ARG_WITH(versioned,
   [  --with-versioned=yes,no  shared library will (not) be compiled with versioned symbols],
   versioned="$withval", versioned="yes")
 if test "$versioned" = "yes"; then
-  AC_DEFINE(VERSIONED_SYMBOLS,,[compiled with versioned symbols])
-  AC_MSG_RESULT(yes)
+  # it seems that GNU ld versions since 2.10 are not broken
+  xres=`$LD --version | head -1 | sed -e 's/\(.*\) \([[:digit:]]*..*\)/\2/g'`
+  major=`echo $xres | cut -d . -f 1`
+  minor=`echo $xres | cut -d . -f 2`
+  pass=0
+  if test $major -eq 2 -a $minor -gt 9; then
+    pass=1
+  else
+    if test $major -gt 2; then
+      pass=1
+    fi
+  fi
+  if test $pass -eq 1; then
+    AC_DEFINE(VERSIONED_SYMBOLS,,[compiled with versioned symbols])
+    AC_MSG_RESULT(yes)
+  else
+    AC_MSG_RESULT(broken binutils; no versions)
+  fi
 else
   AC_MSG_RESULT(no)
 fi
