@@ -33,6 +33,8 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sched.h>
+#include <string.h>
 
 #include "midifile.h"		/* SMF library header */
 #include "midifile.c"		/* SMF library code */
@@ -119,7 +121,7 @@ void write_ev_im(snd_seq_event_t * ev)
 	while (written<0) {
 	  written = snd_seq_event_output (seq_handle, ev);
 		if (written<0) {
-		  printf("written = %i (%s)\n", written, strerror(-written));
+		  printf("written = %i (%s)\n", written, snd_strerror(written));
 		  sleep(1);
 		}
 	}
@@ -135,9 +137,7 @@ void write_ev(snd_seq_event_t * ev)
 /* write variable length event to ALSA sequencer */
 void write_ev_var(snd_seq_event_t * ev, int len, void *ptr)
 {
-	int bytes;
 	int written;
-	unsigned char *buf;
 
 	sleep_seq(ev->time.tick+ppq);
 
@@ -146,11 +146,13 @@ void write_ev_var(snd_seq_event_t * ev, int len, void *ptr)
 	ev->data.ext.len = len;
 	ev->data.ext.ptr = ptr;
 
-	written = 0;
-	while (!written) {
-	  	  written = snd_seq_event_output (seq_handle, ev);
-		if (!written)
-			sleep(1);
+	written = -ENOMEM;
+	while (written<0) {
+	  written = snd_seq_event_output (seq_handle, ev);
+	        if (written<0) {
+	          printf("written = %i (%s)\n", written, snd_strerror(written));
+	          sleep(1);
+		}
 	}
 }
 
@@ -559,7 +561,6 @@ void alsa_stop_timer(void)
 
 int main(int argc, char *argv[])
 {
-	char *name;
 	snd_seq_client_info_t inf;
 	snd_seq_port_info_t src_port_info;
 	snd_seq_queue_client_t queue_info;
@@ -705,7 +706,9 @@ int main(int argc, char *argv[])
 
 	snd_seq_close (seq_handle);
 
-	printf("Stopping at %lf s,  tick %d\n", tick2time_dbl(Mf_currtime + 1), Mf_currtime + 1);
+	printf("Stopping at %f s,  tick %f\n",
+	       tick2time_dbl(Mf_currtime + 1), (double) (Mf_currtime + 1));
+
 
 	exit(0);
 }
