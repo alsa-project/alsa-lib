@@ -52,7 +52,9 @@ static void MIX_AREAS1(unsigned int size,
 		"\tmovl %1, %%edi\n"
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
-		"\tjmp 2f\n"
+		"\tcmpl $0, %0\n"
+		"\tjnz 2f\n"
+		"\tjmp 7f\n"
 
 
 		/*
@@ -73,9 +75,8 @@ static void MIX_AREAS1(unsigned int size,
 		 */
 
 		"2:"
-		"\txor %%ax, %%ax\n"
-		"\tmovw %%ax, %%cx\n"
-		"\tincw  %%cx\n"
+		"\tmovw $0, %%ax\n"
+		"\tmovw $1, %%cx\n"
 		"\tmovl (%%ebx), %%edx\n"
 		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
 		"\tmovswl (%%esi), %%ecx\n"
@@ -106,8 +107,8 @@ static void MIX_AREAS1(unsigned int size,
 		 * while (size-- > 0)
 		 */
 		"\tdecl %0\n"
-		"\tjz  7f\n"
-		"\tjmp 1b\n"
+		"\tjnz 1b\n"
+		"\tjmp 7f\n"
 
 		/*
 		 *  sample > 0x7fff
@@ -171,7 +172,9 @@ static void MIX_AREAS1_MMX(unsigned int size,
 		"\tmovl %1, %%edi\n"
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
-		"\tjmp  2f\n"
+		"\tcmpl $0, %0\n"
+		"\tjnz 2f\n"
+		"\tjmp 5f\n"
 
 		"\t.p2align 4,,15\n"
 		"1:"
@@ -187,9 +190,8 @@ static void MIX_AREAS1_MMX(unsigned int size,
 		 *     sample -= sum_sample;
 		 *   xadd(*sum, sample);
 		 */
-		"\txor  %%ax, %%ax\n"
-		"\tmovw %%ax, %%cx\n"
-		"\tincw %%cx\n"
+		"\tmovw $0, %%ax\n"
+		"\tmovw $1, %%cx\n"
 		"\tmovl (%%ebx), %%edx\n"
 		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
 		"\tmovswl (%%esi), %%ecx\n"
@@ -221,6 +223,7 @@ static void MIX_AREAS1_MMX(unsigned int size,
 		"\tdecl %0\n"
 		"\tjnz 1b\n"
 		"\temms\n"
+                "5:"
 		"\tpop %%ebx\n"		/* ebx is GOT pointer (-fPIC) */
 
 		: /* no output regs */
@@ -255,6 +258,9 @@ static void MIX_AREAS2(unsigned int size,
 		"\tmovl %1, %%edi\n"
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
+		"\tcmpl $0, %0\n"
+		"\tjnz 2f\n"
+		"\tjmp 6f\n"
 
 		"\t.p2align 4,,15\n"
 
