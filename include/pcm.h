@@ -101,12 +101,10 @@ struct snd_stru_pcm_plugin {
 	ssize_t (*dst_samples)(snd_pcm_plugin_t *plugin, size_t src_samples);
 	int (*src_voices)(snd_pcm_plugin_t *plugin,
 			  snd_pcm_plugin_voice_t **voices,
-			  size_t samples,
-			  void *(*plugin_alloc)(snd_pcm_plugin_handle_t *handle, size_t size));
+			  size_t samples);
 	int (*dst_voices)(snd_pcm_plugin_t *plugin,
 			  snd_pcm_plugin_voice_t **voices,
-			  size_t samples,
-			  void *(*plugin_alloc)(snd_pcm_plugin_handle_t *handle, size_t size));
+			  size_t samples);
 	ssize_t (*transfer)(snd_pcm_plugin_t *plugin,
 			    const snd_pcm_plugin_voice_t *src_voices,
 			    const snd_pcm_plugin_voice_t *dst_voices,
@@ -149,6 +147,7 @@ ssize_t snd_pcm_plugin_hardware_size(snd_pcm_t *handle, int channel, size_t clt_
 int snd_pcm_plugin_info(snd_pcm_t *handle, snd_pcm_channel_info_t *info);
 int snd_pcm_plugin_params(snd_pcm_t *handle, snd_pcm_channel_params_t *params);
 int snd_pcm_plugin_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup);
+int snd_pcm_plugin_voice_setup(snd_pcm_t *handle, int channel, snd_pcm_voice_setup_t * setup);
 int snd_pcm_plugin_status(snd_pcm_t *handle, snd_pcm_channel_status_t *status);
 int snd_pcm_plugin_prepare(snd_pcm_t *handle, int channel);
 int snd_pcm_plugin_playback_drain(snd_pcm_t *handle);
@@ -161,6 +160,12 @@ int snd_pcm_plugin_pointerv(snd_pcm_t *pcm, int channel, struct iovec **vector, 
 ssize_t snd_pcm_plugin_writev(snd_pcm_t *pcm, const struct iovec *vector, int count);
 ssize_t snd_pcm_plugin_readv(snd_pcm_t *pcm, const struct iovec *vector, int count);
 ssize_t snd_pcm_plugin_write_continue(snd_pcm_t *pcm);
+int snd_pcm_plugin_mmap(snd_pcm_t *handle, int channel, snd_pcm_mmap_control_t **control, void **buffer);
+int snd_pcm_plugin_munmap(snd_pcm_t *handle, int channel);
+int snd_pcm_plugin_go(snd_pcm_t *handle, int channel);
+int snd_pcm_plugin_sync_go(snd_pcm_t *handle, snd_pcm_sync_t *sync);
+int snd_pcm_plugin_pause(snd_pcm_t *pcm, int enable);
+int snd_pcm_plugin_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_setup_t *setup);
 
 /*
  *  Plug-In helpers
