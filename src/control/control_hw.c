@@ -90,14 +90,10 @@ static int snd_ctl_hw_async(snd_ctl_t *ctl, int sig, pid_t pid)
 	}
 	if (sig < 0)
 		return 0;
-	if (sig == 0)
-		sig = SIGIO;
 	if (fcntl(fd, F_SETSIG, sig) < 0) {
 		SYSERR("F_SETSIG failed");
 		return -errno;
 	}
-	if (pid == 0)
-		pid = getpid();
 	if (fcntl(fd, F_SETOWN, pid) < 0) {
 		SYSERR("F_SETOWN failed");
 		return -errno;

@@ -131,6 +131,10 @@ int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name)
 int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid)
 {
 	assert(ctl);
+	if (sig == 0)
+		sig = SIGIO;
+	if (pid == 0)
+		pid = getpid();
 	return ctl->ops->async(ctl, sig, pid);
 }
 #endif
@@ -412,7 +416,7 @@ int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl,
 	was_empty = list_empty(&ctl->async_handlers);
 	list_add_tail(&h->hlist, &ctl->async_handlers);
 	if (was_empty) {
-		err = snd_ctl_async(ctl, getpid(), SIGIO);
+		err = snd_ctl_async(ctl, getpid(), snd_async_signo);
 		if (err < 0) {
 			snd_async_del_handler(h);
 			return err;

@@ -26,6 +26,9 @@ typedef struct {
 	snd_pcm_t *req_slave;
 	int close_slave;
 	snd_pcm_t *slave;
+	snd_pcm_format_t sformat;
+	int schannels;
+	int srate;
 	snd_pcm_route_ttable_entry_t *ttable;
 	unsigned int tt_ssize, tt_cused, tt_sused;
 } snd_pcm_plug_t;
@@ -399,9 +402,25 @@ static int snd_pcm_plug_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 	return 0;
 }
 
-static int snd_pcm_plug_hw_refine_sprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *sparams)
+static int snd_pcm_plug_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
+	snd_pcm_plug_t *plug = pcm->private_data;
 	_snd_pcm_hw_params_any(sparams);
+	if (plug->sformat >= 0) {
+		_snd_pcm_hw_params_set_format(sparams, plug->sformat);
+		_snd_pcm_hw_params_set_subformat(sparams, SND_PCM_SUBFORMAT_STD);
+	}
+	if (plug->schannels > 0)
+		_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_CHANNELS,
+				      plug->schannels, 0);
+	if (plug->srate > 0)
+		_snd_pcm_hw_param_set_minmax(sparams, SND_PCM_HW_PARAM_RATE,
+					      plug->srate, 0, plug->srate + 1, -1);
+        if (plug->sformat >= 0 || plug->schannels > 0 || plug->srate > 0) {
+		int err = snd_pcm_hw_refine(plug->req_slave, sparams);
+		if (err < 0)
+			return err;
+	}
 	return 0;
 }
 
@@ -418,32 +437,42 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	snd_pcm_format_t format;
 	snd_interval_t t, buffer_size;
 	const snd_interval_t *srate, *crate;
-	snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_RATE,
-				     params);
-	snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_CHANNELS,
-				     params);
-	format_mask = snd_pcm_hw_param_get_mask(params,
-						   SND_PCM_HW_PARAM_FORMAT);
-	sformat_mask = snd_pcm_hw_param_get_mask(sparams,
-						    SND_PCM_HW_PARAM_FORMAT);
-	snd_mask_none(&sfmt_mask);
-	for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
-		snd_pcm_format_t f;
-		if (!snd_pcm_format_mask_test(format_mask, format))
-			continue;
-		if (snd_pcm_format_mask_test(sformat_mask, format))
-			f = format;
-		else {
-			f = snd_pcm_plug_slave_format(format, sformat_mask);
-			if (f == SND_PCM_FORMAT_UNKNOWN)
+	if (plug->srate == -2)
+		links |= SND_PCM_HW_PARBIT_RATE;
+	else
+		snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_RATE,
+					     params);
+	if (plug->schannels == -2)
+		links |= SND_PCM_HW_PARBIT_CHANNELS;
+	else
+		snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_CHANNELS,
+					     params);
+	if (plug->sformat == -2)
+		links |= SND_PCM_HW_PARBIT_FORMAT;
+	else {
+		format_mask = snd_pcm_hw_param_get_mask(params,
+							SND_PCM_HW_PARAM_FORMAT);
+		sformat_mask = snd_pcm_hw_param_get_mask(sparams,
+							 SND_PCM_HW_PARAM_FORMAT);
+		snd_mask_none(&sfmt_mask);
+		for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
+			snd_pcm_format_t f;
+			if (!snd_pcm_format_mask_test(format_mask, format))
 				continue;
+			if (snd_pcm_format_mask_test(sformat_mask, format))
+				f = format;
+			else {
+				f = snd_pcm_plug_slave_format(format, sformat_mask);
+				if (f == SND_PCM_FORMAT_UNKNOWN)
+					continue;
+			}
+			snd_pcm_format_mask_set(&sfmt_mask, f);
 		}
-		snd_pcm_format_mask_set(&sfmt_mask, f);
-	}
 
-	err = snd_pcm_hw_param_set_mask(slave, sparams, SND_CHANGE,
-					SND_PCM_HW_PARAM_FORMAT, &sfmt_mask);
-	assert(err >= 0);
+		err = snd_pcm_hw_param_set_mask(slave, sparams, SND_CHANGE,
+						SND_PCM_HW_PARAM_FORMAT, &sfmt_mask);
+		assert(err >= 0);
+	}
 
 	if (snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_FORMAT, sparams) ||
 	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_CHANNELS, sparams) ||
@@ -453,7 +482,8 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 					   &access_mask);
 	}
-	if (snd_pcm_hw_param_always_eq(params, SND_PCM_HW_PARAM_RATE, sparams))
+	if ((links & SND_PCM_HW_PARBIT_RATE) ||
+	    snd_pcm_hw_param_always_eq(params, SND_PCM_HW_PARAM_RATE, sparams))
 		links |= (SND_PCM_HW_PARBIT_PERIOD_SIZE |
 			  SND_PCM_HW_PARBIT_BUFFER_SIZE);
 	else {
@@ -476,6 +506,7 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 					  snd_pcm_hw_params_t *params,
 					  snd_pcm_hw_params_t *sparams)
 {
+	snd_pcm_plug_t *plug = pcm->private_data;
 	unsigned int links = (SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
 	const snd_pcm_format_mask_t *format_mask, *sformat_mask;
@@ -487,40 +518,52 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 	const snd_interval_t *srate, *crate;
 	unsigned int rate_min, srate_min;
 	int rate_mindir, srate_mindir;
-	format_mask = snd_pcm_hw_param_get_mask(params,
-						SND_PCM_HW_PARAM_FORMAT);
-	sformat_mask = snd_pcm_hw_param_get_mask(sparams,
-						 SND_PCM_HW_PARAM_FORMAT);
-	snd_mask_none(&fmt_mask);
-	for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
-		snd_pcm_format_t f;
-		if (!snd_pcm_format_mask_test(format_mask, format))
-			continue;
-		if (snd_pcm_format_mask_test(sformat_mask, format))
-			f = format;
-		else {
-			f = snd_pcm_plug_slave_format(format, sformat_mask);
-			if (f == SND_PCM_FORMAT_UNKNOWN)
+
+	if (plug->schannels == -2)
+		links |= SND_PCM_HW_PARBIT_CHANNELS;
+
+	if (plug->sformat == -2)
+		links |= SND_PCM_HW_PARBIT_FORMAT;
+	else {
+		format_mask = snd_pcm_hw_param_get_mask(params,
+							SND_PCM_HW_PARAM_FORMAT);
+		sformat_mask = snd_pcm_hw_param_get_mask(sparams,
+							 SND_PCM_HW_PARAM_FORMAT);
+		snd_mask_none(&fmt_mask);
+		for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
+			snd_pcm_format_t f;
+			if (!snd_pcm_format_mask_test(format_mask, format))
 				continue;
+			if (snd_pcm_format_mask_test(sformat_mask, format))
+				f = format;
+			else {
+				f = snd_pcm_plug_slave_format(format, sformat_mask);
+				if (f == SND_PCM_FORMAT_UNKNOWN)
+					continue;
+			}
+			snd_pcm_format_mask_set(&fmt_mask, format);
 		}
-		snd_pcm_format_mask_set(&fmt_mask, format);
-	}
 
-	err = _snd_pcm_hw_param_set_mask(params, 
-					 SND_PCM_HW_PARAM_FORMAT, &fmt_mask);
-	if (err < 0)
-		return err;
-
-	/* This is a temporary hack, waiting for a better solution */
-	rate_min = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, &rate_mindir);
-	srate_min = snd_pcm_hw_param_get_min(sparams, SND_PCM_HW_PARAM_RATE, &srate_mindir);
-	if (rate_min == srate_min && srate_mindir > rate_mindir) {
-		err = _snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE, srate_min, srate_mindir);
+		err = _snd_pcm_hw_param_set_mask(params, 
+						 SND_PCM_HW_PARAM_FORMAT, &fmt_mask);
 		if (err < 0)
 			return err;
 	}
 
-	if (snd_pcm_hw_param_always_eq(params, SND_PCM_HW_PARAM_RATE, sparams))
+	if (plug->srate == -2)
+		links |= SND_PCM_HW_PARBIT_RATE;
+	else {
+		/* This is a temporary hack, waiting for a better solution */
+		rate_min = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, &rate_mindir);
+		srate_min = snd_pcm_hw_param_get_min(sparams, SND_PCM_HW_PARAM_RATE, &srate_mindir);
+		if (rate_min == srate_min && srate_mindir > rate_mindir) {
+			err = _snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE, srate_min, srate_mindir);
+			if (err < 0)
+				return err;
+		}
+	}
+	if ((links & SND_PCM_HW_PARBIT_RATE) ||
+	    snd_pcm_hw_param_always_eq(params, SND_PCM_HW_PARAM_RATE, sparams))
 		links |= (SND_PCM_HW_PARBIT_PERIOD_SIZE |
 			  SND_PCM_HW_PARBIT_BUFFER_SIZE);
 	else {
@@ -657,6 +700,7 @@ snd_pcm_ops_t snd_pcm_plug_ops = {
 
 int snd_pcm_plug_open(snd_pcm_t **pcmp,
 		      const char *name,
+		      snd_pcm_format_t sformat, int schannels, int srate,
 		      snd_pcm_route_ttable_entry_t *ttable,
 		      unsigned int tt_ssize,
 		      unsigned int tt_cused, unsigned int tt_sused,
@@ -669,6 +713,9 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	plug = calloc(1, sizeof(snd_pcm_plug_t));
 	if (!plug)
 		return -ENOMEM;
+	plug->sformat = sformat;
+	plug->schannels = schannels;
+	plug->srate = srate;
 	plug->slave = plug->req_slave = slave;
 	plug->close_slave = close_slave;
 	plug->ttable = ttable;
@@ -693,17 +740,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	return 0;
 }
 
-int snd_pcm_plug_open_hw(snd_pcm_t **pcmp, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
-{
-	snd_pcm_t *slave;
-	int err;
-	err = snd_pcm_hw_open(&slave, NULL, card, device, subdevice, stream, mode);
-	if (err < 0)
-		return err;
-	return snd_pcm_plug_open(pcmp, name, 0, 0, 0, 0, slave, 1);
-}
-
-#define MAX_CHANNELS 32
+#define MAX_CHANNELS 64
 
 int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
@@ -716,6 +753,8 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *tt = NULL;
 	snd_pcm_route_ttable_entry_t *ttable = NULL;
 	unsigned int cused, sused;
+	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
+	int schannels = -1, srate = -1;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
@@ -740,7 +779,10 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(root, slave, &sconf, 0);
+	err = snd_pcm_slave_conf(root, slave, &sconf, 3,
+				 SND_PCM_HW_PARAM_FORMAT, SCONF_UNCHANGED, &sformat,
+				 SND_PCM_HW_PARAM_CHANNELS, SCONF_UNCHANGED, &schannels,
+				 SND_PCM_HW_PARAM_RATE, SCONF_UNCHANGED, &srate);
 	if (err < 0)
 		return err;
 	if (tt) {
@@ -757,7 +799,8 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_plug_open(pcmp, name, ttable, MAX_CHANNELS, cused, sused, spcm, 1);
+	err = snd_pcm_plug_open(pcmp, name, sformat, schannels, srate,
+				ttable, MAX_CHANNELS, cused, sused, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;

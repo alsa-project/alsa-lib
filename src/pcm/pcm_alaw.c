@@ -440,7 +440,7 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
-				 SND_PCM_HW_PARAM_FORMAT, 1, &sformat);
+				 SND_PCM_HW_PARAM_FORMAT, SCONF_MANDATORY, &sformat);
 	if (err < 0)
 		return err;
 	if (snd_pcm_format_linear(sformat) != 1 &&

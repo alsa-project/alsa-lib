@@ -22,6 +22,22 @@
 #include "control/control_local.h"
 #include <signal.h>
 
+#ifdef SND_ASYNC_RT_SIGNAL
+int snd_async_signo;
+void snd_async_init(void) __attribute__ ((constructor));
+
+void snd_async_init(void)
+{
+	snd_async_signo = __libc_allocate_rtsig(0);
+	if (snd_async_signo < 0) {
+		SNDERR("Unable to find a RT signal to use for snd_async");
+		exit(1);
+	}
+}
+#else
+int snd_async_signo = SIGIO;
+#endif
+
 static struct list_head snd_async_handlers;
 
 static void snd_async_handler(int signo ATTRIBUTE_UNUSED, siginfo_t *siginfo, void *context ATTRIBUTE_UNUSED)
@@ -59,7 +75,7 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 		act.sa_flags = SA_RESTART | SA_SIGINFO;
 		act.sa_sigaction = snd_async_handler;
 		sigemptyset(&act.sa_mask);
-		err = sigaction(SIGIO, &act, NULL);
+		err = sigaction(snd_async_signo, &act, NULL);
 		if (err < 0) {
 			SYSERR("sigaction");
 			return -errno;
@@ -76,7 +92,7 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 		struct sigaction act;
 		act.sa_flags = 0;
 		act.sa_handler = SIG_DFL;
-		err = sigaction(SIGIO, &act, NULL);
+		err = sigaction(snd_async_signo, &act, NULL);
 		if (err < 0) {
 			SYSERR("sigaction");
 			return -errno;

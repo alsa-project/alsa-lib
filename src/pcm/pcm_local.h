@@ -185,17 +185,6 @@ typedef int snd_pcm_route_ttable_entry_t;
 
 int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 		snd_pcm_stream_t stream, int mode);
-int snd_pcm_hw_open(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
-int snd_pcm_plug_open(snd_pcm_t **pcmp,
-		      const char *name,
-		      snd_pcm_route_ttable_entry_t *ttable,
-		      unsigned int tt_ssize,
-		      unsigned int tt_cused, unsigned int tt_sused,
-		      snd_pcm_t *slave, int close_slave);
-int snd_pcm_plug_open_hw(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
-int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *sockname, const char *sname, snd_pcm_stream_t stream, int mode);
-int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int fd, const char *fmt, snd_pcm_t *slave, int close_slave);
-int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t stream, int mode);
 
 void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void *buf);
 void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void **bufs);
@@ -517,6 +506,9 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int orde
 				       unsigned int count,
 				       snd_pcm_hw_strategy_simple_choices_list_t *choices);
 #endif
+
+#define SCONF_MANDATORY	1
+#define SCONF_UNCHANGED	2
 
 int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 		       snd_config_t **pcm_conf, unsigned int count, ...);

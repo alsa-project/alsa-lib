@@ -931,7 +931,7 @@ int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm,
 	was_empty = list_empty(&pcm->async_handlers);
 	list_add_tail(&h->hlist, &pcm->async_handlers);
 	if (was_empty) {
-		err = snd_pcm_async(pcm, getpid(), SIGIO);
+		err = snd_pcm_async(pcm, getpid(), snd_async_signo);
 		if (err < 0) {
 			snd_async_del_handler(h);
 			return err;
@@ -1923,7 +1923,7 @@ int snd_pcm_hw_params_set_access_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  */
 void snd_pcm_hw_params_get_access_mask(snd_pcm_hw_params_t *params, snd_pcm_access_mask_t *mask)
 {
-	snd_pcm_access_mask_copy(mask, (snd_pcm_access_mask_t*) &params->masks[SND_PCM_HW_PARAM_ACCESS - SND_PCM_HW_PARAM_FIRST_MASK]);
+	snd_pcm_access_mask_copy(mask, snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS));
 }
 
 
@@ -2002,7 +2002,7 @@ int snd_pcm_hw_params_set_format_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  */
 void snd_pcm_hw_params_get_format_mask(snd_pcm_hw_params_t *params, snd_pcm_format_mask_t *mask)
 {
-	snd_pcm_format_mask_copy(mask, (snd_pcm_format_mask_t*) &params->masks[SND_PCM_HW_PARAM_FORMAT - SND_PCM_HW_PARAM_FIRST_MASK]);
+	snd_pcm_format_mask_copy(mask, snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_FORMAT));
 }
 
 
@@ -2081,7 +2081,7 @@ int snd_pcm_hw_params_set_subformat_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  */
 void snd_pcm_hw_params_get_subformat_mask(snd_pcm_hw_params_t *params, snd_pcm_subformat_mask_t *mask)
 {
-	snd_pcm_subformat_mask_copy(mask, (snd_pcm_subformat_mask_t*) &params->masks[SND_PCM_HW_PARAM_SUBFORMAT - SND_PCM_HW_PARAM_FIRST_MASK]);
+	snd_pcm_subformat_mask_copy(mask, snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_SUBFORMAT));
 }
 
 
@@ -4365,9 +4365,9 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 	const char *str;
 	struct {
 		unsigned int index;
-		int mandatory;
+		int flags;
 		void *ptr;
-		int valid;
+		int present;
 	} fields[count];
 	unsigned int k;
 	snd_config_t *pcm_conf = NULL;
@@ -4393,9 +4393,9 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 	va_start(args, count);
 	for (k = 0; k < count; ++k) {
 		fields[k].index = va_arg(args, int);
-		fields[k].mandatory = va_arg(args, int);
+		fields[k].flags = va_arg(args, int);
 		fields[k].ptr = va_arg(args, void *);
-		fields[k].valid = 0;
+		fields[k].present = 0;
 	}
 	va_end(args);
 	snd_config_for_each(i, next, conf) {
@@ -4427,6 +4427,11 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 					SNDERR("invalid type for %s", id);
 					goto _err;
 				}
+				if ((fields[k].flags & SCONF_UNCHANGED) &&
+				    strcasecmp(str, "unchanged") == 0) {
+					*(snd_pcm_format_t*)fields[k].ptr = (snd_pcm_format_t) -2;
+					break;
+				}
 				f = snd_pcm_format_value(str);
 				if (f == SND_PCM_FORMAT_UNKNOWN) {
 					SNDERR("unknown format");
@@ -4437,13 +4442,21 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 				break;
 			}
 			default:
+				if ((fields[k].flags & SCONF_UNCHANGED)) {
+					err = snd_config_get_string(n, &str);
+					if (err >= 0 &&
+					    strcasecmp(str, "unchanged") == 0) {
+						*(int*)fields[k].ptr = -2;
+						break;
+					}
+				}
 				err = snd_config_get_integer(n, &v);
 				if (err < 0)
 					goto _invalid;
 				*(int*)fields[k].ptr = v;
 				break;
 			}
-			fields[k].valid = 1;
+			fields[k].present = 1;
 			break;
 		}
 		if (k < count)
@@ -4458,7 +4471,7 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 		goto _err;
 	}
 	for (k = 0; k < count; ++k) {
-		if (fields[k].mandatory && !fields[k].valid) {
+		if ((fields[k].flags & SCONF_MANDATORY) && !fields[k].present) {
 			SNDERR("missing field %s", names[fields[k].index]);
 			err = -EINVAL;
 			goto _err;

@@ -71,6 +71,8 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #include "asoundlib.h"
 #include "list.h"
 
+extern int snd_async_signo;
+
 struct _snd_async_handler {
 	enum {
 		SND_ASYNC_HANDLER_GENERIC,

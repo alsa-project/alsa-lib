@@ -556,7 +556,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 2,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
-				 SND_PCM_HW_PARAM_RATE, 1, &srate);
+				 SND_PCM_HW_PARAM_RATE, SCONF_MANDATORY, &srate);
 	if (err < 0)
 		return err;
 	if (sformat != SND_PCM_FORMAT_UNKNOWN &&

@@ -738,7 +738,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		int channels;
 		slaves_id[idx] = snd_config_get_id(m);
 		err = snd_pcm_slave_conf(root, m, &slaves_conf[idx], 1,
-					 SND_PCM_HW_PARAM_CHANNELS, 1, &channels);
+					 SND_PCM_HW_PARAM_CHANNELS, SCONF_MANDATORY, &channels);
 		if (err < 0)
 			goto _free;
 		slaves_channels[idx] = channels;

@@ -124,6 +124,9 @@ pcm.NAME {
     pcm STR		# Slave PCM name
     # or
     pcm { }		# Slave PCM definition
+    [format STR]	# Slave format (default nearest) or "unchanged"
+    [channels INT]	# Slave channels (default nearest) or "unchanged"
+    [rate INT]		# Slave rate (default nearest) or "unchanged"
   }
   ttable {	 	# Transfer table (bidimensional compound of 
 	        	# cchannels * schannels numbers)
