@@ -77,10 +77,6 @@ struct sndrv_pcm_hw_params_old {
 #define SND_PCM_IOCTL_HW_REFINE_OLD _IOWR('A', 0x10, struct sndrv_pcm_hw_params_old)
 #define SND_PCM_IOCTL_HW_PARAMS_OLD _IOWR('A', 0x11, struct sndrv_pcm_hw_params_old)
 
-#define SND_PCM_IOCTL_HWSYNC _IO ('A', 0x22)
-#define SND_PCM_IOCTL_XRUN   _IO ('A', 0x48)
-#define SND_PCM_IOCTL_FORWARD _IOW('A', 0x49, sndrv_pcm_uframes_t)
-
 static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t *params);
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm);
 
@@ -119,8 +115,12 @@ typedef struct {
 
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm)
 {
+	struct timespec res;
 	snd_pcm_hw_t *hw = pcm->private_data;
-	return FAST_PCM_TSTAMP(hw);
+	res = FAST_PCM_TSTAMP(hw);
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 5) > hw->version)
+		res.tv_nsec *= 1000L;
+	return res;
 }
 
 static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
@@ -407,6 +407,10 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		SYSERR("SNDRV_PCM_IOCTL_STATUS failed");
 		return err;
 	}
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 5) > hw->version) {
+		status->tstamp.tv_nsec *= 1000L;
+		status->trigger_tstamp.tv_nsec *= 1000L;
+	}
 	return 0;
 }
 
@@ -433,9 +437,9 @@ static int snd_pcm_hw_hwsync(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd, err;
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 3) <= hw->version) {
-		if (ioctl(fd, SND_PCM_IOCTL_HWSYNC) < 0) {
+		if (ioctl(fd, SNDRV_PCM_IOCTL_HWSYNC) < 0) {
 			err = -errno;
-			// SYSERR("SND_PCM_IOCTL_HWSYNC failed");
+			// SYSERR("SNDRV_PCM_IOCTL_HWSYNC failed");
 			return err;
 		}
 	} else {
@@ -552,7 +556,7 @@ static snd_pcm_sframes_t snd_pcm_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int err;
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 4) <= hw->version) {
-		if (ioctl(hw->fd, SND_PCM_IOCTL_FORWARD, &frames) < 0) {
+		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_FORWARD, &frames) < 0) {
 			err = -errno;
 			SYSERR("SNDRV_PCM_IOCTL_FORWARD failed");
 			return err;
@@ -831,7 +835,7 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 		if (avail >= pcm->stop_threshold) {
 			/* SNDRV_PCM_IOCTL_XRUN ioctl has been implemented since PCM kernel API 2.0.1 */
 			if (SNDRV_PROTOCOL_VERSION(2, 0, 1) <= hw->version) {
-				if (ioctl(hw->fd, SND_PCM_IOCTL_XRUN) < 0)
+				if (ioctl(hw->fd, SNDRV_PCM_IOCTL_XRUN) < 0)
 					return -errno;
 			}
 			/* everything is ok, state == SND_PCM_STATE_XRUN at the moment */
@@ -961,6 +965,15 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	}
 	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_PCM_VERSION_MAX))
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
+
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 5) <= ver) {
+		int on = 1;
+		if (ioctl(fd, SNDRV_PCM_IOCTL_TSTAMP, &on) < 0) {
+			ret = -errno;
+			SNDERR("TSTAMP failed\n");
+			return ret;
+		}			
+	}
 	
 	hw = calloc(1, sizeof(snd_pcm_hw_t));
 	if (!hw) {
