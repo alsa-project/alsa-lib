@@ -763,15 +763,13 @@ after some modification, will appear as following:
 \code
 void event_filter(snd_seq_t *seq, snd_seq_event_t *ev)
 {
-        snd_seq_event_t *ev;
-
         while (snd_seq_event_input(seq, &ev) >= 0) {
                 //.. modify input event ..
 
                 snd_seq_ev_set_source(ev, my_port);
                 snd_seq_ev_set_subs(ev);
                 snd_seq_ev_set_direct(ev);
-                snd_seq_event_output(seq, &ev);
+                snd_seq_event_output(seq, ev);
                 snd_seq_drain_output(seq);
         }
 }
