@@ -650,7 +650,7 @@ int snd_pcm_hw_param_set_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 }
 
 int _snd_pcm_hw_param_mask(snd_pcm_hw_params_t *params,
-			    snd_pcm_hw_param_t var, const mask_t *val)
+			   snd_pcm_hw_param_t var, const mask_t *val)
 {
 	int changed;
 	assert(hw_is_mask(var));
