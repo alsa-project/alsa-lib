@@ -271,7 +271,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 		unsigned int c1;
 		if (!i->addr) {
 			char *ptr;
-			size_t size = i->first + i->step * pcm->buffer_size;
+			size_t size = i->first + i->step * (pcm->buffer_size - 1) + pcm->bits_per_sample;
 			for (c1 = c + 1; c1 < pcm->channels; ++c1) {
 				snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
 				size_t s;
