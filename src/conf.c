@@ -121,6 +121,8 @@ static int get_char_skip_comments(input_t *input)
 			if (err < 0)
 				return err;
 			fd = malloc(sizeof(*fd));
+			if (!fd)
+				return -ENOMEM;
 			fd->name = file;
 			fd->in = in;
 			fd->next = input->current;
@@ -220,20 +222,24 @@ static int get_freestring(char **string, int id, input_t *input)
 		case '\r':
 		case EOF:
 		case '=':
-		case '{':
-		case '}':
 		case ',':
 		case ';':
+		case '{':
+		case '}':
 		case '\'':
 		case '"':
 		case '\\':
 		case '#':
 		{
 			char *s = malloc(idx + 1);
+			if (!s)
+				return -ENOMEM;
 			unget_char(c, input);
 			memcpy(s, buf, idx);
 			s[idx] = '\0';
 			*string = s;
+			if (alloc > bufsize)
+				free(buf);
 			return 0;
 		}
 		default:
@@ -241,12 +247,14 @@ static int get_freestring(char **string, int id, input_t *input)
 		}
 		if (idx >= alloc) {
 			size_t old_alloc = alloc;
-			alloc += bufsize;
+			alloc *= 2;
 			if (old_alloc == bufsize) {
 				buf = malloc(alloc);
 				memcpy(buf, _buf, old_alloc);
 			} else
 				buf = realloc(buf, alloc);
+			if (!buf)
+				return -ENOMEM;
 		}
 		buf[idx++] = c;
 	}
@@ -277,24 +285,29 @@ static int get_delimstring(char **string, int delim, input_t *input)
 		default:
 			if (c == delim) {
 				char *s = malloc(idx + 1);
+				if (!s)
+					return -ENOMEM;
 				memcpy(s, buf, idx);
 				s[idx] = '\0';
 				*string = s;
+				if (alloc > bufsize)
+					free(buf);
 				return 0;
 			}
 		}
 		if (idx >= alloc) {
 			size_t old_alloc = alloc;
-			alloc += bufsize;
+			alloc *= 2;
 			if (old_alloc == bufsize) {
 				buf = malloc(alloc);
 				memcpy(buf, _buf, old_alloc);
 			} else
 				buf = realloc(buf, alloc);
+			if (!buf)
+				return -ENOMEM;
 		}
 		buf[idx++] = c;
 	}
-	return 0;
 }
 
 /* Return 0 for free string, 1 for delimited string */
@@ -307,16 +320,11 @@ static int get_string(char **string, int id, input_t *input)
 		input->error = UNEXPECTED_EOF;
 		return -EINVAL;
 	case '=':
-#if 0
-	  	/* I'm not sure to want unnamed fields */
-		*string = 0;
-		return 0;
-#endif
+	case ',':
+	case ';':
 	case '.':
 	case '{':
 	case '}':
-	case ',':
-	case ';':
 		input->error = UNEXPECTED_CHAR;
 		return -EINVAL;
 	case '\'':
@@ -368,24 +376,20 @@ static int _snd_config_make_add(snd_config_t **config, char *id,
 	return 0;
 }
 
-static int _snd_config_search(snd_config_t *config, const char *id, int len, snd_config_t **result)
+static int _snd_config_search(snd_config_t *config, 
+			      const char *id, int len, snd_config_t **result)
 {
 	snd_config_iterator_t i, next;
 	snd_config_for_each(i, next, config) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (len < 0) {
-			if (strcmp(n->id, id) == 0) {
-				*result = n;
-				return 0;
-			}
-		} else {
-			if (strlen(n->id) != (size_t) len)
+			if (strcmp(n->id, id) != 0)
 				continue;
-			if (memcmp(n->id, id, (size_t) len) == 0) {
-				*result = n;
-				return 0;
-			}
-		}
+		} else if (strlen(n->id) != (size_t) len ||
+			   memcmp(n->id, id, (size_t) len) != 0)
+			continue;
+		*result = n;
+		return 0;
 	}
 	return -ENOENT;
 }
@@ -605,11 +609,11 @@ static void string_print(char *str, int id, snd_output_t *out)
 	case 127 ... 255:
 	case ' ':
 	case '=':
+	case ';':
+	case ',':
 	case '.':
 	case '{':
 	case '}':
-	case ';':
-	case ',':
 	case '\'':
 	case '"':
 		goto quoted;
@@ -729,13 +733,17 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 			snd_output_putc(out, '\t');
 		}
 		id_print(n, out, joins);
+#if 0
 		snd_output_putc(out, ' ');
 		snd_output_putc(out, '=');
+#endif
 		snd_output_putc(out, ' ');
 		err = _snd_config_save_leaf(n, out, level);
 		if (err < 0)
 			return err;
+#if 0
 		snd_output_putc(out, ';');
+#endif
 		snd_output_putc(out, '\n');
 	}
 	return 0;
@@ -764,6 +772,21 @@ const char *snd_config_get_id(snd_config_t *config)
 }
 
 /**
+ * \brief Set id of a config node
+ * \param config Config node handle
+ * \return id Node id
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_set_id(snd_config_t *config, const char *id)
+{
+	free(config->id);
+	config->id = strdup(id);
+	if (!config->id)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
  * \brief Build a top level config node
  * \param config Returned config node handle pointer
  * \return 0 on success otherwise a negative error code
@@ -787,6 +810,8 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 	struct filedesc *fd;
 	assert(config && in);
 	fd = malloc(sizeof(*fd));
+	if (!fd)
+		return -ENOMEM;
 	fd->name = NULL;
 	fd->in = in;
 	fd->line = 1;
@@ -894,6 +919,8 @@ int snd_config_delete(snd_config_t *config)
 	}
 	if (config->father)
 		list_del(&config->list);
+	free(config->id);
+	free(config);
 	return 0;
 }
 
@@ -1088,9 +1115,10 @@ int snd_config_search(snd_config_t *config, const char *key, snd_config_t **resu
 	while (1) {
 		snd_config_t *n;
 		int err;
-		const char *p = strchr(key, '.');
+		const char *p;
 		if (config->type != SND_CONFIG_TYPE_COMPOUND)
 			return -ENOENT;
+		p = strchr(key, '.');
 		if (p) {
 			err = _snd_config_search(config, key, p - key, &n);
 			if (err < 0)
@@ -1121,9 +1149,7 @@ int snd_config_searchv(snd_config_t *config,
 		int err;
 		if (!k)
 			break;
-		if (config->type != SND_CONFIG_TYPE_COMPOUND)
-			return -ENOENT;
-		err = _snd_config_search(config, k, -1, &n);
+		err = snd_config_search(config, k, &n);
 		if (err < 0)
 			return err;
 		config = n;
@@ -1136,7 +1162,7 @@ int snd_config_searchv(snd_config_t *config,
 /**
  * \brief Search a node inside a config tree using alias
  * \param config Config node handle
- * \param base Key base
+ * \param base Key base (or NULL)
  * \param key Key suffix
  * \param result Pointer to found node
  * \return 0 on success otherwise a negative error code
@@ -1149,13 +1175,22 @@ int snd_config_search_alias(snd_config_t *config,
 			    snd_config_t **result)
 {
 	int err;
-	assert(config && base && key && result);
-	err = snd_config_searchv(config, result, base, key, 0);
-	if (err < 0)
-		return err;
-	while (snd_config_get_string(*result, &key) >= 0 &&
-	       snd_config_searchv(config, result, base, key, 0) >= 0)
-		;
+	assert(config && key && result);
+	if (base) {
+		err = snd_config_searchv(config, result, base, key, 0);
+		if (err < 0)
+			return err;
+		while (snd_config_get_string(*result, &key) >= 0 &&
+		       snd_config_searchv(config, result, base, key, 0) >= 0)
+			;
+	} else {
+		err = snd_config_search(config, key, result);
+		if (err < 0)
+			return err;
+		while (snd_config_get_string(*result, &key) >= 0 &&
+		       snd_config_search(config, key, result) >= 0)
+			;
+	}
 	return 0;
 }
 
@@ -1226,6 +1261,7 @@ int snd_config_update()
 		snd_input_close(in);
 		if (err < 0) {
 			SNDERR(SYS_ASOUNDRC " may be old or corrupted: consider to remove or fix it");
+			snd_config_delete(snd_config);
 			snd_config = NULL;
 			return err;
 		}
@@ -1239,6 +1275,7 @@ int snd_config_update()
 		snd_input_close(in);
 		if (err < 0) {
 			SNDERR("%s may be old or corrupted: consider to remove or fix it", usr_asoundrc);
+			snd_config_delete(snd_config);
 			snd_config = NULL;
 			return err;
 		}
@@ -1291,3 +1328,581 @@ snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator)
 	return list_entry(iterator, snd_config_t, list);
 }
 
+typedef enum _snd_config_walk_pass {
+	SND_CONFIG_WALK_PASS_PRE,
+	SND_CONFIG_WALK_PASS_POST,
+	SND_CONFIG_WALK_PASS_LEAF,
+} snd_config_walk_pass_t;
+
+
+/* Return 1 if node need to be attached to father */
+typedef int (*snd_config_walk_callback_t)(snd_config_t *src,
+					  snd_config_t **dst,
+					  snd_config_walk_pass_t pass,
+					  void *private_data);
+
+static int snd_config_walk(snd_config_t *src,
+			   snd_config_t **dst, 
+			   snd_config_walk_callback_t callback,
+			   void *private_data)
+{
+	int err;
+	snd_config_iterator_t i, next;
+	switch (snd_config_get_type(src)) {
+	case SND_CONFIG_TYPE_COMPOUND:
+		err = callback(src, dst, SND_CONFIG_WALK_PASS_PRE, private_data);
+		if (err <= 0)
+			return err;
+		snd_config_for_each(i, next, src) {
+			snd_config_t *s = snd_config_iterator_entry(i);
+			snd_config_t *d = NULL;
+
+			err = snd_config_walk(s, (dst && *dst) ? &d : NULL,
+					      callback, private_data);
+			if (err < 0)
+				goto _error;
+			if (err && d) {
+				err = snd_config_add(*dst, d);
+				if (err < 0)
+					goto _error;
+			}
+		}
+		err = callback(src, dst, SND_CONFIG_WALK_PASS_POST, private_data);
+		if (err <= 0) {
+		_error:
+			if (dst && *dst)
+				snd_config_delete(*dst);
+		}
+		break;
+	default:
+		err = callback(src, dst, SND_CONFIG_WALK_PASS_LEAF, private_data);
+		break;
+	}
+	return err;
+}
+
+static int _snd_config_copy(snd_config_t *src,
+			    snd_config_t **dst,
+			    snd_config_walk_pass_t pass,
+			    void *private_data ATTRIBUTE_UNUSED)
+{
+	int err;
+	const char *id = snd_config_get_id(src);
+	snd_config_type_t type = snd_config_get_type(src);
+	switch (pass) {
+	case SND_CONFIG_WALK_PASS_PRE:
+		err = snd_config_make_compound(dst, id, src->u.compound.join);
+		if (err < 0)
+			return err;
+		break;
+	case SND_CONFIG_WALK_PASS_LEAF:
+		err = snd_config_make(dst, id, type);
+		if (err < 0)
+			return err;
+		switch (type) {
+		case SND_CONFIG_TYPE_INTEGER:
+		{
+			long v;
+			err = snd_config_get_integer(src, &v);
+			assert(err >= 0);
+			snd_config_set_integer(*dst, v);
+			break;
+		}
+		case SND_CONFIG_TYPE_REAL:
+		{
+			double v;
+			err = snd_config_get_real(src, &v);
+			assert(err >= 0);
+			snd_config_set_real(*dst, v);
+			break;
+		}
+		case SND_CONFIG_TYPE_STRING:
+		{
+			const char *s;
+			err = snd_config_get_string(src, &s);
+			assert(err >= 0);
+			err = snd_config_set_string(*dst, s);
+			if (err < 0)
+				return err;
+			break;
+		}
+		default:
+			assert(0);
+		}
+		break;
+	default:
+		break;
+	}
+	return 1;
+}
+
+int snd_config_copy(snd_config_t **dst,
+		    snd_config_t *src)
+{
+	return snd_config_walk(src, dst, _snd_config_copy, NULL);
+}
+
+static int _snd_config_expand(snd_config_t *src,
+			      snd_config_t **dst,
+			      snd_config_walk_pass_t pass,
+			      void *private_data)
+{
+	int err;
+	const char *id = snd_config_get_id(src);
+	snd_config_type_t type = snd_config_get_type(src);
+	switch (pass) {
+	case SND_CONFIG_WALK_PASS_PRE:
+		if (strcmp(id, "$") == 0)
+			return 0;
+		err = snd_config_make_compound(dst, id, src->u.compound.join);
+		if (err < 0)
+			return err;
+		break;
+	case SND_CONFIG_WALK_PASS_LEAF:
+		switch (type) {
+		case SND_CONFIG_TYPE_INTEGER:
+		{
+			long v;
+			err = snd_config_make(dst, id, type);
+			if (err < 0)
+				return err;
+			err = snd_config_get_integer(src, &v);
+			assert(err >= 0);
+			snd_config_set_integer(*dst, v);
+			break;
+		}
+		case SND_CONFIG_TYPE_REAL:
+		{
+			double v;
+			err = snd_config_make(dst, id, type);
+			if (err < 0)
+				return err;
+			err = snd_config_get_real(src, &v);
+			assert(err >= 0);
+			snd_config_set_real(*dst, v);
+			break;
+		}
+		case SND_CONFIG_TYPE_STRING:
+		{
+			const char *s;
+			snd_config_t *val;
+			snd_config_t *vars = private_data;
+			err = snd_config_get_string(src, &s);
+			if (s[0] == '$') {
+				if (snd_config_search(vars, s + 1, &val) < 0)
+					return 0;
+				err = snd_config_copy(dst, val);
+				if (err < 0)
+					return err;
+				err = snd_config_set_id(*dst, id);
+				if (err < 0) {
+					snd_config_delete(*dst);
+					return err;
+				}
+			} else {
+				err = snd_config_make(dst, id, type);
+				if (err < 0)
+					return err;
+				err = snd_config_set_string(*dst, s);
+				if (err < 0) {
+					snd_config_delete(*dst);
+					return err;
+				}
+			}
+			break;
+		}
+		default:
+			assert(0);
+		}
+		break;
+	default:
+		break;
+	}
+	return 1;
+}
+
+static int load_defaults(snd_config_t *subs, snd_config_t *defs)
+{
+	snd_config_iterator_t d, dnext;
+	snd_config_for_each(d, dnext, defs) {
+		snd_config_t *def = snd_config_iterator_entry(d);
+		snd_config_iterator_t f, fnext;
+		if (snd_config_get_type(def) != SND_CONFIG_TYPE_COMPOUND)
+			continue;
+		snd_config_for_each(f, fnext, def) {
+			snd_config_t *fld = snd_config_iterator_entry(f);
+			const char *id = snd_config_get_id(fld);
+			if (strcmp(id, "type") == 0)
+				continue;
+			if (strcmp(id, "default") == 0) {
+				snd_config_t *deflt;
+				int err;
+				err = snd_config_copy(&deflt, fld);
+				if (err < 0)
+					return err;
+				err = snd_config_set_id(deflt, snd_config_get_id(def));
+				if (err < 0) {
+					snd_config_delete(deflt);
+					return err;
+				}
+				err = snd_config_add(subs, deflt);
+				if (err < 0)
+					return err;
+				continue;
+			}
+			SNDERR("Unknown field %s", id);
+			return -EINVAL;
+		}
+	}
+	return 0;
+}
+
+static int safe_strtol(const char *str, long *val)
+{
+	char *end;
+	long v;
+	if (!*str)
+		return -EINVAL;
+	errno = 0;
+	v = strtol(str, &end, 0);
+	if (errno)
+		return -errno;
+	if (*end)
+		return -EINVAL;
+	*val = v;
+	return 0;
+}
+
+static int safe_strtod(const char *str, double *val)
+{
+	char *end;
+	double v;
+	if (!*str)
+		return -EINVAL;
+	errno = 0;
+	v = strtod(str, &end);
+	if (errno)
+		return -errno;
+	if (*end)
+		return -EINVAL;
+	*val = v;
+	return 0;
+}
+
+
+static void skip_blank(const char **ptr)
+{
+	while (1) {
+		switch (**ptr) {
+		case ' ':
+		case '\f':
+		case '\t':
+		case '\n':
+		case '\r':
+			break;
+		default:
+			return;
+		}
+		(*ptr)++;
+	}
+}
+
+static int parse_char(const char **ptr)
+{
+	int c;
+	assert(**ptr == '\\');
+	(*ptr)++;
+	c = **ptr;
+	switch (c) {
+	case 'n':
+		c = '\n';
+		break;
+	case 't':
+		c = '\t';
+		break;
+	case 'v':
+		c = '\v';
+		break;
+	case 'b':
+		c = '\b';
+		break;
+	case 'r':
+		c = '\r';
+		break;
+	case 'f':
+		c = '\f';
+		break;
+	case '0' ... '7':
+	{
+		int num = c - '0';
+		int i = 1;
+		(*ptr)++;
+		do {
+			c = **ptr;
+			if (c < '0' || c > '7')
+				break;
+			num = num * 8 + c - '0';
+			i++;
+			(*ptr)++;
+		} while (i < 3);
+		return num;
+	}
+	default:
+		break;
+	}
+	(*ptr)++;
+	return c;
+}
+
+static int parse_id(const char **ptr)
+{
+	if (!**ptr)
+		return -EINVAL;
+	while (1) {
+		switch (**ptr) {
+		case '\f':
+		case '\t':
+		case '\n':
+		case '\r':
+		case ',':
+		case '=':
+		case '\0':
+			return 0;
+		default:
+		}
+		(*ptr)++;
+	}
+}
+
+static int parse_string(const char **ptr, char **val)
+{
+	const size_t bufsize = 256;
+	char _buf[bufsize];
+	char *buf = _buf;
+	size_t alloc = bufsize;
+	char delim = **ptr;
+	size_t idx = 0;
+	(*ptr)++;
+	while (1) {
+		int c = **ptr;
+		switch (c) {
+		case '\0':
+			SNDERR("Unterminated string");
+			return -EINVAL;
+		case '\\':
+			c = parse_char(ptr);
+			if (c < 0)
+				return c;
+			break;
+		default:
+			(*ptr)++;
+			if (c == delim) {
+				*val = malloc(idx + 1);
+				if (!*val)
+					return -ENOMEM;
+				memcpy(*val, buf, idx);
+				(*val)[idx] = 0;
+				if (alloc > bufsize)
+					free(buf);
+				return 0;
+			}
+		}
+		if (idx >= alloc) {
+			size_t old_alloc = alloc;
+			alloc *= 2;
+			if (old_alloc == bufsize) {
+				buf = malloc(alloc);
+				memcpy(buf, _buf, old_alloc);
+			} else
+				buf = realloc(buf, alloc);
+			if (!buf)
+				return -ENOMEM;
+		}
+		buf[idx++] = c;
+	}
+}
+				
+
+/* Parse var=val or val */
+static int parse_arg(const char **ptr, unsigned int *varlen, char **val)
+{
+	const char *str;
+	int err, vallen;
+	skip_blank(ptr);
+	str = *ptr;
+	if (*str == '"' || *str == '\'') {
+		err = parse_string(ptr, val);
+		if (err < 0)
+			return err;
+		*varlen = 0;
+		return 0;
+	}
+	err = parse_id(ptr);
+	if (err < 0)
+		return err;
+	vallen = *ptr - str;
+	skip_blank(ptr);
+	if (**ptr != '=') {
+		*varlen = 0;
+		goto _value;
+	}
+	*varlen = vallen;
+	(*ptr)++;
+	skip_blank(ptr);
+	str = *ptr;
+	if (*str == '"' || *str == '\'') {
+		err = parse_string(ptr, val);
+		if (err < 0)
+			return err;
+		return 0;
+	}
+	err = parse_id(ptr);
+	if (err < 0)
+		return err;
+	vallen = *ptr - str;
+ _value:
+	*val = malloc(vallen + 1);
+	if (!*val)
+		return -ENOMEM;
+	memcpy(*val, str, vallen);
+	(*val)[vallen] = 0;
+	return 0;
+}
+
+
+static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
+{
+	int err;
+	int arg = 0;
+	if (!*str)
+		return 0;
+	while (1) {
+		char buf[256];
+		const char *var = buf;
+		unsigned int varlen;
+		snd_config_t *def, *sub, *typ;
+		const char *new = str;
+		const char *tmp;
+		char *val;
+		err = parse_arg(&new, &varlen, &val);
+		if (err < 0)
+			goto _err;
+		if (varlen > 0) {
+			assert(varlen < sizeof(buf));
+			memcpy(buf, str, varlen);
+			buf[varlen] = 0;
+		} else {
+			sprintf(buf, "%d", arg);
+		}
+		err = snd_config_search_alias(defs, NULL, var, &def);
+		if (err < 0) {
+			SNDERR("Unknown parameter %s", var);
+			goto _err;
+		}
+		if (snd_config_get_type(def) != SND_CONFIG_TYPE_COMPOUND) {
+			SNDERR("Parameter %s definition is not correct", var);
+			err = -EINVAL;
+			goto _err;
+		}
+		var = snd_config_get_id(def);
+		err = snd_config_search(subs, var, &sub);
+		if (err >= 0)
+			snd_config_delete(sub);
+		err = snd_config_search(def, "type", &typ);
+		if (err < 0) {
+		_invalid_type:
+			SNDERR("Parameter %s definition is missing a valid type info", var);
+			err = -EINVAL;
+			goto _err;
+		}
+		err = snd_config_get_string(typ, &tmp);
+		if (err < 0)
+			goto _invalid_type;
+		if (strcmp(tmp, "integer") == 0) {
+			long v;
+			err = snd_config_make(&sub, var, SND_CONFIG_TYPE_INTEGER);
+			if (err < 0)
+				goto _err;
+			err = safe_strtol(val, &v);
+			if (err < 0) {
+				SNDERR("Parameter %s must be an integer", var);
+				goto _err;
+			}
+			err = snd_config_set_integer(sub, v);
+			if (err < 0)
+				goto _err;
+		} else if (strcmp(tmp, "real") == 0) {
+			double v;
+			err = snd_config_make(&sub, var, SND_CONFIG_TYPE_REAL);
+			if (err < 0)
+				goto _err;
+			err = safe_strtod(val, &v);
+			if (err < 0) {
+				SNDERR("Parameter %s must be a real", var);
+				goto _err;
+			}
+			err = snd_config_set_real(sub, v);
+			if (err < 0)
+				goto _err;
+		} else if (strcmp(tmp, "string") == 0) {
+			err = snd_config_make(&sub, var, SND_CONFIG_TYPE_STRING);
+			if (err < 0)
+				goto _err;
+			err = snd_config_set_string(sub, val);
+			if (err < 0)
+				goto _err;
+		} else
+			goto _invalid_type;
+		err = snd_config_set_id(sub, var);
+		if (err < 0)
+			goto _err;
+		err = snd_config_add(subs, sub);
+		if (err < 0) {
+		_err:
+			free(val);
+			return err;
+		}
+		free(val);
+		if (!*new)
+			break;
+		if (*new != ',')
+			return -EINVAL;
+		str = new + 1;
+		arg++;
+	}
+	return 0;
+}
+
+/**
+ * \brief Expand a node applying arguments
+ * \param config Config node handle
+ * \param args Arguments string
+ * \param result Pointer to found node
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_expand(snd_config_t *config, const char *args,
+		      snd_config_t **result)
+{
+	int err;
+	snd_config_t *defs, *subs;
+	err = snd_config_search(config, "$", &defs);
+	if (err < 0)
+		return -EINVAL;
+	err = snd_config_top(&subs);
+	if (err < 0)
+		return err;
+	err = load_defaults(subs, defs);
+	if (err < 0)
+		goto _end;
+	err = parse_args(subs, args, defs);
+	if (err < 0)
+		goto _end;
+	err = snd_config_walk(config, result, _snd_config_expand, subs);
+	if (err < 0)
+		goto _end;
+	err = 1;
+ _end:
+	snd_config_delete(subs);
+	return err;
+}
+	

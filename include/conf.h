@@ -38,6 +38,9 @@ int snd_config_search_alias(snd_config_t *config,
 			    const char *base, const char *key,
 			    snd_config_t **result);
 
+int snd_config_expand(snd_config_t *config, const char *args,
+		      snd_config_t **result);
+
 int snd_config_add(snd_config_t *config, snd_config_t *leaf);
 int snd_config_delete(snd_config_t *config);
 
@@ -48,6 +51,7 @@ int snd_config_make_real(snd_config_t **config, const char *key);
 int snd_config_make_string(snd_config_t **config, const char *key);
 int snd_config_make_compound(snd_config_t **config, const char *key, int join);
 
+int snd_config_set_id(snd_config_t *config, const char *id);
 int snd_config_set_integer(snd_config_t *config, long value);
 int snd_config_set_real(snd_config_t *config, double value);
 int snd_config_set_string(snd_config_t *config, const char *value);
