@@ -1079,6 +1079,8 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 	      __partial:
 		xfer = 0;
 		cont = rate->slave->buffer_size - slave_offset;
+		if (cont > rate->slave->period_size)
+			cont = rate->slave->period_size;
 		snd_pcm_areas_copy(rate->sareas, 0,
 				   slave_areas, slave_offset,
 				   pcm->channels, cont,
