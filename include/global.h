@@ -28,6 +28,10 @@
 #ifndef __ALSA_GLOBAL_H_
 #define __ALSA_GLOBAL_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup Global Global defines and functions
  *  Global defines and functions.
@@ -93,5 +97,9 @@ int snd_async_handler_get_signo(snd_async_handler_t *handler);
 void *snd_async_handler_get_callback_private(snd_async_handler_t *handler);
 
 /** \} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __ALSA_GLOBAL_H */
