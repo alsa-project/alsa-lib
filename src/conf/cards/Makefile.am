@@ -31,6 +31,7 @@ cfg_files = aliases.conf \
 	ICH-MODEM.conf \
 	Maestro3.conf \
 	NFORCE.conf \
+	PC-Speaker.conf \
 	RME9636.conf \
 	RME9652.conf \
 	SI7018.conf \
