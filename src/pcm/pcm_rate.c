@@ -41,6 +41,7 @@ const char *_snd_module_pcm_rate = "";
 #define DIV (1<<16)
 
 typedef struct {
+	int init;
 	int16_t sample;
 	int sum;
 	unsigned int pos;
@@ -68,6 +69,22 @@ typedef struct {
 	unsigned int srate;
 	snd_pcm_rate_state_t *states;
 } snd_pcm_rate_t;
+
+static int16_t initial_sample(const char *src, unsigned int getidx)
+{
+#define GET16_LABELS
+#include "plugin_ops.h"
+#undef GET16_LABELS
+	void *get = get16_labels[getidx];
+	int sample = 0;
+
+	goto *get;
+#define GET16_END after_get
+#include "plugin_ops.h"
+#undef GET16_END
+      after_get:
+	return sample;
+}
 
 static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 					     snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
@@ -108,6 +125,10 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 		dst_step = snd_pcm_channel_area_step(dst_area);
 		src_frames1 = 0;
 		dst_frames1 = 0;
+		if (states->init) {
+			old_sample = initial_sample(src, getidx);
+			states->init = 0;
+		}
 		while (dst_frames1 < dst_frames) {
 			if (pos >= get_threshold) {
 				int16_t new_sample;
@@ -178,6 +199,7 @@ static snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_a
 		int src_step, dst_step;
 		sum = states->sum;
 		pos = states->pos;
+		states->init = 0;
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area);
@@ -382,9 +404,26 @@ static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 	snd_pcm_rate_t *rate = pcm->private_data;
 	if (rate->states) {
 		free(rate->states);
-		rate->states = 0;
+		rate->states = NULL;
 	}
 	return snd_pcm_hw_free(rate->plug.slave);
+}
+
+static void recalc(snd_pcm_t *pcm, snd_pcm_uframes_t *val)
+{
+	snd_pcm_rate_t *rate = pcm->private_data;
+	snd_pcm_t *slave = rate->plug.slave;
+	unsigned long div;
+
+	if (*val == pcm->buffer_size) {
+		*val = slave->buffer_size;
+	} else {
+		div = *val / pcm->period_size;
+		if (div * pcm->period_size == *val)
+			*val = div * slave->period_size;
+		else
+			*val = muldiv_near(*val, slave->rate, pcm->rate);
+	}
 }
 
 static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
@@ -393,12 +432,12 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	snd_pcm_t *slave = rate->plug.slave;
 	snd_pcm_sw_params_t sparams;
 	sparams = *params;
-	sparams.avail_min = muldiv_near(sparams.avail_min, slave->rate, pcm->rate);
-	sparams.xfer_align = muldiv_near(sparams.xfer_align, slave->rate, pcm->rate);
-	sparams.silence_threshold = muldiv_near(sparams.silence_threshold, slave->rate, pcm->rate);
-	sparams.silence_size = muldiv_near(sparams.silence_size, slave->rate, pcm->rate);
-	sparams.start_threshold = muldiv_near(sparams.start_threshold, slave->rate, pcm->rate);
-	sparams.stop_threshold = muldiv_near(sparams.stop_threshold, slave->rate, pcm->rate);
+	recalc(pcm, &sparams.avail_min);
+	recalc(pcm, &sparams.xfer_align);
+	recalc(pcm, &sparams.start_threshold);
+	recalc(pcm, &sparams.stop_threshold);
+	recalc(pcm, &sparams.silence_threshold);
+	recalc(pcm, &sparams.silence_size);
 	return snd_pcm_sw_params(slave, &sparams);
 }
 
@@ -409,12 +448,8 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 	for (k = 0; k < pcm->channels; ++k) {
 		rate->states[k].sum = 0;
 		rate->states[k].sample = 0;
-		if (rate->func == snd_pcm_rate_expand) {
-			/* Get a sample on entry */
-			rate->states[k].pos = rate->pitch;
-		} else {
-			rate->states[k].pos = 0;
-		}
+		rate->states[k].pos = 0;
+		rate->states[k].init = 0;
 	}
 	return 0;
 }
