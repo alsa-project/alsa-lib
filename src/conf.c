@@ -2816,10 +2816,8 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 			return err;
 		err = snd_config_load(subs, input);
 		snd_input_close(input);
-		if (err < 0) {
-			snd_config_delete(subs);
+		if (err < 0)
 			return err;
-		}
 		snd_config_for_each(i, next, subs) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			snd_config_t *d;
