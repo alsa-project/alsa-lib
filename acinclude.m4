@@ -13,7 +13,7 @@ AC_TRY_COMPILE([
 ],[
 void main(void)
 {
-#if !defined(SND_PROTOCOL_VERSION) || !defined(SND_PROTOCOL_UNCOMPATIBLE)
+#if !defined(SND_PROTOCOL_VERSION) || !defined(SND_PROTOCOL_INCOMPATIBLE)
 #error not found
 #else
 #if !defined(SND_MIXER_IOCTL_ELEMENTS)
