@@ -297,13 +297,13 @@ int snd_timer_poll_descriptors(snd_timer_t *timer, struct pollfd *pfds, unsigned
 		pfds->fd = timer->poll_fd;
 		switch (timer->mode & O_ACCMODE) {
 		case O_WRONLY:
-			pfds->events = POLLOUT|POLLERR;
+			pfds->events = POLLOUT|POLLERR|POLLNVAL;
 			break;
 		case O_RDONLY:
-			pfds->events = POLLIN|POLLERR;
+			pfds->events = POLLIN|POLLERR|POLLNVAL;
 			break;
 		case O_RDWR:
-			pfds->events = POLLOUT|POLLIN|POLLERR;
+			pfds->events = POLLOUT|POLLIN|POLLERR|POLLNVAL;
 			break;
 		default:
 			return -EIO;

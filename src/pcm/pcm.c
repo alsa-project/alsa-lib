@@ -1178,7 +1178,7 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 	assert(pcm && pfds);
 	if (space >= 1 && pfds) {
 		pfds->fd = pcm->poll_fd;
-		pfds->events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? (POLLOUT|POLLERR) : (POLLIN|POLLERR);
+		pfds->events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? (POLLOUT|POLLERR|POLLNVAL) : (POLLIN|POLLERR|POLLNVAL);
 	} else
 		return 0;
 	return 1;

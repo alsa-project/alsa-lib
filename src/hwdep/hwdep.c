@@ -265,13 +265,13 @@ int snd_hwdep_poll_descriptors(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned
 		pfds->fd = hwdep->poll_fd;
 		switch (hwdep->mode & O_ACCMODE) {
 		case O_WRONLY:
-			pfds->events = POLLOUT|POLLERR;
+			pfds->events = POLLOUT|POLLERR|POLLNVAL;
 			break;
 		case O_RDONLY:
-			pfds->events = POLLIN|POLLERR;
+			pfds->events = POLLIN|POLLERR|POLLNVAL;
 			break;
 		case O_RDWR:
-			pfds->events = POLLOUT|POLLIN|POLLERR;
+			pfds->events = POLLOUT|POLLIN|POLLERR|POLLNVAL;
 			break;
 		default:
 			return -EIO;

@@ -411,7 +411,7 @@ int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rawmidi, struct pollfd *pfds, un
 	assert(rawmidi);
 	if (space >= 1) {
 		pfds->fd = rawmidi->poll_fd;
-		pfds->events = rawmidi->stream == SND_RAWMIDI_STREAM_OUTPUT ? (POLLOUT|POLLERR) : (POLLIN|POLLERR);
+		pfds->events = rawmidi->stream == SND_RAWMIDI_STREAM_OUTPUT ? (POLLOUT|POLLERR|POLLNVAL) : (POLLIN|POLLERR|POLLNVAL);
 		return 1;
 	}
 	return 0;

@@ -315,11 +315,11 @@ int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int s
 	assert(seq);
 	if ((events & POLLIN) && space >= 1) {
 		assert(seq->streams & SND_SEQ_OPEN_INPUT);
-		revents |= POLLIN|POLLERR;
+		revents |= POLLIN|POLLERR|POLLNVAL;
 	}
 	if ((events & POLLOUT) && space >= 1) {
 		assert(seq->streams & SND_SEQ_OPEN_OUTPUT);
-		revents |= POLLOUT|POLLERR;
+		revents |= POLLOUT|POLLERR|POLLNVAL;
 	}
 	if (!revents)
 		return 0;

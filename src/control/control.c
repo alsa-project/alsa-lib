@@ -178,7 +178,7 @@ int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int s
 	assert(ctl && pfds);
 	if (space > 0) {
 		pfds->fd = ctl->poll_fd;
-		pfds->events = POLLIN|POLLERR;
+		pfds->events = POLLIN|POLLERR|POLLNVAL;
 		return 1;
 	}
 	return 0;

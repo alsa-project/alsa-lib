@@ -616,7 +616,7 @@ int snd_mixer_poll_descriptors_revents(snd_mixer_t *mixer, struct pollfd *pfds, 
 		return -EINVAL;
 	res = 0;
 	for (idx = 0; idx < nfds; idx++)
-		res |= pfds->revents & (POLLIN|POLLERR);
+		res |= pfds->revents & (POLLIN|POLLERR|POLLNVAL);
 	*revents = res;
 	return 0;
 }
