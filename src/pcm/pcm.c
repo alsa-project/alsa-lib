@@ -986,6 +986,18 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(name1, "null") == 0)
 			return snd_pcm_null_open(pcmp, name, stream, mode);
+		err = sscanf(name1, "surround40:%d,%d", &card, &dev);		
+		if (err == 2)
+			return snd_pcm_surround_open(pcmp, name, card, dev, SND_PCM_SURROUND_40, stream, mode);
+		err = sscanf(name1, "surround40:%d", &card);
+		if (err == 1)
+			return snd_pcm_surround_open(pcmp, name, card, 0, SND_PCM_SURROUND_40, stream, mode);
+		err = sscanf(name1, "surround51:%d,%d", &card, &dev);		
+		if (err == 2)
+			return snd_pcm_surround_open(pcmp, name, card, dev, SND_PCM_SURROUND_51, stream, mode);
+		err = sscanf(name1, "surround51:%d", &card);
+		if (err == 1)
+			return snd_pcm_surround_open(pcmp, name, card, 0, SND_PCM_SURROUND_51, stream, mode);
 		SNDERR("Unknown PCM %s", name1);
 		return -ENOENT;
 	}

@@ -609,6 +609,9 @@ static int ctl_shm_cmd(client_t *client)
 	case SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE:
 		ctrl->result = snd_ctl_pcm_next_device(ctl, &ctrl->u.device);
 		break;
+	case SND_CTL_IOCTL_PCM_SURROUND_NEXT_DEVICE:
+		ctrl->result = snd_ctl_pcm_surround_next_device(ctl, &ctrl->u.surround.type, &ctrl->u.surround.device);
+		break;
 	case SNDRV_CTL_IOCTL_PCM_INFO:
 		ctrl->result = snd_ctl_pcm_info(ctl, &ctrl->u.pcm_info);
 		break;

@@ -36,6 +36,7 @@ typedef struct _snd_ctl_ops {
 	int (*hwdep_next_device)(snd_ctl_t *handle, int *device);
 	int (*hwdep_info)(snd_ctl_t *handle, snd_hwdep_info_t * info);
 	int (*pcm_next_device)(snd_ctl_t *handle, int *device);
+	int (*pcm_surround_next_device)(snd_ctl_t *handle, snd_pcm_surround_type_t type, int *device);
 	int (*pcm_info)(snd_ctl_t *handle, snd_pcm_info_t * info);
 	int (*pcm_prefer_subdevice)(snd_ctl_t *handle, int subdev);
 	int (*rawmidi_next_device)(snd_ctl_t *handle, int *device);

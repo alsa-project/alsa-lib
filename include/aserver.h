@@ -89,6 +89,7 @@ typedef struct {
 #define SND_CTL_IOCTL_CLOSE		_IO ('U', 0xf2)
 #define SND_CTL_IOCTL_POLL_DESCRIPTOR	_IO ('U', 0xf3)
 #define SND_CTL_IOCTL_ASYNC		_IO ('U', 0xf4)
+#define SND_CTL_IOCTL_PCM_SURROUND_NEXT_DEVICE _IO ('U', 0xf5)
 
 typedef struct {
 	int result;
@@ -99,6 +100,10 @@ typedef struct {
 			pid_t pid;
 		} async;
 		int device;
+		struct {
+			int type;
+			int device;
+		} surround;
 		int subscribe_events;
 		snd_ctl_card_info_t card_info;
 		snd_ctl_elem_list_t element_list;

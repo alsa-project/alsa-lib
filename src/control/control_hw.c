@@ -187,6 +187,12 @@ static int snd_ctl_hw_pcm_next_device(snd_ctl_t *handle, int * device)
 	return 0;
 }
 
+static int snd_ctl_hw_pcm_surround_next_device(snd_ctl_t *handle, snd_pcm_surround_type_t type, int * device)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	return 0;
+}
+
 static int snd_ctl_hw_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
@@ -251,6 +257,7 @@ snd_ctl_ops_t snd_ctl_hw_ops = {
 	hwdep_next_device: snd_ctl_hw_hwdep_next_device,
 	hwdep_info: snd_ctl_hw_hwdep_info,
 	pcm_next_device: snd_ctl_hw_pcm_next_device,
+	pcm_surround_next_device: snd_ctl_hw_pcm_surround_next_device,
 	pcm_info: snd_ctl_hw_pcm_info,
 	pcm_prefer_subdevice: snd_ctl_hw_pcm_prefer_subdevice,
 	rawmidi_next_device: snd_ctl_hw_rawmidi_next_device,

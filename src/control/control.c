@@ -266,6 +266,19 @@ int snd_ctl_pcm_next_device(snd_ctl_t *ctl, int * device)
 }
 
 /**
+ * \brief Get next PCM surround device number
+ * \param ctl CTL handle
+ * \param type surround type
+ * \param device current device on entry and next device on return
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_pcm_surround_next_device(snd_ctl_t *ctl, snd_pcm_surround_type_t type, int * device)
+{
+	assert(ctl && device);
+	return ctl->ops->pcm_surround_next_device(ctl, type, device);
+}
+
+/**
  * \brief Get info about a PCM device
  * \param ctl CTL handle
  * \param info PCM device id/info pointer
