@@ -28,14 +28,10 @@
 #include <sys/ioctl.h>
 #include <assert.h>
 #include "asoundlib.h"
+#include "control_local.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
 #define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
-
-struct snd_ctl {
-	int card;
-	int fd;
-};
 
 int snd_ctl_open(snd_ctl_t **handle, int card)
 {

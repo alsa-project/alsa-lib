@@ -28,10 +28,33 @@ typedef int (mixer_simple_get_t) (snd_mixer_t *handle, mixer_simple_t *simple, s
 typedef int (mixer_simple_put_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control);
 typedef int (mixer_simple_event_t) (snd_mixer_t *handle, snd_ctl_event_type_t etype, snd_control_id_t *id);
 
+#define MIXER_PRESENT_GLOBAL_SWITCH	(1<<0)
+#define MIXER_PRESENT_GLOBAL_VOLUME	(1<<1)
+#define MIXER_PRESENT_PLAYBACK_SWITCH	(1<<2)
+#define MIXER_PRESENT_PLAYBACK_VOLUME	(1<<3)
+#define MIXER_PRESENT_CAPTURE_SWITCH	(1<<4)
+#define MIXER_PRESENT_CAPTURE_VOLUME	(1<<5)
+#define MIXER_PRESENT_CAPTURE_SOURCE	(1<<6)
+
 struct mixer_simple {
+	/* this may be moved to a private area */
+	unsigned int present;		/* present controls */
+	unsigned int gswitch_values;
+	unsigned int pswitch_values;
+	unsigned int cswitch_values;
+	unsigned int gvolume_values;
+	unsigned int pvolume_values;
+	unsigned int cvolume_values;
+	unsigned int ccapture_values;
+	unsigned int capture_item;
+	unsigned int caps;
+	long min;
+	long max;
+	int voices;
+	/* -- */
 	int refs;			/* number of references */
 	int change;			/* simple control was changed */
-	snd_mixer_sid_t id;
+	snd_mixer_sid_t sid;
 	mixer_simple_get_t *get;
 	mixer_simple_put_t *put;
 	mixer_simple_event_t *event;

@@ -103,11 +103,10 @@ int snd_mixer_simple_control_list(snd_mixer_t *handle, snd_mixer_simple_control_
 	for (s = handle->simple_first; s != NULL && tmp > 0; s = s->next);
 	tmp = list->controls_request;
 	p = list->pids;
-	printf("request = %i\n", tmp);
 	if (tmp > 0 && p == NULL)
 		return -EINVAL;
 	for (; s != NULL && tmp > 0; s = s->next, tmp--, p++, list->controls_count++)
-		memcpy(p, &s->id, sizeof(*p));
+		memcpy(p, &s->sid, sizeof(*p));
 	list->controls = handle->simple_count;
 	return 0;
 }
@@ -117,7 +116,7 @@ static mixer_simple_t *look_for_simple(snd_mixer_t *handle, snd_mixer_sid_t *sid
 	mixer_simple_t *s;
 	
 	for (s = handle->simple_first; s != NULL; s = s->next)
-		if (!strcmp(s->id.name, sid->name) && s->id.index == sid->index)
+		if (!strcmp(s->sid.name, sid->name) && s->sid.index == sid->index)
 			return s;
 	return NULL;
 }
@@ -214,16 +213,9 @@ int snd_mixer_simple_read(snd_mixer_t *handle, snd_mixer_simple_callbacks_t *cal
 		return -EINVAL;
 	if (!handle->simple_valid)
 		snd_mixer_simple_build(handle);
-	memset(&xcallbacks, 0, sizeof(xcallbacks));
-	xcallbacks.private_data = handle;
-	xcallbacks.rebuild = snd_mixer_simple_read_rebuild;
-	xcallbacks.value = snd_mixer_simple_read_value;
-	xcallbacks.change = snd_mixer_simple_read_change;
-	xcallbacks.add = snd_mixer_simple_read_add;
-	xcallbacks.remove = snd_mixer_simple_read_remove;
 	handle->callbacks = callbacks;
 	handle->simple_changes = 0;
-	if ((err = snd_ctl_read(handle->ctl_handle, &xcallbacks)) <= 0) {
+	if ((err = snd_ctl_cevent(handle->ctl_handle)) <= 0) {
 		handle->callbacks = NULL;
 		return err;
 	}
