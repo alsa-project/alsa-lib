@@ -34,7 +34,9 @@ const char *_snd_module_timer_hw = "";
 #endif
 
 #define SNDRV_FILE_TIMER		"/dev/snd/timer"
-#define SNDRV_TIMER_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
+#define SNDRV_TIMER_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 1)
+
+#define SNDRV_TIMER_IOCTL_STATUS_OLD	_IOW('T', 0x14, struct sndrv_timer_status)
 
 static int snd_timer_hw_close(snd_timer_t *handle)
 {
@@ -121,11 +123,16 @@ static int snd_timer_hw_params(snd_timer_t *handle, snd_timer_params_t * params)
 static int snd_timer_hw_status(snd_timer_t *handle, snd_timer_status_t * status)
 {
 	snd_timer_t *tmr;
+	int cmd;
 
 	tmr = handle;
 	if (!tmr || !status)
 		return -EINVAL;
-	if (ioctl(tmr->poll_fd, SNDRV_TIMER_IOCTL_STATUS, status) < 0)
+	if (tmr->version < SNDRV_PROTOCOL_VERSION(2, 0, 1))
+		cmd = SNDRV_TIMER_IOCTL_STATUS_OLD;
+	else
+		cmd = SNDRV_TIMER_IOCTL_STATUS;
+	if (ioctl(tmr->poll_fd, cmd, status) < 0)
 		return -errno;
 	return 0;
 }
@@ -243,6 +250,7 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 		return -ENOMEM;
 	}
 	tmr->type = SND_TIMER_TYPE_HW;
+	tmr->version = ver;
 	tmr->mode = tmode;
 	tmr->name = strdup(name);
 	tmr->poll_fd = fd;

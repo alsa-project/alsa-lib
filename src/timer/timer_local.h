@@ -38,6 +38,7 @@ typedef struct {
 } snd_timer_ops_t;
 
 struct _snd_timer {
+	unsigned int version;
 	char *name;
 	snd_timer_type_t type;
 	int mode;
