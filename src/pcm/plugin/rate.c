@@ -28,6 +28,10 @@
 #include <byteswap.h>
 #include "../pcm_local.h"
 
+#define SHIFT	10
+#define BITS	(1<<SHIFT)
+#define MASK	(BITS-1)
+
 /*
  *  Basic rate conversion plugin
  */
@@ -38,6 +42,7 @@ struct rate_private_data {
 	unsigned int pitch;
 	unsigned int pos;
 	signed short last_L_S1, last_R_S1;
+	ssize_t old_src_size, old_dst_size;
 };
 
 static void mix(struct rate_private_data *data,
@@ -53,16 +58,16 @@ static void mix(struct rate_private_data *data,
 	R_S1 = R_S2 = data->last_R_S1;
 	while (dst_size-- > 0) {
 		pos += data->pitch;
-		src_ptr += (pos >> 10) * 2; pos &= 0x3ff;
+		src_ptr += (pos >> SHIFT) * 2; pos &= MASK;
 		L_S2 = *src_ptr;
-		val = L_S1 + ((L_S2 + L_S1) * (signed int)pos) / 1024;
+		val = L_S1 + ((L_S2 + L_S1) * (signed int)pos) / BITS;
 		if (val < -32768)
 			val = -32768;
 		else if (val > 32767)
 			val = 32767;
 		*dst_ptr++ = val;
 		R_S2 = *(src_ptr + 1);
-		val = R_S1 + ((R_S2 + R_S1) * (signed int)pos) / 1024;
+		val = R_S1 + ((R_S2 + R_S1) * (signed int)pos) / BITS;
 		if (val < -32768)
 			val = -32768;
 		else if (val > 32767)
@@ -71,7 +76,7 @@ static void mix(struct rate_private_data *data,
 	}
 	data->last_L_S1 = L_S2;
 	data->last_R_S1 = R_S2;
-	data->pos = pos & 0x3ff;
+	data->pos = pos;
 }
 
 static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
@@ -96,21 +101,37 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 static ssize_t rate_src_size(snd_pcm_plugin_t *plugin, size_t size)
 {
 	struct rate_private_data *data;
+	ssize_t res;
 
 	if (!plugin || size <= 0)
 		return -EINVAL;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
-	return (((size * data->pitch) + 0x1ff) >> 10) & ~3;
+	res = (((size * data->pitch) + (BITS/2)) >> SHIFT) & ~3;
+	if (size < 128*1024) {
+		if (data->old_src_size == size)
+			return data->old_dst_size;
+		data->old_src_size = size;
+		data->old_dst_size = res;
+	}
+	return res;
 }
 
 static ssize_t rate_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 {
 	struct rate_private_data *data;
+	ssize_t res;
 
 	if (!plugin || size <= 0)
 		return -EINVAL;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
-	return (((size << 10) + (data->pitch / 2)) / data->pitch) & ~3;
+	res = (((size << SHIFT) + (data->pitch / 2)) / data->pitch) & ~3;
+	if (size < 128*1024) {
+		if (data->old_dst_size == size)
+			return data->old_src_size;
+		data->old_dst_size = size;
+		data->old_src_size = res;
+	}
+	return res;
 }
 
 int snd_pcm_plugin_build_rate(int src_format, int src_rate, int src_voices,
@@ -135,7 +156,12 @@ int snd_pcm_plugin_build_rate(int src_format, int src_rate, int src_voices,
 	if (plugin == NULL)
 		return -ENOMEM;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
-	data->pitch = ((src_rate << 10) + (dst_rate >> 1)) / dst_rate;
+	data->src_rate = src_rate;
+	data->dst_rate = dst_rate;
+	data->pitch = ((src_rate << SHIFT) + (dst_rate >> 1)) / dst_rate;
+	data->pos = 0;
+	data->last_L_S1 = data->last_R_S1;
+	data->old_src_size = data->old_dst_size = 0;
 	plugin->transfer = rate_transfer;
 	plugin->src_size = rate_src_size;
 	plugin->dst_size = rate_dst_size;
