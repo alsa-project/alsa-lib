@@ -11,5 +11,5 @@ pack: clean-recursive
 	rm -rf `find . -name ".deps"`
 	chown -R root.root ../alsa-lib
 	mv ../alsa-lib ../alsa-lib-$(SND_LIB_VERSION)
-	tar --exclude=CVS -cvz -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.gz alsa-lib-$(SND_LIB_VERSION)
+	tar --exclude=CVS -cvI -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.bz2 alsa-lib-$(SND_LIB_VERSION)
 	mv ../alsa-lib-$(SND_LIB_VERSION) ../alsa-lib 
