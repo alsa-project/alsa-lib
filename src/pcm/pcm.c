@@ -5122,7 +5122,7 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 	f = *frames;
 	avail = snd_pcm_mmap_avail(pcm);
 	if (avail > pcm->buffer_size)
-		return -EPIPE;
+		avail = pcm->buffer_size;
 	if (f > avail)
 		f = avail;
 	if (f > cont)
@@ -5187,26 +5187,10 @@ snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
 				      snd_pcm_uframes_t offset,
 				      snd_pcm_uframes_t frames)
 {
-	int res;
-	snd_pcm_uframes_t appl_ptr;
-
 	assert(pcm);
 	assert(offset == *pcm->appl_ptr % pcm->buffer_size);
 	assert(frames <= snd_pcm_mmap_avail(pcm));
-	appl_ptr = *pcm->appl_ptr;
-	res = pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
-	if (res < 0) {
-		snd_pcm_sframes_t diff;
-
-		if (appl_ptr == *pcm->appl_ptr)
-			return res;
-		diff = *pcm->appl_ptr - appl_ptr;
-		if (diff < 0)
-			diff += pcm->boundary;
-		assert(diff >= 0 && (snd_pcm_uframes_t)diff < pcm->boundary);
-		return diff;
-	}
-	return frames;
+	return pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
 }
 
 #ifndef DOC_HIDDEN

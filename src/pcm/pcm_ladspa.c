@@ -1135,9 +1135,12 @@ int snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 	ladspa = calloc(1, sizeof(snd_pcm_ladspa_t));
 	if (!ladspa)
 		return -ENOMEM;
+	snd_pcm_plugin_init(&ladspa->plug);
 	ladspa->plug.init = snd_pcm_ladspa_init;
 	ladspa->plug.read = snd_pcm_ladspa_read_areas;
 	ladspa->plug.write = snd_pcm_ladspa_write_areas;
+	ladspa->plug.undo_read = snd_pcm_plugin_undo_read_generic;
+	ladspa->plug.undo_write = snd_pcm_plugin_undo_write_generic;
 	ladspa->plug.slave = slave;
 	ladspa->plug.close_slave = close_slave;
 

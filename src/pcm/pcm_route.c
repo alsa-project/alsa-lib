@@ -781,10 +781,13 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	if (!route) {
 		return -ENOMEM;
 	}
+	snd_pcm_plugin_init(&route->plug);
 	route->sformat = sformat;
 	route->schannels = schannels;
 	route->plug.read = snd_pcm_route_read_areas;
 	route->plug.write = snd_pcm_route_write_areas;
+	route->plug.undo_read = snd_pcm_plugin_undo_read_generic;
+	route->plug.undo_write = snd_pcm_plugin_undo_write_generic;
 	route->plug.slave = slave;
 	route->plug.close_slave = close_slave;
 

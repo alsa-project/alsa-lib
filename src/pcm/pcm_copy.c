@@ -188,8 +188,11 @@ int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int 
 	if (!copy) {
 		return -ENOMEM;
 	}
+	snd_pcm_plugin_init(&copy->plug);
 	copy->plug.read = snd_pcm_copy_read_areas;
 	copy->plug.write = snd_pcm_copy_write_areas;
+	copy->plug.undo_read = snd_pcm_plugin_undo_read_generic;
+	copy->plug.undo_write = snd_pcm_plugin_undo_write_generic;
 	copy->plug.slave = slave;
 	copy->plug.close_slave = close_slave;
 

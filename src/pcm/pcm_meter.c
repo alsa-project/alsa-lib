@@ -396,9 +396,9 @@ static int snd_pcm_meter_resume(snd_pcm_t *pcm)
 	return snd_pcm_resume(meter->slave);
 }
 
-static int snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
-				     snd_pcm_uframes_t offset,
-				     snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
+						   snd_pcm_uframes_t offset,
+						   snd_pcm_uframes_t size)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	snd_pcm_uframes_t old_rptr = *pcm->appl_ptr;
@@ -406,10 +406,10 @@ static int snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
 	if (result <= 0)
 		return result;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		snd_pcm_meter_add_frames(pcm, snd_pcm_mmap_areas(pcm), old_rptr, size);
+		snd_pcm_meter_add_frames(pcm, snd_pcm_mmap_areas(pcm), old_rptr, result);
 		meter->rptr = *pcm->appl_ptr;
 	}
-	return 0;
+	return result;
 }
 
 static snd_pcm_sframes_t snd_pcm_meter_avail_update(snd_pcm_t *pcm)

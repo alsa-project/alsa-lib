@@ -89,6 +89,53 @@ pcm.rate44100Hz {
 
 #ifndef DOC_HIDDEN
 
+static snd_pcm_sframes_t
+snd_pcm_plugin_undo_read(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+			 const snd_pcm_channel_area_t *res_areas ATTRIBUTE_UNUSED,
+			 snd_pcm_uframes_t res_offset ATTRIBUTE_UNUSED,
+			 snd_pcm_uframes_t res_size ATTRIBUTE_UNUSED,
+			 snd_pcm_uframes_t slave_undo_size ATTRIBUTE_UNUSED)
+{
+	return -EIO;
+}
+
+static snd_pcm_sframes_t
+snd_pcm_plugin_undo_write(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+			  const snd_pcm_channel_area_t *res_areas ATTRIBUTE_UNUSED,
+			  snd_pcm_uframes_t res_offset ATTRIBUTE_UNUSED,
+			  snd_pcm_uframes_t res_size ATTRIBUTE_UNUSED,
+			  snd_pcm_uframes_t slave_undo_size ATTRIBUTE_UNUSED)
+{
+	return -EIO;
+}
+
+snd_pcm_sframes_t
+snd_pcm_plugin_undo_read_generic(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+				 const snd_pcm_channel_area_t *res_areas ATTRIBUTE_UNUSED,
+				 snd_pcm_uframes_t res_offset ATTRIBUTE_UNUSED,
+				 snd_pcm_uframes_t res_size ATTRIBUTE_UNUSED,
+				 snd_pcm_uframes_t slave_undo_size)
+{
+	return slave_undo_size;
+}
+
+snd_pcm_sframes_t
+snd_pcm_plugin_undo_write_generic(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+				  const snd_pcm_channel_area_t *res_areas ATTRIBUTE_UNUSED,
+				  snd_pcm_uframes_t res_offset ATTRIBUTE_UNUSED,
+				  snd_pcm_uframes_t res_size ATTRIBUTE_UNUSED,
+				  snd_pcm_uframes_t slave_undo_size)
+{
+	return slave_undo_size;
+}
+
+void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin)
+{
+	memset(plugin, 0, sizeof(snd_pcm_plugin_t));
+	plugin->undo_read = snd_pcm_plugin_undo_read;
+	plugin->undo_write = snd_pcm_plugin_undo_write;
+}
+
 int snd_pcm_plugin_close(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
@@ -270,7 +317,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->slave;
 	snd_pcm_uframes_t xfer = 0;
-	snd_pcm_sframes_t err;
+	snd_pcm_sframes_t result;
 
 	while (size > 0) {
 		snd_pcm_uframes_t frames = size;
@@ -283,13 +330,13 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 		assert(slave_frames <= snd_pcm_mmap_playback_avail(slave));
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, frames);
-		err = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
+		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		snd_atomic_write_end(&plugin->watom);
-		if (err < 0)
-			return xfer > 0 ? xfer : err;
-		offset += frames;
-		xfer += frames;
-		size -= frames;
+		if (result < 0)
+			return xfer > 0 ? xfer : result;
+		offset += result;
+		xfer += result;
+		size -= result;
 	}
 	return xfer;
 }
@@ -302,7 +349,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->slave;
 	snd_pcm_uframes_t xfer = 0;
-	snd_pcm_sframes_t err;
+	snd_pcm_sframes_t result;
 	
 	while (size > 0) {
 		snd_pcm_uframes_t frames = size;
@@ -315,13 +362,13 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 		assert(slave_frames <= snd_pcm_mmap_capture_avail(slave));
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, frames);
-		err = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
+		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		snd_atomic_write_end(&plugin->watom);
-		if (err < 0)
-			return xfer > 0 ? xfer : err;
-		offset += frames;
-		xfer += frames;
-		size -= frames;
+		if (result < 0)
+			return xfer > 0 ? xfer : result;
+		offset += result;
+		xfer += result;
+		size -= result;
 	}
 	return xfer;
 }
@@ -359,15 +406,16 @@ snd_pcm_sframes_t snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_ufra
 				  snd_pcm_plugin_read_areas);
 }
 
-int snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
-			       snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
-			       snd_pcm_uframes_t size)
+snd_pcm_sframes_t snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
+					     snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+					     snd_pcm_uframes_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->slave;
 	const snd_pcm_channel_area_t *areas;
 	snd_pcm_uframes_t appl_offset;
 	snd_pcm_sframes_t slave_size;
+	snd_pcm_sframes_t xfer;
 
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
 		snd_atomic_write_begin(&plugin->watom);
@@ -378,35 +426,49 @@ int snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 	slave_size = snd_pcm_avail_update(slave);
 	if (slave_size < 0)
 		return slave_size;
-	if ((snd_pcm_uframes_t)slave_size < size)
-		return -EIO;
 	areas = snd_pcm_mmap_areas(pcm);
 	appl_offset = snd_pcm_mmap_offset(pcm);
+	xfer = 0;
 	while (size > 0 && slave_size > 0) {
 		snd_pcm_uframes_t frames = size;
 		snd_pcm_uframes_t cont = pcm->buffer_size - appl_offset;
 		const snd_pcm_channel_area_t *slave_areas;
 		snd_pcm_uframes_t slave_offset;
 		snd_pcm_uframes_t slave_frames = ULONG_MAX;
+		snd_pcm_sframes_t result;
+		int err;
 
-		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+		err = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+		if (err < 0)
+			return xfer > 0 ? xfer : err;
 		if (frames > cont)
 			frames = cont;
 		frames = plugin->write(pcm, areas, appl_offset, frames,
 				       slave_areas, slave_offset, &slave_frames);
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, frames);
-		snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
+		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		snd_atomic_write_end(&plugin->watom);
+		if (result > 0 && (snd_pcm_uframes_t)result != slave_frames) {
+			snd_pcm_sframes_t res;
+			
+			res = plugin->undo_write(pcm, slave_areas, slave_offset + result, slave_frames, slave_frames - result);
+			if (res < 0)
+				return xfer > 0 ? xfer : res;
+			frames -= res;
+		}
+		if (result <= 0)
+			return xfer > 0 ? xfer : result;
 		if (frames == cont)
 			appl_offset = 0;
 		else
-			appl_offset += frames;
+			appl_offset += result;
 		size -= frames;
-		slave_size -= slave_frames;
+		slave_size -= frames;
+		xfer += frames;
 	}
 	assert(size == 0);
-	return 0;
+	return xfer;
 }
 
 snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
@@ -434,32 +496,48 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 		const snd_pcm_channel_area_t *areas;
 		snd_pcm_uframes_t xfer, hw_offset, size;
 		
-		xfer = snd_pcm_mmap_capture_avail(pcm);
-		size = pcm->buffer_size - xfer;
+		size = snd_pcm_mmap_capture_avail(pcm);
+		size = pcm->buffer_size - size;
 		areas = snd_pcm_mmap_areas(pcm);
 		hw_offset = snd_pcm_mmap_hw_offset(pcm);
+		xfer = 0;
 		while (size > 0 && slave_size > 0) {
-		snd_pcm_uframes_t frames = size;
+			snd_pcm_uframes_t frames = size;
 			snd_pcm_uframes_t cont = pcm->buffer_size - hw_offset;
 			const snd_pcm_channel_area_t *slave_areas;
 			snd_pcm_uframes_t slave_offset;
 			snd_pcm_uframes_t slave_frames = ULONG_MAX;
-			snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+			snd_pcm_sframes_t result;
+			int err;
+
+			err = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+			if (err < 0)
+				return xfer > 0 ? xfer : err;
 			if (frames > cont)
 				frames = cont;
 			frames = plugin->read(pcm, areas, hw_offset, frames,
 					      slave_areas, slave_offset, &slave_frames);
 			snd_atomic_write_begin(&plugin->watom);
 			snd_pcm_mmap_hw_forward(pcm, frames);
-			snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
+			result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 			snd_atomic_write_end(&plugin->watom);
-			xfer += frames;
+			if (result > 0 && (snd_pcm_uframes_t)result != slave_frames) {
+				snd_pcm_sframes_t res;
+				
+				res = plugin->undo_read(slave, areas, hw_offset, frames, slave_frames - result);
+				if (res < 0)
+					return xfer > 0 ? xfer : res;
+				frames -= res;
+			}
+			if (result <= 0)
+				return xfer > 0 ? xfer : result;
 			if (frames == cont)
 				hw_offset = 0;
 			else
 				hw_offset += frames;
 			size -= frames;
 			slave_size -= slave_frames;
+			xfer += frames;
 		}
 		return xfer;
 	}

@@ -74,6 +74,8 @@ typedef struct {
 #define UPDATE_SHADOW_PTR(hw) \
 	do { if (hw->shadow_appl_ptr && !hw->avail_update_flag) \
 	       hw->appl_ptr = hw->mmap_control->appl_ptr; } while (0)
+#define FAST_PCM_STATE(hw) \
+	((enum sndrv_pcm_state) (hw)->mmap_status->state)
 
 #endif /* DOC_HIDDEN */
 
@@ -593,29 +595,31 @@ static int snd_pcm_hw_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
-				  snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
-				  snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
+						snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						snd_pcm_uframes_t size)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
+
 	if (hw->mmap_shm) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		    	snd_pcm_sframes_t res;
+		    	snd_pcm_sframes_t result = 0, res;
 
 			do {
 				res = snd_pcm_write_mmap(pcm, size);
 				if (res < 0)
-					return res;
+					return result > 0 ? result : res;
 				size -= res;
+				result += res;
 			} while (size > 0);
-			return 0;
+			return result;
 		} else {
 			snd_pcm_hw_t *hw = pcm->private_data;
 			assert(hw->shadow_appl_ptr);
 		}
 	}
 	snd_pcm_mmap_appl_forward(pcm, size);
-	return 0;
+	return size;
 }
 
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
@@ -638,14 +642,21 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 			return err;
 		}
 	}
-	if (avail >= pcm->stop_threshold) {
-		/* SNDRV_PCM_IOCTL_XRUN ioctl has been implemented since PCM kernel API 2.0.1 */
-		if (SNDRV_PROTOCOL_VERSION(2, 0, 1) <= hw->version) {
-			if (ioctl(hw->fd, SND_PCM_IOCTL_XRUN) < 0)
-				return -errno;
+	switch (FAST_PCM_STATE(hw)) {
+	case SNDRV_PCM_STATE_RUNNING:
+		if (avail >= pcm->stop_threshold) {
+			/* SNDRV_PCM_IOCTL_XRUN ioctl has been implemented since PCM kernel API 2.0.1 */
+			if (SNDRV_PROTOCOL_VERSION(2, 0, 1) <= hw->version) {
+				if (ioctl(hw->fd, SND_PCM_IOCTL_XRUN) < 0)
+					return -errno;
+			}
+			/* everything is ok, state == SND_PCM_STATE_XRUN at the moment */
+			return -EPIPE;
 		}
-		/* everything is ok, state == SND_PCM_STATE_XRUN at the moment */
+	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
+	default:
+		break;
 	}
 	return avail;
 }

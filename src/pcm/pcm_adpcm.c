@@ -553,6 +553,7 @@ int snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 		return -ENOMEM;
 	}
 	adpcm->sformat = sformat;
+	snd_pcm_plugin_init(&adpcm->plug);
 	adpcm->plug.read = snd_pcm_adpcm_read_areas;
 	adpcm->plug.write = snd_pcm_adpcm_write_areas;
 	adpcm->plug.init = snd_pcm_adpcm_init;

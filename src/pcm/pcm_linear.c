@@ -328,9 +328,12 @@ int snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	if (!linear) {
 		return -ENOMEM;
 	}
+	snd_pcm_plugin_init(&linear->plug);
 	linear->sformat = sformat;
 	linear->plug.read = snd_pcm_linear_read_areas;
 	linear->plug.write = snd_pcm_linear_write_areas;
+	linear->plug.undo_read = snd_pcm_plugin_undo_read_generic;
+	linear->plug.undo_write = snd_pcm_plugin_undo_write_generic;
 	linear->plug.slave = slave;
 	linear->plug.close_slave = close_slave;
 

@@ -86,7 +86,8 @@ static void snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 
 static void snd_pcm_file_add_frames(snd_pcm_t *pcm, 
 				    const snd_pcm_channel_area_t *areas,
-				    snd_pcm_uframes_t offset, snd_pcm_uframes_t frames)
+				    snd_pcm_uframes_t offset,
+				    snd_pcm_uframes_t frames)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	while (frames > 0) {
@@ -290,19 +291,22 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 	return n;
 }
 
-static int snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
-				    snd_pcm_uframes_t offset,
-				    snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
+					          snd_pcm_uframes_t offset,
+						  snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_uframes_t ofs;
 	snd_pcm_uframes_t siz = size;
 	const snd_pcm_channel_area_t *areas;
+	snd_pcm_sframes_t result;
+
 	snd_pcm_mmap_begin(file->slave, &areas, &ofs, &siz);
 	assert(ofs == offset && siz == size);
-	snd_pcm_mmap_commit(file->slave, ofs, siz);
-	snd_pcm_file_add_frames(pcm, areas, ofs, siz);
-	return 0;
+	result = snd_pcm_mmap_commit(file->slave, ofs, siz);
+	if (result > 0)
+		snd_pcm_file_add_frames(pcm, areas, ofs, result);
+	return result;
 }
 
 static snd_pcm_sframes_t snd_pcm_file_avail_update(snd_pcm_t *pcm)

@@ -230,17 +230,16 @@ static snd_pcm_sframes_t snd_pcm_null_readn(snd_pcm_t *pcm, void **bufs ATTRIBUT
 	return snd_pcm_read_areas(pcm, NULL, 0, size, snd_pcm_null_xfer_areas);
 }
 
-static int snd_pcm_null_mmap_commit(snd_pcm_t *pcm,
-				    snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
-				    snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_null_mmap_commit(snd_pcm_t *pcm,
+						  snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						  snd_pcm_uframes_t size)
 {
 	snd_pcm_sframes_t res;
 	
 	res = snd_pcm_null_fwd(pcm, size);
 	if (res < 0)
 		return res;
-	assert((snd_pcm_uframes_t)res == size);
-	return 0;
+	return res;
 }
 
 static snd_pcm_sframes_t snd_pcm_null_avail_update(snd_pcm_t *pcm)

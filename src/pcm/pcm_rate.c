@@ -534,6 +534,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	if (!rate) {
 		return -ENOMEM;
 	}
+	snd_pcm_plugin_init(&rate->plug);
 	rate->srate = srate;
 	rate->sformat = sformat;
 	rate->plug.read = snd_pcm_rate_read_areas;

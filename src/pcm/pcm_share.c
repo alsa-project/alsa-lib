@@ -770,9 +770,9 @@ static snd_pcm_sframes_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 }
 
 /* Call it with mutex held */
-static int _snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
-				      snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
-				      snd_pcm_uframes_t size)
+static snd_pcm_sframes_t _snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
+						    snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						    snd_pcm_uframes_t size)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
@@ -803,12 +803,12 @@ static int _snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
 		}
 		_snd_pcm_share_update(pcm);
 	}
-	return 0;
+	return size;
 }
 
-static int snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
-				     snd_pcm_uframes_t offset,
-				     snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
+						   snd_pcm_uframes_t offset,
+						   snd_pcm_uframes_t size)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
@@ -909,8 +909,15 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 			xfer += frames;
 		}
 		snd_pcm_mmap_appl_forward(pcm, hw_avail);
-		if (slave->running_count == 0)
-			snd_pcm_mmap_commit(spcm, snd_pcm_mmap_offset(spcm), hw_avail);
+		if (slave->running_count == 0) {
+			snd_pcm_sframes_t res;
+			res = snd_pcm_mmap_commit(spcm, snd_pcm_mmap_offset(spcm), hw_avail);
+			if (res < 0) {
+				err = res;
+				goto _end;
+			}
+			assert((snd_pcm_uframes_t)res == hw_avail);
+		}
 	}
 	if (slave->running_count == 0) {
 		err = snd_pcm_start(spcm);

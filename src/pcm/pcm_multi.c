@@ -496,8 +496,14 @@ static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_t *slave_i = multi->slaves[i].pcm;
 		snd_pcm_uframes_t f = pos[i] - frames;
-		if (f > 0)
-			snd_pcm_mmap_commit(slave_i, snd_pcm_mmap_offset(slave_i), f);
+		snd_pcm_sframes_t result;
+		if (f > 0) {
+			result = snd_pcm_mmap_commit(slave_i, snd_pcm_mmap_offset(slave_i), f);
+			if (result < 0)
+				return result;
+			if ((snd_pcm_uframes_t)result != f)
+				return -EIO;
+		}
 	}
 	return frames;
 }
@@ -517,20 +523,22 @@ static int snd_pcm_multi_resume(snd_pcm_t *pcm)
 	return err;
 }
 
-static int snd_pcm_multi_mmap_commit(snd_pcm_t *pcm,
-				     snd_pcm_uframes_t offset,
-				     snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_multi_mmap_commit(snd_pcm_t *pcm,
+						   snd_pcm_uframes_t offset,
+						   snd_pcm_uframes_t size)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave;
 	unsigned int i;
-	int err;
+	snd_pcm_sframes_t result;
 
 	for (i = 0; i < multi->slaves_count; ++i) {
 		slave = multi->slaves[i].pcm;
-		err = snd_pcm_mmap_commit(slave, offset, size);
-		if (err < 0)
-			return err;
+		result = snd_pcm_mmap_commit(slave, offset, size);
+		if (result < 0)
+			return result;
+		if ((snd_pcm_uframes_t)result != size)
+			return -EIO;
 	}
 	return 0;
 }

@@ -93,7 +93,7 @@ int receive_fd(int sock, void *data, size_t len, int *fd)
 }
 #endif
 
-static int snd_pcm_shm_action(snd_pcm_t *pcm)
+static long snd_pcm_shm_action(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
 	int err;
@@ -112,7 +112,7 @@ static int snd_pcm_shm_action(snd_pcm_t *pcm)
 	return ctrl->result;
 }
 
-static int snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
+static long snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
 	int err;
@@ -457,9 +457,9 @@ static int snd_pcm_shm_resume(snd_pcm_t *pcm)
 	return snd_pcm_shm_action(pcm);
 }
 
-static int snd_pcm_shm_mmap_commit(snd_pcm_t *pcm,
-				   snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
-				   snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_shm_mmap_commit(snd_pcm_t *pcm,
+						 snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						 snd_pcm_uframes_t size)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;

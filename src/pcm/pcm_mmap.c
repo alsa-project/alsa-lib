@@ -86,24 +86,25 @@ static snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 						  snd_pcm_uframes_t size)
 {
 	snd_pcm_uframes_t xfer = 0;
-	int err;
 
 	assert(snd_pcm_mmap_playback_avail(pcm) >= size);
 	while (size > 0) {
 		const snd_pcm_channel_area_t *pcm_areas;
 		snd_pcm_uframes_t pcm_offset;
 		snd_pcm_uframes_t frames = size;
+		snd_pcm_sframes_t result;
+
 		snd_pcm_mmap_begin(pcm, &pcm_areas, &pcm_offset, &frames);
 		snd_pcm_areas_copy(pcm_areas, pcm_offset,
 				   areas, offset, 
 				   pcm->channels, 
 				   frames, pcm->format);
-		err = snd_pcm_mmap_commit(pcm, pcm_offset, frames);
-		if (err < 0)
-			return xfer > 0 ? xfer : err;
-		offset += frames;
-		xfer += frames;
-		size -= frames;
+		result = snd_pcm_mmap_commit(pcm, pcm_offset, frames);
+		if (result < 0)
+			return xfer > 0 ? xfer : result;
+		offset += result;
+		xfer += result;
+		size -= result;
 	}
 	return xfer;
 }
@@ -114,24 +115,25 @@ static snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 						 snd_pcm_uframes_t size)
 {
 	snd_pcm_uframes_t xfer = 0;
-	int err;
 
 	assert(snd_pcm_mmap_capture_avail(pcm) >= size);
 	while (size > 0) {
 		const snd_pcm_channel_area_t *pcm_areas;
 		snd_pcm_uframes_t pcm_offset;
 		snd_pcm_uframes_t frames = size;
+		snd_pcm_sframes_t result;
+		
 		snd_pcm_mmap_begin(pcm, &pcm_areas, &pcm_offset, &frames);
 		snd_pcm_areas_copy(areas, offset,
 				   pcm_areas, pcm_offset,
 				   pcm->channels, 
 				   frames, pcm->format);
-		err = snd_pcm_mmap_commit(pcm, pcm_offset, frames);
-		if (err < 0)
-			return xfer > 0 ? xfer : err;
-		offset += frames;
-		xfer += frames;
-		size -= frames;
+		result = snd_pcm_mmap_commit(pcm, pcm_offset, frames);
+		if (result < 0)
+			return xfer > 0 ? xfer : result;
+		offset += result;
+		xfer += result;
+		size -= result;
 	}
 	return xfer;
 }

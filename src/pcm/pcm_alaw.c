@@ -424,9 +424,12 @@ int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	if (!alaw) {
 		return -ENOMEM;
 	}
+	snd_pcm_plugin_init(&alaw->plug);
 	alaw->sformat = sformat;
 	alaw->plug.read = snd_pcm_alaw_read_areas;
 	alaw->plug.write = snd_pcm_alaw_write_areas;
+	alaw->plug.undo_read = snd_pcm_plugin_undo_read_generic;
+	alaw->plug.undo_write = snd_pcm_plugin_undo_write_generic;
 	alaw->plug.slave = slave;
 	alaw->plug.close_slave = close_slave;
 

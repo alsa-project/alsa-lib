@@ -439,9 +439,12 @@ int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 	if (!mulaw) {
 		return -ENOMEM;
 	}
+	snd_pcm_plugin_init(&mulaw->plug);
 	mulaw->sformat = sformat;
 	mulaw->plug.read = snd_pcm_mulaw_read_areas;
 	mulaw->plug.write = snd_pcm_mulaw_write_areas;
+	mulaw->plug.undo_read = snd_pcm_plugin_undo_read_generic;
+	mulaw->plug.undo_write = snd_pcm_plugin_undo_write_generic;
 	mulaw->plug.slave = slave;
 	mulaw->plug.close_slave = close_slave;
 

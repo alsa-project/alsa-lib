@@ -389,9 +389,12 @@ int snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	if (!lfloat) {
 		return -ENOMEM;
 	}
+	snd_pcm_plugin_init(&lfloat->plug);
 	lfloat->sformat = sformat;
 	lfloat->plug.read = snd_pcm_lfloat_read_areas;
 	lfloat->plug.write = snd_pcm_lfloat_write_areas;
+	lfloat->plug.undo_read = snd_pcm_plugin_undo_read_generic;
+	lfloat->plug.undo_write = snd_pcm_plugin_undo_write_generic;
 	lfloat->plug.slave = slave;
 	lfloat->plug.close_slave = close_slave;
 

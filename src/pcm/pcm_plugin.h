@@ -30,11 +30,20 @@ typedef snd_pcm_uframes_t (*snd_pcm_slave_xfer_areas_func_t)
       snd_pcm_uframes_t slave_offset, 
       snd_pcm_uframes_t *slave_sizep);
 
+typedef snd_pcm_sframes_t (*snd_pcm_slave_xfer_areas_undo_func_t)
+     (snd_pcm_t *pcm,
+      const snd_pcm_channel_area_t *res_areas,	/* result areas */
+      snd_pcm_uframes_t res_offset,		/* offset of result areas */
+      snd_pcm_uframes_t res_size,		/* size of result areas */
+      snd_pcm_uframes_t slave_undo_size);
+
 typedef struct {
 	snd_pcm_t *slave;
 	int close_slave;
 	snd_pcm_slave_xfer_areas_func_t read;
 	snd_pcm_slave_xfer_areas_func_t write;
+	snd_pcm_slave_xfer_areas_undo_func_t undo_read;
+	snd_pcm_slave_xfer_areas_undo_func_t undo_write;
 	snd_pcm_sframes_t (*client_frames)(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
 	snd_pcm_sframes_t (*slave_frames)(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
 	int (*init)(snd_pcm_t *pcm);
@@ -43,6 +52,7 @@ typedef struct {
 	snd_atomic_write_t watom;
 } snd_pcm_plugin_t;	
 
+void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin);
 int snd_pcm_plugin_close(snd_pcm_t *pcm);
 int snd_pcm_plugin_card(snd_pcm_t *pcm);
 int snd_pcm_plugin_nonblock(snd_pcm_t *pcm, int nonblock);
@@ -65,7 +75,7 @@ snd_pcm_sframes_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, snd_
 snd_pcm_sframes_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
-int snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t size);
+snd_pcm_sframes_t snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm);
 int snd_pcm_plugin_mmap_status(snd_pcm_t *pcm);
 int snd_pcm_plugin_mmap_control(snd_pcm_t *pcm);
@@ -78,6 +88,20 @@ int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
 extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
+
+snd_pcm_sframes_t snd_pcm_plugin_undo_read_generic
+     (snd_pcm_t *pcm,
+      const snd_pcm_channel_area_t *res_areas,	/* result areas */
+      snd_pcm_uframes_t res_offset,		/* offset of result areas */
+      snd_pcm_uframes_t res_size,		/* size of result areas */
+      snd_pcm_uframes_t slave_undo_size);
+
+snd_pcm_sframes_t snd_pcm_plugin_undo_write_generic
+     (snd_pcm_t *pcm,
+      const snd_pcm_channel_area_t *res_areas,	/* result areas */
+      snd_pcm_uframes_t res_offset,		/* offset of result areas */
+      snd_pcm_uframes_t res_size,		/* size of result areas */
+      snd_pcm_uframes_t slave_undo_size);
 
 int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
