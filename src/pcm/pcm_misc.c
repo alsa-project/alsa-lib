@@ -236,6 +236,7 @@ ssize_t snd_pcm_format_size(snd_pcm_format_t format, size_t samples)
 			return -EINVAL;
 		return samples / 2;
 	default:
+		assert(0);
 		return -EINVAL;
 	}
 }
@@ -344,6 +345,9 @@ u_int64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 	case SNDRV_PCM_FORMAT_GSM:
 	case SNDRV_PCM_FORMAT_SPECIAL:
 		return 0;
+	default:
+		assert(0);
+		return -EINVAL;
 	}
 	return 0;
 }

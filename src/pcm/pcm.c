@@ -1,3 +1,16 @@
+/**
+ * \file pcm.c
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ *
+ * PCM Interface is designed to write or read digital audio frames. A
+ * frame is the data unit converted into/from sound in one time unit
+ * (1/rate seconds), by example if you set your playback PCM rate to
+ * 44100 you'll hear 44100 frames per second. The size in bytes of a
+ * frame may be obtained from bits needed to store a sample and
+ * channels count.
+ */
 /*
  *  PCM Interface - main file
  *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
@@ -33,24 +46,54 @@
 #include "pcm_local.h"
 #include "list.h"
 
+/**
+ * \brief get identifier of PCM handle
+ * \param pcm a PCM handle
+ * \return ascii identifier of PCM handle
+ *
+ * Returns the ASCII identifier of given PCM handle. It's the same
+ * identifier as for snd_pcm_open().
+ */
 const char *snd_pcm_name(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	return pcm->name;
 }
 
+/**
+ * \brief get type of PCM handle
+ * \param pcm a PCM handle
+ * \return type of PCM handle
+ *
+ * Returns the type #snd_pcm_type_t of given PCM handle.
+ */
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	return pcm->type;
 }
 
+/**
+ * \brief get stream for a PCM handle
+ * \param pcm a PCM handle
+ * \return stream of PCM handle
+ *
+ * Returns the type #snd_pcm_stream_t of given PCM handle.
+ */
 snd_pcm_stream_t snd_pcm_stream(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	return pcm->stream;
 }
 
+/**
+ * \brief close PCM handle
+ * \param pcm PCM handle
+ * \return zero on success otherwise a negative error code
+ *
+ * Closes the specified PCM handle and frees all associated
+ * resources.
+ */
 int snd_pcm_close(snd_pcm_t *pcm)
 {
 	int ret = 0;
@@ -75,6 +118,12 @@ int snd_pcm_close(snd_pcm_t *pcm)
 	return 0;
 }	
 
+/**
+ * \brief set nonblock mode
+ * \param pcm PCM handle
+ * \param nonblock 0 = block, 1 = nonblock mode
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	int err;
@@ -88,6 +137,15 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 	return 0;
 }
 
+/**
+ * \brief set async mode
+ * \param pcm PCM handle
+ * \param sig Signal to raise: < 0 disable, 0 default (SIGIO)
+ * \param pid Process ID to signal: 0 current
+ * \return zero on success otherwise a negative error code
+ *
+ * A signal is raised every period.
+ */
 int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
 	int err;
@@ -106,24 +164,115 @@ int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return 0;
 }
 
+/**
+ * \brief Obtain general (static) information for PCM handle
+ * \param pcm PCM handle
+ * \param info Information container
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
 	assert(pcm && info);
 	return pcm->ops->info(pcm->op_arg, info);
 }
 
+/** \brief Install one PCM hardware configuration choosen from a configuration space and #snd_pcm_prepare it
+ * \param pcm PCM handle
+ * \param params Configuration space definition container
+ * \return zero on success otherwise a negative error code
+ *
+ * The configuration is choosen fixing single parameters in this order:
+ * first access, first format, first subformat, min channels, min rate, 
+ * min period time, max buffer size, min tick time
+ */
+int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	int err;
+	assert(pcm && params);
+	err = _snd_pcm_hw_params(pcm, params);
+	if (err >= 0)
+		err = snd_pcm_prepare(pcm);
+	return err;
+}
+
+/** \brief Remove PCM hardware configuration and free associated resources
+ * \param pcm PCM handle
+ * \return zero on success otherwise a negative error code
+ */
+int snd_pcm_hw_free(snd_pcm_t *pcm)
+{
+	int err;
+	assert(pcm->setup);
+	assert(snd_pcm_state(pcm) <= SND_PCM_STATE_PREPARED);
+	if (pcm->mmap_channels) {
+		err = snd_pcm_munmap(pcm);
+		if (err < 0)
+			return err;
+	}
+	err = pcm->ops->hw_free(pcm->op_arg);
+	pcm->setup = 0;
+	return err;
+}
+
+/** \brief Install PCM software configuration defined by params
+ * \param pcm PCM handle
+ * \param params Configuration container
+ * \return zero on success otherwise a negative error code
+ */
+int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
+{
+	int err;
+	err = pcm->ops->sw_params(pcm->op_arg, params);
+	if (err < 0)
+		return err;
+	pcm->start_mode = snd_pcm_sw_params_get_start_mode(params);
+	pcm->xrun_mode = snd_pcm_sw_params_get_xrun_mode(params);
+	pcm->tstamp_mode = snd_pcm_sw_params_get_tstamp_mode(params);
+	pcm->period_step = params->period_step;
+	pcm->sleep_min = params->sleep_min;
+	pcm->avail_min = params->avail_min;
+	pcm->xfer_align = params->xfer_align;
+	pcm->silence_threshold = params->silence_threshold;
+	pcm->silence_size = params->silence_size;
+	pcm->boundary = params->boundary;
+	return 0;
+}
+
+/**
+ * \brief Obtain status (runtime) information for PCM handle
+ * \param pcm PCM handle
+ * \param status Status container
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
 	assert(pcm && status);
 	return pcm->fast_ops->status(pcm->fast_op_arg, status);
 }
 
+/**
+ * \brief Return PCM state
+ * \param pcm PCM handle
+ * \return PCM state #snd_pcm_state_t of given PCM handle
+ */
 snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	return pcm->fast_ops->state(pcm->fast_op_arg);
 }
 
+/**
+ * \brief Obtain delay in frames for a running PCM handle
+ * \param pcm PCM handle
+ * \param delayp Returned delay
+ * \return zero on success otherwise a negative error code
+ *
+ * Delay is distance between current application frame position and
+ * sound frame position.
+ * It's positive and less than buffer size in normal situation,
+ * negative on playback underrun and greater than buffer size on
+ * capture overrun.
+ */
 int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	assert(pcm);
@@ -131,6 +280,11 @@ int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	return pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
 }
 
+/**
+ * \brief Prepare PCM for use
+ * \param pcm PCM handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_prepare(snd_pcm_t *pcm)
 {
 	assert(pcm);
@@ -138,6 +292,13 @@ int snd_pcm_prepare(snd_pcm_t *pcm)
 	return pcm->fast_ops->prepare(pcm->fast_op_arg);
 }
 
+/**
+ * \brief Reset PCM position
+ * \param pcm PCM handle
+ * \return zero on success otherwise a negative error code
+ *
+ * Reduce PCM delay to 0.
+ */
 int snd_pcm_reset(snd_pcm_t *pcm)
 {
 	assert(pcm);
@@ -145,6 +306,11 @@ int snd_pcm_reset(snd_pcm_t *pcm)
 	return pcm->fast_ops->reset(pcm->fast_op_arg);
 }
 
+/**
+ * \brief Start a PCM
+ * \param pcm PCM handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_start(snd_pcm_t *pcm)
 {
 	assert(pcm);
@@ -152,6 +318,11 @@ int snd_pcm_start(snd_pcm_t *pcm)
 	return pcm->fast_ops->start(pcm->fast_op_arg);
 }
 
+/**
+ * \brief Stop a PCM dropping pending frames
+ * \param pcm PCM handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_drop(snd_pcm_t *pcm)
 {
 	assert(pcm);
@@ -159,6 +330,15 @@ int snd_pcm_drop(snd_pcm_t *pcm)
 	return pcm->fast_ops->drop(pcm->fast_op_arg);
 }
 
+/**
+ * \brief Stop a PCM preserving pending frames
+ * \param pcm PCM handle
+ * \return zero on success otherwise a negative error code
+ *
+ * For playback wait for all pending frames to be played and then stop
+ * the PCM.
+ * For capture stop PCM permitting to retrieve residual frames.
+ */
 int snd_pcm_drain(snd_pcm_t *pcm)
 {
 	assert(pcm);
@@ -166,6 +346,12 @@ int snd_pcm_drain(snd_pcm_t *pcm)
 	return pcm->fast_ops->drain(pcm->fast_op_arg);
 }
 
+/**
+ * \brief Pause/resume PCM
+ * \param pcm PCM handle
+ * \param pause 0 = resume, 1 = pause
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 {
 	assert(pcm);
@@ -173,7 +359,13 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 	return pcm->fast_ops->pause(pcm->fast_op_arg, enable);
 }
 
-
+/**
+ * \brief Move application frame position backward
+ * \param pcm PCM handle
+ * \param frames wanted displacement in frames
+ * \return a positive number for actual displacement otherwise a
+ * negative error code
+ */
 snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	assert(pcm);
@@ -182,6 +374,14 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	return pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
 }
 
+/**
+ * \brief Write interleaved frames to a PCM
+ * \param pcm PCM handle
+ * \param buffer frames containing buffer
+ * \param size frames to be written
+ * \return a positive number of frames actually written otherwise a
+ * negative error code
+ */ 
 snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	assert(pcm);
@@ -191,6 +391,14 @@ snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_ufr
 	return _snd_pcm_writei(pcm, buffer, size);
 }
 
+/**
+ * \brief Write non interleaved frames to a PCM
+ * \param pcm PCM handle
+ * \param bufs frames containing buffers (one for each channel)
+ * \param size frames to be written
+ * \return a positive number of frames actually written otherwise a
+ * negative error code
+ */ 
 snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	assert(pcm);
@@ -200,6 +408,14 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
 	return _snd_pcm_writen(pcm, bufs, size);
 }
 
+/**
+ * \brief Read interleaved frames from a PCM
+ * \param pcm PCM handle
+ * \param buffer frames containing buffer
+ * \param size frames to be written
+ * \return a positive number of frames actually read otherwise a
+ * negative error code
+ */ 
 snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	assert(pcm);
@@ -209,6 +425,14 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
 	return _snd_pcm_readi(pcm, buffer, size);
 }
 
+/**
+ * \brief Read non interleaved frames to a PCM
+ * \param pcm PCM handle
+ * \param bufs frames containing buffers (one for each channel)
+ * \param size frames to be written
+ * \return a positive number of frames actually read otherwise a
+ * negative error code
+ */ 
 snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	assert(pcm);
@@ -218,9 +442,14 @@ snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t s
 	return _snd_pcm_readn(pcm, bufs, size);
 }
 
-/* FIXME */
-#define _snd_pcm_link_descriptor _snd_pcm_poll_descriptor
-
+/**
+ * \brief Link two PCMs
+ * \param pcm1 first PCM handle
+ * \param pcm2 first PCM handle
+ * \return zero on success otherwise a negative error code
+ *
+ * The two PCMs will start/stop/prepare in sync.
+ */ 
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
 	int fd1 = _snd_pcm_link_descriptor(pcm1);
@@ -234,6 +463,11 @@ int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 	return 0;
 }
 
+/**
+ * \brief Remove a PCM from a linked group
+ * \param pcm PCM handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_unlink(snd_pcm_t *pcm)
 {
 	int fd;
@@ -245,12 +479,25 @@ int snd_pcm_unlink(snd_pcm_t *pcm)
 	return 0;
 }
 
-int _snd_pcm_poll_descriptor(snd_pcm_t *pcm)
+/**
+ * \brief get count of poll descriptors for PCM handle
+ * \param pcm PCM handle
+ * \return count of poll descriptors
+ */
+int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
 {
 	assert(pcm);
-	return pcm->poll_fd;
+	return 1;
 }
 
+
+/**
+ * \brief get poll descriptors
+ * \param pcm PCM handle
+ * \param pfds array of poll descriptors
+ * \param space space in the poll descriptor array
+ * \return count of filled descriptors
+ */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
 	assert(pcm);
@@ -261,6 +508,7 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 	return 1;
 }
 
+#ifndef DOC_HIDDEN
 #define STATE(v) [SND_PCM_STATE_##v] = #v
 #define STREAM(v) [SND_PCM_STREAM_##v] = #v
 #define READY(v) [SND_PCM_READY_##v] = #v
@@ -277,12 +525,12 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 #define FORMATD(v, d) [SND_PCM_FORMAT_##v] = d
 #define SUBFORMATD(v, d) [SND_PCM_SUBFORMAT_##v] = d 
 
-const char *snd_pcm_stream_names[] = {
+static const char *snd_pcm_stream_names[] = {
 	STREAM(PLAYBACK),
 	STREAM(CAPTURE),
 };
 
-const char *snd_pcm_state_names[] = {
+static const char *snd_pcm_state_names[] = {
 	STATE(OPEN),
 	STATE(SETUP),
 	STATE(PREPARED),
@@ -291,25 +539,7 @@ const char *snd_pcm_state_names[] = {
 	STATE(PAUSED),
 };
 
-const char *snd_pcm_hw_param_names[] = {
-	HW_PARAM(ACCESS),
-	HW_PARAM(FORMAT),
-	HW_PARAM(SUBFORMAT),
-	HW_PARAM(SAMPLE_BITS),
-	HW_PARAM(FRAME_BITS),
-	HW_PARAM(CHANNELS),
-	HW_PARAM(RATE),
-	HW_PARAM(PERIOD_TIME),
-	HW_PARAM(PERIOD_SIZE),
-	HW_PARAM(PERIOD_BYTES),
-	HW_PARAM(PERIODS),
-	HW_PARAM(BUFFER_TIME),
-	HW_PARAM(BUFFER_SIZE),
-	HW_PARAM(BUFFER_BYTES),
-	HW_PARAM(TICK_TIME),
-};
-
-const char *snd_pcm_access_names[] = {
+static const char *snd_pcm_access_names[] = {
 	ACCESS(MMAP_INTERLEAVED), 
 	ACCESS(MMAP_NONINTERLEAVED),
 	ACCESS(MMAP_COMPLEX),
@@ -317,7 +547,7 @@ const char *snd_pcm_access_names[] = {
 	ACCESS(RW_NONINTERLEAVED),
 };
 
-const char *snd_pcm_format_names[] = {
+static const char *snd_pcm_format_names[] = {
 	FORMAT(S8),
 	FORMAT(U8),
 	FORMAT(S16_LE),
@@ -346,25 +576,25 @@ const char *snd_pcm_format_names[] = {
 	FORMAT(SPECIAL),
 };
 
-const char *snd_pcm_format_descriptions[] = {
-	FORMATD(S8, "Signed 8-bit"), 
-	FORMATD(U8, "Unsigned 8-bit"),
-	FORMATD(S16_LE, "Signed 16-bit Little Endian"),
-	FORMATD(S16_BE, "Signed 16-bit Big Endian"),
-	FORMATD(U16_LE, "Unsigned 16-bit Little Endian"),
-	FORMATD(U16_BE, "Unsigned 16-bit Big Endian"),
-	FORMATD(S24_LE, "Signed 24-bit Little Endian"),
-	FORMATD(S24_BE, "Signed 24-bit Big Endian"),
-	FORMATD(U24_LE, "Unsigned 24-bit Little Endian"),
-	FORMATD(U24_BE, "Unsigned 24-bit Big Endian"),
-	FORMATD(S32_LE, "Signed 32-bit Little Endian"),
-	FORMATD(S32_BE, "Signed 32-bit Big Endian"),
-	FORMATD(U32_LE, "Unsigned 32-bit Little Endian"),
-	FORMATD(U32_BE, "Unsigned 32-bit Big Endian"),
-	FORMATD(FLOAT_LE, "Float Little Endian"),
-	FORMATD(FLOAT_BE, "Float Big Endian"),
-	FORMATD(FLOAT64_LE, "Float64 Little Endian"),
-	FORMATD(FLOAT64_BE, "Float64 Big Endian"),
+static const char *snd_pcm_format_descriptions[] = {
+	FORMATD(S8, "Signed 8 bit"), 
+	FORMATD(U8, "Unsigned 8 bit"),
+	FORMATD(S16_LE, "Signed 16 bit Little Endian"),
+	FORMATD(S16_BE, "Signed 16 bit Big Endian"),
+	FORMATD(U16_LE, "Unsigned 16 bit Little Endian"),
+	FORMATD(U16_BE, "Unsigned 16 bit Big Endian"),
+	FORMATD(S24_LE, "Signed 24 bit Little Endian"),
+	FORMATD(S24_BE, "Signed 24 bit Big Endian"),
+	FORMATD(U24_LE, "Unsigned 24 bit Little Endian"),
+	FORMATD(U24_BE, "Unsigned 24 bit Big Endian"),
+	FORMATD(S32_LE, "Signed 32 bit Little Endian"),
+	FORMATD(S32_BE, "Signed 32 bit Big Endian"),
+	FORMATD(U32_LE, "Unsigned 32 bit Little Endian"),
+	FORMATD(U32_BE, "Unsigned 32 bit Big Endian"),
+	FORMATD(FLOAT_LE, "Float 32 bit Little Endian"),
+	FORMATD(FLOAT_BE, "Float 32 bit Big Endian"),
+	FORMATD(FLOAT64_LE, "Float 64 bit Little Endian"),
+	FORMATD(FLOAT64_BE, "Float 64 bit Big Endian"),
 	FORMATD(IEC958_SUBFRAME_LE, "IEC-958 Little Endian"),
 	FORMATD(IEC958_SUBFRAME_BE, "IEC-958 Big Endian"),
 	FORMATD(MU_LAW, "Mu-Law"),
@@ -375,53 +605,79 @@ const char *snd_pcm_format_descriptions[] = {
 	FORMATD(SPECIAL, "Special"),
 };
 
-const char *snd_pcm_subformat_names[] = {
+static const char *snd_pcm_subformat_names[] = {
 	SUBFORMAT(STD), 
 };
 
-const char *snd_pcm_subformat_descriptions[] = {
+static const char *snd_pcm_subformat_descriptions[] = {
 	SUBFORMATD(STD, "Standard"), 
 };
 
-const char *snd_pcm_start_mode_names[] = {
+static const char *snd_pcm_start_mode_names[] = {
 	START(EXPLICIT),
 	START(DATA),
 };
 
-const char *snd_pcm_xrun_mode_names[] = {
+static const char *snd_pcm_xrun_mode_names[] = {
 	XRUN(NONE),
 	XRUN(STOP),
 };
 
-const char *snd_pcm_tstamp_mode_names[] = {
+static const char *snd_pcm_tstamp_mode_names[] = {
 	TSTAMP(NONE),
 	TSTAMP(MMAP),
 };
+#endif
 
+/**
+ * \brief get name of PCM stream
+ * \param stream PCM stream
+ * \return ascii name of PCM stream
+ */
 const char *snd_pcm_stream_name(snd_pcm_stream_t stream)
 {
 	assert(stream <= SND_PCM_STREAM_LAST);
 	return snd_pcm_stream_names[snd_enum_to_int(stream)];
 }
 
+/**
+ * \brief get name of PCM access type
+ * \param access PCM access type
+ * \return ascii name of PCM access type
+ */
 const char *snd_pcm_access_name(snd_pcm_access_t access)
 {
 	assert(access <= SND_PCM_ACCESS_LAST);
 	return snd_pcm_access_names[snd_enum_to_int(access)];
 }
 
+/**
+ * \brief get name of PCM sample format
+ * \param format PCM sample format
+ * \return ascii name of PCM sample format
+ */
 const char *snd_pcm_format_name(snd_pcm_format_t format)
 {
 	assert(format <= SND_PCM_FORMAT_LAST);
 	return snd_pcm_format_names[snd_enum_to_int(format)];
 }
 
+/**
+ * \brief get description of PCM sample format
+ * \param format PCM sample format
+ * \return ascii description of PCM sample format
+ */
 const char *snd_pcm_format_description(snd_pcm_format_t format)
 {
 	assert(format <= SND_PCM_FORMAT_LAST);
 	return snd_pcm_format_descriptions[snd_enum_to_int(format)];
 }
 
+/**
+ * \brief get PCM sample format from name
+ * \param name PCM sample format name (case insensitive)
+ * \return PCM sample format
+ */
 snd_pcm_format_t snd_pcm_format_value(const char* name)
 {
 	snd_pcm_format_t format;
@@ -434,42 +690,78 @@ snd_pcm_format_t snd_pcm_format_value(const char* name)
 	return SND_PCM_FORMAT_UNKNOWN;
 }
 
+/**
+ * \brief get name of PCM sample subformat
+ * \param format PCM sample subformat
+ * \return ascii name of PCM sample subformat
+ */
 const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat)
 {
 	assert(subformat <= SND_PCM_SUBFORMAT_LAST);
 	return snd_pcm_subformat_names[snd_enum_to_int(subformat)];
 }
 
-const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t param)
+/**
+ * \brief get description of PCM sample subformat
+ * \param subformat PCM sample subformat
+ * \return ascii description of PCM sample subformat
+ */
+const char *snd_pcm_subformat_description(snd_pcm_subformat_t subformat)
 {
-	assert(param <= SND_PCM_HW_PARAM_LAST);
-	return snd_pcm_hw_param_names[snd_enum_to_int(param)];
+	assert(subformat <= SND_PCM_SUBFORMAT_LAST);
+	return snd_pcm_subformat_descriptions[snd_enum_to_int(subformat)];
 }
 
+/**
+ * \brief get name of PCM start mode setting
+ * \param mode PCM start mode
+ * \return ascii name of PCM start mode setting
+ */
 const char *snd_pcm_start_mode_name(snd_pcm_start_t mode)
 {
 	assert(mode <= SND_PCM_START_LAST);
 	return snd_pcm_start_mode_names[snd_enum_to_int(mode)];
 }
 
+/**
+ * \brief get name of PCM xrun mode setting
+ * \param mode PCM xrun mode
+ * \return ascii name of PCM xrun mode setting
+ */
 const char *snd_pcm_xrun_mode_name(snd_pcm_xrun_t mode)
 {
 	assert(mode <= SND_PCM_XRUN_LAST);
 	return snd_pcm_xrun_mode_names[snd_enum_to_int(mode)];
 }
 
+/**
+ * \brief get name of PCM tstamp mode setting
+ * \param mode PCM tstamp mode
+ * \return ascii name of PCM tstamp mode setting
+ */
 const char *snd_pcm_tstamp_mode_name(snd_pcm_tstamp_t mode)
 {
 	assert(mode <= SND_PCM_TSTAMP_LAST);
 	return snd_pcm_tstamp_mode_names[snd_enum_to_int(mode)];
 }
 
+/**
+ * \brief get name of PCM state
+ * \param state PCM state
+ * \return ascii name of PCM state
+ */
 const char *snd_pcm_state_name(snd_pcm_state_t state)
 {
 	assert(state <= SND_PCM_STATE_LAST);
 	return snd_pcm_state_names[snd_enum_to_int(state)];
 }
 
+/**
+ * \brief Dump current hardware setup for PCM
+ * \param pcm PCM handle
+ * \param out Output handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
 {
 	assert(pcm);
@@ -490,6 +782,12 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	return 0;
 }
 
+/**
+ * \brief Dump current software setup for PCM
+ * \param pcm PCM handle
+ * \param out Output handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 {
 	assert(pcm);
@@ -508,6 +806,12 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	return 0;
 }
 
+/**
+ * \brief Dump current setup (hardware and software) for PCM
+ * \param pcm PCM handle
+ * \param out Output handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_dump_hw_setup(pcm, out);
@@ -515,6 +819,12 @@ int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out)
 	return 0;
 }
 
+/**
+ * \brief Dump status
+ * \param status Status container
+ * \param out Output handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
 {
 	assert(status);
@@ -529,6 +839,12 @@ int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
 	return 0;
 }
 
+/**
+ * \brief Dump PCM info
+ * \param pcm PCM handle
+ * \param out Output handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	assert(pcm);
@@ -537,6 +853,12 @@ int snd_pcm_dump(snd_pcm_t *pcm, snd_output_t *out)
 	return 0;
 }
 
+/**
+ * \brief Convert bytes in frames for a PCM
+ * \param pcm PCM handle
+ * \param bytes quantity in bytes
+ * \return quantity expressed in frames
+ */
 snd_pcm_sframes_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes)
 {
 	assert(pcm);
@@ -544,6 +866,12 @@ snd_pcm_sframes_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes)
 	return bytes * 8 / pcm->frame_bits;
 }
 
+/**
+ * \brief Convert frames in bytes for a PCM
+ * \param pcm PCM handle
+ * \param frames quantity in frames
+ * \return quantity expressed in bytes
+ */
 ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 {
 	assert(pcm);
@@ -551,6 +879,12 @@ ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 	return frames * pcm->frame_bits / 8;
 }
 
+/**
+ * \brief Convert bytes in samples for a PCM
+ * \param pcm PCM handle
+ * \param bytes quantity in bytes
+ * \return quantity expressed in samples
+ */
 int snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
 {
 	assert(pcm);
@@ -558,6 +892,12 @@ int snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
 	return bytes * 8 / pcm->sample_bits;
 }
 
+/**
+ * \brief Convert samples in bytes for a PCM
+ * \param pcm PCM handle
+ * \param samples quantity in samples
+ * \return quantity expressed in bytes
+ */
 ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
 {
 	assert(pcm);
@@ -565,6 +905,14 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
 	return samples * pcm->sample_bits / 8;
 }
 
+/**
+ * \brief Opens a PCM
+ * \param pcmp Returned PCM handle
+ * \param name ASCII identifier of the PCM handle
+ * \param stream Wanted stream
+ * \param mode Open mode (see #SND_PCM_NONBLOCK, #SND_PCM_ASYNC)
+ * \return a negative error code on failure or zero on success
+ */
 int snd_pcm_open(snd_pcm_t **pcmp, const char *name, 
 		 snd_pcm_stream_t stream, int mode)
 {
@@ -706,30 +1054,12 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 	return open_func(pcmp, name, pcm_conf, stream, mode);
 }
 
-void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, 
-			    void *buf)
-{
-	unsigned int channel;
-	unsigned int channels = pcm->channels;
-	for (channel = 0; channel < channels; ++channel, ++areas) {
-		areas->addr = buf;
-		areas->first = channel * pcm->sample_bits;
-		areas->step = pcm->frame_bits;
-	}
-}
-
-void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, 
-			     void **bufs)
-{
-	unsigned int channel;
-	unsigned int channels = pcm->channels;
-	for (channel = 0; channel < channels; ++channel, ++areas, ++bufs) {
-		areas->addr = *bufs;
-		areas->first = 0;
-		areas->step = pcm->sample_bits;
-	}
-}
-
+/**
+ * \brief Wait for a PCM to become ready
+ * \param pcm a PCM handle
+ * \param timeout maximum time in milliseconds to wait
+ * \return a negative error code on failure or zero on success
+ */
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
 	struct pollfd pfd;
@@ -742,11 +1072,30 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 	return 0;
 }
 
+/**
+ * \brief Return number of frames ready to be read/written
+ * \param pcm a PCM handle
+ * \return a positive number of frames ready otherwise a negative
+ * error code
+ *
+ * On capture does all the actions needed to transport to application
+ * level all the ready frames across underlying layers.
+ */
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 {
 	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
 }
 
+/**
+ * \brief Advance PCM frame position in mmap buffer
+ * \param pcm a PCM handle
+ * \param size movement size
+ * \return a positive number of actual movement size otherwise a negative
+ * error code
+ *
+ * On playback does all the actions needed to transport the frames across
+ * underlying layers. 
+ */
 snd_pcm_sframes_t snd_pcm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	assert(size > 0);
@@ -754,6 +1103,14 @@ snd_pcm_sframes_t snd_pcm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 	return pcm->fast_ops->mmap_forward(pcm->fast_op_arg, size);
 }
 
+/**
+ * \brief Silence an area
+ * \param dst_area area specification
+ * \param dst_offset offset in frames inside area
+ * \param samples samples to silence
+ * \param format PCM sample format
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
 			 unsigned int samples, snd_pcm_format_t format)
 {
@@ -836,6 +1193,15 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 	return 0;
 }
 
+/**
+ * \brief Silence one or more areas
+ * \param dst_areas areas specification (one for each channel)
+ * \param dst_offset offset in frames inside area
+ * \param channels channels count
+ * \param frames frames to silence
+ * \param format PCM sample format
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 			  unsigned int channels, snd_pcm_uframes_t frames, snd_pcm_format_t format)
 {
@@ -877,6 +1243,16 @@ int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, snd_pcm_ufram
 }
 
 
+/**
+ * \brief Copy an area
+ * \param dst_area destination area specification
+ * \param dst_offset offset in frames inside destination area
+ * \param src_area source area specification
+ * \param src_offset offset in frames inside source area
+ * \param samples samples to copy
+ * \param format PCM sample format
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
 		      const snd_pcm_channel_area_t *src_area, snd_pcm_uframes_t src_offset,
 		      unsigned int samples, snd_pcm_format_t format)
@@ -973,6 +1349,17 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 	return 0;
 }
 
+/**
+ * \brief Copy one or more areas
+ * \param dst_areas destination areas specification (one for each channel)
+ * \param dst_offset offset in frames inside destination area
+ * \param src_areas source areas specification (one for each channel)
+ * \param src_offset offset in frames inside source area
+ * \param channels channels count
+ * \param frames frames to copy
+ * \param format PCM sample format
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 		       const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
 		       unsigned int channels, snd_pcm_uframes_t frames, snd_pcm_format_t format)
@@ -1022,6 +1409,38 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 		}
 	}
 	return 0;
+}
+
+#ifndef DOC_HIDDEN
+
+int _snd_pcm_poll_descriptor(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	return pcm->poll_fd;
+}
+
+void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, 
+			    void *buf)
+{
+	unsigned int channel;
+	unsigned int channels = pcm->channels;
+	for (channel = 0; channel < channels; ++channel, ++areas) {
+		areas->addr = buf;
+		areas->first = channel * pcm->sample_bits;
+		areas->step = pcm->frame_bits;
+	}
+}
+
+void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, 
+			     void **bufs)
+{
+	unsigned int channel;
+	unsigned int channels = pcm->channels;
+	for (channel = 0; channel < channels; ++channel, ++areas, ++bufs) {
+		areas->addr = *bufs;
+		areas->first = 0;
+		areas->step = pcm->sample_bits;
+	}
 }
 
 snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
@@ -1307,3 +1726,4 @@ int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
 	return 0;
 }
 		
+#endif

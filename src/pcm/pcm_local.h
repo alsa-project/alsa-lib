@@ -181,6 +181,9 @@ typedef int snd_pcm_route_ttable_entry_t;
 #define FULL ROUTE_PLUGIN_RESOLUTION
 #endif
 
+/* FIXME */
+#define _snd_pcm_link_descriptor _snd_pcm_poll_descriptor
+
 int snd_pcm_hw_open(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
 int snd_pcm_plug_open(snd_pcm_t **pcmp,
 		      const char *name,
@@ -478,7 +481,6 @@ unsigned int snd_pcm_hw_param_get_min(const snd_pcm_hw_params_t *params,
 				      snd_pcm_hw_param_t var, int *dir);
 unsigned int snd_pcm_hw_param_get_max(const snd_pcm_hw_params_t *params,
 				      snd_pcm_hw_param_t var, int *dir);
-const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t var);
 int snd_pcm_hw_strategy_simple_near(snd_pcm_hw_strategy_t *strategy, int order,
 				    snd_pcm_hw_param_t var,
 				    unsigned int best,

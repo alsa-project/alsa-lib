@@ -362,7 +362,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	void *ptr;
 	ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_status)), PROT_READ, MAP_FILE|MAP_SHARED, 
-		   hw->fd, SND_PCM_MMAP_OFFSET_STATUS);
+		   hw->fd, SNDRV_PCM_MMAP_OFFSET_STATUS);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("status mmap failed");
 		return -errno;
@@ -377,7 +377,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	void *ptr;
 	ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_control)), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
-		   hw->fd, SND_PCM_MMAP_OFFSET_CONTROL);
+		   hw->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("control mmap failed");
 		return -errno;

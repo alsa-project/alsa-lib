@@ -11,7 +11,7 @@
  *
  * RawMidi devices are opened exclusively for a selected direction.
  * While more than one process may not open a given MIDI device in the same
- * direction simultaneously, seperate processes may open a single MIDI device
+ * direction simultaneously, separate processes may open a single MIDI device
  * in different directions (i.e. process one opens a MIDI device in write
  * direction and process two opens the same device in read direction). MIDI
  * devices return EBUSY error to applications when other applications have
@@ -45,10 +45,26 @@
 #include "rawmidi_local.h"
 
 /**
+ * \brief setup the default parameters
+ * \param rawmidi RawMidi handle
+ * \param params pointer to a snd_rawmidi_params_t structure
+ * \return zero on success otherwise a negative error code
+ */
+static int snd_rawmidi_params_default(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params)
+{
+	assert(rawmidi);
+	assert(params);
+	params->buffer_size = page_size();
+	params->avail_min = 1;
+	params->no_active_sensing = 0;
+	return 0;
+}
+
+/**
  * \brief Opens a new connection to the RawMidi interface.
- * \param inputp Returned input handle
- * \param outputp Returned output handle
- * \param name ASCII identifier of the RawMidi stream
+ * \param inputp Returned input handle (NULL if not wanted)
+ * \param outputp Returned output handle (NULL if not wanted)
+ * \param name ASCII identifier of the RawMidi handle
  * \param mode Open mode
  * \return a negative error code on failure or zero on success
  *
@@ -161,31 +177,31 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 }
 
 /**
- * \brief close rawmidi handle
- * \param rmidi rawmidi handle
- * \return zero if success otherwise a negative error code
+ * \brief close RawMidi handle
+ * \param rawmidi RawMidi handle
+ * \return zero on success otherwise a negative error code
  *
- * Closes the specified rawmidi handle and frees all associated
+ * Closes the specified RawMidi handle and frees all associated
  * resources.
  */
-int snd_rawmidi_close(snd_rawmidi_t *rmidi)
+int snd_rawmidi_close(snd_rawmidi_t *rawmidi)
 {
 	int err;
-  	assert(rmidi);
-	if ((err = rmidi->ops->close(rmidi)) < 0)
+  	assert(rawmidi);
+	if ((err = rawmidi->ops->close(rawmidi)) < 0)
 		return err;
-	if (rmidi->name)
-		free(rmidi->name);
-	free(rmidi);
+	if (rawmidi->name)
+		free(rawmidi->name);
+	free(rawmidi);
 	return 0;
 }
 
 /**
- * \brief get identifier of rawmidi handle
- * \param rawmidi a rawmidi handle
- * \return ascii identifier of rawmidi handle
+ * \brief get identifier of RawMidi handle
+ * \param rawmidi a RawMidi handle
+ * \return ascii identifier of RawMidi handle
  *
- * Returns the ASCII identifier of given rawmidi handle. It's the same
+ * Returns the ASCII identifier of given RawMidi handle. It's the same
  * identifier as for snd_rawmidi_open().
  */
 const char *snd_rawmidi_name(snd_rawmidi_t *rawmidi)
@@ -195,11 +211,11 @@ const char *snd_rawmidi_name(snd_rawmidi_t *rawmidi)
 }
 
 /**
- * \brief get type of rawmidi handle
- * \param rawmidi a rawmidi handle
- * \return type of rawmidi handle
+ * \brief get type of RawMidi handle
+ * \param rawmidi a RawMidi handle
+ * \return type of RawMidi handle
  *
- * Returns the type #snd_rawmidi_type_t of given rawmidi handle.
+ * Returns the type #snd_rawmidi_type_t of given RawMidi handle.
  */
 snd_rawmidi_type_t snd_rawmidi_type(snd_rawmidi_t *rawmidi)
 {
@@ -208,29 +224,42 @@ snd_rawmidi_type_t snd_rawmidi_type(snd_rawmidi_t *rawmidi)
 }
 
 /**
- * \brief get count of poll descriptors for rawmidi handle
- * \param rmidi rawmidi handle
+ * \brief get stream (direction) of RawMidi handle
+ * \param rawmidi a RawMidi handle
+ * \return stream of RawMidi handle
+ *
+ * Returns the stream #snd_rawmidi_stream_t of given RawMidi handle.
+ */
+snd_rawmidi_stream_t snd_rawmidi_stream(snd_rawmidi_t *rawmidi)
+{
+	assert(rawmidi);
+	return rawmidi->stream;
+}
+
+/**
+ * \brief get count of poll descriptors for RawMidi handle
+ * \param rawmidi RawMidi handle
  * \return count of poll descriptors
  */
-int snd_rawmidi_poll_descriptors_count(snd_rawmidi_t *rmidi)
+int snd_rawmidi_poll_descriptors_count(snd_rawmidi_t *rawmidi)
 {
-	assert(rmidi);
+	assert(rawmidi);
 	return 1;
 }
 
 /**
  * \brief get poll descriptors
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param pfds array of poll descriptors
  * \param space space in the poll descriptor array
  * \return count of filled descriptors
  */
-int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsigned int space)
+int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rawmidi, struct pollfd *pfds, unsigned int space)
 {
-	assert(rmidi);
+	assert(rawmidi);
 	if (space >= 1) {
-		pfds->fd = rmidi->poll_fd;
-		pfds->events = rmidi->stream == SND_RAWMIDI_STREAM_OUTPUT ? POLLOUT : POLLIN;
+		pfds->fd = rawmidi->poll_fd;
+		pfds->events = rawmidi->stream == SND_RAWMIDI_STREAM_OUTPUT ? POLLOUT : POLLIN;
 		return 1;
 	}
 	return 0;
@@ -238,21 +267,21 @@ int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsi
 
 /**
  * \brief set nonblock mode
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param nonblock 0 = block, 1 = nonblock mode
- * \return zero if success otherwise a negative error code
+ * \return zero on success otherwise a negative error code
  */
-int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock)
+int snd_rawmidi_nonblock(snd_rawmidi_t *rawmidi, int nonblock)
 {
 	int err;
-	assert(rmidi);
-	assert(!(rmidi->mode & SND_RAWMIDI_APPEND));
-	if ((err = rmidi->ops->nonblock(rmidi, nonblock)) < 0)
+	assert(rawmidi);
+	assert(!(rawmidi->mode & SND_RAWMIDI_APPEND));
+	if ((err = rawmidi->ops->nonblock(rawmidi, nonblock)) < 0)
 		return err;
 	if (nonblock)
-		rmidi->mode |= SND_RAWMIDI_NONBLOCK;
+		rawmidi->mode |= SND_RAWMIDI_NONBLOCK;
 	else
-		rmidi->mode &= ~SND_RAWMIDI_NONBLOCK;
+		rawmidi->mode &= ~SND_RAWMIDI_NONBLOCK;
 	return 0;
 }
 
@@ -268,7 +297,7 @@ size_t snd_rawmidi_info_sizeof()
 /**
  * \brief allocate a new snd_rawmidi_info_t structure
  * \param ptr returned pointer
- * \return zero if success or a negative error code if fails
+ * \return zero on success or a negative error code if fails
  *
  * Allocates a new snd_rawmidi_params_t structure using the standard
  * malloc C library function.
@@ -450,16 +479,16 @@ void snd_rawmidi_info_set_stream(snd_rawmidi_info_t *info, snd_rawmidi_stream_t 
 }
 
 /**
- * \brief get information about rawmidi handle
- * \param rmidi rawmidi handle
+ * \brief get information about RawMidi handle
+ * \param rawmidi RawMidi handle
  * \param info pointer to a snd_rawmidi_info_t structure to be filled
- * \return zero if success otherwise a negative error code
+ * \return zero on success otherwise a negative error code
  */
-int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
+int snd_rawmidi_info(snd_rawmidi_t *rawmidi, snd_rawmidi_info_t * info)
 {
-	assert(rmidi);
+	assert(rawmidi);
 	assert(info);
-	return rmidi->ops->info(rmidi, info);
+	return rawmidi->ops->info(rawmidi, info);
 }
 
 /**
@@ -474,7 +503,7 @@ size_t snd_rawmidi_params_sizeof()
 /**
  * \brief allocate the snd_rawmidi_params_t structure
  * \param ptr returned pointer
- * \return zero if success or a negative error code if fails
+ * \return zero on success or a negative error code if fails
  *
  * Allocates a new snd_rawmidi_params_t structure using the standard
  * malloc C library function.
@@ -513,31 +542,15 @@ void snd_rawmidi_params_copy(snd_rawmidi_params_t *dst, const snd_rawmidi_params
 }
 
 /**
- * \brief setup the default parameters
- * \param rmidi rawmidi handle
- * \param params pointer to a snd_rawmidi_params_t structure
- * \return zero if success otherwise a negative error code
- */
-int snd_rawmidi_params_default(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *params)
-{
-	assert(rmidi);
-	assert(params);
-	params->buffer_size = page_size();
-	params->avail_min = 1;
-	params->no_active_sensing = 0;
-	return 0;
-}
-
-/**
  * \brief set rawmidi I/O ring buffer size
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param params pointer to a snd_rawmidi_params_t structure
  * \param val size in bytes
- * \return zero if success otherwise a negative error code
+ * \return zero on success otherwise a negative error code
  */
-int snd_rawmidi_params_set_buffer_size(snd_rawmidi_t *rmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, size_t val)
+int snd_rawmidi_params_set_buffer_size(snd_rawmidi_t *rawmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, size_t val)
 {
-	assert(rmidi && params);
+	assert(rawmidi && params);
 	assert(val > params->avail_min);
 	params->buffer_size = val;
 	return 0;
@@ -556,13 +569,13 @@ size_t snd_rawmidi_params_get_buffer_size(const snd_rawmidi_params_t *params)
 
 /**
  * \brief set minimum available bytes in rawmidi I/O ring buffer for wakeup
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param params pointer to a snd_rawmidi_params_t structure
  * \param val desired value
  */
-int snd_rawmidi_params_set_avail_min(snd_rawmidi_t *rmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, size_t val)
+int snd_rawmidi_params_set_avail_min(snd_rawmidi_t *rawmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, size_t val)
 {
-	assert(rmidi && params);
+	assert(rawmidi && params);
 	assert(val < params->buffer_size);
 	params->avail_min = val;
 	return 0;
@@ -581,14 +594,14 @@ size_t snd_rawmidi_params_get_avail_min(const snd_rawmidi_params_t *params)
 
 /**
  * \brief set no-active-sensing action on snd_rawmidi_close()
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param params pointer to snd_rawmidi_params_t structure
  * \param val value: 0 = enable to send the active sensing message, 1 = disable
- * \return zero if success otherwise a negative error code
+ * \return zero on success otherwise a negative error code
  */
-int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, int val)
+int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rawmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, int val)
 {
-	assert(rmidi && params);
+	assert(rawmidi && params);
 	params->no_active_sensing = val;
 	return 0;
 }
@@ -606,37 +619,37 @@ int snd_rawmidi_params_get_no_active_sensing(const snd_rawmidi_params_t *params)
 
 /**
  * \brief get parameters about rawmidi stream
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param params pointer to a snd_rawmidi_params_t structure to be filled
- * \return zero if success otherwise a negative error code
+ * \return zero on success otherwise a negative error code
  */
-int snd_rawmidi_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
+int snd_rawmidi_params(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t * params)
 {
 	int err;
-	assert(rmidi);
+	assert(rawmidi);
 	assert(params);
-	err = rmidi->ops->params(rmidi, params);
+	err = rawmidi->ops->params(rawmidi, params);
 	if (err < 0)
 		return err;
-	rmidi->buffer_size = params->buffer_size;
-	rmidi->avail_min = params->avail_min;
-	rmidi->no_active_sensing = params->no_active_sensing;
+	rawmidi->buffer_size = params->buffer_size;
+	rawmidi->avail_min = params->avail_min;
+	rawmidi->no_active_sensing = params->no_active_sensing;
 	return 0;
 }
 
 /**
  * \brief get current parameters about rawmidi stream
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param params pointer to a snd_rawmidi_params_t structure to be filled
- * \return zero if success otherwise a negative error code
+ * \return zero on success otherwise a negative error code
  */
-int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *params)
+int snd_rawmidi_params_current(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params)
 {
-	assert(rmidi);
+	assert(rawmidi);
 	assert(params);
-	params->buffer_size = rmidi->buffer_size;
-	params->avail_min = rmidi->avail_min;
-	params->no_active_sensing = rmidi->no_active_sensing;
+	params->buffer_size = rawmidi->buffer_size;
+	params->avail_min = rawmidi->avail_min;
+	params->no_active_sensing = rawmidi->no_active_sensing;
 	return 0;
 }
 
@@ -652,7 +665,7 @@ size_t snd_rawmidi_status_sizeof()
 /**
  * \brief allocate the snd_rawmidi_status_t structure
  * \param ptr returned pointer
- * \return zero if success or a negative error code if fails
+ * \return zero on success or a negative error code if fails
  *
  * Allocates a new snd_rawmidi_status_t structure using the standard
  * malloc C library function.
@@ -725,66 +738,66 @@ size_t snd_rawmidi_status_get_xruns(const snd_rawmidi_status_t *status)
 
 /**
  * \brief get status of rawmidi stream
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param status pointer to a snd_rawmidi_status_t structure to be filled
- * \return zero if success otherwise a negative error code
+ * \return zero on success otherwise a negative error code
  */
-int snd_rawmidi_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
+int snd_rawmidi_status(snd_rawmidi_t *rawmidi, snd_rawmidi_status_t * status)
 {
-	assert(rmidi);
+	assert(rawmidi);
 	assert(status);
-	return rmidi->ops->status(rmidi, status);
+	return rawmidi->ops->status(rawmidi, status);
 }
 
 /**
  * \brief drop all bytes in the rawmidi I/O ring buffer immediately
- * \param rmidi rawmidi handle
- * \return zero if success otherwise a negative error code
+ * \param rawmidi RawMidi handle
+ * \return zero on success otherwise a negative error code
  */
-int snd_rawmidi_drop(snd_rawmidi_t *rmidi)
+int snd_rawmidi_drop(snd_rawmidi_t *rawmidi)
 {
-	assert(rmidi);
-	return rmidi->ops->drop(rmidi);
+	assert(rawmidi);
+	return rawmidi->ops->drop(rawmidi);
 }
 
 /**
  * \brief drain all bytes in the rawmidi I/O ring buffer
- * \param rmidi rawmidi handle
- * \return zero if success otherwise a negative error code
+ * \param rawmidi RawMidi handle
+ * \return zero on success otherwise a negative error code
  *
  * Waits until all MIDI bytes are not drained (sent) to the
  * hardware device.
  */
-int snd_rawmidi_drain(snd_rawmidi_t *rmidi)
+int snd_rawmidi_drain(snd_rawmidi_t *rawmidi)
 {
-	assert(rmidi);
-	return rmidi->ops->drain(rmidi);
+	assert(rawmidi);
+	return rawmidi->ops->drain(rawmidi);
 }
 
 /**
  * \brief write MIDI bytes to MIDI stream
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param buffer buffer containing MIDI bytes
  * \param size output buffer size in bytes
  */
-ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
+ssize_t snd_rawmidi_write(snd_rawmidi_t *rawmidi, const void *buffer, size_t size)
 {
-	assert(rmidi);
-	assert(rmidi->stream == SND_RAWMIDI_STREAM_OUTPUT);
+	assert(rawmidi);
+	assert(rawmidi->stream == SND_RAWMIDI_STREAM_OUTPUT);
 	assert(buffer || size == 0);
-	return rmidi->ops->write(rmidi, buffer, size);
+	return rawmidi->ops->write(rawmidi, buffer, size);
 }
 
 /**
  * \brief read MIDI bytes from MIDI stream
- * \param rmidi rawmidi handle
+ * \param rawmidi RawMidi handle
  * \param buffer buffer to store the input MIDI bytes
  * \param size input buffer size in bytes
  */
-ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
+ssize_t snd_rawmidi_read(snd_rawmidi_t *rawmidi, void *buffer, size_t size)
 {
-	assert(rmidi);
-	assert(rmidi->stream == SND_RAWMIDI_STREAM_INPUT);
+	assert(rawmidi);
+	assert(rawmidi->stream == SND_RAWMIDI_STREAM_INPUT);
 	assert(buffer || size == 0);
-	return rmidi->ops->read(rmidi, buffer, size);
+	return rawmidi->ops->read(rawmidi, buffer, size);
 }

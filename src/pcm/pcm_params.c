@@ -1151,6 +1151,32 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 	assert(0);
 }
 
+#define HW_PARAM(v) [SND_PCM_HW_PARAM_##v] = #v
+
+const char *snd_pcm_hw_param_names[] = {
+	HW_PARAM(ACCESS),
+	HW_PARAM(FORMAT),
+	HW_PARAM(SUBFORMAT),
+	HW_PARAM(SAMPLE_BITS),
+	HW_PARAM(FRAME_BITS),
+	HW_PARAM(CHANNELS),
+	HW_PARAM(RATE),
+	HW_PARAM(PERIOD_TIME),
+	HW_PARAM(PERIOD_SIZE),
+	HW_PARAM(PERIOD_BYTES),
+	HW_PARAM(PERIODS),
+	HW_PARAM(BUFFER_TIME),
+	HW_PARAM(BUFFER_SIZE),
+	HW_PARAM(BUFFER_BYTES),
+	HW_PARAM(TICK_TIME),
+};
+
+static const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t param)
+{
+	assert(param <= SND_PCM_HW_PARAM_LAST);
+	return snd_pcm_hw_param_names[snd_enum_to_int(param)];
+}
+
 int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
 {
 	unsigned int k;
@@ -2150,49 +2176,5 @@ int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		err = snd_pcm_mmap(pcm);
 	}
 	return err;
-}
-
-int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
-{
-	int err;
-	assert(pcm && params);
-	err = _snd_pcm_hw_params(pcm, params);
-	if (err >= 0)
-		err = snd_pcm_prepare(pcm);
-	return err;
-}
-
-int snd_pcm_hw_free(snd_pcm_t *pcm)
-{
-	int err;
-	assert(pcm->setup);
-	assert(snd_pcm_state(pcm) <= SND_PCM_STATE_PREPARED);
-	if (pcm->mmap_channels) {
-		err = snd_pcm_munmap(pcm);
-		if (err < 0)
-			return err;
-	}
-	err = pcm->ops->hw_free(pcm->op_arg);
-	pcm->setup = 0;
-	return err;
-}
-
-int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
-{
-	int err;
-	err = pcm->ops->sw_params(pcm->op_arg, params);
-	if (err < 0)
-		return err;
-	pcm->start_mode = snd_pcm_sw_params_get_start_mode(params);
-	pcm->xrun_mode = snd_pcm_sw_params_get_xrun_mode(params);
-	pcm->tstamp_mode = snd_pcm_sw_params_get_tstamp_mode(params);
-	pcm->period_step = params->period_step;
-	pcm->sleep_min = params->sleep_min;
-	pcm->avail_min = params->avail_min;
-	pcm->xfer_align = params->xfer_align;
-	pcm->silence_threshold = params->silence_threshold;
-	pcm->silence_size = params->silence_size;
-	pcm->boundary = params->boundary;
-	return 0;
 }
 
