@@ -25,28 +25,25 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
-#include <sys/uio.h>
 #include "pcm_local.h"
 
 typedef struct {
-	snd_pcm_t *handle;
-	unsigned int channels_total;
+	snd_pcm_t *pcm;
+	unsigned int channels_count;
 	int close_slave;
 } snd_pcm_multi_slave_t;
 
 typedef struct {
-	unsigned int client_channel;
-	unsigned int slave;
+	int slave_idx;
 	unsigned int slave_channel;
-} snd_pcm_multi_bind_t;
+} snd_pcm_multi_channel_t;
 
 typedef struct {
 	size_t slaves_count;
 	snd_pcm_multi_slave_t *slaves;
-	size_t bindings_count;
-	snd_pcm_multi_bind_t *bindings;
 	size_t channels_count;
-	int xfer_mode, mmap_shape;
+	snd_pcm_multi_channel_t *channels;
+	int xfer_mode;
 } snd_pcm_multi_t;
 
 static int snd_pcm_multi_close(snd_pcm_t *pcm)
@@ -58,32 +55,30 @@ static int snd_pcm_multi_close(snd_pcm_t *pcm)
 		int err;
 		snd_pcm_multi_slave_t *slave = &multi->slaves[i];
 		if (slave->close_slave) {
-			err = snd_pcm_close(slave->handle);
+			err = snd_pcm_close(slave->pcm);
 			if (err < 0)
 				ret = err;
 		} else
-			snd_pcm_unlink(slave->handle);
+			snd_pcm_unlink(slave->pcm);
 	}
 	free(multi->slaves);
-	free(multi->bindings);
+	free(multi->channels);
 	free(multi);
 	return ret;
 }
 
-static int snd_pcm_multi_nonblock(snd_pcm_t *pcm, int nonblock)
+static int snd_pcm_multi_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
 {
-	snd_pcm_multi_t *multi = pcm->private;
-	snd_pcm_t *handle = multi->slaves[0].handle;
-	return snd_pcm_nonblock(handle, nonblock);
+	return 0;
 }
 
 static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	int err;
-	snd_pcm_t *handle_0 = multi->slaves[0].handle;
+	snd_pcm_t *slave_0 = multi->slaves[0].pcm;
 	/* FIXME */
-	err = snd_pcm_info(handle_0, info);
+	err = snd_pcm_info(slave_0, info);
 	if (err < 0)
 		return err;
 	return 0;
@@ -94,23 +89,31 @@ static int snd_pcm_multi_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
 	int err;
-	snd_pcm_t *handle_0 = multi->slaves[0].handle;
-	unsigned int old_mask = info->req_mask;
-	info->req_mask &= ~(SND_PCM_PARAMS_CHANNELS |
-			    SND_PCM_PARAMS_MMAP_SHAPE |
-			    SND_PCM_PARAMS_XFER_MODE);
-	err = snd_pcm_params_info(handle_0, info);
+	snd_pcm_t *slave_0 = multi->slaves[0].pcm;
+	unsigned int req_mask = info->req_mask;
+	unsigned int channels = info->req.format.channels;
+	if ((req_mask & SND_PCM_PARAMS_CHANNELS) &&
+	    channels != multi->channels_count) {
+		info->req.fail_mask |= SND_PCM_PARAMS_CHANNELS;
+		info->req.fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
+		return -EINVAL;
+	}
+	info->req_mask |= SND_PCM_PARAMS_CHANNELS;
+	info->req.format.channels = multi->slaves[0].channels_count;
+	err = snd_pcm_params_info(slave_0, info);
+	info->req_mask = req_mask;
+	info->req.format.channels = channels;
 	if (err < 0)
 		return err;
 	info->min_channels = multi->channels_count;
 	info->max_channels = multi->channels_count;
 	for (i = 1; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle_i = multi->slaves[i].handle;
+		snd_pcm_t *slave_i = multi->slaves[i].pcm;
 		snd_pcm_params_info_t info_i;
 		info_i = *info;
 		info_i.req_mask |= SND_PCM_PARAMS_CHANNELS;
-		info_i.req.format.channels = multi->slaves[i].channels_total;
-		err = snd_pcm_params_info(handle_i, &info_i);
+		info_i.req.format.channels = multi->slaves[i].channels_count;
+		err = snd_pcm_params_info(slave_i, &info_i);
 		if (err < 0)
 			return err;
 		info->formats &= info_i.formats;
@@ -131,7 +134,14 @@ static int snd_pcm_multi_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info
 			info->max_fragments = info_i.max_fragments;
 		info->flags &= info_i.flags;
 	}
-	info->req_mask = old_mask;
+	if (info->flags & SND_PCM_INFO_INTERLEAVED) {
+		if (multi->slaves_count > 0) {
+			info->flags &= ~SND_PCM_INFO_INTERLEAVED;
+			info->flags |= SND_PCM_INFO_COMPLEX;
+		}
+	} else if (!(info->flags & SND_PCM_INFO_NONINTERLEAVED))
+		info->flags |= SND_PCM_INFO_COMPLEX;
+	info->req_mask = req_mask;
 	return 0;
 }
 
@@ -140,42 +150,42 @@ static int snd_pcm_multi_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
 	snd_pcm_params_t p;
-	if (params->format.channels != multi->channels_count)
+	int err = 0;
+	if (params->format.channels != multi->channels_count) {
+		params->fail_mask = SND_PCM_PARAMS_CHANNELS;
+		params->fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
 		return -EINVAL;
-	multi->xfer_mode = params->xfer_mode;
-	multi->mmap_shape = params->mmap_shape;
+	}
 	p = *params;
 	for (i = 0; i < multi->slaves_count; ++i) {
-		int err;
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		if (handle->mmap_data) {
-			err = snd_pcm_munmap_data(handle);
+		snd_pcm_t *slave = multi->slaves[i].pcm;
+		if (slave->mmap_data) {
+			err = snd_pcm_munmap_data(slave);
 			if (err < 0)
 				return err;
 		}
-		p.xfer_mode = SND_PCM_XFER_UNSPECIFIED;
-		p.mmap_shape = SND_PCM_MMAP_UNSPECIFIED;
-		p.format.channels = multi->slaves[i].channels_total;
+		p.format.channels = multi->slaves[i].channels_count;
 #if 1
-		p.xrun_max = ~0;
+		p.xrun_mode = SND_PCM_XRUN_NONE;
 #endif
-		err = snd_pcm_params(handle, &p);
+		err = snd_pcm_params(slave, &p);
 		if (err < 0) {
 			params->fail_mask = p.fail_mask;
 			params->fail_reason = p.fail_reason;
-			return err;
+			break;
 		}
 	}
 	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_mmap_data(handle, NULL);
-		if (err < 0)
-			return err;
-		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-			snd_pcm_areas_silence(handle->mmap_areas, 0, handle->setup.format.channels, 
-					      handle->setup.buffer_size, handle->setup.format.sfmt);
+		snd_pcm_t *slave = multi->slaves[i].pcm;
+		snd_pcm_mmap_data(slave, NULL);
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
+		    err == 0)
+			snd_pcm_areas_silence(slave->mmap_areas, 0, slave->setup.format.channels, 
+					      slave->setup.buffer_size, slave->setup.format.sfmt);
 	}
-	return 0;
+	if (err == 0)
+		multi->xfer_mode = params->xfer_mode;
+	return err;
 }
 
 static int snd_pcm_multi_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
@@ -183,14 +193,12 @@ static int snd_pcm_multi_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
 	int err;
-	size_t frames_alloc;
-	err = snd_pcm_setup(multi->slaves[0].handle, setup);
+	err = snd_pcm_setup(multi->slaves[0].pcm, setup);
 	if (err < 0)
 		return err;
-	frames_alloc = multi->slaves[0].handle->setup.frag_size;
 	for (i = 1; i < multi->slaves_count; ++i) {
 		snd_pcm_setup_t s;
-		snd_pcm_t *sh = multi->slaves[i].handle;
+		snd_pcm_t *sh = multi->slaves[i].pcm;
 		err = snd_pcm_setup(sh, &s);
 		if (err < 0)
 			return err;
@@ -207,123 +215,107 @@ static int snd_pcm_multi_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
 		setup->xfer_mode = SND_PCM_XFER_NONINTERLEAVED;
 	else
 		setup->xfer_mode = multi->xfer_mode;
-	if (multi->mmap_shape != SND_PCM_MMAP_UNSPECIFIED &&
-	    multi->mmap_shape != setup->mmap_shape)
-		return -EINVAL;
 	return 0;
 }
 
 static int snd_pcm_multi_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	snd_pcm_t *handle = multi->slaves[0].handle;
-	return snd_pcm_status(handle, status);
+	snd_pcm_t *slave = multi->slaves[0].pcm;
+	return snd_pcm_status(slave, status);
 }
 
 static int snd_pcm_multi_state(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	snd_pcm_t *handle = multi->slaves[0].handle;
-	return snd_pcm_state(handle);
+	snd_pcm_t *slave = multi->slaves[0].pcm;
+	return snd_pcm_state(slave);
 }
 
 static int snd_pcm_multi_delay(snd_pcm_t *pcm, ssize_t *delayp)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	snd_pcm_t *handle = multi->slaves[0].handle;
-	return snd_pcm_delay(handle, delayp);
+	snd_pcm_t *slave = multi->slaves[0].pcm;
+	return snd_pcm_delay(slave, delayp);
 }
 
 static ssize_t snd_pcm_multi_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	snd_pcm_t *handle = multi->slaves[0].handle;
-	return snd_pcm_avail_update(handle);
+	snd_pcm_t *slave = multi->slaves[0].pcm;
+	return snd_pcm_avail_update(slave);
 }
 
 static int snd_pcm_multi_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	return snd_pcm_prepare(multi->slaves[0].handle);
+	return snd_pcm_prepare(multi->slaves[0].pcm);
 }
 
 static int snd_pcm_multi_start(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	return snd_pcm_start(multi->slaves[0].handle);
+	return snd_pcm_start(multi->slaves[0].pcm);
 }
 
-static int snd_pcm_multi_stop(snd_pcm_t *pcm)
+static int snd_pcm_multi_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	return snd_pcm_stop(multi->slaves[0].handle);
+	return snd_pcm_drop(multi->slaves[0].pcm);
 }
 
 static int snd_pcm_multi_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	return snd_pcm_drain(multi->slaves[0].handle);
+	return snd_pcm_drain(multi->slaves[0].pcm);
 }
 
 static int snd_pcm_multi_pause(snd_pcm_t *pcm, int enable)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	return snd_pcm_pause(multi->slaves[0].handle, enable);
+	return snd_pcm_pause(multi->slaves[0].pcm, enable);
 }
 
 static int snd_pcm_multi_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
-	int err;
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int channel = info->channel;
-	unsigned int i;
-	for (i = 0; i < multi->bindings_count; ++i) {
-		if (multi->bindings[i].client_channel == channel) {
-			info->channel = multi->bindings[i].slave_channel;
-			err = snd_pcm_channel_info(multi->slaves[multi->bindings[i].slave].handle, info);
-			info->channel = channel;
-			return err;
-		}
-	}
+	snd_pcm_multi_channel_t *c = &multi->channels[channel];
+	int err;
+	if (c->slave_idx < 0)
+		return -ENXIO;
+	info->channel = c->slave_channel;
+	err = snd_pcm_channel_info(multi->slaves[c->slave_idx].pcm, info);
 	info->channel = channel;
-	return -EINVAL;
+	return err;
 }
 
 static int snd_pcm_multi_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 {
-	int err;
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int channel = params->channel;
-	unsigned int i;
-	for (i = 0; i < multi->bindings_count; ++i) {
-		if (multi->bindings[i].client_channel == channel) {
-			params->channel = multi->bindings[i].slave_channel;
-			err = snd_pcm_channel_params(multi->slaves[multi->bindings[i].slave].handle, params);
-			params->channel = channel;
-			return err;
-		}
-	}
+	snd_pcm_multi_channel_t *c = &multi->channels[channel];
+	int err;
+	if (c->slave_idx < 0)
+		return -ENXIO;
+	params->channel = c->slave_channel;
+	err = snd_pcm_channel_params(multi->slaves[c->slave_idx].pcm, params);
 	params->channel = channel;
-	return -EINVAL;
+	return err;
 }
 
 static int snd_pcm_multi_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
 {
-	int err;
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int channel = setup->channel;
-	unsigned int i;
-	for (i = 0; i < multi->bindings_count; ++i) {
-		if (multi->bindings[i].client_channel == channel) {
-			setup->channel = multi->bindings[i].slave_channel;
-			err = snd_pcm_channel_setup(multi->slaves[multi->bindings[i].slave].handle, setup);
-			setup->channel = channel;
-			return err;
-		}
-	}
-	memset(setup, 0, sizeof(*setup));
+	snd_pcm_multi_channel_t *c = &multi->channels[channel];
+	int err;
+	if (c->slave_idx < 0)
+		return -ENXIO;
+	setup->channel = c->slave_channel;
+	err = snd_pcm_channel_setup(multi->slaves[c->slave_idx].pcm, setup);
 	setup->channel = channel;
-	return 0;
+	return err;
 }
 
 static ssize_t snd_pcm_multi_rewind(snd_pcm_t *pcm, size_t frames)
@@ -333,8 +325,8 @@ static ssize_t snd_pcm_multi_rewind(snd_pcm_t *pcm, size_t frames)
 	size_t pos[multi->slaves_count];
 	memset(pos, 0, sizeof(pos));
 	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle_i = multi->slaves[i].handle;
-		ssize_t f = snd_pcm_rewind(handle_i, frames);
+		snd_pcm_t *slave_i = multi->slaves[i].pcm;
+		ssize_t f = snd_pcm_rewind(slave_i, frames);
 		if (f < 0)
 			return f;
 		pos[i] = f;
@@ -342,10 +334,10 @@ static ssize_t snd_pcm_multi_rewind(snd_pcm_t *pcm, size_t frames)
 	}
 	/* Realign the pointers */
 	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle_i = multi->slaves[i].handle;
+		snd_pcm_t *slave_i = multi->slaves[i].pcm;
 		size_t f = pos[i] - frames;
 		if (f > 0)
-			snd_pcm_mmap_appl_forward(handle_i, f);
+			snd_pcm_mmap_appl_forward(slave_i, f);
 	}
 	return frames;
 }
@@ -353,14 +345,14 @@ static ssize_t snd_pcm_multi_rewind(snd_pcm_t *pcm, size_t frames)
 static int snd_pcm_multi_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	pcm->mmap_status = multi->slaves[0].handle->mmap_status;
+	pcm->mmap_status = multi->slaves[0].pcm->mmap_status;
 	return 0;
 }
 
 static int snd_pcm_multi_mmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	pcm->mmap_control = multi->slaves[0].handle->mmap_control;
+	pcm->mmap_control = multi->slaves[0].pcm->mmap_control;
 	return 0;
 }
 
@@ -369,15 +361,15 @@ static int snd_pcm_multi_mmap_data(snd_pcm_t *pcm)
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
 	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_mmap_data(handle, 0);
+		snd_pcm_t *slave = multi->slaves[i].pcm;
+		int err = snd_pcm_mmap_data(slave, 0);
 		snd_pcm_setup_t *setup;
 		if (err < 0)
 			return err;
-		setup = &handle->setup;
+		setup = &slave->setup;
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 			snd_pcm_channel_area_t areas[setup->format.channels];
-			err = snd_pcm_mmap_get_areas(handle, areas);
+			err = snd_pcm_mmap_get_areas(slave, areas);
 			if (err < 0)
 				return err;
 			err = snd_pcm_areas_silence(areas, 0, setup->format.channels, setup->buffer_size, setup->format.sfmt);
@@ -385,7 +377,7 @@ static int snd_pcm_multi_mmap_data(snd_pcm_t *pcm)
 				return err;
 		}
 	}
-	pcm->mmap_data = multi->slaves[0].handle->mmap_data;
+	pcm->mmap_data = multi->slaves[0].pcm->mmap_data;
 	return 0;
 }
 
@@ -405,8 +397,8 @@ static int snd_pcm_multi_munmap_data(snd_pcm_t *pcm)
 	unsigned int i;
 	int ret = 0;
 	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_munmap_data(handle);
+		snd_pcm_t *slave = multi->slaves[i].pcm;
+		int err = snd_pcm_munmap_data(slave);
 		if (err < 0)
 			ret = err;
 	}
@@ -419,8 +411,8 @@ static ssize_t snd_pcm_multi_mmap_forward(snd_pcm_t *pcm, size_t size)
 	unsigned int i;
 
 	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		ssize_t frames = snd_pcm_mmap_forward(handle, size);
+		snd_pcm_t *slave = multi->slaves[i].pcm;
+		ssize_t frames = snd_pcm_mmap_forward(slave, size);
 		if (frames < 0)
 			return frames;
 		if (i == 0) {
@@ -440,15 +432,17 @@ static int snd_pcm_multi_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
 	bitset_t *cmasks[multi->slaves_count];
 	int err;
 	for (i = 0; i < multi->slaves_count; ++i)
-		cmasks[i] = bitset_alloc(multi->slaves[i].channels_total);
-	for (i = 0; i < multi->bindings_count; ++i) {
-		snd_pcm_multi_bind_t *b = &multi->bindings[i];
-		if (bitset_get(cmask, b->client_channel))
-			bitset_set(cmasks[b->slave], b->slave_channel);
+		cmasks[i] = bitset_alloc(multi->slaves[i].channels_count);
+	for (i = 0; i < multi->channels_count; ++i) {
+		snd_pcm_multi_channel_t *b = &multi->channels[i];
+		if (b->slave_idx < 0)
+			continue;
+		if (bitset_get(cmask, i))
+			bitset_set(cmasks[b->slave_idx], b->slave_channel);
 	}
 	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		err = snd_pcm_channels_mask(handle, cmasks[i]);
+		snd_pcm_t *slave = multi->slaves[i].pcm;
+		err = snd_pcm_channels_mask(slave, cmasks[i]);
 		if (err < 0) {
 			for (i = 0; i <= multi->slaves_count; ++i)
 				free(cmasks[i]);
@@ -456,10 +450,12 @@ static int snd_pcm_multi_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
 		}
 	}
 	bitset_zero(cmask, pcm->setup.format.channels);
-	for (i = 0; i < multi->bindings_count; ++i) {
-		snd_pcm_multi_bind_t *b = &multi->bindings[i];
-		if (bitset_get(cmasks[b->slave], b->slave_channel))
-			bitset_set(cmask, b->client_channel);
+	for (i = 0; i < multi->channels_count; ++i) {
+		snd_pcm_multi_channel_t *b = &multi->channels[i];
+		if (b->slave_idx < 0)
+			continue;
+		if (bitset_get(cmasks[b->slave_idx], b->slave_channel))
+			bitset_set(cmask, i);
 	}
 	for (i = 0; i < multi->slaves_count; ++i)
 		free(cmasks[i]);
@@ -469,8 +465,8 @@ static int snd_pcm_multi_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
 int snd_pcm_multi_poll_descriptor(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	snd_pcm_t *handle = multi->slaves[0].handle;
-	return snd_pcm_poll_descriptor(handle);
+	snd_pcm_t *slave = multi->slaves[0].pcm;
+	return snd_pcm_poll_descriptor(slave);
 }
 
 static void snd_pcm_multi_dump(snd_pcm_t *pcm, FILE *fp)
@@ -484,14 +480,15 @@ static void snd_pcm_multi_dump(snd_pcm_t *pcm, FILE *fp)
 	}
 	for (k = 0; k < multi->slaves_count; ++k) {
 		fprintf(fp, "\nSlave #%d: ", k);
-		snd_pcm_dump(multi->slaves[k].handle, fp);
+		snd_pcm_dump(multi->slaves[k].pcm, fp);
 	}
-	fprintf(fp, "\nBindings:\n");
-	for (k = 0; k < multi->bindings_count; ++k) {
+	fprintf(fp, "\nChannel bindings:\n");
+	for (k = 0; k < multi->channels_count; ++k) {
+		snd_pcm_multi_channel_t *c = &multi->channels[k];
+		if (c->slave_idx < 0)
+			continue;
 		fprintf(fp, "Channel #%d: slave %d[%d]\n", 
-			multi->bindings[k].client_channel,
-			multi->bindings[k].slave,
-			multi->bindings[k].slave_channel);
+			k, c->slave_idx, c->slave_channel);
 	}
 }
 
@@ -520,7 +517,7 @@ struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
 	delay: snd_pcm_multi_delay,
 	prepare: snd_pcm_multi_prepare,
 	start: snd_pcm_multi_start,
-	stop: snd_pcm_multi_stop,
+	drop: snd_pcm_multi_drop,
 	drain: snd_pcm_multi_drain,
 	pause: snd_pcm_multi_pause,
 	writei: snd_pcm_mmap_writei,
@@ -536,22 +533,20 @@ struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
 
 int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 			 snd_pcm_t **slaves_handle, size_t *schannels_count,
-			 size_t bindings_count,  unsigned int *bindings_cchannel,
-			 unsigned int *bindings_slave, unsigned int *bindings_schannel,
+			 size_t channels_count,
+			 int *sidxs, unsigned int *schannels,
 			 int close_slaves)
 {
 	snd_pcm_t *handle;
 	snd_pcm_multi_t *multi;
-	size_t channels = 0;
 	unsigned int i;
 	int err;
 	int stream;
-	char client_map[32] = { 0 };
 	char slave_map[32][32] = { { 0 } };
 
 	assert(handlep);
 	assert(slaves_count > 0 && slaves_handle && schannels_count);
-	assert(bindings_count > 0 && bindings_slave && bindings_cchannel && bindings_schannel);
+	assert(channels_count > 0 && sidxs && schannels);
 
 	multi = calloc(1, sizeof(snd_pcm_multi_t));
 	if (!multi) {
@@ -562,32 +557,29 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 	
 	multi->slaves_count = slaves_count;
 	multi->slaves = calloc(slaves_count, sizeof(*multi->slaves));
-	multi->bindings_count = bindings_count;
-	multi->bindings = calloc(bindings_count, sizeof(*multi->bindings));
+	multi->channels_count = channels_count;
+	multi->channels = calloc(channels_count, sizeof(*multi->channels));
 	for (i = 0; i < slaves_count; ++i) {
 		snd_pcm_multi_slave_t *slave = &multi->slaves[i];
 		assert(slaves_handle[i]->stream == stream);
-		slave->handle = slaves_handle[i];
-		slave->channels_total = schannels_count[i];
+		slave->pcm = slaves_handle[i];
+		slave->channels_count = schannels_count[i];
 		slave->close_slave = close_slaves;
 		if (i != 0)
 			snd_pcm_link(slaves_handle[i-1], slaves_handle[i]);
 	}
-	for (i = 0; i < bindings_count; ++i) {
-		snd_pcm_multi_bind_t *bind = &multi->bindings[i];
-		assert(bindings_slave[i] < slaves_count);
-		assert(bindings_schannel[i] < schannels_count[bindings_slave[i]]);
-		bind->client_channel = bindings_cchannel[i];
-		bind->slave = bindings_slave[i];
-		bind->slave_channel = bindings_schannel[i];
-		assert(!slave_map[bindings_slave[i]][bindings_schannel[i]]);
-		slave_map[bindings_slave[i]][bindings_schannel[i]] = 1;
-		assert(!client_map[bindings_cchannel[i]]);
-		client_map[bindings_cchannel[i]] = 1;
-		if (bindings_cchannel[i] >= channels)
-			channels = bindings_cchannel[i] + 1;
+	for (i = 0; i < channels_count; ++i) {
+		snd_pcm_multi_channel_t *bind = &multi->channels[i];
+		assert(sidxs[i] < (int)slaves_count);
+		assert(schannels[i] < schannels_count[sidxs[i]]);
+		bind->slave_idx = sidxs[i];
+		bind->slave_channel = schannels[i];
+		if (sidxs[i] < 0)
+			continue;
+		assert(!slave_map[sidxs[i]][schannels[i]]);
+		slave_map[sidxs[i]][schannels[i]] = 1;
 	}
-	multi->channels_count = channels;
+	multi->channels_count = channels_count;
 
 	handle = calloc(1, sizeof(snd_pcm_t));
 	if (!handle) {
@@ -596,7 +588,7 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 	}
 	handle->type = SND_PCM_TYPE_MULTI;
 	handle->stream = stream;
-	handle->mode = multi->slaves[0].handle->mode;
+	handle->mode = multi->slaves[0].pcm->mode;
 	handle->ops = &snd_pcm_multi_ops;
 	handle->op_arg = handle;
 	handle->fast_ops = &snd_pcm_multi_fast_ops;
@@ -623,11 +615,10 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	char **slaves_name = NULL;
 	snd_pcm_t **slaves_pcm = NULL;
 	size_t *slaves_channels = NULL;
-	unsigned int *bindings_cchannel = NULL;
-	unsigned int *bindings_slave = NULL;
-	unsigned int *bindings_schannel = NULL;
+	unsigned int *channels_sidx = NULL;
+	unsigned int *channels_schannel = NULL;
 	size_t slaves_count = 0;
-	size_t bindings_count = 0;
+	size_t channels_count = 0;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);
 		if (strcmp(n->id, "comment") == 0)
@@ -656,27 +647,38 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		++slaves_count;
 	}
 	snd_config_foreach(i, binding) {
-		++bindings_count;
+		int cchannel = -1;
+		char *p;
+		snd_config_t *m = snd_config_entry(i);
+		errno = 0;
+		cchannel = strtol(m->id, &p, 10);
+		if (errno || *p || cchannel < 0)
+			return -EINVAL;
+		if ((unsigned)cchannel > channels_count)
+			channels_count = cchannel + 1;
 	}
+	if (channels_count == 0)
+		return -EINVAL;
 	slaves_id = calloc(slaves_count, sizeof(*slaves_id));
 	slaves_name = calloc(slaves_count, sizeof(*slaves_name));
 	slaves_pcm = calloc(slaves_count, sizeof(*slaves_pcm));
 	slaves_channels = calloc(slaves_count, sizeof(*slaves_channels));
-	bindings_cchannel = calloc(bindings_count, sizeof(*bindings_cchannel));
-	bindings_slave = calloc(bindings_count, sizeof(*bindings_slave));
-	bindings_schannel = calloc(bindings_count, sizeof(*bindings_schannel));
+	channels_sidx = calloc(channels_count, sizeof(*channels_sidx));
+	channels_schannel = calloc(channels_count, sizeof(*channels_schannel));
 	idx = 0;
+	for (idx = 0; idx < channels_count; ++idx)
+		channels_sidx[idx] = -1;
 	snd_config_foreach(i, slave) {
 		snd_config_t *m = snd_config_entry(i);
-		char *pcm = NULL;
+		char *name = NULL;
 		long channels = -1;
 		slaves_id[idx] = snd_config_id(m);
 		snd_config_foreach(j, m) {
 			snd_config_t *n = snd_config_entry(j);
 			if (strcmp(n->id, "comment") == 0)
 				continue;
-			if (strcmp(n->id, "pcm") == 0) {
-				err = snd_config_string_get(n, &pcm);
+			if (strcmp(n->id, "name") == 0) {
+				err = snd_config_string_get(n, &name);
 				if (err < 0)
 					goto _free;
 				continue;
@@ -690,33 +692,28 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			err = -EINVAL;
 			goto _free;
 		}
-		if (!pcm || channels < 0) {
+		if (!name || channels < 0) {
 			err = -EINVAL;
 			goto _free;
 		}
-		slaves_name[idx] = strdup(pcm);
+		slaves_name[idx] = strdup(name);
 		slaves_channels[idx] = channels;
 		++idx;
 	}
 
-	idx = 0;
 	snd_config_foreach(i, binding) {
 		snd_config_t *m = snd_config_entry(i);
-		long cchannel = -1, schannel = -1;
+		long cchannel = -1;
+		long schannel = -1;
 		int slave = -1;
 		long val;
 		char *str;
+		cchannel = strtol(m->id, 0, 10);
 		snd_config_foreach(j, m) {
 			snd_config_t *n = snd_config_entry(j);
 			if (strcmp(n->id, "comment") == 0)
 				continue;
-			if (strcmp(n->id, "client_channel") == 0) {
-				err = snd_config_integer_get(n, &cchannel);
-				if (err < 0)
-					goto _free;
-				continue;
-			}
-			if (strcmp(n->id, "slave") == 0) {
+			if (strcmp(n->id, "sidx") == 0) {
 				char buf[32];
 				unsigned int k;
 				err = snd_config_string_get(n, &str);
@@ -733,7 +730,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 				}
 				continue;
 			}
-			if (strcmp(n->id, "slave_channel") == 0) {
+			if (strcmp(n->id, "schannel") == 0) {
 				err = snd_config_integer_get(n, &schannel);
 				if (err < 0)
 					goto _free;
@@ -754,10 +751,8 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			err = -EINVAL;
 			goto _free;
 		}
-		bindings_cchannel[idx] = cchannel;
-		bindings_slave[idx] = slave;
-		bindings_schannel[idx] = schannel;
-		++idx;
+		channels_sidx[cchannel] = slave;
+		channels_schannel[cchannel] = schannel;
 	}
 	
 	for (idx = 0; idx < slaves_count; ++idx) {
@@ -767,8 +762,8 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	}
 	err = snd_pcm_multi_create(pcmp, slaves_count, slaves_pcm,
 				   slaves_channels,
-				   bindings_count, bindings_cchannel,
-				   bindings_slave, bindings_schannel,
+				   channels_count,
+				   channels_sidx, channels_schannel,
 				   1);
 _free:
 	if (err < 0) {
@@ -785,12 +780,10 @@ _free:
 		free(slaves_pcm);
 	if (slaves_channels)
 		free(slaves_channels);
-	if (bindings_cchannel)
-		free(bindings_cchannel);
-	if (bindings_slave)
-		free(bindings_slave);
-	if (bindings_schannel)
-		free(bindings_schannel);
+	if (channels_sidx)
+		free(channels_sidx);
+	if (channels_schannel)
+		free(channels_schannel);
 	return err;
 }
 
