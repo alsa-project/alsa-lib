@@ -32,14 +32,14 @@ struct acall_table {
 
 static inline int get_integer(struct alisp_object * obj)
 {
-	if (obj->type == ALISP_OBJ_INTEGER)
+	if (alisp_compare_type(obj, ALISP_OBJ_INTEGER))
 		return obj->value.i;
 	return 0;
 }
 
 static inline const void *get_pointer(struct alisp_object * obj)
 {
-	if (obj->type == ALISP_OBJ_POINTER)
+	if (alisp_compare_type(obj, ALISP_OBJ_POINTER))
 		return obj->value.ptr;
 	return NULL;
 }
@@ -48,10 +48,9 @@ static const char *get_string(struct alisp_object * obj, const char * deflt)
 {
 	if (obj == &alsa_lisp_t)
 		return "true";
-	if (obj->type == ALISP_OBJ_STRING)
+	if (alisp_compare_type(obj, ALISP_OBJ_STRING) ||
+	    alisp_compare_type(obj, ALISP_OBJ_IDENTIFIER))
 		return obj->value.s;
-	if (obj->type == ALISP_OBJ_IDENTIFIER)
-		return obj->value.id;
 	return deflt;
 }
 
@@ -343,7 +342,7 @@ static struct alisp_object * FA_int_intp(struct alisp_instance * instance, struc
 	int val, err;
 
 	args = eval(instance, car(args));
-	if (args->type != ALISP_OBJ_INTEGER)
+	if (!alisp_compare_type(args, ALISP_OBJ_INTEGER))
 		return &alsa_lisp_nil;
 	val = args->value.i;
 	err = ((snd_int_intp_t)item->xfunc)(&val);
@@ -355,7 +354,8 @@ static struct alisp_object * FA_int_str(struct alisp_instance * instance, struct
 	int err;
 
 	args = eval(instance, car(args));
-	if (args->type != ALISP_OBJ_STRING && args->type != ALISP_OBJ_IDENTIFIER)
+	if (!alisp_compare_type(args, ALISP_OBJ_STRING) &&
+	    !alisp_compare_type(args, ALISP_OBJ_IDENTIFIER))
 		return &alsa_lisp_nil;
 	err = ((snd_int_str_t)item->xfunc)(args->value.s);
 	return new_integer(instance, err);
@@ -367,7 +367,7 @@ static struct alisp_object * FA_int_int_strp(struct alisp_instance * instance, s
 	char *str;
 
 	args = eval(instance, car(args));
-	if (args->type != ALISP_OBJ_INTEGER)
+	if (!alisp_compare_type(args, ALISP_OBJ_INTEGER))
 		return &alsa_lisp_nil;
 	err = ((snd_int_int_strp_t)item->xfunc)(args->value.i, &str);
 	return new_result3(instance, err, str);
@@ -422,9 +422,8 @@ static int parse_ctl_elem_id(struct alisp_object * cons, snd_ctl_elem_id_t * id)
 	id->numid = 0;
 	do {
 		p1 = car(cons);
-		if (p1->type == ALISP_OBJ_CONS) {
+		if (alisp_compare_type(p1, ALISP_OBJ_CONS)) {
 			xid = get_string(p1->value.c.car, NULL);
-			printf("id  = '%s'\n", xid);
 			if (xid == NULL) {
 				/* noop */
 			} else if (!strcmp(xid, "numid")) {
@@ -723,7 +722,8 @@ static struct alisp_object * F_acall(struct alisp_instance *instance, struct ali
 	struct acall_table key, *item;
 
 	p1 = eval(instance, car(args));
-	if (p1->type != ALISP_OBJ_IDENTIFIER && p1->type != ALISP_OBJ_STRING)
+	if (!alisp_compare_type(p1, ALISP_OBJ_IDENTIFIER) &&
+	    !alisp_compare_type(p1, ALISP_OBJ_STRING))
 		return &alsa_lisp_nil;
 	p2 = cdr(args);
 	key.name = p1->value.s;
@@ -760,7 +760,7 @@ static int common_error(snd_output_t **rout, struct alisp_instance *instance, st
 
 	do {
 		p1 = eval(instance, car(p));
-		if (p1->type == ALISP_OBJ_STRING)
+		if (alisp_compare_type(p1, ALISP_OBJ_STRING))
 			snd_output_printf(out, "%s", p1->value.s);
 		else
 			princ_object(out, p1);

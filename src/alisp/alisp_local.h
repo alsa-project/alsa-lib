@@ -21,6 +21,8 @@
  *
  */
 
+#include "list.h"
+
 enum alisp_tokens {
 	ALISP_IDENTIFIER,
 	ALISP_INTEGER,
@@ -30,21 +32,31 @@ enum alisp_tokens {
 };
 
 enum alisp_objects {
-	ALISP_OBJ_NIL,
-	ALISP_OBJ_T,
 	ALISP_OBJ_INTEGER,
 	ALISP_OBJ_FLOAT,
 	ALISP_OBJ_IDENTIFIER,
 	ALISP_OBJ_STRING,
 	ALISP_OBJ_POINTER,
-	ALISP_OBJ_CONS
+	ALISP_OBJ_CONS,
+	ALISP_OBJ_LAST_SEARCH = ALISP_OBJ_CONS,
+	ALISP_OBJ_NIL,
+	ALISP_OBJ_T,
 };
 
+struct alisp_object;
+
+#define ALISP_MAX_REFS	0x0fffffff
+#define ALISP_MAX_REFS_LIMIT ((ALISP_MAX_REFS + 1) / 2)
+
+#define ALISP_TYPE_MASK	0xf0000000
+#define ALISP_TYPE_SHIFT 28
+#define ALISP_REFS_MASK 0x0fffffff
+#define ALISP_REFS_SHIFT 0
+
 struct alisp_object {
-	unsigned char	type;
-	unsigned char	gc;
+	struct list_head list;
+	unsigned int	type_refs;	/* type and count of references */
 	union {
-		char	*id;
 		char	*s;
 		long	i;
 		double	f;
@@ -54,16 +66,61 @@ struct alisp_object {
 			struct alisp_object *cdr;
 		} c;
 	} value;
-	struct alisp_object *next;
 };
+
+static inline enum alisp_objects alisp_get_type(struct alisp_object *p)
+{
+	return (p->type_refs >> ALISP_TYPE_SHIFT);
+}
+
+static inline void alisp_set_type(struct alisp_object *p, enum alisp_objects type)
+{
+	p->type_refs &= ~ALISP_TYPE_MASK;
+	p->type_refs |= (unsigned int)type << ALISP_TYPE_SHIFT;
+}
+
+static inline int alisp_compare_type(struct alisp_object *p, enum alisp_objects type)
+{
+	return ((unsigned int)type << ALISP_TYPE_SHIFT) ==
+	       (p->type_refs & ALISP_TYPE_MASK);
+}
+
+static inline void alisp_set_refs(struct alisp_object *p, unsigned int refs)
+{
+	p->type_refs &= ~ALISP_REFS_MASK;
+	p->type_refs |= refs & ALISP_REFS_MASK;
+}
+
+static inline unsigned int alisp_get_refs(struct alisp_object *p)
+{
+	return p->type_refs & ALISP_REFS_MASK;
+}
+
+static inline unsigned int alisp_inc_refs(struct alisp_object *p)
+{
+	unsigned r = alisp_get_refs(p) + 1;
+	alisp_set_refs(p, r);
+	return r;
+}
+
+static inline unsigned int alisp_dec_refs(struct alisp_object *p)
+{
+	unsigned r = alisp_get_refs(p) - 1;
+	alisp_set_refs(p, r);
+	return r;
+}
 
 struct alisp_object_pair {
-	struct alisp_object *name;
+	struct list_head list;
+	const char *name;
  	struct alisp_object *value;
-	struct alisp_object_pair *next;
 };
 
-#define ALISP_LEX_BUF_MAX 16
+#define ALISP_LEX_BUF_MAX	16
+#define ALISP_OBJ_PAIR_HASH_SHIFT 4
+#define ALISP_OBJ_PAIR_HASH_SIZE (1<<ALISP_OBJ_PAIR_HASH_SHIFT)
+#define ALISP_OBJ_PAIR_HASH_MASK (ALISP_OBJ_PAIR_HASH_SIZE-1)
+#define ALISP_FREE_OBJ_POOL	512	/* free objects above this pool */
 
 struct alisp_instance {
 	int verbose: 1,
@@ -84,15 +141,12 @@ struct alisp_instance {
 	char *token_buffer;
 	int token_buffer_max;
 	int thistoken;
-	/* object allocator */
+	/* object allocator / storage */
 	long free_objs;
 	long used_objs;
 	long max_objs;
-	long gc_thr_objs;
-	struct alisp_object *free_objs_list;
-	struct alisp_object *used_objs_list;
+	struct list_head free_objs_list;
+	struct list_head used_objs_list[ALISP_OBJ_PAIR_HASH_SIZE][ALISP_OBJ_LAST_SEARCH + 1];
 	/* set object */
-	struct alisp_object_pair *setobjs_list;
-	/* garbage collect */
-	unsigned char gc_id;
+	struct list_head setobjs_list[ALISP_OBJ_PAIR_HASH_SIZE];
 };
