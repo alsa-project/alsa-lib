@@ -74,3 +74,40 @@ options for the configure script:
 
 Unfortunately, due to bug in the libtool script, the shared and static
 library cannot be built together.
+
+Configuration for cross-compilation
+-----------------------------------
+
+When you would like to cross-compile ALSA library (e.g. compile on
+i686 host but for arm architecture) you will need to call ./configure
+script with aditional parameters:
+
+CC=arm-linux-gcc ./configure --target=arm-linux \
+--with-soundbase=/usr/local/arm/src/linux/include
+
+In this example host where the library is build is guessed (should be
+given with --host=platform) and target for which is the library build is
+Linux on ARM architecture. You need to specify location of kernel includes
+configured for target architecture. This is used to find ALSA include
+files and so it should be set to prefix where '/sound' directory should
+be found. You should ommit setting 'CC' variable and cross-compiler will
+be guessed too. You could also use option '--prefix' to specify ALSA include
+directory directly if $prefix/include/sound exists.
+
+So simplest version would be:
+
+./configure --target=arm-linux --with-soundbase=/usr/local/arm/include
+
+or
+
+./configure --target=arm-linux --prefix=/usr/local/arm
+
+As you will likely specify the prefix, the last posibbility would be
+the best if everything match. On the listing of 'configure' script
+check if directory with ALSA headers was found properly same as platform
+specific configurations like processor type and selected cross-compiler. 
+
+For platform names in the form cpu-vendor-os (or aliases for this)
+you should look in 'config.guess' script. Target and all paths
+used here are only examples and should not be directly applicable to
+your system.
