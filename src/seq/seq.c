@@ -376,46 +376,74 @@ int snd_seq_set_queue_client(snd_seq_t *seq, int q, snd_seq_queue_client_t * inf
 	return 0;
 }
 
-int snd_seq_alloc_queue(snd_seq_t *seq)
+int snd_seq_alloc_named_queue(snd_seq_t *seq, char *name)
 {
-	int i, err;
-	snd_seq_system_info_t sysinfo;
-	snd_seq_queue_owner_t owner;
+	snd_seq_queue_info_t info;
 
 	if (!seq)
 		return -EINVAL;	
-	if ((err = snd_seq_system_info(seq, &sysinfo))<0)
-		return err;
-	for (i = 0; i < sysinfo.queues; i++) {
-		if ((err = snd_seq_get_queue_owner(seq, i, &owner))<0)
-			continue;
-		if (owner.locked)
-			continue;
-		owner.locked = 1;
-		owner.owner = seq->client;
-		if ((err = snd_seq_set_queue_owner(seq, i, &owner))<0)
-			continue;
-		return i;
-	}
-	return -EBUSY;
+
+	memset(&info, 0, sizeof(info));
+	info.owner = seq->client;
+	info.locked = 1;
+	if (name)
+		strncpy(info.name, name, sizeof(info.name) - 1);
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_CREATE_QUEUE, &info) < 0)
+		return -errno;
+
+	return info.queue;
+}
+
+int snd_seq_alloc_queue(snd_seq_t *seq)
+{
+	return snd_seq_alloc_named_queue(seq, NULL);
 }
 
 int snd_seq_free_queue(snd_seq_t *seq, int q)
 {
-	int err;
-	snd_seq_queue_owner_t owner;
+	snd_seq_queue_info_t info;
 
 	if (!seq)
 		return -EINVAL;	
-	if ((err = snd_seq_get_queue_owner(seq, q, &owner))<0)
-		return err;
-	if (owner.locked && owner.owner == seq->client) {
-		owner.locked = 0;
-		owner.owner = -1;
-		if ((err = snd_seq_set_queue_owner(seq, q, &owner))<0)
-			return err;
-	}
+
+	memset(&info, 0, sizeof(info));
+	info.queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_DELETE_QUEUE, &info) < 0)
+		return -errno;
+
 	return 0;
+}
+
+int snd_seq_get_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info)
+{
+	if (!seq || !info)
+		return -EINVAL;
+	info->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_INFO, info) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_set_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info)
+{
+	if (!seq || !info)
+		return -EINVAL;
+	info->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_INFO, info) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_get_named_queue(snd_seq_t *seq, char *name)
+{
+	snd_seq_queue_info_t info;
+
+	if (!seq)
+		return -EINVAL;
+	strncpy(info.name, name, sizeof(info.name));
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_NAMED_QUEUE, &info) < 0)
+		return -errno;
+	return info.queue;
 }
 
 snd_seq_event_t *snd_seq_create_event(void)
@@ -558,11 +586,13 @@ static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev)
 	case SND_SEQ_EVENT_LENGTH_VARIABLE:
 		if (*len < ev->data.ext.len) {
 			*len = 0;
+			ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK; /* clear flag */
 			return -ENOENT;
 		}
 		if (ev->data.ext.len > 0) {
 			ev->data.ext.ptr = (char *) malloc(ev->data.ext.len);
 			if (!(ev->data.ext.ptr)) {
+			ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK; /* clear flag */
 				*buf += ev->data.ext.len;
 				*len -= ev->data.ext.len;
 				return -ENOENT;
@@ -595,6 +625,8 @@ int snd_seq_event_input(snd_seq_t *seq, snd_seq_event_t **ev)
 			return -ENOMEM;
 		cell = snd_seq_input_cell_out(seq);
 		memcpy(*ev, &cell->ev, sizeof(snd_seq_event_t));
+		/* clear flag to avoid free copied data */
+		cell->ev.flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
 		snd_seq_free_cell(cell);
 		return seq->cells;
 	}
