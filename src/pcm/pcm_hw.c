@@ -853,6 +853,7 @@ static snd_pcm_ops_t snd_pcm_hw_ops = {
 	.dump = snd_pcm_hw_dump,
 	.nonblock = snd_pcm_hw_nonblock,
 	.async = snd_pcm_hw_async,
+	.poll_revents = NULL,
 	.mmap = snd_pcm_hw_mmap,
 	.munmap = snd_pcm_hw_munmap,
 };
