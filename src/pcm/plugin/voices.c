@@ -208,7 +208,3 @@ int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
 	*r_plugin = plugin;
 	return 0;
 }
-
-#ifdef __KERNEL__
-EXPORT_SYMBOL(snd_pcm_plugin_build_voices);
-#endif
