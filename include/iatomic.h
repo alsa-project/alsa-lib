@@ -441,7 +441,7 @@ __asm__ __volatile__("wmb": : :"memory")
 
 #endif /* __alpha__ */
 
-#ifdef __ppc__
+#ifdef __powerpc__
 
 typedef struct { volatile int counter; } atomic_t;
 
@@ -627,7 +627,7 @@ static __inline__ int atomic_dec_if_positive(atomic_t *v)
 
 #define IATOMIC_DEFINED		1
 
-#endif /* __ppc__ */
+#endif /* __powerpc__ */
 
 #ifdef __mips__
 
