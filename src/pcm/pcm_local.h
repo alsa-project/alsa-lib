@@ -85,13 +85,13 @@ typedef struct {
 struct _snd_pcm {
 	char *name;
 	snd_pcm_type_t type;
-	int stream;
+	snd_pcm_stream_t stream;
 	int mode;
 	int poll_fd;
 	int setup;
-	unsigned int access;		/* access mode */
-	unsigned int format;		/* SND_PCM_FORMAT_* */
-	unsigned int subformat;		/* subformat */
+	snd_pcm_access_t access;	/* access mode */
+	snd_pcm_format_t format;	/* SND_PCM_FORMAT_* */
+	snd_pcm_subformat_t subformat;	/* subformat */
 	unsigned int channels;		/* channels */
 	unsigned int rate;		/* rate in Hz */
 	snd_pcm_uframes_t period_size;
