@@ -40,6 +40,7 @@
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/mman.h>
 #include "pcm_local.h"
 #include "../control/control_local.h"
 
@@ -101,7 +102,9 @@ typedef struct {
 	key_t ipc_key;	/* IPC key for semaphore and memory */
 	int semid;	/* IPC global semaphore identification */
 	int shmid;	/* IPC global shared memory identification */
+	int shmid_sum;	/* IPC global sum ring buffer memory identification */
 	snd_pcm_dmix_share_t *shmptr;	/* pointer to shared memory area */
+	signed int *sum_buffer;		/* shared sum buffer */
 	snd_pcm_t *spcm; /* slave PCM handle */
 	snd_pcm_uframes_t appl_ptr;
 	snd_pcm_uframes_t hw_ptr;
@@ -188,6 +191,7 @@ static int shm_create_or_connect(snd_pcm_dmix_t *dmix)
 		shm_discard(dmix);
 		return -errno;
 	}
+	mlock(dmix->shmptr, sizeof(snd_pcm_dmix_share_t));
 	if (shmctl(dmix->shmid, IPC_STAT, &buf) < 0) {
 		shm_discard(dmix);
 		return -errno;
@@ -209,16 +213,59 @@ static int shm_discard(snd_pcm_dmix_t *dmix)
 	if (dmix->shmptr != (void *) -1 && shmdt(dmix->shmptr) < 0)
 		return -errno;
 	dmix->shmptr = (void *) -1;
-	if (shmctl(dmix->shmid, IPC_STAT, &buf) < 0) {
-		shm_discard(dmix);
+	if (shmctl(dmix->shmid, IPC_STAT, &buf) < 0)
 		return -errno;
-	}
 	if (buf.shm_nattch == 0) {	/* we're the last user, destroy the segment */
 		if (shmctl(dmix->shmid, IPC_RMID, NULL) < 0)
 			return -errno;
 		ret = 1;
 	}
 	dmix->shmid = -1;
+	return ret;
+}
+
+/*
+ *  sum ring buffer shared memory area 
+ */
+
+static int shm_sum_create_or_connect(snd_pcm_dmix_t *dmix)
+{
+	static int shm_sum_discard(snd_pcm_dmix_t *dmix);
+	size_t size;
+
+	size = dmix->shmptr->s.channels *
+	       dmix->shmptr->s.buffer_size *
+	       sizeof(signed int);	
+	dmix->shmid_sum = shmget(dmix->ipc_key + 1, size, IPC_CREAT | 0666);
+	if (dmix->shmid_sum < 0)
+		return -errno;
+	dmix->sum_buffer = shmat(dmix->shmid_sum, 0, 0);
+	if (dmix->sum_buffer == (void *) -1) {
+		shm_sum_discard(dmix);
+		return -errno;
+	}
+	mlock(dmix->sum_buffer, size);
+	return 0;
+}
+
+static int shm_sum_discard(snd_pcm_dmix_t *dmix)
+{
+	struct shmid_ds buf;
+	int ret = 0;
+
+	if (dmix->shmid_sum < 0)
+		return -EINVAL;
+	if (dmix->sum_buffer != (void *) -1 && shmdt(dmix->sum_buffer) < 0)
+		return -errno;
+	dmix->sum_buffer = (void *) -1;
+	if (shmctl(dmix->shmid_sum, IPC_STAT, &buf) < 0)
+		return -errno;
+	if (buf.shm_nattch == 0) {	/* we're the last user, destroy the segment */
+		if (shmctl(dmix->shmid_sum, IPC_RMID, NULL) < 0)
+			return -errno;
+		ret = 1;
+	}
+	dmix->shmid_sum = -1;
 	return ret;
 }
 
@@ -489,36 +536,202 @@ static int client_discard(snd_pcm_dmix_t *dmix)
  *  FIXME: optimize it for different architectures
  */
 
+#ifdef __i386__
+#define ADD_AND_SATURATE
+static void mix_areas1(unsigned int size,
+		       volatile signed short *dst, signed short *src,
+		       volatile signed int *sum, unsigned int dst_step,
+		       unsigned int src_step, unsigned int sum_step)
+{
+	/*
+	 *  ESI - src
+	 *  EDI - dst
+	 *  EBX - sum
+	 *  ECX - old sample
+	 *  EAX - sample / temporary
+	 */
+	__asm__ __volatile__ (
+		"\n"
+
+		/*
+		 *  initialization, load ESI, EDI, EBX registers
+		 */
+		"\tmovl %1, %%edi\n"
+		"\tmovl %2, %%esi\n"
+		"\tmovl %3, %%ebx\n"
+
+		/*
+		 * while (size-- > 0) {
+		 */
+		"\tcmp $0, %0\n"
+		"jz 6f\n"
+
+		"1:"
+
+		/*
+		 *   sample = *src;
+		 *   if (cmpxchg(*dst, 0, 1) == 0)
+		 *     sample -= *sum;
+		 *   xadd(*sum, sample);
+		 */
+		"\tmovw $0, %%ax\n"
+		"\tmovw $1, %%cx\n"
+		"\tlock cmpxchgw %%cx, (%%edi)\n"
+		"\tmovswl (%%esi), %%ecx\n"
+		"\tjnz 2f\n"
+		"\tsubl (%%ebx), %%ecx\n"
+		"2:"
+		"\tlock addl %%ecx, (%%ebx)\n"
+
+		/*
+		 *   do {
+		 *     sample = old_sample = *sum;
+		 *     saturate(v);
+		 *     *dst = sample;
+		 *   } while (v != *sum);
+		 */
+
+		"3:"
+		"\tmovl (%%ebx), %%ecx\n"
+		"\tcmpl $0x7fff,%%ecx\n"
+		"\tjg 4f\n"
+		"\tcmpl $-0x8000,%%ecx\n"
+		"\tjl 5f\n"
+		"\tmovw %%cx, (%%edi)\n"
+		"\tcmpl %%ecx, (%%ebx)\n"
+		"\tjnz 3b\n"
+
+		/*
+		 * while (size-- > 0)
+		 */
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
+		"\tdecl %0\n"
+		"\tjnz 1b\n"
+		"\tjmp 6f\n"
+
+		/*
+		 *  sample > 0x7fff
+		 */
+
+		"4:"
+		"\tmovw $0x7fff, %%ax\n"
+		"\tmovw (%%edi), %%ax\n"
+		"\tcmpl %%ecx,(%%ebx)\n"
+		"\tjnz 3b\n"
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
+		"\tdecl %0\n"
+		"\tjnz 1b\n"
+		"\tjmp 6f\n"
+
+		/*
+		 *  sample < -0x8000
+		 */
+
+		"5:"
+		"\tmovw $-0x8000, %%ax\n"
+		"\tmovw (%%edi), %%ax\n"
+		"\tcmpl %%ecx,(%%ebx)\n"
+		"\tjnz 3b\n"
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
+		"\tdecl %0\n"
+		"\tjnz 1b\n"
+		// "\tjmp 6f\n"
+		
+		"6:"
+
+		: /* no output regs */
+		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
+		: "esi", "edi", "ecx", "ebx", "eax"
+	);
+}
+#endif
+
+#ifndef ADD_AND_SATURATE
+#warning Please, recode add_and_saturate routine to your architecture...
+static void mix_areas1(unsigned int size,
+		       volatile signed short *dst, signed short *src,
+		       volatile signed int *sum, unsigned int dst_step,
+		       unsigned int src_step, unsigned int sum_step)
+{
+	register signed int sample, old_sample;
+
+	while (size-- > 0) {
+		sample = *src;
+		if (*dst == 0)
+			sample -= *sum;
+		*sum += sample;
+		do {
+			old_sample = *sum;
+			if (old_sample > 0x7fff)
+				sample = 0x7fff;
+			else if (old_sample < -0x8000)
+				sample = -0x8000;
+			else
+				sample = old_sample;
+			*dst = sample;
+		} while (*sum != old_sample);
+		((char *)src) += dst_step;
+		((char *)dst) += src_step;
+		((char *)sum) += sum_step;		
+	}
+}
+#endif
+
 static void mix_areas(const snd_pcm_channel_area_t *src_areas,
 		      const snd_pcm_channel_area_t *dst_areas,
 		      unsigned int channels,
 		      snd_pcm_uframes_t src_ofs,
 		      snd_pcm_uframes_t dst_ofs,
-		      snd_pcm_uframes_t size)
+		      snd_pcm_uframes_t size,
+		      void *sum_buffer)
 {
-	register signed int sample;
-	signed short *src, *dst;
+	signed short *src;
+	volatile signed short *dst;
+	volatile signed int *sum;
 	unsigned int src_step, dst_step;
-	unsigned int chn, count;
+	unsigned int chn;
+	int interleaved = 1;
 	
+	for (chn = 1; chn < channels; chn++) {
+		if (dst_areas[chn-1].addr != dst_areas[chn].addr) {
+			interleaved = 0;
+			break;
+		}
+	}
+	for (chn = 0; chn < channels; chn++) {
+		if (dst_areas[chn].first != sizeof(signed short) * chn * 8 ||
+		    dst_areas[chn].step != channels * sizeof(signed short) * 8) {
+			interleaved = 0;
+			break;
+		}
+	}
+	if (interleaved) {
+		/*
+		 * process the area in one loop
+		 * it optimizes the memory accesses for this case
+		 */
+		mix_areas1(size * channels,
+			   ((signed short *)dst_areas[0].addr) + (dst_ofs * channels),
+			   ((signed short *)src_areas[0].addr) + (src_ofs * channels),
+			   ((signed int *)sum_buffer) + (dst_ofs * channels),
+			   sizeof(signed short),
+			   sizeof(signed short),
+			   sizeof(signed int));
+		return;
+	}
 	for (chn = 0; chn < channels; chn++) {
 		src_step = src_areas[chn].step / 8;
 		dst_step = dst_areas[chn].step / 8;
 		src = (signed short *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
 		dst = (signed short *)(((char *)dst_areas[chn].addr + dst_areas[chn].first / 8) + (dst_ofs * dst_step));
-		count = 0;
-		while (count++ < size) {
-			/* FIXME: it's pretty ugly, because the other process might modify our value between
-			          read / write session - especially on MP machines */
-			sample = *dst + *src;
-			if (sample > 0x7fff)
-				sample = 0x7fff;
-			if (sample < -0x8000)
-				sample = -0x8000;
-			*dst = sample;
-			((char *)src) += src_step;
-			((char *)dst) += dst_step;
-		}
+		sum = (signed int *)sum_buffer + channels * dst_ofs + chn;
+		mix_areas1(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
 	}
 }
 
@@ -546,7 +759,7 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		transfer = appl_ptr + size > pcm->buffer_size ? pcm->buffer_size - appl_ptr : size;
 		transfer = slave_appl_ptr + transfer > dmix->shmptr->s.buffer_size ? dmix->shmptr->s.buffer_size - slave_appl_ptr : transfer;
 		size -= transfer;
-		mix_areas(src_areas, dst_areas, pcm->channels, appl_ptr, slave_appl_ptr, transfer);
+		mix_areas(src_areas, dst_areas, pcm->channels, appl_ptr, slave_appl_ptr, transfer, dmix->sum_buffer);
 		slave_appl_ptr += transfer;
 		slave_appl_ptr %= dmix->shmptr->s.buffer_size;
 		appl_ptr += transfer;
@@ -959,6 +1172,7 @@ static int snd_pcm_dmix_close(snd_pcm_t *pcm)
  		server_discard(dmix);
  	if (dmix->client)
  		client_discard(dmix);
+ 	shm_sum_discard(dmix);
  	if (shm_discard(dmix) > 0) {
  		if (semaphore_discard(dmix) < 0)
  			semaphore_up(dmix, DMIX_IPC_SEM_CLIENT);
@@ -1368,6 +1582,12 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		dmix->spcm = spcm;
 	}
 
+	ret = shm_sum_create_or_connect(dmix);
+	if (ret < 0) {
+		SNDERR("unabel to initialize sum ring buffer\n");
+		goto _err;
+	}
+
 	ret = snd_pcm_dmix_initialize_poll_fd(dmix);
 	if (ret < 0) {
 		SNDERR("unable to initialize poll_fd\n");
@@ -1395,6 +1615,8 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
  		client_discard(dmix);
  	if (spcm)
  		snd_pcm_close(spcm);
+ 	if (dmix->shmid_sum >= 0)
+ 		shm_sum_discard(dmix);
  	if (dmix->shmid >= 0) {
  		if (shm_discard(dmix) > 0) {
 		 	if (dmix->semid >= 0) {
