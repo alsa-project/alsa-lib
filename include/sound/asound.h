@@ -126,6 +126,7 @@ struct sndrv_hwdep_dsp_status {
 	unsigned int num_dsps;		/* R: number of DSP images to transfer */
 	unsigned int dsp_loaded;	/* R: bit flags indicating the loaded DSPs */
 	unsigned int chip_ready;	/* R: 1 = initialization finished */
+	unsigned char reserved[16];	/* reserved for future use */
 };
 
 struct sndrv_hwdep_dsp_image {
@@ -133,6 +134,7 @@ struct sndrv_hwdep_dsp_image {
 	unsigned char name[64];		/* W: ID (e.g. file name) */
 	unsigned char *image;		/* W: binary image */
 	size_t length;			/* W: size of image in bytes */
+	unsigned long driver_data;	/* W: driver-specific data */
 };
 
 enum {
