@@ -200,7 +200,8 @@ int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 	return 0;
 }
 
-static int snd_pcm_plugin_action(snd_pcm_t *pcm, int channel, int action)
+static int snd_pcm_plugin_action(snd_pcm_t *pcm, int channel, int action,
+				 unsigned long data)
 {
 	snd_pcm_plugin_t *plugin;
 	int err;
@@ -208,7 +209,7 @@ static int snd_pcm_plugin_action(snd_pcm_t *pcm, int channel, int action)
 	plugin = pcm->plugin_first[channel];
 	while (plugin) {
 		if (plugin->action) {
-			if ((err = plugin->action(plugin, action))<0)
+			if ((err = plugin->action(plugin, action, data))<0)
 				return err;
 		}
 		plugin = plugin->next;
@@ -295,7 +296,7 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 	err = snd_pcm_channel_params(pcm, &hwparams);
 	if (err < 0)
 		return err;
-	err = snd_pcm_plugin_action(pcm, hwparams.channel, INIT);
+	err = snd_pcm_plugin_action(pcm, hwparams.channel, INIT, (long)&hwparams);
 	if (err < 0)
 		return err;
 	return 0;
@@ -347,7 +348,7 @@ int snd_pcm_plugin_prepare(snd_pcm_t *pcm, int channel)
 {
 	int err;
 
-	if ((err = snd_pcm_plugin_action(pcm, channel, PREPARE))<0)
+	if ((err = snd_pcm_plugin_action(pcm, channel, PREPARE, 0))<0)
 		return err;
 	return snd_pcm_channel_prepare(pcm, channel);
 }
@@ -356,7 +357,7 @@ int snd_pcm_plugin_playback_drain(snd_pcm_t *pcm)
 {
 	int err;
 
-	if ((err = snd_pcm_plugin_action(pcm, SND_PCM_CHANNEL_PLAYBACK, DRAIN))<0)
+	if ((err = snd_pcm_plugin_action(pcm, SND_PCM_CHANNEL_PLAYBACK, DRAIN, 0))<0)
 		return err;
 	return snd_pcm_playback_drain(pcm);
 }
@@ -366,7 +367,7 @@ int snd_pcm_plugin_flush(snd_pcm_t *pcm, int channel)
 	int err;
 
 	pdprintf("flush\n");
-	if ((err = snd_pcm_plugin_action(pcm, channel, FLUSH))<0)
+	if ((err = snd_pcm_plugin_action(pcm, channel, FLUSH, 0))<0)
 		return err;
 	return snd_pcm_channel_flush(pcm, channel);
 }

@@ -509,7 +509,9 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 	}
 }
 
-static int adpcm_action(snd_pcm_plugin_t * plugin, snd_pcm_plugin_action_t action)
+static int adpcm_action(snd_pcm_plugin_t * plugin,
+			snd_pcm_plugin_action_t action,
+			unsigned long udata)
 {
 	struct adpcm_private_data *data;
 

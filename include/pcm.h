@@ -86,7 +86,9 @@ struct snd_stru_pcm_plugin {
 			    char *dst_ptr, size_t dst_size);
 	ssize_t (*src_size)(snd_pcm_plugin_t *plugin, size_t dst_size);
 	ssize_t (*dst_size)(snd_pcm_plugin_t *plugin, size_t src_size);
-	int (*action)(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action);
+	int (*action)(snd_pcm_plugin_t *plugin,
+		      snd_pcm_plugin_action_t action,
+		      unsigned long data);
 	snd_pcm_plugin_t *prev;
 	snd_pcm_plugin_t *next;
 	void *private_data;

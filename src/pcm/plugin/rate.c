@@ -336,7 +336,9 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 	return rate_dst_size(plugin, src_size);
 }
 
-static int rate_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
+static int rate_action(snd_pcm_plugin_t *plugin,
+		       snd_pcm_plugin_action_t action,
+		       unsigned long udata)
 {
 	struct rate_private_data *data;
 	int voice;
