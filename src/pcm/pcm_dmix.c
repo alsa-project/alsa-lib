@@ -228,8 +228,15 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		transfer = appl_ptr + size > pcm->buffer_size ? pcm->buffer_size - appl_ptr : size;
 		if (slave_appl_ptr + transfer > dmix->shmptr->s.buffer_size)
 			transfer = dmix->shmptr->s.buffer_size - slave_appl_ptr;
-		if (transfer)
+		if (transfer) {
+#ifdef NO_CONCURRENT_ACCESS
+			snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
+#endif
 			mix_areas(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
+#ifdef NO_CONCURRENT_ACCESS
+			snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
+#endif
+		}
 		if (transfer >= size)
 			return;
 		size -= transfer;

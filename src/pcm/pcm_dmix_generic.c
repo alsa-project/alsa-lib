@@ -1,4 +1,5 @@
-#if defined(__i386__) || defined(__x86_64__)
+#if 0
+//#if defined(__i386__) || defined(__x86_64__)
 #define LOCK_PREFIX "lock ; "
 #define ARCH_ADD(p,a)					\
 	__asm__ __volatile__(LOCK_PREFIX "addl %1,%0"	\
@@ -36,12 +37,14 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
 #define ARCH_CMPXCHG(ptr,o,n)\
 	((__typeof__(*(ptr)))__cmpxchg((ptr),(unsigned long)(o),\
 					(unsigned long)(n),sizeof(*(ptr))))
+#define IS_CONCURRENT	1	/* check race */
 #endif
 
 #ifndef ARCH_ADD
-#warning Please, define atomic ADD and CMPXCHG for your architecture...
 #define ARCH_ADD(p,a) (*(p) += (a))
 #define ARCH_CMPXCHG(p,a,b) (*(p)) /* fake */
+#define NO_CONCURRENT_ACCESS	/* use semaphore to avoid race */
+#define IS_CONCURRENT	0	/* no race check */
 #endif
 
 static void mix_areas1(unsigned int size,
@@ -69,7 +72,7 @@ static void mix_areas1(unsigned int size,
 			else
 				sample = old_sample;
 			*dst = sample;
-		} while (*sum != old_sample);
+		} while (IS_CONCURRENT && *sum != old_sample);
 		if (!--size)
 			return;
 		src += src_step;
@@ -103,7 +106,7 @@ static void mix_areas2(unsigned int size,
 			else
 				sample = old_sample * 256;
 			*dst = sample;
-		} while (*sum != old_sample);
+		} while (IS_CONCURRENT && *sum != old_sample);
 		if (!--size)
 			return;
 		src += src_step;
