@@ -11,7 +11,7 @@ AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE(alsa-lib, 0.9.0rc2)
 eval LIBTOOL_VERSION_INFO="2:0:0"
 dnl *************************************************
-AM_CONDITIONAL(INSTALL_M4, test "x${ACLOCAL}" = "xaclocal")
+AM_CONDITIONAL(INSTALL_M4, test -n "${ACLOCAL}")
 
 AC_PREFIX_DEFAULT(/usr)
 
