@@ -19,6 +19,16 @@
  *
  */
 
+#define _snd_interval sndrv_interval
+#define _snd_pcm_info sndrv_pcm_info
+#define _snd_pcm_hw_params sndrv_pcm_hw_params
+#define _snd_pcm_sw_params sndrv_pcm_sw_params
+#define _snd_pcm_status sndrv_pcm_status
+
+#define _snd_rawmidi_info sndrv_rawmidi_info
+#define _snd_rawmidi_params sndrv_rawmidi_params
+#define _snd_rawmidi_status sndrv_rawmidi_status
+
 #include "asoundlib.h"
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)

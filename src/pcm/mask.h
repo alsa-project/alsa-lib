@@ -19,6 +19,8 @@
  *
  */
   
+typedef struct _snd_mask snd_mask_t;
+
 #define SND_MASK_MAX 31
 
 #ifdef SND_MASK_INLINE

@@ -82,7 +82,7 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return 0;
 }
 
-int snd_pcm_plugin_state(snd_pcm_t *pcm)
+snd_pcm_state_t snd_pcm_plugin_state(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
 	return snd_pcm_state(plugin->slave);

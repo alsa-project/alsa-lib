@@ -274,7 +274,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 	snd_pcm_t *pcm;
 	int err;
 	int result;
-	err = snd_pcm_open(&pcm, client->name, client->stream, SND_PCM_NONBLOCK);
+	err = snd_pcm_open(&pcm, client->name, snd_int_to_enum(client->stream), SND_PCM_NONBLOCK);
 	if (err < 0)
 		return err;
 	client->device.pcm.handle = pcm;
@@ -394,7 +394,7 @@ int pcm_shm_cmd(client_t *client)
 		ctrl->result = snd_pcm_status(pcm, (snd_pcm_status_t *) &ctrl->u.status);
 		break;
 	case SND_PCM_IOCTL_STATE:
-		ctrl->result = snd_pcm_state(pcm);
+		ctrl->result = snd_enum_to_int(snd_pcm_state(pcm));
 		break;
 	case SNDRV_PCM_IOCTL_DELAY:
 		ctrl->result = snd_pcm_delay(pcm, (snd_pcm_sframes_t *) &ctrl->u.delay.frames);

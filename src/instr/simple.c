@@ -71,7 +71,7 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	if (put == NULL)
 		return -ENOMEM;
 	/* build header */
-	bzero(put, sizeof(*put));
+	memset(put, 0, sizeof(*put));
 	data = &put->data;
 	if (name)
 		strncpy(data->name, name, sizeof(data->name)-1);

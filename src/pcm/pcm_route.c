@@ -49,7 +49,7 @@ typedef struct {
 	int put_idx;
 	int conv_idx;
 	int src_size;
-	int dst_sfmt;
+	snd_pcm_format_t dst_sfmt;
 	unsigned int ndsts;
 	snd_pcm_route_ttable_dst_t *dsts;
 } snd_pcm_route_params_t;
@@ -81,7 +81,7 @@ typedef union {
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
-	int sformat;
+	snd_pcm_format_t sformat;
 	int schannels;
 	snd_pcm_route_params_t params;
 } snd_pcm_route_t;
@@ -438,23 +438,22 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 static int snd_pcm_route_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err;
-	snd_mask_t *access_mask = alloca(snd_mask_sizeof());
-	snd_mask_t *format_mask = alloca(snd_mask_sizeof());
+	snd_pcm_access_mask_t *access_mask = alloca(snd_pcm_access_mask_sizeof());
+	snd_pcm_format_mask_t *format_mask = alloca(snd_pcm_format_mask_sizeof());
 	snd_mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
 	snd_mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
-	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
+	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_ACCESS,
 				     access_mask);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT,
+	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_FORMAT,
 				     format_mask);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_SUBFORMAT,
-				     SND_PCM_SUBFORMAT_STD, 0);
+	err = _snd_pcm_hw_params_set_subformat(params, SND_PCM_SUBFORMAT_STD);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_param_min(params, SND_PCM_HW_PARAM_CHANNELS, 1, 0);
+	err = _snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_CHANNELS, 1, 0);
 	if (err < 0)
 		return err;
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
@@ -464,16 +463,14 @@ static int snd_pcm_route_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd
 static int snd_pcm_route_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_route_t *route = pcm->private;
-	snd_mask_t *saccess_mask = alloca(snd_mask_sizeof());
+	snd_pcm_access_mask_t *saccess_mask = alloca(snd_pcm_access_mask_sizeof());
 	snd_mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 	_snd_pcm_hw_params_any(sparams);
-	_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
-	if (route->sformat >= 0) {
-		_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_FORMAT,
-				      route->sformat, 0);
-		_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_SUBFORMAT,
-				      SND_PCM_SUBFORMAT_STD, 0);
+	if (route->sformat != SND_PCM_FORMAT_NONE) {
+		_snd_pcm_hw_params_set_format(sparams, route->sformat);
+		_snd_pcm_hw_params_set_subformat(sparams, SND_PCM_SUBFORMAT_STD);
 	}
 	if (route->schannels >= 0) {
 		_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_CHANNELS,
@@ -494,7 +491,7 @@ static int snd_pcm_route_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	if (route->sformat < 0)
+	if (route->sformat == SND_PCM_FORMAT_NONE)
 		links |= (SND_PCM_HW_PARBIT_FORMAT | 
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
@@ -518,7 +515,7 @@ static int snd_pcm_route_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	if (route->sformat < 0)
+	if (route->sformat == SND_PCM_FORMAT_NONE)
 		links |= (SND_PCM_HW_PARBIT_FORMAT | 
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
@@ -544,7 +541,7 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_route_t *route = pcm->private;
 	snd_pcm_t *slave = route->plug.slave;
-	unsigned int src_format, dst_format;
+	snd_pcm_format_t src_format, dst_format;
 	int err = snd_pcm_hw_params_slave(pcm, params,
 					  snd_pcm_route_hw_refine_cchange,
 					  snd_pcm_route_hw_refine_sprepare,
@@ -554,11 +551,11 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		return err;
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		src_format = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0);
+		src_format = snd_pcm_hw_params_get_format(params);
 		dst_format = slave->format;
 	} else {
 		src_format = slave->format;
-		dst_format = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0);
+		dst_format = snd_pcm_hw_params_get_format(params);
 	}
 	route->params.get_idx = snd_pcm_linear_get_index(src_format, SND_PCM_FORMAT_U16);
 	route->params.put_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_U32, dst_format);
@@ -648,7 +645,7 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_route_t *route = pcm->private;
 	unsigned int dst;
-	if (route->sformat < 0)
+	if (route->sformat == SND_PCM_FORMAT_NONE)
 		snd_output_printf(out, "Route conversion PCM\n");
 	else
 		snd_output_printf(out, "Route conversion PCM (sformat=%s)\n", 
@@ -697,7 +694,7 @@ snd_pcm_ops_t snd_pcm_route_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
-int route_load_ttable(snd_pcm_route_params_t *params, int stream,
+int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t stream,
 		      unsigned int tt_ssize,
 		      snd_pcm_route_ttable_entry_t *ttable,
 		      unsigned int tt_cused, unsigned int tt_sused)
@@ -770,7 +767,7 @@ int route_load_ttable(snd_pcm_route_params_t *params, int stream,
 
 
 int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
-		       int sformat, unsigned int schannels,
+		       snd_pcm_format_t sformat, unsigned int schannels,
 		       snd_pcm_route_ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
@@ -780,7 +777,8 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 	snd_pcm_route_t *route;
 	int err;
 	assert(pcmp && slave && ttable);
-	if (sformat >= 0 && snd_pcm_format_linear(sformat) != 1)
+	if (sformat != SND_PCM_FORMAT_NONE && 
+	    snd_pcm_format_linear(sformat) != 1)
 		return -EINVAL;
 	route = calloc(1, sizeof(snd_pcm_route_t));
 	if (!route) {
@@ -885,13 +883,13 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 
 int _snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 			snd_config_t *conf, 
-			int stream, int mode)
+			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
 	char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	int sformat = -1;
+	snd_pcm_format_t sformat = SND_PCM_FORMAT_NONE;
 	long schannels = -1;
 	snd_config_t *tt = NULL;
 	snd_pcm_route_ttable_entry_t ttable[MAX_CHANNELS*MAX_CHANNELS];
@@ -920,7 +918,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 				return -EINVAL;
 			}
 			sformat = snd_pcm_format_value(f);
-			if (sformat < 0) {
+			if (sformat == SND_PCM_FORMAT_NONE) {
 				ERR("Unknown sformat");
 				return -EINVAL;
 			}

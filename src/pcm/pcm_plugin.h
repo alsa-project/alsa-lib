@@ -41,7 +41,7 @@ int snd_pcm_plugin_sw_refine(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
 int snd_pcm_plugin_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
 int snd_pcm_plugin_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info);
 int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status);
-int snd_pcm_plugin_state(snd_pcm_t *pcm);
+snd_pcm_state_t snd_pcm_plugin_state(snd_pcm_t *pcm);
 int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 int snd_pcm_plugin_prepare(snd_pcm_t *pcm);
 int snd_pcm_plugin_start(snd_pcm_t *pcm);
@@ -66,13 +66,20 @@ int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
 #define SND_PCM_FMTBIT_LINEAR \
-	((1 << SND_PCM_FORMAT_S8    ) | (1 << SND_PCM_FORMAT_U8) | \
-	 (1 << SND_PCM_FORMAT_S16_LE) | (1 << SND_PCM_FORMAT_S16_BE) | \
-	 (1 << SND_PCM_FORMAT_U16_LE) | (1 << SND_PCM_FORMAT_U16_BE) | \
-	 (1 << SND_PCM_FORMAT_S24_LE) | (1 << SND_PCM_FORMAT_S24_BE) | \
-	 (1 << SND_PCM_FORMAT_U24_LE) | (1 << SND_PCM_FORMAT_U24_BE) | \
-	 (1 << SND_PCM_FORMAT_S32_LE) | (1 << SND_PCM_FORMAT_S32_BE) | \
-	 (1 << SND_PCM_FORMAT_U32_LE) | (1 << SND_PCM_FORMAT_U32_BE))
+	((1 << (unsigned long) SND_PCM_FORMAT_S8) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U8) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S16_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S16_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U16_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U16_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S24_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S24_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U24_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U24_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S32_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_S32_BE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U32_LE) | \
+	 (1 << (unsigned long) SND_PCM_FORMAT_U32_BE))
 
 extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
@@ -92,31 +99,31 @@ typedef int snd_pcm_route_ttable_entry_t;
 #define FULL ROUTE_PLUGIN_RESOLUTION
 #endif
 
-int snd_pcm_linear_get_index(int src_format, int dst_format);
-int snd_pcm_linear_put_index(int src_format, int dst_format);
-int snd_pcm_linear_convert_index(int src_format, int dst_format);
+int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
+int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
+int snd_pcm_linear_convert_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_copy_open(snd_pcm_t **pcmp, char *name, snd_pcm_t *slave, int close_slave);
-int snd_pcm_linear_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_alaw_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_adpcm_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_linear_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_alaw_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_adpcm_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
 int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
 			      unsigned int tt_csize, unsigned int tt_ssize,
 			      unsigned int *tt_cused, unsigned int *tt_sused,
 			      int schannels);
 int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
-		       int sformat, unsigned int schannels,
+		       snd_pcm_format_t sformat, unsigned int schannels,
 		       snd_pcm_route_ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
 		       snd_pcm_t *slave, int close_slave);
-int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, int sformat, int srate, snd_pcm_t *slave, int close_slave);
+int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, int srate, snd_pcm_t *slave, int close_slave);
 
 
-#define SND_PCM_ACCBIT_PLUGIN ((1 << SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
-			       (1 << SND_PCM_ACCESS_RW_INTERLEAVED) | \
-			       (1 << SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
-			       (1 << SND_PCM_ACCESS_RW_NONINTERLEAVED))
+#define SND_PCM_ACCBIT_PLUGIN ((1 << (unsigned long) SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
+			       (1 << (unsigned long) SND_PCM_ACCESS_RW_INTERLEAVED) | \
+			       (1 << (unsigned long) SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
+			       (1 << (unsigned long) SND_PCM_ACCESS_RW_NONINTERLEAVED))
 
 void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 			    const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,

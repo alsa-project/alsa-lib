@@ -157,9 +157,9 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (params->start_mode == pcm->start_mode &&
-	    params->xrun_mode == pcm->xrun_mode &&
-	    params->tstamp_mode == pcm->tstamp_mode &&
+	if ((snd_pcm_start_t) params->start_mode == pcm->start_mode &&
+	    (snd_pcm_xrun_t) params->xrun_mode == pcm->xrun_mode &&
+	    (snd_pcm_tstamp_t) params->tstamp_mode == pcm->tstamp_mode &&
 	    params->period_step == pcm->period_step &&
 	    params->sleep_min == pcm->sleep_min &&
 	    params->xfer_align == pcm->xfer_align &&
@@ -209,10 +209,10 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return 0;
 }
 
-static int snd_pcm_hw_state(snd_pcm_t *pcm)
+static snd_pcm_state_t snd_pcm_hw_state(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
-	return hw->mmap_status->state;
+	return (snd_pcm_state_t) hw->mmap_status->state;
 }
 
 static int snd_pcm_hw_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
@@ -541,7 +541,7 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	mmap_forward: snd_pcm_hw_mmap_forward,
 };
 
-int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdevice, int stream, int mode)
+int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
 {
 	char filename[32];
 	char *filefmt;
@@ -559,7 +559,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 	if ((ret = snd_ctl_hw_open(&ctl, NULL, card)) < 0)
 		return ret;
 
-	switch (stream) {
+	switch (snd_enum_to_int(stream)) {
 	case SND_PCM_STREAM_PLAYBACK:
 		filefmt = SNDRV_FILE_PCM_STREAM_PLAYBACK;
 		break;
@@ -659,12 +659,12 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 	return ret;
 }
 
-int snd_pcm_hw_open_device(snd_pcm_t **pcmp, int card, int device, int stream, int mode)
+int snd_pcm_hw_open_device(snd_pcm_t **pcmp, int card, int device, snd_pcm_stream_t stream, int mode)
 {
 	return snd_pcm_hw_open_subdevice(pcmp, card, device, -1, stream, mode);
 }
 
-int snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, int card, int device, int subdevice, int stream, int mode)
+int snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
 {
 	int err = snd_pcm_hw_open_subdevice(pcmp, card, device, subdevice, stream, mode);
 	if (err < 0)
@@ -675,7 +675,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, int card, int device, int subd
 }
 
 int _snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
-		     int stream, int mode)
+		     snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
 	long card = -1, device = 0, subdevice = -1;

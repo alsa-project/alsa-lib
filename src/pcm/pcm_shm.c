@@ -154,10 +154,10 @@ static int snd_pcm_shm_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_p
 
 static int snd_pcm_shm_hw_refine_sprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *sparams)
 {
-	snd_mask_t *saccess_mask = alloca(snd_mask_sizeof());
+	snd_pcm_access_mask_t *saccess_mask = alloca(snd_pcm_access_mask_sizeof());
 	snd_mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 	_snd_pcm_hw_params_any(sparams);
-	_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 			       saccess_mask);
 	return 0;
 }
@@ -167,10 +167,10 @@ static int snd_pcm_shm_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pc
 {
 	int err;
 	unsigned int links = ~SND_PCM_HW_PARBIT_ACCESS;
-	const snd_mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
-	if (!snd_mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
-	    !snd_mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) {
-		err = _snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
+	const snd_pcm_access_mask_t *access_mask = snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	if (!snd_pcm_access_mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
+	    !snd_pcm_access_mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) {
+		err = _snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 					     access_mask);
 		if (err < 0)
 			return err;
@@ -186,11 +186,11 @@ static int snd_pcm_shm_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pc
 {
 	int err;
 	unsigned int links = ~SND_PCM_HW_PARBIT_ACCESS;
-	snd_mask_t *access_mask = alloca(snd_mask_sizeof());
-	snd_mask_copy(access_mask, snd_pcm_hw_param_value_mask(sparams, SND_PCM_HW_PARAM_ACCESS));
-	snd_mask_set(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED);
-	snd_mask_set(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED);
-	err = _snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
+	snd_pcm_access_mask_t *access_mask = alloca(snd_pcm_access_mask_sizeof());
+	snd_mask_copy(access_mask, snd_pcm_hw_param_get_mask(sparams, SND_PCM_HW_PARAM_ACCESS));
+	snd_pcm_access_mask_set(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED);
+	snd_pcm_access_mask_set(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+	err = _snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 				     access_mask);
 	if (err < 0)
 		return err;
@@ -340,12 +340,12 @@ static int snd_pcm_shm_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return err;
 }
 
-static int snd_pcm_shm_state(snd_pcm_t *pcm)
+static snd_pcm_state_t snd_pcm_shm_state(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_STATE;
-	return snd_pcm_shm_action(pcm);
+	return snd_int_to_enum(snd_pcm_shm_action(pcm));
 }
 
 static int snd_pcm_shm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
@@ -565,7 +565,7 @@ static int make_inet_socket(const char *host, int port)
 }
 #endif
 
-int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, int stream, int mode)
+int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_shm_t *shm = NULL;
@@ -592,7 +592,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, in
 	memcpy(req->name, sname, snamelen);
 	req->dev_type = SND_DEV_TYPE_PCM;
 	req->transport_type = SND_TRANSPORT_TYPE_SHM;
-	req->stream = stream;
+	req->stream = snd_enum_to_int(stream);
 	req->mode = mode;
 	req->namelen = snamelen;
 	err = write(sock, req, reqlen);
@@ -719,7 +719,7 @@ int is_local(struct hostent *hent)
 }
 
 int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
-		      int stream, int mode)
+		      snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
 	char *server = NULL;

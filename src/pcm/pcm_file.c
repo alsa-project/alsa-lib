@@ -139,7 +139,7 @@ static int snd_pcm_file_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return snd_pcm_status(file->slave, status);
 }
 
-static int snd_pcm_file_state(snd_pcm_t *pcm)
+static snd_pcm_state_t snd_pcm_file_state(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private;
 	return snd_pcm_state(file->slave);
@@ -461,7 +461,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, char *name, char *fname, int fd, char *f
 
 int _snd_pcm_file_open(snd_pcm_t **pcmp, char *name,
 		       snd_config_t *conf, 
-		       int stream, int mode)
+		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
 	char *sname = NULL;

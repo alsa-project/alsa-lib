@@ -28,6 +28,14 @@
 #include <dlfcn.h>
 #include "rawmidi_local.h"
 
+static inline int snd_rawmidi_stream_ok(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
+{
+	assert(rmidi);
+	assert(stream == SND_RAWMIDI_STREAM_INPUT || 
+	       stream == SND_RAWMIDI_STREAM_OUTPUT);
+	return rmidi->streams & (1 << (snd_enum_to_int(stream)));
+}
+
 int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 {
 	int err;
@@ -40,22 +48,19 @@ int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 	return 0;
 }
 
-int snd_rawmidi_card(snd_rawmidi_t *rmidi)
+int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi,
+				snd_rawmidi_stream_t stream ATTRIBUTE_UNUSED)
 {
-	assert(rmidi);
-	return rmidi->ops->card(rmidi);
-}
-
-int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi)
-{
-	assert(rmidi);
+	assert(snd_rawmidi_stream_ok(rmidi, stream));
 	return rmidi->poll_fd;
 }
 
-int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock)
+int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, 
+			 snd_rawmidi_stream_t stream ATTRIBUTE_UNUSED,
+			 int nonblock)
 {
 	int err;
-	assert(rmidi);
+	assert(snd_rawmidi_stream_ok(rmidi, stream));
 	assert(!(rmidi->mode & SND_RAWMIDI_APPEND));
 	if ((err = rmidi->ops->nonblock(rmidi, nonblock)) < 0)
 		return err;
@@ -66,64 +71,59 @@ int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 	return 0;
 }
 
-int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
+int snd_rawmidi_info(snd_rawmidi_t *rmidi,
+		     snd_rawmidi_stream_t stream,
+		     snd_rawmidi_info_t * info)
 {
-	assert(rmidi && info);
+	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	assert(info);
+	info->stream = snd_enum_to_int(stream);
 	return rmidi->ops->info(rmidi, info);
 }
 
-int snd_rawmidi_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
+int snd_rawmidi_params(snd_rawmidi_t *rmidi, 
+		       snd_rawmidi_stream_t stream,
+		       snd_rawmidi_params_t * params)
 {
-	assert(rmidi && params);
+	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	assert(params);
+	params->stream = snd_enum_to_int(stream);
 	return rmidi->ops->params(rmidi, params);
 }
 
-int snd_rawmidi_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
+int snd_rawmidi_status(snd_rawmidi_t *rmidi,
+		       snd_rawmidi_stream_t stream,
+		       snd_rawmidi_status_t * status)
 {
-	assert(rmidi && status);
+	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	assert(status);
+	status->stream = snd_enum_to_int(stream);
 	return rmidi->ops->status(rmidi, status);
 }
 
-int snd_rawmidi_drop(snd_rawmidi_t *rmidi, int str)
+int snd_rawmidi_drop(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
 {
-	assert(rmidi);
-	assert(str >= 0 && str <= 1);
-	assert(rmidi->streams & (1 << str));
-	return rmidi->ops->drop(rmidi, str);
+	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	return rmidi->ops->drop(rmidi, stream);
 }
 
-int snd_rawmidi_output_drop(snd_rawmidi_t *rmidi)
+int snd_rawmidi_drain(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
 {
-	return snd_rawmidi_drop(rmidi, SND_RAWMIDI_STREAM_OUTPUT);
-}
-
-int snd_rawmidi_drain(snd_rawmidi_t *rmidi, int str)
-{
-	assert(rmidi);
-	assert(str >= 0 && str <= 1);
-	assert(rmidi->streams & (1 << str));
-	return rmidi->ops->drain(rmidi, str);
-}
-
-int snd_rawmidi_output_drain(snd_rawmidi_t *rmidi)
-{
-	return snd_rawmidi_drain(rmidi, SND_RAWMIDI_STREAM_OUTPUT);
-}
-
-int snd_rawmidi_input_drain(snd_rawmidi_t *rmidi)
-{
-	return snd_rawmidi_drain(rmidi, SND_RAWMIDI_STREAM_INPUT);
+	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	return rmidi->ops->drain(rmidi, stream);
 }
 
 ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
 {
-	assert(rmidi && (buffer || size == 0));
+	assert(snd_rawmidi_stream_ok(rmidi, SND_RAWMIDI_STREAM_OUTPUT));
+	assert(buffer || size == 0);
 	return rmidi->ops->write(rmidi, buffer, size);
 }
 
 ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
 {
-	assert(rmidi && (buffer || size == 0));
+	assert(snd_rawmidi_stream_ok(rmidi, SND_RAWMIDI_STREAM_INPUT));
+	assert(buffer || size == 0);
 	return rmidi->ops->read(rmidi, buffer, size);
 }
 

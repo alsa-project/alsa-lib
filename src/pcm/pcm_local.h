@@ -20,18 +20,16 @@
  *
  */
 
-#define _snd_interval sndrv_interval
-#define _snd_pcm_info sndrv_pcm_info
-#define _snd_pcm_hw_params sndrv_pcm_hw_params
-#define _snd_pcm_sw_params sndrv_pcm_sw_params
-#define _snd_pcm_status sndrv_pcm_status
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/uio.h>
 #include <errno.h>
+
+#define _snd_pcm_access_mask _snd_mask
+#define _snd_pcm_format_mask _snd_mask
+#define _snd_pcm_subformat_mask _snd_mask
 
 #include "local.h"
 
@@ -41,6 +39,32 @@
 #define SND_MASK_INLINE
 #include "mask.h"
 
+typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
+#define SND_PCM_HW_PARAM_ACCESS SNDRV_PCM_HW_PARAM_ACCESS
+#define SND_PCM_HW_PARAM_FIRST_MASK SNDRV_PCM_HW_PARAM_FIRST_MASK
+#define SND_PCM_HW_PARAM_FORMAT SNDRV_PCM_HW_PARAM_FORMAT
+#define SND_PCM_HW_PARAM_SUBFORMAT SNDRV_PCM_HW_PARAM_SUBFORMAT
+#define SND_PCM_HW_PARAM_LAST_MASK SNDRV_PCM_HW_PARAM_LAST_MASK
+#define SND_PCM_HW_PARAM_SAMPLE_BITS SNDRV_PCM_HW_PARAM_SAMPLE_BITS
+#define SND_PCM_HW_PARAM_FIRST_INTERVAL SNDRV_PCM_HW_PARAM_FIRST_INTERVAL
+#define SND_PCM_HW_PARAM_FRAME_BITS SNDRV_PCM_HW_PARAM_FRAME_BITS
+#define SND_PCM_HW_PARAM_CHANNELS SNDRV_PCM_HW_PARAM_CHANNELS
+#define SND_PCM_HW_PARAM_RATE SNDRV_PCM_HW_PARAM_RATE
+#define SND_PCM_HW_PARAM_PERIOD_TIME SNDRV_PCM_HW_PARAM_PERIOD_TIME
+#define SND_PCM_HW_PARAM_PERIOD_SIZE SNDRV_PCM_HW_PARAM_PERIOD_SIZE
+#define SND_PCM_HW_PARAM_PERIOD_BYTES SNDRV_PCM_HW_PARAM_PERIOD_BYTES
+#define SND_PCM_HW_PARAM_PERIODS SNDRV_PCM_HW_PARAM_PERIODS
+#define SND_PCM_HW_PARAM_BUFFER_TIME SNDRV_PCM_HW_PARAM_BUFFER_TIME
+#define SND_PCM_HW_PARAM_BUFFER_SIZE SNDRV_PCM_HW_PARAM_BUFFER_SIZE
+#define SND_PCM_HW_PARAM_BUFFER_BYTES SNDRV_PCM_HW_PARAM_BUFFER_BYTES
+#define SND_PCM_HW_PARAM_TICK_TIME SNDRV_PCM_HW_PARAM_TICK_TIME
+#define SND_PCM_HW_PARAM_LAST_INTERVAL SNDRV_PCM_HW_PARAM_LAST_INTERVAL
+#define SND_PCM_HW_PARAM_LAST SNDRV_PCM_HW_PARAM_LAST
+#define SND_PCM_HW_PARAMS_RUNTIME SNDRV_PCM_HW_PARAMS_RUNTIME
+#define SND_PCM_HW_PARAM_LAST_MASK SNDRV_PCM_HW_PARAM_LAST_MASK
+#define SND_PCM_HW_PARAM_FIRST_MASK SNDRV_PCM_HW_PARAM_FIRST_MASK
+#define SND_PCM_HW_PARAM_LAST_INTERVAL SNDRV_PCM_HW_PARAM_LAST_INTERVAL
+#define SND_PCM_HW_PARAM_FIRST_INTERVAL SNDRV_PCM_HW_PARAM_FIRST_INTERVAL
 
 typedef struct _snd_pcm_channel_info {
 	unsigned int channel;
@@ -83,7 +107,7 @@ typedef struct {
 	int (*drop)(snd_pcm_t *pcm);
 	int (*drain)(snd_pcm_t *pcm);
 	int (*pause)(snd_pcm_t *pcm, int enable);
-	int (*state)(snd_pcm_t *pcm);
+	snd_pcm_state_t (*state)(snd_pcm_t *pcm);
 	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
@@ -143,11 +167,11 @@ struct _snd_pcm {
 	void *private;
 };
 
-int snd_pcm_hw_open(snd_pcm_t **pcm, char *name, int card, int device, int subdevice, int stream, int mode);
-int snd_pcm_plug_open_hw(snd_pcm_t **pcm, char *name, int card, int device, int subdevice, int stream, int mode);
-int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, int stream, int mode);
+int snd_pcm_hw_open(snd_pcm_t **pcm, char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
+int snd_pcm_plug_open_hw(snd_pcm_t **pcm, char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
+int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, snd_pcm_stream_t stream, int mode);
 int snd_pcm_file_open(snd_pcm_t **pcmp, char *name, char *fname, int fd, char *fmt, snd_pcm_t *slave, int close_slave);
-int snd_pcm_null_open(snd_pcm_t **pcmp, char *name, int stream, int mode);
+int snd_pcm_null_open(snd_pcm_t **pcmp, char *name, snd_pcm_stream_t stream, int mode);
 
 
 void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void *buf);
@@ -340,27 +364,41 @@ int snd_pcm_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 
 
 void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params);
-void _snd_pcm_hw_param_setempty(snd_pcm_hw_params_t *params,
-				snd_pcm_hw_param_t var);
-int _snd_pcm_hw_param_refine_interval(snd_pcm_hw_params_t *params,
-				      snd_pcm_hw_param_t var,
-				      const snd_interval_t *val);
-int _snd_pcm_hw_param_mask(snd_pcm_hw_params_t *params,
-			    unsigned int var, const snd_mask_t *mask);
+void _snd_pcm_hw_param_set_empty(snd_pcm_hw_params_t *params,
+				 snd_pcm_hw_param_t var);
+int _snd_pcm_hw_param_set_interval(snd_pcm_hw_params_t *params,
+				   snd_pcm_hw_param_t var,
+				   const snd_interval_t *val);
+int _snd_pcm_hw_param_set_mask(snd_pcm_hw_params_t *params,
+			   snd_pcm_hw_param_t var, const snd_mask_t *mask);
 int _snd_pcm_hw_param_first(snd_pcm_hw_params_t *params,
-			    unsigned int var);
+			    snd_pcm_hw_param_t var);
 int _snd_pcm_hw_param_last(snd_pcm_hw_params_t *params,
-			   unsigned int var);
+			   snd_pcm_hw_param_t var);
 int _snd_pcm_hw_param_set(snd_pcm_hw_params_t *params,
-			   unsigned int var, unsigned int val, int dir);
-int _snd_pcm_hw_param_min(snd_pcm_hw_params_t *params,
-			   unsigned int var, unsigned int val, int dir);
-int _snd_pcm_hw_param_max(snd_pcm_hw_params_t *params,
-			   unsigned int var, unsigned int val, int dir);
-int _snd_pcm_hw_param_minmax(snd_pcm_hw_params_t *params,
-			     snd_pcm_hw_param_t var,
-			     unsigned int min, int mindir,
-			     unsigned int max, int maxdir);
+			  snd_pcm_hw_param_t var, unsigned int val, int dir);
+static inline int _snd_pcm_hw_params_set_format(snd_pcm_hw_params_t *params,
+						snd_pcm_format_t val)
+{
+	return _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_FORMAT,
+				     (unsigned long) val, 0);
+}
+
+static inline int _snd_pcm_hw_params_set_subformat(snd_pcm_hw_params_t *params,
+				     snd_pcm_subformat_t val)
+{
+	return _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_FORMAT,
+				     (unsigned long) val, 0);
+}
+
+int _snd_pcm_hw_param_set_min(snd_pcm_hw_params_t *params,
+			      snd_pcm_hw_param_t var, unsigned int val, int dir);
+int _snd_pcm_hw_param_set_max(snd_pcm_hw_params_t *params,
+			      snd_pcm_hw_param_t var, unsigned int val, int dir);
+int _snd_pcm_hw_param_set_minmax(snd_pcm_hw_params_t *params,
+				 snd_pcm_hw_param_t var,
+				 unsigned int min, int mindir,
+				 unsigned int max, int maxdir);
 int _snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
 			     snd_pcm_hw_param_t var,
 			     const snd_pcm_hw_params_t *src);
@@ -377,10 +415,56 @@ int snd_pcm_hw_param_always_eq(const snd_pcm_hw_params_t *params,
 int snd_pcm_hw_param_never_eq(const snd_pcm_hw_params_t *params,
 			      snd_pcm_hw_param_t var,
 			      const snd_pcm_hw_params_t *params1);
-const snd_mask_t *snd_pcm_hw_param_value_mask(const snd_pcm_hw_params_t *params,
+const snd_mask_t *snd_pcm_hw_param_get_mask(const snd_pcm_hw_params_t *params,
 					      snd_pcm_hw_param_t var);
-const snd_interval_t *snd_pcm_hw_param_value_interval(const snd_pcm_hw_params_t *params,
+const snd_interval_t *snd_pcm_hw_param_get_interval(const snd_pcm_hw_params_t *params,
 						      snd_pcm_hw_param_t var);
+
+int snd_pcm_hw_param_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			 snd_pcm_hw_param_t var);
+int snd_pcm_hw_param_set_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+				 snd_set_mode_t mode,
+				 snd_pcm_hw_param_t var);
+unsigned int snd_pcm_hw_param_set_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+					snd_pcm_hw_param_t var, int *dir);
+unsigned int snd_pcm_hw_param_set_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+				       snd_pcm_hw_param_t var, int *dir);
+unsigned int snd_pcm_hw_param_set_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+				       snd_pcm_hw_param_t var, unsigned int val,
+				       int *dir);
+int snd_pcm_hw_param_set_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			     snd_set_mode_t mode,
+			     snd_pcm_hw_param_t var,
+			     unsigned int *val, int *dir);
+int snd_pcm_hw_param_set_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			     snd_set_mode_t mode,
+			     snd_pcm_hw_param_t var, unsigned int *val, int *dir);
+int snd_pcm_hw_param_set_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+				snd_set_mode_t mode,
+				snd_pcm_hw_param_t var,
+				unsigned int *min, int *mindir,
+				unsigned int *max, int *maxdir);
+int snd_pcm_hw_param_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			 snd_set_mode_t mode,
+			 snd_pcm_hw_param_t var, unsigned int val, int dir);
+int snd_pcm_hw_param_set_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			      snd_set_mode_t mode,
+			      snd_pcm_hw_param_t var, const snd_mask_t *mask);
+unsigned int snd_pcm_hw_param_get(const snd_pcm_hw_params_t *params,
+				  snd_pcm_hw_param_t var, int *dir);
+unsigned int snd_pcm_hw_param_get_min(const snd_pcm_hw_params_t *params,
+				      snd_pcm_hw_param_t var, int *dir);
+unsigned int snd_pcm_hw_param_get_max(const snd_pcm_hw_params_t *params,
+				      snd_pcm_hw_param_t var, int *dir);
+const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t var);
+int snd_pcm_hw_strategy_simple_near(snd_pcm_hw_strategy_t *strategy, int order,
+				    snd_pcm_hw_param_t var,
+				    unsigned int best,
+				    unsigned int mul);
+int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int order,
+				       snd_pcm_hw_param_t var,
+				       unsigned int count,
+				       snd_pcm_hw_strategy_simple_choices_list_t *choices);
 
 #define SND_PCM_HW_PARBIT_ACCESS	(1 << SND_PCM_HW_PARAM_ACCESS)
 #define SND_PCM_HW_PARBIT_FORMAT	(1 << SND_PCM_HW_PARAM_FORMAT)
@@ -399,6 +483,6 @@ const snd_interval_t *snd_pcm_hw_param_value_interval(const snd_pcm_hw_params_t 
 #define SND_PCM_HW_PARBIT_TICK_TIME	(1 << SND_PCM_HW_PARAM_TICK_TIME)
 
 
-#define SND_PCM_ACCBIT_MMAP ((1 << SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
-			     (1 << SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
-			     (1 << SND_PCM_ACCESS_MMAP_COMPLEX))
+#define SND_PCM_ACCBIT_MMAP ((1 << (unsigned long) SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
+			     (1 << (unsigned long) SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
+			     (1 << (unsigned long) SND_PCM_ACCESS_MMAP_COMPLEX))

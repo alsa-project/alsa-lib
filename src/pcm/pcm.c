@@ -39,7 +39,7 @@ snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm)
 	return pcm->type;
 }
 
-snd_pcm_type_t snd_pcm_stream(snd_pcm_t *pcm)
+snd_pcm_stream_t snd_pcm_stream(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	return pcm->stream;
@@ -99,7 +99,7 @@ int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 	return pcm->fast_ops->status(pcm->fast_op_arg, status);
 }
 
-int snd_pcm_state(snd_pcm_t *pcm)
+snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	return pcm->fast_ops->state(pcm->fast_op_arg);
@@ -287,18 +287,6 @@ char *snd_pcm_hw_param_names[] = {
 	HW_PARAM(TICK_TIME),
 };
 
-char *snd_pcm_sw_param_names[] = {
-	SW_PARAM(START_MODE),
-	SW_PARAM(XRUN_MODE),
-	SW_PARAM(TSTAMP_MODE),
-	SW_PARAM(PERIOD_STEP),
-	SW_PARAM(SLEEP_MIN),
-	SW_PARAM(AVAIL_MIN),
-	SW_PARAM(XFER_ALIGN),
-	SW_PARAM(SILENCE_THRESHOLD),
-	SW_PARAM(SILENCE_SIZE),
-};
-
 char *snd_pcm_access_names[] = {
 	ACCESS(MMAP_INTERLEAVED), 
 	ACCESS(MMAP_NONINTERLEAVED),
@@ -391,77 +379,73 @@ char *snd_pcm_tstamp_mode_names[] = {
 const char *snd_pcm_stream_name(snd_pcm_stream_t stream)
 {
 	assert(stream <= SND_PCM_STREAM_LAST);
-	return snd_pcm_stream_names[stream];
+	return snd_pcm_stream_names[snd_enum_to_int(stream)];
 }
 
 const char *snd_pcm_access_name(snd_pcm_access_t access)
 {
 	assert(access <= SND_PCM_ACCESS_LAST);
-	return snd_pcm_access_names[access];
+	return snd_pcm_access_names[snd_enum_to_int(access)];
 }
 
 const char *snd_pcm_format_name(snd_pcm_format_t format)
 {
 	assert(format <= SND_PCM_FORMAT_LAST);
-	return snd_pcm_format_names[format];
+	return snd_pcm_format_names[snd_enum_to_int(format)];
 }
 
 const char *snd_pcm_format_description(snd_pcm_format_t format)
 {
 	assert(format <= SND_PCM_FORMAT_LAST);
-	return snd_pcm_format_descriptions[format];
+	return snd_pcm_format_descriptions[snd_enum_to_int(format)];
 }
 
-int snd_pcm_format_value(const char* name)
+snd_pcm_format_t snd_pcm_format_value(const char* name)
 {
-	unsigned int format;
-	for (format = 0; format <= SND_PCM_FORMAT_LAST; format++)
-		if (snd_pcm_format_names[format] &&
-		    strcasecmp(name, snd_pcm_format_names[format]) == 0)
+	snd_pcm_format_t format;
+	for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
+		if (snd_pcm_format_names[snd_enum_to_int(format)] &&
+		    strcasecmp(name, snd_pcm_format_names[snd_enum_to_int(format)]) == 0) {
 			return format;
-	return -1;
+		}
+	}
+	return SND_PCM_FORMAT_NONE;
 }
 
 const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat)
 {
 	assert(subformat <= SND_PCM_SUBFORMAT_LAST);
-	return snd_pcm_subformat_names[subformat];
+	return snd_pcm_subformat_names[snd_enum_to_int(subformat)];
 }
 
 const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t param)
 {
 	assert(param <= SND_PCM_HW_PARAM_LAST);
-	return snd_pcm_hw_param_names[param];
-}
-
-const char *snd_pcm_sw_param_name(snd_pcm_sw_param_t param)
-{
-	assert(param <= SND_PCM_SW_PARAM_LAST);
-	return snd_pcm_sw_param_names[param];
+	return snd_pcm_hw_param_names[snd_enum_to_int(param)];
 }
 
 const char *snd_pcm_start_mode_name(snd_pcm_start_t mode)
 {
 	assert(mode <= SND_PCM_START_LAST);
-	return snd_pcm_start_mode_names[mode];
+	return snd_pcm_start_mode_names[snd_enum_to_int(mode)];
 }
 
 const char *snd_pcm_xrun_mode_name(snd_pcm_xrun_t mode)
 {
 	assert(mode <= SND_PCM_XRUN_LAST);
-	return snd_pcm_xrun_mode_names[mode];
+	return snd_pcm_xrun_mode_names[snd_enum_to_int(mode)];
 }
 
 const char *snd_pcm_tstamp_mode_name(snd_pcm_tstamp_t mode)
 {
 	assert(mode <= SND_PCM_TSTAMP_LAST);
-	return snd_pcm_tstamp_mode_names[mode];
+	return snd_pcm_tstamp_mode_names[snd_enum_to_int(mode)];
 }
 
 const char *snd_pcm_state_name(snd_pcm_state_t state)
 {
 	assert(state <= SND_PCM_STATE_LAST);
-	return snd_pcm_state_names[state];
+	return snd_pcm_state_names[snd_enum_to_int(state)];
 }
 
 int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
@@ -509,186 +493,10 @@ int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out)
 	return 0;
 }
 
-size_t snd_pcm_info_sizeof()
-{
-	return sizeof(snd_pcm_info_t);
-}
-
-int snd_pcm_info_malloc(snd_pcm_info_t **infop)
-{
-	assert(infop);
-	*infop = malloc(sizeof(snd_pcm_info_t));
-	if (!*infop)
-		return -ENOMEM;
-	return 0;
-}
-
-void snd_pcm_info_free(snd_pcm_info_t *info)
-{
-	assert(info);
-	free(info);
-}
-
-void snd_pcm_info_copy(snd_pcm_info_t *dst,
-		       const snd_pcm_info_t *src)
-{
-	assert(dst && src);
-	*dst = *src;
-}
-
-void snd_pcm_info_set_device(snd_pcm_info_t *info, unsigned int device)
-{
-	assert(info);
-	info->device = device;
-}
-
-void snd_pcm_info_set_subdevice(snd_pcm_info_t *info, unsigned int subdevice)
-{
-	assert(info);
-	info->subdevice = subdevice;
-}
-
-void snd_pcm_info_set_stream(snd_pcm_info_t *info, snd_pcm_stream_t stream)
-{
-	assert(info);
-	info->stream = stream;
-}
-
-int snd_pcm_info_card(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->card;
-}
-
-unsigned int snd_pcm_info_device(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->device;
-}
-
-unsigned int snd_pcm_info_subdevice(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->subdevice;
-}
-
-snd_pcm_stream_t snd_pcm_info_stream(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->stream;
-}
-
-const char *snd_pcm_info_device_id(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->id;
-}
-
-const char *snd_pcm_info_device_name(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->name;
-}
-
-const char *snd_pcm_info_subdevice_name(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->subname;
-}
-
-snd_pcm_class_t snd_pcm_info_device_class(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->dev_class;
-}
-
-snd_pcm_subclass_t snd_pcm_info_device_subclass(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->dev_subclass;
-}
-
-unsigned int snd_pcm_info_subdevices_count(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->subdevices_count;
-}
-
-unsigned int snd_pcm_info_subdevices_avail(snd_pcm_info_t *info)
-{
-	assert(info);
-	return info->subdevices_avail;
-}
-
-size_t snd_pcm_status_sizeof()
-{
-	return sizeof(snd_pcm_status_t);
-}
-
-int snd_pcm_status_malloc(snd_pcm_status_t **statusp)
-{
-	assert(statusp);
-	*statusp = malloc(sizeof(snd_pcm_status_t));
-	if (!*statusp)
-		return -ENOMEM;
-	return 0;
-}
-
-void snd_pcm_status_free(snd_pcm_status_t *status)
-{
-	assert(status);
-	free(status);
-}
-
-void snd_pcm_status_copy(snd_pcm_status_t *dst,
-			 const snd_pcm_status_t *src)
-{
-	assert(dst && src);
-	*dst = *src;
-}
-
-snd_pcm_state_t snd_pcm_status_state(snd_pcm_status_t *status)
-{
-	assert(status);
-	return status->state;
-}
-
-int snd_pcm_status_delay(snd_pcm_status_t *status)
-{
-	assert(status);
-	return status->delay;
-}
-
-int snd_pcm_status_avail(snd_pcm_status_t *status)
-{
-	assert(status);
-	return status->avail;
-}
-
-int snd_pcm_status_avail_max(snd_pcm_status_t *status)
-{
-	assert(status);
-	return status->avail_max;
-}
-
-void snd_pcm_status_tstamp(snd_pcm_status_t *status,
-			   snd_timestamp_t *tstamp)
-{
-	assert(status && tstamp);
-	*tstamp = status->tstamp;
-}
-
-void snd_pcm_status_trigger_tstamp(snd_pcm_status_t *status,
-				  snd_timestamp_t *tstamp)
-{
-	assert(status && tstamp);
-	*tstamp = status->trigger_tstamp;
-}
-
 int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
 {
 	assert(status);
-	snd_output_printf(out, "state       : %s\n", snd_pcm_state_name(status->state));
+	snd_output_printf(out, "state       : %s\n", snd_pcm_state_name((snd_pcm_state_t) status->state));
 	snd_output_printf(out, "trigger_time: %ld.%06ld\n",
 		status->trigger_tstamp.tv_sec, status->trigger_tstamp.tv_usec);
 	snd_output_printf(out, "tstamp      : %ld.%06ld\n",
@@ -736,7 +544,7 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
 }
 
 int snd_pcm_open(snd_pcm_t **pcmp, char *name, 
-		 int stream, int mode)
+		 snd_pcm_stream_t stream, int mode)
 {
 	char *str;
 	int err;
@@ -744,7 +552,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, char *name,
 	snd_config_iterator_t i;
 	char *lib = NULL, *open = NULL;
 	int (*open_func)(snd_pcm_t **pcmp, char *name, snd_config_t *conf, 
-			 int stream, int mode);
+			 snd_pcm_stream_t stream, int mode);
 	void *h;
 	assert(pcmp && name);
 	err = snd_config_update();
@@ -903,7 +711,7 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 	pfd.events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
 	err = poll(&pfd, 1, timeout);
 	if (err < 0)
-		return err;
+		return -errno;
 	return 0;
 }
 
@@ -920,7 +728,7 @@ snd_pcm_sframes_t snd_pcm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 }
 
 int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
-			 unsigned int samples, int format)
+			 unsigned int samples, snd_pcm_format_t format)
 {
 	/* FIXME: sub byte resolution and odd dst_offset */
 	char *dst;
@@ -1002,7 +810,7 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 }
 
 int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
-			  unsigned int channels, snd_pcm_uframes_t frames, int format)
+			  unsigned int channels, snd_pcm_uframes_t frames, snd_pcm_format_t format)
 {
 	int width = snd_pcm_format_physical_width(format);
 	while (channels > 0) {
@@ -1044,7 +852,7 @@ int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, snd_pcm_ufram
 
 int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
 		      const snd_pcm_channel_area_t *src_area, snd_pcm_uframes_t src_offset,
-		      unsigned int samples, int format)
+		      unsigned int samples, snd_pcm_format_t format)
 {
 	/* FIXME: sub byte resolution and odd dst_offset */
 	char *src, *dst;
@@ -1139,7 +947,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 
 int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 		       const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
-		       unsigned int channels, snd_pcm_uframes_t frames, int format)
+		       unsigned int channels, snd_pcm_uframes_t frames, snd_pcm_format_t format)
 {
 	int width = snd_pcm_format_physical_width(format);
 	while (channels > 0) {
@@ -1194,14 +1002,14 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 {
 	snd_pcm_uframes_t xfer = 0;
 	int err = 0;
-	int state = snd_pcm_state(pcm);
+	snd_pcm_state_t state = snd_pcm_state(pcm);
 
 	if (size == 0)
 		return 0;
 	if (size > pcm->xfer_align)
 		size -= size % pcm->xfer_align;
 
-	switch (state) {
+	switch (snd_enum_to_int(state)) {
 	case SND_PCM_STATE_PREPARED:
 		if (pcm->start_mode == SND_PCM_START_DATA) {
 			err = snd_pcm_start(pcm);
@@ -1278,14 +1086,14 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 {
 	snd_pcm_uframes_t xfer = 0;
 	int err = 0;
-	int state = snd_pcm_state(pcm);
+	snd_pcm_state_t state = snd_pcm_state(pcm);
 
 	if (size == 0)
 		return 0;
 	if (size > pcm->xfer_align)
 		size -= size % pcm->xfer_align;
 
-	switch (state) {
+	switch (snd_enum_to_int(state)) {
 	case SND_PCM_STATE_PREPARED:
 	case SND_PCM_STATE_RUNNING:
 		break;

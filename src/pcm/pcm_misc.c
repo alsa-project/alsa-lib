@@ -26,6 +26,9 @@
 #define bswap_16 swab16
 #define bswap_32 swab32
 #define bswap_64 swab64
+#define SND_PCM_FORMAT_NONE (-1)
+#define snd_enum_to_int(v) (v)
+#define snd_int_to_enum(v) (v)
 #else
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,9 +39,9 @@
 #include "pcm_local.h"
 #endif
 
-int snd_pcm_format_signed(int format)
+int snd_pcm_format_signed(snd_pcm_format_t format)
 {
-	switch (format) {
+	switch (snd_enum_to_int(format)) {
 	case SNDRV_PCM_FORMAT_S8:
 	case SNDRV_PCM_FORMAT_S16_LE:
 	case SNDRV_PCM_FORMAT_S16_BE:
@@ -60,7 +63,7 @@ int snd_pcm_format_signed(int format)
 	}
 }
 
-int snd_pcm_format_unsigned(int format)
+int snd_pcm_format_unsigned(snd_pcm_format_t format)
 {
 	int val;
 
@@ -70,14 +73,14 @@ int snd_pcm_format_unsigned(int format)
 	return !val;
 }
 
-int snd_pcm_format_linear(int format)
+int snd_pcm_format_linear(snd_pcm_format_t format)
 {
 	return snd_pcm_format_signed(format) >= 0;
 }
 
-int snd_pcm_format_little_endian(int format)
+int snd_pcm_format_little_endian(snd_pcm_format_t format)
 {
-	switch (format) {
+	switch (snd_enum_to_int(format)) {
 	case SNDRV_PCM_FORMAT_S16_LE:
 	case SNDRV_PCM_FORMAT_U16_LE:
 	case SNDRV_PCM_FORMAT_S24_LE:
@@ -103,7 +106,7 @@ int snd_pcm_format_little_endian(int format)
 	}
 }
 
-int snd_pcm_format_big_endian(int format)
+int snd_pcm_format_big_endian(snd_pcm_format_t format)
 {
 	int val;
 
@@ -113,7 +116,7 @@ int snd_pcm_format_big_endian(int format)
 	return !val;
 }
 
-int snd_pcm_format_cpu_endian(int format)
+int snd_pcm_format_cpu_endian(snd_pcm_format_t format)
 {
 #ifdef SNDRV_LITTLE_ENDIAN
 	return snd_pcm_format_little_endian(format);
@@ -122,9 +125,9 @@ int snd_pcm_format_cpu_endian(int format)
 #endif
 }
 
-int snd_pcm_format_width(int format)
+int snd_pcm_format_width(snd_pcm_format_t format)
 {
-	switch (format) {
+	switch (snd_enum_to_int(format)) {
 	case SNDRV_PCM_FORMAT_S8:
 	case SNDRV_PCM_FORMAT_U8:
 		return 8;
@@ -161,9 +164,9 @@ int snd_pcm_format_width(int format)
 	}
 }
 
-int snd_pcm_format_physical_width(int format)
+int snd_pcm_format_physical_width(snd_pcm_format_t format)
 {
-	switch (format) {
+	switch (snd_enum_to_int(format)) {
 	case SNDRV_PCM_FORMAT_S8:
 	case SNDRV_PCM_FORMAT_U8:
 		return 8;
@@ -198,9 +201,9 @@ int snd_pcm_format_physical_width(int format)
 	}
 }
 
-ssize_t snd_pcm_format_size(int format, size_t samples)
+ssize_t snd_pcm_format_size(snd_pcm_format_t format, size_t samples)
 {
-	switch (format) {
+	switch (snd_enum_to_int(format)) {
 	case SNDRV_PCM_FORMAT_S8:
 	case SNDRV_PCM_FORMAT_U8:
 		return samples;
@@ -238,9 +241,9 @@ ssize_t snd_pcm_format_size(int format, size_t samples)
 	}
 }
 
-u_int64_t snd_pcm_format_silence_64(int format)
+u_int64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 {
-	switch (format) {
+	switch (snd_enum_to_int(format)) {
 	case SNDRV_PCM_FORMAT_S8:
 	case SNDRV_PCM_FORMAT_S16_LE:
 	case SNDRV_PCM_FORMAT_S16_BE:
@@ -340,27 +343,28 @@ u_int64_t snd_pcm_format_silence_64(int format)
 	case SNDRV_PCM_FORMAT_IMA_ADPCM:	/* special case */
 	case SNDRV_PCM_FORMAT_MPEG:
 	case SNDRV_PCM_FORMAT_GSM:
+	case SNDRV_PCM_FORMAT_SPECIAL:
 		return 0;
 	}
 	return 0;
 }
 
-u_int32_t snd_pcm_format_silence_32(int format)
+u_int32_t snd_pcm_format_silence_32(snd_pcm_format_t format)
 {
 	return (u_int32_t)snd_pcm_format_silence_64(format);
 }
 
-u_int16_t snd_pcm_format_silence_16(int format)
+u_int16_t snd_pcm_format_silence_16(snd_pcm_format_t format)
 {
 	return (u_int16_t)snd_pcm_format_silence_64(format);
 }
 
-u_int8_t snd_pcm_format_silence(int format)
+u_int8_t snd_pcm_format_silence(snd_pcm_format_t format)
 {
 	return (u_int8_t)snd_pcm_format_silence_64(format);
 }
 
-int snd_pcm_format_set_silence(int format, void *data, unsigned int samples)
+int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int samples)
 {
 	if (samples == 0)
 		return 0;
@@ -422,7 +426,7 @@ static int linear_formats[4*2*2] = {
 	SNDRV_PCM_FORMAT_U32_BE
 };
 
-int snd_pcm_build_linear_format(int width, int unsignd, int big_endian)
+snd_pcm_format_t snd_pcm_build_linear_format(int width, int unsignd, int big_endian)
 {
 	switch (width) {
 	case 8:
@@ -438,7 +442,7 @@ int snd_pcm_build_linear_format(int width, int unsignd, int big_endian)
 		width = 3;
 		break;
 	default:
-		return -1;
+		return SND_PCM_FORMAT_NONE;
 	}
-	return ((int(*)[2][2])linear_formats)[width][!!unsignd][!!big_endian];
+	return snd_int_to_enum(((int(*)[2][2])linear_formats)[width][!!unsignd][!!big_endian]);
 }

@@ -49,12 +49,6 @@ static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 	return 0;
 }
 
-static int snd_rawmidi_hw_card(snd_rawmidi_t *rmidi)
-{
-	snd_rawmidi_hw_t *hw = rmidi->private;
-	return hw->card;
-}
-
 static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
@@ -105,7 +99,7 @@ static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * st
 	return 0;
 }
 
-static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi, int stream)
+static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DROP, &stream) < 0) {
@@ -115,7 +109,7 @@ static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi, int stream)
 	return 0;
 }
 
-static int snd_rawmidi_hw_drain(snd_rawmidi_t *rmidi, int stream)
+static int snd_rawmidi_hw_drain(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DRAIN, &stream) < 0) {
@@ -147,7 +141,6 @@ static ssize_t snd_rawmidi_hw_read(snd_rawmidi_t *rmidi, void *buffer, size_t si
 
 snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
 	close: snd_rawmidi_hw_close,
-	card: snd_rawmidi_hw_card,
 	nonblock: snd_rawmidi_hw_nonblock,
 	info: snd_rawmidi_hw_info,
 	params: snd_rawmidi_hw_params,

@@ -28,13 +28,12 @@
 
 typedef struct {
 	int (*close)(snd_rawmidi_t *rawmidi);
-	int (*card)(snd_rawmidi_t *rawmidi);
 	int (*nonblock)(snd_rawmidi_t *rawmidi, int nonblock);
 	int (*info)(snd_rawmidi_t *rawmidi, snd_rawmidi_info_t *info);
 	int (*params)(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params);
 	int (*status)(snd_rawmidi_t *rawmidi, snd_rawmidi_status_t *status);
-	int (*drop)(snd_rawmidi_t *rawmidi, int stream);
-	int (*drain)(snd_rawmidi_t *rawmidi, int stream);
+	int (*drop)(snd_rawmidi_t *rawmidi, snd_rawmidi_stream_t stream);
+	int (*drain)(snd_rawmidi_t *rawmidi, snd_rawmidi_stream_t stream);
 	ssize_t (*write)(snd_rawmidi_t *rawmidi, const void *buffer, size_t size);
 	ssize_t (*read)(snd_rawmidi_t *rawmidi, void *buffer, size_t size);
 } snd_rawmidi_ops_t;

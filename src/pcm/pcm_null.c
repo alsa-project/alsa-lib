@@ -27,7 +27,7 @@
 
 typedef struct {
 	snd_timestamp_t trigger_tstamp;
-	int state;
+	snd_pcm_state_t state;
 	int shmid;
 	snd_pcm_uframes_t appl_ptr;
 	snd_pcm_uframes_t hw_ptr;
@@ -55,7 +55,7 @@ static int snd_pcm_null_async(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int sig ATTRIBUTE
 static int snd_pcm_null_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_info_t * info)
 {
 	memset(info, 0, sizeof(*info));
-	info->stream = pcm->stream;
+	info->stream = snd_enum_to_int(pcm->stream);
 	info->card = -1;
 	strcpy(info->id, "null");
 	strcpy(info->name, "null");
@@ -74,7 +74,7 @@ static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_null_t *null = pcm->private;
 	memset(status, 0, sizeof(*status));
-	status->state = null->state;
+	status->state = snd_enum_to_int(null->state);
 	status->trigger_tstamp = null->trigger_tstamp;
 	gettimeofday(&status->tstamp, 0);
 	status->avail = pcm->buffer_size;
@@ -82,7 +82,7 @@ static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return 0;
 }
 
-static int snd_pcm_null_state(snd_pcm_t *pcm)
+static snd_pcm_state_t snd_pcm_null_state(snd_pcm_t *pcm)
 {
 	snd_pcm_null_t *null = pcm->private;
 	return null->state;
@@ -152,7 +152,7 @@ static int snd_pcm_null_pause(snd_pcm_t *pcm, int enable)
 static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_null_t *null = pcm->private;
-	switch (null->state) {
+	switch (snd_enum_to_int(null->state)) {
 	case SND_PCM_STATE_PREPARED:
 	case SND_PCM_STATE_RUNNING:
 		snd_pcm_mmap_appl_backward(pcm, frames);
@@ -166,7 +166,7 @@ static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 static snd_pcm_sframes_t snd_pcm_null_fwd(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_null_t *null = pcm->private;
-	switch (null->state) {
+	switch (snd_enum_to_int(null->state)) {
 	case SND_PCM_STATE_PREPARED:
 	case SND_PCM_STATE_RUNNING:
 		snd_pcm_mmap_appl_forward(pcm, size);
@@ -319,7 +319,7 @@ snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	mmap_forward: snd_pcm_null_mmap_forward,
 };
 
-int snd_pcm_null_open(snd_pcm_t **pcmp, char *name, int stream, int mode)
+int snd_pcm_null_open(snd_pcm_t **pcmp, char *name, snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_null_t *null;
@@ -372,7 +372,7 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, char *name, int stream, int mode)
 
 int _snd_pcm_null_open(snd_pcm_t **pcmp, char *name,
 		       snd_config_t *conf, 
-		       int stream, int mode)
+		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
 	snd_config_foreach(i, conf) {
