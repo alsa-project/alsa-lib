@@ -197,7 +197,7 @@ static void mix_areas2(unsigned int size,
 	register signed int sample, old_sample;
 
 	while (size-- > 0) {
-		sample = *src >> 8;
+		sample = *src / 256;
 		old_sample = *sum;
 		if (*dst == 0)
 			sample -= old_sample;
@@ -205,12 +205,12 @@ static void mix_areas2(unsigned int size,
 		do {
 			old_sample = *sum;
 			if (old_sample > 0x7fffff)
-				sample = 0x7fffff;
+				sample = 0x7fffffff;
 			else if (old_sample < -0x800000)
-				sample = -0x800000;
+				sample = -0x80000000;
 			else
-				sample = old_sample;
-			*dst = sample << 8;
+				sample = old_sample * 256;
+			*dst = sample;
 		} while (*sum != old_sample);
 		((char *)src) += src_step;
 		((char *)dst) += dst_step;
@@ -709,7 +709,7 @@ static snd_pcm_sframes_t snd_pcm_dmix_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 {
 	snd_pcm_sframes_t avail;
 
-	avail = snd_pcm_mmap_avail(pcm);
+	avail = snd_pcm_mmap_playback_avail(pcm);
 	if (avail < 0)
 		return 0;
 	if (frames > (snd_pcm_uframes_t)avail)
