@@ -50,3 +50,4 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/usr/include/alsa/asoundlib.h
 %{prefix}/usr/lib/lib*
 %{prefix}/usr/share/aclocal/alsa.m4
+%{prefix}/usr/share/alsa/*
