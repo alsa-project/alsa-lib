@@ -61,7 +61,7 @@ int snd_pcm_plugin_mmap(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap_status(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap_control(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap(snd_pcm_t *pcm);
-int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm);
+int snd_pcm_plugin_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
 int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 

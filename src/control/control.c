@@ -68,10 +68,20 @@ int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid)
 	return ctl->ops->async(ctl, sig, pid);
 }
 
-int snd_ctl_poll_descriptor(snd_ctl_t *ctl)
+int _snd_ctl_poll_descriptor(snd_ctl_t *ctl)
 {
 	assert(ctl);
 	return ctl->ops->poll_descriptor(ctl);
+}
+
+int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int space)
+{
+	assert(ctl);
+	if (space >= 1) {
+		pfds->fd = ctl->ops->poll_descriptor(ctl);
+		pfds->events = POLLIN;
+	}
+	return 1;
 }
 
 int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
@@ -163,8 +173,8 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 {
 	struct pollfd pfd;
 	int err;
-	pfd.fd = snd_ctl_poll_descriptor(ctl);
-	pfd.events = POLLIN;
+	err = snd_ctl_poll_descriptors(ctl, &pfd, 1);
+	assert(err == 1);
 	err = poll(&pfd, 1, timeout);
 	if (err < 0)
 		return -errno;

@@ -52,11 +52,22 @@ int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 	return 0;
 }
 
-int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi)
+int _snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi)
 {
 	assert(rmidi);
 	return rmidi->poll_fd;
 }
+
+int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsigned int space)
+{
+	assert(rmidi);
+	if (space >= 1) {
+		pfds->fd = rmidi->poll_fd;
+		pfds->events = rmidi->stream == SND_RAWMIDI_STREAM_OUTPUT ? POLLOUT : POLLIN;
+	}
+	return 1;
+}
+
 
 int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 {

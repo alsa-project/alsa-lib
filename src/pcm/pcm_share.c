@@ -346,8 +346,8 @@ void *snd_pcm_share_slave_thread(void *data)
 	int err;
 	pfd[0].fd = slave->poll[0];
 	pfd[0].events = POLLIN;
-	pfd[1].fd = snd_pcm_poll_descriptor(spcm);
-	pfd[1].events = POLLIN | POLLOUT;
+	err = snd_pcm_poll_descriptors(spcm, &pfd[1], 1);
+	assert(err == 1);
 	Pthread_mutex_lock(&slave->mutex);
 	err = pipe(slave->poll);
 	assert(err >= 0);

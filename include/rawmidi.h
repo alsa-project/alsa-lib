@@ -47,7 +47,7 @@ extern "C" {
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 		     const char *name, int mode);
 int snd_rawmidi_close(snd_rawmidi_t *rmidi);
-int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi);
+int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsigned int space);
 int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock);
 int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info);
 int snd_rawmidi_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params);

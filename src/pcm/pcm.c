@@ -205,12 +205,12 @@ snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t s
 }
 
 /* FIXME */
-#define snd_pcm_link_descriptor snd_pcm_poll_descriptor
+#define _snd_pcm_link_descriptor _snd_pcm_poll_descriptor
 
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
-	int fd1 = snd_pcm_link_descriptor(pcm1);
-	int fd2 = snd_pcm_link_descriptor(pcm2);
+	int fd1 = _snd_pcm_link_descriptor(pcm1);
+	int fd2 = _snd_pcm_link_descriptor(pcm2);
 	if (fd1 < 0 || fd2 < 0)
 		return -ENOSYS;
 	if (ioctl(fd1, SNDRV_PCM_IOCTL_LINK, fd2) < 0) {
@@ -223,7 +223,7 @@ int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 int snd_pcm_unlink(snd_pcm_t *pcm)
 {
 	int fd;
-	fd = snd_pcm_link_descriptor(pcm);
+	fd = _snd_pcm_link_descriptor(pcm);
 	if (ioctl(fd, SNDRV_PCM_IOCTL_UNLINK) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_UNLINK failed");
 		return -errno;
@@ -231,10 +231,20 @@ int snd_pcm_unlink(snd_pcm_t *pcm)
 	return 0;
 }
 
-int snd_pcm_poll_descriptor(snd_pcm_t *pcm)
+int _snd_pcm_poll_descriptor(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	return pcm->poll_fd;
+}
+
+int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
+{
+	assert(pcm);
+	if (space >= 1) {
+		pfds->fd = pcm->poll_fd;
+		pfds->events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
+	}
+	return 1;
 }
 
 #define STATE(v) [SND_PCM_STATE_##v] = #v
@@ -688,8 +698,8 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
 	struct pollfd pfd;
 	int err;
-	pfd.fd = snd_pcm_poll_descriptor(pcm);
-	pfd.events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
+	err = snd_pcm_poll_descriptors(pcm, &pfd, 1);
+	assert(err == 1);
 	err = poll(&pfd, 1, timeout);
 	if (err < 0)
 		return -errno;

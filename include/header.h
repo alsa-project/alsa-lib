@@ -32,7 +32,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
-#include <sys/uio.h>
+#include <sys/poll.h>
 
 #ifndef ATTRIBUTE_UNUSED
 #define ATTRIBUTE_UNUSED __attribute__ ((__unused__))

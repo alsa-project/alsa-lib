@@ -447,7 +447,7 @@ int snd_pcm_multi_poll_descriptor(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[0].pcm;
-	return snd_pcm_poll_descriptor(slave);
+	return _snd_pcm_poll_descriptor(slave);
 }
 
 static void snd_pcm_multi_dump(snd_pcm_t *pcm, snd_output_t *out)

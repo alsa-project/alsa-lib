@@ -202,6 +202,7 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
+int _snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 
 static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {

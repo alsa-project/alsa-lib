@@ -34,7 +34,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include "aserver.h"
-#include "control_local.h"
 
 typedef struct {
 	int socket;

@@ -74,7 +74,7 @@ int snd_timer_close(snd_timer_t *handle)
 	return res;
 }
 
-int snd_timer_poll_descriptor(snd_timer_t *handle)
+int _snd_timer_poll_descriptor(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
 
@@ -82,6 +82,16 @@ int snd_timer_poll_descriptor(snd_timer_t *handle)
 	if (!tmr)
 		return -EINVAL;
 	return tmr->fd;
+}
+
+int snd_timer_poll_descriptors(snd_timer_t *timer, struct pollfd *pfds, unsigned int space)
+{
+	assert(timer);
+	if (space >= 1) {
+		pfds->fd = timer->fd;
+		pfds->events = POLLIN;
+	}
+	return 1;
 }
 
 int snd_timer_next_device(snd_timer_t *handle, snd_timer_id_t * tid)

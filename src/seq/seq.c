@@ -146,10 +146,24 @@ int snd_seq_close(snd_seq_t *seq)
 /*
  * returns the file descriptor of the client
  */
-int snd_seq_poll_descriptor(snd_seq_t *seq)
+int _snd_seq_poll_descriptor(snd_seq_t *seq)
 {
 	assert(seq);
 	return seq->poll_fd;
+}
+
+int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int space)
+{
+	assert(seq);
+	if (space >= 1) {
+		pfds->fd = seq->poll_fd;
+		pfds->events = 0;
+		if (seq->streams & SND_SEQ_OPEN_INPUT)
+			pfds->events |= POLLIN;
+		if (seq->streams & SND_SEQ_OPEN_OUTPUT)
+			pfds->events |= POLLOUT;
+	}
+	return 1;
 }
 
 /*

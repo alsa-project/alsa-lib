@@ -81,10 +81,10 @@ int snd_hctl_async(snd_hctl_t *hctl, int sig, pid_t pid)
 	return snd_ctl_async(hctl->ctl, sig, pid);
 }
 
-int snd_hctl_poll_descriptor(snd_hctl_t *hctl)
+int snd_hctl_poll_descriptors(snd_hctl_t *hctl, struct pollfd *pfds, unsigned int space)
 {
 	assert(hctl);
-	return snd_ctl_poll_descriptor(hctl->ctl);
+	return snd_ctl_poll_descriptors(hctl->ctl, pfds, space);
 }
 
 static int _snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id, int *dir)
@@ -439,6 +439,18 @@ void *snd_hctl_get_callback_private(snd_hctl_t *hctl)
 unsigned int snd_hctl_get_count(snd_hctl_t *hctl)
 {
 	return hctl->count;
+}
+
+int snd_hctl_wait(snd_hctl_t *hctl, int timeout)
+{
+	struct pollfd pfd;
+	int err;
+	err = snd_hctl_poll_descriptors(hctl, &pfd, 1);
+	assert(err == 1);
+	err = poll(&pfd, 1, timeout);
+	if (err < 0)
+		return -errno;
+	return 0;
 }
 
 int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event)

@@ -337,7 +337,7 @@ int snd_pcm_plugin_munmap(snd_pcm_t *pcm)
 int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
-	return snd_pcm_poll_descriptor(plugin->slave);
+	return _snd_pcm_poll_descriptor(plugin->slave);
 }
 
 int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)

@@ -19,6 +19,7 @@
  */
   
 #include "../src/pcm/pcm_local.h"
+#include "../src/control/control_local.h"
 
 typedef enum _snd_dev_type {
 	SND_DEV_TYPE_PCM,

@@ -42,6 +42,7 @@ int snd_hwdep_open(snd_hwdep_t **handle, int card, int device, int mode)
 	int fd, ver;
 	char filename[32];
 	snd_hwdep_t *hwdep;
+	assert(handle);
 
 	*handle = NULL;
 	
@@ -77,27 +78,26 @@ int snd_hwdep_open(snd_hwdep_t **handle, int card, int device, int mode)
 int snd_hwdep_close(snd_hwdep_t *hwdep)
 {
 	int res;
-
-	if (!hwdep)
-		return -EINVAL;
+	assert(hwdep);
 	res = close(hwdep->fd) < 0 ? -errno : 0;
 	free(hwdep);
 	return res;
 }
 
-int snd_hwdep_poll_descriptor(snd_hwdep_t *hwdep)
+int snd_hwdep_poll_descriptors(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned int space)
 {
-	if (!hwdep)
-		return -EINVAL;
-	return hwdep->fd;
+	assert(hwdep);
+	if (space >= 1) {
+		pfds->fd = hwdep->fd;
+		pfds->events = POLLOUT | POLLIN;
+	}
+	return 1;
 }
 
 int snd_hwdep_block_mode(snd_hwdep_t *hwdep, int enable)
 {
 	long flags;
-
-	if (!hwdep)
-		return -EINVAL;
+	assert(hwdep);
 	if ((flags = fcntl(hwdep->fd, F_GETFL)) < 0)
 		return -errno;
 	if (enable)
@@ -111,8 +111,7 @@ int snd_hwdep_block_mode(snd_hwdep_t *hwdep, int enable)
 
 int snd_hwdep_info(snd_hwdep_t *hwdep, snd_hwdep_info_t *info)
 {
-	if (!hwdep || !info)
-		return -EINVAL;
+	assert(hwdep && info);
 	if (ioctl(hwdep->fd, SNDRV_HWDEP_IOCTL_INFO, info) < 0)
 		return -errno;
 	return 0;
@@ -120,8 +119,7 @@ int snd_hwdep_info(snd_hwdep_t *hwdep, snd_hwdep_info_t *info)
 
 int snd_hwdep_ioctl(snd_hwdep_t *hwdep, int request, void * arg)
 {
-	if (!hwdep)
-		return -EINVAL;
+	assert(hwdep);
 	if (ioctl(hwdep->fd, request, arg) < 0)
 		return -errno;
 	return 0;
@@ -130,9 +128,7 @@ int snd_hwdep_ioctl(snd_hwdep_t *hwdep, int request, void * arg)
 ssize_t snd_hwdep_write(snd_hwdep_t *hwdep, const void *buffer, size_t size)
 {
 	ssize_t result;
-
-	if (!hwdep || (!buffer && size > 0))
-		return -EINVAL;
+	assert(hwdep && (buffer || size == 0));
 	result = write(hwdep->fd, buffer, size);
 	if (result < 0)
 		return -errno;
@@ -142,9 +138,7 @@ ssize_t snd_hwdep_write(snd_hwdep_t *hwdep, const void *buffer, size_t size)
 ssize_t snd_hwdep_read(snd_hwdep_t *hwdep, void *buffer, size_t size)
 {
 	ssize_t result;
-
-	if (!hwdep || (!buffer && size > 0))
-		return -EINVAL;
+	assert(hwdep && (buffer || size == 0));
 	result = read(hwdep->fd, buffer, size);
 	if (result < 0)
 		return -errno;

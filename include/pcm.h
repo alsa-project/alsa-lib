@@ -216,7 +216,7 @@ int snd_pcm_open(snd_pcm_t **pcm, const char *name,
 
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
 int snd_pcm_close(snd_pcm_t *pcm);
-int snd_pcm_poll_descriptor(snd_pcm_t *pcm);
+int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info);

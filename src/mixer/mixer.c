@@ -447,19 +447,48 @@ int snd_mixer_set_compare(snd_mixer_t *mixer, snd_mixer_compare_t msort)
 	return 0;
 }
 
-int snd_mixer_poll_descriptor(snd_mixer_t *mixer, const char *name)
+int snd_mixer_poll_descriptors(snd_mixer_t *mixer, struct pollfd *pfds, unsigned int space)
 {
 	struct list_head *pos, *next;
-	assert(mixer && name);
+	unsigned int count = 0;
+	assert(mixer);
 	list_for_each(pos, next, &mixer->slaves) {
 		snd_mixer_slave_t *s;
-		const char *n;
+		int n;
 		s = list_entry(pos, snd_mixer_slave_t, list);
-		n = snd_hctl_name(s->hctl);
-		if (n && strcmp(name, n) == 0)
-			return snd_hctl_poll_descriptor(s->hctl);
+		n = snd_hctl_poll_descriptors(s->hctl, pfds, space);
+		if (n < 0)
+			return n;
+		count += n;
+		if (space > (unsigned int) n) {
+			space -= n;
+			pfds += n;
+		} else
+			space = 0;
 	}
-	return -ENOENT;
+	return count;
+}
+
+int snd_mixer_wait(snd_mixer_t *mixer, int timeout)
+{
+	struct pollfd spfds[16];
+	struct pollfd *pfds = spfds;
+	int err;
+	int count;
+	count = snd_mixer_poll_descriptors(mixer, pfds, sizeof(spfds) / sizeof(spfds[0]));
+	if (count < 0)
+		return count;
+	if ((unsigned int) count > sizeof(spfds) / sizeof(spfds[0])) {
+		pfds = malloc(count * sizeof(*pfds));
+		if (!pfds)
+			return -ENOMEM;
+		err = snd_mixer_poll_descriptors(mixer, pfds, count);
+		assert(err == count);
+	}
+	err = poll(pfds, count, timeout);
+	if (err < 0)
+		return -errno;
+	return 0;
 }
 
 snd_mixer_elem_t *snd_mixer_first_elem(snd_mixer_t *mixer)

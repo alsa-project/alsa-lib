@@ -324,7 +324,7 @@ extern "C" {
 
 int snd_seq_open(snd_seq_t **handle, const char *name, int streams, int mode);
 int snd_seq_close(snd_seq_t *handle);
-int snd_seq_poll_descriptor(snd_seq_t *handle);
+int snd_seq_poll_descriptors(snd_seq_t *handle, struct pollfd *pfds, unsigned int space);
 int snd_seq_nonblock(snd_seq_t *handle, int nonblock);
 int snd_seq_client_id(snd_seq_t *handle);
 int snd_seq_output_buffer_size(snd_seq_t *handle);

@@ -276,7 +276,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 	if (err < 0)
 		return err;
 	client->device.pcm.handle = pcm;
-	client->device.pcm.fd = snd_pcm_poll_descriptor(pcm);
+	client->device.pcm.fd = _snd_pcm_poll_descriptor(pcm);
 
 	shmid = shmget(IPC_PRIVATE, PCM_SHM_SIZE, 0666);
 	if (shmid < 0) {
@@ -459,7 +459,7 @@ int pcm_shm_cmd(client_t *client)
 		break;
 	case SND_PCM_IOCTL_POLL_DESCRIPTOR:
 		ctrl->result = 0;
-		return shm_ack_fd(client, snd_pcm_poll_descriptor(pcm));
+		return shm_ack_fd(client, _snd_pcm_poll_descriptor(pcm));
 	case SND_PCM_IOCTL_CLOSE:
 		client->ops->close(client);
 		break;
@@ -503,7 +503,7 @@ int ctl_shm_open(client_t *client, int *cookie)
 	if (err < 0)
 		return err;
 	client->device.control.handle = ctl;
-	client->device.control.fd = snd_ctl_poll_descriptor(ctl);
+	client->device.control.fd = _snd_ctl_poll_descriptor(ctl);
 
 	shmid = shmget(IPC_PRIVATE, CTL_SHM_SIZE, 0666);
 	if (shmid < 0) {
@@ -627,7 +627,7 @@ int ctl_shm_cmd(client_t *client)
 		break;
 	case SND_CTL_IOCTL_POLL_DESCRIPTOR:
 		ctrl->result = 0;
-		return shm_ack_fd(client, snd_ctl_poll_descriptor(ctl));
+		return shm_ack_fd(client, _snd_ctl_poll_descriptor(ctl));
 	default:
 		ERROR("Bogus cmd: %x", ctrl->cmd);
 		ctrl->result = -ENOSYS;
