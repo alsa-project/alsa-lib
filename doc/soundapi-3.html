@@ -134,11 +134,11 @@ int card = 0, err;
 void *handle;
 stuct snd_ctl_hw_info info;
 
-if ( (err = snd_ctl_open( &handle, card )) &lt; 0 ) {
+if ( (err = snd_ctl_open( &amp;handle, card )) &lt; 0 ) {
   fprintf( stderr, &quot;open failed: %s\n&quot;, snd_strerror( err ) );
   return;
 }
-if ( (err = snd_ctl_hw_info( handle, &info )) &lt; 0 ) {
+if ( (err = snd_ctl_hw_info( handle, &amp;info )) &lt; 0 ) {
   fprintf( stderr, &quot;hw info failed: %s\n&quot;, snd_strerror( err ) );
   snd_ctl_close( handle );
   return;
