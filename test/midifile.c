@@ -73,7 +73,7 @@
 #include <stdio.h>
 #include <values.h>
 
-char *strcpy (), *strcat ();
+#include <string.h>
 /*void exit(), free();*/
 
 /* public stuff */
