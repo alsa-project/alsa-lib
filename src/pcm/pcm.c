@@ -2716,76 +2716,80 @@ void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t 
 	*dst = *src;
 }
 
+
 /**
  * \brief Extract access type from a configuration space
  * \param params Configuration space
- * \param val Returned value
+ * \param access Returned value
  * \return access type otherwise a negative error code if not exactly one is present
  */
-int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params, snd_pcm_access_t *val)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_access)(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
+#else
+int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
+#endif
 {
-	int err;
-	
-	assert(val);
-	err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_ACCESS, NULL);
-	if (err < 0)
-		return err;
-	*val = err;
-	return 0;
+	unsigned int _val;
+	int err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_ACCESS, &_val, NULL);
+	if (err >= 0)
+		*access = _val;
+	return err;
 }
 
 /**
  * \brief Verify if an access type is available inside a configuration space for a PCM
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val access type
+ * \param access access type
  * \return 1 if available 0 otherwise
  */
-int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t val)
+int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t access)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_ACCESS, val, 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_ACCESS, access, 0);
 }
 
 /**
  * \brief Restrict a configuration space to contain only one access type
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val access type
+ * \param access access type
  * \return 0 otherwise a negative error code if configuration space would become empty
  */
-int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t val)
+int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t access)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_ACCESS, val, 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_ACCESS, access, 0);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its first access type
  * \param pcm PCM handle
  * \param params Configuration space
- * \return access type
+ * \param access Returned first access type
+ * \return 0 otherwise a negative error code
  */
-snd_pcm_access_t snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_access_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
+#else
+int snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_ACCESS, access, NULL);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its last access type
  * \param pcm PCM handle
  * \param params Configuration space
- * \return access type
+ * \param val Returned last access type
+ * \return 0 otherwise a negative error code
  */
-snd_pcm_access_t snd_pcm_hw_params_set_access_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_access_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
+#else
+int snd_pcm_hw_params_set_access_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_ACCESS, access, NULL);
 }
 
 /**
@@ -2793,7 +2797,7 @@ snd_pcm_access_t snd_pcm_hw_params_set_access_last(snd_pcm_t *pcm, snd_pcm_hw_pa
  * \param pcm PCM handle
  * \param params Configuration space
  * \param mask Access mask
- * \return access type
+ * \return 0 otherwise a negative error code
  */
 int snd_pcm_hw_params_set_access_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_mask_t *mask)
 {
@@ -2805,82 +2809,84 @@ int snd_pcm_hw_params_set_access_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param params Configuration space
  * \param mask Returned Access mask
  */
-void snd_pcm_hw_params_get_access_mask(snd_pcm_hw_params_t *params, snd_pcm_access_mask_t *mask)
+int snd_pcm_hw_params_get_access_mask(snd_pcm_hw_params_t *params, snd_pcm_access_mask_t *mask)
 {
+	if (params == NULL || mask == NULL)
+		return -EINVAL;
 	snd_pcm_access_mask_copy(mask, snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS));
+	return 0;
 }
 
 
 /**
  * \brief Extract format from a configuration space
  * \param params Configuration space
- * \param val returned format
+ * \param format returned format
  * \return format otherwise a negative error code if not exactly one is present
  */
-int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params, snd_pcm_format_t *val)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_format)(const snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
+#else
+int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
+#endif
 {
-	int err;
-	
-	assert(val);
-	err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, NULL);
-	if (err < 0)
-		return err;
-	*val = err;
-	return 0;
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, format, NULL);
 }
 
 /**
  * \brief Verify if a format is available inside a configuration space for a PCM
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val format
+ * \param format format
  * \return 1 if available 0 otherwise
  */
-int snd_pcm_hw_params_test_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t val)
+int snd_pcm_hw_params_test_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t format)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_FORMAT, val, 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_FORMAT, format, 0);
 }
 
 /**
  * \brief Restrict a configuration space to contain only one format
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val format
- * \return 0 otherwise a negative error code if configuration space would become empty
+ * \param format format
+ * \return 0 otherwise a negative error code
  */
-int snd_pcm_hw_params_set_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t val)
+int snd_pcm_hw_params_set_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t format)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_FORMAT, val, 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_FORMAT, format, 0);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its first format
  * \param pcm PCM handle
  * \param params Configuration space
- * \return format
+ * \param format Returned first format
+ * \return 0 otherwise a negative error code
  */
-snd_pcm_format_t snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_format_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
+#else
+int snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
+#endif
 {
-	unsigned int res;
-	
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, format, NULL);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its last format
  * \param pcm PCM handle
  * \param params Configuration space
- * \return format
+ * \param format Returned last format
+ * \return 0 otherwise a negative error code
  */
-snd_pcm_format_t snd_pcm_hw_params_set_format_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_format_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
+#else
+int snd_pcm_hw_params_set_format_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_FORMAT, format, NULL);
 }
 
 /**
@@ -2888,7 +2894,7 @@ snd_pcm_format_t snd_pcm_hw_params_set_format_last(snd_pcm_t *pcm, snd_pcm_hw_pa
  * \param pcm PCM handle
  * \param params Configuration space
  * \param mask Format mask
- * \return access type
+ * \return 0 otherwise a negative error code
  */
 int snd_pcm_hw_params_set_format_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_mask_t *mask)
 {
@@ -2907,75 +2913,74 @@ void snd_pcm_hw_params_get_format_mask(snd_pcm_hw_params_t *params, snd_pcm_form
 
 
 /**
- * \brief Verify if a subformat is available inside a configuration space for a PCM
- * \param pcm PCM handle
+ * \brief Extract subformat from a configuration space
  * \param params Configuration space
- * \param val subformat
- * \return 1 if available 0 otherwise
+ * \param subformat Returned subformat value
+ * \return subformat otherwise a negative error code if not exactly one is present
  */
-int snd_pcm_hw_params_test_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t val)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_subformat)(const snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
+#else
+int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
+#endif
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_SUBFORMAT, val, 0);
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_SUBFORMAT, subformat, NULL);
 }
 
 /**
- * \brief Extract subformat from a configuration space
+ * \brief Verify if a subformat is available inside a configuration space for a PCM
+ * \param pcm PCM handle
  * \param params Configuration space
- * \param val Returned subformat
- * \return subformat otherwise a negative error code if not exactly one is present
+ * \param subformat subformat value
+ * \return 1 if available 0 otherwise
  */
-int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params, snd_pcm_subformat_t *val)
+int snd_pcm_hw_params_test_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t subformat)
 {
-	int err;
-	
-	assert(val);
-	err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_SUBFORMAT, NULL);
-	if (err < 0)
-		return err;
-	*val = (snd_pcm_subformat_t)err;
-	return 0;
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_SUBFORMAT, subformat, 0);
 }
 
 /**
  * \brief Restrict a configuration space to contain only one subformat
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val subformat
+ * \param subformat subformat value
  * \return 0 otherwise a negative error code if configuration space would become empty
  */
-int snd_pcm_hw_params_set_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t val)
+int snd_pcm_hw_params_set_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t subformat)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_SUBFORMAT, val, 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_SUBFORMAT, subformat, 0);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its first subformat
  * \param pcm PCM handle
  * \param params Configuration space
- * \return subformat
+ * \param subformat Returned subformat
+ * \return 0 otherwise a negative error code
  */
-snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_subformat_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
+#else
+int snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
+#endif
 {
-	unsigned int res;
-	
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, subformat, NULL);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its last subformat
  * \param pcm PCM handle
  * \param params Configuration space
- * \return subformat
+ * \param subformat Returned subformat
+ * \return 0 otherwise a negative error code
  */
-snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_subformat_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
+#else
+int snd_pcm_hw_params_set_subformat_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, subformat, NULL);
 }
 
 /**
@@ -2983,7 +2988,7 @@ snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_last(snd_pcm_t *pcm, snd_pcm
  * \param pcm PCM handle
  * \param params Configuration space
  * \param mask Subformat mask
- * \return access type
+ * \return 0 otherwise a negative error code
  */
 int snd_pcm_hw_params_set_subformat_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_mask_t *mask)
 {
@@ -3004,31 +3009,46 @@ void snd_pcm_hw_params_get_subformat_mask(snd_pcm_hw_params_t *params, snd_pcm_s
 /**
  * \brief Extract channels from a configuration space
  * \param params Configuration space
- * \return channels count otherwise a negative error code if not exactly one is present
+ * \param val Returned channels count
+ * \return 0 otherwise a negative error code if not exactly one is present
  */
-int snd_pcm_hw_params_get_channels(const snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_channels)(const snd_pcm_hw_params_t *params, unsigned int *val)
+#else
+int snd_pcm_hw_params_get_channels(const snd_pcm_hw_params_t *params, unsigned int *val)
+#endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
 }
 
 /**
  * \brief Extract minimum channels count from a configuration space
  * \param params Configuration space
- * \return minimum channels count
+ * \param val minimum channels count
+ * \return 0 otherwise a negative error code
  */
-unsigned int snd_pcm_hw_params_get_channels_min(const snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_channels_min)(const snd_pcm_hw_params_t *params, unsigned int *val)
+#else
+int snd_pcm_hw_params_get_channels_min(const snd_pcm_hw_params_t *params, unsigned int *val)
+#endif
 {
-	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
 }
 
 /**
  * \brief Extract maximum channels count from a configuration space
  * \param params Configuration space
- * \return maximum channels count
+ * \param val maximum channels count
+ * \return 0 otherwise a negative error code
  */
-unsigned int snd_pcm_hw_params_get_channels_max(const snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_channels_max)(const snd_pcm_hw_params_t *params, unsigned int *val)
+#else
+int snd_pcm_hw_params_get_channels_max(const snd_pcm_hw_params_t *params, unsigned int *val)
+#endif
 {
-	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
 }
 
 /**
@@ -3096,86 +3116,103 @@ int snd_pcm_hw_params_set_channels_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \brief Restrict a configuration space to have channels count nearest to a target
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val target channels count
+ * \param val target channels count, returned chosen channels count
  * \return chosen channels count
  */
-unsigned int snd_pcm_hw_params_set_channels_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_channels_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+#else
+int snd_pcm_hw_params_set_channels_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_CHANNELS, val, NULL, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its minimum channels count
  * \param pcm PCM handle
  * \param params Configuration space
- * \return channels count
+ * \param val minimum channels count
+ * \return 0 otherwise a negative error code
  */
-unsigned int snd_pcm_hw_params_set_channels_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_channels_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+#else
+int snd_pcm_hw_params_set_channels_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+#endif
 {
-	unsigned int res;
-	
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_CHANNELS, NULL, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its maximum channels count
  * \param pcm PCM handle
  * \param params Configuration space
- * \return channels count
+ * \param val maximum channels count
+ * \return 0 otherwise a negative error code
  */
-unsigned int snd_pcm_hw_params_set_channels_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_channels_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+#else
+int snd_pcm_hw_params_set_channels_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_CHANNELS, NULL, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
 }
 
 
 /**
  * \brief Extract rate from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate rate
  * \param dir Sub unit direction
- * \return approximate rate otherwise a negative error code if not exactly one is present
+ * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-int snd_pcm_hw_params_get_rate(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_rate)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_rate(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_RATE, dir);
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_RATE, val, dir);
 }
 
 /**
  * \brief Extract minimum rate from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate minimum rate
  * \param dir Sub unit direction
- * \return approximate minimum rate
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_rate_min(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_rate_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_rate_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, dir);
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, val, dir);
 }
 
 /**
  * \brief Extract maximum rate from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate maximum rate
  * \param dir Sub unit direction
- * \return approximate maximum rate
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_rate_max(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_rate_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_rate_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_RATE, dir);
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_RATE, val, dir);
 }
 
 /**
@@ -3259,94 +3296,111 @@ int snd_pcm_hw_params_set_rate_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \brief Restrict a configuration space to have rate nearest to a target
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val approximate target rate
+ * \param val approximate target rate / returned approximate set rate
  * \return approximate chosen rate
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_set_rate_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_rate_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_rate_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_RATE, val, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_RATE, val, dir);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its minimum rate
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned minimum approximate rate
  * \param dir Sub unit direction
- * \return approximate rate
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_rate_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_rate_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_rate_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-	
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_RATE, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_RATE, val, dir);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its maximum rate
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned maximum approximate rate
  * \param dir Sub unit direction
- * \return approximate rate
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_rate_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_rate_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_rate_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_RATE, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_RATE, val, dir);
 }
 
 
 /**
  * \brief Extract period time from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate period duration in us
  * \param dir Sub unit direction
- * \return approximate period duration in us otherwise a negative error code if not exactly one is present
+ * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-int snd_pcm_hw_params_get_period_time(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_period_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_period_time(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
 }
 
 /**
  * \brief Extract minimum period time from a configuration space
  * \param params Configuration space
+ * \param val approximate minimum period duration in us
  * \param dir Sub unit direction
- * \return approximate minimum period duration in us
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_period_time_min(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_period_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_period_time_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
 }
 
 /**
  * \brief Extract maximum period time from a configuration space
  * \param params Configuration space
+ * \param val approximate maximum period duration in us
  * \param dir Sub unit direction
- * \return approximate maximum period duration in us
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_period_time_max(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_period_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_period_time_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
 }
 
 /**
@@ -3431,36 +3485,37 @@ int snd_pcm_hw_params_set_period_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \brief Restrict a configuration space to have period time nearest to a target
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val approximate target period duration in us
+ * \param val approximate target period duration in us / returned chosen approximate target period duration
  * \return approximate chosen period duration in us
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_set_period_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_period_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_period_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its minimum period time
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned approximate period duration in us
  * \param dir Sub unit direction
- * \return approximate period duration in us
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_period_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-	
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
 }
 
 /**
@@ -3472,53 +3527,80 @@ unsigned int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_period_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_period_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_period_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
 }
 
 
 /**
  * \brief Extract period size from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate period size in frames
  * \param dir Sub unit direction
- * \return approximate period size in frames otherwise a negative error code if not exactly one is present
+ * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-snd_pcm_sframes_t snd_pcm_hw_params_get_period_size(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_period_size)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#else
+int snd_pcm_hw_params_get_period_size(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+	unsigned int _val;
+	int err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
  * \brief Extract minimum period size from a configuration space
  * \param params Configuration space
+ * \param val approximate minimum period size in frames
  * \param dir Sub unit direction
- * \return approximate minimum period size in frames
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-snd_pcm_uframes_t snd_pcm_hw_params_get_period_size_min(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_period_size_min)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#else
+int snd_pcm_hw_params_get_period_size_min(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+	unsigned int _val = *val;
+	int err = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
  * \brief Extract maximum period size from a configuration space
  * \param params Configuration space
+ * \param val approximate minimum period size in frames
  * \param dir Sub unit direction
- * \return approximate maximum period size in frames
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-snd_pcm_uframes_t snd_pcm_hw_params_get_period_size_max(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_period_size_max)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#else
+int snd_pcm_hw_params_get_period_size_max(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+	unsigned int _val = *val;
+	int err = snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
@@ -3565,7 +3647,8 @@ int snd_pcm_hw_params_set_period_size_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 {
 	unsigned int _val = *val;
 	int err = snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
-	*val = _val;
+	if (err >= 0)
+		*val = _val;
 	return err;
 }
 
@@ -3583,7 +3666,8 @@ int snd_pcm_hw_params_set_period_size_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 {
 	unsigned int _val = *val;
 	int err = snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
-	*val = _val;
+	if (err >= 0)
+		*val = _val;
 	return err;
 }
 
@@ -3613,54 +3697,68 @@ int snd_pcm_hw_params_set_period_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \brief Restrict a configuration space to have period size nearest to a target
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val approximate target period size in frames
- * \return approximate chosen period size in frames
+ * \param val approximate target period size in frames / returned chosen approximate target period size
+ * \return 0 otherwise a negative error code
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
-snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_period_size_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#else
+int snd_pcm_hw_params_set_period_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, val, dir, &res) < 0)
-		return 0;
-	return res;
+	unsigned int _val = *val;
+	int err = snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
  * \brief Restrict a configuration space to contain only its minimum period size
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned maximum approximate period size in frames
  * \param dir Sub unit direction
- * \return approximate period size in frames
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_period_size_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#else
+int snd_pcm_hw_params_set_period_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir, &res) < 0)
-		return 0;
-	return res;
+	unsigned int _val;
+	int err = snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
  * \brief Restrict a configuration space to contain only its maximum period size
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned maximum approximate period size in frames
  * \param dir Sub unit direction
- * \return approximate period size in frames
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_period_size_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#else
+int snd_pcm_hw_params_set_period_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir, &res) < 0)
-		return 0;
-	return res;
+	unsigned int _val;
+	int err = snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
@@ -3678,40 +3776,55 @@ int snd_pcm_hw_params_set_period_size_integer(snd_pcm_t *pcm, snd_pcm_hw_params_
 /**
  * \brief Extract periods from a configuration space
  * \param params Configuration space
+ * \param val approximate periods per buffer
  * \param dir Sub unit direction
- * \return approximate periods per buffer otherwise a negative error code if not exactly one is present
+ * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-int snd_pcm_hw_params_get_periods(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_periods)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_periods(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_PERIODS, dir);
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_PERIODS, val, dir);
 }
 
 /**
  * \brief Extract minimum periods count from a configuration space
  * \param params Configuration space
+ * \param val approximate minimum periods per buffer
  * \param dir Sub unit direction
- * \return approximate minimum periods per buffer
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_periods_min(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_periods_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_periods_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIODS, dir);
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIODS, val, dir);
 }
 
 /**
  * \brief Extract maximum periods count from a configuration space
  * \param params Configuration space
+ * \param val approximate maximum periods per buffer
  * \param dir Sub unit direction
- * \return approximate maximum periods per buffer
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_periods_max(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_periods_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_periods_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIODS, dir);
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIODS, val, dir);
 }
 
 /**
@@ -3795,54 +3908,56 @@ int snd_pcm_hw_params_set_periods_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * \brief Restrict a configuration space to have periods count nearest to a target
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val approximate target periods per buffer
+ * \param val approximate target periods per buffer / returned chosen approximate target periods per buffer
  * \return approximate chosen periods per buffer
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_set_periods_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_periods_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_periods_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIODS, val, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIODS, val, dir);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its minimum periods count
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned approximate minimum periods per buffer
  * \param dir Sub unit direction
- * \return approximate periods per buffer
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_periods_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_periods_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_periods_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIODS, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIODS, val, dir);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its maximum periods count
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned approximate maximum periods per buffer
  * \param dir Sub unit direction
- * \return approximate periods per buffer
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_periods_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_periods_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_periods_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIODS, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIODS, val, dir);
 }
 
 /**
@@ -3860,40 +3975,56 @@ int snd_pcm_hw_params_set_periods_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 /**
  * \brief Extract buffer time from a configuration space
  * \param params Configuration space
+ * \param approximate buffer duration in us
+ * \param val Returned buffer time in us
  * \param dir Sub unit direction
- * \return approximate buffer duration in us otherwise a negative error code if not exactly one is present
+ * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-int snd_pcm_hw_params_get_buffer_time(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_buffer_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_buffer_time(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
 }
 
 /**
  * \brief Extract minimum buffer time from a configuration space
  * \param params Configuration space
+ * \param val approximate minimum buffer duration in us
  * \param dir Sub unit direction
- * \return approximate minimum buffer duration in us
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_buffer_time_min(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_buffer_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_buffer_time_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
 }
 
 /**
  * \brief Extract maximum buffer time from a configuration space
  * \param params Configuration space
+ * \param val approximate maximum buffer duration in us
  * \param dir Sub unit direction
- * \return approximate maximum buffer duration in us
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_buffer_time_max(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_buffer_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_buffer_time_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
 }
 
 /**
@@ -3977,91 +4108,120 @@ int snd_pcm_hw_params_set_buffer_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \brief Restrict a configuration space to have buffer time nearest to a target
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val approximate target buffer duration in us
+ * \param val approximate target buffer duration in us / returned chosen approximate target buffer duration
  * \return approximate chosen buffer duration in us
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_set_buffer_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_buffer_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_buffer_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its minimum buffer time
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned approximate minimum buffer duration in us
  * \param dir Sub unit direction
- * \return approximate buffer duration in us
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_buffer_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_buffer_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_buffer_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its maximum buffered time
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned approximate maximum buffer duration in us
  * \param dir Sub unit direction
- * \return approximate buffer duration in us
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_buffer_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_buffer_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_buffer_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-	
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
 }
 
 
 /**
  * \brief Extract buffer size from a configuration space
  * \param params Configuration space
- * \return buffer size in frames otherwise a negative error code if not exactly one is present
+ * \param val Returned buffer size in frames
+ * \return 0 otherwise a negative error code if not exactly one is present
  */
-snd_pcm_sframes_t snd_pcm_hw_params_get_buffer_size(const snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_buffer_size)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_hw_params_get_buffer_size(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+	unsigned int _val;
+	int err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
  * \brief Extract minimum buffer size from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate minimum buffer size in frames
  * \param dir Sub unit direction
- * \return approximate minimum buffer size in frames
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-snd_pcm_uframes_t snd_pcm_hw_params_get_buffer_size_min(const snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_buffer_size_min)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_hw_params_get_buffer_size_min(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
-	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+	unsigned int _val;
+	int err = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
  * \brief Extract maximum buffer size from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate maximum buffer size in frames
  * \param dir Sub unit direction
- * \return approximate maximum buffer size in frames
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-snd_pcm_uframes_t snd_pcm_hw_params_get_buffer_size_max(const snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_buffer_size_max)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_hw_params_get_buffer_size_max(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
-	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+	unsigned int _val;
+	int err = snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
@@ -4107,7 +4267,8 @@ int snd_pcm_hw_params_set_buffer_size_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 {
 	unsigned int _val = *val;
 	int err = snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
-	*val = _val;
+	if (err >= 0)
+		*val = _val;
 	return err;
 }
 
@@ -4125,7 +4286,8 @@ int snd_pcm_hw_params_set_buffer_size_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 {
 	unsigned int _val = *val;
 	int err = snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
-	*val = _val;
+	if (err >= 0)
+		*val = _val;
 	return err;
 }
 
@@ -4155,88 +4317,117 @@ int snd_pcm_hw_params_set_buffer_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \brief Restrict a configuration space to have buffer size nearest to a target
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val approximate target buffer size in frames
+ * \param val approximate target buffer size in frames / returned chosen approximate target buffer size in frames
  * \return approximate chosen buffer size in frames
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
-snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_hw_params_set_buffer_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, val, NULL, &res) < 0)
-		return 0;
-	return res;
+	unsigned int _val = *val;
+	int err = snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
  * \brief Restrict a configuration space to contain only its minimum buffer size
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned minimum buffer size in frames
  * \return buffer size in frames
  */
-snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_buffer_size_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_hw_params_set_buffer_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL, &res) < 0)
-		return 0;
-	return res;
+	unsigned int _val;
+	int err = snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 /**
  * \brief Restrict a configuration space to contain only its maximum buffer size
  * \param pcm PCM handle
  * \param params Configuration space
- * \return buffer size in frames
+ * \param val Returned maximum buffer size in frames
+ * \return 0 otherwise a negative error code
  */
-snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_buffer_size_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
-	unsigned int res;
-	
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL, &res) < 0)
-		return 0;
-	return res;
+	unsigned int _val;
+	int err = snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
+	if (err >= 0)
+		*val = _val;
+	return err;
 }
 
 
 /**
  * \brief Extract tick time from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate tick duration in us
  * \param dir Sub unit direction
- * \return approximate tick duration in us otherwise a negative error code if not exactly one is present
+ * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-int snd_pcm_hw_params_get_tick_time(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_tick_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_tick_time(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
 }
 
 /**
  * \brief Extract minimum tick time from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate minimum tick duration in us
  * \param dir Sub unit direction
- * \return approximate minimum tick duration in us
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_tick_time_min(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_tick_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_tick_time_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
 }
 
 /**
  * \brief Extract maximum tick time from a configuration space
  * \param params Configuration space
+ * \param val Returned approximate maximum tick duration in us
  * \param dir Sub unit direction
- * \return approximate maximum tick duration in us
+ * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_get_tick_time_max(const snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_get_tick_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_get_tick_time_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
 }
 
 /**
@@ -4320,79 +4511,85 @@ int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \brief Restrict a configuration space to have tick time nearest to a target
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val approximate target tick duration in us
+ * \param val approximate target tick duration in us / returned chosen approximate target tick duration in us
  * \return approximate chosen tick duration in us
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
-unsigned int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_tick_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its minimum tick time
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned approximate minimum tick duration in us
  * \param dir Sub unit direction
- * \return approximate tick duration in us
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_tick_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
 }
 
 /**
  * \brief Restrict a configuration space to contain only its maximum tick time
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned approximate maximum tick duration in us
  * \param dir Sub unit direction
- * \return approximate tick duration in us
+ * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
-unsigned int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hw_params_set_tick_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#else
+int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+#endif
 {
-	unsigned int res;
-
-	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, dir, &res) < 0)
-		return 0;
-	return res;
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
 }
 
 /**
  * \brief Get the minimum transfer align value in samples
  * \param params Configuration space
- * \return minimum align value otherwise a negative error code if not exactly one is present
+ * \param val Returned minimum align value
+ * \return 0 otherwise a negative error code if not exactly one is present
  */
-snd_pcm_sframes_t snd_pcm_hw_params_get_min_align(const snd_pcm_hw_params_t *params)
+int snd_pcm_hw_params_get_min_align(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 {
-	int format, channels, fb, min_align;
+	unsigned int format, channels, fb, min_align;
+	int err;
 
-	format = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, NULL);
-	if (format < 0)
-		return format;
-	channels = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
-	if (channels < 0)
-		return channels;
+	err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, &format, NULL);
+	if (err < 0)
+		return err;
+	err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_CHANNELS, &channels, NULL);
+	if (err < 0)
+		return err;
 	// compute frame bits
-	fb = snd_pcm_format_physical_width(format) * channels;
+	fb = snd_pcm_format_physical_width((snd_pcm_format_t)format) * channels;
         min_align = 1;
 	while (fb % 8) {
 		fb *= 2;
                 min_align *= 2;
 	}
-	return min_align;
+	if (val)
+		*val = min_align;
+	return 0;
 }
 
 /**
@@ -5778,4 +5975,212 @@ void snd_pcm_unlink_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
 	snd_pcm_unlink_ptr(pcm, &pcm->appl, slave, &slave->appl);
 }
 
+#endif /* DOC_HIDDEN */
+
+/*
+ *
+ */
+
+#ifndef DOC_HIDDEN
+
+#ifdef USE_VERSIONED_SYMBOLS
+
+#ifndef SND_COMPATIBILITY_BUILD_RC3
+
+#define OBSOLETE1(name, what, new) \
+  symbol_version(__old_##name, name, what); \
+  default_symbol_version(__##name, name, new);
+
+#else
+
+#define OBSOLETE1(name, what, new) \
+  default_symbol_version(__old_##name, name, what);
+
 #endif
+
+#define __OLD_GET(name, val_type, ret_type) \
+ret_type __old_##name(const snd_pcm_hw_params_t *params) \
+{ \
+	val_type val; \
+	if (INTERNAL(name)(params, &val) < 0) \
+		return 0; \
+	return (ret_type)val; \
+}
+
+#define __OLD_GET1(name, val_type, ret_type) \
+ret_type __old_##name(const snd_pcm_hw_params_t *params, int *dir) \
+{ \
+	val_type val; \
+	if (INTERNAL(name)(params, &val, dir) < 0) \
+		return 0; \
+	return (ret_type)val; \
+}
+
+__OLD_GET(snd_pcm_hw_params_get_access, snd_pcm_access_t, int);
+__OLD_GET(snd_pcm_hw_params_get_format, snd_pcm_format_t, int);
+__OLD_GET(snd_pcm_hw_params_get_subformat, snd_pcm_subformat_t, int);
+__OLD_GET(snd_pcm_hw_params_get_channels, unsigned int, int);
+__OLD_GET1(snd_pcm_hw_params_get_rate, unsigned int, int);
+__OLD_GET1(snd_pcm_hw_params_get_period_time, unsigned int, int);
+__OLD_GET1(snd_pcm_hw_params_get_period_size, snd_pcm_uframes_t, snd_pcm_sframes_t);
+__OLD_GET1(snd_pcm_hw_params_get_periods, unsigned int, int);
+__OLD_GET1(snd_pcm_hw_params_get_buffer_time, unsigned int, int);
+__OLD_GET(snd_pcm_hw_params_get_buffer_size, snd_pcm_uframes_t, snd_pcm_sframes_t);
+__OLD_GET1(snd_pcm_hw_params_get_tick_time, unsigned int, int);
+
+__OLD_GET(snd_pcm_hw_params_get_channels_min, unsigned int, unsigned int);
+__OLD_GET1(snd_pcm_hw_params_get_rate_min, unsigned int, unsigned int);
+__OLD_GET1(snd_pcm_hw_params_get_period_time_min, unsigned int, unsigned int);
+__OLD_GET1(snd_pcm_hw_params_get_period_size_min, snd_pcm_uframes_t, snd_pcm_uframes_t);
+__OLD_GET1(snd_pcm_hw_params_get_periods_min, unsigned int, unsigned int);
+__OLD_GET1(snd_pcm_hw_params_get_buffer_time_min, unsigned int, unsigned int);
+__OLD_GET(snd_pcm_hw_params_get_buffer_size_min, snd_pcm_uframes_t, snd_pcm_uframes_t);
+__OLD_GET1(snd_pcm_hw_params_get_tick_time_min, unsigned int, unsigned int);
+
+__OLD_GET(snd_pcm_hw_params_get_channels_max, unsigned int, unsigned int);
+__OLD_GET1(snd_pcm_hw_params_get_rate_max, unsigned int, unsigned int);
+__OLD_GET1(snd_pcm_hw_params_get_period_time_max, unsigned int, unsigned int);
+__OLD_GET1(snd_pcm_hw_params_get_period_size_max, snd_pcm_uframes_t, snd_pcm_uframes_t);
+__OLD_GET1(snd_pcm_hw_params_get_periods_max, unsigned int, unsigned int);
+__OLD_GET1(snd_pcm_hw_params_get_buffer_time_max, unsigned int, unsigned int);
+__OLD_GET(snd_pcm_hw_params_get_buffer_size_max, snd_pcm_uframes_t, snd_pcm_uframes_t);
+__OLD_GET1(snd_pcm_hw_params_get_tick_time_max, unsigned int, unsigned int);
+
+#define __OLD_NEAR(name, ret_type) \
+ret_type __old_##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val) \
+{ \
+	if (INTERNAL(name)(pcm, params, &val) < 0) \
+		return 0; \
+	return (ret_type)val; \
+}
+
+#define __OLD_NEAR1(name, ret_type) \
+ret_type __old_##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val, int *dir) \
+{ \
+	if (INTERNAL(name)(pcm, params, &val, dir) < 0) \
+		return 0; \
+	return (ret_type)val; \
+}
+
+__OLD_NEAR(snd_pcm_hw_params_set_channels_near, unsigned int);
+__OLD_NEAR1(snd_pcm_hw_params_set_rate_near, unsigned int);
+__OLD_NEAR1(snd_pcm_hw_params_set_period_time_near, unsigned int);
+__OLD_NEAR1(snd_pcm_hw_params_set_period_size_near, snd_pcm_uframes_t);
+__OLD_NEAR1(snd_pcm_hw_params_set_periods_near, unsigned int);
+__OLD_NEAR1(snd_pcm_hw_params_set_buffer_time_near, unsigned int);
+__OLD_NEAR(snd_pcm_hw_params_set_buffer_size_near, snd_pcm_uframes_t);
+__OLD_NEAR1(snd_pcm_hw_params_set_tick_time_near, unsigned int);
+
+#define __OLD_SET_FL(name, ret_type) \
+ret_type __old_##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params) \
+{ \
+	ret_type val; \
+	if (INTERNAL(name)(pcm, params, &val) < 0) \
+		return 0; \
+	return (ret_type)val; \
+}
+
+#define __OLD_SET_FL1(name, ret_type) \
+ret_type __old_##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir) \
+{ \
+	ret_type val; \
+	if (INTERNAL(name)(pcm, params, &val, dir) < 0) \
+		return 0; \
+	return (ret_type)val; \
+}
+
+__OLD_SET_FL(snd_pcm_hw_params_set_access_first, snd_pcm_access_t);
+__OLD_SET_FL(snd_pcm_hw_params_set_format_first, snd_pcm_format_t);
+__OLD_SET_FL(snd_pcm_hw_params_set_subformat_first, snd_pcm_subformat_t);
+__OLD_SET_FL(snd_pcm_hw_params_set_channels_first, unsigned int);
+__OLD_SET_FL1(snd_pcm_hw_params_set_rate_first, unsigned int);
+__OLD_SET_FL1(snd_pcm_hw_params_set_period_time_first, unsigned int);
+__OLD_SET_FL1(snd_pcm_hw_params_set_period_size_first, snd_pcm_uframes_t);
+__OLD_SET_FL1(snd_pcm_hw_params_set_periods_first, unsigned int);
+__OLD_SET_FL1(snd_pcm_hw_params_set_buffer_time_first, unsigned int);
+__OLD_SET_FL(snd_pcm_hw_params_set_buffer_size_first, snd_pcm_uframes_t);
+__OLD_SET_FL1(snd_pcm_hw_params_set_tick_time_first, unsigned int);
+
+__OLD_SET_FL(snd_pcm_hw_params_set_access_last, snd_pcm_access_t);
+__OLD_SET_FL(snd_pcm_hw_params_set_format_last, snd_pcm_format_t);
+__OLD_SET_FL(snd_pcm_hw_params_set_subformat_last, snd_pcm_subformat_t);
+__OLD_SET_FL(snd_pcm_hw_params_set_channels_last, unsigned int);
+__OLD_SET_FL1(snd_pcm_hw_params_set_rate_last, unsigned int);
+__OLD_SET_FL1(snd_pcm_hw_params_set_period_time_last, unsigned int);
+__OLD_SET_FL1(snd_pcm_hw_params_set_period_size_last, snd_pcm_uframes_t);
+__OLD_SET_FL1(snd_pcm_hw_params_set_periods_last, unsigned int);
+__OLD_SET_FL1(snd_pcm_hw_params_set_buffer_time_last, unsigned int);
+__OLD_SET_FL(snd_pcm_hw_params_set_buffer_size_last, snd_pcm_uframes_t);
+__OLD_SET_FL1(snd_pcm_hw_params_set_tick_time_last, unsigned int);
+
+OBSOLETE1(snd_pcm_hw_params_get_access, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_access_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_access_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_format, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_format_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_format_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_subformat, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_subformat_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_subformat_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_channels, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_channels_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_channels_max, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_channels_near, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_channels_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_channels_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_rate, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_rate_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_rate_max, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_rate_near, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_rate_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_rate_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_period_time, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_period_time_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_period_time_max, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_period_time_near, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_period_time_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_period_time_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_period_size, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_period_size_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_period_size_max, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_period_size_near, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_period_size_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_period_size_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_periods, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_periods_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_periods_max, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_periods_near, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_periods_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_periods_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_buffer_time, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_buffer_time_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_buffer_time_max, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_buffer_time_near, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_buffer_time_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_buffer_time_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_buffer_size, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_buffer_size_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_buffer_size_max, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_buffer_size_near, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_buffer_size_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_buffer_size_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_hw_params_get_tick_time, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_tick_time_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_get_tick_time_max, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_tick_time_near, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_tick_time_first, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_hw_params_set_tick_time_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+#endif /* USE_VERSIONED_SYMBOLS */
+
+#endif /* DOC_HIDDEN */

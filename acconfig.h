@@ -15,3 +15,9 @@
 
 /* Do we have FPU on this machine? */
 #undef HAVE_SOFT_FLOAT
+
+/* Use versioned symbols for shared library? */
+#undef VERSIONED_SYMBOLS
+
+/* 0.9.0rc3 compatibility build */
+#undef COMPATIBILITY_BUILD_RC3

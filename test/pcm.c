@@ -12,13 +12,13 @@
 #include <sys/time.h>
 #include <math.h>
 
-char *device = "plughw:0,0";			 /* playback device */
-snd_pcm_format_t format = SND_PCM_FORMAT_S16;	 /* sample format */
-int rate = 44100;				 /* stream rate */
-int channels = 1;				 /* count of channels */
-int buffer_time = 500000;			 /* ring buffer length in us */
-int period_time = 100000;			 /* period time in us */
-double freq = 440;				 /* sinusoidal wave frequency in Hz */
+char *device = "plughw:0,0";			/* playback device */
+snd_pcm_format_t format = SND_PCM_FORMAT_S16;	/* sample format */
+unsigned int rate = 44100;			/* stream rate */
+unsigned int channels = 1;			/* count of channels */
+unsigned int buffer_time = 500000;		/* ring buffer length in us */
+unsigned int period_time = 100000;		/* period time in us */
+double freq = 440;				/* sinusoidal wave frequency in Hz */
 
 snd_pcm_sframes_t buffer_size;
 snd_pcm_sframes_t period_size;
@@ -69,6 +69,7 @@ static int set_hwparams(snd_pcm_t *handle,
 			snd_pcm_hw_params_t *params,
 			snd_pcm_access_t access)
 {
+	unsigned int rrate;
 	int err, dir;
 
 	/* choose all parameters */
@@ -96,29 +97,38 @@ static int set_hwparams(snd_pcm_t *handle,
 		return err;
 	}
 	/* set the stream rate */
-	err = snd_pcm_hw_params_set_rate_near(handle, params, rate, 0);
+	rrate = rate;
+	err = snd_pcm_hw_params_set_rate_near(handle, params, &rrate, 0);
 	if (err < 0) {
 		printf("Rate %iHz not available for playback: %s\n", rate, snd_strerror(err));
 		return err;
 	}
-	if (err != rate) {
+	if (rrate != rate) {
 		printf("Rate doesn't match (requested %iHz, get %iHz)\n", rate, err);
 		return -EINVAL;
 	}
 	/* set the buffer time */
-	err = snd_pcm_hw_params_set_buffer_time_near(handle, params, buffer_time, &dir);
+	err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, &dir);
 	if (err < 0) {
 		printf("Unable to set buffer time %i for playback: %s\n", buffer_time, snd_strerror(err));
 		return err;
 	}
-	buffer_size = snd_pcm_hw_params_get_buffer_size(params);
+	err = snd_pcm_hw_params_get_buffer_size(params, &buffer_size);
+	if (err < 0) {
+		printf("Unable to get buffer size for playback: %s\n", snd_strerror(err));
+		return err;
+	}
 	/* set the period time */
-	err = snd_pcm_hw_params_set_period_time_near(handle, params, period_time, &dir);
+	err = snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, &dir);
 	if (err < 0) {
 		printf("Unable to set period time %i for playback: %s\n", period_time, snd_strerror(err));
 		return err;
 	}
-	period_size = snd_pcm_hw_params_get_period_size(params, &dir);
+	err = snd_pcm_hw_params_get_period_size(params, &period_size, &dir);
+	if (err > 0) {
+		printf("Unable to get period size for playback: %s\n", snd_strerror(err));
+		return err;
+	}
 	/* write the parameters to device */
 	err = snd_pcm_hw_params(handle, params);
 	if (err < 0) {

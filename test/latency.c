@@ -58,6 +58,7 @@ int setparams_stream(snd_pcm_t *handle,
 		     const char *id)
 {
 	int err;
+	unsigned int rrate;
 
 	err = snd_pcm_hw_params_any(handle, params);
 	if (err < 0) {
@@ -79,12 +80,13 @@ int setparams_stream(snd_pcm_t *handle,
 		printf("Channels count (%i) not available for %s: %s\n", channels, id, snd_strerror(err));
 		return err;
 	}
-	err = snd_pcm_hw_params_set_rate_near(handle, params, rate, 0);
+	rrate = rate;
+	err = snd_pcm_hw_params_set_rate_near(handle, params, &rrate, 0);
 	if (err < 0) {
 		printf("Rate %iHz not available for %s: %s\n", rate, id, snd_strerror(err));
 		return err;
 	}
-	if (err != rate) {
+	if (rrate != rate) {
 		printf("Rate doesn't match (requested %iHz, get %iHz)\n", rate, err);
 		return -EINVAL;
 	}
@@ -98,16 +100,17 @@ int setparams_bufsize(snd_pcm_t *handle,
 		      const char *id)
 {
 	int err;
-	snd_pcm_uframes_t periodsize;
+	snd_pcm_uframes_t rbufsize, periodsize;
 
 	snd_pcm_hw_params_copy(params, tparams);
-	err = snd_pcm_hw_params_set_buffer_size_near(handle, params, bufsize * 2);
+	rbufsize = bufsize * 2;
+	err = snd_pcm_hw_params_set_buffer_size_near(handle, params, &rbufsize);
 	if (err < 0) {
 		printf("Unable to set buffer size %li for %s: %s\n", bufsize * 2, id, snd_strerror(err));
 		return err;
 	}
 	periodsize = snd_pcm_hw_params_get_buffer_size(params) / 2;
-	err = snd_pcm_hw_params_set_period_size_near(handle, params, periodsize, 0);
+	err = snd_pcm_hw_params_set_period_size_near(handle, params, &periodsize, 0);
 	if (err < 0) {
 		printf("Unable to set period size %li for %s: %s\n", periodsize, id, snd_strerror(err));
 		return err;

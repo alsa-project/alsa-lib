@@ -270,7 +270,7 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 			*params = old;
 			pmask = snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
 			oldmask = *(snd_pcm_access_mask_t *)pmask;
-			if (snd_pcm_hw_params_get_access(params, &access) < 0)
+			if (INTERNAL(snd_pcm_hw_params_get_access)(params, &access) < 0)
 				goto _err;
 			switch (access) {
 			case SND_PCM_ACCESS_MMAP_INTERLEAVED:

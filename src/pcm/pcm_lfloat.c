@@ -278,11 +278,11 @@ static int snd_pcm_lfloat_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (err < 0)
 		return err;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		err = snd_pcm_hw_params_get_format(params, &src_format);
+		err = INTERNAL(snd_pcm_hw_params_get_format)(params, &src_format);
 		dst_format = slave->format;
 	} else {
 		src_format = slave->format;
-		err = snd_pcm_hw_params_get_format(params, &dst_format);
+		err = INTERNAL(snd_pcm_hw_params_get_format)(params, &dst_format);
 	}
 	if (snd_pcm_format_linear(src_format)) {
 		lfloat->int32_idx = snd_pcm_linear_get32_index(src_format, SND_PCM_FORMAT_S32);

@@ -6,9 +6,10 @@ libasound_la_SOURCES = conf.c confmisc.c input.c output.c async.c error.c dlmisc
 libasound_la_LIBADD = control/libcontrol.la mixer/libmixer.la pcm/libpcm.la \
                       rawmidi/librawmidi.la timer/libtimer.la \
 		      hwdep/libhwdep.la seq/libseq.la instr/libinstr.la \
-		      compat/libcompat.la -lm -ldl -lpthread
+		      compat/libcompat.la -lm -ldl -lpthread		      
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
+LDFLAGS = -Wl,--version-script=Versions
 
 control/libcontrol.la:
 	$(MAKE) -C control libcontrol.la

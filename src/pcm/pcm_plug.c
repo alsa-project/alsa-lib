@@ -593,14 +593,14 @@ static int snd_pcm_plug_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 	unsigned int rate_min, channels_max;
 
 	/* HACK: to avoid overflow in PARTBIT_RATE code */
-	rate_min = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, NULL);
+	snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, &rate_min, NULL);
 	if (rate_min < 4000) {
 		_snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE, 4000, 0);
 		if (snd_pcm_hw_param_empty(params, SND_PCM_HW_PARAM_RATE))
 			return -EINVAL;
 	}
 	/* HACK: to avoid overflow in PERIOD_SIZE code */
-	channels_max = snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+	snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_CHANNELS, &channels_max, NULL);
 	if (channels_max > 10000) {
 		_snd_pcm_hw_param_set_max(params, SND_PCM_HW_PARAM_CHANNELS, 10000, 0);
 		if (snd_pcm_hw_param_empty(params, SND_PCM_HW_PARAM_CHANNELS))
@@ -798,8 +798,8 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 		links |= SND_PCM_HW_PARBIT_RATE;
 	else {
 		/* This is a temporary hack, waiting for a better solution */
-		rate_min = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, &rate_mindir);
-		srate_min = snd_pcm_hw_param_get_min(sparams, SND_PCM_HW_PARAM_RATE, &srate_mindir);
+		snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, &rate_min, &rate_mindir);
+		snd_pcm_hw_param_get_min(sparams, SND_PCM_HW_PARAM_RATE, &srate_min, &srate_mindir);
 		if (rate_min == srate_min && srate_mindir > rate_mindir) {
 			err = _snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE, srate_min, srate_mindir);
 			if (err < 0)
@@ -859,14 +859,14 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	err = snd_pcm_hw_refine_soft(slave, &sparams);
 	assert(err >= 0);
 
-	snd_pcm_hw_params_get_access(params, &clt_params.access);
-	snd_pcm_hw_params_get_format(params, &clt_params.format);
-	clt_params.channels = snd_pcm_hw_params_get_channels(params);
-	clt_params.rate = snd_pcm_hw_params_get_rate(params, 0);
+	INTERNAL(snd_pcm_hw_params_get_access)(params, &clt_params.access);
+	INTERNAL(snd_pcm_hw_params_get_format)(params, &clt_params.format);
+	INTERNAL(snd_pcm_hw_params_get_channels)(params, &clt_params.channels);
+	INTERNAL(snd_pcm_hw_params_get_rate)(params, &clt_params.rate, 0);
 
-	snd_pcm_hw_params_get_format(&sparams, &slv_params.format);
-	slv_params.channels = snd_pcm_hw_params_get_channels(&sparams);
-	slv_params.rate = snd_pcm_hw_params_get_rate(&sparams, 0);
+	INTERNAL(snd_pcm_hw_params_get_format)(&sparams, &slv_params.format);
+	INTERNAL(snd_pcm_hw_params_get_channels)(&sparams, &slv_params.channels);
+	INTERNAL(snd_pcm_hw_params_get_rate)(&sparams, &slv_params.rate, 0);
 	snd_pcm_plug_clear(pcm);
 	if (!(clt_params.format == slv_params.format &&
 	      clt_params.channels == slv_params.channels &&
@@ -874,7 +874,7 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	      !plug->ttable &&
 	      snd_pcm_hw_params_test_access(slave, &sparams,
 					    clt_params.access) >= 0)) {
-		slv_params.access = snd_pcm_hw_params_set_access_first(slave, &sparams);
+		INTERNAL(snd_pcm_hw_params_set_access_first)(slave, &sparams, &slv_params.access);
 		err = snd_pcm_plug_insert_plugins(pcm, &clt_params, &slv_params);
 		if (err < 0)
 			return err;

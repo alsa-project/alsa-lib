@@ -83,9 +83,12 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #define _snd_timer_params sndrv_timer_params
 #define _snd_timer_status sndrv_timer_status
 
+#define ALSA_LIBRARY_BUILD
+
 #include <sound/asound.h>
 #include <sound/asoundef.h>
 #include <sound/asequencer.h>
+#include "alsa-symbols.h"
 #include "version.h"
 #include "global.h"
 #include "input.h"

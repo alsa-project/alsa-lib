@@ -318,7 +318,7 @@ static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					  snd_pcm_plugin_hw_params_slave);
 	if (err < 0)
 		return err;
-	err = snd_pcm_hw_params_get_format(params, &format);
+	err = INTERNAL(snd_pcm_hw_params_get_format)(params, &format);
 	if (err < 0)
 		return err;
 	linear->use_getput = (snd_pcm_format_physical_width(format) == 24 ||
