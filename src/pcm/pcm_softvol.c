@@ -465,7 +465,7 @@ static void snd_pcm_softvol_dump(snd_pcm_t *pcm, snd_output_t *out)
 static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo, int count)
 {
 	int err;
-	unsigned int i;
+	int i;
 
 	err = snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, count, 0, svol->max_val, 0);
 	if (err < 0)
