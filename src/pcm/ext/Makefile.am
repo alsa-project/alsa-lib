@@ -29,4 +29,5 @@ hand-install: install-exec-am
 jack: libasound_module_pcm_jack.la
 
 install-jack:
+	$(mkinstalldirs) $(DESTDIR)$(pkglibdir)
 	$(LIBTOOL) --mode=install $(pkglibLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) libasound_module_pcm_jack.la $(DESTDIR)$(pkglibdir)/libasound_module_pcm_jack.la
