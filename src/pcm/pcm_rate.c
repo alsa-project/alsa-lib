@@ -458,11 +458,13 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	}
 	params->boundary = boundary1;
 	sparams.boundary = boundary2;
+#if 0
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		rate->pitch = (((u_int64_t)boundary2 * DIV) + boundary1 / 2) / boundary1;
 	} else {
 		rate->pitch = (((u_int64_t)boundary1 * DIV) + boundary2 / 2) / boundary2;
 	}
+#endif
 	recalc(pcm, &sparams.avail_min);
 	recalc(pcm, &sparams.xfer_align);
 	recalc(pcm, &sparams.start_threshold);

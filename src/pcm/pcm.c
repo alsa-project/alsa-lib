@@ -1217,6 +1217,7 @@ int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsign
 }
 
 #ifndef DOC_HIDDEN
+#define PCMTYPE(v) [SND_PCM_TYPE_##v] = #v
 #define STATE(v) [SND_PCM_STATE_##v] = #v
 #define STREAM(v) [SND_PCM_STREAM_##v] = #v
 #define READY(v) [SND_PCM_READY_##v] = #v
@@ -1232,6 +1233,7 @@ int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsign
 
 #define FORMATD(v, d) [SND_PCM_FORMAT_##v] = d
 #define SUBFORMATD(v, d) [SND_PCM_SUBFORMAT_##v] = d 
+
 
 static const char *snd_pcm_stream_names[] = {
 	STREAM(PLAYBACK),
@@ -1337,6 +1339,33 @@ static const char *snd_pcm_format_descriptions[] = {
 	FORMATD(S18_3BE, "Signed 18 bit Big Endian in 3bytes"),
 	FORMATD(U18_3LE, "Unsigned 18 bit Little Endian in 3bytes"),
 	FORMATD(U18_3BE, "Unsigned 18 bit Big Endian in 3bytes"),
+};
+
+static const char *snd_pcm_type_names[] = {
+	PCMTYPE(HW), 
+	PCMTYPE(HOOKS), 
+	PCMTYPE(MULTI), 
+	PCMTYPE(FILE), 
+	PCMTYPE(NULL), 
+	PCMTYPE(SHM), 
+	PCMTYPE(INET), 
+	PCMTYPE(COPY), 
+	PCMTYPE(LINEAR), 
+	PCMTYPE(ALAW), 
+	PCMTYPE(MULAW), 
+	PCMTYPE(ADPCM), 
+	PCMTYPE(RATE), 
+	PCMTYPE(ROUTE), 
+	PCMTYPE(PLUG), 
+	PCMTYPE(SHARE), 
+	PCMTYPE(METER), 
+	PCMTYPE(MIX), 
+	PCMTYPE(DROUTE), 
+	PCMTYPE(LBSERVER), 
+	PCMTYPE(LINEAR_FLOAT), 
+	PCMTYPE(LADSPA), 
+	PCMTYPE(DMIX), 
+	PCMTYPE(JACK), 
 };
 
 static const char *snd_pcm_subformat_names[] = {
@@ -1510,6 +1539,23 @@ const char *snd_pcm_state_name(snd_pcm_state_t state)
 		return NULL;
 	return snd_pcm_state_names[state];
 }
+
+/**
+ * \brief get name of PCM type
+ * \param type PCM type
+ * \return ascii name of PCM type
+ */
+#ifndef DOXYGEN
+const char *INTERNAL(snd_pcm_type_name)(snd_pcm_type_t type)
+#else
+const char *snd_pcm_type_name(snd_pcm_type_t type)
+#endif
+{
+	if (type > SND_PCM_TYPE_LAST)
+		return NULL;
+	return snd_pcm_type_names[type];
+}
+default_symbol_version(__snd_pcm_type_name, snd_pcm_type_name, ALSA_0.9.0);
 
 /**
  * \brief Dump current hardware setup for PCM

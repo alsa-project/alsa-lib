@@ -351,6 +351,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 	snd_pcm_t *slave = plugin->slave;
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t result;
+	int err;
 
 	while (size > 0) {
 		snd_pcm_uframes_t frames = size;
@@ -358,8 +359,8 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 		snd_pcm_uframes_t slave_offset;
 		snd_pcm_uframes_t slave_frames = ULONG_MAX;
 		
-		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
-		if (slave_frames == 0)
+		err = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+		if (err < 0 || slave_frames == 0)
 			break;
 		frames = plugin->write(pcm, areas, offset, frames,
 				       slave_areas, slave_offset, &slave_frames);
