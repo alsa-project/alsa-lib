@@ -475,6 +475,14 @@ static void snd_pcm_multi_dump(snd_pcm_t *pcm, FILE *fp)
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int k;
 	fprintf(fp, "Multi PCM\n");
+	fprintf(fp, "\nChannel bindings:\n");
+	for (k = 0; k < multi->channels_count; ++k) {
+		snd_pcm_multi_channel_t *c = &multi->channels[k];
+		if (c->slave_idx < 0)
+			continue;
+		fprintf(fp, "%d: slave %d, channel %d\n", 
+			k, c->slave_idx, c->slave_channel);
+	}
 	if (pcm->valid_setup) {
 		fprintf(fp, "\nIts setup is:\n");
 		snd_pcm_dump_setup(pcm, fp);
@@ -482,14 +490,6 @@ static void snd_pcm_multi_dump(snd_pcm_t *pcm, FILE *fp)
 	for (k = 0; k < multi->slaves_count; ++k) {
 		fprintf(fp, "\nSlave #%d: ", k);
 		snd_pcm_dump(multi->slaves[k].pcm, fp);
-	}
-	fprintf(fp, "\nChannel bindings:\n");
-	for (k = 0; k < multi->channels_count; ++k) {
-		snd_pcm_multi_channel_t *c = &multi->channels[k];
-		if (c->slave_idx < 0)
-			continue;
-		fprintf(fp, "Channel #%d: slave %d[%d]\n", 
-			k, c->slave_idx, c->slave_channel);
 	}
 }
 
