@@ -607,6 +607,7 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *src, void *private_data)
 	}
 	err = snd_config_search(src, "name", &n);
 	if (err >= 0) {
+		err = snd_config_evaluate(n, private_data, NULL);
 		if (err < 0) {
 			SNDERR("error evaluating name");
 			goto _end;
