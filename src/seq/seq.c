@@ -595,6 +595,7 @@ int snd_seq_event_input(snd_seq_t *seq, snd_seq_event_t **ev)
 			return -ENOMEM;
 		cell = snd_seq_input_cell_out(seq);
 		memcpy(*ev, &cell->ev, sizeof(snd_seq_event_t));
+		snd_seq_free_cell(cell);
 		return seq->cells;
 	}
 	count = read(seq->fd, seq->ibuf, seq->ibufsize);
