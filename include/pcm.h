@@ -136,13 +136,13 @@ typedef enum _snd_pcm_format {
 	SND_PCM_FORMAT_U32_LE,
 	/** Unsigned 32 bit Big Endian */
 	SND_PCM_FORMAT_U32_BE,
-	/** Float 32 bit Little Endian */
+	/** Float 32 bit Little Endian, Range -1.0 to 1.0 */
 	SND_PCM_FORMAT_FLOAT_LE,
-	/** Float 32 bit Big Endian */
+	/** Float 32 bit Big Endian, Range -1.0 to 1.0 */
 	SND_PCM_FORMAT_FLOAT_BE,
-	/** Float 64 bit Little Endian */
+	/** Float 64 bit Little Endian, Range -1.0 to 1.0 */
 	SND_PCM_FORMAT_FLOAT64_LE,
-	/** Float 64 bit Big Endian */
+	/** Float 64 bit Big Endian, Range -1.0 to 1.0 */
 	SND_PCM_FORMAT_FLOAT64_BE,
 	/** IEC-958 Little Endian */
 	SND_PCM_FORMAT_IEC958_SUBFRAME_LE,
@@ -683,6 +683,7 @@ void snd_pcm_format_mask_copy(snd_pcm_format_mask_t *dst, const snd_pcm_format_m
 void snd_pcm_format_mask_none(snd_pcm_format_mask_t *mask);
 void snd_pcm_format_mask_any(snd_pcm_format_mask_t *mask);
 int snd_pcm_format_mask_test(const snd_pcm_format_mask_t *mask, snd_pcm_format_t val);
+int snd_pcm_format_mask_empty(const snd_pcm_format_mask_t *mask);
 void snd_pcm_format_mask_set(snd_pcm_format_mask_t *mask, snd_pcm_format_t val);
 void snd_pcm_format_mask_reset(snd_pcm_format_mask_t *mask, snd_pcm_format_t val);
 
@@ -707,6 +708,7 @@ void snd_pcm_subformat_mask_copy(snd_pcm_subformat_mask_t *dst, const snd_pcm_su
 void snd_pcm_subformat_mask_none(snd_pcm_subformat_mask_t *mask);
 void snd_pcm_subformat_mask_any(snd_pcm_subformat_mask_t *mask);
 int snd_pcm_subformat_mask_test(const snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val);
+int snd_pcm_subformat_mask_empty(const snd_pcm_format_mask_t *mask);
 void snd_pcm_subformat_mask_set(snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val);
 void snd_pcm_subformat_mask_reset(snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val);
 
