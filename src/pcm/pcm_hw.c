@@ -45,12 +45,19 @@ typedef struct {
 	int card, device, subdevice;
 	volatile struct sndrv_pcm_mmap_status *mmap_status;
 	struct sndrv_pcm_mmap_control *mmap_control;
+	int shadow_appl_ptr: 1, avail_update_flag: 1;
+	snd_pcm_uframes_t appl_ptr;
 	int shmid;
 } snd_pcm_hw_t;
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
 #define SNDRV_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
-#define SNDRV_PCM_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
+#define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 0)
+
+/* update appl_ptr with driver */
+#define UPDATE_SHADOW_PTR(hw) \
+	do { if (hw->shadow_appl_ptr && !hw->avail_update_flag) \
+	       hw->appl_ptr = hw->mmap_control->appl_ptr; } while (0)
 
 static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 {
@@ -133,6 +140,16 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_HW_PARAMS failed");
 		return -errno;
+	}
+	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
+		if (!(params->info & SNDRV_PCM_INFO_MMAP)) {
+			hw->shadow_appl_ptr = 1;
+			hw->appl_ptr = 0;
+			pcm->appl_ptr = &hw->appl_ptr;
+		} else {
+			hw->shadow_appl_ptr = 0;
+			pcm->appl_ptr = &hw->mmap_control->appl_ptr;
+		}
 	}
 	return 0;
 }
@@ -358,6 +375,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_
 	result = ioctl(fd, SNDRV_PCM_IOCTL_READI_FRAMES, &xferi);
 	if (result < 0)
 		return -errno;
+	UPDATE_SHADOW_PTR(hw);
 	return xferi.result;
 }
 
@@ -372,6 +390,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_u
 	result = ioctl(fd, SNDRV_PCM_IOCTL_READN_FRAMES, &xfern);
 	if (result < 0)
 		return -errno;
+	UPDATE_SHADOW_PTR(hw);
 	return xfern.result;
 }
 
@@ -467,28 +486,42 @@ static int snd_pcm_hw_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
-						snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
-						snd_pcm_uframes_t size)
+static int snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
+				  snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+				  snd_pcm_uframes_t size)
 {
-	if (!(pcm->info & SND_PCM_INFO_MMAP) && 
-	    pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		return snd_pcm_write_mmap(pcm, size);
+	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		    	snd_pcm_sframes_t res;
+		    	do {
+				res = snd_pcm_write_mmap(pcm, size);
+				if (res < 0)
+					return res;
+				size -= res;
+			} while (size > 0);
+			return 0;
+		} else {
+			snd_pcm_hw_t *hw = pcm->private_data;
+			assert(hw->shadow_appl_ptr);
+		}
+	}
 	snd_pcm_mmap_appl_forward(pcm, size);
-	return size;
+	return 0;
 }
 
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_uframes_t avail;
-	snd_pcm_sframes_t err;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		avail = snd_pcm_mmap_playback_avail(pcm);
 	} else {
 		avail = snd_pcm_mmap_capture_avail(pcm);
-		if (avail > 0 && 
-		    !(pcm->info & SND_PCM_INFO_MMAP)) {
+		if (avail > 0 && !(pcm->info & SND_PCM_INFO_MMAP)) {
+			snd_pcm_sframes_t err;
+			snd_pcm_hw_t *hw = pcm->private_data;
+			hw->avail_update_flag = 1;
 			err = snd_pcm_read_mmap(pcm, avail);
+			hw->avail_update_flag = 0;
 			if (err < 0)
 				return err;
 			assert((snd_pcm_uframes_t)err == avail);
