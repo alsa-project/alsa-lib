@@ -2257,6 +2257,8 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 	char *dst;
 	int width;
 	int src_step, dst_step;
+	if (dst_area == src_area && dst_offset == src_offset)
+		return 0;
 	if (!src_area->addr)
 		return snd_pcm_area_silence(dst_area, dst_offset, samples, format);
 	src = snd_pcm_channel_area_addr(src_area, src_offset);

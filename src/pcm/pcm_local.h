@@ -200,9 +200,9 @@ struct _snd_pcm {
 	snd_pcm_rbptr_t appl;
 	snd_pcm_rbptr_t hw;
 	snd_pcm_uframes_t min_align;
-	int mmap_rw;
-	int shadow_mmap;
-	int donot_close;
+	int mmap_rw: 1,
+	    mmap_shadow: 1,
+	    donot_close: 1;
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
 	snd_pcm_channel_area_t *stopped_areas;

@@ -943,7 +943,7 @@ static int snd_pcm_plug_mmap(snd_pcm_t *pcm)
 	pcm->mmap_channels = plug->slave->mmap_channels;
 	pcm->running_areas = plug->slave->running_areas;
 	pcm->stopped_areas = plug->slave->stopped_areas;
-	pcm->shadow_mmap = 1;
+	pcm->mmap_shadow = 1;
 	return 0;
 }
 
@@ -953,7 +953,7 @@ static int snd_pcm_plug_munmap(snd_pcm_t *pcm)
 	pcm->mmap_channels = NULL;
 	pcm->running_areas = NULL;
 	pcm->stopped_areas = NULL;
-	pcm->shadow_mmap = 0;
+	pcm->mmap_shadow = 0;
 	return 0;
 }
 

@@ -138,6 +138,12 @@ static int snd_pcm_file_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return snd_pcm_async(file->slave, sig, pid);
 }
 
+static int snd_pcm_file_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	return snd_pcm_poll_descriptors_revents(file->slave, pfds, nfds, revents);
+}
+
 static int snd_pcm_file_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -345,6 +351,19 @@ static int snd_pcm_file_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	return snd_pcm_hw_refine(file->slave, params);
 }
 
+static int snd_pcm_file_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	if (file->wbuf) {
+		free(file->wbuf);
+		if (file->wbuf_areas)
+			free(file->wbuf_areas);
+		file->wbuf = 0;
+		file->wbuf_areas = 0;
+	}
+	return snd_pcm_hw_free(file->slave);
+}
+
 static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -358,7 +377,15 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	file->wbuf_size_bytes = snd_pcm_frames_to_bytes(slave, file->wbuf_size);
 	assert(!file->wbuf);
 	file->wbuf = malloc(file->wbuf_size_bytes);
+	if (file->wbuf == NULL) {
+		snd_pcm_file_hw_free(pcm);
+		return -ENOMEM;
+	}
 	file->wbuf_areas = malloc(sizeof(*file->wbuf_areas) * slave->channels);
+	if (file->wbuf_areas == NULL) {
+		snd_pcm_file_hw_free(pcm);
+		return -ENOMEM;
+	}
 	file->appl_ptr = file->file_ptr_bytes = 0;
 	for (channel = 0; channel < slave->channels; ++channel) {
 		snd_pcm_channel_area_t *a = &file->wbuf_areas[channel];
@@ -369,18 +396,6 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	return 0;
 }
 
-static int snd_pcm_file_hw_free(snd_pcm_t *pcm)
-{
-	snd_pcm_file_t *file = pcm->private_data;
-	if (file->wbuf) {
-		free(file->wbuf);
-		free(file->wbuf_areas);
-		file->wbuf = 0;
-		file->wbuf_areas = 0;
-	}
-	return snd_pcm_hw_free(file->slave);
-}
-
 static int snd_pcm_file_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -389,11 +404,23 @@ static int snd_pcm_file_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 
 static int snd_pcm_file_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
+	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_t *slave = file->slave;
+	pcm->running_areas = slave->running_areas;
+	pcm->stopped_areas = slave->stopped_areas;
+	pcm->mmap_channels = slave->mmap_channels;
+	pcm->mmap_shadow = 1;
 	return 0;
 }
 
 static int snd_pcm_file_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
+	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_t *slave = file->slave;
+	pcm->mmap_channels = NULL;
+	pcm->running_areas = NULL;
+	pcm->stopped_areas = NULL;
+	pcm->mmap_shadow = 0;
 	return 0;
 }
 
@@ -423,6 +450,7 @@ static snd_pcm_ops_t snd_pcm_file_ops = {
 	.dump = snd_pcm_file_dump,
 	.nonblock = snd_pcm_file_nonblock,
 	.async = snd_pcm_file_async,
+	.poll_revents = snd_pcm_file_poll_revents,
 	.mmap = snd_pcm_file_mmap,
 	.munmap = snd_pcm_file_munmap,
 };
@@ -512,6 +540,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = file;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
+	pcm->mmap_shadow = 1;
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
