@@ -1,9 +1,32 @@
+# Configuration file syntax
+
 # Include a new configuration file
 <filename>
 
-# Replace with an environment variable
-# (default value is used if envvar is not present or empty)
-<@envvar[,envvar1][,envvar2...]:defaultval@>
+# Simple assign
+name [=] value [,|;]
+
+# Compound assign (first style)
+name [=] {
+	name1 [=] value [,|;]
+	...
+}
+
+# Compound assign (second style)
+name.name1 [=] value [,|;]
+
+# Array assign (first style)
+name [
+	value0 [,|;]
+	value1 [,|;]
+	...
+]
+
+# Array assign (second style)
+name.0 [=] value0 [,|;]
+name.1 [=] value1 [,|;]
+
+# ******************************************************************************
 
 # Server definition
 server.NAME {
@@ -373,12 +396,13 @@ pcm.m {
 	type meter
 	slave.pcm plug:trident
 	frequency 50
-	scopes.0 {
-		type level
-	}
+	scopes [
+		{
+			type level
+		}
+	]
 }
 
 pcm_scope_type.level {
 	lib /home/abramo/scopes/liblevel.so
 } 
-
