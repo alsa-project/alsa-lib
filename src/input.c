@@ -120,7 +120,7 @@ typedef struct _snd_input_stdio {
 static int snd_input_stdio_close(snd_input_t *input ATTRIBUTE_UNUSED)
 {
 	snd_input_stdio_t *stdio = input->private_data;
-	if (close)
+	if (stdio->close)
 		fclose(stdio->fp);
 	free(stdio);
 	return 0;
