@@ -133,8 +133,6 @@ static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 	snd_pcm_sframes_t diff;
 	
 	switch (snd_pcm_state(dshare->spcm)) {
-	case SND_PCM_STATE_SUSPENDED:
-		return -ESTRPIPE;
 	case SND_PCM_STATE_DISCONNECTED:
 		dshare->state = SNDRV_PCM_STATE_DISCONNECTED;
 		return -ENOTTY;
@@ -597,6 +595,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = dshare;
 	dshare->state = SND_PCM_STATE_OPEN;
 	dshare->slowptr = slowptr;
+	dshare->sync_ptr = snd_pcm_dshare_sync_ptr;
 
 	if (first_instance) {
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);

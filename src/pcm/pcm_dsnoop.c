@@ -108,15 +108,13 @@ static void snd_pcm_dsnoop_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_
 /*
  *  synchronize hardware pointer (hw_ptr) with ours
  */
-static snd_pcm_sframes_t snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
+static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	snd_pcm_uframes_t slave_hw_ptr, old_slave_hw_ptr, avail;
 	snd_pcm_sframes_t diff;
 	
 	switch (snd_pcm_state(dsnoop->spcm)) {
-	case SND_PCM_STATE_SUSPENDED:
-		return -ESTRPIPE;
 	case SND_PCM_STATE_DISCONNECTED:
 		dsnoop->state = SNDRV_PCM_STATE_DISCONNECTED;
 		return -ENOTTY;
@@ -151,7 +149,7 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	}
 	if (avail > dsnoop->avail_max)
 		dsnoop->avail_max = avail;
-	return diff;
+	return 0;
 }
 
 /*
@@ -557,6 +555,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = dsnoop;
 	dsnoop->state = SND_PCM_STATE_OPEN;
 	dsnoop->slowptr = slowptr;
+	dsnoop->sync_ptr = snd_pcm_dsnoop_sync_ptr;
 
 	if (first_instance) {
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);

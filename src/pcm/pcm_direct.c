@@ -418,6 +418,7 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 	events = pfds[0].revents;
 	if (events & POLLIN) {
 		int empty = 0;
+		dmix->sync_ptr(pcm);
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 			events |= POLLOUT;
 			events &= ~POLLIN;

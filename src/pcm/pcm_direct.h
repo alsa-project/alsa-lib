@@ -89,6 +89,7 @@ struct snd_pcm_direct {
 	snd_pcm_uframes_t avail_max;
 	snd_pcm_uframes_t slave_appl_ptr;
 	snd_pcm_uframes_t slave_hw_ptr;
+	int (*sync_ptr)(snd_pcm_t *pcm);
 	snd_pcm_state_t state;
 	snd_htimestamp_t trigger_tstamp;
 	int server, client;

@@ -386,8 +386,6 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	snd_pcm_sframes_t diff;
 	
 	switch (snd_pcm_state(dmix->spcm)) {
-	case SND_PCM_STATE_SUSPENDED:
-		return -ESTRPIPE;
 	case SND_PCM_STATE_DISCONNECTED:
 		dmix->state = -ENOTTY;
 		return -ENOTTY;
@@ -839,6 +837,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = dmix;
 	dmix->state = SND_PCM_STATE_OPEN;
 	dmix->slowptr = slowptr;
+	dmix->sync_ptr = snd_pcm_dmix_sync_ptr;
 
 	if (first_instance) {
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
