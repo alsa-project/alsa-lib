@@ -7,7 +7,7 @@ dnl change API = c+1:0:a
 dnl add API = c+1:0:a+1
 dnl remove API = c+1:0:0
 dnl *************************************************
-AM_INIT_AUTOMAKE(alsa-lib, 0.9.0beta4)
+AM_INIT_AUTOMAKE(alsa-lib, 0.9.0beta5)
 eval LIBTOOL_VERSION_INFO="2:0:0"
 dnl *************************************************
 AM_CONDITIONAL(INSTALL_M4, test "x${ACLOCAL}" = "xaclocal")
@@ -48,6 +48,16 @@ AM_CONDITIONAL(ALSA_HSEARCH_R, [test "x$HAVE_HSEARCH_R" != xyes])
 ALSA_CHECK_DRIVER
 SAVE_LIBRARY_VERSION
 AC_SUBST(LIBTOOL_VERSION_INFO)
+
+test "x$prefix" = xNONE && prefix=$ac_default_prefix
+if test -z $BASH; then
+  echo "This script contains GNU BASH extended commands..."
+  echo "Please, use the GNU BASH shell..."
+  exit 0
+fi
+DATADIR=${datadir/\$\{prefix\}/$prefix}
+DATADIR=${DATADIR/./$PWD}
+AC_DEFINE_UNQUOTED(DATADIR, "$DATADIR")
 
 AC_OUTPUT(Makefile doc/Makefile include/Makefile src/Makefile \
           src/control/Makefile src/mixer/Makefile src/pcm/Makefile \
