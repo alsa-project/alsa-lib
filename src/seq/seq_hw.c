@@ -447,12 +447,12 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		if (fd >= 0)
 			close(fd);
 		fd = snd_open_device(filename, fmode);
-		if (fd < 0) {
-			SYSERR("open %s failed", filename);
-			return -errno;
-		}
 	}
 #endif
+	if (fd < 0) {
+		SYSERR("open %s failed", filename);
+		return -errno;
+	}
 #if 0
 	/*
          * this is bogus, an application have to care about open filedescriptors
