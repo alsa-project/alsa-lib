@@ -31,6 +31,7 @@ may be placed in the library code instead of the kernel driver.</P>
 
 <UL>
   <LI>Page \ref pcm explains the design of PCM (digital audio) API
+  <LI>Page \ref pcm_plugins explains the design of PCM (digital audio) plugins
 </UL>
 
 <H2>Configuration</H2>

@@ -1,5 +1,5 @@
-#ifndef __ALSA_IATOMIC__
-#define __ALSA_IATOMIC__
+#ifndef __ALSA_IATOMIC_H
+#define __ALSA_IATOMIC_H
 
 #ifdef __i386__
 
@@ -1059,4 +1059,72 @@ typedef struct { volatile int counter; } atomic_t;
 
 #endif /* IATOMIC_DEFINED */
 
-#endif /* __ALSA_IATOMIC__ */
+/*
+ *  Atomic read/write
+ *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
+ */
+
+/* Max number of times we must spin on a spinlock calling sched_yield().
+   After MAX_SPIN_COUNT iterations, we put the calling thread to sleep. */
+
+#ifndef MAX_SPIN_COUNT
+#define MAX_SPIN_COUNT 50
+#endif
+
+/* Duration of sleep (in nanoseconds) when we can't acquire a spinlock
+   after MAX_SPIN_COUNT iterations of sched_yield().
+   This MUST BE > 2ms.
+   (Otherwise the kernel does busy-waiting for realtime threads,
+    giving other threads no chance to run.) */
+
+#ifndef SPIN_SLEEP_DURATION
+#define SPIN_SLEEP_DURATION 2000001
+#endif
+
+typedef struct {
+	unsigned int begin, end;
+} snd_atomic_write_t;
+
+typedef struct {
+	volatile const snd_atomic_write_t *write;
+	unsigned int end;
+} snd_atomic_read_t;
+
+void snd_atomic_read_wait(snd_atomic_read_t *t);
+
+static inline void snd_atomic_write_init(snd_atomic_write_t *w)
+{
+	w->begin = 0;
+	w->end = 0;
+}
+
+static inline void snd_atomic_write_begin(snd_atomic_write_t *w)
+{
+	w->begin++;
+	wmb();
+}
+
+static inline void snd_atomic_write_end(snd_atomic_write_t *w)
+{
+	wmb();
+	w->end++;
+}
+
+static inline void snd_atomic_read_init(snd_atomic_read_t *r, snd_atomic_write_t *w)
+{
+	r->write = w;
+}
+
+static inline void snd_atomic_read_begin(snd_atomic_read_t *r)
+{
+	r->end = r->write->end;
+	rmb();
+}
+
+static inline int snd_atomic_read_ok(snd_atomic_read_t *r)
+{
+	rmb();
+	return r->end == r->write->begin;
+}
+
+#endif /* __ALSA_IATOMIC_H */

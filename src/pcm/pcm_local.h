@@ -193,19 +193,6 @@ struct _snd_pcm {
 	struct list_head async_handlers;
 };
 
-#define ROUTE_PLUGIN_FLOAT 1
-#define ROUTE_PLUGIN_RESOLUTION 16
-
-#if ROUTE_PLUGIN_FLOAT
-typedef float snd_pcm_route_ttable_entry_t;
-#define HALF 0.5
-#define FULL 1.0
-#else
-typedef int snd_pcm_route_ttable_entry_t;
-#define HALF (ROUTE_PLUGIN_RESOLUTION / 2)
-#define FULL ROUTE_PLUGIN_RESOLUTION
-#endif
-
 /* FIXME */
 #define _snd_pcm_link_descriptor _snd_pcm_poll_descriptor
 #define _snd_pcm_async_descriptor _snd_pcm_poll_descriptor

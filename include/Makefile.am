@@ -3,12 +3,12 @@ alsaincludedir = ${includedir}/alsa
 
 alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      version.h global.h input.h output.h error.h \
-		      conf.h pcm.h rawmidi.h timer.h \
+		      conf.h pcm.h pcm_plugin.h rawmidi.h timer.h \
 		      hwdep.h control.h mixer.h \
 		      seq_event.h seq.h seqmid.h seq_midi_event.h \
-		      conv.h instr.h
+		      conv.h instr.h iatomic.h
 
-noinst_HEADERS = sys.h search.h list.h aserver.h local.h config.h iatomic.h
+noinst_HEADERS = sys.h search.h list.h aserver.h local.h config.h
 
 EXTRA_CLEAN = stamp-vh
 

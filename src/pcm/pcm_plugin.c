@@ -1,3 +1,11 @@
+/**
+ * \file pcm/pcm_plugin.c
+ * \ingroup PCM
+ * \brief PCM Interface
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
  *  PCM - Common plugin code
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -18,11 +26,20 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
+/*!
+ * \page pcm_plugins PCM (digital audio) plugins
+ * 
+ * PCM plugins extends functionality and features of PCM devices.
+ * The plugins take care about various sample conversions, sample
+ * copying among channels and so on.
+ */
   
 #include <sys/shm.h>
 #include <limits.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
+
+#ifndef DOC_HIDDEN
 
 int snd_pcm_plugin_close(snd_pcm_t *pcm)
 {
@@ -481,3 +498,5 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	mmap_commit: snd_pcm_plugin_mmap_commit,
 };
 
+
+#endif

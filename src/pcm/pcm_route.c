@@ -30,9 +30,9 @@ const char *_snd_module_pcm_route = "";
 #endif
 
 /* The best possible hack to support missing optimization in gcc 2.7.2.3 */
-#if ROUTE_PLUGIN_RESOLUTION & (ROUTE_PLUGIN_RESOLUTION - 1) != 0
-#define div(a) a /= ROUTE_PLUGIN_RESOLUTION
-#elif ROUTE_PLUGIN_RESOLUTION == 16
+#if SND_PCM_PLUGIN_ROUTE_RESOLUTION & (SND_PCM_PLUGIN_ROUTE_RESOLUTION - 1) != 0
+#define div(a) a /= SND_PCM_PLUGIN_ROUTE_RESOLUTION
+#elif SND_PCM_PLUGIN_ROUTE_RESOLUTION == 16
 #define div(a) a >>= 4
 #else
 #error "Add some code here"
@@ -41,7 +41,7 @@ const char *_snd_module_pcm_route = "";
 typedef struct {
 	int channel;
 	int as_int;
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 	float as_float;
 #endif
 } snd_pcm_route_ttable_src_t;
@@ -78,7 +78,7 @@ struct snd_pcm_route_ttable_dst {
 typedef union {
 	int32_t as_sint32;
 	int64_t as_sint64;
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 	float as_float;
 #endif
 } sum_t;
@@ -163,7 +163,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 #undef PUT32_LABELS
 	static void *zero_labels[3] = {
 		&&zero_int32, &&zero_int64,
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 		&&zero_float
 #endif
 	};
@@ -171,7 +171,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 	static void *add_labels[3 * 2] = {
 		&&add_int32_noatt, &&add_int32_att,
 		&&add_int64_noatt, &&add_int64_att,
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 		&&add_float_noatt, &&add_float_att
 #endif
 	};
@@ -193,7 +193,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 		&&norm_int64_8_att,
 		&&norm_int64_16_att,
 		&&norm_int64_24_att,
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 		&&norm_float_0,
 		&&norm_float_8,
 		&&norm_float_16,
@@ -226,7 +226,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 					    src_areas, src_offset,
 					    frames, ttable, params);
 		return;
-	} else if (nsrcs == 1 && src_tt[0].as_int == ROUTE_PLUGIN_RESOLUTION) {
+	} else if (nsrcs == 1 && src_tt[0].as_int == SND_PCM_PLUGIN_ROUTE_RESOLUTION) {
 		snd_pcm_route_convert1_one(dst_area, dst_offset,
 					   src_areas, src_offset,
 					   frames, ttable, params);
@@ -253,7 +253,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 	zero_int64: 
 		sum.as_sint64 = 0;
 		goto zero_end;
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 	zero_float:
 		sum.as_float = 0.0;
 		goto zero_end;
@@ -285,7 +285,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 			if (ttp->as_int)
 				sum.as_sint64 += sample;
 			goto after_sum;
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 		add_float_att:
 			sum.as_float += sample * ttp->as_float;
 			goto after_sum;
@@ -349,7 +349,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 			sample = sum.as_sint64;
 		goto after_norm;
 
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 	norm_float_8:
 		sum.as_float *= 1 << 8;
 		goto norm_float;
@@ -552,7 +552,7 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	route->params.conv_idx = snd_pcm_linear_convert_index(src_format, dst_format);
 	route->params.src_size = snd_pcm_format_width(src_format) / 8;
 	route->params.dst_sfmt = dst_format;
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 	route->params.sum_idx = FLOAT;
 #else
 	if (snd_pcm_format_width(src_format) == 32)
@@ -624,10 +624,10 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 		while (1) {
 			snd_pcm_route_ttable_src_t *s = &d->srcs[src];
 			if (d->att)
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 				snd_output_printf(out, "%d*%g", s->channel, s->as_float);
 #else
-				snd_output_printf(out, "%d*%g", s->channel, (double)s->as_int / (double)ROUTE_PLUGIN_RESOLUTION);
+				snd_output_printf(out, "%d*%g", s->channel, (double)s->as_int / (double)SND_PCM_PLUGIN_ROUTE_RESOLUTION);
 #endif
 			else
 				snd_output_printf(out, "%d", s->channel);
@@ -693,24 +693,24 @@ static int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t st
 		for (src_channel = 0; src_channel < sused; ++src_channel) {
 			snd_pcm_route_ttable_entry_t v;
 			v = ttable[src_channel * smul + dst_channel * dmul];
-			assert(v >= 0 && v <= FULL);
+			assert(v >= 0 && v <= SND_PCM_PLUGIN_ROUTE_FULL);
 			if (v != 0) {
 				srcs[nsrcs].channel = src_channel;
-#if ROUTE_PLUGIN_FLOAT
+#if SND_PCM_PLUGIN_ROUTE_FLOAT
 				/* Also in user space for non attenuated */
-				srcs[nsrcs].as_int = (v == FULL ? ROUTE_PLUGIN_RESOLUTION : 0);
+				srcs[nsrcs].as_int = (v == SND_PCM_PLUGIN_ROUTE_FULL ? SND_PCM_PLUGIN_ROUTE_RESOLUTION : 0);
 				srcs[nsrcs].as_float = v;
 #else
 				srcs[nsrcs].as_int = v;
 #endif
-				if (v != FULL)
+				if (v != SND_PCM_PLUGIN_ROUTE_FULL)
 					att = 1;
 				t += v;
 				nsrcs++;
 			}
 		}
 #if 0
-		assert(t <= FULL);
+		assert(t <= SND_PCM_PLUGIN_ROUTE_FULL);
 #endif
 		dptr->att = att;
 		dptr->nsrcs = nsrcs;

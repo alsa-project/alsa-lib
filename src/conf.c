@@ -239,7 +239,7 @@ with new contents. This mode is specified with a prefix char note of
 exclamation (!).
 
 \code
-!defaults.pcm.device 1
+defaults.pcm.!device 1
 \endcode
 
 \section conf_syntax_summary Syntax summary

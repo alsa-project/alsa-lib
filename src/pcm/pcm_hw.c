@@ -1,3 +1,11 @@
+/**
+ * \file pcm/pcm_hw.c
+ * \ingroup PCM_Plugins
+ * \brief PCM HW Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 2000-2001
+ */
 /*
  *  PCM - Hardware
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -36,6 +44,8 @@
 const char *_snd_module_pcm_hw = "";
 #endif
 
+#ifndef DOC_HIDDEN
+
 #ifndef F_SETSIG
 #define F_SETSIG 10
 #endif
@@ -61,6 +71,8 @@ typedef struct {
 #define UPDATE_SHADOW_PTR(hw) \
 	do { if (hw->shadow_appl_ptr && !hw->avail_update_flag) \
 	       hw->appl_ptr = hw->mmap_control->appl_ptr; } while (0)
+
+#endif /* DOC_HIDDEN */
 
 static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 {
@@ -643,7 +655,7 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 	}
 }
 
-snd_pcm_ops_t snd_pcm_hw_ops = {
+static snd_pcm_ops_t snd_pcm_hw_ops = {
 	close: snd_pcm_hw_close,
 	info: snd_pcm_hw_info,
 	hw_refine: snd_pcm_hw_hw_refine,
@@ -658,7 +670,7 @@ snd_pcm_ops_t snd_pcm_hw_ops = {
 	munmap: snd_pcm_hw_munmap,
 };
 
-snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
+static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	status: snd_pcm_hw_status,
 	state: snd_pcm_hw_state,
 	delay: snd_pcm_hw_delay,
@@ -678,6 +690,20 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	mmap_commit: snd_pcm_hw_mmap_commit,
 };
 
+/**
+ * \brief Creates a new hw PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param card Number of card
+ * \param device Number of device
+ * \param subdevice Number of subdevice
+ * \param stream PCM Stream
+ * \param mode PCM Mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		    int card, int device, int subdevice,
 		    snd_pcm_stream_t stream, int mode,
@@ -795,6 +821,45 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	return ret;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_hw Plugin: hw
+
+This plugin communicates directly with the ALSA kernel driver. It is a raw
+communication without any conversions. The emulation of mmap access can be
+optionally enabled, but expect a worse latency in the case.
+
+\code
+pcm.name {
+	type hw			# Kernel PCM
+	card INT/STR		# Card name (string) or number (integer)
+	[device INT]		# Device number (default 0)
+	[subdevice INT]		# Subdevice number (default -1: first available)
+	[mmap_emulation BOOL]	# Enable mmap emulation for ro/wo devices
+}
+\endcode
+
+\subsection pcm_plugins_hw_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_hw_open()
+  <LI>_snd_pcm_hw_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new hw PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with hw PCM description
+ * \param stream PCM Stream
+ * \param mode PCM Mode
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		     snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		     snd_pcm_stream_t stream, int mode)
@@ -858,4 +923,6 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	}
 	return snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream, mode, mmap_emulation);
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_hw_open, SND_PCM_DLSYM_VERSION);
+#endif

@@ -19,7 +19,7 @@
  *
  */
   
-#include "atomic.h"
+#include "iatomic.h"
 
 typedef snd_pcm_uframes_t (*snd_pcm_slave_xfer_areas_func_t)
      (snd_pcm_t *pcm, 
@@ -79,30 +79,9 @@ int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
 extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
-#define RATE_MIN 4000
-#define RATE_MAX 192000
-
 int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_convert_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
-int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int close_slave);
-int snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
-			      unsigned int tt_csize, unsigned int tt_ssize,
-			      unsigned int *tt_cused, unsigned int *tt_sused,
-			      int schannels);
-int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
-		       snd_pcm_format_t sformat, int schannels,
-		       snd_pcm_route_ttable_entry_t *ttable,
-		       unsigned int tt_ssize,
-		       unsigned int tt_cused, unsigned int tt_sused,
-		       snd_pcm_t *slave, int close_slave);
-int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, unsigned int srate, snd_pcm_t *slave, int close_slave);
-
 
 void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 			    const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,

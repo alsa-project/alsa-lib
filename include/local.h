@@ -93,6 +93,7 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #include "error.h"
 #include "conf.h"
 #include "pcm.h"
+#include "pcm_plugin.h"
 #include "rawmidi.h"
 #include "timer.h"
 #include "hwdep.h"

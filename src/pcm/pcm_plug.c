@@ -333,7 +333,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 				n = slv->channels;
 			}
 			while (n-- > 0) {
-				snd_pcm_route_ttable_entry_t v = FULL;
+				snd_pcm_route_ttable_entry_t v = SND_PCM_PLUGIN_ROUTE_FULL;
 				if (rpolicy == PLUG_ROUTE_POLICY_AVERAGE) {
 					if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
 					    clt->channels > slv->channels) {
@@ -363,7 +363,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 				n = slv->channels;
 			}
 			for (c = 0; (int)c < n; c++)
-				ttable[c * tt_ssize + c] = FULL;
+				ttable[c * tt_ssize + c] = SND_PCM_PLUGIN_ROUTE_FULL;
 			break;
 		default:
 			SNDERR("Invalid route policy");

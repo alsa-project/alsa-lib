@@ -229,11 +229,11 @@ static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 	if (err < 0)
 		return err;
 	err = _snd_pcm_hw_param_set_min(params,
-					SND_PCM_HW_PARAM_RATE, RATE_MIN, 0);
+					SND_PCM_HW_PARAM_RATE, SND_PCM_PLUGIN_RATE_MIN, 0);
 	if (err < 0)
 		return err;
 	err = _snd_pcm_hw_param_set_max(params,
-					SND_PCM_HW_PARAM_RATE, RATE_MAX, 0);
+					SND_PCM_HW_PARAM_RATE, SND_PCM_PLUGIN_RATE_MAX, 0);
 	if (err < 0)
 		return err;
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);

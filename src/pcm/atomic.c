@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sched.h>
-#include "atomic.h"
+#include "iatomic.h"
 
 void snd_atomic_read_wait(snd_atomic_read_t *t)
 {

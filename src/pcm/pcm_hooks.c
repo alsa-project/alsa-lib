@@ -1,3 +1,11 @@
+/**
+ * \file pcm/pcm_hooks.c
+ * \ingroup PCM_Hook
+ * \brief PCM Hook Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 2000-2001
+ */
 /*
  *  PCM - Hook functions
  *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
@@ -40,6 +48,7 @@ typedef struct {
 	int close_slave;
 	struct list_head hooks[SND_PCM_HOOK_TYPE_LAST + 1];
 } snd_pcm_hooks_t;
+#endif
 
 static int snd_pcm_hooks_close(snd_pcm_t *pcm)
 {
@@ -265,7 +274,7 @@ static void snd_pcm_hooks_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(h->slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_hooks_ops = {
+static snd_pcm_ops_t snd_pcm_hooks_ops = {
 	close: snd_pcm_hooks_close,
 	info: snd_pcm_hooks_info,
 	hw_refine: snd_pcm_hooks_hw_refine,
@@ -280,7 +289,7 @@ snd_pcm_ops_t snd_pcm_hooks_ops = {
 	munmap: snd_pcm_hooks_munmap,
 };
 
-snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
+static snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	status: snd_pcm_hooks_status,
 	state: snd_pcm_hooks_state,
 	delay: snd_pcm_hooks_delay,
@@ -300,6 +309,17 @@ snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	mmap_commit: snd_pcm_hooks_mmap_commit,
 };
 
+/**
+ * \brief Creates a new hooks PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param slave Slave PCM
+ * \param close_slave If set, slave PCM handle is closed when hooks PCM is closed
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *	    changed in future.
+ */
 int snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -330,6 +350,81 @@ int snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int
 
 	return 0;
 }
+
+/*! \page pcm_plugins
+
+\section pcm_plugins_hooks Plugin: hooks
+
+\code
+# Hook arguments definition
+hook_args.NAME {
+	...			# Arbitrary arguments
+}
+
+# PCM hook type
+pcm_hook_type.NAME {
+	[lib STR]		# Library file (default libasound.so)
+	[install STR]		# Install function (default _snd_pcm_hook_NAME_install)
+}
+
+# PCM hook definition
+pcm_hook.NAME {
+	type STR		# PCM Hook type (see pcm_hook_type)
+	[args STR]		# Arguments for install function (see hook_args)
+	# or
+	[args { }]		# Arguments for install function
+}
+
+# PCM hook plugin
+pcm.NAME {
+	type hooks		# PCM with hooks
+	slave STR		# Slave name
+	# or
+	slave {			# Slave definition
+	  	pcm STR		# Slave PCM name
+		# or
+	  	pcm { }		# Slave PCM definition
+	}
+	hooks {
+		ID STR		# Hook name (see pcm_hook)
+		# or
+		ID { }		# Hook definition (see pcm_hook)
+	}
+}
+\endcode
+
+Example:
+
+\code
+	hooks.0 {
+		type ctl_elems
+		hook_args [
+			{
+				name "Wave Surround Playback Volume"
+				preserve true
+				lock true
+				value [ 0 0 ]
+			}
+			{
+				name "EMU10K1 PCM Send Volume"
+				index { @func private_pcm_subdevice }
+				lock true
+				value [ 0 0 0 0 0 0 255 0 0 0 0 255 ]
+			}
+		]
+	}
+\endcode
+
+\subsection pcm_plugins_hooks_funcref Function reference
+
+<UL>
+  <LI>The function ctl_elems - _snd_pcm_hook_ctl_elems_install() - installs
+      CTL settings described by given configuration.
+  <LI>snd_pcm_hooks_open()
+  <LI>_snd_pcm_hooks_open()
+</UL>
+
+*/
 
 static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_t *conf)
 {
@@ -444,6 +539,19 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 	return 0;
 }
 
+/**
+ * \brief Creates a new hooks PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with hooks PCM description
+ * \param stream PCM Stream
+ * \param mode PCM Mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *	    changed in future.
+ */
 int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)
@@ -514,8 +622,8 @@ int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 	*pcmp = rpcm;
 	return 0;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_hooks_open, SND_PCM_DLSYM_VERSION);
-
 #endif
 
 /**
@@ -623,6 +731,12 @@ static int snd_pcm_hook_ctl_elems_close(snd_pcm_hook_t *hook)
 	return err;
 }
 
+/**
+ * \brief Install CTL settings using hardware associated with PCM handle
+ * \param pcm PCM handle
+ * \param conf Configuration node with CTL settings
+ * \return zero on success otherwise a negative error code
+ */
 int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 {
 	int err;
