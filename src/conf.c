@@ -1066,6 +1066,7 @@ int snd_config_update()
 		err = snd_config_load(snd_config, in);
 		snd_input_close(in);
 		if (err < 0) {
+			SNDERR(SYS_ASOUNDRC " may be old or corrupted: consider to remove or fix it");
 			snd_config = NULL;
 			return err;
 		}
@@ -1078,6 +1079,7 @@ int snd_config_update()
 		err = snd_config_load(snd_config, in);
 		snd_input_close(in);
 		if (err < 0) {
+			SNDERR("%s may be old or corrupted: consider to remove or fix it", usr_asoundrc);
 			snd_config = NULL;
 			return err;
 		}
