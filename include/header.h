@@ -23,6 +23,7 @@
 #define __ASOUNDLIB_H
 
 #include <linux/asound.h>
+#include <linux/asequencer.h>
 #include <unistd.h>
 #include <fcntl.h>
 
