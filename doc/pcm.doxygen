@@ -197,8 +197,10 @@ returns 24 in the case.
 There are two methods to transfer samples in application. The first method
 is the standard read / write one. The second method, uses the direct audio
 buffer to communicate with the device while ALSA library manages this space
-itself. You can find example of all communication schemes for playback
-in \ref example_test_pcm "Sine-wave generator example".
+itself. You can find examples of all communication schemes for playback
+in \ref example_test_pcm "Sine-wave generator example". To complete the
+list, we should note that \link ::snd_pcm_wait \endlink function contains
+embedded poll waiting implementation.
 
 \subsection alsa_pcm_rw Read / Write transfer
 
@@ -336,6 +338,17 @@ samples - \link ::snd_pcm_status_get_overrange \endlink. The last two
 parameters - avail_max and overrange are reset to zero after the status
 call.
 
+\subsection pcm_status_fast Obtaining fast device status
+
+The function \link ::snd_pcm_avail_update \endlink updates the current
+available count of samples for writting (playback) or filled samples for
+reading (capture).
+<p>
+The function \link ::snd_pcm_delay \endlink returns the delay in samples.
+For playback, it means count of samples in the ring buffer before
+the next sample will be sent to DAC. For capture, it means count of samples
+in the ring buffer before the next sample will be captured from ADC.
+
 \section pcm_action Managing the stream state
 
 These functions directly and indirectly affecting the stream state:
@@ -380,6 +393,17 @@ The \link ::snd_pcm_readi \endlink and \link ::snd_pcm_readn \endlink
 functions can conditionally start the stream -
 \link ::SND_PCM_STATE_RUNNING \endlink. They depend on the start threshold
 software parameter.
+
+\section pcm_sync Streams synchronization
+
+There are two functions allowing link multiple streams together. In the
+case, the linking means that all operations are synchronized. Because the
+drivers cannot guarantee the synchronization (sample resolution) on hardware
+lacking this feature, the \link ::snd_pcm_info_get_sync \endlink function
+returns synchronization ID - \link ::snd_pcm_sync_id_t \endlink, which is equal
+for hardware synchronizated streams. When the \link ::snd_pcm_link \endlink
+function is called, all operations managing the stream state for these two
+streams are joined. The oposite function is \link ::snd_pcm_unlink \endlink.
 
 \section pcm_examples Examples
 
