@@ -33,6 +33,7 @@ int snd_interval_value(const snd_interval_t *i);
 void snd_interval_set_value(snd_interval_t *i, unsigned int val);
 int snd_interval_min(const snd_interval_t *i);
 int snd_interval_max(const snd_interval_t *i);
+void snd_interval_set_minmax(snd_interval_t *i, unsigned int min, unsigned int max);
 int snd_interval_test(const snd_interval_t *i, unsigned int val);
 void snd_interval_copy(snd_interval_t *dst, const snd_interval_t *src);
 void snd_interval_floor(snd_interval_t *i);

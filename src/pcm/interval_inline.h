@@ -80,6 +80,15 @@ INTERVAL_INLINE int snd_interval_max(const snd_interval_t *i)
 	return i->max;
 }
 
+INTERVAL_INLINE void snd_interval_set_minmax(snd_interval_t *i, unsigned int min, unsigned int max)
+{
+	i->openmax = i->openmin = 0;
+	i->min = min;
+	i->max = max;
+	i->integer = 0;
+	i->empty = 0;
+}
+
 INTERVAL_INLINE int snd_interval_test(const snd_interval_t *i, unsigned int val)
 {
 	return !((i->min > val || (i->min == val && i->openmin) ||
