@@ -1,5 +1,5 @@
 /**
- * \file pcm/pcm_snoop.c
+ * \file pcm/pcm_dsnoop.c
  * \ingroup PCM_Plugins
  * \brief PCM Capture Stream Snooping (dsnoop) Plugin Interface
  * \author Jaroslav Kysela <perex@suse.cz>
@@ -837,7 +837,7 @@ pcm.name {
 }
 \endcode
 
-\subsection pcm_plugins_hw_funcref Function reference
+\subsection pcm_plugins_dsnoop_funcref Function reference
 
 <UL>
   <LI>snd_pcm_dsnoop_open()

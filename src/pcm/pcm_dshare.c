@@ -885,7 +885,7 @@ pcm.name {
 }
 \endcode
 
-\subsection pcm_plugins_hw_funcref Function reference
+\subsection pcm_plugins_dshare_funcref Function reference
 
 <UL>
   <LI>snd_pcm_dshare_open()

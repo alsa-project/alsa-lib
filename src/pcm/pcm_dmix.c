@@ -1093,7 +1093,7 @@ pcm.name {
 }
 \endcode
 
-\subsection pcm_plugins_hw_funcref Function reference
+\subsection pcm_plugins_dmix_funcref Function reference
 
 <UL>
   <LI>snd_pcm_dmix_open()

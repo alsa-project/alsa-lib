@@ -1501,7 +1501,7 @@ This plugin allows sharing of multiple channels with more clients. The access
 to each channel is exlusive (samples are not mixed together). It means, if
 the channel zero is used with first client, the channel cannot be used with
 second one. If you are looking for a mixing plugin, use the
-\ref pcm_plugins_smix "smix plugin".
+\ref pcm_plugins_dmix "dmix plugin".
 
 \code
 pcm.name {
