@@ -55,8 +55,6 @@ Write something here
 #include <sys/shm.h>
 #include <sys/mman.h>
 #include <limits.h>
-#define ALSA_PCM_NEW_HW_PARAMS_API
-#define ALSA_PCM_NEW_SW_PARAMS_API
 #include "asoundlib.h"
 #include "pcm_ordinary.h"
 

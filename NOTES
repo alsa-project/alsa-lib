@@ -1,0 +1,16 @@
+Old versus new PCM API (values returned using indirect pointers)
+================================================================
+
+From the binary compatibility view, there is no change. For compilation,
+1.0 ALSA applications do not need any change. The older applications must
+use this include sequence:
+
+#define ALSA_PCM_OLD_HW_PARAMS_API
+#define ALSA_PCM_OLD_SW_PARAMS_API
+#include <alsa/asoundlib.h>
+
+If you use already the new API, you may remove old defines selecting
+this API, because they are no longer used:
+
+#define ALSA_PCM_NEW_HW_PARAMS_API
+#define ALSA_PCM_NEW_SW_PARAMS_API
