@@ -29,18 +29,11 @@
 #include <limits.h>
 #include <errno.h>
 #include "asoundlib.h"
+#include "local.h"
 
 #define SND_SEQ_OBUF_SIZE	(16*1024)	/* default size */
 #define SND_SEQ_IBUF_SIZE	500		/* in event_size aligned */
 #define DEFAULT_TMPBUF_SIZE	20
-
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-#define ERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, __VA_ARGS__)
-#define SYSERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, __VA_ARGS__)
-#else
-#define ERR(args...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, ##args)
-#define SYSERR(args...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, ##args)
-#endif
 
 typedef struct {
 	int (*close)(snd_seq_t *seq);
