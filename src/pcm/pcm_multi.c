@@ -67,7 +67,8 @@ static int snd_pcm_multi_close(void *private)
 			err = snd_pcm_close(slave->handle);
 			if (err < 0)
 				ret = err;
-		}
+		} else
+			snd_pcm_unlink(slave->handle);
 		if (slave->buf) {
 			free(slave->buf);
 			free(slave->areas);
@@ -285,66 +286,31 @@ static ssize_t snd_pcm_multi_frame_io(void *private, int update)
 static int snd_pcm_multi_prepare(void *private)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	unsigned int i;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_prepare(handle);
-		if (err < 0)
-			return err;
-	}
-	return 0;
+	return snd_pcm_prepare(multi->slaves[0].handle);
 }
 
 static int snd_pcm_multi_go(void *private)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	unsigned int i;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_go(handle);
-		if (err < 0)
-			return err;
-	}
-	return 0;
+	return snd_pcm_go(multi->slaves[0].handle);
 }
 
 static int snd_pcm_multi_drain(void *private)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	unsigned int i;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_drain(handle);
-		if (err < 0)
-			return err;
-	}
-	return 0;
+	return snd_pcm_drain(multi->slaves[0].handle);
 }
 
 static int snd_pcm_multi_flush(void *private)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	unsigned int i;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_flush(handle);
-		if (err < 0)
-			return err;
-	}
-	return 0;
+	return snd_pcm_flush(multi->slaves[0].handle);
 }
 
 static int snd_pcm_multi_pause(void *private, int enable)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	unsigned int i;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_pause(handle, enable);
-		if (err < 0)
-			return err;
-	}
-	return 0;
+	return snd_pcm_pause(multi->slaves[0].handle, enable);
 }
 
 static int snd_pcm_multi_channel_setup(void *private, snd_pcm_channel_setup_t *setup)
@@ -796,6 +762,8 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 		slave->handle = slaves_handle[i];
 		slave->channels_total = slaves_channels_count[i];
 		slave->close_slave = close_slaves;
+		if (i != 0)
+			snd_pcm_link(slaves_handle[i-1], slaves_handle[i]);
 	}
 	for (i = 0; i < binds_count; ++i) {
 		snd_pcm_multi_bind_t *bind = &multi->binds[i];

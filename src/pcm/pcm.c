@@ -160,6 +160,7 @@ int snd_pcm_go(snd_pcm_t *handle)
 	return handle->fast_ops->go(handle->fast_op_arg);
 }
 
+#if 0
 int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd, 
 		    unsigned int reqs_count, snd_pcm_synchro_request_t *reqs,
 		    snd_pcm_synchro_mode_t mode)
@@ -203,7 +204,7 @@ int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd,
 	}
 	return ret;
 }
-
+#endif
 
 int snd_pcm_drain(snd_pcm_t *handle)
 {
@@ -269,6 +270,52 @@ ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned lo
 	assert(count == 0 || vector);
 	assert(handle->valid_setup);
 	return handle->fast_ops->readv(handle->fast_op_arg, 0, vector, count);
+}
+
+int snd_pcm_link(snd_pcm_t *handle1, snd_pcm_t *handle2)
+{
+	int fd1, fd2;
+	switch (handle1->type) {
+	case SND_PCM_TYPE_HW:
+	case SND_PCM_TYPE_PLUG:
+	case SND_PCM_TYPE_MULTI:
+		fd1 = snd_pcm_file_descriptor(handle1);
+		break;
+	default:
+		errno = -ENOSYS;
+		return -1;
+	}
+	switch (handle2->type) {
+	case SND_PCM_TYPE_HW:
+	case SND_PCM_TYPE_PLUG:
+	case SND_PCM_TYPE_MULTI:
+		fd2 = snd_pcm_file_descriptor(handle2);
+		break;
+	default:
+		errno = -ENOSYS;
+		return -1;
+	}
+	if (ioctl(fd1, SND_PCM_IOCTL_LINK, fd2) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_pcm_unlink(snd_pcm_t *handle)
+{
+	int fd;
+	switch (handle->type) {
+	case SND_PCM_TYPE_HW:
+	case SND_PCM_TYPE_PLUG:
+	case SND_PCM_TYPE_MULTI:
+		fd = snd_pcm_file_descriptor(handle);
+		break;
+	default:
+		errno = -ENOSYS;
+		return -1;
+	}
+	if (ioctl(fd, SND_PCM_IOCTL_UNLINK) < 0)
+		return -errno;
+	return 0;
 }
 
 int snd_pcm_file_descriptor(snd_pcm_t *handle)
@@ -381,7 +428,6 @@ int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp)
 	fprintf(fp, "xrun_mode: %s\n", assoc(setup->xrun_mode, xruns));
 	fprintf(fp, "time: %s\n", assoc(setup->time, onoff));
 	// ust_time
-	// sync
 	fprintf(fp, "buffer_size: %d\n", setup->buffer_size);
 	fprintf(fp, "frag_size: %d\n", setup->frag_size);
 	fprintf(fp, "frags: %d\n", setup->frags);

@@ -181,7 +181,7 @@ static int snd_pcm_hw_pause(void *private, int enable)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_PAUSE, &enable) < 0)
+	if (ioctl(fd, SND_PCM_IOCTL_PAUSE, enable) < 0)
 		return -errno;
 	return 0;
 }
