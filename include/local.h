@@ -22,6 +22,10 @@
 #ifndef __LOCAL_H
 #define __LOCAL_H
 
+#ifndef DATADIR
+#define DATADIR "/usr/share"
+#endif
+
 #define _snd_config_iterator list_head
 #define _snd_interval sndrv_interval
 #define _snd_pcm_info sndrv_pcm_info

@@ -28,9 +28,6 @@
 #include <sys/ioctl.h>
 #include "control_local.h"
 
-#ifndef DATADIR
-#define DATADIR "/usr/share"
-#endif
 #define ALSA_CARDS_FILE DATADIR "/alsa/cards.conf"
 
 static int build_config(snd_config_t **r_conf)

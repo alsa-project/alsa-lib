@@ -528,7 +528,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 {
 	snd_config_iterator_t i, next;
 	const char *server = NULL;
-	const char *sname = NULL;
+	const char *ctl_name = NULL;
 	snd_config_t *sconfig;
 	const char *host = NULL;
 	const char *sockname = NULL;
@@ -551,8 +551,8 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 			}
 			continue;
 		}
-		if (strcmp(id, "sname") == 0) {
-			err = snd_config_get_string(n, &sname);
+		if (strcmp(id, "ctl") == 0) {
+			err = snd_config_get_string(n, &ctl_name);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
@@ -562,8 +562,8 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (!sname) {
-		SNDERR("sname is not defined");
+	if (!ctl_name) {
+		SNDERR("ctl is not defined");
 		return -EINVAL;
 	}
 	if (!server) {
@@ -630,6 +630,6 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 		SNDERR("%s is not the local host", host);
 		return -EINVAL;
 	}
-	return snd_ctl_shm_open(handlep, name, sockname, sname, mode);
+	return snd_ctl_shm_open(handlep, name, sockname, ctl_name, mode);
 }
 				

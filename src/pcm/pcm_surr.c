@@ -36,9 +36,6 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
-#ifndef DATADIR
-#define DATADIR "/usr/share"
-#endif
 #define ALSA_SURROUND_FILE DATADIR "/alsa/surround.conf"
 
 #define SURR_CAP_CAPTURE	(1<<0)

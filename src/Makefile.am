@@ -10,6 +10,11 @@ libasound_la_LIBADD = control/libcontrol.la mixer/libmixer.la pcm/libpcm.la \
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
 
+EXTRA_DIST = alsa.conf
+
+alsadir = $(datadir)/alsa
+alsa_DATA = alsa.conf
+
 control/libcontrol.la:
 	$(MAKE) -C control libcontrol.la
 

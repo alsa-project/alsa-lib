@@ -995,91 +995,30 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, const char *name,
 {
 	int err;
 	snd_config_t *pcm_conf;
-	const char *name1;
-
-	err = snd_config_search_alias(snd_config, "pcm", name, &pcm_conf);
-	name1 = name;
-	if (err < 0 || snd_config_get_string(pcm_conf, &name1) >= 0) {
-		int card, dev, subdev;
-		char socket[256], sname[256];
-		char format[16], file[256];
-		err = sscanf(name1, "hw:%d,%d,%d", &card, &dev, &subdev);
-		if (err == 3)
-			return snd_pcm_hw_open(pcmp, name, card, dev, subdev, stream, mode);
-		err = sscanf(name1, "hw:%d,%d", &card, &dev);
-		if (err == 2)
-			return snd_pcm_hw_open(pcmp, name, card, dev, -1, stream, mode);
-		err = sscanf(name1, "plug:%d,%d,%d", &card, &dev, &subdev);
-		if (err == 3)
-			return snd_pcm_plug_open_hw(pcmp, name, card, dev, subdev, stream, mode);
-		err = sscanf(name1, "plug:%d,%d", &card, &dev);
-		if (err == 2)
-			return snd_pcm_plug_open_hw(pcmp, name, card, dev, -1, stream, mode);
-		err = sscanf(name1, "plug:%256[^,]", sname);
-		if (err == 1) {
-			snd_pcm_t *slave;
-			err = snd_pcm_open(&slave, sname, stream, mode);
-			if (err < 0)
-				return err;
-			return snd_pcm_plug_open(pcmp, name, NULL, 0, 0, 0, slave, 1);
-		}
-		err = sscanf(name1, "shm:%256[^,],%256[^,]", socket, sname);
-		if (err == 2)
-			return snd_pcm_shm_open(pcmp, name, socket, sname, stream, mode);
-		err = sscanf(name1, "file:%256[^,],%16[^,],%256[^,]", file, format, sname);
-		if (err == 3) {
-			snd_pcm_t *slave;
-			err = snd_pcm_open(&slave, sname, stream, mode);
-			if (err < 0)
-				return err;
-			return snd_pcm_file_open(pcmp, name1, file, -1, format, slave, 1);
-		}
-		err = sscanf(name1, "file:%256[^,],%16[^,]", file, format);
-		if (err == 2) {
-			snd_pcm_t *slave;
-			err = snd_pcm_null_open(&slave, name, stream, mode);
-			if (err < 0)
-				return err;
-			return snd_pcm_file_open(pcmp, name, file, -1, format, slave, 1);
-		}
-		err = sscanf(name1, "file:%256[^,]", file);
-		if (err == 1) {
-			snd_pcm_t *slave;
-			err = snd_pcm_null_open(&slave, name, stream, mode);
-			if (err < 0)
-				return err;
-			return snd_pcm_file_open(pcmp, name, file, -1, "raw", slave, 1);
-		}
-		if (strcmp(name1, "null") == 0)
-			return snd_pcm_null_open(pcmp, name, stream, mode);
-		err = sscanf(name1, "surround40:%d,%d", &card, &dev);		
-		if (err == 2)
-			return snd_pcm_surround_open(pcmp, name, card, dev, SND_PCM_SURROUND_40, stream, mode);
-		err = sscanf(name1, "surround40:%d", &card);
-		if (err == 1)
-			return snd_pcm_surround_open(pcmp, name, card, 0, SND_PCM_SURROUND_40, stream, mode);
-		err = sscanf(name1, "surround51:%d,%d", &card, &dev);		
-		if (err == 2)
-			return snd_pcm_surround_open(pcmp, name, card, dev, SND_PCM_SURROUND_51, stream, mode);
-		err = sscanf(name1, "surround51:%d", &card);
-		if (err == 1)
-			return snd_pcm_surround_open(pcmp, name, card, 0, SND_PCM_SURROUND_51, stream, mode);
-		SNDERR("Unknown PCM %s", name1);
-		return -ENOENT;
+	const char *args = strchr(name, ':');
+	char *base;
+	if (args) {
+		args++;
+		base = alloca(args - name);
+		memcpy(base, name, args - name - 1);
+		base[args - name - 1] = 0;
+	} else
+		base = (char *) name;
+	err = snd_config_search_alias(snd_config, "pcm", base, &pcm_conf);
+	if (err < 0) {
+		SNDERR("Unknown PCM %s", name);
+		return err;
 	}
-	return snd_pcm_open_conf(pcmp, name, pcm_conf, stream, mode);
+	if (args) {
+		err = snd_config_expand(pcm_conf, args, &pcm_conf);
+		if (err < 0)
+			return err;
+	}
+	err = snd_pcm_open_conf(pcmp, name, pcm_conf, stream, mode);
+	if (args)
+		snd_config_delete(pcm_conf);
+	return err;
 }
-
-#ifndef DOC_HIDDEN
-int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *conf,
-		       snd_pcm_stream_t stream, int mode)
-{
-	const char *str;
-	if (snd_config_get_string(conf, &str) >= 0)
-		return snd_pcm_open_noupdate(pcmp, str, stream, mode);
-	return snd_pcm_open_conf(pcmp, NULL, conf, stream, mode);
-}
-#endif
 
 /**
  * \brief Opens a PCM
@@ -1099,6 +1038,17 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	return snd_pcm_open_noupdate(pcmp, name, stream, mode);
 }
+
+#ifndef DOC_HIDDEN
+int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *conf,
+		       snd_pcm_stream_t stream, int mode)
+{
+	const char *str;
+	if (snd_config_get_string(conf, &str) >= 0)
+		return snd_pcm_open_noupdate(pcmp, str, stream, mode);
+	return snd_pcm_open_conf(pcmp, NULL, conf, stream, mode);
+}
+#endif
 
 /**
  * \brief Wait for a PCM to become ready

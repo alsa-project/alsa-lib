@@ -22,7 +22,7 @@ const char *snd_strerror(int errnum);
  * \param fmt printf(3) format
  * \param ... printf(3) arguments
  */
-typedef void (snd_lib_error_handler_t)(const char *file, int line, const char *function, int err, const char *fmt, ...) /* __attribute__ ((weak, format (printf, 5, 6))) */;
+typedef void (snd_lib_error_handler_t)(const char *file, int line, const char *function, int err, const char *fmt, ...) /* __attribute__ ((format (printf, 5, 6))) */;
 extern snd_lib_error_handler_t *snd_lib_error;
 extern int snd_lib_error_set_handler(snd_lib_error_handler_t *handler);
 

@@ -60,54 +60,25 @@ static int snd_rawmidi_params_default(snd_rawmidi_t *rawmidi, snd_rawmidi_params
 	return 0;
 }
 
-/**
- * \brief Opens a new connection to the RawMidi interface.
- * \param inputp Returned input handle (NULL if not wanted)
- * \param outputp Returned output handle (NULL if not wanted)
- * \param name ASCII identifier of the RawMidi handle
- * \param mode Open mode
- * \return 0 on success otherwise a negative error code
- *
- * Opens a new connection to the RawMidi interface specified with
- * an ASCII identifier and mode.
- */
-int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-		     const char *name, int mode)
+int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+			  const char *name, snd_config_t *rawmidi_conf,
+			  int mode)
 {
 	const char *str;
 	char buf[256];
 	int err;
-	snd_config_t *rawmidi_conf, *conf, *type_conf;
+	snd_config_t *conf, *type_conf;
 	snd_config_iterator_t i, next;
 	snd_rawmidi_params_t params;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_rawmidi_t **, snd_rawmidi_t **,
 			 const char *, snd_config_t *, int);
 	void *h;
-	const char *name1;
-	assert((inputp || outputp) && name);
-	err = snd_config_update();
-	if (err < 0)
-		return err;
-	err = snd_config_search_alias(snd_config, "rawmidi", name, &rawmidi_conf);
-	name1 = name;
-	if (err < 0 || snd_config_get_string(rawmidi_conf, &name1) >= 0) {
-		int card, dev, subdev;
-		err = sscanf(name1, "hw:%d,%d,%d", &card, &dev, &subdev);
-		if (err == 3) {
-			err = snd_rawmidi_hw_open(inputp, outputp, name, card, dev, subdev, mode);
-			goto _init;
-		}
-		err = sscanf(name1, "hw:%d,%d", &card, &dev);
-		if (err == 2) {
-			err = snd_rawmidi_hw_open(inputp, outputp, name, card, dev, -1, mode);
-			goto _init;
-		}
-		SNDERR("Unknown RAWMIDI %s", name1);
-		return -ENOENT;
-	}
 	if (snd_config_get_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid type for RAWMIDI %s definition", name);
+		if (name)
+			SNDERR("Invalid type for RAWMIDI %s definition", name);
+		else
+			SNDERR("Invalid type for RAWMIDI definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(rawmidi_conf, "type", &conf);
@@ -122,6 +93,10 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	}
 	err = snd_config_search_alias(snd_config, "rawmidi_type", str, &type_conf);
 	if (err >= 0) {
+		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
+			SNDERR("Invalid type for RAWMIDI type %s definition", str);
+			return -EINVAL;
+		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			const char *id = snd_config_get_id(n);
@@ -165,7 +140,6 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		return -ENXIO;
 	}
 	err = open_func(inputp, outputp, name, rawmidi_conf, mode);
- _init:
 	if (err < 0)
 		return err;
 	if (inputp) {
@@ -179,6 +153,58 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		assert(err >= 0);
 	}
 	return 0;
+}
+
+int snd_rawmidi_open_noupdate(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+			      const char *name, int mode)
+{
+	int err;
+	snd_config_t *rawmidi_conf;
+	const char *args = strchr(name, ':');
+	char *base;
+	if (args) {
+		args++;
+		base = alloca(args - name);
+		memcpy(base, name, args - name - 1);
+		base[args - name - 1] = 0;
+	} else
+		base = (char *) name;
+	err = snd_config_search_alias(snd_config, "rawmidi", base, &rawmidi_conf);
+	if (err < 0) {
+		SNDERR("Unknown RAWMIDI %s", name);
+		return err;
+	}
+	if (args) {
+		err = snd_config_expand(rawmidi_conf, args, &rawmidi_conf);
+		if (err < 0)
+			return err;
+	}
+	err = snd_rawmidi_open_conf(inputp, outputp, name, rawmidi_conf, mode);
+	if (args)
+		snd_config_delete(rawmidi_conf);
+	return err;
+}
+
+/**
+ * \brief Opens a new connection to the RawMidi interface.
+ * \param inputp Returned input handle (NULL if not wanted)
+ * \param outputp Returned output handle (NULL if not wanted)
+ * \param name ASCII identifier of the RawMidi handle
+ * \param mode Open mode
+ * \return 0 on success otherwise a negative error code
+ *
+ * Opens a new connection to the RawMidi interface specified with
+ * an ASCII identifier and mode.
+ */
+int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+		     const char *name, int mode)
+{
+	int err;
+	assert((inputp || outputp) && name);
+	err = snd_config_update();
+	if (err < 0)
+		return err;
+	return snd_rawmidi_open_noupdate(inputp, outputp, name, mode);
 }
 
 /**

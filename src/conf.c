@@ -20,6 +20,7 @@
  */
 
 #include <stdarg.h>
+#include <wordexp.h>
 #include <sys/stat.h>
 #include "local.h"
 #include "list.h"
@@ -1194,17 +1195,29 @@ int snd_config_search_alias(snd_config_t *config,
 	return 0;
 }
 
-/** File used for system wide ALSA configuration */
-#define SYS_ASOUNDRC "/etc/asound.conf"
-/** File resident in home directory used for user specific ALSA configuration */
-#define USR_ASOUNDRC ".asoundrc"
+/** Environment variable containing files list for #snd_config_update */
+#define ASOUND_CONFIGS_VAR "ASOUND_CONFIGS"
+
+/** Default files used by #snd_config_update */
+#define ASOUND_CONFIGS_DEFAULT DATADIR "/alsa/alsa.conf:/etc/asound.conf:~/.asoundrc"
 
 /** \ingroup Config
   * Config top node */
 snd_config_t *snd_config = NULL;
 
+static struct finfo {
+	char *name;
+	dev_t dev;
+	ino_t ino;
+	time_t mtime;
+} *files_info = NULL;
+
+static unsigned int files_info_count = 0;
+
 /** 
- * \brief Update #snd_config rereading if needed #SYS_ASOUNDRC and #USR_ASOUNDRC
+ * \brief Update #snd_config rereading (if needed) files specified in
+ * environment variable ASOUND_CONFIGS. If it's not set the default value is
+ * "/usr/share/alsa/alsa.conf:/etc/asound.conf:~/.asoundrc"
  * \return 0 if no action is needed, 1 if tree has been rebuilt otherwise a negative error code
  *
  * Warning: If config tree is reread all the string pointer and config 
@@ -1212,79 +1225,119 @@ snd_config_t *snd_config = NULL;
  */
 int snd_config_update()
 {
-	static dev_t sys_asoundrc_device;
-	static ino_t sys_asoundrc_inode;
-	static time_t sys_asoundrc_mtime;
-	static dev_t usr_asoundrc_device;
-	static ino_t usr_asoundrc_inode;
-	static time_t usr_asoundrc_mtime;
 	int err;
-	char *usr_asoundrc = NULL;
-	char *home = getenv("HOME");
-	struct stat usr_st, sys_st;
-	int reload;
-	snd_input_t *in;
-	if (home) {
-		size_t len = strlen(home);
-		size_t len1 = strlen(USR_ASOUNDRC);
-		usr_asoundrc = alloca(len + len1 + 2);
-		memcpy(usr_asoundrc, home, len);
-		usr_asoundrc[len] = '/';
-		memcpy(usr_asoundrc + len + 1, USR_ASOUNDRC, len1);
-		usr_asoundrc[len + 1 + len1] = '\0';
+	char *configs, *c;
+	unsigned int k;
+	wordexp_t we;
+	size_t l;
+	struct finfo *fi;
+	unsigned int fi_count;
+	configs = getenv(ASOUND_CONFIGS_VAR);
+	if (!configs)
+		configs = ASOUND_CONFIGS_DEFAULT;
+	for (k = 0, c = configs; (l = strcspn(c, ": ")) > 0; ) {
+		c += l;
+		k++;
+		if (!*c)
+			break;
+		c++;
 	}
-	reload = (snd_config == NULL);
-	if (stat(SYS_ASOUNDRC, &sys_st) == 0 &&
-	    (sys_st.st_dev != sys_asoundrc_device ||
-	     sys_st.st_ino != sys_asoundrc_inode ||
-	     sys_st.st_mtime != sys_asoundrc_mtime))
-		reload = 1;
-	if (stat(usr_asoundrc, &usr_st) == 0 &&
-	    (usr_st.st_dev != usr_asoundrc_device ||
-	     usr_st.st_ino != usr_asoundrc_inode ||
-	     usr_st.st_mtime != usr_asoundrc_mtime))
-		reload = 1;
-	if (!reload)
-		return 0;
+	fi_count = k;
+	fi = calloc(fi_count, sizeof(*fi));
+	if (!fi)
+		return -ENOMEM;
+	for (k = 0, c = configs; (l = strcspn(c, ": ")) > 0; ) {
+		char name[l + 1];
+		memcpy(name, c, l);
+		name[l] = 0;
+		err = wordexp(name, &we, WRDE_NOCMD);
+		switch (err) {
+		case WRDE_NOSPACE:
+			err = -ENOMEM;
+			goto _end;
+		case 0:
+			if (we.we_wordc == 1)
+				break;
+			/* Fall through */
+		default:
+			err = -EINVAL;
+			goto _end;
+		}
+		fi[k].name = strdup(we.we_wordv[0]);
+		wordfree(&we);
+		if (!fi[k].name) {
+			err = -ENOMEM;
+			goto _end;
+		}
+		c += l;
+		k++;
+		if (!*c)
+			break;
+		c++;
+	}
+	for (k = 0; k < fi_count; ++k) {
+		struct stat st;
+		if (stat(fi[k].name, &st) >= 0) {
+			fi[k].dev = st.st_dev;
+			fi[k].ino = st.st_ino;
+			fi[k].mtime = st.st_mtime;
+		}
+	}
+	if (!files_info)
+		goto _reread;
+	if (fi_count != files_info_count)
+		goto _reread;
+	for (k = 0; k < fi_count; ++k) {
+		if (strcmp(fi[k].name, files_info[k].name) != 0 ||
+		    fi[k].dev != files_info[k].dev ||
+		    fi[k].ino != files_info[k].ino ||
+		    fi[k].mtime != files_info[k].mtime)
+			goto _reread;
+	}
+	err = 0;
+
+ _end:
+	if (err < 0 && snd_config) {
+		snd_config_delete(snd_config);
+		snd_config = NULL;
+	}
+	for (k = 0; k < fi_count; ++k)
+		free(fi[k].name);
+	free(fi);
+	return err;
+
+ _reread:
+	if (files_info) {
+		for (k = 0; k < files_info_count; ++k)
+			free(files_info[k].name);
+		free(files_info);
+		files_info = NULL;
+		files_info_count = 0;
+	}
 	if (snd_config) {
-		err = snd_config_delete(snd_config);
-		if (err < 0)
-			return err;
-		snd_config = 0;
+		snd_config_delete(snd_config);
+		snd_config = NULL;
 	}
 	err = snd_config_top(&snd_config);
 	if (err < 0)
-		return err;
-	err = snd_input_stdio_open(&in, SYS_ASOUNDRC, "r");
-	if (err >= 0) {
-		err = snd_config_load(snd_config, in);
-		snd_input_close(in);
-		if (err < 0) {
-			SNDERR(SYS_ASOUNDRC " may be old or corrupted: consider to remove or fix it");
-			snd_config_delete(snd_config);
-			snd_config = NULL;
-			return err;
+		goto _end;
+	for (k = 0; k < fi_count; ++k) {
+		snd_input_t *in;
+		err = snd_input_stdio_open(&in, fi[k].name, "r");
+		if (err >= 0) {
+			err = snd_config_load(snd_config, in);
+			snd_input_close(in);
+			if (err < 0) {
+				SNDERR("%s may be old or corrupted: consider to remove or fix it", fi[k].name);
+				goto _end;
+			}
 		}
-		sys_asoundrc_device = sys_st.st_dev;
-		sys_asoundrc_inode = sys_st.st_ino;
-		sys_asoundrc_mtime = sys_st.st_mtime;
 	}
-	err = snd_input_stdio_open(&in, usr_asoundrc, "r");
-	if (err >= 0) {
-		err = snd_config_load(snd_config, in);
-		snd_input_close(in);
-		if (err < 0) {
-			SNDERR("%s may be old or corrupted: consider to remove or fix it", usr_asoundrc);
-			snd_config_delete(snd_config);
-			snd_config = NULL;
-			return err;
-		}
-		usr_asoundrc_device = usr_st.st_dev;
-		usr_asoundrc_inode = usr_st.st_ino;
-		usr_asoundrc_mtime = usr_st.st_mtime;
-	}
+	files_info = fi;
+	files_info_count = fi_count;
 	return 1;
 }
+
 
 /**
  * \brief Return an iterator pointing to first leaf of a compound config node
@@ -1770,12 +1823,56 @@ static int parse_arg(const char **ptr, unsigned int *varlen, char **val)
 }
 
 
+/* val1, val2, ...
+ * var1=val1,var2=val2,...
+ * { conf syntax }
+ */
 static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 {
 	int err;
 	int arg = 0;
+	skip_blank(&str);
 	if (!*str)
 		return 0;
+	if (*str == '{') {
+		int len = strlen(str);
+		snd_input_t *input;
+		snd_config_iterator_t i, next;
+		while (1) {
+			switch (str[--len]) {
+			case ' ':
+			case '\f':
+			case '\t':
+			case '\n':
+			case '\r':
+				continue;
+			default:
+				break;
+			}
+			break;
+		}
+		if (str[len] != '}')
+			return -EINVAL;
+		err = snd_input_buffer_open(&input, str + 1, len - 1);
+		if (err < 0)
+			return err;
+		err = snd_config_load(subs, input);
+		snd_input_close(input);
+		if (err < 0)
+			return err;
+		snd_config_for_each(i, next, subs) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			snd_config_t *d;
+			const char *id = snd_config_get_id(n);
+			err = snd_config_search(defs, id, &d);
+			if (err < 0) {
+				SNDERR("Unknown parameter %s", id);
+				return err;
+			}
+		}
+		return 0;
+	}
+	
 	while (1) {
 		char buf[256];
 		const char *var = buf;
@@ -1812,7 +1909,6 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		if (err < 0) {
 		_invalid_type:
 			SNDERR("Parameter %s definition is missing a valid type info", var);
-			err = -EINVAL;
 			goto _err;
 		}
 		err = snd_config_get_string(typ, &tmp);
@@ -1851,8 +1947,10 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 			err = snd_config_set_string(sub, val);
 			if (err < 0)
 				goto _err;
-		} else
+		} else {
+			err = -EINVAL;
 			goto _invalid_type;
+		}
 		err = snd_config_set_id(sub, var);
 		if (err < 0)
 			goto _err;
@@ -1906,3 +2004,21 @@ int snd_config_expand(snd_config_t *config, const char *args,
 	return err;
 }
 	
+
+#if 0
+/* Not strictly needed, but useful to check for memory leaks */
+void _snd_config_end(void) __attribute__ ((destructor));
+
+static void _snd_config_end(void)
+{
+	int k;
+	if (snd_config)
+		snd_config_delete(snd_config);
+	snd_config = 0;
+	for (k = 0; k < files_info_count; ++k)
+		free(files_info[k].name);
+	free(files_info);
+	files_info = NULL;
+	files_info_count = 0;
+}
+#endif

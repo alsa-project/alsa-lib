@@ -36,33 +36,24 @@ snd_seq_type_t snd_seq_type(snd_seq_t *seq)
 	return seq->type;
 }
 
-int snd_seq_open(snd_seq_t **seqp, const char *name, 
-		 int streams, int mode)
+static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
+			     snd_config_t *seq_conf,
+			     int streams, int mode)
 {
 	const char *str;
 	char buf[256];
 	int err;
-	snd_config_t *seq_conf, *conf, *type_conf;
+	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_seq_t **, const char *, snd_config_t *, 
 			 int, int);
 	void *h;
-	const char *name1;
-	assert(seqp && name);
-	err = snd_config_update();
-	if (err < 0)
-		return err;
-	err = snd_config_search_alias(snd_config, "seq", name, &seq_conf);
-	name1 = name;
-	if (err < 0 || snd_config_get_string(seq_conf, &name1) >= 0) {
-		if (strcmp(name1, "hw") == 0)
-			return snd_seq_hw_open(seqp, name, streams, mode);
-		SNDERR("Unknown SEQ %s", name1);
-		return -ENOENT;
-	}
 	if (snd_config_get_type(seq_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid type for SEQ %s definition", name);
+		if (name)
+			SNDERR("Invalid type for SEQ %s definition", name);
+		else
+			SNDERR("Invalid type for SEQ definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(seq_conf, "type", &conf);
@@ -77,6 +68,10 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 	}
 	err = snd_config_search_alias(snd_config, "seq_type", str, &type_conf);
 	if (err >= 0) {
+		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
+			SNDERR("Invalid type for SEQ type %s definition", str);
+			return -EINVAL;
+		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			const char *id = snd_config_get_id(n);
@@ -120,6 +115,47 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 		return -ENXIO;
 	}
 	return open_func(seqp, name, seq_conf, streams, mode);
+}
+
+static int snd_seq_open_noupdate(snd_seq_t **seqp, const char *name, 
+				 int streams, int mode)
+{
+	int err;
+	snd_config_t *seq_conf;
+	const char *args = strchr(name, ':');
+	char *base;
+	if (args) {
+		args++;
+		base = alloca(args - name);
+		memcpy(base, name, args - name - 1);
+		base[args - name - 1] = 0;
+	} else
+		base = (char *) name;
+	err = snd_config_search_alias(snd_config, "seq", base, &seq_conf);
+	if (err < 0) {
+		SNDERR("Unknown SEQ %s", name);
+		return err;
+	}
+	if (args) {
+		err = snd_config_expand(seq_conf, args, &seq_conf);
+		if (err < 0)
+			return err;
+	}
+	err = snd_seq_open_conf(seqp, name, seq_conf, streams, mode);
+	if (args)
+		snd_config_delete(seq_conf);
+	return err;
+}
+
+int snd_seq_open(snd_seq_t **seqp, const char *name, 
+		 int streams, int mode)
+{
+	int err;
+	assert(seqp && name);
+	err = snd_config_update();
+	if (err < 0)
+		return err;
+	return snd_seq_open_noupdate(seqp, name, streams, mode);
 }
 
 /*

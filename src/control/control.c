@@ -380,57 +380,38 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 	return 0;
 }
 
-/**
- * \brief Opens a CTL
- * \param ctlp Returned CTL handle
- * \param name ASCII identifier of the CTL handle
- * \param mode Open mode (see #SND_CTL_NONBLOCK, #SND_CTL_ASYNC)
- * \return 0 on success otherwise a negative error code
- */
-int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
+int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
+		      snd_config_t *ctl_conf, int mode)
 {
 	const char *str;
 	char buf[256];
 	int err;
-	snd_config_t *ctl_conf, *conf, *type_conf;
+	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_ctl_t **, const char *, snd_config_t *, int);
 	void *h;
-	const char *name1;
-	assert(ctlp && name);
-	err = snd_config_update();
-	if (err < 0)
-		return err;
-
-	err = snd_config_search_alias(snd_config, "ctl", name, &ctl_conf);
-	name1 = name;
-	if (err < 0 || snd_config_get_string(ctl_conf, &name1) >= 0) {
-		int card;
-		char socket[256], sname[256];
-		err = sscanf(name1, "hw:%d", &card);
-		if (err == 1)
-			return snd_ctl_hw_open(ctlp, name, card, mode);
-		err = sscanf(name1, "shm:%256[^,],%256[^,]", socket, sname);
-		if (err == 2)
-			return snd_ctl_shm_open(ctlp, name, socket, sname, mode);
-		SNDERR("Unknown ctl %s", name1);
-		return -ENOENT;
-	}
 	if (snd_config_get_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid type for %s", snd_config_get_id(ctl_conf));
+		if (name)
+			SNDERR("Invalid type for CTL %s definition", name);
+		else
+			SNDERR("Invalid type for CTL definition");
 		return -EINVAL;
 	}
 	err = snd_config_search(ctl_conf, "type", &conf);
-	if (err < 0)
+	if (err < 0) {
+		SNDERR("type is not defined");
 		return err;
+	}
 	err = snd_config_get_string(conf, &str);
-	if (err < 0)
+	if (err < 0) {
+		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
+	}
 	err = snd_config_search_alias(snd_config, "ctl_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for ctl type %s definition", str);
+			SNDERR("Invalid type for CTL type %s definition", str);
 			return -EINVAL;
 		}
 		snd_config_for_each(i, next, type_conf) {
@@ -440,14 +421,18 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 				continue;
 			if (strcmp(id, "lib") == 0) {
 				err = snd_config_get_string(n, &lib);
-				if (err < 0)
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
 					return -EINVAL;
+				}
 				continue;
 			}
 			if (strcmp(id, "open") == 0) {
 				err = snd_config_get_string(n, &open_name);
-				if (err < 0)
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
 					return -EINVAL;
+				}
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
@@ -472,6 +457,52 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 		return -ENXIO;
 	}
 	return open_func(ctlp, name, ctl_conf, mode);
+}
+
+int snd_ctl_open_noupdate(snd_ctl_t **ctlp, const char *name, int mode)
+{
+	int err;
+	snd_config_t *ctl_conf;
+	const char *args = strchr(name, ':');
+	char *base;
+	if (args) {
+		args++;
+		base = alloca(args - name);
+		memcpy(base, name, args - name - 1);
+		base[args - name - 1] = 0;
+	} else
+		base = (char *) name;
+	err = snd_config_search_alias(snd_config, "ctl", base, &ctl_conf);
+	if (err < 0) {
+		SNDERR("Unknown CTL %s", name);
+		return err;
+	}
+	if (args) {
+		err = snd_config_expand(ctl_conf, args, &ctl_conf);
+		if (err < 0)
+			return err;
+	}
+	err = snd_ctl_open_conf(ctlp, name, ctl_conf, mode);
+	if (args)
+		snd_config_delete(ctl_conf);
+	return err;
+}
+
+/**
+ * \brief Opens a CTL
+ * \param ctlp Returned CTL handle
+ * \param name ASCII identifier of the CTL handle
+ * \param mode Open mode (see #SND_CTL_NONBLOCK, #SND_CTL_ASYNC)
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
+{
+	int err;
+	assert(ctlp && name);
+	err = snd_config_update();
+	if (err < 0)
+		return err;
+	return snd_ctl_open_noupdate(ctlp, name, mode);
 }
 
 /**
