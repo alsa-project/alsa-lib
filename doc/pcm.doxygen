@@ -56,9 +56,47 @@ ALSA uses the ring buffer to store outgoing (playback) and incoming (capture,
 record) samples. There are two pointers being mantained to allow
 a precise communication between application and device pointing to current
 processed sample by hardware and last processed sample by application.
-The modern audio chips allows to program the transfer time periods.
+The modern audio chips allow to program the transfer time periods.
 It means that the stream of samples is divided to small chunks. Device
 acknowledges to application when the transfer of a chunk is complete.
+
+\section pcm_transfer Transfer methods in unix environments
+
+In the unix environment, data chunk acknowledges are received via standard I/O
+calls or event waiting routines (poll or select function). To accomplish
+this list, the asynchronous notification of acknowledges should be listed
+here. The ALSA implementation for these methods is described in
+the \ref alsa_transfers section.
+
+\subsection pcm_transfer_io Standard I/O transfers
+
+The standard I/O transfers are using the read (see 'man 2 read') and write
+(see 'man 2 write') C functions. There are two basic behaviours of these
+functions - blocked and non-blocked (see the O_NONBLOCK flag for the
+standard C open function - see 'man 2 open'). In non-blocked behaviour,
+these I/O functions never stops, they return -EAGAIN error code, when no
+data can be transferred (the ring buffer is full in our case). In blocked
+behaviour, these I/O functions stop and wait until there is a room in the
+ring buffer (playback) or until there are a new samples (capture). The ALSA
+implementation can be found in the \ref alsa_pcm_rw section.
+
+\subsection pcm_transfer_event Event waiting routines
+
+The poll or select functions (see 'man 2 poll' or 'man 2 select' for further
+details) allows to receive the acknowledges from the device while
+application can wait to events from other sources (like keyboard, screen,
+network etc.), too. The select function is old and deprecated in modern
+applications, so the ALSA library does not support it. The implemented
+transfer routines can be found in the \ref alsa_transfers section.
+
+\subsection pcm_transfer_async Asynchronous notification
+
+ALSA driver and library knows to handle the asynchronous notifications over
+the SIGIO signal. This signal allows to interrupt application and transfer
+data in the signal handler. For further details see the sigaction function
+('man 2 sigaction'). The section \ref pcm_async describes the ALSA API for
+this extension. The implemented transfer routines can be found in the
+\ref alsa_transfers section.
 
 \section pcm_open_behaviour Blocked and non-blocked open
 
@@ -153,5 +191,35 @@ range, thus you may get the significative bits for linear samples via
 chips support 32-bit sample processing, but low byte is ignored (playback)
 or zero (capture). The function \link ::snd_pcm_hw_params_get_sbits() \endlink
 returns 24 in the case.
+
+\section alsa_transfers ALSA transfers
+
+There are two methods to transfer samples in application. The first method
+is the standard read / write one. The second method, uses the direct audio
+buffer to communicate with the device while ALSA library manages this space
+itself.
+
+\subsection alsa_pcm_rw Read / Write transfer
+
+There are two versions of read / write routines. The first expects the
+interleaved samples at input, and the second one expects non-interleaved
+(samples in separated buffers) at input. There are these functions for
+interleaved transfers: \link ::snd_pcm_writei \endlink,
+\link ::snd_pcm_readi \endlink. For non-interleaved transfers, there are
+these functions: \link ::snd_pcm_writen \endlink and \link ::snd_pcm_readn
+\endlink.
+
+\subsection alsa_mmap_rw Direct Read / Write transfer (via mmaped areas)
+
+There are two functions for this kind of transfer. Application can get an
+access to memory areas via \link ::snd_pcm_mmap_begin \endlink function.
+This functions returns the areas (single area is equal to a channel)
+containing the direct pointers to memory and sample position description
+in \link ::snd_pcm_channel_area_t \endlink structure. After application
+transfers the data in the memory areas, then it must be acknowledged
+the end of transfer via \link ::snd_pcm_mmap_commit() \endlink function
+to allow the ALSA library update the pointers to ring buffer. This sort of
+communication is also called "zero-copy", because the device does not require
+to copy the samples from application to another place in system memory.
 
 */
