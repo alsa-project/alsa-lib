@@ -1350,12 +1350,11 @@ int snd_pcm_hw_strategy_simple_choices_next_value(snd_pcm_hw_params_t *params,
 	return -1;
 }
 
-int snd_pcm_hw_strategy_free(snd_pcm_hw_strategy_t *strategy)
+void snd_pcm_hw_strategy_free(snd_pcm_hw_strategy_t *strategy)
 {
 	if (strategy->free)
 		strategy->free(strategy);
 	free(strategy);
-	return 0;
 }
 
 int snd_pcm_hw_strategy_simple(snd_pcm_hw_strategy_t **strategyp,
@@ -2343,7 +2342,7 @@ int snd_pcm_hw_params_malloc(snd_pcm_hw_params_t **paramsp)
 	return 0;
 }
 
-int snd_pcm_hw_params_free(snd_pcm_hw_params_t *params)
+void snd_pcm_hw_params_free(snd_pcm_hw_params_t *params)
 {
 	free(params);
 }
@@ -2368,7 +2367,7 @@ int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **paramsp)
 	return 0;
 }
 
-int snd_pcm_sw_params_free(snd_pcm_sw_params_t *params)
+void snd_pcm_sw_params_free(snd_pcm_sw_params_t *params)
 {
 	free(params);
 }

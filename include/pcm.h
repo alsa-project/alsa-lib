@@ -228,7 +228,7 @@ int snd_pcm_set_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 
 /* Mask */
 size_t snd_mask_sizeof();
-#define snd_mask_alloca(maskp) ({(*maskp) = alloca(snd_mask_sizeof()); 0;})
+#define snd_mask_alloca(maskp) ({(*maskp) = (snd_mask_t *) alloca(snd_mask_sizeof()); 0;})
 int snd_mask_malloc(snd_mask_t **maskp);
 void snd_mask_free(snd_mask_t *mask);
 void snd_mask_none(snd_mask_t *mask);
@@ -239,9 +239,9 @@ void snd_mask_copy(snd_mask_t *dst, const snd_mask_t *src);
 
 /* HW params */
 size_t snd_pcm_hw_params_sizeof();
-#define snd_pcm_hw_params_alloca(paramsp) ({(*paramsp) = alloca(snd_pcm_hw_params_sizeof()); 0;})
+#define snd_pcm_hw_params_alloca(paramsp) ({(*paramsp) = (snd_pcm_hw_params_t *) alloca(snd_pcm_hw_params_sizeof()); 0;})
 int snd_pcm_hw_params_malloc(snd_pcm_hw_params_t **paramsp);
-int snd_pcm_hw_params_free(snd_pcm_hw_params_t *params);
+void snd_pcm_hw_params_free(snd_pcm_hw_params_t *params);
 void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t *src);
 
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
@@ -319,7 +319,7 @@ int snd_pcm_hw_params_strategy(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			       unsigned int badness_min,
 			       unsigned int badness_max);
 
-int snd_pcm_hw_strategy_free(snd_pcm_hw_strategy_t *strategy);
+void snd_pcm_hw_strategy_free(snd_pcm_hw_strategy_t *strategy);
 int snd_pcm_hw_strategy_simple(snd_pcm_hw_strategy_t **strategyp,
 			       unsigned int badness_min,
 			       unsigned int badness_max);
@@ -347,9 +347,9 @@ typedef enum _snd_pcm_sw_param {
 } snd_pcm_sw_param_t;
 
 size_t snd_pcm_sw_params_sizeof();
-#define snd_pcm_sw_params_alloca(paramsp) ({(*paramsp) = alloca(snd_pcm_sw_params_sizeof()); 0;})
+#define snd_pcm_sw_params_alloca(paramsp) ({(*paramsp) = (snd_pcm_sw_params_t *) alloca(snd_pcm_sw_params_sizeof()); 0;})
 int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **paramsp);
-int snd_pcm_sw_params_free(snd_pcm_sw_params_t *params);
+void snd_pcm_sw_params_free(snd_pcm_sw_params_t *params);
 void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t *src);
 
 int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
@@ -360,9 +360,9 @@ int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out);
 
 /* Info */
 size_t snd_pcm_info_sizeof();
-#define snd_pcm_info_alloca(infop) ({(*infop) = alloca(snd_pcm_info_sizeof()); 0;})
+#define snd_pcm_info_alloca(infop) ({(*infop) = (snd_pcm_info_t *) alloca(snd_pcm_info_sizeof()); 0;})
 int snd_pcm_info_malloc(snd_pcm_info_t **infop);
-int snd_pcm_info_free(snd_pcm_info_t *info);
+void snd_pcm_info_free(snd_pcm_info_t *info);
 void snd_pcm_info_copy(snd_pcm_info_t *dst, const snd_pcm_info_t *src);
 void snd_pcm_info_set_device(snd_pcm_info_t *info, unsigned int device);
 void snd_pcm_info_set_subdevice(snd_pcm_info_t *info, unsigned int subdevice);
@@ -381,9 +381,9 @@ unsigned int snd_pcm_info_subdevices_avail(snd_pcm_info_t *info);
 
 /* Status */
 size_t snd_pcm_status_sizeof();
-#define snd_pcm_status_alloca(statusp) ({(*statusp) = alloca(snd_pcm_status_sizeof()); 0;})
+#define snd_pcm_status_alloca(statusp) ({(*statusp) = (snd_pcm_status_t *) alloca(snd_pcm_status_sizeof()); 0;})
 int snd_pcm_status_malloc(snd_pcm_status_t **statusp);
-int snd_pcm_status_free(snd_pcm_status_t *status);
+void snd_pcm_status_free(snd_pcm_status_t *status);
 void snd_pcm_status_copy(snd_pcm_status_t *dst, const snd_pcm_status_t *src);
 
 snd_pcm_state_t snd_pcm_status_state(snd_pcm_status_t *status);

@@ -523,7 +523,7 @@ int snd_pcm_info_malloc(snd_pcm_info_t **infop)
 	return 0;
 }
 
-int snd_pcm_info_free(snd_pcm_info_t *info)
+void snd_pcm_info_free(snd_pcm_info_t *info)
 {
 	assert(info);
 	free(info);
@@ -634,7 +634,7 @@ int snd_pcm_status_malloc(snd_pcm_status_t **statusp)
 	return 0;
 }
 
-int snd_pcm_status_free(snd_pcm_status_t *status)
+void snd_pcm_status_free(snd_pcm_status_t *status)
 {
 	assert(status);
 	free(status);
