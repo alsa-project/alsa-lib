@@ -663,7 +663,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 /*! \page pcm_plugins
 
-\section pcm_plugins_snoop Plugin: dsnoop
+\section pcm_plugins_dsnoop Plugin: dsnoop
 
 This plugin splits one capture stream to more.
 It works the reverse way of \ref pcm_plugins_dmix "dmix plugin",

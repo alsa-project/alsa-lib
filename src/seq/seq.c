@@ -77,7 +77,7 @@ clients.  A port is corresponding to the MIDI port in the case of MIDI device,
 but in general it is nothing but the access point between other clients.
 Each port may have capability flags, which specify the read/write
 accessbility and subscription permissions of the port.
-For creation of a port, call #snd_seq_create_port() \endlink
+For creation of a port, call #snd_seq_create_port()
 with the appropirate port attribute specified in #snd_seq_port_info_t
 reocrd.
 

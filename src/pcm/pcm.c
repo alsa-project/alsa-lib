@@ -314,7 +314,7 @@ is equal or greater than this value, then application will be activated.
 
 The timestamp mode specifies, if timestamps are activated. Currently, only
 #SND_PCM_TSTAMP_NONE and #SND_PCM_TSTAMP_MMAP
-\endlink modes are known. The mmap mode means that timestamp is taken
+modes are known. The mmap mode means that timestamp is taken
 on every period time boundary.
 
 \par Minimal sleep
@@ -408,7 +408,7 @@ These functions directly and indirectly affecting the stream state:
 The #snd_pcm_hw_params() function brings the stream state
 to #SND_PCM_STATE_SETUP
 if successfully finishes, otherwise the state #SND_PCM_STATE_OPEN
-\endlink is entered.
+is entered.
 When it is brought to SETUP state, this function automatically
 calls #snd_pcm_prepar() function to bring to the PREPARE state
 as below.
@@ -1221,7 +1221,7 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
  * \link ::snd_pcm_poll_descriptors_count() \endlink function.
  *
  * For reading the returned events of poll descriptor after poll() system
- * call, use \link ::snd_pcm_poll_descriptors_revent() \endlink function.
+ * call, use \link ::snd_pcm_poll_descriptors_revents() \endlink function.
  * The field values in pollfd structs may be bogus.
  */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
