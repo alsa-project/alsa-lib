@@ -302,7 +302,10 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 
 	assert(card >= 0 && card < 32);
 	sprintf(filename, SNDRV_FILE_CONTROL, card);
-	fmode = O_RDWR;
+	if (mode & SND_CTL_READONLY)
+		fmode = O_RDONLY;
+	else
+		fmode = O_RDWR;
 	if (mode & SND_CTL_NONBLOCK)
 		fmode |= O_NONBLOCK;
 	if (mode & SND_CTL_ASYNC)

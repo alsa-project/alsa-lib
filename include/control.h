@@ -180,6 +180,9 @@ typedef enum _snd_ctl_type {
 /** Async notification (flag for open mode) \hideinitializer */
 #define SND_CTL_ASYNC			0x0002
 
+/** Read only (flag for open mode) \hideinitializer */
+#define SND_CTL_READONLY		0x0004
+
 /** CTL handle */
 typedef struct _snd_ctl snd_ctl_t;
 

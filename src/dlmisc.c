@@ -48,8 +48,6 @@ struct snd_dlsym_link *snd_dlsym_start = NULL;
  */
 void *snd_dlopen(const char *name, int mode)
 {
-	void *res;
-
 #ifndef PIC
 	if (name == NULL)
 		return &snd_dlsym_start;
