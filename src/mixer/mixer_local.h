@@ -32,11 +32,14 @@ typedef int (mixer_simple_event_add_t) (snd_mixer_t *handle, snd_hcontrol_t *hco
 
 #define MIXER_PRESENT_GLOBAL_SWITCH	(1<<0)
 #define MIXER_PRESENT_GLOBAL_VOLUME	(1<<1)
-#define MIXER_PRESENT_PLAYBACK_SWITCH	(1<<2)
-#define MIXER_PRESENT_PLAYBACK_VOLUME	(1<<3)
-#define MIXER_PRESENT_CAPTURE_SWITCH	(1<<4)
-#define MIXER_PRESENT_CAPTURE_VOLUME	(1<<5)
-#define MIXER_PRESENT_CAPTURE_SOURCE	(1<<6)
+#define MIXER_PRESENT_GLOBAL_ROUTE	(1<<2)
+#define MIXER_PRESENT_PLAYBACK_SWITCH	(1<<3)
+#define MIXER_PRESENT_PLAYBACK_VOLUME	(1<<4)
+#define MIXER_PRESENT_PLAYBACK_ROUTE	(1<<5)
+#define MIXER_PRESENT_CAPTURE_SWITCH	(1<<6)
+#define MIXER_PRESENT_CAPTURE_VOLUME	(1<<7)
+#define MIXER_PRESENT_CAPTURE_ROUTE	(1<<8)
+#define MIXER_PRESENT_CAPTURE_SOURCE	(1<<9)
 
 struct mixer_simple {
 	/* this may be moved to a private area */
@@ -47,6 +50,9 @@ struct mixer_simple {
 	unsigned int gvolume_values;
 	unsigned int pvolume_values;
 	unsigned int cvolume_values;
+	unsigned int groute_values;
+	unsigned int proute_values;
+	unsigned int croute_values;
 	unsigned int ccapture_values;
 	unsigned int capture_item;
 	unsigned int caps;

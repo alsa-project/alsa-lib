@@ -166,6 +166,21 @@ static int input_get_mute_switch(snd_mixer_t *handle, mixer_simple_t *simple, sn
 	return 0;
 }
 
+static int input_get_mute_route(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, int voices)
+{
+	char str[128];
+	snd_control_t ctl;
+	int idx, err;
+	
+	sprintf(str, "%s %sRoute", simple->sid.name, direction);
+	if ((err = get_mixer_read(handle, str, simple->sid.index, &ctl)) < 0)
+		return err;
+	for (idx = 0; idx < simple->voices && idx < 32; idx++)
+		if (ctl.value.integer.value[(idx * voices) + idx] == 0)
+			control->mute |= 1 << idx;
+	return 0;
+}
+
 static int input_get_capture_switch(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, int voices)
 {
 	char str[128];
@@ -177,6 +192,21 @@ static int input_get_capture_switch(snd_mixer_t *handle, mixer_simple_t *simple,
 		return err;
 	for (idx = 0; idx < simple->voices && idx < 32; idx++)
 		if (ctl.value.integer.value[voices == 1 ? 0 : idx])
+			control->capture |= 1 << idx;
+	return 0;
+}
+
+static int input_get_capture_route(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, int voices)
+{
+	char str[128];
+	snd_control_t ctl;
+	int idx, err;
+	
+	sprintf(str, "%s %sRoute", simple->sid.name, direction);
+	if ((err = get_mixer_read(handle, str, simple->sid.index, &ctl)) < 0)
+		return err;
+	for (idx = 0; idx < simple->voices && idx < 32; idx++)
+		if (ctl.value.integer.value[(idx * voices) + idx])
 			control->capture |= 1 << idx;
 	return 0;
 }
@@ -210,13 +240,19 @@ static int input_get(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simp
 	if (simple->caps & SND_MIXER_SCTCAP_MUTE) {
 		if (simple->present & MIXER_PRESENT_PLAYBACK_SWITCH) {
 			input_get_mute_switch(handle, simple, control, "Playback ", simple->pswitch_values);
-		} else if (simple->present & MIXER_PRESENT_GLOBAL_VOLUME) {
+		} else if (simple->present & MIXER_PRESENT_GLOBAL_SWITCH) {
 			input_get_mute_switch(handle, simple, control, "", simple->pvolume_values);
+		} else if (simple->present & MIXER_PRESENT_PLAYBACK_ROUTE) {
+			input_get_mute_route(handle, simple, control, "Playback ", simple->proute_values);
+		} else if (simple->present & MIXER_PRESENT_GLOBAL_ROUTE) {
+			input_get_mute_route(handle, simple, control, "", simple->groute_values);
 		}
 	}
 	if (simple->caps & SND_MIXER_SCTCAP_CAPTURE) {
 		if (simple->present & MIXER_PRESENT_CAPTURE_SWITCH) {
 			input_get_capture_switch(handle, simple, control, "Capture ", simple->cswitch_values);
+		} else if (simple->present & MIXER_PRESENT_CAPTURE_ROUTE) {
+			input_get_capture_route(handle, simple, control, "Capture ", simple->croute_values);
 		} else if (simple->present & MIXER_PRESENT_CAPTURE_SOURCE) {
 			snd_control_t ctl;
 			if ((err = get_mixer_read(handle, "Capture Source", 0, &ctl)) < 0)
@@ -256,10 +292,27 @@ static int input_put_mute_switch(snd_mixer_t *handle, mixer_simple_t *simple, sn
 	sprintf(str, "%s %sSwitch", simple->sid.name, direction);
 	if ((err = get_mixer_read(handle, str, simple->sid.index, &ctl)) < 0)
 		return err;
-	for (idx = 0; idx < voices && idx < 32; idx++) {
+	for (idx = 0; idx < voices && idx < 32; idx++)
 		ctl.value.integer.value[idx] = (control->mute & (1 << idx)) ? 0 : 1;
-		// fprintf(stderr, "ctl.id.name = '%s', switch = %i\n", ctl.id.name, ctl.value.integer.value[idx]);
-	}
+	err = put_mixer_write(handle, str, simple->sid.index, &ctl);
+	if ((err = put_mixer_write(handle, str, simple->sid.index, &ctl)) < 0)
+		return err;
+	return 0;
+}
+
+static int input_put_mute_route(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, int voices)
+{
+	char str[128];
+	snd_control_t ctl;
+	int idx, err;
+	
+	sprintf(str, "%s %sRoute", simple->sid.name, direction);
+	if ((err = get_mixer_read(handle, str, simple->sid.index, &ctl)) < 0)
+		return err;
+	for (idx = 0; idx < voices * voices; idx++)
+		ctl.value.integer.value[idx] = 0;
+	for (idx = 0; idx < voices && idx < 32; idx++)
+		ctl.value.integer.value[(idx * voices) + idx] = (control->mute & (1 << idx)) ? 0 : 1;
 	err = put_mixer_write(handle, str, simple->sid.index, &ctl);
 	if ((err = put_mixer_write(handle, str, simple->sid.index, &ctl)) < 0)
 		return err;
@@ -277,6 +330,24 @@ static int input_put_capture_switch(snd_mixer_t *handle, mixer_simple_t *simple,
 		return err;
 	for (idx = 0; idx < voices && idx < 32; idx++)
 		ctl.value.integer.value[idx] = (control->capture & (1 << idx)) ? 1 : 0;
+	if ((err = put_mixer_write(handle, str, simple->sid.index, &ctl)) < 0)
+		return err;
+	return 0;
+}
+
+static int input_put_capture_route(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, int voices)
+{
+	char str[128];
+	snd_control_t ctl;
+	int idx, err;
+	
+	sprintf(str, "%s %sRoute", simple->sid.name, direction);
+	if ((err = get_mixer_read(handle, str, simple->sid.index, &ctl)) < 0)
+		return err;
+	for (idx = 0; idx < voices * voices; idx++)
+		ctl.value.integer.value[idx] = 0;
+	for (idx = 0; idx < voices && idx < 32; idx++)
+		ctl.value.integer.value[(idx * voices) + idx] = (control->capture & (1 << idx)) ? 1 : 0;
 	if ((err = put_mixer_write(handle, str, simple->sid.index, &ctl)) < 0)
 		return err;
 	return 0;
@@ -303,12 +374,18 @@ static int input_put(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simp
 			input_put_mute_switch(handle, simple, control, "Playback ", simple->pswitch_values);
 		} else if (simple->present & MIXER_PRESENT_GLOBAL_VOLUME) {
 			input_put_mute_switch(handle, simple, control, "", simple->pvolume_values);
+		} else if (simple->present & MIXER_PRESENT_PLAYBACK_ROUTE) {
+			input_put_mute_route(handle, simple, control, "Playback ", simple->proute_values);
+		} else if (simple->present & MIXER_PRESENT_GLOBAL_ROUTE) {
+			input_put_mute_route(handle, simple, control, "", simple->groute_values);
 		}
 	}
 	if (simple->caps & SND_MIXER_SCTCAP_CAPTURE) {
 		// fprintf(stderr, "capture: present = 0x%x\n", simple->present);
 		if (simple->present & MIXER_PRESENT_CAPTURE_SWITCH) {
 			input_put_capture_switch(handle, simple, control, "Capture ", simple->cswitch_values);
+		} else if (simple->present & MIXER_PRESENT_CAPTURE_ROUTE) {
+			input_put_capture_route(handle, simple, control, "Capture ", simple->croute_values);
 		} else if (simple->present & MIXER_PRESENT_CAPTURE_SOURCE) {
 			snd_control_t ctl;
 			if ((err = get_mixer_read(handle, "Capture Source", 0, &ctl)) < 0)
@@ -348,6 +425,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 	int index = -1, err;
 	snd_control_info_t gswitch_info, pswitch_info, cswitch_info;
 	snd_control_info_t gvolume_info, pvolume_info, cvolume_info;
+	snd_control_info_t groute_info, proute_info, croute_info;
 	snd_control_info_t csource_info;
 	long min, max;
 	void *bag;
@@ -360,6 +438,9 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 	memset(&gvolume_info, 0, sizeof(gvolume_info));
 	memset(&pvolume_info, 0, sizeof(pvolume_info));
 	memset(&cvolume_info, 0, sizeof(cvolume_info));
+	memset(&groute_info, 0, sizeof(groute_info));
+	memset(&proute_info, 0, sizeof(proute_info));
+	memset(&croute_info, 0, sizeof(croute_info));
 	while (1) {
 		index++;
 		voices = 0;
@@ -375,6 +456,18 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 					voices = gswitch_info.values_count;
 				caps |= SND_MIXER_SCTCAP_MUTE;
 				present |= MIXER_PRESENT_GLOBAL_SWITCH;
+				hcontrol_add(handle, &bag, hcontrol);
+			}
+		}
+		sprintf(str, "%s Route", sname);
+		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
+			if ((err = get_mixer_info(handle, str, index, &groute_info)) < 0)
+				return err;
+			if (groute_info.type == SND_CONTROL_TYPE_BOOLEAN && groute_info.values_count == 4) {
+				if (voices < 2)
+					voices = 2;
+				caps |= SND_MIXER_SCTCAP_MUTE;
+				present |= MIXER_PRESENT_GLOBAL_ROUTE;
 				hcontrol_add(handle, &bag, hcontrol);
 			}
 		}
@@ -406,6 +499,18 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 				hcontrol_add(handle, &bag, hcontrol);
 			}
 		}
+		sprintf(str, "%s Playback Route", sname);
+		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
+			if ((err = get_mixer_info(handle, str, index, &proute_info)) < 0)
+				return err;
+			if (proute_info.type == SND_CONTROL_TYPE_BOOLEAN && proute_info.values_count == 4) {
+				if (voices < 2)
+					voices = 2;
+				caps |= SND_MIXER_SCTCAP_MUTE;
+				present |= MIXER_PRESENT_PLAYBACK_ROUTE;
+				hcontrol_add(handle, &bag, hcontrol);
+			}
+		}
 		sprintf(str, "%s Capture Switch", sname);
 		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &cswitch_info)) < 0)
@@ -415,6 +520,18 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 					voices = cswitch_info.values_count;
 				caps |= SND_MIXER_SCTCAP_CAPTURE;
 				present |= MIXER_PRESENT_CAPTURE_SWITCH;
+				hcontrol_add(handle, &bag, hcontrol);
+			}
+		}
+		sprintf(str, "%s Capture Route", sname);
+		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
+			if ((err = get_mixer_info(handle, str, index, &croute_info)) < 0)
+				return err;
+			if (croute_info.type == SND_CONTROL_TYPE_BOOLEAN && croute_info.values_count == 4) {
+				if (voices < 2)
+					voices = 2;
+				caps |= SND_MIXER_SCTCAP_CAPTURE;
+				present |= MIXER_PRESENT_CAPTURE_ROUTE;
 				hcontrol_add(handle, &bag, hcontrol);
 			}
 		}
@@ -482,7 +599,12 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			}
 		}
 		if (voices > 1) {
-			caps |= SND_MIXER_SCTCAP_JOINTLY_MUTE | SND_MIXER_SCTCAP_JOINTLY_CAPTURE | SND_MIXER_SCTCAP_JOINTLY_VOLUME;
+			if (present & (MIXER_PRESENT_GLOBAL_SWITCH|MIXER_PRESENT_GLOBAL_ROUTE|MIXER_PRESENT_PLAYBACK_SWITCH|MIXER_PRESENT_GLOBAL_SWITCH))
+				caps |= SND_MIXER_SCTCAP_JOINTLY_MUTE;
+			if (present & (MIXER_PRESENT_CAPTURE_SWITCH|MIXER_PRESENT_CAPTURE_ROUTE|MIXER_PRESENT_CAPTURE_SOURCE))
+				caps |= SND_MIXER_SCTCAP_JOINTLY_CAPTURE;
+			if (present & (MIXER_PRESENT_GLOBAL_VOLUME|MIXER_PRESENT_PLAYBACK_VOLUME|MIXER_PRESENT_CAPTURE_VOLUME))
+				caps |= SND_MIXER_SCTCAP_JOINTLY_VOLUME;
 			if (present & MIXER_PRESENT_GLOBAL_SWITCH) {
 				if (gswitch_info.values_count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_MUTE;
@@ -491,10 +613,14 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 				if (pswitch_info.values_count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_MUTE;
 			}
+			if (present & (MIXER_PRESENT_GLOBAL_ROUTE | MIXER_PRESENT_PLAYBACK_ROUTE))
+				caps &= ~SND_MIXER_SCTCAP_JOINTLY_MUTE;
 			if (present & MIXER_PRESENT_CAPTURE_SWITCH) {
 				if (cswitch_info.values_count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_CAPTURE;
 			}
+			if (present & MIXER_PRESENT_CAPTURE_ROUTE)
+				caps &= ~SND_MIXER_SCTCAP_JOINTLY_CAPTURE;
 			if (present & MIXER_PRESENT_GLOBAL_VOLUME) {
 				if (gswitch_info.values_count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_VOLUME;
@@ -522,6 +648,9 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 		simple->gvolume_values = gvolume_info.values_count;
 		simple->pvolume_values = pvolume_info.values_count;
 		simple->cvolume_values = cvolume_info.values_count;
+		simple->groute_values = 2;
+		simple->proute_values = 2;
+		simple->croute_values = 2;
 		simple->ccapture_values = csource_info.values_count;
 		simple->capture_item = capture_item;
 		simple->caps = caps;
