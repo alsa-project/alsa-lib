@@ -99,7 +99,7 @@ int snd_pcm_close(snd_pcm_t *pcm)
 	int err;
 	assert(pcm);
 	if (pcm->setup) {
-		if (pcm->mode & SND_PCM_NONBLOCK || 
+		if ((pcm->mode & SND_PCM_NONBLOCK) || 
 		    pcm->stream == SND_PCM_STREAM_CAPTURE)
 			snd_pcm_drop(pcm);
 		else
@@ -201,12 +201,13 @@ int snd_pcm_hw_free(snd_pcm_t *pcm)
 {
 	int err;
 	assert(pcm->setup);
-	assert(snd_pcm_state(pcm) <= SND_PCM_STATE_PREPARED);
 	if (pcm->mmap_channels) {
 		err = snd_pcm_munmap(pcm);
 		if (err < 0)
 			return err;
 	}
+	assert(snd_pcm_state(pcm) == SND_PCM_STATE_SETUP ||
+	       snd_pcm_state(pcm) == SND_PCM_STATE_PREPARED);
 	err = pcm->ops->hw_free(pcm->op_arg);
 	pcm->setup = 0;
 	if (err < 0)
@@ -592,6 +593,7 @@ static const char *snd_pcm_state_names[] = {
 	STATE(PREPARED),
 	STATE(RUNNING),
 	STATE(XRUN),
+	STATE(DRAINING),
 	STATE(PAUSED),
 	STATE(SUSPENDED),
 };
