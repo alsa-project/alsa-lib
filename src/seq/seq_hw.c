@@ -88,7 +88,7 @@ static int snd_seq_hw_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * in
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_CLIENT_INFO, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_CLIENT_INFO failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_CLIENT_INFO failed");*/
 		return -errno;
 	}
 	return 0;
@@ -98,7 +98,7 @@ static int snd_seq_hw_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * in
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_CLIENT_INFO, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SET_CLIENT_INFO failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_SET_CLIENT_INFO failed");*/
 		return -errno;
 	}
 	return 0;
@@ -108,7 +108,7 @@ static int snd_seq_hw_create_port(snd_seq_t *seq, snd_seq_port_info_t * port)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_CREATE_PORT, port) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_CREATE_PORT failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_CREATE_PORT failed");*/
 		return -errno;
 	}
 	return 0;
@@ -118,7 +118,7 @@ static int snd_seq_hw_delete_port(snd_seq_t *seq, snd_seq_port_info_t * port)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_DELETE_PORT, port) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_DELETE_PORT failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_DELETE_PORT failed");*/
 		return -errno;
 	}
 	return 0;
@@ -128,7 +128,7 @@ static int snd_seq_hw_get_port_info(snd_seq_t *seq, snd_seq_port_info_t * info)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_PORT_INFO, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_PORT_INFO failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_PORT_INFO failed");*/
 		return -errno;
 	}
 	return 0;
@@ -138,7 +138,7 @@ static int snd_seq_hw_set_port_info(snd_seq_t *seq, snd_seq_port_info_t * info)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_PORT_INFO, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SET_PORT_INFO failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_SET_PORT_INFO failed");*/
 		return -errno;
 	}
 	return 0;
@@ -148,7 +148,7 @@ static int snd_seq_hw_get_port_subscription(snd_seq_t *seq, snd_seq_port_subscri
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_SUBSCRIPTION, sub) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_SUBSCRIPTION failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_SUBSCRIPTION failed");*/
 		return -errno;
 	}
 	return 0;
@@ -158,7 +158,7 @@ static int snd_seq_hw_subscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t * 
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SUBSCRIBE_PORT, sub) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SUBSCRIBE_PORT failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_SUBSCRIBE_PORT failed");*/
 		return -errno;
 	}
 	return 0;
@@ -168,7 +168,7 @@ static int snd_seq_hw_unsubscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t 
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_UNSUBSCRIBE_PORT, sub) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_UNSUBSCRIBE_PORT failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_UNSUBSCRIBE_PORT failed");*/
 		return -errno;
 	}
 	return 0;
@@ -178,7 +178,7 @@ static int snd_seq_hw_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subsc
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_QUERY_SUBS, subs) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_QUERY_SUBS failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_QUERY_SUBS failed");*/
 		return -errno;
 	}
 	return 0;
@@ -188,7 +188,7 @@ static int snd_seq_hw_get_queue_status(snd_seq_t *seq, snd_seq_queue_status_t * 
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_QUEUE_STATUS, status) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_STATUS failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_STATUS failed");*/
 		return -errno;
 	}
 	return 0;
@@ -198,7 +198,7 @@ static int snd_seq_hw_get_queue_tempo(snd_seq_t *seq, snd_seq_queue_tempo_t * te
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_QUEUE_TEMPO, tempo) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_TEMPO failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_TEMPO failed");*/
 		return -errno;
 	}
 	return 0;
@@ -208,7 +208,7 @@ static int snd_seq_hw_set_queue_tempo(snd_seq_t *seq, snd_seq_queue_tempo_t * te
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO, tempo) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO failed");*/
 		return -errno;
 	}
 	return 0;
@@ -218,7 +218,7 @@ static int snd_seq_hw_get_queue_timer(snd_seq_t *seq, snd_seq_queue_timer_t * ti
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_QUEUE_TIMER, timer) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_TIMER failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_TIMER failed");*/
 		return -errno;
 	}
 	return 0;
@@ -228,7 +228,7 @@ static int snd_seq_hw_set_queue_timer(snd_seq_t *seq, snd_seq_queue_timer_t * ti
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_QUEUE_TIMER, timer) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_TIMER failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_TIMER failed");*/
 		return -errno;
 	}
 	return 0;
@@ -238,7 +238,7 @@ static int snd_seq_hw_get_queue_client(snd_seq_t *seq, snd_seq_queue_client_t * 
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_QUEUE_CLIENT, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_CLIENT failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_CLIENT failed");*/
 		return -errno;
 	}
 	return 0;
@@ -248,7 +248,7 @@ static int snd_seq_hw_set_queue_client(snd_seq_t *seq, snd_seq_queue_client_t * 
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_QUEUE_CLIENT, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_CLIENT failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_CLIENT failed");*/
 		return -errno;
 	}
 	return 0;
@@ -258,7 +258,7 @@ static int snd_seq_hw_create_queue(snd_seq_t *seq, snd_seq_queue_info_t *info)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_CREATE_QUEUE, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_CREATE_QUEUE failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_CREATE_QUEUE failed");*/
 		return -errno;
 	}
 	return 0;
@@ -268,7 +268,7 @@ static int snd_seq_hw_delete_queue(snd_seq_t *seq, snd_seq_queue_info_t *info)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_DELETE_QUEUE, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_DELETE_QUEUE failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_DELETE_QUEUE failed");*/
 		return -errno;
 	}
 	return 0;
@@ -278,7 +278,7 @@ static int snd_seq_hw_get_queue_info(snd_seq_t *seq, snd_seq_queue_info_t *info)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_QUEUE_INFO, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_INFO failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_INFO failed");*/
 		return -errno;
 	}
 	return 0;
@@ -288,7 +288,7 @@ static int snd_seq_hw_set_queue_info(snd_seq_t *seq, snd_seq_queue_info_t *info)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_QUEUE_INFO, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_INFO failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_INFO failed");*/
 		return -errno;
 	}
 	return 0;
@@ -298,7 +298,7 @@ static int snd_seq_hw_get_named_queue(snd_seq_t *seq, snd_seq_queue_info_t *info
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_NAMED_QUEUE, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_NAMED_QUEUE failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_NAMED_QUEUE failed");*/
 		return -errno;
 	}
 	return 0;
@@ -326,7 +326,7 @@ static int snd_seq_hw_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_REMOVE_EVENTS, rmp) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_REMOVE_EVENTS failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_REMOVE_EVENTS failed");*/
 		return -errno;
 	}
 	return 0;
@@ -336,7 +336,7 @@ static int snd_seq_hw_get_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *inf
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_CLIENT_POOL, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_CLIENT_POOL failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_GET_CLIENT_POOL failed");*/
 		return -errno;
 	}
 	return 0;
@@ -346,7 +346,7 @@ static int snd_seq_hw_set_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *inf
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_CLIENT_POOL, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SET_CLIENT_POOL failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_SET_CLIENT_POOL failed");*/
 		return -errno;
 	}
 	return 0;
@@ -356,7 +356,7 @@ static int snd_seq_hw_query_next_client(snd_seq_t *seq, snd_seq_client_info_t *i
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_QUERY_NEXT_CLIENT, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_QUERY_NEXT_CLIENT failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_QUERY_NEXT_CLIENT failed");*/
 		return -errno;
 	}
 	return 0;
@@ -366,7 +366,7 @@ static int snd_seq_hw_query_next_port(snd_seq_t *seq, snd_seq_port_info_t *info)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_QUERY_NEXT_PORT, info) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_QUERY_NEXT_PORT failed");
+		/*SYSERR("SNDRV_SEQ_IOCTL_QUERY_NEXT_PORT failed");*/
 		return -errno;
 	}
 	return 0;
