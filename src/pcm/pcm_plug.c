@@ -507,6 +507,23 @@ static int snd_pcm_plug_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t 
 	return 0;	
 }
 
+static int snd_pcm_plug_channel_update(snd_pcm_t *pcm, int channel)
+{
+	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
+	int err;
+	err = snd_pcm_channel_update(plug->slave, channel);
+	if (err < 0)
+		return err;
+	if (snd_pcm_plug_direct(pcm, channel))
+		return 0;
+#if 0
+	/* To think more about that */
+	if ((err = snd_pcm_plug_action(pcm, channel, UPDATE, 0))<0)
+		return err;
+#endif
+	return 0;
+}
+
 static int snd_pcm_plug_channel_prepare(snd_pcm_t *pcm, int channel)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
@@ -769,6 +786,7 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 	channel_setup: snd_pcm_plug_channel_setup,
 	voice_setup: snd_pcm_plug_voice_setup,
 	channel_status: snd_pcm_plug_channel_status,
+	channel_update: snd_pcm_plug_channel_update,
 	channel_prepare: snd_pcm_plug_channel_prepare,
 	channel_go: snd_pcm_plug_channel_go,
 	sync_go: snd_pcm_plug_sync_go,

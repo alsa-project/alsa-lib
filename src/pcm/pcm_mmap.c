@@ -131,7 +131,6 @@ static ssize_t snd_pcm_mmap_playback_bytes_used(snd_pcm_t *pcm)
 {
 	struct snd_pcm_chan *chan;
 	ssize_t bytes_used;
-	// snd_pcm_update_pos(pcm, SND_PCM_CHANNEL_PLAYBACK);
 	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
 	bytes_used = chan->mmap_control->pos_data - chan->mmap_control->pos_io;
 	if (bytes_used < (ssize_t)(chan->setup.buffer_size - chan->setup.pos_boundary))
@@ -143,7 +142,6 @@ static size_t snd_pcm_mmap_capture_bytes_used(snd_pcm_t *pcm)
 {
 	struct snd_pcm_chan *chan;
 	ssize_t bytes_used;
-	// snd_pcm_update_pos(pcm, SND_PCM_CHANNEL_CAPTURE);
 	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
 	bytes_used = chan->mmap_control->pos_io - chan->mmap_control->pos_data;
 	if (bytes_used < 0)
@@ -319,6 +317,8 @@ static ssize_t snd_pcm_mmap_write1(snd_pcm_t *pcm, const void *data, size_t coun
 			}
                 }
 	}
+	if (chan->mode & SND_PCM_NONBLOCK)
+		snd_pcm_channel_update(pcm, SND_PCM_CHANNEL_PLAYBACK);
 	while (count > 0) {
 		size_t bytes;
 		int ready = snd_pcm_mmap_playback_ready(pcm);
@@ -583,6 +583,8 @@ static ssize_t snd_pcm_mmap_read1(snd_pcm_t *pcm, void *data, size_t count, tran
 		if (err < 0)
 			return err;
 	}
+	if (chan->mode & SND_PCM_NONBLOCK)
+		snd_pcm_channel_update(pcm, SND_PCM_CHANNEL_CAPTURE);
 	while (count > 0) {
 		size_t bytes;
 		int ready = snd_pcm_mmap_capture_ready(pcm);

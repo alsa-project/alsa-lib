@@ -139,6 +139,16 @@ static int snd_pcm_hw_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t * 
 	return 0;
 }
 
+static int snd_pcm_hw_channel_update(snd_pcm_t *pcm, int channel)
+{
+	int fd;
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
+	fd = hw->chan[channel].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_UPDATE) < 0)
+		return -errno;
+	return 0;
+}
+
 static int snd_pcm_hw_channel_prepare(snd_pcm_t *pcm, int channel)
 {
 	int fd;
@@ -329,6 +339,7 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	channel_setup: snd_pcm_hw_channel_setup,
 	voice_setup: snd_pcm_hw_voice_setup,
 	channel_status: snd_pcm_hw_channel_status,
+	channel_update: snd_pcm_hw_channel_update,
 	channel_prepare: snd_pcm_hw_channel_prepare,
 	channel_go: snd_pcm_hw_channel_go,
 	sync_go: snd_pcm_hw_sync_go,

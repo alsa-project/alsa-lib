@@ -275,6 +275,22 @@ int snd_pcm_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t *status)
 	return pcm->ops->channel_status(pcm, status);
 }
 
+int snd_pcm_channel_update(snd_pcm_t *pcm, int channel)
+{
+	int err;
+	if (!pcm)
+		return -EFAULT;
+	if (channel < 0 || channel > 1)
+		return -EINVAL;
+	if (!pcm->chan[channel].open)
+		return -EBADFD;
+	err = pcm->ops->channel_update(pcm, channel);
+	if (err < 0)
+		return err;
+	snd_pcm_mmap_status_change(pcm, channel, -1);
+	return 0;
+}
+
 int snd_pcm_channel_prepare(snd_pcm_t *pcm, int channel)
 {
 	int err;

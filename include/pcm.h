@@ -113,6 +113,7 @@ int snd_pcm_capture_flush(snd_pcm_t *handle);
 int snd_pcm_channel_flush(snd_pcm_t *handle, int channel);
 int snd_pcm_playback_pause(snd_pcm_t *handle, int enable);
 int snd_pcm_channel_pause(snd_pcm_t *handle, int channel, int enable);
+int snd_pcm_channel_update(snd_pcm_t *handle, int channel);
 ssize_t snd_pcm_transfer_size(snd_pcm_t *handle, int channel);
 ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size);
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size);

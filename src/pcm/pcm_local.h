@@ -33,6 +33,7 @@ struct snd_pcm_ops {
 	int (*voice_setup)(snd_pcm_t *pcm, int channel, snd_pcm_voice_setup_t *setup);
 	int (*channel_status)(snd_pcm_t *pcm, snd_pcm_channel_status_t *status);
 	int (*channel_prepare)(snd_pcm_t *pcm, int channel);
+	int (*channel_update)(snd_pcm_t *pcm, int channel);
 	int (*channel_go)(snd_pcm_t *pcm, int channel);
 	int (*sync_go)(snd_pcm_t *pcm, snd_pcm_sync_t *sync);
 	int (*channel_drain)(snd_pcm_t *pcm, int channel);
