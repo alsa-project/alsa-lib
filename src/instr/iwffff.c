@@ -39,8 +39,8 @@
 
 #ifndef DOC_HIDDEN
 
-#define IW_RAM_FILE		"/proc/asound/%i/gus-ram-%i"
-#define IW_ROM_FILE		"/proc/asound/%i/gus-rom-%i"
+#define IW_RAM_FILE		"/proc/asound/card%i/gus-ram-%i"
+#define IW_ROM_FILE		"/proc/asound/card%i/gus-rom-%i"
 
 #undef IW_ROM_DEBUG
 
@@ -208,6 +208,10 @@ static int iwffff_get_rom_header(int card, int bank, iwffff_rom_header_t *header
 		close(fd);
 		return -EIO;
 	}
+	if (lseek(fd, IWFFFF_ROM_HDR_SIZE, SEEK_SET) < 0) {
+	        close(fd);
+		return -errno;
+	}
 	return fd;
 }
 
@@ -276,7 +280,10 @@ int snd_instr_iwffff_open(snd_iwffff_handle_t **handle, const char *name_fff, co
  * \param card card number
  * \param bank ROM bank number (0-3)
  * \param file ROM file number
- * \return 0 on success otherwise a negative error code
+ * \return 0 on success otherwise a negative \c errno code
+ *
+ * Opens \a file in \a bank in the ROM image of card \a card, and
+ * writes a handle pointer into \a *handle. 
  */
 int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, int file)
 {
@@ -291,7 +298,7 @@ int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, 
 	*handle = NULL;
 	idx = 0;
 	if (bank > 3 || file > 255)
-		return -1; 
+		return -ENOENT;
 	fd = iwffff_get_rom_header(card, bank, &header);
 	if (fd < 0)
 		return fd;
