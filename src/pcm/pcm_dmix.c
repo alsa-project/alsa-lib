@@ -73,19 +73,24 @@ typedef void (mix_areas1_t)(unsigned int size,
 			volatile signed int *sum, unsigned int dst_step,
 			unsigned int src_step, unsigned int sum_step);
 
+typedef void (mix_areas2_t)(unsigned int size,
+			volatile signed int *dst, signed int *src,
+			volatile signed int *sum, unsigned int dst_step,
+			unsigned int src_step, unsigned int sum_step);
+
 /*
  *
  */
 
 struct slave_params {
 	snd_pcm_format_t format;
-	unsigned int rate;
-	unsigned int channels;
-	unsigned int period_time;
-	unsigned int buffer_time;
-	snd_pcm_uframes_t period_size;
-	snd_pcm_uframes_t buffer_size;
-	unsigned int periods;
+	int rate;
+	int channels;
+	int period_time;
+	int buffer_time;
+	snd_pcm_sframes_t period_size;
+	snd_pcm_sframes_t buffer_size;
+	int periods;
 };
 
 typedef struct {
@@ -128,6 +133,7 @@ typedef struct {
 	snd_timer_t *timer; /* timer used as poll_fd */
 	int interleaved; /* we have interleaved buffer */
 	mix_areas1_t *mix_areas1;
+	mix_areas2_t *mix_areas2;
 } snd_pcm_dmix_t;
 
 /*
@@ -585,18 +591,22 @@ static int check_interleave(snd_pcm_dmix_t *dmix, snd_pcm_t *pcm)
 
 #define MIX_AREAS1 mix_areas1
 #define MIX_AREAS1_MMX mix_areas1_mmx
+#define MIX_AREAS2 mix_areas2
 #define LOCK_PREFIX ""
 #include "pcm_dmix_i386.h"
 #undef MIX_AREAS1
 #undef MIX_AREAS1_MMX
+#undef MIX_AREAS2
 #undef LOCK_PREFIX
 
 #define MIX_AREAS1 mix_areas1_smp
 #define MIX_AREAS1_MMX mix_areas1_smp_mmx
+#define MIX_AREAS2 mix_areas2_smp
 #define LOCK_PREFIX "lock ; "
 #include "pcm_dmix_i386.h"
 #undef MIX_AREAS1
 #undef MIX_AREAS1_MMX
+#undef MIX_AREAS2
 #undef LOCK_PREFIX
  
 static void mix_select_callbacks(snd_pcm_dmix_t *dmix)
@@ -627,6 +637,7 @@ static void mix_select_callbacks(snd_pcm_dmix_t *dmix)
 	} else {
 		dmix->mix_areas1 = smp > 1 ? mix_areas1_smp : mix_areas1;
 	}
+	dmix->mix_areas2 = smp > 1 ? mix_areas2_smp : mix_areas2;
 }
 #endif
 
@@ -661,9 +672,40 @@ static void mix_areas1(unsigned int size,
 	}
 }
 
+#warning Please, recode mix_areas2() routine to your architecture...
+static void mix_areas2(unsigned int size,
+		       volatile signed int *dst, signed int *src,
+		       volatile signed int *sum, unsigned int dst_step,
+		       unsigned int src_step, unsigned int sum_step)
+{
+	register signed int sample, old_sample;
+
+	while (size-- > 0) {
+		sample = *src >> 8;
+		old_sample = *sum;
+		if (*dst == 0)
+			sample -= old_sample;
+		*sum += sample;
+		do {
+			old_sample = *sum;
+			if (old_sample > 0x7fffff)
+				sample = 0x7fffff;
+			else if (old_sample < -0x800000)
+				sample = -0x800000;
+			else
+				sample = old_sample;
+			*dst = sample;
+		} while (*sum != old_sample);
+		((char *)src) += src_step;
+		((char *)dst) += dst_step;
+		((char *)sum) += sum_step;
+	}
+}
+
 static void mix_select_callbacks(snd_pcm_dmix_t *dmix)
 {
 	dmix->mix_areas1 = mix_areas1;
+	dmix->mix_areas2 = mix_areas2;
 }
 #endif
 
@@ -674,34 +716,61 @@ static void mix_areas(snd_pcm_dmix_t *dmix,
 		      snd_pcm_uframes_t dst_ofs,
 		      snd_pcm_uframes_t size)
 {
-	signed short *src;
-	volatile signed short *dst;
 	volatile signed int *sum;
 	unsigned int src_step, dst_step;
 	unsigned int chn, channels;
 	
 	channels = dmix->shmptr->s.channels;
-	if (dmix->interleaved) {
-		/*
-		 * process all areas in one loop
-		 * it optimizes the memory accesses for this case
-		 */
-		dmix->mix_areas1(size * channels,
-				 ((signed short *)dst_areas[0].addr) + (dst_ofs * channels),
-				 ((signed short *)src_areas[0].addr) + (src_ofs * channels),
-				 dmix->sum_buffer + (dst_ofs * channels),
-				 sizeof(signed short),
-				 sizeof(signed short),
-				 sizeof(signed int));
-		return;
-	}
-	for (chn = 0; chn < channels; chn++) {
-		src_step = src_areas[chn].step / 8;
-		dst_step = dst_areas[chn].step / 8;
-		src = (signed short *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
-		dst = (signed short *)(((char *)dst_areas[chn].addr + dst_areas[chn].first / 8) + (dst_ofs * dst_step));
-		sum = dmix->sum_buffer + channels * dst_ofs + chn;
-		dmix->mix_areas1(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
+	if (dmix->shmptr->s.format == SND_PCM_FORMAT_S16) {
+		signed short *src;
+		volatile signed short *dst;
+		if (dmix->interleaved) {
+			/*
+			 * process all areas in one loop
+			 * it optimizes the memory accesses for this case
+			 */
+			dmix->mix_areas1(size * channels,
+					 ((signed short *)dst_areas[0].addr) + (dst_ofs * channels),
+					 ((signed short *)src_areas[0].addr) + (src_ofs * channels),
+					 dmix->sum_buffer + (dst_ofs * channels),
+					 sizeof(signed short),
+					 sizeof(signed short),
+					 sizeof(signed int));
+			return;
+		}
+		for (chn = 0; chn < channels; chn++) {
+			src_step = src_areas[chn].step / 8;
+			dst_step = dst_areas[chn].step / 8;
+			src = (signed short *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
+			dst = (signed short *)(((char *)dst_areas[chn].addr + dst_areas[chn].first / 8) + (dst_ofs * dst_step));
+			sum = dmix->sum_buffer + channels * dst_ofs + chn;
+			dmix->mix_areas1(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
+		}
+	} else {
+		signed int *src;
+		volatile signed int *dst;
+		if (dmix->interleaved) {
+			/*
+			 * process all areas in one loop
+			 * it optimizes the memory accesses for this case
+			 */
+			dmix->mix_areas2(size * channels,
+					 ((signed int *)dst_areas[0].addr) + (dst_ofs * channels),
+					 ((signed int *)src_areas[0].addr) + (src_ofs * channels),
+					 dmix->sum_buffer + (dst_ofs * channels),
+					 sizeof(signed int),
+					 sizeof(signed int),
+					 sizeof(signed int));
+			return;
+		}
+		for (chn = 0; chn < channels; chn++) {
+			src_step = src_areas[chn].step / 8;
+			dst_step = dst_areas[chn].step / 8;
+			src = (signed int *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
+			dst = (signed int *)(((char *)dst_areas[chn].addr + dst_areas[chn].first / 8) + (dst_ofs * dst_step));
+			sum = dmix->sum_buffer + channels * dst_ofs + chn;
+			dmix->mix_areas2(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
+		}
 	}
 }
 
@@ -845,7 +914,7 @@ static int hw_param_interval_refine_one(snd_pcm_hw_params_t *params,
 		return 0;
 	i = hw_param_interval(params, var);
 	if (snd_interval_empty(i)) {
-		SNDERR("dmix interval %i empty?\n", (int)var);
+		SNDERR("dmix interval %i empty?", (int)var);
 		return -EINVAL;
 	}
 	if (snd_interval_refine(i, hw_param_interval(src, var)))
@@ -876,7 +945,7 @@ static int snd_pcm_dmix_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 	if (params->rmask & (1<<SND_PCM_HW_PARAM_ACCESS)) {
 		if (snd_mask_empty(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS))) {
-			SNDERR("dmix access mask empty?\n");
+			SNDERR("dmix access mask empty?");
 			return -EINVAL;
 		}
 		if (snd_mask_refine(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS), &access))
@@ -884,7 +953,7 @@ static int snd_pcm_dmix_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	}
 	if (params->rmask & (1<<SND_PCM_HW_PARAM_FORMAT)) {
 		if (snd_mask_empty(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT))) {
-			SNDERR("dmix format mask empty?\n");
+			SNDERR("dmix format mask empty?");
 			return -EINVAL;
 		}
 		if (snd_mask_refine_set(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT),
@@ -1268,10 +1337,16 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 	int ret, buffer_is_not_initialized;
 	snd_pcm_uframes_t boundary;
 	struct pollfd fd;
+	int loops = 10;
 
 	hw_params = &dmix->shmptr->hw_params;
 	sw_params = &dmix->shmptr->sw_params;
 
+      __again:
+      	if (loops-- <= 0) {
+      		SNDERR("unable to find a valid configuration for slave");
+      		return -EINVAL;
+      	}
 	ret = snd_pcm_hw_params_any(spcm, hw_params);
 	if (ret < 0) {
 		SNDERR("snd_pcm_hw_params_any failed");
@@ -1287,13 +1362,43 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 	}
 	ret = snd_pcm_hw_params_set_format(spcm, hw_params, params->format);
 	if (ret < 0) {
-		SNDERR("requested format is not available");
-		return ret;
+		snd_pcm_format_t format;
+		switch (params->format) {
+		case SND_PCM_FORMAT_S32: format = SND_PCM_FORMAT_S16; break;
+		case SND_PCM_FORMAT_S16: format = SND_PCM_FORMAT_S32; break;
+		default:
+			SNDERR("invalid format");
+			return -EINVAL;
+		}
+		ret = snd_pcm_hw_params_set_format(spcm, hw_params, format);
+		if (ret < 0) {
+			SNDERR("requested or auto-format is not available");
+			return ret;
+		}
+		params->format = format;
 	}
 	ret = snd_pcm_hw_params_set_channels(spcm, hw_params, params->channels);
 	if (ret < 0) {
-		SNDERR("requested count of channels is not available");
-		return ret;
+		unsigned int min, max;
+		ret = INTERNAL(snd_pcm_hw_params_get_channels_min)(hw_params, &min);
+		if (ret < 0) {
+			SNDERR("cannot obtain minimal count of channels");
+			return ret;
+		}
+		ret = INTERNAL(snd_pcm_hw_params_get_channels_min)(hw_params, &max);
+		if (ret < 0) {
+			SNDERR("cannot obtain maximal count of channels");
+			return ret;
+		}
+		if (min == max) {
+			ret = snd_pcm_hw_params_set_channels(spcm, hw_params, min);
+			if (ret >= 0)
+				params->channels = min;
+		}
+		if (ret < 0) {
+			SNDERR("requested count of channels is not available");
+			return ret;
+		}
 	}
 	ret = INTERNAL(snd_pcm_hw_params_set_rate_near)(spcm, hw_params, &params->rate, 0);
 	if (ret < 0) {
@@ -1333,9 +1438,22 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 	}		
 	
 	if (buffer_is_not_initialized && params->periods > 0) {
+		int periods = params->periods;
 		ret = INTERNAL(snd_pcm_hw_params_set_periods_near)(spcm, hw_params, &params->periods, 0);
 		if (ret < 0) {
 			SNDERR("unable to set requested periods");
+			return ret;
+		}
+		if (params->periods == 1) {
+			params->periods = periods;
+			if (params->period_time > 0) {
+				params->period_time /= 2;
+				goto __again;
+			} else if (params->period_size > 0) {
+				params->period_size /= 2;
+				goto __again;
+			}
+			SNDERR("unable to use stream with periods == 1");
 			return ret;
 		}
 	}
@@ -1354,22 +1472,22 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 
 	ret = snd_pcm_sw_params_get_boundary(sw_params, &boundary);
 	if (ret < 0) {
-		SNDERR("unable to get boundary\n");
+		SNDERR("unable to get boundary");
 		return ret;
 	}
 	ret = snd_pcm_sw_params_set_stop_threshold(spcm, sw_params, boundary);
 	if (ret < 0) {
-		SNDERR("unable to set stop threshold\n");
+		SNDERR("unable to set stop threshold");
 		return ret;
 	}
 	ret = snd_pcm_sw_params_set_silence_threshold(spcm, sw_params, 0);
 	if (ret < 0) {
-		SNDERR("unable to set silence threshold\n");
+		SNDERR("unable to set silence threshold");
 		return ret;
 	}
 	ret = snd_pcm_sw_params_set_silence_size(spcm, sw_params, boundary);
 	if (ret < 0) {
-		SNDERR("unable to set silence threshold (please upgrade to 0.9.0rc8+ driver)\n");
+		SNDERR("unable to set silence threshold (please upgrade to 0.9.0rc8+ driver)");
 		return ret;
 	}
 
@@ -1381,12 +1499,12 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 	
 	ret = snd_pcm_start(spcm);
 	if (ret < 0) {
-		SNDERR("unable to start PCM stream\n");
+		SNDERR("unable to start PCM stream");
 		return ret;
 	}
 
 	if (snd_pcm_poll_descriptors_count(spcm) != 1) {
-		SNDERR("unable to use hardware pcm with fd more than one!!!\n");
+		SNDERR("unable to use hardware pcm with fd more than one!!!");
 		return ret;
 	}
 	snd_pcm_poll_descriptors(spcm, &fd, 1);
@@ -1421,7 +1539,7 @@ static int snd_pcm_dmix_initialize_poll_fd(snd_pcm_dmix_t *dmix)
 	snd_timer_params_alloca(&params);
 	ret = snd_pcm_info(dmix->spcm, info);
 	if (ret < 0) {
-		SNDERR("unable to info for slave pcm\n");
+		SNDERR("unable to info for slave pcm");
 		return ret;
 	}
 	sprintf(name, "hw:CLASS=%i,SCLASS=0,CARD=%i,DEV=%i,SUBDEV=%i",
@@ -1431,18 +1549,18 @@ static int snd_pcm_dmix_initialize_poll_fd(snd_pcm_dmix_t *dmix)
 				snd_pcm_info_get_subdevice(info) * 2);	/* it's a bit trick to distict playback and capture */
 	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK);
 	if (ret < 0) {
-		SNDERR("unable to open timer '%s'\n", name);
+		SNDERR("unable to open timer '%s'", name);
 		return ret;
 	}
 	snd_timer_params_set_auto_start(params, 1);
 	snd_timer_params_set_ticks(params, 1);
 	ret = snd_timer_params(dmix->timer, params);
 	if (ret < 0) {
-		SNDERR("unable to set timer parameters\n", name);
+		SNDERR("unable to set timer parameters", name);
                 return ret;
 	}
 	if (snd_timer_poll_descriptors_count(dmix->timer) != 1) {
-		SNDERR("unable to use timer with fd more than one!!!\n", name);
+		SNDERR("unable to use timer with fd more than one!!!", name);
 		return ret;
 	}
 	snd_timer_poll_descriptors(dmix->timer, &fd, 1);
@@ -1496,7 +1614,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 	ret = semaphore_create_or_connect(dmix);
 	if (ret < 0) {
-		SNDERR("unable to create IPC semaphore\n");
+		SNDERR("unable to create IPC semaphore");
 		goto _err;
 	}
 	
@@ -1508,7 +1626,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		
 	first_instance = ret = shm_create_or_connect(dmix);
 	if (ret < 0) {
-		SNDERR("unable to create IPC shm instance\n");
+		SNDERR("unable to create IPC shm instance");
 		goto _err;
 	}
 		
@@ -1520,7 +1638,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	if (first_instance) {
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
 		if (ret < 0) {
-			SNDERR("unable to open slave\n");
+			SNDERR("unable to open slave");
 			goto _err;
 		}
 	
@@ -1531,7 +1649,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		
 		ret = snd_pcm_dmix_initialize_slave(dmix, spcm, params);
 		if (ret < 0) {
-			SNDERR("unable to initialize slave\n");
+			SNDERR("unable to initialize slave");
 			goto _err;
 		}
 
@@ -1539,7 +1657,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		
 		ret = server_create(dmix);
 		if (ret < 0) {
-			SNDERR("unable to create server\n");
+			SNDERR("unable to create server");
 			goto _err;
 		}
 
@@ -1547,13 +1665,13 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	} else {
 		ret = client_connect(dmix);
 		if (ret < 0) {
-			SNDERR("unable to connect client\n");
+			SNDERR("unable to connect client");
 			return ret;
 		}
 			
 		ret = snd_pcm_hw_open_fd(&spcm, "dmix_client", dmix->hw_fd, 0);
 		if (ret < 0) {
-			SNDERR("unable to open hardware\n");
+			SNDERR("unable to open hardware");
 			goto _err;
 		}
 		
@@ -1566,7 +1684,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		spcm->boundary = dmix->shmptr->s.boundary;
 		ret = snd_pcm_mmap(spcm);
 		if (ret < 0) {
-			SNDERR("unable to mmap channels\n");
+			SNDERR("unable to mmap channels");
 			goto _err;
 		}
 		dmix->spcm = spcm;
@@ -1574,13 +1692,13 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 	ret = shm_sum_create_or_connect(dmix);
 	if (ret < 0) {
-		SNDERR("unabel to initialize sum ring buffer\n");
+		SNDERR("unabel to initialize sum ring buffer");
 		goto _err;
 	}
 
 	ret = snd_pcm_dmix_initialize_poll_fd(dmix);
 	if (ret < 0) {
-		SNDERR("unable to initialize poll_fd\n");
+		SNDERR("unable to initialize poll_fd");
 		goto _err;
 	}
 
@@ -1756,7 +1874,13 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 
-	assert(params.format == SND_PCM_FORMAT_S16); /* sorry, limited features */
+	/* sorry, limited features */
+	if (params.format != SND_PCM_FORMAT_S16 &&
+	    params.format != SND_PCM_FORMAT_S32) {
+		SNDERR("invalid format, specify s16 or s32");
+		snd_config_delete(sconf);
+		return -EINVAL;
+	}
 
 	params.period_size = psize;
 	params.buffer_size = bsize;

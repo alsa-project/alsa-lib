@@ -114,8 +114,7 @@ static void MIX_AREAS1(unsigned int size,
 		"\t.p2align 4,,15\n"
 
 		"4:"
-		"\tmovw $0x7fff, %%ax\n"
-		"\tmovw %%ax, (%%edi)\n"
+		"\tmovw $0x7fff, (%%edi)\n"
 		"\tcmpl %%ecx,(%%ebx)\n"
 		"\tjnz 3b\n"
 		"\tadd %4, %%edi\n"
@@ -132,8 +131,7 @@ static void MIX_AREAS1(unsigned int size,
 		"\t.p2align 4,,15\n"
 
 		"5:"
-		"\tmovw $-0x8000, %%ax\n"
-		"\tmovw %%ax, (%%edi)\n"
+		"\tmovw $-0x8000, (%%edi)\n"
 		"\tcmpl %%ecx, (%%ebx)\n"
 		"\tjnz 3b\n"
 		"\tadd %4, %%edi\n"
@@ -240,3 +238,132 @@ static void MIX_AREAS1_MMX(unsigned int size,
 		: "esi", "edi", "edx", "ecx", "ebx", "eax"
 	);
 }
+
+/*
+ *  for plain i386, 32-bit version (24-bit resolution)
+ */
+static void MIX_AREAS2(unsigned int size,
+		       volatile signed int *dst, signed int *src,
+		       volatile signed int *sum, unsigned int dst_step,
+		       unsigned int src_step, unsigned int sum_step)
+{
+	/*
+	 *  ESI - src
+	 *  EDI - dst
+	 *  EBX - sum
+	 *  ECX - old sample
+	 *  EAX - sample / temporary
+	 *  EDX - temporary
+	 */
+	__asm__ __volatile__ (
+		"\n"
+
+		/*
+		 *  initialization, load ESI, EDI, EBX registers
+		 */
+		"\tmovl %1, %%edi\n"
+		"\tmovl %2, %%esi\n"
+		"\tmovl %3, %%ebx\n"
+
+		/*
+		 * while (size-- > 0) {
+		 */
+		"\tcmp $0, %0\n"
+		"jz 6f\n"
+
+		"\t.p2align 4,,15\n"
+
+		"1:"
+
+		/*
+		 *   sample = *src;
+		 *   sum_sample = *sum;
+		 *   if (cmpxchg(*dst, 0, 1) == 0)
+		 *     sample -= sum_sample;
+		 *   xadd(*sum, sample);
+		 */
+		"\tmovl $0, %%eax\n"
+		"\tmovl $1, %%ecx\n"
+		"\tmovl (%%ebx), %%edx\n"
+		"\t" LOCK_PREFIX "cmpxchgl %%ecx, (%%edi)\n"
+		"\tjnz 2f\n"
+		"\tmovl (%%esi), %%ecx\n"
+		"\tshr $8, %%ecx\n"
+		"\tsubl %%edx, %%ecx\n"
+		"2:"
+		"\tmovl (%%esi), %%ecx\n"
+		"\tshr $8, %%ecx\n"
+		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
+
+		/*
+		 *   do {
+		 *     sample = old_sample = *sum;
+		 *     saturate(v);
+		 *     *dst = sample;
+		 *   } while (v != *sum);
+		 */
+
+		"3:"
+		"\tmovl (%%ebx), %%ecx\n"
+		"\tcmpl $0x7fffff,%%ecx\n"
+		"\tjg 4f\n"
+		"\tcmpl $-0x800000,%%ecx\n"
+		"\tjl 5f\n"
+		"\tmov %%ecx, %%eax\n"
+		"\tshl $8, %%eax\n"
+		"\tmovl %%eax, (%%edi)\n"
+		"\tcmpl %%ecx, (%%ebx)\n"
+		"\tjnz 3b\n"
+
+		/*
+		 * while (size-- > 0)
+		 */
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
+		"\tdecl %0\n"
+		"\tjnz 1b\n"
+		"\tjmp 6f\n"
+
+		/*
+		 *  sample > 0x7fff00
+		 */
+
+		"\t.p2align 4,,15\n"
+
+		"4:"
+		"\tmovl $0x7fffffff, (%%edi)\n"
+		"\tcmpl %%ecx,(%%ebx)\n"
+		"\tjnz 3b\n"
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
+		"\tdecl %0\n"
+		"\tjnz 1b\n"
+		"\tjmp 6f\n"
+
+		/*
+		 *  sample < -0x800000
+		 */
+
+		"\t.p2align 4,,15\n"
+
+		"5:"
+		"\tmovl $-0x80000000, (%%edi)\n"
+		"\tcmpl %%ecx, (%%ebx)\n"
+		"\tjnz 3b\n"
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
+		"\tdecl %0\n"
+		"\tjnz 1b\n"
+		// "\tjmp 6f\n"
+		
+		"6:"
+
+		: /* no output regs */
+		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
+		: "esi", "edi", "edx", "ecx", "ebx", "eax"
+	);
+}
+

@@ -451,3 +451,5 @@ pcm.ladspa {
 # aplay -D"plug:'dmix:RATE=44100'" <filename>
 # an example command for dmix plugin to force 44100Hz and hw:1,0 output device
 # aplay -Dplug:\'dmix:SLAVE=\"hw:1,0\",RATE=44100\' <filename>
+# an example command for dmix plugin to force 32-bit signed little endian format
+# aplay -D"plug:'dmix:FORMAT=S32_LE'" <filename>
