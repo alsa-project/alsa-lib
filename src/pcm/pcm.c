@@ -452,7 +452,6 @@ int snd_pcm_dump_status(snd_pcm_status_t *status, FILE *fp)
 		status->tstamp.tv_sec, status->tstamp.tv_usec);
 	fprintf(fp, "delay       : %ld\n", (long)status->delay);
 	fprintf(fp, "avail_max   : %ld\n", (long)status->avail_max);
-	fprintf(fp, "xruns       : %ld\n", (long)status->xruns);
 	fprintf(fp, "appl_ptr    : %ld\n", (long)status->appl_ptr);
 	fprintf(fp, "hw_ptr      : %ld\n", (long)status->hw_ptr);
 	fprintf(fp, "avail       : %ld\n", (long)status->avail);
