@@ -400,7 +400,6 @@ static void free_envelope(iwffff_env_t *envp)
 		free(rec);
 		rec = nrec;
 	}
-	free(envp);
 }
 
 static void free_layer(iwffff_layer_t *layer)
