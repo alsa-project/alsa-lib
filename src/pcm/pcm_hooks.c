@@ -803,3 +803,6 @@ int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 		snd_config_delete(pcm_conf);
 	return err;
 }
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(_snd_pcm_hook_ctl_elems_install, SND_PCM_DLSYM_VERSION);
+#endif
