@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(src/control/control.c)
-AM_INIT_AUTOMAKE(alsa-lib, 0.5.5)
+AM_INIT_AUTOMAKE(alsa-lib, 0.5.6)
 eval LIBTOOL_VERSION_INFO="1:0:0"
 AM_CONDITIONAL(INSTALL_M4, test "x${ACLOCAL}" = "xaclocal")
 
