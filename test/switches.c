@@ -1,36 +1,177 @@
 #include <stdio.h>
 #include <string.h>
+#include <malloc.h>
+#include <errno.h>
 #include "../include/asoundlib.h"
+
+static void *ctl_handle;
+static int sw_interface;
+static int sw_device;
 
 const char *get_type(unsigned int type)
 {
 	switch (type) {
-	case 0:
+	case SND_SW_TYPE_BOOLEAN:
 		return "Boolean";
-	case 1:
+	case SND_SW_TYPE_BYTE:
 		return "Byte";
-	case 2:
+	case SND_SW_TYPE_WORD:
 		return "Word";
-	case 3:
-		return "DWord";
-	case 4:
+	case SND_SW_TYPE_DWORD:
+		return "Double Word";
+	case SND_SW_TYPE_LIST:
+		return "List";
+	case SND_SW_TYPE_LIST_ITEM:
+		return "List Item";
+	case SND_SW_TYPE_USER:
 		return "User";
 	default:
 		return "Unknown";
 	}
 }
 
+const char *get_interface(void)
+{
+	switch (sw_interface) {
+	case 0:
+		return "control";
+	case 1:
+		return "mixer";
+	case 2:
+		return "PCM playback";
+	case 3:
+		return "PCM record";
+	case 4:
+		return "rawmidi output";
+	case 5:
+		return "rawmidi input";
+	default:
+		return "unknown";
+	}
+}
+
+int switch_list(snd_switch_list_t *list)
+{
+	switch (sw_interface) {
+	case 0:
+		return snd_ctl_switch_list(ctl_handle, list);
+	case 1:
+		return snd_ctl_mixer_switch_list(ctl_handle, sw_device, list);
+	case 2:
+		return snd_ctl_pcm_playback_switch_list(ctl_handle, sw_device, list);
+	case 3:
+		return snd_ctl_pcm_record_switch_list(ctl_handle, sw_device, list);
+	case 4:
+		return snd_ctl_rawmidi_output_switch_list(ctl_handle, sw_device, list);
+	case 5:
+		return snd_ctl_rawmidi_input_switch_list(ctl_handle, sw_device, list);
+	default:
+		return -ENOLINK;
+	}
+}
+
+int switch_read(snd_switch_t *sw)
+{
+	switch (sw_interface) {
+	case 0:
+		return snd_ctl_switch_read(ctl_handle, sw);
+	case 1:
+		return snd_ctl_mixer_switch_read(ctl_handle, sw_device, sw);
+	case 2:
+		return snd_ctl_pcm_playback_switch_read(ctl_handle, sw_device, sw);
+	case 3:
+		return snd_ctl_pcm_record_switch_write(ctl_handle, sw_device, sw);
+	case 4:
+		return snd_ctl_rawmidi_output_switch_read(ctl_handle, sw_device, sw);
+	case 5:
+		return snd_ctl_rawmidi_input_switch_read(ctl_handle, sw_device, sw);
+	default:
+		return -ENOLINK;
+	}
+}
+
+int switch_write(snd_switch_t *sw)
+{
+	switch (sw_interface) {
+	case 0:
+		return snd_ctl_switch_write(ctl_handle, sw);
+	case 1:
+		return snd_ctl_mixer_switch_write(ctl_handle, sw_device, sw);
+	case 2:
+		return snd_ctl_pcm_playback_switch_write(ctl_handle, sw_device, sw);
+	case 3:
+		return snd_ctl_pcm_record_switch_write(ctl_handle, sw_device, sw);
+	case 4:
+		return snd_ctl_rawmidi_output_switch_write(ctl_handle, sw_device, sw);
+	case 5:
+		return snd_ctl_rawmidi_input_switch_write(ctl_handle, sw_device, sw);
+	default:
+		return -ENOLINK;
+	}
+} 
+
+void print_switch(char *space, char *prefix, snd_switch_t *sw)
+{
+	snd_switch_t sw1;
+	int low, err;
+
+	printf("%s%s : '%s' [%s]\n", space, prefix, sw->name, get_type(sw->type));
+	if (sw->type == SND_SW_TYPE_LIST) {
+		for (low = sw->low; low <= sw->high; low++) {
+			memcpy(&sw1, sw,  sizeof(sw1));
+			sw1.type = SND_SW_TYPE_LIST_ITEM;
+			sw1.low = sw1.high = low;
+			if ((err = switch_read(&sw1)) < 0) {
+				printf("Switch list item read failed for %s interface and device %i: %s\n", get_interface(), sw_device, snd_strerror(err));
+				continue;
+			}
+			printf("  %s%s : '%s' [%s] {%s}\n", space, prefix, sw1.name, get_type(sw1.type), sw1.value.item);
+		}
+	}
+}
+
+void process(char *space, char *prefix, int interface, int device)
+{
+	snd_switch_list_t list;
+	snd_switch_t sw;
+	int err, idx;
+
+	sw_interface = interface;
+	sw_device = device;
+	bzero(&list, sizeof(list));
+	if ((err = switch_list(&list)) < 0) {
+		printf("Switch listing failed for the %s interface and the device %i: %s\n", get_interface(), device, snd_strerror(err));
+		return;
+	}
+	if (list.switches_over <= 0)
+		return;
+	list.switches_size = list.switches_over + 16;
+	list.switches = list.switches_over = 0;
+	list.pswitches = malloc(sizeof(snd_switch_list_item_t) * list.switches_size);
+	if (!list.pswitches) {
+		printf("No enough memory... (%i switches)\n", list.switches_size);
+		return;
+	}
+	if ((err = switch_list(&list)) < 0) {
+		printf("Second switch listing failed for the %s interface and the device %i: %s\n", get_interface(), device, snd_strerror(err));
+		return;
+	}
+	for (idx = 0; idx < list.switches; idx++) {
+		bzero(&sw, sizeof(sw));
+		strncpy(sw.name, list.pswitches[idx].name, sizeof(sw.name));
+		if ((err = switch_read(&sw)) < 0) {
+			printf("Switch read failed for the %s interface and the device %i: %s\n", get_interface(), device, snd_strerror(err));
+			continue;
+		}
+		print_switch(space, prefix, &sw);
+	}
+	free(list.pswitches);
+}
+
 void main(void)
 {
-	int cards, card, device, direction, idx, count, err;
-	void *handle, *chandle;
-	struct snd_ctl_hw_info info;
-	struct snd_ctl_switch ctl_switch;
-	snd_mixer_switch_t mixer_switch;
-	snd_pcm_info_t pcm_info;
-	snd_pcm_switch_t pcm_switch;
-	snd_rawmidi_switch_t rmidi_switch;
-	snd_rawmidi_info_t rmidi_info;
+	int cards, card, err, idx;
+	snd_ctl_hw_info_t info;
 
 	cards = snd_cards();
 	printf("Detected %i soundcard%s...\n", cards, cards > 1 ? "s" : "");
@@ -40,191 +181,22 @@ void main(void)
 	}
 	/* control interface */
 	for (card = 0; card < cards; card++) {
-		if ((err = snd_ctl_open(&handle, card)) < 0) {
+		if ((err = snd_ctl_open(&ctl_handle, card)) < 0) {
 			printf("CTL open error: %s\n", snd_strerror(err));
 			continue;
 		}
-		if ((err = snd_ctl_hw_info(handle, &info)) < 0) {
-			printf("CTL hw info error: %s\n", snd_strerror(err));
+		if ((err = snd_ctl_hw_info(ctl_handle, &info)) < 0) {
+			printf("HWINFO error: %s\n", snd_strerror(err));
 			continue;
 		}
-		if ((count = snd_ctl_switches(handle)) < 0) {
-			printf("CTL switches error: %s\n", snd_strerror(count));
-			continue;
+		printf("CARD %i:\n", card);
+		process("  ", "Control", 0, 0);
+		for (idx = 0; idx < info.mixerdevs; idx++)
+			process("  ", "Mixer", 1, idx);
+		for (idx = 0; idx < info.pcmdevs; idx++) {
+			process("  ", "PCM playback", 2, idx);
+			process("  ", "PCM record", 3, idx);
 		}
-		for (idx = 0; idx < count; idx++) {
-			if ((err = snd_ctl_switch_read(handle, idx, &ctl_switch)) < 0) {
-				printf("CTL switch read error: %s\n", snd_strerror(count));
-				continue;
-			}
-			printf("CTL switch: '%s' %s (%i-%i)\n", ctl_switch.name, get_type(ctl_switch.type), ctl_switch.low, ctl_switch.high);
-			if ((err = snd_ctl_switch_write(handle, idx, &ctl_switch)) < 0) {
-				printf("CTL switch write error: %s\n", snd_strerror(count));
-				continue;
-			}
-		}
-		if (count <= 0)
-			printf("No CTL switches detected for soundcard #%i '%s'...\n", idx, info.name);
-		snd_ctl_close(handle);
+		snd_ctl_close(ctl_handle);
 	}
-
-	/* mixer interface */
-	for (card = 0; card < cards; card++) {
-		if ((err = snd_ctl_open(&handle, card)) < 0) {
-			printf("CTL open error: %s\n", snd_strerror(err));
-			continue;
-		}
-		if ((err = snd_ctl_hw_info(handle, &info)) < 0) {
-			printf("CTL hw info error: %s\n", snd_strerror(err));
-			continue;
-		}
-		snd_ctl_close(handle);
-		for (device = 0; device < info.mixerdevs; device++) {
-			if ((err = snd_mixer_open(&handle, card, device)) < 0) {
-				printf("Mixer open error: %s\n", snd_strerror(err));
-				continue;
-			}
-			if ((count = snd_mixer_switches(handle)) < 0) {
-				printf("Mixer switches error: %s\n", snd_strerror(count));
-				continue;
-			}
-			for (idx = 0; idx < count; idx++) {
-				if ((err = snd_mixer_switch_read(handle, idx, &mixer_switch)) < 0) {
-					printf("Mixer switch read error: %s\n", snd_strerror(count));
-					continue;
-				}
-				printf("Mixer switch: '%s' %s (%i-%i)\n", mixer_switch.name, get_type(mixer_switch.type), mixer_switch.low, mixer_switch.high);
-				if ((err = snd_mixer_switch_write(handle, idx, &mixer_switch)) < 0) {
-					printf("Mixer switch write error: %s\n", snd_strerror(count));
-					continue;
-				}
-			}
-			if (count <= 0)
-				printf("No mixer switches detected for soundcard #%i '%s'...\n", idx, info.name);
-			snd_mixer_close(handle);
-		}
-	}
-
-	/* pcm switches */
-	for (card = 0; card < cards; card++) {
-		if ((err = snd_ctl_open(&chandle, card)) < 0) {
-			printf("CTL open error: %s\n", snd_strerror(err));
-			continue;
-		}
-		if ((err = snd_ctl_hw_info(chandle, &info)) < 0) {
-			printf("CTL hw info error: %s\n", snd_strerror(err));
-			continue;
-		}
-		for (device = 0; device < info.pcmdevs; device++) {
-			if ((err = snd_ctl_pcm_info(chandle, device, &pcm_info)) < 0) {
-				printf("CTL PCM info error: %s\n", snd_strerror(err));
-				continue;
-			}
-			for (direction = 0; direction < 2; direction++) {
-				int (*switches) (void *handle);
-				int (*switch_read) (void *handle, int switchn, snd_pcm_switch_t * data);
-				int (*switch_write) (void *handle, int switchn, snd_pcm_switch_t * data);
-				char *str;
-
-				if (!(pcm_info.flags & (!direction ? SND_PCM_INFO_PLAYBACK : SND_PCM_INFO_RECORD)))
-					continue;
-				if ((err = snd_pcm_open(&handle, card, device, !direction ? SND_PCM_OPEN_PLAYBACK : SND_PCM_OPEN_RECORD)) < 0) {
-					printf("PCM open error: %s\n", snd_strerror(err));
-					continue;
-				}
-				if (!direction) {
-					switches = snd_pcm_playback_switches;
-					switch_read = snd_pcm_playback_switch_read;
-					switch_write = snd_pcm_playback_switch_write;
-					str = "playback";
-				} else {
-					switches = snd_pcm_record_switches;
-					switch_read = snd_pcm_record_switch_read;
-					switch_write = snd_pcm_record_switch_write;
-					str = "record";
-				}
-				if ((count = switches(handle)) < 0) {
-					printf("PCM %s switches error: %s\n", str, snd_strerror(count));
-					continue;
-				}
-				for (idx = 0; idx < count; idx++) {
-					if ((err = switch_read(handle, idx, &pcm_switch)) < 0) {
-						printf("PCM %s switch read error: %s\n", str, snd_strerror(count));
-						continue;
-					}
-					printf("PCM switch: '%s' %s (%i-%i)\n", pcm_switch.name, get_type(pcm_switch.type), pcm_switch.low, pcm_switch.high);
-					if ((err = switch_write(handle, idx, &pcm_switch)) < 0) {
-						printf("PCM %s switch write error: %s\n", str, snd_strerror(count));
-						continue;
-					}
-				}
-				if (count <= 0)
-					printf("No PCM %s switches detected for soundcard #%i/#%i '%s'/'%s'...\n", str, idx, device, info.name, pcm_info.name);
-				snd_pcm_close(handle);
-			}
-		}
-		snd_ctl_close(chandle);
-	}
-
-	/* rawmidi switches */
-	for (card = 0; card < cards; card++) {
-		if ((err = snd_ctl_open(&chandle, card)) < 0) {
-			printf("CTL open error: %s\n", snd_strerror(err));
-			continue;
-		}
-		if ((err = snd_ctl_hw_info(chandle, &info)) < 0) {
-			printf("CTL hw info error: %s\n", snd_strerror(err));
-			continue;
-		}
-		for (device = 0; device < info.mididevs; device++) {
-			if ((err = snd_ctl_rawmidi_info(chandle, device, &rmidi_info)) < 0) {
-				printf("CTL RawMIDI info error: %s\n", snd_strerror(err));
-				continue;
-			}
-			for (direction = 0; direction < 2; direction++) {
-				int (*switches) (void *handle);
-				int (*switch_read) (void *handle, int switchn, snd_rawmidi_switch_t * data);
-				int (*switch_write) (void *handle, int switchn, snd_rawmidi_switch_t * data);
-				char *str;
-
-				if (!(pcm_info.flags & (!direction ? SND_RAWMIDI_INFO_OUTPUT : SND_RAWMIDI_INFO_INPUT)))
-					continue;
-				if ((err = snd_rawmidi_open(&handle, card, device, !direction ? SND_RAWMIDI_OPEN_OUTPUT : SND_RAWMIDI_OPEN_INPUT)) < 0) {
-					printf("RawMIDI CTL open error: %s\n", snd_strerror(err));
-					continue;
-				}
-				if (!direction) {
-					switches = snd_rawmidi_output_switches;
-					switch_read = snd_rawmidi_output_switch_read;
-					switch_write = snd_rawmidi_output_switch_write;
-					str = "output";
-				} else {
-					switches = snd_rawmidi_input_switches;
-					switch_read = snd_rawmidi_input_switch_read;
-					switch_write = snd_rawmidi_input_switch_write;
-					str = "input";
-				}
-				if ((count = switches(handle)) < 0) {
-					printf("RawMIDI %s switches error: %s\n", str, snd_strerror(count));
-					continue;
-				}
-				for (idx = 0; idx < count; idx++) {
-					if ((err = switch_read(handle, idx, &rmidi_switch)) < 0) {
-						printf("RawMIDI %s switch read error: %s\n", str, snd_strerror(count));
-						continue;
-					}
-					printf("RawMIDI switch: '%s' %s (%i-%i)\n", rmidi_switch.name, get_type(rmidi_switch.type), rmidi_switch.low, rmidi_switch.high);
-					if ((err = switch_write(handle, idx, &rmidi_switch)) < 0) {
-						printf("RawMIDI %s switch write error: %s\n", str, snd_strerror(count));
-						continue;
-					}
-				}
-				if (count <= 0)
-					printf("No RawMIDI %s switches detected for soundcard #%i/#%i '%s'/'%s'...\n", str, idx, device, info.name, rmidi_info.name);
-				snd_rawmidi_close(handle);
-			}
-		}
-		snd_ctl_close(chandle);
-	}
-
 }

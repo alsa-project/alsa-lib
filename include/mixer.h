@@ -34,9 +34,9 @@ int snd_mixer_channel_output_read(void *handle, int channel, snd_mixer_channel_d
 int snd_mixer_channel_output_write(void *handle, int channel, snd_mixer_channel_direction_t * data);
 int snd_mixer_channel_input_read(void *handle, int channel, snd_mixer_channel_direction_t * data);
 int snd_mixer_channel_input_write(void *handle, int channel, snd_mixer_channel_direction_t * data);
-int snd_mixer_switches(void *handle);
-int snd_mixer_switch_read(void *handle, int switchn, snd_mixer_switch_t * data);
-int snd_mixer_switch_write(void *handle, int switchn, snd_mixer_switch_t * data);
+int snd_mixer_switch_list(void *handle, snd_switch_list_t * list);
+int snd_mixer_switch_read(void *handle, snd_switch_t * sw);
+int snd_mixer_switch_write(void *handle, snd_switch_t * sw);
 int snd_mixer_read(void *handle, snd_mixer_callbacks_t * callbacks);
 
 #ifdef __cplusplus

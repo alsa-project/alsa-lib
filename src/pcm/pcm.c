@@ -151,126 +151,74 @@ int snd_pcm_record_info(void *handle, snd_pcm_record_info_t * info)
 	return 0;
 }
 
-int snd_pcm_playback_switches(void *handle)
-{
-	snd_pcm_t *pcm;
-	int result;
-
-	pcm = (snd_pcm_t *) handle;
-	if (!pcm)
-		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PSWITCHES, &result) < 0)
-		return -errno;
-	return result;
-}
-
-int snd_pcm_playback_switch(void *handle, const char *switch_id)
-{
-	snd_pcm_t *pcm;
-	snd_pcm_switch_t uswitch;
-	int idx, switches, err;
-
-	pcm = (snd_pcm_t *) handle;
-	if (!pcm || !switch_id)
-		return -EINVAL;
-	/* bellow implementation isn't optimized for speed */
-	/* info about switches should be cached in the snd_mixer_t structure */
-	if ((switches = snd_pcm_playback_switches(handle)) < 0)
-		return switches;
-	for (idx = 0; idx < switches; idx++) {
-		if ((err = snd_pcm_playback_switch_read(handle, idx, &uswitch)) < 0)
-			return err;
-		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
-			return idx;
-	}
-	return -EINVAL;
-}
-
-int snd_pcm_playback_switch_read(void *handle, int switchn, snd_pcm_switch_t * data)
+int snd_pcm_playback_switch_list(void *handle, snd_switch_list_t * list)
 {
 	snd_pcm_t *pcm;
 
 	pcm = (snd_pcm_t *) handle;
-	if (!pcm || !data || switchn < 0)
+	if (!pcm || !list)
 		return -EINVAL;
-	bzero(data, sizeof(snd_pcm_switch_t));
-	data->switchn = switchn;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PSWITCH_READ, data) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_PSWITCH_LIST, &list) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_pcm_playback_switch_write(void *handle, int switchn, snd_pcm_switch_t * data)
+int snd_pcm_playback_switch_read(void *handle, snd_switch_t * sw)
 {
 	snd_pcm_t *pcm;
 
 	pcm = (snd_pcm_t *) handle;
-	if (!pcm || !data || switchn < 0)
+	if (!pcm || !sw || sw->name[0] == '\0')
 		return -EINVAL;
-	data->switchn = switchn;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PSWITCH_WRITE, data) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_PSWITCH_READ, sw) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_pcm_record_switches(void *handle)
-{
-	snd_pcm_t *pcm;
-	int result;
-
-	pcm = (snd_pcm_t *) handle;
-	if (!pcm)
-		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_RSWITCHES, &result) < 0)
-		return -errno;
-	return result;
-}
-
-int snd_pcm_record_switch(void *handle, const char *switch_id)
-{
-	snd_pcm_t *pcm;
-	snd_pcm_switch_t uswitch;
-	int idx, switches, err;
-
-	pcm = (snd_pcm_t *) handle;
-	if (!pcm || !switch_id)
-		return -EINVAL;
-	/* bellow implementation isn't optimized for speed */
-	/* info about switches should be cached in the snd_mixer_t structure */
-	if ((switches = snd_pcm_record_switches(handle)) < 0)
-		return switches;
-	for (idx = 0; idx < switches; idx++) {
-		if ((err = snd_pcm_record_switch_read(handle, idx, &uswitch)) < 0)
-			return err;
-		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
-			return idx;
-	}
-	return -EINVAL;
-}
-
-int snd_pcm_record_switch_read(void *handle, int switchn, snd_pcm_switch_t * data)
+int snd_pcm_playback_switch_write(void *handle, snd_switch_t * sw)
 {
 	snd_pcm_t *pcm;
 
 	pcm = (snd_pcm_t *) handle;
-	if (!pcm || !data || switchn < 0)
+	if (!pcm || !sw || sw->name[0] == '\0')
 		return -EINVAL;
-	bzero(data, sizeof(snd_pcm_switch_t));
-	data->switchn = switchn;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_RSWITCH_READ, data) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_PSWITCH_WRITE, sw) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_pcm_record_switch_write(void *handle, int switchn, snd_pcm_switch_t * data)
+int snd_pcm_record_switch_list(void *handle, snd_switch_list_t * list)
 {
 	snd_pcm_t *pcm;
 
 	pcm = (snd_pcm_t *) handle;
-	if (!pcm || !data || switchn < 0)
+	if (!pcm || !list)
 		return -EINVAL;
-	data->switchn = switchn;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_RSWITCH_WRITE, data) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_RSWITCH_LIST, list) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_pcm_record_switch_read(void *handle, snd_switch_t * sw)
+{
+	snd_pcm_t *pcm;
+
+	pcm = (snd_pcm_t *) handle;
+	if (!pcm || !sw || sw->name[0] == '\0')
+		return -EINVAL;
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_RSWITCH_READ, sw) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_pcm_record_switch_write(void *handle, snd_switch_t * sw)
+{
+	snd_pcm_t *pcm;
+
+	pcm = (snd_pcm_t *) handle;
+	if (!pcm || !sw || sw->name[0] == '\0')
+		return -EINVAL;
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_RSWITCH_WRITE, sw) < 0)
 		return -errno;
 	return 0;
 }

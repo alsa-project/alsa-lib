@@ -275,64 +275,38 @@ int snd_mixer_channel_input_write(void *handle, int channel, snd_mixer_channel_d
 	return 0;
 }
 
-int snd_mixer_switches(void *handle)
-{
-	snd_mixer_t *mixer;
-	int result;
-
-	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
-		return -EINVAL;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCHES, &result) < 0)
-		return -errno;
-	return result;
-}
-
-int snd_mixer_switch(void *handle, const char *switch_id)
-{
-	snd_mixer_t *mixer;
-	snd_mixer_switch_t uswitch;
-	int idx, switches, err;
-
-	mixer = (snd_mixer_t *) handle;
-	if (!mixer || !switch_id)
-		return -EINVAL;
-	/* bellow implementation isn't optimized for speed */
-	/* info about switches should be cached in the snd_mixer_t structure */
-	if ((switches = snd_mixer_switches(handle)) < 0)
-		return switches;
-	for (idx = 0; idx < switches; idx++) {
-		if ((err = snd_mixer_switch_read(handle, idx, &uswitch)) < 0)
-			return err;
-		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
-			return idx;
-	}
-	return -EINVAL;
-}
-
-int snd_mixer_switch_read(void *handle, int switchn, snd_mixer_switch_t * data)
+int snd_mixer_switch_list(void *handle, snd_switch_list_t * list)
 {
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer || !data || switchn < 0)
+	if (!mixer || !list)
 		return -EINVAL;
-	bzero(data, sizeof(snd_mixer_switch_t));
-	data->switchn = switchn;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_READ, data) < 0)
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_LIST, &list) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_mixer_switch_write(void *handle, int switchn, snd_mixer_switch_t * data)
+int snd_mixer_switch_read(void *handle, snd_switch_t * sw)
 {
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer || !data || switchn < 0)
+	if (!mixer || !sw || sw->name[0] == '\0')
 		return -EINVAL;
-	data->switchn = switchn;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_WRITE, data) < 0)
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_READ, sw) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_mixer_switch_write(void *handle, snd_switch_t * sw)
+{
+	snd_mixer_t *mixer;
+
+	mixer = (snd_mixer_t *) handle;
+	if (!mixer || !sw || sw->name[0] == '\0')
+		return -EINVAL;
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_WRITE, sw) < 0)
 		return -errno;
 	return 0;
 }

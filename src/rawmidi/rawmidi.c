@@ -127,126 +127,74 @@ int snd_rawmidi_info(void *handle, snd_rawmidi_info_t * info)
 	return 0;
 }
 
-int snd_rawmidi_output_switches(void *handle)
+int snd_rawmidi_output_switch_list(void *handle, snd_switch_list_t * list)
 {
 	snd_rawmidi_t *rmidi;
-	int result;
+
+	rmidi = (snd_rawmidi_t *) handle;
+	if (!rmidi || !list)
+		return -EINVAL;
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OSWITCH_LIST, list) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_rawmidi_output_switch_read(void *handle, snd_switch_t * sw)
+{
+	snd_rawmidi_t *rmidi;
+
+	rmidi = (snd_rawmidi_t *) handle;
+	if (!rmidi || !sw || sw->name[0] == '\0')
+		return -EINVAL;
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OSWITCH_READ, sw) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_rawmidi_output_switch_write(void *handle, snd_switch_t * sw)
+{
+	snd_rawmidi_t *rmidi;
+
+	rmidi = (snd_rawmidi_t *) handle;
+	if (!rmidi || !sw || sw->name[0] == '\0')
+		return -EINVAL;
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OSWITCH_WRITE, sw) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_rawmidi_input_switch_list(void *handle, snd_switch_list_t * list)
+{
+	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
 	if (!rmidi)
 		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OSWITCHES, &result) < 0)
-		return -errno;
-	return result;
-}
-
-int snd_rawmidi_output_switch(void *handle, const char *switch_id)
-{
-	snd_rawmidi_t *rmidi;
-	snd_rawmidi_switch_t uswitch;
-	int idx, switches, err;
-
-	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi || !switch_id)
-		return -EINVAL;
-	/* bellow implementation isn't optimized for speed */
-	/* info about switches should be cached in the snd_mixer_t structure */
-	if ((switches = snd_rawmidi_output_switches(handle)) < 0)
-		return switches;
-	for (idx = 0; idx < switches; idx++) {
-		if ((err = snd_rawmidi_output_switch_read(handle, idx, &uswitch)) < 0)
-			return err;
-		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
-			return idx;
-	}
-	return -EINVAL;
-}
-
-int snd_rawmidi_output_switch_read(void *handle, int switchn, snd_rawmidi_switch_t * data)
-{
-	snd_rawmidi_t *rmidi;
-
-	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi || !data || switchn < 0)
-		return -EINVAL;
-	bzero(data, sizeof(snd_rawmidi_switch_t));
-	data->switchn = switchn;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OSWITCH_READ, data) < 0)
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_ISWITCH_LIST, list) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_rawmidi_output_switch_write(void *handle, int switchn, snd_rawmidi_switch_t * data)
+int snd_rawmidi_input_switch_read(void *handle, snd_switch_t * sw)
 {
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi || !data || switchn < 0)
+	if (!rmidi || !sw || sw->name[0] == '\0')
 		return -EINVAL;
-	data->switchn = switchn;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OSWITCH_WRITE, data) < 0)
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_ISWITCH_READ, sw) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_rawmidi_input_switches(void *handle)
-{
-	snd_rawmidi_t *rmidi;
-	int result;
-
-	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
-		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_ISWITCHES, &result) < 0)
-		return -errno;
-	return result;
-}
-
-int snd_rawmidi_input_switch(void *handle, const char *switch_id)
-{
-	snd_rawmidi_t *rmidi;
-	snd_rawmidi_switch_t uswitch;
-	int idx, switches, err;
-
-	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi || !switch_id)
-		return -EINVAL;
-	/* bellow implementation isn't optimized for speed */
-	/* info about switches should be cached in the snd_mixer_t structure */
-	if ((switches = snd_rawmidi_input_switches(handle)) < 0)
-		return switches;
-	for (idx = 0; idx < switches; idx++) {
-		if ((err = snd_rawmidi_input_switch_read(handle, idx, &uswitch)) < 0)
-			return err;
-		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
-			return idx;
-	}
-	return -EINVAL;
-}
-
-int snd_rawmidi_input_switch_read(void *handle, int switchn, snd_rawmidi_switch_t * data)
+int snd_rawmidi_input_switch_write(void *handle, snd_switch_t * sw)
 {
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi || !data || switchn < 0)
+	if (!rmidi || !sw || sw->name[0] == '\0')
 		return -EINVAL;
-	bzero(data, sizeof(snd_rawmidi_switch_t));
-	data->switchn = switchn;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_ISWITCH_READ, data) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_rawmidi_input_switch_write(void *handle, int switchn, snd_rawmidi_switch_t * data)
-{
-	snd_rawmidi_t *rmidi;
-
-	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi || !data || switchn < 0)
-		return -EINVAL;
-	data->switchn = switchn;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_ISWITCH_WRITE, data) < 0)
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_ISWITCH_WRITE, sw) < 0)
 		return -errno;
 	return 0;
 }
