@@ -123,6 +123,8 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	default:
 		break;
 	}
+	if (dsnoop->slowptr)
+		snd_pcm_hwsync(dsnoop->spcm);
 	old_slave_hw_ptr = dsnoop->slave_hw_ptr;
 	slave_hw_ptr = dsnoop->slave_hw_ptr = *dsnoop->spcm->hw.ptr;
 	diff = slave_hw_ptr - old_slave_hw_ptr;
@@ -477,6 +479,8 @@ static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
  * \param ipc_key IPC key for semaphore and shared memory
  * \param ipc_perm IPC permissions for semaphore and shared memory
  * \param params Parameters for slave
+ * \param bindings Channel bindings
+ * \param slowptr Slow but more precise pointer updates
  * \param root Configuration root
  * \param sconf Slave configuration
  * \param stream PCM Direction (stream)
@@ -490,6 +494,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 			key_t ipc_key, mode_t ipc_perm,
 			struct slave_params *params,
 			snd_config_t *bindings,
+			int slowptr,
 			snd_config_t *root, snd_config_t *sconf,
 			snd_pcm_stream_t stream, int mode)
 {
@@ -550,6 +555,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	pcm->fast_ops = &snd_pcm_dsnoop_fast_ops;
 	pcm->private_data = dsnoop;
 	dsnoop->state = SND_PCM_STATE_OPEN;
+	dsnoop->slowptr = slowptr;
 
 	if (first_instance) {
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
@@ -721,7 +727,7 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_iterator_t i, next;
 	snd_config_t *slave = NULL, *bindings = NULL, *sconf;
 	struct slave_params params;
-	int bsize, psize, ipc_key_add_uid = 0;
+	int bsize, psize, ipc_key_add_uid = 0, slowptr = 0;
 	key_t ipc_key = 0;
 	mode_t ipc_perm = 0600;
 	int err;
@@ -782,6 +788,22 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 			bindings = n;
 			continue;
 		}
+		if (strcmp(id, "slowptr") == 0) {
+			char *tmp;
+			err = snd_config_get_ascii(n, &tmp);
+			if (err < 0) {
+				SNDERR("The field slowptr must be a boolean type");
+				return err;
+			}
+			err = snd_config_get_bool_ascii(tmp);
+			free(tmp);
+			if (err < 0) {
+				SNDERR("The field slowptr must be a boolean type");
+				return err;
+			}
+			slowptr = err;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -825,7 +847,7 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 	params.period_size = psize;
 	params.buffer_size = bsize;
-	err = snd_pcm_dsnoop_open(pcmp, name, ipc_key, ipc_perm, &params, bindings, root, sconf, stream, mode);
+	err = snd_pcm_dsnoop_open(pcmp, name, ipc_key, ipc_perm, &params, bindings, slowptr, root, sconf, stream, mode);
 	if (err < 0)
 		snd_config_delete(sconf);
 	return err;

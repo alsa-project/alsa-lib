@@ -99,6 +99,7 @@ struct snd_pcm_direct {
 	pid_t server_pid;
 	snd_timer_t *timer; 		/* timer used as poll_fd */
 	int interleaved;	 	/* we have interleaved buffer */
+	int slowptr;			/* use slow but more precise ptr updates */
 	unsigned int channels;		/* client's channels */
 	unsigned int *bindings;
 	union {
