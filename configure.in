@@ -50,11 +50,6 @@ SAVE_LIBRARY_VERSION
 AC_SUBST(LIBTOOL_VERSION_INFO)
 
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
-if test -z $BASH; then
-  echo "This script contains GNU BASH extended commands..."
-  echo "Please, use the GNU BASH shell..."
-  exit 0
-fi
 
 eval dir="$datadir"
 case "$dir" in
