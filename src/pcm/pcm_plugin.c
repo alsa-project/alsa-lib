@@ -218,7 +218,7 @@ static int snd_pcm_plugin_action(snd_pcm_t *pcm, int channel, int action)
 
 int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 {
-	snd_pcm_channel_params_t hwparams, newparams;
+	snd_pcm_channel_params_t hwparams, params1;
 	snd_pcm_channel_info_t hwinfo;
 	snd_pcm_plugin_t *plugin;
 	int err;
@@ -244,7 +244,8 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 	snd_pcm_plugin_clear(pcm, params->channel);
 
 	/*  add necessary plugins */
-	if ((err = snd_pcm_plugin_format(pcm, params, &hwparams, &hwinfo, &newparams)) < 0)
+	memcpy(&params1, params, sizeof(*params));
+	if ((err = snd_pcm_plugin_format(pcm, &params1, &hwparams, &hwinfo)) < 0)
 		return err;
 
 	/*
@@ -279,22 +280,22 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 
 	/* compute right sizes */
 	if (params->mode == SND_PCM_MODE_STREAM) {
-		pdprintf("params queue_size = %i\n", newparams.buf.stream.queue_size);
-		newparams.buf.stream.queue_size = snd_pcm_plugin_hardware_size(pcm, newparams.channel, newparams.buf.stream.queue_size);
-		newparams.buf.stream.max_fill = snd_pcm_plugin_hardware_size(pcm, newparams.channel, newparams.buf.stream.max_fill);
-		pdprintf("params queue_size = %i\n", newparams.buf.stream.queue_size);
+		pdprintf("params queue_size = %i\n", hwparams.buf.stream.queue_size);
+		hwparams.buf.stream.queue_size = snd_pcm_plugin_hardware_size(pcm, hwparams.channel, hwparams.buf.stream.queue_size);
+		hwparams.buf.stream.max_fill = snd_pcm_plugin_hardware_size(pcm, hwparams.channel, hwparams.buf.stream.max_fill);
+		pdprintf("params queue_size = %i\n", hwparams.buf.stream.queue_size);
 	} else if (params->mode == SND_PCM_MODE_BLOCK) {
-		pdprintf("params frag_size = %i\n", newparams.buf.block.frag_size);
-		newparams.buf.block.frag_size = snd_pcm_plugin_hardware_size(pcm, newparams.channel, newparams.buf.block.frag_size);
-		pdprintf("params frag_size = %i\n", newparams.buf.block.frag_size);
+		pdprintf("params frag_size = %i\n", hwparams.buf.block.frag_size);
+		hwparams.buf.block.frag_size = snd_pcm_plugin_hardware_size(pcm, hwparams.channel, hwparams.buf.block.frag_size);
+		pdprintf("params frag_size = %i\n", hwparams.buf.block.frag_size);
 	} else {
 		return -EINVAL;
 	}
-	pdprintf("params requested params: format = %i, rate = %i, voices = %i\n", newparams.format.format, newparams.format.rate, newparams.format.voices);
-	err = snd_pcm_channel_params(pcm, &newparams);
+	pdprintf("params requested params: format = %i, rate = %i, voices = %i\n", hwparams.format.format, hwparams.format.rate, hwparams.format.voices);
+	err = snd_pcm_channel_params(pcm, &hwparams);
 	if (err < 0)
 		return err;
-	err = snd_pcm_plugin_action(pcm, newparams.channel, INIT);
+	err = snd_pcm_plugin_action(pcm, hwparams.channel, INIT);
 	if (err < 0)
 		return err;
 	return 0;

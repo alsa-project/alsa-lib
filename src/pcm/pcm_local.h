@@ -47,8 +47,7 @@ int snd_pcm_plugin_hwparams(snd_pcm_channel_params_t *params,
 int snd_pcm_plugin_format(snd_pcm_t *pcm, 
 			  snd_pcm_channel_params_t *params, 
 			  snd_pcm_channel_params_t *hwparams, 
-			  snd_pcm_channel_info_t *hwinfo,
-			  snd_pcm_channel_params_t *newparams);
+			  snd_pcm_channel_info_t *hwinfo);
 
 #if 0
 #define PLUGIN_DEBUG
