@@ -23,17 +23,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <assert.h>
 #define __USE_GNU
 #include <search.h>
 #include "control_local.h"
 
 static void snd_ctl_hfree1(snd_hcontrol_t *hcontrol);
 
-int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t *hsort)
+int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 {
 	snd_control_list_t list;
 	snd_hcontrol_t *hcontrol, *prev;
@@ -49,21 +47,20 @@ int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t *hsort)
 	do {
 		if (list.pids != NULL)
 			free(list.pids);
-		list.controls_offset = 0;
-		list.controls_request = 0;
-		list.controls_count = 0;
+		list.offset = 0;
+		list.space = 0;
 		if ((err = snd_ctl_clist(handle, &list)) < 0)
 			return err;
-		if (list.controls == 0)
+		if (list.count == 0)
 			break;
-		list.pids = (snd_control_id_t *)calloc(list.controls, sizeof(snd_control_id_t));
+		list.pids = (snd_control_id_t *)calloc(list.count, sizeof(snd_control_id_t));
 		if (list.pids == NULL)
 			return -ENOMEM;
-		list.controls_request = list.controls;
+		list.space = list.count;
 		if ((err = snd_ctl_clist(handle, &list)) < 0)
 			return err;
-	} while (list.controls != list.controls_count);
-	for (idx = 0, prev = NULL; idx < list.controls_count; idx++) {
+	} while (list.count != list.used);
+	for (idx = 0, prev = NULL; idx < list.count; idx++) {
 		hcontrol = (snd_hcontrol_t *)calloc(1, sizeof(snd_hcontrol_t));
 		if (hcontrol == NULL)
 			goto __nomem;
@@ -101,10 +98,10 @@ static void snd_ctl_hfree1(snd_hcontrol_t *hcontrol)
 	handle = hcontrol->handle;
 	assert(handle != NULL);
 	assert(handle->hcount > 0);
-	if (hcontrol->event_remove)
-		hcontrol->event_remove(handle, hcontrol);
+	if (hcontrol->callback_remove)
+		hcontrol->callback_remove(handle, hcontrol);
 	if (hcontrol->private_free)
-		hcontrol->private_free(hcontrol->private_data);
+		hcontrol->private_free(hcontrol);
 	list_del(&hcontrol->list);
 	free(hcontrol);
 	handle->hcount--;
@@ -236,7 +233,7 @@ static void snd_ctl_hresort_free(snd_hcontrol_t *hcontrol ATTRIBUTE_UNUSED)
 	/* nothing */
 }
 
-int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t *hsort)
+int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 {
 	struct list_head *list;
 	snd_hcontrol_t *hcontrol;
@@ -336,21 +333,21 @@ int snd_ctl_hlist(snd_ctl_t *handle, snd_hcontrol_list_t *hlist)
 	unsigned int idx;
 
 	assert(hlist != NULL);
-	if (hlist->controls_offset >= (unsigned int)handle->hcount)
+	if (hlist->offset >= (unsigned int)handle->hcount)
 		return -EINVAL;
-	hlist->controls_count = 0;
-	hlist->controls = handle->hcount;
-	if (hlist->controls_request > 0) {
+	hlist->used = 0;
+	hlist->count = handle->hcount;
+	if (hlist->space > 0) {
 		if (hlist->pids == NULL)
 			return -EINVAL;
 		idx = 0;
 		list_for_each(list, &handle->hlist) {
 			hcontrol = list_entry(list, snd_hcontrol_t, list);
-			if (idx >= hlist->controls_offset + hlist->controls_request)
+			if (idx >= hlist->offset + hlist->space)
 				break;
-			if (idx >= hlist->controls_offset) {
+			if (idx >= hlist->offset) {
 				hlist->pids[idx] = hcontrol->id;
-				hlist->controls_count++;
+				hlist->used++;
 			}
 			idx++;
 		}
@@ -358,7 +355,7 @@ int snd_ctl_hlist(snd_ctl_t *handle, snd_hcontrol_list_t *hlist)
 	return 0;
 }
 
-int snd_ctl_hcallback_rebuild(snd_ctl_t *handle, snd_ctl_hcallback_rebuild_t *callback, void *private_data)
+int snd_ctl_hcallback_rebuild(snd_ctl_t *handle, snd_ctl_hcallback_rebuild_t callback, void *private_data)
 {
 	assert(handle != NULL);
 	handle->callback_rebuild = callback;
@@ -366,7 +363,7 @@ int snd_ctl_hcallback_rebuild(snd_ctl_t *handle, snd_ctl_hcallback_rebuild_t *ca
 	return 0;
 }
 
-int snd_ctl_hcallback_add(snd_ctl_t *handle, snd_ctl_hcallback_add_t *callback, void *private_data)
+int snd_ctl_hcallback_add(snd_ctl_t *handle, snd_ctl_hcallback_add_t callback, void *private_data)
 {
 	assert(handle != NULL);
 	handle->callback_add = callback;
@@ -476,14 +473,31 @@ int snd_ctl_hevent(snd_ctl_t *handle)
 		return handle->herr;
 	list_for_each(list, &handle->hlist) {
 		hcontrol = list_entry(list, snd_hcontrol_t, list);
-		if (hcontrol->change && hcontrol->event_change) {
-			hcontrol->event_change(hcontrol->handle, hcontrol);
+		if (hcontrol->change && hcontrol->callback_change) {
+			hcontrol->callback_change(hcontrol->handle, hcontrol);
 			hcontrol->change = 0;
 		}
-		if (hcontrol->value && hcontrol->event_value) {
-			hcontrol->event_value(hcontrol->handle, hcontrol);
+		if (hcontrol->value && hcontrol->callback_value) {
+			hcontrol->callback_value(hcontrol->handle, hcontrol);
 			hcontrol->value = 0;
 		}			
 	}
 	return res;
+}
+
+int snd_hcontrol_list_alloc_space(snd_hcontrol_list_t *obj, unsigned int entries)
+{
+	obj->pids = calloc(entries, sizeof(*obj->pids));
+	if (!obj->pids) {
+		obj->space = 0;
+		return -ENOMEM;
+	}
+	obj->space = entries;
+	return 0;
+}  
+
+void snd_hcontrol_list_free_space(snd_hcontrol_list_t *obj)
+{
+	free(obj->pids);
+	obj->pids = NULL;
 }

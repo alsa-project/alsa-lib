@@ -89,7 +89,7 @@ typedef struct {
 	int cmd;
 	union {
 		int device;
-		snd_ctl_hw_info_t hw_info;
+		snd_ctl_info_t hw_info;
 		snd_control_list_t clist;
 		snd_control_info_t cinfo;
 		snd_control_t cread;

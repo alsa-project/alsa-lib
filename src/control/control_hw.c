@@ -24,10 +24,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <assert.h>
 #include "control_local.h"
 
 #define SNDRV_FILE_CONTROL	"/dev/snd/controlC%i"
@@ -53,10 +51,10 @@ static int snd_ctl_hw_poll_descriptor(snd_ctl_t *handle)
 	return hw->fd;
 }
 
-static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_hw_info_t *info)
+static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_HW_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -182,7 +180,7 @@ snd_ctl_ops_t snd_ctl_hw_ops = {
 	read: snd_ctl_hw_read,
 };
 
-int snd_ctl_hw_open(snd_ctl_t **handle, char *name, int card)
+int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card)
 {
 	int fd, ver;
 	char filename[32];
@@ -234,7 +232,7 @@ int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 {
 	snd_config_iterator_t i;
 	long card = -1;
-	char *str;
+	const char *str;
 	int err;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);

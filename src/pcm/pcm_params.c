@@ -902,7 +902,7 @@ void snd_pcm_hw_param_refine_near(snd_pcm_t *pcm,
 	min = snd_pcm_hw_param_get_min(src, var, &mindir);
 	max = snd_pcm_hw_param_get_max(src, var, &maxdir);
 	snd_pcm_hw_param_set_near_minmax(pcm, params, var,
-				     min, &mindir, max, &maxdir);
+					 min, &mindir, max, &maxdir);
 }
 
 /* ---- end of refinement functions ---- */
@@ -966,14 +966,6 @@ int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
 	if (params->msbits == 0)
 		return -EINVAL;
 	return params->msbits;
-}
-
-/* Return info for configuration space defined by PARAMS */
-int snd_pcm_hw_params_get_flags(const snd_pcm_hw_params_t *params)
-{
-	if (params->info == ~0U)
-		return -EINVAL;
-	return params->info;
 }
 
 /* Return fifo size for configuration space defined by PARAMS */

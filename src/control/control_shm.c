@@ -24,7 +24,6 @@
 #include <stddef.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/shm.h>
 #include <sys/socket.h>
@@ -107,13 +106,13 @@ static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
 	return fd;
 }
 
-static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_hw_info_t *info)
+static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_info_t *info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 //	ctrl->u.hw_info = *info;
-	ctrl->cmd = SNDRV_CTL_IOCTL_HW_INFO;
+	ctrl->cmd = SNDRV_CTL_IOCTL_INFO;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -126,7 +125,7 @@ static int snd_ctl_shm_clist(snd_ctl_t *ctl, snd_control_list_t *list)
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	size_t maxsize = CTL_SHM_DATA_MAXLEN;
-	size_t bytes = list->controls_request * sizeof(*list->pids);
+	size_t bytes = list->space * sizeof(*list->pids);
 	int err;
 	snd_control_id_t *pids = list->pids;
 	if (bytes > maxsize)
@@ -138,6 +137,7 @@ static int snd_ctl_shm_clist(snd_ctl_t *ctl, snd_control_list_t *list)
 		return err;
 	*list = ctrl->u.clist;
 	list->pids = pids;
+	bytes = list->used * sizeof(*list->pids);
 	memcpy(pids, (void *)ctrl->data, bytes);
 	return err;
 }
@@ -369,7 +369,7 @@ static int make_inet_socket(const char *host, int port)
 }
 #endif
 
-int snd_ctl_shm_open(snd_ctl_t **handlep, char *name, char *socket, char *sname)
+int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, const char *sname)
 {
 	snd_ctl_t *ctl;
 	snd_ctl_shm_t *shm = NULL;
@@ -469,11 +469,11 @@ extern int is_local(struct hostent *hent);
 int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 {
 	snd_config_iterator_t i;
-	char *server = NULL;
-	char *sname = NULL;
+	const char *server = NULL;
+	const char *sname = NULL;
 	snd_config_t *sconfig;
-	char *host = NULL;
-	char *socket = NULL;
+	const char *host = NULL;
+	const char *socket = NULL;
 	long port = -1;
 	int err;
 	int local;

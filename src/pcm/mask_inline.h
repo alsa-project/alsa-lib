@@ -20,7 +20,6 @@
  */
   
 #include <sys/types.h>
-#include <assert.h>
 
 #ifdef SND_MASK_C
 #define MASK_INLINE inline

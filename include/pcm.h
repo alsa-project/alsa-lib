@@ -41,17 +41,23 @@ typedef enum sndrv_pcm_tstamp snd_pcm_tstamp_t;
 #define SND_PCM_CLASS_MULTI ((snd_pcm_class_t) SNDRV_PCM_CLASS_MULTI)
 #define SND_PCM_CLASS_MODEM ((snd_pcm_class_t) SNDRV_PCM_CLASS_MODEM)
 #define SND_PCM_CLASS_DIGITIZER ((snd_pcm_class_t) SNDRV_PCM_CLASS_DIGITIZER)
+#define SND_PCM_CLASS_LAST ((snd_pcm_class_t) SNDRV_PCM_CLASS_LAST)
+
 #define SND_PCM_SUBCLASS_GENERIC_MIX ((snd_pcm_subclass_t) SNDRV_PCM_SUBCLASS_GENERIC_MIX)
 #define SND_PCM_SUBCLASS_MULTI_MIX ((snd_pcm_subclass_t) SNDRV_PCM_SUBCLASS_MULTI_MIX)
+#define SND_PCM_SUBCLASS_LAST ((snd_pcm_subclass_t) SNDRV_PCM_SUBCLASS_LAST)
+
 #define SND_PCM_STREAM_PLAYBACK ((snd_pcm_stream_t) SNDRV_PCM_STREAM_PLAYBACK)
 #define SND_PCM_STREAM_CAPTURE ((snd_pcm_stream_t) SNDRV_PCM_STREAM_CAPTURE)
 #define SND_PCM_STREAM_LAST ((snd_pcm_stream_t) SNDRV_PCM_STREAM_LAST)
+
 #define SND_PCM_ACCESS_MMAP_INTERLEAVED ((snd_pcm_access_t) SNDRV_PCM_ACCESS_MMAP_INTERLEAVED)
 #define SND_PCM_ACCESS_MMAP_NONINTERLEAVED ((snd_pcm_access_t) SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED)
 #define SND_PCM_ACCESS_MMAP_COMPLEX ((snd_pcm_access_t) SNDRV_PCM_ACCESS_MMAP_COMPLEX)
 #define SND_PCM_ACCESS_RW_INTERLEAVED ((snd_pcm_access_t) SNDRV_PCM_ACCESS_RW_INTERLEAVED)
 #define SND_PCM_ACCESS_RW_NONINTERLEAVED ((snd_pcm_access_t) SNDRV_PCM_ACCESS_RW_NONINTERLEAVED)
 #define SND_PCM_ACCESS_LAST ((snd_pcm_access_t) SNDRV_PCM_ACCESS_LAST)
+
 #define SND_PCM_FORMAT_UNKNOWN ((snd_pcm_format_t) -1)
 #define SND_PCM_FORMAT_S8 ((snd_pcm_format_t) SNDRV_PCM_FORMAT_S8)
 #define SND_PCM_FORMAT_U8 ((snd_pcm_format_t) SNDRV_PCM_FORMAT_U8)
@@ -98,8 +104,10 @@ typedef enum sndrv_pcm_tstamp snd_pcm_tstamp_t;
 #define SND_PCM_FORMAT_FLOAT ((snd_pcm_format_t) SNDRV_PCM_FORMAT_FLOAT)
 #define SND_PCM_FORMAT_FLOAT64 ((snd_pcm_format_t) SNDRV_PCM_FORMAT_FLOAT64)
 #define SND_PCM_FORMAT_IEC958_SUBFRAME ((snd_pcm_format_t) SNDRV_PCM_FORMAT_IEC958_SUBFRAME)
+
 #define SND_PCM_SUBFORMAT_STD ((snd_pcm_subformat_t) SNDRV_PCM_SUBFORMAT_STD)
 #define SND_PCM_SUBFORMAT_LAST ((snd_pcm_subformat_t) SNDRV_PCM_SUBFORMAT_LAST)
+
 #define SND_PCM_STATE_OPEN ((snd_pcm_state_t) SNDRV_PCM_STATE_OPEN)
 #define SND_PCM_STATE_SETUP ((snd_pcm_state_t) SNDRV_PCM_STATE_SETUP)
 #define SND_PCM_STATE_PREPARED ((snd_pcm_state_t) SNDRV_PCM_STATE_PREPARED)
@@ -108,12 +116,15 @@ typedef enum sndrv_pcm_tstamp snd_pcm_tstamp_t;
 #define SND_PCM_STATE_DRAINING ((snd_pcm_state_t) SNDRV_PCM_STATE_DRAINING)
 #define SND_PCM_STATE_PAUSED ((snd_pcm_state_t) SNDRV_PCM_STATE_PAUSED)
 #define SND_PCM_STATE_LAST ((snd_pcm_state_t) SNDRV_PCM_STATE_LAST)
+
 #define SND_PCM_START_DATA ((snd_pcm_start_t) SNDRV_PCM_START_DATA)
 #define SND_PCM_START_EXPLICIT ((snd_pcm_start_t) SNDRV_PCM_START_EXPLICIT)
 #define SND_PCM_START_LAST ((snd_pcm_start_t) SNDRV_PCM_START_LAST)
+
 #define SND_PCM_XRUN_NONE ((snd_pcm_xrun_t) SNDRV_PCM_XRUN_NONE)
 #define SND_PCM_XRUN_STOP ((snd_pcm_xrun_t) SNDRV_PCM_XRUN_STOP)
 #define SND_PCM_XRUN_LAST ((snd_pcm_xrun_t) SNDRV_PCM_XRUN_LAST)
+
 #define SND_PCM_TSTAMP_NONE ((snd_pcm_tstamp_t) SNDRV_PCM_TSTAMP_NONE)
 #define SND_PCM_TSTAMP_MMAP ((snd_pcm_tstamp_t) SNDRV_PCM_TSTAMP_MMAP)
 #define SND_PCM_TSTAMP_LAST ((snd_pcm_tstamp_t) SNDRV_PCM_TSTAMP_LAST)
@@ -200,7 +211,7 @@ typedef struct _snd_pcm_channel_area {
 extern "C" {
 #endif
 
-int snd_pcm_open(snd_pcm_t **pcm, char *name, 
+int snd_pcm_open(snd_pcm_t **pcm, const char *name, 
 		 snd_pcm_stream_t stream, int mode);
 
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
@@ -251,7 +262,6 @@ int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 				      unsigned int *rate_num,
 				      unsigned int *rate_den);
 int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params);
-int snd_pcm_hw_params_get_flags(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out);
 

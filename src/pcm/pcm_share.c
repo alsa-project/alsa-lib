@@ -25,7 +25,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
-#include <errno.h>
 #include <math.h>
 #include <sys/socket.h>
 #include <sys/poll.h>
@@ -1181,7 +1180,7 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	mmap_forward: snd_pcm_share_mmap_forward,
 };
 
-int snd_pcm_share_open(snd_pcm_t **pcmp, char *name, char *sname,
+int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		       snd_pcm_format_t sformat, int srate,
 		       unsigned int schannels_count,
 		       unsigned int channels_count, int *channels_map,
@@ -1363,7 +1362,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
-	char *sname = NULL;
+	const char *sname = NULL;
 	snd_config_t *binding = NULL;
 	int err;
 	unsigned int idx;
@@ -1391,7 +1390,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			continue;
 		}
 		if (strcmp(n->id, "sformat") == 0) {
-			char *f;
+			const char *f;
 			err = snd_config_string_get(n, &f);
 			if (err < 0) {
 				ERR("Invalid type for %s", n->id);

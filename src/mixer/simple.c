@@ -23,9 +23,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include "../control/control_local.h"
 #include "mixer_local.h"
 
 static struct mixer_name_table {
@@ -121,9 +121,9 @@ static void hcontrol_event_remove(snd_ctl_t *ctl_handle ATTRIBUTE_UNUSED, snd_hc
 static void hcontrol_add(snd_mixer_t *handle, void **bag, snd_hcontrol_t *hcontrol)
 {
 	snd_ctl_hbag_add(bag, hcontrol);
-	hcontrol->event_change = hcontrol_event_change;
-	hcontrol->event_value = hcontrol_event_value;
-	hcontrol->event_remove = hcontrol_event_remove;
+	hcontrol->callback_change = hcontrol_event_change;
+	hcontrol->callback_value = hcontrol_event_value;
+	hcontrol->callback_remove = hcontrol_event_remove;
 	hcontrol->private_data = handle;
 }
 
@@ -489,8 +489,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 				return err;
 			if (global_info.type == SNDRV_CONTROL_TYPE_BOOLEAN || 
 			    global_info.type == SNDRV_CONTROL_TYPE_INTEGER) {
-				if (voices < global_info.values_count)
-					voices = global_info.values_count;
+				if (voices < global_info.count)
+					voices = global_info.count;
 				caps |= global_info.type == SNDRV_CONTROL_TYPE_BOOLEAN ? SND_MIXER_SCTCAP_MUTE : SND_MIXER_SCTCAP_VOLUME;
 				present |= global_info.type == SNDRV_CONTROL_TYPE_BOOLEAN ? MIXER_PRESENT_SINGLE_SWITCH : MIXER_PRESENT_SINGLE_VOLUME;
 				if (global_info.type == SNDRV_CONTROL_TYPE_INTEGER) {
@@ -507,8 +507,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			if ((err = get_mixer_info(handle, str, index, &gswitch_info)) < 0)
 				return err;
 			if (gswitch_info.type == SNDRV_CONTROL_TYPE_BOOLEAN) {
-				if (voices < gswitch_info.values_count)
-					voices = gswitch_info.values_count;
+				if (voices < gswitch_info.count)
+					voices = gswitch_info.count;
 				caps |= SND_MIXER_SCTCAP_MUTE;
 				present |= MIXER_PRESENT_GLOBAL_SWITCH;
 				hcontrol_add(handle, &bag, hcontrol);
@@ -518,7 +518,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &groute_info)) < 0)
 				return err;
-			if (groute_info.type == SNDRV_CONTROL_TYPE_BOOLEAN && groute_info.values_count == 4) {
+			if (groute_info.type == SNDRV_CONTROL_TYPE_BOOLEAN && groute_info.count == 4) {
 				if (voices < 2)
 					voices = 2;
 				caps |= SND_MIXER_SCTCAP_MUTE;
@@ -531,8 +531,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			if ((err = get_mixer_info(handle, str, index, &gvolume_info)) < 0)
 				return err;
 			if (gvolume_info.type == SNDRV_CONTROL_TYPE_INTEGER) {
-				if (voices < gvolume_info.values_count)
-					voices = gvolume_info.values_count;
+				if (voices < gvolume_info.count)
+					voices = gvolume_info.count;
 				if (min > gvolume_info.value.integer.min)
 					min = gvolume_info.value.integer.min;
 				if (max < gvolume_info.value.integer.max)
@@ -547,8 +547,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			if ((err = get_mixer_info(handle, str, index, &pswitch_info)) < 0)
 				return err;
 			if (pswitch_info.type == SNDRV_CONTROL_TYPE_BOOLEAN) {
-				if (voices < pswitch_info.values_count)
-					voices = pswitch_info.values_count;
+				if (voices < pswitch_info.count)
+					voices = pswitch_info.count;
 				caps |= SND_MIXER_SCTCAP_MUTE;
 				present |= MIXER_PRESENT_PLAYBACK_SWITCH;
 				hcontrol_add(handle, &bag, hcontrol);
@@ -558,7 +558,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &proute_info)) < 0)
 				return err;
-			if (proute_info.type == SNDRV_CONTROL_TYPE_BOOLEAN && proute_info.values_count == 4) {
+			if (proute_info.type == SNDRV_CONTROL_TYPE_BOOLEAN && proute_info.count == 4) {
 				if (voices < 2)
 					voices = 2;
 				caps |= SND_MIXER_SCTCAP_MUTE;
@@ -571,8 +571,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			if ((err = get_mixer_info(handle, str, index, &cswitch_info)) < 0)
 				return err;
 			if (cswitch_info.type == SNDRV_CONTROL_TYPE_BOOLEAN) {
-				if (voices < cswitch_info.values_count)
-					voices = cswitch_info.values_count;
+				if (voices < cswitch_info.count)
+					voices = cswitch_info.count;
 				caps |= SND_MIXER_SCTCAP_CAPTURE;
 				present |= MIXER_PRESENT_CAPTURE_SWITCH;
 				hcontrol_add(handle, &bag, hcontrol);
@@ -582,7 +582,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &croute_info)) < 0)
 				return err;
-			if (croute_info.type == SNDRV_CONTROL_TYPE_BOOLEAN && croute_info.values_count == 4) {
+			if (croute_info.type == SNDRV_CONTROL_TYPE_BOOLEAN && croute_info.count == 4) {
 				if (voices < 2)
 					voices = 2;
 				caps |= SND_MIXER_SCTCAP_CAPTURE;
@@ -595,8 +595,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			if ((err = get_mixer_info(handle, str, index, &pvolume_info)) < 0)
 				return err;
 			if (pvolume_info.type == SNDRV_CONTROL_TYPE_INTEGER) {
-				if (voices < pvolume_info.values_count)
-					voices = pvolume_info.values_count;
+				if (voices < pvolume_info.count)
+					voices = pvolume_info.count;
 				if (min > pvolume_info.value.integer.min)
 					min = pvolume_info.value.integer.min;
 				if (max < pvolume_info.value.integer.max)
@@ -611,8 +611,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			if ((err = get_mixer_info(handle, str, index, &cvolume_info)) < 0)
 				return err;
 			if (cvolume_info.type == SNDRV_CONTROL_TYPE_INTEGER) {
-				if (voices < cvolume_info.values_count)
-					voices = cvolume_info.values_count;
+				if (voices < cvolume_info.count)
+					voices = cvolume_info.count;
 				if (min > pvolume_info.value.integer.min)
 					min = pvolume_info.value.integer.min;
 				if (max < pvolume_info.value.integer.max)
@@ -633,8 +633,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			if (csource_info.type == SNDRV_CONTROL_TYPE_ENUMERATED) {
 				capture_item = 0;
 				if (!strcmp(csource_info.value.enumerated.name, str)) {
-					if (voices < csource_info.values_count)
-						voices = csource_info.values_count;
+					if (voices < csource_info.count)
+						voices = csource_info.count;
 					caps |= SND_MIXER_SCTCAP_CAPTURE;
 					present |= MIXER_PRESENT_CAPTURE_SOURCE;
 					hcontrol_add(handle, &bag, hcontrol);
@@ -643,8 +643,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 					if ((err = snd_ctl_cinfo(handle->ctl_handle, &csource_info)) < 0)
 						return err;
 					if (!strcmp(csource_info.value.enumerated.name, str)) {
-						if (voices < csource_info.values_count)
-							voices = csource_info.values_count;
+						if (voices < csource_info.count)
+							voices = csource_info.count;
 						caps |= SND_MIXER_SCTCAP_CAPTURE;
 						present |= MIXER_PRESENT_CAPTURE_SOURCE;
 						hcontrol_add(handle, &bag, hcontrol);
@@ -661,39 +661,39 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			if (present & (MIXER_PRESENT_SINGLE_VOLUME|MIXER_PRESENT_GLOBAL_VOLUME|MIXER_PRESENT_PLAYBACK_VOLUME|MIXER_PRESENT_CAPTURE_VOLUME))
 				caps |= SND_MIXER_SCTCAP_JOINTLY_VOLUME;
 			if (present & MIXER_PRESENT_SINGLE_SWITCH) {
-				if (global_info.values_count > 1)
+				if (global_info.count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_MUTE;
 			}
 			if (present & MIXER_PRESENT_GLOBAL_SWITCH) {
-				if (gswitch_info.values_count > 1)
+				if (gswitch_info.count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_MUTE;
 			}
 			if (present & MIXER_PRESENT_PLAYBACK_SWITCH) {
-				if (pswitch_info.values_count > 1)
+				if (pswitch_info.count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_MUTE;
 			}
 			if (present & (MIXER_PRESENT_GLOBAL_ROUTE | MIXER_PRESENT_PLAYBACK_ROUTE))
 				caps &= ~SND_MIXER_SCTCAP_JOINTLY_MUTE;
 			if (present & MIXER_PRESENT_CAPTURE_SWITCH) {
-				if (cswitch_info.values_count > 1)
+				if (cswitch_info.count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_CAPTURE;
 			}
 			if (present & MIXER_PRESENT_CAPTURE_ROUTE)
 				caps &= ~SND_MIXER_SCTCAP_JOINTLY_CAPTURE;
 			if (present & MIXER_PRESENT_SINGLE_VOLUME) {
-				if (global_info.values_count > 1)
+				if (global_info.count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_VOLUME;
 			}
 			if (present & MIXER_PRESENT_GLOBAL_VOLUME) {
-				if (gvolume_info.values_count > 1)
+				if (gvolume_info.count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_VOLUME;
 			}
 			if (present & MIXER_PRESENT_PLAYBACK_VOLUME) {
-				if (pvolume_info.values_count > 1)
+				if (pvolume_info.count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_VOLUME;
 			}
 			if (present & MIXER_PRESENT_CAPTURE_VOLUME) {
-				if (cvolume_info.values_count > 1)
+				if (cvolume_info.count > 1)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_VOLUME;
 			}
 		}
@@ -706,17 +706,17 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			return -ENOMEM;
 		}
 		simple->present = present;
-		simple->global_values = global_info.values_count;
-		simple->gswitch_values = gswitch_info.values_count;
-		simple->pswitch_values = pswitch_info.values_count;
-		simple->cswitch_values = cswitch_info.values_count;
-		simple->gvolume_values = gvolume_info.values_count;
-		simple->pvolume_values = pvolume_info.values_count;
-		simple->cvolume_values = cvolume_info.values_count;
+		simple->global_values = global_info.count;
+		simple->gswitch_values = gswitch_info.count;
+		simple->pswitch_values = pswitch_info.count;
+		simple->cswitch_values = cswitch_info.count;
+		simple->gvolume_values = gvolume_info.count;
+		simple->pvolume_values = pvolume_info.count;
+		simple->cvolume_values = cvolume_info.count;
 		simple->groute_values = 2;
 		simple->proute_values = 2;
 		simple->croute_values = 2;
-		simple->ccapture_values = csource_info.values_count;
+		simple->ccapture_values = csource_info.count;
 		simple->capture_item = capture_item;
 		simple->caps = caps;
 		simple->voices = voices;

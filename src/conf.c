@@ -19,8 +19,6 @@
  *
  */
 
-#include <assert.h>
-#include <errno.h>
 #include <stdarg.h>
 #include <sys/stat.h>
 #include "local.h"
@@ -355,7 +353,7 @@ static int _snd_config_make_add(snd_config_t **config, char *id,
 	return 0;
 }
 
-static int _snd_config_search(snd_config_t *config, char *id, int len, snd_config_t **result)
+static int _snd_config_search(snd_config_t *config, const char *id, int len, snd_config_t **result)
 {
 	snd_config_iterator_t i;
 	snd_config_foreach(i, config) {
@@ -679,7 +677,7 @@ int snd_config_delete(snd_config_t *config)
 	return 0;
 }
 
-int snd_config_make(snd_config_t **config, char *id,
+int snd_config_make(snd_config_t **config, const char *id,
 		    snd_config_type_t type)
 {
 	char *id1;
@@ -693,22 +691,22 @@ int snd_config_make(snd_config_t **config, char *id,
 	return _snd_config_make(config, id1, type);
 }
 
-int snd_config_integer_make(snd_config_t **config, char *id)
+int snd_config_integer_make(snd_config_t **config, const char *id)
 {
 	return snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER);
 }
 
-int snd_config_real_make(snd_config_t **config, char *id)
+int snd_config_real_make(snd_config_t **config, const char *id)
 {
 	return snd_config_make(config, id, SND_CONFIG_TYPE_REAL);
 }
 
-int snd_config_string_make(snd_config_t **config, char *id)
+int snd_config_string_make(snd_config_t **config, const char *id)
 {
 	return snd_config_make(config, id, SND_CONFIG_TYPE_STRING);
 }
 
-int snd_config_compound_make(snd_config_t **config, char *id,
+int snd_config_compound_make(snd_config_t **config, const char *id,
 			     int join)
 {
 	int err;
@@ -737,7 +735,7 @@ int snd_config_real_set(snd_config_t *config, double value)
 	return 0;
 }
 
-int snd_config_string_set(snd_config_t *config, char *value)
+int snd_config_string_set(snd_config_t *config, const char *value)
 {
 	assert(config);
 	if (config->type != SND_CONFIG_TYPE_STRING)
@@ -747,29 +745,6 @@ int snd_config_string_set(snd_config_t *config, char *value)
 	config->u.string = strdup(value);
 	if (!config->u.string)
 		return -ENOMEM;
-	return 0;
-}
-
-int snd_config_set(snd_config_t *config, ...)
-{
-	va_list arg;
-	va_start(arg, config);
-	assert(config);
-	switch (snd_enum_to_int(config->type)) {
-	case SND_CONFIG_TYPE_INTEGER:
-		config->u.integer = va_arg(arg, long);
-		break;
-	case SND_CONFIG_TYPE_REAL:
-		config->u.real = va_arg(arg, double);
-		break;
-	case SND_CONFIG_TYPE_STRING:
-		config->u.string = va_arg(arg, char *);
-		break;
-	default:
-		assert(0);
-		return -EINVAL;
-	}
-	va_end(arg);
 	return 0;
 }
 
@@ -791,32 +766,12 @@ int snd_config_real_get(snd_config_t *config, double *ptr)
 	return 0;
 }
 
-int snd_config_string_get(snd_config_t *config, char **ptr)
+int snd_config_string_get(snd_config_t *config, const char **ptr)
 {
 	assert(config && ptr);
 	if (config->type != SND_CONFIG_TYPE_STRING)
 		return -EINVAL;
 	*ptr = config->u.string;
-	return 0;
-}
-
-int snd_config_get(snd_config_t *config, void *ptr)
-{
-	assert(config && ptr);
-	switch (snd_enum_to_int(config->type)) {
-	case SND_CONFIG_TYPE_INTEGER:
-		* (long*) ptr = config->u.integer;
-		break;
-	case SND_CONFIG_TYPE_REAL:
-		* (double*) ptr = config->u.real;
-		break;
-	case SND_CONFIG_TYPE_STRING:
-		* (char **) ptr = config->u.string;
-		break;
-	default:
-		assert(0);
-		return -EINVAL;
-	}
 	return 0;
 }
 
@@ -980,13 +935,13 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 	return _snd_config_save_leaves(config, out, 0, 0);
 }
 
-int snd_config_search(snd_config_t *config, char *key, snd_config_t **result)
+int snd_config_search(snd_config_t *config, const char *key, snd_config_t **result)
 {
 	assert(config && key && result);
 	while (1) {
 		snd_config_t *n;
 		int err;
-		char *p = strchr(key, '.');
+		const char *p = strchr(key, '.');
 		if (config->type != SND_CONFIG_TYPE_COMPOUND)
 			return -ENOENT;
 		if (p) {
@@ -1008,7 +963,7 @@ int snd_config_searchv(snd_config_t *config,
 	assert(config && result);
 	va_start(arg, result);
 	while (1) {
-		char *k = va_arg(arg, char *);
+		const char *k = va_arg(arg, const char *);
 		int err;
 		if (!k)
 			break;

@@ -17,6 +17,7 @@ typedef enum sndrv_rawmidi_stream snd_rawmidi_stream_t;
 
 #define SND_RAWMIDI_STREAM_OUTPUT ((snd_rawmidi_stream_t) SNDRV_RAWMIDI_STREAM_OUTPUT)
 #define SND_RAWMIDI_STREAM_INPUT ((snd_rawmidi_stream_t) SNDRV_RAWMIDI_STREAM_INPUT)
+#define SND_RAWMIDI_STREAM_LAST ((snd_rawmidi_stream_t) SNDRV_RAWMIDI_STREAM_LAST)
 
 #define SND_RAWMIDI_INFO_OUTPUT SNDRV_RAWMIDI_INFO_OUTPUT
 #define SND_RAWMIDI_INFO_INPUT SNDRV_RAWMIDI_INFO_INPUT

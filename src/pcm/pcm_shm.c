@@ -25,7 +25,6 @@
 #include <limits.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/shm.h>
@@ -564,7 +563,7 @@ static int make_inet_socket(const char *host, int port)
 }
 #endif
 
-int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, snd_pcm_stream_t stream, int mode)
+int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *socket, const char *sname, snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_shm_t *shm = NULL;
@@ -721,11 +720,11 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		      snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
-	char *server = NULL;
-	char *sname = NULL;
+	const char *server = NULL;
+	const char *sname = NULL;
 	snd_config_t *sconfig;
-	char *host = NULL;
-	char *socket = NULL;
+	const char *host = NULL;
+	const char *socket = NULL;
 	long port = -1;
 	int err;
 	int local;

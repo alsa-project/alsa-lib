@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
-#include <errno.h>
 #include <stdarg.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
@@ -248,12 +247,12 @@ int snd_pcm_poll_descriptor(snd_pcm_t *pcm)
 #define FORMATD(v, d) [SND_PCM_FORMAT_##v] = d
 #define SUBFORMATD(v, d) [SND_PCM_SUBFORMAT_##v] = d 
 
-char *snd_pcm_stream_names[] = {
+const char *snd_pcm_stream_names[] = {
 	STREAM(PLAYBACK),
 	STREAM(CAPTURE),
 };
 
-char *snd_pcm_state_names[] = {
+const char *snd_pcm_state_names[] = {
 	STATE(OPEN),
 	STATE(SETUP),
 	STATE(PREPARED),
@@ -262,7 +261,7 @@ char *snd_pcm_state_names[] = {
 	STATE(PAUSED),
 };
 
-char *snd_pcm_hw_param_names[] = {
+const char *snd_pcm_hw_param_names[] = {
 	HW_PARAM(ACCESS),
 	HW_PARAM(FORMAT),
 	HW_PARAM(SUBFORMAT),
@@ -280,7 +279,7 @@ char *snd_pcm_hw_param_names[] = {
 	HW_PARAM(TICK_TIME),
 };
 
-char *snd_pcm_access_names[] = {
+const char *snd_pcm_access_names[] = {
 	ACCESS(MMAP_INTERLEAVED), 
 	ACCESS(MMAP_NONINTERLEAVED),
 	ACCESS(MMAP_COMPLEX),
@@ -288,7 +287,7 @@ char *snd_pcm_access_names[] = {
 	ACCESS(RW_NONINTERLEAVED),
 };
 
-char *snd_pcm_format_names[] = {
+const char *snd_pcm_format_names[] = {
 	FORMAT(S8),
 	FORMAT(U8),
 	FORMAT(S16_LE),
@@ -317,7 +316,7 @@ char *snd_pcm_format_names[] = {
 	FORMAT(SPECIAL),
 };
 
-char *snd_pcm_format_descriptions[] = {
+const char *snd_pcm_format_descriptions[] = {
 	FORMATD(S8, "Signed 8-bit"), 
 	FORMATD(U8, "Unsigned 8-bit"),
 	FORMATD(S16_LE, "Signed 16-bit Little Endian"),
@@ -346,25 +345,25 @@ char *snd_pcm_format_descriptions[] = {
 	FORMATD(SPECIAL, "Special"),
 };
 
-char *snd_pcm_subformat_names[] = {
+const char *snd_pcm_subformat_names[] = {
 	SUBFORMAT(STD), 
 };
 
-char *snd_pcm_subformat_descriptions[] = {
+const char *snd_pcm_subformat_descriptions[] = {
 	SUBFORMATD(STD, "Standard"), 
 };
 
-char *snd_pcm_start_mode_names[] = {
+const char *snd_pcm_start_mode_names[] = {
 	START(EXPLICIT),
 	START(DATA),
 };
 
-char *snd_pcm_xrun_mode_names[] = {
+const char *snd_pcm_xrun_mode_names[] = {
 	XRUN(NONE),
 	XRUN(STOP),
 };
 
-char *snd_pcm_tstamp_mode_names[] = {
+const char *snd_pcm_tstamp_mode_names[] = {
 	TSTAMP(NONE),
 	TSTAMP(MMAP),
 };
@@ -536,15 +535,15 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
 	return samples * pcm->sample_bits / 8;
 }
 
-int snd_pcm_open(snd_pcm_t **pcmp, char *name, 
+int snd_pcm_open(snd_pcm_t **pcmp, const char *name, 
 		 snd_pcm_stream_t stream, int mode)
 {
-	char *str;
+	const char *str;
 	int err;
 	snd_config_t *pcm_conf, *conf, *type_conf;
 	snd_config_iterator_t i;
-	char *lib = NULL, *open = NULL;
-	int (*open_func)(snd_pcm_t **pcmp, char *name, snd_config_t *conf, 
+	const char *lib = NULL, *open = NULL;
+	int (*open_func)(snd_pcm_t **pcmp, const char *name, snd_config_t *conf, 
 			 snd_pcm_stream_t stream, int mode);
 	void *h;
 	assert(pcmp && name);

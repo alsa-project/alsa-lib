@@ -30,7 +30,7 @@ typedef enum _snd_pcm_file_format {
 typedef struct {
 	snd_pcm_t *slave;
 	int close_slave;
-	char *fname;
+	const char *fname;
 	int fd;
 	int format;
 	snd_pcm_uframes_t appl_ptr;
@@ -102,7 +102,7 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 	if (file->close_slave)
 		err = snd_pcm_close(file->slave);
 	if (file->fname) {
-		free(file->fname);
+		free((void *)file->fname);
 		close(file->fd);
 	}
 	free(file);
@@ -403,7 +403,7 @@ snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	mmap_forward: snd_pcm_file_mmap_forward,
 };
 
-int snd_pcm_file_open(snd_pcm_t **pcmp, char *name, char *fname, int fd, char *fmt, snd_pcm_t *slave, int close_slave)
+int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int fd, const char *fmt, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
@@ -464,11 +464,11 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, char *name,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
-	char *sname = NULL;
+	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	char *fname = NULL;
-	char *format = NULL;
+	const char *fname = NULL;
+	const char *format = NULL;
 	long fd = -1;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);
@@ -526,7 +526,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, char *name,
 	if (!sname)
 		return  -ENOMEM;
 	err = snd_pcm_open(&spcm, sname, stream, mode);
-	free(sname);
+	free((void *) sname);
 	if (err < 0)
 		return err;
 	err = snd_pcm_file_open(pcmp, name, fname, fd, format, spcm, 1);

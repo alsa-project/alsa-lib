@@ -1,4 +1,18 @@
 
+#define LIST_HEAD_IS_DEFINED
+struct list_head {
+        struct list_head *next, *prev;
+};        
+
+/**
+ * list_entry - get the struct for this entry
+ * @ptr:        the &struct list_head pointer.
+ * @type:       the type of the struct this is embedded in.
+ * @member:     the name of the list_struct within the struct.
+ */
+#define list_entry(ptr, type, member) \
+        ((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+
 enum _snd_config_type {
         SND_CONFIG_TYPE_INTEGER,
         SND_CONFIG_TYPE_REAL,
@@ -50,30 +64,27 @@ int snd_config_top(snd_config_t **config);
 int snd_config_load(snd_config_t *config, snd_input_t *in);
 int snd_config_save(snd_config_t *config, snd_output_t *out);
 
-int snd_config_search(snd_config_t *config, char *key, snd_config_t **result);
+int snd_config_search(snd_config_t *config, const char *key,
+		      snd_config_t **result);
 int snd_config_searchv(snd_config_t *config, 
 		       snd_config_t **result, ...);
 
 int snd_config_add(snd_config_t *config, snd_config_t *leaf);
 int snd_config_delete(snd_config_t *config);
 
-int snd_config_make(snd_config_t **config, char *key,
+int snd_config_make(snd_config_t **config, const char *key,
 		    snd_config_type_t type);
-int snd_config_integer_make(snd_config_t **config, char *key);
-int snd_config_real_make(snd_config_t **config, char *key);
-int snd_config_string_make(snd_config_t **config, char *key);
-int snd_config_compound_make(snd_config_t **config, char *key, int join);
+int snd_config_integer_make(snd_config_t **config, const char *key);
+int snd_config_real_make(snd_config_t **config, const char *key);
+int snd_config_string_make(snd_config_t **config, const char *key);
+int snd_config_compound_make(snd_config_t **config, const char *key, int join);
 
 int snd_config_integer_set(snd_config_t *config, long value);
 int snd_config_real_set(snd_config_t *config, double value);
-int snd_config_string_set(snd_config_t *config, char *value);
+int snd_config_string_set(snd_config_t *config, const char *value);
 int snd_config_integer_get(snd_config_t *config, long *value);
 int snd_config_real_get(snd_config_t *config, double *value);
-int snd_config_string_get(snd_config_t *config, char **value);
-
-/* One argument: long, double or char* */
-int snd_config_set(snd_config_t *config, ...);
-int snd_config_get(snd_config_t *config, void *);
+int snd_config_string_get(snd_config_t *config, const char **value);
 
 typedef struct list_head *snd_config_iterator_t;
 

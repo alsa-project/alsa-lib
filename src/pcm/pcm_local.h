@@ -20,12 +20,10 @@
  *
  */
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/uio.h>
-#include <errno.h>
 
 #define _snd_pcm_access_mask _snd_mask
 #define _snd_pcm_format_mask _snd_mask
@@ -167,11 +165,11 @@ struct _snd_pcm {
 	void *private;
 };
 
-int snd_pcm_hw_open(snd_pcm_t **pcm, char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
-int snd_pcm_plug_open_hw(snd_pcm_t **pcm, char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
-int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, snd_pcm_stream_t stream, int mode);
-int snd_pcm_file_open(snd_pcm_t **pcmp, char *name, char *fname, int fd, char *fmt, snd_pcm_t *slave, int close_slave);
-int snd_pcm_null_open(snd_pcm_t **pcmp, char *name, snd_pcm_stream_t stream, int mode);
+int snd_pcm_hw_open(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
+int snd_pcm_plug_open_hw(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
+int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *socket, const char *sname, snd_pcm_stream_t stream, int mode);
+int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int fd, const char *fmt, snd_pcm_t *slave, int close_slave);
+int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t stream, int mode);
 
 
 void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void *buf);

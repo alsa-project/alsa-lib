@@ -19,11 +19,21 @@
  *
  */
 
+#ifndef __LOCAL_H
+#define __LOCAL_H
+
 #define _snd_interval sndrv_interval
 #define _snd_pcm_info sndrv_pcm_info
 #define _snd_pcm_hw_params sndrv_pcm_hw_params
 #define _snd_pcm_sw_params sndrv_pcm_sw_params
 #define _snd_pcm_status sndrv_pcm_status
+
+#define _snd_ctl_info sndrv_ctl_info
+#define _snd_control_id sndrv_control_id
+#define _snd_control_list sndrv_control_list
+#define _snd_control_info sndrv_control_info
+#define _snd_control sndrv_control
+#define _snd_ctl_event sndrv_ctl_event
 
 #define _snd_rawmidi_info sndrv_rawmidi_info
 #define _snd_rawmidi_params sndrv_rawmidi_params
@@ -32,6 +42,7 @@
 #define _snd_hwdep_info sndrv_hwdep_info
 
 #include "asoundlib.h"
+#include <errno.h>
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
 #define ERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, __VA_ARGS__)
@@ -41,3 +52,20 @@
 #define SYSERR(args...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, ##args)
 #endif
 
+enum _snd_set_mode {
+	SND_CHANGE,
+	SND_TRY,
+	SND_TEST,
+};
+
+#ifdef SND_ENUM_TYPECHECK
+typedef struct __snd_set_mode *snd_set_mode_t;
+#else
+typedef enum _snd_set_mode snd_set_mode_t;
+#endif
+
+#define SND_CHANGE ((snd_set_mode_t) SND_CHANGE)
+#define SND_TRY ((snd_set_mode_t) SND_TRY)
+#define SND_TEST ((snd_set_mode_t) SND_TEST)
+
+#endif

@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <math.h>
 #include "pcm_local.h"
 
@@ -664,7 +663,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	idx = 0;
 	snd_config_foreach(i, slave) {
 		snd_config_t *m = snd_config_entry(i);
-		char *name = NULL;
+		const char *name = NULL;
 		long channels = -1;
 		slaves_id[idx] = m->id;
 		snd_config_foreach(j, m) {
@@ -712,7 +711,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		long schannel = -1;
 		int slave = -1;
 		long val;
-		char *str;
+		const char *str;
 		cchannel = strtol(m->id, 0, 10);
 		if (cchannel < 0) {
 			ERR("Invalid channel number: %s", m->id);

@@ -319,7 +319,7 @@ snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	mmap_forward: snd_pcm_null_mmap_forward,
 };
 
-int snd_pcm_null_open(snd_pcm_t **pcmp, char *name, snd_pcm_stream_t stream, int mode)
+int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_null_t *null;

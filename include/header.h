@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <assert.h>
 #include <sys/uio.h>
 
 #ifndef ATTRIBUTE_UNUSED

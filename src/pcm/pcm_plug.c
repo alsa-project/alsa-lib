@@ -574,8 +574,8 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (!(clt_params.format == slv_params.format &&
 	      clt_params.channels == slv_params.channels &&
 	      clt_params.rate == slv_params.rate &&
-	      snd_pcm_hw_params_set_access(slave, &sparams, SND_TEST, 
-					   clt_params.access) >= 0)) {
+	      snd_pcm_hw_params_test_access(slave, &sparams,
+					    clt_params.access) >= 0)) {
 		slv_params.access = snd_pcm_hw_params_set_access_first(slave, &sparams);
 		err = snd_pcm_plug_insert_plugins(pcm, &clt_params, &slv_params);
 		if (err < 0)
@@ -646,7 +646,7 @@ snd_pcm_ops_t snd_pcm_plug_ops = {
 };
 
 int snd_pcm_plug_open(snd_pcm_t **pcmp,
-		      char *name,
+		      const char *name,
 		      snd_pcm_route_ttable_entry_t *ttable,
 		      unsigned int tt_ssize,
 		      unsigned int tt_cused, unsigned int tt_sused,
@@ -688,7 +688,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	return 0;
 }
 
-int snd_pcm_plug_open_hw(snd_pcm_t **pcmp, char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
+int snd_pcm_plug_open_hw(snd_pcm_t **pcmp, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *slave;
 	int err;
@@ -700,12 +700,12 @@ int snd_pcm_plug_open_hw(snd_pcm_t **pcmp, char *name, int card, int device, int
 
 #define MAX_CHANNELS 32
 
-int _snd_pcm_plug_open(snd_pcm_t **pcmp, char *name,
+int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
-	char *sname = NULL;
+	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
 	snd_config_t *tt = NULL;
@@ -755,7 +755,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, char *name,
 	if (!sname)
 		return  -ENOMEM;
 	err = snd_pcm_open(&spcm, sname, stream, mode);
-	free(sname);
+	free((void *) sname);
 	if (err < 0)
 		return err;
 	err = snd_pcm_plug_open(pcmp, name, ttable, MAX_CHANNELS, cused, sused, spcm, 1);

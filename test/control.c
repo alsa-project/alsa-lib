@@ -6,7 +6,7 @@ int main(void)
 {
 	int idx, idx1, cards, err;
 	snd_ctl_t *handle;
-	snd_ctl_hw_info_t info;
+	snd_ctl_info_t info;
 	snd_pcm_info_t pcminfo;
 	snd_mixer_info_t mixerinfo;
 	snd_rawmidi_info_t rawmidiinfo;
@@ -23,7 +23,7 @@ int main(void)
 			printf("Open error: %s\n", snd_strerror(err));
 			continue;
 		}
-		if ((err = snd_ctl_hw_info(handle, &info)) < 0) {
+		if ((err = snd_ctl_info(handle, &info)) < 0) {
 			printf("HW info error: %s\n", snd_strerror(err));
 			continue;
 		}

@@ -24,10 +24,8 @@
 #include <sys/un.h>
 #include <sys/uio.h>
 #include <stdio.h>
-#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <assert.h>
 #include <stddef.h>
 #include <getopt.h>
 #include <netinet/in.h>
@@ -573,13 +571,13 @@ int ctl_shm_cmd(client_t *client)
 	ctrl->cmd = 0;
 	ctl = client->device.control.handle;
 	switch (cmd) {
-	case SNDRV_CTL_IOCTL_HW_INFO:
-		ctrl->result = snd_ctl_hw_info(ctl, &ctrl->u.hw_info);
+	case SNDRV_CTL_IOCTL_INFO:
+		ctrl->result = snd_ctl_info(ctl, &ctrl->u.hw_info);
 		break;
 	case SNDRV_CTL_IOCTL_CONTROL_LIST:
 	{
 		size_t maxsize = CTL_SHM_DATA_MAXLEN;
-		if (ctrl->u.clist.controls_request * sizeof(*ctrl->u.clist.pids) > maxsize) {
+		if (ctrl->u.clist.space * sizeof(*ctrl->u.clist.pids) > maxsize) {
 			ctrl->result = -EFAULT;
 			break;
 		}
@@ -837,7 +835,7 @@ int inet_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-int server(char *sockname, int port)
+int server(const char *sockname, int port)
 {
 	int err;
 	unsigned int k;
@@ -939,8 +937,8 @@ int main(int argc, char **argv)
 	int c;
 	snd_config_t *conf;
 	snd_config_iterator_t i;
-	char *socket = NULL;
-	char *host = NULL;
+	const char *socket = NULL;
+	const char *host = NULL;
 	long port = -1;
 	int err;
 	char *srvname;

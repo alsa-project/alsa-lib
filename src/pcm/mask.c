@@ -24,7 +24,5 @@
 
 #include <sys/types.h>
 #include <limits.h>
-#include <errno.h>
-#include <assert.h>
 #include "pcm_local.h"
 

@@ -228,7 +228,7 @@ int _snd_pcm_copy_open(snd_pcm_t **pcmp, char *name,
 			 snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
-	char *sname = NULL;
+	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
 	snd_config_foreach(i, conf) {
@@ -259,7 +259,7 @@ int _snd_pcm_copy_open(snd_pcm_t **pcmp, char *name,
 	if (!sname)
 		return  -ENOMEM;
 	err = snd_pcm_open(&spcm, sname, stream, mode);
-	free(sname);
+	free((void *) sname);
 	if (err < 0)
 		return err;
 	err = snd_pcm_copy_open(pcmp, name, spcm, 1);

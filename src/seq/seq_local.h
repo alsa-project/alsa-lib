@@ -23,11 +23,9 @@
 #ifndef __SEQ_LOCAL_H
 #define __SEQ_LOCAL_H
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <errno.h>
 #include "local.h"
 
 #define SND_SEQ_OBUF_SIZE	(16*1024)	/* default size */

@@ -19,8 +19,6 @@
  *
  */
   
-#include <errno.h>
-#include <assert.h>
 #include "local.h"
 
 size_t snd_hwdep_info_sizeof()
@@ -31,7 +29,7 @@ size_t snd_hwdep_info_sizeof()
 int snd_hwdep_info_malloc(snd_hwdep_info_t **ptr)
 {
 	assert(ptr);
-	*ptr = malloc(sizeof(snd_hwdep_info_t));
+	*ptr = calloc(1, sizeof(snd_hwdep_info_t));
 	if (!*ptr)
 		return -ENOMEM;
 	return 0;
@@ -60,13 +58,13 @@ int snd_hwdep_info_get_card(const snd_hwdep_info_t *obj)
 	return obj->card;
 }
 
-const char * snd_hwdep_info_get_id(const snd_hwdep_info_t *obj)
+const char *snd_hwdep_info_get_id(const snd_hwdep_info_t *obj)
 {
 	assert(obj);
 	return obj->id;
 }
 
-const char * snd_hwdep_info_get_name(const snd_hwdep_info_t *obj)
+const char *snd_hwdep_info_get_name(const snd_hwdep_info_t *obj)
 {
 	assert(obj);
 	return obj->name;

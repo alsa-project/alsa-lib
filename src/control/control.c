@@ -24,9 +24,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
-#include <assert.h>
 #include <dlfcn.h>
 #include "control_local.h"
 
@@ -50,7 +48,7 @@ int snd_ctl_poll_descriptor(snd_ctl_t *ctl)
 	return ctl->ops->poll_descriptor(ctl);
 }
 
-int snd_ctl_hw_info(snd_ctl_t *ctl, snd_ctl_hw_info_t *info)
+int snd_ctl_info(snd_ctl_t *ctl, snd_ctl_info_t *info)
 {
 	assert(ctl && info);
 	return ctl->ops->hw_info(ctl, info);
@@ -175,11 +173,11 @@ int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_callbacks_t * callbacks)
 
 int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 {
-	char *str;
+	const char *str;
 	int err;
 	snd_config_t *ctl_conf, *conf, *type_conf;
 	snd_config_iterator_t i;
-	char *lib = NULL, *open = NULL;
+	const char *lib = NULL, *open = NULL;
 	int (*open_func)(snd_ctl_t **ctlp, char *name, snd_config_t *conf);
 	void *h;
 	assert(ctlp && name);
@@ -240,3 +238,75 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 	return open_func(ctlp, name, ctl_conf);
 }
 
+void snd_control_set_bytes(snd_control_t *obj, void *data, size_t size)
+{
+	assert(obj);
+	assert(size <= sizeof(obj->value.bytes.data));
+	memcpy(obj->value.bytes.data, data, size);
+}
+
+#define TYPE(v) [SND_CONTROL_TYPE_##v] = #v
+#define IFACE(v) [SND_CONTROL_IFACE_##v] = #v
+#define EVENT(v) [SND_CTL_EVENT_##v] = #v
+
+const char *snd_control_type_names[] = {
+	TYPE(NONE),
+	TYPE(BOOLEAN),
+	TYPE(INTEGER),
+	TYPE(ENUMERATED),
+	TYPE(BYTES),
+	TYPE(IEC958),
+};
+
+const char *snd_control_iface_names[] = {
+	IFACE(CARD),
+	IFACE(HWDEP),
+	IFACE(MIXER),
+	IFACE(PCM),
+	IFACE(RAWMIDI),
+	IFACE(TIMER),
+	IFACE(SEQUENCER),
+};
+
+const char *snd_ctl_event_type_names[] = {
+	EVENT(REBUILD),
+	EVENT(VALUE),
+	EVENT(CHANGE),
+	EVENT(ADD),
+	EVENT(REMOVE),
+};
+
+const char *snd_control_type_name(snd_control_type_t type)
+{
+	assert(type <= SND_CONTROL_TYPE_LAST);
+	return snd_control_type_names[snd_enum_to_int(type)];
+}
+
+const char *snd_control_iface_name(snd_control_iface_t iface)
+{
+	assert(iface <= SND_CONTROL_IFACE_LAST);
+	return snd_control_iface_names[snd_enum_to_int(iface)];
+}
+
+const char *snd_ctl_event_type_name(snd_ctl_event_type_t type)
+{
+	assert(type <= SND_CTL_EVENT_LAST);
+	return snd_ctl_event_type_names[snd_enum_to_int(type)];
+}
+
+int snd_control_list_alloc_space(snd_control_list_t *obj, unsigned int entries)
+{
+	obj->pids = calloc(entries, sizeof(*obj->pids));
+	if (!obj->pids) {
+		obj->space = 0;
+		return -ENOMEM;
+	}
+	obj->space = entries;
+	return 0;
+}  
+
+void snd_control_list_free_space(snd_control_list_t *obj)
+{
+	free(obj->pids);
+	obj->pids = NULL;
+}

@@ -24,7 +24,6 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <dlfcn.h>
 #include <asm/page.h>
 #include "rawmidi_local.h"
@@ -162,13 +161,13 @@ int snd_rawmidi_params_default(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream
 int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name, 
 		     int streams, int mode)
 {
-	char *str;
+	const char *str;
 	int err;
 	snd_config_t *rawmidi_conf, *conf, *type_conf;
 	snd_config_iterator_t i;
 	snd_rawmidi_params_t params;
 	unsigned int stream;
-	char *lib = NULL, *open = NULL;
+	const char *lib = NULL, *open = NULL;
 	int (*open_func)(snd_rawmidi_t **rawmidip, char *name, snd_config_t *conf, 
 			 int streams, int mode);
 	void *h;

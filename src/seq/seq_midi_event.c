@@ -20,7 +20,6 @@
  */
 
 #include <malloc.h>
-#include <errno.h>
 #include "local.h"
 
 

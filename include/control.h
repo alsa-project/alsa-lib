@@ -6,21 +6,20 @@
  ****************************************************************************/
 
 typedef struct sndrv_aes_iec958 snd_aes_iec958_t;
-typedef union sndrv_digital_audio snd_digital_audio_t;
-typedef struct sndrv_ctl_hw_info snd_ctl_hw_info_t;
-typedef struct sndrv_control_id snd_control_id_t;
-typedef struct sndrv_control_list snd_control_list_t;
-typedef struct sndrv_control_info snd_control_info_t;
-typedef struct sndrv_control snd_control_t;
-typedef struct sndrv_ctl_event snd_ctl_event_t;
+typedef struct _snd_ctl_info snd_ctl_info_t;
+typedef struct _snd_control_id snd_control_id_t;
+typedef struct _snd_control_list snd_control_list_t;
+typedef struct _snd_control_info snd_control_info_t;
+typedef struct _snd_control snd_control_t;
+typedef struct _snd_ctl_event snd_ctl_event_t;
 
 #ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_card_type *snd_card_type;
+typedef struct __snd_card_type *snd_card_type_t;
 typedef struct __snd_control_type *snd_control_type_t;
 typedef struct __snd_control_iface *snd_control_iface_t;
 typedef struct __snd_ctl_event_type *snd_ctl_event_type_t;
 #else
-typedef enum sndrv_card_type snd_card_type;
+typedef enum sndrv_card_type snd_card_type_t;
 typedef enum sndrv_control_type snd_control_type_t;
 typedef enum sndrv_control_iface snd_control_iface_t;
 typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
@@ -102,6 +101,7 @@ typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
 #define SND_CONTROL_TYPE_ENUMERATED ((snd_control_type_t) SNDRV_CONTROL_TYPE_ENUMERATED)
 #define SND_CONTROL_TYPE_BYTES ((snd_control_type_t) SNDRV_CONTROL_TYPE_BYTES)
 #define SND_CONTROL_TYPE_IEC958 ((snd_control_type_t) SNDRV_CONTROL_TYPE_IEC958)
+#define SND_CONTROL_TYPE_LAST ((snd_control_type_t) SNDRV_CONTROL_TYPE_LAST)
 
 #define SND_CONTROL_IFACE_CARD ((snd_control_iface_t) SNDRV_CONTROL_IFACE_CARD)
 #define SND_CONTROL_IFACE_HWDEP ((snd_control_iface_t) SNDRV_CONTROL_IFACE_HWDEP)
@@ -110,20 +110,14 @@ typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
 #define SND_CONTROL_IFACE_RAWMIDI ((snd_control_iface_t) SNDRV_CONTROL_IFACE_RAWMIDI)
 #define SND_CONTROL_IFACE_TIMER ((snd_control_iface_t) SNDRV_CONTROL_IFACE_TIMER)
 #define SND_CONTROL_IFACE_SEQUENCER ((snd_control_iface_t) SNDRV_CONTROL_IFACE_SEQUENCER)
+#define SND_CONTROL_IFACE_LAST ((snd_control_iface_t) SNDRV_CONTROL_IFACE_LAST)
 
 #define SND_CTL_EVENT_REBUILD ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_REBUILD)
 #define SND_CTL_EVENT_VALUE ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_VALUE)
 #define SND_CTL_EVENT_CHANGE ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_CHANGE)
 #define SND_CTL_EVENT_ADD ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_ADD)
 #define SND_CTL_EVENT_REMOVE ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_REMOVE)
-
-#define SND_CONTROL_ACCESS_READ SNDRV_CONTROL_ACCESS_READ
-#define SND_CONTROL_ACCESS_WRITE SNDRV_CONTROL_ACCESS_WRITE
-#define SND_CONTROL_ACCESS_READWRITE SNDRV_CONTROL_ACCESS_READWRITE
-#define SND_CONTROL_ACCESS_VOLATILE SNDRV_CONTROL_ACCESS_VOLATILE
-#define SND_CONTROL_ACCESS_INACTIVE SNDRV_CONTROL_ACCESS_INACTIVE
-#define SND_CONTROL_ACCESS_LOCK SNDRV_CONTROL_ACCESS_LOCK
-#define SND_CONTROL_ACCESS_INDIRECT SNDRV_CONTROL_ACCESS_INDIRECT
+#define SND_CTL_EVENT_LAST ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_LAST)
 
 enum _snd_ctl_type {
 	SND_CTL_TYPE_HW,
@@ -142,16 +136,7 @@ typedef enum _snd_ctl_type snd_ctl_type_t;
 #define SND_CTL_TYPE_INET ((snd_ctl_type_t) SND_CTL_TYPE_INET)
 
 typedef struct _snd_ctl snd_ctl_t;
-
-typedef struct _snd_ctl_callbacks {
-	void *private_data;	/* may be used by an application */
-	void (*rebuild) (snd_ctl_t *handle, void *private_data);
-	void (*value) (snd_ctl_t *handle, void *private_data, snd_control_id_t * id);
-	void (*change) (snd_ctl_t *handle, void *private_data, snd_control_id_t * id);
-	void (*add) (snd_ctl_t *handle, void *private_data, snd_control_id_t * id);
-	void (*remove) (snd_ctl_t *handle, void *private_data, snd_control_id_t * id);
-	void *reserved[58];	/* reserved for the future use - must be NULL!!! */
-} snd_ctl_callbacks_t;
+typedef struct _snd_ctl_callbacks snd_ctl_callbacks_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -175,7 +160,7 @@ int snd_ctl_open(snd_ctl_t **handle, char *name);
 int snd_ctl_close(snd_ctl_t *handle);
 int snd_ctl_card(snd_ctl_t *handle);
 int snd_ctl_poll_descriptor(snd_ctl_t *handle);
-int snd_ctl_hw_info(snd_ctl_t *handle, snd_ctl_hw_info_t *info);
+int snd_ctl_info(snd_ctl_t *handle, snd_ctl_info_t *info);
 int snd_ctl_clist(snd_ctl_t *handle, snd_control_list_t * list);
 int snd_ctl_cinfo(snd_ctl_t *handle, snd_control_info_t * sw);
 int snd_ctl_cread(snd_ctl_t *handle, snd_control_t * control);
@@ -191,6 +176,15 @@ int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev);
 
 int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks);
 
+void snd_control_set_bytes(snd_control_t *obj, void *data, size_t size);
+
+const char *snd_control_type_name(snd_control_type_t type);
+const char *snd_control_iface_name(snd_control_iface_t iface);
+const char *snd_ctl_event_type_name(snd_ctl_event_type_t type);
+
+int snd_control_list_alloc_space(snd_control_list_t *obj, unsigned int entries);
+void snd_control_list_free_space(snd_control_list_t *obj);
+
 #ifdef __cplusplus
 }
 #endif
@@ -199,57 +193,20 @@ int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks);
  *  Highlevel API for controls
  */
 
-#define LIST_HEAD_IS_DEFINED
-struct list_head {
-        struct list_head *next, *prev;
-};        
-
-/**
- * list_entry - get the struct for this entry
- * @ptr:	the &struct list_head pointer.
- * @type:	the type of the struct this is embedded in.
- * @member:	the name of the list_struct within the struct.
- */
-#define list_entry(ptr, type, member) \
-	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
-
-
 typedef struct _snd_hcontrol_list snd_hcontrol_list_t;
 typedef struct _snd_hcontrol snd_hcontrol_t;
-
-struct _snd_hcontrol_list {
-	unsigned int controls_offset;	/* W: first control ID to get */
-	unsigned int controls_request;	/* W: count of control IDs to get */
-	unsigned int controls_count;	/* R: count of available (set) controls */
-	unsigned int controls;		/* R: count of all available controls */
-	snd_control_id_t *pids;		/* W: IDs */
-};
-
-struct _snd_hcontrol {
-	snd_control_id_t id; 	/* must be always on top */
-	struct list_head list;	/* links for list of all hcontrols */
-	int change: 1,		/* structure change */
-	    value: 1;		/* value change */
-	/* event callbacks */
-	void (*event_change)(snd_ctl_t *handle, snd_hcontrol_t *hcontrol);
-	void (*event_value)(snd_ctl_t *handle, snd_hcontrol_t *hcontrol);
-	void (*event_remove)(snd_ctl_t *handle, snd_hcontrol_t *hcontrol);
-	/* private data */
-	void *private_data;
-	void (*private_free)(void *private_data);
-	/* links */
-	snd_ctl_t *handle;	/* associated handle */
-};
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef int (snd_ctl_hsort_t)(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2);
-typedef void (snd_ctl_hcallback_rebuild_t)(snd_ctl_t *handle, void *private_data);
-typedef void (snd_ctl_hcallback_add_t)(snd_ctl_t *handle, void *private_data, snd_hcontrol_t *hcontrol);
+typedef int (*snd_ctl_hsort_t)(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2);
+typedef void (*snd_ctl_hcallback_rebuild_t)(snd_ctl_t *handle, void *private_data);
+typedef void (*snd_ctl_hcallback_add_t)(snd_ctl_t *handle, void *private_data, snd_hcontrol_t *hcontrol);
+typedef void (*snd_hcontrol_callback_t)(snd_ctl_t *handle, snd_hcontrol_t *hcontrol);
+typedef void (*snd_hcontrol_private_free_t)(snd_hcontrol_t *hcontrol);
 
-int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t *csort);
+int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t csort);
 int snd_ctl_hfree(snd_ctl_t *handle);
 snd_hcontrol_t *snd_ctl_hfirst(snd_ctl_t *handle);
 snd_hcontrol_t *snd_ctl_hlast(snd_ctl_t *handle);
@@ -259,9 +216,9 @@ int snd_ctl_hcount(snd_ctl_t *handle);
 snd_hcontrol_t *snd_ctl_hfind(snd_ctl_t *handle, snd_control_id_t *id);
 int snd_ctl_hlist(snd_ctl_t *handle, snd_hcontrol_list_t *hlist);
 int snd_ctl_hsort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2);
-int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t *csort);
-int snd_ctl_hcallback_rebuild(snd_ctl_t *handle, snd_ctl_hcallback_rebuild_t *callback, void *private_data);
-int snd_ctl_hcallback_add(snd_ctl_t *handle, snd_ctl_hcallback_add_t *callback, void *private_data);
+int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t csort);
+int snd_ctl_hcallback_rebuild(snd_ctl_t *handle, snd_ctl_hcallback_rebuild_t callback, void *private_data);
+int snd_ctl_hcallback_add(snd_ctl_t *handle, snd_ctl_hcallback_add_t callback, void *private_data);
 int snd_ctl_hevent(snd_ctl_t *handle);
 
 int snd_ctl_hbag_create(void **bag);
@@ -269,6 +226,8 @@ int snd_ctl_hbag_destroy(void **bag, void (*hcontrol_free)(snd_hcontrol_t *hcont
 int snd_ctl_hbag_add(void **bag, snd_hcontrol_t *hcontrol);
 int snd_ctl_hbag_del(void **bag, snd_hcontrol_t *hcontrol);
 snd_hcontrol_t *snd_ctl_hbag_find(void **bag, snd_control_id_t *id);
+int snd_hcontrol_list_alloc_space(snd_hcontrol_list_t *obj, unsigned int entries);
+void snd_hcontrol_list_free_space(snd_hcontrol_list_t *obj);
 
 #ifdef __cplusplus
 }

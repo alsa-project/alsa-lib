@@ -3,7 +3,7 @@ extern "C" {
 #endif
 
 size_t snd_rawmidi_params_sizeof();
-#define snd_rawmidi_params_alloca(ptr) ({assert(ptr); *ptr = (snd_rawmidi_params_t *) alloca(snd_rawmidi_params_sizeof()); 0;})
+#define snd_rawmidi_params_alloca(ptr) ({ assert(ptr); *ptr = (snd_rawmidi_params_t *) alloca(snd_rawmidi_params_sizeof()); memset(*ptr, 0, snd_rawmidi_params_sizeof()); 0; })
 int snd_rawmidi_params_malloc(snd_rawmidi_params_t **ptr);
 void snd_rawmidi_params_free(snd_rawmidi_params_t *obj);
 void snd_rawmidi_params_copy(snd_rawmidi_params_t *dst, const snd_rawmidi_params_t *src);
@@ -18,7 +18,7 @@ int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rmidi, snd_rawmidi_p
 int snd_rawmidi_params_get_no_active_sensing(const snd_rawmidi_params_t *params);
 
 size_t snd_rawmidi_info_sizeof();
-#define snd_rawmidi_info_alloca(ptr) ({assert(ptr); *ptr = (snd_rawmidi_info_t *) alloca(snd_rawmidi_info_sizeof()); 0;})
+#define snd_rawmidi_info_alloca(ptr) ({ assert(ptr); *ptr = (snd_rawmidi_info_t *) alloca(snd_rawmidi_info_sizeof()); memset(*ptr, 0, snd_rawmidi_info_sizeof()); 0; })
 int snd_rawmidi_info_malloc(snd_rawmidi_info_t **ptr);
 void snd_rawmidi_info_free(snd_rawmidi_info_t *obj);
 void snd_rawmidi_info_copy(snd_rawmidi_info_t *dst, const snd_rawmidi_info_t *src);
@@ -33,11 +33,11 @@ int snd_rawmidi_info_get_card(const snd_rawmidi_info_t *obj);
 
 unsigned int snd_rawmidi_info_get_flags(const snd_rawmidi_info_t *obj);
 
-const char * snd_rawmidi_info_get_id(const snd_rawmidi_info_t *obj);
+const char *snd_rawmidi_info_get_id(const snd_rawmidi_info_t *obj);
 
-const char * snd_rawmidi_info_get_name(const snd_rawmidi_info_t *obj);
+const char *snd_rawmidi_info_get_name(const snd_rawmidi_info_t *obj);
 
-const char * snd_rawmidi_info_get_subdevice_name(const snd_rawmidi_info_t *obj);
+const char *snd_rawmidi_info_get_subdevice_name(const snd_rawmidi_info_t *obj);
 
 unsigned int snd_rawmidi_info_get_subdevices_count(const snd_rawmidi_info_t *obj);
 
@@ -50,7 +50,7 @@ void snd_rawmidi_info_set_subdevice(snd_rawmidi_info_t *obj, unsigned int val);
 void snd_rawmidi_info_set_stream(snd_rawmidi_info_t *obj, snd_rawmidi_stream_t val);
 
 size_t snd_rawmidi_status_sizeof();
-#define snd_rawmidi_status_alloca(ptr) ({assert(ptr); *ptr = (snd_rawmidi_status_t *) alloca(snd_rawmidi_status_sizeof()); 0;})
+#define snd_rawmidi_status_alloca(ptr) ({ assert(ptr); *ptr = (snd_rawmidi_status_t *) alloca(snd_rawmidi_status_sizeof()); memset(*ptr, 0, snd_rawmidi_status_sizeof()); 0; })
 int snd_rawmidi_status_malloc(snd_rawmidi_status_t **ptr);
 void snd_rawmidi_status_free(snd_rawmidi_status_t *obj);
 void snd_rawmidi_status_copy(snd_rawmidi_status_t *dst, const snd_rawmidi_status_t *src);

@@ -19,7 +19,6 @@
  *
  */
 
-#include <assert.h>
 #include "local.h"
 #include "list.h"
 

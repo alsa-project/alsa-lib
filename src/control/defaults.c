@@ -21,7 +21,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include "local.h"
 
 static int defaults_card(const char *env)

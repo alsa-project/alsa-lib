@@ -24,7 +24,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -664,7 +663,7 @@ int snd_pcm_hw_open_device(snd_pcm_t **pcmp, int card, int device, snd_pcm_strea
 	return snd_pcm_hw_open_subdevice(pcmp, card, device, -1, stream, mode);
 }
 
-int snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
+int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
 {
 	int err = snd_pcm_hw_open_subdevice(pcmp, card, device, subdevice, stream, mode);
 	if (err < 0)
@@ -679,7 +678,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 {
 	snd_config_iterator_t i;
 	long card = -1, device = 0, subdevice = -1;
-	char *str;
+	const char *str;
 	int err;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);

@@ -470,7 +470,7 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, char *name,
 			 snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i;
-	char *sname = NULL;
+	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
@@ -491,7 +491,7 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, char *name,
 			continue;
 		}
 		if (strcmp(n->id, "sformat") == 0) {
-			char *f;
+			const char *f;
 			err = snd_config_string_get(n, &f);
 			if (err < 0) {
 				ERR("Invalid type for %s", n->id);
@@ -525,7 +525,7 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, char *name,
 	if (!sname)
 		return  -ENOMEM;
 	err = snd_pcm_open(&spcm, sname, stream, mode);
-	free(sname);
+	free((void *) sname);
 	if (err < 0)
 		return err;
 	err = snd_pcm_alaw_open(pcmp, name, sformat, spcm, 1);

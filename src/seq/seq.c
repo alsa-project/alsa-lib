@@ -27,11 +27,11 @@
 int snd_seq_open(snd_seq_t **seqp, char *name, 
 		 int streams, int mode)
 {
-	char *str;
+	const char *str;
 	int err;
 	snd_config_t *seq_conf, *conf, *type_conf;
 	snd_config_iterator_t i;
-	char *lib = NULL, *open = NULL;
+	const char *lib = NULL, *open = NULL;
 	int (*open_func)(snd_seq_t **seqp, char *name, snd_config_t *conf, 
 			 int streams, int mode);
 	void *h;

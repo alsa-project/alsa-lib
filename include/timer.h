@@ -25,10 +25,13 @@ typedef enum sndrv_timer_slave_type snd_timer_slave_type_t;
 #define SND_TIMER_TYPE_GLOBAL ((snd_timer_type_t) SNDRV_TIMER_TYPE_GLOBAL)
 #define SND_TIMER_TYPE_CARD ((snd_timer_type_t) SNDRV_TIMER_TYPE_CARD)
 #define SND_TIMER_TYPE_PCM ((snd_timer_type_t) SNDRV_TIMER_TYPE_PCM)
+#define SND_TIMER_TYPE_LAST ((snd_timer_type_t) SNDRV_TIMER_TYPE_LAST)
+
 #define SND_TIMER_STYPE_NONE ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_NONE
 #define SND_TIMER_STYPE_APPLICATION ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_APPLICATION
 #define SND_TIMER_STYPE_SEQUENCER ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_SEQUENCER
 #define SND_TIMER_STYPE_OSS_SEQUENCER ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_OSS_SEQUENCER
+#define SND_TIMER_STYPE_LAST ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_LAST
 
 #define SND_TIMER_GLOBAL_SYSTEM SNDRV_TIMER_GLOBAL_SYSTEM
 #define SND_TIMER_GLOBAL_RTC SNDRV_TIMER_GLOBAL_RTC

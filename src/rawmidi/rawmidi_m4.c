@@ -29,7 +29,7 @@ size_t snd_rawmidi_params_sizeof()
 int snd_rawmidi_params_malloc(snd_rawmidi_params_t **ptr)
 {
 	assert(ptr);
-	*ptr = malloc(sizeof(snd_rawmidi_params_t));
+	*ptr = calloc(1, sizeof(snd_rawmidi_params_t));
 	if (!*ptr)
 		return -ENOMEM;
 	return 0;
@@ -98,7 +98,7 @@ size_t snd_rawmidi_info_sizeof()
 int snd_rawmidi_info_malloc(snd_rawmidi_info_t **ptr)
 {
 	assert(ptr);
-	*ptr = malloc(sizeof(snd_rawmidi_info_t));
+	*ptr = calloc(1, sizeof(snd_rawmidi_info_t));
 	if (!*ptr)
 		return -ENOMEM;
 	return 0;
@@ -145,19 +145,19 @@ unsigned int snd_rawmidi_info_get_flags(const snd_rawmidi_info_t *obj)
 	return obj->flags;
 }
 
-const char * snd_rawmidi_info_get_id(const snd_rawmidi_info_t *obj)
+const char *snd_rawmidi_info_get_id(const snd_rawmidi_info_t *obj)
 {
 	assert(obj);
 	return obj->id;
 }
 
-const char * snd_rawmidi_info_get_name(const snd_rawmidi_info_t *obj)
+const char *snd_rawmidi_info_get_name(const snd_rawmidi_info_t *obj)
 {
 	assert(obj);
 	return obj->name;
 }
 
-const char * snd_rawmidi_info_get_subdevice_name(const snd_rawmidi_info_t *obj)
+const char *snd_rawmidi_info_get_subdevice_name(const snd_rawmidi_info_t *obj)
 {
 	assert(obj);
 	return obj->subname;
@@ -201,7 +201,7 @@ size_t snd_rawmidi_status_sizeof()
 int snd_rawmidi_status_malloc(snd_rawmidi_status_t **ptr)
 {
 	assert(ptr);
-	*ptr = malloc(sizeof(snd_rawmidi_status_t));
+	*ptr = calloc(1, sizeof(snd_rawmidi_status_t));
 	if (!*ptr)
 		return -ENOMEM;
 	return 0;

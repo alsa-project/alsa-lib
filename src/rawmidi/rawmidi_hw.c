@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "../control/control_local.h"
@@ -276,7 +275,7 @@ int _snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, snd_config_t *conf
 {
 	snd_config_iterator_t i;
 	long card = -1, device = 0, subdevice = -1;
-	char *str;
+	const char *str;
 	int err;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);
