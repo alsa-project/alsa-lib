@@ -1,6 +1,7 @@
 /*
  *  Linear conversion Plug-In
- *  Copyright (c) 1999 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 1999 by Jaroslav Kysela <perex@suse.cz>,
+ *			  Abramo Bagnara <abramo@alsa-project.org>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -33,6 +34,7 @@
 #include <errno.h>
 #include <endian.h>
 #include <byteswap.h>
+#include <sys/uio.h>
 #include "../pcm_local.h"
 #endif
 
@@ -42,10 +44,10 @@
  
 typedef void (*linear_f)(void *src, void *dst, size_t size);
 
-struct linear_private_data {
+typedef struct linear_private_data {
 	int src_sample_size, dst_sample_size;
 	linear_f func;
-};
+} linear_t;
 
 #define LIN_FUNC(name, srctype, dsttype, val) \
 static void lin_##name(void *src_ptr, void *dst_ptr, size_t size) \
@@ -163,7 +165,7 @@ LIN_FUNC(32_sign_end, u_int32_t, u_int32_t, bswap_32(src) ^ 0x80)
 LIN_FUNC(32_end_sign_end, u_int32_t, u_int32_t, src ^ 0x80)
 
 /* src_wid dst_wid src_endswap, dst_endswap, sign_swap */
-linear_f linear_functions[4 * 4 * 2 * 2 * 2] = {
+static linear_f linear_functions[4 * 4 * 2 * 2 * 2] = {
 	NULL,			/* 8->8: Nothing to do */
 	lin_8_sign,		/* 8->8 sign: lin_8_sign */
 	NULL,			/* 8->8 dst_end: Nothing to do */
@@ -296,52 +298,33 @@ linear_f linear_functions[4 * 4 * 2 * 2 * 2] = {
 
 
 static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
-			       char *src_ptr, size_t src_size,
-			       char *dst_ptr, size_t dst_size)
+			       const snd_pcm_plugin_voice_t *src_voices,
+			       const snd_pcm_plugin_voice_t *dst_voices,
+			       size_t samples)
 {
-	struct linear_private_data *data;
+	linear_t *data;
+	int voice;
+	ssize_t result;
 
-	if (plugin == NULL || src_ptr == NULL || src_size < 0 ||
-	                      dst_ptr == NULL || dst_size < 0)
+	if (plugin == NULL || src_voices == NULL || dst_voices == NULL || samples < 0)
 		return -EINVAL;
-	if (src_size == 0)
+	if (samples == 0)
 		return 0;
-	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data == NULL)
-		return -EINVAL;
-	if (src_size % data->src_sample_size != 0)
-		return -EINVAL;
-	if (dst_size < src_size*data->dst_sample_size/data->src_sample_size)
-		return -EINVAL;
-	data->func(src_ptr, dst_ptr, src_size / data->src_sample_size);
-	return src_size*data->dst_sample_size/data->src_sample_size;
+	data = (linear_t *)plugin->extra_data;
+	for (voice = 0, result = 0; voice < plugin->src_format.voices; voice++) {
+		if (src_voices[voice].addr == NULL)
+			continue;
+		if (dst_voices[voice].addr == NULL)
+			return -EINVAL;
+		data->func(src_voices[voice].addr,
+		           dst_voices[voice].addr,
+		           samples);
+	}
+	return samples;
 }
 
-static ssize_t linear_src_size(snd_pcm_plugin_t *plugin, size_t size)
-{
-	struct linear_private_data *data;
-
-	if (plugin == NULL || size <= 0)
-		return -EINVAL;
-	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data == NULL)
-		return -EINVAL;
-	return size*data->src_sample_size/data->dst_sample_size;
-}
-
-static ssize_t linear_dst_size(snd_pcm_plugin_t *plugin, size_t size)
-{
-	struct linear_private_data *data;
-
-	if (plugin == NULL || size <= 0)
-		return -EINVAL;
-	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data == NULL)
-		return -EINVAL;
-	return size*data->dst_sample_size/data->src_sample_size;
-}
-
-int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
+int snd_pcm_plugin_build_linear(snd_pcm_plugin_handle_t *handle,
+				snd_pcm_format_t *src_format,
 				snd_pcm_format_t *dst_format,
 				snd_pcm_plugin_t **r_plugin)
 {
@@ -349,7 +332,6 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 	snd_pcm_plugin_t *plugin;
 	linear_f func;
 	int src_endian, dst_endian, sign, src_width, dst_width;
-	int src_sample_size, dst_sample_size;
 
 	if (r_plugin == NULL)
 		return -EINVAL;
@@ -380,46 +362,17 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 #error "Unsupported endian..."
 #endif
 
-	switch (src_width) {
-	case 8:
-		src_width = 0;
-		src_sample_size = 1;
-		break;
-	case 16:
-		src_width = 1;
-		src_sample_size = 2;
-		break;
-	case 24:
-		src_width = 2;
-		src_sample_size = 4;
-		break;
-	case 32:
-		src_width = 3;
-		src_sample_size = 4;
-		break;
-	default:
-		return -EINVAL;
-	}
-	switch (dst_width) {
-	case 8:
-		dst_width = 0;
-		dst_sample_size = 1;
-		break;
-	case 16:
-		dst_width = 1;
-		dst_sample_size = 2;
-		break;
-	case 24:
-		dst_width = 2;
-		dst_sample_size = 4;
-		break;
-	case 32:
-		dst_width = 3;
-		dst_sample_size = 4;
-		break;
-	default:
-		return -EINVAL;
-	}
+	src_width = snd_pcm_format_width(src_format->format);
+	if (src_width < 0)
+		return src_width;
+	src_width /= 8;
+	src_width--;
+
+	dst_width = snd_pcm_format_width(dst_format->format);
+	if (dst_width < 0)
+		return dst_width;
+	dst_width /= 8;
+	dst_width--;
 
 	if (src_endian < 0)
 		src_endian = 0;
@@ -431,18 +384,18 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 	if (func == NULL)
 		return -EINVAL;
 
-	plugin = snd_pcm_plugin_build("linear format conversion",
-				      sizeof(struct linear_private_data));
+	plugin = snd_pcm_plugin_build(handle,
+				      "linear format conversion",
+				      src_format,
+				      dst_format,
+				      sizeof(linear_t));
 	if (plugin == NULL)
 		return -ENOMEM;
-	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
+	data = (linear_t *)plugin->extra_data;
 	data->func = func;
-	data->src_sample_size = src_sample_size;
-	data->dst_sample_size = dst_sample_size;
-
+	data->src_sample_size = plugin->src_width / 8;
+	data->dst_sample_size = plugin->dst_width / 8;
 	plugin->transfer = linear_transfer;
-	plugin->src_size = linear_src_size;
-	plugin->dst_size = linear_dst_size;
 	*r_plugin = plugin;
 	return 0;
 }

@@ -1,6 +1,7 @@
 /*
  *  Interleave / non-interleave conversion Plug-In
- *  Copyright (c) 2000 by Abramo Bagnara <abbagnara@racine.ra.it>
+ *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>,
+ *			  Jaroslav Kysela <perex@suse.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -31,6 +32,7 @@
 #include <errno.h>
 #include <endian.h>
 #include <byteswap.h>
+#include <sys/uio.h>
 #include "../pcm_local.h"
 #endif
 
@@ -38,45 +40,44 @@
  *  Basic interleave / non-interleave conversion plugin
  */
  
-typedef void (*interleave_f)(void* src_ptr, void* dst_ptr,
+typedef void (*interleave_f)(const snd_pcm_plugin_voice_t *src_voices,
+			     const snd_pcm_plugin_voice_t *dst_voices,
 			     int voices, size_t samples);
 
-struct interleave_private_data {
-	int sample_size;
-	int voices;
+typedef struct interleave_private_data {
 	interleave_f func;
-};
+} interleave_t;
 
 
 #define INTERLEAVE_FUNC(name, type) \
-static void name(void* src_ptr, void* dst_ptr, \
-		       int voices, size_t samples) \
+static void name(const snd_pcm_plugin_voice_t *src_voices, \
+		 const snd_pcm_plugin_voice_t *dst_voices, \
+		 int voices, size_t samples) \
 { \
-	type* src = src_ptr; \
-	int voice; \
-	for (voice = 0; voice < voices; ++voice) { \
-		type *dst = (type*)dst_ptr + voice; \
-		int s; \
-		for (s = 0; s < samples; ++s) { \
-			*dst = *src; \
-			src++; \
+	type *src, *dst; \
+	int voice, sample; \
+	for (voice = 0; voice < voices; voice++) { \
+		src = (type *)src_voices[voice].addr; \
+		dst = (type *)dst_voices[voice].addr + voice; \
+		for (sample = 0; sample < samples; sample++) { \
+			*dst = *src++; \
 			dst += voices; \
 		} \
 	} \
 } \
 
 #define DEINTERLEAVE_FUNC(name, type) \
-static void name(void* src_ptr, void* dst_ptr, \
-			 int voices, size_t samples) \
+static void name(const snd_pcm_plugin_voice_t *src_voices, \
+		 const snd_pcm_plugin_voice_t *dst_voices, \
+		 int voices, size_t samples) \
 { \
-	type* dst = dst_ptr; \
-	int voice; \
-	for (voice = 0; voice < voices; ++voice) { \
-		type *src = (type*)src_ptr + voice; \
-		int s; \
-		for (s = 0; s < samples; ++s) { \
-			*dst = *src; \
-			dst++; \
+	type *src, *dst; \
+	int voice, sample; \
+	for (voice = 0; voice < voices; voice++) { \
+		src = (type *)src_voices[voice].addr + voice; \
+		dst = (type *)dst_voices[voice].addr; \
+		for (sample = 0; sample < samples; sample++) { \
+			*dst++ = *src; \
 			src += voices; \
 		} \
 	} \
@@ -92,36 +93,33 @@ FUNCS(4, int32_t);
 FUNCS(8, int64_t);
 
 static ssize_t interleave_transfer(snd_pcm_plugin_t *plugin,
-				   char *src_ptr, size_t src_size,
-				   char *dst_ptr, size_t dst_size)
+				   const snd_pcm_plugin_voice_t *src_voices,
+				   const snd_pcm_plugin_voice_t *dst_voices,
+				   size_t samples)
 {
-	struct interleave_private_data *data;
+	interleave_t *data;
 
-	if (plugin == NULL || src_ptr == NULL || src_size < 0 ||
-	                      dst_ptr == NULL || dst_size < 0)
+	if (plugin == NULL || src_voices == NULL || src_voices == NULL || samples < 0)
 		return -EINVAL;
-	if (src_size == 0)
+	if (samples == 0)
 		return 0;
-	if (src_size != dst_size)
-		return -EINVAL;
-	data = (struct interleave_private_data *)snd_pcm_plugin_extra_data(plugin);
+	data = (interleave_t *)plugin->extra_data;
 	if (data == NULL)
 		return -EINVAL;
-	data->func(src_ptr, dst_ptr, data->voices,
-		   src_size / (data->voices * data->sample_size));
-	return src_size;
+	data->func(src_voices, dst_voices, plugin->src_format.voices, samples);
+	return samples;
 }
 
-int snd_pcm_plugin_build_interleave(snd_pcm_format_t *src_format,
+int snd_pcm_plugin_build_interleave(snd_pcm_plugin_handle_t *handle,
+				    snd_pcm_format_t *src_format,
 				    snd_pcm_format_t *dst_format,
 				    snd_pcm_plugin_t **r_plugin)
 {
 	struct interleave_private_data *data;
 	snd_pcm_plugin_t *plugin;
 	interleave_f func;
-	int size;
 
-	if (r_plugin == NULL)
+	if (r_plugin == NULL || src_format == NULL || dst_format == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 
@@ -133,36 +131,35 @@ int snd_pcm_plugin_build_interleave(snd_pcm_format_t *src_format,
 		return -EINVAL;
 	if (src_format->voices != dst_format->voices)
 		return -EINVAL;
-	size = snd_pcm_format_size(dst_format->format, 1);
-	if (dst_format->interleave) {
-		switch (size) {
-		case 1:
+	if (!src_format->interleave) {
+		switch (snd_pcm_format_width(src_format->format)) {
+		case 8:
 			func = int_1;
 			break;
-		case 2:
+		case 16:
 			func = int_2;
 			break;
-		case 4:
+		case 32:
 			func = int_4;
 			break;
-		case 8:
+		case 64:
 			func = int_8;
 			break;
 		default:
 			return -EINVAL;
 		}
 	} else {
-		switch (size) {
-		case 1:
+		switch (snd_pcm_format_width(src_format->format)) {
+		case 8:
 			func = deint_1;
 			break;
-		case 2:
+		case 16:
 			func = deint_2;
 			break;
-		case 4:
+		case 32:
 			func = deint_4;
 			break;
-		case 8:
+		case 64:
 			func = deint_8;
 			break;
 		default:
@@ -170,13 +167,13 @@ int snd_pcm_plugin_build_interleave(snd_pcm_format_t *src_format,
 		}
 	}
 
-	plugin = snd_pcm_plugin_build("interleave conversion",
-				      sizeof(struct interleave_private_data));
+	plugin = snd_pcm_plugin_build(handle,
+				      "interleave conversion",
+				      src_format, dst_format,
+				      sizeof(interleave_t));
 	if (plugin == NULL)
 		return -ENOMEM;
-	data = (struct interleave_private_data *)snd_pcm_plugin_extra_data(plugin);
-	data->sample_size = size;
-	data->voices = src_format->voices;
+	data = (interleave_t *)plugin->extra_data;
 	data->func = func;
 	plugin->transfer = interleave_transfer;
 	*r_plugin = plugin;

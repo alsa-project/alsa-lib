@@ -352,7 +352,7 @@ static ssize_t route_transfer(snd_pcm_plugin_t *plugin,
 		return -EINVAL;
 	if (src_size == 0)
 		return 0;
-	data = (struct route_private_data *)snd_pcm_plugin_extra_data(plugin);
+	data = (struct route_private_data *)plugin->extra_data;
 	data->func(data, src_ptr, dst_ptr, src_size, dst_size);
 	return dst_size;
 }
@@ -414,7 +414,7 @@ int snd_pcm_plugin_build_route(snd_pcm_format_t *src_format,
 				      sizeof(data->ttable[0]) * src_format->voices * dst_format->voices);
 	if (plugin == NULL)
 		return -ENOMEM;
-	data = (struct route_private_data *)snd_pcm_plugin_extra_data(plugin);
+	data = (struct route_private_data *)plugin->extra_data;
 
 	data->src_voices = src_format->voices;
 	data->dst_voices = dst_format->voices;

@@ -25,18 +25,45 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <sys/uio.h>
 #include "pcm_local.h"
 
-snd_pcm_plugin_t *snd_pcm_plugin_build(const char *name, int extra)
+static void *snd_pcm_plugin_buf_alloc(snd_pcm_t *pcm, size_t size);
+static void snd_pcm_plugin_buf_free(snd_pcm_t *pcm, void *ptr);
+static void *snd_pcm_plugin_ptr_alloc(snd_pcm_t *pcm, size_t size);
+
+snd_pcm_plugin_t *snd_pcm_plugin_build(snd_pcm_plugin_handle_t *handle,
+				       const char *name,
+				       snd_pcm_format_t *src_format,
+				       snd_pcm_format_t *dst_format,
+				       int extra)
 {
 	snd_pcm_plugin_t *plugin;
+	int voices = 0;
 	
 	if (extra < 0)
 		return NULL;
-	plugin = (snd_pcm_plugin_t *)calloc(1, sizeof(*plugin) + extra);
+	if (src_format)
+		voices = src_format->voices;
+	if (dst_format && dst_format->voices > voices)
+		voices = dst_format->voices;
+	plugin = (snd_pcm_plugin_t *)calloc(1, sizeof(*plugin) + voices * sizeof(snd_pcm_plugin_voice_t) + extra);
 	if (plugin == NULL)
 		return NULL;
 	plugin->name = name ? strdup(name) : NULL;
+	if (src_format) {
+		memcpy(&plugin->src_format, src_format, sizeof(snd_pcm_format_t));
+		if ((plugin->src_width = snd_pcm_format_width(src_format->format)) < 0)
+			return NULL;
+	}
+	if (dst_format) {
+		memcpy(&plugin->dst_format, dst_format, sizeof(snd_pcm_format_t));
+		if ((plugin->dst_width = snd_pcm_format_width(dst_format->format)) < 0)
+			return NULL;
+	}
+	plugin->handle = handle;
+	plugin->voices = (snd_pcm_plugin_voice_t *)((char *)plugin + sizeof(*plugin));
+	plugin->extra_data = (char *)plugin->voices + voices * sizeof(snd_pcm_plugin_voice_t);
 	return plugin;
 }
 
@@ -167,7 +194,7 @@ double snd_pcm_plugin_transfer_ratio(snd_pcm_t *pcm, int channel)
 {
 	ssize_t transfer;
 
-	transfer = snd_pcm_plugin_transfer_size(pcm, channel, 1000000);
+	transfer = snd_pcm_plugin_client_size(pcm, channel, 1000000);
 	if (transfer < 0)
 		return 0;
 	return (double)transfer / (double)1000000;
@@ -255,14 +282,14 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 
 	if (params->mode == SND_PCM_MODE_STREAM) {
 		pdprintf("params stream plugin\n");
-		err = snd_pcm_plugin_build_stream(pcm, params->channel, &plugin);
+		err = snd_pcm_plugin_build_stream(pcm, params->channel, &hwparams.format, &plugin);
 	} else if (params->mode == SND_PCM_MODE_BLOCK) {
 		if (hwinfo.flags & SND_PCM_CHNINFO_MMAP) {
 			pdprintf("params mmap plugin\n");
-			err = snd_pcm_plugin_build_mmap(pcm, params->channel, &plugin);
+			err = snd_pcm_plugin_build_mmap(pcm, params->channel, &hwparams.format, &plugin);
 		} else {
 			pdprintf("params block plugin\n");
-			err = snd_pcm_plugin_build_block(pcm, params->channel, &plugin);
+			err = snd_pcm_plugin_build_block(pcm, params->channel, &hwparams.format, &plugin);
 		}
 	} else {
 		return -EINVAL;
@@ -313,11 +340,11 @@ int snd_pcm_plugin_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
 		return err;
 	if (setup->mode == SND_PCM_MODE_STREAM) {
 		pdprintf("params setup: queue_size = %i\n", setup->buf.stream.queue_size);
-		setup->buf.stream.queue_size = snd_pcm_plugin_transfer_size(pcm, setup->channel, setup->buf.stream.queue_size);
+		setup->buf.stream.queue_size = snd_pcm_plugin_client_size(pcm, setup->channel, setup->buf.stream.queue_size);
 		pdprintf("params setup: queue_size = %i\n", setup->buf.stream.queue_size);
 	} else if (setup->mode == SND_PCM_MODE_BLOCK) {
 		pdprintf("params setup: frag_size = %i\n", setup->buf.block.frag_size);
-		setup->buf.block.frag_size = snd_pcm_plugin_transfer_size(pcm, setup->channel, setup->buf.block.frag_size);
+		setup->buf.block.frag_size = snd_pcm_plugin_client_size(pcm, setup->channel, setup->buf.block.frag_size);
 		pdprintf("params setup: frag_size = %i\n", setup->buf.block.frag_size);
 	} else {
 		return -EINVAL;
@@ -338,9 +365,10 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_channel_status_t *status)
 	ratio = snd_pcm_plugin_transfer_ratio(pcm, status->channel);
 	if (ratio <= 0)
 		return -EINVAL;
-	status->scount = snd_pcm_plugin_transfer_size(pcm, status->channel, status->scount);
-	status->count = snd_pcm_plugin_transfer_size(pcm, status->channel, status->count);
-	status->free = snd_pcm_plugin_transfer_size(pcm, status->channel, status->free);
+	/* FIXME: scount may overflow */
+	status->scount = snd_pcm_plugin_client_size(pcm, status->channel, status->scount);
+	status->count = snd_pcm_plugin_client_size(pcm, status->channel, status->count);
+	status->free = snd_pcm_plugin_client_size(pcm, status->channel, status->free);
 	return 0;	
 }
 
@@ -372,46 +400,298 @@ int snd_pcm_plugin_flush(snd_pcm_t *pcm, int channel)
 	return snd_pcm_channel_flush(pcm, channel);
 }
 
+ssize_t snd_pcm_plugin_transfer_size(snd_pcm_t *pcm, int channel)
+{
+	ssize_t result;
+
+	if ((result = snd_pcm_transfer_size(pcm, channel)) < 0)
+		return result;
+	return snd_pcm_plugin_client_size(pcm, channel, result);
+}
+
 int snd_pcm_plugin_pointer(snd_pcm_t *pcm, int channel, void **ptr, size_t *size)
 {
-	snd_pcm_plugin_t *plugin;
-	int err;
+	snd_pcm_plugin_t *plugin = NULL;
+	snd_pcm_plugin_voice_t *voices;
+	size_t samples;
+	int width;
 
-	if (!ptr || !size)
+	if (!ptr || !size || *size < 1)
 		return -EINVAL;
 	*ptr = NULL;
 	if (!pcm || channel < 0 || channel > 1)
 		return -EINVAL;
-	plugin = pcm->plugin_first[channel];
-	if (!plugin)
-		return -EINVAL;
-	if (plugin->transfer_src_ptr) {
-		err = plugin->transfer_src_ptr(plugin, (char **)ptr, size);
-		if (err >= 0)
-			return 0;
+	if ((*size = snd_pcm_plugin_transfer_size(pcm, channel)) < 0)
+		return *size;
+	if (channel == SND_PCM_CHANNEL_PLAYBACK && plugin->src_voices) {
+		plugin = pcm->plugin_first[channel];
+		if (!plugin)
+			goto __skip;
+		if (!plugin->src_format.interleave)
+			goto __skip;
+		if ((width = snd_pcm_format_width(plugin->src_format.format)) < 0)
+			return width;
+		samples = *size * width;
+		if ((samples % (plugin->src_format.voices * 8)) != 0)
+			return -EINVAL;
+		samples /= (plugin->src_format.voices * 8);
+		pcm->plugin_alloc_xchannel = SND_PCM_CHANNEL_PLAYBACK;
+		if (plugin->src_voices(plugin, &voices, samples,
+				       snd_pcm_plugin_ptr_alloc) < 0)
+			goto __skip;
+		*ptr = voices->addr;
+		return 0;
+	} else if (channel == SND_PCM_CHANNEL_CAPTURE && plugin->dst_voices) {
+		plugin = pcm->plugin_last[channel];
+		if (!plugin)
+			goto __skip;
+		if (plugin->dst_format.interleave)
+			goto __skip;
+		if ((width = snd_pcm_format_width(plugin->dst_format.format)) < 0)
+			return width;
+		samples = *size * width;
+		if ((samples % (plugin->dst_format.voices * 8)) != 0)
+			return -EINVAL;
+		samples /= (plugin->src_format.voices * 8);
+		pcm->plugin_alloc_xchannel = SND_PCM_CHANNEL_CAPTURE;
+		if (plugin->dst_voices(plugin, &voices, *size,
+				       snd_pcm_plugin_ptr_alloc) < 0)
+			goto __skip;
+		*ptr = voices->addr;
+		return 0;
 	}
-	if (pcm->plugin_alloc_xptr[channel]) {
-		if (pcm->plugin_alloc_xsize[channel] >= *size) {
-			*ptr = (char *)pcm->plugin_alloc_xptr[channel];
-			return 0;
-		}
-		*ptr = (char *)realloc(pcm->plugin_alloc_xptr[channel], *size);
-	} else {
-		*ptr = (char *)malloc(*size);
-		if (*ptr != NULL)
-			pcm->plugin_alloc_xsize[channel] = *size;			
-	}
-	if (*ptr == NULL)
-		return -ENOMEM;
-	pcm->plugin_alloc_xptr[channel] = *ptr;
+      __skip:
+      	*ptr = snd_pcm_plugin_ptr_alloc(pcm, *size);
+      	if (*ptr == NULL)
+      		return -ENOMEM;
 	return 0;
 }
 
-static void *snd_pcm_plugin_malloc(snd_pcm_t *pcm, long size)
+ssize_t snd_pcm_plugin_write(snd_pcm_t *pcm, const void *buffer, size_t count)
+{
+	snd_pcm_plugin_t *plugin;
+
+	if ((plugin = snd_pcm_plugin_first(pcm, SND_PCM_CHANNEL_PLAYBACK)) == NULL)
+		return snd_pcm_write(pcm, buffer, count);
+	if (plugin->src_format.interleave) {
+		struct iovec vec;
+		vec.iov_base = (void *)buffer;
+		vec.iov_len = count;
+		return snd_pcm_plugin_writev(pcm, &vec, 1);
+	} else {
+		int idx, voices = plugin->src_format.voices;
+		int size = count / voices;
+		struct iovec vec[voices];
+		for (idx = 0; idx < voices; idx++) {
+			vec[idx].iov_base = (char *)buffer + (size * idx);
+			vec[idx].iov_len = size;
+		}
+		return snd_pcm_plugin_writev(pcm, vec, voices);
+	}
+}
+
+ssize_t snd_pcm_plugin_read(snd_pcm_t *pcm, void *buffer, size_t count)
+{
+	snd_pcm_plugin_t *plugin;
+
+	if ((plugin = snd_pcm_plugin_last(pcm, SND_PCM_CHANNEL_CAPTURE)) == NULL)
+		return snd_pcm_write(pcm, buffer, count);
+	if (plugin->dst_format.interleave) {
+		struct iovec vec;
+		vec.iov_base = buffer;
+		vec.iov_len = count;
+		return snd_pcm_plugin_readv(pcm, &vec, 1);
+	} else {
+		int idx, voices = plugin->dst_format.voices;
+		int size = count / voices;
+		struct iovec vec[voices];
+		for (idx = 0; idx < voices; idx++) {
+			vec[idx].iov_base = (char *)buffer + (size * idx);
+			vec[idx].iov_len = size;
+		}
+		return snd_pcm_plugin_readv(pcm, vec, voices);
+	}
+}
+
+static int snd_pcm_plugin_load_vector(snd_pcm_plugin_t *plugin,
+				      snd_pcm_plugin_voice_t **voices,
+				      const struct iovec *vector,
+				      int count,
+				      snd_pcm_format_t *format)
+{
+	snd_pcm_plugin_voice_t *v = plugin->voices;
+	int width, cvoices, voice;
+
+	*voices = NULL;
+	if ((width = snd_pcm_format_width(format->format)) < 0)
+		return width;
+	cvoices = format->voices;
+	if (format->interleave) {
+		if (count != 1)
+			return -EINVAL;
+		for (voice = 0; voice < cvoices; voice++, v++) {
+			v->aptr = NULL;
+			if ((v->addr = vector->iov_base) == NULL)
+				return -EINVAL;
+			v->offset = voice * width;
+			v->next = cvoices * width;
+		}
+	} else {
+		if (count != cvoices)
+			return -EINVAL;
+		for (voice = 0; voice < cvoices; voice++, v++) {
+			v->aptr = NULL;
+			v->addr = vector[voice].iov_base;
+			v->offset = 0;
+			v->next = width;
+		}		
+	}
+	*voices = plugin->voices;
+	return 0;
+}
+
+static inline int snd_pcm_plugin_load_src_vector(snd_pcm_plugin_t *plugin,
+					  snd_pcm_plugin_voice_t **voices,
+					  const struct iovec *vector,
+					  int count)
+{
+	return snd_pcm_plugin_load_vector(plugin, voices, vector, count, &plugin->src_format);
+}
+
+static inline int snd_pcm_plugin_load_dst_vector(snd_pcm_plugin_t *plugin,
+					  snd_pcm_plugin_voice_t **voices,
+					  const struct iovec *vector,
+					  int count)
+{
+	return snd_pcm_plugin_load_vector(plugin, voices, vector, count, &plugin->dst_format);
+}
+
+ssize_t snd_pcm_plugin_writev(snd_pcm_t *pcm, const struct iovec *vector, int count)
+{
+	snd_pcm_plugin_t *plugin, *next;
+	snd_pcm_plugin_voice_t *src_voices, *dst_voices;
+	size_t samples;
+	ssize_t size;
+	int idx, err;
+
+	if ((plugin = snd_pcm_plugin_first(pcm, SND_PCM_CHANNEL_PLAYBACK)) == NULL)
+		return snd_pcm_writev(pcm, vector, count);
+	if ((err = snd_pcm_plugin_load_src_vector(plugin, &src_voices, vector, count)) < 0)
+		return err;
+	size = 0;
+	for (idx = 0; idx < count; idx++)
+		size += vector[idx].iov_len;
+	size = snd_pcm_plugin_src_size_to_samples(plugin, size);
+	if (size < 0)
+		return size;
+	samples = size;
+	while (plugin) {
+		if ((next = plugin->next) != NULL) {
+			if (next->src_voices) {
+				if ((err = next->src_voices(next, &dst_voices, samples, snd_pcm_plugin_buf_alloc)) < 0) {
+					snd_pcm_plugin_buf_free(pcm, src_voices->aptr);
+					return err;
+				}
+			} else {
+				if ((err = snd_pcm_plugin_src_voices(next, &dst_voices, samples)) < 0) {
+					snd_pcm_plugin_buf_free(pcm, src_voices->aptr);
+					return err;
+				}
+			}
+		} else {
+			dst_voices = NULL;
+		}
+		pdprintf("write plugin: %s, %i\n", plugin->name, samples);
+		if ((size = plugin->transfer(plugin, src_voices, dst_voices, samples))<0) {
+			snd_pcm_plugin_buf_free(pcm, src_voices->aptr);
+			if (dst_voices)
+				snd_pcm_plugin_buf_free(pcm, dst_voices->aptr);
+			return size;
+		}
+		snd_pcm_plugin_buf_free(pcm, src_voices->aptr);
+		plugin = plugin->next;
+		src_voices = dst_voices;
+		samples = size;
+	}
+	samples = snd_pcm_plugin_client_samples(pcm, SND_PCM_CHANNEL_PLAYBACK, samples);
+	size = snd_pcm_plugin_src_samples_to_size(pcm->plugin_first[SND_PCM_CHANNEL_PLAYBACK], samples);
+	if (size < 0)
+		return size;
+	pdprintf("writev result = %i\n", size);
+	return size;
+}
+
+ssize_t snd_pcm_plugin_readv(snd_pcm_t *pcm, const struct iovec *vector, int count)
+{
+	snd_pcm_plugin_t *plugin, *next;
+	snd_pcm_plugin_voice_t *src_voices = NULL, *dst_voices;
+	size_t samples;
+	ssize_t size;
+	int idx, err;
+
+	if ((plugin = snd_pcm_plugin_first(pcm, SND_PCM_CHANNEL_CAPTURE)) == NULL)
+		return snd_pcm_readv(pcm, vector, count);
+	if (vector == NULL)
+		return -EINVAL;
+	size = 0;
+	for (idx = 0; idx < count; idx++)
+		size += vector[idx].iov_len;
+	if (size < 0)
+		return size;
+	samples = snd_pcm_plugin_dst_size_to_samples(pcm->plugin_last[SND_PCM_CHANNEL_CAPTURE], size);
+	samples = snd_pcm_plugin_hardware_samples(pcm, SND_PCM_CHANNEL_CAPTURE, samples);
+	while (plugin && samples > 0) {
+		if ((next = plugin->next) != NULL) {
+			if (plugin->dst_voices) {
+				if ((err = plugin->dst_voices(plugin, &dst_voices, samples, snd_pcm_plugin_buf_alloc)) < 0) {
+					if (src_voices)
+						snd_pcm_plugin_buf_free(pcm, src_voices->aptr);
+					return err;
+				}
+			} else {
+				if ((err = snd_pcm_plugin_dst_voices(plugin, &dst_voices, samples)) < 0) {
+					if (src_voices)
+						snd_pcm_plugin_buf_free(pcm, src_voices->aptr);
+					return err;
+				}
+			}
+		} else {
+			if ((err = snd_pcm_plugin_load_dst_vector(plugin, &dst_voices, vector, count)) < 0) {
+				if (src_voices)
+					snd_pcm_plugin_buf_free(pcm, src_voices->aptr);
+				return err;
+			}
+		}
+		pdprintf("read plugin: %s, %i\n", plugin->name, samples);
+		if ((size = plugin->transfer(plugin, src_voices, dst_voices, samples))<0) {
+			if (src_voices)
+				snd_pcm_plugin_buf_free(pcm, src_voices->aptr);
+			snd_pcm_plugin_buf_free(pcm, dst_voices->aptr);
+			return size;
+		}
+		if (src_voices)
+			snd_pcm_plugin_buf_free(pcm, src_voices->aptr);
+		plugin = plugin->next;
+		src_voices = dst_voices;
+		samples = size;
+	}
+	snd_pcm_plugin_buf_free(pcm, dst_voices->aptr);
+	size = snd_pcm_plugin_dst_samples_to_size(pcm->plugin_last[SND_PCM_CHANNEL_CAPTURE], samples);
+	pdprintf("readv result = %i\n", size);
+	return size;
+}
+
+/*
+ *  Plugin helpers
+ */
+
+static void *snd_pcm_plugin_buf_alloc(snd_pcm_t *pcm, size_t size)
 {
 	int idx;
 	void *ptr;
 
+	if (pcm == NULL || size <= 0)
+		return NULL;
 	for (idx = 0; idx < 4; idx++) {
 		if (pcm->plugin_alloc_lock[idx])
 			continue;
@@ -447,146 +727,89 @@ static void *snd_pcm_plugin_malloc(snd_pcm_t *pcm, long size)
 	return NULL;
 }
 
-static int snd_pcm_plugin_alloc_unlock(snd_pcm_t *pcm, void *ptr)
+static void snd_pcm_plugin_buf_free(snd_pcm_t *pcm, void *ptr)
 {
 	int idx;
 
+	if (pcm == NULL || ptr == NULL)
+		return;
 	for (idx = 0; idx < 4; idx++) {
 		if (pcm->plugin_alloc_ptr[idx] == ptr) {
 			pcm->plugin_alloc_lock[idx] = 0;
-			return 0;
+			return;
 		}
 	}
-	return -ENOENT;
 }
 
-ssize_t snd_pcm_plugin_write(snd_pcm_t *pcm, const void *buffer, size_t count)
+static void *snd_pcm_plugin_ptr_alloc(snd_pcm_t *pcm, size_t size)
 {
-	snd_pcm_plugin_t *plugin, *next;
-	char *dst_ptr, *dst_ptr1 = NULL, *src_ptr, *src_ptr1 = NULL;
-	size_t dst_size, src_size;
-	ssize_t size = 0, result = 0;
-	int err;
+	void *ptr;
+	int channel = pcm->plugin_alloc_xchannel;
 
-	if ((plugin = snd_pcm_plugin_first(pcm, SND_PCM_CHANNEL_PLAYBACK)) == NULL)
-		return snd_pcm_write(pcm, buffer, count);
-	src_ptr = (char *)buffer;
-	dst_size = src_size = count;
-	while (plugin) {
-		next = plugin->next;
-		if (plugin->dst_size) {
-			dst_size = plugin->dst_size(plugin, dst_size);
-			if (dst_size < 0) {
-				result = dst_size;
-				goto __free;
-			}
-		}
-		if (next != NULL) {
-			if (next->transfer_src_ptr) {
-				if ((err = next->transfer_src_ptr(next, &dst_ptr, &dst_size)) < 0) {
-					if (dst_ptr == NULL)
-						goto __alloc;
-					result = err;
-					goto __free;
-				}
-			} else {
-			      __alloc:
-				dst_ptr = dst_ptr1 = (char *)snd_pcm_plugin_malloc(pcm, dst_size);
-				if (dst_ptr == NULL) {
-					result = -ENOMEM;
-					goto __free;
-				}
-			}
-		} else {
-			dst_ptr = src_ptr;
-			dst_size = src_size;
-		}
-		pdprintf("write plugin: %s, %i, %i\n", plugin->name, src_size, dst_size);
-		if ((size = plugin->transfer(plugin, src_ptr, src_size,
-						     dst_ptr, dst_size))<0) {
-			result = size;
-			goto __free;
-		}
-		if (src_ptr1)
-			snd_pcm_plugin_alloc_unlock(pcm, src_ptr1);
-		plugin = next;
-		src_ptr = dst_ptr;
-		src_ptr1 = dst_ptr1;
-		dst_ptr1 = NULL;
-		src_size = dst_size = size;
+	if (pcm->plugin_alloc_xptr[channel]) {
+		if (pcm->plugin_alloc_xsize[channel] >= size)
+			return pcm->plugin_alloc_xptr[channel];
+		ptr = realloc(pcm->plugin_alloc_xptr[channel], size);
+	} else {
+		ptr = malloc(size);
 	}
-	result = snd_pcm_plugin_transfer_size(pcm, SND_PCM_CHANNEL_PLAYBACK, size);
-	pdprintf("size = %i, result = %i, count = %i\n", size, result, count);
-      __free:
-      	if (dst_ptr1)
-      		snd_pcm_plugin_alloc_unlock(pcm, dst_ptr1);
-      	if (src_ptr1)
-      		snd_pcm_plugin_alloc_unlock(pcm, src_ptr1);
-	return result;
+	if (ptr == NULL)
+		return NULL;
+	pcm->plugin_alloc_xptr[channel] = (char *)ptr;
+	pcm->plugin_alloc_xsize[channel] = size;			
+	return ptr;
 }
 
-ssize_t snd_pcm_plugin_read(snd_pcm_t *pcm, void *buffer, size_t count)
+static int snd_pcm_plugin_xvoices(snd_pcm_plugin_t *plugin,
+				  snd_pcm_plugin_voice_t **voices,
+				  size_t samples,
+				  snd_pcm_format_t *format)
 {
-	snd_pcm_plugin_t *plugin, *next;
-	char *dst_ptr, *dst_ptr1 = NULL, *src_ptr, *src_ptr1 = NULL;
-	size_t dst_size, src_size;
-	ssize_t size = 0, result = 0;
-	int err;
-
-	if ((plugin = snd_pcm_plugin_first(pcm, SND_PCM_CHANNEL_CAPTURE)) == NULL)
-		return snd_pcm_read(pcm, buffer, count);
-	src_ptr = NULL;
-	src_size = 0;
-	dst_size = snd_pcm_plugin_hardware_size(pcm, SND_PCM_CHANNEL_CAPTURE, count);
-	if (dst_size < 0)
-		return dst_size;
-	while (plugin) {
-		next = plugin->next;
-		if (plugin->dst_size) {
-			dst_size = plugin->dst_size(plugin, dst_size);
-			if (dst_size < 0) {
-				result = dst_size;
-				goto __free;
-			}
-		}
-		if (next != NULL) {
-			if (next->transfer_src_ptr) {
-				if ((err = next->transfer_src_ptr(next, &dst_ptr, &dst_size)) < 0) {
-					if (dst_ptr == NULL)
-						goto __alloc;
-					result = err;
-					goto __free;
-				}
-			} else {
-			      __alloc:
-				dst_ptr = dst_ptr1 = (char *)snd_pcm_plugin_malloc(pcm, dst_size);
-				if (dst_ptr == NULL) {
-					result = -ENOMEM;
-					goto __free;
-				}
-			}
+	char *ptr;
+	int width, voice;
+	long size;
+	snd_pcm_plugin_voice_t *v;
+	
+	*voices = NULL;
+	if ((width = snd_pcm_format_width(format->format)) < 0)
+		return width;	
+	size = format->voices * samples * width;
+	if ((size % 8) != 0)
+		return -EINVAL;
+	size /= 8;
+	ptr = (char *)snd_pcm_plugin_buf_alloc(plugin->handle, size);
+	if (ptr == NULL)
+		return -ENOMEM;
+	if ((size % format->voices) != 0)
+		return -EINVAL;
+	size /= format->voices;
+	v = plugin->voices;
+	for (voice = 0; voice < format->voices; voice++, v++) {
+		v->aptr = ptr;
+		if (format->interleave) {
+			v->addr = ptr;
+			v->offset = voice * width;
+			v->next = format->voices * width;
 		} else {
-			dst_ptr = buffer;
+			v->addr = ptr + (voice * size);
+			v->offset = 0;
+			v->next = width;
 		}
-		pdprintf("read plugin: %s, %i, %i\n", plugin->name, src_size, dst_size);
-		if ((size = plugin->transfer(plugin, src_ptr, src_size,
-						     dst_ptr, dst_size))<0) {
-			result = size;
-			goto __free;
-		}
-		if (dst_ptr1)
-			snd_pcm_plugin_alloc_unlock(pcm, dst_ptr1);
-		plugin = plugin->next;
-		src_ptr = dst_ptr;
-		src_ptr1 = dst_ptr1;
-		dst_ptr1 = NULL;
-		src_size = dst_size = size;
 	}
-	result = size;
-      __free:
-      	if (dst_ptr1)
-      		snd_pcm_plugin_alloc_unlock(pcm, dst_ptr1);
-      	if (src_ptr1)
-      		snd_pcm_plugin_alloc_unlock(pcm, src_ptr1);
-	return result;
+	*voices = plugin->voices;
+	return 0;
+}
+
+int snd_pcm_plugin_src_voices(snd_pcm_plugin_t *plugin,
+			      snd_pcm_plugin_voice_t **voices,
+			      size_t samples)
+{
+	return snd_pcm_plugin_xvoices(plugin, voices, samples, &plugin->src_format);
+}
+
+int snd_pcm_plugin_dst_voices(snd_pcm_plugin_t *plugin,
+			      snd_pcm_plugin_voice_t **voices,
+			      size_t samples)
+{
+	return snd_pcm_plugin_xvoices(plugin, voices, samples, &plugin->dst_format);
 }

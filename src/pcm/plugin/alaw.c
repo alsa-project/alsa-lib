@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <endian.h>
 #include <byteswap.h>
+#include <sys/uio.h>
 #include "../pcm_local.h"
 
 #define	SIGN_BIT	(0x80)		/* Sign bit for a A-law byte. */
@@ -69,7 +70,7 @@ static inline int search(int val, short *table, int size)
  * For further information see John C. Bellamy's Digital Telephony, 1982,
  * John Wiley & Sons, pps 98-111 and 472-476.
  */
-static inline unsigned char linear2alaw(int pcm_val)	/* 2's complement (16-bit range) */
+static unsigned char linear2alaw(int pcm_val)	/* 2's complement (16-bit range) */
 {
 	int		mask;
 	int		seg;
@@ -103,7 +104,7 @@ static inline unsigned char linear2alaw(int pcm_val)	/* 2's complement (16-bit r
  * alaw2linear() - Convert an A-law value to 16-bit linear PCM
  *
  */
-static inline int alaw2linear(unsigned char a_val)
+static int alaw2linear(unsigned char a_val)
 {
 	int		t;
 	int		seg;
@@ -131,298 +132,148 @@ static inline int alaw2linear(unsigned char a_val)
  *  Basic A-Law plugin
  */
 
-typedef enum {
-	_S8_ALAW,
-	_U8_ALAW,
-	_S16LE_ALAW,
-	_U16LE_ALAW,
-	_S16BE_ALAW,
-	_U16BE_ALAW,
-	_ALAW_S8,
-	_ALAW_U8,
-	_ALAW_S16LE,
-	_ALAW_U16LE,
-	_ALAW_S16BE,
-	_ALAW_U16BE
-} combination_t; 
- 
-struct alaw_private_data {
-	combination_t cmd;
+typedef void (*alaw_f)(void *src_ptr, void *dst_ptr, int samples);
+
+typedef struct alaw_private_data {
+	int src_byte_width;
+	int dst_byte_width;
+	alaw_f func;
+} alaw_t;
+
+#define ALAW_FUNC_DECODE(name, dsttype, val) \
+static void alaw_decode_##name(void *src_ptr, void *dst_ptr, int samples) \
+{ \
+	unsigned char *src = src_ptr; \
+	dsttype *dst = dst_ptr; \
+	unsigned int s; \
+	while (samples--) { \
+		s = alaw2linear(*src++); \
+		*dst++ = val; \
+	} \
+}
+
+#define ALAW_FUNC_ENCODE(name, srctype, val) \
+static void alaw_encode_##name(void *src_ptr, void *dst_ptr, int samples) \
+{ \
+	srctype *src = src_ptr; \
+	unsigned char *dst = dst_ptr; \
+	unsigned int s; \
+	while (samples--) { \
+		s = *src++; \
+		*dst++ = linear2alaw(val); \
+	} \
+}
+
+ALAW_FUNC_DECODE(u8, u_int8_t, (s >> 8) ^ 0x80)
+ALAW_FUNC_DECODE(s8, u_int8_t, s >> 8)
+ALAW_FUNC_DECODE(u16n, u_int16_t, s ^ 0x8000)
+ALAW_FUNC_DECODE(u16s, u_int16_t, bswap_16(s ^ 0x8000))
+ALAW_FUNC_DECODE(s16n, u_int16_t, s)
+ALAW_FUNC_DECODE(s16s, u_int16_t, bswap_16(s))
+ALAW_FUNC_DECODE(u24n, u_int32_t, (s << 8) ^ 0x800000)
+ALAW_FUNC_DECODE(u24s, u_int32_t, bswap_32((s << 8) ^ 0x800000))
+ALAW_FUNC_DECODE(s24n, u_int32_t, s << 8)
+ALAW_FUNC_DECODE(s24s, u_int32_t, bswap_32(s << 8))
+ALAW_FUNC_DECODE(u32n, u_int32_t, (s << 16) ^ 0x80000000)
+ALAW_FUNC_DECODE(u32s, u_int32_t, bswap_32((s << 16) ^ 0x80000000))
+ALAW_FUNC_DECODE(s32n, u_int32_t, s << 16)
+ALAW_FUNC_DECODE(s32s, u_int32_t, bswap_32(s << 16))
+
+ALAW_FUNC_ENCODE(u8, u_int8_t, s << 8)
+ALAW_FUNC_ENCODE(s8, u_int8_t, (s << 8) ^ 0x8000)
+ALAW_FUNC_ENCODE(u16n, u_int16_t, s ^ 0x8000)
+ALAW_FUNC_ENCODE(u16s, u_int16_t, bswap_16(s ^ 0x8000))
+ALAW_FUNC_ENCODE(s16n, u_int16_t, s)
+ALAW_FUNC_ENCODE(s16s, u_int16_t, bswap_16(s))
+ALAW_FUNC_ENCODE(u24n, u_int32_t, (s ^ 0x800000) >> 8)
+ALAW_FUNC_ENCODE(u24s, u_int32_t, bswap_32((s ^ 0x800000) >> 8))
+ALAW_FUNC_ENCODE(s24n, u_int32_t, s >> 8)
+ALAW_FUNC_ENCODE(s24s, u_int32_t, bswap_32(s >> 8))
+ALAW_FUNC_ENCODE(u32n, u_int32_t, (s ^ 0x80000000) >> 16)
+ALAW_FUNC_ENCODE(u32s, u_int32_t, bswap_32((s ^ 0x80000000) >> 16))
+ALAW_FUNC_ENCODE(s32n, u_int32_t, s >> 16)
+ALAW_FUNC_ENCODE(s32s, u_int32_t, bswap_32(s >> 16))
+
+/* wide, sign, swap endian */
+static alaw_f alaw_functions_decode[4 * 2 * 2] = {
+	alaw_decode_u8,		/* decode:8-bit:unsigned:none */
+	alaw_decode_u8,		/* decode:8-bit:unsigned:swap */
+	alaw_decode_s8,		/* decode:8-bit:signed:none */
+	alaw_decode_s8,		/* decode:8-bit:signed:swap */
+	alaw_decode_u16n,	/* decode:16-bit:unsigned:none */
+	alaw_decode_u16s,	/* decode:16-bit:unsigned:swap */
+	alaw_decode_s16n,	/* decode:16-bit:signed:none */
+	alaw_decode_s16s,	/* decode:16-bit:signed:swap */
+	alaw_decode_u24n,	/* decode:24-bit:unsigned:none */
+	alaw_decode_u24s,	/* decode:24-bit:unsigned:swap */
+	alaw_decode_s24n,	/* decode:24-bit:signed:none */
+	alaw_decode_s24s,	/* decode:24-bit:signed:swap */
+	alaw_decode_u32n,	/* decode:32-bit:unsigned:none */
+	alaw_decode_u32s,	/* decode:32-bit:unsigned:swap */
+	alaw_decode_s32n,	/* decode:32-bit:signed:none */
+	alaw_decode_s32s,	/* decode:32-bit:signed:swap */
 };
 
-static void alaw_conv_u8bit_alaw(unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)
-{
-	unsigned int pcm;
-
-	while (size-- > 0) {
-		pcm = ((*src_ptr++) ^ 0x80) << 8;
-		*dst_ptr++ = linear2alaw((signed short)(pcm));
-	}
-}
-
-static void alaw_conv_s8bit_alaw(unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)
-{
-	unsigned int pcm;
-
-	while (size-- > 0) {
-		pcm = *src_ptr++ << 8;
-		*dst_ptr++ = linear2alaw((signed short)(pcm));
-	}
-}
-
-static void alaw_conv_s16bit_alaw(unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = linear2alaw((signed short)(*src_ptr++));
-}
-
-static void alaw_conv_s16bit_swap_alaw(unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = linear2alaw((signed short)(bswap_16(*src_ptr++)));
-}
-
-static void alaw_conv_u16bit_alaw(unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = linear2alaw((signed short)((*src_ptr++) ^ 0x8000));
-}
-
-static void alaw_conv_u16bit_swap_alaw(unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = linear2alaw((signed short)(bswap_16(*src_ptr++) ^ 0x8000));
-}
-
-static void alaw_conv_alaw_u8bit(unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = (alaw2linear(*src_ptr++) >> 8) ^ 0x80;
-}
-
-static void alaw_conv_alaw_s8bit(unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = alaw2linear(*src_ptr++) >> 8;
-}
-
-static void alaw_conv_alaw_s16bit(unsigned char *src_ptr, unsigned short *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = alaw2linear(*src_ptr++);
-}
-
-static void alaw_conv_alaw_swap_s16bit(unsigned char *src_ptr, unsigned short *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = bswap_16(alaw2linear(*src_ptr++));
-}
-
-static void alaw_conv_alaw_u16bit(unsigned char *src_ptr, unsigned short *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = alaw2linear(*src_ptr++) ^ 0x8000;
-}
-
-static void alaw_conv_alaw_swap_u16bit(unsigned char *src_ptr, unsigned short *dst_ptr, size_t size)
-{
-	while (size-- > 0)
-		*dst_ptr++ = bswap_16(alaw2linear(*src_ptr++) ^ 0x8000);
-}
+/* wide, sign, swap endian */
+static alaw_f alaw_functions_encode[4 * 2 * 2] = {
+	alaw_encode_u8,		/* encode:8-bit:unsigned:none */
+	alaw_encode_u8,		/* encode:8-bit:unsigned:swap */
+	alaw_encode_s8,		/* encode:8-bit:signed:none */
+	alaw_encode_s8,		/* encode:8-bit:signed:swap */
+	alaw_encode_u16n,	/* encode:16-bit:unsigned:none */
+	alaw_encode_u16s,	/* encode:16-bit:unsigned:swap */
+	alaw_encode_s16n,	/* encode:16-bit:signed:none */
+	alaw_encode_s16s,	/* encode:16-bit:signed:swap */
+	alaw_encode_u24n,	/* encode:24-bit:unsigned:none */
+	alaw_encode_u24s,	/* encode:24-bit:unsigned:swap */
+	alaw_encode_s24n,	/* encode:24-bit:signed:none */
+	alaw_encode_s24s,	/* encode:24-bit:signed:swap */
+	alaw_encode_u32n,	/* encode:32-bit:unsigned:none */
+	alaw_encode_u32s,	/* encode:32-bit:unsigned:swap */
+	alaw_encode_s32n,	/* encode:32-bit:signed:none */
+	alaw_encode_s32s,	/* encode:32-bit:signed:swap */
+};
 
 static ssize_t alaw_transfer(snd_pcm_plugin_t *plugin,
-			      char *src_ptr, size_t src_size,
-			      char *dst_ptr, size_t dst_size)
+			     const snd_pcm_plugin_voice_t *src_voices,
+			     const snd_pcm_plugin_voice_t *dst_voices,
+			     size_t samples)
 {
-	struct alaw_private_data *data;
+	alaw_t *data;
+	int voice;
 
-	if (plugin == NULL || src_ptr == NULL || src_size < 0 ||
-	                      dst_ptr == NULL || dst_size < 0)
+	if (plugin == NULL || src_voices == NULL || dst_voices == NULL || samples < 0)
 		return -EINVAL;
-	if (src_size == 0)
+	if (samples == 0)
 		return 0;
-	data = (struct alaw_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data == NULL)
-		return -EINVAL;
-	switch (data->cmd) {
-	case _U8_ALAW:
-		if (dst_size < src_size)
-			return -EINVAL;
-		alaw_conv_u8bit_alaw(src_ptr, dst_ptr, src_size);
-		return src_size;
-	case _S8_ALAW:
-		if (dst_size < src_size)
-			return -EINVAL;
-		alaw_conv_s8bit_alaw(src_ptr, dst_ptr, src_size);
-		return src_size;
-	case _S16LE_ALAW:
-		if ((dst_size << 1) < src_size)
-			return -EINVAL;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		alaw_conv_s16bit_alaw((short *)src_ptr, dst_ptr, src_size >> 1);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		alaw_conv_s16bit_swap_alaw((short *)src_ptr, dst_ptr, src_size >> 1);
-#else
-#error "Have to be coded..."
-#endif
-		return src_size >> 1;
-	case _U16LE_ALAW:
-		if ((dst_size << 1) < src_size)
-			return -EINVAL;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		alaw_conv_u16bit_alaw((short *)src_ptr, dst_ptr, src_size >> 1);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		alaw_conv_u16bit_swap_alaw((short *)src_ptr, dst_ptr, src_size >> 1);
-#else
-#error "Have to be coded..."
-#endif
-		return src_size >> 1;
-	case _S16BE_ALAW:
-		if ((dst_size << 1) < src_size)
-			return -EINVAL;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		alaw_conv_s16bit_swap_alaw((short *)src_ptr, dst_ptr, src_size >> 1);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		alaw_conv_s16bit_alaw((short *)src_ptr, dst_ptr, src_size >> 1);
-#else
-#error "Have to be coded..."
-#endif
-		return src_size >> 1;
-	case _U16BE_ALAW:
-		if ((dst_size << 1) < src_size)
-			return -EINVAL;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		alaw_conv_u16bit_swap_alaw((short *)src_ptr, dst_ptr, src_size >> 1);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		alaw_conv_u16bit_alaw((short *)src_ptr, dst_ptr, src_size >> 1);
-#else
-#error "Have to be coded..."
-#endif
-		return src_size >> 1;
-	case _ALAW_U8:
-		if (dst_size < src_size)
-			return -EINVAL;
-		alaw_conv_alaw_u8bit(src_ptr, dst_ptr, src_size);
-		return src_size;
-	case _ALAW_S8:
-		if (dst_size < src_size)
-			return -EINVAL;
-		alaw_conv_alaw_s8bit(src_ptr, dst_ptr, src_size);
-		return src_size;
-	case _ALAW_S16LE:
-		if ((dst_size >> 1) < src_size)
-			return -EINVAL;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		alaw_conv_alaw_s16bit(src_ptr, (short *)dst_ptr, src_size);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		alaw_conv_alaw_swap_s16bit(src_ptr, (short *)dst_ptr, src_size);
-#else
-#error "Have to be coded..."
-#endif
-		return src_size << 1;
-	case _ALAW_U16LE:
-		if ((dst_size >> 1) < src_size)
-			return -EINVAL;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		alaw_conv_alaw_u16bit(src_ptr, (short *)dst_ptr, src_size);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		alaw_conv_alaw_swap_u16bit(src_ptr, (short *)dst_ptr, src_size);
-#else
-#error "Have to be coded..."
-#endif
-		return src_size << 1;
-	case _ALAW_S16BE:
-		if ((dst_size >> 1) < src_size)
-			return -EINVAL;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		alaw_conv_alaw_swap_s16bit(src_ptr, (short *)dst_ptr, src_size);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		alaw_conv_alaw_s16bit(src_ptr, (short *)dst_ptr, src_size);
-#else
-#error "Have to be coded..."
-#endif
-		return src_size << 1;
-	case _ALAW_U16BE:
-		if ((dst_size >> 1) < src_size)
-			return -EINVAL;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		alaw_conv_alaw_swap_u16bit(src_ptr, (short *)dst_ptr, src_size);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		alaw_conv_alaw_u16bit(src_ptr, (short *)dst_ptr, src_size);
-#else
-#error "Have to be coded..."
-#endif
-		return src_size << 1;
-	default:
-		return -EIO;
-	}
+	data = (alaw_t *)plugin->extra_data;
+	if (plugin->src_format.interleave) {
+		data->func(src_voices[0].addr,
+			   dst_voices[0].addr,
+			   samples * plugin->src_format.voices);
+        } else {
+		for (voice = 0; voice < plugin->src_format.voices; voice++) {
+			if (src_voices[voice].addr == NULL)
+				continue;
+			data->func(src_voices[voice].addr,
+				   dst_voices[voice].addr,
+				   samples);
+		}
+        }
+        return samples;
 }
 
-static ssize_t alaw_src_size(snd_pcm_plugin_t *plugin, size_t size)
-{
-	struct alaw_private_data *data;
-
-	if (!plugin || size <= 0)
-		return -EINVAL;
-	data = (struct alaw_private_data *)snd_pcm_plugin_extra_data(plugin);
-	switch (data->cmd) {
-	case _U8_ALAW:
-	case _S8_ALAW:
-	case _ALAW_U8:
-	case _ALAW_S8:
-		return size;
-	case _U16LE_ALAW:
-	case _S16LE_ALAW:
-	case _U16BE_ALAW:
-	case _S16BE_ALAW:
-		return size * 2;
-	case _ALAW_U16LE:
-	case _ALAW_S16LE:
-	case _ALAW_U16BE:
-	case _ALAW_S16BE:
-		return size / 2;
-	default:
-		return -EIO;
-	}
-}
-
-static ssize_t alaw_dst_size(snd_pcm_plugin_t *plugin, size_t size)
-{
-	struct alaw_private_data *data;
-
-	if (!plugin || size <= 0)
-		return -EINVAL;
-	data = (struct alaw_private_data *)snd_pcm_plugin_extra_data(plugin);
-	switch (data->cmd) {
-	case _U8_ALAW:
-	case _S8_ALAW:
-	case _ALAW_U8:
-	case _ALAW_S8:
-		return size;
-	case _U16LE_ALAW:
-	case _S16LE_ALAW:
-	case _U16BE_ALAW:
-	case _S16BE_ALAW:
-		return size / 2;
-	case _ALAW_U16LE:
-	case _ALAW_S16LE:
-	case _ALAW_U16BE:
-	case _ALAW_S16BE:
-		return size * 2;
-	default:
-		return -EIO;
-	}
-}
- 
-int snd_pcm_plugin_build_alaw(snd_pcm_format_t *src_format,
+int snd_pcm_plugin_build_alaw(snd_pcm_plugin_handle_t *handle,
+			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin)
 {
 	struct alaw_private_data *data;
 	snd_pcm_plugin_t *plugin;
-	combination_t cmd;
+	int endian, src_width, dst_width, sign;
+	alaw_f func;
 
-	if (!r_plugin)
+	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 
@@ -434,40 +285,53 @@ int snd_pcm_plugin_build_alaw(snd_pcm_format_t *src_format,
 	if (src_format->voices != dst_format->voices)
 		return -EINVAL;
 
-	if (dst_format->format == SND_PCM_SFMT_A_LAW) {
-		switch (src_format->format) {
-		case SND_PCM_SFMT_U8:		cmd = _U8_ALAW;		break;
-		case SND_PCM_SFMT_S8:		cmd = _S8_ALAW;		break;
-		case SND_PCM_SFMT_U16_LE:	cmd = _U16LE_ALAW;	break;
-		case SND_PCM_SFMT_S16_LE:	cmd = _S16LE_ALAW;	break;
-		case SND_PCM_SFMT_U16_BE:	cmd = _U16BE_ALAW;	break;
-		case SND_PCM_SFMT_S16_BE:	cmd = _S16BE_ALAW;	break;
-		default:
+	if (dst_format->format == SND_PCM_SFMT_MU_LAW) {
+		if (!snd_pcm_format_linear(src_format->format))
 			return -EINVAL;
-		}
-	} else if (src_format->format == SND_PCM_SFMT_A_LAW) {
-		switch (dst_format->format) {
-		case SND_PCM_SFMT_U8:		cmd = _ALAW_U8;		break;
-		case SND_PCM_SFMT_S8:		cmd = _ALAW_S8;		break;
-		case SND_PCM_SFMT_U16_LE:	cmd = _ALAW_U16LE;	break;
-		case SND_PCM_SFMT_S16_LE:	cmd = _ALAW_S16LE;	break;
-		case SND_PCM_SFMT_U16_BE:	cmd = _ALAW_U16BE;	break;
-		case SND_PCM_SFMT_S16_BE:	cmd = _ALAW_S16BE;	break;
-		default:
+		sign = snd_pcm_format_signed(src_format->format);
+		src_width = snd_pcm_format_width(src_format->format);
+		if ((src_width % 8) != 0 || src_width < 8 || src_width > 32)
 			return -EINVAL;
-		}
+		dst_width = 8;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+		endian = snd_pcm_format_big_endian(src_format->format);
+#elif __BYTE_ORDER == __BIG_ENDIAN
+		endian = snd_pcm_format_little_endian(src_format->format);
+#else
+#error "Unsupported endian..."
+#endif
+		func = ((alaw_f(*)[2][2])alaw_functions_encode)[(src_width/8)-1][sign][endian];
+	} else if (src_format->format == SND_PCM_SFMT_MU_LAW) {
+		if (!snd_pcm_format_linear(dst_format->format))
+			return -EINVAL;
+		sign = snd_pcm_format_signed(dst_format->format);
+		dst_width = snd_pcm_format_width(dst_format->format);
+		if ((dst_width % 8) != 0 || dst_width < 8 || dst_width > 32)
+			return -EINVAL;
+		src_width = 8;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+		endian = snd_pcm_format_big_endian(dst_format->format);
+#elif __BYTE_ORDER == __BIG_ENDIAN
+		endian = snd_pcm_format_little_endian(dst_format->format);
+#else
+#error "Unsupported endian..."
+#endif
+		func = ((alaw_f(*)[2][2])alaw_functions_decode)[(dst_width/8)-1][sign][endian];
 	} else {
 		return -EINVAL;
 	}
-	plugin = snd_pcm_plugin_build("A-Law<->linear conversion",
+	plugin = snd_pcm_plugin_build(handle,
+				      "A-Law<->linear conversion",
+				      src_format,
+				      dst_format,
 				      sizeof(struct alaw_private_data));
 	if (plugin == NULL)
 		return -ENOMEM;
-	data = (struct alaw_private_data *)snd_pcm_plugin_extra_data(plugin);
-	data->cmd = cmd;
+	data = (struct alaw_private_data *)plugin->extra_data;
+	data->src_byte_width = src_width / 8;
+	data->dst_byte_width = dst_width / 8;
+	data->func = func;
 	plugin->transfer = alaw_transfer;
-	plugin->src_size = alaw_src_size;
-	plugin->dst_size = alaw_dst_size;
 	*r_plugin = plugin;
 	return 0;
 }

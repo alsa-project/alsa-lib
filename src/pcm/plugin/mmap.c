@@ -25,14 +25,14 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/poll.h>
+#include <sys/uio.h>
 #include "../pcm_local.h"
 
 /*
  *  Basic mmap plugin
  */
  
-struct mmap_private_data {
-	snd_pcm_t *pcm;
+typedef struct mmap_private_data {
 	int channel;
 	snd_pcm_mmap_control_t *control;
 	char *buffer;
@@ -41,10 +41,13 @@ struct mmap_private_data {
 	int frags, frags_used;
 	int frags_min, frags_max;
 	unsigned int lastblock;
-};
+	struct iovec *vector;
+	int vector_count;
+} mmap_t;
 
-static int playback_ok(struct mmap_private_data *data)
+static int playback_ok(snd_pcm_plugin_t *plugin)
 {
+	mmap_t *data = (mmap_t *)plugin->extra_data;
 	snd_pcm_mmap_control_t *control = data->control;
 	int delta = control->status.block;
 	
@@ -79,8 +82,9 @@ static int poll_playback(snd_pcm_t *pcm)
 	return err < 0 ? err : 0;
 }
 
-static int query_playback(struct mmap_private_data *data, int not_use_poll)
+static int query_playback(snd_pcm_plugin_t *plugin, int not_use_poll)
 {
+	mmap_t *data = (mmap_t *)plugin->extra_data;
 	snd_pcm_mmap_control_t *control = data->control;
 	int err;
 
@@ -89,10 +93,10 @@ static int query_playback(struct mmap_private_data *data, int not_use_poll)
 		if (data->start_mode == SND_PCM_START_GO)
 			return -EAGAIN;
 		if ((data->start_mode == SND_PCM_START_DATA &&
-		     playback_ok(data)) ||
+		     playback_ok(plugin)) ||
 		    (data->start_mode == SND_PCM_START_FULL &&
 		     data->frags_used == data->frags)) {
-			err = snd_pcm_channel_go(data->pcm, data->channel);
+			err = snd_pcm_channel_go(plugin->handle, data->channel);
 			if (err < 0)
 				return err;
 		}
@@ -100,7 +104,7 @@ static int query_playback(struct mmap_private_data *data, int not_use_poll)
 	case SND_PCM_STATUS_RUNNING:
 		if (!not_use_poll) {
 			control->status.expblock = control->status.block + 1;
-			err = poll_playback(data->pcm);
+			err = poll_playback(plugin->handle);
 			if (err < 0)
 				return err;
 		}
@@ -113,8 +117,9 @@ static int query_playback(struct mmap_private_data *data, int not_use_poll)
 	return 0;
 }
 
-static int capture_ok(struct mmap_private_data *data)
+static int capture_ok(snd_pcm_plugin_t *plugin)
 {
+	mmap_t *data = (mmap_t *)plugin->extra_data;
 	snd_pcm_mmap_control_t *control = data->control;
 	int delta = control->status.block;
 	
@@ -148,8 +153,9 @@ static int poll_capture(snd_pcm_t *pcm)
 	return err < 0 ? err : 0;
 }
 
-static int query_capture(struct mmap_private_data *data, int not_use_poll)
+static int query_capture(snd_pcm_plugin_t *plugin, int not_use_poll)
 {
+	mmap_t *data = (mmap_t *)plugin->extra_data;	
 	snd_pcm_mmap_control_t *control = data->control;
 	int err;
 
@@ -157,14 +163,14 @@ static int query_capture(struct mmap_private_data *data, int not_use_poll)
 	case SND_PCM_STATUS_PREPARED:
 		if (data->start_mode != SND_PCM_START_DATA)
 			return -EAGAIN;
-		err = snd_pcm_channel_go(data->pcm, data->channel);
+		err = snd_pcm_channel_go(plugin->handle, data->channel);
 		if (err < 0)
 			return err;
 		break;
 	case SND_PCM_STATUS_RUNNING:
 		if (!not_use_poll) {
 			control->status.expblock = control->status.block + data->frags_min;
-			err = poll_capture(data->pcm);
+			err = poll_capture(plugin->handle);
 			if (err < 0)
 				return err;
 		}
@@ -177,131 +183,206 @@ static int query_capture(struct mmap_private_data *data, int not_use_poll)
 	return 0;
 }
 
-static int mmap_transfer_src_ptr(snd_pcm_plugin_t *plugin, char **buffer, size_t *size)
+static int mmap_src_voices(snd_pcm_plugin_t *plugin,
+			   snd_pcm_plugin_voice_t **voices,
+			   size_t samples,
+			   void *(*plugin_alloc)(snd_pcm_plugin_handle_t *handle, size_t size))
 {
-	struct mmap_private_data *data;
+	mmap_t *data;
 	snd_pcm_mmap_control_t *control;
-	int interleave, err;
+	snd_pcm_plugin_voice_t *v;
+	int err;
 
-	if (plugin == NULL || buffer == NULL || size == NULL)
+	if (plugin == NULL || voices == NULL)
+		return -EINVAL;
+	*voices = NULL;
+	data = (mmap_t *)plugin->extra_data;
+	if (data->channel != SND_PCM_CHANNEL_PLAYBACK)
+		return -EINVAL;
+	if ((control = data->control) == NULL)
+		return -EBADFD;
+	/* wait until the block is not free */
+	while (!playback_ok(plugin)) {
+		err = query_playback(plugin, 0);
+		if (err < 0)
+			return err;
+	}	
+	v = plugin->voices;
+	if (plugin->src_format.interleave) {
+		void *addr;
+		int voice;
+		if (control->status.frag_size != snd_pcm_plugin_dst_samples_to_size(plugin, samples))
 			return -EINVAL;
-	data = (struct mmap_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data == NULL)
-		return -EINVAL;
-	control = data->control;
-	if (control == NULL)
-		return -EINVAL;
-	interleave = control->status.voices < 0;
-	if (interleave) {
-		*buffer = data->buffer + control->fragments[data->frag].addr;
-		if (data->channel == SND_PCM_CHANNEL_PLAYBACK) {
-			/* wait until the block is not free */
-			while (!playback_ok(data)) {
-				err = query_playback(data, 0);
-				if (err < 0)
-					return err;
-			}
+		addr = data->buffer + control->fragments[data->frag].addr;
+		for (voice = 0; voice < plugin->src_format.voices; voice++) {
+			v->aptr = NULL;
+			v->addr = addr;
+			v->offset = voice * plugin->src_width;
+			v->next = plugin->src_format.voices * plugin->src_width;
 		}
-		*size = control->status.frag_size;
 	} else {
-		*buffer = NULL;	/* use another buffer */
+		int frag, voice;
+		if (control->status.frag_size != snd_pcm_plugin_src_samples_to_size(plugin, samples) / plugin->src_format.voices)
+			return -EINVAL;
+		for (voice = 0; voice < plugin->src_format.voices; voice++) {
+			frag = data->frag + (voice * data->frags);
+			v->aptr = NULL;
+			v->addr = data->buffer + control->fragments[frag].addr;
+			v->offset = 0;
+			v->next = plugin->src_width;
+		}
 	}
+	*voices = plugin->voices;
+	return 0;
+}
+
+static int mmap_dst_voices(snd_pcm_plugin_t *plugin,
+			   snd_pcm_plugin_voice_t **voices,
+			   size_t samples,
+			   void *(*plugin_alloc)(snd_pcm_plugin_handle_t *handle, size_t size))
+{
+	mmap_t *data;
+	snd_pcm_mmap_control_t *control;
+	snd_pcm_plugin_voice_t *v;
+
+	if (plugin == NULL || voices == NULL)
+		return -EINVAL;
+	*voices = NULL;
+	data = (mmap_t *)plugin->extra_data;
+	if (data->channel != SND_PCM_CHANNEL_CAPTURE)
+		return -EINVAL;
+	if ((control = data->control) == NULL)
+		return -EBADFD;
+	v = plugin->voices;
+	if (plugin->dst_format.interleave) {
+		void *addr;
+		int voice;
+		if (control->status.frag_size != snd_pcm_plugin_dst_samples_to_size(plugin, samples))
+			return -EINVAL;
+		addr = data->buffer + control->fragments[data->frag].addr;
+		for (voice = 0; voice < plugin->dst_format.voices; voice++) {
+			v->addr = addr;
+			v->offset = voice * plugin->src_width;
+			v->next = plugin->dst_format.voices * plugin->dst_width;
+		}
+	} else {
+		int frag, voice;
+		if (control->status.frag_size != snd_pcm_plugin_dst_samples_to_size(plugin, samples) / plugin->dst_format.voices)
+			return -EINVAL;
+		for (voice = 0; voice < plugin->dst_format.voices; voice++) {
+			frag = data->frag + (voice * data->frags);
+			v->addr = data->buffer + control->fragments[frag].addr;
+			v->offset = 0;
+			v->next = plugin->dst_width;
+		}
+	}
+	*voices = plugin->voices;
 	return 0;
 }
 
 static ssize_t mmap_transfer(snd_pcm_plugin_t *plugin,
-			      char *src_ptr, size_t src_size,
-			      char *dst_ptr, size_t dst_size)
+			     const snd_pcm_plugin_voice_t *src_voices,
+			     const snd_pcm_plugin_voice_t *dst_voices,
+			     size_t samples)
 {
-	struct mmap_private_data *data;
+	mmap_t *data;
 	snd_pcm_mmap_control_t *control;
-	int interleave, voice, err;
+	ssize_t size;
+	int voice, err;
 	char *addr;
 
-	if (plugin == NULL || dst_ptr == NULL || dst_size <= 0)
-			return -EINVAL;
-	data = (struct mmap_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data == NULL)
+	if (plugin == NULL)
 		return -EINVAL;
+	data = (mmap_t *)plugin->extra_data;
 	control = data->control;
 	if (control == NULL)
 		return -EINVAL;
-	interleave = control->status.voices < 0;
-	if (interleave) {
-		if (dst_size != control->status.frag_size)
-			return -EINVAL;
-	} else {
-		if (dst_size != control->status.frag_size * control->status.voices)
-			return -EINVAL;
-	}
 	if (data->channel == SND_PCM_CHANNEL_PLAYBACK) {
-		while (!playback_ok(data)) {
-			err = query_playback(data, 0);
+		if (src_voices == NULL)
+			return -EINVAL;
+		while (!playback_ok(plugin)) {
+			err = query_playback(plugin, 0);
 			if (err < 0)
 				return err;
 		}
-		if (interleave) {
+		size = snd_pcm_plugin_src_samples_to_size(plugin, samples);
+		if (size < 0)
+			return size;
+		if (plugin->src_format.interleave) {
+			if (size != control->status.frag_size)
+				return -EINVAL;
 			addr = data->buffer + control->fragments[data->frag].addr;
-			if (dst_ptr != addr)
-				memcpy(addr, dst_ptr, dst_size);
+			if (src_voices->addr != addr)
+				memcpy(addr, src_voices->addr, size);
 			control->fragments[data->frag++].data = 1;
 			data->frag %= control->status.frags;
 			data->frags_used++;
+			return samples;
 		} else {
 			int frag;
 
-			for (voice = 0; voice < control->status.voices; voice++) {
+			if ((size / plugin->src_format.voices) != control->status.frag_size)
+				return -EINVAL;
+			for (voice = 0; voice < plugin->src_format.voices; voice++) {
 				frag = data->frag + (voice * data->frags);
 				while (control->fragments[frag].data) {
-					err = query_playback(data, 1);
+					err = query_playback(plugin, 1);
 					if (err < 0)
 						return err;
 				}
 				addr = data->buffer + control->fragments[frag].addr;
-				if (dst_ptr != addr)
-					memcpy(addr, dst_ptr, control->status.frag_size);
+				if (src_voices[voice].addr != addr)
+					memcpy(addr, src_voices[voice].addr, control->status.frag_size);
 				control->fragments[frag].data = 1;
-				dst_ptr += control->status.frag_size;
 			}
 			data->frag++;
 			data->frag %= data->frags;
 			data->frags_used++;
+			return samples;
 		}
-		return dst_size;
 	} else if (data->channel == SND_PCM_CHANNEL_CAPTURE) {
-		while (!capture_ok(data)) {
-			err = query_capture(data, 0);
+		if (dst_voices == NULL)
+			return -EINVAL;
+		while (!capture_ok(plugin)) {
+			err = query_capture(plugin, 0);
 			if (err < 0)
 				return err;
 		}
-		if (interleave) {
+		size = snd_pcm_plugin_dst_samples_to_size(plugin, samples);
+		if (size < 0)
+			return size;
+		if (plugin->dst_format.interleave) {
+			if (size != control->status.frag_size)
+				return -EINVAL;
 			addr = data->buffer + control->fragments[data->frag].addr;
-			if (dst_ptr != addr)
-				memcpy(dst_ptr, addr, dst_size);
+			if (dst_voices->addr != addr)
+				memcpy(dst_voices->addr, addr, size);
 			control->fragments[data->frag++].data = 0;
 			data->frag %= control->status.frags;
 			data->frags_used--;
+			return samples;
 		} else {
 			int frag;
 
-			for (voice = 0; voice < control->status.voices; voice++) {
+			if ((size / plugin->dst_format.voices) != control->status.frag_size)
+				return -EINVAL;
+			for (voice = 0; voice < plugin->dst_format.voices; voice++) {
 				frag = data->frag + (voice * data->frags);
 				while (!control->fragments[data->frag].data) {
-					err = query_capture(data, 1);
+					err = query_capture(plugin, 1);
 					if (err < 0)
 						return err;
 				}
 				addr = data->buffer + control->fragments[frag].addr;
-				if (dst_ptr != addr)
-					memcpy(dst_ptr, addr, control->status.frag_size);
+				if (dst_voices[voice].addr != addr)
+					memcpy(dst_voices[voice].addr, addr, control->status.frag_size);
 				control->fragments[frag].data = 0;
-				dst_ptr += control->status.frag_size;
 			}
 			data->frag++;
 			data->frag %= data->frags;
 			data->frags_used--;
+			return samples;
 		}
-		return dst_size;
 	} else {
 		return -EINVAL;
 	}
@@ -315,15 +396,15 @@ static int mmap_action(snd_pcm_plugin_t *plugin,
 
 	if (plugin == NULL)
 		return -EINVAL;
-	data = (struct mmap_private_data *)snd_pcm_plugin_extra_data(plugin);
+	data = (mmap_t *)plugin->extra_data;
 	if (action == INIT) {
 		snd_pcm_channel_params_t *params;
 		snd_pcm_channel_setup_t setup;
-		int result, frags;
+		int result;
 
 		if (data->control)
-			snd_pcm_munmap(data->pcm, data->channel);
-		result = snd_pcm_mmap(data->pcm, data->channel, &data->control, (void **)&data->buffer);
+			snd_pcm_munmap(plugin->handle, data->channel);
+		result = snd_pcm_mmap(plugin->handle, data->channel, &data->control, (void **)&data->buffer);
 		if (result < 0)
 			return result;
 		params = (snd_pcm_channel_params_t *)udata;
@@ -331,7 +412,7 @@ static int mmap_action(snd_pcm_plugin_t *plugin,
 		data->stop_mode = params->stop_mode;
 		memset(&setup, 0, sizeof(setup));
 		setup.channel = data->channel;
-		if ((result = snd_pcm_channel_setup(data->pcm, &setup)) < 0)
+		if ((result = snd_pcm_channel_setup(plugin->handle, &setup)) < 0)
 			return result;
 		data->frags = setup.buf.block.frags;
 		data->frags_min = setup.buf.block.frags_min;
@@ -368,14 +449,16 @@ static void mmap_free(snd_pcm_plugin_t *plugin, void *private_data)
 
 	if (plugin == NULL)
 		return;
-	data = (struct mmap_private_data *)snd_pcm_plugin_extra_data(plugin);
+	data = (mmap_t *)plugin->extra_data;
 	if (data->control)
-		snd_pcm_munmap(data->pcm, data->channel);
+		snd_pcm_munmap(plugin->handle, data->channel);
 }
  
-int snd_pcm_plugin_build_mmap(snd_pcm_t *pcm, int channel, snd_pcm_plugin_t **r_plugin)
+int snd_pcm_plugin_build_mmap(snd_pcm_t *pcm, int channel,
+			      snd_pcm_format_t *format,
+			      snd_pcm_plugin_t **r_plugin)
 {
-	struct mmap_private_data *data;
+	mmap_t *data;
 	snd_pcm_plugin_t *plugin;
 
 	if (r_plugin == NULL)
@@ -383,16 +466,18 @@ int snd_pcm_plugin_build_mmap(snd_pcm_t *pcm, int channel, snd_pcm_plugin_t **r_
 	*r_plugin = NULL;
 	if (!pcm || channel < 0 || channel > 1)
 		return -EINVAL;
-	plugin = snd_pcm_plugin_build(channel == SND_PCM_CHANNEL_PLAYBACK ?
+	plugin = snd_pcm_plugin_build(pcm,
+				      channel == SND_PCM_CHANNEL_PLAYBACK ?
 						"I/O mmap playback" :
 						"I/O mmap capture",
-						sizeof(struct mmap_private_data));
+				      format, format,
+				      sizeof(mmap_t));
 	if (plugin == NULL)
 		return -ENOMEM;
-	data = (struct mmap_private_data *)snd_pcm_plugin_extra_data(plugin);
-	data->pcm = pcm;
+	data = (mmap_t *)plugin->extra_data;
 	data->channel = channel;
-	plugin->transfer_src_ptr = mmap_transfer_src_ptr;
+	plugin->src_voices = mmap_src_voices;
+	plugin->dst_voices = mmap_dst_voices;
 	plugin->transfer = mmap_transfer;
 	plugin->action = mmap_action;
 	plugin->private_free = mmap_free;

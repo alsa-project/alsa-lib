@@ -39,6 +39,7 @@ struct snd_pcm {
 	int plugin_alloc_lock[4];
 	void *plugin_alloc_xptr[2];
 	long plugin_alloc_xsize[2];
+	int plugin_alloc_xchannel;
 };
 
 unsigned int snd_pcm_plugin_formats(unsigned int formats);
@@ -46,8 +47,8 @@ int snd_pcm_plugin_hwparams(snd_pcm_channel_params_t *params,
 			    snd_pcm_channel_info_t *hwinfo,
 			    snd_pcm_channel_params_t *hwparams);
 int snd_pcm_plugin_format(snd_pcm_t *pcm,
-			  snd_pcm_channel_params_t *params, 
-			  snd_pcm_channel_params_t *hwparams, 
+			  snd_pcm_channel_params_t *params,
+			  snd_pcm_channel_params_t *hwparams,
 			  snd_pcm_channel_info_t *hwinfo);
 
 #if 0

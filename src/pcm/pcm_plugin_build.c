@@ -25,82 +25,199 @@
 #endif
 #include "../include/driver.h"
 #include "../include/pcm.h"
-typedef snd_pcm_runtime_t PLUGIN_BASE;
 #define snd_pcm_plugin_first(pb, channel) ((pb)->oss.plugin_first)
 #define snd_pcm_plugin_last(pb, channel) ((pb)->oss.plugin_last)
 #define snd_pcm_plugin_append(pb, channel, plugin) snd_pcm_oss_plugin_append(pb, plugin)
 #define my_calloc(size) snd_kcalloc(size, GFP_KERNEL)
 #define my_free(ptr) snd_kfree(ptr)
+#define my_strdup(str) snd_kmalloc_strdup(str, GFP_KERNEL)
 #else
 #include <malloc.h>
 #include <errno.h>
+#include <stdio.h>
+#include <string.h>
 #include "pcm_local.h"
-typedef snd_pcm_t PLUGIN_BASE;
 #define my_calloc(size) calloc(1, size)
 #define my_free(ptr) free(ptr)
+#define my_strdup(str) strdup(str)
 #endif
 
+ssize_t snd_pcm_plugin_src_samples_to_size(snd_pcm_plugin_t *plugin, size_t samples)
+{
+	ssize_t result;
 
-ssize_t snd_pcm_plugin_transfer_size(PLUGIN_BASE *pb, int channel, size_t drv_size)
+	if (plugin == NULL)
+		return -EINVAL;
+	result = samples * plugin->src_format.voices * plugin->src_width;
+	if ((result % 8) != 0)
+		return -EINVAL;
+	return result / 8;
+}
+
+ssize_t snd_pcm_plugin_dst_samples_to_size(snd_pcm_plugin_t *plugin, size_t samples)
+{
+	ssize_t result;
+
+	if (plugin == NULL)
+		return -EINVAL;
+	result = samples * plugin->dst_format.voices * plugin->dst_width;
+	if ((result % 8) != 0)
+		return -EINVAL;
+	return result / 8;
+}
+
+ssize_t snd_pcm_plugin_src_size_to_samples(snd_pcm_plugin_t *plugin, size_t size)
+{
+	ssize_t result;
+	long tmp;
+
+	if (plugin == NULL)
+		return -EINVAL;
+	result = size * 8;
+	tmp = plugin->src_format.voices * plugin->src_width;
+	if ((result % tmp) != 0)
+		return -EINVAL;
+	return result / tmp;
+}
+
+ssize_t snd_pcm_plugin_dst_size_to_samples(snd_pcm_plugin_t *plugin, size_t size)
+{
+	ssize_t result;
+	long tmp;
+
+	if (plugin == NULL)
+		return -EINVAL;
+	result = size * 8;
+	tmp = plugin->dst_format.voices * plugin->dst_width;
+	if ((result % tmp) != 0)
+		return -EINVAL;
+	return result / tmp;
+}
+
+ssize_t snd_pcm_plugin_client_samples(snd_pcm_plugin_handle_t *pb, int channel, size_t drv_samples)
 {
 	snd_pcm_plugin_t *plugin, *plugin_prev, *plugin_next;
 	
 	if (pb == NULL || (channel != SND_PCM_CHANNEL_PLAYBACK &&
-		    channel != SND_PCM_CHANNEL_CAPTURE))
+			   channel != SND_PCM_CHANNEL_CAPTURE))
+		return -EINVAL;
+	if (drv_samples == 0)
+		return 0;
+	if (drv_samples < 0)
+		return -EINVAL;
+	if (channel == SND_PCM_CHANNEL_PLAYBACK) {
+		plugin = snd_pcm_plugin_last(pb, SND_PCM_CHANNEL_PLAYBACK);
+		while (plugin && drv_samples > 0) {
+			plugin_prev = plugin->prev;
+			if (plugin->src_samples)
+				drv_samples = plugin->src_samples(plugin, drv_samples);
+			plugin = plugin_prev;
+		}
+	} else if (channel == SND_PCM_CHANNEL_CAPTURE) {
+		plugin = snd_pcm_plugin_first(pb, SND_PCM_CHANNEL_CAPTURE);
+		while (plugin && drv_samples > 0) {
+			plugin_next = plugin->next;
+			if (plugin->dst_samples)
+				drv_samples = plugin->dst_samples(plugin, drv_samples);
+			plugin = plugin_next;
+		}
+	}
+	return drv_samples;
+}
+
+ssize_t snd_pcm_plugin_hardware_samples(snd_pcm_plugin_handle_t *pb, int channel, size_t clt_samples)
+{
+	snd_pcm_plugin_t *plugin, *plugin_prev, *plugin_next;
+	
+	if (pb == NULL || (channel != SND_PCM_CHANNEL_PLAYBACK &&
+			   channel != SND_PCM_CHANNEL_CAPTURE))
+		return -EINVAL;
+	if (clt_samples == 0)
+		return 0;
+	if (clt_samples < 0)
+		return -EINVAL;
+	if (channel == SND_PCM_CHANNEL_PLAYBACK) {
+		plugin = snd_pcm_plugin_first(pb, SND_PCM_CHANNEL_PLAYBACK);
+		while (plugin && clt_samples > 0) {
+			plugin_next = plugin->next;
+			if (plugin->dst_samples)
+				clt_samples = plugin->dst_samples(plugin, clt_samples);
+			plugin = plugin_next;
+		}
+		if (clt_samples < 0)
+			return clt_samples;
+	} else if (channel == SND_PCM_CHANNEL_CAPTURE) {
+		plugin = snd_pcm_plugin_last(pb, SND_PCM_CHANNEL_CAPTURE);
+		while (plugin) {
+			plugin_prev = plugin->prev;
+			if (plugin->src_samples)
+				clt_samples = plugin->src_samples(plugin, clt_samples);
+			plugin = plugin_prev;
+		}
+	} 
+	return clt_samples;
+}
+
+ssize_t snd_pcm_plugin_client_size(snd_pcm_plugin_handle_t *pb, int channel, size_t drv_size)
+{
+	snd_pcm_plugin_t *plugin;
+	ssize_t result = 0;
+	
+	if (pb == NULL || (channel != SND_PCM_CHANNEL_PLAYBACK &&
+			   channel != SND_PCM_CHANNEL_CAPTURE))
 		return -EINVAL;
 	if (drv_size == 0)
 		return 0;
 	if (drv_size < 0)
 		return -EINVAL;
 	if (channel == SND_PCM_CHANNEL_PLAYBACK) {
-		plugin = snd_pcm_plugin_last(pb, channel);
-		while (plugin) {
-			plugin_prev = plugin->prev;
-			if (plugin->src_size)
-				drv_size = plugin->src_size(plugin, drv_size);
-			plugin = plugin_prev;
-		}
+		plugin = snd_pcm_plugin_last(pb, SND_PCM_CHANNEL_PLAYBACK);
+		result = snd_pcm_plugin_src_size_to_samples(plugin, drv_size);
+		result = snd_pcm_plugin_client_samples(pb, SND_PCM_CHANNEL_PLAYBACK, result);
+		if (result < 0)
+			return result;
+		plugin = snd_pcm_plugin_first(pb, SND_PCM_CHANNEL_PLAYBACK);
+		result = snd_pcm_plugin_src_samples_to_size(plugin, result);
 	} else if (channel == SND_PCM_CHANNEL_CAPTURE) {
-		plugin = snd_pcm_plugin_first(pb, channel);
-		while (plugin) {
-			plugin_next = plugin->next;
-			if (plugin->dst_size)
-				drv_size = plugin->dst_size(plugin, drv_size);
-			plugin = plugin_next;
-		}
+		plugin = snd_pcm_plugin_first(pb, SND_PCM_CHANNEL_CAPTURE);
+		result = snd_pcm_plugin_src_size_to_samples(plugin, drv_size);
+		result = snd_pcm_plugin_client_samples(pb, SND_PCM_CHANNEL_PLAYBACK, result);
+		plugin = snd_pcm_plugin_last(pb, SND_PCM_CHANNEL_CAPTURE);
+		result = snd_pcm_plugin_dst_samples_to_size(plugin, result);
 	}
-	return drv_size;
+	return result;
 }
 
-ssize_t snd_pcm_plugin_hardware_size(PLUGIN_BASE *pb, int channel, size_t trf_size)
+ssize_t snd_pcm_plugin_hardware_size(snd_pcm_plugin_handle_t *pb, int channel, size_t clt_size)
 {
-	snd_pcm_plugin_t *plugin, *plugin_prev, *plugin_next;
+	snd_pcm_plugin_t *plugin;
+	ssize_t result = 0;
 	
 	if (pb == NULL || (channel != SND_PCM_CHANNEL_PLAYBACK &&
-		     channel != SND_PCM_CHANNEL_CAPTURE))
+			   channel != SND_PCM_CHANNEL_CAPTURE))
 		return -EINVAL;
-	if (trf_size == 0)
+	if (clt_size == 0)
 		return 0;
-	if (trf_size < 0)
+	if (clt_size < 0)
 		return -EINVAL;
 	if (channel == SND_PCM_CHANNEL_PLAYBACK) {
-		plugin = snd_pcm_plugin_first(pb, channel);
-		while (plugin) {
-			plugin_next = plugin->next;
-			if (plugin->dst_size)
-				trf_size = plugin->dst_size(plugin, trf_size);
-			plugin = plugin_next;
-		}
+		plugin = snd_pcm_plugin_first(pb, SND_PCM_CHANNEL_PLAYBACK);
+		result = snd_pcm_plugin_src_size_to_samples(plugin, clt_size);
+		result = snd_pcm_plugin_hardware_samples(pb, SND_PCM_CHANNEL_PLAYBACK, result);
+		if (result < 0)
+			return result;
+		plugin = snd_pcm_plugin_last(pb, SND_PCM_CHANNEL_PLAYBACK);
+		result = snd_pcm_plugin_dst_samples_to_size(plugin, result);
 	} else if (channel == SND_PCM_CHANNEL_CAPTURE) {
-		plugin = snd_pcm_plugin_last(pb, channel);
-		while (plugin) {
-			plugin_prev = plugin->prev;
-			if (plugin->src_size)
-				trf_size = plugin->src_size(plugin, trf_size);
-			plugin = plugin_prev;
-		}
+		plugin = snd_pcm_plugin_last(pb, SND_PCM_CHANNEL_CAPTURE);
+		result = snd_pcm_plugin_src_size_to_samples(plugin, clt_size);
+		result = snd_pcm_plugin_hardware_samples(pb, SND_PCM_CHANNEL_PLAYBACK, result);
+		if (result < 0)
+			return result;
+		plugin = snd_pcm_plugin_first(pb, SND_PCM_CHANNEL_CAPTURE);
+		result = snd_pcm_plugin_dst_samples_to_size(plugin, result);
 	} 
-	return trf_size;
+	return result;
 }
 
 
@@ -232,7 +349,7 @@ int snd_pcm_plugin_hwparams(snd_pcm_channel_params_t *params,
 
 #define ROUTE_PLUGIN_RESOLUTION 16
 
-int snd_pcm_plugin_format(PLUGIN_BASE *pb, 
+int snd_pcm_plugin_format(snd_pcm_plugin_handle_t *pb, 
 			  snd_pcm_channel_params_t *params, 
 			  snd_pcm_channel_params_t *hwparams,
 			  snd_pcm_channel_info_t *hwinfo)
@@ -272,6 +389,7 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 
 	/* voices reduction */
 	if (srcparams->format.voices > dstparams.format.voices) {
+#if 0
 		int sv = srcparams->format.voices;
 		int dv = dstparams.format.voices;
 		int *ttable = my_calloc(dv*sv*sizeof(*ttable));
@@ -303,6 +421,10 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 			return err;
 		}
 		srcparams->format.voices = tmpparams.format.voices;
+#else
+		snd_pcm_plugin_free(plugin);
+		return -EIO;
+#endif
         }
 
 	/* Convert to interleaved format if needed */
@@ -310,7 +432,8 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 	    srcparams->format.voices > 1 &&
 	    srcparams->format.rate != dstparams.format.rate) {
 		tmpparams.format.interleave = 1;
-		err = snd_pcm_plugin_build_interleave(&srcparams->format,
+		err = snd_pcm_plugin_build_interleave(pb,
+						      &srcparams->format,
 						      &tmpparams.format,
 						      &plugin);
 		pdprintf("params interleave change: src=%i, dst=%i returns %i\n", srcparams->format.interleave, tmpparams.format.interleave, err);
@@ -336,7 +459,8 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 	    snd_pcm_format_width(srcparams->format.format) <= 16 &&
 	    snd_pcm_format_width(srcparams->format.format) >= snd_pcm_format_width(srcparams->format.format)) {
 		tmpparams.format.rate = dstparams.format.rate;
-        	err = snd_pcm_plugin_build_rate(&srcparams->format,
+        	err = snd_pcm_plugin_build_rate(pb,
+        					&srcparams->format,
 						&tmpparams.format,
 						&plugin);
 		pdprintf("params rate down resampling: src=%i, dst=%i returns %i\n", srcparams->format.rate, tmpparams.format.rate, err);
@@ -359,18 +483,21 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 		tmpparams.format.format = SND_PCM_SFMT_S16_LE;
 		switch (srcparams->format.format) {
 		case SND_PCM_SFMT_MU_LAW:
-			err = snd_pcm_plugin_build_mulaw(&srcparams->format,
+			err = snd_pcm_plugin_build_mulaw(pb,
+							 &srcparams->format,
 							 &tmpparams.format,
 							 &plugin);
 			break;
 #ifndef __KERNEL__
 		case SND_PCM_SFMT_A_LAW:
-			err = snd_pcm_plugin_build_alaw(&srcparams->format,
+			err = snd_pcm_plugin_build_alaw(pb,
+							&srcparams->format,
 							&tmpparams.format,
 							&plugin);
 			break;
 		case SND_PCM_SFMT_IMA_ADPCM:
-			err = snd_pcm_plugin_build_adpcm(&srcparams->format,
+			err = snd_pcm_plugin_build_adpcm(pb,
+							 &srcparams->format,
 							 &tmpparams.format,
 							 &plugin);
 			break;
@@ -394,27 +521,31 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 		tmpparams.format.format = dstparams.format.format;
 		if (srcparams->format.format == SND_PCM_SFMT_MU_LAW ||
 		    tmpparams.format.format == SND_PCM_SFMT_MU_LAW) {
-			err = snd_pcm_plugin_build_mulaw(&srcparams->format,
+			err = snd_pcm_plugin_build_mulaw(pb,
+							 &srcparams->format,
 							 &tmpparams.format,
 							 &plugin);
 		}
 #ifndef __KERNEL__
 		else if (srcparams->format.format == SND_PCM_SFMT_A_LAW ||
 			 tmpparams.format.format == SND_PCM_SFMT_A_LAW) {
-			err = snd_pcm_plugin_build_alaw(&srcparams->format,
+			err = snd_pcm_plugin_build_alaw(pb,
+							&srcparams->format,
 							&tmpparams.format,
 							&plugin);
 		}
 		else if (srcparams->format.format == SND_PCM_SFMT_IMA_ADPCM ||
 			 tmpparams.format.format == SND_PCM_SFMT_IMA_ADPCM) {
-			err = snd_pcm_plugin_build_adpcm(&srcparams->format,
+			err = snd_pcm_plugin_build_adpcm(pb,
+							 &srcparams->format,
 							 &tmpparams.format,
 							 &plugin);
 		}
 #endif
 		else if (snd_pcm_format_linear(srcparams->format.format) &&
 			 snd_pcm_format_linear(tmpparams.format.format)) {
-			err = snd_pcm_plugin_build_linear(&srcparams->format,
+			err = snd_pcm_plugin_build_linear(pb,
+							  &srcparams->format,
 							  &tmpparams.format,
 							  &plugin);
 		}
@@ -434,7 +565,8 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 	/* rate resampling */
         if (srcparams->format.rate != dstparams.format.rate) {
 		tmpparams.format.rate = dstparams.format.rate;
-        	err = snd_pcm_plugin_build_rate(&srcparams->format,
+        	err = snd_pcm_plugin_build_rate(pb,
+        					&srcparams->format,
 						&tmpparams.format,
 						&plugin);
 		pdprintf("params rate resampling: src=%i, dst=%i return %i\n", srcparams->format.rate, tmpparams.format.rate, err);
@@ -452,6 +584,7 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
       
 	/* voices extension  */
 	if (srcparams->format.voices < dstparams.format.voices) {
+#if 0
 		int sv = srcparams->format.voices;
 		int dv = dstparams.format.voices;
 		int *ttable = my_calloc(dv * sv * sizeof(*ttable));
@@ -483,6 +616,10 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 			return err;
 		}
 		srcparams->format.voices = tmpparams.format.voices;
+#else
+		snd_pcm_plugin_free(plugin);
+		return -EIO;
+#endif
 	}
 
 	/* interleave change */
@@ -490,7 +627,8 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 	    hwinfo->mode == SND_PCM_MODE_BLOCK &&
 	    srcparams->format.interleave != dstparams.format.interleave) {
 		tmpparams.format.interleave = dstparams.format.interleave;
-		err = snd_pcm_plugin_build_interleave(&srcparams->format,
+		err = snd_pcm_plugin_build_interleave(pb,
+						      &srcparams->format,
 						      &tmpparams.format,
 						      &plugin);
 		pdprintf("params interleave change: src=%i, dst=%i return %i\n", srcparams->format.interleave, tmpparams.format.interleave, err);
