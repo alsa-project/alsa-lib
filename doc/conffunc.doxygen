@@ -1,0 +1,106 @@
+/*! \page conffunc Configuration - runtime functions
+
+<P>The ALSA library accepts the runtime modification of configuration.
+The several build-in functions are available.</P>
+
+<P>The function is refered using id @func and function name. All other
+values in the current compound are used as configuration for the function.
+If compound func.<function_name> is defined in the root leafs, then library
+and function from this compound configuration is used, otherwise the prefix
+'snd_func_' is added to string and the code from the ALSA library is used.
+The definition of function looks like:</P> 
+
+\code
+func.remove_first_char {
+	lib "/usr/lib/libasoundextend.so"
+	func "extend_remove_first_char"
+}
+\endcode
+
+\section conffunc_getenv The getenv function
+
+The getenv function allows to get an environment value. The vars values
+(array) defined the order and names for the environment values. When the
+first environment value is found, then the function replaces the whole
+compound by this result. If no value is found, then the default value is
+used, if defined.
+
+\code
+	card {
+		@func getenv
+		vars [ MY_CARD CARD C ]
+		default 0
+	}
+\endcode
+
+\section conffunc_igetenv The igetenv function
+
+This function is same as getenv function, but the result value is converted
+to integer.
+
+\section conffunc_concat The concat function
+
+The concat function merges all given string in the array named string into
+one.
+
+\code
+	filename {
+		@func concat
+		strings [
+			"/usr/share"
+			"/sound"
+			"/a.wav"
+		]
+	}
+\endcode
+
+\section conffunc_datadir The datadir function
+
+This function return the configuration data directory (usually /usr/share/alsa)
+as string as result. This function requires no other values.
+
+
+\section conffunc_refer The refer function
+
+This function substitutes the current compound with the compound named (key
+name, value string) and filename (key file - optional, value string).
+
+\code
+	{
+		@func refer
+		file /etc/my-alsa.conf
+		name pcm.lastone
+	}
+\endcode
+
+\section conffunc_card_strtype The card_strtype function
+
+This function converts the given card number (key card, value integer) to card type
+(string).
+
+\section conffunc_card_id The card_id function
+
+This function returns the card id string for the given card number (key card, value
+integer).
+
+\section conffunc_pcm_id The pcm_id function
+
+This function returns the pcm id string for the given PCM device (key card,
+value integer; key device, value integer; key subdevice (optional), value
+integer).
+
+\section conffunc_private_string The private_string function
+
+This function returns the private data as string as result.
+
+\section conffunc_private_card_strtype The private_card_strtype function
+
+This function converts the private data (int) with card number to card type
+(string).
+
+\section conffunc_private_pcm_subdevice The private_pcm_subdevice function
+
+This functions returns the subdevice number for the pcm handle specified by
+the private data.
+
+*/

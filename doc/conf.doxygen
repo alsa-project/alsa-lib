@@ -41,7 +41,7 @@ strings, int which case they are protected from the normal parsing process
 parses to two tokens, including the single literal-string token "John
 Smith".
 
-\section conf_linesplicing Line splicing with \\
+\section conf_linesplicing Line splicing with \
 
 A special case occurs, if the final newline character encountered is
 preceded by a backslash (\) in the string value definition. The backslash
@@ -49,7 +49,7 @@ and new line are both discarded, allowing two physical lines of text to be
 treated as one unit.
 
 \code
-"John \\
+"John \
 Smith"
 \endcode
 
@@ -216,6 +216,5 @@ name [
 name.0 [=] value0 [,|;]
 name.1 [=] value1 [,|;]
 \endcode
-
 
 */
