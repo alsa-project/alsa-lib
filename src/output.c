@@ -79,6 +79,18 @@ int snd_output_printf(snd_output_t *output, const char *format, ...)
 }
 
 /**
+ * \brief Writes formatted output (like \c fprintf(3)) to an output handle.
+ * \param output The output handle.
+ * \param format Format string in \c fprintf format.
+ * \param args Other \c fprintf arguments.
+ * \return The number of characters written, or a negative error code.
+ */
+int snd_output_vprintf(snd_output_t *output, const char *format, va_list args)
+{
+	return output->ops->print(output, format, args);
+}
+
+/**
  * \brief Writes a string to an output handle (like \c fputs(3)).
  * \param output The output handle.
  * \param str Pointer to the string.

@@ -71,6 +71,7 @@ int snd_output_printf(snd_output_t *output, const char *format, ...)
 	__attribute__ ((format (printf, 2, 3)))
 #endif
 	;
+int snd_output_vprintf(snd_output_t *output, const char *format, va_list args);
 int snd_output_puts(snd_output_t *output, const char *str);
 int snd_output_putc(snd_output_t *output, int c);
 int snd_output_flush(snd_output_t *output);

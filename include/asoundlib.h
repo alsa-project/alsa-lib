@@ -35,6 +35,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <endian.h>
+#include <stdarg.h>
 #include <sys/poll.h>
 #include <errno.h>
 

@@ -165,7 +165,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile
 	  src/pcm/Makefile src/pcm/ext/Makefile src/pcm/scopes/Makefile src/ordinary_pcm/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/instr/Makefile \
-          src/compat/Makefile src/conf/Makefile \
+          src/compat/Makefile src/alisp/Makefile src/conf/Makefile \
 	  src/conf/cards/Makefile src/conf/pcm/Makefile \
-	  aserver/Makefile test/Makefile utils/Makefile \
+	  alsalisp/Makefile aserver/Makefile test/Makefile utils/Makefile \
           utils/alsa-lib.spec utils/alsa.pc)

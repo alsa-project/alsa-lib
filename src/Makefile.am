@@ -1,4 +1,4 @@
-SUBDIRS=control mixer ordinary_mixer pcm ordinary_pcm rawmidi timer hwdep seq instr compat conf
+SUBDIRS=control mixer ordinary_mixer pcm ordinary_pcm rawmidi timer hwdep seq instr compat conf alisp
 EXTRA_DIST=Versions
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
@@ -15,7 +15,7 @@ libasound_la_LIBADD = control/libcontrol.la \
 		      pcm/libpcm.la ordinary_pcm/libordinarypcm.la \
                       rawmidi/librawmidi.la timer/libtimer.la \
 		      hwdep/libhwdep.la seq/libseq.la instr/libinstr.la \
-		      compat/libcompat.la -lm -ldl -lpthread
+		      compat/libcompat.la alisp/libalisp.la -lm -ldl -lpthread
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
 LDFLAGS = $(VSYMS)
@@ -52,5 +52,8 @@ instr/libinstr.la:
 
 compat/libcompat.la:
 	$(MAKE) -C compat libcompat.la
+
+alisp/libalisp.la:
+	$(MAKE) -C alisp libalisp.la
 
 INCLUDES=-I$(top_srcdir)/include

@@ -108,3 +108,9 @@ ALSA_0.9.3 {
     snd_ctl_elem_info_get_dimensions;
     snd_ctl_elem_info_get_dimension;
 } ALSA_0.9.0;
+
+ALSA_0.9.5 {
+  global:
+
+    alsa_lisp;
+} ALSA_0.9.3;
