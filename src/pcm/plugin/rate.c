@@ -56,38 +56,42 @@ static void mix(struct rate_private_data *data, int voices,
 {
 	unsigned int pos;
 	signed int val;
-	signed short *S1, *S2;
+	signed short S1, S2;
 	int voice;
+	signed short *src, *dst;
+	int size;
 	
-	pos = data->pos;
-	S1 = data->last_S1;
-	S2 = data->last_S2;
-	if (pos >> SHIFT) {
-		src_ptr += ((pos >> SHIFT) - 1) * voices; pos &= MASK;
-		for (voice = 0; voice < voices; ++voice) {
-			S1[voice] = S2[voice];
-			S2[voice] = src_ptr[voice];
-		}
-	}
-	while (dst_size-- > 0) {
+	for (voice = 0; voice < voices; ++voice) {
+		pos = data->pos;
+		S1 = data->last_S1[voice];
+		S2 = data->last_S2[voice];
+		src = src_ptr + voice;
+		dst = dst_ptr + voice;
+		size = dst_size;
 		if (pos >> SHIFT) {
-			src_ptr += (pos >> SHIFT) * voices; pos &= MASK;
-			for (voice = 0; voice < voices; ++voice) {
-				S1[voice] = S2[voice];
-				S2[voice] = src_ptr[voice];
-			}
+			src += ((pos >> SHIFT) - 1) * voices;
+			pos &= MASK;
+			S1 = S2;
+			S2 = *src;
 		}
-		
-		for (voice = 0; voice < voices; ++voice) {
-			val = S1[voice] + ((S2[voice] - S1[voice]) * (signed int)pos) / BITS;
+		while (size-- > 0) {
+			if (pos >> SHIFT) {
+				src += (pos >> SHIFT) * voices;
+				pos &= MASK;
+				S1 = S2;
+				S2 = *src;
+			}
+			val = S1 + ((S2 - S1) * (signed int)pos) / BITS;
 			if (val < -32768)
 				val = -32768;
 			else if (val > 32767)
 				val = 32767;
-			*dst_ptr++ = val;
+			*dst = val;
+			dst += voices;
+			pos += data->pitch;
 		}
-		
-		pos += data->pitch;
+		data->last_S1[voice] = S1;
+		data->last_S2[voice] = S2;
 	}
 	data->pos = pos;
 }
