@@ -151,7 +151,7 @@ int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream
 
 int snd_rawmidi_params_default(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, snd_rawmidi_params_t *params)
 {
-	assert(snd_rawmidi_stream_ok(rmidi, SND_RAWMIDI_STREAM_OUTPUT));
+	assert(snd_rawmidi_stream_ok(rmidi, stream));
 	assert(params);
 	params->buffer_size = PAGE_SIZE;
 	params->avail_min = 1;

@@ -469,10 +469,10 @@ static snd_pcm_sframes_t snd_pcm_rate_write_areas(snd_pcm_t *pcm,
 }
 
 static snd_pcm_sframes_t snd_pcm_rate_read_areas(snd_pcm_t *pcm,
-				       const snd_pcm_channel_area_t *areas,
-				       snd_pcm_uframes_t client_offset,
-				       snd_pcm_uframes_t client_size,
-				       snd_pcm_uframes_t *slave_sizep)
+						 const snd_pcm_channel_area_t *areas,
+						 snd_pcm_uframes_t client_offset,
+						 snd_pcm_uframes_t client_size,
+						 snd_pcm_uframes_t *slave_sizep)
 
 {
 	snd_pcm_rate_t *rate = pcm->private;

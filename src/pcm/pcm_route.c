@@ -585,8 +585,8 @@ static snd_pcm_sframes_t snd_pcm_route_write_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
-		snd_pcm_route_convert(areas, offset, 
-				      snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+		snd_pcm_route_convert(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+				      areas, offset, 
 				      slave->channels, frames, &route->params);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
@@ -619,8 +619,8 @@ static snd_pcm_sframes_t snd_pcm_route_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		snd_pcm_route_convert(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-				      areas, offset, 
+		snd_pcm_route_convert(areas, offset, 
+				      snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 				      pcm->channels, frames, &route->params);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)

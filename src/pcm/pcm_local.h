@@ -387,7 +387,7 @@ static inline int _snd_pcm_hw_params_set_format(snd_pcm_hw_params_t *params,
 static inline int _snd_pcm_hw_params_set_subformat(snd_pcm_hw_params_t *params,
 				     snd_pcm_subformat_t val)
 {
-	return _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_FORMAT,
+	return _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_SUBFORMAT,
 				     (unsigned long) val, 0);
 }
 

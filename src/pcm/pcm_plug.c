@@ -576,7 +576,7 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	      clt_params.channels == slv_params.channels &&
 	      clt_params.rate == slv_params.rate &&
 	      snd_pcm_hw_params_set_access(slave, &sparams, SND_TEST, 
-					   clt_params.access))) {
+					   clt_params.access) >= 0)) {
 		slv_params.access = snd_pcm_hw_params_set_access_first(slave, &sparams);
 		err = snd_pcm_plug_insert_plugins(pcm, &clt_params, &slv_params);
 		if (err < 0)
