@@ -390,7 +390,7 @@ static ssize_t snd_pcm_multi_frame_data(void *private, off_t offset)
 	return newpos;
 }
   
-ssize_t snd_pcm_multi_write(void *private, const void *buf, size_t count)
+ssize_t snd_pcm_multi_write(void *private, snd_timestamp_t timestamp UNUSED, const void *buf, size_t count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	snd_pcm_t *handle = multi->handle;
@@ -429,19 +429,19 @@ ssize_t snd_pcm_multi_write(void *private, const void *buf, size_t count)
 	return count;
 }
 
-ssize_t snd_pcm_multi_read(void *private, void *buf, size_t count)
+ssize_t snd_pcm_multi_read(void *private, snd_timestamp_t timestamp UNUSED, void *buf, size_t count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	return -ENOSYS;
 }
 
-ssize_t snd_pcm_multi_writev(void *private, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_multi_writev(void *private, snd_timestamp_t timestamp UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	return -ENOSYS;
 }
 
-ssize_t snd_pcm_multi_readv(void *private, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_multi_readv(void *private, snd_timestamp_t timestamp UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	return -ENOSYS;

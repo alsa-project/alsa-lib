@@ -208,12 +208,13 @@ static ssize_t snd_pcm_hw_frame_data(void *private, off_t offset)
 	return result;
 }
 
-static ssize_t snd_pcm_hw_write(void *private, const void *buffer, size_t size)
+static ssize_t snd_pcm_hw_write(void *private, snd_timestamp_t tstamp, const void *buffer, size_t size)
 {
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
 	snd_xfer_t xfer;
+	xfer.tstamp = tstamp;
 	xfer.buf = (char*) buffer;
 	xfer.count = size;
 	result = ioctl(fd, SND_PCM_IOCTL_WRITE_FRAMES, &xfer);
@@ -222,12 +223,13 @@ static ssize_t snd_pcm_hw_write(void *private, const void *buffer, size_t size)
 	return result;
 }
 
-static ssize_t snd_pcm_hw_writev(void *private, const struct iovec *vector, unsigned long count)
+static ssize_t snd_pcm_hw_writev(void *private, snd_timestamp_t tstamp, const struct iovec *vector, unsigned long count)
 {
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
 	snd_xferv_t xferv;
+	xferv.tstamp = tstamp;
 	xferv.vector = vector;
 	xferv.count = count;
 	result = ioctl(fd, SND_PCM_IOCTL_WRITEV_FRAMES, &xferv);
@@ -236,12 +238,13 @@ static ssize_t snd_pcm_hw_writev(void *private, const struct iovec *vector, unsi
 	return result;
 }
 
-static ssize_t snd_pcm_hw_read(void *private, void *buffer, size_t size)
+static ssize_t snd_pcm_hw_read(void *private, snd_timestamp_t tstamp, void *buffer, size_t size)
 {
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
 	snd_xfer_t xfer;
+	xfer.tstamp = tstamp;
 	xfer.buf = buffer;
 	xfer.count = size;
 	result = ioctl(fd, SND_PCM_IOCTL_READ_FRAMES, &xfer);
@@ -250,12 +253,13 @@ static ssize_t snd_pcm_hw_read(void *private, void *buffer, size_t size)
 	return result;
 }
 
-ssize_t snd_pcm_hw_readv(void *private, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_hw_readv(void *private, snd_timestamp_t tstamp, const struct iovec *vector, unsigned long count)
 {
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
 	snd_xferv_t xferv;
+	xferv.tstamp = tstamp;
 	xferv.vector = vector;
 	xferv.count = count;
 	result = ioctl(fd, SND_PCM_IOCTL_READV_FRAMES, &xferv);

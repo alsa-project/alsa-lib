@@ -209,7 +209,7 @@ ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
 	assert(size == 0 || buffer);
 	assert(handle->valid_setup);
 	assert(size % handle->setup.frames_align == 0);
-	return handle->ops->write(handle->op_arg, buffer, size);
+	return handle->ops->write(handle->op_arg, -1, buffer, size);
 }
 
 ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
@@ -217,7 +217,7 @@ ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned l
 	assert(handle);
 	assert(count == 0 || vector);
 	assert(handle->valid_setup);
-	return handle->ops->writev(handle->op_arg, vector, count);
+	return handle->ops->writev(handle->op_arg, -1, vector, count);
 }
 
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
@@ -226,7 +226,7 @@ ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
 	assert(size == 0 || buffer);
 	assert(handle->valid_setup);
 	assert(size % handle->setup.frames_align == 0);
-	return handle->ops->read(handle->op_arg, buffer, size);
+	return handle->ops->read(handle->op_arg, -1, buffer, size);
 }
 
 ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
@@ -234,7 +234,7 @@ ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned lo
 	assert(handle);
 	assert(count == 0 || vector);
 	assert(handle->valid_setup);
-	return handle->ops->readv(handle->op_arg, vector, count);
+	return handle->ops->readv(handle->op_arg, -1, vector, count);
 }
 
 int snd_pcm_file_descriptor(snd_pcm_t *handle)

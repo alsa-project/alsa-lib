@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 #include "asoundlib.h"
 #include "seq_priv.h"
 

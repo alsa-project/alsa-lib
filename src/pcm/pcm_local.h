@@ -40,10 +40,10 @@ struct snd_pcm_ops {
 	int (*state)(void *private);
 	ssize_t (*frame_io)(void *private, int update);
 	ssize_t (*frame_data)(void *private, off_t offset);
-	ssize_t (*write)(void *private, const void *buffer, size_t size);
-	ssize_t (*writev)(void *private, const struct iovec *vector, unsigned long count);
-	ssize_t (*read)(void *private, void *buffer, size_t size);
-	ssize_t (*readv)(void *private, const struct iovec *vector, unsigned long count);
+	ssize_t (*write)(void *private, snd_timestamp_t tstamp, const void *buffer, size_t size);
+	ssize_t (*writev)(void *private, snd_timestamp_t tstamp, const struct iovec *vector, unsigned long count);
+	ssize_t (*read)(void *private, snd_timestamp_t tstamp, void *buffer, size_t size);
+	ssize_t (*readv)(void *private, snd_timestamp_t tstamp, const struct iovec *vector, unsigned long count);
 	int (*mmap_status)(void *private, snd_pcm_mmap_status_t **status);
 	int (*mmap_control)(void *private, snd_pcm_mmap_control_t **control);
 	int (*mmap_data)(void *private, void **buffer, size_t bsize);
