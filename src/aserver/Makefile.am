@@ -1,7 +1,8 @@
 
 bin_PROGRAMS = aserver
 aserver_SOURCES = aserver.c
-aserver_LDADD = -lasound
+# aserver_LDADD = -lasound
+aserver_LDADD = ../libasound.la
 
 all: aserver
 
