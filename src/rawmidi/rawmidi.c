@@ -133,6 +133,17 @@ int snd_rawmidi_channel_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * para
 	return 0;
 }
 
+int snd_rawmidi_channel_setup(snd_rawmidi_t *rmidi, snd_rawmidi_setup_t * setup)
+{
+	if (!rmidi || !setup)
+		return -EINVAL;
+	if (setup->channel < 0 || setup->channel > 1)
+		return -EINVAL;
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_CHANNEL_SETUP, setup) < 0)
+		return -errno;
+	return 0;
+}
+
 int snd_rawmidi_channel_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
 	if (!rmidi || !status)

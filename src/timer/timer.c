@@ -136,6 +136,18 @@ int snd_timer_params(snd_timer_t *handle, snd_timer_params_t * params)
 	return 0;
 }
 
+int snd_timer_setup(snd_timer_t *handle, snd_timer_setup_t * setup)
+{
+	snd_timer_t *tmr;
+
+	tmr = handle;
+	if (!tmr || !setup)
+		return -EINVAL;
+	if (ioctl(tmr->fd, SND_TIMER_IOCTL_SETUP, setup) < 0)
+		return -errno;
+	return 0;
+}
+
 int snd_timer_status(snd_timer_t *handle, snd_timer_status_t * status)
 {
 	snd_timer_t *tmr;

@@ -24,6 +24,7 @@ int snd_rawmidi_file_descriptor(snd_rawmidi_t *handle);
 int snd_rawmidi_block_mode(snd_rawmidi_t *handle, int enable);
 int snd_rawmidi_info(snd_rawmidi_t *handle, snd_rawmidi_info_t * info);
 int snd_rawmidi_channel_params(snd_rawmidi_t *handle, snd_rawmidi_params_t * params);
+int snd_rawmidi_channel_setup(snd_rawmidi_t *handle, snd_rawmidi_setup_t * setup);
 int snd_rawmidi_channel_status(snd_rawmidi_t *handle, snd_rawmidi_status_t * status);
 int snd_rawmidi_output_drain(snd_rawmidi_t *handle);
 int snd_rawmidi_output_flush(snd_rawmidi_t *handle);

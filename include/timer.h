@@ -18,6 +18,7 @@ int snd_timer_general_info(snd_timer_t *handle, snd_timer_general_info_t * info)
 int snd_timer_select(snd_timer_t *handle, snd_timer_select_t *tselect);
 int snd_timer_info(snd_timer_t *handle, snd_timer_info_t *timer);
 int snd_timer_params(snd_timer_t *handle, snd_timer_params_t *params);
+int snd_timer_setup(snd_timer_t *handle, snd_timer_setup_t *setup);
 int snd_timer_status(snd_timer_t *handle, snd_timer_status_t *status);
 int snd_timer_start(snd_timer_t *handle);
 int snd_timer_stop(snd_timer_t *handle);
