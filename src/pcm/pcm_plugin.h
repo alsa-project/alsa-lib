@@ -98,19 +98,6 @@ extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 #define RATE_MIN 4000
 #define RATE_MAX 192000
 
-#define ROUTE_PLUGIN_FLOAT 1
-#define ROUTE_PLUGIN_RESOLUTION 16
-
-#if ROUTE_PLUGIN_FLOAT
-typedef float snd_pcm_route_ttable_entry_t;
-#define HALF 0.5
-#define FULL 1.0
-#else
-typedef int snd_pcm_route_ttable_entry_t;
-#define HALF (ROUTE_PLUGIN_RESOLUTION / 2)
-#define FULL ROUTE_PLUGIN_RESOLUTION
-#endif
-
 int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_convert_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);

@@ -166,7 +166,26 @@ struct _snd_pcm {
 	void *private_data;
 };
 
+#define ROUTE_PLUGIN_FLOAT 1
+#define ROUTE_PLUGIN_RESOLUTION 16
+
+#if ROUTE_PLUGIN_FLOAT
+typedef float snd_pcm_route_ttable_entry_t;
+#define HALF 0.5
+#define FULL 1.0
+#else
+typedef int snd_pcm_route_ttable_entry_t;
+#define HALF (ROUTE_PLUGIN_RESOLUTION / 2)
+#define FULL ROUTE_PLUGIN_RESOLUTION
+#endif
+
 int snd_pcm_hw_open(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
+int snd_pcm_plug_open(snd_pcm_t **pcmp,
+		      const char *name,
+		      snd_pcm_route_ttable_entry_t *ttable,
+		      unsigned int tt_ssize,
+		      unsigned int tt_cused, unsigned int tt_sused,
+		      snd_pcm_t *slave, int close_slave);
 int snd_pcm_plug_open_hw(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
 int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *socket, const char *sname, snd_pcm_stream_t stream, int mode);
 int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int fd, const char *fmt, snd_pcm_t *slave, int close_slave);

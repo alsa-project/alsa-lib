@@ -439,11 +439,7 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	}
 	status->appl_ptr = plugin->appl_ptr;
 	status->hw_ptr = plugin->hw_ptr;
-	err = snd_pcm_plugin_avail_update(pcm);
-	if (err < 0)
-		status->avail = pcm->buffer_size;
-	else
-		status->avail = err;
+	status->avail = pcm->buffer_size;
 	snd_pcm_plugin_delay(pcm, &status->delay);
 	if (!snd_atomic_read_ok(&ratom)) {
 		snd_atomic_read_wait(&ratom);
