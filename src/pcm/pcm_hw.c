@@ -496,9 +496,10 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	char *name = "Unknown";
-	snd_card_get_name(hw->card, &name);
+	int err = snd_card_get_name(hw->card, &name);
+	assert(err >= 0);
 	snd_output_printf(out, "Hardware PCM card %d '%s' device %d subdevice %d\n",
-		hw->card, name, hw->device, hw->subdevice);
+			  hw->card, name, hw->device, hw->subdevice);
 	free(name);
 	if (pcm->setup) {
 		snd_output_printf(out, "\nIts setup is:\n");

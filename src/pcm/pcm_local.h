@@ -208,7 +208,9 @@ static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {
 	snd_pcm_sframes_t avail;
 	avail = *pcm->hw_ptr + pcm->buffer_size - *pcm->appl_ptr;
-	if (avail < 0)
+	if (avail >= pcm->boundary)
+		avail -= pcm->boundary;
+	else if (avail < 0)
 		avail += pcm->boundary;
 	return avail;
 }
@@ -226,8 +228,11 @@ static inline snd_pcm_uframes_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
 {
 	snd_pcm_sframes_t avail;
 	avail = *pcm->hw_ptr - *pcm->appl_ptr;
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		avail += pcm->buffer_size;
+		if (avail >= pcm->boundary)
+			avail -= pcm->boundary;
+	}
 	if (avail < 0)
 		avail += pcm->boundary;
 	return avail;
