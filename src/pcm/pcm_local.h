@@ -19,27 +19,41 @@
  *
  */
 
+#include <pthread.h>
 #include "asoundlib.h"
   
+struct snd_pcm_plug {
+	snd_pcm_plugin_t *first;
+	snd_pcm_plugin_t *last;
+	void *alloc_ptr[2];
+	long alloc_size[2];
+	int alloc_lock[2];
+	snd_pcm_mmap_control_t *mmap_control;
+	char *mmap_data;
+	long mmap_size;
+	pthread_t thread;
+	int thread_stop;
+	int setup_is_valid;
+	snd_pcm_channel_setup_t setup;
+	int hwstatus;
+};
+
+struct snd_pcm_chan {
+	int fd;
+	int setup_is_valid;
+	snd_pcm_channel_setup_t setup;
+	snd_pcm_mmap_control_t *mmap_control;
+	char *mmap_data;
+	long mmap_size;
+	struct snd_pcm_plug plug;
+};
+
 struct snd_pcm {
 	int card;
 	int device;
 	int mode;
 	int ver;
-	int fd[2];
-	int setup_is_valid[2];
-	snd_pcm_channel_setup_t setup[2];
-	snd_pcm_mmap_control_t *mmap_caddr[2];
-	char *mmap_daddr[2];
-	long mmap_size[2];
-	snd_pcm_plugin_t *plugin_first[2];
-	snd_pcm_plugin_t *plugin_last[2];
-	void *plugin_alloc_ptr[4];
-	long plugin_alloc_size[4];
-	int plugin_alloc_lock[4];
-	void *plugin_alloc_xptr[2];
-	long plugin_alloc_xsize[2];
-	int plugin_alloc_xchannel;
+	struct snd_pcm_chan chan[2];
 };
 
 unsigned int snd_pcm_plugin_formats(unsigned int formats);

@@ -75,7 +75,7 @@ static int poll_playback(snd_pcm_t *pcm)
 	
 	if (pcm->mode & SND_PCM_OPEN_NONBLOCK)
 		return -EAGAIN;
-	pfd.fd = pcm->fd[SND_PCM_CHANNEL_PLAYBACK];
+	pfd.fd = pcm->chan[SND_PCM_CHANNEL_PLAYBACK].fd;
 	pfd.events = POLLOUT;
 	pfd.revents = 0;
 	err = poll(&pfd, 1, 1000);
@@ -146,7 +146,7 @@ static int poll_capture(snd_pcm_t *pcm)
 
 	if (pcm->mode & SND_PCM_OPEN_NONBLOCK)
 		return -EAGAIN;
-	pfd.fd = pcm->fd[SND_PCM_CHANNEL_CAPTURE];
+	pfd.fd = pcm->chan[SND_PCM_CHANNEL_CAPTURE].fd;
 	pfd.events = POLLIN;
 	pfd.revents = 0;
 	err = poll(&pfd, 1, 1000);
@@ -185,8 +185,7 @@ static int query_capture(snd_pcm_plugin_t *plugin, int not_use_poll)
 
 static int mmap_src_voices(snd_pcm_plugin_t *plugin,
 			   snd_pcm_plugin_voice_t **voices,
-			   size_t samples,
-			   void *(*plugin_alloc)(snd_pcm_plugin_handle_t *handle, size_t size))
+			   size_t samples)
 {
 	mmap_t *data;
 	int err;
@@ -221,8 +220,7 @@ static int mmap_src_voices(snd_pcm_plugin_t *plugin,
 
 static int mmap_dst_voices(snd_pcm_plugin_t *plugin,
 			   snd_pcm_plugin_voice_t **voices,
-			   size_t samples,
-			   void *(*plugin_alloc)(snd_pcm_plugin_handle_t *handle, size_t size))
+			   size_t samples)
 {
 	mmap_t *data;
 	int voice;
@@ -275,7 +273,7 @@ static ssize_t mmap_transfer(snd_pcm_plugin_t *plugin,
 		size = snd_pcm_plugin_src_samples_to_size(plugin, samples);
 		if (size != data->frag_size)
 			return -EINVAL;
-		if (src_voices != data->voices) {
+		if (plugin->prev == NULL) {
 			if (plugin->src_format.interleave) {
 				void *dst = data->voices[0].addr + data->frag * data->frag_size;
 				/* Paranoia: add check for src_voices */
@@ -306,7 +304,7 @@ static ssize_t mmap_transfer(snd_pcm_plugin_t *plugin,
 		size = snd_pcm_plugin_dst_samples_to_size(plugin, samples);
 		if (size != data->frag_size)
 			return -EINVAL;
-		if (dst_voices != data->voices) {
+		if (plugin->next == NULL) {
 			if (plugin->dst_format.interleave) {
 				void *src = data->voices[0].addr + data->frag * data->frag_size;
 				/* Paranoia: add check for dst_voices */
