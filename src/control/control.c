@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 1, 0)
+#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
 
 struct snd_ctl {
 	int card;

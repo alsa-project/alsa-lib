@@ -28,7 +28,7 @@
 
 static const char *snd_error_codes[] =
 {
-	"Sound protocol isn't compatible"
+	"Sound protocol is not compatible"
 };
 
 const char *snd_strerror(int errnum)

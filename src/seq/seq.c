@@ -31,7 +31,7 @@
 
 #define SND_FILE_SEQ		"/dev/snd/seq"
 #define SND_FILE_ALOADSEQ	"/dev/aloadSEQ"
-#define SND_SEQ_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
+#define SND_SEQ_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
 #define SND_SEQ_OBUF_SIZE	(16*1024)	/* should be configurable */
 #define SND_SEQ_IBUF_SIZE	(4*1024)	/* should be configurable */
 

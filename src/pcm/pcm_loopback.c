@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_PCM_LB		"/proc/asound/%i/pcmloopD%iS%i%s"
-#define SND_PCM_LB_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
+#define SND_PCM_LB_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
 
 struct snd_pcm_loopback {
 	int card;

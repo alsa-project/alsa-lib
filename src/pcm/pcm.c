@@ -30,7 +30,7 @@
 #include "pcm_local.h"
 
 #define SND_FILE_PCM		"/dev/snd/pcmC%iD%i"
-#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
+#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
 
 int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode)
 {
