@@ -253,6 +253,10 @@ static int snd_pcm_hw_start(snd_pcm_t *pcm)
 #endif
 	if (ioctl(fd, SNDRV_PCM_IOCTL_START) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_START failed");
+#if 0
+		if (errno == EBADFD)
+			SNDERR("PCM state = %s", snd_pcm_state_name(snd_pcm_hw_state(pcm)));
+#endif
 		return -errno;
 	}
 	return 0;
