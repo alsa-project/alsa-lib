@@ -71,7 +71,7 @@ else
   else
     aprefix=$ac_default_prefix
   fi
-  if test -z "$soundbasedir" -a -r "$aprefix/include/sound"; then
+  if test -z "$soundbasedir" -a x"$aprefix" != x/usr -a -r "$aprefix/include/sound"; then
     ALSA_CFLAGS="$ALSA_CFLAGS -I$aprefix/include"
     CFLAGS="$CFLAGS -I$aprefix/include"
     AC_MSG_RESULT($ALSA_CFLAGS)
