@@ -66,6 +66,15 @@ case "$dir" in
 esac
 AC_DEFINE_UNQUOTED(DATADIR, "$dir", [directory containing ALSA configuration database])
 
+test "x$exec_prefix" = xNONE && exec_prefix=$prefix
+
+eval dir="$libdir"
+case "$dir" in
+/*) ;;
+*) dir="$PWD/$dir"
+esac
+AC_DEFINE_UNQUOTED(PKGLIBDIR, "$dir/$PACKAGE", [directory containing ALSA add-on modules])
+
 dnl Check for versioned symbols
 AC_MSG_CHECKING(for versioned symbols)
 AC_ARG_WITH(versioned,
@@ -118,19 +127,6 @@ else
   AC_MSG_RESULT(no)
 fi
 
-dnl Check for jack...
-AC_MSG_CHECKING(for jack)
-AC_ARG_WITH(jack,
-  [  --with-jack             do you have installed Jack Audio Connection Kit (optional)],
-  [  AC_DEFINE(HAVE_JACK, "1", [enabled])
-     jack=yes ],)
-if test "$jack" = "yes" ; then
-  AC_MSG_RESULT(yes)
-else
-  AC_MSG_RESULT(no)
-fi
-AM_CONDITIONAL(HAVE_JACK, test x$jack = xyes)
-
 dnl Check for architecture
 AC_MSG_CHECKING(for architecture)
 case "$target" in
@@ -164,7 +160,8 @@ esac
 
 AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile
 	  include/sound/Makefile src/Makefile \
-          src/control/Makefile src/mixer/Makefile src/pcm/Makefile \
+          src/control/Makefile src/mixer/Makefile
+	  src/pcm/Makefile src/pcm/ext/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/instr/Makefile \
           src/compat/Makefile src/conf/Makefile \

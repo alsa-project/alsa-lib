@@ -1706,12 +1706,18 @@ snd_pcm_t *snd_async_handler_get_pcm(snd_async_handler_t *handler)
 	return handler->u.pcm;
 }
 
+static char *build_in_pcms[] = {
+	"adpcm", "alaw", "copy", "dmix", "file", "hooks", "hw", "ladspa", "lfloat",
+	"linear", "meter", "mulaw", "multi", "null", "plug", "rate", "route", "share",
+	"shm", NULL
+};
+
 static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 			     snd_config_t *pcm_root, snd_config_t *pcm_conf,
 			     snd_pcm_stream_t stream, int mode)
 {
 	const char *str;
-	char buf[256];
+	char *buf = NULL, *buf1 = NULL;
 	int err;
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
@@ -1785,8 +1791,30 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		}
 	}
 	if (!open_name) {
+		buf = malloc(strlen(str) + 32);
+		if (buf == NULL) {
+			err = -ENOMEM;
+			goto _err;
+		}
 		open_name = buf;
-		snprintf(buf, sizeof(buf), "_snd_pcm_%s_open", str);
+		sprintf(buf, "_snd_pcm_%s_open", str);
+	}
+	if (!lib) {
+		char **build_in = build_in_pcms;
+		while (*build_in) {
+			if (!strcmp(*build_in, str))
+				break;
+			build_in++;
+		}
+		if (*build_in == NULL) {
+			buf1 = malloc(strlen(str) + sizeof(PKGLIBDIR) + 32);
+			if (buf1 == NULL) {
+				err = -ENOMEM;
+				goto _err;
+			}
+			lib = buf1;
+			sprintf(buf1, "%s/libasound_module_pcm_%s.so", PKGLIBDIR, str);
+		}
 	}
 #ifndef PIC
 	snd_pcm_open_symbols();	/* this call is for static linking only */
@@ -1810,11 +1838,15 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		err = open_func(pcmp, name, pcm_root, pcm_conf, stream, mode);
 		if (err >= 0) {
 			(*pcmp)->dl_handle = h;
-			return 0;
+			err = 0;
 		} else {
 			snd_dlclose(h);
 		}
 	}
+	if (buf)
+		free(buf);
+	if (buf1)
+		free(buf1);
 	return err;
 }
 

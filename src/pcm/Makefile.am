@@ -1,10 +1,6 @@
-EXTRA_LTLIBRARIES = libpcm.la
+SUBDIRS = ext
 
-if HAVE_JACK
-JACK_PLUGIN = pcm_jack.c
-else
-JACK_PLUGIN =
-endif
+EXTRA_LTLIBRARIES = libpcm.la
 
 libpcm_la_SOURCES = atomic.c mask.c interval.c \
 		    pcm.c pcm_params.c \
@@ -13,12 +9,10 @@ libpcm_la_SOURCES = atomic.c mask.c interval.c \
 		    pcm_rate.c pcm_plug.c pcm_misc.c pcm_mmap.c pcm_multi.c \
 	            pcm_shm.c pcm_file.c pcm_null.c pcm_share.c \
 		    pcm_meter.c pcm_hooks.c pcm_lfloat.c pcm_ladspa.c \
-		    pcm_dmix.c $(JACK_PLUGIN) pcm_symbols.c
+		    pcm_dmix.c pcm_symbols.c
 noinst_HEADERS = pcm_local.h pcm_plugin.h mask.h mask_inline.h \
 	         interval.h interval_inline.h plugin_ops.h ladspa.h \
 		 pcm_dmix_i386.h
-
-EXTRA_libpcm_la_SOURCES = pcm_jack.c
 
 alsadir = $(datadir)/alsa
 
