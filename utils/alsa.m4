@@ -2,7 +2,7 @@ dnl Configure Paths for Alsa
 dnl Some modifications by Richard Boulton <richard-alsa@tartarus.org>
 dnl Christopher Lansdown <lansdoct@cs.alfred.edu>
 dnl Jaroslav Kysela <perex@suse.cz>
-dnl Last modification: 07/01/2001
+dnl Last modification: $Id: alsa.m4,v 1.19 2001/12/19 07:28:40 perex Exp $
 dnl AM_PATH_ALSA([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for libasound, and define ALSA_CFLAGS and ALSA_LIBS as appropriate.
 dnl enables arguments --with-alsa-prefix=
