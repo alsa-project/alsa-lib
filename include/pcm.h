@@ -318,7 +318,7 @@ enum _snd_pcm_type {
 	SND_PCM_TYPE_DROUTE,
 	/** Loopback server plugin (not yet implemented) */
 	SND_PCM_TYPE_LBSERVER,
-	/** Linear <-> float format conversion PCM */
+	/** Linear Integer <-> Linear Float format conversion PCM */
 	SND_PCM_TYPE_LINEAR_FLOAT,
 	/** LADSPA integration plugin */
 	SND_PCM_TYPE_LADSPA,
@@ -808,6 +808,7 @@ snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframe
 int snd_pcm_format_signed(snd_pcm_format_t format);
 int snd_pcm_format_unsigned(snd_pcm_format_t format);
 int snd_pcm_format_linear(snd_pcm_format_t format);
+int snd_pcm_format_float(snd_pcm_format_t format);
 int snd_pcm_format_little_endian(snd_pcm_format_t format);
 int snd_pcm_format_big_endian(snd_pcm_format_t format);
 int snd_pcm_format_cpu_endian(snd_pcm_format_t format);

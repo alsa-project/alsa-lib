@@ -594,3 +594,9 @@ int snd_pcm_conf_generic_id(const char *id);
 	 (1U << SND_PCM_FORMAT_S32_BE) | \
 	 (1U << SND_PCM_FORMAT_U32_LE) | \
 	 (1U << SND_PCM_FORMAT_U32_BE))
+
+#define SND_PCM_FMTBIT_FLOAT \
+	((1U << SND_PCM_FORMAT_FLOAT_LE) | \
+	 (1U << SND_PCM_FORMAT_FLOAT_BE) | \
+	 (1U << SND_PCM_FORMAT_FLOAT64_LE) | \
+	 (1U << SND_PCM_FORMAT_FLOAT64_BE))

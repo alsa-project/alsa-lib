@@ -82,6 +82,24 @@ int snd_pcm_format_linear(snd_pcm_format_t format)
 }
 
 /**
+ * \brief Return float info for a PCM sample format
+ * \param format Format
+ * \return 0 non float, 1 float
+ */
+int snd_pcm_format_float(snd_pcm_format_t format)
+{
+	switch (format) {
+	case SNDRV_PCM_FORMAT_FLOAT_LE:
+	case SNDRV_PCM_FORMAT_FLOAT_BE:
+	case SNDRV_PCM_FORMAT_FLOAT64_LE:
+	case SNDRV_PCM_FORMAT_FLOAT64_BE:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+/**
  * \brief Return endian info for a PCM sample format
  * \param format Format
  * \return 0 big endian, 1 little endian, a negative error code if endian independent

@@ -324,7 +324,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_missing(snd_pcm_share_slave_t *sla
 {
 	snd_pcm_uframes_t missing = INT_MAX;
 	struct list_head *i;
-	snd_pcm_sframes_t avail = snd_pcm_avail_update(slave->pcm);
+	/* snd_pcm_sframes_t avail = */ snd_pcm_avail_update(slave->pcm);
 	slave->hw_ptr = *slave->pcm->hw_ptr;
 	list_for_each(i, &slave->clients) {
 		snd_pcm_share_t *share = list_entry(i, snd_pcm_share_t, list);
@@ -396,7 +396,7 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_t *spcm = slave->pcm;
 	snd_pcm_uframes_t missing;
-	snd_pcm_sframes_t avail = snd_pcm_avail_update(spcm);
+	/* snd_pcm_sframes_t avail = */ snd_pcm_avail_update(spcm);
 	slave->hw_ptr = *slave->pcm->hw_ptr;
 	missing = _snd_pcm_share_missing(pcm);
 	if (!slave->polling) {
@@ -823,6 +823,8 @@ static int snd_pcm_share_prepare(snd_pcm_t *pcm)
 	case SND_PCM_STATE_PREPARED:
 		err = 0;
 		goto _end;
+	default:	/* nothing todo */
+		break;
 	}
 	if (slave->prepared_count == 0) {
 		err = snd_pcm_prepare(slave->pcm);
