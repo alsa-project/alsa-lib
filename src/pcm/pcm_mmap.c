@@ -134,10 +134,10 @@ void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 }
 
 snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
-				 const snd_pcm_channel_area_t *areas,
-				 snd_pcm_uframes_t offset,
-				 snd_pcm_uframes_t size,
-				 snd_pcm_uframes_t *slave_sizep)
+					   const snd_pcm_channel_area_t *areas,
+					   snd_pcm_uframes_t offset,
+					   snd_pcm_uframes_t size,
+					   snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_uframes_t xfer;
 	if (slave_sizep && *slave_sizep < size)
