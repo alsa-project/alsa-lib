@@ -57,9 +57,9 @@ static int snd_pcm_null_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_info_t * i
 	memset(info, 0, sizeof(*info));
 	info->stream = snd_enum_to_int(pcm->stream);
 	info->card = -1;
-	strcpy(info->id, "null");
-	strcpy(info->name, "null");
-	strcpy(info->subname, "null");
+	strncpy(info->id, pcm->name, sizeof(info->id));
+	strncpy(info->name, pcm->name, sizeof(info->name));
+	strncpy(info->subname, pcm->name, sizeof(info->subname));
 	info->subdevices_count = 1;
 	return 0;
 }

@@ -39,30 +39,30 @@ typedef snd_pcm_uframes_t (*rate_f)(const snd_pcm_channel_area_t *dst_areas,
 				    snd_pcm_uframes_t src_offset,
 				    snd_pcm_uframes_t src_frames,
 				    unsigned int channels,
-				    int getidx, int putidx,
+				    unsigned int getidx, unsigned int putidx,
 				    unsigned int arg,
 				    snd_pcm_rate_state_t *states);
 
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
-	int get_idx;
-	int put_idx;
+	unsigned int get_idx;
+	unsigned int put_idx;
 	unsigned int pitch;
 	rate_f func;
 	snd_pcm_format_t sformat;
-	int srate;
+	unsigned int srate;
 	snd_pcm_rate_state_t *states;
 } snd_pcm_rate_t;
 
-snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
-				      snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
-				      const snd_pcm_channel_area_t *src_areas,
-				      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
-				      unsigned int channels,
-				      int getidx, int putidx,
-				      unsigned int get_threshold,
-				      snd_pcm_rate_state_t *states)
+static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
+					     snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
+					     const snd_pcm_channel_area_t *src_areas,
+					     snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
+					     unsigned int channels,
+					     unsigned int getidx, unsigned int putidx,
+					     unsigned int get_threshold,
+					     snd_pcm_rate_state_t *states)
 {
 #define GET16_LABELS
 #define PUT16_LABELS
@@ -129,14 +129,14 @@ snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 	return src_frames1;
 }
 
-snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
-				      snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
-				      const snd_pcm_channel_area_t *src_areas,
-				      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
-				      unsigned int channels,
-				      int getidx, int putidx,
-				      unsigned int get_increment,
-				      snd_pcm_rate_state_t *states)
+static snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
+					     snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
+					     const snd_pcm_channel_area_t *src_areas,
+					     snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
+					     unsigned int channels,
+					     unsigned int getidx, unsigned int putidx,
+					     unsigned int get_increment,
+					     snd_pcm_rate_state_t *states)
 {
 #define GET16_LABELS
 #define PUT16_LABELS
@@ -436,7 +436,7 @@ snd_pcm_rate_read_areas(snd_pcm_t *pcm,
 	return size;
 }
 
-snd_pcm_sframes_t snd_pcm_rate_client_frames(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
+static snd_pcm_sframes_t snd_pcm_rate_client_frames(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	/* Round toward zero */
@@ -446,7 +446,7 @@ snd_pcm_sframes_t snd_pcm_rate_client_frames(snd_pcm_t *pcm, snd_pcm_sframes_t f
 		return muldiv_down(frames, rate->pitch, DIV);
 }
 
-snd_pcm_sframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
+static snd_pcm_sframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	/* Round toward zero */
@@ -489,7 +489,7 @@ snd_pcm_ops_t snd_pcm_rate_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
-int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, int srate, snd_pcm_t *slave, int close_slave)
+int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, unsigned int srate, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_rate_t *rate;
@@ -581,7 +581,8 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	free((void *) sname);
 	if (err < 0)
 		return err;
-	err = snd_pcm_rate_open(pcmp, name, sformat, srate, spcm, 1);
+	err = snd_pcm_rate_open(pcmp, name, 
+				sformat, (unsigned int) srate, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;

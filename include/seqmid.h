@@ -30,7 +30,7 @@ void snd_seq_ev_schedule_tick(snd_seq_event_t *ev, int q, int relative,
 			      snd_seq_tick_time_t tick);
   /* scheduled on real-time-queue */
 void snd_seq_ev_schedule_real(snd_seq_event_t *ev, int q, int relative,
-			      snd_seq_real_time_t *time);
+			      snd_seq_real_time_t *_time);
 
 /* set event priority (optional) */
 void snd_seq_ev_set_priority(snd_seq_event_t *ev, int high_prior);

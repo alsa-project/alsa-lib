@@ -259,12 +259,12 @@ int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, 
 	struct header ffff;
 	snd_iwffff_handle_t *iwf;
 	iwffff_rom_header_t header;
-	int fd, index;
+	int fd, idx;
 
  	if (handle == NULL)
  		return -EINVAL;
 	*handle = NULL;
-	index = 0;
+	idx = 0;
 	if (bank > 4 || file > 255)
 		return -1; 
 	fd = iwffff_get_rom_header(card, bank, &header);
@@ -275,7 +275,7 @@ int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, 
 			break;
 		ffff.length = snd_LE_to_host_32(ffff.length);
 		next_ffff = lseek(fd, 0, SEEK_CUR) + ffff.length;
-		if (file == index) {
+		if (file == idx) {
 #ifdef IW_ROM_DEBUG
 			SNDERR("file header at 0x%x size 0x%x\n", rom_pos - sizeof(ffff), ffff.length);
 #endif
@@ -303,7 +303,7 @@ int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, 
 			*handle = iwf;
 			return 0;
         	}
-		index++;
+		idx++;
 		lseek(fd, SEEK_CUR, next_ffff);
 	}
 	close(fd);

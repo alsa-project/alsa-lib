@@ -192,7 +192,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 		      unsigned int tt_cused, unsigned int tt_sused,
 		      snd_pcm_t *slave, int close_slave);
 int snd_pcm_plug_open_hw(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
-int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *socket, const char *sname, snd_pcm_stream_t stream, int mode);
+int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *sockname, const char *sname, snd_pcm_stream_t stream, int mode);
 int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int fd, const char *fmt, snd_pcm_t *slave, int close_slave);
 int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t stream, int mode);
 
@@ -293,7 +293,7 @@ static inline void *snd_pcm_channel_area_addr(const snd_pcm_channel_area_t *area
 {
 	unsigned int bitofs = area->first + area->step * offset;
 	assert(bitofs % 8 == 0);
-	return area->addr + bitofs / 8;
+	return (char *) area->addr + bitofs / 8;
 }
 
 static inline unsigned int snd_pcm_channel_area_step(const snd_pcm_channel_area_t *area)
@@ -498,46 +498,46 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int orde
 int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
 		       unsigned int count, ...);
 
-#define SND_PCM_HW_PARBIT_ACCESS	(1 << SND_PCM_HW_PARAM_ACCESS)
-#define SND_PCM_HW_PARBIT_FORMAT	(1 << SND_PCM_HW_PARAM_FORMAT)
-#define SND_PCM_HW_PARBIT_SUBFORMAT	(1 << SND_PCM_HW_PARAM_SUBFORMAT)
-#define SND_PCM_HW_PARBIT_CHANNELS	(1 << SND_PCM_HW_PARAM_CHANNELS)
-#define SND_PCM_HW_PARBIT_RATE		(1 << SND_PCM_HW_PARAM_RATE)
-#define SND_PCM_HW_PARBIT_PERIOD_TIME	(1 << SND_PCM_HW_PARAM_PERIOD_TIME)
-#define SND_PCM_HW_PARBIT_PERIOD_SIZE	(1 << SND_PCM_HW_PARAM_PERIOD_SIZE)
-#define SND_PCM_HW_PARBIT_PERIODS	(1 << SND_PCM_HW_PARAM_PERIODS)
-#define SND_PCM_HW_PARBIT_BUFFER_TIME	(1 << SND_PCM_HW_PARAM_BUFFER_TIME)
-#define SND_PCM_HW_PARBIT_BUFFER_SIZE	(1 << SND_PCM_HW_PARAM_BUFFER_SIZE)
-#define SND_PCM_HW_PARBIT_SAMPLE_BITS	(1 << SND_PCM_HW_PARAM_SAMPLE_BITS)
-#define SND_PCM_HW_PARBIT_FRAME_BITS	(1 << SND_PCM_HW_PARAM_FRAME_BITS)
-#define SND_PCM_HW_PARBIT_PERIOD_BYTES	(1 << SND_PCM_HW_PARAM_PERIOD_BYTES)
-#define SND_PCM_HW_PARBIT_BUFFER_BYTES	(1 << SND_PCM_HW_PARAM_BUFFER_BYTES)
-#define SND_PCM_HW_PARBIT_TICK_TIME	(1 << SND_PCM_HW_PARAM_TICK_TIME)
+#define SND_PCM_HW_PARBIT_ACCESS	(1U << SND_PCM_HW_PARAM_ACCESS)
+#define SND_PCM_HW_PARBIT_FORMAT	(1U << SND_PCM_HW_PARAM_FORMAT)
+#define SND_PCM_HW_PARBIT_SUBFORMAT	(1U << SND_PCM_HW_PARAM_SUBFORMAT)
+#define SND_PCM_HW_PARBIT_CHANNELS	(1U << SND_PCM_HW_PARAM_CHANNELS)
+#define SND_PCM_HW_PARBIT_RATE		(1U << SND_PCM_HW_PARAM_RATE)
+#define SND_PCM_HW_PARBIT_PERIOD_TIME	(1U << SND_PCM_HW_PARAM_PERIOD_TIME)
+#define SND_PCM_HW_PARBIT_PERIOD_SIZE	(1U << SND_PCM_HW_PARAM_PERIOD_SIZE)
+#define SND_PCM_HW_PARBIT_PERIODS	(1U << SND_PCM_HW_PARAM_PERIODS)
+#define SND_PCM_HW_PARBIT_BUFFER_TIME	(1U << SND_PCM_HW_PARAM_BUFFER_TIME)
+#define SND_PCM_HW_PARBIT_BUFFER_SIZE	(1U << SND_PCM_HW_PARAM_BUFFER_SIZE)
+#define SND_PCM_HW_PARBIT_SAMPLE_BITS	(1U << SND_PCM_HW_PARAM_SAMPLE_BITS)
+#define SND_PCM_HW_PARBIT_FRAME_BITS	(1U << SND_PCM_HW_PARAM_FRAME_BITS)
+#define SND_PCM_HW_PARBIT_PERIOD_BYTES	(1U << SND_PCM_HW_PARAM_PERIOD_BYTES)
+#define SND_PCM_HW_PARBIT_BUFFER_BYTES	(1U << SND_PCM_HW_PARAM_BUFFER_BYTES)
+#define SND_PCM_HW_PARBIT_TICK_TIME	(1U << SND_PCM_HW_PARAM_TICK_TIME)
 
 
-#define SND_PCM_ACCBIT_MMAP ((1 << (unsigned long) SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
-			     (1 << (unsigned long) SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
-			     (1 << (unsigned long) SND_PCM_ACCESS_MMAP_COMPLEX))
+#define SND_PCM_ACCBIT_MMAP ((1U << SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
+			     (1U << SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
+			     (1U << SND_PCM_ACCESS_MMAP_COMPLEX))
 
-#define SND_PCM_ACCBIT_SHM ((1 << (unsigned long) SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
-			    (1 << (unsigned long) SND_PCM_ACCESS_RW_INTERLEAVED) | \
-			    (1 << (unsigned long) SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
-			    (1 << (unsigned long) SND_PCM_ACCESS_RW_NONINTERLEAVED))
+#define SND_PCM_ACCBIT_SHM ((1U << SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
+			    (1U << SND_PCM_ACCESS_RW_INTERLEAVED) | \
+			    (1U << SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
+			    (1U << SND_PCM_ACCESS_RW_NONINTERLEAVED))
 
 #define SND_PCM_FMTBIT_LINEAR \
-	((1 << (unsigned long) SND_PCM_FORMAT_S8) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U8) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S16_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S16_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U16_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U16_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S24_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S24_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U24_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U24_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S32_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_S32_BE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U32_LE) | \
-	 (1 << (unsigned long) SND_PCM_FORMAT_U32_BE))
+	((1U << SND_PCM_FORMAT_S8) | \
+	 (1U << SND_PCM_FORMAT_U8) | \
+	 (1U << SND_PCM_FORMAT_S16_LE) | \
+	 (1U << SND_PCM_FORMAT_S16_BE) | \
+	 (1U << SND_PCM_FORMAT_U16_LE) | \
+	 (1U << SND_PCM_FORMAT_U16_BE) | \
+	 (1U << SND_PCM_FORMAT_S24_LE) | \
+	 (1U << SND_PCM_FORMAT_S24_BE) | \
+	 (1U << SND_PCM_FORMAT_U24_LE) | \
+	 (1U << SND_PCM_FORMAT_U24_BE) | \
+	 (1U << SND_PCM_FORMAT_S32_LE) | \
+	 (1U << SND_PCM_FORMAT_S32_BE) | \
+	 (1U << SND_PCM_FORMAT_U32_LE) | \
+	 (1U << SND_PCM_FORMAT_U32_BE))
 
 

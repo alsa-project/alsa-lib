@@ -20,9 +20,6 @@ typedef struct _snd_config_iterator *snd_config_iterator_t;
 extern "C" {
 #endif
 
-snd_config_type_t snd_config_get_type(snd_config_t *config);
-const char *snd_config_get_id(snd_config_t *config);
-
 int snd_config_top(snd_config_t **config);
 
 int snd_config_load(snd_config_t *config, snd_input_t *in);
@@ -72,7 +69,7 @@ snd_config_type_t snd_config_get_type(snd_config_t *config);
 const char *snd_config_get_id(snd_config_t *config);
 
 extern snd_config_t *snd_config;
-int snd_config_update();
+int snd_config_update(void);
 
 #ifdef __cplusplus
 }

@@ -110,7 +110,7 @@ int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 	return 0;
 }
 
-int snd_pcm_plugin_reset(snd_pcm_t *pcm)
+static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	int err;
@@ -169,7 +169,7 @@ snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames
 		snd_pcm_sframes_t err;
 		/* FIXME: rate plugin */
 		if (plugin->slave_frames)
-			frames = plugin->slave_frames(pcm, frames);
+			frames = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
 		snd_atomic_write_begin(&plugin->watom);
 		err = snd_pcm_rewind(plugin->slave, frames);
 		if (err < 0) {
@@ -181,20 +181,20 @@ snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames
 		}
 		if (plugin->client_frames)
 			err = plugin->client_frames(pcm, err);
-		snd_pcm_mmap_hw_backward(pcm, err);
+		snd_pcm_mmap_hw_backward(pcm, (snd_pcm_uframes_t) err);
 		n += err;
 	} else
 		snd_atomic_write_begin(&plugin->watom);
  _end:
-	snd_pcm_mmap_appl_backward(pcm, n);
+	snd_pcm_mmap_appl_backward(pcm, (snd_pcm_uframes_t) n);
 	snd_atomic_write_end(&plugin->watom);
 	return n;
 }
 
-snd_pcm_uframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
-					     const snd_pcm_channel_area_t *areas,
-					     snd_pcm_uframes_t offset,
-					     snd_pcm_uframes_t size)
+static snd_pcm_uframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
+						    const snd_pcm_channel_area_t *areas,
+						    snd_pcm_uframes_t offset,
+						    snd_pcm_uframes_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->slave;
@@ -225,10 +225,10 @@ snd_pcm_uframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 	return xfer;
 }
 
-snd_pcm_uframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
-					    const snd_pcm_channel_area_t *areas,
-					    snd_pcm_uframes_t offset,
-					    snd_pcm_uframes_t size)
+static snd_pcm_uframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
+						   const snd_pcm_channel_area_t *areas,
+						   snd_pcm_uframes_t offset,
+						   snd_pcm_uframes_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->slave;
@@ -350,15 +350,17 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	snd_pcm_t *slave = plugin->slave;
 	const snd_pcm_channel_area_t *areas, *slave_areas;
 	snd_pcm_uframes_t xfer, offset, size;
-	snd_pcm_uframes_t slave_offset, slave_size;
+	snd_pcm_uframes_t slave_offset;
+	snd_pcm_sframes_t slave_size;
 	slave_size = snd_pcm_avail_update(slave);
 	if (slave_size <= 0)
 		return slave_size;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK ||
 	    pcm->access == SND_PCM_ACCESS_RW_INTERLEAVED ||
 	    pcm->access == SND_PCM_ACCESS_RW_NONINTERLEAVED)
-		return plugin->client_frames ?
-			plugin->client_frames(pcm, slave_size) : slave_size;
+		return (plugin->client_frames ?
+			plugin->client_frames(pcm, slave_size) : 
+			slave_size);
 	xfer = snd_pcm_mmap_capture_avail(pcm);
 	size = pcm->buffer_size - xfer;
 	areas = snd_pcm_mmap_areas(pcm);
@@ -398,7 +400,7 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 int snd_pcm_plugin_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plug = pcm->private_data;
-	size_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
+	size_t size = snd_pcm_frames_to_bytes(pcm, (snd_pcm_sframes_t) pcm->buffer_size);
 	int id = shmget(IPC_PRIVATE, size, 0666);
 	if (id < 0) {
 		SYSERR("shmget failed");
@@ -416,12 +418,6 @@ int snd_pcm_plugin_munmap(snd_pcm_t *pcm)
 			return -errno;
 	}
 	return 0;
-}
-
-int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm)
-{
-	snd_pcm_plugin_t *plugin = pcm->private_data;
-	return _snd_pcm_poll_descriptor(plugin->slave);
 }
 
 int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
@@ -446,7 +442,7 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		goto _again;
 	}
 	if (plugin->client_frames)
-		status->avail_max = plugin->client_frames(pcm, status->avail_max);
+		status->avail_max = plugin->client_frames(pcm, (snd_pcm_sframes_t) status->avail_max);
 	return 0;
 }
 

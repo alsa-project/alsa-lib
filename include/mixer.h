@@ -37,6 +37,7 @@ int snd_mixer_detach(snd_mixer_t *mixer, const char *name);
 int snd_mixer_poll_descriptors_count(snd_mixer_t *mixer);
 int snd_mixer_poll_descriptors(snd_mixer_t *mixer, struct pollfd *pfds, unsigned int space);
 int snd_mixer_load(snd_mixer_t *mixer);
+void snd_mixer_free(snd_mixer_t *mixer);
 int snd_mixer_wait(snd_mixer_t *mixer, int timeout);
 int snd_mixer_set_compare(snd_mixer_t *mixer, snd_mixer_compare_t msort);
 

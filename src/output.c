@@ -165,7 +165,7 @@ static snd_output_ops_t snd_output_stdio_ops = {
  * \param close Close flag (1 if FILE is fclose'd when output handle is closed)
  * \return 0 on success otherwise a negative error code
  */
-int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int close)
+int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int _close)
 {
 	snd_output_t *output;
 	snd_output_stdio_t *stdio;
@@ -179,7 +179,7 @@ int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int close)
 		return -ENOMEM;
 	}
 	stdio->fp = fp;
-	stdio->close = close;
+	stdio->close = _close;
 	output->type = SND_OUTPUT_STDIO;
 	output->ops = &snd_output_stdio_ops;
 	output->private_data = stdio;
@@ -227,10 +227,10 @@ static int snd_output_buffer_close(snd_output_t *output ATTRIBUTE_UNUSED)
 static int snd_output_buffer_need(snd_output_t *output, size_t size)
 {
 	snd_output_buffer_t *buffer = output->private_data;
-	size_t free = buffer->alloc - buffer->size;
+	size_t _free = buffer->alloc - buffer->size;
 	size_t alloc;
-	if (free >= size)
-		return free;
+	if (_free >= size)
+		return _free;
 	if (buffer->alloc == 0)
 		alloc = 256;
 	else

@@ -110,10 +110,10 @@ void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	*pcm->hw_ptr = hw_ptr;
 }
 
-snd_pcm_uframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
-					   const snd_pcm_channel_area_t *areas,
-					   snd_pcm_uframes_t offset,
-					   snd_pcm_uframes_t size)
+static snd_pcm_uframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
+						  const snd_pcm_channel_area_t *areas,
+						  snd_pcm_uframes_t offset,
+						  snd_pcm_uframes_t size)
 {
 	const snd_pcm_channel_area_t *pcm_areas;
 	snd_pcm_uframes_t pcm_offset;
@@ -143,10 +143,10 @@ snd_pcm_uframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 	return xfer;
 }
 
-snd_pcm_uframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
-					  const snd_pcm_channel_area_t *areas,
-					  snd_pcm_uframes_t offset,
-					  snd_pcm_uframes_t size)
+static snd_pcm_uframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
+						 const snd_pcm_channel_area_t *areas,
+						 snd_pcm_uframes_t offset,
+						 snd_pcm_uframes_t size)
 {
 	const snd_pcm_channel_area_t *pcm_areas;
 	snd_pcm_uframes_t pcm_offset;

@@ -74,16 +74,6 @@ int snd_timer_close(snd_timer_t *handle)
 	return res;
 }
 
-int _snd_timer_poll_descriptor(snd_timer_t *handle)
-{
-	snd_timer_t *tmr;
-
-	tmr = handle;
-	if (!tmr)
-		return -EINVAL;
-	return tmr->fd;
-}
-
 int snd_timer_poll_descriptors_count(snd_timer_t *timer)
 {
 	assert(timer);

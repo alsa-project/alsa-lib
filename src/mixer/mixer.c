@@ -186,7 +186,7 @@ int snd_mixer_detach(snd_mixer_t *mixer, const char *name)
 	return -ENOENT;
 }
 
-int snd_mixer_throw_event(snd_mixer_t *mixer, unsigned int mask,
+static int snd_mixer_throw_event(snd_mixer_t *mixer, unsigned int mask,
 			  snd_mixer_elem_t *elem)
 {
 	mixer->events++;
@@ -411,8 +411,8 @@ static int snd_mixer_sort(snd_mixer_t *mixer)
 {
 	unsigned int k;
 	int compar(const void *a, const void *b) {
-		return mixer->compare(*(const snd_mixer_elem_t **) a,
-				      *(const snd_mixer_elem_t **) b);
+		return mixer->compare(*(const snd_mixer_elem_t * const *) a,
+				      *(const snd_mixer_elem_t * const *) b);
 	}
 	assert(mixer);
 	assert(mixer->compare);
@@ -490,10 +490,11 @@ int snd_mixer_wait(snd_mixer_t *mixer, int timeout)
 		pfds = malloc(count * sizeof(*pfds));
 		if (!pfds)
 			return -ENOMEM;
-		err = snd_mixer_poll_descriptors(mixer, pfds, count);
+		err = snd_mixer_poll_descriptors(mixer, pfds, 
+						 (unsigned int) count);
 		assert(err == count);
 	}
-	err = poll(pfds, count, timeout);
+	err = poll(pfds, (unsigned int) count, timeout);
 	if (err < 0)
 		return -errno;
 	return 0;

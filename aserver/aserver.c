@@ -53,7 +53,7 @@ char *command;
 
 #define SYSERROR(string) ERROR(string ": %s", strerror(errno))
 
-int make_local_socket(const char *filename)
+static int make_local_socket(const char *filename)
 {
 	size_t l = strlen(filename);
 	size_t size = offsetof(struct sockaddr_un, sun_path) + l;
@@ -81,7 +81,7 @@ int make_local_socket(const char *filename)
 	return sock;
 }
 
-int make_inet_socket(int port)
+static int make_inet_socket(int port)
 {
 	struct sockaddr_in addr;
 	int sock;
@@ -106,7 +106,7 @@ int make_inet_socket(int port)
 	return sock;
 }
 
-int send_fd(int socket, void *data, size_t len, int fd)
+static int send_fd(int sock, void *data, size_t len, int fd)
 {
     int ret;
     size_t cmsg_len = CMSG_LEN(sizeof(int));
@@ -131,7 +131,7 @@ int send_fd(int socket, void *data, size_t len, int fd)
     msghdr.msg_controllen = cmsg_len;
     msghdr.msg_flags = 0;
 
-    ret = sendmsg(socket, &msghdr, 0 );
+    ret = sendmsg(sock, &msghdr, 0 );
     if (ret < 0) {
 	    SYSERROR("sendmsg failed");
 	    return -errno;
@@ -150,7 +150,7 @@ struct waiter {
 };
 waiter_t *waiters;
 
-void add_waiter(int fd, unsigned short events, waiter_handler_t handler,
+static void add_waiter(int fd, unsigned short events, waiter_handler_t handler,
 		void *data)
 {
 	waiter_t *w = &waiters[fd];
@@ -165,7 +165,7 @@ void add_waiter(int fd, unsigned short events, waiter_handler_t handler,
 	pollfds_count++;
 }
 
-void del_waiter(int fd)
+static void del_waiter(int fd)
 {
 	waiter_t *w = &waiters[fd];
 	unsigned int k;
@@ -243,7 +243,8 @@ typedef struct {
 } inet_pending_t;
 LIST_HEAD(inet_pendings);
 
-int pcm_handler(waiter_t *waiter, unsigned short events)
+#if 0
+static int pcm_handler(waiter_t *waiter, unsigned short events)
 {
 	client_t *client = waiter->private_data;
 	char buf[1];
@@ -265,8 +266,9 @@ int pcm_handler(waiter_t *waiter, unsigned short events)
 	client->polling = 0;
 	return 0;
 }
+#endif
 
-int pcm_shm_open(client_t *client, int *cookie)
+static int pcm_shm_open(client_t *client, int *cookie)
 {
 	int shmid;
 	snd_pcm_t *pcm;
@@ -301,7 +303,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 
 }
 
-int pcm_shm_close(client_t *client)
+static int pcm_shm_close(client_t *client)
 {
 	int err;
 	snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
@@ -326,7 +328,7 @@ int pcm_shm_close(client_t *client)
 	return 0;
 }
 
-int shm_ack(client_t *client)
+static int shm_ack(client_t *client)
 {
 	struct pollfd pfd;
 	int err;
@@ -341,7 +343,7 @@ int shm_ack(client_t *client)
 	return 0;
 }
 
-int shm_ack_fd(client_t *client, int fd)
+static int shm_ack_fd(client_t *client, int fd)
 {
 	struct pollfd pfd;
 	int err;
@@ -356,7 +358,7 @@ int shm_ack_fd(client_t *client, int fd)
 	return 0;
 }
 
-int pcm_shm_cmd(client_t *client)
+static int pcm_shm_cmd(client_t *client)
 {
 	volatile snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
 	char buf[1];
@@ -476,7 +478,7 @@ transport_ops_t pcm_shm_ops = {
 	close: pcm_shm_close,
 };
 
-int ctl_handler(waiter_t *waiter, unsigned short events)
+static int ctl_handler(waiter_t *waiter, unsigned short events)
 {
 	client_t *client = waiter->private_data;
 	char buf[1];
@@ -493,7 +495,7 @@ int ctl_handler(waiter_t *waiter, unsigned short events)
 	return 0;
 }
 
-int ctl_shm_open(client_t *client, int *cookie)
+static int ctl_shm_open(client_t *client, int *cookie)
 {
 	int shmid;
 	snd_ctl_t *ctl;
@@ -530,7 +532,7 @@ int ctl_shm_open(client_t *client, int *cookie)
 
 }
 
-int ctl_shm_close(client_t *client)
+static int ctl_shm_close(client_t *client)
 {
 	int err;
 	snd_ctl_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
@@ -555,7 +557,7 @@ int ctl_shm_close(client_t *client)
 	return 0;
 }
 
-int ctl_shm_cmd(client_t *client)
+static int ctl_shm_cmd(client_t *client)
 {
 	snd_ctl_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
 	char buf[1];
@@ -644,7 +646,7 @@ transport_ops_t ctl_shm_ops = {
 	close: ctl_shm_close,
 };
 
-int snd_client_open(client_t *client)
+static int snd_client_open(client_t *client)
 {
 	int err;
 	snd_client_open_request_t req;
@@ -718,7 +720,7 @@ int snd_client_open(client_t *client)
 	return 0;
 }
 
-int client_poll_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
+static int client_poll_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 {
 	client_t *client = waiter->private_data;
 	if (client->open)
@@ -732,7 +734,7 @@ int client_poll_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED
 	return 0;
 }
 
-int client_ctrl_handler(waiter_t *waiter, unsigned short events)
+static int client_ctrl_handler(waiter_t *waiter, unsigned short events)
 {
 	client_t *client = waiter->private_data;
 	if (events & POLLHUP) {
@@ -750,7 +752,7 @@ int client_ctrl_handler(waiter_t *waiter, unsigned short events)
 		return snd_client_open(client);
 }
 
-int inet_pending_handler(waiter_t *waiter, unsigned short events)
+static int inet_pending_handler(waiter_t *waiter, unsigned short events)
 {
 	inet_pending_t *pending = waiter->private_data;
 	inet_pending_t *pdata;
@@ -802,7 +804,7 @@ int inet_pending_handler(waiter_t *waiter, unsigned short events)
 	return 0;
 }
 
-int local_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
+static int local_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 {
 	int sock;
 	sock = accept(waiter->fd, 0, 0);
@@ -821,7 +823,7 @@ int local_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-int inet_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
+static int inet_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 {
 	int sock;
 	sock = accept(waiter->fd, 0, 0);
@@ -839,7 +841,7 @@ int inet_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-int server(const char *sockname, int port)
+static int server(const char *sockname, int port)
 {
 	int err;
 	unsigned int k;
@@ -854,8 +856,8 @@ int server(const char *sockname, int port)
 		SYSERROR("sysconf failed");
 		return result;
 	}
-	pollfds = calloc(open_max, sizeof(*pollfds));
-	waiters = calloc(open_max, sizeof(*waiters));
+	pollfds = calloc((size_t) open_max, sizeof(*pollfds));
+	waiters = calloc((size_t) open_max, sizeof(*waiters));
 
 	if (sockname) {
 		int sock = make_local_socket(sockname);
@@ -922,7 +924,7 @@ int server(const char *sockname, int port)
 }
 					
 
-void usage()
+static void usage(void)
 {
 	fprintf(stderr, "\
 Usage: %s [OPTIONS] server
@@ -930,8 +932,6 @@ Usage: %s [OPTIONS] server
 --help			help
 ", command);
 }
-
-extern int is_local(struct hostent *hent);
 
 int main(int argc, char **argv)
 {
@@ -941,7 +941,7 @@ int main(int argc, char **argv)
 	int c;
 	snd_config_t *conf;
 	snd_config_iterator_t i, next;
-	const char *socket = NULL;
+	const char *sockname = NULL;
 	const char *host = NULL;
 	long port = -1;
 	int err;
@@ -991,7 +991,7 @@ int main(int argc, char **argv)
 			continue;
 		}
 		if (strcmp(id, "socket") == 0) {
-			err = snd_config_get_string(n, &socket);
+			err = snd_config_get_string(n, &sockname);
 			if (err < 0) {
 				ERROR("Invalid type for %s", id);
 				return 1;
@@ -1022,10 +1022,10 @@ int main(int argc, char **argv)
 		ERROR("%s is not the local host", host);
 		return 1;
 	}
-	if (!socket && port < 0) {
+	if (!sockname && port < 0) {
 		ERROR("either socket or port need to be defined");
 		return 1;
 	}
-	server(socket, port);
+	server(sockname, port);
 	return 0;
 }

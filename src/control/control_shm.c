@@ -40,8 +40,6 @@ typedef struct {
 	volatile snd_ctl_shm_ctrl_t *ctrl;
 } snd_ctl_shm_t;
 
-extern int receive_fd(int socket, void *data, size_t len, int *fd);
-
 static int snd_ctl_shm_action(snd_ctl_t *ctl)
 {
 	snd_ctl_shm_t *shm = ctl->private_data;
@@ -402,7 +400,7 @@ static int make_inet_socket(const char *host, int port)
 }
 #endif
 
-int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, const char *sname, int mode)
+int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname, const char *sname, int mode)
 {
 	snd_ctl_t *ctl;
 	snd_ctl_shm_t *shm = NULL;
@@ -417,9 +415,9 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, 
 	if (snamelen > 255)
 		return -EINVAL;
 
-	result = make_local_socket(socket);
+	result = make_local_socket(sockname);
 	if (result < 0) {
-		SNDERR("server for socket %s is not running", socket);
+		SNDERR("server for socket %s is not running", sockname);
 		goto _err;
 	}
 	sock = result;
@@ -470,7 +468,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, 
 		goto _err;
 	}
 	shm = calloc(1, sizeof(snd_ctl_shm_t));
-	if (!ctl) {
+	if (!shm) {
 		free(ctl);
 		result = -ENOMEM;
 		goto _err;
@@ -496,8 +494,6 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, 
 	return result;
 }
 
-extern int is_local(struct hostent *hent);
-
 int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -505,7 +501,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 	const char *sname = NULL;
 	snd_config_t *sconfig;
 	const char *host = NULL;
-	const char *socket = NULL;
+	const char *sockname = NULL;
 	long port = -1;
 	int err;
 	int local;
@@ -567,7 +563,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 			continue;
 		}
 		if (strcmp(id, "socket") == 0) {
-			err = snd_config_get_string(n, &socket);
+			err = snd_config_get_string(n, &sockname);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
@@ -590,7 +586,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 		SNDERR("host is not defined");
 		return -EINVAL;
 	}
-	if (!socket) {
+	if (!sockname) {
 		SNDERR("socket is not defined");
 		return -EINVAL;
 	}
@@ -604,6 +600,6 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 		SNDERR("%s is not the local host", host);
 		return -EINVAL;
 	}
-	return snd_ctl_shm_open(handlep, name, socket, sname, mode);
+	return snd_ctl_shm_open(handlep, name, sockname, sname, mode);
 }
 				

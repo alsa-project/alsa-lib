@@ -2,7 +2,7 @@
 extern "C" {
 #endif
 
-size_t snd_ctl_elem_id_sizeof();
+size_t snd_ctl_elem_id_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_ctl_elem_id_t using standard alloca
  * \param ptr returned pointer
@@ -36,7 +36,7 @@ void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t *obj, const char *val);
 
 void snd_ctl_elem_id_set_index(snd_ctl_elem_id_t *obj, unsigned int val);
 
-size_t snd_ctl_card_info_sizeof();
+size_t snd_ctl_card_info_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_ctl_card_info_t using standard alloca
  * \param ptr returned pointer
@@ -62,7 +62,7 @@ const char *snd_ctl_card_info_get_mixerid(const snd_ctl_card_info_t *obj);
 
 const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj);
 
-size_t snd_ctl_event_sizeof();
+size_t snd_ctl_event_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_ctl_event_t using standard alloca
  * \param ptr returned pointer
@@ -74,7 +74,7 @@ void snd_ctl_event_copy(snd_ctl_event_t *dst, const snd_ctl_event_t *src);
 
 snd_ctl_event_type_t snd_ctl_event_get_type(const snd_ctl_event_t *obj);
 
-size_t snd_ctl_elem_list_sizeof();
+size_t snd_ctl_elem_list_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_ctl_elem_list_t using standard alloca
  * \param ptr returned pointer
@@ -104,7 +104,7 @@ const char *snd_ctl_elem_list_get_name(const snd_ctl_elem_list_t *obj, unsigned 
 
 unsigned int snd_ctl_elem_list_get_index(const snd_ctl_elem_list_t *obj, unsigned int idx);
 
-size_t snd_ctl_elem_info_sizeof();
+size_t snd_ctl_elem_info_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_ctl_elem_info_t using standard alloca
  * \param ptr returned pointer
@@ -170,7 +170,7 @@ void snd_ctl_elem_info_set_name(snd_ctl_elem_info_t *obj, const char *val);
 
 void snd_ctl_elem_info_set_index(snd_ctl_elem_info_t *obj, unsigned int val);
 
-size_t snd_ctl_elem_value_sizeof();
+size_t snd_ctl_elem_value_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_ctl_elem_value_t using standard alloca
  * \param ptr returned pointer

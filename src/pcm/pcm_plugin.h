@@ -95,37 +95,42 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 			      unsigned int *tt_cused, unsigned int *tt_sused,
 			      int schannels);
 int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
-		       snd_pcm_format_t sformat, unsigned int schannels,
+		       snd_pcm_format_t sformat, int schannels,
 		       snd_pcm_route_ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
 		       snd_pcm_t *slave, int close_slave);
-int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, int srate, snd_pcm_t *slave, int close_slave);
+int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, unsigned int srate, snd_pcm_t *slave, int close_slave);
 
 
 void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 			    const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
-			    unsigned int channels, snd_pcm_uframes_t frames, int convidx);
+			    unsigned int channels, snd_pcm_uframes_t frames,
+			    unsigned int convidx);
 void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *dst_areas,
 			 snd_pcm_uframes_t dst_offset,
 			 const snd_pcm_channel_area_t *src_areas,
 			 snd_pcm_uframes_t src_offset,
-			 unsigned int channels, snd_pcm_uframes_t frames, int putidx);
+			 unsigned int channels, snd_pcm_uframes_t frames,
+			 unsigned int putidx);
 void snd_pcm_alaw_encode(const snd_pcm_channel_area_t *dst_areas,
 			 snd_pcm_uframes_t dst_offset,
 			 const snd_pcm_channel_area_t *src_areas,
 			 snd_pcm_uframes_t src_offset,
-			 unsigned int channels, snd_pcm_uframes_t frames, int getidx);
+			 unsigned int channels, snd_pcm_uframes_t frames,
+			 unsigned int getidx);
 void snd_pcm_mulaw_decode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
 			  const snd_pcm_channel_area_t *src_areas,
 			  snd_pcm_uframes_t src_offset,
-			  unsigned int channels, snd_pcm_uframes_t frames, int putidx);
+			  unsigned int channels, snd_pcm_uframes_t frames,
+			  unsigned int putidx);
 void snd_pcm_mulaw_encode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
 			  const snd_pcm_channel_area_t *src_areas,
 			  snd_pcm_uframes_t src_offset,
-			  unsigned int channels, snd_pcm_uframes_t frames, int getidx);
+			  unsigned int channels, snd_pcm_uframes_t frames,
+			  unsigned int getidx);
 
 typedef struct _snd_pcm_adpcm_state {
 	int pred_val;		/* Calculated predicted value */
@@ -136,11 +141,13 @@ void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
 			  const snd_pcm_channel_area_t *src_areas,
 			  snd_pcm_uframes_t src_offset,
-			  unsigned int channels, snd_pcm_uframes_t frames, int putidx,
+			  unsigned int channels, snd_pcm_uframes_t frames,
+			  unsigned int putidx,
 			  snd_pcm_adpcm_state_t *states);
 void snd_pcm_adpcm_encode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
 			  const snd_pcm_channel_area_t *src_areas,
 			  snd_pcm_uframes_t src_offset,
-			  unsigned int channels, snd_pcm_uframes_t frames, int getidx,
+			  unsigned int channels, snd_pcm_uframes_t frames,
+			  unsigned int getidx,
 			  snd_pcm_adpcm_state_t *states);

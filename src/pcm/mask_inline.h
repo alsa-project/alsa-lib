@@ -21,11 +21,7 @@
   
 #include <sys/types.h>
 
-#ifdef SND_MASK_C
-#define MASK_INLINE inline
-#else
-#define MASK_INLINE extern inline
-#endif
+#define MASK_INLINE static inline
 
 #ifndef MASK_MASK
 #define MASK_MAX 31

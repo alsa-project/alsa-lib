@@ -26,7 +26,7 @@
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
-	int conv_idx;
+	unsigned int conv_idx;
 	snd_pcm_format_t sformat;
 } snd_pcm_linear_t;
 
@@ -90,7 +90,8 @@ int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_f
 
 void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 			    const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
-			    unsigned int channels, snd_pcm_uframes_t frames, int convidx)
+			    unsigned int channels, snd_pcm_uframes_t frames,
+			    unsigned int convidx)
 {
 #define CONV_LABELS
 #include "plugin_ops.h"

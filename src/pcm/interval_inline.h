@@ -19,11 +19,7 @@
  *
  */
   
-#ifdef SND_INTERVAL_C
-#define INTERVAL_INLINE inline
-#else
-#define INTERVAL_INLINE extern inline
-#endif
+#define INTERVAL_INLINE static inline
 
 INTERVAL_INLINE void snd_interval_any(snd_interval_t *i)
 {

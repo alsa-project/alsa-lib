@@ -47,12 +47,12 @@ void snd_seq_ev_schedule_tick(snd_seq_event_t *ev, int q, int relative,
 
 /* queued on real-time */
 void snd_seq_ev_schedule_real(snd_seq_event_t *ev, int q, int relative,
-			      snd_seq_real_time_t *time)
+			      snd_seq_real_time_t *_time)
 {
 	ev->flags &= ~( SND_SEQ_TIME_STAMP_MASK | SND_SEQ_TIME_MODE_MASK);
 	ev->flags |= SND_SEQ_TIME_STAMP_REAL;
 	ev->flags |= relative ? SND_SEQ_TIME_MODE_REL : SND_SEQ_TIME_MODE_ABS;
-	ev->time.time = *time;
+	ev->time.time = *_time;
 	ev->queue = q;
 }
 

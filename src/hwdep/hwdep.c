@@ -117,7 +117,7 @@ int snd_hwdep_info(snd_hwdep_t *hwdep, snd_hwdep_info_t *info)
 	return 0;
 }
 
-int snd_hwdep_ioctl(snd_hwdep_t *hwdep, int request, void * arg)
+int snd_hwdep_ioctl(snd_hwdep_t *hwdep, unsigned int request, void * arg)
 {
 	assert(hwdep);
 	if (ioctl(hwdep->fd, request, arg) < 0)

@@ -343,7 +343,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_
 	return xferi.result;
 }
 
-snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_sframes_t result;
 	snd_pcm_hw_t *hw = pcm->private_data;
@@ -361,7 +361,8 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	void *ptr;
-	ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_status)), PROT_READ, MAP_FILE|MAP_SHARED, 
+	ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_status)),
+		   PROT_READ, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SNDRV_PCM_MMAP_OFFSET_STATUS);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("status mmap failed");
@@ -376,7 +377,8 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	void *ptr;
-	ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_control)), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
+	ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_control)),
+		   PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("control mmap failed");
@@ -411,7 +413,7 @@ static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
-		snd_pcm_uframes_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
+		snd_pcm_uframes_t size = snd_pcm_frames_to_bytes(pcm, (snd_pcm_sframes_t) pcm->buffer_size);
 		int id = shmget(IPC_PRIVATE, size, 0666);
 		if (id < 0) {
 			SYSERR("shmget failed");
@@ -481,7 +483,7 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	char *name = "Unknown";
+	char *name;
 	int err = snd_card_get_name(hw->card, &name);
 	assert(err >= 0);
 	snd_output_printf(out, "Hardware PCM card %d '%s' device %d subdevice %d\n",
@@ -527,10 +529,10 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	mmap_forward: snd_pcm_hw_mmap_forward,
 };
 
-int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
+static int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
 {
 	char filename[32];
-	char *filefmt;
+	const char *filefmt;
 	int ver;
 	int ret = 0, fd = -1;
 	int attempt = 0;
@@ -643,11 +645,6 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 		close(fd);
 	snd_ctl_close(ctl);
 	return ret;
-}
-
-int snd_pcm_hw_open_device(snd_pcm_t **pcmp, int card, int device, snd_pcm_stream_t stream, int mode)
-{
-	return snd_pcm_hw_open_subdevice(pcmp, card, device, -1, stream, mode);
 }
 
 int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)

@@ -368,16 +368,15 @@ int snd_seq_add_sync_std_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest,
 
 int snd_seq_set_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src, snd_seq_queue_sync_t *info);
 int snd_seq_reset_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src);
+#endif
+
 const char *snd_seq_name(snd_seq_t *seq);
 snd_seq_type_t snd_seq_type(snd_seq_t *seq);
-
-#endif
 
 /* event routines */
 snd_seq_event_t *snd_seq_create_event(void);
 int snd_seq_free_event(snd_seq_event_t *ev);
 ssize_t snd_seq_event_length(snd_seq_event_t *ev);
-int snd_seq_event_output(snd_seq_t *handle, snd_seq_event_t *ev);
 int snd_seq_event_output(snd_seq_t *handle, snd_seq_event_t *ev);
 int snd_seq_event_output_buffer(snd_seq_t *handle, snd_seq_event_t *ev);
 int snd_seq_event_output_direct(snd_seq_t *handle, snd_seq_event_t *ev);

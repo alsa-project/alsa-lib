@@ -2,7 +2,7 @@
 extern "C" {
 #endif
 
-size_t snd_mixer_selem_id_sizeof();
+size_t snd_mixer_selem_id_sizeof(void);
 #define snd_mixer_selem_id_alloca(ptr) do { assert(ptr); *ptr = (snd_mixer_selem_id_t *) alloca(snd_mixer_selem_id_sizeof()); memset(*ptr, 0, snd_mixer_selem_id_sizeof()); } while (0)
 int snd_mixer_selem_id_malloc(snd_mixer_selem_id_t **ptr);
 void snd_mixer_selem_id_free(snd_mixer_selem_id_t *obj);

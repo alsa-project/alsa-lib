@@ -85,9 +85,9 @@ static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 	memset(info, 0, sizeof(*info));
 	info->stream = snd_enum_to_int(pcm->stream);
 	info->card = -1;
-	strcpy(info->id, "multi");
-	strcpy(info->name, "multi");
-	strcpy(info->subname, "multi");
+	strncpy(info->id, pcm->name, sizeof(info->id));
+	strncpy(info->name, pcm->name, sizeof(info->name));
+	strncpy(info->subname, pcm->name, sizeof(info->subname));
 	info->subdevices_count = 1;
 	return 0;
 }
@@ -107,11 +107,11 @@ static int snd_pcm_multi_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 				    multi->channels_count, 0);
 	if (err < 0)
 		return err;
-	params->info = ~0;
+	params->info = ~0U;
 	return 0;
 }
 
-static int snd_pcm_multi_hw_refine_sprepare(snd_pcm_t *pcm, int slave_idx,
+static int snd_pcm_multi_hw_refine_sprepare(snd_pcm_t *pcm, unsigned int slave_idx,
 					    snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -126,7 +126,7 @@ static int snd_pcm_multi_hw_refine_sprepare(snd_pcm_t *pcm, int slave_idx,
 }
 
 static int snd_pcm_multi_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
-					   int slave_idx ATTRIBUTE_UNUSED,
+					   unsigned int slave_idx ATTRIBUTE_UNUSED,
 					   snd_pcm_hw_params_t *params,
 					   snd_pcm_hw_params_t *sparams)
 {
@@ -159,7 +159,7 @@ static int snd_pcm_multi_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 }
 	
 static int snd_pcm_multi_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
-					   int slave_idx ATTRIBUTE_UNUSED,
+					   unsigned int slave_idx ATTRIBUTE_UNUSED,
 					   snd_pcm_hw_params_t *params,
 					   snd_pcm_hw_params_t *sparams)
 {
@@ -194,7 +194,7 @@ static int snd_pcm_multi_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 }
 
 static int snd_pcm_multi_hw_refine_slave(snd_pcm_t *pcm,
-					 int slave_idx,
+					 unsigned int slave_idx,
 					 snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -244,7 +244,7 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 }
 
 static int snd_pcm_multi_hw_params_slave(snd_pcm_t *pcm,
-					 int slave_idx,
+					 unsigned int slave_idx,
 					 snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -443,13 +443,6 @@ static int snd_pcm_multi_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-int snd_pcm_multi_poll_descriptor(snd_pcm_t *pcm)
-{
-	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave = multi->slaves[0].pcm;
-	return _snd_pcm_poll_descriptor(slave);
-}
-
 static void snd_pcm_multi_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -592,7 +585,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	char **slaves_name = NULL;
 	snd_pcm_t **slaves_pcm = NULL;
 	unsigned int *slaves_channels = NULL;
-	unsigned int *channels_sidx = NULL;
+	int *channels_sidx = NULL;
 	unsigned int *channels_schannel = NULL;
 	unsigned int slaves_count = 0;
 	unsigned int channels_count = 0;
@@ -663,14 +656,14 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	idx = 0;
 	snd_config_for_each(i, inext, slaves) {
 		snd_config_t *m = snd_config_iterator_entry(i);
-		const char *name;
+		const char *n;
 		int channels;
 		slaves_id[idx] = snd_config_get_id(m);
-		err = snd_pcm_slave_conf(m, &name, 1,
+		err = snd_pcm_slave_conf(m, &n, 1,
 					 SND_PCM_HW_PARAM_CHANNELS, 1, &channels);
 		if (err < 0)
 			goto _free;
-		slaves_name[idx] = strdup(name);
+		slaves_name[idx] = strdup(n);
 		slaves_channels[idx] = channels;
 		++idx;
 	}
@@ -691,7 +684,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		}
 		snd_config_for_each(j, jnext, m) {
 			snd_config_t *n = snd_config_iterator_entry(j);
-			const char *id = snd_config_get_id(n);
+			id = snd_config_get_id(n);
 			if (strcmp(id, "comment") == 0)
 				continue;
 			if (strcmp(id, "slave") == 0) {

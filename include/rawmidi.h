@@ -49,7 +49,7 @@ int snd_rawmidi_close(snd_rawmidi_t *rmidi);
 int snd_rawmidi_poll_descriptors_count(snd_rawmidi_t *rmidi);
 int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsigned int space);
 int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock);
-size_t snd_rawmidi_info_sizeof();
+size_t snd_rawmidi_info_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_rawmidi_info_t using standard alloca
  * \param ptr returned pointer
@@ -72,7 +72,7 @@ void snd_rawmidi_info_set_device(snd_rawmidi_info_t *obj, unsigned int val);
 void snd_rawmidi_info_set_subdevice(snd_rawmidi_info_t *obj, unsigned int val);
 void snd_rawmidi_info_set_stream(snd_rawmidi_info_t *obj, snd_rawmidi_stream_t val);
 int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info);
-size_t snd_rawmidi_params_sizeof();
+size_t snd_rawmidi_params_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_rawmidi_params_t using standard alloca
  * \param ptr returned pointer
@@ -89,7 +89,7 @@ int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rmidi, snd_rawmidi_p
 int snd_rawmidi_params_get_no_active_sensing(const snd_rawmidi_params_t *params);
 int snd_rawmidi_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params);
 int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *params);
-size_t snd_rawmidi_status_sizeof();
+size_t snd_rawmidi_status_sizeof(void);
 /** \hideinitializer
  * \brief allocate an invalid #snd_rawmidi_status_t using standard alloca
  * \param ptr returned pointer
@@ -101,6 +101,7 @@ void snd_rawmidi_status_copy(snd_rawmidi_status_t *dst, const snd_rawmidi_status
 void snd_rawmidi_status_get_tstamp(const snd_rawmidi_status_t *obj, snd_timestamp_t *ptr);
 size_t snd_rawmidi_status_get_avail(const snd_rawmidi_status_t *obj);
 size_t snd_rawmidi_status_get_avail_max(const snd_rawmidi_status_t *obj);
+size_t snd_rawmidi_status_get_xruns(const snd_rawmidi_status_t *obj);
 int snd_rawmidi_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status);
 int snd_rawmidi_drain(snd_rawmidi_t *rmidi);
 int snd_rawmidi_drop(snd_rawmidi_t *rmidi);
@@ -108,6 +109,7 @@ ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
 ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size);
 const char *snd_rawmidi_name(snd_rawmidi_t *rmidi);
 snd_rawmidi_type_t snd_rawmidi_type(snd_rawmidi_t *rmidi);
+snd_rawmidi_stream_t snd_rawmidi_stream(snd_rawmidi_t *rawmidi);
 
 #ifdef __cplusplus
 }

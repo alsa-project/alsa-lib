@@ -10,8 +10,8 @@ typedef struct snd_midi_event snd_midi_event_t;
 extern "C" {
 #endif
 
-int snd_midi_event_new(int bufsize, snd_midi_event_t **rdev);
-int snd_midi_event_resize_buffer(snd_midi_event_t *dev, int bufsize);
+int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev);
+int snd_midi_event_resize_buffer(snd_midi_event_t *dev, size_t bufsize);
 void snd_midi_event_free(snd_midi_event_t *dev);
 void snd_midi_event_init(snd_midi_event_t *dev);
 void snd_midi_event_reset_encode(snd_midi_event_t *dev);

@@ -387,7 +387,7 @@ u_int64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 		return 0;
 	default:
 		assert(0);
-		return -EINVAL;
+		return 0;
 	}
 	return 0;
 }

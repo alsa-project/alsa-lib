@@ -55,13 +55,14 @@ typedef void (*adpcm_f)(const snd_pcm_channel_area_t *dst_areas,
 			snd_pcm_uframes_t dst_offset,
 			const snd_pcm_channel_area_t *src_areas,
 			snd_pcm_uframes_t src_offset,
-			unsigned int channels, snd_pcm_uframes_t frames, int getputidx,
+			unsigned int channels, snd_pcm_uframes_t frames,
+			unsigned int getputidx,
 			snd_pcm_adpcm_state_t *states);
 
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
-	int getput_idx;
+	unsigned int getput_idx;
 	adpcm_f func;
 	snd_pcm_format_t sformat;
 	snd_pcm_adpcm_state_t *states;
@@ -194,7 +195,8 @@ void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
 			  const snd_pcm_channel_area_t *src_areas,
 			  snd_pcm_uframes_t src_offset,
-			  unsigned int channels, snd_pcm_uframes_t frames, int putidx,
+			  unsigned int channels, snd_pcm_uframes_t frames,
+			  unsigned int putidx,
 			  snd_pcm_adpcm_state_t *states)
 {
 #define PUT16_LABELS
@@ -211,7 +213,7 @@ void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *dst_areas,
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 		srcbit = src_area->first + src_area->step * src_offset;
-		src = src_area->addr + srcbit / 8;
+		src = (const char *) src_area->addr + srcbit / 8;
 		srcbit %= 8;
 		src_step = src_area->step / 8;
 		srcbit_step = src_area->step % 8;
@@ -220,7 +222,7 @@ void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *dst_areas,
 		frames1 = frames;
 		while (frames1-- > 0) {
 			int16_t sample;
-			int v;
+			unsigned char v;
 			if (srcbit)
 				v = *src & 0x0f;
 			else
@@ -246,7 +248,8 @@ void snd_pcm_adpcm_encode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
 			  const snd_pcm_channel_area_t *src_areas,
 			  snd_pcm_uframes_t src_offset,
-			  unsigned int channels, snd_pcm_uframes_t frames, int getidx,
+			  unsigned int channels, snd_pcm_uframes_t frames,
+			  unsigned int getidx,
 			  snd_pcm_adpcm_state_t *states)
 {
 #define GET16_LABELS
@@ -266,7 +269,7 @@ void snd_pcm_adpcm_encode(const snd_pcm_channel_area_t *dst_areas,
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		src_step = snd_pcm_channel_area_step(src_area);
 		dstbit = dst_area->first + dst_area->step * dst_offset;
-		dst = dst_area->addr + dstbit / 8;
+		dst = (char *) dst_area->addr + dstbit / 8;
 		dstbit %= 8;
 		dst_step = dst_area->step / 8;
 		dstbit_step = dst_area->step % 8;

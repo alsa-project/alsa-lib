@@ -334,7 +334,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_missing(snd_pcm_share_slave_t *sla
 	return missing;
 }
 
-void *snd_pcm_share_thread(void *data)
+static void *snd_pcm_share_thread(void *data)
 {
 	snd_pcm_share_slave_t *slave = data;
 	snd_pcm_t *spcm = slave->pcm;
@@ -775,7 +775,7 @@ static snd_pcm_sframes_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_ufr
 	}
 	snd_pcm_mmap_appl_forward(pcm, size);
 	if (share->state == SND_PCM_STATE_RUNNING) {
-		snd_pcm_sframes_t frames = _snd_pcm_share_slave_forward(slave);
+		frames = _snd_pcm_share_slave_forward(slave);
 		if (frames > 0) {
 			snd_pcm_sframes_t err;
 			err = snd_pcm_mmap_forward(slave->pcm, frames);
@@ -1314,7 +1314,6 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		Pthread_mutex_unlock(&snd_pcm_share_slaves_mutex);
 		list_for_each(i, &slave->clients) {
 			snd_pcm_share_t *sh = list_entry(i, snd_pcm_share_t, list);
-			unsigned int k;
 			for (k = 0; k < sh->channels; ++k) {
 				if (slave_map[sh->slave_channels[k]]) {
 					SNDERR("Slave channel %d is already in use", sh->slave_channels[k]);
@@ -1456,7 +1455,8 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	if (schannels <= 0)
 		schannels = schannel_max + 1;
 	    err = snd_pcm_share_open(pcmp, name, sname, sformat, srate, 
-				     schannels, speriod_time, sbuffer_time,
+				     (unsigned int) schannels,
+				     speriod_time, sbuffer_time,
 				     channels, channels_map, stream, mode);
 _free:
 	free(channels_map);

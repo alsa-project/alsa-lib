@@ -27,12 +27,13 @@ typedef void (*alaw_f)(const snd_pcm_channel_area_t *dst_areas,
 		       snd_pcm_uframes_t dst_offset,
 		       const snd_pcm_channel_area_t *src_areas,
 		       snd_pcm_uframes_t src_offset,
-		       unsigned int channels, snd_pcm_uframes_t frames, int getputidx);
+		       unsigned int channels, snd_pcm_uframes_t frames,
+		       unsigned int getputidx);
 
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
-	int getput_idx;
+	unsigned int getput_idx;
 	alaw_f func;
 	snd_pcm_format_t sformat;
 } snd_pcm_alaw_t;
@@ -124,7 +125,8 @@ void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *dst_areas,
 			 snd_pcm_uframes_t dst_offset,
 			 const snd_pcm_channel_area_t *src_areas,
 			 snd_pcm_uframes_t src_offset,
-			 unsigned int channels, snd_pcm_uframes_t frames, int putidx)
+			 unsigned int channels, snd_pcm_uframes_t frames,
+			 unsigned int putidx)
 {
 #define PUT16_LABELS
 #include "plugin_ops.h"
@@ -132,7 +134,7 @@ void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *dst_areas,
 	void *put = put16_labels[putidx];
 	unsigned int channel;
 	for (channel = 0; channel < channels; ++channel) {
-		const char *src;
+		const unsigned char *src;
 		char *dst;
 		int src_step, dst_step;
 		snd_pcm_uframes_t frames1;
@@ -160,7 +162,8 @@ void snd_pcm_alaw_encode(const snd_pcm_channel_area_t *dst_areas,
 			 snd_pcm_uframes_t dst_offset,
 			 const snd_pcm_channel_area_t *src_areas,
 			 snd_pcm_uframes_t src_offset,
-			 unsigned int channels, snd_pcm_uframes_t frames, int getidx)
+			 unsigned int channels, snd_pcm_uframes_t frames,
+			 unsigned int getidx)
 {
 #define GET16_LABELS
 #include "plugin_ops.h"

@@ -291,7 +291,6 @@ extern "C" {
 int snd_pcm_open(snd_pcm_t **pcm, const char *name, 
 		 snd_pcm_stream_t stream, int mode);
 
-snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
 int snd_pcm_close(snd_pcm_t *pcm);
 int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm);
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
@@ -327,6 +326,7 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm);
 const char *snd_pcm_name(snd_pcm_t *pcm);
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
+snd_pcm_stream_t snd_pcm_stream(snd_pcm_t *pcm);
 
 /* HW params */
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
@@ -382,10 +382,11 @@ snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_ufram
 snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 
 const char *snd_pcm_stream_name(snd_pcm_stream_t stream);
-const char *snd_pcm_access_name(snd_pcm_access_t access);
+const char *snd_pcm_access_name(snd_pcm_access_t _access);
 const char *snd_pcm_format_name(snd_pcm_format_t format);
-const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat);
 const char *snd_pcm_format_description(snd_pcm_format_t format);
+const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat);
+const char *snd_pcm_subformat_description(snd_pcm_subformat_t subformat);
 snd_pcm_format_t snd_pcm_format_value(const char* name);
 const char *snd_pcm_start_mode_name(snd_pcm_start_t mode);
 const char *snd_pcm_xrun_mode_name(snd_pcm_xrun_t mode);

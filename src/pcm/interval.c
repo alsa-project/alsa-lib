@@ -26,10 +26,10 @@
 #include <limits.h>
 #include "pcm_local.h"
 
-static inline void div64_32(u_int64_t *n, u_int32_t div, u_int32_t *rem)
+static inline void div64_32(u_int64_t *n, u_int32_t d, u_int32_t *rem)
 {
-	*rem = *n % div;
-	*n /= div;
+	*rem = *n % d;
+	*n /= d;
 }
 
 static inline unsigned int div32(unsigned int a, unsigned int b, 
@@ -379,7 +379,8 @@ void snd_interval_print(const snd_interval_t *i, snd_output_t *out)
 				i->openmax ? ')' : ']');
 }
 
-void boundary_abs(int a, int adir, int *b, int *bdir)
+#if 0
+static void boundary_abs(int a, int adir, int *b, int *bdir)
 {
 	if (a < 0 || (a == 0 && adir < 0)) {
 		*b = -a;
@@ -389,6 +390,7 @@ void boundary_abs(int a, int adir, int *b, int *bdir)
 		*bdir = adir;
 	}
 }
+#endif
 
 void boundary_sub(int a, int adir, int b, int bdir, int *c, int *cdir)
 {

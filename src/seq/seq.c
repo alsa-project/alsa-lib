@@ -44,9 +44,9 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 	int err;
 	snd_config_t *seq_conf, *conf, *type_conf;
 	snd_config_iterator_t i, next;
-	const char *lib = NULL, *open = NULL;
-	int (*open_func)(snd_seq_t **seqp, const char *name, snd_config_t *conf, 
-			 int streams, int mode);
+	const char *lib = NULL, *open_name = NULL;
+	int (*open_func)(snd_seq_t **, const char *, snd_config_t *, 
+			 int, int);
 	void *h;
 	const char *name1;
 	assert(seqp && name);
@@ -91,7 +91,7 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 				continue;
 			}
 			if (strcmp(id, "open") == 0) {
-				err = snd_config_get_string(n, &open);
+				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
 					return -EINVAL;
@@ -102,8 +102,8 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 			return -EINVAL;
 		}
 	}
-	if (!open) {
-		open = buf;
+	if (!open_name) {
+		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_seq_%s_open", str);
 	}
 	if (!lib)
@@ -113,9 +113,9 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
-	open_func = dlsym(h, open);
+	open_func = dlsym(h, open_name);
 	if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open, lib);
+		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
 		return -ENXIO;
 	}
@@ -147,12 +147,6 @@ int snd_seq_close(snd_seq_t *seq)
 /*
  * returns the file descriptor of the client
  */
-int _snd_seq_poll_descriptor(snd_seq_t *seq)
-{
-	assert(seq);
-	return seq->poll_fd;
-}
-
 int snd_seq_poll_descriptors_count(snd_seq_t *seq, short events)
 {
 	int result = 0;
@@ -753,8 +747,7 @@ int snd_seq_event_output_direct(snd_seq_t *seq, snd_seq_event_t *ev)
 		memcpy(seq->tmpbuf + 1, ev->data.ext.ptr, ev->data.ext.len);
 		buf = seq->tmpbuf;
 	}
-
-	return seq->ops->write(seq, buf, len);
+	return seq->ops->write(seq, buf, (size_t) len);
 }
 
 /*

@@ -35,6 +35,7 @@ void bag_free(bag_t *bag);
 int bag_add(bag_t *bag, void *ptr);
 int bag_del(bag_t *bag, void *ptr);
 int bag_empty(bag_t *bag);
+void bag_del_all(bag_t *bag);
 
 typedef struct list_head *bag_iterator_t;
 

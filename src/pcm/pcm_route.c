@@ -45,10 +45,10 @@ typedef struct snd_pcm_route_ttable_dst snd_pcm_route_ttable_dst_t;
 
 typedef struct {
 	enum {UINT32=0, UINT64=1, FLOAT=2} sum_idx;
-	int get_idx;
-	int put_idx;
-	int conv_idx;
-	int src_size;
+	unsigned int get_idx;
+	unsigned int put_idx;
+	unsigned int conv_idx;
+	unsigned int src_size;
 	snd_pcm_format_t dst_sfmt;
 	unsigned int ndsts;
 	snd_pcm_route_ttable_dst_t *dsts;
@@ -87,24 +87,24 @@ typedef struct {
 } snd_pcm_route_t;
 
 
-void snd_pcm_route_convert1_zero(const snd_pcm_channel_area_t *dst_area,
-				 snd_pcm_uframes_t dst_offset,
-				 const snd_pcm_channel_area_t *src_areas ATTRIBUTE_UNUSED,
-				 snd_pcm_uframes_t src_offset ATTRIBUTE_UNUSED,
-				 snd_pcm_uframes_t frames,
-				 const snd_pcm_route_ttable_dst_t* ttable ATTRIBUTE_UNUSED,
-				 const snd_pcm_route_params_t *params)
+static void snd_pcm_route_convert1_zero(const snd_pcm_channel_area_t *dst_area,
+					snd_pcm_uframes_t dst_offset,
+					const snd_pcm_channel_area_t *src_areas ATTRIBUTE_UNUSED,
+					snd_pcm_uframes_t src_offset ATTRIBUTE_UNUSED,
+					snd_pcm_uframes_t frames,
+					const snd_pcm_route_ttable_dst_t* ttable ATTRIBUTE_UNUSED,
+					const snd_pcm_route_params_t *params)
 {
 	snd_pcm_area_silence(dst_area, dst_offset, frames, params->dst_sfmt);
 }
 
-void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *dst_area,
-				snd_pcm_uframes_t dst_offset,
-				const snd_pcm_channel_area_t *src_areas,
-				snd_pcm_uframes_t src_offset,
-				snd_pcm_uframes_t frames,
-				const snd_pcm_route_ttable_dst_t* ttable,
-				const snd_pcm_route_params_t *params)
+static void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *dst_area,
+				       snd_pcm_uframes_t dst_offset,
+				       const snd_pcm_channel_area_t *src_areas,
+				       snd_pcm_uframes_t src_offset,
+				       snd_pcm_uframes_t frames,
+				       const snd_pcm_route_ttable_dst_t* ttable,
+				       const snd_pcm_route_params_t *params)
 {
 #define CONV_LABELS
 #include "plugin_ops.h"
@@ -143,13 +143,13 @@ void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *dst_area,
 	}
 }
 
-void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
-				 snd_pcm_uframes_t dst_offset,
-				 const snd_pcm_channel_area_t *src_areas,
-				 snd_pcm_uframes_t src_offset,
-				 snd_pcm_uframes_t frames,
-				 const snd_pcm_route_ttable_dst_t* ttable,
-				 const snd_pcm_route_params_t *params)
+static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
+					snd_pcm_uframes_t dst_offset,
+					const snd_pcm_channel_area_t *src_areas,
+					snd_pcm_uframes_t src_offset,
+					snd_pcm_uframes_t frames,
+					const snd_pcm_route_ttable_dst_t* ttable,
+					const snd_pcm_route_params_t *params)
 {
 #define GETU_LABELS
 #define PUT32_LABELS
@@ -376,13 +376,13 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 	}
 }
 
-void snd_pcm_route_convert(const snd_pcm_channel_area_t *dst_areas,
-			   snd_pcm_uframes_t dst_offset,
-			   const snd_pcm_channel_area_t *src_areas,
-			   snd_pcm_uframes_t src_offset,
-			   snd_pcm_uframes_t dst_channels,
-			   snd_pcm_uframes_t frames,
-			   snd_pcm_route_params_t *params)
+static void snd_pcm_route_convert(const snd_pcm_channel_area_t *dst_areas,
+				  snd_pcm_uframes_t dst_offset,
+				  const snd_pcm_channel_area_t *src_areas,
+				  snd_pcm_uframes_t src_offset,
+				  snd_pcm_uframes_t dst_channels,
+				  snd_pcm_uframes_t frames,
+				  snd_pcm_route_params_t *params)
 {
 	unsigned int dst_channel;
 	snd_pcm_route_ttable_dst_t *dstp;
@@ -459,7 +459,7 @@ static int snd_pcm_route_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 	}
 	if (route->schannels >= 0) {
 		_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_CHANNELS,
-				      route->schannels, 0);
+				      (unsigned int) route->schannels, 0);
 	}
 	return 0;
 }
@@ -650,10 +650,10 @@ snd_pcm_ops_t snd_pcm_route_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
-int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t stream,
-		      unsigned int tt_ssize,
-		      snd_pcm_route_ttable_entry_t *ttable,
-		      unsigned int tt_cused, unsigned int tt_sused)
+static int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t stream,
+			     unsigned int tt_ssize,
+			     snd_pcm_route_ttable_entry_t *ttable,
+			     unsigned int tt_cused, unsigned int tt_sused)
 {
 	unsigned int src_channel, dst_channel;
 	snd_pcm_route_ttable_dst_t *dptr;
@@ -710,7 +710,7 @@ int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t stream,
 		else
 			dptr->func = snd_pcm_route_convert1_many;
 		if (nsrcs > 0) {
-			dptr->srcs = calloc(nsrcs, sizeof(*srcs));
+			dptr->srcs = calloc((unsigned int) nsrcs, sizeof(*srcs));
 			if (!dptr->srcs)
 				return -ENOMEM;
 			memcpy(dptr->srcs, srcs, sizeof(*srcs) * nsrcs);
@@ -723,7 +723,7 @@ int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t stream,
 
 
 int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
-		       snd_pcm_format_t sformat, unsigned int schannels,
+		       snd_pcm_format_t sformat, int schannels,
 		       snd_pcm_route_ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
@@ -801,11 +801,11 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 		if (snd_config_get_type(in) != SND_CONFIG_TYPE_COMPOUND)
 			return -EINVAL;
 		snd_config_for_each(j, jnext, in) {
-			snd_config_t *jn = snd_config_iterator_entry(j);
+			snd_config_t *jnode = snd_config_iterator_entry(j);
 			double value;
 			long schannel;
 			int err;
-			const char *id = snd_config_get_id(jn);
+			const char *id = snd_config_get_id(jnode);
 			errno = 0;
 			schannel = strtol(id, &p, 10);
 			if (errno || *p || 
@@ -814,10 +814,10 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 				SNDERR("Invalid slave channel: %s", id);
 				return -EINVAL;
 			}
-			err = snd_config_get_real(jn, &value);
+			err = snd_config_get_real(jnode, &value);
 			if (err < 0) {
 				long v;
-				err = snd_config_get_integer(jn, &v);
+				err = snd_config_get_integer(jnode, &v);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
 					return -EINVAL;

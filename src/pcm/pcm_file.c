@@ -30,7 +30,7 @@ typedef enum _snd_pcm_file_format {
 typedef struct {
 	snd_pcm_t *slave;
 	int close_slave;
-	const char *fname;
+	char *fname;
 	int fd;
 	int format;
 	snd_pcm_uframes_t appl_ptr;
@@ -430,7 +430,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int
 		return -ENOMEM;
 	}
 
-	file->fname = fname;
+	file->fname = strdup(fname);
 	file->fd = fd;
 	file->format = format;
 	file->slave = slave;
@@ -514,11 +514,6 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (!fname && fd < 0) {
 		SNDERR("file is not defined");
 		return -EINVAL;
-	}
-	if (fname) {
-		fname = strdup(fname);
-		if (!fname)
-			return -ENOMEM;
 	}
 	/* This is needed cause snd_config_update may destroy config */
 	sname = strdup(sname);

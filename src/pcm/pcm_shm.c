@@ -43,7 +43,7 @@ typedef struct {
 	volatile snd_pcm_shm_ctrl_t *ctrl;
 } snd_pcm_shm_t;
 
-int receive_fd(int socket, void *data, size_t len, int *fd)
+int receive_fd(int sock, void *data, size_t len, int *fd)
 {
     int ret;
     size_t cmsg_len = CMSG_LEN(sizeof(int));
@@ -68,7 +68,7 @@ int receive_fd(int socket, void *data, size_t len, int *fd)
     msghdr.msg_controllen = cmsg_len;
     msghdr.msg_flags = 0;
 
-    ret = recvmsg(socket, &msghdr, 0);
+    ret = recvmsg(sock, &msghdr, 0);
     if (ret < 0) {
 	    SYSERR("recvmsg failed");
 	    return -errno;
@@ -563,7 +563,7 @@ static int make_inet_socket(const char *host, int port)
 }
 #endif
 
-int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *socket, const char *sname, snd_pcm_stream_t stream, int mode)
+int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *sockname, const char *sname, snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_shm_t *shm = NULL;
@@ -578,9 +578,9 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *socket, con
 	if (snamelen > 255)
 		return -EINVAL;
 
-	result = make_local_socket(socket);
+	result = make_local_socket(sockname);
 	if (result < 0) {
-		SNDERR("server for socket %s is not running", socket);
+		SNDERR("server for socket %s is not running", sockname);
 		goto _err;
 	}
 	sock = result;
@@ -687,7 +687,7 @@ int is_local(struct hostent *hent)
 	}
 	
 	conf.ifc_len = numreqs * sizeof(struct ifreq);
-	conf.ifc_buf = malloc(conf.ifc_len);
+	conf.ifc_buf = malloc((unsigned int) conf.ifc_len);
 	while (1) {
 		err = ioctl(s, SIOCGIFCONF, &conf);
 		if (err < 0) {
@@ -698,17 +698,17 @@ int is_local(struct hostent *hent)
 			break;
 		numreqs *= 2;
 		conf.ifc_len = numreqs * sizeof(struct ifreq);
-		conf.ifc_buf = realloc(conf.ifc_buf, conf.ifc_len);
+		conf.ifc_buf = realloc(conf.ifc_buf, (unsigned int) conf.ifc_len);
 	}
 	numreqs = conf.ifc_len / sizeof(struct ifreq);
 	for (i = 0; i < numreqs; ++i) {
 		struct ifreq *req = &conf.ifc_req[i];
-		struct sockaddr_in *sin = (struct sockaddr_in *)&req->ifr_addr;
-		sin->sin_family = AF_INET;
+		struct sockaddr_in *s_in = (struct sockaddr_in *)&req->ifr_addr;
+		s_in->sin_family = AF_INET;
 		err = ioctl(s, SIOCGIFADDR, req);
 		if (err < 0)
 			continue;
-		if (haddr->s_addr == sin->sin_addr.s_addr)
+		if (haddr->s_addr == s_in->sin_addr.s_addr)
 			break;
 	}
 	close(s);
@@ -724,7 +724,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	const char *pcm_name = NULL;
 	snd_config_t *sconfig;
 	const char *host = NULL;
-	const char *socket = NULL;
+	const char *sockname = NULL;
 	long port = -1;
 	int err;
 	int local;
@@ -786,7 +786,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			continue;
 		}
 		if (strcmp(id, "socket") == 0) {
-			err = snd_config_get_string(n, &socket);
+			err = snd_config_get_string(n, &sockname);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
@@ -809,7 +809,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		SNDERR("host is not defined");
 		return -EINVAL;
 	}
-	if (!socket) {
+	if (!sockname) {
 		SNDERR("socket is not defined");
 		return -EINVAL;
 	}
@@ -823,6 +823,6 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		SNDERR("%s is not the local host", host);
 		return -EINVAL;
 	}
-	return snd_pcm_shm_open(pcmp, name, socket, pcm_name, stream, mode);
+	return snd_pcm_shm_open(pcmp, name, sockname, pcm_name, stream, mode);
 }
 				

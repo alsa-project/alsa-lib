@@ -80,9 +80,9 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	snd_config_t *rawmidi_conf, *conf, *type_conf;
 	snd_config_iterator_t i, next;
 	snd_rawmidi_params_t params;
-	const char *lib = NULL, *open = NULL;
-	int (*open_func)(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-			 const char *name, snd_config_t *conf, int mode);
+	const char *lib = NULL, *open_name = NULL;
+	int (*open_func)(snd_rawmidi_t **, snd_rawmidi_t **,
+			 const char *, snd_config_t *, int);
 	void *h;
 	const char *name1;
 	assert((inputp || outputp) && name);
@@ -132,7 +132,7 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 				continue;
 			}
 			if (strcmp(id, "open") == 0) {
-				err = snd_config_get_string(n, &open);
+				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
 					return -EINVAL;
@@ -143,8 +143,8 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			return -EINVAL;
 		}
 	}
-	if (!open) {
-		open = buf;
+	if (!open_name) {
+		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_rawmidi_%s_open", str);
 	}
 	if (!lib)
@@ -154,9 +154,9 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
-	open_func = dlsym(h, open);
+	open_func = dlsym(h, open_name);
 	if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open, lib);
+		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
 		return -ENXIO;
 	}

@@ -104,9 +104,9 @@ static const char *get_short_name(const char *lname)
 	return lname;
 }
 
-static int get_compare_weight(const char *name, int index)
+static int get_compare_weight(const char *name, unsigned int idx)
 {
-	static char *names[] = {
+	static const char *names[] = {
 		"Master",
 		"Master Mono",
 		"Master Digital",
@@ -147,7 +147,7 @@ static int get_compare_weight(const char *name, int index)
 	for (res = 0; names[res] != NULL; res++)
 		if (!strcmp(name, names[res]))
 			return MIXER_COMPARE_WEIGHT_SIMPLE_BASE +
-			       (res * 1000) + index;
+			       (res * 1000) + idx;
 	return MIXER_COMPARE_WEIGHT_NOT_FOUND;
 }
 
@@ -653,9 +653,9 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 	return 0;
 }
 
-int simple_add1(snd_mixer_class_t *class, const char *name,
-		snd_hctl_elem_t *helem, selem_ctl_type_t type,
-		int value)
+static int simple_add1(snd_mixer_class_t *class, const char *name,
+		       snd_hctl_elem_t *helem, selem_ctl_type_t type,
+		       unsigned int value)
 {
 	snd_mixer_elem_t *melem;
 	snd_mixer_selem_id_t id;
@@ -761,7 +761,7 @@ int simple_add1(snd_mixer_class_t *class, const char *name,
 	return err;
 }
 
-int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
+static int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 {
 	const char *name = snd_hctl_elem_get_name(helem);
 	size_t len;
@@ -803,8 +803,8 @@ int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 	}
 }
 
-int simple_event_remove(snd_hctl_elem_t *helem,
-			snd_mixer_elem_t *melem)
+static int simple_event_remove(snd_hctl_elem_t *helem,
+			       snd_mixer_elem_t *melem)
 {
 	selem_t *simple = melem->private_data;
 	int err;
@@ -823,15 +823,15 @@ int simple_event_remove(snd_hctl_elem_t *helem,
 	return snd_mixer_elem_info(melem);
 }
 
-int simple_event_info(snd_mixer_elem_t *melem)
+static int simple_event_info(snd_mixer_elem_t *melem)
 {
 	int err = simple_update(melem);
 	assert(err >= 0);
 	return snd_mixer_elem_info(melem);
 }
 
-int simple_event(snd_mixer_class_t *class, unsigned int mask,
-		 snd_hctl_elem_t *helem, snd_mixer_elem_t *melem)
+static int simple_event(snd_mixer_class_t *class, unsigned int mask,
+			snd_hctl_elem_t *helem, snd_mixer_elem_t *melem)
 {
 	int err;
 	if (mask == SND_CTL_EVENT_MASK_REMOVE)
@@ -1186,7 +1186,7 @@ int snd_mixer_selem_get_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_c
 	return 0;
 }
 
-int _snd_mixer_selem_set_volume(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long value)
+static int _snd_mixer_selem_set_volume(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long value)
 {
 	selem_t *s = elem->private_data;
 	assert((unsigned int) channel < s->str[dir].channels);
@@ -1233,7 +1233,7 @@ int snd_mixer_selem_set_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_c
 	return 0;
 }
 
-int _snd_mixer_selem_set_volume_all(snd_mixer_elem_t *elem, int dir, long value)
+static int _snd_mixer_selem_set_volume_all(snd_mixer_elem_t *elem, int dir, long value)
 {
 	int changed = 0;
 	snd_mixer_selem_channel_id_t channel;	
@@ -1280,7 +1280,7 @@ int snd_mixer_selem_set_capture_volume_all(snd_mixer_elem_t *elem, long value)
 	return 0;
 }
 
-int _snd_mixer_selem_set_switch(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, int value)
+static int _snd_mixer_selem_set_switch(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, int value)
 {
 	selem_t *s = elem->private_data;
 	assert((unsigned int) channel < s->str[dir].channels);
@@ -1333,7 +1333,7 @@ int snd_mixer_selem_set_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_c
 	return 0;
 }
 
-int _snd_mixer_selem_set_switch_all(snd_mixer_elem_t *elem, int dir, int value)
+static int _snd_mixer_selem_set_switch_all(snd_mixer_elem_t *elem, int dir, int value)
 {
 	selem_t *s = elem->private_data;
 	if (value) {
@@ -1384,7 +1384,7 @@ int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value)
 
 const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
 {
-	static char *array[snd_enum_to_int(SND_MIXER_SCHN_LAST) + 1] = {
+	static const char *array[snd_enum_to_int(SND_MIXER_SCHN_LAST) + 1] = {
 		[SND_MIXER_SCHN_FRONT_LEFT] = "Front Left",
 		[SND_MIXER_SCHN_FRONT_RIGHT] = "Front Right",
 		[SND_MIXER_SCHN_FRONT_CENTER] = "Front Center",
@@ -1392,7 +1392,7 @@ const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
 		[SND_MIXER_SCHN_REAR_RIGHT] = "Rear Right",
 		[SND_MIXER_SCHN_WOOFER] = "Woofer"
 	};
-	char *p;
+	const char *p;
 	assert(channel <= SND_MIXER_SCHN_LAST);
 	p = array[snd_enum_to_int(channel)];
 	if (!p)

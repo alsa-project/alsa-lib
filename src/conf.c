@@ -382,7 +382,7 @@ static int _snd_config_search(snd_config_t *config, const char *id, int len, snd
 		} else {
 			if (strlen(n->id) != (size_t) len)
 				continue;
-			if (memcmp(n->id, id, len) == 0) {
+			if (memcmp(n->id, id, (size_t) len) == 0) {
 				*result = n;
 				return 0;
 			}
@@ -581,7 +581,7 @@ static int parse_defs(snd_config_t *father, input_t *input)
 	return 0;
 }
 
-void string_print(char *str, int id, snd_output_t *out)
+static void string_print(char *str, int id, snd_output_t *out)
 {
 	unsigned char *p = str;
 	if (!id) {
@@ -800,7 +800,7 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 	fd = input.current;
 	if (err < 0) {
 		if (input.error < 0) {
-			char *str;
+			const char *str;
 			switch (input.error) {
 			case UNTERMINATED_STRING:
 				str = "Unterminated string";

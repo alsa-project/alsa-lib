@@ -257,7 +257,6 @@ int snd_defaults_pcm_device(void);
 int snd_defaults_rawmidi_card(void);
 int snd_defaults_rawmidi_device(void);
 
-snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl);
 int snd_ctl_open(snd_ctl_t **ctl, const char *name, int mode);
 int snd_ctl_close(snd_ctl_t *ctl);
 int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock);
@@ -327,6 +326,8 @@ extern "C" {
  */
 typedef int (*snd_hctl_compare_t)(const snd_hctl_elem_t *e1,
 				  const snd_hctl_elem_t *e2);
+int snd_hctl_compare_fast(const snd_hctl_elem_t *c1,
+			  const snd_hctl_elem_t *c2);
 /** 
  * \brief HCTL callback function
  * \param hctl HCTL handle

@@ -18,8 +18,12 @@
  *
  */
   
+#include <netdb.h>
 #include "../src/pcm/pcm_local.h"
 #include "../src/control/control_local.h"
+
+int receive_fd(int sock, void *data, size_t len, int *fd);
+int is_local(struct hostent *hent);
 
 typedef enum _snd_dev_type {
 	SND_DEV_TYPE_PCM,

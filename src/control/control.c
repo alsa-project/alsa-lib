@@ -372,8 +372,8 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 	int err;
 	snd_config_t *ctl_conf, *conf, *type_conf;
 	snd_config_iterator_t i, next;
-	const char *lib = NULL, *open = NULL;
-	int (*open_func)(snd_ctl_t **ctlp, const char *name, snd_config_t *conf, int mode);
+	const char *lib = NULL, *open_name = NULL;
+	int (*open_func)(snd_ctl_t **, const char *, snd_config_t *, int);
 	void *h;
 	const char *name1;
 	assert(ctlp && name);
@@ -423,7 +423,7 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 				continue;
 			}
 			if (strcmp(id, "open") == 0) {
-				err = snd_config_get_string(n, &open);
+				err = snd_config_get_string(n, &open_name);
 				if (err < 0)
 					return -EINVAL;
 				continue;
@@ -433,7 +433,7 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 		}
 	}
 	if (!open) {
-		open = buf;
+		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_ctl_%s_open", str);
 	}
 	if (!lib)
@@ -443,9 +443,9 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
-	open_func = dlsym(h, open);
+	open_func = dlsym(h, open_name);
 	if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open, lib);
+		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
 		return -ENXIO;
 	}

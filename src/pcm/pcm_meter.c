@@ -40,7 +40,7 @@
 
 struct _snd_pcm_scope {
 	int enabled;
-	const char *name;
+	char *name;
 	snd_pcm_scope_ops_t *ops;
 	void *private_data;
 	struct list_head list;
@@ -65,10 +65,10 @@ typedef struct _snd_pcm_meter {
 	struct timespec delay;
 } snd_pcm_meter_t;
 
-void snd_pcm_meter_add_frames(snd_pcm_t *pcm,
-			      const snd_pcm_channel_area_t *areas,
-			      snd_pcm_uframes_t ptr,
-			      snd_pcm_uframes_t frames)
+static void snd_pcm_meter_add_frames(snd_pcm_t *pcm,
+				     const snd_pcm_channel_area_t *areas,
+				     snd_pcm_uframes_t ptr,
+				     snd_pcm_uframes_t frames)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	while (frames > 0) {
@@ -108,7 +108,8 @@ static void snd_pcm_meter_update_main(snd_pcm_t *pcm)
 		frames += pcm->boundary;
 	if (frames > 0) {
 		assert((snd_pcm_uframes_t) frames <= pcm->buffer_size);
-		snd_pcm_meter_add_frames(pcm, areas, old_rptr, frames);
+		snd_pcm_meter_add_frames(pcm, areas, old_rptr,
+					 (snd_pcm_uframes_t) frames);
 	}
 	if (locked)
 		pthread_mutex_unlock(&meter->update_mutex);
@@ -139,13 +140,14 @@ static int snd_pcm_meter_update_scope(snd_pcm_t *pcm)
 		frames += pcm->boundary;
 	if (frames > 0) {
 		assert((snd_pcm_uframes_t) frames <= pcm->buffer_size);
-		snd_pcm_meter_add_frames(pcm, areas, old_rptr, frames);
+		snd_pcm_meter_add_frames(pcm, areas, old_rptr,
+					 (snd_pcm_uframes_t) frames);
 	}
 	pthread_mutex_unlock(&meter->update_mutex);
 	return reset;
 }
 
-int snd_pcm_scope_remove(snd_pcm_scope_t *scope)
+static int snd_pcm_scope_remove(snd_pcm_scope_t *scope)
 {
 	if (scope->name)
 		free((void *)scope->name);
@@ -155,7 +157,7 @@ int snd_pcm_scope_remove(snd_pcm_scope_t *scope)
 	return 0;
 }
 
-int snd_pcm_scope_enable(snd_pcm_scope_t *scope)
+static int snd_pcm_scope_enable(snd_pcm_scope_t *scope)
 {
 	int err;
 	assert(!scope->enabled);
@@ -164,7 +166,7 @@ int snd_pcm_scope_enable(snd_pcm_scope_t *scope)
 	return err;
 }
 
-int snd_pcm_scope_disable(snd_pcm_scope_t *scope)
+static int snd_pcm_scope_disable(snd_pcm_scope_t *scope)
 {
 	assert(scope->enabled);
 	scope->ops->disable(scope);
@@ -391,7 +393,8 @@ static snd_pcm_sframes_t snd_pcm_meter_mmap_forward(snd_pcm_t *pcm, snd_pcm_ufra
 	if (result <= 0)
 		return result;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		snd_pcm_meter_add_frames(pcm, snd_pcm_mmap_areas(pcm), old_rptr, result);
+		snd_pcm_meter_add_frames(pcm, snd_pcm_mmap_areas(pcm), old_rptr,
+					 (snd_pcm_uframes_t) result);
 		meter->rptr = *pcm->appl_ptr;
 	}
 	return result;
@@ -451,13 +454,13 @@ static int snd_pcm_meter_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 	return 0;
 }
 
-int snd_pcm_meter_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+static int snd_pcm_meter_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	return snd_pcm_hw_refine(meter->slave, params);
 }
 
-int snd_pcm_meter_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+static int snd_pcm_meter_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	return _snd_pcm_hw_params(meter->slave, params);
@@ -637,15 +640,15 @@ int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequenc
 }
 
 
-int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
-				 snd_config_t *conf)
+static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
+					snd_config_t *conf)
 {
 	char buf[256];
 	snd_config_iterator_t i, next;
-	const char *lib = NULL, *open = NULL, *str = NULL;
+	const char *lib = NULL, *open_name = NULL, *str = NULL;
 	snd_config_t *c, *type_conf;
-	int (*open_func)(snd_pcm_t *pcm, const char *name,
-			 snd_config_t *conf);
+	int (*open_func)(snd_pcm_t *, const char *,
+			 snd_config_t *);
 	void *h;
 	int err;
 	err = snd_config_search(conf, "type", &c);
@@ -674,7 +677,7 @@ int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 				continue;
 			}
 			if (strcmp(id, "open") == 0) {
-				err = snd_config_get_string(n, &open);
+				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
 					return -EINVAL;
@@ -685,8 +688,8 @@ int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 			return -EINVAL;
 		}
 	}
-	if (!open) {
-		open = buf;
+	if (!open_name) {
+		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_pcm_scope_%s_open", str);
 	}
 	if (!lib)
@@ -696,9 +699,9 @@ int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
-	open_func = dlsym(h, open);
+	open_func = dlsym(h, open_name);
 	if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open, lib);
+		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
 		return -ENXIO;
 	}
@@ -762,7 +765,7 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 	free((void *) sname);
 	if (err < 0)
 		return err;
-	err = snd_pcm_meter_open(pcmp, name, frequency < 0 ? FREQUENCY : frequency, spcm, 1);
+	err = snd_pcm_meter_open(pcmp, name, frequency > 0 ? (unsigned int) frequency : FREQUENCY, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	if (!scopes)
@@ -894,7 +897,7 @@ snd_pcm_uframes_t snd_pcm_meter_get_boundary(snd_pcm_t *pcm)
  */
 void snd_pcm_scope_set_name(snd_pcm_scope_t *scope, const char *val)
 {
-	scope->name = val;
+	scope->name = strdup(val);
 }
 
 /**
@@ -954,7 +957,7 @@ static int s16_enable(snd_pcm_scope_t *scope)
 	snd_pcm_t *spcm = meter->slave;
 	snd_pcm_channel_area_t *a;
 	unsigned int c;
-	int index;
+	int idx;
 	if (spcm->format == SND_PCM_FORMAT_S16 &&
 	    spcm->access == SND_PCM_ACCESS_MMAP_NONINTERLEAVED) {
 		s16->buf = (int16_t *) meter->buf;
@@ -964,7 +967,7 @@ static int s16_enable(snd_pcm_scope_t *scope)
 	case SND_PCM_FORMAT_A_LAW:
 	case SND_PCM_FORMAT_MU_LAW:
 	case SND_PCM_FORMAT_IMA_ADPCM:
-		index = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, SND_PCM_FORMAT_S16);
+		idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, SND_PCM_FORMAT_S16);
 		break;
 	case SND_PCM_FORMAT_S8:
 	case SND_PCM_FORMAT_S16_LE:
@@ -980,12 +983,12 @@ static int s16_enable(snd_pcm_scope_t *scope)
 	case SND_PCM_FORMAT_U24_BE:
 	case SND_PCM_FORMAT_U32_LE:
 	case SND_PCM_FORMAT_U32_BE:
-		index = snd_pcm_linear_convert_index(spcm->format, SND_PCM_FORMAT_S16);
+		idx = snd_pcm_linear_convert_index(spcm->format, SND_PCM_FORMAT_S16);
 		break;
 	default:
 		return -EINVAL;
 	}
-	s16->index = index;
+	s16->index = idx;
 	if (spcm->format == SND_PCM_FORMAT_IMA_ADPCM) {
 		s16->adpcm_states = calloc(spcm->channels, sizeof(*s16->adpcm_states));
 		if (!s16->adpcm_states)

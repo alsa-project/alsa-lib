@@ -173,7 +173,7 @@ static int snd_hctl_elem_throw_event(snd_hctl_elem_t *elem,
 	return 0;
 }
 
-static int snd_hctl_compare_mixer_priority_lookup(char **name, char * const *names, int coef)
+static int snd_hctl_compare_mixer_priority_lookup(const char **name, const char * const *names, int coef)
 {
 	int res;
 
@@ -190,7 +190,7 @@ static int snd_hctl_compare_mixer_priority_lookup(char **name, char * const *nam
 
 static int get_compare_weight(const char *name)
 {
-	static char *names[] = {
+	static const char *names[] = {
 		"Master",
 		"Hardware Master",
 		"Headphone",
@@ -221,7 +221,7 @@ static int get_compare_weight(const char *name)
 		"IEC958",
 		NULL
 	};
-	static char *names1[] = {
+	static const char *names1[] = {
 		"Switch",
 		"Volume",
 		"Playback",
@@ -235,7 +235,7 @@ static int get_compare_weight(const char *name)
 		"-",
 		NULL
 	};
-	static char *names2[] = {
+	static const char *names2[] = {
 		"Switch",
 		"Volume",
 		"Bypass",
@@ -248,12 +248,12 @@ static int get_compare_weight(const char *name)
 	};
 	int res, res1;
 	
-	if ((res = snd_hctl_compare_mixer_priority_lookup((char **)&name, names, 1000000)) == NOT_FOUND)
+	if ((res = snd_hctl_compare_mixer_priority_lookup((const char **)&name, names, 1000000)) == NOT_FOUND)
 		return NOT_FOUND;
-	if ((res1 = snd_hctl_compare_mixer_priority_lookup((char **)&name, names1, 1000)) == NOT_FOUND)
+	if ((res1 = snd_hctl_compare_mixer_priority_lookup((const char **)&name, names1, 1000)) == NOT_FOUND)
 		return res;
 	res += res1;
-	if ((res1 = snd_hctl_compare_mixer_priority_lookup((char **)&name, names2, 1)) == NOT_FOUND)
+	if ((res1 = snd_hctl_compare_mixer_priority_lookup((const char **)&name, names2, 1)) == NOT_FOUND)
 		return res;
 	return res + res1;
 }
@@ -356,8 +356,8 @@ static void snd_hctl_sort(snd_hctl_t *hctl)
 {
 	unsigned int k;
 	int compar(const void *a, const void *b) {
-		return hctl->compare(*(const snd_hctl_elem_t **) a,
-				     *(const snd_hctl_elem_t **) b);
+		return hctl->compare(*(const snd_hctl_elem_t * const *) a,
+				     *(const snd_hctl_elem_t * const *) b);
 	}
 	assert(hctl);
 	assert(hctl->compare);
@@ -625,7 +625,7 @@ static int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event)
 		assert(res >= 0 && dir == 0);
 		if (res < 0 || dir != 0)
 			return -ENOENT;
-		snd_hctl_elem_remove(hctl, res);
+		snd_hctl_elem_remove(hctl, (unsigned int) res);
 		return 0;
 	}
 	if (event->data.elem.mask & SNDRV_CTL_EVENT_MASK_ADD) {

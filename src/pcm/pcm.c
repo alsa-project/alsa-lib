@@ -647,10 +647,10 @@ const char *snd_pcm_stream_name(snd_pcm_stream_t stream)
  * \param access PCM access type
  * \return ascii name of PCM access type
  */
-const char *snd_pcm_access_name(snd_pcm_access_t access)
+const char *snd_pcm_access_name(snd_pcm_access_t acc)
 {
-	assert(access <= SND_PCM_ACCESS_LAST);
-	return snd_pcm_access_names[snd_enum_to_int(access)];
+	assert(acc <= SND_PCM_ACCESS_LAST);
+	return snd_pcm_access_names[snd_enum_to_int(acc)];
 }
 
 /**
@@ -923,9 +923,9 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 	int err;
 	snd_config_t *pcm_conf, *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
-	const char *lib = NULL, *open = NULL;
-	int (*open_func)(snd_pcm_t **pcmp, const char *name, snd_config_t *conf, 
-			 snd_pcm_stream_t stream, int mode);
+	const char *lib = NULL, *open_name = NULL;
+	int (*open_func)(snd_pcm_t **, const char *, snd_config_t *, 
+			 snd_pcm_stream_t, int);
 	void *h;
 	const char *name1;
 	assert(pcmp && name);
@@ -1025,7 +1025,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 				continue;
 			}
 			if (strcmp(id, "open") == 0) {
-				err = snd_config_get_string(n, &open);
+				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
 					return -EINVAL;
@@ -1036,8 +1036,8 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 			return -EINVAL;
 		}
 	}
-	if (!open) {
-		open = buf;
+	if (!open_name) {
+		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_pcm_%s_open", str);
 	}
 	if (!lib)
@@ -1047,9 +1047,9 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
-	open_func = dlsym(h, open);
+	open_func = dlsym(h, open_name);
 	if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open, lib);
+		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
 		return -ENXIO;
 	}
@@ -1323,7 +1323,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 	}
 	case 16: {
 		while (samples-- > 0) {
-			*(u_int16_t*)dst = *(u_int16_t*)src;
+			*(u_int16_t*)dst = *(const u_int16_t*)src;
 			src += src_step;
 			dst += dst_step;
 		}
@@ -1331,7 +1331,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 	}
 	case 32: {
 		while (samples-- > 0) {
-			*(u_int32_t*)dst = *(u_int32_t*)src;
+			*(u_int32_t*)dst = *(const u_int32_t*)src;
 			src += src_step;
 			dst += dst_step;
 		}
@@ -1339,7 +1339,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 	}
 	case 64: {
 		while (samples-- > 0) {
-			*(u_int64_t*)dst = *(u_int64_t*)src;
+			*(u_int64_t*)dst = *(const u_int64_t*)src;
 			src += src_step;
 			dst += dst_step;
 		}
@@ -1550,7 +1550,7 @@ void snd_pcm_access_mask_any(snd_pcm_access_mask_t *mask)
  */
 int snd_pcm_access_mask_test(const snd_pcm_access_mask_t *mask, snd_pcm_access_t val)
 {
-	return snd_mask_test((snd_mask_t *) mask, (unsigned long) val);
+	return snd_mask_test((const snd_mask_t *) mask, (unsigned long) val);
 }
 
 /**
@@ -1641,7 +1641,7 @@ void snd_pcm_format_mask_any(snd_pcm_format_mask_t *mask)
  */
 int snd_pcm_format_mask_test(const snd_pcm_format_mask_t *mask, snd_pcm_format_t val)
 {
-	return snd_mask_test((snd_mask_t *) mask, (unsigned long) val);
+	return snd_mask_test((const snd_mask_t *) mask, (unsigned long) val);
 }
 
 /**
@@ -1733,7 +1733,7 @@ void snd_pcm_subformat_mask_any(snd_pcm_subformat_mask_t *mask)
  */
 int snd_pcm_subformat_mask_test(const snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val)
 {
-	return snd_mask_test((snd_mask_t *) mask, (unsigned long) val);
+	return snd_mask_test((const snd_mask_t *) mask, (unsigned long) val);
 }
 
 /**
@@ -1888,7 +1888,7 @@ int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params)
  */
 int snd_pcm_hw_params_test_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t val)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_FORMAT, snd_enum_to_int(val), 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_FORMAT, val, 0);
 }
 
 /**
@@ -1900,7 +1900,7 @@ int snd_pcm_hw_params_test_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, s
  */
 int snd_pcm_hw_params_set_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t val)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_FORMAT, snd_enum_to_int(val), 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_FORMAT, val, 0);
 }
 
 /**
@@ -4091,7 +4091,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 #endif
 	}
  _end:
-	return xfer > 0 ? xfer : err;
+	return xfer > 0 ? (snd_pcm_sframes_t) xfer : err;
 }
 
 snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
@@ -4174,7 +4174,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		}
 	}
  _end:
-	return xfer > 0 ? xfer : err;
+	return xfer > 0 ? (snd_pcm_sframes_t) xfer : err;
 }
 
 snd_pcm_uframes_t _snd_pcm_mmap_hw_ptr(snd_pcm_t *pcm)

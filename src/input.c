@@ -128,14 +128,14 @@ static int snd_input_stdio_close(snd_input_t *input ATTRIBUTE_UNUSED)
 static int snd_input_stdio_scanf(snd_input_t *input, const char *format, va_list args)
 {
 	snd_input_stdio_t *stdio = input->private_data;
-	extern int vfscanf(FILE *fp, const char *format, va_list args);
+	extern int vfscanf(FILE *, const char *, va_list);
 	return vfscanf(stdio->fp, format, args);
 }
 
 static char *snd_input_stdio_gets(snd_input_t *input, char *str, size_t size)
 {
 	snd_input_stdio_t *stdio = input->private_data;
-	return fgets(str, size, stdio->fp);
+	return fgets(str, (int) size, stdio->fp);
 }
 			
 static int snd_input_stdio_getc(snd_input_t *input)
@@ -166,7 +166,7 @@ static snd_input_ops_t snd_input_stdio_ops = {
  * \param close Close flag (1 if FILE is fclose'd when input handle is closed)
  * \return 0 on success otherwise a negative error code
  */
-int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int close)
+int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int _close)
 {
 	snd_input_t *input;
 	snd_input_stdio_t *stdio;
@@ -180,7 +180,7 @@ int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int close)
 		return -ENOMEM;
 	}
 	stdio->fp = fp;
-	stdio->close = close;
+	stdio->close = _close;
 	input->type = SND_INPUT_STDIO;
 	input->ops = &snd_input_stdio_ops;
 	input->private_data = stdio;
@@ -228,7 +228,7 @@ static int snd_input_buffer_close(snd_input_t *input)
 static int snd_input_buffer_scanf(snd_input_t *input, const char *format, va_list args)
 {
 	snd_input_buffer_t *buffer = input->private_data;
-	extern int vsscanf(const char *buf, const char *format, va_list args);
+	extern int vsscanf(const char *, const char *, va_list);
 	/* FIXME: how can I obtain consumed chars count? */
 	assert(0);
 	return vsscanf(buffer->ptr, format, args);
@@ -288,7 +288,7 @@ static snd_input_ops_t snd_input_buffer_ops = {
  * \param size Buffer size
  * \return 0 on success otherwise a negative error code
  */
-int snd_input_buffer_open(snd_input_t **inputp, const char *buf, int size)
+int snd_input_buffer_open(snd_input_t **inputp, const char *buf, ssize_t size)
 {
 	snd_input_t *input;
 	snd_input_buffer_t *buffer;
@@ -303,13 +303,13 @@ int snd_input_buffer_open(snd_input_t **inputp, const char *buf, int size)
 	}
 	if (size < 0)
 		size = strlen(buf);
-	buffer->buf = malloc(size+1);
+	buffer->buf = malloc((size_t)size + 1);
 	if (!buffer->buf) {
 		free(input);
 		free(buffer);
 		return -ENOMEM;
 	}
-	memcpy(buffer->buf, buf, size);
+	memcpy(buffer->buf, buf, (size_t) size);
 	buffer->buf[size] = 0;
 	buffer->ptr = buffer->buf;
 	buffer->size = size;

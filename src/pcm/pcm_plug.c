@@ -273,7 +273,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 				s = 0;
 		}
 	}
-	err = snd_pcm_route_open(new, NULL, slv->format, slv->channels, ttable, tt_ssize, tt_cused, tt_sused, plug->slave, plug->slave != plug->req_slave);
+	err = snd_pcm_route_open(new, NULL, slv->format, (int) slv->channels, ttable, tt_ssize, tt_cused, tt_sused, plug->slave, plug->slave != plug->req_slave);
 	if (err < 0)
 		return err;
 	slv->channels = clt->channels;
@@ -288,7 +288,7 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 	snd_pcm_plug_t *plug = pcm->private_data;
 	int err;
 	snd_pcm_format_t cfmt;
-	int (*f)(snd_pcm_t **pcm, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+	int (*f)(snd_pcm_t **_pcm, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
 	if (snd_pcm_format_linear(slv->format)) {
 		/* Conversion is done in another plugin */
 		if (clt->format == slv->format ||
@@ -362,7 +362,7 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 				       snd_pcm_plug_params_t *slave)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
-	int (*funcs[])(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *s, snd_pcm_plug_params_t *d) = {
+	int (*funcs[])(snd_pcm_t *_pcm, snd_pcm_t **new, snd_pcm_plug_params_t *s, snd_pcm_plug_params_t *d) = {
 		snd_pcm_plug_change_format,
 		snd_pcm_plug_change_channels,
 		snd_pcm_plug_change_rate,

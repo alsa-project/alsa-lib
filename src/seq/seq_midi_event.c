@@ -25,11 +25,11 @@
 
 /* midi status */
 struct snd_midi_event {
-	int qlen;	/* queue length */
-	int read;	/* chars read */
+	size_t qlen;	/* queue length */
+	size_t read;	/* chars read */
 	int type;	/* current event type */
 	unsigned char lastcmd;
-	int bufsize;
+	size_t bufsize;
 	unsigned char *buf;	/* input buffer */
 };
 
@@ -116,7 +116,7 @@ static struct extra_event_list_t {
  *  new/delete record
  */
 
-int snd_midi_event_new(int bufsize, snd_midi_event_t **rdev)
+int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 {
 	snd_midi_event_t *dev;
 
@@ -174,7 +174,7 @@ void snd_midi_event_init(snd_midi_event_t *dev)
 /*
  * resize buffer
  */
-int snd_midi_event_resize_buffer(snd_midi_event_t *dev, int bufsize)
+int snd_midi_event_resize_buffer(snd_midi_event_t *dev, size_t bufsize)
 {
 	unsigned char *new_buf, *old_buf;
 
