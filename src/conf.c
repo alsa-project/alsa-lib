@@ -2642,6 +2642,10 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 	if (!func_name) {
 		int len = 16 + strlen(str) + 1;
 		buf = malloc(len);
+		if (! buf) {
+			err = -ENOMEM;
+			goto _err;
+		}
 		snprintf(buf, len, "snd_config_hook_%s", str);
 		buf[len-1] = '\0';
 		func_name = buf;
@@ -3423,6 +3427,10 @@ static int _snd_config_evaluate(snd_config_t *src,
 		if (!func_name) {
 			int len = 9 + strlen(str) + 1;
 			buf = malloc(len);
+			if (! buf) {
+				err = -ENOMEM;
+				goto _err;
+			}
 			snprintf(buf, len, "snd_func_%s", str);
 			buf[len-1] = '\0';
 			func_name = buf;

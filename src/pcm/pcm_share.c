@@ -1630,6 +1630,10 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		goto _free;
 	}
 	channels_map = calloc(channels, sizeof(*channels_map));
+	if (! channels_map) {
+		err = -ENOMEM;
+		goto _free;
+	}
 
 	snd_config_for_each(i, next, bindings) {
 		snd_config_t *n = snd_config_iterator_entry(i);

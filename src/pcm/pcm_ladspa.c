@@ -771,6 +771,8 @@ static int snd_pcm_ladspa_check_dir(snd_pcm_ladspa_plugin_t * const plugin,
 		}
 		
 		filename = malloc(len + strlen(dirent->d_name) + 1 + need_slash);
+		if (filename == NULL)
+			return -ENOMEM;
 		strcpy(filename, path);
 		if (need_slash)
 			strcat(filename, "/");
@@ -880,6 +882,8 @@ static int snd_pcm_ladspa_parse_ioconfig(snd_pcm_ladspa_plugin_t *lplug,
 		}
 		if (count > 0) {
 			array = (unsigned int *)calloc(count, sizeof(unsigned int));
+			if (! array)
+				return -ENOMEM;
 			memset(array, 0xff, count * sizeof(unsigned int));
 			io->port_bindings_size = count;
 			io->port_bindings = array;
@@ -928,6 +932,8 @@ static int snd_pcm_ladspa_parse_ioconfig(snd_pcm_ladspa_plugin_t *lplug,
 			if ((lplug->desc->PortDescriptors[idx] & (io->pdesc | LADSPA_PORT_CONTROL)) == (io->pdesc | LADSPA_PORT_CONTROL))
 				count++;
 		array = (LADSPA_Data *)calloc(count, sizeof(LADSPA_Data));
+		if (!array)
+			return -ENOMEM;
 		io->controls_size = count;
 		io->controls = array;
 		snd_config_for_each(i, next, controls) {

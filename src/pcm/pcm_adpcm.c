@@ -439,6 +439,8 @@ static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	}
 	assert(!adpcm->states);
 	adpcm->states = malloc(adpcm->plug.slave->channels * sizeof(*adpcm->states));
+	if (adpcm->states == NULL)
+		return -ENOMEM;
 	return 0;
 }
 

@@ -923,6 +923,8 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg)
 		return -EINVAL;
 	}
 	dmix->bindings = malloc(count * sizeof(unsigned int));
+	if (dmix->bindings == NULL)
+		return -ENOMEM;
 	for (chn = 0; chn < count; chn++)
 		dmix->bindings[chn] = UINT_MAX;		/* don't route */
 	snd_config_for_each(i, next, cfg) {

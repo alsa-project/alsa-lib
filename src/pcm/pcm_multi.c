@@ -696,8 +696,17 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	multi->slaves_count = slaves_count;
 	multi->master_slave = master_slave;
 	multi->slaves = calloc(slaves_count, sizeof(*multi->slaves));
+	if (!multi->slaves) {
+		free(multi);
+		return -ENOMEM;
+	}
 	multi->channels_count = channels_count;
 	multi->channels = calloc(channels_count, sizeof(*multi->channels));
+	if (!multi->channels) {
+		free(multi->slaves);
+		free(multi->channels);
+		return -ENOMEM;
+	}
 	for (i = 0; i < slaves_count; ++i) {
 		snd_pcm_multi_slave_t *slave = &multi->slaves[i];
 		assert(slaves_pcm[i]->stream == stream);
@@ -914,6 +923,11 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	slaves_channels = calloc(slaves_count, sizeof(*slaves_channels));
 	channels_sidx = calloc(channels_count, sizeof(*channels_sidx));
 	channels_schannel = calloc(channels_count, sizeof(*channels_schannel));
+	if (!slaves_id || !slaves_conf || !slaves_pcm || !slaves_channels ||
+	    !channels_sidx || !channels_schannel) {
+		err = -ENOMEM;
+		goto _free;
+	}
 	idx = 0;
 	for (idx = 0; idx < channels_count; ++idx)
 		channels_sidx[idx] = -1;
@@ -1036,6 +1050,8 @@ _free:
 		free(channels_sidx);
 	if (channels_schannel)
 		free(channels_schannel);
+	if (slaves_id)
+		free(slaves_id);
 	return err;
 }
 #ifndef DOC_HIDDEN
