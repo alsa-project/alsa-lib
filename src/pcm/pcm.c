@@ -736,6 +736,62 @@ _free:
 	return err;
 }
 
+static int _snd_pcm_open_client(snd_pcm_t **handlep, snd_config_t *conf, 
+				int stream, int mode)
+{
+	snd_config_iterator_t i;
+	char *socket = NULL;
+	char *name = NULL;
+	char *host = NULL;
+	long port = -1;
+	int err;
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "type") == 0)
+			continue;
+		if (strcmp(n->id, "stream") == 0)
+			continue;
+		if (strcmp(n->id, "socket") == 0) {
+			err = snd_config_string_get(n, &socket);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		if (strcmp(n->id, "host") == 0) {
+			err = snd_config_string_get(n, &host);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		if (strcmp(n->id, "port") == 0) {
+			err = snd_config_integer_get(n, &port);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		if (strcmp(n->id, "name") == 0) {
+			err = snd_config_string_get(n, &name);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		return -EINVAL;
+	}
+	if (!name)
+		return -EINVAL;
+	if (socket) {
+		if (port >= 0 || host)
+			return -EINVAL;
+		return snd_pcm_client_create(handlep, socket, -1, SND_TRANSPORT_TYPE_SHM, name, stream, mode);
+	} else  {
+		if (port < 0 || !name)
+			return -EINVAL;
+		return snd_pcm_client_create(handlep, host, port, SND_TRANSPORT_TYPE_SHM, name, stream, mode);
+	}
+}
+				
 int snd_pcm_open(snd_pcm_t **handlep, char *name, 
 		 int stream, int mode)
 {
@@ -777,6 +833,8 @@ int snd_pcm_open(snd_pcm_t **handlep, char *name,
 		return _snd_pcm_open_plug(handlep, pcm_conf, stream, mode);
 	else if (strcmp(str, "multi") == 0)
 		return _snd_pcm_open_multi(handlep, pcm_conf, stream, mode);
+	else if (strcmp(str, "client") == 0)
+		return _snd_pcm_open_client(handlep, pcm_conf, stream, mode);
 	else
 		return -EINVAL;
 }

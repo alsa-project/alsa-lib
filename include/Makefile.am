@@ -6,7 +6,7 @@ sysinclude_HEADERS = asoundlib.h
 header_files=header.h version.h error.h control.h mixer.h pcm.h rawmidi.h \
              timer.h hwdep.h seq.h seqmid.h conv.h instr.h conf.h footer.h
 
-noinst_HEADERS=$(header_files) search.h
+noinst_HEADERS=$(header_files) search.h list.h aserver.h
 
 asoundlib.h: $(header_files)
 	cat $^ > $@

@@ -292,9 +292,9 @@ ssize_t snd_pcm_hw_readv(void *private, snd_timestamp_t *tstamp, const struct io
 
 static int snd_pcm_hw_mmap_status(void *private, snd_pcm_mmap_status_t **status)
 {
-	void *ptr;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
-	ptr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ, MAP_FILE|MAP_SHARED, 
+	void *ptr;
+	ptr = mmap(NULL, sizeof(snd_pcm_mmap_status_t), PROT_READ, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_STATUS);
 	if (ptr == MAP_FAILED || ptr == NULL)
 		return -errno;
@@ -304,8 +304,8 @@ static int snd_pcm_hw_mmap_status(void *private, snd_pcm_mmap_status_t **status)
 
 static int snd_pcm_hw_mmap_control(void *private, snd_pcm_mmap_control_t **control)
 {
-	void *ptr;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	void *ptr;
 	ptr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_CONTROL);
 	if (ptr == MAP_FAILED || ptr == NULL)
@@ -316,15 +316,15 @@ static int snd_pcm_hw_mmap_control(void *private, snd_pcm_mmap_control_t **contr
 
 static int snd_pcm_hw_mmap_data(void *private, void **buffer, size_t bsize)
 {
-	int prot;
-	void *daddr;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	void *ptr;
+	int prot;
 	prot = hw->handle->stream == SND_PCM_STREAM_PLAYBACK ? PROT_WRITE : PROT_READ;
-	daddr = mmap(NULL, bsize, prot, MAP_FILE|MAP_SHARED, 
+	ptr = mmap(NULL, bsize, prot, MAP_FILE|MAP_SHARED, 
 		     hw->fd, SND_PCM_MMAP_OFFSET_DATA);
-	if (daddr == MAP_FAILED || daddr == NULL)
+	if (ptr == MAP_FAILED || ptr == NULL)
 		return -errno;
-	*buffer = daddr;
+	*buffer = ptr;
 	return 0;
 }
 

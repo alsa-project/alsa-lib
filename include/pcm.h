@@ -98,28 +98,7 @@ static inline size_t bitset_count(bitset_t *bitset, size_t nbits)
 typedef struct snd_pcm snd_pcm_t;
 typedef struct snd_pcm_loopback snd_pcm_loopback_t;
 
-typedef enum { SND_PCM_TYPE_HW, SND_PCM_TYPE_PLUG, SND_PCM_TYPE_MULTI } snd_pcm_type_t;
-
-#if 0
-typedef struct {
-	snd_pcm_t *handle;
-	snd_timestamp_t tstamp;
-	int result;
-	union {
-		char reserved[256];
-	} arg;
-} snd_pcm_synchro_request_t;
-
-typedef enum { SND_PCM_SYNCHRO_GO } snd_pcm_synchro_cmd_t;
-
-#define snd_pcm_synchro_mode_t snd_pcm_sync_mode_t
-#define SND_PCM_SYNCHRO_MODE_NORMAL SND_PCM_SYNC_MODE_NORMAL
-#define SND_PCM_SYNCHRO_MODE_HARDWARE SND_PCM_SYNC_MODE_HARDWARE
-#define SND_PCM_SYNCHRO_MODE_RELAXED SND_PCM_SYNC_MODE_RELAXED
-int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd, 
-		    unsigned int reqs_count, snd_pcm_synchro_request_t *reqs,
-		    snd_pcm_synchro_mode_t mode);
-#endif
+typedef enum { SND_PCM_TYPE_HW, SND_PCM_TYPE_PLUG, SND_PCM_TYPE_MULTI, SND_PCM_TYPE_CLIENT } snd_pcm_type_t;
 
 
 int snd_pcm_open(snd_pcm_t **handle, char *name, 
@@ -383,6 +362,8 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 			 size_t binds_count,  unsigned int *binds_client_channel,
 			 unsigned int *binds_slave, unsigned int *binds_slave_channel,
 			 int close_slaves);
+
+int snd_pcm_client_create(snd_pcm_t **handlep, char *host, int port, int transport, char *name, int stream, int mode);
 
 #ifdef __cplusplus
 }
