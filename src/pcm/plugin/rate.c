@@ -234,66 +234,6 @@ static void resample8_shrink(struct rate_private_data *data, int voices,
 	}
 }
 
-static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
-			     char *src_ptr, size_t src_size,
-			     char *dst_ptr, size_t dst_size)
-{
-	struct rate_private_data *data;
-
-	if (plugin == NULL || src_ptr == NULL || src_size < 0 ||
-	                      dst_ptr == NULL || dst_size < 0)
-		return -EINVAL;
-	if (src_size == 0)
-		return 0;
-	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data == NULL)
-		return -EINVAL;
-	if (data->sample_size == 2) {
-		if (data->src_rate < data->dst_rate) {
-			resample16_expand(data, data->src_voices,
-				     (signed short *)src_ptr, src_size / (data->src_voices * 2),
-				     (signed short *)dst_ptr, dst_size / (data->dst_voices * 2));
-		} else {
-			resample16_shrink(data, data->src_voices,
-				     (signed short *)src_ptr, src_size / (data->src_voices * 2),
-				     (signed short *)dst_ptr, dst_size / (data->dst_voices * 2));
-		}
-	} else {
-		if (data->src_rate < data->dst_rate) {
-			resample8_expand(data, data->src_voices,
-				    src_ptr, src_size / data->src_voices,
-				    dst_ptr, dst_size / data->dst_voices);
-		} else {
-			resample8_shrink(data, data->src_voices,
-				    src_ptr, src_size / data->src_voices,
-				    dst_ptr, dst_size / data->dst_voices);
-		}
-	}
-	return dst_size / (data->sample_size * data->src_voices) * (data->sample_size * data->src_voices);
-}
-
-static int rate_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
-{
-	struct rate_private_data *data;
-	int voice;
-
-	if (plugin == NULL)
-		return -EINVAL;
-	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
-	switch (action) {
-	case INIT:
-	case PREPARE:
-	case DRAIN:
-	case FLUSH:
-		data->pos = 0;
-		for (voice = 0; voice < data->src_voices; ++voice) {
-			data->last_S1[voice] = data->last_S2[voice] = 0;
-		}
-		break;
-	}
-	return 0;	/* silenty ignore other actions */
-}
-
 static ssize_t rate_src_size(snd_pcm_plugin_t *plugin, size_t size)
 {
 	struct rate_private_data *data;
@@ -356,6 +296,66 @@ static ssize_t rate_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 	data->old_dst_size = size;
 	data->old_src_size = res;
 	return res;
+}
+
+static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
+			     char *src_ptr, size_t src_size,
+			     char *dst_ptr, size_t dst_size)
+{
+	struct rate_private_data *data;
+
+	if (plugin == NULL || src_ptr == NULL || src_size < 0 ||
+	                      dst_ptr == NULL || dst_size < 0)
+		return -EINVAL;
+	if (src_size == 0)
+		return 0;
+	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
+	if (data == NULL)
+		return -EINVAL;
+	if (data->sample_size == 2) {
+		if (data->src_rate < data->dst_rate) {
+			resample16_expand(data, data->src_voices,
+				     (signed short *)src_ptr, src_size / (data->src_voices * 2),
+				     (signed short *)dst_ptr, dst_size / (data->dst_voices * 2));
+		} else {
+			resample16_shrink(data, data->src_voices,
+				     (signed short *)src_ptr, src_size / (data->src_voices * 2),
+				     (signed short *)dst_ptr, dst_size / (data->dst_voices * 2));
+		}
+	} else {
+		if (data->src_rate < data->dst_rate) {
+			resample8_expand(data, data->src_voices,
+				    src_ptr, src_size / data->src_voices,
+				    dst_ptr, dst_size / data->dst_voices);
+		} else {
+			resample8_shrink(data, data->src_voices,
+				    src_ptr, src_size / data->src_voices,
+				    dst_ptr, dst_size / data->dst_voices);
+		}
+	}
+	return rate_dst_size(plugin, src_size);
+}
+
+static int rate_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
+{
+	struct rate_private_data *data;
+	int voice;
+
+	if (plugin == NULL)
+		return -EINVAL;
+	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
+	switch (action) {
+	case INIT:
+	case PREPARE:
+	case DRAIN:
+	case FLUSH:
+		data->pos = 0;
+		for (voice = 0; voice < data->src_voices; ++voice) {
+			data->last_S1[voice] = data->last_S2[voice] = 0;
+		}
+		break;
+	}
+	return 0;	/* silenty ignore other actions */
 }
 
 int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
