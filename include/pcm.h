@@ -293,7 +293,7 @@ int snd_pcm_plugin_build(snd_pcm_plugin_handle_t *handle,
 			 const char *name,
 			 snd_pcm_format_t *src_format,
 			 snd_pcm_format_t *dst_format,
-			 int extra,
+			 size_t extra,
 			 snd_pcm_plugin_t **ret);
 /* basic I/O */
 int snd_pcm_plugin_build_io(snd_pcm_plugin_handle_t *handle,
