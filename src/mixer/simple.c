@@ -873,6 +873,15 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 	} else {
 		simple = melem->private_data;
 	}
+	if (simple->ctls[type].elem) {
+		SNDERR("helem (%s,'%s',%li,%li,%li) appears twice or more",
+				snd_ctl_elem_iface_name(snd_hctl_elem_get_interface(helem)),
+				snd_hctl_elem_get_name(helem),
+				snd_hctl_elem_get_index(helem),
+				snd_hctl_elem_get_device(helem),
+				snd_hctl_elem_get_subdevice(helem));
+		return -EINVAL;
+	}
 	simple->ctls[type].elem = helem;
 	simple->ctls[type].type = info.type;
 	simple->ctls[type].access = info.access;
