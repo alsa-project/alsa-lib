@@ -134,6 +134,8 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
+			err = -EINVAL;
+			goto _err;
 		}
 	}
 	if (!open_name) {

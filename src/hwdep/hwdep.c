@@ -119,6 +119,7 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 	h = snd_dlopen(lib, RTLD_NOW);
 	if (h)
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_HWDEP_DLSYM_VERSION));
+	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		err = -ENOENT;
@@ -130,11 +131,7 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
        _err:
 	if (type_conf)
 		snd_config_delete(type_conf);
-	if (err >= 0)
-		err = open_func(hwdep, name, hwdep_root, hwdep_conf, mode);
-	if (err < 0)
-		return err;
-	return 0;
+	return err >= 0 ? open_func(hwdep, name, hwdep_root, hwdep_conf, mode) : err;
 }
 
 static int snd_hwdep_open_noupdate(snd_hwdep_t **hwdep, snd_config_t *root, const char *name, int mode)

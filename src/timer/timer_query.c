@@ -117,6 +117,7 @@ static int snd_timer_query_open_conf(snd_timer_query_t **timer,
 	h = snd_dlopen(lib, RTLD_NOW);
 	if (h)
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_TIMER_QUERY_DLSYM_VERSION));
+	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		err = -ENOENT;
@@ -128,11 +129,7 @@ static int snd_timer_query_open_conf(snd_timer_query_t **timer,
        _err:
 	if (type_conf)
 		snd_config_delete(type_conf);
-	if (err >= 0)
-		err = open_func(timer, name, timer_root, timer_conf, mode);
-	if (err < 0)
-		return err;
-	return 0;
+	return err >= 0 ? open_func(timer, name, timer_root, timer_conf, mode) : err;
 }
 
 static int snd_timer_query_open_noupdate(snd_timer_query_t **timer, snd_config_t *root, const char *name, int mode)
