@@ -819,6 +819,16 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	int err;
 	assert(pcm->setup);		/* the hw_params must be set at first!!! */
+	if (params->start_threshold <= pcm->buffer_size &&
+	    params->start_threshold > (pcm->buffer_size / params->avail_min) * params->avail_min) {
+		SNDERR("snd_pcm_sw_params: params->avail_min problem for start_threshold");
+		return -EINVAL;
+	}
+	if (params->start_threshold <= pcm->buffer_size &&
+	    params->start_threshold > (pcm->buffer_size / params->xfer_align) * params->xfer_align) {
+		SNDERR("snd_pcm_sw_params: params->xfer_align problem for start_threshold");
+		return -EINVAL;
+	}
 	err = pcm->ops->sw_params(pcm->op_arg, params);
 	if (err < 0)
 		return err;
@@ -6041,8 +6051,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			err = snd_pcm_wait(pcm, -1);
 			if (err < 0)
 				break;
-			goto _again;
-			
+			goto _again;			
 		}
 		if ((snd_pcm_uframes_t) avail > pcm->xfer_align)
 			avail -= avail % pcm->xfer_align;
