@@ -132,7 +132,7 @@ typedef struct _snd_output_stdio {
 	FILE *fp;
 } snd_output_stdio_t;
 
-static int snd_output_stdio_close(snd_output_t *output ATTRIBUTE_UNUSED)
+static int snd_output_stdio_close(snd_output_t *output)
 {
 	snd_output_stdio_t *stdio = output->private_data;
 	if (stdio->close)
