@@ -50,6 +50,10 @@ int snd_ctl_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info);
 
 int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks);
 
+#ifdef __cplusplus
+}
+#endif
+
 /*
  *  Highlevel API for controls
  */
@@ -86,12 +90,21 @@ struct snd_hcontrol_stru {
 	snd_ctl_t *handle;	/* associated handle */
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef int (snd_ctl_hsort_t)(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2);
-typedef int (snd_ctl_hcallback_rebuild_t)(snd_ctl_t *handle, void *private_data);
-typedef int (snd_ctl_hcallback_add_t)(snd_ctl_t *handle, void *private_data, snd_hcontrol_t *hcontrol);
+typedef void (snd_ctl_hcallback_rebuild_t)(snd_ctl_t *handle, void *private_data);
+typedef void (snd_ctl_hcallback_add_t)(snd_ctl_t *handle, void *private_data, snd_hcontrol_t *hcontrol);
 
 int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t *csort);
 int snd_ctl_hfree(snd_ctl_t *handle);
+snd_hcontrol_t *snd_ctl_hfirst(snd_ctl_t *handle);
+snd_hcontrol_t *snd_ctl_hlast(snd_ctl_t *handle);
+snd_hcontrol_t *snd_ctl_hnext(snd_ctl_t *handle, snd_hcontrol_t *hcontrol);
+snd_hcontrol_t *snd_ctl_hprev(snd_ctl_t *handle, snd_hcontrol_t *hcontrol);
+int snd_ctl_hcount(snd_ctl_t *handle);
 snd_hcontrol_t *snd_ctl_hfind(snd_ctl_t *handle, snd_control_id_t *id);
 int snd_ctl_hlist(snd_ctl_t *handle, snd_hcontrol_list_t *hlist);
 int snd_ctl_hsort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2);

@@ -190,6 +190,44 @@ int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t *hsort)
 	return 0;
 }
 
+snd_hcontrol_t *snd_ctl_hfirst(snd_ctl_t *handle)
+{
+	assert(handle != NULL);
+	if (list_empty(&handle->hlist))
+		return NULL;
+	return (snd_hcontrol_t *)list_entry(handle->hlist.next, snd_hcontrol_t, list);
+}
+
+snd_hcontrol_t *snd_ctl_hlast(snd_ctl_t *handle)
+{
+	assert(handle != NULL);
+	if (list_empty(&handle->hlist))
+		return NULL;
+	return (snd_hcontrol_t *)list_entry(handle->hlist.prev, snd_hcontrol_t, list);
+}
+
+snd_hcontrol_t *snd_ctl_hnext(snd_ctl_t *handle, snd_hcontrol_t *hcontrol)
+{
+	assert(handle != NULL && hcontrol != NULL);
+	if (hcontrol->list.next == &handle->hlist)
+		return NULL;
+	return (snd_hcontrol_t *)list_entry(hcontrol->list.next, snd_hcontrol_t, list);
+}
+
+snd_hcontrol_t *snd_ctl_hprev(snd_ctl_t *handle, snd_hcontrol_t *hcontrol)
+{
+	assert(handle != NULL && hcontrol != NULL);
+	if (hcontrol->list.prev == &handle->hlist)
+		return NULL;
+	return (snd_hcontrol_t *)list_entry(hcontrol->list.prev, snd_hcontrol_t, list);
+}
+
+int snd_ctl_hcount(snd_ctl_t *handle)
+{
+	assert(handle != NULL);
+	return handle->hcount;
+}
+
 snd_hcontrol_t *snd_ctl_hfind(snd_ctl_t *handle, snd_control_id_t *id)
 {
 	void *res;
