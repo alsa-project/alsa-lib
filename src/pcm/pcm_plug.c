@@ -44,6 +44,7 @@ typedef struct {
 	int srate;
 	enum snd_pcm_plug_route_policy route_policy;
 	snd_pcm_route_ttable_entry_t *ttable;
+	int ttable_ok;
 	unsigned int tt_ssize, tt_cused, tt_sused;
 } snd_pcm_plug_t;
 
@@ -242,7 +243,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 	snd_pcm_route_ttable_entry_t *ttable;
 	int err;
 	assert(snd_pcm_format_linear(slv->format));
-	if (clt->channels == slv->channels)
+	if (clt->channels == slv->channels && !plug->ttable)
 		return 0;
 	if (clt->rate != slv->rate &&
 	    clt->channels > slv->channels)
@@ -265,6 +266,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 				ttable[c * tt_ssize + s] = v;
 			}
 		}
+		plug->ttable_ok = 1;
 	} else {
 		unsigned int k;
 		unsigned int c = 0, s = 0;
@@ -424,6 +426,7 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 	};
 	snd_pcm_plug_params_t p = *slave;
 	unsigned int k = 0;
+	plug->ttable_ok = 0;
 	while (client->format != p.format ||
 	       client->channels != p.channels ||
 	       client->rate != p.rate ||
@@ -442,6 +445,21 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 			pcm->fast_op_arg = new->fast_op_arg;
 		}
 		k++;
+	}
+	/* it's exception, user specified ttable, but no reduction/expand */
+	if (plug->ttable && !plug->ttable_ok) {
+		snd_pcm_t *new;
+		int err;
+		err = snd_pcm_plug_change_channels(pcm, &new, client, &p);
+		if (err < 0) {
+			snd_pcm_plug_clear(pcm);
+			return err;
+		}
+		assert(err);
+		assert(plug->ttable_ok);
+		plug->slave = new;
+		pcm->fast_ops = new->fast_ops;
+		pcm->fast_op_arg = new->fast_op_arg;
 	}
 	return 0;
 }
@@ -676,6 +694,7 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (!(clt_params.format == slv_params.format &&
 	      clt_params.channels == slv_params.channels &&
 	      clt_params.rate == slv_params.rate &&
+	      !plug->ttable &&
 	      snd_pcm_hw_params_test_access(slave, &sparams,
 					    clt_params.access) >= 0)) {
 		slv_params.access = snd_pcm_hw_params_set_access_first(slave, &sparams);
