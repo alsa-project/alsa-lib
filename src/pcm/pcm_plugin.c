@@ -210,20 +210,20 @@ double snd_pcm_plugin_transfer_ratio(snd_pcm_t *pcm, int channel)
 {
 	ssize_t transfer;
 
-	transfer = snd_pcm_plugin_transfer_size(pcm, channel, 100000);
+	transfer = snd_pcm_plugin_transfer_size(pcm, channel, 1000000);
 	if (transfer < 0)
 		return 0;
-	return (double)transfer / (double)100000;
+	return (double)transfer / (double)1000000;
 }
 
 double snd_pcm_plugin_hardware_ratio(snd_pcm_t *pcm, int channel)
 {
 	ssize_t hardware;
 
-	hardware = snd_pcm_plugin_hardware_size(pcm, channel, 100000);
+	hardware = snd_pcm_plugin_hardware_size(pcm, channel, 1000000);
 	if (hardware < 0)
 		return 0;
-	return (double)hardware / (double)100000;
+	return (double)hardware / (double)1000000;
 }
 
 /*
@@ -233,10 +233,10 @@ double snd_pcm_plugin_hardware_ratio(snd_pcm_t *pcm, int channel)
 static unsigned int snd_pcm_plugin_formats(snd_pcm_t *pcm, unsigned int formats)
 {
 	formats |= SND_PCM_FMT_MU_LAW;
-	if (formats & (SND_PCM_SFMT_U8|SND_PCM_SFMT_S8|
-		       SND_PCM_SFMT_U16_LE|SND_PCM_SFMT_S16_LE))
-		formats |= SND_PCM_SFMT_U8|SND_PCM_SFMT_S8|
-			   SND_PCM_SFMT_U16_LE|SND_PCM_SFMT_S16_LE;
+	if (formats & (SND_PCM_FMT_U8|SND_PCM_FMT_S8|
+		       SND_PCM_FMT_U16_LE|SND_PCM_FMT_S16_LE))
+		formats |= SND_PCM_FMT_U8|SND_PCM_FMT_S8|
+			   SND_PCM_FMT_U16_LE|SND_PCM_FMT_S16_LE;
 	return formats;
 }
 
