@@ -788,6 +788,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	}
 	pcm->poll_fd = err;
+	pcm->poll_events = stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
 	snd_pcm_set_hw_ptr(pcm, &ctrl->hw.ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &ctrl->appl.ptr, -1, 0);
 	*pcmp = pcm;

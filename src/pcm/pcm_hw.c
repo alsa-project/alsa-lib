@@ -898,6 +898,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	pcm->fast_ops = &snd_pcm_hw_fast_ops;
 	pcm->private_data = hw;
 	pcm->poll_fd = fd;
+	pcm->poll_events = info.stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
 
 	*pcmp = pcm;
 

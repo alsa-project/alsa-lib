@@ -812,6 +812,7 @@ int snd_pcm_hw_free(snd_pcm_t *pcm)
 int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	int err;
+	assert(pcm->setup);		/* the hw_params must be set at first!!! */
 	err = pcm->ops->sw_params(pcm->op_arg, params);
 	if (err < 0)
 		return err;
@@ -1169,9 +1170,10 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 	assert(pcm && pfds);
 	if (space >= 1 && pfds) {
 		pfds->fd = pcm->poll_fd;
-		pfds->events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? (POLLOUT|POLLERR|POLLNVAL) : (POLLIN|POLLERR|POLLNVAL);
-	} else
+		pfds->events = pcm->poll_events | POLLERR | POLLNVAL;
+	} else {
 		return 0;
+	}
 	return 1;
 }
 
@@ -1186,6 +1188,8 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
 	assert(pcm && pfds && revents);
+	if (pcm->ops->poll_revents)
+		return pcm->ops->poll_revents(pcm, pfds, nfds, revents);
 	if (nfds == 1) {
 		*revents = pfds->revents;
 		return 0;
@@ -1903,12 +1907,18 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
 	struct pollfd pfd;
+	unsigned short revents;
 	int err;
 	err = snd_pcm_poll_descriptors(pcm, &pfd, 1);
 	assert(err == 1);
 	err = poll(&pfd, 1, timeout);
 	if (err < 0)
 		return -errno;
+	err = snd_pcm_poll_descriptors_revents(pcm, &pfd, 1, &revents);
+	if (err < 0)
+		return err;
+	if (revents & (POLLERR | POLLNVAL))
+		return -EIO;
 	return err > 0 ? 1 : 0;
 }
 

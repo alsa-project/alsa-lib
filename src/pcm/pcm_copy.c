@@ -163,6 +163,7 @@ static snd_pcm_ops_t snd_pcm_copy_ops = {
 	dump: snd_pcm_copy_dump,
 	nonblock: snd_pcm_plugin_nonblock,
 	async: snd_pcm_plugin_async,
+	poll_revents: snd_pcm_plugin_poll_revents,
 	mmap: snd_pcm_plugin_mmap,
 	munmap: snd_pcm_plugin_munmap,
 };

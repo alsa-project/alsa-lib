@@ -92,6 +92,12 @@ static int snd_pcm_plug_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return snd_pcm_async(plug->slave, sig, pid);
 }
 
+static int snd_pcm_plug_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	snd_pcm_plug_t *plug = pcm->private_data;
+	return snd_pcm_poll_descriptors_revents(plug->slave, pfds, nfds, revents);
+}
+
 static int snd_pcm_plug_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
@@ -959,6 +965,7 @@ static snd_pcm_ops_t snd_pcm_plug_ops = {
 	dump: snd_pcm_plug_dump,
 	nonblock: snd_pcm_plug_nonblock,
 	async: snd_pcm_plug_async,
+	poll_revents: snd_pcm_plug_poll_revents,
 	mmap: snd_pcm_plug_mmap,
 	munmap: snd_pcm_plug_munmap,
 };
@@ -1013,6 +1020,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	pcm->fast_op_arg = slave->fast_op_arg;
 	pcm->private_data = plug;
 	pcm->poll_fd = slave->poll_fd;
+	pcm->poll_events = slave->poll_events;
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;

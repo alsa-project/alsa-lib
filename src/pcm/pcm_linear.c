@@ -416,6 +416,7 @@ static snd_pcm_ops_t snd_pcm_linear_ops = {
 	dump: snd_pcm_linear_dump,
 	nonblock: snd_pcm_plugin_nonblock,
 	async: snd_pcm_plugin_async,
+	poll_revents: snd_pcm_plugin_poll_revents,
 	mmap: snd_pcm_plugin_mmap,
 	munmap: snd_pcm_plugin_munmap,
 };
@@ -463,6 +464,7 @@ int snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->private_data = linear;
 	pcm->poll_fd = slave->poll_fd;
+	pcm->poll_events = slave->poll_events;
 	snd_pcm_set_hw_ptr(pcm, &linear->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &linear->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;

@@ -158,6 +158,12 @@ int snd_pcm_plugin_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return snd_pcm_async(plugin->slave, sig, pid);
 }
 
+int snd_pcm_plugin_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	snd_pcm_plugin_t *plugin = pcm->private_data;
+	return snd_pcm_poll_descriptors_revents(plugin->slave, pfds, nfds, revents);
+}
+
 int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;

@@ -1020,6 +1020,9 @@ int snd_pcm_hw_param_never_eq(const snd_pcm_hw_params_t *params,
 	return -EINVAL;
 }
 
+#if 0
+#define CHOOSE_DEBUG
+#endif
 
 /* Choose one configuration from configuration space defined by PARAMS
    The configuration chosen is that obtained fixing in this order:
@@ -1035,6 +1038,12 @@ int snd_pcm_hw_param_never_eq(const snd_pcm_hw_params_t *params,
 static int snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	int err;
+#ifdef CHOOSE_DEBUG
+	snd_output_t *log;
+	snd_output_stdio_attach(&log, stderr, 0);
+	snd_output_printf(log, "CHOOSE called:\n");
+	snd_pcm_hw_params_dump(params, log);
+#endif
 
 	err = snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL, 0);
 	if (err < 0)
@@ -1063,6 +1072,11 @@ static int snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	err = snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, NULL, 0);
 	if (err < 0)
 		return err;
+#ifdef CHOOSE_DEBUG
+	snd_output_printf(log, "choose done\n");
+	snd_pcm_hw_params_dump(params, log);
+	snd_output_close(log);
+#endif
 	return 0;
 }
 
@@ -2204,6 +2218,7 @@ int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	res = pcm->ops->hw_refine(pcm->op_arg, params);
 #ifdef REFINE_DEBUG
 	snd_output_printf(log, "refine done - result = %i\n", res);
+	snd_pcm_hw_params_dump(params, log);
 	snd_output_close(log);
 #endif
 	return res;

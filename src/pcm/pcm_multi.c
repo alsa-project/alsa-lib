@@ -698,6 +698,7 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	pcm->fast_ops = &snd_pcm_multi_fast_ops;
 	pcm->private_data = multi;
 	pcm->poll_fd = multi->slaves[master_slave].pcm->poll_fd;
+	pcm->poll_events = multi->slaves[master_slave].pcm->poll_events;
 	snd_pcm_link_hw_ptr(pcm, multi->slaves[master_slave].pcm);
 	snd_pcm_link_appl_ptr(pcm, multi->slaves[master_slave].pcm);
 	*pcmp = pcm;

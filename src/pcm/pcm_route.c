@@ -732,6 +732,7 @@ static snd_pcm_ops_t snd_pcm_route_ops = {
 	dump: snd_pcm_route_dump,
 	nonblock: snd_pcm_plugin_nonblock,
 	async: snd_pcm_plugin_async,
+	poll_revents: snd_pcm_plugin_poll_revents,
 	mmap: snd_pcm_plugin_mmap,
 	munmap: snd_pcm_plugin_munmap,
 };
@@ -864,6 +865,7 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->private_data = route;
 	pcm->poll_fd = slave->poll_fd;
+	pcm->poll_events = slave->poll_events;
 	snd_pcm_set_hw_ptr(pcm, &route->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &route->plug.appl_ptr, -1, 0);
 	err = route_load_ttable(&route->params, pcm->stream, tt_ssize, ttable, tt_cused, tt_sused);

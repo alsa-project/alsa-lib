@@ -125,6 +125,7 @@ typedef struct {
 	int (*close)(snd_pcm_t *pcm);
 	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
 	int (*async)(snd_pcm_t *pcm, int sig, pid_t pid);
+	int (*poll_revents)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
 	int (*hw_refine)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 	int (*hw_params)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
@@ -164,6 +165,7 @@ struct _snd_pcm {
 	snd_pcm_stream_t stream;
 	int mode;
 	int poll_fd;
+	unsigned short poll_events;
 	int setup;
 	snd_pcm_access_t access;	/* access mode */
 	snd_pcm_format_t format;	/* SND_PCM_FORMAT_* */

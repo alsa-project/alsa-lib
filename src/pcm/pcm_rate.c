@@ -438,11 +438,39 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_t *slave = rate->plug.slave;
 	snd_pcm_sw_params_t sparams;
+	snd_pcm_uframes_t boundary1, boundary2;
+
 	sparams = *params;
+	if ((rate->pitch >= DIV ? 1 : 0) ^ (pcm->stream == SND_PCM_STREAM_CAPTURE ? 1 : 0)) {
+		boundary1 = pcm->buffer_size;
+		boundary2 = slave->buffer_size;
+		while (boundary2 * 2 <= LONG_MAX - slave->buffer_size) {
+			boundary1 *= 2;
+			boundary2 *= 2;
+		}
+	} else {
+		boundary1 = pcm->buffer_size;
+		boundary2 = slave->buffer_size;
+		while (boundary1 * 2 <= LONG_MAX - pcm->buffer_size) {
+			boundary1 *= 2;
+			boundary2 *= 2;
+		}
+	}
+	params->boundary = boundary1;
+	sparams.boundary = boundary2;
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		rate->pitch = (((u_int64_t)boundary2 * DIV) + boundary1 / 2) / boundary1;
+	} else {
+		rate->pitch = (((u_int64_t)boundary1 * DIV) + boundary2 / 2) / boundary2;
+	}
 	recalc(pcm, &sparams.avail_min);
 	recalc(pcm, &sparams.xfer_align);
 	recalc(pcm, &sparams.start_threshold);
-	recalc(pcm, &sparams.stop_threshold);
+	if (sparams.stop_threshold >= sparams.boundary) {
+		sparams.stop_threshold = sparams.boundary;
+	} else {
+		recalc(pcm, &sparams.stop_threshold);
+	}
 	recalc(pcm, &sparams.silence_threshold);
 	recalc(pcm, &sparams.silence_size);
 	return snd_pcm_sw_params(slave, &sparams);
@@ -548,6 +576,7 @@ static snd_pcm_ops_t snd_pcm_rate_ops = {
 	dump: snd_pcm_rate_dump,
 	nonblock: snd_pcm_plugin_nonblock,
 	async: snd_pcm_plugin_async,
+	poll_revents: snd_pcm_plugin_poll_revents,
 	mmap: snd_pcm_plugin_mmap,
 	munmap: snd_pcm_plugin_munmap,
 };
@@ -599,6 +628,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->private_data = rate;
 	pcm->poll_fd = slave->poll_fd;
+	pcm->poll_events = slave->poll_events;
 	snd_pcm_set_hw_ptr(pcm, &rate->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &rate->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;
