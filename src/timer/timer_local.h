@@ -52,6 +52,9 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 typedef struct {
 	int (*close)(snd_timer_query_t *timer);
 	int (*next_device)(snd_timer_query_t *timer, snd_timer_id_t *tid);
+	int (*info)(snd_timer_query_t *timer, snd_timer_ginfo_t *info);
+	int (*params)(snd_timer_query_t *timer, snd_timer_gparams_t *info);
+	int (*status)(snd_timer_query_t *timer, snd_timer_gstatus_t *info);
 } snd_timer_query_ops_t;
 
 struct _snd_timer_query {

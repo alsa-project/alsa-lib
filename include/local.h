@@ -80,6 +80,9 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #endif
 
 #define _snd_timer_id sndrv_timer_id
+#define _snd_timer_ginfo sndrv_timer_ginfo
+#define _snd_timer_gparams sndrv_timer_gparams
+#define _snd_timer_gstatus sndrv_timer_gstatus
 #define _snd_timer_select sndrv_timer_select
 #define _snd_timer_info sndrv_timer_info
 #define _snd_timer_params sndrv_timer_params

@@ -233,6 +233,15 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 		close(fd);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
+	if (mode & SND_TIMER_OPEN_TREAD) {
+		int arg = 1;
+		if (ioctl(fd, SNDRV_TIMER_IOCTL_TREAD, &arg) < 0) {
+			ret = -errno;
+			close(fd);
+			SNDERR("extended read is not supported (SNDRV_TIMER_IOCTL_TREAD)");
+			return ret;
+		}
+	}
 	memset(&sel, 0, sizeof(sel));
 	sel.id.dev_class = dev_class;
 	sel.id.dev_sclass = dev_sclass;

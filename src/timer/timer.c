@@ -466,16 +466,6 @@ const char *snd_timer_info_get_name(snd_timer_info_t * info)
 	return info->name;
 }
 
-/**
- * \brief get maximum timer ticks
- * \param info pointer to #snd_timer_info_t structure
- * \return maximum timer ticks
- */
-long snd_timer_info_get_ticks(snd_timer_info_t * info)
-{
-	assert(info);
-	return info->ticks;
-}
 
 /**
  * \brief get timer resolution in us
@@ -576,6 +566,40 @@ int snd_timer_params_get_auto_start(snd_timer_params_t * params)
 }
 
 /**
+ * \brief set timer exclusive use
+ * \param params pointer to #snd_timer_params_t structure
+ */
+#ifndef DOXYGEN
+void INTERNAL(snd_timer_params_set_exclusive)(snd_timer_params_t * params, int exclusive)
+#else
+void snd_timer_params_set_exclusive(snd_timer_params_t * params, int exclusive)
+#endif
+{
+	assert(params);
+	if (exclusive)
+		params->flags |= SNDRV_TIMER_PSFLG_EXCLUSIVE;
+	else
+		params->flags &= ~SNDRV_TIMER_PSFLG_EXCLUSIVE;
+}
+default_symbol_version(__snd_timer_params_set_exclusive, snd_timer_params_set_exclusive, ALSA_0.9.0);
+
+/**
+ * \brief determine if timer has exclusive flag
+ * \param params pointer to #snd_timer_params_t structure
+ * \return nonzero if timer has exclusive flag
+ */
+#ifndef DOXYGEN
+int INTERNAL(snd_timer_params_get_exclusive)(snd_timer_params_t * params)
+#else
+int snd_timer_params_get_exclusive(snd_timer_params_t * params)
+#endif
+{
+	assert(params);
+	return params->flags & SNDRV_TIMER_PSFLG_EXCLUSIVE ? 1 : 0;
+}
+default_symbol_version(__snd_timer_params_get_exclusive, snd_timer_params_get_exclusive, ALSA_0.9.0);
+
+/**
  * \brief set timer ticks
  * \param params pointer to #snd_timer_params_t structure
  */
@@ -616,6 +640,37 @@ long snd_timer_params_get_queue_size(snd_timer_params_t * params)
 	assert(params);
 	return params->queue_size;
 }
+
+/**
+ * \brief set timer event filter
+ * \param params pointer to #snd_timer_params_t structure
+ */
+#ifndef DOXYGEN
+void INTERNAL(snd_timer_params_set_filter)(snd_timer_params_t * params, unsigned int filter)
+#else
+void snd_timer_params_set_filter(snd_timer_params_t * params, unsigned int filter)
+#endif
+{
+	assert(params);
+	params->filter = filter;
+}
+default_symbol_version(__snd_timer_params_set_filter, snd_timer_params_set_filter, ALSA_0.9.0);
+
+/**
+ * \brief get timer event filter
+ * \param params pointer to #snd_timer_params_t structure
+ * \return timer event filter
+ */
+#ifndef DOXYGEN
+unsigned int INTERNAL(snd_timer_params_get_filter)(snd_timer_params_t * params)
+#else
+unsigned int snd_timer_params_get_filter(snd_timer_params_t * params)
+#endif
+{
+	assert(params);
+	return params->filter;
+}
+default_symbol_version(__snd_timer_params_get_filter, snd_timer_params_get_filter, ALSA_0.9.0);
 
 /**
  * \brief set parameters for timer handle
@@ -796,3 +851,17 @@ ssize_t snd_timer_read(snd_timer_t *timer, void *buffer, size_t size)
 	assert(buffer || size == 0);
 	return timer->ops->read(timer, buffer, size);
 }
+
+/**
+ * \brief (DEPRECATED) get maximum timer ticks
+ * \param info pointer to #snd_timer_info_t structure
+ * \return maximum timer ticks
+ */
+long snd_timer_info_get_ticks(snd_timer_info_t * info)
+{
+	assert(info);
+	return 1;
+}
+#ifndef DOC_HIDDEN
+link_warning(snd_timer_info_get_ticks, "Warning: snd_timer_info_get_ticks is deprecated");
+#endif

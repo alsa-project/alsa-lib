@@ -54,9 +54,39 @@ static int snd_timer_query_hw_next_device(snd_timer_query_t *handle, snd_timer_i
 	return 0;
 }
 
+static int snd_timer_query_hw_info(snd_timer_query_t *handle, snd_timer_ginfo_t *info)
+{
+	if (!handle || !info)
+		return -EINVAL;
+	if (ioctl(handle->poll_fd, SNDRV_TIMER_IOCTL_GINFO, info) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_timer_query_hw_params(snd_timer_query_t *handle, snd_timer_gparams_t *params)
+{
+	if (!handle || !params)
+		return -EINVAL;
+	if (ioctl(handle->poll_fd, SNDRV_TIMER_IOCTL_GPARAMS, params) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_timer_query_hw_status(snd_timer_query_t *handle, snd_timer_gstatus_t *status)
+{
+	if (!handle || !status)
+		return -EINVAL;
+	if (ioctl(handle->poll_fd, SNDRV_TIMER_IOCTL_GSTATUS, status) < 0)
+		return -errno;
+	return 0;
+}
+
 static snd_timer_query_ops_t snd_timer_query_hw_ops = {
 	close: snd_timer_query_hw_close,
 	next_device: snd_timer_query_hw_next_device,
+	info: snd_timer_query_hw_info,
+	params: snd_timer_query_hw_params,
+	status: snd_timer_query_hw_status
 };
 
 int snd_timer_query_hw_open(snd_timer_query_t **handle, const char *name, int mode)

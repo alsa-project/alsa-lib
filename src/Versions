@@ -88,3 +88,15 @@ ALSA_0.9.0rc8 {
     snd_pcm_status_get_htstamp;
 
 } ALSA_0.9.0rc4;
+
+ALSA_0.9.0 {
+  global:
+
+    snd_timer_query_info;
+    snd_timer_query_params;
+    snd_timer_query_status;
+    snd_timer_params_set_exclusive;
+    snd_timer_params_get_exclusive;
+    snd_timer_params_set_filter;
+    snd_timer_params_get_filter;
+} ALSA_0.9.0rc8;

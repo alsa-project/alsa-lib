@@ -45,18 +45,18 @@ extern "C" {
 
 /** timer identification structure */
 typedef struct _snd_timer_id snd_timer_id_t;
+/** timer global info structure */
+typedef struct _snd_timer_ginfo snd_timer_ginfo_t;
+/** timer global params structure */
+typedef struct _snd_timer_gparams snd_timer_gparams_t;
+/** timer global status structure */
+typedef struct _snd_timer_gstatus snd_timer_gstatus_t;
 /** timer info structure */
 typedef struct _snd_timer_info snd_timer_info_t;
 /** timer params structure */
 typedef struct _snd_timer_params snd_timer_params_t;
 /** timer status structure */
 typedef struct _snd_timer_status snd_timer_status_t;
-/** timer read structure */
-typedef struct _snd_timer_read {
-	unsigned int resolution;	/**< tick resolution in nanoseconds */
-        unsigned int ticks;		/**< count of happened ticks */
-} snd_timer_read_t;
-
 /** timer master class */
 typedef enum _snd_timer_class {
 	SND_TIMER_CLASS_NONE = -1,	/**< invalid */
@@ -76,13 +76,43 @@ typedef enum _snd_timer_slave_class {
 	SND_TIMER_SCLASS_LAST = SND_TIMER_SCLASS_OSS_SEQUENCER	/**< last slave timer */
 } snd_timer_slave_class_t;
 
+/** timer read event identification */
+typedef enum _snd_timer_event {
+	SND_TIMER_EVENT_RESOLUTION = 0,	/* val = resolution in ns */
+	SND_TIMER_EVENT_TICK,		/* val = ticks */
+	SND_TIMER_EVENT_START,		/* val = resolution in ns */
+	SND_TIMER_EVENT_STOP,		/* val = 0 */
+	SND_TIMER_EVENT_CONTINUE,	/* val = resolution in ns */
+	SND_TIMER_EVENT_PAUSE,		/* val = 0 */
+	/* master timer events for slave timer instances */
+	SND_TIMER_EVENT_MSTART = SND_TIMER_EVENT_START + 10,
+	SND_TIMER_EVENT_MSTOP = SND_TIMER_EVENT_STOP + 10,
+	SND_TIMER_EVENT_MCONTINUE = SND_TIMER_EVENT_CONTINUE + 10,
+	SND_TIMER_EVENT_MPAUSE = SND_TIMER_EVENT_PAUSE + 10,
+} snd_timer_event_t;
+
+/** timer read structure */
+typedef struct _snd_timer_read {
+	unsigned int resolution;	/**< tick resolution in nanoseconds */
+        unsigned int ticks;		/**< count of happened ticks */
+} snd_timer_read_t;
+
+/** timer tstamp + event read structure */
+typedef struct _snd_timer_tread {
+	snd_timer_event_t event;
+	snd_htimestamp_t tstamp;
+	unsigned int val;
+} snd_timer_tread_t;
+
 /** global timer - system */
 #define SND_TIMER_GLOBAL_SYSTEM 0
 /** global timer - RTC */
 #define SND_TIMER_GLOBAL_RTC 	1
 
 /** timer open mode flag - non-blocking behaviour */
-#define SND_TIMER_OPEN_NONBLOCK		0x0001
+#define SND_TIMER_OPEN_NONBLOCK		(1<<0)
+/** use timestamps and event notification - enhanced read */
+#define SND_TIMER_OPEN_TREAD		(1<<1)
 
 /** timer handle type */
 typedef enum _snd_timer_type {
@@ -104,6 +134,9 @@ int snd_timer_query_open(snd_timer_query_t **handle, const char *name, int mode)
 int snd_timer_query_open_lconf(snd_timer_query_t **handle, const char *name, int mode, snd_config_t *lconf);
 int snd_timer_query_close(snd_timer_query_t *handle);
 int snd_timer_query_next_device(snd_timer_query_t *handle, snd_timer_id_t *tid);
+int snd_timer_query_info(snd_timer_query_t *handle, snd_timer_ginfo_t *info);
+int snd_timer_query_params(snd_timer_query_t *handle, snd_timer_gparams_t *params);
+int snd_timer_query_status(snd_timer_query_t *handle, snd_timer_gstatus_t *status);
 
 int snd_timer_open(snd_timer_t **handle, const char *name, int mode);
 int snd_timer_open_lconf(snd_timer_t **handle, const char *name, int mode, snd_config_t *lconf);
@@ -148,7 +181,6 @@ int snd_timer_info_is_slave(snd_timer_info_t * info);
 int snd_timer_info_get_card(snd_timer_info_t * info);
 const char *snd_timer_info_get_id(snd_timer_info_t * info);
 const char *snd_timer_info_get_name(snd_timer_info_t * info);
-long snd_timer_info_get_ticks(snd_timer_info_t * info);
 long snd_timer_info_get_resolution(snd_timer_info_t * info);
 
 size_t snd_timer_params_sizeof(void);
@@ -159,10 +191,15 @@ void snd_timer_params_free(snd_timer_params_t *obj);
 void snd_timer_params_copy(snd_timer_params_t *dst, const snd_timer_params_t *src);
 
 void snd_timer_params_set_auto_start(snd_timer_params_t * params, int auto_start);
+int snd_timer_params_get_auto_start(snd_timer_params_t * params);
+void snd_timer_params_set_exclusive(snd_timer_params_t * params, int exclusive);
+int snd_timer_params_get_exclusive(snd_timer_params_t * params);
 void snd_timer_params_set_ticks(snd_timer_params_t * params, long ticks);
 long snd_timer_params_get_ticks(snd_timer_params_t * params);
 void snd_timer_params_set_queue_size(snd_timer_params_t * params, long queue_size);
 long snd_timer_params_get_queue_size(snd_timer_params_t * params);
+void snd_timer_params_set_filter(snd_timer_params_t * params, unsigned int filter);
+unsigned int snd_timer_params_get_filter(snd_timer_params_t * params);
 
 size_t snd_timer_status_sizeof(void);
 /** allocate #snd_timer_status_t container on stack */
@@ -176,6 +213,9 @@ long snd_timer_status_get_resolution(snd_timer_status_t * status);
 long snd_timer_status_get_lost(snd_timer_status_t * status);
 long snd_timer_status_get_overrun(snd_timer_status_t * status);
 long snd_timer_status_get_queue(snd_timer_status_t * status);
+
+/* deprecated functions, for compatibility */
+long snd_timer_info_get_ticks(snd_timer_info_t * info);
 
 /** \} */
 

@@ -221,6 +221,56 @@ int snd_timer_query_next_device(snd_timer_query_t *timer, snd_timer_id_t *tid)
 }
 
 /**
+ * \brief obtain the timer global information
+ * \param timer timer handle
+ * \param info timer information
+ * \return 0 on success otherwise a negative error code
+ */
+#ifndef DOXYGEN
+int INTERNAL(snd_timer_query_info)(snd_timer_query_t *timer, snd_timer_ginfo_t *info)
+#else
+int snd_timer_query_info(snd_timer_query_t *timer, snd_timer_ginfo_t *info)
+#endif
+{
+  	assert(timer);
+  	assert(info);
+	return timer->ops->info(timer, info);
+}
+default_symbol_version(__snd_timer_query_info, snd_timer_query_info, ALSA_0.9.0);
+
+/**
+ * \brief set the timer global parameters
+ * \param timer timer handle
+ * \param params timer parameters
+ * \return 0 on success otherwise a negative error code
+ */
+#ifndef DOXYGEN
+int INTERNAL(snd_timer_query_params)(snd_timer_query_t *timer, snd_timer_gparams_t *params)
+#else
+int snd_timer_query_params(snd_timer_query_t *timer, snd_timer_gparams_t *params)
+#endif
+{
+  	assert(timer);
+  	assert(params);
+	return timer->ops->params(timer, params);
+}
+default_symbol_version(__snd_timer_query_params, snd_timer_query_params, ALSA_0.9.0);
+
+/**
+ * \brief get the timer global status
+ * \param timer timer handle
+ * \param status timer status
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_timer_query_status(snd_timer_query_t *timer, snd_timer_gstatus_t *status)
+{
+  	assert(timer);
+  	assert(status);
+	return timer->ops->status(timer, status);
+}
+default_symbol_version(__snd_timer_query_status, snd_timer_query_status, ALSA_0.9.0);
+
+/**
  * \brief get size of the snd_timer_id_t structure in bytes
  * \return size of the snd_timer_id_t structure in bytes
  */
