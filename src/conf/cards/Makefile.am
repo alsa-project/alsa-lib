@@ -35,6 +35,7 @@ cfg_files = aliases.conf \
 	VIA686A.conf \
 	VIA8233.conf \
 	VIA8233A.conf \
+	VIA8237.conf \
 	VX222.conf \
 	VXPocket.conf \
 	VXPocket440.conf \
