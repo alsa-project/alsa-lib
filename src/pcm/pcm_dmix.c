@@ -53,12 +53,13 @@ const char *_snd_module_pcm_dmix = "";
  *
  */
 
+static int shm_sum_discard(snd_pcm_direct_t *dmix);
+
 /*
  *  sum ring buffer shared memory area 
  */
 static int shm_sum_create_or_connect(snd_pcm_direct_t *dmix)
 {
-	static int shm_sum_discard(snd_pcm_direct_t *dmix);
 	struct shmid_ds buf;
 	int tmpid, err;
 	size_t size;
