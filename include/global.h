@@ -10,7 +10,7 @@
 #define SND_BIG_ENDIAN SNDRV_BIG_ENDIAN
 #endif
 
-#define SND_ENUM_TYPECHECK
+//#define SND_ENUM_TYPECHECK
 
 #ifdef SND_ENUM_TYPECHECK
 #define snd_enum_to_int(v) ((unsigned int)(unsigned long)(v))
