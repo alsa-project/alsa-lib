@@ -30,7 +30,14 @@
 
 static long simple_size(simple_instrument_t *instr)
 {
-	return sizeof(simple_xinstrument_t) + instr->size;
+	int size;
+
+	size = instr->size;
+	if (instr->format & SIMPLE_WAVE_16BIT)
+		size <<= 1;
+	if (instr->format & SIMPLE_WAVE_STEREO)
+		size <<= 1;
+	return size;
 }
 
 int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
@@ -50,8 +57,8 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	instr = (simple_instrument_t *)simple;
 	*__data = NULL;
 	*__size = 0;
-	size = sizeof(*put) + simple_size(simple);
-	put = (snd_seq_instr_put_t *)malloc(sizeof(*put) + size);
+	size = simple_size(simple);
+	put = (snd_seq_instr_put_t *)malloc(sizeof(*put) + sizeof(simple_xinstrument_t) + size);
 	if (put == NULL)
 		return -ENOMEM;
 	/* build header */
@@ -79,10 +86,10 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	xinstr->effect2 = instr->effect2;
 	xinstr->effect2_depth = instr->effect2_depth;
 	ptr = (char *)(xinstr + 1);
-	memcpy(ptr, instr->address.ptr, instr->size);
+	memcpy(ptr, instr->address.ptr, size);
 	/* write result */
 	*__data = put;
-	*__size = size;
+	*__size = sizeof(*put) + sizeof(simple_xinstrument_t) + size;
 	return 0;
 }
 
