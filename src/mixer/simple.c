@@ -51,6 +51,7 @@
 #define CAP_CSWITCH		(1<<9)
 #define CAP_CSWITCH_JOIN	(1<<10)
 #define CAP_CSWITCH_EXCL	(1<<11)
+#define CAP_ENUM		(1<<12)
 
 typedef struct _mixer_simple mixer_simple_t;
 
@@ -59,6 +60,7 @@ typedef struct _mixer_simple mixer_simple_t;
 
 typedef enum _selem_ctl_type {
 	CTL_SINGLE,
+	CTL_ENUMLIST,
 	CTL_GLOBAL_SWITCH,
 	CTL_GLOBAL_VOLUME,
 	CTL_GLOBAL_ROUTE,
@@ -289,6 +291,24 @@ static int elem_read_route(selem_t *s, int dir, selem_ctl_type_t type)
 	return 0;
 }
 
+static int elem_read_enum(selem_t *s)
+{
+	snd_ctl_elem_value_t ctl;
+	unsigned int idx;
+	int err;
+	selem_ctl_t *c = &s->ctls[CTL_ENUMLIST];
+	memset(&ctl, 0, sizeof(ctl));
+	if ((err = snd_hctl_elem_read(c->elem, &ctl)) < 0)
+		return err;
+	for (idx = 0; idx < s->str[0].channels; idx++) {
+		unsigned int idx1 = idx;
+		if (idx >= c->values)
+			idx1 = 0;
+		s->str[0].vol[idx] = ctl.value.enumerated.item[idx1];
+	}
+	return 0;
+}
+
 static int selem_read(snd_mixer_elem_t *elem)
 {
 	selem_t *s;
@@ -308,6 +328,9 @@ static int selem_read(snd_mixer_elem_t *elem)
 	memset(&s->str[CAPT].vol, 0, sizeof(s->str[CAPT].vol));
 	csw = s->str[CAPT].sw;
 	s->str[CAPT].sw = ~0U;
+
+	if (s->ctls[CTL_ENUMLIST].elem)
+		return elem_read_enum(s);
 
 	if (s->ctls[CTL_PLAYBACK_VOLUME].elem)
 		err = elem_read_volume(s, PLAY, CTL_PLAYBACK_VOLUME);
@@ -482,6 +505,22 @@ static int elem_write_route(selem_t *s, int dir, selem_ctl_type_t type)
 	return 0;
 }
 
+static int elem_write_enum(selem_t *s)
+{
+	snd_ctl_elem_value_t ctl;
+	unsigned int idx;
+	int err;
+	selem_ctl_t *c = &s->ctls[CTL_ENUMLIST];
+	memset(&ctl, 0, sizeof(ctl));
+	if ((err = snd_hctl_elem_read(c->elem, &ctl)) < 0)
+		return err;
+	for (idx = 0; idx < c->values; idx++)
+		ctl.value.enumerated.item[idx] = (unsigned int)s->str[0].vol[idx];
+	if ((err = snd_hctl_elem_write(c->elem, &ctl)) < 0)
+		return err;
+	return 0;
+}
+
 static int selem_write(snd_mixer_elem_t *elem)
 {
 	selem_t *s;
@@ -490,6 +529,9 @@ static int selem_write(snd_mixer_elem_t *elem)
 
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
 	s = elem->private_data;
+
+	if (s->ctls[CTL_ENUMLIST].elem)
+		return elem_write_enum(s);
 
 	if (s->ctls[CTL_SINGLE].elem) {
 		if (s->ctls[CTL_SINGLE].type == SND_CTL_ELEM_TYPE_INTEGER)
@@ -682,6 +724,12 @@ static int simple_update(snd_mixer_elem_t *melem)
 		caps |= CAP_CSWITCH | CAP_CSWITCH_EXCL;
 		caps &= ~CAP_GSWITCH;
 	}
+	ctl = &simple->ctls[CTL_ENUMLIST];
+	if (ctl->elem) {
+		if (pchannels < ctl->values)
+			pchannels = ctl->values;
+		caps |= CAP_ENUM;
+	}
 	if (pchannels > 32)
 		pchannels = 32;
 	if (cchannels > 32)
@@ -813,7 +861,9 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 		return err;
 	switch (type) {
 	case CTL_SINGLE:
-		if (info.type != SND_CTL_ELEM_TYPE_BOOLEAN &&
+		if (info.type == SND_CTL_ELEM_TYPE_ENUMERATED)
+			type = CTL_ENUMLIST;
+		else if (info.type != SND_CTL_ELEM_TYPE_BOOLEAN &&
 		    info.type != SND_CTL_ELEM_TYPE_INTEGER)
 			return 0;
 		break;
@@ -886,8 +936,13 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 	simple->ctls[type].type = info.type;
 	simple->ctls[type].access = info.access;
 	simple->ctls[type].values = info.count;
-	simple->ctls[type].min = info.value.integer.min;
-	simple->ctls[type].max = info.value.integer.max;
+	if (type == CTL_ENUMLIST) {
+		simple->ctls[type].min = 0;
+		simple->ctls[type].max = info.value.enumerated.items;
+	} else {
+		simple->ctls[type].min = info.value.integer.min;
+		simple->ctls[type].max = info.value.integer.max;
+	}
 	switch (type) {
 	case CTL_CAPTURE_SOURCE:
 		simple->capture_item = value;
@@ -1809,6 +1864,125 @@ int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value)
 	if (changed)
 		return selem_write(elem);
 	return 0;
+}
+
+/**
+ * \brief Return true if mixer simple element is an enumerated control
+ * \param elem Mixer simple element handle
+ * \return 0 normal volume/switch control, 1 enumerated control
+ */
+int snd_mixer_selem_is_enumerated(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return s->ctls[CTL_ENUMLIST].elem != 0;
+}
+
+/**
+ * \brief Return the number of enumerated items of the given mixer simple element
+ * \param elem Mixer simple element handle
+ * \return the number of enumerated items, otherwise a negative error code
+ */
+int snd_mixer_selem_get_enum_items(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	if (! s->ctls[CTL_ENUMLIST].elem)
+		return -EINVAL;
+	return s->ctls[CTL_ENUMLIST].max;
+}
+
+/**
+ * \brief get the enumerated item string for the given mixer simple element
+ * \param elem Mixer simple element handle
+ * \param item the index of the enumerated item to query
+ * \param maxlen the maximal length to be stored
+ * \param buf the buffer to store the name string
+ * \return 0 if successful, otherwise a negative error code
+ */
+int snd_mixer_selem_get_enum_item_name(snd_mixer_elem_t *elem,
+				       unsigned int item,
+				       size_t maxlen, char *buf)
+{
+	selem_t *s;
+	snd_ctl_elem_info_t *info;
+	snd_hctl_elem_t *helem;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	helem = s->ctls[CTL_ENUMLIST].elem;
+	assert(helem);
+	if (item >= (unsigned int)s->ctls[CTL_ENUMLIST].max)
+		return -EINVAL;
+	snd_ctl_elem_info_alloca(&info);
+	snd_hctl_elem_info(helem, info);
+	snd_ctl_elem_info_set_item(info, item);
+	snd_hctl_elem_info(helem, info);
+	strncpy(buf, snd_ctl_elem_info_get_item_name(info), maxlen);
+	return 0;
+}
+
+/**
+ * \brief get the current selected enumerated item for the given mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identifier
+ * \param itemp the pointer to store the index of the enumerated item
+ * \return 0 if successful, otherwise a negative error code
+ */
+int snd_mixer_selem_get_enum_item(snd_mixer_elem_t *elem,
+				  snd_mixer_selem_channel_id_t channel,
+				  unsigned int *itemp)
+{
+	selem_t *s;
+	snd_ctl_elem_value_t ctl;
+	snd_hctl_elem_t *helem;
+	int err;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	if ((unsigned int) channel >= s->str[0].channels)
+		return -EINVAL;
+	helem = s->ctls[CTL_ENUMLIST].elem;
+	assert(helem);
+	memset(&ctl, 0, sizeof(ctl));
+	err = snd_hctl_elem_read(helem, &ctl);
+	if (! err)
+		*itemp = ctl.value.enumerated.item[channel];
+	return err;
+}
+
+/**
+ * \brief set the current selected enumerated item for the given mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identifier
+ * \param item the enumerated item index
+ * \return 0 if successful, otherwise a negative error code
+ */
+int snd_mixer_selem_set_enum_item(snd_mixer_elem_t *elem,
+				  snd_mixer_selem_channel_id_t channel,
+				  unsigned int item)
+{
+	selem_t *s;
+	snd_ctl_elem_value_t ctl;
+	snd_hctl_elem_t *helem;
+	int err;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	if ((unsigned int) channel >= s->str[0].channels)
+		return -EINVAL;
+	helem = s->ctls[CTL_ENUMLIST].elem;
+	assert(helem);
+	if (item >= (unsigned int)s->ctls[CTL_ENUMLIST].max)
+		return -EINVAL;
+	memset(&ctl, 0, sizeof(ctl));
+	err = snd_hctl_elem_read(helem, &ctl);
+	ctl.value.enumerated.item[channel] = item;
+	return snd_hctl_elem_write(helem, &ctl);
 }
 
 /**
