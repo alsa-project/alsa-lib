@@ -2082,20 +2082,10 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 	}
 	err = snd_pcm_poll_descriptors(pcm, &pfd, 1);
 	assert(err == 1);
+      __retry:
 	err_poll = poll(&pfd, 1, timeout);
 	if (err_poll < 0)
 		return -errno;
-#if 0 /* very useful code to test poll related problems */
-	{
-		snd_pcm_sframes_t delay, avail_update;
-		snd_pcm_hwsync(pcm);
-		avail_update = snd_pcm_avail_update(pcm);
-		if (avail_update < pcm->avail_min) {
-			printf("*** snd_pcm_wait() FATAL ERROR!!!\n");
-			printf("avail_min = %li, avail_update = %li\n", pcm->avail_min, avail_update);
-		}
-	}
-#endif
 	err = snd_pcm_poll_descriptors_revents(pcm, &pfd, 1, &revents);
 	if (err < 0)
 		return err;
@@ -2112,6 +2102,19 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 			return -EIO;
 		}
 	}
+	if ((revents & (POLLIN | POLLOUT)) == 0)
+		goto __retry;
+#if 0 /* very useful code to test poll related problems */
+	{
+		snd_pcm_sframes_t avail_update;
+		snd_pcm_hwsync(pcm);
+		avail_update = snd_pcm_avail_update(pcm);
+		if (avail_update < (snd_pcm_sframes_t)pcm->avail_min) {
+			printf("*** snd_pcm_wait() FATAL ERROR!!!\n");
+			printf("avail_min = %li, avail_update = %li\n", pcm->avail_min, avail_update);
+		}
+	}
+#endif
 	return err_poll > 0 ? 1 : 0;
 }
 
