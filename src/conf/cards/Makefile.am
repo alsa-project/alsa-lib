@@ -10,6 +10,7 @@ cfg_files = aliases.conf \
 	FM801.conf \
 	GUS.conf \
 	ICE1712.conf \
+	ICE1724.conf \
 	ICH.conf \
 	RME9636.conf \
 	RME9652.conf \
