@@ -41,8 +41,8 @@ enum alisp_objects {
 };
 
 struct alisp_object {
-	int	type;
-	int	gc;
+	unsigned char	type;
+	unsigned char	gc;
 	union {
 		char	*id;
 		char	*s;
@@ -85,15 +85,13 @@ struct alisp_instance {
 	int token_buffer_max;
 	int thistoken;
 	/* object allocator */
-	int free_objs;
-	int used_objs;
+	long free_objs;
+	long used_objs;
+	long max_objs;
 	struct alisp_object *free_objs_list;
 	struct alisp_object *used_objs_list;
 	/* set object */
 	struct alisp_object_pair *setobjs_list;
 	/* garbage collect */
-	int gc_id;
-	/* alsa configuration */
-	snd_config_t *root;	/* configuration root */
-	snd_config_t *node;	/* result */
+	unsigned char gc_id;
 };

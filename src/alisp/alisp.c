@@ -35,6 +35,8 @@
 #include "alisp.h"
 #include "alisp_local.h"
 
+#define ALISP_FREE_OBJ_POOL	1000	/* free objects above this pool */
+
 struct alisp_object alsa_lisp_nil;
 struct alisp_object alsa_lisp_t;
 
@@ -138,6 +140,8 @@ static struct alisp_object * new_object(struct alisp_instance *instance, int typ
 	p->gc = 1;
 
 	++instance->used_objs;
+	if (instance->used_objs + instance->free_objs > instance->max_objs)
+		instance->max_objs = instance->used_objs + instance->free_objs;
 
 	return p;
 }
@@ -778,7 +782,7 @@ static void do_garbage_collect(struct alisp_instance *instance)
 			lisp_debug(instance, "** collecting cons %p", p);
 			free_object(p);
 
-			if (instance->free_objs < 1000) {
+			if (instance->free_objs < ALISP_FREE_OBJ_POOL) {
 				p->next = instance->free_objs_list;
 				instance->free_objs_list = p;
 				++instance->free_objs;
@@ -799,7 +803,7 @@ static void do_garbage_collect(struct alisp_instance *instance)
 
 static void garbage_collect(struct alisp_instance *instance)
 {
-	if (++instance->gc_id == INT_MAX)
+	if (++instance->gc_id == 255)
 		instance->gc_id = 1;
 	do_garbage_collect(instance);
 }
@@ -1892,11 +1896,13 @@ static struct alisp_object * F_dump_memory(struct alisp_instance *instance, stru
 static struct alisp_object * F_stat_memory(struct alisp_instance *instance, struct alisp_object * args ATTRIBUTE_UNUSED)
 {
 	snd_output_printf(instance->out, "*** Memory stats\n");
-	snd_output_printf(instance->out, "  used_objs = %i, free_objs = %i, obj_size = %i (total = %i)\n",
+	snd_output_printf(instance->out, "  used_objs = %li, free_objs = %li, max_objs = %li, obj_size = %i (total bytes = %li, max bytes = %li)\n",
 		instance->used_objs,
 		instance->free_objs,
+		instance->max_objs,
 		sizeof(struct alisp_object),
-		(instance->used_objs + instance->free_objs) * sizeof(struct alisp_object));
+		(instance->used_objs + instance->free_objs) * sizeof(struct alisp_object),
+		instance->max_objs * sizeof(struct alisp_object));
 	return &alsa_lisp_nil;
 }
 
@@ -1967,6 +1973,8 @@ static struct intrinsic intrinsics[] = {
 	{ "setf", F_setq },
 	{ "setq", F_setq },
 	{ "str", F_str },
+	{ "string=", F_equal },
+	{ "string-equal", F_equal },
 	{ "unless", F_unless },
 	{ "when", F_when },
 	{ "while", F_while },

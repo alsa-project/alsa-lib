@@ -13,7 +13,7 @@
 (princ "card_get_index test (SI7018): " (acall 'card_get_index "SI7018") "\n")
 (princ "card_get_index test (ABCD): " (acall 'card_get_index "ABCD") "\n")
 
-(setq hctl (acall 'hctl_open ('default nil)))
+(setq hctl (acall 'hctl_open 'default nil))
 (if (= (aerror hctl) 0)
   (progn
     (princ "open success: " hctl "\n")
@@ -30,7 +30,7 @@
   )
 )
 
-(setq ctl (acall 'ctl_open ('default nil)))
+(setq ctl (acall 'ctl_open 'default nil))
 (if (= (aerror ctl) 0)
   (progn
     (princ "ctl open success: " ctl "\n")
@@ -54,6 +54,11 @@
 	  (progn
 	    (setq info (acall 'hctl_elem_info elem))
 	    (princ info "\n")
+	    (setq value (acall 'hctl_elem_read elem))
+	    (princ value "\n")
+	    (when (equal (cdr (assq "name" (car (cdr (assq "id" (aresult info)))))) "Master Playback Volume")
+	      (princ "write Master: " (acall 'hctl_elem_write elem (20 20)) "\n")
+	    )
 	    (setq elem (acall 'hctl_elem_next elem))
 	  )
         )

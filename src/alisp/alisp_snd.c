@@ -30,6 +30,13 @@ struct acall_table {
  *  helper functions
  */
 
+static inline int get_integer(struct alisp_object * obj)
+{
+	if (obj->type == ALISP_OBJ_INTEGER)
+		return obj->value.i;
+	return 0;
+}
+
 static inline const void *get_pointer(struct alisp_object * obj)
 {
 	if (obj->type == ALISP_OBJ_POINTER)
@@ -137,6 +144,7 @@ static struct alisp_object * add_cons(struct alisp_instance * instance, struct a
 	return lexpr;
 }
 
+#if 0
 static struct alisp_object * add_cons1(struct alisp_instance * instance, struct alisp_object *lexpr, int cdr, int id, struct alisp_object *obj)
 {
 	struct alisp_object * p1;
@@ -158,6 +166,25 @@ static struct alisp_object * add_cons1(struct alisp_instance * instance, struct 
 	if (p1->value.c.car == NULL)
 		return NULL;
 	p1->value.c.cdr = obj;
+	return lexpr;
+}
+#endif
+
+static struct alisp_object * add_cons2(struct alisp_instance * instance, struct alisp_object *lexpr, int cdr, struct alisp_object *obj)
+{
+	struct alisp_object * p1;
+
+	if (lexpr == NULL || obj == NULL)
+		return NULL;
+	if (cdr) {
+		p1 = lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
+	} else {
+		p1 = lexpr->value.c.car = new_object(instance, ALISP_OBJ_CONS);
+	}
+	lexpr = p1;
+	if (p1 == NULL)
+		return NULL;
+	p1->value.c.car = obj;
 	return lexpr;
 }
 
@@ -281,7 +308,7 @@ static struct alisp_object * FA_int_pp_p(struct alisp_instance * instance, struc
 		prefix1 = "ctl";
 	else
 		return &alsa_lisp_nil;
-	args = eval(instance, args);
+	args = eval(instance, car(args));
 	handle = (void *)get_ptr(args, prefix1);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
@@ -301,7 +328,7 @@ static struct alisp_object * FA_p_p(struct alisp_instance * instance, struct aca
 		prefix1 = "hctl_elem";
 	else
 		return &alsa_lisp_nil;
-	args = eval(instance, args);
+	args = eval(instance, car(args));
 	handle = (void *)get_ptr(args, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
@@ -313,7 +340,7 @@ static struct alisp_object * FA_int_p(struct alisp_instance * instance, struct a
 {
 	void *handle;
 
-	args = eval(instance, args);
+	args = eval(instance, car(args));
 	handle = (void *)get_ptr(args, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
@@ -324,7 +351,7 @@ static struct alisp_object * FA_int_intp(struct alisp_instance * instance, struc
 {
 	int val, err;
 
-	args = eval(instance, args);
+	args = eval(instance, car(args));
 	if (args->type != ALISP_OBJ_INTEGER)
 		return &alsa_lisp_nil;
 	val = args->value.i;
@@ -336,7 +363,7 @@ static struct alisp_object * FA_int_str(struct alisp_instance * instance, struct
 {
 	int err;
 
-	args = eval(instance, args);
+	args = eval(instance, car(args));
 	if (args->type != ALISP_OBJ_STRING && args->type != ALISP_OBJ_IDENTIFIER)
 		return &alsa_lisp_nil;
 	err = ((snd_int_str_t)item->xfunc)(args->value.s);
@@ -348,7 +375,7 @@ static struct alisp_object * FA_int_int_strp(struct alisp_instance * instance, s
 	int err;
 	char *str;
 
-	args = eval(instance, args);
+	args = eval(instance, car(args));
 	if (args->type != ALISP_OBJ_INTEGER)
 		return &alsa_lisp_nil;
 	err = ((snd_int_int_strp_t)item->xfunc)(args->value.i, &str);
@@ -362,7 +389,7 @@ static struct alisp_object * FA_card_info(struct alisp_instance * instance, stru
 	snd_ctl_card_info_t *info;
 	int err;
 
-	args = eval(instance, args);
+	args = eval(instance, car(args));
 	handle = (snd_ctl_t *)get_ptr(args, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
@@ -393,6 +420,55 @@ static struct alisp_object * create_ctl_elem_id(struct alisp_instance * instance
 	return cons;
 }
 
+static int parse_ctl_elem_id(struct alisp_object * cons, snd_ctl_elem_id_t * id)
+{
+	struct alisp_object *p1;
+	const char *xid;
+
+	if (cons == NULL)
+		return -ENOMEM;
+	snd_ctl_elem_id_clear(id);
+	id->numid = 0;
+	do {
+		p1 = car(cons);
+		if (p1->type == ALISP_OBJ_CONS) {
+			xid = get_string(p1->value.c.car, NULL);
+			printf("id  = '%s'\n", xid);
+			if (xid == NULL) {
+				/* noop */
+			} else if (!strcmp(xid, "numid")) {
+				snd_ctl_elem_id_set_numid(id, get_integer(p1->value.c.cdr));
+			} else if (!strcmp(xid, "iface")) {
+				snd_ctl_elem_id_set_interface(id, snd_config_get_ctl_iface_ascii(get_string(p1->value.c.cdr, "0")));
+			} else if (!strcmp(xid, "dev")) {
+				snd_ctl_elem_id_set_device(id, get_integer(p1->value.c.cdr));
+			} else if (!strcmp(xid, "subdev")) {
+				snd_ctl_elem_id_set_subdevice(id, get_integer(p1->value.c.cdr));
+			} else if (!strcmp(xid, "name")) {
+				snd_ctl_elem_id_set_name(id, get_string(p1->value.c.cdr, "?"));
+			} else if (!strcmp(xid, "index")) {
+				snd_ctl_elem_id_set_index(id, get_integer(p1->value.c.cdr));
+			}
+		}
+	        cons = cdr(cons);
+	} while (cons != &alsa_lisp_nil);
+	return 0;
+}
+
+static struct alisp_object * FA_hctl_find_elem(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	snd_hctl_t *handle;
+	snd_ctl_elem_id_t *id;
+
+	handle = (snd_hctl_t *)get_ptr(car(args), item->prefix);
+	if (handle == NULL)
+		return &alsa_lisp_nil;
+	snd_ctl_elem_id_alloca(&id);
+	if (parse_ctl_elem_id(eval(instance, car(cdr(args))), id) < 0)
+		return &alsa_lisp_nil;
+	return new_result4(instance, "hctl_elem", snd_hctl_find_elem(handle, id));
+}
+
 static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
 	snd_hctl_elem_t *handle;
@@ -402,7 +478,7 @@ static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance,
 	snd_ctl_elem_type_t type;
 	int err;
 
-	args = eval(instance, args);
+	args = eval(instance, car(args));
 	handle = (snd_hctl_elem_t *)get_ptr(args, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
@@ -426,24 +502,162 @@ static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance,
 	p1 = add_cons(instance, p1, 1, "isowner", new_integer(instance, snd_ctl_elem_info_is_owner(info)));
 	p1 = add_cons(instance, p1, 1, "owner", new_integer(instance, snd_ctl_elem_info_get_owner(info)));
 	p1 = add_cons(instance, p1, 1, "count", new_integer(instance, snd_ctl_elem_info_get_count(info)));
-	if (type == SND_CTL_ELEM_TYPE_ENUMERATED) {
+	err = snd_ctl_elem_info_get_dimensions(info);
+	if (err > 0) {
+		int idx;
+		p1 = add_cons(instance, p1, 1, "dimensions", p2 = new_object(instance, ALISP_OBJ_CONS));
+		for (idx = 0; idx < err; idx++)
+			p2 = add_cons2(instance, p2, idx > 0, new_integer(instance, snd_ctl_elem_info_get_dimension(info, idx)));
+	}
+	switch (type) {
+	case SND_CTL_ELEM_TYPE_ENUMERATED: {
 		unsigned int items, item;
 		items = snd_ctl_elem_info_get_items(info);
-		p1 = add_cons(instance, p1, 1, "items", new_integer(instance, items));
-		p1 = add_cons(instance, p1, 1, "inames", p2 = new_object(instance, ALISP_OBJ_CONS));
+		p1 = add_cons(instance, p1, 1, "items", p2 = new_object(instance, ALISP_OBJ_CONS));
 		for (item = 0; item < items; item++) {
 			snd_ctl_elem_info_set_item(info, item);
 			err = snd_hctl_elem_info(handle, info);
 			if (err < 0) {
-				p2 = add_cons1(instance, p2, item > 0, item, &alsa_lisp_nil);
+				p2 = add_cons2(instance, p2, item, &alsa_lisp_nil);
 			} else {
-				p2 = add_cons1(instance, p2, item > 0, item, new_string(instance, snd_ctl_elem_info_get_item_name(info)));
+				p2 = add_cons2(instance, p2, item, new_string(instance, snd_ctl_elem_info_get_item_name(info)));
 			}
 		}
+		break;
+	}
+	case SND_CTL_ELEM_TYPE_INTEGER:
+		p1 = add_cons(instance, p1, 1, "min", new_integer(instance, snd_ctl_elem_info_get_min(info)));
+		p1 = add_cons(instance, p1, 1, "max", new_integer(instance, snd_ctl_elem_info_get_max(info)));
+		p1 = add_cons(instance, p1, 1, "step", new_integer(instance, snd_ctl_elem_info_get_step(info)));
+		break;
+	case SND_CTL_ELEM_TYPE_INTEGER64:
+		p1 = add_cons(instance, p1, 1, "min64", new_float(instance, snd_ctl_elem_info_get_min64(info)));
+		p1 = add_cons(instance, p1, 1, "max64", new_float(instance, snd_ctl_elem_info_get_max64(info)));
+		p1 = add_cons(instance, p1, 1, "step64", new_float(instance, snd_ctl_elem_info_get_step64(info)));
+		break;
+	default:
+		break;
 	}
 	if (p1 == NULL)
 		return NULL;
 	return lexpr;
+}
+
+static struct alisp_object * FA_hctl_elem_read(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	snd_hctl_elem_t *handle;
+	struct alisp_object * lexpr, * p1 = NULL, * obj;
+	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_value_t *value;
+	snd_ctl_elem_type_t type;
+	unsigned int idx, count;
+	int err;
+
+	args = eval(instance, car(args));
+	handle = (snd_hctl_elem_t *)get_ptr(args, item->prefix);
+	if (handle == NULL)
+		return &alsa_lisp_nil;
+	snd_ctl_elem_info_alloca(&info);
+	snd_ctl_elem_value_alloca(&value);
+	err = snd_hctl_elem_info(handle, info);
+	if (err >= 0)
+		err = snd_hctl_elem_read(handle, value);
+	lexpr = new_lexpr(instance, err);
+	if (err < 0)
+		return lexpr;
+	type = snd_ctl_elem_info_get_type(info);
+	count = snd_ctl_elem_info_get_count(info);
+	if (type == SND_CTL_ELEM_TYPE_IEC958) {
+		count = sizeof(snd_aes_iec958_t);
+		type = SND_CTL_ELEM_TYPE_BYTES;
+	}
+	for (idx = 0; idx < count; idx++) {
+		switch (type) {
+		case SND_CTL_ELEM_TYPE_BOOLEAN:
+			obj = new_integer(instance, snd_ctl_elem_value_get_boolean(value, idx));
+			break;
+		case SND_CTL_ELEM_TYPE_INTEGER:
+			obj = new_integer(instance, snd_ctl_elem_value_get_integer(value, idx));
+			break;
+		case SND_CTL_ELEM_TYPE_INTEGER64:
+			obj = new_integer(instance, snd_ctl_elem_value_get_integer64(value, idx));
+			break;
+		case SND_CTL_ELEM_TYPE_ENUMERATED:
+			obj = new_integer(instance, snd_ctl_elem_value_get_enumerated(value, idx));
+			break;
+		case SND_CTL_ELEM_TYPE_BYTES:
+			obj = new_integer(instance, snd_ctl_elem_value_get_byte(value, idx));
+			break;
+		default:
+			obj = NULL;
+			break;
+		}
+		if (idx == 0) {
+			p1 = add_cons2(instance, lexpr->value.c.cdr, 0, obj);
+		} else {
+			p1 = add_cons2(instance, p1, 1, obj);
+		}
+	}
+	if (p1 == NULL)
+		return &alsa_lisp_nil;
+	return lexpr;
+}
+
+static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	snd_hctl_elem_t *handle;
+	struct alisp_object * p1 = NULL, * obj;
+	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_value_t *value;
+	snd_ctl_elem_type_t type;
+	unsigned int idx, count;
+	int err;
+
+	p1 = car(cdr(args));
+	args = eval(instance, car(args));
+	handle = (snd_hctl_elem_t *)get_ptr(args, item->prefix);
+	if (handle == NULL)
+		return &alsa_lisp_nil;
+	snd_ctl_elem_info_alloca(&info);
+	snd_ctl_elem_value_alloca(&value);
+	err = snd_hctl_elem_info(handle, info);
+	if (err < 0)
+		return new_result(instance, err);
+	type = snd_ctl_elem_info_get_type(info);
+	count = snd_ctl_elem_info_get_count(info);
+	if (type == SND_CTL_ELEM_TYPE_IEC958) {
+		count = sizeof(snd_aes_iec958_t);
+		type = SND_CTL_ELEM_TYPE_BYTES;
+	}
+	idx = -1;
+	do {
+		if (++idx >= count)
+			break;
+		obj = car(p1);
+		switch (type) {
+		case SND_CTL_ELEM_TYPE_BOOLEAN:
+			snd_ctl_elem_value_set_boolean(value, idx, get_integer(obj));
+			break;
+		case SND_CTL_ELEM_TYPE_INTEGER:
+			snd_ctl_elem_value_set_integer(value, idx, get_integer(obj));
+			break;
+		case SND_CTL_ELEM_TYPE_INTEGER64:
+			snd_ctl_elem_value_set_integer64(value, idx, get_integer(obj));
+			break;
+		case SND_CTL_ELEM_TYPE_ENUMERATED:
+			snd_ctl_elem_value_set_enumerated(value, idx, get_integer(obj));
+			break;
+		case SND_CTL_ELEM_TYPE_BYTES:
+			snd_ctl_elem_value_set_byte(value, idx, get_integer(obj));
+			break;
+		default:
+			obj = NULL;
+			break;
+		}
+		p1 = cdr(p1);
+	} while (p1 != &alsa_lisp_nil);
+	err = snd_hctl_elem_write(handle, value);
+	return new_result(instance, err);
 }
 
 /*
@@ -462,6 +676,9 @@ static struct acall_table acall_table[] = {
 	{ "hctl_elem_info", &FA_hctl_elem_info, (void *)&snd_hctl_elem_info, "hctl_elem" },
 	{ "hctl_elem_next", &FA_p_p, (void *)&snd_hctl_elem_next, "hctl_elem" },
 	{ "hctl_elem_prev", &FA_p_p, (void *)&snd_hctl_elem_prev, "hctl_elem" },
+	{ "hctl_elem_read", &FA_hctl_elem_read, (void *)&snd_hctl_elem_read, "hctl_elem" },
+	{ "hctl_elem_write", &FA_hctl_elem_write, (void *)&snd_hctl_elem_write, "hctl_elem" },
+	{ "hctl_find_elem", &FA_hctl_find_elem, (void *)&snd_hctl_find_elem, "hctl" },
 	{ "hctl_first_elem", &FA_p_p, (void *)&snd_hctl_first_elem, "hctl" },
 	{ "hctl_free", &FA_int_p, (void *)&snd_hctl_free, "hctl" },
 	{ "hctl_last_elem", &FA_p_p, (void *)&snd_hctl_last_elem, "hctl" },
@@ -484,7 +701,7 @@ static struct alisp_object * F_acall(struct alisp_instance *instance, struct ali
 	p1 = eval(instance, car(args));
 	if (p1->type != ALISP_OBJ_IDENTIFIER && p1->type != ALISP_OBJ_STRING)
 		return &alsa_lisp_nil;
-	p2 = car(cdr(args));
+	p2 = cdr(args);
 	key.name = p1->value.s;
 	if ((item = bsearch(&key, acall_table,
 			    sizeof acall_table / sizeof acall_table[0],
