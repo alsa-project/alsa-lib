@@ -280,28 +280,39 @@ static inline ssize_t _snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 	return pcm->fast_ops->readn(pcm->fast_op_arg, bufs, size);
 }
 
-static inline ssize_t muldiv(ssize_t a, ssize_t b, ssize_t d, ssize_t corr)
+static inline int muldiv(int a, int b, int c, int *r)
 {
-	double v = ((double) a * b + corr) / d;
-	if (v > LONG_MAX)
-		return LONG_MAX;
-	if (v < LONG_MIN)
-		return LONG_MIN;
+	int64_t n = (int64_t)a * b;
+	int64_t v = n / c;
+	if (v > INT_MAX) {
+		*r = 0;
+		return INT_MAX;
+	}
+	if (v < INT_MIN) {
+		*r = 0;
+		return INT_MIN;
+	}
+	*r = n % c;
 	return v;
 }
 
-static inline ssize_t muldiv_down(ssize_t a, ssize_t b, ssize_t d)
+static inline int muldiv_down(int a, int b, int c)
 {
-	return muldiv(a, b, d, 0);
+	int64_t v = (int64_t)a * b / c;
+	if (v > INT_MAX) {
+		return INT_MAX;
+	}
+	if (v < INT_MIN) {
+		return INT_MIN;
+	}
+	return v;
 }
 
-static inline ssize_t muldiv_up(ssize_t a, ssize_t b, ssize_t d)
+static inline int muldiv_near(int a, int b, int c)
 {
-	return muldiv(a, b, d, d - 1);
+	int r;
+	int n = muldiv(a, b, c, &r);
+	if (r >= (c + 1) / 2)
+		n++;
+	return n;
 }
-
-static inline ssize_t muldiv_near(ssize_t a, ssize_t b, ssize_t d)
-{
-	return muldiv(a, b, d, d / 2);
-}
-

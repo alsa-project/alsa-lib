@@ -133,6 +133,7 @@ void snd_pcm_hw_info_any(snd_pcm_hw_info_t *info)
 
 void snd_pcm_hw_params_to_info(snd_pcm_hw_params_t *params, snd_pcm_hw_info_t *info)
 {
+	int r;
 	assert(info && params);
 	info->flags = 0;
 	info->access_mask = 1U << params->access;
@@ -140,9 +141,15 @@ void snd_pcm_hw_params_to_info(snd_pcm_hw_params_t *params, snd_pcm_hw_info_t *i
 	info->subformat_mask = 1U << params->subformat;
 	info->channels_min = info->channels_max = params->channels;
 	info->rate_min = info->rate_max = params->rate;
-	info->fragment_length_min = info->fragment_length_max = muldiv_down(params->fragment_size, 1000000, params->rate);
+	info->fragment_length_min = muldiv_down(params->fragment_size, 1000000, params->rate);
+	info->fragment_length_max = muldiv(params->fragment_size + 1, 1000000, params->rate, &r);
+	if (r == 0)
+		info->fragment_length_max--;
 	info->fragments_min = info->fragments_max = params->fragments;
-	info->buffer_length_min = info->buffer_length_max = muldiv_down(params->fragment_size * params->fragments, 1000000, params->rate);
+	info->buffer_length_min = muldiv_down(params->fragment_size * params->fragments, 1000000, params->rate);
+	info->buffer_length_max = muldiv((params->fragment_size + 1) * params->fragments, 1000000, params->rate, &r);
+	if (r  == 0)
+		info->buffer_length_max--;
 }
 
 int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
@@ -1921,7 +1928,8 @@ int snd_pcm_hw_info_to_params(snd_pcm_t *pcm, snd_pcm_hw_info_t *info, snd_pcm_h
 	}
 	assert(info->fragments_min <= info->fragments_max);
 	if (info->fragments_min < info->fragments_max) {
-		info->fragments_max = info->fragments_min;
+		/* Defaults to maximum use of buffer */
+		info->fragments_min = info->fragments_max;
 		err = snd_pcm_hw_info(pcm, info);
 		assert(err >= 0);
 	}
