@@ -1,6 +1,6 @@
 EXTRA_LTLIBRARIES=libhwdep.la
 
-libhwdep_la_SOURCES = hwdep.c hwdep_m4.c
+libhwdep_la_SOURCES = hwdep.c hwdep_hw.c
 all: libhwdep.la
 
 
