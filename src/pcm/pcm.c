@@ -2882,7 +2882,7 @@ int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params, snd_pcm_acce
  * \param pcm PCM handle
  * \param params Configuration space
  * \param access access type
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  */
 int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t access)
 {
@@ -2988,7 +2988,7 @@ int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params, snd_pcm_form
  * \param pcm PCM handle
  * \param params Configuration space
  * \param format format
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  */
 int snd_pcm_hw_params_test_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t format)
 {
@@ -3091,7 +3091,7 @@ int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params, snd_pcm_s
  * \param pcm PCM handle
  * \param params Configuration space
  * \param subformat subformat value
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  */
 int snd_pcm_hw_params_test_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t subformat)
 {
@@ -3230,7 +3230,7 @@ int snd_pcm_hw_params_get_channels_max(const snd_pcm_hw_params_t *params, unsign
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val channels count
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  */
 int snd_pcm_hw_params_test_channels(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
 {
@@ -3413,7 +3413,7 @@ int snd_pcm_hw_params_get_rate_max(const snd_pcm_hw_params_t *params, unsigned i
  * \param params Configuration space
  * \param val approximate rate
  * \param dir Sub unit direction
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -3619,7 +3619,7 @@ int snd_pcm_hw_params_get_period_time_max(const snd_pcm_hw_params_t *params, uns
  * \param params Configuration space
  * \param val approximate period duration in us
  * \param dir Sub unit direction
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -3837,7 +3837,7 @@ int snd_pcm_hw_params_get_period_size_max(const snd_pcm_hw_params_t *params, snd
  * \param params Configuration space
  * \param val approximate period size in frames
  * \param dir Sub unit direction
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -4079,7 +4079,7 @@ int snd_pcm_hw_params_get_periods_max(const snd_pcm_hw_params_t *params, unsigne
  * \param params Configuration space
  * \param val approximate periods per buffer
  * \param dir Sub unit direction
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -4297,7 +4297,7 @@ int snd_pcm_hw_params_get_buffer_time_max(const snd_pcm_hw_params_t *params, uns
  * \param params Configuration space
  * \param val approximate buffer duration in us
  * \param dir Sub unit direction
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -4512,7 +4512,7 @@ int snd_pcm_hw_params_get_buffer_size_max(const snd_pcm_hw_params_t *params, snd
  * \param params Configuration space
  * \param val buffer size in frames
  * \param dir Sub unit direction
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -4736,7 +4736,7 @@ int snd_pcm_hw_params_get_tick_time_max(const snd_pcm_hw_params_t *params, unsig
  * \param params Configuration space
  * \param val approximate tick duration in us
  * \param dir Sub unit direction
- * \return 1 if available 0 otherwise
+ * \return 0 if available a negative error code otherwise
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -5366,7 +5366,7 @@ int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t 
 #endif
 {
 	assert(pcm && params);
-	assert(val + params->silence_size <= pcm->buffer_size);
+	assert(val < pcm->buffer_size);
 	params->silence_threshold = val;
 	return 0;
 }
@@ -5406,6 +5406,11 @@ int snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params, s
  * A portion of playback buffer is overwritten with silence when playback
  * underrun is nearer than silence threshold (see 
  * #snd_pcm_sw_params_set_silence_threshold)
+ *
+ * The special case is when silence size value is equal or greater than
+ * boundary. The whole ring buffer is filled with silence at start.
+ * Later, only just processed area is filled with silence.
+ * Note: silence_threshold must be set to zero.
  */
 #ifndef DOXYGEN
 int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
@@ -5414,7 +5419,7 @@ int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm, snd_pcm_sw_params_t *para
 #endif
 {
 	assert(pcm && params);
-	assert(val + params->silence_threshold <= pcm->buffer_size);
+	assert(val >= pcm->boundary || val <= pcm->buffer_size);
 	params->silence_size = val;
 	return 0;
 }
