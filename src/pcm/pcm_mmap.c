@@ -462,11 +462,16 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 			if (i->u.shm.area) {
 				snd_shm_area_destroy(i->u.shm.area);
 				i->u.shm.area = NULL;
-			} else {
-				err = shmdt(i->addr);
-				if (err < 0) {
-					SYSERR("shmdt failed");
-					return -errno;
+				if (pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
+				    pcm->access == SND_PCM_ACCESS_RW_INTERLEAVED) {
+					unsigned int c1;
+					for (c1 = c + 1; c1 < pcm->channels; c1++) {
+						snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
+						if (i1->u.shm.area) {
+							snd_shm_area_destroy(i1->u.shm.area);
+							i1->u.shm.area = NULL;
+						}
+					}
 				}
 			}
 			break;
