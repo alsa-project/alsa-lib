@@ -806,7 +806,7 @@ int snd_rawmidi_params_get_no_active_sensing(const snd_rawmidi_params_t *params)
 }
 
 /**
- * \brief get parameters about rawmidi stream
+ * \brief set parameters about rawmidi stream
  * \param rawmidi RawMidi handle
  * \param params pointer to a snd_rawmidi_params_t structure to be filled
  * \return 0 on success otherwise a negative error code
