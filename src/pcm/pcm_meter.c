@@ -25,7 +25,6 @@
  *
  */
   
-#ifndef DOC_HIDDEN
 
 #include <byteswap.h>
 #include <time.h>
@@ -36,6 +35,7 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#ifndef DOC_HIDDEN
 #define FREQUENCY 50
 
 struct _snd_pcm_scope {

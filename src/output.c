@@ -26,13 +26,13 @@
  *
  */
 
-#ifndef DOC_HIDDEN
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "local.h"
 
+#ifndef DOC_HIDDEN
 typedef struct _snd_output_ops {
 	int (*close)(snd_output_t *output);
 	int (*printf)(snd_output_t *output, const char *format, va_list args);

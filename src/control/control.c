@@ -26,7 +26,6 @@
  *
  */
 
-#ifndef DOC_HIDDEN
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -37,7 +36,6 @@
 #include <signal.h>
 #include <sys/poll.h>
 #include "control_local.h"
-#endif
 
 /**
  * \brief get identifier of CTL handle

@@ -26,12 +26,13 @@
  *
  */
 
-#ifndef DOC_HIDDEN
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "local.h"
+
+#ifndef DOC_HIDDEN
 
 typedef struct _snd_input_ops {
 	int (*close)(snd_input_t *input);

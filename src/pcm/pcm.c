@@ -32,7 +32,6 @@
  *
  */
 
-#ifndef DOC_HIDDEN  
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
@@ -46,7 +45,6 @@
 #include <dlfcn.h>
 #include "pcm_local.h"
 #include "list.h"
-#endif
 
 /**
  * \brief get identifier of PCM handle

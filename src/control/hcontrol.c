@@ -29,7 +29,6 @@
  *
  */
 
-#ifndef DOC_HIDDEN  
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -43,8 +42,6 @@
 
 static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 				    const snd_hctl_elem_t *c2);
-
-#endif
 
 /**
  * \brief Opens an HCTL

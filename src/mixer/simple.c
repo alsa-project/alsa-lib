@@ -28,7 +28,6 @@
  *
  */
 
-#ifndef DOC_HIDDEN
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -37,6 +36,8 @@
 #include <sys/ioctl.h>
 #include <math.h>
 #include "mixer_local.h"
+
+#ifndef DOC_HIDDEN
 
 #define CAP_GVOLUME		(1<<1)
 #define CAP_GSWITCH		(1<<2)
@@ -92,8 +93,6 @@ typedef struct _selem {
 	} str[2];
 } selem_t;
 
-#endif
-
 static struct mixer_name_table {
 	const char *longname;
 	const char *shortname;
@@ -104,6 +103,8 @@ static struct mixer_name_table {
 	{"Synth Tone Control - Treble", "Synth Treble"},
 	{0, 0},
 };
+
+#endif
 
 static const char *get_short_name(const char *lname)
 {
@@ -626,6 +627,7 @@ static int simple_update(snd_mixer_elem_t *melem)
 	return 0;
 }	   
 
+#ifndef DOC_HIDDEN
 static struct suf {
 	const char *suffix;
 	selem_ctl_type_t type;
@@ -641,6 +643,7 @@ static struct suf {
 	{" Volume", CTL_GLOBAL_VOLUME},
 	{NULL, 0}
 };
+#endif
 
 /* Return base length or 0 on failure */
 static int base_len(const char *name, selem_ctl_type_t *type)

@@ -19,13 +19,12 @@
  *
  */
 
-#ifndef DOC_HIDDEN
-#define _snd_config_iterator list_head
-
 #include <stdarg.h>
 #include <sys/stat.h>
 #include "local.h"
 #include "list.h"
+
+#ifndef DOC_HIDDEN
 
 struct _snd_config {
 	char *id;

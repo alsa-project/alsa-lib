@@ -22,6 +22,7 @@
 #ifndef __LOCAL_H
 #define __LOCAL_H
 
+#define _snd_config_iterator list_head
 #define _snd_interval sndrv_interval
 #define _snd_pcm_info sndrv_pcm_info
 #define _snd_pcm_hw_params sndrv_pcm_hw_params

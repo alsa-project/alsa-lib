@@ -29,7 +29,6 @@
  *
  */
 
-#ifndef DOC_HIDDEN
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -38,6 +37,7 @@
 #include <sys/ioctl.h>
 #include "mixer_local.h"
 
+#ifndef DOC_HIDDEN
 typedef struct _snd_mixer_slave {
 	snd_hctl_t *hctl;
 	struct list_head list;
