@@ -418,7 +418,6 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 			}
 			if ((err = snd_config_get_ctl_iface_ascii(ptr)) < 0) {
 				SNDERR("Invalid value for '%s'", id);
-				free(tmp);
 				goto _err;
 			}
 			iface = err;
