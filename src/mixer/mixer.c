@@ -204,14 +204,26 @@ int snd_mixer_element_write(snd_mixer_t *handle, snd_mixer_element_t * element)
 	return 0;
 }
 
-int snd_mixer_read_filter(snd_mixer_t *handle, snd_mixer_filter_t * filter)
+int snd_mixer_get_filter(snd_mixer_t *handle, snd_mixer_filter_t * filter)
 {
 	snd_mixer_t *mixer;
 
 	mixer = handle;
 	if (!mixer || !filter)
 		return -EINVAL;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_READ_FILTER, filter) < 0)
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_GET_FILTER, filter) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_mixer_put_filter(snd_mixer_t *handle, snd_mixer_filter_t * filter)
+{
+	snd_mixer_t *mixer;
+
+	mixer = handle;
+	if (!mixer || !filter)
+		return -EINVAL;
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_PUT_FILTER, filter) < 0)
 		return -errno;
 	return 0;
 }
