@@ -104,8 +104,8 @@ unsigned int snd_pcm_plugin_formats(unsigned int formats)
 	int linfmts = (SND_PCM_FMT_U8 | SND_PCM_FMT_S8 |
 		       SND_PCM_FMT_U16_LE | SND_PCM_FMT_S16_LE |
 		       SND_PCM_FMT_U16_BE | SND_PCM_FMT_S16_BE |
-		       SND_PCM_FMT_U24_LE | SND_PCM_FMT_S16_LE |
-		       SND_PCM_FMT_U24_BE | SND_PCM_FMT_S16_BE |
+		       SND_PCM_FMT_U24_LE | SND_PCM_FMT_S24_LE |
+		       SND_PCM_FMT_U24_BE | SND_PCM_FMT_S24_BE |
 		       SND_PCM_FMT_U32_LE | SND_PCM_FMT_S32_LE |
 		       SND_PCM_FMT_U32_BE | SND_PCM_FMT_S32_BE);
 	formats |= SND_PCM_FMT_MU_LAW;
@@ -150,6 +150,7 @@ int snd_pcm_plugin_hwparams(snd_pcm_channel_params_t *params,
 			int big = snd_pcm_format_big_endian(format);
 			int format1;
 			int wid, width1=width;
+			int dwidth1 = 8;
 			for (wid = 0; wid < 4; ++wid) {
 				int end, big1 = big;
 				for (end = 0; end < 2; ++end) {
@@ -163,9 +164,11 @@ int snd_pcm_plugin_hwparams(snd_pcm_channel_params_t *params,
 					}
 					big1 = !big1;
 				}
-				width1 += 8;
-				if (width1 > 32)
-					width = 8;
+				if (width1 == 32) {
+					dwidth1 = -dwidth1;
+					width1 = width;
+				}
+				width1 += dwidth1;
 			}
 			return -EINVAL;
 		_found:
