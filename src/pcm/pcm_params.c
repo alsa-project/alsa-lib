@@ -95,6 +95,8 @@ void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params)
 		_snd_pcm_hw_param_any(params, k);
 	for (k = SND_PCM_HW_PARAM_FIRST_INTERVAL; k <= SND_PCM_HW_PARAM_LAST_INTERVAL; k++)
 		_snd_pcm_hw_param_any(params, k);
+	params->rmask = ~0U;
+	params->cmask = 0;
 	params->info = ~0U;
 }
 
@@ -132,13 +134,16 @@ int snd_pcm_hw_param_get_min(const snd_pcm_hw_params_t *params, snd_pcm_hw_param
 			     unsigned int *val, int *dir)
 {
 	if (hw_is_mask(var)) {
+		const snd_mask_t *m = hw_param_mask_c(params, var);
+		assert(!snd_mask_empty(m));
 		if (dir)
 			*dir = 0;
 		if (val)
-			*val = snd_mask_min(hw_param_mask_c(params, var));
+			*val = snd_mask_min(m);
 		return 0;
 	} else if (hw_is_interval(var)) {
 		const snd_interval_t *i = hw_param_interval_c(params, var);
+		assert(!snd_interval_empty(i));
 		if (dir)
 			*dir = i->openmin;
 		if (val)
@@ -154,13 +159,16 @@ int snd_pcm_hw_param_get_max(const snd_pcm_hw_params_t *params, snd_pcm_hw_param
 			     unsigned int *val, int *dir)
 {
 	if (hw_is_mask(var)) {
+		const snd_mask_t *m = hw_param_mask_c(params, var);
+		assert(!snd_mask_empty(m));
 		if (dir)
 			*dir = 0;
 		if (val)
-			*val = snd_mask_max(hw_param_mask_c(params, var));
+			*val = snd_mask_max(m);
 		return 0;
 	} else if (hw_is_interval(var)) {
 		const snd_interval_t *i = hw_param_interval_c(params, var);
+		assert(!snd_interval_empty(i));
 		if (dir)
 			*dir = - (int) i->openmax;
 		if (val)
@@ -211,7 +219,7 @@ void _snd_pcm_hw_param_set_empty(snd_pcm_hw_params_t *params,
 				 snd_pcm_hw_param_t var)
 {
 	if (hw_is_mask(var)) {
-	snd_mask_none(hw_param_mask(params, var));
+		snd_mask_none(hw_param_mask(params, var));
 		params->cmask |= 1 << var;
 		params->rmask |= 1 << var;
 	} else if (hw_is_interval(var)) {
@@ -421,6 +429,10 @@ int snd_pcm_hw_param_set_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		err = snd_pcm_hw_refine(pcm, params);
 		if (err < 0)
 			goto _fail;
+		if (snd_pcm_hw_param_empty(params, var)) {
+			err = -ENOENT;
+			goto _fail;
+		}
 	}
 	return snd_pcm_hw_param_get_min(params, var, val, dir);
  _fail:
@@ -492,6 +504,10 @@ int snd_pcm_hw_param_set_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		err = snd_pcm_hw_refine(pcm, params);
 		if (err < 0)
 			goto _fail;
+		if (snd_pcm_hw_param_empty(params, var)) {
+			err = -ENOENT;
+			goto _fail;
+		}
 	}
 	return snd_pcm_hw_param_get_max(params, var, val, dir);
  _fail:
@@ -772,6 +788,7 @@ int snd_pcm_hw_param_set_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	int min, max;
 	int mindir, maxdir;
 	int valdir = dir ? *dir : 0;
+	snd_interval_t *i;
 	/* FIXME */
 	if (best > INT_MAX)
 		best = INT_MAX;
@@ -788,6 +805,11 @@ int snd_pcm_hw_param_set_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	save = *params;
 	saved_min = min;
 	err = snd_pcm_hw_param_set_min(pcm, params, SND_CHANGE, var, &min, &mindir);
+
+	i = hw_param_interval(params, var);
+	if (!snd_interval_empty(i) && snd_interval_single(i))
+		return snd_pcm_hw_param_get_min(params, var, val, dir);
+	
 	if (err >= 0) {
 		snd_pcm_hw_params_t params1;
 		if (max < 0)
@@ -913,28 +935,33 @@ static int snd_pcm_hw_param_set_near_minmax(snd_pcm_t *pcm,
 	}
 	err = snd_pcm_hw_param_set_minmax(pcm, params, SND_CHANGE, var, &min, mindir,
 					  &max, maxdir);
-	assert(err >= 0);
+	if (err < 0)
+		return err;
 	return 0;
 }
 
-void snd_pcm_hw_param_refine_near(snd_pcm_t *pcm,
-				  snd_pcm_hw_params_t *params,
-				  snd_pcm_hw_param_t var,
-				  const snd_pcm_hw_params_t *src)
+int snd_pcm_hw_param_refine_near(snd_pcm_t *pcm,
+				 snd_pcm_hw_params_t *params,
+				 snd_pcm_hw_param_t var,
+				 const snd_pcm_hw_params_t *src)
 {
 	unsigned int min, max;
-	int mindir, maxdir;
+	int mindir, maxdir, err;
 
-	snd_pcm_hw_param_get_min(src, var, &min, &mindir);
-	snd_pcm_hw_param_get_max(src, var, &max, &maxdir);
-	snd_pcm_hw_param_set_near_minmax(pcm, params, var,
-					 min, &mindir, max, &maxdir);
+	if ((err = snd_pcm_hw_param_get_min(src, var, &min, &mindir)) < 0)
+		return err;
+	if ((err = snd_pcm_hw_param_get_max(src, var, &max, &maxdir)) < 0)
+		return err;
+	if ((err = snd_pcm_hw_param_set_near_minmax(pcm, params, var,
+						    min, &mindir, max, &maxdir)) < 0)
+		return err;
+	return 0;
 }
 
-void snd_pcm_hw_param_refine_multiple(snd_pcm_t *pcm,
-				      snd_pcm_hw_params_t *params,
-				      snd_pcm_hw_param_t var,
-				      const snd_pcm_hw_params_t *src)
+int snd_pcm_hw_param_refine_multiple(snd_pcm_t *pcm,
+				     snd_pcm_hw_params_t *params,
+				     snd_pcm_hw_param_t var,
+				     const snd_pcm_hw_params_t *src)
 {
 	const snd_interval_t *it = hw_param_interval_c(src, var);
 	const snd_interval_t *st = hw_param_interval_c(params, var);
@@ -945,11 +972,11 @@ void snd_pcm_hw_param_refine_multiple(snd_pcm_t *pcm,
 				break;
 			if (it->min > cur || (it->min == cur && st->openmin))
 				continue;
-			if (! snd_pcm_hw_param_set(pcm, params, SND_TRY, var, cur, 0))
-				return; /* ok */
+			if (snd_pcm_hw_param_set(pcm, params, SND_TRY, var, cur, 0) == 0)
+				return 0; /* ok */
 		}
 	}
-	snd_pcm_hw_param_refine_near(pcm, params, var, src);
+	return snd_pcm_hw_param_refine_near(pcm, params, var, src);
 }
 
 /* ---- end of refinement functions ---- */
@@ -971,10 +998,10 @@ int snd_pcm_hw_param_always_eq(const snd_pcm_hw_params_t *params,
 {
 	if (hw_is_mask(var))
 		return snd_mask_always_eq(hw_param_mask_c(params, var),
-				      hw_param_mask_c(params1, var));
+					  hw_param_mask_c(params1, var));
 	if (hw_is_interval(var))
 		return snd_interval_always_eq(hw_param_interval_c(params, var),
-					  hw_param_interval_c(params1, var));
+					      hw_param_interval_c(params1, var));
 	assert(0);
 	return -EINVAL;
 }
@@ -985,10 +1012,10 @@ int snd_pcm_hw_param_never_eq(const snd_pcm_hw_params_t *params,
 {
 	if (hw_is_mask(var))
 		return snd_mask_never_eq(hw_param_mask_c(params, var),
-				      hw_param_mask_c(params1, var));
+					 hw_param_mask_c(params1, var));
 	if (hw_is_interval(var))
 		return snd_interval_never_eq(hw_param_interval_c(params, var),
-					 hw_param_interval_c(params1, var));
+					     hw_param_interval_c(params1, var));
 	assert(0);
 	return -EINVAL;
 }
@@ -1903,6 +1930,8 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 #ifdef RULES_DEBUG
 	snd_output_t *log;
 	snd_output_stdio_attach(&log, stderr, 0);
+	snd_output_printf(log, "refine_soft '%s' (begin)\n", pcm->name);
+	snd_pcm_hw_params_dump(params, log);
 #endif
 
 	for (k = SND_PCM_HW_PARAM_FIRST_MASK; k <= SND_PCM_HW_PARAM_LAST_MASK; k++) {
@@ -1991,6 +2020,8 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 	return 0;
  _err:
 #ifdef RULES_DEBUG
+	snd_output_printf(log, "refine_soft '%s' (end-%i)\n", pcm->name, changed);
+	snd_pcm_hw_params_dump(params, log);
 	snd_output_close(log);
 #endif
 	return changed;
@@ -2051,19 +2082,25 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		cmask = params->cmask;
 		params->cmask = 0;
 #ifdef RULES_DEBUG
-		snd_output_printf(log, "schange '%s'\n", pcm->name);
+		snd_output_printf(log, "schange '%s' (client)\n", pcm->name);
 		snd_pcm_hw_params_dump(params, log);
+		snd_output_printf(log, "schange '%s' (slave)\n", pcm->name);
+		snd_pcm_hw_params_dump(&sparams, log);
 #endif
 		err = schange(pcm, params, &sparams);
 		if (err >= 0) {
 #ifdef RULES_DEBUG
-			snd_output_printf(log, "srefine '%s'\n", pcm->name);
+			snd_output_printf(log, "srefine '%s' (client)\n", pcm->name);
+			snd_pcm_hw_params_dump(params, log);
+			snd_output_printf(log, "srefine '%s' (slave)\n", pcm->name);
 			snd_pcm_hw_params_dump(&sparams, log);
 #endif
 			err = srefine(pcm, &sparams);
 			if (err < 0) {
 #ifdef RULES_DEBUG
-				snd_output_printf(log, "srefine '%s', err < 0 (%i)\n", pcm->name, err);
+				snd_output_printf(log, "srefine '%s', err < 0 (%i) (client)\n", pcm->name, err);
+				snd_pcm_hw_params_dump(params, log);
+				snd_output_printf(log, "srefine '%s', err < 0 (%i) (slave)\n", pcm->name, err);
 				snd_pcm_hw_params_dump(&sparams, log);
 #endif
 				cchange(pcm, params, &sparams);
@@ -2071,8 +2108,10 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			}
 		} else {
 #ifdef RULES_DEBUG
-			snd_output_printf(log, "schange '%s', err < 0 (%i)\n", pcm->name, err);
+			snd_output_printf(log, "schange '%s', err < 0 (%i) (client)\n", pcm->name, err);
 			snd_pcm_hw_params_dump(params, log);
+			snd_output_printf(log, "schange '%s', err < 0 (%i) (slave)\n", pcm->name, err);
+			snd_pcm_hw_params_dump(&sparams, log);
 #endif
 			cchange(pcm, params, &sparams);
 			return err;

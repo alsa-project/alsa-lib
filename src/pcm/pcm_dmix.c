@@ -498,6 +498,26 @@ static inline snd_interval_t *hw_param_interval(snd_pcm_hw_params_t *params,
 	return &params->intervals[var - SND_PCM_HW_PARAM_FIRST_INTERVAL];
 }
 
+static int hw_param_interval_refine_one(snd_pcm_hw_params_t *params,
+					snd_pcm_hw_param_t var,
+					snd_pcm_hw_params_t *src)
+{
+	snd_interval_t *i;
+
+	if (!(params->rmask & (1<<var)))	/* nothing to do? */
+		return 0;
+	i = hw_param_interval(params, var);
+	if (snd_interval_empty(i)) {
+		SNDERR("dmix interval %i empty?\n", (int)var);
+		return -EINVAL;
+	}
+	if (snd_interval_refine(i, hw_param_interval(src, var)))
+		params->cmask |= 1<<var;
+	return 0;
+}
+
+#undef REFINE_DEBUG
+
 static int snd_pcm_dmix_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
@@ -508,25 +528,59 @@ static int snd_pcm_dmix_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					(1<<SNDRV_PCM_ACCESS_RW_INTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_RW_NONINTERLEAVED),
 					0, 0, 0 } };
+	int err;
 
-	snd_mask_refine(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS), &access);
-	snd_mask_refine_set(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT),
-			    snd_mask_value(hw_param_mask(hw_params, SND_PCM_HW_PARAM_FORMAT)));
+#ifdef REFINE_DEBUG
+	snd_output_t *log;
+	snd_output_stdio_attach(&log, stderr, 0);
+	snd_output_puts(log, "DMIX REFINE (begin):\n");
+	snd_pcm_hw_params_dump(params, log);
+#endif
+
+	if (params->rmask & (1<<SND_PCM_HW_PARAM_ACCESS)) {
+		if (snd_mask_empty(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS))) {
+			SNDERR("dmix access mask empty?\n");
+			return -EINVAL;
+		}
+		if (snd_mask_refine(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS), &access))
+			params->cmask |= 1<<SND_PCM_HW_PARAM_ACCESS;
+	}
+	if (params->rmask & (1<<SND_PCM_HW_PARAM_FORMAT)) {
+		if (snd_mask_empty(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT))) {
+			SNDERR("dmix format mask empty?\n");
+			return -EINVAL;
+		}
+		if (snd_mask_refine_set(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT),
+				        snd_mask_value(hw_param_mask(hw_params, SND_PCM_HW_PARAM_FORMAT))))
+			params->cmask |= 1<<SND_PCM_HW_PARAM_FORMAT;
+	}
 	//snd_mask_none(hw_param_mask(params, SND_PCM_HW_PARAM_SUBFORMAT));
-	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_CHANNELS),
-				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_CHANNELS)));
-	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_RATE),
-				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_RATE)));
-	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE),
-				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_BUFFER_SIZE)));
-	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_BUFFER_TIME),
-				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_BUFFER_TIME)));
-	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_PERIOD_SIZE),
-				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_PERIOD_SIZE)));
-	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_PERIOD_TIME),
-				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_PERIOD_TIME)));
-	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_PERIODS),
-				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_PERIODS)));
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_CHANNELS, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_RATE, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_SIZE, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_TIME, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_SIZE, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_TIME, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIODS, hw_params);
+	if (err < 0)
+		return err;
+#ifdef REFINE_DEBUG
+	snd_output_puts(log, "DMIX REFINE (end):\n");
+	snd_pcm_hw_params_dump(params, log);
+	snd_output_close(log);
+#endif
 	return 0;
 }
 
@@ -625,20 +679,6 @@ static int snd_pcm_dmix_resume(snd_pcm_t *pcm)
 	return 0;
 }
 
-static snd_pcm_sframes_t snd_pcm_dmix_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
-{
-	int res = snd_pcm_mmap_writei(pcm, buffer, size);
-	snd_pcm_dmix_sync_ptr(pcm, size);
-	return res;
-}
-
-static snd_pcm_sframes_t snd_pcm_dmix_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
-{
-	int res = snd_pcm_mmap_writen(pcm, bufs, size);
-	snd_pcm_dmix_sync_ptr(pcm, size);
-	return res;
-}
-
 static snd_pcm_sframes_t snd_pcm_dmix_readi(snd_pcm_t *pcm ATTRIBUTE_UNUSED, void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size ATTRIBUTE_UNUSED)
 {
 	return -ENODEV;
@@ -734,8 +774,8 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
 	pause: snd_pcm_dmix_pause,
 	rewind: snd_pcm_dmix_rewind,
 	resume: snd_pcm_dmix_resume,
-	writei: snd_pcm_dmix_writei,
-	writen: snd_pcm_dmix_writen,
+	writei: snd_pcm_mmap_writei,
+	writen: snd_pcm_mmap_writen,
 	readi: snd_pcm_dmix_readi,
 	readn: snd_pcm_dmix_readn,
 	avail_update: snd_pcm_dmix_avail_update,
