@@ -133,7 +133,7 @@ int snd_rawmidi_channel_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * para
 	return 0;
 }
 
-int snd_rawmidi_output_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
+int snd_rawmidi_channel_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
 	if (!rmidi || !status)
 		return -EINVAL;
