@@ -29,6 +29,8 @@
 #define __USE_GNU
 #include "control_local.h"
 
+#define NOT_FOUND 1000000000
+
 static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 				    const snd_hctl_elem_t *c2);
 
@@ -126,10 +128,91 @@ int snd_hctl_elem_throw_event(snd_hctl_elem_t *elem,
 	return 0;
 }
 
+static int snd_hctl_compare_mixer_priority_lookup(char **name, char * const *names, int coef)
+{
+	int res;
+
+	for (res = 0; *names; names++, res += coef) {
+		if (!strncmp(*name, *names, strlen(*names))) {
+			*name += strlen(*names);
+			if (**name == ' ')
+				(*name)++;
+			return res+1;
+		}
+	}
+	return NOT_FOUND;
+}
+
+static int get_compare_weight(const char *name)
+{
+	static char *names[] = {
+		"Master",
+		"Hardware Master",
+		"Headphone",
+		"Tone Control",
+		"3D Control",
+		"PCM",
+		"Synth",
+		"FM",
+		"Wave",
+		"Music",
+		"DSP",
+		"Line",
+		"CD",
+		"Mic",
+		"Phone",
+		"Video",
+		"PC Speaker",
+		"Aux",
+		"Mono",
+		"ADC",
+		"Capture Source",
+		"Capture",
+		"Playback",
+		"Loopback",
+		"Analog Loopback",
+		"Digital Loopback",
+		"S/PDIF Input",
+		"S/PDIF Output",
+		NULL
+	};
+	static char *names1[] = {
+		"Switch",
+		"Volume",
+		"Playback",
+		"Capture",
+		"Bypass",
+		"Mono",
+		"Front",
+		"Rear",
+		"Pan",
+		"Output",
+		NULL
+	};
+	static char *names2[] = {
+		"Switch",
+		"Volume",
+		"Bypass",
+		NULL
+	};
+	int res, res1;
+	
+	if ((res = snd_hctl_compare_mixer_priority_lookup((char **)&name, names, 1000000)) == NOT_FOUND)
+		return NOT_FOUND;
+	if ((res1 = snd_hctl_compare_mixer_priority_lookup((char **)&name, names1, 1000)) == NOT_FOUND)
+		return res;
+	res += res1;
+	if ((res1 = snd_hctl_compare_mixer_priority_lookup((char **)&name, names2, 1)) == NOT_FOUND)
+		return res;
+	return res + res1;
+}
+
 static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 {
 	int dir;
 	int idx; 
+	if (elem->id.iface == SNDRV_CTL_ELEM_IFACE_MIXER)
+		elem->compare_weight = get_compare_weight(elem->id.name);
 	if (hctl->count == hctl->alloc) {
 		snd_hctl_elem_t **h;
 		hctl->alloc += 32;
@@ -210,87 +293,6 @@ int snd_hctl_set_compare(snd_hctl_t *hctl, snd_hctl_compare_t hsort)
 	return 0;
 }
 
-#define NOT_FOUND 1000000000
-
-static int snd_hctl_compare_mixer_priority_lookup(char **name, char * const *names, int coef)
-{
-	int res;
-
-	for (res = 0; *names; names++, res += coef) {
-		if (!strncmp(*name, *names, strlen(*names))) {
-			*name += strlen(*names);
-			if (**name == ' ')
-				(*name)++;
-			return res+1;
-		}
-	}
-	return NOT_FOUND;
-}
-
-static int snd_hctl_compare_mixer_priority(const char *name)
-{
-	static char *names[] = {
-		"Master",
-		"Hardware Master",
-		"Headphone",
-		"Tone Control",
-		"3D Control",
-		"PCM",
-		"Synth",
-		"FM",
-		"Wave",
-		"Music",
-		"DSP",
-		"Line",
-		"CD",
-		"Mic",
-		"Phone",
-		"Video",
-		"PC Speaker",
-		"Aux",
-		"Mono",
-		"ADC",
-		"Capture Source",
-		"Capture",
-		"Playback",
-		"Loopback",
-		"Analog Loopback",
-		"Digital Loopback",
-		"S/PDIF Input",
-		"S/PDIF Output",
-		NULL
-	};
-	static char *names1[] = {
-		"Switch",
-		"Volume",
-		"Playback",
-		"Capture",
-		"Bypass",
-		"Mono",
-		"Front",
-		"Rear",
-		"Pan",
-		"Output",
-		NULL
-	};
-	static char *names2[] = {
-		"Switch",
-		"Volume",
-		"Bypass",
-		NULL
-	};
-	int res, res1;
-	
-	if ((res = snd_hctl_compare_mixer_priority_lookup((char **)&name, names, 1000000)) == NOT_FOUND)
-		return NOT_FOUND;
-	if ((res1 = snd_hctl_compare_mixer_priority_lookup((char **)&name, names1, 1000)) == NOT_FOUND)
-		return res;
-	res += res1;
-	if ((res1 = snd_hctl_compare_mixer_priority_lookup((char **)&name, names2, 1)) == NOT_FOUND)
-		return res;
-	return res + res1;
-}
-
 int snd_hctl_compare_fast(const snd_hctl_elem_t *c1,
 			  const snd_hctl_elem_t *c2)
 {
@@ -300,20 +302,18 @@ int snd_hctl_compare_fast(const snd_hctl_elem_t *c1,
 static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 				    const snd_hctl_elem_t *c2)
 {
-	int res, p1, p2;
+	int res;
 	int d = c1->id.iface - c2->id.iface;
 	if (d != 0)
 		return d;
-	if ((res = strcmp(c1->id.name, c2->id.name)) != 0) {
-		if (c1->id.iface != SNDRV_CTL_ELEM_IFACE_MIXER)
-			return res;
-		p1 = snd_hctl_compare_mixer_priority(c1->id.name);
-		p2 = snd_hctl_compare_mixer_priority(c2->id.name);
-		d = p1 - p2;
+	if (c1->id.iface == SNDRV_CTL_ELEM_IFACE_MIXER) {
+		d = c1->compare_weight - c2->compare_weight;
 		if (d != 0)
 			return d;
-		return res;
 	}
+	res = strcmp(c1->id.name, c2->id.name);
+	if (res != 0)
+		return res;
 	d = c1->id.index - c2->id.index;
 	return d;
 }
@@ -398,6 +398,8 @@ int snd_hctl_load(snd_hctl_t *hctl)
 		}
 		elem->id = list.pids[idx];
 		elem->hctl = hctl;
+		if (elem->id.iface == SNDRV_CTL_ELEM_IFACE_MIXER)
+			elem->compare_weight = get_compare_weight(elem->id.name);
 		hctl->pelems[idx] = elem;
 		list_add_tail(&elem->list, &hctl->elems);
 		hctl->count++;

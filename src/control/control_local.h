@@ -55,6 +55,7 @@ struct _snd_ctl {
 struct _snd_hctl_elem {
 	snd_ctl_elem_id_t id; 		/* must be always on top */
 	struct list_head list;		/* links for list of all helems */
+	int compare_weight;		/* compare weight (reversed) */
 	/* event callback */
 	snd_hctl_elem_callback_t callback;
 	void *callback_private;
