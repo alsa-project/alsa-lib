@@ -488,6 +488,10 @@ void snd_pcm_hw_param_refine_near(snd_pcm_t *pcm,
 				  snd_pcm_hw_params_t *params,
 				  snd_pcm_hw_param_t var,
 				  const snd_pcm_hw_params_t *src);
+void snd_pcm_hw_param_refine_multiple(snd_pcm_t *pcm,
+				      snd_pcm_hw_params_t *params,
+				      snd_pcm_hw_param_t var,
+				      const snd_pcm_hw_params_t *src);
 int snd_pcm_hw_param_empty(const snd_pcm_hw_params_t *params,
 			   snd_pcm_hw_param_t var);
 int snd_pcm_hw_param_always_eq(const snd_pcm_hw_params_t *params,

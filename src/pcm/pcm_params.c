@@ -931,6 +931,27 @@ void snd_pcm_hw_param_refine_near(snd_pcm_t *pcm,
 					 min, &mindir, max, &maxdir);
 }
 
+void snd_pcm_hw_param_refine_multiple(snd_pcm_t *pcm,
+				      snd_pcm_hw_params_t *params,
+				      snd_pcm_hw_param_t var,
+				      const snd_pcm_hw_params_t *src)
+{
+	const snd_interval_t *it = hw_param_interval_c(src, var);
+	const snd_interval_t *st = hw_param_interval_c(params, var);
+	if (snd_interval_single(it)) {
+		unsigned int best = snd_interval_min(it), cur;
+		for (cur = best; ; cur += best) {
+			if (st->max < cur || (st->max == cur && st->openmax))
+				break;
+			if (it->min > cur || (it->min == cur && st->openmin))
+				continue;
+			if (! snd_pcm_hw_param_set(pcm, params, SND_TRY, var, cur, 0))
+				return; /* ok */
+		}
+	}
+	snd_pcm_hw_param_refine_near(pcm, params, var, src);
+}
+
 /* ---- end of refinement functions ---- */
 
 int snd_pcm_hw_param_empty(const snd_pcm_hw_params_t *params,

@@ -652,8 +652,8 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	if (plug->srate == -2)
 		links |= SND_PCM_HW_PARBIT_RATE;
 	else {
-		snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_RATE,
-					     params);
+		snd_pcm_hw_param_refine_multiple(slave, sparams, SND_PCM_HW_PARAM_RATE,
+						 params);
 	}
 	
 	if (plug->schannels == -2)
