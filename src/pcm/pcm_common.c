@@ -208,7 +208,7 @@ ssize_t snd_pcm_plugin_src_samples_to_size(snd_pcm_plugin_t *plugin, size_t samp
 	if (plugin == NULL)
 		return -EFAULT;
 	result = samples * plugin->src_format.voices * plugin->src_width;
-	if ((result % 8) != 0)
+	if (result % 8 != 0)
 		return -EINVAL;
 	return result / 8;
 }
@@ -220,7 +220,7 @@ ssize_t snd_pcm_plugin_dst_samples_to_size(snd_pcm_plugin_t *plugin, size_t samp
 	if (plugin == NULL)
 		return -EFAULT;
 	result = samples * plugin->dst_format.voices * plugin->dst_width;
-	if ((result % 8) != 0)
+	if (result % 8 != 0)
 		return -EINVAL;
 	return result / 8;
 }
@@ -234,7 +234,7 @@ ssize_t snd_pcm_plugin_src_size_to_samples(snd_pcm_plugin_t *plugin, size_t size
 		return -EFAULT;
 	result = size * 8;
 	tmp = plugin->src_format.voices * plugin->src_width;
-	if ((result % tmp) != 0)
+	if (result % tmp != 0)
 		return -EINVAL;
 	return result / tmp;
 }
@@ -248,7 +248,7 @@ ssize_t snd_pcm_plugin_dst_size_to_samples(snd_pcm_plugin_t *plugin, size_t size
 		return -EFAULT;
 	result = size * 8;
 	tmp = plugin->dst_format.voices * plugin->dst_width;
-	if ((result % tmp) != 0)
+	if (result % tmp != 0)
 		return -EINVAL;
 	return result / tmp;
 }
