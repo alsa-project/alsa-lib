@@ -539,16 +539,22 @@ static int client_discard(snd_pcm_dmix_t *dmix)
  *  ring buffer operation
  */
 
-static int check_interleave(snd_pcm_dmix_t *dmix)
+static int check_interleave(snd_pcm_dmix_t *dmix, snd_pcm_t *pcm)
 {
 	unsigned int chn, channels;
 	int interleaved = 1;
 	const snd_pcm_channel_area_t *dst_areas;
+	const snd_pcm_channel_area_t *src_areas;
 
 	channels = dmix->shmptr->s.channels;
 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
+	src_areas = snd_pcm_mmap_areas(pcm);
 	for (chn = 1; chn < channels; chn++) {
 		if (dst_areas[chn-1].addr != dst_areas[chn].addr) {
+			interleaved = 0;
+			break;
+		}
+		if (src_areas[chn-1].addr != src_areas[chn].addr) {
 			interleaved = 0;
 			break;
 		}
@@ -556,6 +562,11 @@ static int check_interleave(snd_pcm_dmix_t *dmix)
 	for (chn = 0; chn < channels; chn++) {
 		if (dst_areas[chn].first != sizeof(signed short) * chn * 8 ||
 		    dst_areas[chn].step != channels * sizeof(signed short) * 8) {
+			interleaved = 0;
+			break;
+		}
+		if (src_areas[chn].first != sizeof(signed short) * chn * 8 ||
+		    src_areas[chn].step != channels * sizeof(signed short) * 8) {
 			interleaved = 0;
 			break;
 		}
@@ -630,8 +641,9 @@ static void mix_areas1(unsigned int size,
 
 	while (size-- > 0) {
 		sample = *src;
+		old_sample = *sum;
 		if (*dst == 0)
-			sample -= *sum;
+			sample -= old_sample;
 		*sum += sample;
 		do {
 			old_sample = *sum;
@@ -643,9 +655,9 @@ static void mix_areas1(unsigned int size,
 				sample = old_sample;
 			*dst = sample;
 		} while (*sum != old_sample);
-		((char *)src) += dst_step;
-		((char *)dst) += src_step;
-		((char *)sum) += sum_step;		
+		((char *)src) += src_step;
+		((char *)dst) += dst_step;
+		((char *)sum) += sum_step;
 	}
 }
 
@@ -671,7 +683,7 @@ static void mix_areas(snd_pcm_dmix_t *dmix,
 	channels = dmix->shmptr->s.channels;
 	if (dmix->interleaved) {
 		/*
-		 * process the all areas in one loop
+		 * process all areas in one loop
 		 * it optimizes the memory accesses for this case
 		 */
 		dmix->mix_areas1(size * channels,
@@ -997,6 +1009,7 @@ static int snd_pcm_dmix_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
 
+	check_interleave(dmix, pcm);
 	// assert(pcm->boundary == dmix->shmptr->s.boundary);	/* for sure */
 	dmix->state = SND_PCM_STATE_PREPARED;
 	dmix->appl_ptr = 0;
@@ -1571,7 +1584,6 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		goto _err;
 	}
 
-	check_interleave(dmix);
 	mix_select_callbacks(dmix);
 		
 	pcm->poll_fd = dmix->poll_fd;
