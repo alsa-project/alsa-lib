@@ -1,7 +1,11 @@
-/*
- *  Application interface library for the ALSA driver
- *  Copyright (c) by Jaroslav Kysela <perex@suse.cz>
- *                   Abramo Bagnara <abramo@alsa-project.org>
+/**
+ * \file asoundlib.h
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Takashi Iwai <tiwai@suse.de>
+ * \date 1998-2001
+ *
+ * Application interface library for the ALSA driver
  *
  *
  *   This library is free software; you can redistribute it and/or modify

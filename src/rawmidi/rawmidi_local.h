@@ -36,8 +36,6 @@ typedef struct {
 	ssize_t (*read)(snd_rawmidi_t *rawmidi, void *buffer, size_t size);
 } snd_rawmidi_ops_t;
 
-
-
 struct _snd_rawmidi {
 	char *name;
 	snd_rawmidi_type_t type;
@@ -54,4 +52,3 @@ struct _snd_rawmidi {
 int snd_rawmidi_hw_open(snd_rawmidi_t **input, snd_rawmidi_t **output,
 			const char *name, int card, int device, int subdevice,
 			int mode);
-

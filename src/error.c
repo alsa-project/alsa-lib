@@ -1,4 +1,4 @@
-/*!
+/**
  * \file error.c
  * Error code handling routines.
  */
@@ -30,13 +30,17 @@
 #include <string.h>
 #include "local.h"
 
+/**
+ * \if static
+ * Array of error codes in US ASCII.
+ * \endif
+ */
 static const char *snd_error_codes[] =
 {
 	"Sound protocol is not compatible"
 };
 
-/*!
- * \fn const char * snd_strerror(int errnum)
+/**
  * \brief Get the error string.
  * \param errnum The error code number.
  *
@@ -54,9 +58,8 @@ const char *snd_strerror(int errnum)
 	return snd_error_codes[errnum];
 }
 
-#ifndef DOC_PUBLIC
-/*!
- * \fn static void snd_lib_error_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
+/**
+ * \if static
  * \brief The default error handler function.
  * \param file The filename where the error was hit.
  * \param line The line number.
@@ -66,6 +69,7 @@ const char *snd_strerror(int errnum)
  * \param ... Optional arguments.
  *
  * Prints the error message including location to stderr.
+ * \endif
  */
 static void snd_lib_error_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
 {
@@ -78,18 +82,13 @@ static void snd_lib_error_default(const char *file, int line, const char *functi
 	putc('\n', stderr);
 	va_end(arg);
 }
-#endif /* !DOC_PUBLIC */
 
-#ifndef DOC_PUBLIC
-/*!
- * \var snd_lib_error_handler_t *snd_lib_error;
+/**
  * Pointer to the error handler function.
  */
 snd_lib_error_handler_t *snd_lib_error = snd_lib_error_default;
-#endif /* !DOC_PUBLIC */
 
-/*!
- * \fn int snd_lib_error_set_handler(snd_lib_error_handler_t *handler)
+/**
  * \brief Set the error handler.
  * \param handler The pointer to the new error handler function.
  *
