@@ -59,6 +59,7 @@ int bag_del(bag_t *bag, void *ptr)
 		bag1_t *b = list_entry(pos, bag1_t, list);
 		if (b->ptr == ptr) {
 			list_del(&b->list);
+			free(b);
 			return 0;
 		}
 	}
