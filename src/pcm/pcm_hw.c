@@ -50,7 +50,10 @@ const char *_snd_module_pcm_hw = "";
 #define F_SETSIG 10
 #endif
 
+#define SND_PCM_IOCTL_XRUN _IO('A', 0x48)
+
 typedef struct {
+	int version;
 	int fd;
 	int card, device, subdevice;
 	int mmap_emulation;
@@ -65,7 +68,7 @@ typedef struct {
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
 #define SNDRV_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
-#define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 0)
+#define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 1)
 
 /* update appl_ptr with driver */
 #define UPDATE_SHADOW_PTR(hw) \
@@ -635,8 +638,15 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 			return err;
 		}
 	}
-	if (avail >= pcm->stop_threshold)
+	if (avail >= pcm->stop_threshold) {
+		/* SNDRV_PCM_IOCTL_XRUN ioctl has been implemented since PCM kernel API 2.0.1 */
+		if (SNDRV_PROTOCOL_VERSION(2, 0, 1) <= hw->version) {
+			if (ioctl(hw->fd, SND_PCM_IOCTL_XRUN) < 0)
+				return -errno;
+		}
+		/* everything is ok, state == SND_PCM_STATE_XRUN at the moment */
 		return -EPIPE;
+	}
 	return avail;
 }
 
@@ -781,6 +791,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		ret = -ENOMEM;
 		goto _err;
 	}
+	hw->version = ver;
 	hw->card = card;
 	hw->device = device;
 	hw->subdevice = subdevice;
