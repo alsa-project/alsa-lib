@@ -296,7 +296,7 @@ static void swap_formats(int channel, int *src, int *dst)
 	*dst = tmp;	
 }
 
-#define CONVERT_RATIO(dest, ratio) dest = (int)((double)dest * ratio)
+#define CONVERT_RATIO(dest, ratio) dest = ((int)(((double)dest * ratio)+0.5))
 
 int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 {
