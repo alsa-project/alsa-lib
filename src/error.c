@@ -31,9 +31,7 @@
 #include "local.h"
 
 /**
- * \if static
  * Array of error codes in US ASCII.
- * \endif
  */
 static const char *snd_error_codes[] =
 {
@@ -59,7 +57,6 @@ const char *snd_strerror(int errnum)
 }
 
 /**
- * \if static
  * \brief The default error handler function.
  * \param file The filename where the error was hit.
  * \param line The line number.
@@ -69,7 +66,6 @@ const char *snd_strerror(int errnum)
  * \param ... Optional arguments.
  *
  * Prints the error message including location to stderr.
- * \endif
  */
 static void snd_lib_error_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
 {
@@ -83,10 +79,12 @@ static void snd_lib_error_default(const char *file, int line, const char *functi
 	va_end(arg);
 }
 
+#ifndef DOC_HIDDEN
 /**
  * Pointer to the error handler function.
  */
 snd_lib_error_handler_t *snd_lib_error = snd_lib_error_default;
+#endif
 
 /**
  * \brief Set the error handler.
