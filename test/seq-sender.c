@@ -74,7 +74,7 @@ void event_sender(void *handle, int argc, char *argv[])
 	snd_seq_port_info_t port;
 	snd_seq_port_subscribe_t sub;
 	fd_set out, in;
-	int client, queue, max, err, v1, v2, time = 0;
+	int client, queue, max, err, v1, v2, time = 0, first;
 	char *ptr;
 
 	if (argc != 1) {
@@ -128,6 +128,7 @@ void event_sender(void *handle, int argc, char *argv[])
 
 	printf("Destonation client = %i, port = %i\n", sub.dest.client, sub.dest.port);
 	
+	first = 1;
 	while (1) {
 		FD_ZERO(&out);
 		FD_ZERO(&in);
@@ -136,7 +137,10 @@ void event_sender(void *handle, int argc, char *argv[])
 		if (select(max + 1, &in, &out, NULL, NULL) < 0)
 			break;
 		if (FD_ISSET(max, &out)) {
-			send_event(handle, queue, client, port.port, &sub, &time);
+			if (first) {
+				send_event(handle, queue, client, port.port, &sub, &time);
+				first = 0;
+			}
 		}
 		if (FD_ISSET(max, &in)) {
 			do {
@@ -144,6 +148,8 @@ void event_sender(void *handle, int argc, char *argv[])
 					break;
 				if (!ev)
 					continue;
+				if (ev->type == SND_SEQ_EVENT_ECHO)
+					send_event(handle, queue, client, port.port, &sub, &time);
 				decode_event(ev);
 				snd_seq_free_event(ev);
 			} while (err > 0);
