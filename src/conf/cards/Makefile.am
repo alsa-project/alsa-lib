@@ -35,6 +35,6 @@ SI7018_files = \
 	SI7018/sndop-mixer.alisp
 SI7018_DATA = $(SI7018_files)
 
-EXTRA_DIST =
+EXTRA_DIST = \
 	$(cfg_files) \
 	$(SI7018_files)
