@@ -26,6 +26,7 @@ int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t * info);
 int snd_pcm_channel_info(snd_pcm_t *handle, snd_pcm_channel_info_t * info);
 int snd_pcm_channel_params(snd_pcm_t *handle, snd_pcm_channel_params_t * params);
 int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t * setup);
+int snd_pcm_voice_setup(snd_pcm_t *handle, int channel, snd_pcm_voice_setup_t * setup);
 int snd_pcm_channel_status(snd_pcm_t *handle, snd_pcm_channel_status_t * status);
 int snd_pcm_playback_prepare(snd_pcm_t *handle);
 int snd_pcm_capture_prepare(snd_pcm_t *handle);
@@ -86,8 +87,8 @@ typedef enum {
 typedef struct snd_stru_pcm_plugin_voice {
 	void *aptr;			/* pointer to the allocated area */
 	void *addr;			/* address to voice samples */
-	unsigned int offset;		/* offset to first voice in bits */
-	unsigned int next;		/* offset to next voice in bits */
+	unsigned int first;		/* offset to first sample in bits */
+	unsigned int step;		/* samples distance in bits */
 } snd_pcm_plugin_voice_t;
 
 struct snd_stru_pcm_plugin {

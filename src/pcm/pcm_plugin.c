@@ -487,8 +487,8 @@ static int snd_pcm_plugin_load_vector(snd_pcm_plugin_t *plugin,
 			v->aptr = NULL;
 			if ((v->addr = vector->iov_base) == NULL)
 				return -EINVAL;
-			v->offset = voice * width;
-			v->next = cvoices * width;
+			v->first = voice * width;
+			v->step = cvoices * width;
 		}
 	} else {
 		if (count != cvoices)
@@ -496,8 +496,8 @@ static int snd_pcm_plugin_load_vector(snd_pcm_plugin_t *plugin,
 		for (voice = 0; voice < cvoices; voice++, v++) {
 			v->aptr = NULL;
 			v->addr = vector[voice].iov_base;
-			v->offset = 0;
-			v->next = width;
+			v->first = 0;
+			v->step = width;
 		}		
 	}
 	*voices = plugin->voices;
@@ -868,12 +868,12 @@ static int snd_pcm_plugin_xvoices(snd_pcm_plugin_t *plugin,
 		v->aptr = ptr;
 		if (format->interleave) {
 			v->addr = ptr;
-			v->offset = voice * width;
-			v->next = format->voices * width;
+			v->first = voice * width;
+			v->step = format->voices * width;
 		} else {
 			v->addr = ptr + (voice * size);
-			v->offset = 0;
-			v->next = width;
+			v->first = 0;
+			v->step = width;
 		}
 	}
 	*voices = plugin->voices;
