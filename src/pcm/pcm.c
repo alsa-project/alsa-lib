@@ -4830,6 +4830,9 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
  * \param size mmap area portion size in frames (wanted on entry, contiguous available on exit)
  * \return 0 on success otherwise a negative error code
  *
+ * It is necessary to call the snd_pcm_avail_update() function directly before
+ * this call. Otherwise, this function can return a wrong count of available frames.
+ *
  * The function should be called before a sample-direct area can be accessed.
  * The resulting size parameter is always less or equal to the input count of frames
  * and can be zero, if no frames can be processed (the ring buffer is full).
@@ -4843,38 +4846,10 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		       snd_pcm_uframes_t *offset,
 		       snd_pcm_uframes_t *frames)
 {
-	snd_pcm_sframes_t avail;
-	
-	avail = snd_pcm_avail_update(pcm);
-	if (avail < 0)
-		return avail;
-	return snd_pcm_mmap_begin_avail(pcm, areas, offset, frames, avail);
-}
-
-/**
- * \brief Application request to access a portion of direct (mmap) area
- * \param pcm PCM handle 
- * \param areas Returned mmap channel areas
- * \param offset Returned mmap area offset in area steps (== frames)
- * \param size mmap area portion size in frames (wanted on entry, contiguous available on exit)
- * \param avail available frames (result from snd_pcm_avail_update())
- * \return 0 on success otherwise a negative error code
- *
- * See snd_pcm_mmap_begin() function for more details. The only difference
- * is in the optimization for applications using snd_pcm_avail_update()
- * directly before snd_pcm_mmap_begin() call. In the case, this function
- * should be used to avoid twice or more calls to time consuming
- * snd_pcm_avail_update() function.
- */
-int snd_pcm_mmap_begin_avail(snd_pcm_t *pcm,
-			     const snd_pcm_channel_area_t **areas,
-			     snd_pcm_uframes_t *offset,
-			     snd_pcm_uframes_t *frames,
-			     snd_pcm_uframes_t avail)
-{
 	snd_pcm_uframes_t cont;
 	snd_pcm_uframes_t f;
-	assert(pcm && areas && offset && frames && avail <= pcm->buffer_size);
+	snd_pcm_uframes_t avail;
+	assert(pcm && areas && offset && frames);
 	if (pcm->stopped_areas &&
 	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
 		*areas = pcm->stopped_areas;
@@ -4883,6 +4858,9 @@ int snd_pcm_mmap_begin_avail(snd_pcm_t *pcm,
 	*offset = *pcm->appl_ptr % pcm->buffer_size;
 	cont = pcm->buffer_size - *offset;
 	f = *frames;
+	avail = snd_pcm_mmap_avail(pcm);
+	if (avail > pcm->buffer_size)
+		return -EPIPE;
 	if (f > avail)
 		f = avail;
 	if (f > cont)
@@ -4901,46 +4879,42 @@ int snd_pcm_mmap_begin_avail(snd_pcm_t *pcm,
  * You should pass this function the offset value that
  * snd_pcm_mmap_begin() returned. The frames parameter should hold the
  * number of frames you have written or read to/from the audio
- * buffer. The frames parameter must never exceed the configuous frames
+ * buffer. The frames parameter must never exceed the contiguous frames
  * count that snd_pcm_mmap_begin() returned. Each call to snd_pcm_mmap_begin()
  * must be followed by a call to snd_pcm_mmap_commit().
  *
- * Example #1:
+ * Example:
 \code
   double phase = 0;
   const snd_pcm_area_t *areas;
-  snd_pcm_uframes_t offset, frames;
-
-  frames = frame_buffer_size;
-  err = snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &frames);
-  if (err < 0)
-    error(err);
-  // this function fills the areas from offset with count of frames
-  generate_sine(areas, offset, frames, &phase);
-  err = snd_pcm_mmap_commit(pcm_handle, offset, frames);
-  if (err < 0)
-    error(err);
-\endcode
- *
- * Example #2 (determine available frame count at beginning):
-\code
-  double phase = 0;
-  const snd_pcm_area_t *areas;
-  snd_pcm_sframes_t avail;
+  snd_pcm_sframes_t avail, size;
   snd_pcm_uframes_t offset, frames;
 
   avail = snd_pcm_avail_update(pcm);
   if (avail < 0)
     error(avail);
-  frames = frame_buffer_size > avail ? avail : frame_buffer_size;
-  err = snd_pcm_mmap_begin_avail(pcm_handle, &areas, &offset, &frames, avail);
-  if (err < 0)
-    error(err);
-  // this function fills the areas from offset with count of frames
-  generate_sine(areas, offset, frames, &phase);
-  err = snd_pcm_mmap_commit(pcm_handle, offset, frames);
-  if (err < 0)
-    error(err);
+  // at this point, we can transfer at least 'avail' frames
+  
+  // we want to process frames in chunks (period_size)
+  if (avail < period_size)
+    goto _skip;
+  size = period_size;
+  // it is possible that contiguous areas are smaller, thus we use a loop
+  while (size > 0) {
+    frames = size;
+
+    err = snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &frames);
+    if (err < 0)
+      error(err);
+    // this function fills the areas from offset with count of frames
+    generate_sine(areas, offset, frames, &phase);
+    err = snd_pcm_mmap_commit(pcm_handle, offset, frames);
+    if (err < 0)
+      error(err);
+      
+    size -= frames;
+  }
+ _skip:
 \endcode
  *
  * Look to the \ref example_test_pcm "Sine-wave generator" example

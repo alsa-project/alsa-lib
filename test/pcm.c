@@ -465,7 +465,7 @@ static int direct_loop(snd_pcm_t *handle,
 		size = period_size;
 		while (size > 0) {
 			frames = size;
-			err = snd_pcm_mmap_begin_avail(handle, &my_areas, &offset, &frames, avail);
+			err = snd_pcm_mmap_begin(handle, &my_areas, &offset, &frames);
 			if (err < 0) {
 				if ((err = xrun_recovery(handle, err)) < 0) {
 					printf("MMAP begin avail error: %s\n", snd_strerror(err));

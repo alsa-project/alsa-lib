@@ -790,11 +790,6 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		       const snd_pcm_channel_area_t **areas,
 		       snd_pcm_uframes_t *offset,
 		       snd_pcm_uframes_t *frames);
-int snd_pcm_mmap_begin_avail(snd_pcm_t *pcm,
-			     const snd_pcm_channel_area_t **areas,
-			     snd_pcm_uframes_t *offset,
-			     snd_pcm_uframes_t *frames,
-			     snd_pcm_uframes_t avail);
 int snd_pcm_mmap_commit(snd_pcm_t *pcm,
 			snd_pcm_uframes_t offset,
 			snd_pcm_uframes_t frames);
