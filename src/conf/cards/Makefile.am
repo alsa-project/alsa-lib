@@ -19,7 +19,10 @@ cfg_files = aliases.conf \
 	TRID4DWAVENX.conf \
 	YMF744.conf \
 	VIA8233.conf \
-	VIA8233A.conf
+	VIA8233A.conf \
+	VX222.conf \
+	VXPocket.conf \
+	VXPocket440.conf
 
 EXTRA_DIST = $(cfg_files)
 alsa_DATA = $(cfg_files)
