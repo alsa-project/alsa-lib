@@ -282,7 +282,7 @@ static int get_delimstring(char **string, int delim, input_t *input)
 	return 0;
 }
 
-/* Return 1 for free string, 0 for delimited string */
+/* Return 0 for free string, 1 for delimited string */
 static int get_string(char **string, input_t *input)
 {
 	int c = get_nonwhite(input);
@@ -309,13 +309,13 @@ static int get_string(char **string, input_t *input)
 		err = get_delimstring(string, c, input);
 		if (err < 0)
 			return err;
-		return 0;
+		return 1;
 	default:
 		unget_char(c, input);
 		err = get_freestring(string, input);
 		if (err < 0)
 			return err;
-		return 1;
+		return 0;
 	}
 }
 
@@ -475,7 +475,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 		err = get_string(&s, input);
 		if (err < 0)
 			return err;
-		if (s[0] >= '0' && s[0] <= '9') {
+		if (!err && ((s[0] >= '0' && s[0] <= '9') || s[0] == '-')) {
 			char *ptr;
 			long i;
 			errno = 0;
@@ -772,14 +772,20 @@ int snd_config_get(snd_config_t *config, void *ptr)
 	return 0;
 }
 
-void quoted_print(char *str, FILE *fp)
+void string_print(char *str, int id, FILE *fp)
 {
-	int quote = 0;
 	unsigned char *p = str;
+	if (!id) {
+		switch (*p) {
+		case '0' ... '9':
+		case '-':
+			goto quoted;
+		}
+	}
  loop:
 	switch (*p) {
 	case 0:
-		break;
+		goto nonquoted;
 	case 1 ... 31:
 	case 127 ... 255:
 	case ' ':
@@ -791,16 +797,15 @@ void quoted_print(char *str, FILE *fp)
 	case ',':
 	case '\'':
 	case '"':
-		quote = 1;
-		break;
+		goto quoted;
 	default:
 		p++;
 		goto loop;
 	}
-	if (!quote) {
-		fputs(str, fp);
-		return;
-	}
+ nonquoted:
+	fputs(str, fp);
+	return;
+ quoted:
 	putc('\'', fp);
 	p = str;
 	while (*p) {
@@ -863,7 +868,7 @@ static int _snd_config_save_leaf(snd_config_t *n, FILE *fp,
 		fprintf(fp, "%16g", n->u.real);
 		break;
 	case SND_CONFIG_TYPE_STRING:
-		quoted_print(n->u.string, fp);
+		string_print(n->u.string, 0, fp);
 		break;
 	case SND_CONFIG_TYPE_COMPOUND:
 		putc('{', fp);
@@ -887,7 +892,7 @@ static void id_print(snd_config_t *n, FILE *fp, unsigned int joins)
 		id_print(n->father, fp, joins - 1);
 		putc('.', fp);
 	}
-	quoted_print(n->id, fp);
+	string_print(n->id, 1, fp);
 }
 
 static int _snd_config_save_leaves(snd_config_t *config, FILE *fp, unsigned int level, unsigned int joins)
