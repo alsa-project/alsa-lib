@@ -91,6 +91,28 @@ static unsigned short preset_dB_value[PRESET_RESOLUTION] = {
 
 #endif /* DOC_HIDDEN */
 
+/* (32bit x 16bit) >> 16 */
+typedef union {
+	int i;
+	short s[2];
+} val_t;
+static inline int MULTI_DIV(int a, unsigned short b)
+{
+	val_t v, x, y;
+	v.i = a;
+	y.i = 0;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	x.i = (unsigned int)v.s[0] * b;
+	y.s[0] = x.s[1];
+	y.i += (int)v.s[1] * b;
+#else
+	x.i = (unsigned int)v.s[1] * b;
+	y.s[1] = x.s[0];
+	y.i += (int)v.s[0] * b;
+#endif
+	return y.i;
+}
+
 /*
  * apply volumue attenuation
  *
@@ -106,7 +128,6 @@ static void snd_pcm_softvol_convert(snd_pcm_softvol_t *svol,
 				    unsigned int cur_vol)
 {
 	const snd_pcm_channel_area_t *dst_area, *src_area;
-	short *src, *dst;
 	unsigned int src_step, dst_step;
 	unsigned int ch;
 	unsigned int fr;
@@ -123,18 +144,39 @@ static void snd_pcm_softvol_convert(snd_pcm_softvol_t *svol,
 	}
 
 	vol_scale = svol->dB_value[cur_vol];
-	for (ch = 0; ch < channels; ch++) {
-		src_area = &src_areas[ch];
-		dst_area = &dst_areas[ch];
-		src = snd_pcm_channel_area_addr(src_area, src_offset);
-		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
-		src_step = snd_pcm_channel_area_step(src_area) / sizeof(short);
-		dst_step = snd_pcm_channel_area_step(dst_area) / sizeof(short);
-		fr = frames;
-		while (fr--) {
-			*dst = ((int)*src * vol_scale) >> VOL_SCALE_SHIFT;
-			src += src_step;
-			dst += dst_step;
+	if (svol->sformat == SND_PCM_FORMAT_S16) {
+		/* 16bit samples */
+		short *src, *dst;
+		for (ch = 0; ch < channels; ch++) {
+			src_area = &src_areas[ch];
+			dst_area = &dst_areas[ch];
+			src = snd_pcm_channel_area_addr(src_area, src_offset);
+			dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
+			src_step = snd_pcm_channel_area_step(src_area) / sizeof(short);
+			dst_step = snd_pcm_channel_area_step(dst_area) / sizeof(short);
+			fr = frames;
+			while (fr--) {
+				*dst = ((int)*src * vol_scale) >> VOL_SCALE_SHIFT;
+				src += src_step;
+				dst += dst_step;
+			}
+		}
+	} else {
+		/* 32bit samples */
+		int *src, *dst;
+		for (ch = 0; ch < channels; ch++) {
+			src_area = &src_areas[ch];
+			dst_area = &dst_areas[ch];
+			src = snd_pcm_channel_area_addr(src_area, src_offset);
+			dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
+			src_step = snd_pcm_channel_area_step(src_area) / sizeof(int);
+			dst_step = snd_pcm_channel_area_step(dst_area) / sizeof(int);
+			fr = frames;
+			while (fr--) {
+				*dst = MULTI_DIV(*src, vol_scale);
+				src += src_step;
+				dst += dst_step;
+			}
 		}
 	}
 }
@@ -149,6 +191,7 @@ static unsigned int get_current_volume(snd_pcm_softvol_t *svol)
 	unsigned int val;
 	if (snd_ctl_elem_read(svol->ctl, &svol->elem) < 0)
 		return 0;
+	/* set max vol as default */
 	val = svol->elem.value.integer.value[0];
 	if (val > svol->max_val)
 		val = svol->max_val;
@@ -281,8 +324,9 @@ static int snd_pcm_softvol_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * param
 					  snd_pcm_plugin_hw_params_slave);
 	if (err < 0)
 		return err;
-	if (slave->format != SND_PCM_FORMAT_S16) {
-		SNDERR("softvol supports only S16");
+	if (slave->format != SND_PCM_FORMAT_S16 &&
+	    slave->format != SND_PCM_FORMAT_S32) {
+		SNDERR("softvol supports only S16 or S32");
 		return -EINVAL;
 	}
 	svol->sformat = slave->format;
@@ -346,7 +390,13 @@ static void snd_pcm_softvol_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo)
 {
-	return snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, 1, 0, svol->max_val, 0);
+	int err;
+
+	err = snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, 1, 0, svol->max_val, 0);
+	if (err < 0)
+		return err;
+	svol->elem.value.integer.value[0] = svol->max_val;
+	return snd_ctl_elem_write(svol->ctl, &svol->elem);
 }
 
 /*
@@ -482,7 +532,9 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_softvol_t *svol;
 	int err;
 	assert(pcmp && slave);
-	if (sformat != SND_PCM_FORMAT_UNKNOWN && sformat != SND_PCM_FORMAT_S16_LE)
+	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
+	    sformat != SND_PCM_FORMAT_S16 &&
+	    sformat != SND_PCM_FORMAT_S32)
 		return -EINVAL;
 	svol = calloc(1, sizeof(*svol));
 	if (! svol)
@@ -749,8 +801,10 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat);
 	if (err < 0)
 		return err;
-	if (sformat != SND_PCM_FORMAT_UNKNOWN && sformat != SND_PCM_FORMAT_S16) {
-		SNDERR("only S16 format is supported");
+	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
+	    sformat != SND_PCM_FORMAT_S16 &&
+	    sformat != SND_PCM_FORMAT_S32) {
+		SNDERR("only S16 or S32 format is supported");
 		snd_config_delete(sconf);
 		return -EINVAL;
 	}
