@@ -379,75 +379,75 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_ASYNC:
 		ctrl->result = snd_pcm_async(pcm, ctrl->u.async.sig, ctrl->u.async.pid);
 		break;
-	case SND_PCM_IOCTL_INFO:
+	case SNDRV_PCM_IOCTL_INFO:
 		ctrl->result = snd_pcm_info(pcm, (snd_pcm_info_t *) &ctrl->u.info);
 		break;
-	case SND_PCM_IOCTL_HW_REFINE:
+	case SNDRV_PCM_IOCTL_HW_REFINE:
 		ctrl->result = snd_pcm_hw_refine(pcm, (snd_pcm_hw_params_t *) &ctrl->u.hw_refine);
 		break;
-	case SND_PCM_IOCTL_HW_PARAMS:
+	case SNDRV_PCM_IOCTL_HW_PARAMS:
 		ctrl->result = snd_pcm_hw_params(pcm, (snd_pcm_hw_params_t *) &ctrl->u.hw_params);
 		break;
-	case SND_PCM_IOCTL_HW_FREE:
+	case SNDRV_PCM_IOCTL_HW_FREE:
 		ctrl->result = snd_pcm_hw_free(pcm);
 		break;
-	case SND_PCM_IOCTL_SW_PARAMS:
+	case SNDRV_PCM_IOCTL_SW_PARAMS:
 		ctrl->result = snd_pcm_sw_params(pcm, (snd_pcm_sw_params_t *) &ctrl->u.sw_params);
 		break;
-	case SND_PCM_IOCTL_STATUS:
+	case SNDRV_PCM_IOCTL_STATUS:
 		ctrl->result = snd_pcm_status(pcm, (snd_pcm_status_t *) &ctrl->u.status);
 		break;
 	case SND_PCM_IOCTL_STATE:
 		ctrl->result = snd_pcm_state(pcm);
 		break;
-	case SND_PCM_IOCTL_DELAY:
+	case SNDRV_PCM_IOCTL_DELAY:
 		ctrl->result = snd_pcm_delay(pcm, (snd_pcm_sframes_t *) &ctrl->u.delay.frames);
 		break;
 	case SND_PCM_IOCTL_AVAIL_UPDATE:
 		ctrl->result = snd_pcm_avail_update(pcm);
 		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
-	case SND_PCM_IOCTL_PREPARE:
+	case SNDRV_PCM_IOCTL_PREPARE:
 		ctrl->result = snd_pcm_prepare(pcm);
 		ctrl->appl_ptr = *pcm->appl_ptr;
 		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
-	case SND_PCM_IOCTL_RESET:
+	case SNDRV_PCM_IOCTL_RESET:
 		ctrl->result = snd_pcm_reset(pcm);
 		ctrl->appl_ptr = *pcm->appl_ptr;
 		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
-	case SND_PCM_IOCTL_START:
+	case SNDRV_PCM_IOCTL_START:
 		ctrl->result = snd_pcm_start(pcm);
 		ctrl->appl_ptr = *pcm->appl_ptr;
 		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
-	case SND_PCM_IOCTL_DRAIN:
+	case SNDRV_PCM_IOCTL_DRAIN:
 		ctrl->result = snd_pcm_drain(pcm);
 		break;
-	case SND_PCM_IOCTL_DROP:
+	case SNDRV_PCM_IOCTL_DROP:
 		ctrl->result = snd_pcm_drop(pcm);
 		break;
-	case SND_PCM_IOCTL_PAUSE:
+	case SNDRV_PCM_IOCTL_PAUSE:
 		ctrl->result = snd_pcm_pause(pcm, ctrl->u.pause.enable);
 		break;
-	case SND_PCM_IOCTL_CHANNEL_INFO:
+	case SNDRV_PCM_IOCTL_CHANNEL_INFO:
 		ctrl->result = snd_pcm_channel_info(pcm, (snd_pcm_channel_info_t *) &ctrl->u.channel_info);
 		if (ctrl->result >= 0 &&
 		    ctrl->u.channel_info.type == SND_PCM_AREA_MMAP)
 			return shm_ack_fd(client, ctrl->u.channel_info.u.mmap.fd);
 		break;
-	case SND_PCM_IOCTL_REWIND:
+	case SNDRV_PCM_IOCTL_REWIND:
 		ctrl->result = snd_pcm_rewind(pcm, ctrl->u.rewind.frames);
 		ctrl->appl_ptr = *pcm->appl_ptr;
 		break;
-	case SND_PCM_IOCTL_LINK:
+	case SNDRV_PCM_IOCTL_LINK:
 	{
 		/* FIXME */
 		ctrl->result = -ENOSYS;
 		break;
 	}
-	case SND_PCM_IOCTL_UNLINK:
+	case SNDRV_PCM_IOCTL_UNLINK:
 		ctrl->result = snd_pcm_unlink(pcm);
 		break;
 	case SND_PCM_IOCTL_MMAP:
@@ -577,10 +577,10 @@ int ctl_shm_cmd(client_t *client)
 	ctrl->cmd = 0;
 	ctl = client->device.control.handle;
 	switch (cmd) {
-	case SND_CTL_IOCTL_HW_INFO:
+	case SNDRV_CTL_IOCTL_HW_INFO:
 		ctrl->result = snd_ctl_hw_info(ctl, &ctrl->u.hw_info);
 		break;
-	case SND_CTL_IOCTL_CONTROL_LIST:
+	case SNDRV_CTL_IOCTL_CONTROL_LIST:
 	{
 		size_t maxsize = CTL_SHM_DATA_MAXLEN;
 		if (ctrl->u.clist.controls_request * sizeof(*ctrl->u.clist.pids) > maxsize) {
@@ -591,37 +591,37 @@ int ctl_shm_cmd(client_t *client)
 		ctrl->result = snd_ctl_clist(ctl, &ctrl->u.clist);
 		break;
 	}
-	case SND_CTL_IOCTL_CONTROL_INFO:
+	case SNDRV_CTL_IOCTL_CONTROL_INFO:
 		ctrl->result = snd_ctl_cinfo(ctl, &ctrl->u.cinfo);
 		break;
-	case SND_CTL_IOCTL_CONTROL_READ:
+	case SNDRV_CTL_IOCTL_CONTROL_READ:
 		ctrl->result = snd_ctl_cread(ctl, &ctrl->u.cread);
 		break;
-	case SND_CTL_IOCTL_CONTROL_WRITE:
+	case SNDRV_CTL_IOCTL_CONTROL_WRITE:
 		ctrl->result = snd_ctl_cwrite(ctl, &ctrl->u.cwrite);
 		break;
-	case SND_CTL_IOCTL_HWDEP_NEXT_DEVICE:
+	case SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE:
 		ctrl->result = snd_ctl_hwdep_next_device(ctl, &ctrl->u.device);
 		break;
-	case SND_CTL_IOCTL_HWDEP_INFO:
+	case SNDRV_CTL_IOCTL_HWDEP_INFO:
 		ctrl->result = snd_ctl_hwdep_info(ctl, &ctrl->u.hwdep_info);
 		break;
-	case SND_CTL_IOCTL_PCM_NEXT_DEVICE:
+	case SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE:
 		ctrl->result = snd_ctl_pcm_next_device(ctl, &ctrl->u.device);
 		break;
-	case SND_CTL_IOCTL_PCM_INFO:
+	case SNDRV_CTL_IOCTL_PCM_INFO:
 		ctrl->result = snd_ctl_pcm_info(ctl, &ctrl->u.pcm_info);
 		break;
-	case SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE:
+	case SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE:
 		ctrl->result = snd_ctl_pcm_prefer_subdevice(ctl, ctrl->u.pcm_prefer_subdevice);
 		break;
-	case SND_CTL_IOCTL_RAWMIDI_NEXT_DEVICE:
+	case SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE:
 		ctrl->result = snd_ctl_rawmidi_next_device(ctl, &ctrl->u.device);
 		break;
-	case SND_CTL_IOCTL_RAWMIDI_INFO:
+	case SNDRV_CTL_IOCTL_RAWMIDI_INFO:
 		ctrl->result = snd_ctl_rawmidi_info(ctl, &ctrl->u.rawmidi_info);
 		break;
-	case SND_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE:
+	case SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE:
 		ctrl->result = snd_ctl_rawmidi_prefer_subdevice(ctl, ctrl->u.rawmidi_prefer_subdevice);
 		break;
 	case SND_CTL_IOCTL_READ:

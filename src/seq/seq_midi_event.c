@@ -228,7 +228,7 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 
 	c &= 0xff;
 
-	if (c >= SND_MCMD_COMMON_CLOCK) {
+	if (c >= MIDI_CMD_COMMON_CLOCK) {
 		/* real-time event */
 		ev->type = status_event[ST_SPECIAL + c - 0xf0].event;
 		ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
@@ -265,13 +265,13 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 			status_event[dev->type].encode(dev, ev);
 		rc = 1;
 	} else 	if (dev->type == ST_SYSEX) {
-		if (c == SND_MCMD_COMMON_SYSEX_END ||
+		if (c == MIDI_CMD_COMMON_SYSEX_END ||
 		    dev->read >= dev->bufsize) {
 			ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
 			ev->flags |= SND_SEQ_EVENT_LENGTH_VARIABLE;
 			ev->data.ext.len = dev->read;
 			ev->data.ext.ptr = dev->buf;
-			if (c != SND_MCMD_COMMON_SYSEX_END)
+			if (c != MIDI_CMD_COMMON_SYSEX_END)
 				dev->read = 0; /* continue to parse */
 			else
 				reset_encode(dev); /* all parsed */
@@ -355,7 +355,7 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 		cmd = 0x80 | (type << 4) | (ev->data.note.channel & 0x0f);
 
 
-	if (cmd == SND_MCMD_COMMON_SYSEX) {
+	if (cmd == MIDI_CMD_COMMON_SYSEX) {
 		qlen = ev->data.ext.len;
 		if (count < qlen)
 			return -ENOMEM;
@@ -429,7 +429,7 @@ static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int co
 	if (ev->data.control.param < 32) {
 		if (count < 5)
 			return -ENOMEM;
-		buf[0] = SND_MCMD_CONTROL|(ev->data.control.channel & 0x0f);
+		buf[0] = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
 		buf[1] = ev->data.control.param;
 		buf[2] = (ev->data.control.value >> 7) & 0x7f;
 		buf[3] = ev->data.control.param + 32;
@@ -439,7 +439,7 @@ static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int co
 	} else {
 		if (count < 3)
 			return -ENOMEM;
-		buf[0] = SND_MCMD_CONTROL|(ev->data.control.channel & 0x0f);
+		buf[0] = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
 		buf[1] = ev->data.control.param & 0x7f;
 		buf[4] = ev->data.control.value & 0x7f;
 		dev->lastcmd = buf[0];

@@ -147,7 +147,7 @@ static int snd_pcm_shm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 //	ctrl->u.info = *info;
-	ctrl->cmd = SND_PCM_IOCTL_INFO;
+	ctrl->cmd = SNDRV_PCM_IOCTL_INFO;
 	err = snd_pcm_shm_action(pcm);
 	if (err < 0)
 		return err;
@@ -215,7 +215,7 @@ static int snd_pcm_shm_hw_refine_slave(snd_pcm_t *pcm,
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.hw_refine = *params;
-	ctrl->cmd = SND_PCM_IOCTL_HW_REFINE;
+	ctrl->cmd = SNDRV_PCM_IOCTL_HW_REFINE;
 	err = snd_pcm_shm_action(pcm);
 	*params = ctrl->u.hw_refine;
 	return err;
@@ -237,7 +237,7 @@ static int snd_pcm_shm_hw_params_slave(snd_pcm_t *pcm,
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_HW_PARAMS;
+	ctrl->cmd = SNDRV_PCM_IOCTL_HW_PARAMS;
 	ctrl->u.hw_params = *params;
 	err = snd_pcm_shm_action(pcm);
 	*params = ctrl->u.hw_params;
@@ -257,7 +257,7 @@ static int snd_pcm_shm_hw_free(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_PCM_IOCTL_HW_FREE;
+	ctrl->cmd = SNDRV_PCM_IOCTL_HW_FREE;
 	return snd_pcm_shm_action(pcm);
 }
 
@@ -266,7 +266,7 @@ static int snd_pcm_shm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_SW_PARAMS;
+	ctrl->cmd = SNDRV_PCM_IOCTL_SW_PARAMS;
 	ctrl->u.sw_params = *params;
 	err = snd_pcm_shm_action(pcm);
 	*params = ctrl->u.sw_params;
@@ -314,7 +314,7 @@ static int snd_pcm_shm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * inf
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	int fd;
-	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_INFO;
+	ctrl->cmd = SNDRV_PCM_IOCTL_CHANNEL_INFO;
 	ctrl->u.channel_info = *info;
 	err = snd_pcm_shm_action_fd(pcm, &fd);
 	if (err < 0)
@@ -339,7 +339,7 @@ static int snd_pcm_shm_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_STATUS;
+	ctrl->cmd = SNDRV_PCM_IOCTL_STATUS;
 	// ctrl->u.status = *status;
 	err = snd_pcm_shm_action(pcm);
 	if (err < 0)
@@ -361,7 +361,7 @@ static int snd_pcm_shm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_DELAY;
+	ctrl->cmd = SNDRV_PCM_IOCTL_DELAY;
 	err = snd_pcm_shm_action(pcm);
 	if (err < 0)
 		return err;
@@ -385,7 +385,7 @@ static int snd_pcm_shm_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_PCM_IOCTL_PREPARE;
+	ctrl->cmd = SNDRV_PCM_IOCTL_PREPARE;
 	return snd_pcm_shm_action(pcm);
 }
 
@@ -393,7 +393,7 @@ static int snd_pcm_shm_reset(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_PCM_IOCTL_RESET;
+	ctrl->cmd = SNDRV_PCM_IOCTL_RESET;
 	return snd_pcm_shm_action(pcm);
 }
 
@@ -401,7 +401,7 @@ static int snd_pcm_shm_start(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_PCM_IOCTL_START;
+	ctrl->cmd = SNDRV_PCM_IOCTL_START;
 	return snd_pcm_shm_action(pcm);
 }
 
@@ -409,7 +409,7 @@ static int snd_pcm_shm_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_PCM_IOCTL_DROP;
+	ctrl->cmd = SNDRV_PCM_IOCTL_DROP;
 	return snd_pcm_shm_action(pcm);
 }
 
@@ -418,7 +418,7 @@ static int snd_pcm_shm_drain(snd_pcm_t *pcm)
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_DRAIN;
+	ctrl->cmd = SNDRV_PCM_IOCTL_DRAIN;
 	err = snd_pcm_shm_action(pcm);
 	if (err < 0)
 		return err;
@@ -431,7 +431,7 @@ static int snd_pcm_shm_pause(snd_pcm_t *pcm, int enable)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_PCM_IOCTL_PAUSE;
+	ctrl->cmd = SNDRV_PCM_IOCTL_PAUSE;
 	ctrl->u.pause.enable = enable;
 	return snd_pcm_shm_action(pcm);
 }
@@ -440,7 +440,7 @@ static snd_pcm_sframes_t snd_pcm_shm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_PCM_IOCTL_REWIND;
+	ctrl->cmd = SNDRV_PCM_IOCTL_REWIND;
 	ctrl->u.rewind.frames = frames;
 	return snd_pcm_shm_action(pcm);
 }

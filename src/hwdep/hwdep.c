@@ -28,8 +28,8 @@
 #include <sys/ioctl.h>
 #include "asoundlib.h"
 
-#define SND_FILE_HWDEP	"/dev/snd/hwC%iD%i"
-#define SND_HWDEP_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
+#define SNDRV_FILE_HWDEP	"/dev/snd/hwC%iD%i"
+#define SNDRV_HWDEP_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 0)
 
 struct _snd_hwdep {
 	int card;
@@ -48,17 +48,17 @@ int snd_hwdep_open(snd_hwdep_t **handle, int card, int device, int mode)
 	
 	if (card < 0 || card >= 32)
 		return -EINVAL;
-	sprintf(filename, SND_FILE_HWDEP, card, device);
+	sprintf(filename, SNDRV_FILE_HWDEP, card, device);
 	if ((fd = open(filename, mode)) < 0) {
 		snd_card_load(card);
 		if ((fd = open(filename, mode)) < 0)
 			return -errno;
 	}
-	if (ioctl(fd, SND_HWDEP_IOCTL_PVERSION, &ver) < 0) {
+	if (ioctl(fd, SNDRV_HWDEP_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;
 	}
-	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_HWDEP_VERSION_MAX)) {
+	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_HWDEP_VERSION_MAX)) {
 		close(fd);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
@@ -114,7 +114,7 @@ int snd_hwdep_info(snd_hwdep_t *hwdep, snd_hwdep_info_t * info)
 {
 	if (!hwdep || !info)
 		return -EINVAL;
-	if (ioctl(hwdep->fd, SND_HWDEP_IOCTL_INFO, info) < 0)
+	if (ioctl(hwdep->fd, SNDRV_HWDEP_IOCTL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }

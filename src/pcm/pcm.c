@@ -244,8 +244,8 @@ int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 	int fd2 = snd_pcm_link_descriptor(pcm2);
 	if (fd1 < 0 || fd2 < 0)
 		return -ENOSYS;
-	if (ioctl(fd1, SND_PCM_IOCTL_LINK, fd2) < 0) {
-		SYSERR("SND_PCM_IOCTL_LINK failed");
+	if (ioctl(fd1, SNDRV_PCM_IOCTL_LINK, fd2) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_LINK failed");
 		return -errno;
 	}
 	return 0;
@@ -262,8 +262,8 @@ int snd_pcm_unlink(snd_pcm_t *pcm)
 	default:
 		return -ENOSYS;
 	}
-	if (ioctl(fd, SND_PCM_IOCTL_UNLINK) < 0) {
-		SYSERR("SND_PCM_IOCTL_UNLINK failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_UNLINK) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_UNLINK failed");
 		return -errno;
 	}
 	return 0;

@@ -28,8 +28,8 @@
 #include <sys/ioctl.h>
 #include "asoundlib.h"
 
-#define SND_FILE_TIMER		"/dev/snd/timer"
-#define SND_TIMER_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
+#define SNDRV_FILE_TIMER		"/dev/snd/timer"
+#define SNDRV_TIMER_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
 struct _snd_timer {
 	int fd;
@@ -42,13 +42,13 @@ int snd_timer_open(snd_timer_t **handle)
 
 	*handle = NULL;
 	
-	if ((fd = open(SND_FILE_TIMER, O_RDONLY)) < 0)
+	if ((fd = open(SNDRV_FILE_TIMER, O_RDONLY)) < 0)
 		return -errno;
-	if (ioctl(fd, SND_TIMER_IOCTL_PVERSION, &ver) < 0) {
+	if (ioctl(fd, SNDRV_TIMER_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;
 	}
-	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_TIMER_VERSION_MAX)) {
+	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_TIMER_VERSION_MAX)) {
 		close(fd);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
@@ -92,7 +92,7 @@ int snd_timer_next_device(snd_timer_t *handle, snd_timer_id_t * tid)
 	tmr = handle;
 	if (!tmr || !tid)
 		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_NEXT_DEVICE, tid) < 0)
+	if (ioctl(tmr->fd, SNDRV_TIMER_IOCTL_NEXT_DEVICE, tid) < 0)
 		return -errno;
 	return 0;
 }
@@ -104,7 +104,7 @@ int snd_timer_select(snd_timer_t *handle, snd_timer_select_t * tselect)
 	tmr = handle;
 	if (!tmr || !tselect)
 		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_SELECT, tselect) < 0)
+	if (ioctl(tmr->fd, SNDRV_TIMER_IOCTL_SELECT, tselect) < 0)
 		return -errno;
 	return 0;
 }
@@ -116,7 +116,7 @@ int snd_timer_info(snd_timer_t *handle, snd_timer_info_t * info)
 	tmr = handle;
 	if (!tmr || !info)
 		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_INFO, info) < 0)
+	if (ioctl(tmr->fd, SNDRV_TIMER_IOCTL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -128,7 +128,7 @@ int snd_timer_params(snd_timer_t *handle, snd_timer_params_t * params)
 	tmr = handle;
 	if (!tmr || !params)
 		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_PARAMS, params) < 0)
+	if (ioctl(tmr->fd, SNDRV_TIMER_IOCTL_PARAMS, params) < 0)
 		return -errno;
 	return 0;
 }
@@ -140,7 +140,7 @@ int snd_timer_status(snd_timer_t *handle, snd_timer_status_t * status)
 	tmr = handle;
 	if (!tmr || !status)
 		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_STATUS, status) < 0)
+	if (ioctl(tmr->fd, SNDRV_TIMER_IOCTL_STATUS, status) < 0)
 		return -errno;
 	return 0;
 }
@@ -152,7 +152,7 @@ int snd_timer_start(snd_timer_t *handle)
 	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_START) < 0)
+	if (ioctl(tmr->fd, SNDRV_TIMER_IOCTL_START) < 0)
 		return -errno;
 	return 0;
 }
@@ -164,7 +164,7 @@ int snd_timer_stop(snd_timer_t *handle)
 	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_STOP) < 0)
+	if (ioctl(tmr->fd, SNDRV_TIMER_IOCTL_STOP) < 0)
 		return -errno;
 	return 0;
 }
@@ -176,7 +176,7 @@ int snd_timer_continue(snd_timer_t *handle)
 	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_CONTINUE) < 0)
+	if (ioctl(tmr->fd, SNDRV_TIMER_IOCTL_CONTINUE) < 0)
 		return -errno;
 	return 0;
 }

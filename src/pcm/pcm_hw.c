@@ -49,9 +49,9 @@ typedef struct {
 	int shmid;
 } snd_pcm_hw_t;
 
-#define SND_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
-#define SND_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
-#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
+#define SNDRV_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
+#define SNDRV_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
+#define SNDRV_PCM_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
 static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 {
@@ -119,8 +119,8 @@ static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_INFO, info) < 0) {
-		SYSERR("SND_PCM_IOCTL_INFO failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_INFO, info) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_INFO failed");
 		return -errno;
 	}
 	return 0;
@@ -130,8 +130,8 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_HW_REFINE, params) < 0) {
-		// SYSERR("SND_PCM_IOCTL_HW_REFINE failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, params) < 0) {
+		// SYSERR("SNDRV_PCM_IOCTL_HW_REFINE failed");
 		return -errno;
 	}
 	return 0;
@@ -141,8 +141,8 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_HW_PARAMS, params) < 0) {
-		SYSERR("SND_PCM_IOCTL_HW_PARAMS failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_HW_PARAMS failed");
 		return -errno;
 	}
 	return 0;
@@ -152,8 +152,8 @@ static int snd_pcm_hw_hw_free(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_HW_FREE) < 0) {
-		SYSERR("SND_PCM_IOCTL_HW_FREE failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_FREE) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_HW_FREE failed");
 		return -errno;
 	}
 	return 0;
@@ -174,8 +174,8 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		hw->mmap_control->avail_min = params->avail_min;
 		return 0;
 	}
-	if (ioctl(fd, SND_PCM_IOCTL_SW_PARAMS, params) < 0) {
-		SYSERR("SND_PCM_IOCTL_SW_PARAMS failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_SW_PARAMS, params) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_SW_PARAMS failed");
 		return -errno;
 	}
 	return 0;
@@ -187,8 +187,8 @@ static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info
 	snd_pcm_hw_channel_info_t hw_info;
 	int fd = hw->fd;
 	hw_info.channel = info->channel;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, &hw_info) < 0) {
-		SYSERR("SND_PCM_IOCTL_CHANNEL_INFO failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_CHANNEL_INFO, &hw_info) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_CHANNEL_INFO failed");
 		return -errno;
 	}
 	info->channel = hw_info.channel;
@@ -208,8 +208,8 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_STATUS, status) < 0) {
-		SYSERR("SND_PCM_IOCTL_STATUS failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_STATUS, status) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_STATUS failed");
 		return -errno;
 	}
 	return 0;
@@ -225,8 +225,8 @@ static int snd_pcm_hw_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_DELAY, delayp) < 0) {
-		SYSERR("SND_PCM_IOCTL_DELAY failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_DELAY, delayp) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_DELAY failed");
 		return -errno;
 	}
 	return 0;
@@ -236,8 +236,8 @@ static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_PREPARE) < 0) {
-		SYSERR("SND_PCM_IOCTL_PREPARE failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_PREPARE) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_PREPARE failed");
 		return -errno;
 	}
 	return 0;
@@ -247,8 +247,8 @@ static int snd_pcm_hw_reset(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_RESET) < 0) {
-		SYSERR("SND_PCM_IOCTL_RESET failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_RESET) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_RESET failed");
 		return -errno;
 	}
 	return 0;
@@ -262,8 +262,8 @@ static int snd_pcm_hw_start(snd_pcm_t *pcm)
 	assert(pcm->stream != SND_PCM_STREAM_PLAYBACK ||
 	       snd_pcm_mmap_playback_hw_avail(pcm) > 0);
 #endif
-	if (ioctl(fd, SND_PCM_IOCTL_START) < 0) {
-		SYSERR("SND_PCM_IOCTL_START failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_START) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_START failed");
 		return -errno;
 	}
 	return 0;
@@ -273,8 +273,8 @@ static int snd_pcm_hw_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_DROP) < 0) {
-		SYSERR("SND_PCM_IOCTL_DROP failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_DROP) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_DROP failed");
 		return -errno;
 	}
 	return 0;
@@ -284,8 +284,8 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_DRAIN) < 0) {
-		SYSERR("SND_PCM_IOCTL_DRAIN failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_DRAIN) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_DRAIN failed");
 		return -errno;
 	}
 	return 0;
@@ -295,8 +295,8 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_PAUSE, enable) < 0) {
-		SYSERR("SND_PCM_IOCTL_PAUSE failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_PAUSE, enable) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_PAUSE failed");
 		return -errno;
 	}
 	return 0;
@@ -306,8 +306,8 @@ static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fra
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_REWIND, &frames) < 0) {
-		SYSERR("SND_PCM_IOCTL_REWIND failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_REWIND, &frames) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_REWIND failed");
 		return -errno;
 	}
 	return 0;
@@ -321,7 +321,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, s
 	snd_xferi_t xferi;
 	xferi.buf = (char*) buffer;
 	xferi.frames = size;
-	result = ioctl(fd, SND_PCM_IOCTL_WRITEI_FRAMES, &xferi);
+	result = ioctl(fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &xferi);
 	if (result < 0)
 		return -errno;
 	return xferi.result;
@@ -335,7 +335,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_
 	snd_xfern_t xfern;
 	xfern.bufs = bufs;
 	xfern.frames = size;
-	result = ioctl(fd, SND_PCM_IOCTL_WRITEN_FRAMES, &xfern);
+	result = ioctl(fd, SNDRV_PCM_IOCTL_WRITEN_FRAMES, &xfern);
 	if (result < 0)
 		return -errno;
 	return xfern.result;
@@ -349,7 +349,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_
 	snd_xferi_t xferi;
 	xferi.buf = buffer;
 	xferi.frames = size;
-	result = ioctl(fd, SND_PCM_IOCTL_READI_FRAMES, &xferi);
+	result = ioctl(fd, SNDRV_PCM_IOCTL_READI_FRAMES, &xferi);
 	if (result < 0)
 		return -errno;
 	return xferi.result;
@@ -363,7 +363,7 @@ snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_
 	snd_xfern_t xfern;
 	xfern.bufs = bufs;
 	xfern.frames = size;
-	result = ioctl(fd, SND_PCM_IOCTL_READN_FRAMES, &xfern);
+	result = ioctl(fd, SNDRV_PCM_IOCTL_READN_FRAMES, &xfern);
 	if (result < 0)
 		return -errno;
 	return xfern.result;
@@ -568,10 +568,10 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 
 	switch (stream) {
 	case SND_PCM_STREAM_PLAYBACK:
-		filefmt = SND_FILE_PCM_STREAM_PLAYBACK;
+		filefmt = SNDRV_FILE_PCM_STREAM_PLAYBACK;
 		break;
 	case SND_PCM_STREAM_CAPTURE:
-		filefmt = SND_FILE_PCM_STREAM_CAPTURE;
+		filefmt = SNDRV_FILE_PCM_STREAM_CAPTURE;
 		break;
 	default:
 		assert(0);
@@ -596,19 +596,19 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 		ret = -errno;
 		goto _err;
 	}
-	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
-		SYSERR("SND_PCM_IOCTL_PVERSION failed");
+	if (ioctl(fd, SNDRV_PCM_IOCTL_PVERSION, &ver) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_PVERSION failed");
 		ret = -errno;
 		goto _err;
 	}
-	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_PCM_VERSION_MAX)) {
+	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_PCM_VERSION_MAX)) {
 		ret = -SND_ERROR_INCOMPATIBLE_VERSION;
 		goto _err;
 	}
 	if (subdevice >= 0) {
 		memset(&info, 0, sizeof(info));
-		if (ioctl(fd, SND_PCM_IOCTL_INFO, &info) < 0) {
-			SYSERR("SND_PCM_IOCTL_INFO failed");
+		if (ioctl(fd, SNDRV_PCM_IOCTL_INFO, &info) < 0) {
+			SYSERR("SNDRV_PCM_IOCTL_INFO failed");
 			ret = -errno;
 			goto _err;
 		}

@@ -121,7 +121,7 @@ static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_hw_info_t *info)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 //	ctrl->u.hw_info = *info;
-	ctrl->cmd = SND_CTL_IOCTL_HW_INFO;
+	ctrl->cmd = SNDRV_CTL_IOCTL_HW_INFO;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -140,7 +140,7 @@ static int snd_ctl_shm_clist(snd_ctl_t *ctl, snd_control_list_t *list)
 	if (bytes > maxsize)
 		return -EINVAL;
 	ctrl->u.clist = *list;
-	ctrl->cmd = SND_CTL_IOCTL_CONTROL_LIST;
+	ctrl->cmd = SNDRV_CTL_IOCTL_CONTROL_LIST;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -156,7 +156,7 @@ static int snd_ctl_shm_cinfo(snd_ctl_t *ctl, snd_control_info_t *info)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.cinfo = *info;
-	ctrl->cmd = SND_CTL_IOCTL_CONTROL_INFO;
+	ctrl->cmd = SNDRV_CTL_IOCTL_CONTROL_INFO;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -170,7 +170,7 @@ static int snd_ctl_shm_cread(snd_ctl_t *ctl, snd_control_t *control)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.cread = *control;
-	ctrl->cmd = SND_CTL_IOCTL_CONTROL_READ;
+	ctrl->cmd = SNDRV_CTL_IOCTL_CONTROL_READ;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -184,7 +184,7 @@ static int snd_ctl_shm_cwrite(snd_ctl_t *ctl, snd_control_t *control)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.cwrite = *control;
-	ctrl->cmd = SND_CTL_IOCTL_CONTROL_WRITE;
+	ctrl->cmd = SNDRV_CTL_IOCTL_CONTROL_WRITE;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -198,7 +198,7 @@ static int snd_ctl_shm_hwdep_next_device(snd_ctl_t *ctl, int * device)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.device = *device;
-	ctrl->cmd = SND_CTL_IOCTL_HWDEP_NEXT_DEVICE;
+	ctrl->cmd = SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -212,7 +212,7 @@ static int snd_ctl_shm_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.hwdep_info = *info;
-	ctrl->cmd = SND_CTL_IOCTL_HWDEP_INFO;
+	ctrl->cmd = SNDRV_CTL_IOCTL_HWDEP_INFO;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -226,7 +226,7 @@ static int snd_ctl_shm_pcm_next_device(snd_ctl_t *ctl, int * device)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.device = *device;
-	ctrl->cmd = SND_CTL_IOCTL_PCM_NEXT_DEVICE;
+	ctrl->cmd = SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -240,7 +240,7 @@ static int snd_ctl_shm_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t * info)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.pcm_info = *info;
-	ctrl->cmd = SND_CTL_IOCTL_PCM_INFO;
+	ctrl->cmd = SNDRV_CTL_IOCTL_PCM_INFO;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -254,7 +254,7 @@ static int snd_ctl_shm_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.pcm_prefer_subdevice = subdev;
-	ctrl->cmd = SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE;
+	ctrl->cmd = SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -267,7 +267,7 @@ static int snd_ctl_shm_rawmidi_next_device(snd_ctl_t *ctl, int * device)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.device = *device;
-	ctrl->cmd = SND_CTL_IOCTL_RAWMIDI_NEXT_DEVICE;
+	ctrl->cmd = SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -281,7 +281,7 @@ static int snd_ctl_shm_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.rawmidi_info = *info;
-	ctrl->cmd = SND_CTL_IOCTL_RAWMIDI_INFO;
+	ctrl->cmd = SNDRV_CTL_IOCTL_RAWMIDI_INFO;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -295,7 +295,7 @@ static int snd_ctl_shm_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.rawmidi_prefer_subdevice = subdev;
-	ctrl->cmd = SND_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE;
+	ctrl->cmd = SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;

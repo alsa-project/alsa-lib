@@ -31,8 +31,8 @@
 #include "asoundlib.h"
 #include "control_local.h"
 
-#define SND_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
+#define SNDRV_FILE_CONTROL	"/dev/snd/controlC%i"
+#define SNDRV_CTL_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
 typedef struct {
 	int card;
@@ -63,7 +63,7 @@ static int snd_ctl_hw_poll_descriptor(snd_ctl_t *handle)
 static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_hw_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_HW_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_HW_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -71,7 +71,7 @@ static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_hw_info_t *info)
 static int snd_ctl_hw_clist(snd_ctl_t *handle, snd_control_list_t *list)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_CONTROL_LIST, list) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CONTROL_LIST, list) < 0)
 		return -errno;
 	return 0;
 }
@@ -79,7 +79,7 @@ static int snd_ctl_hw_clist(snd_ctl_t *handle, snd_control_list_t *list)
 static int snd_ctl_hw_cinfo(snd_ctl_t *handle, snd_control_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_CONTROL_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CONTROL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -87,7 +87,7 @@ static int snd_ctl_hw_cinfo(snd_ctl_t *handle, snd_control_info_t *info)
 static int snd_ctl_hw_cread(snd_ctl_t *handle, snd_control_t *control)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_CONTROL_READ, control) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CONTROL_READ, control) < 0)
 		return -errno;
 	return 0;
 }
@@ -95,7 +95,7 @@ static int snd_ctl_hw_cread(snd_ctl_t *handle, snd_control_t *control)
 static int snd_ctl_hw_cwrite(snd_ctl_t *handle, snd_control_t *control)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_CONTROL_WRITE, control) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CONTROL_WRITE, control) < 0)
 		return -errno;
 	return 0;
 }
@@ -103,7 +103,7 @@ static int snd_ctl_hw_cwrite(snd_ctl_t *handle, snd_control_t *control)
 static int snd_ctl_hw_hwdep_next_device(snd_ctl_t *handle, int * device)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_HWDEP_NEXT_DEVICE, device) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE, device) < 0)
 		return -errno;
 	return 0;
 }
@@ -111,7 +111,7 @@ static int snd_ctl_hw_hwdep_next_device(snd_ctl_t *handle, int * device)
 static int snd_ctl_hw_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_HWDEP_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_HWDEP_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -119,7 +119,7 @@ static int snd_ctl_hw_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info)
 static int snd_ctl_hw_pcm_next_device(snd_ctl_t *handle, int * device)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_PCM_NEXT_DEVICE, device) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE, device) < 0)
 		return -errno;
 	return 0;
 }
@@ -127,7 +127,7 @@ static int snd_ctl_hw_pcm_next_device(snd_ctl_t *handle, int * device)
 static int snd_ctl_hw_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_PCM_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_PCM_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -135,7 +135,7 @@ static int snd_ctl_hw_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info)
 static int snd_ctl_hw_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	return 0;
 }
@@ -143,7 +143,7 @@ static int snd_ctl_hw_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev)
 static int snd_ctl_hw_rawmidi_next_device(snd_ctl_t *handle, int * device)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_RAWMIDI_NEXT_DEVICE, device) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE, device) < 0)
 		return -errno;
 	return 0;
 }
@@ -151,7 +151,7 @@ static int snd_ctl_hw_rawmidi_next_device(snd_ctl_t *handle, int * device)
 static int snd_ctl_hw_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_RAWMIDI_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_RAWMIDI_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -159,7 +159,7 @@ static int snd_ctl_hw_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info)
 static int snd_ctl_hw_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SND_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE, &subdev) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	return 0;
 }
@@ -200,18 +200,18 @@ int snd_ctl_hw_open(snd_ctl_t **handle, char *name, int card)
 	*handle = NULL;	
 
 	assert(card >= 0 && card < 32);
-	sprintf(filename, SND_FILE_CONTROL, card);
+	sprintf(filename, SNDRV_FILE_CONTROL, card);
 	if ((fd = open(filename, O_RDWR)) < 0) {
 		snd_card_load(card);
 		if ((fd = open(filename, O_RDWR)) < 0)
 			return -errno;
 	}
 		
-	if (ioctl(fd, SND_CTL_IOCTL_PVERSION, &ver) < 0) {
+	if (ioctl(fd, SNDRV_CTL_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;
 	}
-	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_CTL_VERSION_MAX)) {
+	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_CTL_VERSION_MAX)) {
 		close(fd);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}

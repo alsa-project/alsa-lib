@@ -31,8 +31,8 @@
 #include "rawmidi_local.h"
 #include "asoundlib.h"
 
-#define SND_FILE_RAWMIDI	"/dev/snd/midiC%iD%i"
-#define SND_RAWMIDI_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
+#define SNDRV_FILE_RAWMIDI	"/dev/snd/midiC%iD%i"
+#define SNDRV_RAWMIDI_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
 typedef struct {
 	int fd;
@@ -79,8 +79,8 @@ static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
-	if (ioctl(hw->fd, SND_RAWMIDI_IOCTL_INFO, info) < 0) {
-		SYSERR("SND_RAWMIDI_IOCTL_INFO failed");
+	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_INFO, info) < 0) {
+		SYSERR("SNDRV_RAWMIDI_IOCTL_INFO failed");
 		return -errno;
 	}
 	return 0;
@@ -89,8 +89,8 @@ static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
-	if (ioctl(hw->fd, SND_RAWMIDI_IOCTL_PARAMS, params) < 0) {
-		SYSERR("SND_RAWMIDI_IOCTL_PARAMS failed");
+	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_PARAMS, params) < 0) {
+		SYSERR("SNDRV_RAWMIDI_IOCTL_PARAMS failed");
 		return -errno;
 	}
 	return 0;
@@ -99,8 +99,8 @@ static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * pa
 static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
-	if (ioctl(hw->fd, SND_RAWMIDI_IOCTL_STATUS, status) < 0) {
-		SYSERR("SND_RAWMIDI_IOCTL_STATUS failed");
+	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_STATUS, status) < 0) {
+		SYSERR("SNDRV_RAWMIDI_IOCTL_STATUS failed");
 		return -errno;
 	}
 	return 0;
@@ -109,8 +109,8 @@ static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * st
 static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi, int stream)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
-	if (ioctl(hw->fd, SND_RAWMIDI_IOCTL_DROP, &stream) < 0) {
-		SYSERR("SND_RAWMIDI_IOCTL_DROP failed");
+	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DROP, &stream) < 0) {
+		SYSERR("SNDRV_RAWMIDI_IOCTL_DROP failed");
 		return -errno;
 	}
 	return 0;
@@ -119,8 +119,8 @@ static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi, int stream)
 static int snd_rawmidi_hw_drain(snd_rawmidi_t *rmidi, int stream)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
-	if (ioctl(hw->fd, SND_RAWMIDI_IOCTL_DRAIN, &stream) < 0) {
-		SYSERR("SND_RAWMIDI_IOCTL_DRAIN failed");
+	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DRAIN, &stream) < 0) {
+		SYSERR("SNDRV_RAWMIDI_IOCTL_DRAIN failed");
 		return -errno;
 	}
 	return 0;
@@ -177,7 +177,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, int card, int devic
 
 	if ((ret = snd_ctl_hw_open(&ctl, NULL, card)) < 0)
 		return ret;
-	sprintf(filename, SND_FILE_RAWMIDI, card, device);
+	sprintf(filename, SNDRV_FILE_RAWMIDI, card, device);
 
       __again:
       	if (attempt++ > 3) {
@@ -224,22 +224,22 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, int card, int devic
 			return -errno;
 		}
 	}
-	if (ioctl(fd, SND_RAWMIDI_IOCTL_PVERSION, &ver) < 0) {
+	if (ioctl(fd, SNDRV_RAWMIDI_IOCTL_PVERSION, &ver) < 0) {
 		ret = -errno;
-		SYSERR("SND_RAWMIDI_IOCTL_PVERSION failed");
+		SYSERR("SNDRV_RAWMIDI_IOCTL_PVERSION failed");
 		close(fd);
 		snd_ctl_close(ctl);
 		return ret;
 	}
-	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_RAWMIDI_VERSION_MAX)) {
+	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_RAWMIDI_VERSION_MAX)) {
 		close(fd);
 		snd_ctl_close(ctl);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
 	if (subdevice >= 0) {
 		memset(&info, 0, sizeof(info));
-		if (ioctl(fd, SND_RAWMIDI_IOCTL_INFO, &info) < 0) {
-			SYSERR("SND_RAWMIDI_IOCTL_INFO failed");
+		if (ioctl(fd, SNDRV_RAWMIDI_IOCTL_INFO, &info) < 0) {
+			SYSERR("SNDRV_RAWMIDI_IOCTL_INFO failed");
 			ret = -errno;
 			close(fd);
 			snd_ctl_close(ctl);
