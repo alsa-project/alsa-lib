@@ -54,7 +54,7 @@ void print_switch(snd_ctl_t *ctl_handle, char *space, char *prefix, snd_switch_t
 			sw1.type = SND_SW_TYPE_LIST_ITEM;
 			sw1.low = sw1.high = low;
 			if ((err = snd_ctl_switch_read(ctl_handle, &sw1)) < 0) {
-				printf("Switch list item read failed for %s interface and device %i channel %i: %s\n", get_interface(sw->iface), sw->device, sw->channel, snd_strerror(err));
+				printf("Switch list item read failed for %s interface and device %i stream %i: %s\n", get_interface(sw->iface), sw->device, sw->stream, snd_strerror(err));
 				continue;
 			}
 			printf("  %s%s : '%s' [%s] {%s}\n", space, prefix, sw1.name, get_type(sw1.type), sw1.value.item);
@@ -62,7 +62,7 @@ void print_switch(snd_ctl_t *ctl_handle, char *space, char *prefix, snd_switch_t
 	}
 }
 
-void process(snd_ctl_t *ctl_handle, char *space, char *prefix, int iface, int device, int channel)
+void process(snd_ctl_t *ctl_handle, char *space, char *prefix, int iface, int device, int stream)
 {
 	snd_switch_list_t list;
 	snd_switch_t sw;
@@ -71,7 +71,7 @@ void process(snd_ctl_t *ctl_handle, char *space, char *prefix, int iface, int de
 	bzero(&list, sizeof(list));
 	list.iface = iface;
 	list.device = device;
-	list.channel = channel;
+	list.stream = stream;
 	if ((err = snd_ctl_switch_list(ctl_handle, &list)) < 0) {
 		printf("Switch listing failed for the %s interface and the device %i: %s\n", get_interface(iface), device, snd_strerror(err));
 		return;
@@ -93,10 +93,10 @@ void process(snd_ctl_t *ctl_handle, char *space, char *prefix, int iface, int de
 		bzero(&sw, sizeof(sw));
 		sw.iface = iface;
 		sw.device = device;
-		sw.channel = channel;
+		sw.stream = stream;
 		strncpy(sw.name, list.pswitches[idx].name, sizeof(sw.name));
 		if ((err = snd_ctl_switch_read(ctl_handle, &sw)) < 0) {
-			printf("Switch read failed for the %s interface and the device %i channel %i: %s\n", get_interface(iface), device, channel, snd_strerror(err));
+			printf("Switch read failed for the %s interface and the device %i stream %i: %s\n", get_interface(iface), device, stream, snd_strerror(err));
 			continue;
 		}
 		print_switch(ctl_handle, space, prefix, &sw);
@@ -131,8 +131,8 @@ int main(void)
 		for (idx = 0; idx < info.mixerdevs; idx++)
 			process(ctl_handle, "  ", "Mixer", SND_CTL_IFACE_MIXER, idx, 0);
 		for (idx = 0; idx < info.pcmdevs; idx++) {
-			process(ctl_handle, "  ", "PCM playback", SND_CTL_IFACE_PCM, idx, SND_PCM_CHANNEL_PLAYBACK);
-			process(ctl_handle, "  ", "PCM capture", SND_CTL_IFACE_PCM, idx, SND_PCM_CHANNEL_CAPTURE);
+			process(ctl_handle, "  ", "PCM playback", SND_CTL_IFACE_PCM, idx, SND_PCM_STREAM_PLAYBACK);
+			process(ctl_handle, "  ", "PCM capture", SND_CTL_IFACE_PCM, idx, SND_PCM_STREAM_CAPTURE);
 		}
 		snd_ctl_close(ctl_handle);
 	}

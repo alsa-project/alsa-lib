@@ -6,7 +6,7 @@
 #include "../include/asoundlib.h"
 
 #if 0
-#define USE_BLOCK_MODE	/* latency is twice more than for stream mode!!! */
+#define USE_FRAGMENT_MODE	/* latency is twice more than for frame mode!!! */
 #endif
 
 #define USED_RATE	48000
@@ -28,18 +28,18 @@ static char *xitoa(int aaa)
 
 static int syncro(snd_pcm_t *phandle, snd_pcm_t *chandle)
 {
-	snd_pcm_channel_info_t pinfo, cinfo;
+	snd_pcm_stream_info_t pinfo, cinfo;
 	int err;
 	
 	bzero(&pinfo, sizeof(pinfo));
 	bzero(&cinfo, sizeof(cinfo));
-	pinfo.channel = SND_PCM_CHANNEL_PLAYBACK;
-	cinfo.channel = SND_PCM_CHANNEL_CAPTURE;
-	if ((err = snd_pcm_channel_info(phandle, &pinfo)) < 0) {
+	pinfo.stream = SND_PCM_STREAM_PLAYBACK;
+	cinfo.stream = SND_PCM_STREAM_CAPTURE;
+	if ((err = snd_pcm_stream_info(phandle, &pinfo)) < 0) {
 		printf("Playback info error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_channel_info(chandle, &cinfo)) < 0) {
+	if ((err = snd_pcm_stream_info(chandle, &cinfo)) < 0) {
 		printf("Capture info error: %s\n", snd_strerror(err));
 		exit(0);
 	}
@@ -70,19 +70,19 @@ static void syncro_id(snd_pcm_sync_t *sync)
 int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 {
 	int err, again;
-	snd_pcm_channel_params_t params;
-	snd_pcm_channel_setup_t psetup, csetup;
+	snd_pcm_stream_params_t params;
+	snd_pcm_stream_setup_t psetup, csetup;
 
 	bzero(&params, sizeof(params));
-	params.channel = SND_PCM_CHANNEL_PLAYBACK;
+	params.stream = SND_PCM_STREAM_PLAYBACK;
 #ifdef USE_BLOCK_MODE
-	params.mode = SND_PCM_MODE_BLOCK;
+	params.mode = SND_PCM_MODE_FRAGMENT;
 #else
-	params.mode = SND_PCM_MODE_STREAM;
+	params.mode = SND_PCM_MODE_FRAME;
 #endif
 	params.format.interleave = 1;
 	params.format.format = SND_PCM_SFMT_S16_LE;
-	params.format.voices = 2;
+	params.format.channels = 2;
 	params.format.rate = USED_RATE;
 	params.start_mode = SND_PCM_START_GO;
 	params.xrun_mode = SND_PCM_XRUN_DRAIN;
@@ -100,7 +100,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 	if (*queue > LATENCY_MAX)
 		return -1;
       	again = 0;
-      	params.channel = SND_PCM_CHANNEL_PLAYBACK;
+      	params.stream = SND_PCM_STREAM_PLAYBACK;
 	params.frag_size = *queue;
 #ifdef USE_BLOCK_MODE
 	params.buffer_size = *queue * 2;
@@ -109,24 +109,24 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 	params.buffer_size = *queue;
 	params.buf.stream.bytes_min = 2;
 #endif
-	if ((err = snd_pcm_channel_params(phandle, &params)) < 0) {
+	if ((err = snd_pcm_stream_params(phandle, &params)) < 0) {
 		printf("Playback params error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	params.channel = SND_PCM_CHANNEL_CAPTURE;
-	if ((err = snd_pcm_channel_params(chandle, &params)) < 0) {
+	params.stream = SND_PCM_STREAM_CAPTURE;
+	if ((err = snd_pcm_stream_params(chandle, &params)) < 0) {
 		printf("Capture params error: %s\n", snd_strerror(err));
 		exit(0);
 	}
 	bzero(&psetup, sizeof(psetup));
-	psetup.channel = SND_PCM_CHANNEL_PLAYBACK;
-	if ((err = snd_pcm_channel_setup(phandle, &psetup)) < 0) {
+	psetup.stream = SND_PCM_STREAM_PLAYBACK;
+	if ((err = snd_pcm_stream_setup(phandle, &psetup)) < 0) {
 		printf("Playback setup error: %s\n", snd_strerror(err));
 		exit(0);
 	}
 	bzero(&csetup, sizeof(csetup));
-	csetup.channel = SND_PCM_CHANNEL_CAPTURE;
-	if ((err = snd_pcm_channel_setup(chandle, &csetup)) < 0) {
+	csetup.stream = SND_PCM_STREAM_CAPTURE;
+	if ((err = snd_pcm_stream_setup(chandle, &csetup)) < 0) {
 		printf("Capture setup error: %s\n", snd_strerror(err));
 		exit(0);
 	}
@@ -164,17 +164,17 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 	return 0;
 }
 
-void showstat(snd_pcm_t *handle, int channel, snd_pcm_channel_status_t *rstatus, size_t bytes)
+void showstat(snd_pcm_t *handle, int stream, snd_pcm_stream_status_t *rstatus, size_t bytes)
 {
 	int err;
-	snd_pcm_channel_status_t status;
+	snd_pcm_stream_status_t status;
 	char *str;
 
-	str = channel == SND_PCM_CHANNEL_CAPTURE ? "Capture" : "Playback";
+	str = stream == SND_PCM_STREAM_CAPTURE ? "Capture" : "Playback";
 	bzero(&status, sizeof(status));
-	status.channel = channel;
-	if ((err = snd_pcm_channel_status(handle, &status)) < 0) {
-		printf("Channel %s status error: %s\n", str, snd_strerror(err));
+	status.stream = stream;
+	if ((err = snd_pcm_stream_status(handle, &status)) < 0) {
+		printf("Stream %s status error: %s\n", str, snd_strerror(err));
 		exit(0);
 	}
 	printf("%s:\n", str);
@@ -233,7 +233,7 @@ long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *bytes)
 	if (r > 0)
 		*bytes += r;
 	// printf("read = %li\n", r);
-	// showstat(handle, SND_PCM_CHANNEL_CAPTURE, NULL);
+	// showstat(handle, SND_PCM_STREAM_CAPTURE, NULL);
 	return r;
 }
 
@@ -250,7 +250,7 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *bytes)
 		// printf("write = %li\n", r);
 		if (r < 0)
 			return r;
-		// showstat(handle, SND_PCM_CHANNEL_PLAYBACK, NULL);
+		// showstat(handle, SND_PCM_STREAM_PLAYBACK, NULL);
 		buf += r;
 		len -= r;
 		*bytes += r;
@@ -268,7 +268,7 @@ int main(void)
 	int size, ok;
 	int sync;
 	snd_pcm_sync_t ssync;
-	snd_pcm_channel_status_t pstatus, cstatus;
+	snd_pcm_stream_status_t pstatus, cstatus;
 	ssize_t r;
 	size_t bytes_in, bytes_out;
 
@@ -282,9 +282,9 @@ int main(void)
 		return 0;
 	}
 #ifdef USE_BLOCK_MODE
-	printf("Using block mode...\n");
+	printf("Using fragment mode...\n");
 #else
-	printf("Using stream mode...\n");
+	printf("Using frame mode...\n");
 #endif
 	sync = syncro(phandle, chandle);
 	if (sync)
@@ -330,8 +330,8 @@ int main(void)
 			if (r > 0 && writebuf(phandle, buffer, r, &bytes_out) < 0)
 				ok = 0;
 		}
-		showstat(phandle, SND_PCM_CHANNEL_PLAYBACK, &pstatus, bytes_out);
-		showstat(chandle, SND_PCM_CHANNEL_CAPTURE, &cstatus, bytes_in);
+		showstat(phandle, SND_PCM_STREAM_PLAYBACK, &pstatus, bytes_out);
+		showstat(chandle, SND_PCM_STREAM_CAPTURE, &cstatus, bytes_in);
 		snd_pcm_capture_flush(chandle);
 		snd_pcm_playback_flush(phandle);
 		if (ok) {

@@ -4,144 +4,144 @@
 
 void info_channel(snd_pcm_t *handle, int channel, char *id)
 {
-	snd_pcm_channel_info_t chninfo;
+	snd_pcm_stream_info_t stream_info;
 	int err;
 	
-	bzero(&chninfo, sizeof(chninfo));
-	chninfo.channel = channel;
-	if ((err = snd_pcm_channel_info(handle, &chninfo))<0) {
+	bzero(&stream_info, sizeof(stream_info));
+	stream_info.channel = channel;
+	if ((err = snd_pcm_stream_info(handle, &stream_info))<0) {
 		fprintf(stderr, "channel info error: %s\n", snd_strerror(err));
 		return;
 	}
 	printf("%s INFO:\n", id);
-	printf("  subdevice      : %i\n", chninfo.subdevice);
-	printf("  subname        : '%s'\n", chninfo.subname);
-	printf("  channel        : %i\n", chninfo.channel);
+	printf("  subdevice      : %i\n", stream_info.subdevice);
+	printf("  subname        : '%s'\n", stream_info.subname);
+	printf("  channel        : %i\n", stream_info.channel);
 	printf("  mode           : ");
-	switch (chninfo.mode) {
-	case SND_PCM_MODE_STREAM:
-		printf("stream\n");
+	switch (stream_info.mode) {
+	case SND_PCM_MODE_FRAME:
+		printf("frame\n");
 		break;
-	case SND_PCM_MODE_BLOCK:
-		printf("block\n");
+	case SND_PCM_MODE_FRAGMENT:
+		printf("fragment\n");
 		break;
 	default:
 		printf("unknown\n");
 	}
 	printf("  sync           : 0x%x, 0x%x, 0x%x, 0x%x\n",
-			chninfo.sync.id32[0],
-			chninfo.sync.id32[1],
-			chninfo.sync.id32[2],
-			chninfo.sync.id32[3]);
+			stream_info.sync.id32[0],
+			stream_info.sync.id32[1],
+			stream_info.sync.id32[2],
+			stream_info.sync.id32[3]);
 	printf("  flags          :");
-	if (chninfo.flags & SND_PCM_CHNINFO_MMAP)
+	if (stream_info.flags & SND_PCM_STREAM_INFO_MMAP)
 		printf(" mmap");
-	if (chninfo.flags & SND_PCM_CHNINFO_STREAM)
-		printf(" stream");
-	if (chninfo.flags & SND_PCM_CHNINFO_BLOCK)
-		printf(" block");
-	if (chninfo.flags & SND_PCM_CHNINFO_BATCH)
+	if (stream_info.flags & SND_PCM_STREAM_INFO_FRAME)
+		printf(" frame");
+	if (stream_info.flags & SND_PCM_STREAM_INFO_FRAGMENT)
+		printf(" fragment");
+	if (stream_info.flags & SND_PCM_STREAM_INFO_BATCH)
 		printf(" batch");
-	if (chninfo.flags & SND_PCM_CHNINFO_INTERLEAVE)
+	if (stream_info.flags & SND_PCM_STREAM_INFO_INTERLEAVE)
 		printf(" interleave");
-	if (chninfo.flags & SND_PCM_CHNINFO_NONINTERLEAVE)
+	if (stream_info.flags & SND_PCM_STREAM_INFO_NONINTERLEAVE)
 		printf(" noninterleave");
-	if (chninfo.flags & SND_PCM_CHNINFO_BLOCK_TRANSFER)
+	if (stream_info.flags & SND_PCM_STREAM_INFO_BLOCK_TRANSFER)
 		printf(" block_transfer");
-	if (chninfo.flags & SND_PCM_CHNINFO_OVERRANGE)
+	if (stream_info.flags & SND_PCM_STREAM_INFO_OVERRANGE)
 		printf(" overrange");
 	printf("\n");
 	printf("  formats        :");
-	if (chninfo.formats & SND_PCM_FMT_MU_LAW)
+	if (stream_info.formats & SND_PCM_FMT_MU_LAW)
 		printf(" mu-Law");
-	if (chninfo.formats & SND_PCM_FMT_A_LAW)
+	if (stream_info.formats & SND_PCM_FMT_A_LAW)
 		printf(" a-Law");
-	if (chninfo.formats & SND_PCM_FMT_IMA_ADPCM)
+	if (stream_info.formats & SND_PCM_FMT_IMA_ADPCM)
 		printf(" IMA-ADPCM");
-	if (chninfo.formats & SND_PCM_FMT_U8)
+	if (stream_info.formats & SND_PCM_FMT_U8)
 		printf(" U8");
-	if (chninfo.formats & SND_PCM_FMT_S16_LE)
+	if (stream_info.formats & SND_PCM_FMT_S16_LE)
 		printf(" S16-LE");
-	if (chninfo.formats & SND_PCM_FMT_S16_BE)
+	if (stream_info.formats & SND_PCM_FMT_S16_BE)
 		printf(" S16-BE");
-	if (chninfo.formats & SND_PCM_FMT_S8)
+	if (stream_info.formats & SND_PCM_FMT_S8)
 		printf(" S8");
-	if (chninfo.formats & SND_PCM_FMT_U16_LE)
+	if (stream_info.formats & SND_PCM_FMT_U16_LE)
 		printf(" U16-LE");
-	if (chninfo.formats & SND_PCM_FMT_U16_BE)
+	if (stream_info.formats & SND_PCM_FMT_U16_BE)
 		printf(" U16-BE");
-	if (chninfo.formats & SND_PCM_FMT_MPEG)
+	if (stream_info.formats & SND_PCM_FMT_MPEG)
 		printf(" MPEG");
-	if (chninfo.formats & SND_PCM_FMT_GSM)
+	if (stream_info.formats & SND_PCM_FMT_GSM)
 		printf(" GSM");
-	if (chninfo.formats & SND_PCM_FMT_S24_LE)
+	if (stream_info.formats & SND_PCM_FMT_S24_LE)
 		printf(" S24-LE");
-	if (chninfo.formats & SND_PCM_FMT_S24_BE)
+	if (stream_info.formats & SND_PCM_FMT_S24_BE)
 		printf(" S24-BE");
-	if (chninfo.formats & SND_PCM_FMT_U24_LE)
+	if (stream_info.formats & SND_PCM_FMT_U24_LE)
 		printf(" U24-LE");
-	if (chninfo.formats & SND_PCM_FMT_U24_BE)
+	if (stream_info.formats & SND_PCM_FMT_U24_BE)
 		printf(" U24-BE");
-	if (chninfo.formats & SND_PCM_FMT_S32_LE)
+	if (stream_info.formats & SND_PCM_FMT_S32_LE)
 		printf(" S32-LE");
-	if (chninfo.formats & SND_PCM_FMT_S32_BE)
+	if (stream_info.formats & SND_PCM_FMT_S32_BE)
 		printf(" S32-BE");
-	if (chninfo.formats & SND_PCM_FMT_U32_LE)
+	if (stream_info.formats & SND_PCM_FMT_U32_LE)
 		printf(" U32-LE");
-	if (chninfo.formats & SND_PCM_FMT_U32_BE)
+	if (stream_info.formats & SND_PCM_FMT_U32_BE)
 		printf(" U32-BE");
-	if (chninfo.formats & SND_PCM_FMT_FLOAT)
+	if (stream_info.formats & SND_PCM_FMT_FLOAT)
 		printf(" Float");
-	if (chninfo.formats & SND_PCM_FMT_FLOAT64)
+	if (stream_info.formats & SND_PCM_FMT_FLOAT64)
 		printf(" Float64");
-	if (chninfo.formats & SND_PCM_FMT_IEC958_SUBFRAME_LE)
+	if (stream_info.formats & SND_PCM_FMT_IEC958_SUBFRAME_LE)
 		printf(" IEC958-LE");
-	if (chninfo.formats & SND_PCM_FMT_IEC958_SUBFRAME_BE)
+	if (stream_info.formats & SND_PCM_FMT_IEC958_SUBFRAME_BE)
 		printf(" IEC958-BE");
-	if (chninfo.formats & SND_PCM_FMT_SPECIAL)
+	if (stream_info.formats & SND_PCM_FMT_SPECIAL)
 		printf(" Special");
 	printf("\n");
 	printf("  rates          :");
-	if (chninfo.rates & SND_PCM_RATE_CONTINUOUS)
+	if (stream_info.rates & SND_PCM_RATE_CONTINUOUS)
 		printf(" Continuous");
-	if (chninfo.rates & SND_PCM_RATE_KNOT)
+	if (stream_info.rates & SND_PCM_RATE_KNOT)
 		printf(" Knot");
-	if (chninfo.rates & SND_PCM_RATE_8000)
+	if (stream_info.rates & SND_PCM_RATE_8000)
 		printf(" 8000");
-	if (chninfo.rates & SND_PCM_RATE_11025)
+	if (stream_info.rates & SND_PCM_RATE_11025)
 		printf(" 11025");
-	if (chninfo.rates & SND_PCM_RATE_16000)
+	if (stream_info.rates & SND_PCM_RATE_16000)
 		printf(" 16000");
-	if (chninfo.rates & SND_PCM_RATE_22050)
+	if (stream_info.rates & SND_PCM_RATE_22050)
 		printf(" 22050");
-	if (chninfo.rates & SND_PCM_RATE_32000)
+	if (stream_info.rates & SND_PCM_RATE_32000)
 		printf(" 32000");
-	if (chninfo.rates & SND_PCM_RATE_44100)
+	if (stream_info.rates & SND_PCM_RATE_44100)
 		printf(" 44100");
-	if (chninfo.rates & SND_PCM_RATE_48000)
+	if (stream_info.rates & SND_PCM_RATE_48000)
 		printf(" 48000");
-	if (chninfo.rates & SND_PCM_RATE_88200)
+	if (stream_info.rates & SND_PCM_RATE_88200)
 		printf(" 88200");
-	if (chninfo.rates & SND_PCM_RATE_96000)
+	if (stream_info.rates & SND_PCM_RATE_96000)
 		printf(" 96000");
-	if (chninfo.rates & SND_PCM_RATE_176400)
+	if (stream_info.rates & SND_PCM_RATE_176400)
 		printf(" 176400");
-	if (chninfo.rates & SND_PCM_RATE_192000)
+	if (stream_info.rates & SND_PCM_RATE_192000)
 		printf(" 192000");
 	printf("\n");
-	printf("  min_rate       : %i\n", chninfo.min_rate);
-	printf("  max_rate       : %i\n", chninfo.max_rate);
-	printf("  min_voices     : %i\n", chninfo.min_voices);
-	printf("  max_voices     : %i\n", chninfo.max_voices);
-	printf("  buffer_size    : %i\n", chninfo.buffer_size);
-	printf("  min_frag_size  : %i\n", chninfo.min_fragment_size);
-	printf("  max_frag_size  : %i\n", chninfo.max_fragment_size);
-	printf("  fragment_align : %i\n", chninfo.fragment_align);
-	printf("  fifo_size      : %i\n", chninfo.fifo_size);
-	printf("  TBS            : %i\n", chninfo.transfer_block_size);
-	printf("  mmap_size      : %li\n", chninfo.mmap_size);
-	printf("  mixer_device   : %i\n", chninfo.mixer_device);
-	printf("  mixer_eid      : '%s',%i,%i\n", chninfo.mixer_eid.name, chninfo.mixer_eid.index, chninfo.mixer_eid.type);
+	printf("  min_rate       : %i\n", stream_info.min_rate);
+	printf("  max_rate       : %i\n", stream_info.max_rate);
+	printf("  min_channels   : %i\n", stream_info.min_channels);
+	printf("  max_channels   : %i\n", stream_info.max_channels);
+	printf("  buffer_size    : %i\n", stream_info.buffer_size);
+	printf("  min_frag_size  : %i\n", stream_info.min_fragment_size);
+	printf("  max_frag_size  : %i\n", stream_info.max_fragment_size);
+	printf("  fragment_align : %i\n", stream_info.fragment_align);
+	printf("  fifo_size      : %i\n", stream_info.fifo_size);
+	printf("  TBS            : %i\n", stream_info.transfer_block_size);
+	printf("  mmap_size      : %li\n", stream_info.mmap_size);
+	printf("  mixer_device   : %i\n", stream_info.mixer_device);
+	printf("  mixer_eid      : '%s',%i,%i\n", stream_info.mixer_eid.name, stream_info.mixer_eid.index, stream_info.mixer_eid.type);
 }
 
 void info(void)
@@ -166,9 +166,9 @@ void info(void)
 	printf("  playback  : %i\n", info.playback);
 	printf("  capture   : %i\n", info.capture);
 	if (info.flags & SND_PCM_INFO_PLAYBACK)
-		info_channel(handle, SND_PCM_CHANNEL_PLAYBACK, "Playback");
+		info_channel(handle, SND_PCM_STREAM_PLAYBACK, "Playback");
 	if (info.flags & SND_PCM_INFO_CAPTURE)
-		info_channel(handle, SND_PCM_CHANNEL_CAPTURE, "Capture");
+		info_channel(handle, SND_PCM_STREAM_CAPTURE, "Capture");
 	snd_pcm_close(handle);
 }
 

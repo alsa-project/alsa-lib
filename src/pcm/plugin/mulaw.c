@@ -149,8 +149,8 @@ static int ulaw2linear(unsigned char u_val)
  */
 
 typedef void (*mulaw_f)(snd_pcm_plugin_t *plugin,
-			const snd_pcm_plugin_voice_t *src_voices,
-			snd_pcm_plugin_voice_t *dst_voices,
+			const snd_pcm_plugin_channel_t *src_channels,
+			snd_pcm_plugin_channel_t *dst_channels,
 			size_t frames);
 
 typedef struct mulaw_private_data {
@@ -159,8 +159,8 @@ typedef struct mulaw_private_data {
 } mulaw_t;
 
 static void mulaw_decode(snd_pcm_plugin_t *plugin,
-			const snd_pcm_plugin_voice_t *src_voices,
-			snd_pcm_plugin_voice_t *dst_voices,
+			const snd_pcm_plugin_channel_t *src_channels,
+			snd_pcm_plugin_channel_t *dst_channels,
 			size_t frames)
 {
 #define PUT_S16_LABELS
@@ -168,24 +168,24 @@ static void mulaw_decode(snd_pcm_plugin_t *plugin,
 #undef PUT_S16_LABELS
 	mulaw_t *data = (mulaw_t *)plugin->extra_data;
 	void *put = put_s16_labels[data->conv];
-	int voice;
-	int nvoices = plugin->src_format.voices;
-	for (voice = 0; voice < nvoices; ++voice) {
+	int channel;
+	int nchannels = plugin->src_format.channels;
+	for (channel = 0; channel < nchannels; ++channel) {
 		char *src;
 		char *dst;
 		int src_step, dst_step;
 		size_t frames1;
-		if (!src_voices[voice].enabled) {
-			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, frames, plugin->dst_format.format);
-			dst_voices[voice].enabled = 0;
+		if (!src_channels[channel].enabled) {
+			if (dst_channels[channel].wanted)
+				snd_pcm_area_silence(&dst_channels[channel].area, 0, frames, plugin->dst_format.format);
+			dst_channels[channel].enabled = 0;
 			continue;
 		}
-		dst_voices[voice].enabled = 1;
-		src = src_voices[voice].area.addr + src_voices[voice].area.first / 8;
-		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
-		src_step = src_voices[voice].area.step / 8;
-		dst_step = dst_voices[voice].area.step / 8;
+		dst_channels[channel].enabled = 1;
+		src = src_channels[channel].area.addr + src_channels[channel].area.first / 8;
+		dst = dst_channels[channel].area.addr + dst_channels[channel].area.first / 8;
+		src_step = src_channels[channel].area.step / 8;
+		dst_step = dst_channels[channel].area.step / 8;
 		frames1 = frames;
 		while (frames1-- > 0) {
 			signed short sample = ulaw2linear(*src);
@@ -201,8 +201,8 @@ static void mulaw_decode(snd_pcm_plugin_t *plugin,
 }
 
 static void mulaw_encode(snd_pcm_plugin_t *plugin,
-			const snd_pcm_plugin_voice_t *src_voices,
-			snd_pcm_plugin_voice_t *dst_voices,
+			const snd_pcm_plugin_channel_t *src_channels,
+			snd_pcm_plugin_channel_t *dst_channels,
 			size_t frames)
 {
 #define GET_S16_LABELS
@@ -210,25 +210,25 @@ static void mulaw_encode(snd_pcm_plugin_t *plugin,
 #undef GET_S16_LABELS
 	mulaw_t *data = (mulaw_t *)plugin->extra_data;
 	void *get = get_s16_labels[data->conv];
-	int voice;
-	int nvoices = plugin->src_format.voices;
+	int channel;
+	int nchannels = plugin->src_format.channels;
 	signed short sample = 0;
-	for (voice = 0; voice < nvoices; ++voice) {
+	for (channel = 0; channel < nchannels; ++channel) {
 		char *src;
 		char *dst;
 		int src_step, dst_step;
 		size_t frames1;
-		if (!src_voices[voice].enabled) {
-			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, frames, plugin->dst_format.format);
-			dst_voices[voice].enabled = 0;
+		if (!src_channels[channel].enabled) {
+			if (dst_channels[channel].wanted)
+				snd_pcm_area_silence(&dst_channels[channel].area, 0, frames, plugin->dst_format.format);
+			dst_channels[channel].enabled = 0;
 			continue;
 		}
-		dst_voices[voice].enabled = 1;
-		src = src_voices[voice].area.addr + src_voices[voice].area.first / 8;
-		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
-		src_step = src_voices[voice].area.step / 8;
-		dst_step = dst_voices[voice].area.step / 8;
+		dst_channels[channel].enabled = 1;
+		src = src_channels[channel].area.addr + src_channels[channel].area.first / 8;
+		dst = dst_channels[channel].area.addr + dst_channels[channel].area.first / 8;
+		src_step = src_channels[channel].area.step / 8;
+		dst_step = dst_channels[channel].area.step / 8;
 		frames1 = frames;
 		while (frames1-- > 0) {
 			goto *get;
@@ -244,32 +244,32 @@ static void mulaw_encode(snd_pcm_plugin_t *plugin,
 }
 
 static ssize_t mulaw_transfer(snd_pcm_plugin_t *plugin,
-			      const snd_pcm_plugin_voice_t *src_voices,
-			      snd_pcm_plugin_voice_t *dst_voices,
+			      const snd_pcm_plugin_channel_t *src_channels,
+			      snd_pcm_plugin_channel_t *dst_channels,
 			      size_t frames)
 {
 	mulaw_t *data;
-	unsigned int voice;
+	unsigned int channel;
 
-	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
+	if (plugin == NULL || src_channels == NULL || dst_channels == NULL)
 		return -EFAULT;
 	if (frames == 0)
 		return 0;
-	for (voice = 0; voice < plugin->src_format.voices; voice++) {
-		if (src_voices[voice].area.first % 8 != 0 || 
-		    src_voices[voice].area.step % 8 != 0)
+	for (channel = 0; channel < plugin->src_format.channels; channel++) {
+		if (src_channels[channel].area.first % 8 != 0 || 
+		    src_channels[channel].area.step % 8 != 0)
 			return -EINVAL;
-		if (dst_voices[voice].area.first % 8 != 0 || 
-		    dst_voices[voice].area.step % 8 != 0)
+		if (dst_channels[channel].area.first % 8 != 0 || 
+		    dst_channels[channel].area.step % 8 != 0)
 			return -EINVAL;
 	}
 	data = (mulaw_t *)plugin->extra_data;
-	data->func(plugin, src_voices, dst_voices, frames);
+	data->func(plugin, src_channels, dst_channels, frames);
 	return frames;
 }
 
 int snd_pcm_plugin_build_mulaw(snd_pcm_plugin_handle_t *handle,
-			       int channel,
+			       int stream,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
 			       snd_pcm_plugin_t **r_plugin)
@@ -286,7 +286,7 @@ int snd_pcm_plugin_build_mulaw(snd_pcm_plugin_handle_t *handle,
 
 	if (src_format->rate != dst_format->rate)
 		return -EINVAL;
-	if (src_format->voices != dst_format->voices)
+	if (src_format->channels != dst_format->channels)
 		return -EINVAL;
 
 	if (dst_format->format == SND_PCM_SFMT_MU_LAW) {
@@ -302,7 +302,7 @@ int snd_pcm_plugin_build_mulaw(snd_pcm_plugin_handle_t *handle,
 	if (!snd_pcm_format_linear(format->format))
 		return -EINVAL;
 
-	err = snd_pcm_plugin_build(handle, channel,
+	err = snd_pcm_plugin_build(handle, stream,
 				   "Mu-Law<->linear conversion",
 				   src_format,
 				   dst_format,

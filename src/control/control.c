@@ -171,34 +171,34 @@ int snd_ctl_pcm_info(snd_ctl_t *handle, int dev, snd_pcm_info_t * info)
 	return 0;
 }
 
-int snd_ctl_pcm_channel_info(snd_ctl_t *handle, int dev, int chn, int subdev, snd_pcm_channel_info_t * info)
+int snd_ctl_pcm_stream_info(snd_ctl_t *handle, int dev, int str, int subdev, snd_pcm_stream_info_t * info)
 {
 	snd_ctl_t *ctl;
 
 	ctl = handle;
-	if (!ctl || !info || dev < 0 || chn < 0 || chn > 1 || subdev < 0)
+	if (!ctl || !info || dev < 0 || str < 0 || str > 1 || subdev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
 		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CHANNEL, &chn) < 0)
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_STREAM, &str) < 0)
 		return -errno;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_SUBDEVICE, &subdev) < 0)
 		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CHANNEL_INFO, info) < 0)
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_STREAM_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_pcm_channel_prefer_subdevice(snd_ctl_t *handle, int dev, int chn, int subdev)
+int snd_ctl_pcm_stream_prefer_subdevice(snd_ctl_t *handle, int dev, int str, int subdev)
 {
 	snd_ctl_t *ctl;
 
 	ctl = handle;
-	if (!ctl || dev < 0 || chn < 0 || chn > 1)
+	if (!ctl || dev < 0 || str < 0 || str > 1)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
 		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CHANNEL, &chn) < 0)
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_STREAM, &str) < 0)
 		return -errno;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
 		return -errno;
@@ -261,7 +261,7 @@ int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
 				callbacks->xswitch(callbacks->private_data,
 						   r.cmd, r.data.sw.iface,
 						   r.data.sw.device,
-						   r.data.sw.channel,
+						   r.data.sw.stream,
 						   &r.data.sw.switem);
 			break;
 		}

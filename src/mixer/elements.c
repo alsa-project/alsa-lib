@@ -73,10 +73,10 @@ int snd_mixer_element_info_build(snd_mixer_t *handle, snd_mixer_element_info_t *
 	switch (element->eid.type) {
 	case SND_MIXER_ETYPE_INPUT:
 	case SND_MIXER_ETYPE_OUTPUT:
-		element->data.io.voices_size = element->data.io.voices_over;
-		element->data.io.voices = element->data.io.voices_over = 0;
-		element->data.io.pvoices = (snd_mixer_voice_t *)malloc(element->data.io.voices_size * sizeof(snd_mixer_voice_t));
-		if (!element->data.io.pvoices)
+		element->data.io.channels_size = element->data.io.channels_over;
+		element->data.io.channels = element->data.io.channels_over = 0;
+		element->data.io.pchannels = (snd_mixer_channel_t *)malloc(element->data.io.channels_size * sizeof(snd_mixer_channel_t));
+		if (!element->data.io.pchannels)
 			return -ENOMEM;
 		if ((err = snd_mixer_element_info(handle, element)) < 0)
 			return err;
@@ -101,16 +101,16 @@ int snd_mixer_element_info_build(snd_mixer_t *handle, snd_mixer_element_info_t *
 			return err;
 		break;
 	case SND_MIXER_ETYPE_VOLUME2:
-		element->data.volume2.svoices_size = element->data.volume2.svoices_over;
-		element->data.volume2.svoices = element->data.volume2.svoices_over = 0;
-		element->data.volume2.psvoices = (snd_mixer_voice_t *)malloc(element->data.volume2.svoices_size * sizeof(snd_mixer_voice_t));
-		if (!element->data.volume2.psvoices)
+		element->data.volume2.schannels_size = element->data.volume2.schannels_over;
+		element->data.volume2.schannels = element->data.volume2.schannels_over = 0;
+		element->data.volume2.pschannels = (snd_mixer_channel_t *)malloc(element->data.volume2.schannels_size * sizeof(snd_mixer_channel_t));
+		if (!element->data.volume2.pschannels)
 			return -ENOMEM;
 		element->data.volume2.range_size = element->data.volume2.range_over;
 		element->data.volume2.range = element->data.volume2.range_over = 0;
 		element->data.volume2.prange = (struct snd_mixer_element_volume2_range *)malloc(element->data.volume2.range_size * sizeof(struct snd_mixer_element_volume2_range));
 		if (!element->data.volume1.prange) {
-			safe_free((void **)&element->data.volume2.psvoices);
+			safe_free((void **)&element->data.volume2.pschannels);
 			return -ENOMEM;
 		}
 		if ((err = snd_mixer_element_info(handle, element)) < 0)
@@ -161,7 +161,7 @@ int snd_mixer_element_info_free(snd_mixer_element_info_t *element)
 	switch (element->eid.type) {
 	case SND_MIXER_ETYPE_INPUT:
 	case SND_MIXER_ETYPE_OUTPUT:
-		safe_free((void **)&element->data.io.pvoices);
+		safe_free((void **)&element->data.io.pchannels);
 		break;
 	case SND_MIXER_ETYPE_CAPTURE1:
 	case SND_MIXER_ETYPE_PLAYBACK1:
@@ -171,7 +171,7 @@ int snd_mixer_element_info_free(snd_mixer_element_info_t *element)
 		safe_free((void **)&element->data.volume1.prange);
 		break;
 	case SND_MIXER_ETYPE_VOLUME2:
-		safe_free((void **)&element->data.volume2.psvoices);
+		safe_free((void **)&element->data.volume2.pschannels);
 		safe_free((void **)&element->data.volume1.prange);
 		break;
 	case SND_MIXER_ETYPE_ACCU3:
@@ -238,28 +238,28 @@ int snd_mixer_element_build(snd_mixer_t *handle, snd_mixer_element_t *element)
 			return err;
 		break;
 	case SND_MIXER_ETYPE_VOLUME1:
-		element->data.volume1.voices_size = element->data.volume1.voices_over;
-		element->data.volume1.voices = element->data.volume1.voices_over = 0;
-		element->data.volume1.pvoices = (int *)malloc(element->data.volume1.voices_size * sizeof(int));
-		if (!element->data.volume1.pvoices)
+		element->data.volume1.channels_size = element->data.volume1.channels_over;
+		element->data.volume1.channels = element->data.volume1.channels_over = 0;
+		element->data.volume1.pchannels = (int *)malloc(element->data.volume1.channels_size * sizeof(int));
+		if (!element->data.volume1.pchannels)
 			return -ENOMEM;
 		if ((err = snd_mixer_element_read(handle, element)) < 0)
 			return err;
 		break;
 	case SND_MIXER_ETYPE_VOLUME2:
-		element->data.volume2.avoices_size = element->data.volume2.avoices_over;
-		element->data.volume2.avoices = element->data.volume2.avoices_over = 0;
-		element->data.volume2.pavoices = (int *)malloc(element->data.volume2.avoices_size * sizeof(int));
-		if (!element->data.volume2.pavoices)
+		element->data.volume2.achannels_size = element->data.volume2.achannels_over;
+		element->data.volume2.achannels = element->data.volume2.achannels_over = 0;
+		element->data.volume2.pachannels = (int *)malloc(element->data.volume2.achannels_size * sizeof(int));
+		if (!element->data.volume2.pachannels)
 			return -ENOMEM;
 		if ((err = snd_mixer_element_read(handle, element)) < 0)
 			return err;
 		break;
 	case SND_MIXER_ETYPE_ACCU3:
-		element->data.accu3.voices_size = element->data.accu3.voices_over;
-		element->data.accu3.voices = element->data.accu3.voices_over = 0;
-		element->data.accu3.pvoices = (int *)malloc(element->data.accu3.voices_size * sizeof(int));
-		if (!element->data.accu3.pvoices)
+		element->data.accu3.channels_size = element->data.accu3.channels_over;
+		element->data.accu3.channels = element->data.accu3.channels_over = 0;
+		element->data.accu3.pchannels = (int *)malloc(element->data.accu3.channels_size * sizeof(int));
+		if (!element->data.accu3.pchannels)
 			return -ENOMEM;
 		if ((err = snd_mixer_element_read(handle, element)) < 0)
 			return err;
@@ -309,13 +309,13 @@ int snd_mixer_element_free(snd_mixer_element_t *element)
 		safe_free((void **)&element->data.switch3.prsw);
 		break;
 	case SND_MIXER_ETYPE_VOLUME1:
-		safe_free((void **)&element->data.volume1.pvoices);
+		safe_free((void **)&element->data.volume1.pchannels);
 		break;
 	case SND_MIXER_ETYPE_VOLUME2:
-		safe_free((void **)&element->data.volume2.pavoices);
+		safe_free((void **)&element->data.volume2.pachannels);
 		break;
 	case SND_MIXER_ETYPE_ACCU3:
-		safe_free((void **)&element->data.accu3.pvoices);
+		safe_free((void **)&element->data.accu3.pchannels);
 		break;
 	case SND_MIXER_ETYPE_MUX1:
 		safe_free((void **)&element->data.mux1.psel);

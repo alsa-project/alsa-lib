@@ -30,50 +30,50 @@
 
 /* snd_pcm_plug helpers */
 
-void *snd_pcm_plug_buf_alloc(snd_pcm_t *pcm, int channel, size_t size)
+void *snd_pcm_plug_buf_alloc(snd_pcm_t *pcm, int stream, size_t size)
 {
 	int idx;
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	struct snd_pcm_plug_chan *plugchan = &plug->chan[channel];
+	struct snd_pcm_plug_stream *plugstr = &plug->stream[stream];
 
 	for (idx = 0; idx < 2; idx++) {
-		if (plugchan->alloc_lock[idx])
+		if (plugstr->alloc_lock[idx])
 			continue;
-		if (plugchan->alloc_size[idx] >= size) {
-			plugchan->alloc_lock[idx] = 1;
-			return plugchan->alloc_ptr[idx];
+		if (plugstr->alloc_size[idx] >= size) {
+			plugstr->alloc_lock[idx] = 1;
+			return plugstr->alloc_ptr[idx];
 		}
 	}
 	for (idx = 0; idx < 2; idx++) {
-		if (plugchan->alloc_lock[idx])
+		if (plugstr->alloc_lock[idx])
 			continue;
-		if (plugchan->alloc_ptr[idx] != NULL)
-			free(plugchan->alloc_ptr[idx]);
-		plugchan->alloc_ptr[idx] = malloc(size);
-		if (plugchan->alloc_ptr[idx] == NULL)
+		if (plugstr->alloc_ptr[idx] != NULL)
+			free(plugstr->alloc_ptr[idx]);
+		plugstr->alloc_ptr[idx] = malloc(size);
+		if (plugstr->alloc_ptr[idx] == NULL)
 			return NULL;
-		plugchan->alloc_size[idx] = size;
-		plugchan->alloc_lock[idx] = 1;
-		return plugchan->alloc_ptr[idx];
+		plugstr->alloc_size[idx] = size;
+		plugstr->alloc_lock[idx] = 1;
+		return plugstr->alloc_ptr[idx];
 	}
 	return NULL;
 }
 
-void snd_pcm_plug_buf_unlock(snd_pcm_t *pcm, int channel, void *ptr)
+void snd_pcm_plug_buf_unlock(snd_pcm_t *pcm, int stream, void *ptr)
 {
 	int idx;
 
 	snd_pcm_plug_t *plug;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 
 	if (!ptr)
 		return;
 	plug = (snd_pcm_plug_t*) &pcm->private;
-	plugchan = &plug->chan[channel];
+	plugstr = &plug->stream[stream];
 
 	for (idx = 0; idx < 2; idx++) {
-		if (plugchan->alloc_ptr[idx] == ptr) {
-			plugchan->alloc_lock[idx] = 0;
+		if (plugstr->alloc_ptr[idx] == ptr) {
+			plugstr->alloc_lock[idx] = 0;
 			return;
 		}
 	}
@@ -84,21 +84,21 @@ void snd_pcm_plug_buf_unlock(snd_pcm_t *pcm, int channel, void *ptr)
 int snd_pcm_plugin_insert(snd_pcm_plugin_t *plugin)
 {
 	snd_pcm_plug_t *plug;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 	snd_pcm_t *pcm;
 	if (!plugin)
 		return -EFAULT;
 	pcm = plugin->handle;
 	plug = (snd_pcm_plug_t*) &pcm->private;
-	plugchan = &plug->chan[plugin->channel];
-	plugin->next = plugchan->first;
+	plugstr = &plug->stream[plugin->stream];
+	plugin->next = plugstr->first;
 	plugin->prev = NULL;
-	if (plugchan->first) {
-		plugchan->first->prev = plugin;
-		plugchan->first = plugin;
+	if (plugstr->first) {
+		plugstr->first->prev = plugin;
+		plugstr->first = plugin;
 	} else {
-		plugchan->last =
-		plugchan->first = plugin;
+		plugstr->last =
+		plugstr->first = plugin;
 	}
 	return 0;
 }
@@ -106,22 +106,22 @@ int snd_pcm_plugin_insert(snd_pcm_plugin_t *plugin)
 int snd_pcm_plugin_append(snd_pcm_plugin_t *plugin)
 {
 	snd_pcm_plug_t *plug;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 	snd_pcm_t *pcm;
 	if (!plugin)
 		return -EFAULT;
 	pcm = plugin->handle;
 	plug = (snd_pcm_plug_t*) &pcm->private;
-	plugchan = &plug->chan[plugin->channel];
+	plugstr = &plug->stream[plugin->stream];
 
 	plugin->next = NULL;
-	plugin->prev = plugchan->last;
-	if (plugchan->last) {
-		plugchan->last->next = plugin;
-		plugchan->last = plugin;
+	plugin->prev = plugstr->last;
+	if (plugstr->last) {
+		plugstr->last->next = plugin;
+		plugstr->last = plugin;
 	} else {
-		plugchan->last =
-		plugchan->first = plugin;
+		plugstr->last =
+		plugstr->first = plugin;
 	}
 	return 0;
 }
@@ -132,20 +132,20 @@ int snd_pcm_plugin_remove_to(snd_pcm_plugin_t *plugin)
 	snd_pcm_plugin_t *plugin1, *plugin1_prev;
 	snd_pcm_plug_t *plug;
 	snd_pcm_t *pcm;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 	if (!plugin)
 		return -EFAULT;
 	pcm = plugin->handle;
 
 	plug = (snd_pcm_plug_t*) &pcm->private;
-	plugchan = &plug->chan[plugin->channel];
+	plugstr = &plug->stream[plugin->stream];
 
 	plugin1 = plugin;
 	while (plugin1->prev)
 		plugin1 = plugin1->prev;
-	if (plugchan->first != plugin1)
+	if (plugstr->first != plugin1)
 		return -EINVAL;
-	plugchan->first = plugin;
+	plugstr->first = plugin;
 	plugin1 = plugin->prev;
 	plugin->prev = NULL;
 	while (plugin1) {
@@ -156,26 +156,26 @@ int snd_pcm_plugin_remove_to(snd_pcm_plugin_t *plugin)
 	return 0;
 }
 
-int snd_pcm_plug_remove_first(snd_pcm_t *pcm, int channel)
+int snd_pcm_plug_remove_first(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_plug_t *plug;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 	if (!pcm)
 		return -EFAULT;
-	if (channel < 0 || channel > 1)
+	if (stream < 0 || stream > 1)
 		return -EINVAL;
-	if (!pcm->chan[channel].open)
+	if (!pcm->stream[stream].open)
 		return -EBADFD;
 
 	plug = (snd_pcm_plug_t*) &pcm->private;
-	plugchan = &plug->chan[channel];
+	plugstr = &plug->stream[stream];
 
-	plugin = plugchan->first;
+	plugin = plugstr->first;
 	if (plugin->next) {
 		plugin = plugin->next;
 	} else {
-		return snd_pcm_plug_clear(pcm, channel);
+		return snd_pcm_plug_clear(pcm, stream);
 	}
 	return snd_pcm_plugin_remove_to(plugin);
 }
@@ -183,108 +183,108 @@ int snd_pcm_plug_remove_first(snd_pcm_t *pcm, int channel)
 
 /* snd_pcm_plug externs */
 
-int snd_pcm_plug_clear(snd_pcm_t *pcm, int channel)
+int snd_pcm_plug_clear(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plugin_t *plugin, *plugin_next;
 	snd_pcm_plug_t *plug;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 	int idx;
 	
 	if (!pcm)
 		return -EINVAL;
-	if (channel < 0 || channel > 1)
+	if (stream < 0 || stream > 1)
 		return -EINVAL;
-	if (!pcm->chan[channel].open)
+	if (!pcm->stream[stream].open)
 		return -EBADFD;
 
 	plug = (snd_pcm_plug_t*) &pcm->private;
-	plugchan = &plug->chan[channel];
-	plugin = plugchan->first;
-	plugchan->first = NULL;
-	plugchan->last = NULL;
+	plugstr = &plug->stream[stream];
+	plugin = plugstr->first;
+	plugstr->first = NULL;
+	plugstr->last = NULL;
 	while (plugin) {
 		plugin_next = plugin->next;
 		snd_pcm_plugin_free(plugin);
 		plugin = plugin_next;
 	}
 	for (idx = 0; idx < 2; idx++) {
-		if (plugchan->alloc_ptr[idx]) {
-			free(plugchan->alloc_ptr[idx]);
-			plugchan->alloc_ptr[idx] = 0;
+		if (plugstr->alloc_ptr[idx]) {
+			free(plugstr->alloc_ptr[idx]);
+			plugstr->alloc_ptr[idx] = 0;
 		}
-		plugchan->alloc_size[idx] = 0;
-		plugchan->alloc_lock[idx] = 0;
+		plugstr->alloc_size[idx] = 0;
+		plugstr->alloc_lock[idx] = 0;
 	}
 	return 0;
 }
 
-snd_pcm_plugin_t *snd_pcm_plug_first(snd_pcm_t *pcm, int channel)
+snd_pcm_plugin_t *snd_pcm_plug_first(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plug_t *plug;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 	if (!pcm)
 		return NULL;
-	if (channel < 0 || channel > 1)
+	if (stream < 0 || stream > 1)
 		return NULL;
-	if (!pcm->chan[channel].open)
+	if (!pcm->stream[stream].open)
 		return NULL;
 
 	plug = (snd_pcm_plug_t*) &pcm->private;
-	plugchan = &plug->chan[channel];
+	plugstr = &plug->stream[stream];
 
-	return plugchan->first;
+	return plugstr->first;
 }
 
-snd_pcm_plugin_t *snd_pcm_plug_last(snd_pcm_t *pcm, int channel)
+snd_pcm_plugin_t *snd_pcm_plug_last(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plug_t *plug;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 	if (!pcm)
 		return NULL;
-	if (channel < 0 || channel > 1)
+	if (stream < 0 || stream > 1)
 		return NULL;
-	if (!pcm->chan[channel].open)
+	if (!pcm->stream[stream].open)
 		return NULL;
 
 	plug = (snd_pcm_plug_t*) &pcm->private;
-	plugchan = &plug->chan[channel];
+	plugstr = &plug->stream[stream];
 
-	return plugchan->last;
+	return plugstr->last;
 }
 
-int snd_pcm_plug_direct(snd_pcm_t *pcm, int channel)
+int snd_pcm_plug_direct(snd_pcm_t *pcm, int stream)
 {
-	return snd_pcm_plug_first(pcm, channel) == NULL;
+	return snd_pcm_plug_first(pcm, stream) == NULL;
 }
 
 #if 0
-double snd_pcm_plug_client_ratio(snd_pcm_t *pcm, int channel)
+double snd_pcm_plug_client_ratio(snd_pcm_t *pcm, int stream)
 {
 	ssize_t client;
 	if (!pcm)
 		return -EFAULT;
-	if (channel < 0 || channel > 1)
+	if (stream < 0 || stream > 1)
 		return -EINVAL;
-	if (!pcm->chan[channel].open)
+	if (!pcm->stream[stream].open)
 		return -EBADFD;
 
-	client = snd_pcm_plug_client_size(pcm, channel, 1000000);
+	client = snd_pcm_plug_client_size(pcm, stream, 1000000);
 	if (client < 0)
 		return 0;
 	return (double)client / (double)1000000;
 }
 
-double snd_pcm_plug_slave_ratio(snd_pcm_t *pcm, int channel)
+double snd_pcm_plug_slave_ratio(snd_pcm_t *pcm, int stream)
 {
 	ssize_t slave;
 	if (!pcm)
 		return -EFAULT;
-	if (channel < 0 || channel > 1)
+	if (stream < 0 || stream > 1)
 		return -EINVAL;
-	if (!pcm->chan[channel].open)
+	if (!pcm->stream[stream].open)
 		return -EBADFD;
 
-	slave = snd_pcm_plug_slave_size(pcm, channel, 1000000);
+	slave = snd_pcm_plug_slave_size(pcm, stream, 1000000);
 	if (slave < 0)
 		return 0;
 	return (double)slave / (double)1000000;
@@ -295,19 +295,19 @@ double snd_pcm_plug_slave_ratio(snd_pcm_t *pcm, int channel)
  *
  */
 
-static int snd_pcm_plug_channel_close(snd_pcm_t *pcm, int channel)
+static int snd_pcm_plug_stream_close(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	snd_pcm_plug_clear(pcm, channel);
+	snd_pcm_plug_clear(pcm, stream);
 	if (plug->close_slave)
-		return snd_pcm_channel_close(plug->slave, channel);
+		return snd_pcm_stream_close(plug->slave, stream);
 	return 0;
 }
 
-static int snd_pcm_plug_channel_nonblock(snd_pcm_t *pcm, int channel, int nonblock)
+static int snd_pcm_plug_stream_nonblock(snd_pcm_t *pcm, int stream, int nonblock)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	return snd_pcm_channel_nonblock(plug->slave, channel, nonblock);
+	return snd_pcm_stream_nonblock(plug->slave, stream, nonblock);
 }
 
 static int snd_pcm_plug_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
@@ -316,51 +316,51 @@ static int snd_pcm_plug_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return snd_pcm_info(plug->slave, info);
 }
 
-static int snd_pcm_plug_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
+static int snd_pcm_plug_stream_info(snd_pcm_t *pcm, snd_pcm_stream_info_t *info)
 {
 	int err;
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	struct snd_pcm_chan *chan;
+	struct snd_pcm_stream *str;
 	
-	if ((err = snd_pcm_channel_info(plug->slave, info)) < 0)
+	if ((err = snd_pcm_stream_info(plug->slave, info)) < 0)
 		return err;
 	info->formats = snd_pcm_plug_formats(info->formats);
 	info->min_rate = 4000;
 	info->max_rate = 192000;
-	info->min_voices = 1;
-	info->max_voices = 32;
+	info->min_channels = 1;
+	info->max_channels = 32;
 	info->rates = SND_PCM_RATE_CONTINUOUS | SND_PCM_RATE_8000_192000;
-	info->flags |= SND_PCM_CHNINFO_INTERLEAVE | SND_PCM_CHNINFO_NONINTERLEAVE;
+	info->flags |= SND_PCM_STREAM_INFO_INTERLEAVE | SND_PCM_STREAM_INFO_NONINTERLEAVE;
 
-	chan = &pcm->chan[info->channel];
-	if (pcm->chan[info->channel].valid_setup) {
-		info->buffer_size = snd_pcm_plug_client_size(pcm, info->channel, info->buffer_size);
-		info->min_fragment_size = snd_pcm_plug_client_size(pcm, info->channel, info->min_fragment_size);
-		info->max_fragment_size = snd_pcm_plug_client_size(pcm, info->channel, info->max_fragment_size);
-		info->fragment_align = snd_pcm_plug_client_size(pcm, info->channel, info->fragment_align);
-		info->fifo_size = snd_pcm_plug_client_size(pcm, info->channel, info->fifo_size);
-		info->transfer_block_size = snd_pcm_plug_client_size(pcm, info->channel, info->transfer_block_size);
-		if (chan->setup.mode == SND_PCM_MODE_BLOCK)
-			info->mmap_size = chan->setup.buffer_size;
+	str = &pcm->stream[info->stream];
+	if (pcm->stream[info->stream].valid_setup) {
+		info->buffer_size = snd_pcm_plug_client_size(pcm, info->stream, info->buffer_size);
+		info->min_fragment_size = snd_pcm_plug_client_size(pcm, info->stream, info->min_fragment_size);
+		info->max_fragment_size = snd_pcm_plug_client_size(pcm, info->stream, info->max_fragment_size);
+		info->fragment_align = snd_pcm_plug_client_size(pcm, info->stream, info->fragment_align);
+		info->fifo_size = snd_pcm_plug_client_size(pcm, info->stream, info->fifo_size);
+		info->transfer_block_size = snd_pcm_plug_client_size(pcm, info->stream, info->transfer_block_size);
+		if (str->setup.mode == SND_PCM_MODE_FRAGMENT)
+			info->mmap_size = str->setup.buffer_size;
 		else
-			info->mmap_size = snd_pcm_plug_client_size(pcm, info->channel, info->mmap_size);
+			info->mmap_size = snd_pcm_plug_client_size(pcm, info->stream, info->mmap_size);
 	}
-	if (!snd_pcm_plug_direct(pcm, info->channel))
-		info->flags &= ~(SND_PCM_CHNINFO_MMAP | SND_PCM_CHNINFO_MMAP_VALID);
+	if (!snd_pcm_plug_direct(pcm, info->stream))
+		info->flags &= ~(SND_PCM_STREAM_INFO_MMAP | SND_PCM_STREAM_INFO_MMAP_VALID);
 	return 0;
 }
 
-static int snd_pcm_plug_action(snd_pcm_t *pcm, int channel, int action,
+static int snd_pcm_plug_action(snd_pcm_t *pcm, int stream, int action,
 			       unsigned long data)
 {
 	snd_pcm_plugin_t *plugin;
 	int err;
 	snd_pcm_plug_t *plug;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 	plug = (snd_pcm_plug_t*) &pcm->private;
-	plugchan = &plug->chan[channel];
+	plugstr = &plug->stream[stream];
 
-	plugin = plugchan->first;
+	plugin = plugstr->first;
 	while (plugin) {
 		if (plugin->action) {
 			if ((err = plugin->action(plugin, action, data))<0)
@@ -371,14 +371,14 @@ static int snd_pcm_plug_action(snd_pcm_t *pcm, int channel, int action,
 	return 0;
 }
 
-static int snd_pcm_plug_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
+static int snd_pcm_plug_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t *params)
 {
-	snd_pcm_channel_params_t slave_params, params1;
-	snd_pcm_channel_info_t slave_info;
+	snd_pcm_stream_params_t slave_params, params1;
+	snd_pcm_stream_info_t slave_info;
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_plug_t *plug;
 	int err;
-	int channel = params->channel;
+	int stream = params->stream;
 	
 	plug = (snd_pcm_plug_t*) &pcm->private;
 
@@ -387,9 +387,9 @@ static int snd_pcm_plug_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t 
          */
 
 	memset(&slave_info, 0, sizeof(slave_info));
-	slave_info.channel = channel;
-	if ((err = snd_pcm_channel_info(plug->slave, &slave_info)) < 0) {
-		snd_pcm_plug_clear(pcm, channel);
+	slave_info.stream = stream;
+	if ((err = snd_pcm_stream_info(plug->slave, &slave_info)) < 0) {
+		snd_pcm_plug_clear(pcm, stream);
 		return err;
 	}
 
@@ -397,30 +397,30 @@ static int snd_pcm_plug_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t 
 		return err;
 
 
-	snd_pcm_plug_clear(pcm, channel);
+	snd_pcm_plug_clear(pcm, stream);
 
 	/* add necessary plugins */
 	memcpy(&params1, params, sizeof(*params));
 	if ((err = snd_pcm_plug_format(pcm, &params1, &slave_params)) < 0)
 		return err;
 
-	if (snd_pcm_plug_direct(pcm, channel))
-		return snd_pcm_channel_params(plug->slave, params);
+	if (snd_pcm_plug_direct(pcm, stream))
+		return snd_pcm_stream_params(plug->slave, params);
 
 	/*
 	 *  I/O plugins
 	 */
 
-	if (slave_info.flags & SND_PCM_CHNINFO_MMAP) {
+	if (slave_info.flags & SND_PCM_STREAM_INFO_MMAP) {
 		pdprintf("params mmap plugin\n");
-		err = snd_pcm_plugin_build_mmap(pcm, channel, plug->slave, &slave_params.format, &plugin);
+		err = snd_pcm_plugin_build_mmap(pcm, stream, plug->slave, &slave_params.format, &plugin);
 	} else {
 		pdprintf("params I/O plugin\n");
-		err = snd_pcm_plugin_build_io(pcm, channel, plug->slave, &slave_params.format, &plugin);
+		err = snd_pcm_plugin_build_io(pcm, stream, plug->slave, &slave_params.format, &plugin);
 	}
 	if (err < 0)
 		return err;
-	if (channel == SND_PCM_CHANNEL_PLAYBACK) {
+	if (stream == SND_PCM_STREAM_PLAYBACK) {
 		err = snd_pcm_plugin_append(plugin);
 	} else {
 		err = snd_pcm_plugin_insert(plugin);
@@ -431,105 +431,105 @@ static int snd_pcm_plug_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t 
 	}
 
 	/* compute right sizes */
-	slave_params.buffer_size = snd_pcm_plug_slave_size(pcm, channel, slave_params.buffer_size);
-	slave_params.frag_size = snd_pcm_plug_slave_size(pcm, channel, slave_params.frag_size);
-	slave_params.bytes_fill_max = snd_pcm_plug_slave_size(pcm, channel, slave_params.bytes_fill_max);
-	slave_params.bytes_min = snd_pcm_plug_slave_size(pcm, channel, slave_params.bytes_min);
-	slave_params.bytes_xrun_max = snd_pcm_plug_slave_size(pcm, channel, slave_params.bytes_xrun_max);
-	slave_params.bytes_align = snd_pcm_plug_slave_size(pcm, channel, slave_params.bytes_align);
+	slave_params.buffer_size = snd_pcm_plug_slave_size(pcm, stream, slave_params.buffer_size);
+	slave_params.frag_size = snd_pcm_plug_slave_size(pcm, stream, slave_params.frag_size);
+	slave_params.bytes_fill_max = snd_pcm_plug_slave_size(pcm, stream, slave_params.bytes_fill_max);
+	slave_params.bytes_min = snd_pcm_plug_slave_size(pcm, stream, slave_params.bytes_min);
+	slave_params.bytes_xrun_max = snd_pcm_plug_slave_size(pcm, stream, slave_params.bytes_xrun_max);
+	slave_params.bytes_align = snd_pcm_plug_slave_size(pcm, stream, slave_params.bytes_align);
 
-	pdprintf("params requested params: format = %i, rate = %i, voices = %i\n", slave_params.format.format, slave_params.format.rate, slave_params.format.voices);
-	err = snd_pcm_channel_params(plug->slave, &slave_params);
+	pdprintf("params requested params: format = %i, rate = %i, channels = %i\n", slave_params.format.format, slave_params.format.rate, slave_params.format.channels);
+	err = snd_pcm_stream_params(plug->slave, &slave_params);
 	if (err < 0)
 		return err;
 
-	err = snd_pcm_plug_action(pcm, channel, INIT, 0);
+	err = snd_pcm_plug_action(pcm, stream, INIT, 0);
 	if (err < 0)
 		return err;
 	return 0;
 }
 
-static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
+static int snd_pcm_plug_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t *setup)
 {
 	int err;
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	struct snd_pcm_plug_chan *plugchan;
+	struct snd_pcm_plug_stream *plugstr;
 
-	err = snd_pcm_channel_setup(plug->slave, setup);
+	err = snd_pcm_stream_setup(plug->slave, setup);
 	if (err < 0)
 		return err;
-	if (snd_pcm_plug_direct(pcm, setup->channel))
+	if (snd_pcm_plug_direct(pcm, setup->stream))
 		return 0;
 	setup->byte_boundary /= setup->frag_size;
-	setup->frag_size = snd_pcm_plug_client_size(pcm, setup->channel, setup->frag_size);
+	setup->frag_size = snd_pcm_plug_client_size(pcm, setup->stream, setup->frag_size);
 	setup->byte_boundary *= setup->frag_size;
 	setup->buffer_size = setup->frags * setup->frag_size;
-	setup->bytes_min = snd_pcm_plug_client_size(pcm, setup->channel, setup->bytes_min);
-	setup->bytes_align = snd_pcm_plug_client_size(pcm, setup->channel, setup->bytes_align);
-	setup->bytes_xrun_max = snd_pcm_plug_client_size(pcm, setup->channel, setup->bytes_xrun_max);
-	setup->bytes_fill_max = snd_pcm_plug_client_size(pcm, setup->channel, setup->bytes_fill_max);
+	setup->bytes_min = snd_pcm_plug_client_size(pcm, setup->stream, setup->bytes_min);
+	setup->bytes_align = snd_pcm_plug_client_size(pcm, setup->stream, setup->bytes_align);
+	setup->bytes_xrun_max = snd_pcm_plug_client_size(pcm, setup->stream, setup->bytes_xrun_max);
+	setup->bytes_fill_max = snd_pcm_plug_client_size(pcm, setup->stream, setup->bytes_fill_max);
 
-	plugchan = &plug->chan[setup->channel];
-	if (setup->channel == SND_PCM_CHANNEL_PLAYBACK)
-		setup->format = plugchan->first->src_format;
+	plugstr = &plug->stream[setup->stream];
+	if (setup->stream == SND_PCM_STREAM_PLAYBACK)
+		setup->format = plugstr->first->src_format;
 	else
-		setup->format = plugchan->last->dst_format;
+		setup->format = plugstr->last->dst_format;
 	return 0;	
 }
 
-static int snd_pcm_plug_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t *status)
+static int snd_pcm_plug_stream_status(snd_pcm_t *pcm, snd_pcm_stream_status_t *status)
 {
 	int err;
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 
-	err = snd_pcm_channel_status(plug->slave, status);
+	err = snd_pcm_stream_status(plug->slave, status);
 	if (err < 0)
 		return err;
-	if (snd_pcm_plug_direct(pcm, status->channel))
+	if (snd_pcm_plug_direct(pcm, status->stream))
 		return 0;
 
 	/* FIXME: may overflow */
-	status->byte_io = snd_pcm_plug_client_size(pcm, status->channel, status->byte_io);
-	status->byte_data = snd_pcm_plug_client_size(pcm, status->channel, status->byte_data);
-	status->bytes_used = snd_pcm_plug_client_size(pcm, status->channel, status->bytes_used);
+	status->byte_io = snd_pcm_plug_client_size(pcm, status->stream, status->byte_io);
+	status->byte_data = snd_pcm_plug_client_size(pcm, status->stream, status->byte_data);
+	status->bytes_used = snd_pcm_plug_client_size(pcm, status->stream, status->bytes_used);
 	return 0;	
 }
 
-static int snd_pcm_plug_channel_update(snd_pcm_t *pcm, int channel)
+static int snd_pcm_plug_stream_update(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	int err;
-	err = snd_pcm_channel_update(plug->slave, channel);
+	err = snd_pcm_stream_update(plug->slave, stream);
 	if (err < 0)
 		return err;
-	if (snd_pcm_plug_direct(pcm, channel))
+	if (snd_pcm_plug_direct(pcm, stream))
 		return 0;
 #if 0
 	/* To think more about that */
-	if ((err = snd_pcm_plug_action(pcm, channel, UPDATE, 0))<0)
+	if ((err = snd_pcm_plug_action(pcm, stream, UPDATE, 0))<0)
 		return err;
 #endif
 	return 0;
 }
 
-static int snd_pcm_plug_channel_prepare(snd_pcm_t *pcm, int channel)
+static int snd_pcm_plug_stream_prepare(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	int err;
-	err = snd_pcm_channel_prepare(plug->slave, channel);
+	err = snd_pcm_stream_prepare(plug->slave, stream);
 	if (err < 0)
 		return err;
-	if (snd_pcm_plug_direct(pcm, channel))
+	if (snd_pcm_plug_direct(pcm, stream))
 		return 0;
-	if ((err = snd_pcm_plug_action(pcm, channel, PREPARE, 0))<0)
+	if ((err = snd_pcm_plug_action(pcm, stream, PREPARE, 0))<0)
 		return err;
 	return 0;
 }
 
-static int snd_pcm_plug_channel_go(snd_pcm_t *pcm, int channel)
+static int snd_pcm_plug_stream_go(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	return snd_pcm_channel_go(plug->slave, channel);
+	return snd_pcm_stream_go(plug->slave, stream);
 }
 
 static int snd_pcm_plug_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
@@ -538,76 +538,76 @@ static int snd_pcm_plug_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
 	return snd_pcm_sync_go(plug->slave, sync);
 }
 
-static int snd_pcm_plug_channel_drain(snd_pcm_t *pcm, int channel)
+static int snd_pcm_plug_stream_drain(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	int err;
 
-	if ((err = snd_pcm_channel_drain(plug->slave, channel)) < 0)
+	if ((err = snd_pcm_stream_drain(plug->slave, stream)) < 0)
 		return err;
-	if (snd_pcm_plug_direct(pcm, channel))
+	if (snd_pcm_plug_direct(pcm, stream))
 		return 0;
-	if ((err = snd_pcm_plug_action(pcm, channel, DRAIN, 0))<0)
+	if ((err = snd_pcm_plug_action(pcm, stream, DRAIN, 0))<0)
 		return err;
 	return 0;
 }
 
-static int snd_pcm_plug_channel_flush(snd_pcm_t *pcm, int channel)
+static int snd_pcm_plug_stream_flush(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	int err;
 
-	if ((err = snd_pcm_channel_flush(plug->slave, channel)) < 0)
+	if ((err = snd_pcm_stream_flush(plug->slave, stream)) < 0)
 		return err;
-	if (snd_pcm_plug_direct(pcm, channel))
+	if (snd_pcm_plug_direct(pcm, stream))
 		return 0;
-	if ((err = snd_pcm_plug_action(pcm, channel, FLUSH, 0))<0)
+	if ((err = snd_pcm_plug_action(pcm, stream, FLUSH, 0))<0)
 		return err;
 	return 0;
 }
 
-static int snd_pcm_plug_channel_pause(snd_pcm_t *pcm, int channel, int enable)
+static int snd_pcm_plug_stream_pause(snd_pcm_t *pcm, int stream, int enable)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	int err;
 	
-	if ((err = snd_pcm_channel_pause(plug->slave, channel, enable)) < 0)
+	if ((err = snd_pcm_stream_pause(plug->slave, stream, enable)) < 0)
 		return err;
-	if ((err = snd_pcm_plug_action(pcm, channel, PAUSE, 0))<0)
+	if ((err = snd_pcm_plug_action(pcm, stream, PAUSE, 0))<0)
 		return err;
 	return 0;
 }
 
-static int snd_pcm_plug_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_setup_t *setup)
+static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm, int stream, snd_pcm_channel_setup_t *setup)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	struct snd_pcm_chan *chan;
-	unsigned int voice;
+	struct snd_pcm_stream *str;
+	unsigned int channel;
 	int width;
 
-	if (snd_pcm_plug_direct(pcm, channel))
-		return snd_pcm_voice_setup(plug->slave, channel, setup);
+	if (snd_pcm_plug_direct(pcm, stream))
+		return snd_pcm_channel_setup(plug->slave, stream, setup);
 
-        voice = setup->voice;
+        channel = setup->channel;
         memset(setup, 0, sizeof(*setup));
-        setup->voice = voice;
-	chan = &pcm->chan[channel];
-	if (!chan->mmap_data) {
+        setup->channel = channel;
+	str = &pcm->stream[stream];
+	if (!str->mmap_data) {
 		setup->area.addr = 0;
 		return 0;
 	}
-	if (voice >= chan->setup.format.voices)
+	if (channel >= str->setup.format.channels)
 		return -EINVAL;
 
-	if (chan->setup.format.interleave) {
-                setup->area.addr = chan->mmap_data;
-                setup->area.first = setup->voice * chan->sample_width;
-                setup->area.step = chan->bits_per_frame;
+	if (str->setup.format.interleave) {
+                setup->area.addr = str->mmap_data;
+                setup->area.first = setup->channel * str->sample_width;
+                setup->area.step = str->bits_per_frame;
         } else {
-		size_t size = chan->mmap_data_size / chan->setup.format.voices;
-                setup->area.addr = chan->mmap_data + setup->voice * size;
+		size_t size = str->mmap_data_size / str->setup.format.channels;
+                setup->area.addr = str->mmap_data + setup->channel * size;
                 setup->area.first = 0;
-                setup->area.step = chan->sample_width;
+                setup->area.step = str->sample_width;
 	}
 	return 0;
 }
@@ -615,26 +615,26 @@ static int snd_pcm_plug_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_s
 ssize_t snd_pcm_plug_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	unsigned int k, step, voices;
+	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
+	unsigned int k, step, channels;
 	int size = 0;
-	if (snd_pcm_plug_direct(pcm, SND_PCM_CHANNEL_PLAYBACK))
+	if (snd_pcm_plug_direct(pcm, SND_PCM_STREAM_PLAYBACK))
 		return snd_pcm_writev(plug->slave, vector, count);
-	voices = chan->setup.format.voices;
-	if (chan->setup.format.interleave)
+	channels = str->setup.format.channels;
+	if (str->setup.format.interleave)
 		step = 1;
 	else {
-		step = voices;
-		if (count % voices != 0)
+		step = channels;
+		if (count % channels != 0)
 			return -EINVAL;
 	}
 	for (k = 0; k < count; k += step, vector += step) {
-		snd_pcm_plugin_voice_t *voices;
+		snd_pcm_plugin_channel_t *channels;
 		int expected, ret;
-		expected = snd_pcm_plug_client_voices_iovec(pcm, SND_PCM_CHANNEL_PLAYBACK, vector, count, &voices);
+		expected = snd_pcm_plug_client_channels_iovec(pcm, SND_PCM_STREAM_PLAYBACK, vector, count, &channels);
 		if (expected < 0)
 			return expected;
-		ret = snd_pcm_plug_write_transfer(pcm, voices, expected);
+		ret = snd_pcm_plug_write_transfer(pcm, channels, expected);
 		if (ret < 0) {
 			if (size > 0)
 				return size;
@@ -650,26 +650,26 @@ ssize_t snd_pcm_plug_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned
 ssize_t snd_pcm_plug_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	unsigned int k, step, voices;
+	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
+	unsigned int k, step, channels;
 	int size = 0;
-	if (snd_pcm_plug_direct(pcm, SND_PCM_CHANNEL_CAPTURE))
+	if (snd_pcm_plug_direct(pcm, SND_PCM_STREAM_CAPTURE))
 		return snd_pcm_readv(plug->slave, vector, count);
-	voices = chan->setup.format.voices;
-	if (chan->setup.format.interleave)
+	channels = str->setup.format.channels;
+	if (str->setup.format.interleave)
 		step = 1;
 	else {
-		step = voices;
-		if (count % voices != 0)
+		step = channels;
+		if (count % channels != 0)
 			return -EINVAL;
 	}
 	for (k = 0; k < count; k += step) {
-		snd_pcm_plugin_voice_t *voices;
+		snd_pcm_plugin_channel_t *channels;
 		int expected, ret;
-		expected = snd_pcm_plug_client_voices_iovec(pcm, SND_PCM_CHANNEL_CAPTURE, vector, count, &voices);
+		expected = snd_pcm_plug_client_channels_iovec(pcm, SND_PCM_STREAM_CAPTURE, vector, count, &channels);
 		if (expected < 0)
 			return expected;
-		ret = snd_pcm_plug_read_transfer(pcm, voices, expected);
+		ret = snd_pcm_plug_read_transfer(pcm, channels, expected);
 		if (ret < 0) {
 			if (size > 0)
 				return size;
@@ -686,96 +686,96 @@ ssize_t snd_pcm_plug_write(snd_pcm_t *pcm, const void *buf, size_t count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	int expected;
-	snd_pcm_plugin_voice_t *voices;
+	snd_pcm_plugin_channel_t *channels;
 
-	if (snd_pcm_plug_direct(pcm, SND_PCM_CHANNEL_PLAYBACK))
+	if (snd_pcm_plug_direct(pcm, SND_PCM_STREAM_PLAYBACK))
 		return snd_pcm_write(plug->slave, buf, count);
-	expected = snd_pcm_plug_client_voices_buf(pcm, SND_PCM_CHANNEL_PLAYBACK, (char *)buf, count, &voices);
+	expected = snd_pcm_plug_client_channels_buf(pcm, SND_PCM_STREAM_PLAYBACK, (char *)buf, count, &channels);
 	if (expected < 0)
 		return expected;
-	 return snd_pcm_plug_write_transfer(pcm, voices, expected);
+	 return snd_pcm_plug_write_transfer(pcm, channels, expected);
 }
 
 ssize_t snd_pcm_plug_read(snd_pcm_t *pcm, void *buf, size_t count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	int expected;
-	snd_pcm_plugin_voice_t *voices;
+	snd_pcm_plugin_channel_t *channels;
 
-	if (snd_pcm_plug_direct(pcm, SND_PCM_CHANNEL_CAPTURE))
+	if (snd_pcm_plug_direct(pcm, SND_PCM_STREAM_CAPTURE))
 		return snd_pcm_read(plug->slave, buf, count);
-	expected = snd_pcm_plug_client_voices_buf(pcm, SND_PCM_CHANNEL_CAPTURE, buf, count, &voices);
+	expected = snd_pcm_plug_client_channels_buf(pcm, SND_PCM_STREAM_CAPTURE, buf, count, &channels);
 	if (expected < 0)
 		return expected;
-	return snd_pcm_plug_read_transfer(pcm, voices, expected);
+	return snd_pcm_plug_read_transfer(pcm, channels, expected);
 }
 
-static int snd_pcm_plug_mmap_control(snd_pcm_t *pcm, int channel, snd_pcm_mmap_control_t **control, size_t csize UNUSED)
+static int snd_pcm_plug_mmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control, size_t csize UNUSED)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	if (snd_pcm_plug_direct(pcm, channel))
-		return snd_pcm_mmap_control(plug->slave, channel, control);
+	if (snd_pcm_plug_direct(pcm, stream))
+		return snd_pcm_mmap_control(plug->slave, stream, control);
 	return -EBADFD;
 }
 
-static int snd_pcm_plug_mmap_data(snd_pcm_t *pcm, int channel, void **buffer, size_t bsize UNUSED)
+static int snd_pcm_plug_mmap_data(snd_pcm_t *pcm, int stream, void **buffer, size_t bsize UNUSED)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	if (snd_pcm_plug_direct(pcm, channel))
-		return snd_pcm_mmap_data(plug->slave, channel, buffer);
+	if (snd_pcm_plug_direct(pcm, stream))
+		return snd_pcm_mmap_data(plug->slave, stream, buffer);
 	return -EBADFD;
 }
 
-static int snd_pcm_plug_munmap_control(snd_pcm_t *pcm, int channel, snd_pcm_mmap_control_t *control UNUSED, size_t csize UNUSED)
+static int snd_pcm_plug_munmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t *control UNUSED, size_t csize UNUSED)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	if (snd_pcm_plug_direct(pcm, channel))
-		return snd_pcm_munmap_control(plug->slave, channel);
+	if (snd_pcm_plug_direct(pcm, stream))
+		return snd_pcm_munmap_control(plug->slave, stream);
 	return -EBADFD;
 }
 		
-static int snd_pcm_plug_munmap_data(snd_pcm_t *pcm, int channel, void *buffer UNUSED, size_t size UNUSED)
+static int snd_pcm_plug_munmap_data(snd_pcm_t *pcm, int stream, void *buffer UNUSED, size_t size UNUSED)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	if (snd_pcm_plug_direct(pcm, channel))
-		return snd_pcm_munmap_data(plug->slave, channel);
+	if (snd_pcm_plug_direct(pcm, stream))
+		return snd_pcm_munmap_data(plug->slave, stream);
 	return -EBADFD;
 }
 		
-static int snd_pcm_plug_voices_mask(snd_pcm_t *pcm, int channel,
+static int snd_pcm_plug_channels_mask(snd_pcm_t *pcm, int stream,
 				    bitset_t *client_vmask)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	if (snd_pcm_plug_direct(pcm, channel))
-		return snd_pcm_voices_mask(plug->slave, channel, client_vmask);
-	if (channel == SND_PCM_CHANNEL_PLAYBACK)
-		return snd_pcm_plug_playback_voices_mask(pcm, client_vmask);
+	if (snd_pcm_plug_direct(pcm, stream))
+		return snd_pcm_channels_mask(plug->slave, stream, client_vmask);
+	if (stream == SND_PCM_STREAM_PLAYBACK)
+		return snd_pcm_plug_playback_channels_mask(pcm, client_vmask);
 	else
-		return snd_pcm_plug_capture_voices_mask(pcm, client_vmask);
+		return snd_pcm_plug_capture_channels_mask(pcm, client_vmask);
 }
 
-int snd_pcm_plug_file_descriptor(snd_pcm_t* pcm, int channel)
+int snd_pcm_plug_file_descriptor(snd_pcm_t* pcm, int stream)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
-	return snd_pcm_file_descriptor(plug->slave, channel);
+	return snd_pcm_file_descriptor(plug->slave, stream);
 }
 
 struct snd_pcm_ops snd_pcm_plug_ops = {
-	channel_close: snd_pcm_plug_channel_close,
-	channel_nonblock: snd_pcm_plug_channel_nonblock,
+	stream_close: snd_pcm_plug_stream_close,
+	stream_nonblock: snd_pcm_plug_stream_nonblock,
 	info: snd_pcm_plug_info,
-	channel_info: snd_pcm_plug_channel_info,
-	channel_params: snd_pcm_plug_channel_params,
+	stream_info: snd_pcm_plug_stream_info,
+	stream_params: snd_pcm_plug_stream_params,
+	stream_setup: snd_pcm_plug_stream_setup,
 	channel_setup: snd_pcm_plug_channel_setup,
-	voice_setup: snd_pcm_plug_voice_setup,
-	channel_status: snd_pcm_plug_channel_status,
-	channel_update: snd_pcm_plug_channel_update,
-	channel_prepare: snd_pcm_plug_channel_prepare,
-	channel_go: snd_pcm_plug_channel_go,
+	stream_status: snd_pcm_plug_stream_status,
+	stream_update: snd_pcm_plug_stream_update,
+	stream_prepare: snd_pcm_plug_stream_prepare,
+	stream_go: snd_pcm_plug_stream_go,
 	sync_go: snd_pcm_plug_sync_go,
-	channel_drain: snd_pcm_plug_channel_drain,
-	channel_flush: snd_pcm_plug_channel_flush,
-	channel_pause: snd_pcm_plug_channel_pause,
+	stream_drain: snd_pcm_plug_stream_drain,
+	stream_flush: snd_pcm_plug_stream_flush,
+	stream_pause: snd_pcm_plug_stream_pause,
 	write: snd_pcm_plug_write,
 	writev: snd_pcm_plug_writev,
 	read: snd_pcm_plug_read,
@@ -785,7 +785,7 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 	munmap_control: snd_pcm_plug_munmap_control,
 	munmap_data: snd_pcm_plug_munmap_data,
 	file_descriptor: snd_pcm_plug_file_descriptor,
-	voices_mask: snd_pcm_plug_voices_mask,
+	channels_mask: snd_pcm_plug_channels_mask,
 };
 
 int snd_pcm_plug_connect(snd_pcm_t **handle, snd_pcm_t *slave, int mode, int close_slave)

@@ -29,7 +29,7 @@ and vice versa. The ADPCM code used is the Intel/DVI ADPCM code which
 is being recommended by the IMA Digital Audio Technical Working Group.
 
 The algorithm for this coder was taken from:
-Proposal for Standardized Audio Interchange Formats,
+Proposal for Standardized Audio Interstreamge Formats,
 IMA compatability project proceedings, Vol 2, Issue 2, May 1992.
 
 - No, this is *not* a G.721 coder/decoder. The algorithm used by G.721
@@ -74,32 +74,32 @@ static short StepSize[89] = {
 typedef struct {
 	int pred_val;		/* Calculated predicted value */
 	int step_idx;		/* Previous StepSize lookup index */
-} adpcm_voice_t;
+} adpcm_channel_t;
 
 typedef void (*adpcm_f)(snd_pcm_plugin_t *plugin,
-			const snd_pcm_plugin_voice_t *src_voices,
-			snd_pcm_plugin_voice_t *dst_voices,
+			const snd_pcm_plugin_channel_t *src_channels,
+			snd_pcm_plugin_channel_t *dst_channels,
 			size_t frames);
 
 typedef struct adpcm_private_data {
 	adpcm_f func;
 	int conv;
-	adpcm_voice_t voices[0];
+	adpcm_channel_t channels[0];
 } adpcm_t;
 
 
 static void adpcm_init(snd_pcm_plugin_t *plugin)
 {
-	unsigned int voice;
+	unsigned int channel;
 	adpcm_t *data = (adpcm_t *)plugin->extra_data;
-	for (voice = 0; voice < plugin->src_format.voices; voice++) {
-		adpcm_voice_t *v = &data->voices[voice];
+	for (channel = 0; channel < plugin->src_format.channels; channel++) {
+		adpcm_channel_t *v = &data->channels[channel];
 		v->pred_val = 0;
 		v->step_idx = 0;
 	}
 }
 
-static char adpcm_encoder(int sl, adpcm_voice_t * state)
+static char adpcm_encoder(int sl, adpcm_channel_t * state)
 {
 	short diff;		/* Difference between sl and predicted sample */
 	short pred_diff;	/* Predicted difference to next sample */
@@ -160,7 +160,7 @@ static char adpcm_encoder(int sl, adpcm_voice_t * state)
 }
 
 
-static int adpcm_decoder(unsigned char code, adpcm_voice_t * state)
+static int adpcm_decoder(unsigned char code, adpcm_channel_t * state)
 {
 	short pred_diff;	/* Predicted difference to next sample */
 	short step;		/* holds previous StepSize value */
@@ -211,8 +211,8 @@ static int adpcm_decoder(unsigned char code, adpcm_voice_t * state)
  */
 
 static void adpcm_decode(snd_pcm_plugin_t *plugin,
-			 const snd_pcm_plugin_voice_t *src_voices,
-			 snd_pcm_plugin_voice_t *dst_voices,
+			 const snd_pcm_plugin_channel_t *src_channels,
+			 snd_pcm_plugin_channel_t *dst_channels,
 			 size_t frames)
 {
 #define PUT_S16_LABELS
@@ -220,29 +220,29 @@ static void adpcm_decode(snd_pcm_plugin_t *plugin,
 #undef PUT_S16_LABELS
 	adpcm_t *data = (adpcm_t *)plugin->extra_data;
 	void *put = put_s16_labels[data->conv];
-	int voice;
-	int nvoices = plugin->src_format.voices;
-	for (voice = 0; voice < nvoices; ++voice) {
+	int channel;
+	int nchannels = plugin->src_format.channels;
+	for (channel = 0; channel < nchannels; ++channel) {
 		char *src;
 		int srcbit;
 		char *dst;
 		int src_step, srcbit_step, dst_step;
 		size_t frames1;
-		adpcm_voice_t *state;
-		if (!src_voices[voice].enabled) {
-			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, frames, plugin->dst_format.format);
-			dst_voices[voice].enabled = 0;
+		adpcm_channel_t *state;
+		if (!src_channels[channel].enabled) {
+			if (dst_channels[channel].wanted)
+				snd_pcm_area_silence(&dst_channels[channel].area, 0, frames, plugin->dst_format.format);
+			dst_channels[channel].enabled = 0;
 			continue;
 		}
-		dst_voices[voice].enabled = 1;
-		src = src_voices[voice].area.addr + src_voices[voice].area.first / 8;
-		srcbit = src_voices[voice].area.first % 8;
-		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
-		src_step = src_voices[voice].area.step / 8;
-		srcbit_step = src_voices[voice].area.step % 8;
-		dst_step = dst_voices[voice].area.step / 8;
-		state = &data->voices[voice];
+		dst_channels[channel].enabled = 1;
+		src = src_channels[channel].area.addr + src_channels[channel].area.first / 8;
+		srcbit = src_channels[channel].area.first % 8;
+		dst = dst_channels[channel].area.addr + dst_channels[channel].area.first / 8;
+		src_step = src_channels[channel].area.step / 8;
+		srcbit_step = src_channels[channel].area.step % 8;
+		dst_step = dst_channels[channel].area.step / 8;
+		state = &data->channels[channel];
 		frames1 = frames;
 		while (frames1-- > 0) {
 			signed short sample;
@@ -269,8 +269,8 @@ static void adpcm_decode(snd_pcm_plugin_t *plugin,
 }
 
 static void adpcm_encode(snd_pcm_plugin_t *plugin,
-			const snd_pcm_plugin_voice_t *src_voices,
-			snd_pcm_plugin_voice_t *dst_voices,
+			const snd_pcm_plugin_channel_t *src_channels,
+			snd_pcm_plugin_channel_t *dst_channels,
 			size_t frames)
 {
 #define GET_S16_LABELS
@@ -278,30 +278,30 @@ static void adpcm_encode(snd_pcm_plugin_t *plugin,
 #undef GET_S16_LABELS
 	adpcm_t *data = (adpcm_t *)plugin->extra_data;
 	void *get = get_s16_labels[data->conv];
-	int voice;
-	int nvoices = plugin->src_format.voices;
+	int channel;
+	int nchannels = plugin->src_format.channels;
 	signed short sample = 0;
-	for (voice = 0; voice < nvoices; ++voice) {
+	for (channel = 0; channel < nchannels; ++channel) {
 		char *src;
 		char *dst;
 		int dstbit;
 		int src_step, dst_step, dstbit_step;
 		size_t frames1;
-		adpcm_voice_t *state;
-		if (!src_voices[voice].enabled) {
-			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, frames, plugin->dst_format.format);
-			dst_voices[voice].enabled = 0;
+		adpcm_channel_t *state;
+		if (!src_channels[channel].enabled) {
+			if (dst_channels[channel].wanted)
+				snd_pcm_area_silence(&dst_channels[channel].area, 0, frames, plugin->dst_format.format);
+			dst_channels[channel].enabled = 0;
 			continue;
 		}
-		dst_voices[voice].enabled = 1;
-		src = src_voices[voice].area.addr + src_voices[voice].area.first / 8;
-		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
-		dstbit = dst_voices[voice].area.first % 8;
-		src_step = src_voices[voice].area.step / 8;
-		dst_step = dst_voices[voice].area.step / 8;
-		dstbit_step = dst_voices[voice].area.step % 8;
-		state = &data->voices[voice];
+		dst_channels[channel].enabled = 1;
+		src = src_channels[channel].area.addr + src_channels[channel].area.first / 8;
+		dst = dst_channels[channel].area.addr + dst_channels[channel].area.first / 8;
+		dstbit = dst_channels[channel].area.first % 8;
+		src_step = src_channels[channel].area.step / 8;
+		dst_step = dst_channels[channel].area.step / 8;
+		dstbit_step = dst_channels[channel].area.step % 8;
+		state = &data->channels[channel];
 		frames1 = frames;
 		while (frames1-- > 0) {
 			int v;
@@ -327,34 +327,34 @@ static void adpcm_encode(snd_pcm_plugin_t *plugin,
 }
 
 static ssize_t adpcm_transfer(snd_pcm_plugin_t *plugin,
-			      const snd_pcm_plugin_voice_t *src_voices,
-			      snd_pcm_plugin_voice_t *dst_voices,
+			      const snd_pcm_plugin_channel_t *src_channels,
+			      snd_pcm_plugin_channel_t *dst_channels,
 			      size_t frames)
 {
 	adpcm_t *data;
-	unsigned int voice;
+	unsigned int channel;
 
-	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
+	if (plugin == NULL || src_channels == NULL || dst_channels == NULL)
 		return -EFAULT;
 	if (frames == 0)
 		return 0;
-	for (voice = 0; voice < plugin->src_format.voices; voice++) {
+	for (channel = 0; channel < plugin->src_format.channels; channel++) {
 		if (plugin->src_format.format == SND_PCM_SFMT_IMA_ADPCM) {
-			if (src_voices[voice].area.first % 4 != 0 ||
-			    src_voices[voice].area.step % 4 != 0 ||
-			    dst_voices[voice].area.first % 8 != 0 ||
-			    dst_voices[voice].area.step % 8 != 0)
+			if (src_channels[channel].area.first % 4 != 0 ||
+			    src_channels[channel].area.step % 4 != 0 ||
+			    dst_channels[channel].area.first % 8 != 0 ||
+			    dst_channels[channel].area.step % 8 != 0)
 				return -EINVAL;
 		} else {
-			if (src_voices[voice].area.first % 8 != 0 ||
-			    src_voices[voice].area.step % 8 != 0 ||
-			    dst_voices[voice].area.first % 4 != 0 ||
-			    dst_voices[voice].area.step % 4 != 0)
+			if (src_channels[channel].area.first % 8 != 0 ||
+			    src_channels[channel].area.step % 8 != 0 ||
+			    dst_channels[channel].area.first % 4 != 0 ||
+			    dst_channels[channel].area.step % 4 != 0)
 				return -EINVAL;
 		}
 	}
 	data = (adpcm_t *)plugin->extra_data;
-	data->func(plugin, src_voices, dst_voices, frames);
+	data->func(plugin, src_channels, dst_channels, frames);
 	return frames;
 }
 
@@ -378,7 +378,7 @@ static int adpcm_action(snd_pcm_plugin_t * plugin,
 }
 
 int snd_pcm_plugin_build_adpcm(snd_pcm_plugin_handle_t *handle,
-			       int channel,
+			       int stream,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
 			       snd_pcm_plugin_t **r_plugin)
@@ -395,7 +395,7 @@ int snd_pcm_plugin_build_adpcm(snd_pcm_plugin_handle_t *handle,
 
 	if (src_format->rate != dst_format->rate)
 		return -EINVAL;
-	if (src_format->voices != dst_format->voices)
+	if (src_format->channels != dst_format->channels)
 		return -EINVAL;
 
 	if (dst_format->format == SND_PCM_SFMT_IMA_ADPCM) {
@@ -411,11 +411,11 @@ int snd_pcm_plugin_build_adpcm(snd_pcm_plugin_handle_t *handle,
 	if (!snd_pcm_format_linear(format->format))
 		return -EINVAL;
 
-	err = snd_pcm_plugin_build(handle, channel,
+	err = snd_pcm_plugin_build(handle, stream,
 				   "Ima-ADPCM<->linear conversion",
 				   src_format,
 				   dst_format,
-				   sizeof(adpcm_t) + src_format->voices * sizeof(adpcm_voice_t),
+				   sizeof(adpcm_t) + src_format->channels * sizeof(adpcm_channel_t),
 				   &plugin);
 	if (err < 0)
 		return err;

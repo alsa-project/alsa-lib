@@ -43,60 +43,60 @@ typedef struct mmap_private_data {
 } mmap_t;
 
 
-static ssize_t mmap_src_voices(snd_pcm_plugin_t *plugin,
+static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 			       size_t frames,
-			       snd_pcm_plugin_voice_t **voices)
+			       snd_pcm_plugin_channel_t **channels)
 {
 	mmap_t *data;
-        snd_pcm_plugin_voice_t *sv;
-	snd_pcm_voice_area_t *dv;
-	struct snd_pcm_chan *chan;
-	snd_pcm_channel_setup_t *setup;
+        snd_pcm_plugin_channel_t *sv;
+	snd_pcm_channel_area_t *dv;
+	struct snd_pcm_stream *stream;
+	snd_pcm_stream_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
 	size_t pos;
 	int ready;
-	unsigned int voice;
+	unsigned int channel;
 
-	if (plugin == NULL || voices == NULL)
+	if (plugin == NULL || channels == NULL)
 		return -EINVAL;
 	data = (mmap_t *)plugin->extra_data;
 	ctrl = data->control;
-	chan = &data->slave->chan[plugin->channel];
+	stream = &data->slave->stream[plugin->stream];
 
-	setup = &chan->setup;
+	setup = &stream->setup;
 	if (ctrl->status < SND_PCM_STATUS_PREPARED)
 		return -EBADFD;
 
-	ready = snd_pcm_mmap_ready(data->slave, plugin->channel);
+	ready = snd_pcm_mmap_ready(data->slave, plugin->stream);
 	if (ready < 0)
 		return ready;
 	if (!ready) {
 		struct pollfd pfd;
 		if (ctrl->status != SND_PCM_STATUS_RUNNING)
 			return -EPIPE;
-		if (chan->mode & SND_PCM_NONBLOCK)
+		if (stream->mode & SND_PCM_NONBLOCK)
 			return -EAGAIN;
-		pfd.fd = snd_pcm_file_descriptor(data->slave, plugin->channel);
+		pfd.fd = snd_pcm_file_descriptor(data->slave, plugin->stream);
 		pfd.events = POLLOUT | POLLERR;
 		ready = poll(&pfd, 1, 10000);
 		if (ready < 0)
 			return ready;
 		if (ready && pfd.revents & POLLERR)
 			return -EPIPE;
-		assert(snd_pcm_mmap_ready(data->slave, plugin->channel));
+		assert(snd_pcm_mmap_ready(data->slave, plugin->stream));
 	}
 	pos = ctrl->byte_data % setup->buffer_size;
-	if ((pos * 8) % chan->bits_per_frame != 0)
+	if ((pos * 8) % stream->bits_per_frame != 0)
 		return -EINVAL;
-	pos = (pos * 8) / chan->bits_per_frame;
+	pos = (pos * 8) / stream->bits_per_frame;
 
-	sv = plugin->src_voices;
-	dv = chan->voices;
-	*voices = sv;
-	for (voice = 0; voice < plugin->src_format.voices; ++voice) {
+	sv = plugin->src_channels;
+	dv = stream->channels;
+	*channels = sv;
+	for (channel = 0; channel < plugin->src_format.channels; ++channel) {
 		sv->enabled = 1;
 #if 0
-		sv->wanted = !data->silence[voice * setup->frags + f];
+		sv->wanted = !data->silence[channel * setup->frags + f];
 #else
 		sv->wanted = 1;
 #endif
@@ -107,66 +107,66 @@ static ssize_t mmap_src_voices(snd_pcm_plugin_t *plugin,
 		++sv;
 		++dv;
 	}
-	return snd_pcm_mmap_frames_xfer(data->slave, plugin->channel, frames);
+	return snd_pcm_mmap_frames_xfer(data->slave, plugin->stream, frames);
 }
 
-static ssize_t mmap_dst_voices(snd_pcm_plugin_t *plugin,
+static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 			       size_t frames,
-			       snd_pcm_plugin_voice_t **voices)
+			       snd_pcm_plugin_channel_t **channels)
 {
 	mmap_t *data;
 	int err;
-	unsigned int voice;
-        snd_pcm_plugin_voice_t *dv;
-	snd_pcm_voice_area_t *sv;
-	struct snd_pcm_chan *chan;
-	snd_pcm_channel_setup_t *setup;
+	unsigned int channel;
+        snd_pcm_plugin_channel_t *dv;
+	snd_pcm_channel_area_t *sv;
+	struct snd_pcm_stream *stream;
+	snd_pcm_stream_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
 	size_t pos;
 	int ready;
 
-	if (plugin == NULL || voices == NULL)
+	if (plugin == NULL || channels == NULL)
 		return -EINVAL;
 	data = (mmap_t *)plugin->extra_data;
-	chan = &data->slave->chan[plugin->channel];
+	stream = &data->slave->stream[plugin->stream];
 
-	setup = &chan->setup;
+	setup = &stream->setup;
 	ctrl = data->control;
 	if (ctrl->status < SND_PCM_STATUS_PREPARED)
 		return -EBADFD;
 	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
-	    chan->setup.start_mode == SND_PCM_START_DATA) {
-		err = snd_pcm_channel_go(data->slave, plugin->channel);
+	    stream->setup.start_mode == SND_PCM_START_DATA) {
+		err = snd_pcm_stream_go(data->slave, plugin->stream);
 		if (err < 0)
 			return err;
 	}
-	ready = snd_pcm_mmap_ready(data->slave, plugin->channel);
+	ready = snd_pcm_mmap_ready(data->slave, plugin->stream);
 	if (ready < 0)
 		return ready;
 	if (!ready) {
 		struct pollfd pfd;
 		if (ctrl->status != SND_PCM_STATUS_RUNNING)
 			return -EPIPE;
-		if (chan->mode & SND_PCM_NONBLOCK)
+		if (stream->mode & SND_PCM_NONBLOCK)
 			return -EAGAIN;
-		pfd.fd = snd_pcm_file_descriptor(data->slave, plugin->channel);
+		pfd.fd = snd_pcm_file_descriptor(data->slave, plugin->stream);
 		pfd.events = POLLIN | POLLERR;
 		ready = poll(&pfd, 1, 10000);
 		if (ready < 0)
 			return ready;
 		if (ready && pfd.revents & POLLERR)
 			return -EPIPE;
-		assert(snd_pcm_mmap_ready(data->slave, plugin->channel));
+		assert(snd_pcm_mmap_ready(data->slave, plugin->stream));
 	}
 	pos = ctrl->byte_data % setup->buffer_size;
-	if ((pos * 8) % chan->bits_per_frame != 0)
+	if ((pos * 8) % stream->bits_per_frame != 0)
 		return -EINVAL;
-	pos = (pos * 8) / chan->bits_per_frame;
+	pos = (pos * 8) / stream->bits_per_frame;
 
-	sv = chan->voices;
-	dv = plugin->dst_voices;
-	*voices = dv;
-	for (voice = 0; voice < plugin->dst_format.voices; ++voice) {
+	sv = stream->channels;
+	dv = plugin->dst_channels;
+	*channels = dv;
+	for (channel = 0; channel < plugin->dst_format.channels; ++channel) {
 		dv->enabled = 1;
 		dv->wanted = 0;
 		dv->aptr = 0;
@@ -176,46 +176,46 @@ static ssize_t mmap_dst_voices(snd_pcm_plugin_t *plugin,
 		++sv;
 		++dv;
 	}
-	return snd_pcm_mmap_frames_xfer(data->slave, plugin->channel, frames);
+	return snd_pcm_mmap_frames_xfer(data->slave, plugin->stream, frames);
 }
 
 static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
-				      const snd_pcm_plugin_voice_t *src_voices,
-				      snd_pcm_plugin_voice_t *dst_voices UNUSED,
+				      const snd_pcm_plugin_channel_t *src_channels,
+				      snd_pcm_plugin_channel_t *dst_channels UNUSED,
 				      size_t frames)
 {
 	mmap_t *data;
-	snd_pcm_channel_setup_t *setup;
+	snd_pcm_stream_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
-	struct snd_pcm_chan *chan;
+	struct snd_pcm_stream *stream;
 	int err;
 
 	if (plugin == NULL)
 		return -EINVAL;
 	data = (mmap_t *)plugin->extra_data;
-	if (src_voices == NULL)
+	if (src_channels == NULL)
 		return -EINVAL;
 	if (plugin->prev == NULL)
 		return -EINVAL;
 	ctrl = data->control;
 	if (ctrl == NULL)
 		return -EINVAL;
-	chan = &data->slave->chan[SND_PCM_CHANNEL_PLAYBACK];
-	setup = &chan->setup;
+	stream = &data->slave->stream[SND_PCM_STREAM_PLAYBACK];
+	setup = &stream->setup;
 
 #if 0
-	for (voice = 0; voice < plugin->src_format.voices; voice++) {
-		if (src_voices[voice].enabled)
-			data->silence[voice * setup->frags + f] = 0;
+	for (channel = 0; channel < plugin->src_format.channels; channel++) {
+		if (src_channels[channel].enabled)
+			data->silence[channel * setup->frags + f] = 0;
 	}
 #endif
 
-	snd_pcm_mmap_commit_frames(data->slave, SND_PCM_CHANNEL_PLAYBACK, frames);
+	snd_pcm_mmap_commit_frames(data->slave, SND_PCM_STREAM_PLAYBACK, frames);
 	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
-	    (chan->setup.start_mode == SND_PCM_START_DATA ||
-	     (chan->setup.start_mode == SND_PCM_START_FULL &&
-	      !snd_pcm_mmap_ready(data->slave, plugin->channel)))) {
-		err = snd_pcm_channel_go(data->slave, plugin->channel);
+	    (stream->setup.start_mode == SND_PCM_START_DATA ||
+	     (stream->setup.start_mode == SND_PCM_START_FULL &&
+	      !snd_pcm_mmap_ready(data->slave, plugin->stream)))) {
+		err = snd_pcm_stream_go(data->slave, plugin->stream);
 		if (err < 0)
 			return err;
 	}
@@ -223,12 +223,12 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 }
  
 static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
-				     const snd_pcm_plugin_voice_t *src_voices UNUSED,
-				     snd_pcm_plugin_voice_t *dst_voices UNUSED,
+				     const snd_pcm_plugin_channel_t *src_channels UNUSED,
+				     snd_pcm_plugin_channel_t *dst_channels UNUSED,
 				     size_t frames)
 {
 	mmap_t *data;
-	snd_pcm_channel_setup_t *setup;
+	snd_pcm_stream_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
 
 	if (plugin == NULL)
@@ -240,10 +240,10 @@ static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
 	ctrl = data->control;
 	if (ctrl == NULL)
 		return -EINVAL;
-	setup = &data->slave->chan[SND_PCM_CHANNEL_CAPTURE].setup;
+	setup = &data->slave->stream[SND_PCM_STREAM_CAPTURE].setup;
 
 	/* FIXME: not here the increment */
-	snd_pcm_mmap_commit_frames(data->slave, SND_PCM_CHANNEL_CAPTURE, frames);
+	snd_pcm_mmap_commit_frames(data->slave, SND_PCM_STREAM_CAPTURE, frames);
 	return frames;
 }
  
@@ -257,20 +257,20 @@ static int mmap_action(snd_pcm_plugin_t *plugin,
 		return -EINVAL;
 	data = (mmap_t *)plugin->extra_data;
 	if (action == INIT) {
-		snd_pcm_channel_setup_t *setup;
+		snd_pcm_stream_setup_t *setup;
 		int result;
 
 		if (data->control)
-			snd_pcm_munmap(data->slave, plugin->channel);
-		result = snd_pcm_mmap(data->slave, plugin->channel, &data->control, (void **)&data->buffer);
+			snd_pcm_munmap(data->slave, plugin->stream);
+		result = snd_pcm_mmap(data->slave, plugin->stream, &data->control, (void **)&data->buffer);
 		if (result < 0)
 			return result;
-		setup = &data->slave->chan[plugin->channel].setup;
+		setup = &data->slave->stream[plugin->stream].setup;
 
 #if 0
-		if (plugin->channel == SND_PCM_CHANNEL_PLAYBACK) {
-			data->silence = malloc(setup->frags * setup->format.voices);
-			memset(data->silence, 0, setup->frags * setup->format.voices);
+		if (plugin->stream == SND_PCM_STREAM_PLAYBACK) {
+			data->silence = malloc(setup->frags * setup->format.channels);
+			memset(data->silence, 0, setup->frags * setup->format.channels);
 		} else
 			data->silence = 0;
 #endif
@@ -291,11 +291,11 @@ static void mmap_free(snd_pcm_plugin_t *plugin, void *private_data UNUSED)
 		free(data->silence);
 #endif
 	if (data->control)
-		snd_pcm_munmap(data->slave, plugin->channel);
+		snd_pcm_munmap(data->slave, plugin->stream);
 }
  
 int snd_pcm_plugin_build_mmap(snd_pcm_plugin_handle_t *pcm,
-			      int channel,
+			      int stream,
 			      snd_pcm_t *slave,
 			      snd_pcm_format_t *format,
 			      snd_pcm_plugin_t **r_plugin)
@@ -309,20 +309,20 @@ int snd_pcm_plugin_build_mmap(snd_pcm_plugin_handle_t *pcm,
 	*r_plugin = NULL;
 	if (!pcm)
 		return -EINVAL;
-	err = snd_pcm_plugin_build(pcm, channel,
+	err = snd_pcm_plugin_build(pcm, stream,
 				   "I/O mmap",
 				   format, format,
-				   sizeof(mmap_t) + sizeof(snd_pcm_plugin_voice_t) * format->voices,
+				   sizeof(mmap_t) + sizeof(snd_pcm_plugin_channel_t) * format->channels,
 				   &plugin);
 	if (err < 0)
 		return err;
 	data = (mmap_t *)plugin->extra_data;
 	data->slave = slave;
-	if (channel == SND_PCM_CHANNEL_PLAYBACK) {
-		plugin->client_voices = mmap_src_voices;
+	if (stream == SND_PCM_STREAM_PLAYBACK) {
+		plugin->client_channels = mmap_src_channels;
 		plugin->transfer = mmap_playback_transfer;
 	} else {
-		plugin->client_voices = mmap_dst_voices;
+		plugin->client_channels = mmap_dst_channels;
 		plugin->transfer = mmap_capture_transfer;
 	}
 	plugin->action = mmap_action;

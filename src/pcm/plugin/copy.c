@@ -36,41 +36,41 @@
 #endif
 
 static ssize_t copy_transfer(snd_pcm_plugin_t *plugin,
-			     const snd_pcm_plugin_voice_t *src_voices,
-			     snd_pcm_plugin_voice_t *dst_voices,
+			     const snd_pcm_plugin_channel_t *src_channels,
+			     snd_pcm_plugin_channel_t *dst_channels,
 			     size_t frames)
 {
-	unsigned int voice;
-	unsigned int nvoices;
+	unsigned int channel;
+	unsigned int nchannels;
 
-	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
+	if (plugin == NULL || src_channels == NULL || dst_channels == NULL)
 		return -EFAULT;
 	if (frames == 0)
 		return 0;
-	nvoices = plugin->src_format.voices;
-	for (voice = 0; voice < nvoices; voice++) {
-		if (src_voices->area.first % 8 != 0 || 
-		    src_voices->area.step % 8 != 0)
+	nchannels = plugin->src_format.channels;
+	for (channel = 0; channel < nchannels; channel++) {
+		if (src_channels->area.first % 8 != 0 || 
+		    src_channels->area.step % 8 != 0)
 			return -EINVAL;
-		if (dst_voices->area.first % 8 != 0 || 
-		    dst_voices->area.step % 8 != 0)
+		if (dst_channels->area.first % 8 != 0 || 
+		    dst_channels->area.step % 8 != 0)
 			return -EINVAL;
-		if (!src_voices->enabled) {
-			if (dst_voices->wanted)
-				snd_pcm_area_silence(&dst_voices->area, 0, frames, plugin->dst_format.format);
-			dst_voices->enabled = 0;
+		if (!src_channels->enabled) {
+			if (dst_channels->wanted)
+				snd_pcm_area_silence(&dst_channels->area, 0, frames, plugin->dst_format.format);
+			dst_channels->enabled = 0;
 			continue;
 		}
-		dst_voices->enabled = 1;
-		snd_pcm_area_copy(&src_voices->area, 0, &dst_voices->area, 0, frames, plugin->src_format.format);
-		src_voices++;
-		dst_voices++;
+		dst_channels->enabled = 1;
+		snd_pcm_area_copy(&src_channels->area, 0, &dst_channels->area, 0, frames, plugin->src_format.format);
+		src_channels++;
+		dst_channels++;
 	}
 	return frames;
 }
 
 int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
-			      int channel,
+			      int stream,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin)
@@ -87,14 +87,14 @@ int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
 		return -EINVAL;
 	if (src_format->rate != dst_format->rate)
 		return -EINVAL;
-	if (src_format->voices != dst_format->voices)
+	if (src_format->channels != dst_format->channels)
 		return -EINVAL;
 
 	width = snd_pcm_format_physical_width(src_format->format);
 	if (width < 0)
 		return -EINVAL;
 
-	err = snd_pcm_plugin_build(handle, channel,
+	err = snd_pcm_plugin_build(handle, stream,
 				   "copy",
 				   src_format,
 				   dst_format,

@@ -45,11 +45,11 @@
 typedef struct {
 	signed short last_S1;
 	signed short last_S2;
-} rate_voice_t;
+} rate_channel_t;
  
 typedef void (*rate_f)(snd_pcm_plugin_t *plugin,
-		       const snd_pcm_plugin_voice_t *src_voices,
-		       snd_pcm_plugin_voice_t *dst_voices,
+		       const snd_pcm_plugin_channel_t *src_channels,
+		       snd_pcm_plugin_channel_t *dst_channels,
 		       int src_frames, int dst_frames);
 
 typedef struct rate_private_data {
@@ -58,34 +58,34 @@ typedef struct rate_private_data {
 	rate_f func;
 	int get, put;
 	ssize_t old_src_frames, old_dst_frames;
-	rate_voice_t voices[0];
+	rate_channel_t channels[0];
 } rate_t;
 
 static void rate_init(snd_pcm_plugin_t *plugin)
 {
-	unsigned int voice;
+	unsigned int channel;
 	rate_t *data = (rate_t *)plugin->extra_data;
 	data->pos = 0;
-	for (voice = 0; voice < plugin->src_format.voices; voice++) {
-		data->voices[voice].last_S1 = 0;
-		data->voices[voice].last_S2 = 0;
+	for (channel = 0; channel < plugin->src_format.channels; channel++) {
+		data->channels[channel].last_S1 = 0;
+		data->channels[channel].last_S2 = 0;
 	}
 }
 
 static void resample_expand(snd_pcm_plugin_t *plugin,
-			    const snd_pcm_plugin_voice_t *src_voices,
-			    snd_pcm_plugin_voice_t *dst_voices,
+			    const snd_pcm_plugin_channel_t *src_channels,
+			    snd_pcm_plugin_channel_t *dst_channels,
 			    int src_frames, int dst_frames)
 {
 	unsigned int pos = 0;
 	signed int val;
 	signed short S1, S2;
 	char *src, *dst;
-	unsigned int voice;
+	unsigned int channel;
 	int src_step, dst_step;
 	int src_frames1, dst_frames1;
 	rate_t *data = (rate_t *)plugin->extra_data;
-	rate_voice_t *rvoices = data->voices;
+	rate_channel_t *rchannels = data->channels;
 
 #define GET_S16_LABELS
 #define PUT_S16_LABELS
@@ -100,21 +100,21 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 #include "plugin_ops.h"
 #undef GET_S16_END
 	
-	for (voice = 0; voice < plugin->src_format.voices; voice++, rvoices++) {
+	for (channel = 0; channel < plugin->src_format.channels; channel++, rchannels++) {
 		pos = data->pos;
-		S1 = rvoices->last_S1;
-		S2 = rvoices->last_S2;
-		if (!src_voices[voice].enabled) {
-			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, dst_frames, plugin->dst_format.format);
-			dst_voices[voice].enabled = 0;
+		S1 = rchannels->last_S1;
+		S2 = rchannels->last_S2;
+		if (!src_channels[channel].enabled) {
+			if (dst_channels[channel].wanted)
+				snd_pcm_area_silence(&dst_channels[channel].area, 0, dst_frames, plugin->dst_format.format);
+			dst_channels[channel].enabled = 0;
 			continue;
 		}
-		dst_voices[voice].enabled = 1;
-		src = (char *)src_voices[voice].area.addr + src_voices[voice].area.first / 8;
-		dst = (char *)dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
-		src_step = src_voices[voice].area.step / 8;
-		dst_step = dst_voices[voice].area.step / 8;
+		dst_channels[channel].enabled = 1;
+		src = (char *)src_channels[channel].area.addr + src_channels[channel].area.first / 8;
+		dst = (char *)dst_channels[channel].area.addr + dst_channels[channel].area.first / 8;
+		src_step = src_channels[channel].area.step / 8;
+		dst_step = dst_channels[channel].area.step / 8;
 		src_frames1 = src_frames;
 		dst_frames1 = dst_frames;
 		if (pos & ~MASK) {
@@ -153,27 +153,27 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 			dst += dst_step;
 			pos += data->pitch;
 		}
-		rvoices->last_S1 = S1;
-		rvoices->last_S2 = S2;
-		rvoices++;
+		rchannels->last_S1 = S1;
+		rchannels->last_S2 = S2;
+		rchannels++;
 	}
 	data->pos = pos;
 }
 
 static void resample_shrink(snd_pcm_plugin_t *plugin,
-			    const snd_pcm_plugin_voice_t *src_voices,
-			    snd_pcm_plugin_voice_t *dst_voices,
+			    const snd_pcm_plugin_channel_t *src_channels,
+			    snd_pcm_plugin_channel_t *dst_channels,
 			    int src_frames, int dst_frames)
 {
 	unsigned int pos = 0;
 	signed int val;
 	signed short S1, S2;
 	char *src, *dst;
-	unsigned int voice;
+	unsigned int channel;
 	int src_step, dst_step;
 	int src_frames1, dst_frames1;
 	rate_t *data = (rate_t *)plugin->extra_data;
-	rate_voice_t *rvoices = data->voices;
+	rate_channel_t *rchannels = data->channels;
 	
 #define GET_S16_LABELS
 #define PUT_S16_LABELS
@@ -184,21 +184,21 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 	void *put = put_s16_labels[data->put];
 	signed short sample = 0;
 
-	for (voice = 0; voice < plugin->src_format.voices; ++voice) {
+	for (channel = 0; channel < plugin->src_format.channels; ++channel) {
 		pos = data->pos;
-		S1 = rvoices->last_S1;
-		S2 = rvoices->last_S2;
-		if (!src_voices[voice].enabled) {
-			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, dst_frames, plugin->dst_format.format);
-			dst_voices[voice].enabled = 0;
+		S1 = rchannels->last_S1;
+		S2 = rchannels->last_S2;
+		if (!src_channels[channel].enabled) {
+			if (dst_channels[channel].wanted)
+				snd_pcm_area_silence(&dst_channels[channel].area, 0, dst_frames, plugin->dst_format.format);
+			dst_channels[channel].enabled = 0;
 			continue;
 		}
-		dst_voices[voice].enabled = 1;
-		src = (char *)src_voices[voice].area.addr + src_voices[voice].area.first / 8;
-		dst = (char *)dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
-		src_step = src_voices[voice].area.step / 8;
-		dst_step = dst_voices[voice].area.step / 8;
+		dst_channels[channel].enabled = 1;
+		src = (char *)src_channels[channel].area.addr + src_channels[channel].area.first / 8;
+		dst = (char *)dst_channels[channel].area.addr + dst_channels[channel].area.first / 8;
+		src_step = src_channels[channel].area.step / 8;
+		dst_step = dst_channels[channel].area.step / 8;
 		src_frames1 = src_frames;
 		dst_frames1 = dst_frames;
 		while (dst_frames1 > 0) {
@@ -230,9 +230,9 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 			}
 			pos += data->pitch;
 		}
-		rvoices->last_S1 = S1;
-		rvoices->last_S2 = S2;
-		rvoices++;
+		rchannels->last_S1 = S1;
+		rchannels->last_S2 = S2;
+		rchannels++;
 	}
 	data->pos = pos;
 }
@@ -300,30 +300,30 @@ static ssize_t rate_dst_frames(snd_pcm_plugin_t *plugin, size_t frames)
 }
 
 static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
-			     const snd_pcm_plugin_voice_t *src_voices,
-			     snd_pcm_plugin_voice_t *dst_voices,
+			     const snd_pcm_plugin_channel_t *src_channels,
+			     snd_pcm_plugin_channel_t *dst_channels,
 			     size_t frames)
 {
 	size_t dst_frames;
-	unsigned int voice;
+	unsigned int channel;
 	rate_t *data;
 
-	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
+	if (plugin == NULL || src_channels == NULL || dst_channels == NULL)
 		return -EFAULT;
 	if (frames == 0)
 		return 0;
-	for (voice = 0; voice < plugin->src_format.voices; voice++) {
-		if (src_voices[voice].area.first % 8 != 0 || 
-		    src_voices[voice].area.step % 8 != 0)
+	for (channel = 0; channel < plugin->src_format.channels; channel++) {
+		if (src_channels[channel].area.first % 8 != 0 || 
+		    src_channels[channel].area.step % 8 != 0)
 			return -EINVAL;
-		if (dst_voices[voice].area.first % 8 != 0 || 
-		    dst_voices[voice].area.step % 8 != 0)
+		if (dst_channels[channel].area.first % 8 != 0 || 
+		    dst_channels[channel].area.step % 8 != 0)
 			return -EINVAL;
 	}
 
 	dst_frames = rate_dst_frames(plugin, frames);
 	data = (rate_t *)plugin->extra_data;
-	data->func(plugin, src_voices, dst_voices, frames, dst_frames);
+	data->func(plugin, src_channels, dst_channels, frames, dst_frames);
 	return dst_frames;
 }
 
@@ -347,7 +347,7 @@ static int rate_action(snd_pcm_plugin_t *plugin,
 }
 
 int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
-			      int channel,
+			      int stream,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin)
@@ -360,9 +360,9 @@ int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->voices != dst_format->voices)
+	if (src_format->channels != dst_format->channels)
 		return -EINVAL;
-	if (src_format->voices < 1)
+	if (src_format->channels < 1)
 		return -EINVAL;
 	if (snd_pcm_format_linear(src_format->format) <= 0)
 		return -EINVAL;
@@ -371,11 +371,11 @@ int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
 	if (src_format->rate == dst_format->rate)
 		return -EINVAL;
 
-	err = snd_pcm_plugin_build(handle, channel,
+	err = snd_pcm_plugin_build(handle, stream,
 				   "rate conversion",
 				   src_format,
 				   dst_format,
-				   sizeof(rate_t) + src_format->voices * sizeof(rate_voice_t),
+				   sizeof(rate_t) + src_format->channels * sizeof(rate_channel_t),
 				   &plugin);
 	if (err < 0)
 		return err;

@@ -230,7 +230,7 @@ ssize_t snd_pcm_format_size(int format, size_t samples)
 
 ssize_t snd_pcm_format_bytes_per_second(snd_pcm_format_t *format)
 {
-	return snd_pcm_format_size(format->format, format->voices * format->rate);
+	return snd_pcm_format_size(format->format, format->channels * format->rate);
 }
 
 u_int64_t snd_pcm_format_silence_64(int format)

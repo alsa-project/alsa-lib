@@ -180,14 +180,14 @@ int main(int argc, char** argv)
 
 	bzero(&istat, sizeof(istat));
 	bzero(&ostat, sizeof(ostat));
-	istat.channel = SND_RAWMIDI_CHANNEL_INPUT;
-	ostat.channel = SND_RAWMIDI_CHANNEL_OUTPUT;
-	err = snd_rawmidi_channel_status(handle_in, &istat);
+	istat.stream = SND_RAWMIDI_STREAM_INPUT;
+	ostat.stream = SND_RAWMIDI_STREAM_OUTPUT;
+	err = snd_rawmidi_stream_status(handle_in, &istat);
 	if (err < 0)
-		fprintf(stderr, "input channel status error: %d\n", err);
-	err = snd_rawmidi_channel_status(handle_out, &ostat);
+		fprintf(stderr, "input stream status error: %d\n", err);
+	err = snd_rawmidi_stream_status(handle_out, &ostat);
 	if (err < 0)
-		fprintf(stderr, "output channel status error: %d\n", err);
+		fprintf(stderr, "output stream status error: %d\n", err);
 	printf("input.status.queue = %i\n", istat.queue);
 	printf("input.status.overrun = %i\n", istat.overrun);
 	printf("output.status.queue = %i\n", ostat.queue);

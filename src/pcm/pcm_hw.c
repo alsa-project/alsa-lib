@@ -33,32 +33,32 @@
 #define SND_FILE_PCM_CAPTURE		"/dev/snd/pcmC%iD%ic"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
 
-static int snd_pcm_hw_channel_close(snd_pcm_t *pcm, int channel)
+static int snd_pcm_hw_stream_close(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	if (hw->chan[channel].fd >= 0)
-		if (close(hw->chan[channel].fd))
+	if (hw->stream[stream].fd >= 0)
+		if (close(hw->stream[stream].fd))
 			return -errno;
 	return 0;
 }
 
-int snd_pcm_hw_channel_fd(snd_pcm_t *pcm, int channel)
+int snd_pcm_hw_stream_fd(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_hw_t *hw;
 	if (!pcm)
 		return -EINVAL;
-	if (channel < 0 || channel > 1)
+	if (stream < 0 || stream > 1)
 		return -EINVAL;
 	hw = (snd_pcm_hw_t*) &pcm->private;
-	return hw->chan[channel].fd;
+	return hw->stream[stream].fd;
 }
 
-static int snd_pcm_hw_channel_nonblock(snd_pcm_t *pcm, int channel, int nonblock)
+static int snd_pcm_hw_stream_nonblock(snd_pcm_t *pcm, int stream, int nonblock)
 {
 	long flags;
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[channel].fd;
+	fd = hw->stream[stream].fd;
 
 	if ((flags = fcntl(fd, F_GETFL)) < 0)
 		return -errno;
@@ -73,10 +73,10 @@ static int snd_pcm_hw_channel_nonblock(snd_pcm_t *pcm, int channel, int nonblock
 
 static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
-	int fd, channel;
+	int fd, stream;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	for (channel = 0; channel < 2; ++channel) {
-		fd = hw->chan[channel].fd;
+	for (stream = 0; stream < 2; ++stream) {
+		fd = hw->stream[stream].fd;
 		if (fd >= 0)
 			break;
 	}
@@ -87,84 +87,84 @@ static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return 0;
 }
 
-static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
+static int snd_pcm_hw_stream_info(snd_pcm_t *pcm, snd_pcm_stream_info_t * info)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[info->channel].fd;
+	fd = hw->stream[info->stream].fd;
 	if (fd < 0)
 		return -EINVAL;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, info) < 0)
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
+static int snd_pcm_hw_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t * params)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[params->channel].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_PARAMS, params) < 0)
+	fd = hw->stream[params->stream].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_PARAMS, params) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
+static int snd_pcm_hw_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t * setup)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[setup->channel].fd;
+	fd = hw->stream[setup->stream].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_SETUP, setup) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_pcm_hw_channel_setup(snd_pcm_t *pcm, int stream, snd_pcm_channel_setup_t * setup)
+{
+	int fd;
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
+	fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_SETUP, setup) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_setup_t * setup)
+static int snd_pcm_hw_stream_status(snd_pcm_t *pcm, snd_pcm_stream_status_t * status)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[channel].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_VOICE_SETUP, setup) < 0)
+	fd = hw->stream[status->stream].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_STATUS, status) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t * status)
+static int snd_pcm_hw_stream_update(snd_pcm_t *pcm, int stream)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[status->channel].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_STATUS, status) < 0)
+	fd = hw->stream[stream].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_UPDATE) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_update(snd_pcm_t *pcm, int channel)
+static int snd_pcm_hw_stream_prepare(snd_pcm_t *pcm, int stream)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[channel].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_UPDATE) < 0)
+	fd = hw->stream[stream].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_PREPARE) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_prepare(snd_pcm_t *pcm, int channel)
+static int snd_pcm_hw_stream_go(snd_pcm_t *pcm, int stream)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[channel].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_PREPARE) < 0)
-		return -errno;
-	return 0;
-}
-
-static int snd_pcm_hw_channel_go(snd_pcm_t *pcm, int channel)
-{
-	int fd;
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[channel].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_GO) < 0)
+	fd = hw->stream[stream].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_GO) < 0)
 		return -errno;
 	return 0;
 }
@@ -173,41 +173,41 @@ static int snd_pcm_hw_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	if (pcm->chan[SND_PCM_CHANNEL_PLAYBACK].open)
-		fd = hw->chan[SND_PCM_CHANNEL_PLAYBACK].fd;
+	if (pcm->stream[SND_PCM_STREAM_PLAYBACK].open)
+		fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
 	else
-		fd = hw->chan[SND_PCM_CHANNEL_CAPTURE].fd;
+		fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_SYNC_GO, sync) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_drain(snd_pcm_t *pcm, int channel)
+static int snd_pcm_hw_stream_drain(snd_pcm_t *pcm, int stream)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[channel].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_DRAIN) < 0)
+	fd = hw->stream[stream].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_DRAIN) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_flush(snd_pcm_t *pcm, int channel)
+static int snd_pcm_hw_stream_flush(snd_pcm_t *pcm, int stream)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[channel].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_FLUSH) < 0)
+	fd = hw->stream[stream].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_FLUSH) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_pause(snd_pcm_t *pcm, int channel, int enable)
+static int snd_pcm_hw_stream_pause(snd_pcm_t *pcm, int stream, int enable)
 {
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[channel].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_PAUSE, &enable) < 0)
+	fd = hw->stream[stream].fd;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_PAUSE, &enable) < 0)
 		return -errno;
 	return 0;
 }
@@ -217,7 +217,7 @@ static ssize_t snd_pcm_hw_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 	ssize_t result;
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[SND_PCM_CHANNEL_PLAYBACK].fd;
+	fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
 	result = write(fd, buffer, size);
 	if (result < 0)
 		return -errno;
@@ -229,7 +229,7 @@ static ssize_t snd_pcm_hw_writev(snd_pcm_t *pcm, const struct iovec *vector, uns
 	ssize_t result;
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[SND_PCM_CHANNEL_PLAYBACK].fd;
+	fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
 #if 0
 	result = writev(fd, vector, count);
 #else
@@ -250,7 +250,7 @@ static ssize_t snd_pcm_hw_read(snd_pcm_t *pcm, void *buffer, size_t size)
 	ssize_t result;
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[SND_PCM_CHANNEL_CAPTURE].fd;
+	fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
 	result = read(fd, buffer, size);
 	if (result < 0)
 		return -errno;
@@ -262,7 +262,7 @@ ssize_t snd_pcm_hw_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned lo
 	ssize_t result;
 	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->chan[SND_PCM_CHANNEL_CAPTURE].fd;
+	fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
 #if 0
 	result = readv(fd, vector, count);
 #else
@@ -278,74 +278,74 @@ ssize_t snd_pcm_hw_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned lo
 	return result;
 }
 
-static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm, int channel, snd_pcm_mmap_control_t **control, size_t csize)
+static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control, size_t csize)
 {
 	void *caddr;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
 	caddr = mmap(NULL, csize, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
-		     hw->chan[channel].fd, SND_PCM_MMAP_OFFSET_CONTROL);
+		     hw->stream[stream].fd, SND_PCM_MMAP_OFFSET_CONTROL);
 	if (caddr == MAP_FAILED || caddr == NULL)
 		return -errno;
 	*control = caddr;
 	return 0;
 }
 
-static int snd_pcm_hw_mmap_data(snd_pcm_t *pcm, int channel, void **buffer, size_t bsize)
+static int snd_pcm_hw_mmap_data(snd_pcm_t *pcm, int stream, void **buffer, size_t bsize)
 {
 	int prot;
 	void *daddr;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	prot = channel == SND_PCM_CHANNEL_PLAYBACK ? PROT_WRITE : PROT_READ;
+	prot = stream == SND_PCM_STREAM_PLAYBACK ? PROT_WRITE : PROT_READ;
 	daddr = mmap(NULL, bsize, prot, MAP_FILE|MAP_SHARED, 
-		     hw->chan[channel].fd, SND_PCM_MMAP_OFFSET_DATA);
+		     hw->stream[stream].fd, SND_PCM_MMAP_OFFSET_DATA);
 	if (daddr == MAP_FAILED || daddr == NULL)
 		return -errno;
 	*buffer = daddr;
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm UNUSED, int channel UNUSED, snd_pcm_mmap_control_t *control, size_t csize)
+static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm UNUSED, int stream UNUSED, snd_pcm_mmap_control_t *control, size_t csize)
 {
 	if (munmap(control, csize) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_data(snd_pcm_t *pcm UNUSED, int channel UNUSED, void *buffer, size_t bsize)
+static int snd_pcm_hw_munmap_data(snd_pcm_t *pcm UNUSED, int stream UNUSED, void *buffer, size_t bsize)
 {
 	if (munmap(buffer, bsize) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_file_descriptor(snd_pcm_t *pcm, int channel)
+static int snd_pcm_hw_file_descriptor(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	return hw->chan[channel].fd;
+	return hw->stream[stream].fd;
 }
 
-static int snd_pcm_hw_voices_mask(snd_pcm_t *pcm UNUSED, int channel UNUSED,
+static int snd_pcm_hw_channels_mask(snd_pcm_t *pcm UNUSED, int stream UNUSED,
 				  bitset_t *client_vmask UNUSED)
 {
 	return 0;
 }
 
 struct snd_pcm_ops snd_pcm_hw_ops = {
-	channel_close: snd_pcm_hw_channel_close,
-	channel_nonblock: snd_pcm_hw_channel_nonblock,
+	stream_close: snd_pcm_hw_stream_close,
+	stream_nonblock: snd_pcm_hw_stream_nonblock,
 	info: snd_pcm_hw_info,
-	channel_info: snd_pcm_hw_channel_info,
-	channel_params: snd_pcm_hw_channel_params,
+	stream_info: snd_pcm_hw_stream_info,
+	stream_params: snd_pcm_hw_stream_params,
+	stream_setup: snd_pcm_hw_stream_setup,
 	channel_setup: snd_pcm_hw_channel_setup,
-	voice_setup: snd_pcm_hw_voice_setup,
-	channel_status: snd_pcm_hw_channel_status,
-	channel_update: snd_pcm_hw_channel_update,
-	channel_prepare: snd_pcm_hw_channel_prepare,
-	channel_go: snd_pcm_hw_channel_go,
+	stream_status: snd_pcm_hw_stream_status,
+	stream_update: snd_pcm_hw_stream_update,
+	stream_prepare: snd_pcm_hw_stream_prepare,
+	stream_go: snd_pcm_hw_stream_go,
 	sync_go: snd_pcm_hw_sync_go,
-	channel_drain: snd_pcm_hw_channel_drain,
-	channel_flush: snd_pcm_hw_channel_flush,
-	channel_pause: snd_pcm_hw_channel_pause,
+	stream_drain: snd_pcm_hw_stream_drain,
+	stream_flush: snd_pcm_hw_stream_flush,
+	stream_pause: snd_pcm_hw_stream_pause,
 	write: snd_pcm_hw_write,
 	writev: snd_pcm_hw_writev,
 	read: snd_pcm_hw_read,
@@ -355,27 +355,27 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	munmap_control: snd_pcm_hw_munmap_control,
 	munmap_data: snd_pcm_hw_munmap_data,
 	file_descriptor: snd_pcm_hw_file_descriptor,
-	voices_mask: snd_pcm_hw_voices_mask,
+	channels_mask: snd_pcm_hw_channels_mask,
 };
 
-static int snd_pcm_hw_open_channel(int card, int device, int channel, int subdevice, int fmode, snd_ctl_t *ctl, int *ver)
+static int snd_pcm_hw_open_stream(int card, int device, int stream, int subdevice, int fmode, snd_ctl_t *ctl, int *ver)
 {
 	char filename[32];
 	char *filefmt;
 	int err, fd;
 	int attempt = 0;
-	snd_pcm_channel_info_t info;
-	switch (channel) {
-	case SND_PCM_CHANNEL_PLAYBACK:
+	snd_pcm_stream_info_t info;
+	switch (stream) {
+	case SND_PCM_STREAM_PLAYBACK:
 		filefmt = SND_FILE_PCM_PLAYBACK;
 		break;
-	case SND_PCM_CHANNEL_CAPTURE:
+	case SND_PCM_STREAM_CAPTURE:
 		filefmt = SND_FILE_PCM_CAPTURE;
 		break;
 	default:
 		return -EINVAL;
 	}
-	if ((err = snd_ctl_pcm_channel_prefer_subdevice(ctl, device, channel, subdevice)) < 0)
+	if ((err = snd_ctl_pcm_stream_prefer_subdevice(ctl, device, stream, subdevice)) < 0)
 		return err;
 	sprintf(filename, filefmt, card, device);
 
@@ -399,7 +399,7 @@ static int snd_pcm_hw_open_channel(int card, int device, int channel, int subdev
 	}
 	if (subdevice >= 0) {
 		memset(&info, 0, sizeof(info));
-		if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, &info) < 0) {
+		if (ioctl(fd, SND_PCM_IOCTL_STREAM_INFO, &info) < 0) {
 			err = -errno;
 			close(fd);
 			return err;
@@ -432,7 +432,7 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 		fmode = O_RDWR;
 		if (mode & SND_PCM_NONBLOCK_PLAYBACK)
 			fmode |= O_NONBLOCK;
-		pfd = snd_pcm_hw_open_channel(card, device, SND_PCM_CHANNEL_PLAYBACK,
+		pfd = snd_pcm_hw_open_stream(card, device, SND_PCM_STREAM_PLAYBACK,
 					  subdevice, fmode, ctl, &ver);
 		if (pfd < 0) {
 			snd_ctl_close(ctl);
@@ -443,7 +443,7 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 		fmode = O_RDWR;
 		if (mode & SND_PCM_NONBLOCK_CAPTURE)
 			fmode |= O_NONBLOCK;
-		cfd = snd_pcm_hw_open_channel(card, device, SND_PCM_CHANNEL_CAPTURE,
+		cfd = snd_pcm_hw_open_stream(card, device, SND_PCM_STREAM_CAPTURE,
 					  subdevice, fmode, ctl, &ver);
 		if (cfd < 0) {
 			if (pfd >= 0)
@@ -470,8 +470,8 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 	hw->card = card;
 	hw->device = device;
 	hw->ver = ver;
-	hw->chan[SND_PCM_CHANNEL_PLAYBACK].fd = pfd;
-	hw->chan[SND_PCM_CHANNEL_CAPTURE].fd = cfd;
+	hw->stream[SND_PCM_STREAM_PLAYBACK].fd = pfd;
+	hw->stream[SND_PCM_STREAM_CAPTURE].fd = cfd;
 	return 0;
 }
 
