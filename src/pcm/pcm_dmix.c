@@ -871,6 +871,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	
 		if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
 			SNDERR("dmix plugin can be only connected to hw plugin");
+			ret = -EINVAL;
 			goto _err;
 		}
 		
