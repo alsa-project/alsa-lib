@@ -901,6 +901,11 @@ static int snd_pcm_share_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTRI
 	return -ENOSYS;
 }
 
+static int snd_pcm_share_resume(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return -ENXIO;
+}
+
 static int snd_pcm_share_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
 	snd_pcm_share_t *share = pcm->private_data;
@@ -1184,6 +1189,7 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	readi: snd_pcm_mmap_readi,
 	readn: snd_pcm_mmap_readn,
 	rewind: snd_pcm_share_rewind,
+	resume: snd_pcm_share_resume,
 	avail_update: snd_pcm_share_avail_update,
 	mmap_commit: snd_pcm_share_mmap_commit,
 };

@@ -433,6 +433,14 @@ static snd_pcm_sframes_t snd_pcm_shm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 	return snd_pcm_shm_action(pcm);
 }
 
+static int snd_pcm_shm_resume(snd_pcm_t *pcm)
+{
+	snd_pcm_shm_t *shm = pcm->private_data;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	ctrl->cmd = SNDRV_PCM_IOCTL_RESUME;
+	return snd_pcm_shm_action(pcm);
+}
+
 static snd_pcm_sframes_t snd_pcm_shm_mmap_commit(snd_pcm_t *pcm,
 						 snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
 						 snd_pcm_uframes_t size)
@@ -506,6 +514,7 @@ snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	drain: snd_pcm_shm_drain,
 	pause: snd_pcm_shm_pause,
 	rewind: snd_pcm_shm_rewind,
+	resume: snd_pcm_shm_resume,
 	writei: snd_pcm_mmap_writei,
 	writen: snd_pcm_mmap_writen,
 	readi: snd_pcm_mmap_readi,

@@ -222,6 +222,8 @@ typedef enum _snd_pcm_state {
 	SND_PCM_STATE_DRAINING,
 	/** Paused */
 	SND_PCM_STATE_PAUSED,
+	/** Hardware is suspended */
+	SND_PCM_STATE_SUSPENDED,
 	SND_PCM_STATE_LAST = SND_PCM_STATE_PAUSED,
 } snd_pcm_state_t;
 
@@ -367,6 +369,7 @@ int snd_pcm_drain(snd_pcm_t *pcm);
 int snd_pcm_pause(snd_pcm_t *pcm, int enable);
 snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm);
 int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
+int snd_pcm_resume(snd_pcm_t *pcm);
 snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);

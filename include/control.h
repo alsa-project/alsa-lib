@@ -142,6 +142,20 @@ typedef enum _snd_ctl_event_type {
 /** Element name for IEC958 (S/PDIF) */
 #define SND_CTL_NAME_IEC958(expl,direction,what)	"IEC958 " expl SND_CTL_NAME_##direction SND_CTL_NAME_IEC958_##what
 
+/** Mask for the major Power State identifier */
+#define SNDRV_CTL_POWER_MASK		0xff00
+/** ACPI/PCI Power State D0 */
+#define SNDRV_CTL_POWER_D0          	0x0000
+/** ACPI/PCI Power State D1 */
+#define SNDRV_CTL_POWER_D1     	     	0x0100
+/** ACPI/PCI Power State D2 */
+#define SNDRV_CTL_POWER_D2 	        0x0200
+/** ACPI/PCI Power State D3 */
+#define SNDRV_CTL_POWERDOWN_D3          0x0300
+/** ACPI/PCI Power State D3hot */
+#define SNDRV_CTL_POWERDOWN_D3hot       (SNDRV_CTL_POWERDOWN_D3|0x0000)
+/** ACPI/PCI Power State D3cold */
+#define SNDRV_CTL_POWERDOWN_D3cold      (SNDRV_CTL_POWERDOWN_D3|0x0001)
 
 /** CTL type */
 typedef enum _snd_ctl_type {
@@ -208,6 +222,8 @@ int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev);
 int snd_ctl_rawmidi_next_device(snd_ctl_t *ctl, int * device);
 int snd_ctl_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info);
 int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev);
+int snd_ctl_set_power_state(snd_ctl_t *ctl, unsigned int state);
+int snd_ctl_get_power_state(snd_ctl_t *ctl, unsigned int *state);
 
 int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_event_t *event);
 int snd_ctl_wait(snd_ctl_t *ctl, int timeout);

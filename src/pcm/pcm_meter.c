@@ -395,6 +395,12 @@ static snd_pcm_sframes_t snd_pcm_meter_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	return err;
 }
 
+static int snd_pcm_meter_resume(snd_pcm_t *pcm)
+{
+	snd_pcm_meter_t *meter = pcm->private_data;
+	return snd_pcm_resume(meter->slave);
+}
+
 static snd_pcm_sframes_t snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
 						   snd_pcm_uframes_t offset,
 						   snd_pcm_uframes_t size)
@@ -601,6 +607,7 @@ snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	drain: snd_pcm_meter_drain,
 	pause: snd_pcm_meter_pause,
 	rewind: snd_pcm_meter_rewind,
+	resume: snd_pcm_meter_resume,
 	writei: snd_pcm_mmap_writei,
 	writen: snd_pcm_mmap_writen,
 	readi: snd_pcm_mmap_readi,

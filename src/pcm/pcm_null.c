@@ -166,6 +166,11 @@ static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	}
 }
 
+static int snd_pcm_null_resume(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_null_fwd(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_null_t *null = pcm->private_data;
@@ -305,6 +310,7 @@ snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	drain: snd_pcm_null_drain,
 	pause: snd_pcm_null_pause,
 	rewind: snd_pcm_null_rewind,
+	resume: snd_pcm_null_resume,
 	writei: snd_pcm_null_writei,
 	writen: snd_pcm_null_writen,
 	readi: snd_pcm_null_readi,

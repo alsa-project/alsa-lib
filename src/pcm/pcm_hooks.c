@@ -150,6 +150,12 @@ static snd_pcm_sframes_t snd_pcm_hooks_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	return snd_pcm_rewind(h->slave, frames);
 }
 
+static int snd_pcm_hooks_resume(snd_pcm_t *pcm)
+{
+	snd_pcm_hooks_t *h = pcm->private_data;
+	return snd_pcm_resume(h->slave);
+}
+
 static snd_pcm_sframes_t snd_pcm_hooks_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
@@ -280,6 +286,7 @@ snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	drain: snd_pcm_hooks_drain,
 	pause: snd_pcm_hooks_pause,
 	rewind: snd_pcm_hooks_rewind,
+	resume: snd_pcm_hooks_resume,
 	writei: snd_pcm_hooks_writei,
 	writen: snd_pcm_hooks_writen,
 	readi: snd_pcm_hooks_readi,

@@ -220,6 +220,12 @@ static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	return err;
 }
 
+static int snd_pcm_file_resume(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	return snd_pcm_resume(file->slave);
+}
+
 static snd_pcm_sframes_t snd_pcm_file_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -388,6 +394,7 @@ snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	drain: snd_pcm_file_drain,
 	pause: snd_pcm_file_pause,
 	rewind: snd_pcm_file_rewind,
+	resume: snd_pcm_file_resume,
 	writei: snd_pcm_file_writei,
 	writen: snd_pcm_file_writen,
 	readi: snd_pcm_file_readi,

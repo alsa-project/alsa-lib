@@ -469,6 +469,9 @@ static int pcm_shm_cmd(client_t *client)
 	case SNDRV_PCM_IOCTL_UNLINK:
 		ctrl->result = snd_pcm_unlink(pcm);
 		break;
+	case SNDRV_PCM_IOCTL_RESUME:
+		ctrl->result = snd_pcm_resume(pcm);
+		break;
 	case SND_PCM_IOCTL_MMAP:
 	{
 		ctrl->result = snd_pcm_mmap(pcm);
@@ -668,6 +671,12 @@ static int ctl_shm_cmd(client_t *client)
 		break;
 	case SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE:
 		ctrl->result = snd_ctl_rawmidi_prefer_subdevice(ctl, ctrl->u.rawmidi_prefer_subdevice);
+		break;
+	case SNDRV_CTL_IOCTL_POWER:
+		ctrl->result = snd_ctl_set_power_state(ctl, ctrl->u.power_state);
+		break;
+	case SNDRV_CTL_IOCTL_POWER_STATE:
+		ctrl->result = snd_ctl_get_power_state(ctl, &ctrl->u.power_state);
 		break;
 	case SND_CTL_IOCTL_READ:
 		ctrl->result = snd_ctl_read(ctl, &ctrl->u.read);

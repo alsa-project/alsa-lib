@@ -135,6 +135,7 @@ typedef struct {
 	int (*pause)(snd_pcm_t *pcm, int enable);
 	snd_pcm_state_t (*state)(snd_pcm_t *pcm);
 	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
+	int (*resume)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
 	snd_pcm_sframes_t (*writen)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);

@@ -281,6 +281,18 @@ int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 }
 
 /**
+ * \brief Resume from suspend, no samples are lost
+ * \param pcm PCM handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_pcm_resume(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	assert(pcm->setup);
+	return pcm->fast_ops->resume(pcm->fast_op_arg);
+}
+
+/**
  * \brief Prepare PCM for use
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code

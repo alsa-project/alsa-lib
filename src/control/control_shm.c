@@ -345,6 +345,32 @@ static int snd_ctl_shm_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 	return err;
 }
 
+static int snd_ctl_shm_set_power_state(snd_ctl_t *ctl, unsigned int state)
+{
+	snd_ctl_shm_t *shm = ctl->private_data;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->u.power_state = state;
+	ctrl->cmd = SNDRV_CTL_IOCTL_POWER;
+	err = snd_ctl_shm_action(ctl);
+	if (err < 0)
+		return err;
+	return err;
+}
+
+static int snd_ctl_shm_get_power_state(snd_ctl_t *ctl, unsigned int *state)
+{
+	snd_ctl_shm_t *shm = ctl->private_data;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->cmd = SNDRV_CTL_IOCTL_POWER_STATE;
+	err = snd_ctl_shm_action(ctl);
+	if (err < 0)
+		return err;
+	*state = ctrl->u.power_state;
+	return err;
+}
+
 static int snd_ctl_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 {
 	snd_ctl_shm_t *shm;
@@ -384,6 +410,8 @@ snd_ctl_ops_t snd_ctl_shm_ops = {
 	rawmidi_next_device: snd_ctl_shm_rawmidi_next_device,
 	rawmidi_info: snd_ctl_shm_rawmidi_info,
 	rawmidi_prefer_subdevice: snd_ctl_shm_rawmidi_prefer_subdevice,
+	set_power_state: snd_ctl_shm_set_power_state,
+	get_power_state: snd_ctl_shm_get_power_state,
 	read: snd_ctl_shm_read,
 };
 

@@ -486,6 +486,21 @@ static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	return frames;
 }
 
+static int snd_pcm_multi_resume(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	int err = 0;
+	unsigned int i;
+	for (i = 0; i < multi->slaves_count; ++i) {
+		if (multi->slaves[i].linked)
+			continue;
+		err = snd_pcm_resume(multi->slaves[i].pcm);
+		if (err < 0)
+			return err;
+	}
+	return err;
+}
+
 static snd_pcm_sframes_t snd_pcm_multi_mmap_commit(snd_pcm_t *pcm,
 						   snd_pcm_uframes_t offset,
 						   snd_pcm_uframes_t size)
@@ -571,6 +586,7 @@ snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	readi: snd_pcm_mmap_readi,
 	readn: snd_pcm_mmap_readn,
 	rewind: snd_pcm_multi_rewind,
+	resume: snd_pcm_multi_resume,
 	avail_update: snd_pcm_multi_avail_update,
 	mmap_commit: snd_pcm_multi_mmap_commit,
 };

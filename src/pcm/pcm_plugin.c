@@ -191,6 +191,12 @@ snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames
 	return n;
 }
 
+int snd_pcm_plugin_resume(snd_pcm_t *pcm)
+{
+	snd_pcm_plugin_t *plugin = pcm->private_data;
+	return snd_pcm_resume(plugin->slave);
+}
+
 static snd_pcm_uframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 						    const snd_pcm_channel_area_t *areas,
 						    snd_pcm_uframes_t offset,
@@ -446,6 +452,7 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	drain: snd_pcm_plugin_drain,
 	pause: snd_pcm_plugin_pause,
 	rewind: snd_pcm_plugin_rewind,
+	resume: snd_pcm_plugin_resume,
 	writei: snd_pcm_plugin_writei,
 	writen: snd_pcm_plugin_writen,
 	readi: snd_pcm_plugin_readi,

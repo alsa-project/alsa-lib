@@ -113,6 +113,7 @@ typedef struct {
 		int pcm_prefer_subdevice;
 		snd_rawmidi_info_t rawmidi_info;
 		int rawmidi_prefer_subdevice;
+		unsigned int power_state;
 		snd_ctl_event_t read;
 	} u;
 	char data[0];

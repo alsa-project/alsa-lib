@@ -363,6 +363,33 @@ int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 	return ctl->ops->rawmidi_prefer_subdevice(ctl, subdev);
 }
 
+/**
+ * \brief Set Power State to given SND_CTL_POWER_* value and do the power management
+ * \param ctl CTL handle
+ * \param state Desired Power State
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_set_power_state(snd_ctl_t *ctl, unsigned int state)
+{
+	assert(ctl);
+	if (ctl->ops->set_power_state)
+		return ctl->ops->set_power_state(ctl, state);
+	return -ENXIO;
+}
+
+/**
+ * \brief Get actual Power State
+ * \param ctl CTL handle
+ * \param state Destination value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_get_power_state(snd_ctl_t *ctl, unsigned int *state)
+{
+	assert(ctl);
+	if (ctl->ops->get_power_state)
+		return ctl->ops->get_power_state(ctl, state);
+	return -ENXIO;
+}
 
 /**
  * \brief Read an event

@@ -298,6 +298,18 @@ static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fra
 	return frames;
 }
 
+static int snd_pcm_hw_resume(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	int fd = hw->fd;
+	if (ioctl(fd, SNDRV_PCM_IOCTL_RESUME) < 0) {
+		if (errno != ENXIO)
+			SYSERR("SNDRV_PCM_IOCTL_RESUME failed");
+		return -errno;
+	}
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_sframes_t result;
@@ -520,6 +532,7 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	drain: snd_pcm_hw_drain,
 	pause: snd_pcm_hw_pause,
 	rewind: snd_pcm_hw_rewind,
+	resume: snd_pcm_hw_resume,
 	writei: snd_pcm_hw_writei,
 	writen: snd_pcm_hw_writen,
 	readi: snd_pcm_hw_readi,
