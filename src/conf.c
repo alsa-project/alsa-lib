@@ -885,13 +885,11 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 			SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "",
 			    fd->line, fd->column, str);
 		}
-		snd_config_delete(config);
 		goto _end;
 	}
 	if (get_char(&input) != EOF) {
 		SNDERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "",
 		    fd->line, fd->column);
-		snd_config_delete(config);
 		err = -EINVAL;
 		goto _end;
 	}
@@ -1898,8 +1896,10 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 			return err;
 		err = snd_config_load(subs, input);
 		snd_input_close(input);
-		if (err < 0)
+		if (err < 0) {
+			snd_config_delete(subs);
 			return err;
+		}
 		snd_config_for_each(i, next, subs) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			snd_config_t *d;
