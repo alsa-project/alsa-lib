@@ -942,11 +942,11 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
-	err = snd_config_search_alias(snd_config, "pcm_type", str, &type_conf);
+	err = snd_config_search_definition(snd_config, "pcm_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
 			SNDERR("Invalid type for PCM type %s definition", str);
-			return -EINVAL;
+			goto _err;
 		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
@@ -957,7 +957,7 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
+					goto _err;
 				}
 				continue;
 			}
@@ -965,11 +965,13 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
+					goto _err;
 				}
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
+		_err:
+			snd_config_delete(type_conf);
 			return -EINVAL;
 		}
 	}
@@ -980,11 +982,14 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 	if (!lib)
 		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
+	if (h)
+		open_func = dlsym(h, open_name);
+	if (type_conf)
+		snd_config_delete(type_conf);
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
-	open_func = dlsym(h, open_name);
 	if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
@@ -1000,43 +1005,10 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 				 const char *name, snd_pcm_stream_t stream, int mode)
 {
 	int err;
-	snd_config_t *pcm_conf;
-	char *base, *key;
-	const char *args = strchr(name, ':');
-	snd_config_t *conf;
-	if (args) {
-		args++;
-		base = alloca(args - name);
-		memcpy(base, name, args - name - 1);
-		base[args - name - 1] = '\0';
-		key = strchr(base, '.');
-		if (key)
-			*key++ = '\0';
-	} else {
-		key = strchr(name, '.');
-		if (key) {
-			key++;
-			base = alloca(key - name);
-			memcpy(base, name, key - name - 1);
-			base[key - name - 1] = '\0';
-		} else
-			base = (char *) name;
-	}
-	if (key == NULL) {
-		key = base;
-		base = NULL;
-	}
-	err = snd_config_search_alias(root, base, key, &pcm_conf);
+	snd_config_t *pcm_conf, *conf;
+	err = snd_config_search_definition(root, "pcm", name, &pcm_conf);
 	if (err < 0) {
-		(void)(base == NULL && (err = snd_config_search_alias(root, "pcm", key, &pcm_conf)));
-		if (err < 0) {
-			SNDERR("Unknown PCM %s", name);
-			return err;
-		}
-	}
-	err = snd_config_expand(pcm_conf, args, NULL, &pcm_conf);
-	if (err < 0) {
-		SNDERR("Could not expand configuration for %s: %s", name, snd_strerror(err));
+		SNDERR("Unknown PCM %s", name);
 		return err;
 	}
 	if (snd_config_search(pcm_conf, "refer", &conf) >= 0) {
@@ -1044,8 +1016,7 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 		int conf_free_tmp;
 		char *refer_name = NULL;
 		err = snd_config_refer_load(root, conf, &refer_name, &tmp_conf, &conf_free_tmp);
-		if (args)
-			snd_config_delete(pcm_conf);
+		snd_config_delete(pcm_conf);
 		if (err < 0) {
 			SNDERR("Refer load error for %s: %s", name, snd_strerror(err));
 			return err;
@@ -4318,16 +4289,18 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 	unsigned int k;
 	snd_config_t *pcm_conf = NULL;
 	int err;
+	int to_free = 0;
 	va_list args;
 	assert(root);
 	assert(conf);
 	assert(_pcm_conf);
 	if (snd_config_get_string(conf, &str) >= 0) {
-		err = snd_config_search_alias(conf, "pcm_slave", str, &conf);
+		err = snd_config_search_definition(root, "pcm_slave", str, &conf);
 		if (err < 0) {
-			SNDERR("Configuration pcm_slave.%s was not found\n", str);
+			SNDERR("Invalid slave definition");
 			return -EINVAL;
 		}
+		to_free = 1;
 	}
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid slave definition");
@@ -4365,12 +4338,13 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 				if (err < 0) {
 				_invalid:
 					SNDERR("invalid type for %s", id);
-					return err;
+					goto _err;
 				}
 				f = snd_pcm_format_value(str);
 				if (f == SND_PCM_FORMAT_UNKNOWN) {
 					SNDERR("unknown format");
-					return -EINVAL;
+					err = -EINVAL;
+					goto _err;
 				}
 				*(snd_pcm_format_t*)fields[k].ptr = f;
 				break;
@@ -4388,20 +4362,27 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 		if (k < count)
 			continue;
 		SNDERR("Unknown field %s", id);
-		// return -EINVAL;
+		err = -EINVAL;
+		goto _err;
 	}
 	if (!pcm_conf) {
 		SNDERR("missing field pcm");
-		return -EINVAL;
+		err = -EINVAL;
+		goto _err;
 	}
 	for (k = 0; k < count; ++k) {
 		if (fields[k].mandatory && !fields[k].valid) {
 			SNDERR("missing field %s", names[fields[k].index]);
-			return -EINVAL;
+			err = -EINVAL;
+			goto _err;
 		}
 	}
 	*_pcm_conf = pcm_conf;
 	return 0;
+ _err:
+	if (to_free)
+		snd_config_delete(conf);
+	return err;
 }
 		
 

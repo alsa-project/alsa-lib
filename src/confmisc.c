@@ -303,14 +303,14 @@ int snd_config_refer_load(snd_config_t *root,
  *  Helper functions for the configuration file
  */
 
-int snd_func_getenv(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_getenv(snd_config_t **dst, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n, *d, *e;
 	snd_config_iterator_t i, next;
 	char *res, *def = NULL;
 	int idx = 0, err;
 	
-	err = snd_config_expand(src, NULL, NULL, &e);
+	err = snd_config_expand(src, NULL, private_data, &e);
 	if (err < 0)
 		return err;
 	err = snd_config_search(e, "envname", &n);
@@ -373,14 +373,14 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *src, void *private_data AT
 	return err;
 }
 
-int snd_func_concat(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_concat(snd_config_t **dst, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n, *e;
 	snd_config_iterator_t i, next;
 	char *res = NULL, *tmp;
 	int idx = 0, len = 0, len1, err;
 	
-	err = snd_config_expand(src, NULL, NULL, &e);
+	err = snd_config_expand(src, NULL, private_data, &e);
 	if (err < 0)
 		return err;
 	err = snd_config_search(e, "strings", &n);
@@ -464,7 +464,7 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
-int snd_func_card_strtype(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_card_strtype(snd_config_t **dst, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n, *e;
 	char *res = NULL;
@@ -473,7 +473,7 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *src, void *private_d
 	long v;
 	int err;
 	
-	err = snd_config_expand(src, NULL, NULL, &e);
+	err = snd_config_expand(src, NULL, private_data, &e);
 	if (err < 0)
 		return err;
 	err = snd_config_search(e, "card", &n);
@@ -513,7 +513,7 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *src, void *private_d
 	return err;
 }
 
-int snd_func_card_id(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_card_id(snd_config_t **dst, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n, *e;
 	char *res = NULL;
@@ -522,7 +522,7 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *src, void *private_data A
 	long v;
 	int err;
 	
-	err = snd_config_expand(src, NULL, NULL, &e);
+	err = snd_config_expand(src, NULL, private_data, &e);
 	if (err < 0)
 		return err;
 	err = snd_config_search(e, "card", &n);
@@ -562,7 +562,7 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *src, void *private_data A
 	return err;
 }
 
-int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n, *e;
 	char *res = NULL;
@@ -571,7 +571,7 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data AT
 	long card, device, subdevice = 0;
 	int err;
 	
-	err = snd_config_expand(src, NULL, NULL, &e);
+	err = snd_config_expand(src, NULL, private_data, &e);
 	if (err < 0)
 		return err;
 	err = snd_config_search(e, "card", &n);

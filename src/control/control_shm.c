@@ -570,14 +570,14 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 		SNDERR("server is not defined");
 		return -EINVAL;
 	}
-	err = snd_config_search_alias(snd_config, "server", server, &sconfig);
+	err = snd_config_search_definition(snd_config, "server", server, &sconfig);
 	if (err < 0) {
 		SNDERR("Unknown server %s", server);
 		return -EINVAL;
 	}
 	if (snd_config_get_type(sconfig) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid type for server %s definition", server);
-		return -EINVAL;
+		goto _err;
 	}
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -588,7 +588,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 			err = snd_config_get_string(n, &host);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
+				goto _err;
 			}
 			continue;
 		}
@@ -596,7 +596,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 			err = snd_config_get_string(n, &sockname);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
+				goto _err;
 			}
 			continue;
 		}
@@ -604,32 +604,36 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 			err = snd_config_get_integer(n, &port);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
+				goto _err;
 			}
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
+	_err:
+		snd_config_delete(sconfig);
 		return -EINVAL;
 	}
 
 	if (!host) {
 		SNDERR("host is not defined");
-		return -EINVAL;
+		goto _err;
 	}
 	if (!sockname) {
 		SNDERR("socket is not defined");
-		return -EINVAL;
+		goto _err;
 	}
 	h = gethostbyname(host);
 	if (!h) {
 		SNDERR("Cannot resolve %s", host);
-		return -EINVAL;
+		goto _err;
 	}
 	local = is_local(h);
 	if (!local) {
 		SNDERR("%s is not the local host", host);
-		return -EINVAL;
+		goto _err;
 	}
-	return snd_ctl_shm_open(handlep, name, sockname, ctl_name, mode);
+	err = snd_ctl_shm_open(handlep, name, sockname, ctl_name, mode);
+	snd_config_delete(sconfig);
+	return err;
 }
 				

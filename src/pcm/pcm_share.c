@@ -1414,7 +1414,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(root, slave, &sconf, NULL, 5,
+	err = snd_pcm_slave_conf(root, slave, &sconf, 5,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
 				 SND_PCM_HW_PARAM_RATE, 0, &srate,

@@ -335,13 +335,6 @@ int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *conf)
 	snd_config_iterator_t i, next;
 	int (*install_func)(snd_pcm_t *pcm, snd_config_t *args);
 	void *h;
-	if (snd_config_get_string(conf, &str) >= 0) {
-		err = snd_config_search_alias(snd_config, "pcm_hook", str, &conf);
-		if (err < 0) {
-			SNDERR("unknown pcm_hook %s", str);
-			return err;
-		}
-	}
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid hook definition");
 		return -EINVAL;
@@ -371,11 +364,11 @@ int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *conf)
 		SNDERR("Invalid type for %s", snd_config_get_id(type));
 		return err;
 	}
-	err = snd_config_search_alias(snd_config, "pcm_hook_type", str, &type);
+	err = snd_config_search_definition(snd_config, "pcm_hook_type", str, &type);
 	if (err >= 0) {
 		if (snd_config_get_type(type) != SND_CONFIG_TYPE_COMPOUND) {
 			SNDERR("Invalid type for PCM type %s definition", str);
-			return -EINVAL;
+			goto _err;
 		}
 		snd_config_for_each(i, next, type) {
 			snd_config_t *n = snd_config_iterator_entry(i);
@@ -386,7 +379,7 @@ int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *conf)
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
+					goto _err;
 				}
 				continue;
 			}
@@ -394,11 +387,13 @@ int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *conf)
 				err = snd_config_get_string(n, &install);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
+					goto _err;
 				}
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
+		_err:
+			snd_config_delete(type);
 			return -EINVAL;
 		}
 	}
@@ -408,25 +403,30 @@ int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *conf)
 	}
 	if (!lib)
 		lib = ALSA_LIB;
-	if (args && snd_config_get_string(args, &str) >= 0) {
-		err = snd_config_search_alias(snd_config, "hook_args", str, &args);
-		if (err < 0) {
-			SNDERR("unknown hook_args %s", str);
-			return err;
-		}
-	}
 	h = dlopen(lib, RTLD_NOW);
+	if (h)
+		install_func = dlsym(h, install);
+	if (type)
+		snd_config_delete(type);
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
-	install_func = dlsym(h, install);
 	if (!install_func) {
 		SNDERR("symbol %s is not defined inside %s", install, lib);
 		dlclose(h);
 		return -ENXIO;
 	}
-	err = install_func(pcm, args);
+	if (args && snd_config_get_string(args, &str) >= 0) {
+		err = snd_config_search_definition(snd_config, "hook_args", str, &args);
+		if (err < 0) {
+			SNDERR("unknown hook_args %s", str);
+			return err;
+		}
+		err = install_func(pcm, args);
+		snd_config_delete(args);
+	} else
+		err = install_func(pcm, args);
 	if (err < 0)
 		return err;
 	return 0;
@@ -480,7 +480,17 @@ int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 		return 0;
 	snd_config_for_each(i, next, hooks) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		err = snd_pcm_hook_add_conf(*pcmp, n);
+		const char *str;
+		if (snd_config_get_string(n, &str) >= 0) {
+			err = snd_config_search_definition(snd_config, "pcm_hook", str, &n);
+			if (err < 0) {
+				SNDERR("unknown pcm_hook %s", str);
+				return err;
+			}
+			err = snd_pcm_hook_add_conf(*pcmp, n);
+			snd_config_delete(n);
+		} else
+			err = snd_pcm_hook_add_conf(*pcmp, n);
 		if (err < 0) {
 			snd_pcm_close(*pcmp);
 			return err;

@@ -34,9 +34,9 @@ int snd_config_search(snd_config_t *config, const char *key,
 		      snd_config_t **result);
 int snd_config_searchv(snd_config_t *config, 
 		       snd_config_t **result, ...);
-int snd_config_search_alias(snd_config_t *config,
-			    const char *base, const char *key,
-			    snd_config_t **result);
+int snd_config_search_definition(snd_config_t *config,
+				 const char *base, const char *key,
+				 snd_config_t **result);
 
 int snd_config_expand(snd_config_t *config, const char *args,
 		      void *private_data, snd_config_t **result);

@@ -1788,7 +1788,7 @@ static int _snd_config_expand(snd_config_t *src,
 	switch (pass) {
 	case SND_CONFIG_WALK_PASS_PRE:
 	{
-		if (strcmp(id, "args") == 0)
+		if (strcmp(id, "@args") == 0)
 			return 0;
 		err = snd_config_make_compound(dst, id, src->u.compound.join);
 		if (err < 0)
@@ -2439,7 +2439,7 @@ int snd_config_expand(snd_config_t *config, const char *args,
 {
 	int err;
 	snd_config_t *defs, *subs = NULL, *res;
-	err = snd_config_search(config, "args", &defs);
+	err = snd_config_search(config, "@args", &defs);
 	if (err < 0) {
 		err = snd_config_copy(&res, config);
 		if (err < 0)
@@ -2478,6 +2478,43 @@ int snd_config_expand(snd_config_t *config, const char *args,
 	return err;
 }
 	
+/**
+ * \brief Search a node inside a config tree using alias
+ * \param config Config node handle
+ * \param base Key base (or NULL)
+ * \param key Key suffix
+ * \param result Pointer to expanded found node
+ * \return 0 on success otherwise a negative error code
+ *
+ * First key is tried and if nothing is found is tried base.key.
+ * If the value found is a string this is recursively tried in the
+ * same way.
+ */
+int snd_config_search_definition(snd_config_t *config,
+				 const char *base, const char *name,
+				 snd_config_t **result)
+{
+	snd_config_t *conf;
+	char *key;
+	const char *args = strchr(name, ':');
+	int err;
+	if (args) {
+		args++;
+		key = alloca(args - name);
+		memcpy(key, name, args - name - 1);
+		key[args - name - 1] = '\0';
+	} else {
+		key = (char *) base;
+	} 
+	err = snd_config_search_alias(config, base, key, &conf);
+	if (err < 0)
+		return err;
+	err = snd_config_expand(conf, args, NULL, result);
+	if (err < 0)
+		return err;
+	
+}
+
 
 #if 0
 /* Not strictly needed, but useful to check for memory leaks */

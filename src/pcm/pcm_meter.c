@@ -663,29 +663,23 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 			 snd_config_t *);
 	void *h;
 	int err;
-	err = snd_config_get_string(conf, &str);
-	if (err >= 0) {
-		err = snd_config_search_alias(snd_config, "pcm_scope", str, &conf);
-		if (err < 0) {
-			SNDERR("unknown pcm_scope %s", str);
-			return err;
-		}
-	}
+	int to_free = 0;
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid type for scope %s", str);
-		return -EINVAL;
+		err = -EINVAL;
+		goto _err;
 	}
 	err = snd_config_search(conf, "type", &c);
 	if (err < 0) {
 		SNDERR("type is not defined");
-		return err;
+		goto _err;
 	}
 	err = snd_config_get_string(c, &str);
 	if (err < 0) {
 		SNDERR("Invalid type for %s", snd_config_get_id(c));
-		return err;
+		goto _err;
 	}
-	err = snd_config_search_alias(snd_config, "pcm_scope_type", str, &type_conf);
+	err = snd_config_search_definition(snd_config, "pcm_scope_type", str, &type_conf);
 	if (err >= 0) {
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
@@ -696,7 +690,7 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
+					goto _err1;
 				}
 				continue;
 			}
@@ -704,12 +698,13 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
+					goto _err1;
 				}
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
-			return -EINVAL;
+			err = -EINVAL;
+			goto _err1;
 		}
 	}
 	if (!open_name) {
@@ -721,15 +716,24 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 	h = dlopen(lib, RTLD_NOW);
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
-		return -ENOENT;
+		err = -ENOENT;
+		goto _err1;
 	}
 	open_func = dlsym(h, open_name);
+	if (type_conf)
+		snd_config_delete(type_conf);
 	if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
-		return -ENXIO;
+		goto _err;
 	}
 	return open_func(pcm, name, conf);
+ _err1:
+	snd_config_delete(type_conf);
+ _err:
+	if (to_free)
+		snd_config_delete(conf);
+	return err;
 }
 
 			
@@ -791,7 +795,17 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_for_each(i, next, scopes) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
-		err = snd_pcm_meter_add_scope_conf(*pcmp, id, n);
+		const char *str;
+		if (snd_config_get_string(n, &str) >= 0) {
+			err = snd_config_search_definition(snd_config, "pcm_scope", str, &n);
+			if (err < 0) {
+				SNDERR("unknown pcm_scope %s", str);
+				return err;
+			}
+			err = snd_pcm_meter_add_scope_conf(*pcmp, id, n);
+			snd_config_delete(n);
+		} else
+			err = snd_pcm_meter_add_scope_conf(*pcmp, id, n);
 		if (err < 0) {
 			snd_pcm_close(*pcmp);
 			return err;

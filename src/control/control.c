@@ -408,11 +408,11 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
-	err = snd_config_search_alias(snd_config, "ctl_type", str, &type_conf);
+	err = snd_config_search_definition(snd_config, "ctl_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
 			SNDERR("Invalid type for CTL type %s definition", str);
-			return -EINVAL;
+			goto _err;
 		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
@@ -423,7 +423,7 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 				err = snd_config_get_string(n, &lib);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
+					goto _err;
 				}
 				continue;
 			}
@@ -431,11 +431,13 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 				err = snd_config_get_string(n, &open_name);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
+					goto _err;
 				}
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
+		_err:
+			snd_config_delete(type_conf);
 			return -EINVAL;
 		}
 	}
@@ -446,11 +448,14 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 	if (!lib)
 		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
+	if (h)
+		open_func = dlsym(h, open_name);
+	if (type_conf)
+		snd_config_delete(type_conf);
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
-	open_func = dlsym(h, open_name);
 	if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
@@ -463,42 +468,9 @@ int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root, const char *name
 {
 	int err;
 	snd_config_t *ctl_conf;
-	char *base, *key;
-	const char *args = strchr(name, ':');
-
-	if (args) {
-		args++;
-		base = alloca(args - name);
-		memcpy(base, name, args - name - 1);
-		base[args - name - 1] = '\0';
-		key = strchr(base, '.');
-		if (key)
-			*key++ = '\0';
-	} else {
-		key = strchr(name, '.');
-		if (key) {
-			key++;
-			base = alloca(key - name);
-			memcpy(base, name, key - name - 1);
-			base[key - name - 1] = '\0';
-		} else
-			base = (char *) name;
-	}
-	if (key == NULL) {
-		key = base;
-		base = NULL;
-	}
-	err = snd_config_search_alias(root, base, key, &ctl_conf);
+	err = snd_config_search_definition(root, "ctl", name, &ctl_conf);
 	if (err < 0) {
-		(void)(base == NULL && (err = snd_config_search_alias(root, "ctl", key, &ctl_conf)));
-		if (err < 0) {
-			SNDERR("Unknown PCM %s", name);
-			return err;
-		}
-	}
-	err = snd_config_expand(ctl_conf, args, NULL, &ctl_conf);
-	if (err < 0) {
-		SNDERR("Could not expand configuration for %s: %s", name, snd_strerror(err));
+		SNDERR("Invalid CTL %s", name);
 		return err;
 	}
 	err = snd_ctl_open_conf(ctlp, name, ctl_conf, mode);

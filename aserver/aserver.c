@@ -975,7 +975,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	srvname = argv[optind];
-	err = snd_config_search_alias(snd_config, "server", srvname, &conf);
+	err = snd_config_search_definition(snd_config, "server", srvname, &conf);
 	if (err < 0) {
 		ERROR("Missing definition for server %s", srvname);
 		return 1;
