@@ -1,3 +1,5 @@
+
+#ifdef USE_PCM
 /*
  *  PCM timer layer
  */
@@ -50,7 +52,7 @@ void show_playback_status(snd_pcm_t *phandle)
 	printf("    Fragments      : %i\n", pstatus.fragments);
 	printf("    Fragment size  : %i\n", pstatus.fragment_size);
 }
-
+#endif
 /*
  *  Simple event sender
  */
@@ -58,8 +60,8 @@ void show_playback_status(snd_pcm_t *phandle)
 void event_sender_start_timer(snd_seq_t *handle, int client, int queue, snd_pcm_t *phandle)
 {
 	int err;
-	snd_seq_event_t ev;
 	
+#ifdef USE_PCM
 	if (phandle) {
 		snd_pcm_playback_info_t pinfo;
 		snd_seq_queue_timer_t qtimer;
@@ -78,16 +80,8 @@ void event_sender_start_timer(snd_seq_t *handle, int client, int queue, snd_pcm_
 			exit(0);
 		}
 	}	
-	bzero(&ev, sizeof(ev));
-	ev.source.queue = queue;
-	ev.source.client = client;
-	ev.source.port = 0;
-	ev.dest.queue = queue;
-	ev.dest.client = SND_SEQ_CLIENT_SYSTEM;
-	ev.dest.port = SND_SEQ_PORT_SYSTEM_TIMER;
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_REL;
-	ev.type = SND_SEQ_EVENT_START;
-	if ((err = snd_seq_event_output(handle, &ev))<0)
+#endif
+	if ((err = snd_seq_start_queue(handle, queue, NULL))<0)
 		fprintf(stderr, "Timer event output error: %s\n", snd_strerror(err));
 	/* ugly, but working */
 	while (snd_seq_flush_output(handle)>0)
@@ -119,7 +113,7 @@ void send_event(snd_seq_t *handle, int queue, int client, int port,
 	snd_seq_event_t ev;
 	
 	bzero(&ev, sizeof(ev));
-	ev.source.queue = ev.dest.queue = queue;
+	ev.queue = queue;
 	ev.source.client = ev.dest.client = client;
 	ev.source.port = ev.dest.port = port;
 	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
@@ -129,10 +123,11 @@ void send_event(snd_seq_t *handle, int queue, int client, int port,
 		fprintf(stderr, "Event output error: %s\n", snd_strerror(err));
 	ev.dest.client = sub->dest.client;
 	ev.dest.port = sub->dest.port;
-	ev.dest.channel = 0;
 	ev.type = SND_SEQ_EVENT_NOTE;
+	ev.data.note.channel = 0;
 	ev.data.note.note = 64 + (queue*2);
 	ev.data.note.velocity = 127;
+	ev.data.note.off_velocity = 127;
 	ev.data.note.duration = 500;	/* 0.5sec */
 	if ((err = snd_seq_event_output(handle, &ev))<0)
 		fprintf(stderr, "Event output error: %s\n", snd_strerror(err));
@@ -178,10 +173,8 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 	}
 
 	bzero(&sub, sizeof(sub));
-	sub.sender.queue = queue;
 	sub.sender.client = client;
 	sub.sender.port = port.port;
-	sub.dest.queue = queue;
 	sub.exclusive = 0;
 
 	for (max = 0; max < argc; max++) {
@@ -206,6 +199,7 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 
 	printf("Destonation client = %i, port = %i\n", sub.dest.client, sub.dest.port);
 
+#ifdef USE_PCM
 	if (pcm_flag) {
 		if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_PLAYBACK)) < 0) {
 			fprintf(stderr, "Playback open error: %s\n", snd_strerror(err));
@@ -220,6 +214,7 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 			exit(0);
 		}
 	}
+#endif
 	event_sender_start_timer(handle, client, queue, phandle);
 	
 	first = 1;
@@ -229,19 +224,23 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 		max = snd_seq_file_descriptor(handle);
 		FD_SET(snd_seq_file_descriptor(handle), &out);
 		FD_SET(snd_seq_file_descriptor(handle), &in);
+#ifdef USE_PCM
 		if (phandle) {
 			if (snd_pcm_file_descriptor(phandle) > max)
 				max = snd_pcm_file_descriptor(phandle);
 			FD_SET(snd_pcm_file_descriptor(phandle), &out);
 		}
+#endif
 		if (select(max + 1, &in, &out, NULL, NULL) < 0)
 			break;
+#ifdef USE_PCM
 		if (phandle && FD_ISSET(snd_pcm_file_descriptor(phandle), &out)) {
 			if (snd_pcm_write(phandle, pbuf, pfragment_size) != pfragment_size) {
 				fprintf(stderr, "Playback write error!!\n");
 				exit(0);
 			}
 		}
+#endif
 		if (FD_ISSET(snd_seq_file_descriptor(handle), &out)) {
 			if (first) {
 				send_event(handle, queue, client, port.port, &sub, &time);

@@ -287,22 +287,20 @@ int decode_event(snd_seq_event_t * ev)
 			       (int)ev->time.real.tv_nsec);
 			break;
 	}
-	printf("\n%sSource = %d.%d.%d.%d, dest = %d.%d.%d.%d\n",
+	printf("\n%sSource = %d.%d, dest = %d.%d, queue = %d\n",
 	       space,
-	       ev->source.queue,
 	       ev->source.client,
 	       ev->source.port,
-	       ev->source.channel,
-	       ev->dest.queue,
 	       ev->dest.client,
 	       ev->dest.port,
-	       ev->dest.channel);
+	       ev->queue);
 
 	printf("%sEvent = %s", space, event_names[ev->type]);
 	/* decode actual event data... */
 	switch (ev->type) {
 		case SND_SEQ_EVENT_NOTE:
-			printf("; note=%d, velocity=%d, duration=%d\n",
+			printf("; ch=%d, note=%d, velocity=%d, duration=%d\n",
+			       ev->data.note.channel,
 			       ev->data.note.note,
 			       ev->data.note.velocity,
 			       ev->data.note.duration);
@@ -310,25 +308,31 @@ int decode_event(snd_seq_event_t * ev)
 
 		case SND_SEQ_EVENT_NOTEON:
 		case SND_SEQ_EVENT_NOTEOFF:
-			printf("; note=%d, velocity=%d\n",
+		case SND_SEQ_EVENT_KEYPRESS:
+			printf("; ch=%d, note=%d, velocity=%d\n",
+			       ev->data.note.channel,
 			       ev->data.note.note,
 			       ev->data.note.velocity);
 			break;
 		
-		case SND_SEQ_EVENT_KEYPRESS:
 		case SND_SEQ_EVENT_CONTROLLER:
-			printf("; param=%i, value=%i\n",
-				ev->data.control.param,
-				ev->data.control.value);
+			printf("; ch=%d, param=%i, value=%i\n",
+			       ev->data.control.channel,
+			       ev->data.control.param,
+			       ev->data.control.value);
 			break;
 
 		case SND_SEQ_EVENT_PGMCHANGE:
-			printf("; program=%i\n", ev->data.control.value);
+			printf("; ch=%d, program=%i\n",
+			       ev->data.control.channel,
+			       ev->data.control.value);
 			break;
 			
 		case SND_SEQ_EVENT_CHANPRESS:
 		case SND_SEQ_EVENT_PITCHBEND:
-			printf("; value=%i\n", ev->data.control.value);
+			printf("; ch=%d, value=%i\n",
+			       ev->data.control.channel,
+			       ev->data.control.value);
 			break;
 			
 		case SND_SEQ_EVENT_SYSEX:
@@ -353,10 +357,10 @@ int decode_event(snd_seq_event_t * ev)
 		case SND_SEQ_EVENT_START:
 		case SND_SEQ_EVENT_CONTINUE:
 		case SND_SEQ_EVENT_STOP:
-			printf("; queue = %i, client = %i\n", ev->data.addr.queue, ev->data.addr.client);
+			printf("; queue = %i\n", ev->data.queue.queue);
 			break;
 
-		case SND_SEQ_EVENT_HEARTBEAT:
+		case SND_SEQ_EVENT_SENSING:
 			printf("\n");
 			break;
 
@@ -402,18 +406,8 @@ int decode_event(snd_seq_event_t * ev)
 void event_decoder_start_timer(snd_seq_t *handle, int queue, int client, int port)
 {
 	int err;
-	snd_seq_event_t ev;
-	
-	bzero(&ev, sizeof(ev));
-	ev.source.queue = queue;
-	ev.source.client = client;
-	ev.source.port = 0;
-	ev.dest.queue = queue;
-	ev.dest.client = SND_SEQ_CLIENT_SYSTEM;
-	ev.dest.port = SND_SEQ_PORT_SYSTEM_TIMER;
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_REL;
-	ev.type = SND_SEQ_EVENT_START;
-	if ((err = snd_seq_event_output(handle, &ev))<0)
+
+	if ((err = snd_seq_start_queue(handle, queue, NULL))<0)
 		fprintf(stderr, "Timer event output error: %s\n", snd_strerror(err));
 	while (snd_seq_flush_output(handle)>0)
 		sleep(1);
@@ -442,7 +436,7 @@ void event_decoder(snd_seq_t *handle, int argc, char *argv[])
 		fprintf(stderr, "Cannot set nonblock mode: %s\n", snd_strerror(err));
 	bzero(&port, sizeof(port));
 	strcpy(port.name, "Input");
-	port.capability = SND_SEQ_PORT_CAP_WRITE;
+	port.capability = SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_READ; 
 	if ((err = snd_seq_create_port(handle, &port)) < 0) {
 		fprintf(stderr, "Cannot create input port: %s\n", snd_strerror(err));
 		return;
@@ -450,10 +444,8 @@ void event_decoder(snd_seq_t *handle, int argc, char *argv[])
 	event_decoder_start_timer(handle, queue, client, port.port);
 
 	bzero(&sub, sizeof(sub));
-	sub.sender.queue = queue;
 	sub.sender.client = SND_SEQ_CLIENT_SYSTEM;
 	sub.sender.port = SND_SEQ_PORT_SYSTEM_ANNOUNCE;
-	sub.dest.queue = queue;
 	sub.dest.client = client;
 	sub.dest.port = port.port;
 	sub.exclusive = 0;

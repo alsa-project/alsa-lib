@@ -151,6 +151,8 @@ int main(int argc, char *argv[])
 		{"version", 0, NULL, HELPID_VERSION},
 		{NULL, 0, NULL, 0},
         };
+        
+        morehelp = 0;
 	
 	while (1) {
 		int c;
@@ -193,6 +195,7 @@ int main(int argc, char *argv[])
 	}
 	set_name(handle);
 	system_info(handle);
+
         if (!strcmp(argv[optind], "system")) {
 		show_system_info(handle);
 	} else if (!strcmp(argv[optind], "queue")) {

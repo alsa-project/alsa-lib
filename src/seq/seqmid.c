@@ -35,12 +35,12 @@ void snd_seq_ev_set_direct(snd_seq_event_t *ev)
 {
 	ev->flags &= ~SND_SEQ_DEST_MASK;
 	ev->flags |= SND_SEQ_DEST_DIRECT;
-	ev->dest.queue = SND_SEQ_ADDRESS_UNKNOWN; /* XXX */
+	ev->queue = SND_SEQ_ADDRESS_UNKNOWN; /* XXX */
 }
 
 /* queued on tick */
 void snd_seq_ev_schedule_tick(snd_seq_event_t *ev, int q, int relative,
-			      unsigned long tick)
+			      snd_seq_tick_time_t tick)
 {
 	ev->flags &= ~(SND_SEQ_DEST_MASK | SND_SEQ_TIME_STAMP_MASK |
 		       SND_SEQ_TIME_MODE_MASK);
@@ -85,11 +85,21 @@ void snd_seq_ev_set_variable(snd_seq_event_t *ev, int len, void *ptr)
 	ev->data.ext.ptr = ptr;
 }
 
+
+/* use or unuse a queue */
+int snd_seq_use_queue(snd_seq_t *seq, int q, int use)
+{
+	snd_seq_queue_client_t info;
+
+	memset(&info, 0, sizeof(info));
+	info.used = use;
+	return snd_seq_set_queue_client(seq, q, &info);
+}
+
+
 /* queue controls - start/stop/continue */
 /* if ev is NULL, send events immediately.
-   otherwise, duplicate the given event data.
-   destination is overwritten to Timer port (0:0)
-   */
+   otherwise, duplicate the given event data. */
 int snd_seq_control_queue(snd_seq_t *seq, int q, int type, int value, snd_seq_event_t *ev)
 {
 	snd_seq_event_t tmpev;
@@ -98,22 +108,35 @@ int snd_seq_control_queue(snd_seq_t *seq, int q, int type, int value, snd_seq_ev
 		ev = &tmpev;
 		snd_seq_ev_set_direct(ev);
 	}
-
-	ev->type = type;
-	snd_seq_ev_set_dest(ev, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_TIMER);
-#if 1
-	/* new type */
-	ev->data.queue.addr.queue = q;
-	ev->data.queue.value = value;
-#else
-	/* old type */
-	ev->dest.queue = q;
-	ev->data.control.value = value;
-#endif
-
+	snd_seq_ev_set_queue_control(ev, type, q, value);
 	return snd_seq_event_output(seq, ev);
 }
 
+/* reset queue position:
+ * new values of both real-time and tick values must be given.
+ */
+int snd_seq_setpos_queue(snd_seq_t *seq, int q, snd_seq_timestamp_t *rtime, snd_seq_event_t *ev)
+{
+	snd_seq_event_t tmpev;
+	int result;
+
+	if (ev == NULL) {
+		snd_seq_ev_clear(&tmpev);
+		ev = &tmpev;
+		snd_seq_ev_set_direct(ev);
+	}
+	/* stop the timer */
+	result = snd_seq_stop_queue(seq, q, ev);
+	/* reset queue position */
+	snd_seq_ev_set_queue_pos_real(ev, q, &rtime->real);
+	result = snd_seq_event_output(seq, ev);
+	snd_seq_ev_set_queue_pos_tick(ev, q, rtime->tick);
+	result = snd_seq_event_output(seq, ev);
+	/* continue the timer */
+	result = snd_seq_continue_queue(seq, q, ev);
+
+	return result;
+}
 
 /* create a port - simple version
  * return the port number
@@ -295,7 +318,7 @@ int snd_seq_set_client_pool_input(snd_seq_t *seq, int size)
 
 /*
  * reset client input/output pool
- * use REMOVE_EVENTS ioctl instead of RESET_POOL
+ * use REMOVE_EVENTS ioctl
  */
 int snd_seq_reset_pool_output(snd_seq_t *seq)
 {

@@ -438,7 +438,7 @@ static void wait_start(void)
 				printf("wait_start got event. type=%d, flags=%d\n",
 				       input_event->type, input_event->flags);
 			if (input_event->type == SND_SEQ_EVENT_START &&
-			    input_event->data.addr.queue == dest_queue) {
+			    input_event->data.queue.queue == dest_queue) {
 				snd_seq_free_event(input_event);
 				break;
 			}
@@ -458,7 +458,7 @@ static void usage(void)
 	fprintf(stderr, "  -v: verbose mode\n");
 	fprintf(stderr, "  -a client:port : set destination address (default=%d:%d)\n",
 		DEST_CLIENT_NUMBER, DEST_PORT_NUMBER);
-	fprintf(stderr, "  -s: slave mode (allow external clock synchronisation)\n");
+	fprintf(stderr, "  -s queue: slave mode (allow external clock synchronisation)\n");
 }
 
 /* parse destination address (-a option) */
@@ -476,7 +476,7 @@ int main(int argc, char *argv[])
 	int tmp;
 	int c;
 
-	while ((c = getopt(argc, argv, "sa:v")) != -1) {
+	while ((c = getopt(argc, argv, "s:a:v")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose++;
@@ -486,6 +486,11 @@ int main(int argc, char *argv[])
 			break;
 		case 's':
 			slave = 1;
+			dest_queue = atoi(optarg);
+			if (dest_queue < 0) {
+				fprintf(stderr, "invalid queue number %d\n", dest_queue);
+				exit(1);
+			}
 			break;
 		default:
 			usage();
@@ -525,7 +530,7 @@ int main(int argc, char *argv[])
 	/* if running in slave mode also listen for START event */
 	snd_seq_set_client_event_filter(seq_handle, SND_SEQ_EVENT_ECHO);
 	if (slave)
-		snd_seq_set_client_event_filter(seq_handle, SND_SEQ_EVENT_ECHO);
+		snd_seq_set_client_event_filter(seq_handle, SND_SEQ_EVENT_START);
 	snd_seq_set_client_name(seq_handle, "MIDI file player");
 
 	/* create port */
@@ -539,10 +544,14 @@ int main(int argc, char *argv[])
 	}
 	
 	/* setup queue */
-	dest_queue = snd_seq_alloc_queue(seq_handle);
-	if (dest_queue < 0) {
-		perror("alloc queue");
-		exit(1);
+	if (slave) {
+		snd_seq_use_queue(seq_handle, dest_queue, 1);
+	} else {
+		dest_queue = snd_seq_alloc_queue(seq_handle);
+		if (dest_queue < 0) {
+			perror("alloc queue");
+			exit(1);
+		}
 	}
 
 	/* setup subscriber */

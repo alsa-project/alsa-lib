@@ -31,7 +31,7 @@
 
 #define SND_FILE_SEQ		"/dev/snd/seq"
 #define SND_FILE_ALOADSEQ	"/dev/aloadSEQ"
-#define SND_SEQ_VERSION_MAX	SND_PROTOCOL_VERSION( 0, 0, 1 )
+#define SND_SEQ_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
 #define SND_SEQ_OBUF_SIZE	(16*1024)	/* should be configurable */
 #define SND_SEQ_IBUF_SIZE	(4*1024)	/* should be configurable */
 
@@ -721,7 +721,10 @@ static int remove_match(snd_seq_remove_events_t *info,
 			return 0;
 	}
 	if (info->remove_mode & SND_SEQ_REMOVE_DEST_CHANNEL) {
-		if (ev->dest.channel != info->dest.channel)
+		if (! snd_seq_ev_is_channel_type(ev))
+			return 0;
+		/* data.note.channel and data.control.channel are identical */
+		if (ev->data.note.channel != info->channel)
 			return 0;
 	}
 	if (info->remove_mode & SND_SEQ_REMOVE_TIME_AFTER) {

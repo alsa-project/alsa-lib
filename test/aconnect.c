@@ -78,10 +78,16 @@ static void list_each_subs(snd_seq_t *seq, snd_seq_query_subs_t *subs, int type,
 	subs->index = 0;
 	while (snd_seq_query_port_subscribers(seq, subs) >= 0) {
 		if (subs->index == 0)
-			printf("\t%s: %d:%d:%d", msg,
-			       subs->addr.queue, subs->addr.client, subs->addr.port);
+			printf("\t%s: ", msg);
 		else
-			printf(", %d:%d:%d", subs->addr.queue, subs->addr.client, subs->addr.port);
+			printf(", ");
+		printf("%d:%d", subs->addr.client, subs->addr.port);
+		if (subs->exclusive)
+			printf("[ex]");
+		if (subs->convert_time)
+			printf("[%s:%d]",
+			       (subs->realtime ? "real" : "tick"),
+			       subs->queue);
 		subs->index++;
 	}
 	if (subs->index)
@@ -228,7 +234,7 @@ int main(int argc, char **argv)
 	memset(&subs, 0, sizeof(subs));
 	parse_address(&subs.sender, argv[optind]);
 	parse_address(&subs.dest, argv[optind + 1]);
-	subs.sender.queue = subs.dest.queue = queue;
+	subs.queue = queue;
 	subs.exclusive = 0;
 	subs.convert_time = 0;
 	subs.realtime = 0;
