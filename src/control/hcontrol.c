@@ -185,7 +185,7 @@ static int snd_hctl_compare_mixer_priority_lookup(const char **name, const char 
 	return NOT_FOUND;
 }
 
-static int get_compare_weight(const char *name)
+static int get_compare_weight(const snd_ctl_elem_id_t *id)
 {
 	static const char *names[] = {
 		"Master",
@@ -204,6 +204,7 @@ static int get_compare_weight(const char *name)
 		"Mic",
 		"Phone",
 		"Video",
+		"Zoom Video",
 		"PC Speaker",
 		"Aux",
 		"Mono",
@@ -243,13 +244,26 @@ static int get_compare_weight(const char *name)
 		"Center",
 		NULL
 	};
+	const char *name = id->name, *name1;
 	int res, res1;
 	
 	if ((res = snd_hctl_compare_mixer_priority_lookup((const char **)&name, names, 1000000)) == NOT_FOUND)
 		return NOT_FOUND;
-	if ((res1 = snd_hctl_compare_mixer_priority_lookup((const char **)&name, names1, 1000)) == NOT_FOUND)
+	if (*name == '\0')
 		return res;
-	res += res1;
+	for (name1 = name; *name1 != '\0'; name1++);
+	for (name1--; name1 != name && *name1 != ' '; name1--);
+	while (name1 != name && *name1 == ' ')
+		name1--;
+	if (name1 != name) {
+		for (; name1 != name && *name1 != ' '; name1--);
+		name = name1;
+		if ((res1 = snd_hctl_compare_mixer_priority_lookup((const char **)&name, names1, 1000)) == NOT_FOUND)
+			return res;
+		res += res1;
+	} else {
+		name = name1;
+	}
 	if ((res1 = snd_hctl_compare_mixer_priority_lookup((const char **)&name, names2, 1)) == NOT_FOUND)
 		return res;
 	return res + res1;
@@ -264,7 +278,7 @@ static int _snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id, in
 	assert(hctl && id);
 	assert(hctl->compare);
 	el.id = *id;
-	el.compare_weight = get_compare_weight(id->name);
+	el.compare_weight = get_compare_weight(id);
 	l = 0;
 	u = hctl->count;
 	while (l < u) {
@@ -285,8 +299,7 @@ static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 {
 	int dir;
 	int idx; 
-	if (elem->id.iface == SNDRV_CTL_ELEM_IFACE_MIXER)
-		elem->compare_weight = get_compare_weight(elem->id.name);
+	elem->compare_weight = get_compare_weight(&elem->id);
 	if (hctl->count == hctl->alloc) {
 		snd_hctl_elem_t **h;
 		hctl->alloc += 32;
@@ -520,8 +533,7 @@ int snd_hctl_load(snd_hctl_t *hctl)
 		}
 		elem->id = list.pids[idx];
 		elem->hctl = hctl;
-		if (elem->id.iface == SNDRV_CTL_ELEM_IFACE_MIXER)
-			elem->compare_weight = get_compare_weight(elem->id.name);
+		elem->compare_weight = get_compare_weight(&elem->id);
 		hctl->pelems[idx] = elem;
 		list_add_tail(&elem->list, &hctl->elems);
 		hctl->count++;
