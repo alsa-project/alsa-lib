@@ -277,10 +277,10 @@ int snd_mixer_element_build(snd_mixer_t *handle, snd_mixer_element_t *element)
 			return err;
 		break;
 	case SND_MIXER_ETYPE_MUX1:
-		element->data.mux1.output_size = element->data.mux1.output_over;
-		element->data.mux1.output = element->data.mux1.output_over = 0;
-		element->data.mux1.poutput = (snd_mixer_eid_t *)malloc(element->data.mux1.output_size * sizeof(snd_mixer_eid_t));
-		if (!element->data.mux1.poutput)
+		element->data.mux1.sel_size = element->data.mux1.sel_over;
+		element->data.mux1.sel = element->data.mux1.sel_over = 0;
+		element->data.mux1.psel = (snd_mixer_eid_t *)malloc(element->data.mux1.sel_size * sizeof(snd_mixer_eid_t));
+		if (!element->data.mux1.psel)
 			return -ENOMEM;
 		if ((err = snd_mixer_element_read(handle, element)) < 0)
 			return err;
@@ -330,7 +330,7 @@ int snd_mixer_element_free(snd_mixer_element_t *element)
 		safe_free((void **)&element->data.accu3.pvoices);
 		break;
 	case SND_MIXER_ETYPE_MUX1:
-		safe_free((void **)&element->data.mux1.poutput);
+		safe_free((void **)&element->data.mux1.psel);
 		break;
 	case SND_MIXER_ETYPE_PRE_EFFECT1:
 		if (element->data.peffect1.item < 0)

@@ -32,7 +32,7 @@
 #include <search.h>
 
 #define SND_FILE_MIXER		"/dev/snd/mixerC%iD%i"
-#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
+#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 1)
 
 struct snd_mixer {
 	int card;
