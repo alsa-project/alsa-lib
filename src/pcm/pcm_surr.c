@@ -95,7 +95,7 @@ static int snd_pcm_surround_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t 
 		info->channel += 2;
 		return err;
 	}
-	if (surr->pcms > 2 && (info->channel == 3 || info->channel == 4)) {
+	if (surr->pcms > 2 && (info->channel == 4 || info->channel == 5)) {
 		info->channel -= 4;
 		err = snd_pcm_channel_info(surr->pcm[2], info);
 		info->channel += 4;
@@ -169,8 +169,12 @@ static snd_pcm_sframes_t snd_pcm_surround_writei(snd_pcm_t *pcm, const void *buf
 	snd_pcm_surround_t *surr = pcm->private_data;
 	if (surr->pcms == 1)
 		return snd_pcm_writei(pcm, buffer, size);
-	/* TODO: convert interleaved stream to two or three stereo streams */
-	return -EIO;
+	if (pcm->running_areas == NULL) {
+		int err;
+		if ((err = snd_pcm_mmap(pcm)) < 0)
+			return err;
+	}
+	return snd_pcm_mmap_writei(pcm, buffer, size);
 }
 
 static snd_pcm_sframes_t snd_pcm_surround_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
@@ -178,7 +182,7 @@ static snd_pcm_sframes_t snd_pcm_surround_writen(snd_pcm_t *pcm, void **bufs, sn
 	int i;
 	snd_pcm_sframes_t res = -1, res1;
 	snd_pcm_surround_t *surr = pcm->private_data;
-	for (i = 0; i < surr->pcms; i++) {
+	for (i = 0; i < surr->pcms; i++, bufs += 2) {
 		res1 = snd_pcm_writen(pcm, bufs, size);
 		if (res1 < 0)
 			return res1;
@@ -285,6 +289,8 @@ static void snd_pcm_surround_interval_channels_fixup(snd_pcm_surround_t *surr,
 static int snd_pcm_surround_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_surround_t *surr = pcm->private_data;
+	snd_pcm_access_mask_t *access_mask;
+	snd_pcm_access_mask_t *access_mask1;
 	int i, err;
 
 	err = snd_pcm_surround_interval_channels(surr, params, 1);
@@ -292,20 +298,29 @@ static int snd_pcm_surround_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
 		return err;
 	if (surr->pcms == 1)
 		return snd_pcm_hw_refine(surr->pcm[0], params);
+	access_mask = (snd_pcm_access_mask_t *)snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	snd_pcm_access_mask_alloca(&access_mask1);
+	snd_pcm_access_mask_copy(access_mask1, access_mask);
+	snd_pcm_access_mask_reset(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (snd_pcm_access_mask_test(access_mask1, SND_PCM_ACCESS_RW_INTERLEAVED))
+		snd_pcm_access_mask_set(access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 	for (i = 0; i < surr->pcms; i++) {
 		err = snd_pcm_hw_refine(surr->pcm[i], params);
-		if (err < 0) {
-			snd_pcm_surround_interval_channels_fixup(surr, params);
-			return err;
-		}
+		if (err < 0)
+			goto __error;
 	}
+	err = 0;
+      __error:
+	snd_pcm_access_mask_copy(access_mask, access_mask1);
 	snd_pcm_surround_interval_channels_fixup(surr, params);
-	return 0;
+	return err;
 }
 
 static int snd_pcm_surround_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_surround_t *surr = pcm->private_data;
+	snd_pcm_access_mask_t *access_mask;
+	snd_pcm_access_mask_t *access_mask1;
 	int i, err;
 	
 	err = snd_pcm_surround_interval_channels(surr, params, 0);
@@ -313,18 +328,26 @@ static int snd_pcm_surround_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * para
 		return err;
 	if (surr->pcms == 1)
 		return snd_pcm_hw_params(surr->pcm[0], params);
+	access_mask = (snd_pcm_access_mask_t *)snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	snd_pcm_access_mask_alloca(&access_mask1);
+	snd_pcm_access_mask_copy(access_mask1, access_mask);
+	snd_pcm_access_mask_reset(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (snd_pcm_access_mask_test(access_mask1, SND_PCM_ACCESS_RW_INTERLEAVED))
+		snd_pcm_access_mask_set(access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 	for (i = 0; i < surr->pcms; i++) {
 		err = snd_pcm_hw_params(surr->pcm[i], params);
 		if (err < 0) {
+			snd_pcm_access_mask_copy(access_mask, access_mask1);
 			snd_pcm_surround_interval_channels_fixup(surr, params);
 			return err;
 		}
 	}
+	snd_pcm_access_mask_copy(access_mask, access_mask1);
 	snd_pcm_surround_interval_channels_fixup(surr, params);
 	surr->linked[0] = 0;
 	for (i = 1; i < surr->pcms; i++) {
-		err = snd_pcm_link(surr->pcm[0], surr->pcm[1]);
-		if ((surr->linked[1] = (err >= 0)) == 0)
+		err = snd_pcm_link(surr->pcm[0], surr->pcm[i]);
+		if ((surr->linked[i] = (err >= 0)) == 0)
 			return err;
 	}
 	return 0;
@@ -528,6 +551,7 @@ int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,
 	pcm->poll_fd = surr->pcm[0]->poll_fd;
 	pcm->hw_ptr = surr->pcm[0]->hw_ptr;
 	pcm->appl_ptr = surr->pcm[0]->appl_ptr;
+	
 	*pcmp = pcm;
 
 	return 0;
