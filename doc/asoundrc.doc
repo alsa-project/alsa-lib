@@ -17,6 +17,10 @@ server.NAME {
 pcm_type.NAME {
   [lib STR]		# Library file (default libasound.so)
   [open	STR]		# Open function (default _snd_pcm_NAME_open)
+  [redirect {		# Redirect this PCM to an another
+     [filename STR]	# Configuration file specification
+     name STR		# PCM name specification
+  }]
 }
 
 # PCM scope type definition
@@ -177,6 +181,7 @@ pcm.NAME {
       channel INT	# Slave channel
     }
   }
+  [master INT]		# Define the master slave
 
 
   type file		# File plugin

@@ -731,6 +731,7 @@ typedef struct _snd_pcm_hook snd_pcm_hook_t;
 typedef int (*snd_pcm_hook_func_t)(snd_pcm_hook_t *hook);
 snd_pcm_t *snd_pcm_hook_get_pcm(snd_pcm_hook_t *hook);
 void *snd_pcm_hook_get_private(snd_pcm_hook_t *hook);
+void snd_pcm_hook_set_private(snd_pcm_hook_t *hook, void *private_data);
 int snd_pcm_hook_add(snd_pcm_hook_t **hookp, snd_pcm_t *pcm,
 		     snd_pcm_hook_type_t type,
 		     snd_pcm_hook_func_t func, void *private_data);

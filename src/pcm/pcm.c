@@ -912,7 +912,7 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
 }
 
 static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
-			     snd_config_t *pcm_conf,
+			     snd_config_t *root, snd_config_t *pcm_conf,
 			     snd_pcm_stream_t stream, int mode)
 {
 	const char *str;
@@ -921,7 +921,8 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
-	int (*open_func)(snd_pcm_t **, const char *, snd_config_t *, 
+	int (*open_func)(snd_pcm_t **, const char *, 
+			 snd_config_t *, snd_config_t *, 
 			 snd_pcm_stream_t, int);
 	void *h;
 	if (snd_config_get_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND) {
@@ -989,7 +990,7 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		dlclose(h);
 		return -ENXIO;
 	}
-	err = open_func(pcmp, name, pcm_conf, stream, mode);
+	err = open_func(pcmp, name, root, pcm_conf, stream, mode);
 	if (err < 0)
 		return err;
 	return 0;
@@ -1057,7 +1058,7 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 			snd_config_delete(tmp_conf);
 		return err;
 	}
-	err = snd_pcm_open_conf(pcmp, name, pcm_conf, stream, mode);
+	err = snd_pcm_open_conf(pcmp, name, root, pcm_conf, stream, mode);
 	if (args)
 		snd_config_delete(pcm_conf);
 	return err;
@@ -1083,13 +1084,26 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 }
 
 #ifndef DOC_HIDDEN
-int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *conf,
-		       snd_pcm_stream_t stream, int mode)
+int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root, snd_config_t *conf,
+		       const char *args, snd_pcm_stream_t stream, int mode)
 {
 	const char *str;
-	if (snd_config_get_string(conf, &str) >= 0)
-		return snd_pcm_open_noupdate(pcmp, snd_config, str, stream, mode);
-	return snd_pcm_open_conf(pcmp, NULL, conf, stream, mode);
+	if (snd_config_get_string(conf, &str) >= 0) {
+		char *tmp;
+		int err;
+		if (args == NULL)
+			return snd_pcm_open_noupdate(pcmp, root, str, stream, mode);
+		tmp = malloc(strlen(str) + 1 + strlen(args) + 1);
+		if (tmp == NULL)
+			return -ENOMEM;
+		strcpy(tmp, str);
+		strcat(tmp, ":");
+		strcat(tmp, args);
+		err = snd_pcm_open_noupdate(pcmp, root, tmp, stream, mode);
+		free(tmp);
+		return err;
+	}
+	return snd_pcm_open_conf(pcmp, NULL, root, conf, stream, mode);
 }
 #endif
 
@@ -4304,7 +4318,8 @@ static const char *names[SND_PCM_HW_PARAM_LAST + 1] = {
 	[SND_PCM_HW_PARAM_BUFFER_TIME] = "buffer_time"
 };
 
-int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf, 
+int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
+		       snd_config_t **pcm_conf, const char **pcm_args,
 		       unsigned int count, ...)
 {
 	snd_config_iterator_t i, next;
@@ -4319,12 +4334,45 @@ int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf,
 	int pcm_valid = 0;
 	int err;
 	va_list args;
+	assert(root);
+	assert(conf);
+	assert(pcm_conf);
 	if (snd_config_get_string(conf, &str) >= 0) {
-		err = snd_config_search_alias(snd_config, "pcm_slave", str, &conf);
-		if (err < 0) {
-			SNDERR("unknown pcm_slave %s", str);
-			return err;
+		char *key;
+		const char *args = strchr(str, ':');
+		char *base;
+		if (args) {
+			args++;
+			base = alloca(args - str);
+			memcpy(base, str, args - str - 1);
+			base[args - str - 1] = '\0';
+			key = strchr(base, '.');
+			if (key)
+				*key++ = '\0';
+		} else {
+			key = strchr(str, '.');
+			if (key) {
+				key++;
+				base = alloca(key - str);
+				memcpy(base, str, key - str - 1);
+				base[key - str - 1] = '\0';
+			} else
+				base = (char *) str;
 		}
+		if (key == NULL) {
+			key = base;
+			base = NULL;
+		}
+		err = snd_config_search_alias(root, base, key, &conf);
+		if (err < 0) {
+			(void)(base == NULL && (err = snd_config_search_alias(root, "pcm_slave", key, &conf)));
+			if (err < 0) {
+				SNDERR("unknown pcm_slave %s", str);
+				return err;
+			}
+		}
+		if (pcm_args)
+			*pcm_args = args;
 	}
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid slave definition");
@@ -4371,7 +4419,7 @@ int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf,
 					return -EINVAL;
 				}
 				*(snd_pcm_format_t*)fields[k].ptr = f;
-					break;
+				break;
 			}
 			default:
 				err = snd_config_get_integer(n, &v);
@@ -4386,7 +4434,7 @@ int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf,
 		if (k < count)
 			continue;
 		SNDERR("Unknown field %s", id);
-		return -EINVAL;
+		// return -EINVAL;
 	}
 	if (!pcm_valid) {
 		SNDERR("missing field pcm");

@@ -527,11 +527,11 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int orde
 				       snd_pcm_hw_strategy_simple_choices_list_t *choices);
 #endif
 
-int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf,
-		       unsigned int count, ...);
+int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf, snd_config_t **pcm_conf,
+		       const char **args, unsigned int count, ...);
 
-int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *conf,
-		       snd_pcm_stream_t stream, int mode);
+int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root, snd_config_t *conf,
+		       const char *args, snd_pcm_stream_t stream, int mode);
 int snd_pcm_conf_generic_id(const char *id);
 
 #define SND_PCM_HW_PARBIT_ACCESS	(1U << SND_PCM_HW_PARAM_ACCESS)
@@ -575,5 +575,3 @@ int snd_pcm_conf_generic_id(const char *id);
 	 (1U << SND_PCM_FORMAT_S32_BE) | \
 	 (1U << SND_PCM_FORMAT_U32_LE) | \
 	 (1U << SND_PCM_FORMAT_U32_BE))
-
-int safe_strtol(const char *str, long *val);

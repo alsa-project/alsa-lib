@@ -659,7 +659,8 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, in
 	return 0;
 }
 
-int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
+int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
+		     snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		     snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;

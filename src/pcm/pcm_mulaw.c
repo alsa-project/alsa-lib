@@ -436,14 +436,15 @@ int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 }
 
 int _snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name,
-			 snd_config_t *conf, 
-			 snd_pcm_stream_t stream, int mode)
+			snd_config_t *root, snd_config_t *conf, 
+			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
 	int err;
 	snd_pcm_t *spcm;
 	snd_config_t *slave = NULL, *sconf;
 	snd_pcm_format_t sformat;
+	const char *args;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
@@ -460,7 +461,7 @@ int _snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(slave, &sconf, 1,
+	err = snd_pcm_slave_conf(root, slave, &sconf, &args, 1,
 				 SND_PCM_HW_PARAM_FORMAT, 1, &sformat);
 	if (err < 0)
 		return err;
@@ -469,7 +470,7 @@ int _snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("invalid slave format");
 		return -EINVAL;
 	}
-	err = snd_pcm_open_slave(&spcm, sconf, stream, mode);
+	err = snd_pcm_open_slave(&spcm, root, sconf, args, stream, mode);
 	if (err < 0)
 		return err;
 	err = snd_pcm_mulaw_open(pcmp, name, sformat, spcm, 1);

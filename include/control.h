@@ -246,12 +246,8 @@ typedef enum _snd_ctl_type {
 /** CTL handle */
 typedef struct _snd_ctl snd_ctl_t;
 
-/** SCTL replace type */
-typedef struct {
-	const char *key;
-	const char *old_value;
-	const char *new_value;
-} snd_sctl_replace_t;
+/** Don't destroy the ctl handle when close */
+#define SND_SCTL_NOFREE			0x0001
 
 /** SCTL type */
 typedef struct _snd_sctl snd_sctl_t;
@@ -269,8 +265,12 @@ int snd_card_get_longname(int card, char **name);
 int snd_card_type_string_to_enum(const char *strid, snd_card_type_t *enumid);
 int snd_card_type_enum_to_string(snd_card_type_t enumid, char **strid);
 
-int snd_sctl_build(snd_ctl_t *ctl, snd_sctl_t **setup, snd_config_t *config, snd_sctl_replace_t *replace);
-int snd_sctl_free(snd_ctl_t *ctl, snd_sctl_t *setup);
+int snd_sctl_build(snd_sctl_t **ctl, snd_ctl_t *handle, snd_config_t *config,
+		   snd_config_string_replace_callback_t *callback,
+		   void *private_data, int mode);
+int snd_sctl_free(snd_sctl_t *handle);
+int snd_sctl_install(snd_sctl_t *handle);
+int snd_sctl_remove(snd_sctl_t *handle);
 
 int snd_ctl_open(snd_ctl_t **ctl, const char *name, int mode);
 int snd_ctl_close(snd_ctl_t *ctl);

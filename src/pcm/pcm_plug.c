@@ -711,7 +711,7 @@ int snd_pcm_plug_open_hw(snd_pcm_t **pcmp, const char *name, int card, int devic
 #define MAX_CHANNELS 32
 
 int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
-		       snd_config_t *conf, 
+		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -721,6 +721,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *tt = NULL;
 	snd_pcm_route_ttable_entry_t *ttable = NULL;
 	unsigned int cused, sused;
+	const char *args;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
@@ -745,7 +746,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(slave, &sconf, 0);
+	err = snd_pcm_slave_conf(root, slave, &sconf, &args, 0);
 	if (err < 0)
 		return err;
 	if (tt) {
@@ -756,7 +757,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 			return err;
 	}
 		
-	err = snd_pcm_open_slave(&spcm, sconf, stream, mode);
+	err = snd_pcm_open_slave(&spcm, root, sconf, args, stream, mode);
 	if (err < 0)
 		return err;
 	err = snd_pcm_plug_open(pcmp, name, ttable, MAX_CHANNELS, cused, sused, spcm, 1);

@@ -2,7 +2,7 @@ SUBDIRS=control mixer pcm rawmidi timer hwdep seq instr compat cards
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
 lib_LTLIBRARIES = libasound.la
-libasound_la_SOURCES = conf.c input.c output.c error.c 
+libasound_la_SOURCES = conf.c confmisc.c input.c output.c error.c 
 libasound_la_LIBADD = control/libcontrol.la mixer/libmixer.la pcm/libpcm.la \
                       rawmidi/librawmidi.la timer/libtimer.la \
 		      hwdep/libhwdep.la seq/libseq.la instr/libinstr.la \

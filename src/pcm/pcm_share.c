@@ -1367,7 +1367,8 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	return 0;
 }
 
-int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
+int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
+			snd_config_t *root, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -1413,7 +1414,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(slave, &sconf, 5,
+	err = snd_pcm_slave_conf(root, slave, &sconf, NULL, 5,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
 				 SND_PCM_HW_PARAM_RATE, 0, &srate,

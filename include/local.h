@@ -59,6 +59,8 @@ typedef enum _snd_set_mode {
 size_t page_align(size_t size);
 size_t page_size(void);
 
+int safe_strtol(const char *str, long *val);
+
 #define HAVE_GNU_LD
 #define HAVE_ELF
 #define HAVE_ASM_PREVIOUS_DIRECTIVE

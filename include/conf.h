@@ -43,6 +43,7 @@ int snd_config_expand(snd_config_t *config, const char *args,
 
 int snd_config_add(snd_config_t *config, snd_config_t *leaf);
 int snd_config_delete(snd_config_t *config);
+int snd_config_copy(snd_config_t **dst, snd_config_t *src);
 
 int snd_config_make(snd_config_t **config, const char *key,
 		    snd_config_type_t type);
@@ -55,9 +56,11 @@ int snd_config_set_id(snd_config_t *config, const char *id);
 int snd_config_set_integer(snd_config_t *config, long value);
 int snd_config_set_real(snd_config_t *config, double value);
 int snd_config_set_string(snd_config_t *config, const char *value);
+int snd_config_set_ascii(snd_config_t *config, const char *ascii);
 int snd_config_get_integer(snd_config_t *config, long *value);
 int snd_config_get_real(snd_config_t *config, double *value);
 int snd_config_get_string(snd_config_t *config, const char **value);
+int snd_config_get_ascii(snd_config_t *config, char **value);
 
 snd_config_iterator_t snd_config_iterator_first(snd_config_t *node);
 snd_config_iterator_t snd_config_iterator_next(snd_config_iterator_t iterator);
@@ -80,9 +83,23 @@ const char *snd_config_get_id(snd_config_t *config);
 extern snd_config_t *snd_config;
 int snd_config_update(void);
 
+/* Misc functions */
+
+int snd_config_get_bool_ascii(const char *ascii);
+int snd_config_get_bool(snd_config_t *conf);
+int snd_config_get_ctl_iface_ascii(const char *ascii);
+int snd_config_get_ctl_iface(snd_config_t *conf);
+
+typedef int (snd_config_string_replace_callback_t)(const char *what, char **dst, void *private_data);
+
+int snd_config_string_replace(const char *src, char idchr,
+			      snd_config_string_replace_callback_t *callback,
+			      void *private_data,
+			      char **dst);
 int snd_config_redirect_load(snd_config_t *root, snd_config_t *config,
 			     char **name, snd_config_t **dst_config,
 			     int *dst_dynamic);
+
 
 #ifdef __cplusplus
 }
