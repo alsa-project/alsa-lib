@@ -142,7 +142,7 @@ int send_fd(int socket, void *data, size_t len, int fd)
     return ret;
 }
 
-struct pollfd pollfds[OPEN_MAX];
+struct pollfd *pollfds;
 unsigned int pollfds_count = 0;
 typedef struct waiter waiter_t;
 typedef int (*waiter_handler_t)(waiter_t *waiter, unsigned short events);
@@ -151,7 +151,7 @@ struct waiter {
 	void *private_data;
 	waiter_handler_t handler;
 };
-waiter_t waiters[OPEN_MAX];
+waiter_t *waiters;
 
 void add_waiter(int fd, unsigned short events, waiter_handler_t handler,
 		void *data)
@@ -839,22 +839,33 @@ int server(char *sockname, int port)
 {
 	int err;
 	unsigned int k;
+	long open_max;
+	int result;
 
 	if (!sockname && port < 0)
 		return -EINVAL;
+	open_max = sysconf(_SC_OPEN_MAX);
+	if (open_max < 0) {
+		result = -errno;
+		SYSERROR("sysconf failed");
+		return result;
+	}
+	pollfds = calloc(open_max, sizeof(*pollfds));
+	waiters = calloc(open_max, sizeof(*waiters));
+
 	if (sockname) {
 		int sock = make_local_socket(sockname);
 		if (sock < 0)
 			return sock;
 		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
-			int result = -errno;
+			result = -errno;
 			SYSERROR("fcntl O_NONBLOCK failed");
-			return result;
+			goto _end;
 		}
 		if (listen(sock, 4) < 0) {
-			int result = -errno;
+			result = -errno;
 			SYSERROR("listen failed");
-			return result;
+			goto _end;
 		}
 		add_waiter(sock, POLLIN, local_handler, NULL);
 	}
@@ -863,14 +874,14 @@ int server(char *sockname, int port)
 		if (sock < 0)
 			return sock;
 		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
-			int result = -errno;
+			result = -errno;
 			SYSERROR("fcntl failed");
-			return result;
+			goto _end;
 		}
 		if (listen(sock, 4) < 0) {
-			int result = -errno;
+			result = -errno;
 			SYSERROR("listen failed");
-			return result;
+			goto _end;
 		}
 		add_waiter(sock, POLLIN, inet_handler, NULL);
 	}
@@ -900,7 +911,10 @@ int server(char *sockname, int port)
 			}
 		}
 	}
-	return 0;
+ _end:
+	free(pollfds);
+	free(waiters);
+	return result;
 }
 					
 
