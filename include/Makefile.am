@@ -27,6 +27,11 @@ stamp-vh: $(top_builddir)/configure.in
 	@echo "				  SND_LIB_SUBMINOR)" >> ver.tmp
 	@echo "#define SND_LIB_VERSION_STR	\"$(SND_LIB_VERSION)\"" >> ver.tmp
 	@echo >> ver.tmp
+	@echo "/* OBSOLETE DEFINES WHICH WILLN'T BE IN 0.3.0 FINAL!!! */" >> ver.tmp
+	@echo "#define SOUNDLIB_VERSION_MAJOR		SND_LIB_MAJOR" >> ver.tmp
+	@echo "#define SOUNDLIB_VERSION_MINOR		SND_LIB_MINOR" >> ver.tmp
+	@echo "#define SOUNDLIB_VERSION_SUBMINOR	SND_LIB_SUBMINOR" >> ver.tmp
+	@echo >> ver.tmp
 	@cmp -s version.h ver.tmp \
           || (echo "Updating version.h"; \
               cp ver.tmp version.h; \
