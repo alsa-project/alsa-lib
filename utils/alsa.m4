@@ -2,7 +2,7 @@ dnl Configure Paths for Alsa
 dnl Some modifications by Richard Boulton <richard-alsa@tartarus.org>
 dnl Christopher Lansdown <lansdoct@cs.alfred.edu>
 dnl Jaroslav Kysela <perex@suse.cz>
-dnl Last modification: $Id: alsa.m4,v 1.23 2004/01/16 18:14:22 tiwai Exp $
+dnl Last modification: $Id: alsa.m4,v 1.24 2004/09/15 18:48:07 tiwai Exp $
 dnl AM_PATH_ALSA([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for libasound, and define ALSA_CFLAGS and ALSA_LIBS as appropriate.
 dnl enables arguments --with-alsa-prefix=
@@ -53,10 +53,6 @@ fi
 
 dnl add the alsa library
 ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl -lpthread"
-LIBS=`echo $LIBS | sed 's/-lm//'`
-LIBS=`echo $LIBS | sed 's/-ldl//'`
-LIBS=`echo $LIBS | sed 's/-lpthread//'`
-LIBS=`echo $LIBS | sed 's/  //'`
 LIBS="$ALSA_LIBS $LIBS"
 AC_MSG_RESULT($ALSA_LIBS)
 
