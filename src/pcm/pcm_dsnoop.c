@@ -632,6 +632,10 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 \section pcm_plugins_snoop Plugin: dsnoop
 
 This plugin splits one capture stream to more.
+It works the reverse way of \ref pcm_plugins_dmix "dmix plugin",
+reading the shared capture buffer from many clients concurrently.
+The meaning of parameters below are almost identical with
+dmix plugin.
 
 \code
 pcm.name {

@@ -765,6 +765,43 @@ pcm.name {
 }
 \endcode
 
+For example, to bind two PCM streams with two-channel stereo (hw:0,0 and
+hw:0,1) as one 4-channel stereo PCM stream, define like this:
+\code
+pcm.quad {
+	type multi
+
+	slaves.a.pcm "hw:0,0"
+	slaves.a.channels 2
+	slaves.b.pcm "hw:0,1"
+	slaves.b.channels 2
+
+	bindings.0.slave a
+	bindings.0.channel 0
+	bindings.1.slave a
+	bindings.1.channel 1
+	bindings.2.slave b
+	bindings.2.channel 0
+	bindings.3.slave b
+	bindings.3.channel 1
+}
+\endcode
+Note that the resultant pcm "quad" is not in the interleaved format
+but in the "complex" format.  Hence, it's not accessible by applications
+which can handle only the interleaved (or the non-interleaved) format.
+In such a case, wrap this PCM with \ref pcm_plugins_route "route" or
+\ref pcm_plugins_plug "plug" plugin.
+\code
+pcm.quad2 {
+	type route
+	slave.pcm "quad"
+	ttable.0.0 1
+	ttable.1.1 1
+	ttable.2.2 1
+	ttable.3.3 1
+}
+\endcode
+
 \subsection pcm_plugins_multi_funcref Function reference
 
 <UL>

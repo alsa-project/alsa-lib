@@ -370,6 +370,11 @@ int snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int
 
 \section pcm_plugins_hooks Plugin: hooks
 
+This plugin is used to call some 'hook' function when this plugin is opened,
+modified or closed.
+Typically, it is used to change control values for a certain state
+specially for the PCM (see the example below).
+
 \code
 # Hook arguments definition
 hook_args.NAME {
@@ -418,6 +423,7 @@ Example:
 				name "Wave Surround Playback Volume"
 				preserve true
 				lock true
+				optional true
 				value [ 0 0 ]
 			}
 			{
@@ -429,6 +435,15 @@ Example:
 		]
 	}
 \endcode
+Here, the controls "Wave Surround Playback Volume" and "EMU10K1 PCM Send Volume"
+are set to the given values when this pcm is accessed.  Since these controls
+take multi-dimensional values, the <code>value</code> field is written as
+an array.
+When <code>preserve</code> is true, the old values are saved and restored
+when the pcm is closed.  The <code>lock</code> means that the control is
+locked during this pcm is opened, and cannot be changed by others.
+When <code>optional</code> is set, no error is returned but ignored
+even if the specified control doesn't exist.
 
 \subsection pcm_plugins_hooks_funcref Function reference
 

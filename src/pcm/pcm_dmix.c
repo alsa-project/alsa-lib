@@ -958,6 +958,74 @@ pcm.name {
 }
 \endcode
 
+<code>ipc_key</code> specfies the unique IPC key in integer.
+This number must be unique for each different dmix definition,
+since the shared memory is created with this key number.
+When <code>ipc_key_add_uid</code> is set true, the uid value is
+added to the value set in <code>ipc_key</code>.  This will
+avoid the confliction of the same IPC key with different users
+concurrently.
+
+Note that the dmix plugin itself supports only a single configuration.
+That is, it supports only the fixed rate (default 48000), format
+(\c S16), channels (2), and period_time (125000).
+For using other configuration, you have to set the value explicitly
+in the slave PCM definition.  The rate, format and channels can be
+covered by an additional \ref pcm_plugins_dmix "plug plugin",
+but there is only one base configuration, anyway.
+
+An example configuration for setting 44100 Hz, \c S32_LE format
+as the slave PCM of "hw:0" is like below:
+\code
+pcm.dmix_44 {
+	type dmix
+	ipc_key 321456	# any unique value
+	ipc_key_add_uid true
+	slave {
+		pcm "hw:0"
+		format S32_LE
+		rate 44100
+	}
+}
+\endcode
+You can hear 48000 Hz samples still using this dmix pcm via plug plugin
+like:
+\code
+% aplay -Dplug:dmix_44 foo_48k.wav
+\endcode
+
+For using the dmix plugin for OSS emulation device, you have to set
+the period and the buffer sizes in power of two.  For example,
+\code
+pcm.dmixoss {
+	type dmix
+	ipc_key 321456	# any unique value
+	ipc_key_add_uid true
+	slave {
+		pcm "hw:0"
+		period_time 0
+		period_size 1024  # must be power of 2
+		buffer_size 8192  # ditto
+	}
+}
+\endcode
+<code>period_time 0</code> must be set, too, for resetting the
+default value.  In the case of soundcards with multi-channel IO,
+adding the bindings would help
+\code
+pcm.dmixoss {
+	...
+	bindings {
+		0 0   # map from 0 to 0
+		1 1   # map from 1 to 1
+	}
+}
+\endcode
+so that only the first two channels are used by dmix.
+Also, note that ICE1712 have the limited buffer size, 5513 frames
+(corresponding to 640 kB).  In this case, reduce the buffer_size
+to 4096.
+
 \subsection pcm_plugins_dmix_funcref Function reference
 
 <UL>

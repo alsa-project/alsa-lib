@@ -681,6 +681,11 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 \section pcm_plugins_dshare Plugin: dshare
 
 This plugin provides sharing channels.
+Unlike \ref pcm_plugins_share "share plugin", this plugin doesn't need
+the explicit server program but accesses the shared buffer concurrently
+from each client as well as \ref pcm_plugins_dmix "dmix" and
+\ref pcm_plugins_dsnoop "dsnoop" plugins do.
+The parameters below are almost identical with these plugins.
 
 \code
 pcm.name {

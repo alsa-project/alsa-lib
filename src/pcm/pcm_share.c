@@ -1503,6 +1503,10 @@ the channel zero is used with first client, the channel cannot be used with
 second one. If you are looking for a mixing plugin, use the
 \ref pcm_plugins_dmix "dmix plugin".
 
+The difference from \ref pcm_plugins_dshare "dshare plugin" is that
+share plugin requires the server program "aserver", while dshare plugin
+doesn't need the explicit server but access to the shared buffer.
+
 \code
 pcm.name {
         type share              # Share PCM
