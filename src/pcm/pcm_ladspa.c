@@ -722,7 +722,7 @@ static int snd_pcm_ladspa_check_file(snd_pcm_ladspa_plugin_t * const plugin,
 	assert(filename);
 	handle = dlopen(filename, RTLD_LAZY);
 	if (handle) {
-		LADSPA_Descriptor_Function fcn = (LADSPA_Descriptor_Function)dlsym(handle, "ladspa_descriptor", SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION));
+		LADSPA_Descriptor_Function fcn = (LADSPA_Descriptor_Function)dlsym(handle, "ladspa_descriptor");
 		if (fcn) {
 			long idx;
 			const LADSPA_Descriptor *d;
