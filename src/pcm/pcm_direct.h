@@ -65,9 +65,15 @@ typedef struct {
 		unsigned int rate;
 		snd_pcm_format_t format;
 	} s;
+	union {
+		struct {
+			unsigned long long chn_mask;
+		} dshare;
+	} u;
 } snd_pcm_direct_share_t;
 
 typedef struct {
+	snd_pcm_type_t type;		/* type (dmix, dsnoop, dshare) */
 	key_t ipc_key;			/* IPC key for semaphore and memory */
 	int semid;			/* IPC global semaphore identification */
 	int shmid;			/* IPC global shared memory identification */
@@ -88,18 +94,19 @@ typedef struct {
 	pid_t server_pid;
 	snd_timer_t *timer; 		/* timer used as poll_fd */
 	int interleaved;	 	/* we have interleaved buffer */
+	unsigned int channels;		/* client's channels */
+	unsigned int *bindings;
 	union {
 		struct {
 			int shmid_sum;			/* IPC global sum ring buffer memory identification */
 			signed int *sum_buffer;		/* shared sum buffer */
 			mix_areas1_t *mix_areas1;
 			mix_areas2_t *mix_areas2;
-			unsigned int channels;	/* client's channels */
-			unsigned int *bindings;
 		} dmix;
 		struct {
 		} dsnoop;
 		struct {
+			unsigned long long chn_mask;
 		} dshare;
 	} u;
 } snd_pcm_direct_t;
@@ -117,6 +124,7 @@ int snd_pcm_direct_client_discard(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, struct slave_params *params);
 int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm);
+int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg);
 
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm);

@@ -521,6 +521,10 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		SNDERR("unable to set stop threshold");
 		return ret;
 	}
+
+	if (dmix->type != SND_PCM_TYPE_DMIX)
+		goto __skip_silencing;
+
 	ret = snd_pcm_sw_params_set_silence_threshold(spcm, sw_params, 0);
 	if (ret < 0) {
 		SNDERR("unable to set silence threshold");
@@ -532,10 +536,18 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		return ret;
 	}
 
+      __skip_silencing:
+
 	ret = snd_pcm_sw_params(spcm, sw_params);
 	if (ret < 0) {
 		SNDERR("unable to install sw params (please upgrade to 0.9.0rc8+ driver)");
 		return ret;
+	}
+
+	if (dmix->type == SND_PCM_TYPE_DSHARE) {
+		const snd_pcm_channel_area_t *dst_areas;
+		dst_areas = snd_pcm_mmap_areas(spcm);
+		snd_pcm_areas_silence(dst_areas, 0, spcm->channels, spcm->buffer_size, spcm->format);
 	}
 	
 	ret = snd_pcm_start(spcm);
@@ -575,6 +587,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	snd_timer_params_t *params;
 	char name[128];
 	struct pollfd fd;
+	int capture = dmix->type == SND_PCM_TYPE_DSNOOP ? 1 : 0;
 	
 	snd_pcm_info_alloca(&info);
 	snd_timer_params_alloca(&params);
@@ -587,7 +600,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 				(int)SND_TIMER_CLASS_PCM, 
 				snd_pcm_info_get_card(info),
 				snd_pcm_info_get_device(info),
-				snd_pcm_info_get_subdevice(info) * 2);	/* it's a bit trick to distict playback and capture */
+				snd_pcm_info_get_subdevice(info) * 2 + capture);
 	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK);
 	if (ret < 0) {
 		SNDERR("unable to open timer '%s'", name);
@@ -619,7 +632,9 @@ int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm)
 	const snd_pcm_channel_area_t *dst_areas;
 	const snd_pcm_channel_area_t *src_areas;
 
-	channels = dmix->u.dmix.channels;
+	if ((snd_pcm_format_physical_width(dmix->type) % 8) != 0)
+		interleaved = 0;
+	channels = dmix->channels;
 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
 	src_areas = snd_pcm_mmap_areas(pcm);
 	for (chn = 1; chn < channels; chn++) {
@@ -633,7 +648,7 @@ int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm)
 		}
 	}
 	for (chn = 0; chn < channels; chn++) {
-		if (dmix->u.dmix.bindings && dmix->u.dmix.bindings[chn] != chn) {
+		if (dmix->bindings && dmix->bindings[chn] != chn) {
 			interleaved = 0;
 			break;
 		}
@@ -649,4 +664,75 @@ int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm)
 		}
 	}
 	return dmix->interleaved = interleaved;
+}
+
+/*
+ * parse the channel map
+ * id == client channel
+ * value == slave's channel
+ */
+int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg)
+{
+	snd_config_iterator_t i, next;
+	unsigned int chn, chn1, count = 0;
+	int err;
+
+	dmix->channels = UINT_MAX;
+	if (cfg == NULL)
+		return 0;
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("invalid type for bindings");
+		return -EINVAL;
+	}
+	snd_config_for_each(i, next, cfg) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		long cchannel;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		err = safe_strtol(id, &cchannel);
+		if (err < 0 || cchannel < 0) {
+			SNDERR("invalid client channel in binding: %s\n", id);
+			return -EINVAL;
+		}
+		if ((unsigned)cchannel >= count)
+			count = cchannel + 1;
+	}
+	if (count == 0)
+		return 0;
+	if (count > 1024) {
+		SNDERR("client channel out of range");
+		return -EINVAL;
+	}
+	dmix->bindings = malloc(count * sizeof(unsigned int));
+	for (chn = 0; chn < count; chn++)
+		dmix->bindings[chn] = UINT_MAX;		/* don't route */
+	snd_config_for_each(i, next, cfg) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		long cchannel, schannel;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		safe_strtol(id, &cchannel);
+		if (snd_config_get_integer(n, &schannel) < 0) {
+			SNDERR("unable to get slave channel (should be integer type) in binding: %s\n", id);
+			return -EINVAL;
+		}
+		dmix->bindings[cchannel] = schannel;
+	}
+	if (dmix->type == SND_PCM_TYPE_DSNOOP)
+		goto __skip_same_dst;
+	for (chn = 0; chn < count; chn++) {
+		for (chn1 = 0; chn1 < count; chn1++) {
+			if (chn == chn1)
+				continue;
+			if (dmix->bindings[chn] == dmix->bindings[chn1]) {
+				SNDERR("unable to route channels %d,%d to same destination %d", chn, chn1, dmix->bindings[chn]);
+				return -EINVAL;
+			}
+		}
+	}
+      __skip_same_dst:
+	dmix->channels = count;
+	return 0;
 }
