@@ -806,6 +806,99 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
  * \brief Creates a new hw PCM
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
+ * \param fd File descriptor
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
+int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
+		       int fd, int mmap_emulation)
+{
+	int ver;
+	long fmode;
+	int mode;
+	snd_pcm_t *pcm = NULL;
+	snd_pcm_hw_t *hw = NULL;
+	snd_pcm_info_t info;
+	int ret;
+
+	assert(pcmp);
+
+	memset(&info, 0, sizeof(info));
+	if (ioctl(fd, SNDRV_PCM_IOCTL_INFO, &info) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_INFO failed");
+		return -errno;
+
+	}
+
+	if (fcntl(fd, F_GETFL, &fmode) < 0)
+		return -errno;
+	mode = 0;
+	if (fmode & O_NONBLOCK)
+		mode |= SND_PCM_NONBLOCK;
+	if (fmode & O_ASYNC)
+		mode |= SND_PCM_ASYNC;
+
+	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+		SYSERR("fcntl FD_CLOEXEC failed");
+		ret = -errno;
+		goto _err;
+	}
+
+	if (ioctl(fd, SNDRV_PCM_IOCTL_PVERSION, &ver) < 0) {
+		SYSERR("SNDRV_PCM_IOCTL_PVERSION failed");
+		return -errno;
+	}
+	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_PCM_VERSION_MAX))
+		return -SND_ERROR_INCOMPATIBLE_VERSION;
+	
+	hw = calloc(1, sizeof(snd_pcm_hw_t));
+	if (!hw)
+		return -ENOMEM;
+
+	hw->version = ver;
+	hw->card = info.card;
+	hw->device = info.device;
+	hw->subdevice = info.subdevice;
+	hw->fd = fd;
+	hw->mmap_emulation = mmap_emulation;
+
+	ret = snd_pcm_new(&pcm, SND_PCM_TYPE_HW, name, info.stream, mode);
+	if (ret < 0)
+		goto _err;
+
+	pcm->ops = &snd_pcm_hw_ops;
+	pcm->fast_ops = &snd_pcm_hw_fast_ops;
+	pcm->private_data = hw;
+	pcm->poll_fd = fd;
+
+	*pcmp = pcm;
+
+	ret = snd_pcm_hw_mmap_status(pcm);
+	if (ret < 0) {
+		snd_pcm_close(pcm);
+		return ret;
+	}
+	ret = snd_pcm_hw_mmap_control(pcm);
+	if (ret < 0) {
+		snd_pcm_close(pcm);
+		return ret;
+	}
+	return 0;
+	
+ _err:
+	if (hw)
+		free(hw);
+	if (pcm)
+		snd_pcm_free(pcm);
+	return ret;
+}
+
+/**
+ * \brief Creates a new hw PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
  * \param card Number of card
  * \param device Number of device
  * \param subdevice Number of subdevice
@@ -823,14 +916,11 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 {
 	char filename[32];
 	const char *filefmt;
-	int ver;
-	int err, ret = 0, fd = -1;
+	int ret = 0, fd = -1;
 	int attempt = 0;
 	snd_pcm_info_t info;
 	int fmode;
 	snd_ctl_t *ctl;
-	snd_pcm_t *pcm = NULL;
-	snd_pcm_hw_t *hw = NULL;
 
 	assert(pcmp);
 
@@ -867,15 +957,6 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		ret = -errno;
 		goto _err;
 	}
-	if (ioctl(fd, SNDRV_PCM_IOCTL_PVERSION, &ver) < 0) {
-		SYSERR("SNDRV_PCM_IOCTL_PVERSION failed");
-		ret = -errno;
-		goto _err;
-	}
-	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_PCM_VERSION_MAX)) {
-		ret = -SND_ERROR_INCOMPATIBLE_VERSION;
-		goto _err;
-	}
 	if (subdevice >= 0) {
 		memset(&info, 0, sizeof(info));
 		if (ioctl(fd, SNDRV_PCM_IOCTL_INFO, &info) < 0) {
@@ -888,48 +969,13 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			goto __again;
 		}
 	}
-	hw = calloc(1, sizeof(snd_pcm_hw_t));
-	if (!hw) {
-		ret = -ENOMEM;
-		goto _err;
-	}
-	hw->version = ver;
-	hw->card = card;
-	hw->device = device;
-	hw->subdevice = subdevice;
-	hw->fd = fd;
-	hw->mmap_emulation = mmap_emulation;
-
-	err = snd_pcm_new(&pcm, SND_PCM_TYPE_HW, name, stream, mode);
-	if (err < 0) {
-		ret = err;
-		goto _err;
-	}
 	snd_ctl_close(ctl);
-	pcm->ops = &snd_pcm_hw_ops;
-	pcm->fast_ops = &snd_pcm_hw_fast_ops;
-	pcm->private_data = hw;
-	pcm->poll_fd = fd;
-	*pcmp = pcm;
-	ret = snd_pcm_hw_mmap_status(pcm);
-	if (ret < 0) {
-		snd_pcm_close(pcm);
-		return ret;
-	}
-	ret = snd_pcm_hw_mmap_control(pcm);
-	if (ret < 0) {
-		snd_pcm_close(pcm);
-		return ret;
-	}
-	return 0;
-	
- _err:
-	if (hw)
-		free(hw);
-	if (pcm)
-		free(pcm);
-	if (fd >= 0)
+	ret = snd_pcm_hw_open_fd(pcmp, name, fd, mmap_emulation);
+	if (ret < 0)
 		close(fd);
+	return ret;
+	
+       _err:
 	snd_ctl_close(ctl);
 	return ret;
 }
