@@ -139,10 +139,10 @@ int snd_pcm_plugin_build(snd_pcm_plugin_handle_t *handle,
 	plugin->name = name ? strdup(name) : NULL;
 	plugin->handle = handle;
 	plugin->stream = stream;
-	memcpy(&plugin->src_format, src_format, sizeof(snd_pcm_format_t));
+	plugin->src_format = *src_format;
 	plugin->src_width = snd_pcm_format_physical_width(src_format->format);
 	assert(plugin->src_width > 0);
-	memcpy(&plugin->dst_format, dst_format, sizeof(snd_pcm_format_t));
+	plugin->dst_format = *dst_format;
 	plugin->dst_width = snd_pcm_format_physical_width(dst_format->format);
 	assert(plugin->dst_width > 0);
 	plugin->src_channels = calloc(src_format->channels, sizeof(snd_pcm_plugin_channel_t));
@@ -298,7 +298,7 @@ int snd_pcm_plug_slave_params(snd_pcm_stream_params_t *params,
 			      snd_pcm_stream_info_t *slave_info,
 			      snd_pcm_stream_params_t *slave_params)
 {
-	memcpy(slave_params, params, sizeof(*slave_params));
+	*slave_params = *params;
 	if ((slave_info->formats & (1 << params->format.format)) == 0) {
 		int format = params->format.format;
 		if ((snd_pcm_plug_formats(slave_info->formats) & (1 << format)) == 0)
@@ -392,20 +392,20 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 	
 	switch (params->stream) {
 	case SND_PCM_STREAM_PLAYBACK:
-		memcpy(&dstparams, slave_params, sizeof(*slave_params));
+		dstparams = *slave_params;
 		srcparams = slave_params;
-		memcpy(srcparams, params, sizeof(*params));
+		*srcparams = *params;
 		break;
 	case SND_PCM_STREAM_CAPTURE:
-		memcpy(&dstparams, params, sizeof(*params));
+		dstparams = *params;
 		srcparams = params;
-		memcpy(srcparams, slave_params, sizeof(*slave_params));
+		*srcparams = *slave_params;
 		break;
 	default:
 		assert(0);
 		return -EINVAL;
 	}
-	memcpy(&tmpparams, srcparams, sizeof(*srcparams));
+	tmpparams = *srcparams;
 		
 	pdprintf("srcparams: interleave=%i, format=%i, rate=%i, channels=%i\n", 
 		 srcparams->format.interleave,

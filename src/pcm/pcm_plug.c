@@ -357,7 +357,7 @@ static int snd_pcm_plug_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t *p
 	snd_pcm_plug_clear(pcm, stream);
 
 	/* add necessary plugins */
-	memcpy(&params1, params, sizeof(*params));
+	params1 = *params;
 	if ((err = snd_pcm_plug_format(pcm, &params1, &slave_params)) < 0)
 		return err;
 

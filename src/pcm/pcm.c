@@ -165,12 +165,12 @@ int snd_pcm_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t *setup)
 	str = &pcm->stream[setup->stream];
 	assert(str->open);
 	if (str->valid_setup) {
-		memcpy(setup, &str->setup, sizeof(*setup));
+		*setup = str->setup;
 		return 0;
 	}
-	if ((err = pcm->ops->stream_setup(pcm, setup)) < 0)
+	if ((err = pcm->ops->stream_setup(pcm, &str->setup)) < 0)
 		return err;
-	memcpy(&str->setup, setup, sizeof(*setup));
+	*setup = str->setup;
 	str->bits_per_sample = snd_pcm_format_physical_width(setup->format.format);
         str->bits_per_frame = str->bits_per_sample * setup->format.channels;
 	str->valid_setup = 1;
