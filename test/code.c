@@ -146,15 +146,14 @@ void mix_areas1(unsigned int size,
 	 *  EBX - sum
 	 *  ECX - old sample
 	 *  EAX - sample / temporary
-	 *  EDX - size
+	 *  EDX - temporary
 	 */
 	__asm__ __volatile__ (
 		"\n"
 
 		/*
-		 *  initialization, load EDX, ESI, EDI, EBX registers
+		 *  initialization, load ESI, EDI, EBX registers
 		 */
-		"\tmovl %0, %%edx\n"
 		"\tmovl %1, %%edi\n"
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
@@ -171,16 +170,18 @@ void mix_areas1(unsigned int size,
 
 		/*
 		 *   sample = *src;
+		 *   sum_sample = *sum;
 		 *   if (cmpxchg(*dst, 0, 1) == 0)
-		 *     sample -= *sum;
+		 *     sample -= sum_sample;
 		 *   xadd(*sum, sample);
 		 */
 		"\tmovw $0, %%ax\n"
 		"\tmovw $1, %%cx\n"
+		"\tmovl (%%ebx), %%edx\n"
 		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
 		"\tmovswl (%%esi), %%ecx\n"
 		"\tjnz 2f\n"
-		"\tsubl (%%ebx), %%ecx\n"
+		"\tsubl %%edx, %%ecx\n"
 		"2:"
 		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
 
@@ -208,7 +209,7 @@ void mix_areas1(unsigned int size,
 		"\tadd %4, %%edi\n"
 		"\tadd %5, %%esi\n"
 		"\tadd %6, %%ebx\n"
-		"\tdecl %%edx\n"
+		"\tdecl %0\n"
 		"\tjnz 1b\n"
 		"\tjmp 6f\n"
 
@@ -225,7 +226,7 @@ void mix_areas1(unsigned int size,
 		"\tadd %4, %%edi\n"
 		"\tadd %5, %%esi\n"
 		"\tadd %6, %%ebx\n"
-		"\tdecl %%edx\n"
+		"\tdecl %0\n"
 		"\tjnz 1b\n"
 		"\tjmp 6f\n"
 
@@ -242,7 +243,7 @@ void mix_areas1(unsigned int size,
 		"\tadd %4, %%edi\n"
 		"\tadd %5, %%esi\n"
 		"\tadd %6, %%ebx\n"
-		"\tdecl %%edx\n"
+		"\tdecl %0\n"
 		"\tjnz 1b\n"
 		// "\tjmp 6f\n"
 		
@@ -266,15 +267,14 @@ void mix_areas1_mmx(unsigned int size,
 	 *  EBX - sum
 	 *  ECX - old sample
 	 *  EAX - sample / temporary
-	 *  EDX - size
+	 *  EDX - temporary
 	 */
 	__asm__ __volatile__ (
 		"\n"
 
 		/*
-		 *  initialization, load EDX, ESI, EDI, EBX registers
+		 *  initialization, load ESI, EDI, EBX registers
 		 */
-		"\tmovl %0, %%edx\n"
 		"\tmovl %1, %%edi\n"
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
@@ -291,16 +291,18 @@ void mix_areas1_mmx(unsigned int size,
 
 		/*
 		 *   sample = *src;
+		 *   sum_sample = *sum;
 		 *   if (cmpxchg(*dst, 0, 1) == 0)
-		 *     sample -= *sum;
+		 *     sample -= sum_sample;
 		 *   xadd(*sum, sample);
 		 */
 		"\tmovw $0, %%ax\n"
 		"\tmovw $1, %%cx\n"
+		"\tmovl (%%ebx), %%edx\n"
 		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
 		"\tmovswl (%%esi), %%ecx\n"
 		"\tjnz 2f\n"
-		"\tsubl (%%ebx), %%ecx\n"
+		"\tsubl %%edx, %%ecx\n"
 		"2:"
 		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
 
@@ -327,7 +329,7 @@ void mix_areas1_mmx(unsigned int size,
 		"\tadd %4, %%edi\n"
 		"\tadd %5, %%esi\n"
 		"\tadd %6, %%ebx\n"
-		"\tdecl %%edx\n"
+		"\tdecl %0\n"
 		"\tjnz 1b\n"
 		"\tjmp 6f\n"
 		
