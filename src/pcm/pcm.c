@@ -542,12 +542,12 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp)
 	fprintf(fp, "access       : %s\n", assoc(pcm->access, snd_pcm_access_names));
 	fprintf(fp, "format       : %s\n", assoc(pcm->format, snd_pcm_format_names));
 	fprintf(fp, "subformat    : %s\n", assoc(pcm->subformat, snd_pcm_subformat_names));
-	fprintf(fp, "channels     : %d\n", pcm->channels);
-	fprintf(fp, "rate         : %d\n", pcm->rate);
-	fprintf(fp, "exact rate   : %g (%d/%d)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
-	fprintf(fp, "msbits       : %d\n", pcm->msbits);
-	fprintf(fp, "fragment_size: %ld\n", (long)pcm->fragment_size);
-	fprintf(fp, "fragments    : %d\n", pcm->fragments);
+	fprintf(fp, "channels     : %u\n", pcm->channels);
+	fprintf(fp, "rate         : %u\n", pcm->rate);
+	fprintf(fp, "exact rate   : %g (%u/%u)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
+	fprintf(fp, "msbits       : %u\n", pcm->msbits);
+	fprintf(fp, "fragment_size: %lu\n", (long)pcm->fragment_size);
+	fprintf(fp, "fragments    : %u\n", pcm->fragments);
 	return 0;
 }
 
@@ -596,16 +596,16 @@ int snd_pcm_dump_hw_params_fail(snd_pcm_hw_params_t *params, FILE *fp)
 			fprintf(fp, "subformat: %s\n", assoc(params->subformat, snd_pcm_subformat_names));
 			break;
 		case SND_PCM_HW_PARAM_CHANNELS:
-			fprintf(fp, "channels: %d\n", params->channels);
+			fprintf(fp, "channels: %u\n", params->channels);
 			break;
 		case SND_PCM_HW_PARAM_RATE:
-			fprintf(fp, "rate: %d\n", params->rate);
+			fprintf(fp, "rate: %u\n", params->rate);
 			break;
 		case SND_PCM_HW_PARAM_FRAGMENT_SIZE:
-			fprintf(fp, "fragment_size: %ld\n", (long)params->fragment_size);
+			fprintf(fp, "fragment_size: %lu\n", (long)params->fragment_size);
 			break;
 		case SND_PCM_HW_PARAM_FRAGMENTS:
-			fprintf(fp, "fragments: %d\n", params->fragments);
+			fprintf(fp, "fragments: %u\n", params->fragments);
 			break;
 		default:
 			assert(0);
@@ -1842,7 +1842,10 @@ void snd_pcm_hw_info_par_dump(snd_pcm_hw_info_t *info, unsigned int param, FILE 
 	{
 		unsigned int min, max;
 		snd_pcm_hw_info_par_get_minmax(info, param, &min, &max);
-		printf("%d - %d", min, max);
+		if (min == max)
+			printf("%u", min);
+		else
+			printf("%u - %u", min, max);
 		break;
 	}
 	default:
@@ -1948,11 +1951,7 @@ int _snd_pcm_hw_params_info(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm
 	int err;
 	params->fail_mask = 0;
 	
-	if (pcm->setup && pcm->mmap_channels && 
-	    (pcm->mmap_rw || 
-	     (pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
-	      pcm->access == SND_PCM_ACCESS_MMAP_NONINTERLEAVED ||
-	      pcm->access == SND_PCM_ACCESS_MMAP_COMPLEX))) {
+	if (pcm->mmap_channels) {
 		err = snd_pcm_munmap(pcm);
 		if (err < 0)
 			return err;
