@@ -133,7 +133,7 @@ static ssize_t snd_pcm_hw_stream_state(snd_pcm_t *pcm, int stream)
 	status.stream = stream;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_STATUS, status) < 0)
 		return -errno;
-	return status.status;
+	return status.state;
 }
 
 static ssize_t snd_pcm_hw_stream_byte_io(snd_pcm_t *pcm, int stream, int update UNUSED)

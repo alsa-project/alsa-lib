@@ -210,7 +210,7 @@ int snd_pcm_stream_state(snd_pcm_t *pcm, int stream)
 	str = &pcm->stream[stream];
 	assert(str->open);
 	if (str->mmap_control)
-		return str->mmap_control->status;
+		return str->mmap_control->state;
 	return pcm->ops->stream_state(pcm, stream);
 }
 

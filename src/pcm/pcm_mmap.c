@@ -57,7 +57,7 @@ static int snd_pcm_mmap_playback_ready(snd_pcm_t *pcm)
 {
 	snd_pcm_stream_t *str;
 	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
-	if (str->mmap_control->status == SND_PCM_STATUS_XRUN)
+	if (str->mmap_control->state == SND_PCM_STATE_XRUN)
 		return -EPIPE;
 	return snd_pcm_mmap_playback_bytes_avail(str) >= str->setup.bytes_min;
 }
@@ -67,7 +67,7 @@ static int snd_pcm_mmap_capture_ready(snd_pcm_t *pcm)
 	snd_pcm_stream_t *str;
 	int ret = 0;
 	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
-	if (str->mmap_control->status == SND_PCM_STATUS_XRUN) {
+	if (str->mmap_control->state == SND_PCM_STATE_XRUN) {
 		ret = -EPIPE;
 		if (str->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
 			return -EPIPE;
@@ -86,7 +86,7 @@ int snd_pcm_mmap_ready(snd_pcm_t *pcm, int stream)
 	str = &pcm->stream[stream];
 	ctrl = str->mmap_control;
 	assert(ctrl);
-	assert(ctrl->status >= SND_PCM_STATUS_PREPARED);
+	assert(ctrl->state >= SND_PCM_STATE_PREPARED);
 	if (stream == SND_PCM_STREAM_PLAYBACK) {
 		return snd_pcm_mmap_playback_ready(pcm);
 	} else {
@@ -170,7 +170,7 @@ int snd_pcm_mmap_stream_state(snd_pcm_t *pcm, int stream)
 	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
 	assert(str->mmap_control);
-	return str->mmap_control->status;
+	return str->mmap_control->state;
 }
 
 int snd_pcm_mmap_stream_byte_io(snd_pcm_t *pcm, int stream)
@@ -204,12 +204,12 @@ ssize_t snd_pcm_mmap_stream_seek(snd_pcm_t *pcm, int stream, off_t offset)
 	byte_data = str->mmap_control->byte_data;
 	if (offset == 0)
 		return byte_data;
-	switch (str->mmap_control->status) {
-	case SND_PCM_STATUS_RUNNING:
+	switch (str->mmap_control->state) {
+	case SND_PCM_STATE_RUNNING:
 		if (str->setup.mode == SND_PCM_MODE_FRAME)
 			snd_pcm_stream_byte_io(pcm, stream, 1);
 		break;
-	case SND_PCM_STATUS_PREPARED:
+	case SND_PCM_STATE_PREPARED:
 		break;
 	default:
 		return -EBADFD;
@@ -249,11 +249,11 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channel
 
 	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
 	ctrl = str->mmap_control;
-	assert(ctrl->status >= SND_PCM_STATUS_PREPARED);
+	assert(ctrl->state >= SND_PCM_STATE_PREPARED);
 	if (str->setup.mode == SND_PCM_MODE_FRAGMENT) {
 		assert(frames % str->frames_per_frag == 0);
 	} else {
-		if (ctrl->status == SND_PCM_STATUS_RUNNING &&
+		if (ctrl->state == SND_PCM_STATE_RUNNING &&
 		    str->mode & SND_PCM_NONBLOCK)
 			snd_pcm_stream_byte_io(pcm, SND_PCM_STREAM_PLAYBACK, 1);
 	}
@@ -265,7 +265,7 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channel
 			return ready;
 		if (!ready) {
 			struct pollfd pfd;
-			if (ctrl->status != SND_PCM_STATUS_RUNNING)
+			if (ctrl->state != SND_PCM_STATE_RUNNING)
 				return result > 0 ? result : -EPIPE;
 			if (str->mode & SND_PCM_NONBLOCK)
 				return result > 0 ? result : -EAGAIN;
@@ -282,13 +282,13 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channel
 		assert(frames1 > 0);
 		mmap_offset = snd_pcm_mmap_frames_offset(pcm, SND_PCM_STREAM_PLAYBACK);
 		snd_pcm_areas_copy(channels, offset, str->channels, mmap_offset, str->setup.format.channels, frames1, str->setup.format.format);
-		if (ctrl->status == SND_PCM_STATUS_XRUN)
+		if (ctrl->state == SND_PCM_STATE_XRUN)
 			return result > 0 ? result : -EPIPE;
 		snd_pcm_stream_seek(pcm, SND_PCM_STREAM_PLAYBACK, frames1 * str->bits_per_frame / 8);
 		frames -= frames1;
 		offset += frames1;
 		result += frames1;
-		if (ctrl->status == SND_PCM_STATUS_PREPARED &&
+		if (ctrl->state == SND_PCM_STATE_PREPARED &&
 		    (str->setup.start_mode == SND_PCM_START_DATA ||
 		     (str->setup.start_mode == SND_PCM_START_FULL &&
 		      !snd_pcm_mmap_playback_ready(pcm)))) {
@@ -407,15 +407,15 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels
 
 	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
 	ctrl = str->mmap_control;
-	assert(ctrl->status >= SND_PCM_STATUS_PREPARED);
+	assert(ctrl->state >= SND_PCM_STATE_PREPARED);
 	if (str->setup.mode == SND_PCM_MODE_FRAGMENT) {
 		assert(frames % str->frames_per_frag == 0);
 	} else {
-		if (ctrl->status == SND_PCM_STATUS_RUNNING &&
+		if (ctrl->state == SND_PCM_STATE_RUNNING &&
 		    str->mode & SND_PCM_NONBLOCK)
 			snd_pcm_stream_byte_io(pcm, SND_PCM_STREAM_CAPTURE, 1);
 	}
-	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
+	if (ctrl->state == SND_PCM_STATE_PREPARED &&
 	    str->setup.start_mode == SND_PCM_START_DATA) {
 		err = snd_pcm_stream_go(pcm, SND_PCM_STREAM_CAPTURE);
 		if (err < 0)
@@ -429,7 +429,7 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels
 			return ready;
 		if (!ready) {
 			struct pollfd pfd;
-			if (ctrl->status != SND_PCM_STATUS_RUNNING)
+			if (ctrl->state != SND_PCM_STATE_RUNNING)
 				return result > 0 ? result : -EPIPE;
 			if (str->mode & SND_PCM_NONBLOCK)
 				return result > 0 ? result : -EAGAIN;
@@ -446,7 +446,7 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels
 		assert(frames1 > 0);
 		mmap_offset = snd_pcm_mmap_frames_offset(pcm, SND_PCM_STREAM_CAPTURE);
 		snd_pcm_areas_copy(str->channels, mmap_offset, channels, offset, str->setup.format.channels, frames1, str->setup.format.format);
-		if (ctrl->status == SND_PCM_STATUS_XRUN &&
+		if (ctrl->state == SND_PCM_STATE_XRUN &&
 		    str->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
 			return result > 0 ? result : -EPIPE;
 		snd_pcm_stream_seek(pcm, SND_PCM_STREAM_CAPTURE, frames1 * str->bits_per_frame / 8);

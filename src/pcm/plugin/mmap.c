@@ -63,7 +63,7 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 	stream = &data->slave->stream[plugin->stream];
 
 	setup = &stream->setup;
-	if (ctrl->status < SND_PCM_STATUS_PREPARED)
+	if (ctrl->state < SND_PCM_STATE_PREPARED)
 		return -EBADFD;
 
 	ready = snd_pcm_mmap_ready(data->slave, plugin->stream);
@@ -71,7 +71,7 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 		return ready;
 	if (!ready) {
 		struct pollfd pfd;
-		if (ctrl->status != SND_PCM_STATUS_RUNNING)
+		if (ctrl->state != SND_PCM_STATE_RUNNING)
 			return -EPIPE;
 		if (stream->mode & SND_PCM_NONBLOCK)
 			return -EAGAIN;
@@ -129,9 +129,9 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 
 	setup = &stream->setup;
 	ctrl = data->control;
-	if (ctrl->status < SND_PCM_STATUS_PREPARED)
+	if (ctrl->state < SND_PCM_STATE_PREPARED)
 		return -EBADFD;
-	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
+	if (ctrl->state == SND_PCM_STATE_PREPARED &&
 	    stream->setup.start_mode == SND_PCM_START_DATA) {
 		err = snd_pcm_stream_go(data->slave, plugin->stream);
 		if (err < 0)
@@ -142,7 +142,7 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 		return ready;
 	if (!ready) {
 		struct pollfd pfd;
-		if (ctrl->status != SND_PCM_STATUS_RUNNING)
+		if (ctrl->state != SND_PCM_STATE_RUNNING)
 			return -EPIPE;
 		if (stream->mode & SND_PCM_NONBLOCK)
 			return -EAGAIN;
@@ -202,7 +202,7 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 #endif
 
 	snd_pcm_stream_seek(data->slave, SND_PCM_STREAM_PLAYBACK, frames * str->bits_per_frame / 8);
-	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
+	if (ctrl->state == SND_PCM_STATE_PREPARED &&
 	    (str->setup.start_mode == SND_PCM_START_DATA ||
 	     (str->setup.start_mode == SND_PCM_START_FULL &&
 	      !snd_pcm_mmap_ready(data->slave, plugin->stream)))) {
