@@ -609,7 +609,7 @@ static void mix_select_callbacks(snd_pcm_dmix_t *dmix)
 		}
 	}
 	fclose(in);
-	printf("MMX: %i, SMP: %i\n", mmx, smp);
+	// printf("MMX: %i, SMP: %i\n", mmx, smp);
 	if (mmx) {
 		dmix->mix_areas1 = smp > 1 ? mix_areas1_smp_mmx : mix_areas1_mmx;
 	} else {
