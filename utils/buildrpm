@@ -1,15 +1,18 @@
 #!/bin/bash
 
 source=.
-version=$VERSION
-package=$source/../alsa-lib-$version.tar.gz
+version=`cat $source/../version`
+package=$source/../../alsa-lib-$version.tar.gz
+
+make -C .. pack
 
 if [ ! -r $package ]; then
-  echo "Error: wrong package: $package"
-  exit 1
+  package=$source/../alsa-lib-$version.tar.gz
+  if [ ! -r $package ]; then
+    echo "Error: wrong package: $package"
+    exit 1
+  fi
 fi
-
-make -C .. dist
 
 cp -fv $package /usr/src/redhat/SOURCES
 
