@@ -313,6 +313,7 @@ Usage: latency [OPTION]... [FILE]...
 -f,--format    sample format
 -c,--channels  channels
 -r,--rate      rate
+-s,--seconds   duration of test in seconds
 ");
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++(unsigned long) k) {
@@ -336,6 +337,7 @@ int main(int argc, char *argv[])
 		{"format", 1, NULL, 'f'},
 		{"channels", 1, NULL, 'c'},
 		{"rate", 1, NULL, 'r'},
+		{"seconds", 1, NULL, 's'},
 		{NULL, 0, NULL, 0},
 	};
 	snd_pcm_t *phandle, *chandle;
@@ -349,7 +351,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:s:", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -385,6 +387,10 @@ int main(int argc, char *argv[])
 		case 'r':
 			err = atoi(optarg);
 			rate = err >= 4000 && err < 200000 ? err : 44100;
+			break;
+		case 's':
+			err = atoi(optarg);
+			loop_sec = err >= 1 && err <= 100000 ? err : 30;
 			break;
 		}
 	}
