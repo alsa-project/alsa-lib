@@ -81,6 +81,15 @@ void snd_seq_ev_set_variable(snd_seq_event_t *ev, int len, void *ptr)
 	ev->data.ext.ptr = ptr;
 }
 
+/* set varusr data */
+void snd_seq_ev_set_varusr(snd_seq_event_t *ev, int len, void *ptr)
+{
+	ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
+	ev->flags |= SND_SEQ_EVENT_LENGTH_VARUSR;
+	ev->data.ext.len = len;
+	ev->data.ext.ptr = ptr;
+}
+
 
 /* use or unuse a queue */
 int snd_seq_use_queue(snd_seq_t *seq, int q, int use)

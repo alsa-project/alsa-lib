@@ -35,11 +35,13 @@ void snd_seq_ev_schedule_real(snd_seq_event_t *ev, int q, int relative,
 /* set event priority (optional) */
 void snd_seq_ev_set_priority(snd_seq_event_t *ev, int high_prior);
 
-/* set event data type - following two macros are exclusive */
+/* set event data type - following three macros are exclusive */
   /* fixed size event */
 void snd_seq_ev_set_fixed(snd_seq_event_t *ev);
   /* variable size event */
 void snd_seq_ev_set_variable(snd_seq_event_t *ev, int len, void *ptr);
+  /* variable size event - user memory space */
+void snd_seq_ev_set_varusr(snd_seq_event_t *ev, int len, void *ptr);
 
 /* set queue control event data */
 /* destination is overwritten to Timer port (0:0) */
