@@ -171,7 +171,7 @@ struct envelope_record {
 #define copyright_header IW_ID_VALUE('C', 'P', 'R', 'T')
 #endif
 
-typedef struct {
+struct snd_iwffff_handle {
 	int rom;
 	unsigned char *fff_data;
 	unsigned int fff_size;
@@ -181,7 +181,7 @@ typedef struct {
 	unsigned int share_id1;
 	unsigned int share_id2;
 	unsigned int share_id3;
-} iwffff_t;
+};
 
 /*
  *  local functions
@@ -202,9 +202,9 @@ static int iwffff_get_rom_header(int card, int bank, iwffff_rom_header_t *header
 	return fd;
 }
 
-int snd_instr_iwffff_open(void **handle, const char *name_fff, const char *name_dat)
+int snd_instr_iwffff_open(snd_iwffff_handle_t **handle, const char *name_fff, const char *name_dat)
 {
-	iwffff_t *iwf;
+	snd_iwffff_handle_t *iwf;
 	struct stat info;
 	struct header ffff;
 	int fd;
@@ -254,11 +254,11 @@ int snd_instr_iwffff_open(void **handle, const char *name_fff, const char *name_
 	return 0;
 }
 
-int snd_instr_iwffff_open_rom(void **handle, int card, int bank, int file)
+int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, int file)
 {
 	unsigned int next_ffff;
 	struct header ffff;
-	iwffff_t *iwf;
+	snd_iwffff_handle_t *iwf;
 	iwffff_rom_header_t header;
 	int fd, index;
 
@@ -311,13 +311,10 @@ int snd_instr_iwffff_open_rom(void **handle, int card, int bank, int file)
 	return -ENOENT;
 }
 
-int snd_instr_iwffff_close(void *handle)
+int snd_instr_iwffff_close(snd_iwffff_handle_t *iwf)
 {
-	iwffff_t *iwf;
-  
-	if (handle == NULL)
-		return -ENOENT;
-	iwf = (iwffff_t *)handle;
+	if (iwf == NULL)
+		return -EINVAL;
 	if (iwf->dat_filename)
 		free(iwf->dat_filename);
 	if (iwf->fff_filename)
@@ -389,7 +386,7 @@ int snd_instr_iwffff_free(snd_instr_iwffff_t *__instr)
 	return 0;
 }
 
-static char *look_for_id(iwffff_t *iwf, unsigned char *start,
+static char *look_for_id(snd_iwffff_handle_t *iwf, unsigned char *start,
 			 unsigned char *end, ID id)
 {
 	if (!start)
@@ -411,7 +408,7 @@ static void copy_modulation(iwffff_lfo_t *glfo, unsigned char *buffer)
 	glfo->delay = buffer[7];
 }
 
-static int copy_envelope(iwffff_t *iwf, iwffff_env_t *genv, ID eid)
+static int copy_envelope(snd_iwffff_handle_t *iwf, iwffff_env_t *genv, ID eid)
 {
 	int idx, idx1;
 	unsigned char *ptr, *end;
@@ -468,7 +465,7 @@ static int copy_envelope(iwffff_t *iwf, iwffff_env_t *genv, ID eid)
 	}
 }
 
-static int load_iw_wave(iwffff_t *file,
+static int load_iw_wave(snd_iwffff_handle_t *file,
 			unsigned int start,
 			unsigned int size,
 			unsigned char **result)
@@ -498,7 +495,7 @@ static int load_iw_wave(iwffff_t *file,
 	return 0;
 }
 
-static int load_iw_patch(iwffff_t *iwf, iwffff_instrument_t *instr,
+static int load_iw_patch(snd_iwffff_handle_t *iwf, iwffff_instrument_t *instr,
 			 unsigned char *patch)
 {
 	unsigned char *layer, *wave;
@@ -611,22 +608,20 @@ static int load_iw_patch(iwffff_t *iwf, iwffff_instrument_t *instr,
 	return 0;
 }
 
-int snd_instr_iwffff_load(void *handle, int bank, int prg, snd_instr_iwffff_t **__iwffff)
+int snd_instr_iwffff_load(snd_iwffff_handle_t *iwf, int bank, int prg, snd_instr_iwffff_t **__iwffff)
 {
-	iwffff_t *iwf;
 	unsigned char *ptr, *end;
 	unsigned char *program, *patch;
 	struct header *header;
 	iwffff_instrument_t *iwffff;
 	int result;
 
-	if (handle == NULL || __iwffff == NULL)
+	if (iwf == NULL || __iwffff == NULL)
 		return -EINVAL;
 	__iwffff = NULL;
 	if (bank < 0 || bank > 255 || prg < 0 || prg > 255)
 		return -EINVAL;
 	iwffff = (iwffff_instrument_t *)__iwffff;
-	iwf = (iwffff_t *)handle;
 	ptr = iwf->fff_data;
  	end = iwf->fff_data + iwf->fff_size;
 	while (1) {
@@ -745,10 +740,11 @@ static int copy_env_to_stream(iwffff_xenv_t *xenv, iwffff_env_t *env, __u32 styp
 }
 
 int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
-					const char *name,
-					snd_seq_instr_data_t **__data,
-					int *__size)
+				    const char *name,
+				    snd_seq_instr_put_t **__data,
+				    long *__size)
 {
+	snd_seq_instr_put_t *put;
 	snd_seq_instr_data_t *data;
 	int size;
 	char *ptr;
@@ -765,11 +761,12 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 	*__data = NULL;
 	*__size = 0;
 	size = sizeof(*data) + iwffff_size(iwffff);
-	data = (snd_seq_instr_data_t *)malloc(sizeof(*data) + size);
-	if (data == NULL)
+	put = (snd_seq_instr_put_t *)malloc(sizeof(*put) + size);
+	if (put == NULL)
 		return -ENOMEM;
 	/* build header */
-	bzero(data, sizeof(*data));
+	bzero(put, sizeof(*put));
+	data = &put->data;
 	if (name)
 		strncpy(data->name, name, sizeof(data->name)-1);
 	data->type = SND_SEQ_INSTR_ATYPE_DATA;
@@ -822,21 +819,21 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 			xwave->low_note = wave->low_note;
 			xwave->high_note = wave->high_note;
 			if (!(xwave->format & IWFFFF_WAVE_ROM)) {
-				memcpy(ptr, wave->address.ptr, xwave->size);
-				ptr += xwave->size;
+				memcpy(ptr, wave->address.ptr, wave->size);
+				ptr += wave->size;
 			} else {
 				xwave->offset = snd_htoi_32(wave->address.memory);
 			}
 		}
 	}
 	/* write result */
-	*__data = data;
+	*__data = put;
 	*__size = size;
 	return 0;
 }
 
-int snd_instr_iwffff_convert_from_stream(snd_seq_instr_data_t *data,
-					 int size,
+int snd_instr_iwffff_convert_from_stream(snd_seq_instr_get_t *data,
+					 long size,
 					 snd_instr_iwffff_t **iwffff)
 {
 	/* TODO */
