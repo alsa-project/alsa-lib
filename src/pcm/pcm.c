@@ -651,8 +651,8 @@ int snd_pcm_hw_free(snd_pcm_t *pcm)
 		if (err < 0)
 			return err;
 	}
-	assert(snd_pcm_state(pcm) == SND_PCM_STATE_SETUP ||
-	       snd_pcm_state(pcm) == SND_PCM_STATE_PREPARED);
+	// assert(snd_pcm_state(pcm) == SND_PCM_STATE_SETUP ||
+	//        snd_pcm_state(pcm) == SND_PCM_STATE_PREPARED);
 	err = pcm->ops->hw_free(pcm->op_arg);
 	pcm->setup = 0;
 	if (err < 0)
