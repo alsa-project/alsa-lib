@@ -89,6 +89,24 @@ int snd_pcm_loopback_file_descriptor( void *handle )
   return lb -> fd;
 }
 
+int snd_pcm_loopback_block_mode( void *handle, int enable )
+{
+  snd_pcm_loopback_t *lb;
+  long flags;
+  
+  lb = (snd_pcm_loopback_t *)handle;
+  if ( !lb ) return -EINVAL;
+  if ( fcntl( lb -> fd, F_GETFL, &flags ) < 0 )
+    return -errno;
+  if ( enable )
+    flags |= O_NONBLOCK;
+   else
+    flags &= ~O_NONBLOCK;
+  if ( fcntl( lb -> fd, F_SETFL, &flags ) < 0 )
+    return -errno;
+  return 0;
+}
+
 int snd_pcm_loopback_stream_mode( void *handle, int mode )
 {
   snd_pcm_loopback_t *lb;
