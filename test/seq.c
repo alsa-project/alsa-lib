@@ -137,6 +137,7 @@ static void help(void)
 	printf("  client [#]      show all clients or specified client\n");
 	printf("  port <client> [#]  show all ports or specified port for specified client\n");
 	printf("  decoder         event decoder\n");
+	printf("  sender <client.port> [<client.port>] ...   event sender\n");
 }
 
 int main(int argc, char *argv[])
