@@ -15,4 +15,10 @@ pack: clean-recursive
 	rm -rf `find . -name ".deps"`
 	mv ../alsa-lib ../alsa-lib-$(SND_LIB_VERSION)
 	tar --exclude=CVS --owner=root --group=root -cvI -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.bz2 alsa-lib-$(SND_LIB_VERSION)
-	mv ../alsa-lib-$(SND_LIB_VERSION) ../alsa-lib 
+	mv ../alsa-lib-$(SND_LIB_VERSION) ../alsa-lib
+
+doc-dummy:
+
+doc: doc-dummy
+	$(MAKE) -C include all
+	$(MAKE) -C doc doc
