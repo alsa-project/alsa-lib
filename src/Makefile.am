@@ -1,4 +1,5 @@
 SUBDIRS=control mixer pcm rawmidi timer hwdep seq instr compat conf
+EXTRA_DIST=Versions
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
 lib_LTLIBRARIES = libasound.la
