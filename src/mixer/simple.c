@@ -1104,7 +1104,8 @@ static int simple_compare(const snd_mixer_elem_t *c1, const snd_mixer_elem_t *c2
  * \param classp Pointer to returned mixer simple element class handle (or NULL)
  * \return 0 on success otherwise a negative error code
  */
-int snd_mixer_selem_register(snd_mixer_t *mixer, void *options ATTRIBUTE_UNUSED,
+int snd_mixer_selem_register(snd_mixer_t *mixer, struct
+			     snd_mixer_selem_regopt *options,
 			     snd_mixer_class_t **classp)
 {
 	snd_mixer_class_t *class = calloc(1, sizeof(*class));
