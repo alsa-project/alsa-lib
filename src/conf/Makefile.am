@@ -1,6 +1,6 @@
 SUBDIRS=cards pcm
 
-cfg_files = alsa.conf cards.conf
+cfg_files = alsa.conf
 
 EXTRA_DIST = $(cfg_files)
 

@@ -31,147 +31,6 @@ typedef struct _snd_ctl_elem_value snd_ctl_elem_value_t;
 /** CTL event container */
 typedef struct _snd_ctl_event snd_ctl_event_t;
 
-/** Card type */
-typedef enum _snd_card_type {
-	/** Gravis UltraSound Classic */
-	SND_CARD_TYPE_GUS_CLASSIC = SNDRV_CARD_TYPE_GUS_CLASSIC,
-	/** Gravis UltraSound Extreme */
-	SND_CARD_TYPE_GUS_EXTREME = SNDRV_CARD_TYPE_GUS_EXTREME,
-	/** Gravis UltraSound ACE */
-	SND_CARD_TYPE_GUS_ACE = SNDRV_CARD_TYPE_GUS_ACE,
-	/** Gravis UltraSound Max */
-	SND_CARD_TYPE_GUS_MAX = SNDRV_CARD_TYPE_GUS_MAX,
-	/** AMD InterWave */
-	SND_CARD_TYPE_AMD_INTERWAVE = SNDRV_CARD_TYPE_AMD_INTERWAVE,
-	/** SoundBlaster v1.0 */
-	SND_CARD_TYPE_SB_10 = SNDRV_CARD_TYPE_SB_10,
-	/** SoundBlaster v2.0 */
-	SND_CARD_TYPE_SB_20 = SNDRV_CARD_TYPE_SB_20,
-	/** SoundBlaster Pro */
-	SND_CARD_TYPE_SB_PRO = SNDRV_CARD_TYPE_SB_PRO,
-	/** SoundBlaster 16 */
-	SND_CARD_TYPE_SB_16 = SNDRV_CARD_TYPE_SB_16,
-	/** SoundBlaster AWE */
-	SND_CARD_TYPE_SB_AWE = SNDRV_CARD_TYPE_SB_AWE,
-	/** ESS ES1688 */
-	SND_CARD_TYPE_ESS_ES1688 = SNDRV_CARD_TYPE_ESS_ES1688,
-	/** Yamaha OPL3 SA2/3 */
-	SND_CARD_TYPE_OPL3_SA2 = SNDRV_CARD_TYPE_OPL3_SA2,
-	/** Mozart */
-	SND_CARD_TYPE_MOZART = SNDRV_CARD_TYPE_MOZART,
-	/** S3 SonicVibes */
-	SND_CARD_TYPE_S3_SONICVIBES = SNDRV_CARD_TYPE_S3_SONICVIBES,
-	/** Ensoniq AudioPCI ES1370 */
-	SND_CARD_TYPE_ENS1370 = SNDRV_CARD_TYPE_ENS1370,
-	/** Ensoniq AudioPCI ES1371 / Creative CT5880 */
-	SND_CARD_TYPE_ENS1371 = SNDRV_CARD_TYPE_ENS1371,
-	/** Cirrus Logic CS4232 */
-	SND_CARD_TYPE_CS4232 = SNDRV_CARD_TYPE_CS4232,
-	/** Cirrus Logic CS4236+ */
-	SND_CARD_TYPE_CS4236 = SNDRV_CARD_TYPE_CS4236,
-	/** AMD InterWave + TEA6330T */
-	SND_CARD_TYPE_AMD_INTERWAVE_STB = SNDRV_CARD_TYPE_AMD_INTERWAVE_STB,
-	/** ESS ES1938 */
-	SND_CARD_TYPE_ESS_ES1938 = SNDRV_CARD_TYPE_ESS_ES1938,
-	/** ESS ES18XX */
-	SND_CARD_TYPE_ESS_ES18XX = SNDRV_CARD_TYPE_ESS_ES18XX,
-	/** Cirus Logic CS4231 */
-	SND_CARD_TYPE_CS4231 = SNDRV_CARD_TYPE_CS4231,
-	/** Opti92x */
-	SND_CARD_TYPE_OPTI92X = SNDRV_CARD_TYPE_OPTI92X,
-	/** Serial MIDI */
-	SND_CARD_TYPE_SERIAL = SNDRV_CARD_TYPE_SERIAL,
-	/** Analog Devices AD1848 */
-	SND_CARD_TYPE_AD1848 = SNDRV_CARD_TYPE_AD1848,
-	/** Trident 4D-Wave DX */
-	SND_CARD_TYPE_TRID4DWAVEDX = SNDRV_CARD_TYPE_TRID4DWAVEDX,
-	/** Trident 4D-Wave NX */
-	SND_CARD_TYPE_TRID4DWAVENX = SNDRV_CARD_TYPE_TRID4DWAVENX,
-	/** Sound Galaxy */
-	SND_CARD_TYPE_SGALAXY = SNDRV_CARD_TYPE_SGALAXY,
-	/** Cirrus Logic CS46xx */
-	SND_CARD_TYPE_CS46XX = SNDRV_CARD_TYPE_CS46XX,
-	/** WaveFront */
-	SND_CARD_TYPE_WAVEFRONT = SNDRV_CARD_TYPE_WAVEFRONT,
-	/** Turtle Beach Tropez */
-	SND_CARD_TYPE_TROPEZ = SNDRV_CARD_TYPE_TROPEZ,
-	/** Turtle Beach Tropez+ */
-	SND_CARD_TYPE_TROPEZPLUS = SNDRV_CARD_TYPE_TROPEZPLUS,
-	/** Turtle Beach Maui */
-	SND_CARD_TYPE_MAUI = SNDRV_CARD_TYPE_MAUI,
-	/** CMI8330 */
-	SND_CARD_TYPE_CMI8330 = SNDRV_CARD_TYPE_CMI8330,
-	/** Dummy (/dev/null) soundcard */
-	SND_CARD_TYPE_DUMMY = SNDRV_CARD_TYPE_DUMMY,
-	/** Avance Logic ALS100 */
-	SND_CARD_TYPE_ALS100 = SNDRV_CARD_TYPE_ALS100,
-	/** Obsolete */
-	SND_CARD_TYPE_SHARE = SNDRV_CARD_TYPE_SHARE,
-	/** SiS SI7018 */
-	SND_CARD_TYPE_SI_7018 = SNDRV_CARD_TYPE_SI_7018,
-	/** Opti93x */
-	SND_CARD_TYPE_OPTI93X = SNDRV_CARD_TYPE_OPTI93X,
-	/** MidiTimePiece AV multiport MIDI */
-	SND_CARD_TYPE_MTPAV = SNDRV_CARD_TYPE_MTPAV,
-	/** Virtual MIDI */
-	SND_CARD_TYPE_VIRMIDI = SNDRV_CARD_TYPE_VIRMIDI,
-	/** EMU10K1 (SB Live, Emu APS) */
-	SND_CARD_TYPE_EMU10K1 = SNDRV_CARD_TYPE_EMU10K1,
-	/** RME Hammerfall */
-	SND_CARD_TYPE_HAMMERFALL = SNDRV_CARD_TYPE_HAMMERFALL,
-	/** RME Hammerfall light */
-	SND_CARD_TYPE_HAMMERFALL_LIGHT = SNDRV_CARD_TYPE_HAMMERFALL_LIGHT,
-	/** ICE1712 (Envy24) */
-	SND_CARD_TYPE_ICE1712 = SNDRV_CARD_TYPE_ICE1712,
-	/** CMI8338 */
-	SND_CARD_TYPE_CMI8338 = SNDRV_CARD_TYPE_CMI8338,
-	/** CMI8738 */
-	SND_CARD_TYPE_CMI8738 = SNDRV_CARD_TYPE_CMI8738,
-	/** Analog Device AD1816A */
-	SND_CARD_TYPE_AD1816A = SNDRV_CARD_TYPE_AD1816A,
-	/** Intel i8x0 */
-	SND_CARD_TYPE_INTEL8X0 = SNDRV_CARD_TYPE_INTEL8X0,
-	/** ESS Maestro 1 (old) */
-	SND_CARD_TYPE_ESS_ESOLDM1 = SNDRV_CARD_TYPE_ESS_ESOLDM1,
-	/** ESS Maestro 2 */
-	SND_CARD_TYPE_ESS_ES1968 = SNDRV_CARD_TYPE_ESS_ES1968,
-	/** ESS Maestro 2E */
-	SND_CARD_TYPE_ESS_ES1978 = SNDRV_CARD_TYPE_ESS_ES1978,
-	/** RME Digi96 */
-	SND_CARD_TYPE_DIGI96 = SNDRV_CARD_TYPE_DIGI96,
-	/** VIA SouthBridge 686A/686B */
-	SND_CARD_TYPE_VIA82C686A = SNDRV_CARD_TYPE_VIA82C686A,
-	/** Forte Media FM801 */
-	SND_CARD_TYPE_FM801 = SNDRV_CARD_TYPE_FM801,
-	/** Aztech AZT2320 */
-	SND_CARD_TYPE_AZT2320 = SNDRV_CARD_TYPE_AZT2320,
-	/** Prodif Plus */
-	SND_CARD_TYPE_PRODIF_PLUS = SNDRV_CARD_TYPE_PRODIF_PLUS,
-	/** Yamaha PCI */
-	SND_CARD_TYPE_YMFPCI = SNDRV_CARD_TYPE_YMFPCI,
-	/** Cirrus Logic CS4281 */
-	SND_CARD_TYPE_CS4281 = SNDRV_CARD_TYPE_CS4281,
-	/** Generic MPU401 UART */
-	SND_CARD_TYPE_MPU401_UART = SNDRV_CARD_TYPE_MPU401_UART,
-	/** Avance Logic ALS4000 */
-	SND_CARD_TYPE_ALS4000 = SNDRV_CARD_TYPE_ALS4000,
-	/** ESS Allegro 1 */
-	SND_CARD_TYPE_ALLEGRO_1 = SNDRV_CARD_TYPE_ALLEGRO_1,
-	/** ESS Allegro */
-	SND_CARD_TYPE_ALLEGRO = SNDRV_CARD_TYPE_ALLEGRO,
-	/** ESS Maestro 3 */
-	SND_CARD_TYPE_MAESTRO3 = SNDRV_CARD_TYPE_MAESTRO3,
-	/** AWACS */
-	SND_CARD_TYPE_AWACS = SNDRV_CARD_TYPE_AWACS,
-	/** NeoMagic NM256AV */
-	SND_CARD_TYPE_NM256AV = SNDRV_CARD_TYPE_NM256AV,
-	/** NeoMagic NM256ZX */
-	SND_CARD_TYPE_NM256ZX = SNDRV_CARD_TYPE_NM256ZX,
-	/** VIA VT8233 bridge */
-	SND_CARD_TYPE_VIA8233 = SNDRV_CARD_TYPE_VIA8233,
-	SND_CARD_TYPE_LAST = SNDRV_CARD_TYPE_LAST,
-} snd_card_type_t;
-
 /** CTL element type */
 typedef enum _snd_ctl_elem_type {
 	/** Invalid type */
@@ -262,9 +121,6 @@ int snd_card_get_index(const char *name);
 int snd_card_get_name(int card, char **name);
 int snd_card_get_longname(int card, char **name);
 
-int snd_card_type_string_to_enum(const char *strid, snd_card_type_t *enumid);
-int snd_card_type_enum_to_string(snd_card_type_t enumid, char **strid);
-
 int snd_sctl_build(snd_sctl_t **ctl, snd_ctl_t *handle, snd_config_t *config,
 		   void *private_data, int mode);
 int snd_sctl_free(snd_sctl_t *handle);
@@ -350,7 +206,6 @@ int snd_ctl_card_info_malloc(snd_ctl_card_info_t **ptr);
 void snd_ctl_card_info_free(snd_ctl_card_info_t *obj);
 void snd_ctl_card_info_copy(snd_ctl_card_info_t *dst, const snd_ctl_card_info_t *src);
 int snd_ctl_card_info_get_card(const snd_ctl_card_info_t *obj);
-snd_card_type_t snd_ctl_card_info_get_type(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_driver(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj);

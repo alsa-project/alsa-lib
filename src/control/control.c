@@ -988,17 +988,6 @@ int snd_ctl_card_info_get_card(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card type from a CTL card info
- * \param obj CTL card info
- * \return card type
- */
-snd_card_type_t snd_ctl_card_info_get_type(const snd_ctl_card_info_t *obj)
-{
-	assert(obj);
-	return snd_int_to_enum(obj->type);
-}
-
-/**
  * \brief Get card identificator from a CTL card info
  * \param obj CTL card info
  * \return card identificator

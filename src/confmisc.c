@@ -430,7 +430,6 @@ static int string_from_integer(char **dst, long v)
 
 int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
 {
-	char *res = NULL;
 	snd_ctl_t *ctl = NULL;
 	snd_ctl_card_info_t *info;
 	long v;
@@ -449,15 +448,9 @@ int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBU
 		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
 		goto __error;
 	}
-	err = snd_card_type_enum_to_string(snd_ctl_card_info_get_type(info), &res);
-	if (err < 0) {
-		SNDERR("snd_card_type_enum_to_string failed for %i", (int)snd_ctl_card_info_get_type(info));
-		goto __error;
-	}
 	err = snd_config_make_string(dst, snd_config_get_id(src));
 	if (err >= 0)
-		err = snd_config_set_string(*dst, res);
-	free(res);
+		err = snd_config_set_string(*dst, snd_ctl_card_info_get_driver(info));
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
