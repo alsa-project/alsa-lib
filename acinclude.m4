@@ -39,6 +39,6 @@ SND_LIB_MAJOR=`echo $VERSION | cut -d . -f 1`
 AC_SUBST(SND_LIB_MAJOR)
 SND_LIB_MINOR=`echo $VERSION | cut -d . -f 2`
 AC_SUBST(SND_LIB_MINOR)
-SND_LIB_SUBMINOR=`echo $VERSION | cut -d . -f 3 | sed -e 's/pre[[0-9]]*//g'`
+SND_LIB_SUBMINOR=`echo $VERSION | cut -d . -f 3 | sed -e 's/pre[[0-9]]*//g' -e 's/[[[:alpha:]]]*//g'`
 AC_SUBST(SND_LIB_SUBMINOR)
 ])
