@@ -664,8 +664,6 @@ snd_pcm_ops_t snd_pcm_route_ops = {
 	hw_refine: snd_pcm_route_hw_refine,
 	hw_params: snd_pcm_route_hw_params,
 	sw_params: snd_pcm_plugin_sw_params,
-	dig_info: snd_pcm_plugin_dig_info,
-	dig_params: snd_pcm_plugin_dig_params,
 	channel_info: snd_pcm_plugin_channel_info,
 	dump: snd_pcm_route_dump,
 	nonblock: snd_pcm_plugin_nonblock,

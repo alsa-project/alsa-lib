@@ -234,7 +234,6 @@ static int snd_pcm_null_hw_refine(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_pa
 {
 	_snd_pcm_hw_refine(params);
 	params->fifo_size = 0;
-	params->dig_groups = 0;
 	return 0;
 }
 
@@ -257,16 +256,6 @@ static int snd_pcm_null_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_pa
 		params->fail_mask = 1 << SND_PCM_SW_PARAM_XRUN_MODE;
 		return -EINVAL;
 	}
-	return 0;
-}
-
-static int snd_pcm_null_dig_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_dig_params_t *params ATTRIBUTE_UNUSED)
-{
-	return 0;
-}
-
-static int snd_pcm_null_dig_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_dig_info_t *info ATTRIBUTE_UNUSED)
-{
 	return 0;
 }
 
@@ -310,8 +299,6 @@ snd_pcm_ops_t snd_pcm_null_ops = {
 	hw_refine: snd_pcm_null_hw_refine,
 	hw_params: snd_pcm_null_hw_params,
 	sw_params: snd_pcm_null_sw_params,
-	dig_params: snd_pcm_null_dig_params,
-	dig_info: snd_pcm_null_dig_info,
 	channel_info: snd_pcm_null_channel_info,
 	dump: snd_pcm_null_dump,
 	nonblock: snd_pcm_null_nonblock,

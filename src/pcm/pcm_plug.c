@@ -620,19 +620,6 @@ static int snd_pcm_plug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	return err;
 }
 
-static int snd_pcm_plug_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t * info)
-{
-	snd_pcm_plug_t *plug = pcm->private;
-	return snd_pcm_dig_info(plug->slave, info);
-}
-
-static int snd_pcm_plug_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t * params)
-{
-	snd_pcm_plug_t *plug = pcm->private;
-	return snd_pcm_dig_params(plug->slave, params);
-}
-
-
 static int snd_pcm_plug_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
 	snd_pcm_plug_t *plug = pcm->private;
@@ -662,8 +649,6 @@ snd_pcm_ops_t snd_pcm_plug_ops = {
 	hw_refine: snd_pcm_plug_hw_refine,
 	hw_params: snd_pcm_plug_hw_params,
 	sw_params: snd_pcm_plug_sw_params,
-	dig_info: snd_pcm_plug_dig_info,
-	dig_params: snd_pcm_plug_dig_params,
 	channel_info: snd_pcm_plug_channel_info,
 	dump: snd_pcm_plug_dump,
 	nonblock: snd_pcm_plug_nonblock,

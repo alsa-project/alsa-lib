@@ -45,8 +45,6 @@ typedef struct {
 		snd_pcm_hw_params_t hw_refine;
 		snd_pcm_hw_params_t hw_params;
 		snd_pcm_sw_params_t sw_params;
-		snd_pcm_dig_params_t dig_params;
-		snd_pcm_dig_info_t dig_info;
 		snd_pcm_status_t status;
 		struct {
 			ssize_t frames;

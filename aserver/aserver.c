@@ -388,12 +388,6 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_SW_PARAMS:
 		ctrl->result = snd_pcm_sw_params(pcm, (snd_pcm_sw_params_t *) &ctrl->u.sw_params);
 		break;
-	case SND_PCM_IOCTL_DIG_PARAMS:
-		ctrl->result = snd_pcm_dig_params(pcm, (snd_pcm_dig_params_t *) &ctrl->u.dig_params);
-		break;
-	case SND_PCM_IOCTL_DIG_INFO:
-		ctrl->result = snd_pcm_dig_info(pcm, (snd_pcm_dig_info_t *) &ctrl->u.dig_info);
-		break;
 	case SND_PCM_IOCTL_STATUS:
 		ctrl->result = snd_pcm_status(pcm, (snd_pcm_status_t *) &ctrl->u.status);
 		break;

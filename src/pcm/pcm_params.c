@@ -93,7 +93,6 @@ void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params)
 	interval_setreal(params_interval(params, SND_PCM_HW_PARAM_FRAGMENT_LENGTH));
 	interval_setreal(params_interval(params, SND_PCM_HW_PARAM_BUFFER_LENGTH));
 	params->info = ~0U;
-	params->dig_groups = UINT_MAX;
 }
 
 /* Fill PARAMS with full configuration space boundaries */
@@ -604,14 +603,6 @@ int snd_pcm_hw_params_info_fifo_size(const snd_pcm_hw_params_t *params)
 	if (params->fifo_size == 0)
 		return -EINVAL;
 	return params->fifo_size;
-}
-
-/* Return count of digital groups for configuration space defined by PARAMS */
-int snd_pcm_hw_params_info_dig_groups(const snd_pcm_hw_params_t *params)
-{
-	if (params->dig_groups == UINT_MAX)
-		return -EINVAL;
-	return params->dig_groups;
 }
 
 /* Choose one configuration from configuration space defined by PARAMS

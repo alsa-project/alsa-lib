@@ -35,8 +35,6 @@ int snd_pcm_plugin_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_plugin_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_info_t * info);
 int snd_pcm_plugin_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
-int snd_pcm_plugin_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t *info);
-int snd_pcm_plugin_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t *params);
 int snd_pcm_plugin_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info);
 int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status);
 int snd_pcm_plugin_state(snd_pcm_t *pcm);

@@ -58,18 +58,6 @@ int snd_pcm_plugin_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	return snd_pcm_sw_params(plugin->slave, params);
 }
 
-int snd_pcm_plugin_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t *info)
-{
-	snd_pcm_plugin_t *plugin = pcm->private;
-	return snd_pcm_dig_info(plugin->slave, info);
-}
-
-int snd_pcm_plugin_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t *params)
-{
-	snd_pcm_plugin_t *plugin = pcm->private;
-	return snd_pcm_dig_params(plugin->slave, params);
-}
-
 int snd_pcm_plugin_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;

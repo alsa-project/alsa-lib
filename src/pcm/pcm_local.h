@@ -62,8 +62,6 @@ typedef struct {
 	int (*hw_refine)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 	int (*hw_params)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 	int (*sw_params)(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
-	int (*dig_info)(snd_pcm_t *pcm, snd_pcm_dig_info_t *info);
-	int (*dig_params)(snd_pcm_t *pcm, snd_pcm_dig_params_t *params);
 	int (*channel_info)(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 	void (*dump)(snd_pcm_t *pcm, FILE *fp);
 	int (*mmap)(snd_pcm_t *pcm);

@@ -220,18 +220,6 @@ static int snd_pcm_multi_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	return 0;
 }
 
-static int snd_pcm_multi_dig_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_dig_info_t *info ATTRIBUTE_UNUSED)
-{
-	/* FIXME */
-	return -ENOSYS;
-}
-
-static int snd_pcm_multi_dig_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_dig_params_t *params ATTRIBUTE_UNUSED)
-{
-	/* FIXME */
-	return -ENOSYS;
-}
-
 static int snd_pcm_multi_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
 	snd_pcm_multi_t *multi = pcm->private;
@@ -406,8 +394,6 @@ snd_pcm_ops_t snd_pcm_multi_ops = {
 	hw_refine: snd_pcm_multi_hw_refine,
 	hw_params: snd_pcm_multi_hw_params,
 	sw_params: snd_pcm_multi_sw_params,
-	dig_info: snd_pcm_multi_dig_info,
-	dig_params: snd_pcm_multi_dig_params,
 	channel_info: snd_pcm_multi_channel_info,
 	dump: snd_pcm_multi_dump,
 	nonblock: snd_pcm_multi_nonblock,

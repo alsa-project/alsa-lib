@@ -112,18 +112,6 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	return 0;
 }
 
-int snd_pcm_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t *params)
-{
-	assert(pcm && params);
-	return pcm->ops->dig_params(pcm->op_arg, params);
-}
-
-int snd_pcm_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t *info)
-{
-	assert(pcm && info);
-	return pcm->ops->dig_info(pcm->op_arg, info);
-}
-
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
 	assert(pcm && status);

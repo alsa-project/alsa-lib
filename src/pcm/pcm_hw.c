@@ -153,28 +153,6 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	return 0;
 }
 
-static int snd_pcm_hw_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t * info)
-{
-	snd_pcm_hw_t *hw = pcm->private;
-	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_DIG_INFO, info) < 0) {
-		SYSERR("SND_PCM_IOCTL_DIG_INFO failed");
-		return -errno;
-	}
-	return 0;
-}
-
-static int snd_pcm_hw_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t * params)
-{
-	snd_pcm_hw_t *hw = pcm->private;
-	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_DIG_PARAMS, params) < 0) {
-		SYSERR("SND_PCM_IOCTL_DIG_PARAMS failed");
-		return -errno;
-	}
-	return 0;
-}
-
 static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private;
@@ -525,8 +503,6 @@ snd_pcm_ops_t snd_pcm_hw_ops = {
 	hw_refine: snd_pcm_hw_hw_refine,
 	hw_params: snd_pcm_hw_hw_params,
 	sw_params: snd_pcm_hw_sw_params,
-	dig_info: snd_pcm_hw_dig_info,
-	dig_params: snd_pcm_hw_dig_params,
 	channel_info: snd_pcm_hw_channel_info,
 	dump: snd_pcm_hw_dump,
 	nonblock: snd_pcm_hw_nonblock,

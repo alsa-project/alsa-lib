@@ -591,30 +591,6 @@ static int snd_pcm_share_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_p
 	return 0;
 }
 
-static int snd_pcm_share_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t *info)
-{
-	snd_pcm_share_t *share = pcm->private;
-	snd_pcm_share_slave_t *slave = share->slave;
-	int err;
-	/* FIXME */
-	Pthread_mutex_lock(&slave->mutex);
-	err = snd_pcm_dig_info(slave->pcm, info);
-	Pthread_mutex_unlock(&slave->mutex);
-	return err;
-}
-
-static int snd_pcm_share_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t *params)
-{
-	snd_pcm_share_t *share = pcm->private;
-	snd_pcm_share_slave_t *slave = share->slave;
-	int err;
-	/* FIXME */
-	Pthread_mutex_lock(&slave->mutex);
-	err = snd_pcm_dig_params(slave->pcm, params);
-	Pthread_mutex_unlock(&slave->mutex);
-	return err;
-}
-
 static int snd_pcm_share_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
 	snd_pcm_share_t *share = pcm->private;
@@ -1110,8 +1086,6 @@ snd_pcm_ops_t snd_pcm_share_ops = {
 	hw_refine: snd_pcm_share_hw_refine,
 	hw_params: snd_pcm_share_hw_params,
 	sw_params: snd_pcm_share_sw_params,
-	dig_info: snd_pcm_share_dig_info,
-	dig_params: snd_pcm_share_dig_params,
 	channel_info: snd_pcm_share_channel_info,
 	dump: snd_pcm_share_dump,
 	nonblock: snd_pcm_share_nonblock,
