@@ -1,3 +1,5 @@
+SUBDIRS = sound
+
 sysincludedir = ${includedir}/sys
 alsaincludedir = ${includedir}/alsa
 
@@ -8,8 +10,7 @@ alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      seq_event.h seq.h seqmid.h seq_midi_event.h \
 		      conv.h instr.h iatomic.h
 
-noinst_HEADERS = sys.h search.h list.h aserver.h local.h alsa-symbols.h \
-		sound/asound.h sound/asoundef.h sound/asequencer.h
+noinst_HEADERS = sys.h search.h list.h aserver.h local.h alsa-symbols.h
 
 CLEANFILES = stamp-vh version.h
 
