@@ -97,7 +97,7 @@ void snd_instr_header_set_follow_alias(snd_instr_header_t *info, int val);
 #define SND_SEQ_INSTR_GET_CMD_PARTIAL	1	/**< get the partial data stream */
 
 /* query flags */
-#define SND_SEQ_INSTR_QUERY_FOLLOW_ALIAS (1<<0)
+#define SND_SEQ_INSTR_QUERY_FOLLOW_ALIAS (1<<0)	/**< follow alias to get the instrument data */
 
 /** free commands */
 #define SND_SEQ_INSTR_FREE_CMD_ALL	0	/**< remove all matching instruments */
