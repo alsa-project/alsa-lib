@@ -47,7 +47,7 @@ typedef struct linear_private_data {
 static void convert(snd_pcm_plugin_t *plugin,
 		    const snd_pcm_plugin_voice_t *src_voices,
 		    snd_pcm_plugin_voice_t *dst_voices,
-		    size_t samples)
+		    size_t frames)
 {
 #define CONV_LABELS
 #include "plugin_ops.h"
@@ -60,10 +60,10 @@ static void convert(snd_pcm_plugin_t *plugin,
 		char *src;
 		char *dst;
 		int src_step, dst_step;
-		size_t samples1;
+		size_t frames1;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, samples, plugin->dst_format.format);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, frames, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
@@ -72,8 +72,8 @@ static void convert(snd_pcm_plugin_t *plugin,
 		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
 		src_step = src_voices[voice].area.step / 8;
 		dst_step = dst_voices[voice].area.step / 8;
-		samples1 = samples;
-		while (samples1-- > 0) {
+		frames1 = frames;
+		while (frames1-- > 0) {
 			goto *conv;
 #define CONV_END after
 #include "plugin_ops.h"
@@ -88,7 +88,7 @@ static void convert(snd_pcm_plugin_t *plugin,
 static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 			       const snd_pcm_plugin_voice_t *src_voices,
 			       snd_pcm_plugin_voice_t *dst_voices,
-			       size_t samples)
+			       size_t frames)
 {
 	linear_t *data;
 	unsigned int voice;
@@ -96,7 +96,7 @@ static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
 		return -EFAULT;
 	data = (linear_t *)plugin->extra_data;
-	if (samples == 0)
+	if (frames == 0)
 		return 0;
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
 		if (src_voices[voice].area.first % 8 != 0 || 
@@ -106,8 +106,8 @@ static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 		    dst_voices[voice].area.step % 8 != 0)
 			return -EINVAL;
 	}
-	convert(plugin, src_voices, dst_voices, samples);
-	return samples;
+	convert(plugin, src_voices, dst_voices, frames);
+	return frames;
 }
 
 int conv_index(int src_format, int dst_format)

@@ -135,7 +135,7 @@ static int alaw2linear(unsigned char a_val)
 typedef void (*alaw_f)(snd_pcm_plugin_t *plugin,
 		       const snd_pcm_plugin_voice_t *src_voices,
 		       snd_pcm_plugin_voice_t *dst_voices,
-		       size_t samples);
+		       size_t frames);
 
 typedef struct alaw_private_data {
 	alaw_f func;
@@ -145,7 +145,7 @@ typedef struct alaw_private_data {
 static void alaw_decode(snd_pcm_plugin_t *plugin,
 			const snd_pcm_plugin_voice_t *src_voices,
 			snd_pcm_plugin_voice_t *dst_voices,
-			size_t samples)
+			size_t frames)
 {
 #define PUT_S16_LABELS
 #include "plugin_ops.h"
@@ -158,10 +158,10 @@ static void alaw_decode(snd_pcm_plugin_t *plugin,
 		char *src;
 		char *dst;
 		int src_step, dst_step;
-		size_t samples1;
+		size_t frames1;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, samples, plugin->dst_format.format);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, frames, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
@@ -170,8 +170,8 @@ static void alaw_decode(snd_pcm_plugin_t *plugin,
 		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
 		src_step = src_voices[voice].area.step / 8;
 		dst_step = dst_voices[voice].area.step / 8;
-		samples1 = samples;
-		while (samples1-- > 0) {
+		frames1 = frames;
+		while (frames1-- > 0) {
 			signed short sample = alaw2linear(*src);
 			goto *put;
 #define PUT_S16_END after
@@ -187,7 +187,7 @@ static void alaw_decode(snd_pcm_plugin_t *plugin,
 static void alaw_encode(snd_pcm_plugin_t *plugin,
 			const snd_pcm_plugin_voice_t *src_voices,
 			snd_pcm_plugin_voice_t *dst_voices,
-			size_t samples)
+			size_t frames)
 {
 #define GET_S16_LABELS
 #include "plugin_ops.h"
@@ -201,10 +201,10 @@ static void alaw_encode(snd_pcm_plugin_t *plugin,
 		char *src;
 		char *dst;
 		int src_step, dst_step;
-		size_t samples1;
+		size_t frames1;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, samples, plugin->dst_format.format);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, frames, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
@@ -213,8 +213,8 @@ static void alaw_encode(snd_pcm_plugin_t *plugin,
 		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
 		src_step = src_voices[voice].area.step / 8;
 		dst_step = dst_voices[voice].area.step / 8;
-		samples1 = samples;
-		while (samples1-- > 0) {
+		frames1 = frames;
+		while (frames1-- > 0) {
 			goto *get;
 #define GET_S16_END after
 #include "plugin_ops.h"
@@ -230,14 +230,14 @@ static void alaw_encode(snd_pcm_plugin_t *plugin,
 static ssize_t alaw_transfer(snd_pcm_plugin_t *plugin,
 			     const snd_pcm_plugin_voice_t *src_voices,
 			     snd_pcm_plugin_voice_t *dst_voices,
-			     size_t samples)
+			     size_t frames)
 {
 	alaw_t *data;
 	unsigned int voice;
 
 	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
 		return -EFAULT;
-	if (samples == 0)
+	if (frames == 0)
 		return 0;
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
 		if (src_voices[voice].area.first % 8 != 0 || 
@@ -248,8 +248,8 @@ static ssize_t alaw_transfer(snd_pcm_plugin_t *plugin,
 			return -EINVAL;
 	}
 	data = (alaw_t *)plugin->extra_data;
-	data->func(plugin, src_voices, dst_voices, samples);
-        return samples;
+	data->func(plugin, src_voices, dst_voices, frames);
+        return frames;
 }
 
 int snd_pcm_plugin_build_alaw(snd_pcm_plugin_handle_t *handle,

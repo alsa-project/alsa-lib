@@ -48,7 +48,7 @@ typedef struct io_private_data {
 static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 			      const snd_pcm_plugin_voice_t *src_voices,
 			      snd_pcm_plugin_voice_t *dst_voices,
-			      size_t samples)
+			      size_t frames)
 {
 	io_t *data;
 	ssize_t result;
@@ -64,7 +64,7 @@ static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 	if (plugin->channel == SND_PCM_CHANNEL_PLAYBACK) {
 		if (src_voices == NULL)
 			return -EINVAL;
-		if ((result = snd_pcm_plugin_src_samples_to_size(plugin, samples)) < 0)
+		if ((result = snd_pcm_plugin_src_frames_to_size(plugin, frames)) < 0)
 			return result;
 		count = plugin->src_format.voices;
 		if (plugin->src_format.interleave) {
@@ -82,11 +82,11 @@ static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 		}
 		if (result < 0)
 			return result;
-		return snd_pcm_plugin_src_size_to_samples(plugin, result);
+		return snd_pcm_plugin_src_size_to_frames(plugin, result);
 	} else if (plugin->channel == SND_PCM_CHANNEL_CAPTURE) {
 		if (dst_voices == NULL)
 			return -EINVAL;
-		if ((result = snd_pcm_plugin_dst_samples_to_size(plugin, samples)) < 0)
+		if ((result = snd_pcm_plugin_dst_frames_to_size(plugin, frames)) < 0)
 			return result;
 		count = plugin->dst_format.voices;
 		if (plugin->dst_format.interleave) {
@@ -108,26 +108,26 @@ static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 		}
 		if (result < 0)
 			return result;
-		return snd_pcm_plugin_dst_size_to_samples(plugin, result);
+		return snd_pcm_plugin_dst_size_to_frames(plugin, result);
 	} else {
 		return -EINVAL;
 	}
 }
  
 static ssize_t io_src_voices(snd_pcm_plugin_t *plugin,
-			     size_t samples,
+			     size_t frames,
 			     snd_pcm_plugin_voice_t **voices)
 {
 	int err;
 	unsigned int voice;
 	snd_pcm_plugin_voice_t *v;
-	err = snd_pcm_plugin_client_voices(plugin, samples, &v);
+	err = snd_pcm_plugin_client_voices(plugin, frames, &v);
 	if (err < 0)
 		return err;
 	*voices = v;
 	for (voice = 0; voice < plugin->src_format.voices; ++voice, ++v)
 		v->wanted = 1;
-	return samples;
+	return frames;
 }
 
 int snd_pcm_plugin_build_io(snd_pcm_plugin_handle_t *pcm,

@@ -50,14 +50,14 @@ typedef struct {
 typedef void (*rate_f)(snd_pcm_plugin_t *plugin,
 		       const snd_pcm_plugin_voice_t *src_voices,
 		       snd_pcm_plugin_voice_t *dst_voices,
-		       int src_samples, int dst_samples);
+		       int src_frames, int dst_frames);
 
 typedef struct rate_private_data {
 	unsigned int pitch;
 	unsigned int pos;
 	rate_f func;
 	int get, put;
-	ssize_t old_src_samples, old_dst_samples;
+	ssize_t old_src_frames, old_dst_frames;
 	rate_voice_t voices[0];
 } rate_t;
 
@@ -75,7 +75,7 @@ static void rate_init(snd_pcm_plugin_t *plugin)
 static void resample_expand(snd_pcm_plugin_t *plugin,
 			    const snd_pcm_plugin_voice_t *src_voices,
 			    snd_pcm_plugin_voice_t *dst_voices,
-			    int src_samples, int dst_samples)
+			    int src_frames, int dst_frames)
 {
 	unsigned int pos = 0;
 	signed int val;
@@ -83,7 +83,7 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 	char *src, *dst;
 	unsigned int voice;
 	int src_step, dst_step;
-	int src_samples1, dst_samples1;
+	int src_frames1, dst_frames1;
 	rate_t *data = (rate_t *)plugin->extra_data;
 	rate_voice_t *rvoices = data->voices;
 
@@ -106,7 +106,7 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 		S2 = rvoices->last_S2;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, dst_samples, plugin->dst_format.format);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, dst_frames, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
@@ -115,8 +115,8 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 		dst = (char *)dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
 		src_step = src_voices[voice].area.step / 8;
 		dst_step = dst_voices[voice].area.step / 8;
-		src_samples1 = src_samples;
-		dst_samples1 = dst_samples;
+		src_frames1 = src_frames;
+		dst_frames1 = dst_frames;
 		if (pos & ~MASK) {
 			get_s16_end = &&after_get1;
 			goto *get;
@@ -125,13 +125,13 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 			S1 = S2;
 			S2 = sample;
 			src += src_step;
-			src_samples--;
+			src_frames--;
 		}
-		while (dst_samples1-- > 0) {
+		while (dst_frames1-- > 0) {
 			if (pos & ~MASK) {
 				pos &= MASK;
 				S1 = S2;
-				if (src_samples1-- > 0) {
+				if (src_frames1-- > 0) {
 					get_s16_end = &&after_get2;
 					goto *get;
 				after_get2:
@@ -163,7 +163,7 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 static void resample_shrink(snd_pcm_plugin_t *plugin,
 			    const snd_pcm_plugin_voice_t *src_voices,
 			    snd_pcm_plugin_voice_t *dst_voices,
-			    int src_samples, int dst_samples)
+			    int src_frames, int dst_frames)
 {
 	unsigned int pos = 0;
 	signed int val;
@@ -171,7 +171,7 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 	char *src, *dst;
 	unsigned int voice;
 	int src_step, dst_step;
-	int src_samples1, dst_samples1;
+	int src_frames1, dst_frames1;
 	rate_t *data = (rate_t *)plugin->extra_data;
 	rate_voice_t *rvoices = data->voices;
 	
@@ -190,7 +190,7 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 		S2 = rvoices->last_S2;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, dst_samples, plugin->dst_format.format);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, dst_frames, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
@@ -199,11 +199,11 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 		dst = (char *)dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
 		src_step = src_voices[voice].area.step / 8;
 		dst_step = dst_voices[voice].area.step / 8;
-		src_samples1 = src_samples;
-		dst_samples1 = dst_samples;
-		while (dst_samples1 > 0) {
+		src_frames1 = src_frames;
+		dst_frames1 = dst_frames;
+		while (dst_frames1 > 0) {
 			S1 = S2;
-			if (src_samples1-- > 0) {
+			if (src_frames1-- > 0) {
 				goto *get;
 #define GET_S16_END after_get
 #include "plugin_ops.h"
@@ -226,7 +226,7 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 #undef PUT_S16_END
 			after_put:
 				dst += dst_step;
-				dst_samples1--;
+				dst_frames1--;
 			}
 			pos += data->pitch;
 		}
@@ -237,80 +237,80 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 	data->pos = pos;
 }
 
-static ssize_t rate_src_samples(snd_pcm_plugin_t *plugin, size_t samples)
+static ssize_t rate_src_frames(snd_pcm_plugin_t *plugin, size_t frames)
 {
 	rate_t *data;
 	ssize_t res;
 
-	if (plugin == NULL || samples <= 0)
+	if (plugin == NULL || frames <= 0)
 		return -EINVAL;
 	data = (rate_t *)plugin->extra_data;
 	if (plugin->src_format.rate < plugin->dst_format.rate) {
-		res = (((samples * data->pitch) + (BITS/2)) >> SHIFT);
+		res = (((frames * data->pitch) + (BITS/2)) >> SHIFT);
 	} else {
-		res = (((samples << SHIFT) + (data->pitch / 2)) / data->pitch);		
+		res = (((frames << SHIFT) + (data->pitch / 2)) / data->pitch);		
 	}
-	if (data->old_src_samples > 0) {
-		ssize_t samples1 = samples, res1 = data->old_dst_samples;
-		while (data->old_src_samples < samples1) {
-			samples1 >>= 1;
+	if (data->old_src_frames > 0) {
+		ssize_t frames1 = frames, res1 = data->old_dst_frames;
+		while (data->old_src_frames < frames1) {
+			frames1 >>= 1;
 			res1 <<= 1;
 		}
-		while (data->old_src_samples > samples1) {
-			samples1 <<= 1;
+		while (data->old_src_frames > frames1) {
+			frames1 <<= 1;
 			res1 >>= 1;
 		}
-		if (data->old_src_samples == samples1)
+		if (data->old_src_frames == frames1)
 			return res1;
 	}
-	data->old_src_samples = samples;
-	data->old_dst_samples = res;
+	data->old_src_frames = frames;
+	data->old_dst_frames = res;
 	return res;
 }
 
-static ssize_t rate_dst_samples(snd_pcm_plugin_t *plugin, size_t samples)
+static ssize_t rate_dst_frames(snd_pcm_plugin_t *plugin, size_t frames)
 {
 	rate_t *data;
 	ssize_t res;
 
-	if (plugin == NULL || samples <= 0)
+	if (plugin == NULL || frames <= 0)
 		return -EINVAL;
 	data = (rate_t *)plugin->extra_data;
 	if (plugin->src_format.rate < plugin->dst_format.rate) {
-		res = (((samples << SHIFT) + (data->pitch / 2)) / data->pitch);
+		res = (((frames << SHIFT) + (data->pitch / 2)) / data->pitch);
 	} else {
-		res = (((samples * data->pitch) + (BITS/2)) >> SHIFT);
+		res = (((frames * data->pitch) + (BITS/2)) >> SHIFT);
 	}
-	if (data->old_dst_samples > 0) {
-		ssize_t samples1 = samples, res1 = data->old_src_samples;
-		while (data->old_dst_samples < samples1) {
-			samples1 >>= 1;
+	if (data->old_dst_frames > 0) {
+		ssize_t frames1 = frames, res1 = data->old_src_frames;
+		while (data->old_dst_frames < frames1) {
+			frames1 >>= 1;
 			res1 <<= 1;
 		}
-		while (data->old_dst_samples > samples1) {
-			samples1 <<= 1;
+		while (data->old_dst_frames > frames1) {
+			frames1 <<= 1;
 			res1 >>= 1;
 		}
-		if (data->old_dst_samples == samples1)
+		if (data->old_dst_frames == frames1)
 			return res1;
 	}
-	data->old_dst_samples = samples;
-	data->old_src_samples = res;
+	data->old_dst_frames = frames;
+	data->old_src_frames = res;
 	return res;
 }
 
 static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 			     const snd_pcm_plugin_voice_t *src_voices,
 			     snd_pcm_plugin_voice_t *dst_voices,
-			     size_t samples)
+			     size_t frames)
 {
-	size_t dst_samples;
+	size_t dst_frames;
 	unsigned int voice;
 	rate_t *data;
 
 	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
 		return -EFAULT;
-	if (samples == 0)
+	if (frames == 0)
 		return 0;
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
 		if (src_voices[voice].area.first % 8 != 0 || 
@@ -321,10 +321,10 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 			return -EINVAL;
 	}
 
-	dst_samples = rate_dst_samples(plugin, samples);
+	dst_frames = rate_dst_frames(plugin, frames);
 	data = (rate_t *)plugin->extra_data;
-	data->func(plugin, src_voices, dst_voices, samples, dst_samples);
-	return dst_samples;
+	data->func(plugin, src_voices, dst_voices, frames, dst_frames);
+	return dst_frames;
 }
 
 static int rate_action(snd_pcm_plugin_t *plugin,
@@ -392,10 +392,10 @@ int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
 	}
 	data->pos = 0;
 	rate_init(plugin);
-	data->old_src_samples = data->old_dst_samples = 0;
+	data->old_src_frames = data->old_dst_frames = 0;
 	plugin->transfer = rate_transfer;
-	plugin->src_samples = rate_src_samples;
-	plugin->dst_samples = rate_dst_samples;
+	plugin->src_frames = rate_src_frames;
+	plugin->dst_frames = rate_dst_frames;
 	plugin->action = rate_action;
 	*r_plugin = plugin;
 	return 0;

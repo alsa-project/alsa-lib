@@ -35,13 +35,22 @@
 #include "../pcm_local.h"
 #endif
 
+/* The best possible hack to support missing optimization in gcc 2.7.2.3 */
+#if ROUTE_PLUGIN_RESOLUTION & (ROUTE_PLUGIN_RESOLUTION - 1) != 0
+#define div(a) a /= ROUTE_PLUGIN_RESOLUTION
+#elif ROUTE_PLUGIN_RESOLUTION == 16
+#define div(a) a >>= 4
+#else
+#error "Add some code here"
+#endif
+
 typedef struct ttable_dst ttable_dst_t;
 typedef struct route_private_data route_t;
 
 typedef void (*route_voice_f)(snd_pcm_plugin_t *plugin,
 			      const snd_pcm_plugin_voice_t *src_voices,
 			      snd_pcm_plugin_voice_t *dst_voice,
-			      ttable_dst_t* ttable, size_t samples);
+			      ttable_dst_t* ttable, size_t frames);
 
 typedef struct {
 	int voice;
@@ -78,17 +87,17 @@ typedef union {
 static void route_to_voice_from_zero(snd_pcm_plugin_t *plugin,
 				     const snd_pcm_plugin_voice_t *src_voices UNUSED,
 				     snd_pcm_plugin_voice_t *dst_voice,
-				     ttable_dst_t* ttable UNUSED, size_t samples)
+				     ttable_dst_t* ttable UNUSED, size_t frames)
 {
 	if (dst_voice->wanted)
-		snd_pcm_area_silence(&dst_voice->area, 0, samples, plugin->dst_format.format);
+		snd_pcm_area_silence(&dst_voice->area, 0, frames, plugin->dst_format.format);
 	dst_voice->enabled = 0;
 }
 
 static void route_to_voice_from_one(snd_pcm_plugin_t *plugin,
 				    const snd_pcm_plugin_voice_t *src_voices,
 				    snd_pcm_plugin_voice_t *dst_voice,
-				    ttable_dst_t* ttable, size_t samples)
+				    ttable_dst_t* ttable, size_t frames)
 {
 #define CONV_LABELS
 #include "plugin_ops.h"
@@ -105,7 +114,7 @@ static void route_to_voice_from_one(snd_pcm_plugin_t *plugin,
 			break;
 	}
 	if (srcidx == ttable->nsrcs) {
-		route_to_voice_from_zero(plugin, src_voices, dst_voice, ttable, samples);
+		route_to_voice_from_zero(plugin, src_voices, dst_voice, ttable, frames);
 		return;
 	}
 
@@ -115,7 +124,7 @@ static void route_to_voice_from_one(snd_pcm_plugin_t *plugin,
 	src_step = src_voice->area.step / 8;
 	dst = dst_voice->area.addr + dst_voice->area.first / 8;
 	dst_step = dst_voice->area.step / 8;
-	while (samples-- > 0) {
+	while (frames-- > 0) {
 		goto *conv;
 #define CONV_END after
 #include "plugin_ops.h"
@@ -129,7 +138,7 @@ static void route_to_voice_from_one(snd_pcm_plugin_t *plugin,
 static void route_to_voice(snd_pcm_plugin_t *plugin,
 			   const snd_pcm_plugin_voice_t *src_voices,
 			   snd_pcm_plugin_voice_t *dst_voice,
-			   ttable_dst_t* ttable, size_t samples)
+			   ttable_dst_t* ttable, size_t frames)
 {
 #define GET_U_LABELS
 #define PUT_U32_LABELS
@@ -197,10 +206,10 @@ static void route_to_voice(snd_pcm_plugin_t *plugin,
 	}
 	nsrcs = srcidx1;
 	if (nsrcs == 0) {
-		route_to_voice_from_zero(plugin, src_voices, dst_voice, ttable, samples);
+		route_to_voice_from_zero(plugin, src_voices, dst_voice, ttable, frames);
 		return;
 	} else if (nsrcs == 1 && src_tt[0].as_int == ROUTE_PLUGIN_RESOLUTION) {
-		route_to_voice_from_one(plugin, src_voices, dst_voice, ttable, samples);
+		route_to_voice_from_one(plugin, src_voices, dst_voice, ttable, frames);
 		return;
 	}
 
@@ -213,7 +222,7 @@ static void route_to_voice(snd_pcm_plugin_t *plugin,
 	dst = dst_voice->area.addr + dst_voice->area.first / 8;
 	dst_step = dst_voice->area.step / 8;
 
-	while (samples-- > 0) {
+	while (frames-- > 0) {
 		ttable_src_t *ttp = src_tt;
 		sum_t sum;
 
@@ -277,21 +286,21 @@ static void route_to_voice(snd_pcm_plugin_t *plugin,
 	norm_int64_8_att:
 		sum.as_uint64 <<= 8;
 	norm_int64_0_att:
-		sum.as_uint64 /= ROUTE_PLUGIN_RESOLUTION;
+		div(sum.as_uint64);
 		goto norm_int;
 
 	norm_int32_16_att:
 		sum.as_uint64 = sum.as_uint32;
 	norm_int64_16_att:
 		sum.as_uint64 <<= 16;
-		sum.as_uint64 /= ROUTE_PLUGIN_RESOLUTION;
+		div(sum.as_uint64);
 		goto norm_int;
 
 	norm_int32_24_att:
 		sum.as_uint64 = sum.as_uint32;
 	norm_int64_24_att:
 		sum.as_uint64 <<= 24;
-		sum.as_uint64 /= ROUTE_PLUGIN_RESOLUTION;
+		div(sum.as_uint64);
 		goto norm_int;
 
 	norm_int32_8_noatt:
@@ -478,7 +487,7 @@ static int route_load_ttable(snd_pcm_plugin_t *plugin,
 static ssize_t route_transfer(snd_pcm_plugin_t *plugin,
 			      const snd_pcm_plugin_voice_t *src_voices,
 			      snd_pcm_plugin_voice_t *dst_voices,
-			      size_t samples)
+			      size_t frames)
 {
 	route_t *data;
 	int src_nvoices, dst_nvoices;
@@ -488,7 +497,7 @@ static ssize_t route_transfer(snd_pcm_plugin_t *plugin,
 
 	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
 		return -EFAULT;
-	if (samples == 0)
+	if (frames == 0)
 		return 0;
 	data = (route_t *)plugin->extra_data;
 
@@ -509,11 +518,11 @@ static ssize_t route_transfer(snd_pcm_plugin_t *plugin,
 	ttp = data->ttable;
 	dvp = dst_voices;
 	for (dst_voice = 0; dst_voice < dst_nvoices; ++dst_voice) {
-		ttp->func(plugin, src_voices, dvp, ttp, samples);
+		ttp->func(plugin, src_voices, dvp, ttp, frames);
 		dvp++;
 		ttp++;
 	}
-	return samples;
+	return frames;
 }
 
 int getput_index(int format)

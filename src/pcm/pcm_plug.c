@@ -584,7 +584,6 @@ static int snd_pcm_plug_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_s
 	struct snd_pcm_chan *chan;
 	unsigned int voice;
 	int width;
-	size_t size;
 
 	if (snd_pcm_plug_direct(pcm, channel))
 		return snd_pcm_voice_setup(plug->slave, channel, setup);
@@ -600,19 +599,15 @@ static int snd_pcm_plug_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_s
 	if (voice >= chan->setup.format.voices)
 		return -EINVAL;
 
-	width = snd_pcm_format_physical_width(chan->setup.format.format);
-        if (width < 0)
-                return width;
-	size = chan->mmap_data_size;
 	if (chan->setup.format.interleave) {
                 setup->area.addr = chan->mmap_data;
-                setup->area.first = chan->sample_width;
-                setup->area.step = chan->bits_per_sample;
+                setup->area.first = setup->voice * chan->sample_width;
+                setup->area.step = chan->bits_per_frame;
         } else {
-                size /= chan->setup.format.voices;
+		size_t size = chan->mmap_data_size / chan->setup.format.voices;
                 setup->area.addr = chan->mmap_data + setup->voice * size;
                 setup->area.first = 0;
-                setup->area.step = width;
+                setup->area.step = chan->sample_width;
 	}
 	return 0;
 }

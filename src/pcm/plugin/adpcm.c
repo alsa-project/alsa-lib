@@ -79,7 +79,7 @@ typedef struct {
 typedef void (*adpcm_f)(snd_pcm_plugin_t *plugin,
 			const snd_pcm_plugin_voice_t *src_voices,
 			snd_pcm_plugin_voice_t *dst_voices,
-			size_t samples);
+			size_t frames);
 
 typedef struct adpcm_private_data {
 	adpcm_f func;
@@ -213,7 +213,7 @@ static int adpcm_decoder(unsigned char code, adpcm_voice_t * state)
 static void adpcm_decode(snd_pcm_plugin_t *plugin,
 			 const snd_pcm_plugin_voice_t *src_voices,
 			 snd_pcm_plugin_voice_t *dst_voices,
-			 size_t samples)
+			 size_t frames)
 {
 #define PUT_S16_LABELS
 #include "plugin_ops.h"
@@ -227,11 +227,11 @@ static void adpcm_decode(snd_pcm_plugin_t *plugin,
 		int srcbit;
 		char *dst;
 		int src_step, srcbit_step, dst_step;
-		size_t samples1;
+		size_t frames1;
 		adpcm_voice_t *state;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, samples, plugin->dst_format.format);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, frames, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
@@ -243,8 +243,8 @@ static void adpcm_decode(snd_pcm_plugin_t *plugin,
 		srcbit_step = src_voices[voice].area.step % 8;
 		dst_step = dst_voices[voice].area.step / 8;
 		state = &data->voices[voice];
-		samples1 = samples;
-		while (samples1-- > 0) {
+		frames1 = frames;
+		while (frames1-- > 0) {
 			signed short sample;
 			int v;
 			if (srcbit)
@@ -271,7 +271,7 @@ static void adpcm_decode(snd_pcm_plugin_t *plugin,
 static void adpcm_encode(snd_pcm_plugin_t *plugin,
 			const snd_pcm_plugin_voice_t *src_voices,
 			snd_pcm_plugin_voice_t *dst_voices,
-			size_t samples)
+			size_t frames)
 {
 #define GET_S16_LABELS
 #include "plugin_ops.h"
@@ -286,11 +286,11 @@ static void adpcm_encode(snd_pcm_plugin_t *plugin,
 		char *dst;
 		int dstbit;
 		int src_step, dst_step, dstbit_step;
-		size_t samples1;
+		size_t frames1;
 		adpcm_voice_t *state;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_area_silence(&dst_voices[voice].area, 0, samples, plugin->dst_format.format);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, frames, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
@@ -302,8 +302,8 @@ static void adpcm_encode(snd_pcm_plugin_t *plugin,
 		dst_step = dst_voices[voice].area.step / 8;
 		dstbit_step = dst_voices[voice].area.step % 8;
 		state = &data->voices[voice];
-		samples1 = samples;
-		while (samples1-- > 0) {
+		frames1 = frames;
+		while (frames1-- > 0) {
 			int v;
 			goto *get;
 #define GET_S16_END after
@@ -329,14 +329,14 @@ static void adpcm_encode(snd_pcm_plugin_t *plugin,
 static ssize_t adpcm_transfer(snd_pcm_plugin_t *plugin,
 			      const snd_pcm_plugin_voice_t *src_voices,
 			      snd_pcm_plugin_voice_t *dst_voices,
-			      size_t samples)
+			      size_t frames)
 {
 	adpcm_t *data;
 	unsigned int voice;
 
 	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
 		return -EFAULT;
-	if (samples == 0)
+	if (frames == 0)
 		return 0;
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
 		if (plugin->src_format.format == SND_PCM_SFMT_IMA_ADPCM) {
@@ -354,8 +354,8 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t *plugin,
 		}
 	}
 	data = (adpcm_t *)plugin->extra_data;
-	data->func(plugin, src_voices, dst_voices, samples);
-	return samples;
+	data->func(plugin, src_voices, dst_voices, frames);
+	return frames;
 }
 
 static int adpcm_action(snd_pcm_plugin_t * plugin,

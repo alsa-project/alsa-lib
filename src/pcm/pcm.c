@@ -179,8 +179,8 @@ int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
 		return err;
 	memcpy(&chan->setup, setup, sizeof(*setup));
 	chan->sample_width = snd_pcm_format_physical_width(setup->format.format);
-	chan->bits_per_sample = chan->sample_width * setup->format.voices;
-	chan->samples_per_frag = setup->frag_size * 8 / chan->bits_per_sample;
+	chan->bits_per_frame = chan->sample_width * setup->format.voices;
+	chan->frames_per_frag = setup->frag_size * 8 / chan->bits_per_frame;
 	chan->valid_setup = 1;
 	return 0;
 }

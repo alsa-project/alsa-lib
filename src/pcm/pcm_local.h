@@ -84,8 +84,8 @@ struct snd_pcm_chan {
 	snd_pcm_channel_setup_t setup;
 	snd_pcm_voice_area_t *voices;
 	size_t sample_width;
-	size_t bits_per_sample;
-	size_t samples_per_frag;
+	size_t bits_per_frame;
+	size_t frames_per_frag;
 	snd_pcm_mmap_control_t *mmap_control;
 	size_t mmap_control_size;
 	int mmap_control_emulation;
@@ -134,7 +134,7 @@ int snd_pcm_plug_playback_voices_mask(snd_pcm_plugin_handle_t *handle,
 int snd_pcm_plug_capture_voices_mask(snd_pcm_plugin_handle_t *handle,
 				     bitset_t *client_vmask);
 int snd_pcm_plugin_client_voices(snd_pcm_plugin_t *plugin,
-                                 size_t samples,
+                                 size_t frames,
                                  snd_pcm_plugin_voice_t **voices);
 
 void *snd_pcm_plug_buf_alloc(snd_pcm_t *pcm, int channel, size_t size);
