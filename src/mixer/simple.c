@@ -1,3 +1,11 @@
+/**
+ * \file mixer/simple.c
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2001
+ *
+ * Mixer simple elements class interface.
+ */
 /*
  *  Mixer Interface - simple controls
  *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
@@ -20,6 +28,7 @@
  *
  */
 
+#ifndef DOC_HIDDEN
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -82,6 +91,8 @@ typedef struct _selem {
 		unsigned int sw;
 	} str[2];
 } selem_t;
+
+#endif
 
 static struct mixer_name_table {
 	const char *longname;
@@ -869,7 +880,15 @@ static int simple_compare(const snd_mixer_elem_t *c1, const snd_mixer_elem_t *c2
 	return s1->id.index - s2->id.index;
 }
 
-int snd_mixer_selem_register(snd_mixer_t *mixer, void *arg ATTRIBUTE_UNUSED,
+
+/**
+ * \brief Register mixer simple element class
+ * \param mixer Mixer handle
+ * \param options Options container (not used now)
+ * \param classp Pointer to returned mixer simple element class handle (or NULL)
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_register(snd_mixer_t *mixer, void *options ATTRIBUTE_UNUSED,
 			     snd_mixer_class_t **classp)
 {
 	snd_mixer_class_t *class = calloc(1, sizeof(*class));
@@ -888,6 +907,12 @@ int snd_mixer_selem_register(snd_mixer_t *mixer, void *arg ATTRIBUTE_UNUSED,
 	return 0;
 }
 	
+/**
+ * \brief Find a mixer simple element
+ * \param mixer Mixer handle
+ * \param id Mixer simple element identificator
+ * \return mixer simple element handle or NULL if not found
+ */
 snd_mixer_elem_t *snd_mixer_find_selem(snd_mixer_t *mixer,
 				       const snd_mixer_selem_id_t *id)
 {
@@ -905,6 +930,11 @@ snd_mixer_elem_t *snd_mixer_find_selem(snd_mixer_t *mixer,
 	return NULL;
 }
 
+/**
+ * \brief Get mixer simple element identificator
+ * \param elem Mixer simple element handle
+ * \param id returned mixer simple element identificator
+ */
 void snd_mixer_selem_get_id(snd_mixer_elem_t *elem,
 			    snd_mixer_selem_id_t *id)
 {
@@ -915,6 +945,11 @@ void snd_mixer_selem_get_id(snd_mixer_elem_t *elem,
 	*id = s->id;
 }
 
+/**
+ * \brief Get name part of mixer simple element identificator
+ * \param elem Mixer simple element handle
+ * \return name part of simple element identificator
+ */
 const char *snd_mixer_selem_get_name(snd_mixer_elem_t *elem)
 {
 	selem_t *s;
@@ -924,6 +959,11 @@ const char *snd_mixer_selem_get_name(snd_mixer_elem_t *elem)
 	return s->id.name;
 }
 
+/**
+ * \brief Get index part of mixer simple element identificator
+ * \param elem Mixer simple element handle
+ * \return index part of simple element identificator
+ */
 unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t *elem)
 {
 	selem_t *s;
@@ -933,88 +973,11 @@ unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t *elem)
 	return s->id.index;
 }
 
-int snd_mixer_selem_is_playback_mono(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return s->str[PLAY].channels == 1;
-}
-
-int snd_mixer_selem_has_playback_channel(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return (unsigned int) channel < s->str[PLAY].channels;
-}
-
-int snd_mixer_selem_get_playback_min(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return s->str[PLAY].min;
-}
-
-int snd_mixer_selem_get_playback_max(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return s->str[PLAY].max;
-}
-
-int snd_mixer_selem_is_capture_mono(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return s->str[CAPT].channels == 1;
-}
-
-int snd_mixer_selem_has_capture_channel(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return (unsigned int) channel < s->str[CAPT].channels;
-}
-
-int snd_mixer_selem_get_capture_min(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return s->str[CAPT].min;
-}
-
-int snd_mixer_selem_get_capture_max(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return s->str[CAPT].max;
-}
-
-int snd_mixer_selem_get_capture_group(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert(s->caps & CAP_CSWITCH_EXCL);
-	return s->capture_group;
-}
-
+/**
+ * \brief Return true if mixer simple element has only one volume control for both playback and capture
+ * \param elem Mixer simple element handle
+ * \return 0 separated control, 1 common control
+ */
 int snd_mixer_selem_has_common_volume(snd_mixer_elem_t *elem)
 {
 	selem_t *s;
@@ -1024,42 +987,11 @@ int snd_mixer_selem_has_common_volume(snd_mixer_elem_t *elem)
 	return !!(s->caps & CAP_GVOLUME);
 }
 
-int snd_mixer_selem_has_playback_volume(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & CAP_PVOLUME);
-}
-
-int snd_mixer_selem_has_playback_volume_joined(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & CAP_PVOLUME_JOIN);
-}
-
-int snd_mixer_selem_has_capture_volume(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & CAP_CVOLUME);
-}
-
-int snd_mixer_selem_has_capture_volume_joined(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & CAP_CVOLUME_JOIN);
-}
-
+/**
+ * \brief Return true if mixer simple element has only one switch control for both playback and capture
+ * \param elem Mixer simple element handle
+ * \return 0 separated control, 1 common control
+ */
 int snd_mixer_selem_has_common_switch(snd_mixer_elem_t *elem)
 {
 	selem_t *s;
@@ -1067,123 +999,6 @@ int snd_mixer_selem_has_common_switch(snd_mixer_elem_t *elem)
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
 	s = elem->private_data;
 	return !!(s->caps & CAP_GSWITCH);
-}
-
-int snd_mixer_selem_has_playback_switch(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & CAP_PSWITCH);
-}
-
-int snd_mixer_selem_has_playback_switch_joined(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & CAP_PSWITCH_JOIN);
-}
-
-int snd_mixer_selem_has_capture_switch(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & CAP_CSWITCH);
-}
-
-int snd_mixer_selem_has_capture_switch_joined(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & CAP_CSWITCH_JOIN);
-}
-
-int snd_mixer_selem_has_capture_switch_exclusive(snd_mixer_elem_t *elem)
-{
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & CAP_CSWITCH_EXCL);
-}
-
-int snd_mixer_selem_get_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value)
-{
-	int err;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert((unsigned int) channel < s->str[PLAY].channels);
-	assert(s->caps & CAP_PVOLUME);
-	err = snd_mixer_handle_events(elem->class->mixer);
-	if (err < 0)
-		return err;
-	if (s->caps & CAP_PVOLUME_JOIN)
-		channel = 0;
-	*value = s->str[PLAY].vol[channel];
-	return 0;
-}
-
-int snd_mixer_selem_get_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value)
-{
-	int err;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert((unsigned int) channel < s->str[CAPT].channels);
-	assert(s->caps & CAP_CVOLUME);
-	err = snd_mixer_handle_events(elem->class->mixer);
-	if (err < 0)
-		return err;
-	if (s->caps & CAP_CVOLUME_JOIN)
-		channel = 0;
-	*value = s->str[CAPT].vol[channel];
-	return 0;
-}
-
-int snd_mixer_selem_get_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int *value)
-{
-	int err;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert((unsigned int) channel < s->str[PLAY].channels);
-	assert(s->caps & CAP_PSWITCH);
-	err = snd_mixer_handle_events(elem->class->mixer);
-	if (err < 0)
-		return err;
-	if (s->caps & CAP_PSWITCH_JOIN)
-		channel = 0;
-	*value = !!(s->str[PLAY].sw & (1 << channel));
-	return 0;
-}
-
-int snd_mixer_selem_get_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int *value)
-{
-	int err;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert((unsigned int) channel < s->str[CAPT].channels);
-	assert(s->caps & CAP_CSWITCH);
-	err = snd_mixer_handle_events(elem->class->mixer);
-	if (err < 0)
-		return err;
-	if (s->caps & CAP_CSWITCH_JOIN)
-		channel = 0;
-	*value = !!(s->str[CAPT].sw & (1 << channel));
-	return 0;
 }
 
 static int _snd_mixer_selem_set_volume(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long value)
@@ -1201,38 +1016,6 @@ static int _snd_mixer_selem_set_volume(snd_mixer_elem_t *elem, int dir, snd_mixe
 	return 0;
 }
 
-int snd_mixer_selem_set_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value)
-{
-	int changed;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert(s->caps & CAP_PVOLUME);
-	changed = _snd_mixer_selem_set_volume(elem, PLAY, channel, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
-}
-
-int snd_mixer_selem_set_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value)
-{
-	int changed;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert(s->caps & CAP_CVOLUME);
-	changed = _snd_mixer_selem_set_volume(elem, CAPT, channel, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
-}
-
 static int _snd_mixer_selem_set_volume_all(snd_mixer_elem_t *elem, int dir, long value)
 {
 	int changed = 0;
@@ -1246,38 +1029,6 @@ static int _snd_mixer_selem_set_volume_all(snd_mixer_elem_t *elem, int dir, long
 		}
 	}
 	return changed;
-}
-
-int snd_mixer_selem_set_playback_volume_all(snd_mixer_elem_t *elem, long value)
-{
-	int changed;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert(s->caps & CAP_PVOLUME);
-	changed = _snd_mixer_selem_set_volume_all(elem, PLAY, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
-}
-
-int snd_mixer_selem_set_capture_volume_all(snd_mixer_elem_t *elem, long value)
-{
-	int changed;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert(s->caps & CAP_CVOLUME);
-	changed = _snd_mixer_selem_set_volume_all(elem, CAPT, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
 }
 
 static int _snd_mixer_selem_set_switch(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, int value)
@@ -1301,38 +1052,6 @@ static int _snd_mixer_selem_set_switch(snd_mixer_elem_t *elem, int dir, snd_mixe
 	return 0;
 }
 
-int snd_mixer_selem_set_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value)
-{
-	int changed;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert(s->caps & CAP_PSWITCH);
-	changed = _snd_mixer_selem_set_switch(elem, PLAY, channel, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
-}
-
-int snd_mixer_selem_set_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value)
-{
-	int changed;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert(s->caps & CAP_CSWITCH);
-	changed = _snd_mixer_selem_set_switch(elem, CAPT, channel, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
-}
-
 static int _snd_mixer_selem_set_switch_all(snd_mixer_elem_t *elem, int dir, int value)
 {
 	selem_t *s = elem->private_data;
@@ -1350,38 +1069,11 @@ static int _snd_mixer_selem_set_switch_all(snd_mixer_elem_t *elem, int dir, int 
 	return 0;
 }
 
-int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value)
-{
-	int changed;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert(s->caps & CAP_PSWITCH);
-	changed = _snd_mixer_selem_set_switch_all(elem, PLAY, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
-}
-
-int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value)
-{
-	int changed;
-	selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	assert(s->caps & CAP_CSWITCH);
-	changed = _snd_mixer_selem_set_switch_all(elem, CAPT, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
-}
-
+/**
+ * \brief Return name of mixer simple element channel
+ * \param channel mixer simple element channel identificator
+ * \return channel name
+ */
 const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
 {
 	static const char *array[snd_enum_to_int(SND_MIXER_SCHN_LAST) + 1] = {
@@ -1400,6 +1092,58 @@ const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
 	return p;
 }
 
+/**
+ * \brief Get info about channels of playback stream of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if not mono, 1 if mono
+ */
+int snd_mixer_selem_is_playback_mono(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return s->str[PLAY].channels == 1;
+}
+
+/**
+ * \brief Get info about channels of playback stream of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel Mixer simple element channel identificator
+ * \return 0 if channel is not present, 1 if present
+ */
+int snd_mixer_selem_has_playback_channel(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return (unsigned int) channel < s->str[PLAY].channels;
+}
+
+/**
+ * \brief Get range for playback volume of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param min Pointer to returned minimum
+ * \param max Pointer to returned maximum
+ */
+void snd_mixer_selem_get_playback_volume_range(snd_mixer_elem_t *elem,
+					       long *min, long *max)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	*min = s->str[PLAY].min;
+	*max = s->str[PLAY].max;
+}
+
+/**
+ * \brief Set range for playback volume of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param min minimum volume value
+ * \param max maximum volume value
+ */
 void snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem, 
 					       long min, long max)
 {
@@ -1413,6 +1157,254 @@ void snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem,
 	s->str[PLAY].max = max;
 }
 
+/**
+ * \brief Return info about playback volume control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if no control is present, 1 if it's present
+ */
+int snd_mixer_selem_has_playback_volume(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return !!(s->caps & CAP_PVOLUME);
+}
+
+/**
+ * \brief Return info about playback volume control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if control is separated per channel, 1 if control acts on all channels together
+ */
+int snd_mixer_selem_has_playback_volume_joined(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return !!(s->caps & CAP_PVOLUME_JOIN);
+}
+
+/**
+ * \brief Return info about playback switch control existence of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if no control is present, 1 if it's present
+ */
+int snd_mixer_selem_has_playback_switch(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return !!(s->caps & CAP_PSWITCH);
+}
+
+/**
+ * \brief Return info about playback switch control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if control is separated per channel, 1 if control acts on all channels together
+ */
+int snd_mixer_selem_has_playback_switch_joined(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return !!(s->caps & CAP_PSWITCH_JOIN);
+}
+
+/**
+ * \brief Return value of playback volume control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identificator
+ * \param value pointer to returned value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_get_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value)
+{
+	int err;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert((unsigned int) channel < s->str[PLAY].channels);
+	assert(s->caps & CAP_PVOLUME);
+	err = snd_mixer_handle_events(elem->class->mixer);
+	if (err < 0)
+		return err;
+	if (s->caps & CAP_PVOLUME_JOIN)
+		channel = 0;
+	*value = s->str[PLAY].vol[channel];
+	return 0;
+}
+
+/**
+ * \brief Return value of playback switch control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identificator
+ * \param value pointer to returned value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_get_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int *value)
+{
+	int err;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert((unsigned int) channel < s->str[PLAY].channels);
+	assert(s->caps & CAP_PSWITCH);
+	err = snd_mixer_handle_events(elem->class->mixer);
+	if (err < 0)
+		return err;
+	if (s->caps & CAP_PSWITCH_JOIN)
+		channel = 0;
+	*value = !!(s->str[PLAY].sw & (1 << channel));
+	return 0;
+}
+
+/**
+ * \brief Set value of playback volume control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identificator
+ * \param value control value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_set_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value)
+{
+	int changed;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(s->caps & CAP_PVOLUME);
+	changed = _snd_mixer_selem_set_volume(elem, PLAY, channel, value);
+	if (changed < 0)
+		return changed;
+	if (changed)
+		return selem_write(elem);
+	return 0;
+}
+
+/**
+ * \brief Set value of playback volume control for all channels of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param value control value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_set_playback_volume_all(snd_mixer_elem_t *elem, long value)
+{
+	int changed;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(s->caps & CAP_PVOLUME);
+	changed = _snd_mixer_selem_set_volume_all(elem, PLAY, value);
+	if (changed < 0)
+		return changed;
+	if (changed)
+		return selem_write(elem);
+	return 0;
+}
+
+/**
+ * \brief Set value of playback switch control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identificator
+ * \param value control value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_set_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value)
+{
+	int changed;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(s->caps & CAP_PSWITCH);
+	changed = _snd_mixer_selem_set_switch(elem, PLAY, channel, value);
+	if (changed < 0)
+		return changed;
+	if (changed)
+		return selem_write(elem);
+	return 0;
+}
+
+/**
+ * \brief Set value of playback switch control for all channels of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param value control value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value)
+{
+	int changed;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(s->caps & CAP_PSWITCH);
+	changed = _snd_mixer_selem_set_switch_all(elem, PLAY, value);
+	if (changed < 0)
+		return changed;
+	if (changed)
+		return selem_write(elem);
+	return 0;
+}
+
+/**
+ * \brief Get info about channels of capture stream of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if not mono, 1 if mono
+ */
+int snd_mixer_selem_is_capture_mono(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return s->str[CAPT].channels == 1;
+}
+
+/**
+ * \brief Get info about channels of capture stream of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel Mixer simple element channel identificator
+ * \return 0 if channel is not present, 1 if present
+ */
+int snd_mixer_selem_has_capture_channel(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return (unsigned int) channel < s->str[CAPT].channels;
+}
+
+/**
+ * \brief Get range for capture volume of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param min Pointer to returned minimum
+ * \param max Pointer to returned maximum
+ */
+void snd_mixer_selem_get_capture_volume_range(snd_mixer_elem_t *elem,
+					      long *min, long *max)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	*min = s->str[CAPT].min;
+	*max = s->str[CAPT].max;
+}
+
+/**
+ * \brief Set range for capture volume of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param min minimum volume value
+ * \param max maximum volume value
+ */
 void snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem, 
 					      long min, long max)
 {
@@ -1424,5 +1416,317 @@ void snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem,
 	s->str[CAPT].range = 1;
 	s->str[CAPT].min = min;
 	s->str[CAPT].max = max;
+}
+
+/**
+ * \brief Return info about capture volume control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if no control is present, 1 if it's present
+ */
+int snd_mixer_selem_has_capture_volume(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return !!(s->caps & CAP_CVOLUME);
+}
+
+/**
+ * \brief Return info about capture volume control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if control is separated per channel, 1 if control acts on all channels together
+ */
+int snd_mixer_selem_has_capture_volume_joined(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return !!(s->caps & CAP_CVOLUME_JOIN);
+}
+
+/**
+ * \brief Return info about capture switch control existence of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if no control is present, 1 if it's present
+ */
+int snd_mixer_selem_has_capture_switch(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return !!(s->caps & CAP_CSWITCH);
+}
+
+/**
+ * \brief Return info about capture switch control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if control is separated per channel, 1 if control acts on all channels together
+ */
+int snd_mixer_selem_has_capture_switch_joined(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return !!(s->caps & CAP_CSWITCH_JOIN);
+}
+
+/**
+ * \brief Return info about capture switch control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return 0 if control is separated per element, 1 if control acts on other elements too (i.e. only one active at a time inside a group)
+ */
+int snd_mixer_selem_has_capture_switch_exclusive(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return !!(s->caps & CAP_CSWITCH_EXCL);
+}
+
+/**
+ * \brief Return info about capture switch control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \return group for switch exclusivity (see #snd_mixer_selem_has_capture_switch_exclusive)
+ */
+int snd_mixer_selem_get_capture_group(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(s->caps & CAP_CSWITCH_EXCL);
+	return s->capture_group;
+}
+
+/**
+ * \brief Return value of capture volume control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identificator
+ * \param value pointer to returned value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_get_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value)
+{
+	int err;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert((unsigned int) channel < s->str[CAPT].channels);
+	assert(s->caps & CAP_CVOLUME);
+	err = snd_mixer_handle_events(elem->class->mixer);
+	if (err < 0)
+		return err;
+	if (s->caps & CAP_CVOLUME_JOIN)
+		channel = 0;
+	*value = s->str[CAPT].vol[channel];
+	return 0;
+}
+
+/**
+ * \brief Return value of capture switch control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identificator
+ * \param value pointer to returned value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_get_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int *value)
+{
+	int err;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert((unsigned int) channel < s->str[CAPT].channels);
+	assert(s->caps & CAP_CSWITCH);
+	err = snd_mixer_handle_events(elem->class->mixer);
+	if (err < 0)
+		return err;
+	if (s->caps & CAP_CSWITCH_JOIN)
+		channel = 0;
+	*value = !!(s->str[CAPT].sw & (1 << channel));
+	return 0;
+}
+
+/**
+ * \brief Set value of capture volume control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identificator
+ * \param value control value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_set_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value)
+{
+	int changed;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(s->caps & CAP_CVOLUME);
+	changed = _snd_mixer_selem_set_volume(elem, CAPT, channel, value);
+	if (changed < 0)
+		return changed;
+	if (changed)
+		return selem_write(elem);
+	return 0;
+}
+
+/**
+ * \brief Set value of capture volume control for all channels of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param value control value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_set_capture_volume_all(snd_mixer_elem_t *elem, long value)
+{
+	int changed;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(s->caps & CAP_CVOLUME);
+	changed = _snd_mixer_selem_set_volume_all(elem, CAPT, value);
+	if (changed < 0)
+		return changed;
+	if (changed)
+		return selem_write(elem);
+	return 0;
+}
+
+/**
+ * \brief Set value of capture switch control of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param channel mixer simple element channel identificator
+ * \param value control value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_set_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value)
+{
+	int changed;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(s->caps & CAP_CSWITCH);
+	changed = _snd_mixer_selem_set_switch(elem, CAPT, channel, value);
+	if (changed < 0)
+		return changed;
+	if (changed)
+		return selem_write(elem);
+	return 0;
+}
+
+/**
+ * \brief Set value of capture switch control for all channels of a mixer simple element
+ * \param elem Mixer simple element handle
+ * \param value control value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value)
+{
+	int changed;
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(s->caps & CAP_CSWITCH);
+	changed = _snd_mixer_selem_set_switch_all(elem, CAPT, value);
+	if (changed < 0)
+		return changed;
+	if (changed)
+		return selem_write(elem);
+	return 0;
+}
+
+/**
+ * \brief get size of #snd_mixer_selem_id_t
+ * \return size in bytes
+ */
+size_t snd_mixer_selem_id_sizeof()
+{
+	return sizeof(snd_mixer_selem_id_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_mixer_selem_id_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_mixer_selem_id_malloc(snd_mixer_selem_id_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_mixer_selem_id_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_mixer_selem_id_t
+ * \param pointer to object to free
+ */
+void snd_mixer_selem_id_free(snd_mixer_selem_id_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_mixer_selem_id_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_mixer_selem_id_copy(snd_mixer_selem_id_t *dst, const snd_mixer_selem_id_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Get name part of a mixer simple element identificator
+ * \param obj Mixer simple element identificator
+ * \return name part
+ */
+const char *snd_mixer_selem_id_get_name(const snd_mixer_selem_id_t *obj)
+{
+	assert(obj);
+	return obj->name;
+}
+
+/**
+ * \brief Get index part of a mixer simple element identificator
+ * \param obj Mixer simple element identificator
+ * \return index part
+ */
+unsigned int snd_mixer_selem_id_get_index(const snd_mixer_selem_id_t *obj)
+{
+	assert(obj);
+	return obj->index;
+}
+
+/**
+ * \brief Set name part of a mixer simple element identificator
+ * \param obj Mixer simple element identificator
+ * \param val name part
+ */
+void snd_mixer_selem_id_set_name(snd_mixer_selem_id_t *obj, const char *val)
+{
+	assert(obj);
+	strncpy(obj->name, val, sizeof(obj->name));
+}
+
+/**
+ * \brief Set index part of a mixer simple element identificator
+ * \param obj Mixer simple element identificator
+ * \param val index part
+ */
+void snd_mixer_selem_id_set_index(snd_mixer_selem_id_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->index = val;
 }
 

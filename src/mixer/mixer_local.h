@@ -90,7 +90,6 @@ struct _snd_mixer_selem_id {
 int snd_mixer_class_register(snd_mixer_class_t *class, snd_mixer_t *mixer);
 int snd_mixer_add_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem);
 int snd_mixer_remove_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem);
-int snd_mixer_elem_throw_event(snd_mixer_elem_t *elem, unsigned int mask);
 int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class);
 int snd_mixer_elem_remove(snd_mixer_elem_t *elem);
 int snd_mixer_elem_info(snd_mixer_elem_t *elem);
