@@ -152,6 +152,14 @@ int _snd_seq_poll_descriptor(snd_seq_t *seq)
 	return seq->poll_fd;
 }
 
+int snd_seq_poll_descriptors_count(snd_seq_t *seq, unsigned int *count)
+{
+	assert(seq);
+	assert(count);
+	*count = 1;
+	return 0;
+}
+
 int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int space)
 {
 	assert(seq);
@@ -162,8 +170,9 @@ int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int s
 			pfds->events |= POLLIN;
 		if (seq->streams & SND_SEQ_OPEN_OUTPUT)
 			pfds->events |= POLLOUT;
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 
 /*

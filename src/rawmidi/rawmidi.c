@@ -58,14 +58,23 @@ int _snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi)
 	return rmidi->poll_fd;
 }
 
+int snd_rawmidi_poll_descriptors_count(snd_rawmidi_t *rmidi, unsigned int *count)
+{
+	assert(rmidi);
+	assert(count);
+	*count = 1;
+	return 0;
+}
+
 int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsigned int space)
 {
 	assert(rmidi);
 	if (space >= 1) {
 		pfds->fd = rmidi->poll_fd;
 		pfds->events = rmidi->stream == SND_RAWMIDI_STREAM_OUTPUT ? POLLOUT : POLLIN;
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 
 

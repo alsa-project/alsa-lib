@@ -84,14 +84,23 @@ int _snd_timer_poll_descriptor(snd_timer_t *handle)
 	return tmr->fd;
 }
 
+int snd_timer_poll_descriptors_count(snd_timer_t *timer, unsigned int *count)
+{
+	assert(timer);
+	assert(count);
+	*count = 1;
+	return 0;
+}
+
 int snd_timer_poll_descriptors(snd_timer_t *timer, struct pollfd *pfds, unsigned int space)
 {
 	assert(timer);
 	if (space >= 1) {
 		pfds->fd = timer->fd;
 		pfds->events = POLLIN;
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 
 int snd_timer_next_device(snd_timer_t *handle, snd_timer_id_t * tid)

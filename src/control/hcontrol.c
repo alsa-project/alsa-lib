@@ -83,6 +83,13 @@ int snd_hctl_async(snd_hctl_t *hctl, int sig, pid_t pid)
 	return snd_ctl_async(hctl->ctl, sig, pid);
 }
 
+int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl, unsigned int *count)
+{
+	assert(hctl);
+	assert(count);
+	return snd_ctl_poll_descriptors_count(hctl->ctl, count);
+}
+
 int snd_hctl_poll_descriptors(snd_hctl_t *hctl, struct pollfd *pfds, unsigned int space)
 {
 	assert(hctl);
