@@ -42,6 +42,5 @@ INCLUDES=-I$(top_srcdir)/include
 install-data-hook:
 	rm -f $(DESTDIR)$(alsaincludedir)/asoundef.h
 	$(LN_S) -f ../sound/asoundef.h $(DESTDIR)$(alsaincludedir)/asoundef.h
-	# should be removed in future
 	test -d $(DESTDIR)$(sysincludedir) || mkdir -p $(DESTDIR)$(sysincludedir)
 	$(INSTALL_DATA) sys.h $(DESTDIR)$(sysincludedir)/asoundlib.h
