@@ -461,7 +461,7 @@ static int _snd_config_search(snd_config_t *config,
 	return -ENOENT;
 }
 
-static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, char **id)
+static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, char **id, int skip)
 {
 	snd_config_t *n = *_n;
 	char *s;
@@ -470,6 +470,10 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 	err = get_string(&s, 0, input);
 	if (err < 0)
 		return err;
+	if (skip) {
+		free(s);
+		return 0;
+	}
 	if ((s[0] >= '0' && s[0] <= '9') || s[0] == '-') {
 		long i;
 		errno = 0;
@@ -481,7 +485,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 				free(s);
 				if (n) {
 					if (n->type != SND_CONFIG_TYPE_REAL) {
-						SNDERR("%s is not a real", id);
+						SNDERR("%s is not a real", *id);
 						return -EINVAL;
 					}
 				} else {
@@ -497,7 +501,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 			free(s);
 			if (n) {
 				if (n->type != SND_CONFIG_TYPE_INTEGER) {
-					SNDERR("%s is not an integer", id);
+					SNDERR("%s is not an integer", *id);
 					return -EINVAL;
 				}
 			} else {
@@ -512,7 +516,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 	}
 	if (n) {
 		if (n->type != SND_CONFIG_TYPE_STRING) {
-			SNDERR("%s is not a string", id);
+			SNDERR("%s is not a string", *id);
 			free(s);
 			return -EINVAL;
 		}
@@ -528,21 +532,23 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 	return 0;
 }
 
-static int parse_defs(snd_config_t *father, input_t *input);
-static int parse_array_defs(snd_config_t *farther, input_t *input);
+static int parse_defs(snd_config_t *father, input_t *input, int skip);
+static int parse_array_defs(snd_config_t *farther, input_t *input, int skip);
 
-static int parse_array_def(snd_config_t *father, input_t *input, int idx)
+static int parse_array_def(snd_config_t *father, input_t *input, int idx, int skip)
 {
-	char static_id[12], *id;
+	char static_id[12], *id = NULL;
 	int c;
 	int err;
 	snd_config_t *n = NULL;
 
-	snprintf(static_id, sizeof(static_id), "%i", idx);
-	static_id[sizeof(static_id)-1] = '\0';
-	id = strdup(static_id);
-	if (id == NULL)
-		return -ENOMEM;
+	if (!skip) {
+		snprintf(static_id, sizeof(static_id), "%i", idx);
+		static_id[sizeof(static_id)-1] = '\0';
+		id = strdup(static_id);
+		if (id == NULL)
+			return -ENOMEM;
+	}
 	c = get_nonwhite(input);
 	if (c < 0) {
 		err = c;
@@ -553,22 +559,24 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx)
 	case '[':
 	{
 		char endchr;
-		if (n) {
-			if (n->type != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("%s is not a compound", id);
-				err = -EINVAL;
-				goto __end;
+		if (!skip) {
+			if (n) {
+				if (n->type != SND_CONFIG_TYPE_COMPOUND) {
+					SNDERR("%s is not a compound", id);
+					err = -EINVAL;
+					goto __end;
+				}
+			} else {
+				err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
+				if (err < 0)
+					goto __end;
 			}
-		} else {
-			err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
-			if (err < 0)
-				goto __end;
 		}
 		if (c == '{') {
-			err = parse_defs(n, input);
+			err = parse_defs(n, input, skip);
 			endchr = '}';
 		} else {
-			err = parse_array_defs(n, input);
+			err = parse_array_defs(n, input, skip);
 			endchr = ']';
 		}
 		c = get_nonwhite(input);
@@ -577,7 +585,8 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx)
 			goto __end;
 		}
 		if (c != endchr) {
-			snd_config_delete(n);
+			if (n)
+				snd_config_delete(n);
 			err = LOCAL_UNEXPECTED_CHAR;
 			goto __end;
 		}
@@ -585,7 +594,7 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx)
 	}
 	default:
 		unget_char(c, input);
-		err = parse_value(&n, father, input, &id);
+		err = parse_value(&n, father, input, &id, skip);
 		if (err < 0)
 			goto __end;
 		break;
@@ -597,7 +606,7 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx)
       	return err;
 }
 
-static int parse_array_defs(snd_config_t *father, input_t *input)
+static int parse_array_defs(snd_config_t *father, input_t *input, int skip)
 {
 	int idx = 0;
 	while (1) {
@@ -607,33 +616,33 @@ static int parse_array_defs(snd_config_t *father, input_t *input)
 		unget_char(c, input);
 		if (c == ']')
 			return 0;
-		err = parse_array_def(father, input, idx++);
+		err = parse_array_def(father, input, idx++, skip);
 		if (err < 0)
 			return err;
 	}
 	return 0;
 }
 
-static int parse_def(snd_config_t *father, input_t *input)
+static int parse_def(snd_config_t *father, input_t *input, int skip)
 {
 	char *id = NULL;
 	int c;
 	int err;
 	snd_config_t *n;
-	enum {MERGE, NOCREATE, REMOVE} mode;
+	enum {MERGE_CREATE, MERGE, OVERRIDE, DONT_OVERRIDE} mode;
 	while (1) {
 		c = get_nonwhite(input);
 		if (c < 0)
 			return c;
 		switch (c) {
 		case '?':
-			mode = NOCREATE;
+			mode = DONT_OVERRIDE;
 			break;
 		case '!':
-			mode = REMOVE;
+			mode = OVERRIDE;
 			break;
 		default:
-			mode = MERGE;
+			mode = MERGE_CREATE;
 			unget_char(c, input);
 		}
 		err = get_string(&id, 1, input);
@@ -642,8 +651,17 @@ static int parse_def(snd_config_t *father, input_t *input)
 		c = get_nonwhite(input);
 		if (c != '.')
 			break;
+		if (skip) {
+			free(id);
+			continue;
+		}
 		if (_snd_config_search(father, id, -1, &n) == 0) {
-			if (mode != REMOVE) {
+			if (mode == DONT_OVERRIDE) {
+				skip = 1;
+				free(id);
+				continue;
+			}
+			if (mode != OVERRIDE) {
 				if (n->type != SND_CONFIG_TYPE_COMPOUND) {
 					SNDERR("%s is not a compound", id);
 					return -EINVAL;
@@ -655,7 +673,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 			}
 			snd_config_delete(n);
 		}
-		if (mode == NOCREATE) {
+		if (mode == MERGE) {
 			SNDERR("%s does not exists", id);
 			err = -ENOENT;
 			goto __end;
@@ -671,17 +689,22 @@ static int parse_def(snd_config_t *father, input_t *input)
 		if (c < 0)
 			return c;
 	}
-	if (_snd_config_search(father, id, -1, &n) == 0) {
-		if (mode == REMOVE) {
-			snd_config_delete(n);
+	if (!skip) {
+		if (_snd_config_search(father, id, -1, &n) == 0) {
+			if (mode == DONT_OVERRIDE) {
+				skip = 1;
+				n = NULL;
+			} else if (mode == OVERRIDE) {
+				snd_config_delete(n);
+				n = NULL;
+			}
+		} else {
 			n = NULL;
-		}
-	} else {
-		n = NULL;
-		if (mode == NOCREATE) {
-			SNDERR("%s does not exists", id);
-			err = -ENOENT;
-			goto __end;
+			if (mode == MERGE) {
+				SNDERR("%s does not exists", id);
+				err = -ENOENT;
+				goto __end;
+			}
 		}
 	}
 	switch (c) {
@@ -689,27 +712,30 @@ static int parse_def(snd_config_t *father, input_t *input)
 	case '[':
 	{
 		char endchr;
-		if (n) {
-			if (n->type != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("%s is not a compound", id);
-				err = -EINVAL;
-				goto __end;
+		if (!skip) {
+			if (n) {
+				if (n->type != SND_CONFIG_TYPE_COMPOUND) {
+					SNDERR("%s is not a compound", id);
+					err = -EINVAL;
+					goto __end;
+				}
+			} else {
+				err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
+				if (err < 0)
+					goto __end;
 			}
-		} else {
-			err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
-			if (err < 0)
-				goto __end;
 		}
 		if (c == '{') {
-			err = parse_defs(n, input);
+			err = parse_defs(n, input, skip);
 			endchr = '}';
 		} else {
-			err = parse_array_defs(n, input);
+			err = parse_array_defs(n, input, skip);
 			endchr = ']';
 		}
 		c = get_nonwhite(input);
 		if (c != endchr) {
-			snd_config_delete(n);
+			if (n)
+				snd_config_delete(n);
 			err = LOCAL_UNEXPECTED_CHAR;
 			goto __end;
 		}
@@ -717,7 +743,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 	}
 	default:
 		unget_char(c, input);
-		err = parse_value(&n, father, input, &id);
+		err = parse_value(&n, father, input, &id, skip);
 		if (err < 0)
 			goto __end;
 		break;
@@ -736,7 +762,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 	return err;
 }
 		
-static int parse_defs(snd_config_t *father, input_t *input)
+static int parse_defs(snd_config_t *father, input_t *input, int skip)
 {
 	int c, err;
 	while (1) {
@@ -746,7 +772,7 @@ static int parse_defs(snd_config_t *father, input_t *input)
 		unget_char(c, input);
 		if (c == '}')
 			return 0;
-		err = parse_def(father, input);
+		err = parse_def(father, input, skip);
 		if (err < 0)
 			return err;
 	}
@@ -1041,7 +1067,7 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 	fd->next = NULL;
 	input.current = fd;
 	input.unget = 0;
-	err = parse_defs(config, &input);
+	err = parse_defs(config, &input, 0);
 	fd = input.current;
 	if (err < 0) {
 		const char *str;
