@@ -492,7 +492,7 @@ static int snd_pcm_ladspa_allocate_memory(snd_pcm_t *pcm, snd_pcm_ladspa_t *lads
 			list_for_each(pos1, &plugin->instances) {
 				instance = list_entry(pos1, snd_pcm_ladspa_instance_t, list);
 				if (instance->channel == NO_ASSIGN) {
-					SNDERR("channel %u is not assigned for plugin '%s' depth %u", plugin->desc->Name, instance->channel, instance->depth);
+					SNDERR("channel %u is not assigned for plugin '%s' depth %u", instance->channel, plugin->desc->Name, instance->depth);
 					return -EINVAL;
 				}
 				if (instance->channel != channel) {
@@ -902,7 +902,7 @@ static int snd_pcm_ladspa_parse_ioconfig(snd_pcm_ladspa_plugin_t *lplug,
 				if (err >= 0) {
 					err = snd_pcm_ladspa_find_port(&array[channel], lplug, io->pdesc | LADSPA_PORT_AUDIO, port);
 					if (err < 0) {
-						SNDERR("Unable to find an audio port (%li) for channel %s", port);
+						SNDERR("Unable to find an audio port (%li) for channel %s", port, id);
 						return err;
 					}
 					continue;
