@@ -76,7 +76,7 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 		ready = poll(&pfd, 1, 10000);
 		if (ready < 0)
 			return ready;
-		if (ready && pfd.revents & POLLERR)
+		if (ready == 0 || (pfd.revents & POLLERR))
 			return -EPIPE;
 		assert(snd_pcm_mmap_ready(stream));
 	}
@@ -143,7 +143,7 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 		ready = poll(&pfd, 1, 10000);
 		if (ready < 0)
 			return ready;
-		if (ready && pfd.revents & POLLERR)
+		if (ready == 0 || (pfd.revents & POLLERR))
 			return -EPIPE;
 		assert(snd_pcm_mmap_ready(stream));
 	}
