@@ -105,6 +105,10 @@ int mask_single(const mask_t *mask);
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_param_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			 unsigned int var);
+int snd_pcm_hw_param_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			    unsigned int par);
+int snd_pcm_hw_param_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			   unsigned int par);
 int snd_pcm_hw_param_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			   unsigned int var, unsigned int val);
 int snd_pcm_hw_param_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
@@ -113,24 +117,30 @@ int snd_pcm_hw_param_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			  unsigned int var, unsigned int val);
 int snd_pcm_hw_param_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			     unsigned int var, unsigned int min, unsigned int max);
-int snd_pcm_hw_param_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			    unsigned int par);
-int snd_pcm_hw_param_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			   unsigned int par);
 int snd_pcm_hw_param_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			  unsigned int var, unsigned int val);
 int snd_pcm_hw_param_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			   unsigned int var, const mask_t *mask);
+int snd_pcm_hw_param_min_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			     unsigned int var, unsigned int val);
+int snd_pcm_hw_param_max_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			     unsigned int var, unsigned int val);
+int snd_pcm_hw_param_minmax_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+				unsigned int var, unsigned int min, unsigned int max);
+int snd_pcm_hw_param_set_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			     unsigned int var, unsigned int val);
+int snd_pcm_hw_param_mask_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			      unsigned int var, const mask_t *mask);
 int snd_pcm_hw_param_value(const snd_pcm_hw_params_t *params,
-			    unsigned int var);
+			   unsigned int var);
 const mask_t *snd_pcm_hw_param_value_mask(const snd_pcm_hw_params_t *params,
-					   unsigned int var);
+					  unsigned int var);
 const interval_t *snd_pcm_hw_param_value_interval(const snd_pcm_hw_params_t *params,
-						   unsigned int var);
+						  unsigned int var);
 unsigned int snd_pcm_hw_param_value_min(const snd_pcm_hw_params_t *params,
-					 unsigned int var);
+					unsigned int var);
 unsigned int snd_pcm_hw_param_value_max(const snd_pcm_hw_params_t *params,
-					 unsigned int var);
+					unsigned int var);
 int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
 					  snd_pcm_hw_params_t *fail,
 					  snd_pcm_hw_params_t *success,

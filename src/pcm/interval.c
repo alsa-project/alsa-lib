@@ -308,12 +308,13 @@ int interval_mulkdiv(interval_t *a, unsigned int k,
 
 void interval_print(const interval_t *i, FILE *fp)
 {
-	if (interval_single(i)) {
+	if (interval_empty(i))
+		fprintf(fp, "NONE");
+	else if (interval_single(i))
 		fprintf(fp, "%u", interval_value(i));
-	} else {
+	else
 		fprintf(fp, "%c%u %u%c",
 			i->openmin ? '(' : '[',
 			i->min, i->max,
 			i->openmax ? ')' : ']');
-	}
 }

@@ -308,6 +308,18 @@ int snd_pcm_hw_param_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	return snd_pcm_hw_param_value_min(params, var);
 }
 
+int snd_pcm_hw_param_min_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			     unsigned int var, unsigned int val)
+{
+	snd_pcm_hw_params_t save;
+	int err;
+	save = *params;
+	err = snd_pcm_hw_param_min(pcm, params, var, val);
+	if (err < 0)
+		*params = save;
+	return err;
+}
+
 int _snd_pcm_hw_param_max(snd_pcm_hw_params_t *params, int hw,
 			   unsigned int var, unsigned int val)
 {
@@ -345,6 +357,18 @@ int snd_pcm_hw_param_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			return err;
 	}
 	return snd_pcm_hw_param_value_max(params, var);
+}
+
+int snd_pcm_hw_param_max_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			     unsigned int var, unsigned int val)
+{
+	snd_pcm_hw_params_t save;
+	int err;
+	save = *params;
+	err = snd_pcm_hw_param_max(pcm, params, var, val);
+	if (err < 0)
+		*params = save;
+	return err;
 }
 
 int _snd_pcm_hw_param_minmax(snd_pcm_hw_params_t *params, int hw,
@@ -409,6 +433,19 @@ int snd_pcm_hw_param_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	return 0;
 }
 
+int snd_pcm_hw_param_minmax_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+				unsigned int var,
+				unsigned int min, unsigned int max)
+{
+	snd_pcm_hw_params_t save;
+	int err;
+	save = *params;
+	err = snd_pcm_hw_param_minmax(pcm, params, var, min, max);
+	if (err < 0)
+		*params = save;
+	return err;
+}
+
 int _snd_pcm_hw_param_set(snd_pcm_hw_params_t *params, int hw,
 			   unsigned int var, unsigned int val)
 {
@@ -448,6 +485,18 @@ int snd_pcm_hw_param_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	return snd_pcm_hw_param_value(params, var);
 }
 
+int snd_pcm_hw_param_set_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			     unsigned int var, unsigned int val)
+{
+	snd_pcm_hw_params_t save;
+	int err;
+	save = *params;
+	err = snd_pcm_hw_param_set(pcm, params, var, val);
+	if (err < 0)
+		*params = save;
+	return err;
+}
+
 int _snd_pcm_hw_param_mask(snd_pcm_hw_params_t *params, int hw,
 			    unsigned int var, const mask_t *val)
 {
@@ -482,6 +531,18 @@ int snd_pcm_hw_param_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			return err;
 	}
 	return 0;
+}
+
+int snd_pcm_hw_param_mask_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			      unsigned int var, const mask_t *val)
+{
+	snd_pcm_hw_params_t save;
+	int err;
+	save = *params;
+	err = snd_pcm_hw_param_mask(pcm, params, var, val);
+	if (err < 0)
+		*params = save;
+	return err;
 }
 
 /* Inside configuration space defined by PARAMS set PAR to the available value

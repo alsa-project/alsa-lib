@@ -34,6 +34,16 @@
 #endif
 
 
+const snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm)
+{
+	return pcm->running_areas;
+}
+
+const snd_pcm_channel_area_t *snd_pcm_mmap_stopped_areas(snd_pcm_t *pcm)
+{
+	return pcm->stopped_areas;
+}
+
 const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
 {
 	if (pcm->stopped_areas &&
