@@ -68,7 +68,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 	params.channel = SND_PCM_CHANNEL_PLAYBACK;
 	params.mode = SND_PCM_MODE_STREAM;
 	params.format.interleave = 1;
-	params.format.format = SND_PCM_SFMT_S16_BE; // S16_LE;
+	params.format.format = SND_PCM_SFMT_S16_LE;
 	params.format.voices = 2;
 	params.format.rate = 44100;
 	params.start_mode = SND_PCM_START_GO;
