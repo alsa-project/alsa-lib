@@ -1068,7 +1068,7 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 	snd_pcm_uframes_t cont = pcm->buffer_size - hw_offset;
 	const snd_pcm_channel_area_t *areas;
 	const snd_pcm_channel_area_t *slave_areas;
-	snd_pcm_uframes_t slave_offset;
+	snd_pcm_uframes_t slave_offset, xfer;
 	snd_pcm_uframes_t slave_frames = ULONG_MAX;
 	snd_pcm_sframes_t result;
 
@@ -1091,9 +1091,6 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 			return 0;
 		}
 	} else {
-		snd_pcm_rate_t *rate = pcm->private_data;
-		snd_pcm_uframes_t xfer;
-
 		/* ok, grab first fragment */
 		result = snd_pcm_mmap_begin(rate->slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
