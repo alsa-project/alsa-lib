@@ -131,7 +131,15 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
        _err:
 	if (type_conf)
 		snd_config_delete(type_conf);
-	return err >= 0 ? open_func(hwdep, name, hwdep_root, hwdep_conf, mode) : err;
+	if (err >= 0) {
+		err = open_func(hwdep, name, hwdep_root, hwdep_conf, mode);
+		if (err >= 0) {
+			(*hwdep)->dl_handle = h;
+		} else {
+			snd_dlclose(h);
+		}
+	}
+	return err;
 }
 
 static int snd_hwdep_open_noupdate(snd_hwdep_t **hwdep, snd_config_t *root, const char *name, int mode)

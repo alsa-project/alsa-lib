@@ -96,6 +96,8 @@ int snd_ctl_close(snd_ctl_t *ctl)
 	err = ctl->ops->close(ctl);
 	if (ctl->name)
 		free(ctl->name);
+	if (ctl->dl_handle)
+		snd_dlclose(ctl->dl_handle);
 	free(ctl);
 	return err;
 }
@@ -589,7 +591,16 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
        _err:
 	if (type_conf)
 		snd_config_delete(type_conf);
-	return err >= 0 ? open_func(ctlp, name, ctl_root, ctl_conf, mode) : err;
+	if (err >= 0) {
+		err = open_func(ctlp, name, ctl_root, ctl_conf, mode);
+		if (err >= 0) {
+			(*ctlp)->dl_handle = h;
+			return 0;
+		} else {
+			snd_dlclose(h);
+		}
+	}
+	return err;
 }
 
 static int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root, const char *name, int mode)

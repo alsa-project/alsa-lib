@@ -48,6 +48,7 @@ typedef struct _snd_ctl_ops {
 
 
 struct _snd_ctl {
+	void *dl_handle;
 	char *name;
 	snd_ctl_type_t type;
 	snd_ctl_ops_t *ops;

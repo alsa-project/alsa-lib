@@ -678,6 +678,8 @@ int snd_pcm_close(snd_pcm_t *pcm)
 		free(pcm->hw.link_dst);
 	if (pcm->appl.link_dst)
 		free(pcm->appl.link_dst);
+	if (pcm->dl_handle)
+		snd_dlclose(pcm->dl_handle);
 	free(pcm);
 	return 0;
 }	
@@ -1790,7 +1792,16 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
        _err:
 	if (type_conf)
 		snd_config_delete(type_conf);
-	return err >= 0 ? open_func(pcmp, name, pcm_root, pcm_conf, stream, mode) : err;
+	if (err >= 0) {
+		err = open_func(pcmp, name, pcm_root, pcm_conf, stream, mode);
+		if (err >= 0) {
+			(*pcmp)->dl_handle = h;
+			return 0;
+		} else {
+			snd_dlclose(h);
+		}
+	}
+	return err;
 }
 
 static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,

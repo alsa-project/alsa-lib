@@ -34,6 +34,7 @@ typedef struct {
 } snd_hwdep_ops_t;
 
 struct _snd_hwdep {
+	void *dl_handle;
 	char *name;
 	snd_hwdep_type_t type;
 	int mode;

@@ -256,11 +256,13 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 	if (err < 0)
 		return err;
 	if (inputp) {
+		(*inputp)->dl_handle = h; h = NULL;
 		snd_rawmidi_params_default(*inputp, &params);
 		err = snd_rawmidi_params(*inputp, &params);
 		assert(err >= 0);
 	}
 	if (outputp) {
+		(*outputp)->dl_handle = h;
 		snd_rawmidi_params_default(*outputp, &params);
 		err = snd_rawmidi_params(*outputp, &params);
 		assert(err >= 0);
@@ -340,6 +342,8 @@ int snd_rawmidi_close(snd_rawmidi_t *rawmidi)
 		return err;
 	if (rawmidi->name)
 		free(rawmidi->name);
+	if (rawmidi->dl_handle)
+		snd_dlclose(rawmidi->dl_handle);
 	free(rawmidi);
 	return 0;
 }

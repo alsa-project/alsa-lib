@@ -37,6 +37,7 @@ typedef struct {
 } snd_rawmidi_ops_t;
 
 struct _snd_rawmidi {
+	void *dl_handle;
 	char *name;
 	snd_rawmidi_type_t type;
 	snd_rawmidi_stream_t stream;
