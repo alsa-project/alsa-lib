@@ -400,8 +400,6 @@ static int direct_loop(snd_pcm_t *handle,
 			printf("MMAP begin error: %s\n", snd_strerror(err));
 			exit(EXIT_FAILURE);
 		}
-		if (frames > period_size)
-			frames = period_size;
 		generate_sine(my_areas, offset, frames, &phase);
 		err = snd_pcm_mmap_commit(handle, offset, frames);
 		if (err < 0) {
