@@ -262,7 +262,11 @@ default_symbol_version(__snd_timer_query_params, snd_timer_query_params, ALSA_0.
  * \param status timer status
  * \return 0 on success otherwise a negative error code
  */
+#ifndef DOXYGEN
+int INTERNAL(snd_timer_query_status)(snd_timer_query_t *timer, snd_timer_gstatus_t *status)
+#else
 int snd_timer_query_status(snd_timer_query_t *timer, snd_timer_gstatus_t *status)
+#endif
 {
   	assert(timer);
   	assert(status);
