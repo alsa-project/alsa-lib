@@ -26,6 +26,7 @@
  *
  */
 
+#include "config.h"
 #ifdef HAVE_JACK
 #define USE_JACK
 #endif
@@ -172,6 +173,8 @@ snd_pcm_jack_process_cb (jack_nframes_t nframes, snd_pcm_t *pcm)
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_channel_area_t area;	
 	char buf[1];
+
+	printf("PROCESS!\n");
 
 	area.addr = jack_port_get_buffer (jack->ports[0], nframes);
 	area.first = 0;
