@@ -19,7 +19,7 @@ void main(void)
 ],
   AC_MSG_RESULT(present),
   [AC_MSG_RESULT(not found or wrong version);
-   AC_MSG_ERROR([Install alsa-driver v0.6.0 package first...])]
+   AC_MSG_ERROR([Install alsa-driver v0.9.0 package first...])]
 )
 ])
 
