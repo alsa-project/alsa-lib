@@ -320,9 +320,8 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 			ttable[k] = 0;
 		if (rpolicy == PLUG_ROUTE_POLICY_DEFAULT) {
 			rpolicy = PLUG_ROUTE_POLICY_COPY;
-			if (pcm->stream == SND_PCM_STREAM_CAPTURE && clt->channels == 1)
-				rpolicy = PLUG_ROUTE_POLICY_AVERAGE;
-			if (pcm->stream == SND_PCM_STREAM_PLAYBACK && slv->channels == 1)
+			/* it's hack for mono conversion */
+			if (clt->channels == 1 || slv->channels == 1)
 				rpolicy = PLUG_ROUTE_POLICY_AVERAGE;
 		}
 		switch (rpolicy) {
