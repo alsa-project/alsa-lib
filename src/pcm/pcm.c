@@ -4304,7 +4304,7 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
  * \brief Application request to access a portion of direct (mmap) area
  * \param pcm PCM handle 
  * \param areas Returned mmap channel areas
- * \param offset Returned mmap area offset in bits
+ * \param offset Returned mmap area offset in area steps (== frames)
  * \param size mmap area portion size in frames (wanted on entry, contiguous available on exit)
  * \return 0 on success otherwise a negative error code
  *
@@ -4345,7 +4345,7 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 /**
  * \brief Application has completed the access to area requested with #snd_pcm_mmap_begin
  * \param pcm PCM handle
- * \param offset area offset in bits
+ * \param offset area offset in area steps (== frames)
  * \param size area portion size in frames
  * \return 0 on success otherwise a negative error code
  *
