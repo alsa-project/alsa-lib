@@ -782,7 +782,7 @@ static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
 	}
 	snd_pcm_mmap_appl_forward(pcm, size);
 #ifdef DEBUG_MMAP
-	fprintf(stderr, "appl_forward: hw_ptr = %li, appl_ptr = %li, size = %li\n", *pcm->hw_ptr, *pcm->appl_ptr, size);
+	fprintf(stderr, "appl_forward: hw_ptr = %li, appl_ptr = %li, size = %li\n", *pcm->hw.ptr, *pcm->appl.ptr, size);
 #endif
 	return size;
 }
@@ -911,7 +911,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 
 	}
 
-	if (fcntl(fd, F_GETFL, &fmode) < 0) {
+	if ((fmode = fcntl(fd, F_GETFL)) < 0) {
 		ret = -errno;
 		close(fd);
 		return ret;
