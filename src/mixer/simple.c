@@ -131,6 +131,8 @@ static int get_compare_weight(const char *name, int index)
 		"Mic",
 		"Video",
 		"Phone",
+		"I2S",
+		"IEC958",
 		"PC Speaker",
 		"Aux",
 		"Mono Output",

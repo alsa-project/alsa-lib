@@ -155,8 +155,8 @@ static int get_compare_weight(const char *name)
 		"Loopback",
 		"Analog Loopback",
 		"Digital Loopback",
-		"S/PDIF Input",
-		"S/PDIF Output",
+		"I2S",
+		"IEC958",
 		NULL
 	};
 	static char *names1[] = {
