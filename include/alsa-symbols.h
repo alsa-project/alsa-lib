@@ -34,4 +34,16 @@
 #define default_symbol_version(real, name, version) \
 	__asm__ (".symver " #real "," #name "@@" #version)
 
+#ifdef USE_VERSIONED_SYMBOLS
+#define use_symbol_version(real, name, version) \
+		symbol_version(real, name, version)
+#define use_default_symbol_version(real, name, version) \
+		default_symbol_version(real, name, version)
+#else
+#define use_symbol_version(real, name, version) /* nothing */
+#define use_default_symbol_version(real, name, version) \
+	__asm__ (".weak " #name); \
+	__asm__ (".set " #name "," #real)
+#endif
+
 #endif /* __ALSA_SYMBOLS_H */

@@ -102,6 +102,7 @@ if test "$versioned" = "yes"; then
 else
   AC_MSG_RESULT(no)
 fi
+AM_CONDITIONAL(VERSIONED_SYMBOLS, test x$versioned = xyes)
 
 dnl Check for debug...
 AC_MSG_CHECKING(for debug)

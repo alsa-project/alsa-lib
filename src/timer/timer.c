@@ -581,7 +581,7 @@ void snd_timer_params_set_exclusive(snd_timer_params_t * params, int exclusive)
 	else
 		params->flags &= ~SNDRV_TIMER_PSFLG_EXCLUSIVE;
 }
-default_symbol_version(__snd_timer_params_set_exclusive, snd_timer_params_set_exclusive, ALSA_0.9.0);
+use_default_symbol_version(__snd_timer_params_set_exclusive, snd_timer_params_set_exclusive, ALSA_0.9.0);
 
 /**
  * \brief determine if timer has exclusive flag
@@ -597,7 +597,7 @@ int snd_timer_params_get_exclusive(snd_timer_params_t * params)
 	assert(params);
 	return params->flags & SNDRV_TIMER_PSFLG_EXCLUSIVE ? 1 : 0;
 }
-default_symbol_version(__snd_timer_params_get_exclusive, snd_timer_params_get_exclusive, ALSA_0.9.0);
+use_default_symbol_version(__snd_timer_params_get_exclusive, snd_timer_params_get_exclusive, ALSA_0.9.0);
 
 /**
  * \brief set timer ticks
@@ -654,7 +654,7 @@ void snd_timer_params_set_filter(snd_timer_params_t * params, unsigned int filte
 	assert(params);
 	params->filter = filter;
 }
-default_symbol_version(__snd_timer_params_set_filter, snd_timer_params_set_filter, ALSA_0.9.0);
+use_default_symbol_version(__snd_timer_params_set_filter, snd_timer_params_set_filter, ALSA_0.9.0);
 
 /**
  * \brief get timer event filter
@@ -670,7 +670,7 @@ unsigned int snd_timer_params_get_filter(snd_timer_params_t * params)
 	assert(params);
 	return params->filter;
 }
-default_symbol_version(__snd_timer_params_get_filter, snd_timer_params_get_filter, ALSA_0.9.0);
+use_default_symbol_version(__snd_timer_params_get_filter, snd_timer_params_get_filter, ALSA_0.9.0);
 
 /**
  * \brief set parameters for timer handle

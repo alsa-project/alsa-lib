@@ -236,7 +236,7 @@ int snd_timer_query_info(snd_timer_query_t *timer, snd_timer_ginfo_t *info)
   	assert(info);
 	return timer->ops->info(timer, info);
 }
-default_symbol_version(__snd_timer_query_info, snd_timer_query_info, ALSA_0.9.0);
+use_default_symbol_version(__snd_timer_query_info, snd_timer_query_info, ALSA_0.9.0);
 
 /**
  * \brief set the timer global parameters
@@ -254,7 +254,7 @@ int snd_timer_query_params(snd_timer_query_t *timer, snd_timer_gparams_t *params
   	assert(params);
 	return timer->ops->params(timer, params);
 }
-default_symbol_version(__snd_timer_query_params, snd_timer_query_params, ALSA_0.9.0);
+use_default_symbol_version(__snd_timer_query_params, snd_timer_query_params, ALSA_0.9.0);
 
 /**
  * \brief get the timer global status
@@ -272,7 +272,7 @@ int snd_timer_query_status(snd_timer_query_t *timer, snd_timer_gstatus_t *status
   	assert(status);
 	return timer->ops->status(timer, status);
 }
-default_symbol_version(__snd_timer_query_status, snd_timer_query_status, ALSA_0.9.0);
+use_default_symbol_version(__snd_timer_query_status, snd_timer_query_status, ALSA_0.9.0);
 
 /**
  * \brief get size of the snd_timer_id_t structure in bytes

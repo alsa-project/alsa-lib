@@ -1022,7 +1022,7 @@ snd_pcm_sframes_t snd_pcm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	assert(frames > 0);
 	return pcm->fast_ops->forward(pcm->fast_op_arg, frames);
 }
-default_symbol_version(__snd_pcm_forward, snd_pcm_forward, ALSA_0.9.0rc8);
+use_default_symbol_version(__snd_pcm_forward, snd_pcm_forward, ALSA_0.9.0rc8);
 
 /**
  * \brief Write interleaved frames to a PCM
@@ -1555,7 +1555,7 @@ const char *snd_pcm_type_name(snd_pcm_type_t type)
 		return NULL;
 	return snd_pcm_type_names[type];
 }
-default_symbol_version(__snd_pcm_type_name, snd_pcm_type_name, ALSA_0.9.0);
+use_default_symbol_version(__snd_pcm_type_name, snd_pcm_type_name, ALSA_0.9.0);
 
 /**
  * \brief Dump current hardware setup for PCM
@@ -5633,7 +5633,7 @@ void snd_pcm_status_get_trigger_htstamp(const snd_pcm_status_t *obj, snd_htimest
 	assert(obj && ptr);
 	*ptr = obj->trigger_tstamp;
 }
-default_symbol_version(__snd_pcm_status_get_trigger_htstamp, snd_pcm_status_get_trigger_htstamp, ALSA_0.9.0rc8);
+use_default_symbol_version(__snd_pcm_status_get_trigger_htstamp, snd_pcm_status_get_trigger_htstamp, ALSA_0.9.0rc8);
 
 /** 
  * \brief Get "now" timestamp from a PCM status container
@@ -5659,7 +5659,7 @@ void snd_pcm_status_get_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *p
 	assert(obj && ptr);
 	*ptr = obj->tstamp;
 }
-default_symbol_version(__snd_pcm_status_get_htstamp, snd_pcm_status_get_htstamp, ALSA_0.9.0rc8);
+use_default_symbol_version(__snd_pcm_status_get_htstamp, snd_pcm_status_get_htstamp, ALSA_0.9.0rc8);
 
 /** 
  * \brief Get delay from a PCM status container (see #snd_pcm_delay)
