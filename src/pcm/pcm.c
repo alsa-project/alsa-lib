@@ -2028,7 +2028,7 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 			return -EIO;
 		}
 	}
-	return err_pol > 0 ? 1 : 0;
+	return err_poll > 0 ? 1 : 0;
 }
 
 /**
