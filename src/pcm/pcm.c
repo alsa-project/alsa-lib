@@ -259,10 +259,9 @@ containing the direct pointers to memory and sample position description
 in \link ::snd_pcm_channel_area_t \endlink structure. After application
 transfers the data in the memory areas, then it must be acknowledged
 the end of transfer via \link ::snd_pcm_mmap_commit() \endlink function
-to allow the ALSA library update the pointers to ring buffer. This sort of
+to allow the ALSA library update the pointers to ring buffer. This kind of
 communication is also called "zero-copy", because the device does not require
 to copy the samples from application to another place in system memory.
-
 \par
 
 If you like to use the compatibility functions in mmap mode, there are
@@ -4844,27 +4843,12 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		       snd_pcm_uframes_t *offset,
 		       snd_pcm_uframes_t *frames)
 {
-	snd_pcm_uframes_t cont;
 	snd_pcm_sframes_t avail;
-	snd_pcm_uframes_t f;
-	assert(pcm && areas && offset && frames);
-	if (pcm->stopped_areas &&
-	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
-		*areas = pcm->stopped_areas;
-	else
-		*areas = pcm->running_areas;
-	*offset = *pcm->appl_ptr % pcm->buffer_size;
-	cont = pcm->buffer_size - *offset;
+	
 	avail = snd_pcm_avail_update(pcm);
 	if (avail < 0)
 		return avail;
-	f = *frames;
-	if (f > (snd_pcm_uframes_t)avail)
-		f = avail;
-	if (f > cont)
-		f = cont;
-	*frames = f;
-	return 0;
+	return snd_pcm_mmap_begin_avail(pcm, areas, offset, frames, avail);
 }
 
 /**
@@ -4875,6 +4859,12 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
  * \param size mmap area portion size in frames (wanted on entry, contiguous available on exit)
  * \param avail available frames (result from snd_pcm_avail_update())
  * \return 0 on success otherwise a negative error code
+ *
+ * See snd_pcm_mmap_begin() function for more details. The only difference
+ * is in the optimization for applications using snd_pcm_avail_update()
+ * directly before snd_pcm_mmap_begin() call. In the case, this function
+ * should be used to avoid twice or more calls to time consuming
+ * snd_pcm_avail_update() function.
  */
 int snd_pcm_mmap_begin_avail(snd_pcm_t *pcm,
 			     const snd_pcm_channel_area_t **areas,
@@ -4963,6 +4953,42 @@ int snd_pcm_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
 	assert(offset == *pcm->appl_ptr % pcm->buffer_size);
 	assert(frames <= snd_pcm_mmap_avail(pcm));
 	return pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
+}
+
+/**
+ * \brief Application has completed the access to area requested with #snd_pcm_mmap_begin
+ * \param pcm PCM handle
+ * \param offset area offset in area steps (== frames)
+ * \param size area portion size in frames
+ * \param commited count of successfully commited frames
+ * \return 0 on success otherwise a negative error code
+ *
+ * See snd_pcm_mmap_commit() function. The only difference is the
+ * #commited parameter returning count of successfully commited frames
+ * when an error occured. This parameter is equal to frames when
+ * no error occured. This function is a helper for more precise xrun
+ * recovery algorithms.
+ */
+int snd_pcm_mmap_commit_partial(snd_pcm_t *pcm,
+				snd_pcm_uframes_t offset,
+				snd_pcm_uframes_t frames,
+				snd_pcm_uframes_t *commited)
+{
+	int err;
+	snd_pcm_uframes_t appl_ptr;
+
+	assert(pcm && commited);
+	assert(offset == *pcm->appl_ptr % pcm->buffer_size);
+	assert(frames <= snd_pcm_mmap_avail(pcm));
+	appl_ptr = *pcm->appl_ptr;
+	err = pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
+	if (err < 0) {
+		*commited = *pcm->appl_ptr - appl_ptr;
+		assert(*commited <= pcm->buffer_size);
+		return err;
+	}
+	*commited = frames;
+	return err;
 }
 
 #ifndef DOC_HIDDEN
