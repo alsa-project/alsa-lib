@@ -67,6 +67,7 @@
 	    (setq elem (Acall 'hctl_elem_next elem))
 	  )
         )
+	(unsetq elem)
         (setq hctl (Acall 'hctl_close hctl))
         (if (= hctl 0)
           (princ "hctl close success\n")
