@@ -140,11 +140,11 @@ static int snd_hwdep_open_noupdate(snd_hwdep_t **hwdep, snd_config_t *root, cons
 /**
  * \brief Opens a new connection to the HwDep interface.
  * \param hwdep Returned handle (NULL if not wanted)
- * \param name ASCII identifier of the RawMidi handle
+ * \param name ASCII identifier of the HwDep handle
  * \param mode Open mode
  * \return 0 on success otherwise a negative error code
  *
- * Opens a new connection to the RawMidi interface specified with
+ * Opens a new connection to the HwDep interface specified with
  * an ASCII identifier and mode.
  */
 int snd_hwdep_open(snd_hwdep_t **hwdep, const char *name, int mode)
@@ -158,11 +158,11 @@ int snd_hwdep_open(snd_hwdep_t **hwdep, const char *name, int mode)
 }
 
 /**
- * \brief close RawMidi handle
- * \param hwdep RawMidi handle
+ * \brief close HwDep handle
+ * \param hwdep HwDep handle
  * \return 0 on success otherwise a negative error code
  *
- * Closes the specified RawMidi handle and frees all associated
+ * Closes the specified HwDep handle and frees all associated
  * resources.
  */
 int snd_hwdep_close(snd_hwdep_t *hwdep)
@@ -180,7 +180,7 @@ int snd_hwdep_close(snd_hwdep_t *hwdep)
 /**
  * \brief get identifier of HwDep handle
  * \param hwdep a Hwdep handle
- * \return ascii identifier of RawMidi handle
+ * \return ascii identifier of HwDep handle
  *
  * Returns the ASCII identifier of given HwDep handle. It's the same
  * identifier specified in snd_hwdep_open().

@@ -35,7 +35,6 @@ static int snd_hwdep_hw_close(snd_hwdep_t *hwdep)
 	int res;
 	assert(hwdep);
 	res = close(hwdep->poll_fd) < 0 ? -errno : 0;
-	free(hwdep);
 	return res;
 }
 
