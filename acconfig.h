@@ -6,3 +6,6 @@
 
 /* Sound library version string */
 #undef SND_LIB_VERSION
+
+/* DATA directory */
+#undef DATADIR

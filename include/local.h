@@ -22,11 +22,9 @@
 #ifndef __LOCAL_H
 #define __LOCAL_H
 
-#define ALSA_LIB "libasound.so"
+#include "config.h"
 
-#ifndef DATADIR
-#define DATADIR "/usr/share"
-#endif
+#define ALSA_LIB "libasound.so"
 
 #define _snd_config_iterator list_head
 #define _snd_interval sndrv_interval
