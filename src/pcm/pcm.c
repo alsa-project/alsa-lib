@@ -222,6 +222,19 @@ ssize_t snd_pcm_rewind(snd_pcm_t *pcm, size_t frames)
 	return pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
 }
 
+int snd_pcm_set_avail_min(snd_pcm_t *pcm, size_t frames)
+{
+	int err;
+	assert(pcm);
+	assert(pcm->valid_setup);
+	assert(frames > 0 && frames < pcm->setup.buffer_size);
+	err = pcm->fast_ops->set_avail_min(pcm->fast_op_arg, frames);
+	if (err < 0)
+		return err;
+	pcm->setup.avail_min = frames;
+	return 0;
+}
+
 ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
 {
 	assert(pcm);

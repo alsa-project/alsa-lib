@@ -445,6 +445,15 @@ static ssize_t snd_pcm_shm_mmap_forward(snd_pcm_t *pcm, size_t size)
 	return snd_pcm_shm_action(pcm);
 }
 
+static int snd_pcm_shm_set_avail_min(snd_pcm_t *pcm, size_t frames)
+{
+	snd_pcm_shm_t *shm = pcm->private;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	ctrl->cmd = SND_PCM_IOCTL_SET_AVAIL_MIN;
+	ctrl->u.set_avail_min.frames = frames;
+	return snd_pcm_shm_action(pcm);
+}
+
 static int snd_pcm_shm_poll_descriptor(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
@@ -519,6 +528,7 @@ snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	channels_mask: snd_pcm_shm_channels_mask,
 	avail_update: snd_pcm_shm_avail_update,
 	mmap_forward: snd_pcm_shm_mmap_forward,
+	set_avail_min: snd_pcm_shm_set_avail_min,
 };
 
 static int make_local_socket(const char *filename)

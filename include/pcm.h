@@ -169,6 +169,7 @@ int snd_pcm_unlink(snd_pcm_t *pcm);
 int snd_pcm_channels_mask(snd_pcm_t *pcm, bitset_t *cmask);
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 ssize_t snd_pcm_avail_update(snd_pcm_t *pcm);
+int snd_pcm_set_avail_min(snd_pcm_t *pcm, size_t size);
 
 
 /* mmap */

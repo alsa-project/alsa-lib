@@ -30,6 +30,7 @@
 #define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xfa)
 #define SND_PCM_IOCTL_MMAP_INFO		_IO ('A', 0xfb)
 #define SND_PCM_IOCTL_POLL_DESCRIPTOR	_IO ('A', 0xfc)
+#define SND_PCM_IOCTL_SET_AVAIL_MIN	_IO ('A', 0xfd)
 
 typedef struct {
 	long result;
@@ -65,6 +66,9 @@ typedef struct {
 		struct {
 			ssize_t frames;
 		} mmap_forward;
+		struct {
+			ssize_t frames;
+		} set_avail_min;
 	} u;
 	char data[0];
 } snd_pcm_shm_ctrl_t;

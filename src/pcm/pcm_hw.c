@@ -523,6 +523,13 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 	return avail;
 }
 
+static int snd_pcm_hw_set_avail_min(snd_pcm_t *pcm, size_t frames)
+{
+	snd_pcm_hw_t *hw = pcm->private;
+	hw->mmap_control->avail_min = frames;
+	return 0;
+}
+
 static int snd_pcm_hw_channels_mask(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 				    bitset_t *cmask ATTRIBUTE_UNUSED)
 {
@@ -576,6 +583,7 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	channels_mask: snd_pcm_hw_channels_mask,
 	avail_update: snd_pcm_hw_avail_update,
 	mmap_forward: snd_pcm_hw_mmap_forward,
+	set_avail_min: snd_pcm_hw_set_avail_min,
 };
 
 int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdevice, int stream, int mode)

@@ -789,6 +789,17 @@ static ssize_t snd_pcm_share_rewind(snd_pcm_t *pcm, size_t frames)
 	return ret;
 }
 
+static int snd_pcm_share_set_avail_min(snd_pcm_t *pcm, size_t frames)
+{
+	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_slave_t *slave = share->slave;
+	pthread_mutex_lock(&slave->mutex);
+	pcm->setup.avail_min = frames;
+	_snd_pcm_update_poll(pcm);
+	pthread_mutex_unlock(&slave->mutex);
+	return 0;
+}
+
 static int snd_pcm_share_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
 {
 	snd_pcm_share_t *share = pcm->private;
@@ -997,6 +1008,7 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	channels_mask: snd_pcm_share_channels_mask,
 	avail_update: snd_pcm_share_avail_update,
 	mmap_forward: snd_pcm_share_mmap_forward,
+	set_avail_min: snd_pcm_share_set_avail_min,
 };
 
 int snd_pcm_share_open(snd_pcm_t **pcmp, char *name, char *sname,

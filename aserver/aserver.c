@@ -474,6 +474,9 @@ int pcm_shm_cmd(client_t *client)
 		ctrl->result = snd_pcm_mmap_forward(pcm, ctrl->u.mmap_forward.frames);
 		ctrl->appl_ptr = *pcm->appl_ptr;
 		break;
+	case SND_PCM_IOCTL_SET_AVAIL_MIN:
+		ctrl->result = snd_pcm_set_avail_min(pcm, ctrl->u.set_avail_min.frames);
+		break;
 	case SND_PCM_IOCTL_POLL_DESCRIPTOR:
 		ctrl->result = 0;
 		return shm_ack_fd(client, snd_pcm_poll_descriptor(pcm));

@@ -407,6 +407,12 @@ static ssize_t snd_pcm_multi_mmap_forward(snd_pcm_t *pcm, size_t size)
 	return size;
 }
 
+int snd_pcm_multi_set_avail_min(snd_pcm_t *pcm, size_t frames)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	return snd_pcm_set_avail_min(multi->slaves[0].pcm, frames);
+}
+
 static int snd_pcm_multi_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
 {
 	snd_pcm_multi_t *multi = pcm->private;
@@ -507,6 +513,7 @@ snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	channels_mask: snd_pcm_multi_channels_mask,
 	avail_update: snd_pcm_multi_avail_update,
 	mmap_forward: snd_pcm_multi_mmap_forward,
+	set_avail_min: snd_pcm_multi_set_avail_min,
 };
 
 int snd_pcm_multi_open(snd_pcm_t **pcmp, char *name,
