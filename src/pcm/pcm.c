@@ -411,7 +411,6 @@ static assoc_t starts[] = { START(EXPLICIT), START(DATA), END };
 static assoc_t readys[] = { READY(FRAGMENT), READY(ASAP), END };
 static assoc_t xfers[] = { XFER(INTERLEAVED), XFER(NONINTERLEAVED), END };
 static assoc_t mmaps[] = { MMAP(INTERLEAVED), MMAP(NONINTERLEAVED), END };
-static assoc_t xrun_acts[] = { XRUN_ACT(DRAIN), XRUN_ACT(DROP), END };
 static assoc_t onoff[] = { {0, "OFF", NULL}, {1, "ON", NULL}, {-1, "ON", NULL}, END };
 
 int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp)
@@ -433,7 +432,6 @@ int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp)
 	fprintf(fp, "xfer_min   : %ld\n", (long)setup->xfer_min);
 	fprintf(fp, "xfer_align : %ld\n", (long)setup->xfer_align);
 	fprintf(fp, "xrun_mode  : %s\n", assoc(setup->xrun_mode, xruns));
-	fprintf(fp, "xrun_act   : %s\n", assoc(setup->xrun_act, xrun_acts));
 	fprintf(fp, "xrun_max   : %ld\n", (long)setup->xrun_max);
 	fprintf(fp, "mmap_shape : %s\n", assoc(setup->mmap_shape, mmaps));
 	fprintf(fp, "buffer_size: %ld\n", (long)setup->buffer_size);

@@ -36,38 +36,6 @@ size_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_mmap_playback_ready(snd_pcm_t *pcm)
-{
-	if (pcm->mmap_status->state == SND_PCM_STATE_XRUN)
-		return -EPIPE;
-	return snd_pcm_mmap_playback_avail(pcm) >= pcm->setup.avail_min;
-}
-
-static int snd_pcm_mmap_capture_ready(snd_pcm_t *pcm)
-{
-	int ret = 0;
-	if (pcm->mmap_status->state == SND_PCM_STATE_XRUN) {
-		ret = -EPIPE;
-		if (pcm->setup.xrun_act == SND_PCM_XRUN_ACT_DROP)
-			return -EPIPE;
-	}
-	if (snd_pcm_mmap_capture_avail(pcm) >= pcm->setup.avail_min)
-		return 1;
-	return ret;
-}
-
-int snd_pcm_mmap_ready(snd_pcm_t *pcm)
-{
-        assert(pcm);
-	assert(pcm->mmap_status && pcm->mmap_control);
-	assert(pcm->mmap_status->state >= SND_PCM_STATE_PREPARED);
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		return snd_pcm_mmap_playback_ready(pcm);
-	} else {
-		return snd_pcm_mmap_capture_ready(pcm);
-	}
-}
-
 size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, size_t frames)
 {
 	snd_pcm_mmap_control_t *control = pcm->mmap_control;
