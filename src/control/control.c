@@ -163,8 +163,10 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 	if (err < 0)
 		return err;
 	err = snd_config_searchv(snd_config, &ctl_conf, "ctl", name, 0);
-	if (err < 0)
-		return err;
+	if (err < 0) {
+		int cardno = snd_card_get_index(name);
+		return snd_ctl_hw_open(ctlp, name, cardno);
+	}
 	if (snd_config_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND)
 		return -EINVAL;
 	err = snd_config_search(ctl_conf, "type", &conf);
