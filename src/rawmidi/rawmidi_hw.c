@@ -178,7 +178,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	if (outputp)
 		*outputp = NULL;
 	
-	if ((ret = snd_ctl_hw_open(&ctl, NULL, card)) < 0)
+	if ((ret = snd_ctl_hw_open(&ctl, NULL, card, 0)) < 0)
 		return ret;
 	sprintf(filename, SNDRV_FILE_RAWMIDI, card, device);
 

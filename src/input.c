@@ -51,7 +51,7 @@ struct _snd_input {
 /**
  * \brief close input handle
  * \param input Input handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_input_close(snd_input_t *input)
 {
@@ -65,7 +65,7 @@ int snd_input_close(snd_input_t *input)
  * \param input Input handle
  * \param format fscanf format
  * \param ... other fscanf arguments
- * \return number of input itmes assigned or a negative error code
+ * \return number of input items assigned otherwise a negative error code
  */
 int snd_input_scanf(snd_input_t *input, const char *format, ...)
 {

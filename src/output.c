@@ -51,7 +51,7 @@ struct _snd_output {
 /**
  * \brief close output handle
  * \param output Output handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_output_close(snd_output_t *output)
 {
@@ -65,7 +65,7 @@ int snd_output_close(snd_output_t *output)
  * \param output Output handle
  * \param format fprintf format
  * \param ... other fprintf arguments
- * \return number of characters written or a negative error code
+ * \return number of characters written otherwise a negative error code
  */
 int snd_output_printf(snd_output_t *output, const char *format, ...)
 {

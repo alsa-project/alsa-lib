@@ -48,7 +48,7 @@ typedef struct _snd_timer snd_timer_t;
 extern "C" {
 #endif
 
-int snd_timer_open(snd_timer_t **handle);
+int snd_timer_open(snd_timer_t **handle, int mode);
 int snd_timer_close(snd_timer_t *handle);
 int snd_timer_poll_descriptors_count(snd_timer_t *handle);
 int snd_timer_poll_descriptors(snd_timer_t *handle, struct pollfd *pfds, unsigned int space);

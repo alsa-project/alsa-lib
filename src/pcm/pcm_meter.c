@@ -785,7 +785,7 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
  * \brief Add a scope to a #SND_PCM_TYPE_METER PCM
  * \param pcm PCM handle
  * \param scope Scope handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_meter_add_scope(snd_pcm_t *pcm, snd_pcm_scope_t *scope)
 {
@@ -1115,7 +1115,7 @@ snd_pcm_scope_ops_t s16_ops = {
  * \brief Add a s16 pseudo scope to a #SND_PCM_TYPE_METER PCM
  * \param name Scope name
  * \param scopep Pointer to newly created and added scope
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * s16 pseudo scope convert #SND_PCM_TYPE_METER PCM frames in CPU endian 
  * 16 bit frames for use with other scopes. Don't forget to insert it before
@@ -1170,7 +1170,7 @@ int16_t *snd_pcm_scope_s16_get_channel_buffer(snd_pcm_scope_t *scope,
 /**
  * \brief allocate an invalid #snd_pcm_scope_t using standard malloc
  * \param ptr returned pointer
- * \return zero on success otherwise negative error code
+ * \return 0 on success otherwise negative error code
  */
 int snd_pcm_scope_malloc(snd_pcm_scope_t **ptr)
 {

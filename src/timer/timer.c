@@ -34,7 +34,7 @@ struct _snd_timer {
 	int fd;
 };
 
-int snd_timer_open(snd_timer_t **handle)
+int snd_timer_open(snd_timer_t **handle, int mode ATTRIBUTE_UNUSED)
 {
 	int fd, ver;
 	snd_timer_t *tmr;

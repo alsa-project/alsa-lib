@@ -36,7 +36,7 @@ typedef enum _snd_mixer_elem_type snd_mixer_elem_type_t;
 extern "C" {
 #endif
 
-int snd_mixer_open(snd_mixer_t **mixer);
+int snd_mixer_open(snd_mixer_t **mixer, int mode);
 int snd_mixer_close(snd_mixer_t *mixer);
 int snd_mixer_info(snd_mixer_t *mixer, snd_mixer_info_t *info);
 snd_mixer_elem_t *snd_mixer_first_elem(snd_mixer_t *mixer);

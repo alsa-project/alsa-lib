@@ -34,7 +34,7 @@
 static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 				    const snd_hctl_elem_t *c2);
 
-int snd_hctl_open(snd_hctl_t **hctlp, const char *name)
+int snd_hctl_open(snd_hctl_t **hctlp, const char *name, int mode)
 {
 	snd_hctl_t *hctl;
 	snd_ctl_t *ctl;
@@ -42,7 +42,7 @@ int snd_hctl_open(snd_hctl_t **hctlp, const char *name)
 	
 	assert(hctlp);
 	*hctlp = NULL;
-	if ((err = snd_ctl_open(&ctl, name)) < 0)
+	if ((err = snd_ctl_open(&ctl, name, mode)) < 0)
 		return err;
 	if ((hctl = (snd_hctl_t *)calloc(1, sizeof(snd_hctl_t))) == NULL) {
 		snd_ctl_close(ctl);

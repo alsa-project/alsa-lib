@@ -2043,7 +2043,7 @@ int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
    min rate
    min period_size
    max periods
-   Return 0 on success or a negative number expressing the error.
+   Return 0 on success otherwise a negative error code
 */
 int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {

@@ -48,7 +48,7 @@
  * \brief setup the default parameters
  * \param rawmidi RawMidi handle
  * \param params pointer to a snd_rawmidi_params_t structure
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 static int snd_rawmidi_params_default(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params)
 {
@@ -66,7 +66,7 @@ static int snd_rawmidi_params_default(snd_rawmidi_t *rawmidi, snd_rawmidi_params
  * \param outputp Returned output handle (NULL if not wanted)
  * \param name ASCII identifier of the RawMidi handle
  * \param mode Open mode
- * \return a negative error code on failure or zero on success
+ * \return 0 on success otherwise a negative error code
  *
  * Opens a new connection to the RawMidi interface specified with
  * an ASCII identifier and mode.
@@ -179,7 +179,7 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 /**
  * \brief close RawMidi handle
  * \param rawmidi RawMidi handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * Closes the specified RawMidi handle and frees all associated
  * resources.
@@ -202,7 +202,7 @@ int snd_rawmidi_close(snd_rawmidi_t *rawmidi)
  * \return ascii identifier of RawMidi handle
  *
  * Returns the ASCII identifier of given RawMidi handle. It's the same
- * identifier as for snd_rawmidi_open().
+ * identifier specified in snd_rawmidi_open().
  */
 const char *snd_rawmidi_name(snd_rawmidi_t *rawmidi)
 {
@@ -269,7 +269,7 @@ int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rawmidi, struct pollfd *pfds, un
  * \brief set nonblock mode
  * \param rawmidi RawMidi handle
  * \param nonblock 0 = block, 1 = nonblock mode
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_rawmidi_nonblock(snd_rawmidi_t *rawmidi, int nonblock)
 {
@@ -297,7 +297,7 @@ size_t snd_rawmidi_info_sizeof()
 /**
  * \brief allocate a new snd_rawmidi_info_t structure
  * \param ptr returned pointer
- * \return zero on success or a negative error code if fails
+ * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_rawmidi_params_t structure using the standard
  * malloc C library function.
@@ -482,7 +482,7 @@ void snd_rawmidi_info_set_stream(snd_rawmidi_info_t *info, snd_rawmidi_stream_t 
  * \brief get information about RawMidi handle
  * \param rawmidi RawMidi handle
  * \param info pointer to a snd_rawmidi_info_t structure to be filled
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_rawmidi_info(snd_rawmidi_t *rawmidi, snd_rawmidi_info_t * info)
 {
@@ -503,7 +503,7 @@ size_t snd_rawmidi_params_sizeof()
 /**
  * \brief allocate the snd_rawmidi_params_t structure
  * \param ptr returned pointer
- * \return zero on success or a negative error code if fails
+ * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_rawmidi_params_t structure using the standard
  * malloc C library function.
@@ -546,7 +546,7 @@ void snd_rawmidi_params_copy(snd_rawmidi_params_t *dst, const snd_rawmidi_params
  * \param rawmidi RawMidi handle
  * \param params pointer to a snd_rawmidi_params_t structure
  * \param val size in bytes
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_rawmidi_params_set_buffer_size(snd_rawmidi_t *rawmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, size_t val)
 {
@@ -597,7 +597,7 @@ size_t snd_rawmidi_params_get_avail_min(const snd_rawmidi_params_t *params)
  * \param rawmidi RawMidi handle
  * \param params pointer to snd_rawmidi_params_t structure
  * \param val value: 0 = enable to send the active sensing message, 1 = disable
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rawmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, int val)
 {
@@ -621,7 +621,7 @@ int snd_rawmidi_params_get_no_active_sensing(const snd_rawmidi_params_t *params)
  * \brief get parameters about rawmidi stream
  * \param rawmidi RawMidi handle
  * \param params pointer to a snd_rawmidi_params_t structure to be filled
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_rawmidi_params(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t * params)
 {
@@ -641,7 +641,7 @@ int snd_rawmidi_params(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t * params)
  * \brief get current parameters about rawmidi stream
  * \param rawmidi RawMidi handle
  * \param params pointer to a snd_rawmidi_params_t structure to be filled
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_rawmidi_params_current(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params)
 {
@@ -665,7 +665,7 @@ size_t snd_rawmidi_status_sizeof()
 /**
  * \brief allocate the snd_rawmidi_status_t structure
  * \param ptr returned pointer
- * \return zero on success or a negative error code if fails
+ * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_rawmidi_status_t structure using the standard
  * malloc C library function.
@@ -740,7 +740,7 @@ size_t snd_rawmidi_status_get_xruns(const snd_rawmidi_status_t *status)
  * \brief get status of rawmidi stream
  * \param rawmidi RawMidi handle
  * \param status pointer to a snd_rawmidi_status_t structure to be filled
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_rawmidi_status(snd_rawmidi_t *rawmidi, snd_rawmidi_status_t * status)
 {
@@ -752,7 +752,7 @@ int snd_rawmidi_status(snd_rawmidi_t *rawmidi, snd_rawmidi_status_t * status)
 /**
  * \brief drop all bytes in the rawmidi I/O ring buffer immediately
  * \param rawmidi RawMidi handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_rawmidi_drop(snd_rawmidi_t *rawmidi)
 {
@@ -763,7 +763,7 @@ int snd_rawmidi_drop(snd_rawmidi_t *rawmidi)
 /**
  * \brief drain all bytes in the rawmidi I/O ring buffer
  * \param rawmidi RawMidi handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * Waits until all MIDI bytes are not drained (sent) to the
  * hardware device.

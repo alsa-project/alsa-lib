@@ -88,7 +88,7 @@ int snd_card_get_index(const char *string)
 	for (card = 0; card < 32; card++) {
 		if (snd_card_load(card) < 0)
 			continue;
-		if (snd_ctl_hw_open(&handle, NULL, card) < 0)
+		if (snd_ctl_hw_open(&handle, NULL, card, 0) < 0)
 			continue;
 		if (snd_ctl_card_info(handle, &info) < 0) {
 			snd_ctl_close(handle);
@@ -109,7 +109,7 @@ int snd_card_get_name(int card, char **name)
 	
 	if (name == NULL)
 		return -EINVAL;
-	if ((err = snd_ctl_hw_open(&handle, NULL, card)) < 0)
+	if ((err = snd_ctl_hw_open(&handle, NULL, card, 0)) < 0)
 		return err;
 	if ((err = snd_ctl_card_info(handle, &info)) < 0) {
 		snd_ctl_close(handle);
@@ -130,7 +130,7 @@ int snd_card_get_longname(int card, char **name)
 	
 	if (name == NULL)
 		return -EINVAL;
-	if ((err = snd_ctl_hw_open(&handle, NULL, card)) < 0)
+	if ((err = snd_ctl_hw_open(&handle, NULL, card, 0)) < 0)
 		return err;
 	if ((err = snd_ctl_card_info(handle, &info)) < 0) {
 		snd_ctl_close(handle);

@@ -51,6 +51,8 @@ struct _snd_ctl {
 	snd_ctl_ops_t *ops;
 	void *private_data;
 	int nonblock;
+	int async_sig;
+	pid_t async_pid;
 };
 
 struct _snd_hctl_elem {
@@ -77,5 +79,5 @@ struct _snd_hctl {
 
 
 int _snd_ctl_poll_descriptor(snd_ctl_t *ctl);
-int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card);
-int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, const char *sname);
+int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode);
+int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, const char *sname, int mode);

@@ -90,7 +90,7 @@ int snd_defaults_pcm_device(void)
 	if (result >= 0)
 		return result;
 	sprintf(id, "hw:%i", snd_defaults_pcm_card());
-	if (snd_ctl_open(&handle, id) < 0)
+	if (snd_ctl_open(&handle, id, 0) < 0)
 		return -ENOENT;
 	result = -1;
 	if (snd_ctl_pcm_next_device(handle, &result) < 0) {
@@ -120,7 +120,7 @@ int snd_defaults_rawmidi_device(void)
 	if (result >= 0)
 		return result;
 	sprintf(id, "hw:%i", snd_defaults_rawmidi_card());
-	if (snd_ctl_open(&handle, id) < 0)
+	if (snd_ctl_open(&handle, id, 0) < 0)
 		return -ENOENT;
 	result = -1;
 	if (snd_ctl_rawmidi_next_device(handle, &result) < 0) {

@@ -499,7 +499,7 @@ int ctl_shm_open(client_t *client, int *cookie)
 	snd_ctl_t *ctl;
 	int err;
 	int result;
-	err = snd_ctl_open(&ctl, client->name);
+	err = snd_ctl_open(&ctl, client->name, SND_CTL_NONBLOCK);
 	if (err < 0)
 		return err;
 	client->device.control.handle = ctl;

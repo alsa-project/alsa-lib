@@ -259,10 +259,11 @@ snd_ctl_ops_t snd_ctl_hw_ops = {
 	read: snd_ctl_hw_read,
 };
 
-int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card)
+int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 {
 	int fd, ver;
 	char filename[32];
+	int fmode;
 	snd_ctl_t *ctl;
 	snd_ctl_hw_t *hw;
 
@@ -270,7 +271,12 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card)
 
 	assert(card >= 0 && card < 32);
 	sprintf(filename, SNDRV_FILE_CONTROL, card);
-	if ((fd = open(filename, O_RDWR)) < 0) {
+	fmode = O_RDWR;
+	if (mode & SND_CTL_NONBLOCK)
+		fmode |= O_NONBLOCK;
+	if (mode & SND_CTL_ASYNC)
+		fmode |= O_ASYNC;
+	if ((fd = open(filename, fmode)) < 0) {
 		snd_card_load(card);
 		if ((fd = open(filename, O_RDWR)) < 0)
 			return -errno;
@@ -335,6 +341,6 @@ int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 	}
 	if (card < 0)
 		return -EINVAL;
-	return snd_ctl_hw_open(handlep, name, card);
+	return snd_ctl_hw_open(handlep, name, card, 0);
 }
 				

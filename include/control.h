@@ -6,138 +6,170 @@
  ****************************************************************************/
 
 typedef struct sndrv_aes_iec958 snd_aes_iec958_t;
+
+/** CTL card info container */
 typedef struct _snd_ctl_card_info snd_ctl_card_info_t;
+
+/** CTL element identificator container */
 typedef struct _snd_ctl_elem_id snd_ctl_elem_id_t;
+
+/** CTL element identificator list container */
 typedef struct _snd_ctl_elem_list snd_ctl_elem_list_t;
+
+/** CTL element info container */
 typedef struct _snd_ctl_elem_info snd_ctl_elem_info_t;
+
+/** CTL element value container */
 typedef struct _snd_ctl_elem_value snd_ctl_elem_value_t;
+
+/** CTL event container */
 typedef struct _snd_ctl_event snd_ctl_event_t;
 
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_card_type *snd_card_type_t;
-typedef struct __snd_ctl_elem_type *snd_ctl_elem_type_t;
-typedef struct __snd_ctl_elem_iface *snd_ctl_elem_iface_t;
-typedef struct __snd_ctl_event_type *snd_ctl_event_type_t;
-#else
-typedef enum sndrv_card_type snd_card_type_t;
-typedef enum sndrv_ctl_elem_type snd_ctl_elem_type_t;
-typedef enum sndrv_ctl_elem_iface snd_ctl_elem_iface_t;
-typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
-#endif
+/** Card type */
+typedef enum _snd_card_type {
+	SND_CARD_TYPE_GUS_CLASSIC = SNDRV_CARD_TYPE_GUS_CLASSIC,
+	SND_CARD_TYPE_GUS_EXTREME = SNDRV_CARD_TYPE_GUS_EXTREME,
+	SND_CARD_TYPE_GUS_ACE = SNDRV_CARD_TYPE_GUS_ACE,
+	SND_CARD_TYPE_GUS_MAX = SNDRV_CARD_TYPE_GUS_MAX,
+	SND_CARD_TYPE_AMD_INTERWAVE = SNDRV_CARD_TYPE_AMD_INTERWAVE,
+	SND_CARD_TYPE_SB_10 = SNDRV_CARD_TYPE_SB_10,
+	SND_CARD_TYPE_SB_20 = SNDRV_CARD_TYPE_SB_20,
+	SND_CARD_TYPE_SB_PRO = SNDRV_CARD_TYPE_SB_PRO,
+	SND_CARD_TYPE_SB_16 = SNDRV_CARD_TYPE_SB_16,
+	SND_CARD_TYPE_SB_AWE = SNDRV_CARD_TYPE_SB_AWE,
+	SND_CARD_TYPE_ESS_ES1688 = SNDRV_CARD_TYPE_ESS_ES1688,
+	SND_CARD_TYPE_OPL3_SA2 = SNDRV_CARD_TYPE_OPL3_SA2,
+	SND_CARD_TYPE_MOZART = SNDRV_CARD_TYPE_MOZART,
+	SND_CARD_TYPE_S3_SONICVIBES = SNDRV_CARD_TYPE_S3_SONICVIBES,
+	SND_CARD_TYPE_ENS1370 = SNDRV_CARD_TYPE_ENS1370,
+	SND_CARD_TYPE_ENS1371 = SNDRV_CARD_TYPE_ENS1371,
+	SND_CARD_TYPE_CS4232 = SNDRV_CARD_TYPE_CS4232,
+	SND_CARD_TYPE_CS4236 = SNDRV_CARD_TYPE_CS4236,
+	SND_CARD_TYPE_AMD_INTERWAVE_STB = SNDRV_CARD_TYPE_AMD_INTERWAVE_STB,
+	SND_CARD_TYPE_ESS_ES1938 = SNDRV_CARD_TYPE_ESS_ES1938,
+	SND_CARD_TYPE_ESS_ES18XX = SNDRV_CARD_TYPE_ESS_ES18XX,
+	SND_CARD_TYPE_CS4231 = SNDRV_CARD_TYPE_CS4231,
+	SND_CARD_TYPE_OPTI92X = SNDRV_CARD_TYPE_OPTI92X,
+	SND_CARD_TYPE_SERIAL = SNDRV_CARD_TYPE_SERIAL,
+	SND_CARD_TYPE_AD1848 = SNDRV_CARD_TYPE_AD1848,
+	SND_CARD_TYPE_TRID4DWAVEDX = SNDRV_CARD_TYPE_TRID4DWAVEDX,
+	SND_CARD_TYPE_TRID4DWAVENX = SNDRV_CARD_TYPE_TRID4DWAVENX,
+	SND_CARD_TYPE_SGALAXY = SNDRV_CARD_TYPE_SGALAXY,
+	SND_CARD_TYPE_CS46XX = SNDRV_CARD_TYPE_CS46XX,
+	SND_CARD_TYPE_WAVEFRONT = SNDRV_CARD_TYPE_WAVEFRONT,
+	SND_CARD_TYPE_TROPEZ = SNDRV_CARD_TYPE_TROPEZ,
+	SND_CARD_TYPE_TROPEZPLUS = SNDRV_CARD_TYPE_TROPEZPLUS,
+	SND_CARD_TYPE_MAUI = SNDRV_CARD_TYPE_MAUI,
+	SND_CARD_TYPE_CMI8330 = SNDRV_CARD_TYPE_CMI8330,
+	SND_CARD_TYPE_DUMMY = SNDRV_CARD_TYPE_DUMMY,
+	SND_CARD_TYPE_ALS100 = SNDRV_CARD_TYPE_ALS100,
+	SND_CARD_TYPE_SHARE = SNDRV_CARD_TYPE_SHARE,
+	SND_CARD_TYPE_SI_7018 = SNDRV_CARD_TYPE_SI_7018,
+	SND_CARD_TYPE_OPTI93X = SNDRV_CARD_TYPE_OPTI93X,
+	SND_CARD_TYPE_MTPAV = SNDRV_CARD_TYPE_MTPAV,
+	SND_CARD_TYPE_VIRMIDI = SNDRV_CARD_TYPE_VIRMIDI,
+	SND_CARD_TYPE_EMU10K1 = SNDRV_CARD_TYPE_EMU10K1,
+	SND_CARD_TYPE_HAMMERFALL = SNDRV_CARD_TYPE_HAMMERFALL,
+	SND_CARD_TYPE_HAMMERFALL_LIGHT = SNDRV_CARD_TYPE_HAMMERFALL_LIGHT,
+	SND_CARD_TYPE_ICE1712 = SNDRV_CARD_TYPE_ICE1712,
+	SND_CARD_TYPE_CMI8338 = SNDRV_CARD_TYPE_CMI8338,
+	SND_CARD_TYPE_CMI8738 = SNDRV_CARD_TYPE_CMI8738,
+	SND_CARD_TYPE_AD1816A = SNDRV_CARD_TYPE_AD1816A,
+	SND_CARD_TYPE_INTEL8X0 = SNDRV_CARD_TYPE_INTEL8X0,
+	SND_CARD_TYPE_ESS_ESOLDM1 = SNDRV_CARD_TYPE_ESS_ESOLDM1,
+	SND_CARD_TYPE_ESS_ES1968 = SNDRV_CARD_TYPE_ESS_ES1968,
+	SND_CARD_TYPE_ESS_ES1978 = SNDRV_CARD_TYPE_ESS_ES1978,
+	SND_CARD_TYPE_DIGI96 = SNDRV_CARD_TYPE_DIGI96,
+	SND_CARD_TYPE_VIA82C686A = SNDRV_CARD_TYPE_VIA82C686A,
+	SND_CARD_TYPE_FM801 = SNDRV_CARD_TYPE_FM801,
+	SND_CARD_TYPE_AZT2320 = SNDRV_CARD_TYPE_AZT2320,
+	SND_CARD_TYPE_PRODIF_PLUS = SNDRV_CARD_TYPE_PRODIF_PLUS,
+	SND_CARD_TYPE_YMFPCI = SNDRV_CARD_TYPE_YMFPCI,
+	SND_CARD_TYPE_CS4281 = SNDRV_CARD_TYPE_CS4281,
+	SND_CARD_TYPE_MPU401_UART = SNDRV_CARD_TYPE_MPU401_UART,
+	SND_CARD_TYPE_ALS4000 = SNDRV_CARD_TYPE_ALS4000,
+	SND_CARD_TYPE_ALLEGRO_1 = SNDRV_CARD_TYPE_ALLEGRO_1,
+	SND_CARD_TYPE_ALLEGRO = SNDRV_CARD_TYPE_ALLEGRO,
+	SND_CARD_TYPE_MAESTRO3 = SNDRV_CARD_TYPE_MAESTRO3,
+	SND_CARD_TYPE_AWACS = SNDRV_CARD_TYPE_AWACS,
+	SND_CARD_TYPE_NM256AV = SNDRV_CARD_TYPE_NM256AV,
+	SND_CARD_TYPE_NM256ZX = SNDRV_CARD_TYPE_NM256ZX,
+	SND_CARD_TYPE_VIA8233 = SNDRV_CARD_TYPE_VIA8233,
+	SND_CARD_TYPE_LAST = SNDRV_CARD_TYPE_LAST,
+} snd_card_type_t;
 
-#define SND_CARD_TYPE_GUS_CLASSIC ((snd_card_type_t) SNDRV_CARD_TYPE_GUS_CLASSIC)
-#define SND_CARD_TYPE_GUS_EXTREME ((snd_card_type_t) SNDRV_CARD_TYPE_GUS_EXTREME)
-#define SND_CARD_TYPE_GUS_ACE ((snd_card_type_t) SNDRV_CARD_TYPE_GUS_ACE)
-#define SND_CARD_TYPE_GUS_MAX ((snd_card_type_t) SNDRV_CARD_TYPE_GUS_MAX)
-#define SND_CARD_TYPE_AMD_INTERWAVE ((snd_card_type_t) SNDRV_CARD_TYPE_AMD_INTERWAVE)
-#define SND_CARD_TYPE_SB_10 ((snd_card_type_t) SNDRV_CARD_TYPE_SB_10)
-#define SND_CARD_TYPE_SB_20 ((snd_card_type_t) SNDRV_CARD_TYPE_SB_20)
-#define SND_CARD_TYPE_SB_PRO ((snd_card_type_t) SNDRV_CARD_TYPE_SB_PRO)
-#define SND_CARD_TYPE_SB_16 ((snd_card_type_t) SNDRV_CARD_TYPE_SB_16)
-#define SND_CARD_TYPE_SB_AWE ((snd_card_type_t) SNDRV_CARD_TYPE_SB_AWE)
-#define SND_CARD_TYPE_ESS_ES1688 ((snd_card_type_t) SNDRV_CARD_TYPE_ESS_ES1688)
-#define SND_CARD_TYPE_OPL3_SA2 ((snd_card_type_t) SNDRV_CARD_TYPE_OPL3_SA2)
-#define SND_CARD_TYPE_MOZART ((snd_card_type_t) SNDRV_CARD_TYPE_MOZART)
-#define SND_CARD_TYPE_S3_SONICVIBES ((snd_card_type_t) SNDRV_CARD_TYPE_S3_SONICVIBES)
-#define SND_CARD_TYPE_ENS1370 ((snd_card_type_t) SNDRV_CARD_TYPE_ENS1370)
-#define SND_CARD_TYPE_ENS1371 ((snd_card_type_t) SNDRV_CARD_TYPE_ENS1371)
-#define SND_CARD_TYPE_CS4232 ((snd_card_type_t) SNDRV_CARD_TYPE_CS4232)
-#define SND_CARD_TYPE_CS4236 ((snd_card_type_t) SNDRV_CARD_TYPE_CS4236)
-#define SND_CARD_TYPE_AMD_INTERWAVE_STB ((snd_card_type_t) SNDRV_CARD_TYPE_AMD_INTERWAVE_STB)
-#define SND_CARD_TYPE_ESS_ES1938 ((snd_card_type_t) SNDRV_CARD_TYPE_ESS_ES1938)
-#define SND_CARD_TYPE_ESS_ES18XX ((snd_card_type_t) SNDRV_CARD_TYPE_ESS_ES18XX)
-#define SND_CARD_TYPE_CS4231 ((snd_card_type_t) SNDRV_CARD_TYPE_CS4231)
-#define SND_CARD_TYPE_OPTI92X ((snd_card_type_t) SNDRV_CARD_TYPE_OPTI92X)
-#define SND_CARD_TYPE_SERIAL ((snd_card_type_t) SNDRV_CARD_TYPE_SERIAL)
-#define SND_CARD_TYPE_AD1848 ((snd_card_type_t) SNDRV_CARD_TYPE_AD1848)
-#define SND_CARD_TYPE_TRID4DWAVEDX ((snd_card_type_t) SNDRV_CARD_TYPE_TRID4DWAVEDX)
-#define SND_CARD_TYPE_TRID4DWAVENX ((snd_card_type_t) SNDRV_CARD_TYPE_TRID4DWAVENX)
-#define SND_CARD_TYPE_SGALAXY ((snd_card_type_t) SNDRV_CARD_TYPE_SGALAXY)
-#define SND_CARD_TYPE_CS46XX ((snd_card_type_t) SNDRV_CARD_TYPE_CS46XX)
-#define SND_CARD_TYPE_WAVEFRONT ((snd_card_type_t) SNDRV_CARD_TYPE_WAVEFRONT)
-#define SND_CARD_TYPE_TROPEZ ((snd_card_type_t) SNDRV_CARD_TYPE_TROPEZ)
-#define SND_CARD_TYPE_TROPEZPLUS ((snd_card_type_t) SNDRV_CARD_TYPE_TROPEZPLUS)
-#define SND_CARD_TYPE_MAUI ((snd_card_type_t) SNDRV_CARD_TYPE_MAUI)
-#define SND_CARD_TYPE_CMI8330 ((snd_card_type_t) SNDRV_CARD_TYPE_CMI8330)
-#define SND_CARD_TYPE_DUMMY ((snd_card_type_t) SNDRV_CARD_TYPE_DUMMY)
-#define SND_CARD_TYPE_ALS100 ((snd_card_type_t) SNDRV_CARD_TYPE_ALS100)
-#define SND_CARD_TYPE_SHARE ((snd_card_type_t) SNDRV_CARD_TYPE_SHARE)
-#define SND_CARD_TYPE_SI_7018 ((snd_card_type_t) SNDRV_CARD_TYPE_SI_7018)
-#define SND_CARD_TYPE_OPTI93X ((snd_card_type_t) SNDRV_CARD_TYPE_OPTI93X)
-#define SND_CARD_TYPE_MTPAV ((snd_card_type_t) SNDRV_CARD_TYPE_MTPAV)
-#define SND_CARD_TYPE_VIRMIDI ((snd_card_type_t) SNDRV_CARD_TYPE_VIRMIDI)
-#define SND_CARD_TYPE_EMU10K1 ((snd_card_type_t) SNDRV_CARD_TYPE_EMU10K1)
-#define SND_CARD_TYPE_HAMMERFALL ((snd_card_type_t) SNDRV_CARD_TYPE_HAMMERFALL)
-#define SND_CARD_TYPE_HAMMERFALL_LIGHT ((snd_card_type_t) SNDRV_CARD_TYPE_HAMMERFALL_LIGHT)
-#define SND_CARD_TYPE_ICE1712 ((snd_card_type_t) SNDRV_CARD_TYPE_ICE1712)
-#define SND_CARD_TYPE_CMI8338 ((snd_card_type_t) SNDRV_CARD_TYPE_CMI8338)
-#define SND_CARD_TYPE_CMI8738 ((snd_card_type_t) SNDRV_CARD_TYPE_CMI8738)
-#define SND_CARD_TYPE_AD1816A ((snd_card_type_t) SNDRV_CARD_TYPE_AD1816A)
-#define SND_CARD_TYPE_INTEL8X0 ((snd_card_type_t) SNDRV_CARD_TYPE_INTEL8X0)
-#define SND_CARD_TYPE_ESS_ESOLDM1 ((snd_card_type_t) SNDRV_CARD_TYPE_ESS_ESOLDM1)
-#define SND_CARD_TYPE_ESS_ES1968 ((snd_card_type_t) SNDRV_CARD_TYPE_ESS_ES1968)
-#define SND_CARD_TYPE_ESS_ES1978 ((snd_card_type_t) SNDRV_CARD_TYPE_ESS_ES1978)
-#define SND_CARD_TYPE_DIGI96 ((snd_card_type_t) SNDRV_CARD_TYPE_DIGI96)
-#define SND_CARD_TYPE_VIA82C686A ((snd_card_type_t) SNDRV_CARD_TYPE_VIA82C686A)
-#define SND_CARD_TYPE_FM801 ((snd_card_type_t) SNDRV_CARD_TYPE_FM801)
-#define SND_CARD_TYPE_AZT2320 ((snd_card_type_t) SNDRV_CARD_TYPE_AZT2320)
-#define SND_CARD_TYPE_PRODIF_PLUS ((snd_card_type_t) SNDRV_CARD_TYPE_PRODIF_PLUS)
-#define SND_CARD_TYPE_YMFPCI ((snd_card_type_t) SNDRV_CARD_TYPE_YMFPCI)
-#define SND_CARD_TYPE_CS4281 ((snd_card_type_t) SNDRV_CARD_TYPE_CS4281)
-#define SND_CARD_TYPE_MPU401_UART ((snd_card_type_t) SNDRV_CARD_TYPE_MPU401_UART)
-#define SND_CARD_TYPE_ALS4000 ((snd_card_type_t) SNDRV_CARD_TYPE_ALS4000)
-#define SND_CARD_TYPE_ALLEGRO_1 ((snd_card_type_t) SNDRV_CARD_TYPE_ALLEGRO_1)
-#define SND_CARD_TYPE_ALLEGRO ((snd_card_type_t) SNDRV_CARD_TYPE_ALLEGRO)
-#define SND_CARD_TYPE_MAESTRO3 ((snd_card_type_t) SNDRV_CARD_TYPE_MAESTRO3)
-#define SND_CARD_TYPE_AWACS ((snd_card_type_t) SNDRV_CARD_TYPE_AWACS)
-#define SND_CARD_TYPE_NM256AV ((snd_card_type_t) SNDRV_CARD_TYPE_NM256AV)
-#define SND_CARD_TYPE_NM256ZX ((snd_card_type_t) SNDRV_CARD_TYPE_NM256ZX)
-#define SND_CARD_TYPE_VIA8233 ((snd_card_type_t) SNDRV_CARD_TYPE_VIA8233)
-#define SND_CARD_TYPE_LAST ((snd_card_type_t) SNDRV_CARD_TYPE_LAST)
+/** CTL element type */
+typedef enum _snd_ctl_elem_type {
+	/** Invalid type */
+	SND_CTL_ELEM_TYPE_NONE = SNDRV_CTL_ELEM_TYPE_NONE,
+	/** Boolean contents */
+	SND_CTL_ELEM_TYPE_BOOLEAN = SNDRV_CTL_ELEM_TYPE_BOOLEAN,
+	/** Integer contents */
+	SND_CTL_ELEM_TYPE_INTEGER = SNDRV_CTL_ELEM_TYPE_INTEGER,
+	/** Enumerated contents */
+	SND_CTL_ELEM_TYPE_ENUMERATED = SNDRV_CTL_ELEM_TYPE_ENUMERATED,
+	/** Bytes contents */
+	SND_CTL_ELEM_TYPE_BYTES = SNDRV_CTL_ELEM_TYPE_BYTES,
+	/** IEC958 (S/PDIF) setting content */
+	SND_CTL_ELEM_TYPE_IEC958 = SNDRV_CTL_ELEM_TYPE_IEC958,
+	SND_CTL_ELEM_TYPE_LAST = SNDRV_CTL_ELEM_TYPE_LAST,
+} snd_ctl_elem_type_t;
 
-#define SND_CTL_ELEM_TYPE_NONE ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_NONE)
-#define SND_CTL_ELEM_TYPE_BOOLEAN ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_BOOLEAN)
-#define SND_CTL_ELEM_TYPE_INTEGER ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_INTEGER)
-#define SND_CTL_ELEM_TYPE_ENUMERATED ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_ENUMERATED)
-#define SND_CTL_ELEM_TYPE_BYTES ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_BYTES)
-#define SND_CTL_ELEM_TYPE_IEC958 ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_IEC958)
-#define SND_CTL_ELEM_TYPE_LAST ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_LAST)
+/** CTL related interface */
+typedef enum _snd_ctl_elem_iface {
+	/** Card level */
+	SND_CTL_ELEM_IFACE_CARD = SNDRV_CTL_ELEM_IFACE_CARD,
+	/** Hardware dependent device */
+	SND_CTL_ELEM_IFACE_HWDEP = SNDRV_CTL_ELEM_IFACE_HWDEP,
+	/** Mixer */
+	SND_CTL_ELEM_IFACE_MIXER = SNDRV_CTL_ELEM_IFACE_MIXER,
+	/** PCM */
+	SND_CTL_ELEM_IFACE_PCM = SNDRV_CTL_ELEM_IFACE_PCM,
+	/** RawMidi */
+	SND_CTL_ELEM_IFACE_RAWMIDI = SNDRV_CTL_ELEM_IFACE_RAWMIDI,
+	/** Timer */
+	SND_CTL_ELEM_IFACE_TIMER = SNDRV_CTL_ELEM_IFACE_TIMER,
+	/** Sequencer */
+	SND_CTL_ELEM_IFACE_SEQUENCER = SNDRV_CTL_ELEM_IFACE_SEQUENCER,
+	SND_CTL_ELEM_IFACE_LAST = SNDRV_CTL_ELEM_IFACE_LAST,
+} snd_ctl_elem_iface_t;
 
-#define SND_CTL_ELEM_IFACE_CARD ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_CARD)
-#define SND_CTL_ELEM_IFACE_HWDEP ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_HWDEP)
-#define SND_CTL_ELEM_IFACE_MIXER ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_MIXER)
-#define SND_CTL_ELEM_IFACE_PCM ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_PCM)
-#define SND_CTL_ELEM_IFACE_RAWMIDI ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_RAWMIDI)
-#define SND_CTL_ELEM_IFACE_TIMER ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_TIMER)
-#define SND_CTL_ELEM_IFACE_SEQUENCER ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_SEQUENCER)
-#define SND_CTL_ELEM_IFACE_LAST ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_LAST)
+/** Event class */
+typedef enum _snd_ctl_event_type {
+	/** Elements related event */
+	SND_CTL_EVENT_ELEM = SNDRV_CTL_EVENT_ELEM,
+	SND_CTL_EVENT_LAST = SNDRV_CTL_EVENT_LAST,
+}snd_ctl_event_type_t;
 
-#define SND_CTL_EVENT_ELEM ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_ELEM)
-#define SND_CTL_EVENT_LAST ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_LAST)
-
-#define SND_CTL_EVENT_MASK_ADD SNDRV_CTL_EVENT_MASK_ADD
-#define SND_CTL_EVENT_MASK_INFO SNDRV_CTL_EVENT_MASK_INFO
-#define SND_CTL_EVENT_MASK_VALUE SNDRV_CTL_EVENT_MASK_VALUE
+/** Element has been removed (Warning: test this first and if set don't
+ * test the other masks) \hideinitializer */
 #define SND_CTL_EVENT_MASK_REMOVE SNDRV_CTL_EVENT_MASK_REMOVE
+/** Element has been added \hideinitializer */
+#define SND_CTL_EVENT_MASK_ADD SNDRV_CTL_EVENT_MASK_ADD
+/** Element info has been changed \hideinitializer */
+#define SND_CTL_EVENT_MASK_INFO SNDRV_CTL_EVENT_MASK_INFO
+/** Element value has been changed \hideinitializer */
+#define SND_CTL_EVENT_MASK_VALUE SNDRV_CTL_EVENT_MASK_VALUE
 
 #define SND_CTL_NAME_IEC958 SNDRV_CTL_NAME_IEC958
 
-enum _snd_ctl_type {
+/** CTL type */
+typedef enum _snd_ctl_type {
+	/** Kernel level CTL */
 	SND_CTL_TYPE_HW,
+	/** Shared memory client CTL */
 	SND_CTL_TYPE_SHM,
+	/** INET client CTL (not yet implemented) */
 	SND_CTL_TYPE_INET
-};
+} snd_ctl_type_t;
 
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_ctl_type *snd_ctl_type_t;
-#else
-typedef enum _snd_ctl_type snd_ctl_type_t;
-#endif
+/** Non blocking mode \hideinitializer */
+#define SND_CTL_NONBLOCK		0x0001
 
-#define SND_CTL_TYPE_HW ((snd_ctl_type_t) SND_CTL_TYPE_HW)
-#define SND_CTL_TYPE_SHM ((snd_ctl_type_t) SND_CTL_TYPE_SHM)
-#define SND_CTL_TYPE_INET ((snd_ctl_type_t) SND_CTL_TYPE_INET)
+/** Async notification \hideinitializer */
+#define SND_CTL_ASYNC			0x0002
 
+/** CTL handle */
 typedef struct _snd_ctl snd_ctl_t;
 
 #ifdef __cplusplus
@@ -158,7 +190,7 @@ int snd_defaults_rawmidi_card(void);
 int snd_defaults_rawmidi_device(void);
 
 snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl);
-int snd_ctl_open(snd_ctl_t **ctl, const char *name);
+int snd_ctl_open(snd_ctl_t **ctl, const char *name, int mode);
 int snd_ctl_close(snd_ctl_t *ctl);
 int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock);
 int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid);
@@ -225,7 +257,7 @@ typedef int (*snd_hctl_callback_t)(snd_hctl_t *hctl,
 typedef int (*snd_hctl_elem_callback_t)(snd_hctl_elem_t *elem,
 					unsigned int mask);
 
-int snd_hctl_open(snd_hctl_t **hctl, const char *name);
+int snd_hctl_open(snd_hctl_t **hctl, const char *name, int mode);
 int snd_hctl_close(snd_hctl_t *hctl);
 int snd_hctl_nonblock(snd_hctl_t *hctl, int nonblock);
 int snd_hctl_async(snd_hctl_t *hctl, int sig, pid_t pid);

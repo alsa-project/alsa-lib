@@ -54,7 +54,7 @@
  * \return ascii identifier of PCM handle
  *
  * Returns the ASCII identifier of given PCM handle. It's the same
- * identifier as for snd_pcm_open().
+ * identifier specified in snd_pcm_open().
  */
 const char *snd_pcm_name(snd_pcm_t *pcm)
 {
@@ -91,7 +91,7 @@ snd_pcm_stream_t snd_pcm_stream(snd_pcm_t *pcm)
 /**
  * \brief close PCM handle
  * \param pcm PCM handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * Closes the specified PCM handle and frees all associated
  * resources.
@@ -124,7 +124,7 @@ int snd_pcm_close(snd_pcm_t *pcm)
  * \brief set nonblock mode
  * \param pcm PCM handle
  * \param nonblock 0 = block, 1 = nonblock mode
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 {
@@ -144,7 +144,7 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
  * \param pcm PCM handle
  * \param sig Signal to raise: < 0 disable, 0 default (SIGIO)
  * \param pid Process ID to signal: 0 current
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * A signal is raised every period.
  */
@@ -170,7 +170,7 @@ int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid)
  * \brief Obtain general (static) information for PCM handle
  * \param pcm PCM handle
  * \param info Information container
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
@@ -181,7 +181,7 @@ int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 /** \brief Install one PCM hardware configuration choosen from a configuration space and #snd_pcm_prepare it
  * \param pcm PCM handle
  * \param params Configuration space definition container
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * The configuration is choosen fixing single parameters in this order:
  * first access, first format, first subformat, min channels, min rate, 
@@ -199,7 +199,7 @@ int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 /** \brief Remove PCM hardware configuration and free associated resources
  * \param pcm PCM handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_hw_free(snd_pcm_t *pcm)
 {
@@ -219,7 +219,7 @@ int snd_pcm_hw_free(snd_pcm_t *pcm)
 /** \brief Install PCM software configuration defined by params
  * \param pcm PCM handle
  * \param params Configuration container
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
@@ -244,7 +244,7 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
  * \brief Obtain status (runtime) information for PCM handle
  * \param pcm PCM handle
  * \param status Status container
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
@@ -267,7 +267,7 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
  * \brief Obtain delay for a running PCM handle
  * \param pcm PCM handle
  * \param delayp Returned delay in frames
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * Delay is distance between current application frame position and
  * sound frame position.
@@ -285,7 +285,7 @@ int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 /**
  * \brief Prepare PCM for use
  * \param pcm PCM handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_prepare(snd_pcm_t *pcm)
 {
@@ -297,7 +297,7 @@ int snd_pcm_prepare(snd_pcm_t *pcm)
 /**
  * \brief Reset PCM position
  * \param pcm PCM handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * Reduce PCM delay to 0.
  */
@@ -311,7 +311,7 @@ int snd_pcm_reset(snd_pcm_t *pcm)
 /**
  * \brief Start a PCM
  * \param pcm PCM handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_start(snd_pcm_t *pcm)
 {
@@ -323,7 +323,7 @@ int snd_pcm_start(snd_pcm_t *pcm)
 /**
  * \brief Stop a PCM dropping pending frames
  * \param pcm PCM handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_drop(snd_pcm_t *pcm)
 {
@@ -335,7 +335,7 @@ int snd_pcm_drop(snd_pcm_t *pcm)
 /**
  * \brief Stop a PCM preserving pending frames
  * \param pcm PCM handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * For playback wait for all pending frames to be played and then stop
  * the PCM.
@@ -352,7 +352,7 @@ int snd_pcm_drain(snd_pcm_t *pcm)
  * \brief Pause/resume PCM
  * \param pcm PCM handle
  * \param pause 0 = resume, 1 = pause
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 {
@@ -448,7 +448,7 @@ snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t s
  * \brief Link two PCMs
  * \param pcm1 first PCM handle
  * \param pcm2 first PCM handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  *
  * The two PCMs will start/stop/prepare in sync.
  */ 
@@ -468,7 +468,7 @@ int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 /**
  * \brief Remove a PCM from a linked group
  * \param pcm PCM handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_unlink(snd_pcm_t *pcm)
 {
@@ -762,7 +762,7 @@ const char *snd_pcm_state_name(snd_pcm_state_t state)
  * \brief Dump current hardware setup for PCM
  * \param pcm PCM handle
  * \param out Output handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
 {
@@ -788,7 +788,7 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
  * \brief Dump current software setup for PCM
  * \param pcm PCM handle
  * \param out Output handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 {
@@ -812,7 +812,7 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
  * \brief Dump current setup (hardware and software) for PCM
  * \param pcm PCM handle
  * \param out Output handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out)
 {
@@ -825,7 +825,7 @@ int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out)
  * \brief Dump status
  * \param status Status container
  * \param out Output handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
 {
@@ -845,7 +845,7 @@ int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
  * \brief Dump PCM info
  * \param pcm PCM handle
  * \param out Output handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
@@ -913,7 +913,7 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
  * \param name ASCII identifier of the PCM handle
  * \param stream Wanted stream
  * \param mode Open mode (see #SND_PCM_NONBLOCK, #SND_PCM_ASYNC)
- * \return 0 or a negative error code on failure or zero on success
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_open(snd_pcm_t **pcmp, const char *name, 
 		 snd_pcm_stream_t stream, int mode)
@@ -1060,7 +1060,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
  * \brief Wait for a PCM to become ready
  * \param pcm PCM handle
  * \param timeout maximum time in milliseconds to wait
- * \return 0 or a negative error code on failure or zero on success
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
@@ -1111,7 +1111,7 @@ snd_pcm_sframes_t snd_pcm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
  * \param dst_offset offset in frames inside area
  * \param samples samples to silence
  * \param format PCM sample format
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
 			 unsigned int samples, snd_pcm_format_t format)
@@ -1202,7 +1202,7 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
  * \param channels channels count
  * \param frames frames to silence
  * \param format PCM sample format
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 			  unsigned int channels, snd_pcm_uframes_t frames, snd_pcm_format_t format)
@@ -1253,7 +1253,7 @@ int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, snd_pcm_ufram
  * \param src_offset offset in frames inside source area
  * \param samples samples to copy
  * \param format PCM sample format
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
 		      const snd_pcm_channel_area_t *src_area, snd_pcm_uframes_t src_offset,
@@ -1360,7 +1360,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
  * \param channels channels count
  * \param frames frames to copy
  * \param format PCM sample format
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 		       const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
@@ -1417,7 +1417,7 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
  * \brief Dump a PCM hardware configuration space
  * \param params Configuration space
  * \param out Output handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
 {
@@ -1435,7 +1435,7 @@ int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
  * \param params Configuration space
  * \param rate_num Pointer to returned rate numerator
  * \param rate_den Pointer to returned rate denominator
- * \return 0 or a negative error code if the info is not available
+ * \return 0 otherwise a negative error code if the info is not available
  */
 int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 				      unsigned int *rate_num, unsigned int *rate_den)
@@ -1450,7 +1450,7 @@ int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 /**
  * \brief Get sample resolution info from a configuration space
  * \param params Configuration space
- * \return significative bits in sample or a negative error code if the info is not available
+ * \return significative bits in sample otherwise a negative error code if the info is not available
  */
 int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
 {
@@ -1462,7 +1462,7 @@ int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
 /**
  * \brief Get hardare fifo size info from a configuration space
  * \param params Configuration space
- * \return fifo size in frames or a negative error code if the info is not available
+ * \return fifo size in frames otherwise a negative error code if the info is not available
  */
 int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params)
 {
@@ -1494,7 +1494,7 @@ size_t snd_pcm_access_mask_sizeof()
 /**
  * \brief allocate an empty #snd_pcm_access_mask_t using standard malloc
  * \param ptr returned pointer
- * \return zero on success otherwise negative error code
+ * \return 0 on success otherwise negative error code
  */
 int snd_pcm_access_mask_malloc(snd_pcm_access_mask_t **ptr)
 {
@@ -1585,7 +1585,7 @@ size_t snd_pcm_format_mask_sizeof()
 /**
  * \brief allocate an empty #snd_pcm_format_mask_t using standard malloc
  * \param ptr returned pointer
- * \return zero on success otherwise negative error code
+ * \return 0 on success otherwise negative error code
  */
 int snd_pcm_format_mask_malloc(snd_pcm_format_mask_t **ptr)
 {
@@ -1677,7 +1677,7 @@ size_t snd_pcm_subformat_mask_sizeof()
 /**
  * \brief allocate an empty #snd_pcm_subformat_mask_t using standard malloc
  * \param ptr returned pointer
- * \return zero on success otherwise negative error code
+ * \return 0 on success otherwise negative error code
  */
 int snd_pcm_subformat_mask_malloc(snd_pcm_subformat_mask_t **ptr)
 {
@@ -1769,7 +1769,7 @@ size_t snd_pcm_hw_params_sizeof()
 /**
  * \brief allocate an invalid #snd_pcm_hw_params_t using standard malloc
  * \param ptr returned pointer
- * \return zero on success otherwise negative error code
+ * \return 0 on success otherwise negative error code
  */
 int snd_pcm_hw_params_malloc(snd_pcm_hw_params_t **ptr)
 {
@@ -1803,7 +1803,7 @@ void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t 
 /**
  * \brief Extract access type from a configuration space
  * \param params Configuration space
- * \return access type or a negative error code if not exactly one is present
+ * \return access type otherwise a negative error code if not exactly one is present
  */
 int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params)
 {
@@ -1827,7 +1827,7 @@ int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, s
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val access type
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  */
 int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t val)
 {
@@ -1872,7 +1872,7 @@ int snd_pcm_hw_params_set_access_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
 /**
  * \brief Extract format from a configuration space
  * \param params Configuration space
- * \return format or a negative error code if not exactly one is present
+ * \return format otherwise a negative error code if not exactly one is present
  */
 int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params)
 {
@@ -1896,7 +1896,7 @@ int snd_pcm_hw_params_test_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, s
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val format
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  */
 int snd_pcm_hw_params_set_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t val)
 {
@@ -1953,7 +1953,7 @@ int snd_pcm_hw_params_test_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
 /**
  * \brief Extract subformat from a configuration space
  * \param params Configuration space
- * \return subformat or a negative error code if not exactly one is present
+ * \return subformat otherwise a negative error code if not exactly one is present
  */
 int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params)
 {
@@ -1965,7 +1965,7 @@ int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params)
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val subformat
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  */
 int snd_pcm_hw_params_set_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t val)
 {
@@ -2010,7 +2010,7 @@ int snd_pcm_hw_params_set_subformat_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
 /**
  * \brief Extract channels from a configuration space
  * \param params Configuration space
- * \return channels count or a negative error code if not exactly one is present
+ * \return channels count otherwise a negative error code if not exactly one is present
  */
 int snd_pcm_hw_params_get_channels(const snd_pcm_hw_params_t *params)
 {
@@ -2054,7 +2054,7 @@ int snd_pcm_hw_params_test_channels(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val channels count
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  */
 int snd_pcm_hw_params_set_channels(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
 {
@@ -2066,7 +2066,7 @@ int snd_pcm_hw_params_set_channels(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, 
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val minimum channels count (on return filled with actual minimum)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  */
 int snd_pcm_hw_params_set_channels_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
 {
@@ -2078,7 +2078,7 @@ int snd_pcm_hw_params_set_channels_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val maximum channels count (on return filled with actual maximum)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  */
 int snd_pcm_hw_params_set_channels_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
 {
@@ -2091,7 +2091,7 @@ int snd_pcm_hw_params_set_channels_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \param params Configuration space
  * \param min minimum channels count (on return filled with actual minimum)
  * \param max maximum channels count (on return filled with actual maximum)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  */
 int snd_pcm_hw_params_set_channels_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *min, unsigned int *max)
 {
@@ -2137,7 +2137,7 @@ unsigned int snd_pcm_hw_params_set_channels_last(snd_pcm_t *pcm, snd_pcm_hw_para
  * \brief Extract rate from a configuration space
  * \param params Configuration space
  * \param dir Sub unit direction
- * \return approximate rate or a negative error code if not exactly one is present
+ * \return approximate rate otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
@@ -2193,7 +2193,7 @@ int snd_pcm_hw_params_test_rate(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, uns
  * \param params Configuration space
  * \param val approximate rate
  * \param dir Sub unit direction
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -2208,7 +2208,7 @@ int snd_pcm_hw_params_set_rate(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsi
  * \param params Configuration space
  * \param val approximate minimum rate (on return filled with actual minimum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
@@ -2223,7 +2223,7 @@ int snd_pcm_hw_params_set_rate_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, 
  * \param params Configuration space
  * \param val approximate maximum rate (on return filled with actual maximum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
  */
@@ -2240,7 +2240,7 @@ int snd_pcm_hw_params_set_rate_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, 
  * \param mindir Sub unit direction for minimum (on return filled with actual direction)
  * \param max approximate maximum rate (on return filled with actual maximum)
  * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
  */
@@ -2296,7 +2296,7 @@ unsigned int snd_pcm_hw_params_set_rate_last(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \brief Extract period time from a configuration space
  * \param params Configuration space
  * \param dir Sub unit direction
- * \return approximate period duration in us or a negative error code if not exactly one is present
+ * \return approximate period duration in us otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
@@ -2352,7 +2352,7 @@ int snd_pcm_hw_params_test_period_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \param params Configuration space
  * \param val approximate period duration in us
  * \param dir Sub unit direction
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -2368,7 +2368,7 @@ int snd_pcm_hw_params_set_period_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param params Configuration space
  * \param val approximate minimum period duration in us (on return filled with actual minimum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
@@ -2383,7 +2383,7 @@ int snd_pcm_hw_params_set_period_time_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param params Configuration space
  * \param val approximate maximum period duration in us (on return filled with actual maximum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
  */
@@ -2400,7 +2400,7 @@ int snd_pcm_hw_params_set_period_time_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param mindir Sub unit direction for minimum (on return filled with actual direction)
  * \param max approximate maximum period duration in us (on return filled with actual maximum)
  * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
  */
@@ -2456,7 +2456,7 @@ unsigned int snd_pcm_hw_params_set_period_time_last(snd_pcm_t *pcm, snd_pcm_hw_p
  * \brief Extract period size from a configuration space
  * \param params Configuration space
  * \param dir Sub unit direction
- * \return approximate period size in frames or a negative error code if not exactly one is present
+ * \return approximate period size in frames otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
@@ -2512,7 +2512,7 @@ int snd_pcm_hw_params_test_period_size(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \param params Configuration space
  * \param val approximate period size in frames
  * \param dir Sub unit direction
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -2527,7 +2527,7 @@ int snd_pcm_hw_params_set_period_size(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param params Configuration space
  * \param val approximate minimum period size in frames (on return filled with actual minimum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
@@ -2545,7 +2545,7 @@ int snd_pcm_hw_params_set_period_size_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param params Configuration space
  * \param val approximate maximum period size in frames (on return filled with actual maximum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
@@ -2565,7 +2565,7 @@ int snd_pcm_hw_params_set_period_size_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param mindir Sub unit direction for minimum (on return filled with actual direction)
  * \param max approximate maximum period size in frames (on return filled with actual maximum)
  * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
  */
@@ -2625,7 +2625,7 @@ snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_last(snd_pcm_t *pcm, snd_pcm
  * \brief Restrict a configuration space to contain only integer period sizes
  * \param pcm PCM handle
  * \param params Configuration space
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  */
 int snd_pcm_hw_params_set_period_size_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
@@ -2637,7 +2637,7 @@ int snd_pcm_hw_params_set_period_size_integer(snd_pcm_t *pcm, snd_pcm_hw_params_
  * \brief Extract periods from a configuration space
  * \param params Configuration space
  * \param dir Sub unit direction
- * \return approximate periods per buffer or a negative error code if not exactly one is present
+ * \return approximate periods per buffer otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
@@ -2693,7 +2693,7 @@ int snd_pcm_hw_params_test_periods(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, 
  * \param params Configuration space
  * \param val approximate periods per buffer
  * \param dir Sub unit direction
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -2708,7 +2708,7 @@ int snd_pcm_hw_params_set_periods(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, u
  * \param params Configuration space
  * \param val approximate minimum periods per buffer (on return filled with actual minimum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
@@ -2723,7 +2723,7 @@ int snd_pcm_hw_params_set_periods_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param params Configuration space
  * \param val approximate maximum periods per buffer (on return filled with actual maximum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
  */
@@ -2740,7 +2740,7 @@ int snd_pcm_hw_params_set_periods_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param mindir Sub unit direction for minimum (on return filled with actual direction)
  * \param max approximate maximum periods per buffer (on return filled with actual maximum)
  * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
  */
@@ -2795,7 +2795,7 @@ unsigned int snd_pcm_hw_params_set_periods_last(snd_pcm_t *pcm, snd_pcm_hw_param
  * \brief Restrict a configuration space to contain only integer periods counts
  * \param pcm PCM handle
  * \param params Configuration space
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  */
 int snd_pcm_hw_params_set_periods_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
@@ -2807,7 +2807,7 @@ int snd_pcm_hw_params_set_periods_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \brief Extract buffer time from a configuration space
  * \param params Configuration space
  * \param dir Sub unit direction
- * \return approximate buffer duration in us or a negative error code if not exactly one is present
+ * \return approximate buffer duration in us otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
@@ -2863,7 +2863,7 @@ int snd_pcm_hw_params_test_buffer_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \param params Configuration space
  * \param val approximate buffer duration in us
  * \param dir Sub unit direction
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -2878,7 +2878,7 @@ int snd_pcm_hw_params_set_buffer_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param params Configuration space
  * \param val approximate minimum buffer duration in us (on return filled with actual minimum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
@@ -2893,7 +2893,7 @@ int snd_pcm_hw_params_set_buffer_time_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param params Configuration space
  * \param val approximate maximum buffer duration in us (on return filled with actual maximum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
  */
@@ -2910,7 +2910,7 @@ int snd_pcm_hw_params_set_buffer_time_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param mindir Sub unit direction for minimum (on return filled with actual direction)
  * \param max approximate maximum buffer duration in us (on return filled with actual maximum)
  * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
  */
@@ -2965,7 +2965,7 @@ unsigned int snd_pcm_hw_params_set_buffer_time_last(snd_pcm_t *pcm, snd_pcm_hw_p
 /**
  * \brief Extract buffer size from a configuration space
  * \param params Configuration space
- * \return buffer size in frames or a negative error code if not exactly one is present
+ * \return buffer size in frames otherwise a negative error code if not exactly one is present
  */
 snd_pcm_sframes_t snd_pcm_hw_params_get_buffer_size(const snd_pcm_hw_params_t *params)
 {
@@ -3018,7 +3018,7 @@ int snd_pcm_hw_params_test_buffer_size(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val buffer size in frames
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -3033,7 +3033,7 @@ int snd_pcm_hw_params_set_buffer_size(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param params Configuration space
  * \param val approximate minimum buffer size in frames (on return filled with actual minimum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
@@ -3051,7 +3051,7 @@ int snd_pcm_hw_params_set_buffer_size_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param params Configuration space
  * \param val approximate maximum buffer size in frames (on return filled with actual maximum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
@@ -3071,7 +3071,7 @@ int snd_pcm_hw_params_set_buffer_size_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param mindir Sub unit direction for minimum (on return filled with actual direction)
  * \param max approximate maximum buffer size in frames (on return filled with actual maximum)
  * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
  */
@@ -3126,7 +3126,7 @@ snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm
  * \brief Extract tick time from a configuration space
  * \param params Configuration space
  * \param dir Sub unit direction
- * \return approximate tick duration in us or a negative error code if not exactly one is present
+ * \return approximate tick duration in us otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
@@ -3182,7 +3182,7 @@ int snd_pcm_hw_params_test_tick_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
  * \param params Configuration space
  * \param val approximate tick duration in us
  * \param dir Sub unit direction
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
@@ -3197,7 +3197,7 @@ int snd_pcm_hw_params_set_tick_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  * \param params Configuration space
  * \param val approximate minimum tick duration in us (on return filled with actual minimum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
@@ -3212,7 +3212,7 @@ int snd_pcm_hw_params_set_tick_time_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  * \param params Configuration space
  * \param val approximate maximum tick duration in us (on return filled with actual maximum)
  * \param dir Sub unit direction (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
  */
@@ -3229,7 +3229,7 @@ int snd_pcm_hw_params_set_tick_time_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  * \param mindir Sub unit direction for minimum (on return filled with actual direction)
  * \param max approximate maximum tick duration in us (on return filled with actual maximum)
  * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
- * \return 0 or a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space would become empty
  *
  * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
  */
@@ -3284,7 +3284,7 @@ unsigned int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_par
  * \brief Return current software configuration for a PCM
  * \param pcm PCM handle
  * \param params Software configuration container
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
@@ -3307,7 +3307,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
  * \brief Dump a software configuration
  * \param params Software configuration container
  * \param out Output handle
- * \return zero on success otherwise a negative error code
+ * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out)
 {
@@ -3336,7 +3336,7 @@ size_t snd_pcm_sw_params_sizeof()
 /**
  * \brief allocate an invalid #snd_pcm_sw_params_t using standard malloc
  * \param ptr returned pointer
- * \return zero on success otherwise negative error code
+ * \return 0 on success otherwise negative error code
  */
 int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **ptr)
 {
@@ -3372,7 +3372,7 @@ void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t 
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Start mode
- * \return 0 or a negative error code
+ * \return 0 otherwise a negative error code
  */
 int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_start_t val)
 {
@@ -3399,7 +3399,7 @@ snd_pcm_start_t snd_pcm_sw_params_get_start_mode(const snd_pcm_sw_params_t *para
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Xrun mode
- * \return 0 or a negative error code
+ * \return 0 otherwise a negative error code
  */
 int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_xrun_t val)
 {
@@ -3426,7 +3426,7 @@ snd_pcm_xrun_t snd_pcm_sw_params_get_xrun_mode(const snd_pcm_sw_params_t *params
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Timestamp mode
- * \return 0 or a negative error code
+ * \return 0 otherwise a negative error code
  */
 int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_tstamp_t val)
 {
@@ -3469,7 +3469,7 @@ unsigned int snd_pcm_sw_params_get_period_step(const snd_pcm_sw_params_t *params
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Minimum ticks to sleep or 0 to disable the use of tick timer
- * \return 0 or a negative error code
+ * \return 0 otherwise a negative error code
  */
 int snd_pcm_sw_params_set_sleep_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, unsigned int val)
 {
@@ -3494,7 +3494,7 @@ unsigned int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params)
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Minimum avail frames to consider PCM ready
- * \return 0 or a negative error code
+ * \return 0 otherwise a negative error code
  */
 int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 {
@@ -3520,7 +3520,7 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *par
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Chunk size (frames are attempted to be transferred in chunks)
- * \return 0 or a negative error code
+ * \return 0 otherwise a negative error code
  */
 int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 {
@@ -3547,7 +3547,7 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *pa
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Silence threshold in frames 
- * \return 0 or a negative error code
+ * \return 0 otherwise a negative error code
  *
  * A portion of playback buffer is overwritten with silence (see 
  * #snd_pcm_sw_params_set_silence_size) when playback underrun is nearer
@@ -3582,7 +3582,7 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_param
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Silence size in frames (0 for disabled)
- * \return 0 or a negative error code
+ * \return 0 otherwise a negative error code
  *
  * A portion of playback buffer is overwritten with silence when playback
  * underrun is nearer than silence threshold (see 
@@ -3624,7 +3624,7 @@ size_t snd_pcm_status_sizeof()
 /**
  * \brief allocate an invalid #snd_pcm_status_t using standard malloc
  * \param ptr returned pointer
- * \return zero on success otherwise negative error code
+ * \return 0 on success otherwise negative error code
  */
 int snd_pcm_status_malloc(snd_pcm_status_t **ptr)
 {
@@ -3733,7 +3733,7 @@ size_t snd_pcm_info_sizeof()
 /**
  * \brief allocate an invalid #snd_pcm_info_t using standard malloc
  * \param ptr returned pointer
- * \return zero on success otherwise negative error code
+ * \return 0 on success otherwise negative error code
  */
 int snd_pcm_info_malloc(snd_pcm_info_t **ptr)
 {
@@ -3800,7 +3800,7 @@ snd_pcm_stream_t snd_pcm_info_get_stream(const snd_pcm_info_t *obj)
 /**
  * \brief Get card from a PCM info container
  * \param obj PCM info container
- * \return card number or a negative error code if not associable to a card
+ * \return card number otherwise a negative error code if not associable to a card
  */
 int snd_pcm_info_get_card(const snd_pcm_info_t *obj)
 {

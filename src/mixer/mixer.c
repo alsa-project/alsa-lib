@@ -43,7 +43,7 @@ static int snd_mixer_compare_default(const snd_mixer_elem_t *c1,
 				     const snd_mixer_elem_t *c2);
 
 
-int snd_mixer_open(snd_mixer_t **mixerp)
+int snd_mixer_open(snd_mixer_t **mixerp, int mode ATTRIBUTE_UNUSED)
 {
 	snd_mixer_t *mixer;
 	assert(mixerp);
@@ -152,7 +152,7 @@ int snd_mixer_attach(snd_mixer_t *mixer, const char *name)
 	slave = calloc(1, sizeof(*slave));
 	if (slave == NULL)
 		return -ENOMEM;
-	err = snd_hctl_open(&hctl, name);
+	err = snd_hctl_open(&hctl, name, 0);
 	if (err < 0) {
 		free(slave);
 		return err;

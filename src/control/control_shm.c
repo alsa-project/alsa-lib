@@ -402,7 +402,7 @@ static int make_inet_socket(const char *host, int port)
 }
 #endif
 
-int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, const char *sname)
+int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, const char *sname, int mode)
 {
 	snd_ctl_t *ctl;
 	snd_ctl_shm_t *shm = NULL;
@@ -430,7 +430,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, 
 	req->dev_type = SND_DEV_TYPE_CONTROL;
 	req->transport_type = SND_TRANSPORT_TYPE_SHM;
 	req->stream = 0;
-	req->mode = 0;
+	req->mode = mode;
 	req->namelen = snamelen;
 	err = write(sock, req, reqlen);
 	if (err < 0) {
@@ -498,7 +498,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, 
 
 extern int is_local(struct hostent *hent);
 
-int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
+int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i, next;
 	const char *server = NULL;
@@ -604,6 +604,6 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 		SNDERR("%s is not the local host", host);
 		return -EINVAL;
 	}
-	return snd_ctl_shm_open(handlep, name, socket, sname);
+	return snd_ctl_shm_open(handlep, name, socket, sname, mode);
 }
 				

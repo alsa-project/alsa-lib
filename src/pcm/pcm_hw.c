@@ -542,7 +542,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 
 	assert(pcmp);
 
-	if ((ret = snd_ctl_hw_open(&ctl, NULL, card)) < 0)
+	if ((ret = snd_ctl_hw_open(&ctl, NULL, card, 0)) < 0)
 		return ret;
 
 	switch (snd_enum_to_int(stream)) {
