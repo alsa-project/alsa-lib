@@ -243,7 +243,7 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 /*
  *  synchronize hardware pointer (hw_ptr) with ours
  */
-static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
+static int _snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, int do_slave_sync)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	snd_pcm_uframes_t slave_hw_ptr, old_slave_hw_ptr, avail;
@@ -256,7 +256,7 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	default:
 		break;
 	}
-	if (dmix->slowptr)
+	if (do_slave_sync)
 		snd_pcm_hwsync(dmix->spcm);
 	old_slave_hw_ptr = dmix->slave_hw_ptr;
 	slave_hw_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
@@ -283,6 +283,12 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	if (avail > dmix->avail_max)
 		dmix->avail_max = avail;
 	return 0;
+}
+
+static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
+{
+	snd_pcm_direct_t *dmix = pcm->private_data;
+	return _snd_pcm_dmix_sync_ptr(pcm, dmix->slowptr);
 }
 
 /*
@@ -369,7 +375,8 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 	switch(dmix->state) {
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
-		return snd_pcm_dmix_sync_ptr(pcm);
+		/* sync slave PCM */
+		return _snd_pcm_dmix_sync_ptr(pcm, 1);
 	case SNDRV_PCM_STATE_PREPARED:
 	case SNDRV_PCM_STATE_SUSPENDED:
 	case STATE_RUN_PENDING:
