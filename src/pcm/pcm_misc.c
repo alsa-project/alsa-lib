@@ -238,22 +238,22 @@ u_int64_t snd_pcm_format_silence_64(int format)
 	case SND_PCM_SFMT_S32_BE:
 		return 0;
 	case SND_PCM_SFMT_U8:
-		return 0x8080808080808080UL;
+		return 0x8080808080808080ULL;
 	case SND_PCM_SFMT_U16_LE:
 	case SND_PCM_SFMT_U24_LE:
 	case SND_PCM_SFMT_U32_LE:
 #ifdef SND_LITTLE_ENDIAN
-		return 0x8000800080008000UL;
+		return 0x8000800080008000ULL;
 #else
-		return 0x0080008000800080UL;
+		return 0x0080008000800080ULL;
 #endif
 	case SND_PCM_SFMT_U16_BE:
 	case SND_PCM_SFMT_U24_BE:
 	case SND_PCM_SFMT_U32_BE:
 #ifdef SND_LITTLE_ENDIAN
-		return 0x0000008000000080UL;
+		return 0x0000008000000080ULL;
 #else
-		return 0x8000000080000000UL;
+		return 0x8000000080000000ULL;
 #endif
 	case SND_PCM_SFMT_FLOAT_LE:		
 #ifdef SND_LITTLE_ENDIAN
@@ -283,9 +283,9 @@ u_int64_t snd_pcm_format_silence_64(int format)
 	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
 		return 0;	
 	case SND_PCM_SFMT_MU_LAW:
-		return 0x7f7f7f7f7f7f7f7fUL;
+		return 0x7f7f7f7f7f7f7f7fULL;
 	case SND_PCM_SFMT_A_LAW:
-		return 0x5555555555555555UL;
+		return 0x5555555555555555ULL;
 	case SND_PCM_SFMT_IMA_ADPCM:	/* special case */
 	case SND_PCM_SFMT_MPEG:
 	case SND_PCM_SFMT_GSM:
