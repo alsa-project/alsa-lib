@@ -118,6 +118,17 @@ static ssize_t io_src_channels(snd_pcm_plugin_t *plugin,
 	return frames;
 }
 
+#ifndef __KERNEL__
+static void io_dump(snd_pcm_plugin_t *plugin, FILE *fp)
+{
+	snd_pcm_t *slave = plugin->plug->slave;
+	if (slave->valid_setup) {
+		fprintf(fp, "Slave: ");
+		snd_pcm_dump(slave, fp);
+	}
+}
+#endif
+
 int snd_pcm_plugin_build_io(snd_pcm_plug_t *plug,
 			    snd_pcm_format_t *format,
 			    snd_pcm_plugin_t **r_plugin)
@@ -141,6 +152,9 @@ int snd_pcm_plugin_build_io(snd_pcm_plug_t *plug,
 	} else {
 		plugin->transfer = io_capture_transfer;
 	}
+#ifndef __KERNEL__
+	plugin->dump = io_dump;
+#endif
 
 	*r_plugin = plugin;
 	return 0;

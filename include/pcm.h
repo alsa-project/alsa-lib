@@ -146,6 +146,7 @@ ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size);
 ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned long  count);
 ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned long count);
 int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp);
+int snd_pcm_dump(snd_pcm_t *handle, FILE *fp);
 
 int snd_pcm_channels_mask(snd_pcm_t *handle, bitset_t *client_vmask);
 
@@ -176,9 +177,9 @@ ssize_t snd_pcm_mmap_read_frames(snd_pcm_t *handle, const void *buffer, size_t f
 int snd_pcm_mmap_get_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *areas);
 
 
-const char *snd_pcm_get_format_name(int format);
-const char *snd_pcm_get_format_description(int format);
-int snd_pcm_get_format_value(const char* name);
+const char *snd_pcm_format_name(int format);
+const char *snd_pcm_format_description(int format);
+int snd_pcm_format_value(const char* name);
 
 int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_channel, size_t dst_offset,
 			 size_t samples, int format);
@@ -274,6 +275,7 @@ struct snd_stru_pcm_plugin {
 	int (*parameter_get)(snd_pcm_plugin_t *plugin,
 			     const char *name,
 			     unsigned long *value);
+	void (*dump)(snd_pcm_plugin_t *plugin, FILE *fp);
 	snd_pcm_plugin_t *prev;
 	snd_pcm_plugin_t *next;
 	snd_pcm_plug_t *plug;
@@ -290,15 +292,11 @@ struct snd_stru_pcm_plugin {
 int snd_pcm_plug_create(snd_pcm_t **handle, snd_pcm_t *slave, int close_slave);
 int snd_pcm_plug_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int stream, int mode);
 int snd_pcm_plug_open(snd_pcm_t **handle, int card, int device, int stream, int mode);
-int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
-			 snd_pcm_t **slaves_handle, size_t *slaves_channels_count,
-			 size_t binds_count,  unsigned int *binds_client_channel,
-			 unsigned int *binds_slave, unsigned int *binds_slave_channel,
-			 int close_slaves);
 
 int snd_pcm_plugin_free(snd_pcm_plugin_t *plugin);
 int snd_pcm_plugin_insert(snd_pcm_plugin_t *plugin);
 int snd_pcm_plugin_append(snd_pcm_plugin_t *plugin);
+void snd_pcm_plugin_dump(snd_pcm_plugin_t *plugin, FILE *fp);
 int snd_pcm_plug_alloc(snd_pcm_plug_t *plug, size_t frames);
 int snd_pcm_plug_clear(snd_pcm_plug_t *plug);
 snd_pcm_plugin_t *snd_pcm_plug_first(snd_pcm_plug_t *plug);
@@ -370,6 +368,12 @@ int snd_pcm_plugin_build_copy(snd_pcm_plug_t *plug,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin);
+
+int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
+			 snd_pcm_t **slaves_handle, size_t *slaves_channels_count,
+			 size_t binds_count,  unsigned int *binds_client_channel,
+			 unsigned int *binds_slave, unsigned int *binds_slave_channel,
+			 int close_slaves);
 
 #ifdef __cplusplus
 }

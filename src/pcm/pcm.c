@@ -249,6 +249,8 @@ ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned l
 	assert(handle);
 	assert(count == 0 || vector);
 	assert(handle->valid_setup);
+	assert(handle->setup.format.interleave || 
+	       count % handle->setup.format.channels == 0);
 	return handle->ops->writev(handle->op_arg, -1, vector, count);
 }
 
@@ -366,6 +368,7 @@ int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp)
 {
 	snd_pcm_setup_t *setup;
 	assert(handle);
+	assert(fp);
 	assert(handle->valid_setup);
 	setup = &handle->setup;
         fprintf(fp, "stream: %s\n", assoc(handle->stream, streams));
@@ -392,7 +395,15 @@ int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp)
 	return 0;
 }
 
-const char *snd_pcm_get_format_name(int format)
+int snd_pcm_dump(snd_pcm_t *handle, FILE *fp)
+{
+	assert(handle);
+	assert(fp);
+	handle->ops->dump(handle->op_arg, fp);
+	return 0;
+}
+
+const char *snd_pcm_format_name(int format)
 {
 	assoc_t *a = assoc_value(format, fmts);
 	if (a)
@@ -400,7 +411,7 @@ const char *snd_pcm_get_format_name(int format)
 	return 0;
 }
 
-const char *snd_pcm_get_format_description(int format)
+const char *snd_pcm_format_description(int format)
 {
 	assoc_t *a = assoc_value(format, fmts);
 	if (a)
@@ -408,7 +419,7 @@ const char *snd_pcm_get_format_description(int format)
 	return "Unknown";
 }
 
-int snd_pcm_get_format_value(const char* name)
+int snd_pcm_format_value(const char* name)
 {
 	assoc_t *a = assoc_name(name, fmts);
 	if (a)

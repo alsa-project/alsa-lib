@@ -32,6 +32,7 @@
 typedef struct {
 	snd_pcm_t *handle;
 	int fd;
+	int card, device, subdevice;
 } snd_pcm_hw_t;
 
 #define SND_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
@@ -330,6 +331,21 @@ static int snd_pcm_hw_channels_mask(void *private UNUSED,
 	return 0;
 }
 
+static void snd_pcm_hw_dump(void *private, FILE *fp)
+{
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_t *handle = hw->handle;
+	char *name = "Unknown";
+	snd_card_get_name(hw->card, &name);
+	fprintf(fp, "Hardware PCM card %d '%s' device %d subdevice %d\n",
+		hw->card, name, hw->device, hw->subdevice);
+	free(name);
+	if (handle->valid_setup) {
+		fprintf(fp, "\nIts setup is:\n");
+		snd_pcm_dump_setup(handle, fp);
+	}
+}
+
 struct snd_pcm_ops snd_pcm_hw_ops = {
 	close: snd_pcm_hw_close,
 	nonblock: snd_pcm_hw_nonblock,
@@ -359,6 +375,7 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	munmap_data: snd_pcm_hw_munmap_data,
 	file_descriptor: snd_pcm_hw_file_descriptor,
 	channels_mask: snd_pcm_hw_channels_mask,
+	dump: snd_pcm_hw_dump,
 };
 
 int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int subdevice, int stream, int mode)
@@ -436,6 +453,9 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int sub
 		goto __end;
 	}
 	hw->handle = handle;
+	hw->card = card;
+	hw->device = device;
+	hw->subdevice = subdevice;
 	hw->fd = fd;
 	handle->type = SND_PCM_TYPE_HW;
 	handle->stream = stream;

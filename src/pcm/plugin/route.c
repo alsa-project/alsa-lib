@@ -61,7 +61,7 @@ typedef struct {
 
 struct ttable_dst {
 	int att;	/* Attenuated */
-	int nsrcs;
+	unsigned int nsrcs;
 	ttable_src_t* srcs;
 	route_channel_f func;
 };
@@ -104,7 +104,7 @@ static void route_to_channel_from_one(snd_pcm_plugin_t *plugin,
 	route_t *data = (route_t *)plugin->extra_data;
 	void *conv;
 	const snd_pcm_plugin_channel_t *src_channel = 0;
-	int srcidx;
+	unsigned int srcidx;
 	char *src, *dst;
 	int src_step, dst_step;
 	for (srcidx = 0; srcidx < ttable->nsrcs; ++srcidx) {
@@ -373,7 +373,7 @@ int route_src_channels_mask(snd_pcm_plugin_t *plugin,
 	ttable_dst_t *dp = data->ttable;
 	bitset_zero(vmask, schannels);
 	for (channel = 0; channel < dchannels; channel++, dp++) {
-		int src;
+		unsigned int src;
 		ttable_src_t *sp;
 		if (!bitset_get(dst_vmask, channel))
 			continue;
@@ -396,7 +396,7 @@ int route_dst_channels_mask(snd_pcm_plugin_t *plugin,
 	ttable_dst_t *dp = data->ttable;
 	bitset_zero(vmask, dchannels);
 	for (channel = 0; channel < dchannels; channel++, dp++) {
-		int src;
+		unsigned int src;
 		ttable_src_t *sp;
 		sp = dp->srcs;
 		for (src = 0; src < dp->nsrcs; src++, sp++) {
@@ -535,6 +535,38 @@ int getput_index(int format)
 	return width * 4 + endian * 2 + sign;
 }
 
+#ifndef __KERNEL__
+static void route_dump(snd_pcm_plugin_t *plugin, FILE *fp)
+{
+	route_t *data;
+	ttable_dst_t *tdp;
+	unsigned int dst_channel, dst_nchannels;
+	data = (route_t *)plugin->extra_data;
+	tdp = data->ttable;
+	dst_nchannels = plugin->dst_format.channels;
+	for (dst_channel = 0; dst_channel < dst_nchannels; ++dst_channel) {
+		unsigned int k;
+		ttable_src_t *tsp = tdp->srcs;
+		fprintf(fp, "Channel %d = ", dst_channel);
+		for (k = 0; k < tdp->nsrcs; ++k) {
+			if (k > 0)
+				fprintf(fp, " + ");
+			fprintf(fp, "[%d]", tsp->channel);
+			if (tdp->att) {
+#if ROUTE_PLUGIN_USE_FLOAT
+				fprintf(fp, "*%g", tsp->as_float);
+#else
+				fprintf(fp, "*%d/%d", tsp->as_int, ROUTE_PLUGIN_RESOLUTION);
+#endif
+			}
+			++tsp;
+		}
+		fprintf(fp, "\n");
+		++tdp;
+	}
+}
+#endif
+
 int snd_pcm_plugin_build_route(snd_pcm_plug_t *plug,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
@@ -581,6 +613,9 @@ int snd_pcm_plugin_build_route(snd_pcm_plug_t *plug,
 	plugin->transfer = route_transfer;
 	plugin->src_channels_mask = route_src_channels_mask;
 	plugin->dst_channels_mask = route_dst_channels_mask;
+#ifndef __KERNEL__
+	plugin->dump = route_dump;
+#endif
 	*r_plugin = plugin;
 	return 0;
 }

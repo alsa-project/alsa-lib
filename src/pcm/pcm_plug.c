@@ -65,6 +65,35 @@ int snd_pcm_plugin_append(snd_pcm_plugin_t *plugin)
 	return 0;
 }
 
+void snd_pcm_plugin_dump(snd_pcm_plugin_t *plugin, FILE *fp)
+{
+	fprintf(fp, "----------- %s\n", plugin->name);
+	fprintf(fp, "Buffer: %d frames\n", plugin->buf_frames);
+	if (plugin->src_format.interleave != plugin->dst_format.interleave) {
+		if (plugin->src_format.interleave)
+			fprintf(fp, "Interleaved -> Non interleaved\n");
+		else
+			fprintf(fp, "Non interleaved -> Interleaved\n");
+	}
+	if (plugin->src_format.channels != plugin->dst_format.channels) {
+		fprintf(fp, "Channels: %d -> %d\n", 
+			plugin->src_format.channels, 
+			plugin->dst_format.channels);
+	}
+	if (plugin->src_format.format != plugin->dst_format.format) {
+		fprintf(fp, "Format: %s -> %s\n", 
+			snd_pcm_format_name(plugin->src_format.format),
+			snd_pcm_format_name(plugin->dst_format.format));
+	}
+	if (plugin->src_format.rate != plugin->dst_format.rate) {
+		fprintf(fp, "Rate: %d -> %d\n", 
+			plugin->src_format.rate, 
+			plugin->dst_format.rate);
+	}
+	if (plugin->dump)
+		plugin->dump(plugin, fp);
+}
+
 /* snd_pcm_plug externs */
 
 int snd_pcm_plug_clear(snd_pcm_plug_t *plug)
@@ -378,22 +407,22 @@ ssize_t snd_pcm_plug_writev(void *private, snd_timestamp_t tstamp UNUSED, const 
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
-	unsigned int k, step, channels;
-	size_t size = 0;
+	unsigned int k, step;
+	size_t result = 0;
 	assert(plug->frames_alloc);
-	channels = handle->setup.format.channels;
 	if (handle->setup.format.interleave)
 		step = 1;
-	else {
-		step = channels;
-		assert(count % channels == 0);
-	}
+	else
+		step = handle->setup.format.channels;
 	for (k = 0; k < count; k += step) {
 		snd_pcm_plugin_channel_t *channels;
 		ssize_t frames;
-		frames = snd_pcm_plug_client_channels_iovec(plug, vector, count, &channels);
-		if (frames < 0)
+		frames = snd_pcm_plug_client_channels_iovec(plug, vector, step, &channels);
+		if (frames < 0) {
+			if (result > 0)
+				return result;
 			return frames;
+		}
 		while (1) {
 			unsigned int c;
 			ssize_t ret;
@@ -402,41 +431,42 @@ ssize_t snd_pcm_plug_writev(void *private, snd_timestamp_t tstamp UNUSED, const 
 				frames1 = plug->frames_alloc;
 			ret = snd_pcm_plug_write_transfer(plug, channels, frames1);
 			if (ret < 0) {
-				if (size > 0)
-					return size;
+				if (result > 0)
+					return result;
 				return ret;
 			}
-			size += ret;
+			result += ret;
 			frames -= ret;
 			if (frames == 0)
 				break;
 			for (c = 0; c < handle->setup.format.channels; ++c)
 				channels[c].area.addr += ret * channels[c].area.step / 8;
 		}
+		vector += step;
 	}
-	return size;
+	return result;
 }
 
 ssize_t snd_pcm_plug_readv(void *private, snd_timestamp_t tstamp UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
-	unsigned int k, step, channels;
-	size_t size = 0;
+	unsigned int k, step;
+	size_t result = 0;
 	assert(plug->frames_alloc);
-	channels = handle->setup.format.channels;
 	if (handle->setup.format.interleave)
 		step = 1;
-	else {
-		step = channels;
-		assert(count % channels == 0);
-	}
+	else
+		step = handle->setup.format.channels;
 	for (k = 0; k < count; k += step) {
 		snd_pcm_plugin_channel_t *channels;
 		ssize_t frames;
-		frames = snd_pcm_plug_client_channels_iovec(plug, vector, count, &channels);
-		if (frames < 0)
+		frames = snd_pcm_plug_client_channels_iovec(plug, vector, step, &channels);
+		if (frames < 0) {
+			if (result > 0)
+				return result;
 			return frames;
+		}
 		while (1) {
 			unsigned int c;
 			ssize_t ret;
@@ -445,19 +475,20 @@ ssize_t snd_pcm_plug_readv(void *private, snd_timestamp_t tstamp UNUSED, const s
 				frames1 = plug->frames_alloc;
 			ret = snd_pcm_plug_read_transfer(plug, channels, frames1);
 			if (ret < 0) {
-				if (size > 0)
-					return size;
+				if (result > 0)
+					return result;
 				return ret;
 			}
-			size += ret;
+			result += ret;
 			frames -= ret;
 			if (frames == 0)
 				break;
 			for (c = 0; c < handle->setup.format.channels; ++c)
 				channels[c].area.addr += ret * channels[c].area.step / 8;
 		}
+		vector += step;
 	}
-	return size;
+	return result;
 }
 
 ssize_t snd_pcm_plug_write(void *private, snd_timestamp_t tstamp UNUSED, const void *buf, size_t count)
@@ -574,6 +605,25 @@ int snd_pcm_plug_file_descriptor(void *private)
 	return snd_pcm_file_descriptor(plug->slave);
 }
 
+static void snd_pcm_plug_dump(void *private, FILE *fp)
+{
+	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
+	snd_pcm_t *handle = plug->handle;
+	snd_pcm_plugin_t *plugin;
+	fprintf(fp, "Plug PCM\n");
+	if (handle->valid_setup) {
+		fprintf(fp, "\nIts setup is:\n");
+		snd_pcm_dump_setup(handle, fp);
+	}
+	fprintf(fp, "\nPlugins:\n");
+	plugin = plug->first;
+	while (plugin) {
+		snd_pcm_plugin_dump(plugin, fp);
+		plugin = plugin->next;
+	}
+	fprintf(fp, "\n");
+}
+
 static int snd_pcm_plug_params(void *private, snd_pcm_params_t *params);
 
 struct snd_pcm_ops snd_pcm_plug_ops = {
@@ -605,6 +655,7 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 	munmap_data: snd_pcm_plug_munmap_data,
 	file_descriptor: snd_pcm_plug_file_descriptor,
 	channels_mask: snd_pcm_plug_channels_mask,
+	dump: snd_pcm_plug_dump,
 };
 
 static void snd_pcm_plug_slave_params(snd_pcm_plug_t *plug,

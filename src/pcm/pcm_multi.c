@@ -50,6 +50,7 @@ typedef struct {
 	size_t binds_count;
 	snd_pcm_multi_bind_t *binds;
 	size_t channels_count;
+	size_t frames_alloc;
 	int interleave;
 	int one_to_many;
 } snd_pcm_multi_t;
@@ -99,6 +100,7 @@ static int snd_pcm_multi_info(void *private, snd_pcm_info_t *info)
 	for (i = 1; i < multi->slaves_count; ++i) {
 		snd_pcm_t *handle_i = multi->slaves[i].handle;
 		snd_pcm_info_t info_i;
+		memset(&info_i, 0, sizeof(info_i));
 		err = snd_pcm_info(handle_i, &info_i);
 		if (err < 0)
 			return err;
@@ -115,12 +117,17 @@ static int snd_pcm_multi_params_info(void *private, snd_pcm_params_info_t *info)
 	unsigned int i;
 	int err;
 	snd_pcm_t *handle_0 = multi->slaves[0].handle;
+	unsigned int old_mask = info->req_mask;
+	info->req_mask &= ~SND_PCM_PARAMS_CHANNELS;
 	err = snd_pcm_params_info(handle_0, info);
 	if (err < 0)
 		return err;
+	info->min_channels = multi->channels_count;
+	info->max_channels = multi->channels_count;
 	for (i = 1; i < multi->slaves_count; ++i) {
 		snd_pcm_t *handle_i = multi->slaves[i].handle;
 		snd_pcm_params_info_t info_i;
+		info_i = *info;
 		err = snd_pcm_params_info(handle_i, &info_i);
 		if (err < 0)
 			return err;
@@ -141,6 +148,7 @@ static int snd_pcm_multi_params_info(void *private, snd_pcm_params_info_t *info)
 		if (info_i.max_fragments < info->max_fragments)
 			info->max_fragments = info_i.max_fragments;
 	}
+	info->req_mask = old_mask;
 	return 0;
 }
 
@@ -166,6 +174,9 @@ static int snd_pcm_multi_params(void *private, snd_pcm_params_t *params)
 		else if (!(info.flags & SND_PCM_INFO_NONINTERLEAVE))
 			p.format.interleave = 1;
 		p.format.channels = multi->slaves[i].channels_total;
+#if 1
+		p.frames_xrun_max = ~0;
+#endif
 		err = snd_pcm_params(handle, &p);
 		if (err < 0)
 			return err;
@@ -186,9 +197,12 @@ static int snd_pcm_multi_setup(void *private, snd_pcm_setup_t *setup)
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	unsigned int i;
 	int err;
+	size_t frames_alloc;
 	err = snd_pcm_setup(multi->slaves[0].handle, setup);
 	if (err < 0)
 		return err;
+	frames_alloc = multi->slaves[0].handle->setup.frag_size;
+	multi->frames_alloc = 0;
 	for (i = 1; i < multi->slaves_count; ++i) {
 		snd_pcm_setup_t s;
 		snd_pcm_t *sh = multi->slaves[i].handle;
@@ -219,7 +233,7 @@ static int snd_pcm_multi_setup(void *private, snd_pcm_setup_t *setup)
 			if (!multi->handle->setup.format.interleave)
 				continue;
 		}
-		s->buf = malloc(sh->setup.frag_size * sh->bits_per_frame / 8);
+		s->buf = malloc(frames_alloc * sh->bits_per_frame / 8);
 		if (!s->buf)
 			return -ENOMEM;
 		snd_pcm_format_set_silence(sh->setup.format.format, s->buf,
@@ -237,9 +251,11 @@ static int snd_pcm_multi_setup(void *private, snd_pcm_setup_t *setup)
 				a->addr = s->buf + sh->setup.frag_size * sh->bits_per_sample / 8;
 				a->first = 0;
 				a->step = sh->bits_per_sample;
+				s->iovec[c].iov_base = a->addr;
 			}
 		}
 	}
+	multi->frames_alloc = frames_alloc;
 	/* Loaded with a value != 0 if mmap is feasible */
 	setup->mmap_bytes = !multi->one_to_many;
 	return 0;
@@ -376,14 +392,14 @@ static ssize_t snd_pcm_multi_frame_data(void *private, off_t offset)
 	}
 	return newpos;
 }
-  
-ssize_t snd_pcm_multi_write(void *private, snd_timestamp_t timestamp UNUSED, const void *buf, size_t count)
+
+static int snd_pcm_multi_write_copy(snd_pcm_multi_t *multi, const void *buf,
+				    size_t offset, size_t count)
 {
-	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	snd_pcm_t *handle = multi->handle;
 	unsigned int i;
 	snd_pcm_channel_area_t area;
-	area.addr = (void *) buf;
+	snd_pcm_t *handle = multi->handle;
+	area.addr = (void *) buf + offset * handle->bits_per_frame;
 	area.step = handle->bits_per_frame;
 	for (i = 0; i < multi->binds_count; ++i) {
 		snd_pcm_multi_bind_t *bind = &multi->binds[i];
@@ -394,41 +410,147 @@ ssize_t snd_pcm_multi_write(void *private, snd_timestamp_t timestamp UNUSED, con
 		err = snd_pcm_area_copy(&area, 0, &slave->areas[bind->slave_channel], 0, count, handle->setup.format.format);
 		if (err < 0)
 			return err;
-		if (!slave->handle->setup.format.interleave)
-			slave->iovec[bind->slave_channel].iov_base = slave->areas[bind->slave_channel].addr;
+		if (!slave->handle->setup.format.interleave) {
+			struct iovec *vec = &slave->iovec[bind->slave_channel];
+			vec->iov_len = count;
+		}
 	}
+	return 0;
+}
+
+static int snd_pcm_multi_writev_copy(snd_pcm_multi_t *multi, const struct iovec *vec,
+				     size_t offset, size_t count)
+{
+	unsigned int i;
+	snd_pcm_channel_area_t area;
+	snd_pcm_t *handle = multi->handle;
+	area.first = 0;
+	area.step = handle->bits_per_sample;
+	for (i = 0; i < multi->binds_count; ++i) {
+		snd_pcm_multi_bind_t *bind = &multi->binds[i];
+		snd_pcm_multi_slave_t *slave = &multi->slaves[bind->slave];
+		int err;
+		area.addr = vec[bind->client_channel].iov_base + 
+			offset * handle->bits_per_sample;
+		if (slave->handle->setup.format.interleave) {
+			assert(slave->buf);
+			err = snd_pcm_area_copy(&area, 0, &slave->areas[bind->slave_channel], 0, count, handle->setup.format.format);
+			if (err < 0)
+				return err;
+		} else {
+			struct iovec *vec = &slave->iovec[bind->slave_channel];
+			vec->iov_base = area.addr;
+			vec->iov_len = count;
+		}
+	}
+	return 0;
+}
+
+static ssize_t snd_pcm_multi_write_io(snd_pcm_multi_t *multi, size_t count)
+{
+	unsigned int i;
+	ssize_t frames = count;
 	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_multi_slave_t *slave = &multi->slaves[i];
 		snd_pcm_t *sh = slave->handle;
 		if (sh->setup.format.interleave) {
-			count = snd_pcm_write(sh, slave->buf, count);
+			frames = snd_pcm_write(sh, slave->buf, frames);
 		} else {
 			int channels = sh->setup.format.channels;
-			struct iovec vec[channels];
-			int c;
-			for (c = 0; c < channels; ++c)
-				vec[c].iov_len = count;
-			count = snd_pcm_writev(sh, vec, channels);
+			frames = snd_pcm_writev(sh, slave->iovec, channels);
 		}
-		if (count <= 0)
+		if (frames <= 0)
 			break;
 	}
-	return count;
+	return frames;
 }
 
-ssize_t snd_pcm_multi_read(void *private, snd_timestamp_t timestamp UNUSED, void *buf, size_t count)
+static ssize_t snd_pcm_multi_write(void *private, snd_timestamp_t timestamp UNUSED, const void *buf, size_t count)
+{
+	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
+	size_t result = 0;
+	while (count > 0) {
+		int err;
+		ssize_t ret;
+		size_t frames = count;
+		if (frames > multi->frames_alloc)
+			frames = multi->frames_alloc;
+		err = snd_pcm_multi_write_copy(multi, buf, result, frames);
+		if (err < 0)
+			return err;
+		ret = snd_pcm_multi_write_io(multi, frames);
+		if (ret > 0)
+			result += ret;
+		if (ret != (ssize_t)frames) {
+			if (result > 0)
+				return result;
+			return ret;
+		}
+		count -= ret;
+	}
+	return result;
+}
+
+static ssize_t snd_pcm_multi_writev1(snd_pcm_multi_t *multi, const struct iovec *vector, size_t count)
+{
+	size_t result = 0;
+	while (count > 0) {
+		int err;
+		ssize_t ret;
+		size_t frames = count;
+		if (frames > multi->frames_alloc)
+			frames = multi->frames_alloc;
+		err = snd_pcm_multi_writev_copy(multi, vector, result, frames);
+		if (err < 0)
+			return err;
+		ret = snd_pcm_multi_write_io(multi, frames);
+		if (ret > 0)
+			result += ret;
+		if (ret != (ssize_t) frames) {
+			if (result > 0)
+				return result;
+			return ret;
+		}
+		count -= ret;
+	}
+	return result;
+}
+
+static ssize_t snd_pcm_multi_writev(void *private, snd_timestamp_t timestamp UNUSED, const struct iovec *vector, unsigned long count)
+{
+	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
+	snd_pcm_t *handle = multi->handle;
+	unsigned int k, step;
+	size_t result = 0;
+	if (handle->setup.format.interleave)
+		step = 1;
+	else
+		step = handle->setup.format.channels;
+	for (k = 0; k < count; k += step) {
+		ssize_t ret;
+		if (handle->setup.format.interleave)
+			ret = snd_pcm_multi_write(private, timestamp, vector->iov_base, vector->iov_len);
+		else
+			ret = snd_pcm_multi_writev1(multi, vector, vector->iov_len);
+		if (ret > 0)
+			result += ret;
+		if (ret != (ssize_t) vector->iov_len) {
+			if (result > 0)
+				return result;
+			return ret;
+		}
+		vector += step;
+	}
+	return result;
+}
+
+static ssize_t snd_pcm_multi_read(void *private, snd_timestamp_t timestamp UNUSED, void *buf, size_t count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	return -ENOSYS;
 }
 
-ssize_t snd_pcm_multi_writev(void *private, snd_timestamp_t timestamp UNUSED, const struct iovec *vector, unsigned long count)
-{
-	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	return -ENOSYS;
-}
-
-ssize_t snd_pcm_multi_readv(void *private, snd_timestamp_t timestamp UNUSED, const struct iovec *vector, unsigned long count)
+static ssize_t snd_pcm_multi_readv(void *private, snd_timestamp_t timestamp UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	return -ENOSYS;
@@ -577,6 +699,29 @@ int snd_pcm_multi_file_descriptor(void *private)
 	return snd_pcm_file_descriptor(handle);
 }
 
+static void snd_pcm_multi_dump(void *private, FILE *fp)
+{
+	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
+	snd_pcm_t *handle = multi->handle;
+	unsigned int k;
+	fprintf(fp, "Multi PCM\n");
+	if (handle->valid_setup) {
+		fprintf(fp, "\nIts setup is:\n");
+		snd_pcm_dump_setup(handle, fp);
+	}
+	for (k = 0; k < multi->slaves_count; ++k) {
+		fprintf(fp, "\nSlave #%d: ", k);
+		snd_pcm_dump(multi->slaves[k].handle, fp);
+	}
+	fprintf(fp, "\nBindings:\n");
+	for (k = 0; k < multi->binds_count; ++k) {
+		fprintf(fp, "Channel #%d: slave %d[%d]\n", 
+			multi->binds[k].client_channel,
+			multi->binds[k].slave,
+			multi->binds[k].slave_channel);
+	}
+}
+
 struct snd_pcm_ops snd_pcm_multi_ops = {
 	close: snd_pcm_multi_close,
 	nonblock: snd_pcm_multi_nonblock,
@@ -606,6 +751,7 @@ struct snd_pcm_ops snd_pcm_multi_ops = {
 	munmap_data: snd_pcm_multi_munmap_data,
 	file_descriptor: snd_pcm_multi_file_descriptor,
 	channels_mask: snd_pcm_multi_channels_mask,
+	dump: snd_pcm_multi_dump,
 };
 
 int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,

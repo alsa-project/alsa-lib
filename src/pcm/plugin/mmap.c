@@ -42,8 +42,8 @@ typedef struct mmap_private_data {
 
 
 static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
-			       size_t frames,
-			       snd_pcm_plugin_channel_t **channels)
+				 size_t frames,
+				 snd_pcm_plugin_channel_t **channels)
 {
 	mmap_t *data;
         snd_pcm_plugin_channel_t *sv;
@@ -272,7 +272,16 @@ static void mmap_free(snd_pcm_plugin_t *plugin, void *private_data UNUSED)
 	if (data->buffer)
 		snd_pcm_munmap(plugin->plug->slave);
 }
- 
+
+static void mmap_dump(snd_pcm_plugin_t *plugin, FILE *fp)
+{
+	snd_pcm_t *slave = plugin->plug->slave;
+	if (slave->valid_setup) {
+		fprintf(fp, "Slave: ");
+		snd_pcm_dump(slave, fp);
+	}
+}
+
 int snd_pcm_plugin_build_mmap(snd_pcm_plug_t *plug,
 			      snd_pcm_format_t *format,
 			      snd_pcm_plugin_t **r_plugin)
@@ -300,6 +309,7 @@ int snd_pcm_plugin_build_mmap(snd_pcm_plug_t *plug,
 	}
 	plugin->action = mmap_action;
 	plugin->private_free = mmap_free;
+	plugin->dump = mmap_dump;
 	*r_plugin = plugin;
 	return 0;
 }

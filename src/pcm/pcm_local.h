@@ -51,6 +51,7 @@ struct snd_pcm_ops {
 	int (*munmap_data)(void *private, void *buffer, size_t bsize);
 	int (*file_descriptor)(void *private);
 	int (*channels_mask)(void *private, bitset_t *client_vmask);
+	void (*dump)(void *private, FILE *fp);
 };
 
 struct snd_pcm {
