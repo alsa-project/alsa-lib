@@ -6,7 +6,7 @@ libasound_la_SOURCES = error.c
 libasound_la_LIBADD = control/libcontrol.la mixer/libmixer.la pcm/libpcm.la \
                       rawmidi/librawmidi.la timer/libtimer.la \
 		      hwdep/libhwdep.la seq/libseq.la instr/libinstr.la \
-		      compat/libcompat.la conf/libconf.la -lm -ldl
+		      compat/libcompat.la conf/libconf.la -lm -ldl -lpthread
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
 

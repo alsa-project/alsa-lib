@@ -381,7 +381,7 @@ static const char *assoc(int value, assoc_t *alist)
 #define FILL(v) { SND_PCM_FILL_##v, #v, #v }
 #define END { 0, NULL, NULL }
 
-static assoc_t states[] = { STATE(NOTREADY), STATE(READY), STATE(PREPARED),
+static assoc_t states[] = { STATE(OPEN), STATE(SETUP), STATE(PREPARED),
 			    STATE(RUNNING), STATE(XRUN), STATE(PAUSED), END };
 static assoc_t streams[] = { STREAM(PLAYBACK), STREAM(CAPTURE), END };
 static assoc_t xruns[] = { XRUN(ASAP), XRUN(FRAGMENT), XRUN(NONE), END };
