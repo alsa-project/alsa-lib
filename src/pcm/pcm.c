@@ -1176,7 +1176,9 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
  * \brief Wait for a PCM to become ready
  * \param pcm PCM handle
  * \param timeout maximum time in milliseconds to wait
- * \return 0 on success otherwise a negative error code
+ * \return a positive value on success otherwise a negative error code
+ * \retval 0 timeout occured
+ * \retval 1 PCM stream is ready for I/O
  */
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
@@ -1187,7 +1189,7 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 	err = poll(&pfd, 1, timeout);
 	if (err < 0)
 		return -errno;
-	return 0;
+	return err > 0 ? 1 : 0;
 }
 
 /**
