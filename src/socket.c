@@ -29,17 +29,9 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <unistd.h>
-#include <signal.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <sys/shm.h>
-#include <sys/sem.h>
-#include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <sys/mman.h>
 #include "local.h"
 
 #ifndef DOC_HIDDEN
