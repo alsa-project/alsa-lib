@@ -99,8 +99,7 @@ INLINE int interval_setinteger(interval_t *i)
 
 INLINE void interval_round(interval_t *i)
 {
-	assert(!interval_empty(i));
-	if (i->integer)
+	if (i->integer || interval_empty(i))
 		return;
 	i->openmin = 0;
 	i->openmax = 0;

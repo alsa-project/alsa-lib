@@ -328,6 +328,8 @@ int snd_pcm_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 
 
 void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params);
+void _snd_pcm_hw_param_setempty(snd_pcm_hw_params_t *params,
+				snd_pcm_hw_param_t var);
 int _snd_pcm_hw_param_refine_interval(snd_pcm_hw_params_t *params,
 				      snd_pcm_hw_param_t var,
 				      const interval_t *val);

@@ -250,6 +250,22 @@ int _snd_pcm_hw_param_refine_interval(snd_pcm_hw_params_t *params,
 	return changed;
 }
 
+void _snd_pcm_hw_param_setempty(snd_pcm_hw_params_t *params,
+				snd_pcm_hw_param_t var)
+{
+	if (hw_is_mask(var)) {
+		mask_none(hw_param_mask(params, var));
+		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	} else if (hw_is_interval(var)) {
+		interval_none(hw_param_interval(params, var));
+		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	} else {
+		assert(0);
+	}
+}
+
 int _snd_pcm_hw_param_setinteger(snd_pcm_hw_params_t *params,
 				 snd_pcm_hw_param_t var)
 {
