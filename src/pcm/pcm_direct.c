@@ -429,6 +429,7 @@ int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix)
 {
 	snd_timer_stop(dmix->timer);
 	snd_pcm_direct_clear_timer_queue(dmix);
+	return 0;
 }
 
 int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
