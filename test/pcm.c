@@ -152,6 +152,8 @@ static void help(void)
 Usage: latency [OPTION]... [FILE]...
 -h,--help       help
 -D,--device     playback device
+-r,--rate	stream rate in Hz
+-c,--channels	count of channels in stream
 -f,--frequency  sine wave frequency in Hz
 -b,--buffer     ring buffer size in samples
 -p,--period     period size in us
@@ -171,6 +173,8 @@ int main(int argc, char *argv[])
 	{
 		{"help", 0, NULL, 'h'},
 		{"device", 1, NULL, 'D'},
+		{"rate", 1, NULL, 'r'},
+		{"channels", 1, NULL, 'c'},
 		{"frequency", 1, NULL, 'f'},
 		{"buffer", 1, NULL, 'b'},
 		{"period", 1, NULL, 'p'},
@@ -193,7 +197,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hD:f:b:p:", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -201,6 +205,16 @@ int main(int argc, char *argv[])
 			break;
 		case 'D':
 			device = strdup(optarg);
+			break;
+		case 'r':
+			rate = atoi(optarg);
+			rate = rate < 4000 ? 4000 : rate;
+			rate = rate > 196000 ? 196000 : rate;
+			break;
+		case 'c':
+			channels = atoi(optarg);
+			channels = channels < 1 ? 1 : channels;
+			channels = channels > 1024 ? 1024 : channels;
 			break;
 		case 'f':
 			freq = atoi(optarg);
