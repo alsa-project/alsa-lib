@@ -338,17 +338,17 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 			snd_pcm_sframes_t res;
 			res = plugin->undo_write(pcm, slave_areas, slave_offset + result, slave_frames, slave_frames - result);
 			if (res < 0)
-				return xfer > 0 ? xfer : res;
+				return xfer > 0 ? (snd_pcm_sframes_t)xfer : res;
 			frames -= res;
 		}
 		snd_atomic_write_end(&plugin->watom);
 		if (result <= 0)
-			return xfer > 0 ? xfer : result;
+			return xfer > 0 ? (snd_pcm_sframes_t)xfer : result;
 		offset += frames;
 		xfer += frames;
 		size -= frames;
 	}
-	return xfer;
+	return (snd_pcm_sframes_t)xfer;
 }
 
 static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
@@ -381,17 +381,17 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 			
 			res = plugin->undo_read(slave, areas, offset, frames, slave_frames - result);
 			if (res < 0)
-				return xfer > 0 ? xfer : res;
+				return xfer > 0 ? (snd_pcm_sframes_t)xfer : res;
 			frames -= res;
 		}
 		snd_atomic_write_end(&plugin->watom);
 		if (result <= 0)
-			return xfer > 0 ? xfer : result;
+			return xfer > 0 ? (snd_pcm_sframes_t)xfer : result;
 		offset += frames;
 		xfer += frames;
 		size -= frames;
 	}
-	return xfer;
+	return (snd_pcm_sframes_t)xfer;
 }
 
 
@@ -532,7 +532,7 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 
 			err = snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
 			if (err < 0)
-				return xfer > 0 ? xfer : err;
+				return xfer > 0 ? (snd_pcm_sframes_t)xfer : err;
 			if (frames > cont)
 				frames = cont;
 			frames = plugin->read(pcm, areas, hw_offset, frames,
@@ -546,11 +546,11 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 				
 				res = plugin->undo_read(slave, areas, hw_offset, frames, slave_frames - result);
 				if (res < 0)
-					return xfer > 0 ? xfer : res;
+					return xfer > 0 ? (snd_pcm_sframes_t)xfer : res;
 				frames -= res;
 			}
 			if (result <= 0)
-				return xfer > 0 ? xfer : result;
+				return xfer > 0 ? (snd_pcm_sframes_t)xfer : result;
 			if (frames == cont)
 				hw_offset = 0;
 			else
@@ -559,7 +559,7 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 			slave_size -= slave_frames;
 			xfer += frames;
 		}
-		return xfer;
+		return (snd_pcm_sframes_t)xfer;
 	}
 }
 

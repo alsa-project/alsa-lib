@@ -119,12 +119,12 @@ static snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 				   frames, pcm->format);
 		result = snd_pcm_mmap_commit(pcm, pcm_offset, frames);
 		if (result < 0)
-			return xfer > 0 ? xfer : result;
+			return xfer > 0 ? (snd_pcm_sframes_t)xfer : result;
 		offset += result;
 		xfer += result;
 		size -= result;
 	}
-	return xfer;
+	return (snd_pcm_sframes_t)xfer;
 }
 
 static snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
@@ -148,12 +148,12 @@ static snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 				   frames, pcm->format);
 		result = snd_pcm_mmap_commit(pcm, pcm_offset, frames);
 		if (result < 0)
-			return xfer > 0 ? xfer : result;
+			return xfer > 0 ? (snd_pcm_sframes_t)xfer : result;
 		offset += result;
 		xfer += result;
 		size -= result;
 	}
-	return xfer;
+	return (snd_pcm_sframes_t)xfer;
 }
 
 /**
