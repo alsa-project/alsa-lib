@@ -1035,6 +1035,23 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 			return err;
 		}
 	}
+	if (snd_config_get_type(pcm_conf) == SND_CONFIG_TYPE_STRING) {
+		snd_config_get_string(pcm_conf, (const char **)&key);
+		if (args == NULL)
+			return snd_pcm_open_noupdate(pcmp, root, key, stream, mode);
+		else {
+			char *nname;
+			nname = malloc(strlen(key) + 1 + strlen(args) + 1);
+			if (nname == NULL)
+				return -ENOMEM;
+			strcpy(nname, key);
+			strcat(nname, ":");
+			strcat(nname, args);
+			err = snd_pcm_open_noupdate(pcmp, root, nname, stream, mode);
+			free(nname);
+			return err;
+		}
+	}
 	err = snd_config_expand(pcm_conf, args, NULL, &pcm_conf);
 	if (err < 0) {
 		SNDERR("Could not expand configuration: %s", snd_strerror(err));
