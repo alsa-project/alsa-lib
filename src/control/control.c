@@ -450,3 +450,36 @@ int snd_ctl_rawmidi_input_switch_write(void *handle, int dev, snd_switch_t * sw)
 		return -errno;
 	return 0;
 }
+
+int snd_control_read(void *handle, snd_ctl_callbacks_t * callbacks)
+{
+	snd_ctl_t *ctl;
+	int result, count;
+	snd_ctl_read_t r;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	count = 0;
+	while ((result = read(ctl->fd, &r, sizeof(r))) > 0) {
+		if (result != sizeof(r))
+			return -EIO;
+		if (!callbacks)
+			continue;
+		switch (r.cmd) {
+		case SND_CTL_READ_REBUILD:
+			if (callbacks->rebuild)
+				callbacks->rebuild(callbacks->private_data);
+			break;
+		case SND_CTL_READ_SWITCH_VALUE:
+		case SND_CTL_READ_SWITCH_CHANGE:
+		case SND_CTL_READ_SWITCH_ADD:
+		case SND_CTL_READ_SWITCH_REMOVE:
+			if (callbacks->xswitch)
+				callbacks->xswitch(callbacks->private_data, r.cmd, r.data.sw.iface, &r.data.sw.switem);
+			break;
+		}
+		count++;
+	}
+	return result >= 0 ? count : -errno;
+}

@@ -10,8 +10,7 @@ typedef struct snd_mixer_callbacks {
 	void (*rebuild) (void *private_data);
 	void (*element) (void *private_data, int cmd, snd_mixer_eid_t *eid);
 	void (*group) (void *private_data, int cmd, snd_mixer_gid_t *gid);
-	void (*xswitch) (void *private_data, int cmd, snd_switch_list_item_t *item);
-	void *reserved[27];	/* reserved for the future use - must be NULL!!! */
+	void *reserved[28];	/* reserved for the future use - must be NULL!!! */
 } snd_mixer_callbacks_t;
 
 #ifdef __cplusplus
@@ -29,9 +28,6 @@ int snd_mixer_group(void *handle, snd_mixer_group_t * group);
 int snd_mixer_element_info(void *handle, snd_mixer_element_info_t * info);
 int snd_mixer_element_read(void *handle, snd_mixer_element_t * element);
 int snd_mixer_element_write(void *handle, snd_mixer_element_t * element);
-int snd_mixer_switch_list(void *handle, snd_switch_list_t * list);
-int snd_mixer_switch_read(void *handle, snd_switch_t * sw);
-int snd_mixer_switch_write(void *handle, snd_switch_t * sw);
 int snd_mixer_read(void *handle, snd_mixer_callbacks_t * callbacks);
 
 void snd_mixer_set_bit(unsigned int *bitmap, int bit, int val);

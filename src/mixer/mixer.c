@@ -193,42 +193,6 @@ int snd_mixer_element_write(void *handle, snd_mixer_element_t * element)
 	return 0;
 }
 
-int snd_mixer_switch_list(void *handle, snd_switch_list_t * list)
-{
-	snd_mixer_t *mixer;
-
-	mixer = (snd_mixer_t *) handle;
-	if (!mixer || !list)
-		return -EINVAL;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_LIST, &list) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_mixer_switch_read(void *handle, snd_switch_t * sw)
-{
-	snd_mixer_t *mixer;
-
-	mixer = (snd_mixer_t *) handle;
-	if (!mixer || !sw || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_READ, sw) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_mixer_switch_write(void *handle, snd_switch_t * sw)
-{
-	snd_mixer_t *mixer;
-
-	mixer = (snd_mixer_t *) handle;
-	if (!mixer || !sw || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_WRITE, sw) < 0)
-		return -errno;
-	return 0;
-}
-
 int snd_mixer_read(void *handle, snd_mixer_callbacks_t * callbacks)
 {
 	snd_mixer_t *mixer;
@@ -262,13 +226,6 @@ int snd_mixer_read(void *handle, snd_mixer_callbacks_t * callbacks)
 		case SND_MIXER_READ_GROUP_REMOVE:
 			if (callbacks->group)
 				callbacks->group(callbacks->private_data, r.cmd, &r.data.gid);
-			break;
-		case SND_MIXER_READ_SWITCH_VALUE:
-		case SND_MIXER_READ_SWITCH_CHANGE:
-		case SND_MIXER_READ_SWITCH_ADD:
-		case SND_MIXER_READ_SWITCH_REMOVE:
-			if (callbacks->xswitch)
-				callbacks->xswitch(callbacks->private_data, r.cmd, &r.data.switem);
 			break;
 		}
 		count++;

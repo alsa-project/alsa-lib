@@ -5,6 +5,13 @@
  *                                                                          *
  ****************************************************************************/
 
+typedef struct snd_ctl_callbacks {
+	void *private_data;	/* should be used by an application */
+	void (*rebuild) (void *private_data);
+	void (*xswitch) (void *private_data, int cmd, int iface, snd_switch_list_item_t *item);
+	void *reserved[29];	/* reserved for the future use - must be NULL!!! */
+} snd_ctl_callbacks_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -51,6 +58,7 @@ int snd_ctl_rawmidi_output_switch_write(void *handle, int dev, snd_switch_t * sw
 int snd_ctl_rawmidi_input_switch_list(void *handle, int dev, snd_switch_list_t *list);
 int snd_ctl_rawmidi_input_switch_read(void *handle, int dev, snd_switch_t * sw);
 int snd_ctl_rawmidi_input_switch_write(void *handle, int dev, snd_switch_t * sw);
+int snd_ctl_read(void *handle, snd_ctl_callbacks_t * callbacks);
 
 #ifdef __cplusplus
 }
