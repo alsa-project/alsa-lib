@@ -44,7 +44,10 @@ clean:
 	rm -f core .depend *.o *.orig *~
 	rm -f `find . -name "out.txt"`
 
-pack: clean
-	rm -f config.cache config.log config.status Makefile.conf
+cvsclean: clean
+	rm -f configure config.cache config.log config.status Makefile.conf \
+              utils/alsa-lib.spec
+
+pack: cvsclean
 	chown -R root.root ../alsa-lib
 	tar cvz -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.gz alsa-lib
