@@ -595,20 +595,23 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		err = _snd_pcm_hw_params_set_subformat(params, spcm->subformat);
 		if (err < 0)
 			goto _err;
-		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_RATE,
-					    spcm->rate, 0);
+		err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_RATE,
+						   spcm->rate, 0, 
+						   spcm->rate, 1);
 		if (err < 0)
 			goto _err;
-		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_PERIOD_TIME,
-					    spcm->period_time, 0);
+		err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_PERIOD_TIME,
+						   spcm->period_time, 0,
+						   spcm->period_time, 1);
 		if (err < 0)
 			goto _err;
 		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_BUFFER_SIZE,
 					    spcm->buffer_size, 0);
 		if (err < 0)
 			goto _err;
-		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_TICK_TIME,
-					    spcm->tick_time, 0);
+		err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_TICK_TIME,
+						   spcm->tick_time, 0,
+						   spcm->tick_time, 1);
 	_err:
 		if (err < 0) {
 			SNDERR("slave is already running with incompatible setup");
