@@ -33,7 +33,7 @@ const char *_snd_module_hwdep_hw = "";
 #endif
 
 #define SNDRV_FILE_HWDEP	"/dev/snd/hwC%iD%i"
-#define SNDRV_HWDEP_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 0)
+#define SNDRV_HWDEP_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 1)
 
 static int snd_hwdep_hw_close(snd_hwdep_t *hwdep)
 {
