@@ -181,9 +181,10 @@ int snd_hwdep_open(snd_hwdep_t **hwdep, const char *name, int mode)
  * Opens a new connection to the HwDep interface specified with
  * an ASCII identifier and mode.
  */
-int snd_hwdep_open(snd_hwdep_t **hwdep, const char *name, int mode, snd_config_t *lconf)
+int snd_hwdep_open_lconf(snd_hwdep_t **hwdep, const char *name,
+			 int mode, snd_config_t *lconf)
 {
-	assert(hwdep && name);
+	assert(hwdep && name && lconf);
 	return snd_hwdep_open_noupdate(hwdep, lconf, name, mode);
 }
 
