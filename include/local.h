@@ -53,6 +53,8 @@
 #define _snd_rawmidi_status sndrv_rawmidi_status
 
 #define _snd_hwdep_info sndrv_hwdep_info
+#define _snd_hwdep_dsp_status sndrv_hwdep_dsp_status
+#define _snd_hwdep_dsp_image sndrv_hwdep_dsp_image
 
 #define _snd_seq_queue_tempo sndrv_seq_queue_tempo
 #define _snd_seq_client_info sndrv_seq_client_info

@@ -44,6 +44,12 @@ extern "C" {
 /** HwDep information container */
 typedef struct _snd_hwdep_info snd_hwdep_info_t;
 
+/** HwDep DSP status container */
+typedef struct _snd_hwdep_dsp_status snd_hwdep_dsp_status_t;
+
+/** HwDep DSP image container */
+typedef struct _snd_hwdep_dsp_image snd_hwdep_dsp_image_t;
+
 /** HwDep interface */
 typedef enum _snd_hwdep_iface {
 	SND_HWDEP_IFACE_OPL2 = 0,	/**< OPL2 raw driver */
@@ -53,7 +59,9 @@ typedef enum _snd_hwdep_iface {
 	SND_HWDEP_IFACE_EMU10K1,	/**< EMU10K1 driver */
 	SND_HWDEP_IFACE_YSS225,		/**< YSS225 driver */
 	SND_HWDEP_IFACE_ICS2115,	/**< ICS2115 driver */
-	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_ICS2115  /**< last know hwdep interface */
+	SND_HWDEP_IFACE_SSCAPE,		/**< Ensoniq SoundScape ISA card (MC68EC000) */
+	SND_HWDEP_IFACE_VX,		/**< Digigram VX cards */
+	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_VX  /**< last know hwdep interface */
 } snd_hwdep_iface_t;
 
 /** open for reading */
@@ -84,6 +92,8 @@ int snd_hwdep_poll_descriptors(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned
 int snd_hwdep_poll_descriptors_revents(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_hwdep_nonblock(snd_hwdep_t *hwdep, int nonblock);
 int snd_hwdep_info(snd_hwdep_t *hwdep, snd_hwdep_info_t * info);
+int snd_hwdep_dsp_status(snd_hwdep_t *hwdep, snd_hwdep_dsp_status_t *status);
+int snd_hwdep_dsp_load(snd_hwdep_t *hwdep, snd_hwdep_dsp_image_t *block);
 int snd_hwdep_ioctl(snd_hwdep_t *hwdep, unsigned int request, void * arg);
 ssize_t snd_hwdep_write(snd_hwdep_t *hwdep, const void *buffer, size_t size);
 ssize_t snd_hwdep_read(snd_hwdep_t *hwdep, void *buffer, size_t size);
@@ -101,6 +111,36 @@ const char *snd_hwdep_info_get_id(const snd_hwdep_info_t *obj);
 const char *snd_hwdep_info_get_name(const snd_hwdep_info_t *obj);
 snd_hwdep_iface_t snd_hwdep_info_get_iface(const snd_hwdep_info_t *obj);
 void snd_hwdep_info_set_device(snd_hwdep_info_t *obj, unsigned int val);
+
+size_t snd_hwdep_dsp_status_sizeof(void);
+/** allocate #snd_hwdep_dsp_status_t container on stack */
+#define snd_hwdep_dsp_status_alloca(ptr) do { assert(ptr); *ptr = (snd_hwdep_dsp_status_t *) alloca(snd_hwdep_dsp_status_sizeof()); memset(*ptr, 0, snd_hwdep_dsp_status_sizeof()); } while (0)
+int snd_hwdep_dsp_status_malloc(snd_hwdep_dsp_status_t **ptr);
+void snd_hwdep_dsp_status_free(snd_hwdep_dsp_status_t *obj);
+void snd_hwdep_dsp_status_copy(snd_hwdep_dsp_status_t *dst, const snd_hwdep_dsp_status_t *src);
+
+unsigned int snd_hwdep_dsp_status_get_version(const snd_hwdep_dsp_status_t *obj);
+const char *snd_hwdep_dsp_status_get_id(const snd_hwdep_dsp_status_t *obj);
+unsigned int snd_hwdep_dsp_status_get_num_dsps(const snd_hwdep_dsp_status_t *obj);
+unsigned int snd_hwdep_dsp_status_get_dsp_loaded(const snd_hwdep_dsp_status_t *obj);
+unsigned int snd_hwdep_dsp_status_get_chip_ready(const snd_hwdep_dsp_status_t *obj);
+
+size_t snd_hwdep_dsp_image_sizeof(void);
+/** allocate #snd_hwdep_dsp_image_t container on stack */
+#define snd_hwdep_dsp_image_alloca(ptr) do { assert(ptr); *ptr = (snd_hwdep_dsp_image_t *) alloca(snd_hwdep_dsp_image_sizeof()); memset(*ptr, 0, snd_hwdep_dsp_image_sizeof()); } while (0)
+int snd_hwdep_dsp_image_malloc(snd_hwdep_dsp_image_t **ptr);
+void snd_hwdep_dsp_image_free(snd_hwdep_dsp_image_t *obj);
+void snd_hwdep_dsp_image_copy(snd_hwdep_dsp_image_t *dst, const snd_hwdep_dsp_image_t *src);
+
+unsigned int snd_hwdep_dsp_image_get_index(const snd_hwdep_dsp_image_t *obj);
+const char *snd_hwdep_dsp_image_get_name(const snd_hwdep_dsp_image_t *obj);
+const void *snd_hwdep_dsp_image_get_image(const snd_hwdep_dsp_image_t *obj);
+size_t snd_hwdep_dsp_image_get_length(const snd_hwdep_dsp_image_t *obj);
+
+void snd_hwdep_dsp_image_set_index(snd_hwdep_dsp_image_t *obj, unsigned int index);
+void snd_hwdep_dsp_image_set_name(snd_hwdep_dsp_image_t *obj, const char *name);
+void snd_hwdep_dsp_image_set_image(snd_hwdep_dsp_image_t *obj, void *buffer);
+void snd_hwdep_dsp_image_set_length(snd_hwdep_dsp_image_t *obj, size_t length);
 
 /** \} */
 

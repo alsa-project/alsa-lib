@@ -487,3 +487,274 @@ ssize_t snd_hwdep_read(snd_hwdep_t *hwdep, void *buffer, size_t size)
 	assert(buffer || size == 0);
 	return hwdep->ops->read(hwdep, buffer, size);
 }
+
+/**
+ * \brief get the DSP status information
+ * \param hwdep HwDep handle
+ * \param info pointer to a snd_hwdep_dsp_status_t structure to be filled
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_hwdep_dsp_status(snd_hwdep_t *hwdep, snd_hwdep_dsp_status_t *info)
+{
+	assert(hwdep);
+	assert(info);
+	return hwdep->ops->ioctl(hwdep, SNDRV_HWDEP_IOCTL_DSP_STATUS, (void*)info);
+}
+
+/**
+ * \brief load the DSP block
+ * \param hwdep HwDep handle
+ * \param block pointer to a snd_hwdep_dsp_image_t structure to transfer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_hwdep_dsp_load(snd_hwdep_t *hwdep, snd_hwdep_dsp_image_t *block)
+{
+	assert(hwdep);
+	assert(block);
+	return hwdep->ops->ioctl(hwdep, SNDRV_HWDEP_IOCTL_DSP_LOAD, (void*)block);
+}
+
+/**
+ * \brief get size of the snd_hwdep_dsp_status_t structure in bytes
+ * \return size of the snd_hwdep_dsp_status_t structure in bytes
+ */
+size_t snd_hwdep_dsp_status_sizeof()
+{
+	return sizeof(snd_hwdep_dsp_status_t);
+}
+
+/**
+ * \brief allocate a new snd_hwdep_dsp_status_t structure
+ * \param ptr returned pointer
+ * \return 0 on success otherwise a negative error code if fails
+ *
+ * Allocates a new snd_hwdep_dsp_status_t structure using the standard
+ * malloc C library function.
+ */
+int snd_hwdep_dsp_status_malloc(snd_hwdep_dsp_status_t **info)
+{
+	assert(info);
+	*info = calloc(1, sizeof(snd_hwdep_dsp_status_t));
+	if (!*info)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees the snd_hwdep_dsp_status_t structure
+ * \param info pointer to the snd_hwdep_dsp_status_t structure to free
+ *
+ * Frees the given snd_hwdep_dsp_status_t structure using the standard
+ * free C library function.
+ */
+void snd_hwdep_dsp_status_free(snd_hwdep_dsp_status_t *info)
+{
+	assert(info);
+	free(info);
+}
+
+/**
+ * \brief copy one snd_hwdep_dsp_status_t structure to another
+ * \param dst destination snd_hwdep_dsp_status_t structure
+ * \param src source snd_hwdep_dsp_status_t structure
+ */
+void snd_hwdep_dsp_status_copy(snd_hwdep_dsp_status_t *dst, const snd_hwdep_dsp_status_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief get the driver version of dsp loader
+ * \param info pointer to a snd_hwdep_dsp_status_t structure
+ * \return the driver version
+ */
+unsigned int snd_hwdep_dsp_status_get_version(const snd_hwdep_dsp_status_t *obj)
+{
+	assert(obj);
+	return obj->version;
+}
+
+/**
+ * \brief get the driver id of dsp loader
+ * \param info pointer to a snd_hwdep_dsp_status_t structure
+ * \return the driver id string
+ */
+const char *snd_hwdep_dsp_status_get_id(const snd_hwdep_dsp_status_t *obj)
+{
+	assert(obj);
+	return obj->id;
+}
+
+/**
+ * \brief get number of dsp blocks
+ * \param info pointer to a snd_hwdep_dsp_status_t structure
+ * \return number of dsp blocks
+ */
+unsigned int snd_hwdep_dsp_status_get_num_dsps(const snd_hwdep_dsp_status_t *obj)
+{
+	assert(obj);
+	return obj->num_dsps;
+}
+
+/**
+ * \brief get the bit flags of the loaded dsp blocks
+ * \param info pointer to a snd_hwdep_dsp_status_t structure
+ * \return the big flags of the loaded dsp blocks
+ */
+unsigned int snd_hwdep_dsp_status_get_dsp_loaded(const snd_hwdep_dsp_status_t *info)
+{
+	assert(info);
+	return info->dsp_loaded;
+}
+
+/**
+ * \brief get the chip status of dsp loader
+ * \param info pointer to a snd_hwdep_dsp_status_t structure
+ * \return non-zero if all DSP blocks are loaded and the chip is ready
+ */
+unsigned int snd_hwdep_dsp_status_get_chip_ready(const snd_hwdep_dsp_status_t *obj)
+{
+	assert(obj);
+	return obj->chip_ready;
+}
+
+/**
+ * \brief get size of the snd_hwdep_dsp_image_t structure in bytes
+ * \return size of the snd_hwdep_dsp_image_t structure in bytes
+ */
+size_t snd_hwdep_dsp_image_sizeof()
+{
+	return sizeof(snd_hwdep_dsp_image_t);
+}
+
+/**
+ * \brief allocate a new snd_hwdep_dsp_image_t structure
+ * \param ptr returned pointer
+ * \return 0 on success otherwise a negative error code if fails
+ *
+ * Allocates a new snd_hwdep_dsp_image_t structure using the standard
+ * malloc C library function.
+ */
+int snd_hwdep_dsp_image_malloc(snd_hwdep_dsp_image_t **info)
+{
+	assert(info);
+	*info = calloc(1, sizeof(snd_hwdep_dsp_image_t));
+	if (!*info)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees the snd_hwdep_dsp_image_t structure
+ * \param info pointer to the snd_hwdep_dsp_image_t structure to free
+ *
+ * Frees the given snd_hwdep_dsp_image_t structure using the standard
+ * free C library function.
+ */
+void snd_hwdep_dsp_image_free(snd_hwdep_dsp_image_t *info)
+{
+	assert(info);
+	free(info);
+}
+
+/**
+ * \brief copy one snd_hwdep_dsp_image_t structure to another
+ * \param dst destination snd_hwdep_dsp_image_t structure
+ * \param src source snd_hwdep_dsp_image_t structure
+ */
+void snd_hwdep_dsp_image_copy(snd_hwdep_dsp_image_t *dst, const snd_hwdep_dsp_image_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief get the DSP block index
+ * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \return the index of the DSP block
+ */
+unsigned int snd_hwdep_dsp_image_get_index(const snd_hwdep_dsp_image_t *obj)
+{
+	assert(obj);
+	return obj->index;
+}
+
+/**
+ * \brief get the name of the DSP block
+ * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \return the name string of the DSP block
+ */
+const char *snd_hwdep_dsp_image_get_name(const snd_hwdep_dsp_image_t *obj)
+{
+	assert(obj);
+	return obj->name;
+}
+
+/**
+ * \brief get the length of the DSP block
+ * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \return the length of the DSP block in bytes
+ */
+size_t snd_hwdep_dsp_image_get_length(const snd_hwdep_dsp_image_t *obj)
+{
+	assert(obj);
+	return obj->length;
+}
+
+/**
+ * \brief get the image pointer of the DSP block
+ * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \return the image pointer of the DSP block
+ */
+const void *snd_hwdep_dsp_image_get_image(const snd_hwdep_dsp_image_t *obj)
+{
+	assert(obj);
+	return obj->image;
+}
+
+/**
+ * \brief set the DSP block index
+ * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param index the index value to set
+ */
+void snd_hwdep_dsp_image_set_index(snd_hwdep_dsp_image_t *obj, unsigned int index)
+{
+	assert(obj);
+	obj->index = index;
+}
+
+/**
+ * \brief set the name of the DSP block
+ * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param name the name string
+ */
+void snd_hwdep_dsp_image_set_name(snd_hwdep_dsp_image_t *obj, const char *name)
+{
+	assert(obj && name);
+	strncpy(obj->name, name, sizeof(obj->name));
+	obj->name[sizeof(obj->name)-1] = 0;
+}
+
+/**
+ * \brief set the DSP block length
+ * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param length the length of the DSP block
+ */
+void snd_hwdep_dsp_image_set_length(snd_hwdep_dsp_image_t *obj, size_t length)
+{
+	assert(obj);
+	obj->length = length;
+}
+
+/**
+ * \brief set the DSP block image pointer
+ * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param image the DSP image pointer
+ */
+void snd_hwdep_dsp_image_set_image(snd_hwdep_dsp_image_t *obj, void *image)
+{
+	assert(obj);
+	obj->image = image;
+}
+
