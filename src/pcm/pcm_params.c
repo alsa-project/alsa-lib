@@ -2053,7 +2053,9 @@ int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	params->xfer_align = pcm->period_size;
 	params->silence_threshold = 0;
 	params->silence_size = 0;
-	params->boundary = LONG_MAX - pcm->buffer_size * 2 - LONG_MAX % pcm->buffer_size;
+	params->boundary = pcm->buffer_size;
+	while (params->boundary * 2 <= LONG_MAX - pcm->buffer_size)
+		params->boundary *= 2;
 	return 0;
 }
 
