@@ -738,12 +738,6 @@ int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequenc
 #if 1
 	snd_pcm_meter_add_scope(pcm, &s16_scope);
 #endif
-#if 1
-	{
-		extern snd_pcm_meter_scope_t level_scope;
-		snd_pcm_meter_add_scope(pcm, &level_scope);
-	}
-#endif
 	return 0;
 }
 
