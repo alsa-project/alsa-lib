@@ -75,6 +75,7 @@ typedef struct _selem {
 	unsigned int capture_group;
 	unsigned int caps;
 	struct {
+		unsigned int range: 1;	/* Forced range */
 		long min, max;
 		unsigned int channels;
 		long vol[32];
@@ -593,11 +594,15 @@ static int simple_update(snd_mixer_elem_t *melem)
 	}
 	simple->caps = caps;
 	simple->str[PLAY].channels = pchannels;
-	simple->str[PLAY].min = pmin;
-	simple->str[PLAY].max = pmax;
+	if (!simple->str[PLAY].range) {
+		simple->str[PLAY].min = pmin;
+		simple->str[PLAY].max = pmax;
+	}
 	simple->str[CAPT].channels = cchannels;
-	simple->str[CAPT].min = cmin;
-	simple->str[CAPT].max = cmax;
+	if (!simple->str[CAPT].range) {
+		simple->str[CAPT].min = cmin;
+		simple->str[CAPT].max = cmax;
+	}
 	return 0;
 }	   
 
@@ -898,6 +903,24 @@ void snd_mixer_selem_get_id(snd_mixer_elem_t *elem,
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
 	s = elem->private_data;
 	*id = s->id;
+}
+
+const char *snd_mixer_selem_get_name(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return s->id.name;
+}
+
+unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t *elem)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	return s->id.index;
 }
 
 int snd_mixer_selem_is_playback_mono(snd_mixer_elem_t *elem)
@@ -1365,5 +1388,31 @@ const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
 	if (!p)
 		return "?";
 	return p;
+}
+
+void snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem, 
+					       long min, long max)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(min != max);
+	s->str[PLAY].range = 1;
+	s->str[PLAY].min = min;
+	s->str[PLAY].max = max;
+}
+
+void snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem, 
+					      long min, long max)
+{
+	selem_t *s;
+	assert(elem);
+	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	s = elem->private_data;
+	assert(min != max);
+	s->str[CAPT].range = 1;
+	s->str[CAPT].min = min;
+	s->str[CAPT].max = max;
 }
 

@@ -338,7 +338,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_missing(snd_pcm_share_slave_t *sla
 	return missing;
 }
 
-void *snd_pcm_share_slave_thread(void *data)
+void *snd_pcm_share_thread(void *data)
 {
 	snd_pcm_share_slave_t *slave = data;
 	snd_pcm_t *spcm = slave->pcm;
@@ -1303,7 +1303,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		pthread_cond_init(&slave->poll_cond, NULL);
 		list_add_tail(&slave->list, &slaves);
 		Pthread_mutex_lock(&slave->mutex);
-		err = pthread_create(&slave->thread, NULL, snd_pcm_share_slave_thread, slave);
+		err = pthread_create(&slave->thread, NULL, snd_pcm_share_thread, slave);
 		assert(err == 0);
 		Pthread_mutex_unlock(&slaves_mutex);
 	} else {

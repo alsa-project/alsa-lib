@@ -105,6 +105,8 @@ int snd_mixer_selem_register(snd_mixer_t *mixer, void *arg,
 			     snd_mixer_class_t **classp);
 void snd_mixer_selem_get_id(snd_mixer_elem_t *element,
 			    snd_mixer_selem_id_t *id);
+const char *snd_mixer_selem_get_name(snd_mixer_elem_t *elem);
+unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t *elem);
 snd_mixer_elem_t *snd_mixer_find_selem(snd_mixer_t *mixer,
 				       const snd_mixer_selem_id_t *id);
 
@@ -141,7 +143,10 @@ int snd_mixer_selem_set_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_
 int snd_mixer_selem_set_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value);
 int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value);
 int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value);
-
+void snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem, 
+					       long min, long max);
+void snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem, 
+					      long min, long max);
 #ifdef __cplusplus
 }
 #endif
