@@ -2,6 +2,7 @@ alsadir = $(datadir)/alsa/cards
 cfg_files = aliases.conf \
 	ATIIXP.conf \
 	ATIIXP-SPDMA.conf \
+	ATIIXP-MODEM.conf \
 	AU8810.conf \
 	AU8820.conf \
 	AU8830.conf \
@@ -21,6 +22,7 @@ cfg_files = aliases.conf \
 	ICE1712.conf \
 	ICE1724.conf \
 	ICH.conf \
+	ICH-MODEM.conf \
 	NFORCE.conf \
 	RME9636.conf \
 	RME9652.conf \
