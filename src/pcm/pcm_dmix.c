@@ -120,6 +120,7 @@ typedef struct {
 	int server_fd;
 	pid_t server_pid;
 	snd_timer_t *timer; /* timer used as poll_fd */
+	int interleaved; /* we have interleaved buffer */
 } snd_pcm_dmix_t;
 
 /*
@@ -531,6 +532,30 @@ static int client_discard(snd_pcm_dmix_t *dmix)
  *  ring buffer operation
  */
 
+static int check_interleave(snd_pcm_dmix_t *dmix)
+{
+	unsigned int chn, channels;
+	int interleaved = 1;
+	const snd_pcm_channel_area_t *dst_areas;
+
+	channels = dmix->shmptr->s.channels;
+	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
+	for (chn = 1; chn < channels; chn++) {
+		if (dst_areas[chn-1].addr != dst_areas[chn].addr) {
+			interleaved = 0;
+			break;
+		}
+	}
+	for (chn = 0; chn < channels; chn++) {
+		if (dst_areas[chn].first != sizeof(signed short) * chn * 8 ||
+		    dst_areas[chn].step != channels * sizeof(signed short) * 8) {
+			interleaved = 0;
+			break;
+		}
+	}
+	return dmix->interleaved = interleaved;
+}
+
 /*
  *  the main function of this plugin: mixing
  *  FIXME: optimize it for different architectures
@@ -549,13 +574,15 @@ static void mix_areas1(unsigned int size,
 	 *  EBX - sum
 	 *  ECX - old sample
 	 *  EAX - sample / temporary
+	 *  EDX - size
 	 */
 	__asm__ __volatile__ (
 		"\n"
 
 		/*
-		 *  initialization, load ESI, EDI, EBX registers
+		 *  initialization, load EDX, ESI, EDI, EBX registers
 		 */
+		"\tmovl %0, %%edx\n"
 		"\tmovl %1, %%edi\n"
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
@@ -563,7 +590,7 @@ static void mix_areas1(unsigned int size,
 		/*
 		 * while (size-- > 0) {
 		 */
-		"\tcmp $0, %0\n"
+		"\tcmp $0, %%edx\n"
 		"jz 6f\n"
 
 		"1:"
@@ -576,12 +603,12 @@ static void mix_areas1(unsigned int size,
 		 */
 		"\tmovw $0, %%ax\n"
 		"\tmovw $1, %%cx\n"
-		"\tlock cmpxchgw %%cx, (%%edi)\n"
+		"\tlock; cmpxchgw %%cx, (%%edi)\n"
 		"\tmovswl (%%esi), %%ecx\n"
 		"\tjnz 2f\n"
 		"\tsubl (%%ebx), %%ecx\n"
 		"2:"
-		"\tlock addl %%ecx, (%%ebx)\n"
+		"\tlock; addl %%ecx, (%%ebx)\n"
 
 		/*
 		 *   do {
@@ -607,7 +634,7 @@ static void mix_areas1(unsigned int size,
 		"\tadd %4, %%edi\n"
 		"\tadd %5, %%esi\n"
 		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
+		"\tdecl %%edx\n"
 		"\tjnz 1b\n"
 		"\tjmp 6f\n"
 
@@ -623,7 +650,7 @@ static void mix_areas1(unsigned int size,
 		"\tadd %4, %%edi\n"
 		"\tadd %5, %%esi\n"
 		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
+		"\tdecl %%edx\n"
 		"\tjnz 1b\n"
 		"\tjmp 6f\n"
 
@@ -639,7 +666,7 @@ static void mix_areas1(unsigned int size,
 		"\tadd %4, %%edi\n"
 		"\tadd %5, %%esi\n"
 		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
+		"\tdecl %%edx\n"
 		"\tjnz 1b\n"
 		// "\tjmp 6f\n"
 		
@@ -647,7 +674,7 @@ static void mix_areas1(unsigned int size,
 
 		: /* no output regs */
 		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
-		: "esi", "edi", "ecx", "ebx", "eax"
+		: "esi", "edi", "edx", "ecx", "ebx", "eax"
 	);
 }
 #endif
@@ -683,43 +710,29 @@ static void mix_areas1(unsigned int size,
 }
 #endif
 
-static void mix_areas(const snd_pcm_channel_area_t *src_areas,
+static void mix_areas(snd_pcm_dmix_t *dmix,
+		      const snd_pcm_channel_area_t *src_areas,
 		      const snd_pcm_channel_area_t *dst_areas,
-		      unsigned int channels,
 		      snd_pcm_uframes_t src_ofs,
 		      snd_pcm_uframes_t dst_ofs,
-		      snd_pcm_uframes_t size,
-		      void *sum_buffer)
+		      snd_pcm_uframes_t size)
 {
 	signed short *src;
 	volatile signed short *dst;
 	volatile signed int *sum;
 	unsigned int src_step, dst_step;
-	unsigned int chn;
-	int interleaved = 1;
+	unsigned int chn, channels;
 	
-	for (chn = 1; chn < channels; chn++) {
-		if (dst_areas[chn-1].addr != dst_areas[chn].addr) {
-			interleaved = 0;
-			break;
-		}
-	}
-	for (chn = 0; chn < channels; chn++) {
-		if (dst_areas[chn].first != sizeof(signed short) * chn * 8 ||
-		    dst_areas[chn].step != channels * sizeof(signed short) * 8) {
-			interleaved = 0;
-			break;
-		}
-	}
-	if (interleaved) {
+	channels = dmix->shmptr->s.channels;
+	if (dmix->interleaved) {
 		/*
-		 * process the area in one loop
+		 * process the all areas in one loop
 		 * it optimizes the memory accesses for this case
 		 */
 		mix_areas1(size * channels,
 			   ((signed short *)dst_areas[0].addr) + (dst_ofs * channels),
 			   ((signed short *)src_areas[0].addr) + (src_ofs * channels),
-			   ((signed int *)sum_buffer) + (dst_ofs * channels),
+			   dmix->sum_buffer + (dst_ofs * channels),
 			   sizeof(signed short),
 			   sizeof(signed short),
 			   sizeof(signed int));
@@ -730,7 +743,7 @@ static void mix_areas(const snd_pcm_channel_area_t *src_areas,
 		dst_step = dst_areas[chn].step / 8;
 		src = (signed short *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
 		dst = (signed short *)(((char *)dst_areas[chn].addr + dst_areas[chn].first / 8) + (dst_ofs * dst_step));
-		sum = (signed int *)sum_buffer + channels * dst_ofs + chn;
+		sum = dmix->sum_buffer + channels * dst_ofs + chn;
 		mix_areas1(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
 	}
 }
@@ -759,7 +772,7 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		transfer = appl_ptr + size > pcm->buffer_size ? pcm->buffer_size - appl_ptr : size;
 		transfer = slave_appl_ptr + transfer > dmix->shmptr->s.buffer_size ? dmix->shmptr->s.buffer_size - slave_appl_ptr : transfer;
 		size -= transfer;
-		mix_areas(src_areas, dst_areas, pcm->channels, appl_ptr, slave_appl_ptr, transfer, dmix->sum_buffer);
+		mix_areas(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
 		slave_appl_ptr += transfer;
 		slave_appl_ptr %= dmix->shmptr->s.buffer_size;
 		appl_ptr += transfer;
@@ -1593,6 +1606,8 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("unable to initialize poll_fd\n");
 		goto _err;
 	}
+
+	check_interleave(dmix);
 		
 	pcm->poll_fd = dmix->poll_fd;
 	pcm->poll_events = POLLIN;	/* it's different than other plugins */
