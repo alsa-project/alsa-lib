@@ -1065,7 +1065,7 @@ int snd_seq_port_info_get_port_specified(const snd_seq_port_info_t *info)
  * \param info port_info container
  * \return 1 if the port updates timestamps of incoming events
  */
-int snd_seq_port_info_get_port_timestamping(const snd_seq_port_info_t *info)
+int snd_seq_port_info_get_timestamping(const snd_seq_port_info_t *info)
 {
 	assert(info);
 	return (info->flags & SNDRV_SEQ_PORT_FLG_TIMESTAMP) ? 1 : 0;
@@ -1076,7 +1076,7 @@ int snd_seq_port_info_get_port_timestamping(const snd_seq_port_info_t *info)
  * \param info port_info container
  * \return 1 if the time-stamping is in the real-time mode
  */
-int snd_seq_port_info_get_port_timestamp_real(const snd_seq_port_info_t *info)
+int snd_seq_port_info_get_timestamp_real(const snd_seq_port_info_t *info)
 {
 	assert(info);
 	return (info->flags & SNDRV_SEQ_PORT_FLG_TIME_REAL) ? 1 : 0;
@@ -1087,7 +1087,7 @@ int snd_seq_port_info_get_port_timestamp_real(const snd_seq_port_info_t *info)
  * \param info port_info container
  * \return the queue id to get the timestamps
  */
-int snd_seq_port_info_get_port_timestamp_queue(const snd_seq_port_info_t *info)
+int snd_seq_port_info_get_timestamp_queue(const snd_seq_port_info_t *info)
 {
 	assert(info);
 	return info->time_queue;
@@ -1211,7 +1211,7 @@ void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int val)
  * \param info port_info container
  * \param enable non-zero if updating the timestamps of incoming events
  */
-void snd_seq_port_info_set_port_timestamping(snd_seq_port_info_t *info, int enable)
+void snd_seq_port_info_set_timestamping(snd_seq_port_info_t *info, int enable)
 {
 	assert(info);
 	if (enable)
@@ -1225,7 +1225,7 @@ void snd_seq_port_info_set_port_timestamping(snd_seq_port_info_t *info, int enab
  * \param info port_info container
  * \param enable non-zero if updating the timestamps in real-time mode
  */
-void snd_seq_port_info_set_port_timestamp_real(snd_seq_port_info_t *info, int enable)
+void snd_seq_port_info_set_timestamp_real(snd_seq_port_info_t *info, int enable)
 {
 	assert(info);
 	if (enable)
@@ -1239,7 +1239,7 @@ void snd_seq_port_info_set_port_timestamp_real(snd_seq_port_info_t *info, int en
  * \param info port_info container
  * \param queue the queue id to get timestamps
  */
-void snd_seq_port_info_set_port_timestamp_queue(snd_seq_port_info_t *info, int queue)
+void snd_seq_port_info_set_timestamp_queue(snd_seq_port_info_t *info, int queue)
 {
 	assert(info);
 	info->time_queue = queue;
