@@ -936,6 +936,11 @@ static int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 			len = sizeof(ename) - 1;
 		memcpy(ename, name, len);
 		ename[len] = 0;
+		/* exception: Capture Volume and Capture Switch */
+		if (type == CTL_GLOBAL_VOLUME && !strcmp(ename, "Capture"))
+			type = CTL_CAPTURE_VOLUME;
+		else if (type == CTL_GLOBAL_SWITCH && !strcmp(ename, "Capture"))
+			type = CTL_CAPTURE_SWITCH;
 		return simple_add1(class, ename, helem, type, 0);
 	}
 }
@@ -1562,7 +1567,7 @@ int snd_mixer_selem_has_capture_volume(snd_mixer_elem_t *elem)
 	assert(elem);
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
 	s = elem->private_data;
-	return !!(s->caps & CAP_CVOLUME) || !!(s->caps & CAP_GVOLUME);
+	return !!(s->caps & CAP_CVOLUME) /*|| !!(s->caps & CAP_GVOLUME)*/;
 }
 
 /**
@@ -1590,7 +1595,7 @@ int snd_mixer_selem_has_capture_switch(snd_mixer_elem_t *elem)
 	assert(elem);
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
 	s = elem->private_data;
-	return !!(s->caps & CAP_CSWITCH) || !!(s->caps & CAP_GSWITCH);
+	return !!(s->caps & CAP_CSWITCH) /*|| !!(s->caps & CAP_GSWITCH)*/;
 }
 
 /**
