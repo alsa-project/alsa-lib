@@ -34,7 +34,7 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
-#if defined(__sparc__) || defined(__ia64__)
+#if defined(__sparc__) || defined(__ia64__) || defined(__mips__)
 /* asm/atomic.h is unavailable on sparc and ia64 */
 #define atomic_t int
 #define atomic_read(x)	(*(x))
