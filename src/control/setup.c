@@ -590,6 +590,7 @@ int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf, snd
 	assert(sctl);
 	assert(handle);
 	assert(conf);
+	*sctl = NULL;
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND)
 		return -EINVAL;
 	h = calloc(1, sizeof(*h));
