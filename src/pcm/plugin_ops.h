@@ -32,13 +32,6 @@
 
 #define as_u8c(ptr) (*(const u_int8_t*)(ptr))
 #define as_u16c(ptr) (*(const u_int16_t*)(ptr))
-#ifdef SND_LITTLE_ENDIAN
-#define as_u24c(ptr) (u_int32_t)(as_u8(ptr) | as_u8(((char *)ptr) + 1) << 8 | as_u8(((char *)ptr + 2) << 16)
-#elif defined(SND_BIG_ENDIAN)
-#define as_u24c(ptr) (u_int32_t)(as_u8(ptr) << 16 | as_u8(((char *)ptr) + 1) << 8 | as_u8(((char *)ptr + 2))
-#else
-#error "Wrong endian..."
-#endif
 #define as_u32c(ptr) (*(const u_int32_t*)(ptr))
 #define as_u64c(ptr) (*(const u_int64_t*)(ptr))
 #define as_s8c(ptr) (*(const int8_t*)(ptr))

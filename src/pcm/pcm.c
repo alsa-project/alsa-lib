@@ -1906,6 +1906,17 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 		}
 		break;
 	}
+	case 24:
+#ifdef SNDRV_LITTLE_ENDIAN
+		*(dst + 0) = silence >> 0;
+		*(dst + 1) = silence >> 8;
+		*(dst + 2) = silence >> 16;
+#else
+		*(dst + 2) = silence >> 0;
+		*(dst + 1) = silence >> 8;
+		*(dst + 0) = silence >> 16;
+#endif
+		break;
 	case 32: {
 		u_int32_t sil = silence;
 		while (samples-- > 0) {
