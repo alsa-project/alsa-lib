@@ -28,7 +28,7 @@
 #include <byteswap.h>
 #include "../pcm_local.h"
 
-#define SHIFT	10
+#define SHIFT	11
 #define BITS	(1<<SHIFT)
 #define MASK	(BITS-1)
 
@@ -37,45 +37,67 @@
  */
  
 struct rate_private_data {
-	unsigned int src_rate;
-	unsigned int dst_rate;
+	int src_voices;
+	int dst_voices;
+	int src_rate;
+	int dst_rate;
 	unsigned int pitch;
 	unsigned int pos;
 	signed short last_L_S1, last_R_S1;
+	signed short last_L_S2, last_R_S2;
 	ssize_t old_src_size, old_dst_size;
 };
 
-static void mix(struct rate_private_data *data,
-	        signed short *src_ptr, int src_size,
-	        signed short *dst_ptr, int dst_size)
+static void mix_stereo(struct rate_private_data *data,
+		       signed short *src_ptr, int src_size,
+		       signed short *dst_ptr, int dst_size)
 {
 	unsigned int pos;
 	signed int val;
-	signed short L_S1, R_S1, L_S2, R_S2;
+	signed int L_S1, R_S1, L_S2, R_S2;
 	
 	pos = data->pos;
-	L_S1 = L_S2 = data->last_L_S1;
-	R_S1 = R_S2 = data->last_R_S1;
-	while (dst_size-- > 0) {
-		pos += data->pitch;
-		src_ptr += (pos >> SHIFT) * 2; pos &= MASK;
+	L_S1 = data->last_L_S1;
+	R_S1 = data->last_R_S1;
+	L_S2 = data->last_L_S2;
+	R_S2 = data->last_R_S2;
+	if (pos >> SHIFT) {
+		src_ptr += ((pos >> SHIFT) - 1) * 2; pos &= MASK;
+		L_S1 = L_S2;
+		R_S1 = R_S2;
 		L_S2 = *src_ptr;
-		val = L_S1 + ((L_S2 + L_S1) * (signed int)pos) / BITS;
-		if (val < -32768)
-			val = -32768;
-		else if (val > 32767)
-			val = 32767;
-		*dst_ptr++ = val;
 		R_S2 = *(src_ptr + 1);
-		val = R_S1 + ((R_S2 + R_S1) * (signed int)pos) / BITS;
+	}
+	while (dst_size-- > 0) {
+		if (pos >> SHIFT) {
+			src_ptr += (pos >> SHIFT) * 2; pos &= MASK;
+			L_S1 = L_S2;
+			R_S1 = R_S2;
+			L_S2 = *src_ptr;
+			R_S2 = *(src_ptr + 1);
+		}
+		
+		val = L_S1 + ((L_S2 - L_S1) * (signed int)pos) / BITS;
 		if (val < -32768)
 			val = -32768;
 		else if (val > 32767)
 			val = 32767;
 		*dst_ptr++ = val;
+		// printf("L_S1 = %i, L_S2 = %i, pos = %i, val = %i\n", L_S1, L_S2, pos, val);
+		
+		val = R_S1 + ((R_S2 - R_S1) * (signed int)pos) / BITS;
+		if (val < -32768)
+			val = -32768;
+		else if (val > 32767)
+			val = 32767;
+		*dst_ptr++ = val;
+		
+		pos += data->pitch;
 	}
-	data->last_L_S1 = L_S2;
-	data->last_R_S1 = R_S2;
+	data->last_L_S1 = L_S1;
+	data->last_R_S1 = R_S1;
+	data->last_L_S2 = L_S2;
+	data->last_R_S2 = R_S2;
 	data->pos = pos;
 }
 
@@ -93,9 +115,33 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (data == NULL)
 		return -EINVAL;
-	mix(data, (signed short *)src_ptr, src_size / 4,
-		  (signed short *)dst_ptr, dst_size / 4);
-	return (dst_size / 4) * 4;
+	if (data->src_voices == 2) {
+		mix_stereo(data, (signed short *)src_ptr, src_size / 4,
+				 (signed short *)dst_ptr, dst_size / 4);
+		return (dst_size / 4) * 4;
+	} else {
+		return -EINVAL;
+	}
+}
+
+static int rate_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
+{
+	struct rate_private_data *data;
+
+	if (plugin == NULL)
+		return -EINVAL;
+	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
+	switch (action) {
+	case INIT:
+	case PREPARE:
+	case DRAIN:
+	case FLUSH:
+		data->pos = 0;
+		data->last_L_S1 = data->last_R_S1 = 0;
+		data->last_L_S2 = data->last_R_S2 = 0;
+		break;
+	}
+	return 0;	/* silenty ignore other actions */
 }
 
 static ssize_t rate_src_size(snd_pcm_plugin_t *plugin, size_t size)
@@ -160,11 +206,13 @@ int snd_pcm_plugin_build_rate(int src_format, int src_rate, int src_voices,
 	data->dst_rate = dst_rate;
 	data->pitch = ((src_rate << SHIFT) + (dst_rate >> 1)) / dst_rate;
 	data->pos = 0;
-	data->last_L_S1 = data->last_R_S1;
+	data->last_L_S1 = data->last_R_S1 = 0;
+	data->last_L_S2 = data->last_R_S2 = 0;
 	data->old_src_size = data->old_dst_size = 0;
 	plugin->transfer = rate_transfer;
 	plugin->src_size = rate_src_size;
 	plugin->dst_size = rate_dst_size;
+	plugin->action = rate_action;
 	*r_plugin = plugin;
 	return 0;
 }
