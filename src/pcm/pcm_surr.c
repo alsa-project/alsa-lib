@@ -104,15 +104,22 @@ static int snd_pcm_surround_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 static int snd_pcm_surround_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	snd_pcm_surround_t *surr = pcm->private_data;
-	int err, old_channel;
+	int err, old_channel, use_pcm;
 
 	old_channel = info->channel;
 	if (old_channel < 0 || old_channel > 5)
 		return -EINVAL;
-	if (surr->pcm[old_channel / 2] == NULL)
+	info->channel = surr->route[old_channel];
+	use_pcm = 0;
+	if (surr->pcms > 1) {
+		use_pcm = info->channel / 2;
+		info->channel %= 2;
+	}
+	if (surr->pcm[use_pcm] == NULL) {
+		info->channel = old_channel;
 		return -EINVAL;
-	info->channel = surr->route[old_channel] % 2;
-	err = snd_pcm_channel_info(surr->pcm[surr->pcms == 1 ? 0 : surr->route[old_channel] / 2], info);
+	}
+	err = snd_pcm_channel_info(surr->pcm[use_pcm], info);
 	info->channel = old_channel;
 	return err;
 }
@@ -329,7 +336,7 @@ static int snd_pcm_surround_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
 	err = snd_pcm_surround_interval_channels(surr, params, 1);
 	if (err < 0)
 		return err;
-	if (surr->pcms == 1)
+	if (surr->pcms == 1 && !surr->use_route)
 		return snd_pcm_hw_refine(surr->pcm[0], params);
 	access_mask = (snd_pcm_access_mask_t *)snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	snd_pcm_access_mask_alloca(&access_mask1);
@@ -365,7 +372,7 @@ static int snd_pcm_surround_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * para
 	err = snd_pcm_surround_interval_channels(surr, params, 0);
 	if (err < 0)
 		return err;
-	if (surr->pcms == 1)
+	if (surr->pcms == 1 && !surr->use_route)
 		return snd_pcm_hw_params(surr->pcm[0], params);
 	access_mask = (snd_pcm_access_mask_t *)snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	snd_pcm_access_mask_alloca(&access_mask1);
@@ -657,28 +664,62 @@ int load_surround_config(snd_ctl_t *ctl, snd_pcm_surround_t *surr,
 				goto __error;
 			}
 		}
-		if (snd_config_search(n, "route", &n1) >= 0) {
+		if (snd_config_search(n, "route_four", &n1) >= 0) {
 			snd_config_iterator_t i, next;
-			if (snd_config_get_type(n1) != SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("compound type expected");
-				goto __error;
+			snd_config_t *n2;
+			if (stype == SND_PCM_SURROUND_40) {
+				if (snd_config_get_type(n1) != SND_CONFIG_TYPE_COMPOUND) {
+					SNDERR("compound type expected");
+					goto __error;
+				}
+				if (snd_config_search(n1, "channel", &n2) >= 0) {
+					snd_config_for_each(i, next, n2) {
+						snd_config_t *n = snd_config_iterator_entry(i);
+						int idx = atoi(snd_config_get_id(n));
+						unsigned long i;
+						int err = snd_config_get_integer(n, &i);
+						if (err < 0) {
+							SNDERR("Invalid field channel.%s", snd_config_get_id(n));
+							goto __error;
+						}
+						if (idx < 0 || idx >= 4) {
+							SNDERR("Index is out of range (0-3): %i", idx);
+							goto __error;
+						}
+						if (idx != (int)i)
+							surr->use_route = 1;
+						surr->route[idx] = i;
+					}
+				}
 			}
-			snd_config_for_each(i, next, n1) {
-				snd_config_t *n = snd_config_iterator_entry(i);
-				int idx = atoi(snd_config_get_id(n));
-				unsigned long i;
-				int err = snd_config_get_integer(n, &i);
-				if (err < 0) {
-					SNDERR("Invalid field channel.%s", id);
+		}
+		if (snd_config_search(n, "route_six", &n1) >= 0) {
+			snd_config_iterator_t i, next;
+			snd_config_t *n2;
+			if (stype == SND_PCM_SURROUND_51) {
+				if (snd_config_get_type(n1) != SND_CONFIG_TYPE_COMPOUND) {
+					SNDERR("compound type expected");
 					goto __error;
 				}
-				if (idx < 0 || idx >= 6) {
-					SNDERR("Index is out of range (0-5): %i", idx);
-					goto __error;
+				if (snd_config_search(n1, "channel", &n2) >= 0) {
+					snd_config_for_each(i, next, n2) {
+						snd_config_t *n = snd_config_iterator_entry(i);
+						int idx = atoi(snd_config_get_id(n));
+						unsigned long i;
+						int err = snd_config_get_integer(n, &i);
+						if (err < 0) {
+							SNDERR("Invalid field channel.%s", snd_config_get_id(n));
+							goto __error;
+						}
+						if (idx < 0 || idx >= 6) {
+							SNDERR("Index is out of range (0-5): %i", idx);
+							goto __error;
+						}
+						if (idx != (int)i)
+							surr->use_route = 1;
+						surr->route[idx] = i;
+					}
 				}
-				if (idx != (int)i)
-					surr->use_route = 1;
-				surr->route[idx] = i;
 			}
 		}
 		if (snd_config_search(n, "open_single", &n1) >= 0) {
