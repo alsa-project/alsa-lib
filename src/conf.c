@@ -3038,7 +3038,7 @@ int snd_config_update_free_global(void)
  * \param node Config node handle
  * \return iterator value for first leaf
  */
-const snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node)
+snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node)
 {
 	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
 	return node->u.compound.fields.next;
@@ -3049,7 +3049,7 @@ const snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node)
  * \param iterator Config node iterator
  * \return iterator value for next leaf
  */
-const snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t iterator)
+snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t iterator)
 {
 	return iterator->next;
 }
@@ -3059,7 +3059,7 @@ const snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t
  * \param node Config node handle
  * \return iterator value for end
  */
-const snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node)
+snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node)
 {
 	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
 	return (const snd_config_iterator_t)&node->u.compound.fields;

@@ -131,9 +131,9 @@ int snd_config_get_ascii(const snd_config_t *config, char **value);
 int snd_config_get_pointer(const snd_config_t *config, const void **value);
 int snd_config_test_id(const snd_config_t *config, const char *id);
 
-const snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node);
-const snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t iterator);
-const snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node);
+snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node);
+snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t iterator);
+snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node);
 snd_config_t *snd_config_iterator_entry(const snd_config_iterator_t iterator);
 
 /** Helper for compound config node leaves traversal
