@@ -35,11 +35,12 @@
 
 /* midi status */
 struct snd_midi_event {
-	size_t qlen;	/* queue length */
-	size_t read;	/* chars read */
-	int type;	/* current event type */
+	size_t qlen;		/* queue length */
+	size_t read;		/* chars read */
+	int type;		/* current event type */
 	unsigned char lastcmd;
 	unsigned char nostat;
+	unsigned char xreg_hit;
 	size_t bufsize;
 	unsigned char *buf;	/* input buffer */
 };
@@ -49,9 +50,11 @@ struct snd_midi_event {
 /* from 0 to 7 are normal commands (note off, on, etc.) */
 #define ST_NOTEOFF	0
 #define ST_NOTEON	1
+#define ST_CONTROLLER	3
 #define ST_SPECIAL	8
 #define ST_SYSEX	ST_SPECIAL
 /* from 8 to 15 are events for 0xf0-0xf7 */
+#define ST_XREG_PARM	16
 
 
 /* status event types */
@@ -69,6 +72,8 @@ static void pitchbend_ctrl_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void two_param_ctrl_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void one_param_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void songpos_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
+static unsigned char get_xreg_hit_bit(unsigned char c);
+static void xreg_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void note_decode(snd_seq_event_t *ev, unsigned char *buf);
 static void one_param_decode(snd_seq_event_t *ev, unsigned char *buf);
 static void pitchbend_decode(snd_seq_event_t *ev, unsigned char *buf);
@@ -113,14 +118,15 @@ static struct status_event_list_t {
 };
 
 static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int len, snd_seq_event_t *ev);
+static int extra_decode_xrpn(snd_midi_event_t *dev, unsigned char *buf, int count, snd_seq_event_t *ev);
 
 static struct extra_event_list_t {
 	int event;
 	int (*decode)(snd_midi_event_t *dev, unsigned char *buf, int len, snd_seq_event_t *ev);
 } extra_event[] = {
 	{SND_SEQ_EVENT_CONTROL14, extra_decode_ctrl14},
-	/*{SND_SEQ_EVENT_NONREGPARAM, extra_decode_nrpn},*/
-	/*{SND_SEQ_EVENT_REGPARAM, extra_decode_rpn},*/
+	{SND_SEQ_EVENT_NONREGPARAM, extra_decode_xrpn},
+	{SND_SEQ_EVENT_REGPARAM, extra_decode_xrpn},
 };
 
 #ifndef DOC_HIDDEN
@@ -299,7 +305,7 @@ long snd_midi_event_encode(snd_midi_event_t *dev, unsigned char *buf, long count
  */
 int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev)
 {
-	int rc = 0;
+	int tmp = 0;
 
 	c &= 0xff;
 
@@ -313,11 +319,20 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 
 	if (dev->qlen > 0) {
 		/* rest of command */
+		if (c & 0x80) {		/* error? state inside data? */
+			if (dev->type == ST_XREG_PARM) {
+				if (c != dev->buf[0])
+					goto __new_command;
+				return 0;
+			}
+			goto __new_command;
+		}
 		dev->buf[dev->read++] = c;
 		if (dev->type != ST_SYSEX)
 			dev->qlen--;
 	} else {
 		/* new command */
+	      __new_command:
 		dev->read = 1;
 		if (c & 0x80) {
 			dev->buf[0] = c;
@@ -333,13 +348,39 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 		}
 	}
 	if (dev->qlen == 0) {
+		/* handle xrpn special case here */
+		if (dev->type == ST_CONTROLLER &&
+		    dev->buf[1] >= MIDI_CTL_NONREG_PARM_NUM_LSB &&
+		    dev->buf[1] <= MIDI_CTL_REGIST_PARM_NUM_MSB) {
+		    	dev->type = ST_XREG_PARM;
+		    	dev->xreg_hit = get_xreg_hit_bit(dev->buf[1]);
+		    	dev->qlen = 2;		/* we need more bytes */
+		    	return 0;
+		}
+		if (dev->type == ST_XREG_PARM) {
+			tmp = get_xreg_hit_bit(dev->buf[1]);
+			if (tmp == 0 || (tmp & dev->xreg_hit)) {
+				reset_encode(dev);
+				dev->type = ST_CONTROLLER;
+				dev->read = 1;
+				return 0;
+			}
+			dev->xreg_hit |= tmp;
+			if (dev->xreg_hit == 0x0f) {	/* finished */
+				xreg_event(dev, ev);
+				return 1;
+			}
+			dev->qlen = 2;		/* we need more bytes */
+			return 0;
+		}
+		/* handle standard midi events */
 		ev->type = status_event[dev->type].event;
 		ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
 		ev->flags |= SNDRV_SEQ_EVENT_LENGTH_FIXED;
 		if (status_event[dev->type].encode) /* set data values */
 			status_event[dev->type].encode(dev, ev);
-		rc = 1;
-	} else 	if (dev->type == ST_SYSEX) {
+		return 1;
+	} else if (dev->type == ST_SYSEX) {
 		if (c == MIDI_CMD_COMMON_SYSEX_END ||
 		    dev->read >= dev->bufsize) {
 			ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
@@ -351,11 +392,11 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 				dev->read = 0; /* continue to parse */
 			else
 				reset_encode(dev); /* all parsed */
-			rc = 1;
+			return 1;
 		}
 	}
 
-	return rc;
+	return 0;
 }
 
 /* encode note event */
@@ -398,6 +439,44 @@ static void one_param_event(snd_midi_event_t *dev, snd_seq_event_t *ev)
 static void songpos_event(snd_midi_event_t *dev, snd_seq_event_t *ev)
 {
 	ev->data.control.value = (int)dev->buf[2] * 128 + (int)dev->buf[1];
+}
+
+static unsigned char get_xreg_hit_bit(unsigned char c)
+{
+	switch (c) {
+	case MIDI_CTL_NONREG_PARM_NUM_MSB:
+	case MIDI_CTL_REGIST_PARM_NUM_MSB:
+		return 1;
+	case MIDI_CTL_NONREG_PARM_NUM_LSB:
+	case MIDI_CTL_REGIST_PARM_NUM_LSB:
+		return 2;
+	case MIDI_CTL_MSB_DATA_ENTRY:
+		return 4;
+	case MIDI_CTL_LSB_DATA_ENTRY:
+		return 8;
+	default:
+		return 0;
+	}
+}
+
+/* encode xreg event */
+static void xreg_event(snd_midi_event_t *dev, snd_seq_event_t *ev)
+{
+	int i;
+
+	ev->type = (dev->buf[1] == MIDI_CTL_NONREG_PARM_NUM_MSB ||
+		    dev->buf[1] == MIDI_CTL_NONREG_PARM_NUM_LSB) ?
+			SND_SEQ_EVENT_NONREGPARAM : SND_SEQ_EVENT_REGPARAM;		
+	ev->data.control.param = 0;
+	ev->data.control.value = 0;
+	for (i = 1; i < 9; i += 2) {
+		switch (get_xreg_hit_bit(dev->buf[i])) {
+		case 1: ev->data.control.param |= dev->buf[i+1] << 7;	break;
+		case 2: ev->data.control.param |= dev->buf[i+1];	break;
+		case 4: ev->data.control.value |= dev->buf[i+1] << 7;	break;
+		case 8: ev->data.control.value |= dev->buf[i+1];	break;
+		}
+	}
 }
 
 /**
@@ -510,12 +589,12 @@ static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int co
 	unsigned char cmd;
 	int idx = 0;
 
+	cmd = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
 	if (ev->data.control.param < 32) {
 		if (count < 4)
 			return -ENOMEM;
 		if (dev->nostat && count < 6)
 			return -ENOMEM;
-		cmd = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
 		if (cmd != dev->lastcmd || dev->nostat) {
 			if (count < 5)
 				return -ENOMEM;
@@ -527,11 +606,9 @@ static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int co
 			buf[idx++] = cmd;
 		buf[idx++] = ev->data.control.param + 32;
 		buf[idx++] = ev->data.control.value & 0x7f;
-		return idx;
 	} else {
 		if (count < 2)
 			return -ENOMEM;
-		cmd = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
 		if (cmd != dev->lastcmd || dev->nostat) {
 			if (count < 3)
 				return -ENOMEM;
@@ -539,6 +616,46 @@ static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int co
 		}
 		buf[idx++] = ev->data.control.param & 0x7f;
 		buf[idx++] = ev->data.control.value & 0x7f;
-		return idx;
 	}
+	return idx;
+}
+
+/* decode reg/nonreg param */
+static int extra_decode_xrpn(snd_midi_event_t *dev, unsigned char *buf, int count, snd_seq_event_t *ev)
+{
+	unsigned char cmd;
+	char *cbytes;
+	static char cbytes_nrpn[4] = { MIDI_CTL_NONREG_PARM_NUM_MSB,
+				       MIDI_CTL_NONREG_PARM_NUM_LSB,
+				       MIDI_CTL_MSB_DATA_ENTRY,
+				       MIDI_CTL_LSB_DATA_ENTRY };
+	static char cbytes_rpn[4] =  { MIDI_CTL_REGIST_PARM_NUM_MSB,
+				       MIDI_CTL_REGIST_PARM_NUM_LSB,
+				       MIDI_CTL_MSB_DATA_ENTRY,
+				       MIDI_CTL_LSB_DATA_ENTRY };
+	unsigned char bytes[4];
+	int idx = 0, i;
+
+	if (count < 8)
+		return -ENOMEM;
+	if (dev->nostat && count < 12)
+		return -ENOMEM;
+	cmd = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
+	bytes[0] = ev->data.control.param & 0x007f;
+	bytes[1] = (ev->data.control.param & 0x3f80) >> 7;
+	bytes[2] = ev->data.control.value & 0x007f;
+	bytes[3] = (ev->data.control.value & 0x3f80) >> 7;
+	if (cmd != dev->lastcmd && !dev->nostat) {
+		if (count < 9)
+			return -ENOMEM;
+		buf[idx++] = dev->lastcmd = cmd;
+	}
+	cbytes = ev->type == SND_SEQ_EVENT_NONREGPARAM ? cbytes_nrpn : cbytes_rpn;
+	for (i = 0; i < 4; i++) {
+		if (dev->nostat)
+			buf[idx++] = dev->lastcmd = cmd;
+		buf[idx++] = cbytes[i];
+		buf[idx++] = bytes[i];
+	}
+	return idx;
 }
