@@ -504,7 +504,7 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED)
 		goto _capture;
 	if (plugin->client_frames) {
-		plugin->hw_ptr = plugin->client_frames(slave, *slave->hw_ptr);
+		plugin->hw_ptr = plugin->client_frames(pcm, *slave->hw_ptr);
 		if (slave_size <= 0)
 			return slave_size;
 		return plugin->client_frames(pcm, slave_size);
