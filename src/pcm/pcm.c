@@ -1508,10 +1508,14 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 #endif
 	void *h;
 	if (snd_config_get_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		if (name)
-			SNDERR("Invalid type for PCM %s definition", name);
-		else
-			SNDERR("Invalid type for PCM definition");
+		char *val;
+		id = NULL;
+		snd_config_get_id(pcm_conf, &id);
+		val = NULL;
+		snd_config_get_ascii(pcm_conf, &val);
+		SNDERR("Invalid type for PCM %s%sdefinition (id: %s, value: %s)", name ? name : "", name ? " " : "", id, val);
+		if (val)
+			free(val);
 		return -EINVAL;
 	}
 	err = snd_config_search(pcm_conf, "type", &conf);
