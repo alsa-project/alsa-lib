@@ -268,7 +268,12 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 			}
 			if (i == idx) {
 				idx++;
-				snd_config_get_string(n, &ptr);
+				err = snd_config_get_string(n, &ptr);
+				if (err < 0) {
+					SNDERR("invalid string for id %s", id);
+					err = -EINVAL;
+					goto __error;
+				}
 				env = getenv(ptr);
 				if (env != NULL && *env != '\0') {
 					res = strdup(env);
@@ -404,8 +409,13 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 			}
 			if (i == idx) {
 				idx++;
-				snd_config_get_ascii(n, &ptr);
-					len1 = strlen(ptr);
+				err = snd_config_get_ascii(n, &ptr);
+				if (err < 0) {
+					SNDERR("invalid ascii string for id %s", id);
+					err = -EINVAL;
+					goto __error;
+				}
+				len1 = strlen(ptr);
 				tmp = realloc(res, len + len1 + 1);
 				if (tmp == NULL) {
 					free(ptr);
