@@ -32,7 +32,7 @@
 /** Simple PCM latency type */
 enum snds_pcm_latency_type {
 	/** normal latency - for standard playback or capture
-	    (estimated latency in one direction 350ms) */
+	    (estimated latency in one direction 350ms) (default) */
 	SNDS_PCM_LATENCY_NORMAL = 0,
 	/** medium latency - software phones etc.
 	    (estimated latency in one direction 50ms) */
@@ -44,10 +44,18 @@ enum snds_pcm_latency_type {
 
 /** Simple PCM access type */
 enum snds_pcm_access_type {
-	/** interleaved access - channels are interleaved without any gaps among samples */
+	/** interleaved access - channels are interleaved without any gaps among samples (default) */
 	SNDS_PCM_ACCESS_INTERLEAVED = 0,
 	/** noninterleaved access - channels are separate without any gaps among samples */
 	SNDS_PCM_ACCESS_NONINTERLEAVED
+};
+
+/** Simple PCM xrun type */
+enum snds_pcm_xrun_type {
+	/** driver / library will not care about xruns, stream runs forever (default) */
+	SNDS_PCM_XRUN_NOCARE = 0,
+	/** driver / library stops the stream when xrun occurs */
+	SNDS_PCM_XRUN_STOP
 };
 
 #ifdef __cplusplus
@@ -60,8 +68,7 @@ extern "C" {
  *  \{
  */
 
-int snds_pcm_open(snds_pcm_t **pcm, const char *playback_name, const char *capture_name);
-int snds_pcm_open_lconf(snds_pcm_t **pcm, const char *plaback_name, const char *capture_name, snd_config_t *lconf);
+int snds_pcm_open(snds_pcm_t **pcm, const char *playback_name, const char *capture_name, snd_config_t *lconf);
 int snds_pcm_close(snds_pcm_t *pcm);
 int snds_pcm_poll_descriptors_count(snds_pcm_t *pcm);
 int snds_pcm_poll_descriptors(snds_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
@@ -87,6 +94,7 @@ int snds_pcm_param_channels(snds_pcm_t *pcm, unsigned int channels, unsigned int
 int snds_pcm_param_format(snds_pcm_t *pcm, snd_pcm_format_t format, snd_pcm_subformat_t subformat);
 int snds_pcm_param_latency(snds_pcm_t *pcm, enum snds_pcm_latency_type latency);
 int snds_pcm_param_access(snds_pcm_t *pcm, enum snds_pcm_access_type access);
+int snds_pcm_param_xrun(snds_pcm_t *pcm, enum snds_pcm_xrun_type xrun);
 
 /** \} */
 
