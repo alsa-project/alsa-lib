@@ -5,7 +5,7 @@ extern "C" {
 
 
 size_t snd_pcm_access_mask_sizeof();
-#define snd_pcm_access_mask_alloca(ptr) ({ assert(ptr); *ptr = (snd_pcm_access_mask_t *) alloca(snd_pcm_access_mask_sizeof()); memset(*ptr, 0, snd_pcm_access_mask_sizeof()); 0; })
+#define snd_pcm_access_mask_alloca(ptr) do { assert(ptr); *ptr = (snd_pcm_access_mask_t *) alloca(snd_pcm_access_mask_sizeof()); memset(*ptr, 0, snd_pcm_access_mask_sizeof()); } while (0)
 int snd_pcm_access_mask_malloc(snd_pcm_access_mask_t **ptr);
 void snd_pcm_access_mask_free(snd_pcm_access_mask_t *obj);
 void snd_pcm_access_mask_copy(snd_pcm_access_mask_t *dst, const snd_pcm_access_mask_t *src);
@@ -17,7 +17,7 @@ void snd_pcm_access_mask_set(snd_pcm_access_mask_t *mask, snd_pcm_access_t val);
 void snd_pcm_access_mask_reset(snd_pcm_access_mask_t *mask, snd_pcm_access_t val);
 
 size_t snd_pcm_format_mask_sizeof();
-#define snd_pcm_format_mask_alloca(ptr) ({ assert(ptr); *ptr = (snd_pcm_format_mask_t *) alloca(snd_pcm_format_mask_sizeof()); memset(*ptr, 0, snd_pcm_format_mask_sizeof()); 0; })
+#define snd_pcm_format_mask_alloca(ptr) do { assert(ptr); *ptr = (snd_pcm_format_mask_t *) alloca(snd_pcm_format_mask_sizeof()); memset(*ptr, 0, snd_pcm_format_mask_sizeof()); } while (0)
 int snd_pcm_format_mask_malloc(snd_pcm_format_mask_t **ptr);
 void snd_pcm_format_mask_free(snd_pcm_format_mask_t *obj);
 void snd_pcm_format_mask_copy(snd_pcm_format_mask_t *dst, const snd_pcm_format_mask_t *src);
@@ -29,7 +29,7 @@ void snd_pcm_format_mask_set(snd_pcm_format_mask_t *mask, snd_pcm_format_t val);
 void snd_pcm_format_mask_reset(snd_pcm_format_mask_t *mask, snd_pcm_format_t val);
 
 size_t snd_pcm_subformat_mask_sizeof();
-#define snd_pcm_subformat_mask_alloca(ptr) ({ assert(ptr); *ptr = (snd_pcm_subformat_mask_t *) alloca(snd_pcm_subformat_mask_sizeof()); memset(*ptr, 0, snd_pcm_subformat_mask_sizeof()); 0; })
+#define snd_pcm_subformat_mask_alloca(ptr) do { assert(ptr); *ptr = (snd_pcm_subformat_mask_t *) alloca(snd_pcm_subformat_mask_sizeof()); memset(*ptr, 0, snd_pcm_subformat_mask_sizeof()); } while (0)
 int snd_pcm_subformat_mask_malloc(snd_pcm_subformat_mask_t **ptr);
 void snd_pcm_subformat_mask_free(snd_pcm_subformat_mask_t *obj);
 void snd_pcm_subformat_mask_copy(snd_pcm_subformat_mask_t *dst, const snd_pcm_subformat_mask_t *src);
@@ -41,7 +41,7 @@ void snd_pcm_subformat_mask_set(snd_pcm_subformat_mask_t *mask, snd_pcm_subforma
 void snd_pcm_subformat_mask_reset(snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val);
 
 size_t snd_pcm_hw_params_sizeof();
-#define snd_pcm_hw_params_alloca(ptr) ({ assert(ptr); *ptr = (snd_pcm_hw_params_t *) alloca(snd_pcm_hw_params_sizeof()); memset(*ptr, 0, snd_pcm_hw_params_sizeof()); 0; })
+#define snd_pcm_hw_params_alloca(ptr) do { assert(ptr); *ptr = (snd_pcm_hw_params_t *) alloca(snd_pcm_hw_params_sizeof()); memset(*ptr, 0, snd_pcm_hw_params_sizeof()); } while (0)
 int snd_pcm_hw_params_malloc(snd_pcm_hw_params_t **ptr);
 void snd_pcm_hw_params_free(snd_pcm_hw_params_t *obj);
 void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t *src);
@@ -166,7 +166,7 @@ unsigned int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_pa
 unsigned int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir);
 
 size_t snd_pcm_sw_params_sizeof();
-#define snd_pcm_sw_params_alloca(ptr) ({ assert(ptr); *ptr = (snd_pcm_sw_params_t *) alloca(snd_pcm_sw_params_sizeof()); memset(*ptr, 0, snd_pcm_sw_params_sizeof()); 0; })
+#define snd_pcm_sw_params_alloca(ptr) do { assert(ptr); *ptr = (snd_pcm_sw_params_t *) alloca(snd_pcm_sw_params_sizeof()); memset(*ptr, 0, snd_pcm_sw_params_sizeof()); } while (0)
 int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **ptr);
 void snd_pcm_sw_params_free(snd_pcm_sw_params_t *obj);
 void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t *src);
@@ -199,7 +199,7 @@ int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm, snd_pcm_sw_params_t *para
 snd_pcm_uframes_t snd_pcm_sw_params_get_silence_size(const snd_pcm_sw_params_t *params);
 
 size_t snd_pcm_status_sizeof();
-#define snd_pcm_status_alloca(ptr) ({ assert(ptr); *ptr = (snd_pcm_status_t *) alloca(snd_pcm_status_sizeof()); memset(*ptr, 0, snd_pcm_status_sizeof()); 0; })
+#define snd_pcm_status_alloca(ptr) do { assert(ptr); *ptr = (snd_pcm_status_t *) alloca(snd_pcm_status_sizeof()); memset(*ptr, 0, snd_pcm_status_sizeof()); } while (0)
 int snd_pcm_status_malloc(snd_pcm_status_t **ptr);
 void snd_pcm_status_free(snd_pcm_status_t *obj);
 void snd_pcm_status_copy(snd_pcm_status_t *dst, const snd_pcm_status_t *src);
@@ -217,7 +217,7 @@ snd_pcm_uframes_t snd_pcm_status_get_avail(const snd_pcm_status_t *obj);
 snd_pcm_uframes_t snd_pcm_status_get_avail_max(const snd_pcm_status_t *obj);
 
 size_t snd_pcm_info_sizeof();
-#define snd_pcm_info_alloca(ptr) ({ assert(ptr); *ptr = (snd_pcm_info_t *) alloca(snd_pcm_info_sizeof()); memset(*ptr, 0, snd_pcm_info_sizeof()); 0; })
+#define snd_pcm_info_alloca(ptr) do { assert(ptr); *ptr = (snd_pcm_info_t *) alloca(snd_pcm_info_sizeof()); memset(*ptr, 0, snd_pcm_info_sizeof()); } while (0)
 int snd_pcm_info_malloc(snd_pcm_info_t **ptr);
 void snd_pcm_info_free(snd_pcm_info_t *obj);
 void snd_pcm_info_copy(snd_pcm_info_t *dst, const snd_pcm_info_t *src);
