@@ -1,4 +1,8 @@
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _snd_input snd_input_t;
 
 typedef enum _snd_input_type {
@@ -13,3 +17,7 @@ int snd_input_close(snd_input_t *input);
 int snd_input_scanf(snd_input_t *input, const char *format, ...) __attribute__ ((format (scanf, 2, 3)));
 char *snd_input_gets(snd_input_t *input, char *str, size_t size);
 int snd_input_getc(snd_input_t *input);
+
+#ifdef __cplusplus
+}
+#endif

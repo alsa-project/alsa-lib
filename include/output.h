@@ -1,4 +1,8 @@
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _snd_output snd_output_t;
 
 typedef enum _snd_output_type {
@@ -15,3 +19,7 @@ int snd_output_printf(snd_output_t *output, const char *format, ...) __attribute
 int snd_output_puts(snd_output_t *output, const char *str);
 int snd_output_putc(snd_output_t *output, int c);
 int snd_output_flush(snd_output_t *output);
+
+#ifdef __cplusplus
+}
+#endif
