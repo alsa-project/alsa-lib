@@ -603,8 +603,6 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "stream") == 0)
-			continue;
 		if (strcmp(id, "slave") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
 				ERR("Invalid type for %s", id);

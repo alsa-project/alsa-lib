@@ -687,8 +687,6 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "stream") == 0)
-			continue;
 		if (strcmp(id, "card") == 0) {
 			err = snd_config_get_integer(n, &card);
 			if (err < 0) {

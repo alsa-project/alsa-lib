@@ -33,6 +33,7 @@
 #define SNDRV_RAWMIDI_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
 typedef struct {
+	int open;
 	int fd;
 	int card, device, subdevice;
 } snd_rawmidi_hw_t;
@@ -40,6 +41,9 @@ typedef struct {
 static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
+	hw->open--;
+	if (hw->open)
+		return 0;
 	if (close(hw->fd)) {
 		SYSERR("close failed\n");
 		return -errno;
@@ -71,6 +75,7 @@ static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
+	info->stream = snd_enum_to_int(rmidi->stream);
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_INFO, info) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_INFO failed");
 		return -errno;
@@ -81,6 +86,7 @@ static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
+	params->stream = snd_enum_to_int(rmidi->stream);
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_PARAMS, params) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_PARAMS failed");
 		return -errno;
@@ -91,6 +97,7 @@ static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * pa
 static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
+	status->stream = snd_enum_to_int(rmidi->stream);
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_STATUS, status) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_STATUS failed");
 		return -errno;
@@ -98,20 +105,22 @@ static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * st
 	return 0;
 }
 
-static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
+static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
-	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DROP, &stream) < 0) {
+	int str = snd_enum_to_int(rmidi->stream);
+	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DROP, &str) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_DROP failed");
 		return -errno;
 	}
 	return 0;
 }
 
-static int snd_rawmidi_hw_drain(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
+static int snd_rawmidi_hw_drain(snd_rawmidi_t *rmidi)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
-	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DRAIN, &stream) < 0) {
+	int str = snd_enum_to_int(rmidi->stream);
+	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DRAIN, &str) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_DRAIN failed");
 		return -errno;
 	}
@@ -151,21 +160,25 @@ snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
 };
 
 
-int snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, int card, int device, int subdevice, int streams, int mode)
+int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+			char *name, int card, int device, int subdevice,
+			int mode)
 {
 	int fd, ver, ret;
 	int attempt = 0;
 	char filename[32];
 	snd_ctl_t *ctl;
 	snd_rawmidi_t *rmidi;
-	snd_rawmidi_hw_t *hw;
+	snd_rawmidi_hw_t *hw = NULL;
 	snd_rawmidi_info_t info;
-	int fmode;
+	int fmode, str;
+	int c;
 
-	*handlep = NULL;
+	if (inputp)
+		*inputp = NULL;
+	if (outputp)
+		*outputp = NULL;
 	
-	assert(card >= 0 && card < 32);
-
 	if ((ret = snd_ctl_hw_open(&ctl, NULL, card)) < 0)
 		return ret;
 	sprintf(filename, SNDRV_FILE_RAWMIDI, card, device);
@@ -181,23 +194,15 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, int card, int devic
 		return ret;
 	}
 
-	switch (streams) {
-	case SND_RAWMIDI_OPEN_OUTPUT:
+	if (!inputp)
 		fmode = O_WRONLY;
-		break;
-	case SND_RAWMIDI_OPEN_INPUT:
+	else if (!outputp)
 		fmode = O_RDONLY;
-		break;
-	case SND_RAWMIDI_OPEN_DUPLEX:
+	else
 		fmode = O_RDWR;
-		break;
-	default:
-		assert(0);
-		return -EINVAL;
-	}
 
 	if (mode & SND_RAWMIDI_APPEND) {
-		assert(streams & SND_RAWMIDI_OPEN_OUTPUT);
+		assert(outputp);
 		fmode |= O_APPEND;
 	}
 
@@ -241,37 +246,61 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, int card, int devic
 			goto __again;
 		}
 	}
+	snd_ctl_close(ctl);
+
 	hw = calloc(1, sizeof(snd_rawmidi_hw_t));
-	if (hw == NULL) {
-		close(fd);
-		snd_ctl_close(ctl);
-		return -ENOMEM;
-	}
-	rmidi = calloc(1, sizeof(snd_rawmidi_t));
-	if (rmidi == NULL) {
-		free(hw);
-		close(fd);
-		snd_ctl_close(ctl);
-		return -ENOMEM;
-	}
+	if (hw == NULL)
+		goto _nomem;
 	hw->card = card;
 	hw->device = device;
 	hw->subdevice = subdevice;
 	hw->fd = fd;
-	if (name)
-		rmidi->name = strdup(name);
-	rmidi->type = SND_RAWMIDI_TYPE_HW;
-	rmidi->streams = streams;
-	rmidi->mode = mode;
-	rmidi->poll_fd = fd;
-	rmidi->ops = &snd_rawmidi_hw_ops;
-	rmidi->private = hw;
-	*handlep = rmidi;
+
+	if (inputp) {
+		rmidi = calloc(1, sizeof(snd_rawmidi_t));
+		if (rmidi == NULL)
+			goto _nomem;
+		if (name)
+			rmidi->name = strdup(name);
+		rmidi->type = SND_RAWMIDI_TYPE_HW;
+		rmidi->stream = SND_RAWMIDI_STREAM_INPUT;
+		rmidi->mode = mode;
+		rmidi->poll_fd = fd;
+		rmidi->ops = &snd_rawmidi_hw_ops;
+		rmidi->private = hw;
+		hw->open++;
+		*inputp = rmidi;
+	}
+	if (outputp) {
+		rmidi = calloc(1, sizeof(snd_rawmidi_t));
+		if (rmidi == NULL)
+			goto _nomem;
+		if (name)
+			rmidi->name = strdup(name);
+		rmidi->type = SND_RAWMIDI_TYPE_HW;
+		rmidi->stream = SND_RAWMIDI_STREAM_OUTPUT;
+		rmidi->mode = mode;
+		rmidi->poll_fd = fd;
+		rmidi->ops = &snd_rawmidi_hw_ops;
+		rmidi->private = hw;
+		hw->open++;
+		*outputp = rmidi;
+	}
 	return 0;
+
+ _nomem:
+	close(fd);
+	if (hw)
+		free(hw);
+	if (inputp && *inputp)
+		free(*inputp);
+	if (outputp && *outputp)
+		free(*outputp);
+	return -ENOMEM;
 }
 
-int _snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, snd_config_t *conf,
-			 int streams, int mode)
+int _snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+			 char *name, snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i;
 	long card = -1, device = 0, subdevice = -1;
@@ -283,8 +312,6 @@ int _snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, snd_config_t *conf
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "type") == 0)
-			continue;
-		if (strcmp(id, "streams") == 0)
 			continue;
 		if (strcmp(id, "card") == 0) {
 			err = snd_config_get_integer(n, &card);
@@ -314,6 +341,6 @@ int _snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, snd_config_t *conf
 	}
 	if (card < 0)
 		return -EINVAL;
-	return snd_rawmidi_hw_open(handlep, name, card, device, subdevice, streams, mode);
+	return snd_rawmidi_hw_open(inputp, outputp, name, card, device, subdevice, mode);
 }
 				

@@ -30,29 +30,29 @@ typedef struct {
 	int (*info)(snd_rawmidi_t *rawmidi, snd_rawmidi_info_t *info);
 	int (*params)(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params);
 	int (*status)(snd_rawmidi_t *rawmidi, snd_rawmidi_status_t *status);
-	int (*drop)(snd_rawmidi_t *rawmidi, snd_rawmidi_stream_t stream);
-	int (*drain)(snd_rawmidi_t *rawmidi, snd_rawmidi_stream_t stream);
+	int (*drop)(snd_rawmidi_t *rawmidi);
+	int (*drain)(snd_rawmidi_t *rawmidi);
 	ssize_t (*write)(snd_rawmidi_t *rawmidi, const void *buffer, size_t size);
 	ssize_t (*read)(snd_rawmidi_t *rawmidi, void *buffer, size_t size);
 } snd_rawmidi_ops_t;
 
-typedef struct _snd_rawmidi_str {
-	size_t buffer_size;
-	size_t avail_min;
-	unsigned int no_active_sensing: 1;
-} snd_rawmidi_str_t;
+
 
 struct _snd_rawmidi {
 	char *name;
 	snd_rawmidi_type_t type;
-	int streams;
+	snd_rawmidi_stream_t stream;
 	int mode;
 	int poll_fd;
-	snd_rawmidi_str_t stream[2];
 	snd_rawmidi_ops_t *ops;
-  
 	void *private;
+	size_t buffer_size;
+	size_t avail_min;
+	unsigned int no_active_sensing: 1;
+	snd_rawmidi_t *other;
 };
 
-int snd_rawmidi_hw_open(snd_rawmidi_t **handle, char *name, int card, int device, int subdevice, int streams, int mode);
+int snd_rawmidi_hw_open(snd_rawmidi_t **input, snd_rawmidi_t **output,
+			char *name, int card, int device, int subdevice,
+			int mode);
 

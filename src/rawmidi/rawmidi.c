@@ -28,14 +28,6 @@
 #include <asm/page.h>
 #include "rawmidi_local.h"
 
-static inline int snd_rawmidi_stream_ok(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
-{
-	assert(rmidi);
-	assert(stream == SND_RAWMIDI_STREAM_INPUT || 
-	       stream == SND_RAWMIDI_STREAM_OUTPUT);
-	return rmidi->streams & (1 << (snd_enum_to_int(stream)));
-}
-
 int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 {
 	int err;
@@ -48,19 +40,16 @@ int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 	return 0;
 }
 
-int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi,
-				snd_rawmidi_stream_t stream ATTRIBUTE_UNUSED)
+int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi)
 {
-	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	assert(rmidi);
 	return rmidi->poll_fd;
 }
 
-int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, 
-			 snd_rawmidi_stream_t stream ATTRIBUTE_UNUSED,
-			 int nonblock)
+int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 {
 	int err;
-	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	assert(rmidi);
 	assert(!(rmidi->mode & SND_RAWMIDI_APPEND));
 	if ((err = rmidi->ops->nonblock(rmidi, nonblock)) < 0)
 		return err;
@@ -71,86 +60,75 @@ int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi,
 	return 0;
 }
 
-int snd_rawmidi_info(snd_rawmidi_t *rmidi,
-		     snd_rawmidi_stream_t stream,
-		     snd_rawmidi_info_t * info)
+int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 {
-	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	assert(rmidi);
 	assert(info);
-	info->stream = snd_enum_to_int(stream);
 	return rmidi->ops->info(rmidi, info);
 }
 
-int snd_rawmidi_params(snd_rawmidi_t *rmidi, 
-		       snd_rawmidi_stream_t stream,
-		       snd_rawmidi_params_t * params)
+int snd_rawmidi_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
 {
 	int err;
-	snd_rawmidi_str_t *pstr;
-	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	assert(rmidi);
 	assert(params);
-	params->stream = snd_enum_to_int(stream);
 	err = rmidi->ops->params(rmidi, params);
 	if (err < 0)
 		return err;
-	pstr = &rmidi->stream[snd_enum_to_int(stream)];
-	pstr->buffer_size = params->buffer_size;
-	pstr->avail_min = params->avail_min;
-	pstr->no_active_sensing = params->no_active_sensing;
+	rmidi->buffer_size = params->buffer_size;
+	rmidi->avail_min = params->avail_min;
+	rmidi->no_active_sensing = params->no_active_sensing;
 	return 0;
 }
 
-int snd_rawmidi_status(snd_rawmidi_t *rmidi,
-		       snd_rawmidi_stream_t stream,
-		       snd_rawmidi_status_t * status)
+int snd_rawmidi_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
-	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	assert(rmidi);
 	assert(status);
-	status->stream = snd_enum_to_int(stream);
 	return rmidi->ops->status(rmidi, status);
 }
 
-int snd_rawmidi_drop(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
+int snd_rawmidi_drop(snd_rawmidi_t *rmidi)
 {
-	assert(snd_rawmidi_stream_ok(rmidi, stream));
-	return rmidi->ops->drop(rmidi, stream);
+	assert(rmidi);
+	return rmidi->ops->drop(rmidi);
 }
 
-int snd_rawmidi_drain(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
+int snd_rawmidi_drain(snd_rawmidi_t *rmidi)
 {
-	assert(snd_rawmidi_stream_ok(rmidi, stream));
-	return rmidi->ops->drain(rmidi, stream);
+	assert(rmidi);
+	return rmidi->ops->drain(rmidi);
 }
 
 ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
 {
-	assert(snd_rawmidi_stream_ok(rmidi, SND_RAWMIDI_STREAM_OUTPUT));
+	assert(rmidi);
+	assert(rmidi->stream == SND_RAWMIDI_STREAM_OUTPUT);
 	assert(buffer || size == 0);
 	return rmidi->ops->write(rmidi, buffer, size);
 }
 
 ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
 {
-	assert(snd_rawmidi_stream_ok(rmidi, SND_RAWMIDI_STREAM_INPUT));
+	assert(rmidi);
+	assert(rmidi->stream == SND_RAWMIDI_STREAM_INPUT);
 	assert(buffer || size == 0);
 	return rmidi->ops->read(rmidi, buffer, size);
 }
 
-int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, snd_rawmidi_params_t *params)
+int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *params)
 {
-	snd_rawmidi_str_t *pstr;
-	assert(snd_rawmidi_stream_ok(rmidi, SND_RAWMIDI_STREAM_OUTPUT));
+	assert(rmidi);
 	assert(params);
-	pstr = &rmidi->stream[snd_enum_to_int(stream)];
-	params->buffer_size = pstr->buffer_size;
-	params->avail_min = pstr->avail_min;
-	params->no_active_sensing = pstr->no_active_sensing;
+	params->buffer_size = rmidi->buffer_size;
+	params->avail_min = rmidi->avail_min;
+	params->no_active_sensing = rmidi->no_active_sensing;
 	return 0;
 }
 
-int snd_rawmidi_params_default(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, snd_rawmidi_params_t *params)
+int snd_rawmidi_params_default(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *params)
 {
-	assert(snd_rawmidi_stream_ok(rmidi, stream));
+	assert(rmidi);
 	assert(params);
 	params->buffer_size = PAGE_SIZE;
 	params->avail_min = 1;
@@ -158,8 +136,8 @@ int snd_rawmidi_params_default(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream
 	return 0;
 }
 
-int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name, 
-		     int streams, int mode)
+int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+		     char *name, int mode)
 {
 	const char *str;
 	int err;
@@ -168,10 +146,10 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 	snd_rawmidi_params_t params;
 	unsigned int stream;
 	const char *lib = NULL, *open = NULL;
-	int (*open_func)(snd_rawmidi_t **rawmidip, char *name, snd_config_t *conf, 
-			 int streams, int mode);
+	int (*open_func)(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+			 char *name, snd_config_t *conf, int mode);
 	void *h;
-	assert(rawmidip && name);
+	assert((inputp || outputp) && name);
 	err = snd_config_update();
 	if (err < 0)
 		return err;
@@ -180,38 +158,16 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 		int card, dev, subdev;
 		err = sscanf(name, "hw:%d,%d,%d", &card, &dev, &subdev);
 		if (err == 3)
-			return snd_rawmidi_hw_open(rawmidip, name, card, dev, subdev, streams, mode);
+			return snd_rawmidi_hw_open(inputp, outputp, name, card, dev, subdev, mode);
 		err = sscanf(name, "hw:%d,%d", &card, &dev);
 		if (err == 2)
-			return snd_rawmidi_hw_open(rawmidip, name, card, dev, -1, streams, mode);
+			return snd_rawmidi_hw_open(inputp, outputp, name, card, dev, -1, mode);
 		ERR("Unknown RAWMIDI %s", name);
 		return -ENOENT;
 	}
 	if (snd_config_get_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		ERR("Invalid type for RAWMIDI %s definition", name);
 		return -EINVAL;
-	}
-	err = snd_config_search(rawmidi_conf, "streams", &conf);
-	if (err >= 0) {
-		const char *id = snd_config_get_id(conf);
-		err = snd_config_get_string(conf, &str);
-		if (err < 0) {
-			ERR("Invalid type for %s", id);
-			return err;
-		}
-		if (strcmp(str, "output") == 0) {
-			if (streams == SND_RAWMIDI_OPEN_INPUT)
-				return -EINVAL;
-		} else if (strcmp(str, "input") == 0) {
-			if (streams == SND_RAWMIDI_OPEN_OUTPUT)
-				return -EINVAL;
-		} else if (strcmp(str, "duplex") == 0) {
-			if (streams != SND_RAWMIDI_OPEN_DUPLEX)
-				return -EINVAL;
-		} else {
-			ERR("Invalid value for %s", id);
-			return -EINVAL;
-		}
 	}
 	err = snd_config_search(rawmidi_conf, "type", &conf);
 	if (err < 0) {
@@ -269,14 +225,17 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 		ERR("symbol %s is not defined inside %s", open, lib);
 		return -ENXIO;
 	}
-	err = open_func(rawmidip, name, rawmidi_conf, streams, mode);
+	err = open_func(inputp, outputp, name, rawmidi_conf, mode);
 	if (err < 0)
 		return err;
-	for (stream = 0; stream < 2; stream++) {
-		if (!(streams & (1 << stream)))
-			continue;
-		snd_rawmidi_params_default(*rawmidip, snd_int_to_enum(stream), &params);
-		err = snd_rawmidi_params(*rawmidip, snd_int_to_enum(stream), &params);
+	if (inputp) {
+		snd_rawmidi_params_default(*inputp, &params);
+		err = snd_rawmidi_params(*inputp, &params);
+		assert(err >= 0);
+	}
+	if (outputp) {
+		snd_rawmidi_params_default(*outputp, &params);
+		err = snd_rawmidi_params(*outputp, &params);
 		assert(err >= 0);
 	}
 	return 0;

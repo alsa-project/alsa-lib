@@ -50,28 +50,6 @@ int snd_seq_open(snd_seq_t **seqp, char *name,
 		ERR("Invalid type for SEQ %s definition", name);
 		return -EINVAL;
 	}
-	err = snd_config_search(seq_conf, "streams", &conf);
-	if (err >= 0) {
-		const char *id = snd_config_get_id(conf);
-		err = snd_config_get_string(conf, &str);
-		if (err < 0) {
-			ERR("Invalid type for %s", id);
-			return err;
-		}
-		if (strcmp(str, "output") == 0) {
-			if (streams == SND_SEQ_OPEN_INPUT)
-				return -EINVAL;
-		} else if (strcmp(str, "input") == 0) {
-			if (streams == SND_SEQ_OPEN_OUTPUT)
-				return -EINVAL;
-		} else if (strcmp(str, "duplex") == 0) {
-			if (streams != SND_SEQ_OPEN_DUPLEX)
-				return -EINVAL;
-		} else {
-			ERR("Invalid value for %s", id);
-			return -EINVAL;
-		}
-	}
 	err = snd_config_search(seq_conf, "type", &conf);
 	if (err < 0) {
 		ERR("type is not defined");

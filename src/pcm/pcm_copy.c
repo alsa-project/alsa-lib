@@ -238,8 +238,6 @@ int _snd_pcm_copy_open(snd_pcm_t **pcmp, char *name,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "stream") == 0)
-			continue;
 		if (strcmp(id, "sname") == 0) {
 			err = snd_config_get_string(n, &sname);
 			if (err < 0) {

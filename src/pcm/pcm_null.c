@@ -382,8 +382,6 @@ int _snd_pcm_null_open(snd_pcm_t **pcmp, char *name,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "stream") == 0)
-			continue;
 		ERR("Unknown field %s", id);
 		return -EINVAL;
 	}

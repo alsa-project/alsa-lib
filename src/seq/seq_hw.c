@@ -536,8 +536,6 @@ int _snd_seq_hw_open(snd_seq_t **handlep, char *name, snd_config_t *conf,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "streams") == 0)
-			continue;
 		return -EINVAL;
 	}
 	return snd_seq_hw_open(handlep, name, streams, mode);

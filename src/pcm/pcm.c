@@ -595,25 +595,6 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 		ERR("Invalid type for PCM %s definition", name);
 		return -EINVAL;
 	}
-	err = snd_config_search(pcm_conf, "stream", &conf);
-	if (err >= 0) {
-		const char *id = snd_config_get_id(conf);
-		err = snd_config_get_string(conf, &str);
-		if (err < 0) {
-			ERR("Invalid type for %s", id);
-			return err;
-		}
-		if (strcmp(str, "playback") == 0) {
-			if (stream != SND_PCM_STREAM_PLAYBACK)
-				return -EINVAL;
-		} else if (strcmp(str, "capture") == 0) {
-			if (stream != SND_PCM_STREAM_CAPTURE)
-				return -EINVAL;
-		} else {
-			ERR("Invalid value for %s", id);
-			return -EINVAL;
-		}
-	}
 	err = snd_config_search(pcm_conf, "type", &conf);
 	if (err < 0) {
 		ERR("type is not defined");
