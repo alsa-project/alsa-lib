@@ -617,7 +617,7 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 		unsigned int src;
 		snd_output_printf(out, "%d <- ", dst);
 		if (d->nsrcs == 0) {
-			snd_output_printf(out, "none\n", dst);
+			snd_output_printf(out, "none\n");
 			continue;
 		}
 		src = 0;
