@@ -200,7 +200,7 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 		err = sscanf(name, "hw:%d", &card);
 		if (err == 1)
 			return snd_ctl_hw_open(ctlp, NULL, card);
-		err = sscanf(name, "shm:%256s,%256s", socket, sname);
+		err = sscanf(name, "shm:%256[^,],%256[^,]", socket, sname);
 		if (err == 2)
 			return snd_ctl_shm_open(ctlp, NULL, socket, sname);
 		ERR("Unknown control %s", name);

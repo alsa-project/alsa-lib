@@ -106,21 +106,21 @@ int mask_single(const mask_t *mask);
 
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			   unsigned int par, unsigned int val);
+			   unsigned int var, unsigned int val);
 int snd_pcm_hw_params_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			  unsigned int par, unsigned int val);
+			  unsigned int var, unsigned int val);
 int snd_pcm_hw_params_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			  unsigned int par, unsigned int val);
+			  unsigned int var, unsigned int val);
 int snd_pcm_hw_params_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			     unsigned int par, unsigned int min, unsigned int max);
+			     unsigned int var, unsigned int min, unsigned int max);
 int snd_pcm_hw_params_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			    unsigned int par);
 int snd_pcm_hw_params_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			   unsigned int par);
 int snd_pcm_hw_params_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			  unsigned int par, unsigned int val);
+			  unsigned int var, unsigned int val);
 int snd_pcm_hw_params_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			   unsigned int par, const mask_t *mask);
+			   unsigned int var, const mask_t *mask);
 int snd_pcm_hw_params_info_rate(const snd_pcm_hw_params_t *params,
 				unsigned int *rate_num,
 				unsigned int *rate_den);

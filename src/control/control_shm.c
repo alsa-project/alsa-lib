@@ -39,7 +39,7 @@
 
 typedef struct {
 	int socket;
-	void *ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl;
 } snd_ctl_shm_t;
 
 extern int receive_fd(int socket, void *data, size_t len, int *fd);
@@ -49,7 +49,7 @@ static int snd_ctl_shm_action(snd_ctl_t *ctl)
 	snd_ctl_shm_t *shm = ctl->private;
 	int err;
 	char buf[1];
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
 		return -EBADFD;
@@ -68,7 +68,7 @@ static int snd_ctl_shm_action_fd(snd_ctl_t *ctl, int *fd)
 	snd_ctl_shm_t *shm = ctl->private;
 	int err;
 	char buf[1];
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
 		return -EBADFD;
@@ -85,7 +85,7 @@ static int snd_ctl_shm_action_fd(snd_ctl_t *ctl, int *fd)
 static int snd_ctl_shm_close(snd_ctl_t *ctl)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int result;
 	ctrl->cmd = SND_CTL_IOCTL_CLOSE;
 	result = snd_ctl_shm_action(ctl);
@@ -98,19 +98,15 @@ static int snd_ctl_shm_close(snd_ctl_t *ctl)
 static int snd_ctl_shm_card(snd_ctl_t *ctl)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
-	int card, err;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_CTL_IOCTL_CARD;
-	err = snd_ctl_shm_action_fd(ctl, &card);
-	if (err < 0)
-		return err;
-	return card;
+	return snd_ctl_shm_action(ctl);
 }
 
 static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int fd, err;
 	ctrl->cmd = SND_CTL_IOCTL_POLL_DESCRIPTOR;
 	err = snd_ctl_shm_action_fd(ctl, &fd);
@@ -122,7 +118,7 @@ static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
 static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_hw_info_t *info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 //	ctrl->u.hw_info = *info;
 	ctrl->cmd = SND_CTL_IOCTL_HW_INFO;
@@ -136,7 +132,7 @@ static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_hw_info_t *info)
 static int snd_ctl_shm_clist(snd_ctl_t *ctl, snd_control_list_t *list)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	size_t maxsize = CTL_SHM_DATA_MAXLEN;
 	size_t bytes = list->controls_request * sizeof(*list->pids);
 	int err;
@@ -150,14 +146,14 @@ static int snd_ctl_shm_clist(snd_ctl_t *ctl, snd_control_list_t *list)
 		return err;
 	*list = ctrl->u.clist;
 	list->pids = pids;
-	memcpy(pids, ctrl->data, bytes);
+	memcpy(pids, (void *)ctrl->data, bytes);
 	return err;
 }
 
 static int snd_ctl_shm_cinfo(snd_ctl_t *ctl, snd_control_info_t *info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.cinfo = *info;
 	ctrl->cmd = SND_CTL_IOCTL_CONTROL_INFO;
@@ -171,7 +167,7 @@ static int snd_ctl_shm_cinfo(snd_ctl_t *ctl, snd_control_info_t *info)
 static int snd_ctl_shm_cread(snd_ctl_t *ctl, snd_control_t *control)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.cread = *control;
 	ctrl->cmd = SND_CTL_IOCTL_CONTROL_READ;
@@ -185,7 +181,7 @@ static int snd_ctl_shm_cread(snd_ctl_t *ctl, snd_control_t *control)
 static int snd_ctl_shm_cwrite(snd_ctl_t *ctl, snd_control_t *control)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.cwrite = *control;
 	ctrl->cmd = SND_CTL_IOCTL_CONTROL_WRITE;
@@ -199,7 +195,7 @@ static int snd_ctl_shm_cwrite(snd_ctl_t *ctl, snd_control_t *control)
 static int snd_ctl_shm_hwdep_next_device(snd_ctl_t *ctl, int * device)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.device = *device;
 	ctrl->cmd = SND_CTL_IOCTL_HWDEP_NEXT_DEVICE;
@@ -213,7 +209,7 @@ static int snd_ctl_shm_hwdep_next_device(snd_ctl_t *ctl, int * device)
 static int snd_ctl_shm_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.hwdep_info = *info;
 	ctrl->cmd = SND_CTL_IOCTL_HWDEP_INFO;
@@ -227,7 +223,7 @@ static int snd_ctl_shm_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info)
 static int snd_ctl_shm_pcm_next_device(snd_ctl_t *ctl, int * device)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.device = *device;
 	ctrl->cmd = SND_CTL_IOCTL_PCM_NEXT_DEVICE;
@@ -241,7 +237,7 @@ static int snd_ctl_shm_pcm_next_device(snd_ctl_t *ctl, int * device)
 static int snd_ctl_shm_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t * info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.pcm_info = *info;
 	ctrl->cmd = SND_CTL_IOCTL_PCM_INFO;
@@ -255,7 +251,7 @@ static int snd_ctl_shm_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t * info)
 static int snd_ctl_shm_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.pcm_prefer_subdevice = subdev;
 	ctrl->cmd = SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE;
@@ -268,7 +264,7 @@ static int snd_ctl_shm_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 static int snd_ctl_shm_rawmidi_next_device(snd_ctl_t *ctl, int * device)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.device = *device;
 	ctrl->cmd = SND_CTL_IOCTL_RAWMIDI_NEXT_DEVICE;
@@ -282,7 +278,7 @@ static int snd_ctl_shm_rawmidi_next_device(snd_ctl_t *ctl, int * device)
 static int snd_ctl_shm_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.rawmidi_info = *info;
 	ctrl->cmd = SND_CTL_IOCTL_RAWMIDI_INFO;
@@ -296,7 +292,7 @@ static int snd_ctl_shm_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info)
 static int snd_ctl_shm_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.rawmidi_prefer_subdevice = subdev;
 	ctrl->cmd = SND_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE;
@@ -309,7 +305,7 @@ static int snd_ctl_shm_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 static int snd_ctl_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 {
 	snd_ctl_shm_t *shm = ctl->private;
-	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.read = *event;
 	ctrl->cmd = SND_CTL_IOCTL_READ;

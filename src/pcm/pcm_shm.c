@@ -120,12 +120,8 @@ static int snd_pcm_shm_card(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
 	ctrl->cmd = SND_PCM_IOCTL_CARD;
-	err = snd_pcm_shm_action(pcm);
-	if (err < 0)
-		return err;
-	return ctrl->u.card;
+	return snd_pcm_shm_action(pcm);
 }
 
 static int snd_pcm_shm_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)

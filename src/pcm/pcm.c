@@ -668,10 +668,10 @@ int snd_pcm_open(snd_pcm_t **pcmp, char *name,
 		err = sscanf(name, "plug:%d,%d", &card, &dev);
 		if (err == 2)
 			return snd_pcm_plug_open_hw(pcmp, name, card, dev, -1, stream, mode);
-		err = sscanf(name, "shm:%256s,%256s", socket, sname);
+		err = sscanf(name, "shm:%256[^,],%256[^,]", socket, sname);
 		if (err == 2)
 			return snd_pcm_shm_open(pcmp, NULL, socket, sname, stream, mode);
-		err = sscanf(name, "file:%256s,%16s", file, format);
+		err = sscanf(name, "file:%256[^,],%16[^,]", file, format);
 		if (err == 2) {
 			snd_pcm_t *slave;
 			err = snd_pcm_null_open(&slave, NULL, stream, mode);
@@ -679,7 +679,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, char *name,
 				return err;
 			return snd_pcm_file_open(pcmp, NULL, file, -1, format, slave, 1);
 		}
-		err = sscanf(name, "file:%256s", file);
+		err = sscanf(name, "file:%256[^,]", file);
 		if (err == 1) {
 			snd_pcm_t *slave;
 			err = snd_pcm_null_open(&slave, NULL, stream, mode);

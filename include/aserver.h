@@ -38,7 +38,6 @@ typedef struct {
 	size_t hw_ptr;
 	size_t appl_ptr;
 	union {
-		int card;
 		struct {
 			int sig;
 			pid_t pid;
