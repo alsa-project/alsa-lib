@@ -91,6 +91,11 @@ static unsigned short preset_dB_value[PRESET_RESOLUTION] = {
 
 #endif /* DOC_HIDDEN */
 
+/*
+ * apply volumue attenuation
+ *
+ * TODO: use SIMD operations
+ */
 static void snd_pcm_softvol_convert(snd_pcm_softvol_t *svol,
 				    const snd_pcm_channel_area_t *dst_areas,
 				    snd_pcm_uframes_t dst_offset,
@@ -134,6 +139,11 @@ static void snd_pcm_softvol_convert(snd_pcm_softvol_t *svol,
 	}
 }
 
+/*
+ * get the current volume value from driver
+ *
+ * TODO: mmap support?
+ */
 static unsigned int get_current_volume(snd_pcm_softvol_t *svol)
 {
 	unsigned int val;
@@ -145,17 +155,21 @@ static unsigned int get_current_volume(snd_pcm_softvol_t *svol)
 	return val;
 }
 
-static int snd_pcm_softvol_close(snd_pcm_t *pcm)
+static void softvol_free(snd_pcm_softvol_t *svol)
 {
-	snd_pcm_softvol_t *svol = pcm->private_data;
-	int err = 0;
 	if (svol->plug.close_slave)
-		err = snd_pcm_close(svol->plug.slave);
+		snd_pcm_close(svol->plug.slave);
 	if (svol->ctl)
 		snd_ctl_close(svol->ctl);
 	if (svol->dB_value && svol->dB_value != preset_dB_value)
 		free(svol->dB_value);
 	free(svol);
+}
+
+static int snd_pcm_softvol_close(snd_pcm_t *pcm)
+{
+	snd_pcm_softvol_t *svol = pcm->private_data;
+	softvol_free(svol);
 	return 0;
 }
 
@@ -330,40 +344,42 @@ static void snd_pcm_softvol_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(svol->plug.slave, out);
 }
 
-int snd_ctl_elem_add(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
-int snd_ctl_elem_replace(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
-
 static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo)
 {
 	return snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, 1, 0, svol->max_val, 0);
 }
 
+/*
+ * load and set up user-control
+ * returns 0 if the user-control is found or created,
+ * returns 1 if the control is a hw control,
+ * or a negative error code
+ */
 static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
-				char *ctl_name, snd_ctl_elem_id_t *ctl_id,
+				int ctl_card, snd_ctl_elem_id_t *ctl_id,
 				double min_dB, int resolution)
 {
 	char tmp_name[32];
 	snd_pcm_info_t *info;
 	snd_ctl_elem_info_t *cinfo;
-	int err, card;
+	int err;
 	unsigned int i;
 
-	if (! ctl_name) {
+	if (ctl_card < 0) {
 		snd_pcm_info_alloca(&info);
 		err = snd_pcm_info(pcm, info);
 		if (err < 0)
 			return err;
-		card = snd_pcm_info_get_card(info);
-		if (card < 0) {
-			SNDERR("No card for this PCM");
+		ctl_card = snd_pcm_info_get_card(info);
+		if (ctl_card < 0) {
+			SNDERR("No card defined for softvol control");
 			return -EINVAL;
 		}
-		sprintf(tmp_name, "hw:%d", card);
-		ctl_name = tmp_name;
 	}
-	err = snd_ctl_open(&svol->ctl, ctl_name, 0);
+	sprintf(tmp_name, "hw:%d", ctl_card);
+	err = snd_ctl_open(&svol->ctl, tmp_name, 0);
 	if (err < 0) {
-		SNDERR("Cannot open CTL %s", ctl_name);
+		SNDERR("Cannot open CTL %s", tmp_name);
 		return err;
 	}
 
@@ -375,7 +391,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 	snd_ctl_elem_info_set_id(cinfo, ctl_id);
 	if ((err = snd_ctl_elem_info(svol->ctl, cinfo)) < 0) {
 		if (err != -ENOENT) {
-			SNDERR("Cannot get info for CTL %s", ctl_name);
+			SNDERR("Cannot get info for CTL %s", tmp_name);
 			return err;
 		}
 		err = add_user_ctl(svol, cinfo);
@@ -384,14 +400,14 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			return err;
 		}
 	} else {
-		if (cinfo->type != SND_CTL_ELEM_TYPE_INTEGER ||
+		if (! (cinfo->access & SNDRV_CTL_ELEM_ACCESS_USER)) {
+			/* hardware control exists */
+			return 1; /* notify */
+
+		} else if (cinfo->type != SND_CTL_ELEM_TYPE_INTEGER ||
 		    cinfo->count != 1 ||
 		    cinfo->value.integer.min != 0 ||
 		    cinfo->value.integer.max != resolution - 1) {
-			if (! (cinfo->access & SNDRV_CTL_ELEM_ACCESS_USER)) {
-				SNDERR("Invalid control");
-				return -EINVAL;
-			}
 			snd_ctl_elem_remove(svol->ctl, &cinfo->id);
 			err = add_user_ctl(svol, cinfo);
 			if (err < 0) {
@@ -446,7 +462,7 @@ static snd_pcm_ops_t snd_pcm_softvol_ops = {
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
  * \param sformat Slave format
- * \param ctl_id Control ID
+ * \param card card index of the control
  * \param min_dB minimal dB value
  * \param resolution resolution of control
  * \param slave Slave PCM handle
@@ -458,7 +474,7 @@ static snd_pcm_ops_t snd_pcm_softvol_ops = {
  */
 int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 			 snd_pcm_format_t sformat,
-			 char *ctl_name, snd_ctl_elem_id_t *ctl_id,
+			 int ctl_card, snd_ctl_elem_id_t *ctl_id,
 			 double min_dB, int resolution,
 			 snd_pcm_t *slave, int close_slave)
 {
@@ -471,6 +487,18 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	svol = calloc(1, sizeof(*svol));
 	if (! svol)
 		return -ENOMEM;
+	err = softvol_load_control(slave, svol, ctl_card, ctl_id, min_dB, resolution);
+	if (err < 0) {
+		softvol_free(svol);
+		return err;
+	}
+	if (err > 0) { /* hardware control - no need for softvol! */
+		softvol_free(svol);
+		*pcmp = slave; /* just pass the slave */
+		return 0;
+	}
+
+	/* do softvol */
 	snd_pcm_plugin_init(&svol->plug);
 	svol->sformat = sformat;
 	svol->plug.read = snd_pcm_softvol_read_areas;
@@ -482,7 +510,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_SOFTVOL, name, slave->stream, slave->mode);
 	if (err < 0) {
-		free(svol);
+		softvol_free(svol);
 		return err;
 	}
 	pcm->ops = &snd_pcm_softvol_ops;
@@ -492,17 +520,15 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_events = slave->poll_events;
 	snd_pcm_set_hw_ptr(pcm, &svol->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &svol->plug.appl_ptr, -1, 0);
-	err = softvol_load_control(pcm, svol, ctl_name, ctl_id, min_dB, resolution);
-	if (err < 0) {
-		snd_pcm_close(pcm);
-		return err;
-	}
 	*pcmp = pcm;
 
 	return 0;
 }
 
-static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, char **ctl_name)
+/*
+ * parse card index and id for the softvol control
+ */
+static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int *cardp)
 {
 	snd_config_iterator_t i, next;
 	int iface = SND_CTL_ELEM_IFACE_MIXER;
@@ -512,7 +538,7 @@ static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, char 
 	long subdevice = -1;
 	int err;
 
-	*ctl_name = NULL;
+	*cardp = -1;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -521,14 +547,12 @@ static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, char 
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "card") == 0) {
-			const char *ptr;
-			if ((err = snd_config_get_string(n, &ptr)) < 0) {
-				SNDERR("field %s is not a string", id);
+			long v;
+			if ((err = snd_config_get_integer(n, &v)) < 0) {
+				SNDERR("field %s is not an integer", id);
 				goto _err;
 			}
-			if (*ctl_name)
-				free(*ctl_name);
-			*ctl_name = strdup(ptr);
+			*cardp = v;
 			continue;
 		}
 		if (strcmp(id, "iface") == 0 || strcmp(id, "interface") == 0) {
@@ -604,6 +628,10 @@ static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, char 
 This plugin applies the software volume attenuation.
 The format, rate and channels must match for both of source and destination.
 
+If the control already exists and it's a system control (i.e. no
+user-defined control), the plugin simply passes its slave without
+any changes.
+
 \code
 pcm.name {
         type softvol            # Soft Volume conversion PCM
@@ -663,7 +691,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	snd_ctl_elem_id_t *ctl_id;
 	int resolution = PRESET_RESOLUTION;
 	double min_dB = PRESET_MIN_DB;
-	char *ctl_name;
+	int card = -1;
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -731,11 +759,11 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 	snd_ctl_elem_id_alloca(&ctl_id);
-	if ((err = parse_control_id(control, ctl_id, &ctl_name)) < 0) {
+	if ((err = parse_control_id(control, ctl_id, &card)) < 0) {
 		snd_pcm_close(spcm);
 		return err;
 	}
-	err = snd_pcm_softvol_open(pcmp, name, sformat, ctl_name, ctl_id, min_dB, resolution, spcm, 1);
+	err = snd_pcm_softvol_open(pcmp, name, sformat, card, ctl_id, min_dB, resolution, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
