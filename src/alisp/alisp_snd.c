@@ -192,6 +192,24 @@ static struct alisp_object * new_result3(struct alisp_instance * instance, int e
 	return lexpr;
 }
 
+static struct alisp_object * new_result4(struct alisp_instance * instance, const char *ptr_id, void *ptr)
+{
+	struct alisp_object * lexpr;
+
+	if (ptr == NULL)
+		return &alsa_lisp_nil;
+	lexpr = new_object(instance, ALISP_OBJ_CONS);
+	if (lexpr == NULL)
+		return NULL;
+	lexpr->value.c.car = new_string(instance, ptr_id);
+	if (lexpr->value.c.car == NULL)
+		return NULL;
+	lexpr->value.c.cdr = new_pointer(instance, ptr);
+	if (lexpr->value.c.cdr == NULL)
+		return NULL;
+	return lexpr;
+}
+
 /*
  *  macros
  */
@@ -200,14 +218,15 @@ static struct alisp_object * new_result3(struct alisp_instance * instance, int e
  *  HCTL functions
  */
 
-typedef int (*snd_xxx_open_t)(void **rctl, const char *name, int mode);
-typedef int (*snd_xxx_open1_t)(void **rctl, void *handle);
-typedef int (*snd_xxx_close_t)(void **rctl);
+typedef int (*snd_int_pp_strp_int_t)(void **rctl, const char *name, int mode);
+typedef int (*snd_int_pp_p_t)(void **rctl, void *handle);
+typedef int (*snd_int_p_t)(void *rctl);
 typedef int (*snd_int_intp_t)(int *val);
 typedef int (*snd_int_str_t)(const char *str);
 typedef int (*snd_int_int_strp_t)(int val, char **str);
+typedef void *(*snd_p_p_t)(void *handle);
 
-static struct alisp_object * FA_xxx_open(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+static struct alisp_object * FA_int_pp_strp_int(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
 	const char *name;
 	int err, mode;
@@ -224,25 +243,49 @@ static struct alisp_object * FA_xxx_open(struct alisp_instance * instance, struc
 		return &alsa_lisp_nil;
 	mode = get_flags(eval(instance, car(cdr(args))), flags, 0);
 	
-	err = ((snd_xxx_open_t)item->xfunc)(&handle, name, mode);
+	err = ((snd_int_pp_strp_int_t)item->xfunc)(&handle, name, mode);
 	return new_result1(instance, err, item->prefix, handle);
 }
 
-static struct alisp_object * FA_xxx_open1(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+static struct alisp_object * FA_int_pp_p(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
 	int err;
 	void *handle;
-	const char *prefix1 = "ctl";
+	const char *prefix1;
 
+	if (item->xfunc == &snd_hctl_open_ctl)
+		prefix1 = "ctl";
+	else
+		return &alsa_lisp_nil;
 	args = eval(instance, args);
 	handle = (void *)get_ptr(args, prefix1);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
-	err = ((snd_xxx_open1_t)item->xfunc)(&handle, handle);
+	err = ((snd_int_pp_p_t)item->xfunc)(&handle, handle);
 	return new_result1(instance, err, item->prefix, handle);
 }
 
-static struct alisp_object * FA_xxx_close(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+static struct alisp_object * FA_p_p(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	void *handle;
+	const char *prefix1;
+
+	if (item->xfunc == &snd_hctl_first_elem ||
+	    item->xfunc == &snd_hctl_last_elem ||
+	    item->xfunc == &snd_hctl_elem_next ||
+	    item->xfunc == &snd_hctl_elem_prev)
+		prefix1 = "hctl_elem";
+	else
+		return &alsa_lisp_nil;
+	args = eval(instance, args);
+	handle = (void *)get_ptr(args, item->prefix);
+	if (handle == NULL)
+		return &alsa_lisp_nil;
+	handle = ((snd_p_p_t)item->xfunc)(handle);
+	return new_result4(instance, prefix1, handle);
+}
+
+static struct alisp_object * FA_int_p(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
 	void *handle;
 
@@ -250,7 +293,7 @@ static struct alisp_object * FA_xxx_close(struct alisp_instance * instance, stru
 	handle = (void *)get_ptr(args, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
-	return new_result(instance, ((snd_xxx_close_t)item->xfunc)(handle));
+	return new_result(instance, ((snd_int_p_t)item->xfunc)(handle));
 }
 
 static struct alisp_object * FA_int_intp(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
@@ -315,6 +358,57 @@ static struct alisp_object * FA_card_info(struct alisp_instance * instance, stru
 	return lexpr;
 }
 
+static struct alisp_object * create_ctl_elem_id(struct alisp_instance * instance, snd_ctl_elem_id_t * id, struct alisp_object * cons)
+{
+	cons = add_cons(instance, cons, 0, "numid", new_integer(instance, snd_ctl_elem_id_get_numid(id)));
+	cons = add_cons(instance, cons, 1, "iface", new_string(instance, snd_ctl_elem_iface_name(snd_ctl_elem_id_get_numid(id))));
+	cons = add_cons(instance, cons, 1, "dev", new_integer(instance, snd_ctl_elem_id_get_device(id)));
+	cons = add_cons(instance, cons, 1, "subdev", new_integer(instance, snd_ctl_elem_id_get_subdevice(id)));
+	cons = add_cons(instance, cons, 1, "name", new_string(instance, snd_ctl_elem_id_get_name(id)));
+	cons = add_cons(instance, cons, 1, "index", new_integer(instance, snd_ctl_elem_id_get_index(id)));
+	return cons;
+}
+
+static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	snd_hctl_elem_t *handle;
+	struct alisp_object * lexpr, * p1, * p2;
+	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_type_t type;
+	int err;
+
+	args = eval(instance, args);
+	handle = (snd_hctl_elem_t *)get_ptr(args, item->prefix);
+	if (handle == NULL)
+		return &alsa_lisp_nil;
+	snd_ctl_elem_info_alloca(&info);
+	snd_ctl_elem_id_alloca(&id);
+	err = snd_hctl_elem_info(handle, info);
+	lexpr = new_lexpr(instance, err);
+	if (err < 0)
+		return lexpr;
+	type = snd_ctl_elem_info_get_type(info);
+	p1 = add_cons(instance, lexpr->value.c.cdr, 0, "id", p2 = new_object(instance, ALISP_OBJ_CONS));
+	snd_ctl_elem_info_get_id(info, id);
+	if (create_ctl_elem_id(instance, id, p2) == NULL)
+		return NULL;
+	p1 = add_cons(instance, p1, 1, "type", new_string(instance, snd_ctl_elem_type_name(type)));
+	p1 = add_cons(instance, p1, 1, "readable", new_integer(instance, snd_ctl_elem_info_is_readable(info)));
+	p1 = add_cons(instance, p1, 1, "writeable", new_integer(instance, snd_ctl_elem_info_is_writable(info)));
+	p1 = add_cons(instance, p1, 1, "volatile", new_integer(instance, snd_ctl_elem_info_is_volatile(info)));
+	p1 = add_cons(instance, p1, 1, "inactive", new_integer(instance, snd_ctl_elem_info_is_inactive(info)));
+	p1 = add_cons(instance, p1, 1, "locked", new_integer(instance, snd_ctl_elem_info_is_locked(info)));
+	p1 = add_cons(instance, p1, 1, "isowner", new_integer(instance, snd_ctl_elem_info_is_owner(info)));
+	p1 = add_cons(instance, p1, 1, "owner", new_integer(instance, snd_ctl_elem_info_get_owner(info)));
+	p1 = add_cons(instance, p1, 1, "count", new_integer(instance, snd_ctl_elem_info_get_count(info)));
+	if (type == SND_CTL_ELEM_TYPE_ENUMERATED)
+		p1 = add_cons(instance, p1, 1, "items", new_integer(instance, snd_ctl_elem_info_get_items(info)));
+	if (p1 == NULL)
+		return NULL;
+	return lexpr;
+}
+
 /*
  *  main code
  */
@@ -325,11 +419,18 @@ static struct acall_table acall_table[] = {
 	{ "card_get_name", &FA_int_int_strp, (void *)snd_card_get_name, NULL },
 	{ "card_next", &FA_int_intp, (void *)&snd_card_next, NULL },
 	{ "ctl_card_info", &FA_card_info, NULL, "ctl" },
-	{ "ctl_close", &FA_xxx_close, (void *)&snd_ctl_close, "ctl" },
-	{ "ctl_open", &FA_xxx_open, (void *)&snd_ctl_open, "ctl" },
-	{ "hctl_close", &FA_xxx_close, (void *)&snd_hctl_close, "hctl" },
-	{ "hctl_open", &FA_xxx_open, (void *)&snd_hctl_open, "hctl" },
-	{ "hctl_open_ctl", &FA_xxx_open1, (void *)&snd_hctl_open_ctl, "hctl" },
+	{ "ctl_close", &FA_int_p, (void *)&snd_ctl_close, "ctl" },
+	{ "ctl_open", &FA_int_pp_strp_int, (void *)&snd_ctl_open, "ctl" },
+	{ "hctl_close", &FA_int_p, (void *)&snd_hctl_close, "hctl" },
+	{ "hctl_elem_info", &FA_hctl_elem_info, (void *)&snd_hctl_elem_info, "hctl_elem" },
+	{ "hctl_elem_next", &FA_p_p, (void *)&snd_hctl_elem_next, "hctl_elem" },
+	{ "hctl_elem_prev", &FA_p_p, (void *)&snd_hctl_elem_prev, "hctl_elem" },
+	{ "hctl_first_elem", &FA_p_p, (void *)&snd_hctl_first_elem, "hctl" },
+	{ "hctl_free", &FA_int_p, (void *)&snd_hctl_free, "hctl" },
+	{ "hctl_last_elem", &FA_p_p, (void *)&snd_hctl_last_elem, "hctl" },
+	{ "hctl_load", &FA_int_p, (void *)&snd_hctl_load, "hctl" },
+	{ "hctl_open", &FA_int_pp_strp_int, (void *)&snd_hctl_open, "hctl" },
+	{ "hctl_open_ctl", &FA_int_pp_p, (void *)&snd_hctl_open_ctl, "hctl" },
 };
 
 static int acall_compar(const void *p1, const void *p2)
