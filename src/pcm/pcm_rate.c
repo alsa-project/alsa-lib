@@ -111,7 +111,7 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 		const char *src;
 		char *dst;
 		int src_step, dst_step;
-		int16_t old_sample;
+		int16_t old_sample = 0;
 		int16_t new_sample;
 		int old_weight, new_weight;
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
@@ -175,7 +175,7 @@ static void snd_pcm_rate_expand_s16(const snd_pcm_channel_area_t *dst_areas,
 		const int16_t *src;
 		int16_t *dst;
 		int src_step, dst_step;
-		int16_t old_sample;
+		int16_t old_sample = 0;
 		int16_t new_sample;
 		int old_weight, new_weight;
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
