@@ -26,6 +26,10 @@
 typedef float float_t;
 typedef double double_t;
 
+#if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR <= 91)
+#define BUGGY_GCC
+#endif
+
 #ifndef PIC
 /* entry for static linking */
 const char *_snd_module_pcm_float = "";
@@ -71,6 +75,8 @@ int snd_pcm_lfloat_put_s32_index(snd_pcm_format_t format)
 {
 	return snd_pcm_lfloat_get_s32_index(format);
 }
+
+#ifndef BUGGY_GCC
 
 void snd_pcm_lfloat_convert_integer_float(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 					  const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
@@ -425,3 +431,28 @@ int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
 	return err;
 }
 SND_DLSYM_BUILD_VERSION(_snd_pcm_lfloat_open, SND_PCM_DLSYM_VERSION);
+
+#else /* BUGGY_GCC */
+
+int snd_pcm_lfloat_open(snd_pcm_t **pcmp ATTRIBUTE_UNUSED,
+			const char *name ATTRIBUTE_UNUSED,
+			snd_pcm_format_t sformat ATTRIBUTE_UNUSED,
+			snd_pcm_t *slave ATTRIBUTE_UNUSED,
+			int close_slave ATTRIBUTE_UNUSED)
+{
+	SNDERR("please, upgrade your GCC to use lfloat plugin");
+	return -EINVAL;
+}
+
+int _snd_pcm_lfloat_open(snd_pcm_t **pcmp ATTRIBUTE_UNUSED,
+			 const char *name ATTRIBUTE_UNUSED,
+			 snd_config_t *root ATTRIBUTE_UNUSED,
+			 snd_config_t *conf ATTRIBUTE_UNUSED, 
+			 snd_pcm_stream_t stream ATTRIBUTE_UNUSED,
+			 int mode ATTRIBUTE_UNUSED)
+{
+	SNDERR("please, upgrade your GCC to use lfloat plugin");
+	return -EINVAL;
+}
+
+#endif /* BUGGY_GCC */
