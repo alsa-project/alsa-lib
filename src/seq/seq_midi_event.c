@@ -35,12 +35,11 @@
 
 /* midi status */
 struct snd_midi_event {
-	size_t qlen;		/* queue length */
-	size_t read;		/* chars read */
-	int type;		/* current event type */
+	size_t qlen;	/* queue length */
+	size_t read;	/* chars read */
+	int type;	/* current event type */
 	unsigned char lastcmd;
 	unsigned char nostat;
-	unsigned char xreg_hit;
 	size_t bufsize;
 	unsigned char *buf;	/* input buffer */
 };
@@ -50,11 +49,9 @@ struct snd_midi_event {
 /* from 0 to 7 are normal commands (note off, on, etc.) */
 #define ST_NOTEOFF	0
 #define ST_NOTEON	1
-#define ST_CONTROLLER	3
 #define ST_SPECIAL	8
 #define ST_SYSEX	ST_SPECIAL
 /* from 8 to 15 are events for 0xf0-0xf7 */
-#define ST_XREG_PARM	16
 
 
 /* status event types */
@@ -72,8 +69,6 @@ static void pitchbend_ctrl_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void two_param_ctrl_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void one_param_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void songpos_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
-static unsigned char get_xreg_hit_bit(unsigned char c);
-static void xreg_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void note_decode(snd_seq_event_t *ev, unsigned char *buf);
 static void one_param_decode(snd_seq_event_t *ev, unsigned char *buf);
 static void pitchbend_decode(snd_seq_event_t *ev, unsigned char *buf);
@@ -305,7 +300,7 @@ long snd_midi_event_encode(snd_midi_event_t *dev, unsigned char *buf, long count
  */
 int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev)
 {
-	int tmp = 0;
+	int rc = 0;
 
 	c &= 0xff;
 
@@ -319,20 +314,11 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 
 	if (dev->qlen > 0) {
 		/* rest of command */
-		if (c & 0x80) {		/* error? state inside data? */
-			if (dev->type == ST_XREG_PARM) {
-				if (c != dev->buf[0])
-					goto __new_command;
-				return 0;
-			}
-			goto __new_command;
-		}
 		dev->buf[dev->read++] = c;
 		if (dev->type != ST_SYSEX)
 			dev->qlen--;
 	} else {
 		/* new command */
-	      __new_command:
 		dev->read = 1;
 		if (c & 0x80) {
 			dev->buf[0] = c;
@@ -348,39 +334,13 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 		}
 	}
 	if (dev->qlen == 0) {
-		/* handle xrpn special case here */
-		if (dev->type == ST_CONTROLLER &&
-		    dev->buf[1] >= MIDI_CTL_NONREG_PARM_NUM_LSB &&
-		    dev->buf[1] <= MIDI_CTL_REGIST_PARM_NUM_MSB) {
-		    	dev->type = ST_XREG_PARM;
-		    	dev->xreg_hit = get_xreg_hit_bit(dev->buf[1]);
-		    	dev->qlen = 2;		/* we need more bytes */
-		    	return 0;
-		}
-		if (dev->type == ST_XREG_PARM) {
-			tmp = get_xreg_hit_bit(dev->buf[1]);
-			if (tmp == 0 || (tmp & dev->xreg_hit)) {
-				reset_encode(dev);
-				dev->type = ST_CONTROLLER;
-				dev->read = 1;
-				return 0;
-			}
-			dev->xreg_hit |= tmp;
-			if (dev->xreg_hit == 0x0f) {	/* finished */
-				xreg_event(dev, ev);
-				return 1;
-			}
-			dev->qlen = 2;		/* we need more bytes */
-			return 0;
-		}
-		/* handle standard midi events */
 		ev->type = status_event[dev->type].event;
 		ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
 		ev->flags |= SNDRV_SEQ_EVENT_LENGTH_FIXED;
 		if (status_event[dev->type].encode) /* set data values */
 			status_event[dev->type].encode(dev, ev);
-		return 1;
-	} else if (dev->type == ST_SYSEX) {
+		rc = 1;
+	} else 	if (dev->type == ST_SYSEX) {
 		if (c == MIDI_CMD_COMMON_SYSEX_END ||
 		    dev->read >= dev->bufsize) {
 			ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
@@ -392,11 +352,11 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 				dev->read = 0; /* continue to parse */
 			else
 				reset_encode(dev); /* all parsed */
-			return 1;
+			rc = 1;
 		}
 	}
 
-	return 0;
+	return rc;
 }
 
 /* encode note event */
@@ -439,44 +399,6 @@ static void one_param_event(snd_midi_event_t *dev, snd_seq_event_t *ev)
 static void songpos_event(snd_midi_event_t *dev, snd_seq_event_t *ev)
 {
 	ev->data.control.value = (int)dev->buf[2] * 128 + (int)dev->buf[1];
-}
-
-static unsigned char get_xreg_hit_bit(unsigned char c)
-{
-	switch (c) {
-	case MIDI_CTL_NONREG_PARM_NUM_MSB:
-	case MIDI_CTL_REGIST_PARM_NUM_MSB:
-		return 1;
-	case MIDI_CTL_NONREG_PARM_NUM_LSB:
-	case MIDI_CTL_REGIST_PARM_NUM_LSB:
-		return 2;
-	case MIDI_CTL_MSB_DATA_ENTRY:
-		return 4;
-	case MIDI_CTL_LSB_DATA_ENTRY:
-		return 8;
-	default:
-		return 0;
-	}
-}
-
-/* encode xreg event */
-static void xreg_event(snd_midi_event_t *dev, snd_seq_event_t *ev)
-{
-	int i;
-
-	ev->type = (dev->buf[1] == MIDI_CTL_NONREG_PARM_NUM_MSB ||
-		    dev->buf[1] == MIDI_CTL_NONREG_PARM_NUM_LSB) ?
-			SND_SEQ_EVENT_NONREGPARAM : SND_SEQ_EVENT_REGPARAM;		
-	ev->data.control.param = 0;
-	ev->data.control.value = 0;
-	for (i = 1; i < 9; i += 2) {
-		switch (get_xreg_hit_bit(dev->buf[i])) {
-		case 1: ev->data.control.param |= dev->buf[i+1] << 7;	break;
-		case 2: ev->data.control.param |= dev->buf[i+1];	break;
-		case 4: ev->data.control.value |= dev->buf[i+1] << 7;	break;
-		case 8: ev->data.control.value |= dev->buf[i+1];	break;
-		}
-	}
 }
 
 /**
