@@ -115,6 +115,10 @@ int snd_seq_close(snd_seq_t *seq)
 	if (!seq)
 		return -EINVAL;
 	res = close(seq->fd) < 0 ? -errno : 0;
+	if (seq->obuf)
+		free(seq->obuf);
+	if (seq->ibuf)
+		free(seq->ibuf);
 	free(seq);
 	return res;
 }
