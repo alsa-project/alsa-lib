@@ -822,7 +822,7 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	err = pcm->ops->sw_params(pcm->op_arg, params);
 	if (err < 0)
 		return err;
-	pcm->tstamp_mode = snd_pcm_sw_params_get_tstamp_mode(params);
+	pcm->tstamp_mode = params->tstamp_mode;
 	pcm->period_step = params->period_step;
 	pcm->sleep_min = params->sleep_min;
 	pcm->avail_min = params->avail_min;
@@ -2418,7 +2418,7 @@ int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params)
  * It is not allowed to call this function when given configuration is not exactly one.
  * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
  * from the configuration space.
-
+ */
 int snd_pcm_hw_params_can_sync_start(const snd_pcm_hw_params_t *params)
 {
 	assert(params && params->info != ~0U);
@@ -4927,7 +4927,7 @@ int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out)
 {
 	snd_output_printf(out, "start_mode: %s\n", snd_pcm_start_mode_name(snd_pcm_sw_params_get_start_mode(params)));
 	snd_output_printf(out, "xrun_mode: %s\n", snd_pcm_xrun_mode_name(snd_pcm_sw_params_get_xrun_mode(params)));
-	snd_output_printf(out, "tstamp_mode: %s\n", snd_pcm_tstamp_mode_name(snd_pcm_sw_params_get_tstamp_mode(params)));
+	snd_output_printf(out, "tstamp_mode: %s\n", snd_pcm_tstamp_mode_name(params->tstamp_mode));
 	snd_output_printf(out, "period_step: %u\n", params->period_step);
 	snd_output_printf(out, "sleep_min: %u\n", params->sleep_min);
 	snd_output_printf(out, "avail_min: %lu\n", params->avail_min);
@@ -5105,30 +5105,22 @@ int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *param
 /**
  * \brief Get timestamp mode from a software configuration container
  * \param params Software configuration container
- * \return timestamp mode
+ * \param val Returned timestamp
+ * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
-snd_pcm_tstamp_t snd_pcm_sw_params_get_tstamp_mode(const snd_pcm_sw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_sw_params_get_tstamp_mode)(const snd_pcm_sw_params_t *params, snd_pcm_tstamp_t *val)
+#else
+int snd_pcm_sw_params_get_tstamp_mode(const snd_pcm_sw_params_t *params, snd_pcm_tstamp_t *val)
+#endif
 {
-	assert(params);
-	return params->tstamp_mode;
-}
-
-
-#if 0
-int snd_pcm_sw_params_set_period_step(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, unsigned int val)
-{
-	assert(pcm && params);
-	params->period_step = val;
+	assert(params && val);
+	*val = params->tstamp_mode;
 	return 0;
 }
-
-unsigned int snd_pcm_sw_params_get_period_step(const snd_pcm_sw_params_t *params)
-{
-	assert(params);
-	return params->period_step;
-}
-#endif
-
 
 /**
  * \brief Set minimum number of ticks to sleep inside a software configuration container
@@ -5151,12 +5143,21 @@ int snd_pcm_sw_params_set_sleep_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params,
 /**
  * \brief Get minimum numbers of ticks to sleep from a software configuration container
  * \param params Software configuration container
- * \return minimum number of ticks to sleep or 0 if tick timer is disabled
+ * \param val returned minimum number of ticks to sleep or 0 if tick timer is disabled
+ * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_SW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
-unsigned int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_sw_params_get_sleep_min)(const snd_pcm_sw_params_t *params, unsigned int *val)
+#else
+int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params, unsigned int *val)
+#endif
 {
-	assert(params);
-	return params->sleep_min;
+	assert(params && val);
+	*val = params->sleep_min;
+	return 0;
 }
 
 /**
@@ -5180,12 +5181,21 @@ int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params,
 /**
  * \brief Get avail min from a software configuration container
  * \param params Software configuration container
- * \return minimum available frames to consider PCM ready
+ * \param val returned minimum available frames to consider PCM ready
+ * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_SW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
-snd_pcm_uframes_t snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_sw_params_get_avail_min)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
-	assert(params);
-	return params->avail_min;
+	assert(params && val);
+	*val = params->avail_min;
+	return 0;
 }
 
 
@@ -5211,12 +5221,21 @@ int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 /**
  * \brief Get xfer align from a software configuration container
  * \param params Software configuration container
- * \return Chunk size (frames are attempted to be transferred in chunks)
+ * \param val returned chunk size (frames are attempted to be transferred in chunks)
+ * \param 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_SW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
-snd_pcm_uframes_t snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_sw_params_get_xfer_align)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
-	assert(params);
-	return params->xfer_align;
+	assert(params && val);
+	*val = params->xfer_align;
+	return 0;
 }
 
 
@@ -5224,7 +5243,7 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *pa
  * \brief Set start threshold inside a software configuration container
  * \param pcm PCM handle
  * \param params Software configuration container
- * \param val Start threshold in frames 
+ * \param val Start threshold in frames
  * \return 0 otherwise a negative error code
  *
  * PCM is automatically started when playback frames available to PCM 
@@ -5244,16 +5263,26 @@ int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *p
 /**
  * \brief Get start threshold from a software configuration container
  * \param params Software configuration container
- * \return Start threshold in frames
+ * \param val Returned start threshold in frames
+ * \return 0 otherwise a negative error code
  *
  * PCM is automatically started when playback frames available to PCM 
  * are >= threshold or when requested capture frames are >= threshold
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_SW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
-snd_pcm_uframes_t snd_pcm_sw_params_get_start_threshold(const snd_pcm_sw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_sw_params_get_start_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_sw_params_get_start_threshold(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
 	assert(params);
-	return params->start_threshold;
+	*val = params->start_threshold;
+	return 0;
 }
+
 
 /**
  * \brief Set stop threshold inside a software configuration container
@@ -5279,16 +5308,26 @@ int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *pa
 /**
  * \brief Get stop threshold from a software configuration container
  * \param params Software configuration container
- * \return Stop threshold in frames
+ * \param val Returned stop threshold in frames
+ * \return 0 otherwise a negative error code
  *
  * PCM is automatically stopped in #SND_PCM_STATE_XRUN state when available
  * frames is >= threshold
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_SW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
-snd_pcm_uframes_t snd_pcm_sw_params_get_stop_threshold(const snd_pcm_sw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_sw_params_get_stop_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_sw_params_get_stop_threshold(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
 	assert(params);
-	return params->stop_threshold;
+	*val = params->stop_threshold;
+	return 0;
 }
+
 
 /**
  * \brief Set silence threshold inside a software configuration container
@@ -5316,16 +5355,25 @@ int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t 
 /**
  * \brief Get silence threshold from a software configuration container
  * \param params Software configuration container
- * \return Silence threshold in frames
+ * \param val Returned silence threshold in frames
+ * \return 0 otherwise a negative error value
  *
  * A portion of playback buffer is overwritten with silence (see 
  * #snd_pcm_sw_params_get_silence_size) when playback underrun is nearer
  * than silence threshold
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_SW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
-snd_pcm_uframes_t snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_sw_params_get_silence_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
-	assert(params);
-	return params->silence_threshold;
+	assert(params && val);
+	*val = params->silence_threshold;
+	return 0;
 }
 
 
@@ -5355,16 +5403,25 @@ int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm, snd_pcm_sw_params_t *para
 /**
  * \brief Get silence size from a software configuration container
  * \param params Software configuration container
- * \return Silence size in frames (0 for disabled)
+ * \param val Returned silence size in frames (0 for disabled)
+ * \return 0 otherwise a negative error code
  *
  * A portion of playback buffer is overwritten with silence when playback
  * underrun is nearer than silence threshold (see 
  * #snd_pcm_sw_params_set_silence_threshold)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_SW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
-snd_pcm_uframes_t snd_pcm_sw_params_get_silence_size(const snd_pcm_sw_params_t *params)
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_sw_params_get_silence_size)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#else
+int snd_pcm_sw_params_get_silence_size(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+#endif
 {
 	assert(params);
-	return params->silence_size;
+	*val = params->silence_size;
+	return 0;
 }
 
 
@@ -6460,6 +6517,30 @@ __OLD_SET_FL1(snd_pcm_hw_params_set_buffer_time_last, unsigned int);
 __OLD_SET_FL(snd_pcm_hw_params_set_buffer_size_last, snd_pcm_uframes_t);
 __OLD_SET_FL1(snd_pcm_hw_params_set_tick_time_last, unsigned int);
 
+#define __P_OLD_GET_SW(pfx, name, ret_type) \
+ret_type pfx##name(snd_pcm_sw_params_t *params) \
+{ \
+	ret_type val; \
+	if (INTERNAL(name)(params, &val) < 0) \
+		return 0; \
+	return (ret_type)val; \
+}
+
+#ifdef USE_VERSIONED_SYMBOLS
+#define __OLD_GET_SW(name, ret_type) __P_OLD_GET_SW(__old_, name, ret_type)
+#else
+#define __OLD_GET_SW(name, ret_type) __P_OLD_GET_SW(, name, ret_type)
+#endif
+
+__OLD_GET_SW(snd_pcm_sw_params_get_tstamp_mode, snd_pcm_tstamp_t);
+__OLD_GET_SW(snd_pcm_sw_params_get_sleep_min, unsigned int);
+__OLD_GET_SW(snd_pcm_sw_params_get_avail_min, snd_pcm_uframes_t);
+__OLD_GET_SW(snd_pcm_sw_params_get_xfer_align, snd_pcm_uframes_t);
+__OLD_GET_SW(snd_pcm_sw_params_get_start_threshold, snd_pcm_uframes_t);
+__OLD_GET_SW(snd_pcm_sw_params_get_stop_threshold, snd_pcm_uframes_t);
+__OLD_GET_SW(snd_pcm_sw_params_get_silence_threshold, snd_pcm_uframes_t);
+__OLD_GET_SW(snd_pcm_sw_params_get_silence_size, snd_pcm_uframes_t);
+
 OBSOLETE1(snd_pcm_hw_params_get_access, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_hw_params_set_access_first, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_hw_params_set_access_last, ALSA_0.9, ALSA_0.9.0rc4);
@@ -6527,5 +6608,14 @@ OBSOLETE1(snd_pcm_hw_params_get_tick_time_max, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_hw_params_set_tick_time_near, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_hw_params_set_tick_time_first, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_hw_params_set_tick_time_last, ALSA_0.9, ALSA_0.9.0rc4);
+
+OBSOLETE1(snd_pcm_sw_params_get_tstamp_mode, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_sw_params_get_sleep_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_sw_params_get_avail_min, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_sw_params_get_xfer_align, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_sw_params_get_start_threshold, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_sw_params_get_stop_threshold, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_sw_params_get_silence_threshold, ALSA_0.9, ALSA_0.9.0rc4);
+OBSOLETE1(snd_pcm_sw_params_get_silence_size, ALSA_0.9, ALSA_0.9.0rc4);
 
 #endif /* DOC_HIDDEN */
