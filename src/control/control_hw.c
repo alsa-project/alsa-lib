@@ -163,6 +163,22 @@ static int snd_ctl_hw_elem_write(snd_ctl_t *handle, snd_ctl_elem_value_t *contro
 	return 0;
 }
 
+static int snd_ctl_hw_elem_lock(snd_ctl_t *handle, snd_ctl_elem_id_t *id)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_LOCK, id) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_ctl_hw_elem_unlock(snd_ctl_t *handle, snd_ctl_elem_id_t *id)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_UNLOCK, id) < 0)
+		return -errno;
+	return 0;
+}
+
 static int snd_ctl_hw_hwdep_next_device(snd_ctl_t *handle, int * device)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
@@ -255,6 +271,8 @@ snd_ctl_ops_t snd_ctl_hw_ops = {
 	element_info: snd_ctl_hw_elem_info,
 	element_read: snd_ctl_hw_elem_read,
 	element_write: snd_ctl_hw_elem_write,
+	element_lock: snd_ctl_hw_elem_lock,
+	element_unlock: snd_ctl_hw_elem_unlock,
 	hwdep_next_device: snd_ctl_hw_hwdep_next_device,
 	hwdep_info: snd_ctl_hw_hwdep_info,
 	pcm_next_device: snd_ctl_hw_pcm_next_device,

@@ -230,6 +230,30 @@ int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 }
 
 /**
+ * \brief Lock CTL element
+ * \param ctl CTL handle
+ * \param control CTL element id pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_elem_lock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
+{
+	assert(ctl && id);
+	return ctl->ops->element_lock(ctl, id);
+}
+
+/**
+ * \brief Unlock CTL element
+ * \param ctl CTL handle
+ * \param control CTL element id pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_elem_unlock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
+{
+	assert(ctl && id);
+	return ctl->ops->element_unlock(ctl, id);
+}
+
+/**
  * \brief Get next hardware dependent device number
  * \param ctl CTL handle
  * \param device current device on entry and next device on return

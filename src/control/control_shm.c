@@ -207,6 +207,34 @@ static int snd_ctl_shm_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 	return err;
 }
 
+static int snd_ctl_shm_elem_lock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
+{
+	snd_ctl_shm_t *shm = ctl->private_data;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->u.element_lock = *id;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEM_LOCK;
+	err = snd_ctl_shm_action(ctl);
+	if (err < 0)
+		return err;
+	*id = ctrl->u.element_lock;
+	return err;
+}
+
+static int snd_ctl_shm_elem_unlock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
+{
+	snd_ctl_shm_t *shm = ctl->private_data;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->u.element_unlock = *id;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEM_UNLOCK;
+	err = snd_ctl_shm_action(ctl);
+	if (err < 0)
+		return err;
+	*id = ctrl->u.element_unlock;
+	return err;
+}
+
 static int snd_ctl_shm_hwdep_next_device(snd_ctl_t *ctl, int * device)
 {
 	snd_ctl_shm_t *shm = ctl->private_data;
@@ -362,6 +390,8 @@ snd_ctl_ops_t snd_ctl_shm_ops = {
 	element_info: snd_ctl_shm_elem_info,
 	element_read: snd_ctl_shm_elem_read,
 	element_write: snd_ctl_shm_elem_write,
+	element_lock: snd_ctl_shm_elem_lock,
+	element_unlock: snd_ctl_shm_elem_unlock,
 	hwdep_next_device: snd_ctl_shm_hwdep_next_device,
 	hwdep_info: snd_ctl_shm_hwdep_info,
 	pcm_next_device: snd_ctl_shm_pcm_next_device,
