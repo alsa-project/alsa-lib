@@ -166,11 +166,11 @@ static int snd_output_stdio_flush(snd_output_t *output)
 }
 
 static snd_output_ops_t snd_output_stdio_ops = {
-	close: snd_output_stdio_close,
-	print: snd_output_stdio_print,
-	puts: snd_output_stdio_puts,
-	putch: snd_output_stdio_putc,
-	flush: snd_output_stdio_flush,
+	.close		= snd_output_stdio_close,
+	.print		= snd_output_stdio_print,
+	.puts		= snd_output_stdio_puts,
+	.putch		= snd_output_stdio_putc,
+	.flush		= snd_output_stdio_flush,
 };
 
 #endif
@@ -318,11 +318,11 @@ static int snd_output_buffer_flush(snd_output_t *output ATTRIBUTE_UNUSED)
 }
 
 static snd_output_ops_t snd_output_buffer_ops = {
-	close: snd_output_buffer_close,
-	print: snd_output_buffer_print,
-	puts: snd_output_buffer_puts,
-	putch: snd_output_buffer_putc,
-	flush: snd_output_buffer_flush,
+	.close		= snd_output_buffer_close,
+	.print		= snd_output_buffer_print,
+	.puts		= snd_output_buffer_puts,
+	.putch		= snd_output_buffer_putc,
+	.flush		= snd_output_buffer_flush,
 };
 #endif
 

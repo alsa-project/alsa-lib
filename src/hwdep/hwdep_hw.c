@@ -95,12 +95,12 @@ static ssize_t snd_hwdep_hw_read(snd_hwdep_t *hwdep, void *buffer, size_t size)
 }
 
 static snd_hwdep_ops_t snd_hwdep_hw_ops = {
-	close: snd_hwdep_hw_close,
-	nonblock: snd_hwdep_hw_nonblock,
-	info: snd_hwdep_hw_info,
-	ioctl: snd_hwdep_hw_ioctl,
-	write: snd_hwdep_hw_write,
-	read: snd_hwdep_hw_read,
+	.close = snd_hwdep_hw_close,
+	.nonblock = snd_hwdep_hw_nonblock,
+	.info = snd_hwdep_hw_info,
+	.ioctl = snd_hwdep_hw_ioctl,
+	.write = snd_hwdep_hw_write,
+	.read = snd_hwdep_hw_read,
 };
 
 int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int device, int mode)

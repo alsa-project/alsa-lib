@@ -955,19 +955,19 @@ static void snd_pcm_plug_dump(snd_pcm_t *pcm, snd_output_t *out)
 }
 
 static snd_pcm_ops_t snd_pcm_plug_ops = {
-	close: snd_pcm_plug_close,
-	info: snd_pcm_plug_info,
-	hw_refine: snd_pcm_plug_hw_refine,
-	hw_params: snd_pcm_plug_hw_params,
-	hw_free: snd_pcm_plug_hw_free,
-	sw_params: snd_pcm_plug_sw_params,
-	channel_info: snd_pcm_plug_channel_info,
-	dump: snd_pcm_plug_dump,
-	nonblock: snd_pcm_plug_nonblock,
-	async: snd_pcm_plug_async,
-	poll_revents: snd_pcm_plug_poll_revents,
-	mmap: snd_pcm_plug_mmap,
-	munmap: snd_pcm_plug_munmap,
+	.close = snd_pcm_plug_close,
+	.info = snd_pcm_plug_info,
+	.hw_refine = snd_pcm_plug_hw_refine,
+	.hw_params = snd_pcm_plug_hw_params,
+	.hw_free = snd_pcm_plug_hw_free,
+	.sw_params = snd_pcm_plug_sw_params,
+	.channel_info = snd_pcm_plug_channel_info,
+	.dump = snd_pcm_plug_dump,
+	.nonblock = snd_pcm_plug_nonblock,
+	.async = snd_pcm_plug_async,
+	.poll_revents = snd_pcm_plug_poll_revents,
+	.mmap = snd_pcm_plug_mmap,
+	.munmap = snd_pcm_plug_munmap,
 };
 
 /**

@@ -158,11 +158,11 @@ static int snd_input_stdio_ungetc(snd_input_t *input, int c)
 }
 
 static snd_input_ops_t snd_input_stdio_ops = {
-	close: snd_input_stdio_close,
-	scan: snd_input_stdio_scan,
-	gets: snd_input_stdio_gets,
-	getch: snd_input_stdio_getc,
-	ungetch: snd_input_stdio_ungetc,
+	.close		= snd_input_stdio_close,
+	.scan		= snd_input_stdio_scan,
+	.gets		= snd_input_stdio_gets,
+	.getch		= snd_input_stdio_getc,
+	.ungetch	= snd_input_stdio_ungetc,
 };
 #endif
 
@@ -284,11 +284,11 @@ static int snd_input_buffer_ungetc(snd_input_t *input, int c)
 }
 
 static snd_input_ops_t snd_input_buffer_ops = {
-	close: snd_input_buffer_close,
-	scan: snd_input_buffer_scan,
-	gets: snd_input_buffer_gets,
-	getch: snd_input_buffer_getc,
-	ungetch: snd_input_buffer_ungetc,
+	.close		= snd_input_buffer_close,
+	.scan		= snd_input_buffer_scan,
+	.gets		= snd_input_buffer_gets,
+	.getch		= snd_input_buffer_getc,
+	.ungetch	= snd_input_buffer_ungetc,
 };
 #endif
 

@@ -568,19 +568,19 @@ static void snd_pcm_rate_dump(snd_pcm_t *pcm, snd_output_t *out)
 }
 
 static snd_pcm_ops_t snd_pcm_rate_ops = {
-	close: snd_pcm_plugin_close,
-	info: snd_pcm_plugin_info,
-	hw_refine: snd_pcm_rate_hw_refine,
-	hw_params: snd_pcm_rate_hw_params,
-	hw_free: snd_pcm_rate_hw_free,
-	sw_params: snd_pcm_rate_sw_params,
-	channel_info: snd_pcm_plugin_channel_info,
-	dump: snd_pcm_rate_dump,
-	nonblock: snd_pcm_plugin_nonblock,
-	async: snd_pcm_plugin_async,
-	poll_revents: snd_pcm_plugin_poll_revents,
-	mmap: snd_pcm_plugin_mmap,
-	munmap: snd_pcm_plugin_munmap,
+	.close = snd_pcm_plugin_close,
+	.info = snd_pcm_plugin_info,
+	.hw_refine = snd_pcm_rate_hw_refine,
+	.hw_params = snd_pcm_rate_hw_params,
+	.hw_free = snd_pcm_rate_hw_free,
+	.sw_params = snd_pcm_rate_sw_params,
+	.channel_info = snd_pcm_plugin_channel_info,
+	.dump = snd_pcm_rate_dump,
+	.nonblock = snd_pcm_plugin_nonblock,
+	.async = snd_pcm_plugin_async,
+	.poll_revents = snd_pcm_plugin_poll_revents,
+	.mmap = snd_pcm_plugin_mmap,
+	.munmap = snd_pcm_plugin_munmap,
 };
 
 

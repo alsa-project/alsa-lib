@@ -153,15 +153,15 @@ static ssize_t snd_rawmidi_hw_read(snd_rawmidi_t *rmidi, void *buffer, size_t si
 }
 
 snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
-	close: snd_rawmidi_hw_close,
-	nonblock: snd_rawmidi_hw_nonblock,
-	info: snd_rawmidi_hw_info,
-	params: snd_rawmidi_hw_params,
-	status: snd_rawmidi_hw_status,
-	drop: snd_rawmidi_hw_drop,
-	drain: snd_rawmidi_hw_drain,
-	write: snd_rawmidi_hw_write,
-	read: snd_rawmidi_hw_read,
+	.close = snd_rawmidi_hw_close,
+	.nonblock = snd_rawmidi_hw_nonblock,
+	.info = snd_rawmidi_hw_info,
+	.params = snd_rawmidi_hw_params,
+	.status = snd_rawmidi_hw_status,
+	.drop = snd_rawmidi_hw_drop,
+	.drain = snd_rawmidi_hw_drain,
+	.write = snd_rawmidi_hw_write,
+	.read = snd_rawmidi_hw_read,
 };
 
 

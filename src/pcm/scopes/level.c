@@ -170,13 +170,13 @@ static void level_reset(snd_pcm_scope_t *scope)
 }
 
 snd_pcm_scope_ops_t level_ops = {
-	enable: level_enable,
-	disable: level_disable,
-	close: level_close,
-	start: level_start,
-	stop: level_stop,
-	update: level_update,
-	reset: level_reset,
+	.enable = level_enable,
+	.disable = level_disable,
+	.close = level_close,
+	.start = level_start,
+	.stop = level_stop,
+	.update = level_update,
+	.reset = level_reset,
 };
 
 int snd_pcm_scope_level_open(snd_pcm_t *pcm, const char *name,

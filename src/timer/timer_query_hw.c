@@ -82,11 +82,11 @@ static int snd_timer_query_hw_status(snd_timer_query_t *handle, snd_timer_gstatu
 }
 
 static snd_timer_query_ops_t snd_timer_query_hw_ops = {
-	close: snd_timer_query_hw_close,
-	next_device: snd_timer_query_hw_next_device,
-	info: snd_timer_query_hw_info,
-	params: snd_timer_query_hw_params,
-	status: snd_timer_query_hw_status
+	.close = snd_timer_query_hw_close,
+	.next_device = snd_timer_query_hw_next_device,
+	.info = snd_timer_query_hw_info,
+	.params = snd_timer_query_hw_params,
+	.status = snd_timer_query_hw_status
 };
 
 int snd_timer_query_hw_open(snd_timer_query_t **handle, const char *name, int mode)
