@@ -3,7 +3,7 @@
 ; The test is indended to find memory leaks.
 ;
 ; Copyright (c) 2003 Jaroslav Kysela <perex@suse.cz>
-; License: GPL
+; License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
 ;
 
 ;
@@ -120,13 +120,20 @@
 (atom "one")			(&check-memory)
 (atom "one" 'two)		(&check-memory)
 
-(call)				(&check-memory)
+(funcall)			(&check-memory)
 
 (car)				(&check-memory)
 (car '(one . two))		(&check-memory)
 
 (cdr)				(&check-memory)
 (cdr '(one . two))		(&check-memory)
+
+(concat)			(&check-memory)
+(concat 'aaaa)			(&check-memory)
+(concat 'aaaa 'bbbb)		(&check-memory)
+(concat "aaaa")			(&check-memory)
+(concat "aaaa" "bbbb")		(&check-memory)
+(concat "aaaa" "bbbb" "cccc")	(&check-memory)
 
 (cond)				(&check-memory)
 (cond 0)			(&check-memory)
@@ -160,11 +167,17 @@
 (exfun 'abcd)			(&check-memory)
 (exfun 'abcd 'ijkl)		(&check-memory)
 
-(float)				(&check-memory)
-(float 1)			(&check-memory)
-(float 'a)			(&check-memory)
-(float "a" "b" "c")		(&check-memory)
-(float "1.2")			(&check-memory)
+(format)			(&check-memory)
+(format 1)			(&check-memory)
+(format 'a)			(&check-memory)
+(format "a" "b" "c")		(&check-memory)
+(format "1.2")			(&check-memory)
+(format "%c" 43)		(&check-memory)
+(format "%d" 12)		(&check-memory)
+(format "%i" 12)		(&check-memory)
+(format "%f" 12.1)		(&check-memory)
+(format "%s" "abcd")		(&check-memory)
+(format "%s %i %i" "abcd" 1 2)	(&check-memory)
 
 (garbage-collect)		(&check-memory)
 (gc)				(&check-memory)
@@ -178,12 +191,6 @@
 (if nil 'a 'b)			(&check-memory)
 
 (include "itest.lisp")		(&check-memory)
-
-(int)				(&check-memory)
-(int 1)				(&check-memory)
-(int 'a)			(&check-memory)
-(int "a" "b" "c")		(&check-memory)
-(int "1.2")			(&check-memory)
 
 (list)				(&check-memory)
 (list "a")			(&check-memory)
@@ -267,10 +274,28 @@
 (setq a 1) (unsetq a)		(&check-memory)
 (setq a 1 2) (unsetq a)		(&check-memory)
 
-(str)				(&check-memory)
-(str 1)				(&check-memory)
-(str 1 2 3)			(&check-memory)
-(str 1.2 1.3)			(&check-memory)
+(string-equal)			(&check-memory)
+(string-equal 1)		(&check-memory)
+(string-equal "a")		(&check-memory)
+(string-equal "a" "a")		(&check-memory)
+(string-equal "a" "b")		(&check-memory)
+(string-equal "a" "b" "c")	(&check-memory)
+
+(string-to-integer)		(&check-memory)
+(string-to-integer 1)		(&check-memory)
+(string-to-integer 1.5)		(&check-memory)
+(string-to-integer "a")		(&check-memory)
+(string-to-integer "a" "a")	(&check-memory)
+(string-to-integer "a" "b")	(&check-memory)
+(string-to-integer "a" "b" "c")	(&check-memory)
+
+(string-to-float)		(&check-memory)
+(string-to-float 1)		(&check-memory)
+(string-to-float 1.5)		(&check-memory)
+(string-to-float "a")		(&check-memory)
+(string-to-float "a" "a")	(&check-memory)
+(string-to-float "a" "b")	(&check-memory)
+(string-to-float "a" "b" "c")	(&check-memory)
 
 (string=)			(&check-memory)
 (string= 1)			(&check-memory)
@@ -278,13 +303,6 @@
 (string= "a" "a")		(&check-memory)
 (string= "a" "b")		(&check-memory)
 (string= "a" "b" "c")		(&check-memory)
-
-(string-equal)			(&check-memory)
-(string-equal 1)		(&check-memory)
-(string-equal "a")		(&check-memory)
-(string-equal "a" "a")		(&check-memory)
-(string-equal "a" "b")		(&check-memory)
-(string-equal "a" "b" "c")	(&check-memory)
 
 (unless)			(&check-memory)
 (unless 1)			(&check-memory)
@@ -322,27 +340,31 @@
 (unsetq abcd)
 (&check-memory)
 
+(setq abcd (("abcd" . "efgh") ("1234" . "5678")))
+(unsetq abcd)
+(&check-memory)
+
 (defun myfun () (princ "a\n"))
 (exfun 'myfun)
 (unsetq myfun)
 (&check-memory)
 
 (defun myfun () (princ "a\n"))
-(call 'myfun)
-(call 'myfun 'aaaaa)
+(funcall 'myfun)
+(funcall 'myfun 'aaaaa)
 (unsetq myfun)
 (&check-memory)
 
 (defun myfun (o) (princ o "a\n"))
-(call 'myfun)
-(call 'myfun 'aaaaa)
+(funcall 'myfun)
+(funcall 'myfun 'aaaaa)
 (unsetq myfun)
 (&check-memory)
 
 (defun myfun (o p) (princ o p "\n"))
-(call 'myfun)
-(call 'myfun 'aaaaa)
-(call 'myfun 'aaaaa 'bbbbb)
+(funcall 'myfun)
+(funcall 'myfun 'aaaaa)
+(funcall 'myfun 'aaaaa 'bbbbb)
 (unsetq myfun)
 (&check-memory)
 

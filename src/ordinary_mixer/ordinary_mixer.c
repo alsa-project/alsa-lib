@@ -67,18 +67,12 @@ struct sndo_mixer {
 	int _free_cfg;
 };
 
-/**
- * \brief Opens a ordinary mixer instance
- * \param pmixer Returned ordinary mixer handle
- * \param playback_pcm handle of the playback PCM
- * \param capture_pcm handle of the capture PCM
- * \param lconf Local configuration (might be NULL - use global configuration)
- * \return 0 on success otherwise a negative error code
- */
-int sndo_mixer_open(sndo_mixer_t **pmixer,
-		    snd_pcm_t *playback_pcm,
-		    snd_pcm_t *capture_pcm,
-		    struct alisp_cfg *lconf)
+int sndo_mixer_open1(sndo_mixer_t **pmixer,
+		     const char *lisp_fcn,
+		     const char *lisp_fmt,
+		     const void *parg,
+		     const void *carg,
+		     struct alisp_cfg *lconf)
 {
 	struct alisp_cfg *cfg = lconf;
 	struct alisp_instance *alisp;
@@ -101,16 +95,16 @@ int sndo_mixer_open(sndo_mixer_t **pmixer,
 		cfg = alsa_lisp_default_cfg(input);
 		if (cfg == NULL)
 			return -ENOMEM;
+		cfg->warning = 1;
 #if 0
 		cfg->debug = 1;
 		cfg->verbose = 1;
-		cfg->warning = 1;
 #endif
 	}
 	err = alsa_lisp(cfg, &alisp);
 	if (err < 0)
 		goto __error;
-	err = alsa_lisp_function(alisp, &iterator, "sndo_mixer_open", "%ppcm%ppcm", playback_pcm, capture_pcm);
+	err = alsa_lisp_function(alisp, &iterator, lisp_fcn, lisp_fmt, parg, carg);
 	if (err < 0) {
 		alsa_lisp_free(alisp);
 		goto __error;
@@ -118,6 +112,7 @@ int sndo_mixer_open(sndo_mixer_t **pmixer,
 	err = alsa_lisp_seq_integer(iterator, &val);
 	if (err == 0 && val < 0)
 		err = val;
+	alsa_lisp_result_free(alisp, iterator);
 	if (err < 0) {
 		alsa_lisp_free(alisp);
 		goto __error;
@@ -155,6 +150,39 @@ int sndo_mixer_open(sndo_mixer_t **pmixer,
 	if (cfg != lconf)
 		alsa_lisp_default_cfg_free(cfg);
 	return err;
+}
+
+/**
+ * \brief Opens a ordinary mixer instance
+ * \param pmixer Returned ordinary mixer handle
+ * \param playback_name name for playback HCTL communication
+ * \param capture_name name for capture HCTL communication
+ * \param lconf Local configuration (might be NULL - use global configuration)
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_mixer_open(sndo_mixer_t **pmixer,
+		    const char *playback_name,
+		    const char *capture_name,
+		    struct alisp_cfg *lconf)
+{
+	return sndo_mixer_open1(pmixer, "sndo_mixer_open", "%s%s", playback_name, capture_name, lconf);
+}
+
+
+/**
+ * \brief Opens a ordinary mixer instance
+ * \param pmixer Returned ordinary mixer handle
+ * \param playback_pcm handle of the playback PCM
+ * \param capture_pcm handle of the capture PCM
+ * \param lconf Local configuration (might be NULL - use global configuration)
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_mixer_open_pcm(sndo_mixer_t **pmixer,
+			snd_pcm_t *playback_pcm,
+			snd_pcm_t *capture_pcm,
+			struct alisp_cfg *lconf)
+{
+	return sndo_mixer_open1(pmixer, "sndo_mixer_open_pcm", "%ppcm%ppcm", playback_pcm, capture_pcm, lconf);
 }
 
 /**

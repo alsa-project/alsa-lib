@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 		{"cname", 1, NULL, 'C'},
 		{NULL, 0, NULL, 0},
 	};
-	int err, morehelp;
+	int err, morehelp, result = EXIT_SUCCESS;
 	char *pname = "default", *cname = "default";
 	snd_pcm_t *phandle = NULL, *chandle = NULL;
 	sndo_mixer_t *handle;
@@ -59,7 +59,8 @@ int main(int argc, char *argv[])
 		err = snd_pcm_open(&phandle, pname, SND_PCM_STREAM_PLAYBACK, 0);
 		if (err < 0) {
 			fprintf(stderr, "Playback PCM open error: %s\n", snd_strerror(err));
-			return EXIT_FAILURE;
+			result = EXIT_FAILURE;
+			goto __end;
 		}
 	}
 
@@ -69,17 +70,23 @@ int main(int argc, char *argv[])
 			if (phandle)
 				snd_pcm_close(phandle);
 			fprintf(stderr, "Capture PCM open error: %s\n", snd_strerror(err));
-			return EXIT_FAILURE;
+			result = EXIT_FAILURE;
+			goto __end;
 		}
 	}
 
-	err = sndo_mixer_open(&handle, phandle, chandle, NULL);
+	err = sndo_mixer_open_pcm(&handle, phandle, chandle, NULL);
 	if (err < 0) {
 		fprintf(stderr, "mixer open error: %s\n", snd_strerror(err));
-		return EXIT_FAILURE;
+		result = EXIT_FAILURE;
+	} else {
+		sndo_mixer_close(handle);
 	}
-	sndo_mixer_close(handle);
-	snd_pcm_close(chandle);
-	snd_pcm_close(phandle);
-	return EXIT_SUCCESS;
+      __end:
+	if (chandle)
+		snd_pcm_close(chandle);
+	if (phandle)
+		snd_pcm_close(phandle);
+	snd_config_update_free_global(); /* to keep valgrind happy */
+	return result;
 }

@@ -195,7 +195,8 @@ extern "C" {
  *  \{
  */
 
-int sndo_mixer_open(sndo_mixer_t **pmixer, snd_pcm_t *playback_pcm, snd_pcm_t *capture_pcm, struct alisp_cfg *lconf);
+int sndo_mixer_open(sndo_mixer_t **pmixer, const char *playback_name, const char *capture_name, struct alisp_cfg *lconf);
+int sndo_mixer_open_pcm(sndo_mixer_t **pmixer, snd_pcm_t *playback_pcm, snd_pcm_t *capture_pcm, struct alisp_cfg *lconf);
 int sndo_mixer_close(sndo_mixer_t *mixer);
 int sndo_mixer_poll_descriptors_count(sndo_mixer_t *mixer);
 int sndo_mixer_poll_descriptors(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int space);

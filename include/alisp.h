@@ -45,6 +45,8 @@ int alsa_lisp_function(struct alisp_instance *instance, struct alisp_seq_iterato
 		       __attribute__ ((format (printf, 4, 5)))
 #endif
 		       ;
+void alsa_lisp_result_free(struct alisp_instance *instance,
+			   struct alisp_seq_iterator *result);
 int alsa_lisp_seq_first(struct alisp_instance *instance, const char *id,
 			struct alisp_seq_iterator **seq);
 int alsa_lisp_seq_next(struct alisp_seq_iterator **seq);
