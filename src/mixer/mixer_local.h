@@ -30,20 +30,23 @@ typedef int (mixer_simple_get_t) (snd_mixer_t *handle, mixer_simple_t *simple, s
 typedef int (mixer_simple_put_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control);
 typedef int (mixer_simple_event_add_t) (snd_mixer_t *handle, snd_hcontrol_t *hcontrol);
 
-#define MIXER_PRESENT_GLOBAL_SWITCH	(1<<0)
-#define MIXER_PRESENT_GLOBAL_VOLUME	(1<<1)
-#define MIXER_PRESENT_GLOBAL_ROUTE	(1<<2)
-#define MIXER_PRESENT_PLAYBACK_SWITCH	(1<<3)
-#define MIXER_PRESENT_PLAYBACK_VOLUME	(1<<4)
-#define MIXER_PRESENT_PLAYBACK_ROUTE	(1<<5)
-#define MIXER_PRESENT_CAPTURE_SWITCH	(1<<6)
-#define MIXER_PRESENT_CAPTURE_VOLUME	(1<<7)
-#define MIXER_PRESENT_CAPTURE_ROUTE	(1<<8)
-#define MIXER_PRESENT_CAPTURE_SOURCE	(1<<9)
+#define MIXER_PRESENT_SINGLE_SWITCH	(1<<0)
+#define MIXER_PRESENT_SINGLE_VOLUME	(1<<1)
+#define MIXER_PRESENT_GLOBAL_SWITCH	(1<<2)
+#define MIXER_PRESENT_GLOBAL_VOLUME	(1<<3)
+#define MIXER_PRESENT_GLOBAL_ROUTE	(1<<4)
+#define MIXER_PRESENT_PLAYBACK_SWITCH	(1<<5)
+#define MIXER_PRESENT_PLAYBACK_VOLUME	(1<<6)
+#define MIXER_PRESENT_PLAYBACK_ROUTE	(1<<7)
+#define MIXER_PRESENT_CAPTURE_SWITCH	(1<<8)
+#define MIXER_PRESENT_CAPTURE_VOLUME	(1<<9)
+#define MIXER_PRESENT_CAPTURE_ROUTE	(1<<10)
+#define MIXER_PRESENT_CAPTURE_SOURCE	(1<<11)
 
 struct mixer_simple {
 	/* this may be moved to a private area */
 	unsigned int present;		/* present controls */
+	unsigned int global_values;
 	unsigned int gswitch_values;
 	unsigned int pswitch_values;
 	unsigned int cswitch_values;
