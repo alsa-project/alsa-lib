@@ -27,11 +27,15 @@ to compile CVS sources of alsa-lib package.
 
 For compilation you can use these commands:
 
+	libtoolize --force --copy --automake
 	aclocal
-	automake --foreign
+	autoheader
+	automake --foreign --copy --add-missing
 	autoconf
 	./configure
 	make
+
+The included cvscompile script does this job for you.
 
 Note: Some automake packages have missing aclocal program. Use newer version
       in the case.
