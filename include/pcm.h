@@ -791,13 +791,9 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		       const snd_pcm_channel_area_t **areas,
 		       snd_pcm_uframes_t *offset,
 		       snd_pcm_uframes_t *frames);
-int snd_pcm_mmap_commit(snd_pcm_t *pcm,
-			snd_pcm_uframes_t offset,
-			snd_pcm_uframes_t frames);
-int snd_pcm_mmap_commit_partial(snd_pcm_t *pcm,
-				snd_pcm_uframes_t offset,
-				snd_pcm_uframes_t frames,
-				snd_pcm_uframes_t *commited);
+snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
+				      snd_pcm_uframes_t offset,
+				      snd_pcm_uframes_t frames);
 snd_pcm_sframes_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);

@@ -5005,7 +5005,7 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
  * \param pcm PCM handle
  * \param offset area offset in area steps (== frames)
  * \param size area portion size in frames
- * \return 0 on success otherwise a negative error code
+ * \return count of transferred frames otherwise a negative error code
  *
  * You should pass this function the offset value that
  * snd_pcm_mmap_begin() returned. The frames parameter should hold the
@@ -5018,8 +5018,9 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 \code
   double phase = 0;
   const snd_pcm_area_t *areas;
-  snd_pcm_sframes_t avail, size;
+  snd_pcm_sframes_t avail, size, commitres;
   snd_pcm_uframes_t offset, frames;
+  int err;
 
   avail = snd_pcm_avail_update(pcm);
   if (avail < 0)
@@ -5039,9 +5040,9 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
       error(err);
     // this function fills the areas from offset with count of frames
     generate_sine(areas, offset, frames, &phase);
-    err = snd_pcm_mmap_commit(pcm_handle, offset, frames);
-    if (err < 0)
-      error(err);
+    commitres = snd_pcm_mmap_commit(pcm_handle, offset, frames);
+    if (commitres < 0 || commitres != frames)
+      error(commitres >= 0 ? -EPIPE : commitres);
       
     size -= frames;
   }
@@ -5051,49 +5052,30 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
  * Look to the \ref example_test_pcm "Sine-wave generator" example
  * for more details about the generate_sine function.
  */
-int snd_pcm_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
-			snd_pcm_uframes_t frames)
+snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
+				      snd_pcm_uframes_t offset,
+				      snd_pcm_uframes_t frames)
 {
+	int res;
+	snd_pcm_uframes_t appl_ptr;
+
 	assert(pcm);
 	assert(offset == *pcm->appl_ptr % pcm->buffer_size);
 	assert(frames <= snd_pcm_mmap_avail(pcm));
-	return pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
-}
-
-/**
- * \brief Application has completed the access to area requested with #snd_pcm_mmap_begin
- * \param pcm PCM handle
- * \param offset area offset in area steps (== frames)
- * \param size area portion size in frames
- * \param commited count of successfully commited frames
- * \return 0 on success otherwise a negative error code
- *
- * See snd_pcm_mmap_commit() function. The only difference is the
- * #commited parameter returning count of successfully commited frames
- * when an error occured. This parameter is equal to frames when
- * no error occured. This function is a helper for more precise xrun
- * recovery algorithms.
- */
-int snd_pcm_mmap_commit_partial(snd_pcm_t *pcm,
-				snd_pcm_uframes_t offset,
-				snd_pcm_uframes_t frames,
-				snd_pcm_uframes_t *commited)
-{
-	int err;
-	snd_pcm_uframes_t appl_ptr;
-
-	assert(pcm && commited);
-	assert(offset == *pcm->appl_ptr % pcm->buffer_size);
-	assert(frames <= snd_pcm_mmap_avail(pcm));
 	appl_ptr = *pcm->appl_ptr;
-	err = pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
-	if (err < 0) {
-		*commited = *pcm->appl_ptr - appl_ptr;
-		assert(*commited <= pcm->buffer_size);
-		return err;
+	res = pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
+	if (res < 0) {
+		snd_pcm_sframes_t diff;
+
+		if (appl_ptr == *pcm->appl_ptr)
+			return res;
+		diff = *pcm->appl_ptr - appl_ptr;
+		if (diff < 0)
+			diff += pcm->boundary;
+		assert(diff >= 0 && (snd_pcm_uframes_t)diff < pcm->boundary);
+		return diff;
 	}
-	*commited = frames;
-	return err;
+	return frames;
 }
 
 #ifndef DOC_HIDDEN
