@@ -4448,7 +4448,11 @@ link_warning(snd_pcm_sw_params_get_start_mode, "Warning: start_mode is deprecate
  * \param val Xrun mode
  * \return 0 otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_xrun_t val)
+#else
+int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_xrun_t val)
+#endif
 {
 	assert(pcm && params);
 	switch (val) {
@@ -4492,7 +4496,11 @@ link_warning(snd_pcm_sw_params_get_xrun_mode, "Warning: xrun_mode is deprecated,
  * \param val Timestamp mode
  * \return 0 otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_tstamp_t val)
+#else
+int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_tstamp_t val)
+#endif
 {
 	assert(pcm && params);
 	assert(val <= SND_PCM_TSTAMP_LAST);
@@ -4535,7 +4543,11 @@ unsigned int snd_pcm_sw_params_get_period_step(const snd_pcm_sw_params_t *params
  * \param val Minimum ticks to sleep or 0 to disable the use of tick timer
  * \return 0 otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_pcm_sw_params_set_sleep_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, unsigned int val)
+#else
+int snd_pcm_sw_params_set_sleep_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, unsigned int val)
+#endif
 {
 	assert(pcm && params);
 	params->sleep_min = val;
@@ -4560,7 +4572,11 @@ unsigned int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params)
  * \param val Minimum avail frames to consider PCM ready
  * \return 0 otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#else
+int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#endif
 {
 	assert(pcm && params);
 	params->avail_min = val;
@@ -4586,7 +4602,11 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *par
  * \param val Chunk size (frames are attempted to be transferred in chunks)
  * \return 0 otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#else
+int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#endif
 {
 	assert(pcm && params);
 	assert(val % pcm->min_align == 0);
@@ -4616,7 +4636,11 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *pa
  * PCM is automatically started when playback frames available to PCM 
  * are >= threshold or when requested capture frames are >= threshold
  */
+#ifndef DOXYGEN
 int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#else
+int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#endif
 {
 	assert(pcm && params);
 	params->start_threshold = val;
@@ -4647,7 +4671,11 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_start_threshold(const snd_pcm_sw_params_
  * PCM is automatically stopped in #SND_PCM_STATE_XRUN state when available
  * frames is >= threshold
  */
+#ifndef DOXYGEN
 int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#else
+int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#endif
 {
 	assert(pcm && params);
 	params->stop_threshold = val;
@@ -4679,7 +4707,11 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_stop_threshold(const snd_pcm_sw_params_t
  * #snd_pcm_sw_params_set_silence_size) when playback underrun is nearer
  * than silence threshold
  */
+#ifndef DOXYGEN
 int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#else
+int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#endif
 {
 	assert(pcm && params);
 	assert(val + params->silence_size <= pcm->buffer_size);
@@ -4714,7 +4746,11 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_param
  * underrun is nearer than silence threshold (see 
  * #snd_pcm_sw_params_set_silence_threshold)
  */
+#ifndef DOXYGEN
 int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#else
+int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#endif
 {
 	assert(pcm && params);
 	assert(val + params->silence_threshold <= pcm->buffer_size);

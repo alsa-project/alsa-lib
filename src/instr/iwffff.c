@@ -343,7 +343,11 @@ int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, 
  * \param file ROM file number
  * \return 0 on success otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_instr_iwffff_open_rom_file(snd_iwffff_handle_t **handle ATTRIBUTE_UNUSED, const char *name ATTRIBUTE_UNUSED, int bank ATTRIBUTE_UNUSED, int file ATTRIBUTE_UNUSED)
+#else
+int snd_instr_iwffff_open_rom_file(snd_iwffff_handle_t **handle, const char *name, int bank, int file)
+#endif
 {
 	/* TODO */
 	return -ENXIO;
@@ -899,9 +903,15 @@ int snd_instr_iwffff_convert_to_stream(snd_instr_iwffff_t *iwffff,
  * \param iwffff Result - allocated IWFFFF instrument handle
  * \return 0 on success otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_instr_iwffff_convert_from_stream(snd_instr_header_t *data ATTRIBUTE_UNUSED,
 					 size_t size ATTRIBUTE_UNUSED,
 					 snd_instr_iwffff_t **iwffff ATTRIBUTE_UNUSED)
+#else
+int snd_instr_iwffff_convert_from_stream(snd_instr_header_t *data,
+					 size_t size,
+					 snd_instr_iwffff_t **iwffff)
+#endif
 {
 	/* TODO */
 	return -ENXIO;

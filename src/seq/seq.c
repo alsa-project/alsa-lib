@@ -2530,7 +2530,11 @@ snd_seq_event_t *snd_seq_create_event(void)
  *
  * this is obsolete.  only for compatibility
  */
+#ifndef DOXYGEN
 int snd_seq_free_event(snd_seq_event_t *ev ATTRIBUTE_UNUSED)
+#else
+int snd_seq_free_event(snd_seq_event_t *ev)
+#endif
 {
 	return 0;
 }

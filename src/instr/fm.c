@@ -115,9 +115,15 @@ int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm,
  * \param simple Result - allocated FM instrument handle
  * \return 0 on success otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_instr_fm_convert_from_stream(snd_instr_header_t *__data ATTRIBUTE_UNUSED,
 				     size_t size ATTRIBUTE_UNUSED,
 				     snd_instr_fm_t **simple ATTRIBUTE_UNUSED)
+#else
+int snd_instr_fm_convert_from_stream(snd_instr_header_t *__data,
+				     size_t size,
+				     snd_instr_fm_t **simple)
+#endif
 {
 	/* TODO */
 	return -ENXIO;

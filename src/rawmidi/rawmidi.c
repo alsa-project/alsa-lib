@@ -620,7 +620,11 @@ void snd_rawmidi_params_copy(snd_rawmidi_params_t *dst, const snd_rawmidi_params
  * \param val size in bytes
  * \return 0 on success otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_rawmidi_params_set_buffer_size(snd_rawmidi_t *rawmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, size_t val)
+#else
+int snd_rawmidi_params_set_buffer_size(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params, size_t val)
+#endif
 {
 	assert(rawmidi && params);
 	assert(val > params->avail_min);
@@ -645,7 +649,11 @@ size_t snd_rawmidi_params_get_buffer_size(const snd_rawmidi_params_t *params)
  * \param params pointer to a snd_rawmidi_params_t structure
  * \param val desired value
  */
+#ifndef DOXYGEN
 int snd_rawmidi_params_set_avail_min(snd_rawmidi_t *rawmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, size_t val)
+#else
+int snd_rawmidi_params_set_avail_min(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params, size_t val)
+#endif
 {
 	assert(rawmidi && params);
 	assert(val < params->buffer_size);
@@ -671,7 +679,11 @@ size_t snd_rawmidi_params_get_avail_min(const snd_rawmidi_params_t *params)
  * \param val value: 0 = enable to send the active sensing message, 1 = disable
  * \return 0 on success otherwise a negative error code
  */
+#ifndef DOXYGEN
 int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rawmidi ATTRIBUTE_UNUSED, snd_rawmidi_params_t *params, int val)
+#else
+int snd_rawmidi_params_set_no_active_sensing(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params, int val)
+#endif
 {
 	assert(rawmidi && params);
 	params->no_active_sensing = val;

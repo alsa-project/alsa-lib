@@ -379,14 +379,14 @@ typedef struct snd_seq_ev_sample_control {
 	unsigned char channel;		/**< channel */
 	unsigned char unused[3];	/**< reserved */
 	union {
-		snd_seq_ev_sample_t sample;
-		snd_seq_ev_cluster_t cluster;
-		snd_seq_position_t position;
-		snd_seq_stop_mode_t stop_mode;
-		snd_seq_frequency_t frequency;
-		snd_seq_ev_volume_t volume;
-		snd_seq_ev_loop_t loop;
-		unsigned char raw8[8];
+		snd_seq_ev_sample_t sample;	/**< sample number */
+		snd_seq_ev_cluster_t cluster;	/**< cluster number */
+		snd_seq_position_t position;	/**< position */
+		snd_seq_stop_mode_t stop_mode;	/**< stop mode */
+		snd_seq_frequency_t frequency;	/**< frequency */
+		snd_seq_ev_volume_t volume;	/**< volume */
+		snd_seq_ev_loop_t loop;		/**< loop control */
+		unsigned char raw8[8];		/**< raw 8-bit */
 	} param;		/**< control parameters */
 } snd_seq_ev_sample_control_t;
 
@@ -437,19 +437,19 @@ typedef struct snd_seq_event {
 	snd_seq_addr_t dest;		/**< destination address */
 
 	union {
-		snd_seq_ev_note_t note;
-		snd_seq_ev_ctrl_t control;
-		snd_seq_ev_raw8_t raw8;
-		snd_seq_ev_raw32_t raw32;
-		snd_seq_ev_ext_t ext;
-		snd_seq_ev_ipcshm_t ipcshm;
-		snd_seq_ev_queue_control_t queue;
-		snd_seq_timestamp_t time;
-		snd_seq_addr_t addr;
-		snd_seq_connect_t connect;
-		snd_seq_result_t result;
-		snd_seq_ev_instr_begin_t instr_begin;
-		snd_seq_ev_sample_control_t sample;
+		snd_seq_ev_note_t note;		/**< note information */
+		snd_seq_ev_ctrl_t control;	/**< MIDI control information */
+		snd_seq_ev_raw8_t raw8;		/**< raw8 data */
+		snd_seq_ev_raw32_t raw32;	/**< raw32 data */
+		snd_seq_ev_ext_t ext;		/**< external data */
+		snd_seq_ev_ipcshm_t ipcshm;	/**< IPC shared memory */
+		snd_seq_ev_queue_control_t queue; /**< queue control */
+		snd_seq_timestamp_t time;	/**< timestamp */
+		snd_seq_addr_t addr;		/**< address */
+		snd_seq_connect_t connect;	/**< connect information */
+		snd_seq_result_t result;	/**< operation result code */
+		snd_seq_ev_instr_begin_t instr_begin; /**< instrument */
+		snd_seq_ev_sample_control_t sample; /**< sample control */
 	} data;				/**< event data... */
 } snd_seq_event_t;
 
