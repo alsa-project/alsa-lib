@@ -254,13 +254,12 @@ static int elem_read_switch(selem_t *s, int dir, selem_ctl_type_t type)
 	memset(&ctl, 0, sizeof(ctl));
 	if ((err = snd_hctl_elem_read(c->elem, &ctl)) < 0)
 		return err;
-	s->str[dir].sw = 0;
 	for (idx = 0; idx < s->str[dir].channels; idx++) {
 		unsigned int idx1 = idx;
 		if (idx >= c->values)
 			idx1 = 0;
-		if (ctl.value.integer.value[idx1])
-			s->str[dir].sw |= 1 << idx;
+		if (!ctl.value.integer.value[idx1])
+			s->str[dir].sw &= ~(1 << idx);
 	}
 	return 0;
 }
@@ -274,13 +273,12 @@ static int elem_read_route(selem_t *s, int dir, selem_ctl_type_t type)
 	memset(&ctl, 0, sizeof(ctl));
 	if ((err = snd_hctl_elem_read(c->elem, &ctl)) < 0)
 		return err;
-	s->str[dir].sw = 0;
 	for (idx = 0; idx < s->str[dir].channels; idx++) {
 		unsigned int idx1 = idx;
 		if (idx >= c->values)
 			idx1 = 0;
-		if (ctl.value.integer.value[idx1 * c->values + idx1])
-			s->str[dir].sw |= 1 << idx;
+		if (!ctl.value.integer.value[idx1 * c->values + idx1])
+			s->str[dir].sw &= ~(1 << idx);
 	}
 	return 0;
 }
@@ -315,16 +313,17 @@ static int selem_read(snd_mixer_elem_t *elem)
 	if (err < 0)
 		return err;
 
+	s->str[PLAY].sw = ~0;
 	if (s->ctls[CTL_PLAYBACK_SWITCH].elem)
 		err = elem_read_switch(s, PLAY, CTL_PLAYBACK_SWITCH);
-	else if (s->ctls[CTL_GLOBAL_SWITCH].elem)
+	if (s->ctls[CTL_GLOBAL_SWITCH].elem)
 		err = elem_read_switch(s, PLAY, CTL_GLOBAL_SWITCH);
-	else if (s->ctls[CTL_SINGLE].elem &&
-		 s->ctls[CTL_SINGLE].type == SND_CTL_ELEM_TYPE_BOOLEAN)
+	if (s->ctls[CTL_SINGLE].elem &&
+	    s->ctls[CTL_SINGLE].type == SND_CTL_ELEM_TYPE_BOOLEAN)
 		err = elem_read_switch(s, PLAY, CTL_SINGLE);
-	else if (s->ctls[CTL_PLAYBACK_ROUTE].elem)
+	if (s->ctls[CTL_PLAYBACK_ROUTE].elem)
 		err = elem_read_route(s, PLAY, CTL_PLAYBACK_ROUTE);
-	else if (s->ctls[CTL_GLOBAL_ROUTE].elem)
+	if (s->ctls[CTL_GLOBAL_ROUTE].elem)
 		err = elem_read_route(s, PLAY, CTL_GLOBAL_ROUTE);
 	if (err < 0)
 		return err;
@@ -339,18 +338,19 @@ static int selem_read(snd_mixer_elem_t *elem)
 	if (err < 0)
 		return err;
 
+	s->str[CAPT].sw = ~0;
 	if (s->ctls[CTL_CAPTURE_SWITCH].elem)
 		err = elem_read_switch(s, CAPT, CTL_CAPTURE_SWITCH);
-	else if (s->ctls[CTL_GLOBAL_SWITCH].elem)
+	if (s->ctls[CTL_GLOBAL_SWITCH].elem)
 		err = elem_read_switch(s, CAPT, CTL_GLOBAL_SWITCH);
-	else if (s->ctls[CTL_SINGLE].elem &&
-		   s->ctls[CTL_SINGLE].type == SND_CTL_ELEM_TYPE_BOOLEAN)
+	if (s->ctls[CTL_SINGLE].elem &&
+	    s->ctls[CTL_SINGLE].type == SND_CTL_ELEM_TYPE_BOOLEAN)
 		err = elem_read_switch(s, CAPT, CTL_SINGLE);
-	else if (s->ctls[CTL_CAPTURE_ROUTE].elem)
+	if (s->ctls[CTL_CAPTURE_ROUTE].elem)
 		err = elem_read_route(s, CAPT, CTL_CAPTURE_ROUTE);
-	else if (s->ctls[CTL_GLOBAL_ROUTE].elem)
+	if (s->ctls[CTL_GLOBAL_ROUTE].elem)
 		err = elem_read_route(s, CAPT, CTL_GLOBAL_ROUTE);
-	else if (s->ctls[CTL_CAPTURE_SOURCE].elem) {
+	if (s->ctls[CTL_CAPTURE_SOURCE].elem) {
 		snd_ctl_elem_value_t ctl;
 		selem_ctl_t *c = &s->ctls[CTL_CAPTURE_SOURCE];
 		memset(&ctl, 0, sizeof(ctl));
@@ -1272,7 +1272,7 @@ int snd_mixer_selem_has_playback_switch(snd_mixer_elem_t *elem)
 	assert(elem);
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
 	s = elem->private_data;
-	return !!(s->caps & CAP_PSWITCH) && !!(s->caps & CAP_GSWITCH);
+	return !!(s->caps & CAP_PSWITCH) || !!(s->caps & CAP_GSWITCH);
 }
 
 /**
