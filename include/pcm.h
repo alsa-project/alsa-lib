@@ -459,8 +459,6 @@ const char *snd_pcm_format_description(snd_pcm_format_t format);
 const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat);
 const char *snd_pcm_subformat_description(snd_pcm_subformat_t subformat);
 snd_pcm_format_t snd_pcm_format_value(const char* name);
-const char *snd_pcm_start_mode_name(snd_pcm_start_t mode);
-const char *snd_pcm_xrun_mode_name(snd_pcm_xrun_t mode);
 const char *snd_pcm_tstamp_mode_name(snd_pcm_tstamp_t mode);
 const char *snd_pcm_state_name(snd_pcm_state_t state);
 
@@ -723,10 +721,6 @@ size_t snd_pcm_sw_params_sizeof(void);
 int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **ptr);
 void snd_pcm_sw_params_free(snd_pcm_sw_params_t *obj);
 void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t *src);
-int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_start_t val);
-snd_pcm_start_t snd_pcm_sw_params_get_start_mode(const snd_pcm_sw_params_t *params);
-int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_xrun_t val);
-snd_pcm_xrun_t snd_pcm_sw_params_get_xrun_mode(const snd_pcm_sw_params_t *params);
 int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_tstamp_t val);
 snd_pcm_tstamp_t snd_pcm_sw_params_get_tstamp_mode(const snd_pcm_sw_params_t *params);
 #if 0
@@ -763,6 +757,7 @@ void snd_pcm_status_get_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr
 snd_pcm_sframes_t snd_pcm_status_get_delay(const snd_pcm_status_t *obj);
 snd_pcm_uframes_t snd_pcm_status_get_avail(const snd_pcm_status_t *obj);
 snd_pcm_uframes_t snd_pcm_status_get_avail_max(const snd_pcm_status_t *obj);
+snd_pcm_uframes_t snd_pcm_status_get_overrange(const snd_pcm_status_t *obj);
 
 size_t snd_pcm_info_sizeof(void);
 /** \hideinitializer
@@ -812,6 +807,14 @@ int snd_pcm_hook_remove(snd_pcm_hook_t *hook);
 #ifdef __cplusplus
 }
 #endif
+
+/* Deprecated functions, for compatibity */
+const char *snd_pcm_start_mode_name(snd_pcm_start_t mode);
+const char *snd_pcm_xrun_mode_name(snd_pcm_xrun_t mode);
+int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_start_t val);
+snd_pcm_start_t snd_pcm_sw_params_get_start_mode(const snd_pcm_sw_params_t *params);
+int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_xrun_t val);
+snd_pcm_xrun_t snd_pcm_sw_params_get_xrun_mode(const snd_pcm_sw_params_t *params);
 
 /** \} */
 

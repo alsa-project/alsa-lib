@@ -4078,6 +4078,16 @@ snd_pcm_uframes_t snd_pcm_status_get_avail_max(const snd_pcm_status_t *obj)
 	return obj->avail_max;
 }
 
+/** 
+ * \brief Get count of ADC overrange detections since last call
+ * \return Count of ADC overrange detections
+ */
+snd_pcm_uframes_t snd_pcm_status_get_overrange(const snd_pcm_status_t *obj)
+{
+	assert(obj);
+	return obj->overrange;
+}
+
 /**
  * \brief get size of #snd_pcm_info_t
  * \return size in bytes
