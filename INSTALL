@@ -1,0 +1,37 @@
+
+			ALSA library installation
+			=========================
+
+Installation from tarbal
+------------------------
+
+For installation you can use these commands:
+
+	./configure
+	make install
+
+If ./configure command complain that alsa-driver package isn't installed,
+please, check if --prefix option is same for alsa-driver and alsa-lib
+package. The configure script from alsa-lib package probably cannot find
+header file asound.h in $prefix/include/linux directory (usually in
+/usr/include/linux directory).
+
+Note: If you change kernel sources frequently, please, check if you have
+      installed alsa-driver for current version of your kernel.
+
+Compilation from CVS sources
+----------------------------
+
+You need also GNU packages automake and libtool installed in your system
+to compile CVS sources of alsa-lib package.
+
+For compilation you can use these commands:
+
+	aclocal
+	automake --foreign
+	autoconf
+	./configure
+	make
+
+Note: Some automake packages have missing aclocal program. Use newer version
+      in this case.
