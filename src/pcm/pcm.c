@@ -2168,9 +2168,10 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes
 	silence = snd_pcm_format_silence_64(format);
 	if (dst_area->step == (unsigned int) width) {
 		unsigned int dwords = samples * width / 64;
+		u_int64_t *dstp = (u_int64_t *)dst;
 		samples -= dwords * 64 / width;
 		while (dwords-- > 0)
-			*((u_int64_t*)dst)++ = silence;
+			*dstp++ = silence;
 		if (samples == 0)
 			return 0;
 	}
