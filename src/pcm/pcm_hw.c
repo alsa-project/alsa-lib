@@ -303,7 +303,7 @@ static int snd_pcm_hw_resume(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_RESUME) < 0) {
-		if (errno != ENXIO)
+		if (errno != ENXIO && errno != ENOSYS)
 			SYSERR("SNDRV_PCM_IOCTL_RESUME failed");
 		return -errno;
 	}
