@@ -6,15 +6,17 @@
 #include "../include/asoundlib.h"
 #include <sys/time.h>
 
-#if 0
-#define USE_FRAGMENT_MODE	/* latency is twice more than for frame mode!!! */
-#endif
+char *pdevice = "hw:0,0";
+char *cdevice = "hw:0,0";
+snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
+int rate = 22050;
+int channels = 2;
+int latency_min = 32;		/* in frames */
+int latency_max = 2048;		/* in frames */
+int loop_sec = 30;		/* seconds */
+unsigned long loop_limit;
 
-//#define USED_RATE	48000
-#define USED_RATE       22050
-#define LATENCY_MIN	32
-#define LATENCY_MAX	2048		/* in frames */
-#define LOOP_LIMIT	(30UL * USED_RATE)	/* 30 seconds */
+snd_output_t *output = NULL;
 
 #if 0
 static char *xitoa(int aaa)
@@ -34,86 +36,202 @@ static char *xitoa(int aaa)
  *  Used format is 44100Hz, Signed Little Endian 16-bit, Stereo.
  */
 
-int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
+int setparams_stream(snd_pcm_t *handle,
+		     snd_pcm_hw_params_t *params,
+		     const char *id)
 {
 	int err;
-	snd_pcm_params_t params;
-	snd_pcm_setup_t psetup, csetup;
 
-	bzero(&params, sizeof(params));
-#ifdef USE_FRAGMENT_MODE
-	params.mode = SND_PCM_MODE_FRAGMENT;
-#else
-	params.mode = SND_PCM_MODE_FRAME;
-#endif
-	params.format.interleave = 1;
-	params.format.sfmt = SND_PCM_FORMAT_S16_LE;
-	params.format.channels = 2;
-	params.format.rate = USED_RATE;
-	params.start_mode = SND_PCM_START_EXPLICIT;
-	params.xrun_action = SND_PCM_XRUN_ACT_DROP;
-	params.time = 1;
-	*bufsize += 4;
+	err = snd_pcm_hw_params_any(handle, params);
+	if (err < 0) {
+		printf("Broken configuration for %s PCM: no configurations available: %s\n", snd_strerror(err), id);
+		return err;
+	}
+	err = snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (err < 0) {
+		printf("Access type not available for %s: %s\n", id, snd_strerror(err));
+		return err;
+	}
+	err = snd_pcm_hw_params_set_format(handle, params, format);
+	if (err < 0) {
+		printf("Sample format not available for %s: %s\n", id, snd_strerror(err));
+		return err;
+	}
+	err = snd_pcm_hw_params_set_channels(handle, params, channels);
+	if (err < 0) {
+		printf("Channels count (%i) not available for %s: %s\n", channels, id, snd_strerror(err));
+		return err;
+	}
+	err = snd_pcm_hw_params_set_rate_near(handle, params, rate, 0);
+	if (err < 0) {
+		printf("Rate %iHz not available for %s: %s\n", rate, id, snd_strerror(err));
+		return err;
+	}
+	if (err != rate) {
+		printf("Rate doesn't match (requested %iHz, get %iHz)\n", rate, err);
+		return -EINVAL;
+	}
+	return 0;
+}
+
+int setparams_bufsize(snd_pcm_t *handle,
+		      snd_pcm_hw_params_t *params,
+		      snd_pcm_hw_params_t *tparams,
+		      int bufsize,
+		      const char *id)
+{
+	int size;
+	int err, periodsize;
+
+	snd_pcm_hw_params_copy(params, tparams);
+	size = (bufsize * (snd_pcm_format_width(format) * channels)) / 8;
+	err = snd_pcm_hw_params_set_buffer_size_near(handle, params, size);
+	if (err < 0) {
+		printf("Unable to set buffer size %i for %s: %s\n", size, id, snd_strerror(err));
+		return err;
+	}
+	periodsize = snd_pcm_hw_params_get_buffer_size(params) / 2;
+	err = snd_pcm_hw_params_set_period_size_near(handle, params, periodsize, 0);
+	if (err < 0) {
+		printf("Unable to set period size %i for %s: %s\n", periodsize, id, snd_strerror(err));
+		return err;
+	}
+	return 0;
+}
+
+int setparams_set(snd_pcm_t *handle,
+		  snd_pcm_hw_params_t *params,
+		  snd_pcm_sw_params_t *swparams,
+		  const char *id)
+{
+	int err;
+
+	err = snd_pcm_hw_params(handle, params);
+	if (err < 0) {
+		printf("Unable to set hw params for %s: %s\n", id, snd_strerror(err));
+		return err;
+	}
+	err = snd_pcm_sw_params_current(handle, swparams);
+	if (err < 0) {
+		printf("Unable to determine current swparams for %s: %s\n", id, snd_strerror(err));
+		return err;
+	}
+	err = snd_pcm_sw_params_set_start_threshold(handle, swparams, 0x7fffffff);
+	if (err < 0) {
+		printf("Unable to set start threshold mode for %s: %s\n", id, snd_strerror(err));
+		return err;
+	}
+	err = snd_pcm_sw_params_set_avail_min(handle, swparams, 4);
+	if (err < 0) {
+		printf("Unable to set avail min for %s: %s\n", id, snd_strerror(err));
+		return err;
+	}
+	err = snd_pcm_sw_params_set_xfer_align(handle, swparams, 4);
+	if (err < 0) {
+		printf("Unable to set transfer align for %s: %s\n", id, snd_strerror(err));
+		return err;
+	}
+	err = snd_pcm_sw_params(handle, swparams);
+	if (err < 0) {
+		printf("Unable to set sw params for %s: %s\n", id, snd_strerror(err));
+		return err;
+	}
+	return 0;
+}
+
+int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
+{
+	int err, last_buf_size = *bufsize;
+	snd_pcm_hw_params_t *pt_params, *ct_params;	/* templates with rate, format and channels */
+	snd_pcm_hw_params_t *p_params, *c_params;
+	snd_pcm_sw_params_t *p_swparams, *c_swparams;
+
+	snd_pcm_hw_params_alloca(&p_params);
+	snd_pcm_hw_params_alloca(&c_params);
+	snd_pcm_hw_params_alloca(&pt_params);
+	snd_pcm_hw_params_alloca(&ct_params);
+	snd_pcm_sw_params_alloca(&p_swparams);
+	snd_pcm_sw_params_alloca(&c_swparams);
+	if ((err = setparams_stream(phandle, pt_params, "playback")) < 0) {
+		printf("Unable to set parameters for playback stream: %s\n", snd_strerror(err));
+		exit(0);
+	}
+	if ((err = setparams_stream(chandle, ct_params, "capture")) < 0) {
+		printf("Unable to set parameters for playback stream: %s\n", snd_strerror(err));
+		exit(0);
+	}
 
       __again:
-	if (*bufsize > LATENCY_MAX)
+      	if (last_buf_size == *bufsize)
+		*bufsize += 4;
+	last_buf_size = *bufsize;
+	if (*bufsize > latency_max)
 		return -1;
-	params.frag_size = *bufsize / 2;
-	params.avail_min = 1;
-	params.buffer_size = *bufsize;
-
-	if ((err = snd_pcm_params(phandle, &params)) < 0) {
-		printf("Playback params error: %s\n", snd_strerror(err));
+	if ((err = setparams_bufsize(phandle, p_params, pt_params, *bufsize, "playback")) < 0) {
+		printf("Unable to set sw parameters for playback stream: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_params(chandle, &params)) < 0) {
-		printf("Capture params error: %s\n", snd_strerror(err));
+	if ((err = setparams_bufsize(chandle, c_params, ct_params, *bufsize, "capture")) < 0) {
+		printf("Unable to set sw parameters for playback stream: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	bzero(&psetup, sizeof(psetup));
-	if ((err = snd_pcm_setup(phandle, &psetup)) < 0) {
-		printf("Playback setup error: %s\n", snd_strerror(err));
-		exit(0);
-	}
-	bzero(&csetup, sizeof(csetup));
-	if ((err = snd_pcm_setup(chandle, &csetup)) < 0) {
-		printf("Capture setup error: %s\n", snd_strerror(err));
-		exit(0);
-	}
-	if (psetup.buffer_size > *bufsize) {
-		*bufsize = psetup.buffer_size;
+	if (snd_pcm_hw_params_get_buffer_size(p_params) !=
+	    snd_pcm_hw_params_get_buffer_size(c_params)) {
+	    	int size;
+	    	size = (snd_pcm_hw_params_get_buffer_size(p_params) * 8) / (snd_pcm_format_width(format) * channels);
+	    	if (size > *bufsize)
+			*bufsize = size;
+	    	size = (snd_pcm_hw_params_get_buffer_size(c_params) * 8) / (snd_pcm_format_width(format) * channels);
+	    	if (size > *bufsize)
+			*bufsize = size;
 		goto __again;
 	}
 
-	if ((err = snd_pcm_prepare(phandle)) < 0) {
-		printf("Playback prepare error: %s\n", snd_strerror(err));
+	if ((err = setparams_set(phandle, p_params, p_swparams, "playback")) < 0) {
+		printf("Unable to set sw parameters for playback stream: %s\n", snd_strerror(err));
+		exit(0);
+	}
+	if ((err = setparams_set(chandle, c_params, c_swparams, "capture")) < 0) {
+		printf("Unable to set sw parameters for playback stream: %s\n", snd_strerror(err));
 		exit(0);
 	}
 
-	snd_pcm_dump(phandle, stdout);
-	snd_pcm_dump(chandle, stdout);
-	printf("Trying latency %i...\n", *bufsize);
+	if ((err = snd_pcm_prepare(phandle)) < 0) {
+		printf("Prepare error: %s\n", snd_strerror(err));
+		exit(0);
+	}
+
+	snd_pcm_dump(phandle, output);
+	snd_pcm_dump(chandle, output);
 	fflush(stdout);
 	return 0;
 }
 
-void showstat(snd_pcm_t *handle, snd_pcm_status_t *rstatus, size_t frames)
+void showstat(snd_pcm_t *handle, size_t frames)
 {
 	int err;
-	snd_pcm_status_t status;
+	snd_pcm_status_t *status;
 
-	bzero(&status, sizeof(status));
-	if ((err = snd_pcm_status(handle, &status)) < 0) {
+	snd_pcm_status_alloca(&status);
+	if ((err = snd_pcm_status(handle, status)) < 0) {
 		printf("Stream status error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	printf("  state = %i\n", status.state);
-	printf("  frames = %i\n", frames);
-	printf("  hw_ptr = %li\n", (long)status.hw_ptr);
-	printf("  appl_ptr = %li\n", (long)status.appl_ptr);
-	printf("  avail = %li\n", (long)status.avail);
-	if (rstatus)
-		*rstatus = status;
+	printf("*** frames = %li ***\n", (long)frames);
+	snd_pcm_status_dump(status, output);
+}
+
+void gettimestamp(snd_pcm_t *handle, snd_timestamp_t *timestamp)
+{
+	int err;
+	snd_pcm_status_t *status;
+
+	snd_pcm_status_alloca(&status);
+	if ((err = snd_pcm_status(handle, status)) < 0) {
+		printf("Stream status error: %s\n", snd_strerror(err));
+		exit(0);
+	}
+	snd_pcm_status_get_trigger_tstamp(status, timestamp);
 }
 
 void setscheduler(void)
@@ -133,7 +251,7 @@ void setscheduler(void)
 	printf("!!!Scheduler set to Round Robin with priority %i FAILED!!!\n", sched_param.sched_priority);
 }
 
-long timediff(struct timeval t1, struct timeval t2)
+long timediff(snd_timestamp_t t1, snd_timestamp_t t2)
 {
 	signed long l;
 
@@ -157,7 +275,7 @@ long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 	if (r > 0)
 		*frames += r;
 	// printf("read = %li\n", r);
-	// showstat(handle, NULL);
+	// showstat(handle, 0);
 	return r;
 }
 
@@ -172,7 +290,7 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 		// printf("write = %li\n", r);
 		if (r < 0)
 			return r;
-		// showstat(handle, NULL);
+		// showstat(handle, 0);
 		buf += r * 4;
 		len -= r;
 		*frames += r;
@@ -183,79 +301,97 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 int main(void)
 {
 	snd_pcm_t *phandle, *chandle;
-	char buffer[LATENCY_MAX*4];
-	int pcard = 0, pdevice = 0;
-	int ccard = 0, cdevice = 0;
-	int err, latency = LATENCY_MIN - 4;
+	char *buffer;
+	int err, latency;
 	int size, ok;
-	snd_pcm_status_t pstatus, cstatus;
+	snd_timestamp_t p_tstamp, c_tstamp;
 	ssize_t r;
 	size_t frames_in, frames_out;
 
+	err = snd_output_stdio_attach(&output, stdout, 0);
+	if (err < 0) {
+		printf("Output failed: %s\n", snd_strerror(err));
+		return 0;
+	}
+
+	loop_limit = loop_sec * rate;
+	latency = latency_min - 4;
+	buffer = malloc((latency_max * snd_pcm_format_width(format) / 8) * 2);
+
 	setscheduler();
-	if ((err = snd_pcm_plug_open(&phandle, pcard, pdevice, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK)) < 0) {
+	if ((err = snd_pcm_open(&phandle, pdevice, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-	if ((err = snd_pcm_plug_open(&chandle, ccard, cdevice, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK)) < 0) {
+	if ((err = snd_pcm_open(&chandle, cdevice, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK)) < 0) {
 		printf("Record open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-	if ((err = snd_pcm_link(phandle, chandle)) < 0) {
-		printf("Streams link error: %s\n", snd_strerror(err));
-		exit(0);
-	}
 	  
-#ifdef USE_FRAGMENT_MODE
-	printf("Using fragment mode...\n");
-#else
-	printf("Using frame mode...\n");
-#endif
-	printf("Loop limit is %li frames\n", LOOP_LIMIT);
+	printf("Loop limit is %li frames\n", loop_limit);
 	while (1) {
 		frames_in = frames_out = 0;
 		if (setparams(phandle, chandle, &latency) < 0)
 			break;
-		if (snd_pcm_format_set_silence(SND_PCM_FORMAT_S16_LE, buffer, latency*2) < 0) {
+		printf("Trying latency %i frames...\n", latency);
+		if ((err = snd_pcm_link(chandle, phandle)) < 0) {
+			printf("Streams link error: %s\n", snd_strerror(err));
+			exit(0);
+		}
+		if (snd_pcm_format_set_silence(format, buffer, latency*channels) < 0) {
 			fprintf(stderr, "silence error\n");
 			break;
 		}
-		if (writebuf(phandle, buffer, latency, &frames_out) < 0) {
+		if (writebuf(phandle, buffer, latency*channels, &frames_out) < 0) {
 			fprintf(stderr, "write error\n");
 			break;
 		}
 
-		if ((err = snd_pcm_start(phandle)) < 0) {
+		if ((err = snd_pcm_start(chandle)) < 0) {
 			printf("Go error: %s\n", snd_strerror(err));
 			exit(0);
 		}
+		gettimestamp(phandle, &p_tstamp);
+		gettimestamp(chandle, &c_tstamp);
+#if 0
+		printf("Playback:\n");
+		showstat(phandle, frames_out);
+		printf("Capture:\n");
+		showstat(chandle, frames_in);
+#endif
 		ok = 1;
 		size = 0;
-		while (ok && frames_in < LOOP_LIMIT) {
+		while (ok && frames_in < loop_limit) {
 			if ((r = readbuf(chandle, buffer, latency, &frames_in)) < 0)
 				ok = 0;
 			else if (writebuf(phandle, buffer, r, &frames_out) < 0)
 				ok = 0;
 		}
 		printf("Playback:\n");
-		showstat(phandle, &pstatus, frames_out);
+		showstat(phandle, frames_out);
 		printf("Capture:\n");
-		showstat(chandle, &cstatus, frames_in);
-		if (pstatus.trigger_time.tv_sec == cstatus.trigger_time.tv_sec &&
-		    pstatus.trigger_time.tv_usec == cstatus.trigger_time.tv_usec)
+		showstat(chandle, frames_in);
+		if (p_tstamp.tv_sec == p_tstamp.tv_sec &&
+		    p_tstamp.tv_usec == c_tstamp.tv_usec)
 			printf("Hardware sync\n");
+		snd_pcm_drop(chandle);
+		snd_pcm_nonblock(phandle, 0);
 		snd_pcm_drain(phandle);
+		snd_pcm_nonblock(phandle, 1);
 		if (ok) {
-#if 0
+#if 1
 			printf("Playback time = %li.%i, Record time = %li.%i, diff = %li\n",
-			       pstatus.trigger_time.tv_sec,
-			       (int)pstatus.trigger_time.tv_usec,
-			       cstatus.trigger_time.tv_sec,
-			       (int)cstatus.trigger_time.tv_usec,
-			       timediff(pstatus.trigger_time, cstatus.trigger_time));
+			       p_tstamp.tv_sec,
+			       (int)p_tstamp.tv_usec,
+			       c_tstamp.tv_sec,
+			       (int)c_tstamp.tv_usec,
+			       timediff(p_tstamp, c_tstamp));
 #endif
 			break;
 		}
+		snd_pcm_unlink(chandle);
+		snd_pcm_hw_free(phandle);
+		snd_pcm_hw_free(chandle);
 	}
 	snd_pcm_close(phandle);
 	snd_pcm_close(chandle);
