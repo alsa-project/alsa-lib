@@ -52,7 +52,7 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 #ifndef PIC
 	extern void *snd_hwdep_open_symbols(void);
 #endif
-	void *h;
+	void *h = NULL;
 	if (snd_config_get_type(hwdep_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
 			SNDERR("Invalid type for HWDEP %s definition", name);
