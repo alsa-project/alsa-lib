@@ -61,6 +61,8 @@ typedef enum _snd_config_type {
 typedef struct _snd_config snd_config_t;
 /** Config compound iterator */
 typedef struct _snd_config_iterator *snd_config_iterator_t;
+/** Config private update structure */
+typedef struct _snd_config_update snd_config_update_t;
 
 extern snd_config_t *snd_config;
 
@@ -69,6 +71,8 @@ int snd_config_top(snd_config_t **config);
 int snd_config_load(snd_config_t *config, snd_input_t *in);
 int snd_config_save(snd_config_t *config, snd_output_t *out);
 int snd_config_update(void);
+int snd_config_update_r(snd_config_t **top, snd_config_update_t **update, const char *path);
+int snd_config_update_free(snd_config_update_t *update);
 
 int snd_config_search(snd_config_t *config, const char *key,
 		      snd_config_t **result);

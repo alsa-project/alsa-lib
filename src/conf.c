@@ -338,6 +338,7 @@ func.remove_first_char {
 #include <wordexp.h>
 #include <dlfcn.h>
 #include <sys/stat.h>
+#include <pthread.h>
 #include "local.h"
 
 #ifndef DOC_HIDDEN
@@ -2205,17 +2206,22 @@ int snd_config_search_alias_hooks(snd_config_t *config,
 #define ALSA_CONFIG_PATH_DEFAULT DATADIR "/alsa/alsa.conf"
 
 /** \ingroup Config
-  * Config top node */
+  * Config top node (global configuration) */
 snd_config_t *snd_config = NULL;
 
-static struct finfo {
+struct finfo {
 	char *name;
 	dev_t dev;
 	ino_t ino;
 	time_t mtime;
-} *files_info = NULL;
+};
 
-static unsigned int files_info_count = 0;
+struct _snd_config_update {
+	unsigned int count;
+	struct finfo *finfo;
+};
+
+static snd_config_update_t *snd_config_global_update = NULL;
 
 static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_config_t *private_data)
 {
@@ -2536,29 +2542,40 @@ SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VER
 #endif
 
 /** 
- * \brief Update #snd_config rereading (if needed) global configuration files.
+ * \brief Update #snd_config rereading (if needed) configuration files.
+ * \param top Top node
+ * \param update Private update information
+ * \param cfgs Configuration files in list delimited with ':', if NULL -> default global 
+ *             configuration file is used - "/usr/share/alsa/alsa.conf".
  * \return non-negative value on success, otherwise a negative error code
  * \retval 0 no action is needed
  * \retval 1 tree has been rebuild
  *
  * The global configuration files are specified in environment variable ALSA_CONFIG_PATH.
- * If it is not set the default value is "/usr/share/alsa/alsa.conf".
  *
  * Warning: If config tree is reread all the string pointer and config 
- * node handle previously obtained from this tree become invalid
+ * node handle previously obtained from this tree become invalid.
  */
-int snd_config_update()
+int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, const char *cfgs)
 {
 	int err;
-	char *configs, *c;
+	const char *configs, *c;
 	unsigned int k;
 	wordexp_t we;
 	size_t l;
-	struct finfo *fi = NULL;
-	unsigned int fi_count;
-	configs = getenv(ALSA_CONFIG_PATH_VAR);
-	if (!configs)
-		configs = ALSA_CONFIG_PATH_DEFAULT;
+	snd_config_update_t *local;
+	snd_config_update_t *update;
+	snd_config_t *top;
+	
+	assert(_top && _update);
+	top = *_top;
+	update = *_update;
+	configs = cfgs;
+	if (!configs) {
+		configs = getenv(ALSA_CONFIG_PATH_VAR);
+		if (!configs)
+			configs = ALSA_CONFIG_PATH_DEFAULT;
+	}
 	for (k = 0, c = configs; (l = strcspn(c, ": ")) > 0; ) {
 		c += l;
 		k++;
@@ -2566,12 +2583,19 @@ int snd_config_update()
 			break;
 		c++;
 	}
-	fi_count = k;
-	if (fi_count == 0)
+	if (k == 0) {
+		local = NULL;
 		goto _reread;
-	fi = calloc(fi_count, sizeof(*fi));
-	if (!fi)
+	}
+	local = (snd_config_update_t *)calloc(1, sizeof(snd_config_update_t));
+	if (!local)
 		return -ENOMEM;
+	local->count = k;
+	local->finfo = calloc(local->count, sizeof(struct finfo));
+	if (!local->finfo) {
+		free(local);
+		return -ENOMEM;
+	}
 	for (k = 0, c = configs; (l = strcspn(c, ": ")) > 0; ) {
 		char name[l + 1];
 		memcpy(name, c, l);
@@ -2589,9 +2613,9 @@ int snd_config_update()
 			err = -EINVAL;
 			goto _end;
 		}
-		fi[k].name = strdup(we.we_wordv[0]);
+		local->finfo[k].name = strdup(we.we_wordv[0]);
 		wordfree(&we);
-		if (!fi[k].name) {
+		if (!local->finfo[k].name) {
 			err = -ENOMEM;
 			goto _end;
 		}
@@ -2601,81 +2625,132 @@ int snd_config_update()
 			break;
 		c++;
 	}
-	for (k = 0; k < fi_count; ++k) {
+	for (k = 0; k < local->count; ++k) {
 		struct stat st;
-		if (stat(fi[k].name, &st) >= 0) {
-			fi[k].dev = st.st_dev;
-			fi[k].ino = st.st_ino;
-			fi[k].mtime = st.st_mtime;
+		struct finfo *lf = &local->finfo[k];
+		if (stat(lf->name, &st) >= 0) {
+			lf->dev = st.st_dev;
+			lf->ino = st.st_ino;
+			lf->mtime = st.st_mtime;
 		} else {
-			memmove(&fi[k], &fi[k+1], sizeof(*fi) * (fi_count - k - 1));
+			memmove(&local->finfo[k], &local->finfo[k+1], sizeof(struct finfo) * (local->count - k - 1));
 			k--;
-			fi_count--;
+			local->count--;
 		}
 	}
-	if (!files_info)
+	if (!update)
 		goto _reread;
-	if (fi_count != files_info_count)
+	if (local->count != update->count)
 		goto _reread;
-	for (k = 0; k < fi_count; ++k) {
-		if (strcmp(fi[k].name, files_info[k].name) != 0 ||
-		    fi[k].dev != files_info[k].dev ||
-		    fi[k].ino != files_info[k].ino ||
-		    fi[k].mtime != files_info[k].mtime)
+	for (k = 0; k < local->count; ++k) {
+		struct finfo *lf = &local->finfo[k];
+		struct finfo *uf = &update->finfo[k];
+		if (strcmp(lf->name, uf->name) != 0 ||
+		    lf->dev != uf->dev ||
+		    lf->ino != uf->ino ||
+		    lf->mtime != uf->mtime)
 			goto _reread;
 	}
 	err = 0;
 
  _end:
-	if (err < 0 && snd_config) {
-		snd_config_delete(snd_config);
-		snd_config = NULL;
+	if (err < 0) {
+		if (top) {
+			snd_config_delete(top);
+			*_top = NULL;
+		}
+		if (update) {
+			snd_config_update_free(update);
+			*_update = NULL;
+		}
 	}
-	for (k = 0; k < fi_count; ++k)
-		free(fi[k].name);
-	if (fi)
-		free(fi);
+	if (local)
+		snd_config_update_free(local);
 	return err;
 
  _reread:
-	if (files_info) {
-		for (k = 0; k < files_info_count; ++k)
-			free(files_info[k].name);
-		free(files_info);
-		files_info = NULL;
-		files_info_count = 0;
+ 	*_top = NULL;
+ 	*_update = NULL;
+ 	if (update) {
+ 		snd_config_update_free(update);
+ 		update = NULL;
+ 	}
+	if (top) {
+		snd_config_delete(top);
+		top = NULL;
 	}
-	if (snd_config) {
-		snd_config_delete(snd_config);
-		snd_config = NULL;
-	}
-	err = snd_config_top(&snd_config);
+	err = snd_config_top(&top);
 	if (err < 0)
 		goto _end;
-	for (k = 0; k < fi_count; ++k) {
+	if (!local)
+		goto _skip;
+	for (k = 0; k < local->count; ++k) {
 		snd_input_t *in;
-		err = snd_input_stdio_open(&in, fi[k].name, "r");
+		err = snd_input_stdio_open(&in, local->finfo[k].name, "r");
 		if (err >= 0) {
-			err = snd_config_load(snd_config, in);
+			err = snd_config_load(top, in);
 			snd_input_close(in);
 			if (err < 0) {
-				SNDERR("%s may be old or corrupted: consider to remove or fix it", fi[k].name);
+				SNDERR("%s may be old or corrupted: consider to remove or fix it", local->finfo[k].name);
 				goto _end;
 			}
 		} else {
-			SNDERR("cannot access file %s", fi[k].name);
+			SNDERR("cannot access file %s", local->finfo[k].name);
 		}
 	}
-	err = snd_config_hooks(snd_config, NULL);
+ _skip:
+	err = snd_config_hooks(top, NULL);
 	if (err < 0) {
 		SNDERR("hooks failed, removing configuration");
 		goto _end;
 	}
-	files_info = fi;
-	files_info_count = fi_count;
+	*_top = top;
+	*_update = local;
 	return 1;
 }
 
+static pthread_mutex_t snd_config_update_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+/** 
+ * \brief Update #snd_config rereading (if needed) global configuration files.
+ * \return non-negative value on success, otherwise a negative error code
+ * \retval 0 no action is needed
+ * \retval 1 tree has been rebuild
+ *
+ * The global configuration files are specified in environment variable ALSA_CONFIG_PATH.
+ * If it is not set the default value is "/usr/share/alsa/alsa.conf".
+ *
+ * Warning: If config tree is reread all the string pointer and config 
+ * node handle previously obtained from this tree become invalid.
+ */
+int snd_config_update(void)
+{
+	int err;
+
+	pthread_mutex_lock(&snd_config_update_mutex);
+	err = snd_config_update_r(&snd_config, &snd_config_global_update, NULL);
+	pthread_mutex_unlock(&snd_config_update_mutex);
+	return err;
+}
+
+/** 
+ * \brief Free private update structure
+ * \param update private update structure to free
+ * \return non-negative value on success, otherwise a negative error code
+ */
+int snd_config_update_free(snd_config_update_t *update)
+{
+	int k;
+
+	assert(update);
+	assert(update->count > 0 && update->finfo);
+	for (k = 0; k < update->count; k++)
+		free(update->finfo[k].name);
+	if (update->finfo)
+		free(update->finfo);
+	free(update);
+	return 0;
+}
 
 /**
  * \brief Return an iterator pointing to first leaf of a compound config node
