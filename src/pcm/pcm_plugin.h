@@ -64,6 +64,8 @@ int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm);
 int get_index(int src_format, int dst_format);
 int put_index(int src_format, int dst_format);
 int conv_index(int src_format, int dst_format);
+int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
+int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
 #define SND_PCM_FMTBIT_LINEAR \
 	((1 << SND_PCM_FORMAT_S8    ) | (1 << SND_PCM_FORMAT_U8) | \

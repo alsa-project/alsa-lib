@@ -38,19 +38,28 @@ static inline void div64_32(u_int64_t *n, u_int32_t div, u_int32_t *rem)
 static inline unsigned int div32(unsigned int a, unsigned int b, 
 				 unsigned int *r)
 {
+	if (b == 0) {
+		*r = 0;
+		return UINT_MAX;
+	}
 	*r = a % b;
 	return a / b;
 }
 
 static inline unsigned int div_down(unsigned int a, unsigned int b)
 {
+	if (b == 0)
+		return UINT_MAX;
 	return a / b;
 }
 
 static inline unsigned int div_up(unsigned int a, unsigned int b)
 {
 	unsigned int r;
-	unsigned int q = div32(a, b, &r);
+	unsigned int q;
+	if (b == 0)
+		return UINT_MAX;
+	q = div32(a, b, &r);
 	if (r)
 		++q;
 	return q;
@@ -83,6 +92,11 @@ static inline unsigned int muldiv32(unsigned int a, unsigned int b,
 				    unsigned int c, unsigned int *r)
 {
 	u_int64_t n = (u_int64_t) a * b;
+	if (c == 0) {
+		assert(n > 0);
+		*r = 0;
+		return UINT_MAX;
+	}
 	div64_32(&n, c, r);
 	if (n >= UINT_MAX) {
 		*r = 0;
@@ -359,7 +373,7 @@ void interval_print(const interval_t *i, snd_output_t *out)
 	else if (i->min == 0 && i->openmin == 0 && 
 		 i->max == UINT_MAX && i->openmax == 0)
 		snd_output_printf(out, "ALL");
-	else if (interval_single(i))
+	else if (interval_single(i) && i->integer)
 		snd_output_printf(out, "%u", interval_value(i));
 	else
 		snd_output_printf(out, "%c%u %u%c",

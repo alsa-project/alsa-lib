@@ -425,80 +425,58 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_route_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+static int snd_pcm_route_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_route_t *route = pcm->private;
-	snd_pcm_t *slave = route->plug.slave;
 	int err;
-	unsigned int cmask, lcmask;
-	snd_pcm_hw_params_t sparams;
-	unsigned int links = (SND_PCM_HW_PARBIT_RATE |
-			      SND_PCM_HW_PARBIT_PERIODS |
-			      SND_PCM_HW_PARBIT_PERIOD_SIZE |
-			      SND_PCM_HW_PARBIT_PERIOD_TIME |
-			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
-			      SND_PCM_HW_PARBIT_BUFFER_TIME |
-			      SND_PCM_HW_PARBIT_TICK_TIME);
 	mask_t *access_mask = alloca(mask_sizeof());
 	mask_t *format_mask = alloca(mask_sizeof());
-	mask_t *saccess_mask = alloca(mask_sizeof());
 	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
 	mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
-	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
-	cmask = params->cmask;
-	params->cmask = 0;
 	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
-				      access_mask);
+				     access_mask);
 	if (err < 0)
 		return err;
 	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT,
-				      format_mask);
+				     format_mask);
+	if (err < 0)
+		return err;
+	err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_SUBFORMAT,
+				     SND_PCM_SUBFORMAT_STD, 0);
 	if (err < 0)
 		return err;
 	err = _snd_pcm_hw_param_min(params, SND_PCM_HW_PARAM_CHANNELS, 1, 0);
-	if (err < 0)
-		return err;
-	lcmask = params->cmask;
-	params->cmask |= cmask;
-
-	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
-				saccess_mask);
-	if (route->sformat >= 0) {
-		_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_FORMAT,
-				      route->sformat, 0);
-		_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_SUBFORMAT,
-				      SND_PCM_SUBFORMAT_STD, 0);
-	} else
-		links |= (SND_PCM_HW_PARBIT_FORMAT | 
-			  SND_PCM_HW_PARBIT_SUBFORMAT |
-			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
-	if (route->schannels >= 0) {
-		_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_CHANNELS,
-				      route->schannels, 0);
-	} else {
-		links |= SND_PCM_HW_PARBIT_CHANNELS;
-		if (route->sformat < 0)
-			links |= (SND_PCM_HW_PARBIT_FRAME_BITS |
-				  SND_PCM_HW_PARBIT_PERIOD_BYTES |
-				  SND_PCM_HW_PARBIT_BUFFER_BYTES);
-	}
-		
-	err = snd_pcm_hw_refine2(params, &sparams,
-				 snd_pcm_generic_hw_link, slave, links);
-	params->cmask |= lcmask;
 	if (err < 0)
 		return err;
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
 }
 
-static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
+static int snd_pcm_route_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_route_t *route = pcm->private;
-	snd_pcm_t *slave = route->plug.slave;
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	_snd_pcm_hw_params_any(sparams);
+	_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
+				saccess_mask);
+	if (route->sformat >= 0) {
+		_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_FORMAT,
+				      route->sformat, 0);
+		_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_SUBFORMAT,
+				      SND_PCM_SUBFORMAT_STD, 0);
+	}
+	if (route->schannels >= 0) {
+		_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_CHANNELS,
+				      route->schannels, 0);
+	}
+	return 0;
+}
+
+static int snd_pcm_route_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+					    snd_pcm_hw_params_t *sparams)
+{
+	snd_pcm_route_t *route = pcm->private;
 	int err;
-	snd_pcm_hw_params_t sparams;
 	unsigned int links = (SND_PCM_HW_PARBIT_RATE |
 			      SND_PCM_HW_PARBIT_PERIODS |
 			      SND_PCM_HW_PARBIT_PERIOD_SIZE |
@@ -506,42 +484,65 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	unsigned int src_format, dst_format;
-	mask_t *saccess_mask = alloca(mask_sizeof());
-	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
-
-	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
-				saccess_mask);
-	if (route->sformat >= 0) {
-		_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_FORMAT,
-				      route->sformat, 0);
-		_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_SUBFORMAT,
-				      SND_PCM_SUBFORMAT_STD, 0);
-	} else
+	if (route->sformat < 0)
 		links |= (SND_PCM_HW_PARBIT_FORMAT | 
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
-	if (route->schannels >= 0) {
-		_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_CHANNELS,
-				      route->schannels, 0);
-	} else {
+	if (route->schannels < 0)
 		links |= SND_PCM_HW_PARBIT_CHANNELS;
-		if (route->sformat < 0)
-			links |= (SND_PCM_HW_PARBIT_FRAME_BITS |
-				  SND_PCM_HW_PARBIT_PERIOD_BYTES |
-				  SND_PCM_HW_PARBIT_BUFFER_BYTES);
-	}
-
-	err = snd_pcm_hw_params_refine(&sparams, links, params);
-	assert(err >= 0);
-	err = snd_pcm_hw_params(slave, &sparams);
-	params->cmask = 0;
-	sparams.cmask = ~0U;
-	snd_pcm_hw_params_refine(params, links, &sparams);
+	err = _snd_pcm_hw_params_refine(sparams, links, params);
 	if (err < 0)
 		return err;
-	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
+	return 0;
+}
+	
+static int snd_pcm_route_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+					    snd_pcm_hw_params_t *sparams)
+{
+	snd_pcm_route_t *route = pcm->private;
+	int err;
+	unsigned int links = (SND_PCM_HW_PARBIT_RATE |
+			      SND_PCM_HW_PARBIT_PERIODS |
+			      SND_PCM_HW_PARBIT_PERIOD_SIZE |
+			      SND_PCM_HW_PARBIT_PERIOD_TIME |
+			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
+			      SND_PCM_HW_PARBIT_BUFFER_TIME |
+			      SND_PCM_HW_PARBIT_TICK_TIME);
+	if (route->sformat < 0)
+		links |= (SND_PCM_HW_PARBIT_FORMAT | 
+			  SND_PCM_HW_PARBIT_SUBFORMAT |
+			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
+	if (route->schannels < 0)
+		links |= SND_PCM_HW_PARBIT_CHANNELS;
+	err = _snd_pcm_hw_params_refine(params, links, sparams);
+	if (err < 0)
+		return err;
+	return 0;
+}
+
+static int snd_pcm_route_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_refine_slave(pcm, params,
+				       snd_pcm_route_hw_refine_cprepare,
+				       snd_pcm_route_hw_refine_cchange,
+				       snd_pcm_route_hw_refine_sprepare,
+				       snd_pcm_route_hw_refine_schange,
+				       snd_pcm_plugin_hw_refine_slave);
+}
+
+static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
+{
+	snd_pcm_route_t *route = pcm->private;
+	snd_pcm_t *slave = route->plug.slave;
+	unsigned int src_format, dst_format;
+	int err = snd_pcm_hw_params_slave(pcm, params,
+					  snd_pcm_route_hw_refine_cchange,
+					  snd_pcm_route_hw_refine_sprepare,
+					  snd_pcm_route_hw_refine_schange,
+					  snd_pcm_plugin_hw_params_slave);
+	if (err < 0)
+		return err;
+
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		src_format = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0);
 		dst_format = slave->format;

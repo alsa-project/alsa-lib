@@ -69,7 +69,10 @@ static int snd_pcm_multi_close(snd_pcm_t *pcm)
 
 static int snd_pcm_multi_card(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	return -ENOENT;	/* not available */
+	snd_pcm_multi_t *multi = pcm->private;
+	if (multi->slaves_count != 1)
+		return -ENOENT;	/* not available */
+	return snd_pcm_card(multi->slaves[0].pcm);
 }
 
 static int snd_pcm_multi_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
@@ -96,135 +99,188 @@ static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 	return 0;
 }
 
-static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+static int snd_pcm_multi_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int k;
-	snd_pcm_hw_params_t sparams;
-	int changed = 0;
-	int err = 0;
-	unsigned int cmask, lcmask;
-	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
-	mask_t *saccess_mask = alloca(mask_sizeof());
-	if (mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) ||
-	    mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
-		mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
-	else {
-		mask_none(saccess_mask);
-		if (mask_test(access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED) &&
-		    multi->slaves_count == 1)
-			mask_set(saccess_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-		if (mask_test(access_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED))
-			mask_set(saccess_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
-		if (mask_test(access_mask, SND_PCM_ACCESS_MMAP_COMPLEX)) {
-			mask_set(saccess_mask, SND_PCM_ACCESS_MMAP_COMPLEX);
-			if (multi->slaves_count > 1)
-				mask_set(saccess_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-		}
-	}
-		
-	cmask = params->cmask;
-	params->cmask = 0;
+	mask_t *access_mask = alloca(mask_sizeof());
+	int err;
+	mask_any(access_mask);
+	mask_reset(access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
+				     access_mask);
+	if (err < 0)
+		return err;
 	err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_CHANNELS,
 				    multi->channels_count, 0);
 	if (err < 0)
 		return err;
-	lcmask = params->cmask;
-	cmask |= params->cmask;
+	params->info = ~0;
+	return 0;
+}
+
+static int snd_pcm_multi_hw_refine_sprepare(snd_pcm_t *pcm, int slave_idx,
+					    snd_pcm_hw_params_t *sparams)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_slave_t *slave = &multi->slaves[slave_idx];
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	_snd_pcm_hw_params_any(sparams);
+	_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
+			       saccess_mask);
+	_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_CHANNELS,
+			      slave->channels_count, 0);
+	return 0;
+}
+
+static int snd_pcm_multi_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+					   int slave_idx ATTRIBUTE_UNUSED,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams)
+{
+	int err;
+	unsigned int links = (SND_PCM_HW_PARBIT_FORMAT |
+			      SND_PCM_HW_PARBIT_SUBFORMAT |
+			      SND_PCM_HW_PARBIT_RATE |
+			      SND_PCM_HW_PARBIT_PERIOD_SIZE |
+			      SND_PCM_HW_PARBIT_PERIOD_TIME |
+			      SND_PCM_HW_PARBIT_PERIODS |
+			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
+			      SND_PCM_HW_PARBIT_BUFFER_TIME |
+			      SND_PCM_HW_PARBIT_TICK_TIME);
+	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	if (!mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
+	    !mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED) &&
+	    !mask_test(access_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED)) {
+		mask_t *saccess_mask = alloca(mask_sizeof());
+		mask_any(saccess_mask);
+		mask_reset(saccess_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+		err = _snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
+					     saccess_mask);
+		if (err < 0)
+			return err;
+	}
+	err = _snd_pcm_hw_params_refine(sparams, links, params);
+	if (err < 0)
+		return err;
+	return 0;
+}
 	
-	changed = 0;
-	do {
-		for (k = 0; k < multi->slaves_count; ++k) {
-			snd_pcm_t *slave = multi->slaves[k].pcm;
-			params->cmask = cmask;
-			_snd_pcm_hw_params_any(&sparams);
-			_snd_pcm_hw_param_mask(&sparams,
-					       SND_PCM_HW_PARAM_ACCESS,
-					       saccess_mask);
-			_snd_pcm_hw_param_set(&sparams,
-					      SND_PCM_HW_PARAM_CHANNELS,
-					      multi->slaves[k].channels_count, 0);
-			err = snd_pcm_hw_refine2(params, &sparams,
-						 snd_pcm_generic_hw_link, slave,
-						 SND_PCM_HW_PARBIT_FORMAT |
-						 SND_PCM_HW_PARBIT_SUBFORMAT |
-						 SND_PCM_HW_PARBIT_RATE |
-						 SND_PCM_HW_PARBIT_PERIOD_SIZE |
-						 SND_PCM_HW_PARBIT_PERIOD_TIME |
-						 SND_PCM_HW_PARBIT_BUFFER_SIZE |
-						 SND_PCM_HW_PARBIT_BUFFER_TIME |
-						 SND_PCM_HW_PARBIT_PERIODS |
-						 SND_PCM_HW_PARBIT_TICK_TIME);
-			if (params->cmask) {
-				changed++;
-				lcmask |= params->cmask;
-				cmask |= params->cmask;
-			}
-			if (err < 0)
-				goto _end;
+static int snd_pcm_multi_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+					   int slave_idx ATTRIBUTE_UNUSED,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams)
+{
+	int err;
+	unsigned int links = (SND_PCM_HW_PARBIT_FORMAT |
+			      SND_PCM_HW_PARBIT_SUBFORMAT |
+			      SND_PCM_HW_PARBIT_RATE |
+			      SND_PCM_HW_PARBIT_PERIOD_SIZE |
+			      SND_PCM_HW_PARBIT_PERIOD_TIME |
+			      SND_PCM_HW_PARBIT_PERIODS |
+			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
+			      SND_PCM_HW_PARBIT_BUFFER_TIME |
+			      SND_PCM_HW_PARBIT_TICK_TIME);
+	mask_t *access_mask = alloca(mask_sizeof());
+	const mask_t *saccess_mask = snd_pcm_hw_param_value_mask(sparams, SND_PCM_HW_PARAM_ACCESS);
+	mask_any(access_mask);
+	mask_reset(access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+	if (!mask_test(saccess_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED))
+		mask_reset(access_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+	if (!mask_test(saccess_mask, SND_PCM_ACCESS_MMAP_COMPLEX) &&
+	    !mask_test(saccess_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED))
+		mask_reset(access_mask, SND_PCM_ACCESS_MMAP_COMPLEX);
+	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
+				     access_mask);
+	if (err < 0)
+		return err;
+	err = _snd_pcm_hw_params_refine(params, links, sparams);
+	if (err < 0)
+		return err;
+	params->info &= sparams->info;
+	return 0;
+}
+
+static int snd_pcm_multi_hw_refine_slave(snd_pcm_t *pcm,
+					 int slave_idx,
+					 snd_pcm_hw_params_t *sparams)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_t *slave = multi->slaves[slave_idx].pcm;
+	return snd_pcm_hw_refine(slave, sparams);
+}
+
+static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	unsigned int k;
+	snd_pcm_hw_params_t sparams[multi->slaves_count];
+	int err;
+	err = snd_pcm_multi_hw_refine_cprepare(pcm, params);
+	if (err < 0)
+		return err;
+	for (k = 0; k < multi->slaves_count; ++k) {
+		err = snd_pcm_multi_hw_refine_sprepare(pcm, k, &sparams[k]);
+		if (err < 0) {
+			ERR("Slave PCM #%d not useable", k);
+			return err;
 		}
-	} while (changed && multi->slaves_count > 1);
- _end:
-	params->cmask = lcmask;
-	return err;
+	}
+	/* FIXME: loop begin? */
+	for (k = 0; k < multi->slaves_count; ++k) {
+		err = snd_pcm_multi_hw_refine_schange(pcm, k, params, &sparams[k]);
+		if (err >= 0)
+			err = snd_pcm_multi_hw_refine_slave(pcm, k, &sparams[k]);
+		if (err < 0) {
+			snd_pcm_multi_hw_refine_cchange(pcm, k, params, &sparams[k]);
+			return err;
+		}
+		err = snd_pcm_multi_hw_refine_cchange(pcm, k, params, &sparams[k]);
+		if (err < 0)
+			return err;
+	}
+	err = snd_pcm_hw_refine_soft(pcm, params);
+	if (err < 0)
+		return err;
+	/* FIXME: do we need to loop? */
+	return 0;
+}
+
+static int snd_pcm_multi_hw_params_slave(snd_pcm_t *pcm,
+					 int slave_idx,
+					 snd_pcm_hw_params_t *sparams)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_t *slave = multi->slaves[slave_idx].pcm;
+	int err = snd_pcm_hw_refine(slave, sparams);
+	if (err < 0)
+		return err;
+	err = snd_pcm_areas_silence(slave->running_areas, 0, slave->channels, slave->buffer_size, slave->format);
+	if (err < 0)
+		return err;
+	if (slave->stopped_areas) {
+		err = snd_pcm_areas_silence(slave->stopped_areas, 0, slave->channels, slave->buffer_size, slave->format);
+		if (err < 0)
+			return err;
+	}
+	return 0;
 }
 
 static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int k;
+	snd_pcm_hw_params_t sparams[multi->slaves_count];
 	int err;
-	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
-	mask_t *saccess_mask = alloca(mask_sizeof());
-	unsigned int links;
-	links = SND_PCM_HW_PARBIT_FORMAT |
-		SND_PCM_HW_PARBIT_SUBFORMAT |
-		SND_PCM_HW_PARBIT_RATE |
-		SND_PCM_HW_PARBIT_PERIOD_SIZE |
-		SND_PCM_HW_PARBIT_PERIOD_TIME |
-		SND_PCM_HW_PARBIT_BUFFER_SIZE |
-		SND_PCM_HW_PARBIT_BUFFER_TIME |
-		SND_PCM_HW_PARBIT_PERIODS |
-		SND_PCM_HW_PARBIT_TICK_TIME;
-	if (mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) ||
-	    mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
-		mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
-	else {
-		mask_none(saccess_mask);
-		if (mask_test(access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED) &&
-		    multi->slaves_count == 1)
-			mask_set(saccess_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-		if (mask_test(access_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED))
-			mask_set(saccess_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
-		if (mask_test(access_mask, SND_PCM_ACCESS_MMAP_COMPLEX)) {
-			mask_set(saccess_mask, SND_PCM_ACCESS_MMAP_COMPLEX);
-			if (multi->slaves_count > 1)
-				mask_set(saccess_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-		}
-	}
 	for (k = 0; k < multi->slaves_count; ++k) {
-		snd_pcm_t *slave = multi->slaves[k].pcm;
-		snd_pcm_hw_params_t sparams;
-		_snd_pcm_hw_params_any(&sparams);
-		_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
-					saccess_mask);
-		_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_CHANNELS,
-				       multi->slaves[k].channels_count, 0);
-		err = snd_pcm_hw_params_refine(&sparams, links, params);
+		err = snd_pcm_multi_hw_refine_sprepare(pcm, k, &sparams[k]);
 		assert(err >= 0);
-		err = snd_pcm_hw_params(slave, &sparams);
-		params->cmask = 0;
-		sparams.cmask = ~0U;
-		snd_pcm_hw_params_refine(params, links, &sparams);
-		if (err < 0)
+		err = snd_pcm_multi_hw_refine_schange(pcm, k, params, &sparams[k]);
+		assert(err >= 0);
+		err = snd_pcm_multi_hw_params_slave(pcm, k, &sparams[k]);
+		if (err < 0) {
+			snd_pcm_multi_hw_refine_cchange(pcm, k, params, &sparams[k]);
 			return err;
-		err = snd_pcm_areas_silence(slave->running_areas, 0, slave->channels, slave->buffer_size, slave->format);
-		if (err < 0)
-			return err;
-		if (slave->stopped_areas) {
-			err = snd_pcm_areas_silence(slave->stopped_areas, 0, slave->channels, slave->buffer_size, slave->format);
-			if (err < 0)
-				return err;
 		}
 	}
 	return 0;

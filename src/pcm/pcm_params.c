@@ -115,11 +115,13 @@ void _snd_pcm_hw_param_any(snd_pcm_hw_params_t *params, snd_pcm_hw_param_t var)
 	if (hw_is_mask(var)) {
 		mask_any(hw_param_mask(params, var));
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
 		return;
 	}
 	if (hw_is_interval(var)) {
 		interval_any(hw_param_interval(params, var));
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
 		return;
 	}
 	assert(0);
@@ -241,8 +243,10 @@ int _snd_pcm_hw_param_refine_interval(snd_pcm_hw_params_t *params,
 	int changed;
 	assert(hw_is_interval(var));
 	changed = interval_refine(hw_param_interval(params, var), val);
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 
@@ -252,8 +256,10 @@ int _snd_pcm_hw_param_setinteger(snd_pcm_hw_params_t *params,
 	int changed;
 	assert(hw_is_interval(var));
 	changed = interval_setinteger(hw_param_interval(params, var));
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 	
@@ -268,7 +274,7 @@ int snd_pcm_hw_param_setinteger(snd_pcm_t *pcm,
 	int changed = _snd_pcm_hw_param_setinteger(params, var);
 	if (changed < 0)
 		return changed;
-	if (changed) {
+	if (params->rmask) {
 		int err = snd_pcm_hw_refine(pcm, params);
 		if (err < 0)
 			return err;
@@ -288,8 +294,10 @@ int _snd_pcm_hw_param_first(snd_pcm_hw_params_t *params,
 		assert(0);
 		return -EINVAL;
 	}
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 
@@ -305,7 +313,7 @@ int snd_pcm_hw_param_first(snd_pcm_t *pcm,
 	int changed = _snd_pcm_hw_param_first(params, var);
 	if (changed < 0)
 		return changed;
-	if (changed) {
+	if (params->rmask) {
 		int err = snd_pcm_hw_refine(pcm, params);
 		assert(err >= 0);
 	}
@@ -324,8 +332,10 @@ int _snd_pcm_hw_param_last(snd_pcm_hw_params_t *params,
 		assert(0);
 		return -EINVAL;
 	}
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 
@@ -341,7 +351,7 @@ int snd_pcm_hw_param_last(snd_pcm_t *pcm,
 	int changed = _snd_pcm_hw_param_last(params, var);
 	if (changed < 0)
 		return changed;
-	if (changed) {
+	if (params->rmask) {
 		int err = snd_pcm_hw_refine(pcm, params);
 		assert(err >= 0);
 	}
@@ -371,8 +381,10 @@ int _snd_pcm_hw_param_min(snd_pcm_hw_params_t *params,
 		assert(0);
 		return -EINVAL;
 	}
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 
@@ -386,7 +398,7 @@ int snd_pcm_hw_param_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	int changed = _snd_pcm_hw_param_min(params, var, val, dir ? *dir : 0);
 	if (changed < 0)
 		return changed;
-	if (changed) {
+	if (params->rmask) {
 		int err = snd_pcm_hw_refine(pcm, params);
 		if (err < 0)
 			return err;
@@ -432,8 +444,10 @@ int _snd_pcm_hw_param_max(snd_pcm_hw_params_t *params,
 		assert(0);
 		return -EINVAL;
 	}
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 
@@ -447,7 +461,7 @@ int snd_pcm_hw_param_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	int changed = _snd_pcm_hw_param_max(params, var, val, dir ? *dir : 0);
 	if (changed < 0)
 		return changed;
-	if (changed) {
+	if (params->rmask) {
 		int err = snd_pcm_hw_refine(pcm, params);
 		if (err < 0)
 			return err;
@@ -527,8 +541,10 @@ int _snd_pcm_hw_param_minmax(snd_pcm_hw_params_t *params,
 		assert(0);
 		return -EINVAL;
 	}
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 
@@ -546,7 +562,7 @@ int snd_pcm_hw_param_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 					       *max, maxdir ? *maxdir : 0);
 	if (changed < 0)
 		return changed;
-	if (changed) {
+	if (params->rmask) {
 		int err = snd_pcm_hw_refine(pcm, params);
 		if (err < 0)
 			return err;
@@ -614,8 +630,10 @@ int _snd_pcm_hw_param_set(snd_pcm_hw_params_t *params,
 		assert(0);
 		return -EINVAL;
 	}
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 
@@ -629,7 +647,7 @@ int snd_pcm_hw_param_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	int changed = _snd_pcm_hw_param_set(params, var, val, dir);
 	if (changed < 0)
 		return changed;
-	if (changed) {
+	if (params->rmask) {
 		int err = snd_pcm_hw_refine(pcm, params);
 		if (err < 0)
 			return err;
@@ -655,8 +673,10 @@ int _snd_pcm_hw_param_mask(snd_pcm_hw_params_t *params,
 	int changed;
 	assert(hw_is_mask(var));
 	changed = mask_refine(hw_param_mask(params, var), val);
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 
@@ -673,7 +693,7 @@ int snd_pcm_hw_param_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	int changed = _snd_pcm_hw_param_mask(params, var, val);
 	if (changed < 0)
 		return changed;
-	if (changed) {
+	if (params->rmask) {
 		int err = snd_pcm_hw_refine(pcm, params);
 		if (err < 0)
 			return err;
@@ -706,7 +726,6 @@ int snd_pcm_hw_param_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	int v;
 	unsigned int saved_min;
 	int last = 0;
-	unsigned int cmask;
 	int min, max;
 	int mindir, maxdir;
 	int valdir = dir ? *dir : 0;
@@ -747,12 +766,10 @@ int snd_pcm_hw_param_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		last = 1;
 	}
  _end:
-	cmask = params->cmask;
 	if (last)
 		v = snd_pcm_hw_param_last(pcm, params, var, dir);
 	else
 		v = snd_pcm_hw_param_first(pcm, params, var, dir);
-	params->cmask |= cmask;
 	assert(v >= 0);
 	return v;
 }
@@ -773,7 +790,6 @@ int snd_pcm_hw_param_next(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	snd_pcm_hw_params_t save;
 	int v;
 	int last = 0;
-	unsigned int cmask;
 	int min, max;
 	int mindir, maxdir;
 	int diff, diffdir;
@@ -821,12 +837,10 @@ int snd_pcm_hw_param_next(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		last = 1;
 	}
  _end:
-	cmask = params->cmask;
 	if (last)
 		v = snd_pcm_hw_param_last(pcm, params, var, dir);
 	else
 		v = snd_pcm_hw_param_first(pcm, params, var, dir);
-	params->cmask |= cmask;
 	assert(v >= 0);
 	return v;
 }
@@ -857,10 +871,10 @@ void snd_pcm_hw_param_near_minmax(snd_pcm_t *pcm,
 	assert(err >= 0);
 }
 
-void snd_pcm_hw_param_near_copy(snd_pcm_t *pcm,
-				snd_pcm_hw_params_t *params,
-				snd_pcm_hw_param_t var,
-				const snd_pcm_hw_params_t *src)
+void snd_pcm_hw_param_refine_near(snd_pcm_t *pcm,
+				  snd_pcm_hw_params_t *params,
+				  snd_pcm_hw_param_t var,
+				  const snd_pcm_hw_params_t *src)
 {
 	unsigned int min, max;
 	int mindir, maxdir;
@@ -963,41 +977,30 @@ int snd_pcm_hw_params_info_fifo_size(const snd_pcm_hw_params_t *params)
 void snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	int err;
-	unsigned int cmask = params->cmask;
 
 	err = snd_pcm_hw_param_first(pcm, params, SND_PCM_HW_PARAM_ACCESS, 0);
 	assert(err >= 0);
-	cmask |= params->cmask;
 
 	err = snd_pcm_hw_param_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, 0);
 	assert(err >= 0);
-	cmask |= params->cmask;
 
 	err = snd_pcm_hw_param_first(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, 0);
 	assert(err >= 0);
-	cmask |= params->cmask;
 
 	err = snd_pcm_hw_param_first(pcm, params, SND_PCM_HW_PARAM_CHANNELS, 0);
 	assert(err >= 0);
-	cmask |= params->cmask;
 
 	err = snd_pcm_hw_param_first(pcm, params, SND_PCM_HW_PARAM_RATE, 0);
 	assert(err >= 0);
-	cmask |= params->cmask;
 
 	err = snd_pcm_hw_param_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, 0);
 	assert(err >= 0);
-	cmask |= params->cmask;
 
 	err = snd_pcm_hw_param_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, 0);
 	assert(err >= 0);
-	cmask |= params->cmask;
 
 	err = snd_pcm_hw_param_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, 0);
 	assert(err >= 0);
-	cmask |= params->cmask;
-
-	params->cmask = cmask;
 }
 
 /* Strategies */
@@ -1080,9 +1083,9 @@ unsigned int snd_pcm_hw_param_count(const snd_pcm_hw_params_t *params,
 	return 0;
 }
 
-int snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
-			    snd_pcm_hw_param_t var,
-			    const snd_pcm_hw_params_t *src)
+int _snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
+			     snd_pcm_hw_param_t var,
+			     const snd_pcm_hw_params_t *src)
 {
 	int changed = 0;
 	if (hw_is_mask(var)) {
@@ -1095,23 +1098,29 @@ int snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
 		changed = interval_refine(d, s);
 	} else
 		assert(0);
-	if (changed)
+	if (changed) {
 		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
+	}
 	return changed;
 }
 			     
-void snd_pcm_hw_param_copy(snd_pcm_hw_params_t *params, snd_pcm_hw_param_t var,
+void _snd_pcm_hw_param_copy(snd_pcm_hw_params_t *params, snd_pcm_hw_param_t var,
 			    const snd_pcm_hw_params_t *src)
 {
 	if (hw_is_mask(var)) {
 		mask_t *d = hw_param_mask(params, var);
 		const mask_t *s = hw_param_mask_c(src, var);
 		mask_copy(d, s);
+		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
 	}
 	if (hw_is_interval(var)) {
 		interval_t *d = hw_param_interval(params, var);
 		const interval_t *s = hw_param_interval_c(src, var);
 		interval_copy(d, s);
+		params->cmask |= 1 << var;
+		params->rmask |= 1 << var;
 	}
 	assert(0);
 }
@@ -1138,8 +1147,11 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 			assert(f);
 			for (k = 0; k <= MASK_MAX; ++k) {
 				if (mask_test(mask, k)) {
-					snd_output_putc(out, ' ');
-					snd_output_puts(out, f(k));
+					const char *s = f(k);
+					if (s) {
+						snd_output_putc(out, ' ');
+						snd_output_puts(out, s);
+					}
 				}
 			}
 		}
@@ -1188,14 +1200,11 @@ int snd_pcm_hw_params_strategy(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	best_badness = UINT_MAX;
 	value = -1;
 	while (1) {
-		unsigned int cmask;
 		params1 = *params;
 		value = strategy->next_value(&params1, var, value, &dir, pcm, strategy);
 		if (value < 0)
 			break;
-		cmask = params1.cmask;
 		badness = snd_pcm_hw_params_strategy(pcm, &params1, strategy, badness_min, badness_max);
-		params1.cmask |= cmask;
 		if (badness >= 0) {
 			if ((unsigned int) badness <= badness_min) {
 				*params = params1;
@@ -1475,7 +1484,7 @@ int snd_pcm_hw_params_try_explain_failure1(snd_pcm_t *pcm,
 	for (var = 0; var <= SND_PCM_HW_PARAM_LAST; var++) {
 		int err;
 		i = *success;
-		snd_pcm_hw_param_copy(&i, var, fail);
+		_snd_pcm_hw_param_copy(&i, var, fail);
 		err = snd_pcm_hw_refine(pcm, &i);
 		if (err == 0 && 
 		    snd_pcm_hw_params_try_explain_failure1(pcm, fail, &i, depth - 1, out) < 0)
@@ -1836,50 +1845,53 @@ static interval_t refine_intervals[SND_PCM_HW_PARAM_LAST_INTERVAL - SND_PCM_HW_P
 	},
 };
 
+#undef RULES_DEBUG
 
-
-int _snd_pcm_hw_refine(snd_pcm_hw_params_t *params)
+int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	unsigned int k;
 	interval_t *i;
 	unsigned int rstamps[RULES];
 	unsigned int vstamps[SND_PCM_HW_PARAM_LAST + 1];
 	unsigned int stamp = 2;
-	int err, changed;
+	int changed, again;
+#ifdef RULES_DEBUG
+	snd_output_t *log;
+	snd_output_stdio_attach(&log, stderr, 0);
+#endif
 
 	for (k = SND_PCM_HW_PARAM_FIRST_MASK; k <= SND_PCM_HW_PARAM_LAST_MASK; k++) {
-		if (!(params->cmask & (1 << k)))
+		if (!(params->rmask & (1 << k)))
 			continue;
-		err = mask_refine(hw_param_mask(params, k),
+		changed = mask_refine(hw_param_mask(params, k),
 				  &refine_masks[k - SND_PCM_HW_PARAM_FIRST_MASK]);
-		if (err < 0)
-			return err;
+		if (changed)
+			params->cmask |= 1 << k;
+		if (changed < 0)
+			goto _err;
 	}
 
 	for (k = SND_PCM_HW_PARAM_FIRST_INTERVAL; k <= SND_PCM_HW_PARAM_LAST_INTERVAL; k++) {
-		if (!(params->cmask & (1 << k)))
+		if (!(params->rmask & (1 << k)))
 			continue;
-		err = interval_refine(hw_param_interval(params, k),
+		changed = interval_refine(hw_param_interval(params, k),
 				      &refine_intervals[k - SND_PCM_HW_PARAM_FIRST_INTERVAL]);
-		if (err < 0)
-			return err;
+		if (changed)
+			params->cmask |= 1 << k;
+		if (changed < 0)
+			goto _err;
 	}
 
 	for (k = 0; k < RULES; k++)
 		rstamps[k] = 0;
 	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; k++)
-		vstamps[k] = (params->cmask & (1 << k)) ? 1 : 0;
-	params->cmask = 0;
-	changed = 1;
-	while (changed) {
-		changed = 0;
+		vstamps[k] = (params->rmask & (1 << k)) ? 1 : 0;
+	do {
+		again = 0;
 		for (k = 0; k < RULES; k++) {
 			snd_pcm_hw_rule_t *r = &refine_rules[k];
 			unsigned int d;
 			int doit = 0;
-#ifdef RULES_DEBUG
-			interval_t *i;
-#endif
 			for (d = 0; r->deps[d] >= 0; d++) {
 				if (vstamps[r->deps[d]] > rstamps[k]) {
 					doit = 1;
@@ -1889,26 +1901,35 @@ int _snd_pcm_hw_refine(snd_pcm_hw_params_t *params)
 			if (!doit)
 				continue;
 #ifdef RULES_DEBUG
-			i = hw_param_interval(params, r->var);
-			fprintf(stderr, "Rule %d: %u ", k, r->var);
-			interval_print(i, stderr);
+			snd_output_printf(log, "Rule %d: ", k);
+			if (r->var >= 0) {
+				snd_output_printf(log, "%s=", snd_pcm_hw_param_name(r->var));
+				snd_pcm_hw_param_dump(params, r->var, log);
+				snd_output_puts(log, " -> ");
+			}
 #endif
-			err = r->func(params, r);
+			changed = r->func(params, r);
 #ifdef RULES_DEBUG
-			interval_print(i, stderr);
-			putc('\n', stderr);
+			if (r->var >= 0)
+				snd_pcm_hw_param_dump(params, r->var, log);
+			snd_output_putc(log, ' ');
+			for (d = 0; r->deps[d] >= 0; d++) {
+				snd_output_printf(log, "%s=", snd_pcm_hw_param_name(r->deps[d]));
+				snd_pcm_hw_param_dump(params, r->deps[d], log);
+			}
+			snd_output_putc(log, '\n');
 #endif
 			rstamps[k] = stamp;
-			if (err && r->var >= 0) {
+			if (changed && r->var >= 0) {
 				params->cmask |= 1 << r->var;
 				vstamps[r->var] = stamp;
-				changed = 1;
+				again = 1;
 			}
-			if (err < 0)
-				return err;
+			if (changed < 0)
+				goto _err;
 			stamp++;
 		}
-	}
+	} while (again);
 	if (!params->msbits) {
 		i = hw_param_interval(params, SND_PCM_HW_PARAM_SAMPLE_BITS);
 		if (interval_single(i))
@@ -1922,69 +1943,97 @@ int _snd_pcm_hw_refine(snd_pcm_hw_params_t *params)
 			params->rate_den = 1;
 		}
 	}
+	params->rmask = 0;
 	return 0;
+ _err:
+#ifdef RULES_DEBUG
+	snd_output_close(log);
+#endif
+	return changed;
 }
 
-int snd_pcm_hw_params_refine(snd_pcm_hw_params_t *params,
-			     unsigned int vars,
-			     const snd_pcm_hw_params_t *src)
+int _snd_pcm_hw_params_refine(snd_pcm_hw_params_t *params,
+			      unsigned int vars,
+			      const snd_pcm_hw_params_t *src)
 {
 	int changed, err = 0;
 	unsigned int k;
 	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; ++k) {
-		if (!(vars & (1 << k)) ||
-		    !((src->cmask & (1 << k))))
+		if (!(vars & (1 << k)))
 			continue;
-		changed = snd_pcm_hw_param_refine(params, k, src);
+		changed = _snd_pcm_hw_param_refine(params, k, src);
 		if (changed < 0)
 			err = changed;
 	}
 	return err;
 }
 
-/* Accumulate to params->cmask */
-/* Reset sparams->cmask */
-int snd_pcm_generic_hw_link(snd_pcm_hw_params_t *params,
-			    snd_pcm_hw_params_t *sparams,
-			    snd_pcm_t *slave,
-			    unsigned long links)
+int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			    int (*cprepare)(snd_pcm_t *pcm,
+					    snd_pcm_hw_params_t *params),
+			    int (*cchange)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams),
+			    int (*sprepare)(snd_pcm_t *pcm,
+					    snd_pcm_hw_params_t *params),
+			    int (*schange)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams),
+			    int (*srefine)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *sparams))
+
 {
-	int err1, err = 0;
-	err = snd_pcm_hw_params_refine(sparams, links, params);
-	if (err >= 0) {
-		unsigned int cmask = sparams->cmask;
-		err = snd_pcm_hw_refine(slave, sparams);
-		sparams->cmask |= cmask;
+	snd_pcm_hw_params_t sparams;
+	int err;
+	err = cprepare(pcm, params);
+	if (err < 0)
+		return err;
+	err = sprepare(pcm, &sparams);
+	if (err < 0) {
+		ERR("Slave PCM not useable");
+		return err;
 	}
-	err1 = snd_pcm_hw_params_refine(params, links, sparams);
-	if (err1 < 0)
-		err = err1;
-	sparams->cmask = 0;
-	return err;
+	/* FIXME: loop begin? */
+	err = schange(pcm, params, &sparams);
+	if (err >= 0) {
+		err = srefine(pcm, &sparams);
+	}
+	if (err < 0) {
+		cchange(pcm, params, &sparams);
+		return err;
+	}
+	err = cchange(pcm, params, &sparams);
+	if (err < 0)
+		return err;
+	err = snd_pcm_hw_refine_soft(pcm, params);
+	if (err < 0)
+		return err;
+	/* FIXME: do we need to loop? */
+	return 0;
 }
 
-int snd_pcm_hw_refine2(snd_pcm_hw_params_t *params,
-		       snd_pcm_hw_params_t *sparams,
-		       int (*func)(snd_pcm_hw_params_t *params,
-				   snd_pcm_hw_params_t *sparams,
-				   snd_pcm_t *slave,
-				   unsigned long private),
-		       snd_pcm_t *slave,
-		       unsigned long private)
+int snd_pcm_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			    int (*cchange)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams),
+			    int (*sprepare)(snd_pcm_t *pcm,
+					    snd_pcm_hw_params_t *params),
+			    int (*schange)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams),
+			    int (*sparams)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *sparams))
+
 {
-	int err = 0;
-	unsigned int cmask = 0;
-	while (params->cmask) {
-		err = func(params, sparams, slave, private);
-		cmask |= params->cmask;
-		if (err < 0)
-			break;
-		err = _snd_pcm_hw_refine(params);
-		cmask |= params->cmask;
-		if (err < 0)
-			break;
-	}
-	params->cmask = cmask;
+	snd_pcm_hw_params_t slave_params;
+	int err;
+	err = sprepare(pcm, &slave_params);
+	assert(err >= 0);
+	err = schange(pcm, params, &slave_params);
+	assert(err >= 0);
+	err = sparams(pcm, &slave_params);
+	if (err < 0)
+		cchange(pcm, params, &slave_params);
 	return err;
 }
 

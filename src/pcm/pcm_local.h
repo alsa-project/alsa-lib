@@ -299,7 +299,33 @@ static inline int muldiv_near(int a, int b, int c)
 	return n;
 }
 
-int _snd_pcm_hw_refine(snd_pcm_hw_params_t *params);
+int snd_pcm_hw_refine_soft(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
+int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			    int (*cprepare)(snd_pcm_t *pcm,
+					    snd_pcm_hw_params_t *params),
+			    int (*cchange)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams),
+			    int (*sprepare)(snd_pcm_t *pcm,
+					    snd_pcm_hw_params_t *params),
+			    int (*schange)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams),
+			    int (*srefine)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *sparams));
+int snd_pcm_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			    int (*cchange)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams),
+			    int (*sprepare)(snd_pcm_t *pcm,
+					    snd_pcm_hw_params_t *params),
+			    int (*schange)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_params_t *sparams),
+			    int (*sparams)(snd_pcm_t *pcm,
+					   snd_pcm_hw_params_t *sparams));
+
+
 void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params);
 int _snd_pcm_hw_param_refine_interval(snd_pcm_hw_params_t *params,
 				      snd_pcm_hw_param_t var,
@@ -316,34 +342,16 @@ int _snd_pcm_hw_param_min(snd_pcm_hw_params_t *params,
 			   unsigned int var, unsigned int val, int dir);
 int _snd_pcm_hw_param_max(snd_pcm_hw_params_t *params,
 			   unsigned int var, unsigned int val, int dir);
-int snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
-			    snd_pcm_hw_param_t var,
-			    const snd_pcm_hw_params_t *src);
-int snd_pcm_hw_params_refine(snd_pcm_hw_params_t *params,
-			     unsigned int vars,
+int _snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
+			     snd_pcm_hw_param_t var,
 			     const snd_pcm_hw_params_t *src);
-int snd_pcm_generic_hw_link(snd_pcm_hw_params_t *params,
-			    snd_pcm_hw_params_t *sparams,
-			    snd_pcm_t *slave,
-			    unsigned long links);
-int snd_pcm_hw_refine2(snd_pcm_hw_params_t *params,
-		       snd_pcm_hw_params_t *sparams,
-		       int (*func)(snd_pcm_hw_params_t *params,
-				   snd_pcm_hw_params_t *sparams,
-				   snd_pcm_t *slave,
-				   unsigned long private),
-		       snd_pcm_t *slave,
-		       unsigned long private);
-int snd_pcm_hw_params2(snd_pcm_hw_params_t *params,
-		       snd_pcm_hw_params_t *sparams,
-		       int (*func)(snd_pcm_t *slave, 
-				   snd_pcm_hw_params_t *sparams),
-		       snd_pcm_t *slave,
-		       unsigned int links);
-void snd_pcm_hw_param_near_copy(snd_pcm_t *pcm,
-				snd_pcm_hw_params_t *params,
-				snd_pcm_hw_param_t var,
-				const snd_pcm_hw_params_t *src);
+int _snd_pcm_hw_params_refine(snd_pcm_hw_params_t *params,
+			      unsigned int vars,
+			      const snd_pcm_hw_params_t *src);
+void snd_pcm_hw_param_refine_near(snd_pcm_t *pcm,
+				  snd_pcm_hw_params_t *params,
+				  snd_pcm_hw_param_t var,
+				  const snd_pcm_hw_params_t *src);
 int snd_pcm_hw_param_always_eq(const snd_pcm_hw_params_t *params,
 			       snd_pcm_hw_param_t var,
 			       const snd_pcm_hw_params_t *params1);

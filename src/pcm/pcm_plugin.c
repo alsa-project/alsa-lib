@@ -340,6 +340,18 @@ int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm)
 	return snd_pcm_poll_descriptor(plugin->slave);
 }
 
+int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	snd_pcm_plugin_t *plugin = pcm->private;
+	return snd_pcm_hw_refine(plugin->slave, params);
+}
+
+int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	snd_pcm_plugin_t *plugin = pcm->private;
+	return snd_pcm_hw_params(plugin->slave, params);
+}
+
 int conv_index(int src_format, int dst_format)
 {
 	int src_endian, dst_endian, sign, src_width, dst_width;
