@@ -370,14 +370,25 @@ static int input_put(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simp
 		}
 	}
 	if (simple->caps & SND_MIXER_SCTCAP_MUTE) {
-		if (simple->present & MIXER_PRESENT_PLAYBACK_SWITCH) {
-			input_put_mute_switch(handle, simple, control, "Playback ", simple->pswitch_values);
-		} else if (simple->present & MIXER_PRESENT_GLOBAL_VOLUME) {
-			input_put_mute_switch(handle, simple, control, "", simple->pvolume_values);
-		} else if (simple->present & MIXER_PRESENT_PLAYBACK_ROUTE) {
-			input_put_mute_route(handle, simple, control, "Playback ", simple->proute_values);
-		} else if (simple->present & MIXER_PRESENT_GLOBAL_ROUTE) {
-			input_put_mute_route(handle, simple, control, "", simple->groute_values);
+		if ((control->mute & control->channels) != control->channels) {
+			if (simple->present & MIXER_PRESENT_PLAYBACK_SWITCH)
+				input_put_mute_switch(handle, simple, control, "Playback ", simple->pswitch_values);
+			if (simple->present & MIXER_PRESENT_GLOBAL_VOLUME)
+				input_put_mute_switch(handle, simple, control, "", simple->pvolume_values);
+			if (simple->present & MIXER_PRESENT_PLAYBACK_ROUTE)
+				input_put_mute_route(handle, simple, control, "Playback ", simple->proute_values);
+			if (simple->present & MIXER_PRESENT_GLOBAL_ROUTE)
+				input_put_mute_route(handle, simple, control, "", simple->groute_values);
+		} else {
+			if (simple->present & MIXER_PRESENT_PLAYBACK_SWITCH) {
+				input_put_mute_switch(handle, simple, control, "Playback ", simple->pswitch_values);
+			} else if (simple->present & MIXER_PRESENT_GLOBAL_VOLUME) {
+				input_put_mute_switch(handle, simple, control, "", simple->pvolume_values);
+			} else if (simple->present & MIXER_PRESENT_PLAYBACK_ROUTE) {
+				input_put_mute_route(handle, simple, control, "Playback ", simple->proute_values);
+			} else if (simple->present & MIXER_PRESENT_GLOBAL_ROUTE) {
+				input_put_mute_route(handle, simple, control, "", simple->groute_values);
+			}
 		}
 	}
 	if (simple->caps & SND_MIXER_SCTCAP_CAPTURE) {
