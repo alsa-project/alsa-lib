@@ -84,5 +84,7 @@ ALSA_0.9.0rc8 {
   global:
 
     snd_pcm_forward;
+    snd_pcm_status_get_trigger_htstamp;
+    snd_pcm_status_get_htstamp;
 
 } ALSA_0.9.0rc4;
