@@ -171,7 +171,7 @@ be stopped using the #snd_pcm_drop() or
 \par SND_PCM_STATE_XRUN
 The PCM device reached overrun (capture) or underrun (playback).
 You can use the -EPIPE return code from I/O functions
-(#snd_pcm_writei(), #snd_pcm_writen(), #snd_pcm_readi(), #snd_pcm_readi())
+(#snd_pcm_writei(), #snd_pcm_writen(), #snd_pcm_readi(), #snd_pcm_readn())
 to determine this state without checking
 the actual state via #snd_pcm_state() call. You can recover from
 this state with #snd_pcm_prepare(),
@@ -231,7 +231,7 @@ and the second one expects non-interleaved (samples in separated buffers -
 #SND_PCM_ACCESS_RW_NONINTERLEAVED access method) at input. There are these
 functions for interleaved transfers: #snd_pcm_writei()
 #snd_pcm_readi(). For non-interleaved transfers, there are
-these functions: #snd_pcm_writen(0 and #snd_pcm_readn().
+these functions: #snd_pcm_writen() and #snd_pcm_readn().
 
 \subsection alsa_mmap_rw Direct Read / Write transfer (via mmap'ed areas)
 
@@ -402,7 +402,7 @@ before any read/write begin+commit operations.
 
 \section pcm_action Managing the stream state
 
-These functions directly and indirectly affecting the stream state:
+The following functions directly and indirectly affect the stream state:
 
 \par snd_pcm_hw_params
 The #snd_pcm_hw_params() function brings the stream state
@@ -472,9 +472,11 @@ For detailed descriptions about integrated PCM plugins look to \ref pcm_plugins.
 The default device is equal to plug plugin with hw plugin as slave. The defaults are
 used:
 
+\code
 defaults.pcm.card 0
 defaults.pcm.device 0
 defaults.pcm.subdevice -1
+\endcode
 
 These defaults can be freely overwritten in local configuration files.
 
@@ -2067,7 +2069,8 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 /**
  * \brief Wait for a PCM to become ready
  * \param pcm PCM handle
- * \param timeout maximum time in milliseconds to wait
+ * \param timeout maximum time in milliseconds to wait,
+ *        a negative value means infinity
  * \return a positive value on success otherwise a negative error code
  *         (-EPIPE for the xrun and -ESTRPIPE for the suspended status,
  *          others for general errors) 
