@@ -6,7 +6,7 @@
  ****************************************************************************/
 
 typedef struct snd_mixer_callbacks {
-	void *private_data;	/* should be used by an application */
+	void *private_data;	/* should be used with an application */
 	void (*rebuild) (void *private_data);
 	void (*element) (void *private_data, int cmd, snd_mixer_eid_t *eid);
 	void (*group) (void *private_data, int cmd, snd_mixer_gid_t *gid);

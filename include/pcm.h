@@ -144,13 +144,23 @@ int snd_pcm_plugin_build_voices(int src_format, int src_voices,
 extern "C" {
 #endif
 
-int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int subchn, int mode);
+typedef struct snd_pcm_loopback_callbacks {
+	void *private_data;		/* should be used with an application */
+	size_t max_buffer_size;		/* zero = default (64kB) */
+	void (*data) (void *private_data, char *buffer, size_t count);
+	void (*position_change) (void *private_data, unsigned int pos);
+	void (*format_change) (void *private_data, snd_pcm_format_t *format);
+	char *reserved[32];		/* reserved for the future use - must be NULL!!! */
+} snd_pcm_loopback_callbacks_t;
+
+int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int subdev, int mode);
 int snd_pcm_loopback_close(snd_pcm_loopback_t *handle);
 int snd_pcm_loopback_file_descriptor(snd_pcm_loopback_t *handle);
 int snd_pcm_loopback_block_mode(snd_pcm_loopback_t *handle, int enable);
 int snd_pcm_loopback_stream_mode(snd_pcm_loopback_t *handle, int mode);
 int snd_pcm_loopback_format(snd_pcm_loopback_t *handle, snd_pcm_format_t * format);
-ssize_t snd_pcm_loopback_read(snd_pcm_loopback_t *handle, void *buffer, size_t size);
+int snd_pcm_loopback_status(snd_pcm_loopback_t *handle, snd_pcm_loopback_status_t * status);
+ssize_t snd_pcm_loopback_read(snd_pcm_loopback_t *handle, snd_pcm_loopback_callbacks_t * callbacks);
 
 #ifdef __cplusplus
 }
