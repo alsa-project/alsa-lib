@@ -175,7 +175,7 @@ dnl Check for resmgr support...
 AC_MSG_CHECKING(for resmgr support)
 AC_ARG_ENABLE(resmgr,
   [  --enable-resmgr         support resmgr (optional)],
-  resmgr="$withval", resmgr="no")
+  resmgr="$enableval", resmgr="no")
 AC_MSG_RESULT($resmgr)
 if test "$resmgr" = "yes"; then
   AC_CHECK_LIB(resmgr, rsm_open_device,,
