@@ -1390,7 +1390,7 @@ snd_config_iterator_t snd_config_iterator_first(snd_config_t *node)
 }
 
 /**
-q * \brief Return an iterator pointing to next leaf
+ * \brief Return an iterator pointing to next leaf
  * \param iterator Config node iterator
  * \return iterator value for next leaf
  */
