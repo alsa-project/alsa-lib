@@ -187,6 +187,8 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
  *  Jack plugin
  */
 int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
+					snd_config_t *playback_conf,
+					snd_config_t *capture_conf,
 		      snd_pcm_stream_t stream, int mode);
 int _snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
                        snd_config_t *root, snd_config_t *conf,

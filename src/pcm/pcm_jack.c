@@ -27,30 +27,13 @@
  */
 
 #include "config.h"
-#ifdef HAVE_JACK
-#define USE_JACK
-#endif
 
 #include <byteswap.h>
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "pcm_local.h"
-#ifdef USE_JACK
 #include <jack/jack.h>
-#endif
-
-#if 1
-#define JACK_PLAYBACK_PORT1	"alsa_pcm:playback_1"
-#define JACK_PLAYBACK_PORT2	"alsa_pcm:playback_2"
-#define JACK_CAPTURE_PORT1	"alsa_pcm:capture_1"
-#define JACK_CAPTURE_PORT2	"alsa_pcm:capture_2"
-#else
-#define JACK_PLAYBACK_PORT1	"alsa_pcm:out_1"
-#define JACK_PLAYBACK_PORT2	"alsa_pcm:out_2"
-#define JACK_CAPTURE_PORT1	"alsa_pcm:in_1"
-#define JACK_CAPTURE_PORT2	"alsa_pcm:in_2"
-#endif
 
 #define PCM_JACK_DEBUG
 
@@ -74,12 +57,16 @@ typedef struct {
 	snd_pcm_uframes_t appl_ptr;
 	snd_pcm_uframes_t hw_ptr;
 
-	unsigned int channels;
+	char** playback_ports;
+	char** capture_ports;
+	unsigned int playback_ports_n;
+	unsigned int capture_ports_n;
 
-#ifdef USE_JACK
+	unsigned int channels;
+	snd_pcm_channel_area_t *areas;
+
 	jack_port_t **ports;
 	jack_client_t *client;
-#endif
 } snd_pcm_jack_t;
 
 #endif /* DOC_HIDDEN */
@@ -92,11 +79,20 @@ static int snd_pcm_jack_close(snd_pcm_t *pcm)
 #ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_close\n"); fflush(stdout);
 #endif
-#ifdef USE_JACK
 	if (jack->client)
+	{
 		jack_client_close(jack->client);
-#endif
+		jack->client = 0;
+	}
+
+	if (jack->playback_ports)
+		free(jack->playback_ports);
+	if (jack->capture_ports)
+		free(jack->capture_ports);
+	if (jack->areas)
+		free(jack->areas);
 	free(jack);
+
 	return err;
 }
 
@@ -198,38 +194,43 @@ static int snd_pcm_jack_delay(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sframes_t
 	return 0;
 }
 
-#ifdef USE_JACK
 int
 snd_pcm_jack_process_cb (jack_nframes_t nframes, snd_pcm_t *pcm)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
 	const snd_pcm_channel_area_t *areas;
 	snd_pcm_uframes_t xfer = 0, samples;
-	snd_pcm_channel_area_t area;	
 	char buf[1];
-
+	unsigned int channel;
+	
 #ifdef PCM_JACK_DEBUG
-	printf("PROCESS!\n");
+	printf("PROCESS %d!\n",jack->state);
 #endif
 
-	area.addr = jack_port_get_buffer (jack->ports[0], nframes);
-	area.first = 0;
-	area.step = pcm->sample_bits;
-
-	if (jack->state != SND_PCM_STATE_RUNNING) {
-		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-			snd_pcm_area_silence(&area, 0, nframes, pcm->format);
-		return 0;
+	for (channel = 0; channel < jack->channels; channel++) {
+		jack->areas[channel].addr = 
+			jack_port_get_buffer (jack->ports[channel], nframes);
+		jack->areas[channel].first = 0;
+		jack->areas[channel].step = pcm->sample_bits;
 	}
-
-	areas = snd_pcm_mmap_areas(pcm);
+		
+	if (jack->state != SND_PCM_STATE_RUNNING) {
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+			for (channel = 0; channel < jack->channels; channel++) {
+				snd_pcm_area_silence(&jack->areas[channel], 0, nframes, pcm->format);
+			}
+			return 0;
+		}
+	}
 	
+	areas = snd_pcm_mmap_areas(pcm);
+
 	while (xfer < nframes)
 	{
 		snd_pcm_uframes_t frames = nframes - xfer;
 		snd_pcm_uframes_t offset = snd_pcm_mmap_hw_offset(pcm);
 		snd_pcm_uframes_t cont = pcm->buffer_size - offset;
-		
+
 		if (cont < frames)
 			frames = cont;
 
@@ -238,17 +239,20 @@ snd_pcm_jack_process_cb (jack_nframes_t nframes, snd_pcm_t *pcm)
 			(int)offset,(int)jack->hw_ptr,(int)nframes,(int)frames,(int)pcm->buffer_size); fflush(stdout);
 #endif
 
-		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-			snd_pcm_area_copy(&area, xfer, &areas[0], offset, frames, pcm->format);
-		} else {
-			snd_pcm_area_copy(&areas[0], offset, &area, xfer, frames, pcm->format);
+		for (channel = 0; channel < jack->channels; channel++)
+		{
+			if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+				snd_pcm_area_copy(&jack->areas[channel], xfer, &areas[channel], offset, frames, pcm->format);
+			} else {
+				snd_pcm_area_copy(&areas[channel], offset, &jack->areas[channel], xfer, frames, pcm->format);
+			}
 		}
 		
 		snd_pcm_mmap_hw_forward(pcm,frames);
 		xfer += frames;
 	}
 
-        if (pcm->stop_threshold < pcm->boundary) {
+	if (pcm->stop_threshold < pcm->boundary) {
 		samples = snd_pcm_mmap_avail(pcm);
 		if (samples >= pcm->stop_threshold) {
 			gettimeofday(&jack->trigger_tstamp, 0);
@@ -256,7 +260,7 @@ snd_pcm_jack_process_cb (jack_nframes_t nframes, snd_pcm_t *pcm)
 			jack->avail_max = samples;
 		}
 	}
-                         	
+	                         	
 	write(jack->fd,buf,1); /* for polling */
 
 #ifdef PCM_JACK_DEBUG
@@ -265,7 +269,6 @@ snd_pcm_jack_process_cb (jack_nframes_t nframes, snd_pcm_t *pcm)
 	
 	return 0;      
 }
-#endif
 
 static int snd_pcm_jack_prepare(snd_pcm_t *pcm)
 {
@@ -281,7 +284,6 @@ static int snd_pcm_jack_prepare(snd_pcm_t *pcm)
 
 	jack->appl_ptr = jack->hw_ptr = 0;
 
-#ifdef USE_JACK
 	jack->ports = calloc (pcm->channels, sizeof(jack_port_t*));
 	for (i = 0; i < pcm->channels; i++)
 	{
@@ -329,53 +331,48 @@ static int snd_pcm_jack_start(snd_pcm_t *pcm)
 	jack->activated = 1;
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		for (i = 0; i < pcm->channels; i++)
-		{
-			if (jack_connect (jack->client, jack_port_name (jack->ports[i]), JACK_PLAYBACK_PORT1))
-			{
-				fprintf (stderr, "cannot connect output ports\n");
-				return -EIO;
-			}else{
+		for (i = 0; i < pcm->channels && i < jack->playback_ports_n; i++)
+		{	
+			if ( jack->playback_ports[i]) {
+				if (jack_connect (jack->client, 
+					jack_port_name (jack->ports[i]), 
+					jack->playback_ports[i]))
+				{
+					fprintf(stderr, "cannot connect %s to %s",
+						jack_port_name(jack->ports[i]),
+						jack->playback_ports[i]);
+					return -EIO;
+				}
 #ifdef PCM_JACK_DEBUG
-				printf("connected %s to alsa_pcm:playback_1",jack_port_name(jack->ports[i]));
-#endif
-			}
-			if (jack_connect (jack->client, jack_port_name (jack->ports[i]),JACK_PLAYBACK_PORT2))
-			{
-				fprintf (stderr, "cannot connect output ports\n");
-				return -EIO;
-			}else{
-#ifdef PCM_JACK_DEBUG
-				printf("connected %s to alsa_pcm:playback_2",jack_port_name(jack->ports[i]));
+				printf("connected %s to %s\n",
+					jack_port_name(jack->ports[i]),
+					jack->playback_ports[i]);
+				fflush(stdout);
 #endif
 			}
 		}
-	} else {
-		for (i = 0; i < pcm->channels; i++)
-		{
-			if (jack_connect (jack->client, 
-				JACK_CAPTURE_PORT1,jack_port_name (jack->ports[i])))
-			{
-				fprintf (stderr, "cannot connect input ports\n");
-				return -EIO;
-			}else{
+	}else{
+		for (i = 0; i < pcm->channels && i < jack->capture_ports_n; i++)
+		{	
+			if ( jack->capture_ports[i]) {
+				if (jack_connect (jack->client, 
+					jack->capture_ports[i],
+					jack_port_name (jack->ports[i])))
+				{
+					fprintf(stderr, "cannot connect %s to %s",
+						jack->capture_ports[i],
+						jack_port_name(jack->ports[i]));
+					return -EIO;
+				}
 #ifdef PCM_JACK_DEBUG
-				printf("connected %s to alsa_pcm:capture_1",jack_port_name(jack->ports[i]));
-#endif
-			}
-			if (jack_connect (jack->client, 
-				JACK_CAPTURE_PORT2,jack_port_name (jack->ports[i])))
-			{
-				fprintf (stderr, "cannot connect input ports\n");
-				return -EIO;
-			}else{
-#ifdef PCM_JACK_DEBUG
-				printf("connected %s to alsa_pcm:capture_2",jack_port_name(jack->ports[i]));
+				printf("connected %s to %s\n",
+					jack->capture_ports[i],
+					jack_port_name(jack->ports[i]));
+				fflush(stdout);
 #endif
 			}
 		}
 	}
-#endif
 	
 	jack->state = SND_PCM_STATE_RUNNING;
 
@@ -385,7 +382,6 @@ static int snd_pcm_jack_start(snd_pcm_t *pcm)
 static int snd_pcm_jack_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
-	unsigned int i;
 	
 #ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_drop\n"); fflush(stdout);
@@ -614,6 +610,46 @@ static snd_pcm_fast_ops_t snd_pcm_jack_fast_ops = {
 	mmap_commit: snd_pcm_jack_mmap_commit,
 };
 
+static int parse_ports(snd_config_t *conf,char*** ret_ports,int *ret_n)
+{
+	snd_config_iterator_t i, next;
+	char** ports = NULL;
+	unsigned int cnt = 0;
+	unsigned int channel;
+
+	if (conf) {
+		snd_config_for_each(i, next, conf) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
+			cnt++;
+		}
+		ports = calloc(cnt,sizeof(char*));
+		for (channel = 0; channel < cnt; channel++)
+			ports[channel] = NULL;
+		
+		snd_config_for_each(i, next, conf) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id;
+			const char *port;
+
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
+
+			channel = atoi(id);
+
+			if (snd_config_get_string(n, &port) < 0)
+				continue;
+
+			ports[channel] = port ? strdup(port) : NULL;
+		}
+	}
+	*ret_ports = ports;
+	*ret_n = cnt;
+	return 0;
+}
+
 /**
  * \brief Creates a new jack PCM
  * \param pcmp Returns created PCM handle
@@ -626,6 +662,8 @@ static snd_pcm_fast_ops_t snd_pcm_jack_fast_ops = {
  *          changed in future.
  */
 int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
+	snd_config_t *playback_conf,
+	snd_config_t *capture_conf,
 	snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
@@ -634,31 +672,53 @@ int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 	int fd[2];
 	
 	assert(pcmp);
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_open\n"); fflush(stdout);
+#endif
 	jack = calloc(1, sizeof(snd_pcm_jack_t));
 	if (!jack) {
 		return -ENOMEM;
 	}
-	jack->channels = 2;	/* FIXME: should be configurable */
 
-#ifdef USE_JACK
-	if (stream == SND_PCM_STREAM_PLAYBACK)
-		jack->client = jack_client_new("alsaP");
-	else
-		jack->client = jack_client_new("alsaC");
+	jack->playback_ports = NULL;
+	jack->playback_ports_n = 0;
+
+	jack->capture_ports = NULL;
+	jack->capture_ports_n = 0;
 	
-	if (jack->client==0)
-		return -ENOENT;	
-#endif
+	err = parse_ports(playback_conf,
+		&jack->playback_ports,&jack->playback_ports_n);
+	if (err)
+		goto _free;
 
+	err = parse_ports(capture_conf,
+		&jack->capture_ports,&jack->capture_ports_n);
+	if (err)
+		goto _free;
+
+	if (stream == SND_PCM_STREAM_PLAYBACK) {
+		jack->channels = jack->playback_ports_n;
+		jack->client = jack_client_new("alsaP");
+	}
+	else {
+		jack->channels = jack->capture_ports_n;
+		jack->client = jack_client_new("alsaC");
+	}
+
+
+	if (jack->client==0) {
+		err = -ENOENT;	
+		goto _free;
+	}
+	
 	jack->state = SND_PCM_STATE_OPEN;
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_JACK, name, stream, mode);
 	
 	if (err < 0) {
-		free(jack);
-		return err;
+		goto _free;
 	}
+
 	pcm->ops = &snd_pcm_jack_ops;
 	pcm->fast_ops = &snd_pcm_jack_fast_ops;
 	pcm->private_data = jack;
@@ -671,11 +731,35 @@ int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_fd = fd[1];
 	pcm->poll_events = POLLIN;
 
+	jack->areas = calloc(jack->channels,sizeof(snd_pcm_channel_area_t));
+
 	snd_pcm_set_hw_ptr(pcm, &jack->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &jack->appl_ptr, -1, 0);
 	*pcmp = pcm;
 
 	return 0;
+
+_free:
+	if (jack) {
+		if (jack->playback_ports)
+		{
+			unsigned int k;
+			for (k = 0; k < jack->playback_ports_n; k++)
+				if (jack->playback_ports[k])
+					free(jack->playback_ports[k]);
+			free(jack->playback_ports);
+		}
+		if (jack->capture_ports)
+		{
+			unsigned int k;
+			for (k = 0; k < jack->capture_ports_n; k++)
+				if (jack->capture_ports[k])
+					free(jack->capture_ports[k]);
+			free(jack->capture_ports);
+		}
+		free(jack);
+	}
+	return err;
 }
 
 /*! \page pcm_plugins
@@ -702,6 +786,10 @@ int _snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
+	snd_config_t *playback_conf = NULL;
+	snd_config_t *capture_conf = NULL;
+	int err;
+	
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -709,10 +797,32 @@ int _snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		if (snd_pcm_conf_generic_id(id))
 			continue;
+		if (strcmp(id, "playback_ports") == 0) {
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
+			}
+			playback_conf = n;
+			continue;
+		}
+		if (strcmp(id, "capture_ports") == 0) {
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
+			}
+			capture_conf = n;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	return snd_pcm_jack_open(pcmp, name, stream, mode);
+
+	err = snd_pcm_jack_open(pcmp, name, 
+		playback_conf,
+		capture_conf,
+		stream, mode);
+		
+	return err;
 }
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_jack_open, SND_PCM_DLSYM_VERSION);
