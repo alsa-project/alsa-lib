@@ -196,6 +196,11 @@ static snd_pcm_sframes_t snd_pcm_surround_writei(snd_pcm_t *pcm, const void *buf
 	snd_pcm_surround_t *surr = pcm->private_data;
 	if (surr->pcms == 1)
 		return snd_pcm_writei(surr->pcm[0], buffer, size);
+	if (pcm->running_areas == NULL) {
+		int err;
+		if ((err = snd_pcm_mmap(pcm)) < 0)
+			return err;
+	}
 	return snd_pcm_mmap_writei(pcm, buffer, size);
 }
 
@@ -221,6 +226,11 @@ static snd_pcm_sframes_t snd_pcm_surround_readi(snd_pcm_t *pcm, void *buffer, sn
 	snd_pcm_surround_t *surr = pcm->private_data;
 	if (surr->pcms == 1)
 		return snd_pcm_readi(surr->pcm[0], buffer, size);
+	if (pcm->running_areas == NULL) {
+		int err;
+		if ((err = snd_pcm_mmap(pcm)) < 0)
+			return err;
+	}
 	return snd_pcm_mmap_readi(pcm, buffer, size);
 }
 
