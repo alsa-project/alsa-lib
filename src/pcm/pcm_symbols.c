@@ -41,6 +41,8 @@ extern const char *_snd_module_pcm_shm;
 extern const char *_snd_module_pcm_lfloat;
 extern const char *_snd_module_pcm_ladspa;
 extern const char *_snd_module_pcm_dmix;
+extern const char *_snd_module_pcm_dsnoop;
+extern const char *_snd_module_pcm_dshare;
 
 static const char **snd_pcm_open_objects[] = {
 	&_snd_module_pcm_adpcm,
@@ -61,7 +63,9 @@ static const char **snd_pcm_open_objects[] = {
 	&_snd_module_pcm_shm,
 	&_snd_module_pcm_lfloat,
 	&_snd_module_pcm_ladspa,
-	&_snd_module_pcm_dmix
+	&_snd_module_pcm_dmix,
+	&_snd_module_pcm_dsnoop,
+	&_snd_module_pcm_dshare
 };
 	
 void *snd_pcm_open_symbols(void)

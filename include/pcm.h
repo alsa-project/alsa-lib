@@ -348,7 +348,11 @@ enum _snd_pcm_type {
 	SND_PCM_TYPE_DMIX,
 	/** Jack Audio Connection Kit plugin */
 	SND_PCM_TYPE_JACK,
-	SND_PCM_TYPE_LAST = SND_PCM_TYPE_JACK
+	/** Direct Snooping plugin */
+	SND_PCM_TYPE_DSNOOP,
+	/** Direct Sharing plugin */
+	SND_PCM_TYPE_DSHARE,
+	SND_PCM_TYPE_LAST = SND_PCM_TYPE_DSNOOP
 };
 
 /** PCM type */
