@@ -420,6 +420,39 @@ static int direct_loop(snd_pcm_t *handle,
 }
  
 /*
+ *   Transfer method - direct write only using mmap_write functions
+ */
+
+static int direct_write_loop(snd_pcm_t *handle,
+			     signed short *samples,
+			     snd_pcm_channel_area_t *areas)
+{
+	double phase = 0;
+	signed short *ptr;
+	int err, cptr;
+
+	while (1) {
+		generate_sine(areas, 0, period_size, &phase);
+		ptr = samples;
+		cptr = period_size;
+		while (cptr > 0) {
+			err = snd_pcm_mmap_writei(handle, ptr, cptr);
+			if (err == -EAGAIN)
+				continue;
+			if (err < 0) {
+				if (xrun_recovery(handle, err) < 0) {
+					printf("Write error: %s\n", snd_strerror(err));
+					exit(EXIT_FAILURE);
+				}
+				break;	/* skip one period */
+			}
+			ptr += err * channels;
+			cptr -= err;
+		}
+	}
+}
+ 
+/*
  *
  */
 
@@ -437,6 +470,7 @@ static struct transfer_method transfer_methods[] = {
 	{ "async", SND_PCM_ACCESS_RW_INTERLEAVED, async_loop },
 	{ "direct_interleaved", SND_PCM_ACCESS_MMAP_INTERLEAVED, direct_loop },
 	{ "direct_noninterleaved", SND_PCM_ACCESS_MMAP_NONINTERLEAVED, direct_loop },
+	{ "direct_write", SND_PCM_ACCESS_MMAP_INTERLEAVED, direct_write_loop },
 	{ NULL, SND_PCM_ACCESS_RW_INTERLEAVED, NULL }
 };
 
