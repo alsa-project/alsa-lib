@@ -71,22 +71,35 @@ static short StepSize[89] = {
 	15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
 };
 
-typedef struct adpcm_state {
+typedef struct {
 	int pred_val;		/* Calculated predicted value */
 	int step_idx;		/* Previous StepSize lookup index */
-	unsigned int io_buffer;	/* input / output bit packing buffer */
-	int io_shift;		/* shift input / output buffer */
-} adpcm_state_t;
+} adpcm_voice_t;
 
-static void adpcm_init_state(adpcm_state_t * state_ptr)
+typedef void (*adpcm_f)(snd_pcm_plugin_t *plugin,
+			const snd_pcm_plugin_voice_t *src_voices,
+			const snd_pcm_plugin_voice_t *dst_voices,
+			size_t samples);
+
+typedef struct adpcm_private_data {
+	adpcm_f func;
+	int conv;
+	adpcm_voice_t voices[0];
+} adpcm_t;
+
+
+static void adpcm_init(snd_pcm_plugin_t *plugin)
 {
-	state_ptr->pred_val = 0;
-	state_ptr->step_idx = 0;
-	state_ptr->io_buffer = 0;
-	state_ptr->io_shift = 4;
+	int voice;
+	adpcm_t *data = (adpcm_t *)plugin->extra_data;
+	for (voice = 0; voice < plugin->src_format.voices; voice++) {
+		adpcm_voice_t *v = &data->voices[voice];
+		v->pred_val = 0;
+		v->step_idx = 0;
+	}
 }
 
-static char adpcm_encoder(int sl, adpcm_state_t * state)
+static char adpcm_encoder(int sl, adpcm_voice_t * state)
 {
 	short diff;		/* Difference between sl and predicted sample */
 	short pred_diff;	/* Predicted difference to next sample */
@@ -147,7 +160,7 @@ static char adpcm_encoder(int sl, adpcm_state_t * state)
 }
 
 
-static int adpcm_decoder(unsigned char code, adpcm_state_t * state)
+static int adpcm_decoder(unsigned char code, adpcm_voice_t * state)
 {
 	short pred_diff;	/* Predicted difference to next sample */
 	short step;		/* holds previous StepSize value */
@@ -197,118 +210,121 @@ static int adpcm_decoder(unsigned char code, adpcm_state_t * state)
  *  Basic Ima-ADPCM plugin
  */
 
-typedef void (*adpcm_f)(adpcm_state_t *state, void *src_ptr, void *dst_ptr, int samples);
-
-typedef struct adpcm_private_data {
-	adpcm_f func;
-	adpcm_state_t state;
-} adpcm_t;
-
-#define ADPCM_FUNC_DECODE(name, dsttype, val) \
-static void adpcm_decode_##name(adpcm_state_t *state, \
-				void *src_ptr, void *dst_ptr, int samples) \
-{ \
-	unsigned char *src = src_ptr; \
-	dsttype *dst = dst_ptr; \
-	unsigned int s; \
-	samples <<= 1; \
-	while (samples--) { \
-		if (state->io_shift) \
-			state->io_buffer = *src++; \
-		s = adpcm_decoder((state->io_buffer >> state->io_shift) & 0x0f, state); \
-		*dst++ = val; \
-		state->io_shift ^= 4; \
-	} \
+static void adpcm_decode(snd_pcm_plugin_t *plugin,
+			 const snd_pcm_plugin_voice_t *src_voices,
+			 const snd_pcm_plugin_voice_t *dst_voices,
+			 size_t samples)
+{
+#define PUT16_LABELS
+#include "plugin_ops.h"
+#undef PUT16_LABELS
+	adpcm_t *data = (adpcm_t *)plugin->extra_data;
+	void *put = put16_labels[data->conv];
+	int voice;
+	int nvoices = plugin->src_format.voices;
+	for (voice = 0; voice < nvoices; ++voice) {
+		char *src;
+		int srcbit;
+		char *dst;
+		int src_step, srcbit_step, dst_step;
+		size_t samples1;
+		adpcm_voice_t *state;
+		if (src_voices[voice].addr == NULL) {
+			if (dst_voices[voice].addr != NULL) {
+//				null_voice(&dst_voices[voice]);
+				zero_voice(plugin, &dst_voices[voice], samples);
+			}
+			continue;
+		}
+		src = src_voices[voice].addr + src_voices[voice].offset / 8;
+		srcbit = src_voices[voice].offset % 8;
+		dst = dst_voices[voice].addr + dst_voices[voice].offset / 8;
+		src_step = src_voices[voice].next / 8;
+		srcbit_step = src_voices[voice].next % 8;
+		dst_step = dst_voices[voice].next / 8;
+		state = &data->voices[voice];
+		samples1 = samples;
+		while (samples1-- > 0) {
+			signed short sample;
+			int v;
+			if (srcbit)
+				v = *src & 0x0f;
+			else
+				v = (*src >> 4) & 0x0f;
+			sample = adpcm_decoder(v, state);
+			goto *put;
+#define PUT16_END after
+#include "plugin_ops.h"
+#undef PUT16_END
+		after:
+			src += src_step;
+			srcbit += srcbit_step;
+			if (srcbit == 8) {
+				src++;
+				srcbit = 0;
+			}
+			dst += dst_step;
+		}
+	}
 }
 
-#define ADPCM_FUNC_ENCODE(name, srctype, val) \
-static void adpcm_encode_##name(adpcm_state_t *state, \
-				void *src_ptr, void *dst_ptr, int samples) \
-{ \
-	srctype *src = src_ptr; \
-	unsigned char *dst = dst_ptr; \
-	unsigned int s; \
-	samples <<= 1; \
-	while (samples--) { \
-		s = *src++; \
-		state->io_buffer |= adpcm_encoder((signed short)(val), state) << state->io_shift; \
-		if (state->io_shift == 0) { \
-			*dst++ = state->io_buffer & 0xff; \
-			state->io_buffer = 0; \
-		} \
-		state->io_shift ^= 4; \
-	} \
+static void adpcm_encode(snd_pcm_plugin_t *plugin,
+			const snd_pcm_plugin_voice_t *src_voices,
+			const snd_pcm_plugin_voice_t *dst_voices,
+			size_t samples)
+{
+#define GET16_LABELS
+#include "plugin_ops.h"
+#undef GET16_LABELS
+	adpcm_t *data = (adpcm_t *)plugin->extra_data;
+	void *get = get16_labels[data->conv];
+	int voice;
+	int nvoices = plugin->src_format.voices;
+	signed short sample = 0;
+	for (voice = 0; voice < nvoices; ++voice) {
+		char *src;
+		char *dst;
+		int dstbit;
+		int src_step, dst_step, dstbit_step;
+		size_t samples1;
+		adpcm_voice_t *state;
+		if (src_voices[voice].addr == NULL) {
+			if (dst_voices[voice].addr != NULL) {
+//				null_voice(&dst_voices[voice]);
+				zero_voice(plugin, &dst_voices[voice], samples);
+			}
+			continue;
+		}
+		src = src_voices[voice].addr + src_voices[voice].offset / 8;
+		dst = dst_voices[voice].addr + dst_voices[voice].offset / 8;
+		dstbit = dst_voices[voice].offset % 8;
+		src_step = src_voices[voice].next / 8;
+		dst_step = dst_voices[voice].next / 8;
+		dstbit_step = dst_voices[voice].next % 8;
+		state = &data->voices[voice];
+		samples1 = samples;
+		while (samples1-- > 0) {
+			int v;
+			goto *get;
+#define GET16_END after
+#include "plugin_ops.h"
+#undef GET16_END
+		after:
+			v = adpcm_encoder(sample, state);
+			if (dstbit)
+				*dst = (*dst & 0xf0) | v;
+			else
+				*dst = (*dst & 0x0f) | (v << 4);
+			src += src_step;
+			dst += dst_step;
+			dstbit += dstbit_step;
+			if (dstbit == 8) {
+				dst++;
+				dstbit = 0;
+			}
+		}
+	}
 }
-
-ADPCM_FUNC_DECODE(u8, u_int8_t, (s >> 8) ^ 0x80)
-ADPCM_FUNC_DECODE(s8, u_int8_t, s >> 8)
-ADPCM_FUNC_DECODE(u16n, u_int16_t, s ^ 0x8000)
-ADPCM_FUNC_DECODE(u16s, u_int16_t, bswap_16(s ^ 0x8000))
-ADPCM_FUNC_DECODE(s16n, u_int16_t, s)
-ADPCM_FUNC_DECODE(s16s, u_int16_t, bswap_16(s))
-ADPCM_FUNC_DECODE(u24n, u_int32_t, (s << 8) ^ 0x800000)
-ADPCM_FUNC_DECODE(u24s, u_int32_t, bswap_32((s << 8) ^ 0x800000))
-ADPCM_FUNC_DECODE(s24n, u_int32_t, s << 8)
-ADPCM_FUNC_DECODE(s24s, u_int32_t, bswap_32(s << 8))
-ADPCM_FUNC_DECODE(u32n, u_int32_t, (s << 16) ^ 0x80000000)
-ADPCM_FUNC_DECODE(u32s, u_int32_t, bswap_32((s << 16) ^ 0x80000000))
-ADPCM_FUNC_DECODE(s32n, u_int32_t, s << 16)
-ADPCM_FUNC_DECODE(s32s, u_int32_t, bswap_32(s << 16))
-
-ADPCM_FUNC_ENCODE(u8, u_int8_t, s << 8)
-ADPCM_FUNC_ENCODE(s8, u_int8_t, (s << 8) ^ 0x8000)
-ADPCM_FUNC_ENCODE(u16n, u_int16_t, s ^ 0x8000)
-ADPCM_FUNC_ENCODE(u16s, u_int16_t, bswap_16(s ^ 0x8000))
-ADPCM_FUNC_ENCODE(s16n, u_int16_t, s)
-ADPCM_FUNC_ENCODE(s16s, u_int16_t, bswap_16(s))
-ADPCM_FUNC_ENCODE(u24n, u_int32_t, (s ^ 0x800000) >> 8)
-ADPCM_FUNC_ENCODE(u24s, u_int32_t, bswap_32((s ^ 0x800000) >> 8))
-ADPCM_FUNC_ENCODE(s24n, u_int32_t, s >> 8)
-ADPCM_FUNC_ENCODE(s24s, u_int32_t, bswap_32(s >> 8))
-ADPCM_FUNC_ENCODE(u32n, u_int32_t, (s ^ 0x80000000) >> 16)
-ADPCM_FUNC_ENCODE(u32s, u_int32_t, bswap_32((s ^ 0x80000000) >> 16))
-ADPCM_FUNC_ENCODE(s32n, u_int32_t, s >> 16)
-ADPCM_FUNC_ENCODE(s32s, u_int32_t, bswap_32(s >> 16))
-
-/* wide, sign, swap endian */
-static adpcm_f adpcm_functions_decode[4 * 4 * 2 * 2] = {
-	adpcm_decode_u8,	/* decode:8-bit:unsigned:none */
-	adpcm_decode_u8,	/* decode:8-bit:unsigned:swap */
-	adpcm_decode_s8,	/* decode:8-bit:signed:none */
-	adpcm_decode_s8,	/* decode:8-bit:signed:swap */
-	adpcm_decode_u16n,	/* decode:16-bit:unsigned:none */
-	adpcm_decode_u16s,	/* decode:16-bit:unsigned:swap */
-	adpcm_decode_s16n,	/* decode:16-bit:signed:none */
-	adpcm_decode_s16s,	/* decode:16-bit:signed:swap */
-	adpcm_decode_u24n,	/* decode:24-bit:unsigned:none */
-	adpcm_decode_u24s,	/* decode:24-bit:unsigned:swap */
-	adpcm_decode_s24n,	/* decode:24-bit:signed:none */
-	adpcm_decode_s24s,	/* decode:24-bit:signed:swap */
-	adpcm_decode_u32n,	/* decode:32-bit:unsigned:none */
-	adpcm_decode_u32s,	/* decode:32-bit:unsigned:swap */
-	adpcm_decode_s32n,	/* decode:32-bit:signed:none */
-	adpcm_decode_s32s,	/* decode:32-bit:signed:swap */
-};
-
-/* wide, sign, swap endian */
-static adpcm_f adpcm_functions_encode[4 * 2 * 2] = {
-	adpcm_encode_u8,	/* encode:8-bit:unsigned:none */
-	adpcm_encode_u8,	/* encode:8-bit:unsigned:swap */
-	adpcm_encode_s8,	/* encode:8-bit:signed:none */
-	adpcm_encode_s8,	/* encode:8-bit:signed:swap */
-	adpcm_encode_u16n,	/* encode:16-bit:unsigned:none */
-	adpcm_encode_u16s,	/* encode:16-bit:unsigned:swap */
-	adpcm_encode_s16n,	/* encode:16-bit:signed:none */
-	adpcm_encode_s16s,	/* encode:16-bit:signed:swap */
-	adpcm_encode_u24n,	/* encode:24-bit:unsigned:none */
-	adpcm_encode_u24s,	/* encode:24-bit:unsigned:swap */
-	adpcm_encode_s24n,	/* encode:24-bit:signed:none */
-	adpcm_encode_s24s,	/* encode:24-bit:signed:swap */
-	adpcm_encode_u32n,	/* encode:32-bit:unsigned:none */
-	adpcm_encode_u32s,	/* encode:32-bit:unsigned:swap */
-	adpcm_encode_s32n,	/* encode:32-bit:signed:none */
-	adpcm_encode_s32s,	/* encode:32-bit:signed:swap */
-};
 
 static ssize_t adpcm_transfer(snd_pcm_plugin_t *plugin,
 			      const snd_pcm_plugin_voice_t *src_voices,
@@ -318,27 +334,32 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t *plugin,
 	adpcm_t *data;
 	int voice;
 
-	if (plugin == NULL || src_voices == NULL || dst_voices == NULL || samples < 0)
+	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
+		return -EFAULT;
+	if (samples < 0)
 		return -EINVAL;
 	if (samples == 0)
 		return 0;
-	data = (adpcm_t *)plugin->extra_data;
-	/* FIXME */
-	if (plugin->src_format.interleave) {
-		data->func(&data->state,
-			   src_voices[0].addr,
-			   dst_voices[0].addr,
-			   samples * plugin->src_format.voices);
-	} else {
-		for (voice = 0; voice < plugin->src_format.voices; voice++) {
-			if (src_voices[voice].addr == NULL)
-				continue;
-			data->func(&data->state,
-				   src_voices[voice].addr,
-				   dst_voices[voice].addr,
-				   samples);
+	for (voice = 0; voice < plugin->src_format.voices; voice++) {
+		if (src_voices[voice].addr != NULL && 
+		    dst_voices[voice].addr == NULL)
+			return -EFAULT;
+		if (plugin->src_format.format == SND_PCM_SFMT_IMA_ADPCM) {
+			if (src_voices[voice].offset % 4 != 0 ||
+			    src_voices[voice].next % 4 != 0 ||
+			    dst_voices[voice].offset % 8 != 0 ||
+			    dst_voices[voice].next % 8 != 0)
+				return -EINVAL;
+		} else {
+			if (src_voices[voice].offset % 8 != 0 ||
+			    src_voices[voice].next % 8 != 0 ||
+			    dst_voices[voice].offset % 4 != 0 ||
+			    dst_voices[voice].next % 4 != 0)
+				return -EINVAL;
 		}
 	}
+	data = (adpcm_t *)plugin->extra_data;
+	data->func(plugin, src_voices, dst_voices, samples);
 	return samples;
 }
 
@@ -346,14 +367,17 @@ static int adpcm_action(snd_pcm_plugin_t * plugin,
 			snd_pcm_plugin_action_t action,
 			unsigned long udata)
 {
-	adpcm_t *data;
-
 	if (plugin == NULL)
 		return -EINVAL;
-	data = (adpcm_t *)plugin->extra_data;
-	if (action == PREPARE)
-		adpcm_init_state(&data->state);
-	return 0;		/* silenty ignore other actions */
+	switch (action) {
+	case INIT:
+	case PREPARE:
+	case DRAIN:
+	case FLUSH:
+		adpcm_init(plugin);
+		break;
+	}
+	return 0;	/* silenty ignore other actions */
 }
 
 int snd_pcm_plugin_build_adpcm(snd_pcm_plugin_handle_t *handle,
@@ -363,64 +387,41 @@ int snd_pcm_plugin_build_adpcm(snd_pcm_plugin_handle_t *handle,
 {
 	struct adpcm_private_data *data;
 	snd_pcm_plugin_t *plugin;
-	int endian, src_width, dst_width, sign;
+	snd_pcm_format_t *format;
 	adpcm_f func;
 
-	if (!r_plugin || !src_format || !dst_format)
+	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->interleave != dst_format->interleave && 
-	    src_format->voices > 1)
-		return -EINVAL;
 	if (src_format->rate != dst_format->rate)
 		return -EINVAL;
 	if (src_format->voices != dst_format->voices)
 		return -EINVAL;
 
 	if (dst_format->format == SND_PCM_SFMT_IMA_ADPCM) {
-		if (!snd_pcm_format_linear(src_format->format))
-			return -EINVAL;
-		sign = snd_pcm_format_signed(src_format->format);
-		src_width = snd_pcm_format_width(src_format->format);
-		if ((src_width % 8) != 0 || src_width < 8 || src_width > 32)
-			return -EINVAL;
-		dst_width = 8;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		endian = snd_pcm_format_big_endian(src_format->format);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		endian = snd_pcm_format_little_endian(src_format->format);
-#else
-#error "Unsupported endian..."
-#endif
-		func = ((adpcm_f(*)[2][2])adpcm_functions_encode)[src_width/8][sign][endian];
-	} else if (src_format->format == SND_PCM_SFMT_IMA_ADPCM) {
-		if (!snd_pcm_format_linear(dst_format->format))
-			return -EINVAL;
-		sign = snd_pcm_format_signed(dst_format->format);
-		dst_width = snd_pcm_format_width(dst_format->format);
-		if ((dst_width % 8) != 0 || dst_width < 8 || dst_width > 32)
-			return -EINVAL;
-		src_width = 8;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		endian = snd_pcm_format_big_endian(dst_format->format);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		endian = snd_pcm_format_little_endian(dst_format->format);
-#else
-#error "Unsupported endian..."
-#endif
-		func = ((adpcm_f(*)[2][2])adpcm_functions_decode)[dst_width/8][sign][endian];
-	} else {
-		return -EINVAL;
+		format = src_format;
+		func = adpcm_encode;
 	}
+	else if (src_format->format == SND_PCM_SFMT_IMA_ADPCM) {
+		format = dst_format;
+		func = adpcm_decode;
+	}
+	else
+		return -EINVAL;
+	if (!snd_pcm_format_linear(format->format))
+		return -EINVAL;
+
 	plugin = snd_pcm_plugin_build(handle,
 				      "Ima-ADPCM<->linear conversion",
 				      src_format,
 				      dst_format,
-				      sizeof(struct adpcm_private_data));
+				      sizeof(adpcm_t) + src_format->voices * sizeof(adpcm_voice_t));
 	if (plugin == NULL)
 		return -ENOMEM;
 	data = (adpcm_t *)plugin->extra_data;
+	data->func = func;
+	data->conv = getput_index(format->format);
 	plugin->transfer = adpcm_transfer;
 	plugin->action = adpcm_action;
 	*r_plugin = plugin;

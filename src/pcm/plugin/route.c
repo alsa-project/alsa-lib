@@ -23,8 +23,8 @@
 #include "../../include/driver.h"
 #include "../../include/pcm.h"
 #include "../../include/pcm_plugin.h"
-#define bswap_16(x) __swab16((x))
-#define bswap_32(x) __swab32((x))
+#define my_calloc(size) snd_kmalloc(size, GFP_KERNEL)
+#define my_free(ptr) snd_kfree(ptr)
 #else
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,401 +33,576 @@
 #include <errno.h>
 #include <endian.h>
 #include <byteswap.h>
+#include <math.h>
 #include "../pcm_local.h"
+#define my_calloc(size) calloc(1, size)
+#define my_free(ptr) free(ptr)
 #endif
 
-#define ROUTE_PLUGIN_RESOLUTION 16
+typedef struct ttable_dst ttable_dst_t;
+typedef struct route_private_data route_t;
 
-struct route_private_data;
+typedef void (*route_voice_f)(snd_pcm_plugin_t *plugin,
+			      const snd_pcm_plugin_voice_t *src_voices,
+			      const snd_pcm_plugin_voice_t *dst_voice,
+			      ttable_dst_t* ttable, size_t samples);
 
-typedef void (*route_f)(struct route_private_data *data,
-			 void *src_ptr, void *dst_ptr,
-			 size_t src_size, size_t dst_size);
+typedef struct {
+	int voice;
+	int as_int;
+#ifndef __KERNEL
+	float as_float;
+#endif
+} ttable_src_t;
+
+struct ttable_dst {
+	int att;	/* Attenuated */
+	int nsrcs;
+	ttable_src_t* srcs;
+	route_voice_f func;
+};
 
 struct route_private_data {
-	int sample_size;	/* Bytes per sample */
-	route_f func;
-	int interleave;
-	int format;
-	int src_voices;
-	int dst_voices;
-	int ttable[0];
+	enum {INT32=0, INT64=1, FLOAT=2} sum_type;
+	int get, put;
+	int copy;
+	int src_sample_size;
+	ttable_dst_t ttable[0];
 };
 
-static void route_noop(struct route_private_data *data,
-			void *src_ptr, void *dst_ptr,
-			size_t src_size, size_t dst_size)
-{
-	memcpy(dst_ptr, src_ptr, src_size);
-}
+typedef union {
+	int32_t as_int32;
+	int64_t as_int64;
+#ifndef __KERNEL__
+	float as_float;
+#endif
+} sum_t;
 
-static void route_i_silence(struct route_private_data *data,
-			     void *src_ptr, void *dst_ptr,
-			     size_t src_size, size_t dst_size)
+
+void zero_voice(snd_pcm_plugin_t *plugin,
+		const snd_pcm_plugin_voice_t *dst_voice,
+		size_t samples)
 {
-	char *src = src_ptr;
-	char *dst = dst_ptr;
-	int sil = snd_pcm_format_silence(data->format);
-	int src_step = data->sample_size * data->src_voices;
-	int dst_step = data->sample_size * data->dst_voices;
-	char *end = dst + dst_size;
-	if (data->src_voices < data->dst_voices) {
-		while (dst < end) {
-			int i;
-			for (i = 0; i < src_step; ++i)
-				*dst++ = *src++;
-			for (; i < dst_step; ++i)
-				*dst++ = sil;
+	char *dst = dst_voice->addr + dst_voice->offset / 8;
+	int dst_step = dst_voice->next / 8;
+	switch (plugin->dst_width) {
+	case 4: {
+		int dstbit = dst_voice->offset % 8;
+		int dstbit_step = dst_voice->next % 8;
+		while (samples-- > 0) {
+			if (dstbit)
+				*dst &= 0x0f;
+			else
+				*dst &= 0xf0;
+			dst += dst_step;
+			dstbit += dstbit_step;
+			if (dstbit == 8) {
+				dst++;
+				dstbit = 0;
+			}
 		}
-	} else {
-		while (dst < end) {
-			int i;
-			for (i = 0; i < dst_step; ++i)
-				*dst++ = *src++;
-			src += src_step - dst_step;
+		break;
+	}
+	case 8:
+		while (samples-- > 0) {
+			*dst = 0;
+			dst += dst_step;
 		}
+		break;
+	case 16:
+		while (samples-- > 0) {
+			*(int16_t*)dst = 0;
+			dst += dst_step;
+		}
+		break;
+	case 32:
+		while (samples-- > 0) {
+			*(int32_t*)dst = 0;
+			dst += dst_step;
+		}
+		break;
+	case 64:
+		while (samples-- > 0) {
+			*(int64_t*)dst = 0;
+			dst += dst_step;
+		}
+		break;
 	}
 }
 
-static void route_n_silence(struct route_private_data *data,
-			     void *src_ptr, void *dst_ptr,
-			     size_t src_size, size_t dst_size)
+
+static void route_to_voice_zero(snd_pcm_plugin_t *plugin,
+				const snd_pcm_plugin_voice_t *src_voices,
+				const snd_pcm_plugin_voice_t *dst_voice,
+				ttable_dst_t* ttable, size_t samples)
 {
-	if (src_size < dst_size) {
-		memcpy(dst_ptr, src_ptr, src_size);
-		memset(dst_ptr + src_size, snd_pcm_format_silence(data->format), dst_size - src_size);
-	} else {
-		memcpy(dst_ptr, src_ptr, dst_size);
+//	null_voice(&dst_voices[voice]);
+	zero_voice(plugin, dst_voice, samples);
+}
+
+static void route_to_voice_one(snd_pcm_plugin_t *plugin,
+			       const snd_pcm_plugin_voice_t *src_voices,
+			       const snd_pcm_plugin_voice_t *dst_voice,
+			       ttable_dst_t* ttable, size_t samples)
+{
+#define COPY_LABELS
+#include "plugin_ops.h"
+#undef COPY_LABELS
+	route_t *data = (route_t *)plugin->extra_data;
+	void *copy;
+	const snd_pcm_plugin_voice_t *src_voice = 0;
+	int srcidx;
+	char *src, *dst;
+	int src_step, dst_step;
+	for (srcidx = 0; srcidx < ttable->nsrcs; ++srcidx) {
+		src_voice = &src_voices[ttable->srcs[srcidx].voice];
+		if (src_voice->addr != NULL)
+			break;
+	}
+	if (srcidx == ttable->nsrcs) {
+		route_to_voice_zero(plugin, src_voices, dst_voice, ttable, samples);
+		return;
+	}
+
+	copy = copy_labels[data->copy];
+	src = src_voice->addr + src_voice->offset / 8;
+	src_step = src_voice->next / 8;
+	dst = dst_voice->addr + dst_voice->offset / 8;
+	dst_step = dst_voice->next / 8;
+	while (samples-- > 0) {
+		goto *copy;
+#define COPY_END after
+#include "plugin_ops.h"
+#undef COPY_END
+	after:
+		src += src_step;
+		dst += dst_step;
 	}
 }
 
-#define ROUTE_I_FUNC(name, type, ttype, toh, hto, mul, div) \
-static void name(struct route_private_data *data, \
-		 void *src_ptr, void *dst_ptr, \
-		 size_t src_size, size_t dst_size) \
-{ \
-	type *src = src_ptr; \
-	type *dst = dst_ptr; \
-	int src_voices = data->src_voices; \
-	int dst_voices = data->dst_voices; \
-	int *ttable = data->ttable; \
-	size_t samples = src_size / (src_voices * data->sample_size); \
-	while (samples-- > 0) { \
-		int dst_voice; \
-		int *ttp = ttable; \
-		for (dst_voice = 0; dst_voice < dst_voices; ++dst_voice) { \
-			int src_voice; \
-			type *s = src; \
-			ttype t = 0; \
-			for (src_voice = 0; src_voice < src_voices; ++src_voice) { \
-				ttype v = toh(*s); \
-				t += mul(v, *ttp); \
-				s++; \
-				ttp++; \
-			} \
-			t = div(t, ROUTE_PLUGIN_RESOLUTION); \
-			*dst++ = hto(t); \
-		} \
-		src += src_voices; \
-	} \
+static void route_to_voice(snd_pcm_plugin_t *plugin,
+			   const snd_pcm_plugin_voice_t *src_voices,
+			   const snd_pcm_plugin_voice_t *dst_voice,
+			   ttable_dst_t* ttable, size_t samples)
+{
+#define GET_LABELS
+#define PUT32_LABELS
+#include "plugin_ops.h"
+#undef GET_LABELS
+#undef PUT32_LABELS
+	static void *zero_labels[3] = { &&zero_int32, &&zero_int64,
+#ifndef __KERNEL__
+				 &&zero_float
+#endif
+	};
+	/* sum_type att */
+	static void *add_labels[3 * 2] = { &&add_int32_noatt, &&add_int32_att,
+				    &&add_int64_noatt, &&add_int64_att,
+#ifndef __KERNEL__
+				    &&add_float_noatt, &&add_float_att
+#endif
+	};
+	/* sum_type att shift */
+	static void *norm_labels[3 * 2 * 4] = { 0,
+					 &&norm_int32_8_noatt,
+					 &&norm_int32_16_noatt,
+					 &&norm_int32_24_noatt,
+					 0,
+					 &&norm_int32_8_att,
+					 &&norm_int32_16_att,
+					 &&norm_int32_24_att,
+					 &&norm_int64_0_noatt,
+					 &&norm_int64_8_noatt,
+					 &&norm_int64_16_noatt,
+					 &&norm_int64_24_noatt,
+					 &&norm_int64_0_att,
+					 &&norm_int64_8_att,
+					 &&norm_int64_16_att,
+					 &&norm_int64_24_att,
+#ifndef __KERNEL__
+					 &&norm_float_0,
+					 &&norm_float_8,
+					 &&norm_float_16,
+					 &&norm_float_24,
+					 &&norm_float_0,
+					 &&norm_float_8,
+					 &&norm_float_16,
+					 &&norm_float_24,
+#endif
+	};
+	route_t *data = (route_t *)plugin->extra_data;
+	void *zero, *get, *add, *norm, *put32;
+	int nsrcs = ttable->nsrcs;
+	char *dst;
+	int dst_step;
+	char *srcs[nsrcs];
+	int src_steps[nsrcs];
+	ttable_src_t src_tt[nsrcs];
+	int32_t sample = 0;
+	int srcidx, srcidx1 = 0;
+	for (srcidx = 0; srcidx < nsrcs; ++srcidx) {
+		const snd_pcm_plugin_voice_t *src_voice = &src_voices[ttable->srcs[srcidx].voice];
+		if (src_voice->addr == NULL)
+			continue;
+		srcs[srcidx1] = src_voice->addr + src_voices->offset / 8;
+		src_steps[srcidx1] = src_voice->next / 8;
+		src_tt[srcidx1] = ttable->srcs[srcidx];
+		srcidx1++;
+	}
+	nsrcs = srcidx1;
+	if (nsrcs == 0) {
+		route_to_voice_zero(plugin, src_voices, dst_voice, ttable, samples);
+		return;
+	} else if (nsrcs == 1 && src_tt[0].as_int == ROUTE_PLUGIN_RESOLUTION) {
+		route_to_voice_one(plugin, src_voices, dst_voice, ttable, samples);
+		return;
+	}
+
+	zero = zero_labels[data->sum_type];
+	get = get_labels[data->get];
+	add = add_labels[data->sum_type * 2 + ttable->att];
+	norm = norm_labels[data->sum_type * 8 + ttable->att * 4 + 4 - data->src_sample_size];
+	put32 = put32_labels[data->put];
+	dst = dst_voice->addr + dst_voice->offset / 8;
+	dst_step = dst_voice->next / 8;
+
+	while (samples-- > 0) {
+		ttable_src_t *ttp = src_tt;
+		sum_t sum;
+
+		/* Zero sum */
+		goto *zero;
+	zero_int32:
+		sum.as_int32 = 0;
+		goto zero_end;
+	zero_int64: 
+		sum.as_int64 = 0;
+		goto zero_end;
+#ifndef __KERNEL__
+	zero_float:
+		sum.as_float = 0.0;
+		goto zero_end;
+#endif
+	zero_end:
+		for (srcidx = 0; srcidx < nsrcs; ++srcidx) {
+			char *src = srcs[srcidx];
+			
+			/* Get sample */
+			goto *get;
+#define GET_END after_get
+#include "plugin_ops.h"
+#undef GET_END
+		after_get:
+
+			/* Sum */
+			goto *add;
+		add_int32_att:
+			sum.as_int32 += sample * ttp->as_int;
+			goto after_sum;
+		add_int32_noatt:
+			if (ttp->as_int)
+				sum.as_int32 += sample;
+			goto after_sum;
+		add_int64_att:
+			sum.as_int64 += (int64_t) sample * ttp->as_int;
+			goto after_sum;
+		add_int64_noatt:
+			if (ttp->as_int)
+				sum.as_int64 += sample;
+			goto after_sum;
+#ifndef __KERNEL__
+		add_float_att:
+			sum.as_float += sample * ttp->as_float;
+			goto after_sum;
+		add_float_noatt:
+			if (ttp->as_int)
+				sum.as_float += sample;
+			goto after_sum;
+#endif
+		after_sum:
+			srcs[srcidx] += src_steps[srcidx];
+			ttp++;
+		}
+		
+		/* Normalization */
+		goto *norm;
+	norm_int32_8_att:
+		sum.as_int64 = sum.as_int32;
+		sum.as_int64 *= (1 << 8) / ROUTE_PLUGIN_RESOLUTION;
+		goto after_norm;
+	norm_int32_16_att:
+		sum.as_int64 = sum.as_int32;
+		sum.as_int64 *= (1 << 16) / ROUTE_PLUGIN_RESOLUTION;
+		goto after_norm;
+	norm_int32_24_att:
+		sum.as_int64 = sum.as_int32;
+		sum.as_int64 *= (1 << 24) / ROUTE_PLUGIN_RESOLUTION;
+		goto norm_int;
+	norm_int64_0_att:
+		sum.as_int64 /= ROUTE_PLUGIN_RESOLUTION;
+		goto norm_int;
+	norm_int64_8_att:
+		sum.as_int64 *= (1 << 8) / ROUTE_PLUGIN_RESOLUTION;
+		goto norm_int;
+	norm_int64_16_att:
+		sum.as_int64 *= (1 << 16) / ROUTE_PLUGIN_RESOLUTION;
+		goto norm_int;
+	norm_int64_24_att:
+		sum.as_int64 *= (1 << 24) / ROUTE_PLUGIN_RESOLUTION;
+		goto norm_int;
+	norm_int32_8_noatt:
+		sum.as_int64 = sum.as_int32;
+		sum.as_int64 *= (1 << 8);
+		goto after_norm;
+	norm_int32_16_noatt:
+		sum.as_int64 = sum.as_int32;
+		sum.as_int64 *= (1 << 16);
+		goto after_norm;
+	norm_int32_24_noatt:
+		sum.as_int64 = sum.as_int32;
+		sum.as_int64 *= (1 << 24);
+		goto norm_int;
+	norm_int64_0_noatt:
+		goto norm_int;
+	norm_int64_8_noatt:
+		sum.as_int64 *= (1 << 8);
+		goto norm_int;
+	norm_int64_16_noatt:
+		sum.as_int64 *= (1 << 16);
+		goto norm_int;
+	norm_int64_24_noatt:
+		sum.as_int64 *= (1 << 24);
+		goto norm_int;
+	norm_int:
+		if (sum.as_int64 < (int32_t)0x80000000)
+			sample = (int32_t)0x80000000;
+		else if (sum.as_int64 > 0x7fffffffLL) {
+			sample = 0x7fffffff;
+		}
+		else
+			sample = sum.as_int64;
+		goto after_norm;
+#ifndef __KERNEL__
+	norm_float_8:
+		sum.as_float *= 1 << 8;
+		goto norm_float;
+	norm_float_16:
+		sum.as_float *= 1 << 16;
+		goto norm_float;
+	norm_float_24:
+		sum.as_float *= 1 << 24;
+		goto norm_float;
+	norm_float_0:
+	norm_float:
+		sum.as_float = floor(sum.as_float + 0.5);
+		if (sum.as_float < (int32_t)0x80000000)
+			sample = (int32_t)0x80000000;
+		else if (sum.as_float > 0x7fffffff)
+			sample = 0x7fffffff;
+		else
+			sample = sum.as_float;
+		goto after_norm;
+#endif
+	after_norm:
+		
+		/* Put sample */
+		goto *put32;
+#define PUT32_END after_put32
+#include "plugin_ops.h"
+#undef PUT32_END
+	after_put32:
+		
+		dst += dst_step;
+	}
 }
 
-#define ROUTE_N_FUNC(name, type, ttype, toh, hto, mul, div) \
-static void name(struct route_private_data *data, \
-		 void *src_ptr, void *dst_ptr, \
-		 size_t src_size, size_t dst_size) \
-{ \
-	type *src = src_ptr; \
-	type *dst = dst_ptr; \
-	int src_voices = data->src_voices; \
-	int dst_voices = data->dst_voices; \
-	int *ttable = data->ttable; \
-	size_t samples = src_size / (src_voices * data->sample_size); \
-	int dst_voice; \
-	for (dst_voice = 0; dst_voice < dst_voices; ++dst_voice) { \
-		int *ttp = ttable + dst_voice * src_voices; \
-		size_t samples1 = samples; \
-		while (samples1-- > 0) { \
-			int *ttp1 = ttp; \
-			type *s = src; \
-			ttype t = 0; \
-			int src_voice; \
-			for (src_voice = 0; src_voice < src_voices; ++src_voice) { \
-				ttype v = toh(*s); \
-				t += mul(v, *ttp1); \
-				s += samples; \
-				ttp1++; \
-			} \
-			t = div(t, ROUTE_PLUGIN_RESOLUTION); \
-			*dst++ = hto(t); \
-			src++; \
-		} \
-	} \
-}
-
-#define none(p) (p)
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define le16toh none
-#define htole16 none
-#define le32toh none
-#define htole32 none
-#define be16toh bswap_16
-#define htobe16 bswap_16
-#define be32toh bswap_32
-#define htobe32 bswap_32
-#elif __BYTE_ORDER == __BIG_ENDIAN
-#define le16toh bswap_16
-#define htole16 bswap_16
-#define le32toh bswap_32
-#define htole32 bswap_32
-#define be16toh none
-#define htobe16 none
-#define be32toh none
-#define htobe32 none
+#ifdef __KERNEL__
+#define FULL ROUTE_PLUGIN_RESOLUTION
+typedef int src_ttable_entry_t;
 #else
-#error "Unsupported endian..."
+#define FULL 1.0 
+typedef float src_ttable_entry_t;
 #endif
 
-#define mul(a,b) ((a)*(b))
-#define div(a,b) ((a)/(b))
-#define nmul(a,b) ((b)?(a):0)
-#define ndiv(a,b) (a)
-
-#define FUNCS(name, type, ttype, toh, hto) \
-ROUTE_I_FUNC(aroute_i_##name, type, ttype, toh, hto, mul, div); \
-ROUTE_N_FUNC(aroute_n_##name, type, ttype, toh, hto, mul, div); \
-ROUTE_I_FUNC(nroute_i_##name, type, ttype, toh, hto, nmul, ndiv); \
-ROUTE_N_FUNC(nroute_n_##name, type, ttype, toh, hto, nmul, ndiv);
-
-
-FUNCS(s8,	int8_t,		int,	none,	none);
-FUNCS(u8,	u_int8_t,	int,	none,	none);
-FUNCS(s16_le,	int16_t,	int,	le16toh,htole16);
-FUNCS(u16_le,	u_int16_t,	int,	le16toh,htole16);
-FUNCS(s16_be,	int16_t,	int,	be16toh,htobe16);
-FUNCS(u16_be,	u_int16_t,	int,	be16toh,htobe16);
-FUNCS(s24_le,	int32_t,	int,	le32toh,htole32);
-FUNCS(u24_le,	u_int32_t,	int,	le32toh,htole32);
-FUNCS(s24_be,	int32_t,	int,	be32toh,htobe32);
-FUNCS(u24_be,	u_int32_t,	int,	be32toh,htobe32);
-FUNCS(s32_le,	int32_t,	int64_t,le32toh,htole32);
-FUNCS(u32_le,	u_int32_t,	int64_t,le32toh,htole32);
-FUNCS(s32_be,	int32_t,	int64_t,be32toh,htobe32);
-FUNCS(u32_be,	u_int32_t,	int64_t,be32toh,htobe32);
-
-
-static route_f aroute_i[] = {
-	[SND_PCM_SFMT_S8]     aroute_i_s8,
-	[SND_PCM_SFMT_U8]     aroute_i_u8,
-	[SND_PCM_SFMT_S16_LE] aroute_i_s16_le,
-	[SND_PCM_SFMT_S16_BE] aroute_i_s16_be,
-	[SND_PCM_SFMT_U16_LE] aroute_i_u16_le,
-	[SND_PCM_SFMT_U16_BE] aroute_i_u16_be,
-	[SND_PCM_SFMT_S24_LE] aroute_i_s24_le,
-	[SND_PCM_SFMT_S24_BE] aroute_i_s24_be,
-	[SND_PCM_SFMT_U24_LE] aroute_i_u24_le,
-	[SND_PCM_SFMT_U24_BE] aroute_i_u24_be,
-	[SND_PCM_SFMT_S32_LE] aroute_i_s32_le,
-	[SND_PCM_SFMT_S32_BE] aroute_i_s32_be,
-	[SND_PCM_SFMT_U32_LE] aroute_i_u32_le,
-	[SND_PCM_SFMT_U32_BE] aroute_i_u32_be
-};
-
-static route_f aroute_n[] = {
-	[SND_PCM_SFMT_S8]     aroute_n_s8,
-	[SND_PCM_SFMT_U8]     aroute_n_u8,
-	[SND_PCM_SFMT_S16_LE] aroute_n_s16_le,
-	[SND_PCM_SFMT_S16_BE] aroute_n_s16_be,
-	[SND_PCM_SFMT_U16_LE] aroute_n_u16_le,
-	[SND_PCM_SFMT_U16_BE] aroute_n_u16_be,
-	[SND_PCM_SFMT_S24_LE] aroute_n_s24_le,
-	[SND_PCM_SFMT_S24_BE] aroute_n_s24_be,
-	[SND_PCM_SFMT_U24_LE] aroute_n_u24_le,
-	[SND_PCM_SFMT_U24_BE] aroute_n_u24_be,
-	[SND_PCM_SFMT_S32_LE] aroute_n_s32_le,
-	[SND_PCM_SFMT_S32_BE] aroute_n_s32_be,
-	[SND_PCM_SFMT_U32_LE] aroute_n_u32_le,
-	[SND_PCM_SFMT_U32_BE] aroute_n_u32_be
-};
-
-static route_f nroute_i[] = {
-	[SND_PCM_SFMT_S8]     nroute_i_s8,
-	[SND_PCM_SFMT_U8]     nroute_i_u8,
-	[SND_PCM_SFMT_S16_LE] nroute_i_s16_le,
-	[SND_PCM_SFMT_S16_BE] nroute_i_s16_be,
-	[SND_PCM_SFMT_U16_LE] nroute_i_u16_le,
-	[SND_PCM_SFMT_U16_BE] nroute_i_u16_be,
-	[SND_PCM_SFMT_S24_LE] nroute_i_s24_le,
-	[SND_PCM_SFMT_S24_BE] nroute_i_s24_be,
-	[SND_PCM_SFMT_U24_LE] nroute_i_u24_le,
-	[SND_PCM_SFMT_U24_BE] nroute_i_u24_be,
-	[SND_PCM_SFMT_S32_LE] nroute_i_s32_le,
-	[SND_PCM_SFMT_S32_BE] nroute_i_s32_be,
-	[SND_PCM_SFMT_U32_LE] nroute_i_u32_le,
-	[SND_PCM_SFMT_U32_BE] nroute_i_u32_be
-};
-
-static route_f nroute_n[] = {
-	[SND_PCM_SFMT_S8]     nroute_n_s8,
-	[SND_PCM_SFMT_U8]     nroute_n_u8,
-	[SND_PCM_SFMT_S16_LE] nroute_n_s16_le,
-	[SND_PCM_SFMT_S16_BE] nroute_n_s16_be,
-	[SND_PCM_SFMT_U16_LE] nroute_n_u16_le,
-	[SND_PCM_SFMT_U16_BE] nroute_n_u16_be,
-	[SND_PCM_SFMT_S24_LE] nroute_n_s24_le,
-	[SND_PCM_SFMT_S24_BE] nroute_n_s24_be,
-	[SND_PCM_SFMT_U24_LE] nroute_n_u24_le,
-	[SND_PCM_SFMT_U24_BE] nroute_n_u24_be,
-	[SND_PCM_SFMT_S32_LE] nroute_n_s32_le,
-	[SND_PCM_SFMT_S32_BE] nroute_n_s32_be,
-	[SND_PCM_SFMT_U32_LE] nroute_n_u32_le,
-	[SND_PCM_SFMT_U32_BE] nroute_n_u32_be
-};
-
-static int route_load_ttable(struct route_private_data *data, 
-			      const int *src_ttable)
+static void route_free(snd_pcm_plugin_t *plugin, void* private_data)
 {
+	route_t *data = (route_t *)plugin->extra_data;
+	int dst_voice;
+	for (dst_voice = 0; dst_voice < plugin->dst_format.voices; ++dst_voice) {
+		if (data->ttable[dst_voice].srcs != NULL)
+			my_free(data->ttable[dst_voice].srcs);
+	}
+}
+
+static int route_load_ttable(snd_pcm_plugin_t *plugin, 
+			     const src_ttable_entry_t* src_ttable)
+{
+	route_t *data;
 	int src_voice, dst_voice;
-	const int *sptr;
-	int *dptr;
-	int noop = 1;
-	int noatt = 1;
+	const src_ttable_entry_t *sptr;
+	ttable_dst_t *dptr;
 	if (src_ttable == NULL)
 		return 0;
+	data = (route_t *)plugin->extra_data;
 	dptr = data->ttable;
 	sptr = src_ttable;
-	for (dst_voice = 0; dst_voice < data->dst_voices; ++dst_voice) {
-		int t = 0;
-		for (src_voice = 0; src_voice < data->src_voices; ++src_voice) {
-			if (*sptr < 0 || *sptr > ROUTE_PLUGIN_RESOLUTION)
+	plugin->private_free = route_free;
+	for (dst_voice = 0; dst_voice < plugin->dst_format.voices; ++dst_voice) {
+		src_ttable_entry_t t = 0;
+		int att = 0;
+		int nsrcs = 0;
+		ttable_src_t srcs[plugin->src_format.voices];
+		for (src_voice = 0; src_voice < plugin->src_format.voices; ++src_voice) {
+			if (*sptr < 0 || *sptr > FULL)
 				return -EINVAL;
-			if (*sptr != 0 && *sptr != ROUTE_PLUGIN_RESOLUTION)
-				noatt = 0;
-			if (src_voice == dst_voice) {
-				if (*sptr != ROUTE_PLUGIN_RESOLUTION)
-					noop = 0;
+			if (*sptr != 0) {
+				srcs[nsrcs].voice = src_voice;
+#ifdef __KERNEL__
+				srcs[nsrcs].as_int = *sptr;
+#else
+				/* Also in user space for non attenuated */
+				srcs[nsrcs].as_int = (*sptr == FULL ? ROUTE_PLUGIN_RESOLUTION : 0);
+				srcs[nsrcs].as_float = *sptr;
+#endif
+				if (*sptr != FULL)
+					att = 1;
+				t += *sptr;
+				nsrcs++;
 			}
-			else {
-				if (*sptr != 0)
-					noop = 0;
-			}
-			t += *sptr;
-			*dptr++ = *sptr++;
+			sptr++;
 		}
 #if 0
-		if (t > ROUTE_PLUGIN_RESOLUTION)
+		if (t > FULL)
 			return -EINVAL;
 #endif
-	}
-	if (noop) {
-		if (data->src_voices == data->dst_voices)
-			data->func = route_noop;
-		else if (data->interleave)
-			data->func = route_i_silence;
-		else 
-			data->func = route_n_silence;
-		return 0;
-	}
-	if (noatt) {
-		if (data->interleave)
-			data->func = nroute_i[data->format];
-		else
-			data->func = nroute_n[data->format];
-	} else {
-		if (data->interleave)
-			data->func = aroute_i[data->format];
-		else
-			data->func = aroute_n[data->format];
+		dptr->att = att;
+		dptr->nsrcs = nsrcs;
+		switch (nsrcs) {
+		case 0:
+			dptr->func = route_to_voice_zero;
+			break;
+		case 1:
+			dptr->func = route_to_voice_one;
+			break;
+		default:
+			dptr->func = route_to_voice;
+			break;
+		}
+		dptr->srcs = my_calloc(sizeof(*srcs) * nsrcs);
+		memcpy(dptr->srcs, srcs, sizeof(*srcs) * nsrcs);
+		dptr++;
 	}
 	return 0;
 }
 
 static ssize_t route_transfer(snd_pcm_plugin_t *plugin,
-			     char *src_ptr, size_t src_size,
-			     char *dst_ptr, size_t dst_size)
+			      const snd_pcm_plugin_voice_t *src_voices,
+			      const snd_pcm_plugin_voice_t *dst_voices,
+			      size_t samples)
 {
-	struct route_private_data *data;
-	if (plugin == NULL || src_ptr == NULL || src_size < 0 ||
-	                      dst_ptr == NULL || dst_size < 0)
+	route_t *data;
+	int src_nvoices, dst_nvoices;
+	int src_voice, dst_voice;
+	ttable_dst_t *ttp;
+	const snd_pcm_plugin_voice_t *dvp;
+
+	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
+		return -EFAULT;
+	if (samples < 0)
 		return -EINVAL;
-	if (src_size == 0)
+	if (samples == 0)
 		return 0;
-	data = (struct route_private_data *)plugin->extra_data;
-	data->func(data, src_ptr, dst_ptr, src_size, dst_size);
-	return dst_size;
+	data = (route_t *)plugin->extra_data;
+
+	src_nvoices = plugin->src_format.voices;
+	for (src_voice = 0; src_voice < src_nvoices; ++src_voice) {
+		if (src_voices[src_voice].offset % 8 != 0 || 
+		    src_voices[src_voice].next % 8 != 0)
+			return -EINVAL;
+	}
+
+	dst_nvoices = plugin->dst_format.voices;
+	for (dst_voice = 0; dst_voice < dst_nvoices; ++dst_voice) {
+		if (dst_voices[dst_voice].offset % 8 != 0 || 
+		    dst_voices[dst_voice].next % 8 != 0)
+			return -EINVAL;
+	}
+
+	ttp = data->ttable;
+	dvp = dst_voices;
+	for (dst_voice = 0; dst_voice < dst_nvoices; ++dst_voice) {
+		ttp->func(plugin, src_voices, dvp, ttp, samples);
+		dvp++;
+		ttp++;
+	}
+	return samples;
 }
 
-static ssize_t route_src_size(snd_pcm_plugin_t *plugin, size_t size)
+int getput_index(int format)
 {
-        struct route_private_data *data;
-
-        if (plugin == NULL || size <= 0)
-                return -EINVAL;
-        data = (struct route_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (!plugin || size <= 0)
-		return -EINVAL;
-	return (size * data->src_voices) / data->dst_voices;
+	int sign, width, endian;
+	sign = !snd_pcm_format_signed(format);
+	width = snd_pcm_format_width(format) / 8 - 1;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	endian = snd_pcm_format_big_endian(format);
+#elif __BYTE_ORDER == __BIG_ENDIAN
+	endian = snd_pcm_format_little_endian(format);
+#else
+#error "Unsupported endian..."
+#endif
+	if (endian < 0)
+		endian = 0;
+	return width * 4 + endian * 2 + sign;
 }
 
-static ssize_t route_dst_size(snd_pcm_plugin_t *plugin, size_t size)
+int snd_pcm_plugin_build_route(snd_pcm_plugin_handle_t *handle,
+			       snd_pcm_format_t *src_format,
+			       snd_pcm_format_t *dst_format,
+			       src_ttable_entry_t *ttable,
+			       snd_pcm_plugin_t **r_plugin)
 {
-        struct route_private_data *data;
-
-        if (plugin == NULL || size <= 0)
-                return -EINVAL;
-        data = (struct route_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (!plugin || size <= 0)
-		return -EINVAL;
-	return (size * data->dst_voices) / data->src_voices;
-}
-
-int snd_pcm_plugin_build_route(snd_pcm_format_t *src_format,
-				snd_pcm_format_t *dst_format,
-				int *ttable,
-				snd_pcm_plugin_t **r_plugin)
-{
-	struct route_private_data *data;
+	route_t *data;
 	snd_pcm_plugin_t *plugin;
-	int size;
 	int err;
 
 	if (!r_plugin)
-		return -EINVAL;
+		return -EFAULT;
 	*r_plugin = NULL;
-	if (src_format->interleave != dst_format->interleave)
-		return -EINVAL;
-	if (!dst_format->interleave)
-		return -EINVAL;
-	if (src_format->format != dst_format->format)
-		return -EINVAL;
-	if (!snd_pcm_format_linear(src_format->format))
-		return -EINVAL;
 	if (src_format->rate != dst_format->rate)
 		return -EINVAL;
-	if (src_format->voices < 1 || dst_format->voices < 1)
+	if (!(snd_pcm_format_linear(src_format->format) &&
+	      snd_pcm_format_linear(dst_format->format)))
 		return -EINVAL;
-	size = snd_pcm_format_size(src_format->format, 1);
-	if (size < 0)
-		return -EINVAL;
-	plugin = snd_pcm_plugin_build("Volume/balance conversion",
-				      sizeof(struct route_private_data) + 
-				      sizeof(data->ttable[0]) * src_format->voices * dst_format->voices);
+
+	plugin = snd_pcm_plugin_build(handle,
+				      "attenuated route conversion",
+				      src_format,
+				      dst_format,
+				      sizeof(route_t) + sizeof(data->ttable[0]) * dst_format->voices);
 	if (plugin == NULL)
 		return -ENOMEM;
-	data = (struct route_private_data *)plugin->extra_data;
 
-	data->src_voices = src_format->voices;
-	data->dst_voices = dst_format->voices;
-	data->format = src_format->format;
-	data->interleave = src_format->interleave;
-	data->sample_size = size;
-	if ((err = route_load_ttable(data, ttable)) < 0) {
+	data = (route_t *) plugin->extra_data;
+
+	data->get = getput_index(src_format->format);
+	data->put = getput_index(dst_format->format);
+	data->copy = copy_index(src_format->format, dst_format->format);
+
+#ifdef __KERNEL__
+	if (snd_pcm_format_width(src_format->format) == 32)
+		data->sum_type = INT64;
+	else
+		data->sum_type = INT32;
+#else
+	data->sum_type = FLOAT;
+#endif
+	data->src_sample_size = snd_pcm_format_width(src_format->format) / 8;
+
+	if ((err = route_load_ttable(plugin, ttable)) < 0) {
 		snd_pcm_plugin_free(plugin);
 		return err;
 	}
 	plugin->transfer = route_transfer;
-	plugin->src_size = route_src_size;
-	plugin->dst_size = route_dst_size;
 	*r_plugin = plugin;
 	return 0;
 }

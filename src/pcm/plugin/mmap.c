@@ -214,7 +214,7 @@ static int mmap_src_voices(snd_pcm_plugin_t *plugin,
 		if (control->status.frag_size != snd_pcm_plugin_dst_samples_to_size(plugin, samples))
 			return -EINVAL;
 		addr = data->buffer + control->fragments[data->frag].addr;
-		for (voice = 0; voice < plugin->src_format.voices; voice++) {
+		for (voice = 0; voice < plugin->src_format.voices; voice++, v++) {
 			v->aptr = NULL;
 			v->addr = addr;
 			v->offset = voice * plugin->src_width;
@@ -224,7 +224,7 @@ static int mmap_src_voices(snd_pcm_plugin_t *plugin,
 		int frag, voice;
 		if (control->status.frag_size != snd_pcm_plugin_src_samples_to_size(plugin, samples) / plugin->src_format.voices)
 			return -EINVAL;
-		for (voice = 0; voice < plugin->src_format.voices; voice++) {
+		for (voice = 0; voice < plugin->src_format.voices; voice++, v++) {
 			frag = data->frag + (voice * data->frags);
 			v->aptr = NULL;
 			v->addr = data->buffer + control->fragments[frag].addr;
@@ -260,7 +260,7 @@ static int mmap_dst_voices(snd_pcm_plugin_t *plugin,
 		if (control->status.frag_size != snd_pcm_plugin_dst_samples_to_size(plugin, samples))
 			return -EINVAL;
 		addr = data->buffer + control->fragments[data->frag].addr;
-		for (voice = 0; voice < plugin->dst_format.voices; voice++) {
+		for (voice = 0; voice < plugin->dst_format.voices; voice++, v++) {
 			v->addr = addr;
 			v->offset = voice * plugin->src_width;
 			v->next = plugin->dst_format.voices * plugin->dst_width;
@@ -269,7 +269,7 @@ static int mmap_dst_voices(snd_pcm_plugin_t *plugin,
 		int frag, voice;
 		if (control->status.frag_size != snd_pcm_plugin_dst_samples_to_size(plugin, samples) / plugin->dst_format.voices)
 			return -EINVAL;
-		for (voice = 0; voice < plugin->dst_format.voices; voice++) {
+		for (voice = 0; voice < plugin->dst_format.voices; voice++, v++) {
 			frag = data->frag + (voice * data->frags);
 			v->addr = data->buffer + control->fragments[frag].addr;
 			v->offset = 0;

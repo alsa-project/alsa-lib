@@ -148,107 +148,100 @@ static int ulaw2linear(unsigned char u_val)
  *  Basic Mu-Law plugin
  */
 
-typedef void (*mulaw_f)(void *src_ptr, void *dst_ptr, int samples);
+typedef void (*mulaw_f)(snd_pcm_plugin_t *plugin,
+			const snd_pcm_plugin_voice_t *src_voices,
+			const snd_pcm_plugin_voice_t *dst_voices,
+			size_t samples);
 
 typedef struct mulaw_private_data {
-	int src_byte_width;
-	int dst_byte_width;
 	mulaw_f func;
+	int conv;
 } mulaw_t;
 
-#define MULAW_FUNC_DECODE(name, dsttype, val) \
-static void mulaw_decode_##name(void *src_ptr, void *dst_ptr, int samples) \
-{ \
-	unsigned char *src = src_ptr; \
-	dsttype *dst = dst_ptr; \
-	unsigned int s; \
-	while (samples--) { \
-		s = ulaw2linear(*src++); \
-		*dst++ = val; \
-	} \
+static void mulaw_decode(snd_pcm_plugin_t *plugin,
+			const snd_pcm_plugin_voice_t *src_voices,
+			const snd_pcm_plugin_voice_t *dst_voices,
+			size_t samples)
+{
+#define PUT16_LABELS
+#include "plugin_ops.h"
+#undef PUT16_LABELS
+	mulaw_t *data = (mulaw_t *)plugin->extra_data;
+	void *put = put16_labels[data->conv];
+	int voice;
+	int nvoices = plugin->src_format.voices;
+	for (voice = 0; voice < nvoices; ++voice) {
+		char *src;
+		char *dst;
+		int src_step, dst_step;
+		size_t samples1;
+		if (src_voices[voice].addr == NULL) {
+			if (dst_voices[voice].addr != NULL) {
+//				null_voice(&dst_voices[voice]);
+				zero_voice(plugin, &dst_voices[voice], samples);
+			}
+			continue;
+		}
+		src = src_voices[voice].addr + src_voices[voice].offset / 8;
+		dst = dst_voices[voice].addr + dst_voices[voice].offset / 8;
+		src_step = src_voices[voice].next / 8;
+		dst_step = dst_voices[voice].next / 8;
+		samples1 = samples;
+		while (samples1-- > 0) {
+			signed short sample = ulaw2linear(*src);
+			goto *put;
+#define PUT16_END after
+#include "plugin_ops.h"
+#undef PUT16_END
+		after:
+			src += src_step;
+			dst += dst_step;
+		}
+	}
 }
 
-#define MULAW_FUNC_ENCODE(name, srctype, val) \
-static void mulaw_encode_##name(void *src_ptr, void *dst_ptr, int samples) \
-{ \
-	srctype *src = src_ptr; \
-	unsigned char *dst = dst_ptr; \
-	unsigned int s; \
-	while (samples--) { \
-		s = *src++; \
-		*dst++ = linear2ulaw(val); \
-	} \
+static void mulaw_encode(snd_pcm_plugin_t *plugin,
+			const snd_pcm_plugin_voice_t *src_voices,
+			const snd_pcm_plugin_voice_t *dst_voices,
+			size_t samples)
+{
+#define GET16_LABELS
+#include "plugin_ops.h"
+#undef GET16_LABELS
+	mulaw_t *data = (mulaw_t *)plugin->extra_data;
+	void *get = get16_labels[data->conv];
+	int voice;
+	int nvoices = plugin->src_format.voices;
+	signed short sample = 0;
+	for (voice = 0; voice < nvoices; ++voice) {
+		char *src;
+		char *dst;
+		int src_step, dst_step;
+		size_t samples1;
+		if (src_voices[voice].addr == NULL) {
+			if (dst_voices[voice].addr != NULL) {
+//				null_voice(&dst_voices[voice]);
+				zero_voice(plugin, &dst_voices[voice], samples);
+			}
+			continue;
+		}
+		src = src_voices[voice].addr + src_voices[voice].offset / 8;
+		dst = dst_voices[voice].addr + dst_voices[voice].offset / 8;
+		src_step = src_voices[voice].next / 8;
+		dst_step = dst_voices[voice].next / 8;
+		samples1 = samples;
+		while (samples1-- > 0) {
+			goto *get;
+#define GET16_END after
+#include "plugin_ops.h"
+#undef GET16_END
+		after:
+			*dst = linear2ulaw(sample);
+			src += src_step;
+			dst += dst_step;
+		}
+	}
 }
-
-MULAW_FUNC_DECODE(u8, u_int8_t, (s >> 8) ^ 0x80)
-MULAW_FUNC_DECODE(s8, u_int8_t, s >> 8)
-MULAW_FUNC_DECODE(u16n, u_int16_t, s ^ 0x8000)
-MULAW_FUNC_DECODE(u16s, u_int16_t, bswap_16(s ^ 0x8000))
-MULAW_FUNC_DECODE(s16n, u_int16_t, s)
-MULAW_FUNC_DECODE(s16s, u_int16_t, bswap_16(s))
-MULAW_FUNC_DECODE(u24n, u_int32_t, (s << 8) ^ 0x800000)
-MULAW_FUNC_DECODE(u24s, u_int32_t, bswap_32((s << 8) ^ 0x800000))
-MULAW_FUNC_DECODE(s24n, u_int32_t, s << 8)
-MULAW_FUNC_DECODE(s24s, u_int32_t, bswap_32(s << 8))
-MULAW_FUNC_DECODE(u32n, u_int32_t, (s << 16) ^ 0x80000000)
-MULAW_FUNC_DECODE(u32s, u_int32_t, bswap_32((s << 16) ^ 0x80000000))
-MULAW_FUNC_DECODE(s32n, u_int32_t, s << 16)
-MULAW_FUNC_DECODE(s32s, u_int32_t, bswap_32(s << 16))
-
-MULAW_FUNC_ENCODE(u8, u_int8_t, s << 8)
-MULAW_FUNC_ENCODE(s8, u_int8_t, (s << 8) ^ 0x8000)
-MULAW_FUNC_ENCODE(u16n, u_int16_t, s ^ 0x8000)
-MULAW_FUNC_ENCODE(u16s, u_int16_t, bswap_16(s ^ 0x8000))
-MULAW_FUNC_ENCODE(s16n, u_int16_t, s)
-MULAW_FUNC_ENCODE(s16s, u_int16_t, bswap_16(s))
-MULAW_FUNC_ENCODE(u24n, u_int32_t, (s ^ 0x800000) >> 8)
-MULAW_FUNC_ENCODE(u24s, u_int32_t, bswap_32((s ^ 0x800000) >> 8))
-MULAW_FUNC_ENCODE(s24n, u_int32_t, s >> 8)
-MULAW_FUNC_ENCODE(s24s, u_int32_t, bswap_32(s >> 8))
-MULAW_FUNC_ENCODE(u32n, u_int32_t, (s ^ 0x80000000) >> 16)
-MULAW_FUNC_ENCODE(u32s, u_int32_t, bswap_32((s ^ 0x80000000) >> 16))
-MULAW_FUNC_ENCODE(s32n, u_int32_t, s >> 16)
-MULAW_FUNC_ENCODE(s32s, u_int32_t, bswap_32(s >> 16))
-
-/* wide, sign, swap endian */
-static mulaw_f mulaw_functions_decode[4 * 4 * 2 * 2] = {
-	mulaw_decode_u8,	/* decode:8-bit:unsigned:none */
-	mulaw_decode_u8,	/* decode:8-bit:unsigned:swap */
-	mulaw_decode_s8,	/* decode:8-bit:signed:none */
-	mulaw_decode_s8,	/* decode:8-bit:signed:swap */
-	mulaw_decode_u16n,	/* decode:16-bit:unsigned:none */
-	mulaw_decode_u16s,	/* decode:16-bit:unsigned:swap */
-	mulaw_decode_s16n,	/* decode:16-bit:signed:none */
-	mulaw_decode_s16s,	/* decode:16-bit:signed:swap */
-	mulaw_decode_u24n,	/* decode:24-bit:unsigned:none */
-	mulaw_decode_u24s,	/* decode:24-bit:unsigned:swap */
-	mulaw_decode_s24n,	/* decode:24-bit:signed:none */
-	mulaw_decode_s24s,	/* decode:24-bit:signed:swap */
-	mulaw_decode_u32n,	/* decode:32-bit:unsigned:none */
-	mulaw_decode_u32s,	/* decode:32-bit:unsigned:swap */
-	mulaw_decode_s32n,	/* decode:32-bit:signed:none */
-	mulaw_decode_s32s,	/* decode:32-bit:signed:swap */
-};
-
-/* wide, sign, swap endian */
-static mulaw_f mulaw_functions_encode[4 * 2 * 2] = {
-	mulaw_encode_u8,	/* from:8-bit:unsigned:none */
-	mulaw_encode_u8,	/* from:8-bit:unsigned:swap */
-	mulaw_encode_s8,	/* from:8-bit:signed:none */
-	mulaw_encode_s8,	/* from:8-bit:signed:swap */
-	mulaw_encode_u16n,	/* from:16-bit:unsigned:none */
-	mulaw_encode_u16s,	/* from:16-bit:unsigned:swap */
-	mulaw_encode_s16n,	/* from:16-bit:signed:none */
-	mulaw_encode_s16s,	/* from:16-bit:signed:swap */
-	mulaw_encode_u24n,	/* from:24-bit:unsigned:none */
-	mulaw_encode_u24s,	/* from:24-bit:unsigned:swap */
-	mulaw_encode_s24n,	/* from:24-bit:signed:none */
-	mulaw_encode_s24s,	/* from:24-bit:signed:swap */
-	mulaw_encode_u32n,	/* from:32-bit:unsigned:none */
-	mulaw_encode_u32s,	/* from:32-bit:unsigned:swap */
-	mulaw_encode_s32n,	/* from:32-bit:signed:none */
-	mulaw_encode_s32s,	/* from:32-bit:signed:swap */
-};
 
 static ssize_t mulaw_transfer(snd_pcm_plugin_t *plugin,
 			      const snd_pcm_plugin_voice_t *src_voices,
@@ -258,24 +251,25 @@ static ssize_t mulaw_transfer(snd_pcm_plugin_t *plugin,
 	mulaw_t *data;
 	int voice;
 
-	if (plugin == NULL || src_voices == NULL || dst_voices == NULL || samples < 0)
+	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
+		return -EFAULT;
+	if (samples < 0)
 		return -EINVAL;
 	if (samples == 0)
 		return 0;
-	data = (mulaw_t *)plugin->extra_data;
-	if (plugin->src_format.interleave) {
-		data->func(src_voices[0].addr,
-			   dst_voices[0].addr,
-			   samples * plugin->src_format.voices);
-	} else {
-		for (voice = 0; voice < plugin->src_format.voices; voice++) {
-			if (src_voices[voice].addr == NULL)
-				continue;
-			data->func(src_voices[voice].addr,
-				   dst_voices[voice].addr,
-				   samples);
-		}
+	for (voice = 0; voice < plugin->src_format.voices; voice++) {
+		if (src_voices[voice].addr != NULL && 
+		    dst_voices[voice].addr == NULL)
+			return -EFAULT;
+		if (src_voices[voice].offset % 8 != 0 || 
+		    src_voices[voice].next % 8 != 0)
+			return -EINVAL;
+		if (dst_voices[voice].offset % 8 != 0 || 
+		    dst_voices[voice].next % 8 != 0)
+			return -EINVAL;
 	}
+	data = (mulaw_t *)plugin->extra_data;
+	data->func(plugin, src_voices, dst_voices, samples);
 	return samples;
 }
 
@@ -284,70 +278,43 @@ int snd_pcm_plugin_build_mulaw(snd_pcm_plugin_handle_t *handle,
 			       snd_pcm_format_t *dst_format,
 			       snd_pcm_plugin_t **r_plugin)
 {
-	struct mulaw_private_data *data;
+	mulaw_t *data;
 	snd_pcm_plugin_t *plugin;
-	int endian, src_width, dst_width, sign;
+	snd_pcm_format_t *format;
 	mulaw_f func;
 
 	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->interleave != dst_format->interleave && 
-	    src_format->voices > 1)
-		return -EINVAL;
 	if (src_format->rate != dst_format->rate)
 		return -EINVAL;
 	if (src_format->voices != dst_format->voices)
 		return -EINVAL;
 
-
 	if (dst_format->format == SND_PCM_SFMT_MU_LAW) {
-		if (!snd_pcm_format_linear(src_format->format))
-			return -EINVAL;
-		sign = snd_pcm_format_signed(src_format->format);
-		src_width = snd_pcm_format_width(src_format->format);
-		if ((src_width % 8) != 0 || src_width < 8 || src_width > 32)
-			return -EINVAL;
-		dst_width = 8;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		endian = snd_pcm_format_big_endian(src_format->format);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		endian = snd_pcm_format_little_endian(src_format->format);
-#else
-#error "Unsupported endian..."
-#endif
-		func = ((mulaw_f(*)[2][2])mulaw_functions_encode)[(src_width/8)-1][sign][endian];
-	} else if (src_format->format == SND_PCM_SFMT_MU_LAW) {
-		if (!snd_pcm_format_linear(dst_format->format))
-			return -EINVAL;
-		sign = snd_pcm_format_signed(dst_format->format);
-		dst_width = snd_pcm_format_width(dst_format->format);
-		if ((dst_width % 8) != 0 || dst_width < 8 || dst_width > 32)
-			return -EINVAL;
-		src_width = 8;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-		endian = snd_pcm_format_big_endian(dst_format->format);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-		endian = snd_pcm_format_little_endian(dst_format->format);
-#else
-#error "Unsupported endian..."
-#endif
-		func = ((mulaw_f(*)[2][2])mulaw_functions_decode)[(dst_width/8)-1][sign][endian];
-	} else {
-		return -EINVAL;
+		format = src_format;
+		func = mulaw_encode;
 	}
+	else if (src_format->format == SND_PCM_SFMT_MU_LAW) {
+		format = dst_format;
+		func = mulaw_decode;
+	}
+	else
+		return -EINVAL;
+	if (!snd_pcm_format_linear(format->format))
+		return -EINVAL;
+
 	plugin = snd_pcm_plugin_build(handle,
 				      "Mu-Law<->linear conversion",
 				      src_format,
 				      dst_format,
-				      sizeof(struct mulaw_private_data));
+				      sizeof(mulaw_t));
 	if (plugin == NULL)
 		return -ENOMEM;
-	data = (struct mulaw_private_data *)plugin->extra_data;
-	data->src_byte_width = src_width / 8;
-	data->dst_byte_width = dst_width / 8;
+	data = (mulaw_t*)plugin->extra_data;
 	data->func = func;
+	data->conv = getput_index(format->format);
 	plugin->transfer = mulaw_transfer;
 	*r_plugin = plugin;
 	return 0;

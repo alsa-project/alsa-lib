@@ -42,48 +42,34 @@
  *  Basic rate conversion plugin
  */
 
-#define rate_voices(data) ((rate_voice_t *)((char *)data + sizeof(*data)))
-
-typedef signed short (*take_sample_f)(void *ptr);
-typedef void (*put_sample_f)(void *ptr, signed int val);
- 
 typedef struct {
 	signed short last_S1;
 	signed short last_S2;
 } rate_voice_t;
  
+typedef void (*rate_f)(snd_pcm_plugin_t *plugin,
+		       const snd_pcm_plugin_voice_t *src_voices,
+		       const snd_pcm_plugin_voice_t *dst_voices,
+		       int src_samples, int dst_samples);
+
 typedef struct rate_private_data {
-	snd_pcm_plugin_t *plugin;
-	take_sample_f take;
-	put_sample_f put;
 	unsigned int pitch;
 	unsigned int pos;
+	rate_f func;
+	int get, put;
 	ssize_t old_src_samples, old_dst_samples;
+	rate_voice_t voices[0];
 } rate_t;
 
-static void rate_init(snd_pcm_plugin_t *plugin, rate_t *data)
+static void rate_init(snd_pcm_plugin_t *plugin)
 {
 	int voice;
-	rate_voice_t *rvoices = rate_voices(data);
-
+	rate_t *data = (rate_t *)plugin->extra_data;
 	data->pos = 0;
-	for (voice = 0; plugin->src_format.voices; voice++) {
-		rvoices[voice].last_S1 = 0;
-		rvoices[voice].last_S2 = 0;
+	for (voice = 0; voice < plugin->src_format.voices; voice++) {
+		data->voices[voice].last_S1 = 0;
+		data->voices[voice].last_S2 = 0;
 	}
-}
-
-#define RATE_TAKE_SAMPLE(name, type, val) \
-static signed short rate_take_sample_##name(void *ptr) \
-{ \
-	signed int smp = *(type *)ptr; \
-	return val; \
-}
-
-#define RATE_PUT_SAMPLE(name, type, val) \
-static void rate_put_sample_##name(void *ptr, signed int smp) \
-{ \
-	*(type *)ptr = val; \
 }
 
 static void resample_expand(snd_pcm_plugin_t *plugin,
@@ -91,7 +77,7 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 			    const snd_pcm_plugin_voice_t *dst_voices,
 			    int src_samples, int dst_samples)
 {
-	unsigned int pos;
+	unsigned int pos = 0;
 	signed int val;
 	signed short S1, S2;
 	char *src, *dst;
@@ -99,24 +85,45 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 	int src_step, dst_step;
 	int src_samples1, dst_samples1;
 	rate_t *data = (rate_t *)plugin->extra_data;
-	rate_voice_t *rvoices = rate_voices(data);
+	rate_voice_t *rvoices = data->voices;
+
+#define GET16_LABELS
+#define PUT16_LABELS
+#include "plugin_ops.h"
+#undef GET16_LABELS
+#undef PUT16_LABELS
+	void *get = get16_labels[data->get];
+	void *put = put16_labels[data->put];
+	void *get16_end = 0;
+	signed short sample = 0;
+#define GET16_END *get16_end
+#include "plugin_ops.h"
+#undef GET16_END
 	
 	for (voice = 0; voice < plugin->src_format.voices; voice++, rvoices++) {
 		pos = data->pos;
 		S1 = rvoices->last_S1;
 		S2 = rvoices->last_S2;
-		if (src_voices[voice].addr == NULL)
+		if (src_voices[voice].addr == NULL) {
+			if (dst_voices[voice].addr != NULL) {
+//				null_voice(&dst_voices[voice]);
+				zero_voice(plugin, &dst_voices[voice], dst_samples);
+			}
 			continue;
+		}
 		src = (char *)src_voices[voice].addr + src_voices[voice].offset / 8;
-		dst = (char *)dst_voices[voice].addr + src_voices[voice].offset / 8;
+		dst = (char *)dst_voices[voice].addr + dst_voices[voice].offset / 8;
 		src_step = src_voices[voice].next / 8;
 		dst_step = dst_voices[voice].next / 8;
 		src_samples1 = src_samples;
 		dst_samples1 = dst_samples;
 		if (pos & ~MASK) {
+			get16_end = &&after_get1;
+			goto *get;
+		after_get1:
 			pos &= MASK;
 			S1 = S2;
-			S2 = data->take(src);
+			S2 = sample;
 			src += src_step;
 			src_samples--;
 		}
@@ -125,7 +132,10 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 				pos &= MASK;
 				S1 = S2;
 				if (src_samples1-- > 0) {
-					S2 = data->take(src);
+					get16_end = &&after_get2;
+					goto *get;
+				after_get2:
+					S2 = sample;
 					src += src_step;
 				}
 			}
@@ -134,14 +144,20 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 				val = -32768;
 			else if (val > 32767)
 				val = 32767;
-			data->put(dst, val);
+			sample = val;
+			goto *put;
+#define PUT16_END after_put
+#include "plugin_ops.h"
+#undef PUT16_END
+		after_put:
 			dst += dst_step;
 			pos += data->pitch;
 		}
 		rvoices->last_S1 = S1;
 		rvoices->last_S2 = S2;
-		data->pos = pos;
+		rvoices++;
 	}
+	data->pos = pos;
 }
 
 static void resample_shrink(snd_pcm_plugin_t *plugin,
@@ -149,7 +165,7 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 			    const snd_pcm_plugin_voice_t *dst_voices,
 			    int src_samples, int dst_samples)
 {
-	unsigned int pos;
+	unsigned int pos = 0;
 	signed int val;
 	signed short S1, S2;
 	char *src, *dst;
@@ -157,16 +173,30 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 	int src_step, dst_step;
 	int src_samples1, dst_samples1;
 	rate_t *data = (rate_t *)plugin->extra_data;
-	rate_voice_t *rvoices = rate_voices(data);
+	rate_voice_t *rvoices = data->voices;
 	
+#define GET16_LABELS
+#define PUT16_LABELS
+#include "plugin_ops.h"
+#undef GET16_LABELS
+#undef PUT16_LABELS
+	void *get = get16_labels[data->get];
+	void *put = put16_labels[data->put];
+	signed short sample = 0;
+
 	for (voice = 0; voice < plugin->src_format.voices; ++voice) {
 		pos = data->pos;
 		S1 = rvoices->last_S1;
 		S2 = rvoices->last_S2;
-		if (src_voices[voice].addr == NULL)
+		if (src_voices[voice].addr == NULL) {
+			if (dst_voices[voice].addr != NULL) {
+//				null_voice(&dst_voices[voice]);
+				zero_voice(plugin, &dst_voices[voice], dst_samples);
+			}
 			continue;
+		}
 		src = (char *)src_voices[voice].addr + src_voices[voice].offset / 8;
-		dst = (char *)dst_voices[voice].addr + src_voices[voice].offset / 8;
+		dst = (char *)dst_voices[voice].addr + dst_voices[voice].offset / 8;
 		src_step = src_voices[voice].next / 8;
 		dst_step = dst_voices[voice].next / 8;
 		src_samples1 = src_samples;
@@ -174,7 +204,12 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 		while (dst_samples1 > 0) {
 			S1 = S2;
 			if (src_samples1-- > 0) {
-				S2 = data->take(src);
+				goto *get;
+#define GET16_END after_get
+#include "plugin_ops.h"
+#undef GET16_END
+			after_get:
+				S2 = sample;
 				src += src_step;
 			}
 			if (pos & ~MASK) {
@@ -184,7 +219,12 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 					val = -32768;
 				else if (val > 32767)
 					val = 32767;
-				data->put(dst, val);
+				sample = val;
+				goto *put;
+#define PUT16_END after_put
+#include "plugin_ops.h"
+#undef PUT16_END
+			after_put:
 				dst += dst_step;
 				dst_samples1--;
 			}
@@ -192,8 +232,9 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 		}
 		rvoices->last_S1 = S1;
 		rvoices->last_S2 = S2;
-		data->pos = pos;
+		rvoices++;
 	}
+	data->pos = pos;
 }
 
 static ssize_t rate_src_samples(snd_pcm_plugin_t *plugin, size_t samples)
@@ -264,17 +305,30 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 			     size_t samples)
 {
 	size_t dst_samples;
+	int voice;
+	rate_t *data;
 
-	if (plugin == NULL || src_voices == NULL || src_voices == NULL || samples < 0)
+	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
+		return -EFAULT;
+	if (samples < 0)
 		return -EINVAL;
 	if (samples == 0)
 		return 0;
-	dst_samples = rate_dst_samples(plugin, samples);
-	if (plugin->src_format.rate < plugin->dst_format.rate) {
-		resample_expand(plugin, src_voices, dst_voices, samples, dst_samples);
-	} else {
-		resample_shrink(plugin, src_voices, dst_voices, samples, dst_samples);
+	for (voice = 0; voice < plugin->src_format.voices; voice++) {
+		if (src_voices[voice].addr != NULL && 
+		    dst_voices[voice].addr == NULL)
+			return -EFAULT;
+		if (src_voices[voice].offset % 8 != 0 || 
+		    src_voices[voice].next % 8 != 0)
+			return -EINVAL;
+		if (dst_voices[voice].offset % 8 != 0 || 
+		    dst_voices[voice].next % 8 != 0)
+			return -EINVAL;
 	}
+
+	dst_samples = rate_dst_samples(plugin, samples);
+	data = (rate_t *)plugin->extra_data;
+	data->func(plugin, src_voices, dst_voices, samples, dst_samples);
 	return dst_samples;
 }
 
@@ -282,118 +336,34 @@ static int rate_action(snd_pcm_plugin_t *plugin,
 		       snd_pcm_plugin_action_t action,
 		       unsigned long udata)
 {
-	rate_t *data;
-
 	if (plugin == NULL)
 		return -EINVAL;
-	data = (rate_t *)plugin->extra_data;
 	switch (action) {
 	case INIT:
 	case PREPARE:
 	case DRAIN:
 	case FLUSH:
-		rate_init(plugin, data);
+		rate_init(plugin);
 		break;
 	}
 	return 0;	/* silenty ignore other actions */
 }
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define my_little_swap16(x) (x)
-#define my_little_swap32(x) (x)
-#define my_big_swap16(x) bswap_16(x)
-#define my_big_swap32(x) bswap_32(x)
-#else
-#define my_little_swap16(x) bswap_16(x)
-#define my_little_swap32(x) bswap_32(x)
-#define my_big_swap16(x) (x)
-#define my_big_swap32(x) (x)
-#endif
-
-RATE_TAKE_SAMPLE(s8, int8_t, smp << 8)
-RATE_TAKE_SAMPLE(u8, int8_t, (smp << 8) ^ 0x8000)
-RATE_TAKE_SAMPLE(s16_le, int16_t, my_little_swap16(smp))
-RATE_TAKE_SAMPLE(s16_be, int16_t, my_big_swap16(smp))
-RATE_TAKE_SAMPLE(u16_le, int16_t, my_little_swap16(smp) ^ 0x8000)
-RATE_TAKE_SAMPLE(u16_be, int16_t, my_big_swap16(smp) ^ 0x8000)
-RATE_TAKE_SAMPLE(s24_le, int32_t, my_little_swap32(smp) >> 8)
-RATE_TAKE_SAMPLE(s24_be, int32_t, my_big_swap32(smp) >> 8)
-RATE_TAKE_SAMPLE(u24_le, int32_t, (my_little_swap32(smp) >> 8) ^ 0x8000)
-RATE_TAKE_SAMPLE(u24_be, int32_t, (my_big_swap32(smp) >> 8) ^ 0x8000)
-RATE_TAKE_SAMPLE(s32_le, int32_t, my_little_swap32(smp) >> 16)
-RATE_TAKE_SAMPLE(s32_be, int32_t, my_big_swap32(smp) >> 16)
-RATE_TAKE_SAMPLE(u32_le, int32_t, (my_little_swap32(smp) >> 16) ^ 0x8000)
-RATE_TAKE_SAMPLE(u32_be, int32_t, (my_big_swap32(smp) >> 16) ^ 0x8000)
-
-static take_sample_f rate_take_sample[] = {
-	[SND_PCM_SFMT_S8]	rate_take_sample_s8,
-	[SND_PCM_SFMT_U8]	rate_take_sample_u8,
-	[SND_PCM_SFMT_S16_LE]	rate_take_sample_s16_le,
-	[SND_PCM_SFMT_S16_BE]	rate_take_sample_s16_be,
-	[SND_PCM_SFMT_U16_LE]	rate_take_sample_u16_le,
-	[SND_PCM_SFMT_U16_BE]	rate_take_sample_u16_be,
-	[SND_PCM_SFMT_S24_LE]	rate_take_sample_s24_le,
-	[SND_PCM_SFMT_S24_BE]	rate_take_sample_s24_be,
-	[SND_PCM_SFMT_U24_LE]	rate_take_sample_u24_le,
-	[SND_PCM_SFMT_U24_BE]	rate_take_sample_u24_be,
-	[SND_PCM_SFMT_S32_LE]	rate_take_sample_s32_le,
-	[SND_PCM_SFMT_S32_BE]	rate_take_sample_s32_be,
-	[SND_PCM_SFMT_U32_LE]	rate_take_sample_u32_le,
-	[SND_PCM_SFMT_U32_BE]	rate_take_sample_u32_be
-};
-
-RATE_PUT_SAMPLE(s8, int8_t, smp >> 8)
-RATE_PUT_SAMPLE(u8, int8_t, (smp >> 8) ^ 0x80)
-RATE_PUT_SAMPLE(s16_le, int16_t, my_little_swap16(smp))
-RATE_PUT_SAMPLE(s16_be, int16_t, my_big_swap16(smp))
-RATE_PUT_SAMPLE(u16_le, int16_t, my_little_swap16(smp ^ 0x8000))
-RATE_PUT_SAMPLE(u16_be, int16_t, my_big_swap16(smp ^ 0x8000))
-RATE_PUT_SAMPLE(s24_le, int32_t, my_little_swap32(smp << 8))
-RATE_PUT_SAMPLE(s24_be, int32_t, my_big_swap32(smp << 8))
-RATE_PUT_SAMPLE(u24_le, int32_t, my_little_swap32((smp ^ 0x8000) >> 8))
-RATE_PUT_SAMPLE(u24_be, int32_t, my_big_swap32((smp ^ 0x8000) >> 8))
-RATE_PUT_SAMPLE(s32_le, int32_t, my_little_swap32(smp >> 16))
-RATE_PUT_SAMPLE(s32_be, int32_t, my_big_swap32(smp >> 16))
-RATE_PUT_SAMPLE(u32_le, int32_t, my_little_swap32((smp ^ 0x8000) >> 16))
-RATE_PUT_SAMPLE(u32_be, int32_t, my_big_swap32((smp ^ 0x8000) >> 16))
-
-static put_sample_f rate_put_sample[] = {
-	[SND_PCM_SFMT_S8]	rate_put_sample_s8,
-	[SND_PCM_SFMT_U8]	rate_put_sample_u8,
-	[SND_PCM_SFMT_S16_LE]	rate_put_sample_s16_le,
-	[SND_PCM_SFMT_S16_BE]	rate_put_sample_s16_be,
-	[SND_PCM_SFMT_U16_LE]	rate_put_sample_u16_le,
-	[SND_PCM_SFMT_U16_BE]	rate_put_sample_u16_be,
-	[SND_PCM_SFMT_S24_LE]	rate_put_sample_s24_le,
-	[SND_PCM_SFMT_S24_BE]	rate_put_sample_s24_be,
-	[SND_PCM_SFMT_U24_LE]	rate_put_sample_u24_le,
-	[SND_PCM_SFMT_U24_BE]	rate_put_sample_u24_be,
-	[SND_PCM_SFMT_S32_LE]	rate_put_sample_s32_le,
-	[SND_PCM_SFMT_S32_BE]	rate_put_sample_s32_be,
-	[SND_PCM_SFMT_U32_LE]	rate_put_sample_u32_le,
-	[SND_PCM_SFMT_U32_BE]	rate_put_sample_u32_be
-};
 
 int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin)
 {
-	struct rate_private_data *data;
+	rate_t *data;
 	snd_pcm_plugin_t *plugin;
 
 	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->interleave != dst_format->interleave && 
-	    src_format->voices > 1)
-		return -EINVAL;
-	if (!dst_format->interleave)
-		return -EINVAL;
 	if (src_format->voices != dst_format->voices)
 		return -EINVAL;
-	if (dst_format->voices < 1)
+	if (src_format->voices < 1)
 		return -EINVAL;
 	if (snd_pcm_format_linear(src_format->format) <= 0)
 		return -EINVAL;
@@ -401,25 +371,27 @@ int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
 		return -EINVAL;
 	if (src_format->rate == dst_format->rate)
 		return -EINVAL;
+
 	plugin = snd_pcm_plugin_build(handle,
 				      "rate conversion",
 				      src_format,
 				      dst_format,
-				      sizeof(rate_t) +
-				        src_format->voices * sizeof(rate_voice_t));
+				      sizeof(rate_t) + src_format->voices * sizeof(rate_voice_t));
 	if (plugin == NULL)
 		return -ENOMEM;
 	data = (rate_t *)plugin->extra_data;
-	data->plugin = plugin;
-	data->take = rate_take_sample[src_format->format];
-	data->put = rate_put_sample[dst_format->format];
+	data->get = getput_index(src_format->format);
+	data->put = getput_index(dst_format->format);
+
 	if (src_format->rate < dst_format->rate) {
 		data->pitch = ((src_format->rate << SHIFT) + (dst_format->rate >> 1)) / dst_format->rate;
+		data->func = resample_expand;
 	} else {
 		data->pitch = ((dst_format->rate << SHIFT) + (src_format->rate >> 1)) / src_format->rate;
+		data->func = resample_shrink;
 	}
 	data->pos = 0;
-	rate_init(plugin, data);
+	rate_init(plugin);
 	data->old_src_samples = data->old_dst_samples = 0;
 	plugin->transfer = rate_transfer;
 	plugin->src_samples = rate_src_samples;
