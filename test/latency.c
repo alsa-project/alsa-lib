@@ -5,9 +5,15 @@
 #include <errno.h>
 #include "../include/asoundlib.h"
 
+#if 0
+#define USE_BLOCK_MODE	/* latency is twice more than for stream mode!!! */
+#endif
+
+#define USED_RATE	48000
 #define LATENCY_LIMIT	8192		/* in bytes */
 #define LOOP_LIMIT	(30 * 176400)	/* 30 seconds */
 
+#if 0
 static char *xitoa(int aaa)
 {
 	static char str[12];
@@ -15,6 +21,7 @@ static char *xitoa(int aaa)
 	sprintf(str, "%i", aaa);
 	return str;
 }
+#endif
 
 static int syncro(snd_pcm_t *phandle, snd_pcm_t *chandle)
 {
@@ -66,11 +73,15 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 
 	bzero(&params, sizeof(params));
 	params.channel = SND_PCM_CHANNEL_PLAYBACK;
+#ifdef USE_BLOCK_MODE
+	params.mode = SND_PCM_MODE_BLOCK;
+#else
 	params.mode = SND_PCM_MODE_STREAM;
+#endif
 	params.format.interleave = 1;
 	params.format.format = SND_PCM_SFMT_S16_LE;
 	params.format.voices = 2;
-	params.format.rate = 44100;
+	params.format.rate = USED_RATE;
 	params.start_mode = SND_PCM_START_GO;
 	params.stop_mode = SND_PCM_STOP_STOP;
 	params.time = 1;
@@ -88,7 +99,13 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 		return -1;
       	again = 0;
       	params.channel = SND_PCM_CHANNEL_PLAYBACK;
+#ifdef USE_BLOCK_MODE
+	params.buf.block.frag_size = *queue;
+	params.buf.block.frags_min = 1;
+	params.buf.block.frags_max = -1;
+#else
 	params.buf.stream.queue_size = *queue;
+#endif
 	if ((err = snd_pcm_plugin_params(phandle, &params)) < 0) {
 		printf("Playback params error: %s\n", snd_strerror(err));
 		exit(0);
@@ -99,14 +116,12 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 		exit(0);
 	}
 	bzero(&psetup, sizeof(psetup));
-	psetup.mode = SND_PCM_MODE_STREAM;
 	psetup.channel = SND_PCM_CHANNEL_PLAYBACK;
 	if ((err = snd_pcm_plugin_setup(phandle, &psetup)) < 0) {
 		printf("Playback setup error: %s\n", snd_strerror(err));
 		exit(0);
 	}
 	bzero(&csetup, sizeof(csetup));
-	csetup.mode = SND_PCM_MODE_STREAM;
 	csetup.channel = SND_PCM_CHANNEL_CAPTURE;
 	if ((err = snd_pcm_plugin_setup(chandle, &csetup)) < 0) {
 		printf("Capture setup error: %s\n", snd_strerror(err));
@@ -130,7 +145,13 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 		printf("Capture prepare error: %s\n", snd_strerror(err));
 		exit(0);
 	}	
-	printf("Trying latency %i...\n", *queue);
+	printf("Trying latency %i (playback rate = %iHz, capture rate = %iHz)...\n",
+#ifdef USE_BLOCK_MODE
+		*queue * 2, 
+#else
+		*queue, 
+#endif
+		psetup.format.rate, csetup.format.rate);
 	fflush(stdout);
 	return 0;
 }
@@ -153,6 +174,7 @@ void showstat(snd_pcm_t *handle, int channel, snd_pcm_channel_status_t *rstatus)
 	printf("  status = %i\n", status.status);
 	printf("  position = %u\n", status.scount);
 	printf("  free = %i\n", status.free);
+	printf("  count = %i\n", status.count);
 	if (rstatus)
 		*rstatus = status;
 }
@@ -192,7 +214,9 @@ long readbuf(snd_pcm_t *handle, char *buf, long len)
 {
 	long r;
 	
-	r = snd_pcm_plugin_read(handle, buf, len);
+	do {
+		r = snd_pcm_plugin_read(handle, buf, len);
+	} while (r == -EAGAIN);
 	// printf("read = %li\n", r);
 	// showstat(handle, SND_PCM_CHANNEL_CAPTURE, NULL);
 	return r;
@@ -204,8 +228,10 @@ long writebuf(snd_pcm_t *handle, char *buf, long len)
 
 	while (len > 0) {
 		r = snd_pcm_plugin_write(handle, buf, len);
+#ifndef USE_BLOCK_MODE
 		if (r == -EAGAIN)
 			continue;
+#endif
 		// printf("write = %li\n", r);
 		if (r < 0)
 			return r;
@@ -239,6 +265,11 @@ int main(void)
 		printf("Record open error: %s\n", snd_strerror(err));
 		return 0;
 	}
+#ifdef USE_BLOCK_MODE
+	printf("Using block mode...\n");
+#else
+	printf("Using stream mode...\n");
+#endif
 	sync = syncro(phandle, chandle);
 	if (sync)
 		printf("Using hardware synchronization mode\n");
@@ -248,6 +279,10 @@ int main(void)
 		memset(buffer, 0, latency);
 		if (writebuf(phandle, buffer, latency) < 0)
 			break;
+#ifdef USE_BLOCK_MODE	/* at least two fragments MUST BE filled !!! */
+		if (writebuf(phandle, buffer, latency) < 0)
+			break;
+#endif
 		if (sync) {
 			syncro_id(&ssync);
 			if ((err = snd_pcm_sync_go(phandle, &ssync)) < 0) {

@@ -74,7 +74,7 @@ static int query_playback(struct mmap_private_data *data,
 		}
 		break;
 	case SND_PCM_STATUS_UNDERRUN:
-		return -EAGAIN;
+		return -EPIPE;
 	default:
 		return -EIO;
 	}
@@ -116,7 +116,7 @@ static int query_capture(struct mmap_private_data *data,
 		}
 		break;
 	case SND_PCM_STATUS_OVERRUN:
-		return -EAGAIN;
+		return -EPIPE;
 	default:
 		return -EIO;
 	}
