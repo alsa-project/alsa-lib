@@ -101,16 +101,39 @@ ssize_t snd_pcm_plugin_hardware_size(PLUGIN_BASE *pb, int channel, size_t trf_si
 
 unsigned int snd_pcm_plugin_formats(unsigned int formats)
 {
+	int linfmts = (SND_PCM_FMT_U8 | SND_PCM_FMT_S8 |
+		       SND_PCM_FMT_U16_LE | SND_PCM_FMT_S16_LE |
+		       SND_PCM_FMT_U16_BE | SND_PCM_FMT_S16_BE |
+		       SND_PCM_FMT_U24_LE | SND_PCM_FMT_S16_LE |
+		       SND_PCM_FMT_U24_BE | SND_PCM_FMT_S16_BE |
+		       SND_PCM_FMT_U32_LE | SND_PCM_FMT_S32_LE |
+		       SND_PCM_FMT_U32_BE | SND_PCM_FMT_S32_BE);
 	formats |= SND_PCM_FMT_MU_LAW;
 #ifndef __KERNEL__
 	formats |= SND_PCM_FMT_A_LAW | SND_PCM_FMT_IMA_ADPCM;
 #endif
-	if (formats & (SND_PCM_FMT_U8|SND_PCM_FMT_S8|
-		       SND_PCM_FMT_U16_LE|SND_PCM_FMT_S16_LE))
-		formats |= SND_PCM_FMT_U8|SND_PCM_FMT_S8|
-			   SND_PCM_FMT_U16_LE|SND_PCM_FMT_S16_LE;
+	
+	if (formats & linfmts)
+		formats |= linfmts;
 	return formats;
 }
+
+static int preferred_formats[] = {
+	SND_PCM_SFMT_S16_LE,
+	SND_PCM_SFMT_S16_BE,
+	SND_PCM_SFMT_U16_LE,
+	SND_PCM_SFMT_U16_BE,
+	SND_PCM_SFMT_S24_LE,
+	SND_PCM_SFMT_S24_BE,
+	SND_PCM_SFMT_U24_LE,
+	SND_PCM_SFMT_U24_BE,
+	SND_PCM_SFMT_S32_LE,
+	SND_PCM_SFMT_S32_BE,
+	SND_PCM_SFMT_U32_LE,
+	SND_PCM_SFMT_U32_BE,
+	SND_PCM_SFMT_S8,
+	SND_PCM_SFMT_U8
+};
 
 int snd_pcm_plugin_hwparams(snd_pcm_channel_params_t *params,
 			    snd_pcm_channel_info_t *hwinfo,
@@ -118,95 +141,56 @@ int snd_pcm_plugin_hwparams(snd_pcm_channel_params_t *params,
 {
 	memcpy(hwparams, params, sizeof(*hwparams));
 	if ((hwinfo->formats & (1 << params->format.format)) == 0) {
-		if ((snd_pcm_plugin_formats(hwinfo->formats) & (1 << params->format.format)) == 0)
+		int format = params->format.format;
+		if ((snd_pcm_plugin_formats(hwinfo->formats) & (1 << format)) == 0)
 			return -EINVAL;
-		switch (params->format.format) {
-		case SND_PCM_SFMT_U8:
-			if (hwinfo->formats & SND_PCM_FMT_S8) {
-				hwparams->format.format = SND_PCM_SFMT_S8;
-			} else if (hwinfo->formats & SND_PCM_FMT_U16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_U16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_S16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_S16_LE;
-			} else {
-				return -EINVAL;
+		if (snd_pcm_format_linear(format)) {
+			int width = snd_pcm_format_width(format);
+			int unsignd = snd_pcm_format_unsigned(format);
+			int big = snd_pcm_format_big_endian(format);
+			int format1;
+			int wid, width1=width;
+			for (wid = 0; wid < 4; ++wid) {
+				int end, big1 = big;
+				for (end = 0; end < 2; ++end) {
+					int sgn, unsignd1 = unsignd;
+					for (sgn = 0; sgn < 2; ++sgn) {
+						format1 = snd_pcm_build_linear_format(width1, unsignd1, big1);
+						if (format1 >= 0 &&
+						    hwinfo->formats & (1 << format1))
+							goto _found;
+						unsignd1 = !unsignd1;
+					}
+					big1 = !big1;
+				}
+				width1 += 8;
+				if (width1 > 32)
+					width = 8;
 			}
-			break;
-		case SND_PCM_SFMT_S8:
-			if (hwinfo->formats & SND_PCM_FMT_U8) {
-				hwparams->format.format = SND_PCM_SFMT_U8;
-			} else if (hwinfo->formats & SND_PCM_FMT_S16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_S16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_U16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_U16_LE;
-			} else {
-				return -EINVAL;
-			}
-			break;
-		case SND_PCM_SFMT_S16_LE:
-			if (hwinfo->formats & SND_PCM_FMT_U16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_U16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_S8) {
-				hwparams->format.format = SND_PCM_SFMT_S8;
-			} else if (hwinfo->formats & SND_PCM_FMT_U8) {
-				hwparams->format.format = SND_PCM_SFMT_U8;
-			} else {
-				return -EINVAL;
-			}
-			break;
-		case SND_PCM_SFMT_U16_LE:
-			if (hwinfo->formats & SND_PCM_FMT_S16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_S16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_U8) {
-				hwparams->format.format = SND_PCM_SFMT_U8;
-			} else if (hwinfo->formats & SND_PCM_FMT_S8) {
-				hwparams->format.format = SND_PCM_SFMT_S8;
-			} else {
-				return -EINVAL;
-			}
-			break;
-		case SND_PCM_SFMT_MU_LAW:
-			if (hwinfo->formats & SND_PCM_FMT_S16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_S16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_U16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_U16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_S8) {
-				hwparams->format.format = SND_PCM_SFMT_S8;
-			} else if (hwinfo->formats & SND_PCM_FMT_U8) {
-				hwparams->format.format = SND_PCM_SFMT_U8;
-			} else {
-				return -EINVAL;
-			}
-			break;
+			return -EINVAL;
+		_found:
+			hwparams->format.format = format1;
+		} else {
+			int i;
+			switch (format) {
+			case SND_PCM_SFMT_MU_LAW:
 #ifndef __KERNEL__
-		case SND_PCM_SFMT_A_LAW:
-			if (hwinfo->formats & SND_PCM_FMT_S16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_S16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_U16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_U16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_S8) {
-				hwparams->format.format = SND_PCM_SFMT_S8;
-			} else if (hwinfo->formats & SND_PCM_FMT_U8) {
-				hwparams->format.format = SND_PCM_SFMT_U8;
-			} else {
-				return -EINVAL;
-			}
-		case SND_PCM_SFMT_IMA_ADPCM:
-			if (hwinfo->formats & SND_PCM_FMT_S16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_S16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_U16_LE) {
-				hwparams->format.format = SND_PCM_SFMT_U16_LE;
-			} else if (hwinfo->formats & SND_PCM_FMT_S8) {
-				hwparams->format.format = SND_PCM_SFMT_S8;
-			} else if (hwinfo->formats & SND_PCM_FMT_U8) {
-				hwparams->format.format = SND_PCM_SFMT_U8;
-			} else {
-				return -EINVAL;
-			}
-			break;
+			case SND_PCM_SFMT_A_LAW:
+			case SND_PCM_SFMT_IMA_ADPCM:
 #endif
-		default:
-			return -EINVAL;
+				for (i = 0; i < sizeof(preferred_formats) / sizeof(preferred_formats[0]); ++i) {
+					int format1 = preferred_formats[i];
+					if (hwinfo->formats & (1 << format1)) {
+						hwparams->format.format = format1;
+						break;
+					}
+				}
+				if (i == sizeof(preferred_formats)/sizeof(preferred_formats[0]))
+					return -EINVAL;
+				break;
+			default:
+				return -EINVAL;
+			}
 		}
 	}
 

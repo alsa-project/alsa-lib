@@ -23,6 +23,8 @@
 #include "../../include/driver.h"
 #include "../../include/pcm.h"
 #include "../../include/pcm_plugin.h"
+#define bswap_16(x) __swab16((x))
+#define bswap_32(x) __swab32((x))
 #else
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,101 +40,152 @@
  *  Basic linear conversion plugin
  */
  
-typedef enum {
-	_8BIT_16BIT,
-	_8BIT_24BIT,
-	_8BIT_32BIT,
-	_16BIT_8BIT,
-	_16BIT_24BIT,
-	_16BIT_32BIT,
-	_24BIT_8BIT,
-	_24BIT_16BIT,
-	_24BIT_32BIT,
-	_32BIT_8BIT,
-	_32BIT_16BIT,
-	_32BIT_24BIT
-} combination_t;
- 
-typedef enum {
-	NONE = 0,
-	SOURCE = 1,
-	DESTINATION = 2,
-	BOTH = 3,
-	SIGN = 4,
-	SIGN_NONE = 4,
-	SIGN_SOURCE = 5,
-	SIGN_DESTINATION = 6,
-	SIGN_BOTH = 7,
-} endian_t;
- 
+typedef void (*conv_f)(void *src, void *dst, size_t size);
+
 struct linear_private_data {
-	combination_t cmd;
-	endian_t endian;
+	int src_sample_size, dst_sample_size;
+	conv_f func;
 };
 
-static void linear_conv_8bit_16bit(unsigned char *src_ptr,
-				   unsigned short *dst_ptr,
-				   size_t size)
-{
-	while (size--)
-		*dst_ptr++ = ((unsigned short)*src_ptr++) << 8;
+#define CONV_FUNC(name, srctype, dsttype, val) \
+static void conv_##name(void *src_ptr, void *dst_ptr, size_t size) \
+{ \
+	unsigned srctype *srcp = src_ptr; \
+	unsigned dsttype *dstp = dst_ptr; \
+	while (size--) { \
+		unsigned srctype src = *srcp++; \
+		*dstp++ = val; \
+	} \
 }
 
-static void linear_conv_8bit_16bit_swap(unsigned char *src_ptr,
-					unsigned short *dst_ptr,
-					size_t size)
-{
-	while (size--)
-		*dst_ptr++ = (unsigned short)*src_ptr++;
-}
+CONV_FUNC(8_sign, char, char, src ^ 0x80)
 
-static void linear_conv_sign_8bit_16bit(unsigned char *src_ptr,
-					unsigned short *dst_ptr,
-					size_t size)
-{
-	while (size--)
-		*dst_ptr++ = (((unsigned short)*src_ptr++) << 8) ^ 0x8000;
-}
+CONV_FUNC(8_16, char, short, (unsigned short)src << 8)
+CONV_FUNC(8_16_end, char, short, (unsigned short)src)
+CONV_FUNC(8_16_sign, char, short, (unsigned short)(src ^ 0x80) << 8)
+CONV_FUNC(8_16_sign_end, char, short, (unsigned short)src ^ 0x80)
 
-static void linear_conv_sign_8bit_16bit_swap(unsigned char *src_ptr,
-					     unsigned short *dst_ptr,
-					     size_t size)
-{
-	while (size--)
-		*dst_ptr++ = ((unsigned short)*src_ptr++) ^ 0x80;
-}
+CONV_FUNC(8_32, char, long, (unsigned long)src << 24)
+CONV_FUNC(8_32_end, char, long, (unsigned long)src)
+CONV_FUNC(8_32_sign, char, long, (unsigned long)(src ^ 0x80) << 24)
+CONV_FUNC(8_32_sign_end, char, long, (unsigned long)src ^ 0x80)
 
-static void linear_conv_16bit_8bit(unsigned short *src_ptr,
-				   unsigned char *dst_ptr,
-				   size_t size)
-{
-	while (size--)
-		*dst_ptr++ = (*src_ptr++) >> 8;
-}
+CONV_FUNC(16_8, short, char, src >> 8)
+CONV_FUNC(16_end_8, short, char, src)
+CONV_FUNC(16_8_sign, short, char, (src >> 8) ^ 0x80)
+CONV_FUNC(16_end_8_sign, short, char, src ^ 0x80;)
 
-static void linear_conv_16bit_8bit_swap(unsigned short *src_ptr,
-					unsigned char *dst_ptr,
-					size_t size)
-{
-	while (size--)
-		*dst_ptr++ = (unsigned char)*src_ptr++;
-}
+CONV_FUNC(16_sign, short, short, src ^ 0x8000)
+CONV_FUNC(16_end, short, short, bswap_16(src))
+CONV_FUNC(16_end_sign, short, short, bswap_16(src) ^ 0x8000)
+CONV_FUNC(16_sign_end, short, short, bswap_16(src ^ 0x8000))
+CONV_FUNC(16_end_sign_end, short, short, src ^ 0x80)
 
-static void linear_conv_sign_16bit_8bit(unsigned short *src_ptr,
-					unsigned char *dst_ptr,
-					size_t size)
-{
-	while (size--)
-		*dst_ptr++ = (((unsigned short)*src_ptr++) >> 8) ^ 0x80;
-}
+CONV_FUNC(16_32, short, long, (unsigned long)src << 16)
+CONV_FUNC(16_32_sign, short, long, (unsigned long)(src ^ 0x8000) << 16)
+CONV_FUNC(16_32_end, short, long, (unsigned long)bswap_16(src))
+CONV_FUNC(16_32_sign_end, short, long, (unsigned long)bswap_16(src ^ 0x8000))
+CONV_FUNC(16_end_32, short, long, (unsigned long)bswap_16(src) << 16)
+CONV_FUNC(16_end_32_sign, short, long, (unsigned long)(bswap_16(src) ^ 0x8000) << 16)
+CONV_FUNC(16_end_32_end, short, long, (unsigned long)src)
+CONV_FUNC(16_end_32_sign_end, short, long, (unsigned long)src ^ 0x80)
 
-static void linear_conv_sign_16bit_8bit_swap(unsigned short *src_ptr,
-					     unsigned char *dst_ptr,
-					     size_t size)
-{
-	while (size--)
-		*dst_ptr++ = ((unsigned char)*src_ptr++) ^ 0x80;
-}
+CONV_FUNC(32_8, long, char, src >> 24)
+CONV_FUNC(32_end_8, long, char, src)
+CONV_FUNC(32_8_sign, long, char, (src >> 24) ^ 0x80)
+CONV_FUNC(32_end_8_sign, long, char, src ^ 0x80;)
+
+CONV_FUNC(32_16, long, short, src >> 16)
+CONV_FUNC(32_16_sign, long, short, (src >> 16) ^ 0x8000)
+CONV_FUNC(32_16_end, long, short, bswap_16(src >> 16))
+CONV_FUNC(32_16_sign_end, long, short, bswap_16((src >> 16) ^ 0x8000))
+CONV_FUNC(32_end_16, long, short, bswap_16(src))
+CONV_FUNC(32_end_16_sign, long, short, bswap_16(src) ^ 0x8000)
+CONV_FUNC(32_end_16_end, long, short, src)
+CONV_FUNC(32_end_16_sign_end, long, short, src ^ 0x80)
+
+CONV_FUNC(32_sign, long, long, src ^ 0x80000000)
+CONV_FUNC(32_end, long, long, bswap_32(src))
+CONV_FUNC(32_end_sign, long, long, bswap_32(src) ^ 0x80000000)
+CONV_FUNC(32_sign_end, long, long, bswap_32(src) ^ 0x80)
+CONV_FUNC(32_end_sign_end, long, long, src ^ 0x80)
+
+/* src_wid dst_wid src_endswap, dst_endswap, sign_swap */
+conv_f convert_functions[3][3][2][2][2] = {
+	NULL,			/* 8->8: Nothing to do */
+	conv_8_sign,		/* 8->8 sign: conv_8_sign */
+	NULL,			/* 8->8 dst_end: Nothing to do */
+	conv_8_sign,		/* 8->8 dst_end sign: conv_8_sign */
+	NULL,			/* 8->8 src_end: Nothing to do */
+	conv_8_sign,		/* 8->8 src_end sign: conv_8_sign */
+	NULL,			/* 8->8 src_end dst_end: Nothing to do */
+	conv_8_sign,		/* 8->8 src_end dst_end sign: conv_8_sign */
+	conv_8_16,		/* 8->16: conv_8_16 */
+	conv_8_16_sign,		/* 8->16 sign: conv_8_16_sign */
+	conv_8_16_end,		/* 8->16 dst_end: conv_8_16_end */
+	conv_8_16_sign_end,	/* 8->16 dst_end sign: conv_8_16_sign_end */
+	conv_8_16,		/* 8->16 src_end: conv_8_16 */
+	conv_8_16_sign,		/* 8->16 src_end sign: conv_8_16_sign */
+	conv_8_16_end,		/* 8->16 src_end dst_end: conv_8_16_end */
+	conv_8_16_sign_end,	/* 8->16 src_end dst_end sign: conv_8_16_sign_end */
+	conv_8_32,			/* 8->32: conv_8_32 */
+	conv_8_32_sign,			/* 8->32 sign: conv_8_32_sign */
+	conv_8_32_end,			/* 8->32 dst_end: conv_8_32_end */
+	conv_8_32_sign_end,			/* 8->32 dst_end sign: conv_8_32_sign_end */
+	conv_8_32,			/* 8->32 src_end: conv_8_32 */
+	conv_8_32_sign,			/* 8->32 src_end sign: conv_8_32_sign */
+	conv_8_32_end,			/* 8->32 src_end dst_end: conv_8_32_end */
+	conv_8_32_sign_end,			/* 8->32 src_end dst_end sign: conv_8_32_sign_end */
+	conv_16_8,		/* 16->8: conv_16_8 */
+	conv_16_8_sign,		/* 16->8 sign: conv_16_8_sign */
+	conv_16_8,		/* 16->8 dst_end: conv_16_8 */
+	conv_16_8_sign,		/* 16->8 dst_end sign: conv_16_8_sign */
+	conv_16_end_8,		/* 16->8 src_end: conv_16_end_8 */
+	conv_16_end_8_sign,	/* 16->8 src_end sign: conv_16_end_8_sign */
+	conv_16_end_8,		/* 16->8 src_end dst_end: conv_16_end_8 */
+	conv_16_end_8_sign,	/* 16->8 src_end dst_end sign: conv_16_end_8_sign */
+	NULL,			/* 16->16: Nothing to do */
+	conv_16_sign,		/* 16->16 sign: conv_16_sign */
+	conv_16_end,		/* 16->16 dst_end: conv_16_end */
+	conv_16_sign_end,	/* 16->16 dst_end sign: conv_16_sign_end */
+	conv_16_end,		/* 16->16 src_end: conv_16_end */
+	conv_16_end_sign,	/* 16->16 src_end sign: conv_16_end_sign */
+	NULL,			/* 16->16 src_end dst_end: Nothing to do */
+	conv_16_end_sign_end,	/* 16->16 src_end dst_end sign: conv_16_end_sign_end */
+	conv_16_32,		/* 16->32: conv_16_32 */
+	conv_16_32_sign,	/* 16->32 sign: conv_16_32_sign */
+	conv_16_32_end,		/* 16->32 dst_end: conv_16_32_end */
+	conv_16_32_sign_end,	/* 16->32 dst_end sign: conv_16_32_sign_end */
+	conv_16_end_32,		/* 16->32 src_end: conv_16_end_32 */
+	conv_16_end_32_sign,	/* 16->32 src_end sign: conv_16_end_32_sign */
+	conv_16_end_32_end,	/* 16->32 src_end dst_end: conv_16_end_32_end */
+	conv_16_end_32_sign_end,/* 16->32 src_end dst_end sign: conv_16_end_32_sign_end */
+	conv_32_8,		/* 32->8: conv_32_8 */
+	conv_32_8_sign,		/* 32->8 sign: conv_32_8_sign */
+	conv_32_8,		/* 32->8 dst_end: conv_32_8 */
+	conv_32_8_sign,		/* 32->8 dst_end sign: conv_32_8_sign */
+	conv_32_end_8,		/* 32->8 src_end: conv_32_end_8 */
+	conv_32_end_8_sign,	/* 32->8 src_end sign: conv_32_end_8_sign */
+	conv_32_end_8,		/* 32->8 src_end dst_end: conv_32_end_8 */
+	conv_32_end_8_sign,	/* 32->8 src_end dst_end sign: conv_32_end_8_sign */
+	conv_32_16,		/* 32->16: conv_32_16 */
+	conv_32_16_sign,	/* 32->16 sign: conv_32_16_sign */
+	conv_32_16_end,		/* 32->16 dst_end: conv_32_16_end */
+	conv_32_16_sign_end,	/* 32->16 dst_end sign: conv_32_16_sign_end */
+	conv_32_end_16,		/* 32->16 src_end: conv_32_end_16 */
+	conv_32_end_16_sign,	/* 32->16 src_end sign: conv_32_end_16_sign */
+	conv_32_end_16_end,	/* 32->16 src_end dst_end: conv_32_end_16_end */
+	conv_32_end_16_sign_end,/* 32->16 src_end dst_end sign: conv_32_end_16_sign_end */
+	NULL,			/* 32->32: Nothing to do */
+	conv_32_sign,		/* 32->32 sign: conv_32_sign */
+	conv_32_end,		/* 32->32 dst_end: conv_32_end */
+	conv_32_sign_end,	/* 32->32 dst_end sign: conv_32_sign_end */
+	conv_32_end,		/* 32->32 src_end: conv_32_end */
+	conv_32_end_sign,	/* 32->32 src_end sign: conv_32_end_sign */
+	NULL,			/* 32->32 src_end dst_end: Nothing to do */
+	conv_32_end_sign_end	/* 32->32 src_end dst_end sign: conv_32_end_sign_end */
+};
+
 
 static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 			       char *src_ptr, size_t src_size,
@@ -148,51 +201,12 @@ static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (data == NULL)
 		return -EINVAL;
-	switch (data->cmd) {
-	case _8BIT_16BIT:
-		if ((dst_size >> 1) < src_size)
-			return -EINVAL;
-		switch (data->endian) {
-		case NONE:
-			linear_conv_8bit_16bit(src_ptr, (short *)dst_ptr, src_size);
-			break;
-		case DESTINATION:
-			linear_conv_8bit_16bit_swap(src_ptr, (short *)dst_ptr, src_size);
-			break;
-		case SIGN_NONE:
-			linear_conv_sign_8bit_16bit(src_ptr, (short *)dst_ptr, src_size);
-			break;
-		case SIGN_DESTINATION:
-			linear_conv_sign_8bit_16bit_swap(src_ptr, (short *)dst_ptr, src_size);
-			break;
-		default:
-			return -EINVAL;
-		}
-		return src_size << 1;
-	case _16BIT_8BIT:
-		if (dst_size < (src_size >> 1))
-			return -EINVAL;
-		src_size >>= 1;
-		switch (data->endian) {
-		case NONE:
-			linear_conv_16bit_8bit((short *)src_ptr, dst_ptr, src_size);
-			break;
-		case SOURCE:
-			linear_conv_16bit_8bit_swap((short *)src_ptr, dst_ptr, src_size);
-			break;
-		case SIGN_NONE:
-			linear_conv_sign_16bit_8bit((short *)src_ptr, dst_ptr, src_size);
-			break;
-		case SIGN_SOURCE:
-			linear_conv_sign_16bit_8bit_swap((short *)src_ptr, dst_ptr, src_size);
-			break;
-		default:
-			return -EINVAL;
-		}
-		return src_size;
-	default:
-		return -EIO;
-	}
+	if (src_size % data->src_sample_size != 0)
+		return -EINVAL;
+	if (dst_size < src_size*data->dst_sample_size/data->src_sample_size)
+		return -EINVAL;
+	data->func(src_ptr, dst_ptr, src_size / data->src_sample_size);
+	return src_size*data->dst_sample_size/data->src_sample_size;
 }
 
 static ssize_t linear_src_size(snd_pcm_plugin_t *plugin, size_t size)
@@ -202,27 +216,9 @@ static ssize_t linear_src_size(snd_pcm_plugin_t *plugin, size_t size)
 	if (!plugin || size <= 0)
 		return -EINVAL;
 	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
-	switch (data->cmd) {
-	case _8BIT_16BIT:
-	case _16BIT_24BIT:
-	case _16BIT_32BIT:
-		return size / 2;
-	case _8BIT_24BIT:
-	case _8BIT_32BIT:
-		return size / 4;
-	case _16BIT_8BIT:
-	case _24BIT_16BIT:
-	case _32BIT_16BIT:
-		return size * 2;
-	case _24BIT_8BIT:
-	case _32BIT_8BIT:
-		return size * 4;
-	case _24BIT_32BIT:
-	case _32BIT_24BIT:
-		return size;
-	default:
-		return -EIO;
-	}
+	if (data == NULL)
+		return -EINVAL;
+	return size*data->src_sample_size/data->dst_sample_size;
 }
 
 static ssize_t linear_dst_size(snd_pcm_plugin_t *plugin, size_t size)
@@ -232,27 +228,9 @@ static ssize_t linear_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 	if (!plugin || size <= 0)
 		return -EINVAL;
 	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
-	switch (data->cmd) {
-	case _8BIT_16BIT:
-	case _16BIT_24BIT:
-	case _16BIT_32BIT:
-		return size * 2;
-	case _8BIT_24BIT:
-	case _8BIT_32BIT:
-		return size * 4;
-	case _16BIT_8BIT:
-	case _24BIT_16BIT:
-	case _32BIT_16BIT:
-		return size / 2;
-	case _24BIT_8BIT:
-	case _32BIT_8BIT:
-		return size / 4;
-	case _24BIT_32BIT:
-	case _32BIT_24BIT:
-		return size;
-	default:
-		return -EIO;
-	}
+	if (data == NULL)
+		return -EINVAL;
+	return size*data->dst_sample_size/data->src_sample_size;
 }
 
 int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
@@ -261,8 +239,8 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 {
 	struct linear_private_data *data;
 	snd_pcm_plugin_t *plugin;
-	combination_t cmd;
-	int width1, width2, endian1, endian2, sign1, sign2;
+	conv_f func;
+	int src_endian, dst_endian, sign, src_width, dst_width;
 
 	if (!r_plugin)
 		return -EINVAL;
@@ -279,69 +257,66 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 	      snd_pcm_format_linear(dst_format->format)))
 		return -EINVAL;
 
-	width1 = snd_pcm_format_width(src_format->format);
-	sign1 = snd_pcm_format_signed(src_format->format);
-	width2 = snd_pcm_format_width(dst_format->format);
-	sign2 = snd_pcm_format_signed(dst_format->format);
+	sign = (snd_pcm_format_signed(src_format->format) !=
+		snd_pcm_format_signed(dst_format->format));
+	src_width = snd_pcm_format_width(src_format->format);
+	dst_width = snd_pcm_format_width(dst_format->format);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-	endian1 = snd_pcm_format_little_endian(src_format->format);
-	endian2 = snd_pcm_format_little_endian(dst_format->format);
+	src_endian = snd_pcm_format_big_endian(src_format->format);
+	dst_endian = snd_pcm_format_big_endian(dst_format->format);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-	endian1 = snd_pcm_format_big_endian(src_format->format);
-	endian2 = snd_pcm_format_big_endian(dst_format->format);
+	src_endian = snd_pcm_format_little_endian(src_format->format);
+	dst_endian = snd_pcm_format_little_endian(dst_format->format);
 #else
 #error "Unsupported endian..."
 #endif
-	cmd = _8BIT_16BIT;
-	switch (width1) {
+
+	switch (src_width) {
 	case 8:
-		switch (width2) {
-		case 16:	cmd = _8BIT_16BIT; break;
-		case 24:	cmd = _8BIT_24BIT; break;
-		case 32:	cmd = _8BIT_32BIT; break;
-		default:	return -EINVAL;
-		}
+		src_width = 0;
 		break;
 	case 16:
-		switch (width2) {
-		case 8:		cmd = _16BIT_8BIT; break;
-		case 24:	cmd = _16BIT_24BIT; break;
-		case 32:	cmd = _16BIT_32BIT; break;
-		default:	return -EINVAL;
-		}
-		break;
-	case 24:
-		switch (width2) {
-		case 8:		cmd = _24BIT_8BIT; break;
-		case 16:	cmd = _24BIT_16BIT; break;
-		case 32:	cmd = _24BIT_32BIT; break;
-		default:	return -EINVAL;
-		}
+		src_width = 1;
 		break;
 	case 32:
-		switch (width2) {
-		case 8:		cmd = _32BIT_8BIT; break;
-		case 16:	cmd = _32BIT_16BIT; break;
-		case 24:	cmd = _32BIT_24BIT; break;
-		default:	return -EINVAL;
-		}
+		src_width = 2;
 		break;
 	default:
 		return -EINVAL;
 	}
+	switch (dst_width) {
+	case 8:
+		dst_width = 0;
+		break;
+	case 16:
+		dst_width = 1;
+		break;
+	case 32:
+		dst_width = 2;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	if (src_endian < 0)
+		src_endian = 0;
+	if (dst_endian < 0)
+		src_endian = 0;
+
+	func = convert_functions[src_width][dst_width][src_endian][dst_endian][sign];
+
+	if (func == NULL)
+		return -EINVAL;
+
 	plugin = snd_pcm_plugin_build("linear format conversion",
 				      sizeof(struct linear_private_data));
 	if (plugin == NULL)
 		return -ENOMEM;
 	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
-	data->cmd = cmd;
-	data->endian = NONE;
-	if (endian1 == 0)
-		data->endian |= SOURCE;
-	if (endian2 == 0)
-		data->endian |= DESTINATION;
-	if (sign1 != sign2)
-		data->endian |= SIGN;
+	data->func = func;
+	data->src_sample_size = 1 << src_width;
+	data->dst_sample_size = 1 << dst_width;
+
 	plugin->transfer = linear_transfer;
 	plugin->src_size = linear_src_size;
 	plugin->dst_size = linear_dst_size;
