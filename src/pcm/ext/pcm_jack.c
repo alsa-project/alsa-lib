@@ -739,7 +739,7 @@ int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 		     stream == SND_PCM_STREAM_PLAYBACK ? "P" : "C", getpid(), num++)
 	    >= (int)sizeof(jack_client_name)) {
 		fprintf(stderr, "%s: WARNING: JACK client name '%s' truncated to %d characters, might not be unique\n",
-			__func__, jack_client_name, strlen(jack_client_name));
+			__func__, jack_client_name, (int)strlen(jack_client_name));
 	}
 
 	jack->client = jack_client_new(jack_client_name);
