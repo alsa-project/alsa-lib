@@ -317,6 +317,7 @@ pcm.NAME {
   type dmix		# Direct mixing plugin
   slave STR		# Slave name (see pcm_slave)
   ipc_key INT		# Unique ipc key
+  ipc_perm INT		# ipc permissions (default 0600)
   ipc_key_add_uid BOOL  # Add current uid to ipc_key
   bindings {		# Bindings table
     N INT		# Slave channel for client channel N
@@ -325,6 +326,7 @@ pcm.NAME {
   type dsnoop		# Direct snoop (split one capture stream to more)
   slave STR		# Slave name (see pcm_slave)
   ipc_key INT		# Unique ipc key
+  ipc_perm INT		# ipc permissions (default 0600)
   ipc_key_add_uid BOOL  # Add current uid to ipc_key
   bindings {		# Bindings table
     N INT		# Slave channel for client channel N
@@ -333,6 +335,7 @@ pcm.NAME {
   type dshare		# Share channels from one stream
   slave STR		# Slave name (see pcm_slave)
   ipc_key INT		# Unique ipc key
+  ipc_perm INT		# ipc permissions (default 0600)
   ipc_key_add_uid BOOL  # Add current uid to ipc_key
   bindings {		# Bindings table
     N INT		# Slave channel for client channel N

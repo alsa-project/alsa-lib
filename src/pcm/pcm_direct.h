@@ -79,6 +79,7 @@ typedef struct snd_pcm_direct snd_pcm_direct_t;
 struct snd_pcm_direct {
 	snd_pcm_type_t type;		/* type (dmix, dsnoop, dshare) */
 	key_t ipc_key;			/* IPC key for semaphore and memory */
+	mode_t ipc_perm;		/* IPC socket permissions */
 	int semid;			/* IPC global semaphore identification */
 	int shmid;			/* IPC global shared memory identification */
 	snd_pcm_direct_share_t *shmptr;	/* pointer to shared memory area */

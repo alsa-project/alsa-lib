@@ -33,6 +33,7 @@
 #include <signal.h>
 #include <string.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/shm.h>
@@ -450,6 +451,7 @@ static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
  * \param ipc_key IPC key for semaphore and shared memory
+ * \param ipc_perm IPC permissions for semaphore and shared memory
  * \param params Parameters for slave
  * \param root Configuration root
  * \param sconf Slave configuration
@@ -461,10 +463,11 @@ static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
  *          changed in future.
  */
 int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
-		      key_t ipc_key, struct slave_params *params,
-		      snd_config_t *bindings,
-		      snd_config_t *root, snd_config_t *sconf,
-		      snd_pcm_stream_t stream, int mode)
+			key_t ipc_key, mode_t ipc_perm,
+			struct slave_params *params,
+			snd_config_t *bindings,
+			snd_config_t *root, snd_config_t *sconf,
+			snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm = NULL, *spcm = NULL;
 	snd_pcm_direct_t *dsnoop = NULL;
@@ -488,6 +491,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		goto _err;
 	
 	dsnoop->ipc_key = ipc_key;
+	dsnoop->ipc_perm = ipc_perm;
 	dsnoop->semid = -1;
 	dsnoop->shmid = -1;
 
@@ -695,7 +699,9 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	struct slave_params params;
 	int bsize, psize, ipc_key_add_uid = 0;
 	key_t ipc_key = 0;
+	mode_t ipc_perm = 0600;
 	int err;
+
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -711,6 +717,21 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 				return err;
 			}
 			ipc_key = key;
+			continue;
+		}
+		if (strcmp(id, "ipc_perm") == 0) {
+			char *perm;
+			char *endp;
+			err = snd_config_get_ascii(n, &perm);
+			if (err < 0) {
+				SNDERR("The field ipc_perm must be a valid file permission");
+				return err;
+			}
+			if (isdigit(*perm) == 0) {
+				SNDERR("The field ipc_perm must be a valid file permission");
+				return -EINVAL;
+			}
+			ipc_perm = strtol(perm, &endp, 8);
 			continue;
 		}
 		if (strcmp(id, "ipc_key_add_uid") == 0) {
@@ -780,7 +801,7 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 	params.period_size = psize;
 	params.buffer_size = bsize;
-	err = snd_pcm_dsnoop_open(pcmp, name, ipc_key, &params, bindings, root, sconf, stream, mode);
+	err = snd_pcm_dsnoop_open(pcmp, name, ipc_key, ipc_perm, &params, bindings, root, sconf, stream, mode);
 	if (err < 0)
 		snd_config_delete(sconf);
 	return err;

@@ -39,6 +39,7 @@
 #include <sys/sem.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/un.h>
 #include <sys/mman.h>
 #include "pcm_direct.h"
@@ -157,7 +158,7 @@ static int get_tmp_name(char *filename, size_t size)
 	return 0;
 }
 
-static int make_local_socket(const char *filename, int server)
+static int make_local_socket(const char *filename, int server, mode_t ipc_perm)
 {
 	size_t l = strlen(filename);
 	size_t size = offsetof(struct sockaddr_un, sun_path) + l;
@@ -181,6 +182,12 @@ static int make_local_socket(const char *filename, int server)
 			int result = -errno;
 			SYSERR("bind failed");
 			return result;
+		} else {
+			if (chmod(filename, ipc_perm) < 0) {
+				int result = -errno;
+				SYSERR("chmod failed");
+				return result;
+			}
 		}
 	} else {
 		if (connect(sock, (struct sockaddr *) addr, size) < 0) {
@@ -297,7 +304,7 @@ int snd_pcm_direct_server_create(snd_pcm_direct_t *dmix)
 	if (ret < 0)
 		return ret;
 	
-	ret = make_local_socket(dmix->shmptr->socket_name, 1);
+	ret = make_local_socket(dmix->shmptr->socket_name, 1, dmix->ipc_perm);
 	if (ret < 0)
 		return ret;
 	dmix->server_fd = ret;
@@ -349,7 +356,7 @@ int snd_pcm_direct_client_connect(snd_pcm_direct_t *dmix)
 	int ret;
 	unsigned char buf;
 
-	ret = make_local_socket(dmix->shmptr->socket_name, 0);
+	ret = make_local_socket(dmix->shmptr->socket_name, 0, dmix->ipc_perm);
 	if (ret < 0)
 		return ret;
 	dmix->comm_fd = ret;
