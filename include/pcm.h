@@ -25,7 +25,7 @@ static inline size_t bitset_size(int nbits)
 
 static inline bitset_t *bitset_alloc(int nbits)
 {
-	return calloc(bitset_size(nbits), sizeof(bitset_t));
+	return (bitset_t*) calloc(bitset_size(nbits), sizeof(bitset_t));
 }
 	
 static inline void bitset_set(bitset_t *bitmap, unsigned int pos)
@@ -76,7 +76,7 @@ static inline void bitset_one(bitset_t *dst, unsigned int nbits)
 {
 	bitset_t *end = dst + bitset_size(nbits);
 	while (dst < end)
-		*dst++ = -1;
+		*dst++ = ~(bitset_t)0;
 }
 
 typedef struct snd_pcm snd_pcm_t;
