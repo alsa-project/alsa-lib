@@ -24,20 +24,40 @@ snd_pcm_sframes_t buffer_size;
 snd_pcm_sframes_t period_size;
 snd_output_t *output = NULL;
 
-static void generate_sine(signed short *samples, int count, double *_phase)
+static void generate_sine(const snd_pcm_channel_area_t *areas, 
+			  snd_pcm_uframes_t offset,
+			  int count, double *_phase)
 {
 	double phase = *_phase;
 	double max_phase = 1.0 / freq;
 	double step = 1.0 / (double)rate;
 	double res;
+	signed short *samples[channels];
+	int steps[channels];
 	int chn, ires;
 	
+	/* verify and prepare the contents of areas */
+	for (chn = 0; chn < channels; chn++) {
+		if ((areas[chn].first % 8) != 0) {
+			printf("areas[%i].first == %i, aborting...\n", chn, areas[chn].first);
+			exit(EXIT_FAILURE);
+		}
+		samples[chn] = (signed short *)(((unsigned char *)areas[chn].addr) + (areas[chn].first / 8));
+		if ((areas[chn].step % 16) != 0) {
+			printf("areas[%i].step == %i, aborting...\n", chn, areas[chn].step);
+			exit(EXIT_FAILURE);
+		}
+		steps[chn] = areas[chn].step / 16;
+		samples[chn] += offset * steps[chn];
+	}
+	/* fill the channel areas */
 	while (count-- > 0) {
 		res = sin((phase * 2 * M_PI) / max_phase - M_PI) * 32767;
 		ires = res;
-		for (chn = 0; chn < channels; chn++)
-			*samples++ = ires;
-		// printf("phase: %.8f, max_phase: %.8f, res: %.8f, smp = %i\n", phase, max_phase, res, *(samples-1));
+		for (chn = 0; chn < channels; chn++) {
+			*samples[chn] = ires;
+			samples[chn] += steps[chn];
+		}
 		phase += step;
 		if (phase >= max_phase)
 			phase -= max_phase;
@@ -46,7 +66,8 @@ static void generate_sine(signed short *samples, int count, double *_phase)
 }
 
 static int set_hwparams(snd_pcm_t *handle,
-			snd_pcm_hw_params_t *params)
+			snd_pcm_hw_params_t *params,
+			snd_pcm_access_t access)
 {
 	int err, dir;
 
@@ -57,7 +78,7 @@ static int set_hwparams(snd_pcm_t *handle,
 		return err;
 	}
 	/* set the interleaved read/write format */
-	err = snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	err = snd_pcm_hw_params_set_access(handle, params, access);
 	if (err < 0) {
 		printf("Access type not available for playback: %s\n", snd_strerror(err));
 		return err;
@@ -150,12 +171,12 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
  
 static int xrun_recovery(snd_pcm_t *handle, int err)
 {
-	if (err = -EPIPE) {	/* underrun */
+	if (err == -EPIPE) {	/* underrun */
 		err = snd_pcm_prepare(handle);
 		if (err < 0)
 			printf("Can't recovery from underrun, prepare failed: %s\n", snd_strerror(err));
 		return 0;
-	} else if (err = -ESTRPIPE) {
+	} else if (err == -ESTRPIPE) {
 		while ((err = snd_pcm_resume(handle)) == -EAGAIN)
 			sleep(1);	/* wait until suspend flag is released */
 		if (err < 0) {
@@ -172,16 +193,18 @@ static int xrun_recovery(snd_pcm_t *handle, int err)
  *   Transfer method - write only
  */
 
-static int write_loop(snd_pcm_t *handle, signed short *samples)
+static int write_loop(snd_pcm_t *handle,
+		      signed short *samples,
+		      snd_pcm_channel_area_t *areas)
 {
-	int ufds_count;
-	struct pollfd *ufds;
 	double phase = 0;
 	signed short *ptr;
-	int err, count, cptr;
+	int err, cptr;
 
 	while (1) {
-		generate_sine(ptr = samples, cptr = period_size, &phase);
+		generate_sine(areas, 0, period_size, &phase);
+		ptr = samples;
+		cptr = period_size;
 		while (cptr > 0) {
 			err = snd_pcm_writei(handle, ptr, cptr);
 			if (err == -EAGAIN)
@@ -222,9 +245,10 @@ static int wait_for_poll(struct pollfd *ufds, int count)
 	}
 }
 
-static int write_and_poll_loop(snd_pcm_t *handle, signed short *samples)
+static int write_and_poll_loop(snd_pcm_t *handle,
+			       signed short *samples,
+			       snd_pcm_channel_area_t *areas)
 {
-	int ufds_count;
 	struct pollfd *ufds;
 	double phase = 0;
 	signed short *ptr;
@@ -253,7 +277,9 @@ static int write_and_poll_loop(snd_pcm_t *handle, signed short *samples)
 			return err;
 		}
 
-		generate_sine(ptr = samples, cptr = period_size, &phase);
+		generate_sine(areas, 0, period_size, &phase);
+		ptr = samples;
+		cptr = period_size;
 		while (cptr > 0) {
 			err = snd_pcm_writei(handle, ptr, cptr);
 			if (err < 0) {
@@ -279,18 +305,139 @@ static int write_and_poll_loop(snd_pcm_t *handle, signed short *samples)
 }
 
 /*
+ *   Transfer method - asynchronous notification
+ */
+
+struct async_private_data {
+	signed short *samples;
+	snd_pcm_channel_area_t *areas;
+	double phase;
+};
+
+static void async_callback(snd_async_handler_t *ahandler)
+{
+	snd_pcm_t *handle = snd_async_handler_get_pcm(ahandler);
+	struct async_private_data *data = snd_async_handler_get_callback_private(ahandler);
+	signed short *samples = data->samples;
+	snd_pcm_channel_area_t *areas = data->areas;
+	snd_pcm_sframes_t avail;
+	int err;
+	
+	avail = snd_pcm_avail_update(handle);
+	while (avail >= period_size) {
+		generate_sine(areas, 0, period_size, &data->phase);
+		err = snd_pcm_writei(handle, samples, period_size);
+		if (err < 0) {
+			printf("Initial write error: %s\n", snd_strerror(err));
+			exit(EXIT_FAILURE);
+		}
+		if (err != period_size) {
+			printf("Initial write error: written %i expected %li\n", err, period_size);
+			exit(EXIT_FAILURE);
+		}
+		avail = snd_pcm_avail_update(handle);
+	}
+}
+
+static int async_loop(snd_pcm_t *handle,
+		      signed short *samples,
+		      snd_pcm_channel_area_t *areas)
+{
+	struct async_private_data data;
+	snd_async_handler_t *ahandler;
+	int err, count;
+
+	data.samples = samples;
+	data.areas = areas;
+	data.phase = 0;
+	err = snd_async_add_pcm_handler(&ahandler, handle, async_callback, &data);
+	if (err < 0) {
+		printf("Unable to register async handler\n");
+		exit(EXIT_FAILURE);
+	}
+	for (count = 0; count < 2; count++) {
+		generate_sine(areas, 0, period_size, &data.phase);
+		err = snd_pcm_writei(handle, samples, period_size);
+		if (err < 0) {
+			printf("Initial write error: %s\n", snd_strerror(err));
+			exit(EXIT_FAILURE);
+		}
+		if (err != period_size) {
+			printf("Initial write error: written %i expected %li\n", err, period_size);
+			exit(EXIT_FAILURE);
+		}
+	}
+	err = snd_pcm_start(handle);
+	if (err < 0) {
+		printf("Start error: %s\n", snd_strerror(err));
+		exit(EXIT_FAILURE);
+	}
+
+	/* because all other work is done in the signal handler,
+	   suspend the process */
+	while (1) {
+		sleep(1);
+	}
+}
+
+/*
+ *   Transfer method - direct write only
+ */
+
+static int direct_loop(snd_pcm_t *handle,
+		       signed short *samples,
+		       snd_pcm_channel_area_t *areas)
+{
+	double phase = 0;
+	const snd_pcm_channel_area_t *my_areas;
+	snd_pcm_uframes_t offset, frames;
+	int err, first = 1;
+
+	while (1) {
+		frames = period_size;
+		err = snd_pcm_mmap_begin(handle, &my_areas, &offset, &frames);
+		if (err < 0) {
+			printf("MMAP begin error: %s\n", snd_strerror(err));
+			exit(EXIT_FAILURE);
+		}
+		if (frames > period_size)
+			frames = period_size;
+		generate_sine(my_areas, offset, frames, &phase);
+		err = snd_pcm_mmap_commit(handle, offset, frames);
+		if (err < 0) {
+			printf("MMAP commit error: %s\n", snd_strerror(err));
+			exit(EXIT_FAILURE);
+		}
+		if (frames == 0 && first) {	/* trigger playback */
+			first = 0;
+			err = snd_pcm_start(handle);
+			if (err < 0) {
+				printf("Start error: %s\n", snd_strerror(err));
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+}
+ 
+/*
  *
  */
 
 struct transfer_method {
 	const char *name;
-	int (*transfer_loop)(snd_pcm_t *handle, signed short *samples);
+	snd_pcm_access_t access;
+	int (*transfer_loop)(snd_pcm_t *handle,
+			     signed short *samples,
+			     snd_pcm_channel_area_t *areas);
 };
 
 static struct transfer_method transfer_methods[] = {
-	{ "write", write_loop },
-	{ "write_and_poll", write_and_poll_loop },
-	{ NULL, NULL }
+	{ "write", SND_PCM_ACCESS_RW_INTERLEAVED, write_loop },
+	{ "write_and_poll", SND_PCM_ACCESS_RW_INTERLEAVED, write_and_poll_loop },
+	{ "async", SND_PCM_ACCESS_RW_INTERLEAVED, async_loop },
+	{ "direct_interleaved", SND_PCM_ACCESS_MMAP_INTERLEAVED, direct_loop },
+	{ "direct_noninterleaved", SND_PCM_ACCESS_MMAP_NONINTERLEAVED, direct_loop },
+	{ NULL, SND_PCM_ACCESS_RW_INTERLEAVED, NULL }
 };
 
 static void help(void)
@@ -336,13 +483,13 @@ int main(int argc, char *argv[])
 		{NULL, 0, NULL, 0},
 	};
 	snd_pcm_t *handle;
-	char *buffer;
 	int err, morehelp;
 	snd_pcm_hw_params_t *hwparams;
 	snd_pcm_sw_params_t *swparams;
-	double phase;
 	int method = 0;
 	signed short *samples;
+	int chn;
+	snd_pcm_channel_area_t *areas;
 
 	snd_pcm_hw_params_alloca(&hwparams);
 	snd_pcm_sw_params_alloca(&swparams);
@@ -410,12 +557,12 @@ int main(int argc, char *argv[])
 	printf("Sine wave rate is %.4fHz\n", freq);
 	printf("Using transfer method: %s\n", transfer_methods[method].name);
 
-	if ((err = snd_pcm_open(&handle, device, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK)) < 0) {
+	if ((err = snd_pcm_open(&handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return 0;
 	}
 	
-	if ((err = set_hwparams(handle, hwparams)) < 0) {
+	if ((err = set_hwparams(handle, hwparams, transfer_methods[method].access)) < 0) {
 		printf("Setting of hwparams failed: %s\n", snd_strerror(err));
 		exit(EXIT_FAILURE);
 	}
@@ -429,11 +576,24 @@ int main(int argc, char *argv[])
 		printf("No enough memory\n");
 		exit(EXIT_FAILURE);
 	}
+	
+	areas = calloc(channels, sizeof(snd_pcm_channel_area_t));
+	if (areas == NULL) {
+		printf("No enough memory\n");
+		exit(EXIT_FAILURE);
+	}
+	for (chn = 0; chn < channels; chn++) {
+		areas[chn].addr = samples;
+		areas[chn].first = chn * 16;
+		areas[chn].step = channels * 16;
+	}
 
-	err = transfer_methods[method].transfer_loop(handle, samples);
+	err = transfer_methods[method].transfer_loop(handle, samples, areas);
 	if (err < 0)
 		printf("Transfer failed: %s\n", snd_strerror(err));
 
+	free(areas);
+	free(samples);
 	snd_pcm_close(handle);
 	return 0;
 }
