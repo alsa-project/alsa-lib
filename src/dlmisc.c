@@ -27,6 +27,7 @@
  *
  */
 
+#define _GNU_SOURCE
 #include <dlfcn.h>
 #include "local.h"
 
@@ -50,6 +51,12 @@ void *snd_dlopen(const char *name, int mode)
 #ifndef PIC
 	if (name == NULL)
 		return &snd_dlsym_start;
+#else
+	if (name == NULL) {
+		Dl_info dlinfo;
+		if (dladdr(snd_dlopen, &dlinfo) > 0)
+			name = dlinfo.dli_fname;
+	}
 #endif
 	return dlopen(name, mode);
 }
