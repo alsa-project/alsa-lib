@@ -27,7 +27,7 @@ typedef struct {
 	snd_pcm_t *req_slave;
 	int close_slave;
 	snd_pcm_t *slave;
-	ttable_entry_t *ttable;
+	snd_pcm_route_ttable_entry_t *ttable;
 	unsigned int tt_ssize, tt_cused, tt_sused;
 } snd_pcm_plug_t;
 
@@ -229,7 +229,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 {
 	snd_pcm_plug_t *plug = pcm->private;
 	unsigned int tt_ssize, tt_cused, tt_sused;
-	ttable_entry_t *ttable;
+	snd_pcm_route_ttable_entry_t *ttable;
 	int err;
 	assert(snd_pcm_format_linear(slv->format));
 	if (clt->channels == slv->channels)
@@ -259,7 +259,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 			n = slv->channels;
 		}
 		while (n-- > 0) {
-			ttable_entry_t v = FULL;
+			snd_pcm_route_ttable_entry_t v = FULL;
 			if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
 			    clt->channels > slv->channels) {
 				int srcs = clt->channels / slv->channels;
@@ -656,7 +656,7 @@ snd_pcm_ops_t snd_pcm_plug_ops = {
 
 int snd_pcm_plug_open(snd_pcm_t **pcmp,
 		      char *name,
-		      ttable_entry_t *ttable,
+		      snd_pcm_route_ttable_entry_t *ttable,
 		      unsigned int tt_ssize,
 		      unsigned int tt_cused, unsigned int tt_sused,
 		      snd_pcm_t *slave, int close_slave)
@@ -718,7 +718,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, char *name,
 	int err;
 	snd_pcm_t *spcm;
 	snd_config_t *tt = NULL;
-	ttable_entry_t *ttable = NULL;
+	snd_pcm_route_ttable_entry_t *ttable = NULL;
 	unsigned int cused, sused;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);

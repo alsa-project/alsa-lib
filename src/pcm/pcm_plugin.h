@@ -62,9 +62,6 @@ int snd_pcm_plugin_munmap_status(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap_control(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap(snd_pcm_t *pcm);
 int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm);
-int get_index(int src_format, int dst_format);
-int put_index(int src_format, int dst_format);
-int conv_index(int src_format, int dst_format);
 int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
@@ -86,27 +83,30 @@ extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 #define ROUTE_PLUGIN_RESOLUTION 16
 
 #if ROUTE_PLUGIN_FLOAT
-typedef float ttable_entry_t;
+typedef float snd_pcm_route_ttable_entry_t;
 #define HALF 0.5
 #define FULL 1.0
 #else
-typedef int ttable_entry_t;
+typedef int snd_pcm_route_ttable_entry_t;
 #define HALF (ROUTE_PLUGIN_RESOLUTION / 2)
 #define FULL ROUTE_PLUGIN_RESOLUTION
 #endif
 
+int snd_pcm_linear_get_index(int src_format, int dst_format);
+int snd_pcm_linear_put_index(int src_format, int dst_format);
+int snd_pcm_linear_convert_index(int src_format, int dst_format);
 int snd_pcm_copy_open(snd_pcm_t **pcmp, char *name, snd_pcm_t *slave, int close_slave);
 int snd_pcm_linear_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
 int snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
 int snd_pcm_alaw_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
 int snd_pcm_adpcm_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_route_load_ttable(snd_config_t *tt, ttable_entry_t *ttable,
+int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
 			      unsigned int tt_csize, unsigned int tt_ssize,
 			      unsigned int *tt_cused, unsigned int *tt_sused,
 			      int schannels);
 int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 		       int sformat, unsigned int schannels,
-		       ttable_entry_t *ttable,
+		       snd_pcm_route_ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
 		       snd_pcm_t *slave, int close_slave);
@@ -118,3 +118,44 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, int sformat, int srate, snd_
 			       (1 << SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
 			       (1 << SND_PCM_ACCESS_RW_NONINTERLEAVED))
 
+void snd_pcm_linear_convert(const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
+			    const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+			    unsigned int channels, snd_pcm_uframes_t frames, int convidx);
+void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *src_areas,
+			 snd_pcm_uframes_t src_offset,
+			 const snd_pcm_channel_area_t *dst_areas,
+			 snd_pcm_uframes_t dst_offset,
+			 unsigned int channels, snd_pcm_uframes_t frames, int putidx);
+void snd_pcm_alaw_encode(const snd_pcm_channel_area_t *src_areas,
+			 snd_pcm_uframes_t src_offset,
+			 const snd_pcm_channel_area_t *dst_areas,
+			 snd_pcm_uframes_t dst_offset,
+			 unsigned int channels, snd_pcm_uframes_t frames, int getidx);
+void snd_pcm_mulaw_decode(const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
+			  const snd_pcm_channel_area_t *dst_areas,
+			  snd_pcm_uframes_t dst_offset,
+			  unsigned int channels, snd_pcm_uframes_t frames, int putidx);
+void snd_pcm_mulaw_encode(const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
+			  const snd_pcm_channel_area_t *dst_areas,
+			  snd_pcm_uframes_t dst_offset,
+			  unsigned int channels, snd_pcm_uframes_t frames, int getidx);
+
+typedef struct _snd_pcm_adpcm_state {
+	int pred_val;		/* Calculated predicted value */
+	int step_idx;		/* Previous StepSize lookup index */
+} snd_pcm_adpcm_state_t;
+
+void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
+			  const snd_pcm_channel_area_t *dst_areas,
+			  snd_pcm_uframes_t dst_offset,
+			  unsigned int channels, snd_pcm_uframes_t frames, int putidx,
+			  snd_pcm_adpcm_state_t *states);
+void snd_pcm_adpcm_encode(const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
+			  const snd_pcm_channel_area_t *dst_areas,
+			  snd_pcm_uframes_t dst_offset,
+			  unsigned int channels, snd_pcm_uframes_t frames, int getidx,
+			  snd_pcm_adpcm_state_t *states);

@@ -31,7 +31,7 @@ typedef struct {
 	int16_t sample;
 	int sum;
 	unsigned int pos;
-} rate_state_t;
+} snd_pcm_rate_state_t;
  
 typedef snd_pcm_uframes_t (*rate_f)(const snd_pcm_channel_area_t *src_areas,
 			 snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
@@ -40,7 +40,7 @@ typedef snd_pcm_uframes_t (*rate_f)(const snd_pcm_channel_area_t *src_areas,
 			 unsigned int channels,
 			 int getidx, int putidx,
 			 unsigned int arg,
-			 rate_state_t *states);
+			 snd_pcm_rate_state_t *states);
 
 typedef struct {
 	/* This field need to be the first */
@@ -51,17 +51,17 @@ typedef struct {
 	rate_f func;
 	int sformat;
 	int srate;
-	rate_state_t *states;
+	snd_pcm_rate_state_t *states;
 } snd_pcm_rate_t;
 
-static snd_pcm_uframes_t resample_expand(const snd_pcm_channel_area_t *src_areas,
-			      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
-			      const snd_pcm_channel_area_t *dst_areas,
-			      snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
-			      unsigned int channels,
-			      int getidx, int putidx,
-			      unsigned int get_threshold,
-			      rate_state_t *states)
+snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *src_areas,
+				      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
+				      const snd_pcm_channel_area_t *dst_areas,
+				      snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
+				      unsigned int channels,
+				      int getidx, int putidx,
+				      unsigned int get_threshold,
+				      snd_pcm_rate_state_t *states)
 {
 #define GET16_LABELS
 #define PUT16_LABELS
@@ -136,14 +136,14 @@ static snd_pcm_uframes_t resample_expand(const snd_pcm_channel_area_t *src_areas
 	return src_frames1;
 }
 
-static snd_pcm_uframes_t resample_shrink(const snd_pcm_channel_area_t *src_areas,
-			      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
-			      const snd_pcm_channel_area_t *dst_areas,
-			      snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
-			      unsigned int channels,
-			      int getidx, int putidx,
-			      unsigned int get_increment,
-			      rate_state_t *states)
+snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *src_areas,
+				      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
+				      const snd_pcm_channel_area_t *dst_areas,
+				      snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
+				      unsigned int channels,
+				      int getidx, int putidx,
+				      unsigned int get_increment,
+				      snd_pcm_rate_state_t *states)
 {
 #define GET16_LABELS
 #define PUT16_LABELS
@@ -367,13 +367,13 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		src_rate = slave->rate;
 		dst_rate = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_RATE, 0);
 	}
-	rate->get_idx = get_index(src_format, SND_PCM_FORMAT_S16);
-	rate->put_idx = put_index(SND_PCM_FORMAT_S16, dst_format);
+	rate->get_idx = snd_pcm_linear_get_index(src_format, SND_PCM_FORMAT_S16);
+	rate->put_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, dst_format);
 	if (src_rate < dst_rate) {
-		rate->func = resample_expand;
+		rate->func = snd_pcm_rate_expand;
 		/* pitch is get_threshold */
 	} else {
-		rate->func = resample_shrink;
+		rate->func = snd_pcm_rate_shrink;
 		/* pitch is get_increment */
 	}
 	rate->pitch = (((u_int64_t)dst_rate * DIV) + src_rate / 2) / src_rate;
@@ -412,7 +412,7 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 	for (k = 0; k < pcm->channels; ++k) {
 		rate->states[k].sum = 0;
 		rate->states[k].sample = 0;
-		if (rate->func == resample_expand) {
+		if (rate->func == snd_pcm_rate_expand) {
 			/* Get a sample on entry */
 			rate->states[k].pos = rate->pitch + DIV;
 		} else {

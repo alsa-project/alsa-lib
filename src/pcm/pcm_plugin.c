@@ -358,63 +358,6 @@ int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	return snd_pcm_hw_params(plugin->slave, params);
 }
 
-int conv_index(int src_format, int dst_format)
-{
-	int src_endian, dst_endian, sign, src_width, dst_width;
-
-	sign = (snd_pcm_format_signed(src_format) !=
-		snd_pcm_format_signed(dst_format));
-#ifdef SND_LITTLE_ENDIAN
-	src_endian = snd_pcm_format_big_endian(src_format);
-	dst_endian = snd_pcm_format_big_endian(dst_format);
-#else
-	src_endian = snd_pcm_format_little_endian(src_format);
-	dst_endian = snd_pcm_format_little_endian(dst_format);
-#endif
-
-	if (src_endian < 0)
-		src_endian = 0;
-	if (dst_endian < 0)
-		dst_endian = 0;
-
-	src_width = snd_pcm_format_width(src_format) / 8 - 1;
-	dst_width = snd_pcm_format_width(dst_format) / 8 - 1;
-
-	return src_width * 32 + src_endian * 16 + sign * 8 + dst_width * 2 + dst_endian;
-}
-
-int get_index(int src_format, int dst_format)
-{
-	int sign, width, endian;
-	sign = (snd_pcm_format_signed(src_format) != 
-		snd_pcm_format_signed(dst_format));
-	width = snd_pcm_format_width(src_format) / 8 - 1;
-#ifdef SND_LITTLE_ENDIAN
-	endian = snd_pcm_format_big_endian(src_format);
-#else
-	endian = snd_pcm_format_little_endian(src_format);
-#endif
-	if (endian < 0)
-		endian = 0;
-	return width * 4 + endian * 2 + sign;
-}
-
-int put_index(int src_format, int dst_format)
-{
-	int sign, width, endian;
-	sign = (snd_pcm_format_signed(src_format) != 
-		snd_pcm_format_signed(dst_format));
-	width = snd_pcm_format_width(dst_format) / 8 - 1;
-#ifdef SND_LITTLE_ENDIAN
-	endian = snd_pcm_format_big_endian(dst_format);
-#else
-	endian = snd_pcm_format_little_endian(dst_format);
-#endif
-	if (endian < 0)
-		endian = 0;
-	return width * 4 + endian * 2 + sign;
-}
-
 snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	status: snd_pcm_plugin_status,
 	state: snd_pcm_plugin_state,

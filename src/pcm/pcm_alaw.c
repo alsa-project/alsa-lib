@@ -120,11 +120,11 @@ static int alaw_to_s16(unsigned char a_val)
 	return ((a_val & 0x80) ? t : -t);
 }
 
-static void alaw_decode(const snd_pcm_channel_area_t *src_areas,
-			snd_pcm_uframes_t src_offset,
-			const snd_pcm_channel_area_t *dst_areas,
-			snd_pcm_uframes_t dst_offset,
-			unsigned int channels, snd_pcm_uframes_t frames, int putidx)
+void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *src_areas,
+			 snd_pcm_uframes_t src_offset,
+			 const snd_pcm_channel_area_t *dst_areas,
+			 snd_pcm_uframes_t dst_offset,
+			 unsigned int channels, snd_pcm_uframes_t frames, int putidx)
 {
 #define PUT16_LABELS
 #include "plugin_ops.h"
@@ -165,7 +165,7 @@ static void alaw_decode(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-static void alaw_encode(const snd_pcm_channel_area_t *src_areas,
+void snd_pcm_alaw_encode(const snd_pcm_channel_area_t *src_areas,
 			 snd_pcm_uframes_t src_offset,
 			 const snd_pcm_channel_area_t *dst_areas,
 			 snd_pcm_uframes_t dst_offset,
@@ -315,19 +315,19 @@ static int snd_pcm_alaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (alaw->sformat == SND_PCM_FORMAT_A_LAW) {
-			alaw->getput_idx = get_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0), SND_PCM_FORMAT_S16);
-			alaw->func = alaw_encode;
+			alaw->getput_idx = snd_pcm_linear_get_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0), SND_PCM_FORMAT_S16);
+			alaw->func = snd_pcm_alaw_encode;
 		} else {
-			alaw->getput_idx = put_index(SND_PCM_FORMAT_S16, alaw->sformat);
-			alaw->func = alaw_decode;
+			alaw->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, alaw->sformat);
+			alaw->func = snd_pcm_alaw_decode;
 		}
 	} else {
 		if (alaw->sformat == SND_PCM_FORMAT_A_LAW) {
-			alaw->getput_idx = put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0));
-			alaw->func = alaw_decode;
+			alaw->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0));
+			alaw->func = snd_pcm_alaw_decode;
 		} else {
-			alaw->getput_idx = get_index(alaw->sformat, SND_PCM_FORMAT_S16);
-			alaw->func = alaw_encode;
+			alaw->getput_idx = snd_pcm_linear_get_index(alaw->sformat, SND_PCM_FORMAT_S16);
+			alaw->func = snd_pcm_alaw_encode;
 		}
 	}
 	return 0;

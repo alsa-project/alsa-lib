@@ -30,7 +30,64 @@ typedef struct {
 	int sformat;
 } snd_pcm_linear_t;
 
-static void linear_transfer(const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
+int snd_pcm_linear_convert_index(int src_format, int dst_format)
+{
+	int src_endian, dst_endian, sign, src_width, dst_width;
+
+	sign = (snd_pcm_format_signed(src_format) !=
+		snd_pcm_format_signed(dst_format));
+#ifdef SND_LITTLE_ENDIAN
+	src_endian = snd_pcm_format_big_endian(src_format);
+	dst_endian = snd_pcm_format_big_endian(dst_format);
+#else
+	src_endian = snd_pcm_format_little_endian(src_format);
+	dst_endian = snd_pcm_format_little_endian(dst_format);
+#endif
+
+	if (src_endian < 0)
+		src_endian = 0;
+	if (dst_endian < 0)
+		dst_endian = 0;
+
+	src_width = snd_pcm_format_width(src_format) / 8 - 1;
+	dst_width = snd_pcm_format_width(dst_format) / 8 - 1;
+
+	return src_width * 32 + src_endian * 16 + sign * 8 + dst_width * 2 + dst_endian;
+}
+
+int snd_pcm_linear_get_index(int src_format, int dst_format)
+{
+	int sign, width, endian;
+	sign = (snd_pcm_format_signed(src_format) != 
+		snd_pcm_format_signed(dst_format));
+	width = snd_pcm_format_width(src_format) / 8 - 1;
+#ifdef SND_LITTLE_ENDIAN
+	endian = snd_pcm_format_big_endian(src_format);
+#else
+	endian = snd_pcm_format_little_endian(src_format);
+#endif
+	if (endian < 0)
+		endian = 0;
+	return width * 4 + endian * 2 + sign;
+}
+
+int snd_pcm_linear_put_index(int src_format, int dst_format)
+{
+	int sign, width, endian;
+	sign = (snd_pcm_format_signed(src_format) != 
+		snd_pcm_format_signed(dst_format));
+	width = snd_pcm_format_width(dst_format) / 8 - 1;
+#ifdef SND_LITTLE_ENDIAN
+	endian = snd_pcm_format_big_endian(dst_format);
+#else
+	endian = snd_pcm_format_little_endian(dst_format);
+#endif
+	if (endian < 0)
+		endian = 0;
+	return width * 4 + endian * 2 + sign;
+}
+
+void snd_pcm_linear_convert(const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
 			    const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 			    unsigned int channels, snd_pcm_uframes_t frames, int convidx)
 {
@@ -167,11 +224,11 @@ static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (err < 0)
 		return err;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		linear->conv_idx = conv_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0),
-					      linear->sformat);
+		linear->conv_idx = snd_pcm_linear_convert_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0),
+								linear->sformat);
 	else
-		linear->conv_idx = conv_index(linear->sformat,
-					      snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0));
+		linear->conv_idx = snd_pcm_linear_convert_index(linear->sformat,
+								snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0));
 	return 0;
 }
 
@@ -190,9 +247,9 @@ static snd_pcm_sframes_t snd_pcm_linear_write_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
-		linear_transfer(areas, offset, 
-				snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-				pcm->channels, frames, linear->conv_idx);
+		snd_pcm_linear_convert(areas, offset, 
+				       snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+				       pcm->channels, frames, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
@@ -224,9 +281,9 @@ static snd_pcm_sframes_t snd_pcm_linear_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		linear_transfer(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-				areas, offset, 
-				pcm->channels, frames, linear->conv_idx);
+		snd_pcm_linear_convert(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+				       areas, offset, 
+				       pcm->channels, frames, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;

@@ -137,11 +137,11 @@ static int ulaw_to_s16(unsigned char u_val)
 	return ((u_val & 0x80) ? (0x84 - t) : (t - 0x84));
 }
 
-static void mulaw_decode(const snd_pcm_channel_area_t *src_areas,
-			 snd_pcm_uframes_t src_offset,
-			 const snd_pcm_channel_area_t *dst_areas,
-			 snd_pcm_uframes_t dst_offset,
-			 unsigned int channels, snd_pcm_uframes_t frames, int putidx)
+void snd_pcm_mulaw_decode(const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
+			  const snd_pcm_channel_area_t *dst_areas,
+			  snd_pcm_uframes_t dst_offset,
+			  unsigned int channels, snd_pcm_uframes_t frames, int putidx)
 {
 #define PUT16_LABELS
 #include "plugin_ops.h"
@@ -182,11 +182,11 @@ static void mulaw_decode(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-static void mulaw_encode(const snd_pcm_channel_area_t *src_areas,
-			 snd_pcm_uframes_t src_offset,
-			 const snd_pcm_channel_area_t *dst_areas,
-			 snd_pcm_uframes_t dst_offset,
-			 unsigned int channels, snd_pcm_uframes_t frames, int getidx)
+void snd_pcm_mulaw_encode(const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
+			  const snd_pcm_channel_area_t *dst_areas,
+			  snd_pcm_uframes_t dst_offset,
+			  unsigned int channels, snd_pcm_uframes_t frames, int getidx)
 {
 #define GET16_LABELS
 #include "plugin_ops.h"
@@ -330,19 +330,19 @@ static int snd_pcm_mulaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (mulaw->sformat == SND_PCM_FORMAT_MU_LAW) {
-			mulaw->getput_idx = get_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0), SND_PCM_FORMAT_S16);
-			mulaw->func = mulaw_encode;
+			mulaw->getput_idx = snd_pcm_linear_get_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0), SND_PCM_FORMAT_S16);
+			mulaw->func = snd_pcm_mulaw_encode;
 		} else {
-			mulaw->getput_idx = put_index(SND_PCM_FORMAT_S16, mulaw->sformat);
-			mulaw->func = mulaw_decode;
+			mulaw->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, mulaw->sformat);
+			mulaw->func = snd_pcm_mulaw_decode;
 		}
 	} else {
 		if (mulaw->sformat == SND_PCM_FORMAT_MU_LAW) {
-			mulaw->getput_idx = put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0));
-			mulaw->func = mulaw_decode;
+			mulaw->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0));
+			mulaw->func = snd_pcm_mulaw_decode;
 		} else {
-			mulaw->getput_idx = get_index(mulaw->sformat, SND_PCM_FORMAT_S16);
-			mulaw->func = mulaw_encode;
+			mulaw->getput_idx = snd_pcm_linear_get_index(mulaw->sformat, SND_PCM_FORMAT_S16);
+			mulaw->func = snd_pcm_mulaw_encode;
 		}
 	}
 	return 0;

@@ -51,17 +51,12 @@ IMA compatability project proceedings, Vol 2, Issue 2, May 1992.
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
-typedef struct {
-	int pred_val;		/* Calculated predicted value */
-	int step_idx;		/* Previous StepSize lookup index */
-} adpcm_state_t;
-
 typedef void (*adpcm_f)(const snd_pcm_channel_area_t *src_areas,
 			snd_pcm_uframes_t src_offset,
 			const snd_pcm_channel_area_t *dst_areas,
 			snd_pcm_uframes_t dst_offset,
 			unsigned int channels, snd_pcm_uframes_t frames, int getputidx,
-			adpcm_state_t *states);
+			snd_pcm_adpcm_state_t *states);
 
 typedef struct {
 	/* This field need to be the first */
@@ -69,7 +64,7 @@ typedef struct {
 	int getput_idx;
 	adpcm_f func;
 	int sformat;
-	adpcm_state_t *states;
+	snd_pcm_adpcm_state_t *states;
 } snd_pcm_adpcm_t;
 
 /* First table lookup for Ima-ADPCM quantizer */
@@ -88,7 +83,7 @@ static short StepSize[89] = {
 	15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
 };
 
-static char adpcm_encoder(int sl, adpcm_state_t * state)
+static char adpcm_encoder(int sl, snd_pcm_adpcm_state_t * state)
 {
 	short diff;		/* Difference between sl and predicted sample */
 	short pred_diff;	/* Predicted difference to next sample */
@@ -149,7 +144,7 @@ static char adpcm_encoder(int sl, adpcm_state_t * state)
 }
 
 
-static int adpcm_decoder(unsigned char code, adpcm_state_t * state)
+static int adpcm_decoder(unsigned char code, snd_pcm_adpcm_state_t * state)
 {
 	short pred_diff;	/* Predicted difference to next sample */
 	short step;		/* holds previous StepSize value */
@@ -195,12 +190,12 @@ static int adpcm_decoder(unsigned char code, adpcm_state_t * state)
 	return (state->pred_val);
 }
 
-static void adpcm_decode(const snd_pcm_channel_area_t *src_areas,
-			 snd_pcm_uframes_t src_offset,
-			 const snd_pcm_channel_area_t *dst_areas,
-			 snd_pcm_uframes_t dst_offset,
-			 unsigned int channels, snd_pcm_uframes_t frames, int putidx,
-			 adpcm_state_t *states)
+void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
+			  const snd_pcm_channel_area_t *dst_areas,
+			  snd_pcm_uframes_t dst_offset,
+			  unsigned int channels, snd_pcm_uframes_t frames, int putidx,
+			  snd_pcm_adpcm_state_t *states)
 {
 #define PUT16_LABELS
 #include "plugin_ops.h"
@@ -256,12 +251,12 @@ static void adpcm_decode(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-static void adpcm_encode(const snd_pcm_channel_area_t *src_areas,
-			 snd_pcm_uframes_t src_offset,
-			 const snd_pcm_channel_area_t *dst_areas,
-			 snd_pcm_uframes_t dst_offset,
-			 unsigned int channels, snd_pcm_uframes_t frames, int getidx,
-			 adpcm_state_t *states)
+void snd_pcm_adpcm_encode(const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
+			  const snd_pcm_channel_area_t *dst_areas,
+			  snd_pcm_uframes_t dst_offset,
+			  unsigned int channels, snd_pcm_uframes_t frames, int getidx,
+			  snd_pcm_adpcm_state_t *states)
 {
 #define GET16_LABELS
 #include "plugin_ops.h"
@@ -422,19 +417,19 @@ static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (adpcm->sformat == SND_PCM_FORMAT_IMA_ADPCM) {
-			adpcm->getput_idx = get_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0), SND_PCM_FORMAT_S16);
-			adpcm->func = adpcm_encode;
+			adpcm->getput_idx = snd_pcm_linear_get_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0), SND_PCM_FORMAT_S16);
+			adpcm->func = snd_pcm_adpcm_encode;
 		} else {
-			adpcm->getput_idx = put_index(SND_PCM_FORMAT_S16, adpcm->sformat);
-			adpcm->func = adpcm_decode;
+			adpcm->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, adpcm->sformat);
+			adpcm->func = snd_pcm_adpcm_decode;
 		}
 	} else {
 		if (adpcm->sformat == SND_PCM_FORMAT_IMA_ADPCM) {
-			adpcm->getput_idx = put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0));
-			adpcm->func = adpcm_decode;
+			adpcm->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0));
+			adpcm->func = snd_pcm_adpcm_decode;
 		} else {
-			adpcm->getput_idx = get_index(adpcm->sformat, SND_PCM_FORMAT_S16);
-			adpcm->func = adpcm_encode;
+			adpcm->getput_idx = snd_pcm_linear_get_index(adpcm->sformat, SND_PCM_FORMAT_S16);
+			adpcm->func = snd_pcm_adpcm_encode;
 		}
 	}
 	assert(!adpcm->states);
