@@ -74,6 +74,7 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #define _snd_timer_status sndrv_timer_status
 
 #include <sound/asound.h>
+#include <sound/asoundef.h>
 #include <sound/asequencer.h>
 #include "asoundlib.h"
 #include "list.h"

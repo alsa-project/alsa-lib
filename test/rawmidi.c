@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <sys/asoundlib.h>
+#include "../include/asoundlib.h"
 #include <signal.h>
 
 static void usage(void)

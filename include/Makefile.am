@@ -1,5 +1,5 @@
-sysincludedir = ${includedir}/sys
-sysinclude_HEADERS = asoundlib.h
+alsaincludedir = ${includedir}/alsa
+alsainclude_HEADERS = asoundlib.h
 
 # This is the order they will be concatenated into asoundlib.h!
 #
@@ -39,3 +39,7 @@ stamp-vh: $(top_builddir)/configure.in
 	-@rm -f ver.tmp
 
 INCLUDES=-I$(top_srcdir)/include
+
+install-exec-hook:
+	rm -f $(alsaincludedir)/asoundef.h
+	(cd $(DESTDIR)$(alsaincludedir) && $(LN_S) ../sound/asoundef.h asoundef.h)

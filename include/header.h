@@ -28,7 +28,9 @@
 #ifndef __ASOUNDLIB_H
 #define __ASOUNDLIB_H
 
-#include <sound/asoundef.h>
+#ifndef __ASOUNDEF_H
+#include <alsa/asoundef.h>
+#endif
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
