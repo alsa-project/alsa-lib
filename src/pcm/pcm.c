@@ -42,7 +42,32 @@
 understanding it as general digital audio processing with volume samples
 generated in continuous time periods.</P>
 
-<P>Write some description about digital audio here.</P>
+<P>The analog signal is recorded via analog to digital converters (ADC).
+The digital value (de-facto a volume at a specific time) obtained
+from ADC can be further processed. The following picture shows a perfect
+sinus waveform:</P>
+
+<BR>
+\image html wave1.gif
+
+<P>Next image shows digitized representation:</P>
+
+<BR>
+\image html wave2.gif
+
+<P>As you may see, the quality of digital audio signal depends on the time
+(recording rate) and voltage resolution (usually in an linear integer
+representation with basic unit one bit).</P>
+
+<P>The stored digital signal can be converted back to voltage (analog)
+representation via digital to analog converters (DAC).</P>
+
+<P>One digital value is called sample. More samples are collected to frames
+(frame is terminology for ALSA) depending on count of converters used at one
+specific time. One frame might contain one sample (when only one converter is
+used - mono) or more samples (for example: stereo has signals from two converters
+recorded at same time). Digital audio stream contains collection of frames
+recorded at boundaries of continous time periods.</P>
 
 \section pcm_general_overview General overview
 
