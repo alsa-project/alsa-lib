@@ -8,7 +8,7 @@ rpm: dist
 
 dist-hook:
 	-chmod -R a+r $(distdir)
-	$(TAR) cvIf $(distdir).tar.bz2 $(distdir)
+	$(TAR) cvf $(distdir).tar.bz2 --bzip2 $(distdir)
 
 doc-dummy:
 
