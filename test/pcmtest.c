@@ -102,8 +102,10 @@ void info_channel(snd_pcm_t *handle, int channel, char *id)
 		printf(" Special");
 	printf("\n");
 	printf("  rates          :");
-	if (chninfo.rates & SND_PCM_RATE_PLL)
-		printf(" PLL");
+	if (chninfo.rates & SND_PCM_RATE_CONTINUOUS)
+		printf(" Continuous");
+	if (chninfo.rates & SND_PCM_RATE_KNOT)
+		printf(" Knot");
 	if (chninfo.rates & SND_PCM_RATE_8000)
 		printf(" 8000");
 	if (chninfo.rates & SND_PCM_RATE_11025)
