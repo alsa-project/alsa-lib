@@ -508,6 +508,7 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 			rate->states[k].u.linear.pos = 0;
 			rate->states[k].u.linear.init = 0;
 		}
+		break;
 	default:
 		assert(0);
 	}
