@@ -29,11 +29,12 @@ struct alisp_cfg {
 	snd_output_t *vout;	/* verbose output */
 	snd_output_t *wout;	/* warning output */
 	snd_output_t *dout;	/* debug output */
-	snd_config_t *root;
-	snd_config_t *node;
 };
 
-int alsa_lisp(struct alisp_cfg *cfg);
+struct alisp_instance;
+
+int alsa_lisp(struct alisp_cfg *cfg, struct alisp_instance **instance);
+void alsa_lisp_free(struct alisp_instance *instance);
 
 extern struct alisp_object alsa_lisp_nil;
 extern struct alisp_object alsa_lisp_t;

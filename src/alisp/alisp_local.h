@@ -36,6 +36,7 @@ enum alisp_objects {
 	ALISP_OBJ_FLOAT,
 	ALISP_OBJ_IDENTIFIER,
 	ALISP_OBJ_STRING,
+	ALISP_OBJ_POINTER,
 	ALISP_OBJ_CONS
 };
 
@@ -47,6 +48,7 @@ struct alisp_object {
 		char	*s;
 		long	i;
 		double	f;
+		const void *ptr;
 		struct {
 			struct alisp_object *car;
 			struct alisp_object *cdr;

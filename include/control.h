@@ -450,6 +450,7 @@ typedef int (*snd_hctl_elem_callback_t)(snd_hctl_elem_t *elem,
 					unsigned int mask);
 
 int snd_hctl_open(snd_hctl_t **hctl, const char *name, int mode);
+int snd_hctl_open_ctl(snd_hctl_t **hctlp, snd_ctl_t *ctl);
 int snd_hctl_close(snd_hctl_t *hctl);
 int snd_hctl_nonblock(snd_hctl_t *hctl, int nonblock);
 int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl);

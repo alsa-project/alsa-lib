@@ -142,6 +142,89 @@ static struct alisp_object * new_object(struct alisp_instance *instance, int typ
 	return p;
 }
 
+static void free_object(struct alisp_object * p)
+{
+	switch (p->type) {
+	case ALISP_OBJ_STRING:
+		if (p->value.s)
+			free(p->value.s);
+		break;
+	case ALISP_OBJ_IDENTIFIER:
+		if (p->value.id)
+			free(p->value.id);
+		break;
+	}
+}
+
+static void free_objects(struct alisp_instance *instance)
+{
+	struct alisp_object * p, * next;
+
+	for (p = instance->used_objs_list; p != NULL; p = next) {
+		next = p->next;
+		free_object(p);
+		free(p);
+	}
+	for (p = instance->free_objs_list; p != NULL; p = next) {
+		next = p->next;
+		free(p);
+	}
+}
+
+static struct alisp_object * new_integer(struct alisp_instance *instance, long value)
+{
+	struct alisp_object * obj;
+	
+	obj = new_object(instance, ALISP_OBJ_INTEGER);
+	if (obj)
+		obj->value.i = value;
+	return obj;
+}
+
+static struct alisp_object * new_float(struct alisp_instance *instance, double value)
+{
+	struct alisp_object * obj;
+	
+	obj = new_object(instance, ALISP_OBJ_FLOAT);
+	if (obj)
+		obj->value.f = value;
+	return obj;
+}
+
+static struct alisp_object * new_string(struct alisp_instance *instance, const char *str)
+{
+	struct alisp_object * obj;
+	
+	obj = new_object(instance, ALISP_OBJ_STRING);
+	if (obj && (obj->value.s = strdup(str)) == NULL) {
+		nomem();
+		return NULL;
+	}
+	return obj;
+}
+
+static struct alisp_object * new_identifier(struct alisp_instance *instance, const char *id)
+{
+	struct alisp_object * obj;
+	
+	obj = new_object(instance, ALISP_OBJ_IDENTIFIER);
+	if (obj && (obj->value.id = strdup(id)) == NULL) {
+		nomem();
+		return NULL;
+	}
+	return obj;
+}
+
+static struct alisp_object * new_pointer(struct alisp_instance *instance, const void *ptr)
+{
+	struct alisp_object * obj;
+	
+	obj = new_object(instance, ALISP_OBJ_POINTER);
+	if (obj)
+		obj->value.ptr = ptr;
+	return obj;
+}
+
 static struct alisp_object * search_object_identifier(struct alisp_instance *instance, const char *s)
 {
 	struct alisp_object * p;
@@ -164,7 +247,7 @@ static struct alisp_object * search_object_string(struct alisp_instance *instanc
 	return NULL;
 }
 
-static struct alisp_object * search_object_integer(struct alisp_instance *instance, int in)
+static struct alisp_object * search_object_integer(struct alisp_instance *instance, long in)
 {
 	struct alisp_object * p;
 
@@ -448,13 +531,9 @@ static struct alisp_object * parse_quote(struct alisp_instance *instance)
 	if (p == NULL)
 		return NULL;
 
-	p->value.c.car = new_object(instance, ALISP_OBJ_IDENTIFIER);
+	p->value.c.car = new_identifier(instance, "quote");
 	if (p->value.c.car == NULL)
 		return NULL;
-	if ((p->value.c.car->value.id = strdup("quote")) == NULL) {
-		nomem();
-		return NULL;
-	}
 	p->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
 	if (p->value.c.cdr == NULL)
 		return NULL;
@@ -490,48 +569,28 @@ static struct alisp_object * parse_object(struct alisp_instance *instance, int h
 		else if (!strcmp(instance->token_buffer, "nil"))
 			p = &alsa_lisp_nil;
 		else {
-			if ((p = search_object_identifier(instance, instance->token_buffer)) == NULL) {
-				p = new_object(instance, ALISP_OBJ_IDENTIFIER);
-				if (p) {
-					if ((p->value.id = strdup(instance->token_buffer)) == NULL) {
-						nomem();
-						return NULL;
-					}
-				}
-			}
+			if ((p = search_object_identifier(instance, instance->token_buffer)) == NULL)
+				p = new_identifier(instance, instance->token_buffer);
 		}
 		break;
 	case ALISP_INTEGER: {
 		long i;
 		i = atol(instance->token_buffer);
-		if ((p = search_object_integer(instance, i)) == NULL) {
-			p = new_object(instance, ALISP_OBJ_INTEGER);
-			if (p)
-				p->value.i = i;
-		}
+		if ((p = search_object_integer(instance, i)) == NULL)
+			p = new_integer(instance, i);
 		break;
 	}
 	case ALISP_FLOAT:
 	case ALISP_FLOATE: {
 		double f;
 		f = atof(instance->token_buffer);
-		if ((p = search_object_float(instance, f)) == NULL) {
-			p = new_object(instance, ALISP_OBJ_FLOAT);
-			if (p)
-				p->value.f = f;
-		}
+		if ((p = search_object_float(instance, f)) == NULL)
+			p = new_float(instance, f);
 		break;
 	}
 	case ALISP_STRING:
-		if ((p = search_object_string(instance, instance->token_buffer)) == NULL) {
-			p = new_object(instance, ALISP_OBJ_STRING);
-			if (p) {
-				if ((p->value.s = strdup(instance->token_buffer)) == NULL) {
-					nomem();
-					return NULL;
-				}
-			}
-		}
+		if ((p = search_object_string(instance, instance->token_buffer)) == NULL)
+			p = new_string(instance, instance->token_buffer);
 		break;
 	default:
 		lisp_warn(instance, "%d:%d: unexpected character `%c'", instance->lineno, instance->charno, thistoken);
@@ -716,14 +775,7 @@ static void do_garbage_collect(struct alisp_instance *instance)
 		if (p->gc != instance->gc_id && p->gc > 0) {
 			/* Remove unreferenced object. */
 			lisp_debug(instance, "** collecting cons %p", p);
-			switch (p->type) {
-			case ALISP_OBJ_STRING:
-				free(p->value.s);
-				break;
-			case ALISP_OBJ_IDENTIFIER:
-				free(p->value.id);
-				break;
-			}
+			free_object(p);
 
 			p->next = instance->free_objs_list;
 			instance->free_objs_list = p;
@@ -821,13 +873,9 @@ static struct alisp_object * F_add(struct alisp_instance *instance, struct alisp
 	} while (p != &alsa_lisp_nil);
 
 	if (type == ALISP_OBJ_INTEGER) {
-		p1 = new_object(instance, ALISP_OBJ_INTEGER);
-		if (p1)
-			p1->value.i = v;
+		p1 = new_integer(instance, v);
 	} else {
-		p1 = new_object(instance, ALISP_OBJ_FLOAT);
-		if (p1)
-			p1->value.f = f;
+		p1 = new_float(instance, f);
 	}
 	return p1;
 }
@@ -869,13 +917,9 @@ static struct alisp_object * F_sub(struct alisp_instance *instance, struct alisp
 	} while (p != &alsa_lisp_nil);
 
 	if (type == ALISP_OBJ_INTEGER) {
-		p1 = new_object(instance, ALISP_OBJ_INTEGER);
-		if (p1)
-			p1->value.i = v;
+		p1 = new_integer(instance, v);
 	} else {
-		p1 = new_object(instance, ALISP_OBJ_FLOAT);
-		if (p1)
-			p1->value.f = f;
+		p1 = new_object(instance, f);
 	}
 	return p1;
 }
@@ -907,13 +951,9 @@ static struct alisp_object * F_mul(struct alisp_instance *instance, struct alisp
 	} while (p != &alsa_lisp_nil);
 
 	if (type == ALISP_OBJ_INTEGER) {
-		p1 = new_object(instance, ALISP_OBJ_INTEGER);
-		if (p1)
-			p1->value.i = v;
+		p1 = new_integer(instance, v);
 	} else {
-		p1 = new_object(instance, ALISP_OBJ_FLOAT);
-		if (p1)
-			p1->value.f = f;
+		p1 = new_float(instance, f);
 	}
 
 	return p1;
@@ -969,13 +1009,9 @@ static struct alisp_object * F_div(struct alisp_instance *instance, struct alisp
 	} while (p != &alsa_lisp_nil);
 
 	if (type == ALISP_OBJ_INTEGER) {
-		p1 = new_object(instance, ALISP_OBJ_INTEGER);
-		if (p1)
-			p1->value.i = v;
+		p1 = new_integer(instance, v);
 	} else {
-		p1 = new_object(instance, ALISP_OBJ_FLOAT);
-		if (p1)
-			p1->value.f = f;
+		p1 = new_float(instance, f);
 	}
 
 	return p1;
@@ -1151,9 +1187,6 @@ static struct alisp_object * F_numeq(struct alisp_instance *instance, struct ali
 		f2 = p2->type == ALISP_OBJ_INTEGER ? p2->value.i : p2->value.f;
 		if (f1 == f2)
 			return &alsa_lisp_t;
-	} else if ((p1->type == ALISP_OBJ_STRING || p2->type == ALISP_OBJ_STRING)) {
-		if (!strcmp(p1->value.s, p2->value.s))
-			return &alsa_lisp_t;
 	} else {
 		lisp_warn(instance, "comparison with a non integer or float operand");
 	}
@@ -1216,6 +1249,9 @@ static void princ_object(snd_output_t *out, struct alisp_object * p)
 	case ALISP_OBJ_FLOAT:
 		snd_output_printf(out, "%f", p->value.f);
 		break;
+	case ALISP_OBJ_POINTER:
+		snd_output_printf(out, "<%p>", p->value.ptr);
+		break;
 	case ALISP_OBJ_CONS:
 		snd_output_putc(out, '(');
 		princ_cons(out, p);
@@ -1255,8 +1291,10 @@ static struct alisp_object * F_atom(struct alisp_instance *instance, struct alis
 	case ALISP_OBJ_T:
 	case ALISP_OBJ_NIL:
 	case ALISP_OBJ_INTEGER:
+	case ALISP_OBJ_FLOAT:
 	case ALISP_OBJ_STRING:
 	case ALISP_OBJ_IDENTIFIER:
+	case ALISP_OBJ_POINTER:
 		return &alsa_lisp_t;
 	}
 
@@ -1305,6 +1343,42 @@ static struct alisp_object * F_list(struct alisp_instance *instance, struct alis
 	return first;
 }
 
+static inline int eq(struct alisp_object * p1, struct alisp_object * p2)
+{
+	return p1 == p2;
+}
+
+static int equal(struct alisp_object * p1, struct alisp_object * p2)
+{
+	if (eq(p1, p1))
+		return 1;
+
+	if (p1->type == ALISP_OBJ_CONS || p2->type == ALISP_OBJ_CONS)
+		return 0;
+
+	if (p1->type == p2->type)
+		switch (p1->type) {
+		case ALISP_OBJ_IDENTIFIER:
+			if (!strcmp(p1->value.id, p2->value.id))
+				return 1;
+			return 0;
+		case ALISP_OBJ_STRING:
+			if (!strcmp(p1->value.s, p2->value.s))
+				return 1;
+			return 0;
+		case ALISP_OBJ_INTEGER:
+			if (p1->value.i == p2->value.i)
+				return 1;
+			return 0;
+		case ALISP_OBJ_FLOAT:
+			if (p1->value.i == p2->value.i)
+				return 1;
+			return 0;
+		}
+
+	return 0;
+}
+
 /*
  * Syntax: (eq expr1 expr2)
  */
@@ -1315,28 +1389,23 @@ static struct alisp_object * F_eq(struct alisp_instance *instance, struct alisp_
 	p1 = eval(instance, car(args));
 	p2 = eval(instance, car(cdr(args)));
 
-	if (p1 == p2)
+	if (eq(p1, p2))
 		return &alsa_lisp_t;
+	return &alsa_lisp_nil;
+}
 
-	if (p1->type == ALISP_OBJ_CONS || p2->type == ALISP_OBJ_CONS)
-		return &alsa_lisp_nil;
+/*
+ * Syntax: (equal expr1 expr2)
+ */
+static struct alisp_object * F_equal(struct alisp_instance *instance, struct alisp_object * args)
+{
+	struct alisp_object * p1, * p2;
 
-	if (p1->type == p2->type)
-		switch (p1->type) {
-		case ALISP_OBJ_IDENTIFIER:
-			if (!strcmp(p1->value.id, p2->value.id))
-				return &alsa_lisp_t;
-			return &alsa_lisp_nil;
-		case ALISP_OBJ_STRING:
-			if (!strcmp(p1->value.s, p2->value.s))
-				return &alsa_lisp_t;
-			return &alsa_lisp_nil;
-		case ALISP_OBJ_INTEGER:
-			if (p1->value.i == p2->value.i)
-				return &alsa_lisp_t;
-			return &alsa_lisp_nil;
-		}
+	p1 = eval(instance, car(args));
+	p2 = eval(instance, car(cdr(args)));
 
+	if (equal(p1, p2))
+		return &alsa_lisp_t;
 	return &alsa_lisp_nil;
 }
 
@@ -1584,13 +1653,9 @@ static struct alisp_object * F_defun(struct alisp_instance *instance, struct ali
 
 	lexpr = new_object(instance, ALISP_OBJ_CONS);
 	if (lexpr) {
-		lexpr->value.c.car = new_object(instance, ALISP_OBJ_IDENTIFIER);
+		lexpr->value.c.car = new_identifier(instance, "lambda");
 		if (lexpr->value.c.car == NULL)
 			return NULL;
-		if ((lexpr->value.c.car->value.id = strdup("lambda")) == NULL) {
-			nomem();
-			return NULL;
-		}
 		if ((lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS)) == NULL)
 			return NULL;
 		lexpr->value.c.cdr->value.c.car = p2;
@@ -1679,14 +1744,8 @@ struct alisp_object * F_int(struct alisp_instance *instance, struct alisp_object
 
 	if (p->type == ALISP_INTEGER)
 		return p;
-	if (p->type == ALISP_FLOAT) {
-		struct alisp_object * p1;
-		p1 = new_object(instance, ALISP_OBJ_INTEGER);
-		if (p1 == NULL)
-			return NULL;
-		p1->value.i = floor(p->value.f);
-		return p1;
-	}
+	if (p->type == ALISP_FLOAT)
+		return new_integer(instance, floor(p->value.f));
 
 	lisp_warn(instance, "expected an integer or float for integer conversion");
 	return &alsa_lisp_nil;
@@ -1702,14 +1761,8 @@ struct alisp_object * F_float(struct alisp_instance *instance, struct alisp_obje
 
 	if (p->type == ALISP_FLOAT)
 		return p;
-	if (p->type == ALISP_INTEGER) {
-		struct alisp_object * p1;
-		p1 = new_object(instance, ALISP_OBJ_FLOAT);
-		if (p1 == NULL)
-			return NULL;
-		p1->value.f = p->value.i;
-		return p1;
-	}
+	if (p->type == ALISP_INTEGER)
+		return new_float(instance, p->value.i);
 
 	lisp_warn(instance, "expected an integer or float for integer conversion");
 	return &alsa_lisp_nil;
@@ -1726,25 +1779,93 @@ struct alisp_object * F_str(struct alisp_instance *instance, struct alisp_object
 	if (p->type == ALISP_STRING)
 		return p;
 	if (p->type == ALISP_INTEGER || p->type == ALISP_FLOAT) {
-		struct alisp_object * p1;
 		char buf[64];
-		p1 = new_object(instance, ALISP_OBJ_STRING);
-		if (p1 == NULL)
-			return NULL;
 		if (p->type == ALISP_INTEGER) {
 			snprintf(buf, sizeof(buf), "%ld", p->value.i);
 		} else {
 			snprintf(buf, sizeof(buf), "%.f", p->value.f);
 		}
-		if ((p1->value.s = strdup(buf)) == NULL) {
-			nomem();
-			return &alsa_lisp_nil;
-		}
-		return p1;
+		return new_string(instance, buf);
 	}
 
 	lisp_warn(instance, "expected an integer or float for integer conversion");
 	return &alsa_lisp_nil;
+}
+
+/*
+ *  Syntax: (assoc key alist)
+ */
+struct alisp_object * F_assoc(struct alisp_instance *instance, struct alisp_object * args)
+{
+	struct alisp_object * p1, *p2;
+
+	p1 = eval(instance, car(args));
+	p2 = eval(instance, car(cdr(args)));
+
+	do {
+		if (eq(p1, car(car(p2))))
+			return car(p2);
+		p2 = cdr(p2);
+	} while (p2 != &alsa_lisp_nil);
+
+	return &alsa_lisp_nil;	
+}
+
+/*
+ *  Syntax: (rassoc value alist)
+ */
+struct alisp_object * F_rassoc(struct alisp_instance *instance, struct alisp_object * args)
+{
+	struct alisp_object * p1, *p2;
+
+	p1 = eval(instance, car(args));
+	p2 = eval(instance, car(cdr(args)));
+
+	do {
+		if (eq(p1, cdr(car(p2))))
+			return car(p2);
+		p2 = cdr(p2);
+	} while (p2 != &alsa_lisp_nil);
+
+	return &alsa_lisp_nil;	
+}
+
+/*
+ *  Syntax: (assq key alist)
+ */
+struct alisp_object * F_assq(struct alisp_instance *instance, struct alisp_object * args)
+{
+	struct alisp_object * p1, *p2;
+
+	p1 = eval(instance, car(args));
+	p2 = eval(instance, car(cdr(args)));
+
+	do {
+		if (equal(p1, car(car(p2))))
+			return car(p2);
+		p2 = cdr(p2);
+	} while (p2 != &alsa_lisp_nil);
+
+	return &alsa_lisp_nil;	
+}
+
+/*
+ *  Syntax: (rassq value alist)
+ */
+struct alisp_object * F_rassq(struct alisp_instance *instance, struct alisp_object * args)
+{
+	struct alisp_object * p1, *p2;
+
+	p1 = eval(instance, car(args));
+	p2 = eval(instance, car(cdr(args)));
+
+	do {
+		if (equal(p1, cdr(car(p2))))
+			return car(p2);
+		p2 = cdr(p2);
+	} while (p2 != &alsa_lisp_nil);
+
+	return &alsa_lisp_nil;	
 }
 
 static struct alisp_object * F_dump_memory(struct alisp_instance *instance, struct alisp_object * args)
@@ -1798,6 +1919,8 @@ static struct intrinsic intrinsics[] = {
 	{ ">", F_gt },
 	{ ">=", F_ge },
 	{ "and", F_and },
+	{ "assoc", F_assoc },
+	{ "assq", F_assq },
 	{ "atom", F_atom },
 	{ "car", F_car },
 	{ "cdr", F_cdr },
@@ -1805,6 +1928,7 @@ static struct intrinsic intrinsics[] = {
 	{ "cons", F_cons },
 	{ "defun", F_defun },
 	{ "eq", F_eq },
+	{ "equal", F_equal },
 	{ "eval", F_eval },
 	{ "float", F_float },
 	{ "garbage-collect", F_gc },
@@ -1820,6 +1944,8 @@ static struct intrinsic intrinsics[] = {
 	{ "prog2", F_prog2 },
 	{ "progn", F_progn },
 	{ "quote", F_quote },
+	{ "rassoc", F_rassoc },
+	{ "rassq", F_rassq },
 	{ "set", F_set },
 	{ "setf", F_setq },
 	{ "setq", F_setq },
@@ -1828,6 +1954,8 @@ static struct intrinsic intrinsics[] = {
 	{ "when", F_when },
 	{ "while", F_while },
 };
+
+#include "alisp_snd.c"
 
 static int compar(const void *p1, const void *p2)
 {
@@ -1848,6 +1976,11 @@ static struct alisp_object * eval_cons(struct alisp_instance *instance, struct a
 		if ((item = bsearch(&key, intrinsics,
 				    sizeof intrinsics / sizeof intrinsics[0],
 				    sizeof intrinsics[0], compar)) != NULL)
+			return item->func(instance, p2);
+
+		if ((item = bsearch(&key, snd_intrinsics,
+				    sizeof snd_intrinsics / sizeof snd_intrinsics[0],
+				    sizeof snd_intrinsics[0], compar)) != NULL)
 			return item->func(instance, p2);
 
 		if ((p3 = get_object(instance, p1)) != &alsa_lisp_nil)
@@ -1883,7 +2016,7 @@ static struct alisp_object * F_eval(struct alisp_instance *instance, struct alis
  *  main routine
  */
  
-int alsa_lisp(struct alisp_cfg *cfg)
+int alsa_lisp(struct alisp_cfg *cfg, struct alisp_instance **_instance)
 {
 	struct alisp_instance *instance;
 	struct alisp_object *p, *p1;
@@ -1932,7 +2065,18 @@ int alsa_lisp(struct alisp_cfg *cfg)
 	}
 
 	done_lex(instance);
-	free(instance);
+	if (_instance)
+		*_instance = instance;
+	else
+		alsa_lisp_free(instance); 
 	
 	return 0;
+}
+
+void alsa_lisp_free(struct alisp_instance *instance)
+{
+	if (instance == NULL)
+		return;
+	free_objects(instance);
+	free(instance);
 }

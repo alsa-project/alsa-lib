@@ -13,3 +13,8 @@
 
 (princ "Float test 1.1 + 1.35 = " (+ 1.1 1.35) "\n")
 (princ "Factorial of 10.0: " (factorial 10.0) "\n")
+
+(setq alist '((one . first) (two . second) (three . third)))
+(princ "alist = " alist "\n")
+(princ "alist assoc one = " (assoc 'one alist) "\n")
+(princ "alist rassoc third = " (rassoc 'third alist) "\n")

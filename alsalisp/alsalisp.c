@@ -68,7 +68,7 @@ static void interpret_filename(const char *file)
 		cfg.out = cfg.eout = cfg.vout = cfg.wout = cfg.dout = out;
 		cfg.root = root;
 		cfg.node = root;
-		err = alsa_lisp(&cfg);
+		err = alsa_lisp(&cfg, NULL);
 	}
 	if (err < 0)
 		fprintf(stderr, "alsa lisp returned error %i (%s)\n", err, strerror(err));

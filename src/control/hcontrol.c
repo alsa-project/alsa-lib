@@ -69,18 +69,32 @@ static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
  */
 int snd_hctl_open(snd_hctl_t **hctlp, const char *name, int mode)
 {
-	snd_hctl_t *hctl;
 	snd_ctl_t *ctl;
 	int err;
 	
-	assert(hctlp);
-	*hctlp = NULL;
 	if ((err = snd_ctl_open(&ctl, name, mode)) < 0)
 		return err;
-	if ((hctl = (snd_hctl_t *)calloc(1, sizeof(snd_hctl_t))) == NULL) {
+	err = snd_hctl_open_ctl(hctlp, ctl);
+	if (err < 0)
 		snd_ctl_close(ctl);
+	return err;
+}
+
+/**
+ * \brief Opens an HCTL
+ * \param hctlp Returned HCTL handle
+ * \param ctl underlying CTL handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_hctl_open_ctl(snd_hctl_t **hctlp, snd_ctl_t *ctl)
+{
+	snd_hctl_t *hctl;
+	int err;
+
+	assert(hctlp);
+	*hctlp = NULL;
+	if ((hctl = (snd_hctl_t *)calloc(1, sizeof(snd_hctl_t))) == NULL)
 		return -ENOMEM;
-	}
 	INIT_LIST_HEAD(&hctl->elems);
 	hctl->ctl = ctl;
 	*hctlp = hctl;
