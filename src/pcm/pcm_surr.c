@@ -690,7 +690,7 @@ static int open_trid4nx(snd_pcm_surround_t *surr,
 
 	if ((err = snd_pcm_surround_three_streams(surr, type,
 						  snd_ctl_card_info_get_card(info),
-						  0, 0, 0, 0, -1, -1,
+						  0, -1, 0, -1, -1, -1,
 						  stream, mode)) < 0)
 		return err;
 
