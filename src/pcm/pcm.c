@@ -149,7 +149,7 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 
 int snd_pcm_close(snd_pcm_t *pcm)
 {
-	int res = -EINVAL;
+	int res = 0;
 	int channel;
 
 	if (!pcm)
