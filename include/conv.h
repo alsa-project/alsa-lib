@@ -5,10 +5,6 @@
  *                                                                          *
  ****************************************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef SND_LITTLE_ENDIAN
 
 #define snd_host_to_LE_16(val)	(val)
