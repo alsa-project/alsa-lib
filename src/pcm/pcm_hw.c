@@ -711,6 +711,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, s
 	struct sndrv_xferi xferi;
 	xferi.buf = (char*) buffer;
 	xferi.frames = size;
+	xferi.result = 0; /* make valgrind happy */
 	err = ioctl(fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &xferi);
 	err = err >= 0 ? sync_ptr(hw, SNDRV_PCM_SYNC_PTR_APPL) : -errno;
 #ifdef DEBUG_RW
@@ -727,6 +728,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xfern xfern;
+	memset(&xfern, 0, sizeof(xfern)); /* make valgrind happy */
 	xfern.bufs = bufs;
 	xfern.frames = size;
 	err = ioctl(fd, SNDRV_PCM_IOCTL_WRITEN_FRAMES, &xfern);
@@ -747,6 +749,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_
 	struct sndrv_xferi xferi;
 	xferi.buf = buffer;
 	xferi.frames = size;
+	xferi.result = 0; /* make valgrind happy */
 	err = ioctl(fd, SNDRV_PCM_IOCTL_READI_FRAMES, &xferi);
 	err = err >= 0 ? sync_ptr(hw, SNDRV_PCM_SYNC_PTR_APPL) : -errno;
 #ifdef DEBUG_RW
@@ -764,6 +767,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_u
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xfern xfern;
+	memset(&xfern, 0, sizeof(xfern)); /* make valgrind happy */
 	xfern.bufs = bufs;
 	xfern.frames = size;
 	err = ioctl(fd, SNDRV_PCM_IOCTL_READN_FRAMES, &xfern);
