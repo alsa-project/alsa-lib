@@ -88,11 +88,11 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	}
 	if (sig < 0)
 		return 0;
-	if (fcntl(fd, F_SETSIG, sig) < 0) {
+	if (fcntl(fd, F_SETSIG, (long)sig) < 0) {
 		SYSERR("F_SETSIG failed");
 		return -errno;
 	}
-	if (fcntl(fd, F_SETOWN, pid) < 0) {
+	if (fcntl(fd, F_SETOWN, (long)pid) < 0) {
 		SYSERR("F_SETOWN failed");
 		return -errno;
 	}

@@ -46,7 +46,7 @@ void snd_async_init(void)
 int snd_async_signo = SIGIO;
 #endif
 
-static struct list_head snd_async_handlers;
+static LIST_HEAD(snd_async_handlers);
 
 static void snd_async_handler(int signo ATTRIBUTE_UNUSED, siginfo_t *siginfo, void *context ATTRIBUTE_UNUSED)
 {
@@ -56,10 +56,8 @@ static void snd_async_handler(int signo ATTRIBUTE_UNUSED, siginfo_t *siginfo, vo
 	fd = siginfo->si_fd;
 	list_for_each(i, &snd_async_handlers) {
 		snd_async_handler_t *h = list_entry(i, snd_async_handler_t, glist);
-		if (h->fd == fd) {
+		if (h->fd == fd && h->callback)
 			h->callback(h);
-			// break;
-		}
 	}
 }
 
@@ -88,6 +86,7 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 	if (was_empty) {
 		int err;
 		struct sigaction act;
+		memset(&act, 0, sizeof(act));
 		act.sa_flags = SA_RESTART | SA_SIGINFO;
 		act.sa_sigaction = snd_async_handler;
 		sigemptyset(&act.sa_mask);
@@ -111,6 +110,7 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 	list_del(&handler->glist);
 	if (list_empty(&snd_async_handlers)) {
 		struct sigaction act;
+		memset(&act, 0, sizeof(act));
 		act.sa_flags = 0;
 		act.sa_handler = SIG_DFL;
 		err = sigaction(snd_async_signo, &act, NULL);
