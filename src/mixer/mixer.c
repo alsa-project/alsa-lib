@@ -87,56 +87,44 @@ int snd_mixer_elem_empty(snd_mixer_elem_t *melem)
 }
 
 static int hctl_elem_event_handler(snd_hctl_elem_t *helem,
-				   snd_ctl_event_type_t event)
+				   unsigned int mask)
 {
 	bag_t *bag = snd_hctl_elem_get_callback_private(helem);
-	int res = 0;
-	switch (event) {
-	case SND_CTL_EVENT_VALUE:
-	case SND_CTL_EVENT_INFO:
-	{
-		int err = 0;
-		bag_iterator_t i;
-		bag_for_each(i, bag) {
-			snd_mixer_elem_t *melem = bag_iterator_entry(i);
-			snd_mixer_class_t *class = melem->class;
-			err = class->event(class, event, helem, melem);
-			if (err < 0)
-				break;
-		}
-		break;
-	}
-	case SND_CTL_EVENT_REMOVE:
-	{
+	if (mask == SND_CTL_EVENT_MASK_REMOVE) {
+		int res = 0;
 		int err;
 		bag_iterator_t i, n;
 		bag_for_each_safe(i, n, bag) {
 			snd_mixer_elem_t *melem = bag_iterator_entry(i);
 			snd_mixer_class_t *class = melem->class;
-			err = class->event(class, event, helem, melem);
+			err = class->event(class, mask, helem, melem);
 			if (err < 0)
 				res = err;
 		}
 		assert(bag_empty(bag));
 		bag_free(bag);
-		break;
-
+		return res;
 	}
-	default:
-		assert(0);
-		break;
+	if (mask & (SND_CTL_EVENT_MASK_VALUE | SND_CTL_EVENT_MASK_INFO)) {
+		int err = 0;
+		bag_iterator_t i;
+		bag_for_each(i, bag) {
+			snd_mixer_elem_t *melem = bag_iterator_entry(i);
+			snd_mixer_class_t *class = melem->class;
+			err = class->event(class, mask, helem, melem);
+			if (err < 0)
+				return err;
+		}
 	}
-	return res;
+	return 0;
 }
 
-static int hctl_event_handler(snd_hctl_t *hctl, snd_ctl_event_type_t event,
+static int hctl_event_handler(snd_hctl_t *hctl, unsigned int mask,
 			      snd_hctl_elem_t *elem)
 {
 	snd_mixer_t *mixer = snd_hctl_get_callback_private(hctl);
 	int res = 0;
-	switch (event) {
-	case SND_CTL_EVENT_ADD:
-	{
+	if (mask & SND_CTL_EVENT_MASK_ADD) {
 		struct list_head *pos;
 		bag_t *bag;
 		int err = bag_new(&bag);
@@ -147,15 +135,10 @@ static int hctl_event_handler(snd_hctl_t *hctl, snd_ctl_event_type_t event,
 		list_for_each(pos, &mixer->classes) {
 			snd_mixer_class_t *c;
 			c = list_entry(pos, snd_mixer_class_t, list);
-			err = c->event(c, event, elem, NULL);
+			err = c->event(c, mask, elem, NULL);
 			if (err < 0)
 				res = err;
 		}
-		break;
-	}
-	default:
-		assert(0);
-		break;
 	}
 	return res;
 }
@@ -203,21 +186,20 @@ int snd_mixer_detach(snd_mixer_t *mixer, const char *name)
 	return -ENOENT;
 }
 
-int snd_mixer_throw_event(snd_mixer_t *mixer, snd_ctl_event_type_t event,
+int snd_mixer_throw_event(snd_mixer_t *mixer, unsigned int mask,
 			  snd_mixer_elem_t *elem)
 {
 	mixer->events++;
 	if (mixer->callback)
-		return mixer->callback(mixer, event, elem);
+		return mixer->callback(mixer, mask, elem);
 	return 0;
 }
 
-int snd_mixer_elem_throw_event(snd_mixer_elem_t *elem,
-			       snd_ctl_event_type_t event)
+int snd_mixer_elem_throw_event(snd_mixer_elem_t *elem, unsigned int mask)
 {
 	elem->class->mixer->events++;
 	if (elem->callback)
-		return elem->callback(elem, event);
+		return elem->callback(elem, mask);
 	return 0;
 }
 
@@ -278,7 +260,7 @@ int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class)
 		mixer->pelems[idx] = elem;
 	}
 	mixer->count++;
-	return snd_mixer_throw_event(mixer, SND_CTL_EVENT_ADD, elem);
+	return snd_mixer_throw_event(mixer, SND_CTL_EVENT_MASK_ADD, elem);
 }
 
 int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
@@ -296,7 +278,7 @@ int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 		snd_hctl_elem_t *helem = bag_iterator_entry(i);
 		snd_mixer_elem_detach(elem, helem);
 	}
-	err = snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_REMOVE);
+	err = snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_MASK_REMOVE);
 	list_del(&elem->list);
 	if (elem->private_free)
 		elem->private_free(elem);
@@ -312,7 +294,7 @@ int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 
 int snd_mixer_elem_change(snd_mixer_elem_t *elem)
 {
-	return snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_INFO);
+	return snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_MASK_INFO);
 }
 
 
@@ -330,7 +312,7 @@ int snd_mixer_class_register(snd_mixer_class_t *class, snd_mixer_t *mixer)
 		slave = list_entry(pos, snd_mixer_slave_t, list);
 		elem = snd_hctl_first_elem(slave->hctl);
 		while (elem) {
-			err = class->event(class, SND_CTL_EVENT_ADD, elem, NULL);
+			err = class->event(class, SND_CTL_EVENT_MASK_ADD, elem, NULL);
 			if (err < 0)
 				return err;
 			elem = snd_hctl_elem_next(elem);

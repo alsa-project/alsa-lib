@@ -10,10 +10,10 @@ typedef struct _snd_mixer_class snd_mixer_class_t;
 typedef struct _snd_mixer_info snd_mixer_info_t;
 typedef struct _snd_mixer_elem snd_mixer_elem_t;
 typedef int (*snd_mixer_callback_t)(snd_mixer_t *ctl,
-				    snd_ctl_event_type_t event,
+				    unsigned int mask,
 				    snd_mixer_elem_t *elem);
 typedef int (*snd_mixer_elem_callback_t)(snd_mixer_elem_t *elem,
-					 snd_ctl_event_type_t event);
+					 unsigned int mask);
 typedef int (*snd_mixer_compare_t)(const snd_mixer_elem_t *e1,
 				   const snd_mixer_elem_t *e2);
 

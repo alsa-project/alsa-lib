@@ -787,21 +787,27 @@ int simple_event_info(snd_mixer_elem_t *melem)
 	return snd_mixer_elem_change(melem);
 }
 
-int simple_event(snd_mixer_class_t *class, snd_ctl_event_type_t event,
+int simple_event(snd_mixer_class_t *class, unsigned int mask,
 		 snd_hctl_elem_t *helem, snd_mixer_elem_t *melem)
 {
-	switch (event) {
-	case SND_CTL_EVENT_ADD:
-		return simple_event_add(class, helem);
-	case SND_CTL_EVENT_INFO:
-		return simple_event_info(melem);
-	case SND_CTL_EVENT_VALUE:
-		return snd_mixer_elem_throw_event(melem, event);
-	case SND_CTL_EVENT_REMOVE:
+	int err;
+	if (mask == SND_CTL_EVENT_MASK_REMOVE)
 		return simple_event_remove(helem, melem);
-	default:
-		assert(0);
-		break;
+	if (mask & SND_CTL_EVENT_MASK_ADD) {
+		err = simple_event_add(class, helem);
+		if (err < 0)
+			return err;
+	}
+	if (mask & SND_CTL_EVENT_MASK_INFO) {
+		err = simple_event_info(melem);
+		if (err < 0)
+			return err;
+	}
+	if (mask & SND_CTL_EVENT_MASK_VALUE) {
+		/* FIXME */
+		err = snd_mixer_elem_throw_event(melem, mask);
+		if (err < 0)
+			return err;
 	}
 	return 0;
 }

@@ -62,20 +62,6 @@ void snd_ctl_event_copy(snd_ctl_event_t *dst, const snd_ctl_event_t *src);
 
 snd_ctl_event_type_t snd_ctl_event_get_type(const snd_ctl_event_t *obj);
 
-unsigned int snd_ctl_event_get_numid(const snd_ctl_event_t *obj);
-
-void snd_ctl_event_get_id(const snd_ctl_event_t *obj, snd_ctl_elem_id_t *ptr);
-
-snd_ctl_elem_iface_t snd_ctl_event_get_interface(const snd_ctl_event_t *obj);
-
-unsigned int snd_ctl_event_get_device(const snd_ctl_event_t *obj);
-
-unsigned int snd_ctl_event_get_subdevice(const snd_ctl_event_t *obj);
-
-const char *snd_ctl_event_get_name(const snd_ctl_event_t *obj);
-
-unsigned int snd_ctl_event_get_index(const snd_ctl_event_t *obj);
-
 size_t snd_ctl_elem_list_sizeof();
 #define snd_ctl_elem_list_alloca(ptr) ({ assert(ptr); *ptr = (snd_ctl_elem_list_t *) alloca(snd_ctl_elem_list_sizeof()); memset(*ptr, 0, snd_ctl_elem_list_sizeof()); 0; })
 int snd_ctl_elem_list_malloc(snd_ctl_elem_list_t **ptr);

@@ -111,10 +111,21 @@ static int snd_ctl_hw_poll_descriptor(snd_ctl_t *handle)
 	return hw->fd;
 }
 
-static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
+static int snd_ctl_hw_subscribe_events(snd_ctl_t *handle, int subscribe)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &subscribe) < 0) {
+		SYSERR("SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS failed");
+		return -errno;
+	}
+	return subscribe;
+}
+
+static int snd_ctl_hw_card_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CARD_INFO, info) < 0)
+		SYSERR("SNDRV_CTL_IOCTL_CARD_INFO failed");
 		return -errno;
 	return 0;
 }
@@ -230,7 +241,8 @@ snd_ctl_ops_t snd_ctl_hw_ops = {
 	nonblock: snd_ctl_hw_nonblock,
 	async: snd_ctl_hw_async,
 	poll_descriptor: snd_ctl_hw_poll_descriptor,
-	hw_info: snd_ctl_hw_hw_info,
+	subscribe_events: snd_ctl_hw_subscribe_events,
+	card_info: snd_ctl_hw_card_info,
 	element_list: snd_ctl_hw_elem_list,
 	element_info: snd_ctl_hw_elem_info,
 	element_read: snd_ctl_hw_elem_read,

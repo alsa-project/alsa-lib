@@ -89,42 +89,19 @@ int snd_hctl_poll_descriptors(snd_hctl_t *hctl, struct pollfd *pfds, unsigned in
 	return snd_ctl_poll_descriptors(hctl->ctl, pfds, space);
 }
 
-static int _snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id, int *dir)
-{
-	unsigned int l, u;
-	int c = 0;
-	int idx = -1;
-	assert(hctl && id);
-	assert(hctl->compare);
-	l = 0;
-	u = hctl->count;
-	while (l < u) {
-		idx = (l + u) / 2;
-		c = hctl->compare((snd_hctl_elem_t *) id, hctl->pelems[idx]);
-		if (c < 0)
-			u = idx;
-		else if (c > 0)
-			l = idx + 1;
-		else
-			break;
-	}
-	*dir = c;
-	return idx;
-}
-
-int snd_hctl_throw_event(snd_hctl_t *hctl, snd_ctl_event_type_t event,
+int snd_hctl_throw_event(snd_hctl_t *hctl, unsigned int mask,
 			 snd_hctl_elem_t *elem)
 {
 	if (hctl->callback)
-		return hctl->callback(hctl, event, elem);
+		return hctl->callback(hctl, mask, elem);
 	return 0;
 }
 
 int snd_hctl_elem_throw_event(snd_hctl_elem_t *elem,
-			      snd_ctl_event_type_t event)
+			      unsigned int mask)
 {
 	if (elem->callback)
-		return elem->callback(elem, event);
+		return elem->callback(elem, mask);
 	return 0;
 }
 
@@ -207,6 +184,32 @@ static int get_compare_weight(const char *name)
 	return res + res1;
 }
 
+static int _snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id, int *dir)
+{
+	unsigned int l, u;
+	snd_hctl_elem_t el;
+	int c = 0;
+	int idx = -1;
+	assert(hctl && id);
+	assert(hctl->compare);
+	el.id = *id;
+	el.compare_weight = get_compare_weight(id->name);
+	l = 0;
+	u = hctl->count;
+	while (l < u) {
+		idx = (l + u) / 2;
+		c = hctl->compare(&el, hctl->pelems[idx]);
+		if (c < 0)
+			u = idx;
+		else if (c > 0)
+			l = idx + 1;
+		else
+			break;
+	}
+	*dir = c;
+	return idx;
+}
+
 static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 {
 	int dir;
@@ -241,14 +244,14 @@ static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 		hctl->pelems[idx] = elem;
 	}
 	hctl->count++;
-	return snd_hctl_throw_event(hctl, SND_CTL_EVENT_ADD, elem);
+	return snd_hctl_throw_event(hctl, SNDRV_CTL_EVENT_MASK_ADD, elem);
 }
 
 static void snd_hctl_elem_remove(snd_hctl_t *hctl, unsigned int idx)
 {
 	snd_hctl_elem_t *elem = hctl->pelems[idx];
 	unsigned int m;
-	snd_hctl_elem_throw_event(elem, SND_CTL_EVENT_REMOVE);
+	snd_hctl_elem_throw_event(elem, SNDRV_CTL_EVENT_MASK_REMOVE);
 	list_del(&elem->list);
 	free(elem);
 	hctl->count--;
@@ -408,11 +411,12 @@ int snd_hctl_load(snd_hctl_t *hctl)
 		hctl->compare = snd_hctl_compare_default;
 	snd_hctl_sort(hctl);
 	for (idx = 0; idx < hctl->count; idx++) {
-		int res = snd_hctl_throw_event(hctl, SND_CTL_EVENT_ADD,
+		int res = snd_hctl_throw_event(hctl, SNDRV_CTL_EVENT_MASK_ADD,
 					       hctl->pelems[idx]);
 		if (res < 0)
 			return res;
 	}
+	err = snd_ctl_subscribe_events(hctl->ctl, 1);
  _end:
 	if (list.pids)
 		free(list.pids);
@@ -462,46 +466,41 @@ int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event)
 	assert(hctl);
 	assert(hctl->ctl);
 	switch (event->type) {
-	case SND_CTL_EVENT_REMOVE:
-	{
+	case SND_CTL_EVENT_ELEM:
+		break;
+	default:
+		return 0;
+	}
+	if (event->data.elem.mask == SNDRV_CTL_EVENT_MASK_REMOVE) {
 		int dir;
-		res = _snd_hctl_find_elem(hctl, &event->data.id, &dir);
+		res = _snd_hctl_find_elem(hctl, &event->data.elem.id, &dir);
 		assert(res >= 0 && dir == 0);
 		if (res < 0 || dir != 0)
 			return -ENOENT;
 		snd_hctl_elem_remove(hctl, res);
-		break;
+		return 0;
 	}
-	case SND_CTL_EVENT_VALUE:
-	case SND_CTL_EVENT_INFO:
-		elem = snd_hctl_find_elem(hctl, &event->data.id);
-		assert(elem);
-		if (!elem)
-			return -ENOENT;
-		return snd_hctl_elem_throw_event(elem, event->type);
-	case SND_CTL_EVENT_ADD:
+	if (event->data.elem.mask & SNDRV_CTL_EVENT_MASK_ADD) {
 		elem = calloc(1, sizeof(snd_hctl_elem_t));
 		if (elem == NULL)
 			return -ENOMEM;
-		elem->id = event->data.id;
+		elem->id = event->data.elem.id;
 		elem->hctl = hctl;
 		res = snd_hctl_elem_add(hctl, elem);
 		if (res < 0)
 			return res;
-		break;
-	case SND_CTL_EVENT_REBUILD:
-		snd_hctl_free(hctl);
-		res = snd_hctl_load(hctl);
+	}
+	if (event->data.elem.mask & (SNDRV_CTL_EVENT_MASK_VALUE |
+				     SNDRV_CTL_EVENT_MASK_INFO)) {
+		elem = snd_hctl_find_elem(hctl, &event->data.elem.id);
+		assert(elem);
+		if (!elem)
+			return -ENOENT;
+		res = snd_hctl_elem_throw_event(elem, event->data.elem.mask &
+						(SNDRV_CTL_EVENT_MASK_VALUE |
+						 SNDRV_CTL_EVENT_MASK_INFO));
 		if (res < 0)
 			return res;
-#if 0
-		/* I don't think this have to be passed to higher level */
-		return hctl_event(hctl, event->type, NULL);
-#endif
-		break;
-	default:
-		assert(0);
-		break;
 	}
 	return 0;
 }

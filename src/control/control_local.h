@@ -27,7 +27,8 @@ typedef struct _snd_ctl_ops {
 	int (*nonblock)(snd_ctl_t *handle, int nonblock);
 	int (*async)(snd_ctl_t *handle, int sig, pid_t pid);
 	int (*poll_descriptor)(snd_ctl_t *handle);
-	int (*hw_info)(snd_ctl_t *handle, snd_ctl_card_info_t *info);
+	int (*subscribe_events)(snd_ctl_t *handle, int subscribe);
+	int (*card_info)(snd_ctl_t *handle, snd_ctl_card_info_t *info);
 	int (*element_list)(snd_ctl_t *handle, snd_ctl_elem_list_t *list);
 	int (*element_info)(snd_ctl_t *handle, snd_ctl_elem_info_t *info);
 	int (*element_read)(snd_ctl_t *handle, snd_ctl_elem_value_t *control);

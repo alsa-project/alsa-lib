@@ -84,10 +84,16 @@ int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int s
 	return 1;
 }
 
+int snd_ctl_subscribe_events(snd_ctl_t *ctl, int subscribe)
+{
+	assert(ctl);
+	return ctl->ops->subscribe_events(ctl, subscribe);
+}
+
 int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 {
 	assert(ctl && info);
-	return ctl->ops->hw_info(ctl, info);
+	return ctl->ops->card_info(ctl, info);
 }
 
 int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
@@ -280,11 +286,7 @@ const char *snd_ctl_elem_iface_names[] = {
 };
 
 const char *snd_ctl_event_type_names[] = {
-	EVENT(REBUILD),
-	EVENT(VALUE),
-	EVENT(INFO),
-	EVENT(ADD),
-	EVENT(REMOVE),
+	EVENT(ELEM),
 };
 
 const char *snd_ctl_elem_type_name(snd_ctl_elem_type_t type)
@@ -323,3 +325,60 @@ void snd_ctl_elem_list_free_space(snd_ctl_elem_list_t *obj)
 	free(obj->pids);
 	obj->pids = NULL;
 }
+
+unsigned int snd_ctl_event_elem_get_mask(const snd_ctl_event_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_EVENT_ELEM);
+	return obj->data.elem.mask;
+}
+
+unsigned int snd_ctl_event_elem_get_numid(const snd_ctl_event_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_EVENT_ELEM);
+	return obj->data.elem.id.numid;
+}
+
+void snd_ctl_event_elem_get_id(const snd_ctl_event_t *obj, snd_ctl_elem_id_t *ptr)
+{
+	assert(obj && ptr);
+	assert(obj->type == SND_CTL_EVENT_ELEM);
+	*ptr = obj->data.elem.id;
+}
+
+snd_ctl_elem_iface_t snd_ctl_event_elem_get_interface(const snd_ctl_event_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_EVENT_ELEM);
+	return snd_int_to_enum(obj->data.elem.id.iface);
+}
+
+unsigned int snd_ctl_event_elem_get_device(const snd_ctl_event_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_EVENT_ELEM);
+	return obj->data.elem.id.device;
+}
+
+unsigned int snd_ctl_event_elem_get_subdevice(const snd_ctl_event_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_EVENT_ELEM);
+	return obj->data.elem.id.subdevice;
+}
+
+const char *snd_ctl_event_elem_get_name(const snd_ctl_event_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_EVENT_ELEM);
+	return obj->data.elem.id.name;
+}
+
+unsigned int snd_ctl_event_elem_get_index(const snd_ctl_event_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_EVENT_ELEM);
+	return obj->data.elem.id.index;
+}
+

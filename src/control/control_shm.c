@@ -122,17 +122,26 @@ static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
 	return fd;
 }
 
-static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
+static int snd_ctl_shm_subscribe_events(snd_ctl_t *ctl, int subscribe)
+{
+	snd_ctl_shm_t *shm = ctl->private_data;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	ctrl->cmd = SND_CTL_IOCTL_POLL_DESCRIPTOR;
+	ctrl->u.subscribe_events = subscribe;
+	return snd_ctl_shm_action(ctl);
+}
+
+static int snd_ctl_shm_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 {
 	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-//	ctrl->u.hw_info = *info;
-	ctrl->cmd = SNDRV_CTL_IOCTL_INFO;
+//	ctrl->u.card_info = *info;
+	ctrl->cmd = SNDRV_CTL_IOCTL_CARD_INFO;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
-	*info = ctrl->u.hw_info;
+	*info = ctrl->u.card_info;
 	return err;
 }
 
@@ -334,7 +343,8 @@ snd_ctl_ops_t snd_ctl_shm_ops = {
 	nonblock: snd_ctl_shm_nonblock,
 	async: snd_ctl_shm_async,
 	poll_descriptor: snd_ctl_shm_poll_descriptor,
-	hw_info: snd_ctl_shm_hw_info,
+	subscribe_events: snd_ctl_shm_subscribe_events,
+	card_info: snd_ctl_shm_card_info,
 	element_list: snd_ctl_shm_elem_list,
 	element_info: snd_ctl_shm_elem_info,
 	element_read: snd_ctl_shm_elem_read,

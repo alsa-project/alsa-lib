@@ -112,12 +112,13 @@ typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
 #define SND_CTL_ELEM_IFACE_SEQUENCER ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_SEQUENCER)
 #define SND_CTL_ELEM_IFACE_LAST ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_LAST)
 
-#define SND_CTL_EVENT_REBUILD ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_REBUILD)
-#define SND_CTL_EVENT_VALUE ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_VALUE)
-#define SND_CTL_EVENT_INFO ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_INFO)
-#define SND_CTL_EVENT_ADD ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_ADD)
-#define SND_CTL_EVENT_REMOVE ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_REMOVE)
+#define SND_CTL_EVENT_ELEM ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_ELEM)
 #define SND_CTL_EVENT_LAST ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_LAST)
+
+#define SND_CTL_EVENT_MASK_ADD SNDRV_CTL_EVENT_MASK_ADD
+#define SND_CTL_EVENT_MASK_INFO SNDRV_CTL_EVENT_MASK_INFO
+#define SND_CTL_EVENT_MASK_VALUE SNDRV_CTL_EVENT_MASK_VALUE
+#define SND_CTL_EVENT_MASK_REMOVE SNDRV_CTL_EVENT_MASK_REMOVE
 
 enum _snd_ctl_type {
 	SND_CTL_TYPE_HW,
@@ -160,6 +161,7 @@ int snd_ctl_close(snd_ctl_t *ctl);
 int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock);
 int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid);
 int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int space);
+int snd_ctl_subscribe_events(snd_ctl_t *ctl, int subscribe);
 int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info);
 int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t * list);
 int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
@@ -184,6 +186,15 @@ const char *snd_ctl_elem_type_name(snd_ctl_elem_type_t type);
 const char *snd_ctl_elem_iface_name(snd_ctl_elem_iface_t iface);
 const char *snd_ctl_event_type_name(snd_ctl_event_type_t type);
 
+unsigned int snd_ctl_event_elem_get_mask(const snd_ctl_event_t *obj);
+unsigned int snd_ctl_event_elem_get_numid(const snd_ctl_event_t *obj);
+void snd_ctl_event_elem_get_id(const snd_ctl_event_t *obj, snd_ctl_elem_id_t *ptr);
+snd_ctl_elem_iface_t snd_ctl_event_elem_get_interface(const snd_ctl_event_t *obj);
+unsigned int snd_ctl_event_elem_get_device(const snd_ctl_event_t *obj);
+unsigned int snd_ctl_event_elem_get_subdevice(const snd_ctl_event_t *obj);
+const char *snd_ctl_event_elem_get_name(const snd_ctl_event_t *obj);
+unsigned int snd_ctl_event_elem_get_index(const snd_ctl_event_t *obj);
+
 int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries);
 void snd_ctl_elem_list_free_space(snd_ctl_elem_list_t *obj);
 
@@ -206,10 +217,10 @@ extern "C" {
 typedef int (*snd_hctl_compare_t)(const snd_hctl_elem_t *e1,
 				  const snd_hctl_elem_t *e2);
 typedef int (*snd_hctl_callback_t)(snd_hctl_t *hctl,
-				   snd_ctl_event_type_t event,
+				   unsigned int mask,
 				   snd_hctl_elem_t *elem);
 typedef int (*snd_hctl_elem_callback_t)(snd_hctl_elem_t *elem,
-					snd_ctl_event_type_t event);
+					unsigned int mask);
 
 int snd_hctl_open(snd_hctl_t **hctl, const char *name);
 int snd_hctl_close(snd_hctl_t *hctl);

@@ -572,8 +572,11 @@ int ctl_shm_cmd(client_t *client)
 	case SND_CTL_IOCTL_ASYNC:
 		ctrl->result = snd_ctl_async(ctl, ctrl->u.async.sig, ctrl->u.async.pid);
 		break;
-	case SNDRV_CTL_IOCTL_INFO:
-		ctrl->result = snd_ctl_card_info(ctl, &ctrl->u.hw_info);
+	case SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS:
+		ctrl->result = snd_ctl_subscribe_events(ctl, ctrl->u.subscribe_events);
+		break;
+	case SNDRV_CTL_IOCTL_CARD_INFO:
+		ctrl->result = snd_ctl_card_info(ctl, &ctrl->u.card_info);
 		break;
 	case SNDRV_CTL_IOCTL_ELEM_LIST:
 	{

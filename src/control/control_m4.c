@@ -222,55 +222,6 @@ snd_ctl_event_type_t snd_ctl_event_get_type(const snd_ctl_event_t *obj)
 	return snd_int_to_enum(obj->type);
 }
 
-unsigned int snd_ctl_event_get_numid(const snd_ctl_event_t *obj)
-{
-	assert(obj);
-	assert(obj->type != SNDRV_CTL_EVENT_REBUILD);
-	return obj->data.id.numid;
-}
-
-void snd_ctl_event_get_id(const snd_ctl_event_t *obj, snd_ctl_elem_id_t *ptr)
-{
-	assert(obj && ptr);
-	assert(obj->type != SNDRV_CTL_EVENT_REBUILD);
-	*ptr = obj->data.id;
-}
-
-snd_ctl_elem_iface_t snd_ctl_event_get_interface(const snd_ctl_event_t *obj)
-{
-	assert(obj);
-	assert(obj->type != SNDRV_CTL_EVENT_REBUILD);
-	return snd_int_to_enum(obj->data.id.iface);
-}
-
-unsigned int snd_ctl_event_get_device(const snd_ctl_event_t *obj)
-{
-	assert(obj);
-	assert(obj->type != SNDRV_CTL_EVENT_REBUILD);
-	return obj->data.id.device;
-}
-
-unsigned int snd_ctl_event_get_subdevice(const snd_ctl_event_t *obj)
-{
-	assert(obj);
-	assert(obj->type != SNDRV_CTL_EVENT_REBUILD);
-	return obj->data.id.subdevice;
-}
-
-const char *snd_ctl_event_get_name(const snd_ctl_event_t *obj)
-{
-	assert(obj);
-	assert(obj->type != SNDRV_CTL_EVENT_REBUILD);
-	return obj->data.id.name;
-}
-
-unsigned int snd_ctl_event_get_index(const snd_ctl_event_t *obj)
-{
-	assert(obj);
-	assert(obj->type != SNDRV_CTL_EVENT_REBUILD);
-	return obj->data.id.index;
-}
-
 size_t snd_ctl_elem_list_sizeof()
 {
 	return sizeof(snd_ctl_elem_list_t);
