@@ -107,7 +107,7 @@ case "$dir" in
 /*) ;;
 *) dir="$PWD/$dir"
 esac
-AC_DEFINE_UNQUOTED(DATADIR, "$dir")
+AC_DEFINE_UNQUOTED(DATADIR, "$dir", [directory containing ALSA configuration database])
 
 dnl Check for debug...
 AC_MSG_CHECKING(for debug)
@@ -117,13 +117,13 @@ AC_ARG_WITH(debug,
 if test "$debug" = "yes"; then
   AC_MSG_RESULT(yes)
 else
-  AC_DEFINE(NDEBUG)
+  AC_DEFINE(NDEBUG,,[No assert debug])
   AC_MSG_RESULT(no)
 fi
 
 AC_ARG_WITH(softfloat,
   [  --with-softfloat        do you have floating point unit on this machine? (optional)],
-  [  AC_DEFINE(HAVE_SOFT_FLOAT, "1")],)
+  [  AC_DEFINE(HAVE_SOFT_FLOAT, "1", [Avoid calculation in float])],)
 
 dnl Check for architecture
 AC_MSG_CHECKING(for architecture)
