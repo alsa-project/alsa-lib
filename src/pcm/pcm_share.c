@@ -28,6 +28,7 @@
 #include <math.h>
 #include <sys/socket.h>
 #include <sys/poll.h>
+#include <sys/shm.h>
 #include <pthread.h>
 #include "pcm_local.h"
 #include "list.h"
@@ -139,7 +140,8 @@ void *snd_pcm_share_slave_thread(void *data)
 	err = sigaction(SIGIO, &act, NULL);
 	assert(err == 0);
 	while (1) {
-		pause();
+		int sig;
+		sigwait(&act.sa_mask, &sig);
 		snd_pcm_share_interrupt(slave);
 	}
 	return NULL;
@@ -279,7 +281,10 @@ static int snd_pcm_share_close(snd_pcm_t *pcm)
 		slave->setup_count--;
 	slave->open_count--;
 	if (slave->open_count == 0) {
-		pthread_kill(slave->thread, SIGTERM);
+		err = pthread_cancel(slave->thread);
+		assert(err == 0);
+		err = pthread_join(slave->thread, 0);
+		assert(err == 0);
 		err = snd_pcm_close(slave->pcm);
 		list_del(&slave->list);
 		pthread_mutex_unlock(&slave->mutex);
@@ -372,6 +377,7 @@ static int snd_pcm_share_mmap(snd_pcm_t *pcm)
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_mmap_info_t *i;
+	size_t count;
 	int err;
 	pthread_mutex_lock(&slave->mutex);
 	if (slave->mmap_count == 0) {
@@ -385,21 +391,28 @@ static int snd_pcm_share_mmap(snd_pcm_t *pcm)
 		slave->mmap_count++;
 	}
 	pthread_mutex_unlock(&slave->mutex);
-	pcm->mmap_info_count = slave->pcm->mmap_info_count + 1;
-	pcm->mmap_info = malloc(pcm->mmap_info_count * sizeof(*pcm->mmap_info));
-	if (!pcm->mmap_info)
+	count = slave->pcm->mmap_info_count;
+	i = malloc((count + 1) * sizeof(*i));
+	if (!i)
 		return -ENOMEM;
-	memcpy(pcm->mmap_info, slave->pcm->mmap_info, slave->pcm->mmap_info_count * sizeof(*pcm->mmap_info));
-	i = &pcm->mmap_info[slave->pcm->mmap_info_count];
 	i->type = SND_PCM_MMAP_USER;
 	i->size = snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size);
-	share->stopped_data = malloc(i->size);
-	if (share->stopped_data == 0) {
-		free(pcm->mmap_info);
-		pcm->mmap_info = 0;
-		return -ENOMEM;
+	i->u.user.shmid = shmget(IPC_PRIVATE, i->size, 0666);
+	if (i->u.user.shmid < 0) {
+		SYSERR("shmget failed");
+		free(i);
+		return -errno;
 	}
-	i->addr = share->stopped_data;
+	i->addr = shmat(i->u.user.shmid, 0, 0);
+	if (i->addr == (void*) -1) {
+		SYSERR("shmat failed");
+		free(i);
+		return -errno;
+	}
+	share->stopped_data = i->addr;
+	memcpy(i + 1, slave->pcm->mmap_info, count * sizeof(*pcm->mmap_info));
+	pcm->mmap_info_count = count + 1;
+	pcm->mmap_info = i;
 	return 0;
 }
 
@@ -418,10 +431,17 @@ static int snd_pcm_share_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 		}
 	}
 	pthread_mutex_unlock(&slave->mutex);
-	free(pcm->mmap_info);
+	if (shmdt(pcm->mmap_info->addr) < 0) {
+		SYSERR("shmdt failed");
+		return -errno;
+	}
+	if (shmctl(pcm->mmap_info->u.user.shmid, IPC_RMID, 0) < 0) {
+		SYSERR("shmctl IPC_RMID failed");
+		return -errno;
+	}
 	pcm->mmap_info_count = 0;
+	free(pcm->mmap_info);
 	pcm->mmap_info = 0;
-	free(share->stopped_data);
 	return 0;
 }
 		
@@ -1172,7 +1192,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			ERR("Invalid client channel in binding: %s", n->id);
 			return -EINVAL;
 		}
-		if ((unsigned)cchannel > channels_count)
+		if ((unsigned)cchannel >= channels_count)
 			channels_count = cchannel + 1;
 	}
 	if (channels_count == 0) {

@@ -416,14 +416,16 @@ static int snd_pcm_shm_munmap(snd_pcm_t *pcm)
 		snd_pcm_mmap_info_t *i = &pcm->mmap_info[k];
 		if (i->type == SND_PCM_MMAP_KERNEL) {
 			err = munmap(i->addr, i->size);
-			if (err < 0)
+			if (err < 0) {
 				SYSERR("munmap failed");
-			return -errno;
+				return -errno;
+			}
 		} else {
 			err = shmdt(i->addr);
-			if (err < 0)
+			if (err < 0) {
 				SYSERR("shmdt failed");
-			return -errno;
+				return -errno;
+			}
 		}
 	}
 	pcm->mmap_info_count = 0;

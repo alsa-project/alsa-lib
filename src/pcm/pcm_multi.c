@@ -633,7 +633,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		cchannel = strtol(m->id, &p, 10);
 		if (errno || *p || cchannel < 0)
 			return -EINVAL;
-		if ((unsigned)cchannel > channels_count)
+		if ((unsigned)cchannel >= channels_count)
 			channels_count = cchannel + 1;
 	}
 	if (channels_count == 0)
