@@ -30,6 +30,7 @@ include/asoundlib.h:	include/header.h include/version.h include/error.h include/
 install: all
 	$(INSTALL) -m 755 -o root -g root -d ${includedir}/sys
 	$(INSTALL) -m 644 -o root -g root include/asoundlib.h ${includedir}/sys
+	$(INSTALL) -m 755 -o root -g root -d ${libdir}
 	$(INSTALL) -m 644 -o root -g root lib/libasound.a ${libdir}
 	$(LN_S) -f libasound.so.${SND_LIB_VERSION} ${libdir}/libasound.so
 	$(LN_S) -f libasound.so.${SND_LIB_VERSION} ${libdir}/libasound.so.${SND_LIB_MAJOR}
