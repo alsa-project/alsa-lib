@@ -267,10 +267,10 @@ int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class)
 		idx = _snd_mixer_find_elem(mixer, elem, &dir);
 		assert(dir != 0);
 		if (dir > 0) {
-			list_add(&elem->list, &mixer->pelems[idx]->list);
+			list_add_tail(&elem->list, &mixer->pelems[idx]->list);
 			idx++;
 		} else {
-			list_add_tail(&elem->list, &mixer->pelems[idx]->list);
+			list_add(&elem->list, &mixer->pelems[idx]->list);
 		}
 		memmove(mixer->pelems + idx + 1,
 			mixer->pelems + idx,

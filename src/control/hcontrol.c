@@ -147,10 +147,10 @@ static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 		idx = _snd_hctl_find_elem(hctl, &elem->id, &dir);
 		assert(dir != 0);
 		if (dir > 0) {
-			list_add(&elem->list, &hctl->pelems[idx]->list);
+			list_add_tail(&elem->list, &hctl->pelems[idx]->list);
 			idx++;
 		} else {
-			list_add_tail(&elem->list, &hctl->pelems[idx]->list);
+			list_add(&elem->list, &hctl->pelems[idx]->list);
 		}
 		memmove(hctl->pelems + idx + 1,
 			hctl->pelems + idx,
