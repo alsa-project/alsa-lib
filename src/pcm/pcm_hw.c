@@ -535,7 +535,7 @@ static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
 		SYSERR("SNDRV_PCM_IOCTL_PREPARE failed");
 		return err;
 	}
-	return sync_ptr(hw, 0);
+	return sync_ptr(hw, SNDRV_PCM_SYNC_PTR_APPL);
 }
 
 static int snd_pcm_hw_reset(snd_pcm_t *pcm)
@@ -547,7 +547,7 @@ static int snd_pcm_hw_reset(snd_pcm_t *pcm)
 		SYSERR("SNDRV_PCM_IOCTL_RESET failed");
 		return err;
 	}
-	return sync_ptr(hw, 0);
+	return sync_ptr(hw, SNDRV_PCM_SYNC_PTR_APPL);
 }
 
 static int snd_pcm_hw_start(snd_pcm_t *pcm)
