@@ -191,6 +191,27 @@ __asm__ __volatile__(LOCK "andl %0,%1" \
 __asm__ __volatile__(LOCK "orl %0,%1" \
 : : "r" (mask),"m" (*addr) : "memory")
 
+/*
+ * Force strict CPU ordering.
+ * And yes, this is required on UP too when we're talking
+ * to devices.
+ *
+ * For now, "wmb()" doesn't actually do anything, as all
+ * Intel CPU's follow what Intel calls a *Processor Order*,
+ * in which all writes are seen in the program order even
+ * outside the CPU.
+ *
+ * I expect future Intel CPU's to have a weaker ordering,
+ * but I'd also expect them to finally get their act together
+ * and add some real memory barriers if so.
+ */
+ 
+#define mb() 	__asm__ __volatile__ ("lock; addl $0,0(%%esp)": : :"memory")
+#define rmb()	mb()
+#define wmb()	__asm__ __volatile__ ("": : :"memory")
+
+#define IATOMIC_DEFINED		1
+
 #endif /* __i386__ */
 
 #ifdef __ia64__
@@ -270,7 +291,35 @@ atomic_add_negative (int i, atomic_t *v)
 #define atomic_inc(v)			atomic_add(1, (v))
 #define atomic_dec(v)			atomic_sub(1, (v))
 
-#endif __ia64__
+/*
+ * Macros to force memory ordering.  In these descriptions, "previous"
+ * and "subsequent" refer to program order; "visible" means that all
+ * architecturally visible effects of a memory access have occurred
+ * (at a minimum, this means the memory has been read or written).
+ *
+ *   wmb():	Guarantees that all preceding stores to memory-
+ *		like regions are visible before any subsequent
+ *		stores and that all following stores will be
+ *		visible only after all previous stores.
+ *   rmb():	Like wmb(), but for reads.
+ *   mb():	wmb()/rmb() combo, i.e., all previous memory
+ *		accesses are visible before all subsequent
+ *		accesses and vice versa.  This is also known as
+ *		a "fence."
+ *
+ * Note: "mb()" and its variants cannot be used as a fence to order
+ * accesses to memory mapped I/O registers.  For that, mf.a needs to
+ * be used.  However, we don't want to always use mf.a because (a)
+ * it's (presumably) much slower than mf and (b) mf.a is supported for
+ * sequential memory pages only.
+ */
+#define mb()	__asm__ __volatile__ ("mf" ::: "memory")
+#define rmb()	mb()
+#define wmb()	mb()
+
+#define IATOMIC_DEFINED		1
+
+#endif /* __ia64__ */
 
 #ifdef __alpha__
 
@@ -378,6 +427,17 @@ static __inline__ long atomic_sub_return(int i, atomic_t * v)
 
 #define atomic_inc(v) atomic_add(1,(v))
 #define atomic_dec(v) atomic_sub(1,(v))
+
+#define mb() \
+__asm__ __volatile__("mb": : :"memory")
+
+#define rmb() \
+__asm__ __volatile__("mb": : :"memory")
+
+#define wmb() \
+__asm__ __volatile__("wmb": : :"memory")
+
+#define IATOMIC_DEFINED		1
 
 #endif /* __alpha__ */
 
@@ -544,6 +604,28 @@ static __inline__ int atomic_dec_if_positive(atomic_t *v)
 
 	return t;
 }
+
+/*
+ * Memory barrier.
+ * The sync instruction guarantees that all memory accesses initiated
+ * by this processor have been performed (with respect to all other
+ * mechanisms that access memory).  The eieio instruction is a barrier
+ * providing an ordering (separately) for (a) cacheable stores and (b)
+ * loads and stores to non-cacheable memory (e.g. I/O devices).
+ *
+ * mb() prevents loads and stores being reordered across this point.
+ * rmb() prevents loads being reordered across this point.
+ * wmb() prevents stores being reordered across this point.
+ *
+ * We can use the eieio instruction for wmb, but since it doesn't
+ * give any ordering guarantees about loads, we have to use the
+ * stronger but slower sync instruction for mb and rmb.
+ */
+#define mb()  __asm__ __volatile__ ("sync" : : : "memory")
+#define rmb()  __asm__ __volatile__ ("sync" : : : "memory")
+#define wmb()  __asm__ __volatile__ ("eieio" : : : "memory")
+
+#define IATOMIC_DEFINED		1
 
 #endif /* __ppc__ */
 
@@ -802,7 +884,22 @@ extern __inline__ int atomic_sub_return(int i, atomic_t * v)
  * Currently not implemented for MIPS.
  */
 
-#endif __mips__
+#define mb()						\
+__asm__ __volatile__(					\
+	"# prevent instructions being moved around\n\t"	\
+	".set\tnoreorder\n\t"				\
+	"# 8 nops to fool the R4400 pipeline\n\t"	\
+	"nop;nop;nop;nop;nop;nop;nop;nop\n\t"		\
+	".set\treorder"					\
+	: /* no output */				\
+	: /* no input */				\
+	: "memory")
+#define rmb() mb()
+#define wmb() mb()
+
+#define IATOMIC_DEFINED		1
+
+#endif /* __mips__ */
 
 #ifdef __arm__
 
@@ -884,6 +981,37 @@ static __inline__ void atomic_clear_mask(unsigned long mask, unsigned long *addr
 	__restore_flags(flags);
 }
 
+#define mb() __asm__ __volatile__ ("" : : : "memory")
+#define rmb() mb()
+#define wmb() mb()
+
+#define IATOMIC_DEFINED		1
+
 #endif /* __arm__ */
+
+#ifndef IATOMIC_DEFINED
+/*
+ * non supported architecture.
+ */
+#warning "Atomic operations are not supported on this archictecture."
+
+typedef struct { volatile int counter; } atomic_t;
+
+#define ATOMIC_INIT(i)	{ (i) }
+
+#define atomic_read(v)	((v)->counter)
+#define atomic_set(v,i)	(((v)->counter) = (i))
+#define atomic_add(i,v) (((v)->counter) += (i))
+#define atomic_sub(i,v) (((v)->counter) -= (i))
+#define atomic_inc(v)   (((v)->counter)++)
+#define atomic_dec(v)   (((v)->counter)--)
+
+#define mb()
+#define rmb()
+#define wmb()
+
+#define IATOMIC_DEFINED		1
+
+#endif /* IATOMIC_DEFINED */
 
 #endif /* __ALSA_IATOMIC__ */
