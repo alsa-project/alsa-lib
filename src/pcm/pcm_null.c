@@ -117,7 +117,9 @@ static int snd_pcm_null_start(snd_pcm_t *pcm)
 	assert(null->state == SND_PCM_STATE_PREPARED);
 	null->state = SND_PCM_STATE_RUNNING;
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE)
-		snd_pcm_mmap_appl_forward(pcm, pcm->buffer_size);
+		*pcm->hw_ptr = *pcm->appl_ptr + pcm->buffer_size;
+	else
+		*pcm->hw_ptr = *pcm->appl_ptr;
 	return 0;
 }
 
@@ -153,10 +155,11 @@ static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 {
 	snd_pcm_null_t *null = pcm->private_data;
 	switch (snd_enum_to_int(null->state)) {
-	case SND_PCM_STATE_PREPARED:
 	case SND_PCM_STATE_RUNNING:
-		snd_pcm_mmap_appl_backward(pcm, frames);
 		snd_pcm_mmap_hw_backward(pcm, frames);
+		/* Fall through */
+	case SND_PCM_STATE_PREPARED:
+		snd_pcm_mmap_appl_backward(pcm, frames);
 		return frames;
 	default:
 		return -EBADFD;
@@ -167,56 +170,45 @@ static snd_pcm_sframes_t snd_pcm_null_fwd(snd_pcm_t *pcm, snd_pcm_uframes_t size
 {
 	snd_pcm_null_t *null = pcm->private_data;
 	switch (snd_enum_to_int(null->state)) {
-	case SND_PCM_STATE_PREPARED:
 	case SND_PCM_STATE_RUNNING:
-		snd_pcm_mmap_appl_forward(pcm, size);
 		snd_pcm_mmap_hw_forward(pcm, size);
+		/* Fall through */
+	case SND_PCM_STATE_PREPARED:
+		snd_pcm_mmap_appl_forward(pcm, size);
 		return size;
 	default:
 		return -EBADFD;
 	}
 }
 
+static snd_pcm_uframes_t snd_pcm_null_xfer_areas(snd_pcm_t *pcm,
+						 const snd_pcm_channel_area_t *areas ATTRIBUTE_UNUSED,
+						 snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						 snd_pcm_uframes_t size)
+{
+	snd_pcm_mmap_appl_forward(pcm, size);
+	snd_pcm_mmap_hw_forward(pcm, size);
+	return size;
+}
+
 static snd_pcm_sframes_t snd_pcm_null_writei(snd_pcm_t *pcm, const void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
-	snd_pcm_null_t *null = pcm->private_data;
-	if (null->state == SND_PCM_STATE_PREPARED &&
-	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
-		null->state = SND_PCM_STATE_RUNNING;
-	}
-	return snd_pcm_null_fwd(pcm, size);
+	return snd_pcm_write_areas(pcm, NULL, 0, size, snd_pcm_null_xfer_areas);
 }
 
 static snd_pcm_sframes_t snd_pcm_null_writen(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
-	snd_pcm_null_t *null = pcm->private_data;
-	if (null->state == SND_PCM_STATE_PREPARED &&
-	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
-		null->state = SND_PCM_STATE_RUNNING;
-	}
-	return snd_pcm_null_fwd(pcm, size);
+	return snd_pcm_write_areas(pcm, NULL, 0, size, snd_pcm_null_xfer_areas);
 }
 
 static snd_pcm_sframes_t snd_pcm_null_readi(snd_pcm_t *pcm, void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
-	snd_pcm_null_t *null = pcm->private_data;
-	if (null->state == SND_PCM_STATE_PREPARED &&
-	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
-		null->state = SND_PCM_STATE_RUNNING;
-		snd_pcm_mmap_hw_forward(pcm, pcm->buffer_size);
-	}
-	return snd_pcm_null_fwd(pcm, size);
+	return snd_pcm_read_areas(pcm, NULL, 0, size, snd_pcm_null_xfer_areas);
 }
 
 static snd_pcm_sframes_t snd_pcm_null_readn(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
-	snd_pcm_null_t *null = pcm->private_data;
-	if (null->state == SND_PCM_STATE_PREPARED &&
-	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
-		null->state = SND_PCM_STATE_RUNNING;
-		snd_pcm_mmap_hw_forward(pcm, pcm->buffer_size);
-	}
-	return snd_pcm_null_fwd(pcm, size);
+	return snd_pcm_read_areas(pcm, NULL, 0, size, snd_pcm_null_xfer_areas);
 }
 
 static snd_pcm_sframes_t snd_pcm_null_mmap_commit(snd_pcm_t *pcm,

@@ -225,13 +225,13 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	err = pcm->ops->sw_params(pcm->op_arg, params);
 	if (err < 0)
 		return err;
-	pcm->start_mode = snd_pcm_sw_params_get_start_mode(params);
-	pcm->xrun_mode = snd_pcm_sw_params_get_xrun_mode(params);
 	pcm->tstamp_mode = snd_pcm_sw_params_get_tstamp_mode(params);
 	pcm->period_step = params->period_step;
 	pcm->sleep_min = params->sleep_min;
 	pcm->avail_min = params->avail_min;
 	pcm->xfer_align = params->xfer_align;
+	pcm->start_threshold = params->start_threshold;
+	pcm->stop_threshold = params->stop_threshold;
 	pcm->silence_threshold = params->silence_threshold;
 	pcm->silence_size = params->silence_size;
 	pcm->boundary = params->boundary;
@@ -713,7 +713,7 @@ const char *snd_pcm_subformat_description(snd_pcm_subformat_t subformat)
 }
 
 /**
- * \brief get name of PCM start mode setting
+ * \brief (DEPRECATED) get name of PCM start mode setting
  * \param mode PCM start mode
  * \return ascii name of PCM start mode setting
  */
@@ -723,8 +723,10 @@ const char *snd_pcm_start_mode_name(snd_pcm_start_t mode)
 	return snd_pcm_start_mode_names[snd_enum_to_int(mode)];
 }
 
+link_warning(snd_pcm_start_mode_name, "Warning: start_mode is deprecated, consider to use start_threshold");
+
 /**
- * \brief get name of PCM xrun mode setting
+ * \brief (DEPRECATED) get name of PCM xrun mode setting
  * \param mode PCM xrun mode
  * \return ascii name of PCM xrun mode setting
  */
@@ -733,6 +735,8 @@ const char *snd_pcm_xrun_mode_name(snd_pcm_xrun_t mode)
 	assert(mode <= SND_PCM_XRUN_LAST);
 	return snd_pcm_xrun_mode_names[snd_enum_to_int(mode)];
 }
+
+link_warning(snd_pcm_xrun_mode_name, "Warning: xrun_mode is deprecated, consider to use stop_threshold");
 
 /**
  * \brief get name of PCM tstamp mode setting
@@ -793,16 +797,16 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	assert(pcm);
 	assert(out);
 	assert(pcm->setup);
-	snd_output_printf(out, "start_mode   : %s\n", snd_pcm_start_mode_name(pcm->start_mode));
-	snd_output_printf(out, "xrun_mode    : %s\n", snd_pcm_xrun_mode_name(pcm->xrun_mode));
 	snd_output_printf(out, "tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
-	snd_output_printf(out, "period_step  : %ld\n", (long)pcm->period_step);
-	snd_output_printf(out, "sleep_min    : %ld\n", (long)pcm->sleep_min);
-	snd_output_printf(out, "avail_min    : %ld\n", (long)pcm->avail_min);
-	snd_output_printf(out, "xfer_align   : %ld\n", (long)pcm->xfer_align);
-	snd_output_printf(out, "silence_threshold: %ld\n", (long)pcm->silence_threshold);
-	snd_output_printf(out, "silence_size : %ld\n", (long)pcm->silence_size);
-	snd_output_printf(out, "boundary     : %ld\n", (long)pcm->boundary);
+	snd_output_printf(out, "period_step  : %d\n", pcm->period_step);
+	snd_output_printf(out, "sleep_min    : %d\n", pcm->sleep_min);
+	snd_output_printf(out, "avail_min    : %ld\n", pcm->avail_min);
+	snd_output_printf(out, "xfer_align   : %ld\n", pcm->xfer_align);
+	snd_output_printf(out, "start_threshold  : %ld\n", pcm->start_threshold);
+	snd_output_printf(out, "stop_threshold   : %ld\n", pcm->stop_threshold);
+	snd_output_printf(out, "silence_threshold: %ld\n", pcm->silence_threshold);
+	snd_output_printf(out, "silence_size : %ld\n", pcm->silence_size);
+	snd_output_printf(out, "boundary     : %ld\n", pcm->boundary);
 	return 0;
 }
 
@@ -3287,13 +3291,13 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	assert(pcm && params);
 	assert(pcm->setup);
-	params->start_mode = snd_enum_to_int(pcm->start_mode);
-	params->xrun_mode = snd_enum_to_int(pcm->xrun_mode);
 	params->tstamp_mode = snd_enum_to_int(pcm->tstamp_mode);
 	params->period_step = pcm->period_step;
 	params->sleep_min = pcm->sleep_min;
 	params->avail_min = pcm->avail_min;
 	params->xfer_align = pcm->xfer_align;
+	params->start_threshold = pcm->start_threshold;
+	params->stop_threshold = pcm->stop_threshold;
 	params->silence_threshold = pcm->silence_threshold;
 	params->silence_size = pcm->silence_size;
 	params->boundary = pcm->boundary;
@@ -3365,34 +3369,48 @@ void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t 
 }
 
 /**
- * \brief Set start mode inside a software configuration container
+ * \brief (DEPRECATED) Set start mode inside a software configuration container
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Start mode
  * \return 0 otherwise a negative error code
  */
-int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_start_t val)
+int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_start_t val)
 {
 	assert(pcm && params);
-	assert(val <= SND_PCM_START_LAST);
-	params->start_mode = snd_enum_to_int(val);
+	switch (val) {
+	case SND_PCM_START_DATA:
+		params->start_threshold = 1;
+		break;
+	case SND_PCM_START_EXPLICIT:
+		params->start_threshold = pcm->boundary;
+		break;
+	default:
+		assert(0);
+		break;
+	}
 	return 0;
 }
 
+link_warning(snd_pcm_sw_params_set_start_mode, "Warning: start_mode is deprecated, consider to use start_threshold");
+
 /**
- * \brief Get start mode from a software configuration container
+ * \brief (DEPRECATED) Get start mode from a software configuration container
  * \param params Software configuration container
  * \return start mode
  */
 snd_pcm_start_t snd_pcm_sw_params_get_start_mode(const snd_pcm_sw_params_t *params)
 {
 	assert(params);
-	return snd_int_to_enum(params->start_mode);
+	/* FIXME: Ugly */
+	return params->start_threshold > 1024 * 1024 ? SND_PCM_START_EXPLICIT : SND_PCM_START_DATA;
 }
+
+link_warning(snd_pcm_sw_params_get_start_mode, "Warning: start_mode is deprecated, consider to use start_threshold");
 
 
 /**
- * \brief Set xrun mode inside a software configuration container
+ * \brief (DEPRECATED) Set xrun mode inside a software configuration container
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Xrun mode
@@ -3401,22 +3419,35 @@ snd_pcm_start_t snd_pcm_sw_params_get_start_mode(const snd_pcm_sw_params_t *para
 int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_xrun_t val)
 {
 	assert(pcm && params);
-	assert(val <= SND_PCM_XRUN_LAST);
-	params->xrun_mode = snd_enum_to_int(val);
+	switch (val) {
+	case SND_PCM_XRUN_STOP:
+		params->stop_threshold = pcm->buffer_size;
+		break;
+	case SND_PCM_XRUN_NONE:
+		params->stop_threshold = pcm->boundary;
+		break;
+	default:
+		assert(0);
+		break;
+	}
 	return 0;
 }
 
+link_warning(snd_pcm_sw_params_set_xrun_mode, "Warning: xrun_mode is deprecated, consider to use stop_threshold");
+
 /**
- * \brief Get xrun mode from a software configuration container
+ * \brief (DEPRECATED) Get xrun mode from a software configuration container
  * \param params Software configuration container
  * \return xrun mode
  */
 snd_pcm_xrun_t snd_pcm_sw_params_get_xrun_mode(const snd_pcm_sw_params_t *params)
 {
 	assert(params);
-	return snd_int_to_enum(params->xrun_mode);
+	/* FIXME: Ugly */
+	return params->stop_threshold > 1024 * 1024 ? SND_PCM_XRUN_NONE : SND_PCM_XRUN_STOP;
 }
 
+link_warning(snd_pcm_sw_params_get_xrun_mode, "Warning: xrun_mode is deprecated, consider to use stop_threshold");
 
 /**
  * \brief Set timestamp mode inside a software configuration container
@@ -3538,6 +3569,68 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *pa
 	return params->xfer_align;
 }
 
+
+/**
+ * \brief Set start threshold inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Start threshold in frames 
+ * \return 0 otherwise a negative error code
+ *
+ * PCM is automatically started when playback frames available to PCM 
+ * are >= threshold or when requested capture frames are >= threshold
+ */
+int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+{
+	assert(pcm && params);
+	params->start_threshold = val;
+	return 0;
+}
+
+/**
+ * \brief Get start threshold from a software configuration container
+ * \param params Software configuration container
+ * \return Start threshold in frames
+ *
+ * PCM is automatically started when playback frames available to PCM 
+ * are >= threshold or when requested capture frames are >= threshold
+ */
+snd_pcm_uframes_t snd_pcm_sw_params_get_start_threshold(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return params->start_threshold;
+}
+
+/**
+ * \brief Set stop threshold inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Stop threshold in frames
+ * \return 0 otherwise a negative error code
+ *
+ * PCM is automatically stopped in #SND_PCM_STATE_XRUN state when available
+ * frames is >= threshold
+ */
+int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+{
+	assert(pcm && params);
+	params->stop_threshold = val;
+	return 0;
+}
+
+/**
+ * \brief Get stop threshold from a software configuration container
+ * \param params Software configuration container
+ * \return Stop threshold in frames
+ *
+ * PCM is automatically stopped in #SND_PCM_STATE_XRUN state when available
+ * frames is >= threshold
+ */
+snd_pcm_uframes_t snd_pcm_sw_params_get_stop_threshold(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return params->stop_threshold;
+}
 
 /**
  * \brief Set silence threshold inside a software configuration container
@@ -4015,7 +4108,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 
 	switch (snd_enum_to_int(state)) {
 	case SND_PCM_STATE_PREPARED:
-		if (pcm->start_mode == SND_PCM_START_DATA) {
+		if (size >= pcm->start_threshold) {
 			err = snd_pcm_start(pcm);
 			if (err < 0)
 				goto _end;
@@ -4156,11 +4249,14 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			goto _end;
 		}
 #endif
-		if (state == SND_PCM_STATE_PREPARED &&
-		    pcm->start_mode == SND_PCM_START_DATA) {
-			err = snd_pcm_start(pcm);
-			if (err < 0)
-				goto _end;
+		if (state == SND_PCM_STATE_PREPARED) {
+			snd_pcm_sframes_t hw_avail = pcm->buffer_size - avail;
+			hw_avail += frames;
+			if (hw_avail >= (snd_pcm_sframes_t) pcm->start_threshold) {
+				err = snd_pcm_start(pcm);
+				if (err < 0)
+					goto _end;
+			}
 		}
 	}
  _end:

@@ -2022,13 +2022,13 @@ static int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 {
 	assert(pcm && params);
 	assert(pcm->setup);
-	params->start_mode = snd_enum_to_int(SND_PCM_START_DATA);
-	params->xrun_mode = snd_enum_to_int(SND_PCM_XRUN_STOP);
 	params->tstamp_mode = snd_enum_to_int(SND_PCM_TSTAMP_NONE);
 	params->period_step = 1;
 	params->sleep_min = 0;
 	params->avail_min = pcm->period_size;
 	params->xfer_align = pcm->period_size;
+	params->start_threshold = 1;
+	params->stop_threshold = pcm->buffer_size;
 	params->silence_threshold = 0;
 	params->silence_size = 0;
 	params->boundary = pcm->buffer_size;

@@ -182,7 +182,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *sla
    - draining silencing
    - return distance in frames to next event
 */
-static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
+static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
@@ -204,12 +204,12 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 	default:
 		return INT_MAX;
 	}
-	if (slave_xrun && pcm->xrun_mode != SND_PCM_XRUN_NONE) {
+	share->hw_ptr = slave->hw_ptr;
+	avail = snd_pcm_mmap_avail(pcm);
+	if (avail >= pcm->stop_threshold) {
 		_snd_pcm_share_stop(pcm, SND_PCM_STATE_XRUN);
 		goto update_poll;
 	}
-	share->hw_ptr = slave->hw_ptr;
-	avail = snd_pcm_mmap_avail(pcm);
 	hw_avail = buffer_size - avail;
 	slave_avail = snd_pcm_share_slave_avail(slave);
 	if (avail < slave_avail) {
@@ -247,18 +247,18 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 		}
 		break;
 	case SND_PCM_STATE_RUNNING:
-		if (pcm->xrun_mode != SND_PCM_XRUN_NONE) {
-			if (hw_avail <= 0) {
-				_snd_pcm_share_stop(pcm, SND_PCM_STATE_XRUN);
-				break;
-			}
-			if ((snd_pcm_uframes_t)hw_avail < missing)
-				missing = hw_avail;
+		if (avail >= pcm->stop_threshold) {
+			_snd_pcm_share_stop(pcm, SND_PCM_STATE_XRUN);
+			break;
+		} else {
+			snd_pcm_uframes_t xrun_missing = pcm->stop_threshold - avail;
+			if (missing > xrun_missing)
+				missing = xrun_missing;
 		}
 		ready_missing = pcm->avail_min - avail;
 		if (ready_missing > 0) {
 			ready = 0;
-			if ((snd_pcm_uframes_t)ready_missing < missing)
+			if (missing > (snd_pcm_uframes_t)ready_missing)
 				missing = ready_missing;
 		}
 		running = 1;
@@ -322,12 +322,11 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_missing(snd_pcm_share_slave_t *sla
 	snd_pcm_uframes_t missing = INT_MAX;
 	struct list_head *i;
 	snd_pcm_sframes_t avail = snd_pcm_avail_update(slave->pcm);
-	int slave_xrun = (avail == -EPIPE);
 	slave->hw_ptr = *slave->pcm->hw_ptr;
 	list_for_each(i, &slave->clients) {
 		snd_pcm_share_t *share = list_entry(i, snd_pcm_share_t, list);
 		snd_pcm_t *pcm = share->pcm;
-		snd_pcm_uframes_t m = _snd_pcm_share_missing(pcm, slave_xrun);
+		snd_pcm_uframes_t m = _snd_pcm_share_missing(pcm);
 		if (m < missing)
 			missing = m;
 	}
@@ -396,7 +395,7 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 	snd_pcm_uframes_t missing;
 	snd_pcm_sframes_t avail = snd_pcm_avail_update(spcm);
 	slave->hw_ptr = *slave->pcm->hw_ptr;
-	missing = _snd_pcm_share_missing(pcm, avail == -EPIPE);
+	missing = _snd_pcm_share_missing(pcm);
 	if (!slave->polling) {
 		pthread_cond_signal(&slave->poll_cond);
 		return;

@@ -151,12 +151,12 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
-	if ((snd_pcm_start_t) params->start_mode == pcm->start_mode &&
-	    (snd_pcm_xrun_t) params->xrun_mode == pcm->xrun_mode &&
-	    (snd_pcm_tstamp_t) params->tstamp_mode == pcm->tstamp_mode &&
+	if ((snd_pcm_tstamp_t) params->tstamp_mode == pcm->tstamp_mode &&
 	    params->period_step == pcm->period_step &&
 	    params->sleep_min == pcm->sleep_min &&
 	    params->xfer_align == pcm->xfer_align &&
+	    params->start_threshold == pcm->start_threshold &&
+	    params->stop_threshold == pcm->stop_threshold &&
 	    params->silence_threshold == pcm->silence_threshold &&
 	    params->silence_size == pcm->silence_size) {
 		hw->mmap_control->avail_min = params->avail_min;

@@ -53,4 +53,49 @@ typedef enum _snd_set_mode {
 size_t page_align(size_t size);
 size_t page_size(void);
 
+#define HAVE_GNU_LD
+#define HAVE_ELF
+#define HAVE_ASM_PREVIOUS_DIRECTIVE
+
+/* Stolen from libc-symbols.h in GNU glibc */
+
+/* When a reference to SYMBOL is encountered, the linker will emit a
+   warning message MSG.  */
+#ifdef HAVE_GNU_LD
+# ifdef HAVE_ELF
+
+/* We want the .gnu.warning.SYMBOL section to be unallocated.  */
+#  ifdef HAVE_ASM_PREVIOUS_DIRECTIVE
+#   define __make_section_unallocated(section_string)	\
+  asm (".section " section_string "\n\t.previous");
+#  elif defined HAVE_ASM_POPSECTION_DIRECTIVE
+#   define __make_section_unallocated(section_string)	\
+  asm (".pushsection " section_string "\n\t.popsection");
+#  else
+#   define __make_section_unallocated(section_string)
+#  endif
+
+/* Tacking on "\n\t#" to the section name makes gcc put it's bogus
+   section attributes on what looks like a comment to the assembler.  */
+#  ifdef HAVE_SECTION_QUOTES
+#   define link_warning(symbol, msg) \
+  __make_section_unallocated (".gnu.warning." #symbol) \
+  static const char __evoke_link_warning_##symbol[]	\
+    __attribute__ ((section (".gnu.warning." #symbol "\"\n\t#\""))) = msg;
+#  else
+#   define link_warning(symbol, msg) \
+  __make_section_unallocated (".gnu.warning." #symbol) \
+  static const char __evoke_link_warning_##symbol[]	\
+    __attribute__ ((section (".gnu.warning." #symbol "\n\t#"))) = msg;
+#  endif
+# else
+#  define link_warning(symbol, msg)		\
+  asm (".stabs \"" msg "\",30,0,0,0\n\t"	\
+       ".stabs \"" __SYMBOL_PREFIX #symbol "\",1,0,0,0\n");
+# endif
+#else
+/* We will never be heard; they will all die horribly.  */
+# define link_warning(symbol, msg)
+#endif
+
 #endif

@@ -132,12 +132,12 @@ struct _snd_pcm {
 	snd_pcm_uframes_t period_size;
 	unsigned int period_time;	/* period duration */
 	unsigned int tick_time;
-	snd_pcm_start_t start_mode;	/* start mode */
-	snd_pcm_xrun_t xrun_mode;	/* xrun detection mode */
 	snd_pcm_tstamp_t tstamp_mode;	/* timestamp mode */
 	unsigned int period_step;
 	unsigned int sleep_min;
 	snd_pcm_uframes_t avail_min;	/* min avail frames for wakeup */
+	snd_pcm_uframes_t start_threshold;	
+	snd_pcm_uframes_t stop_threshold;	
 	snd_pcm_uframes_t silence_threshold;	/* Silence filling happens when
 					   noise is nearest than this */
 	snd_pcm_uframes_t silence_size;	/* Silence filling size */

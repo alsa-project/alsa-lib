@@ -172,19 +172,19 @@ typedef enum _snd_pcm_state {
 /** PCM start mode */
 typedef enum _snd_pcm_start {
 	/** Automatic start on data read/write */
-	SND_PCM_START_DATA = SNDRV_PCM_START_DATA,
+	SND_PCM_START_DATA,
 	/** Explicit start */
-	SND_PCM_START_EXPLICIT = SNDRV_PCM_START_EXPLICIT,
-	SND_PCM_START_LAST = SNDRV_PCM_START_LAST,
+	SND_PCM_START_EXPLICIT,
+	SND_PCM_START_LAST,
 } snd_pcm_start_t;
 
 /** PCM xrun mode */
 typedef enum _snd_pcm_xrun {
 	/** Xrun detection disabled */
-	SND_PCM_XRUN_NONE = SNDRV_PCM_XRUN_NONE,
+	SND_PCM_XRUN_NONE,
 	/** Stop on xrun detection */
-	SND_PCM_XRUN_STOP = SNDRV_PCM_XRUN_STOP,
-	SND_PCM_XRUN_LAST = SNDRV_PCM_XRUN_LAST,
+	SND_PCM_XRUN_STOP,
+	SND_PCM_XRUN_LAST,
 } snd_pcm_xrun_t;
 
 /** PCM timestamp mode */
@@ -694,6 +694,12 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *par
 
 int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val);
 snd_pcm_uframes_t snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *params);
+
+int snd_pcm_sw_params_set_start_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val);
+snd_pcm_uframes_t snd_pcm_sw_params_get_start_threshold(const snd_pcm_sw_params_t *params);
+
+int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val);
+snd_pcm_uframes_t snd_pcm_sw_params_get_stop_threshold(const snd_pcm_sw_params_t *params);
 
 int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val);
 snd_pcm_uframes_t snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params);
