@@ -30,5 +30,5 @@ SAVE_LIBRARY_VERSION
 
 AC_OUTPUT(Makefile doc/Makefile include/Makefile src/Makefile \
           src/control/Makefile src/mixer/Makefile src/pcm/Makefile \
-          src/rawmidi/Makefile test/Makefile utils/Makefile include/version.h \
+          src/rawmidi/Makefile test/Makefile utils/Makefile \
           utils/alsa-lib.spec)
