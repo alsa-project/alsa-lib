@@ -8,6 +8,7 @@ rpm: dist
 
 pack: clean-recursive
 	rm -f config.log config.cache config.status
+	rm -rf `find . -name ".deps"`
 	chown -R root.root ../alsa-lib
 	mv ../alsa-lib ../alsa-lib-$(SND_LIB_VERSION)
 	tar --exclude=CVS -cvz -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.gz alsa-lib-$(SND_LIB_VERSION)

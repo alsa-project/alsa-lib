@@ -5,7 +5,7 @@ libasound_la_SOURCES = error.c
 libasound_la_LIBADD = control/libcontrol.la mixer/libmixer.la pcm/libpcm.la \
                       rawmidi/librawmidi.la timer/libtimer.la seq/libseq.la \
 		      instr/libinstr.la
-libasound_la_LDFLAGS = -version-info 3:0:3
+libasound_la_LDFLAGS = -version-info 3:1:3
 
 control/libcontrol.la:
 	$(MAKE) -C control libcontrol.la
