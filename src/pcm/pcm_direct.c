@@ -99,23 +99,12 @@ int snd_pcm_direct_semaphore_up(snd_pcm_direct_t *dmix, int sem_num)
 
 int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix)
 {
-	static int snd_pcm_direct_shm_discard(snd_pcm_direct_t *dmix);
 	struct shmid_ds buf;
-	int tmpid, err;
+	int ret = 0;
 	
-retryget:
 	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t), IPC_CREAT | 0666);
-	err = -errno;
-	if (dmix->shmid < 0){
-		if (errno == EINVAL)
-		if ((tmpid = shmget(dmix->ipc_key, 0, 0666)) != -1)
-		if (!shmctl(tmpid, IPC_STAT, &buf))
-		if (!buf.shm_nattch)
-	    	/* no users so destroy the segment */
-		if (!shmctl(tmpid, IPC_RMID, NULL))
-		    goto retryget;
-		return err;
-	}
+	if (dmix->shmid < 0)
+		return -errno;
 	dmix->shmptr = shmat(dmix->shmid, 0, 0);
 	if (dmix->shmptr == (void *) -1) {
 		snd_pcm_direct_shm_discard(dmix);
@@ -128,9 +117,9 @@ retryget:
 	}
 	if (buf.shm_nattch == 1) {	/* we're the first user, clear the segment */
 		memset(dmix->shmptr, 0, sizeof(snd_pcm_direct_share_t));
-		return 1;
+		ret = 1;
 	}
-	return 0;
+	return ret;
 }
 
 int snd_pcm_direct_shm_discard(snd_pcm_direct_t *dmix)
@@ -420,24 +409,15 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	unsigned short events;
-	/* rbuf might be overwriten by multiple plugins */
-	/* we don't need the value */
-	static snd_timer_read_t rbuf[5];
+	static snd_timer_read_t rbuf[5];	/* can be overwriten by multiple plugins, we don't need the value */
 
 	assert(pfds && nfds == 1 && revents);
 	events = pfds[0].revents;
 	if (events & POLLIN) {
-		int empty = 0;
-		dmix->sync_ptr(pcm);
-		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-			events |= POLLOUT;
-			events &= ~POLLIN;
-			empty = snd_pcm_mmap_playback_avail(pcm) < pcm->avail_min;
-		} else {
-			empty = snd_pcm_mmap_capture_avail(pcm) < pcm->avail_min;
-		}
+		events |= POLLOUT;
+		events &= ~POLLIN;
 		/* empty the timer read queue */
-		while (empty && snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf)) ;
+		while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf)) ;
 	}
 	*revents = events;
 	return 0;
