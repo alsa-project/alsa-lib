@@ -877,11 +877,14 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	int err;
 
 	err = snd_pcm_plug_hw_refine_sprepare(pcm, &sparams);
-	assert(err >= 0);
+	if (err < 0)
+		return err;
 	err = snd_pcm_plug_hw_refine_schange(pcm, params, &sparams);
-	assert(err >= 0);
+	if (err < 0)
+		return err;
 	err = snd_pcm_hw_refine_soft(slave, &sparams);
-	assert(err >= 0);
+	if (err < 0)
+		return err;
 
 	INTERNAL(snd_pcm_hw_params_get_access)(params, &clt_params.access);
 	INTERNAL(snd_pcm_hw_params_get_format)(params, &clt_params.format);
