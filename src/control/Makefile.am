@@ -1,7 +1,8 @@
 EXTRA_LTLIBRARIES = libcontrol.la
 
-libcontrol_la_SOURCES = cards.c hcontrol.c defaults.c \
-                        control.c control_hw.c control_shm.c
+libcontrol_la_SOURCES = cards.c cards_id.c hcontrol.c defaults.c \
+                        control.c control_hw.c control_shm.c \
+			setup.c
 
 noinst_HEADERS = control_local.h
 

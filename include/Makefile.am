@@ -4,11 +4,11 @@ sysinclude_HEADERS = asoundlib.h
 # This is the order they will be concatenated into asoundlib.h!
 #
 header_files=header.h version.h global.h input.h output.h error.h \
-	     pcm.h rawmidi.h timer.h \
+	     conf.h pcm.h rawmidi.h timer.h \
 	     hwdep.h hwdep_m4.h control.h \
 	     mixer.h \
 	     seq.h seqmid.h seq_midi_event.h \
-             conv.h instr.h conf.h footer.h
+             conv.h instr.h footer.h
 
 noinst_HEADERS=$(header_files) search.h list.h aserver.h local.h
 
