@@ -116,21 +116,29 @@ static const char *get_short_name(const char *lname)
 	return lname;
 }
 
+static int compare_mixer_priority_lookup(const char **name, const char * const *names, int coef)
+{
+	int res;
+
+	for (res = 0; *names; names++, res += coef) {
+		if (!strncmp(*name, *names, strlen(*names))) {
+			*name += strlen(*names);
+			if (**name == ' ')
+				(*name)++;
+			return res+1;
+		}
+	}
+	return MIXER_COMPARE_WEIGHT_NOT_FOUND;
+}
+
 static int get_compare_weight(const char *name, unsigned int idx)
 {
 	static const char *names[] = {
 		"Master",
-		"Master Mono",
-		"Master Digital",
 		"Headphone",
 		"Bass",
 		"Treble",
-		"3D Control - Switch",
-		"3D Control - Depth",
-		"3D Control - Wide",
-		"3D Control - Space",
-		"3D Control - Level",
-		"3D Control - Center",
+		"3D Control",
 		"PCM",
 		"Surround",
 		"Center",
@@ -144,25 +152,59 @@ static int get_compare_weight(const char *name, unsigned int idx)
 		"CD",
 		"Mic",
 		"Video",
+		"Zoom Video",
 		"Phone",
 		"I2S",
 		"IEC958",
 		"PC Speaker",
 		"Aux",
-		"Mono Output",
 		"Mono",
 		"Playback",
-		"Capture Boost",
 		"Capture",
+		"Mix",
 		NULL
 	};
-	int res;
+	static const char *names1[] = {
+		"-",
+		NULL,
+	};
+	static const char *names2[] = {
+		"Mono",
+		"Digital",
+		"Switch",
+		"Depth",
+		"Wide",
+		"Space",
+		"Level",
+		"Center",
+		"Output",
+		"Boost",
+		NULL,
+	};
+	const char *name1;
+	int res, res1;
 
-	for (res = 0; names[res] != NULL; res++)
-		if (!strcmp(name, names[res]))
-			return MIXER_COMPARE_WEIGHT_SIMPLE_BASE +
-			       (res * 1000) + idx;
-	return MIXER_COMPARE_WEIGHT_NOT_FOUND;
+	if ((res = compare_mixer_priority_lookup((const char **)&name, names, 1000)) == MIXER_COMPARE_WEIGHT_NOT_FOUND)
+		return MIXER_COMPARE_WEIGHT_NOT_FOUND;
+	if (*name == '\0')
+		goto __res;
+	for (name1 = name; *name1 != '\0'; name1++);
+	for (name1--; name1 != name && *name1 != ' '; name1--);
+	while (name1 != name && *name1 == ' ')
+		name1--;
+	if (name1 != name) {
+		for (; name1 != name && *name1 != ' '; name1--);
+		name = name1;
+		if ((res1 = compare_mixer_priority_lookup((const char **)&name, names1, 200)) == MIXER_COMPARE_WEIGHT_NOT_FOUND)
+			return res;
+		res += res1;
+	} else {
+		name = name1;
+	}
+	if ((res1 = compare_mixer_priority_lookup((const char **)&name, names2, 20)) == MIXER_COMPARE_WEIGHT_NOT_FOUND)
+		return res;
+      __res:
+	return MIXER_COMPARE_WEIGHT_SIMPLE_BASE + res + idx;
 }
 
 static long to_user(selem_t *s, int dir, selem_ctl_t *c, long value)
