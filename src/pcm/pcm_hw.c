@@ -136,11 +136,11 @@ static ssize_t snd_pcm_hw_stream_state(snd_pcm_t *pcm, int stream)
 	return status.state;
 }
 
-static ssize_t snd_pcm_hw_stream_byte_io(snd_pcm_t *pcm, int stream, int update UNUSED)
+static ssize_t snd_pcm_hw_stream_frame_io(snd_pcm_t *pcm, int stream, int update UNUSED)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
 	int fd = hw->stream[stream].fd;
-	ssize_t pos = ioctl(fd, SND_PCM_IOCTL_STREAM_BYTE_IO);
+	ssize_t pos = ioctl(fd, SND_PCM_IOCTL_STREAM_FRAME_IO);
 	if (pos < 0)
 		return -errno;
 	return pos;
@@ -200,11 +200,15 @@ static int snd_pcm_hw_stream_pause(snd_pcm_t *pcm, int stream, int enable)
 	return 0;
 }
 
-static ssize_t snd_pcm_hw_stream_seek(snd_pcm_t *pcm, int stream, off_t offset)
+static ssize_t snd_pcm_hw_stream_frame_data(snd_pcm_t *pcm, int stream, off_t offset)
 {
+	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
 	int fd = hw->stream[stream].fd;
-	return lseek(fd, offset, SEEK_CUR);
+	result = ioctl(fd, SND_PCM_IOCTL_STREAM_FRAME_DATA, offset);
+	if (result < 0)
+		return -errno;
+	return result;
 }
 
 static ssize_t snd_pcm_hw_write(snd_pcm_t *pcm, const void *buffer, size_t size)
@@ -212,7 +216,10 @@ static ssize_t snd_pcm_hw_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
 	int fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
-	result = write(fd, buffer, size);
+	snd_xfer_t xfer;
+	xfer.buf = (char*) buffer;
+	xfer.count = size;
+	result = ioctl(fd, SND_PCM_IOCTL_WRITE_FRAMES, &xfer);
 	if (result < 0)
 		return -errno;
 	return result;
@@ -223,16 +230,10 @@ static ssize_t snd_pcm_hw_writev(snd_pcm_t *pcm, const struct iovec *vector, uns
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
 	int fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
-#if 0
-	result = writev(fd, vector, count);
-#else
-	{
-		snd_v_args_t args;
-		args.vector = vector;
-		args.count = count;
-		result = ioctl(fd, SND_IOCTL_WRITEV, &args);
-	}
-#endif
+	snd_xferv_t xferv;
+	xferv.vector = vector;
+	xferv.count = count;
+	result = ioctl(fd, SND_PCM_IOCTL_WRITEV_FRAMES, &xferv);
 	if (result < 0)
 		return -errno;
 	return result;
@@ -243,7 +244,10 @@ static ssize_t snd_pcm_hw_read(snd_pcm_t *pcm, void *buffer, size_t size)
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
 	int fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
-	result = read(fd, buffer, size);
+	snd_xfer_t xfer;
+	xfer.buf = buffer;
+	xfer.count = size;
+	result = ioctl(fd, SND_PCM_IOCTL_READ_FRAMES, &xfer);
 	if (result < 0)
 		return -errno;
 	return result;
@@ -254,30 +258,36 @@ ssize_t snd_pcm_hw_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned lo
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
 	int fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
-#if 0
-	result = readv(fd, vector, count);
-#else
-	{
-		snd_v_args_t args;
-		args.vector = vector;
-		args.count = count;
-		result = ioctl(fd, SND_IOCTL_READV, &args);
-	}
-#endif
+	snd_xferv_t xferv;
+	xferv.vector = vector;
+	xferv.count = count;
+	result = ioctl(fd, SND_PCM_IOCTL_READV_FRAMES, &xferv);
 	if (result < 0)
 		return -errno;
 	return result;
 }
 
-static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control, size_t csize)
+static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm, int stream, snd_pcm_mmap_status_t **status)
 {
-	void *caddr;
+	void *ptr;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	caddr = mmap(NULL, csize, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
-		     hw->stream[stream].fd, SND_PCM_MMAP_OFFSET_CONTROL);
-	if (caddr == MAP_FAILED || caddr == NULL)
+	ptr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ, MAP_FILE|MAP_SHARED, 
+		   hw->stream[stream].fd, SND_PCM_MMAP_OFFSET_STATUS);
+	if (ptr == MAP_FAILED || ptr == NULL)
 		return -errno;
-	*control = caddr;
+	*status = ptr;
+	return 0;
+}
+
+static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control)
+{
+	void *ptr;
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
+	ptr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
+		   hw->stream[stream].fd, SND_PCM_MMAP_OFFSET_CONTROL);
+	if (ptr == MAP_FAILED || ptr == NULL)
+		return -errno;
+	*control = ptr;
 	return 0;
 }
 
@@ -295,9 +305,16 @@ static int snd_pcm_hw_mmap_data(snd_pcm_t *pcm, int stream, void **buffer, size_
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm UNUSED, int stream UNUSED, snd_pcm_mmap_control_t *control, size_t csize)
+static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm UNUSED, int stream UNUSED, snd_pcm_mmap_status_t *status)
 {
-	if (munmap(control, csize) < 0)
+	if (munmap(status, sizeof(*status)) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm UNUSED, int stream UNUSED, snd_pcm_mmap_control_t *control)
+{
+	if (munmap(control, sizeof(*control)) < 0)
 		return -errno;
 	return 0;
 }
@@ -330,7 +347,7 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	stream_setup: snd_pcm_hw_stream_setup,
 	channel_setup: snd_pcm_hw_channel_setup,
 	stream_status: snd_pcm_hw_stream_status,
-	stream_byte_io: snd_pcm_hw_stream_byte_io,
+	stream_frame_io: snd_pcm_hw_stream_frame_io,
 	stream_state: snd_pcm_hw_stream_state,
 	stream_prepare: snd_pcm_hw_stream_prepare,
 	stream_go: snd_pcm_hw_stream_go,
@@ -338,13 +355,15 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	stream_drain: snd_pcm_hw_stream_drain,
 	stream_flush: snd_pcm_hw_stream_flush,
 	stream_pause: snd_pcm_hw_stream_pause,
-	stream_seek: snd_pcm_hw_stream_seek,
+	stream_frame_data: snd_pcm_hw_stream_frame_data,
 	write: snd_pcm_hw_write,
 	writev: snd_pcm_hw_writev,
 	read: snd_pcm_hw_read,
 	readv: snd_pcm_hw_readv,
+	mmap_status: snd_pcm_hw_mmap_status,
 	mmap_control: snd_pcm_hw_mmap_control,
 	mmap_data: snd_pcm_hw_mmap_data,
+	munmap_status: snd_pcm_hw_munmap_status,
 	munmap_control: snd_pcm_hw_munmap_control,
 	munmap_data: snd_pcm_hw_munmap_data,
 	file_descriptor: snd_pcm_hw_file_descriptor,

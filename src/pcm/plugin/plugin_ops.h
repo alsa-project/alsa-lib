@@ -304,8 +304,8 @@ static void *get_s16_labels[4 * 2 * 2] = {
 
 #ifdef GET_S16_END
 while(0) {
-get_s16_xxx1_xx10: sample = (u_int32_t)as_u8(src) << 8; goto GET_S16_END;
-get_s16_xxx1_xx90: sample = (u_int32_t)(as_u8(src) ^ 0x80) << 8; goto GET_S16_END;
+get_s16_xxx1_xx10: sample = (u_int16_t)as_u8(src) << 8; goto GET_S16_END;
+get_s16_xxx1_xx90: sample = (u_int16_t)(as_u8(src) ^ 0x80) << 8; goto GET_S16_END;
 get_s16_xx12_xx12: sample = as_u16(src); goto GET_S16_END;
 get_s16_xx12_xx92: sample = as_u16(src) ^ 0x8000; goto GET_S16_END;
 get_s16_xx12_xx21: sample = bswap_16(as_u16(src)); goto GET_S16_END;

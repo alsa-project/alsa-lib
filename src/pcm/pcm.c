@@ -68,6 +68,10 @@ int snd_pcm_stream_close(snd_pcm_t *pcm, int stream)
 	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
 	assert(str->open);
+	if (str->mmap_status) {
+		if ((err = snd_pcm_munmap_status(pcm, stream)) < 0)
+			ret = err;
+	}
 	if (str->mmap_control) {
 		if ((err = snd_pcm_munmap_control(pcm, stream)) < 0)
 			ret = err;
@@ -167,9 +171,8 @@ int snd_pcm_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t *setup)
 	if ((err = pcm->ops->stream_setup(pcm, setup)) < 0)
 		return err;
 	memcpy(&str->setup, setup, sizeof(*setup));
-	str->sample_width = snd_pcm_format_physical_width(setup->format.format);
-	str->bits_per_frame = str->sample_width * setup->format.channels;
-	str->frames_per_frag = setup->frag_size * 8 / str->bits_per_frame;
+	str->bits_per_sample = snd_pcm_format_physical_width(setup->format.format);
+        str->bits_per_frame = str->bits_per_sample * setup->format.channels;
 	str->valid_setup = 1;
 	return 0;
 }
@@ -209,33 +212,21 @@ int snd_pcm_stream_state(snd_pcm_t *pcm, int stream)
 	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
 	assert(str->open);
-	if (str->mmap_control)
-		return str->mmap_control->state;
+	if (str->mmap_status)
+		return str->mmap_status->state;
 	return pcm->ops->stream_state(pcm, stream);
 }
 
-int snd_pcm_stream_byte_io(snd_pcm_t *pcm, int stream, int update)
+int snd_pcm_stream_frame_io(snd_pcm_t *pcm, int stream, int update)
 {
 	snd_pcm_stream_t *str;
 	assert(pcm);
 	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
 	assert(str->valid_setup);
-	if (str->mmap_control && !update)
-		return str->mmap_control->byte_io;
-	return pcm->ops->stream_byte_io(pcm, stream, update);
-}
-
-int snd_pcm_stream_byte_data(snd_pcm_t *pcm, int stream)
-{
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	if (str->mmap_control)
-		return str->mmap_control->byte_data;
-	return pcm->ops->stream_seek(pcm, stream, 0);
+	if (str->mmap_status && !update)
+		return str->mmap_status->frame_io;
+	return pcm->ops->stream_frame_io(pcm, stream, update);
 }
 
 int snd_pcm_stream_prepare(snd_pcm_t *pcm, int stream)
@@ -333,17 +324,20 @@ int snd_pcm_playback_pause(snd_pcm_t *pcm, int enable)
 	return snd_pcm_stream_pause(pcm, SND_PCM_STREAM_PLAYBACK, enable);
 }
 
-ssize_t snd_pcm_stream_seek(snd_pcm_t *pcm, int stream, off_t offset)
+ssize_t snd_pcm_stream_frame_data(snd_pcm_t *pcm, int stream, off_t offset)
 {
 	snd_pcm_stream_t *str;
 	assert(pcm);
 	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
 	assert(str->valid_setup);
-	if (str->mmap_control)
-		return snd_pcm_mmap_stream_seek(pcm, stream, offset);
-	else
-		return pcm->ops->stream_seek(pcm, stream, offset);
+	if (str->mmap_control) {
+		if (offset == 0)
+			return str->mmap_control->frame_data;
+		if (str->mmap_status)
+			return snd_pcm_mmap_stream_frame_data(pcm, stream, offset);
+	}
+	return pcm->ops->stream_frame_data(pcm, stream, offset);
 }
 
 ssize_t snd_pcm_write(snd_pcm_t *pcm, const void *buffer, size_t size)
@@ -353,7 +347,7 @@ ssize_t snd_pcm_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
 	assert(str->valid_setup);
 	assert(size == 0 || buffer);
-	assert(size % str->setup.bytes_align == 0);
+	assert(size % str->setup.frames_align == 0);
 	return pcm->ops->write(pcm, buffer, size);
 }
 
@@ -372,7 +366,7 @@ ssize_t snd_pcm_read(snd_pcm_t *pcm, void *buffer, size_t size)
 	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
 	assert(str->valid_setup);
 	assert(size == 0 || buffer);
-	assert(size % str->setup.bytes_align == 0);
+	assert(size % str->setup.frames_align == 0);
 	return pcm->ops->read(pcm, buffer, size);
 }
 
@@ -398,16 +392,6 @@ int snd_pcm_channels_mask(snd_pcm_t *pcm, int stream, bitset_t *client_vmask)
 	assert(stream >= 0 && stream <= 1);
 	assert(pcm->stream[stream].valid_setup);
 	return pcm->ops->channels_mask(pcm, stream, client_vmask);
-}
-
-ssize_t snd_pcm_bytes_per_second(snd_pcm_t *pcm, int stream)
-{
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	return snd_pcm_format_bytes_per_second(&str->setup.format);
 }
 
 typedef struct {
@@ -513,13 +497,13 @@ int snd_pcm_dump_setup(snd_pcm_t *pcm, int stream, FILE *fp)
 	fprintf(fp, "buffer_size: %d\n", setup->buffer_size);
 	fprintf(fp, "frag_size: %d\n", setup->frag_size);
 	fprintf(fp, "frags: %d\n", setup->frags);
-	fprintf(fp, "byte_boundary: %d\n", setup->byte_boundary);
+	fprintf(fp, "frame_boundary: %d\n", setup->frame_boundary);
 	fprintf(fp, "msbits_per_sample: %d\n", setup->msbits_per_sample);
-	fprintf(fp, "bytes_min: %d\n", setup->bytes_min);
-	fprintf(fp, "bytes_align: %d\n", setup->bytes_align);
-	fprintf(fp, "bytes_xrun_max: %d\n", setup->bytes_xrun_max);
+	fprintf(fp, "frames_min: %d\n", setup->frames_min);
+	fprintf(fp, "frames_align: %d\n", setup->frames_align);
+	fprintf(fp, "frames_xrun_max: %d\n", setup->frames_xrun_max);
 	fprintf(fp, "fill_mode: %s\n", assoc(setup->fill_mode, fills));
-	fprintf(fp, "bytes_fill_max: %d\n", setup->bytes_fill_max);
+	fprintf(fp, "frames_fill_max: %d\n", setup->frames_fill_max);
 	return 0;
 }
 
@@ -547,3 +531,42 @@ int snd_pcm_get_format_value(const char* name)
 	return -1;
 }
 
+ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, int stream, int bytes)
+{
+	snd_pcm_stream_t *str;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
+	str = &pcm->stream[stream];
+	assert(str->valid_setup);
+	return bytes * 8 / str->bits_per_frame;
+}
+
+ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, int stream, int frames)
+{
+	snd_pcm_stream_t *str;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
+	str = &pcm->stream[stream];
+	assert(str->valid_setup);
+	return frames * str->bits_per_frame / 8;
+}
+
+ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *pcm, int stream, int bytes)
+{
+	snd_pcm_stream_t *str;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
+	str = &pcm->stream[stream];
+	assert(str->valid_setup);
+	return bytes * 8 / str->bits_per_sample;
+}
+
+ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int stream, int samples)
+{
+	snd_pcm_stream_t *str;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
+	str = &pcm->stream[stream];
+	assert(str->valid_setup);
+	return samples * str->bits_per_sample / 8;
+}

@@ -51,7 +51,6 @@ static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 			      size_t frames)
 {
 	io_t *data;
-	ssize_t result;
 	struct iovec *vec;
 	int count, channel;
 
@@ -61,50 +60,38 @@ static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 	vec = (struct iovec *)((char *)data + sizeof(*data));
 	if (plugin->stream == SND_PCM_STREAM_PLAYBACK) {
 		assert(src_channels);
-		if ((result = snd_pcm_plugin_src_frames_to_size(plugin, frames)) < 0)
-			return result;
 		count = plugin->src_format.channels;
 		if (plugin->src_format.interleave) {
-			result = snd_pcm_write(data->slave, src_channels->area.addr, result);
+			return snd_pcm_write(data->slave, src_channels->area.addr, frames);
 		} else {
-			result /= count;
 			for (channel = 0; channel < count; channel++) {
 				if (src_channels[channel].enabled)
 					vec[channel].iov_base = src_channels[channel].area.addr;
 				else
 					vec[channel].iov_base = 0;
-				vec[channel].iov_len = result;
+				vec[channel].iov_len = frames;
 			}
-			result = snd_pcm_writev(data->slave, vec, count);
+			return snd_pcm_writev(data->slave, vec, count);
 		}
-		if (result < 0)
-			return result;
-		return snd_pcm_plugin_src_size_to_frames(plugin, result);
 	} else if (plugin->stream == SND_PCM_STREAM_CAPTURE) {
 		assert(dst_channels);
-		if ((result = snd_pcm_plugin_dst_frames_to_size(plugin, frames)) < 0)
-			return result;
 		count = plugin->dst_format.channels;
 		if (plugin->dst_format.interleave) {
-			result = snd_pcm_read(data->slave, dst_channels->area.addr, result);
 			for (channel = 0; channel < count; channel++) {
 				dst_channels[channel].enabled = src_channels[channel].enabled;
 			}
+			return snd_pcm_read(data->slave, dst_channels->area.addr, frames);
 		} else {
-			result /= count;
 			for (channel = 0; channel < count; channel++) {
 				dst_channels[channel].enabled = src_channels[channel].enabled;
 				if (dst_channels[channel].enabled)
 					vec[channel].iov_base = dst_channels[channel].area.addr;
 				else
 					vec[channel].iov_base = 0;
-				vec[channel].iov_len = result;
+				vec[channel].iov_len = frames;
 			}
-			result = snd_pcm_readv(data->slave, vec, count);
+			return snd_pcm_readv(data->slave, vec, count);
 		}
-		if (result < 0)
-			return result;
-		return snd_pcm_plugin_dst_size_to_frames(plugin, result);
 	} else {
 		assert(0);
 	}

@@ -226,11 +226,6 @@ ssize_t snd_pcm_format_size(int format, size_t samples)
 	}
 }
 
-ssize_t snd_pcm_format_bytes_per_second(snd_pcm_format_t *format)
-{
-	return snd_pcm_format_size(format->format, format->channels * format->rate);
-}
-
 u_int64_t snd_pcm_format_silence_64(int format)
 {
 	switch (format) {
@@ -314,49 +309,46 @@ u_int8_t snd_pcm_format_silence(int format)
 	return (u_int8_t)snd_pcm_format_silence_64(format);
 }
 
-ssize_t snd_pcm_format_set_silence(int format, void *data, size_t count)
+ssize_t snd_pcm_format_set_silence(int format, void *data, size_t samples)
 {
-	size_t count1;
-	
-	if (count == 0)
+	if (samples == 0)
 		return 0;
 	switch (snd_pcm_format_width(format)) {
-	case 4:
+	case 4: {
+		u_int8_t silence = snd_pcm_format_silence_64(format);
+		size_t samples1;
+		if (samples % 2 != 0)
+		  return -EINVAL;
+		samples1 = samples / 2;
+		memset(data, silence, samples1);
+		break;
+	}
 	case 8: {
 		u_int8_t silence = snd_pcm_format_silence_64(format);
-		memset(data, silence, count);
+		memset(data, silence, samples);
 		break;
 	}
 	case 16: {
 		u_int16_t silence = snd_pcm_format_silence_64(format);
-		if (count % 2)
-			return -EINVAL;
-		count1 = count / 2;
-		while (count1-- > 0)
+		while (samples-- > 0)
 			*((u_int16_t *)data)++ = silence;
 		break;
 	}
 	case 32: {
 		u_int32_t silence = snd_pcm_format_silence_64(format);
-		if (count % 4)
-			return -EINVAL;
-		count1 = count / 4;
-		while (count1-- > 0)
+		while (samples-- > 0)
 			*((u_int32_t *)data)++ = silence;
 		break;
 	}
 	case 64: {
 		u_int64_t silence = snd_pcm_format_silence_64(format);
-		if (count % 8)
-			return -EINVAL;
-		count1 = count / 8;
-		while (count1-- > 0)
+		while (samples-- > 0)
 			*((u_int64_t *)data)++ = silence;
 	}
 	default:
 		return -EINVAL;
 	}
-	return count;
+	return samples;
 }
 
 static int linear_formats[4*2*2] = {

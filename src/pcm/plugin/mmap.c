@@ -35,7 +35,6 @@
  
 typedef struct mmap_private_data {
 	snd_pcm_t *slave;
-	snd_pcm_mmap_control_t *control;
 	void *buffer;
 #if 0
 	char *silence;
@@ -52,18 +51,16 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 	snd_pcm_channel_area_t *dv;
 	snd_pcm_stream_t *stream;
 	snd_pcm_stream_setup_t *setup;
-	snd_pcm_mmap_control_t *ctrl;
 	size_t pos;
 	int ready;
 	unsigned int channel;
 
 	assert(plugin && channels);
 	data = (mmap_t *)plugin->extra_data;
-	ctrl = data->control;
 	stream = &data->slave->stream[plugin->stream];
 
 	setup = &stream->setup;
-	if (ctrl->state < SND_PCM_STATE_PREPARED)
+	if (snd_pcm_mmap_stream_state(data->slave, plugin->stream) < SND_PCM_STATE_PREPARED)
 		return -EBADFD;
 
 	ready = snd_pcm_mmap_ready(data->slave, plugin->stream);
@@ -71,7 +68,7 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 		return ready;
 	if (!ready) {
 		struct pollfd pfd;
-		if (ctrl->state != SND_PCM_STATE_RUNNING)
+		if (snd_pcm_mmap_stream_state(data->slave, plugin->stream) != SND_PCM_STATE_RUNNING)
 			return -EPIPE;
 		if (stream->mode & SND_PCM_NONBLOCK)
 			return -EAGAIN;
@@ -84,9 +81,8 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 			return -EPIPE;
 		assert(snd_pcm_mmap_ready(data->slave, plugin->stream));
 	}
-	pos = ctrl->byte_data % setup->buffer_size;
-	assert(pos % setup->bytes_align == 0);
-	pos = (pos * 8) / stream->bits_per_frame;
+	pos = snd_pcm_mmap_frames_offset(data->slave, plugin->stream);
+	assert(pos % setup->frames_align == 0);
 
 	sv = plugin->src_channels;
 	dv = stream->channels;
@@ -119,7 +115,6 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 	snd_pcm_channel_area_t *sv;
 	snd_pcm_stream_t *stream;
 	snd_pcm_stream_setup_t *setup;
-	snd_pcm_mmap_control_t *ctrl;
 	size_t pos;
 	int ready;
 
@@ -128,10 +123,9 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 	stream = &data->slave->stream[plugin->stream];
 
 	setup = &stream->setup;
-	ctrl = data->control;
-	if (ctrl->state < SND_PCM_STATE_PREPARED)
+	if (snd_pcm_mmap_stream_state(data->slave, plugin->stream) < SND_PCM_STATE_PREPARED)
 		return -EBADFD;
-	if (ctrl->state == SND_PCM_STATE_PREPARED &&
+	if (snd_pcm_mmap_stream_state(data->slave, plugin->stream) == SND_PCM_STATE_PREPARED &&
 	    stream->setup.start_mode == SND_PCM_START_DATA) {
 		err = snd_pcm_stream_go(data->slave, plugin->stream);
 		if (err < 0)
@@ -142,7 +136,7 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 		return ready;
 	if (!ready) {
 		struct pollfd pfd;
-		if (ctrl->state != SND_PCM_STATE_RUNNING)
+		if (snd_pcm_mmap_stream_state(data->slave, plugin->stream) != SND_PCM_STATE_RUNNING)
 			return -EPIPE;
 		if (stream->mode & SND_PCM_NONBLOCK)
 			return -EAGAIN;
@@ -155,9 +149,8 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 			return -EPIPE;
 		assert(snd_pcm_mmap_ready(data->slave, plugin->stream));
 	}
-	pos = ctrl->byte_data % setup->buffer_size;
-	assert(pos % setup->bytes_align == 0);
-	pos = (pos * 8) / stream->bits_per_frame;
+	pos = snd_pcm_mmap_frames_offset(data->slave, plugin->stream);
+	assert(pos % setup->frames_align == 0);
 
 	sv = stream->channels;
 	dv = plugin->dst_channels;
@@ -182,15 +175,12 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 {
 	mmap_t *data;
 	snd_pcm_stream_setup_t *setup;
-	snd_pcm_mmap_control_t *ctrl;
 	snd_pcm_stream_t *str;
 	int err;
 
 	assert(plugin && plugin->prev);
 	assert(src_channels);
 	data = (mmap_t *)plugin->extra_data;
-	ctrl = data->control;
-	assert(ctrl);
 	str = &data->slave->stream[SND_PCM_STREAM_PLAYBACK];
 	setup = &str->setup;
 
@@ -201,8 +191,8 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 	}
 #endif
 
-	snd_pcm_stream_seek(data->slave, SND_PCM_STREAM_PLAYBACK, frames * str->bits_per_frame / 8);
-	if (ctrl->state == SND_PCM_STATE_PREPARED &&
+	snd_pcm_mmap_stream_frame_data(data->slave, SND_PCM_STREAM_PLAYBACK, frames);
+	if (snd_pcm_mmap_stream_state(data->slave, plugin->stream) == SND_PCM_STATE_PREPARED &&
 	    (str->setup.start_mode == SND_PCM_START_DATA ||
 	     (str->setup.start_mode == SND_PCM_START_FULL &&
 	      !snd_pcm_mmap_ready(data->slave, plugin->stream)))) {
@@ -219,17 +209,14 @@ static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
 				     size_t frames)
 {
 	mmap_t *data;
-	snd_pcm_mmap_control_t *ctrl;
 	snd_pcm_stream_t *str;
 
 	assert(plugin && plugin->next);
 	data = (mmap_t *)plugin->extra_data;
-	ctrl = data->control;
-	assert(ctrl);
 	str = &data->slave->stream[SND_PCM_STREAM_CAPTURE];
 
 	/* FIXME: not here the increment */
-	snd_pcm_stream_seek(data->slave, SND_PCM_STREAM_CAPTURE, frames * str->bits_per_frame / 8);
+	snd_pcm_mmap_stream_frame_data(data->slave, SND_PCM_STREAM_CAPTURE, frames);
 
 	return frames;
 }
@@ -246,9 +233,11 @@ static int mmap_action(snd_pcm_plugin_t *plugin,
 		snd_pcm_stream_setup_t *setup;
 		int result;
 
-		if (data->control)
+		if (data->buffer) {
 			snd_pcm_munmap(data->slave, plugin->stream);
-		result = snd_pcm_mmap(data->slave, plugin->stream, &data->control, (void **)&data->buffer);
+			data->buffer = 0;
+		}
+		result = snd_pcm_mmap(data->slave, plugin->stream, NULL, NULL, (void **)&data->buffer);
 		if (result < 0)
 			return result;
 		setup = &data->slave->stream[plugin->stream].setup;
@@ -276,7 +265,7 @@ static void mmap_free(snd_pcm_plugin_t *plugin, void *private_data UNUSED)
 	if (data->silence)
 		free(data->silence);
 #endif
-	if (data->control)
+	if (data->buffer)
 		snd_pcm_munmap(data->slave, plugin->stream);
 }
  

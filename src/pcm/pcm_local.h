@@ -38,15 +38,17 @@ struct snd_pcm_ops {
 	int (*stream_flush)(snd_pcm_t *pcm, int stream);
 	int (*stream_pause)(snd_pcm_t *pcm, int stream, int enable);
 	int (*stream_state)(snd_pcm_t *pcm, int stream);
-	ssize_t (*stream_byte_io)(snd_pcm_t *pcm, int stream, int update);
-	ssize_t (*stream_seek)(snd_pcm_t *pcm, int stream, off_t offset);
+	ssize_t (*stream_frame_io)(snd_pcm_t *pcm, int stream, int update);
+	ssize_t (*stream_frame_data)(snd_pcm_t *pcm, int stream, off_t offset);
 	ssize_t (*write)(snd_pcm_t *pcm, const void *buffer, size_t size);
 	ssize_t (*writev)(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
 	ssize_t (*read)(snd_pcm_t *pcm, void *buffer, size_t size);
 	ssize_t (*readv)(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
-	int (*mmap_control)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control, size_t csize);
+	int (*mmap_status)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_status_t **status);
+	int (*mmap_control)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control);
 	int (*mmap_data)(snd_pcm_t *pcm, int stream, void **buffer, size_t bsize);
-	int (*munmap_control)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t *control, size_t csize);
+	int (*munmap_status)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_status_t *status);
+	int (*munmap_control)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t *control);
 	int (*munmap_data)(snd_pcm_t *pcm, int stream, void *buffer, size_t bsize);
 	int (*file_descriptor)(snd_pcm_t* pcm, int stream);
 	int (*channels_mask)(snd_pcm_t *pcm, int stream, bitset_t *client_vmask);
@@ -72,11 +74,10 @@ typedef struct {
 	int valid_setup;
 	snd_pcm_stream_setup_t setup;
 	snd_pcm_channel_area_t *channels;
-	size_t sample_width;
+	size_t bits_per_sample;
 	size_t bits_per_frame;
-	size_t frames_per_frag;
+	snd_pcm_mmap_status_t *mmap_status;
 	snd_pcm_mmap_control_t *mmap_control;
-	size_t mmap_control_size;
 	char *mmap_data;
 	size_t mmap_data_size;
 	enum { _INTERLEAVED, _NONINTERLEAVED, _COMPLEX } mmap_type;
@@ -132,19 +133,21 @@ int conv_index(int src_format, int dst_format);
 #define pdprintf( args... ) { ; }
 #endif
 
-static inline size_t snd_pcm_mmap_playback_bytes_avail(snd_pcm_stream_t *str)
+static inline size_t snd_pcm_mmap_playback_frames_avail(snd_pcm_stream_t *str)
 {
-	ssize_t bytes_avail = str->mmap_control->byte_io + str->setup.buffer_size - str->mmap_control->byte_data;
-	if (bytes_avail < 0)
-		bytes_avail += str->setup.byte_boundary;
-	return bytes_avail;
+	ssize_t frames_avail;
+	frames_avail = str->mmap_status->frame_io + str->setup.buffer_size - str->mmap_control->frame_data;
+	if (frames_avail < 0)
+		frames_avail += str->setup.frame_boundary;
+	return frames_avail;
 }
 
-static inline size_t snd_pcm_mmap_capture_bytes_avail(snd_pcm_stream_t *str)
+static inline size_t snd_pcm_mmap_capture_frames_avail(snd_pcm_stream_t *str)
 {
-	ssize_t bytes_avail = str->mmap_control->byte_io - str->mmap_control->byte_data;
-	if (bytes_avail < 0)
-		bytes_avail += str->setup.byte_boundary;
-	return bytes_avail;
+	ssize_t frames_avail;
+	frames_avail = str->mmap_status->frame_io - str->mmap_control->frame_data;
+	if (frames_avail < 0)
+		frames_avail += str->setup.frame_boundary;
+	return frames_avail;
 }
 

@@ -80,7 +80,7 @@ static ssize_t snd_pcm_plugin_side_channels(snd_pcm_plugin_t *plugin,
 	*channels = v;
 	if ((width = snd_pcm_format_physical_width(format->format)) < 0)
 		return width;	
-	size = format->channels * frames * width;
+	size = frames * format->channels * width;
 	assert(size % 8 == 0);
 	size /= 8;
 	ptr = (char *)snd_pcm_plug_buf_alloc(plugin->handle, plugin->stream, size);
@@ -194,51 +194,7 @@ int snd_pcm_plugin_free(snd_pcm_plugin_t *plugin)
 	return 0;
 }
 
-ssize_t snd_pcm_plugin_src_frames_to_size(snd_pcm_plugin_t *plugin, size_t frames)
-{
-	ssize_t result;
-
-	assert(plugin);
-	result = frames * plugin->src_format.channels * plugin->src_width;
-	assert(result % 8 == 0);
-	return result / 8;
-}
-
-ssize_t snd_pcm_plugin_dst_frames_to_size(snd_pcm_plugin_t *plugin, size_t frames)
-{
-	ssize_t result;
-
-	assert(plugin);
-	result = frames * plugin->dst_format.channels * plugin->dst_width;
-	assert(result % 8 == 0);
-	return result / 8;
-}
-
-ssize_t snd_pcm_plugin_src_size_to_frames(snd_pcm_plugin_t *plugin, size_t size)
-{
-	ssize_t result;
-	long tmp;
-
-	assert(plugin);
-	result = size * 8;
-	tmp = plugin->src_format.channels * plugin->src_width;
-	assert(result % tmp == 0);
-	return result / tmp;
-}
-
-ssize_t snd_pcm_plugin_dst_size_to_frames(snd_pcm_plugin_t *plugin, size_t size)
-{
-	ssize_t result;
-	long tmp;
-
-	assert(plugin);
-	result = size * 8;
-	tmp = plugin->dst_format.channels * plugin->dst_width;
-	assert(result % tmp == 0);
-	return result / tmp;
-}
-
-ssize_t snd_pcm_plug_client_frames(snd_pcm_plugin_handle_t *handle, int stream, size_t drv_frames)
+ssize_t snd_pcm_plug_client_size(snd_pcm_plugin_handle_t *handle, int stream, size_t drv_frames)
 {
 	snd_pcm_plugin_t *plugin, *plugin_prev, *plugin_next;
 	
@@ -266,7 +222,7 @@ ssize_t snd_pcm_plug_client_frames(snd_pcm_plugin_handle_t *handle, int stream, 
 	return drv_frames;
 }
 
-ssize_t snd_pcm_plug_slave_frames(snd_pcm_plugin_handle_t *handle, int stream, size_t clt_frames)
+ssize_t snd_pcm_plug_slave_size(snd_pcm_plugin_handle_t *handle, int stream, size_t clt_frames)
 {
 	snd_pcm_plugin_t *plugin, *plugin_prev, *plugin_next;
 	ssize_t frames;
@@ -301,81 +257,6 @@ ssize_t snd_pcm_plug_slave_frames(snd_pcm_plugin_handle_t *handle, int stream, s
 		assert(0);
 	return frames;
 }
-
-ssize_t snd_pcm_plug_client_size(snd_pcm_plugin_handle_t *handle, int stream, size_t drv_size)
-{
-	snd_pcm_plugin_t *plugin;
-	ssize_t result = 0;
-	
-	assert(handle);
-	if (drv_size == 0)
-		return 0;
-	if (stream == SND_PCM_STREAM_PLAYBACK) {
-		plugin = snd_pcm_plug_last(handle, SND_PCM_STREAM_PLAYBACK);
-		if (plugin == NULL)
-			return drv_size;
-		result = snd_pcm_plugin_dst_size_to_frames(plugin, drv_size);
-		if (result < 0)
-			return result;
-		result = snd_pcm_plug_client_frames(handle, SND_PCM_STREAM_PLAYBACK, result);
-		if (result < 0)
-			return result;
-		plugin = snd_pcm_plug_first(handle, SND_PCM_STREAM_PLAYBACK);
-		result = snd_pcm_plugin_src_frames_to_size(plugin, result);
-	} else if (stream == SND_PCM_STREAM_CAPTURE) {
-		plugin = snd_pcm_plug_first(handle, SND_PCM_STREAM_CAPTURE);
-		if (plugin == NULL)
-			return drv_size;
-		result = snd_pcm_plugin_src_size_to_frames(plugin, drv_size);
-		if (result < 0)
-			return result;
-		result = snd_pcm_plug_client_frames(handle, SND_PCM_STREAM_CAPTURE, result);
-		if (result < 0)
-			return result;
-		plugin = snd_pcm_plug_last(handle, SND_PCM_STREAM_CAPTURE);
-		result = snd_pcm_plugin_dst_frames_to_size(plugin, result);
-	} else
-		assert(0);
-	return result;
-}
-
-ssize_t snd_pcm_plug_slave_size(snd_pcm_plugin_handle_t *handle, int stream, size_t clt_size)
-{
-	snd_pcm_plugin_t *plugin;
-	ssize_t result = 0;
-	
-	assert(handle);
-	if (clt_size == 0)
-		return 0;
-	if (stream == SND_PCM_STREAM_PLAYBACK) {
-		plugin = snd_pcm_plug_first(handle, SND_PCM_STREAM_PLAYBACK);
-		if (plugin == NULL)
-			return clt_size;
-		result = snd_pcm_plugin_src_size_to_frames(plugin, clt_size);
-		if (result < 0)
-			return result;
-		result = snd_pcm_plug_slave_frames(handle, SND_PCM_STREAM_PLAYBACK, result);
-		if (result < 0)
-			return result;
-		plugin = snd_pcm_plug_last(handle, SND_PCM_STREAM_PLAYBACK);
-		result = snd_pcm_plugin_dst_frames_to_size(plugin, result);
-	} else if (stream == SND_PCM_STREAM_CAPTURE) {
-		plugin = snd_pcm_plug_last(handle, SND_PCM_STREAM_CAPTURE);
-		if (plugin == NULL)
-			return clt_size;
-		result = snd_pcm_plugin_dst_size_to_frames(plugin, clt_size);
-		if (result < 0)
-			return result;
-		result = snd_pcm_plug_slave_frames(handle, SND_PCM_STREAM_CAPTURE, result);
-		if (result < 0)
-			return result;
-		plugin = snd_pcm_plug_first(handle, SND_PCM_STREAM_CAPTURE);
-		result = snd_pcm_plugin_src_frames_to_size(plugin, result);
-	} else
-		assert(0);
-	return result;
-}
-
 
 unsigned int snd_pcm_plug_formats(unsigned int formats)
 {
@@ -796,7 +677,6 @@ ssize_t snd_pcm_plug_client_channels_buf(snd_pcm_plugin_handle_t *handle,
 	*channels = v;
 	if ((width = snd_pcm_format_physical_width(format->format)) < 0)
 		return width;
-	assert(count * 8 % width == 0);
 	nchannels = format->channels;
 	assert(format->interleave || format->channels == 1);
 	for (channel = 0; channel < nchannels; channel++, v++) {
@@ -837,8 +717,7 @@ ssize_t snd_pcm_plug_client_channels_iovec(snd_pcm_plugin_handle_t *handle,
 		return width;
 	nchannels = format->channels;
 	if (format->interleave) {
-		assert(count == 1 && vector->iov_base &&
-		       vector->iov_len * 8 % width == 0);
+		assert(count == 1 && vector->iov_base);
 		
 		for (channel = 0; channel < nchannels; channel++, v++) {
 			v->enabled = 1;
@@ -853,7 +732,6 @@ ssize_t snd_pcm_plug_client_channels_iovec(snd_pcm_plugin_handle_t *handle,
 		size_t len;
 		assert(count == nchannels);
 		len = vector->iov_len;
-		assert(len * 8 % width == 0);
 		for (channel = 0; channel < nchannels; channel++, v++, vector++) {
 			assert(vector->iov_len == len);
 			v->enabled = (vector->iov_base != NULL);
@@ -863,7 +741,7 @@ ssize_t snd_pcm_plug_client_channels_iovec(snd_pcm_plugin_handle_t *handle,
 			v->area.first = 0;
 			v->area.step = width;
 		}
-		return len * nchannels;
+		return len;
 	}
 }
 
@@ -1019,16 +897,13 @@ ssize_t snd_pcm_plug_write_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plu
 {
 	snd_pcm_plugin_t *plugin, *next;
 	snd_pcm_plugin_channel_t *dst_channels;
-	ssize_t frames;
 	int err;
+	ssize_t frames = size;
 
 	if ((err = snd_pcm_plug_playback_disable_useless_channels(handle, src_channels)) < 0)
 		return err;
 	
 	plugin = snd_pcm_plug_first(handle, SND_PCM_STREAM_PLAYBACK);
-	frames = snd_pcm_plugin_src_size_to_frames(plugin, size);
-	if (frames < 0)
-		return frames;
 	while (plugin && frames > 0) {
 		if ((next = plugin->next) != NULL) {
 			ssize_t frames1 = frames;
@@ -1058,24 +933,18 @@ ssize_t snd_pcm_plug_write_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plu
 		plugin = next;
 	}
 	snd_pcm_plug_buf_unlock(handle, SND_PCM_STREAM_PLAYBACK, src_channels->aptr);
-	frames = snd_pcm_plug_client_frames(handle, SND_PCM_STREAM_PLAYBACK, frames);
-	if (frames < 0)
-		return frames;
-	return snd_pcm_plugin_src_frames_to_size(snd_pcm_plug_first(handle, SND_PCM_STREAM_PLAYBACK), frames);
+	return snd_pcm_plug_client_size(handle, SND_PCM_STREAM_PLAYBACK, frames);
 }
 
 ssize_t snd_pcm_plug_read_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plugin_channel_t *dst_channels_final, size_t size)
 {
 	snd_pcm_plugin_t *plugin, *next;
 	snd_pcm_plugin_channel_t *src_channels, *dst_channels;
-	ssize_t frames;
+	ssize_t frames = size;
 	int err;
 
 	plugin = snd_pcm_plug_last(handle, SND_PCM_STREAM_CAPTURE);
-	frames = snd_pcm_plugin_dst_size_to_frames(plugin, size);
-	if (frames < 0)
-		return frames;
-	frames = snd_pcm_plug_slave_frames(handle, SND_PCM_STREAM_CAPTURE, frames);
+	frames = snd_pcm_plug_slave_size(handle, SND_PCM_STREAM_CAPTURE, frames);
 	if (frames < 0)
 		return frames;
 
@@ -1119,7 +988,7 @@ ssize_t snd_pcm_plug_read_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plug
 		src_channels = dst_channels;
 	}
 	snd_pcm_plug_buf_unlock(handle, SND_PCM_STREAM_CAPTURE, src_channels->aptr);
-	return snd_pcm_plugin_dst_frames_to_size(snd_pcm_plug_last(handle, SND_PCM_STREAM_CAPTURE), frames);
+	return frames;
 }
 
 int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, size_t dst_offset,
