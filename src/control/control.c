@@ -2031,7 +2031,7 @@ const void * snd_ctl_elem_value_get_bytes(const snd_ctl_elem_value_t *obj)
 void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec958_t *ptr)
 {
 	assert(obj && ptr);
-	*ptr = obj->value.iec958;
+	memcpy(ptr, &obj->value.iec958, sizeof(*ptr));
 }
 
 /**
@@ -2042,6 +2042,6 @@ void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec9
 void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec958_t *ptr)
 {
 	assert(obj && ptr);
-	obj->value.iec958 = *ptr;
+	memcpy(&obj->value.iec958, ptr, sizeof(obj->value.iec958));
 }
 
