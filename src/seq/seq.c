@@ -943,7 +943,7 @@ static int remove_match(snd_seq_remove_events_t *info,
 		if (info->tick)
 			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
 		else
-			res = snd_seq_compare_real_time(&ev->time.real, &info->time.real);
+			res = snd_seq_compare_real_time(&ev->time.time, &info->time.time);
 		if (!res)
 			return 0;
 	}
@@ -951,7 +951,7 @@ static int remove_match(snd_seq_remove_events_t *info,
 		if (info->tick)
 			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
 		else
-			res = snd_seq_compare_real_time(&ev->time.real, &info->time.real);
+			res = snd_seq_compare_real_time(&ev->time.time, &info->time.time);
 		if (res)
 			return 0;
 	}

@@ -30,7 +30,7 @@ void snd_seq_ev_schedule_tick(snd_seq_event_t *ev, int q, int relative,
 			      snd_seq_tick_time_t tick);
   /* scheduled on real-time-queue */
 void snd_seq_ev_schedule_real(snd_seq_event_t *ev, int q, int relative,
-			      snd_seq_real_time_t *real);
+			      snd_seq_real_time_t *time);
 
 /* set event priority (optional) */
 void snd_seq_ev_set_priority(snd_seq_event_t *ev, int high_prior);
@@ -134,7 +134,7 @@ int snd_seq_reset_pool_input(snd_seq_t *seq);
 	((ev)->type = SND_SEQ_EVENT_SETPOS_TIME,\
 	 snd_seq_ev_set_dest(ev, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_TIMER),\
 	 (ev)->data.queue.queue = (q),\
-	 (ev)->data.queue.param.time.real = *(rtime))
+	 (ev)->data.queue.param.time.time = *(rtime))
 #define snd_seq_ev_set_queue_pos_tick(ev,q,ttime) \
 	((ev)->type = SND_SEQ_EVENT_SETPOS_TICK,\
 	 snd_seq_ev_set_dest(ev, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_TIMER),\

@@ -115,7 +115,7 @@ void send_event(snd_seq_t *handle, int queue, int client, int port,
 	ev.source.client = ev.dest.client = client;
 	ev.source.port = ev.dest.port = port;
 	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	ev.time.real.tv_sec = *time; (*time)++;
+	ev.time.time.tv_sec = *time; (*time)++;
 	ev.type = SND_SEQ_EVENT_ECHO;
 	if ((err = snd_seq_event_output(handle, &ev))<0)
 		fprintf(stderr, "Event output error: %s\n", snd_strerror(err));
@@ -147,7 +147,6 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 	int client, queue, max, err, v1, v2, time = 0, pcm_flag = 0;
 	char *ptr;
 	snd_pcm_t *phandle = NULL;
-	char *pbuf = NULL;
 
 	if (argc < 1) {
 		fprintf(stderr, "Invalid destination...\n");
