@@ -2037,10 +2037,28 @@ static int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 	return 0;
 }
 
+#if 0
+#define REFINE_DEBUG
+#endif
+
 int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
+	int res;
+#ifdef REFINE_DEBUG
+	snd_output_t *log;
+	snd_output_stdio_attach(&log, stderr, 0);
+#endif
 	assert(pcm && params);
-	return pcm->ops->hw_refine(pcm->op_arg, params);
+#ifdef REFINE_DEBUG
+	snd_output_printf(log, "REFINE called:\n");
+	snd_pcm_hw_params_dump(params, log);
+#endif
+	res = pcm->ops->hw_refine(pcm->op_arg, params);
+#ifdef REFINE_DEBUG
+	snd_output_printf(log, "refine done - result = %i\n", res);
+	snd_output_close(log);
+#endif
+	return res;
 }
 
 /* Install one of the configurations present in configuration
