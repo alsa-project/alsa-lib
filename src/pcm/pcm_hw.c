@@ -502,12 +502,6 @@ static int snd_pcm_hw_set_avail_min(snd_pcm_t *pcm, size_t frames)
 	return 0;
 }
 
-static int snd_pcm_hw_channels_mask(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
-				    bitset_t *cmask ATTRIBUTE_UNUSED)
-{
-	return 0;
-}
-
 static void snd_pcm_hw_dump(snd_pcm_t *pcm, FILE *fp)
 {
 	snd_pcm_hw_t *hw = pcm->private;
@@ -552,7 +546,6 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	writen: snd_pcm_hw_writen,
 	readi: snd_pcm_hw_readi,
 	readn: snd_pcm_hw_readn,
-	channels_mask: snd_pcm_hw_channels_mask,
 	avail_update: snd_pcm_hw_avail_update,
 	mmap_forward: snd_pcm_hw_mmap_forward,
 	set_avail_min: snd_pcm_hw_set_avail_min,

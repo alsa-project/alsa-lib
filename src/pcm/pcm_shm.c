@@ -466,12 +466,6 @@ static int snd_pcm_shm_poll_descriptor(snd_pcm_t *pcm)
 	return fd;
 }
 
-static int snd_pcm_shm_channels_mask(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
-					bitset_t *cmask ATTRIBUTE_UNUSED)
-{
-	return 0;
-}
-
 static int snd_pcm_shm_close(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
@@ -525,7 +519,6 @@ snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	writen: snd_pcm_mmap_writen,
 	readi: snd_pcm_mmap_readi,
 	readn: snd_pcm_mmap_readn,
-	channels_mask: snd_pcm_shm_channels_mask,
 	avail_update: snd_pcm_shm_avail_update,
 	mmap_forward: snd_pcm_shm_mmap_forward,
 	set_avail_min: snd_pcm_shm_set_avail_min,

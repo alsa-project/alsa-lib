@@ -203,6 +203,8 @@ int snd_pcm_start(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	assert(pcm->valid_setup);
+	assert(pcm->stream != SND_PCM_STREAM_PLAYBACK ||
+	       snd_pcm_mmap_avail(pcm) > 0);
 	return pcm->fast_ops->start(pcm->fast_op_arg);
 }
 
@@ -357,13 +359,6 @@ int snd_pcm_poll_descriptor(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	return pcm->poll_fd;
-}
-
-int snd_pcm_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
-{
-	assert(pcm);
-	assert(pcm->valid_setup);
-	return pcm->fast_ops->channels_mask(pcm->fast_op_arg, cmask);
 }
 
 typedef struct {

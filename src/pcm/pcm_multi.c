@@ -407,49 +407,12 @@ static ssize_t snd_pcm_multi_mmap_forward(snd_pcm_t *pcm, size_t size)
 	return size;
 }
 
-int snd_pcm_multi_set_avail_min(snd_pcm_t *pcm, size_t frames)
+static int snd_pcm_multi_set_avail_min(snd_pcm_t *pcm, size_t frames)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	return snd_pcm_set_avail_min(multi->slaves[0].pcm, frames);
 }
 
-static int snd_pcm_multi_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
-{
-	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int i;
-	bitset_t *cmasks[multi->slaves_count];
-	int err;
-	for (i = 0; i < multi->slaves_count; ++i)
-		cmasks[i] = bitset_alloc(multi->slaves[i].channels_count);
-	for (i = 0; i < multi->channels_count; ++i) {
-		snd_pcm_multi_channel_t *b = &multi->channels[i];
-		if (b->slave_idx < 0)
-			continue;
-		if (bitset_get(cmask, i))
-			bitset_set(cmasks[b->slave_idx], b->slave_channel);
-	}
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *slave = multi->slaves[i].pcm;
-		err = snd_pcm_channels_mask(slave, cmasks[i]);
-		if (err < 0) {
-			for (i = 0; i <= multi->slaves_count; ++i)
-				free(cmasks[i]);
-			return err;
-		}
-	}
-	bitset_zero(cmask, pcm->setup.format.channels);
-	for (i = 0; i < multi->channels_count; ++i) {
-		snd_pcm_multi_channel_t *b = &multi->channels[i];
-		if (b->slave_idx < 0)
-			continue;
-		if (bitset_get(cmasks[b->slave_idx], b->slave_channel))
-			bitset_set(cmask, i);
-	}
-	for (i = 0; i < multi->slaves_count; ++i)
-		free(cmasks[i]);
-	return 0;
-}
-		
 int snd_pcm_multi_poll_descriptor(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
@@ -510,7 +473,6 @@ snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	readi: snd_pcm_mmap_readi,
 	readn: snd_pcm_mmap_readn,
 	rewind: snd_pcm_multi_rewind,
-	channels_mask: snd_pcm_multi_channels_mask,
 	avail_update: snd_pcm_multi_avail_update,
 	mmap_forward: snd_pcm_multi_mmap_forward,
 	set_avail_min: snd_pcm_multi_set_avail_min,

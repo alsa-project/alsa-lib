@@ -991,22 +991,6 @@ static int snd_pcm_share_set_avail_min(snd_pcm_t *pcm, size_t frames)
 	return 0;
 }
 
-static int snd_pcm_share_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
-{
-	snd_pcm_share_t *share = pcm->private;
-	snd_pcm_share_slave_t *slave = share->slave;
-	unsigned int i;
-	bitset_t m[bitset_size(slave->channels_count)];
-	int err = snd_pcm_channels_mask(slave->pcm, m);
-	if (err < 0)
-		return err;
-	for (i = 0; i < share->channels_count; ++i) {
-		if (!bitset_get(m, share->slave_channels[i]))
-			bitset_reset(cmask, i);
-	}
-	return 0;
-}
-		
 /* Warning: take the mutex before to call this */
 static void _snd_pcm_share_stop(snd_pcm_t *pcm, int state)
 {
@@ -1205,7 +1189,6 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	readi: snd_pcm_mmap_readi,
 	readn: snd_pcm_mmap_readn,
 	rewind: snd_pcm_share_rewind,
-	channels_mask: snd_pcm_share_channels_mask,
 	avail_update: snd_pcm_share_avail_update,
 	mmap_forward: snd_pcm_share_mmap_forward,
 	set_avail_min: snd_pcm_share_set_avail_min,

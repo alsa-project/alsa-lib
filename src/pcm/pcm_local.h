@@ -64,7 +64,6 @@ typedef struct {
 	ssize_t (*writen)(snd_pcm_t *pcm, void **bufs, size_t size);
 	ssize_t (*readi)(snd_pcm_t *pcm, void *buffer, size_t size);
 	ssize_t (*readn)(snd_pcm_t *pcm, void **bufs, size_t size);
-	int (*channels_mask)(snd_pcm_t *pcm, bitset_t *cmask);
 	ssize_t (*avail_update)(snd_pcm_t *pcm);
 	ssize_t (*mmap_forward)(snd_pcm_t *pcm, size_t size);
 	int (*set_avail_min)(snd_pcm_t *pcm, size_t frames);

@@ -244,7 +244,7 @@ static ssize_t snd_pcm_file_avail_update(snd_pcm_t *pcm)
 	return snd_pcm_avail_update(file->slave);
 }
 
-int snd_pcm_file_set_avail_min(snd_pcm_t *pcm, size_t frames)
+static int snd_pcm_file_set_avail_min(snd_pcm_t *pcm, size_t frames)
 {
 	snd_pcm_file_t *file = pcm->private;
 	return snd_pcm_set_avail_min(file->slave, frames);
@@ -270,12 +270,6 @@ static int snd_pcm_file_munmap(snd_pcm_t *pcm)
 	pcm->mmap_info_count = 0;
 	pcm->mmap_info = 0;
 	return 0;
-}
-
-static int snd_pcm_file_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
-{
-	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_channels_mask(file->slave, cmask);
 }
 
 static int snd_pcm_file_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
@@ -341,7 +335,6 @@ snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	writen: snd_pcm_file_writen,
 	readi: snd_pcm_file_readi,
 	readn: snd_pcm_file_readn,
-	channels_mask: snd_pcm_file_channels_mask,
 	avail_update: snd_pcm_file_avail_update,
 	mmap_forward: snd_pcm_file_mmap_forward,
 	set_avail_min: snd_pcm_file_set_avail_min,

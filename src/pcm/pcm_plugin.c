@@ -354,12 +354,6 @@ int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm)
 	return snd_pcm_poll_descriptor(plugin->slave);
 }
 
-int snd_pcm_plugin_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
-{
-	snd_pcm_plugin_t *plugin = pcm->private;
-	return snd_pcm_channels_mask(plugin->slave, cmask);
-}
-
 int conv_index(int src_format, int dst_format)
 {
 	int src_endian, dst_endian, sign, src_width, dst_width;
@@ -414,7 +408,6 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	writen: snd_pcm_plugin_writen,
 	readi: snd_pcm_plugin_readi,
 	readn: snd_pcm_plugin_readn,
-	channels_mask: snd_pcm_plugin_channels_mask,
 	avail_update: snd_pcm_plugin_avail_update,
 	mmap_forward: snd_pcm_plugin_mmap_forward,
 	set_avail_min: snd_pcm_plugin_set_avail_min,
