@@ -247,7 +247,7 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 	snd_pcm_channel_params_t *dstparams;
 	snd_pcm_plugin_t *plugin;
 	int err;
-
+	
 	if (params->channel == SND_PCM_CHANNEL_PLAYBACK) {
 		memcpy(newparams, params, sizeof(*params));
 		memcpy(&tmpparams, params, sizeof(*params));
@@ -334,7 +334,7 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 		}
 		newparams->format.rate = dstparams->format.rate;
         }
-
+        
 	/* format change */
 	if (newparams->format.format != dstparams->format.format) {
 		tmpparams.format.format = dstparams->format.format;
@@ -430,7 +430,9 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 		}
 		newparams->format.interleave = dstparams->format.interleave;
 	}
+
+	if (params->channel == SND_PCM_CHANNEL_CAPTURE)
+		*newparams = *hwparams;
+
 	return 0;
 }
-
-
