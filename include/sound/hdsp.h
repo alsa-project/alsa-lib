@@ -76,7 +76,7 @@ struct _snd_hdsp_config_info {
 typedef struct _snd_hdsp_firmware hdsp_firmware_t;
 
 struct _snd_hdsp_firmware {
-	unsigned long *firmware_data;	/* 24413 long words */
+	void *firmware_data;	/* 24413 x 4 bytes */
 };
 
 #define SNDRV_HDSP_IOCTL_UPLOAD_FIRMWARE _IOW('H', 0x42, hdsp_firmware_t)
