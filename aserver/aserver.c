@@ -896,7 +896,7 @@ int server(char *sockname, int port)
 	}
 
 	while (1) {
-		struct pollfd pfds[OPEN_MAX];
+		struct pollfd pfds[open_max];
 		size_t pfds_count;
 		do {
 			err = poll(pollfds, pollfds_count, -1);
