@@ -530,12 +530,18 @@ static int snd_pcm_plug_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 
 	/* HACK: to avoid overflow in PARTBIT_RATE code */
 	rate_min = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, NULL);
-	if (rate_min < 4000)
+	if (rate_min < 4000) {
 		_snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE, 4000, 0);
+		if (snd_pcm_hw_param_empty(params, SND_PCM_HW_PARAM_RATE))
+			return -EINVAL;
+	}
 	/* HACK: to avoid overflow in PERIOD_SIZE code */
 	channels_max = snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
-	if (channels_max > 10000)
+	if (channels_max > 10000) {
 		_snd_pcm_hw_param_set_max(params, SND_PCM_HW_PARAM_CHANNELS, 10000, 0);
+		if (snd_pcm_hw_param_empty(params, SND_PCM_HW_PARAM_CHANNELS))
+			return -EINVAL;
+	}
 	return 0;
 }
 
@@ -574,6 +580,7 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	snd_pcm_format_t format;
 	snd_interval_t t, buffer_size;
 	const snd_interval_t *srate, *crate;
+
 	if (plug->srate == -2)
 		links |= SND_PCM_HW_PARBIT_RATE;
 	else {
@@ -609,7 +616,7 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		}
 
 		if (snd_pcm_format_mask_empty(&sfmt_mask)) {
-			SNDERR("Unable to find an useable slave format");
+			SNDERR("Unable to find an useable slave format for '%s'", pcm->name);
 			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 				if (!snd_pcm_format_mask_test(format_mask, format))
 					continue;
@@ -624,7 +631,8 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		}
 		err = snd_pcm_hw_param_set_mask(slave, sparams, SND_CHANGE,
 						SND_PCM_HW_PARAM_FORMAT, &sfmt_mask);
-		assert(err >= 0);
+		if (err < 0)
+			return -EINVAL;
 	}
 
 	if (snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_FORMAT, sparams) ||
@@ -634,6 +642,10 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_MMAP };
 		_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 					   &access_mask);
+		if (snd_pcm_access_mask_empty(snd_pcm_hw_param_get_mask(sparams, SND_PCM_HW_PARAM_ACCESS))) {
+			SNDERR("Unable to find an useable access for '%s'", pcm->name);
+			return -EINVAL;
+		}
 	}
 	if ((links & SND_PCM_HW_PARBIT_RATE) ||
 	    snd_pcm_hw_param_always_eq(params, SND_PCM_HW_PARAM_RATE, sparams))

@@ -473,6 +473,8 @@ void snd_pcm_hw_param_refine_near(snd_pcm_t *pcm,
 				  snd_pcm_hw_params_t *params,
 				  snd_pcm_hw_param_t var,
 				  const snd_pcm_hw_params_t *src);
+int snd_pcm_hw_param_empty(const snd_pcm_hw_params_t *params,
+			   snd_pcm_hw_param_t var);
 int snd_pcm_hw_param_always_eq(const snd_pcm_hw_params_t *params,
 			       snd_pcm_hw_param_t var,
 			       const snd_pcm_hw_params_t *params1);
@@ -489,13 +491,13 @@ int snd_pcm_hw_param_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 int snd_pcm_hw_param_set_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 				 snd_set_mode_t mode,
 				 snd_pcm_hw_param_t var);
-unsigned int snd_pcm_hw_param_set_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-					snd_pcm_hw_param_t var, int *dir);
-unsigned int snd_pcm_hw_param_set_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-				       snd_pcm_hw_param_t var, int *dir);
-unsigned int snd_pcm_hw_param_set_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-				       snd_pcm_hw_param_t var, unsigned int val,
-				       int *dir);
+int snd_pcm_hw_param_set_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			       snd_pcm_hw_param_t var, int *dir, unsigned int *rval);
+int snd_pcm_hw_param_set_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			      snd_pcm_hw_param_t var, int *dir, unsigned int *rval);
+int snd_pcm_hw_param_set_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			      snd_pcm_hw_param_t var, unsigned int val,
+			      int *dir, unsigned int *rval);
 int snd_pcm_hw_param_set_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			     snd_set_mode_t mode,
 			     snd_pcm_hw_param_t var,

@@ -2287,6 +2287,17 @@ int snd_pcm_access_mask_test(const snd_pcm_access_mask_t *mask, snd_pcm_access_t
 }
 
 /**
+ * \brief test, if given a #snd_pcm_access_mask_t is empty
+ * \param mask pointer to mask
+ * \retval 0 not empty
+ * \retval 1 empty
+ */
+int snd_pcm_access_mask_empty(const snd_pcm_access_mask_t *mask)
+{
+	return snd_mask_empty((const snd_mask_t *) mask);
+}
+
+/**
  * \brief make an access type present in a #snd_pcm_access_mask_t
  * \param mask pointer to mask
  * \param val access type
@@ -2597,7 +2608,11 @@ int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, sn
  */
 snd_pcm_access_t snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -2608,7 +2623,11 @@ snd_pcm_access_t snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_p
  */
 snd_pcm_access_t snd_pcm_hw_params_set_access_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -2676,7 +2695,11 @@ int snd_pcm_hw_params_set_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, sn
  */
 snd_pcm_format_t snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL);
+	unsigned int res;
+	
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -2687,7 +2710,11 @@ snd_pcm_format_t snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_p
  */
 snd_pcm_format_t snd_pcm_hw_params_set_format_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -2755,7 +2782,11 @@ int snd_pcm_hw_params_set_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  */
 snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL);
+	unsigned int res;
+	
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -2766,7 +2797,11 @@ snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pc
  */
 snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -2892,7 +2927,11 @@ int snd_pcm_hw_params_set_channels_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  */
 unsigned int snd_pcm_hw_params_set_channels_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
 {
-	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_CHANNELS, val, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -2903,7 +2942,11 @@ unsigned int snd_pcm_hw_params_set_channels_near(snd_pcm_t *pcm, snd_pcm_hw_para
  */
 unsigned int snd_pcm_hw_params_set_channels_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+	unsigned int res;
+	
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_CHANNELS, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -2914,7 +2957,11 @@ unsigned int snd_pcm_hw_params_set_channels_first(snd_pcm_t *pcm, snd_pcm_hw_par
  */
 unsigned int snd_pcm_hw_params_set_channels_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_CHANNELS, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 
@@ -3045,7 +3092,11 @@ int snd_pcm_hw_params_set_rate_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  */
 unsigned int snd_pcm_hw_params_set_rate_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {
-	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_RATE, val, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_RATE, val, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3059,7 +3110,11 @@ unsigned int snd_pcm_hw_params_set_rate_near(snd_pcm_t *pcm, snd_pcm_hw_params_t
  */
 unsigned int snd_pcm_hw_params_set_rate_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_RATE, dir);
+	unsigned int res;
+	
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_RATE, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3073,7 +3128,11 @@ unsigned int snd_pcm_hw_params_set_rate_first(snd_pcm_t *pcm, snd_pcm_hw_params_
  */
 unsigned int snd_pcm_hw_params_set_rate_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_RATE, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_RATE, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 
@@ -3205,7 +3264,11 @@ int snd_pcm_hw_params_set_period_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  */
 unsigned int snd_pcm_hw_params_set_period_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {
-	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3219,7 +3282,11 @@ unsigned int snd_pcm_hw_params_set_period_time_near(snd_pcm_t *pcm, snd_pcm_hw_p
  */
 unsigned int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+	unsigned int res;
+	
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3233,7 +3300,11 @@ unsigned int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_
  */
 unsigned int snd_pcm_hw_params_set_period_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 
@@ -3375,7 +3446,11 @@ int snd_pcm_hw_params_set_period_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  */
 snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val, int *dir)
 {
-	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, val, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, val, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3389,7 +3464,11 @@ snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_near(snd_pcm_t *pcm, snd_pcm
  */
 snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3403,7 +3482,11 @@ snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_first(snd_pcm_t *pcm, snd_pc
  */
 snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3545,7 +3628,11 @@ int snd_pcm_hw_params_set_periods_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  */
 unsigned int snd_pcm_hw_params_set_periods_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {
-	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIODS, val, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIODS, val, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3559,7 +3646,11 @@ unsigned int snd_pcm_hw_params_set_periods_near(snd_pcm_t *pcm, snd_pcm_hw_param
  */
 unsigned int snd_pcm_hw_params_set_periods_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIODS, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIODS, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3573,7 +3664,11 @@ unsigned int snd_pcm_hw_params_set_periods_first(snd_pcm_t *pcm, snd_pcm_hw_para
  */
 unsigned int snd_pcm_hw_params_set_periods_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIODS, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIODS, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3715,7 +3810,11 @@ int snd_pcm_hw_params_set_buffer_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  */
 unsigned int snd_pcm_hw_params_set_buffer_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {
-	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3729,7 +3828,11 @@ unsigned int snd_pcm_hw_params_set_buffer_time_near(snd_pcm_t *pcm, snd_pcm_hw_p
  */
 unsigned int snd_pcm_hw_params_set_buffer_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3743,7 +3846,11 @@ unsigned int snd_pcm_hw_params_set_buffer_time_first(snd_pcm_t *pcm, snd_pcm_hw_
  */
 unsigned int snd_pcm_hw_params_set_buffer_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+	unsigned int res;
+	
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 
@@ -3881,7 +3988,11 @@ int snd_pcm_hw_params_set_buffer_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  */
 snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val)
 {
-	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, val, NULL);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, val, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3892,7 +4003,11 @@ snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_near(snd_pcm_t *pcm, snd_pcm
  */
 snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -3903,7 +4018,11 @@ snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_first(snd_pcm_t *pcm, snd_pc
  */
 snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+	unsigned int res;
+	
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL, &res) < 0)
+		return 0;
+	return res;
 }
 
 
@@ -4034,7 +4153,11 @@ int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  */
 unsigned int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {
-	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -4048,7 +4171,11 @@ unsigned int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_par
  */
 unsigned int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -4062,7 +4189,11 @@ unsigned int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_pa
  */
 unsigned int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+	unsigned int res;
+
+	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, dir, &res) < 0)
+		return 0;
+	return res;
 }
 
 /**
@@ -5163,7 +5294,10 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		if (state == SND_PCM_STATE_PREPARED) {
 			snd_pcm_sframes_t hw_avail = pcm->buffer_size - avail;
 			hw_avail += frames;
-			if (hw_avail >= (snd_pcm_sframes_t) pcm->start_threshold) {
+			/* some plugins might automatically start the stream */
+			state = snd_pcm_state(pcm);
+			if (state == SND_PCM_STATE_PREPARED &&
+			    hw_avail >= (snd_pcm_sframes_t) pcm->start_threshold) {
 				err = snd_pcm_start(pcm);
 				if (err < 0)
 					goto _end;
