@@ -446,7 +446,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 		n->u.compound.join = 1;
 		father = n;
 	}
-	if (c == '=' )
+	if (c == '=')
 		c = get_nonwhite(input);
 	if (_snd_config_search(father, id, -1, &n) == 0) {
 		if (mode == REMOVE) {
@@ -765,13 +765,13 @@ const char *snd_config_get_id(snd_config_t *config)
 
 /**
  * \brief Build a top level config node
- * \param configp Returned config node handle pointer
+ * \param config Returned config node handle pointer
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_top(snd_config_t **configp)
+int snd_config_top(snd_config_t **config)
 {
-	assert(configp);
-	return _snd_config_make(configp, 0, SND_CONFIG_TYPE_COMPOUND);
+	assert(config);
+	return _snd_config_make(config, 0, SND_CONFIG_TYPE_COMPOUND);
 }
 
 /**
@@ -899,7 +899,7 @@ int snd_config_delete(snd_config_t *config)
 
 /**
  * \brief Build a config node
- * \param configp Returned config node handle pointer
+ * \param config Returned config node handle pointer
  * \param id Node id
  * \param type Node type
  * \return 0 on success otherwise a negative error code
@@ -920,7 +920,7 @@ int snd_config_make(snd_config_t **config, const char *id,
 
 /**
  * \brief Build an integer config node
- * \param configp Returned config node handle pointer
+ * \param config Returned config node handle pointer
  * \param id Node id
  * \return 0 on success otherwise a negative error code
  */
@@ -931,7 +931,7 @@ int snd_config_make_integer(snd_config_t **config, const char *id)
 
 /**
  * \brief Build a real config node
- * \param configp Returned config node handle pointer
+ * \param config Returned config node handle pointer
  * \param id Node id
  * \return 0 on success otherwise a negative error code
  */
@@ -942,7 +942,7 @@ int snd_config_make_real(snd_config_t **config, const char *id)
 
 /**
  * \brief Build a string config node
- * \param configp Returned config node handle pointer
+ * \param config Returned config node handle pointer
  * \param id Node id
  * \return 0 on success otherwise a negative error code
  */
@@ -953,7 +953,7 @@ int snd_config_make_string(snd_config_t **config, const char *id)
 
 /**
  * \brief Build an empty compound config node
- * \param configp Returned config node handle pointer
+ * \param config Returned config node handle pointer
  * \param id Node id
  * \param join Join flag (checked in snd_config_save to change look)
  * \return 0 on success otherwise a negative error code
