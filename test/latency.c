@@ -1,3 +1,32 @@
+/*
+ *  Latency test program
+ *
+ *     Author: Jaroslav Kysela <perex@suse.cz>
+ *
+ *     Author of bandpass filtersweep effect:
+ *	       Maarten de Boer <mdeboer@iua.upf.es>
+ *
+ *  This small demo program can be used for measuring latency between
+ *  capture and playback. This latency is measured from driver (diff when
+ *  playback and capture was started). Scheduler is set to SCHED_RR.
+ *
+ *
+ *   This library is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as
+ *   published by the Free Software Foundation; either version 2 of
+ *   the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,37 +35,23 @@
 #include <getopt.h>
 #include "../include/asoundlib.h"
 #include <sys/time.h>
+#include <math.h>
 
 char *pdevice = "hw:0,0";
 char *cdevice = "hw:0,0";
 snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
 int rate = 22050;
 int channels = 2;
-int latency_min = 32;		/* in frames */
-int latency_max = 2048;		/* in frames */
+int latency_min = 32;		/* in frames / 2 */
+int latency_max = 2048;		/* in frames / 2 */
 int loop_sec = 30;		/* seconds */
 int block = 0;			/* block mode */
+int tick_time = 0;		/* disabled, otherwise in us */
+int tick_time_ok = 0;
+int use_poll = 0;
 unsigned long loop_limit;
 
 snd_output_t *output = NULL;
-
-#if 0
-static char *xitoa(int aaa)
-{
-	static char str[12];
-
-	sprintf(str, "%i", aaa);
-	return str;
-}
-#endif
-
-/*
- *  This small demo program can be used for measuring latency between
- *  capture and playback. This latency is measured from driver (diff when
- *  playback and capture was started). Scheduler is set to SCHED_RR.
- *
- *  Used format is 44100Hz, Signed Little Endian 16-bit, Stereo.
- */
 
 int setparams_stream(snd_pcm_t *handle,
 		     snd_pcm_hw_params_t *params,
@@ -105,7 +120,7 @@ int setparams_set(snd_pcm_t *handle,
 		  snd_pcm_sw_params_t *swparams,
 		  const char *id)
 {
-	int err;
+	int err, val, sleep_min = 0;
 
 	err = snd_pcm_hw_params(handle, params);
 	if (err < 0) {
@@ -122,12 +137,37 @@ int setparams_set(snd_pcm_t *handle,
 		printf("Unable to set start threshold mode for %s: %s\n", id, snd_strerror(err));
 		return err;
 	}
-	err = snd_pcm_sw_params_set_avail_min(handle, swparams, !block ? 4 : snd_pcm_hw_params_get_period_size(params, NULL));
+	tick_time_ok = 0;
+	if (tick_time > 0) {
+		int time, ttime;
+		time = snd_pcm_hw_params_get_period_time(params, NULL);
+		ttime = snd_pcm_hw_params_get_tick_time(params, NULL);
+		if (time < ttime) {
+			printf("Skipping to set minimal sleep: period time < tick time\n");
+		} else if (ttime <= 0) {
+			printf("Skipping to set minimal sleep: tick time <= 0 (%i)\n", ttime);
+		} else {
+			sleep_min = tick_time / ttime;
+			if (sleep_min <= 0)
+				sleep_min = 1;
+			err = snd_pcm_sw_params_set_sleep_min(handle, swparams, sleep_min);
+			if (err < 0) {
+				printf("Unable to set minimal sleep %i for %s: %s\n", sleep_min, id, snd_strerror(err));
+				return err;
+			}
+			tick_time_ok = sleep_min * ttime;
+		}
+	}
+	val = !block ? 4 : snd_pcm_hw_params_get_period_size(params, NULL);
+	if (tick_time_ok > 0)
+		val = 16;
+	err = snd_pcm_sw_params_set_avail_min(handle, swparams, val);
 	if (err < 0) {
 		printf("Unable to set avail min for %s: %s\n", id, snd_strerror(err));
 		return err;
 	}
-	err = snd_pcm_sw_params_set_xfer_align(handle, swparams, !block ? 4 : 1);
+	val = !block ? 4 : 1;
+	err = snd_pcm_sw_params_set_xfer_align(handle, swparams, val);
 	if (err < 0) {
 		printf("Unable to set transfer align for %s: %s\n", id, snd_strerror(err));
 		return err;
@@ -222,6 +262,23 @@ void showstat(snd_pcm_t *handle, size_t frames)
 	snd_pcm_status_dump(status, output);
 }
 
+void showlatency(size_t latency)
+{
+	double d;
+	latency *= 2;
+	d = (double)latency / (double)rate;
+	printf("Trying latency %li frames, %.3fus, %.6fms (%.4fHz)\n", (long)latency, d * 1000000, d * 1000, (double)1 / d);
+}
+
+void showinmax(size_t in_max)
+{
+	double d;
+
+	printf("Maximum read: %li frames\n", (long)in_max);
+	d = (double)in_max / (double)rate;
+	printf("Maximum read latency: %.3fus, %.6fms (%.4fHz)\n", d * 1000000, d * 1000, (double)1 / d);
+}
+
 void gettimestamp(snd_pcm_t *handle, snd_timestamp_t *timestamp)
 {
 	int err;
@@ -266,7 +323,7 @@ long timediff(snd_timestamp_t t1, snd_timestamp_t t2)
 	return (t1.tv_sec * 1000000) + l;
 }
 
-long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
+long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames, size_t *max)
 {
 	long r;
 
@@ -274,8 +331,11 @@ long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 		do {
 			r = snd_pcm_readi(handle, buf, len);
 		} while (r == -EAGAIN);
-		if (r > 0)
+		if (r > 0) {
 			*frames += r;
+			if (*max < r)
+				*max = r;
+		}
 		// printf("read = %li\n", r);
 	} else {
 		int frame_bytes = (snd_pcm_format_width(format) / 8) * channels;
@@ -285,6 +345,8 @@ long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 				buf += r * frame_bytes;
 				len -= r;
 				*frames += r;
+				if (*max < r)
+					*max = r;
 			}
 			// printf("r = %li, len = %li\n", r, len);
 		} while (r >= 1 && len > 0);
@@ -311,6 +373,49 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 	}
 	return 0;
 }
+			
+#define FILTERSWEEP_LFO_CENTER 2000.
+#define FILTERSWEEP_LFO_DEPTH 1800.
+#define FILTERSWEEP_LFO_FREQ 0.2
+#define FILTER_BANDWIDTH 50
+
+/* filter sweep variables */
+float lfo,dlfo,fs,fc,BW,C,D,a0,a1,a2,b1,b2,*x[3],*y[3];
+
+void applyeffect(char* buffer,int r)
+{
+	short* samples = (short*) buffer;
+	int i;
+	for (i=0;i<r;i++)
+	{
+		int chn;
+
+		fc = sin(lfo)*FILTERSWEEP_LFO_DEPTH+FILTERSWEEP_LFO_CENTER;
+		lfo += dlfo;
+		if (lfo>2.*M_PI) lfo -= 2.*M_PI;
+		C = 1./tan(M_PI*BW/fs);
+		D = 2.*cos(2*M_PI*fc/fs);
+		a0 = 1./(1.+C);
+		a1 = 0;
+		a2 = -a0;
+		b1 = -C*D*a0;
+		b2 = (C-1)*a0;
+
+		for (chn=0;chn<channels;chn++)
+		{
+			x[chn][2] = x[chn][1];
+			x[chn][1] = x[chn][0];
+
+			y[chn][2] = y[chn][1];
+			y[chn][1] = y[chn][0];
+
+			x[chn][0] = samples[i*channels+chn];
+			y[chn][0] = a0*x[chn][0] + a1*x[chn][1] + a2*x[chn][2] 
+				- b1*y[chn][1] - b2*y[chn][2];
+			samples[i*channels+chn] = y[chn][0];
+		}
+	}
+}
 
 void help(void)
 {
@@ -328,6 +433,9 @@ Usage: latency [OPTION]... [FILE]...
 -r,--rate      rate
 -s,--seconds   duration of test in seconds
 -b,--block     block mode
+-t,--time      maximal tick time in us
+-p,--poll      use poll (wait for event - reduces CPU usage)
+-e,--effect    apply an effect (bandpass filtersweep)
 ");
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++(unsigned long) k) {
@@ -335,7 +443,14 @@ Usage: latency [OPTION]... [FILE]...
                 if (s)
                         printf(" %s", s);
         }
-        printf("\n");
+        printf("\n\n");
+        printf("\
+Tip #1 (useable latency with large periods, non-blocking mode, good CPU usage,
+        superb xrun prevention):
+  latency -m 8192 -M 8192 -t 1 -p
+Tip #2 (superb latency, non-blocking mode, but heavy CPU usage):
+  latency -m 128 -M 128
+");
 }
 
 int main(int argc, char *argv[])
@@ -353,20 +468,23 @@ int main(int argc, char *argv[])
 		{"rate", 1, NULL, 'r'},
 		{"seconds", 1, NULL, 's'},
 		{"block", 0, NULL, 'b'},
+		{"time", 1, NULL, 't'},
+		{"poll", 0, NULL, 'p'},
+		{"effect", 0, NULL, 'e'},
 		{NULL, 0, NULL, 0},
 	};
 	snd_pcm_t *phandle, *chandle;
 	char *buffer;
 	int err, latency, morehelp;
-	int size, ok;
+	int ok;
 	snd_timestamp_t p_tstamp, c_tstamp;
 	ssize_t r;
-	size_t frames_in, frames_out;
-
+	size_t frames_in, frames_out, in_max;
+	int effect = 0;
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:s:b", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:s:bt:pe", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -379,13 +497,13 @@ int main(int argc, char *argv[])
 			cdevice = strdup(optarg);
 			break;
 		case 'm':
-			err = atoi(optarg);
+			err = atoi(optarg) / 2;
 			latency_min = err >= 4 ? err : 4;
 			if (latency_max < latency_min)
 				latency_max = latency_min;
 			break;
 		case 'M':
-			err = atoi(optarg);
+			err = atoi(optarg) / 2;
 			latency_max = latency_min > err ? latency_min : err;
 			break;
 		case 'F':
@@ -410,6 +528,16 @@ int main(int argc, char *argv[])
 		case 'b':
 			block = 1;
 			break;
+		case 't':
+			tick_time = atoi(optarg);
+			tick_time = tick_time < 0 ? 0 : tick_time;
+			break;
+		case 'p':
+			use_poll = 1;
+			break;
+		case 'e':
+			effect = 1;
+			break;
 		}
 	}
 
@@ -432,7 +560,8 @@ int main(int argc, char *argv[])
 	printf("Playback device is %s\n", pdevice);
 	printf("Capture device is %s\n", cdevice);
 	printf("Parameters are %iHz, %s, %i channels, %s mode\n", rate, snd_pcm_format_name(format), channels, block ? "blocking" : "non-blocking");
-	printf("Loop limit is %li frames, minimum latency = %i, maximum latency = %i\n", loop_limit, latency_min, latency_max);
+	printf("Wanted tick time: %ius, poll mode: %s\n", tick_time, use_poll ? "yes" : "no");
+	printf("Loop limit is %li frames, minimum latency = %i, maximum latency = %i\n", loop_limit, latency_min * 2, latency_max * 2);
 
 	if ((err = snd_pcm_open(&phandle, pdevice, SND_PCM_STREAM_PLAYBACK, block ? 0 : SND_PCM_NONBLOCK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
@@ -442,12 +571,30 @@ int main(int argc, char *argv[])
 		printf("Record open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-	  
+
+	/* initialize filter sweep variables */
+	if (effect) {
+		fs = (float) rate;
+		BW = FILTER_BANDWIDTH;
+
+		lfo = 0;
+		dlfo = 2.*M_PI*FILTERSWEEP_LFO_FREQ/fs;
+
+		x[0] = (float*) malloc(channels*sizeof(float));		
+		x[1] = (float*) malloc(channels*sizeof(float));		
+		x[2] = (float*) malloc(channels*sizeof(float));		
+		y[0] = (float*) malloc(channels*sizeof(float));		
+		y[1] = (float*) malloc(channels*sizeof(float));		
+		y[2] = (float*) malloc(channels*sizeof(float));		
+	}
+			  
 	while (1) {
 		frames_in = frames_out = 0;
 		if (setparams(phandle, chandle, &latency) < 0)
 			break;
-		printf("Trying latency %i frames...\n", latency);
+		showlatency(latency);
+		if (tick_time_ok)
+			printf("Using tick time %ius\n", tick_time_ok);
 		if ((err = snd_pcm_link(chandle, phandle)) < 0) {
 			printf("Streams link error: %s\n", snd_strerror(err));
 			exit(0);
@@ -477,18 +624,32 @@ int main(int argc, char *argv[])
 		printf("Capture:\n");
 		showstat(chandle, frames_in);
 #endif
+
 		ok = 1;
-		size = 0;
+		in_max = 0;
 		while (ok && frames_in < loop_limit) {
-			if ((r = readbuf(chandle, buffer, latency, &frames_in)) < 0)
+			if (use_poll) {
+				/* use poll to wait for next event */
+				snd_pcm_wait(chandle, 1000);
+			}
+			if ((r = readbuf(chandle, buffer, latency, &frames_in, &in_max)) < 0)
 				ok = 0;
-			else if (writebuf(phandle, buffer, r, &frames_out) < 0)
-				ok = 0;
+			else {
+				if (effect)
+					applyeffect(buffer,r);
+			 	if (writebuf(phandle, buffer, r, &frames_out) < 0)
+					ok = 0;
+			}
 		}
+		if (ok)
+			printf("Success\n");
+		else
+			printf("Failure\n");
 		printf("Playback:\n");
 		showstat(phandle, frames_out);
 		printf("Capture:\n");
 		showstat(chandle, frames_in);
+		showinmax(in_max);
 		if (p_tstamp.tv_sec == p_tstamp.tv_sec &&
 		    p_tstamp.tv_usec == c_tstamp.tv_usec)
 			printf("Hardware sync\n");
