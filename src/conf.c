@@ -342,7 +342,7 @@ snd_config_type_t snd_config_get_type(snd_config_t *config)
 	return config->type;
 }
 
-char *snd_config_get_id(snd_config_t *config)
+const char *snd_config_get_id(snd_config_t *config)
 {
 	return config->id;
 }
@@ -383,8 +383,8 @@ static int _snd_config_make_add(snd_config_t **config, char *id,
 
 static int _snd_config_search(snd_config_t *config, const char *id, int len, snd_config_t **result)
 {
-	snd_config_iterator_t i;
-	snd_config_foreach(i, config) {
+	snd_config_iterator_t i, next;
+	snd_config_for_each(i, next, config) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (len < 0) {
 			if (strcmp(n->id, id) == 0) {
@@ -662,9 +662,9 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 
 int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	assert(father && leaf);
-	snd_config_foreach(i, father) {
+	snd_config_for_each(i, next, father) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (strcmp(leaf->id, n->id) == 0)
 			return -EEXIST;
@@ -937,9 +937,9 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 {
 	unsigned int k;
 	int err;
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	assert(config && out);
-	snd_config_foreach(i, config) {
+	snd_config_for_each(i, next, config) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (n->type == SND_CONFIG_TYPE_COMPOUND &&
 		    n->u.compound.join) {

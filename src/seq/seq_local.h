@@ -76,7 +76,7 @@ struct _snd_seq {
 	int mode;
 	int poll_fd;
 	snd_seq_ops_t *ops;
-	void *private;
+	void *private_data;
 	int client;		/* client number */
 	/* buffers */
 	char *obuf;		/* output buffer */
@@ -90,6 +90,6 @@ struct _snd_seq {
 	size_t tmpbufsize;		/* size of errbuf */
 };
 
-int snd_seq_hw_open(snd_seq_t **handle, char *name, int streams, int mode);
+int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode);
 
 #endif

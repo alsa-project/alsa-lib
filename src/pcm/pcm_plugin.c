@@ -26,7 +26,7 @@
 
 int snd_pcm_plugin_close(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	int err = 0;
 	if (plugin->close_slave)
 		err = snd_pcm_close(plugin->slave);
@@ -36,43 +36,43 @@ int snd_pcm_plugin_close(snd_pcm_t *pcm)
 
 int snd_pcm_plugin_nonblock(snd_pcm_t *pcm, int nonblock)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_nonblock(plugin->slave, nonblock);
 }
 
 int snd_pcm_plugin_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_async(plugin->slave, sig, pid);
 }
 
 int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_info(plugin->slave, info);
 }
 
 int snd_pcm_plugin_hw_free(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_hw_free(plugin->slave);
 }
 
 int snd_pcm_plugin_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_sw_params(plugin->slave, params);
 }
 
 int snd_pcm_plugin_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_channel_info_shm(pcm, info, plugin->shmid);
 }
 
 int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	int err = snd_pcm_status(plugin->slave, status);
 	if (err < 0)
 		return err;
@@ -84,13 +84,13 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 
 snd_pcm_state_t snd_pcm_plugin_state(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_state(plugin->slave);
 }
 
 int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t sd;
 	int err = snd_pcm_delay(plugin->slave, &sd);
 	if (err < 0)
@@ -103,7 +103,7 @@ int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 
 int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	int err = snd_pcm_prepare(plugin->slave);
 	if (err < 0)
 		return err;
@@ -119,7 +119,7 @@ int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 
 int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	int err = snd_pcm_reset(plugin->slave);
 	if (err < 0)
 		return err;
@@ -135,31 +135,31 @@ int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 
 int snd_pcm_plugin_start(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_start(plugin->slave);
 }
 
 int snd_pcm_plugin_drop(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_drop(plugin->slave);
 }
 
 int snd_pcm_plugin_drain(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_drain(plugin->slave);
 }
 
 int snd_pcm_plugin_pause(snd_pcm_t *pcm, int enable)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_pause(plugin->slave, enable);
 }
 
 snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t n = snd_pcm_mmap_hw_avail(pcm);
 	assert(n >= 0);
 	if (n > 0) {
@@ -190,7 +190,7 @@ snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames
 
 snd_pcm_sframes_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t frames;
 	snd_pcm_areas_from_buf(pcm, areas, (void*)buffer);
@@ -202,7 +202,7 @@ snd_pcm_sframes_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, snd_
 
 snd_pcm_sframes_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t frames;
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
@@ -214,7 +214,7 @@ snd_pcm_sframes_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_ufr
 
 snd_pcm_sframes_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t frames;
 	snd_pcm_areas_from_buf(pcm, areas, buffer);
@@ -226,7 +226,7 @@ snd_pcm_sframes_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_ufr
 
 snd_pcm_sframes_t snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_sframes_t frames;
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
@@ -238,7 +238,7 @@ snd_pcm_sframes_t snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_ufra
 
 snd_pcm_sframes_t snd_pcm_plugin_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t client_size)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->slave;
 	snd_pcm_uframes_t client_xfer = 0;
 	snd_pcm_uframes_t slave_xfer = 0;
@@ -275,7 +275,7 @@ snd_pcm_sframes_t snd_pcm_plugin_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 
 snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->slave;
 	snd_pcm_uframes_t client_xfer;
 	snd_pcm_uframes_t slave_xfer = 0;
@@ -313,7 +313,7 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 
 int snd_pcm_plugin_mmap(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plug = pcm->private;
+	snd_pcm_plugin_t *plug = pcm->private_data;
 	size_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
 	int id = shmget(IPC_PRIVATE, size, 0666);
 	if (id < 0) {
@@ -326,7 +326,7 @@ int snd_pcm_plugin_mmap(snd_pcm_t *pcm)
 
 int snd_pcm_plugin_munmap(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plug = pcm->private;
+	snd_pcm_plugin_t *plug = pcm->private_data;
 	if (shmctl(plug->shmid, IPC_RMID, 0) < 0) {
 		SYSERR("shmctl IPC_RMID failed");
 			return -errno;
@@ -336,19 +336,19 @@ int snd_pcm_plugin_munmap(snd_pcm_t *pcm)
 
 int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_poll_descriptor(plugin->slave);
 }
 
 int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return snd_pcm_hw_refine(plugin->slave, params);
 }
 
 int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_plugin_t *plugin = pcm->private_data;
 	return _snd_pcm_hw_params(plugin->slave, params);
 }
 

@@ -43,7 +43,7 @@ typedef struct {
 
 static int snd_ctl_hw_close(snd_ctl_t *handle)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	int res;
 	res = close(hw->fd) < 0 ? -errno : 0;
 	free(hw);
@@ -52,7 +52,7 @@ static int snd_ctl_hw_close(snd_ctl_t *handle)
 
 static int snd_ctl_hw_nonblock(snd_ctl_t *handle, int nonblock)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	long flags;
 	int fd = hw->fd;
 	if ((flags = fcntl(fd, F_GETFL)) < 0) {
@@ -73,7 +73,7 @@ static int snd_ctl_hw_nonblock(snd_ctl_t *handle, int nonblock)
 static int snd_ctl_hw_async(snd_ctl_t *ctl, int sig, pid_t pid)
 {
 	long flags;
-	snd_ctl_hw_t *hw = ctl->private;
+	snd_ctl_hw_t *hw = ctl->private_data;
 	int fd = hw->fd;
 
 	if ((flags = fcntl(fd, F_GETFL)) < 0) {
@@ -107,13 +107,13 @@ static int snd_ctl_hw_async(snd_ctl_t *ctl, int sig, pid_t pid)
 
 static int snd_ctl_hw_poll_descriptor(snd_ctl_t *handle)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	return hw->fd;
 }
 
 static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_INFO, info) < 0)
 		return -errno;
 	return 0;
@@ -121,7 +121,7 @@ static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
 
 static int snd_ctl_hw_elem_list(snd_ctl_t *handle, snd_ctl_elem_list_t *list)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_LIST, list) < 0)
 		return -errno;
 	return 0;
@@ -129,23 +129,23 @@ static int snd_ctl_hw_elem_list(snd_ctl_t *handle, snd_ctl_elem_list_t *list)
 
 static int snd_ctl_hw_elem_info(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_ctl_hw_elem_read(snd_ctl_t *handle, snd_ctl_elem_t *control)
+static int snd_ctl_hw_elem_read(snd_ctl_t *handle, snd_ctl_elem_value_t *control)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_READ, control) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_ctl_hw_elem_write(snd_ctl_t *handle, snd_ctl_elem_t *control)
+static int snd_ctl_hw_elem_write(snd_ctl_t *handle, snd_ctl_elem_value_t *control)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, control) < 0)
 		return -errno;
 	return 0;
@@ -153,7 +153,7 @@ static int snd_ctl_hw_elem_write(snd_ctl_t *handle, snd_ctl_elem_t *control)
 
 static int snd_ctl_hw_hwdep_next_device(snd_ctl_t *handle, int * device)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE, device) < 0)
 		return -errno;
 	return 0;
@@ -161,7 +161,7 @@ static int snd_ctl_hw_hwdep_next_device(snd_ctl_t *handle, int * device)
 
 static int snd_ctl_hw_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_HWDEP_INFO, info) < 0)
 		return -errno;
 	return 0;
@@ -169,7 +169,7 @@ static int snd_ctl_hw_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info)
 
 static int snd_ctl_hw_pcm_next_device(snd_ctl_t *handle, int * device)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE, device) < 0)
 		return -errno;
 	return 0;
@@ -177,7 +177,7 @@ static int snd_ctl_hw_pcm_next_device(snd_ctl_t *handle, int * device)
 
 static int snd_ctl_hw_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_PCM_INFO, info) < 0)
 		return -errno;
 	return 0;
@@ -185,7 +185,7 @@ static int snd_ctl_hw_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info)
 
 static int snd_ctl_hw_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	return 0;
@@ -193,7 +193,7 @@ static int snd_ctl_hw_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev)
 
 static int snd_ctl_hw_rawmidi_next_device(snd_ctl_t *handle, int * device)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE, device) < 0)
 		return -errno;
 	return 0;
@@ -201,7 +201,7 @@ static int snd_ctl_hw_rawmidi_next_device(snd_ctl_t *handle, int * device)
 
 static int snd_ctl_hw_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_RAWMIDI_INFO, info) < 0)
 		return -errno;
 	return 0;
@@ -209,7 +209,7 @@ static int snd_ctl_hw_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info)
 
 static int snd_ctl_hw_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	return 0;
@@ -217,7 +217,7 @@ static int snd_ctl_hw_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev)
 
 static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 {
-	snd_ctl_hw_t *hw = handle->private;
+	snd_ctl_hw_t *hw = handle->private_data;
 	ssize_t res = read(hw->fd, event, sizeof(*event));
 	if (res <= 0)
 		return res;
@@ -288,18 +288,18 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card)
 		ctl->name = strdup(name);
 	ctl->type = SND_CTL_TYPE_HW;
 	ctl->ops = &snd_ctl_hw_ops;
-	ctl->private = hw;
+	ctl->private_data = hw;
 	*handle = ctl;
 	return 0;
 }
 
 int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	long card = -1;
 	const char *str;
 	int err;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

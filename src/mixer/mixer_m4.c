@@ -118,88 +118,113 @@ snd_mixer_elem_type_t snd_mixer_elem_get_type(const snd_mixer_elem_t *obj)
 	return obj->type;
 }
 
-size_t snd_mixer_selem_sizeof()
+size_t snd_mixer_selem_info_sizeof()
 {
-	return sizeof(snd_mixer_selem_t);
+	return sizeof(snd_mixer_selem_info_t);
 }
 
-int snd_mixer_selem_malloc(snd_mixer_selem_t **ptr)
+int snd_mixer_selem_info_malloc(snd_mixer_selem_info_t **ptr)
 {
 	assert(ptr);
-	*ptr = calloc(1, sizeof(snd_mixer_selem_t));
+	*ptr = calloc(1, sizeof(snd_mixer_selem_info_t));
 	if (!*ptr)
 		return -ENOMEM;
 	return 0;
 }
 
-void snd_mixer_selem_free(snd_mixer_selem_t *obj)
+void snd_mixer_selem_info_free(snd_mixer_selem_info_t *obj)
 {
 	free(obj);
 }
 
-void snd_mixer_selem_copy(snd_mixer_selem_t *dst, const snd_mixer_selem_t *src)
+void snd_mixer_selem_info_copy(snd_mixer_selem_info_t *dst, const snd_mixer_selem_info_t *src)
 {
 	assert(dst && src);
 	*dst = *src;
 }
 
-long snd_mixer_selem_get_min(const snd_mixer_selem_t *obj)
+long snd_mixer_selem_info_get_min(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
 	return obj->min;
 }
 
-long snd_mixer_selem_get_max(const snd_mixer_selem_t *obj)
+long snd_mixer_selem_info_get_max(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
 	return obj->max;
 }
 
-int snd_mixer_selem_get_capture_group(const snd_mixer_selem_t *obj)
+int snd_mixer_selem_info_get_capture_group(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
 	return obj->capture_group;
 }
 
-int snd_mixer_selem_has_volume(const snd_mixer_selem_t *obj)
+int snd_mixer_selem_info_has_volume(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
-	return !!(obj->caps & SND_MIXER_SCTCAP_VOLUME);
+	return !!(obj->caps & CAP_VOLUME);
 }
 
-int snd_mixer_selem_has_joined_volume(const snd_mixer_selem_t *obj)
+int snd_mixer_selem_info_has_joined_volume(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
-	return !!(obj->caps & SND_MIXER_SCTCAP_JOIN_VOLUME);
+	return !!(obj->caps & CAP_JOIN_VOLUME);
 }
 
-int snd_mixer_selem_has_mute(const snd_mixer_selem_t *obj)
+int snd_mixer_selem_info_has_mute(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
-	return !!(obj->caps & SND_MIXER_SCTCAP_MUTE);
+	return !!(obj->caps & CAP_MUTE);
 }
 
-int snd_mixer_selem_has_joined_mute(const snd_mixer_selem_t *obj)
+int snd_mixer_selem_info_has_joined_mute(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
-	return !!(obj->caps & SND_MIXER_SCTCAP_JOIN_MUTE);
+	return !!(obj->caps & CAP_JOIN_MUTE);
 }
 
-int snd_mixer_selem_has_capture(const snd_mixer_selem_t *obj)
+int snd_mixer_selem_info_has_capture(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
-	return !!(obj->caps & SND_MIXER_SCTCAP_CAPTURE);
+	return !!(obj->caps & CAP_CAPTURE);
 }
 
-int snd_mixer_selem_has_joined_capture(const snd_mixer_selem_t *obj)
+int snd_mixer_selem_info_has_joined_capture(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
-	return !!(obj->caps & SND_MIXER_SCTCAP_JOIN_CAPTURE);
+	return !!(obj->caps & CAP_JOIN_CAPTURE);
 }
 
-int snd_mixer_selem_has_exclusive_capture(const snd_mixer_selem_t *obj)
+int snd_mixer_selem_info_has_exclusive_capture(const snd_mixer_selem_info_t *obj)
 {
 	assert(obj);
-	return !!(obj->caps & SND_MIXER_SCTCAP_EXCL_CAPTURE);
+	return !!(obj->caps & CAP_EXCL_CAPTURE);
+}
+
+size_t snd_mixer_selem_value_sizeof()
+{
+	return sizeof(snd_mixer_selem_value_t);
+}
+
+int snd_mixer_selem_value_malloc(snd_mixer_selem_value_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_mixer_selem_value_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+void snd_mixer_selem_value_free(snd_mixer_selem_value_t *obj)
+{
+	free(obj);
+}
+
+void snd_mixer_selem_value_copy(snd_mixer_selem_value_t *dst, const snd_mixer_selem_value_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
 }
 

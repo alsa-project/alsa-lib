@@ -79,7 +79,7 @@ int receive_fd(int socket, void *data, size_t len, int *fd)
 
 static int snd_pcm_shm_action(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	int err;
 	char buf[1];
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
@@ -98,7 +98,7 @@ static int snd_pcm_shm_action(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	int err;
 	char buf[1];
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
@@ -122,7 +122,7 @@ static int snd_pcm_shm_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock AT
 
 static int snd_pcm_shm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_ASYNC;
 	ctrl->u.async.sig = sig;
@@ -134,7 +134,7 @@ static int snd_pcm_shm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 
 static int snd_pcm_shm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 //	ctrl->u.info = *info;
@@ -201,7 +201,7 @@ static int snd_pcm_shm_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pc
 static int snd_pcm_shm_hw_refine_slave(snd_pcm_t *pcm,
 				       snd_pcm_hw_params_t *params)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.hw_refine = *params;
@@ -224,7 +224,7 @@ static int snd_pcm_shm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 static int snd_pcm_shm_hw_params_slave(snd_pcm_t *pcm, 
 				       snd_pcm_hw_params_t *params)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SNDRV_PCM_IOCTL_HW_PARAMS;
@@ -245,7 +245,7 @@ static int snd_pcm_shm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 
 static int snd_pcm_shm_hw_free(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SNDRV_PCM_IOCTL_HW_FREE;
 	return snd_pcm_shm_action(pcm);
@@ -253,7 +253,7 @@ static int snd_pcm_shm_hw_free(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SNDRV_PCM_IOCTL_SW_PARAMS;
@@ -300,7 +300,7 @@ static int snd_pcm_shm_munmap(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	int fd;
@@ -326,7 +326,7 @@ static int snd_pcm_shm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * inf
 
 static int snd_pcm_shm_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SNDRV_PCM_IOCTL_STATUS;
@@ -340,7 +340,7 @@ static int snd_pcm_shm_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 
 static snd_pcm_state_t snd_pcm_shm_state(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_STATE;
 	return snd_int_to_enum(snd_pcm_shm_action(pcm));
@@ -348,7 +348,7 @@ static snd_pcm_state_t snd_pcm_shm_state(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SNDRV_PCM_IOCTL_DELAY;
@@ -361,7 +361,7 @@ static int snd_pcm_shm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 
 static snd_pcm_sframes_t snd_pcm_shm_avail_update(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_AVAIL_UPDATE;
@@ -373,7 +373,7 @@ static snd_pcm_sframes_t snd_pcm_shm_avail_update(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SNDRV_PCM_IOCTL_PREPARE;
 	return snd_pcm_shm_action(pcm);
@@ -381,7 +381,7 @@ static int snd_pcm_shm_prepare(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_reset(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SNDRV_PCM_IOCTL_RESET;
 	return snd_pcm_shm_action(pcm);
@@ -389,7 +389,7 @@ static int snd_pcm_shm_reset(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_start(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SNDRV_PCM_IOCTL_START;
 	return snd_pcm_shm_action(pcm);
@@ -397,7 +397,7 @@ static int snd_pcm_shm_start(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_drop(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SNDRV_PCM_IOCTL_DROP;
 	return snd_pcm_shm_action(pcm);
@@ -405,7 +405,7 @@ static int snd_pcm_shm_drop(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_drain(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SNDRV_PCM_IOCTL_DRAIN;
@@ -419,7 +419,7 @@ static int snd_pcm_shm_drain(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_pause(snd_pcm_t *pcm, int enable)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SNDRV_PCM_IOCTL_PAUSE;
 	ctrl->u.pause.enable = enable;
@@ -428,7 +428,7 @@ static int snd_pcm_shm_pause(snd_pcm_t *pcm, int enable)
 
 static snd_pcm_sframes_t snd_pcm_shm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SNDRV_PCM_IOCTL_REWIND;
 	ctrl->u.rewind.frames = frames;
@@ -437,7 +437,7 @@ static snd_pcm_sframes_t snd_pcm_shm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 
 static snd_pcm_sframes_t snd_pcm_shm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_MMAP_FORWARD;
 	ctrl->u.mmap_forward.frames = size;
@@ -446,7 +446,7 @@ static snd_pcm_sframes_t snd_pcm_shm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframe
 
 static int snd_pcm_shm_poll_descriptor(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int fd, err;
 	ctrl->cmd = SND_PCM_IOCTL_POLL_DESCRIPTOR;
@@ -458,7 +458,7 @@ static int snd_pcm_shm_poll_descriptor(snd_pcm_t *pcm)
 
 static int snd_pcm_shm_close(snd_pcm_t *pcm)
 {
-	snd_pcm_shm_t *shm = pcm->private;
+	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int result;
 	ctrl->cmd = SND_PCM_IOCTL_CLOSE;
@@ -650,7 +650,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *socket, con
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_shm_fast_ops;
 	pcm->fast_op_arg = pcm;
-	pcm->private = shm;
+	pcm->private_data = shm;
 	err = snd_pcm_shm_poll_descriptor(pcm);
 	if (err < 0) {
 		snd_pcm_close(pcm);
@@ -716,10 +716,10 @@ int is_local(struct hostent *hent)
 	return i < numreqs;
 }
 
-int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
+int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		      snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *server = NULL;
 	const char *sname = NULL;
 	snd_config_t *sconfig;
@@ -729,7 +729,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	int err;
 	int local;
 	struct hostent *h;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
@@ -768,7 +768,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		ERR("Unknown server %s", server);
 		return -EINVAL;
 	}
-	snd_config_foreach(i, sconfig) {
+	snd_config_for_each(i, next, sconfig) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

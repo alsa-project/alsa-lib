@@ -753,7 +753,7 @@ int inet_pending_handler(waiter_t *waiter, unsigned short events)
 	inet_pending_t *pdata;
 	client_t *client;
 	uint32_t cookie;
-	struct list_head *item;
+	struct list_head *item, *next;
 	int remove = 0;
 	if (events & POLLHUP)
 		remove = 1;
@@ -775,7 +775,7 @@ int inet_pending_handler(waiter_t *waiter, unsigned short events)
 		return 0;
 	}
 
-	list_for_each(item, &inet_pendings) {
+	list_for_each(item, next, &inet_pendings) {
 		pdata = list_entry(item, inet_pending_t, list);
 		if (pdata->cookie == cookie)
 			goto found;
@@ -937,7 +937,7 @@ int main(int argc, char **argv)
 	};
 	int c;
 	snd_config_t *conf;
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *socket = NULL;
 	const char *host = NULL;
 	long port = -1;
@@ -970,7 +970,7 @@ int main(int argc, char **argv)
 		ERROR("Missing definition for server %s", srvname);
 		return 1;
 	}
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

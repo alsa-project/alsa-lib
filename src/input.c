@@ -36,7 +36,7 @@ typedef struct _snd_input_ops {
 struct _snd_input {
 	snd_input_type_t type;
 	snd_input_ops_t *ops;
-	void *private;
+	void *private_data;
 };
 
 int snd_input_close(snd_input_t *input)
@@ -78,7 +78,7 @@ typedef struct _snd_input_stdio {
 
 int snd_input_stdio_close(snd_input_t *input ATTRIBUTE_UNUSED)
 {
-	snd_input_stdio_t *stdio = input->private;
+	snd_input_stdio_t *stdio = input->private_data;
 	if (close)
 		fclose(stdio->fp);
 	free(stdio);
@@ -87,26 +87,26 @@ int snd_input_stdio_close(snd_input_t *input ATTRIBUTE_UNUSED)
 
 int snd_input_stdio_scanf(snd_input_t *input, const char *format, va_list args)
 {
-	snd_input_stdio_t *stdio = input->private;
+	snd_input_stdio_t *stdio = input->private_data;
 	extern int vfscanf(FILE *fp, const char *format, va_list args);
 	return vfscanf(stdio->fp, format, args);
 }
 
 char *snd_input_stdio_gets(snd_input_t *input, char *str, size_t size)
 {
-	snd_input_stdio_t *stdio = input->private;
+	snd_input_stdio_t *stdio = input->private_data;
 	return fgets(str, size, stdio->fp);
 }
 			
 int snd_input_stdio_getc(snd_input_t *input)
 {
-	snd_input_stdio_t *stdio = input->private;
+	snd_input_stdio_t *stdio = input->private_data;
 	return getc(stdio->fp);
 }
 
 int snd_input_stdio_ungetc(snd_input_t *input, int c)
 {
-	snd_input_stdio_t *stdio = input->private;
+	snd_input_stdio_t *stdio = input->private_data;
 	return ungetc(c, stdio->fp);
 }
 
@@ -135,7 +135,7 @@ int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int close)
 	stdio->close = close;
 	input->type = SND_INPUT_STDIO;
 	input->ops = &snd_input_stdio_ops;
-	input->private = stdio;
+	input->private_data = stdio;
 	*inputp = input;
 	return 0;
 }
@@ -162,7 +162,7 @@ typedef struct _snd_input_buffer {
 
 int snd_input_buffer_close(snd_input_t *input)
 {
-	snd_input_buffer_t *buffer = input->private;
+	snd_input_buffer_t *buffer = input->private_data;
 	free(buffer->buf);
 	free(buffer);
 	return 0;
@@ -170,7 +170,7 @@ int snd_input_buffer_close(snd_input_t *input)
 
 int snd_input_buffer_scanf(snd_input_t *input, const char *format, va_list args)
 {
-	snd_input_buffer_t *buffer = input->private;
+	snd_input_buffer_t *buffer = input->private_data;
 	extern int vsscanf(const char *buf, const char *format, va_list args);
 	/* FIXME: how can I obtain consumed chars count? */
 	assert(0);
@@ -179,7 +179,7 @@ int snd_input_buffer_scanf(snd_input_t *input, const char *format, va_list args)
 
 char *snd_input_buffer_gets(snd_input_t *input, char *str, size_t size)
 {
-	snd_input_buffer_t *buffer = input->private;
+	snd_input_buffer_t *buffer = input->private_data;
 	size_t bsize = buffer->size;
 	while (--size > 0 && bsize > 0) {
 		unsigned char c = *buffer->ptr++;
@@ -197,7 +197,7 @@ char *snd_input_buffer_gets(snd_input_t *input, char *str, size_t size)
 			
 int snd_input_buffer_getc(snd_input_t *input)
 {
-	snd_input_buffer_t *buffer = input->private;
+	snd_input_buffer_t *buffer = input->private_data;
 	if (buffer->size == 0)
 		return EOF;
 	buffer->size--;
@@ -206,7 +206,7 @@ int snd_input_buffer_getc(snd_input_t *input)
 
 int snd_input_buffer_ungetc(snd_input_t *input, int c)
 {
-	snd_input_buffer_t *buffer = input->private;
+	snd_input_buffer_t *buffer = input->private_data;
 	if (buffer->ptr == buffer->buf)
 		return EOF;
 	buffer->ptr--;
@@ -250,7 +250,7 @@ int snd_input_buffer_open(snd_input_t **inputp, const char *buf, int size)
 	buffer->size = size;
 	input->type = SND_INPUT_BUFFER;
 	input->ops = &snd_input_buffer_ops;
-	input->private = buffer;
+	input->private_data = buffer;
 	*inputp = input;
 	return 0;
 }

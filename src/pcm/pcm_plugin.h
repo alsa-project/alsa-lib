@@ -102,22 +102,22 @@ typedef int snd_pcm_route_ttable_entry_t;
 int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_convert_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
-int snd_pcm_copy_open(snd_pcm_t **pcmp, char *name, snd_pcm_t *slave, int close_slave);
-int snd_pcm_linear_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_alaw_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_adpcm_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int close_slave);
+int snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
 int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
 			      unsigned int tt_csize, unsigned int tt_ssize,
 			      unsigned int *tt_cused, unsigned int *tt_sused,
 			      int schannels);
-int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
+int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_format_t sformat, unsigned int schannels,
 		       snd_pcm_route_ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
 		       snd_pcm_t *slave, int close_slave);
-int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, int srate, snd_pcm_t *slave, int close_slave);
+int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, int srate, snd_pcm_t *slave, int close_slave);
 
 
 #define SND_PCM_ACCBIT_PLUGIN ((1 << (unsigned long) SND_PCM_ACCESS_MMAP_INTERLEAVED) | \

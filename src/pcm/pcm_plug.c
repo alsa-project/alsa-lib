@@ -32,7 +32,7 @@ typedef struct {
 
 static int snd_pcm_plug_close(snd_pcm_t *pcm)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	int err, result = 0;
 	if (plug->ttable)
 		free(plug->ttable);
@@ -48,19 +48,19 @@ static int snd_pcm_plug_close(snd_pcm_t *pcm)
 
 static int snd_pcm_plug_nonblock(snd_pcm_t *pcm, int nonblock)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	return snd_pcm_nonblock(plug->slave, nonblock);
 }
 
 static int snd_pcm_plug_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	return snd_pcm_async(plug->slave, sig, pid);
 }
 
 static int snd_pcm_plug_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	snd_pcm_t *slave = plug->req_slave;
 	int err;
 	
@@ -183,7 +183,7 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 
 static void snd_pcm_plug_clear(snd_pcm_t *pcm)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	snd_pcm_t *slave = plug->req_slave;
 	/* Clear old plugins */
 	if (plug->slave != slave) {
@@ -203,7 +203,7 @@ typedef struct {
 
 static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *clt, snd_pcm_plug_params_t *slv)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	int err;
 	assert(snd_pcm_format_linear(slv->format));
 	if (clt->rate == slv->rate)
@@ -220,7 +220,7 @@ static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plu
 
 static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *clt, snd_pcm_plug_params_t *slv)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	unsigned int tt_ssize, tt_cused, tt_sused;
 	snd_pcm_route_ttable_entry_t *ttable;
 	int err;
@@ -285,10 +285,10 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 
 static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *clt, snd_pcm_plug_params_t *slv)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	int err;
 	snd_pcm_format_t cfmt;
-	int (*f)(snd_pcm_t **pcm, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+	int (*f)(snd_pcm_t **pcm, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
 	if (snd_pcm_format_linear(slv->format)) {
 		/* Conversion is done in another plugin */
 		if (clt->format == slv->format ||
@@ -346,7 +346,7 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 
 static int snd_pcm_plug_change_access(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *clt, snd_pcm_plug_params_t *slv)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	int err;
 	if (clt->access == slv->access)
 		return 0;
@@ -361,7 +361,7 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 				       snd_pcm_plug_params_t *client,
 				       snd_pcm_plug_params_t *slave)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	int (*funcs[])(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *s, snd_pcm_plug_params_t *d) = {
 		snd_pcm_plug_change_format,
 		snd_pcm_plug_change_channels,
@@ -408,7 +408,7 @@ static int snd_pcm_plug_hw_refine_sprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 					  snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	snd_pcm_t *slave = plug->req_slave;
 	unsigned int links = (SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
@@ -533,7 +533,7 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 
 static int snd_pcm_plug_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	return snd_pcm_hw_refine(plug->req_slave, params);
 }
 
@@ -549,7 +549,7 @@ static int snd_pcm_plug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	snd_pcm_t *slave = plug->req_slave;
 	snd_pcm_plug_params_t clt_params, slv_params;
 	snd_pcm_hw_params_t sparams;
@@ -594,7 +594,7 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 static int snd_pcm_plug_hw_free(snd_pcm_t *pcm)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	snd_pcm_t *slave = plug->slave;
 	int err = snd_pcm_hw_free(slave);
 	snd_pcm_plug_clear(pcm);
@@ -603,13 +603,13 @@ static int snd_pcm_plug_hw_free(snd_pcm_t *pcm)
 
 static int snd_pcm_plug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	return snd_pcm_sw_params(plug->slave, params);
 }
 
 static int snd_pcm_plug_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	return snd_pcm_channel_info(plug->slave, info);
 }
 
@@ -625,7 +625,7 @@ static int snd_pcm_plug_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 
 static void snd_pcm_plug_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_plug_t *plug = pcm->private_data;
 	snd_output_printf(out, "Plug PCM: ");
 	snd_pcm_dump(plug->slave, out);
 }
@@ -679,7 +679,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	pcm->op_arg = pcm;
 	pcm->fast_ops = slave->fast_ops;
 	pcm->fast_op_arg = slave->fast_op_arg;
-	pcm->private = plug;
+	pcm->private_data = plug;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = slave->hw_ptr;
 	pcm->appl_ptr = slave->appl_ptr;
@@ -704,14 +704,14 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
 	snd_config_t *tt = NULL;
 	snd_pcm_route_ttable_entry_t *ttable = NULL;
 	unsigned int cused, sused;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

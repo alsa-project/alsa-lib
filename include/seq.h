@@ -322,7 +322,7 @@ typedef struct _snd_seq snd_seq_t;
 extern "C" {
 #endif
 
-int snd_seq_open(snd_seq_t **handle, char *name, int streams, int mode);
+int snd_seq_open(snd_seq_t **handle, const char *name, int streams, int mode);
 int snd_seq_close(snd_seq_t *handle);
 int snd_seq_poll_descriptor(snd_seq_t *handle);
 int snd_seq_nonblock(snd_seq_t *handle, int nonblock);
@@ -354,15 +354,15 @@ int snd_seq_set_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t *tim
 int snd_seq_get_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t *queue);
 int snd_seq_set_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t *queue);
 int snd_seq_create_queue(snd_seq_t *seq, snd_seq_queue_info_t *info);
-int snd_seq_alloc_named_queue(snd_seq_t *seq, char *name);
+int snd_seq_alloc_named_queue(snd_seq_t *seq, const char *name);
 int snd_seq_alloc_queue(snd_seq_t *handle);
 #ifdef SND_SEQ_SYNC_SUPPORT
-int snd_seq_alloc_sync_queue(snd_seq_t *seq, char *name);
+int snd_seq_alloc_sync_queue(snd_seq_t *seq, const char *name);
 #endif
 int snd_seq_free_queue(snd_seq_t *handle, int q);
 int snd_seq_get_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info);
 int snd_seq_set_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info);
-int snd_seq_get_named_queue(snd_seq_t *seq, char *name);
+int snd_seq_get_named_queue(snd_seq_t *seq, const char *name);
 int snd_seq_get_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
 int snd_seq_set_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
 int snd_seq_query_next_client(snd_seq_t *handle, snd_seq_client_info_t * info);
@@ -376,6 +376,8 @@ int snd_seq_add_sync_std_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest,
 
 int snd_seq_set_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src, snd_seq_queue_sync_t *info);
 int snd_seq_reset_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src);
+const char *snd_seq_name(snd_seq_t *seq);
+snd_seq_type_t snd_seq_type(snd_seq_t *seq);
 
 #endif
 

@@ -45,7 +45,7 @@ struct _snd_rawmidi {
 	int mode;
 	int poll_fd;
 	snd_rawmidi_ops_t *ops;
-	void *private;
+	void *private_data;
 	size_t buffer_size;
 	size_t avail_min;
 	unsigned int no_active_sensing: 1;
@@ -53,6 +53,6 @@ struct _snd_rawmidi {
 };
 
 int snd_rawmidi_hw_open(snd_rawmidi_t **input, snd_rawmidi_t **output,
-			char *name, int card, int device, int subdevice,
+			const char *name, int card, int device, int subdevice,
 			int mode);
 

@@ -162,7 +162,7 @@ struct _snd_pcm {
 	snd_pcm_fast_ops_t *fast_ops;
 	snd_pcm_t *op_arg;
 	snd_pcm_t *fast_op_arg;
-	void *private;
+	void *private_data;
 };
 
 int snd_pcm_hw_open(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);

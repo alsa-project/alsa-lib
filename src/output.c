@@ -36,7 +36,7 @@ typedef struct _snd_output_ops {
 struct _snd_output {
 	snd_output_type_t type;
 	snd_output_ops_t *ops;
-	void *private;
+	void *private_data;
 };
 
 int snd_output_close(snd_output_t *output)
@@ -78,7 +78,7 @@ typedef struct _snd_output_stdio {
 
 int snd_output_stdio_close(snd_output_t *output ATTRIBUTE_UNUSED)
 {
-	snd_output_stdio_t *stdio = output->private;
+	snd_output_stdio_t *stdio = output->private_data;
 	if (close)
 		fclose(stdio->fp);
 	free(stdio);
@@ -87,25 +87,25 @@ int snd_output_stdio_close(snd_output_t *output ATTRIBUTE_UNUSED)
 
 int snd_output_stdio_printf(snd_output_t *output, const char *format, va_list args)
 {
-	snd_output_stdio_t *stdio = output->private;
+	snd_output_stdio_t *stdio = output->private_data;
 	return vfprintf(stdio->fp, format, args);
 }
 
 int snd_output_stdio_puts(snd_output_t *output, const char *str)
 {
-	snd_output_stdio_t *stdio = output->private;
+	snd_output_stdio_t *stdio = output->private_data;
 	return fputs(str, stdio->fp);
 }
 			
 int snd_output_stdio_putc(snd_output_t *output, int c)
 {
-	snd_output_stdio_t *stdio = output->private;
+	snd_output_stdio_t *stdio = output->private_data;
 	return putc(c, stdio->fp);
 }
 
 int snd_output_stdio_flush(snd_output_t *output)
 {
-	snd_output_stdio_t *stdio = output->private;
+	snd_output_stdio_t *stdio = output->private_data;
 	return fflush(stdio->fp);
 }
 
@@ -134,7 +134,7 @@ int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int close)
 	stdio->close = close;
 	output->type = SND_OUTPUT_STDIO;
 	output->ops = &snd_output_stdio_ops;
-	output->private = stdio;
+	output->private_data = stdio;
 	*outputp = output;
 	return 0;
 }
@@ -161,7 +161,7 @@ typedef struct _snd_output_buffer {
 
 int snd_output_buffer_close(snd_output_t *output ATTRIBUTE_UNUSED)
 {
-	snd_output_buffer_t *buffer = output->private;
+	snd_output_buffer_t *buffer = output->private_data;
 	free(buffer->buf);
 	free(buffer);
 	return 0;
@@ -169,7 +169,7 @@ int snd_output_buffer_close(snd_output_t *output ATTRIBUTE_UNUSED)
 
 int snd_output_buffer_need(snd_output_t *output, size_t size)
 {
-	snd_output_buffer_t *buffer = output->private;
+	snd_output_buffer_t *buffer = output->private_data;
 	size_t free = buffer->alloc - buffer->size;
 	size_t alloc;
 	if (free >= size)
@@ -187,7 +187,7 @@ int snd_output_buffer_need(snd_output_t *output, size_t size)
 
 int snd_output_buffer_printf(snd_output_t *output, const char *format, va_list args)
 {
-	snd_output_buffer_t *buffer = output->private;
+	snd_output_buffer_t *buffer = output->private_data;
 	size_t size = 256;
 	int result;
 	result = snd_output_buffer_need(output, size);
@@ -210,7 +210,7 @@ int snd_output_buffer_printf(snd_output_t *output, const char *format, va_list a
 
 int snd_output_buffer_puts(snd_output_t *output, const char *str)
 {
-	snd_output_buffer_t *buffer = output->private;
+	snd_output_buffer_t *buffer = output->private_data;
 	size_t size = strlen(str);
 	int err;
 	err = snd_output_buffer_need(output, size);
@@ -223,7 +223,7 @@ int snd_output_buffer_puts(snd_output_t *output, const char *str)
 			
 int snd_output_buffer_putc(snd_output_t *output, int c)
 {
-	snd_output_buffer_t *buffer = output->private;
+	snd_output_buffer_t *buffer = output->private_data;
 	int err;
 	err = snd_output_buffer_need(output, 1);
 	if (err < 0)
@@ -234,14 +234,14 @@ int snd_output_buffer_putc(snd_output_t *output, int c)
 
 int snd_output_buffer_flush(snd_output_t *output ATTRIBUTE_UNUSED)
 {
-	snd_output_buffer_t *buffer = output->private;
+	snd_output_buffer_t *buffer = output->private_data;
 	buffer->size = 0;
 	return 0;
 }
 
 size_t snd_output_buffer_string(snd_output_t *output, char **buf)
 {
-	snd_output_buffer_t *buffer = output->private;
+	snd_output_buffer_t *buffer = output->private_data;
 	*buf = buffer->buf;
 	return buffer->size;
 }
@@ -272,7 +272,7 @@ int snd_output_buffer_open(snd_output_t **outputp)
 	buffer->size = 0;
 	output->type = SND_OUTPUT_BUFFER;
 	output->ops = &snd_output_buffer_ops;
-	output->private = buffer;
+	output->private_data = buffer;
 	*outputp = output;
 	return 0;
 }

@@ -30,8 +30,8 @@ typedef struct _snd_ctl_ops {
 	int (*hw_info)(snd_ctl_t *handle, snd_ctl_card_info_t *info);
 	int (*element_list)(snd_ctl_t *handle, snd_ctl_elem_list_t *list);
 	int (*element_info)(snd_ctl_t *handle, snd_ctl_elem_info_t *info);
-	int (*element_read)(snd_ctl_t *handle, snd_ctl_elem_t *control);
-	int (*element_write)(snd_ctl_t *handle, snd_ctl_elem_t *control);
+	int (*element_read)(snd_ctl_t *handle, snd_ctl_elem_value_t *control);
+	int (*element_write)(snd_ctl_t *handle, snd_ctl_elem_value_t *control);
 	int (*hwdep_next_device)(snd_ctl_t *handle, int *device);
 	int (*hwdep_info)(snd_ctl_t *handle, snd_hwdep_info_t * info);
 	int (*pcm_next_device)(snd_ctl_t *handle, int *device);
@@ -48,7 +48,7 @@ struct _snd_ctl {
 	char *name;
 	snd_ctl_type_t type;
 	snd_ctl_ops_t *ops;
-	void *private;
+	void *private_data;
 	int nonblock;
 };
 
@@ -64,11 +64,11 @@ struct _snd_hctl_elem {
 
 struct _snd_hctl {
 	snd_ctl_t *ctl;
-	struct list_head hlist;		/* list of all controls */
-	unsigned int halloc;	
-	unsigned int hcount;
-	snd_hctl_elem_t **helems;
-	snd_hctl_compare_t hcompare;
+	struct list_head elems;		/* list of all controls */
+	unsigned int alloc;	
+	unsigned int count;
+	snd_hctl_elem_t **pelems;
+	snd_hctl_compare_t compare;
 	snd_hctl_callback_t callback;
 	void *callback_private;
 };

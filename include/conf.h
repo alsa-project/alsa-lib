@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 snd_config_type_t snd_config_get_type(snd_config_t *config);
-char *snd_config_get_id(snd_config_t *config);
+const char *snd_config_get_id(snd_config_t *config);
 
 int snd_config_top(snd_config_t **config);
 
@@ -59,11 +59,11 @@ snd_config_iterator_t snd_config_iterator_next(snd_config_iterator_t iterator);
 snd_config_iterator_t snd_config_iterator_end(snd_config_t *node);
 snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator);
 
-#define snd_config_foreach(iterator, node) \
-	for (iterator = snd_config_iterator_first(node); iterator != snd_config_iterator_end(node); iterator = snd_config_iterator_next(iterator))
+#define snd_config_for_each(pos, next, node) \
+	for (pos = snd_config_iterator_first(node), next = snd_config_iterator_next(pos); pos != snd_config_iterator_end(node); pos = next, next = snd_config_iterator_next(pos))
 
 snd_config_type_t snd_config_get_type(snd_config_t *config);
-char *snd_config_get_id(snd_config_t *config);
+const char *snd_config_get_id(snd_config_t *config);
 
 extern snd_config_t *snd_config;
 int snd_config_update();

@@ -45,7 +45,7 @@ extern int receive_fd(int socket, void *data, size_t len, int *fd);
 
 static int snd_ctl_shm_action(snd_ctl_t *ctl)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	int err;
 	char buf[1];
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
@@ -64,7 +64,7 @@ static int snd_ctl_shm_action(snd_ctl_t *ctl)
 
 static int snd_ctl_shm_action_fd(snd_ctl_t *ctl, int *fd)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	int err;
 	char buf[1];
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
@@ -83,7 +83,7 @@ static int snd_ctl_shm_action_fd(snd_ctl_t *ctl, int *fd)
 
 static int snd_ctl_shm_close(snd_ctl_t *ctl)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int result;
 	ctrl->cmd = SND_CTL_IOCTL_CLOSE;
@@ -101,7 +101,7 @@ static int snd_ctl_shm_nonblock(snd_ctl_t *handle ATTRIBUTE_UNUSED, int nonblock
 
 static int snd_ctl_shm_async(snd_ctl_t *ctl, int sig, pid_t pid)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_CTL_IOCTL_ASYNC;
 	ctrl->u.async.sig = sig;
@@ -113,7 +113,7 @@ static int snd_ctl_shm_async(snd_ctl_t *ctl, int sig, pid_t pid)
 
 static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int fd, err;
 	ctrl->cmd = SND_CTL_IOCTL_POLL_DESCRIPTOR;
@@ -125,7 +125,7 @@ static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
 
 static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 //	ctrl->u.hw_info = *info;
@@ -139,7 +139,7 @@ static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 
 static int snd_ctl_shm_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	size_t maxsize = CTL_SHM_DATA_MAXLEN;
 	size_t bytes = list->space * sizeof(*list->pids);
@@ -161,7 +161,7 @@ static int snd_ctl_shm_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 
 static int snd_ctl_shm_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.element_info = *info;
@@ -173,9 +173,9 @@ static int snd_ctl_shm_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 	return err;
 }
 
-static int snd_ctl_shm_elem_read(snd_ctl_t *ctl, snd_ctl_elem_t *control)
+static int snd_ctl_shm_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.element_read = *control;
@@ -187,9 +187,9 @@ static int snd_ctl_shm_elem_read(snd_ctl_t *ctl, snd_ctl_elem_t *control)
 	return err;
 }
 
-static int snd_ctl_shm_elem_write(snd_ctl_t *ctl, snd_ctl_elem_t *control)
+static int snd_ctl_shm_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.element_write = *control;
@@ -203,7 +203,7 @@ static int snd_ctl_shm_elem_write(snd_ctl_t *ctl, snd_ctl_elem_t *control)
 
 static int snd_ctl_shm_hwdep_next_device(snd_ctl_t *ctl, int * device)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.device = *device;
@@ -217,7 +217,7 @@ static int snd_ctl_shm_hwdep_next_device(snd_ctl_t *ctl, int * device)
 
 static int snd_ctl_shm_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.hwdep_info = *info;
@@ -231,7 +231,7 @@ static int snd_ctl_shm_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info)
 
 static int snd_ctl_shm_pcm_next_device(snd_ctl_t *ctl, int * device)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.device = *device;
@@ -245,7 +245,7 @@ static int snd_ctl_shm_pcm_next_device(snd_ctl_t *ctl, int * device)
 
 static int snd_ctl_shm_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t * info)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.pcm_info = *info;
@@ -259,7 +259,7 @@ static int snd_ctl_shm_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t * info)
 
 static int snd_ctl_shm_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.pcm_prefer_subdevice = subdev;
@@ -272,7 +272,7 @@ static int snd_ctl_shm_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 
 static int snd_ctl_shm_rawmidi_next_device(snd_ctl_t *ctl, int * device)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.device = *device;
@@ -286,7 +286,7 @@ static int snd_ctl_shm_rawmidi_next_device(snd_ctl_t *ctl, int * device)
 
 static int snd_ctl_shm_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.rawmidi_info = *info;
@@ -300,7 +300,7 @@ static int snd_ctl_shm_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info)
 
 static int snd_ctl_shm_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 {
-	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.rawmidi_prefer_subdevice = subdev;
@@ -319,7 +319,7 @@ static int snd_ctl_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 	err = snd_ctl_wait(ctl, -1);
 	if (err < 0)
 		return 0;
-	shm = ctl->private;
+	shm = ctl->private_data;
 	ctrl = shm->ctrl;
 	ctrl->u.read = *event;
 	ctrl->cmd = SND_CTL_IOCTL_READ;
@@ -474,7 +474,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, 
 		ctl->name = strdup(name);
 	ctl->type = SND_CTL_TYPE_SHM;
 	ctl->ops = &snd_ctl_shm_ops;
-	ctl->private = shm;
+	ctl->private_data = shm;
 	*handlep = ctl;
 	return 0;
 
@@ -491,7 +491,7 @@ extern int is_local(struct hostent *hent);
 
 int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *server = NULL;
 	const char *sname = NULL;
 	snd_config_t *sconfig;
@@ -501,7 +501,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 	int err;
 	int local;
 	struct hostent *h;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
@@ -540,7 +540,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 		ERR("Unknown server %s", server);
 		return -EINVAL;
 	}
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

@@ -144,7 +144,7 @@ int snd_seq_setpos_queue(snd_seq_t *seq, int q, snd_seq_timestamp_t *rtime, snd_
 /* create a port - simple version
  * return the port number
  */
-int snd_seq_create_simple_port(snd_seq_t *seq, char *name,
+int snd_seq_create_simple_port(snd_seq_t *seq, const char *name,
 			       unsigned int caps, unsigned int type)
 {
 	snd_seq_port_info_t pinfo;
@@ -241,7 +241,7 @@ int snd_seq_disconnect_to(snd_seq_t *seq, int myport, int dest_client, int dest_
 /*
  * set client information
  */
-int snd_seq_set_client_name(snd_seq_t *seq, char *name)
+int snd_seq_set_client_name(snd_seq_t *seq, const char *name)
 {
 	snd_seq_client_info_t info;
 	int err;
@@ -252,7 +252,7 @@ int snd_seq_set_client_name(snd_seq_t *seq, char *name)
 	return snd_seq_set_client_info(seq, &info);
 }
 
-int snd_seq_set_client_group(snd_seq_t *seq, char *name)
+int snd_seq_set_client_group(snd_seq_t *seq, const char *name)
 {
 	snd_seq_client_info_t info;
 	int err;

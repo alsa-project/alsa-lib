@@ -32,7 +32,7 @@
 #define _snd_ctl_elem_id sndrv_ctl_elem_id
 #define _snd_ctl_elem_list sndrv_ctl_elem_list
 #define _snd_ctl_elem_info sndrv_ctl_elem_info
-#define _snd_ctl_elem sndrv_ctl_elem
+#define _snd_ctl_elem_value sndrv_ctl_elem_value
 #define _snd_ctl_event sndrv_ctl_event
 
 #define _snd_rawmidi_info sndrv_rawmidi_info

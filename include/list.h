@@ -139,10 +139,11 @@ static __inline__ void list_splice(struct list_head *list, struct list_head *hea
 /**
  * list_for_each	-	iterate over a list
  * @pos:	the &struct list_head to use as a loop counter.
+ * @next:	the &struct list_head to use to save next.
  * @head:	the head for your list.
  */
-#define list_for_each(pos, head) \
-	for (pos = (head)->next; pos != (head); pos = pos->next)
+#define list_for_each(pos, npos, head) \
+	for (pos = (head)->next, npos = pos->next ; pos != (head); pos = npos, npos = pos->next)
 
 /**
  * list_entry - get the struct for this entry

@@ -28,6 +28,18 @@
 #include <asm/page.h>
 #include "rawmidi_local.h"
 
+const char *snd_rawmidi_name(snd_rawmidi_t *rawmidi)
+{
+	assert(rawmidi);
+	return rawmidi->name;
+}
+
+snd_rawmidi_type_t snd_rawmidi_type(snd_rawmidi_t *rawmidi)
+{
+	assert(rawmidi);
+	return rawmidi->type;
+}
+
 int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 {
 	int err;
@@ -137,16 +149,16 @@ int snd_rawmidi_params_default(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *param
 }
 
 int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-		     char *name, int mode)
+		     const char *name, int mode)
 {
 	const char *str;
 	int err;
 	snd_config_t *rawmidi_conf, *conf, *type_conf;
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	snd_rawmidi_params_t params;
 	const char *lib = NULL, *open = NULL;
 	int (*open_func)(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-			 char *name, snd_config_t *conf, int mode);
+			 const char *name, snd_config_t *conf, int mode);
 	void *h;
 	assert((inputp || outputp) && name);
 	err = snd_config_update();
@@ -183,7 +195,7 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		ERR("Unknown RAWMIDI type %s", str);
 		return err;
 	}
-	snd_config_foreach(i, type_conf) {
+	snd_config_for_each(i, next, type_conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

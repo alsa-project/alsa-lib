@@ -83,7 +83,8 @@ snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 	for (channel = 0; channel < channels; ++channel) {
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
-		char *src, *dst;
+		const char *src;
+		char *dst;
 		int src_step, dst_step;
 		int16_t old_sample = states->sample;
 		unsigned int pos = states->pos;
@@ -167,7 +168,8 @@ snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 		unsigned int pos;
 		int sum;
-		char *src, *dst;
+		const char *src;
+		char *dst;
 		int src_step, dst_step;
 		sum = states->sum;
 		pos = states->pos;
@@ -253,7 +255,7 @@ static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 
 static int snd_pcm_rate_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_access_mask_t saccess_mask = { SND_PCM_ACCBIT_MMAP };
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
@@ -270,7 +272,7 @@ static int snd_pcm_rate_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 static int snd_pcm_rate_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 					  snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_interval_t t, buffer_size;
 	const snd_interval_t *srate, *crate;
 	int err;
@@ -299,7 +301,7 @@ static int snd_pcm_rate_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 static int snd_pcm_rate_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 					  snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_interval_t t;
 	const snd_interval_t *sbuffer_size;
 	const snd_interval_t *srate, *crate;
@@ -339,7 +341,7 @@ static int snd_pcm_rate_hw_refine(snd_pcm_t *pcm,
 
 static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_t *slave = rate->plug.slave;
 	snd_pcm_format_t src_format, dst_format;
 	unsigned int src_rate, dst_rate;
@@ -379,7 +381,7 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 
 static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	if (rate->states) {
 		free(rate->states);
 		rate->states = 0;
@@ -389,7 +391,7 @@ static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 
 static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_t *slave = rate->plug.slave;
 	snd_pcm_sw_params_t sparams;
 	sparams = *params;
@@ -402,7 +404,7 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 
 static int snd_pcm_rate_init(snd_pcm_t *pcm)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	unsigned int k;
 	for (k = 0; k < pcm->channels; ++k) {
 		rate->states[k].sum = 0;
@@ -423,7 +425,7 @@ static snd_pcm_sframes_t snd_pcm_rate_write_areas(snd_pcm_t *pcm,
 					snd_pcm_uframes_t client_size,
 					snd_pcm_uframes_t *slave_sizep)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_t *slave = rate->plug.slave;
 	snd_pcm_uframes_t client_xfer = 0;
 	snd_pcm_uframes_t slave_xfer = 0;
@@ -475,7 +477,7 @@ static snd_pcm_sframes_t snd_pcm_rate_read_areas(snd_pcm_t *pcm,
 						 snd_pcm_uframes_t *slave_sizep)
 
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_t *slave = rate->plug.slave;
 	snd_pcm_uframes_t client_xfer = 0;
 	snd_pcm_uframes_t slave_xfer = 0;
@@ -521,7 +523,7 @@ static snd_pcm_sframes_t snd_pcm_rate_read_areas(snd_pcm_t *pcm,
 
 snd_pcm_sframes_t snd_pcm_rate_client_frames(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	/* Round toward zero */
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		return muldiv_down(frames, DIV, rate->pitch);
@@ -531,7 +533,7 @@ snd_pcm_sframes_t snd_pcm_rate_client_frames(snd_pcm_t *pcm, snd_pcm_sframes_t f
 
 snd_pcm_sframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	/* Round toward zero */
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		return muldiv_down(frames, rate->pitch, DIV);
@@ -541,7 +543,7 @@ snd_pcm_sframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_sframes_t fr
 
 static void snd_pcm_rate_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	snd_pcm_rate_t *rate = pcm->private;
+	snd_pcm_rate_t *rate = pcm->private_data;
 	if (rate->sformat == SND_PCM_FORMAT_UNKNOWN)
 		snd_output_printf(out, "Rate conversion PCM (%d)\n", 
 			rate->srate);
@@ -572,7 +574,7 @@ snd_pcm_ops_t snd_pcm_rate_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
-int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, int srate, snd_pcm_t *slave, int close_slave)
+int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, int srate, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_rate_t *rate;
@@ -608,7 +610,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, in
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->fast_op_arg = pcm;
-	pcm->private = rate;
+	pcm->private_data = rate;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = &rate->plug.hw_ptr;
 	pcm->appl_ptr = &rate->plug.appl_ptr;
@@ -617,17 +619,17 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, in
 	return 0;
 }
 
-int _snd_pcm_rate_open(snd_pcm_t **pcmp, char *name,
+int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 			 snd_config_t *conf, 
 			 snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	long srate = -1;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

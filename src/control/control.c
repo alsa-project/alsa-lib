@@ -29,16 +29,24 @@
 #include <sys/poll.h>
 #include "control_local.h"
 
+const char *snd_ctl_name(snd_ctl_t *ctl)
+{
+	assert(ctl);
+	return ctl->name;
+}
+
 snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl)
 {
+	assert(ctl);
 	return ctl->type;
 }
 
 int snd_ctl_close(snd_ctl_t *ctl)
 {
 	int res;
-	assert(ctl);
 	res = ctl->ops->close(ctl);
+	if (ctl->name)
+		free(ctl->name);
 	free(ctl);
 	return res;
 }
@@ -85,13 +93,13 @@ int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 	return ctl->ops->element_info(ctl, info);
 }
 
-int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_t *control)
+int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 {
 	assert(ctl && control && (control->id.name[0] || control->id.numid));
 	return ctl->ops->element_read(ctl, control);
 }
 
-int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_t *control)
+int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 {
 	assert(ctl && control && (control->id.name[0] || control->id.numid));
 	return ctl->ops->element_write(ctl, control);
@@ -163,14 +171,14 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 	return 0;
 }
 
-int snd_ctl_open(snd_ctl_t **ctlp, char *name)
+int snd_ctl_open(snd_ctl_t **ctlp, const char *name)
 {
 	const char *str;
 	int err;
 	snd_config_t *ctl_conf, *conf, *type_conf;
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open = NULL;
-	int (*open_func)(snd_ctl_t **ctlp, char *name, snd_config_t *conf);
+	int (*open_func)(snd_ctl_t **ctlp, const char *name, snd_config_t *conf);
 	void *h;
 	assert(ctlp && name);
 	err = snd_config_update();
@@ -182,10 +190,10 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 		char socket[256], sname[256];
 		err = sscanf(name, "hw:%d", &card);
 		if (err == 1)
-			return snd_ctl_hw_open(ctlp, NULL, card);
+			return snd_ctl_hw_open(ctlp, name, card);
 		err = sscanf(name, "shm:%256[^,],%256[^,]", socket, sname);
 		if (err == 2)
-			return snd_ctl_shm_open(ctlp, NULL, socket, sname);
+			return snd_ctl_shm_open(ctlp, name, socket, sname);
 		ERR("Unknown control %s", name);
 		return -ENOENT;
 	}
@@ -198,7 +206,7 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 	if (err < 0)
 		return err;
 	err = snd_config_searchv(snd_config, &type_conf, "ctltype", str, 0);
-	snd_config_foreach(i, type_conf) {
+	snd_config_for_each(i, next, type_conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
@@ -231,7 +239,7 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 	return open_func(ctlp, name, ctl_conf);
 }
 
-void snd_ctl_elem_set_bytes(snd_ctl_elem_t *obj, void *data, size_t size)
+void snd_ctl_elem_set_bytes(snd_ctl_elem_value_t *obj, void *data, size_t size)
 {
 	assert(obj);
 	assert(size <= sizeof(obj->value.bytes.data));
@@ -264,7 +272,7 @@ const char *snd_ctl_elem_iface_names[] = {
 const char *snd_ctl_event_type_names[] = {
 	EVENT(REBUILD),
 	EVENT(VALUE),
-	EVENT(CHANGE),
+	EVENT(INFO),
 	EVENT(ADD),
 	EVENT(REMOVE),
 };

@@ -97,8 +97,8 @@ typedef struct {
 		snd_ctl_card_info_t hw_info;
 		snd_ctl_elem_list_t element_list;
 		snd_ctl_elem_info_t element_info;
-		snd_ctl_elem_t element_read;
-		snd_ctl_elem_t element_write;
+		snd_ctl_elem_value_t element_read;
+		snd_ctl_elem_value_t element_write;
 		snd_hwdep_info_t hwdep_info;
 		snd_pcm_info_t pcm_info;
 		int pcm_prefer_subdevice;

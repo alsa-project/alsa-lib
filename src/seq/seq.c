@@ -24,15 +24,27 @@
 #include <dlfcn.h>
 #include "seq_local.h"
 
-int snd_seq_open(snd_seq_t **seqp, char *name, 
+const char *snd_seq_name(snd_seq_t *seq)
+{
+	assert(seq);
+	return seq->name;
+}
+
+snd_seq_type_t snd_seq_type(snd_seq_t *seq)
+{
+	assert(seq);
+	return seq->type;
+}
+
+int snd_seq_open(snd_seq_t **seqp, const char *name, 
 		 int streams, int mode)
 {
 	const char *str;
 	int err;
 	snd_config_t *seq_conf, *conf, *type_conf;
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open = NULL;
-	int (*open_func)(snd_seq_t **seqp, char *name, snd_config_t *conf, 
+	int (*open_func)(snd_seq_t **seqp, const char *name, snd_config_t *conf, 
 			 int streams, int mode);
 	void *h;
 	assert(seqp && name);
@@ -65,7 +77,7 @@ int snd_seq_open(snd_seq_t **seqp, char *name,
 		ERR("Unknown SEQ type %s", str);
 		return err;
 	}
-	snd_config_foreach(i, type_conf) {
+	snd_config_for_each(i, next, type_conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
@@ -426,7 +438,7 @@ int snd_seq_create_queue(snd_seq_t *seq, snd_seq_queue_info_t *info)
 	return info->queue;
 }
 
-int snd_seq_alloc_named_queue(snd_seq_t *seq, char *name)
+int snd_seq_alloc_named_queue(snd_seq_t *seq, const char *name)
 {
 	snd_seq_queue_info_t info;
 	memset(&info, 0, sizeof(info));
@@ -477,7 +489,7 @@ int snd_seq_set_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info)
 	return seq->ops->set_queue_info(seq, info);
 }
 
-int snd_seq_get_named_queue(snd_seq_t *seq, char *name)
+int snd_seq_get_named_queue(snd_seq_t *seq, const char *name)
 {
 	int err;
 	snd_seq_queue_info_t info;

@@ -247,6 +247,8 @@ int snd_pcm_unlink(snd_pcm_t *pcm);
 
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm);
+const char *snd_pcm_name(snd_pcm_t *pcm);
+snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
 
 /* HW params */
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);

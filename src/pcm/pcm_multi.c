@@ -46,7 +46,7 @@ typedef struct {
 
 static int snd_pcm_multi_close(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int i;
 	int ret = 0;
 	for (i = 0; i < multi->slaves_count; ++i) {
@@ -72,14 +72,14 @@ static int snd_pcm_multi_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock 
 
 static int snd_pcm_multi_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave_0 = multi->slaves[0].pcm;
 	return snd_pcm_async(slave_0, sig, pid);
 }
 
 static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	if (multi->slaves_count == 1)
 		return snd_pcm_info(multi->slaves[0].pcm, info);
 	memset(info, 0, sizeof(*info));
@@ -94,7 +94,7 @@ static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 
 static int snd_pcm_multi_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_access_mask_t access_mask;
 	int err;
 	snd_pcm_access_mask_any(&access_mask);
@@ -114,7 +114,7 @@ static int snd_pcm_multi_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 static int snd_pcm_multi_hw_refine_sprepare(snd_pcm_t *pcm, int slave_idx,
 					    snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_multi_slave_t *slave = &multi->slaves[slave_idx];
 	snd_pcm_access_mask_t saccess_mask = { SND_PCM_ACCBIT_MMAP };
 	_snd_pcm_hw_params_any(sparams);
@@ -197,14 +197,14 @@ static int snd_pcm_multi_hw_refine_slave(snd_pcm_t *pcm,
 					 int slave_idx,
 					 snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[slave_idx].pcm;
 	return snd_pcm_hw_refine(slave, sparams);
 }
 
 static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int k;
 	snd_pcm_hw_params_t sparams[multi->slaves_count];
 	int err;
@@ -247,7 +247,7 @@ static int snd_pcm_multi_hw_params_slave(snd_pcm_t *pcm,
 					 int slave_idx,
 					 snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[slave_idx].pcm;
 	int err = snd_pcm_hw_refine(slave, sparams);
 	if (err < 0)
@@ -265,7 +265,7 @@ static int snd_pcm_multi_hw_params_slave(snd_pcm_t *pcm,
 
 static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int k;
 	snd_pcm_hw_params_t sparams[multi->slaves_count];
 	int err;
@@ -285,7 +285,7 @@ static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 static int snd_pcm_multi_hw_free(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int i;
 	int err = 0;
 	for (i = 0; i < multi->slaves_count; ++i) {
@@ -299,7 +299,7 @@ static int snd_pcm_multi_hw_free(snd_pcm_t *pcm)
 
 static int snd_pcm_multi_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int i;
 	int err;
 	for (i = 0; i < multi->slaves_count; ++i) {
@@ -313,71 +313,71 @@ static int snd_pcm_multi_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 
 static int snd_pcm_multi_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[0].pcm;
 	return snd_pcm_status(slave, status);
 }
 
 static snd_pcm_state_t snd_pcm_multi_state(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[0].pcm;
 	return snd_pcm_state(slave);
 }
 
 static int snd_pcm_multi_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[0].pcm;
 	return snd_pcm_delay(slave, delayp);
 }
 
 static snd_pcm_sframes_t snd_pcm_multi_avail_update(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[0].pcm;
 	return snd_pcm_avail_update(slave);
 }
 
 static int snd_pcm_multi_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	return snd_pcm_prepare(multi->slaves[0].pcm);
 }
 
 static int snd_pcm_multi_reset(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	return snd_pcm_reset(multi->slaves[0].pcm);
 }
 
 static int snd_pcm_multi_start(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	return snd_pcm_start(multi->slaves[0].pcm);
 }
 
 static int snd_pcm_multi_drop(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	return snd_pcm_drop(multi->slaves[0].pcm);
 }
 
 static int snd_pcm_multi_drain(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	return snd_pcm_drain(multi->slaves[0].pcm);
 }
 
 static int snd_pcm_multi_pause(snd_pcm_t *pcm, int enable)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	return snd_pcm_pause(multi->slaves[0].pcm, enable);
 }
 
 static int snd_pcm_multi_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int channel = info->channel;
 	snd_pcm_multi_channel_t *c = &multi->channels[channel];
 	int err;
@@ -391,7 +391,7 @@ static int snd_pcm_multi_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *in
 
 static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int i;
 	snd_pcm_uframes_t pos[multi->slaves_count];
 	memset(pos, 0, sizeof(pos));
@@ -415,7 +415,7 @@ static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 
 static snd_pcm_sframes_t snd_pcm_multi_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int i;
 
 	for (i = 0; i < multi->slaves_count; ++i) {
@@ -445,14 +445,14 @@ static int snd_pcm_multi_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 
 int snd_pcm_multi_poll_descriptor(snd_pcm_t *pcm)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[0].pcm;
 	return snd_pcm_poll_descriptor(slave);
 }
 
 static void snd_pcm_multi_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_multi_t *multi = pcm->private_data;
 	unsigned int k;
 	snd_output_printf(out, "Multi PCM\n");
 	snd_output_printf(out, "\nChannel bindings:\n");
@@ -507,7 +507,7 @@ snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	mmap_forward: snd_pcm_multi_mmap_forward,
 };
 
-int snd_pcm_multi_open(snd_pcm_t **pcmp, char *name,
+int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		       unsigned int slaves_count,
 		       snd_pcm_t **slaves_pcm, unsigned int *schannels_count,
 		       unsigned int channels_count,
@@ -572,7 +572,7 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, char *name,
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_multi_fast_ops;
 	pcm->fast_op_arg = pcm;
-	pcm->private = multi;
+	pcm->private_data = multi;
 	pcm->poll_fd = multi->slaves[0].pcm->poll_fd;
 	pcm->hw_ptr = multi->slaves[0].pcm->hw_ptr;
 	pcm->appl_ptr = multi->slaves[0].pcm->appl_ptr;
@@ -580,15 +580,15 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, char *name,
 	return 0;
 }
 
-int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
+int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i, j;
+	snd_config_iterator_t i, inext, j, jnext;
 	snd_config_t *slave = NULL;
 	snd_config_t *binding = NULL;
 	int err;
 	unsigned int idx;
-	char **slaves_id = NULL;
+	const char **slaves_id = NULL;
 	char **slaves_name = NULL;
 	snd_pcm_t **slaves_pcm = NULL;
 	unsigned int *slaves_channels = NULL;
@@ -596,7 +596,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	unsigned int *channels_schannel = NULL;
 	unsigned int slaves_count = 0;
 	unsigned int channels_count = 0;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, inext, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
@@ -630,10 +630,10 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		ERR("binding is not defined");
 		return -EINVAL;
 	}
-	snd_config_foreach(i, slave) {
+	snd_config_for_each(i, inext, slave) {
 		++slaves_count;
 	}
-	snd_config_foreach(i, binding) {
+	snd_config_for_each(i, inext, binding) {
 		int cchannel = -1;
 		char *p;
 		snd_config_t *m = snd_config_iterator_entry(i);
@@ -661,12 +661,12 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	for (idx = 0; idx < channels_count; ++idx)
 		channels_sidx[idx] = -1;
 	idx = 0;
-	snd_config_foreach(i, slave) {
+	snd_config_for_each(i, inext, slave) {
 		snd_config_t *m = snd_config_iterator_entry(i);
 		const char *name = NULL;
 		long channels = -1;
 		slaves_id[idx] = snd_config_get_id(m);
-		snd_config_foreach(j, m) {
+		snd_config_for_each(j, jnext, m) {
 			snd_config_t *n = snd_config_iterator_entry(j);
 			const char *id = snd_config_get_id(n);
 			if (strcmp(id, "comment") == 0)
@@ -706,7 +706,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		++idx;
 	}
 
-	snd_config_foreach(i, binding) {
+	snd_config_for_each(i, inext, binding) {
 		snd_config_t *m = snd_config_iterator_entry(i);
 		long cchannel = -1;
 		long schannel = -1;
@@ -720,7 +720,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			err = -EINVAL;
 			goto _free;
 		}
-		snd_config_foreach(j, m) {
+		snd_config_for_each(j, jnext, m) {
 			snd_config_t *n = snd_config_iterator_entry(j);
 			const char *id = snd_config_get_id(n);
 			if (strcmp(id, "comment") == 0)

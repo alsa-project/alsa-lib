@@ -435,7 +435,7 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		case SND_PCM_ACCESS_MMAP_INTERLEAVED:
 		{
 			const snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);
-			char *buf = snd_pcm_channel_area_addr(a, offset);
+			const char *buf = snd_pcm_channel_area_addr(a, offset);
 			err = _snd_pcm_writei(pcm, buf, size);
 			break;
 		}

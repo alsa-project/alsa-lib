@@ -118,7 +118,8 @@ void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *dst_area,
 	void *conv;
 	const snd_pcm_channel_area_t *src_area = 0;
 	unsigned int srcidx;
-	char *src, *dst;
+	const char *src;
+	char *dst;
 	int src_step, dst_step;
 	for (srcidx = 0; srcidx < ttable->nsrcs; ++srcidx) {
 		src_area = &src_areas[ttable->srcs[srcidx].channel];
@@ -208,7 +209,7 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 	int nsrcs = ttable->nsrcs;
 	char *dst;
 	int dst_step;
-	char *srcs[nsrcs];
+	const char *srcs[nsrcs];
 	int src_steps[nsrcs];
 	snd_pcm_route_ttable_src_t src_tt[nsrcs];
 	u_int32_t sample = 0;
@@ -267,7 +268,7 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 #endif
 	zero_end:
 		for (srcidx = 0; srcidx < nsrcs; ++srcidx) {
-			char *src = srcs[srcidx];
+			const char *src = srcs[srcidx];
 			
 			/* Get sample */
 			goto *get;
@@ -418,7 +419,7 @@ void snd_pcm_route_convert(const snd_pcm_channel_area_t *dst_areas,
 
 static int snd_pcm_route_close(snd_pcm_t *pcm)
 {
-	snd_pcm_route_t *route = pcm->private;
+	snd_pcm_route_t *route = pcm->private_data;
 	snd_pcm_route_params_t *params = &route->params;
 	int err = 0;
 	unsigned int dst_channel;
@@ -460,7 +461,7 @@ static int snd_pcm_route_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd
 
 static int snd_pcm_route_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_route_t *route = pcm->private;
+	snd_pcm_route_t *route = pcm->private_data;
 	snd_pcm_access_mask_t saccess_mask = { SND_PCM_ACCBIT_MMAP };
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
@@ -479,7 +480,7 @@ static int snd_pcm_route_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 static int snd_pcm_route_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 					    snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_route_t *route = pcm->private;
+	snd_pcm_route_t *route = pcm->private_data;
 	int err;
 	unsigned int links = (SND_PCM_HW_PARBIT_RATE |
 			      SND_PCM_HW_PARBIT_PERIODS |
@@ -503,7 +504,7 @@ static int snd_pcm_route_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 static int snd_pcm_route_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 					    snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_route_t *route = pcm->private;
+	snd_pcm_route_t *route = pcm->private_data;
 	int err;
 	unsigned int links = (SND_PCM_HW_PARBIT_RATE |
 			      SND_PCM_HW_PARBIT_PERIODS |
@@ -536,7 +537,7 @@ static int snd_pcm_route_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
-	snd_pcm_route_t *route = pcm->private;
+	snd_pcm_route_t *route = pcm->private_data;
 	snd_pcm_t *slave = route->plug.slave;
 	snd_pcm_format_t src_format, dst_format;
 	int err = snd_pcm_hw_params_slave(pcm, params,
@@ -576,7 +577,7 @@ static snd_pcm_sframes_t snd_pcm_route_write_areas(snd_pcm_t *pcm,
 						   snd_pcm_uframes_t size,
 						   snd_pcm_uframes_t *slave_sizep)
 {
-	snd_pcm_route_t *route = pcm->private;
+	snd_pcm_route_t *route = pcm->private_data;
 	snd_pcm_t *slave = route->plug.slave;
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
@@ -610,7 +611,7 @@ static snd_pcm_sframes_t snd_pcm_route_read_areas(snd_pcm_t *pcm,
 						  snd_pcm_uframes_t size,
 						  snd_pcm_uframes_t *slave_sizep)
 {
-	snd_pcm_route_t *route = pcm->private;
+	snd_pcm_route_t *route = pcm->private_data;
 	snd_pcm_t *slave = route->plug.slave;
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
@@ -640,7 +641,7 @@ static snd_pcm_sframes_t snd_pcm_route_read_areas(snd_pcm_t *pcm,
 
 static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	snd_pcm_route_t *route = pcm->private;
+	snd_pcm_route_t *route = pcm->private_data;
 	unsigned int dst;
 	if (route->sformat == SND_PCM_FORMAT_UNKNOWN)
 		snd_output_printf(out, "Route conversion PCM\n");
@@ -763,7 +764,7 @@ int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t stream,
 }
 
 
-int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
+int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_format_t sformat, unsigned int schannels,
 		       snd_pcm_route_ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
@@ -802,7 +803,7 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->fast_op_arg = pcm;
-	pcm->private = route;
+	pcm->private_data = route;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = &route->plug.hw_ptr;
 	pcm->appl_ptr = &route->plug.appl_ptr;
@@ -823,13 +824,13 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 {
 	int cused = -1;
 	int sused = -1;
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, inext;
 	unsigned int k;
 	for (k = 0; k < tt_csize * tt_ssize; ++k)
 		ttable[k] = 0.0;
-	snd_config_foreach(i, tt) {
+	snd_config_for_each(i, inext, tt) {
 		snd_config_t *in = snd_config_iterator_entry(i);
-		snd_config_iterator_t j;
+		snd_config_iterator_t j, jnext;
 		char *p;
 		long cchannel;
 		errno = 0;
@@ -841,7 +842,7 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 		}
 		if (snd_config_get_type(in) != SND_CONFIG_TYPE_COMPOUND)
 			return -EINVAL;
-		snd_config_foreach(j, in) {
+		snd_config_for_each(j, jnext, in) {
 			snd_config_t *jn = snd_config_iterator_entry(j);
 			double value;
 			long schannel;
@@ -879,11 +880,11 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 
 #define MAX_CHANNELS 32
 
-int _snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
+int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
@@ -892,7 +893,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 	snd_config_t *tt = NULL;
 	snd_pcm_route_ttable_entry_t ttable[MAX_CHANNELS*MAX_CHANNELS];
 	unsigned int cused, sused;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

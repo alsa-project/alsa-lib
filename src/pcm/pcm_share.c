@@ -188,7 +188,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *sla
 */
 static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_t *spcm = slave->pcm;
 	snd_pcm_uframes_t buffer_size = spcm->buffer_size;
@@ -394,7 +394,7 @@ void *snd_pcm_share_slave_thread(void *data)
 
 static void _snd_pcm_share_update(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_t *spcm = slave->pcm;
 	snd_pcm_uframes_t missing;
@@ -434,7 +434,7 @@ static int snd_pcm_share_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock 
 
 static int snd_pcm_share_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	if (sig)
 		share->async_sig = sig;
 	else
@@ -448,13 +448,13 @@ static int snd_pcm_share_async(snd_pcm_t *pcm, int sig, pid_t pid)
 
 static int snd_pcm_share_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	return snd_pcm_info(share->slave->pcm, info);
 }
 
 static int snd_pcm_share_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_access_mask_t access_mask;
 	int err;
@@ -486,7 +486,7 @@ static int snd_pcm_share_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 
 static int snd_pcm_share_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_access_mask_t saccess_mask = { SND_PCM_ACCBIT_MMAP };
 	_snd_pcm_hw_params_any(sparams);
@@ -562,13 +562,13 @@ static int snd_pcm_share_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 
 static int snd_pcm_share_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	return snd_pcm_hw_refine(share->slave->pcm, params);
 }
 
 static int snd_pcm_share_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	return _snd_pcm_hw_params(share->slave->pcm, params);
 }
 
@@ -584,7 +584,7 @@ static int snd_pcm_share_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_t *spcm = slave->pcm;
 	int err = 0;
@@ -643,7 +643,7 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 static int snd_pcm_share_hw_free(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	Pthread_mutex_lock(&slave->mutex);
@@ -662,7 +662,7 @@ static int snd_pcm_share_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_p
 
 static int snd_pcm_share_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	snd_pcm_sframes_t sd = 0, d = 0;
@@ -693,13 +693,13 @@ static int snd_pcm_share_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 
 static snd_pcm_state_t snd_pcm_share_state(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	return share->state;
 }
 
 static int _snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	snd_pcm_sframes_t sd;
@@ -724,7 +724,7 @@ static int _snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 
 static int snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err;
 	Pthread_mutex_lock(&slave->mutex);
@@ -735,7 +735,7 @@ static int snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 
 static snd_pcm_sframes_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_sframes_t avail;
 	Pthread_mutex_lock(&slave->mutex);
@@ -757,7 +757,7 @@ static snd_pcm_sframes_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 /* Call it with mutex held */
 static snd_pcm_sframes_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_sframes_t ret = 0;
 	snd_pcm_sframes_t frames;
@@ -790,7 +790,7 @@ static snd_pcm_sframes_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_ufr
 
 static snd_pcm_sframes_t snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_sframes_t ret;
 	Pthread_mutex_lock(&slave->mutex);
@@ -801,7 +801,7 @@ static snd_pcm_sframes_t snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_ufra
 
 static int snd_pcm_share_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	Pthread_mutex_lock(&slave->mutex);
@@ -821,7 +821,7 @@ static int snd_pcm_share_prepare(snd_pcm_t *pcm)
 
 static int snd_pcm_share_reset(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	/* FIXME? */
@@ -835,7 +835,7 @@ static int snd_pcm_share_reset(snd_pcm_t *pcm)
 
 static int snd_pcm_share_start(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	if (share->state != SND_PCM_STATE_PREPARED)
@@ -897,7 +897,7 @@ static int snd_pcm_share_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTRI
 
 static int snd_pcm_share_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	unsigned int channel = info->channel;
 	int c = share->slave_channels[channel];
@@ -910,7 +910,7 @@ static int snd_pcm_share_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *in
 
 static snd_pcm_sframes_t _snd_pcm_share_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_sframes_t n;
 	switch (snd_enum_to_int(share->state)) {
@@ -950,7 +950,7 @@ static snd_pcm_sframes_t _snd_pcm_share_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 
 static snd_pcm_sframes_t snd_pcm_share_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_sframes_t ret;
 	Pthread_mutex_lock(&slave->mutex);
@@ -962,7 +962,7 @@ static snd_pcm_sframes_t snd_pcm_share_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 /* Warning: take the mutex before to call this */
 static void _snd_pcm_share_stop(snd_pcm_t *pcm, snd_pcm_state_t state)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	if (!pcm->mmap_channels) {
 		/* PCM closing already begun in the main thread */
@@ -995,7 +995,7 @@ static void _snd_pcm_share_stop(snd_pcm_t *pcm, snd_pcm_state_t state)
 
 static int snd_pcm_share_drain(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	Pthread_mutex_lock(&slave->mutex);
@@ -1053,7 +1053,7 @@ static int snd_pcm_share_drain(snd_pcm_t *pcm)
 
 static int snd_pcm_share_drop(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	Pthread_mutex_lock(&slave->mutex);
@@ -1090,7 +1090,7 @@ static int snd_pcm_share_drop(snd_pcm_t *pcm)
 
 static int snd_pcm_share_close(snd_pcm_t *pcm)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	Pthread_mutex_lock(&slaves_mutex);
@@ -1131,7 +1131,7 @@ static int snd_pcm_share_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 
 static void snd_pcm_share_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	unsigned int k;
 	snd_output_printf(out, "Share PCM\n");
@@ -1344,7 +1344,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_share_fast_ops;
 	pcm->fast_op_arg = pcm;
-	pcm->private = share;
+	pcm->private_data = share;
 	pcm->poll_fd = share->client_socket;
 	pcm->hw_ptr = &share->hw_ptr;
 	pcm->appl_ptr = &share->appl_ptr;
@@ -1358,10 +1358,10 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	return 0;
 }
 
-int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
+int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *sname = NULL;
 	snd_config_t *binding = NULL;
 	int err;
@@ -1373,7 +1373,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	long srate = -1;
 	
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
@@ -1437,7 +1437,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		ERR("binding is not defined");
 		return -EINVAL;
 	}
-	snd_config_foreach(i, binding) {
+	snd_config_for_each(i, next, binding) {
 		int cchannel = -1;
 		char *p;
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1459,7 +1459,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	for (idx = 0; idx < channels_count; ++idx)
 		channels_map[idx] = -1;
 
-	snd_config_foreach(i, binding) {
+	snd_config_for_each(i, next, binding) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		long cchannel;

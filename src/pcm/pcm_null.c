@@ -36,7 +36,7 @@ typedef struct {
 
 static int snd_pcm_null_close(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	close(null->poll_fd);
 	free(null);
 	return 0;
@@ -66,13 +66,13 @@ static int snd_pcm_null_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_info_t * i
 
 static int snd_pcm_null_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	return snd_pcm_channel_info_shm(pcm, info, null->shmid);
 }
 
 static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	memset(status, 0, sizeof(*status));
 	status->state = snd_enum_to_int(null->state);
 	status->trigger_tstamp = null->trigger_tstamp;
@@ -84,7 +84,7 @@ static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 
 static snd_pcm_state_t snd_pcm_null_state(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	return null->state;
 }
 
@@ -96,7 +96,7 @@ static int snd_pcm_null_delay(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sframes_t
 
 static int snd_pcm_null_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	null->state = SND_PCM_STATE_PREPARED;
 	null->appl_ptr = 0;
 	null->hw_ptr = 0;
@@ -105,7 +105,7 @@ static int snd_pcm_null_prepare(snd_pcm_t *pcm)
 
 static int snd_pcm_null_reset(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	null->appl_ptr = 0;
 	null->hw_ptr = 0;
 	return 0;
@@ -113,7 +113,7 @@ static int snd_pcm_null_reset(snd_pcm_t *pcm)
 
 static int snd_pcm_null_start(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	assert(null->state == SND_PCM_STATE_PREPARED);
 	null->state = SND_PCM_STATE_RUNNING;
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE)
@@ -123,7 +123,7 @@ static int snd_pcm_null_start(snd_pcm_t *pcm)
 
 static int snd_pcm_null_drop(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	assert(null->state != SND_PCM_STATE_OPEN);
 	null->state = SND_PCM_STATE_SETUP;
 	return 0;
@@ -131,7 +131,7 @@ static int snd_pcm_null_drop(snd_pcm_t *pcm)
 
 static int snd_pcm_null_drain(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	assert(null->state != SND_PCM_STATE_OPEN);
 	null->state = SND_PCM_STATE_SETUP;
 	return 0;
@@ -139,7 +139,7 @@ static int snd_pcm_null_drain(snd_pcm_t *pcm)
 
 static int snd_pcm_null_pause(snd_pcm_t *pcm, int enable)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	if (enable) {
 		if (null->state != SND_PCM_STATE_RUNNING)
 			return -EBADFD;
@@ -151,7 +151,7 @@ static int snd_pcm_null_pause(snd_pcm_t *pcm, int enable)
 
 static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	switch (snd_enum_to_int(null->state)) {
 	case SND_PCM_STATE_PREPARED:
 	case SND_PCM_STATE_RUNNING:
@@ -165,7 +165,7 @@ static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 
 static snd_pcm_sframes_t snd_pcm_null_fwd(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	switch (snd_enum_to_int(null->state)) {
 	case SND_PCM_STATE_PREPARED:
 	case SND_PCM_STATE_RUNNING:
@@ -179,7 +179,7 @@ static snd_pcm_sframes_t snd_pcm_null_fwd(snd_pcm_t *pcm, snd_pcm_uframes_t size
 
 static snd_pcm_sframes_t snd_pcm_null_writei(snd_pcm_t *pcm, const void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	if (null->state == SND_PCM_STATE_PREPARED &&
 	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
 		null->state = SND_PCM_STATE_RUNNING;
@@ -189,7 +189,7 @@ static snd_pcm_sframes_t snd_pcm_null_writei(snd_pcm_t *pcm, const void *buffer 
 
 static snd_pcm_sframes_t snd_pcm_null_writen(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	if (null->state == SND_PCM_STATE_PREPARED &&
 	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
 		null->state = SND_PCM_STATE_RUNNING;
@@ -199,7 +199,7 @@ static snd_pcm_sframes_t snd_pcm_null_writen(snd_pcm_t *pcm, void **bufs ATTRIBU
 
 static snd_pcm_sframes_t snd_pcm_null_readi(snd_pcm_t *pcm, void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	if (null->state == SND_PCM_STATE_PREPARED &&
 	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
 		null->state = SND_PCM_STATE_RUNNING;
@@ -210,7 +210,7 @@ static snd_pcm_sframes_t snd_pcm_null_readi(snd_pcm_t *pcm, void *buffer ATTRIBU
 
 static snd_pcm_sframes_t snd_pcm_null_readn(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	if (null->state == SND_PCM_STATE_PREPARED &&
 	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
 		null->state = SND_PCM_STATE_RUNNING;
@@ -253,7 +253,7 @@ static int snd_pcm_null_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_pa
 
 static int snd_pcm_null_mmap(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
 		size_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
 		int id = shmget(IPC_PRIVATE, size, 0666);
@@ -268,7 +268,7 @@ static int snd_pcm_null_mmap(snd_pcm_t *pcm)
 
 static int snd_pcm_null_munmap(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private;
+	snd_pcm_null_t *null = pcm->private_data;
 	if (shmctl(null->shmid, IPC_RMID, 0) < 0) {
 		SYSERR("shmctl IPC_RMID failed");
 			return -errno;
@@ -361,7 +361,7 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_null_fast_ops;
 	pcm->fast_op_arg = pcm;
-	pcm->private = null;
+	pcm->private_data = null;
 	pcm->poll_fd = fd;
 	pcm->hw_ptr = &null->hw_ptr;
 	pcm->appl_ptr = &null->appl_ptr;
@@ -370,12 +370,12 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 	return 0;
 }
 
-int _snd_pcm_null_open(snd_pcm_t **pcmp, char *name,
+int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i;
-	snd_config_foreach(i, conf) {
+	snd_config_iterator_t i, next;
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

@@ -149,7 +149,7 @@ void snd_pcm_mulaw_decode(const snd_pcm_channel_area_t *dst_areas,
 	void *put = put16_labels[putidx];
 	unsigned int channel;
 	for (channel = 0; channel < channels; ++channel) {
-		char *src;
+		const char *src;
 		char *dst;
 		int src_step, dst_step;
 		snd_pcm_uframes_t frames1;
@@ -195,7 +195,7 @@ void snd_pcm_mulaw_encode(const snd_pcm_channel_area_t *dst_areas,
 	unsigned int channel;
 	int16_t sample = 0;
 	for (channel = 0; channel < channels; ++channel) {
-		char *src;
+		const char *src;
 		char *dst;
 		int src_step, dst_step;
 		snd_pcm_uframes_t frames1;
@@ -230,7 +230,7 @@ void snd_pcm_mulaw_encode(const snd_pcm_channel_area_t *dst_areas,
 
 static int snd_pcm_mulaw_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_mulaw_t *mulaw = pcm->private;
+	snd_pcm_mulaw_t *mulaw = pcm->private_data;
 	int err;
 	snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_PLUGIN };
 	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_ACCESS,
@@ -254,7 +254,7 @@ static int snd_pcm_mulaw_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 
 static int snd_pcm_mulaw_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_mulaw_t *mulaw = pcm->private;
+	snd_pcm_mulaw_t *mulaw = pcm->private_data;
 	snd_pcm_access_mask_t saccess_mask = { SND_PCM_ACCBIT_MMAP };
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
@@ -312,7 +312,7 @@ static int snd_pcm_mulaw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 static int snd_pcm_mulaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
-	snd_pcm_mulaw_t *mulaw = pcm->private;
+	snd_pcm_mulaw_t *mulaw = pcm->private_data;
 	int err = snd_pcm_hw_params_slave(pcm, params,
 					  snd_pcm_mulaw_hw_refine_cchange,
 					  snd_pcm_mulaw_hw_refine_sprepare,
@@ -347,7 +347,7 @@ static snd_pcm_sframes_t snd_pcm_mulaw_write_areas(snd_pcm_t *pcm,
 					 snd_pcm_uframes_t size,
 					 snd_pcm_uframes_t *slave_sizep)
 {
-	snd_pcm_mulaw_t *mulaw = pcm->private;
+	snd_pcm_mulaw_t *mulaw = pcm->private_data;
 	snd_pcm_t *slave = mulaw->plug.slave;
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
@@ -382,7 +382,7 @@ static snd_pcm_sframes_t snd_pcm_mulaw_read_areas(snd_pcm_t *pcm,
 					snd_pcm_uframes_t size,
 					snd_pcm_uframes_t *slave_sizep)
 {
-	snd_pcm_mulaw_t *mulaw = pcm->private;
+	snd_pcm_mulaw_t *mulaw = pcm->private_data;
 	snd_pcm_t *slave = mulaw->plug.slave;
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
@@ -413,7 +413,7 @@ static snd_pcm_sframes_t snd_pcm_mulaw_read_areas(snd_pcm_t *pcm,
 
 static void snd_pcm_mulaw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	snd_pcm_mulaw_t *mulaw = pcm->private;
+	snd_pcm_mulaw_t *mulaw = pcm->private_data;
 	snd_output_printf(out, "Mu-Law conversion PCM (%s)\n", 
 		snd_pcm_format_name(mulaw->sformat));
 	if (pcm->setup) {
@@ -439,7 +439,7 @@ snd_pcm_ops_t snd_pcm_mulaw_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
-int snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave)
+int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_mulaw_t *mulaw;
@@ -471,7 +471,7 @@ int snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, s
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->fast_op_arg = pcm;
-	pcm->private = mulaw;
+	pcm->private_data = mulaw;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = &mulaw->plug.hw_ptr;
 	pcm->appl_ptr = &mulaw->plug.appl_ptr;
@@ -480,16 +480,16 @@ int snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, s
 	return 0;
 }
 
-int _snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name,
+int _snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name,
 			 snd_config_t *conf, 
 			 snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

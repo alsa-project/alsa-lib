@@ -40,7 +40,7 @@ typedef struct {
 
 static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_hw_t *hw = rmidi->private;
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	hw->open--;
 	if (hw->open)
 		return 0;
@@ -54,7 +54,7 @@ static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 
 static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 {
-	snd_rawmidi_hw_t *hw = rmidi->private;
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	long flags;
 
 	if ((flags = fcntl(hw->fd, F_GETFL)) < 0) {
@@ -74,7 +74,7 @@ static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 
 static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 {
-	snd_rawmidi_hw_t *hw = rmidi->private;
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	info->stream = snd_enum_to_int(rmidi->stream);
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_INFO, info) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_INFO failed");
@@ -85,7 +85,7 @@ static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 
 static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
 {
-	snd_rawmidi_hw_t *hw = rmidi->private;
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	params->stream = snd_enum_to_int(rmidi->stream);
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_PARAMS, params) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_PARAMS failed");
@@ -96,7 +96,7 @@ static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * pa
 
 static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
-	snd_rawmidi_hw_t *hw = rmidi->private;
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	status->stream = snd_enum_to_int(rmidi->stream);
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_STATUS, status) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_STATUS failed");
@@ -107,7 +107,7 @@ static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * st
 
 static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_hw_t *hw = rmidi->private;
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	int str = snd_enum_to_int(rmidi->stream);
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DROP, &str) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_DROP failed");
@@ -118,7 +118,7 @@ static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi)
 
 static int snd_rawmidi_hw_drain(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_hw_t *hw = rmidi->private;
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	int str = snd_enum_to_int(rmidi->stream);
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DRAIN, &str) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_DRAIN failed");
@@ -129,7 +129,7 @@ static int snd_rawmidi_hw_drain(snd_rawmidi_t *rmidi)
 
 static ssize_t snd_rawmidi_hw_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
 {
-	snd_rawmidi_hw_t *hw = rmidi->private;
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	ssize_t result;
 	result = write(hw->fd, buffer, size);
 	if (result < 0)
@@ -139,7 +139,7 @@ static ssize_t snd_rawmidi_hw_write(snd_rawmidi_t *rmidi, const void *buffer, si
 
 static ssize_t snd_rawmidi_hw_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
 {
-	snd_rawmidi_hw_t *hw = rmidi->private;
+	snd_rawmidi_hw_t *hw = rmidi->private_data;
 	ssize_t result;
 	result = read(hw->fd, buffer, size);
 	if (result < 0)
@@ -161,7 +161,7 @@ snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
 
 
 int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-			char *name, int card, int device, int subdevice,
+			const char *name, int card, int device, int subdevice,
 			int mode)
 {
 	int fd, ver, ret;
@@ -266,7 +266,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		rmidi->mode = mode;
 		rmidi->poll_fd = fd;
 		rmidi->ops = &snd_rawmidi_hw_ops;
-		rmidi->private = hw;
+		rmidi->private_data = hw;
 		hw->open++;
 		*inputp = rmidi;
 	}
@@ -281,7 +281,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		rmidi->mode = mode;
 		rmidi->poll_fd = fd;
 		rmidi->ops = &snd_rawmidi_hw_ops;
-		rmidi->private = hw;
+		rmidi->private_data = hw;
 		hw->open++;
 		*outputp = rmidi;
 	}
@@ -301,11 +301,11 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 int _snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			 char *name, snd_config_t *conf, int mode)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	long card = -1, device = 0, subdevice = -1;
 	const char *str;
 	int err;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

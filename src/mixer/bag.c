@@ -1,6 +1,5 @@
 /*
- *  Control Interface - highlevel API - helem bag operations
- *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Bag of pointers
  *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *
@@ -20,61 +19,54 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#define __USE_GNU
-#include <search.h>
 #include "mixer_local.h"
 
-int snd_hctl_compare_fast(const snd_hctl_elem_t *c1,
-			  const snd_hctl_elem_t *c2);
-
-static void _free(void *ptr ATTRIBUTE_UNUSED) { };
-
-int snd_hctl_bag_destroy(snd_hctl_bag_t *bag)
+int bag_new(bag_t **bag)
 {
-	assert(bag != NULL);
-	tdestroy(bag->root, _free);
-	bag->root = NULL;
-	return 0;
-}
-
-int snd_hctl_bag_add(snd_hctl_bag_t *bag, snd_hctl_elem_t *helem)
-{
-	void *res;
-	assert(bag != NULL && helem != NULL);
-	res = tsearch(helem, &bag->root, (__compar_fn_t)snd_hctl_compare_fast);
-	if (res == NULL)
+	bag_t *b = malloc(sizeof(*b));
+	if (!b)
 		return -ENOMEM;
-	if ((snd_hctl_elem_t *)res == helem)
-		return -EALREADY;
+	INIT_LIST_HEAD(b);
+	*bag = b;
 	return 0;
 }
 
-int snd_hctl_bag_del(snd_hctl_bag_t *bag, snd_hctl_elem_t *helem)
+void bag_free(bag_t *bag)
 {
-	assert(bag != NULL && helem != NULL);
-	if (tdelete(helem, &bag->root, (__compar_fn_t)snd_hctl_compare_fast) == NULL)
-		return -ENOENT;
+	assert(list_empty(bag));
+	free(bag);
+}
+
+int bag_empty(bag_t *bag)
+{
+	return list_empty(bag);
+}
+
+int bag_add(bag_t *bag, void *ptr)
+{
+	bag1_t *b = malloc(sizeof(*b));
+	if (!b)
+		return -ENOMEM;
+	b->ptr = ptr;
+	list_add_tail(&b->list, bag);
 	return 0;
 }
 
-snd_hctl_elem_t *snd_hctl_bag_find(snd_hctl_bag_t *bag, snd_ctl_elem_id_t *id)
+int bag_del(bag_t *bag, void *ptr)
 {
-	void *res;
-	assert(bag != NULL && id != NULL);
-	if (bag->root == NULL)
-		return NULL;
-	res = tfind(id, &bag->root, (__compar_fn_t)snd_hctl_compare_fast);
-	return res == NULL ? NULL : *(snd_hctl_elem_t **)res;
+	struct list_head *pos, *next;
+	list_for_each(pos, next, bag) {
+		bag1_t *b = list_entry(pos, bag1_t, list);
+		if (b->ptr == ptr) {
+			list_del(&b->list);
+			return 0;
+		}
+	}
+	return -ENOENT;
 }
 
-int snd_hctl_bag_empty(snd_hctl_bag_t *bag)
+void bag_del_all(bag_t *bag)
 {
-	assert(bag != NULL);
-	return bag->root == NULL;
+	while (!list_empty(bag))
+		list_del(bag->next);
 }

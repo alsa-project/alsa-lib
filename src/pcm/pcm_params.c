@@ -1015,7 +1015,7 @@ struct _snd_pcm_hw_strategy {
 			   unsigned int max_badness,
 			   snd_pcm_t *pcm,
 			   const snd_pcm_hw_strategy_t *strategy);
-	void *private;
+	void *private_data;
 	void (*free)(snd_pcm_hw_strategy_t *strategy);
 };
 
@@ -1034,7 +1034,7 @@ struct _snd_pcm_hw_strategy_simple {
 				    unsigned int param,
 				    snd_pcm_t *pcm,
 				    const snd_pcm_hw_strategy_simple_t *par);
-	void *private;
+	void *private_data;
 	void (*free)(snd_pcm_hw_strategy_simple_t *strategy);
 };
 
@@ -1210,7 +1210,7 @@ int snd_pcm_hw_params_strategy(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 
 void snd_pcm_hw_strategy_simple_free(snd_pcm_hw_strategy_t *strategy)
 {
-	snd_pcm_hw_strategy_simple_t *pars = strategy->private;
+	snd_pcm_hw_strategy_simple_t *pars = strategy->private_data;
 	int k;
 	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; ++k) {
 		if (pars[k].valid && pars[k].free)
@@ -1225,7 +1225,7 @@ int snd_pcm_hw_strategy_simple_choose_param(const snd_pcm_hw_params_t *params,
 {
 	snd_pcm_hw_param_t var;
 	int best_var = -1;
-	const snd_pcm_hw_strategy_simple_t *pars = strategy->private;
+	const snd_pcm_hw_strategy_simple_t *pars = strategy->private_data;
 	unsigned int min_choices = UINT_MAX;
 	unsigned int min_order = UINT_MAX;
 	for (var = 0; var <= SND_PCM_HW_PARAM_LAST; ++var) {
@@ -1254,7 +1254,7 @@ int snd_pcm_hw_strategy_simple_next_value(snd_pcm_hw_params_t *params,
 					  snd_pcm_t *pcm,
 					  const snd_pcm_hw_strategy_t *strategy)
 {
-	const snd_pcm_hw_strategy_simple_t *pars = strategy->private;
+	const snd_pcm_hw_strategy_simple_t *pars = strategy->private_data;
 	assert(pars[var].valid);
 	return pars[var].next_value(params, var, value, dir, pcm, &pars[var]);
 }
@@ -1267,7 +1267,7 @@ int snd_pcm_hw_strategy_simple_min_badness(const snd_pcm_hw_params_t *params,
 {
 	snd_pcm_hw_param_t var;
 	unsigned int badness = 0;
-	const snd_pcm_hw_strategy_simple_t *pars = strategy->private;
+	const snd_pcm_hw_strategy_simple_t *pars = strategy->private_data;
 	for (var = 0; var <= SND_PCM_HW_PARAM_LAST; ++var) {
 		unsigned int b;
 		if (!pars[var].valid)
@@ -1283,7 +1283,7 @@ int snd_pcm_hw_strategy_simple_min_badness(const snd_pcm_hw_params_t *params,
 
 void snd_pcm_hw_strategy_simple_near_free(snd_pcm_hw_strategy_simple_t *par)
 {
-	snd_pcm_hw_strategy_simple_near_t *p = par->private;
+	snd_pcm_hw_strategy_simple_near_t *p = par->private_data;
 	free(p);
 }
 
@@ -1292,7 +1292,7 @@ unsigned int snd_pcm_hw_strategy_simple_near_min_badness(const snd_pcm_hw_params
 						      snd_pcm_t *pcm,
 						      const snd_pcm_hw_strategy_simple_t *par)
 {
-	const snd_pcm_hw_strategy_simple_near_t *p = par->private;
+	const snd_pcm_hw_strategy_simple_near_t *p = par->private_data;
 	snd_pcm_hw_params_t params1 = *params;
 	int value = snd_pcm_hw_param_set_near(pcm, &params1, var, p->best, 0);
 	int diff;
@@ -1309,7 +1309,7 @@ int snd_pcm_hw_strategy_simple_near_next_value(snd_pcm_hw_params_t *params,
 					       snd_pcm_t *pcm,
 					       const snd_pcm_hw_strategy_simple_t *par)
 {
-	const snd_pcm_hw_strategy_simple_near_t *p = par->private;
+	const snd_pcm_hw_strategy_simple_near_t *p = par->private_data;
 	if (value < 0) {
 		*dir = 0;
 		return snd_pcm_hw_param_set_near(pcm, params, var, p->best, dir);
@@ -1319,7 +1319,7 @@ int snd_pcm_hw_strategy_simple_near_next_value(snd_pcm_hw_params_t *params,
 
 void snd_pcm_hw_strategy_simple_choices_free(snd_pcm_hw_strategy_simple_t *par)
 {
-	snd_pcm_hw_strategy_simple_choices_t *p = par->private;
+	snd_pcm_hw_strategy_simple_choices_t *p = par->private_data;
 //	free(p->choices);
 	free(p);
 }
@@ -1329,7 +1329,7 @@ unsigned int snd_pcm_hw_strategy_simple_choices_min_badness(const snd_pcm_hw_par
 							 snd_pcm_t *pcm,
 							 const snd_pcm_hw_strategy_simple_t *par)
 {
-	const snd_pcm_hw_strategy_simple_choices_t *p = par->private;
+	const snd_pcm_hw_strategy_simple_choices_t *p = par->private_data;
 	unsigned int k;
 	for (k = 0; k < p->count; ++k) {
 		if (snd_pcm_hw_param_set(pcm, (snd_pcm_hw_params_t *) params, SND_TEST, var, p->choices[k].value, 0))
@@ -1345,7 +1345,7 @@ int snd_pcm_hw_strategy_simple_choices_next_value(snd_pcm_hw_params_t *params,
 						  snd_pcm_t *pcm,
 						  const snd_pcm_hw_strategy_simple_t *par)
 {
-	const snd_pcm_hw_strategy_simple_choices_t *p = par->private;
+	const snd_pcm_hw_strategy_simple_choices_t *p = par->private_data;
 	unsigned int k = 0;
 	if (value >= 0) {
 		for (; k < p->count; ++k) {
@@ -1393,7 +1393,7 @@ int snd_pcm_hw_strategy_simple(snd_pcm_hw_strategy_t **strategyp,
 	s->min_badness = snd_pcm_hw_strategy_simple_min_badness;
 	s->badness_min = badness_min;
 	s->badness_max = badness_max;
-	s->private = data;
+	s->private_data = data;
 	s->free = snd_pcm_hw_strategy_simple_free;
 	*strategyp = s;
 	return 0;
@@ -1405,7 +1405,7 @@ int snd_pcm_hw_strategy_simple_near(snd_pcm_hw_strategy_t *strategy,
 				 unsigned int best,
 				 unsigned int mul)
 {
-	snd_pcm_hw_strategy_simple_t *s = strategy->private;
+	snd_pcm_hw_strategy_simple_t *s = strategy->private_data;
 	snd_pcm_hw_strategy_simple_near_t *data;
 	assert(strategy);
 	assert(var <= SND_PCM_HW_PARAM_LAST);
@@ -1420,7 +1420,7 @@ int snd_pcm_hw_strategy_simple_near(snd_pcm_hw_strategy_t *strategy,
 	s->valid = 1;
 	s->next_value = snd_pcm_hw_strategy_simple_near_next_value;
 	s->min_badness = snd_pcm_hw_strategy_simple_near_min_badness;
-	s->private = data;
+	s->private_data = data;
 	s->free = snd_pcm_hw_strategy_simple_near_free;
 	return 0;
 }
@@ -1431,7 +1431,7 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy,
 				    unsigned int count,
 				    snd_pcm_hw_strategy_simple_choices_list_t *choices)
 {
-	snd_pcm_hw_strategy_simple_t *s = strategy->private;
+	snd_pcm_hw_strategy_simple_t *s = strategy->private_data;
 	snd_pcm_hw_strategy_simple_choices_t *data;
 	assert(strategy);
 	assert(var <= SND_PCM_HW_PARAM_LAST);
@@ -1446,7 +1446,7 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy,
 	s->order = order;
 	s->next_value = snd_pcm_hw_strategy_simple_choices_next_value;
 	s->min_badness = snd_pcm_hw_strategy_simple_choices_min_badness;
-	s->private = data;
+	s->private_data = data;
 	s->free = snd_pcm_hw_strategy_simple_choices_free;
 	return 0;
 }
@@ -1518,7 +1518,7 @@ struct _snd_pcm_hw_rule {
 	int var;
 	snd_pcm_hw_rule_func_t func;
 	int deps[4];
-	void *private;
+	void *private_data;
 };
 
 int snd_pcm_hw_rule_mul(snd_pcm_hw_params_t *params,
@@ -1545,7 +1545,7 @@ int snd_pcm_hw_rule_muldivk(snd_pcm_hw_params_t *params,
 	snd_interval_t t;
 	snd_interval_muldivk(hw_param_interval_c(params, rule->deps[0]),
 			 hw_param_interval_c(params, rule->deps[1]),
-			 (unsigned long) rule->private, &t);
+			 (unsigned long) rule->private_data, &t);
 	return snd_interval_refine(hw_param_interval(params, rule->var), &t);
 }
 
@@ -1554,7 +1554,7 @@ int snd_pcm_hw_rule_mulkdiv(snd_pcm_hw_params_t *params,
 {
 	snd_interval_t t;
 	snd_interval_mulkdiv(hw_param_interval_c(params, rule->deps[0]),
-			 (unsigned long) rule->private,
+			 (unsigned long) rule->private_data,
 			 hw_param_interval_c(params, rule->deps[1]), &t);
 	return snd_interval_refine(hw_param_interval(params, rule->var), &t);
 }
@@ -1624,140 +1624,140 @@ static snd_pcm_hw_rule_t refine_rules[] = {
 		var: SND_PCM_HW_PARAM_FORMAT,
 		func: snd_pcm_hw_rule_format,
 		deps: { SND_PCM_HW_PARAM_SAMPLE_BITS, -1 },
-		private: 0,
+		private_data: 0,
 	},
 	{
 		var: SND_PCM_HW_PARAM_SAMPLE_BITS, 
 		func: snd_pcm_hw_rule_sample_bits,
 		deps: { SND_PCM_HW_PARAM_FORMAT, 
 			SND_PCM_HW_PARAM_SAMPLE_BITS, -1 },
-		private: 0,
+		private_data: 0,
 	},
 	{
 		var: SND_PCM_HW_PARAM_SAMPLE_BITS, 
 		func: snd_pcm_hw_rule_div,
 		deps: { SND_PCM_HW_PARAM_FRAME_BITS,
 			SND_PCM_HW_PARAM_CHANNELS, -1 },
-		private: 0,
+		private_data: 0,
 	},
 	{
 		var: SND_PCM_HW_PARAM_FRAME_BITS, 
 		func: snd_pcm_hw_rule_mul,
 		deps: { SND_PCM_HW_PARAM_SAMPLE_BITS,
 			SND_PCM_HW_PARAM_CHANNELS, -1 },
-		private: 0,
+		private_data: 0,
 	},
 	{
 		var: SND_PCM_HW_PARAM_FRAME_BITS, 
 		func: snd_pcm_hw_rule_mulkdiv,
 		deps: { SND_PCM_HW_PARAM_PERIOD_BYTES,
 			SND_PCM_HW_PARAM_PERIOD_SIZE, -1 },
-		private: (void*) 8,
+		private_data: (void*) 8,
 	},
 	{
 		var: SND_PCM_HW_PARAM_FRAME_BITS, 
 		func: snd_pcm_hw_rule_mulkdiv,
 		deps: { SND_PCM_HW_PARAM_BUFFER_BYTES,
 			SND_PCM_HW_PARAM_BUFFER_SIZE, -1 },
-		private: (void*) 8,
+		private_data: (void*) 8,
 	},
 	{
 		var: SND_PCM_HW_PARAM_CHANNELS, 
 		func: snd_pcm_hw_rule_div,
 		deps: { SND_PCM_HW_PARAM_FRAME_BITS,
 			SND_PCM_HW_PARAM_SAMPLE_BITS, -1 },
-		private: 0,
+		private_data: 0,
 	},
 	{
 		var: SND_PCM_HW_PARAM_RATE, 
 		func: snd_pcm_hw_rule_mulkdiv,
 		deps: { SND_PCM_HW_PARAM_PERIOD_SIZE,
 			SND_PCM_HW_PARAM_PERIOD_TIME, -1 },
-		private: (void*) 1000000,
+		private_data: (void*) 1000000,
 	},
 	{
 		var: SND_PCM_HW_PARAM_RATE, 
 		func: snd_pcm_hw_rule_mulkdiv,
 		deps: { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_BUFFER_TIME, -1 },
-		private: (void*) 1000000,
+		private_data: (void*) 1000000,
 	},
 	{
 		var: SND_PCM_HW_PARAM_PERIODS, 
 		func: snd_pcm_hw_rule_div,
 		deps: { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_PERIOD_SIZE, -1 },
-		private: 0,
+		private_data: 0,
 	},
 	{
 		var: SND_PCM_HW_PARAM_PERIOD_SIZE, 
 		func: snd_pcm_hw_rule_div,
 		deps: { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_PERIODS, -1 },
-		private: 0,
+		private_data: 0,
 	},
 	{
 		var: SND_PCM_HW_PARAM_PERIOD_SIZE, 
 		func: snd_pcm_hw_rule_mulkdiv,
 		deps: { SND_PCM_HW_PARAM_PERIOD_BYTES,
 			SND_PCM_HW_PARAM_FRAME_BITS, -1 },
-		private: (void*) 8,
+		private_data: (void*) 8,
 	},
 	{
 		var: SND_PCM_HW_PARAM_PERIOD_SIZE, 
 		func: snd_pcm_hw_rule_muldivk,
 		deps: { SND_PCM_HW_PARAM_PERIOD_TIME,
 			SND_PCM_HW_PARAM_RATE, -1 },
-		private: (void*) 1000000,
+		private_data: (void*) 1000000,
 	},
 	{
 		var: SND_PCM_HW_PARAM_BUFFER_SIZE, 
 		func: snd_pcm_hw_rule_mul,
 		deps: { SND_PCM_HW_PARAM_PERIOD_SIZE,
 			SND_PCM_HW_PARAM_PERIODS, -1 },
-		private: 0,
+		private_data: 0,
 	},
 	{
 		var: SND_PCM_HW_PARAM_BUFFER_SIZE, 
 		func: snd_pcm_hw_rule_mulkdiv,
 		deps: { SND_PCM_HW_PARAM_BUFFER_BYTES,
 			SND_PCM_HW_PARAM_FRAME_BITS, -1 },
-		private: (void*) 8,
+		private_data: (void*) 8,
 	},
 	{
 		var: SND_PCM_HW_PARAM_BUFFER_SIZE, 
 		func: snd_pcm_hw_rule_muldivk,
 		deps: { SND_PCM_HW_PARAM_BUFFER_TIME,
 			SND_PCM_HW_PARAM_RATE, -1 },
-		private: (void*) 1000000,
+		private_data: (void*) 1000000,
 	},
 	{
 		var: SND_PCM_HW_PARAM_PERIOD_BYTES, 
 		func: snd_pcm_hw_rule_muldivk,
 		deps: { SND_PCM_HW_PARAM_PERIOD_SIZE,
 			SND_PCM_HW_PARAM_FRAME_BITS, -1 },
-		private: (void*) 8,
+		private_data: (void*) 8,
 	},
 	{
 		var: SND_PCM_HW_PARAM_BUFFER_BYTES, 
 		func: snd_pcm_hw_rule_muldivk,
 		deps: { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_FRAME_BITS, -1 },
-		private: (void*) 8,
+		private_data: (void*) 8,
 	},
 	{
 		var: SND_PCM_HW_PARAM_PERIOD_TIME, 
 		func: snd_pcm_hw_rule_mulkdiv,
 		deps: { SND_PCM_HW_PARAM_PERIOD_SIZE,
 			SND_PCM_HW_PARAM_RATE, -1 },
-		private: (void*) 1000000,
+		private_data: (void*) 1000000,
 	},
 	{
 		var: SND_PCM_HW_PARAM_BUFFER_TIME, 
 		func: snd_pcm_hw_rule_mulkdiv,
 		deps: { SND_PCM_HW_PARAM_BUFFER_SIZE,
 			SND_PCM_HW_PARAM_RATE, -1 },
-		private: (void*) 1000000,
+		private_data: (void*) 1000000,
 	},
 };
 

@@ -45,7 +45,7 @@ extern "C" {
 #endif
 
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
-		     char *name, int mode);
+		     const char *name, int mode);
 int snd_rawmidi_close(snd_rawmidi_t *rmidi);
 int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi);
 int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock);
@@ -56,6 +56,8 @@ int snd_rawmidi_drain(snd_rawmidi_t *rmidi);
 int snd_rawmidi_drop(snd_rawmidi_t *rmidi);
 ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size);
 ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size);
+const char *snd_rawmidi_name(snd_rawmidi_t *rmidi);
+snd_rawmidi_type_t snd_rawmidi_type(snd_rawmidi_t *rmidi);
 
 int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *params);
 

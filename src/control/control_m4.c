@@ -561,208 +561,183 @@ void snd_ctl_elem_info_set_index(snd_ctl_elem_info_t *obj, unsigned int val)
 	obj->id.index = val;
 }
 
-size_t snd_ctl_elem_sizeof()
+size_t snd_ctl_elem_value_sizeof()
 {
-	return sizeof(snd_ctl_elem_t);
+	return sizeof(snd_ctl_elem_value_t);
 }
 
-int snd_ctl_elem_malloc(snd_ctl_elem_t **ptr)
+int snd_ctl_elem_value_malloc(snd_ctl_elem_value_t **ptr)
 {
 	assert(ptr);
-	*ptr = calloc(1, sizeof(snd_ctl_elem_t));
+	*ptr = calloc(1, sizeof(snd_ctl_elem_value_t));
 	if (!*ptr)
 		return -ENOMEM;
 	return 0;
 }
 
-void snd_ctl_elem_free(snd_ctl_elem_t *obj)
+void snd_ctl_elem_value_free(snd_ctl_elem_value_t *obj)
 {
 	free(obj);
 }
 
-void snd_ctl_elem_copy(snd_ctl_elem_t *dst, const snd_ctl_elem_t *src)
+void snd_ctl_elem_value_copy(snd_ctl_elem_value_t *dst, const snd_ctl_elem_value_t *src)
 {
 	assert(dst && src);
 	*dst = *src;
 }
 
-void snd_ctl_elem_get_id(const snd_ctl_elem_t *obj, snd_ctl_elem_id_t *ptr)
+void snd_ctl_elem_value_get_id(const snd_ctl_elem_value_t *obj, snd_ctl_elem_id_t *ptr)
 {
 	assert(obj && ptr);
 	*ptr = obj->id;
 }
 
-unsigned int snd_ctl_elem_get_numid(const snd_ctl_elem_t *obj)
+unsigned int snd_ctl_elem_value_get_numid(const snd_ctl_elem_value_t *obj)
 {
 	assert(obj);
 	return obj->id.numid;
 }
 
-snd_ctl_elem_iface_t snd_ctl_elem_get_interface(const snd_ctl_elem_t *obj)
+snd_ctl_elem_iface_t snd_ctl_elem_value_get_interface(const snd_ctl_elem_value_t *obj)
 {
 	assert(obj);
 	return snd_int_to_enum(obj->id.iface);
 }
 
-unsigned int snd_ctl_elem_get_device(const snd_ctl_elem_t *obj)
+unsigned int snd_ctl_elem_value_get_device(const snd_ctl_elem_value_t *obj)
 {
 	assert(obj);
 	return obj->id.device;
 }
 
-unsigned int snd_ctl_elem_get_subdevice(const snd_ctl_elem_t *obj)
+unsigned int snd_ctl_elem_value_get_subdevice(const snd_ctl_elem_value_t *obj)
 {
 	assert(obj);
 	return obj->id.subdevice;
 }
 
-const char *snd_ctl_elem_get_name(const snd_ctl_elem_t *obj)
+const char *snd_ctl_elem_value_get_name(const snd_ctl_elem_value_t *obj)
 {
 	assert(obj);
 	return obj->id.name;
 }
 
-unsigned int snd_ctl_elem_get_index(const snd_ctl_elem_t *obj)
+unsigned int snd_ctl_elem_value_get_index(const snd_ctl_elem_value_t *obj)
 {
 	assert(obj);
 	return obj->id.index;
 }
 
-void snd_ctl_elem_set_id(snd_ctl_elem_t *obj, const snd_ctl_elem_id_t *ptr)
+void snd_ctl_elem_value_set_id(snd_ctl_elem_value_t *obj, const snd_ctl_elem_id_t *ptr)
 {
 	assert(obj && ptr);
 	obj->id = *ptr;
 }
 
-void snd_ctl_elem_set_numid(snd_ctl_elem_t *obj, unsigned int val)
+void snd_ctl_elem_value_set_numid(snd_ctl_elem_value_t *obj, unsigned int val)
 {
 	assert(obj);
 	obj->id.numid = val;
 }
 
-void snd_ctl_elem_set_interface(snd_ctl_elem_t *obj, snd_ctl_elem_iface_t val)
+void snd_ctl_elem_value_set_interface(snd_ctl_elem_value_t *obj, snd_ctl_elem_iface_t val)
 {
 	assert(obj);
 	obj->id.iface = snd_enum_to_int(val);
 }
 
-void snd_ctl_elem_set_device(snd_ctl_elem_t *obj, unsigned int val)
+void snd_ctl_elem_value_set_device(snd_ctl_elem_value_t *obj, unsigned int val)
 {
 	assert(obj);
 	obj->id.device = val;
 }
 
-void snd_ctl_elem_set_subdevice(snd_ctl_elem_t *obj, unsigned int val)
+void snd_ctl_elem_value_set_subdevice(snd_ctl_elem_value_t *obj, unsigned int val)
 {
 	assert(obj);
 	obj->id.subdevice = val;
 }
 
-void snd_ctl_elem_set_name(snd_ctl_elem_t *obj, const char *val)
+void snd_ctl_elem_value_set_name(snd_ctl_elem_value_t *obj, const char *val)
 {
 	assert(obj);
 	strncpy(obj->id.name, val, sizeof(obj->id.name));
 }
 
-void snd_ctl_elem_set_index(snd_ctl_elem_t *obj, unsigned int val)
+void snd_ctl_elem_value_set_index(snd_ctl_elem_value_t *obj, unsigned int val)
 {
 	assert(obj);
 	obj->id.index = val;
 }
 
-long snd_ctl_elem_get_boolean(const snd_ctl_elem_t *obj, unsigned int idx)
+long snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj, unsigned int idx)
 {
 	assert(obj);
 	assert(idx < sizeof(obj->value.integer.value) / sizeof(obj->value.integer.value[0]));
 	return obj->value.integer.value[idx];
 }
 
-long snd_ctl_elem_get_integer(const snd_ctl_elem_t *obj, unsigned int idx)
+long snd_ctl_elem_value_get_integer(const snd_ctl_elem_value_t *obj, unsigned int idx)
 {
 	assert(obj);
 	assert(idx < sizeof(obj->value.integer.value) / sizeof(obj->value.integer.value[0]));
 	return obj->value.integer.value[idx];
 }
 
-unsigned int snd_ctl_elem_get_enumerated(const snd_ctl_elem_t *obj, unsigned int idx)
+unsigned int snd_ctl_elem_value_get_enumerated(const snd_ctl_elem_value_t *obj, unsigned int idx)
 {
 	assert(obj);
 	assert(idx < sizeof(obj->value.enumerated.item) / sizeof(obj->value.enumerated.item[0]));
 	return obj->value.enumerated.item[idx];
 }
 
-unsigned char snd_ctl_elem_get_byte(const snd_ctl_elem_t *obj, unsigned int idx)
+unsigned char snd_ctl_elem_value_get_byte(const snd_ctl_elem_value_t *obj, unsigned int idx)
 {
 	assert(obj);
 	assert(idx < sizeof(obj->value.bytes.data));
 	return obj->value.bytes.data[idx];
 }
 
-void snd_ctl_elem_set_boolean(snd_ctl_elem_t *obj, unsigned int idx, long val)
+void snd_ctl_elem_value_set_boolean(snd_ctl_elem_value_t *obj, unsigned int idx, long val)
 {
 	assert(obj);
 	obj->value.integer.value[idx] = val;
 }
 
-void snd_ctl_elem_set_integer(snd_ctl_elem_t *obj, unsigned int idx, long val)
+void snd_ctl_elem_value_set_integer(snd_ctl_elem_value_t *obj, unsigned int idx, long val)
 {
 	assert(obj);
 	obj->value.integer.value[idx] = val;
 }
 
-void snd_ctl_elem_set_enumerated(snd_ctl_elem_t *obj, unsigned int idx, unsigned int val)
+void snd_ctl_elem_value_set_enumerated(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned int val)
 {
 	assert(obj);
 	obj->value.enumerated.item[idx] = val;
 }
 
-void snd_ctl_elem_set_byte(snd_ctl_elem_t *obj, unsigned int idx, unsigned char val)
+void snd_ctl_elem_value_set_byte(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned char val)
 {
 	assert(obj);
 	obj->value.bytes.data[idx] = val;
 }
 
-const void * snd_ctl_elem_get_bytes(const snd_ctl_elem_t *obj)
+const void * snd_ctl_elem_value_get_bytes(const snd_ctl_elem_value_t *obj)
 {
 	assert(obj);
 	return obj->value.bytes.data;
 }
 
-void snd_ctl_elem_get_iec958(const snd_ctl_elem_t *obj, snd_aes_iec958_t *ptr)
+void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec958_t *ptr)
 {
 	assert(obj && ptr);
 	*ptr = obj->value.iec958;
 }
 
-void snd_ctl_elem_set_iec958(snd_ctl_elem_t *obj, const snd_aes_iec958_t *ptr)
+void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec958_t *ptr)
 {
 	assert(obj && ptr);
 	obj->value.iec958 = *ptr;
-}
-
-size_t snd_hctl_elem_sizeof()
-{
-	return sizeof(snd_hctl_elem_t);
-}
-
-int snd_hctl_elem_malloc(snd_hctl_elem_t **ptr)
-{
-	assert(ptr);
-	*ptr = calloc(1, sizeof(snd_hctl_elem_t));
-	if (!*ptr)
-		return -ENOMEM;
-	return 0;
-}
-
-void snd_hctl_elem_free(snd_hctl_elem_t *obj)
-{
-	free(obj);
-}
-
-void snd_hctl_elem_copy(snd_hctl_elem_t *dst, const snd_hctl_elem_t *src)
-{
-	assert(dst && src);
-	*dst = *src;
 }
 
 void snd_hctl_elem_get_id(const snd_hctl_elem_t *obj, snd_ctl_elem_id_t *ptr)

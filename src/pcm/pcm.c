@@ -32,6 +32,12 @@
 #include "pcm_local.h"
 #include "list.h"
 
+const char *snd_pcm_name(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	return pcm->name;
+}
+
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm)
 {
 	assert(pcm);
@@ -541,7 +547,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 	const char *str;
 	int err;
 	snd_config_t *pcm_conf, *conf, *type_conf;
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open = NULL;
 	int (*open_func)(snd_pcm_t **pcmp, const char *name, snd_config_t *conf, 
 			 snd_pcm_stream_t stream, int mode);
@@ -569,25 +575,25 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 			return snd_pcm_plug_open_hw(pcmp, name, card, dev, -1, stream, mode);
 		err = sscanf(name, "shm:%256[^,],%256[^,]", socket, sname);
 		if (err == 2)
-			return snd_pcm_shm_open(pcmp, NULL, socket, sname, stream, mode);
+			return snd_pcm_shm_open(pcmp, name, socket, sname, stream, mode);
 		err = sscanf(name, "file:%256[^,],%16[^,]", file, format);
 		if (err == 2) {
 			snd_pcm_t *slave;
-			err = snd_pcm_null_open(&slave, NULL, stream, mode);
+			err = snd_pcm_null_open(&slave, name, stream, mode);
 			if (err < 0)
 				return err;
-			return snd_pcm_file_open(pcmp, NULL, file, -1, format, slave, 1);
+			return snd_pcm_file_open(pcmp, name, file, -1, format, slave, 1);
 		}
 		err = sscanf(name, "file:%256[^,]", file);
 		if (err == 1) {
 			snd_pcm_t *slave;
-			err = snd_pcm_null_open(&slave, NULL, stream, mode);
+			err = snd_pcm_null_open(&slave, name, stream, mode);
 			if (err < 0)
 				return err;
-			return snd_pcm_file_open(pcmp, NULL, file, -1, "raw", slave, 1);
+			return snd_pcm_file_open(pcmp, name, file, -1, "raw", slave, 1);
 		}
 		if (strcmp(name, "null") == 0)
-			return snd_pcm_null_open(pcmp, NULL, stream, mode);
+			return snd_pcm_null_open(pcmp, name, stream, mode);
 		ERR("Unknown PCM %s", name);
 		return -ENOENT;
 	}
@@ -610,7 +616,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 		ERR("Unknown PCM type %s", str);
 		return err;
 	}
-	snd_config_foreach(i, type_conf) {
+	snd_config_for_each(i, next, type_conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
@@ -830,7 +836,8 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 		      unsigned int samples, snd_pcm_format_t format)
 {
 	/* FIXME: sub byte resolution and odd dst_offset */
-	char *src, *dst;
+	const char *src;
+	char *dst;
 	int width;
 	int src_step, dst_step;
 	if (!src_area->addr)

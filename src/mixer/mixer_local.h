@@ -20,62 +20,94 @@
  *
  */
 
-//#include "../control/control_local.h"
 #include "list.h"
 #include "local.h"
 
-typedef struct _snd_hctl_bag {
-	void *root;
-	void *private;
-} snd_hctl_bag_t;
+typedef struct _bag1 {
+	void *ptr;
+	struct list_head list;
+} bag1_t;
 
-int snd_hctl_bag_destroy(snd_hctl_bag_t *bag);
-int snd_hctl_bag_add(snd_hctl_bag_t *bag, snd_hctl_elem_t *helem);
-int snd_hctl_bag_del(snd_hctl_bag_t *bag, snd_hctl_elem_t *helem);
-snd_hctl_elem_t *snd_hctl_bag_find(snd_hctl_bag_t *bag, snd_ctl_elem_id_t *id);
-int snd_hctl_bag_empty(snd_hctl_bag_t *bag);
+typedef struct list_head bag_t;
+
+int bag_new(bag_t **bag);
+void bag_free(bag_t *bag);
+int bag_add(bag_t *bag, void *ptr);
+int bag_del(bag_t *bag, void *ptr);
+int bag_empty(bag_t *bag);
+
+typedef struct list_head *bag_iterator_t;
+
+#define bag_iterator_entry(i) (list_entry((i), bag1_t, list)->ptr)
+#define bag_for_each(pos, next, bag) list_for_each(pos, next, bag)
+
+struct _snd_mixer_class {
+	struct list_head list;
+	snd_mixer_t *mixer;
+	int (*event)(snd_mixer_class_t *class, snd_ctl_event_type_t event,
+		     snd_hctl_elem_t *helem, snd_mixer_elem_t *melem);
+	void *private_data;		
+	void (*private_free)(snd_mixer_class_t *class);
+};
 
 struct _snd_mixer_elem {
 	snd_mixer_elem_type_t type;
 	struct list_head list;		/* links for list of all elems */
-	void *private;
+	snd_mixer_class_t *class;
+	void *private_data;
 	void (*private_free)(snd_mixer_elem_t *elem);
 	snd_mixer_elem_callback_t callback;
 	void *callback_private;
-	snd_mixer_t *mixer;
+	bag_t helems;
 };
 
 struct _snd_mixer {
-	snd_hctl_t *hctl;
-	struct list_head elems;	/* list of all elemss */
+	struct list_head slaves;	/* list of all slaves */
+	struct list_head classes;	/* list of all elem classes */
+	struct list_head elems;		/* list of all elems */
+	
 	unsigned int count;
 	snd_mixer_callback_t callback;
 	void *callback_private;
 };
-
-#define SND_MIXER_SCTCAP_VOLUME         (1<<0)
-#define SND_MIXER_SCTCAP_JOIN_VOLUME	(1<<1)
-#define SND_MIXER_SCTCAP_MUTE           (1<<2)
-#define SND_MIXER_SCTCAP_JOIN_MUTE   	(1<<3)
-#define SND_MIXER_SCTCAP_CAPTURE        (1<<4)
-#define SND_MIXER_SCTCAP_JOIN_CAPTURE	(1<<5)
-#define SND_MIXER_SCTCAP_EXCL_CAPTURE   (1<<6)
 
 struct _snd_mixer_selem_id {
 	unsigned char name[60];
 	unsigned int index;
 };
 
-struct _snd_mixer_selem {
-	unsigned int caps;		/* RO: capabilities */
-	unsigned int channels;		/* RO: bitmap of active channels */
+#define CAP_VOLUME		(1<<0)
+#define CAP_JOIN_VOLUME		(1<<1)
+#define CAP_MUTE		(1<<2)
+#define CAP_JOIN_MUTE		(1<<3)
+#define CAP_CAPTURE		(1<<4)
+#define CAP_JOIN_CAPTURE	(1<<5)
+#define CAP_EXCL_CAPTURE	(1<<6)
+
+struct _snd_mixer_selem_info {
+	unsigned int caps;		/* capabilities */
+	unsigned int channels;		/* bitmap of active channels */
+	int capture_group;		/* capture group (for exclusive capture) */
+	long min;			/* minimum value */
+	long max;			/* maximum value */
+};
+
+struct _snd_mixer_selem_value {
 	unsigned int mute;		/* RW: bitmap of muted channels */
 	unsigned int capture;		/* RW: bitmap of capture channels */
-	int capture_group;		/* RO: capture group (for exclusive capture) */
-	long min;			/* RO: minimum value */
-	long max;			/* RO: maximum value */
 	long volume[32];
 };
 
+int snd_mixer_class_register(snd_mixer_class_t *class, snd_mixer_t *mixer);
 int snd_mixer_add_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem);
-void snd_mixer_free(snd_mixer_t *mixer);
+int snd_mixer_remove_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem);
+int snd_mixer_elem_throw_event(snd_mixer_elem_t *elem,
+			       snd_ctl_event_type_t event);
+int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class);
+int snd_mixer_elem_remove(snd_mixer_elem_t *elem);
+int snd_mixer_elem_change(snd_mixer_elem_t *elem);
+int snd_mixer_elem_attach(snd_mixer_elem_t *melem,
+			  snd_hctl_elem_t *helem);
+int snd_mixer_elem_detach(snd_mixer_elem_t *melem,
+			  snd_hctl_elem_t *helem);
+int snd_mixer_elem_empty(snd_mixer_elem_t *melem);

@@ -96,7 +96,7 @@ static snd_pcm_sframes_t snd_pcm_copy_write_areas(snd_pcm_t *pcm,
 						  snd_pcm_uframes_t size,
 						  snd_pcm_uframes_t *slave_sizep)
 {
-	snd_pcm_copy_t *copy = pcm->private;
+	snd_pcm_copy_t *copy = pcm->private_data;
 	snd_pcm_t *slave = copy->plug.slave;
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
@@ -131,7 +131,7 @@ static snd_pcm_sframes_t snd_pcm_copy_read_areas(snd_pcm_t *pcm,
 						 snd_pcm_uframes_t size,
 						 snd_pcm_uframes_t *slave_sizep)
 {
-	snd_pcm_copy_t *copy = pcm->private;
+	snd_pcm_copy_t *copy = pcm->private_data;
 	snd_pcm_t *slave = copy->plug.slave;
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
@@ -161,7 +161,7 @@ static snd_pcm_sframes_t snd_pcm_copy_read_areas(snd_pcm_t *pcm,
 
 static void snd_pcm_copy_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	snd_pcm_copy_t *copy = pcm->private;
+	snd_pcm_copy_t *copy = pcm->private_data;
 	snd_output_printf(out, "Copy conversion PCM\n");
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
@@ -186,7 +186,7 @@ snd_pcm_ops_t snd_pcm_copy_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
-int snd_pcm_copy_open(snd_pcm_t **pcmp, char *name, snd_pcm_t *slave, int close_slave)
+int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_copy_t *copy;
@@ -214,7 +214,7 @@ int snd_pcm_copy_open(snd_pcm_t **pcmp, char *name, snd_pcm_t *slave, int close_
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->fast_op_arg = pcm;
-	pcm->private = copy;
+	pcm->private_data = copy;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = &copy->plug.hw_ptr;
 	pcm->appl_ptr = &copy->plug.appl_ptr;
@@ -223,15 +223,15 @@ int snd_pcm_copy_open(snd_pcm_t **pcmp, char *name, snd_pcm_t *slave, int close_
 	return 0;
 }
 
-int _snd_pcm_copy_open(snd_pcm_t **pcmp, char *name,
+int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 			 snd_config_t *conf, 
 			 snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)

@@ -55,7 +55,7 @@ typedef struct {
 static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	long flags;
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 
 	if ((flags = fcntl(fd, F_GETFL)) < 0) {
@@ -76,7 +76,7 @@ static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
 	long flags;
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 
 	if ((flags = fcntl(fd, F_GETFL)) < 0) {
@@ -110,7 +110,7 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 
 static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_INFO, info) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_INFO failed");
@@ -121,7 +121,7 @@ static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 
 static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, params) < 0) {
 		// SYSERR("SNDRV_PCM_IOCTL_HW_REFINE failed");
@@ -132,7 +132,7 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_HW_PARAMS failed");
@@ -143,7 +143,7 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 
 static int snd_pcm_hw_hw_free(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_FREE) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_HW_FREE failed");
@@ -154,7 +154,7 @@ static int snd_pcm_hw_hw_free(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if ((snd_pcm_start_t) params->start_mode == pcm->start_mode &&
 	    (snd_pcm_xrun_t) params->xrun_mode == pcm->xrun_mode &&
@@ -176,7 +176,7 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 
 static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	struct sndrv_pcm_channel_info i;
 	int fd = hw->fd;
 	i.channel = info->channel;
@@ -199,7 +199,7 @@ static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info
 
 static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_STATUS, status) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_STATUS failed");
@@ -210,13 +210,13 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 
 static snd_pcm_state_t snd_pcm_hw_state(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	return (snd_pcm_state_t) hw->mmap_status->state;
 }
 
 static int snd_pcm_hw_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_DELAY, delayp) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_DELAY failed");
@@ -227,7 +227,7 @@ static int snd_pcm_hw_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 
 static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_PREPARE) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_PREPARE failed");
@@ -238,7 +238,7 @@ static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_reset(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_RESET) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_RESET failed");
@@ -249,7 +249,7 @@ static int snd_pcm_hw_reset(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_start(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 #if 0
 	assert(pcm->stream != SND_PCM_STREAM_PLAYBACK ||
@@ -264,7 +264,7 @@ static int snd_pcm_hw_start(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_drop(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_DROP) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_DROP failed");
@@ -275,7 +275,7 @@ static int snd_pcm_hw_drop(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_DRAIN) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_DRAIN failed");
@@ -286,7 +286,7 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_PAUSE, enable) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_PAUSE failed");
@@ -297,7 +297,7 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 
 static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_REWIND, &frames) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_REWIND failed");
@@ -309,7 +309,7 @@ static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fra
 static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_sframes_t result;
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xferi xferi;
 	xferi.buf = (char*) buffer;
@@ -323,7 +323,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, s
 static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_sframes_t result;
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xfern xfern;
 	xfern.bufs = bufs;
@@ -337,7 +337,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_
 static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_sframes_t result;
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xferi xferi;
 	xferi.buf = buffer;
@@ -351,7 +351,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_
 snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_sframes_t result;
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xfern xfern;
 	xfern.bufs = bufs;
@@ -364,7 +364,7 @@ snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_
 
 static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	void *ptr;
 	ptr = mmap(NULL, PAGE_ALIGN(sizeof(struct sndrv_pcm_mmap_status)), PROT_READ, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_STATUS);
@@ -379,7 +379,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	void *ptr;
 	ptr = mmap(NULL, PAGE_ALIGN(sizeof(struct sndrv_pcm_mmap_control)), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_CONTROL);
@@ -394,7 +394,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	if (munmap((void*)hw->mmap_status, PAGE_ALIGN(sizeof(*hw->mmap_status))) < 0) {
 		SYSERR("status munmap failed");
 		return -errno;
@@ -404,7 +404,7 @@ static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	if (munmap(hw->mmap_control, PAGE_ALIGN(sizeof(*hw->mmap_control))) < 0) {
 		SYSERR("control munmap failed");
 		return -errno;
@@ -414,7 +414,7 @@ static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
 		snd_pcm_uframes_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
 		int id = shmget(IPC_PRIVATE, size, 0666);
@@ -429,7 +429,7 @@ static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_munmap(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
 		if (shmctl(hw->shmid, IPC_RMID, 0) < 0) {
 			SYSERR("shmctl IPC_RMID failed");
@@ -441,7 +441,7 @@ static int snd_pcm_hw_munmap(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_close(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	if (close(hw->fd)) {
 		SYSERR("close failed\n");
 		return -errno;
@@ -494,7 +494,7 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 
 static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_t *hw = pcm->private_data;
 	char *name = "Unknown";
 	snd_card_get_name(hw->card, &name);
 	snd_output_printf(out, "Hardware PCM card %d '%s' device %d subdevice %d\n",
@@ -632,7 +632,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_hw_fast_ops;
 	pcm->fast_op_arg = pcm;
-	pcm->private = hw;
+	pcm->private_data = hw;
 	pcm->poll_fd = fd;
 	*pcmp = pcm;
 	ret = snd_pcm_hw_mmap_status(pcm);
@@ -673,14 +673,14 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, in
 	return 0;
 }
 
-int _snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
+int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		     snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i;
+	snd_config_iterator_t i, next;
 	long card = -1, device = 0, subdevice = -1;
 	const char *str;
 	int err;
-	snd_config_foreach(i, conf) {
+	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
