@@ -337,6 +337,7 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 		    dev->read >= dev->bufsize) {
 			ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
 			ev->flags |= SNDRV_SEQ_EVENT_LENGTH_VARIABLE;
+			ev->type = SNDRV_SEQ_EVENT_SYSEX;
 			ev->data.ext.len = dev->read;
 			ev->data.ext.ptr = dev->buf;
 			if (c != MIDI_CMD_COMMON_SYSEX_END)
