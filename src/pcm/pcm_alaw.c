@@ -383,6 +383,7 @@ int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 {
 	snd_pcm_t *pcm;
 	snd_pcm_alaw_t *alaw;
+	int err;
 	assert(pcmp && slave);
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    sformat != SND_PCM_FORMAT_A_LAW)
@@ -397,20 +398,13 @@ int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	alaw->plug.slave = slave;
 	alaw->plug.close_slave = close_slave;
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_ALAW, name, slave->stream, slave->mode);
+	if (err < 0) {
 		free(alaw);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_ALAW;
-	pcm->stream = slave->stream;
-	pcm->mode = slave->mode;
 	pcm->ops = &snd_pcm_alaw_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = alaw;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = &alaw->plug.hw_ptr;

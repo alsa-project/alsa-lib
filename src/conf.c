@@ -25,7 +25,6 @@
 #include <sys/stat.h>
 #include <dlfcn.h>
 #include "local.h"
-#include "list.h"
 
 #ifndef DOC_HIDDEN
 

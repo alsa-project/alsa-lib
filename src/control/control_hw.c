@@ -105,12 +105,6 @@ static int snd_ctl_hw_async(snd_ctl_t *ctl, int sig, pid_t pid)
 	return 0;
 }
 
-static int snd_ctl_hw_poll_descriptor(snd_ctl_t *handle)
-{
-	snd_ctl_hw_t *hw = handle->private_data;
-	return hw->fd;
-}
-
 static int snd_ctl_hw_subscribe_events(snd_ctl_t *handle, int subscribe)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
@@ -257,7 +251,6 @@ snd_ctl_ops_t snd_ctl_hw_ops = {
 	close: snd_ctl_hw_close,
 	nonblock: snd_ctl_hw_nonblock,
 	async: snd_ctl_hw_async,
-	poll_descriptor: snd_ctl_hw_poll_descriptor,
 	subscribe_events: snd_ctl_hw_subscribe_events,
 	card_info: snd_ctl_hw_card_info,
 	element_list: snd_ctl_hw_elem_list,
@@ -284,6 +277,7 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 	int fmode;
 	snd_ctl_t *ctl;
 	snd_ctl_hw_t *hw;
+	int err;
 
 	*handle = NULL;	
 
@@ -308,24 +302,22 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 		close(fd);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
-	ctl = calloc(1, sizeof(snd_ctl_t));
-	if (ctl == NULL) {
-		close(fd);
-		return -ENOMEM;
-	}
 	hw = calloc(1, sizeof(snd_ctl_hw_t));
 	if (hw == NULL) {
 		close(fd);
-		free(ctl);
 		return -ENOMEM;
 	}
 	hw->card = card;
 	hw->fd = fd;
-	if (name)
-		ctl->name = strdup(name);
-	ctl->type = SND_CTL_TYPE_HW;
+
+	err = snd_ctl_new(&ctl, SND_CTL_TYPE_HW, name);
+	if (err < 0) {
+		close(fd);
+		free(hw);
+	}
 	ctl->ops = &snd_ctl_hw_ops;
 	ctl->private_data = hw;
+	ctl->poll_fd = fd;
 	*handle = ctl;
 	return 0;
 }

@@ -493,6 +493,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 {
 	snd_pcm_t *pcm;
 	snd_pcm_rate_t *rate;
+	int err;
 	assert(pcmp && slave);
 	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 	    snd_pcm_format_linear(sformat) != 1)
@@ -511,20 +512,13 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	rate->plug.slave = slave;
 	rate->plug.close_slave = close_slave;
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_RATE, name, slave->stream, slave->mode);
+	if (err < 0) {
 		free(rate);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_RATE;
-	pcm->stream = slave->stream;
-	pcm->mode = slave->mode;
 	pcm->ops = &snd_pcm_rate_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = rate;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = &rate->plug.hw_ptr;

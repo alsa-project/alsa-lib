@@ -31,7 +31,6 @@
 #define _snd_pcm_subformat_mask _snd_mask
 
 #include "local.h"
-#include "list.h"
 
 #define SND_INTERVAL_INLINE
 #include "interval.h"
@@ -65,15 +64,6 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_HW_PARAM_FIRST_MASK SNDRV_PCM_HW_PARAM_FIRST_MASK
 #define SND_PCM_HW_PARAM_LAST_INTERVAL SNDRV_PCM_HW_PARAM_LAST_INTERVAL
 #define SND_PCM_HW_PARAM_FIRST_INTERVAL SNDRV_PCM_HW_PARAM_FIRST_INTERVAL
-
-/** Surround type */
-typedef enum _snd_pcm_surround_type {
-	/** 4.0 speakers */
-	SND_PCM_SURROUND_40 = 0,
-	/** 5.1 speakers */
-	SND_PCM_SURROUND_51 = 1,
-	SND_PCM_SURROUND_LAST = SND_PCM_SURROUND_51
-} snd_pcm_surround_type_t;
 
 typedef struct _snd_pcm_channel_info {
 	unsigned int channel;
@@ -153,8 +143,6 @@ struct _snd_pcm {
 	snd_pcm_uframes_t silence_size;	/* Silence filling size */
 	snd_pcm_uframes_t xfer_align;	/* xfer size need to be a multiple */
 	snd_pcm_uframes_t boundary;	/* pointers wrap point */
-	int async_sig;
-	pid_t async_pid;
 	unsigned int info;		/* Info for returned setup */
 	unsigned int msbits;		/* used most significant bits */
 	unsigned int rate_num;		/* rate numerator */
@@ -175,6 +163,7 @@ struct _snd_pcm {
 	snd_pcm_t *op_arg;
 	snd_pcm_t *fast_op_arg;
 	void *private_data;
+	struct list_head async_handlers;
 };
 
 #define ROUTE_PLUGIN_FLOAT 1
@@ -192,7 +181,10 @@ typedef int snd_pcm_route_ttable_entry_t;
 
 /* FIXME */
 #define _snd_pcm_link_descriptor _snd_pcm_poll_descriptor
+#define _snd_pcm_async_descriptor _snd_pcm_poll_descriptor
 
+int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
+		snd_pcm_stream_t stream, int mode);
 int snd_pcm_hw_open(snd_pcm_t **pcm, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode);
 int snd_pcm_plug_open(snd_pcm_t **pcmp,
 		      const char *name,
@@ -204,12 +196,11 @@ int snd_pcm_plug_open_hw(snd_pcm_t **pcm, const char *name, int card, int device
 int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *sockname, const char *sname, snd_pcm_stream_t stream, int mode);
 int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int fd, const char *fmt, snd_pcm_t *slave, int close_slave);
 int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t stream, int mode);
-int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int device, snd_pcm_surround_type_t type, snd_pcm_stream_t stream, int mode);
-
 
 void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void *buf);
 void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void **bufs);
 
+int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_mmap(snd_pcm_t *pcm);
 int snd_pcm_munmap(snd_pcm_t *pcm);
 int snd_pcm_mmap_ready(snd_pcm_t *pcm);

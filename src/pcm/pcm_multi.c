@@ -587,6 +587,7 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	unsigned int i;
 	snd_pcm_stream_t stream;
 	char slave_map[32][32] = { { 0 } };
+	int err;
 
 	assert(pcmp);
 	assert(slaves_count > 0 && slaves_pcm && schannels_count);
@@ -625,21 +626,15 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	}
 	multi->channels_count = channels_count;
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_MULTI, name, stream,
+			  multi->slaves[0].pcm->mode);
+	if (err < 0) {
 		free(multi);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_MULTI;
-	pcm->stream = stream;
-	pcm->mode = multi->slaves[0].pcm->mode;
 	pcm->mmap_rw = 1;
 	pcm->ops = &snd_pcm_multi_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_multi_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = multi;
 	pcm->poll_fd = multi->slaves[master_slave].pcm->poll_fd;
 	pcm->hw_ptr = multi->slaves[master_slave].pcm->hw_ptr;

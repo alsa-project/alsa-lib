@@ -293,6 +293,7 @@ int snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int
 	snd_pcm_t *pcm;
 	snd_pcm_hooks_t *h;
 	unsigned int k;
+	int err;
 	assert(pcmp && slave);
 	h = calloc(1, sizeof(snd_pcm_hooks_t));
 	if (!h)
@@ -302,20 +303,13 @@ int snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int
 	for (k = 0; k <= SND_PCM_HOOK_TYPE_LAST; ++k) {
 		INIT_LIST_HEAD(&h->hooks[k]);
 	}
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_HOOKS, name, slave->stream, slave->mode);
+	if (err < 0) {
 		free(h);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_HOOKS;
-	pcm->stream = slave->stream;
-	pcm->mode = slave->mode;
 	pcm->ops = &snd_pcm_hooks_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_hooks_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = h;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = slave->hw_ptr;

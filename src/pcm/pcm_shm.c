@@ -126,8 +126,6 @@ static int snd_pcm_shm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_ASYNC;
 	ctrl->u.async.sig = sig;
-	if (pid == 0)
-		pid = getpid();
 	ctrl->u.async.pid = pid;
 	return snd_pcm_shm_action(pcm);
 }
@@ -638,21 +636,14 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *sockname, c
 	shm->socket = sock;
 	shm->ctrl = ctrl;
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
-		result = -ENOMEM;
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_SHM, name, stream, mode);
+	if (err < 0) {
+		result = err;
 		goto _err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_SHM;
-	pcm->stream = stream;
-	pcm->mode = mode;
 	pcm->mmap_rw = 1;
 	pcm->ops = &snd_pcm_shm_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_shm_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = shm;
 	err = snd_pcm_shm_poll_descriptor(pcm);
 	if (err < 0) {

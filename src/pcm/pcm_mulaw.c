@@ -398,6 +398,7 @@ int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 {
 	snd_pcm_t *pcm;
 	snd_pcm_mulaw_t *mulaw;
+	int err;
 	assert(pcmp && slave);
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    sformat != SND_PCM_FORMAT_MU_LAW)
@@ -412,20 +413,13 @@ int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 	mulaw->plug.slave = slave;
 	mulaw->plug.close_slave = close_slave;
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_MULAW, name, slave->stream, slave->mode);
+	if (err < 0) {
 		free(mulaw);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_MULAW;
-	pcm->stream = slave->stream;
-	pcm->mode = slave->mode;
 	pcm->ops = &snd_pcm_mulaw_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = mulaw;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = &mulaw->plug.hw_ptr;

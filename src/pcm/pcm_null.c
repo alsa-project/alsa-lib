@@ -318,6 +318,7 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 	snd_pcm_t *pcm;
 	snd_pcm_null_t *null;
 	int fd;
+	int err;
 	assert(pcmp);
 	if (stream == SND_PCM_STREAM_PLAYBACK) {
 		fd = open("/dev/null", O_WRONLY);
@@ -340,21 +341,14 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 	null->poll_fd = fd;
 	null->state = SND_PCM_STATE_OPEN;
 	
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_NULL, name, stream, mode);
+	if (err < 0) {
 		close(fd);
 		free(null);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_NULL;
-	pcm->stream = stream;
-	pcm->mode = mode;
 	pcm->ops = &snd_pcm_null_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_null_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = null;
 	pcm->poll_fd = fd;
 	pcm->hw_ptr = &null->hw_ptr;

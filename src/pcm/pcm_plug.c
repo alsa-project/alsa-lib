@@ -664,6 +664,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 {
 	snd_pcm_t *pcm;
 	snd_pcm_plug_t *plug;
+	int err;
 	assert(pcmp && slave);
 	plug = calloc(1, sizeof(snd_pcm_plug_t));
 	if (!plug)
@@ -675,18 +676,12 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	plug->tt_cused = tt_cused;
 	plug->tt_sused = tt_sused;
 	
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_PLUG, name, slave->stream, slave->mode);
+	if (err < 0) {
 		free(plug);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_PLUG;
-	pcm->stream = slave->stream;
-	pcm->mode = slave->mode;
 	pcm->ops = &snd_pcm_plug_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = slave->fast_ops;
 	pcm->fast_op_arg = slave->fast_op_arg;
 	pcm->private_data = plug;

@@ -124,7 +124,7 @@ static int snd_ctl_shm_subscribe_events(snd_ctl_t *ctl, int subscribe)
 {
 	snd_ctl_shm_t *shm = ctl->private_data;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_CTL_IOCTL_POLL_DESCRIPTOR;
+	ctrl->cmd = SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS;
 	ctrl->u.subscribe_events = subscribe;
 	return snd_ctl_shm_action(ctl);
 }
@@ -368,7 +368,6 @@ snd_ctl_ops_t snd_ctl_shm_ops = {
 	close: snd_ctl_shm_close,
 	nonblock: snd_ctl_shm_nonblock,
 	async: snd_ctl_shm_async,
-	poll_descriptor: snd_ctl_shm_poll_descriptor,
 	subscribe_events: snd_ctl_shm_subscribe_events,
 	card_info: snd_ctl_shm_card_info,
 	element_list: snd_ctl_shm_elem_list,
@@ -492,14 +491,8 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 		goto _err;
 	}
 		
-	ctl = calloc(1, sizeof(snd_ctl_t));
-	if (!ctl) {
-		result = -ENOMEM;
-		goto _err;
-	}
 	shm = calloc(1, sizeof(snd_ctl_shm_t));
 	if (!shm) {
-		free(ctl);
 		result = -ENOMEM;
 		goto _err;
 	}
@@ -507,11 +500,19 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 	shm->socket = sock;
 	shm->ctrl = ctrl;
 
-	if (name)
-		ctl->name = strdup(name);
-	ctl->type = SND_CTL_TYPE_SHM;
+	err = snd_ctl_new(&ctl, SND_CTL_TYPE_SHM, name);
+	if (err < 0) {
+		result = err;
+		goto _err;
+	}
 	ctl->ops = &snd_ctl_shm_ops;
 	ctl->private_data = shm;
+	err = snd_ctl_shm_poll_descriptor(ctl);
+	if (err < 0) {
+		snd_ctl_close(ctl);
+		return err;
+	}
+	ctl->poll_fd = err;
 	*handlep = ctl;
 	return 0;
 

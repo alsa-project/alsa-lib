@@ -20,7 +20,6 @@
  *
  */
 
-#include "list.h"
 #include "local.h"
 
 typedef struct _bag1 {

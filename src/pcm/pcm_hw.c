@@ -88,14 +88,10 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	}
 	if (sig < 0)
 		return 0;
-	if (sig == 0)
-		sig = SIGIO;
 	if (fcntl(fd, F_SETSIG, sig) < 0) {
 		SYSERR("F_SETSIG failed");
 		return -errno;
 	}
-	if (pid == 0)
-		pid = getpid();
 	if (fcntl(fd, F_SETOWN, pid) < 0) {
 		SYSERR("F_SETOWN failed");
 		return -errno;
@@ -531,12 +527,12 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	mmap_commit: snd_pcm_hw_mmap_commit,
 };
 
-static int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
+int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
 {
 	char filename[32];
 	const char *filefmt;
 	int ver;
-	int ret = 0, fd = -1;
+	int err, ret = 0, fd = -1;
 	int attempt = 0;
 	snd_pcm_info_t info;
 	int fmode;
@@ -610,19 +606,14 @@ static int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int
 	hw->subdevice = subdevice;
 	hw->fd = fd;
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
-		ret = -ENOMEM;
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_HW, name, stream, mode);
+	if (err < 0) {
+		ret = err;
 		goto _err;
 	}
 	snd_ctl_close(ctl);
-	pcm->type = SND_PCM_TYPE_HW;
-	pcm->stream = stream;
-	pcm->mode = mode;
 	pcm->ops = &snd_pcm_hw_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_hw_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = hw;
 	pcm->poll_fd = fd;
 	*pcmp = pcm;
@@ -647,16 +638,6 @@ static int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int
 		close(fd);
 	snd_ctl_close(ctl);
 	return ret;
-}
-
-int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
-{
-	int err = snd_pcm_hw_open_subdevice(pcmp, card, device, subdevice, stream, mode);
-	if (err < 0)
-		return err;
-	if (name)
-		(*pcmp)->name = strdup(name);
-	return 0;
 }
 
 int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,

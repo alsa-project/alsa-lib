@@ -274,7 +274,9 @@ int snd_sctl_remove(snd_sctl_t *handle);
 int snd_ctl_open(snd_ctl_t **ctl, const char *name, int mode);
 int snd_ctl_close(snd_ctl_t *ctl);
 int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock);
-int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid);
+int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl, 
+			      snd_async_callback_t callback, void *private_data);
+snd_ctl_t *snd_async_handler_get_ctl(snd_async_handler_t *handler);
 int snd_ctl_poll_descriptors_count(snd_ctl_t *ctl);
 int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int space);
 int snd_ctl_subscribe_events(snd_ctl_t *ctl, int subscribe);
@@ -515,7 +517,6 @@ typedef int (*snd_hctl_elem_callback_t)(snd_hctl_elem_t *elem,
 int snd_hctl_open(snd_hctl_t **hctl, const char *name, int mode);
 int snd_hctl_close(snd_hctl_t *hctl);
 int snd_hctl_nonblock(snd_hctl_t *hctl, int nonblock);
-int snd_hctl_async(snd_hctl_t *hctl, int sig, pid_t pid);
 int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl);
 int snd_hctl_poll_descriptors(snd_hctl_t *hctl, struct pollfd *pfds, unsigned int space);
 unsigned int snd_hctl_get_count(snd_hctl_t *hctl);

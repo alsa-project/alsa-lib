@@ -31,7 +31,6 @@
 #include <sys/shm.h>
 #include <pthread.h>
 #include "pcm_local.h"
-#include "list.h"
 
 
 static LIST_HEAD(snd_pcm_share_slaves);
@@ -1233,11 +1232,11 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	}
 	memcpy(share->slave_channels, channels_map, channels * sizeof(*share->slave_channels));
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_SHARE, name, stream, mode);
+	if (err < 0) {
 		free(share->slave_channels);
 		free(share);
-		return -ENOMEM;
+		return err;
 	}
 	err = socketpair(AF_LOCAL, SOCK_STREAM, 0, sd);
 	if (err < 0) {
@@ -1343,16 +1342,9 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	share->client_socket = sd[0];
 	share->slave_socket = sd[1];
 	
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_SHARE;
-	pcm->stream = stream;
-	pcm->mode = mode;
 	pcm->mmap_rw = 1;
 	pcm->ops = &snd_pcm_share_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_share_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = share;
 	pcm->poll_fd = share->client_socket;
 	pcm->hw_ptr = &share->hw_ptr;
@@ -1415,8 +1407,8 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 5,
-				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
+				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels,
 				 SND_PCM_HW_PARAM_RATE, 0, &srate,
 				 SND_PCM_HW_PARAM_PERIOD_TIME, 0, &speriod_time,
 				 SND_PCM_HW_PARAM_BUFFER_TIME, 0, &sbuffer_time);
@@ -1425,8 +1417,8 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 
 	/* FIXME: nothing strictly forces to have named definition */
 	err = snd_config_get_string(sconf, &sname);
+	snd_config_delete(sconf);
 	if (err < 0) {
-		snd_config_delete(sconf);
 		SNDERR("slave.pcm is not a string");
 		return err;
 	}
@@ -1441,7 +1433,6 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		const char *id = snd_config_get_id(n);
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
-			snd_config_delete(sconf);
 			SNDERR("Invalid client channel in binding: %s", id);
 			return -EINVAL;
 		}
@@ -1449,7 +1440,6 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 			channels = cchannel + 1;
 	}
 	if (channels == 0) {
-		snd_config_delete(sconf);
 		SNDERR("No bindings defined");
 		return -EINVAL;
 	}
@@ -1463,7 +1453,6 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		cchannel = atoi(id);
 		err = snd_config_get_integer(n, &schannel);
 		if (err < 0) {
-			snd_config_delete(sconf);
 			goto _free;
 		}
 		assert(schannel >= 0);
@@ -1478,7 +1467,6 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 				 (unsigned int) schannels,
 				 speriod_time, sbuffer_time,
 				 channels, channels_map, stream, mode);
-	snd_config_delete(sconf);
 _free:
 	free(channels_map);
 	return err;

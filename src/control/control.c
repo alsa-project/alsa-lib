@@ -74,12 +74,16 @@ snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl)
  */
 int snd_ctl_close(snd_ctl_t *ctl)
 {
-	int res;
-	res = ctl->ops->close(ctl);
+	int err;
+	while (!list_empty(&ctl->async_handlers)) {
+		snd_async_handler_t *h = list_entry(&ctl->async_handlers.next, snd_async_handler_t, hlist);
+		snd_async_del_handler(h);
+	}
+	err = ctl->ops->close(ctl);
 	if (ctl->name)
 		free(ctl->name);
 	free(ctl);
-	return res;
+	return err;
 }
 
 /**
@@ -99,6 +103,22 @@ int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock)
 	return 0;
 }
 
+#ifndef DOC_HIDDEN
+int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name)
+{
+	snd_ctl_t *ctl;
+	ctl = calloc(1, sizeof(*ctl));
+	if (!ctl)
+		return -ENOMEM;
+	ctl->type = type;
+	if (name)
+		ctl->name = strdup(name);
+	INIT_LIST_HEAD(&ctl->async_handlers);
+	*ctlp = ctl;
+	return 0;
+}
+	
+
 /**
  * \brief set async mode
  * \param ctl CTL handle
@@ -110,21 +130,10 @@ int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock)
  */
 int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid)
 {
-	int err;
 	assert(ctl);
-	err = ctl->ops->async(ctl, sig, pid);
-	if (err < 0)
-		return err;
-	if (sig)
-		ctl->async_sig = sig;
-	else
-		ctl->async_sig = SIGIO;
-	if (pid)
-		ctl->async_pid = pid;
-	else
-		ctl->async_pid = getpid();
-	return 0;
+	return ctl->ops->async(ctl, sig, pid);
 }
+#endif
 
 /**
  * \brief get count of poll descriptors for CTL handle
@@ -148,7 +157,7 @@ int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int s
 {
 	assert(ctl);
 	if (space > 0) {
-		pfds->fd = ctl->ops->poll_descriptor(ctl);
+		pfds->fd = ctl->poll_fd;
 		pfds->events = POLLIN;
 		return 1;
 	}
@@ -378,6 +387,50 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 	if (err < 0)
 		return -errno;
 	return 0;
+}
+
+/**
+ * \brief Add an async handler for a CTL
+ * \param handler Returned handler handle
+ * \param ctl CTL handle
+ * \param callback Callback function
+ * \param private_data Callback private data
+ * \return 0 otherwise a negative error code on failure
+ */
+int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl, 
+			      snd_async_callback_t callback, void *private_data)
+{
+	int err;
+	int was_empty;
+	snd_async_handler_t *h;
+	err = snd_async_add_handler(&h, _snd_ctl_async_descriptor(ctl),
+				    callback, private_data);
+	if (err < 0)
+		return err;
+	h->type = SND_ASYNC_HANDLER_CTL;
+	h->u.ctl = ctl;
+	was_empty = list_empty(&ctl->async_handlers);
+	list_add_tail(&h->hlist, &ctl->async_handlers);
+	if (was_empty) {
+		err = snd_ctl_async(ctl, getpid(), SIGIO);
+		if (err < 0) {
+			snd_async_del_handler(h);
+			return err;
+		}
+	}
+	*handler = h;
+	return 0;
+}
+
+/**
+ * \brief Return CTL handle related to an async handler
+ * \param handler Async handler handle
+ * \return CTL handle
+ */
+snd_ctl_t *snd_async_handler_get_ctl(snd_async_handler_t *handler)
+{
+	assert(handler->type = SND_ASYNC_HANDLER_CTL);
+	return handler->u.ctl;
 }
 
 int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
@@ -701,7 +754,7 @@ unsigned int snd_ctl_event_elem_get_index(const snd_ctl_event_t *obj)
 int _snd_ctl_poll_descriptor(snd_ctl_t *ctl)
 {
 	assert(ctl);
-	return ctl->ops->poll_descriptor(ctl);
+	return ctl->poll_fd;
 }
 #endif
 

@@ -509,6 +509,7 @@ int snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 {
 	snd_pcm_t *pcm;
 	snd_pcm_adpcm_t *adpcm;
+	int err;
 	assert(pcmp && slave);
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    sformat != SND_PCM_FORMAT_IMA_ADPCM)
@@ -524,20 +525,13 @@ int snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 	adpcm->plug.slave = slave;
 	adpcm->plug.close_slave = close_slave;
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_ADPCM, name, slave->stream, slave->mode);
+	if (err < 0) {
 		free(adpcm);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_ADPCM;
-	pcm->stream = slave->stream;
-	pcm->mode = slave->mode;
 	pcm->ops = &snd_pcm_adpcm_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = adpcm;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = &adpcm->plug.hw_ptr;

@@ -49,6 +49,24 @@
 #define _snd_hwdep_info sndrv_hwdep_info
 
 #include "asoundlib.h"
+#include "list.h"
+
+struct _snd_async_handler {
+	enum {
+		SND_ASYNC_HANDLER_GENERIC,
+		SND_ASYNC_HANDLER_PCM,
+		SND_ASYNC_HANDLER_CTL,
+	} type;
+	int fd;
+	union {
+		snd_pcm_t *pcm;
+		snd_ctl_t *ctl;
+	} u;
+	snd_async_callback_t callback;
+	void *private_data;
+	struct list_head glist;
+	struct list_head hlist;
+};
 
 typedef enum _snd_set_mode {
 	SND_CHANGE,

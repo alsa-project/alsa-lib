@@ -31,9 +31,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <limits.h>
+#include <signal.h>
 
 #include "aserver.h"
-#include "list.h"
 
 char *command;
 
@@ -199,6 +199,9 @@ struct client {
 	int stream;
 	int mode;
 	transport_ops_t *ops;
+	snd_async_handler_t *async_handler;
+	int async_sig;
+	pid_t async_pid;
 	union {
 		struct {
 			snd_pcm_t *handle;
@@ -207,7 +210,7 @@ struct client {
 		struct {
 			snd_ctl_t *handle;
 			int fd;
-		} control;
+		} ctl;
 #if 0
 		struct {
 			snd_rawmidi_t *handle;
@@ -358,6 +361,13 @@ static int shm_ack_fd(client_t *client, int fd)
 	return 0;
 }
 
+static void async_handler(snd_async_handler_t *handler)
+{
+	client_t *client = snd_async_handler_get_callback_private(handler);
+	/* FIXME: use sigqueue */
+	kill(client->async_pid, client->async_sig);
+}
+
 static int pcm_shm_cmd(client_t *client)
 {
 	volatile snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
@@ -374,6 +384,19 @@ static int pcm_shm_cmd(client_t *client)
 	switch (cmd) {
 	case SND_PCM_IOCTL_ASYNC:
 		ctrl->result = snd_pcm_async(pcm, ctrl->u.async.sig, ctrl->u.async.pid);
+		if (ctrl->result < 0)
+			break;
+		if (ctrl->u.async.sig >= 0) {
+			assert(client->async_sig < 0);
+			ctrl->result = snd_async_add_pcm_handler(&client->async_handler, pcm, async_handler, client);
+			if (ctrl->result < 0)
+				break;
+		} else {
+			assert(client->async_sig >= 0);
+			snd_async_del_handler(client->async_handler);
+		}
+		client->async_sig = ctrl->u.async.sig;
+		client->async_pid = ctrl->u.async.pid;
 		break;
 	case SNDRV_PCM_IOCTL_INFO:
 		ctrl->result = snd_pcm_info(pcm, (snd_pcm_info_t *) &ctrl->u.info);
@@ -506,8 +529,8 @@ static int ctl_shm_open(client_t *client, int *cookie)
 	err = snd_ctl_open(&ctl, client->name, SND_CTL_NONBLOCK);
 	if (err < 0)
 		return err;
-	client->device.control.handle = ctl;
-	client->device.control.fd = _snd_ctl_poll_descriptor(ctl);
+	client->device.ctl.handle = ctl;
+	client->device.ctl.fd = _snd_ctl_poll_descriptor(ctl);
 
 	shmid = shmget(IPC_PRIVATE, CTL_SHM_SIZE, 0666);
 	if (shmid < 0) {
@@ -524,7 +547,7 @@ static int ctl_shm_open(client_t *client, int *cookie)
 		goto _err;
 	}
 	*cookie = shmid;
-	add_waiter(client->device.control.fd, POLLIN, ctl_handler, client);
+	add_waiter(client->device.ctl.fd, POLLIN, ctl_handler, client);
 	client->polling = 1;
 	return 0;
 
@@ -539,10 +562,10 @@ static int ctl_shm_close(client_t *client)
 	int err;
 	snd_ctl_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
 	if (client->polling) {
-		del_waiter(client->device.control.fd);
+		del_waiter(client->device.ctl.fd);
 		client->polling = 0;
 	}
-	err = snd_ctl_close(client->device.control.handle);
+	err = snd_ctl_close(client->device.ctl.handle);
 	ctrl->result = err;
 	if (err < 0) 
 		ERROR("snd_ctl_close");
@@ -571,10 +594,24 @@ static int ctl_shm_cmd(client_t *client)
 		return -EBADFD;
 	cmd = ctrl->cmd;
 	ctrl->cmd = 0;
-	ctl = client->device.control.handle;
+	ctl = client->device.ctl.handle;
 	switch (cmd) {
 	case SND_CTL_IOCTL_ASYNC:
 		ctrl->result = snd_ctl_async(ctl, ctrl->u.async.sig, ctrl->u.async.pid);
+		if (ctrl->result < 0)
+			break;
+		if (ctrl->u.async.sig >= 0) {
+			assert(client->async_sig < 0);
+			ctrl->result = snd_async_add_ctl_handler(&client->async_handler, ctl, async_handler, client);
+			if (ctrl->result < 0)
+				break;
+		} else {
+			assert(client->async_sig >= 0);
+			snd_async_del_handler(client->async_handler);
+		}
+		client->async_sig = ctrl->u.async.sig;
+		client->async_pid = ctrl->u.async.pid;
+		break;
 		break;
 	case SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS:
 		ctrl->result = snd_ctl_subscribe_events(ctl, ctrl->u.subscribe_events);

@@ -34,7 +34,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-#include "list.h"
 #include "local.h"
 
 typedef struct {

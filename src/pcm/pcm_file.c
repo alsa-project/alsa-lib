@@ -401,6 +401,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int
 	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
 	snd_pcm_file_format_t format;
+	int err;
 	assert(pcmp);
 	if (fmt == NULL ||
 	    strcmp(fmt, "raw") == 0)
@@ -430,22 +431,15 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int
 	file->slave = slave;
 	file->close_slave = close_slave;
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_FILE, name, slave->stream, slave->mode);
+	if (err < 0) {
 		if (fname)
 			free(file->fname);
 		free(file);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_FILE;
-	pcm->stream = slave->stream;
-	pcm->mode = slave->mode;
 	pcm->ops = &snd_pcm_file_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_file_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = file;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = slave->hw_ptr;

@@ -11,8 +11,6 @@ libpcm_la_SOURCES = atomic.c mask.c interval.c \
 noinst_HEADERS = atomic.h pcm_local.h pcm_plugin.h mask.h mask_inline.h \
 	         interval.h interval_inline.h plugin_ops.h
 
-EXTRA_DIST = surround.conf
-
 alsadir = $(datadir)/alsa
 alsa_DATA = surround.conf
 

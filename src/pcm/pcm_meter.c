@@ -30,7 +30,6 @@
 #include <time.h>
 #include <pthread.h>
 #include <dlfcn.h>
-#include "list.h"
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
@@ -614,6 +613,7 @@ int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequenc
 {
 	snd_pcm_t *pcm;
 	snd_pcm_meter_t *meter;
+	int err;
 	assert(pcmp);
 	meter = calloc(1, sizeof(snd_pcm_meter_t));
 	if (!meter)
@@ -624,21 +624,14 @@ int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequenc
 	meter->delay.tv_nsec = 1000000000 / frequency;
 	INIT_LIST_HEAD(&meter->scopes);
 
-	pcm = calloc(1, sizeof(snd_pcm_t));
-	if (!pcm) {
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_METER, name, slave->stream, slave->mode);
+	if (err < 0) {
 		free(meter);
-		return -ENOMEM;
+		return err;
 	}
-	if (name)
-		pcm->name = strdup(name);
-	pcm->type = SND_PCM_TYPE_METER;
-	pcm->stream = slave->stream;
-	pcm->mode = slave->mode;
 	pcm->mmap_rw = 1;
 	pcm->ops = &snd_pcm_meter_ops;
-	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_meter_fast_ops;
-	pcm->fast_op_arg = pcm;
 	pcm->private_data = meter;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->hw_ptr = slave->hw_ptr;

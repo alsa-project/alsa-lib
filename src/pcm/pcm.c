@@ -44,7 +44,6 @@
 #include <limits.h>
 #include <dlfcn.h>
 #include "pcm_local.h"
-#include "list.h"
 
 /**
  * \brief get identifier of PCM handle
@@ -108,6 +107,10 @@ int snd_pcm_close(snd_pcm_t *pcm)
 		if (err < 0)
 			return err;
 	}
+	while (!list_empty(&pcm->async_handlers)) {
+		snd_async_handler_t *h = list_entry(&pcm->async_handlers.next, snd_async_handler_t, hlist);
+		snd_async_del_handler(h);
+	}
 	err = pcm->ops->close(pcm->op_arg);
 	if (err < 0)
 		return err;
@@ -136,6 +139,7 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 	return 0;
 }
 
+#ifndef DOC_HIDDEN
 /**
  * \brief set async mode
  * \param pcm PCM handle
@@ -147,21 +151,14 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
  */
 int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
-	int err;
 	assert(pcm);
-	err = pcm->ops->async(pcm->op_arg, sig, pid);
-	if (err < 0)
-		return err;
-	if (sig)
-		pcm->async_sig = sig;
-	else
-		pcm->async_sig = SIGIO;
-	if (pid)
-		pcm->async_pid = pid;
-	else
-		pcm->async_pid = getpid();
-	return 0;
+	if (sig == 0)
+		sig = SIGIO;
+	if (pid == 0)
+		pid = getpid();
+	return pcm->ops->async(pcm->op_arg, sig, pid);
 }
+#endif
 
 /**
  * \brief Obtain general (static) information for PCM handle
@@ -911,6 +908,50 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
 	return samples * pcm->sample_bits / 8;
 }
 
+/**
+ * \brief Add an async handler for a PCM
+ * \param handler Returned handler handle
+ * \param pcm PCM handle
+ * \param callback Callback function
+ * \param private_data Callback private data
+ * \return 0 otherwise a negative error code on failure
+ */
+int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm, 
+			      snd_async_callback_t callback, void *private_data)
+{
+	int err;
+	int was_empty;
+	snd_async_handler_t *h;
+	err = snd_async_add_handler(&h, _snd_pcm_async_descriptor(pcm),
+				    callback, private_data);
+	if (err < 0)
+		return err;
+	h->type = SND_ASYNC_HANDLER_PCM;
+	h->u.pcm = pcm;
+	was_empty = list_empty(&pcm->async_handlers);
+	list_add_tail(&h->hlist, &pcm->async_handlers);
+	if (was_empty) {
+		err = snd_pcm_async(pcm, getpid(), SIGIO);
+		if (err < 0) {
+			snd_async_del_handler(h);
+			return err;
+		}
+	}
+	*handler = h;
+	return 0;
+}
+
+/**
+ * \brief Return PCM handle related to an async handler
+ * \param handler Async handler handle
+ * \return PCM handle
+ */
+snd_pcm_t *snd_async_handler_get_pcm(snd_async_handler_t *handler)
+{
+	assert(handler->type = SND_ASYNC_HANDLER_PCM);
+	return handler->u.pcm;
+}
+
 static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 			     snd_config_t *pcm_root, snd_config_t *pcm_conf,
 			     snd_pcm_stream_t stream, int mode)
@@ -1045,6 +1086,26 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 }
 
 #ifndef DOC_HIDDEN
+
+int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
+		snd_pcm_stream_t stream, int mode)
+{
+	snd_pcm_t *pcm;
+	pcm = calloc(1, sizeof(*pcm));
+	if (!pcm)
+		return -ENOMEM;
+	pcm->type = type;
+	if (name)
+		pcm->name = strdup(name);
+	pcm->stream = stream;
+	pcm->mode = mode;
+	pcm->op_arg = pcm;
+	pcm->fast_op_arg = pcm;
+	INIT_LIST_HEAD(&pcm->async_handlers);
+	*pcmp = pcm;
+	return 0;
+}
+
 int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 		       snd_config_t *conf, snd_pcm_stream_t stream,
 		       int mode)

@@ -20,13 +20,11 @@
  */
 
 #include "local.h"
-#include "list.h"
 
 typedef struct _snd_ctl_ops {
 	int (*close)(snd_ctl_t *handle);
 	int (*nonblock)(snd_ctl_t *handle, int nonblock);
 	int (*async)(snd_ctl_t *handle, int sig, pid_t pid);
-	int (*poll_descriptor)(snd_ctl_t *handle);
 	int (*subscribe_events)(snd_ctl_t *handle, int subscribe);
 	int (*card_info)(snd_ctl_t *handle, snd_ctl_card_info_t *info);
 	int (*element_list)(snd_ctl_t *handle, snd_ctl_elem_list_t *list);
@@ -53,8 +51,8 @@ struct _snd_ctl {
 	snd_ctl_ops_t *ops;
 	void *private_data;
 	int nonblock;
-	int async_sig;
-	pid_t async_pid;
+	int poll_fd;
+	struct list_head async_handlers;
 };
 
 struct _snd_hctl_elem {
@@ -80,6 +78,9 @@ struct _snd_hctl {
 };
 
 
+int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name);
 int _snd_ctl_poll_descriptor(snd_ctl_t *ctl);
+#define _snd_ctl_async_descriptor _snd_ctl_poll_descriptor
 int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode);
 int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname, const char *sname, int mode);
+int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid);
