@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <byteswap.h>
 #include <errno.h>
 #include <byteswap.h>
 #include "pcm_local.h"
