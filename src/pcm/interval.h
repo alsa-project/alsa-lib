@@ -30,6 +30,7 @@ int snd_interval_setinteger(snd_interval_t *i);
 int snd_interval_empty(const snd_interval_t *i);
 int snd_interval_single(const snd_interval_t *i);
 int snd_interval_value(const snd_interval_t *i);
+void snd_interval_set_value(snd_interval_t *i, unsigned int val);
 int snd_interval_min(const snd_interval_t *i);
 int snd_interval_max(const snd_interval_t *i);
 int snd_interval_test(const snd_interval_t *i, unsigned int val);

@@ -734,6 +734,41 @@ int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 	return pcm->ops->info(pcm->op_arg, info);
 }
 
+/** \brief Retreive current PCM hardware configuration chosen with #snd_pcm_hw_params
+ * \param pcm PCM handle
+ * \param params Configuration space definition container
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_pcm_hw_params_current(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	unsigned int frame_bits;
+
+	assert(pcm && params);
+	if (!pcm->setup)
+		return -EBADFD;
+	snd_pcm_hw_params_clear(params);
+	snd_mask_copy(&params->masks[SND_PCM_HW_PARAM_ACCESS], (snd_mask_t *)&pcm->access);
+	snd_mask_copy(&params->masks[SND_PCM_HW_PARAM_FORMAT], (snd_mask_t *)&pcm->format);
+	snd_mask_copy(&params->masks[SND_PCM_HW_PARAM_SUBFORMAT], (snd_mask_t *)&pcm->subformat);
+	frame_bits = snd_pcm_format_physical_width(pcm->format) * pcm->channels;
+	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_FRAME_BITS], frame_bits);
+	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_CHANNELS], pcm->channels);
+	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_RATE], pcm->rate);
+	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_PERIOD_TIME], pcm->period_time);
+	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_PERIOD_SIZE], pcm->period_size);
+	snd_interval_copy(&params->intervals[SND_PCM_HW_PARAM_PERIODS], &pcm->periods);
+	snd_interval_copy(&params->intervals[SND_PCM_HW_PARAM_BUFFER_TIME], &pcm->buffer_time);
+	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_BUFFER_SIZE], pcm->buffer_size);
+	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_BUFFER_BYTES], (pcm->buffer_size * frame_bits) / 8);
+	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_TICK_TIME], pcm->tick_time);
+	params->info = pcm->info;
+	params->msbits = pcm->msbits;
+	params->rate_num = pcm->rate_num;
+	params->rate_den = pcm->rate_den;
+	params->fifo_size = pcm->fifo_size;
+	return 0;
+} 
+
 /** \brief Install one PCM hardware configuration chosen from a configuration space and #snd_pcm_prepare it
  * \param pcm PCM handle
  * \param params Configuration space definition container

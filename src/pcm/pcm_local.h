@@ -170,6 +170,7 @@ struct _snd_pcm {
 	unsigned int rate;		/* rate in Hz */
 	snd_pcm_uframes_t period_size;
 	unsigned int period_time;	/* period duration */
+	snd_interval_t periods;
 	unsigned int tick_time;
 	snd_pcm_tstamp_t tstamp_mode;	/* timestamp mode */
 	unsigned int period_step;
@@ -188,6 +189,7 @@ struct _snd_pcm {
 	unsigned int rate_den;		/* rate denominator */
 	snd_pcm_uframes_t fifo_size;	/* chip FIFO size in frames */
 	snd_pcm_uframes_t buffer_size;
+	snd_interval_t buffer_time;
 	unsigned int sample_bits;
 	unsigned int frame_bits;
 	snd_pcm_rbptr_t appl;
