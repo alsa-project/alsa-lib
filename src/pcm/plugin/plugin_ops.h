@@ -367,20 +367,20 @@ static void *get32_labels[4 * 2 * 2] = {
 
 #ifdef GET32_END
 while (0) {
-get32_xxx1_1000: sample = (u_int32_t)as_u8(src) << 24; goto goto GET32_END;
-get32_xxx1_9000: sample = (u_int32_t)(as_u8(src) ^ 0x80) << 24; goto goto GET32_END;
-get32_xx12_1200: sample = (u_int32_t)as_u16(src) << 16; goto goto GET32_END;
-get32_xx12_9200: sample = (u_int32_t)(as_u16(src) ^ 0x8000) << 16; goto goto GET32_END;
-get32_xx12_2100: sample = (u_int32_t)bswap_16(as_u16(src)) << 16; goto goto GET32_END;
-get32_xx12_A100: sample = (u_int32_t)bswap_16(as_u16(src) ^ 0x80) << 16; goto goto GET32_END;
-get32_x123_1230: sample = as_u32(src) << 8; goto goto GET32_END;
-get32_x123_9230: sample = (as_u32(src) << 8) ^ 0x80000000; goto goto GET32_END;
-get32_123x_3210: sample = bswap_32(as_u32(src) >> 8); goto goto GET32_END;
-get32_123x_B210: sample = bswap_32((as_u32(src) >> 8) ^ 0x80); goto goto GET32_END;
-get32_1234_1234: sample = as_u32(src); goto goto GET32_END;
-get32_1234_9234: sample = as_u32(src) ^ 0x80000000; goto goto GET32_END;
-get32_1234_4321: sample = bswap_32(as_u32(src)); goto goto GET32_END;
-get32_1234_C321: sample = bswap_32(as_u32(src) ^ 0x80); goto goto GET32_END;
+get32_xxx1_1000: sample = (u_int32_t)as_u8(src) << 24; goto GET32_END;
+get32_xxx1_9000: sample = (u_int32_t)(as_u8(src) ^ 0x80) << 24; goto GET32_END;
+get32_xx12_1200: sample = (u_int32_t)as_u16(src) << 16; goto GET32_END;
+get32_xx12_9200: sample = (u_int32_t)(as_u16(src) ^ 0x8000) << 16; goto GET32_END;
+get32_xx12_2100: sample = (u_int32_t)bswap_16(as_u16(src)) << 16; goto GET32_END;
+get32_xx12_A100: sample = (u_int32_t)bswap_16(as_u16(src) ^ 0x80) << 16; goto GET32_END;
+get32_x123_1230: sample = as_u32(src) << 8; goto GET32_END;
+get32_x123_9230: sample = (as_u32(src) << 8) ^ 0x80000000; goto GET32_END;
+get32_123x_3210: sample = bswap_32(as_u32(src) >> 8); goto GET32_END;
+get32_123x_B210: sample = bswap_32((as_u32(src) >> 8) ^ 0x80); goto GET32_END;
+get32_1234_1234: sample = as_u32(src); goto GET32_END;
+get32_1234_9234: sample = as_u32(src) ^ 0x80000000; goto GET32_END;
+get32_1234_4321: sample = bswap_32(as_u32(src)); goto GET32_END;
+get32_1234_C321: sample = bswap_32(as_u32(src) ^ 0x80); goto GET32_END;
 }
 #endif
 
