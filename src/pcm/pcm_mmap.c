@@ -290,7 +290,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 				default:
 					assert(0);
 				}
-				s = i1->first + i1->step * pcm->buffer_size;
+				s = i1->first + i1->step * (pcm->buffer_size - 1) + pcm->bits_per_sample;
 				if (s > size)
 					size = s;
 			}
