@@ -595,6 +595,9 @@ static int snd_pcm_dmix_drain(snd_pcm_t *pcm)
 	stop_threshold = pcm->stop_threshold;
 	if (pcm->stop_threshold > pcm->buffer_size)
 		pcm->stop_threshold = pcm->buffer_size;
+	if (dmix->state == SND_PCM_STATE_PREPARED &&
+	    snd_pcm_mmap_playback_hw_avail(pcm) > 0)
+		snd_pcm_dmix_start(pcm);
 	while (dmix->state == SND_PCM_STATE_RUNNING) {
 		err = snd_pcm_dmix_sync_ptr(pcm);
 		if (err < 0)

@@ -326,6 +326,9 @@ static int snd_pcm_dshare_drain(snd_pcm_t *pcm)
 	stop_threshold = pcm->stop_threshold;
 	if (pcm->stop_threshold > pcm->buffer_size)
 		pcm->stop_threshold = pcm->buffer_size;
+	if (dshare->state == SND_PCM_STATE_PREPARED &&
+	    snd_pcm_mmap_playback_hw_avail(pcm) > 0)
+		snd_pcm_dshare_start(pcm);
 	while (dshare->state == SND_PCM_STATE_RUNNING) {
 		err = snd_pcm_dshare_sync_ptr(pcm);
 		if (err < 0)
