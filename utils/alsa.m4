@@ -118,7 +118,7 @@ exit(0);
 AC_LANG_RESTORE
 
 dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
-AC_CHECK_LIB([asound], [snd_defaults_card],,
+AC_CHECK_LIB([asound], [snd_seq_create_event],,
 	[ifelse([$3], , [AC_MSG_ERROR(No linkable libasound was found.)])
 	 alsa_found=no]
 )

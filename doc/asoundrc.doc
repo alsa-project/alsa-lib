@@ -1,3 +1,10 @@
+# Include a new configuration file
+<filename>
+
+# Replace with an environment variable
+# (default value is used if envvar is not present or empty)
+<@envvar[,envvar1][,envvar2...]:defaultval@>
+
 # Server definition
 server.NAME {
   host STR		# host where the server is located (if map to local address 

@@ -59,6 +59,7 @@ typedef struct {
 		UNTERMINATED_QUOTE = -2,
 		UNEXPECTED_CHAR = -3,
 		UNEXPECTED_EOF = -4,
+		BAD_ENV_DEFAULT = -5,
 	} error;
 } input_t;
 
@@ -112,19 +113,54 @@ static int get_char_skip_comments(input_t *input)
 	while (1) {
 		c = get_char(input);
 		if (c == '<') {
-			char *file;
+			char *str;
 			snd_input_t *in;
 			struct filedesc *fd;
-			int err = get_delimstring(&file, '>', input);
+			int err = get_delimstring(&str, '>', input);
 			if (err < 0)
 				return err;
-			err = snd_input_stdio_open(&in, file, "r");
-			if (err < 0)
-				return err;
+			if (strlen(str) < 3 ||
+			    str[0] != '@' ||
+			    str[strlen(str)-1] != '@' ||
+			    strchr(str, ':') == NULL) {
+				err = snd_input_stdio_open(&in, str, "r");
+				if (err < 0)
+					return err;
+			} else {
+				char *envvar = str + 1;
+				char *envdef = strchr(str, ':');
+				char *env, *end;
+				
+				str[strlen(str)-1] = '\0';
+				*envdef++ = '\0';
+				if (*envdef == '\0') {
+					free(str);
+					input->error = BAD_ENV_DEFAULT;
+					return -EINVAL;
+				}
+				while (1) {
+					end = strchr(envvar, ',');
+					if (end)
+						*end = '\0';
+					env = getenv(envvar);
+					if (env != NULL && *env != '\0')
+						break;
+					if (end) {
+						*end = ',';	/* repair for fd->name */
+						envvar = end + 1;
+					} else {
+						env = envdef;
+						break;
+					}
+				}
+				err = snd_input_buffer_open(&in, env, strlen(env));
+				if (err < 0)
+					return err;
+			}
 			fd = malloc(sizeof(*fd));
 			if (!fd)
 				return -ENOMEM;
-			fd->name = file;
+			fd->name = str;
 			fd->in = in;
 			fd->next = input->current;
 			fd->line = 1;
@@ -839,6 +875,9 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 			case UNEXPECTED_EOF:
 				str = "Unexpected end of file";
 				break;
+			case BAD_ENV_DEFAULT:
+				str = "Bad environment default value";
+				break;
 			default:
 				assert(0);
 				break;
@@ -1196,10 +1235,10 @@ int snd_config_search_alias(snd_config_t *config,
 }
 
 /** Environment variable containing files list for #snd_config_update */
-#define ASOUND_CONFIGS_VAR "ASOUND_CONFIGS"
+#define ALSA_CONFIG_PATH_VAR "ALSA_CONFIG_PATH"
 
 /** Default files used by #snd_config_update */
-#define ASOUND_CONFIGS_DEFAULT DATADIR "/alsa/alsa.conf:/etc/asound.conf:~/.asoundrc"
+#define ALSA_CONFIG_PATH_DEFAULT DATADIR "/alsa/alsa.conf:/etc/asound.conf:~/.asoundrc"
 
 /** \ingroup Config
   * Config top node */
@@ -1216,7 +1255,7 @@ static unsigned int files_info_count = 0;
 
 /** 
  * \brief Update #snd_config rereading (if needed) files specified in
- * environment variable ASOUND_CONFIGS. If it's not set the default value is
+ * environment variable ALSA_CONFIG_PATH. If it's not set the default value is
  * "/usr/share/alsa/alsa.conf:/etc/asound.conf:~/.asoundrc"
  * \return 0 if no action is needed, 1 if tree has been rebuilt otherwise a negative error code
  *
@@ -1232,9 +1271,9 @@ int snd_config_update()
 	size_t l;
 	struct finfo *fi;
 	unsigned int fi_count;
-	configs = getenv(ASOUND_CONFIGS_VAR);
+	configs = getenv(ALSA_CONFIG_PATH_VAR);
 	if (!configs)
-		configs = ASOUND_CONFIGS_DEFAULT;
+		configs = ALSA_CONFIG_PATH_DEFAULT;
 	for (k = 0, c = configs; (l = strcspn(c, ": ")) > 0; ) {
 		c += l;
 		k++;
@@ -1351,7 +1390,7 @@ snd_config_iterator_t snd_config_iterator_first(snd_config_t *node)
 }
 
 /**
- * \brief Return an iterator pointing to next leaf
+q * \brief Return an iterator pointing to next leaf
  * \param iterator Config node iterator
  * \return iterator value for next leaf
  */
