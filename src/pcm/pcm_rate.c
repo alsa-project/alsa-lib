@@ -34,6 +34,10 @@
 #include "pcm_plugin.h"
 #include "iatomic.h"
 
+#if 0
+#define DEBUG_REFINE
+#endif
+
 #ifndef PIC
 /* entry for static linking */
 const char *_snd_module_pcm_rate = "";
@@ -341,7 +345,10 @@ static int snd_pcm_rate_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_interval_t t;
-	const snd_interval_t *sbuffer_size;
+#ifdef DEBUG_REFINE
+	snd_output_t *out;
+#endif
+	const snd_interval_t *sbuffer_size, *buffer_size;
 	const snd_interval_t *srate, *crate;
 	int err;
 	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
@@ -360,7 +367,44 @@ static int snd_pcm_rate_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	err = _snd_pcm_hw_param_set_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
 	if (err < 0)
 		return err;
+	buffer_size = snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE);
+	/*
+	 * this condition probably needs more work:
+	 *   in case when the buffer_size is known and we are looking
+	 *   for best period_size, we should prefer situation when
+	 *   (buffer_size / period_size) * period_size == buffer_size
+	 */
+	if (snd_interval_single(buffer_size) && buffer_size->integer) {
+		snd_interval_t *period_size;
+		period_size = (snd_interval_t *)snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_PERIOD_SIZE);
+		if (!snd_interval_checkempty(period_size) &&
+		    period_size->openmin && period_size->openmax &&
+		    period_size->min + 1 == period_size->max) {
+		    	if ((buffer_size->min / period_size->min) * period_size->min == buffer_size->min) {
+		    		snd_interval_set_value(period_size, period_size->min);
+		    	} else if ((buffer_size->max / period_size->max) * period_size->max == buffer_size->max) {
+		    		snd_interval_set_value(period_size, period_size->max);
+		    	}
+		}
+	}
+#ifdef DEBUG_REFINE
+	snd_output_stdio_attach(&out, stderr, 0);
+	snd_output_printf(out, "REFINE (params):\n");
+	snd_pcm_hw_params_dump(params, out);
+	snd_output_printf(out, "REFINE (slave params):\n");
+	snd_pcm_hw_params_dump(sparams, out);
+	snd_output_close(out);
+#endif
 	err = _snd_pcm_hw_params_refine(params, links, sparams);
+#ifdef DEBUG_REFINE
+	snd_output_stdio_attach(&out, stderr, 0);
+	snd_output_printf(out, "********************\n");
+	snd_output_printf(out, "REFINE (params) (%i):\n", err);
+	snd_pcm_hw_params_dump(params, out);
+	snd_output_printf(out, "REFINE (slave params):\n");
+	snd_pcm_hw_params_dump(sparams, out);
+	snd_output_close(out);
+#endif
 	if (err < 0)
 		return err;
 	return 0;
