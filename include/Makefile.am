@@ -1,5 +1,3 @@
-
-
 sysincludedir = ${includedir}/sys
 sysinclude_HEADERS = asoundlib.h
 
@@ -10,8 +8,26 @@ header_files=header.h version.h error.h control.h mixer.h pcm.h rawmidi.h \
 
 noinst_HEADERS=$(header_files)
 
-$(srcdir)/asoundlib.h: $(header_files)
+asoundlib.h: $(header_files)
 	cat $^ > $@
 
-INCLUDES=-I$(top_srcdir)/include
+version.h: stamp-vh
+	@:
 
+stamp-vh: $(top_builddir)/configure.in
+	@echo "/*" > ver.tmp
+	@echo " *  ver.tmp" >> ver.tmp
+	@echo " */" >> ver.tmp
+	@echo "" >> ver.tmp
+	@echo "#define SND_LIB_VERSION		$(SND_LIB_VERSION)" >> ver.tmp
+	@echo "#define SND_LIB_MAJOR		$(SND_LIB_MAJOR)" >> ver.tmp
+	@echo "#define SND_LIB_MINOR		$(SND_LIB_MINOR)" >> ver.tmp
+	@echo "#define SND_LIB_SUBMINOR	$(SND_LIB_SUBMINOR)" >> ver.tmp
+	@echo >> ver.tmp
+	@cmp -s version.h ver.tmp \
+          || (echo "Updating version.h"; \
+              cp ver.tmp version.h; \
+              echo timestamp > stamp-vh)
+	-@rm -f ver.tmp
+
+INCLUDES=-I$(top_srcdir)/include
