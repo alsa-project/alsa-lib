@@ -86,60 +86,6 @@ size_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
 	return pcm->mmap_status->hw_ptr % pcm->setup.buffer_size;
 }
 
-int snd_pcm_mmap_state(snd_pcm_t *pcm)
-{
-	assert(pcm);
-	assert(pcm->mmap_status);
-	return pcm->mmap_status->state;
-}
-
-ssize_t snd_pcm_mmap_hw_ptr(snd_pcm_t *pcm)
-{
-	assert(pcm);
-	assert(pcm->mmap_status);
-	return pcm->mmap_status->hw_ptr;
-}
-
-ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset)
-{
-	ssize_t appl_ptr;
-	assert(pcm);
-	assert(pcm->mmap_status && pcm->mmap_control);
-	assert(offset == 0 || pcm->type == SND_PCM_TYPE_HW);
-	appl_ptr = pcm->mmap_control->appl_ptr;
-	if (offset == 0)
-		return appl_ptr;
-	switch (pcm->mmap_status->state) {
-	case SND_PCM_STATE_RUNNING:
-		if (pcm->setup.xrun_mode == SND_PCM_XRUN_ASAP)
-			snd_pcm_avail_update(pcm);
-		break;
-	case SND_PCM_STATE_READY:
-	case SND_PCM_STATE_NOTREADY:
-		return -EBADFD;
-	}
-	if (offset < 0) {
-		if (offset < -(ssize_t)pcm->setup.buffer_size)
-			offset = -(ssize_t)pcm->setup.buffer_size;
-		appl_ptr += offset;
-		if (appl_ptr < 0)
-			appl_ptr += pcm->setup.boundary;
-	} else {
-		size_t avail;
-		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-			avail = snd_pcm_mmap_playback_avail(pcm);
-		else
-			avail = snd_pcm_mmap_capture_avail(pcm);
-		if ((size_t)offset > avail)
-			offset = avail;
-		appl_ptr += offset;
-		if ((size_t)appl_ptr >= pcm->setup.boundary)
-			appl_ptr -= pcm->setup.boundary;
-	}
-	pcm->mmap_control->appl_ptr = appl_ptr;
-	return appl_ptr;
-}
-
 void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, size_t frames)
 {
 	ssize_t appl_ptr = pcm->mmap_control->appl_ptr;
@@ -156,6 +102,15 @@ void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, size_t frames)
 	if (appl_ptr >= pcm->setup.boundary)
 		appl_ptr -= pcm->setup.boundary;
 	pcm->mmap_control->appl_ptr = appl_ptr;
+}
+
+void snd_pcm_mmap_hw_backward(snd_pcm_t *pcm, size_t frames)
+{
+	ssize_t hw_ptr = pcm->mmap_status->hw_ptr;
+	hw_ptr -= frames;
+	if (hw_ptr < 0)
+		hw_ptr += pcm->setup.boundary;
+	pcm->mmap_status->hw_ptr = hw_ptr;
 }
 
 void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, size_t frames)

@@ -98,6 +98,7 @@ int snd_pcm_mmap_ready(snd_pcm_t *pcm);
 ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset);
 void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, size_t frames);
 void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, size_t frames);
+void snd_pcm_mmap_hw_backward(snd_pcm_t *pcm, size_t frames);
 void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, size_t frames);
 size_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm);
 size_t snd_pcm_mmap_avail(snd_pcm_t *pcm);

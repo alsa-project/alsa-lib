@@ -161,14 +161,7 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 
 static int snd_pcm_hw_state(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
-	int fd = hw->fd;
-	snd_pcm_status_t status;
-	if (pcm->mmap_status)
-		return pcm->mmap_status->state;
-	if (ioctl(fd, SND_PCM_IOCTL_STATUS, &status) < 0)
-		return -errno;
-	return status.state;
+	return pcm->mmap_status->state;
 }
 
 static int snd_pcm_hw_delay(snd_pcm_t *pcm, ssize_t *delayp)
@@ -390,14 +383,17 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 		if (err < 0)
 			return -errno;
 	}
-	avail = snd_pcm_mmap_avail(pcm);
-	if (avail > 0 && hw->mmap_emulation && 
-	    pcm->stream == SND_PCM_STREAM_CAPTURE) {
-		err = snd_pcm_read_mmap(pcm, avail);
-		if (err < 0)
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		avail = snd_pcm_mmap_playback_avail(pcm);
+	} else {
+		avail = snd_pcm_mmap_capture_avail(pcm);
+		if (avail > 0 && hw->mmap_emulation) {
+			err = snd_pcm_read_mmap(pcm, avail);
+			if (err < 0)
+				return err;
+			assert((size_t)err == avail);
 			return err;
-		assert((size_t)err == avail);
-		return err;
+		}
 	}
 	return avail;
 }

@@ -170,36 +170,42 @@ int snd_pcm_state(snd_pcm_t *pcm)
 int snd_pcm_delay(snd_pcm_t *pcm, ssize_t *delayp)
 {
 	assert(pcm);
+	assert(pcm->valid_setup);
 	return pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
 }
 
 int snd_pcm_prepare(snd_pcm_t *pcm)
 {
 	assert(pcm);
+	assert(pcm->valid_setup);
 	return pcm->fast_ops->prepare(pcm->fast_op_arg);
 }
 
 int snd_pcm_start(snd_pcm_t *pcm)
 {
 	assert(pcm);
+	assert(pcm->valid_setup);
 	return pcm->fast_ops->start(pcm->fast_op_arg);
 }
 
 int snd_pcm_drop(snd_pcm_t *pcm)
 {
 	assert(pcm);
+	assert(pcm->valid_setup);
 	return pcm->fast_ops->drop(pcm->fast_op_arg);
 }
 
 int snd_pcm_drain(snd_pcm_t *pcm)
 {
 	assert(pcm);
+	assert(pcm->valid_setup);
 	return pcm->fast_ops->drain(pcm->fast_op_arg);
 }
 
 int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 {
 	assert(pcm);
+	assert(pcm->valid_setup);
 	return pcm->fast_ops->pause(pcm->fast_op_arg, enable);
 }
 
@@ -451,10 +457,8 @@ int snd_pcm_dump_status(snd_pcm_status_t *status, FILE *fp)
 	fprintf(fp, "tstamp      : %ld.%06ld\n",
 		status->tstamp.tv_sec, status->tstamp.tv_usec);
 	fprintf(fp, "delay       : %ld\n", (long)status->delay);
-	fprintf(fp, "avail_max   : %ld\n", (long)status->avail_max);
-	fprintf(fp, "appl_ptr    : %ld\n", (long)status->appl_ptr);
-	fprintf(fp, "hw_ptr      : %ld\n", (long)status->hw_ptr);
 	fprintf(fp, "avail       : %ld\n", (long)status->avail);
+	fprintf(fp, "avail_max   : %ld\n", (long)status->avail_max);
 	return 0;
 }
 

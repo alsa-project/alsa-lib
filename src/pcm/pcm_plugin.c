@@ -82,11 +82,7 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	int err = snd_pcm_status(plugin->slave, status);
 	if (err < 0)
 		return err;
-	status->hw_ptr = plugin->mmap_status.hw_ptr;
-	status->appl_ptr = plugin->mmap_control.appl_ptr;
-	status->avail = (pcm->stream == SND_PCM_STREAM_PLAYBACK ?
-			 snd_pcm_mmap_playback_avail(pcm) :
-			 snd_pcm_mmap_capture_avail(pcm));
+	status->avail = snd_pcm_avail_update(pcm);
 	return 0;
 }
 
@@ -99,9 +95,8 @@ int snd_pcm_plugin_state(snd_pcm_t *pcm)
 int snd_pcm_plugin_delay(snd_pcm_t *pcm, ssize_t *delayp)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	ssize_t sd;
+	ssize_t sd, d;
 	int err = snd_pcm_delay(plugin->slave, &sd);
-	int d;
 	if (err < 0)
 		return err;
 	if (plugin->client_frames)
@@ -158,23 +153,26 @@ ssize_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, size_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
 	ssize_t n = pcm->setup.buffer_size - snd_pcm_mmap_avail(pcm);
+	assert(n >= 0);
 	if (n > 0) {
 		if ((size_t)n > frames)
 			n = frames;
-		snd_pcm_mmap_appl_backward(pcm, n);
 		frames -= n;
 	}
 	if (frames > 0) {
 		ssize_t err = snd_pcm_rewind(plugin->slave, frames);
 		if (err < 0) {
-			if (n > 0)
-				return n;
-			return err;
+			if (n <= 0)
+				return err;
+			goto _end;
 		}
 		if (plugin->client_frames)
 			err = plugin->client_frames(pcm, err);
+		snd_pcm_mmap_hw_backward(pcm, err);
 		n += err;
 	}
+ _end:
+	snd_pcm_mmap_appl_backward(pcm, n);
 	return n;
 }
 
@@ -236,6 +234,7 @@ ssize_t snd_pcm_plugin_mmap_forward(snd_pcm_t *pcm, size_t client_size)
 	ssize_t slave_size;
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
 		snd_pcm_mmap_appl_forward(pcm, client_size);
+		// snd_pcm_plugin_avail_update(pcm);
 		return client_size;
 	}
 	slave_size = snd_pcm_avail_update(slave);
@@ -245,11 +244,11 @@ ssize_t snd_pcm_plugin_mmap_forward(snd_pcm_t *pcm, size_t client_size)
 	       slave_xfer < (size_t)slave_size) {
 		size_t slave_frames = slave_size - slave_xfer;
 		size_t client_frames = client_size - client_xfer;
-		size_t cont = pcm->setup.buffer_size - snd_pcm_mmap_hw_offset(pcm);
+		size_t offset = snd_pcm_mmap_hw_offset(pcm);
+		size_t cont = pcm->setup.buffer_size - offset;
 		if (cont < client_frames)
 			client_frames = cont;
-		err = plugin->write(pcm, pcm->mmap_areas, 
-				    snd_pcm_mmap_hw_offset(pcm),
+		err = plugin->write(pcm, pcm->mmap_areas, offset,
 				    client_frames, &slave_frames);
 		if (err < 0)
 			break;
@@ -283,11 +282,11 @@ ssize_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	       client_xfer < client_size) {
 		size_t slave_frames = slave_size - slave_xfer;
 		size_t client_frames = client_size - client_xfer;
-		size_t cont = pcm->setup.buffer_size - snd_pcm_mmap_hw_offset(pcm);
+		size_t offset = snd_pcm_mmap_hw_offset(pcm);
+		size_t cont = pcm->setup.buffer_size - offset;
 		if (cont < client_frames)
 			client_frames = cont;
-		err = plugin->read(pcm, pcm->mmap_areas, 
-				   snd_pcm_mmap_hw_offset(pcm),
+		err = plugin->read(pcm, pcm->mmap_areas, offset,
 				   client_frames, &slave_frames);
 		if (err < 0)
 			break;
