@@ -91,11 +91,12 @@ snd_pcm_t *sndo_pcm_raw_capture(sndo_pcm_t *pcm);
  * \{
  */
 
-int sndo_pcm_param_rate(sndo_pcm_t *pcm, unsigned int rate, unsigned int *used_rate);
-int sndo_pcm_param_channels(sndo_pcm_t *pcm, unsigned int channels, unsigned int *used_channels);
-int sndo_pcm_param_format(sndo_pcm_t *pcm, snd_pcm_format_t format, snd_pcm_subformat_t subformat);
-int sndo_pcm_param_latency(sndo_pcm_t *pcm, enum sndo_pcm_latency_type latency);
+int sndo_pcm_param_reset(sndo_pcm_t *pcm);
 int sndo_pcm_param_access(sndo_pcm_t *pcm, enum sndo_pcm_access_type access);
+int sndo_pcm_param_rate(sndo_pcm_t *pcm, unsigned int rate, unsigned int *used_rate);
+int sndo_pcm_param_channels(sndo_pcm_t *pcm, unsigned int channels);
+int sndo_pcm_param_format(sndo_pcm_t *pcm, snd_pcm_format_t format, snd_pcm_subformat_t subformat);
+int sndo_pcm_param_latency(sndo_pcm_t *pcm, enum sndo_pcm_latency_type latency, snd_pcm_uframes_t *used_latency);
 int sndo_pcm_param_xrun(sndo_pcm_t *pcm, enum sndo_pcm_xrun_type xrun);
 
 /** \} */
@@ -108,15 +109,15 @@ int sndo_pcm_param_xrun(sndo_pcm_t *pcm, enum sndo_pcm_xrun_type xrun);
  */
 
 /* playback */
-int sndo_pcm_pio_ibegin(sndo_pcm_t *pcm, void *ring_buffer, snd_pcm_uframes_t *frames);
-int sndo_pcm_pio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames);
-int sndo_pcm_pio_nbegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *frames);
-int sndo_pcm_pio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames);
+int sndo_pcm_pio_ibegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *frames);
+snd_pcm_sframes_t sndo_pcm_pio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames);
+int sndo_pcm_pio_nbegin(sndo_pcm_t *pcm, void ***ring_buffer, snd_pcm_uframes_t *frames);
+snd_pcm_sframes_t sndo_pcm_pio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames);
 /* capture */
-int sndo_pcm_cio_ibegin(sndo_pcm_t *pcm, void *ring_buffer, snd_pcm_uframes_t *frames);
-int sndo_pcm_cio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames);
-int sndo_pcm_cio_nbegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *frames);
-int sndo_pcm_cio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames);
+int sndo_pcm_cio_ibegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *frames);
+snd_pcm_sframes_t sndo_pcm_cio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames);
+int sndo_pcm_cio_nbegin(sndo_pcm_t *pcm, void ***ring_buffer, snd_pcm_uframes_t *frames);
+snd_pcm_sframes_t sndo_pcm_cio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames);
 
 /** \} */
 

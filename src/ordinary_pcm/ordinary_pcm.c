@@ -55,14 +55,36 @@ Write something here
 #include <sys/shm.h>
 #include <sys/mman.h>
 #include <limits.h>
-#include "local.h"
+#define ALSA_PCM_NEW_HW_PARAMS_API
+#define ALSA_PCM_NEW_SW_PARAMS_API
+#include "asoundlib.h"
 #include "pcm_ordinary.h"
 
 struct sndo_pcm {
 	snd_pcm_t *playback;
 	snd_pcm_t *capture;
+	snd_pcm_hw_params_t *p_hw_params;
+	snd_pcm_hw_params_t *c_hw_params;
+	snd_pcm_sw_params_t *p_sw_params;
+	snd_pcm_sw_params_t *c_sw_params;
 	snd_pcm_t *master;
+	unsigned int channels;
+	unsigned int samplebytes;
+	snd_pcm_uframes_t p_offset;
+	snd_pcm_uframes_t c_offset;
+	int setting_up;
+	int initialized;
 };
+
+static int sndo_pcm_setup(sndo_pcm_t *pcm);
+static int sndo_pcm_initialize(sndo_pcm_t *pcm);
+
+static inline int sndo_pcm_check_setup(sndo_pcm_t *pcm)
+{
+	if (!pcm->initialized)
+		return sndo_pcm_initialize(pcm);
+	return 0;
+}
 
 /**
  * \brief Opens a ordinary pcm instance
@@ -73,12 +95,68 @@ struct sndo_pcm {
  * \return 0 on success otherwise a negative error code
  */
 int sndo_pcm_open(sndo_pcm_t **ppcm,
-		    const char *playback_name,
-		    const char *capture_name,
-		    snd_config_t *lconf)
+		  const char *playback_name,
+		  const char *capture_name,
+		  snd_config_t *lconf)
 {
+	int err = 0;
+	sndo_pcm_t *pcm;
+	
+	assert(ppcm);
+	assert(playback_name || capture_name);
 	*ppcm = NULL;
-	return -ENODEV;
+	pcm = calloc(1, sizeof(sndo_pcm_t));
+	if (pcm == NULL)
+		return -ENOMEM;
+	if (playback_name) {
+		err = snd_pcm_hw_params_malloc(&pcm->p_hw_params);
+		if (err < 0)
+			goto __end;
+		err = snd_pcm_sw_params_malloc(&pcm->p_sw_params);
+	}
+	if (capture_name) {
+		err = snd_pcm_hw_params_malloc(&pcm->c_hw_params);
+		if (err < 0)
+			goto __end;
+		err = snd_pcm_sw_params_malloc(&pcm->p_sw_params);
+	}
+	if (err < 0)
+		goto __end;
+	if (lconf) {
+		if (playback_name) {
+			err = snd_pcm_open_lconf(&pcm->playback, playback_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK, lconf);
+			if (err < 0)
+				goto __end;
+		}
+		if (capture_name) {
+			err = snd_pcm_open_lconf(&pcm->capture, playback_name, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK, lconf);
+			if (err < 0)
+				goto __end;
+		}
+	} else {
+		if (playback_name) {
+			err = snd_pcm_open(&pcm->playback, playback_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
+			if (err < 0)
+				goto __end;
+		}
+		if (capture_name) {
+			err = snd_pcm_open(&pcm->capture, playback_name, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK);
+			if (err < 0)
+				goto __end;
+		}
+	}
+	if (pcm->playback && pcm->capture) {
+		err = snd_pcm_link(pcm->playback, pcm->capture);
+		if (err < 0)
+			goto __end;
+		pcm->master = pcm->playback;
+	}
+	if (sndo_pcm_param_reset(pcm) >= 0)
+		*ppcm = pcm;
+      __end:
+	if (err < 0)
+		sndo_pcm_close(pcm);
+	return err;
 }
 
 /**
@@ -88,7 +166,22 @@ int sndo_pcm_open(sndo_pcm_t **ppcm,
  */
 int sndo_pcm_close(sndo_pcm_t *pcm)
 {
-	return -ENODEV;
+	int err;
+
+	if (pcm->playback)
+		err = snd_pcm_close(pcm->playback);
+	if (pcm->capture)
+		err = snd_pcm_close(pcm->capture);
+	if (pcm->p_hw_params)
+		snd_pcm_hw_params_free(pcm->p_hw_params);
+	if (pcm->p_sw_params)
+		snd_pcm_sw_params_free(pcm->p_sw_params);
+	if (pcm->c_hw_params)
+		snd_pcm_hw_params_free(pcm->c_hw_params);
+	if (pcm->c_sw_params)
+		snd_pcm_sw_params_free(pcm->c_sw_params);
+	free(pcm);
+	return 0;
 }
 
 /**
@@ -313,72 +406,393 @@ snd_pcm_t *sndo_pcm_raw_capture(sndo_pcm_t *pcm)
 	return pcm->capture;
 }
 
-int sndo_pcm_param_rate(sndo_pcm_t *pcm, unsigned int rate, unsigned int *used_rate)
+/**
+ * \brief Reset all parameters
+ * \param pcm ordinary PCM handle
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_pcm_param_reset(sndo_pcm_t *pcm)
 {
-	return -EIO;
+	int err;
+	
+	if (pcm->playback) {
+		err = snd_pcm_hw_params_any(pcm->playback, pcm->p_hw_params);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params_current(pcm->playback, pcm->p_sw_params);
+		if (err < 0)
+			return err;
+	}
+	if (pcm->capture) {
+		err = snd_pcm_hw_params_any(pcm->capture, pcm->c_hw_params);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params_current(pcm->capture, pcm->c_sw_params);
+		if (err < 0)
+			return err;
+	}
+	return 0;
 }
 
-int sndo_pcm_param_channels(sndo_pcm_t *pcm, unsigned int channels, unsigned int *used_channels)
-{
-	return -EIO;
-}
-
-int sndo_pcm_param_format(sndo_pcm_t *pcm, snd_pcm_format_t format, snd_pcm_subformat_t subformat)
-{
-	return -EIO;
-}
-
-int sndo_pcm_param_latency(sndo_pcm_t *pcm, enum sndo_pcm_latency_type latency)
-{
-	return -EIO;
-}
-
+/**
+ * \brief Set sample access type
+ * \param pcm ordinary PCM handle
+ * \param access access type (interleaved or noninterleaved)
+ * \return 0 on success otherwise a negative error code
+ */
 int sndo_pcm_param_access(sndo_pcm_t *pcm, enum sndo_pcm_access_type access)
 {
+	int err;
+	snd_pcm_access_t native_access = SND_PCM_ACCESS_MMAP_INTERLEAVED;
+
+	switch (access) {
+	case SNDO_PCM_ACCESS_INTERLEAVED:	native_access = SND_PCM_ACCESS_MMAP_INTERLEAVED;	break;
+	case SNDO_PCM_ACCESS_NONINTERLEAVED:	native_access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;	break;
+	default:
+		return -EINVAL;
+	}
+	err = sndo_pcm_setup(pcm);
+	if (err < 0)
+		return err;
+	if (pcm->playback) {
+		err = snd_pcm_hw_params_set_access(pcm->playback, pcm->p_hw_params, native_access);
+		if (err < 0) {
+			SNDERR("cannot set requested access for the playback direction");
+			return err;
+		}
+	}
+	if (pcm->capture) {
+		err = snd_pcm_hw_params_set_access(pcm->capture, pcm->c_hw_params, native_access);
+		if (err < 0) {
+			SNDERR("cannot set requested access for the capture direction");
+			return err;
+		}
+	}
+	return 0;
+}
+
+/**
+ * \brief Set stream rate
+ * \param pcm ordinary PCM handle
+ * \param rate requested rate
+ * \param used_rate returned real rate
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_pcm_param_rate(sndo_pcm_t *pcm, unsigned int rate, unsigned int *used_rate)
+{
+	int err;
+	unsigned int prate = rate, crate = rate;
+
+	err = sndo_pcm_setup(pcm);
+	if (err < 0)
+		return err;
+	if (pcm->playback) {
+		err = snd_pcm_hw_params_set_rate_near(pcm->playback, pcm->p_hw_params, &prate, 0);
+		if (err < 0) {
+			SNDERR("cannot set requested rate for the playback direction");
+			return err;
+		}
+	}
+	if (pcm->capture) {
+		err = snd_pcm_hw_params_set_rate_near(pcm->capture, pcm->c_hw_params, &crate, 0);
+		if (err < 0) {
+			SNDERR("cannot set requested rate for the capture direction");
+			return err;
+		}
+	}
+	if (used_rate)
+		*used_rate = pcm->capture ? crate : prate;
+	return 0;
+}
+
+/**
+ * \brief Set channels in stream
+ * \param pcm ordinary PCM handle
+ * \param channels requested channels
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_pcm_param_channels(sndo_pcm_t *pcm, unsigned int channels)
+{
+	int err;
+
+	err = sndo_pcm_setup(pcm);
+	if (err < 0)
+		return err;
+	if (pcm->playback) {
+		err = snd_pcm_hw_params_set_channels(pcm->capture, pcm->p_hw_params, channels);
+		if (err < 0) {
+			SNDERR("cannot set requested channels for the playback direction");
+			return err;
+		}
+	}
+	if (pcm->capture) {
+		err = snd_pcm_hw_params_set_channels(pcm->capture, pcm->c_hw_params, channels);
+		if (err < 0) {
+			SNDERR("cannot set requested channels for the capture direction");
+			return err;
+		}
+	}
+	return 0;
+}
+
+/**
+ * \brief Set stream format
+ * \param pcm ordinary PCM handle
+ * \param rate requested channels
+ * \param used_rate returned real channels
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_pcm_param_format(sndo_pcm_t *pcm, snd_pcm_format_t format, snd_pcm_subformat_t subformat)
+{
+	int err;
+	
+	if (subformat != SND_PCM_SUBFORMAT_STD)
+		return -EINVAL;
+	err = snd_pcm_format_physical_width(format);
+	if (err < 0)
+		return err;
+	if (err % 8)
+		return -EINVAL;
+	err = sndo_pcm_setup(pcm);
+	if (err < 0)
+		return err;
+	if (pcm->playback) {
+		err = snd_pcm_hw_params_set_format(pcm->capture, pcm->p_hw_params, format);
+		if (err < 0) {
+			SNDERR("cannot set requested format for the playback direction");
+			return err;
+		}
+	}
+	if (pcm->capture) {
+		err = snd_pcm_hw_params_set_format(pcm->capture, pcm->c_hw_params, format);
+		if (err < 0) {
+			SNDERR("cannot set requested format for the capture direction");
+			return err;
+		}
+	}
+	return 0;
+}
+
+/**
+ * \brief Set stream latency
+ * \param pcm ordinary PCM handle
+ * \param latency requested latency
+ * \param used_latency returned real latency in frames
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_pcm_param_latency(sndo_pcm_t *pcm, enum sndo_pcm_latency_type latency, snd_pcm_uframes_t *used_latency)
+{
+	int err;
+
+	err = sndo_pcm_setup(pcm);
+	if (err < 0)
+		return err;
 	return -EIO;
 }
 
+/**
+ * \brief Set xrun behaviour
+ * \param pcm ordinary PCM handle
+ * \param xrun requested behaviour
+ * \return 0 on success otherwise a negative error code
+ */
 int sndo_pcm_param_xrun(sndo_pcm_t *pcm, enum sndo_pcm_xrun_type xrun)
 {
+	int err;
+
+	err = sndo_pcm_setup(pcm);
+	if (err < 0)
+		return err;
 	return -EIO;
 }
 
-int sndo_pcm_pio_ibegin(sndo_pcm_t *pcm, void *ring_buffer, snd_pcm_uframes_t *frames)
+/**
+ * \brief Begin the playback interleaved frame update
+ * \param pcm ordinary PCM handle
+ * \param ring_buffer returned pointer to actual destination area
+ * \param frames returned maximum count of updated frames
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_pcm_pio_ibegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *frames)
 {
-	return -EIO;
+	int err;
+	const snd_pcm_channel_area_t *areas;
+
+	err = sndo_pcm_check_setup(pcm);
+	if (err < 0)
+		return err;
+	err = snd_pcm_mmap_begin(pcm->playback, &areas, &pcm->p_offset, frames);
+	if (err < 0)
+		return err;
+	*ring_buffer = (char *)areas->addr + (areas->first / 8) + pcm->p_offset * pcm->samplebytes;
+	return 0;
 }
 
-int sndo_pcm_pio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
+/**
+ * \brief Finish the playback interleave frame update (commit data to hardware)
+ * \param pcm ordinary PCM handle
+ * \param frames count of updated frames
+ * \return count of transferred frames on success otherwise a negative error code
+ */
+snd_pcm_sframes_t sndo_pcm_pio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	return -EIO;
+	return snd_pcm_mmap_commit(pcm->playback, pcm->p_offset, frames);
 }
 
-int sndo_pcm_pio_nbegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *frames)
+/**
+ * \brief Begin the playback noninterleaved frame update
+ * \param pcm ordinary PCM handle
+ * \param ring_buffer returned pointer to actual destination area
+ * \param frames returned maximum count of updated frames
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_pcm_pio_nbegin(sndo_pcm_t *pcm, void ***ring_buffer, snd_pcm_uframes_t *frames)
 {
-	return -EIO;
+	int err;
+	unsigned ch;
+	const snd_pcm_channel_area_t *areas;
+
+	err = sndo_pcm_check_setup(pcm);
+	if (err < 0)
+		return err;
+	err = snd_pcm_mmap_begin(pcm->playback, &areas, &pcm->p_offset, frames);
+	if (err < 0)
+		return err;
+	for (ch = 0; ch < pcm->channels; ch++)
+		ring_buffer[ch] = areas->addr + (areas->first / 8) + pcm->p_offset * pcm->samplebytes;
+	return 0;
 }
 
-int sndo_pcm_pio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
+/**
+ * \brief Finish the playback noninterleave frame update (commit data to hardware)
+ * \param pcm ordinary PCM handle
+ * \param frames count of updated frames
+ * \return count of transferred frames on success otherwise a negative error code
+ */
+snd_pcm_sframes_t sndo_pcm_pio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	return -EIO;
+	return snd_pcm_mmap_commit(pcm->playback, pcm->p_offset, frames);
 }
 
-int sndo_pcm_cio_ibegin(sndo_pcm_t *pcm, void *ring_buffer, snd_pcm_uframes_t *frames)
+/**
+ * \brief Begin the capture interleaved frame update
+ * \param pcm ordinary PCM handle
+ * \param ring_buffer returned pointer to actual destination area
+ * \param frames returned maximum count of updated frames
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_pcm_cio_ibegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *frames)
 {
-	return -EIO;
+	int err;
+	const snd_pcm_channel_area_t *areas;
+
+	err = sndo_pcm_check_setup(pcm);
+	if (err < 0)
+		return err;
+	err = snd_pcm_mmap_begin(pcm->capture, &areas, &pcm->c_offset, frames);
+	if (err < 0)
+		return err;
+	*ring_buffer = (char *)areas->addr + (areas->first / 8) + pcm->c_offset * pcm->samplebytes;
+	return 0;
 }
 
-int sndo_pcm_cio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
+/**
+ * \brief Finish the capture interleave frame update (commit data to hardware)
+ * \param pcm ordinary PCM handle
+ * \param frames count of updated frames
+ * \return count of transferred frames on success otherwise a negative error code
+ */
+snd_pcm_sframes_t sndo_pcm_cio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	return -EIO;
+	return snd_pcm_mmap_commit(pcm->capture, pcm->p_offset, frames);
 }
 
-int sndo_pcm_cio_nbegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *frames)
+/**
+ * \brief Begin the capture noninterleaved frame update
+ * \param pcm ordinary PCM handle
+ * \param ring_buffer returned pointer to actual destination area
+ * \param frames returned maximum count of updated frames
+ * \return 0 on success otherwise a negative error code
+ */
+int sndo_pcm_cio_nbegin(sndo_pcm_t *pcm, void ***ring_buffer, snd_pcm_uframes_t *frames)
 {
-	return -EIO;
+	int err;
+	unsigned ch;
+	const snd_pcm_channel_area_t *areas;
+
+	err = sndo_pcm_check_setup(pcm);
+	if (err < 0)
+		return err;
+	err = snd_pcm_mmap_begin(pcm->capture, &areas, &pcm->c_offset, frames);
+	if (err < 0)
+		return err;
+	for (ch = 0; ch < pcm->channels; ch++)
+		ring_buffer[ch] = areas->addr + (areas->first / 8) + pcm->c_offset * pcm->samplebytes;
+	return 0;
 }
 
-int sndo_pcm_cio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
+/**
+ * \brief Finish the capture noninterleave frame update (commit data to hardware)
+ * \param pcm ordinary PCM handle
+ * \param frames count of updated frames
+ * \return count of transferred frames on success otherwise a negative error code
+ */
+snd_pcm_sframes_t sndo_pcm_cio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	return -EIO;
+	return snd_pcm_mmap_commit(pcm->capture, pcm->c_offset, frames);
+}
+
+/*
+ *  helpers
+ */
+ 
+static int sndo_pcm_setup(sndo_pcm_t *pcm)
+{
+	if (pcm->initialized)
+		return 0;
+	if (!pcm->setting_up) {
+		int err = sndo_pcm_param_reset(pcm);
+		if (err < 0)
+			return err;
+		pcm->setting_up = 1;
+	}
+	return 0;
+}
+
+static int sndo_pcm_initialize(sndo_pcm_t *pcm)
+{
+	int err;
+	snd_pcm_uframes_t boundary;
+	snd_pcm_uframes_t avail_min = 1; /* FIXME */
+
+	if (pcm->playback) {
+		err = snd_pcm_sw_params_get_boundary(pcm->p_sw_params, &boundary);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params_set_start_threshold(pcm->capture, pcm->p_sw_params, boundary);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params_set_xfer_align(pcm->playback, pcm->p_sw_params, 1);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params_set_avail_min(pcm->playback, pcm->p_sw_params, avail_min);
+		if (err < 0)
+			return err;
+	}
+	if (pcm->capture) {
+		err = snd_pcm_sw_params_get_boundary(pcm->c_sw_params, &boundary);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params_set_start_threshold(pcm->capture, pcm->c_sw_params, boundary);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params_set_xfer_align(pcm->capture, pcm->c_sw_params, 1);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params_set_avail_min(pcm->capture, pcm->c_sw_params, avail_min);
+		if (err < 0)
+			return err;
+	}
+	pcm->initialized = 1;
+	return 0;
 }
