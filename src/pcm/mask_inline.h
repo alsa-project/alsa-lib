@@ -29,7 +29,7 @@
 #endif
 
 #ifndef MASK_MASK
-#define MASK_MAX 32
+#define MASK_MAX 31
 #endif
 
 struct _mask {

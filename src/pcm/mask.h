@@ -25,7 +25,7 @@
 #include <assert.h>
 #include "asoundlib.h"
 
-#define MASK_MAX 32
+#define MASK_MAX 31
 
 #ifdef MASK_INLINE
 #include "mask_inline.h"
