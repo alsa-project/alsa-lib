@@ -45,11 +45,14 @@
 
 //#define DEST_QUEUE_NUMBER 0
 #define DEST_QUEUE_NUMBER 7
-#define DEST_CLIENT_NUMBER 64
-//#define DEST_CLIENT_NUMBER 72
+//#define DEST_CLIENT_NUMBER 64
+#define DEST_CLIENT_NUMBER 72
 //#define DEST_CLIENT_NUMBER 128
 //#define DEST_CLIENT_NUMBER 255
 //#define DEST_CLIENT_NUMBER SND_SEQ_ADDRESS_BROADCAST
+#define DEST_PORT_NUMBER 0
+
+//#define USE_REALTIME
 
 FILE *F;
 void* seq_handle = NULL;
@@ -61,7 +64,7 @@ int local_tempo = 500000;
 
 static int dest_queue = DEST_QUEUE_NUMBER;
 static int dest_client = DEST_CLIENT_NUMBER;
-static int dest_port = 0;
+static int dest_port = DEST_PORT_NUMBER;
 static int source_channel = 0;
 static int source_port = 0;
 
@@ -122,7 +125,7 @@ void write_ev_im(snd_seq_event_t * ev)
 	while (written<0) {
 	  written = snd_seq_event_output (seq_handle, ev);
 		if (written<0) {
-		  printf("written = %i (%s)\n", written, snd_strerror(written));
+		  //printf("written = %i (%s)\n", written, snd_strerror(written));
 		  sleep(1);
 		  //sched_yield ();
 		}
@@ -152,7 +155,7 @@ void write_ev_var(snd_seq_event_t * ev, int len, void *ptr)
 	while (written<0) {
 	  written = snd_seq_event_output (seq_handle, ev);
 	        if (written<0) {
-	          printf("written = %i (%s)\n", written, snd_strerror(written));
+	          //printf("written = %i (%s)\n", written, snd_strerror(written));
 	          sleep(1);
 		  //sched_yield ();
 		}
@@ -187,17 +190,19 @@ void do_header(int format, int ntracks, int division)
 	}
 	/* set ppq */
 	{
-		snd_seq_queue_info_t queue_info;
-
-		queue_info.queue = 1;	/* queue we're using */
-		queue_info.ppq = ppq;
-		//queue_info.tempo = -1;	/* don't change */
-		queue_info.tempo = 500000;	/* don't change */
-		if (snd_seq_set_queue_info (seq_handle, dest_queue, &queue_info) < 0) {
-		        perror("ioctl");
-			exit(1);
+		snd_seq_queue_tempo_t	tempo;
+		if (snd_seq_get_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
+	    		perror ("get_queue_tempo");
+	    		exit (1);
 		}
-		printf("ALSA Timer updated, PPQ = %d\n", queue_info.ppq);
+		if (tempo.ppq != ppq) {
+			tempo.ppq = ppq;
+			if (snd_seq_set_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
+	    			perror ("set_queue_tempo");
+	    			exit (1);
+			}
+			printf("ALSA Timer updated, PPQ = %d\n", tempo.ppq);
+		}
 	}
 
 	/* start playing... */
@@ -626,7 +631,7 @@ int main(int argc, char *argv[])
 	src_port_info.type = SND_SEQ_PORT_TYPE_MIDI_GENERIC;
 	src_port_info.midi_channels = 16;
 	src_port_info.synth_voices = 0;
-	src_port_info.use = 0;
+	//src_port_info.use = 0;
 	src_port_info.kernel = NULL;
 	tmp = snd_seq_create_port (seq_handle, &src_port_info);
 	if (tmp < 0)

@@ -203,6 +203,8 @@ int snd_seq_set_client_info(void *handle, snd_seq_client_info_t * info)
 	seq = (snd_seq_t *) handle;
 	if (!seq || !info)
 		return -EINVAL;
+	info->client = seq->client;
+	info->type = USER_CLIENT;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_CLIENT_INFO, info) < 0)
 		return -errno;
 	return 0;
