@@ -15,6 +15,7 @@ cfg_files = aliases.conf \
 	CMI8338.conf \
 	CMI8338-SWIEC.conf \
 	CMI8738-MC6.conf \
+	CMI8738-MC8.conf \
 	CS46xx.conf \
 	EMU10K1.conf \
 	EMU10K1X.conf \
