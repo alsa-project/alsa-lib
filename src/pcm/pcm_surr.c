@@ -53,7 +53,9 @@ struct _snd_pcm_surround {
 	unsigned int channels;	/* count of channels (4 or 6) */
 	int pcms;		/* count of PCM channels */
 	int use_fd;		/* use this FD for the direct access */
-	snd_pcm_t *pcm[3];	/* up to three PCM stereo streams */	
+	snd_pcm_t *pcm[3];	/* up to three PCM stereo streams */
+	int use_route: 1;	/* route is used */
+	int route[6];		/* channel route */
 	int linked[3];		/* streams are linked */
 	snd_ctl_t *ctl;		/* CTL handle */
 	unsigned int caps;	/* capabilities */
@@ -102,22 +104,17 @@ static int snd_pcm_surround_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 static int snd_pcm_surround_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	snd_pcm_surround_t *surr = pcm->private_data;
-	int err;
-	if (surr->pcms == 1 || info->channel == 0 || info->channel == 1)
-		return snd_pcm_channel_info(surr->pcm[0], info);
-	if (surr->pcms > 1 && (info->channel == 2 || info->channel == 3)) {
-		info->channel -= 2;
-		err = snd_pcm_channel_info(surr->pcm[1], info);
-		info->channel += 2;
-		return err;
-	}
-	if (surr->pcms > 2 && (info->channel == 4 || info->channel == 5)) {
-		info->channel -= 4;
-		err = snd_pcm_channel_info(surr->pcm[2], info);
-		info->channel += 4;
-		return err;
-	}
-	return -EINVAL;
+	int err, old_channel;
+
+	old_channel = info->channel;
+	if (old_channel < 0 || old_channel > 5)
+		return -EINVAL;
+	if (surr->pcm[old_channel / 2] == NULL)
+		return -EINVAL;
+	info->channel = surr->route[old_channel] % 2;
+	err = snd_pcm_channel_info(surr->pcm[surr->pcms == 1 ? 0 : surr->route[old_channel] / 2], info);
+	info->channel = old_channel;
+	return err;
 }
 
 static int snd_pcm_surround_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
@@ -183,7 +180,7 @@ static snd_pcm_sframes_t snd_pcm_surround_rewind(snd_pcm_t *pcm, snd_pcm_uframes
 static snd_pcm_sframes_t snd_pcm_surround_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_surround_t *surr = pcm->private_data;
-	if (surr->pcms == 1)
+	if (surr->pcms == 1 && !surr->use_route)
 		return snd_pcm_writei(surr->pcm[0], buffer, size);
 	if (pcm->running_areas == NULL) {
 		int err;
@@ -198,6 +195,14 @@ static snd_pcm_sframes_t snd_pcm_surround_writen(snd_pcm_t *pcm, void **bufs, sn
 	int i;
 	snd_pcm_sframes_t res = -1, res1;
 	snd_pcm_surround_t *surr = pcm->private_data;
+	if (surr->use_route) {
+		if (pcm->running_areas == NULL) {
+			int err;
+			if ((err = snd_pcm_mmap(pcm)) < 0)
+				return err;
+		}
+		return snd_pcm_mmap_writen(pcm, bufs, size);
+	}
 	for (i = 0; i < surr->pcms; i++, bufs += 2) {
 		res1 = snd_pcm_writen(pcm, bufs, size);
 		if (res1 < 0)
@@ -213,7 +218,7 @@ static snd_pcm_sframes_t snd_pcm_surround_writen(snd_pcm_t *pcm, void **bufs, sn
 static snd_pcm_sframes_t snd_pcm_surround_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_surround_t *surr = pcm->private_data;
-	if (surr->pcms == 1)
+	if (surr->pcms == 1 && !surr->use_route)
 		return snd_pcm_readi(surr->pcm[0], buffer, size);
 	if (pcm->running_areas == NULL) {
 		int err;
@@ -228,6 +233,14 @@ static snd_pcm_sframes_t snd_pcm_surround_readn(snd_pcm_t *pcm, void **bufs, snd
 	int i;
 	snd_pcm_sframes_t res = -1, res1;
 	snd_pcm_surround_t *surr = pcm->private_data;
+	if (surr->use_route) {
+		if (pcm->running_areas == NULL) {
+			int err;
+			if ((err = snd_pcm_mmap(pcm)) < 0)
+				return err;
+		}
+		return snd_pcm_mmap_readn(pcm, bufs, size);
+	}
 	for (i = 0; i < surr->pcms; i++) {
 		res1 = snd_pcm_writen(pcm, bufs, size);
 		if (res1 < 0)
@@ -331,7 +344,13 @@ static int snd_pcm_surround_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
 	}
 	err = 0;
       __error:
-	snd_pcm_access_mask_copy(access_mask, access_mask1);
+	snd_pcm_access_mask_none(access_mask);
+	if (snd_pcm_access_mask_test(access_mask1, SND_PCM_ACCESS_RW_INTERLEAVED))
+		snd_pcm_access_mask_set(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (snd_pcm_access_mask_test(access_mask1, SND_PCM_ACCESS_RW_NONINTERLEAVED))
+		snd_pcm_access_mask_set(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+	if (snd_pcm_access_mask_test(access_mask1, SND_PCM_ACCESS_MMAP_COMPLEX))
+		snd_pcm_access_mask_set(access_mask, SND_PCM_ACCESS_MMAP_COMPLEX);
 	snd_pcm_surround_interval_channels_fixup(surr, params);
 	return err;
 }
@@ -638,6 +657,30 @@ int load_surround_config(snd_ctl_t *ctl, snd_pcm_surround_t *surr,
 				goto __error;
 			}
 		}
+		if (snd_config_search(n, "route", &n1) >= 0) {
+			snd_config_iterator_t i, next;
+			if (snd_config_get_type(n1) != SND_CONFIG_TYPE_COMPOUND) {
+				SNDERR("compound type expected");
+				goto __error;
+			}
+			snd_config_for_each(i, next, n1) {
+				snd_config_t *n = snd_config_iterator_entry(i);
+				int idx = atoi(snd_config_get_id(n));
+				unsigned long i;
+				int err = snd_config_get_integer(n, &i);
+				if (err < 0) {
+					SNDERR("Invalid field channel.%s", id);
+					goto __error;
+				}
+				if (idx < 0 || idx >= 6) {
+					SNDERR("Index is out of range (0-5): %i", idx);
+					goto __error;
+				}
+				if (idx != (int)i)
+					surr->use_route = 1;
+				surr->route[idx] = i;
+			}
+		}
 		if (snd_config_search(n, "open_single", &n1) >= 0) {
 			snd_config_iterator_t i, next;
 			int device = 0, subdevice = -1;
@@ -821,7 +864,7 @@ int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,
 	snd_ctl_t *ctl = NULL;
 	snd_ctl_card_info_t *info;
 	snd_card_type_t ctype;
-	int err;
+	int err, idx;
 
 	assert(pcmp);
 	surr = calloc(1, sizeof(snd_pcm_surround_t));
@@ -846,6 +889,8 @@ int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,
 	surr->card = card;
 	surr->device = dev;
 	surr->caps = SURR_CAP_4CH;
+	for (idx = 0; idx < 6; idx++)
+		surr->route[idx] = idx;
 	snd_ctl_card_info_alloca(&info);
 	if ((err = snd_ctl_card_info(ctl, info)) < 0)
 		goto __error;
