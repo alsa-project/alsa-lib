@@ -388,7 +388,7 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 	for (c = 0; c < pcm->channels; ++c) {
 		snd_pcm_channel_info_t *i = &pcm->mmap_channels[c];
 		unsigned int c1;
-		size_t size = i->first + i->step * pcm->buffer_size;
+		size_t size = i->first + i->step * (pcm->buffer_size - 1) + pcm->sample_bits;
 		if (!i->addr)
 			continue;
 		for (c1 = c + 1; c1 < pcm->channels; ++c1) {
@@ -397,7 +397,7 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 			if (i1->addr != i->addr)
 				continue;
 			i1->addr = NULL;
-			s = i1->first + i1->step * pcm->buffer_size;
+			s = i1->first + i1->step * (pcm->buffer_size - 1) + pcm->sample_bits;
 			if (s > size)
 				size = s;
 		}
