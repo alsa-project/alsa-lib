@@ -1,6 +1,8 @@
 alsaincludedir = ${includedir}/alsa
 alsainclude_HEADERS = asoundlib.h
 
+sysincludedir = ${includedir}/sys
+
 # This is the order they will be concatenated into asoundlib.h!
 #
 header_files=header.h version.h global.h input.h output.h error.h \
@@ -42,4 +44,6 @@ INCLUDES=-I$(top_srcdir)/include
 
 install-exec-hook:
 	rm -f $(alsaincludedir)/asoundef.h
-	(cd $(DESTDIR)$(alsaincludedir) && $(LN_S) ../sound/asoundef.h asoundef.h)
+	(cd $(DESTDIR)$(alsaincludedir) && $(LN_S) -f ../sound/asoundef.h asoundef.h)
+	# should be removed in future
+	(cd $(DESTDIR)$(sysincludedir) && $(LN_S) -f ../alsa/asoundlib.h asoundlib.h)
