@@ -593,6 +593,21 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 }
 
 /**
+ * \brief Opens a CTL using local configuration
+ * \param ctlp Returned CTL handle
+ * \param name ASCII identifier of the CTL handle
+ * \param mode Open mode (see #SND_CTL_NONBLOCK, #SND_CTL_ASYNC)
+ * \param lconf Local configuration
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_open_lconf(snd_ctl_t **ctlp, const char *name,
+		       int mode, snd_config_t *lconf)
+{
+	assert(ctlp && name && lconf);
+	return snd_ctl_open_noupdate(ctlp, lconf, name, mode);
+}
+
+/**
  * \brief Set CTL element #SND_CTL_ELEM_TYPE_BYTES value
  * \param ctl CTL handle
  * \param data Bytes value

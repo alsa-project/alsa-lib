@@ -193,6 +193,7 @@ int snd_card_get_name(int card, char **name);
 int snd_card_get_longname(int card, char **name);
 
 int snd_ctl_open(snd_ctl_t **ctl, const char *name, int mode);
+int snd_ctl_open_lconf(snd_ctl_t **ctl, const char *name, int mode, snd_config_t *lconf);
 int snd_ctl_close(snd_ctl_t *ctl);
 int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock);
 int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl, 

@@ -350,6 +350,9 @@ typedef struct _snd_pcm_scope snd_pcm_scope_t;
 
 int snd_pcm_open(snd_pcm_t **pcm, const char *name, 
 		 snd_pcm_stream_t stream, int mode);
+int snd_pcm_open_lconf(snd_pcm_t **pcm, const char *name, 
+		       snd_pcm_stream_t stream, int mode,
+		       snd_config_t *lconf);
 
 int snd_pcm_close(snd_pcm_t *pcm);
 const char *snd_pcm_name(snd_pcm_t *pcm);

@@ -1604,6 +1604,23 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 	return snd_pcm_open_noupdate(pcmp, snd_config, name, stream, mode);
 }
 
+/**
+ * \brief Opens a PCM using local configuration
+ * \param pcmp Returned PCM handle
+ * \param name ASCII identifier of the PCM handle
+ * \param stream Wanted stream
+ * \param mode Open mode (see #SND_PCM_NONBLOCK, #SND_PCM_ASYNC)
+ * \param lconf Local configuration
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_pcm_open_lconf(snd_pcm_t **pcmp, const char *name, 
+		       snd_pcm_stream_t stream, int mode,
+		       snd_config_t *lconf)
+{
+	assert(pcmp && name && lconf);
+	return snd_pcm_open_noupdate(pcmp, lconf, name, stream, mode);
+}
+
 #ifndef DOC_HIDDEN
 int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 		snd_pcm_stream_t stream, int mode)

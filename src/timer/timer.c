@@ -172,6 +172,24 @@ int snd_timer_open(snd_timer_t **timer, const char *name, int mode)
 }
 
 /**
+ * \brief Opens a new connection to the timer interface using local configuration
+ * \param timer Returned handle (NULL if not wanted)
+ * \param name ASCII identifier of the timer handle
+ * \param mode Open mode
+ * \param lconf Local configuration
+ * \return 0 on success otherwise a negative error code
+ *
+ * Opens a new connection to the timer interface specified with
+ * an ASCII identifier and mode.
+ */
+int snd_timer_open_lconf(snd_timer_t **timer, const char *name,
+			 int mode, snd_config_t *lconf)
+{
+	assert(timer && name && lconf);
+	return snd_timer_open_noupdate(timer, lconf, name, mode);
+}
+
+/**
  * \brief close timer handle
  * \param timer timer handle
  * \return 0 on success otherwise a negative error code

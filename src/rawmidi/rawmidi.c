@@ -212,6 +212,25 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 }
 
 /**
+ * \brief Opens a new connection to the RawMidi interface using local configuration
+ * \param inputp Returned input handle (NULL if not wanted)
+ * \param outputp Returned output handle (NULL if not wanted)
+ * \param name ASCII identifier of the RawMidi handle
+ * \param mode Open mode
+ * \param lconf Local configuration
+ * \return 0 on success otherwise a negative error code
+ *
+ * Opens a new connection to the RawMidi interface specified with
+ * an ASCII identifier and mode.
+ */
+int snd_rawmidi_open_lconf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+			   const char *name, int mode, snd_config_t *lconf)
+{
+	assert((inputp || outputp) && name && lconf);
+	return snd_rawmidi_open_noupdate(inputp, outputp, lconf, name, mode);
+}
+
+/**
  * \brief close RawMidi handle
  * \param rawmidi RawMidi handle
  * \return 0 on success otherwise a negative error code

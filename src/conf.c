@@ -1,11 +1,14 @@
 /**
  * \file conf.c
+ * \ingroup Configuration
  * \brief Configuration helper functions
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2000-2001
  *
  * Tree based, full nesting configuration functions.
+ *
+ * See the \ref conf page for more details.
  */
 /*
  *  Configuration helper functions
@@ -216,7 +219,7 @@ a.0 "first"
 a.1 "second"
 \endcode
 
-\section conf_summary Summary
+\section conf_syntax_summary Syntax summary
 
 \code
 # Configuration file syntax
@@ -247,6 +250,8 @@ name [
 name.0 [=] value0 [,|;]
 name.1 [=] value1 [,|;]
 \endcode
+
+
 
 */
 
@@ -2425,12 +2430,13 @@ SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VER
 #endif
 
 /** 
- * \brief Update #snd_config rereading (if needed) files specified in
- * environment variable ALSA_CONFIG_PATH. If it's not set the default value is
- * "/usr/share/alsa/alsa.conf".
+ * \brief Update #snd_config rereading (if needed) global configuration files.
  * \return non-negative value on success, otherwise a negative error code
  * \retval 0 no action is needed
  * \retval 1 tree has been rebuild
+ *
+ * The global configuration files are specified in environment variable ALSA_CONFIG_PATH.
+ * If it is not set the default value is "/usr/share/alsa/alsa.conf".
  *
  * Warning: If config tree is reread all the string pointer and config 
  * node handle previously obtained from this tree become invalid

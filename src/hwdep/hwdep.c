@@ -172,6 +172,22 @@ int snd_hwdep_open(snd_hwdep_t **hwdep, const char *name, int mode)
 }
 
 /**
+ * \brief Opens a new connection to the HwDep interface using local configuration
+ * \param hwdep Returned handle (NULL if not wanted)
+ * \param name ASCII identifier of the HwDep handle
+ * \param mode Open mode
+ * \return 0 on success otherwise a negative error code
+ *
+ * Opens a new connection to the HwDep interface specified with
+ * an ASCII identifier and mode.
+ */
+int snd_hwdep_open(snd_hwdep_t **hwdep, const char *name, int mode, snd_config_t *lconf)
+{
+	assert(hwdep && name);
+	return snd_hwdep_open_noupdate(hwdep, lconf, name, mode);
+}
+
+/**
  * \brief close HwDep handle
  * \param hwdep HwDep handle
  * \return 0 on success otherwise a negative error code

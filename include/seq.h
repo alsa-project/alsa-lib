@@ -84,6 +84,7 @@ typedef enum _snd_seq_type {
 /*
  */
 int snd_seq_open(snd_seq_t **handle, const char *name, int streams, int mode);
+int snd_seq_open_lconf(snd_seq_t **handle, const char *name, int streams, int mode, snd_config_t *lconf);
 const char *snd_seq_name(snd_seq_t *seq);
 snd_seq_type_t snd_seq_type(snd_seq_t *seq);
 int snd_seq_close(snd_seq_t *handle);

@@ -1,11 +1,15 @@
 /**
  * \file confmisc.c
+ * \ingroup Configuration
  * \brief Configuration helper functions
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2000-2001
  * 
  * Configuration helper functions.
+ *
+ * See the \ref conffunc page for more details.
+ */
 /*
  *  Miscellaneous configuration helper functions
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>,

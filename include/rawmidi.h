@@ -79,6 +79,8 @@ typedef enum _snd_rawmidi_type {
 
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 		     const char *name, int mode);
+int snd_rawmidi_open_lconf(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
+			   const char *name, int mode, snd_config_t *lconf);
 int snd_rawmidi_close(snd_rawmidi_t *rmidi);
 int snd_rawmidi_poll_descriptors_count(snd_rawmidi_t *rmidi);
 int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsigned int space);

@@ -101,10 +101,12 @@ typedef struct _snd_timer snd_timer_t;
 
 
 int snd_timer_query_open(snd_timer_query_t **handle, const char *name, int mode);
+int snd_timer_query_open_lconf(snd_timer_query_t **handle, const char *name, int mode, snd_config_t *lconf);
 int snd_timer_query_close(snd_timer_query_t *handle);
 int snd_timer_query_next_device(snd_timer_query_t *handle, snd_timer_id_t *tid);
 
 int snd_timer_open(snd_timer_t **handle, const char *name, int mode);
+int snd_timer_open_lconf(snd_timer_t **handle, const char *name, int mode, snd_config_t *lconf);
 int snd_timer_close(snd_timer_t *handle);
 int snd_timer_poll_descriptors_count(snd_timer_t *handle);
 int snd_timer_poll_descriptors(snd_timer_t *handle, struct pollfd *pfds, unsigned int space);

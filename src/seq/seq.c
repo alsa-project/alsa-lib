@@ -215,6 +215,25 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 }
 
 /**
+ * \brief Open the ALSA sequencer using local configuration
+ *
+ * \param seqp Pointer to a snd_seq_t pointer.
+ * \param streams The read/write mode of the sequencer.
+ * \param mode Optional modifier
+ * \param lconf Local configuration
+ * \return 0 on success otherwise a negative error code
+ *
+ * See the snd_seq_open() function for further details. The extension
+ * is that the given configuration is used to resolve abstract name.
+ */
+int snd_seq_open_lconf(snd_seq_t **seqp, const char *name, 
+		       int streams, int mode, snd_config_t *lconf)
+{
+	assert(seqp && name && lconf);
+	return snd_seq_open_noupdate(seqp, lconf, name, streams, mode);
+}
+
+/**
  * \brief Close the sequencer
  * \param handle Handle returned from #snd_seq_open()
  * \return 0 on success otherwise a negative error code
