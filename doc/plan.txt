@@ -7,7 +7,7 @@ ST: Status of coding
 NT: Note
 RP: Responsible person
 
-This file is maintained by Jaroslav Kysela <perex@jcu.cz>.
+This file is maintained by Jaroslav Kysela <perex@suse.cz>.
 ===== 
 
 				Library code
@@ -15,15 +15,15 @@ This file is maintained by Jaroslav Kysela <perex@jcu.cz>.
 
 1: Control interface routines
    ST: Low-Level code done
-   RP: Jaroslav Kysela <perex@jcu.cz>
+   RP: Jaroslav Kysela <perex@suse.cz>
 1.1: Network layer
 2: MIXER routines
    ST: Low-Level code done
-   RP: Jaroslav Kysela <perex@jcu.cz>
+   RP: Jaroslav Kysela <perex@suse.cz>
 2.1: Network layer
 3: PCM routines
    ST: Low-Level code done
-   RP: Jaroslav Kysela <perex@jcu.cz>
+   RP: Jaroslav Kysela <perex@suse.cz>
 3.1: Network layer + mixing routines to allow playback more than one input
      to one exclusive device
 3.2: Player routines for digital data (.wav,.snd,.mp3 etc...) (???)

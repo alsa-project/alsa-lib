@@ -1,6 +1,6 @@
 /*
  *  Error Routines
- *  Copyright (c) 1998 by Jaroslav Kysela <perex@jcu.cz>
+ *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
  *
  *  snd_strerror routine needs to be recoded for locale support
  *

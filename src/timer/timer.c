@@ -1,6 +1,6 @@
 /*
  *  Timer Interface - main file
- *  Copyright (c) 1998 by Jaroslav Kysela <perex@jcu.cz>
+ *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
