@@ -264,6 +264,122 @@ int snd_timer_nonblock(snd_timer_t *timer, int nonblock)
 }
 
 /**
+ * \brief get size of the snd_timer_info_t structure in bytes
+ * \return size of the snd_timer_info_t structure in bytes
+ */
+size_t snd_timer_info_sizeof()
+{
+	return sizeof(snd_timer_info_t);
+}
+
+/**
+ * \brief allocate a new snd_timer_info_t structure
+ * \param ptr returned pointer
+ * \return 0 on success otherwise a negative error code if fails
+ *
+ * Allocates a new snd_timer_info_t structure using the standard
+ * malloc C library function.
+ */
+int snd_timer_info_malloc(snd_timer_info_t **info)
+{
+	assert(info);
+	*info = calloc(1, sizeof(snd_timer_info_t));
+	if (!*info)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees the snd_timer_info_t structure
+ * \param info pointer to the snd_timer_info_t structure to free
+ *
+ * Frees the given snd_timer_info_t structure using the standard
+ * free C library function.
+ */
+void snd_timer_info_free(snd_timer_info_t *info)
+{
+	assert(info);
+	free(info);
+}
+
+/**
+ * \brief copy one snd_timer_info_t structure to another
+ * \param dst destination snd_timer_info_t structure
+ * \param src source snd_timer_info_t structure
+ */
+void snd_timer_info_copy(snd_timer_info_t *dst, const snd_timer_info_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief determine, if timer is slave
+ * \param info pointer to #snd_timer_info_t structure
+ * \return nonzero if timer is slave
+ */
+int snd_timer_info_is_slave(snd_timer_info_t * info)
+{
+	assert(info);
+	return info->flags & SNDRV_TIMER_FLG_SLAVE ? 1 : 0;
+}
+
+/**
+ * \brief get timer card
+ * \param info pointer to #snd_timer_info_t structure
+ * \return timer card number
+ */
+int snd_timer_info_get_card(snd_timer_info_t * info)
+{
+	assert(info);
+	return info->card;
+}
+
+/**
+ * \brief get timer id
+ * \param info pointer to #snd_timer_info_t structure
+ * \return timer id
+ */
+const char *snd_timer_info_get_id(snd_timer_info_t * info)
+{
+	assert(info);
+	return info->id;
+}
+
+/**
+ * \brief get timer name
+ * \param info pointer to #snd_timer_info_t structure
+ * \return timer name
+ */
+const char *snd_timer_info_get_name(snd_timer_info_t * info)
+{
+	assert(info);
+	return info->name;
+}
+
+/**
+ * \brief get maximum timer ticks
+ * \param info pointer to #snd_timer_info_t structure
+ * \return maximum timer ticks
+ */
+long snd_timer_info_get_ticks(snd_timer_info_t * info)
+{
+	assert(info);
+	return info->ticks;
+}
+
+/**
+ * \brief get timer resolution in us
+ * \param info pointer to #snd_timer_info_t structure
+ * \return timer resolution
+ */
+long snd_timer_info_get_resolution(snd_timer_info_t * info)
+{
+	assert(info);
+	return info->resolution;
+}
+
+/**
  * \brief get information about timer handle
  * \param timer timer handle
  * \param info pointer to a snd_timer_info_t structure to be filled
@@ -277,6 +393,122 @@ int snd_timer_info(snd_timer_t *timer, snd_timer_info_t * info)
 }
 
 /**
+ * \brief get size of the snd_timer_params_t structure in bytes
+ * \return size of the snd_timer_params_t structure in bytes
+ */
+size_t snd_timer_params_sizeof()
+{
+	return sizeof(snd_timer_params_t);
+}
+
+/**
+ * \brief allocate a new snd_timer_params_t structure
+ * \param ptr returned pointer
+ * \return 0 on success otherwise a negative error code if fails
+ *
+ * Allocates a new snd_timer_params_t structure using the standard
+ * malloc C library function.
+ */
+int snd_timer_params_malloc(snd_timer_params_t **params)
+{
+	assert(params);
+	*params = calloc(1, sizeof(snd_timer_params_t));
+	if (!*params)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees the snd_timer_params_t structure
+ * \param params pointer to the snd_timer_params_t structure to free
+ *
+ * Frees the given snd_timer_params_t structure using the standard
+ * free C library function.
+ */
+void snd_timer_params_free(snd_timer_params_t *params)
+{
+	assert(params);
+	free(params);
+}
+
+/**
+ * \brief copy one snd_timer_params_t structure to another
+ * \param dst destination snd_timer_params_t structure
+ * \param src source snd_timer_params_t structure
+ */
+void snd_timer_params_copy(snd_timer_params_t *dst, const snd_timer_params_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief set timer auto start
+ * \param params pointer to #snd_timer_params_t structure
+ */
+void snd_timer_params_set_auto_start(snd_timer_params_t * params, int auto_start)
+{
+	assert(params);
+	if (auto_start)
+		params->flags |= SNDRV_TIMER_PSFLG_AUTO;
+	else
+		params->flags &= ~SNDRV_TIMER_PSFLG_AUTO;
+}
+
+/**
+ * \brief determine if timer has auto start flag
+ * \param params pointer to #snd_timer_params_t structure
+ * \return nonzero if timer has auto start flag
+ */
+int snd_timer_params_get_auto_start(snd_timer_params_t * params)
+{
+	assert(params);
+	return params->flags & SNDRV_TIMER_PSFLG_AUTO ? 1 : 0;
+}
+
+/**
+ * \brief set timer ticks
+ * \param params pointer to #snd_timer_params_t structure
+ */
+void snd_timer_params_set_ticks(snd_timer_params_t * params, long ticks)
+{
+	assert(params);
+	params->ticks = ticks;
+}
+
+/**
+ * \brief get timer ticks
+ * \param params pointer to #snd_timer_params_t structure
+ * \return timer ticks
+ */
+int snd_timer_params_get_ticks(snd_timer_params_t * params)
+{
+	assert(params);
+	return params->ticks;
+}
+
+/**
+ * \brief set timer queue size (32-1024)
+ * \param params pointer to #snd_timer_params_t structure
+ */
+void snd_timer_params_set_queue_size(snd_timer_params_t * params, long queue_size)
+{
+	assert(params);
+	params->queue_size = queue_size;
+}
+
+/**
+ * \brief get queue size
+ * \param params pointer to #snd_timer_params_t structure
+ * \return queue size
+ */
+long snd_timer_params_get_queue_size(snd_timer_params_t * params)
+{
+	assert(params);
+	return params->queue_size;
+}
+
+/**
  * \brief set parameters for timer handle
  * \param timer timer handle
  * \param params pointer to a #snd_timer_params_t structure
@@ -287,6 +519,113 @@ int snd_timer_params(snd_timer_t *timer, snd_timer_params_t * params)
 	assert(timer);
 	assert(params);
 	return timer->ops->params(timer, params);
+}
+
+/**
+ * \brief get size of the snd_timer_status_t structure in bytes
+ * \return size of the snd_timer_status_t structure in bytes
+ */
+size_t snd_timer_status_sizeof()
+{
+	return sizeof(snd_timer_status_t);
+}
+
+/**
+ * \brief allocate a new snd_timer_status_t structure
+ * \param ptr returned pointer
+ * \return 0 on success otherwise a negative error code if fails
+ *
+ * Allocates a new snd_timer_status_t structure using the standard
+ * malloc C library function.
+ */
+int snd_timer_status_malloc(snd_timer_status_t **status)
+{
+	assert(status);
+	*status = calloc(1, sizeof(snd_timer_status_t));
+	if (!*status)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees the snd_timer_status_t structure
+ * \param status pointer to the snd_timer_status_t structure to free
+ *
+ * Frees the given snd_timer_status_t structure using the standard
+ * free C library function.
+ */
+void snd_timer_status_free(snd_timer_status_t *status)
+{
+	assert(status);
+	free(status);
+}
+
+/**
+ * \brief copy one snd_timer_status_t structure to another
+ * \param dst destination snd_timer_status_t structure
+ * \param src source snd_timer_status_t structure
+ */
+void snd_timer_status_copy(snd_timer_status_t *dst, const snd_timer_status_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+
+/**
+ * \brief get timestamp
+ * \param status pointer to #snd_timer_status_t structure
+ * \return timestamp
+ */
+struct timeval snd_timer_status_get_timestamp(snd_timer_status_t * status)
+{
+	assert(status);
+	return status->tstamp;
+}
+
+/**
+ * \brief get resolution in us
+ * \param status pointer to #snd_timer_status_t structure
+ * \return resolution
+ */
+long snd_timer_status_get_resolution(snd_timer_status_t * status)
+{
+	assert(status);
+	return status->resolution;
+}
+
+/**
+ * \brief get master tick lost count
+ * \param status pointer to #snd_timer_status_t structure
+ * \return master tick lost count
+ */
+long snd_timer_status_get_lost(snd_timer_status_t * status)
+{
+	assert(status);
+	return status->lost;
+}
+
+/**
+ * \brief get overrun count
+ * \param status pointer to #snd_timer_status_t structure
+ * \return overrun count
+ */
+long snd_timer_status_get_overrun(snd_timer_status_t * status)
+{
+	assert(status);
+	return status->overrun;
+}
+
+/**
+ * \brief get count of used queue elements
+ * \param status pointer to #snd_timer_status_t structure
+ * \return count of used queue elements
+ */
+long snd_timer_status_get_queue(snd_timer_status_t * status)
+{
+	assert(status);
+	return status->queue;
 }
 
 /**

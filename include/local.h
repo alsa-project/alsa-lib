@@ -68,6 +68,12 @@ typedef struct sndrv_seq_instr snd_seq_instr_t;
 typedef struct sndrv_seq_event snd_seq_event_t;
 #define snd_seq_instr_cluster_t sndrv_seq_instr_cluster_t
 
+#define _snd_timer_id sndrv_timer_id
+#define _snd_timer_select sndrv_timer_select
+#define _snd_timer_info sndrv_timer_info
+#define _snd_timer_params sndrv_timer_params
+#define _snd_timer_status sndrv_timer_status
+
 #include "asoundlib.h"
 #include "list.h"
 

@@ -191,3 +191,163 @@ int snd_timer_query_next_device(snd_timer_query_t *timer, snd_timer_id_t *tid)
   	assert(tid);
 	return timer->ops->next_device(timer, tid);
 }
+
+/**
+ * \brief get size of the snd_timer_id_t structure in bytes
+ * \return size of the snd_timer_id_t structure in bytes
+ */
+size_t snd_timer_id_sizeof()
+{
+	return sizeof(snd_timer_id_t);
+}
+
+/**
+ * \brief allocate a new snd_timer_id_t structure
+ * \param ptr returned pointer
+ * \return 0 on success otherwise a negative error code if fails
+ *
+ * Allocates a new snd_timer_id_t structure using the standard
+ * malloc C library function.
+ */
+int snd_timer_id_malloc(snd_timer_id_t **info)
+{
+	assert(info);
+	*info = calloc(1, sizeof(snd_timer_id_t));
+	if (!*info)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees the snd_timer_id_t structure
+ * \param info pointer to the snd_timer_id_t structure to free
+ *
+ * Frees the given snd_timer_id_t structure using the standard
+ * free C library function.
+ */
+void snd_timer_id_free(snd_timer_id_t *info)
+{
+	assert(info);
+	free(info);
+}
+
+/**
+ * \brief copy one snd_timer_id_t structure to another
+ * \param dst destination snd_timer_id_t structure
+ * \param src source snd_timer_id_t structure
+ */
+void snd_timer_id_copy(snd_timer_id_t *dst, const snd_timer_id_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief set timer class
+ * \param tid pointer to #snd_timer_id_t structure
+ * \param dev_class class of timer device
+ */
+void snd_timer_id_set_class(snd_timer_id_t * tid, int dev_class)
+{
+	assert(tid);
+	tid->dev_class = dev_class;
+}
+
+/**
+ * \brief get timer class
+ * \param tid pointer to #snd_timer_id_t structure
+ * \return timer class
+ */
+int snd_timer_id_get_class(snd_timer_id_t * tid)
+{
+	assert(tid);
+	return tid->dev_class;
+}
+
+/**
+ * \brief set timer sub-class
+ * \param tid pointer to #snd_timer_id_t structure
+ * \param dev_sclass sub-class of timer device
+ */
+void snd_timer_id_set_sclass(snd_timer_id_t * tid, int dev_sclass)
+{
+	assert(tid);
+	tid->dev_sclass = dev_sclass;
+}
+
+/**
+ * \brief get timer sub-class
+ * \param params pointer to #snd_timer_id_t structure
+ * \return timer sub-class
+ */
+int snd_timer_id_get_sclass(snd_timer_id_t * tid)
+{
+	assert(tid);
+	return tid->dev_sclass;
+}
+
+/**
+ * \brief set timer card
+ * \param tid pointer to #snd_timer_id_t structure
+ * \param card card number
+ */
+void snd_timer_id_set_card(snd_timer_id_t * tid, int card)
+{
+	assert(tid);
+	tid->card = card;
+}
+
+/**
+ * \brief get timer card
+ * \param params pointer to #snd_timer_id_t structure
+ * \return timer card number
+ */
+int snd_timer_id_get_card(snd_timer_id_t * tid)
+{
+	assert(tid);
+	return tid->card;
+}
+
+/**
+ * \brief set timer device
+ * \param tid pointer to #snd_timer_id_t structure
+ * \param device device number
+ */
+void snd_timer_id_set_device(snd_timer_id_t * tid, int device)
+{
+	assert(tid);
+	tid->device = device;
+}
+
+/**
+ * \brief get timer device
+ * \param params pointer to #snd_timer_id_t structure
+ * \return timer device number
+ */
+int snd_timer_id_get_device(snd_timer_id_t * tid)
+{
+	assert(tid);
+	return tid->device;
+}
+
+/**
+ * \brief set timer subdevice
+ * \param tid pointer to #snd_timer_id_t structure
+ * \param subdevice subdevice number
+ */
+void snd_timer_id_set_subdevice(snd_timer_id_t * tid, int subdevice)
+{
+	assert(tid);
+	tid->subdevice = subdevice;
+}
+
+/**
+ * \brief get timer subdevice
+ * \param params pointer to #snd_timer_id_t structure
+ * \return timer subdevice number
+ */
+int snd_timer_id_get_subdevice(snd_timer_id_t * tid)
+{
+	assert(tid);
+	return tid->subdevice;
+}

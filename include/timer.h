@@ -11,16 +11,14 @@
  *  \{
  */
 
-/** timer identification */
-typedef struct sndrv_timer_id snd_timer_id_t;
-/** timer select structure */
-typedef struct sndrv_timer_select snd_timer_select_t;
+/** timer identification structure */
+typedef struct _snd_timer_id snd_timer_id_t;
 /** timer info structure */
-typedef struct sndrv_timer_info snd_timer_info_t;
-/** timer parameters structure */
-typedef struct sndrv_timer_params snd_timer_params_t;
+typedef struct _snd_timer_info snd_timer_info_t;
+/** timer params structure */
+typedef struct _snd_timer_params snd_timer_params_t;
 /** timer status structure */
-typedef struct sndrv_timer_status snd_timer_status_t;
+typedef struct _snd_timer_status snd_timer_status_t;
 /** timer read structure */
 typedef struct sndrv_timer_read snd_timer_read_t;
 
@@ -47,11 +45,6 @@ typedef enum _snd_timer_slave_class {
 #define SND_TIMER_GLOBAL_SYSTEM SNDRV_TIMER_GLOBAL_SYSTEM
 /** global timer - RTC */
 #define SND_TIMER_GLOBAL_RTC SNDRV_TIMER_GLOBAL_RTC
-
-/** timer cannot be controlled */
-#define SND_TIMER_FLG_SLAVE SNDRV_TIMER_FLG_SLAVE
-/** timer supports auto-start */
-#define SND_TIMER_PSFLG_AUTO SNDRV_TIMER_PSFLG_AUTO
 
 /** timer open mode flag - nonblock */
 #define SND_TIMER_OPEN_NONBLOCK		1
@@ -90,6 +83,64 @@ int snd_timer_start(snd_timer_t *handle);
 int snd_timer_stop(snd_timer_t *handle);
 int snd_timer_continue(snd_timer_t *handle);
 ssize_t snd_timer_read(snd_timer_t *handle, void *buffer, size_t size);
+
+size_t snd_timer_id_sizeof(void);
+/** allocate #snd_timer_id_t container on stack */
+#define snd_timer_id_alloca(ptr) do { assert(ptr); *ptr = (snd_timer_id_t *) alloca(snd_timer_id_sizeof()); memset(*ptr, 0, snd_timer_id_sizeof()); } while (0)
+int snd_timer_id_malloc(snd_timer_id_t **ptr);
+void snd_timer_id_free(snd_timer_id_t *obj);
+void snd_timer_id_copy(snd_timer_id_t *dst, const snd_timer_id_t *src);
+
+void snd_timer_id_set_class(snd_timer_id_t *id, int class);
+int snd_timer_id_get_class(snd_timer_id_t *id);
+void snd_timer_id_set_sclass(snd_timer_id_t *id, int sclass);
+int snd_timer_id_get_sclass(snd_timer_id_t *id);
+void snd_timer_id_set_card(snd_timer_id_t *id, int card);
+int snd_timer_id_get_card(snd_timer_id_t *id);
+void snd_timer_id_set_device(snd_timer_id_t *id, int device);
+int snd_timer_id_get_device(snd_timer_id_t *id);
+void snd_timer_id_set_subdevice(snd_timer_id_t *id, int subdevice);
+int snd_timer_id_get_subdevice(snd_timer_id_t *id);
+
+size_t snd_timer_info_sizeof(void);
+/** allocate #snd_timer_info_t container on stack */
+#define snd_timer_info_alloca(ptr) do { assert(ptr); *ptr = (snd_timer_info_t *) alloca(snd_timer_info_sizeof()); memset(*ptr, 0, snd_timer_info_sizeof()); } while (0)
+int snd_timer_info_malloc(snd_timer_info_t **ptr);
+void snd_timer_info_free(snd_timer_info_t *obj);
+void snd_timer_info_copy(snd_timer_info_t *dst, const snd_timer_info_t *src);
+
+int snd_timer_info_is_slave(snd_timer_info_t * info);
+int snd_timer_info_get_card(snd_timer_info_t * info);
+const char *snd_timer_info_get_id(snd_timer_info_t * info);
+const char *snd_timer_info_get_name(snd_timer_info_t * info);
+long snd_timer_info_get_ticks(snd_timer_info_t * info);
+long snd_timer_info_get_resolution(snd_timer_info_t * info);
+
+size_t snd_timer_params_sizeof(void);
+/** allocate #snd_timer_params_t container on stack */
+#define snd_timer_params_alloca(ptr) do { assert(ptr); *ptr = (snd_timer_params_t *) alloca(snd_timer_params_sizeof()); memset(*ptr, 0, snd_timer_params_sizeof()); } while (0)
+int snd_timer_params_malloc(snd_timer_params_t **ptr);
+void snd_timer_params_free(snd_timer_params_t *obj);
+void snd_timer_params_copy(snd_timer_params_t *dst, const snd_timer_params_t *src);
+
+void snd_timer_params_set_auto_start(snd_timer_params_t * params, int auto_start);
+void snd_timer_params_set_ticks(snd_timer_params_t * params, long ticks);
+int snd_timer_params_get_ticks(snd_timer_params_t * params);
+void snd_timer_params_set_queue_size(snd_timer_params_t * params, long queue_size);
+long snd_timer_params_get_queue_size(snd_timer_params_t * params);
+
+size_t snd_timer_status_sizeof(void);
+/** allocate #snd_timer_status_t container on stack */
+#define snd_timer_status_alloca(ptr) do { assert(ptr); *ptr = (snd_timer_status_t *) alloca(snd_timer_status_sizeof()); memset(*ptr, 0, snd_timer_status_sizeof()); } while (0)
+int snd_timer_status_malloc(snd_timer_status_t **ptr);
+void snd_timer_status_free(snd_timer_status_t *obj);
+void snd_timer_status_copy(snd_timer_status_t *dst, const snd_timer_status_t *src);
+
+struct timeval snd_timer_status_get_timestamp(snd_timer_status_t * status);
+long snd_timer_status_get_resolution(snd_timer_status_t * status);
+long snd_timer_status_get_lost(snd_timer_status_t * status);
+long snd_timer_status_get_overrun(snd_timer_status_t * status);
+long snd_timer_status_get_queue(snd_timer_status_t * status);
 
 #ifdef __cplusplus
 }

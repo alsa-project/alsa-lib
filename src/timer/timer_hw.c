@@ -158,7 +158,7 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 {
 	int fd, ver, tmode;
 	snd_timer_t *tmr;
-	snd_timer_id_t id;
+	struct sndrv_timer_select sel;
 
 	*handle = NULL;
 
@@ -175,13 +175,13 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 		close(fd);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
-	memset(&id, 0, sizeof(id));
-	id.dev_class = dev_class;
-	id.dev_sclass = dev_sclass;
-	id.card = card;
-	id.device = device;
-	id.subdevice = subdevice;
-	if (ioctl(fd, SNDRV_TIMER_IOCTL_SELECT, &id) < 0) {
+	memset(&sel, 0, sizeof(sel));
+	sel.id.dev_class = dev_class;
+	sel.id.dev_sclass = dev_sclass;
+	sel.id.card = card;
+	sel.id.device = device;
+	sel.id.subdevice = subdevice;
+	if (ioctl(fd, SNDRV_TIMER_IOCTL_SELECT, &sel) < 0) {
 		int err = -errno;
 		close(fd);
 		return err;
