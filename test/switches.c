@@ -4,7 +4,7 @@
 #include <errno.h>
 #include "../include/asoundlib.h"
 
-static void *ctl_handle;
+static snd_ctl_t *ctl_handle;
 static int sw_interface;
 static int sw_device;
 
@@ -168,7 +168,7 @@ void process(char *space, char *prefix, int interface, int device)
 	free(list.pswitches);
 }
 
-void main(void)
+int main(void)
 {
 	int cards, card, err, idx;
 	snd_ctl_hw_info_t info;
@@ -177,7 +177,7 @@ void main(void)
 	printf("Detected %i soundcard%s...\n", cards, cards > 1 ? "s" : "");
 	if (cards <= 0) {
 		printf("Giving up...\n");
-		return;
+		return 0;
 	}
 	/* control interface */
 	for (card = 0; card < cards; card++) {
@@ -199,4 +199,5 @@ void main(void)
 		}
 		snd_ctl_close(ctl_handle);
 	}
+	return 0;
 }

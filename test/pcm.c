@@ -31,7 +31,7 @@ void setformat(void *phandle, void *rhandle)
 
 void method1(void)
 {
-	void *phandle, *rhandle;
+	snd_pcm_t *phandle, *rhandle;
 	char buffer[BUFFER_SIZE];
 	int err;
 
@@ -66,7 +66,7 @@ void method1(void)
 
 void method2(void)
 {
-	void *phandle, *rhandle;
+	snd_pcm_t *phandle, *rhandle;
 	char buffer[BUFFER_SIZE];
 	int err;
 
@@ -111,7 +111,7 @@ void method2(void)
 
 void method3(void)
 {
-	void *handle;
+	snd_pcm_t *handle;
 	char buffer[BUFFER_SIZE];
 	int err;
 
@@ -149,7 +149,7 @@ void method3(void)
 }
 
 
-void main(void)
+int main(void)
 {
 	printf(">>>>> METHOD 1\n");
 	method1();
@@ -157,4 +157,5 @@ void main(void)
 	method2();
 	printf(">>>>> METHOD 3\n");
 	method3();
+	return 0;
 }

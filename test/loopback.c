@@ -6,7 +6,7 @@
 int main(int argc, char *argv[])
 {
 	int err;
-	void *handle;
+	snd_pcm_loopback_t *handle;
 
 	err = snd_pcm_loopback_open(&handle, 0, 0, SND_PCM_LB_OPEN_PLAYBACK);
 	if (err < 0) {

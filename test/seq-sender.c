@@ -2,7 +2,7 @@
  *  Simple event sender
  */
 
-void event_sender_start_timer(void *handle, int client, int queue)
+void event_sender_start_timer(snd_seq_t *handle, int client, int queue)
 {
 	int err;
 	snd_seq_event_t ev;
@@ -22,7 +22,7 @@ void event_sender_start_timer(void *handle, int client, int queue)
 		sleep(1);
 }
 
-void event_sender_filter(void *handle)
+void event_sender_filter(snd_seq_t *handle)
 {
 	int err;
 	snd_seq_client_info_t info;
@@ -40,7 +40,7 @@ void event_sender_filter(void *handle)
 	}
 }
 
-void send_event(void *handle, int queue, int client, int port,
+void send_event(snd_seq_t *handle, int queue, int client, int port,
                 snd_seq_port_subscribe_t *sub, int *time)
 {
 	int err;
@@ -68,7 +68,7 @@ void send_event(void *handle, int queue, int client, int port,
 		fprintf(stderr, "Event flush error: %s\n", snd_strerror(err));
 }
 
-void event_sender(void *handle, int argc, char *argv[])
+void event_sender(snd_seq_t *handle, int argc, char *argv[])
 {
 	snd_seq_event_t *ev;
 	snd_seq_port_info_t port;

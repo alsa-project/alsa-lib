@@ -20,7 +20,7 @@ snd_seq_system_info_t sysinfo;
 int debug = 0;
 int verbose = 0;
 
-void set_name(void *handle)
+void set_name(snd_seq_t *handle)
 {
 	int err;
 	snd_seq_client_info_t info;
@@ -35,7 +35,7 @@ void set_name(void *handle)
 	}
 }
 
-void system_info(void *handle)
+void system_info(snd_seq_t *handle)
 {
 	int err;
 	
@@ -45,7 +45,7 @@ void system_info(void *handle)
 	}
 }
 
-void show_system_info(void *handle)
+void show_system_info(snd_seq_t *handle)
 {
 	printf("System info\n");
 	printf("  Max queues    : %i\n", sysinfo.queues);
@@ -53,7 +53,7 @@ void show_system_info(void *handle)
 	printf("  Max ports     : %i\n", sysinfo.ports);
 }
 
-void show_queue_status(void *handle, int queue)
+void show_queue_status(snd_seq_t *handle, int queue)
 {
 	int err, idx, min, max;
 	snd_seq_queue_status_t status;
@@ -74,7 +74,7 @@ void show_queue_status(void *handle, int queue)
 	}
 }
 
-void show_port_info(void *handle, int client, int port)
+void show_port_info(snd_seq_t *handle, int client, int port)
 {
 	int err, idx, min, max;
 	snd_seq_port_info_t info;
@@ -101,7 +101,7 @@ void show_port_info(void *handle, int client, int port)
 	}
 }
 
-void show_client_info(void *handle, int client)
+void show_client_info(snd_seq_t *handle, int client)
 {
 	int err, idx, min, max;
 	snd_seq_client_info_t info;
@@ -142,7 +142,7 @@ static void help(void)
 int main(int argc, char *argv[])
 {
 	int morehelp, err, arg, arg1;
-	void *handle;
+	snd_seq_t *handle;
 	static struct option long_option[] =
 	{
 		{"help", 0, NULL, HELPID_HELP},

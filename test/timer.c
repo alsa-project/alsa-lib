@@ -47,13 +47,13 @@ void read_loop(void *handle, int master_ticks, int timeout)
 	}
 }
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	int idx, err;
-	int timer = SND_TIMER_SYSTEM;
+	int timer = SND_TIMER_GLOBAL(SND_TIMER_GLOBAL_SYSTEM);
 	int slave = 0;
 	int slave_type = SND_TIMER_STYPE_SEQUENCER, slave_id = 0;
-	void *handle;
+	snd_timer_t *handle;
 	snd_timer_general_info_t ginfo;
 	snd_timer_select_t sel;
 	snd_timer_info_t info;
@@ -128,4 +128,5 @@ void main(int argc, char *argv[])
 	read_loop(handle, 25, sel.slave ? 10000 : 1);
 	show_status(handle);
 	snd_timer_close(handle);
+	return 0;
 }

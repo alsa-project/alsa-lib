@@ -41,7 +41,7 @@
 #include "midifile.h"		/* SMF library header */
 #include "midifile.c"		/* SMF library code */
 
-#include "sys/asoundlib.h"
+#include "../include/asoundlib.h"
 
 //#define DEST_QUEUE_NUMBER 0
 #define DEST_QUEUE_NUMBER 7
@@ -55,7 +55,7 @@
 //#define USE_REALTIME
 
 FILE *F;
-void* seq_handle = NULL;
+snd_seq_t *seq_handle = NULL;
 int ppq = 96;
 
 double local_secs = 0;

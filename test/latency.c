@@ -175,9 +175,9 @@ long timediff(struct timeval t1, struct timeval t2)
 	return (t1.tv_sec * 1000000) + l;
 }
 
-void main(void)
+int main(void)
 {
-	void *phandle, *rhandle;
+	snd_pcm_t *phandle, *rhandle;
 	char buffer[4096 * 2];	/* max two fragments by 4096 bytes */
 	int pcard = 0, pdevice = 0;
 	int rcard = 0, rdevice = 0;
@@ -189,11 +189,11 @@ void main(void)
 	setscheduler();
 	if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_PLAYBACK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
-		return;
+		return 0;
 	}
 	if ((err = snd_pcm_open(&rhandle, rcard, rdevice, SND_PCM_OPEN_RECORD)) < 0) {
 		printf("Record open error: %s\n", snd_strerror(err));
-		return;
+		return 0;
 	}
 	setformat(phandle, rhandle);
 	while (1) {
@@ -231,13 +231,14 @@ void main(void)
 			printf("Playback OK!!!\n");
 			printf("Playback time = %li.%i, Record time = %li.%i, diff = %li\n",
 			       pstatus.stime.tv_sec,
-			       pstatus.stime.tv_usec,
+			       (int)pstatus.stime.tv_usec,
 			       rstatus.stime.tv_sec,
-			       rstatus.stime.tv_usec,
+			       (int)rstatus.stime.tv_usec,
 			       timediff(pstatus.stime, rstatus.stime));
 			break;
 		}
 	}
 	snd_pcm_close(phandle);
 	snd_pcm_close(rhandle);
+	return 0;
 }

@@ -24,20 +24,20 @@ static void show_playback_status(void *handle)
 	printf("  scount = %i\n", pstatus.scount);
 }
 
-void main(void)
+int main(void)
 {
 	int card = 0, device = 0, err, fd, count, count1, size, idx;
-	void *handle;
+	snd_pcm_t *handle;
 	snd_pcm_format_t format;
 	snd_pcm_playback_status_t status;
 	char *buffer, *buffer1;
 
 	buffer = (char *) malloc(512 * 1024);
 	if (!buffer)
-		return;
+		return 0;
 	if ((err = snd_pcm_open(&handle, card, device, SND_PCM_OPEN_PLAYBACK)) < 0) {
 		fprintf(stderr, "open failed: %s\n", snd_strerror(err));
-		return;
+		return 0;
 	}
 	format.format = SND_PCM_SFMT_MU_LAW;
 	format.rate = 8000;
@@ -45,25 +45,25 @@ void main(void)
 	if ((err = snd_pcm_playback_format(handle, &format)) < 0) {
 		fprintf(stderr, "format setup failed: %s\n", snd_strerror(err));
 		snd_pcm_close(handle);
-		return;
+		return 0;
 	}
 	if ((err = snd_pcm_playback_status(handle, &status)) < 0) {
 		fprintf(stderr, "status failed: %s\n", snd_strerror(err));
 		snd_pcm_close(handle);
-		return;
+		return 0;
 	}
 	fd = open(AU_FILE, O_RDONLY);
 	if (fd < 0) {
 		perror("open file");
 		snd_pcm_close(handle);
-		return;
+		return 0;
 	}
 	idx = 0;
 	count = read(fd, buffer, 512 * 1024);
 	if (count <= 0) {
 		perror("read from file");
 		snd_pcm_close(handle);
-		return;
+		return 0;
 	}
 	close(fd);
 	if (!memcmp(buffer, ".snd", 4)) {
@@ -78,7 +78,7 @@ void main(void)
 	if (count < 256 * 1024) {
 		perror("small count < 256k");
 		snd_pcm_close(handle);
-		return;
+		return 0;
 	}
 	count1 = status.fragment_size * 12;
 	show_playback_status(handle);
@@ -98,4 +98,5 @@ void main(void)
 	printf("Pause end.. Bytes written %i from %i...\n", size, count);
 	snd_pcm_close(handle);
 	free(buffer);
+	return 0;
 }

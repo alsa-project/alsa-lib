@@ -2,20 +2,20 @@
 #include <string.h>
 #include "../include/asoundlib.h"
 
-void main(void)
+int main(void)
 {
 	int idx, idx1, cards, err;
-	void *handle;
+	snd_ctl_t *handle;
 	struct snd_ctl_hw_info info;
 	snd_pcm_info_t pcminfo;
 	snd_mixer_info_t mixerinfo;
 	char str[128];
 
 	cards = snd_cards();
-	printf("Detected %i soundcard%s...\n", cards, cards > 1 ? "s" : "");
+	printf("Detected %i soundcard%s...\n", cards, cards != 1 ? "s" : "");
 	if (cards <= 0) {
 		printf("Giving up...\n");
-		return;
+		return 0;
 	}
 	for (idx = 0; idx < cards; idx++) {
 		if ((err = snd_ctl_open(&handle, idx)) < 0) {
@@ -58,10 +58,11 @@ void main(void)
 			printf("  elements - %i\n", mixerinfo.elements);
 			printf("  groups - %i\n", mixerinfo.groups);
 			printf("  switches - %i\n", mixerinfo.switches);
-			printf("  attribute - 0x%x\n", mixerinfo.attribute);
+			printf("  attrib - 0x%x\n", mixerinfo.attrib);
 			printf("  id - '%s'\n", mixerinfo.id);
 			printf("  name - '%s'\n", mixerinfo.name);
 		}
 		snd_ctl_close(handle);
 	}
+	return 0;
 }
