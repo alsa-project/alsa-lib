@@ -1974,12 +1974,9 @@ static int _snd_config_expand(snd_config_t *src,
 			snd_config_t *val;
 			snd_config_t *vars = private_data;
 			snd_config_get_string(src, &s);
-                        if (strncmp(s, "$(", 2) == 0 && s[strlen(s) - 1] == ')') {
-                        	int len = strlen(s) - 3;
-				char *str = alloca(len + 1);
-				memcpy(str, s + 2, len);
-				str[len] = '\0';
-				if (snd_config_search(vars, str, &val) < 0)
+			if (*s == '$') {
+				s++;
+				if (snd_config_search(vars, s, &val) < 0)
 					return 0;
 				err = snd_config_copy(dst, val);
 				if (err < 0)
