@@ -2,12 +2,12 @@
 
 source=.
 version=`cat $source/../version`
-package=$source/../../alsa-lib-$version.tar.gz
+package=$source/../../alsa-lib-$version.tar.bz2
 
 make -C .. pack
 
 if [ ! -r $package ]; then
-  package=$source/../alsa-lib-$version.tar.gz
+  package=$source/../alsa-lib-$version.tar.bz2
   if [ ! -r $package ]; then
     echo "Error: wrong package: $package"
     exit 1

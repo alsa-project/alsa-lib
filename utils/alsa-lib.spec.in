@@ -8,10 +8,9 @@ Version: %ver
 Release: %rel
 Copyright: GPL
 Group: System/Libraries
-Source: ftp://ftp.alsa-project.org/pub/lib/alsa-lib-%{ver}.tar.gz
+Source: ftp://ftp.alsa-project.org/pub/lib/alsa-lib-%{ver}.tar.bz2
 BuildRoot: /tmp/alsa-lib-%{ver}
-Packager: Helge Jensen <slog@slog.dk>
-URL: http://alsa.jcu.cz
+URL: http://www.alsa-project.org
 Docdir: %{prefix}/usr/doc
 Requires: alsa-driver
 
