@@ -733,7 +733,7 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 		snprintf(buf, sizeof(buf), "_snd_pcm_scope_%s_open", str);
 	}
 	h = snd_dlopen(lib, RTLD_NOW);
-	open_func = h ? snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION)) : NULL;
+	open_func = h ? dlsym(h, open_name) : NULL;
 	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
