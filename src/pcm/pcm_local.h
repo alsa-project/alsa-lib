@@ -232,7 +232,7 @@ snd_pcm_sframes_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_ufram
 snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 
-typedef snd_pcm_uframes_t (*snd_pcm_xfer_areas_func_t)(snd_pcm_t *pcm, 
+typedef snd_pcm_sframes_t (*snd_pcm_xfer_areas_func_t)(snd_pcm_t *pcm, 
 						       const snd_pcm_channel_area_t *areas,
 						       snd_pcm_uframes_t offset, 
 						       snd_pcm_uframes_t size);

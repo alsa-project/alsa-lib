@@ -4945,7 +4945,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 				     snd_pcm_xfer_areas_func_t func)
 {
 	snd_pcm_uframes_t xfer = 0;
-	int err = 0;
+	snd_pcm_sframes_t err = 0;
 	snd_pcm_state_t state = snd_pcm_state(pcm);
 
 	if (size == 0)
@@ -4976,17 +4976,17 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 	_again:
 		avail = snd_pcm_avail_update(pcm);
 		if (avail < 0) {
-			err = -EPIPE;
+			err = avail;
 			goto _end;
 		}
-		if (state == SND_PCM_STATE_DRAINING) {
-			if (avail == 0) {
+		if ((state == SND_PCM_STATE_PAUSED) ||
+		    (state == SND_PCM_STATE_DRAINING)) {
+			if ((snd_pcm_uframes_t)avail < pcm->xfer_align) {
 				err = -EPIPE;
 				goto _end;
 			}
-		} else if (avail == 0 ||
-			   (size >= pcm->xfer_align && 
-			    (snd_pcm_uframes_t) avail < pcm->xfer_align)) {
+		} else if (((snd_pcm_uframes_t)avail < pcm->avail_min && size > (snd_pcm_uframes_t)avail) ||
+		           (size >= pcm->xfer_align && (snd_pcm_uframes_t)avail < pcm->xfer_align)) {
 			if (pcm->mode & SND_PCM_NONBLOCK) {
 				err = -EAGAIN;
 				goto _end;
@@ -5029,7 +5029,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 				      snd_pcm_xfer_areas_func_t func)
 {
 	snd_pcm_uframes_t xfer = 0;
-	int err = 0;
+	snd_pcm_sframes_t err = 0;
 	snd_pcm_state_t state = snd_pcm_state(pcm);
 
 	if (size == 0)
@@ -5051,19 +5051,26 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
 	_again:
+		if (pcm->sleep_min == 0 && state == SND_PCM_STATE_RUNNING) {
+			snd_pcm_sframes_t delay;
+			/* update hw_ptr */
+			err = snd_pcm_delay(pcm, &delay);
+			if (err < 0)
+				goto _end;
+		}
 		avail = snd_pcm_avail_update(pcm);
 		if (avail < 0) {
-			err = -EPIPE;
+			err = avail;
 			goto _end;
 		}
-		if (state == SND_PCM_STATE_PREPARED) {
-			if (avail == 0) {
+		if (state == SND_PCM_STATE_PAUSED ||
+		    state == SND_PCM_STATE_PREPARED) {
+			if ((snd_pcm_uframes_t)avail < pcm->xfer_align) {
 				err = -EPIPE;
 				goto _end;
 			}
-		} else if (avail == 0 ||
-			   (size >= pcm->xfer_align && 
-			    (snd_pcm_uframes_t) avail < pcm->xfer_align)) {
+		} else if (((snd_pcm_uframes_t)avail < pcm->avail_min && size > (snd_pcm_uframes_t)avail) ||
+		           (size >= pcm->xfer_align && (snd_pcm_uframes_t)avail < pcm->xfer_align)) {
 			if (pcm->mode & SND_PCM_NONBLOCK) {
 				err = -EAGAIN;
 				goto _end;

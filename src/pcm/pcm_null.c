@@ -191,7 +191,7 @@ static snd_pcm_sframes_t snd_pcm_null_fwd(snd_pcm_t *pcm, snd_pcm_uframes_t size
 	}
 }
 
-static snd_pcm_uframes_t snd_pcm_null_xfer_areas(snd_pcm_t *pcm,
+static snd_pcm_sframes_t snd_pcm_null_xfer_areas(snd_pcm_t *pcm,
 						 const snd_pcm_channel_area_t *areas ATTRIBUTE_UNUSED,
 						 snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
 						 snd_pcm_uframes_t size)

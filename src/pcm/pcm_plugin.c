@@ -197,14 +197,16 @@ int snd_pcm_plugin_resume(snd_pcm_t *pcm)
 	return snd_pcm_resume(plugin->slave);
 }
 
-static snd_pcm_uframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
+static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 						    const snd_pcm_channel_area_t *areas,
 						    snd_pcm_uframes_t offset,
 						    snd_pcm_uframes_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->slave;
-	snd_pcm_uframes_t xfer = size;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err;
+
 	while (size > 0) {
 		snd_pcm_uframes_t frames = size;
 		const snd_pcm_channel_area_t *slave_areas;
@@ -217,22 +219,27 @@ static snd_pcm_uframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, frames);
 		snd_pcm_mmap_hw_forward(pcm, frames);
-		snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
+		err = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		snd_atomic_write_end(&plugin->watom);
+		if (err < 0)
+			return xfer > 0 ? xfer : err;
 		offset += frames;
+		xfer += frames;
 		size -= frames;
 	}
 	return xfer;
 }
 
-static snd_pcm_uframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
+static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 						   const snd_pcm_channel_area_t *areas,
 						   snd_pcm_uframes_t offset,
 						   snd_pcm_uframes_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->slave;
-	snd_pcm_uframes_t xfer = size;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err;
+	
 	while (size > 0) {
 		snd_pcm_uframes_t frames = size;
 		const snd_pcm_channel_area_t *slave_areas;
@@ -245,9 +252,12 @@ static snd_pcm_uframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, frames);
 		snd_pcm_mmap_hw_forward(pcm, frames);
-		snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
+		err = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		snd_atomic_write_end(&plugin->watom);
+		if (err < 0)
+			return xfer > 0 ? xfer : err;
 		offset += frames;
+		xfer += frames;
 		size -= frames;
 	}
 	return xfer;
