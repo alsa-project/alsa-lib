@@ -4205,6 +4205,19 @@ unsigned int snd_pcm_info_get_subdevices_avail(const snd_pcm_info_t *obj)
 }
 
 /**
+ * \brief Get hardware synchronization ID from a PCM info container
+ * \param obj PCM info container
+ * \return hardware synchronization ID
+ */
+snd_pcm_sync_id_t snd_pcm_info_get_sync(const snd_pcm_info_t *obj)
+{
+	snd_pcm_sync_id_t res;
+	assert(obj);
+	memcpy(&res, &obj->sync, sizeof(res));
+	return res;
+}
+
+/**
  * \brief Set wanted device inside a PCM info container (see #snd_ctl_pcm_info)
  * \param obj PCM info container
  * \param val Device number

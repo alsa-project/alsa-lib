@@ -304,6 +304,16 @@ typedef struct _snd_pcm_channel_area {
 	unsigned int step;
 } snd_pcm_channel_area_t;
 
+/* PCM synchronization ID */
+typedef union _snd_pcm_sync_id {
+	/** 8-bit ID */
+	unsigned char id[16];
+	/** 16-bit ID */
+	unsigned short id16[8];
+	/** 32-bit ID */
+	unsigned int id32[4];
+} snd_pcm_sync_id_t;
+
 /** #SND_PCM_TYPE_METER scope handle */
 typedef struct _snd_pcm_scope snd_pcm_scope_t;
 
@@ -743,6 +753,7 @@ snd_pcm_class_t snd_pcm_info_get_class(const snd_pcm_info_t *obj);
 snd_pcm_subclass_t snd_pcm_info_get_subclass(const snd_pcm_info_t *obj);
 unsigned int snd_pcm_info_get_subdevices_count(const snd_pcm_info_t *obj);
 unsigned int snd_pcm_info_get_subdevices_avail(const snd_pcm_info_t *obj);
+snd_pcm_sync_id_t snd_pcm_info_get_sync(const snd_pcm_info_t *obj);
 void snd_pcm_info_set_device(snd_pcm_info_t *obj, unsigned int val);
 void snd_pcm_info_set_subdevice(snd_pcm_info_t *obj, unsigned int val);
 void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val);
