@@ -540,7 +540,7 @@ static snd_pcm_sframes_t snd_pcm_multi_mmap_commit(snd_pcm_t *pcm,
 		if ((snd_pcm_uframes_t)result != size)
 			return -EIO;
 	}
-	return 0;
+	return size;
 }
 
 static int snd_pcm_multi_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
