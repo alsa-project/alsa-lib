@@ -57,6 +57,7 @@ int snd_pcm_format_little_endian(int format);
 int snd_pcm_format_big_endian(int format);
 int snd_pcm_format_width(int format);		/* in bits */
 ssize_t snd_pcm_format_size(int format, size_t samples);
+const char *snd_pcm_get_format_name(int format);
 
 #ifdef __cplusplus
 }
