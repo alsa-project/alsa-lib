@@ -490,7 +490,6 @@ int snd_seq_set_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t *tim
  *  \{
  */
 
-snd_seq_event_t *snd_seq_create_event(void);
 int snd_seq_free_event(snd_seq_event_t *ev);
 ssize_t snd_seq_event_length(snd_seq_event_t *ev);
 int snd_seq_event_output(snd_seq_t *handle, snd_seq_event_t *ev);

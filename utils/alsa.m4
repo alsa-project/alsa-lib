@@ -2,7 +2,7 @@ dnl Configure Paths for Alsa
 dnl Some modifications by Richard Boulton <richard-alsa@tartarus.org>
 dnl Christopher Lansdown <lansdoct@cs.alfred.edu>
 dnl Jaroslav Kysela <perex@suse.cz>
-dnl Last modification: $Id: alsa.m4,v 1.21 2002/04/04 07:08:41 perex Exp $
+dnl Last modification: $Id: alsa.m4,v 1.22 2002/05/27 11:14:20 tiwai Exp $
 dnl AM_PATH_ALSA([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for libasound, and define ALSA_CFLAGS and ALSA_LIBS as appropriate.
 dnl enables arguments --with-alsa-prefix=
@@ -116,7 +116,7 @@ exit(0);
 AC_LANG_RESTORE
 
 dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
-AC_CHECK_LIB([asound], [snd_seq_create_event],,
+AC_CHECK_LIB([asound], [snd_ctl_open],,
 	[ifelse([$3], , [AC_MSG_ERROR(No linkable libasound was found.)])
 	 alsa_found=no]
 )

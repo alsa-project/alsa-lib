@@ -2535,19 +2535,27 @@ int snd_seq_set_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer
 
 /*----------------------------------------------------------------*/
 
+#ifndef DOC_HIDDEN
 /**
- * \brief create an event cell
+ * \brief (DEPRECATED) create an event cell
  * \return the cell pointer allocated
+ *
+ * create an event cell via malloc.  the returned pointer must be released
+ * by the application itself via normal free() call,
+ * not via snd_seq_free_event().
  */
 snd_seq_event_t *snd_seq_create_event(void)
 {
 	return (snd_seq_event_t *) calloc(1, sizeof(snd_seq_event_t));
 }
+#endif
 
 /**
- * \brief free an event
+ * \brief (DEPRECATED) free an event
  *
- * this is obsolete.  only for compatibility
+ * releases the event pointer which was allocated by snd_seq_event_input().
+ * this function is obsolete and does nothing inside actually.
+ * used only for compatibility with the older version.
  */
 #ifndef DOXYGEN
 int snd_seq_free_event(snd_seq_event_t *ev ATTRIBUTE_UNUSED)
