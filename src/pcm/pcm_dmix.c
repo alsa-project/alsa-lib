@@ -280,6 +280,7 @@ static int _snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, int do_slave_sync)
 		return 0;
 	if ((avail = snd_pcm_mmap_playback_avail(pcm)) >= pcm->stop_threshold) {
 		struct timeval tv;
+		snd_timer_stop(dmix->timer);
 		gettimeofday(&tv, 0);
 		dmix->trigger_tstamp.tv_sec = tv.tv_sec;
 		dmix->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
