@@ -438,8 +438,7 @@ static int route_load_ttable(snd_pcm_plugin_t *plugin,
 		int nsrcs = 0;
 		ttable_src_t srcs[plugin->src_format.channels];
 		for (src_channel = 0; src_channel < plugin->src_format.channels; ++src_channel) {
-			if (*sptr < 0 || *sptr > FULL)
-				return -EINVAL;
+			assert(*sptr >= 0 && *sptr <= FULL);
 			if (*sptr != 0) {
 				srcs[nsrcs].channel = src_channel;
 #if ROUTE_PLUGIN_USE_FLOAT
@@ -457,8 +456,7 @@ static int route_load_ttable(snd_pcm_plugin_t *plugin,
 			sptr++;
 		}
 #if 0
-		if (t > FULL)
-			return -EINVAL;
+		assert(t <= FULL);
 #endif
 		dptr->att = att;
 		dptr->nsrcs = nsrcs;
@@ -494,24 +492,21 @@ static ssize_t route_transfer(snd_pcm_plugin_t *plugin,
 	ttable_dst_t *ttp;
 	snd_pcm_plugin_channel_t *dvp;
 
-	if (plugin == NULL || src_channels == NULL || dst_channels == NULL)
-		return -EFAULT;
+	assert(plugin && src_channels && dst_channels);
 	if (frames == 0)
 		return 0;
 	data = (route_t *)plugin->extra_data;
 
 	src_nchannels = plugin->src_format.channels;
 	for (src_channel = 0; src_channel < src_nchannels; ++src_channel) {
-		if (src_channels[src_channel].area.first % 8 != 0 || 
-		    src_channels[src_channel].area.step % 8 != 0)
-			return -EINVAL;
+		assert(src_channels[src_channel].area.first % 8 == 0 &&
+		       src_channels[src_channel].area.step % 8 == 0);
 	}
 
 	dst_nchannels = plugin->dst_format.channels;
 	for (dst_channel = 0; dst_channel < dst_nchannels; ++dst_channel) {
-		if (dst_channels[dst_channel].area.first % 8 != 0 || 
-		    dst_channels[dst_channel].area.step % 8 != 0)
-			return -EINVAL;
+		assert(dst_channels[dst_channel].area.first % 8 == 0 &&
+		       dst_channels[dst_channel].area.step % 8 == 0);
 	}
 
 	ttp = data->ttable;
@@ -550,14 +545,11 @@ int snd_pcm_plugin_build_route(snd_pcm_plugin_handle_t *handle,
 	snd_pcm_plugin_t *plugin;
 	int err;
 
-	if (!r_plugin)
-		return -EFAULT;
+	assert(r_plugin);
 	*r_plugin = NULL;
-	if (src_format->rate != dst_format->rate)
-		return -EINVAL;
-	if (!(snd_pcm_format_linear(src_format->format) &&
-	      snd_pcm_format_linear(dst_format->format)))
-		return -EINVAL;
+	assert(src_format->rate == dst_format->rate);
+	assert(snd_pcm_format_linear(src_format->format) &&
+	       snd_pcm_format_linear(dst_format->format));
 
 	err = snd_pcm_plugin_build(handle, stream,
 				   "attenuated route conversion",

@@ -54,17 +54,6 @@ static int snd_pcm_hw_stream_close(snd_pcm_t *pcm, int stream)
 	return 0;
 }
 
-int snd_pcm_hw_stream_fd(snd_pcm_t *pcm, int stream)
-{
-	snd_pcm_hw_t *hw;
-	if (!pcm)
-		return -EINVAL;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
-	hw = (snd_pcm_hw_t*) &pcm->private;
-	return hw->stream[stream].fd;
-}
-
 static int snd_pcm_hw_stream_nonblock(snd_pcm_t *pcm, int stream, int nonblock)
 {
 	long flags;
@@ -377,7 +366,7 @@ static int snd_pcm_hw_open_stream(int card, int device, int stream, int subdevic
 		filefmt = SND_FILE_PCM_CAPTURE;
 		break;
 	default:
-		return -EINVAL;
+		assert(0);
 	}
 	if ((err = snd_ctl_pcm_stream_prefer_subdevice(ctl, device, stream, subdevice)) < 0)
 		return err;
@@ -424,12 +413,10 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 	snd_ctl_t *ctl;
 	int pfd = -1, cfd = -1;
 
-	if (!handle)
-		return -EFAULT;
+	assert(handle);
 	*handle = NULL;
 	
-	if (card < 0 || card >= SND_CARDS)
-		return -EINVAL;
+	assert(card >= 0 && card < SND_CARDS);
 	if ((err = snd_ctl_open(&ctl, card)) < 0)
 		return err;
 	if (mode & SND_PCM_OPEN_PLAYBACK) {
@@ -457,8 +444,7 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 		}
 	}
 	snd_ctl_close(ctl);
-	if (pfd < 0 && cfd < 0)
-		return -EINVAL;
+	assert(pfd >= 0 || cfd >= 0);
 
 	err = snd_pcm_abstract_open(handle, mode, SND_PCM_TYPE_HW, sizeof(snd_pcm_hw_t));
 	if (err < 0) {

@@ -234,17 +234,14 @@ static ssize_t alaw_transfer(snd_pcm_plugin_t *plugin,
 	alaw_t *data;
 	unsigned int channel;
 
-	if (plugin == NULL || src_channels == NULL || dst_channels == NULL)
-		return -EFAULT;
+	assert(plugin && src_channels && dst_channels);
 	if (frames == 0)
 		return 0;
 	for (channel = 0; channel < plugin->src_format.channels; channel++) {
-		if (src_channels[channel].area.first % 8 != 0 || 
-		    src_channels[channel].area.step % 8 != 0)
-			return -EINVAL;
-		if (dst_channels[channel].area.first % 8 != 0 || 
-		    dst_channels[channel].area.step % 8 != 0)
-			return -EINVAL;
+		assert(src_channels[channel].area.first % 8 == 0 && 
+		       src_channels[channel].area.step % 8 == 0);
+		assert(dst_channels[channel].area.first % 8 == 0 &&
+		       dst_channels[channel].area.step % 8 == 0);
 	}
 	data = (alaw_t *)plugin->extra_data;
 	data->func(plugin, src_channels, dst_channels, frames);
@@ -263,14 +260,11 @@ int snd_pcm_plugin_build_alaw(snd_pcm_plugin_handle_t *handle,
 	snd_pcm_format_t *format;
 	alaw_f func;
 
-	if (r_plugin == NULL)
-		return -EINVAL;
+	assert(r_plugin);
 	*r_plugin = NULL;
 
-	if (src_format->rate != dst_format->rate)
-		return -EINVAL;
-	if (src_format->channels != dst_format->channels)
-		return -EINVAL;
+	assert(src_format->rate == dst_format->rate);
+	assert(src_format->channels == dst_format->channels);
 
 	if (dst_format->format == SND_PCM_SFMT_A_LAW) {
 		format = src_format;
@@ -281,9 +275,8 @@ int snd_pcm_plugin_build_alaw(snd_pcm_plugin_handle_t *handle,
 		func = alaw_decode;
 	}
 	else
-		return -EINVAL;
-	if (!snd_pcm_format_linear(format->format))
-		return -EINVAL;
+		assert(0);
+	assert(snd_pcm_format_linear(format->format));
 
 	err = snd_pcm_plugin_build(handle, stream,
 				   "A-Law<->linear conversion",

@@ -42,18 +42,15 @@ static ssize_t copy_transfer(snd_pcm_plugin_t *plugin,
 	unsigned int channel;
 	unsigned int nchannels;
 
-	if (plugin == NULL || src_channels == NULL || dst_channels == NULL)
-		return -EFAULT;
+	assert(plugin && src_channels && dst_channels);
 	if (frames == 0)
 		return 0;
 	nchannels = plugin->src_format.channels;
 	for (channel = 0; channel < nchannels; channel++) {
-		if (src_channels->area.first % 8 != 0 || 
-		    src_channels->area.step % 8 != 0)
-			return -EINVAL;
-		if (dst_channels->area.first % 8 != 0 || 
-		    dst_channels->area.step % 8 != 0)
-			return -EINVAL;
+		assert(src_channels->area.first % 8 == 0 &&
+		       src_channels->area.step % 8 == 0);
+		assert(dst_channels->area.first % 8 == 0 &&
+		       dst_channels->area.step % 8 == 0);
 		if (!src_channels->enabled) {
 			if (dst_channels->wanted)
 				snd_pcm_area_silence(&dst_channels->area, 0, frames, plugin->dst_format.format);
@@ -78,20 +75,15 @@ int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
 	snd_pcm_plugin_t *plugin;
 	int width;
 
-	if (r_plugin == NULL)
-		return -EFAULT;
+	assert(r_plugin);
 	*r_plugin = NULL;
 
-	if (src_format->format != dst_format->format)
-		return -EINVAL;
-	if (src_format->rate != dst_format->rate)
-		return -EINVAL;
-	if (src_format->channels != dst_format->channels)
-		return -EINVAL;
+	assert(src_format->format == dst_format->format);
+	assert(src_format->rate == dst_format->rate);
+	assert(src_format->channels == dst_format->channels);
 
 	width = snd_pcm_format_physical_width(src_format->format);
-	if (width < 0)
-		return -EINVAL;
+	assert(width > 0);
 
 	err = snd_pcm_plugin_build(handle, stream,
 				   "copy",

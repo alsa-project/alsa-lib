@@ -86,8 +86,7 @@ int snd_pcm_plugin_insert(snd_pcm_plugin_t *plugin)
 	snd_pcm_plug_t *plug;
 	snd_pcm_plug_stream_t *plugstr;
 	snd_pcm_t *pcm;
-	if (!plugin)
-		return -EFAULT;
+	assert(plugin);
 	pcm = plugin->handle;
 	plug = (snd_pcm_plug_t*) &pcm->private;
 	plugstr = &plug->stream[plugin->stream];
@@ -108,8 +107,7 @@ int snd_pcm_plugin_append(snd_pcm_plugin_t *plugin)
 	snd_pcm_plug_t *plug;
 	snd_pcm_plug_stream_t *plugstr;
 	snd_pcm_t *pcm;
-	if (!plugin)
-		return -EFAULT;
+	assert(plugin);
 	pcm = plugin->handle;
 	plug = (snd_pcm_plug_t*) &pcm->private;
 	plugstr = &plug->stream[plugin->stream];
@@ -133,8 +131,7 @@ int snd_pcm_plugin_remove_to(snd_pcm_plugin_t *plugin)
 	snd_pcm_plug_t *plug;
 	snd_pcm_t *pcm;
 	snd_pcm_plug_stream_t *plugstr;
-	if (!plugin)
-		return -EFAULT;
+	assert(plugin);
 	pcm = plugin->handle;
 
 	plug = (snd_pcm_plug_t*) &pcm->private;
@@ -161,12 +158,9 @@ int snd_pcm_plug_remove_first(snd_pcm_t *pcm, int stream)
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_plug_t *plug;
 	snd_pcm_plug_stream_t *plugstr;
-	if (!pcm)
-		return -EFAULT;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
-	if (!pcm->stream[stream].open)
-		return -EBADFD;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
+	assert(pcm->stream[stream].open);
 
 	plug = (snd_pcm_plug_t*) &pcm->private;
 	plugstr = &plug->stream[stream];
@@ -190,12 +184,9 @@ int snd_pcm_plug_clear(snd_pcm_t *pcm, int stream)
 	snd_pcm_plug_stream_t *plugstr;
 	int idx;
 	
-	if (!pcm)
-		return -EINVAL;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
-	if (!pcm->stream[stream].open)
-		return -EBADFD;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
+	assert(pcm->stream[stream].open);
 
 	plug = (snd_pcm_plug_t*) &pcm->private;
 	plugstr = &plug->stream[stream];
@@ -256,40 +247,6 @@ int snd_pcm_plug_direct(snd_pcm_t *pcm, int stream)
 {
 	return snd_pcm_plug_first(pcm, stream) == NULL;
 }
-
-#if 0
-double snd_pcm_plug_client_ratio(snd_pcm_t *pcm, int stream)
-{
-	ssize_t client;
-	if (!pcm)
-		return -EFAULT;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
-	if (!pcm->stream[stream].open)
-		return -EBADFD;
-
-	client = snd_pcm_plug_client_size(pcm, stream, 1000000);
-	if (client < 0)
-		return 0;
-	return (double)client / (double)1000000;
-}
-
-double snd_pcm_plug_slave_ratio(snd_pcm_t *pcm, int stream)
-{
-	ssize_t slave;
-	if (!pcm)
-		return -EFAULT;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
-	if (!pcm->stream[stream].open)
-		return -EBADFD;
-
-	slave = snd_pcm_plug_slave_size(pcm, stream, 1000000);
-	if (slave < 0)
-		return 0;
-	return (double)slave / (double)1000000;
-}
-#endif
 
 /*
  *
@@ -377,6 +334,7 @@ static int snd_pcm_plug_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t *p
 	snd_pcm_stream_info_t slave_info;
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_plug_t *plug;
+	size_t bytes_per_frame;
 	int err;
 	int stream = params->stream;
 	
@@ -408,12 +366,21 @@ static int snd_pcm_plug_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t *p
 		return snd_pcm_stream_params(plug->slave, params);
 
 	/* compute right sizes */
-	slave_params.frag_size = snd_pcm_plug_slave_size(pcm, stream, params->frag_size);
-	slave_params.buffer_size = snd_pcm_plug_slave_size(pcm, stream, params->buffer_size);
-	slave_params.bytes_fill_max = snd_pcm_plug_slave_size(pcm, stream, params->bytes_fill_max);
-	slave_params.bytes_min = snd_pcm_plug_slave_size(pcm, stream, params->bytes_min);
-	slave_params.bytes_xrun_max = snd_pcm_plug_slave_size(pcm, stream, params->bytes_xrun_max);
-	slave_params.bytes_align = snd_pcm_plug_slave_size(pcm, stream, params->bytes_align);
+	bytes_per_frame = snd_pcm_format_size(params->format.format, params->format.channels);
+	if (bytes_per_frame == 0)
+		bytes_per_frame = 1;
+	params1.frag_size -= params1.frag_size % bytes_per_frame;
+	slave_params.frag_size = snd_pcm_plug_slave_size(pcm, stream, params1.frag_size);
+	params1.buffer_size -= params1.buffer_size % bytes_per_frame;
+	slave_params.buffer_size = snd_pcm_plug_slave_size(pcm, stream, params1.buffer_size);
+	params1.bytes_fill_max -= params1.bytes_fill_max % bytes_per_frame;
+	slave_params.bytes_fill_max = snd_pcm_plug_slave_size(pcm, stream, params1.bytes_fill_max);
+	params1.bytes_min -= params1.bytes_min % bytes_per_frame;
+	slave_params.bytes_min = snd_pcm_plug_slave_size(pcm, stream, params1.bytes_min);
+	params1.bytes_xrun_max -= params1.bytes_xrun_max % bytes_per_frame;
+	slave_params.bytes_xrun_max = snd_pcm_plug_slave_size(pcm, stream, params1.bytes_xrun_max);
+	params1.bytes_align -= params1.bytes_align % bytes_per_frame;
+	slave_params.bytes_align = snd_pcm_plug_slave_size(pcm, stream, params1.bytes_align);
 	if (slave_params.byte_boundary == 0 || slave_params.byte_boundary > INT_MAX)
 		slave_params.byte_boundary = INT_MAX;
 	slave_params.byte_boundary /= params->buffer_size;
@@ -625,8 +592,7 @@ ssize_t snd_pcm_plug_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned
 		step = 1;
 	else {
 		step = channels;
-		if (count % channels != 0)
-			return -EINVAL;
+		assert(count % channels == 0);
 	}
 	for (k = 0; k < count; k += step, vector += step) {
 		snd_pcm_plugin_channel_t *channels;
@@ -660,8 +626,7 @@ ssize_t snd_pcm_plug_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned 
 		step = 1;
 	else {
 		step = channels;
-		if (count % channels != 0)
-			return -EINVAL;
+		assert(count % channels == 0);
 	}
 	for (k = 0; k < count; k += step) {
 		snd_pcm_plugin_channel_t *channels;

@@ -241,8 +241,9 @@ static ssize_t rate_src_frames(snd_pcm_plugin_t *plugin, size_t frames)
 	rate_t *data;
 	ssize_t res;
 
-	if (plugin == NULL || frames <= 0)
-		return -EINVAL;
+	assert(plugin);
+	if (frames == 0)
+		return 0;
 	data = (rate_t *)plugin->extra_data;
 	if (plugin->src_format.rate < plugin->dst_format.rate) {
 		res = (((frames * data->pitch) + (BITS/2)) >> SHIFT);
@@ -272,8 +273,9 @@ static ssize_t rate_dst_frames(snd_pcm_plugin_t *plugin, size_t frames)
 	rate_t *data;
 	ssize_t res;
 
-	if (plugin == NULL || frames <= 0)
-		return -EINVAL;
+	assert(plugin);
+	if (frames == 0)
+		return 0;
 	data = (rate_t *)plugin->extra_data;
 	if (plugin->src_format.rate < plugin->dst_format.rate) {
 		res = (((frames << SHIFT) + (data->pitch / 2)) / data->pitch);
@@ -307,17 +309,14 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 	unsigned int channel;
 	rate_t *data;
 
-	if (plugin == NULL || src_channels == NULL || dst_channels == NULL)
-		return -EFAULT;
+	assert(plugin && src_channels && dst_channels);
 	if (frames == 0)
 		return 0;
 	for (channel = 0; channel < plugin->src_format.channels; channel++) {
-		if (src_channels[channel].area.first % 8 != 0 || 
-		    src_channels[channel].area.step % 8 != 0)
-			return -EINVAL;
-		if (dst_channels[channel].area.first % 8 != 0 || 
-		    dst_channels[channel].area.step % 8 != 0)
-			return -EINVAL;
+		assert(src_channels[channel].area.first % 8 == 0 &&
+		       src_channels[channel].area.step % 8 == 0);
+		assert(dst_channels[channel].area.first % 8 == 0 &&
+		       dst_channels[channel].area.step % 8 == 0);
 	}
 
 	dst_frames = rate_dst_frames(plugin, frames);
@@ -330,8 +329,7 @@ static int rate_action(snd_pcm_plugin_t *plugin,
 		       snd_pcm_plugin_action_t action,
 		       unsigned long udata UNUSED)
 {
-	if (plugin == NULL)
-		return -EINVAL;
+	assert(plugin);
 	switch (action) {
 	case INIT:
 	case PREPARE:
@@ -355,20 +353,14 @@ int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
 	rate_t *data;
 	snd_pcm_plugin_t *plugin;
 
-	if (r_plugin == NULL)
-		return -EINVAL;
+	assert(r_plugin);
 	*r_plugin = NULL;
 
-	if (src_format->channels != dst_format->channels)
-		return -EINVAL;
-	if (src_format->channels < 1)
-		return -EINVAL;
-	if (snd_pcm_format_linear(src_format->format) <= 0)
-		return -EINVAL;
-	if (snd_pcm_format_linear(dst_format->format) <= 0)
-		return -EINVAL;
-	if (src_format->rate == dst_format->rate)
-		return -EINVAL;
+	assert(src_format->channels == dst_format->channels);
+	assert(src_format->channels > 0);
+	assert(snd_pcm_format_linear(src_format->format) > 0);
+	assert(snd_pcm_format_linear(dst_format->format) > 0);
+	assert(src_format->rate != dst_format->rate);
 
 	err = snd_pcm_plugin_build(handle, stream,
 				   "rate conversion",

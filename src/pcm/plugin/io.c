@@ -55,15 +55,12 @@ static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 	struct iovec *vec;
 	int count, channel;
 
-	if (plugin == NULL)
-		return -EINVAL;
+	assert(plugin);
 	data = (io_t *)plugin->extra_data;
-	if (data == NULL)
-		return -EINVAL;
+	assert(data);
 	vec = (struct iovec *)((char *)data + sizeof(*data));
 	if (plugin->stream == SND_PCM_STREAM_PLAYBACK) {
-		if (src_channels == NULL)
-			return -EINVAL;
+		assert(src_channels);
 		if ((result = snd_pcm_plugin_src_frames_to_size(plugin, frames)) < 0)
 			return result;
 		count = plugin->src_format.channels;
@@ -84,8 +81,7 @@ static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 			return result;
 		return snd_pcm_plugin_src_size_to_frames(plugin, result);
 	} else if (plugin->stream == SND_PCM_STREAM_CAPTURE) {
-		if (dst_channels == NULL)
-			return -EINVAL;
+		assert(dst_channels);
 		if ((result = snd_pcm_plugin_dst_frames_to_size(plugin, frames)) < 0)
 			return result;
 		count = plugin->dst_format.channels;
@@ -110,8 +106,9 @@ static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 			return result;
 		return snd_pcm_plugin_dst_size_to_frames(plugin, result);
 	} else {
-		return -EINVAL;
+		assert(0);
 	}
+	return 0;
 }
  
 static ssize_t io_src_channels(snd_pcm_plugin_t *plugin,
@@ -140,11 +137,9 @@ int snd_pcm_plugin_build_io(snd_pcm_plugin_handle_t *pcm,
 	io_t *data;
 	snd_pcm_plugin_t *plugin;
 
-	if (r_plugin == NULL)
-		return -EINVAL;
+	assert(r_plugin);
 	*r_plugin = NULL;
-	if (pcm == NULL || format == NULL)
-		return -EINVAL;
+	assert(pcm && format);
 	err = snd_pcm_plugin_build(pcm, stream,
 				   "I/O io",
 				   format, format,

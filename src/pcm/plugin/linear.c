@@ -92,18 +92,15 @@ static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 	linear_t *data;
 	unsigned int channel;
 
-	if (plugin == NULL || src_channels == NULL || dst_channels == NULL)
-		return -EFAULT;
+	assert(plugin && src_channels && dst_channels);
 	data = (linear_t *)plugin->extra_data;
 	if (frames == 0)
 		return 0;
 	for (channel = 0; channel < plugin->src_format.channels; channel++) {
-		if (src_channels[channel].area.first % 8 != 0 || 
-		    src_channels[channel].area.step % 8 != 0)
-			return -EINVAL;
-		if (dst_channels[channel].area.first % 8 != 0 || 
-		    dst_channels[channel].area.step % 8 != 0)
-			return -EINVAL;
+		assert(src_channels[channel].area.first % 8 == 0 &&
+		       src_channels[channel].area.step % 8 == 0);
+		assert(dst_channels[channel].area.first % 8 == 0 &&
+		       dst_channels[channel].area.step % 8 == 0);
 	}
 	convert(plugin, src_channels, dst_channels, frames);
 	return frames;
@@ -144,17 +141,13 @@ int snd_pcm_plugin_build_linear(snd_pcm_plugin_handle_t *handle,
 	struct linear_private_data *data;
 	snd_pcm_plugin_t *plugin;
 
-	if (r_plugin == NULL)
-		return -EFAULT;
+	assert(r_plugin);
 	*r_plugin = NULL;
 
-	if (src_format->rate != dst_format->rate)
-		return -EINVAL;
-	if (src_format->channels != dst_format->channels)
-		return -EINVAL;
-	if (!(snd_pcm_format_linear(src_format->format) &&
-	      snd_pcm_format_linear(dst_format->format)))
-		return -EINVAL;
+	assert(src_format->rate == dst_format->rate);
+	assert(src_format->channels == dst_format->channels);
+	assert(snd_pcm_format_linear(src_format->format) &&
+	       snd_pcm_format_linear(dst_format->format));
 
 	err = snd_pcm_plugin_build(handle, stream,
 				   "linear format conversion",

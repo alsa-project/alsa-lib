@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <sys/poll.h>
 #include <sys/uio.h>
-#include <assert.h>
 #include "pcm_local.h"
 
 int snd_pcm_abstract_open(snd_pcm_t **handle, int mode,
@@ -125,7 +124,7 @@ int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 		if (pcm->stream[stream].open)
 			return pcm->ops->info(pcm, stream, info);
 	}
-	return -EBADFD;
+	assert(0);
 }
 
 int snd_pcm_stream_info(snd_pcm_t *pcm, snd_pcm_stream_info_t *info)
@@ -285,7 +284,7 @@ int snd_pcm_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
 		if (pcm->stream[stream].open)
 			return pcm->ops->sync_go(pcm, stream, sync);
 	}
-	return -EBADFD;
+	assert(0);
 }
 
 int snd_pcm_stream_drain(snd_pcm_t *pcm, int stream)

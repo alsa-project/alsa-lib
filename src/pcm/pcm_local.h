@@ -19,7 +19,7 @@
  *
  */
 
-#include <pthread.h>
+#include <assert.h>
 #include "asoundlib.h"
   
 struct snd_pcm_ops {

@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <errno.h>
-#include <assert.h>
 #include <sys/poll.h>
 #include <sys/uio.h>
 #include "pcm_local.h"
@@ -43,13 +42,10 @@ static size_t snd_pcm_mmap_capture_frames_avail(snd_pcm_t *pcm)
 int snd_pcm_frames_avail(snd_pcm_t *pcm, int stream, ssize_t *frames)
 {
 	snd_pcm_stream_t *str;
-        if (!pcm)
-                return -EFAULT;
-        if (stream < 0 || stream > 1)
-                return -EINVAL;
+        assert(pcm);
+        assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
-	if (!str->mmap_control)
-		return -EBADFD;
+	assert(str->mmap_control);
 	if (stream == SND_PCM_STREAM_PLAYBACK)
 		*frames = snd_pcm_mmap_playback_frames_avail(pcm);
 	else
@@ -85,16 +81,12 @@ int snd_pcm_mmap_ready(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_stream_t *str;
 	snd_pcm_mmap_control_t *ctrl;
-        if (!pcm)
-                return -EFAULT;
-        if (stream < 0 || stream > 1)
-                return -EINVAL;
+        assert(pcm);
+        assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
-	if (!str->mmap_control)
-		return -EBADFD;
 	ctrl = str->mmap_control;
-	if (ctrl->status < SND_PCM_STATUS_PREPARED)
-		return -EBADFD;
+	assert(ctrl);
+	assert(ctrl->status >= SND_PCM_STATUS_PREPARED);
 	if (stream == SND_PCM_STREAM_PLAYBACK) {
 		return snd_pcm_mmap_playback_ready(pcm);
 	} else {
@@ -149,13 +141,10 @@ static ssize_t snd_pcm_mmap_capture_frames_xfer(snd_pcm_t *pcm, size_t frames)
 ssize_t snd_pcm_mmap_frames_xfer(snd_pcm_t *pcm, int stream, size_t frames)
 {
 	snd_pcm_stream_t *str;
-        if (!pcm)
-                return -EFAULT;
-        if (stream < 0 || stream > 1)
-                return -EINVAL;
+        assert(pcm);
+        assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
-	if (!str->mmap_control)
-		return -EBADFD;
+	assert(str->mmap_control);
 	if (stream == SND_PCM_STREAM_PLAYBACK)
 		return snd_pcm_mmap_playback_frames_xfer(pcm, frames);
 	else
@@ -166,16 +155,11 @@ ssize_t snd_pcm_mmap_frames_offset(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_stream_t *str;
 	snd_pcm_mmap_control_t *ctrl;
-        if (!pcm)
-                return -EFAULT;
-        if (stream < 0 || stream > 1)
-                return -EINVAL;
+        assert(pcm);
+        assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
-	if (!str->mmap_control)
-		return -EBADFD;
 	ctrl = str->mmap_control;
-	if (!ctrl)
-		return -EBADFD;
+	assert(ctrl);
 	return (ctrl->byte_data % str->setup.buffer_size) * 8 / str->bits_per_frame;
 }
 
@@ -265,11 +249,9 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channel
 
 	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
 	ctrl = str->mmap_control;
-	if (ctrl->status < SND_PCM_STATUS_PREPARED)
-		return -EBADFD;
+	assert(ctrl->status >= SND_PCM_STATUS_PREPARED);
 	if (str->setup.mode == SND_PCM_MODE_FRAGMENT) {
-		if (frames % str->frames_per_frag != 0)
-			return -EINVAL;
+		assert(frames % str->frames_per_frag == 0);
 	} else {
 		if (ctrl->status == SND_PCM_STATUS_RUNNING &&
 		    str->mode & SND_PCM_NONBLOCK)
@@ -322,16 +304,12 @@ ssize_t snd_pcm_mmap_write_frames(snd_pcm_t *pcm, const void *buffer, size_t fra
 {
 	snd_pcm_stream_t *str;
 	unsigned int nchannels;
-	if (!pcm)
-		return -EFAULT;
+	assert(pcm);
 	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
-	if (!str->mmap_data || !str->mmap_control)
-		return -EBADFD;
-	if (frames > 0 && !buffer)
-		return -EFAULT;
+	assert(str->mmap_data && str->mmap_control);
+	assert(frames == 0 || buffer);
 	nchannels = str->setup.format.channels;
-	if (!str->setup.format.interleave && nchannels > 1)
-		return -EINVAL;
+	assert(str->setup.format.interleave || nchannels == 1);
 	{
 		snd_pcm_channel_area_t channels[nchannels];
 		unsigned int channel;
@@ -349,16 +327,12 @@ ssize_t snd_pcm_mmap_write(snd_pcm_t *pcm, const void *buffer, size_t bytes)
 	snd_pcm_stream_t *str;
 	unsigned int nchannels;
 	ssize_t frames;
-	if (!pcm)
-		return -EFAULT;
+	assert(pcm);
 	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
-	if (!str->mmap_data || !str->mmap_control)
-		return -EBADFD;
-	if (bytes > 0 && !buffer)
-		return -EFAULT;
+	assert(str->mmap_data && str->mmap_control);
+	assert(bytes == 0 || buffer);
 	nchannels = str->setup.format.channels;
-	if (!str->setup.format.interleave && nchannels > 1)
-		return -EINVAL;
+	assert(str->setup.format.interleave || nchannels == 1);
 	frames = bytes * 8 / str->bits_per_frame;
 	frames = snd_pcm_mmap_write_frames(pcm, buffer, frames);
 	if (frames <= 0)
@@ -371,13 +345,10 @@ ssize_t snd_pcm_mmap_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned
 	snd_pcm_stream_t *str;
 	size_t result = 0;
 	unsigned int nchannels;
-	if (!pcm)
-		return -EFAULT;
+	assert(pcm);
 	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
-	if (!str->mmap_data || !str->mmap_control)
-		return -EBADFD;
-	if (vcount > 0 && !vector)
-		return -EFAULT;
+	assert(str->mmap_data && str->mmap_control);
+	assert(vcount == 0 || vector);
 	nchannels = str->setup.format.channels;
 	if (str->setup.format.interleave) {
 		unsigned int b;
@@ -396,8 +367,7 @@ ssize_t snd_pcm_mmap_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned
 		snd_pcm_channel_area_t channels[nchannels];
 		unsigned long bcount;
 		unsigned int b;
-		if (vcount % nchannels)
-			return -EINVAL;
+		assert(vcount % nchannels == 0);
 		bcount = vcount / nchannels;
 		for (b = 0; b < bcount; b++) {
 			unsigned int v;
@@ -406,8 +376,7 @@ ssize_t snd_pcm_mmap_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned
 			size_t frames;
 			bytes = vector[0].iov_len;
 			for (v = 0; v < nchannels; ++v) {
-				if (vector[v].iov_len != bytes)
-					return -EINVAL;
+				assert(vector[v].iov_len == bytes);
 				channels[v].addr = vector[v].iov_base;
 				channels[v].first = 0;
 				channels[v].step = str->sample_width;
@@ -438,11 +407,9 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels
 
 	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
 	ctrl = str->mmap_control;
-	if (ctrl->status < SND_PCM_STATUS_PREPARED)
-		return -EBADFD;
+	assert(ctrl->status >= SND_PCM_STATUS_PREPARED);
 	if (str->setup.mode == SND_PCM_MODE_FRAGMENT) {
-		if (frames % str->frames_per_frag != 0)
-			return -EINVAL;
+		assert(frames % str->frames_per_frag == 0);
 	} else {
 		if (ctrl->status == SND_PCM_STATUS_RUNNING &&
 		    str->mode & SND_PCM_NONBLOCK)
@@ -494,16 +461,12 @@ ssize_t snd_pcm_mmap_read_frames(snd_pcm_t *pcm, const void *buffer, size_t fram
 {
 	snd_pcm_stream_t *str;
 	unsigned int nchannels;
-	if (!pcm)
-		return -EFAULT;
+	assert(pcm);
 	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
-	if (!str->mmap_data || !str->mmap_control)
-		return -EBADFD;
-	if (frames > 0 && !buffer)
-		return -EFAULT;
+	assert(str->mmap_data && str->mmap_control);
+	assert(frames == 0 || buffer);
 	nchannels = str->setup.format.channels;
-	if (!str->setup.format.interleave && nchannels > 1)
-		return -EINVAL;
+	assert(str->setup.format.interleave || nchannels == 1);
 	{
 		snd_pcm_channel_area_t channels[nchannels];
 		unsigned int channel;
@@ -521,16 +484,12 @@ ssize_t snd_pcm_mmap_read(snd_pcm_t *pcm, void *buffer, size_t bytes)
 	snd_pcm_stream_t *str;
 	unsigned int nchannels;
 	ssize_t frames;
-	if (!pcm)
-		return -EFAULT;
+	assert(pcm);
 	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
-	if (!str->mmap_data || !str->mmap_control)
-		return -EBADFD;
-	if (bytes > 0 && !buffer)
-		return -EFAULT;
+	assert(str->mmap_data && str->mmap_control);
+	assert(bytes == 0 || buffer);
 	nchannels = str->setup.format.channels;
-	if (!str->setup.format.interleave && nchannels > 1)
-		return -EINVAL;
+	assert(str->setup.format.interleave || nchannels == 1);
 	frames = bytes * 8 / str->bits_per_frame;
 	frames = snd_pcm_mmap_read_frames(pcm, buffer, frames);
 	if (frames <= 0)
@@ -543,13 +502,10 @@ ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned 
 	snd_pcm_stream_t *str;
 	size_t result = 0;
 	unsigned int nchannels;
-	if (!pcm)
-		return -EFAULT;
+	assert(pcm);
 	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
-	if (!str->mmap_data || !str->mmap_control)
-		return -EBADFD;
-	if (vcount > 0 && !vector)
-		return -EFAULT;
+	assert(str->mmap_data && str->mmap_control);
+	assert(vcount == 0 || vector);
 	nchannels = str->setup.format.channels;
 	if (str->setup.format.interleave) {
 		unsigned int b;
@@ -568,8 +524,7 @@ ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned 
 		snd_pcm_channel_area_t channels[nchannels];
 		unsigned long bcount;
 		unsigned int b;
-		if (vcount % nchannels)
-			return -EINVAL;
+		assert(vcount % nchannels == 0);
 		bcount = vcount / nchannels;
 		for (b = 0; b < bcount; b++) {
 			unsigned int v;
@@ -578,8 +533,7 @@ ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned 
 			size_t frames;
 			bytes = vector[0].iov_len;
 			for (v = 0; v < nchannels; ++v) {
-				if (vector[v].iov_len != bytes)
-					return -EINVAL;
+				assert(vector[v].iov_len == bytes);
 				channels[v].addr = vector[v].iov_base;
 				channels[v].first = 0;
 				channels[v].step = str->sample_width;
@@ -605,22 +559,21 @@ int snd_pcm_mmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **co
 	snd_pcm_stream_t *str;
 	size_t csize;
 	int err;
-	if (!pcm || !control)
-		return -EFAULT;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
-	if (!str->valid_setup)
-		return -EBADFD;
+	assert(str->valid_setup);
 	if (str->mmap_control) {
-		*control = str->mmap_control;
+		if (control)
+			*control = str->mmap_control;
 		return 0;
 	}
 	csize = sizeof(snd_pcm_mmap_control_t);
 
-	if ((err = pcm->ops->mmap_control(pcm, stream, control, csize)) < 0)
+	if ((err = pcm->ops->mmap_control(pcm, stream, &str->mmap_control, csize)) < 0)
 		return err;
-	str->mmap_control = *control;
+	if (control)
+		*control = str->mmap_control;
 	str->mmap_control_size = csize;
 	return 0;
 }
@@ -633,13 +586,10 @@ int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, int stream, snd_pcm_channel_area_t *a
 	unsigned int channel;
 	int interleaved = 1, noninterleaved = 1;
 	int err;
-	if (!pcm)
-		return -EFAULT;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
-	if (!str->mmap_data)
-		return -EBADFD;
+	assert(str->mmap_data);
 	a = calloc(str->setup.format.channels, sizeof(*areas));
 	for (channel = 0, ap = a; channel < str->setup.format.channels; ++channel, ++ap) {
 		s.channel = channel;
@@ -674,15 +624,13 @@ int snd_pcm_mmap_data(snd_pcm_t *pcm, int stream, void **data)
 	snd_pcm_stream_info_t info;
 	size_t bsize;
 	int err;
-	if (!pcm || !data)
-		return -EFAULT;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
-	if (!str->valid_setup)
-		return -EBADFD;
+	assert(str->valid_setup);
 	if (str->mmap_data) {
-		*data = str->mmap_data;
+		if (data)
+			*data = str->mmap_data;
 		return 0;
 	}
 
@@ -693,9 +641,10 @@ int snd_pcm_mmap_data(snd_pcm_t *pcm, int stream, void **data)
 	bsize = info.mmap_size;
 	if (!(info.flags & SND_PCM_STREAM_INFO_MMAP))
 		return -ENXIO;
-	if ((err = pcm->ops->mmap_data(pcm, stream, data, bsize)) < 0)
+	if ((err = pcm->ops->mmap_data(pcm, stream, (void**)&str->mmap_data, bsize)) < 0)
 		return err;
-	str->mmap_data = *data;
+	if (data) 
+		*data = str->mmap_data;
 	str->mmap_data_size = bsize;
 	err = snd_pcm_mmap_get_areas(pcm, stream, NULL);
 	if (err < 0)
@@ -721,13 +670,10 @@ int snd_pcm_munmap_control(snd_pcm_t *pcm, int stream)
 {
 	int err;
 	snd_pcm_stream_t *str;
-	if (!pcm)
-		return -EFAULT;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
-	if (!str->mmap_control)
-		return -EBADFD;
+	assert(str->mmap_control);
 	if ((err = pcm->ops->munmap_control(pcm, stream, str->mmap_control, str->mmap_control_size)) < 0)
 		return err;
 	str->mmap_control = 0;
@@ -739,13 +685,10 @@ int snd_pcm_munmap_data(snd_pcm_t *pcm, int stream)
 {
 	int err;
 	snd_pcm_stream_t *str;
-	if (!pcm)
-		return -EFAULT;
-	if (stream < 0 || stream > 1)
-		return -EINVAL;
+	assert(pcm);
+	assert(stream >= 0 && stream <= 1);
 	str = &pcm->stream[stream];
-	if (!str->mmap_data)
-		return -EBADFD;
+	assert(str->mmap_data);
 	if ((err = pcm->ops->munmap_data(pcm, stream, str->mmap_data, str->mmap_data_size)) < 0)
 		return err;
 	free(str->channels);
