@@ -40,11 +40,21 @@ const char *_snd_module_pcm_rate = "";
 
 #define DIV (1<<16)
 
+enum rate_type {
+	RATE_TYPE_LINEAR,		/* linear interpolation */
+	RATE_TYPE_BANDLIMIT,		/* bandlimited interpolation */
+	RATE_TYPE_POLYPHASE,		/* polyphase resampling */
+};
+
 typedef struct {
-	int init;
-	int16_t old_sample, new_sample;
-	int sum;
-	unsigned int pos;
+	union {
+		struct {
+			int init;
+			int16_t old_sample, new_sample;
+			int sum;
+			unsigned int pos;
+		} linear;
+	} u;
 } snd_pcm_rate_state_t;
  
 typedef snd_pcm_uframes_t (*rate_f)(const snd_pcm_channel_area_t *dst_areas,
@@ -61,6 +71,7 @@ typedef snd_pcm_uframes_t (*rate_f)(const snd_pcm_channel_area_t *dst_areas,
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
+	enum rate_type type;
 	unsigned int get_idx;
 	unsigned int put_idx;
 	unsigned int pitch;
@@ -117,24 +128,24 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 		const char *src;
 		char *dst;
 		int src_step, dst_step;
-		int16_t old_sample = states->old_sample;
-		int16_t new_sample = states->new_sample;
-		unsigned int pos = states->pos;
+		int16_t old_sample = states->u.linear.old_sample;
+		int16_t new_sample = states->u.linear.new_sample;
+		unsigned int pos = states->u.linear.pos;
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area);
 		dst_step = snd_pcm_channel_area_step(dst_area);
 		src_frames1 = 0;
 		dst_frames1 = 0;
-		if (! states->init) {
+		if (! states->u.linear.init) {
 			sample = initial_sample(src, getidx);
 			old_sample = new_sample = sample;
 			src += src_step;
 			src_frames1++;
-			states->init = 2; /* get a new sample */
+			states->u.linear.init = 2; /* get a new sample */
 		}
 		while (dst_frames1 < dst_frames) {
-			if (states->init == 2) {
+			if (states->u.linear.init == 2) {
 				old_sample = new_sample;
 				goto *get;
 #define GET16_END after_get
@@ -142,7 +153,7 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 #undef GET16_END
 			after_get:
 				new_sample = sample;
-				states->init = 1;
+				states->u.linear.init = 1;
 			}
 			sample = (((int64_t)old_sample * (int64_t)(get_threshold - pos)) + ((int64_t)new_sample * pos)) / get_threshold;
 			goto *put;
@@ -157,14 +168,14 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 				pos -= get_threshold;
 				src += src_step;
 				src_frames1++;
-				states->init = 2; /* get a new sample */
+				states->u.linear.init = 2; /* get a new sample */
 				if (src_frames1 >= src_frames)
 					break;
 			}
 		} 
-		states->old_sample = old_sample;
-		states->new_sample = new_sample;
-		states->pos = pos;
+		states->u.linear.old_sample = old_sample;
+		states->u.linear.new_sample = new_sample;
+		states->u.linear.pos = pos;
 		states++;
 	}
 	*dst_framesp = dst_frames1;
@@ -204,9 +215,9 @@ static snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_a
 		const char *src;
 		char *dst;
 		int src_step, dst_step;
-		sum = states->sum;
-		pos = states->pos;
-		states->init = 0;
+		sum = states->u.linear.sum;
+		pos = states->u.linear.pos;
+		states->u.linear.init = 0;
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area);
@@ -242,8 +253,8 @@ static snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_a
 			} else
 				sum += sample * get_increment;
 		}
-		states->sum = sum;
-		states->pos = pos;
+		states->u.linear.sum = sum;
+		states->u.linear.pos = pos;
 		states++;
 	}
 	*dst_framesp = dst_frames1;
@@ -488,12 +499,17 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	unsigned int k;
-	for (k = 0; k < pcm->channels; ++k) {
-		rate->states[k].sum = 0;
-		rate->states[k].old_sample = 0;
-		rate->states[k].new_sample = 0;
-		rate->states[k].pos = 0;
-		rate->states[k].init = 0;
+	switch (rate->type) {
+	case RATE_TYPE_LINEAR:
+		for (k = 0; k < pcm->channels; ++k) {
+			rate->states[k].u.linear.sum = 0;
+			rate->states[k].u.linear.old_sample = 0;
+			rate->states[k].u.linear.new_sample = 0;
+			rate->states[k].u.linear.pos = 0;
+			rate->states[k].u.linear.init = 0;
+		}
+	default:
+		assert(0);
 	}
 	return 0;
 }
@@ -617,6 +633,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 		return -ENOMEM;
 	}
 	snd_pcm_plugin_init(&rate->plug);
+	rate->type = RATE_TYPE_LINEAR;
 	rate->srate = srate;
 	rate->sformat = sformat;
 	rate->plug.read = snd_pcm_rate_read_areas;
