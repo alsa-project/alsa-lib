@@ -243,7 +243,7 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 
 	snd_pcm_plugin_clear(pcm, params->channel);
 
-	/*  add necessary plugins */
+	/* add necessary plugins */
 	memcpy(&params1, params, sizeof(*params));
 	if ((err = snd_pcm_plugin_format(pcm, &params1, &hwparams, &hwinfo)) < 0)
 		return err;
@@ -252,10 +252,10 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 	 *  I/O plugins
 	 */
 
-	if (hwinfo.mode == SND_PCM_MODE_STREAM) {
+	if (params->mode == SND_PCM_MODE_STREAM) {
 		pdprintf("params stream plugin\n");
 		err = snd_pcm_plugin_build_stream(pcm, params->channel, &plugin);
-	} else if (hwinfo.mode == SND_PCM_MODE_BLOCK) {
+	} else if (params->mode == SND_PCM_MODE_BLOCK) {
 		if (hwinfo.flags & SND_PCM_CHNINFO_MMAP) {
 			pdprintf("params mmap plugin\n");
 			err = snd_pcm_plugin_build_mmap(pcm, params->channel, &plugin);
