@@ -59,7 +59,10 @@ struct snd_pcm_iec958 {
 	unsigned int counter;
 	unsigned char status[24];
 	unsigned int byteswap;
+	unsigned char preamble[3];	/* B/M/W or Z/X/Y */
 };
+
+enum { PREAMBLE_Z, PREAMBLE_X, PREAMBLE_Y };
 
 #endif /* DOC_HIDDEN */
 
@@ -114,11 +117,11 @@ static inline u_int32_t iec958_subframe(snd_pcm_iec958_t *iec, u_int32_t data, i
 
 	/* Preamble */
 	if (! iec->counter)
-		data |= 0x03;		/* Block start, 'Z' */
+		data |= iec->preamble[PREAMBLE_Z];	/* Block start, 'Z' */
 	else if (! channel)
-		data |= 0x05;		/* odd sub frame, 'Y' */
+		data |= iec->preamble[PREAMBLE_Y];	/* odd sub frame, 'Y' */
 	else
-		data |= 0x09;		/* even sub frame, 'X' */
+		data |= iec->preamble[PREAMBLE_X];	/* even sub frame, 'X' */
 
 	if (iec->byteswap)
 		data = bswap_32(data);
@@ -437,7 +440,10 @@ static snd_pcm_ops_t snd_pcm_iec958_ops = {
  *          of compatibility reasons. The prototype might be freely
  *          changed in future.
  */           
-int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave, const unsigned char *status_bits)
+int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat,
+			snd_pcm_t *slave, int close_slave,
+			const unsigned char *status_bits,
+			const unsigned char *preamble_vals)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_iec958_t *iec;
@@ -472,6 +478,8 @@ int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 		memcpy(iec->status, status_bits, sizeof(iec->status));
 	else
 		memcpy(iec->status, default_status_bits, sizeof(default_status_bits));
+
+	memcpy(iec->preamble, preamble_vals, 3);
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_IEC958, name, slave->stream, slave->mode);
 	if (err < 0) {
@@ -508,6 +516,12 @@ pcm.name {
                 pcm { }         # Slave PCM definition
         }
 	[status status-bytes]	# IEC958 status bits (given in byte array)
+	# IEC958 preamble bits definitions
+	# B/M/W or Z/X/Y, B = block start, M = even subframe, W = odd subframe
+	# As default, Z = 0x08, Y = 0x04, X = 0x02
+	[preamble.z or preamble.b val]
+	[preamble.x or preamble.m val]
+	[preamble.y or preamble.w val]
 }
 \endcode
 
@@ -541,9 +555,12 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 	int err;
 	snd_pcm_t *spcm;
 	snd_config_t *slave = NULL, *sconf;
-	snd_config_t *status = NULL;
+	snd_config_t *status = NULL, *preamble = NULL;
 	snd_pcm_format_t sformat;
 	unsigned char status_bits[24];
+	unsigned char preamble_vals[3] = {
+		0x08, 0x02, 0x04 /* Z, X, Y */
+	};
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -562,6 +579,14 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 				return -EINVAL;
 			}
 			status = n;
+			continue;
+		}
+		if (strcmp(id, "preamble") == 0) {
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
+			}
+			preamble = n;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
@@ -590,6 +615,33 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 		}
 		// fprintf(stderr, "STATUS bits: %02x %02x %02x %02x\n", status_bits[0], status_bits[1], status_bits[2], status_bits[3]);
 	}
+	if (preamble) {
+		snd_config_iterator_t i, inext;
+		snd_config_for_each(i, inext, status) {
+			long val;
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id;
+			int idx;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
+			if (strcmp(id, "b") == 0 || strcmp(id, "z") == 0)
+				idx = PREAMBLE_Z;
+			else if (strcmp(id, "m") == 0 || strcmp(id, "x") == 0)
+				idx = PREAMBLE_X;
+			else if (strcmp(id, "w") == 0 || strcmp(id, "y") == 0)
+				idx = PREAMBLE_Y;
+			else {
+				SNDERR("invalid IEC958 preamble type %s", id);
+				return -EINVAL;
+			}
+			err = snd_config_get_integer(n, &val);
+			if (err < 0) {
+				SNDERR("invalid IEC958 preamble value");
+				return err;
+			}
+			preamble_vals[idx] = val;
+		}
+	}
 	if (!slave) {
 		SNDERR("slave is not defined");
 		return -EINVAL;
@@ -609,7 +661,9 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_iec958_open(pcmp, name, sformat, spcm, 1, status ? status_bits : NULL);
+	err = snd_pcm_iec958_open(pcmp, name, sformat, spcm, 1,
+				  status ? status_bits : NULL,
+				  preamble_vals);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
