@@ -71,14 +71,14 @@ typedef struct {
 	int (*drain)(snd_pcm_t *pcm);
 	int (*pause)(snd_pcm_t *pcm, int enable);
 	int (*state)(snd_pcm_t *pcm);
-	int (*delay)(snd_pcm_t *pcm, ssize_t *delayp);
-	ssize_t (*rewind)(snd_pcm_t *pcm, size_t frames);
-	ssize_t (*writei)(snd_pcm_t *pcm, const void *buffer, size_t size);
-	ssize_t (*writen)(snd_pcm_t *pcm, void **bufs, size_t size);
-	ssize_t (*readi)(snd_pcm_t *pcm, void *buffer, size_t size);
-	ssize_t (*readn)(snd_pcm_t *pcm, void **bufs, size_t size);
-	ssize_t (*avail_update)(snd_pcm_t *pcm);
-	ssize_t (*mmap_forward)(snd_pcm_t *pcm, size_t size);
+	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
+	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
+	snd_pcm_sframes_t (*writen)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
+	snd_pcm_sframes_t (*readi)(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
+	snd_pcm_sframes_t (*readn)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
+	snd_pcm_sframes_t (*avail_update)(snd_pcm_t *pcm);
+	snd_pcm_sframes_t (*mmap_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 } snd_pcm_fast_ops_t;
 
 struct _snd_pcm {
@@ -93,30 +93,31 @@ struct _snd_pcm {
 	unsigned int subformat;		/* subformat */
 	unsigned int channels;		/* channels */
 	unsigned int rate;		/* rate in Hz */
-	size_t fragment_size;		/* fragment size */
-	unsigned int fragments;		/* fragments */
-	unsigned int start_mode;	/* start mode */
-	unsigned int xrun_mode;		/* xrun detection mode */
-	unsigned int ready_mode;	/* ready detection mode */
-	unsigned int tstamp_mode;	/* timestamp mode */
-	size_t avail_min;		/* min avail frames for wakeup */
-	unsigned int silence_mode;	/* Silence filling mode */
-	size_t silence_threshold;	/* Silence filling happens when
+	snd_pcm_uframes_t period_size;
+	unsigned int period_time;	/* period duration */
+	unsigned int tick_time;
+	snd_pcm_start_t start_mode;	/* start mode */
+	snd_pcm_xrun_t xrun_mode;	/* xrun detection mode */
+	snd_pcm_tstamp_t tstamp_mode;	/* timestamp mode */
+	unsigned int period_step;
+	unsigned int sleep_min;
+	snd_pcm_uframes_t avail_min;	/* min avail frames for wakeup */
+	snd_pcm_uframes_t silence_threshold;	/* Silence filling happens when
 					   noise is nearest than this */
-	size_t silence_size;		/* Silence filling size */
-	size_t xfer_align;		/* xfer size need to be a multiple */
-	size_t boundary;		/* pointers wrap point */
+	snd_pcm_uframes_t silence_size;	/* Silence filling size */
+	snd_pcm_uframes_t xfer_align;	/* xfer size need to be a multiple */
+	snd_pcm_uframes_t boundary;	/* pointers wrap point */
 	unsigned int info;		/* Info for returned setup */
 	unsigned int msbits;		/* used most significant bits */
 	unsigned int rate_num;		/* rate numerator */
 	unsigned int rate_den;		/* rate denominator */
-	size_t fifo_size;		/* chip FIFO size in frames */
-	size_t buffer_size;
-	size_t bits_per_sample;
-	size_t bits_per_frame;
-	size_t *appl_ptr;
-	size_t min_align;
-	volatile size_t *hw_ptr;
+	snd_pcm_uframes_t fifo_size;	/* chip FIFO size in frames */
+	snd_pcm_uframes_t buffer_size;
+	unsigned int bits_per_sample;
+	unsigned int bits_per_frame;
+	snd_pcm_uframes_t *appl_ptr;
+	snd_pcm_uframes_t min_align;
+	volatile snd_pcm_uframes_t *hw_ptr;
 	int mmap_rw;
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
@@ -142,52 +143,52 @@ void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void
 int snd_pcm_mmap(snd_pcm_t *pcm);
 int snd_pcm_munmap(snd_pcm_t *pcm);
 int snd_pcm_mmap_ready(snd_pcm_t *pcm);
-ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset);
-void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, size_t frames);
-void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, size_t frames);
-void snd_pcm_mmap_hw_backward(snd_pcm_t *pcm, size_t frames);
-void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, size_t frames);
-size_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm);
-size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, size_t frames);
-size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, size_t frames);
+snd_pcm_sframes_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset);
+void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+void snd_pcm_mmap_hw_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+snd_pcm_uframes_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm);
+snd_pcm_uframes_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+snd_pcm_uframes_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 
-typedef ssize_t (*snd_pcm_xfer_areas_func_t)(snd_pcm_t *pcm, 
+typedef snd_pcm_sframes_t (*snd_pcm_xfer_areas_func_t)(snd_pcm_t *pcm, 
 					     const snd_pcm_channel_area_t *areas,
-					     size_t offset, size_t size,
-					     size_t *slave_sizep);
+					     snd_pcm_uframes_t offset, snd_pcm_uframes_t size,
+					     snd_pcm_uframes_t *slave_sizep);
 
-ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
-			   size_t offset, size_t size,
+snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
+			   snd_pcm_uframes_t offset, snd_pcm_uframes_t size,
 			   snd_pcm_xfer_areas_func_t func);
-ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
-			    size_t offset, size_t size,
+snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
+			    snd_pcm_uframes_t offset, snd_pcm_uframes_t size,
 			    snd_pcm_xfer_areas_func_t func);
-ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size);
-ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size);
+snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size);
+snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
 
-static inline size_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
+static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {
-	ssize_t avail;
+	snd_pcm_sframes_t avail;
 	avail = *pcm->hw_ptr + pcm->buffer_size - *pcm->appl_ptr;
 	if (avail < 0)
 		avail += pcm->boundary;
 	return avail;
 }
 
-static inline size_t snd_pcm_mmap_capture_avail(snd_pcm_t *pcm)
+static inline snd_pcm_uframes_t snd_pcm_mmap_capture_avail(snd_pcm_t *pcm)
 {
-	ssize_t avail;
+	snd_pcm_sframes_t avail;
 	avail = *pcm->hw_ptr - *pcm->appl_ptr;
 	if (avail < 0)
 		avail += pcm->boundary;
 	return avail;
 }
 
-static inline size_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
+static inline snd_pcm_uframes_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
 {
-	ssize_t avail;
+	snd_pcm_sframes_t avail;
 	avail = *pcm->hw_ptr - *pcm->appl_ptr;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		avail += pcm->buffer_size;
@@ -196,27 +197,19 @@ static inline size_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
 	return avail;
 }
 
-static inline ssize_t snd_pcm_mmap_playback_hw_avail(snd_pcm_t *pcm)
+static inline snd_pcm_sframes_t snd_pcm_mmap_playback_hw_avail(snd_pcm_t *pcm)
 {
-	ssize_t avail;
-	avail = *pcm->hw_ptr + pcm->buffer_size - *pcm->appl_ptr;
-	if (avail < 0)
-		avail += pcm->boundary;
-	return pcm->buffer_size - avail;
+	return pcm->buffer_size - snd_pcm_mmap_playback_avail(pcm);
 }
 
-static inline ssize_t snd_pcm_mmap_capture_hw_avail(snd_pcm_t *pcm)
+static inline snd_pcm_sframes_t snd_pcm_mmap_capture_hw_avail(snd_pcm_t *pcm)
 {
-	ssize_t avail;
-	avail = *pcm->hw_ptr - *pcm->appl_ptr;
-	if (avail < 0)
-		avail += pcm->boundary;
-	return pcm->buffer_size - avail;
+	return pcm->buffer_size - snd_pcm_mmap_capture_avail(pcm);
 }
 
-static inline ssize_t snd_pcm_mmap_hw_avail(snd_pcm_t *pcm)
+static inline snd_pcm_sframes_t snd_pcm_mmap_hw_avail(snd_pcm_t *pcm)
 {
-	ssize_t avail;
+	snd_pcm_sframes_t avail;
 	avail = *pcm->hw_ptr - *pcm->appl_ptr;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		avail += pcm->buffer_size;
@@ -228,7 +221,7 @@ static inline ssize_t snd_pcm_mmap_hw_avail(snd_pcm_t *pcm)
 #define snd_pcm_mmap_playback_delay snd_pcm_mmap_playback_hw_avail
 #define snd_pcm_mmap_capture_delay snd_pcm_mmap_capture_avail
 
-static inline ssize_t snd_pcm_mmap_delay(snd_pcm_t *pcm)
+static inline snd_pcm_sframes_t snd_pcm_mmap_delay(snd_pcm_t *pcm)
 {
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		return snd_pcm_mmap_playback_delay(pcm);
@@ -236,35 +229,35 @@ static inline ssize_t snd_pcm_mmap_delay(snd_pcm_t *pcm)
 		return snd_pcm_mmap_capture_delay(pcm);
 }
 
-static inline void *snd_pcm_channel_area_addr(const snd_pcm_channel_area_t *area, size_t offset)
+static inline void *snd_pcm_channel_area_addr(const snd_pcm_channel_area_t *area, snd_pcm_uframes_t offset)
 {
-	size_t bitofs = area->first + area->step * offset;
+	unsigned int bitofs = area->first + area->step * offset;
 	assert(bitofs % 8 == 0);
 	return area->addr + bitofs / 8;
 }
 
-static inline size_t snd_pcm_channel_area_step(const snd_pcm_channel_area_t *area)
+static inline unsigned int snd_pcm_channel_area_step(const snd_pcm_channel_area_t *area)
 {
 	assert(area->step % 8 == 0);
 	return area->step / 8;
 }
 
-static inline ssize_t _snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
+static inline snd_pcm_sframes_t _snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	return pcm->fast_ops->writei(pcm->fast_op_arg, buffer, size);
 }
 
-static inline ssize_t _snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size)
+static inline snd_pcm_sframes_t _snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	return pcm->fast_ops->writen(pcm->fast_op_arg, bufs, size);
 }
 
-static inline ssize_t _snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size)
+static inline snd_pcm_sframes_t _snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	return pcm->fast_ops->readi(pcm->fast_op_arg, buffer, size);
 }
 
-static inline ssize_t _snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size)
+static inline snd_pcm_sframes_t _snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	return pcm->fast_ops->readn(pcm->fast_op_arg, bufs, size);
 }
@@ -308,45 +301,71 @@ static inline int muldiv_near(int a, int b, int c)
 
 int _snd_pcm_hw_refine(snd_pcm_hw_params_t *params);
 void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params);
-int _snd_pcm_hw_param_mask(snd_pcm_hw_params_t *params, int hw,
+int _snd_pcm_hw_param_refine_interval(snd_pcm_hw_params_t *params,
+				      snd_pcm_hw_param_t var,
+				      const interval_t *val);
+int _snd_pcm_hw_param_mask(snd_pcm_hw_params_t *params,
 			    unsigned int var, const mask_t *mask);
-int _snd_pcm_hw_param_first(snd_pcm_hw_params_t *params, int hw,
-			     unsigned int var);
-int _snd_pcm_hw_param_last(snd_pcm_hw_params_t *params, int hw,
+int _snd_pcm_hw_param_first(snd_pcm_hw_params_t *params,
 			    unsigned int var);
-int _snd_pcm_hw_param_set(snd_pcm_hw_params_t *params, int hw,
-			   unsigned int var, unsigned int val);
-int _snd_pcm_hw_param_min(snd_pcm_hw_params_t *params, int hw,
-			   unsigned int var, unsigned int val);
-int _snd_pcm_hw_param_max(snd_pcm_hw_params_t *params, int hw,
-			   unsigned int var, unsigned int val);
+int _snd_pcm_hw_param_last(snd_pcm_hw_params_t *params,
+			   unsigned int var);
+int _snd_pcm_hw_param_set(snd_pcm_hw_params_t *params,
+			   unsigned int var, unsigned int val, int dir);
+int _snd_pcm_hw_param_min(snd_pcm_hw_params_t *params,
+			   unsigned int var, unsigned int val, int dir);
+int _snd_pcm_hw_param_max(snd_pcm_hw_params_t *params,
+			   unsigned int var, unsigned int val, int dir);
+int snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
+			    snd_pcm_hw_param_t var,
+			    const snd_pcm_hw_params_t *src);
+int snd_pcm_hw_params_refine(snd_pcm_hw_params_t *params,
+			     unsigned int vars,
+			     const snd_pcm_hw_params_t *src);
+int snd_pcm_generic_hw_link(snd_pcm_hw_params_t *params,
+			    snd_pcm_hw_params_t *sparams,
+			    snd_pcm_t *slave,
+			    unsigned long links);
 int snd_pcm_hw_refine2(snd_pcm_hw_params_t *params,
 		       snd_pcm_hw_params_t *sparams,
-		       int (*func)(snd_pcm_t *slave,
-				   snd_pcm_hw_params_t *params),
+		       int (*func)(snd_pcm_hw_params_t *params,
+				   snd_pcm_hw_params_t *sparams,
+				   snd_pcm_t *slave,
+				   unsigned long private),
 		       snd_pcm_t *slave,
-		       unsigned int links);
+		       unsigned long private);
 int snd_pcm_hw_params2(snd_pcm_hw_params_t *params,
 		       snd_pcm_hw_params_t *sparams,
 		       int (*func)(snd_pcm_t *slave, 
 				   snd_pcm_hw_params_t *sparams),
 		       snd_pcm_t *slave,
 		       unsigned int links);
+void snd_pcm_hw_param_near_copy(snd_pcm_t *pcm,
+				snd_pcm_hw_params_t *params,
+				snd_pcm_hw_param_t var,
+				const snd_pcm_hw_params_t *src);
+int snd_pcm_hw_param_always_eq(const snd_pcm_hw_params_t *params,
+			       snd_pcm_hw_param_t var,
+			       const snd_pcm_hw_params_t *params1);
+int snd_pcm_hw_param_never_eq(const snd_pcm_hw_params_t *params,
+			      snd_pcm_hw_param_t var,
+			      const snd_pcm_hw_params_t *params1);
 
 #define SND_PCM_HW_PARBIT_ACCESS	(1 << SND_PCM_HW_PARAM_ACCESS)
 #define SND_PCM_HW_PARBIT_FORMAT	(1 << SND_PCM_HW_PARAM_FORMAT)
 #define SND_PCM_HW_PARBIT_SUBFORMAT	(1 << SND_PCM_HW_PARAM_SUBFORMAT)
 #define SND_PCM_HW_PARBIT_CHANNELS	(1 << SND_PCM_HW_PARAM_CHANNELS)
 #define SND_PCM_HW_PARBIT_RATE		(1 << SND_PCM_HW_PARAM_RATE)
-#define SND_PCM_HW_PARBIT_FRAGMENT_LENGTH (1 << SND_PCM_HW_PARAM_FRAGMENT_LENGTH)
-#define SND_PCM_HW_PARBIT_FRAGMENT_SIZE	(1 << SND_PCM_HW_PARAM_FRAGMENT_SIZE)
-#define SND_PCM_HW_PARBIT_FRAGMENTS	(1 << SND_PCM_HW_PARAM_FRAGMENTS)
-#define SND_PCM_HW_PARBIT_BUFFER_LENGTH	(1 << SND_PCM_HW_PARAM_BUFFER_LENGTH)
+#define SND_PCM_HW_PARBIT_PERIOD_TIME	(1 << SND_PCM_HW_PARAM_PERIOD_TIME)
+#define SND_PCM_HW_PARBIT_PERIOD_SIZE	(1 << SND_PCM_HW_PARAM_PERIOD_SIZE)
+#define SND_PCM_HW_PARBIT_PERIODS	(1 << SND_PCM_HW_PARAM_PERIODS)
+#define SND_PCM_HW_PARBIT_BUFFER_TIME	(1 << SND_PCM_HW_PARAM_BUFFER_TIME)
 #define SND_PCM_HW_PARBIT_BUFFER_SIZE	(1 << SND_PCM_HW_PARAM_BUFFER_SIZE)
 #define SND_PCM_HW_PARBIT_SAMPLE_BITS	(1 << SND_PCM_HW_PARAM_SAMPLE_BITS)
 #define SND_PCM_HW_PARBIT_FRAME_BITS	(1 << SND_PCM_HW_PARAM_FRAME_BITS)
-#define SND_PCM_HW_PARBIT_FRAGMENT_BYTES (1 << SND_PCM_HW_PARAM_FRAGMENT_BYTES)
+#define SND_PCM_HW_PARBIT_PERIOD_BYTES	(1 << SND_PCM_HW_PARAM_PERIOD_BYTES)
 #define SND_PCM_HW_PARBIT_BUFFER_BYTES	(1 << SND_PCM_HW_PARAM_BUFFER_BYTES)
+#define SND_PCM_HW_PARBIT_TICK_TIME	(1 << SND_PCM_HW_PARAM_TICK_TIME)
 
 
 #define SND_PCM_ACCBIT_MMAP ((1 << SND_PCM_ACCESS_MMAP_INTERLEAVED) | \

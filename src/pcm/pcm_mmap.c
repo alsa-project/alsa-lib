@@ -52,10 +52,10 @@ const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
 	return pcm->running_areas;
 }
 
-size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, size_t frames)
+snd_pcm_uframes_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	size_t cont;
-	size_t avail = snd_pcm_mmap_playback_avail(pcm);
+	snd_pcm_uframes_t cont;
+	snd_pcm_uframes_t avail = snd_pcm_mmap_playback_avail(pcm);
 	if (avail < frames)
 		frames = avail;
 	cont = pcm->buffer_size - *pcm->appl_ptr % pcm->buffer_size;
@@ -64,10 +64,10 @@ size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, size_t frames)
 	return frames;
 }
 
-size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, size_t frames)
+snd_pcm_uframes_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	size_t cont;
-	size_t avail = snd_pcm_mmap_capture_avail(pcm);
+	snd_pcm_uframes_t cont;
+	snd_pcm_uframes_t avail = snd_pcm_mmap_capture_avail(pcm);
 	if (avail < frames)
 		frames = avail;
 	cont = pcm->buffer_size - *pcm->appl_ptr % pcm->buffer_size;
@@ -76,7 +76,7 @@ size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, size_t frames)
 	return frames;
 }
 
-size_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, size_t frames)
+snd_pcm_uframes_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
         assert(pcm);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
@@ -85,73 +85,73 @@ size_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, size_t frames)
 		return snd_pcm_mmap_capture_xfer(pcm, frames);
 }
 
-size_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
+snd_pcm_uframes_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
 {
         assert(pcm);
 	return *pcm->appl_ptr % pcm->buffer_size;
 }
 
-size_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
+snd_pcm_uframes_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
 {
         assert(pcm);
 	return *pcm->hw_ptr % pcm->buffer_size;
 }
 
-void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, size_t frames)
+void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	ssize_t appl_ptr = *pcm->appl_ptr;
+	snd_pcm_sframes_t appl_ptr = *pcm->appl_ptr;
 	appl_ptr -= frames;
 	if (appl_ptr < 0)
 		appl_ptr += pcm->boundary;
 	*pcm->appl_ptr = appl_ptr;
 }
 
-void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, size_t frames)
+void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	size_t appl_ptr = *pcm->appl_ptr;
+	snd_pcm_uframes_t appl_ptr = *pcm->appl_ptr;
 	appl_ptr += frames;
 	if (appl_ptr >= pcm->boundary)
 		appl_ptr -= pcm->boundary;
 	*pcm->appl_ptr = appl_ptr;
 }
 
-void snd_pcm_mmap_hw_backward(snd_pcm_t *pcm, size_t frames)
+void snd_pcm_mmap_hw_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	ssize_t hw_ptr = *pcm->hw_ptr;
+	snd_pcm_sframes_t hw_ptr = *pcm->hw_ptr;
 	hw_ptr -= frames;
 	if (hw_ptr < 0)
 		hw_ptr += pcm->boundary;
 	*pcm->hw_ptr = hw_ptr;
 }
 
-void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, size_t frames)
+void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	size_t hw_ptr = *pcm->hw_ptr;
+	snd_pcm_uframes_t hw_ptr = *pcm->hw_ptr;
 	hw_ptr += frames;
 	if (hw_ptr >= pcm->boundary)
 		hw_ptr -= pcm->boundary;
 	*pcm->hw_ptr = hw_ptr;
 }
 
-ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
+snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 				 const snd_pcm_channel_area_t *areas,
-				 size_t offset,
-				 size_t size,
-				 size_t *slave_sizep)
+				 snd_pcm_uframes_t offset,
+				 snd_pcm_uframes_t size,
+				 snd_pcm_uframes_t *slave_sizep)
 {
-	size_t xfer;
+	snd_pcm_uframes_t xfer;
 	if (slave_sizep && *slave_sizep < size)
 		size = *slave_sizep;
 	xfer = 0;
 	while (xfer < size) {
-		size_t frames = snd_pcm_mmap_playback_xfer(pcm, size - xfer);
-		ssize_t err;
+		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(pcm, size - xfer);
+		snd_pcm_sframes_t err;
 		snd_pcm_areas_copy(areas, offset, 
 				   snd_pcm_mmap_areas(pcm), snd_pcm_mmap_offset(pcm),
 				   pcm->channels, 
 				   frames, pcm->format);
 		err = snd_pcm_mmap_forward(pcm, frames);
-		assert(err == (ssize_t)frames);
+		assert(err == (snd_pcm_sframes_t)frames);
 		offset += frames;
 		xfer += frames;
 	}
@@ -160,25 +160,25 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 	return xfer;
 }
 
-ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
+snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 				const snd_pcm_channel_area_t *areas,
-				size_t offset,
-				size_t size,
-				size_t *slave_sizep)
+				snd_pcm_uframes_t offset,
+				snd_pcm_uframes_t size,
+				snd_pcm_uframes_t *slave_sizep)
 {
-	size_t xfer;
+	snd_pcm_uframes_t xfer;
 	if (slave_sizep && *slave_sizep < size)
 		size = *slave_sizep;
 	xfer = 0;
 	while (xfer < size) {
-		size_t frames = snd_pcm_mmap_capture_xfer(pcm, size - xfer);
-		ssize_t err;
+		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(pcm, size - xfer);
+		snd_pcm_sframes_t err;
 		snd_pcm_areas_copy(snd_pcm_mmap_areas(pcm), snd_pcm_mmap_offset(pcm),
 				   areas, offset, 
 				   pcm->channels, 
 				   frames, pcm->format);
 		err = snd_pcm_mmap_forward(pcm, frames);
-		assert(err == (ssize_t)frames);
+		assert(err == (snd_pcm_sframes_t)frames);
 		offset += frames;
 		xfer += frames;
 	}
@@ -187,7 +187,7 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 	return xfer;
 }
 
-ssize_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
+snd_pcm_sframes_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_areas_from_buf(pcm, areas, (void*)buffer);
@@ -195,7 +195,7 @@ ssize_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
 				   snd_pcm_mmap_write_areas);
 }
 
-ssize_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, size_t size)
+snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
@@ -203,7 +203,7 @@ ssize_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 				   snd_pcm_mmap_write_areas);
 }
 
-ssize_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, size_t size)
+snd_pcm_sframes_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_areas_from_buf(pcm, areas, buffer);
@@ -211,7 +211,7 @@ ssize_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 				  snd_pcm_mmap_read_areas);
 }
 
-ssize_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, size_t size)
+snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
@@ -421,15 +421,15 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 	return 0;
 }
 
-ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size)
+snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
-	size_t xfer = 0;
-	ssize_t err = 0;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err = 0;
 	assert(size > 0);
 	while (xfer < size) {
-		size_t frames = size - xfer;
-		size_t offset = snd_pcm_mmap_hw_offset(pcm);
-		size_t cont = pcm->buffer_size - offset;
+		snd_pcm_uframes_t frames = size - xfer;
+		snd_pcm_uframes_t offset = snd_pcm_mmap_hw_offset(pcm);
+		snd_pcm_uframes_t cont = pcm->buffer_size - offset;
 		if (cont < frames)
 			frames = cont;
 		switch (pcm->access) {
@@ -442,7 +442,7 @@ ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size)
 		}
 		case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
 		{
-			size_t channels = pcm->channels;
+			unsigned int channels = pcm->channels;
 			unsigned int c;
 			void *bufs[channels];
 			const snd_pcm_channel_area_t *areas = snd_pcm_mmap_areas(pcm);
@@ -467,15 +467,15 @@ ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size)
 	return err;
 }
 
-ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size)
+snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
-	size_t xfer = 0;
-	ssize_t err = 0;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err = 0;
 	assert(size > 0);
 	while (xfer < size) {
-		size_t frames = size - xfer;
-		size_t offset = snd_pcm_mmap_hw_offset(pcm);
-		size_t cont = pcm->buffer_size - offset;
+		snd_pcm_uframes_t frames = size - xfer;
+		snd_pcm_uframes_t offset = snd_pcm_mmap_hw_offset(pcm);
+		snd_pcm_uframes_t cont = pcm->buffer_size - offset;
 		if (cont < frames)
 			frames = cont;
 		switch (pcm->access) {
@@ -488,7 +488,7 @@ ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size)
 		}
 		case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
 		{
-			size_t channels = pcm->channels;
+			snd_pcm_uframes_t channels = pcm->channels;
 			unsigned int c;
 			void *bufs[channels];
 			const snd_pcm_channel_area_t *areas = snd_pcm_mmap_areas(pcm);

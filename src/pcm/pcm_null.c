@@ -29,8 +29,8 @@ typedef struct {
 	snd_timestamp_t trigger_time;
 	int state;
 	int shmid;
-	size_t appl_ptr;
-	size_t hw_ptr;
+	snd_pcm_uframes_t appl_ptr;
+	snd_pcm_uframes_t hw_ptr;
 	int poll_fd;
 } snd_pcm_null_t;
 
@@ -88,7 +88,7 @@ static int snd_pcm_null_state(snd_pcm_t *pcm)
 	return null->state;
 }
 
-static int snd_pcm_null_delay(snd_pcm_t *pcm ATTRIBUTE_UNUSED, ssize_t *delayp)
+static int snd_pcm_null_delay(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sframes_t *delayp)
 {
 	*delayp = 0;
 	return 0;
@@ -149,7 +149,7 @@ static int snd_pcm_null_pause(snd_pcm_t *pcm, int enable)
 	return 0;
 }
 
-static ssize_t snd_pcm_null_rewind(snd_pcm_t *pcm, size_t frames)
+static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_null_t *null = pcm->private;
 	switch (null->state) {
@@ -163,7 +163,7 @@ static ssize_t snd_pcm_null_rewind(snd_pcm_t *pcm, size_t frames)
 	}
 }
 
-static ssize_t snd_pcm_null_fwd(snd_pcm_t *pcm, size_t size)
+static snd_pcm_sframes_t snd_pcm_null_fwd(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_null_t *null = pcm->private;
 	switch (null->state) {
@@ -177,7 +177,7 @@ static ssize_t snd_pcm_null_fwd(snd_pcm_t *pcm, size_t size)
 	}
 }
 
-static ssize_t snd_pcm_null_writei(snd_pcm_t *pcm, const void *buffer ATTRIBUTE_UNUSED, size_t size)
+static snd_pcm_sframes_t snd_pcm_null_writei(snd_pcm_t *pcm, const void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
 	snd_pcm_null_t *null = pcm->private;
 	if (null->state == SND_PCM_STATE_PREPARED &&
@@ -187,7 +187,7 @@ static ssize_t snd_pcm_null_writei(snd_pcm_t *pcm, const void *buffer ATTRIBUTE_
 	return snd_pcm_null_fwd(pcm, size);
 }
 
-static ssize_t snd_pcm_null_writen(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED, size_t size)
+static snd_pcm_sframes_t snd_pcm_null_writen(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
 	snd_pcm_null_t *null = pcm->private;
 	if (null->state == SND_PCM_STATE_PREPARED &&
@@ -197,18 +197,7 @@ static ssize_t snd_pcm_null_writen(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED,
 	return snd_pcm_null_fwd(pcm, size);
 }
 
-static ssize_t snd_pcm_null_readi(snd_pcm_t *pcm, void *buffer ATTRIBUTE_UNUSED, size_t size)
-{
-	snd_pcm_null_t *null = pcm->private;
-	if (null->state == SND_PCM_STATE_PREPARED &&
-	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
-		null->state = SND_PCM_STATE_RUNNING;
-		snd_pcm_mmap_hw_forward(pcm, pcm->buffer_size);
-	}
-	return snd_pcm_null_fwd(pcm, size);
-}
-
-static ssize_t snd_pcm_null_readn(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED, size_t size)
+static snd_pcm_sframes_t snd_pcm_null_readi(snd_pcm_t *pcm, void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
 {
 	snd_pcm_null_t *null = pcm->private;
 	if (null->state == SND_PCM_STATE_PREPARED &&
@@ -219,12 +208,23 @@ static ssize_t snd_pcm_null_readn(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED, 
 	return snd_pcm_null_fwd(pcm, size);
 }
 
-static ssize_t snd_pcm_null_mmap_forward(snd_pcm_t *pcm, size_t size)
+static snd_pcm_sframes_t snd_pcm_null_readn(snd_pcm_t *pcm, void **bufs ATTRIBUTE_UNUSED, snd_pcm_uframes_t size)
+{
+	snd_pcm_null_t *null = pcm->private;
+	if (null->state == SND_PCM_STATE_PREPARED &&
+	    pcm->start_mode != SND_PCM_START_EXPLICIT) {
+		null->state = SND_PCM_STATE_RUNNING;
+		snd_pcm_mmap_hw_forward(pcm, pcm->buffer_size);
+	}
+	return snd_pcm_null_fwd(pcm, size);
+}
+
+static snd_pcm_sframes_t snd_pcm_null_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	return snd_pcm_null_fwd(pcm, size);
 }
 
-static ssize_t snd_pcm_null_avail_update(snd_pcm_t *pcm)
+static snd_pcm_sframes_t snd_pcm_null_avail_update(snd_pcm_t *pcm)
 {
 	return pcm->buffer_size;
 }

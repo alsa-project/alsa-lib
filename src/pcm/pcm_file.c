@@ -33,9 +33,9 @@ typedef struct {
 	char *fname;
 	int fd;
 	int format;
-	size_t appl_ptr;
-	size_t file_ptr_bytes;
-	size_t wbuf_size;
+	snd_pcm_uframes_t appl_ptr;
+	snd_pcm_uframes_t file_ptr_bytes;
+	snd_pcm_uframes_t wbuf_size;
 	size_t wbuf_size_bytes;
 	size_t wbuf_used_bytes;
 	char *wbuf;
@@ -48,7 +48,7 @@ static void snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 	snd_pcm_file_t *file = pcm->private;
 	assert(bytes <= file->wbuf_used_bytes);
 	while (bytes > 0) {
-		ssize_t err;
+		snd_pcm_sframes_t err;
 		size_t n = bytes;
 		size_t cont = file->wbuf_size_bytes - file->file_ptr_bytes;
 		if (n > cont)
@@ -63,20 +63,20 @@ static void snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 		file->file_ptr_bytes += err;
 		if (file->file_ptr_bytes == file->wbuf_size_bytes)
 			file->file_ptr_bytes = 0;
-		if ((size_t)err != n)
+		if ((snd_pcm_uframes_t)err != n)
 			break;
 	}
 }
 
 static void snd_pcm_file_add_frames(snd_pcm_t *pcm, 
 				    const snd_pcm_channel_area_t *areas,
-				    size_t offset, size_t frames)
+				    snd_pcm_uframes_t offset, snd_pcm_uframes_t frames)
 {
 	snd_pcm_file_t *file = pcm->private;
 	while (frames > 0) {
-		size_t n = frames;
-		size_t cont = file->wbuf_size - file->appl_ptr;
-		size_t avail = file->wbuf_size - snd_pcm_bytes_to_frames(pcm, file->wbuf_used_bytes);
+		snd_pcm_uframes_t n = frames;
+		snd_pcm_uframes_t cont = file->wbuf_size - file->appl_ptr;
+		snd_pcm_uframes_t avail = file->wbuf_size - snd_pcm_bytes_to_frames(pcm, file->wbuf_used_bytes);
 		if (n > cont)
 			n = cont;
 		if (n > avail)
@@ -157,7 +157,7 @@ static int snd_pcm_file_state(snd_pcm_t *pcm)
 	return snd_pcm_state(file->slave);
 }
 
-static int snd_pcm_file_delay(snd_pcm_t *pcm, ssize_t *delayp)
+static int snd_pcm_file_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_file_t *file = pcm->private;
 	return snd_pcm_delay(file->slave, delayp);
@@ -216,13 +216,13 @@ static int snd_pcm_file_pause(snd_pcm_t *pcm, int enable)
 	return snd_pcm_pause(file->slave, enable);
 }
 
-static ssize_t snd_pcm_file_rewind(snd_pcm_t *pcm, size_t frames)
+static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_file_t *file = pcm->private;
-	ssize_t err = snd_pcm_rewind(file->slave, frames);
+	snd_pcm_sframes_t err = snd_pcm_rewind(file->slave, frames);
 	if (err > 0) {
-		size_t n = snd_pcm_frames_to_bytes(pcm, frames);
-		ssize_t ptr;
+		snd_pcm_uframes_t n = snd_pcm_frames_to_bytes(pcm, frames);
+		snd_pcm_sframes_t ptr;
 		assert(n >= file->wbuf_used_bytes);
 		ptr = file->appl_ptr - err;
 		if (ptr < 0)
@@ -232,11 +232,11 @@ static ssize_t snd_pcm_file_rewind(snd_pcm_t *pcm, size_t frames)
 	return err;
 }
 
-static ssize_t snd_pcm_file_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
+static snd_pcm_sframes_t snd_pcm_file_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	ssize_t n = snd_pcm_writei(file->slave, buffer, size);
+	snd_pcm_sframes_t n = snd_pcm_writei(file->slave, buffer, size);
 	if (n > 0) {
 		snd_pcm_areas_from_buf(pcm, areas, (void*) buffer);
 		snd_pcm_file_add_frames(pcm, areas, 0, n);
@@ -244,11 +244,11 @@ static ssize_t snd_pcm_file_writei(snd_pcm_t *pcm, const void *buffer, size_t si
 	return n;
 }
 
-static ssize_t snd_pcm_file_writen(snd_pcm_t *pcm, void **bufs, size_t size)
+static snd_pcm_sframes_t snd_pcm_file_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	ssize_t n = snd_pcm_writen(file->slave, bufs, size);
+	snd_pcm_sframes_t n = snd_pcm_writen(file->slave, bufs, size);
 	if (n > 0) {
 		snd_pcm_areas_from_bufs(pcm, areas, bufs);
 		snd_pcm_file_add_frames(pcm, areas, 0, n);
@@ -256,11 +256,11 @@ static ssize_t snd_pcm_file_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 	return n;
 }
 
-static ssize_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, size_t size)
+static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	ssize_t n = snd_pcm_readi(file->slave, buffer, size);
+	snd_pcm_sframes_t n = snd_pcm_readi(file->slave, buffer, size);
 	if (n > 0) {
 		snd_pcm_areas_from_buf(pcm, areas, buffer);
 		snd_pcm_file_add_frames(pcm, areas, 0, n);
@@ -268,11 +268,11 @@ static ssize_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 	return n;
 }
 
-static ssize_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, size_t size)
+static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	ssize_t n = snd_pcm_writen(file->slave, bufs, size);
+	snd_pcm_sframes_t n = snd_pcm_writen(file->slave, bufs, size);
 	if (n > 0) {
 		snd_pcm_areas_from_bufs(pcm, areas, bufs);
 		snd_pcm_file_add_frames(pcm, areas, 0, n);
@@ -280,17 +280,17 @@ static ssize_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 	return n;
 }
 
-static ssize_t snd_pcm_file_mmap_forward(snd_pcm_t *pcm, size_t size)
+static snd_pcm_sframes_t snd_pcm_file_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private;
-	size_t ofs = snd_pcm_mmap_offset(pcm);
-	ssize_t n = snd_pcm_mmap_forward(file->slave, size);
-	size_t xfer = 0;
+	snd_pcm_uframes_t ofs = snd_pcm_mmap_offset(pcm);
+	snd_pcm_sframes_t n = snd_pcm_mmap_forward(file->slave, size);
+	snd_pcm_uframes_t xfer = 0;
 	if (n <= 0)
 		return n;
-	while (xfer < (size_t)n) {
-		size_t frames = size - xfer;
-		size_t cont = pcm->buffer_size - ofs;
+	while (xfer < (snd_pcm_uframes_t)n) {
+		snd_pcm_uframes_t frames = size - xfer;
+		snd_pcm_uframes_t cont = pcm->buffer_size - ofs;
 		if (frames > cont)
 			frames = cont;
 		snd_pcm_file_add_frames(pcm, snd_pcm_mmap_areas(file->slave), ofs, frames);
@@ -302,7 +302,7 @@ static ssize_t snd_pcm_file_mmap_forward(snd_pcm_t *pcm, size_t size)
 	return n;
 }
 
-static ssize_t snd_pcm_file_avail_update(snd_pcm_t *pcm)
+static snd_pcm_sframes_t snd_pcm_file_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private;
 	return snd_pcm_avail_update(file->slave);

@@ -40,16 +40,16 @@ typedef struct {
 } snd_pcm_multi_channel_t;
 
 typedef struct {
-	size_t slaves_count;
+	unsigned int slaves_count;
 	snd_pcm_multi_slave_t *slaves;
-	size_t channels_count;
+	unsigned int channels_count;
 	snd_pcm_multi_channel_t *channels;
 } snd_pcm_multi_t;
 
 static int snd_pcm_multi_close(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	size_t i;
+	unsigned int i;
 	int ret = 0;
 	for (i = 0; i < multi->slaves_count; ++i) {
 		int err;
@@ -102,7 +102,8 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	unsigned int k;
 	snd_pcm_hw_params_t sparams;
 	int changed = 0;
-	int err;
+	int err = 0;
+	unsigned int cmask, lcmask;
 	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	if (mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) ||
@@ -122,38 +123,50 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		}
 	}
 		
-	err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_CHANNELS,
-				     multi->channels_count);
+	cmask = params->cmask;
+	params->cmask = 0;
+	err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_CHANNELS,
+				    multi->channels_count, 0);
 	if (err < 0)
 		return err;
+	lcmask = params->cmask;
+	cmask |= params->cmask;
+	
 	changed = 0;
 	do {
 		for (k = 0; k < multi->slaves_count; ++k) {
 			snd_pcm_t *slave = multi->slaves[k].pcm;
+			params->cmask = cmask;
 			_snd_pcm_hw_params_any(&sparams);
-			_snd_pcm_hw_param_mask(&sparams, 0,
-						SND_PCM_HW_PARAM_ACCESS,
-						saccess_mask);
-			_snd_pcm_hw_param_set(&sparams, 0,
-					       SND_PCM_HW_PARAM_CHANNELS,
-					       multi->slaves[k].channels_count);
+			_snd_pcm_hw_param_mask(&sparams,
+					       SND_PCM_HW_PARAM_ACCESS,
+					       saccess_mask);
+			_snd_pcm_hw_param_set(&sparams,
+					      SND_PCM_HW_PARAM_CHANNELS,
+					      multi->slaves[k].channels_count, 0);
 			err = snd_pcm_hw_refine2(params, &sparams,
-						 snd_pcm_hw_refine, slave,
+						 snd_pcm_generic_hw_link, slave,
 						 SND_PCM_HW_PARBIT_FORMAT |
 						 SND_PCM_HW_PARBIT_SUBFORMAT |
 						 SND_PCM_HW_PARBIT_RATE |
-						 SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
-						 SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
+						 SND_PCM_HW_PARBIT_PERIOD_SIZE |
+						 SND_PCM_HW_PARBIT_PERIOD_TIME |
 						 SND_PCM_HW_PARBIT_BUFFER_SIZE |
-						 SND_PCM_HW_PARBIT_BUFFER_LENGTH |
-						 SND_PCM_HW_PARBIT_FRAGMENTS);
-			if (err < 0)
-				return err;
-			if (params->hw_cmask)
+						 SND_PCM_HW_PARBIT_BUFFER_TIME |
+						 SND_PCM_HW_PARBIT_PERIODS |
+						 SND_PCM_HW_PARBIT_TICK_TIME);
+			if (params->cmask) {
 				changed++;
+				lcmask |= params->cmask;
+				cmask |= params->cmask;
+			}
+			if (err < 0)
+				goto _end;
 		}
 	} while (changed && multi->slaves_count > 1);
-	return 0;
+ _end:
+	params->cmask = lcmask;
+	return err;
 }
 
 static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
@@ -163,6 +176,16 @@ static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	int err;
 	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	mask_t *saccess_mask = alloca(mask_sizeof());
+	unsigned int links;
+	links = SND_PCM_HW_PARBIT_FORMAT |
+		SND_PCM_HW_PARBIT_SUBFORMAT |
+		SND_PCM_HW_PARBIT_RATE |
+		SND_PCM_HW_PARBIT_PERIOD_SIZE |
+		SND_PCM_HW_PARBIT_PERIOD_TIME |
+		SND_PCM_HW_PARBIT_BUFFER_SIZE |
+		SND_PCM_HW_PARBIT_BUFFER_TIME |
+		SND_PCM_HW_PARBIT_PERIODS |
+		SND_PCM_HW_PARBIT_TICK_TIME;
 	if (mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) ||
 	    mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
 		mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
@@ -183,20 +206,18 @@ static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		snd_pcm_t *slave = multi->slaves[k].pcm;
 		snd_pcm_hw_params_t sparams;
 		_snd_pcm_hw_params_any(&sparams);
-		_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+		_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
 					saccess_mask);
-		_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_CHANNELS,
-				       multi->slaves[k].channels_count);
-		err = snd_pcm_hw_params2(params, &sparams,
-					 snd_pcm_hw_params, slave,
-					 SND_PCM_HW_PARBIT_FORMAT |
-					 SND_PCM_HW_PARBIT_SUBFORMAT |
-					 SND_PCM_HW_PARBIT_RATE |
-					 SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
-					 SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
-					 SND_PCM_HW_PARBIT_BUFFER_SIZE |
-					 SND_PCM_HW_PARBIT_BUFFER_LENGTH |
-					 SND_PCM_HW_PARBIT_FRAGMENTS);
+		_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_CHANNELS,
+				       multi->slaves[k].channels_count, 0);
+		err = snd_pcm_hw_params_refine(&sparams, links, params);
+		assert(err >= 0);
+		err = _snd_pcm_hw_refine(&sparams);
+		assert(err >= 0);
+		err = snd_pcm_hw_params(slave, &sparams);
+		params->cmask = 0;
+		sparams.cmask = ~0U;
+		snd_pcm_hw_params_refine(params, links, &sparams);
 		if (err < 0)
 			return err;
 		err = snd_pcm_areas_silence(slave->running_areas, 0, slave->channels, slave->buffer_size, slave->format);
@@ -239,14 +260,14 @@ static int snd_pcm_multi_state(snd_pcm_t *pcm)
 	return snd_pcm_state(slave);
 }
 
-static int snd_pcm_multi_delay(snd_pcm_t *pcm, ssize_t *delayp)
+static int snd_pcm_multi_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	snd_pcm_t *slave = multi->slaves[0].pcm;
 	return snd_pcm_delay(slave, delayp);
 }
 
-static ssize_t snd_pcm_multi_avail_update(snd_pcm_t *pcm)
+static snd_pcm_sframes_t snd_pcm_multi_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	snd_pcm_t *slave = multi->slaves[0].pcm;
@@ -303,15 +324,15 @@ static int snd_pcm_multi_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *in
 	return err;
 }
 
-static ssize_t snd_pcm_multi_rewind(snd_pcm_t *pcm, size_t frames)
+static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
-	size_t pos[multi->slaves_count];
+	snd_pcm_uframes_t pos[multi->slaves_count];
 	memset(pos, 0, sizeof(pos));
 	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_t *slave_i = multi->slaves[i].pcm;
-		ssize_t f = snd_pcm_rewind(slave_i, frames);
+		snd_pcm_sframes_t f = snd_pcm_rewind(slave_i, frames);
 		if (f < 0)
 			return f;
 		pos[i] = f;
@@ -320,28 +341,28 @@ static ssize_t snd_pcm_multi_rewind(snd_pcm_t *pcm, size_t frames)
 	/* Realign the pointers */
 	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_t *slave_i = multi->slaves[i].pcm;
-		size_t f = pos[i] - frames;
+		snd_pcm_uframes_t f = pos[i] - frames;
 		if (f > 0)
 			snd_pcm_mmap_appl_forward(slave_i, f);
 	}
 	return frames;
 }
 
-static ssize_t snd_pcm_multi_mmap_forward(snd_pcm_t *pcm, size_t size)
+static snd_pcm_sframes_t snd_pcm_multi_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
 
 	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_t *slave = multi->slaves[i].pcm;
-		ssize_t frames = snd_pcm_mmap_forward(slave, size);
+		snd_pcm_sframes_t frames = snd_pcm_mmap_forward(slave, size);
 		if (frames < 0)
 			return frames;
 		if (i == 0) {
 			size = frames;
 			continue;
 		}
-		if ((size_t) frames != size)
+		if ((snd_pcm_uframes_t) frames != size)
 			return -EBADFD;
 	}
 	return size;
@@ -422,9 +443,9 @@ snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 };
 
 int snd_pcm_multi_open(snd_pcm_t **pcmp, char *name,
-		       size_t slaves_count,
-		       snd_pcm_t **slaves_pcm, size_t *schannels_count,
-		       size_t channels_count,
+		       unsigned int slaves_count,
+		       snd_pcm_t **slaves_pcm, unsigned int *schannels_count,
+		       unsigned int channels_count,
 		       int *sidxs, unsigned int *schannels,
 		       int close_slaves)
 {
@@ -505,11 +526,11 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	char **slaves_id = NULL;
 	char **slaves_name = NULL;
 	snd_pcm_t **slaves_pcm = NULL;
-	size_t *slaves_channels = NULL;
+	unsigned int *slaves_channels = NULL;
 	unsigned int *channels_sidx = NULL;
 	unsigned int *channels_schannel = NULL;
-	size_t slaves_count = 0;
-	size_t channels_count = 0;
+	unsigned int slaves_count = 0;
+	unsigned int channels_count = 0;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);
 		if (strcmp(n->id, "comment") == 0)
@@ -667,7 +688,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			err = -EINVAL;
 			goto _free;
 		}
-		if (slave < 0 || (size_t)slave >= slaves_count) {
+		if (slave < 0 || (unsigned int)slave >= slaves_count) {
 			ERR("Invalid or missing sidx");
 			err = -EINVAL;
 			goto _free;

@@ -82,7 +82,7 @@ INLINE void mask_none(mask_t *mask)
 	mask_bits(mask) = 0;
 }
 
-INLINE void mask_all(mask_t *mask)
+INLINE void mask_any(mask_t *mask)
 {
 	mask_bits(mask) = ~0U;
 }
@@ -152,6 +152,11 @@ INLINE void mask_leave(mask_t *mask, unsigned int val)
 INLINE void mask_intersect(mask_t *mask, const mask_t *v)
 {
 	mask_bits(mask) &= mask_bits(v);
+}
+
+INLINE void mask_union(mask_t *mask, const mask_t *v)
+{
+	mask_bits(mask) |= mask_bits(v);
 }
 
 INLINE int mask_eq(const mask_t *mask, const mask_t *v)
@@ -242,4 +247,15 @@ INLINE int mask_value(const mask_t *mask)
 {
 	assert(!mask_empty(mask));
 	return mask_min(mask);
+}
+
+INLINE int mask_always_eq(const mask_t *m1, const mask_t *m2)
+{
+	return mask_single(m1) && mask_single(m2) &&
+		mask_value(m1) == mask_value(m2);
+}
+
+INLINE int mask_never_eq(const mask_t *m1, const mask_t *m2)
+{
+	return (mask_bits(m1) & mask_bits(m2)) == 0;
 }

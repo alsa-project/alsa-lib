@@ -245,7 +245,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, int card, int devic
 			snd_ctl_close(ctl);
 			return ret;
 		}
-		if (info.subdevice != subdevice) {
+		if (info.subdevice != (unsigned int) subdevice) {
 			close(fd);
 			goto __again;
 		}

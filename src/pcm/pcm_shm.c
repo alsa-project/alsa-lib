@@ -168,6 +168,27 @@ static int _snd_pcm_shm_hw_refine(snd_pcm_t *pcm,
 	return err;
 }
 
+/* Accumulate to params->cmask */
+/* Reset sparams->cmask */
+int snd_pcm_shm_hw_link(snd_pcm_hw_params_t *params,
+			snd_pcm_hw_params_t *sparams,
+			snd_pcm_t *slave,
+			unsigned long links)
+{
+	int err1, err = 0;
+	err = snd_pcm_hw_params_refine(sparams, links, params);
+	if (err >= 0) {
+		unsigned int cmask = sparams->cmask;
+		err = _snd_pcm_shm_hw_refine(slave, sparams);
+		sparams->cmask |= cmask;
+	}
+	err1 = snd_pcm_hw_params_refine(params, links, sparams);
+	if (err1 < 0)
+		err = err1;
+	sparams->cmask = 0;
+	return err;
+}
+
 static int snd_pcm_shm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_hw_params_t sparams;
@@ -178,10 +199,10 @@ static int snd_pcm_shm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	    !mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
 		mask_intersect(saccess_mask, access_mask);
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
 	return snd_pcm_hw_refine2(params, &sparams,
-				  _snd_pcm_shm_hw_refine, pcm,
+				  snd_pcm_shm_hw_link, pcm,
 				  ~SND_PCM_HW_PARBIT_ACCESS);
 }
 
@@ -201,18 +222,27 @@ static int _snd_pcm_shm_hw_params(snd_pcm_t *pcm,
 static int snd_pcm_shm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_hw_params_t sparams;
+	unsigned int links = ~SND_PCM_HW_PARBIT_ACCESS;
 	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	mask_t *saccess_mask = alloca(mask_sizeof());
+	int err;
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 	if (!mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
 	    !mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
 		mask_intersect(saccess_mask, access_mask);
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
-	return snd_pcm_hw_params2(params, &sparams,
-				  _snd_pcm_shm_hw_params, pcm,
-				  ~SND_PCM_HW_PARBIT_ACCESS);
+	err = snd_pcm_hw_params_refine(&sparams, links, params);
+	assert(err >= 0);
+	err = _snd_pcm_hw_refine(&sparams);
+	assert(err >= 0);
+	err = _snd_pcm_shm_hw_params(pcm, &sparams);
+	if (err < 0) {
+		snd_pcm_hw_params_refine(params, links, &sparams);
+		return err;
+	}
+	return 0;
 }
 
 static int snd_pcm_shm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
@@ -310,7 +340,7 @@ static int snd_pcm_shm_state(snd_pcm_t *pcm)
 	return snd_pcm_shm_action(pcm);
 }
 
-static int snd_pcm_shm_delay(snd_pcm_t *pcm, ssize_t *delayp)
+static int snd_pcm_shm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
@@ -323,7 +353,7 @@ static int snd_pcm_shm_delay(snd_pcm_t *pcm, ssize_t *delayp)
 	return err;
 }
 
-static ssize_t snd_pcm_shm_avail_update(snd_pcm_t *pcm)
+static snd_pcm_sframes_t snd_pcm_shm_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
@@ -390,7 +420,7 @@ static int snd_pcm_shm_pause(snd_pcm_t *pcm, int enable)
 	return snd_pcm_shm_action(pcm);
 }
 
-static ssize_t snd_pcm_shm_rewind(snd_pcm_t *pcm, size_t frames)
+static snd_pcm_sframes_t snd_pcm_shm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
@@ -399,7 +429,7 @@ static ssize_t snd_pcm_shm_rewind(snd_pcm_t *pcm, size_t frames)
 	return snd_pcm_shm_action(pcm);
 }
 
-static ssize_t snd_pcm_shm_mmap_forward(snd_pcm_t *pcm, size_t size)
+static snd_pcm_sframes_t snd_pcm_shm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;

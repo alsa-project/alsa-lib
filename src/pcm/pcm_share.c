@@ -69,16 +69,16 @@ typedef struct {
 	snd_pcm_t *pcm;
 	int format;
 	int rate;
-	size_t channels_count;
-	size_t open_count;
-	size_t setup_count;
-	size_t mmap_count;
-	size_t prepared_count;
-	size_t running_count;
-	size_t safety_threshold;
-	size_t silence_frames;
+	unsigned int channels_count;
+	unsigned int open_count;
+	unsigned int setup_count;
+	unsigned int mmap_count;
+	unsigned int prepared_count;
+	unsigned int running_count;
+	snd_pcm_uframes_t safety_threshold;
+	snd_pcm_uframes_t silence_frames;
 	snd_pcm_sw_params_t sw_params;
-	size_t hw_ptr;
+	snd_pcm_uframes_t hw_ptr;
 	int poll[2];
 	int polling;
 	pthread_t thread;
@@ -91,18 +91,18 @@ typedef struct {
 	struct list_head list;
 	snd_pcm_t *pcm;
 	snd_pcm_share_slave_t *slave;
-	size_t channels_count;
+	unsigned int channels_count;
 	int *slave_channels;
 	int xfer_mode;
 	int xrun_mode;
-	size_t avail_min;
+	snd_pcm_uframes_t avail_min;
 	int async_sig;
 	pid_t async_pid;
 	int drain_silenced;
 	struct timeval trigger_time;
 	int state;
-	size_t hw_ptr;
-	size_t appl_ptr;
+	snd_pcm_uframes_t hw_ptr;
+	snd_pcm_uframes_t appl_ptr;
 	int ready;
 	int client_socket;
 	int slave_socket;
@@ -110,9 +110,9 @@ typedef struct {
 
 static void _snd_pcm_share_stop(snd_pcm_t *pcm, int state);
 
-static size_t snd_pcm_share_slave_avail(snd_pcm_share_slave_t *slave)
+static snd_pcm_uframes_t snd_pcm_share_slave_avail(snd_pcm_share_slave_t *slave)
 {
-	ssize_t avail;
+	snd_pcm_sframes_t avail;
 	snd_pcm_t *pcm = slave->pcm;
   	avail = slave->hw_ptr - *pcm->appl_ptr;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
@@ -124,15 +124,15 @@ static size_t snd_pcm_share_slave_avail(snd_pcm_share_slave_t *slave)
 
 /* Warning: take the mutex before to call this */
 /* Return number of frames to mmap_forward the slave */
-static size_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *slave)
+static snd_pcm_uframes_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *slave)
 {
 	struct list_head *i;
-	size_t buffer_size, boundary;
-	size_t slave_appl_ptr;
-	ssize_t frames, safety_frames;
-	ssize_t min_frames, max_frames;
-	size_t avail, slave_avail;
-	size_t slave_hw_avail;
+	snd_pcm_uframes_t buffer_size, boundary;
+	snd_pcm_uframes_t slave_appl_ptr;
+	snd_pcm_sframes_t frames, safety_frames;
+	snd_pcm_sframes_t min_frames, max_frames;
+	snd_pcm_uframes_t avail, slave_avail;
+	snd_pcm_uframes_t slave_hw_avail;
 	slave_avail = snd_pcm_share_slave_avail(slave);
 	boundary = slave->pcm->boundary;
 	buffer_size = slave->pcm->buffer_size;
@@ -187,17 +187,17 @@ static size_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *slave)
    - draining silencing
    - return distance in frames to next event
 */
-static size_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
+static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 {
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_t *spcm = slave->pcm;
-	size_t buffer_size = spcm->buffer_size;
+	snd_pcm_uframes_t buffer_size = spcm->buffer_size;
 	int ready = 1, running = 0;
-	size_t avail = 0, slave_avail;
-	ssize_t hw_avail;
-	size_t missing = INT_MAX;
-	ssize_t ready_missing;
+	snd_pcm_uframes_t avail = 0, slave_avail;
+	snd_pcm_sframes_t hw_avail;
+	snd_pcm_uframes_t missing = INT_MAX;
+	snd_pcm_sframes_t ready_missing;
 	//	printf("state=%d hw_ptr=%d appl_ptr=%d slave appl_ptr=%d safety=%d silence=%d\n", share->state, slave->hw_ptr, share->appl_ptr, *slave->pcm->appl_ptr, slave->safety_threshold, slave->silence_frames);
 	switch (share->state) {
 	case SND_PCM_STATE_RUNNING:
@@ -219,11 +219,11 @@ static size_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 	slave_avail = snd_pcm_share_slave_avail(slave);
 	if (avail < slave_avail) {
 		/* Some frames need still to be transferred */
-		ssize_t slave_hw_avail = buffer_size - slave_avail;
-		ssize_t safety_missing = slave_hw_avail - slave->safety_threshold;
+		snd_pcm_sframes_t slave_hw_avail = buffer_size - slave_avail;
+		snd_pcm_sframes_t safety_missing = slave_hw_avail - slave->safety_threshold;
 		if (safety_missing < 0) {
-			ssize_t err;
-			ssize_t frames = slave_avail - avail;
+			snd_pcm_sframes_t err;
+			snd_pcm_sframes_t frames = slave_avail - avail;
 			if (-safety_missing <= frames) {
 				frames = -safety_missing;
 				missing = 1;
@@ -245,7 +245,7 @@ static size_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 				_snd_pcm_share_stop(pcm, SND_PCM_STATE_SETUP);
 				break;
 			}
-			if ((size_t)hw_avail < missing)
+			if ((snd_pcm_uframes_t)hw_avail < missing)
 				missing = hw_avail;
 			running = 1;
 			ready = 0;
@@ -257,13 +257,13 @@ static size_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 				_snd_pcm_share_stop(pcm, SND_PCM_STATE_XRUN);
 				break;
 			}
-			if ((size_t)hw_avail < missing)
+			if ((snd_pcm_uframes_t)hw_avail < missing)
 				missing = hw_avail;
 		}
 		ready_missing = share->avail_min - avail;
 		if (ready_missing > 0) {
 			ready = 0;
-			if ((size_t)ready_missing < missing)
+			if ((snd_pcm_uframes_t)ready_missing < missing)
 				missing = ready_missing;
 		}
 		running = 1;
@@ -293,12 +293,12 @@ static size_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 	    !share->drain_silenced) {
 		/* drain silencing */
 		if (avail >= slave->silence_frames) {
-			size_t offset = share->appl_ptr % buffer_size;
-			size_t xfer = 0;
-			size_t size = slave->silence_frames;
+			snd_pcm_uframes_t offset = share->appl_ptr % buffer_size;
+			snd_pcm_uframes_t xfer = 0;
+			snd_pcm_uframes_t size = slave->silence_frames;
 			while (xfer < size) {
-				size_t frames = size - xfer;
-				size_t cont = buffer_size - offset;
+				snd_pcm_uframes_t frames = size - xfer;
+				snd_pcm_uframes_t cont = buffer_size - offset;
 				if (cont < frames)
 					frames = cont;
 				snd_pcm_areas_silence(pcm->running_areas, offset, pcm->channels, frames, pcm->format);
@@ -309,7 +309,7 @@ static size_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 			}
 			share->drain_silenced = 1;
 		} else {
-			size_t silence_missing;
+			snd_pcm_uframes_t silence_missing;
 			silence_missing = slave->silence_frames - avail;
 			if (silence_missing < missing)
 				missing = silence_missing;
@@ -319,17 +319,17 @@ static size_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 	return missing;
 }
 
-static size_t _snd_pcm_share_slave_missing(snd_pcm_share_slave_t *slave)
+static snd_pcm_uframes_t _snd_pcm_share_slave_missing(snd_pcm_share_slave_t *slave)
 {
-	size_t missing = INT_MAX;
+	snd_pcm_uframes_t missing = INT_MAX;
 	struct list_head *i;
-	ssize_t avail = snd_pcm_avail_update(slave->pcm);
+	snd_pcm_sframes_t avail = snd_pcm_avail_update(slave->pcm);
 	int slave_xrun = (avail == -EPIPE);
 	slave->hw_ptr = *slave->pcm->hw_ptr;
 	for (i = slave->clients.next; i != &slave->clients; i = i->next) {
 		snd_pcm_share_t *share = list_entry(i, snd_pcm_share_t, list);
 		snd_pcm_t *pcm = share->pcm;
-		size_t m = _snd_pcm_share_missing(pcm, slave_xrun);
+		snd_pcm_uframes_t m = _snd_pcm_share_missing(pcm, slave_xrun);
 		if (m < missing)
 			missing = m;
 	}
@@ -350,25 +350,25 @@ void *snd_pcm_share_slave_thread(void *data)
 	err = pipe(slave->poll);
 	assert(err >= 0);
 	while (slave->open_count > 0) {
-		size_t missing;
+		snd_pcm_uframes_t missing;
 		//		printf("begin min_missing\n");
 		missing = _snd_pcm_share_slave_missing(slave);
 		//		printf("min_missing=%d\n", missing);
 		if (missing < INT_MAX) {
-			size_t hw_ptr;
-			ssize_t avail_min;
+			snd_pcm_uframes_t hw_ptr;
+			snd_pcm_sframes_t avail_min;
 			hw_ptr = slave->hw_ptr + missing;
-			hw_ptr += spcm->fragment_size - 1;
+			hw_ptr += spcm->period_size - 1;
 			if (hw_ptr >= spcm->boundary)
 				hw_ptr -= spcm->boundary;
-			hw_ptr -= hw_ptr % spcm->fragment_size;
+			hw_ptr -= hw_ptr % spcm->period_size;
 			avail_min = hw_ptr - *spcm->appl_ptr;
 			if (spcm->stream == SND_PCM_STREAM_PLAYBACK)
 				avail_min += spcm->buffer_size;
 			if (avail_min < 0)
 				avail_min += spcm->boundary;
 			// printf("avail_min=%d\n", avail_min);
-			if ((size_t)avail_min != spcm->avail_min) {
+			if ((snd_pcm_uframes_t)avail_min != spcm->avail_min) {
 				snd_pcm_sw_param_near(spcm, &slave->sw_params, SND_PCM_SW_PARAM_AVAIL_MIN, avail_min);
 				err = snd_pcm_sw_params(spcm, &slave->sw_params);
 				assert(err >= 0);
@@ -395,8 +395,8 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_t *spcm = slave->pcm;
-	size_t missing;
-	ssize_t avail = snd_pcm_avail_update(spcm);
+	snd_pcm_uframes_t missing;
+	snd_pcm_sframes_t avail = snd_pcm_avail_update(spcm);
 	slave->hw_ptr = *slave->pcm->hw_ptr;
 	missing = _snd_pcm_share_missing(pcm, avail == -EPIPE);
 	if (!slave->polling) {
@@ -404,20 +404,20 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 		return;
 	}
 	if (missing < INT_MAX) {
-		size_t hw_ptr;
-		ssize_t avail_min;
+		snd_pcm_uframes_t hw_ptr;
+		snd_pcm_sframes_t avail_min;
 		int err;
 		hw_ptr = slave->hw_ptr + missing;
-		hw_ptr += spcm->fragment_size - 1;
+		hw_ptr += spcm->period_size - 1;
 		if (hw_ptr >= spcm->boundary)
 			hw_ptr -= spcm->boundary;
-		hw_ptr -= hw_ptr % spcm->fragment_size;
+		hw_ptr -= hw_ptr % spcm->period_size;
 		avail_min = hw_ptr - *spcm->appl_ptr;
 		if (spcm->stream == SND_PCM_STREAM_PLAYBACK)
 			avail_min += spcm->buffer_size;
 		if (avail_min < 0)
 			avail_min += spcm->boundary;
-		if ((size_t)avail_min < spcm->avail_min) {
+		if ((snd_pcm_uframes_t)avail_min < spcm->avail_min) {
 			snd_pcm_sw_param_near(spcm, &slave->sw_params, SND_PCM_SW_PARAM_AVAIL_MIN, avail_min);
 			err = snd_pcm_sw_params(spcm, &slave->sw_params);
 			assert(err >= 0);
@@ -461,57 +461,64 @@ static int snd_pcm_share_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_hw_params_t sparams;
 	int err;
+	unsigned int cmask, lcmask;
 	mask_t *access_mask = alloca(mask_sizeof());
 	const mask_t *mmap_mask;
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 
-	err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_CHANNELS,
-				     share->channels_count);
+	cmask = params->cmask;
+	params->cmask = 0;
+	err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_CHANNELS,
+				    share->channels_count, 0);
 	if (err < 0)
 		return err;
 
 	if (slave->format >= 0) {
-		err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_FORMAT,
-					     slave->format);
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_FORMAT,
+					    slave->format, 0);
 		if (err < 0)
 			return err;
 	}
 
 	if (slave->rate >= 0) {
-		err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_RATE,
-					     slave->rate);
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_RATE,
+					    slave->rate, 0);
 		if (err < 0)
 			return err;
 	}
+	lcmask = params->cmask;
+	params->cmask |= cmask;
 
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
-				saccess_mask);
-	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_CHANNELS,
-			       slave->channels_count);
+	_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
+			       saccess_mask);
+	_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_CHANNELS,
+			      slave->channels_count, 0);
 	err = snd_pcm_hw_refine2(params, &sparams,
-				 snd_pcm_hw_refine, slave->pcm,
+				 snd_pcm_generic_hw_link, slave->pcm,
 				 SND_PCM_HW_PARBIT_FORMAT |
 				 SND_PCM_HW_PARBIT_SUBFORMAT |
 				 SND_PCM_HW_PARBIT_RATE |
-				 SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
-				 SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
+				 SND_PCM_HW_PARBIT_PERIOD_SIZE |
+				 SND_PCM_HW_PARBIT_PERIOD_TIME |
 				 SND_PCM_HW_PARBIT_BUFFER_SIZE |
-				 SND_PCM_HW_PARBIT_BUFFER_LENGTH |
-				 SND_PCM_HW_PARBIT_FRAGMENTS);
+				 SND_PCM_HW_PARBIT_BUFFER_TIME |
+				 SND_PCM_HW_PARBIT_PERIODS |
+				 SND_PCM_HW_PARBIT_TICK_TIME);
 	if (err < 0)
 		return err;
 	mmap_mask = snd_pcm_hw_param_value_mask(&sparams, SND_PCM_HW_PARAM_ACCESS);
-	mask_all(access_mask);
+	mask_any(access_mask);
 	mask_reset(access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 	if (!mask_test(mmap_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED))
 		mask_reset(access_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
 	if (!mask_test(mmap_mask, SND_PCM_ACCESS_MMAP_COMPLEX) &&
 	    !mask_test(mmap_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED))
 		mask_reset(access_mask, SND_PCM_ACCESS_MMAP_COMPLEX);
-	err = _snd_pcm_hw_param_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
+	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
 				      access_mask);
+	params->cmask |= lcmask;
 	if (err < 0)
 		return err;
 	params->info |= SND_PCM_INFO_DOUBLE;
@@ -527,24 +534,29 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	Pthread_mutex_lock(&slave->mutex);
 	if (slave->setup_count > 1 || 
 	    (slave->setup_count == 1 && !pcm->setup)) {
-		err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_FORMAT,
-					     spcm->format);
+		params->cmask = 0;
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_FORMAT,
+					    spcm->format, 0);
 		if (err < 0)
 			goto _err;
-		err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_SUBFORMAT,
-					     spcm->subformat);
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_SUBFORMAT,
+					    spcm->subformat, 0);
 		if (err < 0)
 			goto _err;
-		err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_RATE,
-					     spcm->rate);
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_RATE,
+					    spcm->rate, 0);
 		if (err < 0)
 			goto _err;
-		err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_FRAGMENT_SIZE,
-					     spcm->fragment_size);
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_PERIOD_TIME,
+					    spcm->period_time, 0);
 		if (err < 0)
 			goto _err;
-		err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_FRAGMENTS,
-						   spcm->fragments);
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_BUFFER_SIZE,
+					    spcm->buffer_size, 0);
+		if (err < 0)
+			goto _err;
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_TICK_TIME,
+					    spcm->tick_time, 0);
 	_err:
 		if (err < 0) {
 			ERR("slave is already running with different setup");
@@ -553,30 +565,38 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		}
 	} else {
 		snd_pcm_hw_params_t sparams;
+		unsigned int links;
 		mask_t *saccess_mask = alloca(mask_sizeof());
 		mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+		links = SND_PCM_HW_PARBIT_FORMAT |
+			SND_PCM_HW_PARBIT_SUBFORMAT |
+			SND_PCM_HW_PARBIT_RATE |
+			SND_PCM_HW_PARBIT_PERIOD_SIZE |
+			SND_PCM_HW_PARBIT_PERIOD_TIME |
+			SND_PCM_HW_PARBIT_BUFFER_SIZE |
+			SND_PCM_HW_PARBIT_BUFFER_TIME |
+			SND_PCM_HW_PARBIT_PERIODS |
+			SND_PCM_HW_PARBIT_TICK_TIME;
 		_snd_pcm_hw_params_any(&sparams);
-		_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
-					saccess_mask);
-		_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_CHANNELS,
-				       share->channels_count);
-		err = snd_pcm_hw_params2(params, &sparams,
-					 snd_pcm_hw_params, slave->pcm,
-					 SND_PCM_HW_PARBIT_FORMAT |
-					 SND_PCM_HW_PARBIT_SUBFORMAT |
-					 SND_PCM_HW_PARBIT_RATE |
-					 SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
-					 SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
-					 SND_PCM_HW_PARBIT_BUFFER_SIZE |
-					 SND_PCM_HW_PARBIT_BUFFER_LENGTH |
-					 SND_PCM_HW_PARBIT_FRAGMENTS);
+		_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
+				       saccess_mask);
+		_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_CHANNELS,
+				      share->channels_count, 0);
+		err = snd_pcm_hw_params_refine(&sparams, links, params);
+		assert(err >= 0);
+		err = _snd_pcm_hw_refine(&sparams);
+		assert(err >= 0);
+		err = snd_pcm_hw_params(slave->pcm, &sparams);
+		params->cmask = 0;
+		sparams.cmask = ~0U;
+		snd_pcm_hw_params_refine(params, links, &sparams);
 		if (err < 0)
 			goto _end;
 		snd_pcm_sw_params_current(slave->pcm, &slave->sw_params);
 		/* >= 30 ms */
 		slave->safety_threshold = slave->pcm->rate * 30 / 1000;
-		slave->safety_threshold += slave->pcm->fragment_size - 1;
-		slave->safety_threshold -= slave->safety_threshold % slave->pcm->fragment_size;
+		slave->safety_threshold += slave->pcm->period_size - 1;
+		slave->safety_threshold -= slave->safety_threshold % slave->pcm->period_size;
 		slave->silence_frames = slave->safety_threshold;
 		if (slave->pcm->stream == SND_PCM_STREAM_PLAYBACK)
 			snd_pcm_areas_silence(slave->pcm->running_areas, 0, slave->pcm->channels, slave->pcm->buffer_size, slave->pcm->format);
@@ -598,7 +618,7 @@ static int snd_pcm_share_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
-	ssize_t sd = 0, d = 0;
+	snd_pcm_sframes_t sd = 0, d = 0;
 	Pthread_mutex_lock(&slave->mutex);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		status->avail = snd_pcm_mmap_playback_avail(pcm);
@@ -630,12 +650,12 @@ static int snd_pcm_share_state(snd_pcm_t *pcm)
 	return share->state;
 }
 
-static int _snd_pcm_share_delay(snd_pcm_t *pcm, ssize_t *delayp)
+static int _snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
-	ssize_t sd;
+	snd_pcm_sframes_t sd;
 	switch (share->state) {
 	case SND_PCM_STATE_XRUN:
 		return -EPIPE;
@@ -655,7 +675,7 @@ static int _snd_pcm_share_delay(snd_pcm_t *pcm, ssize_t *delayp)
 	return 0;
 }
 
-static int snd_pcm_share_delay(snd_pcm_t *pcm, ssize_t *delayp)
+static int snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
@@ -666,11 +686,11 @@ static int snd_pcm_share_delay(snd_pcm_t *pcm, ssize_t *delayp)
 	return err;
 }
 
-static ssize_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
+static snd_pcm_sframes_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
-	ssize_t avail;
+	snd_pcm_sframes_t avail;
 	Pthread_mutex_lock(&slave->mutex);
 	if (share->state == SND_PCM_STATE_RUNNING) {
 		avail = snd_pcm_avail_update(slave->pcm);
@@ -682,24 +702,24 @@ static ssize_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 	}
 	Pthread_mutex_unlock(&slave->mutex);
 	avail = snd_pcm_mmap_avail(pcm);
-	if ((size_t)avail > pcm->buffer_size)
+	if ((snd_pcm_uframes_t)avail > pcm->buffer_size)
 		return -EPIPE;
 	return avail;
 }
 
 /* Call it with mutex held */
-static ssize_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, size_t size)
+static snd_pcm_sframes_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
-	ssize_t ret = 0;
-	ssize_t frames;
+	snd_pcm_sframes_t ret = 0;
+	snd_pcm_sframes_t frames;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
 	    share->state == SND_PCM_STATE_RUNNING) {
 		frames = *slave->pcm->appl_ptr - share->appl_ptr;
-		if (frames > (ssize_t)pcm->buffer_size)
+		if (frames > (snd_pcm_sframes_t)pcm->buffer_size)
 			frames -= pcm->boundary;
-		else if (frames < -(ssize_t)pcm->buffer_size)
+		else if (frames < -(snd_pcm_sframes_t)pcm->buffer_size)
 			frames += pcm->boundary;
 		if (frames > 0) {
 			/* Latecomer PCM */
@@ -710,9 +730,9 @@ static ssize_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, size_t size)
 	}
 	snd_pcm_mmap_appl_forward(pcm, size);
 	if (share->state == SND_PCM_STATE_RUNNING) {
-		ssize_t frames = _snd_pcm_share_slave_forward(slave);
+		snd_pcm_sframes_t frames = _snd_pcm_share_slave_forward(slave);
 		if (frames > 0) {
-			ssize_t err;
+			snd_pcm_sframes_t err;
 			err = snd_pcm_mmap_forward(slave->pcm, frames);
 			assert(err == frames);
 		}
@@ -721,11 +741,11 @@ static ssize_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, size_t size)
 	return size;
 }
 
-static ssize_t snd_pcm_share_mmap_forward(snd_pcm_t *pcm, size_t size)
+static snd_pcm_sframes_t snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
-	ssize_t ret;
+	snd_pcm_sframes_t ret;
 	Pthread_mutex_lock(&slave->mutex);
 	ret = _snd_pcm_share_mmap_forward(pcm, size);
 	Pthread_mutex_unlock(&slave->mutex);
@@ -776,14 +796,14 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 	Pthread_mutex_lock(&slave->mutex);
 	share->state = SND_PCM_STATE_RUNNING;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		size_t hw_avail = snd_pcm_mmap_playback_hw_avail(pcm);
-		size_t xfer = 0;
+		snd_pcm_uframes_t hw_avail = snd_pcm_mmap_playback_hw_avail(pcm);
+		snd_pcm_uframes_t xfer = 0;
 		if (hw_avail == 0) {
 			err = -EPIPE;
 			goto _end;
 		}
 		if (slave->running_count) {
-			ssize_t sd;
+			snd_pcm_sframes_t sd;
 			err = snd_pcm_delay(slave->pcm, &sd);
 			if (err < 0)
 				goto _end;
@@ -795,9 +815,9 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 		share->hw_ptr = *slave->pcm->hw_ptr;
 		share->appl_ptr = *slave->pcm->appl_ptr;
 		while (xfer < hw_avail) {
-			size_t frames = hw_avail - xfer;
-			size_t offset = snd_pcm_mmap_offset(pcm);
-			size_t cont = pcm->buffer_size - offset;
+			snd_pcm_uframes_t frames = hw_avail - xfer;
+			snd_pcm_uframes_t offset = snd_pcm_mmap_offset(pcm);
+			snd_pcm_uframes_t cont = pcm->buffer_size - offset;
 			if (cont < frames)
 				frames = cont;
 			snd_pcm_areas_copy(pcm->stopped_areas, xfer,
@@ -841,11 +861,11 @@ static int snd_pcm_share_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *in
 	return err;
 }
 
-static ssize_t _snd_pcm_share_rewind(snd_pcm_t *pcm, size_t frames)
+static snd_pcm_sframes_t _snd_pcm_share_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
-	ssize_t n;
+	snd_pcm_sframes_t n;
 	switch (share->state) {
 	case SND_PCM_STATE_RUNNING:
 		break;
@@ -865,7 +885,7 @@ static ssize_t _snd_pcm_share_rewind(snd_pcm_t *pcm, size_t frames)
 	n = snd_pcm_mmap_hw_avail(pcm);
 	assert(n >= 0);
 	if (n > 0) {
-		if ((size_t)n > frames)
+		if ((snd_pcm_uframes_t)n > frames)
 			n = frames;
 		frames -= n;
 	}
@@ -881,11 +901,11 @@ static ssize_t _snd_pcm_share_rewind(snd_pcm_t *pcm, size_t frames)
 	return n;
 }
 
-static ssize_t snd_pcm_share_rewind(snd_pcm_t *pcm, size_t frames)
+static snd_pcm_sframes_t snd_pcm_share_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
-	ssize_t ret;
+	snd_pcm_sframes_t ret;
 	Pthread_mutex_lock(&slave->mutex);
 	ret = _snd_pcm_share_rewind(pcm, frames);
 	Pthread_mutex_unlock(&slave->mutex);
@@ -909,7 +929,7 @@ static void _snd_pcm_share_stop(snd_pcm_t *pcm, int state)
 				   pcm->format);
 	} else if (slave->running_count > 1) {
 		int err;
-		ssize_t delay;
+		snd_pcm_sframes_t delay;
 		snd_pcm_areas_silence(pcm->running_areas, 0, pcm->channels,
 				      pcm->buffer_size, pcm->format);
 		err = snd_pcm_delay(slave->pcm, &delay);
@@ -1106,8 +1126,8 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 
 int snd_pcm_share_open(snd_pcm_t **pcmp, char *name, char *sname,
 		       int sformat, int srate,
-		       size_t schannels_count,
-		       size_t channels_count, int *channels_map,
+		       unsigned int schannels_count,
+		       unsigned int channels_count, int *channels_map,
 		       int stream, int mode)
 {
 	snd_pcm_t *pcm;
@@ -1291,9 +1311,9 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	int err;
 	unsigned int idx;
 	int *channels_map;
-	size_t channels_count = 0;
+	unsigned int channels_count = 0;
 	long schannels_count = -1;
-	size_t schannel_max = 0;
+	unsigned int schannel_max = 0;
 	int sformat = -1;
 	long srate = -1;
 	

@@ -153,10 +153,10 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (params->start_mode == pcm->start_mode &&
-	    params->ready_mode == pcm->ready_mode &&
 	    params->xrun_mode == pcm->xrun_mode &&
-	    params->silence_mode == pcm->silence_mode &&
 	    params->tstamp_mode == pcm->tstamp_mode &&
+	    params->period_step == pcm->period_step &&
+	    params->sleep_min == pcm->sleep_min &&
 	    params->xfer_align == pcm->xfer_align &&
 	    params->silence_threshold == pcm->silence_threshold &&
 	    params->silence_size == pcm->silence_size) {
@@ -210,7 +210,7 @@ static int snd_pcm_hw_state(snd_pcm_t *pcm)
 	return hw->mmap_status->state;
 }
 
-static int snd_pcm_hw_delay(snd_pcm_t *pcm, ssize_t *delayp)
+static int snd_pcm_hw_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
@@ -291,27 +291,20 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 	return 0;
 }
 
-static ssize_t snd_pcm_hw_rewind(snd_pcm_t *pcm, size_t frames)
+static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	ssize_t hw_avail;
-	if (pcm->xrun_mode == SND_PCM_XRUN_ASAP) {
-		ssize_t d;
-		int err = snd_pcm_hw_delay(pcm, &d);
-		if (err < 0)
-			return 0;
+	snd_pcm_hw_t *hw = pcm->private;
+	int fd = hw->fd;
+	if (ioctl(fd, SND_PCM_IOCTL_REWIND, &frames) < 0) {
+		SYSERR("SND_PCM_IOCTL_REWIND failed");
+		return -errno;
 	}
-	hw_avail = snd_pcm_mmap_hw_avail(pcm);
-	if (hw_avail <= 0)
-		return 0;
-	if (frames > (size_t)hw_avail)
-		frames = hw_avail;
-	snd_pcm_mmap_appl_backward(pcm, frames);
-	return frames;
+	return 0;
 }
 
-static ssize_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
+static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
-	ssize_t result;
+	snd_pcm_sframes_t result;
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	snd_xferi_t xferi;
@@ -323,9 +316,9 @@ static ssize_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, size_t size
 	return xferi.result;
 }
 
-static ssize_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, size_t size)
+static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
-	ssize_t result;
+	snd_pcm_sframes_t result;
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	snd_xfern_t xfern;
@@ -337,9 +330,9 @@ static ssize_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 	return xfern.result;
 }
 
-static ssize_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, size_t size)
+static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
-	ssize_t result;
+	snd_pcm_sframes_t result;
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	snd_xferi_t xferi;
@@ -351,9 +344,9 @@ static ssize_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 	return xferi.result;
 }
 
-ssize_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, size_t size)
+snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
-	ssize_t result;
+	snd_pcm_sframes_t result;
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	snd_xfern_t xfern;
@@ -419,7 +412,7 @@ static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
-		size_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
+		snd_pcm_uframes_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
 		int id = shmget(IPC_PRIVATE, size, 0666);
 		if (id < 0) {
 			SYSERR("shmget failed");
@@ -455,7 +448,7 @@ static int snd_pcm_hw_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static ssize_t snd_pcm_hw_mmap_forward(snd_pcm_t *pcm, size_t size)
+static snd_pcm_sframes_t snd_pcm_hw_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	if (!(pcm->info & SND_PCM_INFO_MMAP) && 
 	    pcm->stream == SND_PCM_STREAM_PLAYBACK)
@@ -464,17 +457,19 @@ static ssize_t snd_pcm_hw_mmap_forward(snd_pcm_t *pcm, size_t size)
 	return size;
 }
 
-static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
+static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 {
-	size_t avail;
-	ssize_t err;
+	snd_pcm_uframes_t avail;
+	snd_pcm_sframes_t err;
+#if 0
 	if (pcm->ready_mode == SND_PCM_READY_ASAP ||
 	    pcm->xrun_mode == SND_PCM_XRUN_ASAP) {
-		ssize_t d;
+		snd_pcm_sframes_t d;
 		int err = snd_pcm_hw_delay(pcm, &d);
 		if (err < 0)
 			return err;
 	}
+#endif
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		avail = snd_pcm_mmap_playback_avail(pcm);
 	} else {
@@ -484,7 +479,7 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 			err = snd_pcm_read_mmap(pcm, avail);
 			if (err < 0)
 				return err;
-			assert((size_t)err == avail);
+			assert((snd_pcm_uframes_t)err == avail);
 			return err;
 		}
 	}
@@ -605,7 +600,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 			ret = -errno;
 			goto _err;
 		}
-		if (info.subdevice != subdevice) {
+		if (info.subdevice != (unsigned int) subdevice) {
 			close(fd);
 			goto __again;
 		}

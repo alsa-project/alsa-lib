@@ -106,7 +106,7 @@ int snd_pcm_state(snd_pcm_t *pcm)
 	return pcm->fast_ops->state(pcm->fast_op_arg);
 }
 
-int snd_pcm_delay(snd_pcm_t *pcm, ssize_t *delayp)
+int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	assert(pcm);
 	assert(pcm->setup);
@@ -156,7 +156,7 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 }
 
 
-ssize_t snd_pcm_rewind(snd_pcm_t *pcm, size_t frames)
+snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	assert(pcm);
 	assert(pcm->setup);
@@ -164,7 +164,7 @@ ssize_t snd_pcm_rewind(snd_pcm_t *pcm, size_t frames)
 	return pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
 }
 
-ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
+snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	assert(pcm);
 	assert(size == 0 || buffer);
@@ -173,7 +173,7 @@ ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
 	return _snd_pcm_writei(pcm, buffer, size);
 }
 
-ssize_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size)
+snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	assert(pcm);
 	assert(size == 0 || bufs);
@@ -182,7 +182,7 @@ ssize_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 	return _snd_pcm_writen(pcm, bufs, size);
 }
 
-ssize_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size)
+snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	assert(pcm);
 	assert(size == 0 || buffer);
@@ -191,7 +191,7 @@ ssize_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 	return _snd_pcm_readi(pcm, buffer, size);
 }
 
-ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size)
+snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	assert(pcm);
 	assert(size == 0 || bufs);
@@ -200,7 +200,7 @@ ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 	return _snd_pcm_readn(pcm, bufs, size);
 }
 
-ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count)
+snd_pcm_sframes_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count)
 {
 	void **bufs;
 	int k;
@@ -215,7 +215,7 @@ ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count)
 	return snd_pcm_writen(pcm, bufs, vector[0].iov_len);
 }
 
-ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count)
+snd_pcm_sframes_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count)
 {
 	void **bufs;
 	int k;
@@ -310,25 +310,26 @@ char *snd_pcm_hw_param_names[] = {
 	HW_PARAM(ACCESS),
 	HW_PARAM(FORMAT),
 	HW_PARAM(SUBFORMAT),
-	HW_PARAM(CHANNELS),
-	HW_PARAM(RATE),
-	HW_PARAM(FRAGMENT_LENGTH),
-	HW_PARAM(FRAGMENT_SIZE),
-	HW_PARAM(FRAGMENTS),
-	HW_PARAM(BUFFER_LENGTH),
-	HW_PARAM(BUFFER_SIZE),
 	HW_PARAM(SAMPLE_BITS),
 	HW_PARAM(FRAME_BITS),
-	HW_PARAM(FRAGMENT_BYTES),
+	HW_PARAM(CHANNELS),
+	HW_PARAM(RATE),
+	HW_PARAM(PERIOD_TIME),
+	HW_PARAM(PERIOD_SIZE),
+	HW_PARAM(PERIOD_BYTES),
+	HW_PARAM(PERIODS),
+	HW_PARAM(BUFFER_TIME),
+	HW_PARAM(BUFFER_SIZE),
 	HW_PARAM(BUFFER_BYTES),
+	HW_PARAM(TICK_TIME),
 };
 
 char *snd_pcm_sw_param_names[] = {
 	SW_PARAM(START_MODE),
-	SW_PARAM(READY_MODE),
 	SW_PARAM(XRUN_MODE),
-	SW_PARAM(SILENCE_MODE),
 	SW_PARAM(TSTAMP_MODE),
+	SW_PARAM(PERIOD_STEP),
+	SW_PARAM(SLEEP_MIN),
 	SW_PARAM(AVAIL_MIN),
 	SW_PARAM(XFER_ALIGN),
 	SW_PARAM(SILENCE_THRESHOLD),
@@ -414,20 +415,9 @@ char *snd_pcm_start_mode_names[] = {
 	START(DATA),
 };
 
-char *snd_pcm_ready_mode_names[] = {
-	READY(FRAGMENT),
-	READY(ASAP),
-};
-
 char *snd_pcm_xrun_mode_names[] = {
-	XRUN(FRAGMENT),
-	XRUN(ASAP),
 	XRUN(NONE),
-};
-
-char *snd_pcm_silence_mode_names[] = {
-	SILENCE(FRAGMENT),
-	SILENCE(ASAP),
+	XRUN(STOP),
 };
 
 char *snd_pcm_tstamp_mode_names[] = {
@@ -435,25 +425,25 @@ char *snd_pcm_tstamp_mode_names[] = {
 	TSTAMP(MMAP),
 };
 
-const char *snd_pcm_stream_name(unsigned int stream)
+const char *snd_pcm_stream_name(snd_pcm_stream_t stream)
 {
 	assert(stream <= SND_PCM_STREAM_LAST);
 	return snd_pcm_stream_names[stream];
 }
 
-const char *snd_pcm_access_name(unsigned int access)
+const char *snd_pcm_access_name(snd_pcm_access_t access)
 {
 	assert(access <= SND_PCM_ACCESS_LAST);
 	return snd_pcm_access_names[access];
 }
 
-const char *snd_pcm_format_name(unsigned int format)
+const char *snd_pcm_format_name(snd_pcm_format_t format)
 {
 	assert(format <= SND_PCM_FORMAT_LAST);
 	return snd_pcm_format_names[format];
 }
 
-const char *snd_pcm_format_description(unsigned int format)
+const char *snd_pcm_format_description(snd_pcm_format_t format)
 {
 	assert(format <= SND_PCM_FORMAT_LAST);
 	return snd_pcm_format_descriptions[format];
@@ -469,55 +459,43 @@ int snd_pcm_format_value(const char* name)
 	return -1;
 }
 
-const char *snd_pcm_subformat_name(unsigned int subformat)
+const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat)
 {
 	assert(subformat <= SND_PCM_SUBFORMAT_LAST);
 	return snd_pcm_subformat_names[subformat];
 }
 
-const char *snd_pcm_hw_param_name(unsigned int param)
+const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t param)
 {
 	assert(param <= SND_PCM_HW_PARAM_LAST);
 	return snd_pcm_hw_param_names[param];
 }
 
-const char *snd_pcm_sw_param_name(unsigned int param)
+const char *snd_pcm_sw_param_name(snd_pcm_sw_param_t param)
 {
 	assert(param <= SND_PCM_SW_PARAM_LAST);
 	return snd_pcm_sw_param_names[param];
 }
 
-const char *snd_pcm_start_mode_name(unsigned int mode)
+const char *snd_pcm_start_mode_name(snd_pcm_start_t mode)
 {
 	assert(mode <= SND_PCM_START_LAST);
 	return snd_pcm_start_mode_names[mode];
 }
 
-const char *snd_pcm_ready_mode_name(unsigned int mode)
-{
-	assert(mode <= SND_PCM_READY_LAST);
-	return snd_pcm_ready_mode_names[mode];
-}
-
-const char *snd_pcm_xrun_mode_name(unsigned int mode)
+const char *snd_pcm_xrun_mode_name(snd_pcm_xrun_t mode)
 {
 	assert(mode <= SND_PCM_XRUN_LAST);
 	return snd_pcm_xrun_mode_names[mode];
 }
 
-const char *snd_pcm_silence_mode_name(unsigned int mode)
-{
-	assert(mode <= SND_PCM_SILENCE_LAST);
-	return snd_pcm_silence_mode_names[mode];
-}
-
-const char *snd_pcm_tstamp_mode_name(unsigned int mode)
+const char *snd_pcm_tstamp_mode_name(snd_pcm_tstamp_t mode)
 {
 	assert(mode <= SND_PCM_TSTAMP_LAST);
 	return snd_pcm_tstamp_mode_names[mode];
 }
 
-const char *snd_pcm_state_name(unsigned int state)
+const char *snd_pcm_state_name(snd_pcm_state_t state)
 {
 	assert(state <= SND_PCM_STATE_LAST);
 	return snd_pcm_state_names[state];
@@ -536,8 +514,10 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp)
 	fprintf(fp, "rate         : %u\n", pcm->rate);
 	fprintf(fp, "exact rate   : %g (%u/%u)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
 	fprintf(fp, "msbits       : %u\n", pcm->msbits);
-	fprintf(fp, "fragment_size: %lu\n", (long)pcm->fragment_size);
-	fprintf(fp, "fragments    : %u\n", pcm->fragments);
+	fprintf(fp, "buffer_size  : %lu\n", pcm->buffer_size);
+	fprintf(fp, "period_size  : %lu\n", pcm->period_size);
+	fprintf(fp, "period_time  : %u\n", pcm->period_time);
+	fprintf(fp, "tick_time    : %u\n", pcm->tick_time);
 	return 0;
 }
 
@@ -548,9 +528,9 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, FILE *fp)
 	assert(pcm->setup);
 	fprintf(fp, "start_mode   : %s\n", snd_pcm_start_mode_name(pcm->start_mode));
 	fprintf(fp, "xrun_mode    : %s\n", snd_pcm_xrun_mode_name(pcm->xrun_mode));
-	fprintf(fp, "ready_mode   : %s\n", snd_pcm_ready_mode_name(pcm->ready_mode));
-	fprintf(fp, "silence_mode : %s\n", snd_pcm_silence_mode_name(pcm->silence_mode));
 	fprintf(fp, "tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
+	fprintf(fp, "period_step  : %ld\n", (long)pcm->period_step);
+	fprintf(fp, "sleep_min    : %ld\n", (long)pcm->sleep_min);
 	fprintf(fp, "avail_min    : %ld\n", (long)pcm->avail_min);
 	fprintf(fp, "xfer_align   : %ld\n", (long)pcm->xfer_align);
 	fprintf(fp, "silence_threshold: %ld\n", (long)pcm->silence_threshold);
@@ -588,28 +568,28 @@ int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp)
 	return 0;
 }
 
-ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes)
+snd_pcm_sframes_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes)
 {
 	assert(pcm);
 	assert(pcm->setup);
 	return bytes * 8 / pcm->bits_per_frame;
 }
 
-ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, ssize_t frames)
+ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 {
 	assert(pcm);
 	assert(pcm->setup);
 	return frames * pcm->bits_per_frame / 8;
 }
 
-ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
+int snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
 {
 	assert(pcm);
 	assert(pcm->setup);
 	return bytes * 8 / pcm->bits_per_sample;
 }
 
-ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, ssize_t samples)
+ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
 {
 	assert(pcm);
 	assert(pcm->setup);
@@ -788,20 +768,20 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 	return 0;
 }
 
-ssize_t snd_pcm_avail_update(snd_pcm_t *pcm)
+snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 {
 	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
 }
 
-ssize_t snd_pcm_mmap_forward(snd_pcm_t *pcm, size_t size)
+snd_pcm_sframes_t snd_pcm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	assert(size > 0);
 	assert(size <= snd_pcm_mmap_avail(pcm));
 	return pcm->fast_ops->mmap_forward(pcm->fast_op_arg, size);
 }
 
-int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, size_t dst_offset,
-			 size_t samples, int format)
+int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
+			 unsigned int samples, int format)
 {
 	/* FIXME: sub byte resolution and odd dst_offset */
 	char *dst;
@@ -814,7 +794,7 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, size_t dst_offs
 	width = snd_pcm_format_physical_width(format);
 	silence = snd_pcm_format_silence_64(format);
 	if (dst_area->step == (unsigned int) width) {
-		size_t dwords = samples * width / 64;
+		unsigned int dwords = samples * width / 64;
 		samples -= dwords * 64 / width;
 		while (dwords-- > 0)
 			*((u_int64_t*)dst)++ = silence;
@@ -882,8 +862,8 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, size_t dst_offs
 	return 0;
 }
 
-int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
-			  size_t channels, size_t frames, int format)
+int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+			  unsigned int channels, snd_pcm_uframes_t frames, int format)
 {
 	int width = snd_pcm_format_physical_width(format);
 	while (channels > 0) {
@@ -923,9 +903,9 @@ int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, size_t dst_of
 }
 
 
-int snd_pcm_area_copy(const snd_pcm_channel_area_t *src_area, size_t src_offset,
-		      const snd_pcm_channel_area_t *dst_area, size_t dst_offset,
-		      size_t samples, int format)
+int snd_pcm_area_copy(const snd_pcm_channel_area_t *src_area, snd_pcm_uframes_t src_offset,
+		      const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
+		      unsigned int samples, int format)
 {
 	/* FIXME: sub byte resolution and odd dst_offset */
 	char *src, *dst;
@@ -1018,9 +998,9 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *src_area, size_t src_offset,
 	return 0;
 }
 
-int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_areas, size_t src_offset,
-		       const snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
-		       size_t channels, size_t frames, int format)
+int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
+		       const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+		       unsigned int channels, snd_pcm_uframes_t frames, int format)
 {
 	int width = snd_pcm_format_physical_width(format);
 	while (channels > 0) {
@@ -1065,12 +1045,12 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_areas, size_t src_offse
 	return 0;
 }
 
-ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
-			   size_t offset, size_t size,
+snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
+			   snd_pcm_uframes_t offset, snd_pcm_uframes_t size,
 			   snd_pcm_xfer_areas_func_t func)
 {
-	size_t xfer = 0;
-	ssize_t err = 0;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err = 0;
 	int state = snd_pcm_state(pcm);
 	assert(size > 0);
 	assert(state >= SND_PCM_STATE_PREPARED);
@@ -1082,15 +1062,15 @@ ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 		state = SND_PCM_STATE_RUNNING;
 	}
 	while (xfer < size) {
-		ssize_t avail;
-		size_t frames;
+		snd_pcm_sframes_t avail;
+		snd_pcm_uframes_t frames;
 	again:
 		avail = snd_pcm_avail_update(pcm);
 		if (avail < 0) {
 			err = avail;
 			break;
 		}
-		if ((size_t)avail < pcm->avail_min) {
+		if ((snd_pcm_uframes_t)avail < pcm->avail_min) {
 			if (state != SND_PCM_STATE_RUNNING) {
 				err = -EPIPE;
 				break;
@@ -1106,12 +1086,12 @@ ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 			goto again;
 		}
 		frames = size - xfer;
-		if (frames > (size_t)avail)
+		if (frames > (snd_pcm_uframes_t)avail)
 			frames = avail;
 		err = func(pcm, areas, offset, frames, 0);
 		if (err < 0)
 			break;
-		assert((size_t)err == frames);
+		assert((snd_pcm_uframes_t)err == frames);
 		xfer += err;
 		offset += err;
 	}
@@ -1120,18 +1100,18 @@ ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 	return err;
 }
 
-ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
-			    size_t offset, size_t size,
+snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
+			    snd_pcm_uframes_t offset, snd_pcm_uframes_t size,
 			    snd_pcm_xfer_areas_func_t func)
 {
-	size_t xfer = 0;
-	ssize_t err = 0;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err = 0;
 	int state = snd_pcm_state(pcm);
 	assert(size > 0);
 	assert(state >= SND_PCM_STATE_PREPARED);
 	while (xfer < size) {
-		ssize_t avail;
-		size_t frames;
+		snd_pcm_sframes_t avail;
+		snd_pcm_uframes_t frames;
 	again:
 		if (state == SND_PCM_STATE_XRUN) {
 			err = -EPIPE;
@@ -1142,7 +1122,7 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 			err = avail;
 			break;
 		}
-		if ((size_t)avail < pcm->avail_min) {
+		if ((snd_pcm_uframes_t)avail < pcm->avail_min) {
 			if (state != SND_PCM_STATE_RUNNING) {
 				err = -EPIPE;
 				break;
@@ -1158,12 +1138,12 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 			goto again;
 		}
 		frames = size - xfer;
-		if (frames > (size_t)avail)
+		if (frames > (snd_pcm_uframes_t)avail)
 			frames = avail;
 		err = func(pcm, areas, offset, frames, 0);
 		if (err < 0)
 			break;
-		assert((size_t)err == frames);
+		assert((snd_pcm_uframes_t)err == frames);
 		xfer += err;
 		offset += err;
 		if (state == SND_PCM_STATE_PREPARED &&
@@ -1179,7 +1159,7 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 	return err;
 }
 
-size_t _snd_pcm_mmap_hw_ptr(snd_pcm_t *pcm)
+snd_pcm_uframes_t _snd_pcm_mmap_hw_ptr(snd_pcm_t *pcm)
 {
 	return *pcm->hw_ptr;
 }

@@ -25,10 +25,19 @@
 #define INLINE extern inline
 #endif
 
-INLINE void interval_all(interval_t *i)
+INLINE void interval_any(interval_t *i)
 {
-	i->min = 1;
+	i->min = 0;
+	i->openmin = 0;
 	i->max = UINT_MAX;
+	i->openmax = 0;
+	i->integer = 0;
+	i->empty = 0;
+}
+
+INLINE void interval_none(interval_t *i)
+{
+	i->empty = 1;
 }
 
 INLINE int interval_checkempty(const interval_t *i)
@@ -63,12 +72,8 @@ INLINE int interval_min(const interval_t *i)
 
 INLINE int interval_max(const interval_t *i)
 {
-	unsigned int v;
 	assert(!interval_empty(i));
-	v = i->max;
-	if (i->openmax)
-		v--;
-	return v;
+	return i->max;
 }
 
 INLINE int interval_test(const interval_t *i, unsigned int val)
@@ -82,18 +87,42 @@ INLINE void interval_copy(interval_t *d, const interval_t *s)
 	*d = *s;
 }
 
-INLINE void interval_setreal(interval_t *i)
+INLINE int interval_setinteger(interval_t *i)
 {
-	i->real = 1;
+	if (i->integer)
+		return 0;
+	if (i->openmin && i->openmax && i->min == i->max)
+		return -EINVAL;
+	i->integer = 1;
+	return 1;
 }
 
-INLINE int interval_eq(const interval_t *i1, const interval_t *i2)
+INLINE void interval_round(interval_t *i)
 {
-	if (i1->empty)
-		return i2->empty;
-	if (i2->empty)
-		return i1->empty;
-	return i1->min == i2->min && i1->openmin == i2->openmin &&
-		i1->max == i2->max && i1->openmax == i2->openmax;
+	assert(!interval_empty(i));
+	if (i->integer)
+		return;
+	i->openmin = 0;
+	i->openmax = 0;
+	i->integer = 1;
 }
+
+INLINE int interval_always_eq(const interval_t *i1, const interval_t *i2)
+{
+	return interval_single(i1) && interval_single(i2) &&
+		interval_value(i1) == interval_value(i2);
+}
+
+INLINE int interval_never_eq(const interval_t *i1, const interval_t *i2)
+{
+	
+	return (i1->max < i2->min || 
+		(i1->max == i2->min &&
+		 (i1->openmax || i1->openmin)) ||
+		i1->min > i2->max ||
+		(i1->min == i2->max &&
+		 (i1->openmin || i2->openmax)));
+}
+
+
 

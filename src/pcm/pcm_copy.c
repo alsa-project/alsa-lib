@@ -33,21 +33,27 @@ static int snd_pcm_copy_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_copy_t *copy = pcm->private;
 	snd_pcm_t *slave = copy->plug.slave;
 	int err;
+	unsigned int cmask, lcmask;
 	snd_pcm_hw_params_t sparams;
 	mask_t *access_mask = alloca(mask_sizeof());
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
-	err = _snd_pcm_hw_param_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
-				      access_mask);
+	cmask = params->cmask;
+	params->cmask = 0;
+	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
+				     access_mask);
 	if (err < 0)
 		return err;
+	lcmask = params->cmask;
+	params->cmask |= cmask;
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
 	err = snd_pcm_hw_refine2(params, &sparams,
-				 snd_pcm_hw_refine, slave, 
+				 snd_pcm_generic_hw_link, slave, 
 				 ~SND_PCM_HW_PARBIT_ACCESS);
+	params->cmask |= lcmask;
 	if (err < 0)
 		return err;
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
@@ -59,37 +65,44 @@ static int snd_pcm_copy_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_copy_t *copy = pcm->private;
 	snd_pcm_t *slave = copy->plug.slave;
 	int err;
+	unsigned int links;
 	snd_pcm_hw_params_t sparams;
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
-	err = snd_pcm_hw_params2(params, &sparams,
-				 snd_pcm_hw_params, slave, 
-				 ~SND_PCM_HW_PARBIT_ACCESS);
+	links = ~SND_PCM_HW_PARBIT_ACCESS;
+	err = snd_pcm_hw_params_refine(&sparams, links, params);
+	assert(err >= 0);
+	err = _snd_pcm_hw_refine(&sparams);
+	assert(err >= 0);
+	err = snd_pcm_hw_params(slave, &sparams);
+	params->cmask = 0;
+	sparams.cmask = ~0U;
+	snd_pcm_hw_params_refine(params, links, &sparams);
 	if (err < 0)
 		return err;
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return err;
 }
 
-static ssize_t snd_pcm_copy_write_areas(snd_pcm_t *pcm,
+static snd_pcm_sframes_t snd_pcm_copy_write_areas(snd_pcm_t *pcm,
 					const snd_pcm_channel_area_t *areas,
-					size_t offset,
-					size_t size,
-					size_t *slave_sizep)
+					snd_pcm_uframes_t offset,
+					snd_pcm_uframes_t size,
+					snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_copy_t *copy = pcm->private;
 	snd_pcm_t *slave = copy->plug.slave;
-	size_t xfer = 0;
-	ssize_t err = 0;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err = 0;
 	if (slave_sizep && *slave_sizep < size)
 		size = *slave_sizep;
 	assert(size > 0);
 	while (xfer < size) {
-		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
+		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		
 		snd_pcm_areas_copy(areas, offset, 
 				   snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
@@ -97,7 +110,7 @@ static ssize_t snd_pcm_copy_write_areas(snd_pcm_t *pcm,
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
-		assert((size_t)err == frames);
+		assert((snd_pcm_uframes_t)err == frames);
 		offset += err;
 		xfer += err;
 		snd_pcm_mmap_hw_forward(pcm, err);
@@ -110,28 +123,28 @@ static ssize_t snd_pcm_copy_write_areas(snd_pcm_t *pcm,
 	return err;
 }
 
-static ssize_t snd_pcm_copy_read_areas(snd_pcm_t *pcm,
+static snd_pcm_sframes_t snd_pcm_copy_read_areas(snd_pcm_t *pcm,
 				       const snd_pcm_channel_area_t *areas,
-				       size_t offset,
-				       size_t size,
-				       size_t *slave_sizep)
+				       snd_pcm_uframes_t offset,
+				       snd_pcm_uframes_t size,
+				       snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_copy_t *copy = pcm->private;
 	snd_pcm_t *slave = copy->plug.slave;
-	size_t xfer = 0;
-	ssize_t err = 0;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err = 0;
 	if (slave_sizep && *slave_sizep < size)
 		size = *slave_sizep;
 	assert(size > 0);
 	while (xfer < size) {
-		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
+		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
 		snd_pcm_areas_copy(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 				   areas, offset, 
 				   pcm->channels, frames, pcm->format);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
-		assert((size_t)err == frames);
+		assert((snd_pcm_uframes_t)err == frames);
 		offset += err;
 		xfer += err;
 		snd_pcm_mmap_hw_forward(pcm, err);

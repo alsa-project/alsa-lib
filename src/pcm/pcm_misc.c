@@ -360,14 +360,14 @@ u_int8_t snd_pcm_format_silence(int format)
 	return (u_int8_t)snd_pcm_format_silence_64(format);
 }
 
-ssize_t snd_pcm_format_set_silence(int format, void *data, size_t samples)
+int snd_pcm_format_set_silence(int format, void *data, unsigned int samples)
 {
 	if (samples == 0)
 		return 0;
 	switch (snd_pcm_format_width(format)) {
 	case 4: {
 		u_int8_t silence = snd_pcm_format_silence_64(format);
-		size_t samples1;
+		unsigned int samples1;
 		if (samples % 2 != 0)
 			return -EINVAL;
 		samples1 = samples / 2;
@@ -405,8 +405,8 @@ ssize_t snd_pcm_format_set_silence(int format, void *data, size_t samples)
 
 static int linear_formats[4*2*2] = {
 	SND_PCM_FORMAT_S8,
-	SND_PCM_FORMAT_U8,
 	SND_PCM_FORMAT_S8,
+	SND_PCM_FORMAT_U8,
 	SND_PCM_FORMAT_U8,
 	SND_PCM_FORMAT_S16_LE,
 	SND_PCM_FORMAT_S16_BE,

@@ -57,10 +57,10 @@ typedef struct {
 } adpcm_state_t;
 
 typedef void (*adpcm_f)(const snd_pcm_channel_area_t *src_areas,
-			size_t src_offset,
+			snd_pcm_uframes_t src_offset,
 			const snd_pcm_channel_area_t *dst_areas,
-			size_t dst_offset,
-			size_t channels, size_t frames, int getputidx,
+			snd_pcm_uframes_t dst_offset,
+			unsigned int channels, snd_pcm_uframes_t frames, int getputidx,
 			adpcm_state_t *states);
 
 typedef struct {
@@ -196,23 +196,23 @@ static int adpcm_decoder(unsigned char code, adpcm_state_t * state)
 }
 
 static void adpcm_decode(const snd_pcm_channel_area_t *src_areas,
-			 size_t src_offset,
+			 snd_pcm_uframes_t src_offset,
 			 const snd_pcm_channel_area_t *dst_areas,
-			 size_t dst_offset,
-			 size_t channels, size_t frames, int putidx,
+			 snd_pcm_uframes_t dst_offset,
+			 unsigned int channels, snd_pcm_uframes_t frames, int putidx,
 			 adpcm_state_t *states)
 {
 #define PUT16_LABELS
 #include "plugin_ops.h"
 #undef PUT16_LABELS
 	void *put = put16_labels[putidx];
-	size_t channel;
+	unsigned int channel;
 	for (channel = 0; channel < channels; ++channel, ++states) {
 		char *src;
 		int srcbit;
 		char *dst;
 		int src_step, srcbit_step, dst_step;
-		size_t frames1;
+		snd_pcm_uframes_t frames1;
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 #if 0
@@ -257,24 +257,24 @@ static void adpcm_decode(const snd_pcm_channel_area_t *src_areas,
 }
 
 static void adpcm_encode(const snd_pcm_channel_area_t *src_areas,
-			 size_t src_offset,
+			 snd_pcm_uframes_t src_offset,
 			 const snd_pcm_channel_area_t *dst_areas,
-			 size_t dst_offset,
-			 size_t channels, size_t frames, int getidx,
+			 snd_pcm_uframes_t dst_offset,
+			 unsigned int channels, snd_pcm_uframes_t frames, int getidx,
 			 adpcm_state_t *states)
 {
 #define GET16_LABELS
 #include "plugin_ops.h"
 #undef GET16_LABELS
 	void *get = get16_labels[getidx];
-	size_t channel;
+	unsigned int channel;
 	int16_t sample = 0;
 	for (channel = 0; channel < channels; ++channel, ++states) {
 		char *src;
 		char *dst;
 		int dstbit;
 		int src_step, dst_step, dstbit_step;
-		size_t frames1;
+		snd_pcm_uframes_t frames1;
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 #if 0
@@ -334,51 +334,58 @@ static int snd_pcm_adpcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_adpcm_t *adpcm = pcm->private;
 	snd_pcm_t *slave = adpcm->plug.slave;
 	int err;
+	unsigned int cmask, lcmask;
 	snd_pcm_hw_params_t sparams;
 	mask_t *access_mask = alloca(mask_sizeof());
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
-	err = _snd_pcm_hw_param_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
+	cmask = params->cmask;
+	params->cmask = 0;
+	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
 				      access_mask);
 	if (err < 0)
 		return err;
 	if (adpcm->sformat == SND_PCM_FORMAT_IMA_ADPCM) {
 		mask_t *format_mask = alloca(mask_sizeof());
 		mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
-		err = _snd_pcm_hw_param_mask(params, 1,
+		err = _snd_pcm_hw_param_mask(params,
 					      SND_PCM_HW_PARAM_FORMAT,
 					      format_mask);
 		if (err < 0)
 			return err;
 	} else {
-		err = _snd_pcm_hw_param_set(params, 1,
-					     SND_PCM_HW_PARAM_FORMAT,
-					     SND_PCM_FORMAT_IMA_ADPCM);
+		err = _snd_pcm_hw_param_set(params,
+					    SND_PCM_HW_PARAM_FORMAT,
+					    SND_PCM_FORMAT_IMA_ADPCM, 0);
 		if (err < 0)
 			return err;
 	}
-	err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_SUBFORMAT,
-				     SND_PCM_SUBFORMAT_STD);
+	err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_SUBFORMAT,
+				     SND_PCM_SUBFORMAT_STD, 0);
 	if (err < 0)
 		return err;
+	lcmask = params->cmask;
+	params->cmask |= cmask;
 
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
-	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
-			       adpcm->sformat);
-	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
-			       SND_PCM_SUBFORMAT_STD);
+	_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_FORMAT,
+			      adpcm->sformat, 0);
+	_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_SUBFORMAT,
+			       SND_PCM_SUBFORMAT_STD, 0);
 	err = snd_pcm_hw_refine2(params, &sparams,
-				 snd_pcm_hw_refine, slave,
+				 snd_pcm_generic_hw_link, slave,
 				 SND_PCM_HW_PARBIT_CHANNELS |
 				 SND_PCM_HW_PARBIT_RATE |
-				 SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
+				 SND_PCM_HW_PARBIT_PERIOD_SIZE |
 				 SND_PCM_HW_PARBIT_BUFFER_SIZE |
-				 SND_PCM_HW_PARBIT_FRAGMENTS |
-				 SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
-				 SND_PCM_HW_PARBIT_BUFFER_LENGTH);
+				 SND_PCM_HW_PARBIT_PERIODS |
+				 SND_PCM_HW_PARBIT_PERIOD_TIME |
+				 SND_PCM_HW_PARBIT_BUFFER_TIME |
+				 SND_PCM_HW_PARBIT_TICK_TIME);
+	params->cmask |= lcmask;
 	if (err < 0)
 		return err;
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
@@ -391,31 +398,39 @@ static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	snd_pcm_t *slave = adpcm->plug.slave;
 	int err;
 	snd_pcm_hw_params_t sparams;
+	unsigned int links;
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
-	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
-			       adpcm->sformat);
-	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
-			       SND_PCM_SUBFORMAT_STD);
-	err = snd_pcm_hw_params2(params, &sparams,
-				 snd_pcm_hw_params, slave,
-				 SND_PCM_HW_PARBIT_CHANNELS |
-				 SND_PCM_HW_PARBIT_RATE |
-				 SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
-				 SND_PCM_HW_PARBIT_BUFFER_SIZE |
-				 SND_PCM_HW_PARBIT_FRAGMENTS |
-				 SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
-				 SND_PCM_HW_PARBIT_BUFFER_LENGTH);
+	_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_FORMAT,
+			      adpcm->sformat, 0);
+	_snd_pcm_hw_param_set(&sparams, SND_PCM_HW_PARAM_SUBFORMAT,
+			      SND_PCM_SUBFORMAT_STD, 0);
+	links = SND_PCM_HW_PARBIT_CHANNELS |
+		SND_PCM_HW_PARBIT_RATE |
+		SND_PCM_HW_PARBIT_PERIOD_SIZE |
+		SND_PCM_HW_PARBIT_BUFFER_SIZE |
+		SND_PCM_HW_PARBIT_PERIODS |
+		SND_PCM_HW_PARBIT_PERIOD_TIME |
+		SND_PCM_HW_PARBIT_BUFFER_TIME |
+		SND_PCM_HW_PARBIT_TICK_TIME;
+	err = snd_pcm_hw_params_refine(&sparams, links, params);
+	assert(err >= 0);
+	err = _snd_pcm_hw_refine(&sparams);
+	assert(err >= 0);
+	err = snd_pcm_hw_params(slave, &sparams);
+	params->cmask = 0;
+	sparams.cmask = ~0U;
+	snd_pcm_hw_params_refine(params, links, &sparams);
 	if (err < 0)
 		return err;
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (adpcm->sformat == SND_PCM_FORMAT_IMA_ADPCM) {
-			adpcm->getput_idx = get_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT), SND_PCM_FORMAT_S16);
+			adpcm->getput_idx = get_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0), SND_PCM_FORMAT_S16);
 			adpcm->func = adpcm_encode;
 		} else {
 			adpcm->getput_idx = put_index(SND_PCM_FORMAT_S16, adpcm->sformat);
@@ -423,7 +438,7 @@ static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		}
 	} else {
 		if (adpcm->sformat == SND_PCM_FORMAT_IMA_ADPCM) {
-			adpcm->getput_idx = put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT));
+			adpcm->getput_idx = put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT, 0));
 			adpcm->func = adpcm_decode;
 		} else {
 			adpcm->getput_idx = get_index(adpcm->sformat, SND_PCM_FORMAT_S16);
@@ -432,7 +447,7 @@ static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	}
 	if (adpcm->states)
 		free(adpcm->states);
-	adpcm->states = malloc(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_CHANNELS) * sizeof(*adpcm->states));
+	adpcm->states = malloc(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_CHANNELS, 0) * sizeof(*adpcm->states));
 	return 0;
 }
 
@@ -447,21 +462,21 @@ static int snd_pcm_adpcm_init(snd_pcm_t *pcm)
 	return 0;
 }
 
-static ssize_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
+static snd_pcm_sframes_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
 					 const snd_pcm_channel_area_t *areas,
-					 size_t offset,
-					 size_t size,
-					 size_t *slave_sizep)
+					 snd_pcm_uframes_t offset,
+					 snd_pcm_uframes_t size,
+					 snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_adpcm_t *adpcm = pcm->private;
 	snd_pcm_t *slave = adpcm->plug.slave;
-	size_t xfer = 0;
-	ssize_t err = 0;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err = 0;
 	if (slave_sizep && *slave_sizep < size)
 		size = *slave_sizep;
 	assert(size > 0);
 	while (xfer < size) {
-		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
+		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		adpcm->func(areas, offset, 
 			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			    pcm->channels, frames,
@@ -469,7 +484,7 @@ static ssize_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
-		assert((size_t)err == frames);
+		assert((snd_pcm_uframes_t)err == frames);
 		offset += err;
 		xfer += err;
 		snd_pcm_mmap_hw_forward(pcm, err);
@@ -482,21 +497,21 @@ static ssize_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
 	return err;
 }
 
-static ssize_t snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
+static snd_pcm_sframes_t snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
 					const snd_pcm_channel_area_t *areas,
-					size_t offset,
-					size_t size,
-					size_t *slave_sizep)
+					snd_pcm_uframes_t offset,
+					snd_pcm_uframes_t size,
+					snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_adpcm_t *adpcm = pcm->private;
 	snd_pcm_t *slave = adpcm->plug.slave;
-	size_t xfer = 0;
-	ssize_t err = 0;
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err = 0;
 	if (slave_sizep && *slave_sizep < size)
 		size = *slave_sizep;
 	assert(size > 0);
 	while (xfer < size) {
-		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
+		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
 		adpcm->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			    areas, offset, 
 			    pcm->channels, frames,
@@ -504,7 +519,7 @@ static ssize_t snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
-		assert((size_t)err == frames);
+		assert((snd_pcm_uframes_t)err == frames);
 		offset += err;
 		xfer += err;
 		snd_pcm_mmap_hw_forward(pcm, err);
