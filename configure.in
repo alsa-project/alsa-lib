@@ -85,6 +85,7 @@ AC_HEADER_STDC
 AM_CONFIG_HEADER(include/config.h)
 AC_CHECK_HEADERS(sound/asound.h)
 
+
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_INLINE
@@ -119,6 +120,10 @@ else
   AC_DEFINE(NDEBUG)
   AC_MSG_RESULT(no)
 fi
+
+AC_ARG_WITH(softfloat,
+  [  --with-softfloat        do you have floating point unit on this machine? (optional)],
+  [  AC_DEFINE(HAVE_SOFT_FLOAT, "1")],)
 
 dnl Check for architecture
 AC_MSG_CHECKING(for architecture)

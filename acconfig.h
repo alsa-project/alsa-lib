@@ -12,3 +12,6 @@
 
 /* NDEBUG */
 #undef NDEBUG
+
+/* Do we have FPU on this machine? */
+#undef HAVE_SOFT_FLOAT

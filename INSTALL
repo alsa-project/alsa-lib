@@ -111,3 +111,11 @@ For platform names in the form cpu-vendor-os (or aliases for this)
 you should look in 'config.guess' script. Target and all paths
 used here are only examples and should not be directly applicable to
 your system.
+
+Configuration for machines without FPU
+--------------------------------------
+
+If your machine does not have FP unit, you should use '--with-softfloat'
+option. This option disables usage of float numbers in PCM route plugin.
+ALSA could then leave much more CPU cycles for your applications, but you 
+could still need some floating point emulator.

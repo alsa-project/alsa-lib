@@ -31,6 +31,8 @@
 
 #ifndef __ALSA_PCM_PLUGIN_H
 
+#include "config.h"
+
 /**
  * \defgroup PCM_Plugins PCM Plugins
  * \ingroup PCM
@@ -41,7 +43,13 @@
 #define SND_PCM_PLUGIN_RATE_MIN 4000	/**< minimal rate for the rate plugin */
 #define SND_PCM_PLUGIN_RATE_MAX 192000	/**< maximal rate for the rate plugin */
 
+/* ROUTE_FLOAT should be set to 0 for machines without FP unit - like iPAQ */
+#ifdef HAVE_SOFT_FLOAT
+#define SND_PCM_PLUGIN_ROUTE_FLOAT 0	   /**< use integers for route plugin */
+#else
 #define SND_PCM_PLUGIN_ROUTE_FLOAT 1	   /**< use floats for route plugin */
+#endif
+
 #define SND_PCM_PLUGIN_ROUTE_RESOLUTION 16 /**< integer resolution for route plugin */
 
 #if SND_PCM_PLUGIN_ROUTE_FLOAT
