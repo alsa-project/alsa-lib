@@ -612,6 +612,28 @@ static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm, int stream, snd_pcm_channe
 	return 0;
 }
 
+static ssize_t snd_pcm_plug_stream_seek(snd_pcm_t *pcm, int stream, off_t offset)
+{
+	ssize_t ret;
+	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
+	if (snd_pcm_plug_direct(pcm, stream))
+		return snd_pcm_seek(plug->slave, stream, offset);
+	if (offset < 0) {
+		offset = snd_pcm_plug_slave_size(pcm, stream, -offset);
+		if (offset < 0)
+			return offset;
+		offset = -offset;
+	} else {
+		offset = snd_pcm_plug_slave_size(pcm, stream, offset);
+		if (offset < 0)
+			return offset;
+	}
+	ret = snd_pcm_seek(plug->slave, stream, offset);
+	if (ret < 0)
+		return ret;
+	return snd_pcm_plug_client_size(pcm, stream, ret);
+}
+  
 ssize_t snd_pcm_plug_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
@@ -776,6 +798,7 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 	stream_drain: snd_pcm_plug_stream_drain,
 	stream_flush: snd_pcm_plug_stream_flush,
 	stream_pause: snd_pcm_plug_stream_pause,
+	stream_seek: snd_pcm_plug_stream_seek,
 	write: snd_pcm_plug_write,
 	writev: snd_pcm_plug_writev,
 	read: snd_pcm_plug_read,

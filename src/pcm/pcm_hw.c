@@ -36,8 +36,9 @@
 static int snd_pcm_hw_stream_close(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	if (hw->stream[stream].fd >= 0)
-		if (close(hw->stream[stream].fd))
+	int fd = hw->stream[stream].fd;
+	if (fd >= 0)
+		if (close(fd))
 			return -errno;
 	return 0;
 }
@@ -56,9 +57,8 @@ int snd_pcm_hw_stream_fd(snd_pcm_t *pcm, int stream)
 static int snd_pcm_hw_stream_nonblock(snd_pcm_t *pcm, int stream, int nonblock)
 {
 	long flags;
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[stream].fd;
+	int fd = hw->stream[stream].fd;
 
 	if ((flags = fcntl(fd, F_GETFL)) < 0)
 		return -errno;
@@ -89,9 +89,8 @@ static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 
 static int snd_pcm_hw_stream_info(snd_pcm_t *pcm, snd_pcm_stream_info_t * info)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[info->stream].fd;
+	int fd = hw->stream[info->stream].fd;
 	if (fd < 0)
 		return -EINVAL;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_INFO, info) < 0)
@@ -101,9 +100,8 @@ static int snd_pcm_hw_stream_info(snd_pcm_t *pcm, snd_pcm_stream_info_t * info)
 
 static int snd_pcm_hw_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t * params)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[params->stream].fd;
+	int fd = hw->stream[params->stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_PARAMS, params) < 0)
 		return -errno;
 	return 0;
@@ -111,9 +109,8 @@ static int snd_pcm_hw_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t * pa
 
 static int snd_pcm_hw_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t * setup)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[setup->stream].fd;
+	int fd = hw->stream[setup->stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_SETUP, setup) < 0)
 		return -errno;
 	return 0;
@@ -121,9 +118,8 @@ static int snd_pcm_hw_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t * setu
 
 static int snd_pcm_hw_channel_setup(snd_pcm_t *pcm, int stream, snd_pcm_channel_setup_t * setup)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[stream].fd;
+	int fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_SETUP, setup) < 0)
 		return -errno;
 	return 0;
@@ -131,9 +127,8 @@ static int snd_pcm_hw_channel_setup(snd_pcm_t *pcm, int stream, snd_pcm_channel_
 
 static int snd_pcm_hw_stream_status(snd_pcm_t *pcm, snd_pcm_stream_status_t * status)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[status->stream].fd;
+	int fd = hw->stream[status->stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_STATUS, status) < 0)
 		return -errno;
 	return 0;
@@ -141,9 +136,8 @@ static int snd_pcm_hw_stream_status(snd_pcm_t *pcm, snd_pcm_stream_status_t * st
 
 static int snd_pcm_hw_stream_update(snd_pcm_t *pcm, int stream)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[stream].fd;
+	int fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_UPDATE) < 0)
 		return -errno;
 	return 0;
@@ -151,9 +145,8 @@ static int snd_pcm_hw_stream_update(snd_pcm_t *pcm, int stream)
 
 static int snd_pcm_hw_stream_prepare(snd_pcm_t *pcm, int stream)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[stream].fd;
+	int fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_PREPARE) < 0)
 		return -errno;
 	return 0;
@@ -161,9 +154,8 @@ static int snd_pcm_hw_stream_prepare(snd_pcm_t *pcm, int stream)
 
 static int snd_pcm_hw_stream_go(snd_pcm_t *pcm, int stream)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[stream].fd;
+	int fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_GO) < 0)
 		return -errno;
 	return 0;
@@ -171,8 +163,8 @@ static int snd_pcm_hw_stream_go(snd_pcm_t *pcm, int stream)
 
 static int snd_pcm_hw_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
+	int fd;
 	if (pcm->stream[SND_PCM_STREAM_PLAYBACK].open)
 		fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
 	else
@@ -184,9 +176,8 @@ static int snd_pcm_hw_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
 
 static int snd_pcm_hw_stream_drain(snd_pcm_t *pcm, int stream)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[stream].fd;
+	int fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_DRAIN) < 0)
 		return -errno;
 	return 0;
@@ -194,9 +185,8 @@ static int snd_pcm_hw_stream_drain(snd_pcm_t *pcm, int stream)
 
 static int snd_pcm_hw_stream_flush(snd_pcm_t *pcm, int stream)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[stream].fd;
+	int fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_FLUSH) < 0)
 		return -errno;
 	return 0;
@@ -204,20 +194,25 @@ static int snd_pcm_hw_stream_flush(snd_pcm_t *pcm, int stream)
 
 static int snd_pcm_hw_stream_pause(snd_pcm_t *pcm, int stream, int enable)
 {
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[stream].fd;
+	int fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_PAUSE, &enable) < 0)
 		return -errno;
 	return 0;
 }
 
+static ssize_t snd_pcm_hw_stream_seek(snd_pcm_t *pcm, int stream, off_t offset)
+{
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
+	int fd = hw->stream[stream].fd;
+	return lseek(fd, offset, SEEK_CUR);
+}
+
 static ssize_t snd_pcm_hw_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 {
 	ssize_t result;
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
+	int fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
 	result = write(fd, buffer, size);
 	if (result < 0)
 		return -errno;
@@ -227,9 +222,8 @@ static ssize_t snd_pcm_hw_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 static ssize_t snd_pcm_hw_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count)
 {
 	ssize_t result;
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
+	int fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
 #if 0
 	result = writev(fd, vector, count);
 #else
@@ -248,9 +242,8 @@ static ssize_t snd_pcm_hw_writev(snd_pcm_t *pcm, const struct iovec *vector, uns
 static ssize_t snd_pcm_hw_read(snd_pcm_t *pcm, void *buffer, size_t size)
 {
 	ssize_t result;
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
+	int fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
 	result = read(fd, buffer, size);
 	if (result < 0)
 		return -errno;
@@ -260,9 +253,8 @@ static ssize_t snd_pcm_hw_read(snd_pcm_t *pcm, void *buffer, size_t size)
 ssize_t snd_pcm_hw_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count)
 {
 	ssize_t result;
-	int fd;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
+	int fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
 #if 0
 	result = readv(fd, vector, count);
 #else
@@ -346,6 +338,7 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	stream_drain: snd_pcm_hw_stream_drain,
 	stream_flush: snd_pcm_hw_stream_flush,
 	stream_pause: snd_pcm_hw_stream_pause,
+	stream_seek: snd_pcm_hw_stream_seek,
 	write: snd_pcm_hw_write,
 	writev: snd_pcm_hw_writev,
 	read: snd_pcm_hw_read,

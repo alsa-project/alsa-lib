@@ -419,6 +419,25 @@ ssize_t snd_pcm_transfer_size(snd_pcm_t *pcm, int stream)
 	return str->setup.frag_size;
 }
 
+ssize_t snd_pcm_stream_seek(snd_pcm_t *pcm, int stream, off_t offset)
+{
+	struct snd_pcm_stream *str;
+	size_t bytes_per_frame;
+	if (!pcm)
+		return -EFAULT;
+	if (stream < 0 || stream > 1)
+		return -EINVAL;
+	str = &pcm->stream[stream];
+	if (!str->open)
+		return -EBADFD;
+	if (!str->valid_setup)
+		return -EBADFD;
+	bytes_per_frame = str->bits_per_frame / 8;
+	if (bytes_per_frame > 0)
+		offset -= offset % bytes_per_frame;
+	return pcm->ops->stream_seek(pcm, stream, offset);
+}
+
 ssize_t snd_pcm_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 {
 	if (!pcm)

@@ -39,6 +39,7 @@ struct snd_pcm_ops {
 	int (*stream_drain)(snd_pcm_t *pcm, int stream);
 	int (*stream_flush)(snd_pcm_t *pcm, int stream);
 	int (*stream_pause)(snd_pcm_t *pcm, int stream, int enable);
+	ssize_t (*stream_seek)(snd_pcm_t *pcm, int stream, off_t offset);
 	ssize_t (*write)(snd_pcm_t *pcm, const void *buffer, size_t size);
 	ssize_t (*writev)(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
 	ssize_t (*read)(snd_pcm_t *pcm, void *buffer, size_t size);

@@ -114,6 +114,7 @@ int snd_pcm_stream_flush(snd_pcm_t *handle, int stream);
 int snd_pcm_playback_pause(snd_pcm_t *handle, int enable);
 int snd_pcm_stream_pause(snd_pcm_t *handle, int stream, int enable);
 ssize_t snd_pcm_transfer_size(snd_pcm_t *handle, int stream);
+ssize_t snd_pcm_stream_seek(snd_pcm_t *pcm, int stream, off_t offset);
 ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size);
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size);
 ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long  count);
