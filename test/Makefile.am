@@ -1,6 +1,6 @@
 check_PROGRAMS=control pcm latency seq \
 	       playmidi1 timer rawmidi midiloop \
-	       omixer code iecset
+	       omixer code
 
 control_LDADD=../src/libasound.la
 pcm_LDADD=../src/libasound.la
@@ -12,9 +12,8 @@ rawmidi_LDADD=../src/libasound.la
 midiloop_LDADD=../src/libasound.la
 omixer_LDADD=../src/libasound.la
 code_CFLAGS=-Wall -pipe -g -O2
-iecset_LDADD=../src/libasound.la
 
 INCLUDES=-I$(top_srcdir)/include
 CFLAGS=-static -Wall -pipe -g
 
-EXTRA_DIST=seq-decoder.c seq-sender.c midifile.h midifile.c midifile.3 iecbits.c
+EXTRA_DIST=seq-decoder.c seq-sender.c midifile.h midifile.c midifile.3
