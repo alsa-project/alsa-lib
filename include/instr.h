@@ -49,7 +49,7 @@ void snd_instr_header_set_name(snd_instr_header_t *info, const char *name);
 void snd_instr_header_set_type(snd_instr_header_t *info, int type);
 void snd_instr_header_set_format(snd_instr_header_t *info, const char *format);
 void snd_instr_header_set_alias(snd_instr_header_t *info, const snd_seq_instr_t *instr);
-void snd_instr_header_set_follow_alias(snd_instr_header_t *info, int bool);
+void snd_instr_header_set_follow_alias(snd_instr_header_t *info, int val);
 
 #ifdef __cplusplus
 }
