@@ -108,12 +108,10 @@ int snd_seq_open(snd_seq_t **handle, int mode)
 	return 0;
 }
 
-int snd_seq_close(snd_seq_t *handle)
+int snd_seq_close(snd_seq_t *seq)
 {
-	snd_seq_t *seq;
 	int res;
 
-	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	res = close(seq->fd) < 0 ? -errno : 0;
@@ -121,22 +119,17 @@ int snd_seq_close(snd_seq_t *handle)
 	return res;
 }
 
-int snd_seq_file_descriptor(snd_seq_t *handle)
+int snd_seq_file_descriptor(snd_seq_t *seq)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	return seq->fd;
 }
 
-int snd_seq_block_mode(snd_seq_t *handle, int enable)
+int snd_seq_block_mode(snd_seq_t *seq, int enable)
 {
-	snd_seq_t *seq;
 	long flags;
 
-	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	if ((flags = fcntl(seq->fd, F_GETFL)) < 0)
@@ -150,21 +143,15 @@ int snd_seq_block_mode(snd_seq_t *handle, int enable)
 	return 0;
 }
 
-int snd_seq_client_id(snd_seq_t *handle)
+int snd_seq_client_id(snd_seq_t *seq)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	return seq->client;
 }
 
-int snd_seq_system_info(snd_seq_t *handle, snd_seq_system_info_t * info)
+int snd_seq_system_info(snd_seq_t *seq, snd_seq_system_info_t * info)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_SYSTEM_INFO, info) < 0)
@@ -172,21 +159,15 @@ int snd_seq_system_info(snd_seq_t *handle, snd_seq_system_info_t * info)
 	return 0;
 }
 
-int snd_seq_get_client_info(snd_seq_t *handle, snd_seq_client_info_t * info)
+int snd_seq_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
-	return snd_seq_get_any_client_info(handle, seq->client, info);
+	return snd_seq_get_any_client_info(seq, seq->client, info);
 }
 
-int snd_seq_get_any_client_info(snd_seq_t *handle, int client, snd_seq_client_info_t * info)
+int snd_seq_get_any_client_info(snd_seq_t *seq, int client, snd_seq_client_info_t * info)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !info || client < 0)
 		return -EINVAL;
 	bzero(info, sizeof(snd_seq_client_info_t));
@@ -196,11 +177,8 @@ int snd_seq_get_any_client_info(snd_seq_t *handle, int client, snd_seq_client_in
 	return 0;
 }
 
-int snd_seq_set_client_info(snd_seq_t *handle, snd_seq_client_info_t * info)
+int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
 	info->client = seq->client;
@@ -210,11 +188,8 @@ int snd_seq_set_client_info(snd_seq_t *handle, snd_seq_client_info_t * info)
 	return 0;
 }
 
-int snd_seq_create_port(snd_seq_t *handle, snd_seq_port_info_t * port)
+int snd_seq_create_port(snd_seq_t *seq, snd_seq_port_info_t * port)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !port)
 		return -EINVAL;
 	port->client = seq->client;
@@ -223,11 +198,8 @@ int snd_seq_create_port(snd_seq_t *handle, snd_seq_port_info_t * port)
 	return 0;
 }
 
-int snd_seq_delete_port(snd_seq_t *handle, snd_seq_port_info_t * port)
+int snd_seq_delete_port(snd_seq_t *seq, snd_seq_port_info_t * port)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !port)
 		return -EINVAL;
 	port->client = seq->client;
@@ -236,21 +208,15 @@ int snd_seq_delete_port(snd_seq_t *handle, snd_seq_port_info_t * port)
 	return 0;
 }
 
-int snd_seq_get_port_info(snd_seq_t *handle, int port, snd_seq_port_info_t * info)
+int snd_seq_get_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !info || port < 0)
 		return -EINVAL;
-	return snd_seq_get_any_port_info(handle, seq->client, port, info);
+	return snd_seq_get_any_port_info(seq, seq->client, port, info);
 }
 
-int snd_seq_get_any_port_info(snd_seq_t *handle, int client, int port, snd_seq_port_info_t * info)
+int snd_seq_get_any_port_info(snd_seq_t *seq, int client, int port, snd_seq_port_info_t * info)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !info || client < 0 || port < 0)
 		return -EINVAL;
 	bzero(info, sizeof(snd_seq_port_info_t));
@@ -261,11 +227,8 @@ int snd_seq_get_any_port_info(snd_seq_t *handle, int client, int port, snd_seq_p
 	return 0;
 }
 
-int snd_seq_set_port_info(snd_seq_t *handle, int port, snd_seq_port_info_t * info)
+int snd_seq_set_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !info || port < 0)
 		return -EINVAL;
 	info->port = port;
@@ -274,11 +237,8 @@ int snd_seq_set_port_info(snd_seq_t *handle, int port, snd_seq_port_info_t * inf
 	return 0;
 }
 
-int snd_seq_subscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t * sub)
+int snd_seq_subscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !sub)
 		return -EINVAL;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_SUBSCRIBE_PORT, sub) < 0)
@@ -286,11 +246,8 @@ int snd_seq_subscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t * sub)
 	return 0;
 }
 
-int snd_seq_unsubscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t * sub)
+int snd_seq_unsubscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !sub)
 		return -EINVAL;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_UNSUBSCRIBE_PORT, sub) < 0)
@@ -298,11 +255,8 @@ int snd_seq_unsubscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t * sub)
 	return 0;
 }
 
-int snd_seq_get_queue_status(snd_seq_t *handle, int q, snd_seq_queue_status_t * status)
+int snd_seq_get_queue_status(snd_seq_t *seq, int q, snd_seq_queue_status_t * status)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !status)
 		return -EINVAL;
 	bzero(status, sizeof(snd_seq_queue_status_t));
@@ -312,11 +266,8 @@ int snd_seq_get_queue_status(snd_seq_t *handle, int q, snd_seq_queue_status_t * 
 	return 0;
 }
 
-int snd_seq_get_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t * tempo)
+int snd_seq_get_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !tempo)
 		return -EINVAL;
 	bzero(tempo, sizeof(snd_seq_queue_tempo_t));
@@ -326,11 +277,8 @@ int snd_seq_get_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t * te
 	return 0;
 }
 
-int snd_seq_set_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t * tempo)
+int snd_seq_set_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !tempo)
 		return -EINVAL;
 	tempo->queue = q;
@@ -339,11 +287,8 @@ int snd_seq_set_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t * te
 	return 0;
 }
 
-int snd_seq_get_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t * owner)
+int snd_seq_get_queue_owner(snd_seq_t *seq, int q, snd_seq_queue_owner_t * owner)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !owner)
 		return -EINVAL;
 	bzero(owner, sizeof(snd_seq_queue_owner_t));
@@ -353,11 +298,8 @@ int snd_seq_get_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t * ow
 	return 0;
 }
 
-int snd_seq_set_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t * owner)
+int snd_seq_set_queue_owner(snd_seq_t *seq, int q, snd_seq_queue_owner_t * owner)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !owner)
 		return -EINVAL;
 	owner->queue = q;
@@ -366,11 +308,8 @@ int snd_seq_set_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t * ow
 	return 0;
 }
 
-int snd_seq_get_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t * timer)
+int snd_seq_get_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !timer)
 		return -EINVAL;
 	bzero(timer, sizeof(snd_seq_queue_timer_t));
@@ -380,11 +319,8 @@ int snd_seq_get_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t * ti
 	return 0;
 }
 
-int snd_seq_set_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t * timer)
+int snd_seq_set_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !timer)
 		return -EINVAL;
 	timer->queue = q;
@@ -393,11 +329,8 @@ int snd_seq_set_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t * ti
 	return 0;
 }
 
-int snd_seq_get_queue_sync(snd_seq_t *handle, int q, snd_seq_queue_sync_t * sync)
+int snd_seq_get_queue_sync(snd_seq_t *seq, int q, snd_seq_queue_sync_t * sync)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !sync)
 		return -EINVAL;
 	bzero(sync, sizeof(snd_seq_queue_sync_t));
@@ -407,11 +340,8 @@ int snd_seq_get_queue_sync(snd_seq_t *handle, int q, snd_seq_queue_sync_t * sync
 	return 0;
 }
 
-int snd_seq_set_queue_sync(snd_seq_t *handle, int q, snd_seq_queue_sync_t * sync)
+int snd_seq_set_queue_sync(snd_seq_t *seq, int q, snd_seq_queue_sync_t * sync)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !sync)
 		return -EINVAL;
 	sync->queue = q;
@@ -420,11 +350,8 @@ int snd_seq_set_queue_sync(snd_seq_t *handle, int q, snd_seq_queue_sync_t * sync
 	return 0;
 }
 
-int snd_seq_get_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t * info)
+int snd_seq_get_queue_client(snd_seq_t *seq, int q, snd_seq_queue_client_t * info)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
 	bzero(info, sizeof(snd_seq_queue_client_t));
@@ -435,11 +362,8 @@ int snd_seq_get_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t * 
 	return 0;
 }
 
-int snd_seq_set_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t * info)
+int snd_seq_set_queue_client(snd_seq_t *seq, int q, snd_seq_queue_client_t * info)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq || !info)
 		return -EINVAL;
 	info->queue = q;
@@ -449,47 +373,43 @@ int snd_seq_set_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t * 
 	return 0;
 }
 
-int snd_seq_alloc_queue(snd_seq_t *handle)
+int snd_seq_alloc_queue(snd_seq_t *seq)
 {
 	int i, err;
 	snd_seq_system_info_t sysinfo;
 	snd_seq_queue_owner_t owner;
-	snd_seq_t *seq;
 
-	seq = handle;
 	if (!seq)
 		return -EINVAL;	
-	if ((err = snd_seq_system_info(handle, &sysinfo))<0)
+	if ((err = snd_seq_system_info(seq, &sysinfo))<0)
 		return err;
 	for (i = 0; i < sysinfo.queues; i++) {
-		if ((err = snd_seq_get_queue_owner(handle, i, &owner))<0)
+		if ((err = snd_seq_get_queue_owner(seq, i, &owner))<0)
 			continue;
 		if (owner.locked)
 			continue;
 		owner.locked = 1;
 		owner.owner = seq->client;
-		if ((err = snd_seq_set_queue_owner(handle, i, &owner))<0)
+		if ((err = snd_seq_set_queue_owner(seq, i, &owner))<0)
 			continue;
 		return i;
 	}
 	return -EBUSY;
 }
 
-int snd_seq_free_queue(snd_seq_t *handle, int q)
+int snd_seq_free_queue(snd_seq_t *seq, int q)
 {
 	int err;
-	snd_seq_t *seq;
 	snd_seq_queue_owner_t owner;
 
-	seq = handle;
 	if (!seq)
 		return -EINVAL;	
-	if ((err = snd_seq_get_queue_owner(handle, q, &owner))<0)
+	if ((err = snd_seq_get_queue_owner(seq, q, &owner))<0)
 		return err;
 	if (owner.locked && owner.owner == seq->client) {
 		owner.locked = 0;
 		owner.owner = -1;
-		if ((err = snd_seq_set_queue_owner(handle, q, &owner))<0)
+		if ((err = snd_seq_set_queue_owner(seq, q, &owner))<0)
 			return err;
 	}
 	return 0;
@@ -537,17 +457,15 @@ int snd_seq_event_length(snd_seq_event_t *ev)
 	return len;
 }
 
-int snd_seq_event_output(snd_seq_t *handle, snd_seq_event_t *ev)
+int snd_seq_event_output(snd_seq_t *seq, snd_seq_event_t *ev)
 {
 	int len;
-	snd_seq_t *seq;
 
-	seq = handle;
 	if (!seq || !ev)
 		return -EINVAL;
 	len = snd_seq_event_length(ev);
 	if ((seq->obufsize - seq->obufused) < len) {
-		snd_seq_flush_output(handle);
+		snd_seq_flush_output(seq);
 		if ((seq->obufsize - seq->obufused) < len)
 			return -ENOMEM;
 	}
@@ -659,15 +577,13 @@ static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev)
  *  Current implementation uses FIFO cache.
  */
 
-int snd_seq_event_input(snd_seq_t *handle, snd_seq_event_t **ev)
+int snd_seq_event_input(snd_seq_t *seq, snd_seq_event_t **ev)
 {
-	snd_seq_t *seq;
 	snd_seq_cell_t *cell;
 	char *buf;
 	int count;
 
 	*ev = NULL;
-	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	if (snd_seq_input_cell_available(seq)) {
@@ -705,19 +621,17 @@ int snd_seq_event_input(snd_seq_t *handle, snd_seq_event_t **ev)
 	return seq->cells;
 }
 
-int snd_seq_flush_output(snd_seq_t *handle)
+int snd_seq_flush_output(snd_seq_t *seq)
 {
-	snd_seq_t *seq;
 	int result;
 
-	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	if (seq->obufused <= 0)
 		return 0;
 	result = write(seq->fd, seq->obuf, seq->obufused);
 	if (result < 0)	{
-		snd_seq_drain_output(handle);
+		snd_seq_drain_output(seq);
 		return -errno;
 	}
 	if (result < seq->obufused)
@@ -726,26 +640,40 @@ int snd_seq_flush_output(snd_seq_t *handle)
 	return seq->obufused;
 }
 
-int snd_seq_drain_output(snd_seq_t *handle)
+int snd_seq_drain_output(snd_seq_t *seq)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	seq->obufused = 0;
 	return 0;
 }
 
-int snd_seq_drain_input(snd_seq_t *handle)
+int snd_seq_drain_input(snd_seq_t *seq)
 {
-	snd_seq_t *seq;
-
-	seq = handle;
 	if (!seq)
 		return -EINVAL;
 	while (snd_seq_input_cell_available(seq))
 		snd_seq_free_cell(snd_seq_input_cell_out(seq));
+	return 0;
+}
+
+int snd_seq_get_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
+{
+	if (!seq || !info)
+		return -EINVAL;
+	info->client = seq->client;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_CLIENT_POOL, info) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_set_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
+{
+	if (!seq || !info)
+		return -EINVAL;
+	info->client = seq->client;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_CLIENT_POOL, info) < 0)
+		return -errno;
 	return 0;
 }
 

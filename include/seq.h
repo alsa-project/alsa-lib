@@ -44,6 +44,8 @@ int snd_seq_get_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t *q
 int snd_seq_set_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t *queue);
 int snd_seq_alloc_queue(snd_seq_t *handle);
 int snd_seq_free_queue(snd_seq_t *handle, int q);
+int snd_seq_get_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
+int snd_seq_set_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
 /* event routines */
 snd_seq_event_t *snd_seq_create_event(void);
 int snd_seq_free_event(snd_seq_event_t *ev);

@@ -7,6 +7,11 @@
  *   Modified so that this uses alsa-lib
  *   1999 Jan. by Isaku Yamahata <yamahata@kusm.kyoto-u.ac.jp>
  *
+ *   19990604	Takashi Iwai <iwai@ww.uni-erlangen.de>
+ *	- use blocking mode
+ *	- fix tempo event bug
+ *	- add command line options
+ *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation; either version 2 of the License, or
@@ -23,19 +28,13 @@
  *
  */
 
-/* define this if you want to send real-time time stamps instead of midi ticks to the ALSA sequencer */
-/*#define USE_REALTIME */
-
-
 #include <stdio.h>
 #include <ctype.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sched.h>
 #include <string.h>
 
 #include "midifile.h"		/* SMF library header */
@@ -43,24 +42,29 @@
 
 #include "../include/asoundlib.h"
 
-//#define DEST_QUEUE_NUMBER 0
-#define DEST_QUEUE_NUMBER 7
-//#define DEST_CLIENT_NUMBER 64
-#define DEST_CLIENT_NUMBER 72
-//#define DEST_CLIENT_NUMBER 128
-//#define DEST_CLIENT_NUMBER 255
-//#define DEST_CLIENT_NUMBER SND_SEQ_ADDRESS_BROADCAST
-#define DEST_PORT_NUMBER 0
+/* define this if you want to send real-time time stamps instead of midi ticks to the ALSA sequencer */
+/* #define USE_REALTIME */
 
-//#define USE_REALTIME
+/* define this if you want to control event buffering by blocking mode */
+#define USE_BLOCKING_MODE
 
-FILE *F;
-snd_seq_t *seq_handle = NULL;
-int ppq = 96;
+/* default destination queue, client and port numbers */
+#define DEST_QUEUE_NUMBER	7
+#define DEST_CLIENT_NUMBER	65
+#define DEST_PORT_NUMBER	0
 
-double local_secs = 0;
-int local_ticks = 0;
-int local_tempo = 500000;
+/* event pool size */
+#define WRITE_POOL_SIZE		200
+#define WRITE_POOL_SPACE	10
+#define READ_POOL_SIZE		10	/* we need read pool only for echoing */
+
+static FILE *F;
+static snd_seq_t *seq_handle = NULL;
+static int ppq = 96;
+
+static double local_secs = 0;
+static int local_ticks = 0;
+static int local_tempo = 500000;
 
 static int dest_queue = DEST_QUEUE_NUMBER;
 static int dest_client = DEST_CLIENT_NUMBER;
@@ -68,238 +72,231 @@ static int dest_port = DEST_PORT_NUMBER;
 static int source_channel = 0;
 static int source_port = 0;
 
+static int verbose = 0;
 
-extern void alsa_start_timer(void);
-extern void alsa_stop_timer(void);
+#define VERB_INFO	1
+#define VERB_MUCH	2
+#define VERB_EVENT	3
+
+static void alsa_start_timer(void);
+static void alsa_stop_timer(void);
 
 
 static inline double tick2time_dbl(int tick)
 {
-	return local_secs + ((double) (tick - local_ticks) * (double) local_tempo * 1.0E-9 / (double) ppq);
+	return local_secs + ((double) (tick - local_ticks) * (double) local_tempo * 1.0E-6 / (double) ppq);
 }
 
 #ifdef USE_REALTIME
 static void tick2time(snd_seq_real_time_t * tm, int tick)
 {
 	double secs = tick2time_dbl(tick);
-
-	//double secs = ((double) tick * (double) local_tempo * 1.0E-6 / (double) ppq);
-
 	tm->tv_sec = secs;
 	tm->tv_nsec = (secs - tm->tv_sec) * 1.0E9;
-
-	//printf("secs = %lf  = %d.%09d\n", secs, tm->tv_sec, tm->tv_nsec);
 }
-
 #endif
 
-/* sleep until sequencer has reached specified timestamp, to guard that we play too much events ahead */
-void sleep_seq(int tick)
-{
-#if 0
-  snd_seq_queue_info_t queue_info;
-  const int COUNT_MAX = 500;
-  const int COUNT_MIN = 50;
-  static int count = 0;
-  count++;
-  if (count >= COUNT_MAX)
-    {
-      while (snd_seq_flush_output(seq_handle) > COUNT_MIN)
-	sched_yield ();
-      count = 0;
-    }
-#endif
-}
-
-
-/* write event to ALSA sequencer */
-void write_ev_im(snd_seq_event_t * ev)
+#ifdef USE_BLOCKING_MODE
+/* write event - using blocking mode */
+static void write_ev_im(snd_seq_event_t *ev)
 {
 	int written;
 
-	ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
-	ev->flags |= SND_SEQ_EVENT_LENGTH_FIXED;
-	
+	written = snd_seq_event_output(seq_handle, ev);
+	if (written < 0) {
+		printf("written = %i (%s)\n", written, snd_strerror(written));
+		exit(1);
+	}
+}
+#else
+/* write event - using select syscall */
+static void write_ev_im(snd_seq_event_t *ev)
+{
+	int rc;
 
-	written = -ENOMEM;
-	while (written<0) {
-	  written = snd_seq_event_output (seq_handle, ev);
-		if (written<0) {
-		  //printf("written = %i (%s)\n", written, snd_strerror(written));
-		  sleep(1);
-		  //sched_yield ();
+	while ((rc = snd_seq_event_output(seq_handle, ev)) < 0) {
+		int seqfd;
+		fd_set fds;
+		seqfd = snd_seq_file_descriptor(seq_handle);
+		FD_ZERO(&fds);
+		FD_SET(seqfd, &fds);
+		if ((rc = select(seqfd + 1, NULL, &fds, NULL, NULL)) < 0) {
+			printf("select error = %i (%s)\n", rc, snd_strerror(rc));
+			exit(1);
 		}
 	}
 }
+#endif
 
 /* write event to ALSA sequencer */
-void write_ev(snd_seq_event_t * ev)
+static void write_ev(snd_seq_event_t * ev)
 {
-  sleep_seq(ev->time.tick-ppq);
-  write_ev_im(ev);
+	ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
+	ev->flags |= SND_SEQ_EVENT_LENGTH_FIXED;
+	write_ev_im(ev);
 }
 
 /* write variable length event to ALSA sequencer */
-void write_ev_var(snd_seq_event_t * ev, int len, void *ptr)
+static void write_ev_var(snd_seq_event_t * ev, int len, void *ptr)
 {
-	int written;
-
-	sleep_seq(ev->time.tick+ppq);
-
 	ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
 	ev->flags |= SND_SEQ_EVENT_LENGTH_VARIABLE;
 	ev->data.ext.len = len;
 	ev->data.ext.ptr = ptr;
-
-	written = -ENOMEM;
-	while (written<0) {
-	  written = snd_seq_event_output (seq_handle, ev);
-	        if (written<0) {
-	          //printf("written = %i (%s)\n", written, snd_strerror(written));
-	          sleep(1);
-		  //sched_yield ();
-		}
-	}
+	write_ev_im(ev);
 }
 
-
-int mygetc(void)
+/* read byte */
+static int mygetc(void)
 {
-	return (getc(F));
+	return getc(F);
 }
 
-void mytext(int type, int leng, char *msg)
+/* print out text */
+static void mytext(int type, int leng, char *msg)
 {
 	char *p;
 	char *ep = msg + leng;
 
-	for (p = msg; p < ep; p++)
-		putchar(isprint(*p) ? *p : '?');
-	putchar('\n');
+	if (verbose >= VERB_INFO) {
+		for (p = msg; p < ep; p++)
+			putchar(isprint(*p) ? *p : '?');
+		putchar('\n');
+	}
 }
 
-void do_header(int format, int ntracks, int division)
+static void do_header(int format, int ntracks, int division)
 {
-	printf("smf format %d, %d tracks, %d ppq\n", format, ntracks, division);
+	snd_seq_queue_tempo_t	tempo;
+
+	if (verbose >= VERB_INFO)
+		printf("smf format %d, %d tracks, %d ppq\n", format, ntracks, division);
 	ppq = division;
 
-	if ((format != 0) || (ntracks != 1)) {
+	if (format != 0 || ntracks != 1) {
 		printf("This player does not support merging of tracks.\n");
 		alsa_stop_timer();
 		exit(1);
 	}
 	/* set ppq */
-	{
-		snd_seq_queue_tempo_t	tempo;
-		if (snd_seq_get_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
-	    		perror ("get_queue_tempo");
-	    		exit (1);
+	/* ppq must be set before starting timer */
+	if (snd_seq_get_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
+    		perror("get_queue_tempo");
+    		exit(1);
+	}
+	if (tempo.ppq != ppq) {
+		tempo.ppq = ppq;
+		if (snd_seq_set_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
+    			perror("set_queue_tempo");
+    			exit(1);
 		}
-		if (tempo.ppq != ppq) {
-			tempo.ppq = ppq;
-			if (snd_seq_set_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
-	    			perror ("set_queue_tempo");
-	    			exit (1);
-			}
+		if (verbose >= VERB_INFO)
 			printf("ALSA Timer updated, PPQ = %d\n", tempo.ppq);
-		}
 	}
 
 	/* start playing... */
 	alsa_start_timer();
 }
 
-void do_tempo(int us)
+/* fill normal event header */
+static void set_event_header(snd_seq_event_t *ev, int type, int chan)
 {
-	double bpm;
+	ev->source.port = source_port;
+	ev->source.channel = source_channel;
+
+	ev->dest.queue = dest_queue;
+	ev->dest.client = dest_client;
+	ev->dest.port = dest_port;
+	ev->dest.channel = chan;
+
+#ifdef USE_REALTIME
+	ev->flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
+	tick2time(&ev->time.real, Mf_currtime);
+#else
+	ev->flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
+	ev->time.tick = Mf_currtime;
+#endif
+
+	ev->type = type;
+}
+
+/* fill timer event header */
+static void set_timer_event_header(snd_seq_event_t *ev, int type)
+{
+	ev->source.port = source_port;
+	ev->source.channel = 0;
+
+	ev->dest.queue = dest_queue;
+	ev->dest.client = SND_SEQ_CLIENT_SYSTEM;	/* system */
+	ev->dest.port = SND_SEQ_PORT_SYSTEM_TIMER;	/* timer */
+	ev->dest.channel = 0;	/* don't care */
+
+#ifdef USE_REALTIME
+	ev->flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
+	tick2time(&ev->time.real, Mf_currtime);
+#else
+	ev->flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
+	ev->time.tick = Mf_currtime;
+#endif
+
+	ev->type = type;
+}
+
+/* start timer */
+static void alsa_start_timer(void)
+{
 	snd_seq_event_t ev;
 
-	bpm = 60.0E6 / (double) us;
+	set_timer_event_header(&ev, SND_SEQ_EVENT_START);
+#ifdef USE_REALTIME
+	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_REL;
+	ev.time.real.tv_sec = 0;
+	ev.time.real.tv_nsec = 0;
+#else
+	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_REL;
+	ev.time.tick = Mf_currtime;
+#endif
 
-	printf("tempo = %d us/beat\n", us);
-	printf("tempo = %.2f bpm\n", bpm);
+	write_ev(&ev);
+}
+
+/* stop timer */
+static void alsa_stop_timer(void)
+{
+	snd_seq_event_t ev;
+
+	set_timer_event_header(&ev, SND_SEQ_EVENT_STOP);
+	write_ev(&ev);
+}
+
+/* change tempo */
+static void do_tempo(int us)
+{
+	snd_seq_event_t ev;
+
+	if (verbose >= VERB_MUCH) {
+		double bpm;
+		bpm = 60.0E6 / (double) us;
+		printf("Tempo %d us/beat, %.2f bpm\n", us, bpm);
+	}
 
 	/* store new tempo and timestamp of tempo change */
 	local_secs = tick2time_dbl(Mf_currtime);
 	local_ticks = Mf_currtime;
 	local_tempo = us;
 
-
-	/* and send tempo change event to the sequencer.... */
-	ev.source.port = dest_port;
-	ev.source.channel = source_channel;
-
-	ev.dest.queue = dest_queue;
-	//ev.dest.client = dest_client;	/* broadcast */
-	ev.dest.client = 255;	/* broadcast */
-	ev.dest.port = 0;
-	ev.dest.channel = 0;	/* don't care */
-
-#ifdef USE_REALTIME
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
-#else
-	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
-#endif
-
-	ev.type = SND_SEQ_EVENT_TEMPO;
+	set_timer_event_header(&ev, SND_SEQ_EVENT_TEMPO);
 	ev.data.control.value = us;
-
-	write_ev_im(&ev);
-
-}
-
-void do_noteon(int chan, int pitch, int vol)
-{
-	snd_seq_event_t ev;
-
-	ev.source.port = dest_port;
-	ev.source.channel = source_channel;
-
-	ev.dest.queue = dest_queue;
-	ev.dest.client = dest_client;
-	ev.dest.port = dest_port;
-	ev.dest.channel = chan;
-
-#ifdef USE_REALTIME
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
-#else
-	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
-#endif
-
-	ev.type = SND_SEQ_EVENT_NOTEON;
-	ev.data.note.note = pitch;
-	ev.data.note.velocity = vol;
-
 	write_ev(&ev);
-
 }
 
-
-void do_noteoff(int chan, int pitch, int vol)
+static void do_noteon(int chan, int pitch, int vol)
 {
 	snd_seq_event_t ev;
 
-	ev.source.port = dest_port;
-	ev.source.channel = source_channel;
-
-	ev.dest.queue = dest_queue;
-	ev.dest.client = dest_client;
-	ev.dest.port = dest_port;
-	ev.dest.channel = chan;
-
-#ifdef USE_REALTIME
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
-#else
-	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
-#endif
-
-	ev.type = SND_SEQ_EVENT_NOTEOFF;
+	if (verbose >= VERB_EVENT)
+		printf("NoteOn (%d) %d %d\n", chan, pitch, vol);
+	set_event_header(&ev, SND_SEQ_EVENT_NOTEON, chan);
 	ev.data.note.note = pitch;
 	ev.data.note.velocity = vol;
 
@@ -307,54 +304,40 @@ void do_noteoff(int chan, int pitch, int vol)
 }
 
 
-void do_program(int chan, int program)
+static void do_noteoff(int chan, int pitch, int vol)
 {
 	snd_seq_event_t ev;
 
-	ev.source.port = dest_port;
-	ev.source.channel = source_channel;
+	if (verbose >= VERB_EVENT)
+		printf("NoteOff (%d) %d %d\n", chan, pitch, vol);
+	set_event_header(&ev, SND_SEQ_EVENT_NOTEOFF, chan);
+	ev.data.note.note = pitch;
+	ev.data.note.velocity = vol;
 
-	ev.dest.queue = dest_queue;
-	ev.dest.client = dest_client;
-	ev.dest.port = dest_port;
-	ev.dest.channel = chan;
+	write_ev(&ev);
+}
 
-#ifdef USE_REALTIME
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
-#else
-	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
-#endif
 
-	ev.type = SND_SEQ_EVENT_PGMCHANGE;
+static void do_program(int chan, int program)
+{
+	snd_seq_event_t ev;
+
+	if (verbose >= VERB_EVENT)
+		printf("Program (%d) %d\n", chan, program);
+	set_event_header(&ev, SND_SEQ_EVENT_PGMCHANGE, chan);
 	ev.data.control.value = program;
 
-	write_ev_im(&ev);
+	write_ev(&ev);
 }
 
 
-void do_parameter(int chan, int control, int value)
+static void do_parameter(int chan, int control, int value)
 {
 	snd_seq_event_t ev;
 
-	ev.source.port = dest_port;
-	ev.source.channel = source_channel;
-
-	ev.dest.queue = dest_queue;
-	ev.dest.client = dest_client;
-	ev.dest.port = dest_port;
-	ev.dest.channel = chan;
-
-#ifdef USE_REALTIME
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
-#else
-	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
-#endif
-
-	ev.type = SND_SEQ_EVENT_CONTROLLER;
+	if (verbose >= VERB_EVENT)
+		printf("Control (%d) %d %d\n", chan, control, value);
+	set_event_header(&ev, SND_SEQ_EVENT_CONTROLLER, chan);
 	ev.data.control.param = control;
 	ev.data.control.value = value;
 
@@ -362,223 +345,149 @@ void do_parameter(int chan, int control, int value)
 }
 
 
-void do_pitchbend(int chan, int lsb, int msb)
-{				/* !@#$% lsb & msb are in wrong order in docs */
+static void do_pitchbend(int chan, int lsb, int msb)
+{	/* !@#$% lsb & msb are in wrong order in docs */
 	snd_seq_event_t ev;
 
-	ev.source.port = dest_port;
-	ev.source.channel = source_channel;
-
-	ev.dest.queue = dest_queue;
-	ev.dest.client = dest_client;
-	ev.dest.port = dest_port;
-	ev.dest.channel = chan;
-
-#ifdef USE_REALTIME
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
-#else
-	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
-#endif
-
-	ev.type = SND_SEQ_EVENT_PITCHBEND;
+	if (verbose >= VERB_EVENT)
+		printf("Pitchbend (%d) %d %d\n", chan, lsb, msb);
+	set_event_header(&ev, SND_SEQ_EVENT_PITCHBEND, chan);
 	ev.data.control.value = (lsb + (msb << 7)) - 8192;
 
 	write_ev(&ev);
 }
 
-void do_pressure(int chan, int pitch, int pressure)
+static void do_pressure(int chan, int pitch, int pressure)
 {
 	snd_seq_event_t ev;
 
-	ev.source.port = dest_port;
-	ev.source.channel = source_channel;
-
-	ev.dest.queue = dest_queue;
-	ev.dest.client = dest_client;
-	ev.dest.port = dest_port;
-	ev.dest.channel = chan;
-
-#ifdef USE_REALTIME
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
-#else
-	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
-#endif
-
-	ev.type = SND_SEQ_EVENT_KEYPRESS;
+	if (verbose >= VERB_EVENT)
+		printf("KeyPress (%d) %d %d\n", chan, pitch, pressure);
+	set_event_header(&ev, SND_SEQ_EVENT_KEYPRESS, chan);
 	ev.data.control.param = pitch;
 	ev.data.control.value = pressure;
 
 	write_ev(&ev);
 }
 
-void do_chanpressure(int chan, int pressure)
+static void do_chanpressure(int chan, int pressure)
 {
 	snd_seq_event_t ev;
 
-	ev.source.port = dest_port;
-	ev.source.channel = source_channel;
-
-	ev.dest.queue = dest_queue;
-	ev.dest.client = dest_client;
-	ev.dest.port = dest_port;
-	ev.dest.channel = chan;
-
-#ifdef USE_REALTIME
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
-#else
-	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
-#endif
-
-	ev.type = SND_SEQ_EVENT_CHANPRESS;
+	if (verbose >= VERB_EVENT)
+		printf("ChanPress (%d) %d\n", chan, pressure);
+	set_event_header(&ev, SND_SEQ_EVENT_CHANPRESS, chan);
 	ev.data.control.value = pressure;
 
 	write_ev(&ev);
 }
 
-void do_sysex(int len, char *msg)
+static void do_sysex(int len, char *msg)
 {
 	snd_seq_event_t ev;
 
-#if 0
-	int c;
-
-	printf("Sysex, len=%d\n", len);
-	for (c = 0; c < len; c++) {
-		printf("    %3d : %02x\n", c, (unsigned char) msg[c]);
+	if (verbose >= VERB_MUCH) {
+		int c;
+		printf("Sysex, len=%d\n", len);
+		for (c = 0; c < len; c++) {
+			printf(" %02x", (unsigned char)msg[c]);
+			if (c % 16 == 15)
+				putchar('\n');
+		}
+		if (c % 16 != 15)
+			putchar('\n');
 	}
-#endif
 
-
-	ev.source.port = dest_port;
-	ev.source.channel = source_channel;
-
-	ev.dest.queue = dest_queue;
-	ev.dest.client = dest_client;
-	ev.dest.port = dest_port;
-	ev.dest.channel = 0;	/* don't care */
-
-#ifdef USE_REALTIME
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
-#else
-	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
-#endif
-
-	ev.type = SND_SEQ_EVENT_SYSEX;
-
+	set_event_header(&ev, SND_SEQ_EVENT_SYSEX, 0);
 	write_ev_var(&ev, len, msg);
 }
 
-/**/
-void alsa_sync ()
+/* synchronize to the end of event */
+static void alsa_sync(void)
 {
-  int left;
-  snd_seq_event_t* input_event;
-  
-  //send echo event to self client.
-  snd_seq_event_t ev;
-  printf ("alsa_sync syncing... send ECHO(%d) event to myself. time=%f\n",
-	  SND_SEQ_EVENT_ECHO, (double) Mf_currtime+1);
-  ev.source.port = dest_port;
-  ev.source.channel = source_channel;
-  ev.dest.queue = dest_queue;
-  ev.dest.client = snd_seq_client_id (seq_handle);
-  ev.dest.port = source_port;
-  ev.dest.channel = 0;	/* don't care */
-
-#ifdef USE_REALTIME
-  ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-  tick2time(&ev.time.real, Mf_currtime+1);
-#else
-  ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-  ev.time.tick = Mf_currtime+1;
-#endif
-  ev.type = SND_SEQ_EVENT_ECHO;
-  write_ev_im (&ev);
-  
-  //dump buffer
-  left = snd_seq_flush_output (seq_handle);
-  while (left > 0)
-    {
-      sched_yield ();
-      left = snd_seq_flush_output (seq_handle);
-      if (left < 0)
-	{
-	  printf ("alsa_sync error!:%s\n", snd_strerror (left));
-	  return;
-	}
-    }
-
-  //wait the echo event which I sent.
-  left = snd_seq_event_input (seq_handle, &input_event);
-  if (left < 0)
-    {
-      printf ("alsa_sync error!:%s\n", snd_strerror (left));
-      return;
-    }
-  printf ("alsa_sync got event. type=%d, flags=%d\n",
-	  input_event->type, input_event->flags);
-  snd_seq_free_event (input_event);
-  
-  printf ("alsa_sync synced\n");
-}
-
-
-/* start timer */
-void alsa_start_timer(void)
-{
+	int left;
+	snd_seq_event_t* input_event;
 	snd_seq_event_t ev;
-
-	ev.source.port = SND_SEQ_PORT_SYSTEM_TIMER;
-	ev.source.channel = 0;
-
+  
+	/* send echo event to self client. */
+	if (verbose >= VERB_MUCH)
+		printf("alsa_sync syncing... send ECHO(%d) event to myself. time=%f\n",
+		       SND_SEQ_EVENT_ECHO, (double) Mf_currtime+1);
+	ev.source.port = source_port;
+	ev.source.channel = source_channel;
 	ev.dest.queue = dest_queue;
-	ev.dest.client = SND_SEQ_CLIENT_SYSTEM;	/* system */
-	ev.dest.port = SND_SEQ_PORT_SYSTEM_TIMER;	/* timer */
-	ev.dest.channel = 0;	/* don't care */
-
-	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_REL;
-	ev.time.real.tv_sec = 0;
-	ev.time.real.tv_nsec = 0;
-
-	ev.type = SND_SEQ_EVENT_START;
-
-	write_ev_im(&ev);
-	usleep(0.1E6);
-}
-
-/* stop timer */
-void alsa_stop_timer(void)
-{
-
-	snd_seq_event_t ev;
-
-	ev.source.port = 0;
-	ev.source.channel = 0;
-
-	ev.dest.queue = dest_queue;
-	ev.dest.client = SND_SEQ_CLIENT_SYSTEM;	/* system */
-	ev.dest.port = SND_SEQ_PORT_SYSTEM_TIMER;	/* timer */
+	ev.dest.client = snd_seq_client_id(seq_handle);
+	ev.dest.port = source_port;
 	ev.dest.channel = 0;	/* don't care */
 
 #ifdef USE_REALTIME
 	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
-	tick2time(&ev.time.real, Mf_currtime);
+	tick2time(&ev.time.real, Mf_currtime+1);
 #else
 	ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
-	ev.time.tick = Mf_currtime;
+	ev.time.tick = Mf_currtime+1;
 #endif
+	ev.type = SND_SEQ_EVENT_ECHO;
+	write_ev(&ev);
+  
+	/* dump buffer */
+	left = snd_seq_flush_output(seq_handle);
 
-	ev.type = SND_SEQ_EVENT_STOP;
+	/* wait the echo event which I sent. */
+#ifdef USE_BLOCKING_MODE
+	/* read event - blocked until any event is read */
+	left = snd_seq_event_input(seq_handle, &input_event);
+#else
+	/* read event - using select syscall */
+	while ((left = snd_seq_event_input(seq_handle, &input_event)) >= 0 &&
+	       input_event == NULL) {
+		int seqfd;
+		fd_set fds;
+		seqfd = snd_seq_file_descriptor(seq_handle);
+		FD_ZERO(&fds);
+		FD_SET(seqfd, &fds);
+		if ((left = select(seqfd + 1, &fds, NULL, NULL, NULL)) < 0) {
+			printf("select error = %i (%s)\n", left, snd_strerror(left));
+			exit(1);
+		}
+	}
+#endif
+	if (left < 0) {
+		printf("alsa_sync error!:%s\n", snd_strerror(left));
+		return;
+	}
 
-	write_ev_im(&ev);
+	if (verbose >= VERB_MUCH)
+		printf("alsa_sync got event. type=%d, flags=%d\n",
+		       input_event->type, input_event->flags);
+	snd_seq_free_event(input_event);
+  
+	if (verbose >= VERB_MUCH)
+		printf("alsa_sync synced\n");
+}
+
+
+/* print usage */
+static void usage(void)
+{
+	fprintf(stderr, "usage: playmidi1 [options] [file]\n");
+	fprintf(stderr, "  options:\n");
+	fprintf(stderr, "  -v: verbose mode\n");
+	fprintf(stderr, "  -a queue:client:port : set destination address (default=%d:%d:%d)\n",
+		DEST_QUEUE_NUMBER, DEST_CLIENT_NUMBER, DEST_PORT_NUMBER);
+}
+
+/* parse destination address (-a option) */
+void parse_address(char *arg, int *queuep, int *clientp, int *portp)
+{
+	char *next;
+
+	*queuep = atoi(arg);
+	if ((next = strchr(arg, ':')) != NULL) {
+		*clientp = atoi(next + 1);
+		if ((next = strchr(next + 1, ':')) != NULL)
+			*portp = atoi(next + 1);
+	}
 }
 
 int main(int argc, char *argv[])
@@ -587,76 +496,91 @@ int main(int argc, char *argv[])
 	snd_seq_port_info_t src_port_info;
 	snd_seq_queue_client_t queue_info;
 	snd_seq_port_subscribe_t subscribe;
+	snd_seq_client_pool_t pool;
 	int tmp;
+	int c;
 
+	while ((c = getopt(argc, argv, "a:v")) != -1) {
+		switch (c) {
+		case 'v':
+			verbose++;
+			break;
+		case 'a':
+			parse_address(optarg, &dest_queue, &dest_client, &dest_port);
+			break;
+		default:
+			usage();
+			exit(1);
+		}
+	}
+
+	if (verbose >= VERB_INFO) {
 #ifdef USE_REALTIME
-	printf("ALSA MIDI Player, feeding events to real-time queue\n");
+		printf("ALSA MIDI Player, feeding events to real-time queue\n");
 #else
-	printf("ALSA MIDI Player, feeding events to song queue\n");
+		printf("ALSA MIDI Player, feeding events to song queue\n");
 #endif
+	}
 
 	/* open sequencer device */
-	//Here we open the device read/write mode.
-	//Becase we write SND_SEQ_EVENT_ECHO to myself to sync.
-	tmp = snd_seq_open (&seq_handle, SND_SEQ_OPEN);
+	/* Here we open the device read/write mode. */
+	/* Becase we write SND_SEQ_EVENT_ECHO to myself to sync. */
+	tmp = snd_seq_open(&seq_handle, SND_SEQ_OPEN);
 	if (tmp < 0) {
 		perror("open /dev/snd/seq");
 		exit(1);
 	}
 	
-	//tmp = snd_seq_block_mode (seq_handle, 0);
-	tmp = snd_seq_block_mode (seq_handle, 1);
-	if (tmp < 0)
-	  {
-	    perror ("block_mode");
-	    exit (1);
-	  }
+#ifdef USE_BLOCKING_MODE
+	tmp = snd_seq_block_mode(seq_handle, 1);
+#else
+	tmp = snd_seq_block_mode(seq_handle, 0);
+#endif
+	if (tmp < 0) {
+		perror("block_mode");
+		exit(1);
+	}
 	
 		
 	/* set name */
-	//set event filter to recieve only echo event
+	/* set event filter to recieve only echo event */
 	memset(&inf, 0, sizeof(snd_seq_client_info_t));
 	inf.filter |= SND_SEQ_FILTER_USE_EVENT;
-	memset (&inf.event_filter, 0, sizeof (inf.event_filter));
-	snd_seq_set_bit (SND_SEQ_EVENT_ECHO, inf.event_filter);
+	memset(&inf.event_filter, 0, sizeof(inf.event_filter));
+	snd_seq_set_bit(SND_SEQ_EVENT_ECHO, inf.event_filter);
 	strcpy(inf.name, "MIDI file player");
-	if (snd_seq_set_client_info (seq_handle, &inf) < 0) {
+	if (snd_seq_set_client_info(seq_handle, &inf) < 0) {
 		perror("ioctl");
 		exit(1);
 	}
 
-	//create port
-	memset (&src_port_info, 0, sizeof (snd_seq_port_info_t));
-	src_port_info.capability = SND_SEQ_PORT_CAP_OUT | SND_SEQ_PORT_CAP_SUBSCRIPTION | SND_SEQ_PORT_CAP_IN;
+	/* create port */
+	memset(&src_port_info, 0, sizeof(snd_seq_port_info_t));
+	src_port_info.capability = SND_SEQ_PORT_CAP_OUT | SND_SEQ_PORT_CAP_IN;
 	src_port_info.type = SND_SEQ_PORT_TYPE_MIDI_GENERIC;
 	src_port_info.midi_channels = 16;
 	src_port_info.synth_voices = 0;
-	//src_port_info.use = 0;
 	src_port_info.kernel = NULL;
-	tmp = snd_seq_create_port (seq_handle, &src_port_info);
-	if (tmp < 0)
-	  {
-	    perror ("creat port");
-	    exit (1);
-	  }
+	tmp = snd_seq_create_port(seq_handle, &src_port_info);
+	if (tmp < 0) {
+		perror("creat port");
+		exit(1);
+	}
 	source_port = src_port_info.port;
 	
-	//setup queue
+	/* setup queue */
 	queue_info.used = 1;
-	queue_info.low = 1;//???
-	//queue_info.low = 0;
-	queue_info.high = 500-100;//???
-	tmp = snd_seq_set_queue_client (seq_handle, dest_queue,
-					&queue_info);
-	if (tmp < 0)
-	  {
-	    perror ("queue_client");
-	    exit (1);
-	  }
-	//setup subscriber
-	printf ("debug subscribe src_port_info.client=%d\n",
-		src_port_info.client);
-	subscribe.sender.client = snd_seq_client_id (seq_handle);
+	tmp = snd_seq_set_queue_client(seq_handle, dest_queue, &queue_info);
+	if (tmp < 0) {
+		perror("queue_client");
+		exit(1);
+	}
+
+	/* setup subscriber */
+	if (verbose >= VERB_INFO)
+		printf("debug subscribe src_port_info.client=%d\n",
+		       src_port_info.client);
+	subscribe.sender.client = snd_seq_client_id(seq_handle);
 	subscribe.sender.queue = dest_queue;
 	subscribe.sender.port = src_port_info.port;
 	subscribe.dest.client = dest_client;
@@ -664,16 +588,29 @@ int main(int argc, char *argv[])
 	subscribe.dest.queue = dest_queue;
 	subscribe.realtime = 1;
 	subscribe.exclusive = 0;
-	tmp = snd_seq_subscribe_port (seq_handle, &subscribe);
-	if (tmp < 0)
-	  {
-	    perror ("subscribe");
-	    exit (1);
-	  }
+	tmp = snd_seq_subscribe_port(seq_handle, &subscribe);
+	if (tmp < 0) {
+		perror("subscribe");
+		exit(1);
+	}
 	
-	if (argc > 1)
-		F = fopen(argv[1], "r");
-	else
+	/* change pool size */
+	pool.output_pool = WRITE_POOL_SIZE;
+	pool.input_pool = READ_POOL_SIZE;
+	pool.output_room = WRITE_POOL_SPACE;
+	tmp = snd_seq_set_client_pool(seq_handle, &pool);
+	if (tmp < 0) {
+		perror("pool");
+		exit(1);
+	}
+	
+	if (optind < argc) {
+		F = fopen(argv[optind], "r");
+		if (F == NULL) {
+			fprintf(stderr, "playmidi1: can't open file %s\n", argv[optind]);
+			exit(1);
+		}
+	} else
 		F = stdin;
 
 	Mf_header = do_header;
@@ -690,22 +627,18 @@ int main(int argc, char *argv[])
 	Mf_chanpressure = do_chanpressure;
 	Mf_sysex = do_sysex;
 
-
-	/* stop timer in case it was left running by a previous client */
-	alsa_stop_timer ();
-	alsa_start_timer ();
-	
 	/* go.. go.. go.. */
 	mfread();
 
-	alsa_sync ();
+	alsa_sync();
 	alsa_stop_timer();
 
-	snd_seq_close (seq_handle);
+	snd_seq_close(seq_handle);
 
-	printf("Stopping at %f s,  tick %f\n",
-	       tick2time_dbl(Mf_currtime + 1), (double) (Mf_currtime + 1));
-
+	if (verbose >= VERB_INFO) {
+		printf("Stopping at %f s,  tick %f\n",
+		       tick2time_dbl(Mf_currtime + 1), (double) (Mf_currtime + 1));
+	}
 
 	exit(0);
 }
