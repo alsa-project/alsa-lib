@@ -44,11 +44,15 @@ int snd_rawmidi_open(void **handle, int card, int device, int mode)
 	snd_rawmidi_t *rmidi;
 
 	*handle = NULL;
+	
 	if (card < 0 || card >= SND_CARDS)
 		return -EINVAL;
 	sprintf(filename, SND_FILE_RAWMIDI, card, device);
-	if ((fd = open(filename, mode)) < 0)
-		return -errno;
+	if ((fd = open(filename, mode)) < 0) {
+		snd_card_load(card);
+		if ((fd = open(filename, mode)) < 0)
+			return -errno;
+	}
 	if (ioctl(fd, SND_RAWMIDI_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;

@@ -42,12 +42,17 @@ int snd_ctl_open(void **handle, int card)
 	char filename[32];
 	snd_ctl_t *ctl;
 
-	*handle = NULL;
+	*handle = NULL;	
+
 	if (card < 0 || card >= SND_CARDS)
 		return -EINVAL;
 	sprintf(filename, SND_FILE_CONTROL, card);
-	if ((fd = open(filename, O_RDWR)) < 0)
-		return -errno;
+	if ((fd = open(filename, O_RDWR)) < 0) {
+		snd_card_load(card);
+		if ((fd = open(filename, O_RDWR)) < 0)
+			return -errno;
+	}
+		
 	if (ioctl(fd, SND_CTL_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;

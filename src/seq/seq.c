@@ -60,9 +60,14 @@ int snd_seq_open(void **handle, int mode)
 	snd_seq_t *seq;
 
 	*handle = NULL;
+
 	sprintf(filename, SND_FILE_SEQ);
-	if ((fd = open(filename, mode)) < 0)
-		return -errno;
+	if ((fd = open(filename, mode)) < 0) {
+		/* try load all soundcard modules */
+		snd_cards_mask();
+		if ((fd = open(filename, mode)) < 0)
+			return -errno;
+	}
 	if (ioctl(fd, SND_SEQ_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;

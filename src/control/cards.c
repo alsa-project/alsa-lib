@@ -30,6 +30,22 @@
 
 #define SND_FILE_CONTROL	"/dev/snd/control%i"
 
+int snd_card_load(int card)
+{
+	int open_dev;
+	char control[32];
+	char aload[32];
+
+	sprintf (control, "/dev/snd/control%d",card);
+	sprintf (aload, "/dev/aload%d", card);	 
+
+	if ((open_dev=open(control, O_RDONLY)) < 0) {
+		close(open(aload, O_RDONLY));
+	} else {
+		close (open_dev);
+	}
+}
+
 int snd_cards(void)
 {
 	int idx, count;
@@ -59,9 +75,13 @@ unsigned int snd_cards_mask(void)
 	if (save_mask)
 		return save_mask;
 	for (idx = 0, mask = 0; idx < SND_CARDS; idx++) {
+	        snd_card_load(idx);
 		sprintf(filename, SND_FILE_CONTROL, idx);
-		if ((fd = open(filename, O_RDWR)) < 0)
-			continue;
+		if ((fd = open(filename, O_RDWR)) < 0) {
+			snd_card_load(idx);
+			if ((fd = open(filename, O_RDWR)) < 0)
+				continue;
+		}
 		close(fd);
 		mask |= 1 << idx;
 	}

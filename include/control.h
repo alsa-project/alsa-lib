@@ -9,6 +9,7 @@
 extern "C" {
 #endif
 
+int snd_card_load(int card);
 int snd_cards(void);
 unsigned int snd_cards_mask(void);
 int snd_card_name(const char *name);

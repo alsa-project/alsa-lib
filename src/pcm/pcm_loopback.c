@@ -44,12 +44,16 @@ int snd_pcm_loopback_open(void **handle, int card, int device, int mode)
 	snd_pcm_loopback_t *lb;
 
 	*handle = NULL;
+
 	if (card < 0 || card >= SND_CARDS)
 		return -EINVAL;
 	sprintf(filename, SND_FILE_PCM_LB, card, device,
 		mode == SND_PCM_LB_OPEN_RECORD ? "r" : "p");
-	if ((fd = open(filename, mode)) < 0)
-		return -errno;
+	if ((fd = open(filename, mode)) < 0) {
+		snd_card_load(card);
+		if ((fd = open(filename, mode)) < 0) 
+			return -errno;
+	}
 	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;

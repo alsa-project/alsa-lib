@@ -44,11 +44,15 @@ int snd_mixer_open(void **handle, int card, int device)
 	snd_mixer_t *mixer;
 
 	*handle = NULL;
+
 	if (card < 0 || card >= SND_CARDS)
 		return -EINVAL;
 	sprintf(filename, SND_FILE_MIXER, card, device);
-	if ((fd = open(filename, O_RDWR)) < 0)
-		return -errno;
+	if ((fd = open(filename, O_RDWR)) < 0) {
+		snd_card_load(card);	
+		if ((fd = open(filename, O_RDWR)) < 0) 
+			return -errno;
+	}
 	if (ioctl(fd, SND_MIXER_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;
