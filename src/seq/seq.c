@@ -152,25 +152,39 @@ int _snd_seq_poll_descriptor(snd_seq_t *seq)
 	return seq->poll_fd;
 }
 
-int snd_seq_poll_descriptors_count(snd_seq_t *seq)
+int snd_seq_poll_descriptors_count(snd_seq_t *seq, short events)
 {
+	int result = 0;
 	assert(seq);
-	return 1;
+	if (events & POLLIN) {
+		assert(seq->streams & SND_SEQ_OPEN_INPUT);
+		result++;
+	}
+	if (events & POLLOUT) {
+		assert(seq->streams & SND_SEQ_OPEN_OUTPUT);
+		result++;
+	}
+	return result ? 1 : 0;
 }
 
-int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int space)
+int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int space, short events)
 {
+	short revents = 0;
+
 	assert(seq);
-	if (space >= 1) {
-		pfds->fd = seq->poll_fd;
-		pfds->events = 0;
-		if (seq->streams & SND_SEQ_OPEN_INPUT)
-			pfds->events |= POLLIN;
-		if (seq->streams & SND_SEQ_OPEN_OUTPUT)
-			pfds->events |= POLLOUT;
-		return 1;
+	if ((events & POLLIN) && space >= 1) {
+		assert(seq->streams & SND_SEQ_OPEN_INPUT);
+		revents |= POLLIN;
 	}
-	return 0;
+	if ((events & POLLOUT) && space >= 1) {
+		assert(seq->streams & SND_SEQ_OPEN_INPUT);
+		revents |= POLLOUT;
+	}
+	if (!revents)
+		return 0;
+	pfds->fd = seq->poll_fd;
+	pfds->events = revents;
+	return 1;
 }
 
 /*
