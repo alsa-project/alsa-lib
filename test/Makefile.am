@@ -11,6 +11,6 @@ rawmidi_LDADD=../src/libasound.la
 midiloop_LDADD=../src/libasound.la
 
 INCLUDES=-I$(top_srcdir)/include
-# CFLAGS=-static -Wall -pipe -g
+CFLAGS=-Wall -pipe -g
 
 EXTRA_DIST=seq-decoder.c seq-sender.c midifile.h midifile.c midifile.3
