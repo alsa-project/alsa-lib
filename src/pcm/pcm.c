@@ -1516,6 +1516,123 @@ int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
 }
 
 /**
+ * \brief Check, if hardware supports sample-resolution mmap for given configuration
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't support sample-resolution mmap
+ * \retval 1 Hardware supports sample-resolution mmap
+ */
+int snd_pcm_hw_params_is_mmap_sample_resolution(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_MMAP_VALID);
+}
+
+/**
+ * \brief Check, if hardware does double buffering for start/stop for given configuration
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't do double buffering for start/stop
+ * \retval 1 Hardware does double buffering for start/stop
+ */
+int snd_pcm_hw_params_is_double(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_DOUBLE);
+}
+
+/**
+ * \brief Check, if hardware does double buffering for data transfers for given configuration
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't do double buffering for data transfers
+ * \retval 1 Hardware does double buffering for data transfers
+ */
+int snd_pcm_hw_params_is_batch(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_BATCH);
+}
+
+/**
+ * \brief Check, if hardware does block transfers for samples for given configuration
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't block transfers
+ * \retval 1 Hardware does block transfers
+ */
+int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_BLOCK_TRANSFER);
+}
+
+/**
+ * \brief Check, if hardware supports overrange detection
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't support overrange detection
+ * \retval 1 Hardware supports overrange detection
+ */
+int snd_pcm_hw_params_is_overrange(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_OVERRANGE);
+}
+
+/**
+ * \brief Check, if hardware supports pause
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't support pause
+ * \retval 1 Hardware supports pause
+ */
+int snd_pcm_hw_params_is_pause(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_PAUSE);
+}
+
+/**
+ * \brief Check, if hardware does half-duplex only
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't do half-duplex
+ * \retval 1 Hardware does half-duplex
+ */
+int snd_pcm_hw_params_is_half_duplex(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_HALF_DUPLEX);
+}
+
+/**
+ * \brief Check, if hardware does joint-duplex (playback and capture are somewhat correlated)
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't do joint-duplex
+ * \retval 1 Hardware does joint-duplex
+ */
+int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_JOINT_DUPLEX);
+}
+
+/**
+ * \brief Check, if hardware supports synchronized start with sample resolution
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't support synchronized start
+ * \retval 1 Hardware supports synchronized start
+ */
+int snd_pcm_hw_params_is_sync_start(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_SYNC_START);
+}
+
+/**
  * \brief Get rate exact info from a configuration space
  * \param params Configuration space
  * \param rate_num Pointer to returned rate numerator

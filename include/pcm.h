@@ -356,6 +356,15 @@ snd_pcm_stream_t snd_pcm_stream(snd_pcm_t *pcm);
 /* HW params */
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
+int snd_pcm_hw_params_is_mmap_sample_resolution(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_is_double(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_is_batch(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_is_overrange(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_is_pause(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_is_half_duplex(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_is_sync_start(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 				      unsigned int *rate_num,
 				      unsigned int *rate_den);
