@@ -474,18 +474,73 @@ static int client_discard(snd_pcm_dmix_t *dmix)
  */
 
 /*
+ *  the main function of this plugin: mixing
+ *  FIXME: optimize it for different architectures
+ */
+
+static void mix_areas(const snd_pcm_channel_area_t *src_areas,
+		      const snd_pcm_channel_area_t *dst_areas,
+		      unsigned int channels,
+		      snd_pcm_uframes_t src_ofs,
+		      snd_pcm_uframes_t dst_ofs,
+		      snd_pcm_uframes_t size)
+{
+	register signed int sample;
+	signed short *src, *dst;
+	unsigned int src_step, dst_step;
+	unsigned int chn, count;
+	
+	for (chn = 0; chn < channels; chn++) {
+		src_step = src_areas[chn].step / 8;
+		dst_step = dst_areas[chn].step / 8;
+		src = (signed short *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
+		dst = (signed short *)(((char *)dst_areas[chn].addr + dst_areas[chn].first / 8) + (dst_ofs * dst_step));
+		count = 0;
+		while (count++ < size) {
+			/* FIXME: it's pretty ugly, because the other process might modify our value between
+			          read / write session - especially on MP machines */
+			sample = *dst + *src;
+			if (sample > 0x7fff)
+				sample = 0x7fff;
+			if (sample < -0x8000)
+				sample = -0x8000;
+			*dst = sample;
+			((char *)src) += src_step;
+			((char *)dst) += dst_step;
+		}
+	}
+}
+
+/*
  *  synchronize shm ring buffer with hardware
  */
 static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
-	snd_pcm_uframes_t appl_ptr;
+	snd_pcm_uframes_t appl_ptr, slave_appl_ptr, transfer;
+	const snd_pcm_channel_area_t *src_areas, *dst_areas;
 	
 	/* get the start of update area */
 	appl_ptr = dmix->appl_ptr - size;
 	if (appl_ptr > pcm->boundary)
 		appl_ptr += pcm->boundary;
+	appl_ptr %= pcm->buffer_size;
 	/* add sample areas here */
+	src_areas = snd_pcm_mmap_areas(pcm);
+	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
+	slave_appl_ptr = dmix->slave_appl_ptr % dmix->spcm->buffer_size;
+	dmix->slave_appl_ptr += size;
+	dmix->slave_appl_ptr %= dmix->spcm->boundary;
+	while (size > 0) {
+		transfer = appl_ptr + size > pcm->buffer_size ? pcm->buffer_size - appl_ptr : size;
+		transfer = slave_appl_ptr + transfer > dmix->spcm->buffer_size ? dmix->spcm->buffer_size - slave_appl_ptr : transfer;
+		size -= transfer;
+		mix_areas(src_areas, dst_areas, pcm->channels, appl_ptr, slave_appl_ptr, transfer);
+		slave_appl_ptr += transfer;
+		slave_appl_ptr %= dmix->spcm->buffer_size;
+		appl_ptr += transfer;
+		appl_ptr %= pcm->buffer_size;
+	}
 }
 
 /*
@@ -514,6 +569,7 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	if ((avail = snd_pcm_mmap_playback_avail(pcm)) >= pcm->stop_threshold) {
 		dmix->state = SND_PCM_STATE_XRUN;
 		dmix->avail_max = avail;
+		printf("XRUN?\n");
 		return -EPIPE;
 	}
 	if (avail > dmix->avail_max)
@@ -769,12 +825,14 @@ static int snd_pcm_dmix_reset(snd_pcm_t *pcm)
 	snd_pcm_dmix_t *dmix = pcm->private_data;
 	dmix->hw_ptr %= pcm->period_size;
 	dmix->appl_ptr = dmix->hw_ptr;
+	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
 	return 0;
 }
 
 static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
+	snd_pcm_sframes_t avail;
 	int err;
 	
 	if (dmix->state != SND_PCM_STATE_PREPARED)
@@ -783,8 +841,13 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 	dmix->state = SND_PCM_STATE_RUNNING;
-	dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
-	snd_pcm_dmix_sync_area(pcm, dmix->appl_ptr < pcm->buffer_size ? dmix->appl_ptr : pcm->buffer_size);
+	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
+	avail = snd_pcm_mmap_playback_hw_avail(pcm);
+	if (avail < 0)
+		return 0;
+	if (avail > (snd_pcm_sframes_t)pcm->buffer_size)
+		avail = pcm->buffer_size;
+	snd_pcm_dmix_sync_area(pcm, avail);
 	return 0;
 }
 
@@ -793,6 +856,7 @@ static int snd_pcm_dmix_drop(snd_pcm_t *pcm)
 	snd_pcm_dmix_t *dmix = pcm->private_data;
 	if (dmix->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
+	snd_timer_stop(dmix->timer);
 	dmix->state = SND_PCM_STATE_SETUP;
 	return 0;
 }
@@ -802,6 +866,7 @@ static int snd_pcm_dmix_drain(snd_pcm_t *pcm)
 	snd_pcm_dmix_t *dmix = pcm->private_data;
 	if (dmix->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
+	snd_timer_stop(dmix->timer);
 	dmix->state = SND_PCM_STATE_SETUP;
 	return 0;
 }
@@ -813,10 +878,12 @@ static int snd_pcm_dmix_pause(snd_pcm_t *pcm, int enable)
 		if (dmix->state != SND_PCM_STATE_RUNNING)
 			return -EBADFD;
 		dmix->state = SND_PCM_STATE_PAUSED;
+		snd_timer_stop(dmix->timer);
 	} else {
 		if (dmix->state != SND_PCM_STATE_PAUSED)
 			return -EBADFD;
                 dmix->state = SND_PCM_STATE_RUNNING;
+                snd_timer_start(dmix->timer);
 	}
 	return 0;
 }
@@ -882,31 +949,38 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 						  snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
 						  snd_pcm_uframes_t size)
 {
+	snd_pcm_dmix_t *dmix = pcm->private_data;
 	int err;
 
 	snd_pcm_mmap_appl_forward(pcm, size);
-	err = snd_pcm_dmix_sync_ptr(pcm);
-	if (err < 0)
-		return err;
-	/* ok, we commit the changes after the validation of area */
-	/* it's intended, although the result might be crappy */
-	snd_pcm_dmix_sync_area(pcm, size);
+	if (dmix->state == SND_PCM_STATE_RUNNING) {
+		err = snd_pcm_dmix_sync_ptr(pcm);
+		if (err < 0)
+			return err;
+		/* ok, we commit the changes after the validation of area */
+		/* it's intended, although the result might be crappy */
+		snd_pcm_dmix_sync_area(pcm, size);
+	}
 	return size;
 }
 
 static snd_pcm_sframes_t snd_pcm_dmix_avail_update(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
+	snd_pcm_dmix_t *dmix = pcm->private_data;
 	int err;
 	
-	err = snd_pcm_dmix_sync_ptr(pcm);
-	if (err < 0)
-		return err;
+	if (dmix->state == SND_PCM_STATE_RUNNING) {
+		err = snd_pcm_dmix_sync_ptr(pcm);
+		if (err < 0)
+			return err;
+	}
 	return snd_pcm_mmap_playback_avail(pcm);
 }
 
 static void snd_pcm_dmix_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
+
 	snd_output_printf(out, "Direct Stream Mixing PCM\n");
 	if (pcm->setup) {
 		snd_output_printf(out, "\nIts setup is:\n");
@@ -973,11 +1047,11 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 		SNDERR("snd_pcm_hw_params_any failed");
 		return ret;
 	}
-	ret = snd_pcm_hw_params_set_access(spcm, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	ret = snd_pcm_hw_params_set_access(spcm, hw_params, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 	if (ret < 0) {
-		ret = snd_pcm_hw_params_set_access(spcm, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+		ret = snd_pcm_hw_params_set_access(spcm, hw_params, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
 		if (ret < 0) {
-			SNDERR("slave plugin does not support interleaved or noninterleaved access");
+			SNDERR("slave plugin does not support mmap interleaved or mmap noninterleaved access");
 			return ret;
 		}
 	}
@@ -1080,6 +1154,8 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 		SNDERR("unable to start PCM stream\n");
 		return ret;
 	}
+
+	sleep(3);
 
 	return 0;
 }
@@ -1247,6 +1323,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		
 	dmix->shmptr->type = spcm->type;
 
+	pcm->mmap_rw = 1;
 	snd_pcm_set_hw_ptr(pcm, &dmix->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &dmix->appl_ptr, -1, 0);
 
@@ -1391,6 +1468,9 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 				 SND_PCM_HW_PARAM_PERIODS, 0, &params.periods);
 	if (err < 0)
 		return err;
+
+	assert(params.format == SND_PCM_FORMAT_S16); /* sorry, limited features */
+
 	params.period_size = psize;
 	params.buffer_size = bsize;
 	err = snd_pcm_dmix_open(pcmp, name, ipc_key, &params, root, sconf, stream, mode);
