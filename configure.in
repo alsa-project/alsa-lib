@@ -134,6 +134,9 @@ case "$target" in
 i?86*)
   AC_MSG_RESULT(x86)
   ;;
+x86_64*)
+  AC_MSG_RESULT(x86)
+  ;;
 alpha*)
   AC_MSG_RESULT(alpha)
   ;;
@@ -158,6 +161,13 @@ arm*)
   echo "No atomic operations supported.." 
   ;;
 esac
+
+dnl Make a symlink for inclusion of alsa/xxx.h
+if test ! -L include/alsa ; then
+  echo "Making a symlink include/alsa"
+  rm -f include/alsa
+  ln -sf . include/alsa
+fi
 
 AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile
 	  include/sound/Makefile src/Makefile \

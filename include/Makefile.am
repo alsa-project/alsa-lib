@@ -14,7 +14,7 @@ alsainclude_HEADERS = asoundlib.h asoundef.h \
 
 noinst_HEADERS = sys.h search.h list.h aserver.h local.h alsa-symbols.h
 
-CLEANFILES = stamp-vh version.h
+CLEANFILES = stamp-vh version.h alsa
 
 version.h: stamp-vh
 	@:
