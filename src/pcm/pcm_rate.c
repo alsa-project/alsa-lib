@@ -82,8 +82,6 @@ struct _snd_pcm_rate {
 	snd_pcm_channel_area_t *pareas;	/* areas for splitted period (rate pcm) */
 	snd_pcm_channel_area_t *sareas;	/* areas for splitted period (slave pcm) */
 	int16_t *old_sample;
-	int16_t *new_sample;
-	unsigned int pos;
 };
 
 static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
@@ -122,9 +120,8 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 		dst_step = snd_pcm_channel_area_step(dst_area);
 		src_frames1 = 0;
 		dst_frames1 = 0;
-		old_sample = rate->old_sample[channel];
-		new_sample = rate->new_sample[channel];
-		pos = rate->pos;
+		new_sample = rate->old_sample[channel];
+		pos = get_threshold;
 		while (dst_frames1 < dst_frames) {
 			if (pos >= get_threshold) {
 				pos -= get_threshold;
@@ -154,10 +151,8 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 				src_frames1++;
 			}
 		} 
-		rate->old_sample[channel] = old_sample;
-		rate->new_sample[channel] = new_sample;
+		rate->old_sample[channel] = new_sample;
 	}
-	rate->pos = pos;
 }
 
 /* optimized version for S16 format */
@@ -189,9 +184,8 @@ static void snd_pcm_rate_expand_s16(const snd_pcm_channel_area_t *dst_areas,
 		dst_step = snd_pcm_channel_area_step(dst_area) >> 1;
 		src_frames1 = 0;
 		dst_frames1 = 0;
-		old_sample = rate->old_sample[channel];
-		new_sample = rate->new_sample[channel];
-		pos = rate->pos;
+		new_sample = rate->old_sample[channel];
+		pos = get_threshold;
 		while (dst_frames1 < dst_frames) {
 			if (pos >= get_threshold) {
 				pos -= get_threshold;
@@ -210,10 +204,8 @@ static void snd_pcm_rate_expand_s16(const snd_pcm_channel_area_t *dst_areas,
 				src_frames1++;
 			}
 		} 
-		rate->old_sample[channel] = old_sample;
-		rate->new_sample[channel] = new_sample;
+		rate->old_sample[channel] = new_sample;
 	}
-	rate->pos = pos;
 }
 
 static void snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
@@ -588,10 +580,8 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	if (rate->pareas == NULL)
 		return -ENOMEM;
 	free(rate->old_sample);
-	free(rate->new_sample);
 	rate->old_sample = malloc(sizeof(*rate->old_sample) * channels);
-	rate->new_sample = malloc(sizeof(*rate->new_sample) * channels);
-	if (rate->old_sample == NULL || rate->new_sample == NULL)
+	if (rate->old_sample == NULL)
 		return -ENOMEM;
 	pwidth = snd_pcm_format_physical_width(pformat);
 	swidth = snd_pcm_format_physical_width(sformat);
@@ -624,7 +614,6 @@ static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 		rate->sareas = NULL;
 	}
 	free(rate->old_sample);
-	free(rate->new_sample);
 	return snd_pcm_hw_free(rate->gen.slave);
 }
 
@@ -762,9 +751,7 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 	switch (rate->type) {
 	case RATE_TYPE_LINEAR:
 		/* for expand */
-		rate->pos = rate->pitch;
 		memset(rate->old_sample, 0, sizeof(*rate->old_sample) * pcm->channels);
-		memset(rate->new_sample, 0, sizeof(*rate->new_sample) * pcm->channels);
 		break;
 	default:
 		assert(0);
