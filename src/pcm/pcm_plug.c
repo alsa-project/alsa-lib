@@ -469,14 +469,14 @@ static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *s
 		return err;
 	if (snd_pcm_plug_direct(pcm, setup->channel))
 		return 0;
-	setup->buffer_size = snd_pcm_plug_client_size(pcm, setup->channel, setup->buffer_size);
 	setup->frag_size = snd_pcm_plug_client_size(pcm, setup->channel, setup->frag_size);
-	/* FIXME: it may overflow */
-	setup->byte_boundary = snd_pcm_plug_client_size(pcm, setup->channel, setup->byte_boundary);
+	setup->buffer_size = setup->frags * setup->frag_size;
+	setup->byte_boundary = setup->frag_boundary * setup->frag_size;
 	if (setup->mode == SND_PCM_MODE_STREAM) {
 		setup->buf.stream.bytes_min = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_min);
 		setup->buf.stream.bytes_align = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_align);
 		setup->buf.stream.bytes_xrun_max = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_xrun_max);
+		setup->buf.stream.bytes_fill_max = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_fill_max);
 	} else if (setup->mode != SND_PCM_MODE_BLOCK) {
 		return -EINVAL;
 	}
