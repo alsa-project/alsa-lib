@@ -2360,6 +2360,17 @@ int snd_pcm_format_mask_test(const snd_pcm_format_mask_t *mask, snd_pcm_format_t
 }
 
 /**
+ * \brief test, if given a #snd_pcm_format_mask_t is empty
+ * \param mask pointer to mask
+ * \retval 0 not empty
+ * \retval 1 empty
+ */
+int snd_pcm_format_mask_empty(const snd_pcm_format_mask_t *mask)
+{
+	return snd_mask_empty((const snd_mask_t *) mask);
+}
+
+/**
  * \brief make a format present in a #snd_pcm_format_mask_t
  * \param mask pointer to mask
  * \param val format
@@ -2449,6 +2460,17 @@ void snd_pcm_subformat_mask_any(snd_pcm_subformat_mask_t *mask)
 int snd_pcm_subformat_mask_test(const snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val)
 {
 	return snd_mask_test((const snd_mask_t *) mask, (unsigned long) val);
+}
+
+/**
+ * \brief test, if given a #snd_pcm_subformat_mask_t is empty
+ * \param mask pointer to mask
+ * \retval 0 not empty
+ * \retval 1 empty
+ */
+int snd_pcm_subformat_mask_empty(const snd_pcm_subformat_mask_t *mask)
+{
+	return snd_mask_empty((const snd_mask_t *) mask);
 }
 
 /**
