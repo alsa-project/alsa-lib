@@ -35,7 +35,7 @@
 <P>Mixer interface is designed to access the abstracted mixer controls.
 This is an abstraction layer over the hcontrol layer.
 
-\section control_general_overview General overview
+\section mixer_general_overview General overview
 
 */
 
