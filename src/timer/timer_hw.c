@@ -172,12 +172,17 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 		tmode |= O_NONBLOCK;	
 	if ((fd = open(SNDRV_FILE_TIMER, tmode)) < 0)
 		return -errno;
+#if 0
+	/*
+	 * this is bogus, an application have to care about open filedescriptors
+	 */
 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
 		SYSERR("fcntl FD_CLOEXEC failed");
 		ret = -errno;
 		close(fd);
 		return ret;
 	}
+#endif
 	if (ioctl(fd, SNDRV_TIMER_IOCTL_PVERSION, &ver) < 0) {
 		ret = -errno;
 		close(fd);

@@ -120,12 +120,17 @@ int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int devi
 		if ((fd = open(filename, mode)) < 0)
 			return -errno;
 	}
+#if 0
+	/*
+	 * this is bogus, an application have to care about open filedescriptors
+	 */
 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
 		SYSERR("fcntl FD_CLOEXEC failed");
 		ret = -errno;
 		close(fd);
 		return ret;
 	}
+#endif
 	if (ioctl(fd, SNDRV_HWDEP_IOCTL_PVERSION, &ver) < 0) {
 		ret = -errno;
 		close(fd);

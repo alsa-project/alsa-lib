@@ -4989,6 +4989,37 @@ void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t 
 }
 
 /**
+ * \brief Set boundary for ring pointers inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val boundary in frames
+ * \return 0 otherwise a negative error code
+ */
+#ifndef DOXYGEN
+int snd_pcm_sw_params_set_boundary(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#else
+int snd_pcm_sw_params_set_boundary(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+#endif
+{
+	assert(pcm && params);
+	params->boundary = val;
+	return 0;
+}
+
+/**
+ * \brief Get boundary for ring pointers from a software configuration container
+ * \param params Software configuration container
+ * \param val Returned boundary in frames
+ * \return 0 otherwise a negative error code
+ */
+int snd_pcm_sw_params_get_boundary(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+{
+	assert(params);
+	*val = params->boundary;
+	return 0;
+}
+
+/**
  * \brief (DEPRECATED) Set start mode inside a software configuration container
  * \param pcm PCM handle
  * \param params Software configuration container

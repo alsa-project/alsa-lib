@@ -315,12 +315,17 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 		if ((fd = open(filename, O_RDWR)) < 0)
 			return -errno;
 	}
+#if 0
+	/*
+	 * this is bogus, an application have to care about open filedescriptors
+	 */
 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
 		SYSERR("fcntl FD_CLOEXEC failed");
 		err = -errno;
 		close(fd);
 		return err;
 	}
+#endif
 	if (ioctl(fd, SNDRV_CTL_IOCTL_PVERSION, &ver) < 0) {
 		err = -errno;
 		close(fd);

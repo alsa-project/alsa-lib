@@ -845,12 +845,17 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	if (fmode & O_ASYNC)
 		mode |= SND_PCM_ASYNC;
 
+#if 0
+	/*
+	 * this is bogus, an application have to care about open filedescriptors
+	 */
 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
 		ret = -errno;
 		SYSERR("fcntl FD_CLOEXEC failed");
 		close(fd);
 		return ret;
 	}
+#endif
 
 	if (ioctl(fd, SNDRV_PCM_IOCTL_PVERSION, &ver) < 0) {
 		ret = -errno;
