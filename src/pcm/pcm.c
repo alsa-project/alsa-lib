@@ -31,7 +31,7 @@
 
 #define SND_FILE_PCM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
 #define SND_FILE_PCM_CAPTURE		"/dev/snd/pcmC%iD%ic"
-#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(1, 1, 0)
+#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
 
 int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode)
 {
