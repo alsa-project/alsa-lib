@@ -334,12 +334,19 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, frames);
 		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
+		if (result > 0 && (snd_pcm_uframes_t)result != slave_frames) {
+			snd_pcm_sframes_t res;
+			res = plugin->undo_write(pcm, slave_areas, slave_offset + result, slave_frames, slave_frames - result);
+			if (res < 0)
+				return xfer > 0 ? xfer : res;
+			frames -= res;
+		}
 		snd_atomic_write_end(&plugin->watom);
 		if (result <= 0)
 			return xfer > 0 ? xfer : result;
-		offset += result;
-		xfer += result;
-		size -= result;
+		offset += frames;
+		xfer += frames;
+		size -= frames;
 	}
 	return xfer;
 }
@@ -369,12 +376,20 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, frames);
 		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
+		if (result > 0 && (snd_pcm_uframes_t)result != slave_frames) {
+			snd_pcm_sframes_t res;
+			
+			res = plugin->undo_read(slave, areas, offset, frames, slave_frames - result);
+			if (res < 0)
+				return xfer > 0 ? xfer : res;
+			frames -= res;
+		}
 		snd_atomic_write_end(&plugin->watom);
 		if (result <= 0)
 			return xfer > 0 ? xfer : result;
-		offset += result;
-		xfer += result;
-		size -= result;
+		offset += frames;
+		xfer += frames;
+		size -= frames;
 	}
 	return xfer;
 }
