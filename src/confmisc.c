@@ -691,7 +691,3 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src, vo
  _end:
 	return err;
 }
-
-int snd_func_macro(snd_config_t **dst, snd_config_t *root,
-		   snd_config_t *src, void *private_data)
-		   	__attribute__ ((weak, alias ("snd_func_refer")));

@@ -397,6 +397,7 @@ static int get_string(char **string, int id, input_t *input)
 static int _snd_config_make(snd_config_t **config, char **id, snd_config_type_t type)
 {
 	snd_config_t *n;
+	assert(config);
 	n = calloc(1, sizeof(*n));
 	if (n == NULL) {
 		if (*id) {
@@ -443,7 +444,7 @@ static int _snd_config_search(snd_config_t *config,
 				continue;
 		} else if (strlen(n->id) != (size_t) len ||
 			   memcmp(n->id, id, (size_t) len) != 0)
-			continue;
+				continue;
 		if (result)
 			*result = n;
 		return 0;
@@ -903,6 +904,31 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 
 
 /**
+ * \brief Substitute one node to another
+ * \brief dst Destination node
+ * \brief src Source node (invalid after cal)
+ */
+int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
+{
+	assert(dst && src);
+	if (src->type == SND_CONFIG_TYPE_COMPOUND) {
+		snd_config_iterator_t i, next;
+		snd_config_for_each(i, next, src) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			n->father = dst;
+		}
+		src->u.compound.fields.next->prev = &dst->u.compound.fields;
+		src->u.compound.fields.prev->next = &dst->u.compound.fields;
+	}
+	free(dst->id);
+	dst->id  = src->id;
+	dst->type = src->type;
+	dst->u = src->u;
+	free(src);
+	return 0;
+}
+
+/**
  * \brief Return type of a config node from an ASCII string
  * \param config Config node handle
  * \return node type
@@ -1062,6 +1088,20 @@ int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 	}
 	leaf->father = father;
 	list_add_tail(&leaf->list, &father->u.compound.fields);
+	return 0;
+}
+
+/**
+ * \brief Remove a leaf config node from tree
+ * \param config Config node handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_remove(snd_config_t *config)
+{
+	assert(config);
+	if (config->father)
+		list_del(&config->list);
+	config->father = NULL;
 	return 0;
 }
 
@@ -1377,6 +1417,78 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 	return _snd_config_save_leaves(config, out, 0, 0);
 }
 
+/*
+ *  *** search macros ***
+ */
+
+#define SND_CONFIG_SEARCH(config, key, result, extra_code) \
+{ \
+	snd_config_t *n; \
+	int err; \
+	const char *p; \
+	assert(config && key); \
+	while (1) { \
+		if (config->type != SND_CONFIG_TYPE_COMPOUND) \
+			return -ENOENT; \
+		{ extra_code ; } \
+		p = strchr(key, '.'); \
+		if (p) { \
+			err = _snd_config_search(config, key, p - key, &n); \
+			if (err < 0) \
+				return err; \
+			config = n; \
+			key = p + 1; \
+		} else \
+			return _snd_config_search(config, key, -1, result); \
+	} \
+}
+
+#define SND_CONFIG_SEARCHV(config, result, fcn) \
+{ \
+	snd_config_t *n; \
+	va_list arg; \
+	assert(config); \
+	va_start(arg, result); \
+	while (1) { \
+		const char *k = va_arg(arg, const char *); \
+		int err; \
+		if (!k) \
+			break; \
+		err = fcn(config, k, &n); \
+		if (err < 0) \
+			return err; \
+		config = n; \
+	} \
+	va_end(arg); \
+	if (result) \
+		*result = n; \
+	return 0; \
+}
+
+#define SND_CONFIG_SEARCH_ALIAS(config, base, key, result, fcn1, fcn2) \
+{ \
+	snd_config_t *res = NULL; \
+	int err, first = 1; \
+	assert(config && key); \
+	do { \
+		err = first && base ? -EIO : fcn1(config, key, &res); \
+		if (err < 0) { \
+			if (!base) \
+				break; \
+			err = fcn2(config, &res, base, key, NULL); \
+			if (err < 0) \
+				break; \
+		} \
+		first = 0; \
+	} while (snd_config_get_string(res, &key) >= 0); \
+	if (!res) \
+		return err; \
+	if (result) \
+		*result = res; \
+	return 0; \
+}
+
+
 /**
  * \brief Search a node inside a config tree
  * \param config Config node handle
@@ -1386,23 +1498,7 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
  */
 int snd_config_search(snd_config_t *config, const char *key, snd_config_t **result)
 {
-	assert(config && key);
-	while (1) {
-		snd_config_t *n;
-		int err;
-		const char *p;
-		if (config->type != SND_CONFIG_TYPE_COMPOUND)
-			return -ENOENT;
-		p = strchr(key, '.');
-		if (p) {
-			err = _snd_config_search(config, key, p - key, &n);
-			if (err < 0)
-				return err;
-			config = n;
-			key = p + 1;
-		} else
-			return _snd_config_search(config, key, -1, result);
-	}
+	SND_CONFIG_SEARCH(config, key, result, );
 }
 
 /**
@@ -1412,27 +1508,9 @@ int snd_config_search(snd_config_t *config, const char *key, snd_config_t **resu
  * \param ... one or more concatenated dot separated search key
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_searchv(snd_config_t *config,
-		       snd_config_t **result, ...)
+int snd_config_searchv(snd_config_t *config, snd_config_t **result, ...)
 {
-	snd_config_t *n;
-	va_list arg;
-	assert(config);
-	va_start(arg, result);
-	while (1) {
-		const char *k = va_arg(arg, const char *);
-		int err;
-		if (!k)
-			break;
-		err = snd_config_search(config, k, &n);
-		if (err < 0)
-			return err;
-		config = n;
-	}
-	va_end(arg);
-	if (result)
-		*result = n;
-	return 0;
+	SND_CONFIG_SEARCHV(config, result, snd_config_search);
 }
 
 /**
@@ -1451,24 +1529,59 @@ int snd_config_search_alias(snd_config_t *config,
 			    const char *base, const char *key,
 			    snd_config_t **result)
 {
-	snd_config_t *res = NULL;
-	int err;
-	assert(config && key);
-	do {
-		err = snd_config_search(config, key, &res);
-		if (err < 0) {
-			if (!base)
-				break;
-			err = snd_config_searchv(config, &res, base, key, NULL);
-			if (err < 0)
-				break;
-		}
-	} while (snd_config_get_string(res, &key) >= 0);
-	if (!res)
-		return err;
-	if (result)
-		*result = res;
-	return 0;
+	SND_CONFIG_SEARCH_ALIAS(config, base, key, result,
+				snd_config_search, snd_config_searchv);
+}
+
+/**
+ * \brief Search a node inside a config tree and expand hooks
+ * \param config Config node handle
+ * \param key Dot separated search key
+ * \param result Pointer to found node
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_search_hooks(snd_config_t *config, const char *key, snd_config_t **result)
+{
+	static int snd_config_hooks(snd_config_t *config);
+	SND_CONFIG_SEARCH(config, key, result, \
+					err = snd_config_hooks(config); \
+					if (err < 0) \
+						return err; \
+			 );
+}
+
+/**
+ * \brief Search a node inside a config tree and expand hooks
+ * \param config Config node handle
+ * \param result Pointer to found node
+ * \param ... one or more concatenated dot separated search keyqq
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_searchv_hooks(snd_config_t *config,
+			     snd_config_t **result, ...)
+{
+	SND_CONFIG_SEARCHV(config, result, snd_config_search_hooks);
+}
+
+/**
+ * \brief Search a node inside a config tree using alias and expand hooks
+ * \param config Config node handle
+ * \param base Key base (or NULL)
+ * \param key Key suffix
+ * \param result Pointer to found node
+ * \return 0 on success otherwise a negative error code
+ *
+ * First key is tried and if nothing is found is tried base.key.
+ * If the value found is a string this is recursively tried in the
+ * same way.
+ */
+int snd_config_search_alias_hooks(snd_config_t *config,
+				  const char *base, const char *key,
+				  snd_config_t **result)
+{
+	SND_CONFIG_SEARCH_ALIAS(config, base, key, result,
+				snd_config_search_hooks,
+				snd_config_searchv_hooks);
 }
 
 /** Environment variable containing files list for #snd_config_update */
@@ -1486,21 +1599,158 @@ static struct finfo {
 	dev_t dev;
 	ino_t ino;
 	time_t mtime;
-} *files_info = NULL, *preloaded_files_info = NULL;
+} *files_info = NULL;
 
-static unsigned int files_info_count = 0, preloaded_files_info_count = 0;
+static unsigned int files_info_count = 0;
 
-static int snd_config_preload(snd_config_t *root)
+static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config)
+{
+	void *h = NULL;
+	snd_config_t *c, *func_conf = NULL;
+	char *buf = NULL;
+	const char *lib = NULL, *func_name = NULL;
+	const char *str;
+	int (*func)(snd_config_t *root, snd_config_t *config, snd_config_t **dst) = NULL;
+	int err;
+
+	err = snd_config_search(config, "func", &c);
+	if (err < 0) {
+		SNDERR("Field func is missing");
+		return err;
+	}
+	err = snd_config_get_string(c, &str);
+	if (err < 0) {
+		SNDERR("Invalid type for field func");
+		return err;
+	}
+	err = snd_config_search_definition(root, "hook_func", str, &func_conf);
+	if (err >= 0) {
+		snd_config_iterator_t i, next;
+		if (snd_config_get_type(func_conf) != SND_CONFIG_TYPE_COMPOUND) {
+			SNDERR("Invalid type for func %s definition", str);
+			goto _err;
+		}
+		snd_config_for_each(i, next, func_conf) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id = snd_config_get_id(n);
+			if (strcmp(id, "comment") == 0)
+				continue;
+			if (strcmp(id, "lib") == 0) {
+				err = snd_config_get_string(n, &lib);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					goto _err;
+				}
+				continue;
+			}
+			if (strcmp(id, "func") == 0) {
+				err = snd_config_get_string(n, &func_name);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					goto _err;
+				}
+				continue;
+			}
+			SNDERR("Unknown field %s", id);
+		}
+	}
+	if (!func_name) {
+		int len = 16 + strlen(str) + 1;
+		buf = malloc(len);
+		snprintf(buf, len, "snd_config_hook_%s", str);
+		buf[len-1] = '\0';
+		func_name = buf;
+	}
+	if (!lib)
+		lib = ALSA_LIB;
+	h = dlopen(lib, RTLD_NOW);
+	func = h ? dlsym(h, func_name) : NULL;
+	err = 0;
+	if (!h) {
+		SNDERR("Cannot open shared library %s", lib);
+		return -ENOENT;
+	} else if (!func) {
+		SNDERR("symbol %s is not defined inside %s", func_name, lib);
+		dlclose(h);
+		return -ENXIO;
+	}
+	_err:
+	if (func_conf)
+		snd_config_delete(func_conf);
+	if (err >= 0) {
+		snd_config_t *nroot;
+		err = func(root, config, &nroot);
+		if (err < 0)
+			SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
+		dlclose(h);
+		if (err >= 0 && nroot)
+			snd_config_substitute(root, nroot);
+	}
+	if (buf)
+		free(buf);
+	if (err < 0)
+		return err;
+	return 0;
+}
+
+static int snd_config_hooks(snd_config_t *config)
 {
 	snd_config_t *n;
 	snd_config_iterator_t i, next;
-	struct finfo *fi = NULL;
-	int err, idx = 0, fi_idx = 0, fi_count = 0, hit;
+	int err, hit, idx = 0;
 
-	if ((err = snd_config_search(root, "preload", &n)) < 0)
+	if ((err = snd_config_search(config, "@hooks", &n)) < 0)
 		return 0;
-	if ((err = snd_config_search(n, "filenames", &n)) < 0) {
-		SNDERR("Unable to find filenames in the preload section");
+	snd_config_remove(n);
+	do {
+		hit = 0;
+		snd_config_for_each(i, next, n) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id = snd_config_get_id(n);
+			long i;
+			err = safe_strtol(id, &i);
+			if (err < 0) {
+				SNDERR("id of field %s is not and integer", id);
+				err = -EINVAL;
+				goto _err;
+			}
+			if (i == idx) {
+				err = snd_config_hooks_call(config, n);
+				if (err < 0)
+					return err;
+				idx++;
+				hit = 1;
+			}
+		}
+	} while (hit);
+	err = 0;
+       _err:
+	snd_config_delete(n);
+	return err;
+}
+
+int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst)
+{
+	snd_config_t *n, *res = NULL;
+	snd_config_iterator_t i, next;
+	struct finfo *fi = NULL;
+	int err, idx = 0, fi_count = 0, errors = 1, hit;
+
+	assert(root && dst);
+	if ((err = snd_config_search(config, "errors", &n)) >= 0) {
+		char *tmp;
+		err = snd_config_get_ascii(n, &tmp);
+		if (err < 0)
+			return err;
+		errors = snd_config_get_bool_ascii(tmp);
+		free(tmp);
+		if (errors < 0) {
+			SNDERR("Invalid bool value in field errors");
+			return errors;
+		}
+	}
+	if ((err = snd_config_search(config, "files", &n)) < 0) {
+		SNDERR("Unable to find field files in the preload section");
 		return -EINVAL;
 	}
 	if ((err = snd_config_expand(n, root, NULL, NULL, &n)) < 0) {
@@ -1539,7 +1789,6 @@ static int snd_config_preload(snd_config_t *root)
 			}
 			if (i == idx) {
 				wordexp_t we;
-				struct stat st;
 				char *name;
 				if ((err = snd_config_get_ascii(n, &name)) < 0)
 					goto _err;
@@ -1556,51 +1805,48 @@ static int snd_config_preload(snd_config_t *root)
 					err = -EINVAL;
 					goto _err;
 				}
-				fi[fi_idx].name = strdup(we.we_wordv[0]);
+				fi[idx].name = strdup(we.we_wordv[0]);
 				wordfree(&we);
 				free(name);
-				if (fi[fi_idx].name == NULL) {
+				if (fi[idx].name == NULL) {
 					err = -ENOMEM;
 					goto _err;
-				}
-				if (stat(fi[fi_idx].name, &st) < 0) {
-					free(fi[fi_idx].name);
-					fi[fi_idx].name = NULL;
-					fi_count--;
-				} else {
-					fi[fi_idx].dev = st.st_dev;
-					fi[fi_idx].ino = st.st_ino;
-					fi[fi_idx].mtime = st.st_mtime;
-					fi_idx++;
 				}
 				idx++;
 				hit = 1;
 			}
 		}
 	} while (hit);
-	for (fi_idx = 0; fi_idx < fi_count; fi_idx++) {
+	err = snd_config_top(&res);
+	if (err < 0)
+		goto _err;
+	for (idx = 0; idx < fi_count; idx++) {
 		snd_input_t *in;
-		err = snd_input_stdio_open(&in, fi[fi_idx].name, "r");
+		if (!errors && access(fi[idx].name, R_OK) < 0)
+			continue;
+		err = snd_input_stdio_open(&in, fi[idx].name, "r");
 		if (err >= 0) {
-			err = snd_config_load(snd_config, in);
+			err = snd_config_load(root, in);
 			snd_input_close(in);
 			if (err < 0) {
-				SNDERR("%s may be old or corrupted: consider to remove or fix it", fi[fi_idx].name);
+				SNDERR("%s may be old or corrupted: consider to remove or fix it", fi[idx].name);
 				goto _err;
 			}
 		} else {
-			SNDERR("cannot access file %s", fi[fi_idx].name);
+			SNDERR("cannot access file %s", fi[idx].name);
 		}
 	}
-	preloaded_files_info = fi; fi = NULL;
-	preloaded_files_info_count = fi_count; fi_count = 0;
+	*dst = NULL;
+	res = NULL;
 	err = 0;
        _err:
-       	for (fi_idx = 0; fi_idx < fi_count; fi_idx++)
-       		if (fi[fi_idx].name)
-       			free(fi[fi_idx].name);
+	for (idx = 0; idx < fi_count; idx++)
+       		if (fi[idx].name)
+       			free(fi[idx].name);
        	if (fi)
        		free(fi);
+       	if (res)
+       		snd_config_delete(res);
 	snd_config_delete(n);
 	return err;
 }
@@ -1691,15 +1937,6 @@ int snd_config_update()
 		    fi[k].mtime != files_info[k].mtime)
 			goto _reread;
 	}
-	for (k = 0; k < preloaded_files_info_count; k++) {
-		struct stat st;
-		if (stat(preloaded_files_info[k].name, &st) >= 0) {
-			if (preloaded_files_info[k].dev != st.st_dev ||
-			    preloaded_files_info[k].ino != st.st_ino ||
-			    preloaded_files_info[k].mtime != st.st_mtime)
-				goto _reread;
-		}
-	}
 	err = 0;
 
  _end:
@@ -1720,13 +1957,6 @@ int snd_config_update()
 		free(files_info);
 		files_info = NULL;
 		files_info_count = 0;
-	}
-	if (preloaded_files_info) {
-		for (k = 0; k < preloaded_files_info_count; ++k)
-			free(preloaded_files_info[k].name);
-		free(preloaded_files_info);
-		preloaded_files_info = NULL;
-		preloaded_files_info_count = 0;
 	}
 	if (snd_config) {
 		snd_config_delete(snd_config);
@@ -1749,9 +1979,9 @@ int snd_config_update()
 			SNDERR("cannot access file %s", fi[k].name);
 		}
 	}
-	err = snd_config_preload(snd_config);
+	err = snd_config_hooks(snd_config);
 	if (err < 0) {
-		SNDERR("preload failed, removing configuration");
+		SNDERR("hooks failed, removing configuration");
 		goto _end;
 	}
 	files_info = fi;
@@ -2008,23 +2238,6 @@ static int _snd_config_expand(snd_config_t *src,
 	return 1;
 }
 
-void snd_config_substitute(snd_config_t *dst, snd_config_t *src)
-{
-	if (src->type == SND_CONFIG_TYPE_COMPOUND) {
-		snd_config_iterator_t i, next;
-		snd_config_for_each(i, next, src) {
-			snd_config_t *n = snd_config_iterator_entry(i);
-			n->father = dst;
-		}
-		src->u.compound.fields.next->prev = &dst->u.compound.fields;
-		src->u.compound.fields.prev->next = &dst->u.compound.fields;
-	}
-	free(dst->id);
-	dst->id  = src->id;
-	dst->type = src->type;
-	dst->u = src->u;
-}
-
 static int _snd_config_evaluate(snd_config_t *src,
 				snd_config_t *root,
 				snd_config_t **dst ATTRIBUTE_UNUSED,
@@ -2068,7 +2281,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 					}
 					continue;
 				}
-				if (strcmp(id, "open") == 0) {
+				if (strcmp(id, "func") == 0) {
 					err = snd_config_get_string(n, &func_name);
 					if (err < 0) {
 						SNDERR("Invalid type for %s", id);
@@ -2108,10 +2321,8 @@ static int _snd_config_evaluate(snd_config_t *src,
 			if (err < 0)
 				SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
 			dlclose(h);
-			if (err >= 0 && eval) {
+			if (err >= 0 && eval)
 				snd_config_substitute(src, eval);
-				free(eval);
-			}
 		}
 		if (buf)
 			free(buf);
@@ -2559,7 +2770,7 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
 }
 	
 /**
- * \brief Search a node inside a config tree using alias
+ * \brief Search a definition inside a config tree using alias and expand hooks and arguments
  * \param config Config node handle
  * \param base Key base (or NULL)
  * \param key Key suffix
@@ -2586,7 +2797,7 @@ int snd_config_search_definition(snd_config_t *config,
 	} else {
 		key = (char *) name;
 	} 
-	err = snd_config_search_alias(config, base, key, &conf);
+	err = snd_config_search_alias_hooks(config, base, key, &conf);
 	if (err < 0)
 		return err;
 	return snd_config_expand(conf, config, args, NULL, result);
