@@ -175,10 +175,12 @@ int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd,
 	snd_pcm_sync_request_t *sync_reqs;
 	snd_pcm_sync_t sync;
 	unsigned int k;
+	int ret;
 	assert(reqs_count > 0 && reqs);
 	sync_reqs = __builtin_alloca(sizeof(*sync_reqs) * reqs_count);
 	switch (cmd) {
 	case SND_PCM_SYNCHRO_GO:
+		sync.cmd = SND_PCM_IOCTL_GO;
 		break;
 	default:
 		assert(0);
@@ -200,8 +202,14 @@ int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd,
 		}
 	}
 	if (ioctl(sync_reqs[0].fd, SND_PCM_IOCTL_SYNC, &sync) < 0)
-		return -errno;
-	return 0;
+		ret = -errno;
+	else
+		ret = 0;
+	for (k = 0; k < reqs_count; ++k) {
+		reqs[k].tstamp = sync_reqs[k].tstamp;
+		reqs[k].result = sync_reqs[k].result;
+	}
+	return ret;
 }
 
 
@@ -241,7 +249,7 @@ ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
 	assert(size == 0 || buffer);
 	assert(handle->valid_setup);
 	assert(size % handle->setup.frames_align == 0);
-	return handle->ops->write(handle->op_arg, -1, buffer, size);
+	return handle->ops->write(handle->op_arg, 0, buffer, size);
 }
 
 ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
@@ -251,7 +259,7 @@ ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned l
 	assert(handle->valid_setup);
 	assert(handle->setup.format.interleave || 
 	       count % handle->setup.format.channels == 0);
-	return handle->ops->writev(handle->op_arg, -1, vector, count);
+	return handle->ops->writev(handle->op_arg, 0, vector, count);
 }
 
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
@@ -260,7 +268,7 @@ ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
 	assert(size == 0 || buffer);
 	assert(handle->valid_setup);
 	assert(size % handle->setup.frames_align == 0);
-	return handle->ops->read(handle->op_arg, -1, buffer, size);
+	return handle->ops->read(handle->op_arg, 0, buffer, size);
 }
 
 ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
@@ -268,7 +276,7 @@ ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned lo
 	assert(handle);
 	assert(count == 0 || vector);
 	assert(handle->valid_setup);
-	return handle->ops->readv(handle->op_arg, -1, vector, count);
+	return handle->ops->readv(handle->op_arg, 0, vector, count);
 }
 
 int snd_pcm_file_descriptor(snd_pcm_t *handle)
