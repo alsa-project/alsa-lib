@@ -325,7 +325,7 @@ snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frame
 		sframes = frames;
 	snd_atomic_write_begin(&plugin->watom);
 	sframes = snd_pcm_forward(plugin->slave, (snd_pcm_uframes_t) sframes);
-	if (sframes < 0) {
+	if ((snd_pcm_sframes_t) sframes < 0) {
 		snd_atomic_write_end(&plugin->watom);
 		return sframes;
 	}

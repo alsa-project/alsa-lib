@@ -83,7 +83,6 @@ ALSA_0.9.0rc4 {
 ALSA_0.9.0rc8 {
   global:
 
-    snd_pcm_hwdiff;
     snd_pcm_forward;
 
 } ALSA_0.9.0rc4;

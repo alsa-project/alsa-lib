@@ -550,7 +550,6 @@ int snd_pcm_hw_param_get_max(const snd_pcm_hw_params_t *params,
 			     unsigned int *val, int *dir);
 
 #ifdef INTERNAL
-int INTERNAL(snd_pcm_hwdiff)(snd_pcm_t *pcm, snd_pcm_uframes_t *diff, snd_pcm_uframes_t *old_pos);
 snd_pcm_sframes_t INTERNAL(snd_pcm_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 
 int INTERNAL(snd_pcm_hw_params_get_access)(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access);

@@ -533,7 +533,7 @@ static snd_pcm_sframes_t snd_pcm_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 	avail = snd_pcm_mmap_avail(pcm);
 	if (avail < 0)
 		return 0;
-	if (frames > avail)
+	if (frames > (snd_pcm_uframes_t)avail)
 		frames = avail;
 	snd_pcm_mmap_appl_forward(pcm, frames);
 	return frames;
@@ -715,7 +715,7 @@ static int snd_pcm_hw_close(snd_pcm_t *pcm)
 }
 
 static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
-						snd_pcm_uframes_t offset,
+						snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
 						snd_pcm_uframes_t size)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;

@@ -400,12 +400,6 @@ only when the stream is in the running or draining (playback only) state.
 Note that this function does not update the current r/w pointer for applications,
 so the function \link ::snd_pcm_avail_update \endlink must be called afterwards
 before any read/write begin+commit operations.
-<p>
-To determine the processed frames by hardware, the function \link ::snd_pcm_hwdiff \endlink
-might be used. Note that this function returns cached value which is synchronized with
-hardware using the \link ::snd_pcm_hwsync \endlink function. The application may
-manage the right r/w pointer via \link ::snd_pcm_rewind \endlink and
-\link ::snd_pcm_forward \endlink functions.
 
 \section pcm_action Managing the stream state
 
@@ -873,44 +867,6 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
 	assert(pcm->setup);
 	return pcm->fast_ops->hwsync(pcm->fast_op_arg);
 }
-
-/**
- * \brief Return count of processed frames by hardware from last call
- * \param pcm PCM handle
- * \param diff Difference between last position and current
- * \param old_pos Old position on entry, actual position on exit
- * \return 0 on success otherwise a negative error code
- *
- * The old_ptr parameter is in range 0 ... (boundary - 1). It contains
- * count_of_ring_buffer_crosses * buffer_size + offset in the ring buffer.
- * Using this value is not intented 
- *
- * Note this function does not obtain the real position from hardware.
- * The function \link ::snd_pcm_hwsync \endlink have to be called
- * before to obtain the real hardware position.
- */
-#ifndef DOXYGEN
-int INTERNAL(snd_pcm_hwdiff)(snd_pcm_t *pcm, snd_pcm_uframes_t *diff, snd_pcm_uframes_t *old_pos)
-#else
-int snd_pcm_hwdiff(snd_pcm_t *pcm, snd_pcm_uframes_t *diff, snd_pcm_uframes_t *old_pos)
-#endif
-{
-	snd_pcm_uframes_t d, hw_ptr;
-
-	assert(pcm && diff && old_pos);
-	assert(pcm->setup);
-	assert(*old_pos < pcm->boundary);
-	hw_ptr = *pcm->hw.ptr;
-	if (hw_ptr < *old_pos) {
-		d = (pcm->boundary - *old_pos) + hw_ptr;
-	} else {
-		d = hw_ptr - *old_pos;
-	}
-	*diff = d;
-	*old_pos = hw_ptr;
-	return 0;
-}
-default_symbol_version(__snd_pcm_hwdiff, snd_pcm_hwdiff, ALSA_0.9.0rc8);
 
 /**
  * \brief Obtain delay for a running PCM handle
