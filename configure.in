@@ -18,39 +18,24 @@ dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S 
+AC_DISABLE_STATIC
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
-dnl path for linux/asound.h
-AC_ARG_WITH(kernel,
-  [  --with-kernel=dir       give the directory with kernel sources (optional)],
-  [kerneldir="$withval"], [kerneldir=""])
-if test "$kerneldir" != "" -a -d $kerneldir/include ; then
-  ALSA_CFLAGS="$ALSA_CFLAGS -I$kerneldir/include"
-  CFLAGS="$CFLAGS -I$kerneldir/include"
+dnl path for sound/asound.h
+AC_ARG_WITH(soundbase,
+  [  --with-soundbase=dir    give the base directory with sound headers (optional)],
+  [soundbasedir="$withval"], [soundbasedir=""])
+if test "$soundbasedir" != "" -a -r "$soundbasedir/sound" ; then
+  ALSA_CFLAGS="$ALSA_CFLAGS -I$soundbasedir"
+  CFLAGS="$CFLAGS -I$soundbasedir"
 fi
 AC_MSG_RESULT($ALSA_CFLAGS)
 
-dnl dnl Check for asound.h localtion
-dnl ASOUND_PATH=""
-dnl if test x"$kerneldir" != x""; then
-dnl   if test -f $kerneldir/include/sound/asound.h; then
-dnl     ASOUND_PATH=$kerneldir/include/sound
-dnl   fi
-dnl fi
-dnl if test x$asound_loc = x ; then
-dnl   if test -f /usr/include/sound/asound.h; then
-dnl     ASOUND_PATH=/usr/include/sound
-dnl   else
-dnl     ASOUND_PATH=../../alsa-driver/include
-dnl   fi
-dnl fi
-dnl AC_SUBST(ASOUND_PATH)
-    
 dnl Checks for header files.
 AC_HEADER_STDC
 AM_CONFIG_HEADER(include/config.h)
-# AC_CHECK_HEADERS(linux/asound.h)
+# AC_CHECK_HEADERS(${soundbasedir}sound/asound.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -78,7 +63,7 @@ AC_DEFINE_UNQUOTED(DATADIR, "$dir")
 dnl Check for debug...
 AC_MSG_CHECKING(for debug)
 AC_ARG_WITH(debug,
-  [  --with-debug=yes,no  library will (not) be compiled with asserts],
+  [  --with-debug=yes,no     library will (not) be compiled with asserts],
   debug="$withval", debug="yes")
 if test "$debug" = "yes"; then
   AC_MSG_RESULT(yes)
