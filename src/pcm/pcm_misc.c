@@ -435,7 +435,7 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int
 {
 	if (samples == 0)
 		return 0;
-	switch (snd_pcm_format_width(format)) {
+	switch (snd_pcm_format_physical_width(format)) {
 	case 4: {
 		u_int8_t silence = snd_pcm_format_silence_64(format);
 		unsigned int samples1;
