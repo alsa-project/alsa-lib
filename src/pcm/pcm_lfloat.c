@@ -273,7 +273,7 @@ static int snd_pcm_lfloat_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					  snd_pcm_lfloat_hw_refine_cchange,
 					  snd_pcm_lfloat_hw_refine_sprepare,
 					  snd_pcm_lfloat_hw_refine_schange,
-					  snd_pcm_generic_hw_refine);
+					  snd_pcm_generic_hw_params);
 	if (err < 0)
 		return err;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
