@@ -59,8 +59,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_alias = @host_alias@
 host_triplet = @host@
-ALSA_CFLAGS = @ALSA_CFLAGS@
-ALSA_LIBS = @ALSA_LIBS@
 CC = @CC@
 LD = @LD@
 LIBTOOL = @LIBTOOL@
@@ -71,10 +69,15 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
+@INSTALL_M4_TRUE@aclocaldir=$(datadir)/aclocal
+@INSTALL_M4_TRUE@aclocal_DATA=alsa.m4
+
 INCLUDES=-I$(top_srcdir)/include
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../include/config.h
 CONFIG_CLEAN_FILES =  alsa-lib.spec
+DATA =  $(aclocal_DATA)
+
 DIST_COMMON =  Makefile.am Makefile.in alsa-lib.spec.in
 
 
@@ -82,7 +85,7 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP = --best
-all: Makefile
+all: Makefile $(DATA)
 
 .SUFFIXES:
 $(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4)
@@ -94,6 +97,25 @@ Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
 
 alsa-lib.spec: $(top_builddir)/config.status alsa-lib.spec.in
 	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+install-aclocalDATA: $(aclocal_DATA)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(aclocaldir)
+	@list='$(aclocal_DATA)'; for p in $$list; do \
+	  if test -f $(srcdir)/$$p; then \
+	    echo " $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(aclocaldir)/$$p"; \
+	    $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(aclocaldir)/$$p; \
+	  else if test -f $$p; then \
+	    echo " $(INSTALL_DATA) $$p $(DESTDIR)$(aclocaldir)/$$p"; \
+	    $(INSTALL_DATA) $$p $(DESTDIR)$(aclocaldir)/$$p; \
+	  fi; fi; \
+	done
+
+uninstall-aclocalDATA:
+	@$(NORMAL_UNINSTALL)
+	list='$(aclocal_DATA)'; for p in $$list; do \
+	  rm -f $(DESTDIR)$(aclocaldir)/$$p; \
+	done
 tags: TAGS
 TAGS:
 
@@ -116,17 +138,18 @@ installcheck:
 install-exec: 
 	@$(NORMAL_INSTALL)
 
-install-data: 
+install-data: install-aclocalDATA
 	@$(NORMAL_INSTALL)
 
 install: install-exec install-data all
 	@:
 
-uninstall: 
+uninstall: uninstall-aclocalDATA
 
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM='$(INSTALL_PROGRAM) -s' INSTALL_SCRIPT='$(INSTALL_PROGRAM)' install
 installdirs:
+	$(mkinstalldirs)  $(DESTDIR)$(aclocaldir)
 
 
 mostlyclean-generic:
@@ -150,10 +173,10 @@ maintainer-clean:  maintainer-clean-generic distclean
 	@echo "This command is intended for maintainers to use;"
 	@echo "it deletes files that may require special tools to rebuild."
 
-.PHONY: tags distdir info dvi installcheck install-exec install-data \
-install uninstall all installdirs mostlyclean-generic distclean-generic \
-clean-generic maintainer-clean-generic clean mostlyclean distclean \
-maintainer-clean
+.PHONY: uninstall-aclocalDATA install-aclocalDATA tags distdir info dvi \
+installcheck install-exec install-data install uninstall all \
+installdirs mostlyclean-generic distclean-generic clean-generic \
+maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
 
 rpm: buildrpm alsa-lib.spec
