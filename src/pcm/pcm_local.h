@@ -787,3 +787,15 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd, int mmap_emul
 	 (1U << SND_PCM_FORMAT_FLOAT_BE) | \
 	 (1U << SND_PCM_FORMAT_FLOAT64_LE) | \
 	 (1U << SND_PCM_FORMAT_FLOAT64_BE)) }
+
+
+typedef union snd_tmp_float {
+	float f;
+	int32_t i;
+} snd_tmp_float_t;
+
+typedef union snd_tmp_double {
+	double d;
+	int64_t l;
+} snd_tmp_double_t;
+

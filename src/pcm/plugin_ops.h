@@ -720,11 +720,11 @@ static void *put32float_labels[2 * 2] = {
 
 #ifdef PUT32F_END
 put32f_1234_1234F: as_float(dst) = (float_t)((int32_t)sample) / (float_t)0x80000000UL; goto PUT32F_END;
-put32f_1234_4321F: tmp_float = (float_t)((int32_t)sample) / (float_t)0x80000000UL;
-		   as_u32(dst) = bswap_32(as_u32c(&tmp_float)); goto PUT32F_END;
+put32f_1234_4321F: tmp_float.f = (float_t)((int32_t)sample) / (float_t)0x80000000UL;
+		   as_u32(dst) = bswap_32(tmp_float.i); goto PUT32F_END;
 put32f_1234_1234D: as_double(dst) = (double_t)((int32_t)sample) / (double_t)0x80000000UL; goto PUT32F_END;
-put32f_1234_4321D: tmp_double = (double_t)((int32_t)sample) / (double_t)0x80000000UL;
-		   as_u64(dst) = bswap_64(as_u64c(&tmp_double)); goto PUT32F_END;
+put32f_1234_4321D: tmp_double.d = (double_t)((int32_t)sample) / (double_t)0x80000000UL;
+		   as_u64(dst) = bswap_64(tmp_double.l); goto PUT32F_END;
 #endif
 
 #ifdef GET32F_LABELS
@@ -738,39 +738,37 @@ static void *get32float_labels[2 * 2] = {
 #endif
 
 #ifdef GET32F_END
-get32f_1234F_1234: tmp_float = as_floatc(src);
-		   if (tmp_float >= 1.0)
+get32f_1234F_1234: tmp_float.f = as_floatc(src);
+		   if (tmp_float.f >= 1.0)
 		   	sample = 0x7fffffff;
-		   else if (tmp_float <= -1.0)
+		   else if (tmp_float.f <= -1.0)
 		   	sample = 0x80000000;
 		   else
-		   	sample = (int32_t)(tmp_float * (float_t)0x80000000UL);
+		   	sample = (int32_t)(tmp_float.f * (float_t)0x80000000UL);
 		   goto GET32F_END;
-get32f_4321F_1234: sample = bswap_32(as_u32c(src));
-		   tmp_float = as_floatc(&sample);
-		   if (tmp_float >= 1.0)
+get32f_4321F_1234: tmp_float.i = bswap_32(as_u32c(src));
+		   if (tmp_float.f >= 1.0)
 		   	sample = 0x7fffffff;
-		   else if (tmp_float <= -1.0)
+		   else if (tmp_float.f <= -1.0)
 		   	sample = 0x80000000;
 		   else
-		   	sample = (int32_t)(tmp_float * (float_t)0x80000000UL);
+		   	sample = (int32_t)(tmp_float.f * (float_t)0x80000000UL);
 		   goto GET32F_END;
-get32f_1234D_1234: tmp_double = as_doublec(src);
-		   if (tmp_double >= 1.0)
+get32f_1234D_1234: tmp_double.d = as_doublec(src);
+		   if (tmp_double.d >= 1.0)
 		   	sample = 0x7fffffff;
-		   else if (tmp_double <= -1.0)
+		   else if (tmp_double.d <= -1.0)
 		   	sample = 0x80000000;
 		   else
-		   	sample = (int32_t)(tmp_double * (double_t)0x80000000UL);
+		   	sample = (int32_t)(tmp_double.d * (double_t)0x80000000UL);
 		   goto GET32F_END;
-get32f_4321D_1234: sample64 = bswap_64(as_u64c(src));
-		   tmp_double = as_doublec(&sample);
-		   if (tmp_double >= 1.0)
+get32f_4321D_1234: tmp_double.l = bswap_64(as_u64c(src));
+		   if (tmp_double.d >= 1.0)
 		   	sample = 0x7fffffff;
-		   else if (tmp_double <= -1.0)
+		   else if (tmp_double.d <= -1.0)
 		   	sample = 0x80000000;
 		   else
-		   	sample = (int32_t)(tmp_double * (double_t)0x80000000UL);
+		   	sample = (int32_t)(tmp_double.d * (double_t)0x80000000UL);
 		   goto GET32F_END;
 #endif
 

@@ -110,8 +110,8 @@ void snd_pcm_lfloat_convert_integer_float(const snd_pcm_channel_area_t *dst_area
 		int src_step, dst_step;
 		snd_pcm_uframes_t frames1;
 		int32_t sample = 0;
-		float tmp_float;
-		double tmp_double;
+		snd_tmp_float_t tmp_float;
+		snd_tmp_double_t tmp_double;
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
@@ -154,10 +154,9 @@ void snd_pcm_lfloat_convert_float_integer(const snd_pcm_channel_area_t *dst_area
 		char *dst;
 		int src_step, dst_step;
 		snd_pcm_uframes_t frames1;
-		int32_t sample;
-		int64_t sample64;
-		float tmp_float;
-		double tmp_double;
+		int32_t sample = 0;
+		snd_tmp_float_t tmp_float;
+		snd_tmp_double_t tmp_double;
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
