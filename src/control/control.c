@@ -781,6 +781,7 @@ void snd_ctl_elem_list_free_space(snd_ctl_elem_list_t *obj)
 {
 	free(obj->pids);
 	obj->pids = NULL;
+	obj->space = 0;
 }
 
 /**
