@@ -63,15 +63,15 @@ static void convert(snd_pcm_plugin_t *plugin,
 		size_t samples1;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_plugin_silence_voice(plugin, &dst_voices[voice], samples);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, samples, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
 		dst_voices[voice].enabled = 1;
-		src = src_voices[voice].addr + src_voices[voice].first / 8;
-		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
-		src_step = src_voices[voice].step / 8;
-		dst_step = dst_voices[voice].step / 8;
+		src = src_voices[voice].area.addr + src_voices[voice].area.first / 8;
+		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
+		src_step = src_voices[voice].area.step / 8;
+		dst_step = dst_voices[voice].area.step / 8;
 		samples1 = samples;
 		while (samples1-- > 0) {
 			goto *conv;
@@ -99,11 +99,11 @@ static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 	if (samples == 0)
 		return 0;
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
-		if (src_voices[voice].first % 8 != 0 || 
-		    src_voices[voice].step % 8 != 0)
+		if (src_voices[voice].area.first % 8 != 0 || 
+		    src_voices[voice].area.step % 8 != 0)
 			return -EINVAL;
-		if (dst_voices[voice].first % 8 != 0 || 
-		    dst_voices[voice].step % 8 != 0)
+		if (dst_voices[voice].area.first % 8 != 0 || 
+		    dst_voices[voice].area.step % 8 != 0)
 			return -EINVAL;
 	}
 	convert(plugin, src_voices, dst_voices, samples);

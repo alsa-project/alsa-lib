@@ -82,8 +82,10 @@ struct snd_pcm_chan {
 	int mode;
 	int valid_setup;
 	snd_pcm_channel_setup_t setup;
-	int valid_voices_setup;
-	snd_pcm_voice_setup_t *voices_setup;
+	snd_pcm_voice_area_t *voices;
+	size_t sample_width;
+	size_t bits_per_sample;
+	size_t samples_per_frag;
 	snd_pcm_mmap_control_t *mmap_control;
 	size_t mmap_control_size;
 	int mmap_control_emulation;
@@ -141,12 +143,7 @@ void snd_pcm_plug_buf_unlock(snd_pcm_t *pcm, int channel, void *ptr);
 #define ROUTE_PLUGIN_RESOLUTION 16
 
 int getput_index(int format);
-int copy_index(int format);
 int conv_index(int src_format, int dst_format);
-
-void snd_pcm_plugin_silence_voice(snd_pcm_plugin_t *plugin,
-				  const snd_pcm_plugin_voice_t *dst_voice,
-				  size_t samples);
 
 #ifdef PLUGIN_DEBUG
 #define pdprintf( args... ) fprintf(stderr, "plugin: " ##args)

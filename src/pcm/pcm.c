@@ -83,10 +83,6 @@ int snd_pcm_channel_close(snd_pcm_t *pcm, int channel)
 		ret = err;
 	chan->open = 0;
 	chan->valid_setup = 0;
-	if (chan->valid_voices_setup) {
-		chan->valid_voices_setup = 0;
-		free(chan->voices_setup);
-	}
 	return ret;
 }	
 
@@ -182,6 +178,9 @@ int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
 	if ((err = pcm->ops->channel_setup(pcm, setup)) < 0)
 		return err;
 	memcpy(&chan->setup, setup, sizeof(*setup));
+	chan->sample_width = snd_pcm_format_physical_width(setup->format.format);
+	chan->bits_per_sample = chan->sample_width * setup->format.voices;
+	chan->samples_per_frag = setup->frag_size * 8 / chan->bits_per_sample;
 	chan->valid_setup = 1;
 	return 0;
 }
@@ -209,59 +208,7 @@ int snd_pcm_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_setup_t *setu
 	chan = &pcm->chan[channel];
 	if (!chan->open || !chan->valid_setup)
 		return -EBADFD;
-	if (chan->valid_voices_setup) {
-		if (setup->voice >= chan->setup.format.voices)
-			return -EINVAL;
-		memcpy(setup, &chan->voices_setup[setup->voice], sizeof(*setup));
-		return 0;
-	}
 	return pcm->ops->voice_setup(pcm, channel, setup);
-}
-
-const snd_pcm_voice_setup_t* snd_pcm_channel_cached_voice_setup(snd_pcm_t *pcm, int channel, unsigned int voice)
-{
-	struct snd_pcm_chan *chan;
-	if (!pcm)
-		return 0;
-	if (channel < 0 || channel > 1)
-		return 0;
-	chan = &pcm->chan[channel];
-	if (!chan->open || !chan->valid_setup)
-		return 0;
-	if (voice >= chan->setup.format.voices)
-		return 0;
-	return &chan->voices_setup[voice];
-}
-
-int snd_pcm_all_voices_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_setup_t *setup)
-{
-	struct snd_pcm_chan *chan;
-	snd_pcm_voice_setup_t *vs, *v;
-	unsigned int voice;
-	int err;
-	if (!pcm)
-		return -EFAULT;
-	if (channel < 0 || channel > 1)
-		return -EINVAL;
-	chan = &pcm->chan[channel];
-	if (!chan->open || !chan->valid_setup)
-		return -EBADFD;
-	vs = calloc(chan->setup.format.voices, sizeof(*setup));
-	for (voice = 0, v = vs; voice < chan->setup.format.voices; ++voice, ++v) {
-		v->voice = voice;
-		err = snd_pcm_voice_setup(pcm, channel, v);
-		if (err < 0) {
-			free(vs);
-			return err;
-		}
-		if (setup) {
-			memcpy(setup, v, sizeof(*setup));
-			setup++;
-		}
-	}
-	chan->voices_setup = vs;
-	chan->valid_voices_setup = 1;
-	return 0;
 }
 
 int snd_pcm_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t *status)

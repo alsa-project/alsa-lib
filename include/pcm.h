@@ -97,7 +97,6 @@ int snd_pcm_channel_info(snd_pcm_t *handle, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_params(snd_pcm_t *handle, snd_pcm_channel_params_t *params);
 int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup);
 int snd_pcm_voice_setup(snd_pcm_t *handle, int channel, snd_pcm_voice_setup_t *setup);
-int snd_pcm_all_voices_setup(snd_pcm_t *handle, int channel, snd_pcm_voice_setup_t *setup);
 int snd_pcm_channel_status(snd_pcm_t *handle, snd_pcm_channel_status_t *status);
 int snd_pcm_channel_update(snd_pcm_t *handle, int channel);
 int snd_pcm_playback_prepare(snd_pcm_t *handle);
@@ -126,16 +125,35 @@ int snd_pcm_mmap_data(snd_pcm_t *handle, int channel, void **buffer);
 int snd_pcm_munmap_control(snd_pcm_t *handle, int channel);
 int snd_pcm_munmap_data(snd_pcm_t *handle, int channel);
 int snd_pcm_voices_mask(snd_pcm_t *pcm, int channel, bitset_t *client_vmask);
-int snd_pcm_mmap_frags_used(snd_pcm_t *pcm, int channel, ssize_t *frags);
-int snd_pcm_mmap_frags_free(snd_pcm_t *pcm, int channel, ssize_t *frags);
-int snd_pcm_mmap_bytes_used(snd_pcm_t *pcm, int channel, ssize_t *bytes);
-int snd_pcm_mmap_bytes_free(snd_pcm_t *pcm, int channel, ssize_t *bytes);
 int snd_pcm_mmap_ready(snd_pcm_t *pcm, int channel);
 ssize_t snd_pcm_mmap_write(snd_pcm_t *handle, const void *buffer, size_t size);
 ssize_t snd_pcm_mmap_read(snd_pcm_t *handle, void *buffer, size_t size);
 ssize_t snd_pcm_mmap_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long  count);
 ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
+int snd_pcm_mmap_samples_used(snd_pcm_t *pcm, int channel, ssize_t *samples);
+int snd_pcm_mmap_samples_free(snd_pcm_t *pcm, int channel, ssize_t *samples);
+ssize_t snd_pcm_mmap_samples_xfer(snd_pcm_t *pcm, int channel, size_t samples);
+ssize_t snd_pcm_mmap_samples_offset(snd_pcm_t *pcm, int channel);
+int snd_pcm_mmap_commit_samples(snd_pcm_t *pcm, int channel, int samples);
+ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_voice_area_t *voices, size_t samples);
+ssize_t snd_pcm_mmap_write_samples(snd_pcm_t *pcm, const void *buffer, size_t samples);
+ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_voice_area_t *voices, size_t samples);
+ssize_t snd_pcm_mmap_read_samples(snd_pcm_t *pcm, const void *buffer, size_t samples);
+int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, int channel, snd_pcm_voice_area_t *areas);
+
+
 ssize_t snd_pcm_bytes_per_second(snd_pcm_t *pcm, int channel);
+
+int snd_pcm_area_silence(const snd_pcm_voice_area_t *dst_voice, size_t dst_offset,
+			 size_t samples, int format);
+int snd_pcm_areas_silence(const snd_pcm_voice_area_t *dst_voices, size_t dst_offset,
+			  size_t vcount, size_t samples, int format);
+int snd_pcm_area_copy(const snd_pcm_voice_area_t *src_voice, size_t src_offset,
+		      const snd_pcm_voice_area_t *dst_voice, size_t dst_offset,
+		      size_t samples, int format);
+int snd_pcm_areas_copy(const snd_pcm_voice_area_t *src_voices, size_t src_offset,
+		       const snd_pcm_voice_area_t *dst_voices, size_t dst_offset,
+		       size_t vcount, size_t samples, int format);
 
 /* misc */
 
@@ -181,9 +199,7 @@ typedef enum {
 
 typedef struct snd_stru_pcm_plugin_voice {
 	void *aptr;			/* pointer to the allocated area */
-	void *addr;			/* address to voice samples */
-	unsigned int first;		/* offset to first sample in bits */
-	unsigned int step;		/* samples distance in bits */
+	snd_pcm_voice_area_t area;
 	unsigned int enabled:1;		/* voice need to be processed */
 	unsigned int wanted:1;		/* voice is wanted */
 } snd_pcm_plugin_voice_t;

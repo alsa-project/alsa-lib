@@ -1,6 +1,5 @@
 M plug sync and pos problems
 M Loopback implementation?
-L break up snd_pcm_mmap_* in logical steps
 L complete mmap emulation (after plug sync and pos thought)
 L add hsearch_r code from glibc (for compatibility with older distributions)
 L move OSS emulation to user space (LD_PRELOAD)

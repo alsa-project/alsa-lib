@@ -68,12 +68,12 @@ static ssize_t block_transfer(snd_pcm_plugin_t *plugin,
 			return result;
 		count = plugin->src_format.voices;
 		if (plugin->src_format.interleave) {
-			result = snd_pcm_write(data->slave, src_voices->addr, result);
+			result = snd_pcm_write(data->slave, src_voices->area.addr, result);
 		} else {
 			result /= count;
 			for (voice = 0; voice < count; voice++) {
 				if (src_voices[voice].enabled)
-					vec[voice].iov_base = src_voices[voice].addr;
+					vec[voice].iov_base = src_voices[voice].area.addr;
 				else
 					vec[voice].iov_base = 0;
 				vec[voice].iov_len = result;
@@ -90,7 +90,7 @@ static ssize_t block_transfer(snd_pcm_plugin_t *plugin,
 			return result;
 		count = plugin->dst_format.voices;
 		if (plugin->dst_format.interleave) {
-			result = snd_pcm_read(data->slave, dst_voices->addr, result);
+			result = snd_pcm_read(data->slave, dst_voices->area.addr, result);
 			for (voice = 0; voice < count; voice++) {
 				dst_voices[voice].enabled = src_voices[voice].enabled;
 			}
@@ -99,7 +99,7 @@ static ssize_t block_transfer(snd_pcm_plugin_t *plugin,
 			for (voice = 0; voice < count; voice++) {
 				dst_voices[voice].enabled = src_voices[voice].enabled;
 				if (dst_voices[voice].enabled)
-					vec[voice].iov_base = dst_voices[voice].addr;
+					vec[voice].iov_base = dst_voices[voice].area.addr;
 				else
 					vec[voice].iov_base = 0;
 				vec[voice].iov_len = result;

@@ -438,6 +438,7 @@ static int snd_pcm_plug_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t 
 	}
 
 	/* compute right sizes */
+	slave_params.buffer_size = snd_pcm_plug_slave_size(pcm, channel, slave_params.buffer_size);
 	slave_params.frag_size = snd_pcm_plug_slave_size(pcm, channel, slave_params.frag_size);
 	if (params->mode == SND_PCM_MODE_STREAM) {
 		slave_params.buf.stream.bytes_fill_max = snd_pcm_plug_slave_size(pcm, channel, slave_params.buf.stream.bytes_fill_max);
@@ -471,7 +472,7 @@ static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *s
 	setup->buffer_size = snd_pcm_plug_client_size(pcm, setup->channel, setup->buffer_size);
 	setup->frag_size = snd_pcm_plug_client_size(pcm, setup->channel, setup->frag_size);
 	/* FIXME: it may overflow */
-	setup->pos_boundary = snd_pcm_plug_client_size(pcm, setup->channel, setup->pos_boundary);
+	setup->byte_boundary = snd_pcm_plug_client_size(pcm, setup->channel, setup->byte_boundary);
 	if (setup->mode == SND_PCM_MODE_STREAM) {
 		setup->buf.stream.bytes_min = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_min);
 		setup->buf.stream.bytes_align = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_align);
@@ -500,8 +501,8 @@ static int snd_pcm_plug_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t 
 		return 0;
 
 	/* FIXME: may overflow */
-	status->pos_io = snd_pcm_plug_client_size(pcm, status->channel, status->pos_io);
-	status->pos_data = snd_pcm_plug_client_size(pcm, status->channel, status->pos_data);
+	status->byte_io = snd_pcm_plug_client_size(pcm, status->channel, status->byte_io);
+	status->byte_data = snd_pcm_plug_client_size(pcm, status->channel, status->byte_data);
 	status->bytes_used = snd_pcm_plug_client_size(pcm, status->channel, status->bytes_used);
 	status->bytes_free = snd_pcm_plug_client_size(pcm, status->channel, status->bytes_free);
 	return 0;	
@@ -605,8 +606,8 @@ static int snd_pcm_plug_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_s
         memset(setup, 0, sizeof(*setup));
         setup->voice = voice;
 	chan = &pcm->chan[channel];
-	if (!chan->mmap_control) {
-		setup->addr = -1;
+	if (!chan->mmap_data) {
+		setup->area.addr = 0;
 		return 0;
 	}
 	if (voice >= chan->setup.format.voices)
@@ -617,14 +618,14 @@ static int snd_pcm_plug_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_s
                 return width;
 	size = chan->mmap_data_size;
 	if (chan->setup.format.interleave) {
-                setup->addr = 0;
-                setup->first = voice * width;
-                setup->step = chan->setup.format.voices * width;
+                setup->area.addr = chan->mmap_data;
+                setup->area.first = chan->sample_width;
+                setup->area.step = chan->bits_per_sample;
         } else {
                 size /= chan->setup.format.voices;
-                setup->addr = setup->voice * size;
-                setup->first = 0;
-                setup->step = width;
+                setup->area.addr = chan->mmap_data + setup->voice * size;
+                setup->area.first = 0;
+                setup->area.step = width;
 	}
 	return 0;
 }

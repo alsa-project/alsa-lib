@@ -81,7 +81,7 @@ static void route_to_voice_zero(snd_pcm_plugin_t *plugin,
 				ttable_dst_t* ttable UNUSED, size_t samples)
 {
 	if (dst_voice->wanted)
-		snd_pcm_plugin_silence_voice(plugin, dst_voice, samples);
+		snd_pcm_area_silence(&dst_voice->area, 0, samples, plugin->dst_format.format);
 	dst_voice->enabled = 0;
 }
 
@@ -101,7 +101,7 @@ static void route_to_voice_one(snd_pcm_plugin_t *plugin,
 	int src_step, dst_step;
 	for (srcidx = 0; srcidx < ttable->nsrcs; ++srcidx) {
 		src_voice = &src_voices[ttable->srcs[srcidx].voice];
-		if (src_voice->addr != NULL)
+		if (src_voice->area.addr != NULL)
 			break;
 	}
 	if (srcidx == ttable->nsrcs) {
@@ -111,10 +111,10 @@ static void route_to_voice_one(snd_pcm_plugin_t *plugin,
 
 	dst_voice->enabled = 1;
 	conv = conv_labels[data->conv];
-	src = src_voice->addr + src_voice->first / 8;
-	src_step = src_voice->step / 8;
-	dst = dst_voice->addr + dst_voice->first / 8;
-	dst_step = dst_voice->step / 8;
+	src = src_voice->area.addr + src_voice->area.first / 8;
+	src_step = src_voice->area.step / 8;
+	dst = dst_voice->area.addr + dst_voice->area.first / 8;
+	dst_step = dst_voice->area.step / 8;
 	while (samples-- > 0) {
 		goto *conv;
 #define CONV_END after
@@ -190,8 +190,8 @@ static void route_to_voice(snd_pcm_plugin_t *plugin,
 		const snd_pcm_plugin_voice_t *src_voice = &src_voices[ttable->srcs[srcidx].voice];
 		if (!src_voice->enabled)
 			continue;
-		srcs[srcidx1] = src_voice->addr + src_voices->first / 8;
-		src_steps[srcidx1] = src_voice->step / 8;
+		srcs[srcidx1] = src_voice->area.addr + src_voices->area.first / 8;
+		src_steps[srcidx1] = src_voice->area.step / 8;
 		src_tt[srcidx1] = ttable->srcs[srcidx];
 		srcidx1++;
 	}
@@ -210,8 +210,8 @@ static void route_to_voice(snd_pcm_plugin_t *plugin,
 	add = add_labels[data->sum_type * 2 + ttable->att];
 	norm = norm_labels[data->sum_type * 8 + ttable->att * 4 + 4 - data->src_sample_size];
 	put32 = put32_labels[data->put];
-	dst = dst_voice->addr + dst_voice->first / 8;
-	dst_step = dst_voice->step / 8;
+	dst = dst_voice->area.addr + dst_voice->area.first / 8;
+	dst_step = dst_voice->area.step / 8;
 
 	while (samples-- > 0) {
 		ttable_src_t *ttp = src_tt;
@@ -513,15 +513,15 @@ static ssize_t route_transfer(snd_pcm_plugin_t *plugin,
 
 	src_nvoices = plugin->src_format.voices;
 	for (src_voice = 0; src_voice < src_nvoices; ++src_voice) {
-		if (src_voices[src_voice].first % 8 != 0 || 
-		    src_voices[src_voice].step % 8 != 0)
+		if (src_voices[src_voice].area.first % 8 != 0 || 
+		    src_voices[src_voice].area.step % 8 != 0)
 			return -EINVAL;
 	}
 
 	dst_nvoices = plugin->dst_format.voices;
 	for (dst_voice = 0; dst_voice < dst_nvoices; ++dst_voice) {
-		if (dst_voices[dst_voice].first % 8 != 0 || 
-		    dst_voices[dst_voice].step % 8 != 0)
+		if (dst_voices[dst_voice].area.first % 8 != 0 || 
+		    dst_voices[dst_voice].area.step % 8 != 0)
 			return -EINVAL;
 	}
 

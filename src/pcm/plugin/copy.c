@@ -35,121 +35,63 @@
 #include "../pcm_local.h"
 #endif
 
-typedef struct copy_private_data {
-	int copy;
-} copy_t;
-
-static void copy(snd_pcm_plugin_t *plugin,
-		 const snd_pcm_plugin_voice_t *src_voices,
-		 snd_pcm_plugin_voice_t *dst_voices,
-		 size_t samples)
-{
-#define COPY_LABELS
-#include "plugin_ops.h"
-#undef COPY_LABELS
-	copy_t *data = (copy_t *)plugin->extra_data;
-	void *copy = copy_labels[data->copy];
-	int voice;
-	int nvoices = plugin->src_format.voices;
-	for (voice = 0; voice < nvoices; ++voice) {
-		char *src;
-		char *dst;
-		int src_step, dst_step;
-		size_t samples1;
-		if (!src_voices[voice].enabled) {
-			if (dst_voices[voice].wanted)
-				snd_pcm_plugin_silence_voice(plugin, &dst_voices[voice], samples);
-			dst_voices[voice].enabled = 0;
-			continue;
-		}
-		dst_voices[voice].enabled = 1;
-		src = src_voices[voice].addr + src_voices[voice].first / 8;
-		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
-		src_step = src_voices[voice].step / 8;
-		dst_step = dst_voices[voice].step / 8;
-		samples1 = samples;
-		while (samples1-- > 0) {
-			goto *copy;
-#define COPY_END after
-#include "plugin_ops.h"
-#undef COPY_END
-		after:
-			src += src_step;
-			dst += dst_step;
-		}
-	}
-}
-
 static ssize_t copy_transfer(snd_pcm_plugin_t *plugin,
 			     const snd_pcm_plugin_voice_t *src_voices,
 			     snd_pcm_plugin_voice_t *dst_voices,
 			     size_t samples)
 {
-	copy_t *data;
 	unsigned int voice;
+	unsigned int nvoices;
 
 	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
 		return -EFAULT;
-	data = (copy_t *)plugin->extra_data;
 	if (samples == 0)
 		return 0;
-	for (voice = 0; voice < plugin->src_format.voices; voice++) {
-		if (src_voices[voice].first % 8 != 0 || 
-		    src_voices[voice].step % 8 != 0)
+	nvoices = plugin->src_format.voices;
+	for (voice = 0; voice < nvoices; voice++) {
+		if (src_voices[voice].area.first % 8 != 0 || 
+		    src_voices[voice].area.step % 8 != 0)
 			return -EINVAL;
-		if (dst_voices[voice].first % 8 != 0 || 
-		    dst_voices[voice].step % 8 != 0)
+		if (dst_voices[voice].area.first % 8 != 0 || 
+		    dst_voices[voice].area.step % 8 != 0)
 			return -EINVAL;
+		if (!src_voices->enabled) {
+			if (dst_voices->wanted)
+				snd_pcm_area_silence(&dst_voices->area, 0, samples, plugin->dst_format.format);
+			dst_voices->enabled = 0;
+			continue;
+		}
+		dst_voices[voice].enabled = 1;
+		snd_pcm_area_copy(&src_voices->area, 0, &dst_voices->area, 0, samples, plugin->src_format.format);
 	}
-	copy(plugin, src_voices, dst_voices, samples);
 	return samples;
 }
 
-int copy_index(int format)
-{
-	int size = snd_pcm_format_physical_width(format);
-	switch (size) {
-	case 8:
-		return 0;
-	case 16:
-		return 1;
-	case 32:
-		return 2;
-	case 64:
-		return 3;
-	default:
-		return -EINVAL;
-	}
-}
-	
 int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
 			      int channel,
 			      snd_pcm_format_t *format,
 			      snd_pcm_plugin_t **r_plugin)
 {
 	int err;
-	struct copy_private_data *data;
 	snd_pcm_plugin_t *plugin;
-	int copy;
+	int width;
 
 	if (r_plugin == NULL)
 		return -EFAULT;
 	*r_plugin = NULL;
 
-	copy = copy_index(format->format);
-	if (copy < 0)
+	width = snd_pcm_format_physical_width(format->format);
+	if (width < 0)
 		return -EINVAL;
 
 	err = snd_pcm_plugin_build(handle, channel,
 				   "copy",
 				   format,
 				   format,
-				   sizeof(copy_t),
+				   0,
 				   &plugin);
 	if (err < 0)
 		return err;
-	data = (copy_t *)plugin->extra_data;
-	data->copy = copy;
 	plugin->transfer = copy_transfer;
 	*r_plugin = plugin;
 	return 0;

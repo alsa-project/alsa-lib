@@ -231,17 +231,17 @@ static void adpcm_decode(snd_pcm_plugin_t *plugin,
 		adpcm_voice_t *state;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_plugin_silence_voice(plugin, &dst_voices[voice], samples);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, samples, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
 		dst_voices[voice].enabled = 1;
-		src = src_voices[voice].addr + src_voices[voice].first / 8;
-		srcbit = src_voices[voice].first % 8;
-		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
-		src_step = src_voices[voice].step / 8;
-		srcbit_step = src_voices[voice].step % 8;
-		dst_step = dst_voices[voice].step / 8;
+		src = src_voices[voice].area.addr + src_voices[voice].area.first / 8;
+		srcbit = src_voices[voice].area.first % 8;
+		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
+		src_step = src_voices[voice].area.step / 8;
+		srcbit_step = src_voices[voice].area.step % 8;
+		dst_step = dst_voices[voice].area.step / 8;
 		state = &data->voices[voice];
 		samples1 = samples;
 		while (samples1-- > 0) {
@@ -290,17 +290,17 @@ static void adpcm_encode(snd_pcm_plugin_t *plugin,
 		adpcm_voice_t *state;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_plugin_silence_voice(plugin, &dst_voices[voice], samples);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, samples, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
 		dst_voices[voice].enabled = 1;
-		src = src_voices[voice].addr + src_voices[voice].first / 8;
-		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
-		dstbit = dst_voices[voice].first % 8;
-		src_step = src_voices[voice].step / 8;
-		dst_step = dst_voices[voice].step / 8;
-		dstbit_step = dst_voices[voice].step % 8;
+		src = src_voices[voice].area.addr + src_voices[voice].area.first / 8;
+		dst = dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
+		dstbit = dst_voices[voice].area.first % 8;
+		src_step = src_voices[voice].area.step / 8;
+		dst_step = dst_voices[voice].area.step / 8;
+		dstbit_step = dst_voices[voice].area.step % 8;
 		state = &data->voices[voice];
 		samples1 = samples;
 		while (samples1-- > 0) {
@@ -340,16 +340,16 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t *plugin,
 		return 0;
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
 		if (plugin->src_format.format == SND_PCM_SFMT_IMA_ADPCM) {
-			if (src_voices[voice].first % 4 != 0 ||
-			    src_voices[voice].step % 4 != 0 ||
-			    dst_voices[voice].first % 8 != 0 ||
-			    dst_voices[voice].step % 8 != 0)
+			if (src_voices[voice].area.first % 4 != 0 ||
+			    src_voices[voice].area.step % 4 != 0 ||
+			    dst_voices[voice].area.first % 8 != 0 ||
+			    dst_voices[voice].area.step % 8 != 0)
 				return -EINVAL;
 		} else {
-			if (src_voices[voice].first % 8 != 0 ||
-			    src_voices[voice].step % 8 != 0 ||
-			    dst_voices[voice].first % 4 != 0 ||
-			    dst_voices[voice].step % 4 != 0)
+			if (src_voices[voice].area.first % 8 != 0 ||
+			    src_voices[voice].area.step % 8 != 0 ||
+			    dst_voices[voice].area.first % 4 != 0 ||
+			    dst_voices[voice].area.step % 4 != 0)
 				return -EINVAL;
 		}
 	}

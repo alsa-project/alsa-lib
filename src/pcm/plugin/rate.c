@@ -106,15 +106,15 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 		S2 = rvoices->last_S2;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_plugin_silence_voice(plugin, &dst_voices[voice], dst_samples);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, dst_samples, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
 		dst_voices[voice].enabled = 1;
-		src = (char *)src_voices[voice].addr + src_voices[voice].first / 8;
-		dst = (char *)dst_voices[voice].addr + dst_voices[voice].first / 8;
-		src_step = src_voices[voice].step / 8;
-		dst_step = dst_voices[voice].step / 8;
+		src = (char *)src_voices[voice].area.addr + src_voices[voice].area.first / 8;
+		dst = (char *)dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
+		src_step = src_voices[voice].area.step / 8;
+		dst_step = dst_voices[voice].area.step / 8;
 		src_samples1 = src_samples;
 		dst_samples1 = dst_samples;
 		if (pos & ~MASK) {
@@ -190,15 +190,15 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 		S2 = rvoices->last_S2;
 		if (!src_voices[voice].enabled) {
 			if (dst_voices[voice].wanted)
-				snd_pcm_plugin_silence_voice(plugin, &dst_voices[voice], dst_samples);
+				snd_pcm_area_silence(&dst_voices[voice].area, 0, dst_samples, plugin->dst_format.format);
 			dst_voices[voice].enabled = 0;
 			continue;
 		}
 		dst_voices[voice].enabled = 1;
-		src = (char *)src_voices[voice].addr + src_voices[voice].first / 8;
-		dst = (char *)dst_voices[voice].addr + dst_voices[voice].first / 8;
-		src_step = src_voices[voice].step / 8;
-		dst_step = dst_voices[voice].step / 8;
+		src = (char *)src_voices[voice].area.addr + src_voices[voice].area.first / 8;
+		dst = (char *)dst_voices[voice].area.addr + dst_voices[voice].area.first / 8;
+		src_step = src_voices[voice].area.step / 8;
+		dst_step = dst_voices[voice].area.step / 8;
 		src_samples1 = src_samples;
 		dst_samples1 = dst_samples;
 		while (dst_samples1 > 0) {
@@ -313,11 +313,11 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 	if (samples == 0)
 		return 0;
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
-		if (src_voices[voice].first % 8 != 0 || 
-		    src_voices[voice].step % 8 != 0)
+		if (src_voices[voice].area.first % 8 != 0 || 
+		    src_voices[voice].area.step % 8 != 0)
 			return -EINVAL;
-		if (dst_voices[voice].first % 8 != 0 || 
-		    dst_voices[voice].step % 8 != 0)
+		if (dst_voices[voice].area.first % 8 != 0 || 
+		    dst_voices[voice].area.step % 8 != 0)
 			return -EINVAL;
 	}
 

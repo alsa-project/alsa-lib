@@ -31,8 +31,8 @@ static void snd_pcm_mmap_clear(snd_pcm_t *pcm, int channel)
 	struct snd_pcm_chan *chan = &pcm->chan[channel];
 	chan->mmap_control->frag_io = 0;
 	chan->mmap_control->frag_data = 0;
-	chan->mmap_control->pos_io = 0;
-	chan->mmap_control->pos_data = 0;
+	chan->mmap_control->byte_io = 0;
+	chan->mmap_control->byte_data = 0;
 }
 
 void snd_pcm_mmap_status_change(snd_pcm_t *pcm, int channel, int newstatus)
@@ -61,95 +61,69 @@ void snd_pcm_mmap_status_change(snd_pcm_t *pcm, int channel, int newstatus)
 	}
 }
 
-static ssize_t snd_pcm_mmap_playback_frags_used(snd_pcm_t *pcm)
+static inline ssize_t snd_pcm_mmap_playback_frags_used(struct snd_pcm_chan *chan)
 {
-	struct snd_pcm_chan *chan;
 	ssize_t frags_used;
-	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
 	frags_used = chan->mmap_control->frag_data - chan->mmap_control->frag_io;
 	if (frags_used < (ssize_t)(chan->setup.frags - chan->setup.frag_boundary))
 		frags_used += chan->setup.frag_boundary;
 	return frags_used;
 }
 
-static size_t snd_pcm_mmap_capture_frags_used(snd_pcm_t *pcm)
+static inline ssize_t snd_pcm_mmap_playback_bytes_used(struct snd_pcm_chan *chan)
+{
+	ssize_t bytes_used;
+	bytes_used = chan->mmap_control->byte_data - chan->mmap_control->byte_io;
+	if (bytes_used < (ssize_t)(chan->setup.buffer_size - chan->setup.byte_boundary))
+		bytes_used += chan->setup.byte_boundary;
+	return bytes_used;
+}
+
+static ssize_t snd_pcm_mmap_playback_samples_used(snd_pcm_t *pcm)
 {
 	struct snd_pcm_chan *chan;
+	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
+	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
+		ssize_t frags = snd_pcm_mmap_playback_frags_used(chan);
+		return frags * chan->samples_per_frag;
+	} else {
+		ssize_t bytes = snd_pcm_mmap_playback_bytes_used(chan);
+		return bytes * 8 / chan->bits_per_sample;
+	}
+}
+
+static inline size_t snd_pcm_mmap_capture_frags_used(struct snd_pcm_chan *chan)
+{
 	ssize_t frags_used;
-	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
 	frags_used = chan->mmap_control->frag_io - chan->mmap_control->frag_data;
 	if (frags_used < 0)
 		frags_used += chan->setup.frag_boundary;
 	return frags_used;
 }
 
-static size_t snd_pcm_mmap_playback_frags_free(snd_pcm_t *pcm)
+static inline size_t snd_pcm_mmap_capture_bytes_used(struct snd_pcm_chan *chan)
 {
-	return pcm->chan[SND_PCM_CHANNEL_PLAYBACK].setup.frags - snd_pcm_mmap_playback_frags_used(pcm);
-}
-
-static ssize_t snd_pcm_mmap_capture_frags_free(snd_pcm_t *pcm)
-{
-	return pcm->chan[SND_PCM_CHANNEL_CAPTURE].setup.frags - snd_pcm_mmap_capture_frags_used(pcm);
-}
-
-int snd_pcm_mmap_frags_used(snd_pcm_t *pcm, int channel, ssize_t *frags)
-{
-	struct snd_pcm_chan *chan;
-        if (!pcm)
-                return -EFAULT;
-        if (channel < 0 || channel > 1)
-                return -EINVAL;
-	chan = &pcm->chan[channel];
-	if (!chan->open || !chan->mmap_control)
-		return -EBADFD;
-	if (channel == SND_PCM_CHANNEL_PLAYBACK)
-		*frags = snd_pcm_mmap_playback_frags_used(pcm);
-	else
-		*frags = snd_pcm_mmap_capture_frags_used(pcm);
-	return 0;
-}
-
-int snd_pcm_mmap_frags_free(snd_pcm_t *pcm, int channel, ssize_t *frags)
-{
-	struct snd_pcm_chan *chan;
-        if (!pcm)
-                return -EFAULT;
-        if (channel < 0 || channel > 1)
-                return -EINVAL;
-	chan = &pcm->chan[channel];
-	if (!chan->open || !chan->mmap_control)
-		return -EBADFD;
-	if (channel == SND_PCM_CHANNEL_PLAYBACK)
-		*frags = snd_pcm_mmap_playback_frags_free(pcm);
-	else
-		*frags = snd_pcm_mmap_capture_frags_free(pcm);
-	return 0;
-}
-
-static ssize_t snd_pcm_mmap_playback_bytes_used(snd_pcm_t *pcm)
-{
-	struct snd_pcm_chan *chan;
 	ssize_t bytes_used;
-	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	bytes_used = chan->mmap_control->pos_data - chan->mmap_control->pos_io;
-	if (bytes_used < (ssize_t)(chan->setup.buffer_size - chan->setup.pos_boundary))
-		bytes_used += chan->setup.pos_boundary;
-	return bytes_used;
-}
-
-static size_t snd_pcm_mmap_capture_bytes_used(snd_pcm_t *pcm)
-{
-	struct snd_pcm_chan *chan;
-	ssize_t bytes_used;
-	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	bytes_used = chan->mmap_control->pos_io - chan->mmap_control->pos_data;
+	bytes_used = chan->mmap_control->byte_io - chan->mmap_control->byte_data;
 	if (bytes_used < 0)
-		bytes_used += chan->setup.pos_boundary;
+		bytes_used += chan->setup.byte_boundary;
 	return bytes_used;
 }
 
-int snd_pcm_mmap_bytes_used(snd_pcm_t *pcm, int channel, ssize_t *frags)
+static size_t snd_pcm_mmap_capture_samples_used(snd_pcm_t *pcm)
+{
+	struct snd_pcm_chan *chan;
+	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
+	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
+		size_t frags = snd_pcm_mmap_capture_frags_used(chan);
+		return frags * chan->samples_per_frag;
+	} else {
+		size_t bytes = snd_pcm_mmap_capture_bytes_used(chan);
+		return bytes * 8 / chan->bits_per_sample;
+	}
+}
+
+int snd_pcm_mmap_samples_used(snd_pcm_t *pcm, int channel, ssize_t *samples)
 {
 	struct snd_pcm_chan *chan;
         if (!pcm)
@@ -160,23 +134,60 @@ int snd_pcm_mmap_bytes_used(snd_pcm_t *pcm, int channel, ssize_t *frags)
 	if (!chan->open || !chan->mmap_control)
 		return -EBADFD;
 	if (channel == SND_PCM_CHANNEL_PLAYBACK)
-		*frags = snd_pcm_mmap_playback_bytes_used(pcm);
+		*samples = snd_pcm_mmap_playback_samples_used(pcm);
 	else
-		*frags = snd_pcm_mmap_capture_bytes_used(pcm);
+		*samples = snd_pcm_mmap_capture_samples_used(pcm);
 	return 0;
 }
 
-static size_t snd_pcm_mmap_playback_bytes_free(snd_pcm_t *pcm)
+static inline size_t snd_pcm_mmap_playback_frags_free(struct snd_pcm_chan *chan)
 {
-	return pcm->chan[SND_PCM_CHANNEL_PLAYBACK].setup.buffer_size - snd_pcm_mmap_playback_bytes_used(pcm);
+	return chan->setup.frags - snd_pcm_mmap_playback_frags_used(chan);
 }
 
-static ssize_t snd_pcm_mmap_capture_bytes_free(snd_pcm_t *pcm)
+static inline size_t snd_pcm_mmap_playback_bytes_free(struct snd_pcm_chan *chan)
 {
-	return pcm->chan[SND_PCM_CHANNEL_CAPTURE].setup.buffer_size - snd_pcm_mmap_capture_bytes_used(pcm);
+	return chan->setup.buffer_size - snd_pcm_mmap_playback_bytes_used(chan);
 }
 
-int snd_pcm_mmap_bytes_free(snd_pcm_t *pcm, int channel, ssize_t *frags)
+static size_t snd_pcm_mmap_playback_samples_free(snd_pcm_t *pcm)
+{
+	struct snd_pcm_chan *chan;
+	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
+	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
+		size_t frags = snd_pcm_mmap_playback_frags_free(chan);
+		return frags * chan->samples_per_frag;
+	} else {
+		size_t bytes = snd_pcm_mmap_playback_bytes_free(chan);
+		return bytes * 8 / chan->bits_per_sample;
+	}
+}
+
+static inline ssize_t snd_pcm_mmap_capture_frags_free(struct snd_pcm_chan *chan)
+{
+	return chan->setup.frags - snd_pcm_mmap_capture_frags_used(chan);
+}
+
+
+static inline ssize_t snd_pcm_mmap_capture_bytes_free(struct snd_pcm_chan *chan)
+{
+	return chan->setup.buffer_size - snd_pcm_mmap_capture_bytes_used(chan);
+}
+
+static ssize_t snd_pcm_mmap_capture_samples_free(snd_pcm_t *pcm)
+{
+	struct snd_pcm_chan *chan;
+	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
+	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
+		ssize_t frags = snd_pcm_mmap_capture_frags_free(chan);
+		return frags * chan->samples_per_frag;
+	} else {
+		ssize_t bytes = snd_pcm_mmap_capture_bytes_free(chan);
+		return bytes * 8 / chan->bits_per_sample;
+	}
+}
+
+int snd_pcm_mmap_samples_free(snd_pcm_t *pcm, int channel, ssize_t *samples)
 {
 	struct snd_pcm_chan *chan;
         if (!pcm)
@@ -187,9 +198,9 @@ int snd_pcm_mmap_bytes_free(snd_pcm_t *pcm, int channel, ssize_t *frags)
 	if (!chan->open || !chan->mmap_control)
 		return -EBADFD;
 	if (channel == SND_PCM_CHANNEL_PLAYBACK)
-		*frags = snd_pcm_mmap_playback_bytes_free(pcm);
+		*samples = snd_pcm_mmap_playback_samples_free(pcm);
 	else
-		*frags = snd_pcm_mmap_capture_bytes_free(pcm);
+		*samples = snd_pcm_mmap_capture_samples_free(pcm);
 	return 0;
 }
 
@@ -200,9 +211,9 @@ static int snd_pcm_mmap_playback_ready(snd_pcm_t *pcm)
 	if (chan->mmap_control->status == SND_PCM_STATUS_XRUN)
 		return -EPIPE;
 	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		return (chan->setup.frags - snd_pcm_mmap_playback_frags_used(pcm)) >= chan->setup.buf.block.frags_min;
+		return (chan->setup.frags - snd_pcm_mmap_playback_frags_used(chan)) >= chan->setup.buf.block.frags_min;
 	} else {
-		return (chan->setup.buffer_size - snd_pcm_mmap_playback_bytes_used(pcm)) >= chan->setup.buf.stream.bytes_min;
+		return (chan->setup.buffer_size - snd_pcm_mmap_playback_bytes_used(chan)) >= chan->setup.buf.stream.bytes_min;
 	}
 }
 
@@ -217,10 +228,10 @@ static int snd_pcm_mmap_capture_ready(snd_pcm_t *pcm)
 			return -EPIPE;
 	}
 	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		if (snd_pcm_mmap_capture_frags_used(pcm) >= chan->setup.buf.block.frags_min)
+		if (snd_pcm_mmap_capture_frags_used(chan) >= chan->setup.buf.block.frags_min)
 			return 1;
 	} else {
-		if (snd_pcm_mmap_capture_bytes_used(pcm) >= chan->setup.buf.stream.bytes_min)
+		if (snd_pcm_mmap_capture_bytes_used(chan) >= chan->setup.buf.stream.bytes_min)
 			return 1;
 	}
 	return ret;
@@ -247,53 +258,183 @@ int snd_pcm_mmap_ready(snd_pcm_t *pcm, int channel)
 	}
 }
 
-/* Bytes transferrable */
-static size_t snd_pcm_mmap_bytes_playback(snd_pcm_t *pcm, size_t size)
+static size_t snd_pcm_mmap_playback_frags_xfer(snd_pcm_t *pcm, size_t frags)
 {
 	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
 	snd_pcm_mmap_control_t *ctrl = chan->mmap_control;
-	size_t bytes_cont, bytes_free;
-	unsigned int pos_data = ctrl->pos_data;
-	unsigned int pos_io = ctrl->pos_io;
-	int bytes_used = pos_data - pos_io;
-	if (bytes_used < -(int)(chan->setup.buf.stream.bytes_xrun_max + chan->setup.frag_size))
-		bytes_used += chan->setup.pos_boundary;
-	bytes_cont = chan->setup.buffer_size - (pos_data % chan->setup.buffer_size);
-	if (bytes_cont < size)
-		size = bytes_cont;
-	bytes_free = chan->setup.buffer_size - bytes_used;
-	if (bytes_free < size)
-		size = (bytes_free / chan->setup.buf.stream.bytes_align) * chan->setup.buf.stream.bytes_align;
-	return size;
+	size_t frags_cont;
+	size_t frag_data = ctrl->frag_data;
+	size_t frags_free = snd_pcm_mmap_playback_frags_free(chan);
+	if (frags_free < frags)
+		frags = frags_free;
+	frags_cont = chan->setup.frags - (frag_data % chan->setup.frags);
+	if (frags_cont < frags)
+		frags = frags_cont;
+	return frags;
 }
 
-/* Bytes transferrable */
-static size_t snd_pcm_mmap_bytes_capture(snd_pcm_t *pcm, size_t size)
+static size_t snd_pcm_mmap_capture_frags_xfer(snd_pcm_t *pcm, size_t frags)
+{
+	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
+	snd_pcm_mmap_control_t *ctrl = chan->mmap_control;
+	size_t frags_cont;
+	size_t frag_data = ctrl->frag_data;
+	size_t frags_used = snd_pcm_mmap_capture_frags_used(chan);
+	if (frags_used < frags)
+		frags = frags_used;
+	frags_cont = chan->setup.frags - (frag_data % chan->setup.frags);
+	if (frags_cont < frags)
+		frags = frags_cont;
+	return frags;
+}
+
+static size_t snd_pcm_mmap_playback_bytes_xfer(snd_pcm_t *pcm, size_t bytes)
+{
+	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
+	snd_pcm_mmap_control_t *ctrl = chan->mmap_control;
+	size_t bytes_cont;
+	size_t byte_data = ctrl->byte_data;
+	size_t bytes_free = snd_pcm_mmap_playback_bytes_free(chan);
+	if (bytes_free < bytes)
+		bytes = bytes_free;
+	bytes_cont = chan->setup.buffer_size - (byte_data % chan->setup.buffer_size);
+	if (bytes_cont < bytes)
+		bytes = bytes_cont;
+	bytes -= bytes % chan->setup.buf.stream.bytes_align;
+	return bytes;
+}
+
+static size_t snd_pcm_mmap_capture_bytes_xfer(snd_pcm_t *pcm, size_t bytes)
 {
 	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
 	snd_pcm_mmap_control_t *ctrl = chan->mmap_control;
 	size_t bytes_cont;
-	unsigned int pos_data = ctrl->pos_data;
-	unsigned int pos_io = ctrl->pos_io;
-	int bytes_used = pos_io - pos_data;
-	if (bytes_used < 0)
-		bytes_used += chan->setup.pos_boundary;
-	bytes_cont = chan->setup.buffer_size - (pos_data % chan->setup.buffer_size);
-	if (bytes_cont < size)
-		size = bytes_cont;
-	if ((size_t) bytes_used < size)
-		size = (bytes_used / chan->setup.buf.stream.bytes_align) * chan->setup.buf.stream.bytes_align;
-	return size;
+	size_t byte_data = ctrl->byte_data;
+	size_t bytes_used = snd_pcm_mmap_capture_bytes_used(chan);
+	if (bytes_used < bytes)
+		bytes = bytes_used;
+	bytes_cont = chan->setup.buffer_size - (byte_data % chan->setup.buffer_size);
+	if (bytes_cont < bytes)
+		bytes = bytes_cont;
+	bytes -= bytes % chan->setup.buf.stream.bytes_align;
+	return bytes;
 }
 
-typedef int (*transfer_f)(snd_pcm_t *pcm, size_t hwoff, void *data, size_t off, size_t size);
+static ssize_t snd_pcm_mmap_playback_samples_xfer(snd_pcm_t *pcm, size_t samples)
+{
+	struct snd_pcm_chan *chan;
+	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
+	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
+		size_t frags = samples / chan->samples_per_frag;
+		frags = snd_pcm_mmap_playback_frags_xfer(pcm, frags);
+		return frags * chan->samples_per_frag;
+	} else {
+		size_t bytes = samples * chan->bits_per_sample / 8;
+		bytes = snd_pcm_mmap_playback_bytes_xfer(pcm, bytes);
+		return bytes * 8 / chan->bits_per_sample;
+	}
+}
 
+static ssize_t snd_pcm_mmap_capture_samples_xfer(snd_pcm_t *pcm, size_t samples)
+{
+	struct snd_pcm_chan *chan;
+	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
+	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
+		size_t frags = samples / chan->samples_per_frag;
+		frags = snd_pcm_mmap_capture_frags_xfer(pcm, frags);
+		return frags * chan->samples_per_frag;
+	} else {
+		size_t bytes = samples * chan->bits_per_sample / 8;
+		bytes = snd_pcm_mmap_capture_bytes_xfer(pcm, bytes);
+		return bytes * 8 / chan->bits_per_sample;
+	}
+}
 
-static ssize_t snd_pcm_mmap_write1(snd_pcm_t *pcm, const void *data, size_t count, transfer_f transfer)
+ssize_t snd_pcm_mmap_samples_xfer(snd_pcm_t *pcm, int channel, size_t samples)
+{
+	struct snd_pcm_chan *chan;
+        if (!pcm)
+                return -EFAULT;
+        if (channel < 0 || channel > 1)
+                return -EINVAL;
+	chan = &pcm->chan[channel];
+	if (!chan->open || !chan->mmap_control)
+		return -EBADFD;
+	if (channel == SND_PCM_CHANNEL_PLAYBACK)
+		return snd_pcm_mmap_playback_samples_xfer(pcm, samples);
+	else
+		return snd_pcm_mmap_capture_samples_xfer(pcm, samples);
+}
+
+ssize_t snd_pcm_mmap_samples_offset(snd_pcm_t *pcm, int channel)
 {
 	struct snd_pcm_chan *chan;
 	snd_pcm_mmap_control_t *ctrl;
-	size_t frag_size;
+        if (!pcm)
+                return -EFAULT;
+        if (channel < 0 || channel > 1)
+                return -EINVAL;
+	chan = &pcm->chan[channel];
+	if (!chan->open)
+		return -EBADFD;
+	ctrl = chan->mmap_control;
+	if (!ctrl)
+		return -EBADFD;
+	if (chan->setup.mode == SND_PCM_MODE_BLOCK)
+		return (ctrl->frag_data % chan->setup.frags) * chan->samples_per_frag;
+	else
+		return (ctrl->byte_data % chan->setup.buffer_size) * 8 / chan->bits_per_sample;
+}
+
+int snd_pcm_mmap_commit_samples(snd_pcm_t *pcm, int channel, int samples)
+{
+	struct snd_pcm_chan *chan;
+	snd_pcm_mmap_control_t *ctrl;
+        if (!pcm)
+                return -EFAULT;
+        if (channel < 0 || channel > 1)
+                return -EINVAL;
+	chan = &pcm->chan[channel];
+	if (!chan->open)
+		return -EBADFD;
+	ctrl = chan->mmap_control;
+	if (!ctrl)
+		return -EBADFD;
+	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
+		size_t frag_data, frags;
+		if (samples % chan->samples_per_frag)
+			return -EINVAL;
+		frags = samples / chan->samples_per_frag;
+		frag_data = ctrl->frag_data + frags;
+		if (frag_data == chan->setup.frag_boundary) {
+			ctrl->frag_data = 0;
+			ctrl->byte_data = 0;
+		} else {
+			ctrl->frag_data = frag_data;
+			ctrl->byte_data = frag_data * chan->setup.frag_size;
+		}
+	} else {
+		size_t byte_data;
+		size_t bytes = samples * chan->bits_per_sample;
+		if (bytes % 8)
+			return -EINVAL;
+		bytes /= 8;
+		byte_data = ctrl->byte_data + bytes;
+		if (byte_data == chan->setup.byte_boundary) {
+			ctrl->byte_data = 0;
+			ctrl->frag_data = 0;
+		} else {
+			ctrl->byte_data = byte_data;
+			ctrl->frag_data = byte_data / chan->setup.frag_size;
+		}
+	}
+	return 0;
+}
+
+ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_voice_area_t *voices, size_t samples)
+{
+	struct snd_pcm_chan *chan;
+	snd_pcm_mmap_control_t *ctrl;
 	size_t offset = 0;
 	size_t result = 0;
 	int err;
@@ -302,25 +443,17 @@ static ssize_t snd_pcm_mmap_write1(snd_pcm_t *pcm, const void *data, size_t coun
 	ctrl = chan->mmap_control;
 	if (ctrl->status < SND_PCM_STATUS_PREPARED)
 		return -EBADFD;
-	frag_size = chan->setup.frag_size;
 	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		if (count % frag_size != 0)
+		if (samples % chan->samples_per_frag != 0)
 			return -EINVAL;
 	} else {
-		int tmp = snd_pcm_format_size(chan->setup.format.format, chan->setup.format.voices);
-		if (tmp > 0) {
-	                int r = count % tmp;
-			if (r > 0) {
-				count -= r;
-				if (count == 0)
-					return -EINVAL;
-			}
-                }
+		if (ctrl->status == SND_PCM_STATUS_RUNNING &&
+		    chan->mode & SND_PCM_NONBLOCK)
+			snd_pcm_channel_update(pcm, SND_PCM_CHANNEL_PLAYBACK);
 	}
-	if (chan->mode & SND_PCM_NONBLOCK)
-		snd_pcm_channel_update(pcm, SND_PCM_CHANNEL_PLAYBACK);
-	while (count > 0) {
-		size_t bytes;
+	while (samples > 0) {
+		ssize_t mmap_offset;
+		size_t samples1;
 		int ready = snd_pcm_mmap_playback_ready(pcm);
 		if (ready < 0)
 			return ready;
@@ -339,221 +472,148 @@ static ssize_t snd_pcm_mmap_write1(snd_pcm_t *pcm, const void *data, size_t coun
 				return result > 0 ? result : -EPIPE;
 			assert(snd_pcm_mmap_playback_ready(pcm));
 		}
-		if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-			size_t frag_data, frag;
-			frag_data = ctrl->frag_data;
-			frag = frag_data % chan->setup.frags;
-			err = transfer(pcm, frag_size * frag, (void *) data, offset, frag_size);
-			if (err < 0) 
+		samples1 = snd_pcm_mmap_playback_samples_xfer(pcm, samples);
+		assert(samples1 > 0);
+		mmap_offset = snd_pcm_mmap_samples_offset(pcm, SND_PCM_CHANNEL_PLAYBACK);
+		snd_pcm_areas_copy(voices, offset, chan->voices, mmap_offset, chan->setup.format.voices, samples1, chan->setup.format.format);
+		if (ctrl->status == SND_PCM_STATUS_XRUN)
+			return result > 0 ? result : -EPIPE;
+		snd_pcm_mmap_commit_samples(pcm, SND_PCM_CHANNEL_PLAYBACK, samples1);
+		samples -= samples1;
+		offset += samples1;
+		result += samples1;
+		if (ctrl->status == SND_PCM_STATUS_PREPARED &&
+		    (chan->setup.start_mode == SND_PCM_START_DATA ||
+		     (chan->setup.start_mode == SND_PCM_START_FULL &&
+		      !snd_pcm_mmap_playback_ready(pcm)))) {
+			err = snd_pcm_channel_go(pcm, SND_PCM_CHANNEL_PLAYBACK);
+			if (err < 0)
 				return result > 0 ? result : err;
-			if (ctrl->status == SND_PCM_STATUS_XRUN)
-				return result > 0 ? result : -EPIPE;
-			frag_data++;
-			if (frag_data == chan->setup.frag_boundary) {
-				ctrl->frag_data = 0;
-				ctrl->pos_data = 0;
-			} else {
-				ctrl->frag_data = frag_data;
-				ctrl->pos_data += frag_size;
-			}
-			bytes = frag_size;
-		} else {
-			size_t pos_data;
-			bytes = snd_pcm_mmap_bytes_playback(pcm, count);
-			pos_data = ctrl->pos_data;
-			err = transfer(pcm, pos_data % chan->setup.buffer_size, (void *) data, offset, bytes);
-			if (err < 0) 
-				return result > 0 ? result : err;
-			if (ctrl->status == SND_PCM_STATUS_XRUN)
-				return result > 0 ? result : -EPIPE;
-			pos_data += bytes;
-			if (pos_data == chan->setup.pos_boundary) {
-				ctrl->pos_data = 0;
-				ctrl->frag_data = 0;
-			} else {
-				ctrl->pos_data = pos_data;
-				ctrl->frag_data = pos_data / chan->setup.frags;
-			}
 		}
-		offset += bytes;
-		count -= bytes;
-		result += bytes;
-	}
-	
-	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
-	    (chan->setup.start_mode == SND_PCM_START_DATA ||
-	     (chan->setup.start_mode == SND_PCM_START_FULL &&
-	      !snd_pcm_mmap_playback_ready(pcm)))) {
-		err = snd_pcm_channel_go(pcm, SND_PCM_CHANNEL_PLAYBACK);
-		if (err < 0)
-			return result > 0 ? result : err;
 	}
 	return result;
 }
 
-static int transfer_write(snd_pcm_t *pcm, size_t hwoff, void* data, size_t off, size_t size)
-{
-	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	const char *buf = data;
-	unsigned int v, voices;
-#define COPY_LABELS
-#include "plugin/plugin_ops.h"
-#undef COPY_LABELS
-	void *copy;
-	snd_pcm_voice_setup_t *vsetup;
-	int idx;
-	size_t vsize, ssize;
-	idx = copy_index(chan->setup.format.format);
-	if (idx < 0)
-		return idx;
-	copy = copy_labels[idx];
-	voices = chan->setup.format.voices;
-	vsetup = chan->voices_setup;
-	vsize = snd_pcm_format_size(chan->setup.format.format, 1);
-	ssize = vsize * chan->setup.format.voices;
-	hwoff /= ssize;
-	size /= ssize;
-	for (v = 0; v < voices; ++v, ++vsetup) {
-		const char *src;
-		char *dst;
-		size_t dst_step;
-		size_t samples = size;
-		if (vsetup->first % 8 != 0 ||
-		    vsetup->step % 8 != 0)
-			return -EINVAL;
-		src = buf + off + v * vsize;
-		dst_step = vsetup->step / 8;
-		dst = chan->mmap_data + vsetup->addr + (vsetup->first + vsetup->step * hwoff) / 8;
-		while (samples-- > 0) {
-			goto *copy;
-#define COPY_END after
-#include "plugin/plugin_ops.h"
-#undef COPY_END
-		after:
-			src += ssize;
-			dst += dst_step;
-		}
-	}
-	return 0;
-}
-
-ssize_t snd_pcm_mmap_write(snd_pcm_t *pcm, const void *buffer, size_t count)
+ssize_t snd_pcm_mmap_write_samples(snd_pcm_t *pcm, const void *buffer, size_t samples)
 {
 	struct snd_pcm_chan *chan;
+	unsigned int nvoices;
 	if (!pcm)
 		return -EFAULT;
 	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	if (!chan->open || !chan->valid_setup || !chan->valid_voices_setup)
+	if (!chan->open || !chan->valid_setup)
 		return -EBADFD;
 	if (!chan->mmap_data || !chan->mmap_control)
 		return -EBADFD;
-	if (count > 0 && !buffer)
+	if (samples > 0 && !buffer)
 		return -EFAULT;
-	if (!chan->setup.format.interleave && chan->setup.format.voices > 1)
+	nvoices = chan->setup.format.voices;
+	if (!chan->setup.format.interleave && nvoices > 1)
 		return -EINVAL;
-	return snd_pcm_mmap_write1(pcm, buffer, count, transfer_write);
+	{
+		snd_pcm_voice_area_t voices[nvoices];
+		unsigned int voice;
+		for (voice = 0; voice < nvoices; ++voice) {
+			voices[voice].addr = (char*)buffer;
+			voices[voice].first = chan->sample_width * voice;
+			voices[voice].step = chan->bits_per_sample;
+		}
+		return snd_pcm_mmap_write_areas(pcm, voices, samples);
+	}
 }
 
-static int transfer_writev(snd_pcm_t *pcm, size_t hwoff, void* data, size_t off, size_t size)
+ssize_t snd_pcm_mmap_write(snd_pcm_t *pcm, const void *buffer, size_t bytes)
 {
-	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	struct iovec *vec = data;
-	unsigned int v, voices;
-#define COPY_LABELS
-#include "plugin/plugin_ops.h"
-#undef COPY_LABELS
-	void *copy;
-	snd_pcm_voice_setup_t *vsetup;
-	int idx;
-	size_t ssize;
-	idx = copy_index(chan->setup.format.format);
-	if (idx < 0)
-		return idx;
-	copy = copy_labels[idx];
-	voices = chan->setup.format.voices;
-	vsetup = chan->voices_setup;
-	ssize = snd_pcm_format_size(chan->setup.format.format, chan->setup.format.voices);
-	hwoff /= ssize;
-	size /= ssize;
-	off /= voices;
-	for (v = 0; v < voices; ++v, ++vsetup, ++vec) {
-		const char *src;
-		char *dst;
-		size_t dst_step;
-		size_t samples = size;
-		if (vsetup->first % 8 != 0 ||
-		    vsetup->step % 8 != 0)
-			return -EINVAL;
-		src = vec->iov_base + off;
-		dst_step = vsetup->step / 8;
-		dst = chan->mmap_data + vsetup->addr + (vsetup->first + vsetup->step * hwoff) / 8;
-		while (samples-- > 0) {
-			goto *copy;
-#define COPY_END after
-#include "plugin/plugin_ops.h"
-#undef COPY_END
-		after:
-			src += ssize;
-			dst += dst_step;
-		}
-	}
-	return 0;
+	struct snd_pcm_chan *chan;
+	unsigned int nvoices;
+	ssize_t samples;
+	if (!pcm)
+		return -EFAULT;
+	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
+	if (!chan->open || !chan->valid_setup)
+		return -EBADFD;
+	if (!chan->mmap_data || !chan->mmap_control)
+		return -EBADFD;
+	if (bytes > 0 && !buffer)
+		return -EFAULT;
+	nvoices = chan->setup.format.voices;
+	if (!chan->setup.format.interleave && nvoices > 1)
+		return -EINVAL;
+	samples = bytes * 8 / chan->bits_per_sample;
+	samples = snd_pcm_mmap_write_samples(pcm, buffer, samples);
+	if (samples <= 0)
+		return samples;
+	return samples * chan->bits_per_sample / 8;
 }
 
 ssize_t snd_pcm_mmap_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long vcount)
 {
 	struct snd_pcm_chan *chan;
 	size_t result = 0;
-	unsigned int b;
+	unsigned int nvoices;
 	if (!pcm)
 		return -EFAULT;
 	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	if (!chan->open || !chan->valid_setup || !chan->valid_voices_setup)
+	if (!chan->open || !chan->valid_setup)
 		return -EBADFD;
 	if (!chan->mmap_data || !chan->mmap_control)
 		return -EBADFD;
 	if (vcount > 0 && !vector)
 		return -EFAULT;
+	nvoices = chan->setup.format.voices;
 	if (chan->setup.format.interleave) {
+		unsigned int b;
 		for (b = 0; b < vcount; b++) {
-			int ret;
-			ret = snd_pcm_mmap_write1(pcm, vector[b].iov_base, vector[b].iov_len, transfer_write);
-			if (ret < 0)
-				return result > 0 ? result : ret;
+			ssize_t ret;
+			size_t samples = vector[b].iov_len * 8 / chan->bits_per_sample;
+			ret = snd_pcm_mmap_write_samples(pcm, vector[b].iov_base, samples);
+			if (ret < 0) {
+				if (result <= 0)
+					return ret;
+				break;
+			}
 			result += ret;
 		}
 	} else {
-		unsigned int voices = chan->setup.format.voices;
+		snd_pcm_voice_area_t voices[nvoices];
 		unsigned long bcount;
-		if (vcount % voices)
+		unsigned int b;
+		if (vcount % nvoices)
 			return -EINVAL;
-		bcount = vcount / voices;
+		bcount = vcount / nvoices;
 		for (b = 0; b < bcount; b++) {
 			unsigned int v;
-			int ret;
-			size_t count = 0;
-			count = vector[0].iov_len;
-			for (v = 0; v < voices; ++v) {
-				if (vector[v].iov_len != count)
+			ssize_t ret;
+			size_t bytes = 0;
+			size_t samples;
+			bytes = vector[0].iov_len;
+			for (v = 0; v < nvoices; ++v) {
+				if (vector[v].iov_len != bytes)
 					return -EINVAL;
+				voices[v].addr = vector[v].iov_base;
+				voices[v].first = 0;
+				voices[v].step = chan->sample_width;
 			}
-			ret = snd_pcm_mmap_write1(pcm, vector, count * voices, transfer_writev);
-			if (ret < 0)
-				return result > 0 ? result : ret;
-			result += ret;
-			if ((size_t)ret != count * voices)
+			samples = bytes * 8 / chan->sample_width;
+			ret = snd_pcm_mmap_write_areas(pcm, voices, samples);
+			if (ret < 0) {
+				if (result <= 0)
+					return ret;
 				break;
-			vector += voices;
+			}
+			result += ret;
+			if ((size_t)ret != samples)
+				break;
+			vector += nvoices;
 		}
 	}
-	return result;
+	return result * chan->bits_per_sample / 8;
 }
 
-static ssize_t snd_pcm_mmap_read1(snd_pcm_t *pcm, void *data, size_t count, transfer_f transfer)
+ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_voice_area_t *voices, size_t samples)
 {
 	struct snd_pcm_chan *chan;
 	snd_pcm_mmap_control_t *ctrl;
-	size_t frag_size;
 	size_t offset = 0;
 	size_t result = 0;
 	int err;
@@ -562,20 +622,13 @@ static ssize_t snd_pcm_mmap_read1(snd_pcm_t *pcm, void *data, size_t count, tran
 	ctrl = chan->mmap_control;
 	if (ctrl->status < SND_PCM_STATUS_PREPARED)
 		return -EBADFD;
-	frag_size = chan->setup.frag_size;
 	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		if (count % frag_size != 0)
+		if (samples % chan->samples_per_frag != 0)
 			return -EINVAL;
 	} else {
-		int tmp = snd_pcm_format_size(chan->setup.format.format, chan->setup.format.voices);
-		if (tmp > 0) {
-	                int r = count % tmp;
-			if (r > 0) {
-				count -= r;
-				if (count == 0)
-					return -EINVAL;
-			}
-                }
+		if (ctrl->status == SND_PCM_STATUS_RUNNING &&
+		    chan->mode & SND_PCM_NONBLOCK)
+			snd_pcm_channel_update(pcm, SND_PCM_CHANNEL_CAPTURE);
 	}
 	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
 	    chan->setup.start_mode == SND_PCM_START_DATA) {
@@ -583,10 +636,9 @@ static ssize_t snd_pcm_mmap_read1(snd_pcm_t *pcm, void *data, size_t count, tran
 		if (err < 0)
 			return err;
 	}
-	if (chan->mode & SND_PCM_NONBLOCK)
-		snd_pcm_channel_update(pcm, SND_PCM_CHANNEL_CAPTURE);
-	while (count > 0) {
-		size_t bytes;
+	while (samples > 0) {
+		ssize_t mmap_offset;
+		size_t samples1;
 		int ready = snd_pcm_mmap_capture_ready(pcm);
 		if (ready < 0)
 			return ready;
@@ -605,208 +657,135 @@ static ssize_t snd_pcm_mmap_read1(snd_pcm_t *pcm, void *data, size_t count, tran
 				return result > 0 ? result : -EPIPE;
 			assert(snd_pcm_mmap_capture_ready(pcm));
 		}
-		if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-			size_t frag_data, frag;
-			frag_data = ctrl->frag_data;
-			frag = frag_data % chan->setup.frags;
-			err = transfer(pcm, frag_size * frag, data, offset, frag_size);
-			if (err < 0) 
-				return result > 0 ? result : err;
-			if (ctrl->status == SND_PCM_STATUS_XRUN &&
-			    chan->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
-				return result > 0 ? result : -EPIPE;
-			frag_data++;
-			if (frag_data == chan->setup.frag_boundary) {
-				ctrl->frag_data = 0;
-				ctrl->pos_data = 0;
-			} else {
-				ctrl->frag_data = frag_data;
-				ctrl->pos_data += frag_size;
-			}
-			bytes = frag_size;
-		} else {
-			size_t pos_data;
-			bytes = snd_pcm_mmap_bytes_capture(pcm, count);
-			pos_data = ctrl->pos_data;
-			err = transfer(pcm, pos_data % chan->setup.buffer_size, data, offset, bytes);
-			if (err < 0) 
-				return result > 0 ? result : err;
-			if (ctrl->status == SND_PCM_STATUS_XRUN &&
-			    chan->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
-				return result > 0 ? result : -EPIPE;
-			pos_data += bytes;
-			if (pos_data == chan->setup.pos_boundary) {
-				ctrl->pos_data = 0;
-				ctrl->frag_data = 0;
-			} else {
-				ctrl->pos_data = pos_data;
-				ctrl->frag_data = pos_data / chan->setup.frags;
-			}
-		}
-		offset += bytes;
-		count -= bytes;
-		result += bytes;
+		samples1 = snd_pcm_mmap_capture_samples_xfer(pcm, samples);
+		assert(samples1 > 0);
+		mmap_offset = snd_pcm_mmap_samples_offset(pcm, SND_PCM_CHANNEL_CAPTURE);
+		snd_pcm_areas_copy(chan->voices, mmap_offset, voices, offset, chan->setup.format.voices, samples1, chan->setup.format.format);
+		if (ctrl->status == SND_PCM_STATUS_XRUN &&
+		    chan->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
+			return result > 0 ? result : -EPIPE;
+		snd_pcm_mmap_commit_samples(pcm, SND_PCM_CHANNEL_CAPTURE, samples1);
+		samples -= samples1;
+		offset += samples1;
+		result += samples1;
 	}
-	
 	return result;
 }
 
-static int transfer_read(snd_pcm_t *pcm, size_t hwoff, void* data, size_t off, size_t size)
-{
-	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	char *buf = data;
-	unsigned int v, voices;
-#define COPY_LABELS
-#include "plugin/plugin_ops.h"
-#undef COPY_LABELS
-	void *copy;
-	snd_pcm_voice_setup_t *vsetup;
-	int idx;
-	size_t vsize, ssize;
-	idx = copy_index(chan->setup.format.format);
-	if (idx < 0)
-		return idx;
-	copy = copy_labels[idx];
-	voices = chan->setup.format.voices;
-	vsetup = chan->voices_setup;
-	vsize = snd_pcm_format_size(chan->setup.format.format, 1);
-	ssize = vsize * chan->setup.format.voices;
-	hwoff /= ssize;
-	size /= ssize;
-	for (v = 0; v < voices; ++v, ++vsetup) {
-		const char *src;
-		size_t src_step;
-		char *dst;
-		size_t samples = size;
-		if (vsetup->first % 8 != 0 ||
-		    vsetup->step % 8 != 0)
-			return -EINVAL;
-		src_step = vsetup->step / 8;
-		src = chan->mmap_data + vsetup->addr + (vsetup->first + vsetup->step * hwoff) / 8;
-		dst = buf + off + v * vsize;
-		while (samples-- > 0) {
-			goto *copy;
-#define COPY_END after
-#include "plugin/plugin_ops.h"
-#undef COPY_END
-		after:
-			src += src_step;
-			dst += ssize;
-		}
-	}
-	return 0;
-}
-
-ssize_t snd_pcm_mmap_read(snd_pcm_t *pcm, void *buffer, size_t count)
+ssize_t snd_pcm_mmap_read_samples(snd_pcm_t *pcm, const void *buffer, size_t samples)
 {
 	struct snd_pcm_chan *chan;
+	unsigned int nvoices;
 	if (!pcm)
 		return -EFAULT;
 	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	if (!chan->open || !chan->valid_setup || !chan->valid_voices_setup)
+	if (!chan->open || !chan->valid_setup)
 		return -EBADFD;
 	if (!chan->mmap_data || !chan->mmap_control)
 		return -EBADFD;
-	if (count > 0 && !buffer)
+	if (samples > 0 && !buffer)
 		return -EFAULT;
-	if (!chan->setup.format.interleave && chan->setup.format.voices > 1)
+	nvoices = chan->setup.format.voices;
+	if (!chan->setup.format.interleave && nvoices > 1)
 		return -EINVAL;
-	return snd_pcm_mmap_read1(pcm, buffer, count, transfer_read);
+	{
+		snd_pcm_voice_area_t voices[nvoices];
+		unsigned int voice;
+		for (voice = 0; voice < nvoices; ++voice) {
+			voices[voice].addr = (char*)buffer;
+			voices[voice].first = chan->sample_width * voice;
+			voices[voice].step = chan->bits_per_sample;
+		}
+		return snd_pcm_mmap_read_areas(pcm, voices, samples);
+	}
 }
 
-static int transfer_readv(snd_pcm_t *pcm, size_t hwoff, void* data, size_t off, size_t size)
+ssize_t snd_pcm_mmap_read(snd_pcm_t *pcm, void *buffer, size_t bytes)
 {
-	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	struct iovec *vec = data;
-	unsigned int v, voices;
-#define COPY_LABELS
-#include "plugin/plugin_ops.h"
-#undef COPY_LABELS
-	void *copy;
-	snd_pcm_voice_setup_t *vsetup;
-	int idx;
-	size_t ssize;
-	idx = copy_index(chan->setup.format.format);
-	if (idx < 0)
-		return idx;
-	copy = copy_labels[idx];
-	voices = chan->setup.format.voices;
-	vsetup = chan->voices_setup;
-	ssize = snd_pcm_format_size(chan->setup.format.format, chan->setup.format.voices);
-	hwoff /= ssize;
-	size /= ssize;
-	off /= voices;
-	for (v = 0; v < voices; ++v, ++vsetup, ++vec) {
-		const char *src;
-		size_t src_step;
-		char *dst;
-		size_t samples = size;
-		if (vsetup->first % 8 != 0 ||
-		    vsetup->step % 8 != 0)
-			return -EINVAL;
-		src_step = vsetup->step / 8;
-		src = chan->mmap_data + vsetup->addr + (vsetup->first + vsetup->step * hwoff) / 8;
-		dst = vec->iov_base + off;
-		while (samples-- > 0) {
-			goto *copy;
-#define COPY_END after
-#include "plugin/plugin_ops.h"
-#undef COPY_END
-		after:
-			src += src_step;
-			dst += ssize;
-		}
-	}
-	return 0;
+	struct snd_pcm_chan *chan;
+	unsigned int nvoices;
+	ssize_t samples;
+	if (!pcm)
+		return -EFAULT;
+	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
+	if (!chan->open || !chan->valid_setup)
+		return -EBADFD;
+	if (!chan->mmap_data || !chan->mmap_control)
+		return -EBADFD;
+	if (bytes > 0 && !buffer)
+		return -EFAULT;
+	nvoices = chan->setup.format.voices;
+	if (!chan->setup.format.interleave && nvoices > 1)
+		return -EINVAL;
+	samples = bytes * 8 / chan->bits_per_sample;
+	samples = snd_pcm_mmap_read_samples(pcm, buffer, samples);
+	if (samples <= 0)
+		return samples;
+	return samples * chan->bits_per_sample / 8;
 }
 
 ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long vcount)
 {
 	struct snd_pcm_chan *chan;
 	size_t result = 0;
-	unsigned int b;
+	unsigned int nvoices;
 	if (!pcm)
 		return -EFAULT;
 	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	if (!chan->open || !chan->valid_setup || !chan->valid_voices_setup)
+	if (!chan->open || !chan->valid_setup)
 		return -EBADFD;
 	if (!chan->mmap_data || !chan->mmap_control)
 		return -EBADFD;
 	if (vcount > 0 && !vector)
 		return -EFAULT;
+	nvoices = chan->setup.format.voices;
 	if (chan->setup.format.interleave) {
+		unsigned int b;
 		for (b = 0; b < vcount; b++) {
-			int ret;
-			ret = snd_pcm_mmap_read1(pcm, vector[b].iov_base, vector[b].iov_len, transfer_write);
-			if (ret < 0)
-				return result > 0 ? result : ret;
+			ssize_t ret;
+			size_t samples = vector[b].iov_len * 8 / chan->bits_per_sample;
+			ret = snd_pcm_mmap_read_samples(pcm, vector[b].iov_base, samples);
+			if (ret < 0) {
+				if (result <= 0)
+					return ret;
+				break;
+			}
 			result += ret;
 		}
 	} else {
-		unsigned int voices = chan->setup.format.voices;
+		snd_pcm_voice_area_t voices[nvoices];
 		unsigned long bcount;
-		if (vcount % voices)
+		unsigned int b;
+		if (vcount % nvoices)
 			return -EINVAL;
-		bcount = vcount / voices;
+		bcount = vcount / nvoices;
 		for (b = 0; b < bcount; b++) {
 			unsigned int v;
-			int ret;
-			size_t count = 0;
-			count = vector[0].iov_len;
-			for (v = 0; v < voices; ++v) {
-				if (vector[v].iov_len != count)
+			ssize_t ret;
+			size_t bytes = 0;
+			size_t samples;
+			bytes = vector[0].iov_len;
+			for (v = 0; v < nvoices; ++v) {
+				if (vector[v].iov_len != bytes)
 					return -EINVAL;
+				voices[v].addr = vector[v].iov_base;
+				voices[v].first = 0;
+				voices[v].step = chan->sample_width;
 			}
-			ret = snd_pcm_mmap_read1(pcm, (void *) vector, count * voices, transfer_readv);
-			if (ret < 0)
-				return result > 0 ? result : ret;
-			result += ret;
-			if ((size_t)ret != count * voices)
+			samples = bytes * 8 / chan->sample_width;
+			ret = snd_pcm_mmap_read_areas(pcm, voices, samples);
+			if (ret < 0) {
+				if (result <= 0)
+					return ret;
 				break;
-			vector += voices;
+			}
+			result += ret;
+			if ((size_t)ret != samples)
+				break;
+			vector += nvoices;
 		}
 	}
-	return result;
+	return result * chan->bits_per_sample / 8;
 }
 
 static void *playback_mmap(void *d)
@@ -854,7 +833,7 @@ static void *playback_mmap(void *d)
 		}
 
 		frag = control->frag_io;
-		if (snd_pcm_mmap_playback_frags_used(pcm) <= 0) {
+		if (snd_pcm_mmap_playback_frags_used(chan) <= 0) {
 			fprintf(stderr, "underrun\n");
 			usleep(10000);
 			continue;
@@ -934,7 +913,7 @@ static void *capture_mmap(void *d)
 		}
 
 		frag = control->frag_io;
-		if (snd_pcm_mmap_capture_frags_free(pcm) <= 0) {
+		if (snd_pcm_mmap_capture_frags_free(chan) <= 0) {
 			fprintf(stderr, "overrun\n");
 			usleep(10000);
 			continue;
@@ -1003,6 +982,36 @@ int snd_pcm_mmap_control(snd_pcm_t *pcm, int channel, snd_pcm_mmap_control_t **c
 	return 0;
 }
 
+int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, int channel, snd_pcm_voice_area_t *areas)
+{
+	struct snd_pcm_chan *chan;
+	snd_pcm_voice_setup_t s;
+	snd_pcm_voice_area_t *a, *ap;
+	unsigned int voice;
+	int err;
+	if (!pcm)
+		return -EFAULT;
+	if (channel < 0 || channel > 1)
+		return -EINVAL;
+	chan = &pcm->chan[channel];
+	if (!chan->open || !chan->valid_setup || !chan->mmap_data)
+		return -EBADFD;
+	a = calloc(chan->setup.format.voices, sizeof(*areas));
+	for (voice = 0, ap = a; voice < chan->setup.format.voices; ++voice, ++ap) {
+		s.voice = voice;
+		err = snd_pcm_voice_setup(pcm, channel, &s);
+		if (err < 0) {
+			free(a);
+			return err;
+		}
+		if (areas)
+			areas[voice] = s.area;
+		*ap = s.area;
+	}
+	chan->voices = a;
+	return 0;
+}
+
 int snd_pcm_mmap_data(snd_pcm_t *pcm, int channel, void **data)
 {
 	struct snd_pcm_chan *chan;
@@ -1054,7 +1063,9 @@ int snd_pcm_mmap_data(snd_pcm_t *pcm, int channel, void **data)
 	}
 	chan->mmap_data = *data;
 	chan->mmap_data_size = bsize;
-	snd_pcm_all_voices_setup(pcm, channel, NULL);
+	err = snd_pcm_mmap_get_areas(pcm, channel, NULL);
+	if (err < 0)
+		return err;
 	return 0;
 }
 
@@ -1125,6 +1136,7 @@ int snd_pcm_munmap_data(snd_pcm_t *pcm, int channel)
 		if ((err = pcm->ops->munmap_data(pcm, channel, chan->mmap_data, chan->mmap_data_size)) < 0)
 			return err;
 	}
+	free(chan->voices);
 	chan->mmap_data = 0;
 	chan->mmap_data_size = 0;
 	return 0;
