@@ -155,6 +155,8 @@ static int snd_ctl_hsort_mixer_priority(const char *name)
 		"PCM Front",
 		"PCM Rear",
 		"PCM Pan",
+		"Synth",
+		"FM",
 		"Wave",
 		"Music",
 		"Line",
