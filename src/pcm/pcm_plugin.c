@@ -53,12 +53,12 @@ snd_pcm_plugin_t *snd_pcm_plugin_build(snd_pcm_plugin_handle_t *handle,
 	plugin->name = name ? strdup(name) : NULL;
 	if (src_format) {
 		memcpy(&plugin->src_format, src_format, sizeof(snd_pcm_format_t));
-		if ((plugin->src_width = snd_pcm_format_width(src_format->format)) < 0)
+		if ((plugin->src_width = snd_pcm_format_physical_width(src_format->format)) < 0)
 			return NULL;
 	}
 	if (dst_format) {
 		memcpy(&plugin->dst_format, dst_format, sizeof(snd_pcm_format_t));
-		if ((plugin->dst_width = snd_pcm_format_width(dst_format->format)) < 0)
+		if ((plugin->dst_width = snd_pcm_format_physical_width(dst_format->format)) < 0)
 			return NULL;
 	}
 	plugin->handle = handle;
@@ -771,7 +771,7 @@ static int snd_pcm_plugin_xvoices(snd_pcm_plugin_t *plugin,
 	snd_pcm_plugin_voice_t *v;
 	
 	*voices = NULL;
-	if ((width = snd_pcm_format_width(format->format)) < 0)
+	if ((width = snd_pcm_format_physical_width(format->format)) < 0)
 		return width;	
 	size = format->voices * samples * width;
 	if ((size % 8) != 0)

@@ -148,6 +148,43 @@ int snd_pcm_format_width(int format)
 	}
 }
 
+int snd_pcm_format_physical_width(int format)
+{
+	switch (format) {
+	case SND_PCM_SFMT_S8:
+	case SND_PCM_SFMT_U8:
+		return 8;
+	case SND_PCM_SFMT_S16_LE:
+	case SND_PCM_SFMT_S16_BE:
+	case SND_PCM_SFMT_U16_LE:
+	case SND_PCM_SFMT_U16_BE:
+		return 16;
+	case SND_PCM_SFMT_S24_LE:
+	case SND_PCM_SFMT_S24_BE:
+	case SND_PCM_SFMT_U24_LE:
+	case SND_PCM_SFMT_U24_BE:
+	case SND_PCM_SFMT_S32_LE:
+	case SND_PCM_SFMT_S32_BE:
+	case SND_PCM_SFMT_U32_LE:
+	case SND_PCM_SFMT_U32_BE:
+	case SND_PCM_SFMT_FLOAT_LE:
+	case SND_PCM_SFMT_FLOAT_BE:
+	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
+	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
+		return 32;
+	case SND_PCM_SFMT_FLOAT64_LE:
+	case SND_PCM_SFMT_FLOAT64_BE:
+		return 64;
+	case SND_PCM_SFMT_MU_LAW:
+	case SND_PCM_SFMT_A_LAW:
+		return 8;
+	case SND_PCM_SFMT_IMA_ADPCM:
+		return 4;
+	default:
+		return -EINVAL;
+	}
+}
+
 ssize_t snd_pcm_format_size(int format, size_t samples)
 {
 	if (samples < 0)
