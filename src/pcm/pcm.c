@@ -204,7 +204,7 @@ int snd_pcm_start(snd_pcm_t *pcm)
 	assert(pcm);
 	assert(pcm->valid_setup);
 	assert(pcm->stream != SND_PCM_STREAM_PLAYBACK ||
-	       snd_pcm_mmap_avail(pcm) < pcm->setup.buffer_size);
+	       snd_pcm_mmap_playback_hw_avail(pcm) > 0);
 	return pcm->fast_ops->start(pcm->fast_op_arg);
 }
 
