@@ -297,11 +297,11 @@ static int selem_read(snd_mixer_elem_t *elem)
 	memcpy(pvol, s->str[PLAY].vol, sizeof(pvol));
 	memset(&s->str[PLAY].vol, 0, sizeof(s->str[PLAY].vol));
 	psw = s->str[PLAY].sw;
-	s->str[PLAY].sw = 0;
+	s->str[PLAY].sw = ~0U;
 	memcpy(cvol, s->str[CAPT].vol, sizeof(cvol));
 	memset(&s->str[CAPT].vol, 0, sizeof(s->str[CAPT].vol));
 	csw = s->str[CAPT].sw;
-	s->str[CAPT].sw = 0;
+	s->str[CAPT].sw = ~0U;
 
 	if (s->ctls[CTL_PLAYBACK_VOLUME].elem)
 		err = elem_read_volume(s, PLAY, CTL_PLAYBACK_VOLUME);
@@ -313,20 +313,37 @@ static int selem_read(snd_mixer_elem_t *elem)
 	if (err < 0)
 		return err;
 
-	s->str[PLAY].sw = ~0;
-	if (s->ctls[CTL_PLAYBACK_SWITCH].elem)
+	if ((s->caps & (CAP_GSWITCH|CAP_PSWITCH)) == 0) {
+		s->str[CAPT].sw = 0;
+		goto __skip_pswitch;
+	}
+	if (s->ctls[CTL_PLAYBACK_SWITCH].elem) {
 		err = elem_read_switch(s, PLAY, CTL_PLAYBACK_SWITCH);
-	if (s->ctls[CTL_GLOBAL_SWITCH].elem)
+		if (err < 0)
+			return err;
+	}
+	if (s->ctls[CTL_GLOBAL_SWITCH].elem) {
 		err = elem_read_switch(s, PLAY, CTL_GLOBAL_SWITCH);
+		if (err < 0)
+			return err;
+	}
 	if (s->ctls[CTL_SINGLE].elem &&
-	    s->ctls[CTL_SINGLE].type == SND_CTL_ELEM_TYPE_BOOLEAN)
+	    s->ctls[CTL_SINGLE].type == SND_CTL_ELEM_TYPE_BOOLEAN) {
 		err = elem_read_switch(s, PLAY, CTL_SINGLE);
-	if (s->ctls[CTL_PLAYBACK_ROUTE].elem)
+		if (err < 0)
+			return err;
+	}
+	if (s->ctls[CTL_PLAYBACK_ROUTE].elem) {
 		err = elem_read_route(s, PLAY, CTL_PLAYBACK_ROUTE);
-	if (s->ctls[CTL_GLOBAL_ROUTE].elem)
+		if (err < 0)
+			return err;
+	}
+	if (s->ctls[CTL_GLOBAL_ROUTE].elem) {
 		err = elem_read_route(s, PLAY, CTL_GLOBAL_ROUTE);
-	if (err < 0)
-		return err;
+		if (err < 0)
+			return err;
+	}
+      __skip_pswitch:
 
 	if (s->ctls[CTL_CAPTURE_VOLUME].elem)
 		err = elem_read_volume(s, CAPT, CTL_CAPTURE_VOLUME);
@@ -338,35 +355,53 @@ static int selem_read(snd_mixer_elem_t *elem)
 	if (err < 0)
 		return err;
 
-	s->str[CAPT].sw = ~0;
-	if (s->ctls[CTL_CAPTURE_SWITCH].elem)
+	if ((s->caps & (CAP_GSWITCH|CAP_CSWITCH)) == 0) {
+		s->str[CAPT].sw = 0;
+		goto __skip_cswitch;
+	}
+	if (s->ctls[CTL_CAPTURE_SWITCH].elem) {
 		err = elem_read_switch(s, CAPT, CTL_CAPTURE_SWITCH);
-	if (s->ctls[CTL_GLOBAL_SWITCH].elem)
+		if (err < 0)
+			return err;
+	}
+	if (s->ctls[CTL_GLOBAL_SWITCH].elem) {
 		err = elem_read_switch(s, CAPT, CTL_GLOBAL_SWITCH);
+		if (err < 0)
+			return err;
+	}
 	if (s->ctls[CTL_SINGLE].elem &&
-	    s->ctls[CTL_SINGLE].type == SND_CTL_ELEM_TYPE_BOOLEAN)
+	    s->ctls[CTL_SINGLE].type == SND_CTL_ELEM_TYPE_BOOLEAN) {
 		err = elem_read_switch(s, CAPT, CTL_SINGLE);
-	if (s->ctls[CTL_CAPTURE_ROUTE].elem)
+		if (err < 0)
+			return err;
+	}
+	if (s->ctls[CTL_CAPTURE_ROUTE].elem) {
 		err = elem_read_route(s, CAPT, CTL_CAPTURE_ROUTE);
-	if (s->ctls[CTL_GLOBAL_ROUTE].elem)
+		if (err < 0)
+			return err;
+	}
+	if (s->ctls[CTL_GLOBAL_ROUTE].elem) {
 		err = elem_read_route(s, CAPT, CTL_GLOBAL_ROUTE);
+		if (err < 0)
+			return err;
+	}
 	if (s->ctls[CTL_CAPTURE_SOURCE].elem) {
 		snd_ctl_elem_value_t ctl;
 		selem_ctl_t *c = &s->ctls[CTL_CAPTURE_SOURCE];
 		memset(&ctl, 0, sizeof(ctl));
 		err = snd_hctl_elem_read(c->elem, &ctl);
-		if (err >= 0) {
-			for (idx = 0; idx < s->str[CAPT].channels; idx++) {
-				unsigned int idx1 = idx;
-				if (idx >= c->values)
-					idx1 = 0;
-				if (snd_ctl_elem_value_get_enumerated(&ctl, idx1) == s->capture_item)
-					s->str[CAPT].sw |= 1 << idx;
-			}
+		if (err < 0)
+			return err;
+		for (idx = 0; idx < s->str[CAPT].channels; idx++) {
+			unsigned int idx1 = idx;
+			if (idx >= c->values)
+				idx1 = 0;
+			if (snd_ctl_elem_value_get_enumerated(&ctl, idx1) != s->capture_item)
+				s->str[CAPT].sw &= ~(1 << idx);
 		}
 	}
-	if (err < 0)
-		return err;
+      __skip_cswitch:
+
 	if (memcmp(pvol, s->str[PLAY].vol, sizeof(pvol)) ||
 	    psw != s->str[PLAY].sw ||
 	    memcmp(cvol, s->str[CAPT].vol, sizeof(cvol)) ||
@@ -627,9 +662,13 @@ static int simple_update(snd_mixer_elem_t *melem)
 	if (cchannels > 32)
 		cchannels = 32;
 	if (caps & (CAP_GSWITCH|CAP_PSWITCH))
-		caps |= CAP_PSWITCH_JOIN | CAP_PVOLUME_JOIN;
+		caps |= CAP_PSWITCH_JOIN;
+	if (caps & (CAP_GVOLUME|CAP_PVOLUME))
+		caps |= CAP_PVOLUME_JOIN;
 	if (caps & (CAP_GSWITCH|CAP_CSWITCH))
-		caps |= CAP_CSWITCH_JOIN | CAP_PVOLUME_JOIN;
+		caps |= CAP_CSWITCH_JOIN;
+	if (caps & (CAP_GVOLUME|CAP_CVOLUME))
+		caps |= CAP_PVOLUME_JOIN;
 	if (pchannels > 1 || cchannels > 1) {
 		if (simple->ctls[CTL_SINGLE].elem &&
 		    simple->ctls[CTL_SINGLE].values > 1) {
@@ -670,6 +709,13 @@ static int simple_update(snd_mixer_elem_t *melem)
 			caps &= ~CAP_CVOLUME_JOIN;
 		}
 	}
+
+	/* exceptions */
+	if ((caps & (CAP_GSWITCH|CAP_PSWITCH|CAP_CSWITCH)) == (caps & CAP_GSWITCH)) {
+		caps &= ~(CAP_GSWITCH|CAP_CSWITCH_JOIN|CAP_CSWITCH_EXCL);
+		caps |= CAP_PSWITCH;
+	}
+
 	simple->caps = caps;
 	simple->str[PLAY].channels = pchannels;
 	if (!simple->str[PLAY].range) {
