@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SND_FILE_LOAD		"/dev/loadC%i"
+#define SND_FILE_LOAD		"/dev/aloadC%i"
 
 int snd_card_load(int card)
 {
