@@ -1,7 +1,7 @@
 #ifndef __ALSA_IATOMIC_H
 #define __ALSA_IATOMIC_H
 
-#ifdef __i386__
+#if defined(__i386__) || defined(__x86_64__)
 
 /*
  * Atomic operations that C can't guarantee us.  Useful for
@@ -206,9 +206,15 @@ __asm__ __volatile__(LOCK "orl %0,%1" \
  * and add some real memory barriers if so.
  */
  
+#ifdef __i386__
 #define mb() 	__asm__ __volatile__ ("lock; addl $0,0(%%esp)": : :"memory")
 #define rmb()	mb()
 #define wmb()	__asm__ __volatile__ ("": : :"memory")
+#else
+#define mb() 	asm volatile("mfence":::"memory")
+#define rmb()	asm volatile("lfence":::"memory")
+#define wmb()	asm volatile("sfence":::"memory")
+#endif
 
 #define IATOMIC_DEFINED		1
 
