@@ -101,11 +101,21 @@ int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix)
 {
 	static int snd_pcm_direct_shm_discard(snd_pcm_direct_t *dmix);
 	struct shmid_ds buf;
-	int ret = 0;
+	int tmpid, err;
 	
+retryget:
 	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t), IPC_CREAT | 0666);
-	if (dmix->shmid < 0)
-		return -errno;
+	err = -errno;
+	if (dmix->shmid < 0){
+		if (errno == EINVAL)
+		if ((tmpid = shmget(dmix->ipc_key, 0, 0666)) != -1)
+		if (!shmctl(tmpid, IPC_STAT, &buf))
+		if (!buf.shm_nattch)
+	    	/* no users so destroy the segment */
+		if (!shmctl(tmpid, IPC_RMID, NULL))
+		    goto retryget;
+		return err;
+	}
 	dmix->shmptr = shmat(dmix->shmid, 0, 0);
 	if (dmix->shmptr == (void *) -1) {
 		snd_pcm_direct_shm_discard(dmix);
@@ -118,9 +128,9 @@ int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix)
 	}
 	if (buf.shm_nattch == 1) {	/* we're the first user, clear the segment */
 		memset(dmix->shmptr, 0, sizeof(snd_pcm_direct_share_t));
-		ret = 1;
+		return 1;
 	}
-	return ret;
+	return 0;
 }
 
 int snd_pcm_direct_shm_discard(snd_pcm_direct_t *dmix)

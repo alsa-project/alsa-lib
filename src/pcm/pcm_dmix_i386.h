@@ -51,16 +51,17 @@ static void MIX_AREAS1(unsigned int size,
 		"\tmovl %1, %%edi\n"
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
+		"\tjmp 2f\n"
+
 
 		/*
-		 * while (size-- > 0) {
+		 * for (;;)
 		 */
-		"\tcmpl $0, %0\n"
-		"jz 6f\n"
-
 		"\t.p2align 4,,15\n"
-
 		"1:"
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
 
 		/*
 		 *   sample = *src;
@@ -69,14 +70,17 @@ static void MIX_AREAS1(unsigned int size,
 		 *     sample -= sum_sample;
 		 *   xadd(*sum, sample);
 		 */
-		"\tmovw $0, %%ax\n"
-		"\tmovw $1, %%cx\n"
+
+		"2:"
+		"\txor %%ax, %%ax\n"
+		"\tmovw %%ax, %%cx\n"
+		"\tincw  %%cx\n"
 		"\tmovl (%%ebx), %%edx\n"
 		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
 		"\tmovswl (%%esi), %%ecx\n"
-		"\tjnz 2f\n"
+		"\tjnz 3f\n"
 		"\tsubl %%edx, %%ecx\n"
-		"2:"
+		"3:"
 		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
 
 		/*
@@ -87,25 +91,22 @@ static void MIX_AREAS1(unsigned int size,
 		 *   } while (v != *sum);
 		 */
 
-		"3:"
+		"4:"
 		"\tmovl (%%ebx), %%ecx\n"
 		"\tcmpl $0x7fff,%%ecx\n"
-		"\tjg 4f\n"
+		"\tjg 5f\n"
 		"\tcmpl $-0x8000,%%ecx\n"
-		"\tjl 5f\n"
+		"\tjl 6f\n"
 		"\tmovw %%cx, (%%edi)\n"
 		"\tcmpl %%ecx, (%%ebx)\n"
-		"\tjnz 3b\n"
+		"\tjnz 4b\n"
 
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
 		"\tdecl %0\n"
-		"\tjnz 1b\n"
-		"\tjmp 6f\n"
+		"\tjz  7f\n"
+		"\tjmp 1b\n"
 
 		/*
 		 *  sample > 0x7fff
@@ -113,16 +114,13 @@ static void MIX_AREAS1(unsigned int size,
 
 		"\t.p2align 4,,15\n"
 
-		"4:"
+		"5:"
 		"\tmovw $0x7fff, (%%edi)\n"
 		"\tcmpl %%ecx,(%%ebx)\n"
-		"\tjnz 3b\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
+		"\tjnz 4b\n"
 		"\tdecl %0\n"
 		"\tjnz 1b\n"
-		"\tjmp 6f\n"
+		"\tjmp 7f\n"
 
 		/*
 		 *  sample < -0x8000
@@ -130,18 +128,15 @@ static void MIX_AREAS1(unsigned int size,
 
 		"\t.p2align 4,,15\n"
 
-		"5:"
+		"6:"
 		"\tmovw $-0x8000, (%%edi)\n"
 		"\tcmpl %%ecx, (%%ebx)\n"
-		"\tjnz 3b\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
+		"\tjnz 4b\n"
 		"\tdecl %0\n"
 		"\tjnz 1b\n"
 		// "\tjmp 6f\n"
 		
-		"6:"
+		"7:"
 
 		: /* no output regs */
 		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
@@ -174,17 +169,15 @@ static void MIX_AREAS1_MMX(unsigned int size,
 		"\tmovl %1, %%edi\n"
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
-
-		/*
-		 * while (size-- > 0) {
-		 */
-		"\tcmpl $0, %0\n"
-		"jz 6f\n"
+		"\tjmp  2f\n"
 
 		"\t.p2align 4,,15\n"
-
 		"1:"
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
 
+		"2:"
 		/*
 		 *   sample = *src;
 		 *   sum_sample = *sum;
@@ -192,14 +185,15 @@ static void MIX_AREAS1_MMX(unsigned int size,
 		 *     sample -= sum_sample;
 		 *   xadd(*sum, sample);
 		 */
-		"\tmovw $0, %%ax\n"
-		"\tmovw $1, %%cx\n"
+		"\txor  %%ax, %%ax\n"
+		"\tmovw %%ax, %%cx\n"
+		"\tincw %%cx\n"
 		"\tmovl (%%ebx), %%edx\n"
 		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
 		"\tmovswl (%%esi), %%ecx\n"
-		"\tjnz 2f\n"
+		"\tjnz 3f\n"
 		"\tsubl %%edx, %%ecx\n"
-		"2:"
+		"3:"
 		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
 
 		/*
@@ -210,27 +204,20 @@ static void MIX_AREAS1_MMX(unsigned int size,
 		 *   } while (v != *sum);
 		 */
 
-		"3:"
+		"4:"
 		"\tmovl (%%ebx), %%ecx\n"
 		"\tmovd %%ecx, %%mm0\n"
 		"\tpackssdw %%mm1, %%mm0\n"
 		"\tmovd %%mm0, %%eax\n"
 		"\tmovw %%ax, (%%edi)\n"
 		"\tcmpl %%ecx, (%%ebx)\n"
-		"\tjnz 3b\n"
+		"\tjnz 4b\n"
 
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
 		"\tdecl %0\n"
 		"\tjnz 1b\n"
-		"\tjmp 6f\n"
-
-		"6:"
-		
 		"\temms\n"
 
 		: /* no output regs */
@@ -264,12 +251,6 @@ static void MIX_AREAS2(unsigned int size,
 		"\tmovl %1, %%edi\n"
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
-
-		/*
-		 * while (size-- > 0) {
-		 */
-		"\tcmpl $0, %0\n"
-		"jz 6f\n"
 
 		"\t.p2align 4,,15\n"
 
@@ -334,12 +315,12 @@ static void MIX_AREAS2(unsigned int size,
 		/*
 		 * while (size-- > 0)
 		 */
+		"\tdecl %0\n"
+		"\tjz 6f\n"
 		"\tadd %4, %%edi\n"
 		"\tadd %5, %%esi\n"
 		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
-		"\tjnz 1b\n"
-		// "\tjmp 6f\n"
+		"\tjmp 1b\n"
 		
 		"6:"
 		: /* no output regs */

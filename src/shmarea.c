@@ -56,17 +56,6 @@ struct snd_shm_area *snd_shm_area_share(struct snd_shm_area *area)
 	return area;
 }
 
-static void _x_destroy(struct snd_shm_area *area)
-{
-	struct shmid_ds buf;
-
-	shmdt(area->ptr);
-	if (shmctl(area->shmid, IPC_STAT, &buf) >= 0) {
-		if (buf.shm_nattch == 0)
-			shmctl(area->shmid, IPC_RMID, NULL);
-	}
-}
-
 int snd_shm_area_destroy(struct snd_shm_area *area)
 {
 	if (area == NULL)
@@ -74,7 +63,7 @@ int snd_shm_area_destroy(struct snd_shm_area *area)
 	if (--area->share)
 		return 0;
 	list_del(&area->list);
-	_x_destroy(area);
+	shmdt(area->ptr);
 	free(area);
 	return 0;
 }
@@ -88,6 +77,6 @@ void snd_shm_area_destructor(void)
 
 	list_for_each(pos, &shm_areas) {
 		area = list_entry(pos, struct snd_shm_area, list);
-		_x_destroy(area);
+		shmdt(area->ptr);
 	}
 }

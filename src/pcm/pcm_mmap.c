@@ -368,6 +368,11 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 						SYSERR("shmat failed");
 						return -errno;
 					}
+					/* automatically remove segment if not used */
+					if (shmctl(id, IPC_RMID, NULL) < 0){
+						SYSERR("shmctl mark remove failed");
+						return -errno;
+					}
 					i->u.shm.area = snd_shm_area_create(id, ptr);
 					if (i->u.shm.area == NULL) {
 						SYSERR("snd_shm_area_create failed");

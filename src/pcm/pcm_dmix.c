@@ -59,14 +59,26 @@ const char *_snd_module_pcm_dmix = "";
 static int shm_sum_create_or_connect(snd_pcm_direct_t *dmix)
 {
 	static int shm_sum_discard(snd_pcm_direct_t *dmix);
+	struct shmid_ds buf;
+	int tmpid, err;
 	size_t size;
 
 	size = dmix->shmptr->s.channels *
 	       dmix->shmptr->s.buffer_size *
 	       sizeof(signed int);	
+retryshm:
 	dmix->u.dmix.shmid_sum = shmget(dmix->ipc_key + 1, size, IPC_CREAT | 0666);
-	if (dmix->u.dmix.shmid_sum < 0)
-		return -errno;
+	err = -errno;
+	if (dmix->u.dmix.shmid_sum < 0){
+		if (errno == EINVAL)
+		if ((tmpid = shmget(dmix->ipc_key + 1, 0, 0666)) != -1)
+		if (!shmctl(tmpid, IPC_STAT, &buf))
+	    	if (!buf.shm_nattch) 
+		/* no users so destroy the segment */
+		if (!shmctl(tmpid, IPC_RMID, NULL))
+		    goto retryshm;
+		return err;
+	}
 	dmix->u.dmix.sum_buffer = shmat(dmix->u.dmix.shmid_sum, 0, 0);
 	if (dmix->u.dmix.sum_buffer == (void *) -1) {
 		shm_sum_discard(dmix);
@@ -214,7 +226,7 @@ static void mix_areas1(unsigned int size,
 {
 	register signed int sample, old_sample;
 
-	while (size-- > 0) {
+	for (;;) {
 		sample = *src;
 		old_sample = *sum;
 		if (*dst == 0)
@@ -230,6 +242,8 @@ static void mix_areas1(unsigned int size,
 				sample = old_sample;
 			*dst = sample;
 		} while (*sum != old_sample);
+		if (!--size)
+			return;
 		((char *)src) += src_step;
 		((char *)dst) += dst_step;
 		((char *)sum) += sum_step;
@@ -244,7 +258,7 @@ static void mix_areas2(unsigned int size,
 {
 	register signed int sample, old_sample;
 
-	while (size-- > 0) {
+	for (;;) {
 		sample = *src / 256;
 		old_sample = *sum;
 		if (*dst == 0)
@@ -260,6 +274,8 @@ static void mix_areas2(unsigned int size,
 				sample = old_sample * 256;
 			*dst = sample;
 		} while (*sum != old_sample);
+		if (!--size)
+			return;
 		((char *)src) += src_step;
 		((char *)dst) += dst_step;
 		((char *)sum) += sum_step;
@@ -366,9 +382,11 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 	dmix->slave_appl_ptr %= dmix->shmptr->s.boundary;
 	while (size > 0) {
 		transfer = appl_ptr + size > pcm->buffer_size ? pcm->buffer_size - appl_ptr : size;
-		transfer = slave_appl_ptr + transfer > dmix->shmptr->s.buffer_size ? dmix->shmptr->s.buffer_size - slave_appl_ptr : transfer;
-		size -= transfer;
+		if ((transfer = slave_appl_ptr + transfer > dmix->shmptr->s.buffer_size ? dmix->shmptr->s.buffer_size - slave_appl_ptr : transfer))
 		mix_areas(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
+		if (transfer >= size)
+			return;
+		size -= transfer;
 		slave_appl_ptr += transfer;
 		slave_appl_ptr %= dmix->shmptr->s.buffer_size;
 		appl_ptr += transfer;
