@@ -16,7 +16,7 @@ static void usage(void)
 
 int stop = 0;
 
-void sighandler(int dum)
+void sighandler(int dummy ATTRIBUTE_UNUSED)
 {
 	stop=1;
 }
@@ -188,10 +188,10 @@ int main(int argc, char** argv)
 	err = snd_rawmidi_stream_status(handle_out, &ostat);
 	if (err < 0)
 		fprintf(stderr, "output stream status error: %d\n", err);
-	printf("input.status.queue = %i\n", istat.queue);
-	printf("input.status.overrun = %i\n", istat.overrun);
-	printf("output.status.queue = %i\n", ostat.queue);
-	printf("output.status.overrun = %i\n", ostat.overrun);
+	printf("input.status.queue = %li\n", istat.queue);
+	printf("input.status.overrun = %li\n", istat.overrun);
+	printf("output.status.queue = %li\n", ostat.queue);
+	printf("output.status.overrun = %li\n", ostat.overrun);
 
 	diff = timediff(end, start);
 	printf("Time diff: %Liusec (%Li bytes/sec)\n", diff, ((long long)opos * 1000000) / diff);
