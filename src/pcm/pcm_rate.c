@@ -455,6 +455,8 @@ snd_pcm_rate_read_areas(snd_pcm_t *pcm,
 static snd_pcm_sframes_t snd_pcm_rate_client_frames(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
+	if (frames == 0)
+		return 0;
 	/* Round toward zero */
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		return muldiv_down(frames, DIV, rate->pitch);
