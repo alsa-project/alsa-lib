@@ -284,6 +284,7 @@ int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class)
 int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 {
 	snd_mixer_t *mixer = elem->class->mixer;
+	bag_iterator_t i, n;
 	int err, idx, dir;
 	unsigned int m;
 	assert(elem);
@@ -291,6 +292,12 @@ int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 	idx = _snd_mixer_find_elem(mixer, elem, &dir);
 	if (dir != 0)
 		return -EINVAL;
+      __again:
+	bag_for_each(i, n, &elem->helems) {
+		snd_hctl_elem_t *helem = bag_iterator_entry(i);
+		snd_mixer_elem_detach(elem, helem);
+		goto __again;		/* FIXME: optimize */
+	}
 	err = snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_REMOVE);
 	list_del(&elem->list);
 	if (elem->private_free)
