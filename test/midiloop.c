@@ -182,10 +182,10 @@ int main(int argc, char** argv)
 	bzero(&ostat, sizeof(ostat));
 	istat.stream = SND_RAWMIDI_STREAM_INPUT;
 	ostat.stream = SND_RAWMIDI_STREAM_OUTPUT;
-	err = snd_rawmidi_stream_status(handle_in, &istat);
+	err = snd_rawmidi_status(handle_in, &istat);
 	if (err < 0)
 		fprintf(stderr, "input stream status error: %d\n", err);
-	err = snd_rawmidi_stream_status(handle_out, &ostat);
+	err = snd_rawmidi_status(handle_out, &ostat);
 	if (err < 0)
 		fprintf(stderr, "output stream status error: %d\n", err);
 	printf("input.status.queue = %li\n", istat.queue);
