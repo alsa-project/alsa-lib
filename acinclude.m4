@@ -38,9 +38,9 @@ AC_SUBST(SND_LIB_SUBMINOR)
 SND_LIB_EXTRASTR=`echo $VERSION | cut -d . -f 3 | sed -e 's/^\([[^[:alpha:]]]*\)\([[[:alpha:]]]*\)\([[[:digit:]]]*\)$/\2/g'`
 SND_LIB_EXTRAVER=`echo $VERSION | cut -d . -f 3 | sed -e 's/^\([[^[:alpha:]]]*\)\([[[:alpha:]]]*\)\([[[:digit:]]]*\)$/\3/g'`
 case "$SND_LIB_EXTRASTR" in
+  pre)   SND_LIB_EXTRAVER=`expr $SND_LIB_EXTRAVER + 00000` ;;
   alpha) SND_LIB_EXTRAVER=`expr $SND_LIB_EXTRAVER + 10000` ;;
   beta)  SND_LIB_EXTRAVER=`expr $SND_LIB_EXTRAVER + 20000` ;;
-  pre)   SND_LIB_EXTRAVER=`expr $SND_LIB_EXTRAVER + 30000` ;;
   *)     SND_LIB_EXTRAVER=100000 ;;
 esac
 AC_MSG_RESULT(major $SND_LIB_MAJOR minor $SND_LIB_MINOR subminor $SND_LIB_SUBMINOR extrastr $SND_LIB_EXTRASTR extraver $SND_LIB_EXTRAVER)
