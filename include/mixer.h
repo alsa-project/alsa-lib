@@ -6,12 +6,12 @@
  ****************************************************************************/
 
 typedef struct snd_mixer_callbacks {
-	void *private_data;	/* should be used by application */
-	void (*channel_was_changed) (void *private_data, int channel);
-	void (*output_channel_was_changed) (void *private_data, int channel);
-	void (*input_channel_was_changed) (void *private_data, int channel);
-	void (*switch_was_changed) (void *private_data, int switchn);
-	void *reserved[15];	/* reserved for future use - must be NULL!!! */
+	void *private_data;	/* should be used by an application */
+	void (*rebuild) (void *private_data);
+	void (*element) (void *private_data, int cmd, snd_mixer_eid_t *eid);
+	void (*group) (void *private_data, int cmd, snd_mixer_gid_t *gid);
+	void (*xswitch) (void *private_data, int cmd, snd_switch_list_item_t *item);
+	void *reserved[27];	/* reserved for the future use - must be NULL!!! */
 } snd_mixer_callbacks_t;
 
 #ifdef __cplusplus
@@ -21,23 +21,28 @@ extern "C" {
 int snd_mixer_open(void **handle, int card, int device);
 int snd_mixer_close(void *handle);
 int snd_mixer_file_descriptor(void *handle);
-int snd_mixer_channels(void *handle);
 int snd_mixer_info(void *handle, snd_mixer_info_t * info);
-int snd_mixer_exact_mode(void *handle, int enable);
-int snd_mixer_channel(void *handle, const char *channel_id);
-int snd_mixer_channel_info(void *handle, int channel, snd_mixer_channel_info_t * info);
-int snd_mixer_channel_output_info(void *handle, int channel, snd_mixer_channel_direction_info_t * info);
-int snd_mixer_channel_input_info(void *handle, int channel, snd_mixer_channel_direction_info_t * info);
-int snd_mixer_channel_read(void *handle, int channel, snd_mixer_channel_t * data);
-int snd_mixer_channel_write(void *handle, int channel, snd_mixer_channel_t * data);
-int snd_mixer_channel_output_read(void *handle, int channel, snd_mixer_channel_direction_t * data);
-int snd_mixer_channel_output_write(void *handle, int channel, snd_mixer_channel_direction_t * data);
-int snd_mixer_channel_input_read(void *handle, int channel, snd_mixer_channel_direction_t * data);
-int snd_mixer_channel_input_write(void *handle, int channel, snd_mixer_channel_direction_t * data);
+int snd_mixer_elements(void *handle, snd_mixer_elements_t * elements);
+int snd_mixer_routes(void *handle, snd_mixer_routes_t * routes);
+int snd_mixer_groups(void *handle, snd_mixer_groups_t * groups);
+int snd_mixer_group(void *handle, snd_mixer_group_t * group);
+int snd_mixer_element_info(void *handle, snd_mixer_element_info_t * info);
+int snd_mixer_element_read(void *handle, snd_mixer_element_t * element);
+int snd_mixer_element_write(void *handle, snd_mixer_element_t * element);
 int snd_mixer_switch_list(void *handle, snd_switch_list_t * list);
 int snd_mixer_switch_read(void *handle, snd_switch_t * sw);
 int snd_mixer_switch_write(void *handle, snd_switch_t * sw);
 int snd_mixer_read(void *handle, snd_mixer_callbacks_t * callbacks);
+
+void snd_mixer_set_bit(unsigned int *bitmap, int bit, int val);
+int snd_mixer_get_bit(unsigned int *bitmap, int bit);
+
+int snd_mixer_element_has_info(snd_mixer_eid_t *eid);
+int snd_mixer_element_info_build(void *handle, snd_mixer_element_info_t * info);
+int snd_mixer_element_info_free(snd_mixer_element_info_t * info);
+int snd_mixer_element_has_control(snd_mixer_eid_t *eid);
+int snd_mixer_element_build(void *handle, snd_mixer_element_t * element);
+int snd_mixer_element_free(snd_mixer_element_t * element);
 
 #ifdef __cplusplus
 }

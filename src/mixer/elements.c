@@ -1,0 +1,314 @@
+/*
+ *  Mixer Interface - elements
+ *  Copyright (c) 1999 by Jaroslav Kysela <perex@jcu.cz>
+ *
+ *
+ *   This library is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as
+ *   published by the Free Software Foundation; either version 2 of
+ *   the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+#include <stdlib.h>
+#include <errno.h>
+#include "asoundlib.h"
+
+static inline void safe_free(void **ptr)
+{
+	if (*ptr)
+		free(*ptr);
+	*ptr = NULL;
+}
+
+int snd_mixer_element_has_info(snd_mixer_eid_t *eid)
+{
+	if (!eid)
+		return -EINVAL;
+	switch (eid->type) {
+	case SND_MIXER_ETYPE_INPUT:
+	case SND_MIXER_ETYPE_OUTPUT:
+	case SND_MIXER_ETYPE_CAPTURE:
+	case SND_MIXER_ETYPE_PLAYBACK:
+	case SND_MIXER_ETYPE_ADC:
+	case SND_MIXER_ETYPE_DAC:
+	case SND_MIXER_ETYPE_SWITCH3:
+	case SND_MIXER_ETYPE_VOLUME1:
+	case SND_MIXER_ETYPE_VOLUME2:
+	case SND_MIXER_ETYPE_ACCU1:
+	case SND_MIXER_ETYPE_ACCU2:
+	case SND_MIXER_ETYPE_ACCU3:
+	case SND_MIXER_ETYPE_MUX1:
+	case SND_MIXER_ETYPE_MUX2:
+	case SND_MIXER_ETYPE_TONE_CONTROL1:
+	case SND_MIXER_ETYPE_3D_EFFECT1:
+	case SND_MIXER_ETYPE_PRE_EFFECT1:
+		return 1;
+	}
+	return 0;
+}
+
+int snd_mixer_element_info_build(void *handle, snd_mixer_element_info_t *element)
+{
+	int err;
+	
+	if (!handle || !element)
+		return -EINVAL;
+	if ((err = snd_mixer_element_info(handle, element)) < 0)
+		return err;
+	switch (element->eid.type) {
+	case SND_MIXER_ETYPE_INPUT:
+	case SND_MIXER_ETYPE_OUTPUT:
+		element->data.io.voices_size = element->data.io.voices_over;
+		element->data.io.voices = element->data.io.voices_over = 0;
+		element->data.io.pvoices = (snd_mixer_voice_t *)malloc(element->data.io.voices_size * sizeof(snd_mixer_voice_t));
+		if (!element->data.io.pvoices)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_info(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_CAPTURE:
+	case SND_MIXER_ETYPE_PLAYBACK:
+		element->data.pcm.devices_size = element->data.pcm.devices_over;
+		element->data.pcm.devices = element->data.pcm.devices_over = 0;
+		element->data.pcm.pdevices = (int *)malloc(element->data.pcm.devices_size * sizeof(int));
+		if (!element->data.pcm.pdevices)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_info(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_SWITCH3:
+		element->data.switch3.voices_size = element->data.switch3.voices_over;
+		element->data.switch3.voices = element->data.switch3.voices_over = 0;
+		element->data.switch3.pvoices = (snd_mixer_voice_t *)malloc(element->data.switch3.voices_size * sizeof(snd_mixer_voice_t));
+		if (!element->data.switch3.pvoices)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_info(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_VOLUME1:
+		element->data.volume1.range_size = element->data.volume1.range_over;
+		element->data.volume1.range = element->data.volume1.range_over = 0;
+		element->data.volume1.prange = (struct snd_mixer_element_volume1_range *)malloc(element->data.volume1.range_size * sizeof(struct snd_mixer_element_volume1_range));
+		if (!element->data.volume1.prange)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_info(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_VOLUME2:
+		element->data.volume2.svoices_size = element->data.volume2.svoices_over;
+		element->data.volume2.svoices = element->data.volume2.svoices_over = 0;
+		element->data.volume2.psvoices = (snd_mixer_voice_t *)malloc(element->data.volume2.svoices_size * sizeof(snd_mixer_voice_t));
+		if (!element->data.volume2.psvoices)
+			return -ENOMEM;
+		element->data.volume2.range_size = element->data.volume2.range_over;
+		element->data.volume2.range = element->data.volume2.range_over = 0;
+		element->data.volume2.prange = (struct snd_mixer_element_volume2_range *)malloc(element->data.volume2.range_size * sizeof(struct snd_mixer_element_volume2_range));
+		if (!element->data.volume1.prange) {
+			safe_free((void **)&element->data.volume2.psvoices);
+			return -ENOMEM;
+		}
+		if ((err = snd_mixer_element_info(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_ACCU3:
+		element->data.accu3.range_size = element->data.accu3.range_over;
+		element->data.accu3.range = element->data.accu3.range_over = 0;
+		element->data.accu3.prange = (struct snd_mixer_element_accu3_range *)malloc(element->data.accu3.range_size * sizeof(struct snd_mixer_element_accu3_range));
+		if (!element->data.accu3.prange)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_info(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_PRE_EFFECT1:
+		element->data.peffect1.items_size = element->data.peffect1.items_over;
+		element->data.peffect1.items = element->data.peffect1.items_over = 0;
+		element->data.peffect1.pitems = (struct snd_mixer_element_pre_effect1_info_item *)malloc(element->data.peffect1.items_size * sizeof(struct snd_mixer_element_pre_effect1_info_item));
+		if (!element->data.peffect1.pitems) 
+			return -ENOMEM;
+		element->data.peffect1.parameters_size = element->data.peffect1.parameters_over;
+		element->data.peffect1.parameters = element->data.peffect1.parameters_over = 0;
+		element->data.peffect1.pparameters = (struct snd_mixer_element_pre_effect1_info_parameter *)malloc(element->data.peffect1.parameters_size * sizeof(struct snd_mixer_element_pre_effect1_info_parameter));
+		if (!element->data.peffect1.pparameters) {
+			safe_free((void **)&element->data.peffect1.pitems);
+			return -ENOMEM;
+		}
+		if ((err = snd_mixer_element_info(handle, element)) < 0)
+			return err;
+		break;
+	}
+	return 0;
+}
+
+int snd_mixer_element_info_free(snd_mixer_element_info_t *element)
+{
+	if (!element)
+		return -EINVAL;
+	switch (element->eid.type) {
+	case SND_MIXER_ETYPE_INPUT:
+	case SND_MIXER_ETYPE_OUTPUT:
+		safe_free((void **)&element->data.io.pvoices);
+		break;
+	case SND_MIXER_ETYPE_CAPTURE:
+	case SND_MIXER_ETYPE_PLAYBACK:
+		safe_free((void **)&element->data.pcm.pdevices);
+		break;
+	case SND_MIXER_ETYPE_SWITCH3:
+		safe_free((void **)&element->data.switch3.pvoices);
+		break;
+	case SND_MIXER_ETYPE_VOLUME1:
+		safe_free((void **)&element->data.volume1.prange);
+		break;
+	case SND_MIXER_ETYPE_VOLUME2:
+		safe_free((void **)&element->data.volume2.psvoices);
+		safe_free((void **)&element->data.volume1.prange);
+		break;
+	case SND_MIXER_ETYPE_ACCU3:
+		safe_free((void **)&element->data.accu3.prange);
+		break;
+	case SND_MIXER_ETYPE_PRE_EFFECT1:
+		safe_free((void **)&element->data.peffect1.pitems);
+		safe_free((void **)&element->data.peffect1.pparameters);
+		break;
+	}
+	return 0;
+}
+
+int snd_mixer_element_has_control(snd_mixer_eid_t *eid)
+{
+	if (!eid)
+		return -EINVAL;
+	switch (eid->type) {
+	case SND_MIXER_ETYPE_SWITCH1:
+	case SND_MIXER_ETYPE_SWITCH2:
+	case SND_MIXER_ETYPE_SWITCH3:
+	case SND_MIXER_ETYPE_VOLUME1:
+	case SND_MIXER_ETYPE_VOLUME2:
+	case SND_MIXER_ETYPE_ACCU3:
+	case SND_MIXER_ETYPE_MUX1:
+	case SND_MIXER_ETYPE_MUX2:
+	case SND_MIXER_ETYPE_TONE_CONTROL1:
+	case SND_MIXER_ETYPE_3D_EFFECT1:
+	case SND_MIXER_ETYPE_PRE_EFFECT1:
+		return 1;
+	}
+	return 0;
+}
+
+int snd_mixer_element_build(void *handle, snd_mixer_element_t *element)
+{
+	int err;
+	
+	if (!handle || !element)
+		return -EINVAL;
+	if ((err = snd_mixer_element_read(handle, element)) < 0)
+		return err;
+	switch (element->eid.type) {
+	case SND_MIXER_ETYPE_SWITCH1:
+		element->data.switch1.sw_size = element->data.switch1.sw_over;
+		element->data.switch1.sw = element->data.switch1.sw_over = 0;
+		element->data.switch1.psw = (unsigned int *)malloc(((element->data.switch1.sw_size + 31) / 32) * sizeof(unsigned int));
+		if (!element->data.switch1.psw)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_read(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_SWITCH3:
+		element->data.switch3.rsw_size = element->data.switch3.rsw_over;
+		element->data.switch3.rsw = element->data.switch3.rsw_over = 0;
+		element->data.switch3.prsw = (unsigned int *)malloc(((element->data.switch3.rsw_size + 31) / 32) * sizeof(unsigned int));
+		if (!element->data.switch3.prsw)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_read(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_VOLUME1:
+		element->data.volume1.voices_size = element->data.volume1.voices_over;
+		element->data.volume1.voices = element->data.volume1.voices_over = 0;
+		element->data.volume1.pvoices = (int *)malloc(element->data.volume1.voices_size * sizeof(int));
+		if (!element->data.volume1.pvoices)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_read(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_VOLUME2:
+		element->data.volume2.avoices_size = element->data.volume2.avoices_over;
+		element->data.volume2.avoices = element->data.volume2.avoices_over = 0;
+		element->data.volume2.pavoices = (int *)malloc(element->data.volume2.avoices_size * sizeof(int));
+		if (!element->data.volume2.pavoices)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_read(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_ACCU3:
+		element->data.accu3.voices_size = element->data.accu3.voices_over;
+		element->data.accu3.voices = element->data.accu3.voices_over = 0;
+		element->data.accu3.pvoices = (int *)malloc(element->data.accu3.voices_size * sizeof(int));
+		if (!element->data.accu3.pvoices)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_read(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_MUX1:
+		element->data.mux1.output_size = element->data.mux1.output_over;
+		element->data.mux1.output = element->data.mux1.output_over = 0;
+		element->data.mux1.poutput = (snd_mixer_eid_t *)malloc(element->data.mux1.output_size * sizeof(snd_mixer_eid_t));
+		if (!element->data.mux1.poutput)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_read(handle, element)) < 0)
+			return err;
+		break;
+	case SND_MIXER_ETYPE_PRE_EFFECT1:
+		if (element->data.peffect1.item < 0) {
+			element->data.peffect1.parameters_size = element->data.peffect1.parameters_over;
+			element->data.peffect1.parameters = element->data.peffect1.parameters_over = 0;
+			element->data.peffect1.pparameters = (int *)malloc(element->data.peffect1.parameters_size * sizeof(int));
+			if (!element->data.peffect1.pparameters)
+				return -ENOMEM;
+			if ((err = snd_mixer_element_read(handle, element)) < 0)
+				return err;
+		}
+		break;
+	}
+	return 0;
+}
+
+int snd_mixer_element_free(snd_mixer_element_t *element)
+{
+	if (!element)
+		return -EINVAL;
+	switch (element->eid.type) {
+	case SND_MIXER_ETYPE_SWITCH1:
+		safe_free((void **)&element->data.switch1.psw);
+		break;
+	case SND_MIXER_ETYPE_SWITCH3:
+		safe_free((void **)&element->data.switch3.prsw);
+		break;
+	case SND_MIXER_ETYPE_VOLUME1:
+		safe_free((void **)&element->data.volume1.pvoices);
+		break;
+	case SND_MIXER_ETYPE_VOLUME2:
+		safe_free((void **)&element->data.volume2.pavoices);
+		break;
+	case SND_MIXER_ETYPE_ACCU3:
+		safe_free((void **)&element->data.accu3.pvoices);
+		break;
+	case SND_MIXER_ETYPE_MUX1:
+		safe_free((void **)&element->data.mux1.poutput);
+		break;
+	case SND_MIXER_ETYPE_PRE_EFFECT1:
+		if (element->data.peffect1.item < 0)
+			safe_free((void **)&element->data.peffect1.pparameters);
+		break;
+	}
+	return 0;
+}

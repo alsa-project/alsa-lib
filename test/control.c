@@ -28,11 +28,9 @@ void main(void)
 		}
 		printf("Soundcard #%i:\n", idx + 1);
 		printf("  type - %i\n", info.type);
-		printf("  gcaps - 0x%x\n", info.gcaps);
-		printf("  lcaps - 0x%x\n", info.lcaps);
-		printf("  pcm devs - 0x%x\n", info.pcmdevs);
-		printf("  mixer devs - 0x%x\n", info.mixerdevs);
-		printf("  midi devs - 0x%x\n", info.mididevs);
+		printf("  pcm devs - %i\n", info.pcmdevs);
+		printf("  mixer devs - %i\n", info.mixerdevs);
+		printf("  midi devs - %i\n", info.mididevs);
 		memset(str, 0, sizeof(str));
 		strncpy(str, info.id, sizeof(info.id));
 		printf("  id - '%s'\n", str);
@@ -57,8 +55,10 @@ void main(void)
 				continue;
 			}
 			printf("  type - %i\n", mixerinfo.type);
-			printf("  channels - %i\n", mixerinfo.channels);
-			printf("  caps - 0x%x\n", mixerinfo.caps);
+			printf("  elements - %i\n", mixerinfo.elements);
+			printf("  groups - %i\n", mixerinfo.groups);
+			printf("  switches - %i\n", mixerinfo.switches);
+			printf("  attribute - 0x%x\n", mixerinfo.attribute);
 			printf("  id - '%s'\n", mixerinfo.id);
 			printf("  name - '%s'\n", mixerinfo.name);
 		}

@@ -4,7 +4,7 @@
 
 static void mixer_test(int card, int device)
 {
-	int err, channels;
+	int err;
 	void *handle;
 	snd_mixer_info_t info;
 
@@ -13,20 +13,16 @@ static void mixer_test(int card, int device)
 		return;
 	}
 	printf("Mixer %i/%i open ok...\n", card, device);
-	channels = snd_mixer_channels(handle);
-	if (channels < 0) {
-		printf("Mixer channels error: %s\n", snd_strerror(channels));
-		return;
-	}
-	printf("  Mixer have %i channel%s.\n", channels, channels > 1 ? "s" : "");
 	if ((err = snd_mixer_info(handle, &info)) < 0) {
 		printf("Mixer info error: %s\n", snd_strerror(err));
 		return;
 	}
 	printf("  Info:\n");
 	printf("    type - %i\n", info.type);
-	printf("    channels - %i\n", info.channels);
-	printf("    caps - 0x%x\n", info.caps);
+	printf("    elements - %i\n", info.elements);
+	printf("    groups - %i\n", info.groups);
+	printf("    switches - %i\n", info.switches);
+	printf("    attribute - 0x%x\n", info.attribute);
 	printf("    id - '%s'\n", info.id);
 	printf("    name - '%s'\n", info.name);
 	snd_mixer_close(handle);

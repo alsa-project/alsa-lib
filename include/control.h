@@ -14,6 +14,14 @@ int snd_cards(void);
 unsigned int snd_cards_mask(void);
 int snd_card_name(const char *name);
 
+int snd_defaults_card(void);
+int snd_defaults_mixer_card(void);
+int snd_defaults_mixer_device(void);
+int snd_defaults_pcm_card(void);
+int snd_defaults_pcm_device(void);
+int snd_defaults_rawmidi_card(void);
+int snd_defaults_rawmidi_device(void);
+
 int snd_ctl_open(void **handle, int card);
 int snd_ctl_close(void *handle);
 int snd_ctl_file_descriptor(void *handle);
