@@ -415,8 +415,6 @@ static int snd_pcm_file_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 
 static int snd_pcm_file_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_file_t *file = pcm->private_data;
-	snd_pcm_t *slave = file->slave;
 	pcm->mmap_channels = NULL;
 	pcm->running_areas = NULL;
 	pcm->stopped_areas = NULL;
