@@ -121,6 +121,7 @@ void snd_pcm_hw_params_to_info(snd_pcm_hw_params_t *params, snd_pcm_hw_info_t *i
 	info->rate_min = info->rate_max = params->rate;
 	info->fragment_size_min = info->fragment_size_max = params->fragment_size;
 	info->fragments_min = info->fragments_max = params->fragments;
+	info->buffer_size_min = info->buffer_size_max = params->fragment_size * params->fragments;
 }
 
 void snd_pcm_hw_info_to_params(snd_pcm_hw_info_t *info, snd_pcm_hw_params_t *params)
@@ -529,6 +530,7 @@ static assoc_t hw_params[] = {
 	HW_PARAM(RATE),
 	HW_PARAM(FRAGMENT_SIZE),
 	HW_PARAM(FRAGMENTS),
+	HW_PARAM(BUFFER_SIZE),
 	END
 };
 
@@ -739,6 +741,20 @@ int snd_pcm_dump_hw_info(snd_pcm_hw_info_t *info,
 			fprintf(fp, " - %u", info->fragments_max);
 	}
 	putc('\n', fp);
+
+	fputs("buffer_size: ", fp);
+	if (info->buffer_size_min <= 1 && 
+	    info->buffer_size_max == ULONG_MAX)
+		fputs("ALL", fp);
+	else if (info->buffer_size_min > info->buffer_size_max)
+		fputs("NONE", fp);
+	else {
+		fprintf(fp, "%lu", (unsigned long)info->buffer_size_min);
+		if (info->buffer_size_min < info->buffer_size_max)
+			fprintf(fp, " - %lu", (unsigned long)info->buffer_size_max);
+	}
+	putc('\n', fp);
+
 	return 0;
 }
 
@@ -2639,7 +2655,7 @@ int snd_pcm_hw_params_rules(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			info.subformat_mask = ~0;
 			break;
 		case SND_PCM_HW_PARAM_CHANNELS:
-			info.channels_min = 0;
+			info.channels_min = 1;
 			info.channels_max = UINT_MAX;
 			break;
 		case SND_PCM_HW_PARAM_RATE:
@@ -2647,12 +2663,16 @@ int snd_pcm_hw_params_rules(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			info.rate_max = UINT_MAX;
 			break;
 		case SND_PCM_HW_PARAM_FRAGMENT_SIZE:
-			info.fragment_size_min = 0;
+			info.fragment_size_min = 1;
 			info.fragment_size_max = ULONG_MAX;
+			info.buffer_size_min = 1;
+			info.buffer_size_max = ULONG_MAX;
 			break;
 		case SND_PCM_HW_PARAM_FRAGMENTS:
-			info.fragments_min = 0;
+			info.fragments_min = 1;
 			info.fragments_max = UINT_MAX;
+			info.buffer_size_min = 1;
+			info.buffer_size_max = ULONG_MAX;
 			break;
 		default:
 			assert(0);
