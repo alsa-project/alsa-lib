@@ -813,6 +813,17 @@ static int snd_pcm_share_prepare(snd_pcm_t *pcm)
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	Pthread_mutex_lock(&slave->mutex);
+	switch (share->state) {
+	case SND_PCM_STATE_OPEN:
+		err = -EBADFD;
+		goto _end;
+	case SND_PCM_STATE_RUNNING:
+		err = -EBUSY;
+		goto _end;
+	case SND_PCM_STATE_PREPARED:
+		err = 0;
+		goto _end;
+	}
 	if (slave->prepared_count == 0) {
 		err = snd_pcm_prepare(slave->pcm);
 		if (err < 0)
