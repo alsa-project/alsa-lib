@@ -29,6 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_SEQ		"/dev/snd/seq"
+#define SND_FILE_ALOADSEQ	"/dev/aloadSEQ"
 #define SND_SEQ_VERSION_MAX	SND_PROTOCOL_VERSION( 0, 0, 1 )
 #define SND_SEQ_OBUF_SIZE	(16*1024)	/* should be configurable */
 #define SND_SEQ_IBUF_SIZE	(4*1024)	/* should be configurable */
@@ -63,8 +64,7 @@ int snd_seq_open(snd_seq_t **handle, int mode)
 
 	sprintf(filename, SND_FILE_SEQ);
 	if ((fd = open(filename, mode)) < 0) {
-		/* try load all soundcard modules */
-		snd_cards_mask();
+		close(open(SND_FILE_ALOADSEQ, O_RDWR));
 		if ((fd = open(filename, mode)) < 0)
 			return -errno;
 	}
