@@ -30,65 +30,78 @@
 
 #define SND_FILE_CONTROL	"/dev/snd/control%i"
 
-int snd_cards( void )
+int snd_cards(void)
 {
-  int idx, count;
-  unsigned int mask;
-  
-  mask = snd_cards_mask();
-  for ( idx = 0, count = 0; idx < SND_CARDS; idx++ ) {
-    if ( mask & (1 << idx) ) count++;
-  }
-  return count;
+	int idx, count;
+	unsigned int mask;
+
+	mask = snd_cards_mask();
+	for (idx = 0, count = 0; idx < SND_CARDS; idx++) {
+		if (mask & (1 << idx))
+			count++;
+	}
+	return count;
 }
 
 /*
  *  this routine uses very ugly method...
- *    need to do...
+ *    need to do... (use only stat on /proc/asound?)
+ *    now is information cached over static variable
  */
 
-unsigned int snd_cards_mask( void )
+unsigned int snd_cards_mask(void)
 {
-  int fd, idx;
-  unsigned int mask;
-  char filename[32];
-  
-  for ( idx = 0, mask = 0; idx < SND_CARDS; idx++ ) {
-    sprintf( filename, SND_FILE_CONTROL, idx );
-    if ( (fd = open( filename, O_RDWR )) < 0 ) continue;
-    close( fd );
-    mask |= 1 << idx;
-  }
-  return mask;
+	int fd, idx;
+	unsigned int mask;
+	char filename[32];
+	static unsigned int save_mask = 0;
+
+	if (save_mask)
+		return save_mask;
+	for (idx = 0, mask = 0; idx < SND_CARDS; idx++) {
+		sprintf(filename, SND_FILE_CONTROL, idx);
+		if ((fd = open(filename, O_RDWR)) < 0)
+			continue;
+		close(fd);
+		mask |= 1 << idx;
+	}
+	save_mask = mask;
+	return mask;
 }
 
-int snd_card_name( const char *string )
+int snd_card_name(const char *string)
 {
-  int card, cards;
-  void *handle;
-  struct snd_ctl_hw_info info;
+	int card, bitmask;
+	void *handle;
+	struct snd_ctl_hw_info info;
 
-  cards = snd_cards();
-  if ( cards <= 0 ) return -ENODEV;
-  if ( !string ) return -EINVAL;
-  if ( (isdigit( *string ) && *(string+1) == 0) ||
-       (isdigit( *string ) && isdigit( *(string+1) ) && *(string+2) == 0) ) {
-    sscanf( string, "%i", &card );
-    card--;
-    if ( card < 0 || card >= cards )
-      return -EINVAL;
-    return card;
-  }
-  for ( card = 0; card < cards; card++ ) {
-    if ( snd_ctl_open( &handle, card ) < 0 )
-      continue;
-    if ( snd_ctl_hw_info( handle, &info ) < 0 ) {
-      snd_ctl_close( handle );
-      continue;
-    }
-    snd_ctl_close( handle );
-    if ( !strcmp( info.id, string ) )
-      return card;
-  }
-  return -ENODEV;
+	bitmask = snd_cards_mask();
+	if (!bitmask)
+		return -ENODEV;
+	if (!string)
+		return -EINVAL;
+	if ((isdigit(*string) && *(string + 1) == 0) ||
+	    (isdigit(*string) && isdigit(*(string + 1)) && *(string + 2) == 0)) {
+		sscanf(string, "%i", &card);
+		card--;
+		if (card < 0 || card > 31)
+			return -EINVAL;
+		if (card < 0 || !((1 << card) & bitmask))
+			return -EINVAL;
+		return card;
+	}
+	for (card = 0; card < 32; card++) {
+		if (!((1 << card) & bitmask))
+			continue;
+		if (snd_ctl_open(&handle, card) < 0)
+			continue;
+		if (snd_ctl_hw_info(handle, &info) < 0) {
+			snd_ctl_close(handle);
+			continue;
+		}
+		snd_ctl_close(handle);
+		if (!strcmp(info.id, string))
+			return card;
+	}
+	return -ENODEV;
 }
