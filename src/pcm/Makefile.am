@@ -7,5 +7,7 @@ libpcm_la_SOURCES = pcm.c pcm_plugin.c pcm_plugin_build.c pcm_misc.c \
 libpcm_la_LIBADD = plugin/libpcmplugin.la
 all: libpcm.la
 
+plugin/libpcmplugin.la:
+	$(MAKE) -C plugin libpcmplugin.la
 
 INCLUDES=-I$(top_srcdir)/include
