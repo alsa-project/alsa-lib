@@ -10,6 +10,7 @@ cfg_files = aliases.conf \
 	Audigy2.conf \
 	Aureon51.conf \
 	Aureon71.conf \
+	Azalia.conf \
 	CA0106.conf \
 	CMI8338.conf \
 	CMI8338-SWIEC.conf \
@@ -19,6 +20,7 @@ cfg_files = aliases.conf \
 	EMU10K1X.conf \
 	ENS1370.conf \
 	ENS1371.conf \
+	ES1968.conf \
 	FM801.conf \
 	GUS.conf \
 	ICE1712.conf \
@@ -26,6 +28,7 @@ cfg_files = aliases.conf \
 	ICH.conf \
 	ICH4.conf \
 	ICH-MODEM.conf \
+	Maestro3.conf \
 	NFORCE.conf \
 	RME9636.conf \
 	RME9652.conf \
