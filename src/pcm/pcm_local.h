@@ -32,7 +32,7 @@
 #define ERR(args...) snd_pcm_error(__FILE__, __LINE__, __FUNCTION__, ##args)
 #endif
 
-struct snd_pcm_ops {
+typedef struct {
 	int (*close)(snd_pcm_t *pcm);
 	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
 	int (*async)(snd_pcm_t *pcm, int sig, pid_t pid);
@@ -44,15 +44,11 @@ struct snd_pcm_ops {
 	int (*channel_params)(snd_pcm_t *pcm, snd_pcm_channel_params_t *params);
 	int (*channel_setup)(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup);
 	void (*dump)(snd_pcm_t *pcm, FILE *fp);
-	int (*mmap_status)(snd_pcm_t *pcm);
-	int (*mmap_control)(snd_pcm_t *pcm);
-	int (*mmap_data)(snd_pcm_t *pcm);
-	int (*munmap_status)(snd_pcm_t *pcm);
-	int (*munmap_control)(snd_pcm_t *pcm);
-	int (*munmap_data)(snd_pcm_t *pcm);
-};
+	int (*mmap)(snd_pcm_t *pcm);
+	int (*munmap)(snd_pcm_t *pcm);
+} snd_pcm_ops_t;
 
-struct snd_pcm_fast_ops {
+typedef struct {
 	int (*status)(snd_pcm_t *pcm, snd_pcm_status_t *status);
 	int (*prepare)(snd_pcm_t *pcm);
 	int (*start)(snd_pcm_t *pcm);
@@ -66,43 +62,55 @@ struct snd_pcm_fast_ops {
 	ssize_t (*writen)(snd_pcm_t *pcm, void **bufs, size_t size);
 	ssize_t (*readi)(snd_pcm_t *pcm, void *buffer, size_t size);
 	ssize_t (*readn)(snd_pcm_t *pcm, void **bufs, size_t size);
-	int (*poll_descriptor)(snd_pcm_t *pcm);
 	int (*channels_mask)(snd_pcm_t *pcm, bitset_t *cmask);
 	ssize_t (*avail_update)(snd_pcm_t *pcm);
 	ssize_t (*mmap_forward)(snd_pcm_t *pcm, size_t size);
-};
+} snd_pcm_fast_ops_t;
+
+typedef struct {
+	unsigned int index;
+	enum { SND_PCM_MMAP_KERNEL, SND_PCM_MMAP_USER } type;
+	void *addr;
+	size_t size;
+	union {
+		struct {
+			int shmid;
+		} user;
+		struct {
+			int fd;
+		} kernel;
+	} u;
+} snd_pcm_mmap_info_t;
 
 struct snd_pcm {
 	char *name;
 	snd_pcm_type_t type;
 	int stream;
 	int mode;
+	int poll_fd;
 	int valid_setup;
 	snd_pcm_setup_t setup;
 	size_t bits_per_sample;
 	size_t bits_per_frame;
-	volatile snd_pcm_mmap_status_t *mmap_status;
-	snd_pcm_mmap_control_t *mmap_control;
-	void *mmap_data;
+	size_t *appl_ptr;
+	volatile size_t *hw_ptr;
+	int mmap_auto;
+	size_t mmap_info_count;
+	snd_pcm_mmap_info_t *mmap_info;
 	snd_pcm_channel_area_t *running_areas;
 	snd_pcm_channel_area_t *stopped_areas;
-	struct snd_pcm_ops *ops;
-	struct snd_pcm_fast_ops *fast_ops;
+	snd_pcm_ops_t *ops;
+	snd_pcm_fast_ops_t *fast_ops;
 	snd_pcm_t *op_arg;
 	snd_pcm_t *fast_op_arg;
 	void *private;
 };
 
-int snd_pcm_init(snd_pcm_t *pcm);
 void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void *buf);
 void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void **bufs);
 
-int snd_pcm_mmap_status(snd_pcm_t *pcm, volatile snd_pcm_mmap_status_t **status);
-int snd_pcm_mmap_control(snd_pcm_t *pcm, snd_pcm_mmap_control_t **control);
-int snd_pcm_mmap_data(snd_pcm_t *pcm, void **buffer);
-int snd_pcm_munmap_status(snd_pcm_t *pcm);
-int snd_pcm_munmap_control(snd_pcm_t *pcm);
-int snd_pcm_munmap_data(snd_pcm_t *pcm);
+int snd_pcm_mmap(snd_pcm_t *pcm);
+int snd_pcm_munmap(snd_pcm_t *pcm);
 int snd_pcm_mmap_ready(snd_pcm_t *pcm);
 ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset);
 void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, size_t frames);
@@ -130,7 +138,7 @@ ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size);
 static inline size_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {
 	ssize_t avail;
-	avail = pcm->mmap_status->hw_ptr + pcm->setup.buffer_size - pcm->mmap_control->appl_ptr;
+	avail = *pcm->hw_ptr + pcm->setup.buffer_size - *pcm->appl_ptr;
 	if (avail < 0)
 		avail += pcm->setup.boundary;
 	return avail;
@@ -139,7 +147,7 @@ static inline size_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 static inline size_t snd_pcm_mmap_capture_avail(snd_pcm_t *pcm)
 {
 	ssize_t avail;
-	avail = pcm->mmap_status->hw_ptr - pcm->mmap_control->appl_ptr;
+	avail = *pcm->hw_ptr - *pcm->appl_ptr;
 	if (avail < 0)
 		avail += pcm->setup.boundary;
 	return avail;
@@ -156,7 +164,7 @@ static inline size_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
 static inline ssize_t snd_pcm_mmap_playback_hw_avail(snd_pcm_t *pcm)
 {
 	ssize_t avail;
-	avail = pcm->mmap_status->hw_ptr + pcm->setup.buffer_size - pcm->mmap_control->appl_ptr;
+	avail = *pcm->hw_ptr + pcm->setup.buffer_size - *pcm->appl_ptr;
 	if (avail < 0)
 		avail += pcm->setup.boundary;
 	return pcm->setup.buffer_size - avail;
@@ -165,7 +173,7 @@ static inline ssize_t snd_pcm_mmap_playback_hw_avail(snd_pcm_t *pcm)
 static inline ssize_t snd_pcm_mmap_capture_hw_avail(snd_pcm_t *pcm)
 {
 	ssize_t avail;
-	avail = pcm->mmap_status->hw_ptr - pcm->mmap_control->appl_ptr;
+	avail = *pcm->hw_ptr - *pcm->appl_ptr;
 	if (avail < 0)
 		avail += pcm->setup.boundary;
 	return pcm->setup.buffer_size - avail;

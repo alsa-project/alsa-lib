@@ -30,18 +30,6 @@
 #include "pcm_local.h"
 #include "list.h"
 
-int snd_pcm_init(snd_pcm_t *pcm)
-{
-	int err;
-	err = snd_pcm_mmap_status(pcm, NULL);
-	if (err < 0)
-		return err;
-	err = snd_pcm_mmap_control(pcm, NULL);
-	if (err < 0)
-		return err;
-	return 0;
-}
-
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm)
 {
 	assert(pcm);
@@ -59,16 +47,8 @@ int snd_pcm_close(snd_pcm_t *pcm)
 	int ret = 0;
 	int err;
 	assert(pcm);
-	if (pcm->mmap_status) {
-		if ((err = snd_pcm_munmap_status(pcm)) < 0)
-			ret = err;
-	}
-	if (pcm->mmap_control) {
-		if ((err = snd_pcm_munmap_control(pcm)) < 0)
-			ret = err;
-	}
-	if (pcm->mmap_data) {
-		if ((err = snd_pcm_munmap_data(pcm)) < 0)
+	if (pcm->mmap_info) {
+		if ((err = snd_pcm_munmap(pcm)) < 0)
 			ret = err;
 	}
 	if ((err = pcm->ops->close(pcm->op_arg)) < 0)
@@ -156,12 +136,21 @@ int snd_pcm_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 {
 	int err;
 	snd_pcm_setup_t setup;
+	int mmap = 0;
 	assert(pcm && params);
-	assert(!pcm->mmap_data);
+	if (pcm->mmap_info) {
+		mmap = 1;
+		err = snd_pcm_munmap(pcm);
+		if (err < 0)
+			return err;
+	}
 	if ((err = pcm->ops->params(pcm->op_arg, params)) < 0)
 		return err;
 	pcm->valid_setup = 0;
-	return snd_pcm_setup(pcm, &setup);
+	err = snd_pcm_setup(pcm, &setup);
+	if (pcm->mmap_auto || mmap)
+		snd_pcm_mmap(pcm);
+	return err;
 }
 
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
@@ -233,7 +222,7 @@ ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
 	assert(size == 0 || buffer);
 	assert(pcm->valid_setup);
 	assert(pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED);
-	assert(!pcm->mmap_data);
+	assert(!pcm->mmap_info || pcm->mmap_auto);
 	return _snd_pcm_writei(pcm, buffer, size);
 }
 
@@ -243,7 +232,7 @@ ssize_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 	assert(size == 0 || bufs);
 	assert(pcm->valid_setup);
 	assert(pcm->setup.xfer_mode == SND_PCM_XFER_NONINTERLEAVED);
-	assert(!pcm->mmap_data);
+	assert(!pcm->mmap_info || pcm->mmap_auto);
 	return _snd_pcm_writen(pcm, bufs, size);
 }
 
@@ -253,7 +242,7 @@ ssize_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 	assert(size == 0 || buffer);
 	assert(pcm->valid_setup);
 	assert(pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED);
-	assert(!pcm->mmap_data);
+	assert(!pcm->mmap_info || pcm->mmap_auto);
 	return _snd_pcm_readi(pcm, buffer, size);
 }
 
@@ -263,7 +252,7 @@ ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 	assert(size == 0 || bufs);
 	assert(pcm->valid_setup);
 	assert(pcm->setup.xfer_mode == SND_PCM_XFER_NONINTERLEAVED);
-	assert(!pcm->mmap_data);
+	assert(!pcm->mmap_info || pcm->mmap_auto);
 	return _snd_pcm_readn(pcm, bufs, size);
 }
 
@@ -331,7 +320,7 @@ int snd_pcm_unlink(snd_pcm_t *pcm)
 int snd_pcm_poll_descriptor(snd_pcm_t *pcm)
 {
 	assert(pcm);
-	return pcm->fast_ops->poll_descriptor(pcm->fast_op_arg);
+	return pcm->poll_fd;
 }
 
 int snd_pcm_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
@@ -547,62 +536,87 @@ int snd_pcm_open(snd_pcm_t **pcmp, char *name,
 	if (err < 0)
 		return err;
 	err = snd_config_searchv(snd_config, &pcm_conf, "pcm", name, 0);
-	if (err < 0)
+	if (err < 0) {
+		ERR("Unknown PCM %s", name);
 		return err;
-	if (snd_config_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND)
+	}
+	if (snd_config_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND) {
+		ERR("Invalid type for PCM definition");
 		return -EINVAL;
+	}
 	err = snd_config_search(pcm_conf, "stream", &conf);
 	if (err >= 0) {
 		err = snd_config_string_get(conf, &str);
-		if (err < 0)
+		if (err < 0) {
+			ERR("Invalid type for stream");
 			return err;
+		}
 		if (strcmp(str, "playback") == 0) {
 			if (stream != SND_PCM_STREAM_PLAYBACK)
 				return -EINVAL;
 		} else if (strcmp(str, "capture") == 0) {
 			if (stream != SND_PCM_STREAM_CAPTURE)
 				return -EINVAL;
-		} else
+		} else {
+			ERR("Invalid value for stream");
 			return -EINVAL;
+		}
 	}
 	err = snd_config_search(pcm_conf, "type", &conf);
-	if (err < 0)
+	if (err < 0) {
+		ERR("type is not defined");
 		return err;
+	}
 	err = snd_config_string_get(conf, &str);
-	if (err < 0)
+	if (err < 0) {
+		ERR("Invalid type for type");
 		return err;
+	}
 	err = snd_config_searchv(snd_config, &type_conf, "pcmtype", str, 0);
-	if (err < 0)
+	if (err < 0) {
+		ERR("Unknown PCM type %s", str);
 		return err;
+	}
 	snd_config_foreach(i, type_conf) {
 		snd_config_t *n = snd_config_entry(i);
 		if (strcmp(n->id, "comment") == 0)
 			continue;
 		if (strcmp(n->id, "lib") == 0) {
 			err = snd_config_string_get(n, &lib);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for lib");
 				return -EINVAL;
+			}
 			continue;
 		}
 		if (strcmp(n->id, "open") == 0) {
 			err = snd_config_string_get(n, &open);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for open");
 				return -EINVAL;
+			}
 			continue;
+			ERR("Unknown field: %s", n->id);
 			return -EINVAL;
 		}
 	}
-	if (!open)
+	if (!open) {
+		ERR("open is not defined");
 		return -EINVAL;
+	}
 	if (!lib)
 		lib = "libasound.so";
 	h = dlopen(lib, RTLD_NOW);
-	if (!h)
+	if (!h) {
+		ERR("Cannot open shared library %s", lib);
 		return -ENOENT;
+	}
 	open_func = dlsym(h, open);
 	dlclose(h);
-	if (!open_func)
+	if (!open_func) {
+		ERR("symbol %s is not defined inside %s", open, lib);
 		return -ENXIO;
+	}
 	return open_func(pcmp, name, pcm_conf, stream, mode);
 }
 
@@ -634,23 +648,11 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
 	struct pollfd pfd;
 	int err;
-#if 0
-	size_t bavail, aavail;
-	struct timeval before, after, diff;
-	bavail = snd_pcm_avail_update(pcm);
-	gettimeofday(&before, 0);
-#endif
 	pfd.fd = snd_pcm_poll_descriptor(pcm);
 	pfd.events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
 	err = poll(&pfd, 1, timeout);
 	if (err < 0)
 		return err;
-#if 0
-	aavail = snd_pcm_avail_update(pcm);
-	gettimeofday(&after, 0);
-	timersub(&after, &before, &diff);
-	fprintf(stderr, "%s %ld.%06ld: get=%d (%d-%d)\n", pcm->stream == SND_PCM_STREAM_PLAYBACK ? "playback" : "capture", diff.tv_sec, diff.tv_usec, aavail - bavail, aavail, bavail);
-#endif
 	return 0;
 }
 
@@ -1044,7 +1046,7 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 	return err;
 }
 
-void snd_pcm_error_default(const char *file, int line, const char *function, const char *fmt, ...)
+void snd_pcm_error(const char *file, int line, const char *function, const char *fmt, ...)
 {
 	va_list arg;
 	va_start(arg, fmt);
@@ -1053,5 +1055,3 @@ void snd_pcm_error_default(const char *file, int line, const char *function, con
 	putc('\n', stderr);
 	va_end(arg);
 }
-
-void (*snd_pcm_error)(const char *file, int line, const char *function, const char *fmt, ...) = snd_pcm_error_default;

@@ -484,11 +484,6 @@ static int snd_pcm_route_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 		params->fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
 		return -EINVAL;
 	}
-	if (slave->mmap_data) {
-		err = snd_pcm_munmap_data(slave);
-		if (err < 0)
-			return err;
-	}
 	route->cformat = params->format.sfmt;
 	route->cchannels = params->format.channels;
 	route->cxfer_mode = params->xfer_mode;
@@ -504,10 +499,6 @@ static int snd_pcm_route_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 	params->format.channels = route->cchannels;
 	params->xfer_mode = route->cxfer_mode;
 	params->mmap_shape = route->cmmap_shape;
-	if (slave->valid_setup) {
-		int r = snd_pcm_mmap_data(slave, NULL);
-		assert(r >= 0);
-	}
 	return err;
 }
 
@@ -599,12 +590,14 @@ static int snd_pcm_route_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *
 	if (err < 0)
 		return err;
 #endif
+	if (!pcm->mmap_info)
+		return 0;
 	if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
-		setup->running_area.addr = pcm->mmap_data;
+		setup->running_area.addr = pcm->mmap_info->addr;
 		setup->running_area.first = setup->channel * pcm->bits_per_sample;
 		setup->running_area.step = pcm->bits_per_frame;
 	} else {
-		setup->running_area.addr = pcm->mmap_data + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
+		setup->running_area.addr = pcm->mmap_info->addr + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
 		setup->running_area.first = 0;
 		setup->running_area.step = pcm->bits_per_sample;
 	}
@@ -684,7 +677,7 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, FILE *fp)
 	snd_pcm_dump(route->plug.slave, fp);
 }
 
-struct snd_pcm_ops snd_pcm_route_ops = {
+snd_pcm_ops_t snd_pcm_route_ops = {
 	close: snd_pcm_route_close,
 	info: snd_pcm_plugin_info,
 	params_info: snd_pcm_route_params_info,
@@ -696,12 +689,8 @@ struct snd_pcm_ops snd_pcm_route_ops = {
 	dump: snd_pcm_route_dump,
 	nonblock: snd_pcm_plugin_nonblock,
 	async: snd_pcm_plugin_async,
-	mmap_status: snd_pcm_plugin_mmap_status,
-	mmap_control: snd_pcm_plugin_mmap_control,
-	mmap_data: snd_pcm_plugin_mmap_data,
-	munmap_status: snd_pcm_plugin_munmap_status,
-	munmap_control: snd_pcm_plugin_munmap_control,
-	munmap_data: snd_pcm_plugin_munmap_data,
+	mmap: snd_pcm_plugin_mmap,
+	munmap: snd_pcm_plugin_munmap,
 };
 
 int route_load_ttable(route_params_t *params, int stream,
@@ -776,17 +765,17 @@ int route_load_ttable(route_params_t *params, int stream,
 }
 
 
-int snd_pcm_route_open(snd_pcm_t **handlep, char *name,
+int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 		       int sformat, unsigned int schannels,
 		       ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
 		       snd_pcm_t *slave, int close_slave)
 {
-	snd_pcm_t *handle;
+	snd_pcm_t *pcm;
 	snd_pcm_route_t *route;
 	int err;
-	assert(handlep && slave && ttable);
+	assert(pcmp && slave && ttable);
 	if (sformat >= 0 && snd_pcm_format_linear(sformat) != 1)
 		return -EINVAL;
 	route = calloc(1, sizeof(snd_pcm_route_t));
@@ -800,32 +789,30 @@ int snd_pcm_route_open(snd_pcm_t **handlep, char *name,
 	route->plug.slave = slave;
 	route->plug.close_slave = close_slave;
 
-	handle = calloc(1, sizeof(snd_pcm_t));
-	if (!handle) {
+	pcm = calloc(1, sizeof(snd_pcm_t));
+	if (!pcm) {
 		free(route);
 		return -ENOMEM;
 	}
 	if (name)
-		handle->name = strdup(name);
-	handle->type = SND_PCM_TYPE_ROUTE;
-	handle->stream = slave->stream;
-	handle->ops = &snd_pcm_route_ops;
-	handle->op_arg = handle;
-	handle->fast_ops = &snd_pcm_plugin_fast_ops;
-	handle->fast_op_arg = handle;
-	handle->mode = slave->mode;
-	handle->private = route;
-	err = snd_pcm_init(handle);
+		pcm->name = strdup(name);
+	pcm->type = SND_PCM_TYPE_ROUTE;
+	pcm->stream = slave->stream;
+	pcm->mode = slave->mode;
+	pcm->ops = &snd_pcm_route_ops;
+	pcm->op_arg = pcm;
+	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
+	pcm->fast_op_arg = pcm;
+	pcm->private = route;
+	pcm->poll_fd = slave->poll_fd;
+	pcm->hw_ptr = &route->plug.hw_ptr;
+	pcm->appl_ptr = &route->plug.appl_ptr;
+	err = route_load_ttable(&route->params, pcm->stream, tt_ssize, ttable, tt_cused, tt_sused);
 	if (err < 0) {
-		snd_pcm_close(handle);
+		snd_pcm_close(pcm);
 		return err;
 	}
-	err = route_load_ttable(&route->params, handle->stream, tt_ssize, ttable, tt_cused, tt_sused);
-	if (err < 0) {
-		snd_pcm_close(handle);
-		return err;
-	}
-	*handlep = handle;
+	*pcmp = pcm;
 
 	return 0;
 }

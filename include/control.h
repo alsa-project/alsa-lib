@@ -7,7 +7,10 @@
 
 typedef struct snd_ctl snd_ctl_t;
 
-typedef enum { SND_CTL_TYPE_HW, SND_CTL_TYPE_CLIENT } snd_ctl_type_t;
+typedef enum { SND_CTL_TYPE_HW,
+	       SND_CTL_TYPE_SHM,
+	       SND_CTL_TYPE_INET
+ } snd_ctl_type_t;
 
 typedef struct snd_ctl_callbacks {
 	void *private_data;	/* may be used by an application */
@@ -37,8 +40,8 @@ int snd_defaults_pcm_device(void);
 int snd_defaults_rawmidi_card(void);
 int snd_defaults_rawmidi_device(void);
 
-int snd_ctl_hw_open(snd_ctl_t **handle, int card);
-int snd_ctl_client_open(snd_ctl_t **handlep, char *host, int port, int transport, char *name);
+int snd_ctl_hw_open(snd_ctl_t **handle, char *name, int card);
+int snd_ctl_shm_open(snd_ctl_t **handlep, char *name, char *socket, char *sname);
 snd_ctl_type_t snd_ctl_type(snd_ctl_t *handle);
 int snd_ctl_open(snd_ctl_t **handle, char *name);
 int snd_ctl_close(snd_ctl_t *handle);

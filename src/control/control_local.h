@@ -40,6 +40,7 @@ struct snd_ctl_ops {
 
 
 struct snd_ctl {
+	char *name;
 	snd_ctl_type_t type;
 	struct snd_ctl_ops *ops;
 	void *private;

@@ -26,8 +26,7 @@ typedef struct {
 	snd_pcm_xfer_areas_func_t write;
 	size_t (*client_frames)(snd_pcm_t *pcm, size_t frames);
 	int (*init)(snd_pcm_t *pcm);
-	snd_pcm_mmap_control_t mmap_control;
-	snd_pcm_mmap_status_t mmap_status;
+	size_t appl_ptr, hw_ptr;
 } snd_pcm_plugin_t;	
 
 int snd_pcm_plugin_close(snd_pcm_t *pcm);
@@ -54,10 +53,10 @@ ssize_t snd_pcm_plugin_mmap_forward(snd_pcm_t *pcm, size_t size);
 ssize_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm);
 int snd_pcm_plugin_mmap_status(snd_pcm_t *pcm);
 int snd_pcm_plugin_mmap_control(snd_pcm_t *pcm);
-int snd_pcm_plugin_mmap_data(snd_pcm_t *pcm);
+int snd_pcm_plugin_mmap(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap_status(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap_control(snd_pcm_t *pcm);
-int snd_pcm_plugin_munmap_data(snd_pcm_t *pcm);
+int snd_pcm_plugin_munmap(snd_pcm_t *pcm);
 int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm);
 int snd_pcm_plugin_channels_mask(snd_pcm_t *pcm, bitset_t *cmask);
 int getput_index(int format);
@@ -71,7 +70,7 @@ int conv_index(int src_format, int dst_format);
 				SND_PCM_FMT_S32_LE | SND_PCM_FMT_S32_BE | \
 				SND_PCM_FMT_U32_LE | SND_PCM_FMT_U32_BE)
 
-extern struct snd_pcm_fast_ops snd_pcm_plugin_fast_ops;
+extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
 #define muldiv64(a,b,d) (((int64_t)(a) * (b) + (b) / 2) / (d))
 
@@ -88,19 +87,19 @@ typedef int ttable_entry_t;
 #define FULL ROUTE_PLUGIN_RESOLUTION
 #endif
 
-int snd_pcm_linear_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_mulaw_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_alaw_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_adpcm_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_linear_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_alaw_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_adpcm_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave);
 int snd_pcm_route_load_ttable(snd_config_t *tt, ttable_entry_t *ttable,
 			      unsigned int tt_csize, unsigned int tt_ssize,
 			      unsigned int *tt_cused, unsigned int *tt_sused,
 			      int schannels);
-int snd_pcm_route_open(snd_pcm_t **handlep, char *name,
+int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 		       int sformat, unsigned int schannels,
 		       ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
 		       snd_pcm_t *slave, int close_slave);
-int snd_pcm_rate_open(snd_pcm_t **handlep, char *name, int sformat, int srate, snd_pcm_t *slave, int close_slave);
+int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, int sformat, int srate, snd_pcm_t *slave, int close_slave);
 

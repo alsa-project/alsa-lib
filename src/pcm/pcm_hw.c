@@ -37,24 +37,13 @@
 typedef struct {
 	int fd;
 	int card, device, subdevice;
-	int mmap_emulation;
+	volatile snd_pcm_mmap_status_t *mmap_status;
+	snd_pcm_mmap_control_t *mmap_control;
 } snd_pcm_hw_t;
 
 #define SND_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
 #define SND_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
-
-static int snd_pcm_hw_close(snd_pcm_t *pcm)
-{
-	snd_pcm_hw_t *hw = pcm->private;
-	int fd = hw->fd;
-	free(hw);
-	if (close(fd)) {
-		ERR("close failed\n");
-		return -errno;
-	}
-	return 0;
-}
 
 static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 {
@@ -158,9 +147,7 @@ static int snd_pcm_hw_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 			setup->mmap_shape = SND_PCM_MMAP_INTERLEAVED;
 		else
 			setup->mmap_shape = SND_PCM_MMAP_NONINTERLEAVED;
-		hw->mmap_emulation = 1;
-	} else
-		hw->mmap_emulation = 0;
+	}
 	return 0;
 }
 
@@ -194,19 +181,21 @@ static int snd_pcm_hw_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * se
 		ERR("SND_PCM_IOCTL_CHANNEL_SETUP failed");
 		return -errno;
 	}
-	if (hw->mmap_emulation) {
-		if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
-			setup->running_area.addr = pcm->mmap_data;
+	if (!pcm->mmap_info)
+		return 0;
+	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
+		if (pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED) {
+			setup->running_area.addr = pcm->mmap_info->addr;
 			setup->running_area.first = setup->channel * pcm->bits_per_sample;
 			setup->running_area.step = pcm->bits_per_frame;
 		} else {
-			setup->running_area.addr = pcm->mmap_data + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
+			setup->running_area.addr = pcm->mmap_info->addr + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
 			setup->running_area.first = 0;
 			setup->running_area.step = pcm->bits_per_sample;
 		}
 		setup->stopped_area = setup->running_area;
 	} else {
-		setup->running_area.addr = (char *)pcm->mmap_data + (long)setup->running_area.addr;
+		setup->running_area.addr = pcm->mmap_info->addr + (long)setup->running_area.addr;
 		setup->stopped_area.addr = setup->running_area.addr;
 	}
 	return 0;
@@ -225,7 +214,8 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 
 static int snd_pcm_hw_state(snd_pcm_t *pcm)
 {
-	return pcm->mmap_status->state;
+	snd_pcm_hw_t *hw = pcm->private;
+	return hw->mmap_status->state;
 }
 
 static int snd_pcm_hw_delay(snd_pcm_t *pcm, ssize_t *delayp)
@@ -378,7 +368,8 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 		ERR("status mmap failed");
 		return -errno;
 	}
-	pcm->mmap_status = ptr;
+	hw->mmap_status = ptr;
+	pcm->hw_ptr = &hw->mmap_status->hw_ptr;
 	return 0;
 }
 
@@ -392,36 +383,50 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 		ERR("control mmap failed");
 		return -errno;
 	}
-	pcm->mmap_control = ptr;
+	hw->mmap_control = ptr;
+	pcm->appl_ptr = &hw->mmap_control->appl_ptr;
 	return 0;
 }
 
-static int snd_pcm_hw_mmap_data(snd_pcm_t *pcm)
+static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
-	void *ptr;
-	if (hw->mmap_emulation) {
-		ptr = malloc(snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size));
-		if (!ptr)
+	pcm->mmap_info = calloc(1, sizeof(*pcm->mmap_info));
+	if (!pcm->mmap_info)
+		return -ENOMEM;
+	pcm->mmap_info_count = 1;
+	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
+		pcm->mmap_info->type = SND_PCM_MMAP_USER;
+		pcm->mmap_info->size = snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size);
+		pcm->mmap_info->addr = valloc(pcm->mmap_info->size);
+		if (!pcm->mmap_info->addr) {
+			free(pcm->mmap_info);
+			pcm->mmap_info = 0;
 			return -ENOMEM;
+		}
 	} else {
-		int prot;
-		prot = PROT_WRITE | PROT_READ;
-		ptr = mmap(NULL, pcm->setup.mmap_bytes,
-			   prot, MAP_FILE|MAP_SHARED, 
-			   hw->fd, SND_PCM_MMAP_OFFSET_DATA);
-		if (ptr == MAP_FAILED || ptr == NULL) {
+		pcm->mmap_info->type = SND_PCM_MMAP_KERNEL;
+		pcm->mmap_info->size = pcm->setup.mmap_bytes;
+		pcm->mmap_info->addr = mmap(NULL, pcm->setup.mmap_bytes,
+					    PROT_WRITE | PROT_READ,
+					    MAP_FILE|MAP_SHARED, 
+					    hw->fd, SND_PCM_MMAP_OFFSET_DATA);
+		if (pcm->mmap_info->addr == MAP_FAILED ||
+		    pcm->mmap_info->addr == NULL) {
 			ERR("data mmap failed");
+			free(pcm->mmap_info);
+			pcm->mmap_info = 0;
 			return -errno;
 		}
+		pcm->mmap_info->u.kernel.fd = hw->fd;
 	}
-	pcm->mmap_data = ptr;
 	return 0;
 }
 
 static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 {
-	if (munmap((void*)pcm->mmap_status, sizeof(*pcm->mmap_status)) < 0) {
+	snd_pcm_hw_t *hw = pcm->private;
+	if (munmap((void*)hw->mmap_status, sizeof(*hw->mmap_status)) < 0) {
 		ERR("status munmap failed");
 		return -errno;
 	}
@@ -430,30 +435,46 @@ static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 {
-	if (munmap(pcm->mmap_control, sizeof(*pcm->mmap_control)) < 0) {
+	snd_pcm_hw_t *hw = pcm->private;
+	if (munmap(hw->mmap_control, sizeof(*hw->mmap_control)) < 0) {
 		ERR("control munmap failed");
 		return -errno;
 	}
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_data(snd_pcm_t *pcm)
+static int snd_pcm_hw_munmap(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
-	if (hw->mmap_emulation)
-		free(pcm->mmap_data);
+	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED)
+		free(pcm->mmap_info->addr);
 	else
-		if (munmap(pcm->mmap_data, pcm->setup.mmap_bytes) < 0) {
+		if (munmap(pcm->mmap_info->addr, pcm->mmap_info->size) < 0) {
 			ERR("data munmap failed");
 			return -errno;
 		}
+	pcm->mmap_info_count = 0;
+	free(pcm->mmap_info);
+	pcm->mmap_info = 0;
+	return 0;
+}
+
+static int snd_pcm_hw_close(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private;
+	int fd = hw->fd;
+	free(hw);
+	if (close(fd)) {
+		ERR("close failed\n");
+		return -errno;
+	}
+	snd_pcm_hw_munmap_status(pcm);
+	snd_pcm_hw_munmap_control(pcm);
 	return 0;
 }
 
 static ssize_t snd_pcm_hw_mmap_forward(snd_pcm_t *pcm, size_t size)
 {
-	snd_pcm_hw_t *hw = pcm->private;
-	if (hw->mmap_emulation && pcm->stream == SND_PCM_STREAM_PLAYBACK)
+	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED && pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		return snd_pcm_write_mmap(pcm, size);
 	snd_pcm_mmap_appl_forward(pcm, size);
 	return size;
@@ -461,7 +482,6 @@ static ssize_t snd_pcm_hw_mmap_forward(snd_pcm_t *pcm, size_t size)
 
 static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = pcm->private;
 	size_t avail;
 	ssize_t err;
 	if (pcm->setup.ready_mode == SND_PCM_READY_ASAP ||
@@ -475,7 +495,7 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 		avail = snd_pcm_mmap_playback_avail(pcm);
 	} else {
 		avail = snd_pcm_mmap_capture_avail(pcm);
-		if (avail > 0 && hw->mmap_emulation) {
+		if (avail > 0 && pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
 			err = snd_pcm_read_mmap(pcm, avail);
 			if (err < 0)
 				return err;
@@ -486,12 +506,6 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 	if (avail > pcm->setup.buffer_size)
 		return -EPIPE;
 	return avail;
-}
-
-static int snd_pcm_hw_poll_descriptor(snd_pcm_t *pcm)
-{
-	snd_pcm_hw_t *hw = pcm->private;
-	return hw->fd;
 }
 
 static int snd_pcm_hw_channels_mask(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
@@ -514,7 +528,7 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, FILE *fp)
 	}
 }
 
-struct snd_pcm_ops snd_pcm_hw_ops = {
+snd_pcm_ops_t snd_pcm_hw_ops = {
 	close: snd_pcm_hw_close,
 	info: snd_pcm_hw_info,
 	params_info: snd_pcm_hw_params_info,
@@ -526,15 +540,11 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	dump: snd_pcm_hw_dump,
 	nonblock: snd_pcm_hw_nonblock,
 	async: snd_pcm_hw_async,
-	mmap_status: snd_pcm_hw_mmap_status,
-	mmap_control: snd_pcm_hw_mmap_control,
-	mmap_data: snd_pcm_hw_mmap_data,
-	munmap_status: snd_pcm_hw_munmap_status,
-	munmap_control: snd_pcm_hw_munmap_control,
-	munmap_data: snd_pcm_hw_munmap_data,
+	mmap: snd_pcm_hw_mmap,
+	munmap: snd_pcm_hw_munmap,
 };
 
-struct snd_pcm_fast_ops snd_pcm_hw_fast_ops = {
+snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	status: snd_pcm_hw_status,
 	state: snd_pcm_hw_state,
 	delay: snd_pcm_hw_delay,
@@ -548,13 +558,12 @@ struct snd_pcm_fast_ops snd_pcm_hw_fast_ops = {
 	writen: snd_pcm_hw_writen,
 	readi: snd_pcm_hw_readi,
 	readn: snd_pcm_hw_readn,
-	poll_descriptor: snd_pcm_hw_poll_descriptor,
 	channels_mask: snd_pcm_hw_channels_mask,
 	avail_update: snd_pcm_hw_avail_update,
 	mmap_forward: snd_pcm_hw_mmap_forward,
 };
 
-int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int subdevice, int stream, int mode)
+int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdevice, int stream, int mode)
 {
 	char filename[32];
 	char *filefmt;
@@ -564,12 +573,12 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int sub
 	snd_pcm_info_t info;
 	int fmode;
 	snd_ctl_t *ctl;
-	snd_pcm_t *handle;
-	snd_pcm_hw_t *hw;
+	snd_pcm_t *pcm = NULL;
+	snd_pcm_hw_t *hw = NULL;
 
-	assert(handlep);
+	assert(pcmp);
 
-	if ((ret = snd_ctl_hw_open(&ctl, card)) < 0)
+	if ((ret = snd_ctl_hw_open(&ctl, NULL, card)) < 0)
 		return ret;
 
 	switch (stream) {
@@ -582,37 +591,35 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int sub
 	default:
 		assert(0);
 	}
-	if ((ret = snd_ctl_pcm_prefer_subdevice(ctl, subdevice)) < 0)
-		goto __end;
+	ret = snd_ctl_pcm_prefer_subdevice(ctl, subdevice);
+	snd_ctl_close(ctl);
+	if (ret < 0)
+		return ret;
 	sprintf(filename, filefmt, card, device);
 
       __again:
-      	if (attempt++ > 3) {
-		ret = -EBUSY;
-		goto __end;
-      	}
+      	if (attempt++ > 3)
+		return -EBUSY;
 	fmode = O_RDWR;
 	if (mode & SND_PCM_NONBLOCK)
 		fmode |= O_NONBLOCK;
 	if (mode & SND_PCM_ASYNC)
 		fmode |= O_ASYNC;
-	if ((fd = open(filename, fmode)) < 0) {
-		ret = -errno;
-		goto __end;
-	}
+	if ((fd = open(filename, fmode)) < 0)
+		return -errno;
 	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
 		ret = -errno;
-		goto __end;
+		goto _err;
 	}
 	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_PCM_VERSION_MAX)) {
 		ret = -SND_ERROR_INCOMPATIBLE_VERSION;
-		goto __end;
+		goto _err;
 	}
 	if (subdevice >= 0) {
 		memset(&info, 0, sizeof(info));
 		if (ioctl(fd, SND_PCM_IOCTL_INFO, &info) < 0) {
 			ret = -errno;
-			goto __end;
+			goto _err;
 		}
 		if (info.subdevice != subdevice) {
 			close(fd);
@@ -622,54 +629,61 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int sub
 	hw = calloc(1, sizeof(snd_pcm_hw_t));
 	if (!hw) {
 		ret = -ENOMEM;
-		goto __end;
+		goto _err;
 	}
 	hw->card = card;
 	hw->device = device;
 	hw->subdevice = subdevice;
 	hw->fd = fd;
 
-	handle = calloc(1, sizeof(snd_pcm_t));
-	if (!handle) {
-		free(hw);
+	pcm = calloc(1, sizeof(snd_pcm_t));
+	if (!pcm) {
 		ret = -ENOMEM;
-		goto __end;
+		goto _err;
 	}
-	handle->type = SND_PCM_TYPE_HW;
-	handle->stream = stream;
-	handle->ops = &snd_pcm_hw_ops;
-	handle->op_arg = handle;
-	handle->fast_ops = &snd_pcm_hw_fast_ops;
-	handle->fast_op_arg = handle;
-	handle->mode = mode;
-	handle->private = hw;
-	ret = snd_pcm_init(handle);
+	pcm->type = SND_PCM_TYPE_HW;
+	pcm->stream = stream;
+	pcm->mode = mode;
+	pcm->ops = &snd_pcm_hw_ops;
+	pcm->op_arg = pcm;
+	pcm->fast_ops = &snd_pcm_hw_fast_ops;
+	pcm->fast_op_arg = pcm;
+	pcm->private = hw;
+	pcm->poll_fd = fd;
+	*pcmp = pcm;
+	ret = snd_pcm_hw_mmap_status(pcm);
 	if (ret < 0) {
-		snd_pcm_close(handle);
-		snd_ctl_close(ctl);
+		snd_pcm_close(pcm);
 		return ret;
 	}
-	*handlep = handle;
+	ret = snd_pcm_hw_mmap_control(pcm);
+	if (ret < 0) {
+		snd_pcm_close(pcm);
+		return ret;
+	}
+	return 0;
 	
- __end:
-	if (ret < 0 && fd >= 0)
-		close(fd);
-	snd_ctl_close(ctl);
+ _err:
+	if (hw)
+		free(hw);
+	if (pcm)
+		free(pcm);
+	close(fd);
 	return ret;
 }
 
-int snd_pcm_hw_open_device(snd_pcm_t **handlep, int card, int device, int stream, int mode)
+int snd_pcm_hw_open_device(snd_pcm_t **pcmp, int card, int device, int stream, int mode)
 {
-	return snd_pcm_hw_open_subdevice(handlep, card, device, -1, stream, mode);
+	return snd_pcm_hw_open_subdevice(pcmp, card, device, -1, stream, mode);
 }
 
-int snd_pcm_hw_open(snd_pcm_t **handlep, char *name, int card, int device, int subdevice, int stream, int mode)
+int snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, int card, int device, int subdevice, int stream, int mode)
 {
-	int err = snd_pcm_hw_open_subdevice(handlep, card, device, subdevice, stream, mode);
+	int err = snd_pcm_hw_open_subdevice(pcmp, card, device, subdevice, stream, mode);
 	if (err < 0)
 		return err;
 	if (name)
-		(*handlep)->name = strdup(name);
+		(*pcmp)->name = strdup(name);
 	return 0;
 }
 

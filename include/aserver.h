@@ -19,17 +19,17 @@
  */
   
 
+#include "../src/pcm/pcm_local.h"
+
 #define SND_PCM_IOCTL_STATE		_IO ('A', 0xf0)
-#define SND_PCM_IOCTL_MMAP_DATA		_IO ('A', 0xf1)
-#define SND_PCM_IOCTL_MMAP_CONTROL	_IO ('A', 0xf2)
-#define SND_PCM_IOCTL_MMAP_STATUS	_IO ('A', 0xf3)
-#define SND_PCM_IOCTL_MUNMAP_DATA	_IO ('A', 0xf4)
-#define SND_PCM_IOCTL_MUNMAP_CONTROL	_IO ('A', 0xf5)
-#define SND_PCM_IOCTL_MUNMAP_STATUS	_IO ('A', 0xf6)
+#define SND_PCM_IOCTL_MMAP		_IO ('A', 0xf1)
+#define SND_PCM_IOCTL_MUNMAP		_IO ('A', 0xf4)
 #define SND_PCM_IOCTL_MMAP_FORWARD	_IO ('A', 0xf7)
 #define SND_PCM_IOCTL_AVAIL_UPDATE	_IO ('A', 0xf8)
 #define SND_PCM_IOCTL_ASYNC		_IO ('A', 0xf9)
 #define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xfa)
+#define SND_PCM_IOCTL_MMAP_INFO		_IO ('A', 0xfb)
+#define SND_PCM_IOCTL_POLL_DESCRIPTOR	_IO ('A', 0xfc)
 
 typedef struct {
 	long result;
@@ -39,6 +39,7 @@ typedef struct {
 			int sig;
 			pid_t pid;
 		} async;
+		snd_pcm_mmap_info_t mmap_info;
 		snd_pcm_info_t info;
 		snd_pcm_params_t params;
 		snd_pcm_params_info_t params_info;
@@ -54,13 +55,13 @@ typedef struct {
 		size_t mmap_forward;
 	} u;
 	char data[0];
-} snd_pcm_client_shm_t;
+} snd_pcm_shm_ctrl_t;
 
-#define PCM_SHM_SIZE 65536
-#define PCM_SHM_DATA_MAXLEN (PCM_SHM_SIZE - offsetof(snd_pcm_client_shm_t, data))
+#define PCM_SHM_SIZE sizeof(snd_pcm_shm_ctrl_t)
 		
 #define SND_CTL_IOCTL_READ		_IOR('U', 0xf0, snd_ctl_event_t)
 #define SND_CTL_IOCTL_CLOSE		_IO ('U', 0xf1)
+#define SND_CTL_IOCTL_POLL_DESCRIPTOR	_IO ('U', 0xf2)
 
 typedef struct {
 	int result;
@@ -78,10 +79,10 @@ typedef struct {
 		snd_ctl_event_t read;
 	} u;
 	char data[0];
-} snd_ctl_client_shm_t;
+} snd_ctl_shm_ctrl_t;
 
 #define CTL_SHM_SIZE 65536
-#define CTL_SHM_DATA_MAXLEN (CTL_SHM_SIZE - offsetof(snd_ctl_client_shm_t, data))
+#define CTL_SHM_DATA_MAXLEN (CTL_SHM_SIZE - offsetof(snd_ctl_shm_ctrl_t, data))
 
 typedef struct {
 	unsigned char dev_type;

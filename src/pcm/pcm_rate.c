@@ -326,12 +326,6 @@ static int snd_pcm_rate_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 		return err;
 	}
 
-	if (slave->mmap_data) {
-		err = snd_pcm_munmap_data(slave);
-		if (err < 0)
-			return err;
-	}
-
 	if (rate->req_srate - slave_info.min_rate < slave_info.max_rate - rate->req_srate)
 		srate = slave_info.min_rate;
 	else
@@ -349,10 +343,6 @@ static int snd_pcm_rate_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 	err = snd_pcm_params(slave, &slave_params);
 	params->fail_mask = slave_params.fail_mask;
 	params->fail_reason = slave_params.fail_reason;
-	if (slave->valid_setup) {
-		int r = snd_pcm_mmap_data(slave, NULL);
-		assert(r >= 0);
-	}
 	return err;
 }
 
@@ -565,7 +555,7 @@ static void snd_pcm_rate_dump(snd_pcm_t *pcm, FILE *fp)
 	snd_pcm_dump(rate->plug.slave, fp);
 }
 
-struct snd_pcm_ops snd_pcm_rate_ops = {
+snd_pcm_ops_t snd_pcm_rate_ops = {
 	close: snd_pcm_rate_close,
 	info: snd_pcm_plugin_info,
 	params_info: snd_pcm_rate_params_info,
@@ -577,20 +567,15 @@ struct snd_pcm_ops snd_pcm_rate_ops = {
 	dump: snd_pcm_rate_dump,
 	nonblock: snd_pcm_plugin_nonblock,
 	async: snd_pcm_plugin_async,
-	mmap_status: snd_pcm_plugin_mmap_status,
-	mmap_control: snd_pcm_plugin_mmap_control,
-	mmap_data: snd_pcm_plugin_mmap_data,
-	munmap_status: snd_pcm_plugin_munmap_status,
-	munmap_control: snd_pcm_plugin_munmap_control,
-	munmap_data: snd_pcm_plugin_munmap_data,
+	mmap: snd_pcm_plugin_mmap,
+	munmap: snd_pcm_plugin_munmap,
 };
 
-int snd_pcm_rate_open(snd_pcm_t **handlep, char *name, int sformat, int srate, snd_pcm_t *slave, int close_slave)
+int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, int sformat, int srate, snd_pcm_t *slave, int close_slave)
 {
-	snd_pcm_t *handle;
+	snd_pcm_t *pcm;
 	snd_pcm_rate_t *rate;
-	int err;
-	assert(handlep && slave);
+	assert(pcmp && slave);
 	if (sformat >= 0 && snd_pcm_format_linear(sformat) != 1)
 		return -EINVAL;
 	rate = calloc(1, sizeof(snd_pcm_rate_t));
@@ -606,27 +591,25 @@ int snd_pcm_rate_open(snd_pcm_t **handlep, char *name, int sformat, int srate, s
 	rate->plug.slave = slave;
 	rate->plug.close_slave = close_slave;
 
-	handle = calloc(1, sizeof(snd_pcm_t));
-	if (!handle) {
+	pcm = calloc(1, sizeof(snd_pcm_t));
+	if (!pcm) {
 		free(rate);
 		return -ENOMEM;
 	}
 	if (name)
-		handle->name = strdup(name);
-	handle->type = SND_PCM_TYPE_RATE;
-	handle->stream = slave->stream;
-	handle->ops = &snd_pcm_rate_ops;
-	handle->op_arg = handle;
-	handle->fast_ops = &snd_pcm_plugin_fast_ops;
-	handle->fast_op_arg = handle;
-	handle->mode = slave->mode;
-	handle->private = rate;
-	err = snd_pcm_init(handle);
-	if (err < 0) {
-		snd_pcm_close(handle);
-		return err;
-	}
-	*handlep = handle;
+		pcm->name = strdup(name);
+	pcm->type = SND_PCM_TYPE_RATE;
+	pcm->stream = slave->stream;
+	pcm->mode = slave->mode;
+	pcm->ops = &snd_pcm_rate_ops;
+	pcm->op_arg = pcm;
+	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
+	pcm->fast_op_arg = pcm;
+	pcm->private = rate;
+	pcm->poll_fd = slave->poll_fd;
+	pcm->hw_ptr = &rate->plug.hw_ptr;
+	pcm->appl_ptr = &rate->plug.appl_ptr;
+	*pcmp = pcm;
 
 	return 0;
 }

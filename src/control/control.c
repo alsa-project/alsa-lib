@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <dlfcn.h>
 #include "asoundlib.h"
 #include "control_local.h"
 
@@ -148,106 +149,22 @@ int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_callbacks_t * callbacks)
 	return result >= 0 ? count : -errno;
 }
 
-static int _snd_ctl_open_hw(snd_ctl_t **handlep, snd_config_t *conf)
-{
-	snd_config_iterator_t i;
-	long card = -1;
-	char *str;
-	int err;
-	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
-			continue;
-		if (strcmp(n->id, "type") == 0)
-			continue;
-		if (strcmp(n->id, "card") == 0) {
-			err = snd_config_integer_get(n, &card);
-			if (err < 0) {
-				err = snd_config_string_get(n, &str);
-				if (err < 0)
-					return -EINVAL;
-				card = snd_card_get_index(str);
-				if (card < 0)
-					return card;
-			}
-			continue;
-		}
-		return -EINVAL;
-	}
-	if (card < 0)
-		return -EINVAL;
-	return snd_ctl_hw_open(handlep, card);
-}
-				
-static int _snd_ctl_open_client(snd_ctl_t **handlep, snd_config_t *conf)
-{
-	snd_config_iterator_t i;
-	char *socket = NULL;
-	char *name = NULL;
-	char *host = NULL;
-	long port = -1;
-	int err;
-	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
-			continue;
-		if (strcmp(n->id, "type") == 0)
-			continue;
-		if (strcmp(n->id, "socket") == 0) {
-			err = snd_config_string_get(n, &socket);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		if (strcmp(n->id, "host") == 0) {
-			err = snd_config_string_get(n, &host);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		if (strcmp(n->id, "port") == 0) {
-			err = snd_config_integer_get(n, &port);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		if (strcmp(n->id, "name") == 0) {
-			err = snd_config_string_get(n, &name);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		return -EINVAL;
-	}
-	if (!name)
-		return -EINVAL;
-	if (socket) {
-		if (port >= 0 || host)
-			return -EINVAL;
-		return snd_ctl_client_open(handlep, socket, -1, SND_TRANSPORT_TYPE_SHM, name);
-	} else  {
-		if (port < 0 || !name)
-			return -EINVAL;
-		return snd_ctl_client_open(handlep, host, port, SND_TRANSPORT_TYPE_TCP, name);
-	}
-}
-				
-int snd_ctl_open(snd_ctl_t **handlep, char *name)
+int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 {
 	char *str;
 	int err;
-	snd_config_t *ctl_conf, *conf;
-	assert(handlep && name);
+	snd_config_t *ctl_conf, *conf, *type_conf;
+	snd_config_iterator_t i;
+	char *lib = NULL, *open = NULL;
+	int (*open_func)(snd_ctl_t **ctlp, char *name, snd_config_t *conf);
+	void *h;
+	assert(ctlp && name);
 	err = snd_config_update();
 	if (err < 0)
 		return err;
 	err = snd_config_searchv(snd_config, &ctl_conf, "ctl", name, 0);
-	if (err < 0) {
-		int idx = snd_card_get_index(name);
-		if (idx < 0)
-			return idx;
-		return snd_ctl_hw_open(handlep, idx);
-	}
+	if (err < 0)
+		return err;
 	if (snd_config_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND)
 		return -EINVAL;
 	err = snd_config_search(ctl_conf, "type", &conf);
@@ -256,10 +173,37 @@ int snd_ctl_open(snd_ctl_t **handlep, char *name)
 	err = snd_config_string_get(conf, &str);
 	if (err < 0)
 		return err;
-	if (strcmp(str, "hw") == 0)
-		return _snd_ctl_open_hw(handlep, ctl_conf);
-	else if (strcmp(str, "client") == 0)
-		return _snd_ctl_open_client(handlep, ctl_conf);
-	else
+	err = snd_config_searchv(snd_config, &type_conf, "ctltype", str, 0);
+	if (err < 0)
+		return err;
+	snd_config_foreach(i, type_conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "lib") == 0) {
+			err = snd_config_string_get(n, &lib);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		if (strcmp(n->id, "open") == 0) {
+			err = snd_config_string_get(n, &open);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+			return -EINVAL;
+		}
+	}
+	if (!open)
 		return -EINVAL;
+	if (!lib)
+		lib = "libasound.so";
+	h = dlopen(lib, RTLD_NOW);
+	if (!h)
+		return -ENOENT;
+	open_func = dlsym(h, open);
+	dlclose(h);
+	if (!open_func)
+		return -ENXIO;
+	return open_func(ctlp, name, ctl_conf);
 }

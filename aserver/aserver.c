@@ -31,29 +31,29 @@
 #include <stddef.h>
 #include <getopt.h>
 #include <netinet/in.h>
+#include <netdb.h>
 
 #include "asoundlib.h"
-#include "pcm_local.h"
 #include "aserver.h"
 #include "list.h"
 
 char *command;
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-#define error(...) do {\
-	fprintf(stderr, "%s: %s:%d: ", command, __FUNCTION__, __LINE__); \
+#define ERROR(...) do {\
+	fprintf(stderr, "%s %s:%i:(%s) ", command, __FILE__, __LINE__, __FUNCTION__); \
 	fprintf(stderr, __VA_ARGS__); \
 	putc('\n', stderr); \
 } while (0)
 #else
-#define error(args...) do {\
-	fprintf(stderr, "%s: %s:%d: ", command, __FUNCTION__, __LINE__); \
+#define ERROR(args...) do {\
+	fprintf(stderr, "%s %s:%i:(%s) ", command, __FILE__, __LINE__, __FUNCTION__); \
 	fprintf(stderr, ##args); \
 	putc('\n', stderr); \
 } while (0)
 #endif	
 
-#define perrno(string) error("%s", strerror(errno))
+#define SYSERR(string) ERROR(string ": %s", strerror(errno))
 
 int make_local_socket(const char *filename)
 {
@@ -65,7 +65,7 @@ int make_local_socket(const char *filename)
 	sock = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (sock < 0) {
 		int result = -errno;
-		perrno("socket");
+		SYSERR("socket");
 		return result;
 	}
 	
@@ -76,7 +76,7 @@ int make_local_socket(const char *filename)
 
 	if (bind(sock, (struct sockaddr *) addr, size) < 0) {
 		int result = -errno;
-		perrno("bind");
+		SYSERR("bind");
 		return result;
 	}
 
@@ -91,7 +91,7 @@ int make_inet_socket(int port)
 	sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
 		int result = -errno;
-		perrno("socket");
+		SYSERR("socket");
 		return result;
 	}
 	
@@ -101,7 +101,7 @@ int make_inet_socket(int port)
 
 	if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
 		int result = -errno;
-		perrno("bind");
+		SYSERR("bind");
 		return result;
 	}
 
@@ -135,7 +135,7 @@ int send_fd(int socket, void *data, size_t len, int fd)
 
     ret = sendmsg(socket, &msghdr, 0 );
     if (ret < 0) {
-	    perrno("sendmsg");
+	    SYSERR("sendmsg");
 	    return -errno;
     }
     return ret;
@@ -182,13 +182,6 @@ void del_waiter(int fd)
 	memmove(&pollfds[k], &pollfds[k + 1], pollfds_count - k);
 }
 
-typedef struct {
-	struct list_head list;
-	int fd;
-	int local;
-} master_t;
-LIST_HEAD(masters);
-
 typedef struct client client_t;
 
 typedef struct {
@@ -199,10 +192,9 @@ typedef struct {
 
 struct client {
 	struct list_head list;
-	struct socket {
-		int fd;
-		int local;
-	} data, ctrl;
+	int poll_fd;
+	int ctrl_fd;
+	int local;
 	int transport_type;
 	int dev_type;
 	char name[256];
@@ -250,9 +242,8 @@ typedef struct {
 	struct list_head list;
 	int fd;
 	uint32_t cookie;
-	int local;
-} pending_t;
-LIST_HEAD(pendings);
+} inet_pending_t;
+LIST_HEAD(inet_pendings);
 
 int pcm_handler(waiter_t *waiter, unsigned short events)
 {
@@ -260,15 +251,15 @@ int pcm_handler(waiter_t *waiter, unsigned short events)
 	char buf[1];
 	ssize_t n;
 	if (events & POLLIN) {
-		n = write(client->data.fd, buf, 1);
+		n = write(client->poll_fd, buf, 1);
 		if (n != 1) {
-			perrno("write");
+			SYSERR("write");
 			return -errno;
 		}
 	} else if (events & POLLOUT) {
-		n = read(client->data.fd, buf, 1);
+		n = read(client->poll_fd, buf, 1);
 		if (n != 1) {
-			perrno("read");
+			SYSERR("read");
 			return -errno;
 		}
 	}
@@ -283,7 +274,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 	snd_pcm_t *pcm;
 	int err;
 	int result;
-	err = snd_pcm_open(&pcm, client->name, client->stream, client->mode);
+	err = snd_pcm_open(&pcm, client->name, client->stream, SND_PCM_NONBLOCK);
 	if (err < 0)
 		return err;
 	client->device.pcm.handle = pcm;
@@ -292,7 +283,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 	shmid = shmget(IPC_PRIVATE, PCM_SHM_SIZE, 0666);
 	if (shmid < 0) {
 		result = -errno;
-		perrno("shmget");
+		SYSERR("shmget");
 		goto _err;
 	}
 	client->transport.shm.ctrl_id = shmid;
@@ -300,7 +291,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 	if (!client->transport.shm.ctrl) {
 		result = -errno;
 		shmctl(shmid, IPC_RMID, 0);
-		perrno("shmat");
+		SYSERR("shmat");
 		goto _err;
 	}
 	*cookie = shmid;
@@ -315,38 +306,66 @@ int pcm_shm_open(client_t *client, int *cookie)
 int pcm_shm_close(client_t *client)
 {
 	int err;
-	snd_pcm_client_shm_t *ctrl = client->transport.shm.ctrl;
+	snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
 	if (client->polling) {
 		del_waiter(client->device.pcm.fd);
 		client->polling = 0;
 	}
-	/* FIXME: blocking */
 	err = snd_pcm_close(client->device.pcm.handle);
 	ctrl->result = err;
 	if (err < 0) 
-		perrno("snd_pcm_close");
+		SYSERR("snd_pcm_close");
 	if (client->transport.shm.ctrl) {
 		err = shmdt((void *)client->transport.shm.ctrl);
 		if (err < 0)
-			perrno("shmdt");
+			SYSERR("shmdt");
 		err = shmctl(client->transport.shm.ctrl_id, IPC_RMID, 0);
 		if (err < 0)
-			perrno("shmctl");
+			SYSERR("shmctl");
 		client->transport.shm.ctrl = 0;
 	}
 	client->open = 0;
 	return 0;
 }
 
+int shm_ack(client_t *client)
+{
+	struct pollfd pfd;
+	int err;
+	char buf[1];
+	pfd.fd = client->ctrl_fd;
+	pfd.events = POLLHUP;
+	if (poll(&pfd, 1, 0) == 1)
+		return -EBADFD;
+	err = write(client->ctrl_fd, buf, 1);
+	if (err != 1)
+		return -EBADFD;
+	return 0;
+}
+
+int shm_ack_fd(client_t *client, int fd)
+{
+	struct pollfd pfd;
+	int err;
+	char buf[1];
+	pfd.fd = client->ctrl_fd;
+	pfd.events = POLLHUP;
+	if (poll(&pfd, 1, 0) == 1)
+		return -EBADFD;
+	err = send_fd(client->ctrl_fd, buf, 1, fd);
+	if (err != 1)
+		return -EBADFD;
+	return 0;
+}
+
 int pcm_shm_cmd(client_t *client)
 {
-	snd_pcm_client_shm_t *ctrl = client->transport.shm.ctrl;
-	struct pollfd pfd;
+	snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
 	char buf[1];
 	int err;
 	int cmd;
 	snd_pcm_t *pcm;
-	err = read(client->ctrl.fd, buf, 1);
+	err = read(client->ctrl_fd, buf, 1);
 	if (err != 1)
 		return -EBADFD;
 	cmd = ctrl->cmd;
@@ -409,63 +428,74 @@ int pcm_shm_cmd(client_t *client)
 		break;
 	case SND_PCM_IOCTL_LINK:
 	{
-		struct list_head *item;
-		list_for_each(item, &clients) {
-			client_t *client = list_entry(item, client_t, list);
-			if (!client->open)
-				continue;
-			if (client->data.fd == ctrl->u.link) {
-				ctrl->result = snd_pcm_link(pcm, client->device.pcm.handle);
-				break;
-			}
-		}
-		ctrl->result = -EBADFD;
+		/* FIXME */
+		ctrl->result = -ENOSYS;
 		break;
 	}
 	case SND_PCM_IOCTL_UNLINK:
 		ctrl->result = snd_pcm_unlink(pcm);
 		break;
-	case SND_PCM_IOCTL_MMAP_DATA:
-	case SND_PCM_IOCTL_MMAP_CONTROL:
-	case SND_PCM_IOCTL_MMAP_STATUS:
+	case SND_PCM_IOCTL_MMAP:
 	{
-		pfd.fd = client->ctrl.fd;
-		pfd.events = POLLHUP;
-		if (poll(&pfd, 1, 0) == 1)
-			return -EBADFD;
-		err = send_fd(client->ctrl.fd, buf, 1, client->device.pcm.fd);
-		if (err != 1)
-			return -EBADFD;
-		ctrl->result = 0;
-		return 0;
-	}
-	case SND_PCM_IOCTL_MUNMAP_DATA:
-	case SND_PCM_IOCTL_MUNMAP_CONTROL:
-	case SND_PCM_IOCTL_MUNMAP_STATUS:
-		ctrl->result = 0;
+		err = snd_pcm_mmap(pcm);
+		if (err < 0)
+			ctrl->result = err;
+		else
+			ctrl->result = pcm->mmap_info_count;
 		break;
+	}
+	case SND_PCM_IOCTL_MMAP_INFO:
+	{
+		snd_pcm_mmap_info_t *i;
+		unsigned int index = ctrl->u.mmap_info.index;
+		if (index >= pcm->mmap_info_count) {
+			ctrl->result = -EINVAL;
+			break;
+		}
+		i = &pcm->mmap_info[index];
+		if (i->type == SND_PCM_MMAP_USER) {
+			i->u.user.shmid = shmget(IPC_PRIVATE, i->size, 0666);
+			if (i->u.user.shmid < 0) {
+				SYSERR("shmget");
+				return -EINVAL;
+			}
+		}
+		ctrl->u.mmap_info = *i;
+		ctrl->u.mmap_info.index = index;
+		ctrl->result = 0;
+		if (i->type == SND_PCM_MMAP_USER)
+			break;
+		return shm_ack_fd(client, i->u.kernel.fd);
+	}
+	case SND_PCM_IOCTL_MUNMAP:
+	{
+		size_t k;
+		ctrl->result = snd_pcm_munmap(pcm);
+		if (ctrl->result < 0)
+			break;
+		for (k = 0; k < pcm->mmap_info_count; ++k) {
+			snd_pcm_mmap_info_t *i = &pcm->mmap_info[k];
+			if (i->type == SND_PCM_MMAP_USER) {
+				int err = shmdt(i->addr);
+				assert(err >= 0);
+			}
+		}
+		break;
+	}
 	case SND_PCM_IOCTL_MMAP_FORWARD:
 		ctrl->result = snd_pcm_mmap_forward(pcm, ctrl->u.mmap_forward);
 		break;
+	case SND_PCM_IOCTL_POLL_DESCRIPTOR:
+		ctrl->result = 0;
+		return shm_ack_fd(client, snd_pcm_poll_descriptor(pcm));
 	case SND_PCM_IOCTL_CLOSE:
 		client->ops->close(client);
 		break;
 	default:
-		fprintf(stderr, "Bogus cmd: %x\n", ctrl->cmd);
+		ERROR("Bogus cmd: %x", ctrl->cmd);
 		ctrl->result = -ENOSYS;
 	}
-	pfd.fd = client->ctrl.fd;
-	pfd.events = POLLHUP;
-	if (poll(&pfd, 1, 0) == 1)
-		return -EBADFD;
-	err = write(client->ctrl.fd, buf, 1);
-	if (err != 1)
-		return -EBADFD;
-	if (!client->polling) {
-		add_waiter(client->device.pcm.fd, POLLIN | POLLOUT, pcm_handler, client);
-		client->polling = 1;
-	}
-	return 0;
+	return shm_ack(client);
 }
 
 transport_ops_t pcm_shm_ops = {
@@ -480,9 +510,9 @@ int ctl_handler(waiter_t *waiter, unsigned short events)
 	char buf[1];
 	ssize_t n;
 	if (events & POLLIN) {
-		n = write(client->data.fd, buf, 1);
+		n = write(client->poll_fd, buf, 1);
 		if (n != 1) {
-			perrno("write");
+			SYSERR("write");
 			return -errno;
 		}
 	}
@@ -506,7 +536,7 @@ int ctl_shm_open(client_t *client, int *cookie)
 	shmid = shmget(IPC_PRIVATE, CTL_SHM_SIZE, 0666);
 	if (shmid < 0) {
 		result = -errno;
-		perrno("shmget");
+		SYSERR("shmget");
 		goto _err;
 	}
 	client->transport.shm.ctrl_id = shmid;
@@ -514,7 +544,7 @@ int ctl_shm_open(client_t *client, int *cookie)
 	if (!client->transport.shm.ctrl) {
 		result = -errno;
 		shmctl(shmid, IPC_RMID, 0);
-		perrno("shmat");
+		SYSERR("shmat");
 		goto _err;
 	}
 	*cookie = shmid;
@@ -531,23 +561,22 @@ int ctl_shm_open(client_t *client, int *cookie)
 int ctl_shm_close(client_t *client)
 {
 	int err;
-	snd_ctl_client_shm_t *ctrl = client->transport.shm.ctrl;
+	snd_ctl_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
 	if (client->polling) {
 		del_waiter(client->device.control.fd);
 		client->polling = 0;
 	}
-	/* FIXME: blocking */
 	err = snd_ctl_close(client->device.control.handle);
 	ctrl->result = err;
 	if (err < 0) 
-		perrno("snd_ctl_close");
+		SYSERR("snd_ctl_close");
 	if (client->transport.shm.ctrl) {
 		err = shmdt((void *)client->transport.shm.ctrl);
 		if (err < 0)
-			perrno("shmdt");
+			SYSERR("shmdt");
 		err = shmctl(client->transport.shm.ctrl_id, IPC_RMID, 0);
 		if (err < 0)
-			perrno("shmctl");
+			SYSERR("shmctl");
 		client->transport.shm.ctrl = 0;
 	}
 	client->open = 0;
@@ -558,13 +587,12 @@ extern int snd_ctl_read1(snd_ctl_t *ctl, snd_ctl_event_t *event);
 
 int ctl_shm_cmd(client_t *client)
 {
-	snd_ctl_client_shm_t *ctrl = client->transport.shm.ctrl;
-	struct pollfd pfd;
+	snd_ctl_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
 	char buf[1];
 	int err;
 	int cmd;
 	snd_ctl_t *ctl;
-	err = read(client->ctrl.fd, buf, 1);
+	err = read(client->ctrl_fd, buf, 1);
 	if (err != 1)
 		return -EBADFD;
 	cmd = ctrl->cmd;
@@ -612,22 +640,14 @@ int ctl_shm_cmd(client_t *client)
 	case SND_CTL_IOCTL_CLOSE:
 		client->ops->close(client);
 		break;
+	case SND_PCM_IOCTL_POLL_DESCRIPTOR:
+		ctrl->result = 0;
+		return shm_ack_fd(client, snd_ctl_poll_descriptor(ctl));
 	default:
-		fprintf(stderr, "Bogus cmd: %x\n", ctrl->cmd);
+		ERROR("Bogus cmd: %x", ctrl->cmd);
 		ctrl->result = -ENOSYS;
 	}
-	pfd.fd = client->ctrl.fd;
-	pfd.events = POLLHUP;
-	if (poll(&pfd, 1, 0) == 1)
-		return -EBADFD;
-	err = write(client->ctrl.fd, buf, 1);
-	if (err != 1)
-		return -EBADFD;
-	if (!client->polling) {
-		add_waiter(client->device.control.fd, POLLIN, ctl_handler, client);
-		client->polling = 1;
-	}
-	return 0;
+	return shm_ack(client);
 }
 
 transport_ops_t ctl_shm_ops = {
@@ -643,9 +663,9 @@ int snd_client_open(client_t *client)
 	snd_client_open_answer_t ans;
 	char *name;
 	memset(&ans, 0, sizeof(ans));
-	err = read(client->ctrl.fd, &req, sizeof(req));
+	err = read(client->ctrl_fd, &req, sizeof(req));
 	if (err < 0) {
-		perrno("read");
+		SYSERR("read");
 		exit(1);
 	}
 	if (err != sizeof(req)) {
@@ -653,9 +673,9 @@ int snd_client_open(client_t *client)
 		goto _answer;
 	}
 	name = alloca(req.namelen);
-	err = read(client->ctrl.fd, name, req.namelen);
+	err = read(client->ctrl_fd, name, req.namelen);
 	if (err < 0) {
-		perrno("read");
+		SYSERR("read");
 		exit(1);
 	}
 	if (err != req.namelen) {
@@ -663,20 +683,17 @@ int snd_client_open(client_t *client)
 		goto _answer;
 	}
 
-	switch (req.dev_type) {
-	case SND_DEV_TYPE_PCM:
-		switch (req.transport_type) {
-		case SND_TRANSPORT_TYPE_SHM:
-			client->ops = &pcm_shm_ops;
-			break;
-		default:
+	switch (req.transport_type) {
+	case SND_TRANSPORT_TYPE_SHM:
+		if (!client->local) {
 			ans.result = -EINVAL;
 			goto _answer;
 		}
-		break;
-	case SND_DEV_TYPE_CONTROL:
-		switch (req.transport_type) {
-		case SND_TRANSPORT_TYPE_SHM:
+		switch (req.dev_type) {
+		case SND_DEV_TYPE_PCM:
+			client->ops = &pcm_shm_ops;
+			break;
+		case SND_DEV_TYPE_CONTROL:
 			client->ops = &ctl_shm_ops;
 			break;
 		default:
@@ -701,27 +718,27 @@ int snd_client_open(client_t *client)
 		ans.result = err;
 	} else {
 		client->open = 1;
-		ans.result = client->data.fd;
+		ans.result = 0;
 	}
 
  _answer:
-	err = write(client->ctrl.fd, &ans, sizeof(ans));
+	err = write(client->ctrl_fd, &ans, sizeof(ans));
 	if (err != sizeof(ans)) {
-		perrno("write");
+		SYSERR("write");
 		exit(1);
 	}
 	return 0;
 }
 
-int client_data_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
+int client_poll_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 {
 	client_t *client = waiter->private_data;
 	if (client->open)
 		client->ops->close(client);
-	close(client->data.fd);
-	close(client->ctrl.fd);
-	del_waiter(client->data.fd);
-	del_waiter(client->ctrl.fd);
+	close(client->poll_fd);
+	close(client->ctrl_fd);
+	del_waiter(client->poll_fd);
+	del_waiter(client->ctrl_fd);
 	list_del(&client->list);
 	free(client);
 	return 0;
@@ -730,18 +747,25 @@ int client_data_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED
 int client_ctrl_handler(waiter_t *waiter, unsigned short events)
 {
 	client_t *client = waiter->private_data;
-	if (events & POLLHUP)
-		return client_data_handler(waiter, events);
+	if (events & POLLHUP) {
+		if (client->open)
+			client->ops->close(client);
+		close(client->ctrl_fd);
+		del_waiter(client->ctrl_fd);
+		list_del(&client->list);
+		free(client);
+		return 0;
+	}
 	if (client->open)
 		return client->ops->cmd(client);
 	else
 		return snd_client_open(client);
 }
 
-int pending_handler(waiter_t *waiter, unsigned short events)
+int inet_pending_handler(waiter_t *waiter, unsigned short events)
 {
-	pending_t *pending = waiter->private_data;
-	pending_t *pdata;
+	inet_pending_t *pending = waiter->private_data;
+	inet_pending_t *pdata;
 	client_t *client;
 	uint32_t cookie;
 	struct list_head *item;
@@ -766,8 +790,8 @@ int pending_handler(waiter_t *waiter, unsigned short events)
 		return 0;
 	}
 
-	list_for_each(item, &pendings) {
-		pdata = list_entry(item, pending_t, list);
+	list_for_each(item, &inet_pendings) {
+		pdata = list_entry(item, inet_pending_t, list);
 		if (pdata->cookie == cookie)
 			goto found;
 	}
@@ -775,13 +799,12 @@ int pending_handler(waiter_t *waiter, unsigned short events)
 	return 0;
 
  found:
-	client = calloc(sizeof(*client), 1);
-	client->data.fd = pdata->fd;
-	client->data.local = pdata->local;
-	client->ctrl.fd = waiter->fd;
-	client->ctrl.local = pending->local;
-	add_waiter(client->ctrl.fd, POLLIN | POLLHUP, client_ctrl_handler, client);
-	add_waiter(client->data.fd, POLLHUP, client_data_handler, client);
+	client = calloc(1, sizeof(*client));
+	client->local = 0;
+	client->poll_fd = pdata->fd;
+	client->ctrl_fd = waiter->fd;
+	add_waiter(client->ctrl_fd, POLLIN | POLLHUP, client_ctrl_handler, client);
+	add_waiter(client->poll_fd, POLLHUP, client_poll_handler, client);
 	client->open = 0;
 	list_add_tail(&client->list, &clients);
 	list_del(&pending->list);
@@ -791,70 +814,81 @@ int pending_handler(waiter_t *waiter, unsigned short events)
 	return 0;
 }
 
-int master_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
+int local_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 {
-	master_t *master = waiter->private_data;
 	int sock;
 	sock = accept(waiter->fd, 0, 0);
 	if (sock < 0) {
 		int result = -errno;
-		perrno("accept");
+		SYSERR("accept");
 		return result;
 	} else {
-		pending_t *pending = calloc(sizeof(*pending), 1);
+		client_t *client = calloc(1, sizeof(*client));
+		client->ctrl_fd = sock;
+		client->local = 1;
+		client->open = 0;
+		add_waiter(sock, POLLIN | POLLHUP, client_ctrl_handler, client);
+		list_add_tail(&client->list, &clients);
+	}
+	return 0;
+}
+
+int inet_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
+{
+	int sock;
+	sock = accept(waiter->fd, 0, 0);
+	if (sock < 0) {
+		int result = -errno;
+		SYSERR("accept");
+		return result;
+	} else {
+		inet_pending_t *pending = calloc(1, sizeof(*pending));
 		pending->fd = sock;
-		pending->local = master->local;
 		pending->cookie = 0;
-		add_waiter(sock, POLLIN, pending_handler, pending);
-		list_add_tail(&pending->list, &pendings);
+		add_waiter(sock, POLLIN, inet_pending_handler, pending);
+		list_add_tail(&pending->list, &inet_pendings);
 	}
 	return 0;
 }
 
 int server(char *sockname, int port)
 {
-	struct list_head *item;
 	int err;
 	unsigned int k;
 
+	if (!sockname && port < 0)
+		return -EINVAL;
 	if (sockname) {
 		int sock = make_local_socket(sockname);
-		master_t *master;
 		if (sock < 0)
 			return sock;
-		master = calloc(sizeof(*master), 1);
-		master->fd = sock;
-		master->local = 1;
-		add_waiter(sock, POLLIN, master_handler, master);
-		list_add_tail(&master->list, &masters);
+		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
+			int result = -errno;
+			SYSERR("fcntl");
+			return result;
+		}
+		if (listen(sock, 4) < 0) {
+			int result = -errno;
+			SYSERR("listen");
+			return result;
+		}
+		add_waiter(sock, POLLIN, local_handler, NULL);
 	}
 	if (port >= 0) {
 		int sock = make_inet_socket(port);
-		master_t *master;
 		if (sock < 0)
 			return sock;
-		master = calloc(sizeof(*master), 1);
-		master->fd = sock;
-		master->local = 0;
-		add_waiter(sock, POLLIN, master_handler, master);
-		list_add_tail(&master->list, &masters);
-	}
-
-	if (list_empty(&masters))
-		return -EINVAL;
-
-	list_for_each(item, &masters) {
-		master_t *master = list_entry(item, master_t, list);
-		if (fcntl(master->fd, F_SETFL, O_NONBLOCK) < 0) {
+		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
 			int result = -errno;
-			perrno("fcntl");
+			SYSERR("fcntl");
 			return result;
 		}
-		if (listen(master->fd, 4) < 0) {
+		if (listen(sock, 4) < 0) {
 			int result = -errno;
-			perrno("listen");
+			SYSERR("listen");
 			return result;
 		}
+		add_waiter(sock, POLLIN, inet_handler, NULL);
 	}
 
 	while (1) {
@@ -864,7 +898,7 @@ int server(char *sockname, int port)
 			err = poll(pollfds, pollfds_count, 1000);
 		} while (err == 0);
 		if (err < 0) {
-			perrno("poll");
+			SYSERR("poll");
 			continue;
 		}
 
@@ -878,7 +912,7 @@ int server(char *sockname, int port)
 					continue;
 				err = w->handler(w, pfd->revents);
 				if (err < 0)
-					perrno("handler");
+					SYSERR("handler");
 			}
 		}
 	}
@@ -889,47 +923,102 @@ int server(char *sockname, int port)
 void usage()
 {
 	fprintf(stderr, "\
-Usage: %s [OPTIONS]
+Usage: %s [OPTIONS] server
 
 --help			help
---version		print current version
--l,--local SOCKNAME	local socket name
--p,--port PORT		port number
 ", command);
 }
+
+extern int is_local(struct hostent *hent);
 
 int main(int argc, char **argv)
 {
 	static struct option long_options[] = {
-		{"local", 1, 0, 'l'},
-		{"port", 1, 0, 'p'},
 		{"help", 0, 0, 'h'}
 	};
 	int c;
-	char *local = NULL;
-	int port = -1;
+	snd_config_t *conf;
+	snd_config_iterator_t i;
+	char *socket = NULL;
+	char *host = NULL;
+	long port = -1;
+	int err;
+	char *srvname;
+	struct hostent *h;
 	command = argv[0];
-	while ((c = getopt_long(argc, argv, "hl:p:", long_options, 0)) != -1) {
+	while ((c = getopt_long(argc, argv, "h", long_options, 0)) != -1) {
 		switch (c) {
 		case 'h':
 			usage();
 			return 0;
-		case 'l':
-			local = optarg;
-			break;
-		case 'p':
-			port = atoi(optarg);
-			break;
 		default:
 			fprintf(stderr, "Try `%s --help' for more information\n", command);
 			return 1;
 		}
 	}
-	if (!local && port == -1) {
-		fprintf(stderr, "%s: you need to specify at least one master socket\n", command);
+	if (argc - optind != 1) {
+		ERROR("you need to specify server name");
 		return 1;
 	}
-
-	server(local, port);
+	err = snd_config_update();
+	if (err < 0) {
+		ERROR("cannot read configuration file");
+		return 1;
+	}
+	srvname = argv[optind];
+	err = snd_config_searchv(snd_config, &conf, "server", srvname, 0);
+	if (err < 0) {
+		ERROR("unknown server %s", srvname);
+		return 1;
+	}
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "host") == 0) {
+			err = snd_config_string_get(n, &host);
+			if (err < 0) {
+				ERROR("Invalid type for host");
+				return 1;
+			}
+			continue;
+		}
+		if (strcmp(n->id, "socket") == 0) {
+			err = snd_config_string_get(n, &socket);
+			if (err < 0) {
+				ERROR("Invalid type for socket");
+				return 1;
+			}
+			continue;
+		}
+		if (strcmp(n->id, "port") == 0) {
+			err = snd_config_integer_get(n, &port);
+			if (err < 0) {
+				ERROR("Invalid type for port");
+				return 1;
+			}
+			continue;
+		}
+		ERROR("Unknown field: %s", n->id);
+		return 1;
+	}
+	if (!host) {
+		ERROR("host is not defined");
+		return 1;
+	}
+	h = gethostbyname(host);
+	if (!h) {
+		ERROR("Cannot resolve %s", host);
+		return 1;
+	}
+	if (!is_local(h)) {
+		ERROR("%s is not the local host", host);
+		return 1;
+	}
+	if (!socket && port < 0) {
+		ERROR("either socket or port need to be defined");
+		return 1;
+	}
+	server(socket, port);
 	return 0;
 }

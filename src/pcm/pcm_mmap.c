@@ -36,12 +36,11 @@ snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
 
 size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, size_t frames)
 {
-	snd_pcm_mmap_control_t *control = pcm->mmap_control;
 	size_t cont;
 	size_t avail = snd_pcm_mmap_playback_avail(pcm);
 	if (avail < frames)
 		frames = avail;
-	cont = pcm->setup.buffer_size - control->appl_ptr % pcm->setup.buffer_size;
+	cont = pcm->setup.buffer_size - *pcm->appl_ptr % pcm->setup.buffer_size;
 	if (cont < frames)
 		frames = cont;
 	return frames;
@@ -49,12 +48,11 @@ size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, size_t frames)
 
 size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, size_t frames)
 {
-	snd_pcm_mmap_control_t *control = pcm->mmap_control;
 	size_t cont;
 	size_t avail = snd_pcm_mmap_capture_avail(pcm);
 	if (avail < frames)
 		frames = avail;
-	cont = pcm->setup.buffer_size - control->appl_ptr % pcm->setup.buffer_size;
+	cont = pcm->setup.buffer_size - *pcm->appl_ptr % pcm->setup.buffer_size;
 	if (cont < frames)
 		frames = cont;
 	return frames;
@@ -63,7 +61,6 @@ size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, size_t frames)
 size_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, size_t frames)
 {
         assert(pcm);
-	assert(pcm->mmap_status && pcm->mmap_control);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		return snd_pcm_mmap_playback_xfer(pcm, frames);
 	else
@@ -73,51 +70,49 @@ size_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, size_t frames)
 size_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
 {
         assert(pcm);
-	assert(pcm->mmap_control);
-	return pcm->mmap_control->appl_ptr % pcm->setup.buffer_size;
+	return *pcm->appl_ptr % pcm->setup.buffer_size;
 }
 
 size_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
 {
         assert(pcm);
-	assert(pcm->mmap_status);
-	return pcm->mmap_status->hw_ptr % pcm->setup.buffer_size;
+	return *pcm->hw_ptr % pcm->setup.buffer_size;
 }
 
 void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, size_t frames)
 {
-	ssize_t appl_ptr = pcm->mmap_control->appl_ptr;
+	ssize_t appl_ptr = *pcm->appl_ptr;
 	appl_ptr -= frames;
 	if (appl_ptr < 0)
 		appl_ptr += pcm->setup.boundary;
-	pcm->mmap_control->appl_ptr = appl_ptr;
+	*pcm->appl_ptr = appl_ptr;
 }
 
 void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, size_t frames)
 {
-	size_t appl_ptr = pcm->mmap_control->appl_ptr;
+	size_t appl_ptr = *pcm->appl_ptr;
 	appl_ptr += frames;
 	if (appl_ptr >= pcm->setup.boundary)
 		appl_ptr -= pcm->setup.boundary;
-	pcm->mmap_control->appl_ptr = appl_ptr;
+	*pcm->appl_ptr = appl_ptr;
 }
 
 void snd_pcm_mmap_hw_backward(snd_pcm_t *pcm, size_t frames)
 {
-	ssize_t hw_ptr = pcm->mmap_status->hw_ptr;
+	ssize_t hw_ptr = *pcm->hw_ptr;
 	hw_ptr -= frames;
 	if (hw_ptr < 0)
 		hw_ptr += pcm->setup.boundary;
-	pcm->mmap_status->hw_ptr = hw_ptr;
+	*pcm->hw_ptr = hw_ptr;
 }
 
 void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, size_t frames)
 {
-	size_t hw_ptr = pcm->mmap_status->hw_ptr;
+	size_t hw_ptr = *pcm->hw_ptr;
 	hw_ptr += frames;
 	if (hw_ptr >= pcm->setup.boundary)
 		hw_ptr -= pcm->setup.boundary;
-	pcm->mmap_status->hw_ptr = hw_ptr;
+	*pcm->hw_ptr = hw_ptr;
 }
 
 ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
@@ -216,32 +211,6 @@ ssize_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 				  snd_pcm_mmap_read_areas);
 }
 
-int snd_pcm_mmap_status(snd_pcm_t *pcm, volatile snd_pcm_mmap_status_t **status)
-{
-	int err;
-	assert(pcm);
-	if (!pcm->mmap_status) {
-		if ((err = pcm->ops->mmap_status(pcm->op_arg)) < 0)
-			return err;
-	}
-	if (status)
-		*status = pcm->mmap_status;
-	return 0;
-}
-
-int snd_pcm_mmap_control(snd_pcm_t *pcm, snd_pcm_mmap_control_t **control)
-{
-	int err;
-	assert(pcm);
-	if (!pcm->mmap_control) {
-		if ((err = pcm->ops->mmap_control(pcm->op_arg)) < 0)
-			return err;
-	}
-	if (control)
-		*control = pcm->mmap_control;
-	return 0;
-}
-
 int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *stopped_areas, snd_pcm_channel_area_t *running_areas)
 {
 	snd_pcm_channel_setup_t setup;
@@ -249,7 +218,7 @@ int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *stopped_areas
 	unsigned int channel;
 	int err;
 	assert(pcm);
-	assert(pcm->mmap_data);
+	assert(pcm->mmap_info);
 	if (!pcm->running_areas) {
 		r = calloc(pcm->setup.format.channels, sizeof(*r));
 		s = calloc(pcm->setup.format.channels, sizeof(*s));
@@ -274,74 +243,35 @@ int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *stopped_areas
 	return 0;
 }
 
-int snd_pcm_mmap_data(snd_pcm_t *pcm, void **data)
+int snd_pcm_mmap(snd_pcm_t *pcm)
 {
 	int err;
 	assert(pcm);
 	assert(pcm->valid_setup);
-	if (pcm->mmap_data) {
-		if (data)
-			*data = pcm->mmap_data;
+	if (pcm->mmap_info)
 		return 0;
-	}
 
-	if ((err = pcm->ops->mmap_data(pcm->op_arg)) < 0)
+	if ((err = pcm->ops->mmap(pcm->op_arg)) < 0)
 		return err;
-	if (data) 
-		*data = pcm->mmap_data;
 	err = snd_pcm_mmap_get_areas(pcm, NULL, NULL);
 	if (err < 0)
 		return err;
 	return 0;
 }
 
-int snd_pcm_munmap_status(snd_pcm_t *pcm)
+int snd_pcm_munmap(snd_pcm_t *pcm)
 {
 	int err;
 	assert(pcm);
-	assert(pcm->mmap_status);
-	if ((err = pcm->ops->munmap_status(pcm->op_arg)) < 0)
-		return err;
-	pcm->mmap_status = 0;
-	return 0;
-}
-
-int snd_pcm_munmap_control(snd_pcm_t *pcm)
-{
-	int err;
-	assert(pcm);
-	assert(pcm->mmap_control);
-	if ((err = pcm->ops->munmap_control(pcm->op_arg)) < 0)
-		return err;
-	pcm->mmap_control = 0;
-	return 0;
-}
-
-int snd_pcm_munmap_data(snd_pcm_t *pcm)
-{
-	int err;
-	assert(pcm);
-	assert(pcm->mmap_data);
-	if ((err = pcm->ops->munmap_data(pcm->op_arg)) < 0)
+	assert(pcm->mmap_info);
+	if ((err = pcm->ops->munmap(pcm->op_arg)) < 0)
 		return err;
 	free(pcm->stopped_areas);
 	free(pcm->running_areas);
 	pcm->stopped_areas = 0;
 	pcm->running_areas = 0;
-	pcm->mmap_data = 0;
 	return 0;
 }
-
-int snd_pcm_mmap(snd_pcm_t *pcm, void **data)
-{
-	return snd_pcm_mmap_data(pcm, data);
-}
-
-int snd_pcm_munmap(snd_pcm_t *pcm)
-{
-	return snd_pcm_munmap_data(pcm);
-}
-
 
 ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size)
 {

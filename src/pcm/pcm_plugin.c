@@ -70,12 +70,14 @@ int snd_pcm_plugin_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup
 	err = snd_pcm_channel_setup(plugin->slave, setup);
 	if (err < 0)
 		return err;
+	if (!pcm->mmap_info)
+		return 0;
 	if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
-		setup->running_area.addr = pcm->mmap_data;
+		setup->running_area.addr = pcm->mmap_info->addr;
 		setup->running_area.first = setup->channel * pcm->bits_per_sample;
 		setup->running_area.step = pcm->bits_per_frame;
 	} else {
-		setup->running_area.addr = pcm->mmap_data + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
+		setup->running_area.addr = pcm->mmap_info->addr + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
 		setup->running_area.first = 0;
 		setup->running_area.step = pcm->bits_per_sample;
 	}
@@ -118,8 +120,8 @@ int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 	int err = snd_pcm_prepare(plugin->slave);
 	if (err < 0)
 		return err;
-	plugin->mmap_status.hw_ptr = 0;
-	plugin->mmap_control.appl_ptr = 0;
+	plugin->hw_ptr = 0;
+	plugin->appl_ptr = 0;
 	if (plugin->init) {
 		err = plugin->init(pcm);
 		if (err < 0)
@@ -276,7 +278,7 @@ ssize_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	if (slave_size <= 0)
 		return slave_size;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK ||
-	    !pcm->mmap_data)
+	    !pcm->mmap_info)
 		return plugin->client_frames ?
 			plugin->client_frames(pcm, slave_size) : slave_size;
 	client_xfer = snd_pcm_mmap_capture_avail(pcm);
@@ -301,42 +303,39 @@ ssize_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	return err;
 }
 
-int snd_pcm_plugin_mmap_status(snd_pcm_t *pcm)
+int snd_pcm_plugin_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	pcm->mmap_status = &plugin->mmap_status;
-	return 0;
-}
-
-int snd_pcm_plugin_mmap_control(snd_pcm_t *pcm)
-{
-	snd_pcm_plugin_t *plugin = pcm->private;
-	pcm->mmap_control = &plugin->mmap_control;
-	return 0;
-}
-
-int snd_pcm_plugin_mmap_data(snd_pcm_t *pcm)
-{
-	void *ptr = malloc(snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size));
-	if (!ptr)
+	snd_pcm_t *slave = plugin->slave;
+	int err = snd_pcm_mmap(slave);
+	if (err < 0)
+		return err;
+	pcm->mmap_info = calloc(1, sizeof(*pcm->mmap_info));
+	if (!pcm->mmap_info)
 		return -ENOMEM;
-	pcm->mmap_data = ptr;
+	pcm->mmap_info_count = 1;
+	pcm->mmap_info->type = SND_PCM_MMAP_USER;
+	pcm->mmap_info->size = pcm->setup.buffer_size;
+	pcm->mmap_info->addr = valloc(snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size));
+	if (!pcm->mmap_info->addr) {
+		free(pcm->mmap_info);
+		pcm->mmap_info = 0;
+		return -ENOMEM;
+	}
 	return 0;
 }
 
-int snd_pcm_plugin_munmap_status(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+int snd_pcm_plugin_munmap(snd_pcm_t *pcm)
 {
-	return 0;
-}
-
-int snd_pcm_plugin_munmap_control(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	return 0;
-}
-
-int snd_pcm_plugin_munmap_data(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	free(pcm->mmap_data);
+	snd_pcm_plugin_t *plugin = pcm->private;
+	snd_pcm_t *slave = plugin->slave;
+	int err = snd_pcm_munmap(slave);
+	if (err < 0)
+		return err;
+	free(pcm->mmap_info->addr);
+	free(pcm->mmap_info);
+	pcm->mmap_info_count = 0;
+	pcm->mmap_info = 0;
 	return 0;
 }
 
@@ -392,7 +391,7 @@ int getput_index(int format)
 	return width * 4 + endian * 2 + sign;
 }
 
-struct snd_pcm_fast_ops snd_pcm_plugin_fast_ops = {
+snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	status: snd_pcm_plugin_status,
 	state: snd_pcm_plugin_state,
 	delay: snd_pcm_plugin_delay,
@@ -406,7 +405,6 @@ struct snd_pcm_fast_ops snd_pcm_plugin_fast_ops = {
 	writen: snd_pcm_plugin_writen,
 	readi: snd_pcm_plugin_readi,
 	readn: snd_pcm_plugin_readn,
-	poll_descriptor: snd_pcm_plugin_poll_descriptor,
 	channels_mask: snd_pcm_plugin_channels_mask,
 	avail_update: snd_pcm_plugin_avail_update,
 	mmap_forward: snd_pcm_plugin_mmap_forward,

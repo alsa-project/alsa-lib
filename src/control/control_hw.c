@@ -147,7 +147,7 @@ struct snd_ctl_ops snd_ctl_hw_ops = {
 	read: snd_ctl_hw_read,
 };
 
-int snd_ctl_hw_open(snd_ctl_t **handle, int card)
+int snd_ctl_hw_open(snd_ctl_t **handle, char *name, int card)
 {
 	int fd, ver;
 	char filename[32];
@@ -185,6 +185,9 @@ int snd_ctl_hw_open(snd_ctl_t **handle, int card)
 	}
 	hw->card = card;
 	hw->fd = fd;
+	if (name)
+		ctl->name = strdup(name);
+	ctl->type = SND_CTL_TYPE_HW;
 	ctl->ops = &snd_ctl_hw_ops;
 	ctl->private = hw;
 	INIT_LIST_HEAD(&ctl->hlist);
@@ -192,3 +195,34 @@ int snd_ctl_hw_open(snd_ctl_t **handle, int card)
 	return 0;
 }
 
+int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
+{
+	snd_config_iterator_t i;
+	long card = -1;
+	char *str;
+	int err;
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "type") == 0)
+			continue;
+		if (strcmp(n->id, "card") == 0) {
+			err = snd_config_integer_get(n, &card);
+			if (err < 0) {
+				err = snd_config_string_get(n, &str);
+				if (err < 0)
+					return -EINVAL;
+				card = snd_card_get_index(str);
+				if (card < 0)
+					return card;
+			}
+			continue;
+		}
+		return -EINVAL;
+	}
+	if (card < 0)
+		return -EINVAL;
+	return snd_ctl_hw_open(handlep, name, card);
+}
+				

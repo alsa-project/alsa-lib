@@ -114,11 +114,6 @@ static int snd_pcm_linear_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 		params->fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
 		return -EINVAL;
 	}
-	if (slave->mmap_data) {
-		err = snd_pcm_munmap_data(slave);
-		if (err < 0)
-			return err;
-	}
 	linear->cformat = params->format.sfmt;
 	linear->cxfer_mode = params->xfer_mode;
 	linear->cmmap_shape = params->mmap_shape;
@@ -129,10 +124,6 @@ static int snd_pcm_linear_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 	params->format.sfmt = linear->cformat;
 	params->xfer_mode = linear->cxfer_mode;
 	params->mmap_shape = linear->cmmap_shape;
-	if (slave->valid_setup) {
-		int r = snd_pcm_mmap_data(slave, NULL);
-		assert(r >= 0);
-	}
 	return err;
 }
 
@@ -244,7 +235,7 @@ static void snd_pcm_linear_dump(snd_pcm_t *pcm, FILE *fp)
 	snd_pcm_dump(linear->plug.slave, fp);
 }
 
-struct snd_pcm_ops snd_pcm_linear_ops = {
+snd_pcm_ops_t snd_pcm_linear_ops = {
 	close: snd_pcm_plugin_close,
 	info: snd_pcm_plugin_info,
 	params_info: snd_pcm_linear_params_info,
@@ -256,20 +247,15 @@ struct snd_pcm_ops snd_pcm_linear_ops = {
 	dump: snd_pcm_linear_dump,
 	nonblock: snd_pcm_plugin_nonblock,
 	async: snd_pcm_plugin_async,
-	mmap_status: snd_pcm_plugin_mmap_status,
-	mmap_control: snd_pcm_plugin_mmap_control,
-	mmap_data: snd_pcm_plugin_mmap_data,
-	munmap_status: snd_pcm_plugin_munmap_status,
-	munmap_control: snd_pcm_plugin_munmap_control,
-	munmap_data: snd_pcm_plugin_munmap_data,
+	mmap: snd_pcm_plugin_mmap,
+	munmap: snd_pcm_plugin_munmap,
 };
 
-int snd_pcm_linear_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave)
+int snd_pcm_linear_open(snd_pcm_t **pcmp, char *name, int sformat, snd_pcm_t *slave, int close_slave)
 {
-	snd_pcm_t *handle;
+	snd_pcm_t *pcm;
 	snd_pcm_linear_t *linear;
-	int err;
-	assert(handlep && slave);
+	assert(pcmp && slave);
 	if (snd_pcm_format_linear(sformat) != 1)
 		return -EINVAL;
 	linear = calloc(1, sizeof(snd_pcm_linear_t));
@@ -282,27 +268,25 @@ int snd_pcm_linear_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t 
 	linear->plug.slave = slave;
 	linear->plug.close_slave = close_slave;
 
-	handle = calloc(1, sizeof(snd_pcm_t));
-	if (!handle) {
+	pcm = calloc(1, sizeof(snd_pcm_t));
+	if (!pcm) {
 		free(linear);
 		return -ENOMEM;
 	}
 	if (name)
-		handle->name = strdup(name);
-	handle->type = SND_PCM_TYPE_LINEAR;
-	handle->stream = slave->stream;
-	handle->ops = &snd_pcm_linear_ops;
-	handle->op_arg = handle;
-	handle->fast_ops = &snd_pcm_plugin_fast_ops;
-	handle->fast_op_arg = handle;
-	handle->mode = slave->mode;
-	handle->private = linear;
-	err = snd_pcm_init(handle);
-	if (err < 0) {
-		snd_pcm_close(handle);
-		return err;
-	}
-	*handlep = handle;
+		pcm->name = strdup(name);
+	pcm->type = SND_PCM_TYPE_LINEAR;
+	pcm->stream = slave->stream;
+	pcm->mode = slave->mode;
+	pcm->ops = &snd_pcm_linear_ops;
+	pcm->op_arg = pcm;
+	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
+	pcm->fast_op_arg = pcm;
+	pcm->private = linear;
+	pcm->poll_fd = slave->poll_fd;
+	pcm->hw_ptr = &linear->plug.hw_ptr;
+	pcm->appl_ptr = &linear->plug.appl_ptr;
+	*pcmp = pcm;
 
 	return 0;
 }

@@ -104,7 +104,8 @@ typedef enum {
 	SND_PCM_TYPE_MULTI,
 	SND_PCM_TYPE_FILE,
 	SND_PCM_TYPE_NULL,
-	SND_PCM_TYPE_CLIENT,
+	SND_PCM_TYPE_SHM,
+	SND_PCM_TYPE_INET,
 	SND_PCM_TYPE_LINEAR,
 	SND_PCM_TYPE_ALAW,
 	SND_PCM_TYPE_MULAW,
@@ -118,16 +119,16 @@ typedef enum {
 	SND_PCM_TYPE_LBSERVER,
 } snd_pcm_type_t;
 
-extern void (*snd_pcm_error)(const char *file, int line, const char *function, const char *fmt, ...);
+extern void snd_pcm_error(const char *file, int line, const char *function, const char *fmt, ...)  __attribute__ ((weak, format (printf, 4, 5)));
 
-int snd_pcm_open(snd_pcm_t **handle, char *name, 
+int snd_pcm_open(snd_pcm_t **pcm, char *name, 
 		 int stream, int mode);
 
 /* Obsolete functions */
-int snd_pcm_hw_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int stream, int mode);
-int snd_pcm_hw_open_device(snd_pcm_t **handle, int card, int device, int stream, int mode);
-int snd_pcm_plug_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int stream, int mode);
-int snd_pcm_plug_open_device(snd_pcm_t **handle, int card, int device, int stream, int mode);
+int snd_pcm_hw_open_subdevice(snd_pcm_t **pcm, int card, int device, int subdevice, int stream, int mode);
+int snd_pcm_hw_open_device(snd_pcm_t **pcm, int card, int device, int stream, int mode);
+int snd_pcm_plug_open_subdevice(snd_pcm_t **pcm, int card, int device, int subdevice, int stream, int mode);
+int snd_pcm_plug_open_device(snd_pcm_t **pcm, int card, int device, int stream, int mode);
 #define snd_pcm_write snd_pcm_writei
 #define snd_pcm_read snd_pcm_readi
 ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count);
@@ -171,7 +172,7 @@ ssize_t snd_pcm_avail_update(snd_pcm_t *pcm);
 
 
 /* mmap */
-int snd_pcm_mmap(snd_pcm_t *pcm, void **buffer);
+int snd_pcm_mmap(snd_pcm_t *pcm);
 int snd_pcm_munmap(snd_pcm_t *pcm);
 snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);
 int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *stopped_areas, snd_pcm_channel_area_t *running_areas);

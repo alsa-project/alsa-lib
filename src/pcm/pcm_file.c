@@ -219,7 +219,7 @@ static ssize_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 static ssize_t snd_pcm_file_mmap_forward(snd_pcm_t *pcm, size_t size)
 {
 	snd_pcm_file_t *file = pcm->private;
-	size_t ofs = pcm->mmap_control->appl_ptr % pcm->setup.buffer_size;
+	size_t ofs = snd_pcm_mmap_offset(pcm);
 	ssize_t n = snd_pcm_mmap_forward(file->slave, size);
 	size_t xfer = 0;
 	if (n <= 0)
@@ -244,58 +244,26 @@ static ssize_t snd_pcm_file_avail_update(snd_pcm_t *pcm)
 	return snd_pcm_avail_update(file->slave);
 }
 
-static int snd_pcm_file_mmap_status(snd_pcm_t *pcm)
+static int snd_pcm_file_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private;
-	int err = snd_pcm_mmap_status(file->slave, &pcm->mmap_status);
+	int err = snd_pcm_mmap(file->slave);
 	if (err < 0)
 		return err;
-	pcm->mmap_status = file->slave->mmap_status;
+	pcm->mmap_info_count = file->slave->mmap_info_count;
+	pcm->mmap_info = file->slave->mmap_info;
 	return 0;
 }
 
-static int snd_pcm_file_mmap_control(snd_pcm_t *pcm)
+static int snd_pcm_file_munmap(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private;
-	int err = snd_pcm_mmap_control(file->slave, &pcm->mmap_control);
+	int err = snd_pcm_munmap(file->slave);
 	if (err < 0)
 		return err;
-	pcm->mmap_control = file->slave->mmap_control;
+	pcm->mmap_info_count = 0;
+	pcm->mmap_info = 0;
 	return 0;
-}
-
-static int snd_pcm_file_mmap_data(snd_pcm_t *pcm)
-{
-	snd_pcm_file_t *file = pcm->private;
-	int err = snd_pcm_mmap_data(file->slave, &pcm->mmap_data);
-	if (err < 0)
-		return err;
-	pcm->mmap_data = file->slave->mmap_data;
-	return 0;
-}
-
-static int snd_pcm_file_munmap_status(snd_pcm_t *pcm)
-{
-	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_munmap_status(file->slave);
-}
-
-static int snd_pcm_file_munmap_control(snd_pcm_t *pcm)
-{
-	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_munmap_control(file->slave);
-}
-
-static int snd_pcm_file_munmap_data(snd_pcm_t *pcm)
-{
-	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_munmap_data(file->slave);
-}
-
-static int snd_pcm_file_poll_descriptor(snd_pcm_t *pcm)
-{
-	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_poll_descriptor(file->slave);
 }
 
 static int snd_pcm_file_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
@@ -337,7 +305,7 @@ static void snd_pcm_file_dump(snd_pcm_t *pcm, FILE *fp)
 	snd_pcm_dump(file->slave, fp);
 }
 
-struct snd_pcm_ops snd_pcm_file_ops = {
+snd_pcm_ops_t snd_pcm_file_ops = {
 	close: snd_pcm_file_close,
 	info: snd_pcm_file_info,
 	params_info: snd_pcm_file_params_info,
@@ -349,15 +317,11 @@ struct snd_pcm_ops snd_pcm_file_ops = {
 	dump: snd_pcm_file_dump,
 	nonblock: snd_pcm_file_nonblock,
 	async: snd_pcm_file_async,
-	mmap_status: snd_pcm_file_mmap_status,
-	mmap_control: snd_pcm_file_mmap_control,
-	mmap_data: snd_pcm_file_mmap_data,
-	munmap_status: snd_pcm_file_munmap_status,
-	munmap_control: snd_pcm_file_munmap_control,
-	munmap_data: snd_pcm_file_munmap_data,
+	mmap: snd_pcm_file_mmap,
+	munmap: snd_pcm_file_munmap,
 };
 
-struct snd_pcm_fast_ops snd_pcm_file_fast_ops = {
+snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	status: snd_pcm_file_status,
 	state: snd_pcm_file_state,
 	delay: snd_pcm_file_delay,
@@ -371,18 +335,16 @@ struct snd_pcm_fast_ops snd_pcm_file_fast_ops = {
 	writen: snd_pcm_file_writen,
 	readi: snd_pcm_file_readi,
 	readn: snd_pcm_file_readn,
-	poll_descriptor: snd_pcm_file_poll_descriptor,
 	channels_mask: snd_pcm_file_channels_mask,
 	avail_update: snd_pcm_file_avail_update,
 	mmap_forward: snd_pcm_file_mmap_forward,
 };
 
-int snd_pcm_file_open(snd_pcm_t **handlep, char *name, char *fname, int fd, snd_pcm_t *slave, int close_slave)
+int snd_pcm_file_open(snd_pcm_t **pcmp, char *name, char *fname, int fd, snd_pcm_t *slave, int close_slave)
 {
-	snd_pcm_t *handle;
+	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
-	int err;
-	assert(handlep && slave);
+	assert(pcmp && slave);
 	if (fname) {
 		fd = open(fname, O_WRONLY|O_CREAT, 0666);
 		if (fd < 0)
@@ -397,27 +359,25 @@ int snd_pcm_file_open(snd_pcm_t **handlep, char *name, char *fname, int fd, snd_
 	file->slave = slave;
 	file->close_slave = close_slave;
 
-	handle = calloc(1, sizeof(snd_pcm_t));
-	if (!handle) {
+	pcm = calloc(1, sizeof(snd_pcm_t));
+	if (!pcm) {
 		free(file);
 		return -ENOMEM;
 	}
 	if (name)
-		handle->name = strdup(name);
-	handle->type = SND_PCM_TYPE_FILE;
-	handle->stream = slave->stream;
-	handle->ops = &snd_pcm_file_ops;
-	handle->op_arg = handle;
-	handle->fast_ops = &snd_pcm_file_fast_ops;
-	handle->fast_op_arg = handle;
-	handle->mode = slave->mode;
-	handle->private = file;
-	err = snd_pcm_init(handle);
-	if (err < 0) {
-		snd_pcm_close(handle);
-		return err;
-	}
-	*handlep = handle;
+		pcm->name = strdup(name);
+	pcm->type = SND_PCM_TYPE_FILE;
+	pcm->stream = slave->stream;
+	pcm->mode = slave->mode;
+	pcm->ops = &snd_pcm_file_ops;
+	pcm->op_arg = pcm;
+	pcm->fast_ops = &snd_pcm_file_fast_ops;
+	pcm->fast_op_arg = pcm;
+	pcm->private = file;
+	pcm->poll_fd = slave->poll_fd;
+	pcm->hw_ptr = slave->hw_ptr;
+	pcm->appl_ptr = slave->appl_ptr;
+	*pcmp = pcm;
 
 	return 0;
 }
