@@ -139,7 +139,7 @@ const char *snd_hwdep_dsp_image_get_name(const snd_hwdep_dsp_image_t *obj);
 const void *snd_hwdep_dsp_image_get_image(const snd_hwdep_dsp_image_t *obj);
 size_t snd_hwdep_dsp_image_get_length(const snd_hwdep_dsp_image_t *obj);
 
-void snd_hwdep_dsp_image_set_index(snd_hwdep_dsp_image_t *obj, unsigned int index);
+void snd_hwdep_dsp_image_set_index(snd_hwdep_dsp_image_t *obj, unsigned int _index);
 void snd_hwdep_dsp_image_set_name(snd_hwdep_dsp_image_t *obj, const char *name);
 void snd_hwdep_dsp_image_set_image(snd_hwdep_dsp_image_t *obj, void *buffer);
 void snd_hwdep_dsp_image_set_length(snd_hwdep_dsp_image_t *obj, size_t length);

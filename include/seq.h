@@ -360,7 +360,7 @@ void snd_seq_query_subscribe_set_client(snd_seq_query_subscribe_t *info, int cli
 void snd_seq_query_subscribe_set_port(snd_seq_query_subscribe_t *info, int port);
 void snd_seq_query_subscribe_set_root(snd_seq_query_subscribe_t *info, const snd_seq_addr_t *addr);
 void snd_seq_query_subscribe_set_type(snd_seq_query_subscribe_t *info, snd_seq_query_subs_type_t type);
-void snd_seq_query_subscribe_set_index(snd_seq_query_subscribe_t *info, int index);
+void snd_seq_query_subscribe_set_index(snd_seq_query_subscribe_t *info, int _index);
 
 int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subscribe_t * subs);
 

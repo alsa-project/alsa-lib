@@ -532,11 +532,11 @@ void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t 
 
 #ifndef ALSA_PCM_OLD_HW_PARAMS_API
 
-int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access);
-int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t access);
-int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t access);
-int snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access);
-int snd_pcm_hw_params_set_access_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access);
+int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params, snd_pcm_access_t *_access);
+int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t _access);
+int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t _access);
+int snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *_access);
+int snd_pcm_hw_params_set_access_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *_access);
 int snd_pcm_hw_params_set_access_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_mask_t *mask);
 int snd_pcm_hw_params_get_access_mask(snd_pcm_hw_params_t *params, snd_pcm_access_mask_t *mask);
 
@@ -1257,7 +1257,7 @@ int snd_spcm_init(snd_pcm_t *pcm,
 		  snd_pcm_format_t format,
 		  snd_pcm_subformat_t subformat,
 		  snd_spcm_latency_t latency,
-		  snd_pcm_access_t access,
+		  snd_pcm_access_t _access,
 		  snd_spcm_xrun_type_t xrun_type);
 
 int snd_spcm_init_duplex(snd_pcm_t *playback_pcm,
@@ -1267,7 +1267,7 @@ int snd_spcm_init_duplex(snd_pcm_t *playback_pcm,
 			 snd_pcm_format_t format,
 			 snd_pcm_subformat_t subformat,
 			 snd_spcm_latency_t latency,
-			 snd_pcm_access_t access,
+			 snd_pcm_access_t _access,
 			 snd_spcm_xrun_type_t xrun_type,
 			 snd_spcm_duplex_type_t duplex_type);
 
