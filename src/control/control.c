@@ -1699,10 +1699,10 @@ int snd_ctl_elem_info_get_dimensions(const snd_ctl_elem_info_t *obj)
 	assert(obj);
 	if (obj->access & SNDRV_CTL_ELEM_ACCESS_DINDIRECT)
 		return 0;			/* FIXME: implement indirect access as well */
-	for (i = 3; i >= 0; i++)
+	for (i = 3; i >= 0; i--)
 		if (obj->dimen.d[i])
 			break;
-	return i >= 0 ? i + 1 : 0;
+	return i + 1;
 }
 use_default_symbol_version(__snd_ctl_elem_info_get_dimensions, snd_ctl_elem_info_get_dimensions, ALSA_0.9.3);
 
@@ -1722,7 +1722,7 @@ int snd_ctl_elem_info_get_dimension(const snd_ctl_elem_info_t *obj, unsigned int
 		return 0;			/* FIXME: implement indirect access as well */
 	if (idx >= 3)
 		return 0;
-	return obj->dimen.d[0];
+	return obj->dimen.d[idx];
 }
 use_default_symbol_version(__snd_ctl_elem_info_get_dimension, snd_ctl_elem_info_get_dimension, ALSA_0.9.3);
 
