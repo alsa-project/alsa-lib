@@ -41,7 +41,7 @@ typedef double double_t;
 
 #ifndef PIC
 /* entry for static linking */
-const char *_snd_module_pcm_float = "";
+const char *_snd_module_pcm_lfloat = "";
 #endif
 
 typedef struct {
