@@ -28,7 +28,7 @@
 #include <sys/ioctl.h>
 #include "asoundlib.h"
 
-#define SND_FILE_PCM_LB		"/proc/asound/%i/pcm%i%s"
+#define SND_FILE_PCM_LB		"/proc/asound/%i/pcmloopD%iS%i%s"
 #define SND_PCM_LB_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
 
 struct snd_pcm_loopback {
@@ -37,7 +37,7 @@ struct snd_pcm_loopback {
 	int fd;
 } ;
 
-int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int mode)
+int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int subchn, int mode)
 {
 	int fd, ver;
 	char filename[32];
@@ -47,8 +47,8 @@ int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int
 
 	if (card < 0 || card >= SND_CARDS)
 		return -EINVAL;
-	sprintf(filename, SND_FILE_PCM_LB, card, device,
-		mode == SND_PCM_LB_OPEN_CAPTURE ? "r" : "p");
+	sprintf(filename, SND_FILE_PCM_LB, card, device, subchn,
+		mode == SND_PCM_LB_OPEN_CAPTURE ? "c" : "p");
 	if ((fd = open(filename, mode)) < 0) {
 		snd_card_load(card);
 		if ((fd = open(filename, mode)) < 0) 

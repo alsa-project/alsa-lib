@@ -49,7 +49,7 @@ ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size);
 extern "C" {
 #endif
 
-int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int mode);
+int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int subchn, int mode);
 int snd_pcm_loopback_close(snd_pcm_loopback_t *handle);
 int snd_pcm_loopback_file_descriptor(snd_pcm_loopback_t *handle);
 int snd_pcm_loopback_block_mode(snd_pcm_loopback_t *handle, int enable);
