@@ -252,7 +252,7 @@ static int input_get(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simp
 		if (simple->present & MIXER_PRESENT_PLAYBACK_SWITCH) {
 			input_get_mute_switch(handle, simple, control, " Playback", " Switch", simple->pswitch_values);
 		} else if (simple->present & MIXER_PRESENT_GLOBAL_SWITCH) {
-			input_get_mute_switch(handle, simple, control, "", " Switch", simple->pvolume_values);
+			input_get_mute_switch(handle, simple, control, "", " Switch", simple->gswitch_values);
 		} else if (simple->present & MIXER_PRESENT_SINGLE_SWITCH) {
 			input_get_mute_switch(handle, simple, control, "", "", simple->global_values);
 		} else if (simple->present & MIXER_PRESENT_PLAYBACK_ROUTE) {
@@ -307,7 +307,6 @@ static int input_put_mute_switch(snd_mixer_t *handle, mixer_simple_t *simple, sn
 		return err;
 	for (idx = 0; idx < voices && idx < 32; idx++)
 		ctl.value.integer.value[idx] = (control->mute & (1 << idx)) ? 0 : 1;
-	err = put_mixer_write(handle, str, simple->sid.index, &ctl);
 	if ((err = put_mixer_write(handle, str, simple->sid.index, &ctl)) < 0)
 		return err;
 	return 0;
@@ -326,7 +325,6 @@ static int input_put_mute_route(snd_mixer_t *handle, mixer_simple_t *simple, snd
 		ctl.value.integer.value[idx] = 0;
 	for (idx = 0; idx < voices && idx < 32; idx++)
 		ctl.value.integer.value[(idx * voices) + idx] = (control->mute & (1 << idx)) ? 0 : 1;
-	err = put_mixer_write(handle, str, simple->sid.index, &ctl);
 	if ((err = put_mixer_write(handle, str, simple->sid.index, &ctl)) < 0)
 		return err;
 	return 0;
@@ -385,30 +383,16 @@ static int input_put(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simp
 		}
 	}
 	if (simple->caps & SND_MIXER_SCTCAP_MUTE) {
-		if ((control->mute & control->channels) != control->channels) {
-			if (simple->present & MIXER_PRESENT_PLAYBACK_SWITCH)
-				input_put_mute_switch(handle, simple, control, " Playback", " Switch", simple->pswitch_values);
-			if (simple->present & MIXER_PRESENT_GLOBAL_SWITCH)
-				input_put_mute_switch(handle, simple, control, "", " Switch", simple->pvolume_values);
-			if (simple->present & MIXER_PRESENT_SINGLE_SWITCH)
-				input_put_mute_switch(handle, simple, control, "", "", simple->global_values);
-			if (simple->present & MIXER_PRESENT_PLAYBACK_ROUTE)
-				input_put_mute_route(handle, simple, control, "Playback ", simple->proute_values);
-			if (simple->present & MIXER_PRESENT_GLOBAL_ROUTE)
-				input_put_mute_route(handle, simple, control, "", simple->groute_values);
-		} else {
-			if (simple->present & MIXER_PRESENT_PLAYBACK_SWITCH) {
-				input_put_mute_switch(handle, simple, control, "Playback ", " Switch", simple->pswitch_values);
-			} else if (simple->present & MIXER_PRESENT_GLOBAL_SWITCH) {
-				input_put_mute_switch(handle, simple, control, "", " Switch", simple->pvolume_values);
-			} else if (simple->present & MIXER_PRESENT_SINGLE_SWITCH) {
-				input_put_mute_switch(handle, simple, control, "", "", simple->global_values);
-			} else if (simple->present & MIXER_PRESENT_PLAYBACK_ROUTE) {
-				input_put_mute_route(handle, simple, control, "Playback ", simple->proute_values);
-			} else if (simple->present & MIXER_PRESENT_GLOBAL_ROUTE) {
-				input_put_mute_route(handle, simple, control, "", simple->groute_values);
-			}
-		}
+		if (simple->present & MIXER_PRESENT_PLAYBACK_SWITCH)
+			input_put_mute_switch(handle, simple, control, " Playback", " Switch", simple->pswitch_values);
+		if (simple->present & MIXER_PRESENT_GLOBAL_SWITCH)
+			input_put_mute_switch(handle, simple, control, "", " Switch", simple->gswitch_values);
+		if (simple->present & MIXER_PRESENT_SINGLE_SWITCH)
+			input_put_mute_switch(handle, simple, control, "", "", simple->global_values);
+		if (simple->present & MIXER_PRESENT_PLAYBACK_ROUTE)
+			input_put_mute_route(handle, simple, control, "Playback ", simple->proute_values);
+		if (simple->present & MIXER_PRESENT_GLOBAL_ROUTE)
+			input_put_mute_route(handle, simple, control, "", simple->groute_values);
 	}
 	if (simple->caps & SND_MIXER_SCTCAP_CAPTURE) {
 		// fprintf(stderr, "capture: present = 0x%x\n", simple->present);
