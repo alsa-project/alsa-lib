@@ -599,10 +599,9 @@ static int open_ens1370(snd_pcm_surround_t *surr,
 	if ((err = snd_ctl_elem_write(surr->ctl, val)) < 0)
 		return err;
 
-
-	/* Turn off the PCM volume, the second PCM (front speakers) uses the FM control */
+	/* Turn off the PCM volume, the second PCM (front speakers) uses the second PCM control */
 	snd_ctl_elem_id_set_interface(id, SNDRV_CTL_ELEM_IFACE_MIXER);
-	snd_ctl_elem_id_set_name(id, "FM");
+	snd_ctl_elem_id_set_name(id, "PCM Switch");
 	snd_ctl_elem_id_set_index(id, 0);
 	if ((err = snd_ctl_elem_lock(surr->ctl, id)) < 0)
 		return err;
@@ -618,7 +617,7 @@ static int open_ens1370(snd_pcm_surround_t *surr,
 	snd_ctl_elem_value_set_boolean(val, 1, 0);
 	if ((err = snd_ctl_elem_write(surr->ctl, val)) < 0)
 		return err;
-	
+
 	return 0;
 }		       
 
@@ -740,8 +739,6 @@ int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,
 	return 0;
 
       __error:
-      	if (ctl)
-	      	snd_ctl_close(ctl);
 	snd_pcm_surround_free(surr);
 	return err;
 }
