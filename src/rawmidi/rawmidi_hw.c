@@ -242,6 +242,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	}
 	if (subdevice >= 0) {
 		memset(&info, 0, sizeof(info));
+		info.stream = outputp ? SNDRV_RAWMIDI_STREAM_OUTPUT : SNDRV_RAWMIDI_STREAM_INPUT;
 		if (ioctl(fd, SNDRV_RAWMIDI_IOCTL_INFO, &info) < 0) {
 			SYSERR("SNDRV_RAWMIDI_IOCTL_INFO failed");
 			ret = -errno;
