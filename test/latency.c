@@ -432,7 +432,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "silence error\n");
 			break;
 		}
-		if (writebuf(phandle, buffer, latency*channels, &frames_out) < 0) {
+		if (writebuf(phandle, buffer, latency, &frames_out) < 0) {
 			fprintf(stderr, "write error\n");
 			break;
 		}
