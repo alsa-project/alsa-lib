@@ -96,7 +96,7 @@ int snd_defaults_rawmidi_card(void)
 {
 	int result;
 	
-	result = defaults_card("ALSA_PCM_CARD");
+	result = defaults_card("ALSA_RAWMIDI_CARD");
 	if (result >= 0)
 		return result;
 	return snd_defaults_card();
