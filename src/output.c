@@ -258,7 +258,7 @@ static int snd_output_buffer_need(snd_output_t *output, size_t size)
 		alloc = 256;
 	else
 		alloc = buffer->alloc;
-	while (alloc < size)
+	while (alloc < buffer->size + size)
 		alloc *= 2;
 	buf = realloc(buffer->buf, alloc);
 	if (!buf)
