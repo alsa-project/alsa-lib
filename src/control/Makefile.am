@@ -1,6 +1,6 @@
 EXTRA_LTLIBRARIES = libcontrol.la
 
-libcontrol_la_SOURCES = cards.c controls.c bag.c defaults.c \
+libcontrol_la_SOURCES = cards.c hcontrol.c defaults.c \
                         control.c control_m4.c control_hw.c control_shm.c
 
 all: libcontrol.la

@@ -29,10 +29,10 @@
 #define _snd_pcm_status sndrv_pcm_status
 
 #define _snd_ctl_card_info sndrv_ctl_card_info
-#define _snd_ctl_element_id sndrv_ctl_element_id
-#define _snd_ctl_element_list sndrv_ctl_element_list
-#define _snd_ctl_element_info sndrv_ctl_element_info
-#define _snd_ctl_element sndrv_ctl_element
+#define _snd_ctl_elem_id sndrv_ctl_elem_id
+#define _snd_ctl_elem_list sndrv_ctl_elem_list
+#define _snd_ctl_elem_info sndrv_ctl_elem_info
+#define _snd_ctl_elem sndrv_ctl_elem
 #define _snd_ctl_event sndrv_ctl_event
 
 #define _snd_rawmidi_info sndrv_rawmidi_info

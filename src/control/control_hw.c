@@ -23,10 +23,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "control_local.h"
+
+#ifndef F_SETSIG
+#define F_SETSIG 10
+#endif
 
 #define SNDRV_FILE_CONTROL	"/dev/snd/controlC%i"
 #define SNDRV_CTL_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
@@ -45,6 +50,61 @@ static int snd_ctl_hw_close(snd_ctl_t *handle)
 	return res;
 }
 
+static int snd_ctl_hw_nonblock(snd_ctl_t *handle, int nonblock)
+{
+	snd_ctl_hw_t *hw = handle->private;
+	long flags;
+	int fd = hw->fd;
+	if ((flags = fcntl(fd, F_GETFL)) < 0) {
+		SYSERR("F_GETFL failed");
+		return -errno;
+	}
+	if (nonblock)
+		flags |= O_NONBLOCK;
+	else
+		flags &= ~O_NONBLOCK;
+	if (fcntl(fd, F_SETFL, flags) < 0) {
+		SYSERR("F_SETFL for O_NONBLOCK failed");
+		return -errno;
+	}
+	return 0;
+}
+
+static int snd_ctl_hw_async(snd_ctl_t *ctl, int sig, pid_t pid)
+{
+	long flags;
+	snd_ctl_hw_t *hw = ctl->private;
+	int fd = hw->fd;
+
+	if ((flags = fcntl(fd, F_GETFL)) < 0) {
+		SYSERR("F_GETFL failed");
+		return -errno;
+	}
+	if (sig >= 0)
+		flags |= O_ASYNC;
+	else
+		flags &= ~O_ASYNC;
+	if (fcntl(fd, F_SETFL, flags) < 0) {
+		SYSERR("F_SETFL for O_ASYNC failed");
+		return -errno;
+	}
+	if (sig < 0)
+		return 0;
+	if (sig == 0)
+		sig = SIGIO;
+	if (fcntl(fd, F_SETSIG, sig) < 0) {
+		SYSERR("F_SETSIG failed");
+		return -errno;
+	}
+	if (pid == 0)
+		pid = getpid();
+	if (fcntl(fd, F_SETOWN, pid) < 0) {
+		SYSERR("F_SETOWN failed");
+		return -errno;
+	}
+	return 0;
+}
+
 static int snd_ctl_hw_poll_descriptor(snd_ctl_t *handle)
 {
 	snd_ctl_hw_t *hw = handle->private;
@@ -59,34 +119,34 @@ static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
 	return 0;
 }
 
-static int snd_ctl_hw_clist(snd_ctl_t *handle, snd_ctl_element_list_t *list)
+static int snd_ctl_hw_elem_list(snd_ctl_t *handle, snd_ctl_elem_list_t *list)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEMENT_LIST, list) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_LIST, list) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_ctl_hw_cinfo(snd_ctl_t *handle, snd_ctl_element_info_t *info)
+static int snd_ctl_hw_elem_info(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEMENT_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_ctl_hw_cread(snd_ctl_t *handle, snd_ctl_element_t *control)
+static int snd_ctl_hw_elem_read(snd_ctl_t *handle, snd_ctl_elem_t *control)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEMENT_READ, control) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_READ, control) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_ctl_hw_cwrite(snd_ctl_t *handle, snd_ctl_element_t *control)
+static int snd_ctl_hw_elem_write(snd_ctl_t *handle, snd_ctl_elem_t *control)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEMENT_WRITE, control) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, control) < 0)
 		return -errno;
 	return 0;
 }
@@ -158,17 +218,23 @@ static int snd_ctl_hw_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev)
 static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	return read(hw->fd, event, sizeof(*event));
+	ssize_t res = read(hw->fd, event, sizeof(*event));
+	if (res <= 0)
+		return res;
+	assert(res == sizeof(*event));
+	return 1;
 }
 
 snd_ctl_ops_t snd_ctl_hw_ops = {
 	close: snd_ctl_hw_close,
+	nonblock: snd_ctl_hw_nonblock,
+	async: snd_ctl_hw_async,
 	poll_descriptor: snd_ctl_hw_poll_descriptor,
 	hw_info: snd_ctl_hw_hw_info,
-	clist: snd_ctl_hw_clist,
-	cinfo: snd_ctl_hw_cinfo,
-	cread: snd_ctl_hw_cread,
-	cwrite: snd_ctl_hw_cwrite,
+	element_list: snd_ctl_hw_elem_list,
+	element_info: snd_ctl_hw_elem_info,
+	element_read: snd_ctl_hw_elem_read,
+	element_write: snd_ctl_hw_elem_write,
 	hwdep_next_device: snd_ctl_hw_hwdep_next_device,
 	hwdep_info: snd_ctl_hw_hwdep_info,
 	pcm_next_device: snd_ctl_hw_pcm_next_device,

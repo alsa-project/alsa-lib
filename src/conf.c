@@ -808,10 +808,17 @@ void string_print(char *str, int id, snd_output_t *out)
 	unsigned char *p = str;
 	if (!id) {
 		switch (*p) {
+		case 0:
+			assert(0);
+			break;
 		case '0' ... '9':
 		case '-':
 			goto quoted;
 		}
+	}
+	if (!*p) {
+		snd_output_puts(out, "''");
+		return;
 	}
  loop:
 	switch (*p) {

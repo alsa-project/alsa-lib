@@ -94,6 +94,23 @@ static int snd_ctl_shm_close(snd_ctl_t *ctl)
 	return result;
 }
 
+static int snd_ctl_shm_nonblock(snd_ctl_t *handle ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+
+static int snd_ctl_shm_async(snd_ctl_t *ctl, int sig, pid_t pid)
+{
+	snd_ctl_shm_t *shm = ctl->private;
+	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	ctrl->cmd = SND_CTL_IOCTL_ASYNC;
+	ctrl->u.async.sig = sig;
+	if (pid == 0)
+		pid = getpid();
+	ctrl->u.async.pid = pid;
+	return snd_ctl_shm_action(ctl);
+}
+
 static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
 {
 	snd_ctl_shm_t *shm = ctl->private;
@@ -120,67 +137,67 @@ static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 	return err;
 }
 
-static int snd_ctl_shm_clist(snd_ctl_t *ctl, snd_ctl_element_list_t *list)
+static int snd_ctl_shm_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	size_t maxsize = CTL_SHM_DATA_MAXLEN;
 	size_t bytes = list->space * sizeof(*list->pids);
 	int err;
-	snd_ctl_element_id_t *pids = list->pids;
+	snd_ctl_elem_id_t *pids = list->pids;
 	if (bytes > maxsize)
 		return -EINVAL;
-	ctrl->u.clist = *list;
-	ctrl->cmd = SNDRV_CTL_IOCTL_ELEMENT_LIST;
+	ctrl->u.element_list = *list;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEM_LIST;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
-	*list = ctrl->u.clist;
+	*list = ctrl->u.element_list;
 	list->pids = pids;
 	bytes = list->used * sizeof(*list->pids);
 	memcpy(pids, (void *)ctrl->data, bytes);
 	return err;
 }
 
-static int snd_ctl_shm_cinfo(snd_ctl_t *ctl, snd_ctl_element_info_t *info)
+static int snd_ctl_shm_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->u.cinfo = *info;
-	ctrl->cmd = SNDRV_CTL_IOCTL_ELEMENT_INFO;
+	ctrl->u.element_info = *info;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEM_INFO;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
-	*info = ctrl->u.cinfo;
+	*info = ctrl->u.element_info;
 	return err;
 }
 
-static int snd_ctl_shm_cread(snd_ctl_t *ctl, snd_ctl_element_t *control)
+static int snd_ctl_shm_elem_read(snd_ctl_t *ctl, snd_ctl_elem_t *control)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->u.cread = *control;
-	ctrl->cmd = SNDRV_CTL_IOCTL_ELEMENT_READ;
+	ctrl->u.element_read = *control;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEM_READ;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
-	*control = ctrl->u.cread;
+	*control = ctrl->u.element_read;
 	return err;
 }
 
-static int snd_ctl_shm_cwrite(snd_ctl_t *ctl, snd_ctl_element_t *control)
+static int snd_ctl_shm_elem_write(snd_ctl_t *ctl, snd_ctl_elem_t *control)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->u.cwrite = *control;
-	ctrl->cmd = SNDRV_CTL_IOCTL_ELEMENT_WRITE;
+	ctrl->u.element_write = *control;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEM_WRITE;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
-	*control = ctrl->u.cwrite;
+	*control = ctrl->u.element_write;
 	return err;
 }
 
@@ -296,9 +313,14 @@ static int snd_ctl_shm_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 
 static int snd_ctl_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 {
-	snd_ctl_shm_t *shm = ctl->private;
-	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	snd_ctl_shm_t *shm;
+	volatile snd_ctl_shm_ctrl_t *ctrl;
 	int err;
+	err = snd_ctl_wait(ctl, -1);
+	if (err < 0)
+		return 0;
+	shm = ctl->private;
+	ctrl = shm->ctrl;
 	ctrl->u.read = *event;
 	ctrl->cmd = SND_CTL_IOCTL_READ;
 	err = snd_ctl_shm_action(ctl);
@@ -310,12 +332,14 @@ static int snd_ctl_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 
 snd_ctl_ops_t snd_ctl_shm_ops = {
 	close: snd_ctl_shm_close,
+	nonblock: snd_ctl_shm_nonblock,
+	async: snd_ctl_shm_async,
 	poll_descriptor: snd_ctl_shm_poll_descriptor,
 	hw_info: snd_ctl_shm_hw_info,
-	clist: snd_ctl_shm_clist,
-	cinfo: snd_ctl_shm_cinfo,
-	cread: snd_ctl_shm_cread,
-	cwrite: snd_ctl_shm_cwrite,
+	element_list: snd_ctl_shm_elem_list,
+	element_info: snd_ctl_shm_elem_info,
+	element_read: snd_ctl_shm_elem_read,
+	element_write: snd_ctl_shm_elem_write,
 	hwdep_next_device: snd_ctl_shm_hwdep_next_device,
 	hwdep_info: snd_ctl_shm_hwdep_info,
 	pcm_next_device: snd_ctl_shm_pcm_next_device,

@@ -1,6 +1,7 @@
 /*
  *  Control Interface - highlevel API - helem bag operations
  *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -27,58 +28,53 @@
 #include <sys/ioctl.h>
 #define __USE_GNU
 #include <search.h>
-#include "control_local.h"
+#include "mixer_local.h"
 
-int snd_ctl_hbag_create(void **bag)
+int snd_hctl_compare_fast(const snd_hctl_elem_t *c1,
+			  const snd_hctl_elem_t *c2);
+
+static void _free(void *ptr ATTRIBUTE_UNUSED) { };
+
+int snd_hctl_bag_destroy(snd_hctl_bag_t *bag)
 {
 	assert(bag != NULL);
-	*bag = NULL;
+	tdestroy(bag->root, _free);
+	bag->root = NULL;
 	return 0;
 }
 
-static void snd_ctl_hbag_free_private(snd_hctl_element_t *helem ATTRIBUTE_UNUSED)
-{
-	/* nothing */
-}
-
-int snd_ctl_hbag_destroy(void **bag, void (*hctl_element_free)(snd_hctl_element_t *helem))
-{
-	assert(bag != NULL);
-	if (hctl_element_free == NULL)
-		hctl_element_free = snd_ctl_hbag_free_private;
-	tdestroy(*bag, (__free_fn_t)hctl_element_free);
-	*bag = NULL;
-	return 0;
-}
-
-int snd_ctl_hbag_add(void **bag, snd_hctl_element_t *helem)
+int snd_hctl_bag_add(snd_hctl_bag_t *bag, snd_hctl_elem_t *helem)
 {
 	void *res;
-
 	assert(bag != NULL && helem != NULL);
-	res = tsearch(helem, bag, (__compar_fn_t)snd_ctl_hsort);
+	res = tsearch(helem, &bag->root, (__compar_fn_t)snd_hctl_compare_fast);
 	if (res == NULL)
 		return -ENOMEM;
-	if ((snd_hctl_element_t *)res == helem)
+	if ((snd_hctl_elem_t *)res == helem)
 		return -EALREADY;
 	return 0;
 }
 
-int snd_ctl_hbag_del(void **bag, snd_hctl_element_t *helem)
+int snd_hctl_bag_del(snd_hctl_bag_t *bag, snd_hctl_elem_t *helem)
 {
 	assert(bag != NULL && helem != NULL);
-	if (tdelete(helem, bag, (__compar_fn_t)snd_ctl_hsort) == NULL)
+	if (tdelete(helem, &bag->root, (__compar_fn_t)snd_hctl_compare_fast) == NULL)
 		return -ENOENT;
 	return 0;
 }
 
-snd_hctl_element_t *snd_ctl_hbag_find(void **bag, snd_ctl_element_id_t *id)
+snd_hctl_elem_t *snd_hctl_bag_find(snd_hctl_bag_t *bag, snd_ctl_elem_id_t *id)
 {
 	void *res;
-
 	assert(bag != NULL && id != NULL);
-	if (*bag == NULL)
+	if (bag->root == NULL)
 		return NULL;
-	res = tfind(id, bag, (__compar_fn_t)snd_ctl_hsort);
-	return res == NULL ? NULL : *(snd_hctl_element_t **)res;
+	res = tfind(id, &bag->root, (__compar_fn_t)snd_hctl_compare_fast);
+	return res == NULL ? NULL : *(snd_hctl_elem_t **)res;
+}
+
+int snd_hctl_bag_empty(snd_hctl_bag_t *bag)
+{
+	assert(bag != NULL);
+	return bag->root == NULL;
 }

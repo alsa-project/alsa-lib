@@ -83,17 +83,22 @@ typedef struct {
 #define SND_CTL_IOCTL_READ		_IOR('U', 0xf1, snd_ctl_event_t)
 #define SND_CTL_IOCTL_CLOSE		_IO ('U', 0xf2)
 #define SND_CTL_IOCTL_POLL_DESCRIPTOR	_IO ('U', 0xf3)
+#define SND_CTL_IOCTL_ASYNC		_IO ('U', 0xf4)
 
 typedef struct {
 	int result;
 	int cmd;
 	union {
+		struct {
+			int sig;
+			pid_t pid;
+		} async;
 		int device;
 		snd_ctl_card_info_t hw_info;
-		snd_ctl_element_list_t clist;
-		snd_ctl_element_info_t cinfo;
-		snd_ctl_element_t cread;
-		snd_ctl_element_t cwrite;
+		snd_ctl_elem_list_t element_list;
+		snd_ctl_elem_info_t element_info;
+		snd_ctl_elem_t element_read;
+		snd_ctl_elem_t element_write;
 		snd_hwdep_info_t hwdep_info;
 		snd_pcm_info_t pcm_info;
 		int pcm_prefer_subdevice;

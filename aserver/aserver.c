@@ -555,8 +555,6 @@ int ctl_shm_close(client_t *client)
 	return 0;
 }
 
-extern int snd_ctl_read1(snd_ctl_t *ctl, snd_ctl_event_t *event);
-
 int ctl_shm_cmd(client_t *client)
 {
 	snd_ctl_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
@@ -571,28 +569,31 @@ int ctl_shm_cmd(client_t *client)
 	ctrl->cmd = 0;
 	ctl = client->device.control.handle;
 	switch (cmd) {
+	case SND_CTL_IOCTL_ASYNC:
+		ctrl->result = snd_ctl_async(ctl, ctrl->u.async.sig, ctrl->u.async.pid);
+		break;
 	case SNDRV_CTL_IOCTL_INFO:
 		ctrl->result = snd_ctl_card_info(ctl, &ctrl->u.hw_info);
 		break;
-	case SNDRV_CTL_IOCTL_ELEMENT_LIST:
+	case SNDRV_CTL_IOCTL_ELEM_LIST:
 	{
 		size_t maxsize = CTL_SHM_DATA_MAXLEN;
-		if (ctrl->u.clist.space * sizeof(*ctrl->u.clist.pids) > maxsize) {
+		if (ctrl->u.element_list.space * sizeof(*ctrl->u.element_list.pids) > maxsize) {
 			ctrl->result = -EFAULT;
 			break;
 		}
-		ctrl->u.clist.pids = (snd_ctl_element_id_t*) ctrl->data;
-		ctrl->result = snd_ctl_clist(ctl, &ctrl->u.clist);
+		ctrl->u.element_list.pids = (snd_ctl_elem_id_t*) ctrl->data;
+		ctrl->result = snd_ctl_elem_list(ctl, &ctrl->u.element_list);
 		break;
 	}
-	case SNDRV_CTL_IOCTL_ELEMENT_INFO:
-		ctrl->result = snd_ctl_element_info(ctl, &ctrl->u.cinfo);
+	case SNDRV_CTL_IOCTL_ELEM_INFO:
+		ctrl->result = snd_ctl_elem_info(ctl, &ctrl->u.element_info);
 		break;
-	case SNDRV_CTL_IOCTL_ELEMENT_READ:
-		ctrl->result = snd_ctl_element_read(ctl, &ctrl->u.cread);
+	case SNDRV_CTL_IOCTL_ELEM_READ:
+		ctrl->result = snd_ctl_elem_read(ctl, &ctrl->u.element_read);
 		break;
-	case SNDRV_CTL_IOCTL_ELEMENT_WRITE:
-		ctrl->result = snd_ctl_element_write(ctl, &ctrl->u.cwrite);
+	case SNDRV_CTL_IOCTL_ELEM_WRITE:
+		ctrl->result = snd_ctl_elem_write(ctl, &ctrl->u.element_write);
 		break;
 	case SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE:
 		ctrl->result = snd_ctl_hwdep_next_device(ctl, &ctrl->u.device);
@@ -619,7 +620,7 @@ int ctl_shm_cmd(client_t *client)
 		ctrl->result = snd_ctl_rawmidi_prefer_subdevice(ctl, ctrl->u.rawmidi_prefer_subdevice);
 		break;
 	case SND_CTL_IOCTL_READ:
-		ctrl->result = snd_ctl_read1(ctl, &ctrl->u.read);
+		ctrl->result = snd_ctl_read(ctl, &ctrl->u.read);
 		break;
 	case SND_CTL_IOCTL_CLOSE:
 		client->ops->close(client);

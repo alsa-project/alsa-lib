@@ -1,6 +1,7 @@
 /*
  *  Mixer Interface - main file
  *  Copyright (c) 1998/1999/2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -27,202 +28,103 @@
 #include <sys/ioctl.h>
 #include "mixer_local.h"
 
-static void snd_mixer_simple_read_rebuild(snd_ctl_t *ctl_handle, void *private_data);
-static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle, void *private_data, snd_hctl_element_t *helem);
-
-int snd_mixer_open(snd_mixer_t **r_handle, char *name)
+int snd_mixer_open(snd_mixer_t **mixerp, char *name)
 {
-	snd_mixer_t *handle;
-	snd_ctl_t *ctl_handle;
+	snd_mixer_t *mixer;
+	snd_ctl_t *ctl;
 	int err;
-
-	if (r_handle == NULL)
-		return -EINVAL;
-	*r_handle = NULL;
-	if ((err = snd_ctl_open(&ctl_handle, name)) < 0)
+	assert(mixerp);
+	if ((err = snd_ctl_open(&ctl, name)) < 0)
 		return err;
-	handle = (snd_mixer_t *) calloc(1, sizeof(snd_mixer_t));
-	if (handle == NULL) {
-		snd_ctl_close(ctl_handle);
+	mixer = calloc(1, sizeof(snd_mixer_t));
+	if (mixer == NULL) {
+		snd_ctl_close(ctl);
 		return -ENOMEM;
 	}
-	if ((err = snd_ctl_hcallback_rebuild(ctl_handle, snd_mixer_simple_read_rebuild, handle)) < 0) {
-		snd_ctl_close(ctl_handle);
-		free(handle);
-		return err;
-	}
-	if ((err = snd_ctl_hcallback_add(ctl_handle, snd_mixer_simple_read_add, handle)) < 0) {
-		snd_ctl_close(ctl_handle);
-		free(handle);
-		return err;
-	}
-	handle->ctl_handle = ctl_handle;
-	INIT_LIST_HEAD(&handle->simples);
-	*r_handle = handle;
+	mixer->ctl = ctl;
+	INIT_LIST_HEAD(&mixer->elems);
+	*mixerp = mixer;
 	return 0;
 }
 
-int snd_mixer_close(snd_mixer_t *handle)
+snd_mixer_elem_t *snd_mixer_elem_add(snd_mixer_t *mixer)
 {
-	int err = 0;
-
-	if (handle == NULL)
-		return -EINVAL;
-	if (handle->simple_valid)
-		snd_mixer_simple_destroy(handle);
-	if (handle->ctl_handle)
-		err = snd_ctl_close(handle->ctl_handle);
-	return err;
+	snd_mixer_elem_t *elem;
+	elem = calloc(1, sizeof(*elem));
+	if (!elem)
+		return NULL;
+	elem->mixer = mixer;
+	list_add_tail(&elem->list, &mixer->elems);
+	mixer->count++;
+	return elem;
 }
 
-int snd_mixer_poll_descriptor(snd_mixer_t *handle)
+void snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 {
-	if (handle == NULL || handle->ctl_handle == NULL)
+	snd_mixer_t *mixer = elem->mixer;
+	if (elem->private_free)
+		elem->private_free(elem);
+	if (elem->callback)
+		elem->callback(elem, SND_CTL_EVENT_REMOVE);
+	list_del(&elem->list);
+	free(elem);
+	mixer->count--;
+}
+
+void snd_mixer_free(snd_mixer_t *mixer)
+{
+	while (!list_empty(&mixer->elems))
+		snd_mixer_elem_remove(list_entry(mixer->elems.next, snd_mixer_elem_t, list));
+}
+
+int snd_mixer_close(snd_mixer_t *mixer)
+{
+	assert(mixer);
+	snd_mixer_free(mixer);
+	return snd_ctl_close(mixer->ctl);
+}
+
+int snd_mixer_poll_descriptor(snd_mixer_t *mixer)
+{
+	if (mixer == NULL || mixer->ctl == NULL)
 		return -EIO;
-	return snd_ctl_poll_descriptor(handle->ctl_handle);
+	return snd_ctl_poll_descriptor(mixer->ctl);
 }
 
-const char *snd_mixer_simple_channel_name(snd_mixer_channel_id_t channel)
+snd_mixer_elem_t *snd_mixer_first_elem(snd_mixer_t *mixer)
 {
-	static char *array[snd_enum_to_int(SND_MIXER_CHN_LAST) + 1] = {
-		[SND_MIXER_CHN_FRONT_LEFT] = "Front Left",
-		[SND_MIXER_CHN_FRONT_RIGHT] = "Front Right",
-		[SND_MIXER_CHN_FRONT_CENTER] = "Front Center",
-		[SND_MIXER_CHN_REAR_LEFT] = "Rear Left",
-		[SND_MIXER_CHN_REAR_RIGHT] = "Rear Right",
-		[SND_MIXER_CHN_WOOFER] = "Woofer"
-	};
-	char *p;
-	assert(channel <= SND_MIXER_CHN_LAST);
-	p = array[snd_enum_to_int(channel)];
-	if (!p)
-		return "?";
-	return p;
+	assert(mixer);
+	if (list_empty(&mixer->elems))
+		return NULL;
+	return list_entry(mixer->elems.next, snd_mixer_elem_t, list);
 }
 
-int snd_mixer_simple_element_list(snd_mixer_t *handle, snd_mixer_simple_element_list_t *list)
+snd_mixer_elem_t *snd_mixer_last_elem(snd_mixer_t *mixer)
 {
-	struct list_head *lh;
-	mixer_simple_t *s;
-	snd_mixer_sid_t *p;
-	int err;
-	unsigned int idx;
-
-	if (handle == NULL || list == NULL)
-		return -EINVAL;
-	if (!handle->simple_valid)
-		if ((err = snd_mixer_simple_build(handle)) < 0)
-			return err;
-	list->controls_count = 0;
-	p = list->pids;
-	if (list->controls_request > 0 && p == NULL)
-		return -EINVAL;
-	idx = 0;
-	list_for_each(lh, &handle->simples) {
-		if (idx >= list->controls_offset + list->controls_request)
-			break;
-		if (idx >= list->controls_offset) {
-			s = list_entry(lh, mixer_simple_t, list);
-			memcpy(p, &s->sid, sizeof(*p)); p++;
-			list->controls_count++;
-		}
-		idx++;
-	}
-	list->controls = handle->simple_count;
-	return 0;
+	assert(mixer);
+	if (list_empty(&mixer->elems))
+		return NULL;
+	return list_entry(mixer->elems.prev, snd_mixer_elem_t, list);
 }
 
-static mixer_simple_t *look_for_simple(snd_mixer_t *handle, snd_mixer_sid_t *sid)
+snd_mixer_elem_t *snd_mixer_elem_next(snd_mixer_elem_t *elem)
 {
-	struct list_head *list;
-	mixer_simple_t *s;
-	
-	list_for_each(list, &handle->simples) {
-		s = list_entry(list, mixer_simple_t, list);
-		if (!strcmp(s->sid.name, sid->name) && s->sid.index == sid->index)
-			return s;
-	}
-	return NULL;
+	assert(elem);
+	if (elem->list.next == &elem->mixer->elems)
+		return NULL;
+	return list_entry(elem->list.next, snd_mixer_elem_t, list);
 }
 
-int snd_mixer_simple_element_read(snd_mixer_t *handle, snd_mixer_simple_element_t *control)
+snd_mixer_elem_t *snd_mixer_elem_prev(snd_mixer_elem_t *elem)
 {
-	mixer_simple_t *s;
-
-	if (handle == NULL || control == NULL)
-		return -EINVAL;
-	if (!handle->simple_valid)
-		snd_mixer_simple_build(handle);
-	s = look_for_simple(handle, &control->sid);
-	if (s == NULL)
-		return -ENOENT;
-	if (s->get == NULL)
-		return -EIO;
-	return s->get(handle, s, control);
+	assert(elem);
+	if (elem->list.prev == &elem->mixer->elems)
+		return NULL;
+	return list_entry(elem->list.prev, snd_mixer_elem_t, list);
 }
 
-int snd_mixer_simple_element_write(snd_mixer_t *handle, snd_mixer_simple_element_t *control)
+int snd_mixer_events(snd_mixer_t *mixer)
 {
-	mixer_simple_t *s;
-
-	if (handle == NULL || control == NULL)
-		return -EINVAL;
-	if (!handle->simple_valid)
-		snd_mixer_simple_build(handle);
-	s = look_for_simple(handle, &control->sid);
-	if (s == NULL)
-		return -ENOENT;
-	if (s->put == NULL)
-		return -EIO;
-	return s->put(handle, s, control);
+	return snd_hctl_events(mixer->ctl);
 }
 
-static void snd_mixer_simple_read_rebuild(snd_ctl_t *ctl_handle, void *private_data)
-{
-	snd_mixer_t *handle = (snd_mixer_t *)private_data;
-	if (handle->ctl_handle != ctl_handle)
-		return;
-	handle->callbacks->rebuild(handle, handle->callbacks->private_data);
-	handle->simple_changes++;
-}
-
-static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle ATTRIBUTE_UNUSED, void *private_data, snd_hctl_element_t *helem)
-{
-	snd_mixer_t *handle = (snd_mixer_t *)private_data;
-	mixer_simple_t *s;
-	struct list_head *list;
-	
-	list_for_each(list, &handle->simples) {
-		s = list_entry(list, mixer_simple_t, list);
-		if (s->event_add)
-			s->event_add(handle, helem);
-	}
-}
-
-int snd_mixer_simple_read(snd_mixer_t *handle, snd_mixer_simple_callbacks_t *callbacks)
-{
-	mixer_simple_t *s;
-	struct list_head *list;
-	int err;
-
-	if (handle == NULL || callbacks == NULL)
-		return -EINVAL;
-	if (!handle->simple_valid)
-		snd_mixer_simple_build(handle);
-	handle->callbacks = callbacks;
-	handle->simple_changes = 0;
-	if ((err = snd_ctl_hevent(handle->ctl_handle)) <= 0) {
-		handle->callbacks = NULL;
-		return err;
-	}
-	handle->callbacks = NULL;
-	list_for_each(list, &handle->simples) {
-		s = list_entry(list, mixer_simple_t, list);
-		if (s->change > 0) {
-			s->change = 0;
-			if (callbacks->value)
-				callbacks->value(handle, callbacks->private_data, &s->sid);
-		}
-	}
-	return handle->simple_changes;
-}

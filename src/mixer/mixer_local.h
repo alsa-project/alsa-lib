@@ -1,6 +1,7 @@
 /*
  *  Mixer Interface - local header file
  *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -19,72 +20,62 @@
  *
  */
 
-#include "local.h"
+//#include "../control/control_local.h"
 #include "list.h"
+#include "local.h"
 
-typedef struct _mixer_simple mixer_simple_t;
-typedef struct _mixer_simple_hctl_element_private mixer_simple_hctl_element_private_t;
+typedef struct _snd_hctl_bag {
+	void *root;
+	void *private;
+} snd_hctl_bag_t;
 
-typedef int (mixer_simple_get_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_element_t *control);
-typedef int (mixer_simple_put_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_element_t *control);
-typedef int (mixer_simple_event_add_t) (snd_mixer_t *handle, snd_hctl_element_t *helem);
+int snd_hctl_bag_destroy(snd_hctl_bag_t *bag);
+int snd_hctl_bag_add(snd_hctl_bag_t *bag, snd_hctl_elem_t *helem);
+int snd_hctl_bag_del(snd_hctl_bag_t *bag, snd_hctl_elem_t *helem);
+snd_hctl_elem_t *snd_hctl_bag_find(snd_hctl_bag_t *bag, snd_ctl_elem_id_t *id);
+int snd_hctl_bag_empty(snd_hctl_bag_t *bag);
 
-#define MIXER_PRESENT_SINGLE_SWITCH	(1<<0)
-#define MIXER_PRESENT_SINGLE_VOLUME	(1<<1)
-#define MIXER_PRESENT_GLOBAL_SWITCH	(1<<2)
-#define MIXER_PRESENT_GLOBAL_VOLUME	(1<<3)
-#define MIXER_PRESENT_GLOBAL_ROUTE	(1<<4)
-#define MIXER_PRESENT_PLAYBACK_SWITCH	(1<<5)
-#define MIXER_PRESENT_PLAYBACK_VOLUME	(1<<6)
-#define MIXER_PRESENT_PLAYBACK_ROUTE	(1<<7)
-#define MIXER_PRESENT_CAPTURE_SWITCH	(1<<8)
-#define MIXER_PRESENT_CAPTURE_VOLUME	(1<<9)
-#define MIXER_PRESENT_CAPTURE_ROUTE	(1<<10)
-#define MIXER_PRESENT_CAPTURE_SOURCE	(1<<11)
-
-struct _mixer_simple {
-	/* this may be moved to a private area */
-	unsigned int present;		/* present controls */
-	unsigned int global_values;
-	unsigned int gswitch_values;
-	unsigned int pswitch_values;
-	unsigned int cswitch_values;
-	unsigned int gvolume_values;
-	unsigned int pvolume_values;
-	unsigned int cvolume_values;
-	unsigned int groute_values;
-	unsigned int proute_values;
-	unsigned int croute_values;
-	unsigned int ccapture_values;
-	unsigned int capture_item;
-	unsigned int caps;
-	long min;
-	long max;
-	int voices;
-	/* -- */
-	int refs;			/* number of references */
-	int change;			/* simple control was changed */
-	snd_mixer_sid_t sid;
-	mixer_simple_get_t *get;
-	mixer_simple_put_t *put;
-	mixer_simple_event_add_t *event_add;
-	struct list_head list;
-	void *helems;		/* bag of associated helems */
-	unsigned long private_value;
+struct _snd_mixer_elem {
+	snd_mixer_elem_type_t type;
+	struct list_head list;		/* links for list of all elems */
+	void *private;
+	void (*private_free)(snd_mixer_elem_t *elem);
+	snd_mixer_elem_callback_t callback;
+	void *callback_private;
+	snd_mixer_t *mixer;
 };
 
-struct _mixer_simple_hctl_element_private {
-	void *simples;			/* list of associated helems */
-};
-  
 struct _snd_mixer {
-	snd_ctl_t *ctl_handle;
-	int simple_valid;
-	int simple_changes;		/* total number of changes */
-	int simple_count;
-	struct list_head simples;	/* list of all simple controls */
-	snd_mixer_simple_callbacks_t *callbacks;
+	snd_ctl_t *ctl;
+	struct list_head elems;	/* list of all elemss */
+	unsigned int count;
+	snd_mixer_callback_t callback;
+	void *callback_private;
 };
 
-int snd_mixer_simple_build(snd_mixer_t *handle);
-int snd_mixer_simple_destroy(snd_mixer_t *handle);
+#define SND_MIXER_SCTCAP_VOLUME         (1<<0)
+#define SND_MIXER_SCTCAP_JOIN_VOLUME	(1<<1)
+#define SND_MIXER_SCTCAP_MUTE           (1<<2)
+#define SND_MIXER_SCTCAP_JOIN_MUTE   	(1<<3)
+#define SND_MIXER_SCTCAP_CAPTURE        (1<<4)
+#define SND_MIXER_SCTCAP_JOIN_CAPTURE	(1<<5)
+#define SND_MIXER_SCTCAP_EXCL_CAPTURE   (1<<6)
+
+struct _snd_mixer_selem_id {
+	unsigned char name[60];
+	unsigned int index;
+};
+
+struct _snd_mixer_selem {
+	unsigned int caps;		/* RO: capabilities */
+	unsigned int channels;		/* RO: bitmap of active channels */
+	unsigned int mute;		/* RW: bitmap of muted channels */
+	unsigned int capture;		/* RW: bitmap of capture channels */
+	int capture_group;		/* RO: capture group (for exclusive capture) */
+	long min;			/* RO: minimum value */
+	long max;			/* RO: maximum value */
+	long volume[32];
+};
+
+snd_mixer_elem_t *snd_mixer_elem_add(snd_mixer_t *mixer);
+void snd_mixer_free(snd_mixer_t *mixer);

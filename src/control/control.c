@@ -26,6 +26,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <dlfcn.h>
+#include <sys/poll.h>
 #include "control_local.h"
 
 snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl)
@@ -38,8 +39,26 @@ int snd_ctl_close(snd_ctl_t *ctl)
 	int res;
 	assert(ctl);
 	res = ctl->ops->close(ctl);
+	snd_hctl_free(ctl);
 	free(ctl);
 	return res;
+}
+
+int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock)
+{
+	int err;
+	assert(ctl);
+	err = ctl->ops->nonblock(ctl, nonblock);
+	if (err < 0)
+		return err;
+	ctl->nonblock = nonblock;
+	return 0;
+}
+
+int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid)
+{
+	assert(ctl);
+	return ctl->ops->async(ctl, sig, pid);
 }
 
 int snd_ctl_poll_descriptor(snd_ctl_t *ctl)
@@ -54,28 +73,29 @@ int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 	return ctl->ops->hw_info(ctl, info);
 }
 
-int snd_ctl_clist(snd_ctl_t *ctl, snd_ctl_element_list_t *list)
+int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
 {
 	assert(ctl && list);
-	return ctl->ops->clist(ctl, list);
+	assert(list->space == 0 || list->pids);
+	return ctl->ops->element_list(ctl, list);
 }
 
-int snd_ctl_element_info(snd_ctl_t *ctl, snd_ctl_element_info_t *info)
+int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 {
 	assert(ctl && info && (info->id.name[0] || info->id.numid));
-	return ctl->ops->cinfo(ctl, info);
+	return ctl->ops->element_info(ctl, info);
 }
 
-int snd_ctl_element_read(snd_ctl_t *ctl, snd_ctl_element_t *control)
+int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_t *control)
 {
 	assert(ctl && control && (control->id.name[0] || control->id.numid));
-	return ctl->ops->cread(ctl, control);
+	return ctl->ops->element_read(ctl, control);
 }
 
-int snd_ctl_element_write(snd_ctl_t *ctl, snd_ctl_element_t *control)
+int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_t *control)
 {
 	assert(ctl && control && (control->id.name[0] || control->id.numid));
-	return ctl->ops->cwrite(ctl, control);
+	return ctl->ops->element_write(ctl, control);
 }
 
 int snd_ctl_hwdep_next_device(snd_ctl_t *ctl, int *device)
@@ -126,49 +146,22 @@ int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 	return ctl->ops->rawmidi_prefer_subdevice(ctl, subdev);
 }
 
-int snd_ctl_read1(snd_ctl_t *ctl, snd_ctl_event_t *event)
+int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 {
 	assert(ctl && event);
 	return ctl->ops->read(ctl, event);
 }
 
-int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_callbacks_t * callbacks)
+int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 {
-	int result, count;
-	snd_ctl_event_t r;
-
-	assert(ctl);
-	count = 0;
-	while ((result = snd_ctl_read1(ctl, &r)) > 0) {
-		if (result != sizeof(r))
-			return -EIO;
-		if (!callbacks)
-			continue;
-		switch (r.type) {
-		case SND_CTL_EVENT_REBUILD:
-			if (callbacks->rebuild)
-				callbacks->rebuild(ctl, callbacks->private_data);
-			break;
-		case SND_CTL_EVENT_VALUE:
-			if (callbacks->value)
-				callbacks->value(ctl, callbacks->private_data, &r.data.id);
-			break;
-		case SND_CTL_EVENT_CHANGE:
-			if (callbacks->change)
-				callbacks->change(ctl, callbacks->private_data, &r.data.id);
-			break;
-		case SND_CTL_EVENT_ADD:
-			if (callbacks->add)
-				callbacks->add(ctl, callbacks->private_data, &r.data.id);
-			break;
-		case SND_CTL_EVENT_REMOVE:
-			if (callbacks->remove)
-				callbacks->remove(ctl, callbacks->private_data, &r.data.id);
-			break;
-		}
-		count++;
-	}
-	return result >= 0 ? count : -errno;
+	struct pollfd pfd;
+	int err;
+	pfd.fd = snd_ctl_poll_descriptor(ctl);
+	pfd.events = POLLIN;
+	err = poll(&pfd, 1, timeout);
+	if (err < 0)
+		return -errno;
+	return 0;
 }
 
 int snd_ctl_open(snd_ctl_t **ctlp, char *name)
@@ -239,18 +232,18 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 	return open_func(ctlp, name, ctl_conf);
 }
 
-void snd_ctl_element_set_bytes(snd_ctl_element_t *obj, void *data, size_t size)
+void snd_ctl_elem_set_bytes(snd_ctl_elem_t *obj, void *data, size_t size)
 {
 	assert(obj);
 	assert(size <= sizeof(obj->value.bytes.data));
 	memcpy(obj->value.bytes.data, data, size);
 }
 
-#define TYPE(v) [SND_CTL_ELEMENT_TYPE_##v] = #v
-#define IFACE(v) [SND_CTL_ELEMENT_IFACE_##v] = #v
+#define TYPE(v) [SND_CTL_ELEM_TYPE_##v] = #v
+#define IFACE(v) [SND_CTL_ELEM_IFACE_##v] = #v
 #define EVENT(v) [SND_CTL_EVENT_##v] = #v
 
-const char *snd_ctl_element_type_names[] = {
+const char *snd_ctl_elem_type_names[] = {
 	TYPE(NONE),
 	TYPE(BOOLEAN),
 	TYPE(INTEGER),
@@ -259,7 +252,7 @@ const char *snd_ctl_element_type_names[] = {
 	TYPE(IEC958),
 };
 
-const char *snd_ctl_element_iface_names[] = {
+const char *snd_ctl_elem_iface_names[] = {
 	IFACE(CARD),
 	IFACE(HWDEP),
 	IFACE(MIXER),
@@ -277,16 +270,16 @@ const char *snd_ctl_event_type_names[] = {
 	EVENT(REMOVE),
 };
 
-const char *snd_ctl_element_type_name(snd_ctl_element_type_t type)
+const char *snd_ctl_elem_type_name(snd_ctl_elem_type_t type)
 {
-	assert(type <= SND_CTL_ELEMENT_TYPE_LAST);
-	return snd_ctl_element_type_names[snd_enum_to_int(type)];
+	assert(type <= SND_CTL_ELEM_TYPE_LAST);
+	return snd_ctl_elem_type_names[snd_enum_to_int(type)];
 }
 
-const char *snd_ctl_element_iface_name(snd_ctl_element_iface_t iface)
+const char *snd_ctl_elem_iface_name(snd_ctl_elem_iface_t iface)
 {
-	assert(iface <= SND_CTL_ELEMENT_IFACE_LAST);
-	return snd_ctl_element_iface_names[snd_enum_to_int(iface)];
+	assert(iface <= SND_CTL_ELEM_IFACE_LAST);
+	return snd_ctl_elem_iface_names[snd_enum_to_int(iface)];
 }
 
 const char *snd_ctl_event_type_name(snd_ctl_event_type_t type)
@@ -295,8 +288,10 @@ const char *snd_ctl_event_type_name(snd_ctl_event_type_t type)
 	return snd_ctl_event_type_names[snd_enum_to_int(type)];
 }
 
-int snd_ctl_element_list_alloc_space(snd_ctl_element_list_t *obj, unsigned int entries)
+int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries)
 {
+	if (obj->pids)
+		free(obj->pids);
 	obj->pids = calloc(entries, sizeof(*obj->pids));
 	if (!obj->pids) {
 		obj->space = 0;
@@ -306,7 +301,7 @@ int snd_ctl_element_list_alloc_space(snd_ctl_element_list_t *obj, unsigned int e
 	return 0;
 }  
 
-void snd_ctl_element_list_free_space(snd_ctl_element_list_t *obj)
+void snd_ctl_elem_list_free_space(snd_ctl_elem_list_t *obj)
 {
 	free(obj->pids);
 	obj->pids = NULL;

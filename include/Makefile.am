@@ -3,9 +3,10 @@ sysinclude_HEADERS = asoundlib.h
 
 # This is the order they will be concatenated into asoundlib.h!
 #
-header_files=header.h version.h global.h input.h output.h error.h mixer.h \
+header_files=header.h version.h global.h input.h output.h error.h \
 	     pcm.h pcm_m4.h rawmidi.h rawmidi_m4.h timer.h \
 	     hwdep.h hwdep_m4.h control.h control_m4.h \
+	     mixer.h mixer_m4.h \
 	     seq.h seqmid.h seq_midi_event.h \
              conv.h instr.h conf.h footer.h
 

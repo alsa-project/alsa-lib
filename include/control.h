@@ -7,21 +7,21 @@
 
 typedef struct sndrv_aes_iec958 snd_aes_iec958_t;
 typedef struct _snd_ctl_card_info snd_ctl_card_info_t;
-typedef struct _snd_ctl_element_id snd_ctl_element_id_t;
-typedef struct _snd_ctl_element_list snd_ctl_element_list_t;
-typedef struct _snd_ctl_element_info snd_ctl_element_info_t;
-typedef struct _snd_ctl_element snd_ctl_element_t;
+typedef struct _snd_ctl_elem_id snd_ctl_elem_id_t;
+typedef struct _snd_ctl_elem_list snd_ctl_elem_list_t;
+typedef struct _snd_ctl_elem_info snd_ctl_elem_info_t;
+typedef struct _snd_ctl_elem snd_ctl_elem_t;
 typedef struct _snd_ctl_event snd_ctl_event_t;
 
 #ifdef SND_ENUM_TYPECHECK
 typedef struct __snd_card_type *snd_card_type_t;
-typedef struct __snd_ctl_element_type *snd_ctl_element_type_t;
-typedef struct __snd_ctl_element_iface *snd_ctl_element_iface_t;
+typedef struct __snd_ctl_elem_type *snd_ctl_elem_type_t;
+typedef struct __snd_ctl_elem_iface *snd_ctl_elem_iface_t;
 typedef struct __snd_ctl_event_type *snd_ctl_event_type_t;
 #else
 typedef enum sndrv_card_type snd_card_type_t;
-typedef enum sndrv_ctl_element_type snd_ctl_element_type_t;
-typedef enum sndrv_ctl_element_iface snd_ctl_element_iface_t;
+typedef enum sndrv_ctl_elem_type snd_ctl_elem_type_t;
+typedef enum sndrv_ctl_elem_iface snd_ctl_elem_iface_t;
 typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
 #endif
 
@@ -95,22 +95,22 @@ typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
 #define SND_CARD_TYPE_VIA8233 ((snd_card_type_t) SNDRV_CARD_TYPE_VIA8233)
 #define SND_CARD_TYPE_LAST ((snd_card_type_t) SNDRV_CARD_TYPE_LAST)
 
-#define SND_CTL_ELEMENT_TYPE_NONE ((snd_ctl_element_type_t) SNDRV_CTL_ELEMENT_TYPE_NONE)
-#define SND_CTL_ELEMENT_TYPE_BOOLEAN ((snd_ctl_element_type_t) SNDRV_CTL_ELEMENT_TYPE_BOOLEAN)
-#define SND_CTL_ELEMENT_TYPE_INTEGER ((snd_ctl_element_type_t) SNDRV_CTL_ELEMENT_TYPE_INTEGER)
-#define SND_CTL_ELEMENT_TYPE_ENUMERATED ((snd_ctl_element_type_t) SNDRV_CTL_ELEMENT_TYPE_ENUMERATED)
-#define SND_CTL_ELEMENT_TYPE_BYTES ((snd_ctl_element_type_t) SNDRV_CTL_ELEMENT_TYPE_BYTES)
-#define SND_CTL_ELEMENT_TYPE_IEC958 ((snd_ctl_element_type_t) SNDRV_CTL_ELEMENT_TYPE_IEC958)
-#define SND_CTL_ELEMENT_TYPE_LAST ((snd_ctl_element_type_t) SNDRV_CTL_ELEMENT_TYPE_LAST)
+#define SND_CTL_ELEM_TYPE_NONE ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_NONE)
+#define SND_CTL_ELEM_TYPE_BOOLEAN ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_BOOLEAN)
+#define SND_CTL_ELEM_TYPE_INTEGER ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_INTEGER)
+#define SND_CTL_ELEM_TYPE_ENUMERATED ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_ENUMERATED)
+#define SND_CTL_ELEM_TYPE_BYTES ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_BYTES)
+#define SND_CTL_ELEM_TYPE_IEC958 ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_IEC958)
+#define SND_CTL_ELEM_TYPE_LAST ((snd_ctl_elem_type_t) SNDRV_CTL_ELEM_TYPE_LAST)
 
-#define SND_CTL_ELEMENT_IFACE_CARD ((snd_ctl_element_iface_t) SNDRV_CTL_ELEMENT_IFACE_CARD)
-#define SND_CTL_ELEMENT_IFACE_HWDEP ((snd_ctl_element_iface_t) SNDRV_CTL_ELEMENT_IFACE_HWDEP)
-#define SND_CTL_ELEMENT_IFACE_MIXER ((snd_ctl_element_iface_t) SNDRV_CTL_ELEMENT_IFACE_MIXER)
-#define SND_CTL_ELEMENT_IFACE_PCM ((snd_ctl_element_iface_t) SNDRV_CTL_ELEMENT_IFACE_PCM)
-#define SND_CTL_ELEMENT_IFACE_RAWMIDI ((snd_ctl_element_iface_t) SNDRV_CTL_ELEMENT_IFACE_RAWMIDI)
-#define SND_CTL_ELEMENT_IFACE_TIMER ((snd_ctl_element_iface_t) SNDRV_CTL_ELEMENT_IFACE_TIMER)
-#define SND_CTL_ELEMENT_IFACE_SEQUENCER ((snd_ctl_element_iface_t) SNDRV_CTL_ELEMENT_IFACE_SEQUENCER)
-#define SND_CTL_ELEMENT_IFACE_LAST ((snd_ctl_element_iface_t) SNDRV_CTL_ELEMENT_IFACE_LAST)
+#define SND_CTL_ELEM_IFACE_CARD ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_CARD)
+#define SND_CTL_ELEM_IFACE_HWDEP ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_HWDEP)
+#define SND_CTL_ELEM_IFACE_MIXER ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_MIXER)
+#define SND_CTL_ELEM_IFACE_PCM ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_PCM)
+#define SND_CTL_ELEM_IFACE_RAWMIDI ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_RAWMIDI)
+#define SND_CTL_ELEM_IFACE_TIMER ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_TIMER)
+#define SND_CTL_ELEM_IFACE_SEQUENCER ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_SEQUENCER)
+#define SND_CTL_ELEM_IFACE_LAST ((snd_ctl_elem_iface_t) SNDRV_CTL_ELEM_IFACE_LAST)
 
 #define SND_CTL_EVENT_REBUILD ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_REBUILD)
 #define SND_CTL_EVENT_VALUE ((snd_ctl_event_type_t) SNDRV_CTL_EVENT_VALUE)
@@ -136,7 +136,6 @@ typedef enum _snd_ctl_type snd_ctl_type_t;
 #define SND_CTL_TYPE_INET ((snd_ctl_type_t) SND_CTL_TYPE_INET)
 
 typedef struct _snd_ctl snd_ctl_t;
-typedef struct _snd_ctl_callbacks snd_ctl_callbacks_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -155,35 +154,37 @@ int snd_defaults_pcm_device(void);
 int snd_defaults_rawmidi_card(void);
 int snd_defaults_rawmidi_device(void);
 
-snd_ctl_type_t snd_ctl_type(snd_ctl_t *handle);
-int snd_ctl_open(snd_ctl_t **handle, char *name);
-int snd_ctl_close(snd_ctl_t *handle);
-int snd_ctl_card(snd_ctl_t *handle);
-int snd_ctl_poll_descriptor(snd_ctl_t *handle);
-int snd_ctl_card_info(snd_ctl_t *handle, snd_ctl_card_info_t *info);
-int snd_ctl_clist(snd_ctl_t *handle, snd_ctl_element_list_t * list);
-int snd_ctl_element_info(snd_ctl_t *handle, snd_ctl_element_info_t * sw);
-int snd_ctl_element_read(snd_ctl_t *handle, snd_ctl_element_t * control);
-int snd_ctl_element_write(snd_ctl_t *handle, snd_ctl_element_t * control);
-int snd_ctl_hwdep_next_device(snd_ctl_t *handle, int * device);
-int snd_ctl_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info);
-int snd_ctl_pcm_next_device(snd_ctl_t *handle, int *device);
-int snd_ctl_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info);
-int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev);
-int snd_ctl_rawmidi_next_device(snd_ctl_t *handle, int * device);
-int snd_ctl_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info);
-int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev);
+snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl);
+int snd_ctl_open(snd_ctl_t **ctl, char *name);
+int snd_ctl_close(snd_ctl_t *ctl);
+int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock);
+int snd_ctl_async(snd_ctl_t *ctl, int sig, pid_t pid);
+int snd_ctl_poll_descriptor(snd_ctl_t *ctl);
+int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info);
+int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t * list);
+int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
+int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_t *value);
+int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_t *value);
+int snd_ctl_hwdep_next_device(snd_ctl_t *ctl, int * device);
+int snd_ctl_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info);
+int snd_ctl_pcm_next_device(snd_ctl_t *ctl, int *device);
+int snd_ctl_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t * info);
+int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev);
+int snd_ctl_rawmidi_next_device(snd_ctl_t *ctl, int * device);
+int snd_ctl_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info);
+int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev);
 
-int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks);
+int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_event_t *event);
+int snd_ctl_wait(snd_ctl_t *ctl, int timeout);
 
-void snd_ctl_element_set_bytes(snd_ctl_element_t *obj, void *data, size_t size);
+void snd_ctl_elem_set_bytes(snd_ctl_elem_t *obj, void *data, size_t size);
 
-const char *snd_ctl_element_type_name(snd_ctl_element_type_t type);
-const char *snd_ctl_element_iface_name(snd_ctl_element_iface_t iface);
+const char *snd_ctl_elem_type_name(snd_ctl_elem_type_t type);
+const char *snd_ctl_elem_iface_name(snd_ctl_elem_iface_t iface);
 const char *snd_ctl_event_type_name(snd_ctl_event_type_t type);
 
-int snd_ctl_element_list_alloc_space(snd_ctl_element_list_t *obj, unsigned int entries);
-void snd_ctl_element_list_free_space(snd_ctl_element_list_t *obj);
+int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries);
+void snd_ctl_elem_list_free_space(snd_ctl_elem_list_t *obj);
 
 #ifdef __cplusplus
 }
@@ -193,41 +194,35 @@ void snd_ctl_element_list_free_space(snd_ctl_element_list_t *obj);
  *  Highlevel API for controls
  */
 
-typedef struct _snd_hctl_element_list snd_hctl_element_list_t;
-typedef struct _snd_hctl_element snd_hctl_element_t;
+typedef struct _snd_hctl_elem snd_hctl_elem_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef int (*snd_ctl_hsort_t)(const snd_hctl_element_t *c1, const snd_hctl_element_t *c2);
-typedef void (*snd_ctl_hcallback_rebuild_t)(snd_ctl_t *handle, void *private_data);
-typedef void (*snd_ctl_hcallback_add_t)(snd_ctl_t *handle, void *private_data, snd_hctl_element_t *helem);
-typedef void (*snd_hctl_element_callback_t)(snd_ctl_t *handle, snd_hctl_element_t *helem);
-typedef void (*snd_hctl_element_private_free_t)(snd_hctl_element_t *helem);
+typedef int (*snd_hctl_compare_t)(const snd_hctl_elem_t *e1,
+				  const snd_hctl_elem_t *e2);
+typedef int (*snd_hctl_callback_t)(snd_ctl_t *ctl,
+				   snd_ctl_event_type_t event,
+				   snd_hctl_elem_t *elem);
+typedef int (*snd_hctl_elem_callback_t)(snd_hctl_elem_t *elem,
+					   snd_ctl_event_type_t event);
 
-int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t csort);
-int snd_ctl_hfree(snd_ctl_t *handle);
-snd_hctl_element_t *snd_ctl_hfirst(snd_ctl_t *handle);
-snd_hctl_element_t *snd_ctl_hlast(snd_ctl_t *handle);
-snd_hctl_element_t *snd_ctl_hnext(snd_ctl_t *handle, snd_hctl_element_t *helem);
-snd_hctl_element_t *snd_ctl_hprev(snd_ctl_t *handle, snd_hctl_element_t *helem);
-int snd_ctl_hcount(snd_ctl_t *handle);
-snd_hctl_element_t *snd_ctl_hfind(snd_ctl_t *handle, snd_ctl_element_id_t *id);
-int snd_ctl_hlist(snd_ctl_t *handle, snd_hctl_element_list_t *hlist);
-int snd_ctl_hsort(const snd_hctl_element_t *c1, const snd_hctl_element_t *c2);
-int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t csort);
-int snd_ctl_hcallback_rebuild(snd_ctl_t *handle, snd_ctl_hcallback_rebuild_t callback, void *private_data);
-int snd_ctl_hcallback_add(snd_ctl_t *handle, snd_ctl_hcallback_add_t callback, void *private_data);
-int snd_ctl_hevent(snd_ctl_t *handle);
-
-int snd_ctl_hbag_create(void **bag);
-int snd_ctl_hbag_destroy(void **bag, void (*hctl_element_free)(snd_hctl_element_t *helem));
-int snd_ctl_hbag_add(void **bag, snd_hctl_element_t *helem);
-int snd_ctl_hbag_del(void **bag, snd_hctl_element_t *helem);
-snd_hctl_element_t *snd_ctl_hbag_find(void **bag, snd_ctl_element_id_t *id);
-int snd_hctl_element_list_alloc_space(snd_hctl_element_list_t *obj, unsigned int entries);
-void snd_hctl_element_list_free_space(snd_hctl_element_list_t *obj);
+int snd_hctl_build(snd_ctl_t *ctl);
+snd_hctl_elem_t *snd_hctl_first_elem(snd_ctl_t *ctl);
+snd_hctl_elem_t *snd_hctl_last_elem(snd_ctl_t *ctl);
+snd_hctl_elem_t *snd_hctl_elem_next(snd_hctl_elem_t *elem);
+snd_hctl_elem_t *snd_hctl_elem_prev(snd_hctl_elem_t *elem);
+int snd_hctl_elem_info(snd_hctl_elem_t *elem, snd_ctl_elem_info_t *info);
+int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_t * value);
+int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_t * value);
+unsigned int snd_hctl_get_count(snd_ctl_t *ctl);
+snd_hctl_elem_t *snd_hctl_find_elem(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id);
+void snd_hctl_set_callback(snd_ctl_t *ctl, snd_hctl_callback_t callback);
+void snd_hctl_set_callback_private(snd_ctl_t *ctl, void *private);
+void *snd_hctl_get_callback_private(snd_ctl_t *ctl);
+int snd_hctl_event(snd_ctl_t *ctl, snd_ctl_event_t *event);
+int snd_hctl_events(snd_ctl_t *ctl);
 
 #ifdef __cplusplus
 }

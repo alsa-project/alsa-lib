@@ -29,12 +29,12 @@
 #include <search.h>
 #include "control_local.h"
 
-static void snd_ctl_hfree1(snd_hctl_element_t *helem);
+static void snd_ctl_hfree1(snd_hctl_elem_t *helem);
 
 int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 {
-	snd_ctl_element_list_t list;
-	snd_hctl_element_t *helem, *prev;
+	snd_ctl_elem_list_t list;
+	snd_hctl_elem_t *helem, *prev;
 	int err;
 	unsigned int idx;
 
@@ -53,7 +53,7 @@ int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 			return err;
 		if (list.count == 0)
 			break;
-		list.pids = (snd_ctl_element_id_t *)calloc(list.count, sizeof(snd_ctl_element_id_t));
+		list.pids = (snd_ctl_elem_id_t *)calloc(list.count, sizeof(snd_ctl_elem_id_t));
 		if (list.pids == NULL)
 			return -ENOMEM;
 		list.space = list.count;
@@ -61,7 +61,7 @@ int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 			return err;
 	} while (list.count != list.used);
 	for (idx = 0, prev = NULL; idx < list.count; idx++) {
-		helem = (snd_hctl_element_t *)calloc(1, sizeof(snd_hctl_element_t));
+		helem = (snd_hctl_elem_t *)calloc(1, sizeof(snd_hctl_elem_t));
 		if (helem == NULL)
 			goto __nomem;
 		helem->id = list.pids[idx];
@@ -90,7 +90,7 @@ int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 	return 0;
 }
 
-static void snd_ctl_hfree1(snd_hctl_element_t *helem)
+static void snd_ctl_hfree1(snd_hctl_elem_t *helem)
 {
 	snd_ctl_t *handle;
 	
@@ -202,7 +202,7 @@ static int snd_ctl_hsort_mixer_priority(const char *name)
 	return res + res1;
 }
 
-int snd_ctl_hsort(const snd_hctl_element_t *c1, const snd_hctl_element_t *c2)
+int snd_ctl_hsort(const snd_hctl_elem_t *c1, const snd_hctl_elem_t *c2)
 {
 	int res, p1, p2;
 
@@ -211,7 +211,7 @@ int snd_ctl_hsort(const snd_hctl_element_t *c1, const snd_hctl_element_t *c2)
 	if (c1->id.iface > c2->id.iface)
 		return 1;
 	if ((res = strcmp(c1->id.name, c2->id.name)) != 0) {
-		if (c1->id.iface != SNDRV_CTL_ELEMENT_IFACE_MIXER)
+		if (c1->id.iface != SNDRV_CTL_ELEM_IFACE_MIXER)
 			return res;
 		p1 = snd_ctl_hsort_mixer_priority(c1->id.name);
 		p2 = snd_ctl_hsort_mixer_priority(c2->id.name);
@@ -228,7 +228,7 @@ int snd_ctl_hsort(const snd_hctl_element_t *c1, const snd_hctl_element_t *c2)
 	return 0;
 }
 
-static void snd_ctl_hresort_free(snd_hctl_element_t *helem ATTRIBUTE_UNUSED)
+static void snd_ctl_hresort_free(snd_hctl_elem_t *helem ATTRIBUTE_UNUSED)
 {
 	/* nothing */
 }
@@ -236,8 +236,8 @@ static void snd_ctl_hresort_free(snd_hctl_element_t *helem ATTRIBUTE_UNUSED)
 int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 {
 	struct list_head *list;
-	snd_hctl_element_t *helem;
-	snd_ctl_element_id_t *ids, *pids;
+	snd_hctl_elem_t *helem;
+	snd_ctl_elem_id_t *ids, *pids;
 	int idx;
 
 	assert(handle != NULL && hsort != NULL);
@@ -246,12 +246,12 @@ int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 	if (handle->herr < 0)
 		return handle->herr;
 	assert(handle->hroot_new == NULL);
-	ids = pids = (snd_ctl_element_id_t *)malloc(sizeof(snd_ctl_element_id_t) * handle->hcount);
+	ids = pids = (snd_ctl_elem_id_t *)malloc(sizeof(snd_ctl_elem_id_t) * handle->hcount);
 	if (ids == NULL)
 		return -ENOMEM;
 	/* first step - update search engine */
 	list_for_each(list, &handle->hlist) {
-		helem = list_entry(list, snd_hctl_element_t, list);
+		helem = list_entry(list, snd_hctl_elem_t, list);
 		*pids++ = helem->id;
 		if (tsearch(helem, &handle->hroot_new, (__compar_fn_t)hsort) == NULL) {
 			if (handle->hroot_new != NULL)
@@ -267,7 +267,7 @@ int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 	handle->hroot = handle->hroot_new;
 	handle->hroot_new = NULL;
 	/* second step - perform qsort and save results */
-	qsort(ids, handle->hcount, sizeof(snd_ctl_element_id_t), (int (*)(const void *, const void *))hsort);
+	qsort(ids, handle->hcount, sizeof(snd_ctl_elem_id_t), (int (*)(const void *, const void *))hsort);
 	INIT_LIST_HEAD(&handle->hlist);
 	for (idx = 0; idx < handle->hcount; idx++) {
 		helem = snd_ctl_hfind(handle, ids + idx);
@@ -277,36 +277,36 @@ int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t hsort)
 	return 0;
 }
 
-snd_hctl_element_t *snd_ctl_hfirst(snd_ctl_t *handle)
+snd_hctl_elem_t *snd_ctl_hfirst(snd_ctl_t *handle)
 {
 	assert(handle != NULL);
 	if (list_empty(&handle->hlist))
 		return NULL;
-	return (snd_hctl_element_t *)list_entry(handle->hlist.next, snd_hctl_element_t, list);
+	return (snd_hctl_elem_t *)list_entry(handle->hlist.next, snd_hctl_elem_t, list);
 }
 
-snd_hctl_element_t *snd_ctl_hlast(snd_ctl_t *handle)
+snd_hctl_elem_t *snd_ctl_hlast(snd_ctl_t *handle)
 {
 	assert(handle != NULL);
 	if (list_empty(&handle->hlist))
 		return NULL;
-	return (snd_hctl_element_t *)list_entry(handle->hlist.prev, snd_hctl_element_t, list);
+	return (snd_hctl_elem_t *)list_entry(handle->hlist.prev, snd_hctl_elem_t, list);
 }
 
-snd_hctl_element_t *snd_ctl_hnext(snd_ctl_t *handle, snd_hctl_element_t *helem)
+snd_hctl_elem_t *snd_ctl_hnext(snd_ctl_t *handle, snd_hctl_elem_t *helem)
 {
 	assert(handle != NULL && helem != NULL);
 	if (helem->list.next == &handle->hlist)
 		return NULL;
-	return (snd_hctl_element_t *)list_entry(helem->list.next, snd_hctl_element_t, list);
+	return (snd_hctl_elem_t *)list_entry(helem->list.next, snd_hctl_elem_t, list);
 }
 
-snd_hctl_element_t *snd_ctl_hprev(snd_ctl_t *handle, snd_hctl_element_t *helem)
+snd_hctl_elem_t *snd_ctl_hprev(snd_ctl_t *handle, snd_hctl_elem_t *helem)
 {
 	assert(handle != NULL && helem != NULL);
 	if (helem->list.prev == &handle->hlist)
 		return NULL;
-	return (snd_hctl_element_t *)list_entry(helem->list.prev, snd_hctl_element_t, list);
+	return (snd_hctl_elem_t *)list_entry(helem->list.prev, snd_hctl_elem_t, list);
 }
 
 int snd_ctl_hcount(snd_ctl_t *handle)
@@ -315,7 +315,7 @@ int snd_ctl_hcount(snd_ctl_t *handle)
 	return handle->hcount;
 }
 
-snd_hctl_element_t *snd_ctl_hfind(snd_ctl_t *handle, snd_ctl_element_id_t *id)
+snd_hctl_elem_t *snd_ctl_hfind(snd_ctl_t *handle, snd_ctl_elem_id_t *id)
 {
 	void *res;
 
@@ -323,13 +323,13 @@ snd_hctl_element_t *snd_ctl_hfind(snd_ctl_t *handle, snd_ctl_element_id_t *id)
 	if (handle->hroot == NULL)
 		return NULL;
 	res = tfind(id, &handle->hroot, (__compar_fn_t)handle->hsort);
-	return res == NULL ? NULL : *(snd_hctl_element_t **)res;
+	return res == NULL ? NULL : *(snd_hctl_elem_t **)res;
 }
 
-int snd_ctl_hlist(snd_ctl_t *handle, snd_hctl_element_list_t *hlist)
+int snd_ctl_hlist(snd_ctl_t *handle, snd_hctl_elem_list_t *hlist)
 {
 	struct list_head *list;
-	snd_hctl_element_t *helem;
+	snd_hctl_elem_t *helem;
 	unsigned int idx;
 
 	assert(hlist != NULL);
@@ -342,7 +342,7 @@ int snd_ctl_hlist(snd_ctl_t *handle, snd_hctl_element_list_t *hlist)
 			return -EINVAL;
 		idx = 0;
 		list_for_each(list, &handle->hlist) {
-			helem = list_entry(list, snd_hctl_element_t, list);
+			helem = list_entry(list, snd_hctl_elem_t, list);
 			if (idx >= hlist->offset + hlist->space)
 				break;
 			if (idx >= hlist->offset) {
@@ -378,9 +378,9 @@ static void callback_rebuild(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNU
 		handle->callback_rebuild(handle, handle->callback_rebuild_private_data);
 }
 
-static void callback_change(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_ctl_element_id_t *id)
+static void callback_change(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_ctl_elem_id_t *id)
 {
-	snd_hctl_element_t *helem;
+	snd_hctl_elem_t *helem;
 
 	if (handle->herr < 0)
 		return;
@@ -392,9 +392,9 @@ static void callback_change(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUS
 	helem->change = 1;
 }
 
-static void callback_value(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_ctl_element_id_t *id)
+static void callback_value(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_ctl_elem_id_t *id)
 {
-	snd_hctl_element_t *helem;
+	snd_hctl_elem_t *helem;
 
 	if (handle->herr < 0)
 		return;
@@ -406,13 +406,13 @@ static void callback_value(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSE
 	helem->value = 1;
 }
 
-static void callback_add(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_ctl_element_id_t *id)
+static void callback_add(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_ctl_elem_id_t *id)
 {
-	snd_hctl_element_t *helem, *icontrol;
+	snd_hctl_elem_t *helem, *icontrol;
 
 	if (handle->herr < 0)
 		return;
-	helem = (snd_hctl_element_t *)calloc(1, sizeof(snd_hctl_element_t));
+	helem = (snd_hctl_elem_t *)calloc(1, sizeof(snd_hctl_elem_t));
 	if (helem == NULL) {
 		handle->herr = -ENOMEM;
 		return;
@@ -434,9 +434,9 @@ static void callback_add(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED,
 		handle->callback_add(handle, handle->callback_add_private_data, helem);
 }
 
-static void callback_remove(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_ctl_element_id_t *id)
+static void callback_remove(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_ctl_elem_id_t *id)
 {
-	snd_hctl_element_t *helem;
+	snd_hctl_elem_t *helem;
 
 	if (handle->herr < 0)
 		return;
@@ -461,7 +461,7 @@ int snd_ctl_hevent(snd_ctl_t *handle)
 		reserved: { NULL, }
 	};
 	struct list_head *list;
-	snd_hctl_element_t *helem;
+	snd_hctl_elem_t *helem;
 	int res;
 
 	assert(handle != NULL);
@@ -472,7 +472,7 @@ int snd_ctl_hevent(snd_ctl_t *handle)
 	if (handle->herr < 0)
 		return handle->herr;
 	list_for_each(list, &handle->hlist) {
-		helem = list_entry(list, snd_hctl_element_t, list);
+		helem = list_entry(list, snd_hctl_elem_t, list);
 		if (helem->change && helem->callback_change) {
 			helem->callback_change(helem->handle, helem);
 			helem->change = 0;
@@ -485,7 +485,7 @@ int snd_ctl_hevent(snd_ctl_t *handle)
 	return res;
 }
 
-int snd_hctl_element_list_alloc_space(snd_hctl_element_list_t *obj, unsigned int entries)
+int snd_hctl_elem_list_alloc_space(snd_hctl_elem_list_t *obj, unsigned int entries)
 {
 	obj->pids = calloc(entries, sizeof(*obj->pids));
 	if (!obj->pids) {
@@ -496,7 +496,7 @@ int snd_hctl_element_list_alloc_space(snd_hctl_element_list_t *obj, unsigned int
 	return 0;
 }  
 
-void snd_hctl_element_list_free_space(snd_hctl_element_list_t *obj)
+void snd_hctl_elem_list_free_space(snd_hctl_elem_list_t *obj)
 {
 	free(obj->pids);
 	obj->pids = NULL;
