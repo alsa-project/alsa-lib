@@ -148,8 +148,8 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
 		printf("Unable to determine current swparams for playback: %s\n", snd_strerror(err));
 		return err;
 	}
-	/* start the transfer when the buffer is full */
-	err = snd_pcm_sw_params_set_start_threshold(handle, swparams, buffer_size);
+	/* start the transfer when the buffer is almost full */
+	err = snd_pcm_sw_params_set_start_threshold(handle, swparams, (buffer_size / period_size) * period_size);
 	if (err < 0) {
 		printf("Unable to set start threshold mode for playback: %s\n", snd_strerror(err));
 		return err;
