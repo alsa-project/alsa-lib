@@ -27,7 +27,7 @@
 #ifndef __ALSA_MIXER_SIMPLE_H
 #define __ALSA_MIXER_SIMPLE_H
 
-#include <alsa/asoundlib.h>
+#include "asoundlib.h"
 
 /** Ordinary Mixer latency type */
 enum sndo_mixer_io_type {
