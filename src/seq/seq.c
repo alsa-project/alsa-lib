@@ -732,6 +732,8 @@ int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
 	len = snd_seq_event_length(ev);
 	if (len < 0)
 		return -EINVAL;
+	if ((size_t) len >= seq->obufsize)
+		return -EINVAL;
 	if ((seq->obufsize - seq->obufused) < (size_t) len)
 		return -EAGAIN;
 	memcpy(seq->obuf + seq->obufused, ev, sizeof(snd_seq_event_t));
