@@ -436,6 +436,9 @@ int snd_rawmidi_poll_descriptors_revents(snd_rawmidi_t *rawmidi, struct pollfd *
  * \param rawmidi RawMidi handle
  * \param nonblock 0 = block, 1 = nonblock mode
  * \return 0 on success otherwise a negative error code
+ *
+ * The nonblock mode cannot be used when the stream is in
+ * #SND_RAWMIDI_APPEND state.
  */
 int snd_rawmidi_nonblock(snd_rawmidi_t *rawmidi, int nonblock)
 {
