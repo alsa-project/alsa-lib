@@ -12,5 +12,6 @@ int SND_PCM_PLUGIN_ENTRY(plugin) (snd_pcm_t **pcmp, const char *name,\
 				  snd_pcm_stream_t stream, int mode)
 
 #include "pcm_ioplug.h"
+#include "pcm_extplug.h"
 
 #endif /* __ALSA_PCM_EXTERNAL_H */

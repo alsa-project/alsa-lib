@@ -28,19 +28,12 @@
   
 #include "pcm_local.h"
 #include "pcm_ioplug.h"
+#include "pcm_ext_parm.h"
 
 /* hw_params */
-struct ioplug_parm {
-	unsigned int min, max;
-	unsigned int num_list;
-	unsigned int *list;
-	unsigned int active: 1;
-	unsigned int integer: 1;
-};
-
 typedef struct snd_pcm_ioplug_priv {
 	snd_pcm_ioplug_t *data;
-	struct ioplug_parm params[SND_PCM_IOPLUG_HW_PARAMS];
+	struct snd_ext_parm params[SND_PCM_IOPLUG_HW_PARAMS];
 	unsigned int last_hw;
 	snd_pcm_uframes_t avail_max;
 	snd_htimestamp_t trigger_tstamp;
@@ -138,18 +131,6 @@ static int snd_pcm_ioplug_prepare(snd_pcm_t *pcm)
 	return 0;
 }
 
-static inline snd_mask_t *hw_param_mask(snd_pcm_hw_params_t *params,
-					snd_pcm_hw_param_t var)
-{
-	return &params->masks[var - SND_PCM_HW_PARAM_FIRST_MASK];
-}
-
-static inline snd_interval_t *hw_param_interval(snd_pcm_hw_params_t *params,
-						snd_pcm_hw_param_t var)
-{
-	return &params->intervals[var - SND_PCM_HW_PARAM_FIRST_INTERVAL];
-}
-
 static int hw_params_type[SND_PCM_IOPLUG_HW_PARAMS] = {
 	[SND_PCM_IOPLUG_HW_ACCESS] = SND_PCM_HW_PARAM_ACCESS,
 	[SND_PCM_IOPLUG_HW_FORMAT] = SND_PCM_HW_PARAM_FORMAT,
@@ -159,72 +140,6 @@ static int hw_params_type[SND_PCM_IOPLUG_HW_PARAMS] = {
 	[SND_PCM_IOPLUG_HW_BUFFER_BYTES] = SND_PCM_HW_PARAM_BUFFER_BYTES,
 	[SND_PCM_IOPLUG_HW_PERIODS] = SND_PCM_HW_PARAM_PERIODS,
 };
-
-static int ioplug_mask_refine(snd_mask_t *mask, struct ioplug_parm *parm)
-{
-	snd_mask_t bits;
-	unsigned int i;
-
-	memset(&bits, 0, sizeof(bits));
-	for (i = 0; i < parm->num_list; i++)
-		bits.bits[parm->list[i] / 32] |= 1U << (parm->list[i] % 32);
-	return snd_mask_refine(mask, &bits);
-}
-
-static int snd_interval_list(snd_interval_t *ival, int num_list, unsigned int *list)
-{
-	int imin, imax;
-	int changed = 0;
-
-	if (snd_interval_empty(ival))
-		return -ENOENT;
-	for (imin = 0; imin < num_list; imin++) {
-		if (ival->min == list[imin] && ! ival->openmin)
-			break;
-		if (ival->min <= list[imin]) {
-			ival->min = list[imin];
-			ival->openmin = 0;
-			changed = 1;
-			break;
-		}
-	}
-	if (imin >= num_list)
-		return -EINVAL;
-	for (imax = num_list - 1; imax >= imin; imax--) {
-		if (ival->max == list[imax] && ! ival->openmax)
-			break;
-		if (ival->max >= list[imax]) {
-			ival->max = list[imax];
-			ival->openmax = 0;
-			changed = 1;
-			break;
-		}
-	}
-	if (imax < imin)
-		return -EINVAL;
-	return changed;
-}
-
-static int ioplug_interval_refine(ioplug_priv_t *io, snd_pcm_hw_params_t *params, int type)
-{
-	struct ioplug_parm *parm = &io->params[type];
-	snd_interval_t *ival;
-
-	if (! parm->active)
-		return 0;
-	ival = hw_param_interval(params, hw_params_type[type]);
-	ival->integer |= parm->integer;
-	if (parm->num_list) {
-		return snd_interval_list(ival, parm->num_list, parm->list);
-	} else if (parm->min || parm->max) {
-		snd_interval_t t;
-		memset(&t, 0, sizeof(t));
-		snd_interval_set_minmax(&t, parm->min, parm->max);
-		t.integer = ival->integer;
-		return snd_interval_refine(ival, &t);
-	}
-	return 0;
-}
 
 /* x = a * b */
 static int rule_mul(snd_pcm_hw_params_t *params, int x, int a, int b)
@@ -324,15 +239,16 @@ static int snd_pcm_ioplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 	/* access, format */
 	for (i = SND_PCM_IOPLUG_HW_ACCESS; i <= SND_PCM_IOPLUG_HW_FORMAT; i++) {
-		err = ioplug_mask_refine(hw_param_mask(params, hw_params_type[i]),
-				 &io->params[i]);
+		err = snd_ext_parm_mask_refine(hw_param_mask(params, hw_params_type[i]),
+					       io->params, i);
 		if (err < 0)
 			return err;
 		change |= err;
 	}
 	/* channels, rate */
 	for (; i <= SND_PCM_IOPLUG_HW_RATE; i++) {
-		err = ioplug_interval_refine(io, params, i);
+		err = snd_ext_parm_interval_refine(hw_param_interval(params, hw_params_type[i]),
+						   io->params, i);
 		if (err < 0)
 			return err;
 		change |= err;
@@ -354,7 +270,8 @@ static int snd_pcm_ioplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 				       SND_PCM_HW_PARAM_PERIOD_BYTES);
 	if (change1 < 0)
 		return change1;
-	err = ioplug_interval_refine(io, params, SND_PCM_IOPLUG_HW_PERIOD_BYTES);
+	err = snd_ext_parm_interval_refine(hw_param_interval(params, SND_PCM_HW_PARAM_PERIOD_BYTES),
+					   io->params, SND_PCM_IOPLUG_HW_PERIOD_BYTES);
 	if (err < 0)
 		return err;
 	change1 |= err;
@@ -376,7 +293,8 @@ static int snd_pcm_ioplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 	do {
 		change2 = 0;
-		err = ioplug_interval_refine(io, params, SND_PCM_IOPLUG_HW_BUFFER_BYTES);
+		err = snd_ext_parm_interval_refine(hw_param_interval(params, SND_PCM_HW_PARAM_BUFFER_BYTES),
+						   io->params, SND_PCM_IOPLUG_HW_BUFFER_BYTES);
 		if (err < 0)
 			return err;
 		change2 |= err;
@@ -387,7 +305,8 @@ static int snd_pcm_ioplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err < 0)
 			return err;
 		change2 |= err;
-		err = ioplug_interval_refine(io, params, SND_PCM_IOPLUG_HW_PERIODS);
+		err = snd_ext_parm_interval_refine(hw_param_interval(params, SND_PCM_HW_PARAM_PERIODS),
+						   io->params, SND_PCM_IOPLUG_HW_PERIODS);
 		if (err < 0)
 			return err;
 		change2 |= err;
@@ -723,10 +642,8 @@ static void snd_pcm_ioplug_dump(snd_pcm_t *pcm, snd_output_t *out)
 static void clear_io_params(ioplug_priv_t *io)
 {
 	int i;
-	for (i = 0; i < SND_PCM_IOPLUG_HW_PARAMS; i++) {
-		free(io->params[i].list);
-		memset(&io->params[i], 0, sizeof(io->params[i]));
-	}
+	for (i = 0; i < SND_PCM_IOPLUG_HW_PARAMS; i++)
+		snd_ext_parm_clear(&io->params[i]);
 }
 
 static int snd_pcm_ioplug_close(snd_pcm_t *pcm)
@@ -783,39 +700,6 @@ static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.mmap_commit = snd_pcm_ioplug_mmap_commit,
 };
 
-static int ioplug_set_parm_minmax(struct ioplug_parm *parm, unsigned int min, unsigned int max)
-{
-	parm->num_list = 0;
-	free(parm->list);
-	parm->list = NULL;
-	parm->min = min;
-	parm->max = max;
-	parm->active = 1;
-	return 0;
-}
-
-static int val_compar(const void *ap, const void *bp)
-{
-	return *(const unsigned int *)ap - *(const unsigned int *)bp;
-}
-
-static int ioplug_set_parm_list(struct ioplug_parm *parm, unsigned int num_list, const unsigned int *list)
-{
-	unsigned int *new_list;
-
-	new_list = malloc(sizeof(*new_list) * num_list);
-	if (new_list == NULL)
-		return -ENOMEM;
-	memcpy(new_list, list, sizeof(*new_list) * num_list);
-	qsort(new_list, num_list, sizeof(*new_list), val_compar);
-
-	free(parm->list);
-	parm->num_list = num_list;
-	parm->list = new_list;
-	parm->active = 1;
-	return 0;
-}
-
 void snd_pcm_ioplug_params_reset(snd_pcm_ioplug_t *ioplug)
 {
 	ioplug_priv_t *io = ioplug->pcm->private_data;
@@ -831,7 +715,7 @@ int snd_pcm_ioplug_set_param_list(snd_pcm_ioplug_t *ioplug, int type, unsigned i
 	}
 	if (type == SND_PCM_IOPLUG_HW_PERIODS)
 		io->params[type].integer = 1;
-	return ioplug_set_parm_list(&io->params[type], num_list, list);
+	return snd_ext_parm_set_list(&io->params[type], num_list, list);
 }
 
 int snd_pcm_ioplug_set_param_minmax(snd_pcm_ioplug_t *ioplug, int type, unsigned int min, unsigned int max)
@@ -847,7 +731,7 @@ int snd_pcm_ioplug_set_param_minmax(snd_pcm_ioplug_t *ioplug, int type, unsigned
 	}
 	if (type == SND_PCM_IOPLUG_HW_PERIODS)
 		io->params[type].integer = 1;
-	return ioplug_set_parm_minmax(&io->params[type], min, max);
+	return snd_ext_parm_set_minmax(&io->params[type], min, max);
 }
 
 int snd_pcm_ioplug_reinit_status(snd_pcm_ioplug_t *ioplug)

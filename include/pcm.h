@@ -360,7 +360,9 @@ enum _snd_pcm_type {
 	SND_PCM_TYPE_SOFTVOL,
 	/** External I/O plugin */
 	SND_PCM_TYPE_IOPLUG,
-	SND_PCM_TYPE_LAST = SND_PCM_TYPE_IOPLUG
+	/** External filter plugin */
+	SND_PCM_TYPE_EXTPLUG,
+	SND_PCM_TYPE_LAST = SND_PCM_TYPE_EXTPLUG
 };
 
 /** PCM type */
