@@ -306,57 +306,57 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 			return -EINVAL;
 		switch (sparams.format.format) {
 		case SND_PCM_SFMT_U8:
-			if (sinfo.formats & SND_PCM_SFMT_S8) {
+			if (sinfo.formats & SND_PCM_FMT_S8) {
 				sparams.format.format = SND_PCM_SFMT_S8;
-			} else if (sinfo.formats & SND_PCM_SFMT_U16_LE) {
+			} else if (sinfo.formats & SND_PCM_FMT_U16_LE) {
 				sparams.format.format = SND_PCM_SFMT_U16_LE;
-			} else if (sinfo.formats & SND_PCM_SFMT_S16_LE) {
+			} else if (sinfo.formats & SND_PCM_FMT_S16_LE) {
 				sparams.format.format = SND_PCM_SFMT_S16_LE;
 			} else {
 				return -EINVAL;
 			}
 			break;
 		case SND_PCM_SFMT_S8:
-			if (sinfo.formats & SND_PCM_SFMT_U8) {
+			if (sinfo.formats & SND_PCM_FMT_U8) {
 				sparams.format.format = SND_PCM_SFMT_U8;
-			} else if (sinfo.formats & SND_PCM_SFMT_S16_LE) {
+			} else if (sinfo.formats & SND_PCM_FMT_S16_LE) {
 				sparams.format.format = SND_PCM_SFMT_S16_LE;
-			} else if (sinfo.formats & SND_PCM_SFMT_U16_LE) {
+			} else if (sinfo.formats & SND_PCM_FMT_U16_LE) {
 				sparams.format.format = SND_PCM_SFMT_U16_LE;
 			} else {
 				return -EINVAL;
 			}
 			break;
 		case SND_PCM_SFMT_S16_LE:
-			if (sinfo.formats & SND_PCM_SFMT_U16_LE) {
+			if (sinfo.formats & SND_PCM_FMT_U16_LE) {
 				sparams.format.format = SND_PCM_SFMT_U16_LE;
-			} else if (sinfo.formats & SND_PCM_SFMT_S8) {
+			} else if (sinfo.formats & SND_PCM_FMT_S8) {
 				sparams.format.format = SND_PCM_SFMT_S8;
-			} else if (sinfo.formats & SND_PCM_SFMT_U8) {
+			} else if (sinfo.formats & SND_PCM_FMT_U8) {
 				sparams.format.format = SND_PCM_SFMT_U8;
 			} else {
 				return -EINVAL;
 			}
 			break;
 		case SND_PCM_SFMT_U16_LE:
-			if (sinfo.formats & SND_PCM_SFMT_S16_LE) {
+			if (sinfo.formats & SND_PCM_FMT_S16_LE) {
 				sparams.format.format = SND_PCM_SFMT_S16_LE;
-			} else if (sinfo.formats & SND_PCM_SFMT_U8) {
+			} else if (sinfo.formats & SND_PCM_FMT_U8) {
 				sparams.format.format = SND_PCM_SFMT_U8;
-			} else if (sinfo.formats & SND_PCM_SFMT_S8) {
+			} else if (sinfo.formats & SND_PCM_FMT_S8) {
 				sparams.format.format = SND_PCM_SFMT_S8;
 			} else {
 				return -EINVAL;
 			}
 			break;
 		case SND_PCM_SFMT_MU_LAW:
-			if (sinfo.formats & SND_PCM_SFMT_S16_LE) {
+			if (sinfo.formats & SND_PCM_FMT_S16_LE) {
 				sparams.format.format = SND_PCM_SFMT_S16_LE;
-			} else if (sinfo.formats & SND_PCM_SFMT_U16_LE) {
+			} else if (sinfo.formats & SND_PCM_FMT_U16_LE) {
 				sparams.format.format = SND_PCM_SFMT_U16_LE;
-			} else if (sinfo.formats & SND_PCM_SFMT_S8) {
+			} else if (sinfo.formats & SND_PCM_FMT_S8) {
 				sparams.format.format = SND_PCM_SFMT_S8;
-			} else if (sinfo.formats & SND_PCM_SFMT_U8) {
+			} else if (sinfo.formats & SND_PCM_FMT_U8) {
 				sparams.format.format = SND_PCM_SFMT_U8;
 			} else {
 				return -EINVAL;
