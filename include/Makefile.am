@@ -8,7 +8,9 @@ alsainclude_HEADERS = asoundlib.h \
 		      seq_event.h seq.h seqmid.h seq_midi_event.h \
 		      conv.h instr.h
 
-noinst_HEADERS=sys.h search.h list.h aserver.h local.h config.h
+noinst_HEADERS = sys.h search.h list.h aserver.h local.h config.h
+
+EXTRA_CLEAN = stamp-vh
 
 version.h: stamp-vh
 	@:
@@ -21,6 +23,7 @@ stamp-vh: $(top_builddir)/configure.in
 	@echo "#define SND_LIB_MAJOR		$(SND_LIB_MAJOR) /**< major number of library version */" >> ver.tmp
 	@echo "#define SND_LIB_MINOR		$(SND_LIB_MINOR) /**< minor number of library version */" >> ver.tmp
 	@echo "#define SND_LIB_SUBMINOR	$(SND_LIB_SUBMINOR) /**< subminor number of library version */" >> ver.tmp
+	@echo "#define SND_LIB_EXTRAVER	$(SND_LIB_EXTRAVER) /**< extra version number, used mainly for betas */" >> ver.tmp
 	@echo "/** library version */" >> ver.tmp
 	@echo "#define SND_LIB_VERSION		((SND_LIB_MAJOR<<16)|\\" >> ver.tmp
 	@echo "				 (SND_LIB_MINOR<<8)|\\" >> ver.tmp
