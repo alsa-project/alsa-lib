@@ -14,8 +14,11 @@
 
 /** \} */
 
+/** helper macro for SND_DLSYM_BUILD_VERSION */
 #define __SND_DLSYM_VERSION(name, version) _ ## name ## version
+/** build version for versioned dynamic symbol */
 #define SND_DLSYM_BUILD_VERSION(name, version) char __SND_DLSYM_VERSION(name, version)
+/** get version of dynamic symbol as string */
 #define SND_DLSYM_VERSION(version) __STRING(version)
 
 int snd_dlsym_verify(void *handle, const char *name, const char *version);

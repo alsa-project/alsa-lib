@@ -1869,6 +1869,9 @@ static int snd_config_hooks(snd_config_t *config, void *private_data)
 	return err;
 }
 
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(snd_config_hook_load, SND_CONFIG_DLSYM_VERSION_HOOK);
+#endif
 /**
  * \brief Load configuration from specified files
  * \param root Configuration root node
@@ -1877,7 +1880,6 @@ static int snd_config_hooks(snd_config_t *config, void *private_data)
  * \param private_data Private data
  * \return zero if success, otherwise a negative error code
  */
-SND_DLSYM_BUILD_VERSION(snd_config_hook_load, SND_CONFIG_DLSYM_VERSION_HOOK);
 int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data)
 {
 	snd_config_t *n, *res = NULL;
@@ -2004,6 +2006,9 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 int snd_determine_driver(int card, char **driver);
 #endif
 
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VERSION_HOOK);
+#endif
 /**
  * \brief Load configuration for all present cards
  * \param root Configuration root node
@@ -2012,7 +2017,6 @@ int snd_determine_driver(int card, char **driver);
  * \param private_data Private data
  * \return zero if success, otherwise a negative error code
  */
-SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VERSION_HOOK);
 int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data ATTRIBUTE_UNUSED)
 {
 	int card = -1, err;
