@@ -210,21 +210,6 @@ static int snd_pcm_null_resume(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static snd_pcm_sframes_t snd_pcm_null_fwd(snd_pcm_t *pcm, snd_pcm_uframes_t size)
-{
-	snd_pcm_null_t *null = pcm->private_data;
-	switch (null->state) {
-	case SND_PCM_STATE_RUNNING:
-		snd_pcm_mmap_hw_forward(pcm, size);
-		/* Fall through */
-	case SND_PCM_STATE_PREPARED:
-		snd_pcm_mmap_appl_forward(pcm, size);
-		return size;
-	default:
-		return -EBADFD;
-	}
-}
-
 static snd_pcm_sframes_t snd_pcm_null_xfer_areas(snd_pcm_t *pcm,
 						 const snd_pcm_channel_area_t *areas ATTRIBUTE_UNUSED,
 						 snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
@@ -261,7 +246,7 @@ static snd_pcm_sframes_t snd_pcm_null_mmap_commit(snd_pcm_t *pcm,
 {
 	snd_pcm_sframes_t res;
 	
-	res = snd_pcm_null_fwd(pcm, size);
+	res = snd_pcm_null_forward(pcm, size);
 	if (res < 0)
 		return res;
 	return res;
