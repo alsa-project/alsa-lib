@@ -552,7 +552,7 @@ int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value)
 	return snd_ctl_elem_write(elem->hctl->ctl, value);
 }
 
-snd_hctl_t *snd_hctl_elem_get_handle(snd_hctl_elem_t *elem)
+snd_hctl_t *snd_hctl_elem_get_hctl(snd_hctl_elem_t *elem)
 {
 	assert(elem);
 	return elem->hctl;

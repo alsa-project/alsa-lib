@@ -238,7 +238,7 @@ int snd_hctl_elem_info(snd_hctl_elem_t *elem, snd_ctl_elem_info_t * info);
 int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value);
 int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value);
 
-snd_hctl_t *snd_hctl_elem_get_handle(snd_hctl_elem_t *elem);
+snd_hctl_t *snd_hctl_elem_get_hctl(snd_hctl_elem_t *elem);
 
 #ifdef __cplusplus
 }

@@ -743,24 +743,6 @@ int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 			err = snd_hctl_elem_info(helem, info);
 			assert(err >= 0);
 			n = snd_ctl_elem_info_get_item_name(info);
-			if (!strcmp(n, "Mix") || !strcmp(n, "Mono Mix")) {
-				snd_hctl_t *hctl;
-				hctl = snd_hctl_elem_get_handle(helem);
-				if (hctl != NULL) {
-					snd_ctl_elem_id_t *eid;
-					snd_ctl_elem_id_alloca(&eid);
-					snd_ctl_elem_id_set_interface(eid, SND_CTL_ELEM_IFACE_MIXER);
-					if (!strcmp(n, "Mix")) {
-						snd_ctl_elem_id_set_name(eid, "Mix");
-						if (snd_hctl_find_elem(hctl, eid) == NULL)
-							n = "Master";
-					} else if (!strcmp(n, "Mono Mix")) {
-						snd_ctl_elem_id_set_name(eid, "Mono Mix");
-						if (snd_hctl_find_elem(hctl, eid) == NULL)
-							n = "Master Mono";
-					}
-				}
-			}
 			err = simple_add1(class, n, helem, CTL_CAPTURE_SOURCE, k);
 			if (err < 0)
 				return err;
