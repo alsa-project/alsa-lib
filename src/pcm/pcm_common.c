@@ -131,8 +131,8 @@ int snd_pcm_plug_alloc(snd_pcm_plug_t *plug, size_t frames)
 	} else {
 		snd_pcm_plugin_t *plugin = snd_pcm_plug_last(plug);
 		while (plugin->prev) {
-			if (plugin->dst_frames)
-				frames = plugin->dst_frames(plugin, frames);
+			if (plugin->src_frames)
+				frames = plugin->src_frames(plugin, frames);
 			assert(frames > 0);
 			plugin = plugin->prev;
 			err = snd_pcm_plugin_alloc(plugin, frames);
