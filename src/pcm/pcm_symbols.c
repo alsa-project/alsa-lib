@@ -69,7 +69,8 @@ static const char **snd_pcm_open_objects[] = {
 	&_snd_module_pcm_dsnoop,
 	&_snd_module_pcm_dshare,
 	&_snd_module_pcm_asym,
-	&_snd_module_pcm_iec958
+	&_snd_module_pcm_iec958,
+	&_snd_module_pcm_softvol
 };
 	
 void *snd_pcm_open_symbols(void)
