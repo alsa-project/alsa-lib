@@ -55,9 +55,13 @@ if test -z $BASH; then
   echo "Please, use the GNU BASH shell..."
   exit 0
 fi
-DATADIR=${datadir/\$\{prefix\}/$prefix}
-DATADIR=${DATADIR/./$PWD}
-AC_DEFINE_UNQUOTED(DATADIR, "$DATADIR")
+
+eval dir="$datadir"
+case "$dir" in
+/*) ;;
+*) dir="$PWD/$dir"
+esac
+AC_DEFINE_UNQUOTED(DATADIR, "$dir")
 
 AC_OUTPUT(Makefile doc/Makefile include/Makefile src/Makefile \
           src/control/Makefile src/mixer/Makefile src/pcm/Makefile \
