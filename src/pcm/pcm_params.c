@@ -2099,7 +2099,7 @@ int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
    max periods
    Return 0 on success or a negative number expressing the error.
 */
-int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	int err;
 	snd_pcm_sw_params_t sw;
@@ -2154,6 +2154,14 @@ int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	    pcm->access == SND_PCM_ACCESS_MMAP_COMPLEX) {
 		err = snd_pcm_mmap(pcm);
 	}
+	return err;
+}
+
+int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	int err;
+	assert(pcm && params);
+	err = _snd_pcm_hw_params(pcm, params);
 	if (err >= 0)
 		err = snd_pcm_prepare(pcm);
 	return err;

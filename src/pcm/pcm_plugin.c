@@ -349,7 +349,7 @@ int snd_pcm_plugin_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	return snd_pcm_hw_params(plugin->slave, params);
+	return _snd_pcm_hw_params(plugin->slave, params);
 }
 
 snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {

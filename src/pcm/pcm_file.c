@@ -307,7 +307,7 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	snd_pcm_file_t *file = pcm->private;
 	unsigned int channel;
 	snd_pcm_t *slave = file->slave;
-	int err = snd_pcm_hw_params(slave, params);
+	int err = _snd_pcm_hw_params(slave, params);
 	if (err < 0)
 		return err;
 	file->buffer_bytes = snd_pcm_frames_to_bytes(slave, slave->buffer_size);
