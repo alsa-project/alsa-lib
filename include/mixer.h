@@ -50,7 +50,7 @@ int snd_mixer_wait(snd_mixer_t *mixer, int timeout);
 int snd_mixer_set_compare(snd_mixer_t *mixer, snd_mixer_compare_t msort);
 
 snd_mixer_elem_t *snd_mixer_elem_next(snd_mixer_elem_t *elem);
-snd_mixer_elem_t *snd_mixer_elem_prev(snd_mixer_elem_t *helem);
+snd_mixer_elem_t *snd_mixer_elem_prev(snd_mixer_elem_t *elem);
 
 int snd_mixer_class_unregister(snd_mixer_class_t *clss);
 

@@ -99,9 +99,9 @@ static int _snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id, in
 	while (l < u) {
 		idx = (l + u) / 2;
 		c = hctl->compare((snd_hctl_elem_t *) id, hctl->pelems[idx]);
-		if (c > 0)
+		if (c < 0)
 			u = idx;
-		else if (c < 0)
+		else if (c > 0)
 			l = idx + 1;
 		else
 			break;
@@ -148,9 +148,9 @@ static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 		assert(dir != 0);
 		if (dir > 0) {
 			list_add(&elem->list, &hctl->pelems[idx]->list);
+			idx++;
 		} else {
 			list_add_tail(&elem->list, &hctl->pelems[idx]->list);
-			idx++;
 		}
 		memmove(hctl->pelems + idx + 1,
 			hctl->pelems + idx,
@@ -221,7 +221,7 @@ static int snd_hctl_compare_mixer_priority_lookup(char **name, char * const *nam
 			*name += strlen(*names);
 			if (**name == ' ')
 				(*name)++;
-			return res;
+			return res+1;
 		}
 	}
 	return NOT_FOUND;
@@ -231,16 +231,11 @@ static int snd_hctl_compare_mixer_priority(const char *name)
 {
 	static char *names[] = {
 		"Master",
-		"Master Digital",
-		"Master Mono",
 		"Hardware Master",
 		"Headphone",
 		"Tone Control",
 		"3D Control",
 		"PCM",
-		"PCM Front",
-		"PCM Rear",
-		"PCM Pan",
 		"Synth",
 		"FM",
 		"Wave",
@@ -254,7 +249,6 @@ static int snd_hctl_compare_mixer_priority(const char *name)
 		"PC Speaker",
 		"Aux",
 		"Mono",
-		"Mono Output",
 		"ADC",
 		"Capture Source",
 		"Capture",
@@ -272,6 +266,11 @@ static int snd_hctl_compare_mixer_priority(const char *name)
 		"Playback",
 		"Capture",
 		"Bypass",
+		"Mono",
+		"Front",
+		"Rear",
+		"Pan",
+		"Output",
 		NULL
 	};
 	static char *names2[] = {

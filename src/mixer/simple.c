@@ -97,13 +97,11 @@ static const char *get_short_name(const char *lname)
 static int get_compare_weight(const char *name, int index)
 {
 	static char *names[] = {
+		"Master",
 		"Master Mono",
 		"Master Digital",
-		"Master",
-		"Tone Control - Bass",
-		"Tone Control - Treble",
-		"Synth Tone Control - Bass",
-		"Synth Tone Control - Treble",
+		"Bass",
+		"Treble",
 		"PCM",
 		"Surround",
 		"Synth",
@@ -692,6 +690,7 @@ int simple_add1(snd_mixer_class_t *class, const char *name,
 		melem->private_data = simple;
 		melem->private_free = selem_free;
 		INIT_LIST_HEAD(&melem->helems);
+		melem->compare_weight = get_compare_weight(simple->id.name, simple->id.index);
 		new = 1;
 	} else {
 		simple = melem->private_data;
@@ -712,7 +711,6 @@ int simple_add1(snd_mixer_class_t *class, const char *name,
 	err = snd_mixer_elem_attach(melem, helem);
 	if (err < 0)
 		return err;
-	melem->compare_weight = get_compare_weight(simple->id.name, simple->id.index);
 	err = simple_update(melem);
 	assert(err >= 0);
 	if (new)
@@ -812,7 +810,10 @@ static int simple_compare(const snd_mixer_elem_t *c1, const snd_mixer_elem_t *c2
 {
 	selem_t *s1 = c1->private_data;
 	selem_t *s2 = c2->private_data;
-	return strcmp(s1->id.name, s2->id.name);
+	int res = strcmp(s1->id.name, s2->id.name);
+	if (res)
+		return res;
+	return s1->id.index - s2->id.index;
 }
 
 int snd_mixer_selem_register(snd_mixer_t *mixer, snd_mixer_class_t **classp)

@@ -233,9 +233,9 @@ static int _snd_mixer_find_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem, int 
 	while (l < u) {
 		idx = (l + u) / 2;
 		c = mixer->compare(elem, mixer->pelems[idx]);
-		if (c > 0)
+		if (c < 0)
 			u = idx;
-		else if (c < 0)
+		else if (c > 0)
 			l = idx + 1;
 		else
 			break;
@@ -268,9 +268,9 @@ int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class)
 		assert(dir != 0);
 		if (dir > 0) {
 			list_add(&elem->list, &mixer->pelems[idx]->list);
+			idx++;
 		} else {
 			list_add_tail(&elem->list, &mixer->pelems[idx]->list);
-			idx++;
 		}
 		memmove(mixer->pelems + idx + 1,
 			mixer->pelems + idx,
@@ -431,7 +431,7 @@ static int snd_mixer_sort(snd_mixer_t *mixer)
 	assert(mixer);
 	assert(mixer->compare);
 	INIT_LIST_HEAD(&mixer->elems);
-	qsort(mixer->pelems, mixer->count, sizeof(snd_mixer_elem_t), compar);
+	qsort(mixer->pelems, mixer->count, sizeof(snd_mixer_elem_t*), compar);
 	for (k = 0; k < mixer->count; k++)
 		list_add_tail(&mixer->pelems[k]->list, &mixer->elems);
 	return 0;
