@@ -187,7 +187,7 @@ static void snd_hctl_sort(snd_hctl_t *hctl)
 	unsigned int k;
 	int compar(const void *a, const void *b) {
 		return hctl->compare(*(const snd_hctl_elem_t **) a,
-				      *(const snd_hctl_elem_t **) b);
+				     *(const snd_hctl_elem_t **) b);
 	}
 	assert(hctl);
 	assert(hctl->compare);
@@ -197,11 +197,12 @@ static void snd_hctl_sort(snd_hctl_t *hctl)
 		list_add_tail(&hctl->pelems[k]->list, &hctl->elems);
 }
 
-void snd_hctl_set_compare(snd_hctl_t *hctl, snd_hctl_compare_t hsort)
+int snd_hctl_set_compare(snd_hctl_t *hctl, snd_hctl_compare_t hsort)
 {
 	assert(hctl);
 	hctl->compare = hsort == NULL ? snd_hctl_compare_default : hsort;
 	snd_hctl_sort(hctl);
+	return 0;
 }
 
 #define NOT_FOUND 1000000000
@@ -534,3 +535,8 @@ int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value)
 	return snd_ctl_elem_write(elem->hctl->ctl, value);
 }
 
+snd_hctl_t *snd_hctl_elem_get_handle(snd_hctl_elem_t *elem)
+{
+	assert(elem);
+	return elem->hctl;
+}

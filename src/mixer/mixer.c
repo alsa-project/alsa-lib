@@ -38,6 +38,11 @@ typedef struct _snd_mixer_elem_bag {
 
 } snd_mixer_elem_bag_t;
 
+
+static int snd_mixer_compare_default(const snd_mixer_elem_t *c1,
+				     const snd_mixer_elem_t *c2);
+
+
 int snd_mixer_open(snd_mixer_t **mixerp)
 {
 	snd_mixer_t *mixer;
@@ -48,6 +53,7 @@ int snd_mixer_open(snd_mixer_t **mixerp)
 	INIT_LIST_HEAD(&mixer->slaves);
 	INIT_LIST_HEAD(&mixer->classes);
 	INIT_LIST_HEAD(&mixer->elems);
+	mixer->compare = snd_mixer_compare_default;
 	*mixerp = mixer;
 	return 0;
 }
@@ -219,6 +225,7 @@ int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class)
 {
 	snd_mixer_t *mixer = class->mixer;
 	elem->class = class;
+
 	list_add_tail(&elem->list, &mixer->elems);
 	mixer->count++;
 	return snd_mixer_throw_event(mixer, SND_CTL_EVENT_ADD, elem);
@@ -328,6 +335,62 @@ int snd_mixer_close(snd_mixer_t *mixer)
 	}
 	free(mixer);
 	return res;
+}
+
+static int snd_mixer_compare_default(const snd_mixer_elem_t *c1,
+				     const snd_mixer_elem_t *c2)
+{
+	int d = c1->compare_weight - c2->compare_weight;
+	if (d)
+		return d;
+	assert(c1->class && c1->class->compare);
+	assert(c2->class && c2->class->compare);
+	assert(c1->class == c2->class);
+	return c1->class->compare(c1, c2);
+}
+
+static int snd_mixer_sort(snd_mixer_t *mixer)
+{
+	unsigned int k;
+	int compar(const void *a, const void *b) {
+		return mixer->compare(*(const snd_mixer_elem_t **) a,
+				      *(const snd_mixer_elem_t **) b);
+	}
+	snd_mixer_elem_t **ptr;
+	struct list_head *pos, *next;
+
+	assert(mixer);
+	assert(mixer->compare);
+	ptr = malloc(sizeof(snd_mixer_elem_t) * mixer->count);
+	if (ptr == NULL)
+		return -ENOMEM;
+	k = 0;
+	list_for_each(pos, next, &mixer->elems) {
+		snd_mixer_elem_t *e;
+		e = list_entry(pos, snd_mixer_elem_t, list);
+		ptr[k++] = e;
+	}
+	INIT_LIST_HEAD(&mixer->elems);
+	qsort(ptr, mixer->count, sizeof(snd_mixer_elem_t), compar);
+	for (k = 0; k < mixer->count; k++)
+		list_add_tail(&ptr[k]->list, &mixer->elems);
+	free(ptr);
+	return 0;
+}
+
+int snd_mixer_set_compare(snd_mixer_t *mixer, snd_mixer_compare_t msort)
+{
+	snd_mixer_compare_t msort_old;
+	int err;
+
+	assert(mixer);
+	msort_old = mixer->compare;
+	mixer->compare = msort == NULL ? snd_mixer_compare_default : msort;
+	if ((err = snd_mixer_sort(mixer)) < 0) {
+		mixer->compare = msort_old;
+		return err;
+	}
+	return 0;
 }
 
 int snd_mixer_poll_descriptor(snd_mixer_t *mixer, const char *name)

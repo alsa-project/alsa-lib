@@ -94,47 +94,45 @@ static const char *get_short_name(const char *lname)
 	return lname;
 }
 
-#if 0
-static const char *get_long_name(const char *sname)
+static int get_compare_weight(const char *name, int index)
 {
-	struct mixer_name_table *p;
-	for (p = name_table; p->longname; p++) {
-		if (!strcmp(sname, p->shortname))
-			return p->longname;
-	}
-	return sname;
-}
+	static char *names[] = {
+		"Master Mono",
+		"Master Digital",
+		"Master",
+		"Tone Control - Bass",
+		"Tone Control - Treble",
+		"Synth Tone Control - Bass",
+		"Synth Tone Control - Treble",
+		"PCM",
+		"Surround",
+		"Synth",
+		"FM",
+		"Wave",
+		"Music",
+		"DSP",
+		"Line",
+		"CD",
+		"Mic",
+		"Video",
+		"Phone",
+		"PC Speaker",
+		"Aux",
+		"Mono Output",
+		"Mono",
+		"Playback",
+		"Capture Boost",
+		"Capture",
+		NULL
+	};
+	int res;
 
-static const char *simple_elems[] = {
-	"Master Mono",
-	"Master Digital",
-	"Master",
-	"Tone Control - Bass",
-	"Tone Control - Treble",
-	"Synth Tone Control - Bass",
-	"Synth Tone Control - Treble",
-	"PCM",
-	"Surround",
-	"Synth",
-	"FM",
-	"Wave",
-	"Music",
-	"DSP",
-	"Line",
-	"CD",
-	"Mic",
-	"Video",
-	"Phone",
-	"PC Speaker",
-	"Aux",
-	"Mono Output",
-	"Mono",
-	"Playback",
-	"Capture Boost",
-	"Capture",
-	NULL
-};
-#endif
+	for (res = 0; names[res] != NULL; res++)
+		if (!strcmp(name, names[res]))
+			return MIXER_COMPARE_WEIGHT_SIMPLE_BASE +
+			       (res * 1000) + index;
+	return MIXER_COMPARE_WEIGHT_NOT_FOUND;
+}
 
 static int selem_info(snd_mixer_elem_t *elem,
 		      snd_mixer_selem_info_t *info)
@@ -592,7 +590,7 @@ static struct suf {
 	const char *suffix;
 	selem_ctl_type_t type;
 } suffixes[] = {
-	{ " Playback Switch", CTL_PLAYBACK_SWITCH},
+	{" Playback Switch", CTL_PLAYBACK_SWITCH},
 	{" Playback Route", CTL_PLAYBACK_ROUTE},
 	{" Playback Volume", CTL_PLAYBACK_VOLUME},
 	{" Capture Switch", CTL_CAPTURE_SWITCH},
@@ -713,6 +711,7 @@ int simple_add1(snd_mixer_class_t *class, const char *name,
 	err = snd_mixer_elem_attach(melem, helem);
 	if (err < 0)
 		return err;
+	melem->compare_weight = get_compare_weight(simple->id.name, simple->id.index);
 	err = simple_update(melem);
 	assert(err >= 0);
 	if (new)
@@ -743,13 +742,24 @@ int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 			err = snd_hctl_elem_info(helem, info);
 			assert(err >= 0);
 			n = snd_ctl_elem_info_get_item_name(info);
-#if 0
-			/* FIXME: es18xx has both Mix and Master */
-			if (strcmp(n, "Mix") == 0)
-				n = "Master";
-			else if (strcmp(n, "Mono Mix") == 0)
-				n = "Master Mono";
-#endif
+			if (!strcmp(n, "Mix") || !strcmp(n, "Mono Mix")) {
+				snd_hctl_t *hctl;
+				hctl = snd_hctl_elem_get_handle(helem);
+				if (hctl != NULL) {
+					snd_ctl_elem_id_t *eid;
+					snd_ctl_elem_id_alloca(&eid);
+					snd_ctl_elem_id_set_interface(eid, SND_CTL_ELEM_IFACE_MIXER);
+					if (!strcmp(n, "Mix")) {
+						snd_ctl_elem_id_set_name(eid, "Mix");
+						if (snd_hctl_find_elem(hctl, eid) == NULL)
+							n = "Master";
+					} else if (!strcmp(n, "Mono Mix")) {
+						snd_ctl_elem_id_set_name(eid, "Mono Mix");
+						if (snd_hctl_find_elem(hctl, eid) == NULL)
+							n = "Master Mono";
+					}
+				}
+			}
 			err = simple_add1(class, n, helem, CTL_CAPTURE_SOURCE, k);
 			if (err < 0)
 				return err;
@@ -815,6 +825,13 @@ int simple_event(snd_mixer_class_t *class, snd_ctl_event_type_t event,
 	return 0;
 }
 
+static int simple_compare(const snd_mixer_elem_t *c1, const snd_mixer_elem_t *c2)
+{
+	selem_t *s1 = c1->private_data;
+	selem_t *s2 = c2->private_data;
+	return strcmp(s1->id.name, s2->id.name);
+}
+
 int snd_mixer_selem_register(snd_mixer_t *mixer, snd_mixer_class_t **classp)
 {
 	snd_mixer_class_t *class = calloc(1, sizeof(*class));
@@ -822,6 +839,7 @@ int snd_mixer_selem_register(snd_mixer_t *mixer, snd_mixer_class_t **classp)
 	if (!class)
 		return -ENOMEM;
 	class->event = simple_event;
+	class->compare = simple_compare;
 	err = snd_mixer_class_register(class, mixer);
 	if (err < 0) {
 		free(class);

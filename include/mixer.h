@@ -46,7 +46,7 @@ int snd_mixer_attach(snd_mixer_t *mixer, const char *name);
 int snd_mixer_detach(snd_mixer_t *mixer, const char *name);
 int snd_mixer_poll_descriptor(snd_mixer_t *mixer, const char *name);
 int snd_mixer_load(snd_mixer_t *mixer);
-void snd_mixer_set_compare(snd_hctl_t *hctl, snd_mixer_compare_t hsort);
+int snd_mixer_set_compare(snd_mixer_t *mixer, snd_mixer_compare_t msort);
 
 snd_mixer_elem_t *snd_mixer_elem_next(snd_mixer_elem_t *elem);
 snd_mixer_elem_t *snd_mixer_elem_prev(snd_mixer_elem_t *helem);

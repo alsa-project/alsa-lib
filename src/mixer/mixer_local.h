@@ -41,6 +41,10 @@ typedef struct list_head *bag_iterator_t;
 #define bag_iterator_entry(i) (list_entry((i), bag1_t, list)->ptr)
 #define bag_for_each(pos, next, bag) list_for_each(pos, next, bag)
 
+#define MIXER_COMPARE_WEIGHT_SIMPLE_BASE	0
+#define MIXER_COMPARE_WEIGHT_NEXT_BASE		10000000
+#define MIXER_COMPARE_WEIGHT_NOT_FOUND		1000000000
+
 struct _snd_mixer_class {
 	struct list_head list;
 	snd_mixer_t *mixer;
@@ -48,6 +52,7 @@ struct _snd_mixer_class {
 		     snd_hctl_elem_t *helem, snd_mixer_elem_t *melem);
 	void *private_data;		
 	void (*private_free)(snd_mixer_class_t *class);
+	snd_mixer_compare_t compare;
 };
 
 struct _snd_mixer_elem {
@@ -59,6 +64,7 @@ struct _snd_mixer_elem {
 	snd_mixer_elem_callback_t callback;
 	void *callback_private;
 	bag_t helems;
+	int compare_weight;		/* compare weight (reversed) */
 };
 
 struct _snd_mixer {
@@ -69,6 +75,7 @@ struct _snd_mixer {
 	unsigned int events;
 	snd_mixer_callback_t callback;
 	void *callback_private;
+	snd_mixer_compare_t compare;
 };
 
 struct _snd_mixer_selem_id {
