@@ -379,7 +379,7 @@ void init(s16 *dst, s32 *sum, int size)
 int main(int argc, char **argv)
 {
 	int size = 2048, n = 4, max = 32267;
-	int LOOP = 30;
+	int LOOP = 100;
 	int i, t;
 	unsigned long long begin, end, diff, diff0, diff1, diff1_mmx, diff2;
         double cpu_clock = detect_cpu_clock();
