@@ -79,3 +79,17 @@ Jack plugin
 -----------
 
 JACK plugin is moved to alsa-plugins package.
+
+Trouble Shooting
+----------------
+
+* Install path on Fedora Core 3
+
+  FC3 installs its system ALSA library to /lib instead of /usr/lib.
+  Specify --libdir=/lib to configure to overwrite it with the new library,
+  or run like
+
+	# ln -sf /usr/lib/libasound.so.2.0.0 /lib/libasound.so.2.0.0
+
+  to make symlink to the new path.
+  Note that /lib might be /lib64 on 64bit architecture.
