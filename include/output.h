@@ -1,14 +1,14 @@
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct _snd_output snd_output_t;
 
 typedef enum _snd_output_type {
 	SND_OUTPUT_STDIO,
 	SND_OUTPUT_BUFFER,
 } snd_output_type_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int snd_output_stdio_open(snd_output_t **outputp, const char *file);
 int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int close);

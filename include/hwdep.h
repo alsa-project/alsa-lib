@@ -22,11 +22,11 @@ typedef struct sndrv_hwdep_info snd_hwdep_info_t;
 #define SND_HWDEP_OPEN_DUPLEX		(O_RDWR)
 #define SND_HWDEP_OPEN_NONBLOCK		(O_NONBLOCK)
 
+typedef struct _snd_hwdep snd_hwdep_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct _snd_hwdep snd_hwdep_t;
 
 int snd_hwdep_open(snd_hwdep_t **handle, int card, int device, int mode);
 int snd_hwdep_close(snd_hwdep_t *handle);

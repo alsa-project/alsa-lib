@@ -1,14 +1,14 @@
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct _snd_input snd_input_t;
 
 typedef enum _snd_input_type {
 	SND_INPUT_STDIO,
 	SND_INPUT_BUFFER,
 } snd_input_type_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int snd_input_stdio_open(snd_input_t **inputp, const char *file);
 int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int close);

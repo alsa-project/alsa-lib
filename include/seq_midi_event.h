@@ -4,11 +4,11 @@
  *                                                                          *
  ****************************************************************************/
 
+typedef struct snd_midi_event snd_midi_event_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct snd_midi_event snd_midi_event_t;
 
 int snd_midi_event_new(int bufsize, snd_midi_event_t **rdev);
 int snd_midi_event_resize_buffer(snd_midi_event_t *dev, int bufsize);
