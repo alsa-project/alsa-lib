@@ -903,6 +903,8 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	snd_pcm_uframes_t avail;
+
+	sync_ptr(hw, 0);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		avail = snd_pcm_mmap_playback_avail(pcm);
 	} else {
