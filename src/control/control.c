@@ -22,12 +22,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "soundlib.h"
 
-#define SND_FILE_CONTROL	"/dev/sndcontrol%i"
+#define SND_FILE_CONTROL	"/dev/snd/control%i"
 #define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
  
 typedef struct {
@@ -90,6 +91,63 @@ int snd_ctl_hw_info( void *handle, struct snd_ctl_hw_info *info )
   ctl = (snd_ctl_t *)handle;
   if ( !ctl ) return -EINVAL;
   if ( ioctl( ctl -> fd, SND_CTL_IOCTL_HW_INFO, info ) < 0 )
+    return -errno;
+  return 0;
+}
+
+int snd_ctl_switches( void *handle )
+{
+  snd_ctl_t *ctl;
+  int result;
+
+  ctl = (snd_ctl_t *)handle;
+  if ( !ctl ) return -EINVAL;
+  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_SWITCHES, &result ) < 0 )
+    return -errno;
+  return result;
+}
+
+int snd_ctl_switch( void *handle, const char *switch_id )
+{
+  snd_ctl_t *ctl;
+  struct snd_ctl_switch uswitch;
+  int idx, switches, err;
+
+  ctl = (snd_ctl_t *)handle;
+  if ( !ctl ) return -EINVAL;
+  /* bellow implementation isn't optimized for speed */
+  /* info about switches should be cached in the snd_mixer_t structure */
+  if ( (switches = snd_ctl_switches( handle )) < 0 )
+    return switches;
+  for ( idx = 0; idx < switches; idx++ ) {
+    if ( (err = snd_ctl_switch_read( handle, idx, &uswitch )) < 0 )
+      return err;
+    if ( !strncmp( switch_id, uswitch.name, sizeof( uswitch.name ) ) )
+      return idx;
+  }
+  return -EINVAL;
+}
+
+int snd_ctl_switch_read( void *handle, int switchn, struct snd_ctl_switch *data )
+{
+  snd_ctl_t *ctl;
+
+  ctl = (snd_ctl_t *)handle;
+  if ( !ctl ) return -EINVAL;
+  data -> switchn = switchn;
+  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_SWITCH_READ, data ) < 0 )
+    return -errno;
+  return 0;
+}
+
+int snd_ctl_switch_write( void *handle, int switchn, struct snd_ctl_switch *data )
+{
+  snd_ctl_t *ctl;
+
+  ctl = (snd_ctl_t *)handle;
+  if ( !ctl ) return -EINVAL;
+  data -> switchn = switchn;
+  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_SWITCH_WRITE, data ) < 0 )
     return -errno;
   return 0;
 }

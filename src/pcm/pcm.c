@@ -1,17 +1,34 @@
 /*
  *  PCM Interface - main file
  *  Copyright (c) 1998 by Jaroslav Kysela <perex@jcu.cz>
+ *
+ *
+ *   This library is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as
+ *   published by the Free Software Foundation; either version 2 of
+ *   the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "soundlib.h"
 
-#define SND_FILE_PCM		"/dev/sndpcm%i%i"
+#define SND_FILE_PCM		"/dev/snd/pcm%i%i"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
  
 typedef struct {
@@ -119,6 +136,63 @@ int snd_pcm_record_info( void *handle, snd_pcm_record_info_t *info )
     return -errno;
   return 0;
 }
+
+int snd_pcm_switches( void *handle )
+{
+  snd_pcm_t *pcm;
+  int result;
+
+  pcm = (snd_pcm_t *)handle;
+  if ( !pcm ) return -EINVAL;
+  if ( ioctl( pcm -> fd, SND_PCM_IOCTL_SWITCHES, &result ) < 0 )
+    return -errno;
+  return result;
+}
+
+int snd_pcm_switch( void *handle, const char *switch_id )
+{
+  snd_pcm_t *pcm;
+  snd_pcm_switch_t uswitch;
+  int idx, switches, err;
+
+  pcm = (snd_pcm_t *)handle;
+  if ( !pcm ) return -EINVAL;
+  /* bellow implementation isn't optimized for speed */
+  /* info about switches should be cached in the snd_mixer_t structure */
+  if ( (switches = snd_mixer_switches( handle )) < 0 )
+    return switches;
+  for ( idx = 0; idx < switches; idx++ ) {
+    if ( (err = snd_pcm_switch_read( handle, idx, &uswitch )) < 0 )
+      return err;
+    if ( !strncmp( switch_id, uswitch.name, sizeof( uswitch.name ) ) )
+      return idx;
+  }
+  return -EINVAL;
+}
+
+int snd_pcm_switch_read( void *handle, int switchn, snd_pcm_switch_t *data )
+{
+  snd_pcm_t *pcm;
+
+  pcm = (snd_pcm_t *)handle;
+  if ( !pcm ) return -EINVAL;
+  data -> switchn = switchn;
+  if ( ioctl( pcm -> fd, SND_PCM_IOCTL_SWITCH_READ, data ) < 0 )
+    return -errno;
+  return 0;
+}
+                
+int snd_pcm_switch_write( void *handle, int switchn, snd_pcm_switch_t *data )
+{
+  snd_pcm_t *pcm;
+
+  pcm = (snd_pcm_t *)handle;
+  if ( !pcm ) return -EINVAL;
+  data -> switchn = switchn;
+  if ( ioctl( pcm -> fd, SND_PCM_IOCTL_SWITCH_WRITE, data ) < 0 )
+    return -errno;
+  return 0;
+}                
 
 int snd_pcm_playback_format( void *handle, snd_pcm_format_t *format )
 {

@@ -28,7 +28,7 @@
 #include <sys/ioctl.h>
 #include "soundlib.h"
 
-#define SND_FILE_MIXER		"/dev/sndmixer%i%i"
+#define SND_FILE_MIXER		"/dev/snd/mixer%i%i"
 #define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 1 )
  
 typedef struct {

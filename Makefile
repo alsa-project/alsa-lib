@@ -21,10 +21,10 @@ all: include/soundlib.h
 	@echo
 
 include/soundlib.h:	include/header.h include/version.h include/error.h include/footer.h \
-			include/control.h include/mixer.h include/pcm.h
+			include/control.h include/mixer.h include/pcm.h include/rawmidi.h
 	cat include/header.h include/version.h include/error.h \
 	    include/control.h include/mixer.h \
-	    include/pcm.h \
+	    include/pcm.h include/rawmidi.h \
 	    include/footer.h > include/soundlib.h
 
 install: all
@@ -46,7 +46,7 @@ clean:
 
 cvsclean: clean
 	rm -f configure config.cache config.log config.status Makefile.conf \
-              utils/alsa-lib.spec
+              utils/alsa-lib.spec include/config.h include/soundlib.h
 
 pack: cvsclean
 	chown -R root.root ../alsa-lib

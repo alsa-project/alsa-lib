@@ -13,10 +13,12 @@ TARGETS=$(TARGET) $(STARGET)
 
 STATIC_LIBS=	control/libcontrol.a \
             	mixer/libmixer.a \
-	    	pcm/libpcm.a
+	    	pcm/libpcm.a \
+		rawmidi/librawmidi.a
 DYNAMIC_LIBS=	control/libcontrol.Sa \
 		mixer/libmixer.Sa \
-		pcm/libpcm.Sa
+		pcm/libpcm.Sa \
+		rawmidi/librawmidi.Sa
 
 OBJECTS=error.o
 SOBJECTS=error.So
@@ -56,10 +58,16 @@ pcm/libpcm.a:
 pcm/libpcm.sa:
 	$(MAKE) -C pcm
 
+rawmidi/librawmidi.a:
+	$(MAKE) -C rawmidi
+rawmidi/librawmidi.sa:
+	$(MAKE) -C rawmidi
+
 clean:
 	$(MAKE) -C control clean
 	$(MAKE) -C pcm clean
 	$(MAKE) -C mixer clean
+	$(MAKE) -C rawmidi clean
 	rm -f core .depend *.o *.So *.orig *~
 	rm -f ../lib/libsound.*
 

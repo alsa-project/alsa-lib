@@ -35,7 +35,7 @@ AC_TRY_RUN([
 #include <linux/sound.h>
 void main(void)
 {
-#ifndef SND_PROTOCOL_VERSION
+#if !defined( SND_PROTOCOL_VERSION ) || !defined( SND_PROTOCOL_UNCOMPATIBLE )
   exit(1);
 #else
   exit(0);
@@ -43,7 +43,7 @@ void main(void)
 }
 ],
   AC_MSG_RESULT("present"),
-  AC_MSG_RESULT("not found"); echo "Fatal error: Install alsa-driver package at first..."; exit 1;,
+  AC_MSG_RESULT("not found"); echo "Fatal error: Install alsa-driver v0.2.0pre6+ package at first..."; exit 1;,
   AC_MSG_RESULT("not supported"); echo "Fatal error: Cross-compiling isn't supported..."; exit 1;,
 )
 
