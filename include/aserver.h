@@ -42,7 +42,7 @@ typedef enum _snd_transport_type {
 #define SND_PCM_IOCTL_STATE		_IO ('A', 0xf1)
 #define SND_PCM_IOCTL_MMAP		_IO ('A', 0xf2)
 #define SND_PCM_IOCTL_MUNMAP		_IO ('A', 0xf3)
-#define SND_PCM_IOCTL_MMAP_FORWARD	_IO ('A', 0xf4)
+#define SND_PCM_IOCTL_MMAP_COMMIT	_IO ('A', 0xf4)
 #define SND_PCM_IOCTL_AVAIL_UPDATE	_IO ('A', 0xf5)
 #define SND_PCM_IOCTL_ASYNC		_IO ('A', 0xf6)
 #define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xf7)
@@ -77,8 +77,9 @@ typedef struct {
 			int fd;
 		} link;
 		struct {
+			snd_pcm_uframes_t offset;
 			snd_pcm_uframes_t frames;
-		} mmap_forward;
+		} mmap_commit;
 	} u;
 	char data[0];
 } snd_pcm_shm_ctrl_t;
@@ -101,7 +102,7 @@ typedef struct {
 		} async;
 		int device;
 		struct {
-			int type;
+			snd_pcm_surround_type_t type;
 			int device;
 		} surround;
 		int subscribe_events;

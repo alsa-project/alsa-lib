@@ -381,16 +381,12 @@ int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out);
 int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out);
 
 /* mmap */
-const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);
-const snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm);
-const snd_pcm_channel_area_t *snd_pcm_mmap_stopped_areas(snd_pcm_t *pcm);
-snd_pcm_sframes_t snd_pcm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size);
-snd_pcm_uframes_t snd_pcm_mmap_offset(snd_pcm_t *pcm);
-snd_pcm_uframes_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
+int snd_pcm_mmap_begin(snd_pcm_t *pcm,
+		       const snd_pcm_channel_area_t **areas,
+		       snd_pcm_uframes_t *offset,
+		       snd_pcm_uframes_t *frames);
+int snd_pcm_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
+			snd_pcm_uframes_t frames);
 
 const char *snd_pcm_stream_name(snd_pcm_stream_t stream);
 const char *snd_pcm_access_name(snd_pcm_access_t _access);

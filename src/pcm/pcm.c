@@ -1099,23 +1099,6 @@ snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 }
 
 /**
- * \brief Advance PCM frame position in mmap buffer
- * \param pcm PCM handle
- * \param size movement size
- * \return a positive number of actual movement size otherwise a negative
- * error code
- *
- * On playback does all the actions needed to transport the frames across
- * underlying layers. 
- */
-snd_pcm_sframes_t snd_pcm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
-{
-	assert(size > 0);
-	assert(size <= snd_pcm_mmap_avail(pcm));
-	return pcm->fast_ops->mmap_forward(pcm->fast_op_arg, size);
-}
-
-/**
  * \brief Silence an area
  * \param dst_area area specification
  * \param dst_offset offset in frames inside area
@@ -3932,64 +3915,57 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
 	obj->stream = snd_enum_to_int(val);
 }
 
-
 /**
- * \brief Get channel areas for a given PCM when running
+ * \brief Application request to access a portion of mmap area
  * \param pcm PCM handle
- * \return pointer to channel areas (one for each channel)
+ * \param areas Returned mmap channel areas
+ * \param offset Returned mmap area offset
+ * \param size mmap area portion size (wanted on entry, contiguous
+available on exit)
+ * \return 0 on success otherwise a negative error code
  */
-const snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm)
+int snd_pcm_mmap_begin(snd_pcm_t *pcm,
+		       const snd_pcm_channel_area_t **areas,
+		       snd_pcm_uframes_t *offset,
+		       snd_pcm_uframes_t *frames)
 {
-	return pcm->running_areas;
-}
-
-/**
- * \brief Get channel areas for a given PCM when stopped
- * \param pcm PCM handle
- * \return pointer to channel areas (one for each channel)
- */
-const snd_pcm_channel_area_t *snd_pcm_mmap_stopped_areas(snd_pcm_t *pcm)
-{
-	return pcm->stopped_areas;
-}
-
-/**
- * \brief Get appropriate channel areas for a given PCM according to its state (running or stopped)
- * \param pcm PCM handle
- * \return pointer to channel areas (one for each channel)
- */
-const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
-{
+	snd_pcm_uframes_t cont;
+	snd_pcm_uframes_t avail;
+	snd_pcm_uframes_t f;
+	assert(pcm && areas && offset && frames);
 	if (pcm->stopped_areas &&
 	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
-		return pcm->stopped_areas;
-	return pcm->running_areas;
-}
-
-/**
- * \brief Correct frames count according to contiguity consideration inside PCM ring buffer
- * \param pcm PCM handle
- * \param frames Frames to transfer
- * \return Number of contiguous frames transferrable
- */
-snd_pcm_uframes_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
-{
-        assert(pcm);
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		return snd_pcm_mmap_playback_xfer(pcm, frames);
+		*areas = pcm->stopped_areas;
 	else
-		return snd_pcm_mmap_capture_xfer(pcm, frames);
+		*areas = pcm->running_areas;
+	*offset = *pcm->appl_ptr % pcm->buffer_size;
+	avail = snd_pcm_mmap_avail(pcm);
+	f = *frames;
+	if (f > avail)
+		f = avail;
+	cont = pcm->buffer_size - *pcm->appl_ptr % pcm->buffer_size;
+	if (f > cont)
+		f = cont;
+	*frames = f;
+	return 0;
 }
 
 /**
- * \brief Return application offset inside ring buffer
+ * \brief Application has completed the access to area requested with
+#snd_pcm_mmap_begin
  * \param pcm PCM handle
- * \return Offset for frames transfer
+ * \return 0 on success otherwise a negative error code
+ *
+ * To call this with offset/frames values different from that returned
+ * by snd_pcm_mmap_begin has undefined effects and it has to be avoided.
  */
-snd_pcm_uframes_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
+int snd_pcm_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
+			snd_pcm_uframes_t frames)
 {
-        assert(pcm);
-	return *pcm->appl_ptr % pcm->buffer_size;
+	assert(pcm);
+	assert(offset == *pcm->appl_ptr % pcm->buffer_size);
+	assert(frames <= snd_pcm_mmap_avail(pcm));
+	return pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
 }
 
 #ifndef DOC_HIDDEN

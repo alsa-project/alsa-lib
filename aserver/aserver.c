@@ -455,8 +455,10 @@ static int pcm_shm_cmd(client_t *client)
 		ctrl->result = snd_pcm_munmap(pcm);
 		break;
 	}
-	case SND_PCM_IOCTL_MMAP_FORWARD:
-		ctrl->result = snd_pcm_mmap_forward(pcm, ctrl->u.mmap_forward.frames);
+	case SND_PCM_IOCTL_MMAP_COMMIT:
+		ctrl->result = snd_pcm_mmap_commit(pcm,
+						   ctrl->u.mmap_commit.offset,
+						   ctrl->u.mmap_commit.frames);
 		ctrl->appl_ptr = *pcm->appl_ptr;
 		break;
 	case SND_PCM_IOCTL_POLL_DESCRIPTOR:
@@ -610,7 +612,7 @@ static int ctl_shm_cmd(client_t *client)
 		ctrl->result = snd_ctl_pcm_next_device(ctl, &ctrl->u.device);
 		break;
 	case SND_CTL_IOCTL_PCM_SURROUND_NEXT_DEVICE:
-		ctrl->result = snd_ctl_pcm_surround_next_device(ctl, &ctrl->u.surround.type, &ctrl->u.surround.device);
+		ctrl->result = snd_ctl_pcm_surround_next_device(ctl, ctrl->u.surround.type, &ctrl->u.surround.device);
 		break;
 	case SNDRV_CTL_IOCTL_PCM_INFO:
 		ctrl->result = snd_ctl_pcm_info(ctl, &ctrl->u.pcm_info);

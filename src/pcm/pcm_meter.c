@@ -385,11 +385,13 @@ static snd_pcm_sframes_t snd_pcm_meter_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	return err;
 }
 
-static snd_pcm_sframes_t snd_pcm_meter_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
+						   snd_pcm_uframes_t offset,
+						   snd_pcm_uframes_t size)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	snd_pcm_uframes_t old_rptr = *pcm->appl_ptr;
-	snd_pcm_sframes_t result = snd_pcm_mmap_forward(meter->slave, size);
+	snd_pcm_sframes_t result = snd_pcm_mmap_commit(meter->slave, offset, size);
 	if (result <= 0)
 		return result;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
@@ -594,7 +596,7 @@ snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	readi: snd_pcm_mmap_readi,
 	readn: snd_pcm_mmap_readn,
 	avail_update: snd_pcm_meter_avail_update,
-	mmap_forward: snd_pcm_meter_mmap_forward,
+	mmap_commit: snd_pcm_meter_mmap_commit,
 };
 
 int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequency,

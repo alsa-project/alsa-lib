@@ -114,7 +114,7 @@ typedef struct {
 	snd_pcm_sframes_t (*readi)(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
 	snd_pcm_sframes_t (*readn)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 	snd_pcm_sframes_t (*avail_update)(snd_pcm_t *pcm);
-	snd_pcm_sframes_t (*mmap_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t size);
+	snd_pcm_sframes_t (*mmap_commit)(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t size);
 } snd_pcm_fast_ops_t;
 
 struct _snd_pcm {
@@ -209,9 +209,11 @@ void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 void snd_pcm_mmap_hw_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
-snd_pcm_uframes_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm);
-snd_pcm_uframes_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
-snd_pcm_uframes_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+
+snd_pcm_sframes_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
+snd_pcm_sframes_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
+snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
+snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 
 typedef snd_pcm_uframes_t (*snd_pcm_xfer_areas_func_t)(snd_pcm_t *pcm, 
 						       const snd_pcm_channel_area_t *areas,
@@ -277,6 +279,26 @@ static inline snd_pcm_sframes_t snd_pcm_mmap_hw_avail(snd_pcm_t *pcm)
 	if (avail < 0)
 		avail += pcm->boundary;
 	return pcm->buffer_size - avail;
+}
+
+static inline const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
+{
+	if (pcm->stopped_areas &&
+	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
+		return pcm->stopped_areas;
+	return pcm->running_areas;
+}
+
+static inline snd_pcm_uframes_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
+{
+        assert(pcm);
+	return *pcm->appl_ptr % pcm->buffer_size;
+}
+
+static inline snd_pcm_uframes_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
+{
+        assert(pcm);
+	return *pcm->hw_ptr % pcm->buffer_size;
 }
 
 #define snd_pcm_mmap_playback_delay snd_pcm_mmap_playback_hw_avail

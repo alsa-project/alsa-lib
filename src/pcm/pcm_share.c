@@ -118,7 +118,7 @@ static snd_pcm_uframes_t snd_pcm_share_slave_avail(snd_pcm_share_slave_t *slave)
 }
 
 /* Warning: take the mutex before to call this */
-/* Return number of frames to mmap_forward the slave */
+/* Return number of frames to mmap_commit the slave */
 static snd_pcm_uframes_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *slave)
 {
 	struct list_head *i;
@@ -223,7 +223,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 				frames = -safety_missing;
 				missing = 1;
 			}
-			err = snd_pcm_mmap_forward(spcm, frames);
+			err = snd_pcm_mmap_commit(spcm, snd_pcm_mmap_offset(spcm), frames);
 			assert(err == frames);
 			slave_avail -= frames;
 		} else {
@@ -756,22 +756,25 @@ static snd_pcm_sframes_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 }
 
 /* Call it with mutex held */
-static snd_pcm_sframes_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t _snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
+						    snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						    snd_pcm_uframes_t size)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
+	snd_pcm_t *spcm = slave->pcm;
 	snd_pcm_sframes_t ret = 0;
 	snd_pcm_sframes_t frames;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
 	    share->state == SND_PCM_STATE_RUNNING) {
-		frames = *slave->pcm->appl_ptr - share->appl_ptr;
+		frames = *spcm->appl_ptr - share->appl_ptr;
 		if (frames > (snd_pcm_sframes_t)pcm->buffer_size)
 			frames -= pcm->boundary;
 		else if (frames < -(snd_pcm_sframes_t)pcm->buffer_size)
 			frames += pcm->boundary;
 		if (frames > 0) {
 			/* Latecomer PCM */
-			ret = snd_pcm_rewind(slave->pcm, frames);
+			ret = snd_pcm_rewind(spcm, frames);
 			if (ret < 0)
 				return ret;
 		}
@@ -781,7 +784,7 @@ static snd_pcm_sframes_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_ufr
 		frames = _snd_pcm_share_slave_forward(slave);
 		if (frames > 0) {
 			snd_pcm_sframes_t err;
-			err = snd_pcm_mmap_forward(slave->pcm, frames);
+			err = snd_pcm_mmap_commit(spcm, snd_pcm_mmap_offset(spcm), frames);
 			assert(err == frames);
 		}
 		_snd_pcm_share_update(pcm);
@@ -789,13 +792,15 @@ static snd_pcm_sframes_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_ufr
 	return size;
 }
 
-static snd_pcm_sframes_t snd_pcm_share_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
+						   snd_pcm_uframes_t offset,
+						   snd_pcm_uframes_t size)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_sframes_t ret;
 	Pthread_mutex_lock(&slave->mutex);
-	ret = _snd_pcm_share_mmap_forward(pcm, size);
+	ret = _snd_pcm_share_mmap_commit(pcm, offset, size);
 	Pthread_mutex_unlock(&slave->mutex);
 	return ret;
 }
@@ -838,6 +843,7 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
+	snd_pcm_t *spcm = slave->pcm;
 	int err = 0;
 	if (share->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
@@ -852,16 +858,16 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 		}
 		if (slave->running_count) {
 			snd_pcm_sframes_t sd;
-			err = snd_pcm_delay(slave->pcm, &sd);
+			err = snd_pcm_delay(spcm, &sd);
 			if (err < 0)
 				goto _end;
-			err = snd_pcm_rewind(slave->pcm, sd);
+			err = snd_pcm_rewind(spcm, sd);
 			if (err < 0)
 				goto _end;
 		}
 		assert(share->hw_ptr == 0);
-		share->hw_ptr = *slave->pcm->hw_ptr;
-		share->appl_ptr = *slave->pcm->appl_ptr;
+		share->hw_ptr = *spcm->hw_ptr;
+		share->appl_ptr = *spcm->appl_ptr;
 		while (xfer < hw_avail) {
 			snd_pcm_uframes_t frames = hw_avail - xfer;
 			snd_pcm_uframes_t offset = snd_pcm_mmap_offset(pcm);
@@ -877,10 +883,10 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 		}
 		snd_pcm_mmap_appl_forward(pcm, hw_avail);
 		if (slave->running_count == 0)
-			snd_pcm_mmap_forward(slave->pcm, hw_avail);
+			snd_pcm_mmap_commit(spcm, snd_pcm_mmap_offset(spcm), hw_avail);
 	}
 	if (slave->running_count == 0) {
-		err = snd_pcm_start(slave->pcm);
+		err = snd_pcm_start(spcm);
 		if (err < 0)
 			goto _end;
 	}
@@ -1181,7 +1187,7 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	readn: snd_pcm_mmap_readn,
 	rewind: snd_pcm_share_rewind,
 	avail_update: snd_pcm_share_avail_update,
-	mmap_forward: snd_pcm_share_mmap_forward,
+	mmap_commit: snd_pcm_share_mmap_commit,
 };
 
 int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,

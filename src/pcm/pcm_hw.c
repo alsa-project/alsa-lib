@@ -449,7 +449,9 @@ static int snd_pcm_hw_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static snd_pcm_sframes_t snd_pcm_hw_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
+						snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						snd_pcm_uframes_t size)
 {
 	if (!(pcm->info & SND_PCM_INFO_MMAP) && 
 	    pcm->stream == SND_PCM_STREAM_PLAYBACK)
@@ -526,7 +528,7 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	readi: snd_pcm_hw_readi,
 	readn: snd_pcm_hw_readn,
 	avail_update: snd_pcm_hw_avail_update,
-	mmap_forward: snd_pcm_hw_mmap_forward,
+	mmap_commit: snd_pcm_hw_mmap_commit,
 };
 
 static int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)

@@ -435,12 +435,15 @@ static snd_pcm_sframes_t snd_pcm_shm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 	return snd_pcm_shm_action(pcm);
 }
 
-static snd_pcm_sframes_t snd_pcm_shm_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_shm_mmap_commit(snd_pcm_t *pcm,
+						 snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						 snd_pcm_uframes_t size)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_PCM_IOCTL_MMAP_FORWARD;
-	ctrl->u.mmap_forward.frames = size;
+	ctrl->cmd = SND_PCM_IOCTL_MMAP_COMMIT;
+	ctrl->u.mmap_commit.offset = offset;
+	ctrl->u.mmap_commit.frames = size;
 	return snd_pcm_shm_action(pcm);
 }
 
@@ -510,7 +513,7 @@ snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	readi: snd_pcm_mmap_readi,
 	readn: snd_pcm_mmap_readn,
 	avail_update: snd_pcm_shm_avail_update,
-	mmap_forward: snd_pcm_shm_mmap_forward,
+	mmap_commit: snd_pcm_shm_mmap_commit,
 };
 
 static int make_local_socket(const char *filename)

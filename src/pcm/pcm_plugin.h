@@ -65,7 +65,7 @@ snd_pcm_sframes_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, snd_
 snd_pcm_sframes_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_plugin_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size);
+snd_pcm_sframes_t snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm);
 int snd_pcm_plugin_mmap_status(snd_pcm_t *pcm);
 int snd_pcm_plugin_mmap_control(snd_pcm_t *pcm);

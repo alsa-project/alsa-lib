@@ -207,13 +207,13 @@ static snd_pcm_sframes_t snd_pcm_surround_readn(snd_pcm_t *pcm, void **bufs, snd
 	return res;
 }
 
-static snd_pcm_sframes_t snd_pcm_surround_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_surround_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t size)
 {
 	int i;
 	snd_pcm_sframes_t res = -1, res1;
 	snd_pcm_surround_t *surr = pcm->private_data;
 	for (i = 0; i < surr->pcms; i++) {
-		res1 = snd_pcm_mmap_forward(surr->pcm[i], size);
+		res1 = snd_pcm_mmap_commit(surr->pcm[i], offset, size);
 		if (res1 < 0)
 			return res1;
 		if (res < 0) {
@@ -367,7 +367,7 @@ snd_pcm_fast_ops_t snd_pcm_surround_fast_ops = {
 	readi: snd_pcm_surround_readi,
 	readn: snd_pcm_surround_readn,
 	avail_update: snd_pcm_surround_avail_update,
-	mmap_forward: snd_pcm_surround_mmap_forward,
+	mmap_commit: snd_pcm_surround_mmap_commit,
 };
 
 int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,

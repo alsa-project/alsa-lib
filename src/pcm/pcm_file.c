@@ -268,26 +268,19 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 	return n;
 }
 
-static snd_pcm_sframes_t snd_pcm_file_mmap_forward(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
+						  snd_pcm_uframes_t offset,
+						  snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	snd_pcm_uframes_t ofs = snd_pcm_mmap_offset(pcm);
-	snd_pcm_sframes_t n = snd_pcm_mmap_forward(file->slave, size);
-	snd_pcm_uframes_t xfer = 0;
-	if (n <= 0)
-		return n;
-	while (xfer < (snd_pcm_uframes_t)n) {
-		snd_pcm_uframes_t frames = n - xfer;
-		snd_pcm_uframes_t cont = pcm->buffer_size - ofs;
-		if (frames > cont)
-			frames = cont;
-		snd_pcm_file_add_frames(pcm, snd_pcm_mmap_areas(file->slave), ofs, frames);
-		ofs += frames;
-		if (ofs == pcm->buffer_size)
-			ofs = 0;
-		xfer += frames;
-	}
-	return n;
+	snd_pcm_uframes_t ofs;
+	snd_pcm_uframes_t siz = size;
+	const snd_pcm_channel_area_t *areas;
+	snd_pcm_mmap_begin(file->slave, &areas, &ofs, &siz);
+	assert(ofs == offset && siz == size);
+	snd_pcm_mmap_commit(file->slave, ofs, siz);
+	snd_pcm_file_add_frames(pcm, areas, ofs, siz);
+	return 0;
 }
 
 static snd_pcm_sframes_t snd_pcm_file_avail_update(snd_pcm_t *pcm)
@@ -400,7 +393,7 @@ snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	readi: snd_pcm_file_readi,
 	readn: snd_pcm_file_readn,
 	avail_update: snd_pcm_file_avail_update,
-	mmap_forward: snd_pcm_file_mmap_forward,
+	mmap_commit: snd_pcm_file_mmap_commit,
 };
 
 int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int fd, const char *fmt, snd_pcm_t *slave, int close_slave)
