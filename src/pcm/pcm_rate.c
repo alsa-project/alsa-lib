@@ -631,6 +631,12 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	rate->orig_avail_min = sparams->avail_min;
 	recalc(pcm, &sparams->xfer_align);
 	recalc(pcm, &sparams->start_threshold);
+	if (sparams->start_threshold <= slave->buffer_size) {
+		if (sparams->start_threshold > (slave->buffer_size / sparams->avail_min) * sparams->avail_min)
+			sparams->start_threshold = (slave->buffer_size / sparams->avail_min) * sparams->avail_min;
+		if (sparams->start_threshold > (slave->buffer_size / sparams->xfer_align) * sparams->xfer_align)
+			sparams->start_threshold = (slave->buffer_size / sparams->xfer_align) * sparams->xfer_align;
+	}
 	if (sparams->stop_threshold >= sparams->boundary) {
 		sparams->stop_threshold = sparams->boundary;
 	} else {
@@ -1167,7 +1173,7 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 	appl_offset = (rate->appl_ptr - xfer) % pcm->buffer_size;
 	xfer = pcm->period_size - xfer;
 	if (xfer >= size) {
-		if (xfer == size) {
+		if (xfer == size && (snd_pcm_uframes_t)slave_size >= rate->slave->period_size) {
 			err = snd_pcm_rate_commit_next_period(pcm, appl_offset);
 			if (err < 0)
 				return err;
@@ -1179,17 +1185,20 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 		snd_atomic_write_end(&rate->watom);
 		return size;
 	} else {
-		size -= xfer;
-		err = snd_pcm_rate_commit_next_period(pcm, appl_offset);
-		if (err < 0)
-			return err;
-		if (err == 0)
-			return 0;
+		if ((snd_pcm_uframes_t)slave_size >= rate->slave->period_size) {
+			err = snd_pcm_rate_commit_next_period(pcm, appl_offset);
+			if (err < 0)
+				return err;
+			if (err == 0)
+				return 0;
+		}
 		snd_atomic_write_begin(&rate->watom);
 		snd_pcm_mmap_appl_forward(pcm, xfer);
 		snd_atomic_write_end(&rate->watom);
 		appl_offset += pcm->period_size;
 		appl_offset %= pcm->buffer_size;
+		size -= xfer;
+		slave_size -= rate->slave->period_size;
 	}
 	while ((snd_pcm_uframes_t)size >= pcm->period_size &&
 	       (snd_pcm_uframes_t)slave_size >= rate->slave->period_size) {
