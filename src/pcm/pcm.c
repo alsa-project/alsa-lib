@@ -224,18 +224,26 @@ embedded poll waiting implementation.
 \subsection alsa_pcm_rw Read / Write transfer
 
 There are two versions of read / write routines. The first expects the
-interleaved samples at input, and the second one expects non-interleaved
-(samples in separated buffers) at input. There are these functions for
-interleaved transfers: \link ::snd_pcm_writei \endlink,
+interleaved samples at input (#SND_PCM_ACCESS_RW_INTERLEAVED access method),
+and the second one expects non-interleaved (samples in separated buffers -
+#SND_PCM_ACCESS_RW_NONINTERLEAVED access method) at input. There are these
+functions for interleaved transfers: \link ::snd_pcm_writei \endlink,
 \link ::snd_pcm_readi \endlink. For non-interleaved transfers, there are
 these functions: \link ::snd_pcm_writen \endlink and \link ::snd_pcm_readn
 \endlink.
 
 \subsection alsa_mmap_rw Direct Read / Write transfer (via mmap'ed areas)
 
+Three kinds of organization of ring buffer memory areas exist in ALSA API.
+Access #SND_PCM_ACCESS_MMAP_INTERLEAVED has interleaved samples. Access
+#SND_PCM_ACCESS_MMAP_NONINTERLEAVED expects continous sample areas for
+one channel. Access #SND_PCM_ACCESS_MMAP_COMPLEX does not fit to interleaved
+and non-interleaved ring buffer organization.
+\par
+
 There are two functions for this kind of transfer. Application can get an
 access to memory areas via \link ::snd_pcm_mmap_begin \endlink function.
-This functions returns the areas (single area is equal to a channel)
+This function returns the areas (single area is equal to a channel)
 containing the direct pointers to memory and sample position description
 in \link ::snd_pcm_channel_area_t \endlink structure. After application
 transfers the data in the memory areas, then it must be acknowledged
