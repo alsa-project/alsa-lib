@@ -101,6 +101,7 @@ pcm.NAME {
   card INT/STR		# Card name or number
   [device] INT		# Device number (default 0)	
   [subdevice] INT	# Subdevice number, -1 first available (default -1)
+  mmap_emulation BOOL	# enable mmap emulation for ro/wo devices
 
 
   type hooks 		# PCM with hooks
