@@ -177,7 +177,7 @@
 
 /* 150-151: kernel events with quote - DO NOT use in user clients */
 #define SNDRV_SEQ_EVENT_KERNEL_ERROR	150
-#define SNDRV_SEQ_EVENT_KERNEL_QUOTE	151
+#define SNDRV_SEQ_EVENT_KERNEL_QUOTE	151	/* obsolete */
 
 /* 152-191: reserved */
 
