@@ -46,7 +46,7 @@ clean:
 
 cvsclean: clean
 	rm -f configure config.cache config.log config.status Makefile.conf \
-              utils/alsa-lib.spec include/config.h include/soundlib.h
+              utils/alsa-lib.spec include/config.h include/soundlib.h include/version.h
 
 pack: cvsclean
 	chown -R root.root ../alsa-lib

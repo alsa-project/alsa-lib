@@ -203,3 +203,16 @@ int snd_ctl_mixer_info( void *handle, int dev, snd_mixer_info_t *info )
     return -errno;
   return 0;
 }
+
+int snd_ctl_rawmidi_info( void *handle, int dev, snd_rawmidi_info_t *info )
+{
+  snd_ctl_t *ctl;
+  
+  ctl = (snd_ctl_t *)handle;
+  if ( !ctl ) return -EINVAL;
+  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
+    return -errno;
+  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_INFO, info ) < 0 )
+    return -errno;
+  return 0;
+}

@@ -1,6 +1,6 @@
 CC     	= gcc
 CFLAGS	= -static -O2 -g -Wall -pipe
-TARGETS = control mixer
+TARGETS = control mixer switches
 LIB	= -L../lib -lsound
 
 all: $(TARGETS)
@@ -10,6 +10,9 @@ control: control.c
 
 mixer: mixer.c
 	$(CC) $(CFLAGS) $(LIB) -o mixer mixer.c
+
+switches: switches.c
+	$(CC) $(CFLAGS) $(LIB) -o switches switches.c
 
 clean:
 	rm -f *.o $(TARGETS) *~

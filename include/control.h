@@ -25,6 +25,7 @@ int snd_ctl_pcm_info( void *handle, int dev, snd_pcm_info_t *info );
 int snd_ctl_pcm_playback_info( void *handle, int dev, snd_pcm_playback_info_t *info );
 int snd_ctl_pcm_record_info( void *handle, int dev, snd_pcm_record_info_t *info );
 int snd_ctl_mixer_info( void *handle, int dev, snd_mixer_info_t *info );
+int snd_ctl_rawmidi_info( void *handle, int dev, snd_rawmidi_info_t *info );
 
 #ifdef __cplusplus
 }
