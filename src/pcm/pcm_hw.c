@@ -891,7 +891,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	if (hw)
 		free(hw);
 	if (pcm)
-		snd_pcm_free(pcm);
+		snd_pcm_close(pcm);
 	return ret;
 }
 
