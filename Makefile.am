@@ -1,5 +1,5 @@
 SUBDIRS=doc include src test utils
-EXTRA_DIST=ChangeLog INSTALL cvscompile
+EXTRA_DIST=ChangeLog INSTALL configure cvscompile
 
 INCLUDES=-I$(top_srcdir)/include
 
