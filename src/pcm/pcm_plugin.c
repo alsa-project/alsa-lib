@@ -225,7 +225,7 @@ int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 	info->max_rate = 192000;
 	info->min_voices = 1;
 	info->max_voices = 32;
-	info->rates = SND_PCM_RATE_CONTINUOUS;
+	info->rates = SND_PCM_RATE_CONTINUOUS | SND_PCM_RATE_8000_192000;
 	info->buffer_size = snd_pcm_plugin_client_size(pcm, info->channel, info->buffer_size);
 	info->min_fragment_size = snd_pcm_plugin_client_size(pcm, info->channel, info->min_fragment_size);
 	info->max_fragment_size = snd_pcm_plugin_client_size(pcm, info->channel, info->max_fragment_size);
