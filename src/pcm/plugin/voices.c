@@ -21,6 +21,7 @@
   
 #ifdef __KERNEL__
 #include "../../include/driver.h"
+#include "../../include/pcm.h"
 #include "../../include/pcm_plugin.h"
 #else
 #include <stdio.h>
