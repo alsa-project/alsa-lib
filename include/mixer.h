@@ -26,6 +26,8 @@ int snd_mixer_channel(void *handle, const char *channel_id);
 int snd_mixer_channel_info(void *handle, int channel, snd_mixer_channel_info_t * info);
 int snd_mixer_channel_read(void *handle, int channel, snd_mixer_channel_t * data);
 int snd_mixer_channel_write(void *handle, int channel, snd_mixer_channel_t * data);
+int snd_mixer_channel_record_read(void *handle, int channel, snd_mixer_channel_t * data);
+int snd_mixer_channel_record_write(void *handle, int channel, snd_mixer_channel_t * data);
 int snd_mixer_switches(void *handle);
 int snd_mixer_switch_read(void *handle, int switchn, snd_mixer_switch_t * data);
 int snd_mixer_switch_write(void *handle, int switchn, snd_mixer_switch_t * data);

@@ -190,6 +190,32 @@ int snd_mixer_channel_write(void *handle, int channel, snd_mixer_channel_t * dat
 	return 0;
 }
 
+int snd_mixer_channel_record_read(void *handle, int channel, snd_mixer_channel_t * data)
+{
+	snd_mixer_t *mixer;
+
+	mixer = (snd_mixer_t *) handle;
+	if (!mixer)
+		return -EINVAL;
+	data->channel = channel;
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_RREAD, data) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_mixer_channel_record_write(void *handle, int channel, snd_mixer_channel_t * data)
+{
+	snd_mixer_t *mixer;
+
+	mixer = (snd_mixer_t *) handle;
+	if (!mixer)
+		return -EINVAL;
+	data->channel = channel;
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_RWRITE, data) < 0)
+		return -errno;
+	return 0;
+}
+
 int snd_mixer_switches(void *handle)
 {
 	snd_mixer_t *mixer;
