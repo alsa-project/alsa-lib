@@ -139,7 +139,7 @@ int snd_pcm_state(snd_pcm_t *handle)
 	return handle->fast_ops->state(handle->fast_op_arg);
 }
 
-int snd_pcm_frame_io(snd_pcm_t *handle, int update)
+ssize_t snd_pcm_frame_io(snd_pcm_t *handle, int update)
 {
 	assert(handle);
 	assert(handle->valid_setup);
@@ -428,16 +428,16 @@ int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp)
 	fprintf(fp, "xrun_mode: %s\n", assoc(setup->xrun_mode, xruns));
 	fprintf(fp, "time: %s\n", assoc(setup->time, onoff));
 	// ust_time
-	fprintf(fp, "buffer_size: %d\n", setup->buffer_size);
-	fprintf(fp, "frag_size: %d\n", setup->frag_size);
-	fprintf(fp, "frags: %d\n", setup->frags);
-	fprintf(fp, "frame_boundary: %d\n", setup->frame_boundary);
+	fprintf(fp, "buffer_size: %ld\n", (long)setup->buffer_size);
+	fprintf(fp, "frag_size: %ld\n", (long)setup->frag_size);
+	fprintf(fp, "frags: %ld\n", (long)setup->frags);
+	fprintf(fp, "frame_boundary: %ld\n", (long)setup->frame_boundary);
 	fprintf(fp, "msbits_per_sample: %d\n", setup->msbits_per_sample);
-	fprintf(fp, "frames_min: %d\n", setup->frames_min);
-	fprintf(fp, "frames_align: %d\n", setup->frames_align);
-	fprintf(fp, "frames_xrun_max: %d\n", setup->frames_xrun_max);
+	fprintf(fp, "frames_min: %ld\n", (long)setup->frames_min);
+	fprintf(fp, "frames_align: %ld\n", (long)setup->frames_align);
+	fprintf(fp, "frames_xrun_max: %ld\n", (long)setup->frames_xrun_max);
 	fprintf(fp, "fill_mode: %s\n", assoc(setup->fill_mode, fills));
-	fprintf(fp, "frames_fill_max: %d\n", setup->frames_fill_max);
+	fprintf(fp, "frames_fill_max: %ld\n", (long)setup->frames_fill_max);
 	return 0;
 }
 
@@ -473,28 +473,28 @@ int snd_pcm_format_value(const char* name)
 	return -1;
 }
 
-ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *handle, int bytes)
+ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *handle, ssize_t bytes)
 {
 	assert(handle);
 	assert(handle->valid_setup);
 	return bytes * 8 / handle->bits_per_frame;
 }
 
-ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *handle, int frames)
+ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *handle, ssize_t frames)
 {
 	assert(handle);
 	assert(handle->valid_setup);
 	return frames * handle->bits_per_frame / 8;
 }
 
-ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *handle, int bytes)
+ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *handle, ssize_t bytes)
 {
 	assert(handle);
 	assert(handle->valid_setup);
 	return bytes * 8 / handle->bits_per_sample;
 }
 
-ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *handle, int samples)
+ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *handle, ssize_t samples)
 {
 	assert(handle);
 	assert(handle->valid_setup);

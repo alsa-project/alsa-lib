@@ -111,9 +111,9 @@ int snd_pcm_plug_playback_channels_mask(snd_pcm_plug_t *plug,
 					bitset_t *client_vmask);
 int snd_pcm_plug_capture_channels_mask(snd_pcm_plug_t *plug,
 				       bitset_t *client_vmask);
-int snd_pcm_plugin_client_channels(snd_pcm_plugin_t *plugin,
-				   size_t frames,
-				   snd_pcm_plugin_channel_t **channels);
+ssize_t snd_pcm_plugin_client_channels(snd_pcm_plugin_t *plugin,
+				       size_t frames,
+				       snd_pcm_plugin_channel_t **channels);
 
 void *snd_pcm_plug_buf_alloc(snd_pcm_plug_t *plug, size_t size);
 void snd_pcm_plug_buf_unlock(snd_pcm_plug_t *pcm, void *ptr);

@@ -24,8 +24,8 @@ struct snd_ctl {
 	int fd;
 	int ccount;
 	int cerr;
-	snd_hcontrol_t *cfirst;
-	snd_hcontrol_t *clast;
+	void *croot;		/* root of controls */
+	void *croot_new;	/* new croot */
 	snd_ctl_csort_t *csort;
 	snd_ctl_ccallback_rebuild_t *callback_rebuild;
 	void *callback_rebuild_private_data;

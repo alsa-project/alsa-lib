@@ -121,7 +121,7 @@ static int snd_pcm_hw_status(void *private, snd_pcm_status_t * status)
 	return 0;
 }
 
-static ssize_t snd_pcm_hw_state(void *private)
+static int snd_pcm_hw_state(void *private)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;

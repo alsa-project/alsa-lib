@@ -245,7 +245,7 @@ int snd_instr_iwffff_open(snd_iwffff_handle_t **handle, const char *name_fff, co
 	}
 	iwf->share_id1 = IWFFFF_SHARE_FILE;
 #ifdef __alpha__
-	iwf->share_id2 = (info.st_dev << 16) | ((info.st_ino >> 32) & 0xffff);
+	iwf->share_id2 = (info.st_dev << 16) /* | ((info.st_ino >> 32) & 0xffff) */;
 #else
 	iwf->share_id2 = info.st_dev << 16;
 #endif

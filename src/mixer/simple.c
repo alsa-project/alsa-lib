@@ -38,8 +38,9 @@ static int test_mixer_id(snd_mixer_t *handle, const char *name, int index)
 	id.iface = SND_CONTROL_IFACE_MIXER;
 	strcpy(id.name, name);
 	id.index = index;
+	printf("look\n");
 	hcontrol = snd_ctl_cfind(handle->ctl_handle, &id);
-	// fprintf(stderr, "Looking for control: '%s', %i (0x%lx)\n", name, index, (long)hcontrol);
+	fprintf(stderr, "Looking for control: '%s', %i (0x%lx)\n", name, index, (long)hcontrol);
 	return hcontrol != NULL;
 }
 
@@ -130,6 +131,7 @@ static int input_get_volume(snd_mixer_t *handle, mixer_simple_t *simple, snd_mix
 		return err;
 	for (idx = 0; idx < simple->voices && idx < 32; idx++)
 		control->volume.values[idx] = ctl.value.integer.value[voices == 1 ? 0 : idx];
+	return 0;
 }
 
 static int input_get_mute_switch(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, int voices)
@@ -144,6 +146,7 @@ static int input_get_mute_switch(snd_mixer_t *handle, mixer_simple_t *simple, sn
 	for (idx = 0; idx < simple->voices && idx < 32; idx++)
 		if (ctl.value.integer.value[voices == 1 ? 0 : idx] == 0)
 			control->mute |= 1 << idx;
+	return 0;
 }
 
 static int input_get_capture_switch(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, int voices)
@@ -158,6 +161,7 @@ static int input_get_capture_switch(snd_mixer_t *handle, mixer_simple_t *simple,
 	for (idx = 0; idx < simple->voices && idx < 32; idx++)
 		if (ctl.value.integer.value[voices == 1 ? 0 : idx])
 			control->capture |= 1 << idx;
+	return 0;
 }
 
 static int input_get(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control)
@@ -197,7 +201,6 @@ static int input_get(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simp
 		if (simple->present & MIXER_PRESENT_CAPTURE_SWITCH) {
 			input_get_capture_switch(handle, simple, control, "Capture ", simple->cswitch_values);
 		} else if (simple->present & MIXER_PRESENT_CAPTURE_SOURCE) {
-			char str[128];
 			snd_control_t ctl;
 			if ((err = get_mixer_read(handle, "Capture Source", 0, &ctl)) < 0)
 				return err;
@@ -224,6 +227,7 @@ static int input_put_volume(snd_mixer_t *handle, mixer_simple_t *simple, snd_mix
 	}
 	if ((err = put_mixer_write(handle, str, simple->sid.index, &ctl)) < 0)
 		return err;
+	return 0;
 }
 
 static int input_put_mute_switch(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, int voices)
@@ -242,6 +246,7 @@ static int input_put_mute_switch(snd_mixer_t *handle, mixer_simple_t *simple, sn
 	err = put_mixer_write(handle, str, simple->sid.index, &ctl);
 	if ((err = put_mixer_write(handle, str, simple->sid.index, &ctl)) < 0)
 		return err;
+	return 0;
 }
 
 static int input_put_capture_switch(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, int voices)
@@ -257,6 +262,7 @@ static int input_put_capture_switch(snd_mixer_t *handle, mixer_simple_t *simple,
 		ctl.value.integer.value[idx] = (control->capture & (1 << idx)) ? 1 : 0;
 	if ((err = put_mixer_write(handle, str, simple->sid.index, &ctl)) < 0)
 		return err;
+	return 0;
 }
 
 static int input_put(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control)
@@ -285,7 +291,6 @@ static int input_put(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simp
 		if (simple->present & MIXER_PRESENT_CAPTURE_SWITCH) {
 			input_put_capture_switch(handle, simple, control, "Capture ", simple->cswitch_values);
 		} else if (simple->present & MIXER_PRESENT_CAPTURE_SOURCE) {
-			char str[128];
 			snd_control_t ctl;
 			if ((err = get_mixer_read(handle, "Capture Source", 0, &ctl)) < 0)
 				return err;
@@ -320,8 +325,8 @@ static mixer_simple_t *build_input_scontrol(snd_mixer_t *handle, const char *sna
 static int build_input(snd_mixer_t *handle, const char *sname)
 {
 	char str[128];
-	unsigned int present, caps, capture_item;
-	int index = -1, voices, err;
+	unsigned int present, caps, capture_item, voices;
+	int index = -1, err;
 	snd_control_info_t gswitch_info, pswitch_info, cswitch_info;
 	snd_control_info_t gvolume_info, pvolume_info, cvolume_info;
 	snd_control_info_t csource_info;
@@ -334,15 +339,19 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 	memset(&gvolume_info, 0, sizeof(gvolume_info));
 	memset(&pvolume_info, 0, sizeof(pvolume_info));
 	memset(&cvolume_info, 0, sizeof(cvolume_info));
+	printf("b (1)\n");
 	do {
 		index++;
 		voices = 0;
 		present = caps = capture_item = 0;
 		min = max = 0;
 		sprintf(str, "%s Switch", sname);
+		printf("b (2)\n");
 		if (test_mixer_id(handle, str, index)) {
+			printf("b (3)\n");
 			if ((err = get_mixer_info(handle, str, index, &gswitch_info)) < 0)
 				return err;
+			printf("b (4)\n");
 			if (gswitch_info.type == SND_CONTROL_TYPE_BOOLEAN) {
 				if (voices < gswitch_info.values_count)
 					voices = gswitch_info.values_count;
@@ -350,6 +359,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 				present |= MIXER_PRESENT_GLOBAL_SWITCH;
 			}
 		}
+		printf("b (3)\n");
 		sprintf(str, "%s Volume", sname);
 		if (test_mixer_id(handle, str, index)) {
 			if ((err = get_mixer_info(handle, str, index, &gvolume_info)) < 0)
@@ -473,6 +483,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_VOLUME;
 			}
 		}
+		printf("b (4)\n");
 		simple = build_input_scontrol(handle, sname, index);
 		if (simple == NULL)
 			return -ENOMEM;
@@ -489,7 +500,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 		simple->voices = voices;
 		simple->min = min;
 		simple->max = max;
-		// fprintf(stderr, "sname = '%s', index = %i, present = 0x%x, voices = %i\n", sname, index, present, voices);
+		fprintf(stderr, "sname = '%s', index = %i, present = 0x%x, voices = %i\n", sname, index, present, voices);
 	} while (present != 0);
 	return 0;
 }
@@ -516,9 +527,11 @@ int snd_mixer_simple_build(snd_mixer_t *handle)
 	char **input = inputs;
 	int err;
 
+	printf("simple build - start\n");
 	if ((err = snd_ctl_cbuild(handle->ctl_handle, snd_ctl_csort)) < 0)
 		return err;
 	while (*input) {
+		printf("simple build - input '%s'\n", *input);
 		if ((err = build_input(handle, *input)) < 0) {
 			snd_mixer_simple_destroy(handle);
 			return err;
@@ -526,6 +539,7 @@ int snd_mixer_simple_build(snd_mixer_t *handle)
 		input++;
 	}
 	handle->simple_valid = 1;
+	printf("simple build - end\n");
 	return 0;
 }
 

@@ -68,7 +68,7 @@ int snd_pcm_plugin_append(snd_pcm_plugin_t *plugin)
 void snd_pcm_plugin_dump(snd_pcm_plugin_t *plugin, FILE *fp)
 {
 	fprintf(fp, "----------- %s\n", plugin->name);
-	fprintf(fp, "Buffer: %d frames\n", plugin->buf_frames);
+	fprintf(fp, "Buffer: %ld frames\n", (long)plugin->buf_frames);
 	if (plugin->src_format.interleave != plugin->dst_format.interleave) {
 		if (plugin->src_format.interleave)
 			fprintf(fp, "Interleaved -> Non interleaved\n");
@@ -314,7 +314,7 @@ static int snd_pcm_plug_state(void *private)
 	return snd_pcm_state(plug->slave);
 }
 
-static int snd_pcm_plug_frame_io(void *private, int update)
+static ssize_t snd_pcm_plug_frame_io(void *private, int update)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	ssize_t frame_io = snd_pcm_frame_io(plug->slave, update);

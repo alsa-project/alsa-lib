@@ -733,7 +733,8 @@ int snd_seq_flush_output(snd_seq_t *seq)
  */
 int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 {
-	int len, olen, err;
+	size_t len, olen;
+	int err;
 	snd_seq_event_t *ev;
 
 	if (!seq)
@@ -890,7 +891,7 @@ static int snd_seq_decode_event(char **buf, size_t *len, snd_seq_event_t *ev)
 static int snd_seq_event_read_buffer(snd_seq_t *seq)
 {
 	char *buf;
-	int count;
+	ssize_t count;
 
 	count = read(seq->fd, seq->ibuf, seq->ibufsize);
 	if (count < 0)

@@ -206,7 +206,6 @@ static void snd_mixer_simple_read_remove(snd_ctl_t *ctl_handle, void *private_da
 
 int snd_mixer_simple_read(snd_mixer_t *handle, snd_mixer_simple_callbacks_t *callbacks)
 {
-	snd_ctl_callbacks_t xcallbacks;
 	int err;
 
 	if (handle == NULL)

@@ -20,6 +20,7 @@
   
 #include <stdio.h>
 #include <malloc.h>
+#include <string.h>
 #include <errno.h>
 #include <sys/poll.h>
 #include <sys/uio.h>
@@ -118,7 +119,7 @@ int snd_pcm_mmap_state(snd_pcm_t *handle)
 	return handle->mmap_status->state;
 }
 
-int snd_pcm_mmap_frame_io(snd_pcm_t *handle)
+ssize_t snd_pcm_mmap_frame_io(snd_pcm_t *handle)
 {
 	assert(handle);
 	assert(handle->mmap_status);

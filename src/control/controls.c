@@ -27,21 +27,26 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <assert.h>
+#define __USE_GNU
+#include <search.h>
 #include "asoundlib.h"
 #include "control_local.h"
 
-static void snd_ctl_link_after(snd_ctl_t *handle, snd_hcontrol_t *point, snd_hcontrol_t *hcontrol);
+static void snd_ctl_cfree1(snd_hcontrol_t *hcontrol);
 
 int snd_ctl_cbuild(snd_ctl_t *handle, snd_ctl_csort_t *csort)
 {
 	snd_control_list_t list;
 	snd_hcontrol_t *hcontrol, *prev;
-	int err, idx;
+	int err;
+	unsigned int idx;
 
+	printf("cbuild - start\n");
 	assert(handle != NULL);
 	if ((err = snd_ctl_cfree(handle)) < 0)
 		return err;
-      __rebuild:
+	if (csort == NULL)
+		csort = snd_ctl_csort;
 	memset(&list, 0, sizeof(list));
 	do {
 		if (list.pids != NULL)
@@ -68,93 +73,49 @@ int snd_ctl_cbuild(snd_ctl_t *handle, snd_ctl_csort_t *csort)
 			return -ENOMEM;
 		}
 		hcontrol->id = list.pids[idx];
-		if (prev == NULL) {
-			handle->cfirst = handle->clast = hcontrol;
-			handle->ccount = 1;
-		} else {
-			snd_ctl_link_after(handle, prev, hcontrol);
+		hcontrol->handle = handle;
+		if (tsearch(hcontrol, &handle->croot, (__compar_fn_t)csort) == NULL) {
+			tdestroy(&handle->croot, (__free_fn_t)snd_ctl_cfree1);
+			handle->croot = NULL;
 		}
-		prev = hcontrol;
+		handle->ccount++;
 	}
 	if (list.pids != NULL)
 		free(list.pids);
-	if (csort != NULL && (err = snd_ctl_cresort(handle, csort)) < 0)
-		return err;
+	handle->csort = csort;
 	return 0;
 }
 
-snd_hcontrol_t *snd_ctl_cfirst(snd_ctl_t *handle)
+static void snd_ctl_cfree1(snd_hcontrol_t *hcontrol)
 {
+	snd_ctl_t *handle;
+	
+	assert(hcontrol != NULL);
+	handle = hcontrol->handle;
 	assert(handle != NULL);
-	return handle->cfirst;
-}
-
-snd_hcontrol_t *snd_ctl_clast(snd_ctl_t *handle)
-{
-	assert(handle != NULL);
-	return handle->clast;
-}
-
-static void snd_ctl_unlink(snd_ctl_t *handle, snd_hcontrol_t *hcontrol)
-{
-	if (handle->cfirst == hcontrol)
-		handle->cfirst = hcontrol->next;
-	if (handle->clast == hcontrol)
-		handle->clast = hcontrol->prev;
-	if (hcontrol->prev != NULL)
-		hcontrol->prev->next = hcontrol->next;
-	if (hcontrol->next != NULL)
-		hcontrol->next->prev = hcontrol->prev;
-	hcontrol->prev = hcontrol->next = NULL;
-	handle->ccount--;
-}
-
-static void snd_ctl_link_before(snd_ctl_t *handle, snd_hcontrol_t *point, snd_hcontrol_t *hcontrol)
-{
-	if (point == handle->cfirst)
-		handle->cfirst = hcontrol;
-	hcontrol->next = point;
-	hcontrol->prev = point->prev;
-	if (point->prev != NULL)
-		point->prev->next = hcontrol;
-	point->prev = hcontrol;
-	handle->ccount++;
-}
-
-static void snd_ctl_link_after(snd_ctl_t *handle, snd_hcontrol_t *point, snd_hcontrol_t *hcontrol)
-{
-	if (point == handle->clast)
-		handle->clast = hcontrol;
-	hcontrol->prev = point;
-	hcontrol->next = point->next;
-	if (point->next != NULL)
-		point->next->prev = hcontrol;
-	point->next = hcontrol;
-	handle->ccount++;
-}
-
-static void snd_ctl_cfree1(snd_ctl_t *handle, snd_hcontrol_t *hcontrol)
-{
-	snd_ctl_unlink(handle, hcontrol);
+	assert(handle->ccount > 0);
 	if (hcontrol->event_remove)
 		hcontrol->event_remove(handle, hcontrol);
 	if (hcontrol->private_free)
 		hcontrol->private_free(hcontrol->private_data);
 	free(hcontrol);
+	handle->ccount--;
 }
 
 int snd_ctl_cfree(snd_ctl_t *handle)
 {
 	handle->csort = NULL;
-	while (handle->cfirst)
-		snd_ctl_cfree1(handle, handle->cfirst);
+	handle->cerr = 0;
+	if (handle->croot != NULL) {
+		tdestroy(handle->croot, (__free_fn_t)snd_ctl_cfree1);
+		handle->croot = NULL;
+	}
 	assert(handle->ccount == 0);
+	return 0;
 }
 
-int snd_ctl_csort(const snd_hcontrol_t **_c1, const snd_hcontrol_t **_c2)
+int snd_ctl_csort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2)
 {
-	const snd_hcontrol_t *c1 = *_c1;
-	const snd_hcontrol_t *c2 = *_c2;
 	int res;
 
 	res = strcmp(c1->id.name, c2->id.name);
@@ -165,54 +126,70 @@ int snd_ctl_csort(const snd_hcontrol_t **_c1, const snd_hcontrol_t **_c2)
 			return 1;
 		return 0;
 	}
+	return res;
+}
+
+static void snd_ctl_cresort_action(snd_hcontrol_t *hcontrol, VISIT which, int level)
+{
+	snd_ctl_t *handle;
+
+	level = 0;			/* to keep GCC happy */
+	assert(hcontrol != NULL);
+	handle = hcontrol->handle;
+	assert(handle != NULL);
+	if (handle->cerr < 0)
+		return;
+	switch (which) {
+	case preorder: break;
+	case postorder: break;
+	case endorder:
+	case leaf:
+		if (tsearch(hcontrol, &handle->croot, (__compar_fn_t)handle->csort) == NULL)
+			handle->cerr = -ENOMEM;
+		break;
+	}
+}
+
+static void snd_ctl_cresort_free(snd_hcontrol_t *hcontrol)
+{
+	hcontrol = NULL;		/* to keep GCC happy */
+	/* nothing */
 }
 
 int snd_ctl_cresort(snd_ctl_t *handle, snd_ctl_csort_t *csort)
 {
-	int idx, count;
-	snd_hcontrol_t **pmap, *hcontrol;
+	int result;
+	snd_ctl_csort_t *csort_old;
 
 	assert(handle != NULL && csort != NULL);
 	if (handle->ccount == 0)
 		return 0;
-	pmap = (snd_hcontrol_t **)calloc(handle->ccount, sizeof(snd_hcontrol_t *));
-	if (pmap == NULL)
-		return -ENOMEM;
-	for (hcontrol = handle->cfirst, idx = 0; hcontrol != NULL; hcontrol = hcontrol->next, idx++) {
-		printf("idx = %i, hcontrol = 0x%x (0x%x), '%s'\n", idx, (int)hcontrol, (int)&pmap[idx], hcontrol->id.name);
-		pmap[idx] = hcontrol;
-	}
-	assert(idx == handle->ccount);
+	if (handle->cerr < 0)
+		return handle->cerr;
+	assert(handle->croot_new == NULL);
+	csort_old = handle->csort;
 	handle->csort = csort;
-	qsort(pmap, count = handle->ccount, sizeof(snd_hcontrol_t *), (int (*)(const void *, const void *))csort);
-	while (handle->cfirst)
-		snd_ctl_unlink(handle, handle->cfirst);
-	handle->cfirst = handle->clast = pmap[0]; handle->ccount = 1;
-	for (idx = 1; idx < count; idx++)
-		snd_ctl_link_after(handle, pmap[idx-1], pmap[idx]);
-	free(pmap);
+	twalk(handle->croot, (__action_fn_t)snd_ctl_cresort_action);
+	if (handle->cerr < 0) {
+		result = handle->cerr;
+		handle->cerr = 0;
+		handle->csort = csort_old;
+		tdestroy(handle->croot_new, (__free_fn_t)snd_ctl_cresort_free);
+		handle->croot_new = NULL;
+		return result;
+	}
+	tdestroy(handle->croot, (__free_fn_t)snd_ctl_cresort_free);
+	handle->croot = handle->croot_new;
+	handle->croot_new = NULL;
 	return 0;
 }
 
 snd_hcontrol_t *snd_ctl_cfind(snd_ctl_t *handle, snd_control_id_t *id)
 {
-	snd_hcontrol_t *hcontrol;
-	
 	assert(handle != NULL);
-	for (hcontrol = handle->cfirst; hcontrol != NULL; hcontrol = hcontrol->next) {
-		if (hcontrol->id.iface != id->iface)
-			continue;
-		if (hcontrol->id.device != id->device)
-			continue;
-		if (hcontrol->id.subdevice != id->subdevice)
-			continue;
-		if (strncmp(hcontrol->id.name, id->name, sizeof(hcontrol->id.name)))
-			continue;
-		if (hcontrol->id.index != id->index)
-			continue;
-		return hcontrol;
-	}
-	return NULL;
+	if (handle->croot == NULL)
+		return NULL;
+	return (snd_hcontrol_t *)tfind(id, &handle->croot, (__compar_fn_t)handle->csort);
 }
 
 int snd_ctl_ccallback_rebuild(snd_ctl_t *handle, snd_ctl_ccallback_rebuild_t *callback, void *private_data)
@@ -220,6 +197,7 @@ int snd_ctl_ccallback_rebuild(snd_ctl_t *handle, snd_ctl_ccallback_rebuild_t *ca
 	assert(handle != NULL);
 	handle->callback_rebuild = callback;
 	handle->callback_rebuild_private_data = private_data;
+	return 0;
 }
 
 int snd_ctl_ccallback_add(snd_ctl_t *handle, snd_ctl_ccallback_add_t *callback, void *private_data)
@@ -227,10 +205,12 @@ int snd_ctl_ccallback_add(snd_ctl_t *handle, snd_ctl_ccallback_add_t *callback, 
 	assert(handle != NULL);
 	handle->callback_add = callback;
 	handle->callback_add_private_data = private_data;
+	return 0;
 }
 
 static void callback_rebuild(snd_ctl_t *handle, void *private_data)
 {
+	private_data = NULL;	/* to keep GCC happy */
 	handle->cerr = snd_ctl_cbuild(handle, handle->csort);
 	if (handle->cerr >= 0 && handle->callback_rebuild)
 		handle->callback_rebuild(handle, handle->callback_rebuild_private_data);
@@ -240,6 +220,7 @@ static void callback_change(snd_ctl_t *handle, void *private_data, snd_control_i
 {
 	snd_hcontrol_t *hcontrol;
 
+	private_data = NULL;	/* to keep GCC happy */
 	if (handle->cerr < 0)
 		return;
 	hcontrol = snd_ctl_cfind(handle, id);
@@ -254,6 +235,7 @@ static void callback_value(snd_ctl_t *handle, void *private_data, snd_control_id
 {
 	snd_hcontrol_t *hcontrol;
 
+	private_data = NULL;	/* to keep GCC happy */
 	if (handle->cerr < 0)
 		return;
 	hcontrol = snd_ctl_cfind(handle, id);
@@ -268,6 +250,7 @@ static void callback_add(snd_ctl_t *handle, void *private_data, snd_control_id_t
 {
 	snd_hcontrol_t *hcontrol, *icontrol;
 
+	private_data = NULL;	/* to keep GCC happy */
 	if (handle->cerr < 0)
 		return;
 	hcontrol = (snd_hcontrol_t *)calloc(1, sizeof(snd_hcontrol_t));
@@ -276,17 +259,16 @@ static void callback_add(snd_ctl_t *handle, void *private_data, snd_control_id_t
 		return;
 	}
 	hcontrol->id = *id;
-	if (handle->csort != NULL) {
-		for (icontrol = handle->cfirst; icontrol != NULL; icontrol = icontrol->next) {
-			if (handle->csort((const snd_hcontrol_t **)&icontrol, (const snd_hcontrol_t **)&hcontrol) > 0) {
-				snd_ctl_link_before(handle, icontrol, hcontrol);
-				break;
-			}
-		}
-		if (icontrol == NULL)
-			snd_ctl_link_after(handle, handle->clast, hcontrol);
-	} else {
-		snd_ctl_link_after(handle, handle->clast, hcontrol);
+	hcontrol->handle = handle;
+	icontrol = tsearch(hcontrol, &handle->croot, (__compar_fn_t)handle->csort);
+	if (icontrol == NULL) {
+		free(hcontrol);
+		handle->cerr = -ENOMEM;
+		return;
+	}
+	if (icontrol != hcontrol) {	/* double hit */
+		free(hcontrol);
+		return;
 	}
 	if (handle->callback_add)
 		handle->callback_add(handle, handle->callback_add_private_data, hcontrol);
@@ -296,6 +278,7 @@ static void callback_remove(snd_ctl_t *handle, void *private_data, snd_control_i
 {
 	snd_hcontrol_t *hcontrol;
 
+	private_data = NULL;	/* to keep GCC happy */
 	if (handle->cerr < 0)
 		return;
 	hcontrol = snd_ctl_cfind(handle, id);
@@ -303,19 +286,42 @@ static void callback_remove(snd_ctl_t *handle, void *private_data, snd_control_i
 		handle->cerr = -ENOENT;
 		return;
 	}
-	snd_ctl_cfree1(handle, hcontrol);
+	if (tdelete(hcontrol, &handle->croot, (__compar_fn_t)handle->csort) != NULL)
+		snd_ctl_cfree1(hcontrol);
+}
+
+static void snd_ctl_cevent_walk1(snd_hcontrol_t *hcontrol, VISIT which, int level)
+{
+	level = 0;	/* to keep GCC happy */
+	assert(hcontrol != NULL);
+	switch (which) {
+	case preorder: break;
+	case postorder: break;
+	case endorder:
+	case leaf:
+		if (hcontrol->change && hcontrol->event_change) {
+			hcontrol->event_change(hcontrol->handle, hcontrol);
+			hcontrol->change = 0;
+		}
+		if (hcontrol->value && hcontrol->event_value) {
+			hcontrol->event_value(hcontrol->handle, hcontrol);
+			hcontrol->value = 0;
+		}			
+		break;
+	}
 }
 
 int snd_ctl_cevent(snd_ctl_t *handle)
 {
-	snd_ctl_callbacks_t callbacks = {
+	static snd_ctl_callbacks_t callbacks = {
 		rebuild: callback_rebuild,
 		value: callback_value,
 		change: callback_change,
 		add: callback_add,
-		remove: callback_remove
+		remove: callback_remove,
+		private_data: NULL,
+		reserved: { NULL, }
 	};
-	snd_hcontrol_t *hcontrol;
 	int res;
 
 	assert(handle != NULL);
@@ -325,15 +331,6 @@ int snd_ctl_cevent(snd_ctl_t *handle)
 		return res;
 	if (handle->cerr < 0)
 		return handle->cerr;
-	for (hcontrol = handle->cfirst; hcontrol != NULL; hcontrol = hcontrol->next) {
-		if (hcontrol->change && hcontrol->event_change) {
-			hcontrol->event_change(handle, hcontrol);
-			hcontrol->change = 0;
-		}
-		if (hcontrol->value && hcontrol->event_value) {
-			hcontrol->event_value(handle, hcontrol);
-			hcontrol->value = 0;
-		}			
-	}
+	twalk(handle->croot, (__action_fn_t)snd_ctl_cevent_walk1);
 	return res;
 }
