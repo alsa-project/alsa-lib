@@ -344,7 +344,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 				sum.as_sint32 += sample;
 			goto after_sum;
 		add_int64_att:
-			sum.as_sint64 += (u_int64_t) sample * ttp->as_int;
+			sum.as_sint64 += (int64_t) sample * ttp->as_int;
 			goto after_sum;
 		add_int64_noatt:
 			if (ttp->as_int)
@@ -410,7 +410,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 	norm_int:
 		if (sum.as_sint64 > (int64_t)0x7fffffff)
 			sample = 0x7fffffff;	/* maximum positive value */
-		else if (sum.as_sint64 < (int64_t)-0x80000000)
+		else if (sum.as_sint64 < -(int64_t)0x80000000)
 			sample = 0x80000000;	/* maximum negative value */
 		else
 			sample = sum.as_sint64;
@@ -431,7 +431,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 		sum.as_float = rint(sum.as_float);
 		if (sum.as_float > (int64_t)0x7fffffff)
 			sample = 0x7fffffff;	/* maximum positive value */
-		else if (sum.as_float < (int64_t)-0x80000000)
+		else if (sum.as_float < -(int64_t)0x80000000)
 			sample = 0x80000000;	/* maximum negative value */
 		else
 			sample = sum.as_float;
