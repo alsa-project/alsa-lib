@@ -9,8 +9,10 @@ static void usage(void)
 	fprintf(stderr, "usage: rawmidi [options]\n");
 	fprintf(stderr, "  options:\n");
 	fprintf(stderr, "    -v: verbose mode\n");
-	fprintf(stderr, "    -i [ card-id device-id | node ] : test input device\n");
-	fprintf(stderr, "    -o [ card-id device-id | node ] : test output device\n");
+	fprintf(stderr, "    -i device-id : test ALSA input device\n");
+	fprintf(stderr, "    -o device-id : test ALSA output device\n");
+	fprintf(stderr, "    -I node      : test input node\n");
+	fprintf(stderr, "    -O node      : test output node\n");
 	fprintf(stderr, "    -t: test midi thru\n");
 	fprintf(stderr, "  example:\n");
 	fprintf(stderr, "    rawmidi -i 0 0 -o /dev/midi1\n");
@@ -31,11 +33,10 @@ int main(int argc,char** argv)
 	int err;
 	int thru=0;
 	int verbose = 0;
-	int card_in = -1,device_in = -1;
-	int card_out = -1,device_out = -1;
-	char iname[32], oname[32];
-	char* node_in = 0;
-	char* node_out = 0;
+	char *device_in = NULL;
+	char *device_out = NULL;
+	char *node_in = NULL;
+	char *node_out = NULL;
 	
 	int fd_in = -1,fd_out = -1;
 	snd_rawmidi_t *handle_in = 0,*handle_out = 0;
@@ -58,54 +59,38 @@ int main(int argc,char** argv)
 					thru = 1;
 					break;
 				case 'i':
-					if (isdigit(argv[i+1][0])) {
-						card_in = atoi(argv[i+1]);
-						if (isdigit(argv[i+2][0])) {
-							device_in = atoi(argv[i+2]);
-						}else{
-							fprintf(stderr,"Error: -i with card_id, but missing device id\n");
-							exit(-1);
-						}
-						i+=2;
-					}else{
-						node_in = argv[i+1];
-						i++;
-					}
+					if (i + 1 < argc)
+						device_in = argv[++i];
+					break;
+				case 'I':
+					if (i + 1 < argc)
+						node_in = argv[++i];
 					break;
 				case 'o':
-					if (isdigit(argv[i+1][0])) {
-						card_out = atoi(argv[i+1]);
-						if (isdigit(argv[i+2][0])) {
-							device_out = atoi(argv[i+2]);
-						}else{
-							fprintf(stderr,"Error: -i with card_id, but missing device id\n");
-							exit(-1);
-						}
-						i+=2;
-					}else{
-						node_out = argv[i+1];
-						i++;
-					}
+					if (i + 1 < argc)
+						device_out = argv[++i];
+					break;
+				case 'O':
+					if (i + 1 < argc)
+						node_out = argv[++i];
 					break;
 			}			
 		}
 	}
 
-	sprintf(oname, "hw:%i,%i", card_out, device_out);
-	
 	if (verbose) {
 		fprintf(stderr,"Using: \n");
 		fprintf(stderr,"Input: ");
-		if (card_in!=-1) {
-			fprintf(stderr,"card %d, device %d\n",card_in,device_in);
+		if (device_in) {
+			fprintf(stderr,"device %s\n",device_in);
 		}else if (node_in){
-			fprintf(stderr,"%s\n",node_in);		
+			fprintf(stderr,"%s\n",node_in);	
 		}else{
 			fprintf(stderr,"NONE\n");
 		}
 		fprintf(stderr,"Output: ");
-		if (card_out!=-1) {
-			fprintf(stderr,"card %d, device %d\n",card_out,device_out);
+		if (device_out) {
+			fprintf(stderr,"device %s\n",device_out);
 		}else if (node_out){
 			fprintf(stderr,"%s\n",node_out);		
 		}else{
@@ -113,11 +98,10 @@ int main(int argc,char** argv)
 		}
 	}
 	
-	if (card_in!=-1) {
-		sprintf(iname, "hw:%i,%i", card_in, device_in);
-		err = snd_rawmidi_open(&handle_in,iname,SND_RAWMIDI_OPEN_INPUT,0);		
+	if (device_in) {
+		err = snd_rawmidi_open(&handle_in,NULL,device_in,0);	
 		if (err) {
-			fprintf(stderr,"snd_rawmidi_open %d %d failed: %d\n",card_in,device_in,err);
+			fprintf(stderr,"snd_rawmidi_open %s failed: %d\n",device_in,err);
 		}
 	}
 	if (node_in && (!node_out || strcmp(node_out,node_in))) {
@@ -129,11 +113,10 @@ int main(int argc,char** argv)
 
 	signal(SIGINT,sighandler);
 
-	if (card_out!=-1) {
-		sprintf(oname, "hw:%i,%i", card_out, device_out);
-		err = snd_rawmidi_open(&handle_out,oname,SND_RAWMIDI_OPEN_OUTPUT,0);
+	if (device_out) {
+		err = snd_rawmidi_open(NULL,&handle_out,device_out,0);
 		if (err) {
-			fprintf(stderr,"snd_rawmidi_open %d %d failed: %d\n",card_out,device_out,err);
+			fprintf(stderr,"snd_rawmidi_open %s failed: %d\n",device_out,err);
 		}
 	}
 	if (node_out && (!node_in || strcmp(node_out,node_in))) {
@@ -186,12 +169,12 @@ int main(int argc,char** argv)
 			ch=0x90; snd_rawmidi_write(handle_out,&ch,1);
 			ch=60;   snd_rawmidi_write(handle_out,&ch,1);
 			ch=100;  snd_rawmidi_write(handle_out,&ch,1);
-			snd_rawmidi_output_drain(handle_out);
+			snd_rawmidi_drain(handle_out);
 			sleep(1);
 			ch=0x90; snd_rawmidi_write(handle_out,&ch,1);
 			ch=60;   snd_rawmidi_write(handle_out,&ch,1);
 			ch=0;    snd_rawmidi_write(handle_out,&ch,1);
-			snd_rawmidi_output_drain(handle_out); 
+			snd_rawmidi_drain(handle_out); 
 		}
 		if (fd_out!=-1) {
 			unsigned char ch;
@@ -223,7 +206,7 @@ int main(int argc,char** argv)
 
 				if (handle_out) {
 					snd_rawmidi_write(handle_out,&ch,1);
-					snd_rawmidi_output_drain(handle_out); 
+					snd_rawmidi_drain(handle_out); 
 				}
 				if (fd_out!=-1) {
 					write(fd_out,&ch,1);
@@ -240,11 +223,11 @@ int main(int argc,char** argv)
 	}
 	
 	if (handle_in) {
-		snd_rawmidi_input_drain(handle_in); 
+		snd_rawmidi_drain(handle_in); 
 		snd_rawmidi_close(handle_in);	
 	}
 	if (handle_out) {
-		snd_rawmidi_output_drain(handle_out); 
+		snd_rawmidi_drain(handle_out); 
 		snd_rawmidi_close(handle_out);	
 	}
 	if (fd_in!=-1) {
