@@ -40,15 +40,15 @@
  *  Basic linear conversion plugin
  */
  
-typedef void (*conv_f)(void *src, void *dst, size_t size);
+typedef void (*linear_f)(void *src, void *dst, size_t size);
 
 struct linear_private_data {
 	int src_sample_size, dst_sample_size;
-	conv_f func;
+	linear_f func;
 };
 
-#define CONV_FUNC(name, srctype, dsttype, val) \
-static void conv_##name(void *src_ptr, void *dst_ptr, size_t size) \
+#define LIN_FUNC(name, srctype, dsttype, val) \
+static void lin_##name(void *src_ptr, void *dst_ptr, size_t size) \
 { \
 	srctype *srcp = src_ptr; \
 	dsttype *dstp = dst_ptr; \
@@ -58,240 +58,240 @@ static void conv_##name(void *src_ptr, void *dst_ptr, size_t size) \
 	} \
 }
 
-CONV_FUNC(8_sign, u_int8_t, u_int8_t, src ^ 0x80)
+LIN_FUNC(8_sign, u_int8_t, u_int8_t, src ^ 0x80)
 
-CONV_FUNC(8_16, u_int8_t, u_int16_t, (u_int16_t)src << 8)
-CONV_FUNC(8_16_end, u_int8_t, u_int16_t, (u_int16_t)src)
-CONV_FUNC(8_16_sign, u_int8_t, u_int16_t, (u_int16_t)(src ^ 0x80) << 8)
-CONV_FUNC(8_16_sign_end, u_int8_t, u_int16_t, (u_int16_t)src ^ 0x80)
+LIN_FUNC(8_16, u_int8_t, u_int16_t, (u_int16_t)src << 8)
+LIN_FUNC(8_16_end, u_int8_t, u_int16_t, (u_int16_t)src)
+LIN_FUNC(8_16_sign, u_int8_t, u_int16_t, (u_int16_t)(src ^ 0x80) << 8)
+LIN_FUNC(8_16_sign_end, u_int8_t, u_int16_t, (u_int16_t)src ^ 0x80)
 
-CONV_FUNC(8_24, u_int8_t, u_int32_t, (u_int32_t)src << 16)
-CONV_FUNC(8_24_end, u_int8_t, u_int32_t, (u_int32_t)src << 8)
-CONV_FUNC(8_24_sign, u_int8_t, u_int32_t, (u_int32_t)(src ^ 0x80) << 16)
-CONV_FUNC(8_24_sign_end, u_int8_t, u_int32_t, (u_int32_t)(src ^ 0x80) << 8)
+LIN_FUNC(8_24, u_int8_t, u_int32_t, (u_int32_t)src << 16)
+LIN_FUNC(8_24_end, u_int8_t, u_int32_t, (u_int32_t)src << 8)
+LIN_FUNC(8_24_sign, u_int8_t, u_int32_t, (u_int32_t)(src ^ 0x80) << 16)
+LIN_FUNC(8_24_sign_end, u_int8_t, u_int32_t, (u_int32_t)(src ^ 0x80) << 8)
 
-CONV_FUNC(8_32, u_int8_t, u_int32_t, (u_int32_t)src << 24)
-CONV_FUNC(8_32_end, u_int8_t, u_int32_t, (u_int32_t)src)
-CONV_FUNC(8_32_sign, u_int8_t, u_int32_t, (u_int32_t)(src ^ 0x80) << 24)
-CONV_FUNC(8_32_sign_end, u_int8_t, u_int32_t, (u_int32_t)src ^ 0x80)
+LIN_FUNC(8_32, u_int8_t, u_int32_t, (u_int32_t)src << 24)
+LIN_FUNC(8_32_end, u_int8_t, u_int32_t, (u_int32_t)src)
+LIN_FUNC(8_32_sign, u_int8_t, u_int32_t, (u_int32_t)(src ^ 0x80) << 24)
+LIN_FUNC(8_32_sign_end, u_int8_t, u_int32_t, (u_int32_t)src ^ 0x80)
 
-CONV_FUNC(16_8, u_int16_t, u_int8_t, src >> 8)
-CONV_FUNC(16_end_8, u_int16_t, u_int8_t, src)
-CONV_FUNC(16_8_sign, u_int16_t, u_int8_t, (src >> 8) ^ 0x80)
-CONV_FUNC(16_end_8_sign, u_int16_t, u_int8_t, src ^ 0x80)
+LIN_FUNC(16_8, u_int16_t, u_int8_t, src >> 8)
+LIN_FUNC(16_end_8, u_int16_t, u_int8_t, src)
+LIN_FUNC(16_8_sign, u_int16_t, u_int8_t, (src >> 8) ^ 0x80)
+LIN_FUNC(16_end_8_sign, u_int16_t, u_int8_t, src ^ 0x80)
 
-CONV_FUNC(16_sign, u_int16_t, u_int16_t, src ^ 0x8000)
-CONV_FUNC(16_end, u_int16_t, u_int16_t, bswap_16(src))
-CONV_FUNC(16_end_sign, u_int16_t, u_int16_t, bswap_16(src) ^ 0x8000)
-CONV_FUNC(16_sign_end, u_int16_t, u_int16_t, bswap_16(src ^ 0x8000))
-CONV_FUNC(16_end_sign_end, u_int16_t, u_int16_t, src ^ 0x80)
+LIN_FUNC(16_sign, u_int16_t, u_int16_t, src ^ 0x8000)
+LIN_FUNC(16_end, u_int16_t, u_int16_t, bswap_16(src))
+LIN_FUNC(16_end_sign, u_int16_t, u_int16_t, bswap_16(src) ^ 0x8000)
+LIN_FUNC(16_sign_end, u_int16_t, u_int16_t, bswap_16(src ^ 0x8000))
+LIN_FUNC(16_end_sign_end, u_int16_t, u_int16_t, src ^ 0x80)
 
-CONV_FUNC(16_24, u_int16_t, u_int32_t, (u_int32_t)src << 8)
-CONV_FUNC(16_24_sign, u_int16_t, u_int32_t, (u_int32_t)(src ^ 0x8000) << 8)
-CONV_FUNC(16_24_end, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src) << 8)
-CONV_FUNC(16_24_sign_end, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src ^ 0x8000) << 8)
-CONV_FUNC(16_end_24, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src) << 8)
-CONV_FUNC(16_end_24_sign, u_int16_t, u_int32_t, (u_int32_t)(bswap_16(src) ^ 0x8000) << 8)
-CONV_FUNC(16_end_24_end, u_int16_t, u_int32_t, (u_int32_t)src << 8)
-CONV_FUNC(16_end_24_sign_end, u_int16_t, u_int32_t, ((u_int32_t)src ^ 0x80) << 8)
+LIN_FUNC(16_24, u_int16_t, u_int32_t, (u_int32_t)src << 8)
+LIN_FUNC(16_24_sign, u_int16_t, u_int32_t, (u_int32_t)(src ^ 0x8000) << 8)
+LIN_FUNC(16_24_end, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src) << 8)
+LIN_FUNC(16_24_sign_end, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src ^ 0x8000) << 8)
+LIN_FUNC(16_end_24, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src) << 8)
+LIN_FUNC(16_end_24_sign, u_int16_t, u_int32_t, (u_int32_t)(bswap_16(src) ^ 0x8000) << 8)
+LIN_FUNC(16_end_24_end, u_int16_t, u_int32_t, (u_int32_t)src << 8)
+LIN_FUNC(16_end_24_sign_end, u_int16_t, u_int32_t, ((u_int32_t)src ^ 0x80) << 8)
 
-CONV_FUNC(16_32, u_int16_t, u_int32_t, (u_int32_t)src << 16)
-CONV_FUNC(16_32_sign, u_int16_t, u_int32_t, (u_int32_t)(src ^ 0x8000) << 16)
-CONV_FUNC(16_32_end, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src))
-CONV_FUNC(16_32_sign_end, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src ^ 0x8000))
-CONV_FUNC(16_end_32, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src) << 16)
-CONV_FUNC(16_end_32_sign, u_int16_t, u_int32_t, (u_int32_t)(bswap_16(src) ^ 0x8000) << 16)
-CONV_FUNC(16_end_32_end, u_int16_t, u_int32_t, (u_int32_t)src)
-CONV_FUNC(16_end_32_sign_end, u_int16_t, u_int32_t, (u_int32_t)src ^ 0x80)
+LIN_FUNC(16_32, u_int16_t, u_int32_t, (u_int32_t)src << 16)
+LIN_FUNC(16_32_sign, u_int16_t, u_int32_t, (u_int32_t)(src ^ 0x8000) << 16)
+LIN_FUNC(16_32_end, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src))
+LIN_FUNC(16_32_sign_end, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src ^ 0x8000))
+LIN_FUNC(16_end_32, u_int16_t, u_int32_t, (u_int32_t)bswap_16(src) << 16)
+LIN_FUNC(16_end_32_sign, u_int16_t, u_int32_t, (u_int32_t)(bswap_16(src) ^ 0x8000) << 16)
+LIN_FUNC(16_end_32_end, u_int16_t, u_int32_t, (u_int32_t)src)
+LIN_FUNC(16_end_32_sign_end, u_int16_t, u_int32_t, (u_int32_t)src ^ 0x80)
 
-CONV_FUNC(24_8, u_int32_t, u_int8_t, src >> 16)
-CONV_FUNC(24_end_8, u_int32_t, u_int8_t, src >> 8)
-CONV_FUNC(24_8_sign, u_int32_t, u_int8_t, (src >> 16) ^ 0x80)
-CONV_FUNC(24_end_8_sign, u_int32_t, u_int8_t, (src >> 8) ^ 0x80)
+LIN_FUNC(24_8, u_int32_t, u_int8_t, src >> 16)
+LIN_FUNC(24_end_8, u_int32_t, u_int8_t, src >> 8)
+LIN_FUNC(24_8_sign, u_int32_t, u_int8_t, (src >> 16) ^ 0x80)
+LIN_FUNC(24_end_8_sign, u_int32_t, u_int8_t, (src >> 8) ^ 0x80)
 
-CONV_FUNC(24_16, u_int32_t, u_int16_t, src >> 8)
-CONV_FUNC(24_16_sign, u_int32_t, u_int16_t, (src >> 8) ^ 0x8000)
-CONV_FUNC(24_16_end, u_int32_t, u_int16_t, bswap_32(src >> 8))
-CONV_FUNC(24_16_sign_end, u_int32_t, u_int16_t, bswap_32((src >> 8) ^ 0x8000))
-CONV_FUNC(24_end_16, u_int32_t, u_int16_t, bswap_32(src) >> 8)
-CONV_FUNC(24_end_16_sign, u_int32_t, u_int16_t, (bswap_32(src) >> 8) ^ 0x8000)
-CONV_FUNC(24_end_16_end, u_int32_t, u_int16_t, src >> 8)
-CONV_FUNC(24_end_16_sign_end, u_int32_t, u_int16_t, (src >> 8) ^ 0x80)
+LIN_FUNC(24_16, u_int32_t, u_int16_t, src >> 8)
+LIN_FUNC(24_16_sign, u_int32_t, u_int16_t, (src >> 8) ^ 0x8000)
+LIN_FUNC(24_16_end, u_int32_t, u_int16_t, bswap_32(src >> 8))
+LIN_FUNC(24_16_sign_end, u_int32_t, u_int16_t, bswap_32((src >> 8) ^ 0x8000))
+LIN_FUNC(24_end_16, u_int32_t, u_int16_t, bswap_32(src) >> 8)
+LIN_FUNC(24_end_16_sign, u_int32_t, u_int16_t, (bswap_32(src) >> 8) ^ 0x8000)
+LIN_FUNC(24_end_16_end, u_int32_t, u_int16_t, src >> 8)
+LIN_FUNC(24_end_16_sign_end, u_int32_t, u_int16_t, (src >> 8) ^ 0x80)
 
-CONV_FUNC(24_sign, u_int32_t, u_int32_t, src ^ 0x800000)
-CONV_FUNC(24_end, u_int32_t, u_int32_t, bswap_32(src))
-CONV_FUNC(24_end_sign, u_int32_t, u_int32_t, bswap_32(src) ^ 0x800000)
-CONV_FUNC(24_sign_end, u_int32_t, u_int32_t, bswap_32(src) ^ 0x80)
-CONV_FUNC(24_end_sign_end, u_int32_t, u_int32_t, src ^ 0x80)
+LIN_FUNC(24_sign, u_int32_t, u_int32_t, src ^ 0x800000)
+LIN_FUNC(24_end, u_int32_t, u_int32_t, bswap_32(src))
+LIN_FUNC(24_end_sign, u_int32_t, u_int32_t, bswap_32(src) ^ 0x800000)
+LIN_FUNC(24_sign_end, u_int32_t, u_int32_t, bswap_32(src) ^ 0x80)
+LIN_FUNC(24_end_sign_end, u_int32_t, u_int32_t, src ^ 0x80)
 
-CONV_FUNC(24_32, u_int32_t, u_int32_t, src << 8)
-CONV_FUNC(24_32_sign, u_int32_t, u_int32_t, (src << 8) ^ 0x80000000)
-CONV_FUNC(24_32_end, u_int32_t, u_int32_t, bswap_32(src << 8))
-CONV_FUNC(24_32_sign_end, u_int32_t, u_int32_t, bswap_32((src << 8) ^ 0x80000000))
-CONV_FUNC(24_end_32, u_int32_t, u_int32_t, bswap_32(src) << 8)
-CONV_FUNC(24_end_32_sign, u_int32_t, u_int32_t, (bswap_32(src) << 8) ^ 0x80000000)
-CONV_FUNC(24_end_32_end, u_int32_t, u_int32_t, src >> 8)
-CONV_FUNC(24_end_32_sign_end, u_int32_t, u_int32_t, (src >> 8) ^ 0x80)
+LIN_FUNC(24_32, u_int32_t, u_int32_t, src << 8)
+LIN_FUNC(24_32_sign, u_int32_t, u_int32_t, (src << 8) ^ 0x80000000)
+LIN_FUNC(24_32_end, u_int32_t, u_int32_t, bswap_32(src << 8))
+LIN_FUNC(24_32_sign_end, u_int32_t, u_int32_t, bswap_32((src << 8) ^ 0x80000000))
+LIN_FUNC(24_end_32, u_int32_t, u_int32_t, bswap_32(src) << 8)
+LIN_FUNC(24_end_32_sign, u_int32_t, u_int32_t, (bswap_32(src) << 8) ^ 0x80000000)
+LIN_FUNC(24_end_32_end, u_int32_t, u_int32_t, src >> 8)
+LIN_FUNC(24_end_32_sign_end, u_int32_t, u_int32_t, (src >> 8) ^ 0x80)
 
-CONV_FUNC(32_8, u_int32_t, u_int8_t, src >> 24)
-CONV_FUNC(32_end_8, u_int32_t, u_int8_t, src)
-CONV_FUNC(32_8_sign, u_int32_t, u_int8_t, (src >> 24) ^ 0x80)
-CONV_FUNC(32_end_8_sign, u_int32_t, u_int8_t, src ^ 0x80)
+LIN_FUNC(32_8, u_int32_t, u_int8_t, src >> 24)
+LIN_FUNC(32_end_8, u_int32_t, u_int8_t, src)
+LIN_FUNC(32_8_sign, u_int32_t, u_int8_t, (src >> 24) ^ 0x80)
+LIN_FUNC(32_end_8_sign, u_int32_t, u_int8_t, src ^ 0x80)
 
-CONV_FUNC(32_16, u_int32_t, u_int16_t, src >> 16)
-CONV_FUNC(32_16_sign, u_int32_t, u_int16_t, (src >> 16) ^ 0x8000)
-CONV_FUNC(32_16_end, u_int32_t, u_int16_t, bswap_16(src >> 16))
-CONV_FUNC(32_16_sign_end, u_int32_t, u_int16_t, bswap_16((src >> 16) ^ 0x8000))
-CONV_FUNC(32_end_16, u_int32_t, u_int16_t, bswap_16(src))
-CONV_FUNC(32_end_16_sign, u_int32_t, u_int16_t, bswap_16(src) ^ 0x8000)
-CONV_FUNC(32_end_16_end, u_int32_t, u_int16_t, src)
-CONV_FUNC(32_end_16_sign_end, u_int32_t, u_int16_t, src ^ 0x80)
+LIN_FUNC(32_16, u_int32_t, u_int16_t, src >> 16)
+LIN_FUNC(32_16_sign, u_int32_t, u_int16_t, (src >> 16) ^ 0x8000)
+LIN_FUNC(32_16_end, u_int32_t, u_int16_t, bswap_16(src >> 16))
+LIN_FUNC(32_16_sign_end, u_int32_t, u_int16_t, bswap_16((src >> 16) ^ 0x8000))
+LIN_FUNC(32_end_16, u_int32_t, u_int16_t, bswap_16(src))
+LIN_FUNC(32_end_16_sign, u_int32_t, u_int16_t, bswap_16(src) ^ 0x8000)
+LIN_FUNC(32_end_16_end, u_int32_t, u_int16_t, src)
+LIN_FUNC(32_end_16_sign_end, u_int32_t, u_int16_t, src ^ 0x80)
 
-CONV_FUNC(32_24, u_int32_t, u_int32_t, src >> 8)
-CONV_FUNC(32_24_sign, u_int32_t, u_int32_t, (src >> 8) ^ 0x800000)
-CONV_FUNC(32_24_end, u_int32_t, u_int32_t, bswap_32(src >> 8))
-CONV_FUNC(32_24_sign_end, u_int32_t, u_int32_t, bswap_32((src >> 8) ^ 0x800000))
-CONV_FUNC(32_end_24, u_int32_t, u_int32_t, bswap_32(src) >> 8)
-CONV_FUNC(32_end_24_sign, u_int32_t, u_int32_t, (bswap_32(src) >> 8) ^ 0x800000)
-CONV_FUNC(32_end_24_end, u_int32_t, u_int32_t, src << 8)
-CONV_FUNC(32_end_24_sign_end, u_int32_t, u_int32_t, (src << 8) ^ 0x80)
+LIN_FUNC(32_24, u_int32_t, u_int32_t, src >> 8)
+LIN_FUNC(32_24_sign, u_int32_t, u_int32_t, (src >> 8) ^ 0x800000)
+LIN_FUNC(32_24_end, u_int32_t, u_int32_t, bswap_32(src >> 8))
+LIN_FUNC(32_24_sign_end, u_int32_t, u_int32_t, bswap_32((src >> 8) ^ 0x800000))
+LIN_FUNC(32_end_24, u_int32_t, u_int32_t, bswap_32(src) >> 8)
+LIN_FUNC(32_end_24_sign, u_int32_t, u_int32_t, (bswap_32(src) >> 8) ^ 0x800000)
+LIN_FUNC(32_end_24_end, u_int32_t, u_int32_t, src << 8)
+LIN_FUNC(32_end_24_sign_end, u_int32_t, u_int32_t, (src << 8) ^ 0x80)
 
-CONV_FUNC(32_sign, u_int32_t, u_int32_t, src ^ 0x80000000)
-CONV_FUNC(32_end, u_int32_t, u_int32_t, bswap_32(src))
-CONV_FUNC(32_end_sign, u_int32_t, u_int32_t, bswap_32(src) ^ 0x80000000)
-CONV_FUNC(32_sign_end, u_int32_t, u_int32_t, bswap_32(src) ^ 0x80)
-CONV_FUNC(32_end_sign_end, u_int32_t, u_int32_t, src ^ 0x80)
+LIN_FUNC(32_sign, u_int32_t, u_int32_t, src ^ 0x80000000)
+LIN_FUNC(32_end, u_int32_t, u_int32_t, bswap_32(src))
+LIN_FUNC(32_end_sign, u_int32_t, u_int32_t, bswap_32(src) ^ 0x80000000)
+LIN_FUNC(32_sign_end, u_int32_t, u_int32_t, bswap_32(src) ^ 0x80)
+LIN_FUNC(32_end_sign_end, u_int32_t, u_int32_t, src ^ 0x80)
 
 /* src_wid dst_wid src_endswap, dst_endswap, sign_swap */
-conv_f convert_functions[4 * 4 * 2 * 2 * 2] = {
+linear_f linear_functions[4 * 4 * 2 * 2 * 2] = {
 	NULL,			/* 8->8: Nothing to do */
-	conv_8_sign,		/* 8->8 sign: conv_8_sign */
+	lin_8_sign,		/* 8->8 sign: lin_8_sign */
 	NULL,			/* 8->8 dst_end: Nothing to do */
-	conv_8_sign,		/* 8->8 dst_end sign: conv_8_sign */
+	lin_8_sign,		/* 8->8 dst_end sign: lin_8_sign */
 	NULL,			/* 8->8 src_end: Nothing to do */
-	conv_8_sign,		/* 8->8 src_end sign: conv_8_sign */
+	lin_8_sign,		/* 8->8 src_end sign: lin_8_sign */
 	NULL,			/* 8->8 src_end dst_end: Nothing to do */
-	conv_8_sign,		/* 8->8 src_end dst_end sign: conv_8_sign */
-	conv_8_16,		/* 8->16: conv_8_16 */
-	conv_8_16_sign,		/* 8->16 sign: conv_8_16_sign */
-	conv_8_16_end,		/* 8->16 dst_end: conv_8_16_end */
-	conv_8_16_sign_end,	/* 8->16 dst_end sign: conv_8_16_sign_end */
-	conv_8_16,		/* 8->16 src_end: conv_8_16 */
-	conv_8_16_sign,		/* 8->16 src_end sign: conv_8_16_sign */
-	conv_8_16_end,		/* 8->16 src_end dst_end: conv_8_16_end */
-	conv_8_16_sign_end,	/* 8->16 src_end dst_end sign: conv_8_16_sign_end */
-	conv_8_24,		/* 8->24: conv_8_24 */
-	conv_8_24_sign,		/* 8->24 sign: conv_8_24_sign */
-	conv_8_24_end,		/* 8->24 dst_end: conv_8_24_end */
-	conv_8_24_sign_end,	/* 8->24 dst_end sign: conv_8_24_sign_end */
-	conv_8_24,		/* 8->24 src_end: conv_8_24 */
-	conv_8_24_sign,		/* 8->24 src_end sign: conv_8_24_sign */
-	conv_8_24_end,		/* 8->24 src_end dst_end: conv_8_24_end */
-	conv_8_24_sign_end,	/* 8->24 src_end dst_end sign: conv_8_24_sign_end */
-	conv_8_32,		/* 8->32: conv_8_32 */
-	conv_8_32_sign,		/* 8->32 sign: conv_8_32_sign */
-	conv_8_32_end,		/* 8->32 dst_end: conv_8_32_end */
-	conv_8_32_sign_end,	/* 8->32 dst_end sign: conv_8_32_sign_end */
-	conv_8_32,		/* 8->32 src_end: conv_8_32 */
-	conv_8_32_sign,		/* 8->32 src_end sign: conv_8_32_sign */
-	conv_8_32_end,		/* 8->32 src_end dst_end: conv_8_32_end */
-	conv_8_32_sign_end,	/* 8->32 src_end dst_end sign: conv_8_32_sign_end */
-	conv_16_8,		/* 16->8: conv_16_8 */
-	conv_16_8_sign,		/* 16->8 sign: conv_16_8_sign */
-	conv_16_8,		/* 16->8 dst_end: conv_16_8 */
-	conv_16_8_sign,		/* 16->8 dst_end sign: conv_16_8_sign */
-	conv_16_end_8,		/* 16->8 src_end: conv_16_end_8 */
-	conv_16_end_8_sign,	/* 16->8 src_end sign: conv_16_end_8_sign */
-	conv_16_end_8,		/* 16->8 src_end dst_end: conv_16_end_8 */
-	conv_16_end_8_sign,	/* 16->8 src_end dst_end sign: conv_16_end_8_sign */
+	lin_8_sign,		/* 8->8 src_end dst_end sign: lin_8_sign */
+	lin_8_16,		/* 8->16: lin_8_16 */
+	lin_8_16_sign,		/* 8->16 sign: lin_8_16_sign */
+	lin_8_16_end,		/* 8->16 dst_end: lin_8_16_end */
+	lin_8_16_sign_end,	/* 8->16 dst_end sign: lin_8_16_sign_end */
+	lin_8_16,		/* 8->16 src_end: lin_8_16 */
+	lin_8_16_sign,		/* 8->16 src_end sign: lin_8_16_sign */
+	lin_8_16_end,		/* 8->16 src_end dst_end: lin_8_16_end */
+	lin_8_16_sign_end,	/* 8->16 src_end dst_end sign: lin_8_16_sign_end */
+	lin_8_24,		/* 8->24: lin_8_24 */
+	lin_8_24_sign,		/* 8->24 sign: lin_8_24_sign */
+	lin_8_24_end,		/* 8->24 dst_end: lin_8_24_end */
+	lin_8_24_sign_end,	/* 8->24 dst_end sign: lin_8_24_sign_end */
+	lin_8_24,		/* 8->24 src_end: lin_8_24 */
+	lin_8_24_sign,		/* 8->24 src_end sign: lin_8_24_sign */
+	lin_8_24_end,		/* 8->24 src_end dst_end: lin_8_24_end */
+	lin_8_24_sign_end,	/* 8->24 src_end dst_end sign: lin_8_24_sign_end */
+	lin_8_32,		/* 8->32: lin_8_32 */
+	lin_8_32_sign,		/* 8->32 sign: lin_8_32_sign */
+	lin_8_32_end,		/* 8->32 dst_end: lin_8_32_end */
+	lin_8_32_sign_end,	/* 8->32 dst_end sign: lin_8_32_sign_end */
+	lin_8_32,		/* 8->32 src_end: lin_8_32 */
+	lin_8_32_sign,		/* 8->32 src_end sign: lin_8_32_sign */
+	lin_8_32_end,		/* 8->32 src_end dst_end: lin_8_32_end */
+	lin_8_32_sign_end,	/* 8->32 src_end dst_end sign: lin_8_32_sign_end */
+	lin_16_8,		/* 16->8: lin_16_8 */
+	lin_16_8_sign,		/* 16->8 sign: lin_16_8_sign */
+	lin_16_8,		/* 16->8 dst_end: lin_16_8 */
+	lin_16_8_sign,		/* 16->8 dst_end sign: lin_16_8_sign */
+	lin_16_end_8,		/* 16->8 src_end: lin_16_end_8 */
+	lin_16_end_8_sign,	/* 16->8 src_end sign: lin_16_end_8_sign */
+	lin_16_end_8,		/* 16->8 src_end dst_end: lin_16_end_8 */
+	lin_16_end_8_sign,	/* 16->8 src_end dst_end sign: lin_16_end_8_sign */
 	NULL,			/* 16->16: Nothing to do */
-	conv_16_sign,		/* 16->16 sign: conv_16_sign */
-	conv_16_end,		/* 16->16 dst_end: conv_16_end */
-	conv_16_sign_end,	/* 16->16 dst_end sign: conv_16_sign_end */
-	conv_16_end,		/* 16->16 src_end: conv_16_end */
-	conv_16_end_sign,	/* 16->16 src_end sign: conv_16_end_sign */
+	lin_16_sign,		/* 16->16 sign: lin_16_sign */
+	lin_16_end,		/* 16->16 dst_end: lin_16_end */
+	lin_16_sign_end,	/* 16->16 dst_end sign: lin_16_sign_end */
+	lin_16_end,		/* 16->16 src_end: lin_16_end */
+	lin_16_end_sign,	/* 16->16 src_end sign: lin_16_end_sign */
 	NULL,			/* 16->16 src_end dst_end: Nothing to do */
-	conv_16_end_sign_end,	/* 16->16 src_end dst_end sign: conv_16_end_sign_end */
-	conv_16_24,		/* 16->24: conv_16_24 */
-	conv_16_24_sign,	/* 16->24 sign: conv_16_24_sign */
-	conv_16_24_end,		/* 16->24 dst_end: conv_16_24_end */
-	conv_16_24_sign_end,	/* 16->24 dst_end sign: conv_16_24_sign_end */
-	conv_16_end_24,		/* 16->24 src_end: conv_16_end_24 */
-	conv_16_end_24_sign,	/* 16->24 src_end sign: conv_16_end_24_sign */
-	conv_16_end_24_end,	/* 16->24 src_end dst_end: conv_16_end_24_end */
-	conv_16_end_24_sign_end,/* 16->24 src_end dst_end sign: conv_16_end_24_sign_end */
-	conv_16_32,		/* 16->32: conv_16_32 */
-	conv_16_32_sign,	/* 16->32 sign: conv_16_32_sign */
-	conv_16_32_end,		/* 16->32 dst_end: conv_16_32_end */
-	conv_16_32_sign_end,	/* 16->32 dst_end sign: conv_16_32_sign_end */
-	conv_16_end_32,		/* 16->32 src_end: conv_16_end_32 */
-	conv_16_end_32_sign,	/* 16->32 src_end sign: conv_16_end_32_sign */
-	conv_16_end_32_end,	/* 16->32 src_end dst_end: conv_16_end_32_end */
-	conv_16_end_32_sign_end,/* 16->32 src_end dst_end sign: conv_16_end_32_sign_end */
-	conv_24_8,		/* 24->8: conv_24_8 */
-	conv_24_8_sign,		/* 24->8 sign: conv_24_8_sign */
-	conv_24_8,		/* 24->8 dst_end: conv_24_8 */
-	conv_24_8_sign,		/* 24->8 dst_end sign: conv_24_8_sign */
-	conv_24_end_8,		/* 24->8 src_end: conv_24_end_8 */
-	conv_24_end_8_sign,	/* 24->8 src_end sign: conv_24_end_8_sign */
-	conv_24_end_8,		/* 24->8 src_end dst_end: conv_24_end_8 */
-	conv_24_end_8_sign,	/* 24->8 src_end dst_end sign: conv_24_end_8_sign */
-	conv_24_16,		/* 24->16: conv_24_16 */
-	conv_24_16_sign,	/* 24->16 sign: conv_24_16_sign */
-	conv_24_16_end,		/* 24->16 dst_end: conv_24_16_end */
-	conv_24_16_sign_end,	/* 24->16 dst_end sign: conv_24_16_sign_end */
-	conv_24_end_16,		/* 24->16 src_end: conv_24_end_16 */
-	conv_24_end_16_sign,	/* 24->16 src_end sign: conv_24_end_16_sign */
-	conv_24_end_16_end,	/* 24->16 src_end dst_end: conv_24_end_16_end */
-	conv_24_end_16_sign_end,/* 24->16 src_end dst_end sign: conv_24_end_16_sign_end */
+	lin_16_end_sign_end,	/* 16->16 src_end dst_end sign: lin_16_end_sign_end */
+	lin_16_24,		/* 16->24: lin_16_24 */
+	lin_16_24_sign,	/* 16->24 sign: lin_16_24_sign */
+	lin_16_24_end,		/* 16->24 dst_end: lin_16_24_end */
+	lin_16_24_sign_end,	/* 16->24 dst_end sign: lin_16_24_sign_end */
+	lin_16_end_24,		/* 16->24 src_end: lin_16_end_24 */
+	lin_16_end_24_sign,	/* 16->24 src_end sign: lin_16_end_24_sign */
+	lin_16_end_24_end,	/* 16->24 src_end dst_end: lin_16_end_24_end */
+	lin_16_end_24_sign_end,/* 16->24 src_end dst_end sign: lin_16_end_24_sign_end */
+	lin_16_32,		/* 16->32: lin_16_32 */
+	lin_16_32_sign,	/* 16->32 sign: lin_16_32_sign */
+	lin_16_32_end,		/* 16->32 dst_end: lin_16_32_end */
+	lin_16_32_sign_end,	/* 16->32 dst_end sign: lin_16_32_sign_end */
+	lin_16_end_32,		/* 16->32 src_end: lin_16_end_32 */
+	lin_16_end_32_sign,	/* 16->32 src_end sign: lin_16_end_32_sign */
+	lin_16_end_32_end,	/* 16->32 src_end dst_end: lin_16_end_32_end */
+	lin_16_end_32_sign_end,/* 16->32 src_end dst_end sign: lin_16_end_32_sign_end */
+	lin_24_8,		/* 24->8: lin_24_8 */
+	lin_24_8_sign,		/* 24->8 sign: lin_24_8_sign */
+	lin_24_8,		/* 24->8 dst_end: lin_24_8 */
+	lin_24_8_sign,		/* 24->8 dst_end sign: lin_24_8_sign */
+	lin_24_end_8,		/* 24->8 src_end: lin_24_end_8 */
+	lin_24_end_8_sign,	/* 24->8 src_end sign: lin_24_end_8_sign */
+	lin_24_end_8,		/* 24->8 src_end dst_end: lin_24_end_8 */
+	lin_24_end_8_sign,	/* 24->8 src_end dst_end sign: lin_24_end_8_sign */
+	lin_24_16,		/* 24->16: lin_24_16 */
+	lin_24_16_sign,	/* 24->16 sign: lin_24_16_sign */
+	lin_24_16_end,		/* 24->16 dst_end: lin_24_16_end */
+	lin_24_16_sign_end,	/* 24->16 dst_end sign: lin_24_16_sign_end */
+	lin_24_end_16,		/* 24->16 src_end: lin_24_end_16 */
+	lin_24_end_16_sign,	/* 24->16 src_end sign: lin_24_end_16_sign */
+	lin_24_end_16_end,	/* 24->16 src_end dst_end: lin_24_end_16_end */
+	lin_24_end_16_sign_end,/* 24->16 src_end dst_end sign: lin_24_end_16_sign_end */
 	NULL,			/* 24->24: Nothing to do */
-	conv_24_sign,		/* 24->24 sign: conv_24_sign */
-	conv_24_end,		/* 24->24 dst_end: conv_24_end */
-	conv_24_sign_end,	/* 24->24 dst_end sign: conv_24_sign_end */
-	conv_24_end,		/* 24->24 src_end: conv_24_end */
-	conv_24_end_sign,	/* 24->24 src_end sign: conv_24_end_sign */
+	lin_24_sign,		/* 24->24 sign: lin_24_sign */
+	lin_24_end,		/* 24->24 dst_end: lin_24_end */
+	lin_24_sign_end,	/* 24->24 dst_end sign: lin_24_sign_end */
+	lin_24_end,		/* 24->24 src_end: lin_24_end */
+	lin_24_end_sign,	/* 24->24 src_end sign: lin_24_end_sign */
 	NULL,			/* 24->24 src_end dst_end: Nothing to do */
-	conv_24_end_sign_end,	/* 24->24 src_end dst_end sign: conv_24_end_sign_end */
-	conv_24_32,		/* 24->32: conv_24_32 */
-	conv_24_32_sign,	/* 24->32 sign: conv_24_32_sign */
-	conv_24_32_end,		/* 24->32 dst_end: conv_24_32_end */
-	conv_24_32_sign_end,	/* 24->32 dst_end sign: conv_24_32_sign_end */
-	conv_24_end_32,		/* 24->32 src_end: conv_24_end_32 */
-	conv_24_end_32_sign,	/* 24->32 src_end sign: conv_24_end_32_sign */
-	conv_24_end_32_end,	/* 24->32 src_end dst_end: conv_24_end_32_end */
-	conv_24_end_32_sign_end,/* 24->32 src_end dst_end sign: conv_24_end_32_sign_end */
-	conv_32_8,		/* 32->8: conv_32_8 */
-	conv_32_8_sign,		/* 32->8 sign: conv_32_8_sign */
-	conv_32_8,		/* 32->8 dst_end: conv_32_8 */
-	conv_32_8_sign,		/* 32->8 dst_end sign: conv_32_8_sign */
-	conv_32_end_8,		/* 32->8 src_end: conv_32_end_8 */
-	conv_32_end_8_sign,	/* 32->8 src_end sign: conv_32_end_8_sign */
-	conv_32_end_8,		/* 32->8 src_end dst_end: conv_32_end_8 */
-	conv_32_end_8_sign,	/* 32->8 src_end dst_end sign: conv_32_end_8_sign */
-	conv_32_16,		/* 32->16: conv_32_16 */
-	conv_32_16_sign,	/* 32->16 sign: conv_32_16_sign */
-	conv_32_16_end,		/* 32->16 dst_end: conv_32_16_end */
-	conv_32_16_sign_end,	/* 32->16 dst_end sign: conv_32_16_sign_end */
-	conv_32_end_16,		/* 32->16 src_end: conv_32_end_16 */
-	conv_32_end_16_sign,	/* 32->16 src_end sign: conv_32_end_16_sign */
-	conv_32_end_16_end,	/* 32->16 src_end dst_end: conv_32_end_16_end */
-	conv_32_end_16_sign_end,/* 32->16 src_end dst_end sign: conv_32_end_16_sign_end */
-	conv_32_24,		/* 32->24: conv_32_24 */
-	conv_32_24_sign,	/* 32->24 sign: conv_32_24_sign */
-	conv_32_24_end,		/* 32->24 dst_end: conv_32_24_end */
-	conv_32_24_sign_end,	/* 32->24 dst_end sign: conv_32_24_sign_end */
-	conv_32_end_24,		/* 32->24 src_end: conv_32_end_24 */
-	conv_32_end_24_sign,	/* 32->24 src_end sign: conv_32_end_24_sign */
-	conv_32_end_24_end,	/* 32->24 src_end dst_end: conv_32_end_24_end */
-	conv_32_end_24_sign_end,/* 32->24 src_end dst_end sign: conv_32_end_24_sign_end */
+	lin_24_end_sign_end,	/* 24->24 src_end dst_end sign: lin_24_end_sign_end */
+	lin_24_32,		/* 24->32: lin_24_32 */
+	lin_24_32_sign,	/* 24->32 sign: lin_24_32_sign */
+	lin_24_32_end,		/* 24->32 dst_end: lin_24_32_end */
+	lin_24_32_sign_end,	/* 24->32 dst_end sign: lin_24_32_sign_end */
+	lin_24_end_32,		/* 24->32 src_end: lin_24_end_32 */
+	lin_24_end_32_sign,	/* 24->32 src_end sign: lin_24_end_32_sign */
+	lin_24_end_32_end,	/* 24->32 src_end dst_end: lin_24_end_32_end */
+	lin_24_end_32_sign_end,/* 24->32 src_end dst_end sign: lin_24_end_32_sign_end */
+	lin_32_8,		/* 32->8: lin_32_8 */
+	lin_32_8_sign,		/* 32->8 sign: lin_32_8_sign */
+	lin_32_8,		/* 32->8 dst_end: lin_32_8 */
+	lin_32_8_sign,		/* 32->8 dst_end sign: lin_32_8_sign */
+	lin_32_end_8,		/* 32->8 src_end: lin_32_end_8 */
+	lin_32_end_8_sign,	/* 32->8 src_end sign: lin_32_end_8_sign */
+	lin_32_end_8,		/* 32->8 src_end dst_end: lin_32_end_8 */
+	lin_32_end_8_sign,	/* 32->8 src_end dst_end sign: lin_32_end_8_sign */
+	lin_32_16,		/* 32->16: lin_32_16 */
+	lin_32_16_sign,	/* 32->16 sign: lin_32_16_sign */
+	lin_32_16_end,		/* 32->16 dst_end: lin_32_16_end */
+	lin_32_16_sign_end,	/* 32->16 dst_end sign: lin_32_16_sign_end */
+	lin_32_end_16,		/* 32->16 src_end: lin_32_end_16 */
+	lin_32_end_16_sign,	/* 32->16 src_end sign: lin_32_end_16_sign */
+	lin_32_end_16_end,	/* 32->16 src_end dst_end: lin_32_end_16_end */
+	lin_32_end_16_sign_end,/* 32->16 src_end dst_end sign: lin_32_end_16_sign_end */
+	lin_32_24,		/* 32->24: lin_32_24 */
+	lin_32_24_sign,	/* 32->24 sign: lin_32_24_sign */
+	lin_32_24_end,	/* 32->24 dst_end: lin_32_24_end */
+	lin_32_24_sign_end,	/* 32->24 dst_end sign: lin_32_24_sign_end */
+	lin_32_end_24,	/* 32->24 src_end: lin_32_end_24 */
+	lin_32_end_24_sign,	/* 32->24 src_end sign: lin_32_end_24_sign */
+	lin_32_end_24_end,	/* 32->24 src_end dst_end: lin_32_end_24_end */
+	lin_32_end_24_sign_end,/* 32->24 src_end dst_end sign: lin_32_end_24_sign_end */
 	NULL,			/* 32->32: Nothing to do */
-	conv_32_sign,		/* 32->32 sign: conv_32_sign */
-	conv_32_end,		/* 32->32 dst_end: conv_32_end */
-	conv_32_sign_end,	/* 32->32 dst_end sign: conv_32_sign_end */
-	conv_32_end,		/* 32->32 src_end: conv_32_end */
-	conv_32_end_sign,	/* 32->32 src_end sign: conv_32_end_sign */
+	lin_32_sign,		/* 32->32 sign: lin_32_sign */
+	lin_32_end,		/* 32->32 dst_end: lin_32_end */
+	lin_32_sign_end,	/* 32->32 dst_end sign: lin_32_sign_end */
+	lin_32_end,		/* 32->32 src_end: lin_32_end */
+	lin_32_end_sign,	/* 32->32 src_end sign: lin_32_end_sign */
 	NULL,			/* 32->32 src_end dst_end: Nothing to do */
-	conv_32_end_sign_end	/* 32->32 src_end dst_end sign: conv_32_end_sign_end */
+	lin_32_end_sign_end	/* 32->32 src_end dst_end sign: lin_32_end_sign_end */
 };
 
 
@@ -347,7 +347,7 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 {
 	struct linear_private_data *data;
 	snd_pcm_plugin_t *plugin;
-	conv_f func;
+	linear_f func;
 	int src_endian, dst_endian, sign, src_width, dst_width;
 	int src_sample_size, dst_sample_size;
 
@@ -426,7 +426,7 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 	if (dst_endian < 0)
 		dst_endian = 0;
 
-	func = ((conv_f(*)[4][2][2][2])convert_functions)[src_width][dst_width][src_endian][dst_endian][sign];
+	func = ((linear_f(*)[4][2][2][2])linear_functions)[src_width][dst_width][src_endian][dst_endian][sign];
 
 	if (func == NULL)
 		return -EINVAL;

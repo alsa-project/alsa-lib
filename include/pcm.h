@@ -57,6 +57,7 @@ int snd_pcm_format_big_endian(int format);
 int snd_pcm_format_width(int format);		/* in bits */
 int snd_pcm_build_linear_format(int width, int unsignd, int big_endian);
 ssize_t snd_pcm_format_size(int format, size_t samples);
+unsigned char snd_pcm_format_silence(int format);
 const char *snd_pcm_get_format_name(int format);
 
 #ifdef __cplusplus
@@ -144,10 +145,7 @@ int snd_pcm_plugin_build_adpcm(snd_pcm_format_t *src_format,
 int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
-				snd_pcm_format_t *dst_format,
-				snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_volbal(snd_pcm_format_t *src_format,
+int snd_pcm_plugin_build_route(snd_pcm_format_t *src_format,
 				snd_pcm_format_t *dst_format,
 				int *ttable,
 				snd_pcm_plugin_t **r_plugin);

@@ -29,10 +29,15 @@ typedef snd_pcm_runtime_t PLUGIN_BASE;
 #define snd_pcm_plugin_first(pb, channel) ((pb)->oss.plugin_first)
 #define snd_pcm_plugin_last(pb, channel) ((pb)->oss.plugin_last)
 #define snd_pcm_plugin_append(pb, channel, plugin) snd_pcm_oss_plugin_append(pb, plugin)
+#define my_calloc(size) snd_kcalloc(size, GFP_KERNEL)
+#define my_free(ptr) snd_kfree(ptr)
 #else
+#include <malloc.h>
 #include <errno.h>
 #include "pcm_local.h"
 typedef snd_pcm_t PLUGIN_BASE;
+#define my_calloc(size) calloc(1, size)
+#define my_free(ptr) free(ptr)
 #endif
 
 
@@ -225,6 +230,7 @@ int snd_pcm_plugin_hwparams(snd_pcm_channel_params_t *params,
 	return 0;
 }
 
+#define ROUTE_PLUGIN_RESOLUTION 16
 
 int snd_pcm_plugin_format(PLUGIN_BASE *pb, 
 			  snd_pcm_channel_params_t *params, 
@@ -263,11 +269,46 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 		 dstparams.format.format,
 		 dstparams.format.rate,
 		 dstparams.format.voices);
+
+	/* voices reduction */
+	if (srcparams->format.voices > dstparams.format.voices) {
+		int sv = srcparams->format.voices;
+		int dv = dstparams.format.voices;
+		int *ttable = my_calloc(dv*sv*sizeof(*ttable));
+#if 1
+		if (sv == 2 && dv == 1) {
+			ttable[0] = ROUTE_PLUGIN_RESOLUTION / 2;
+			ttable[1] = ROUTE_PLUGIN_RESOLUTION / 2;
+		} else
+#endif
+		{
+			int v;
+			for (v = 0; v < dv; ++v)
+				ttable[v * sv + v] = ROUTE_PLUGIN_RESOLUTION;
+		}
+		tmpparams.format.voices = dstparams.format.voices;
+		err = snd_pcm_plugin_build_route(&srcparams->format,
+						  &tmpparams.format,
+						  ttable,
+						  &plugin);
+		my_free(ttable);
+		pdprintf("params voices reduction: src=%i, dst=%i returns %i\n", srcparams->format.voices, tmpparams.format.voices, err);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}
+		err = snd_pcm_plugin_append(pb, params->channel, plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}
+		srcparams->format.voices = tmpparams.format.voices;
+        }
+
 	/* Convert to interleaved format if needed */
 	if (!srcparams->format.interleave &&
-	    (srcparams->format.voices != dstparams.format.voices ||
-	     (srcparams->format.rate != dstparams.format.rate &&
-	      srcparams->format.voices > 1))) {
+	    srcparams->format.voices > 1 &&
+	    srcparams->format.rate != dstparams.format.rate) {
 		tmpparams.format.interleave = 1;
 		err = snd_pcm_plugin_build_interleave(&srcparams->format,
 						      &tmpparams.format,
@@ -288,25 +329,6 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
 		    (hwinfo->flags & SND_PCM_CHNINFO_INTERLEAVE))
 			dstparams.format.interleave = 1;
       	}
-
-	/* voices reduction */
-	if (srcparams->format.voices > dstparams.format.voices) {
-		tmpparams.format.voices = dstparams.format.voices;
-		err = snd_pcm_plugin_build_voices(&srcparams->format,
-						  &tmpparams.format,
-						  &plugin);
-		pdprintf("params voices reduction: src=%i, dst=%i returns %i\n", srcparams->format.voices, tmpparams.format.voices, err);
-		if (err < 0) {
-			snd_pcm_plugin_free(plugin);
-			return err;
-		}
-		err = snd_pcm_plugin_append(pb, params->channel, plugin);
-		if (err < 0) {
-			snd_pcm_plugin_free(plugin);
-			return err;
-		}
-		srcparams->format.voices = tmpparams.format.voices;
-        }
 
 	/* rate down resampling */
         if (srcparams->format.rate > dstparams.format.rate &&
@@ -429,11 +451,27 @@ int snd_pcm_plugin_format(PLUGIN_BASE *pb,
         }
       
 	/* voices extension  */
-	if (srcparams->format.voices != dstparams.format.voices) {
+	if (srcparams->format.voices < dstparams.format.voices) {
+		int sv = srcparams->format.voices;
+		int dv = dstparams.format.voices;
+		int *ttable = my_calloc(dv * sv * sizeof(*ttable));
+#if 1
+		if (sv == 1 && dv == 2) {
+			ttable[0] = ROUTE_PLUGIN_RESOLUTION;
+			ttable[1] = ROUTE_PLUGIN_RESOLUTION;
+		} else
+#endif
+		{
+			int v;
+			for (v = 0; v < sv; ++v)
+				ttable[v * sv + v] = ROUTE_PLUGIN_RESOLUTION;
+		}
 		tmpparams.format.voices = dstparams.format.voices;
-		err = snd_pcm_plugin_build_voices(&srcparams->format,
+		err = snd_pcm_plugin_build_route(&srcparams->format,
 						  &tmpparams.format,
+						  ttable,
 						  &plugin);
+		my_free(ttable);
 		pdprintf("params voices extension: src=%i, dst=%i returns %i\n", srcparams->format.voices, tmpparams.format.voices, err);
 		if (err < 0) {
 			snd_pcm_plugin_free(plugin);
