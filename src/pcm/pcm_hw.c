@@ -195,7 +195,8 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 				if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_INTERLEAVED))
 					snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 			} else {
-				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+				/* FIXME: why need to recheck? */
+				//snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 			}
 		}
 		if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED)) {
@@ -203,7 +204,8 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 				if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
 					snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
 			} else {
-				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+				/* FIXME: why need to recheck? */
+				//snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
 			}
 		}
 	} else {
