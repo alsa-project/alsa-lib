@@ -555,7 +555,7 @@ int snd_pcm_close(snd_pcm_t *pcm)
 			return err;
 	}
 	while (!list_empty(&pcm->async_handlers)) {
-		snd_async_handler_t *h = list_entry(&pcm->async_handlers.next, snd_async_handler_t, hlist);
+		snd_async_handler_t *h = list_entry(pcm->async_handlers.next, snd_async_handler_t, hlist);
 		snd_async_del_handler(h);
 	}
 	err = pcm->ops->close(pcm->op_arg);
@@ -1425,6 +1425,8 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
  * \param callback Callback function
  * \param private_data Callback private data
  * \return 0 otherwise a negative error code on failure
+ *
+ * The asynchronous callback is called when period boundary elapses.
  */
 int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm, 
 			      snd_async_callback_t callback, void *private_data)
