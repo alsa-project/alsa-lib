@@ -6,6 +6,10 @@ INCLUDES=-I$(top_srcdir)/include
 rpm: dist
 	$(MAKE) -C utils rpm
 
+dist-hook:
+	-chmod -R a+r $(distdir)
+	$(TAR) cvIf $(distdir).tar.bz2 $(distdir)
+
 pack: clean-recursive
 	rm -f config.log config.cache config.status
 	rm -rf `find . -name ".deps"`
