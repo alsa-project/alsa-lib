@@ -422,8 +422,9 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int
 			close(fd);
 		return -ENOMEM;
 	}
-
-	file->fname = strdup(fname);
+	
+	if (fname)
+		file->fname = strdup(fname);
 	file->fd = fd;
 	file->format = format;
 	file->slave = slave;
@@ -431,6 +432,8 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int
 
 	pcm = calloc(1, sizeof(snd_pcm_t));
 	if (!pcm) {
+		if (fname)
+			free(file->fname);
 		free(file);
 		return -ENOMEM;
 	}
