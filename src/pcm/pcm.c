@@ -35,31 +35,78 @@ struct snd_pcm {
 	int card;
 	int device;
 	int fd;
+	int mode;
 };
 
 int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode)
 {
-	int fd, ver;
+	return snd_pcm_open_subdevice(handle, card, device, -1, mode);
+}
+
+int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int mode)
+{
+	int fd, ver, err, attempt = 0;
 	char filename[32];
 	snd_pcm_t *pcm;
+	snd_ctl_t *ctl;
+	snd_pcm_playback_info_t pinfo;
+	snd_pcm_capture_info_t cinfo;
 
 	*handle = NULL;
 	
 	if (card < 0 || card >= SND_CARDS)
 		return -EINVAL;
+	if ((err = snd_ctl_open(&ctl, card)) < 0)
+		return err;
+      __again:
+      	if (attempt++ > 3) {
+      		snd_ctl_close(ctl);
+      		return -EBUSY;
+      	}
+	if ((err = snd_ctl_pcm_prefer_subdevice(ctl, device, subdevice)) < 0) {
+		snd_ctl_close(ctl);
+		return err;
+	}
 	sprintf(filename, SND_FILE_PCM, card, device);
 	if ((fd = open(filename, mode)) < 0) {
-		snd_card_load(card);
-		if ((fd = open(filename, mode)) < 0) 
-			return -errno;
+		err = -errno;
+		snd_ctl_close(ctl);
+		return err;
 	}
 	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
+		err = -errno;
 		close(fd);
-		return -errno;
+		snd_ctl_close(ctl);
+		return err;
 	}
 	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_PCM_VERSION_MAX)) {
 		close(fd);
+		snd_ctl_close(ctl);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
+	}
+	if (subdevice >= 0 && (mode == SND_PCM_OPEN_PLAYBACK || mode == SND_PCM_OPEN_DUPLEX)) {
+		if (ioctl(fd, SND_PCM_IOCTL_PLAYBACK_INFO, &pinfo) < 0) {
+			err = -errno;
+			close(fd);
+			snd_ctl_close(ctl);
+			return err;
+		}
+		if (pinfo.subdevice != subdevice) {
+			close(fd);
+			goto __again;
+		}
+	}
+	if (subdevice >= 0 && (mode == SND_PCM_OPEN_CAPTURE || mode == SND_PCM_OPEN_DUPLEX)) {
+		if (ioctl(fd, SND_PCM_IOCTL_CAPTURE_INFO, &cinfo) < 0) {
+			err = -errno;
+			close(fd);
+			snd_ctl_close(ctl);
+			return err;
+		}
+		if (cinfo.subdevice != subdevice) {
+			close(fd);
+			goto __again;
+		}
 	}
 	pcm = (snd_pcm_t *) calloc(1, sizeof(snd_pcm_t));
 	if (pcm == NULL) {
@@ -69,6 +116,7 @@ int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode)
 	pcm->card = card;
 	pcm->device = device;
 	pcm->fd = fd;
+	pcm->mode = mode;
 	*handle = pcm;
 	return 0;
 }

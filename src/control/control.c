@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
+#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 1)
 
 struct snd_ctl {
 	int card;
@@ -171,28 +171,32 @@ int snd_ctl_pcm_info(snd_ctl_t *handle, int dev, snd_pcm_info_t * info)
 	return 0;
 }
 
-int snd_ctl_pcm_playback_info(snd_ctl_t *handle, int dev, snd_pcm_playback_info_t * info)
+int snd_ctl_pcm_playback_info(snd_ctl_t *handle, int dev, int subdev, snd_pcm_playback_info_t * info)
 {
 	snd_ctl_t *ctl;
 
 	ctl = handle;
-	if (!ctl || !info || dev < 0)
+	if (!ctl || !info || dev < 0 || subdev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PLAYBACK_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_pcm_capture_info(snd_ctl_t *handle, int dev, snd_pcm_capture_info_t * info)
+int snd_ctl_pcm_capture_info(snd_ctl_t *handle, int dev, int subdev, snd_pcm_capture_info_t * info)
 {
 	snd_ctl_t *ctl;
 
 	ctl = handle;
-	if (!ctl || !info || dev < 0)
+	if (!ctl || !info || dev < 0 || subdev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CAPTURE_INFO, info) < 0)
 		return -errno;
@@ -250,7 +254,7 @@ int snd_ctl_pcm_capture_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
 		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_RSWITCH_LIST, list) < 0)
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CSWITCH_LIST, list) < 0)
 		return -errno;
 	return 0;
 }
@@ -264,7 +268,7 @@ int snd_ctl_pcm_capture_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * s
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
 		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_RSWITCH_READ, sw) < 0)
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CSWITCH_READ, sw) < 0)
 		return -errno;
 	return 0;
 }
@@ -278,7 +282,21 @@ int snd_ctl_pcm_capture_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * 
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
 		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_RSWITCH_WRITE, sw) < 0)
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CSWITCH_WRITE, sw) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int dev, int subdev)
+{
+	snd_ctl_t *ctl;
+
+	ctl = handle;
+	if (!ctl || dev < 0)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	return 0;
 }
