@@ -23,7 +23,6 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/poll.h>
-#include <sys/uio.h>
 #include "pcm_local.h"
 
 size_t snd_pcm_mmap_avail(snd_pcm_t *pcm)

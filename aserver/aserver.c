@@ -386,8 +386,8 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_DRAIN:
 		ctrl->result = snd_pcm_drain(pcm);
 		break;
-	case SND_PCM_IOCTL_STOP:
-		ctrl->result = snd_pcm_stop(pcm);
+	case SND_PCM_IOCTL_DROP:
+		ctrl->result = snd_pcm_drop(pcm);
 		break;
 	case SND_PCM_IOCTL_PAUSE:
 		ctrl->result = snd_pcm_pause(pcm, ctrl->u.pause);

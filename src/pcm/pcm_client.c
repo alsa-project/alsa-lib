@@ -30,7 +30,6 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 #include <sys/un.h>
-#include <sys/uio.h>
 #include <sys/mman.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -171,9 +170,8 @@ static int snd_pcm_client_shm_close(snd_pcm_t *pcm)
 	return result;
 }
 
-static int snd_pcm_client_shm_nonblock(snd_pcm_t *pcm, int nonblock)
+static int snd_pcm_client_shm_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
 {
-	/* FIXME */
 	return 0;
 }
 
@@ -350,12 +348,12 @@ static int snd_pcm_client_shm_start(snd_pcm_t *pcm)
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_stop(snd_pcm_t *pcm)
+static int snd_pcm_client_shm_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_STOP;
+	ctrl->cmd = SND_PCM_IOCTL_DROP;
 	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
@@ -566,7 +564,7 @@ struct snd_pcm_fast_ops snd_pcm_client_fast_ops = {
 	delay: snd_pcm_client_shm_delay,
 	prepare: snd_pcm_client_shm_prepare,
 	start: snd_pcm_client_shm_start,
-	stop: snd_pcm_client_shm_stop,
+	drop: snd_pcm_client_shm_drop,
 	drain: snd_pcm_client_shm_drain,
 	pause: snd_pcm_client_shm_pause,
 	rewind: snd_pcm_client_shm_rewind,

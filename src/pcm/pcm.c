@@ -185,10 +185,10 @@ int snd_pcm_start(snd_pcm_t *pcm)
 	return pcm->fast_ops->start(pcm->fast_op_arg);
 }
 
-int snd_pcm_stop(snd_pcm_t *pcm)
+int snd_pcm_drop(snd_pcm_t *pcm)
 {
 	assert(pcm);
-	return pcm->fast_ops->stop(pcm->fast_op_arg);
+	return pcm->fast_ops->drop(pcm->fast_op_arg);
 }
 
 int snd_pcm_drain(snd_pcm_t *pcm)
@@ -411,7 +411,7 @@ static assoc_t starts[] = { START(EXPLICIT), START(DATA), END };
 static assoc_t readys[] = { READY(FRAGMENT), READY(ASAP), END };
 static assoc_t xfers[] = { XFER(INTERLEAVED), XFER(NONINTERLEAVED), END };
 static assoc_t mmaps[] = { MMAP(INTERLEAVED), MMAP(NONINTERLEAVED), END };
-static assoc_t xrun_acts[] = { XRUN_ACT(STOP), XRUN_ACT(DROP), END };
+static assoc_t xrun_acts[] = { XRUN_ACT(DRAIN), XRUN_ACT(DROP), END };
 static assoc_t onoff[] = { {0, "OFF", NULL}, {1, "ON", NULL}, {-1, "ON", NULL}, END };
 
 int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp)
