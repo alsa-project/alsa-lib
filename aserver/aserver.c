@@ -518,9 +518,9 @@ static int pcm_shm_cmd(client_t *client)
 }
 
 transport_ops_t pcm_shm_ops = {
-	open: pcm_shm_open,
-	cmd: pcm_shm_cmd,
-	close: pcm_shm_close,
+	.open	= pcm_shm_open,
+	.cmd	= pcm_shm_cmd,
+	.close	= pcm_shm_close,
 };
 
 static int ctl_handler(waiter_t *waiter, unsigned short events)
@@ -712,9 +712,9 @@ static int ctl_shm_cmd(client_t *client)
 }
 
 transport_ops_t ctl_shm_ops = {
-	open: ctl_shm_open,
-	cmd: ctl_shm_cmd,
-	close: ctl_shm_close,
+	.open	= ctl_shm_open,
+	.cmd	= ctl_shm_cmd,
+	.close	= ctl_shm_close,
 };
 
 static int snd_client_open(client_t *client)
