@@ -1,5 +1,6 @@
 #!/bin/bash
 
+libtoolize --force --copy --automake
 aclocal $ACLOCAL_FLAGS
 automake --foreign --add-missing
 autoconf
