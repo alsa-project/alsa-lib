@@ -314,15 +314,17 @@ typedef struct snd_seq_ev_raw32 {
 
 /** external stored data */
 typedef struct snd_seq_ev_ext {
-	size_t len;			/**< length of data */
+	unsigned int len;		/**< length of data */
 	void *ptr;			/**< pointer to data (note: can be 64-bit) */
 } snd_seq_ev_ext_t;
 
+#if 0 /* FIXME: not implemented */
 /** external stored data - IPC shared memory */
 typedef struct snd_seq_ev_ipcshm {
-	size_t len;			/**< length of data */
+	unsigned int len;		/**< length of data */
 	key_t ipc;			/**< IPC key */
 } snd_seq_ev_ipcshm_t;
+#endif
 
 /** Instrument cluster type */
 typedef unsigned int snd_seq_instr_cluster_t;
@@ -442,7 +444,7 @@ typedef struct snd_seq_event {
 		snd_seq_ev_raw8_t raw8;		/**< raw8 data */
 		snd_seq_ev_raw32_t raw32;	/**< raw32 data */
 		snd_seq_ev_ext_t ext;		/**< external data */
-		snd_seq_ev_ipcshm_t ipcshm;	/**< IPC shared memory */
+		/* snd_seq_ev_ipcshm_t ipcshm; */	/* IPC shared memory */
 		snd_seq_ev_queue_control_t queue; /**< queue control */
 		snd_seq_timestamp_t time;	/**< timestamp */
 		snd_seq_addr_t addr;		/**< address */
