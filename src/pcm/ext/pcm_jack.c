@@ -35,7 +35,7 @@
 #include "pcm_local.h"
 #include <jack/jack.h>
 
-#define PCM_JACK_DEBUG
+#undef PCM_JACK_DEBUG
 
 #ifndef PIC
 /* entry for static linking */
