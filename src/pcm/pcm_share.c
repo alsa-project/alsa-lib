@@ -865,10 +865,11 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 			snd_pcm_uframes_t cont = pcm->buffer_size - offset;
 			if (cont < frames)
 				frames = cont;
-			snd_pcm_areas_copy(pcm->running_areas, offset,
-					   pcm->stopped_areas, xfer,
-					   pcm->channels, frames,
-					   pcm->format);
+			if (pcm->stopped_areas != NULL)
+				snd_pcm_areas_copy(pcm->running_areas, offset,
+						   pcm->stopped_areas, xfer,
+						   pcm->channels, frames,
+						   pcm->format);
 			xfer += frames;
 		}
 		snd_pcm_mmap_appl_forward(pcm, hw_avail);
