@@ -139,9 +139,8 @@ ssize_t snd_pcm_mmap_frame_data(snd_pcm_t *handle, off_t offset)
 		if (handle->setup.mode == SND_PCM_MODE_FRAME)
 			snd_pcm_frame_io(handle, 1);
 		break;
-	case SND_PCM_STATE_PREPARED:
-		break;
-	default:
+	case SND_PCM_STATE_READY:
+	case SND_PCM_STATE_NOTREADY:
 		return -EBADFD;
 	}
 	if (offset < 0) {
