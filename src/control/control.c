@@ -1543,7 +1543,7 @@ int snd_ctl_elem_info_is_owner(const snd_ctl_elem_info_t *obj)
 }
 
 /**
- * \brief Get info about values passing policy from a CTL element id/info
+ * \brief (DEPRECATED) Get info about values passing policy from a CTL element value
  * \param obj CTL element id/info
  * \return 0 if element value need to be passed by contents, 1 if need to be passed with a pointer
  */
@@ -1552,6 +1552,7 @@ int snd_ctl_elem_info_is_indirect(const snd_ctl_elem_info_t *obj)
 	assert(obj);
 	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_INDIRECT);
 }
+link_warning(snd_ctl_elem_info_is_indirect, "Warning: snd_ctl_elem_info_is_indirect is deprecated, do not use it");
 
 /**
  * \brief Get owner of a locked element
@@ -1681,6 +1682,49 @@ const char *snd_ctl_elem_info_get_item_name(const snd_ctl_elem_info_t *obj)
 	assert(obj->type == SND_CTL_ELEM_TYPE_ENUMERATED);
 	return obj->value.enumerated.name;
 }
+
+/**
+ * \brief Get count of dimensions for given element
+ * \param obj CTL element id/info
+ * \return zero value if no dimensions are defined, otherwise positive value with count of dimensions
+ */
+#ifndef DOXYGEN
+int INTERNAL(snd_ctl_elem_info_get_dimensions)(const snd_ctl_elem_info_t *obj)
+#else
+int snd_ctl_elem_info_get_dimensions(const snd_ctl_elem_info_t *obj)
+#endif
+{
+	int i;
+
+	assert(obj);
+	if (obj->access & SNDRV_CTL_ELEM_ACCESS_DINDIRECT)
+		return 0;			/* FIXME: implement indirect access as well */
+	for (i = 3; i >= 0; i++)
+		if (obj->dimen.d[0])
+			break;
+	return i >= 0 ? i + 1 : 0;
+}
+use_default_symbol_version(__snd_ctl_elem_info_get_dimensions, snd_ctl_elem_info_get_dimensions, ALSA_0.9.3);
+
+/**
+ * \brief Get specified of dimension width for given element
+ * \param obj CTL element id/info
+ * \return zero value if no dimension width is defined, otherwise positive value with with of specified dimension
+ */
+#ifndef DOXYGEN
+int INTERNAL(snd_ctl_elem_info_get_dimension)(const snd_ctl_elem_info_t *obj, unsigned int idx)
+#else
+int snd_ctl_elem_info_get_dimension(const snd_ctl_elem_info_t *obj, unsigned int idx)
+#endif
+{
+	assert(obj);
+	if (obj->access & SNDRV_CTL_ELEM_ACCESS_DINDIRECT)
+		return 0;			/* FIXME: implement indirect access as well */
+	if (idx >= 3)
+		return 0;
+	return obj->dimen.d[0];
+}
+use_default_symbol_version(__snd_ctl_elem_info_get_dimension, snd_ctl_elem_info_get_dimension, ALSA_0.9.3);
 
 /**
  * \brief Get CTL element identifier of a CTL element id/info

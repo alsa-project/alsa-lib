@@ -101,3 +101,10 @@ ALSA_0.9.0 {
     snd_timer_params_set_filter;
     snd_timer_params_get_filter;
 } ALSA_0.9.0rc8;
+
+ALSA_0.9.3 {
+  global:
+
+    snd_ctl_elem_info_get_dimensions;
+    snd_ctl_elem_info_get_dimension;
+} ALSA_0.9.0;

@@ -39,7 +39,7 @@ const char *_snd_module_control_hw = "";
 #endif
 
 #define SNDRV_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SNDRV_CTL_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
+#define SNDRV_CTL_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 2)
 
 typedef struct {
 	int card;
