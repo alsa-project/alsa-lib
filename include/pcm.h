@@ -122,17 +122,31 @@ int snd_pcm_plugin_build_stream(snd_pcm_t *handle, int channel, snd_pcm_plugin_t
 int snd_pcm_plugin_build_block(snd_pcm_t *handle, int channel, snd_pcm_plugin_t **r_plugin);
 int snd_pcm_plugin_build_mmap(snd_pcm_t *handle, int channel, snd_pcm_plugin_t **r_plugin);
 /* conversion plugins */
-int snd_pcm_plugin_build_interleave(int src_interleave, int dst_interleave, int format, snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_mulaw(int src_format, int dst_format, snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_alaw(int src_format, int dst_format, snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_adpcm(int src_format, int dst_format, snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_rate(int src_format, int src_rate, int src_voices,
-			      int dst_format, int dst_rate, int dst_voices,
-			      snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_voices(int src_format, int src_voices,
-				int dst_format, int dst_voices,
+int snd_pcm_plugin_build_interleave(snd_pcm_format_t *src_format,
+				    snd_pcm_format_t *dst_format,
+				    snd_pcm_plugin_t **r_plugin);
+int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
+				snd_pcm_format_t *dst_format,
 				snd_pcm_plugin_t **r_plugin);
+int snd_pcm_plugin_build_mulaw(snd_pcm_format_t *src_format,
+			       snd_pcm_format_t *dst_format,
+			       snd_pcm_plugin_t **r_plugin);
+int snd_pcm_plugin_build_alaw(snd_pcm_format_t *src_format,
+			      snd_pcm_format_t *dst_format,
+			      snd_pcm_plugin_t **r_plugin);
+int snd_pcm_plugin_build_adpcm(snd_pcm_format_t *src_format,
+			       snd_pcm_format_t *dst_format,
+			       snd_pcm_plugin_t **r_plugin);
+int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
+			      snd_pcm_format_t *dst_format,
+			      snd_pcm_plugin_t **r_plugin);
+int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
+				snd_pcm_format_t *dst_format,
+				snd_pcm_plugin_t **r_plugin);
+int snd_pcm_plugin_build_volbal(snd_pcm_format_t *src_format,
+				snd_pcm_format_t *dst_format,
+				int *ttable,
+  				snd_pcm_plugin_t **r_plugin);
 
 /*
  *  Loopback interface

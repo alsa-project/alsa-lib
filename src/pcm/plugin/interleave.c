@@ -177,7 +177,9 @@ static ssize_t interleave_transfer(snd_pcm_plugin_t *plugin,
 	return src_size;
 }
 
-int snd_pcm_plugin_build_interleave(int src_interleave, int dst_interleave, int format, snd_pcm_plugin_t **r_plugin)
+int snd_pcm_plugin_build_interleave(snd_pcm_format_t *src_format,
+				    snd_pcm_format_t *dst_format,
+				    snd_pcm_plugin_t **r_plugin)
 {
 	struct interleave_private_data *data;
 	snd_pcm_plugin_t *plugin;
@@ -186,14 +188,21 @@ int snd_pcm_plugin_build_interleave(int src_interleave, int dst_interleave, int 
 
 	if (!r_plugin)
 		return -EINVAL;
-	if (src_interleave && !dst_interleave) {
+	if (src_format->interleave && !dst_format->interleave) {
 		cmd = _INTERLEAVE_NON;
-	} else if (!src_interleave && dst_interleave) {
+	} else if (!src_format->interleave && dst_format->interleave) {
 		cmd = _NON_INTERLEAVE;
 	} else {
 		return -EINVAL;
 	}
-	switch (format) {
+	if (src_format->format != dst_format->format)
+		return -EINVAL;
+	if (src_format->rate != dst_format->rate)
+		return -EINVAL;
+	if (src_format->voices != dst_format->voices)
+		return -EINVAL;
+
+	switch (dst_format->format) {
 	case SND_PCM_SFMT_S8:
 	case SND_PCM_SFMT_U8:		size = 1; break;
 	case SND_PCM_SFMT_S16_LE:

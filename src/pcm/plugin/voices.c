@@ -168,8 +168,8 @@ static ssize_t voices_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 		return (size * data->dst_voices) / data->src_voices;
 }
 
-int snd_pcm_plugin_build_voices(int src_format, int src_voices,
-			        int dst_format, int dst_voices,
+int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
+			        snd_pcm_format_t *dst_format,
 			        snd_pcm_plugin_t **r_plugin)
 {
 	struct voices_private_data *data;
@@ -178,15 +178,22 @@ int snd_pcm_plugin_build_voices(int src_format, int src_voices,
 	if (!r_plugin)
 		return -EINVAL;
 	*r_plugin = NULL;
-	if (src_voices == dst_voices)
+
+	if (src_format->interleave != dst_format->interleave)
 		return -EINVAL;
-	if (src_voices < 1 || src_voices > 2 ||
-	    dst_voices < 1 || dst_voices > 2)
+	if (!dst_format->interleave)
 		return -EINVAL;
-	if (src_format != dst_format)
+	if (src_format->format != dst_format->format)
 		return -EINVAL;
-	if (src_format < SND_PCM_SFMT_S8 || src_format > SND_PCM_SFMT_U16_BE) {
-		if (src_format != SND_PCM_SFMT_MU_LAW && src_format != SND_PCM_SFMT_A_LAW)
+	if (src_format->rate != dst_format->rate)
+		return -EINVAL;
+	if (src_format->voices == dst_format->voices)
+		return -EINVAL;
+	if (src_format->voices < 1 || src_format->voices > 2 ||
+	    dst_format->voices < 1 || dst_format->voices > 2)
+		return -EINVAL;
+	if (src_format->format < SND_PCM_SFMT_S8 || src_format->format > SND_PCM_SFMT_U16_BE) {
+		if (src_format->format != SND_PCM_SFMT_MU_LAW && src_format->format != SND_PCM_SFMT_A_LAW)
 			return -EINVAL;
 	}
 	plugin = snd_pcm_plugin_build("voices conversion",
@@ -194,11 +201,11 @@ int snd_pcm_plugin_build_voices(int src_format, int src_voices,
 	if (plugin == NULL)
 		return -ENOMEM;
 	data = (struct voices_private_data *)snd_pcm_plugin_extra_data(plugin);
-	data->src_voices = src_voices;
-	data->dst_voices = dst_voices;
-	data->width = snd_pcm_format_width(src_format);
-	data->flg_merge = src_voices > dst_voices;
-	data->flg_signed = snd_pcm_format_signed(src_format);
+	data->src_voices = src_format->voices;
+	data->dst_voices = dst_format->voices;
+	data->width = snd_pcm_format_width(src_format->format);
+	data->flg_merge = src_format->voices > dst_format->voices;
+	data->flg_signed = snd_pcm_format_signed(src_format->format);
 	plugin->transfer = voices_transfer;
 	plugin->src_size = voices_src_size;
 	plugin->dst_size = voices_dst_size;

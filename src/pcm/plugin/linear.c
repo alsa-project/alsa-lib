@@ -310,7 +310,9 @@ static int linear_sign(int format)
 	}
 }
  
-int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t **r_plugin)
+int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
+				snd_pcm_format_t *dst_format,
+				snd_pcm_plugin_t **r_plugin)
 {
 	struct linear_private_data *data;
 	snd_pcm_plugin_t *plugin;
@@ -320,12 +322,20 @@ int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t
 	if (!r_plugin)
 		return -EINVAL;
 	*r_plugin = NULL;
-	wide1 = linear_wide(src_format);
-	endian1 = linear_endian(src_format);
-	sign1 = linear_sign(src_format);
-	wide2 = linear_wide(dst_format);
-	endian2 = linear_endian(dst_format);
-	sign2 = linear_sign(dst_format);
+
+	if (src_format->interleave != dst_format->interleave)
+		return -EINVAL;
+	if (src_format->rate != dst_format->rate)
+		return -EINVAL;
+	if (src_format->voices != dst_format->voices)
+		return -EINVAL;
+
+	wide1 = linear_wide(src_format->format);
+	endian1 = linear_endian(src_format->format);
+	sign1 = linear_sign(src_format->format);
+	wide2 = linear_wide(dst_format->format);
+	endian2 = linear_endian(dst_format->format);
+	sign2 = linear_sign(dst_format->format);
 	if (wide1 < 0 || wide2 < 0 || endian1 < 0 || endian2 < 0 || sign1 < 0 || sign2 < 0)
 		return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN

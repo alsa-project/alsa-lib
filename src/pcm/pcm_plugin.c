@@ -285,123 +285,111 @@ static int snd_pcm_plugin_action(snd_pcm_t *pcm, int channel, int action)
 	return 0;
 }
 
-static void swap_formats(int channel, int *src, int *dst)
-{
-	int tmp;
-
-	if (channel == SND_PCM_CHANNEL_PLAYBACK)
-		return;
-	tmp = *src;
-	*src = *dst;
-	*dst = tmp;	
-}
-
-#define CONVERT_RATIO(dest, ratio) dest = ((int)(((double)dest * ratio)+0.5))
-
 int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 {
-	double ratio;
-	snd_pcm_channel_params_t sparams;
-	snd_pcm_channel_info_t sinfo;
+	snd_pcm_channel_params_t hwparams;
+	snd_pcm_channel_params_t srcparams, tmpparams;
+	snd_pcm_channel_params_t *dstparams;
+	snd_pcm_channel_info_t hwinfo;
 	snd_pcm_plugin_t *plugin;
-	int err, srcfmt, dstfmt;
+	int err;
 	
 	if (!pcm || !params || params->channel < 0 || params->channel > 1)
 		return -EINVAL;
-	memcpy(&sparams, params, sizeof(sparams));
+	memcpy(&hwparams, params, sizeof(hwparams));
 
 	/*
 	 *  try to decide, if a conversion is required
          */
 
-	memset(&sinfo, 0, sizeof(sinfo));
-	sinfo.channel = params->channel;
-	if ((err = snd_pcm_channel_info(pcm, &sinfo)) < 0) {
+	memset(&hwinfo, 0, sizeof(hwinfo));
+	hwinfo.channel = params->channel;
+	if ((err = snd_pcm_channel_info(pcm, &hwinfo)) < 0) {
 		snd_pcm_plugin_clear(pcm, params->channel);
 		return err;
 	}
-	if ((sinfo.formats & (1 << sparams.format.format)) == 0) {
-		if ((snd_pcm_plugin_formats(pcm, sinfo.formats) & (1 << sparams.format.format)) == 0)
+	if ((hwinfo.formats & (1 << params->format.format)) == 0) {
+		if ((snd_pcm_plugin_formats(pcm, hwinfo.formats) & (1 << params->format.format)) == 0)
 			return -EINVAL;
-		switch (sparams.format.format) {
+		switch (params->format.format) {
 		case SND_PCM_SFMT_U8:
-			if (sinfo.formats & SND_PCM_FMT_S8) {
-				sparams.format.format = SND_PCM_SFMT_S8;
-			} else if (sinfo.formats & SND_PCM_FMT_U16_LE) {
-				sparams.format.format = SND_PCM_SFMT_U16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_S16_LE) {
-				sparams.format.format = SND_PCM_SFMT_S16_LE;
+			if (hwinfo.formats & SND_PCM_FMT_S8) {
+				hwparams.format.format = SND_PCM_SFMT_S8;
+			} else if (hwinfo.formats & SND_PCM_FMT_U16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_U16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_S16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_S16_LE;
 			} else {
 				return -EINVAL;
 			}
 			break;
 		case SND_PCM_SFMT_S8:
-			if (sinfo.formats & SND_PCM_FMT_U8) {
-				sparams.format.format = SND_PCM_SFMT_U8;
-			} else if (sinfo.formats & SND_PCM_FMT_S16_LE) {
-				sparams.format.format = SND_PCM_SFMT_S16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_U16_LE) {
-				sparams.format.format = SND_PCM_SFMT_U16_LE;
+			if (hwinfo.formats & SND_PCM_FMT_U8) {
+				hwparams.format.format = SND_PCM_SFMT_U8;
+			} else if (hwinfo.formats & SND_PCM_FMT_S16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_S16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_U16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_U16_LE;
 			} else {
 				return -EINVAL;
 			}
 			break;
 		case SND_PCM_SFMT_S16_LE:
-			if (sinfo.formats & SND_PCM_FMT_U16_LE) {
-				sparams.format.format = SND_PCM_SFMT_U16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_S8) {
-				sparams.format.format = SND_PCM_SFMT_S8;
-			} else if (sinfo.formats & SND_PCM_FMT_U8) {
-				sparams.format.format = SND_PCM_SFMT_U8;
+			if (hwinfo.formats & SND_PCM_FMT_U16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_U16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_S8) {
+				hwparams.format.format = SND_PCM_SFMT_S8;
+			} else if (hwinfo.formats & SND_PCM_FMT_U8) {
+				hwparams.format.format = SND_PCM_SFMT_U8;
 			} else {
 				return -EINVAL;
 			}
 			break;
 		case SND_PCM_SFMT_U16_LE:
-			if (sinfo.formats & SND_PCM_FMT_S16_LE) {
-				sparams.format.format = SND_PCM_SFMT_S16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_U8) {
-				sparams.format.format = SND_PCM_SFMT_U8;
-			} else if (sinfo.formats & SND_PCM_FMT_S8) {
-				sparams.format.format = SND_PCM_SFMT_S8;
+			if (hwinfo.formats & SND_PCM_FMT_S16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_S16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_U8) {
+				hwparams.format.format = SND_PCM_SFMT_U8;
+			} else if (hwinfo.formats & SND_PCM_FMT_S8) {
+				hwparams.format.format = SND_PCM_SFMT_S8;
 			} else {
 				return -EINVAL;
 			}
 			break;
 		case SND_PCM_SFMT_MU_LAW:
-			if (sinfo.formats & SND_PCM_FMT_S16_LE) {
-				sparams.format.format = SND_PCM_SFMT_S16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_U16_LE) {
-				sparams.format.format = SND_PCM_SFMT_U16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_S8) {
-				sparams.format.format = SND_PCM_SFMT_S8;
-			} else if (sinfo.formats & SND_PCM_FMT_U8) {
-				sparams.format.format = SND_PCM_SFMT_U8;
+			if (hwinfo.formats & SND_PCM_FMT_S16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_S16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_U16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_U16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_S8) {
+				hwparams.format.format = SND_PCM_SFMT_S8;
+			} else if (hwinfo.formats & SND_PCM_FMT_U8) {
+				hwparams.format.format = SND_PCM_SFMT_U8;
 			} else {
 				return -EINVAL;
 			}
 			break;
 		case SND_PCM_SFMT_A_LAW:
-			if (sinfo.formats & SND_PCM_FMT_S16_LE) {
-				sparams.format.format = SND_PCM_SFMT_S16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_U16_LE) {
-				sparams.format.format = SND_PCM_SFMT_U16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_S8) {
-				sparams.format.format = SND_PCM_SFMT_S8;
-			} else if (sinfo.formats & SND_PCM_FMT_U8) {
-				sparams.format.format = SND_PCM_SFMT_U8;
+			if (hwinfo.formats & SND_PCM_FMT_S16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_S16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_U16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_U16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_S8) {
+				hwparams.format.format = SND_PCM_SFMT_S8;
+			} else if (hwinfo.formats & SND_PCM_FMT_U8) {
+				hwparams.format.format = SND_PCM_SFMT_U8;
 			} else {
 				return -EINVAL;
 			}
 		case SND_PCM_SFMT_IMA_ADPCM:
-			if (sinfo.formats & SND_PCM_FMT_S16_LE) {
-				sparams.format.format = SND_PCM_SFMT_S16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_U16_LE) {
-				sparams.format.format = SND_PCM_SFMT_U16_LE;
-			} else if (sinfo.formats & SND_PCM_FMT_S8) {
-				sparams.format.format = SND_PCM_SFMT_S8;
-			} else if (sinfo.formats & SND_PCM_FMT_U8) {
-				sparams.format.format = SND_PCM_SFMT_U8;
+			if (hwinfo.formats & SND_PCM_FMT_S16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_S16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_U16_LE) {
+				hwparams.format.format = SND_PCM_SFMT_U16_LE;
+			} else if (hwinfo.formats & SND_PCM_FMT_S8) {
+				hwparams.format.format = SND_PCM_SFMT_S8;
+			} else if (hwinfo.formats & SND_PCM_FMT_U8) {
+				hwparams.format.format = SND_PCM_SFMT_U8;
 			} else {
 				return -EINVAL;
 			}
@@ -411,24 +399,147 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 		}
 	}
 
+	/* voices */
+      	if (params->format.voices < hwinfo.min_voices ||
+      	    params->format.voices > hwinfo.max_voices) {
+		int dst_voices = params->format.voices < hwinfo.min_voices ?
+				 hwinfo.min_voices : hwinfo.max_voices;
+		if ((params->format.rate < hwinfo.min_rate ||
+		     params->format.rate > hwinfo.max_rate) &&
+		    dst_voices > 2)
+			dst_voices = 2;
+		hwparams.format.voices = dst_voices;
+	}
+
+	/* rate */
+        if (params->format.rate < hwinfo.min_rate ||
+            params->format.rate > hwinfo.max_rate) {
+        	int dst_rate = params->format.rate < hwinfo.min_rate ?
+        		       hwinfo.min_rate : hwinfo.max_rate;
+		hwparams.format.rate = dst_rate;
+	}
+
+	/* interleave */
+	hwparams.format.interleave = params->format.interleave;
+	if (!(hwinfo.flags & SND_PCM_CHNINFO_INTERLEAVE))
+		hwparams.format.interleave = 0;
+	if (!(hwinfo.flags & SND_PCM_CHNINFO_NONINTERLEAVE))
+		hwparams.format.interleave = 1;
+
 	/*
 	 *  add necessary plugins
 	 */
 
 	snd_pcm_plugin_clear(pcm, params->channel);
 
-      	if (sparams.format.voices < sinfo.min_voices ||
-      	    sparams.format.voices > sinfo.max_voices) {
-		int src_voices = sparams.format.voices;
-		int dst_voices = sparams.format.voices < sinfo.min_voices ?
-				 sinfo.min_voices : sinfo.max_voices;
-		if (sparams.format.rate < sinfo.min_rate ||
-		    sparams.format.rate > sinfo.max_rate)
-			dst_voices = 2;
-		sparams.format.voices = dst_voices;
-		swap_formats(params->channel, &src_voices, &dst_voices);
-      		err = snd_pcm_plugin_build_voices(params->format.format, src_voices,
-						  params->format.format, dst_voices,
+	if (params->channel == SND_PCM_CHANNEL_PLAYBACK) {
+		memcpy(&srcparams, params, sizeof(srcparams));
+		memcpy(&tmpparams, params, sizeof(tmpparams));
+		dstparams = &hwparams;
+	} else {
+		memcpy(&srcparams, &hwparams, sizeof(srcparams));
+		memcpy(&tmpparams, &hwparams, sizeof(tmpparams));
+		dstparams = params;
+	}
+
+	/* Convert to interleaved format if needed */
+	if (!srcparams.format.interleave &&
+	    (srcparams.format.voices != dstparams->format.voices ||
+	     (srcparams.format.rate != dstparams->format.rate &&
+	      srcparams.format.voices > 1))) {
+		tmpparams.format.interleave = 1;
+		err = snd_pcm_plugin_build_interleave(&srcparams.format,
+						      &tmpparams.format,
+						      &plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}      					    
+		err = snd_pcm_plugin_append(pcm, params->channel, plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}
+		srcparams.format.interleave = 1;
+		/* Avoid useless interleave revert */
+		if (params->channel == SND_PCM_CHANNEL_PLAYBACK &&
+		    (hwinfo.flags & SND_PCM_CHNINFO_INTERLEAVE))
+			dstparams->format.interleave = 1;
+      	}
+
+	/* voices reduction  */
+	if (srcparams.format.voices > dstparams->format.voices) {
+		tmpparams.format.voices = dstparams->format.voices;
+		err = snd_pcm_plugin_build_voices(&srcparams.format,
+						  &tmpparams.format,
+						  &plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}
+		err = snd_pcm_plugin_append(pcm, params->channel, plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}
+		srcparams.format.voices = dstparams->format.voices;
+        }
+
+	/* format change */
+	if (srcparams.format.format != dstparams->format.format) {
+		switch (params->format.format) {
+		case SND_PCM_SFMT_MU_LAW:
+			err = snd_pcm_plugin_build_mulaw(&srcparams.format,
+							 &tmpparams.format,
+							 &plugin);
+			break;
+		case SND_PCM_SFMT_A_LAW:
+			err = snd_pcm_plugin_build_alaw(&srcparams.format,
+							&tmpparams.format,
+							&plugin);
+			break;
+		case SND_PCM_SFMT_IMA_ADPCM:
+			err = snd_pcm_plugin_build_adpcm(&srcparams.format,
+							 &tmpparams.format,
+							 &plugin);
+			break;
+		default:
+			err = snd_pcm_plugin_build_linear(&srcparams.format,
+							  &tmpparams.format,
+							  &plugin);
+		}
+		if (err < 0)
+			return err;
+		err = snd_pcm_plugin_append(pcm, params->channel, plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}
+	}
+
+	/* rate resampling */
+        if (srcparams.format.rate != dstparams->format.rate) {
+		tmpparams.format.rate = dstparams->format.rate;
+        	err = snd_pcm_plugin_build_rate(&srcparams.format,
+						&tmpparams.format,
+						&plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}      					    
+		err = snd_pcm_plugin_append(pcm, params->channel, plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}
+		srcparams.format.rate = dstparams->format.rate;
+        }
+      
+	/* voices extension  */
+	if (srcparams.format.voices < dstparams->format.voices) {
+		tmpparams.format.voices = dstparams->format.voices;
+		err = snd_pcm_plugin_build_voices(&srcparams.format,
+						  &tmpparams.format,
 						  &plugin);
 		if (err < 0) {
 			snd_pcm_plugin_free(plugin);
@@ -439,64 +550,17 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 			snd_pcm_plugin_free(plugin);
 			return err;
 		}
-      	}
-
-      	/*
-      	 *  formats
-      	 */
-      
-	if (params->format.format == sparams.format.format)
-		goto __format_skip;
-	/* build additional plugins for conversion */
-	switch (params->format.format) {
-	case SND_PCM_SFMT_MU_LAW:
-		srcfmt = SND_PCM_SFMT_MU_LAW;
-		dstfmt = sparams.format.format;
-		swap_formats(params->channel, &srcfmt, &dstfmt);
-		err = snd_pcm_plugin_build_mulaw(srcfmt, dstfmt, &plugin);
-		break;
-	case SND_PCM_SFMT_A_LAW:
-		srcfmt = SND_PCM_SFMT_A_LAW;
-		dstfmt = sparams.format.format;
-		swap_formats(params->channel, &srcfmt, &dstfmt);
-		err = snd_pcm_plugin_build_alaw(srcfmt, dstfmt, &plugin);
-		break;
-	case SND_PCM_SFMT_IMA_ADPCM:
-		srcfmt = SND_PCM_SFMT_IMA_ADPCM;
-		dstfmt = sparams.format.format;
-		swap_formats(params->channel, &srcfmt, &dstfmt);
-		err = snd_pcm_plugin_build_adpcm(srcfmt, dstfmt, &plugin);
-		break;
-	default:
-		srcfmt = params->format.format;
-		dstfmt = sparams.format.format;
-		swap_formats(params->channel, &srcfmt, &dstfmt);
-		err = snd_pcm_plugin_build_linear(srcfmt, dstfmt, &plugin);
-	}
-	if (err < 0)
-		return err;
-	err = snd_pcm_plugin_append(pcm, params->channel, plugin);
-	if (err < 0) {
-		snd_pcm_plugin_free(plugin);
-		return err;
+		srcparams.format.voices = dstparams->format.voices;
 	}
 
-      __format_skip:
-
-	/*
-	 *  rate
-	 */
-
-        if (sparams.format.rate < sinfo.min_rate ||
-            sparams.format.rate > sinfo.max_rate) {
-        	int src_rate = sparams.format.rate;
-        	int dst_rate = sparams.format.rate < sinfo.min_rate ?
-        		       sinfo.min_rate : sinfo.max_rate;
-		sparams.format.rate = dst_rate;
-		swap_formats(params->channel, &src_rate, &dst_rate);
-        	err = snd_pcm_plugin_build_rate(sparams.format.format, src_rate, sparams.format.voices,
-        					sparams.format.format, dst_rate, sparams.format.voices,
-        					&plugin);
+	/* interleave change */
+	if (params->format.voices > 1 && 
+	    hwinfo.mode == SND_PCM_MODE_BLOCK &&
+	    srcparams.format.interleave != dstparams->format.interleave) {
+		tmpparams.format.interleave = dstparams->format.interleave;
+		err = snd_pcm_plugin_build_interleave(&srcparams.format,
+						      &tmpparams.format,
+						      &plugin);
 		if (err < 0) {
 			snd_pcm_plugin_free(plugin);
 			return err;
@@ -506,46 +570,17 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 			snd_pcm_plugin_free(plugin);
 			return err;
 		}
-        }
-      
-	/*
-	 *  interleave
-         */
-      
-	if (params->format.voices > 1 && sinfo.mode == SND_PCM_MODE_BLOCK) {
-		int src_interleave, dst_interleave;
-
-		if (params->format.interleave) {
-			src_interleave = dst_interleave = 1;
-			if (!(sinfo.flags & SND_PCM_CHNINFO_INTERLEAVE))
-				dst_interleave = 0;
-		} else {
-			src_interleave = dst_interleave = 0;
-			if (!(sinfo.flags & SND_PCM_CHNINFO_NONINTERLEAVE))
-				dst_interleave = 1;
-		}
-		if (src_interleave != dst_interleave) {
-			sparams.format.interleave = dst_interleave;
-			swap_formats(params->channel, &src_interleave, &dst_interleave);
-			err = snd_pcm_plugin_build_interleave(src_interleave, dst_interleave, sparams.format.format, &plugin);
-			if (err < 0)
-				return err;
-			err = snd_pcm_plugin_append(pcm, params->channel, plugin);
-			if (err < 0) {
-				snd_pcm_plugin_free(plugin);
-				return err;
-			}
-		}
+		srcparams.format.interleave = dstparams->format.interleave;
 	}
 
 	/*
 	 *  I/O plugins
 	 */
 
-	if (sinfo.mode == SND_PCM_MODE_STREAM) {
+	if (hwinfo.mode == SND_PCM_MODE_STREAM) {
 		err = snd_pcm_plugin_build_stream(pcm, params->channel, &plugin);
-	} else if (sinfo.mode == SND_PCM_MODE_BLOCK) {
-		if (sinfo.flags & SND_PCM_CHNINFO_MMAP) {
+	} else if (hwinfo.mode == SND_PCM_MODE_BLOCK) {
+		if (hwinfo.flags & SND_PCM_CHNINFO_MMAP) {
 			err = snd_pcm_plugin_build_mmap(pcm, params->channel, &plugin);
 		} else {
 			err = snd_pcm_plugin_build_block(pcm, params->channel, &plugin);
@@ -561,25 +596,19 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 		return err;
 	}
 
-	/*
-	 *  ratio
-	 */
-
-	ratio = snd_pcm_plugin_hardware_ratio(pcm, params->channel);
-	if (ratio <= 0)
-		return -EINVAL;
+	/* compute right sizes */
 	if (params->mode == SND_PCM_MODE_STREAM) {
-		CONVERT_RATIO(sparams.buf.stream.queue_size, ratio);
-		CONVERT_RATIO(sparams.buf.stream.max_fill, ratio);
+		hwparams.buf.stream.queue_size = snd_pcm_plugin_hardware_size(pcm, hwparams.channel, hwparams.buf.stream.queue_size);
+		hwparams.buf.stream.max_fill = snd_pcm_plugin_hardware_size(pcm, hwparams.channel, hwparams.buf.stream.max_fill);
 	} else if (params->mode == SND_PCM_MODE_BLOCK) {
-		CONVERT_RATIO(sparams.buf.block.frag_size, ratio);
+		hwparams.buf.block.frag_size = snd_pcm_plugin_hardware_size(pcm, hwparams.channel, hwparams.buf.block.frag_size);
 	} else {
 		return -EINVAL;
 	}
-	err = snd_pcm_channel_params(pcm, &sparams);
+	err = snd_pcm_channel_params(pcm, &hwparams);
 	if (err < 0)
 		return err;
-	err = snd_pcm_plugin_action(pcm, sparams.channel, INIT);
+	err = snd_pcm_plugin_action(pcm, hwparams.channel, INIT);
 	if (err < 0)
 		return err;
 	return 0;
@@ -587,7 +616,6 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 
 int snd_pcm_plugin_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
 {
-	double ratio;
 	int err;
 	
 	if (!pcm || !setup || setup->channel < 0 || setup->channel > 1)
@@ -595,13 +623,10 @@ int snd_pcm_plugin_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
 	err = snd_pcm_channel_setup(pcm, setup);
 	if (err < 0)
 		return err;
-	ratio = snd_pcm_plugin_transfer_ratio(pcm, setup->channel);
-	if (ratio <= 0)
-		return -EINVAL;
 	if (setup->mode == SND_PCM_MODE_STREAM) {
-		CONVERT_RATIO(setup->buf.stream.queue_size, ratio);
+		setup->buf.stream.queue_size = snd_pcm_plugin_transfer_size(pcm, setup->channel, setup->buf.stream.queue_size);
 	} else if (setup->mode == SND_PCM_MODE_BLOCK) {
-		CONVERT_RATIO(setup->buf.block.frag_size, ratio);
+		setup->buf.block.frag_size = snd_pcm_plugin_transfer_size(pcm, setup->channel, setup->buf.block.frag_size);
 	} else {
 		return -EINVAL;
 	}
@@ -621,9 +646,9 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_channel_status_t *status)
 	ratio = snd_pcm_plugin_transfer_ratio(pcm, status->channel);
 	if (ratio <= 0)
 		return -EINVAL;
-	CONVERT_RATIO(status->scount, ratio);
-	CONVERT_RATIO(status->count, ratio);
-	CONVERT_RATIO(status->free, ratio);
+	status->scount = snd_pcm_plugin_transfer_size(pcm, status->channel, status->scount);
+	status->count = snd_pcm_plugin_transfer_size(pcm, status->channel, status->count);
+	status->free = snd_pcm_plugin_transfer_size(pcm, status->channel, status->free);
 	return 0;	
 }
 
@@ -790,7 +815,7 @@ ssize_t snd_pcm_plugin_write(snd_pcm_t *pcm, const void *buffer, size_t count)
 		}
 		if (src_ptr1)
 			snd_pcm_plugin_alloc_unlock(pcm, src_ptr1);
-		plugin = plugin->next;
+		plugin = next;
 		src_ptr = dst_ptr;
 		src_ptr1 = dst_ptr1;
 		dst_ptr1 = NULL;

@@ -424,7 +424,9 @@ static ssize_t mulaw_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 	}
 }
  
-int snd_pcm_plugin_build_mulaw(int src_format, int dst_format, snd_pcm_plugin_t **r_plugin)
+int snd_pcm_plugin_build_mulaw(snd_pcm_format_t *src_format,
+			       snd_pcm_format_t *dst_format,
+			       snd_pcm_plugin_t **r_plugin)
 {
 	struct mulaw_private_data *data;
 	snd_pcm_plugin_t *plugin;
@@ -433,8 +435,16 @@ int snd_pcm_plugin_build_mulaw(int src_format, int dst_format, snd_pcm_plugin_t 
 	if (!r_plugin)
 		return -EINVAL;
 	*r_plugin = NULL;
-	if (dst_format == SND_PCM_SFMT_MU_LAW) {
-		switch (src_format) {
+
+	if (src_format->interleave != dst_format->interleave)
+		return -EINVAL;
+	if (src_format->rate != dst_format->rate)
+		return -EINVAL;
+	if (src_format->voices != dst_format->voices)
+		return -EINVAL;
+
+	if (dst_format->format == SND_PCM_SFMT_MU_LAW) {
+		switch (src_format->format) {
 		case SND_PCM_SFMT_U8:		cmd = _U8_MULAW;	break;
 		case SND_PCM_SFMT_S8:		cmd = _S8_MULAW;	break;
 		case SND_PCM_SFMT_U16_LE:	cmd = _U16LE_MULAW;	break;
@@ -444,8 +454,8 @@ int snd_pcm_plugin_build_mulaw(int src_format, int dst_format, snd_pcm_plugin_t 
 		default:
 			return -EINVAL;
 		}
-	} else if (src_format == SND_PCM_SFMT_MU_LAW) {
-		switch (dst_format) {
+	} else if (src_format->format == SND_PCM_SFMT_MU_LAW) {
+		switch (dst_format->format) {
 		case SND_PCM_SFMT_U8:		cmd = _MULAW_U8;	break;
 		case SND_PCM_SFMT_S8:		cmd = _MULAW_S8;	break;
 		case SND_PCM_SFMT_U16_LE:	cmd = _MULAW_U16LE;	break;
