@@ -1220,9 +1220,13 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
  * PCM handle.  The poll desctiptor array should have the size returned by
  * \link ::snd_pcm_poll_descriptors_count() \endlink function.
  *
+ * The result is intended for direct use with the poll() syscall.
+ *
  * For reading the returned events of poll descriptor after poll() system
  * call, use \link ::snd_pcm_poll_descriptors_revents() \endlink function.
- * The field values in pollfd structs may be bogus.
+ * The field values in pollfd structs may be bogus regarding the stream
+ * direction from the application perspective (POLLIN might not imply read
+ * direction and POLLOUT might not imply write).
  */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
@@ -1243,6 +1247,9 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
  * \param nfds count of poll descriptors
  * \param revents returned events
  * \return zero if success, otherwise a negative error code
+ *
+ * This function does "demangling" of the revents mask returned from
+ * the poll() syscall to correct semantics (POLLIN = read, POLLOUT = write).
  */
 int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
