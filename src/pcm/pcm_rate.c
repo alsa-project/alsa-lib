@@ -145,18 +145,8 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 				new_sample = sample;
 				src += src_step;
 				src_frames1++;
-#if 1 /* fast-change interpolation */
-      /* this interpolation gives us better results especially for low-rate sources */
-				// sample = (((int)old_sample * (DIV - pos)) + ((int)new_sample * pos)) / DIV;
-				sample = ((int)old_sample + (int)new_sample) / 2;
-			} else {
-				sample = new_sample;
 			}
-#else /* linear interpolation */
-      /* in some cases, a high-band filter is required to remove high noises */
-			}
-			sample = (((int)old_sample * (DIV - pos)) + ((int)new_sample * pos)) / DIV;
-#endif
+			sample = (((int64_t)old_sample * (int64_t)(get_threshold - pos)) + ((int64_t)new_sample * pos)) / get_threshold;
 			goto *put;
 #define PUT16_END after_put
 #include "plugin_ops.h"
