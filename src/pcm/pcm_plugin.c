@@ -524,7 +524,7 @@ static ssize_t snd_pcm_plugin_writev1(snd_pcm_t *pcm, const struct iovec *vector
 {
 	snd_pcm_plugin_t *plugin, *next;
 	snd_pcm_plugin_voice_t *src_voices, *dst_voices;
-	size_t samples;
+	ssize_t samples;
 	ssize_t size;
 	int idx, err;
 
@@ -539,7 +539,7 @@ static ssize_t snd_pcm_plugin_writev1(snd_pcm_t *pcm, const struct iovec *vector
 		return samples;
 	while (plugin) {
 		if ((next = plugin->next) != NULL) {
-			size_t samples1 = samples;
+			ssize_t samples1 = samples;
 			if (plugin->dst_samples)
 				samples1 = plugin->dst_samples(plugin, samples);
 			if (next->src_voices) {
@@ -617,7 +617,7 @@ static ssize_t snd_pcm_plugin_readv1(snd_pcm_t *pcm, const struct iovec *vector,
 {
 	snd_pcm_plugin_t *plugin, *next;
 	snd_pcm_plugin_voice_t *src_voices = NULL, *dst_voices;
-	size_t samples;
+	ssize_t samples;
 	ssize_t size;
 	int idx, err;
 

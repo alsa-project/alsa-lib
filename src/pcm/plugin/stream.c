@@ -87,6 +87,8 @@ static ssize_t stream_transfer(snd_pcm_plugin_t *plugin,
 			}
 			result = snd_pcm_readv(plugin->handle, vec, count);
 		}
+		if (result < 0)
+			return result;
 		return snd_pcm_plugin_dst_size_to_samples(plugin, result);
 	} else {
 		return -EINVAL;
