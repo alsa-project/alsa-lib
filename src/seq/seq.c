@@ -332,6 +332,7 @@ int snd_seq_set_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer
 	return 0;
 }
 
+#ifdef use_seqsync
 int snd_seq_get_queue_sync(snd_seq_t *seq, int q, snd_seq_queue_sync_t * sync)
 {
 	if (!seq || !sync)
@@ -352,6 +353,7 @@ int snd_seq_set_queue_sync(snd_seq_t *seq, int q, snd_seq_queue_sync_t * sync)
 		return -errno;
 	return 0;
 }
+#endif
 
 int snd_seq_get_queue_client(snd_seq_t *seq, int q, snd_seq_queue_client_t * info)
 {
