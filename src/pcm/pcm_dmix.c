@@ -1420,6 +1420,7 @@ This plugin provides direct mixing of multiple streams.
 pcm.name {
 	type dmix		# Direct mix
 	ipc_key INT		# unique IPC key
+	ipc_key_add_uid BOOL	# add current uid to unique IPC key
 	slave STR
 	# or
 	slave {			# Slave definition
@@ -1468,7 +1469,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_iterator_t i, next;
 	snd_config_t *slave = NULL, *sconf;
 	struct slave_params params;
-	int bsize, psize;
+	int bsize, psize, ipc_key_add_uid = 0;
 	key_t ipc_key = 0;
 	int err;
 	snd_config_for_each(i, next, conf) {
@@ -1488,6 +1489,22 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 			ipc_key = key;
 			continue;
 		}
+		if (strcmp(id, "ipc_key_add_uid") == 0) {
+			char *tmp;
+			err = snd_config_get_ascii(n, &tmp);
+			if (err < 0) {
+				SNDERR("The field ipc_key_add_uid must be a boolean type");
+				return err;
+			}
+			err = snd_config_get_bool_ascii(tmp);
+			free(tmp);
+			if (err < 0) {
+				SNDERR("The field ipc_key_add_uid must be a boolean type");
+				return err;
+			}
+			ipc_key_add_uid = err;
+			continue;
+		}
 		if (strcmp(id, "slave") == 0) {
 			slave = n;
 			continue;
@@ -1499,6 +1516,8 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
+	if (ipc_key_add_uid)
+		ipc_key += getuid();
 	if (!ipc_key) {
 		SNDERR("Unique IPC key is not defined");
 		return -EINVAL;
