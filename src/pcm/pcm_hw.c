@@ -319,7 +319,11 @@ static int snd_pcm_hw_mmap_data(snd_pcm_t *pcm, void **buffer, size_t bsize)
 	snd_pcm_hw_t *hw = pcm->private;
 	void *ptr;
 	int prot;
+#if 0
 	prot = pcm->stream == SND_PCM_STREAM_PLAYBACK ? PROT_WRITE : PROT_READ;
+#else
+	prot = PROT_WRITE | PROT_READ;
+#endif
 	ptr = mmap(NULL, bsize, prot, MAP_FILE|MAP_SHARED, 
 		     hw->fd, SND_PCM_MMAP_OFFSET_DATA);
 	if (ptr == MAP_FAILED || ptr == NULL)
