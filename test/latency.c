@@ -14,14 +14,14 @@ static char *xitoa(int aaa)
 
 /*
  *  This small demo program can be used for measuring latency between
- *  record and playback. This latency is measured from driver (diff when
- *  playback and record was started). Scheduler is set to SCHED_RR.
+ *  capture and playback. This latency is measured from driver (diff when
+ *  playback and capture was started). Scheduler is set to SCHED_RR.
  *
  *  Used format is 44100Hz, Signed Little Endian 16-bit, Stereo.
  *
  *  Program begins with 128-byte fragment (about 726us) and step is 32-byte
  *  until playback without underruns is reached. This program starts playback
- *  after two fragments are recorded (teoretical latency is 1452us by 128-byte
+ *  after two fragments are captureed (teoretical latency is 1452us by 128-byte
  *  fragment).
  */
 
@@ -38,7 +38,7 @@ void setformat(void *phandle, void *rhandle)
 		printf("Playback format error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_record_format(rhandle, &format)) < 0) {
+	if ((err = snd_pcm_capture_format(rhandle, &format)) < 0) {
 		printf("Record format error: %s\n", snd_strerror(err));
 		exit(0);
 	}
@@ -46,7 +46,7 @@ void setformat(void *phandle, void *rhandle)
 		printf("Playback time error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_record_time(rhandle, 1)) < 0) {
+	if ((err = snd_pcm_capture_time(rhandle, 1)) < 0) {
 		printf("Record time error: %s\n", snd_strerror(err));
 		exit(0);
 	}
@@ -56,15 +56,15 @@ int setparams(void *phandle, void *rhandle, int *fragmentsize)
 {
 	int err, step = 4;
 	snd_pcm_playback_info_t pinfo;
-	snd_pcm_record_info_t rinfo;
+	snd_pcm_capture_info_t rinfo;
 	snd_pcm_playback_params_t pparams;
-	snd_pcm_record_params_t rparams;
+	snd_pcm_capture_params_t rparams;
 
 	if ((err = snd_pcm_playback_info(phandle, &pinfo)) < 0) {
 		printf("Playback info error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_record_info(rhandle, &rinfo)) < 0) {
+	if ((err = snd_pcm_capture_info(rhandle, &rinfo)) < 0) {
 		printf("Record info error: %s\n", snd_strerror(err));
 		exit(0);
 	}
@@ -96,7 +96,7 @@ int setparams(void *phandle, void *rhandle, int *fragmentsize)
 		bzero(&rparams, sizeof(rparams));
 		rparams.fragment_size = *fragmentsize;
 		rparams.fragments_min = 1;	/* wakeup if at least one fragment is ready */
-		if ((err = snd_pcm_record_params(rhandle, &rparams)) < 0) {
+		if ((err = snd_pcm_capture_params(rhandle, &rparams)) < 0) {
 			*fragmentsize += step;
 			continue;
 		}
@@ -122,7 +122,7 @@ int playbackunderrun(void *phandle)
 	return pstatus.underrun;
 }
 
-void recordfragment(void *rhandle, char *buffer, int index, int fragmentsize)
+void capturefragment(void *rhandle, char *buffer, int index, int fragmentsize)
 {
 	int err;
 
@@ -184,14 +184,14 @@ int main(void)
 	int err, fragmentsize = 0;
 	int ridx, pidx, size, ok;
 	snd_pcm_playback_status_t pstatus;
-	snd_pcm_record_status_t rstatus;
+	snd_pcm_capture_status_t rstatus;
 
 	setscheduler();
 	if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_PLAYBACK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-	if ((err = snd_pcm_open(&rhandle, rcard, rdevice, SND_PCM_OPEN_RECORD)) < 0) {
+	if ((err = snd_pcm_open(&rhandle, rcard, rdevice, SND_PCM_OPEN_CAPTURE)) < 0) {
 		printf("Record open error: %s\n", snd_strerror(err));
 		return 0;
 	}
@@ -201,9 +201,9 @@ int main(void)
 			break;
 		ok = 1;
 		ridx = pidx = size = 0;
-		recordfragment(rhandle, buffer, ridx++, fragmentsize);
-		recordfragment(rhandle, buffer, ridx++, fragmentsize);
-		if ((err = snd_pcm_record_status(rhandle, &rstatus)) < 0) {
+		capturefragment(rhandle, buffer, ridx++, fragmentsize);
+		capturefragment(rhandle, buffer, ridx++, fragmentsize);
+		if ((err = snd_pcm_capture_status(rhandle, &rstatus)) < 0) {
 			printf("Record status error: %s\n", snd_strerror(err));
 			exit(0);
 		}
@@ -213,7 +213,7 @@ int main(void)
 		pidx += 2;
 		pidx %= 2;
 		while (ok && size < 3 * 176400) {	/* 30 seconds */
-			recordfragment(rhandle, buffer, ridx++, fragmentsize);
+			capturefragment(rhandle, buffer, ridx++, fragmentsize);
 			ridx %= 2;
 			playfragment(phandle, buffer, pidx++, fragmentsize);
 			size += fragmentsize;
@@ -225,7 +225,7 @@ int main(void)
 			printf("Playback status error: %s\n", snd_strerror(err));
 			exit(0);
 		}
-		snd_pcm_flush_record(rhandle);
+		snd_pcm_flush_capture(rhandle);
 		snd_pcm_flush_playback(phandle);
 		if (ok && !playbackunderrun(phandle) > 0) {
 			printf("Playback OK!!!\n");

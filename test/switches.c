@@ -40,7 +40,7 @@ const char *get_interface(void)
 	case 2:
 		return "PCM playback";
 	case 3:
-		return "PCM record";
+		return "PCM capture";
 	case 4:
 		return "rawmidi output";
 	case 5:
@@ -60,7 +60,7 @@ int switch_list(snd_switch_list_t *list)
 	case 2:
 		return snd_ctl_pcm_playback_switch_list(ctl_handle, sw_device, list);
 	case 3:
-		return snd_ctl_pcm_record_switch_list(ctl_handle, sw_device, list);
+		return snd_ctl_pcm_capture_switch_list(ctl_handle, sw_device, list);
 	case 4:
 		return snd_ctl_rawmidi_output_switch_list(ctl_handle, sw_device, list);
 	case 5:
@@ -80,7 +80,7 @@ int switch_read(snd_switch_t *sw)
 	case 2:
 		return snd_ctl_pcm_playback_switch_read(ctl_handle, sw_device, sw);
 	case 3:
-		return snd_ctl_pcm_record_switch_write(ctl_handle, sw_device, sw);
+		return snd_ctl_pcm_capture_switch_write(ctl_handle, sw_device, sw);
 	case 4:
 		return snd_ctl_rawmidi_output_switch_read(ctl_handle, sw_device, sw);
 	case 5:
@@ -100,7 +100,7 @@ int switch_write(snd_switch_t *sw)
 	case 2:
 		return snd_ctl_pcm_playback_switch_write(ctl_handle, sw_device, sw);
 	case 3:
-		return snd_ctl_pcm_record_switch_write(ctl_handle, sw_device, sw);
+		return snd_ctl_pcm_capture_switch_write(ctl_handle, sw_device, sw);
 	case 4:
 		return snd_ctl_rawmidi_output_switch_write(ctl_handle, sw_device, sw);
 	case 5:
@@ -195,7 +195,7 @@ int main(void)
 			process("  ", "Mixer", 1, idx);
 		for (idx = 0; idx < info.pcmdevs; idx++) {
 			process("  ", "PCM playback", 2, idx);
-			process("  ", "PCM record", 3, idx);
+			process("  ", "PCM capture", 3, idx);
 		}
 		snd_ctl_close(ctl_handle);
 	}

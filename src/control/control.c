@@ -171,7 +171,7 @@ int snd_ctl_pcm_playback_info(snd_ctl_t *handle, int dev, snd_pcm_playback_info_
 	return 0;
 }
 
-int snd_ctl_pcm_record_info(snd_ctl_t *handle, int dev, snd_pcm_record_info_t * info)
+int snd_ctl_pcm_capture_info(snd_ctl_t *handle, int dev, snd_pcm_capture_info_t * info)
 {
 	snd_ctl_t *ctl;
 
@@ -180,7 +180,7 @@ int snd_ctl_pcm_record_info(snd_ctl_t *handle, int dev, snd_pcm_record_info_t * 
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
 		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_RECORD_INFO, info) < 0)
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CAPTURE_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -227,7 +227,7 @@ int snd_ctl_pcm_playback_switch_write(snd_ctl_t *handle, int dev, snd_switch_t *
 	return 0;
 }
 
-int snd_ctl_pcm_record_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t * list)
+int snd_ctl_pcm_capture_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t * list)
 {
 	snd_ctl_t *ctl;
 
@@ -241,7 +241,7 @@ int snd_ctl_pcm_record_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t
 	return 0;
 }
 
-int snd_ctl_pcm_record_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
+int snd_ctl_pcm_capture_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 
@@ -255,7 +255,7 @@ int snd_ctl_pcm_record_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw
 	return 0;
 }
 
-int snd_ctl_pcm_record_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
+int snd_ctl_pcm_capture_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
 {
 	snd_ctl_t *ctl;
 

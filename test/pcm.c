@@ -24,7 +24,7 @@ void setformat(void *phandle, void *rhandle)
 	if ((err = snd_pcm_playback_format(phandle, &format)) < 0) {
 		printf("Playback format error: %s\n", snd_strerror(err));
 	}
-	if ((err = snd_pcm_record_format(rhandle, &format)) < 0) {
+	if ((err = snd_pcm_capture_format(rhandle, &format)) < 0) {
 		printf("Record format error: %s\n", snd_strerror(err));
 	}
 }
@@ -39,7 +39,7 @@ void method1(void)
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return;
 	}
-	if ((err = snd_pcm_open(&rhandle, 0, 0, SND_PCM_OPEN_RECORD)) < 0) {
+	if ((err = snd_pcm_open(&rhandle, 0, 0, SND_PCM_OPEN_CAPTURE)) < 0) {
 		printf("Record open error: %s\n", snd_strerror(err));
 		return;
 	}
@@ -74,7 +74,7 @@ void method2(void)
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return;
 	}
-	if ((err = snd_pcm_open(&rhandle, 0, 0, SND_PCM_OPEN_RECORD)) < 0) {
+	if ((err = snd_pcm_open(&rhandle, 0, 0, SND_PCM_OPEN_CAPTURE)) < 0) {
 		printf("Record open error: %s\n", snd_strerror(err));
 		return;
 	}
@@ -86,7 +86,7 @@ void method2(void)
 		return;
 	}
 	printf("done...\n");
-	if ((err = snd_pcm_flush_record(rhandle)) < 0) {
+	if ((err = snd_pcm_flush_capture(rhandle)) < 0) {
 		printf("Record flush error: %s\n", snd_strerror(err));
 		return;
 	}
@@ -127,7 +127,7 @@ void method3(void)
 		return;
 	}
 	printf("done...\n");
-	if ((err = snd_pcm_flush_record(handle)) < 0) {
+	if ((err = snd_pcm_flush_capture(handle)) < 0) {
 		printf("Record flush error: %s\n", snd_strerror(err));
 		return;
 	}

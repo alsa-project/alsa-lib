@@ -139,14 +139,14 @@ int snd_pcm_playback_info(snd_pcm_t *handle, snd_pcm_playback_info_t * info)
 	return 0;
 }
 
-int snd_pcm_record_info(snd_pcm_t *handle, snd_pcm_record_info_t * info)
+int snd_pcm_capture_info(snd_pcm_t *handle, snd_pcm_capture_info_t * info)
 {
 	snd_pcm_t *pcm;
 
 	pcm = handle;
 	if (!pcm || !info)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_INFO, info) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
@@ -163,14 +163,14 @@ int snd_pcm_playback_format(snd_pcm_t *handle, snd_pcm_format_t * format)
 	return 0;
 }
 
-int snd_pcm_record_format(snd_pcm_t *handle, snd_pcm_format_t * format)
+int snd_pcm_capture_format(snd_pcm_t *handle, snd_pcm_format_t * format)
 {
 	snd_pcm_t *pcm;
 
 	pcm = handle;
 	if (!pcm || !format)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_FORMAT, format) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_FORMAT, format) < 0)
 		return -errno;
 	return 0;
 }
@@ -187,14 +187,14 @@ int snd_pcm_playback_params(snd_pcm_t *handle, snd_pcm_playback_params_t * param
 	return 0;
 }
 
-int snd_pcm_record_params(snd_pcm_t *handle, snd_pcm_record_params_t * params)
+int snd_pcm_capture_params(snd_pcm_t *handle, snd_pcm_capture_params_t * params)
 {
 	snd_pcm_t *pcm;
 
 	pcm = handle;
 	if (!pcm || !params)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_PARAMS, params) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_PARAMS, params) < 0)
 		return -errno;
 	return 0;
 }
@@ -211,14 +211,14 @@ int snd_pcm_playback_status(snd_pcm_t *handle, snd_pcm_playback_status_t * statu
 	return 0;
 }
 
-int snd_pcm_record_status(snd_pcm_t *handle, snd_pcm_record_status_t * status)
+int snd_pcm_capture_status(snd_pcm_t *handle, snd_pcm_capture_status_t * status)
 {
 	snd_pcm_t *pcm;
 
 	pcm = handle;
 	if (!pcm || !status)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_STATUS, status) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_STATUS, status) < 0)
 		return -errno;
 	return 0;
 }
@@ -247,14 +247,14 @@ int snd_pcm_flush_playback(snd_pcm_t *handle)
 	return 0;
 }
 
-int snd_pcm_flush_record(snd_pcm_t *handle)
+int snd_pcm_flush_capture(snd_pcm_t *handle)
 {
 	snd_pcm_t *pcm;
 
 	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_FLUSH_RECORD) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_FLUSH_CAPTURE) < 0)
 		return -errno;
 	return 0;
 }
@@ -283,14 +283,14 @@ int snd_pcm_playback_time(snd_pcm_t *handle, int enable)
 	return 0;
 }
 
-int snd_pcm_record_time(snd_pcm_t *handle, int enable)
+int snd_pcm_capture_time(snd_pcm_t *handle, int enable)
 {
 	snd_pcm_t *pcm;
 
 	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_RECORD_TIME, &enable) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_TIME, &enable) < 0)
 		return -errno;
 	return 0;
 }

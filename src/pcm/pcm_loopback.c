@@ -48,7 +48,7 @@ int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int
 	if (card < 0 || card >= SND_CARDS)
 		return -EINVAL;
 	sprintf(filename, SND_FILE_PCM_LB, card, device,
-		mode == SND_PCM_LB_OPEN_RECORD ? "r" : "p");
+		mode == SND_PCM_LB_OPEN_CAPTURE ? "r" : "p");
 	if ((fd = open(filename, mode)) < 0) {
 		snd_card_load(card);
 		if ((fd = open(filename, mode)) < 0) 
