@@ -25,6 +25,7 @@ cfg_files = aliases.conf \
 	SI7018.conf \
 	TRID4DWAVENX.conf \
 	YMF744.conf \
+	VIA686A.conf \
 	VIA8233.conf \
 	VIA8233A.conf \
 	VX222.conf \
