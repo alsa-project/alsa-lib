@@ -162,7 +162,7 @@ static int get_tmp_name(char *filename, size_t size)
 	struct timeval tv;
 
 	gettimeofday(&tv, NULL);
-	snprintf(filename, size, TMPDIR "/alsa-dmix-%i-%li-%li", getpid(), tv.tv_sec, tv.tv_usec);
+	snprintf(filename, size, TMPDIR "/alsa-dmix-%i-%li-%li", (int)getpid(), (long)tv.tv_sec, (long)tv.tv_usec);
 	filename[size-1] = '\0';
 	return 0;
 }
