@@ -2021,6 +2021,19 @@ long snd_ctl_elem_value_get_integer(const snd_ctl_elem_value_t *obj, unsigned in
 }
 
 /**
+ * \brief Get value for an entry of a #SND_CTL_ELEM_TYPE_INTEGER64 CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \return value for the entry
+ */ 
+long long snd_ctl_elem_value_get_integer64(const snd_ctl_elem_value_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < sizeof(obj->value.integer64.value) / sizeof(obj->value.integer64.value[0]));
+	return obj->value.integer64.value[idx];
+}
+
+/**
  * \brief Get value for an entry of a #SND_CTL_ELEM_TYPE_ENUMERATED CTL element id/value 
  * \param obj CTL element id/value
  * \param idx Entry index
@@ -2068,6 +2081,18 @@ void snd_ctl_elem_value_set_integer(snd_ctl_elem_value_t *obj, unsigned int idx,
 {
 	assert(obj);
 	obj->value.integer.value[idx] = val;
+}
+
+/**
+ * \brief Set value for an entry of a #SND_CTL_ELEM_TYPE_INTEGER64 CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \param val value for the entry
+ */ 
+void snd_ctl_elem_value_set_integer64(snd_ctl_elem_value_t *obj, unsigned int idx, long long val)
+{
+	assert(obj);
+	obj->value.integer64.value[idx] = val;
 }
 
 /**

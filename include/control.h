@@ -82,7 +82,9 @@ typedef enum _snd_ctl_elem_type {
 	SND_CTL_ELEM_TYPE_BYTES,
 	/** IEC958 (S/PDIF) setting content */
 	SND_CTL_ELEM_TYPE_IEC958,
-	SND_CTL_ELEM_TYPE_LAST = SND_CTL_ELEM_TYPE_IEC958
+	/** 64-bit integer contents */
+	SND_CTL_ELEM_TYPE_INTEGER64,
+	SND_CTL_ELEM_TYPE_LAST = SND_CTL_ELEM_TYPE_INTEGER64
 } snd_ctl_elem_type_t;
 
 /** CTL related interface */
@@ -385,10 +387,12 @@ void snd_ctl_elem_value_set_name(snd_ctl_elem_value_t *obj, const char *val);
 void snd_ctl_elem_value_set_index(snd_ctl_elem_value_t *obj, unsigned int val);
 int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj, unsigned int idx);
 long snd_ctl_elem_value_get_integer(const snd_ctl_elem_value_t *obj, unsigned int idx);
+long long snd_ctl_elem_value_get_integer64(const snd_ctl_elem_value_t *obj, unsigned int idx);
 unsigned int snd_ctl_elem_value_get_enumerated(const snd_ctl_elem_value_t *obj, unsigned int idx);
 unsigned char snd_ctl_elem_value_get_byte(const snd_ctl_elem_value_t *obj, unsigned int idx);
 void snd_ctl_elem_value_set_boolean(snd_ctl_elem_value_t *obj, unsigned int idx, long val);
 void snd_ctl_elem_value_set_integer(snd_ctl_elem_value_t *obj, unsigned int idx, long val);
+void snd_ctl_elem_value_set_integer64(snd_ctl_elem_value_t *obj, unsigned int idx, long long val);
 void snd_ctl_elem_value_set_enumerated(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned int val);
 void snd_ctl_elem_value_set_byte(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned char val);
 const void * snd_ctl_elem_value_get_bytes(const snd_ctl_elem_value_t *obj);
