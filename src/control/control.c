@@ -1010,14 +1010,14 @@ const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card abbreviation from a CTL card info
+ * \brief Get card driver name from a CTL card info
  * \param obj CTL card info
- * \return card abbreviation
+ * \return card driver name
  */
-const char *snd_ctl_card_info_get_abbreviation(const snd_ctl_card_info_t *obj)
+const char *snd_ctl_card_info_get_driver(const snd_ctl_card_info_t *obj)
 {
 	assert(obj);
-	return obj->abbreviation;
+	return obj->driver;
 }
 
 /**

@@ -352,7 +352,7 @@ void snd_ctl_card_info_copy(snd_ctl_card_info_t *dst, const snd_ctl_card_info_t 
 int snd_ctl_card_info_get_card(const snd_ctl_card_info_t *obj);
 snd_card_type_t snd_ctl_card_info_get_type(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj);
-const char *snd_ctl_card_info_get_abbreviation(const snd_ctl_card_info_t *obj);
+const char *snd_ctl_card_info_get_driver(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_longname(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_mixerid(const snd_ctl_card_info_t *obj);
