@@ -82,6 +82,8 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_INFO_BLOCK_TRANSFER SNDRV_PCM_INFO_BLOCK_TRANSFER
 /** device can detect DAC/ADC overrange */
 #define SND_PCM_INFO_OVERRANGE SNDRV_PCM_INFO_OVERRANGE
+/** device supports resume */
+#define SND_PCM_INFO_RESUME SNDRV_PCM_INFO_RESUME
 /** device is capable to pause */
 #define SND_PCM_INFO_PAUSE SNDRV_PCM_INFO_PAUSE
 /** device can do only half duplex */
