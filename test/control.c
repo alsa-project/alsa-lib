@@ -9,6 +9,7 @@ int main(void)
 	struct snd_ctl_hw_info info;
 	snd_pcm_info_t pcminfo;
 	snd_mixer_info_t mixerinfo;
+	snd_rawmidi_info_t rawmidiinfo;
 	char str[128];
 
 	cards = snd_cards();
@@ -59,10 +60,20 @@ int main(void)
 			printf("  type - %i\n", mixerinfo.type);
 			printf("  elements - %i\n", mixerinfo.elements);
 			printf("  groups - %i\n", mixerinfo.groups);
-			printf("  switches - %i\n", mixerinfo.switches);
 			printf("  attrib - 0x%x\n", mixerinfo.attrib);
 			printf("  id - '%s'\n", mixerinfo.id);
 			printf("  name - '%s'\n", mixerinfo.name);
+		}
+		for (idx1 = 0; idx1 < info.mididevs; idx1++) {
+			printf("RAWMIDI info, device #%i:\n", idx1);
+			if ((err = snd_ctl_rawmidi_info(handle, idx1, &rawmidiinfo)) < 0) {
+				printf("  MIXER info error: %s\n", snd_strerror(err));
+				continue;
+			}
+			printf("  type - %i\n", rawmidiinfo.type);
+			printf("  flags - 0x%x\n", rawmidiinfo.flags);
+			printf("  id - '%s'\n", rawmidiinfo.id);
+			printf("  name - '%s'\n", rawmidiinfo.name);
 		}
 		snd_ctl_close(handle);
 	}
