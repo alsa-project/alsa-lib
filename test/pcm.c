@@ -563,7 +563,7 @@ Usage: latency [OPTION]... [FILE]...
 -r,--rate	stream rate in Hz
 -c,--channels	count of channels in stream
 -f,--frequency  sine wave frequency in Hz
--b,--buffer     ring buffer size in samples
+-b,--buffer     ring buffer size in us
 -p,--period     period size in us
 -m,--method     transfer method
 
@@ -635,9 +635,9 @@ int main(int argc, char *argv[])
 			freq = freq > 5000 ? 5000 : freq;
 			break;
 		case 'b':
-			buffer_size = atoi(optarg);
-			buffer_size = buffer_size < 64 ? 64 : buffer_size;
-			buffer_size = buffer_size > 64*1024 ? 64*1024 : buffer_size;
+			buffer_time = atoi(optarg);
+			buffer_time = buffer_time < 1000 ? 1000 : buffer_time;
+			buffer_time = buffer_time > 1000000 ? 1000000 : buffer_time;
 			break;
 		case 'p':
 			period_time = atoi(optarg);
