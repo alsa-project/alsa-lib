@@ -269,7 +269,7 @@ static void MIX_AREAS2(unsigned int size,
 		"\tmovl %2, %%esi\n"
 		"\tmovl %3, %%ebx\n"
 		"\tcmpl $0, %0\n"
-		"\tjnz 2f\n"
+		"\tjnz 1f\n"
 		"\tjmp 6f\n"
 
 		"\t.p2align 4,,15\n"
