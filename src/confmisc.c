@@ -624,16 +624,15 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 	return err;
 }
 
-int snd_func_refer(snd_config_t **dst, snd_config_t *_root, snd_config_t *src, void *private_data)
+int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
-	snd_config_t *root;
 	const char *file = NULL, *name = NULL;
 	int err;
 	
 	err = snd_config_search(src, "file", &n);
 	if (err >= 0) {
-		err = snd_config_evaluate(n, _root, private_data, NULL);
+		err = snd_config_evaluate(n, root, private_data, NULL);
 		if (err < 0) {
 			SNDERR("error evaluating file");
 			goto _end;
@@ -646,7 +645,7 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *_root, snd_config_t *src, v
 	}
 	err = snd_config_search(src, "name", &n);
 	if (err >= 0) {
-		err = snd_config_evaluate(n, _root, private_data, NULL);
+		err = snd_config_evaluate(n, root, private_data, NULL);
 		if (err < 0) {
 			SNDERR("error evaluating name");
 			goto _end;
@@ -657,18 +656,13 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *_root, snd_config_t *src, v
 			goto _end;
 		}
 	}
-	if (!file && !name) {
+	if (!name) {
 		err = -EINVAL;
-		SNDERR("neither file or name are specified");
+		SNDERR("name is not specified");
 		goto _end;
 	}
-	if (!file)
-		root = _root;
-	else {
+	if (file) {
 		snd_input_t *input;
-		err = snd_config_top(&root);
-		if (err < 0)
-			goto _end;
 		err = snd_input_stdio_open(&input, file, "r");
 		if (err < 0) {
 			SNDERR("Unable to open file %s: %s", file, snd_strerror(err));
@@ -680,19 +674,11 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *_root, snd_config_t *src, v
 			goto _end;
 		}
 	}
-	if (!name) {
-		if (root == _root)
-			err = snd_config_copy(dst, root);
-		else {
-			*dst = root;
-			err = 0;
-		}
-	} else
-		err = snd_config_search_definition(root, NULL, name, dst);
+	err = snd_config_search_definition(root, NULL, name, dst);
 	if (err >= 0)
 		err = snd_config_set_id(*dst, snd_config_get_id(src));
+	else
+		SNDERR("Unable to find definition '%s'", name);
  _end:
-	if (root && root != _root)
-		snd_config_delete(root);
 	return err;
 }
