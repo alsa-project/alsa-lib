@@ -23,6 +23,7 @@ cfg_files = aliases.conf \
 	ES1968.conf \
 	FM801.conf \
 	GUS.conf \
+	HDA-Intel.conf \
 	ICE1712.conf \
 	ICE1724.conf \
 	ICH.conf \
