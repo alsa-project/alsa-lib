@@ -9,6 +9,7 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 includedir=@includedir@
 libdir=@libdir@
+aclocaldir=/usr/share/aclocal
 c_opts=@CFLAGS@
 INSTALL=@INSTALL@
 SND_LIB_VERSION=@SND_LIB_VERSION@
