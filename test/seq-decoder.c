@@ -442,6 +442,7 @@ void event_decoder(snd_seq_t *handle, int argc, char *argv[])
 		fprintf(stderr, "Cannot set nonblock mode: %s\n", snd_strerror(err));
 	bzero(&port, sizeof(port));
 	strcpy(port.name, "Input");
+	port.capability = SND_SEQ_PORT_CAP_WRITE;
 	if ((err = snd_seq_create_port(handle, &port)) < 0) {
 		fprintf(stderr, "Cannot create input port: %s\n", snd_strerror(err));
 		return;

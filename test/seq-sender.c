@@ -170,6 +170,7 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 	if ((err = snd_seq_block_mode(handle, 0))<0)
 		fprintf(stderr, "Cannot set nonblock mode: %s\n", snd_strerror(err));
 	bzero(&port, sizeof(port));
+	port.capability = SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_READ;
 	strcpy(port.name, "Output");
 	if ((err = snd_seq_create_port(handle, &port)) < 0) {
 		fprintf(stderr, "Cannot create output port: %s\n", snd_strerror(err));

@@ -617,7 +617,7 @@ int main(int argc, char *argv[])
 
 	/* create port */
 	memset(&src_port_info, 0, sizeof(snd_seq_port_info_t));
-	src_port_info.capability = SND_SEQ_PORT_CAP_OUT | SND_SEQ_PORT_CAP_IN;
+	src_port_info.capability = SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_READ;
 	src_port_info.type = SND_SEQ_PORT_TYPE_MIDI_GENERIC;
 	src_port_info.midi_channels = 16;
 	src_port_info.synth_voices = 0;

@@ -96,8 +96,8 @@ void show_port_info(snd_seq_t *handle, int client, int port)
 		printf("    Type          : 0x%x\n", info.type);
 		printf("    Midi channels : %i\n", info.midi_channels);
 		printf("    Synth voices  : %i\n", info.synth_voices);
-		printf("    Output subs   : %i\n", info.out_use);
-		printf("    Input subs    : %i\n", info.in_use);
+		printf("    Output subs   : %i\n", info.write_use);
+		printf("    Input subs    : %i\n", info.read_use);
 	}
 }
 
