@@ -42,6 +42,8 @@ int snd_pcm_playback_pause(snd_pcm_t *handle, int enable);
 ssize_t snd_pcm_transfer_size(snd_pcm_t *handle, int channel);
 ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size);
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size);
+ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count);
+ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count);
 int snd_pcm_mmap(snd_pcm_t *handle, int channel, snd_pcm_mmap_control_t **control, void **buffer);
 int snd_pcm_munmap(snd_pcm_t *handle, int channel);
 

@@ -448,6 +448,29 @@ ssize_t snd_pcm_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 	return result;
 }
 
+ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count)
+{
+	ssize_t result;
+
+	if (!pcm || (!vector && count > 0) || count < 0)
+		return -EINVAL;
+	if (pcm->fd[SND_PCM_CHANNEL_PLAYBACK] < 0)
+		return -EINVAL;
+#if 0
+	result = writev(pcm->fd[SND_PCM_CHANNEL_PLAYBACK], vector, count);
+#else
+	{
+		snd_v_args_t args;
+		args.vector = vector;
+		args.count = count;
+		result = ioctl(pcm->fd[SND_PCM_CHANNEL_PLAYBACK], SND_IOCTL_WRITEV, &args);
+	}
+#endif
+	if (result < 0)
+		return -errno;
+	return result;
+}
+
 ssize_t snd_pcm_read(snd_pcm_t *pcm, void *buffer, size_t size)
 {
 	ssize_t result;
@@ -457,6 +480,29 @@ ssize_t snd_pcm_read(snd_pcm_t *pcm, void *buffer, size_t size)
 	if (pcm->fd[SND_PCM_CHANNEL_CAPTURE] < 0)
 		return -EINVAL;
 	result = read(pcm->fd[SND_PCM_CHANNEL_CAPTURE], buffer, size);
+	if (result < 0)
+		return -errno;
+	return result;
+}
+
+ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count)
+{
+	ssize_t result;
+
+	if (!pcm || (!vector && count > 0) || count < 0)
+		return -EINVAL;
+	if (pcm->fd[SND_PCM_CHANNEL_CAPTURE] < 0)
+		return -EINVAL;
+#if 0
+	result = readv(pcm->fd[SND_PCM_CHANNEL_CAPTURE], vector, count);
+#else
+	{
+		snd_v_args_t args;
+		args.vector = vector;
+		args.count = count;
+		result = ioctl(pcm->fd[SND_PCM_CHANNEL_CAPTURE], SND_IOCTL_READV, &args);
+	}
+#endif
 	if (result < 0)
 		return -errno;
 	return result;
