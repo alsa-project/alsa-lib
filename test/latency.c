@@ -4,17 +4,17 @@
 #include <sched.h>
 #include <errno.h>
 #include "../include/asoundlib.h"
+#include <sys/time.h>
 
 #if 0
 #define USE_FRAGMENT_MODE	/* latency is twice more than for frame mode!!! */
 #endif
 
-#define USED_RATE	48000
-//#define LATENCY_MIN	8192
+//#define USED_RATE	48000
+#define USED_RATE       22050
 #define LATENCY_MIN	32
-#define LATENCY_MAX	8192		/* in bytes */
-//#define LOOP_LIMIT	(8192UL * 2)
-#define LOOP_LIMIT	(30 * 176400UL)	/* 30 seconds */
+#define LATENCY_MAX	2048		/* in frames */
+#define LOOP_LIMIT	(30UL * USED_RATE)	/* 30 seconds */
 
 #if 0
 static char *xitoa(int aaa)
@@ -26,39 +26,6 @@ static char *xitoa(int aaa)
 }
 #endif
 
-static int syncro(snd_pcm_t *phandle, snd_pcm_t *chandle)
-{
-	snd_pcm_stream_info_t pinfo, cinfo;
-	int err;
-	
-	bzero(&pinfo, sizeof(pinfo));
-	bzero(&cinfo, sizeof(cinfo));
-	pinfo.stream = SND_PCM_STREAM_PLAYBACK;
-	cinfo.stream = SND_PCM_STREAM_CAPTURE;
-	if ((err = snd_pcm_stream_info(phandle, &pinfo)) < 0) {
-		printf("Playback info error: %s\n", snd_strerror(err));
-		exit(0);
-	}
-	if ((err = snd_pcm_stream_info(chandle, &cinfo)) < 0) {
-		printf("Capture info error: %s\n", snd_strerror(err));
-		exit(0);
-	}
-	if (pinfo.sync.id32[0] == 0 && pinfo.sync.id32[1] == 0 &&
-	    pinfo.sync.id32[2] == 0 && pinfo.sync.id32[3] == 0)
-		return 0;
-	if (memcmp(&pinfo.sync, &cinfo.sync, sizeof(pinfo.sync)))
-		return 0;
-	return 1;
-}
-
-static void syncro_id(snd_pcm_sync_t *sync)
-{
-	sync->id32[0] = 0;	/* application */
-	sync->id32[1] = getpid();
-	sync->id32[2] = 0x89abcdef;
-	sync->id32[3] = 0xaaaaaaaa;
-}
-
 /*
  *  This small demo program can be used for measuring latency between
  *  capture and playback. This latency is measured from driver (diff when
@@ -67,15 +34,14 @@ static void syncro_id(snd_pcm_sync_t *sync)
  *  Used format is 44100Hz, Signed Little Endian 16-bit, Stereo.
  */
 
-int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
+int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *bufsize)
 {
-	int err, again;
-	snd_pcm_stream_params_t params;
-	snd_pcm_stream_setup_t psetup, csetup;
+	int err;
+	snd_pcm_params_t params;
+	snd_pcm_setup_t psetup, csetup;
 
 	bzero(&params, sizeof(params));
-	params.stream = SND_PCM_STREAM_PLAYBACK;
-#ifdef USE_BLOCK_MODE
+#ifdef USE_FRAGMENT_MODE
 	params.mode = SND_PCM_MODE_FRAGMENT;
 #else
 	params.mode = SND_PCM_MODE_FRAME;
@@ -87,107 +53,68 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 	params.start_mode = SND_PCM_START_GO;
 	params.xrun_mode = SND_PCM_XRUN_DRAIN;
 	params.time = 1;
-	*queue += 16;
-#if 0
-	params.buf.stream.fill = SND_PCM_FILL_SILENCE;
-	params.buf.stream.max_fill = 1024;
-#else
-	params.buf.stream.fill = SND_PCM_FILL_NONE;
-#endif
-	if (sync)
-		syncro_id(&params.sync);
+	*bufsize += 4;
+
       __again:
-	if (*queue > LATENCY_MAX)
+	if (*bufsize > LATENCY_MAX)
 		return -1;
-      	again = 0;
-      	params.stream = SND_PCM_STREAM_PLAYBACK;
-	params.frag_size = *queue;
-#ifdef USE_BLOCK_MODE
-	params.buffer_size = *queue * 2;
-	params.buf.block.frags_min = 1;
-#else
-	params.buffer_size = *queue;
-	params.buf.stream.bytes_min = 2;
-#endif
-	if ((err = snd_pcm_stream_params(phandle, &params)) < 0) {
+	params.frag_size = *bufsize / 2;
+	params.frames_min = 1;
+	params.buffer_size = *bufsize;
+
+	if ((err = snd_pcm_params(phandle, &params)) < 0) {
 		printf("Playback params error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	params.stream = SND_PCM_STREAM_CAPTURE;
-	if ((err = snd_pcm_stream_params(chandle, &params)) < 0) {
+	if ((err = snd_pcm_params(chandle, &params)) < 0) {
 		printf("Capture params error: %s\n", snd_strerror(err));
 		exit(0);
 	}
 	bzero(&psetup, sizeof(psetup));
-	psetup.stream = SND_PCM_STREAM_PLAYBACK;
-	if ((err = snd_pcm_stream_setup(phandle, &psetup)) < 0) {
+	if ((err = snd_pcm_setup(phandle, &psetup)) < 0) {
 		printf("Playback setup error: %s\n", snd_strerror(err));
 		exit(0);
 	}
 	bzero(&csetup, sizeof(csetup));
-	csetup.stream = SND_PCM_STREAM_CAPTURE;
-	if ((err = snd_pcm_stream_setup(chandle, &csetup)) < 0) {
+	if ((err = snd_pcm_setup(chandle, &csetup)) < 0) {
 		printf("Capture setup error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-#ifdef USE_BLOCK_MODE
-	if (psetup.buffer_size / 2 > *queue) {
-		*queue = psetup.buffer_size / 2;
-		again++;
-	}
-#else
-	if (psetup.buffer_size > *queue) {
-		*queue = psetup.buffer_size;
-		again++;
-	}
-#endif
-	if (again)
+	if (psetup.buffer_size > *bufsize) {
+		*bufsize = psetup.buffer_size;
 		goto __again;
-	if ((err = snd_pcm_playback_prepare(phandle)) < 0) {
+	}
+
+	if ((err = snd_pcm_prepare(phandle)) < 0) {
 		printf("Playback prepare error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_capture_prepare(chandle)) < 0) {
+	if ((err = snd_pcm_prepare(chandle)) < 0) {
 		printf("Capture prepare error: %s\n", snd_strerror(err));
 		exit(0);
-	}	
-	printf("Trying latency %i (playback rate = %iHz, capture rate = %iHz)...\n",
-#ifdef USE_BLOCK_MODE
-		*queue * 2, 
-#else
-		*queue, 
-#endif
-		psetup.format.rate, csetup.format.rate);
-	printf("Fragment boundary = %li/%li, Position boundary = %li/%li\n", (long)psetup.frag_boundary, (long)csetup.frag_boundary, (long)psetup.pos_boundary, (long)psetup.pos_boundary);
-	printf("Frags = %li/%li, Buffer size = %li/%li\n", (long)psetup.frags, (long)csetup.frags, (long)psetup.buffer_size, (long)csetup.buffer_size);
+	}
+	snd_pcm_dump(phandle, stdout);
+	snd_pcm_dump(chandle, stdout);
+	printf("Trying latency %i...\n", *bufsize);
 	fflush(stdout);
 	return 0;
 }
 
-void showstat(snd_pcm_t *handle, int stream, snd_pcm_stream_status_t *rstatus, size_t bytes)
+void showstat(snd_pcm_t *handle, snd_pcm_status_t *rstatus, size_t frames)
 {
 	int err;
-	snd_pcm_stream_status_t status;
-	char *str;
+	snd_pcm_status_t status;
 
-	str = stream == SND_PCM_STREAM_CAPTURE ? "Capture" : "Playback";
 	bzero(&status, sizeof(status));
-	status.stream = stream;
-	if ((err = snd_pcm_stream_status(handle, &status)) < 0) {
-		printf("Stream %s status error: %s\n", str, snd_strerror(err));
+	if ((err = snd_pcm_status(handle, &status)) < 0) {
+		printf("Stream status error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	printf("%s:\n", str);
-	printf("  status = %i\n", status.status);
-	printf("  bytes = %i\n", bytes);
-	printf("  frag_io = %li\n", (long)status.frag_io);
-	printf("  frag_data = %li\n", (long)status.frag_data);
-	printf("  frag_used = %li\n", (long)status.frags_used);
-	printf("  frag_free = %li\n", (long)status.frags_free);
-	printf("  pos_io = %li\n", (long)status.pos_io);
-	printf("  pos_data = %li\n", (long)status.pos_data);
-	printf("  bytes_used = %li\n", (long)status.bytes_used);
-	printf("  bytes_free = %li\n", (long)status.bytes_free);
+	printf("  state = %i\n", status.state);
+	printf("  frames = %i\n", frames);
+	printf("  frame_io = %li\n", (long)status.frame_io);
+	printf("  frame_data = %li\n", (long)status.frame_data);
+	printf("  frames_avail = %li\n", (long)status.frames_avail);
 	if (rstatus)
 		*rstatus = status;
 }
@@ -223,7 +150,7 @@ long timediff(struct timeval t1, struct timeval t2)
 	return (t1.tv_sec * 1000000) + l;
 }
 
-long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *bytes)
+long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 {
 	long r;
 	
@@ -231,29 +158,27 @@ long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *bytes)
 		r = snd_pcm_read(handle, buf, len);
 	} while (r == -EAGAIN);
 	if (r > 0)
-		*bytes += r;
+		*frames += r;
 	// printf("read = %li\n", r);
-	// showstat(handle, SND_PCM_STREAM_CAPTURE, NULL);
+	// showstat(handle, NULL);
 	return r;
 }
 
-long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *bytes)
+long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 {
 	long r;
 
 	while (len > 0) {
 		r = snd_pcm_write(handle, buf, len);
-#ifndef USE_BLOCK_MODE
 		if (r == -EAGAIN)
 			continue;
-#endif
 		// printf("write = %li\n", r);
 		if (r < 0)
 			return r;
-		// showstat(handle, SND_PCM_STREAM_PLAYBACK, NULL);
-		buf += r;
+		// showstat(handle, NULL);
+		buf += r * 4;
 		len -= r;
-		*bytes += r;
+		*frames += r;
 	}
 	return 0;
 }
@@ -261,79 +186,71 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *bytes)
 int main(void)
 {
 	snd_pcm_t *phandle, *chandle;
-	char buffer[LATENCY_MAX];	/* max two fragments by 4096 bytes */
+	char buffer[LATENCY_MAX*4];
 	int pcard = 0, pdevice = 0;
 	int ccard = 0, cdevice = 0;
-	int err, latency = LATENCY_MIN - 16;
+	int err, latency = LATENCY_MIN - 4;
 	int size, ok;
 	int sync;
-	snd_pcm_sync_t ssync;
-	snd_pcm_stream_status_t pstatus, cstatus;
+	snd_pcm_status_t pstatus, cstatus;
 	ssize_t r;
-	size_t bytes_in, bytes_out;
+	size_t frames_in, frames_out;
+	snd_pcm_synchro_request_t sync_req[2];
 
 	setscheduler();
-	if ((err = snd_pcm_plug_open(&phandle, pcard, pdevice, SND_PCM_OPEN_PLAYBACK|SND_PCM_NONBLOCK_PLAYBACK)) < 0) {
+	if ((err = snd_pcm_plug_open(&phandle, pcard, pdevice, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-	if ((err = snd_pcm_plug_open(&chandle, ccard, cdevice, SND_PCM_OPEN_CAPTURE|SND_PCM_NONBLOCK_CAPTURE)) < 0) {
+	if ((err = snd_pcm_plug_open(&chandle, ccard, cdevice, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK)) < 0) {
 		printf("Record open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-#ifdef USE_BLOCK_MODE
+	memset(sync_req, 0, sizeof(sync_req));
+	sync_req[0].handle = phandle;
+	sync_req[0].result = -3;
+	sync_req[1].handle = chandle;
+#ifdef USE_FRAGMENT_MODE
 	printf("Using fragment mode...\n");
 #else
 	printf("Using frame mode...\n");
 #endif
-	sync = syncro(phandle, chandle);
-	if (sync)
-		printf("Using hardware synchronization mode\n");
-	printf("Loop limit is %li bytes\n", LOOP_LIMIT);
+	printf("Loop limit is %li frames\n", LOOP_LIMIT);
 	while (1) {
-		bytes_in = bytes_out = 0;
+		frames_in = frames_out = 0;
 		if (setparams(phandle, chandle, sync, &latency) < 0)
 			break;
-		if (snd_pcm_format_set_silence(SND_PCM_SFMT_S16_LE, buffer, latency) < 0) {
+		if (snd_pcm_format_set_silence(SND_PCM_SFMT_S16_LE, buffer, latency*2) < 0) {
 			fprintf(stderr, "silence error\n");
 			break;
 		}
-		if (writebuf(phandle, buffer, latency, &bytes_out) < 0) {
+		if (writebuf(phandle, buffer, latency, &frames_out) < 0) {
 			fprintf(stderr, "write error\n");
 			break;
 		}
-#ifdef USE_BLOCK_MODE	/* at least two fragments MUST BE filled !!! */
-		if (writebuf(phandle, buffer, latency, &bytes_out) < 0)
-			break;
-#endif
-		if (sync) {
-			syncro_id(&ssync);
-			if ((err = snd_pcm_sync_go(phandle, &ssync)) < 0) {
-				printf("Sync go error: %s\n", snd_strerror(err));
-				exit(0);
-			}
-		} else {
-			if ((err = snd_pcm_capture_go(chandle)) < 0) {
-				printf("Capture go error: %s\n", snd_strerror(err));
-				exit(0);
-			}
-			if ((err = snd_pcm_playback_go(phandle)) < 0) {
-				printf("Playback go error: %s\n", snd_strerror(err));
-				exit(0);
-			}
+
+		if ((err = snd_pcm_synchro(SND_PCM_SYNCHRO_GO, 2, sync_req, SND_PCM_SYNC_MODE_NORMAL)) < 0) {
+			printf("Sync go error: %s\n", snd_strerror(err));
+			exit(0);
+		}
+		if (sync_req[0].tstamp.tv_sec == sync_req[1].tstamp.tv_sec &&
+		    sync_req[0].tstamp.tv_usec == sync_req[1].tstamp.tv_usec) {
+			printf("Hardware sync\n");
 		}
 		ok = 1;
 		size = 0;
-		while (ok && bytes_in < LOOP_LIMIT) {
-			if ((r = readbuf(chandle, buffer, latency, &bytes_in)) < 0)
+		while (ok && frames_in < LOOP_LIMIT) {
+			if ((r = readbuf(chandle, buffer, latency, &frames_in)) < 0)
 				ok = 0;
-			if (r > 0 && writebuf(phandle, buffer, r, &bytes_out) < 0)
+			else if (writebuf(phandle, buffer, r, &frames_out) < 0)
 				ok = 0;
 		}
-		showstat(phandle, SND_PCM_STREAM_PLAYBACK, &pstatus, bytes_out);
-		showstat(chandle, SND_PCM_STREAM_CAPTURE, &cstatus, bytes_in);
-		snd_pcm_capture_flush(chandle);
-		snd_pcm_playback_flush(phandle);
+		printf("Playback:\n");
+		showstat(phandle, &pstatus, frames_out);
+		printf("Capture:\n");
+		showstat(chandle, &cstatus, frames_in);
+		snd_pcm_flush(chandle);
+		snd_pcm_flush(phandle);
 		if (ok) {
 			printf("Playback time = %li.%i, Record time = %li.%i, diff = %li\n",
 			       pstatus.stime.tv_sec,
