@@ -2329,10 +2329,10 @@ int snd_seq_queue_timer_get_queue(const snd_seq_queue_timer_t *info)
  * \param info queue_timer container
  * \return timer type
  */
-int snd_seq_queue_timer_get_type(const snd_seq_queue_timer_t *info)
+snd_seq_queue_timer_type_t snd_seq_queue_timer_get_type(const snd_seq_queue_timer_t *info)
 {
 	assert(info);
-	return info->type;
+	return (snd_seq_queue_timer_type_t)info->type;
 }
 
 /**
@@ -2362,10 +2362,10 @@ unsigned int snd_seq_queue_timer_get_resolution(const snd_seq_queue_timer_t *inf
  * \param info queue_timer container
  * \param type timer type
  */
-void snd_seq_queue_timer_set_type(snd_seq_queue_timer_t *info, int type)
+void snd_seq_queue_timer_set_type(snd_seq_queue_timer_t *info, snd_seq_queue_timer_type_t type)
 {
 	assert(info);
-	info->type = type;
+	info->type = (int)type;
 }
 	
 /**

@@ -415,6 +415,14 @@ int snd_seq_set_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tem
 
 /*
  */
+
+/** sequencer timer sources */
+typedef enum {
+	SND_SEQ_TIMER_ALSA = 0,		/* ALSA timer */
+	SND_SEQ_TIMER_MIDI_CLOCK = 1,	/* Midi Clock (CLOCK event) */
+	SND_SEQ_TIMER_MIDI_TICK = 2,	/* Midi Timer Tick (TICK event */
+} snd_seq_queue_timer_type_t;
+
 size_t snd_seq_queue_timer_sizeof(void);
 /** allocate a #snd_seq_queue_timer_t container on stack */
 #define snd_seq_queue_timer_alloca(ptr) \
@@ -424,11 +432,11 @@ void snd_seq_queue_timer_free(snd_seq_queue_timer_t *ptr);
 void snd_seq_queue_timer_copy(snd_seq_queue_timer_t *dst, const snd_seq_queue_timer_t *src);
 
 int snd_seq_queue_timer_get_queue(const snd_seq_queue_timer_t *info);
-int snd_seq_queue_timer_get_type(const snd_seq_queue_timer_t *info);
+snd_seq_queue_timer_type_t snd_seq_queue_timer_get_type(const snd_seq_queue_timer_t *info);
 const snd_timer_id_t *snd_seq_queue_timer_get_id(const snd_seq_queue_timer_t *info);
 unsigned int snd_seq_queue_timer_get_resolution(const snd_seq_queue_timer_t *info);
 
-void snd_seq_queue_timer_set_type(snd_seq_queue_timer_t *info, int type);
+void snd_seq_queue_timer_set_type(snd_seq_queue_timer_t *info, snd_seq_queue_timer_type_t type);
 void snd_seq_queue_timer_set_id(snd_seq_queue_timer_t *info, const snd_timer_id_t *id);
 void snd_seq_queue_timer_set_resolution(snd_seq_queue_timer_t *info, unsigned int resolution);
 
