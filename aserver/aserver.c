@@ -602,6 +602,12 @@ static int ctl_shm_cmd(client_t *client)
 	case SNDRV_CTL_IOCTL_ELEM_WRITE:
 		ctrl->result = snd_ctl_elem_write(ctl, &ctrl->u.element_write);
 		break;
+	case SNDRV_CTL_IOCTL_ELEM_LOCK:
+		ctrl->result = snd_ctl_elem_lock(ctl, &ctrl->u.element_lock);
+		break;
+	case SNDRV_CTL_IOCTL_ELEM_UNLOCK:
+		ctrl->result = snd_ctl_elem_unlock(ctl, &ctrl->u.element_unlock);
+		break;
 	case SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE:
 		ctrl->result = snd_ctl_hwdep_next_device(ctl, &ctrl->u.device);
 		break;
