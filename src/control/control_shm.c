@@ -609,15 +609,14 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 	err = snd_config_search_definition(root, "server", server, &sconfig);
 	if (err < 0) {
 		SNDERR("Unknown server %s", server);
-		err = -EINVAL;
-		goto _err;
+		return -EINVAL;
 	}
 	if (snd_config_get_type(sconfig) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid type for server %s definition", server);
 		err = -EINVAL;
 		goto _err;
 	}
-	snd_config_for_each(i, next, conf) {
+	snd_config_for_each(i, next, sconfig) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
