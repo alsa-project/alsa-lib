@@ -13,16 +13,19 @@ AC_TRY_COMPILE([
 ],[
 void main(void)
 {
-#if !defined( SND_PROTOCOL_VERSION ) || !defined( SND_PROTOCOL_UNCOMPATIBLE )
+#if !defined(SND_PROTOCOL_VERSION) || !defined(SND_PROTOCOL_UNCOMPATIBLE)
 #error not found
 #else
+#if !defined(SND_MIXER_IOCTL_CHANNEL_RREAD)
+#error wrong version
+#endif
   exit(0);
 #endif
 }
 ],
   AC_MSG_RESULT(present),
-  [AC_MSG_RESULT(not found);
-   AC_MSG_ERROR([Install alsa-driver v0.2.0pre6+ package first...])]
+  [AC_MSG_RESULT(not found or wrong version);
+   AC_MSG_ERROR([Install alsa-driver v0.3.0pre1+ package first...])]
 )
 CFLAGS="$OLD_CFLAGS"
 ])
