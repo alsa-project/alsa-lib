@@ -973,7 +973,7 @@ int snd_pcm_hw_param_refine_multiple(snd_pcm_t *pcm,
 				break;
 			if (it->min <= cur && ! (it->min == cur && st->openmin)) {
 				if (! snd_pcm_hw_param_set(pcm, params, SND_TRY, var, cur, 0))
-					return; /* ok */
+					return 0; /* ok */
 			}
 			prev = cur;
 			cur += best;
