@@ -6090,9 +6090,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		snd_pcm_sframes_t avail;
 	_again:
 		if (pcm->sleep_min == 0 && state == SND_PCM_STATE_RUNNING) {
-			snd_pcm_sframes_t delay;
-			/* update hw_ptr */
-			err = snd_pcm_delay(pcm, &delay);
+			err = snd_pcm_hwsync(pcm);
 			if (err < 0)
 				goto _end;
 		}
@@ -6170,9 +6168,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		snd_pcm_sframes_t avail;
 	_again:
 		if (pcm->sleep_min == 0 && state == SND_PCM_STATE_RUNNING) {
-			snd_pcm_sframes_t delay;
-			/* update hw_ptr */
-			err = snd_pcm_delay(pcm, &delay);
+			err = snd_pcm_hwsync(pcm);
 			if (err < 0)
 				goto _end;
 		}
