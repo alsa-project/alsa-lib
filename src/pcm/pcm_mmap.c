@@ -645,6 +645,7 @@ int snd_pcm_munmap_data(snd_pcm_t *pcm, int stream)
 	if ((err = pcm->ops->munmap_data(pcm, stream, str->mmap_data, str->mmap_data_size)) < 0)
 		return err;
 	free(str->channels);
+	str->channels = 0;
 	str->mmap_data = 0;
 	str->mmap_data_size = 0;
 	return 0;
