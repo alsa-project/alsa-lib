@@ -3,7 +3,7 @@ AC_DEFUN(ALSA_CHECK_DRIVER, [
 AC_MSG_CHECKING(for alsa-driver package)
 
 AC_TRY_COMPILE([
-#include <linux/asound.h>
+#include <sound/asound.h>
 ],[
 void main(void)
 {
