@@ -76,7 +76,7 @@ typedef enum _snd_rawmidi_type {
 	/** INET client RawMidi (not yet implemented) */
 	SND_RAWMIDI_TYPE_INET,
 	/** Virtual (sequencer) RawMidi */
-	SND_RAWMIDI_TYPE_VIRT
+	SND_RAWMIDI_TYPE_VIRTUAL
 } snd_rawmidi_type_t;
 
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
