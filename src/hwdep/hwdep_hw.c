@@ -137,6 +137,7 @@ int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int devi
 	return 0;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_hwdep_hw_open, SND_HWDEP_DLSYM_VERSION);
 int _snd_hwdep_hw_open(snd_hwdep_t **hwdep, char *name,
 		       snd_config_t *root ATTRIBUTE_UNUSED,
 		       snd_config_t *conf, int mode)

@@ -11,6 +11,9 @@
  *  \{
  */
 
+/** dlsym version for interface entry callback */
+#define SND_CONTROL_DLSYM_VERSION	_dlsym_control_001
+
 /** IEC958 structure */
 typedef struct sndrv_aes_iec958 snd_aes_iec958_t;
 

@@ -704,8 +704,6 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_pcm_scope_%s_open", str);
 	}
-	if (!lib)
-		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
 	open_func = h ? dlsym(h, open_name) : NULL;
 	err = 0;
@@ -724,6 +722,7 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 }
 
 			
+SND_DLSYM_BUILD_VERSION(_snd_pcm_meter_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)

@@ -139,96 +139,11 @@ int snd_config_get_ctl_iface(snd_config_t *conf)
 	return err;
 }
 
-/**
- * \brief Refer the configuration block to another
- * \param dst new configuration block (if *dst != root -> dst needs to be deleted)
- * \param name the identifier of new configuration block
- * \param root the root of all configurations
- * \param config redirect configuration
- */
-int snd_config_refer_load(snd_config_t **dst,
-			  char **name,
-			  snd_config_t *root,
-			  snd_config_t *config)
-{
-	int err;
-	snd_config_t *result, *c;
-	char *rname;
-
-	assert(dst);
-	assert(name);
-	assert(root);
-	assert(config);
-	if (snd_config_get_type(config) == SND_CONFIG_TYPE_STRING) {
-		const char *str;
-		snd_config_get_string(config, &str);
-		*name = strdup(str);
-		if (*name == NULL)
-			return -ENOMEM;
-		*dst = root;
-		return 0;
-	}
-	if (snd_config_get_type(config) != SND_CONFIG_TYPE_COMPOUND)
-		return -EINVAL;
-	result = root;
-	rname = NULL;
-	if (snd_config_search(config, "file", &c) >= 0) {
-		snd_config_t *rconfig;
-		const char *filename;
-		snd_input_t *input;
-		err = snd_config_copy(&rconfig, root);
-		if (err < 0)
-			return err;
-		if (snd_config_get_type(c) == SND_CONFIG_TYPE_STRING) {
-			snd_config_get_string(c, &filename);
-		} else {
-			err = -EINVAL;
-		      __filename_error:
-			snd_config_delete(rconfig);
-			return err;
-		}
-		err = snd_input_stdio_open(&input, filename, "r");
-		if (err < 0) {
-			SNDERR("Unable to open filename %s: %s", filename, snd_strerror(err));
-			goto __filename_error;
-		}
-		err = snd_config_load(rconfig, input);
-		if (err < 0) {
-			snd_input_close(input);
-			goto __filename_error;
-		}
-		snd_input_close(input);
-		result = rconfig;
-	}
-	if (snd_config_search(config, "name", &c) >= 0) {
-		const char *ptr;
-		if ((err = snd_config_get_string(c, &ptr)) < 0)
-			goto __error;
-		rname = strdup(ptr);
-		if (rname == NULL) {
-			err = -ENOMEM;
-			goto __error;
-		}
-	}
-	if (rname == NULL) {
-		err = -EINVAL;
-		goto __error;
-	}
-	*dst = result;
-	*name = rname;
-	return 0;
-      __error:
-      	if (rname)
-      		free(rname);
-      	if (result != root)
-      		snd_config_delete(result);
-      	return err;
-}
-
 /*
  *  Helper functions for the configuration file
  */
 
+SND_DLSYM_BUILD_VERSION(snd_func_getenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n, *d;
@@ -307,6 +222,7 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 	return err;
 }
 
+SND_DLSYM_BUILD_VERSION(snd_func_igetenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *d;
@@ -331,8 +247,8 @@ int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, 
  _end:
 	return err;
 }
-	
-	
+		
+SND_DLSYM_BUILD_VERSION(snd_func_concat, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -397,6 +313,7 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 	return err;
 }
 
+SND_DLSYM_BUILD_VERSION(snd_func_datadir, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_datadir(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 		     snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
 {
@@ -428,6 +345,7 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
+SND_DLSYM_BUILD_VERSION(snd_func_private_string, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
 {
 	int err;
@@ -472,6 +390,7 @@ int snd_determine_driver(int card, char **driver)
 	return err;
 }
 
+SND_DLSYM_BUILD_VERSION(snd_func_private_card_strtype, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
 {
 	char *driver;
@@ -486,6 +405,7 @@ int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBU
 	return err;
 }
 
+SND_DLSYM_BUILD_VERSION(snd_func_card_strtype, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -518,6 +438,7 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *
 	return snd_func_private_card_strtype(dst, root, src, (void *)v);
 }
 
+SND_DLSYM_BUILD_VERSION(snd_func_card_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -568,6 +489,7 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, 
 	return err;
 }
 
+SND_DLSYM_BUILD_VERSION(snd_func_pcm_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -640,6 +562,7 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 	return err;
 }
 
+SND_DLSYM_BUILD_VERSION(snd_func_private_pcm_subdevice, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
 {
 	char *res = NULL;
@@ -664,6 +587,7 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 	return err;
 }
 
+SND_DLSYM_BUILD_VERSION(snd_func_refer, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;

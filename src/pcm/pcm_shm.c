@@ -710,6 +710,7 @@ int is_local(struct hostent *hent)
 	return i < numreqs;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_pcm_shm_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 		      snd_config_t *root, snd_config_t *conf,
 		      snd_pcm_stream_t stream, int mode)

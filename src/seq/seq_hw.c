@@ -503,6 +503,7 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 	return 0;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_seq_hw_open, SND_SEQ_DLSYM_VERSION);
 int _snd_seq_hw_open(snd_seq_t **handlep, char *name,
 		     snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		     int streams, int mode)

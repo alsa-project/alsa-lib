@@ -88,6 +88,7 @@ int snd_timer_query_hw_open(snd_timer_query_t **handle, const char *name, int mo
 	return 0;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_timer_query_hw_open, SND_TIMER_QUERY_DLSYM_VERSION);
 int _snd_timer_query_hw_open(snd_timer_query_t **timer, char *name,
 			     snd_config_t *root ATTRIBUTE_UNUSED,
 			     snd_config_t *conf, int mode)

@@ -414,6 +414,7 @@ int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	return 0;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_pcm_alaw_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)

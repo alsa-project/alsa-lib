@@ -11,6 +11,9 @@
  *  \{
  */
 
+/** dlsym version for interface entry callback */
+#define SND_PCM_DLSYM_VERSION		_dlsym_pcm_001
+
 /** PCM generic info container */
 typedef struct _snd_pcm_info snd_pcm_info_t;
 /** PCM hardware configuration space container */

@@ -11,6 +11,9 @@
  *  \{
  */
 
+/** dlsym version for interface entry callback */
+#define SND_RAWMIDI_DLSYM_VERSION	_dlsym_rawmidi_001
+
 /** RawMidi information container */
 typedef struct _snd_rawmidi_info snd_rawmidi_info_t;
 /** RawMidi settings container */

@@ -4,6 +4,11 @@
  *  \{
  */
 
+/** dlsym version for config evaluate callback */
+#define SND_CONFIG_DLSYM_VERSION_EVALUATE	_dlsym_config_evaluate_001
+/** dlsym version for config hook callback */
+#define SND_CONFIG_DLSYM_VERSION_HOOK		_dlsym_config_hook_001
+
 /** Config node type */
 typedef enum _snd_config_type {
 	/** Integer number */

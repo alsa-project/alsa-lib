@@ -102,10 +102,14 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_hwdep_%s_open", str);
 	}
-	if (!lib)
-		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
-	open_func = h ? dlsym(h, open_name) : NULL;
+	if (h) {
+		if ((err = snd_dlsym_verify(h, open_name, SND_DLSYM_VERSION(SND_HWDEP_DLSYM_VERSION))) < 0) {
+			dlclose(h);
+			goto _err;
+		}
+		open_func = dlsym(h, open_name);
+	}
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		err = -ENOENT;

@@ -771,6 +771,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 
 #define MAX_CHANNELS 64
 
+SND_DLSYM_BUILD_VERSION(_snd_pcm_plug_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)

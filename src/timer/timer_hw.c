@@ -200,6 +200,7 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 	return 0;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_timer_hw_open, SND_TIMER_DLSYM_VERSION);
 int _snd_timer_hw_open(snd_timer_t **timer, char *name,
 		       snd_config_t *root ATTRIBUTE_UNUSED,
 		       snd_config_t *conf, int mode)

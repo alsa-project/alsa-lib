@@ -394,8 +394,6 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 		install = buf;
 		snprintf(buf, sizeof(buf), "_snd_pcm_hook_%s_install", str);
 	}
-	if (!lib)
-		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
 	install_func = h ? dlsym(h, install) : NULL;
 	err = 0;
@@ -425,6 +423,7 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 	return 0;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_pcm_hooks_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)

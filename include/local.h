@@ -24,8 +24,6 @@
 
 #include "config.h"
 
-#define ALSA_LIB "libasound.so"
-
 #define _snd_config_iterator list_head
 #define _snd_interval sndrv_interval
 #define _snd_pcm_info sndrv_pcm_info

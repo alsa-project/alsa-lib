@@ -302,6 +302,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	return -ENOMEM;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_rawmidi_hw_open, SND_RAWMIDI_DLSYM_VERSION);
 int _snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			 char *name, snd_config_t *root ATTRIBUTE_UNUSED,
 			 snd_config_t *conf, int mode)

@@ -640,6 +640,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, in
 	return ret;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_pcm_hw_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		     snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		     snd_pcm_stream_t stream, int mode)

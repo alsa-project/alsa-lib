@@ -1056,10 +1056,14 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_pcm_%s_open", str);
 	}
-	if (!lib)
-		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
-	open_func = h ? dlsym(h, open_name) : NULL;
+	if (h) {
+		if ((err = snd_dlsym_verify(h, open_name, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION))) < 0) {
+			dlclose(h);
+			goto _err;
+		}
+		open_func = dlsym(h, open_name);
+	}
 	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
@@ -1079,23 +1083,10 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 				 const char *name, snd_pcm_stream_t stream, int mode)
 {
 	int err;
-	snd_config_t *pcm_conf, *n;
+	snd_config_t *pcm_conf;
 	err = snd_config_search_definition(root, "pcm", name, &pcm_conf);
 	if (err < 0) {
 		SNDERR("Unknown PCM %s", name);
-		return err;
-	}
-	if (snd_config_search(pcm_conf, "refer", &n) >= 0) {
-		snd_config_t *refer;
-		char *new_name;
-		err = snd_config_refer_load(&refer, &new_name, root, n);
-		if (err < 0) {
-			SNDERR("Unable to load refered block in PCM %s: %s", name, snd_strerror(err));
-			return err;
-		}
-		err = snd_pcm_open_noupdate(pcmp, refer, new_name, stream, mode);
-		if (refer != root)
-			snd_config_delete(refer);
 		return err;
 	}
 	err = snd_pcm_open_conf(pcmp, name, root, pcm_conf, stream, mode);

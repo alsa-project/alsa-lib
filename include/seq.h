@@ -9,6 +9,9 @@ extern "C" {
  *  \{
  */
 
+/** dlsym version for interface entry callback */
+#define SND_SEQ_DLSYM_VERSION		_dlsym_seq_001
+
 /** Sequencer handle */
 typedef struct _snd_seq snd_seq_t;
 

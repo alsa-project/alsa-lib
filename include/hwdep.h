@@ -11,6 +11,9 @@
  *  \{
  */
 
+/** dlsym version for interface entry callback */
+#define SND_HWDEP_DLSYM_VERSION		_dlsym_hwdep_001
+
 /** HwDep information container */
 typedef struct _snd_hwdep_info snd_hwdep_info_t;
 

@@ -1801,18 +1801,18 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, void 
 		buf[len-1] = '\0';
 		func_name = buf;
 	}
-	if (!lib)
-		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
+	if ((err = snd_dlsym_verify(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_HOOK))) < 0)
+		goto _err;
 	func = h ? dlsym(h, func_name) : NULL;
 	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
-		return -ENOENT;
+		err = -ENOENT;
 	} else if (!func) {
 		SNDERR("symbol %s is not defined inside %s", func_name, lib);
 		dlclose(h);
-		return -ENXIO;
+		err = -ENXIO;
 	}
 	_err:
 	if (func_conf)
@@ -1877,6 +1877,7 @@ static int snd_config_hooks(snd_config_t *config, void *private_data)
  * \param private_data Private data
  * \return zero if success, otherwise a negative error code
  */
+SND_DLSYM_BUILD_VERSION(snd_config_hook_load, SND_CONFIG_DLSYM_VERSION_HOOK);
 int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data)
 {
 	snd_config_t *n, *res = NULL;
@@ -2011,6 +2012,7 @@ int snd_determine_driver(int card, char **driver);
  * \param private_data Private data
  * \return zero if success, otherwise a negative error code
  */
+SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VERSION_HOOK);
 int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data ATTRIBUTE_UNUSED)
 {
 	int card = -1, err;
@@ -2504,10 +2506,12 @@ static int _snd_config_evaluate(snd_config_t *src,
 			buf[len-1] = '\0';
 			func_name = buf;
 		}
-		if (!lib)
-			lib = ALSA_LIB;
 		h = dlopen(lib, RTLD_NOW);
-		func = h ? dlsym(h, func_name) : NULL;
+		if (h) {
+			if ((err = snd_dlsym_verify(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_EVALUATE))) < 0)
+				goto _err;
+			func = dlsym(h, func_name);
+		}
 		err = 0;
 		if (!h) {
 			SNDERR("Cannot open shared library %s", lib);

@@ -14,6 +14,12 @@
 
 /** \} */
 
+#define __SND_DLSYM_VERSION(name, version) _ ## name ## version
+#define SND_DLSYM_BUILD_VERSION(name, version) char __SND_DLSYM_VERSION(name, version)
+#define SND_DLSYM_VERSION(version) __STRING(version)
+
+int snd_dlsym_verify(void *handle, const char *name, const char *version);
+
 /** Async notification client handler */
 typedef struct _snd_async_handler snd_async_handler_t;
 

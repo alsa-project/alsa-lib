@@ -525,6 +525,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 	return result;
 }
 
+SND_DLSYM_BUILD_VERSION(_snd_ctl_shm_open, SND_CONTROL_DLSYM_VERSION);
 int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i, next;

@@ -11,6 +11,11 @@
  *  \{
  */
 
+/** dlsym version for interface entry callback */
+#define SND_TIMER_DLSYM_VERSION		_dlsym_timer_001
+/** dlsym version for interface entry callback */
+#define SND_TIMER_QUERY_DLSYM_VERSION	_dlsym_timer_query_001
+
 /** timer identification structure */
 typedef struct _snd_timer_id snd_timer_id_t;
 /** timer info structure */
