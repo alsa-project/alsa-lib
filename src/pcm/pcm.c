@@ -2678,3 +2678,7 @@ int snd_pcm_hw_params_rulesv(snd_pcm_t *pcm,
 	return snd_pcm_hw_params_rules(pcm, params, count, rules);
 }
 
+size_t _snd_pcm_mmap_hw_ptr(snd_pcm_t *pcm)
+{
+	return *pcm->hw_ptr;
+}

@@ -241,8 +241,10 @@ static int snd_pcm_hw_start(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
+#if 0
 	assert(pcm->stream != SND_PCM_STREAM_PLAYBACK ||
 	       snd_pcm_mmap_playback_hw_avail(pcm) > 0);
+#endif
 	if (ioctl(fd, SND_PCM_IOCTL_START) < 0) {
 		SYSERR("SND_PCM_IOCTL_START failed");
 		return -errno;
@@ -390,7 +392,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
-	if (munmap((void*)hw->mmap_status, sizeof(*hw->mmap_status)) < 0) {
+	if (munmap((void*)hw->mmap_status, PAGE_ALIGN(sizeof(*hw->mmap_status))) < 0) {
 		SYSERR("status munmap failed");
 		return -errno;
 	}
@@ -400,7 +402,7 @@ static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
-	if (munmap(hw->mmap_control, sizeof(*hw->mmap_control)) < 0) {
+	if (munmap(hw->mmap_control, PAGE_ALIGN(sizeof(*hw->mmap_control))) < 0) {
 		SYSERR("control munmap failed");
 		return -errno;
 	}
@@ -573,14 +575,12 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 
       __again:
       	if (attempt++ > 3) {
-		snd_ctl_close(ctl);
-		return -EBUSY;
+		ret = -EBUSY;
+		goto _err;
 	}
 	ret = snd_ctl_pcm_prefer_subdevice(ctl, subdevice);
-	if (ret < 0) {
-		snd_ctl_close(ctl);
-		return ret;
-	}
+	if (ret < 0)
+		goto _err;
 	fmode = O_RDWR;
 	if (mode & SND_PCM_NONBLOCK)
 		fmode |= O_NONBLOCK;
@@ -588,8 +588,8 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 		fmode |= O_ASYNC;
 	if ((fd = open(filename, fmode)) < 0) {
 		SYSERR("open %s failed", filename);
-		snd_ctl_close(ctl);
-		return -errno;
+		ret = -errno;
+		goto _err;
 	}
 	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
 		SYSERR("SND_PCM_IOCTL_PVERSION failed");
@@ -627,6 +627,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 		ret = -ENOMEM;
 		goto _err;
 	}
+	snd_ctl_close(ctl);
 	pcm->type = SND_PCM_TYPE_HW;
 	pcm->stream = stream;
 	pcm->mode = mode;
@@ -640,13 +641,11 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 	ret = snd_pcm_hw_mmap_status(pcm);
 	if (ret < 0) {
 		snd_pcm_close(pcm);
-		snd_ctl_close(ctl);
 		return ret;
 	}
 	ret = snd_pcm_hw_mmap_control(pcm);
 	if (ret < 0) {
 		snd_pcm_close(pcm);
-		snd_ctl_close(ctl);
 		return ret;
 	}
 	return 0;
@@ -656,7 +655,8 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 		free(hw);
 	if (pcm)
 		free(pcm);
-	close(fd);
+	if (fd >= 0)
+		close(fd);
 	snd_ctl_close(ctl);
 	return ret;
 }
