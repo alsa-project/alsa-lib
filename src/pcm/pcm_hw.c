@@ -33,6 +33,7 @@ typedef struct {
 	snd_pcm_t *handle;
 	int fd;
 	int card, device, subdevice;
+	void *mmap_data_ptr;
 } snd_pcm_hw_t;
 
 #define SND_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
@@ -127,6 +128,7 @@ static int snd_pcm_hw_channel_setup(void *private, snd_pcm_channel_setup_t * set
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_SETUP, setup) < 0)
 		return -errno;
+	setup->area.addr = (char *)hw->mmap_data_ptr + (long)setup->area.addr;
 	return 0;
 }
 
@@ -324,7 +326,7 @@ static int snd_pcm_hw_mmap_data(void *private, void **buffer, size_t bsize)
 		     hw->fd, SND_PCM_MMAP_OFFSET_DATA);
 	if (ptr == MAP_FAILED || ptr == NULL)
 		return -errno;
-	*buffer = ptr;
+	*buffer = hw->mmap_data_ptr = daddr;
 	return 0;
 }
 
@@ -342,10 +344,12 @@ static int snd_pcm_hw_munmap_control(void *private ATTRIBUTE_UNUSED, snd_pcm_mma
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_data(void *private ATTRIBUTE_UNUSED, void *buffer, size_t bsize)
+static int snd_pcm_hw_munmap_data(void *private, void *buffer, size_t bsize)
 {
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	if (munmap(buffer, bsize) < 0)
 		return -errno;
+	hw->mmap_data_ptr = NULL;
 	return 0;
 }
 
