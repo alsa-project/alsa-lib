@@ -516,6 +516,7 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 			snd_pcm_plugin_free(plugin);
 			return err;
 		}
+		srcparams.format.format = dstparams->format.format;
 	}
 
 	/* rate resampling */
