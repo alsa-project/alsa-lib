@@ -105,7 +105,7 @@ int snd_config_get_bool_ascii(const char *ascii)
  * \param conf The configuration node to be parsed
  * \return a positive value when success otherwise a negative error number
  */
-int snd_config_get_bool(snd_config_t *conf)
+int snd_config_get_bool(const snd_config_t *conf)
 {
 	long v;
 	const char *str, *id;
@@ -162,7 +162,7 @@ int snd_config_get_ctl_iface_ascii(const char *ascii)
  * \param conf The configuration node to be parsed
  * \return a positive value when success otherwise a negative error number
  */ 
-int snd_config_get_ctl_iface(snd_config_t *conf)
+int snd_config_get_ctl_iface(const snd_config_t *conf)
 {
 	long v;
 	const char *str, *id;
@@ -325,11 +325,16 @@ int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 	if (err < 0)
 		return err;
 	err = snd_config_get_string(d, &str);
-	if (err < 0)
+	if (err < 0) {
+		snd_config_delete(d);
 		return err;
+	}
 	err = safe_strtol(str, &v);
-	if (err < 0)
-		return err;;
+	if (err < 0) {
+		snd_config_delete(d);
+		return err;
+	}
+	snd_config_delete(d);
 	err = snd_config_get_id(src, &id);
 	if (err < 0)
 		return err;

@@ -484,8 +484,10 @@ static int get_char_skip_comments(input_t *input)
 				return err;
 			}
 			fd = malloc(sizeof(*fd));
-			if (!fd)
+			if (!fd) {
+				free(str);
 				return -ENOMEM;
+			}
 			fd->name = str;
 			fd->in = in;
 			fd->next = input->current;
@@ -1272,11 +1274,19 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
  * \param dst Destination node
  * \param src Source node (invalid after call)
  * \return zero if success, otherwise a negative error code
+ *
+ * If both nodes are compounds, the source compound node members are
+ * appended to the destination compound node.
+ *
+ * If the destination node is a compound and the source node is
+ * an ordinary type, the compound members are deleted (including
+ * contents).
  */
 int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 {
 	assert(dst && src);
-	if (src->type == SND_CONFIG_TYPE_COMPOUND) {	/* append */
+	if (dst->type == SND_CONFIG_TYPE_COMPOUND &&
+	    src->type == SND_CONFIG_TYPE_COMPOUND) {	/* append */
 		snd_config_iterator_t i, next;
 		snd_config_for_each(i, next, src) {
 			snd_config_t *n = snd_config_iterator_entry(i);
@@ -1284,6 +1294,11 @@ int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 		}
 		src->u.compound.fields.next->prev = &dst->u.compound.fields;
 		src->u.compound.fields.prev->next = &dst->u.compound.fields;
+	} else if (dst->type == SND_CONFIG_TYPE_COMPOUND) {
+		int err;
+		err = snd_config_delete_compound_members(dst);
+		if (err < 0)
+			return err;
 	}
 	if (dst->id)
 		free(dst->id);
@@ -1326,7 +1341,7 @@ int snd_config_get_type_ascii(const char *ascii, snd_config_type_t *type)
  * \param config Config node handle
  * \return node type
  */
-snd_config_type_t snd_config_get_type(snd_config_t *config)
+snd_config_type_t snd_config_get_type(const snd_config_t *config)
 {
 	return config->type;
 }
@@ -1337,7 +1352,7 @@ snd_config_type_t snd_config_get_type(snd_config_t *config)
  * \param value The result id
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_get_id(snd_config_t *config, const char **id)
+int snd_config_get_id(const snd_config_t *config, const char **id)
 {
 	assert(config && id);
 	*id = config->id;
@@ -1352,7 +1367,9 @@ int snd_config_get_id(snd_config_t *config, const char **id)
  */
 int snd_config_set_id(snd_config_t *config, const char *id)
 {
-	free(config->id);
+	assert(config && id);
+	if (config->id)
+		free(config->id);
 	config->id = strdup(id);
 	if (!config->id)
 		return -ENOMEM;
@@ -1380,7 +1397,7 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 {
 	int err;
 	input_t input;
-	struct filedesc *fd;
+	struct filedesc *fd, *fd_next;
 	assert(config && in);
 	fd = malloc(sizeof(*fd));
 	if (!fd)
@@ -1423,10 +1440,11 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 	}
  _end:
 	while (fd->next) {
+		fd_next = fd->next;
 		snd_input_close(fd->in);
 		free(fd->name);
 		free(fd);
-		fd = fd->next;
+		fd = fd_next;
 	}
 	free(fd);
 	return err;
@@ -1499,8 +1517,34 @@ int snd_config_delete(snd_config_t *config)
 	}
 	if (config->father)
 		list_del(&config->list);
-	free(config->id);
+	if (config->id)
+		free(config->id);
 	free(config);
+	return 0;
+}
+
+/**
+ * \brief Remove a compound config node members (freeing all the related resources)
+ * \param config Compound config node handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_delete_compound_members(const snd_config_t *config)
+{
+	int err;
+	struct list_head *i;
+
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_COMPOUND)
+		return -EINVAL;
+	i = config->u.compound.fields.next;
+	while (i != &config->u.compound.fields) {
+		struct list_head *nexti = i->next;
+		snd_config_t *leaf = snd_config_iterator_entry(i);
+		err = snd_config_delete(leaf);
+		if (err < 0)
+			return err;
+		i = nexti;
+	}
 	return 0;
 }
 
@@ -1785,7 +1829,7 @@ int snd_config_set_ascii(snd_config_t *config, const char *ascii)
  * \param ptr Returned value pointer
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_get_integer(snd_config_t *config, long *ptr)
+int snd_config_get_integer(const snd_config_t *config, long *ptr)
 {
 	assert(config && ptr);
 	if (config->type != SND_CONFIG_TYPE_INTEGER)
@@ -1800,7 +1844,7 @@ int snd_config_get_integer(snd_config_t *config, long *ptr)
  * \param ptr Returned value pointer
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_get_real(snd_config_t *config, double *ptr)
+int snd_config_get_real(const snd_config_t *config, double *ptr)
 {
 	assert(config && ptr);
 	if (config->type != SND_CONFIG_TYPE_REAL)
@@ -1818,7 +1862,7 @@ int snd_config_get_real(snd_config_t *config, double *ptr)
  * Note: If the config type is integer, it is converted
  * to the double type on the fly.
  */
-int snd_config_get_ireal(snd_config_t *config, double *ptr)
+int snd_config_get_ireal(const snd_config_t *config, double *ptr)
 {
 	assert(config && ptr);
 	if (config->type == SND_CONFIG_TYPE_REAL)
@@ -1836,7 +1880,7 @@ int snd_config_get_ireal(snd_config_t *config, double *ptr)
  * \param ptr Returned value pointer
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_get_string(snd_config_t *config, const char **ptr)
+int snd_config_get_string(const snd_config_t *config, const char **ptr)
 {
 	assert(config && ptr);
 	if (config->type != SND_CONFIG_TYPE_STRING)
@@ -1851,7 +1895,7 @@ int snd_config_get_string(snd_config_t *config, const char **ptr)
  * \param ptr Returned value pointer
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_get_pointer(snd_config_t *config, const void **ptr)
+int snd_config_get_pointer(const snd_config_t *config, const void **ptr)
 {
 	assert(config && ptr);
 	if (config->type != SND_CONFIG_TYPE_POINTER)
@@ -1866,7 +1910,7 @@ int snd_config_get_pointer(snd_config_t *config, const void **ptr)
  * \param ascii Returned dynamically allocated ASCII string
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_get_ascii(snd_config_t *config, char **ascii)
+int snd_config_get_ascii(const snd_config_t *config, char **ascii)
 {
 	assert(config && ascii);
 	switch (config->type) {
@@ -1920,7 +1964,7 @@ int snd_config_get_ascii(snd_config_t *config, char **ascii)
  * \param id ASCII id
  * \return the same value as result of the strcmp function
  */
-int snd_config_test_id(snd_config_t *config, const char *id)
+int snd_config_test_id(const snd_config_t *config, const char *id)
 {
 	assert(config && id);
 	return strcmp(config->id, id);
@@ -1935,7 +1979,10 @@ int snd_config_test_id(snd_config_t *config, const char *id)
 int snd_config_save(snd_config_t *config, snd_output_t *out)
 {
 	assert(config && out);
-	return _snd_config_save_leaves(config, out, 0, 0);
+	if (config->type == SND_CONFIG_TYPE_COMPOUND)
+		return _snd_config_save_leaves(config, out, 0, 0);
+	else
+		return _snd_config_save_leaf(config, out, 0);
 }
 
 /*
@@ -2302,7 +2349,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 			SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
 		snd_dlclose(h);
 		if (err >= 0 && nroot)
-			snd_config_substitute(root, nroot);
+			err = snd_config_substitute(root, nroot);
 	}
 	if (buf)
 		free(buf);
@@ -2357,7 +2404,7 @@ static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data)
  */
 int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst, snd_config_t *private_data)
 {
-	snd_config_t *n, *res = NULL;
+	snd_config_t *n;
 	snd_config_iterator_t i, next;
 	struct finfo *fi = NULL;
 	int err, idx = 0, fi_count = 0, errors = 1, hit;
@@ -2443,9 +2490,6 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 			}
 		}
 	} while (hit);
-	err = snd_config_top(&res);
-	if (err < 0)
-		goto _err;
 	for (idx = 0; idx < fi_count; idx++) {
 		snd_input_t *in;
 		if (!errors && access(fi[idx].name, R_OK) < 0)
@@ -2463,7 +2507,6 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 		}
 	}
 	*dst = NULL;
-	res = NULL;
 	err = 0;
        _err:
 	for (idx = 0; idx < fi_count; idx++)
@@ -2471,8 +2514,6 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
        			free(fi[idx].name);
        	if (fi)
        		free(fi);
-       	if (res)
-       		snd_config_delete(res);
 	snd_config_delete(n);
 	return err;
 }
@@ -2740,7 +2781,7 @@ int snd_config_update(void)
  */
 int snd_config_update_free(snd_config_update_t *update)
 {
-	int k;
+	unsigned int k;
 
 	assert(update);
 	assert(update->count > 0 && update->finfo);
@@ -2752,12 +2793,29 @@ int snd_config_update_free(snd_config_update_t *update)
 	return 0;
 }
 
+/** 
+ * \brief Free global configuration in snd_config
+ * \return non-negative value on success, otherwise a negative error code
+ */
+int snd_config_update_free_global(void)
+{
+	pthread_mutex_lock(&snd_config_update_mutex);
+	if (snd_config)
+		snd_config_delete(snd_config);
+	snd_config = NULL;
+	if (snd_config_global_update)
+		snd_config_update_free(snd_config_global_update);
+	snd_config_global_update = NULL;
+	pthread_mutex_unlock(&snd_config_update_mutex);
+	return 0;
+}
+
 /**
  * \brief Return an iterator pointing to first leaf of a compound config node
  * \param node Config node handle
  * \return iterator value for first leaf
  */
-snd_config_iterator_t snd_config_iterator_first(snd_config_t *node)
+const snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node)
 {
 	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
 	return node->u.compound.fields.next;
@@ -2768,7 +2826,7 @@ snd_config_iterator_t snd_config_iterator_first(snd_config_t *node)
  * \param iterator Config node iterator
  * \return iterator value for next leaf
  */
-snd_config_iterator_t snd_config_iterator_next(snd_config_iterator_t iterator)
+const snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t iterator)
 {
 	return iterator->next;
 }
@@ -2778,10 +2836,10 @@ snd_config_iterator_t snd_config_iterator_next(snd_config_iterator_t iterator)
  * \param node Config node handle
  * \return iterator value for end
  */
-snd_config_iterator_t snd_config_iterator_end(snd_config_t *node)
+const snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node)
 {
 	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
-	return &node->u.compound.fields;
+	return (const snd_config_iterator_t)&node->u.compound.fields;
 }
 
 /**
@@ -2789,7 +2847,7 @@ snd_config_iterator_t snd_config_iterator_end(snd_config_t *node)
  * \param iterator Config node iterator
  * \return config node handle
  */
-snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator)
+snd_config_t *snd_config_iterator_entry(const snd_config_iterator_t iterator)
 {
 	return list_entry(iterator, snd_config_t, list);
 }
@@ -2820,6 +2878,7 @@ static int snd_config_walk(snd_config_t *src,
 {
 	int err;
 	snd_config_iterator_t i, next;
+
 	switch (snd_config_get_type(src)) {
 	case SND_CONFIG_TYPE_COMPOUND:
 		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_PRE, private_data);
@@ -3063,11 +3122,13 @@ static int _snd_config_evaluate(snd_config_t *src,
 		err = 0;
 		if (!h) {
 			SNDERR("Cannot open shared library %s", lib);
-			return -ENOENT;
+			err = -ENOENT;
+			goto _errbuf;
 		} else if (!func) {
 			SNDERR("symbol %s is not defined inside %s", func_name, lib);
 			snd_dlclose(h);
-			return -ENXIO;
+			err = -ENXIO;
+			goto _errbuf;
 		}
 	       _err:
 		if (func_conf)
@@ -3078,9 +3139,15 @@ static int _snd_config_evaluate(snd_config_t *src,
 			if (err < 0)
 				SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
 			snd_dlclose(h);
-			if (err >= 0 && eval)
-				snd_config_substitute(src, eval);
+			if (err >= 0 && eval) {
+				/* substitute merges compound members */
+				/* we don't want merging at all */
+				err = snd_config_delete_compound_members(src);
+				if (err >= 0)
+					err = snd_config_substitute(src, eval);
+			}
 		}
+	       _errbuf:
 		if (buf)
 			free(buf);
 		if (err < 0)
@@ -3131,8 +3198,10 @@ static int load_defaults(snd_config_t *subs, snd_config_t *defs)
 					return err;
 				}
 				err = snd_config_add(subs, deflt);
-				if (err < 0)
+				if (err < 0) {
+					snd_config_delete(deflt);
 					return err;
+				}
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
@@ -3266,8 +3335,9 @@ static int parse_string(const char **ptr, char **val)
 			if (old_alloc == bufsize) {
 				buf = malloc(alloc);
 				memcpy(buf, _buf, old_alloc);
-			} else
+			} else {
 				buf = realloc(buf, alloc);
+			}
 			if (!buf)
 				return -ENOMEM;
 		}

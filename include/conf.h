@@ -73,6 +73,7 @@ int snd_config_save(snd_config_t *config, snd_output_t *out);
 int snd_config_update(void);
 int snd_config_update_r(snd_config_t **top, snd_config_update_t **update, const char *path);
 int snd_config_update_free(snd_config_update_t *update);
+int snd_config_update_free_global(void);
 
 int snd_config_search(snd_config_t *config, const char *key,
 		      snd_config_t **result);
@@ -90,6 +91,7 @@ int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
 
 int snd_config_add(snd_config_t *config, snd_config_t *leaf);
 int snd_config_delete(snd_config_t *config);
+int snd_config_delete_compound_members(const snd_config_t *config);
 int snd_config_copy(snd_config_t **dst, snd_config_t *src);
 
 int snd_config_make(snd_config_t **config, const char *key,
@@ -105,7 +107,7 @@ int snd_config_imake_real(snd_config_t **config, const char *key, const double v
 int snd_config_imake_string(snd_config_t **config, const char *key, const char *ascii);
 int snd_config_imake_pointer(snd_config_t **config, const char *key, const void *ptr);
 
-snd_config_type_t snd_config_get_type(snd_config_t *config);
+snd_config_type_t snd_config_get_type(const snd_config_t *config);
 
 int snd_config_set_id(snd_config_t *config, const char *id);
 int snd_config_set_integer(snd_config_t *config, long value);
@@ -113,19 +115,19 @@ int snd_config_set_real(snd_config_t *config, double value);
 int snd_config_set_string(snd_config_t *config, const char *value);
 int snd_config_set_ascii(snd_config_t *config, const char *ascii);
 int snd_config_set_pointer(snd_config_t *config, const void *ptr);
-int snd_config_get_id(snd_config_t *config, const char **value);
-int snd_config_get_integer(snd_config_t *config, long *value);
-int snd_config_get_real(snd_config_t *config, double *value);
-int snd_config_get_ireal(snd_config_t *config, double *value);
-int snd_config_get_string(snd_config_t *config, const char **value);
-int snd_config_get_ascii(snd_config_t *config, char **value);
-int snd_config_get_pointer(snd_config_t *config, const void **value);
-int snd_config_test_id(snd_config_t *config, const char *id);
+int snd_config_get_id(const snd_config_t *config, const char **value);
+int snd_config_get_integer(const snd_config_t *config, long *value);
+int snd_config_get_real(const snd_config_t *config, double *value);
+int snd_config_get_ireal(const snd_config_t *config, double *value);
+int snd_config_get_string(const snd_config_t *config, const char **value);
+int snd_config_get_ascii(const snd_config_t *config, char **value);
+int snd_config_get_pointer(const snd_config_t *config, const void **value);
+int snd_config_test_id(const snd_config_t *config, const char *id);
 
-snd_config_iterator_t snd_config_iterator_first(snd_config_t *node);
-snd_config_iterator_t snd_config_iterator_next(snd_config_iterator_t iterator);
-snd_config_iterator_t snd_config_iterator_end(snd_config_t *node);
-snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator);
+const snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node);
+const snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t iterator);
+const snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node);
+snd_config_t *snd_config_iterator_entry(const snd_config_iterator_t iterator);
 
 /** Helper for compound config node leaves traversal
  * \param pos Current node iterator
@@ -140,9 +142,9 @@ snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator);
 /* Misc functions */
 
 int snd_config_get_bool_ascii(const char *ascii);
-int snd_config_get_bool(snd_config_t *conf);
+int snd_config_get_bool(const snd_config_t *conf);
 int snd_config_get_ctl_iface_ascii(const char *ascii);
-int snd_config_get_ctl_iface(snd_config_t *conf);
+int snd_config_get_ctl_iface(const snd_config_t *conf);
 
 /** \} */
 
