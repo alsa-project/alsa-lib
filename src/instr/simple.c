@@ -29,6 +29,14 @@
 #include <asm/byteorder.h>
 #include <linux/ainstr_simple.h>
 
+int snd_instr_simple_free(snd_instr_simple_t *simple)
+{
+	if (simple == NULL)
+		return 0;
+	free(simple);
+	return 0;
+}
+
 static long simple_size(simple_instrument_t *instr)
 {
 	int size;
