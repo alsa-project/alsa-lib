@@ -1,4 +1,5 @@
-SUBDIRS = ext
+SUBDIRS =
+DIST_SUBDIRS = ext scopes
 
 EXTRA_LTLIBRARIES = libpcm.la
 
