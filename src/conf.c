@@ -2498,6 +2498,8 @@ int snd_config_search_alias(snd_config_t *config,
 				snd_config_searcha, snd_config_searchva);
 }
 
+static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data);
+
 /**
  * \brief Searches for a node in a configuration tree and expands hooks.
  * \param config Handle to the root of the configuration (sub)tree to search.
@@ -2508,7 +2510,6 @@ int snd_config_search_alias(snd_config_t *config,
  */
 int snd_config_search_hooks(snd_config_t *config, const char *key, snd_config_t **result)
 {
-	static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data);
 	SND_CONFIG_SEARCH(config, key, result, \
 					err = snd_config_hooks(config, NULL); \
 					if (err < 0) \
@@ -2528,7 +2529,6 @@ int snd_config_search_hooks(snd_config_t *config, const char *key, snd_config_t 
  */
 int snd_config_searcha_hooks(snd_config_t *root, snd_config_t *config, const char *key, snd_config_t **result)
 {
-	static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data);
 	SND_CONFIG_SEARCHA(root, config, key, result,
 					snd_config_searcha_hooks,
 					err = snd_config_hooks(config, NULL); \
