@@ -206,11 +206,11 @@ static ssize_t snd_rawmidi_virtual_write(snd_rawmidi_t *rmidi, const void *buffe
 		size1 = snd_midi_event_encode(virt->midi_event, buffer, size, &virt->out_event);
 		if (size1 <= 0)
 			break;
-		if (virt->out_event.type == SND_SEQ_EVENT_NONE)
-			continue;
 		size -= size1;
 		result += size1;
 		buffer += size1;
+		if (virt->out_event.type == SND_SEQ_EVENT_NONE)
+			continue;
 		snd_seq_ev_set_subs(&virt->out_event);
 		snd_seq_ev_set_source(&virt->out_event, virt->port);
 		snd_seq_ev_set_direct(&virt->out_event);
