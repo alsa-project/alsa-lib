@@ -61,8 +61,8 @@ typedef enum _snd_hwdep_iface {
 	SND_HWDEP_IFACE_ICS2115,	/**< ICS2115 driver */
 	SND_HWDEP_IFACE_SSCAPE,		/**< Ensoniq SoundScape ISA card (MC68EC000) */
 	SND_HWDEP_IFACE_VX,		/**< Digigram VX cards */
-	SNDRV_HWDEP_IFACE_MIXART,	/**< Digigram miXart cards */
-	SNDRV_HWDEP_IFACE_USX2Y,	/**< Tascam US122, US224 & US428 usb */
+	SND_HWDEP_IFACE_MIXART,		/**< Digigram miXart cards */
+	SND_HWDEP_IFACE_USX2Y,		/**< Tascam US122, US224 & US428 usb */
 	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_USX2Y  /**< last know hwdep interface */
 } snd_hwdep_iface_t;
 
