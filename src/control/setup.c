@@ -396,6 +396,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 	long subdevice = -1;
 	int lock = 0;
 	int preserve = 0;
+	int optional = 0;
 	snd_config_t *value = NULL, *mask = NULL;
 	snd_sctl_elem_t *elem = NULL;
 	int err;
@@ -485,6 +486,19 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 			mask = n;
 			continue;
 		}
+		if (strcmp(id, "optional") == 0) {
+			if ((err = snd_config_get_ascii(n, &tmp)) < 0) {
+				SNDERR("field %s has an invalid type", id);
+				goto _err;
+			}
+			err = snd_config_get_bool_ascii(tmp);
+			if (err < 0) {
+				SNDERR("field %s is not a boolean", id);
+				goto _err;
+			}
+			optional = err;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -530,7 +544,8 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 	snd_ctl_elem_info_set_id(elem->info, elem->id);
 	err = snd_ctl_elem_info(h->ctl, elem->info);
 	if (err < 0) {
-		SNDERR("Cannot obtain info for CTL elem (%s,'%s',%li,%li,%li): %s", snd_ctl_elem_iface_name(iface), name, index, device, subdevice, snd_strerror(err));
+		if (! optional)
+			SNDERR("Cannot obtain info for CTL elem (%s,'%s',%li,%li,%li): %s", snd_ctl_elem_iface_name(iface), name, index, device, subdevice, snd_strerror(err));
 		goto _err;
 	}
 	snd_ctl_elem_value_set_id(elem->val, elem->id);
@@ -566,6 +581,8 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 		if (elem->old)
 			snd_ctl_elem_value_free(elem->old);
 		free(elem);
+		if (err != -ENOMEM && optional)
+			err = 0; /* ignore the error */
 	}
 	if (conf)
 		snd_config_delete(conf);
