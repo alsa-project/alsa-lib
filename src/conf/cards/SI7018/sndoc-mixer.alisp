@@ -1,0 +1,4 @@
+(defun sndoc_mixer_open (hctl)
+  (princ "sndoc_mixer_open\n")
+  0
+)

@@ -131,6 +131,7 @@ ALSA_0.9.7 {
   global:
 
     snd_user_file;
+    snd_hctl_ctl;
     sndo_*;
     alsa_lisp_*;
 } ALSA_0.9.6;

@@ -23,7 +23,18 @@ cfg_files = aliases.conf \
 	VIA8233A.conf \
 	VX222.conf \
 	VXPocket.conf \
-	VXPocket440.conf
+	VXPocket440.conf \
+\
+	aliases.alisp
 
-EXTRA_DIST = $(cfg_files)
 alsa_DATA = $(cfg_files)
+
+SI7018dir = $(datadir)/alsa/cards/SI7018
+SI7018_files = \
+	SI7018/sndoc-mixer.alisp \
+	SI7018/sndop-mixer.alisp
+SI7018_DATA = $(SI7018_files)
+
+EXTRA_DIST =
+	$(cfg_files) \
+	$(SI7018_files)

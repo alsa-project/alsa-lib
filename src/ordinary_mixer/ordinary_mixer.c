@@ -70,14 +70,14 @@ struct sndo_mixer {
 /**
  * \brief Opens a ordinary mixer instance
  * \param pmixer Returned ordinary mixer handle
- * \param playback_name ASCII identifier of the ordinary mixer handle (playback controls)
- * \param capture_name ASCII identifier of the ordinary mixer handle (capture controls)
+ * \param playback_pcm handle of the playback PCM
+ * \param capture_pcm handle of the capture PCM
  * \param lconf Local configuration (might be NULL - use global configuration)
  * \return 0 on success otherwise a negative error code
  */
 int sndo_mixer_open(sndo_mixer_t **pmixer,
-		    const char *playback_name,
-		    const char *capture_name,
+		    snd_pcm_t *playback_pcm,
+		    snd_pcm_t *capture_pcm,
 		    struct alisp_cfg *lconf)
 {
 	struct alisp_cfg *cfg = lconf;
@@ -105,7 +105,7 @@ int sndo_mixer_open(sndo_mixer_t **pmixer,
 	err = alsa_lisp(cfg, &alisp);
 	if (err < 0)
 		goto __error;
-	err = alsa_lisp_function(alisp, &iterator, "open", "%s%s", playback_name, capture_name);
+	err = alsa_lisp_function(alisp, &iterator, "sndo_mixer_open", "%ppcm%ppcm", playback_pcm, capture_pcm);
 	if (err < 0) {
 		alsa_lisp_free(alisp);
 		goto __error;
@@ -161,7 +161,7 @@ int sndo_mixer_close(sndo_mixer_t *mixer)
 {
 	int res;
 	
-	res = alsa_lisp_function(mixer->alisp, NULL, "close", "n");
+	res = alsa_lisp_function(mixer->alisp, NULL, "sndo_mixer_close", "n");
 	alsa_lisp_free(mixer->alisp);
 	if (mixer->_free_cfg)
 		alsa_lisp_default_cfg_free(mixer->cfg);
@@ -188,7 +188,7 @@ int sndo_mixer_poll_descriptors_count(sndo_mixer_t *mixer)
 	} else {
 		struct alisp_seq_iterator *result;
 		long val;
-		err = alsa_lisp_function(mixer->alisp, &result, "poll_descriptors_count", "n");
+		err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_poll_descriptors_count", "n");
 		if (err < 0)
 			return err;
 		err = alsa_lisp_seq_integer(result, &val);

@@ -468,6 +468,7 @@ int snd_hctl_free(snd_hctl_t *hctl);
 int snd_hctl_handle_events(snd_hctl_t *hctl);
 const char *snd_hctl_name(snd_hctl_t *hctl);
 int snd_hctl_wait(snd_hctl_t *hctl, int timeout);
+snd_ctl_t *snd_hctl_ctl(snd_hctl_t *hctl);
 
 snd_hctl_elem_t *snd_hctl_elem_next(snd_hctl_elem_t *elem);
 snd_hctl_elem_t *snd_hctl_elem_prev(snd_hctl_elem_t *elem);

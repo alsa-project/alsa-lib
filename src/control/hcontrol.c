@@ -89,7 +89,6 @@ int snd_hctl_open(snd_hctl_t **hctlp, const char *name, int mode)
 int snd_hctl_open_ctl(snd_hctl_t **hctlp, snd_ctl_t *ctl)
 {
 	snd_hctl_t *hctl;
-	int err;
 
 	assert(hctlp);
 	*hctlp = NULL;
@@ -647,6 +646,16 @@ int snd_hctl_wait(snd_hctl_t *hctl, int timeout)
 	if (err < 0)
 		return -errno;
 	return 0;
+}
+
+/**
+ * \brief Get a ctl handle associated to the given hctl handle
+ * \param hctl HCTL handle
+ * \return a ctl handle otherwise NULL
+ */
+snd_ctl_t *snd_hctl_ctl(snd_hctl_t *hctl)
+{
+	return hctl->ctl;
 }
 
 static int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event)

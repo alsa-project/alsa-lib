@@ -243,24 +243,6 @@ static struct alisp_object * new_result3(struct alisp_instance * instance, int e
 	return lexpr;
 }
 
-static struct alisp_object * new_result4(struct alisp_instance * instance, const char *ptr_id, void *ptr)
-{
-	struct alisp_object * lexpr;
-
-	if (ptr == NULL)
-		return &alsa_lisp_nil;
-	lexpr = new_object(instance, ALISP_OBJ_CONS);
-	if (lexpr == NULL)
-		return NULL;
-	lexpr->value.c.car = new_string(instance, ptr_id);
-	if (lexpr->value.c.car == NULL)
-		return NULL;
-	lexpr->value.c.cdr = new_pointer(instance, ptr);
-	if (lexpr->value.c.cdr == NULL)
-		return NULL;
-	return lexpr;
-}
-
 /*
  *  macros
  */
@@ -326,6 +308,8 @@ static struct alisp_object * FA_p_p(struct alisp_instance * instance, struct aca
 	    item->xfunc == &snd_hctl_elem_next ||
 	    item->xfunc == &snd_hctl_elem_prev)
 		prefix1 = "hctl_elem";
+	else if (item->xfunc == &snd_hctl_ctl)
+		prefix1 = "ctl";
 	else
 		return &alsa_lisp_nil;
 	args = eval(instance, car(args));
@@ -333,7 +317,7 @@ static struct alisp_object * FA_p_p(struct alisp_instance * instance, struct aca
 	if (handle == NULL)
 		return &alsa_lisp_nil;
 	handle = ((snd_p_p_t)item->xfunc)(handle);
-	return new_result4(instance, prefix1, handle);
+	return new_cons_pointer(instance, prefix1, handle);
 }
 
 static struct alisp_object * FA_int_p(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
@@ -466,7 +450,7 @@ static struct alisp_object * FA_hctl_find_elem(struct alisp_instance * instance,
 	snd_ctl_elem_id_alloca(&id);
 	if (parse_ctl_elem_id(eval(instance, car(cdr(args))), id) < 0)
 		return &alsa_lisp_nil;
-	return new_result4(instance, "hctl_elem", snd_hctl_find_elem(handle, id));
+	return new_cons_pointer(instance, "hctl_elem", snd_hctl_find_elem(handle, id));
 }
 
 static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
@@ -660,6 +644,36 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 	return new_result(instance, err);
 }
 
+static struct alisp_object * FA_pcm_info(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	snd_pcm_t *handle;
+	struct alisp_object * lexpr, * p1;
+	snd_pcm_info_t *info;
+	int err;
+
+	args = eval(instance, car(args));
+	handle = (snd_pcm_t *)get_ptr(args, item->prefix);
+	if (handle == NULL)
+		return &alsa_lisp_nil;
+	snd_pcm_info_alloca(&info);
+	err = snd_pcm_info(handle, info);
+	lexpr = new_lexpr(instance, err);
+	if (err < 0)
+		return lexpr;
+	p1 = add_cons(instance, lexpr->value.c.cdr, 0, "card", new_integer(instance, snd_pcm_info_get_card(info)));
+	p1 = add_cons(instance, p1, 1, "device", new_integer(instance, snd_pcm_info_get_device(info)));
+	p1 = add_cons(instance, p1, 1, "subdevice", new_integer(instance, snd_pcm_info_get_subdevice(info)));
+	p1 = add_cons(instance, p1, 1, "id", new_string(instance, snd_pcm_info_get_id(info)));
+	p1 = add_cons(instance, p1, 1, "name", new_string(instance, snd_pcm_info_get_name(info)));
+	p1 = add_cons(instance, p1, 1, "subdevice_name", new_string(instance, snd_pcm_info_get_subdevice_name(info)));
+	p1 = add_cons(instance, p1, 1, "class", new_integer(instance, snd_pcm_info_get_class(info)));
+	p1 = add_cons(instance, p1, 1, "subclass", new_integer(instance, snd_pcm_info_get_subclass(info)));
+	p1 = add_cons(instance, p1, 1, "subdevices_count", new_integer(instance, snd_pcm_info_get_subdevices_count(info)));
+	p1 = add_cons(instance, p1, 1, "subdevices_avail", new_integer(instance, snd_pcm_info_get_subdevices_avail(info)));
+	//p1 = add_cons(instance, p1, 1, "sync", new_string(instance, snd_pcm_info_get_sync(info)));
+	return lexpr;
+}
+
 /*
  *  main code
  */
@@ -673,6 +687,7 @@ static struct acall_table acall_table[] = {
 	{ "ctl_close", &FA_int_p, (void *)&snd_ctl_close, "ctl" },
 	{ "ctl_open", &FA_int_pp_strp_int, (void *)&snd_ctl_open, "ctl" },
 	{ "hctl_close", &FA_int_p, (void *)&snd_hctl_close, "hctl" },
+	{ "hctl_ctl", &FA_p_p, (void *)&snd_hctl_ctl, "hctl" },
 	{ "hctl_elem_info", &FA_hctl_elem_info, (void *)&snd_hctl_elem_info, "hctl_elem" },
 	{ "hctl_elem_next", &FA_p_p, (void *)&snd_hctl_elem_next, "hctl_elem" },
 	{ "hctl_elem_prev", &FA_p_p, (void *)&snd_hctl_elem_prev, "hctl_elem" },
@@ -685,6 +700,7 @@ static struct acall_table acall_table[] = {
 	{ "hctl_load", &FA_int_p, (void *)&snd_hctl_load, "hctl" },
 	{ "hctl_open", &FA_int_pp_strp_int, (void *)&snd_hctl_open, "hctl" },
 	{ "hctl_open_ctl", &FA_int_pp_p, (void *)&snd_hctl_open_ctl, "hctl" },
+	{ "pcm_info", &FA_pcm_info, NULL, "pcm" },
 };
 
 static int acall_compar(const void *p1, const void *p2)
@@ -724,9 +740,60 @@ static struct alisp_object * F_aerror(struct alisp_instance *instance, struct al
 	return args;
 }
 
+static int common_error(snd_output_t **rout, struct alisp_instance *instance, struct alisp_object * args)
+{
+	struct alisp_object * p = args, * p1;
+	snd_output_t *out;
+	int err;
+	
+	err = snd_output_buffer_open(&out);
+	if (err < 0)
+		return err;
+
+	do {
+		p1 = eval(instance, car(p));
+		if (p1->type == ALISP_OBJ_STRING)
+			snd_output_printf(out, "%s", p1->value.s);
+		else
+			princ_object(out, p1);
+		p = cdr(p);
+	} while (p != &alsa_lisp_nil);
+
+	*rout = out;
+	return 0;
+}
+
+static struct alisp_object * F_snderr(struct alisp_instance *instance, struct alisp_object * args)
+{
+	snd_output_t *out;
+	char *str;
+
+	if (common_error(&out, instance, args) < 0)
+		return &alsa_lisp_nil;
+	snd_output_buffer_string(out, &str);
+	SNDERR(str);
+	snd_output_close(out);
+	return &alsa_lisp_t;
+}
+
+static struct alisp_object * F_syserr(struct alisp_instance *instance, struct alisp_object * args)
+{
+	snd_output_t *out;
+	char *str;
+
+	if (common_error(&out, instance, args) < 0)
+		return &alsa_lisp_nil;
+	snd_output_buffer_string(out, &str);
+	SYSERR(str);
+	snd_output_close(out);
+	return &alsa_lisp_t;
+}
+
 static struct intrinsic snd_intrinsics[] = {
-	{ "acall", F_acall },
-	{ "aerror", F_aerror },
-	{ "ahandle", F_ahandle },
-	{ "aresult", F_ahandle },
+	{ "Acall", F_acall },
+	{ "Aerror", F_aerror },
+	{ "Ahandle", F_ahandle },
+	{ "Aresult", F_ahandle },
+	{ "Asnderr", F_snderr },
+	{ "Asyserr", F_syserr }
 };
