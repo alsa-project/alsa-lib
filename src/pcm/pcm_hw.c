@@ -827,7 +827,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 
 This plugin communicates directly with the ALSA kernel driver. It is a raw
 communication without any conversions. The emulation of mmap access can be
-optionally enabled, but expect a worse latency in the case.
+optionally enabled, but expect worse latency in the case.
 
 \code
 pcm.name {

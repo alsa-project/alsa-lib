@@ -1,3 +1,10 @@
+/**
+ * \file pcm/pcm_rate.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Rate Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
  *  PCM - Rate conversion
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -28,6 +35,8 @@
 /* entry for static linking */
 const char *_snd_module_pcm_rate = "";
 #endif
+
+#ifndef DOC_HIDDEN
 
 #define DIV (1<<16)
 
@@ -211,6 +220,8 @@ static snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_a
 	*dst_framesp = dst_frames1;
 	return src_frames1;
 }
+
+#endif /* DOC_HIDDEN */
 
 static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
@@ -479,7 +490,7 @@ static void snd_pcm_rate_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(rate->plug.slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_rate_ops = {
+static snd_pcm_ops_t snd_pcm_rate_ops = {
 	close: snd_pcm_plugin_close,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_rate_hw_refine,
@@ -494,6 +505,20 @@ snd_pcm_ops_t snd_pcm_rate_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
+
+/**
+ * \brief Creates a new rate PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param sformat Slave format
+ * \param srate Slave rate
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, unsigned int srate, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -533,6 +558,47 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_rate Plugin: Rate
+
+This plugin converts a stream rate. The input and output formats must be linear.
+
+\code
+pcm.name {
+	type rate               # Rate PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+        }
+}
+\endcode
+
+\subsection pcm_plugins_rate_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_rate_open()
+  <LI>_snd_pcm_rate_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new rate PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with rate PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
@@ -582,4 +648,6 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_rate_open, SND_PCM_DLSYM_VERSION);
+#endif

@@ -1,3 +1,10 @@
+/**
+ * \file pcm/pcm_null.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Null Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
  *  PCM - Null plugin
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -30,6 +37,7 @@
 const char *_snd_module_pcm_null = "";
 #endif
 
+#ifndef DOC_HIDDEN
 typedef struct {
 	snd_timestamp_t trigger_tstamp;
 	snd_pcm_state_t state;
@@ -38,6 +46,7 @@ typedef struct {
 	snd_pcm_uframes_t hw_ptr;
 	int poll_fd;
 } snd_pcm_null_t;
+#endif
 
 static int snd_pcm_null_close(snd_pcm_t *pcm)
 {
@@ -295,7 +304,7 @@ static void snd_pcm_null_dump(snd_pcm_t *pcm, snd_output_t *out)
 	}
 }
 
-snd_pcm_ops_t snd_pcm_null_ops = {
+static snd_pcm_ops_t snd_pcm_null_ops = {
 	close: snd_pcm_null_close,
 	info: snd_pcm_null_info,
 	hw_refine: snd_pcm_null_hw_refine,
@@ -310,7 +319,7 @@ snd_pcm_ops_t snd_pcm_null_ops = {
 	munmap: snd_pcm_null_munmap,
 };
 
-snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
+static snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	status: snd_pcm_null_status,
 	state: snd_pcm_null_state,
 	delay: snd_pcm_null_delay,
@@ -330,6 +339,17 @@ snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	mmap_commit: snd_pcm_null_mmap_commit,
 };
 
+/**
+ * \brief Creates a new null PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
@@ -375,6 +395,44 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_null Plugin: Null
+
+This plugin discards contents of a PCM stream or creates a stream with zero
+samples.
+
+Note: This implementation uses devices /dev/null (playback, must be writeable)
+and /dev/full (capture, must be readable).
+
+\code
+pcm.name {
+        type null               # Null PCM
+}
+\endcode
+
+\subsection pcm_plugins_null_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_null_open()
+  <LI>_snd_pcm_null_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new Null PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with Null PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
@@ -392,4 +450,6 @@ int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
 	}
 	return snd_pcm_null_open(pcmp, name, stream, mode);
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_null_open, SND_PCM_DLSYM_VERSION);
+#endif

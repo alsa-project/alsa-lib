@@ -1185,6 +1185,11 @@ This plugin allows to apply a set of LADPSA plugins.
 The input and output format is always #SND_PCM_FORMAT_FLOAT (note: this type
 can be either little or big-endian depending on architecture).
 
+The policy duplicate means that there must be only one binding definition for
+channel zero. This definition is automatically duplicated for all channels.
+
+Instances of LADSPA plugins are created dynamically.
+
 \code
 pcm.name {
         type ladspa             # ALSA<->LADSPA PCM
@@ -1195,15 +1200,15 @@ pcm.name {
                 # or
                 pcm { }         # Slave PCM definition
         }
-	path STR		# Path (directory) with LADSPA plugins
+	[path STR]		# Path (directory) with LADSPA plugins
 	plugins |		# Definition for both directions
         playback_plugins |	# Definition for playback direction
 	capture_plugins {	# Definition for capture direction
 		N {		# Configuration for LADPSA plugin N
-			id INT		# LADSPA plugin ID (for example 1043)
-			label STR	# LADSPA plugin label (for example 'delay_5s')
-			filename STR	# Full filename of .so library with LADSPA plugin code
-			policy STR	# Policy can be 'none' or 'duplicate'
+			[id INT]	# LADSPA plugin ID (for example 1043)
+			[label STR]	# LADSPA plugin label (for example 'delay_5s')
+			[filename STR]	# Full filename of .so library with LADSPA plugin code
+			[policy STR]	# Policy can be 'none' or 'duplicate'
 			input | output {
 				bindings {
 					C INT or STR	# C - channel, INT - audio port index, STR - audio port name

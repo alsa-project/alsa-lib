@@ -1,5 +1,12 @@
+/**
+ * \file pcm/pcm_shm.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Shared Memory Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
- *  PCM - SHM Client
+ *  PCM - Shared Memory Client
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *
@@ -43,11 +50,14 @@
 const char *_snd_module_pcm_shm = "";
 #endif
 
+#ifndef DOC_HIDDEN
 typedef struct {
 	int socket;
 	volatile snd_pcm_shm_ctrl_t *ctrl;
 } snd_pcm_shm_t;
+#endif
 
+#ifndef DOC_HIDDEN
 int receive_fd(int sock, void *data, size_t len, int *fd)
 {
     int ret;
@@ -81,6 +91,7 @@ int receive_fd(int sock, void *data, size_t len, int *fd)
     *fd = *fds;
     return ret;
 }
+#endif
 
 static int snd_pcm_shm_action(snd_pcm_t *pcm)
 {
@@ -493,7 +504,7 @@ static void snd_pcm_shm_dump(snd_pcm_t *pcm, snd_output_t *out)
 	}
 }
 
-snd_pcm_ops_t snd_pcm_shm_ops = {
+static snd_pcm_ops_t snd_pcm_shm_ops = {
 	close: snd_pcm_shm_close,
 	info: snd_pcm_shm_info,
 	hw_refine: snd_pcm_shm_hw_refine,
@@ -508,7 +519,7 @@ snd_pcm_ops_t snd_pcm_shm_ops = {
 	munmap: snd_pcm_shm_munmap,
 };
 
-snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
+static snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	status: snd_pcm_shm_status,
 	state: snd_pcm_shm_state,
 	delay: snd_pcm_shm_delay,
@@ -578,7 +589,22 @@ static int make_inet_socket(const char *host, int port)
 }
 #endif
 
-int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *sockname, const char *sname, snd_pcm_stream_t stream, int mode)
+/**
+ * \brief Creates a new shared memory PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param sockname Unix socket name
+ * \param sname Server name
+ * \param stream PCM Stream
+ * \param mode PCM Mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
+int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
+		     const char *sockname, const char *sname,
+		     snd_pcm_stream_t stream, int mode)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_shm_t *shm = NULL;
@@ -679,6 +705,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *sockname, c
 	return result;
 }
 
+#ifndef DOC_HIDDEN
 int is_local(struct hostent *hent)
 {
 	int s;
@@ -723,7 +750,45 @@ int is_local(struct hostent *hent)
 	free(conf.ifc_buf);
 	return i < numreqs;
 }
+#endif
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_shm Plugin: shm
+
+This plugin communicates with aserver via shared memory. It is a raw
+communication without any conversions, but it can be expected worse
+performance.
+
+\code
+pcm.name {
+        type shm                # Shared memory PCM
+	server STR		# Server name
+	pcm STR			# PCM name
+}
+\endcode
+
+\subsection pcm_plugins_shm_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_shm_open()
+  <LI>_snd_pcm_shm_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new shm PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with hw PCM description
+ * \param stream PCM Stream
+ * \param mode PCM Mode
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 		      snd_config_t *root, snd_config_t *conf,
 		      snd_pcm_stream_t stream, int mode)
@@ -841,4 +906,6 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconfig);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_shm_open, SND_PCM_DLSYM_VERSION);
+#endif
