@@ -199,6 +199,9 @@ In other case, the calls #snd_pcm_prepare(),
 #snd_pcm_drop(), #snd_pcm_drain() can be used
 to leave this state.
 
+\par SND_PCM_STATE_DISCONNECTED
+The device is physicaly disconnected. It does not accept any I/O calls in this state.
+
 \section pcm_formats PCM formats
 
 The full list of formats present the #snd_pcm_format_t type.
@@ -1276,6 +1279,7 @@ static const char *snd_pcm_state_names[] = {
 	STATE(DRAINING),
 	STATE(PAUSED),
 	STATE(SUSPENDED),
+	STATE(DISCONNECTED),
 };
 
 static const char *snd_pcm_access_names[] = {
@@ -2050,6 +2054,8 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 			return -EPIPE;
 		case SND_PCM_STATE_SUSPENDED:
 			return -ESTRPIPE;
+		case SND_PCM_STATE_DISCONNECTED:
+			return -ENOTTY;	/* linux VFS does this? */
 		default:
 			return -EIO;
 		}
@@ -5932,6 +5938,8 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		return -EPIPE;
 	case SND_PCM_STATE_SUSPENDED:
 		return -ESTRPIPE;
+	case SND_PCM_STATE_DISCONNECTED:
+		return -ENOTTY;
 	default:
 		return -EBADFD;
 	}
@@ -6003,6 +6011,8 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		return -EPIPE;
 	case SND_PCM_STATE_SUSPENDED:
 		return -ESTRPIPE;
+	case SND_PCM_STATE_DISCONNECTED:
+		return -ENOTTY;
 	default:
 		return -EBADFD;
 	}

@@ -114,6 +114,15 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	snd_pcm_uframes_t slave_hw_ptr, old_slave_hw_ptr, avail;
 	snd_pcm_sframes_t diff;
 	
+	switch (snd_pcm_state(dsnoop->spcm)) {
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	case SND_PCM_STATE_DISCONNECTED:
+		dsnoop->state = SNDRV_PCM_STATE_DISCONNECTED;
+		return -ENOTTY;
+	default:
+		break;
+	}
 	old_slave_hw_ptr = dsnoop->slave_hw_ptr;
 	slave_hw_ptr = dsnoop->slave_hw_ptr = *dsnoop->spcm->hw.ptr;
 	diff = slave_hw_ptr - old_slave_hw_ptr;
@@ -150,6 +159,7 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
+	snd_pcm_state_t state;
 
 	switch(dsnoop->state) {
 	case SNDRV_PCM_STATE_DRAINING:
@@ -160,7 +170,8 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		break;
 	}
 	memset(status, 0, sizeof(*status));
-	status->state = dsnoop->state;
+	state = snd_pcm_state(dsnoop->spcm);
+	status->state = state == SND_PCM_STATE_RUNNING ? dsnoop->state : state;
 	status->trigger_tstamp = dsnoop->trigger_tstamp;
 	status->tstamp = snd_pcm_hw_fast_tstamp(dsnoop->spcm);
 	status->avail = snd_pcm_mmap_capture_avail(pcm);
@@ -172,6 +183,15 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_dsnoop_state(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
+	switch (snd_pcm_state(dsnoop->spcm)) {
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	case SND_PCM_STATE_DISCONNECTED:
+		dsnoop->state = SNDRV_PCM_STATE_DISCONNECTED;
+		return -ENOTTY;
+	default:
+		break;
+	}
 	return dsnoop->state;
 }
 
@@ -192,6 +212,8 @@ static int snd_pcm_dsnoop_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
+	case SNDRV_PCM_STATE_DISCONNECTED:
+		return -ENOTTY;
 	default:
 		return -EBADFD;
 	}
@@ -210,6 +232,8 @@ static int snd_pcm_dsnoop_hwsync(snd_pcm_t *pcm)
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
+	case SNDRV_PCM_STATE_DISCONNECTED:
+		return -ENOTTY;
 	default:
 		return -EBADFD;
 	}

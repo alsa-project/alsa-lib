@@ -385,6 +385,15 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	snd_pcm_uframes_t slave_hw_ptr, old_slave_hw_ptr, avail;
 	snd_pcm_sframes_t diff;
 	
+	switch (snd_pcm_state(dmix->spcm)) {
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	case SND_PCM_STATE_DISCONNECTED:
+		dmix->state = -ENOTTY;
+		return -ENOTTY;
+	default:
+		break;
+	}
 	old_slave_hw_ptr = dmix->slave_hw_ptr;
 	slave_hw_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
 	diff = slave_hw_ptr - old_slave_hw_ptr;
@@ -420,6 +429,7 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
+	snd_pcm_state_t state;
 
 	switch (dmix->state) {
 	case SNDRV_PCM_STATE_DRAINING:
@@ -430,7 +440,8 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		break;
 	}
 	memset(status, 0, sizeof(*status));
-	status->state = dmix->state;
+	state = snd_pcm_state(dmix->spcm);
+	status->state = state == SNDRV_PCM_STATE_RUNNING ? dmix->state : state;
 	status->trigger_tstamp = dmix->trigger_tstamp;
 	status->tstamp = snd_pcm_hw_fast_tstamp(dmix->spcm);
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
@@ -442,6 +453,15 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_dmix_state(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
+	switch (snd_pcm_state(dmix->spcm)) {
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	case SND_PCM_STATE_DISCONNECTED:
+		dmix->state = -ENOTTY;
+		return -ENOTTY;
+	default:
+		break;
+	}
 	return dmix->state;
 }
 
@@ -462,6 +482,8 @@ static int snd_pcm_dmix_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
+	case SNDRV_PCM_STATE_DISCONNECTED:
+		return -ENOTTY;
 	default:
 		return -EBADFD;
 	}
@@ -480,6 +502,8 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
+	case SNDRV_PCM_STATE_DISCONNECTED:
+		return -ENOTTY;
 	default:
 		return -EBADFD;
 	}
@@ -891,7 +915,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	
 	if (dmix->channels == UINT_MAX)
 		dmix->channels = dmix->shmptr->s.channels;
-	
+
 	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 
 	*pcmp = pcm;

@@ -132,6 +132,15 @@ static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 	snd_pcm_uframes_t slave_hw_ptr, old_slave_hw_ptr, avail;
 	snd_pcm_sframes_t diff;
 	
+	switch (snd_pcm_state(dshare->spcm)) {
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	case SND_PCM_STATE_DISCONNECTED:
+		dshare->state = SNDRV_PCM_STATE_DISCONNECTED;
+		return -ENOTTY;
+	default:
+		break;
+	}
 	old_slave_hw_ptr = dshare->slave_hw_ptr;
 	slave_hw_ptr = dshare->slave_hw_ptr = *dshare->spcm->hw.ptr;
 	diff = slave_hw_ptr - old_slave_hw_ptr;
@@ -167,6 +176,7 @@ static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
+	snd_pcm_state_t state;
 
 	switch (dshare->state) {
 	case SNDRV_PCM_STATE_DRAINING:
@@ -177,7 +187,8 @@ static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		break;
 	}
 	memset(status, 0, sizeof(*status));
-	status->state = dshare->state;
+	state = snd_pcm_state(dshare->spcm);
+	status->state = state == SND_PCM_STATE_RUNNING ? dshare->state : state;
 	status->trigger_tstamp = dshare->trigger_tstamp;
 	status->tstamp = snd_pcm_hw_fast_tstamp(dshare->spcm);
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
@@ -189,6 +200,15 @@ static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_dshare_state(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
+	switch (snd_pcm_state(dshare->spcm)) {
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	case SND_PCM_STATE_DISCONNECTED:
+		dshare->state = SNDRV_PCM_STATE_DISCONNECTED;
+		return -ENOTTY;
+	default:
+		break;
+	}
 	return dshare->state;
 }
 
@@ -209,6 +229,8 @@ static int snd_pcm_dshare_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
+	case SNDRV_PCM_STATE_DISCONNECTED:
+		return -ENOTTY;
 	default:
 		return -EBADFD;
 	}
@@ -227,6 +249,8 @@ static int snd_pcm_dshare_hwsync(snd_pcm_t *pcm)
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
+	case SNDRV_PCM_STATE_DISCONNECTED:
+		return -ENOTTY;
 	default:
 		return -EBADFD;
 	}
