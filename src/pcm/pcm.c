@@ -1609,6 +1609,19 @@ int snd_pcm_hw_params_can_pause(const snd_pcm_hw_params_t *params)
 }
 
 /**
+ * \brief Check, if hardware supports resume
+ * \param param Configuration space
+ * \return Boolean value
+ * \retval 0 Hardware doesn't support resume
+ * \retval 1 Hardware supports resume
+ */
+int snd_pcm_hw_params_can_resume(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	return !!(params->info & SNDRV_PCM_INFO_RESUME);
+}
+
+/**
  * \brief Check, if hardware does half-duplex only
  * \param param Configuration space
  * \return Boolean value
