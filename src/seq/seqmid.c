@@ -324,13 +324,18 @@ int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 {
 	char *p;
 	int client, port;
+	int len;
 
 	assert(seq && addr && arg);
 
-	if ((p = strpbrk(arg, ":.")) == NULL)
-		return -EINVAL;
-	if ((port = atoi(p + 1)) < 0)
-		return -EINVAL;
+	if ((p = strpbrk(arg, ":.")) != NULL) {
+		if ((port = atoi(p + 1)) < 0)
+			return -EINVAL;
+		len = (int)(p - arg); /* length of client name */
+	} else {
+		port = 0;
+		len = strlen(arg);
+	}
 	addr->port = port;
 	if (isdigit(*arg)) {
 		client = atoi(arg);
@@ -343,7 +348,6 @@ int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 		int len;
 
 		*p = 0;
-		len = (int)(p - arg); /* length of client name */
 		if (len <= 0)
 			return -EINVAL;
 		cinfo.client = -1;
