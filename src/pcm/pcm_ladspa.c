@@ -39,20 +39,43 @@ typedef enum _snd_pcm_ladspa_policy {
 	SND_PCM_LADSPA_POLICY_DUPLICATE		/* duplicate bindings for all channels */
 } snd_pcm_ladspa_policy_t;
 
+typedef struct snd_pcm_ladspa_instance snd_pcm_ladspa_instance_t;
+
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
 	struct list_head pplugins;
 	struct list_head cplugins;
 	unsigned int instances_channels;
+	snd_pcm_ladspa_instance_t **finstances;
 } snd_pcm_ladspa_t;
+
+typedef struct {
+	struct list_head list;
+	LADSPA_Handle *handle;
+} snd_pcm_ladspa_subinstance_t;
+
+struct snd_pcm_ladspa_instance {
+	struct list_head list;
+	const LADSPA_Descriptor *desc;
+	LADSPA_Handle *handle;
+	LADSPA_Data *m_data;
+	LADSPA_Data *in_data;
+	LADSPA_Data *out_data;
+	unsigned int depth;
+	unsigned int channel;
+	unsigned int in_port;
+	unsigned int out_port;
+	snd_pcm_ladspa_instance_t *prev;
+	snd_pcm_ladspa_instance_t *next;
+};
 
 typedef struct {
 	LADSPA_PortDescriptor pdesc;		/* port description */
 	unsigned int port_bindings_size;	/* size of array */
 	unsigned int *port_bindings;		/* index = channel number, value = LADSPA port */
 	unsigned int controls_size;		/* size of array */
-	LADSPA_Data *controls;			/* index = LADSPA control port */
+	LADSPA_Data *controls;			/* index = LADSPA control port index */
 } snd_pcm_ladspa_plugin_io_t;
 
 typedef struct {
@@ -63,9 +86,7 @@ typedef struct {
 	const LADSPA_Descriptor *desc;
 	snd_pcm_ladspa_plugin_io_t input;
 	snd_pcm_ladspa_plugin_io_t output;
-	unsigned int instances_count;
-	LADSPA_Handle *instances;
-	LADSPA_Data **instances_data;
+	struct list_head instances;
 } snd_pcm_ladspa_plugin_t;
 
 static int snd_pcm_ladspa_find_port(unsigned int *res,
@@ -238,48 +259,63 @@ static int snd_pcm_ladspa_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params
 
 static void snd_pcm_ladspa_free_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *ladspa, int cleanup)
 {
-	struct list_head *list, *pos;
-	unsigned int idx;
+	struct list_head *list, *pos, *pos1, *next1;
 	
 	if (ladspa->instances_channels == 0)
 		return;
 	list = pcm->stream == SND_PCM_STREAM_PLAYBACK ? &ladspa->pplugins : &ladspa->cplugins;
 	list_for_each(pos, list) {
 		snd_pcm_ladspa_plugin_t *plugin = list_entry(pos, snd_pcm_ladspa_plugin_t, list);
-		for (idx = 0; idx < plugin->instances_count; idx++) {
-			if (plugin->instances[idx] == NULL)
-				continue;
+		list_for_each_safe(pos1, next1, &plugin->instances) {
+			snd_pcm_ladspa_instance_t *instance = list_entry(pos1, snd_pcm_ladspa_instance_t, list);
 			if (plugin->desc->deactivate)
-				plugin->desc->deactivate(plugin->instances[idx]);
+				plugin->desc->deactivate(instance->handle);
 			if (cleanup) {
 				if (plugin->desc->cleanup)
-					plugin->desc->cleanup(plugin->instances[idx]);
+					plugin->desc->cleanup(instance->handle);
+				if (instance->m_data)
+					free(instance->m_data);
+				list_del(&(instance->list));
+				free(instance);
 			} else {
 				if (plugin->desc->activate)
-					plugin->desc->activate(plugin->instances[idx]);
+					plugin->desc->activate(instance->handle);
 			}
 		}
 		if (cleanup) {
-			free(plugin->instances);
-			plugin->instances = NULL;
-			plugin->instances_count = 0;
+			assert(list_empty(&plugin->instances));
 		}
 	}
-	if (cleanup)
+	if (cleanup) {
 		ladspa->instances_channels = 0;
+		if (ladspa->finstances) {
+			free(ladspa->finstances);
+			ladspa->finstances = NULL;
+		}
+	}
 }
 
-static int snd_pcm_ladspa_connect(snd_pcm_ladspa_plugin_t *plugin,
-				  LADSPA_Handle *instance,
+static int snd_pcm_ladspa_connect(snd_pcm_ladspa_plugin_t *plugin ATTRIBUTE_UNUSED,
+				  snd_pcm_ladspa_plugin_io_t *io,
+				  snd_pcm_ladspa_instance_t *instance,
 				  unsigned int channel,
 				  unsigned int port)
 {
+	if (instance->channel == NO_ASSIGN)
+		instance->channel = channel;
+	else if (instance->channel != channel)
+		return -EINVAL;
+	if (io->pdesc == LADSPA_PORT_OUTPUT) {
+		instance->out_port = port;
+	} else {
+		instance->in_port = port;
+	}
 	return 0;
 }
 
 static int snd_pcm_ladspa_connect_plugin(snd_pcm_ladspa_plugin_t *plugin,
 					 snd_pcm_ladspa_plugin_io_t *io,
-					 LADSPA_Handle *instance,
+					 snd_pcm_ladspa_instance_t *instance,
 					 unsigned int idx)
 {
 	unsigned int port;
@@ -288,19 +324,19 @@ static int snd_pcm_ladspa_connect_plugin(snd_pcm_ladspa_plugin_t *plugin,
 	assert(plugin->policy == SND_PCM_LADSPA_POLICY_NONE);
 	if (io->port_bindings_size > 0) {
 		if (idx >= io->port_bindings_size)
-			return 0;
+			return instance->channel != NO_ASSIGN ? -EINVAL : 0;
 		port = io->port_bindings[idx];
 	} else {
 		err = snd_pcm_ladspa_find_port(&port, plugin, io->pdesc | LADSPA_PORT_AUDIO, idx);
 		if (err < 0)
-			return 0;
+			return instance->channel != NO_ASSIGN ? err : 0;
 	}
-	return snd_pcm_ladspa_connect(plugin, instance, idx, port);
+	return snd_pcm_ladspa_connect(plugin, io, instance, idx, port);
 }
 
 static int snd_pcm_ladspa_connect_plugin_duplicate(snd_pcm_ladspa_plugin_t *plugin,
 						   snd_pcm_ladspa_plugin_io_t *io,
-						   LADSPA_Handle *instance,
+						   snd_pcm_ladspa_instance_t *instance,
 						   unsigned int idx)
 {
 	unsigned int port;
@@ -314,63 +350,165 @@ static int snd_pcm_ladspa_connect_plugin_duplicate(snd_pcm_ladspa_plugin_t *plug
 		if (err < 0)
 			return err;
 	}
-	return snd_pcm_ladspa_connect(plugin, instance, idx, port);
+	return snd_pcm_ladspa_connect(plugin, io, instance, idx, port);
+}
+
+static int snd_pcm_ladspa_connect_controls(snd_pcm_ladspa_plugin_t *plugin,
+					   snd_pcm_ladspa_plugin_io_t *io,
+					   snd_pcm_ladspa_instance_t *instance)
+{
+	unsigned long idx, midx;
+
+	for (idx = midx = 0; idx < plugin->desc->PortCount; idx++)
+		if ((plugin->desc->PortDescriptors[idx] & (io->pdesc | LADSPA_PORT_CONTROL)) == (io->pdesc | LADSPA_PORT_CONTROL)) {
+			if (io->controls_size > midx) {
+				plugin->desc->connect_port(instance->handle, idx, &io->controls[midx]);
+			} else {
+				return -EINVAL;
+			}
+			midx++;
+		}
+	return 0;
 }
 
 static int snd_pcm_ladspa_allocate_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *ladspa)
 {
 	struct list_head *list, *pos;
-	unsigned int idx;
-	LADSPA_Handle *instance;
+	unsigned int depth, idx, count;
+	snd_pcm_ladspa_instance_t *instance;
 	int err;
 	
 	if (ladspa->instances_channels == 0)
 		return 0;
 	list = pcm->stream == SND_PCM_STREAM_PLAYBACK ? &ladspa->pplugins : &ladspa->cplugins;
+	depth = 0;
 	list_for_each(pos, list) {
 		snd_pcm_ladspa_plugin_t *plugin = list_entry(pos, snd_pcm_ladspa_plugin_t, list);
-		plugin->instances_count = 1;
+		count = 1;
 		if (plugin->policy == SND_PCM_LADSPA_POLICY_DUPLICATE)
-			plugin->instances_count = pcm->channels;
-		plugin->instances = (LADSPA_Handle *)calloc(plugin->instances_count, sizeof(LADSPA_Handle));
-		if (plugin->instances == NULL)
-			return -ENOMEM;
-		for (idx = 0; idx < plugin->instances_count; idx++) {
-			instance = plugin->instances[idx] = plugin->desc->instantiate(plugin->desc, pcm->rate);
-			if (instance == NULL) {
+			count = pcm->channels;
+		for (idx = 0; idx < count; idx++) {
+			instance = (snd_pcm_ladspa_instance_t *)calloc(1, sizeof(snd_pcm_ladspa_instance_t));
+			if (instance == NULL)
+				return -ENOMEM;
+			instance->desc = plugin->desc;
+			instance->handle = plugin->desc->instantiate(plugin->desc, pcm->rate);
+			instance->depth = depth;
+			instance->channel = NO_ASSIGN;
+			if (instance->handle == NULL) {
 				SNDERR("Unable to create instance of LADSPA plugin '%s'", plugin->desc->Name);
+				free(instance);
 				return -EINVAL;
 			}
-			plugin->desc->activate(instance);
+			list_add_tail(&instance->list, &plugin->instances);
+			plugin->desc->activate(instance->handle);
 			if (plugin->policy == SND_PCM_LADSPA_POLICY_DUPLICATE) {
 				err = snd_pcm_ladspa_connect_plugin_duplicate(plugin, &plugin->input, instance, idx);
 				if (err < 0) {
-					SNDERR("Unable to connect duplicate input port of plugin '%s' channel %u", plugin->desc->Name, idx);
+					SNDERR("Unable to connect duplicate input port of plugin '%s' channel %u depth %u", plugin->desc->Name, idx, instance->depth);
 					return err;
 				}
 				err = snd_pcm_ladspa_connect_plugin_duplicate(plugin, &plugin->output, instance, idx);
 				if (err < 0) {
-					SNDERR("Unable to connect duplicate output port of plugin '%s' channel %u", plugin->desc->Name, idx);
+					SNDERR("Unable to connect duplicate output port of plugin '%s' channel %u depth %u", plugin->desc->Name, idx, instance->depth);
 					return err;
 				}
 			}
+			err = snd_pcm_ladspa_connect_controls(plugin, &plugin->input, instance);
+			assert(err >= 0);
+			err = snd_pcm_ladspa_connect_controls(plugin, &plugin->output, instance);
+			assert(err >= 0);
 		}
 		if (plugin->policy == SND_PCM_LADSPA_POLICY_NONE) {
-			instance = plugin->instances[0];
+			instance = list_entry(plugin->instances.next, snd_pcm_ladspa_instance_t, list);
 			for (idx = 0; idx < pcm->channels; idx++) {
 				err = snd_pcm_ladspa_connect_plugin(plugin, &plugin->input, instance, idx);
 				if (err < 0) {
-					SNDERR("Unable to connect input port of plugin '%s' channel %u", plugin->desc->Name, idx);
+					SNDERR("Unable to connect input port of plugin '%s' channel %u depth %u", plugin->desc->Name, idx, depth);
 					return err;
 				}
 				err = snd_pcm_ladspa_connect_plugin(plugin, &plugin->output, instance, idx);
 				if (err < 0) {
-					SNDERR("Unable to connect output port of plugin '%s' channel %u", plugin->desc->Name, idx);
+					SNDERR("Unable to connect output port of plugin '%s' channel %u depth %u", plugin->desc->Name, idx, depth);
 					return err;
 				}
 			}
 		}
-		
+		depth++;
+	}
+	return 0;
+}
+
+static int snd_pcm_ladspa_allocate_imemory(snd_pcm_ladspa_instance_t *instance, size_t alloc_size)
+{
+	if (instance->prev)
+		instance->in_data = instance->prev->out_data;
+	else
+		instance->in_data = NULL;
+	if (!instance->prev ||
+	    (instance->next && LADSPA_IS_INPLACE_BROKEN(instance->desc->Properties))) {
+		instance->m_data = (LADSPA_Data *)malloc(alloc_size * sizeof(LADSPA_Data));
+		if (instance->m_data == NULL)
+			return -ENOMEM;
+		instance->out_data = instance->m_data;
+	} else {
+		instance->out_data = instance->in_data;
+	}
+	return 0;
+}
+
+static int snd_pcm_ladspa_allocate_memory(snd_pcm_t *pcm, snd_pcm_ladspa_t *ladspa)
+{
+	struct list_head *list, *pos, *pos1;
+	snd_pcm_ladspa_instance_t *instance, *prev;
+	unsigned int channel;
+	int err;
+	
+	if (ladspa->instances_channels == 0)
+		return 0;
+	ladspa->finstances = (snd_pcm_ladspa_instance_t **)calloc(ladspa->instances_channels, sizeof(snd_pcm_ladspa_instance_t *));
+	if (ladspa->finstances == NULL)
+		return -ENOMEM;
+	list = pcm->stream == SND_PCM_STREAM_PLAYBACK ? &ladspa->pplugins : &ladspa->cplugins;
+	for (channel = 0; channel < ladspa->instances_channels; channel++) {
+		prev = NULL;
+		list_for_each(pos, list) {
+			snd_pcm_ladspa_plugin_t *plugin = list_entry(pos, snd_pcm_ladspa_plugin_t, list);
+			instance = NULL;
+			if (list_empty(&plugin->instances))
+				continue;
+			list_for_each(pos1, &plugin->instances) {
+				instance = list_entry(pos1, snd_pcm_ladspa_instance_t, list);
+				if (instance->channel == NO_ASSIGN) {
+					SNDERR("channel %u is not assigned for plugin '%s' depth %u", plugin->desc->Name, instance->channel, instance->depth);
+					return -EINVAL;
+				}
+				if (instance->channel != channel) {
+					instance = NULL;
+					continue;
+				}
+				break;
+			}
+			if (instance == NULL)
+				continue;
+			if (ladspa->finstances[channel] == NULL)
+				ladspa->finstances[channel] = instance;
+			instance->prev = prev;
+			if (prev == NULL) {
+				prev = instance;
+				continue;		/* nothing to do */
+			}
+			prev->next = instance;
+		}
+	}
+	for (channel = 0; channel < ladspa->instances_channels; channel++) {
+		instance = ladspa->finstances[channel];
+		if (instance == NULL)
+			continue;
+		err = snd_pcm_ladspa_allocate_imemory(instance, pcm->buffer_size);
+		if (err < 0)
+			return err;
+		break;
 	}
 	return 0;
 }
@@ -382,7 +520,13 @@ static int snd_pcm_ladspa_init(snd_pcm_t *pcm)
 	
 	if (pcm->channels != ladspa->instances_channels) {
 		snd_pcm_ladspa_free_instances(pcm, ladspa, 1);
+		ladspa->instances_channels = pcm->channels;
 		err = snd_pcm_ladspa_allocate_instances(pcm, ladspa);
+		if (err < 0) {
+			snd_pcm_ladspa_free_instances(pcm, ladspa, 1);
+			return err;
+		}
+		err = snd_pcm_ladspa_allocate_memory(pcm, ladspa);
 		if (err < 0) {
 			snd_pcm_ladspa_free_instances(pcm, ladspa, 1);
 			return err;
@@ -410,13 +554,38 @@ snd_pcm_ladspa_write_areas(snd_pcm_t *pcm,
 			   snd_pcm_uframes_t slave_offset,
 			   snd_pcm_uframes_t *slave_sizep)
 {
-	// snd_pcm_ladspa_t *ladspa = pcm->private_data;
+	snd_pcm_ladspa_t *ladspa = pcm->private_data;
+	unsigned int channel;
+	
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-#if 1	// no processing - for testing purposes only
+#if 0	// no processing - for testing purposes only
 	snd_pcm_areas_copy(slave_areas, slave_offset,
 			   areas, offset,
 			   pcm->channels, size, pcm->format);
+#else
+	for (channel = 0; channel < ladspa->instances_channels; channel++) {
+		LADSPA_Data *data = (LADSPA_Data *)((char *)areas[channel].addr + (areas[channel].first / 8));
+		snd_pcm_ladspa_instance_t *instance = ladspa->finstances[channel];
+		data += offset;
+		if (instance == NULL)
+			snd_pcm_area_copy(&slave_areas[channel], slave_offset,
+					  &areas[channel], offset,
+					  size, SND_PCM_FORMAT_FLOAT);
+		while (instance) {
+			if (instance->in_data != NULL)
+				data = instance->in_data;
+			instance->desc->connect_port(instance->handle, instance->in_port, data);
+			if (instance->next == NULL) {
+				data = (LADSPA_Data *)((char *)slave_areas[channel].addr + (slave_areas[channel].first / 8));
+				data += slave_offset;
+			} else if (instance->out_data != NULL)
+				data = instance->out_data;
+			instance->desc->connect_port(instance->handle, instance->out_port, data);
+			instance->desc->run(instance->handle, size);
+			instance = instance->next;
+		}
+	}
 #endif
 	*slave_sizep = size;
 	return size;
@@ -431,13 +600,38 @@ snd_pcm_ladspa_read_areas(snd_pcm_t *pcm,
 			  snd_pcm_uframes_t slave_offset,
 			  snd_pcm_uframes_t *slave_sizep)
 {
-	// snd_pcm_ladspa_t *ladspa = pcm->private_data;
+	snd_pcm_ladspa_t *ladspa = pcm->private_data;
+	unsigned int channel;
+
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-#if 1	// no processing - for testing purposes only
+#if 0	// no processing - for testing purposes only
 	snd_pcm_areas_copy(areas, offset,
 			   slave_areas, slave_offset,
 			   pcm->channels, size, pcm->format);
+#else
+	for (channel = 0; channel < ladspa->instances_channels; channel++) {
+		LADSPA_Data *data = (LADSPA_Data *)((char *)slave_areas[channel].addr + (slave_areas[channel].first / 8));
+		snd_pcm_ladspa_instance_t *instance = ladspa->finstances[channel];
+		data += slave_offset;
+		if (instance == NULL)
+			snd_pcm_area_copy(&slave_areas[channel], slave_offset,
+					  &areas[channel], offset,
+					  size, SND_PCM_FORMAT_FLOAT);
+		while (instance) {
+			if (instance->in_data != NULL)
+				data = instance->in_data;
+			instance->desc->connect_port(instance->handle, instance->in_port, data);
+			if (instance->next == NULL) {
+				data = (LADSPA_Data *)((char *)areas[channel].addr + (areas[channel].first / 8));
+				data += offset;
+			} else if (instance->out_data != NULL)
+				data = instance->out_data;
+			instance->desc->connect_port(instance->handle, instance->out_port, data);
+			instance->desc->run(instance->handle, size);
+			instance = instance->next;
+		}
+	}
 #endif
 	*slave_sizep = size;
 	return size;
@@ -479,9 +673,9 @@ static void snd_pcm_ladspa_plugins_dump(struct list_head *list, snd_output_t *ou
 static void snd_pcm_ladspa_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_ladspa_t *ladspa = pcm->private_data;
+	snd_output_printf(out, "LADSPA PCM\n");
 	snd_pcm_ladspa_plugins_dump(&ladspa->pplugins, out);
 	snd_pcm_ladspa_plugins_dump(&ladspa->cplugins, out);
-	snd_output_printf(out, "LADSPA PCM\n");
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
@@ -758,7 +952,8 @@ static int snd_pcm_ladspa_parse_ioconfig(snd_pcm_ladspa_plugin_t *lplug,
 
 static int snd_pcm_ladspa_add_plugin(struct list_head *list,
 				     const char *path,
-				     snd_config_t *plugin)
+				     snd_config_t *plugin,
+				     int reverse)
 {
 	snd_config_iterator_t i, next;
 	const char *label = NULL, *filename = NULL;
@@ -799,6 +994,23 @@ static int snd_pcm_ladspa_add_plugin(struct list_head *list,
 			output = n;
 			continue;
 		}
+		if (strcmp(id, "policy") == 0) {
+			const char *str;
+			err = snd_config_get_string(n, &str);
+			if (err < 0) {
+				SNDERR("policy field must be a string");
+				return err;
+			}
+			if (strcmp(str, "none") == 0)
+				policy = SND_PCM_LADSPA_POLICY_NONE;
+			else if (strcmp(str, "duplicate") == 0)
+				policy = SND_PCM_LADSPA_POLICY_DUPLICATE;
+			else {
+				SNDERR("unknown policy definition");
+				return -EINVAL;
+			}
+			continue;
+		}
 	}
 	if (label == NULL && ladspa_id <= 0) {
 		SNDERR("no plugin label or id");
@@ -810,6 +1022,7 @@ static int snd_pcm_ladspa_add_plugin(struct list_head *list,
 	lplug->policy = policy;
 	lplug->input.pdesc = LADSPA_PORT_INPUT;
 	lplug->output.pdesc = LADSPA_PORT_OUTPUT;
+	INIT_LIST_HEAD(&lplug->instances);
 	if (filename) {
 		err = snd_pcm_ladspa_check_file(lplug, filename, label, ladspa_id);
 		if (err < 0) {
@@ -825,7 +1038,11 @@ static int snd_pcm_ladspa_add_plugin(struct list_head *list,
 			return err;
 		}
 	}
-	list_add(&lplug->list, list);
+	if (!reverse) {
+		list_add_tail(&lplug->list, list);
+	} else {
+		list_add(&lplug->list, list);
+	}
 	err = snd_pcm_ladspa_parse_ioconfig(lplug, &lplug->input, input);
 	if (err < 0)
 		return err;
@@ -837,7 +1054,8 @@ static int snd_pcm_ladspa_add_plugin(struct list_head *list,
 
 static int snd_pcm_ladspa_build_plugins(struct list_head *list,
 					const char *path,
-					snd_config_t *plugins)
+					snd_config_t *plugins,
+					int reverse)
 {
 	snd_config_iterator_t i, next;
 	int idx = 0, hit, err;
@@ -863,7 +1081,7 @@ static int snd_pcm_ladspa_build_plugins(struct list_head *list,
 			}
 			if (i == idx) {
 				idx++;
-				err = snd_pcm_ladspa_add_plugin(list, path, n);
+				err = snd_pcm_ladspa_add_plugin(list, path, n, reverse);
 				if (err < 0)
 					return err;
 				hit = 1;
@@ -885,7 +1103,7 @@ int snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 {
 	snd_pcm_t *pcm;
 	snd_pcm_ladspa_t *ladspa;
-	int err;
+	int err, reverse = 0;
 
 	assert(pcmp && (ladspa_pplugins || ladspa_cplugins) && slave);
 
@@ -903,15 +1121,21 @@ int snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 	INIT_LIST_HEAD(&ladspa->pplugins);
 	INIT_LIST_HEAD(&ladspa->cplugins);
 
-	err = snd_pcm_ladspa_build_plugins(&ladspa->pplugins, ladspa_path, ladspa_pplugins);
-	if (err < 0) {
-		snd_pcm_ladspa_free(ladspa);
-		return err;
+	if (slave->stream == SND_PCM_STREAM_PLAYBACK) {
+		err = snd_pcm_ladspa_build_plugins(&ladspa->pplugins, ladspa_path, ladspa_pplugins, reverse);
+		if (err < 0) {
+			snd_pcm_ladspa_free(ladspa);
+			return err;
+		}
 	}
-	err = snd_pcm_ladspa_build_plugins(&ladspa->cplugins, ladspa_path, ladspa_cplugins);
-	if (err < 0) {
-		snd_pcm_ladspa_free(ladspa);
-		return err;
+	if (slave->stream == SND_PCM_STREAM_CAPTURE) {
+		if (ladspa_cplugins == ladspa_pplugins)
+			reverse = 1;
+		err = snd_pcm_ladspa_build_plugins(&ladspa->cplugins, ladspa_path, ladspa_cplugins, reverse);
+		if (err < 0) {
+			snd_pcm_ladspa_free(ladspa);
+			return err;
+		}
 	}
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_LADSPA, name, slave->stream, slave->mode);
@@ -939,7 +1163,7 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_t *spcm;
 	snd_config_t *slave = NULL, *sconf;
 	const char *path = NULL;
-	snd_config_t *pplugins = NULL, *cplugins = NULL;
+	snd_config_t *plugins = NULL, *pplugins = NULL, *cplugins = NULL;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -953,6 +1177,10 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(id, "path") == 0) {
 			snd_config_get_string(n, &path);
+			continue;
+		}
+		if (strcmp(id, "plugins") == 0) {
+			plugins = n;
 			continue;
 		}
 		if (strcmp(id, "playback_plugins") == 0) {
@@ -969,6 +1197,14 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 	if (!slave) {
 		SNDERR("slave is not defined");
 		return -EINVAL;
+	}
+	if (plugins) {
+		if (pplugins || cplugins) {
+			SNDERR("'plugins' definition cannot be combined with 'playback_plugins' or 'capture_plugins'");
+			return -EINVAL;
+		}
+		pplugins = plugins;
+		cplugins = plugins;
 	}
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);
 	if (err < 0)
