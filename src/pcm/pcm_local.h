@@ -332,9 +332,9 @@ void _snd_pcm_hw_param_setempty(snd_pcm_hw_params_t *params,
 				snd_pcm_hw_param_t var);
 int _snd_pcm_hw_param_refine_interval(snd_pcm_hw_params_t *params,
 				      snd_pcm_hw_param_t var,
-				      const interval_t *val);
+				      const snd_interval_t *val);
 int _snd_pcm_hw_param_mask(snd_pcm_hw_params_t *params,
-			    unsigned int var, const mask_t *mask);
+			    unsigned int var, const snd_mask_t *mask);
 int _snd_pcm_hw_param_first(snd_pcm_hw_params_t *params,
 			    unsigned int var);
 int _snd_pcm_hw_param_last(snd_pcm_hw_params_t *params,

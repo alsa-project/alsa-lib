@@ -31,8 +31,8 @@ typedef struct {
 static int snd_pcm_copy_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err;
-	mask_t *access_mask = alloca(mask_sizeof());
-	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
+	snd_mask_t *access_mask = alloca(snd_mask_sizeof());
+	snd_mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
 	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
 				     access_mask);
 	if (err < 0)
@@ -43,8 +43,8 @@ static int snd_pcm_copy_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 
 static int snd_pcm_copy_hw_refine_sprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *sparams)
 {
-	mask_t *saccess_mask = alloca(mask_sizeof());
-	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	snd_mask_t *saccess_mask = alloca(snd_mask_sizeof());
+	snd_mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 			       saccess_mask);

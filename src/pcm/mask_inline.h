@@ -22,7 +22,7 @@
 #include <sys/types.h>
 #include <assert.h>
 
-#ifdef MASK_C
+#ifdef SND_MASK_C
 #define INLINE inline
 #else
 #define INLINE extern inline
@@ -32,11 +32,11 @@
 #define MASK_MAX 31
 #endif
 
-struct _mask {
+struct _snd_mask {
 	unsigned int bits;
 };
 
-#define mask_bits(mask) ((mask)->bits)
+#define snd_mask_bits(mask) ((mask)->bits)
 
 INLINE unsigned int ld2(u_int32_t v)
 {
@@ -72,190 +72,190 @@ INLINE unsigned int hweight32(u_int32_t v)
         return (v & 0x0000FFFF) + ((v >> 16) & 0x0000FFFF);
 }
 
-INLINE size_t mask_sizeof(void)
+INLINE size_t snd_mask_sizeof(void)
 {
-	return sizeof(mask_t);
+	return sizeof(snd_mask_t);
 }
 
-INLINE void mask_none(mask_t *mask)
+INLINE void snd_mask_none(snd_mask_t *mask)
 {
-	mask_bits(mask) = 0;
+	snd_mask_bits(mask) = 0;
 }
 
-INLINE void mask_any(mask_t *mask)
+INLINE void snd_mask_any(snd_mask_t *mask)
 {
-	mask_bits(mask) = ~0U;
+	snd_mask_bits(mask) = ~0U;
 }
 
-INLINE void mask_load(mask_t *mask, unsigned int msk)
+INLINE void snd_mask_load(snd_mask_t *mask, unsigned int msk)
 {
-	mask_bits(mask) = msk;
+	snd_mask_bits(mask) = msk;
 }
 
-INLINE int mask_empty(const mask_t *mask)
+INLINE int snd_mask_empty(const snd_mask_t *mask)
 {
-	return mask_bits(mask) == 0;
+	return snd_mask_bits(mask) == 0;
 }
 
-INLINE int mask_full(const mask_t *mask)
+INLINE int snd_mask_full(const snd_mask_t *mask)
 {
-	return mask_bits(mask) == ~0U;
+	return snd_mask_bits(mask) == ~0U;
 }
 
-INLINE unsigned int mask_count(const mask_t *mask)
+INLINE unsigned int snd_mask_count(const snd_mask_t *mask)
 {
-	return hweight32(mask_bits(mask));
+	return hweight32(snd_mask_bits(mask));
 }
 
-INLINE unsigned int mask_min(const mask_t *mask)
+INLINE unsigned int snd_mask_min(const snd_mask_t *mask)
 {
-	assert(!mask_empty(mask));
-	return ffs(mask_bits(mask)) - 1;
+	assert(!snd_mask_empty(mask));
+	return ffs(snd_mask_bits(mask)) - 1;
 }
 
-INLINE unsigned int mask_max(const mask_t *mask)
+INLINE unsigned int snd_mask_max(const snd_mask_t *mask)
 {
-	assert(!mask_empty(mask));
-	return ld2(mask_bits(mask));
+	assert(!snd_mask_empty(mask));
+	return ld2(snd_mask_bits(mask));
 }
 
-INLINE void mask_set(mask_t *mask, unsigned int val)
+INLINE void snd_mask_set(snd_mask_t *mask, unsigned int val)
 {
-	assert(val <= MASK_MAX);
-	mask_bits(mask) |= (1U << val);
+	assert(val <= SND_MASK_MAX);
+	snd_mask_bits(mask) |= (1U << val);
 }
 
-INLINE void mask_reset(mask_t *mask, unsigned int val)
+INLINE void snd_mask_reset(snd_mask_t *mask, unsigned int val)
 {
-	assert(val <= MASK_MAX);
-	mask_bits(mask) &= ~(1U << val);
+	assert(val <= SND_MASK_MAX);
+	snd_mask_bits(mask) &= ~(1U << val);
 }
 
-INLINE void mask_set_range(mask_t *mask, unsigned int from, unsigned int to)
+INLINE void snd_mask_set_range(snd_mask_t *mask, unsigned int from, unsigned int to)
 {
-	assert(to <= MASK_MAX && from <= to);
-	mask_bits(mask) |= ((1U << (from - to + 1)) - 1) << from;
+	assert(to <= SND_MASK_MAX && from <= to);
+	snd_mask_bits(mask) |= ((1U << (from - to + 1)) - 1) << from;
 }
 
-INLINE void mask_reset_range(mask_t *mask, unsigned int from, unsigned int to)
+INLINE void snd_mask_reset_range(snd_mask_t *mask, unsigned int from, unsigned int to)
 {
-	assert(to <= MASK_MAX && from <= to);
-	mask_bits(mask) &= ~(((1U << (from - to + 1)) - 1) << from);
+	assert(to <= SND_MASK_MAX && from <= to);
+	snd_mask_bits(mask) &= ~(((1U << (from - to + 1)) - 1) << from);
 }
 
-INLINE void mask_leave(mask_t *mask, unsigned int val)
+INLINE void snd_mask_leave(snd_mask_t *mask, unsigned int val)
 {
-	assert(val <= MASK_MAX);
-	mask_bits(mask) &= 1U << val;
+	assert(val <= SND_MASK_MAX);
+	snd_mask_bits(mask) &= 1U << val;
 }
 
-INLINE void mask_intersect(mask_t *mask, const mask_t *v)
+INLINE void snd_mask_intersect(snd_mask_t *mask, const snd_mask_t *v)
 {
-	mask_bits(mask) &= mask_bits(v);
+	snd_mask_bits(mask) &= snd_mask_bits(v);
 }
 
-INLINE void mask_union(mask_t *mask, const mask_t *v)
+INLINE void snd_mask_union(snd_mask_t *mask, const snd_mask_t *v)
 {
-	mask_bits(mask) |= mask_bits(v);
+	snd_mask_bits(mask) |= snd_mask_bits(v);
 }
 
-INLINE int mask_eq(const mask_t *mask, const mask_t *v)
+INLINE int snd_mask_eq(const snd_mask_t *mask, const snd_mask_t *v)
 {
-	return mask_bits(mask) == mask_bits(v);
+	return snd_mask_bits(mask) == snd_mask_bits(v);
 }
 
-INLINE void mask_copy(mask_t *mask, const mask_t *v)
+INLINE void snd_mask_copy(snd_mask_t *mask, const snd_mask_t *v)
 {
-	mask_bits(mask) = mask_bits(v);
+	snd_mask_bits(mask) = snd_mask_bits(v);
 }
 
-INLINE int mask_test(const mask_t *mask, unsigned int val)
+INLINE int snd_mask_test(const snd_mask_t *mask, unsigned int val)
 {
-	assert(val <= MASK_MAX);
-	return mask_bits(mask) & (1U << val);
+	assert(val <= SND_MASK_MAX);
+	return snd_mask_bits(mask) & (1U << val);
 }
 
-INLINE int mask_single(const mask_t *mask)
+INLINE int snd_mask_single(const snd_mask_t *mask)
 {
-	assert(!mask_empty(mask));
-	return !(mask_bits(mask) & (mask_bits(mask) - 1));
+	assert(!snd_mask_empty(mask));
+	return !(snd_mask_bits(mask) & (snd_mask_bits(mask) - 1));
 }
 
-INLINE int mask_refine(mask_t *mask, const mask_t *v)
+INLINE int snd_mask_refine(snd_mask_t *mask, const snd_mask_t *v)
 {
-	mask_t old;
-	assert(!mask_empty(mask));
-	mask_copy(&old, mask);
-	mask_intersect(mask, v);
-	if (mask_empty(mask))
+	snd_mask_t old;
+	assert(!snd_mask_empty(mask));
+	snd_mask_copy(&old, mask);
+	snd_mask_intersect(mask, v);
+	if (snd_mask_empty(mask))
 		return -EINVAL;
-	return !mask_eq(mask, &old);
+	return !snd_mask_eq(mask, &old);
 }
 
-INLINE int mask_refine_first(mask_t *mask)
+INLINE int snd_mask_refine_first(snd_mask_t *mask)
 {
-	assert(!mask_empty(mask));
-	if (mask_single(mask))
+	assert(!snd_mask_empty(mask));
+	if (snd_mask_single(mask))
 		return 0;
-	mask_leave(mask, mask_min(mask));
+	snd_mask_leave(mask, snd_mask_min(mask));
 	return 1;
 }
 
-INLINE int mask_refine_last(mask_t *mask)
+INLINE int snd_mask_refine_last(snd_mask_t *mask)
 {
-	assert(!mask_empty(mask));
-	if (mask_single(mask))
+	assert(!snd_mask_empty(mask));
+	if (snd_mask_single(mask))
 		return 0;
-	mask_leave(mask, mask_max(mask));
+	snd_mask_leave(mask, snd_mask_max(mask));
 	return 1;
 }
 
-INLINE int mask_refine_min(mask_t *mask, unsigned int val)
+INLINE int snd_mask_refine_min(snd_mask_t *mask, unsigned int val)
 {
-	assert(!mask_empty(mask));
-	if (mask_min(mask) >= val)
+	assert(!snd_mask_empty(mask));
+	if (snd_mask_min(mask) >= val)
 		return 0;
-	mask_reset_range(mask, 0, val - 1);
-	if (mask_empty(mask))
-		return -EINVAL;
-	return 1;
-}
-
-INLINE int mask_refine_max(mask_t *mask, unsigned int val)
-{
-	assert(!mask_empty(mask));
-	if (mask_max(mask) <= val)
-		return 0;
-	mask_reset_range(mask, val + 1, MASK_MAX);
-	if (mask_empty(mask))
+	snd_mask_reset_range(mask, 0, val - 1);
+	if (snd_mask_empty(mask))
 		return -EINVAL;
 	return 1;
 }
 
-INLINE int mask_refine_set(mask_t *mask, unsigned int val)
+INLINE int snd_mask_refine_max(snd_mask_t *mask, unsigned int val)
+{
+	assert(!snd_mask_empty(mask));
+	if (snd_mask_max(mask) <= val)
+		return 0;
+	snd_mask_reset_range(mask, val + 1, SND_MASK_MAX);
+	if (snd_mask_empty(mask))
+		return -EINVAL;
+	return 1;
+}
+
+INLINE int snd_mask_refine_set(snd_mask_t *mask, unsigned int val)
 {
 	int changed;
-	assert(!mask_empty(mask));
-	changed = !mask_single(mask);
-	mask_leave(mask, val);
-	if (mask_empty(mask))
+	assert(!snd_mask_empty(mask));
+	changed = !snd_mask_single(mask);
+	snd_mask_leave(mask, val);
+	if (snd_mask_empty(mask))
 		return -EINVAL;
 	return changed;
 }
 
-INLINE int mask_value(const mask_t *mask)
+INLINE int snd_mask_value(const snd_mask_t *mask)
 {
-	assert(!mask_empty(mask));
-	return mask_min(mask);
+	assert(!snd_mask_empty(mask));
+	return snd_mask_min(mask);
 }
 
-INLINE int mask_always_eq(const mask_t *m1, const mask_t *m2)
+INLINE int snd_mask_always_eq(const snd_mask_t *m1, const snd_mask_t *m2)
 {
-	return mask_single(m1) && mask_single(m2) &&
-		mask_value(m1) == mask_value(m2);
+	return snd_mask_single(m1) && snd_mask_single(m2) &&
+		snd_mask_value(m1) == snd_mask_value(m2);
 }
 
-INLINE int mask_never_eq(const mask_t *m1, const mask_t *m2)
+INLINE int snd_mask_never_eq(const snd_mask_t *m1, const snd_mask_t *m2)
 {
-	return (mask_bits(m1) & mask_bits(m2)) == 0;
+	return (snd_mask_bits(m1) & snd_mask_bits(m2)) == 0;
 }

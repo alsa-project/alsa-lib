@@ -225,10 +225,10 @@ snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *src_areas,
 static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err;
-	mask_t *access_mask = alloca(mask_sizeof());
-	mask_t *format_mask = alloca(mask_sizeof());
-	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
-	mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
+	snd_mask_t *access_mask = alloca(snd_mask_sizeof());
+	snd_mask_t *format_mask = alloca(snd_mask_sizeof());
+	snd_mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
+	snd_mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
 	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
 				     access_mask);
 	if (err < 0)
@@ -256,8 +256,8 @@ static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 static int snd_pcm_rate_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_rate_t *rate = pcm->private;
-	mask_t *saccess_mask = alloca(mask_sizeof());
-	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	snd_mask_t *saccess_mask = alloca(snd_mask_sizeof());
+	snd_mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
@@ -276,8 +276,8 @@ static int snd_pcm_rate_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 					  snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_rate_t *rate = pcm->private;
-	interval_t t, buffer_size;
-	const interval_t *srate, *crate;
+	snd_interval_t t, buffer_size;
+	const snd_interval_t *srate, *crate;
 	int err;
 	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
 			      SND_PCM_HW_PARBIT_PERIOD_TIME |
@@ -287,11 +287,11 @@ static int snd_pcm_rate_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS |
 			  SND_PCM_HW_PARBIT_FRAME_BITS);
-	interval_copy(&buffer_size, snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE));
-	interval_unfloor(&buffer_size);
+	snd_interval_copy(&buffer_size, snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE));
+	snd_interval_unfloor(&buffer_size);
 	crate = snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_RATE);
 	srate = snd_pcm_hw_param_value_interval(sparams, SND_PCM_HW_PARAM_RATE);
-	interval_muldiv(&buffer_size, srate, crate, &t);
+	snd_interval_muldiv(&buffer_size, srate, crate, &t);
 	err = _snd_pcm_hw_param_refine_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
 	if (err < 0)
 		return err;
@@ -305,9 +305,9 @@ static int snd_pcm_rate_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 					  snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_rate_t *rate = pcm->private;
-	interval_t t;
-	const interval_t *sbuffer_size;
-	const interval_t *srate, *crate;
+	snd_interval_t t;
+	const snd_interval_t *sbuffer_size;
+	const snd_interval_t *srate, *crate;
 	int err;
 	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
 			      SND_PCM_HW_PARBIT_PERIOD_TIME |
@@ -320,8 +320,8 @@ static int snd_pcm_rate_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	sbuffer_size = snd_pcm_hw_param_value_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE);
 	crate = snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_RATE);
 	srate = snd_pcm_hw_param_value_interval(sparams, SND_PCM_HW_PARAM_RATE);
-	interval_muldiv(sbuffer_size, crate, srate, &t);
-	interval_floor(&t);
+	snd_interval_muldiv(sbuffer_size, crate, srate, &t);
+	snd_interval_floor(&t);
 	err = _snd_pcm_hw_param_refine_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
 	if (err < 0)
 		return err;

@@ -162,8 +162,8 @@ static int snd_pcm_shm_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_p
 
 static int snd_pcm_shm_hw_refine_sprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *sparams)
 {
-	mask_t *saccess_mask = alloca(mask_sizeof());
-	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	snd_mask_t *saccess_mask = alloca(snd_mask_sizeof());
+	snd_mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 			       saccess_mask);
@@ -175,9 +175,9 @@ static int snd_pcm_shm_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pc
 {
 	int err;
 	unsigned int links = ~SND_PCM_HW_PARBIT_ACCESS;
-	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
-	if (!mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
-	    !mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) {
+	const snd_mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	if (!snd_mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
+	    !snd_mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) {
 		err = _snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 					     access_mask);
 		if (err < 0)
@@ -194,10 +194,10 @@ static int snd_pcm_shm_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pc
 {
 	int err;
 	unsigned int links = ~SND_PCM_HW_PARBIT_ACCESS;
-	mask_t *access_mask = alloca(mask_sizeof());
-	mask_copy(access_mask, snd_pcm_hw_param_value_mask(sparams, SND_PCM_HW_PARAM_ACCESS));
-	mask_set(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED);
-	mask_set(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+	snd_mask_t *access_mask = alloca(snd_mask_sizeof());
+	snd_mask_copy(access_mask, snd_pcm_hw_param_value_mask(sparams, SND_PCM_HW_PARAM_ACCESS));
+	snd_mask_set(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED);
+	snd_mask_set(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED);
 	err = _snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 				     access_mask);
 	if (err < 0)

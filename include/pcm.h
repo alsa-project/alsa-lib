@@ -5,12 +5,153 @@
  *                                                                          *
  ****************************************************************************/
 
+/* sndrv aliasing */
+typedef enum sndrv_pcm_class snd_pcm_class_t;
+typedef enum sndrv_pcm_subclass snd_pcm_subclass_t;
+typedef enum sndrv_pcm_stream snd_pcm_stream_t;
+typedef enum sndrv_pcm_access snd_pcm_access_t;
+typedef enum sndrv_pcm_format snd_pcm_format_t;
+typedef enum sndrv_pcm_subformat snd_pcm_subformat_t;
+typedef enum sndrv_pcm_state snd_pcm_state_t;
+typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
+typedef enum sndrv_pcm_start snd_pcm_start_t;
+typedef enum sndrv_pcm_xrun snd_pcm_xrun_t;
+typedef enum sndrv_pcm_tstamp snd_pcm_tstamp_t;
+
+typedef sndrv_pcm_uframes_t snd_pcm_uframes_t;
+typedef sndrv_pcm_sframes_t snd_pcm_sframes_t;
+typedef struct timeval snd_timestamp_t;
+
+typedef struct sndrv_interval snd_interval_t;
+typedef struct sndrv_pcm_info snd_pcm_info_t;
+typedef struct sndrv_pcm_hw_params snd_pcm_hw_params_t;
+typedef struct sndrv_pcm_sw_params snd_pcm_sw_params_t;
+typedef struct sndrv_pcm_hw_channel_info snd_pcm_hw_channel_info_t;
+typedef struct sndrv_pcm_status snd_pcm_status_t;
+#define SND_PCM_CLASS_GENERIC SNDRV_PCM_CLASS_GENERIC
+#define SND_PCM_CLASS_MULTI SNDRV_PCM_CLASS_MULTI
+#define SND_PCM_CLASS_MODEM SNDRV_PCM_CLASS_MODEM
+#define SND_PCM_CLASS_DIGITIZER SNDRV_PCM_CLASS_DIGITIZER
+#define SND_PCM_SUBCLASS_GENERIC_MIX SNDRV_PCM_SUBCLASS_GENERIC_MIX
+#define SND_PCM_SUBCLASS_MULTI_MIX SNDRV_PCM_SUBCLASS_MULTI_MIX
+#define SND_PCM_STREAM_PLAYBACK SNDRV_PCM_STREAM_PLAYBACK
+#define SND_PCM_STREAM_CAPTURE SNDRV_PCM_STREAM_CAPTURE
+#define SND_PCM_STREAM_LAST SNDRV_PCM_STREAM_LAST
+#define SND_PCM_ACCESS_MMAP_INTERLEAVED SNDRV_PCM_ACCESS_MMAP_INTERLEAVED
+#define SND_PCM_ACCESS_MMAP_NONINTERLEAVED SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED
+#define SND_PCM_ACCESS_MMAP_COMPLEX SNDRV_PCM_ACCESS_MMAP_COMPLEX
+#define SND_PCM_ACCESS_RW_INTERLEAVED SNDRV_PCM_ACCESS_RW_INTERLEAVED
+#define SND_PCM_ACCESS_RW_NONINTERLEAVED SNDRV_PCM_ACCESS_RW_NONINTERLEAVED
+#define SND_PCM_ACCESS_LAST SNDRV_PCM_ACCESS_LAST
+#define SND_PCM_FORMAT_S8 SNDRV_PCM_FORMAT_S8
+#define SND_PCM_FORMAT_U8 SNDRV_PCM_FORMAT_U8
+#define SND_PCM_FORMAT_S16_LE SNDRV_PCM_FORMAT_S16_LE
+#define SND_PCM_FORMAT_S16_BE SNDRV_PCM_FORMAT_S16_BE
+#define SND_PCM_FORMAT_U16_LE SNDRV_PCM_FORMAT_U16_LE
+#define SND_PCM_FORMAT_U16_BE SNDRV_PCM_FORMAT_U16_BE
+#define SND_PCM_FORMAT_S24_LE SNDRV_PCM_FORMAT_S24_LE
+#define SND_PCM_FORMAT_S24_BE SNDRV_PCM_FORMAT_S24_BE
+#define SND_PCM_FORMAT_U24_LE SNDRV_PCM_FORMAT_U24_LE
+#define SND_PCM_FORMAT_U24_BE SNDRV_PCM_FORMAT_U24_BE
+#define SND_PCM_FORMAT_S32_LE SNDRV_PCM_FORMAT_S32_LE
+#define SND_PCM_FORMAT_S32_BE SNDRV_PCM_FORMAT_S32_BE
+#define SND_PCM_FORMAT_U32_LE SNDRV_PCM_FORMAT_U32_LE
+#define SND_PCM_FORMAT_U32_BE SNDRV_PCM_FORMAT_U32_BE
+#define SND_PCM_FORMAT_FLOAT_LE SNDRV_PCM_FORMAT_FLOAT_LE
+#define SND_PCM_FORMAT_FLOAT_BE SNDRV_PCM_FORMAT_FLOAT_BE
+#define SND_PCM_FORMAT_FLOAT64_LE SNDRV_PCM_FORMAT_FLOAT64_LE
+#define SND_PCM_FORMAT_FLOAT64_BE SNDRV_PCM_FORMAT_FLOAT64_BE
+#define SND_PCM_FORMAT_IEC958_SUBFRAME_LE SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE
+#define SND_PCM_FORMAT_IEC958_SUBFRAME_BE SNDRV_PCM_FORMAT_IEC958_SUBFRAME_BE
+#define SND_PCM_FORMAT_MU_LAW SNDRV_PCM_FORMAT_MU_LAW
+#define SND_PCM_FORMAT_A_LAW SNDRV_PCM_FORMAT_A_LAW
+#define SND_PCM_FORMAT_IMA_ADPCM SNDRV_PCM_FORMAT_IMA_ADPCM
+#define SND_PCM_FORMAT_MPEG SNDRV_PCM_FORMAT_MPEG
+#define SND_PCM_FORMAT_GSM SNDRV_PCM_FORMAT_GSM
+#define SND_PCM_FORMAT_SPECIAL SNDRV_PCM_FORMAT_SPECIAL
+#define SND_PCM_FORMAT_LAST SNDRV_PCM_FORMAT_LAST
+#define SND_PCM_FORMAT_S16 SNDRV_PCM_FORMAT_S16
+#define SND_PCM_FORMAT_U16 SNDRV_PCM_FORMAT_U16
+#define SND_PCM_FORMAT_S24 SNDRV_PCM_FORMAT_S24
+#define SND_PCM_FORMAT_U24 SNDRV_PCM_FORMAT_U24
+#define SND_PCM_FORMAT_S32 SNDRV_PCM_FORMAT_S32
+#define SND_PCM_FORMAT_U32 SNDRV_PCM_FORMAT_U32
+#define SND_PCM_FORMAT_FLOAT SNDRV_PCM_FORMAT_FLOAT
+#define SND_PCM_FORMAT_FLOAT64 SNDRV_PCM_FORMAT_FLOAT64
+#define SND_PCM_FORMAT_IEC958_SUBFRAME SNDRV_PCM_FORMAT_IEC958_SUBFRAME
+#define SND_PCM_FORMAT_S16 SNDRV_PCM_FORMAT_S16
+#define SND_PCM_FORMAT_U16 SNDRV_PCM_FORMAT_U16
+#define SND_PCM_FORMAT_S24 SNDRV_PCM_FORMAT_S24
+#define SND_PCM_FORMAT_U24 SNDRV_PCM_FORMAT_U24
+#define SND_PCM_FORMAT_S32 SNDRV_PCM_FORMAT_S32
+#define SND_PCM_FORMAT_U32 SNDRV_PCM_FORMAT_U32
+#define SND_PCM_FORMAT_FLOAT SNDRV_PCM_FORMAT_FLOAT
+#define SND_PCM_FORMAT_FLOAT64 SNDRV_PCM_FORMAT_FLOAT64
+#define SND_PCM_FORMAT_IEC958_SUBFRAME SNDRV_PCM_FORMAT_IEC958_SUBFRAME
+#define SND_PCM_SUBFORMAT_STD SNDRV_PCM_SUBFORMAT_STD
+#define SND_PCM_SUBFORMAT_LAST SNDRV_PCM_SUBFORMAT_LAST
+#define SND_PCM_INFO_MMAP SNDRV_PCM_INFO_MMAP
+#define SND_PCM_INFO_MMAP_VALID SNDRV_PCM_INFO_MMAP_VALID
+#define SND_PCM_INFO_DOUBLE SNDRV_PCM_INFO_DOUBLE
+#define SND_PCM_INFO_BATCH SNDRV_PCM_INFO_BATCH
+#define SND_PCM_INFO_INTERLEAVED SNDRV_PCM_INFO_INTERLEAVED
+#define SND_PCM_INFO_NONINTERLEAVED SNDRV_PCM_INFO_NONINTERLEAVED
+#define SND_PCM_INFO_COMPLEX SNDRV_PCM_INFO_COMPLEX
+#define SND_PCM_INFO_BLOCK_TRANSFER SNDRV_PCM_INFO_BLOCK_TRANSFER
+#define SND_PCM_INFO_OVERRANGE SNDRV_PCM_INFO_OVERRANGE
+#define SND_PCM_INFO_PAUSE SNDRV_PCM_INFO_PAUSE
+#define SND_PCM_INFO_HALF_DUPLEX SNDRV_PCM_INFO_HALF_DUPLEX
+#define SND_PCM_INFO_JOINT_DUPLEX SNDRV_PCM_INFO_JOINT_DUPLEX
+#define SND_PCM_INFO_SYNC_START SNDRV_PCM_INFO_SYNC_START
+#define SND_PCM_STATE_OPEN SNDRV_PCM_STATE_OPEN
+#define SND_PCM_STATE_SETUP SNDRV_PCM_STATE_SETUP
+#define SND_PCM_STATE_PREPARED SNDRV_PCM_STATE_PREPARED
+#define SND_PCM_STATE_RUNNING SNDRV_PCM_STATE_RUNNING
+#define SND_PCM_STATE_XRUN SNDRV_PCM_STATE_XRUN
+#define SND_PCM_STATE_DRAINING SNDRV_PCM_STATE_DRAINING
+#define SND_PCM_STATE_PAUSED SNDRV_PCM_STATE_PAUSED
+#define SND_PCM_STATE_LAST SNDRV_PCM_STATE_LAST
+#define SND_PCM_MMAP_OFFSET_DATA SNDRV_PCM_MMAP_OFFSET_DATA
+#define SND_PCM_MMAP_OFFSET_STATUS SNDRV_PCM_MMAP_OFFSET_STATUS
+#define SND_PCM_MMAP_OFFSET_CONTROL SNDRV_PCM_MMAP_OFFSET_CONTROL
+#define SND_PCM_HW_PARAM_ACCESS SNDRV_PCM_HW_PARAM_ACCESS
+#define SND_PCM_HW_PARAM_FIRST_MASK SNDRV_PCM_HW_PARAM_FIRST_MASK
+#define SND_PCM_HW_PARAM_FORMAT SNDRV_PCM_HW_PARAM_FORMAT
+#define SND_PCM_HW_PARAM_SUBFORMAT SNDRV_PCM_HW_PARAM_SUBFORMAT
+#define SND_PCM_HW_PARAM_LAST_MASK SNDRV_PCM_HW_PARAM_LAST_MASK
+#define SND_PCM_HW_PARAM_SAMPLE_BITS SNDRV_PCM_HW_PARAM_SAMPLE_BITS
+#define SND_PCM_HW_PARAM_FIRST_INTERVAL SNDRV_PCM_HW_PARAM_FIRST_INTERVAL
+#define SND_PCM_HW_PARAM_FRAME_BITS SNDRV_PCM_HW_PARAM_FRAME_BITS
+#define SND_PCM_HW_PARAM_CHANNELS SNDRV_PCM_HW_PARAM_CHANNELS
+#define SND_PCM_HW_PARAM_RATE SNDRV_PCM_HW_PARAM_RATE
+#define SND_PCM_HW_PARAM_PERIOD_TIME SNDRV_PCM_HW_PARAM_PERIOD_TIME
+#define SND_PCM_HW_PARAM_PERIOD_SIZE SNDRV_PCM_HW_PARAM_PERIOD_SIZE
+#define SND_PCM_HW_PARAM_PERIOD_BYTES SNDRV_PCM_HW_PARAM_PERIOD_BYTES
+#define SND_PCM_HW_PARAM_PERIODS SNDRV_PCM_HW_PARAM_PERIODS
+#define SND_PCM_HW_PARAM_BUFFER_TIME SNDRV_PCM_HW_PARAM_BUFFER_TIME
+#define SND_PCM_HW_PARAM_BUFFER_SIZE SNDRV_PCM_HW_PARAM_BUFFER_SIZE
+#define SND_PCM_HW_PARAM_BUFFER_BYTES SNDRV_PCM_HW_PARAM_BUFFER_BYTES
+#define SND_PCM_HW_PARAM_TICK_TIME SNDRV_PCM_HW_PARAM_TICK_TIME
+#define SND_PCM_HW_PARAM_LAST_INTERVAL SNDRV_PCM_HW_PARAM_LAST_INTERVAL
+#define SND_PCM_HW_PARAM_LAST SNDRV_PCM_HW_PARAM_LAST
+#define SND_PCM_HW_PARAMS_RUNTIME SNDRV_PCM_HW_PARAMS_RUNTIME
+#define SND_PCM_HW_PARAM_LAST_MASK SNDRV_PCM_HW_PARAM_LAST_MASK
+#define SND_PCM_HW_PARAM_FIRST_MASK SNDRV_PCM_HW_PARAM_FIRST_MASK
+#define SND_PCM_HW_PARAM_LAST_INTERVAL SNDRV_PCM_HW_PARAM_LAST_INTERVAL
+#define SND_PCM_HW_PARAM_FIRST_INTERVAL SNDRV_PCM_HW_PARAM_FIRST_INTERVAL
+#define SND_PCM_START_DATA SNDRV_PCM_START_DATA
+#define SND_PCM_START_EXPLICIT SNDRV_PCM_START_EXPLICIT
+#define SND_PCM_START_LAST SNDRV_PCM_START_LAST
+#define SND_PCM_XRUN_NONE SNDRV_PCM_XRUN_NONE
+#define SND_PCM_XRUN_STOP SNDRV_PCM_XRUN_STOP
+#define SND_PCM_XRUN_LAST SNDRV_PCM_XRUN_LAST
+#define SND_PCM_TSTAMP_NONE SNDRV_PCM_TSTAMP_NONE
+#define SND_PCM_TSTAMP_MMAP SNDRV_PCM_TSTAMP_MMAP
+#define SND_PCM_TSTAMP_LAST SNDRV_PCM_TSTAMP_LAST
+#define SND_PCM_STATE_XXXX SNDRV_PCM_STATE_XXXX
+
 #define SND_PCM_NONBLOCK		0x0001
 #define SND_PCM_ASYNC			0x0002
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef struct _snd_pcm snd_pcm_t;
 
@@ -40,6 +181,10 @@ typedef struct _snd_pcm_channel_area {
 	unsigned int first;		/* offset to first sample in bits */
 	unsigned int step;		/* samples distance in bits */
 } snd_pcm_channel_area_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int snd_pcm_open(snd_pcm_t **pcm, char *name, 
 		 int stream, int mode);
@@ -89,20 +234,20 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm);
 int snd_pcm_set_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 
-typedef struct _mask mask_t;
-size_t mask_sizeof();
-void mask_none(mask_t *mask);
-void mask_any(mask_t *mask);
-void mask_load(mask_t *mask, unsigned int msk);
-int mask_empty(const mask_t *mask);
-void mask_set(mask_t *mask, unsigned int val);
-void mask_reset(mask_t *mask, unsigned int val);
-void mask_copy(mask_t *mask, const mask_t *v);
-int mask_test(const mask_t *mask, unsigned int val);
-void mask_intersect(mask_t *mask, const mask_t *v);
-void mask_union(mask_t *mask, const mask_t *v);
-int mask_eq(const mask_t *a, const mask_t *b);
-int mask_single(const mask_t *mask);
+typedef struct _snd_mask snd_mask_t;
+size_t snd_mask_sizeof();
+void snd_mask_none(snd_mask_t *mask);
+void snd_mask_any(snd_mask_t *mask);
+void snd_mask_load(snd_mask_t *mask, unsigned int msk);
+int snd_mask_empty(const snd_mask_t *mask);
+void snd_mask_set(snd_mask_t *mask, unsigned int val);
+void snd_mask_reset(snd_mask_t *mask, unsigned int val);
+void snd_mask_copy(snd_mask_t *mask, const snd_mask_t *v);
+int snd_mask_test(const snd_mask_t *mask, unsigned int val);
+void snd_mask_intersect(snd_mask_t *mask, const snd_mask_t *v);
+void snd_mask_union(snd_mask_t *mask, const snd_mask_t *v);
+int snd_mask_eq(const snd_mask_t *a, const snd_mask_t *b);
+int snd_mask_single(const snd_mask_t *mask);
 
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_param_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
@@ -130,7 +275,7 @@ int snd_pcm_hw_param_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 int snd_pcm_hw_param_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			 snd_pcm_hw_param_t var, unsigned int val, int dir);
 int snd_pcm_hw_param_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			  snd_pcm_hw_param_t var, const mask_t *mask);
+			  snd_pcm_hw_param_t var, const snd_mask_t *mask);
 int snd_pcm_hw_param_min_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			     snd_pcm_hw_param_t var, 
 			     unsigned int val, int *dir);
@@ -143,13 +288,13 @@ int snd_pcm_hw_param_minmax_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 				unsigned int *max, int *maxdir);
 int snd_pcm_hw_param_set_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			     snd_pcm_hw_param_t var, unsigned int val, int dir);
-int snd_pcm_hw_param_mask_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			      snd_pcm_hw_param_t var, const mask_t *mask);
+int snd_pcm_hw_param_snd_mask_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			      snd_pcm_hw_param_t var, const snd_mask_t *mask);
 int snd_pcm_hw_param_value(const snd_pcm_hw_params_t *params,
 			   snd_pcm_hw_param_t var, int *dir);
-const mask_t *snd_pcm_hw_param_value_mask(const snd_pcm_hw_params_t *params,
+const snd_mask_t *snd_pcm_hw_param_value_mask(const snd_pcm_hw_params_t *params,
 					  snd_pcm_hw_param_t var);
-const interval_t *snd_pcm_hw_param_value_interval(const snd_pcm_hw_params_t *params,
+const snd_interval_t *snd_pcm_hw_param_value_interval(const snd_pcm_hw_params_t *params,
 						  snd_pcm_hw_param_t var);
 unsigned int snd_pcm_hw_param_value_min(const snd_pcm_hw_params_t *params,
 					snd_pcm_hw_param_t var, int *dir);

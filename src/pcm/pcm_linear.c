@@ -132,10 +132,10 @@ void snd_pcm_linear_convert(const snd_pcm_channel_area_t *src_areas, snd_pcm_ufr
 static int snd_pcm_linear_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err;
-	mask_t *access_mask = alloca(mask_sizeof());
-	mask_t *format_mask = alloca(mask_sizeof());
-	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
-	mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
+	snd_mask_t *access_mask = alloca(snd_mask_sizeof());
+	snd_mask_t *format_mask = alloca(snd_mask_sizeof());
+	snd_mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
+	snd_mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
 	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
 				     access_mask);
 	if (err < 0)
@@ -155,8 +155,8 @@ static int snd_pcm_linear_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, sn
 static int snd_pcm_linear_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_linear_t *linear = pcm->private;
-	mask_t *saccess_mask = alloca(mask_sizeof());
-	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	snd_mask_t *saccess_mask = alloca(snd_mask_sizeof());
+	snd_mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 			       saccess_mask);

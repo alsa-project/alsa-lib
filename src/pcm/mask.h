@@ -25,37 +25,37 @@
 #include <assert.h>
 #include "asoundlib.h"
 
-#define MASK_MAX 31
+#define SND_MASK_MAX 31
 
-#ifdef MASK_INLINE
+#ifdef SND_MASK_INLINE
 #include "mask_inline.h"
 #else
-void mask_none(mask_t *mask);
-void mask_any(mask_t *mask);
-void mask_load(mask_t *mask, unsigned int msk);
-int mask_empty(const mask_t *mask);
-int mask_full(const mask_t *mask);
-void mask_set(mask_t *mask, unsigned int val);
-void mask_reset(mask_t *mask, unsigned int val);
-void mask_copy(mask_t *mask, const mask_t *v);
-int mask_test(const mask_t *mask, unsigned int val);
-void mask_intersect(mask_t *mask, const mask_t *v);
-void mask_union(mask_t *mask, const mask_t *v);
-unsigned int mask_count(const mask_t *mask);
-unsigned int mask_min(const mask_t *mask);
-unsigned int mask_max(const mask_t *mask);
-void mask_set_range(mask_t *mask, unsigned int from, unsigned int to);
-void mask_reset_range(mask_t *mask, unsigned int from, unsigned int to);
-void mask_leave(mask_t *mask, unsigned int val);
-int mask_eq(const mask_t *mask, const mask_t *v);
-int mask_single(const mask_t *mask);
-int mask_refine(mask_t *mask, const mask_t *v);
-int mask_refine_first(mask_t *mask);
-int mask_refine_last(mask_t *mask);
-int mask_refine_min(mask_t *mask, unsigned int val);
-int mask_refine_max(mask_t *mask, unsigned int val);
-int mask_refine_set(mask_t *mask, unsigned int val);
-int mask_value(const mask_t *mask);
-int mask_always_eq(const mask_t *m1, const mask_t *m2);
-int mask_never_eq(const mask_t *m1, const mask_t *m2);
+void snd_mask_none(snd_mask_t *mask);
+void snd_mask_any(snd_mask_t *mask);
+void snd_mask_load(snd_mask_t *mask, unsigned int msk);
+int snd_mask_empty(const snd_mask_t *mask);
+int snd_mask_full(const snd_mask_t *mask);
+void snd_mask_set(snd_mask_t *mask, unsigned int val);
+void snd_mask_reset(snd_mask_t *mask, unsigned int val);
+void snd_mask_copy(snd_mask_t *mask, const snd_mask_t *v);
+int snd_mask_test(const snd_mask_t *mask, unsigned int val);
+void snd_mask_intersect(snd_mask_t *mask, const snd_mask_t *v);
+void snd_mask_union(snd_mask_t *mask, const snd_mask_t *v);
+unsigned int snd_mask_count(const snd_mask_t *mask);
+unsigned int snd_mask_min(const snd_mask_t *mask);
+unsigned int snd_mask_max(const snd_mask_t *mask);
+void snd_mask_set_range(snd_mask_t *mask, unsigned int from, unsigned int to);
+void snd_mask_reset_range(snd_mask_t *mask, unsigned int from, unsigned int to);
+void snd_mask_leave(snd_mask_t *mask, unsigned int val);
+int snd_mask_eq(const snd_mask_t *mask, const snd_mask_t *v);
+int snd_mask_single(const snd_mask_t *mask);
+int snd_mask_refine(snd_mask_t *mask, const snd_mask_t *v);
+int snd_mask_refine_first(snd_mask_t *mask);
+int snd_mask_refine_last(snd_mask_t *mask);
+int snd_mask_refine_min(snd_mask_t *mask, unsigned int val);
+int snd_mask_refine_max(snd_mask_t *mask, unsigned int val);
+int snd_mask_refine_set(snd_mask_t *mask, unsigned int val);
+int snd_mask_value(const snd_mask_t *mask);
+int snd_mask_always_eq(const snd_mask_t *m1, const snd_mask_t *m2);
+int snd_mask_never_eq(const snd_mask_t *m1, const snd_mask_t *m2);
 #endif

@@ -19,8 +19,8 @@
  *
  */
   
-#define MASK_C
-#define MASK_INLINE
+#define SND_MASK_C
+#define SND_MASK_INLINE
 
 #include <sys/types.h>
 #include <limits.h>

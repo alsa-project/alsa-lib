@@ -19,8 +19,8 @@
  *
  */
   
-#define INTERVAL_C
-#define INTERVAL_INLINE
+#define SND_INTERVAL_C
+#define SND_INTERVAL_INLINE
 
 #include <sys/types.h>
 #include <limits.h>
@@ -105,10 +105,10 @@ static inline unsigned int muldiv32(unsigned int a, unsigned int b,
 	return n;
 }
 
-int interval_refine_min(interval_t *i, unsigned int min, int openmin)
+int snd_interval_refine_min(snd_interval_t *i, unsigned int min, int openmin)
 {
 	int changed = 0;
-	assert(!interval_empty(i));
+	assert(!snd_interval_empty(i));
 	if (i->min < min) {
 		i->min = min;
 		i->openmin = openmin;
@@ -123,17 +123,17 @@ int interval_refine_min(interval_t *i, unsigned int min, int openmin)
 			i->openmin = 0;
 		}
 	}
-	if (interval_checkempty(i)) {
-		interval_none(i);
+	if (snd_interval_checkempty(i)) {
+		snd_interval_none(i);
 		return -EINVAL;
 	}
 	return changed;
 }
 
-int interval_refine_max(interval_t *i, unsigned int max, int openmax)
+int snd_interval_refine_max(snd_interval_t *i, unsigned int max, int openmax)
 {
 	int changed = 0;
-	assert(!interval_empty(i));
+	assert(!snd_interval_empty(i));
 	if (i->max > max) {
 		i->max = max;
 		i->openmax = openmax;
@@ -148,18 +148,18 @@ int interval_refine_max(interval_t *i, unsigned int max, int openmax)
 			i->openmax = 0;
 		}
 	}
-	if (interval_checkempty(i)) {
-		interval_none(i);
+	if (snd_interval_checkempty(i)) {
+		snd_interval_none(i);
 		return -EINVAL;
 	}
 	return changed;
 }
 
 /* r <- v */
-int interval_refine(interval_t *i, const interval_t *v)
+int snd_interval_refine(snd_interval_t *i, const snd_interval_t *v)
 {
 	int changed = 0;
-	assert(!interval_empty(i));
+	assert(!snd_interval_empty(i));
 	if (i->min < v->min) {
 		i->min = v->min;
 		i->openmin = v->openmin;
@@ -191,17 +191,17 @@ int interval_refine(interval_t *i, const interval_t *v)
 		}
 	} else if (!i->openmin && !i->openmax && i->min == i->max)
 		i->integer = 1;
-	if (interval_checkempty(i)) {
-		interval_none(i);
+	if (snd_interval_checkempty(i)) {
+		snd_interval_none(i);
 		return -EINVAL;
 	}
 	return changed;
 }
 
-int interval_refine_first(interval_t *i)
+int snd_interval_refine_first(snd_interval_t *i)
 {
-	assert(!interval_empty(i));
-	if (interval_single(i))
+	assert(!snd_interval_empty(i));
+	if (snd_interval_single(i))
 		return 0;
 	i->max = i->min;
 	i->openmax = i->openmin;
@@ -210,10 +210,10 @@ int interval_refine_first(interval_t *i)
 	return 1;
 }
 
-int interval_refine_last(interval_t *i)
+int snd_interval_refine_last(snd_interval_t *i)
 {
-	assert(!interval_empty(i));
-	if (interval_single(i))
+	assert(!snd_interval_empty(i));
+	if (snd_interval_single(i))
 		return 0;
 	i->min = i->max;
 	i->openmin = i->openmax;
@@ -222,20 +222,20 @@ int interval_refine_last(interval_t *i)
 	return 1;
 }
 
-int interval_refine_set(interval_t *i, unsigned int val)
+int snd_interval_refine_set(snd_interval_t *i, unsigned int val)
 {
-	interval_t t;
+	snd_interval_t t;
 	t.empty = 0;
 	t.min = t.max = val;
 	t.openmin = t.openmax = 0;
 	t.integer = 1;
-	return interval_refine(i, &t);
+	return snd_interval_refine(i, &t);
 }
 
-void interval_add(const interval_t *a, const interval_t *b, interval_t *c)
+void snd_interval_add(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c)
 {
 	if (a->empty || b->empty) {
-		interval_none(c);
+		snd_interval_none(c);
 		return;
 	}
 	c->empty = 0;
@@ -246,10 +246,10 @@ void interval_add(const interval_t *a, const interval_t *b, interval_t *c)
 	c->integer = (a->integer && b->integer);
 }
 
-void interval_sub(const interval_t *a, const interval_t *b, interval_t *c)
+void snd_interval_sub(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c)
 {
 	if (a->empty || b->empty) {
-		interval_none(c);
+		snd_interval_none(c);
 		return;
 	}
 	c->empty = 0;
@@ -260,10 +260,10 @@ void interval_sub(const interval_t *a, const interval_t *b, interval_t *c)
 	c->integer = (a->integer && b->integer);
 }
 
-void interval_mul(const interval_t *a, const interval_t *b, interval_t *c)
+void snd_interval_mul(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c)
 {
 	if (a->empty || b->empty) {
-		interval_none(c);
+		snd_interval_none(c);
 		return;
 	}
 	c->empty = 0;
@@ -274,11 +274,11 @@ void interval_mul(const interval_t *a, const interval_t *b, interval_t *c)
 	c->integer = (a->integer && b->integer);
 }
 
-void interval_div(const interval_t *a, const interval_t *b, interval_t *c)
+void snd_interval_div(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c)
 {
 	unsigned int r;
 	if (a->empty || b->empty) {
-		interval_none(c);
+		snd_interval_none(c);
 		return;
 	}
 	c->empty = 0;
@@ -299,12 +299,12 @@ void interval_div(const interval_t *a, const interval_t *b, interval_t *c)
 }
 
 /* a * b / c */
-void interval_muldiv(const interval_t *a, const interval_t *b,
-		     const interval_t *c, interval_t *d)
+void snd_interval_muldiv(const snd_interval_t *a, const snd_interval_t *b,
+		     const snd_interval_t *c, snd_interval_t *d)
 {
 	unsigned int r;
 	if (a->empty || b->empty || c->empty) {
-		interval_none(d);
+		snd_interval_none(d);
 		return;
 	}
 	d->empty = 0;
@@ -320,12 +320,12 @@ void interval_muldiv(const interval_t *a, const interval_t *b,
 }
 
 /* a * b / k */
-void interval_muldivk(const interval_t *a, const interval_t *b,
-		      unsigned int k, interval_t *c)
+void snd_interval_muldivk(const snd_interval_t *a, const snd_interval_t *b,
+		      unsigned int k, snd_interval_t *c)
 {
 	unsigned int r;
 	if (a->empty || b->empty) {
-		interval_none(c);
+		snd_interval_none(c);
 		return;
 	}
 	c->empty = 0;
@@ -341,12 +341,12 @@ void interval_muldivk(const interval_t *a, const interval_t *b,
 }
 
 /* a * k / b */
-void interval_mulkdiv(const interval_t *a, unsigned int k,
-		      const interval_t *b, interval_t *c)
+void snd_interval_mulkdiv(const snd_interval_t *a, unsigned int k,
+		      const snd_interval_t *b, snd_interval_t *c)
 {
 	unsigned int r;
 	if (a->empty || b->empty) {
-		interval_none(c);
+		snd_interval_none(c);
 		return;
 	}
 	c->empty = 0;
@@ -366,15 +366,15 @@ void interval_mulkdiv(const interval_t *a, unsigned int k,
 	c->integer = 0;
 }
 
-void interval_print(const interval_t *i, snd_output_t *out)
+void snd_interval_print(const snd_interval_t *i, snd_output_t *out)
 {
-	if (interval_empty(i))
+	if (snd_interval_empty(i))
 		snd_output_printf(out, "NONE");
 	else if (i->min == 0 && i->openmin == 0 && 
 		 i->max == UINT_MAX && i->openmax == 0)
 		snd_output_printf(out, "ALL");
-	else if (interval_single(i) && i->integer)
-		snd_output_printf(out, "%u", interval_value(i));
+	else if (snd_interval_single(i) && i->integer)
+		snd_output_printf(out, "%u", snd_interval_value(i));
 	else
 		snd_output_printf(out, "%c%u %u%c",
 				i->openmin ? '(' : '[',

@@ -120,14 +120,14 @@ static unsigned int nonlinear_preferred_formats[] = {
 	SND_PCM_FORMAT_IMA_ADPCM,
 };
 
-static int snd_pcm_plug_slave_format(int format, const mask_t *format_mask)
+static int snd_pcm_plug_slave_format(int format, const snd_mask_t *format_mask)
 {
 	int w, u, e, wid, w1, dw;
-	mask_t *lin = alloca(mask_sizeof());
-	if (mask_test(format_mask, format))
+	snd_mask_t *lin = alloca(snd_mask_sizeof());
+	if (snd_mask_test(format_mask, format))
 		return format;
-	mask_load(lin, SND_PCM_FMTBIT_LINEAR);
-	if (!mask_test(lin, format)) {
+	snd_mask_load(lin, SND_PCM_FMTBIT_LINEAR);
+	if (!snd_mask_test(lin, format)) {
 		unsigned int i;
 		switch (format) {
 		case SND_PCM_FORMAT_MU_LAW:
@@ -135,7 +135,7 @@ static int snd_pcm_plug_slave_format(int format, const mask_t *format_mask)
 		case SND_PCM_FORMAT_IMA_ADPCM:
 			for (i = 0; i < sizeof(linear_preferred_formats) / sizeof(linear_preferred_formats[0]); ++i) {
 				unsigned int f = linear_preferred_formats[i];
-				if (mask_test(format_mask, f))
+				if (snd_mask_test(format_mask, f))
 					return f;
 			}
 			/* Fall through */
@@ -144,12 +144,12 @@ static int snd_pcm_plug_slave_format(int format, const mask_t *format_mask)
 		}
 
 	}
-	mask_intersect(lin, format_mask);
-	if (mask_empty(lin)) {
+	snd_mask_intersect(lin, format_mask);
+	if (snd_mask_empty(lin)) {
 		unsigned int i;
 		for (i = 0; i < sizeof(nonlinear_preferred_formats) / sizeof(nonlinear_preferred_formats[0]); ++i) {
 			unsigned int f = nonlinear_preferred_formats[i];
-			if (mask_test(format_mask, f))
+			if (snd_mask_test(format_mask, f))
 				return f;
 		}
 		return -EINVAL;
@@ -166,7 +166,7 @@ static int snd_pcm_plug_slave_format(int format, const mask_t *format_mask)
 			for (sgn = 0; sgn < 2; ++sgn) {
 				int f;
 				f = snd_pcm_build_linear_format(w1, u1, e1);
-				if (f >= 0 && mask_test(format_mask, f))
+				if (f >= 0 && snd_mask_test(format_mask, f))
 					return f;
 				u1 = !u1;
 			}
@@ -419,12 +419,12 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	snd_pcm_t *slave = plug->req_slave;
 	unsigned int links = (SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	const mask_t *format_mask, *sformat_mask;
-	mask_t *sfmt_mask = alloca(mask_sizeof());
+	const snd_mask_t *format_mask, *sformat_mask;
+	snd_mask_t *sfmt_mask = alloca(snd_mask_sizeof());
 	int err;
 	unsigned int format;
-	interval_t t, buffer_size;
-	const interval_t *srate, *crate;
+	snd_interval_t t, buffer_size;
+	const snd_interval_t *srate, *crate;
 	snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_RATE,
 				     params);
 	snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_CHANNELS,
@@ -433,19 +433,19 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 						   SND_PCM_HW_PARAM_FORMAT);
 	sformat_mask = snd_pcm_hw_param_value_mask(sparams,
 						    SND_PCM_HW_PARAM_FORMAT);
-	mask_none(sfmt_mask);
+	snd_mask_none(sfmt_mask);
 	for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 		int f;
-		if (!mask_test(format_mask, format))
+		if (!snd_mask_test(format_mask, format))
 			continue;
-		if (mask_test(sformat_mask, format))
+		if (snd_mask_test(sformat_mask, format))
 			f = format;
 		else {
 			f = snd_pcm_plug_slave_format(format, sformat_mask);
 			if (f < 0)
 				continue;
 		}
-		mask_set(sfmt_mask, f);
+		snd_mask_set(sfmt_mask, f);
 	}
 
 	err = snd_pcm_hw_param_mask(slave, sparams,
@@ -456,16 +456,16 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_CHANNELS, sparams) ||
 	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_RATE, sparams) ||
 	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_ACCESS, sparams)) {
-		mask_t *access_mask = alloca(mask_sizeof());
-		mask_load(access_mask, SND_PCM_ACCBIT_MMAP);
+		snd_mask_t *access_mask = alloca(snd_mask_sizeof());
+		snd_mask_load(access_mask, SND_PCM_ACCBIT_MMAP);
 		_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 				       access_mask);
 	}
-	interval_copy(&buffer_size, snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE));
-	interval_unfloor(&buffer_size);
+	snd_interval_copy(&buffer_size, snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE));
+	snd_interval_unfloor(&buffer_size);
 	crate = snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_RATE);
 	srate = snd_pcm_hw_param_value_interval(sparams, SND_PCM_HW_PARAM_RATE);
-	interval_muldiv(&buffer_size, srate, crate, &t);
+	snd_interval_muldiv(&buffer_size, srate, crate, &t);
 	err = _snd_pcm_hw_param_refine_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
 	if (err < 0)
 		return err;
@@ -481,32 +481,32 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 {
 	unsigned int links = (SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	const mask_t *format_mask, *sformat_mask;
-	mask_t *fmt_mask = alloca(mask_sizeof());
+	const snd_mask_t *format_mask, *sformat_mask;
+	snd_mask_t *fmt_mask = alloca(snd_mask_sizeof());
 	int err;
 	unsigned int format;
-	interval_t t;
-	const interval_t *sbuffer_size;
-	const interval_t *srate, *crate;
+	snd_interval_t t;
+	const snd_interval_t *sbuffer_size;
+	const snd_interval_t *srate, *crate;
 	unsigned int rate_min, srate_min;
 	int rate_mindir, srate_mindir;
 	format_mask = snd_pcm_hw_param_value_mask(params,
 						   SND_PCM_HW_PARAM_FORMAT);
 	sformat_mask = snd_pcm_hw_param_value_mask(sparams,
 						    SND_PCM_HW_PARAM_FORMAT);
-	mask_none(fmt_mask);
+	snd_mask_none(fmt_mask);
 	for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 		int f;
-		if (!mask_test(format_mask, format))
+		if (!snd_mask_test(format_mask, format))
 			continue;
-		if (mask_test(sformat_mask, format))
+		if (snd_mask_test(sformat_mask, format))
 			f = format;
 		else {
 			f = snd_pcm_plug_slave_format(format, sformat_mask);
 			if (f < 0)
 				continue;
 		}
-		mask_set(fmt_mask, format);
+		snd_mask_set(fmt_mask, format);
 	}
 
 	err = _snd_pcm_hw_param_mask(params, 
@@ -526,8 +526,8 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 	sbuffer_size = snd_pcm_hw_param_value_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE);
 	crate = snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_RATE);
 	srate = snd_pcm_hw_param_value_interval(sparams, SND_PCM_HW_PARAM_RATE);
-	interval_muldiv(sbuffer_size, crate, srate, &t);
-	interval_floor(&t);
+	snd_interval_muldiv(sbuffer_size, crate, srate, &t);
+	snd_interval_floor(&t);
 	err = _snd_pcm_hw_param_refine_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
 	if (err < 0)
 		return err;

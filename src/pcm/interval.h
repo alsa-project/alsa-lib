@@ -21,42 +21,42 @@
   
 #include <stdio.h>
 
-#ifdef INTERVAL_INLINE
+#ifdef SND_INTERVAL_INLINE
 #include "interval_inline.h"
 #else
-void interval_any(interval_t *i);
-void interval_none(interval_t *i);
-int interval_setinteger(interval_t *i);
-int interval_empty(const interval_t *i);
-int interval_single(const interval_t *i);
-int interval_value(const interval_t *i);
-int interval_min(const interval_t *i);
-int interval_max(const interval_t *i);
-int interval_test(const interval_t *i, unsigned int val);
-void interval_copy(interval_t *dst, const interval_t *src);
-void interval_floor(interval_t *i);
-void interval_unfloor(interval_t *i);
-int interval_always_eq(const interval_t *i1, const interval_t *i2);
-int interval_never_eq(const interval_t *i1, const interval_t *i2);
+void snd_interval_any(snd_interval_t *i);
+void snd_interval_none(snd_interval_t *i);
+int snd_interval_setinteger(snd_interval_t *i);
+int snd_interval_empty(const snd_interval_t *i);
+int snd_interval_single(const snd_interval_t *i);
+int snd_interval_value(const snd_interval_t *i);
+int snd_interval_min(const snd_interval_t *i);
+int snd_interval_max(const snd_interval_t *i);
+int snd_interval_test(const snd_interval_t *i, unsigned int val);
+void snd_interval_copy(snd_interval_t *dst, const snd_interval_t *src);
+void snd_interval_floor(snd_interval_t *i);
+void snd_interval_unfloor(snd_interval_t *i);
+int snd_interval_always_eq(const snd_interval_t *i1, const snd_interval_t *i2);
+int snd_interval_never_eq(const snd_interval_t *i1, const snd_interval_t *i2);
 #endif
 
-void interval_add(const interval_t *a, const interval_t *b, interval_t *c);
-void interval_sub(const interval_t *a, const interval_t *b, interval_t *c);
-void interval_mul(const interval_t *a, const interval_t *b, interval_t *c);
-void interval_div(const interval_t *a, const interval_t *b, interval_t *c);
-void interval_muldiv(const interval_t *a, const interval_t *b, 
-		     const interval_t *c, interval_t *d);
-void interval_muldivk(const interval_t *a, const interval_t *b, 
-		      unsigned int k, interval_t *c);
-void interval_mulkdiv(const interval_t *a, unsigned int k,
-		      const interval_t *b, interval_t *c);
-void interval_print(const interval_t *i, snd_output_t *out);
-int interval_refine_min(interval_t *i, unsigned int min, int openmin);
-int interval_refine_max(interval_t *i, unsigned int max, int openmax);
-int interval_refine(interval_t *i, const interval_t *v);
-int interval_refine_first(interval_t *i);
-int interval_refine_last(interval_t *i);
-int interval_refine_set(interval_t *i, unsigned int val);
+void snd_interval_add(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);
+void snd_interval_sub(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);
+void snd_interval_mul(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);
+void snd_interval_div(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);
+void snd_interval_muldiv(const snd_interval_t *a, const snd_interval_t *b, 
+		     const snd_interval_t *c, snd_interval_t *d);
+void snd_interval_muldivk(const snd_interval_t *a, const snd_interval_t *b, 
+		      unsigned int k, snd_interval_t *c);
+void snd_interval_mulkdiv(const snd_interval_t *a, unsigned int k,
+		      const snd_interval_t *b, snd_interval_t *c);
+void snd_interval_print(const snd_interval_t *i, snd_output_t *out);
+int snd_interval_refine_min(snd_interval_t *i, unsigned int min, int openmin);
+int snd_interval_refine_max(snd_interval_t *i, unsigned int max, int openmax);
+int snd_interval_refine(snd_interval_t *i, const snd_interval_t *v);
+int snd_interval_refine_first(snd_interval_t *i);
+int snd_interval_refine_last(snd_interval_t *i);
+int snd_interval_refine_set(snd_interval_t *i, unsigned int val);
 void boundary_sub(int a, int adir, int b, int bdir, int *c, int *cdir);
 int boundary_lt(unsigned int a, int adir, unsigned int b, int bdir);
 int boundary_nearer(int min, int mindir, int best, int bestdir, int max, int maxdir);

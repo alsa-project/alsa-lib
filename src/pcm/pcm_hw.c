@@ -44,8 +44,8 @@
 typedef struct {
 	int fd;
 	int card, device, subdevice;
-	volatile snd_pcm_mmap_status_t *mmap_status;
-	snd_pcm_mmap_control_t *mmap_control;
+	volatile struct sndrv_pcm_mmap_status *mmap_status;
+	struct sndrv_pcm_mmap_control *mmap_control;
 	int shmid;
 } snd_pcm_hw_t;
 
@@ -318,7 +318,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, s
 	snd_pcm_sframes_t result;
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	snd_xferi_t xferi;
+	struct sndrv_xferi xferi;
 	xferi.buf = (char*) buffer;
 	xferi.frames = size;
 	result = ioctl(fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &xferi);
@@ -332,7 +332,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_
 	snd_pcm_sframes_t result;
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	snd_xfern_t xfern;
+	struct sndrv_xfern xfern;
 	xfern.bufs = bufs;
 	xfern.frames = size;
 	result = ioctl(fd, SNDRV_PCM_IOCTL_WRITEN_FRAMES, &xfern);
@@ -346,7 +346,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_
 	snd_pcm_sframes_t result;
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	snd_xferi_t xferi;
+	struct sndrv_xferi xferi;
 	xferi.buf = buffer;
 	xferi.frames = size;
 	result = ioctl(fd, SNDRV_PCM_IOCTL_READI_FRAMES, &xferi);
@@ -360,7 +360,7 @@ snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_
 	snd_pcm_sframes_t result;
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	snd_xfern_t xfern;
+	struct sndrv_xfern xfern;
 	xfern.bufs = bufs;
 	xfern.frames = size;
 	result = ioctl(fd, SNDRV_PCM_IOCTL_READN_FRAMES, &xfern);
@@ -373,7 +373,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	void *ptr;
-	ptr = mmap(NULL, PAGE_ALIGN(sizeof(snd_pcm_mmap_status_t)), PROT_READ, MAP_FILE|MAP_SHARED, 
+	ptr = mmap(NULL, PAGE_ALIGN(sizeof(struct sndrv_pcm_mmap_status)), PROT_READ, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_STATUS);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("status mmap failed");
@@ -388,7 +388,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	void *ptr;
-	ptr = mmap(NULL, PAGE_ALIGN(sizeof(snd_pcm_mmap_control_t)), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
+	ptr = mmap(NULL, PAGE_ALIGN(sizeof(struct sndrv_pcm_mmap_control)), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_CONTROL);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("control mmap failed");
