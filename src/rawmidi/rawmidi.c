@@ -190,26 +190,26 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		err = sscanf(name, "hw:%d,%d", &card, &dev);
 		if (err == 2)
 			return snd_rawmidi_hw_open(inputp, outputp, name, card, dev, -1, mode);
-		ERR("Unknown RAWMIDI %s", name);
+		SNDERR("Unknown RAWMIDI %s", name);
 		return -ENOENT;
 	}
 	if (snd_config_get_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		ERR("Invalid type for RAWMIDI %s definition", name);
+		SNDERR("Invalid type for RAWMIDI %s definition", name);
 		return -EINVAL;
 	}
 	err = snd_config_search(rawmidi_conf, "type", &conf);
 	if (err < 0) {
-		ERR("type is not defined");
+		SNDERR("type is not defined");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		ERR("Invalid type for %s", snd_config_get_id(conf));
+		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
 	err = snd_config_searchv(snd_config, &type_conf, "rawmiditype", str, 0);
 	if (err < 0) {
-		ERR("Unknown RAWMIDI type %s", str);
+		SNDERR("Unknown RAWMIDI type %s", str);
 		return err;
 	}
 	snd_config_for_each(i, next, type_conf) {
@@ -220,7 +220,7 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		if (strcmp(id, "lib") == 0) {
 			err = snd_config_get_string(n, &lib);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -228,29 +228,29 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		if (strcmp(id, "open") == 0) {
 			err = snd_config_get_string(n, &open);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
-			ERR("Unknown field %s", id);
+			SNDERR("Unknown field %s", id);
 			return -EINVAL;
 		}
 	}
 	if (!open) {
-		ERR("open is not defined");
+		SNDERR("open is not defined");
 		return -EINVAL;
 	}
 	if (!lib)
 		lib = "libasound.so";
 	h = dlopen(lib, RTLD_NOW);
 	if (!h) {
-		ERR("Cannot open shared library %s", lib);
+		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
 	open_func = dlsym(h, open);
 	dlclose(h);
 	if (!open_func) {
-		ERR("symbol %s is not defined inside %s", open, lib);
+		SNDERR("symbol %s is not defined inside %s", open, lib);
 		return -ENXIO;
 	}
 	err = open_func(inputp, outputp, name, rawmidi_conf, mode);

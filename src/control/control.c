@@ -217,7 +217,7 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name)
 		err = sscanf(name, "shm:%256[^,],%256[^,]", socket, sname);
 		if (err == 2)
 			return snd_ctl_shm_open(ctlp, name, socket, sname);
-		ERR("Unknown control %s", name);
+		SNDERR("Unknown control %s", name);
 		return -ENOENT;
 	}
 	if (snd_config_get_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND)

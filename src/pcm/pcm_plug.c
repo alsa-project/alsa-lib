@@ -453,14 +453,19 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 					   &access_mask);
 	}
-	snd_interval_copy(&buffer_size, snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE));
-	snd_interval_unfloor(&buffer_size);
-	crate = snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_RATE);
-	srate = snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_RATE);
-	snd_interval_muldiv(&buffer_size, srate, crate, &t);
-	err = _snd_pcm_hw_param_set_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
-	if (err < 0)
-		return err;
+	if (snd_pcm_hw_param_always_eq(params, SND_PCM_HW_PARAM_RATE, sparams))
+		links |= (SND_PCM_HW_PARBIT_PERIOD_SIZE |
+			  SND_PCM_HW_PARBIT_BUFFER_SIZE);
+	else {
+		snd_interval_copy(&buffer_size, snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE));
+		snd_interval_unfloor(&buffer_size);
+		crate = snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_RATE);
+		srate = snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_RATE);
+		snd_interval_muldiv(&buffer_size, srate, crate, &t);
+		err = _snd_pcm_hw_param_set_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
+		if (err < 0)
+			return err;
+	}
 	err = _snd_pcm_hw_params_refine(sparams, links, params);
 	if (err < 0)
 		return err;
@@ -483,9 +488,9 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 	unsigned int rate_min, srate_min;
 	int rate_mindir, srate_mindir;
 	format_mask = snd_pcm_hw_param_get_mask(params,
-						   SND_PCM_HW_PARAM_FORMAT);
+						SND_PCM_HW_PARAM_FORMAT);
 	sformat_mask = snd_pcm_hw_param_get_mask(sparams,
-						    SND_PCM_HW_PARAM_FORMAT);
+						 SND_PCM_HW_PARAM_FORMAT);
 	snd_mask_none(&fmt_mask);
 	for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
 		snd_pcm_format_t f;
@@ -515,14 +520,19 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 			return err;
 	}
 
-	sbuffer_size = snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE);
-	crate = snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_RATE);
-	srate = snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_RATE);
-	snd_interval_muldiv(sbuffer_size, crate, srate, &t);
-	snd_interval_floor(&t);
-	err = _snd_pcm_hw_param_set_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
-	if (err < 0)
-		return err;
+	if (snd_pcm_hw_param_always_eq(params, SND_PCM_HW_PARAM_RATE, sparams))
+		links |= (SND_PCM_HW_PARBIT_PERIOD_SIZE |
+			  SND_PCM_HW_PARBIT_BUFFER_SIZE);
+	else {
+		sbuffer_size = snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE);
+		crate = snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_RATE);
+		srate = snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_RATE);
+		snd_interval_muldiv(sbuffer_size, crate, srate, &t);
+		snd_interval_floor(&t);
+		err = _snd_pcm_hw_param_set_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
+		if (err < 0)
+			return err;
+	}
 	err = _snd_pcm_hw_params_refine(params, links, sparams);
 	if (err < 0)
 		return err;
@@ -721,24 +731,24 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "sname") == 0) {
 			err = snd_config_get_string(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
 		if (strcmp(id, "ttable") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			tt = n;
 			continue;
 		}
-		ERR("Unknown field %s", id);
+		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!sname) {
-		ERR("sname is not defined");
+		SNDERR("sname is not defined");
 		return -EINVAL;
 	}
 	if (tt) {

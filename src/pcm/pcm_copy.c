@@ -208,16 +208,16 @@ int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "sname") == 0) {
 			err = snd_config_get_string(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		ERR("Unknown field %s", id);
+		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!sname) {
-		ERR("sname is not defined");
+		SNDERR("sname is not defined");
 		return -EINVAL;
 	}
 	/* This is needed cause snd_config_update may destroy config */

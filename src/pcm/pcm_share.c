@@ -613,7 +613,7 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					    spcm->tick_time, 0);
 	_err:
 		if (err < 0) {
-			ERR("slave is already running with different setup");
+			SNDERR("slave is already running with different setup");
 			err = -EBUSY;
 			goto _end;
 		}
@@ -1200,11 +1200,11 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 
 	for (k = 0; k < channels_count; ++k) {
 		if (channels_map[k] < 0 || channels_map[k] > 31) {
-			ERR("Invalid slave channel (%d) in binding", channels_map[k]);
+			SNDERR("Invalid slave channel (%d) in binding", channels_map[k]);
 			return -EINVAL;
 		}
 		if (slave_map[channels_map[k]]) {
-			ERR("Repeated slave channel (%d) in binding", channels_map[k]);
+			SNDERR("Repeated slave channel (%d) in binding", channels_map[k]);
 			return -EINVAL;
 		}
 		slave_map[channels_map[k]] = 1;
@@ -1314,7 +1314,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 			unsigned int k;
 			for (k = 0; k < sh->channels_count; ++k) {
 				if (slave_map[sh->slave_channels[k]]) {
-					ERR("Slave channel %d is already in use", sh->slave_channels[k]);
+					SNDERR("Slave channel %d is already in use", sh->slave_channels[k]);
 					Pthread_mutex_unlock(&slave->mutex);
 					close(sd[0]);
 					close(sd[1]);
@@ -1383,7 +1383,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		if (strcmp(id, "sname") == 0) {
 			err = snd_config_get_string(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -1392,12 +1392,12 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			const char *f;
 			err = snd_config_get_string(n, &f);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			sformat = snd_pcm_format_value(f);
 			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
-				ERR("Unknown format %s", f);
+				SNDERR("Unknown format %s", f);
 				return -EINVAL;
 			}
 			continue;
@@ -1405,7 +1405,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		if (strcmp(id, "schannels") == 0) {
 			err = snd_config_get_integer(n, &schannels_count);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -1413,28 +1413,28 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		if (strcmp(id, "srate") == 0) {
 			err = snd_config_get_integer(n, &srate);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
 		if (strcmp(id, "binding") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			binding = n;
 			continue;
 		}
-		ERR("Unknown field %s", id);
+		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!sname) {
-		ERR("sname is not defined");
+		SNDERR("sname is not defined");
 		return -EINVAL;
 	}
 	if (!binding) {
-		ERR("binding is not defined");
+		SNDERR("binding is not defined");
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, binding) {
@@ -1445,14 +1445,14 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		errno = 0;
 		cchannel = strtol(id, &p, 10);
 		if (errno || *p || cchannel < 0) {
-			ERR("Invalid client channel in binding: %s", id);
+			SNDERR("Invalid client channel in binding: %s", id);
 			return -EINVAL;
 		}
 		if ((unsigned)cchannel >= channels_count)
 			channels_count = cchannel + 1;
 	}
 	if (channels_count == 0) {
-		ERR("No bindings defined");
+		SNDERR("No bindings defined");
 		return -EINVAL;
 	}
 	channels_map = calloc(channels_count, sizeof(*channels_map));

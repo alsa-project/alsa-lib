@@ -438,7 +438,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 		if (_snd_config_search(father, id, -1, &n) == 0) {
 			if (mode != REMOVE) {
 				if (n->type != SND_CONFIG_TYPE_COMPOUND) {
-					ERR("%s is not a compound", id);
+					SNDERR("%s is not a compound", id);
 					return -EINVAL;
 				}
 				n->u.compound.join = 1;
@@ -449,7 +449,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 			snd_config_delete(n);
 		}
 		if (mode == NOCREATE) {
-			ERR("%s does not exists", id);
+			SNDERR("%s does not exists", id);
 			free(id);
 			return -ENOENT;
 		}
@@ -471,7 +471,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 	} else {
 		n = NULL;
 		if (mode == NOCREATE) {
-			ERR("%s does not exists", id);
+			SNDERR("%s does not exists", id);
 			free(id);
 			return -ENOENT;
 		}
@@ -481,7 +481,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 	{
 		if (n) {
 			if (n->type != SND_CONFIG_TYPE_COMPOUND) {
-				ERR("%s is not a compound", id);
+				SNDERR("%s is not a compound", id);
 				return -EINVAL;
 			}
 		} else {
@@ -522,7 +522,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 					free(s);
 					if (n) {
 						if (n->type != SND_CONFIG_TYPE_REAL) {
-							ERR("%s is not a real", id);
+							SNDERR("%s is not a real", id);
 							return -EINVAL;
 						}
 					} else {
@@ -537,7 +537,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 				free(s);
 				if (n) {
 					if (n->type != SND_CONFIG_TYPE_INTEGER) {
-						ERR("%s is not an integer", id);
+						SNDERR("%s is not an integer", id);
 						return -EINVAL;
 					}
 				} else {
@@ -551,7 +551,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 		}
 		if (n) {
 			if (n->type != SND_CONFIG_TYPE_STRING) {
-				ERR("%s is not a string", id);
+				SNDERR("%s is not a string", id);
 				free(s);
 				return -EINVAL;
 			}
@@ -636,14 +636,14 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 				assert(0);
 				break;
 			}
-			ERR("%s:%d:%d:%s", fd->name ? fd->name : "",
+			SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "",
 			    fd->line, fd->column, str);
 		}
 		snd_config_delete(config);
 		goto _end;
 	}
 	if (get_char(&input) != EOF) {
-		ERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "",
+		SNDERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "",
 		    fd->line, fd->column);
 		snd_config_delete(config);
 		err = -EINVAL;

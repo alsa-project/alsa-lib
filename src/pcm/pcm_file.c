@@ -413,7 +413,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int
 	    strcmp(fmt, "raw") == 0)
 		format = SND_PCM_FILE_FORMAT_RAW;
 	else {
-		ERR("file format %s is unknown", fmt);
+		SNDERR("file format %s is unknown", fmt);
 		return -EINVAL;
 	}
 	if (fname) {
@@ -480,7 +480,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "sname") == 0) {
 			err = snd_config_get_string(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -488,7 +488,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "format") == 0) {
 			err = snd_config_get_string(n, &format);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -498,21 +498,21 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			if (err < 0) {
 				err = snd_config_get_integer(n, &fd);
 				if (err < 0) {
-					ERR("Invalid type for %s", id);
+					SNDERR("Invalid type for %s", id);
 					return -EINVAL;
 				}
 			}
 			continue;
 		}
-		ERR("Unknown field %s", id);
+		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!sname) {
-		ERR("sname is not defined");
+		SNDERR("sname is not defined");
 		return -EINVAL;
 	}
 	if (!fname && fd < 0) {
-		ERR("file is not defined");
+		SNDERR("file is not defined");
 		return -EINVAL;
 	}
 	if (fname) {

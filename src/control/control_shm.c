@@ -55,7 +55,7 @@ static int snd_ctl_shm_action(snd_ctl_t *ctl)
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
-		ERR("Server has not done the cmd");
+		SNDERR("Server has not done the cmd");
 		return -EBADFD;
 	}
 	return ctrl->result;
@@ -74,7 +74,7 @@ static int snd_ctl_shm_action_fd(snd_ctl_t *ctl, int *fd)
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
-		ERR("Server has not done the cmd");
+		SNDERR("Server has not done the cmd");
 		return -EBADFD;
 	}
 	return ctrl->result;
@@ -419,7 +419,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, 
 
 	result = make_local_socket(socket);
 	if (result < 0) {
-		ERR("server for socket %s is not running", socket);
+		SNDERR("server for socket %s is not running", socket);
 		goto _err;
 	}
 	sock = result;
@@ -434,23 +434,23 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, 
 	req->namelen = snamelen;
 	err = write(sock, req, reqlen);
 	if (err < 0) {
-		ERR("write error");
+		SNDERR("write error");
 		result = -errno;
 		goto _err;
 	}
 	if ((size_t) err != reqlen) {
-		ERR("write size error");
+		SNDERR("write size error");
 		result = -EINVAL;
 		goto _err;
 	}
 	err = read(sock, &ans, sizeof(ans));
 	if (err < 0) {
-		ERR("read error");
+		SNDERR("read error");
 		result = -errno;
 		goto _err;
 	}
 	if (err != sizeof(ans)) {
-		ERR("read size error");
+		SNDERR("read size error");
 		result = -EINVAL;
 		goto _err;
 	}
@@ -520,7 +520,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 		if (strcmp(id, "server") == 0) {
 			err = snd_config_get_string(n, &server);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -528,25 +528,25 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 		if (strcmp(id, "sname") == 0) {
 			err = snd_config_get_string(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		ERR("Unknown field %s", id);
+		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!sname) {
-		ERR("sname is not defined");
+		SNDERR("sname is not defined");
 		return -EINVAL;
 	}
 	if (!server) {
-		ERR("server is not defined");
+		SNDERR("server is not defined");
 		return -EINVAL;
 	}
 	err = snd_config_searchv(snd_config, &sconfig, "server", server, 0);
 	if (err < 0) {
-		ERR("Unknown server %s", server);
+		SNDERR("Unknown server %s", server);
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, conf) {
@@ -557,7 +557,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 		if (strcmp(id, "host") == 0) {
 			err = snd_config_get_string(n, &host);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -565,7 +565,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 		if (strcmp(id, "socket") == 0) {
 			err = snd_config_get_string(n, &socket);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -573,31 +573,31 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 		if (strcmp(id, "port") == 0) {
 			err = snd_config_get_integer(n, &port);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		ERR("Unknown field %s", id);
+		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 
 	if (!host) {
-		ERR("host is not defined");
+		SNDERR("host is not defined");
 		return -EINVAL;
 	}
 	if (!socket) {
-		ERR("socket is not defined");
+		SNDERR("socket is not defined");
 		return -EINVAL;
 	}
 	h = gethostbyname(host);
 	if (!h) {
-		ERR("Cannot resolve %s", host);
+		SNDERR("Cannot resolve %s", host);
 		return -EINVAL;
 	}
 	local = is_local(h);
 	if (!local) {
-		ERR("%s is not the local host", host);
+		SNDERR("%s is not the local host", host);
 		return -EINVAL;
 	}
 	return snd_ctl_shm_open(handlep, name, socket, sname);

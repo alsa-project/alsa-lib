@@ -277,7 +277,7 @@ int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, 
 		next_ffff = lseek(fd, 0, SEEK_CUR) + ffff.length;
 		if (file == index) {
 #ifdef IW_ROM_DEBUG
-			ERR("file header at 0x%x size 0x%x\n", rom_pos - sizeof(ffff), ffff.length);
+			SNDERR("file header at 0x%x size 0x%x\n", rom_pos - sizeof(ffff), ffff.length);
 #endif
 			iwf = malloc(sizeof(*iwf));
 			if (iwf == NULL) {
@@ -504,7 +504,7 @@ static int load_iw_patch(snd_iwffff_handle_t *iwf, iwffff_instrument_t *instr,
 	unsigned char *current;
 
 #ifdef IW_ROM_DEBUG
-	ERR("load_iw_patch - nlayers = %i\n", snd_LE_to_host_16(*(((unsigned short *)patch) + 8/2));
+	SNDERR("load_iw_patch - nlayers = %i\n", snd_LE_to_host_16(*(((unsigned short *)patch) + 8/2));
 #endif
 	instr->layer_type = patch[6];
 	instr->exclusion = patch[7];

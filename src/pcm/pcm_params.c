@@ -995,6 +995,7 @@ void snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_CHANNELS, 0);
 	snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_RATE, 0);
 	snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, 0);
+	snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, 0);
 	snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, 0);
 	snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, 0);
 }
@@ -1972,7 +1973,7 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		return err;
 	err = sprepare(pcm, &sparams);
 	if (err < 0) {
-		ERR("Slave PCM not useable");
+		SNDERR("Slave PCM not useable");
 		return err;
 	}
 	do {

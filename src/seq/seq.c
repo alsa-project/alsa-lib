@@ -55,26 +55,26 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 	if (err < 0) {
 		if (strcmp(name, "hw") == 0)
 			return snd_seq_hw_open(seqp, name, streams, mode);
-		ERR("Unknown SEQ %s", name);
+		SNDERR("Unknown SEQ %s", name);
 		return -ENOENT;
 	}
 	if (snd_config_get_type(seq_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		ERR("Invalid type for SEQ %s definition", name);
+		SNDERR("Invalid type for SEQ %s definition", name);
 		return -EINVAL;
 	}
 	err = snd_config_search(seq_conf, "type", &conf);
 	if (err < 0) {
-		ERR("type is not defined");
+		SNDERR("type is not defined");
 		return err;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		ERR("Invalid type for %s", snd_config_get_id(conf));
+		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
 	err = snd_config_searchv(snd_config, &type_conf, "seqtype", str, 0);
 	if (err < 0) {
-		ERR("Unknown SEQ type %s", str);
+		SNDERR("Unknown SEQ type %s", str);
 		return err;
 	}
 	snd_config_for_each(i, next, type_conf) {
@@ -85,7 +85,7 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 		if (strcmp(id, "lib") == 0) {
 			err = snd_config_get_string(n, &lib);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -93,29 +93,29 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 		if (strcmp(id, "open") == 0) {
 			err = snd_config_get_string(n, &open);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
-			ERR("Unknown field %s", id);
+			SNDERR("Unknown field %s", id);
 			return -EINVAL;
 		}
 	}
 	if (!open) {
-		ERR("open is not defined");
+		SNDERR("open is not defined");
 		return -EINVAL;
 	}
 	if (!lib)
 		lib = "libasound.so";
 	h = dlopen(lib, RTLD_NOW);
 	if (!h) {
-		ERR("Cannot open shared library %s", lib);
+		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
 	}
 	open_func = dlsym(h, open);
 	dlclose(h);
 	if (!open_func) {
-		ERR("symbol %s is not defined inside %s", open, lib);
+		SNDERR("symbol %s is not defined inside %s", open, lib);
 		return -ENXIO;
 	}
 	return open_func(seqp, name, seq_conf, streams, mode);

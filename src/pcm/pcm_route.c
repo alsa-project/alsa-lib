@@ -808,7 +808,7 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 		cchannel = strtol(snd_config_get_id(in), &p, 10);
 		if (errno || *p || 
 		    cchannel < 0 || (unsigned int) cchannel > tt_csize) {
-			ERR("Invalid client channel: %s", snd_config_get_id(in));
+			SNDERR("Invalid client channel: %s", snd_config_get_id(in));
 			return -EINVAL;
 		}
 		if (snd_config_get_type(in) != SND_CONFIG_TYPE_COMPOUND)
@@ -824,7 +824,7 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 			if (errno || *p || 
 			    schannel < 0 || (unsigned int) schannel > tt_ssize || 
 			    (schannels > 0 && schannel >= schannels)) {
-				ERR("Invalid slave channel: %s", id);
+				SNDERR("Invalid slave channel: %s", id);
 				return -EINVAL;
 			}
 			err = snd_config_get_real(jn, &value);
@@ -832,7 +832,7 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 				long v;
 				err = snd_config_get_integer(jn, &v);
 				if (err < 0) {
-					ERR("Invalid type for %s", id);
+					SNDERR("Invalid type for %s", id);
 					return -EINVAL;
 				}
 				value = v;
@@ -874,7 +874,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "sname") == 0) {
 			err = snd_config_get_string(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -883,16 +883,16 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 			const char *f;
 			err = snd_config_get_string(n, &f);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			sformat = snd_pcm_format_value(f);
 			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
-				ERR("Unknown sformat");
+				SNDERR("Unknown sformat");
 				return -EINVAL;
 			}
 			if (snd_pcm_format_linear(sformat) != 1) {
-				ERR("sformat is not linear");
+				SNDERR("sformat is not linear");
 				return -EINVAL;
 			}
 			continue;
@@ -900,28 +900,28 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "schannels") == 0) {
 			err = snd_config_get_integer(n, &schannels);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
 		if (strcmp(id, "ttable") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			tt = n;
 			continue;
 		}
-		ERR("Unknown field %s", id);
+		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!sname) {
-		ERR("sname is not defined");
+		SNDERR("sname is not defined");
 		return -EINVAL;
 	}
 	if (!tt) {
-		ERR("ttable is not defined");
+		SNDERR("ttable is not defined");
 		return -EINVAL;
 	}
 

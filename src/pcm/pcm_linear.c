@@ -352,7 +352,7 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
 		if (strcmp(id, "sname") == 0) {
 			err = snd_config_get_string(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
@@ -361,29 +361,29 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
 			const char *f;
 			err = snd_config_get_string(n, &f);
 			if (err < 0) {
-				ERR("Invalid type for %s", id);
+				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			sformat = snd_pcm_format_value(f);
 			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
-				ERR("Unknown sformat %s", f);
+				SNDERR("Unknown sformat %s", f);
 				return err;
 			}
 			if (snd_pcm_format_linear(sformat) != 1) {
-				ERR("sformat is not linear");
+				SNDERR("sformat is not linear");
 				return -EINVAL;
 			}
 			continue;
 		}
-		ERR("Unknown field %s", id);
+		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!sname) {
-		ERR("sname is not defined");
+		SNDERR("sname is not defined");
 		return -EINVAL;
 	}
 	if (sformat == SND_PCM_FORMAT_UNKNOWN) {
-		ERR("sformat is not defined");
+		SNDERR("sformat is not defined");
 		return -EINVAL;
 	}
 	/* This is needed cause snd_config_update may destroy config */
