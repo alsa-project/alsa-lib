@@ -6363,7 +6363,8 @@ void snd_pcm_unlink_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
 
 #else
 
-#define OBSOLETE1(name, what, new)  /**/
+#define OBSOLETE1(name, what, new) \
+  use_default_symbol_version(__##name, name, new);
 
 #endif /* USE_VERSIONED_SYMBOLS */
 
@@ -6385,13 +6386,8 @@ ret_type pfx##name(const snd_pcm_hw_params_t *params, int *dir) \
 	return (ret_type)val; \
 }
 
-#ifdef USE_VERSIONED_SYMBOLS
 #define __OLD_GET(name, val_type, ret_type) __P_OLD_GET(__old_, name, val_type, ret_type)
 #define __OLD_GET1(name, val_type, ret_type) __P_OLD_GET1(__old_, name, val_type, ret_type)
-#else
-#define __OLD_GET(name, val_type, ret_type) __P_OLD_GET(, name, val_type, ret_type)
-#define __OLD_GET1(name, val_type, ret_type) __P_OLD_GET1(, name, val_type, ret_type)
-#endif
 
 __OLD_GET(snd_pcm_hw_params_get_access, snd_pcm_access_t, int);
 __OLD_GET(snd_pcm_hw_params_get_format, snd_pcm_format_t, int);
@@ -6439,13 +6435,8 @@ ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val, in
 	return (ret_type)val; \
 }
 
-#ifdef USE_VERSIONED_SYMBOLS
 #define __OLD_NEAR(name, ret_type) __P_OLD_NEAR(__old_, name, ret_type)
 #define __OLD_NEAR1(name, ret_type) __P_OLD_NEAR1(__old_, name, ret_type)
-#else
-#define __OLD_NEAR(name, ret_type) __P_OLD_NEAR(, name, ret_type)
-#define __OLD_NEAR1(name, ret_type) __P_OLD_NEAR1(, name, ret_type)
-#endif
 
 __OLD_NEAR(snd_pcm_hw_params_set_channels_near, unsigned int);
 __OLD_NEAR1(snd_pcm_hw_params_set_rate_near, unsigned int);
@@ -6474,13 +6465,8 @@ ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir) \
 	return (ret_type)val; \
 }
 
-#ifdef USE_VERSIONED_SYMBOLS
 #define __OLD_SET_FL(name, ret_type) __P_OLD_SET_FL(__old_, name, ret_type)
 #define __OLD_SET_FL1(name, ret_type) __P_OLD_SET_FL1(__old_, name, ret_type)
-#else
-#define __OLD_SET_FL(name, ret_type) __P_OLD_SET_FL(, name, ret_type)
-#define __OLD_SET_FL1(name, ret_type) __P_OLD_SET_FL1(, name, ret_type)
-#endif
 
 __OLD_SET_FL(snd_pcm_hw_params_set_access_first, snd_pcm_access_t);
 __OLD_SET_FL(snd_pcm_hw_params_set_format_first, snd_pcm_format_t);
@@ -6515,11 +6501,7 @@ ret_type pfx##name(snd_pcm_sw_params_t *params) \
 	return (ret_type)val; \
 }
 
-#ifdef USE_VERSIONED_SYMBOLS
 #define __OLD_GET_SW(name, ret_type) __P_OLD_GET_SW(__old_, name, ret_type)
-#else
-#define __OLD_GET_SW(name, ret_type) __P_OLD_GET_SW(, name, ret_type)
-#endif
 
 __OLD_GET_SW(snd_pcm_sw_params_get_tstamp_mode, snd_pcm_tstamp_t);
 __OLD_GET_SW(snd_pcm_sw_params_get_sleep_min, unsigned int);
