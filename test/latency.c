@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sched.h>
+#include <errno.h>
 #include "../include/asoundlib.h"
 
 #define LATENCY_LIMIT	8192		/* in bytes */
@@ -67,7 +68,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 	params.channel = SND_PCM_CHANNEL_PLAYBACK;
 	params.mode = SND_PCM_MODE_STREAM;
 	params.format.interleave = 1;
-	params.format.format = SND_PCM_SFMT_S16_LE;
+	params.format.format = SND_PCM_SFMT_S16_BE; // S16_LE;
 	params.format.voices = 2;
 	params.format.rate = 44100;
 	params.start_mode = SND_PCM_START_GO;
@@ -82,6 +83,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 	if (*queue > LATENCY_LIMIT)
 		return -1;
       	again = 0;
+      	params.channel = SND_PCM_CHANNEL_PLAYBACK;
 	params.buf.stream.queue_size = *queue;
 	if ((err = snd_pcm_plugin_params(phandle, &params)) < 0) {
 		printf("Playback params error: %s\n", snd_strerror(err));
@@ -96,14 +98,14 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 	psetup.mode = SND_PCM_MODE_STREAM;
 	psetup.channel = SND_PCM_CHANNEL_PLAYBACK;
 	if ((err = snd_pcm_plugin_setup(phandle, &psetup)) < 0) {
-		printf("Playback params error: %s\n", snd_strerror(err));
+		printf("Playback setup error: %s\n", snd_strerror(err));
 		exit(0);
 	}
 	bzero(&csetup, sizeof(csetup));
 	csetup.mode = SND_PCM_MODE_STREAM;
 	csetup.channel = SND_PCM_CHANNEL_CAPTURE;
 	if ((err = snd_pcm_plugin_setup(chandle, &csetup)) < 0) {
-		printf("Capture params error: %s\n", snd_strerror(err));
+		printf("Capture setup error: %s\n", snd_strerror(err));
 		exit(0);
 	}
 	if (psetup.buf.stream.queue_size > *queue) {
@@ -146,7 +148,8 @@ void showstat(snd_pcm_t *handle, int channel, snd_pcm_channel_status_t *rstatus)
 	printf("%s:\n", str);
 	printf("  status = %i\n", status.status);
 	printf("  position = %u\n", status.scount);
-	*rstatus = status;
+	if (rstatus)
+		*rstatus = status;
 }
 
 void setscheduler(void)
@@ -185,6 +188,8 @@ long readbuf(snd_pcm_t *handle, char *buf, long len)
 	long r;
 	
 	r = snd_pcm_plugin_read(handle, buf, len);
+	// printf("read = %li\n", r);
+	// showstat(handle, SND_PCM_CHANNEL_CAPTURE, NULL);
 	return r;
 }
 
@@ -194,8 +199,12 @@ long writebuf(snd_pcm_t *handle, char *buf, long len)
 
 	while (len > 0) {
 		r = snd_pcm_plugin_write(handle, buf, len);
+		if (r == -EAGAIN)
+			continue;
+		// printf("write = %li\n", r);
 		if (r < 0)
 			return r;
+		// showstat(handle, SND_PCM_CHANNEL_PLAYBACK, NULL);
 		buf += r;
 		len -= r;
 	}
