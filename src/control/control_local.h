@@ -29,6 +29,9 @@ typedef struct _snd_ctl_ops {
 	int (*card_info)(snd_ctl_t *handle, snd_ctl_card_info_t *info);
 	int (*element_list)(snd_ctl_t *handle, snd_ctl_elem_list_t *list);
 	int (*element_info)(snd_ctl_t *handle, snd_ctl_elem_info_t *info);
+	int (*element_add)(snd_ctl_t *handle, snd_ctl_elem_info_t *info);
+	int (*element_replace)(snd_ctl_t *handle, snd_ctl_elem_info_t *info);
+	int (*element_remove)(snd_ctl_t *handle, snd_ctl_elem_id_t *id);
 	int (*element_read)(snd_ctl_t *handle, snd_ctl_elem_value_t *control);
 	int (*element_write)(snd_ctl_t *handle, snd_ctl_elem_value_t *control);
 	int (*element_lock)(snd_ctl_t *handle, snd_ctl_elem_id_t *lock);

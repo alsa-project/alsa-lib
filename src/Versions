@@ -139,5 +139,8 @@ ALSA_0.9.7 {
 ALSA_0.9.8 {
   global:
 
+    snd_ctl_elem_add;
+    snd_ctl_elem_replace;
+    snd_ctl_elem_remove;
     snd_hctl_poll_descriptors_revents;
 } ALSA_0.9.7;

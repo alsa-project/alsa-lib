@@ -39,7 +39,7 @@ const char *_snd_module_control_hw = "";
 #endif
 
 #define SNDRV_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SNDRV_CTL_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 2)
+#define SNDRV_CTL_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 3)
 
 typedef struct {
 	int card;
@@ -138,6 +138,30 @@ static int snd_ctl_hw_elem_info(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_INFO, info) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_ctl_hw_elem_add(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_ADD, info) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_ctl_hw_elem_replace(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_REPLACE, info) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_ctl_hw_elem_remove(snd_ctl_t *handle, snd_ctl_elem_id_t *id)
+{
+	snd_ctl_hw_t *hw = handle->private_data;
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEM_REMOVE, id) < 0)
 		return -errno;
 	return 0;
 }
@@ -272,6 +296,9 @@ snd_ctl_ops_t snd_ctl_hw_ops = {
 	.card_info = snd_ctl_hw_card_info,
 	.element_list = snd_ctl_hw_elem_list,
 	.element_info = snd_ctl_hw_elem_info,
+	.element_add = snd_ctl_hw_elem_add,
+	.element_replace = snd_ctl_hw_elem_replace,
+	.element_remove = snd_ctl_hw_elem_remove,
 	.element_read = snd_ctl_hw_elem_read,
 	.element_write = snd_ctl_hw_elem_write,
 	.element_lock = snd_ctl_hw_elem_lock,

@@ -253,6 +253,48 @@ int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 }
 
 /**
+ * \brief Create and add an user CTL element
+ * \param ctl CTL handle
+ * \param info CTL element info
+ * \return 0 on success otherwise a negative error code
+ *
+ * Note that the new element is locked!
+ */
+int snd_ctl_elem_add(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
+{
+	assert(ctl && info && info->id.name[0]);
+	return ctl->ops->element_add(ctl, info);
+}
+
+/**
+ * \brief Replace an user CTL element
+ * \param ctl CTL handle
+ * \param info CTL element info
+ * \return 0 on success otherwise a negative error code
+ *
+ * Note that the new element is locked!
+ */
+int snd_ctl_elem_replace(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
+{
+	assert(ctl && info && info->id.name[0]);
+	return ctl->ops->element_replace(ctl, info);
+}
+
+/**
+ * \brief Remove an user CTL element
+ * \param ctl CTL handle
+ * \param id CTL element identification
+ * \return 0 on success otherwise a negative error code
+ *
+ * Note that the new element is locked!
+ */
+int snd_ctl_elem_remove(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
+{
+	assert(ctl && id && (id->name[0] || id->numid));
+	return ctl->ops->element_remove(ctl, id);
+}
+
+/**
  * \brief Get CTL element value
  * \param ctl CTL handle
  * \param control CTL element id/value pointer
