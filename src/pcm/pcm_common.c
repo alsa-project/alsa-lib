@@ -410,7 +410,7 @@ int snd_pcm_plug_slave_rate(unsigned int rate, snd_pcm_params_info_t *slave_info
 				continue;
 			if (snd_pcm_rates[k].rate < rate) {
 				rate1 = snd_pcm_rates[k].rate;
-			} else if (snd_pcm_rates[k].rate > rate) {
+			} else if (snd_pcm_rates[k].rate >= rate) {
 				rate2 = snd_pcm_rates[k].rate;
 				break;
 			}
