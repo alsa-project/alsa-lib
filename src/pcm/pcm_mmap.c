@@ -363,6 +363,17 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 					}
 					i->u.shm.shmid = id;
 					i->u.shm.remove = 1;
+					if (pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
+					    pcm->access == SND_PCM_ACCESS_RW_INTERLEAVED) {
+					    	unsigned int c1;
+						for (c1 = c + 1; c1 < pcm->channels; c1++) {
+							snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
+							if (i1->u.shm.shmid < 0) {
+								i1->u.shm.shmid = id;
+								i1->u.shm.remove = 1;
+							}
+						}
+					}
 				}
 				ptr = shmat(i->u.shm.shmid, 0, 0);
 				if (ptr == (void*) -1) {
