@@ -5270,7 +5270,9 @@ int snd_pcm_sw_params_get_start_threshold(const snd_pcm_sw_params_t *params, snd
  * \return 0 otherwise a negative error code
  *
  * PCM is automatically stopped in #SND_PCM_STATE_XRUN state when available
- * frames is >= threshold
+ * frames is >= threshold. If the stop threshold is equal to boundary (also
+ * software parameter - sw_param) then automatic stop will be disabled
+ * (thus device will do the endless loop in the ring buffer).
  */
 #ifndef DOXYGEN
 int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
@@ -5290,7 +5292,9 @@ int snd_pcm_sw_params_set_stop_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t *pa
  * \return 0 otherwise a negative error code
  *
  * PCM is automatically stopped in #SND_PCM_STATE_XRUN state when available
- * frames is >= threshold
+ * frames is >= threshold. If the stop threshold is equal to boundary (also
+ * software parameter - sw_param) then automatic stop will be disabled
+ * (thus device will do the endless loop in the ring buffer).
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_sw_params_get_stop_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
@@ -5313,7 +5317,7 @@ int snd_pcm_sw_params_get_stop_threshold(const snd_pcm_sw_params_t *params, snd_
  *
  * A portion of playback buffer is overwritten with silence (see 
  * #snd_pcm_sw_params_set_silence_size) when playback underrun is nearer
- * than silence threshold
+ * than silence threshold.
  */
 #ifndef DOXYGEN
 int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
@@ -5334,8 +5338,8 @@ int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm, snd_pcm_sw_params_t 
  * \return 0 otherwise a negative error value
  *
  * A portion of playback buffer is overwritten with silence (see 
- * #snd_pcm_sw_params_get_silence_size) when playback underrun is nearer
- * than silence threshold
+ * #snd_pcm_sw_params_set_silence_size) when playback underrun is nearer
+ * than silence threshold.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_sw_params_get_silence_threshold)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
