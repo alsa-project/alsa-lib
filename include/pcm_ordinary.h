@@ -27,7 +27,7 @@
 #ifndef __ALSA_PCM_SIMPLE_H
 #define __ALSA_PCM_SIMPLE_H
 
-#include "asoundlib.h"
+#include <alsa/asoundlib.h>
 
 /** Ordinary PCM latency type */
 enum sndo_pcm_latency_type {
