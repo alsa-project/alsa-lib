@@ -28,7 +28,7 @@
 #include <sys/ioctl.h>
 #include "asoundlib.h"
 
-#define SND_FILE_HWDEP	"/dev/snd/hwdepC%iD%i"
+#define SND_FILE_HWDEP	"/dev/snd/hwC%iD%i"
 #define SND_HWDEP_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
 
 struct snd_hwdep {
