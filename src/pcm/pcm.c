@@ -6156,11 +6156,17 @@ void snd_pcm_unlink_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
 
 #ifdef USE_VERSIONED_SYMBOLS
 
+#if 1
 /* it's really not so nice: obsolete, but default */
 /* forced by developers on alsa-devel */
 #define OBSOLETE1(name, what, new) \
   symbol_version(__##name, name, new); \
   default_symbol_version(__old_##name, name, what);
+#else
+#define OBSOLETE1(name, what, new) \
+  default_symbol_version(__##name, name, new); \
+  symbol_version(__old_##name, name, what);
+#endif
 
 #define __OLD_GET(name, val_type, ret_type) \
 ret_type __old_##name(const snd_pcm_hw_params_t *params) \
