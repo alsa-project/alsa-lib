@@ -35,7 +35,8 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	double res;
 	signed short *samples[channels];
 	int steps[channels];
-	int chn, ires;
+	unsigned int chn;
+	int ires;
 	
 	/* verify and prepare the contents of areas */
 	for (chn = 0; chn < channels; chn++) {
@@ -270,7 +271,7 @@ static int write_and_poll_loop(snd_pcm_t *handle,
 	ufds = malloc(sizeof(struct pollfd) * count);
 	if (ufds == NULL) {
 		printf("No enough memory\n");
-		return err;;
+		return -ENOMEM;
 	}
 	if ((err = snd_pcm_poll_descriptors(handle, ufds, count)) < 0) {
 		printf("Unable to obtain poll descriptors for playback: %s\n", snd_strerror(err));
@@ -479,7 +480,7 @@ static void async_direct_callback(snd_async_handler_t *ahandler)
 			}
 			generate_sine(my_areas, offset, frames, &data->phase);
 			commitres = snd_pcm_mmap_commit(handle, offset, frames);
-			if (commitres < 0 || commitres != frames) {
+			if (commitres < 0 || (snd_pcm_uframes_t)commitres != frames) {
 				if ((err = xrun_recovery(handle, commitres >= 0 ? -EPIPE : commitres)) < 0) {
 					printf("MMAP commit error: %s\n", snd_strerror(err));
 					exit(EXIT_FAILURE);
@@ -523,7 +524,7 @@ static int async_direct_loop(snd_pcm_t *handle,
 			}
 			generate_sine(my_areas, offset, frames, &data.phase);
 			commitres = snd_pcm_mmap_commit(handle, offset, frames);
-			if (commitres < 0 || commitres != frames) {
+			if (commitres < 0 || (snd_pcm_uframes_t)commitres != frames) {
 				if ((err = xrun_recovery(handle, commitres >= 0 ? -EPIPE : commitres)) < 0) {
 					printf("MMAP commit error: %s\n", snd_strerror(err));
 					exit(EXIT_FAILURE);
@@ -619,7 +620,7 @@ static int direct_loop(snd_pcm_t *handle,
 			}
 			generate_sine(my_areas, offset, frames, &phase);
 			commitres = snd_pcm_mmap_commit(handle, offset, frames);
-			if (commitres < 0 || commitres != frames) {
+			if (commitres < 0 || (snd_pcm_uframes_t)commitres != frames) {
 				if ((err = xrun_recovery(handle, commitres >= 0 ? -EPIPE : commitres)) < 0) {
 					printf("MMAP commit error: %s\n", snd_strerror(err));
 					exit(EXIT_FAILURE);
@@ -736,7 +737,7 @@ int main(int argc, char *argv[])
 	snd_pcm_sw_params_t *swparams;
 	int method = 0;
 	signed short *samples;
-	int chn;
+	unsigned int chn;
 	snd_pcm_channel_area_t *areas;
 
 	snd_pcm_hw_params_alloca(&hwparams);
