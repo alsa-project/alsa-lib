@@ -74,9 +74,13 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 	params.start_mode = SND_PCM_START_GO;
 	params.stop_mode = SND_PCM_STOP_STOP;
 	params.time = 1;
-	*queue += 16;
+	// *queue += 16;
+#if 0
 	params.buf.stream.fill = SND_PCM_FILL_SILENCE;
 	params.buf.stream.max_fill = 1024;
+#else
+	params.buf.stream.fill = SND_PCM_FILL_NONE;
+#endif
 	if (sync)
 		syncro_id(&params.sync);
       __again:
@@ -224,6 +228,7 @@ int main(void)
 	snd_pcm_channel_status_t pstatus, cstatus;
 	long r;
 
+	// latency = 4096 - 16;
 	setscheduler();
 	if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_STREAM_PLAYBACK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
