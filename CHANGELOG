@@ -1,0 +1,41 @@
+0.0.8 -> 0.0.9
+
+* Makefile and configure.in changes
+  - added check for alsa driver package
+  - added spec file for RPM
+
+0.0.7 -> 0.0.8
+
+* added LGPL notice to all source and header files
+
+0.0.6 -> 0.0.7
+
+* added snd_cards_name function
+
+0.0.5 -> 0.0.6
+
+* fixed SND_PCM_OPEN constants
+
+0.0.4 -> 0.0.5
+
+* added snd_cards_mask function
+* added info functions for pcm playback/record in control interface
+* fixed Makefile bugs for shared library (added -fPIC)
+
+0.0.3 -> 0.0.4
+
+* changed COPYING policy from GPL to LGPL
+* fixed bug in snd_mixer_channel_read & write
+* added mixer exact support
+* added pcm time mode support
+* 'make install' is now possible
+
+0.0.2 -> 0.0.3
+
+* corrected documentation
+
+0.0.1 -> 0.0.2
+
+* added file COPYING
+* added documentation in sgml + plan.txt
+* minor changes in API for MIXER & PCM

@@ -1,0 +1,6 @@
+/*
+ *  Configuration header file for compilation of the ALSA driver
+ */
+
+#undef SND_LIB_VERSION
+#undef WORDS_BIGENDIAN

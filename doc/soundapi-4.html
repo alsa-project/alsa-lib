@@ -1,0 +1,268 @@
+<HTML>
+<HEAD>
+<TITLE>Advanced Linux Sound Architecture - Library API: Mixer Interface</TITLE>
+</HEAD>
+<BODY>
+<A HREF="soundapi-3.html">Previous</A>
+<A HREF="soundapi-5.html">Next</A>
+<A HREF="soundapi.html#toc4">Table of Contents</A>
+<HR>
+<H2><A NAME="s4">4. Mixer Interface</A></H2>
+
+<P>The Mixer Interface allows applications to change the volume level of
+a soundcard's input/output channels in both the linear range (0-100)
+and in decibels. It also supports features like hardware mute, input
+sound source, etc.</P>
+
+<H2><A NAME="ss4.1">4.1 Low-Level Layer</A></H2>
+
+<P>Mixer devices aren't opened exclusively. This allows applications to
+open a device multiple times with one or more processes.</P>
+
+<H3>int snd_mixer_open( void **handle, int card, int device )  </H3>
+
+<P>Creates new handle and opens a connection to the kernel sound
+mixer interface for soundcard number <I>card</I> (0-N) and mixer
+device number <I>device</I>.  Also checks if protocol is
+compatible to prevent use of old programs with new kernel API. Function
+returns zero if successful, otherwise it returns an error code.</P>
+
+<H3>int snd_mixer_close( void *handle )  </H3>
+
+<P>Frees all resources allocated to the mixer handle and
+closes its connection to the kernel sound mixer interface. Function
+returns zero if successful, otherwise it returns an error code.</P>
+
+<H3>int snd_mixer_file_descriptor( void *handle )  </H3>
+
+<P>Returns the file descriptor for the connection to the kernel sound
+mixer interface. This function should be used only in very
+special cases. Function returns a negative error code if an 
+error was encountered.  </P>
+<P>The file descriptor should be used for the <I>select</I> synchronous
+multiplexer function for deterimeing read direction. Applications should
+call <I>snd_mixer_read</I> function if some data is waiting to be read.
+It is recomended that you do this, since it leaves place for this function
+to handle some new kernel API specifications.</P>
+
+<H3>int snd_mixer_channels( void *handle )  </H3>
+
+<P>Returns the count of mixer channels for appropriate mixer device, otherwise
+the return value is negative, and signifies an error code. Never returns
+zero.</P>
+
+<H3>int snd_mixer_info( void *handle, snd_mixer_info_t *info )  </H3>
+
+<P>Fills the *info structure with information about the mixer associated with
+*handle. Returns zero if successful, otherwise it returns an error code.
+<HR>
+<PRE>
+  #define SND_MIXER_INFO_CAP_EXCL_RECORD  0x00000001
+
+  struct snd_mixer_info {
+    unsigned int type;            /* type of soundcard - SND_CARD_TYPE_XXXX */
+    unsigned int channels;        /* count of mixer devices */
+    unsigned int caps;            /* some flags about this device (SND_MIXER_INFO_CAP_XXXX) */
+    unsigned char id[32];         /* ID of this mixer */
+    unsigned char name[80];       /* name of this device */
+    char reserved[ 32 ];          /* reserved for future use */
+  };
+  
+</PRE>
+<HR>
+</P>
+
+<H3>int snd_mixer_channel( void *handle, const char *channel_id )  </H3>
+
+<P>Returns the channel number (index) associated with channel_id (channel name),
+or returns an error code.
+<HR>
+<PRE>
+  #define SND_MIXER_ID_MASTER             &quot;Master&quot;
+  #define SND_MIXER_ID_BASS               &quot;Bass&quot;
+  #define SND_MIXER_ID_TREBLE             &quot;Treble&quot;
+  #define SND_MIXER_ID_SYNTHESIZER        &quot;Synth&quot;
+  #define SND_MIXER_ID_SYNTHESIZER1       &quot;Synth 1&quot;
+  #define SND_MIXER_ID_FM                 &quot;FM&quot;
+  #define SND_MIXER_ID_EFFECT             &quot;Effect&quot;
+  #define SND_MIXER_ID_PCM                &quot;PCM&quot;
+  #define SND_MIXER_ID_PCM1               &quot;PCM 1&quot;
+  #define SND_MIXER_ID_LINE               &quot;Line-In&quot;
+  #define SND_MIXER_ID_MIC                &quot;MIC&quot;
+  #define SND_MIXER_ID_CD                 &quot;CD&quot;
+  #define SND_MIXER_ID_GAIN               &quot;Record-Gain&quot;
+  #define SND_MIXER_ID_IGAIN              &quot;In-Gain&quot;
+  #define SND_MIXER_ID_OGAIN              &quot;Out-Gain&quot;
+  #define SND_MIXER_ID_LOOPBACK           &quot;Loopback&quot;
+  #define SND_MIXER_ID_SPEAKER            &quot;PC Speaker&quot;
+  #define SND_MIXER_ID_AUXA               &quot;Aux A&quot;
+  #define SND_MIXER_ID_AUXB               &quot;Aux B&quot;
+  #define SND_MIXER_ID_AUXC               &quot;Aux C&quot;
+  
+</PRE>
+<HR>
+  </P>
+
+<H3>int snd_mixer_exact_mode( void *handle, int enable )  </H3>
+
+<P>Turns on or off (by default) exact mode. This mode allows to application
+set/get volume values in exact range which uses hardware. In non-exact
+mode is range always from 0 to 100 and conversion to hardware range does
+driver. Function returns zero if successful, otherwise it returns an error
+code.</P>
+
+<H3>int snd_mixer_channel_info( void *handle, int channel, snd_mixer_channel_info_t *info )  </H3>
+
+<P>Fills the *info structure. The argument <I>channel</I> specifies channel
+(0 to N) for which is the info requested. Function returns zero if
+successful, otherwise it returns an error code.
+<HR>
+<PRE>
+  #define SND_MIXER_CINFO_CAP_RECORD      0x00000001
+  #define SND_MIXER_CINFO_CAP_STEREO      0x00000002
+  #define SND_MIXER_CINFO_CAP_MUTE        0x00000004
+  #define SND_MIXER_CINFO_CAP_HWMUTE      0x00000008      /* channel supports hardware mute */
+  #define SND_MIXER_CINFO_CAP_DIGITAL     0x00000010      /* channel does digital (not analog) mixing */
+  #define SND_MIXER_CINOF_CAP_INPUT       0x00000020      /* input channel */
+
+  struct snd_mixer_channel_info {
+    unsigned int channel;         /* channel # (filled by application) */
+    unsigned int parent;          /* parent channel # or SND_MIXER_PARENT */
+    unsigned char name[12];       /* name of this device */
+    unsigned int caps;            /* some flags about this device (SND_MIXER_CINFO_XXXX) */
+    int min;                      /* min. value when exact mode (or always 0) */
+    int max;                      /* max. value when exact mode (or always 100) */
+    int min_dB;                   /* minimum decibel value (*100) */
+    int max_dB;                   /* maximum decibel value (*100) */
+    int step_dB;                  /* step decibel value (*100) */
+    unsigned char reserved[16];
+  };
+  
+</PRE>
+<HR>
+</P>
+
+<H3>int snd_mixer_channel_read( void *handle, int channel, snd_mixer_channel_t *data )  </H3>
+
+<P>Fills the *data structure. The argument <I>channel</I> specifies
+the channel (0 to N) for which is data requested. Function returns
+zero if successful, otherwise it returns an error code.
+<HR>
+<PRE>
+  #define SND_MIXER_FLG_RECORD            0x00000001      /* channel record source flag */
+  #define SND_MIXER_FLG_MUTE_LEFT         0x00010000
+  #define SND_MIXER_FLG_MUTE_RIGHT        0x00020000
+  #define SND_MIXER_FLG_MUTE              0x00030000
+  #define SND_MIXER_FLG_DECIBEL           0x40000000
+  #define SND_MIXER_FLG_FORCE             0x80000000
+
+  struct snd_mixer_channel {
+    unsigned int channel;         /* channel # (filled by application) */
+    unsigned int flags;           /* some flags to read/write (SND_MIXER_FLG_XXXX) */
+    int left;                     /* min - max when exact mode (or 0 - 100) */
+    int right;                    /* min - max when exact mode (or 0 - 100) */
+    int left_dB;                  /* dB * 100 */
+    int right_dB;                 /* dB * 100 */
+    unsigned char reserved[16];
+  };
+  
+</PRE>
+<HR>
+</P>
+<P>
+<DL>
+<DT><B>SND_MIXER_FLG_RECORD</B><DD><P>Record source flag.</P>
+<DT><B>SND_MIXER_FLG_DECIBEL</B><DD><P>If this bit is set, driver set volume from dB variables <I>left_dB</I>
+and <I>right_dB</I>.</P>
+<DT><B>SND_MIXER_FLG_FORCE</B><DD><P>Force set - this bit shouldn't be used from user space. Reserved for
+kernel.</P>
+</DL>
+</P>
+
+<H3>int snd_mixer_channel_write( void *handle, int channel, snd_mixer_channel_t *data )  </H3>
+
+<P>Writes the *data structure to kernel. The <I>channel</I> argument
+specifies the channel (0 to N) for which is data is to be applied.
+Function returns zero if successful, otherwise it returns an error code.
+This functions is the opposite of <I>snd_mixer_channel_read</I>.</P>
+
+<H3>int snd_mixer_special_read( void *handle, snd_mixer_special_t *special )  </H3>
+
+<P>Not documented...</P>
+
+<H3>int snd_mixer_special_write( void *handle, snd_mixer_special_t *special )  </H3>
+
+<P>Not documented...</P>
+
+<H3>int snd_mixer_read( void *handle, snd_mixer_callbacks_t *callbacks )  </H3>
+
+<P>This function reads and parses data from driver. Parsed actions are returned
+back to the application using the <I>callbacks</I> structure. Applications
+should not parse data from the driver in standard cases. This function
+returns immediately after all data is read from driver. Does not
+block process.
+<HR>
+<PRE>
+  typedef struct snd_mixer_callbacks {
+    void *private_data;           /* should be used by application */
+    void (*channel_was_changed)( void *private_data, int channel );
+    void *reserved[15];           /* reserved for future use - must be NULL!!! */
+  } snd_mixer_callbacks_t;
+  
+</PRE>
+<HR>
+</P>
+
+
+<H2><A NAME="ss4.2">4.2 Examples</A></H2>
+
+<P>The following example shows installed mixer channels for soundcard #0 and
+mixer device #0 in the system, and also sets the master volume (if present)
+to 50.</P>
+<P>
+<BLOCKQUOTE><CODE>
+<HR>
+<PRE>
+int card = 0, device = 0, err;
+void *handle;
+snd_mixer_info_t info;
+snd_mixer_channel_t channel;
+
+if ( (err = snd_mixer_open( &amp;handle, card, device )) &lt; 0 ) {
+  fprintf( stderr, &quot;open failed: %s\n&quot;, snd_strerror( err ) );
+  return;
+}
+if ( (err = snd_mixer_info( handle, &amp;info )) &lt; 0 ) {
+  fprintf( stderr, &quot;info failed: %s\n&quot;, snd_strerror( err ) );
+  snd_mixer_close( handle );
+  return;
+}
+printf( &quot;Installed MIXER channels for card #i and device %i: %i\n&quot;,
+                                        card + 1, device, info.channels );
+master = snd_mixer_channel( handle, SND_MIXER_ID_MASTER );
+if ( master &gt;= 0 ) {
+  if ( (err = snd_mixer_read( handle, master, &amp;channel )) &lt; 0 ) {
+    fprintf( stderr, &quot;master read failed: %s\n&quot;, snd_strerror( err ) );
+    snd_mixer_close( handle );
+    return;
+  }
+  channel -&gt; left = channel -&gt; right = 50;
+  if ( (err = snd_mixer_write( handle, master, &amp;channel )) &lt; 0 ) {
+    fprintf( stderr, &quot;master write failed: %s\n&quot;, snd_strerror( err ) );
+    snd_mixer_close( handle );
+    return;
+  }
+}
+snd_mixer_close( handle );
+</PRE>
+<HR>
+</CODE></BLOCKQUOTE>
+</P>
+
+
+<HR>
+<A HREF="soundapi-3.html">Previous</A>
+<A HREF="soundapi-5.html">Next</A>
+<A HREF="soundapi.html#toc4">Table of Contents</A>
+</BODY>
+</HTML>

@@ -1,0 +1,159 @@
+<HTML>
+<HEAD>
+<TITLE>Advanced Linux Sound Architecture - Library API: Control Interface</TITLE>
+</HEAD>
+<BODY>
+<A HREF="soundapi-2.html">Previous</A>
+<A HREF="soundapi-4.html">Next</A>
+<A HREF="soundapi.html#toc3">Table of Contents</A>
+<HR>
+<H2><A NAME="s3">3. Control Interface</A></H2>
+
+<P>The control interfaces gives application various information about the
+currently installed sound driver in the system. The interface should be used
+to detect if another sound interface is present for selected soundcard or,
+for example, to create a list of devices (MIXER, PCM etc) from which
+the user can select.</P>
+
+<H2><A NAME="ss3.1">3.1 Low-Level Layer</A></H2>
+
+<H3>int snd_cards( void )  </H3>
+
+<P>Returns the number of soundcards present in the system, if any. Otherwise
+it returns a negative value, which maps to an error code. This function 
+will return 0 if no soundcards are detected.</P>
+
+<H3>unsigned int snd_cards_mask( void )  </H3>
+
+<P>Returns the bitmap of soundcards present in the system, if any. Otherwise
+it returns a negative value, which maps to an error code. This function 
+will return 0 if no soundcards are detected. First soundcard is represented
+with bit 0.</P>
+
+<H3>int snd_ctl_open( void **handle, int card )  </H3>
+
+<P>Creates a new handle and opens communication with the kernel sound
+control interface for soundcard number <I>card</I> (0-N). The function
+also checks if protocol is compatible, so as to prevent the use of old
+programs with a new kernel API. Function returns zero if successful,
+otherwise an error code is returned.</P>
+
+<H3>int snd_ctl_close( void *handle )  </H3>
+
+<P>Function frees all resources allocated with control handle and
+closes the kernel sound control interface. Function returns zero if
+successful, otherwise it returns an error code.</P>
+
+<H3>int snd_ctl_file_descriptor( void *handle )  </H3>
+
+<P>Function returns file descriptor for the kernel sound control interface.
+This function should be used in very special cases. Function returns
+a negative error code if some error was encountered.</P>
+
+<H3>int snd_ctl_hw_info( void *handle, struct snd_ctl_hw_info *info )  </H3>
+
+<P>Fills the info structure with data about the sound hardware referenced 
+by handle. Function returns zero if successful, otherwise it returns
+an error code.
+<HR>
+<PRE>
+  #define SND_CTL_GCAPS_MIDI              0x0000001       /* driver has MIDI interface */
+
+  #define SND_CTL_LCAPS_SYNTH             0x0000001       /* soundcard has synthesizer */
+  #define SND_CTL_LCAPS_RAWFM             0x0000002       /* soundcard has RAW FM/OPL3 */
+
+  struct snd_ctl_hw_info {
+    unsigned int type;            /* type of card - see SND_CARD_TYPE_XXXX */
+    unsigned int gcaps;           /* see SND_CTL_GCAPS_XXXX */
+    unsigned int lcaps;           /* see SND_CTL_LCAPS_XXXX */
+    unsigned int pcmdevs;         /* count of PCM devices (0 to N) */
+    unsigned int mixerdevs;       /* count of MIXER devices (0 to N) */
+    unsigned int mididevs;        /* count of raw MIDI devices (0 to N) */
+    char id[8];                   /* ID of card (user selectable) */
+    char name[80];                /* name/info text about soundcard */
+    unsigned char reserved[128];  /* reserved for future use */
+  };
+  
+</PRE>
+<HR>
+</P>
+
+<H3>int snd_ctl_pcm_info( void *handle, int dev, snd_pcm_info_t *info )  </H3>
+
+<P>Fills the *info structure with data about the PCM device. Function returns
+zero if successful, otherwise it returns an error code. Details about
+the snd_pcm_info_t structure are in the <B>Digital Audio (PCM) Interface</B>
+section. The argument <I>dev</I> selects the device number for the
+soundcard referenced by *handle. Its range is 0 to N where N is
+<I>struct snd_ctl_hw_info -> pcmdevs - 1</I>. This function will work if
+the selected PCM device is busy, too. It should be used to collect
+information about PCM devices without exclusive lock.</P>
+
+<H3>int snd_ctl_pcm_playback_info( void *handle, int dev, snd_pcm_playback_info_t *info )  </H3>
+
+<P>Fills the *info structure with data about the PCM device and playback direction.
+Function returns zero if successful, otherwise it returns an error code.
+Details about the snd_pcm_playback_info_t structure are in the
+<B>Digital Audio (PCM) Interface</B> section. The argument <I>dev</I>
+selects the device number for the soundcard referenced by *handle. Its
+range is 0 to N where N is <I>struct snd_ctl_hw_info -> pcmdevs - 1</I>.
+This function will work if the selected PCM device is busy, too. It should
+be used to collect information about PCM devices without exclusive lock.</P>
+
+<H3>int snd_ctl_pcm_record_info( void *handle, int dev, snd_pcm_record_info_t *info )  </H3>
+
+<P>Fills the *info structure with data about the PCM device and record direction.
+Function returns zero if successful, otherwise it returns an error code.
+Details about the snd_pcm_record_info_t structure are in the
+<B>Digital Audio (PCM) Interface</B> section. The argument <I>dev</I>
+selects the device number for the soundcard referenced by *handle. Its
+range is 0 to N where N is <I>struct snd_ctl_hw_info -> pcmdevs - 1</I>.
+This function will work if the selected PCM device is busy, too. It should
+be used to collect information about PCM devices without exclusive lock.</P>
+
+<H3>int snd_ctl_mixer_info( void *handle, int dev, snd_mixer_info_t *info )  </H3>
+
+<P>Fills the *info structure with data about the mixer device. Returns zero
+if successful, otherwise it returns an error code. Details about the
+snd_mixer_info_t structure are in the <B>Mixer Interface</B> section.
+The argument <I>dev</I> specifies the device number for the appropriate
+soundcard. Its range is 0 to N where N found from
+<I>struct snd_ctl_hw_info -> mixerdevs - 1</I>.
+It should be used to collect information about mixer devices.</P>
+
+
+<H2><A NAME="ss3.2">3.2 Examples</A></H2>
+
+<P>The following example shows how all PCM devices can be detected for the first
+soundcard (#0) in the system.</P>
+<P>
+<BLOCKQUOTE><CODE>
+<HR>
+<PRE>
+int card = 0, err;
+void *handle;
+stuct snd_ctl_hw_info info;
+
+if ( (err = snd_ctl_open( &amp;handle, card )) &lt; 0 ) {
+  fprintf( stderr, &quot;open failed: %s\n&quot;, snd_strerror( err ) );
+  return;
+}
+if ( (err = snd_ctl_hw_info( handle, &amp;info )) &lt; 0 ) {
+  fprintf( stderr, &quot;hw info failed: %s\n&quot;, snd_strerror( err ) );
+  snd_ctl_close( handle );
+  return;
+}
+printf( &quot;Installed PCM devices for card #i: %i\n&quot;, card + 1, info.pcmdevs );
+snd_ctl_close( handle );
+</PRE>
+<HR>
+</CODE></BLOCKQUOTE>
+</P>
+
+
+<HR>
+<A HREF="soundapi-2.html">Previous</A>
+<A HREF="soundapi-4.html">Next</A>
+<A HREF="soundapi.html#toc3">Table of Contents</A>
+</BODY>
+</HTML>

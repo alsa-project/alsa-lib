@@ -1,0 +1,35 @@
+#!/bin/bash
+
+source=.
+version=`cat $source/../version`
+package=$source/../../alsa-lib-$version.tar.gz
+
+if [ ! -r $package ]; then
+  echo "Error: wrong package: $package"
+  exit 1
+fi
+
+make -C .. pack
+
+cp -fv $package /usr/src/redhat/SOURCES
+
+if [ ! -r $source/buildrpm ]; then
+  echo "Error: invalid directory: $source"
+  exit 1
+fi
+
+if [ ! -d /usr/src/redhat ]; then
+  echo "Error: /usr/src/redhat directory not found"
+  exit 1
+fi
+
+if [ ! -r $source/alsa-lib.spec ]; then
+  cd $source/..
+  ./configure
+  cd utils
+fi
+
+cp -fv $source/alsa-lib.spec /usr/src/redhat/SPECS
+cd /usr/src/redhat/SPECS
+rpm -ba alsa-lib.spec
+cd /usr/src/redhat

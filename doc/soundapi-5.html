@@ -1,0 +1,552 @@
+<HTML>
+<HEAD>
+<TITLE>Advanced Linux Sound Architecture - Library API: Digital Audio (PCM) Interface</TITLE>
+</HEAD>
+<BODY>
+<A HREF="soundapi-4.html">Previous</A>
+Next
+<A HREF="soundapi.html#toc5">Table of Contents</A>
+<HR>
+<H2><A NAME="s5">5. Digital Audio (PCM) Interface</A></H2>
+
+<P>Digital audio is the most commonly used method of representing sound inside 
+a computer. In this method sound is stored as a sequence of samples taken
+from the audio signal using constant time intervals. A sample represents
+volume of the signal at the moment when it was measured. In uncompressed
+digital audio each sample require one or more bytes of storage. The number of
+bytes required depends on number of channels (mono, stereo) and sample
+format (8 or 16 bits, mu-Law, etc.). The length of this interval determines
+the sampling rate. Commonly used sampling rates are between 8 kHz (telephone
+quality) and 48 kHz (DAT tapes).</P>
+<P>The physical devices used in digital audio are called the ADC (Analog to
+Digital Converter) and DAC (Digital to Analog Converter). A device containing
+both ADC and DAC is commonly known as a codec. The codec device used in
+a Sound Blaster cards is called a DSP which is somewhat misleading since DSP
+also stands for Digital Signal Processor (the SB DSP chip is very limited
+when compared to "true" DSP chips).  </P>
+<P>Sampling parameters affect the quality of sound which can be reproduced from
+the recorded signal. The most fundamental parameter is sampling rate which
+limits the highest frequency than can be stored. It is well known (Nyquist's
+Sampling Theorem) that the highest frequency that can be stored in a sampled
+signal is at most 1/2 of the sampling frequency. For example, a 8 kHz sampling
+rate permits the recording of a signal in which the highest frequency is less
+than 4 kHz. Higher frequency signals must be filtered out before feeding them
+to DAC.  </P>
+<P>Sample encoding limits the dynamic range of recorded signal (difference between
+the faintest and the loudest signal that can be recorded). In theory the
+maximum dynamic range of signal is number_of_bits * 6 dB . This means that
+8 bits sampling resolution gives dynamic range of 48 dB and 16 bit resolution
+gives 96 dB.  </P>
+<P>Quality has price. The number of bytes required to store an audio sequence
+depends on sampling rate, number of channels and sampling resolution. For
+example just 8000 bytes of memory is required to store one second of sound
+using 8 kHz/8 bits/mono but 48 kHz/16bit/stereo takes 192 kilobytes. A 64 kbps
+ISDN channel is required to transfer a 8kHz/8bit/mono audio stream in real
+time, and about 1.5 Mbps is required for DAT quality (48kHz/16bit/stereo).
+On the other hand it is possible to store just 5.46 seconds of sound in
+a megabyte of memory when using 48kHz/16bit/stereo sampling. With
+8kHz/8bits/mono it is possible to store 131 seconds of sound using the same
+amount of memory. It is possible to reduce memory and communication costs by
+compressing the recorded signal but this is out of the scope of this document.  </P>
+
+<H2><A NAME="ss5.1">5.1 Low-Level Layer</A></H2>
+
+<P>Audio devices are opened exclusively for a selected direction. This doesn't
+allow open from more than one processes for the same audio device in the
+same direction, but does allow one open call to each playback direction and
+second open call to record direction independently. Audio devices return
+EBUSY error to applications when other applications have already opened the
+requested direction.</P>
+<P>Low-Level layer supports these formats:
+<BLOCKQUOTE><CODE>
+<HR>
+<PRE>
+#define SND_PCM_SFMT_MU_LAW             0
+#define SND_PCM_SFMT_A_LAW              1
+#define SND_PCM_SFMT_IMA_ADPCM          2
+#define SND_PCM_SFMT_U8                 3
+#define SND_PCM_SFMT_S16_LE             4
+#define SND_PCM_SFMT_S16_BE             5
+#define SND_PCM_SFMT_S8                 6
+#define SND_PCM_SFMT_U16_LE             7
+#define SND_PCM_SFMT_U16_BE             8
+#define SND_PCM_SFMT_MPEG               9
+#define SND_PCM_SFMT_GSM                10
+
+#define SND_PCM_FMT_MU_LAW              (1 &lt;&lt; SND_PCM_SFMT_MU_LAW)
+#define SND_PCM_FMT_A_LAW               (1 &lt;&lt; SND_PCM_SFMT_A_LAW)
+#define SND_PCM_FMT_IMA_ADPCM           (1 &lt;&lt; SND_PCM_SFMT_IMA_ADPCM)
+#define SND_PCM_FMT_U8                  (1 &lt;&lt; SND_PCM_SFMT_U8)
+#define SND_PCM_FMT_S16_LE              (1 &lt;&lt; SND_PCM_SFMT_S16_LE)
+#define SND_PCM_FMT_S16_BE              (1 &lt;&lt; SND_PCM_SFMT_S16_BE)
+#define SND_PCM_FMT_S8                  (1 &lt;&lt; SND_PCM_SFMT_S8)
+#define SND_PCM_FMT_U16_LE              (1 &lt;&lt; SND_PCM_SFMT_U16_LE)
+#define SND_PCM_FMT_U16_BE              (1 &lt;&lt; SND_PCM_SFMT_U16_BE)
+#define SND_PCM_FMT_MPEG                (1 &lt;&lt; SND_PCM_SFMT_MPEG)
+#define SND_PCM_FMT_GSM                 (1 &lt;&lt; SND_PCM_SFMT_GSM)
+</PRE>
+<HR>
+</CODE></BLOCKQUOTE>
+
+Constants with prefix <B>SND_PCM_FMT_</B> are used in info structures
+and constants with prefix <B>SND_PCM_SFMT_</B> are used in format structures.</P>
+
+<H3>int snd_pcm_open( void **handle, int card, int device, int mode )  </H3>
+
+<P>Creates a new handle and opens a connection to kernel sound
+audio interface for soundcard number <I>card</I> (0-N) and audio
+device number <I>device</I>. Function also checks if protocol is
+compatible to prevent use of old programs with a new kernel API. Function
+returns zero if successful,ful otherwise it returns an error code.
+Error code -EBUSY is returned when some process ownes the selected direction.</P>
+<P>Default format after opening is mono <I>mu-Law</I> at 8000Hz. This device
+can be used directly for playback of standard .au (Sparc) files.</P>
+<P>The following modes should be used for the <I>mode</I> argument:
+<HR>
+<PRE>
+  #define SND_PCM_OPEN_PLAYBACK   (O_WRONLY)
+  #define SND_PCM_OPEN_RECORD     (O_RDONLY)
+  #define SND_PCM_OPEN_DUPLEX     (O_RDWR)
+  
+</PRE>
+<HR>
+</P>
+
+<H3>int snd_pcm_close( void *handle )  </H3>
+
+<P>Frees all resources allocated with audio handle and
+closes the connection to the kernel sound audio interface. Function
+returns zero if successful, otherwise it returns an error code.</P>
+
+<H3>int snd_pcm_file_descriptor( void *handle )  </H3>
+
+<P>Returns the file descriptor of the connection to the kernel sound
+audio interface. Function returns an error code if an
+error was encountered.  </P>
+<P>The file descriptor should be used for the <I>select</I> synchronous
+multiplexer function for setting the read direction. Application should
+call <I>snd_pcm_read</I> or <I>snd_pcm_write</I> functions if some
+data is waiting for reading or a write can be performed. Calling this
+function is highly recomended, as it leaves a place for the API to things
+like data conversions, if needed.</P>
+
+<H3>int snd_pcm_block_mode( void *handle, int enable )  </H3>
+
+<P>Sets up block (default) or nonblock mode for a handle. Block mode suspends
+execution of a program when <I>snd_pcm_read</I> or <I>snd_pcm_write</I>
+is called for the time which is needed for the actual playback or record
+over of the entire buffer. In nonblock mode, programs aren't suspended and
+the above functions returns immediately with the count of bytes which were
+read or written by the driver. When used in this way, don't try to use the
+entire buffer after the call, but instead process the number of bytes
+returned, and call the function again.</P>
+
+<H3>int snd_pcm_info( void *handle, snd_pcm_info_t *info )  </H3>
+
+<P>Fills the *info structure with data about the PCM device selected by
+*handle. Function returns zero if successful, otherwise it returns
+an error code.
+<HR>
+<PRE>
+  #define SND_PCM_INFO_CODEC              0x00000001
+  #define SND_PCM_INFO_DSP                SND_PCM_INFO_CODEC
+  #define SND_PCM_INFO_MMAP               0x00000002      /* reserved */
+  #define SND_PCM_INFO_PLAYBACK           0x00000100
+  #define SND_PCM_INFO_RECORD             0x00000200
+  #define SND_PCM_INFO_DUPLEX             0x00000400
+  #define SND_PCM_INFO_DUPLEX_LIMIT       0x00000800      /* rate for playback & record are same */
+
+  struct snd_pcm_info {
+    unsigned int type;                    /* soundcard type */
+    unsigned int flags;                   /* see SND_PCM_INFO_XXXX */
+    unsigned char id[32];                 /* ID of this PCM device */
+    unsigned char name[80];               /* name of this device */
+    unsigned char reserved[64];           /* reserved for future use */
+  };
+  
+</PRE>
+<HR>
+
+<DL>
+<DT><B>SND_PCM_INFO_MMAP</B><DD><P>This flag is reserved and should be never used. It remains for
+compatibility with Open Sound System driver.</P>
+<DT><B>SND_PCM_INFO_DUPLEX_LIMIT</B><DD><P>If this bit is set, rate must be same for playback and record direction.</P>
+</DL>
+</P>
+
+<H3>int snd_pcm_playback_info( void *handle, snd_pcm_playback_info_t *info )  </H3>
+
+<P>Fills the *info structure with data about PCM playback. Function returns
+zero if successful, otherwise it returns an error code.
+<HR>
+<PRE>
+  #define SND_PCM_PINFO_BATCH             0x00000001
+  #define SND_PCM_PINFO_8BITONLY          0x00000002
+  #define SND_PCM_PINFO_16BITONLY         0x00000004
+
+  struct snd_pcm_playback_info {
+    unsigned int flags;                   /* see SND_PCM_PINFO_XXXX */
+    unsigned int formats;                 /* supported formats */
+    unsigned int min_rate;                /* min rate (in Hz) */
+    unsigned int max_rate;                /* max rate (in Hz) */
+    unsigned int min_channels;            /* min channels (probably always 1) */
+    unsigned int max_channels;            /* max channels */
+    unsigned int buffer_size;             /* playback buffer size */
+    unsigned int min_fragment_size;       /* min fragment size in bytes */
+    unsigned int max_fragment_size;       /* max fragment size in bytes */
+    unsigned int fragment_align;          /* align fragment value */
+    unsigned char reserved[64];           /* reserved for future use */
+  };
+  
+</PRE>
+<HR>
+
+<DL>
+<DT><B>SND_PCM_PINFO_BATCH</B><DD><P>Driver implements double buffering with this device. This means that
+the chip used for data processing has its own memory, and output should be
+more delayed than if a traditional codec chip is used.</P>
+<DT><B>SND_PCM_PINFO_8BITONLY</B><DD><P>If this bit is set, the driver uses 8-bit format for 16-bit samples and
+does software conversion. This bit is set on broken SoundBlaster 16/AWE
+soundcards which can't do full 16-bit duplex. If this bit is set
+application or highter digital audio layer should do the conversion from
+16-bit samples to 8-bit samples rather than making the driver to do it in
+the kernel.</P>
+<DT><B>SND_PCM_PINFO_16BITONLY</B><DD><P>If this bit is set, driver uses 16-bit format for 8-bit samples and
+does software conversion. This bit is set on broken SoundBlaster 16/AWE
+soundcards which can't do full 8-bit duplex. If this bit is set the
+application or highter digital audio layer should do conversion from
+8-bit samples to 16-bit samples rather than making the driver to do it in
+the kernel.</P>
+</DL>
+</P>
+
+<H3>int snd_pcm_record_info( void *handle, snd_pcm_record_info_t *info )  </H3>
+
+<P>Fills the *info structure. Returns zero if successful, otherwise it returns
+an error code.
+<HR>
+<PRE>
+  #define SND_PCM_RINFO_BATCH             0x00000001
+  #define SND_PCM_RINFO_8BITONLY          0x00000002
+  #define SND_PCM_RINFO_16BITONLY         0x00000004
+
+  struct snd_pcm_record_info {
+    unsigned int flags;                   /* see to SND_PCM_RINFO_XXXX */
+    unsigned int formats;                 /* supported formats */
+    unsigned int min_rate;                /* min rate (in Hz) */
+    unsigned int max_rate;                /* max rate (in Hz) */
+    unsigned int min_channels;            /* min channels (probably always 1) */
+    unsigned int max_channels;            /* max channels */
+    unsigned int buffer_size;             /* record buffer size */
+    unsigned int min_fragment_size;       /* min fragment size in bytes */
+    unsigned int max_fragment_size;       /* max fragment size in bytes */
+    unsigned int fragment_align;          /* align fragment value */
+    unsigned char reserved[64];           /* reserved for future... */
+  };
+  
+</PRE>
+<HR>
+
+<DL>
+<DT><B>SND_PCM_PINFO_BATCH</B><DD><P>Driver implements buffering for this device. This means that
+the chip used for data processing has its own memory and output should be
+more delayed than if a traditional codec chip is used.</P>
+<DT><B>SND_PCM_PINFO_8BITONLY</B><DD><P>If this bit is set, the device uses 8-bit format for 16-bit samples and
+does software conversion. This bit is set on broken SoundBlaster 16/AWE
+soundcards which can't do full 16-bit duplex. If this bit is set the 
+application or highter digital audio layer should do conversion from
+16-bit samples to 8-bit samples rather than making the driver to do it in
+the kernel.</P>
+<DT><B>SND_PCM_PINFO_16BITONLY</B><DD><P>If this bit is set, the device uses a 16-bit format for 8-bit samples and
+does software conversion. This bit is set on broken SoundBlaster 16/AWE
+soundcards which can't do full 8-bit duplex. If this bit is set the
+application or highter digital audio layer should do the conversion from
+8-bit samples to 16-bit samples rather than making the driver to do it in
+the kernel.</P>
+</DL>
+</P>
+
+<H3>int snd_pcm_playback_format( void *handle, snd_pcm_format_t *format )  </H3>
+
+<P>Sets up format, rate (in Hz) and number of channels for playback, in the
+desired direction. Function returns zero if successful, otherwise it 
+returns an error code.
+<HR>
+<PRE>
+  struct snd_pcm_format {
+    unsigned int format;                  /* SND_PCM_SFMT_XXXX */
+    unsigned int rate;                    /* rate in Hz */
+    unsigned int channels;                /* channels (voices) */
+    unsigned char reserved[16];
+  };
+  
+</PRE>
+<HR>
+</P>
+
+<H3>int snd_pcm_record_format( void *handle, snd_pcm_format_t *format )  </H3>
+
+<P>Sets up format, rate (in Hz) and number of channels for used for recording
+in the specified direction. Function returns zero if successful, otherwise
+it returns an error code.
+<HR>
+<PRE>
+  struct snd_pcm_format {
+    unsigned int format;                  /* SND_PCM_SFMT_XXXX */
+    unsigned int rate;                    /* rate in Hz */
+    unsigned int channels;                /* channels (voices) */
+    unsigned char reserved[16];
+  };
+  
+</PRE>
+<HR>
+</P>
+
+<H3>int snd_pcm_playback_params( void *handle, snd_pcm_playback_params_t *params )  </H3>
+
+<P>Sets various parameters for playback direction. Function returns zero if
+successful, otherwise it returns an error code.
+<HR>
+<PRE>
+  struct snd_pcm_playback_params {
+    int fragment_size;
+    int fragments_max;
+    int fragments_room;
+    unsigned char reserved[16];           /* must be filled with zero */
+  };
+  
+</PRE>
+<HR>
+
+<DL>
+<DT><B>fragment_size</B><DD><P>Requested size of fragment. This value should be aligned for current
+format (for example to 4 if stereo 16-bit samples are used) or with the
+<I>fragment_align</I> variable from <I>snd_pcm_playback_info_t</I>
+structure. Its range can be from <I>min_fragment_size</I> to
+<I>max_fragment_size</I>.</P>
+<DT><B>fragments_max</B><DD><P>Maximum number of fragments in queue for wakeup. This number doesn't
+counts partly used fragment. If current count of filled playback fragments
+is greater than this value driver block application or return immediately
+back if nonblock mode is active.</P>
+<DT><B>fragments_room</B><DD><P>Minumum number of fragments writeable for wakeup. This value should be
+in most cases 1 which means return back to application if at least
+one fragment is free for playback. This value includes partly used fragments,
+too.</P>
+</DL>
+</P>
+
+<H3>int snd_pcm_record_params( void *handle, snd_pcm_record_params_t *params )  </H3>
+
+<P>Function sets various parameters for the recording direction. Function returns
+zero if successful, otherwise it returns an error code.
+<HR>
+<PRE>
+  struct snd_pcm_record_params {
+    int fragment_size;
+    int fragments_min;
+    unsigned char reserved[16];
+  };
+  
+</PRE>
+<HR>
+
+<DL>
+<DT><B>fragment_size</B><DD><P>Requested size of fragment. This value should be aligned for current
+format (for example to 4 if stereo 16-bit samples are used) or set to the
+<I>fragment_align</I> variable from <I>snd_pcm_playback_info_t</I>
+structure. Its range can be from <I>min_fragment_size</I> to
+<I>max_fragment_size</I>.</P>
+<DT><B>fragments_min</B><DD><P>Minimum filled fragments for wakeup. Driver blocks the application (if
+block mode is selected) until it isn't filled with number of fragments 
+specified with this value.</P>
+</DL>
+</P>
+
+<H3>int snd_pcm_playback_status( void *handle, snd_pcm_playback_status_t *status )  </H3>
+
+<P>Fills the *status structure. Function returns zero if successful, otherwise
+it returns an error code.
+<HR>
+<PRE>
+  struct snd_pcm_playback_status {
+    unsigned int rate;
+    int fragments;
+    int fragment_size;
+    int count;
+    int queue;
+    int underrun;
+    struct timeval time;
+    struct timeval stime;
+    unsigned char reserved[16];
+  };
+  
+</PRE>
+<HR>
+
+<DL>
+<DT><B>rate</B><DD><P>Real playback rate. This value reflects hardware limitations.</P>
+<DT><B>fragments</B><DD><P>Currently allocated fragments by the driver for playback direction.</P>
+<DT><B>fragment_size</B><DD><P>Current fragment size used by driver for the playback direction.</P>
+<DT><B>count</B><DD><P>Count of bytes writeable without blocking.</P>
+<DT><B>queue</B><DD><P>Count of bytes in queue. Note: <I>(fragments * fragment_size) - queue</I>
+should not be equal to <I>count</I>.</P>
+<DT><B>underrun</B><DD><P>This value tells the application the number of underruns since the ast call
+of <I>snd_pcm_playback_status</I>.</P>
+<DT><B>time</B><DD><P>Delay till played of the first sample from next write. This value should
+be used for time synchronization. Returned value is in the same format as 
+returned from the standard C function <I>gettimeofday( &amp;time, NULL )</I>.
+This variable contains right value only if playback time mode is enabled
+(look to <I>snd_pcm_playback_time</I> function).</P>
+<DT><B>stime</B><DD><P>Time when playback was started.
+This variable contains right value only if playback time mode is enabled
+(look to <I>snd_pcm_playback_time</I> function).</P>
+</DL>
+</P>
+
+<H3>int snd_pcm_record_status( void *handle, snd_pcm_record_status_t *status )  </H3>
+
+<P>Fills the *status structure. Function returns zero if successful, otherwise
+it returns an error code.
+<HR>
+<PRE>
+  struct snd_pcm_record_status {
+    unsigned int rate;
+    int fragments;
+    int fragment_size;
+    int count;
+    int free;
+    int overrun;
+    struct timeval time;
+    unsigned char reserved[16];
+  };
+  
+</PRE>
+<HR>
+
+<DL>
+<DT><B>rate</B><DD><P>Real record rate. This value reflects hardware limitations.</P>
+<DT><B>fragments</B><DD><P>Currently allocated fragments by driver for the record direction.</P>
+<DT><B>fragment_size</B><DD><P>Current fragment size used by driver for the record direction.</P>
+<DT><B>count</B><DD><P>Count of bytes readable without blocking.</P>
+<DT><B>free</B><DD><P>Count of bytes in buffer still free. Note: <I>(fragments * fragment_size) - free</I>
+should not be equal to <I>count</I>.</P>
+<DT><B>overrun</B><DD><P>This value tells application the count of overruns since the last call
+to <I>snd_pcm_record_status</I>.</P>
+<DT><B>time</B><DD><P>Lag since the next sample read was recorded. This value should be used for time
+synchronization. Returned value is in the same format as returned by the
+from standard C function <I>gettimeofday( &amp;time, NULL )</I>. This
+variable contains right value only if record time mode is enabled (look to
+<I>snd_pcm_record_time</I> function).</P>
+<DT><B>stime</B><DD><P>Time when record was started. This variable contains right value only if
+record time mode is enabled (look to <I>snd_pcm_record_time</I> function).</P>
+</DL>
+</P>
+
+<H3>int snd_pcm_drain_playback( void *handle )  </H3>
+
+<P>This function drain playback buffers immediately. Function returns zero
+if successful, otherwise it returns an error code.  </P>
+
+<H3>int snd_pcm_flush_playback( void *handle )  </H3>
+
+<P>This function flushes the playback buffers. It blocks the program while the
+all the waiting samples in kernel playback buffers are processed. Function
+returns zero if successful, otherwise it returns an error code.</P>
+
+<H3>int snd_pcm_flush_record( void *handle )  </H3>
+
+<P>This function flushes (destroyes) record buffers. Function returns zero
+if successful, otherwise it returns an error code.  </P>
+
+<H3>int snd_pcm_playback_time( void *handle, int enable )  </H3>
+
+<P>This function enables or disables time mode for playback direction. Time mode
+allows to application better time synchronization. Function returns zero
+if successful, otherwise it returns an error code.</P>
+
+<H3>int snd_pcm_record_time( void *handle, int enable )  </H3>
+
+<P>This function enables or disables time mode for record direction. Time mode
+allows to application better time synchronization. Function returns zero
+if successful, otherwise it returns an error code.</P>
+
+<H3>ssize_t snd_pcm_write( void *handle, const void *buffer, size_t size )  </H3>
+
+<P>Writes samples to the device which must be in the proper format 
+specified by the <I>snd_pcm_playback_format</I> function. Function
+returns zero or positive value if playback was successful (value represents
+count of bytes which was successfuly written to device) or an 
+error value if error occured. Function should suspend process if
+block mode is active.</P>
+
+<H3>ssize_t snd_pcm_read( void *handle, void *buffer, size_t size )  </H3>
+
+<P>Function reads samples from driver. Samples are in format specified
+by <I>snd_pcm_record_format</I> function. Function returns zero
+or positive value if record was success (value represents count of bytes
+which was successfuly read from device) or negative error value if
+error occured. Function should suspend process if block mode is active.</P>
+
+
+<H2><A NAME="ss5.2">5.2 Examples</A></H2>
+
+<P>The following example shows how to play the first 512kB from the
+/tmp/test.au file with soundcard #0 and PCM device #0:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<HR>
+<PRE>
+int card = 0, device = 0, err, fd, count, size, idx;
+void *handle;
+snd_pcm_format_t format;
+char *buffer;
+
+buffer = (char *)malloc( 512 * 1024 );
+if ( !buffer ) return;
+if ( (err = snd_pcm_open( &amp;handle, card, device, SND_PCM_OPEN_PLAYBACK )) &lt; 0 ) {
+  fprintf( stderr, &quot;open failed: %s\n&quot;, snd_strerror( err ) );
+  return;
+}
+format.format = SND_PCM_SFMT_MU_LAW;
+format.rate = 8000;
+format.voices = 1;
+if ( (err = snd_pcm_playback_format( handle, &amp;format )) &lt; 0 ) {
+  fprintf( stderr, &quot;format setup failed: %s\n&quot;, snd_strerror( err ) );
+  snd_pcm_close( handle );
+  return;
+}
+fd = open( &quot;/tmp/test.au&quot; );
+if ( fd &lt; 0 ) {
+  perror( &quot;open file&quot; );
+  snd_pcm_close( handle );
+  return;
+}
+idx = 0;
+count = read( fd, buffer, 512 * 1024 );
+if ( count &lt;= 0 ) {
+  perror( &quot;read from file&quot; );
+  snd_pcm_close( handle );
+  return;
+}
+close( fd );
+if ( !memcmp( buffer, &quot;.snd&quot;, 4 ) ) {
+  idx = (buffer[4]&lt;&lt;24)|(buffer[5]&lt;&lt;16)|(buffer[6]&lt;&lt;8)|(buffer[7]);
+  if ( idx &gt; 128 ) idx = 128;
+  if ( idx &gt; count ) idx = count;
+}
+size = snd_pcm_write( handle, &amp;buffer[ idx ], count - idx );
+printf( &quot;Bytes written %i from %i...\n&quot;, size, count - idx );
+snd_pcm_close( handle );
+free( buffer );
+</PRE>
+<HR>
+</CODE></BLOCKQUOTE>
+</P>
+
+
+<HR>
+<A HREF="soundapi-4.html">Previous</A>
+Next
+<A HREF="soundapi.html#toc5">Table of Contents</A>
+</BODY>
+</HTML>

@@ -1,0 +1,44 @@
+<HTML>
+<HEAD>
+<TITLE>Advanced Linux Sound Architecture - Library API: Error Codes</TITLE>
+</HEAD>
+<BODY>
+<A HREF="soundapi-1.html">Previous</A>
+<A HREF="soundapi-3.html">Next</A>
+<A HREF="soundapi.html#toc2">Table of Contents</A>
+<HR>
+<H2><A NAME="s2">2. Error Codes</A></H2>
+
+<P>All functions return int (or some sort of signed value). If this value
+is negative it represents an error code. Codes up to SND_ERROR_BEGIN (500000)
+represents standard system errors. Codes equal or greather than this value
+represents sound library API errors. All error codes begin with the prefix
+<I>SND_ERROR_</I>.</P>
+
+<H2><A NAME="ss2.1">2.1 Error Codes in Detail</A></H2>
+
+<P>
+<DL>
+<DT><B>SND_ERROR_UNCOMPATIBLE_VERSION (500000)</B><DD><P>This error is caused if the driver uses an incompatible kernel API for this
+interface and hence the library doesn't know how this API can be used.</P>
+</DL>
+</P>
+
+
+<H2><A NAME="ss2.2">2.2 Functions</A></H2>
+
+
+
+<H3>const char *snd_strerror( int errnum )  </H3>
+
+<P>This functions converts error code to a string. Its functionality is the same
+as the <I>strerror</I> function from the standard C library, but this
+function returns correct strings for sound error codes, too.</P>
+
+
+<HR>
+<A HREF="soundapi-1.html">Previous</A>
+<A HREF="soundapi-3.html">Next</A>
+<A HREF="soundapi.html#toc2">Table of Contents</A>
+</BODY>
+</HTML>

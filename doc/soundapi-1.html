@@ -1,0 +1,34 @@
+<HTML>
+<HEAD>
+<TITLE>Advanced Linux Sound Architecture - Library API: Introduction</TITLE>
+</HEAD>
+<BODY>
+Previous
+<A HREF="soundapi-2.html">Next</A>
+<A HREF="soundapi.html#toc1">Table of Contents</A>
+<HR>
+<H2><A NAME="s1">1. Introduction</A></H2>
+
+<P>The Advanced Linux Sound Architecture comes with a kernel API & library API. 
+This document describes the library API and how it interfaces with the kernel 
+API.  The kernal API will probably never be documented in standalone form.</P>
+<P>Application programmers should use the library API rather than kernel API.
+The Library offers 100% of the functionally of the kernel API, but add next
+major improvements in usability, making the application code simpler and
+better looking. In addition, some of the some fixes/compatibility code in,
+may be placed in the library code instead of the kernel driver.</P>
+<P>For a complete list of all variables and functions in the API you should look
+at the following header files:
+<OL>
+<LI>/usr/include/sys/soundlib.h</LI>
+<LI>/usr/include/linux/sound.h</LI>
+<LI>/usr/include/linux/sounddetect.h</LI>
+</OL>
+</P>
+
+<HR>
+Previous
+<A HREF="soundapi-2.html">Next</A>
+<A HREF="soundapi.html#toc1">Table of Contents</A>
+</BODY>
+</HTML>

@@ -1,0 +1,25 @@
+#
+# Configuration Makefile for ALSA library
+# Copyright (c) 1994-98 by Jaroslav Kysela <perex@jcu.cz>
+#
+
+srcdir=@srcdir@
+VPATH=@srcdir@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+includedir=@includedir@
+libdir=@libdir@
+c_opts=@CFLAGS@
+INSTALL=@INSTALL@
+SND_LIB_VERSION=@SND_LIB_VERSION@
+SND_LIB_MAJOR=@SND_LIB_MAJOR@
+SND_LIB_MINOR=@SND_LIB_MINOR@
+SND_LIB_SUBMINOR=@SND_LIB_SUBMINOR@
+
+CC=@CC@
+CPP=@CPP@
+INCLUDE=-I../include -I../../include
+COPTS = $(c_opts)
+COPTS += -Wall -Wstrict-prototypes -fomit-frame-pointer -pipe
+LINKER=ld
+LN_S=@LN_S@

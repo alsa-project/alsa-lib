@@ -1,0 +1,1230 @@
+  Advanced Linux Sound Architecture - Library API
+  Jaroslav Kysela <perex@jcu.cz> with assistance from Alan
+  Robinson
+  v0.0.3, 25 March 1998
+
+  This document describes, in full detail, the Advanced Linux Sound
+  Architecture library API.
+  ______________________________________________________________________
+
+  Table of Contents:
+
+  1.      Introduction
+
+  2.      Error Codes
+
+  2.1.    Error Codes in Detail
+
+  2.2.    Functions
+
+  2.2.1.  const char *snd_strerror( int errnum )
+
+  3.      Control Interface
+
+  3.1.    Low-Level Layer
+
+  3.1.1.  int snd_cards( void )
+
+  3.1.2.  unsigned int snd_cards_mask( void )
+
+  3.1.3.  int snd_ctl_open( void **handle, int card )
+
+  3.1.4.  int snd_ctl_close( void *handle )
+
+  3.1.5.  int snd_ctl_file_descriptor( void *handle )
+
+  3.1.6.  int snd_ctl_hw_info( void *handle, struct snd_ctl_hw_info
+  *info )
+
+  3.1.7.  int snd_ctl_pcm_info( void *handle, int dev, snd_pcm_info_t
+  *info )
+
+  3.1.8.  int snd_ctl_pcm_playback_info( void *handle, int dev,
+  snd_pcm_playback_info_t *info )
+
+  3.1.9.  int snd_ctl_pcm_record_info( void *handle, int dev,
+  snd_pcm_record_info_t *info )
+
+  3.1.10. int snd_ctl_mixer_info( void *handle, int dev,
+  snd_mixer_info_t *info )
+
+  3.2.    Examples
+
+  4.      Mixer Interface
+
+  4.1.    Low-Level Layer
+
+  4.1.1.  int snd_mixer_open( void **handle, int card, int device )
+
+  4.1.2.  int snd_mixer_close( void *handle )
+
+  4.1.3.  int snd_mixer_file_descriptor( void *handle )
+
+  4.1.4.  int snd_mixer_channels( void *handle )
+
+  4.1.5.  int snd_mixer_info( void *handle, snd_mixer_info_t *info )
+
+  4.1.6.  int snd_mixer_channel( void *handle, const char *channel_id )
+
+  4.1.7.  int snd_mixer_exact_mode( void *handle, int enable )
+
+  4.1.8.  int snd_mixer_channel_info( void *handle, int channel,
+  snd_mixer_channel_info_t *info )
+
+  4.1.9.  int snd_mixer_channel_read( void *handle, int channel,
+  snd_mixer_channel_t *data )
+
+  4.1.10. int snd_mixer_channel_write( void *handle, int channel,
+  snd_mixer_channel_t *data )
+
+  4.1.11. int snd_mixer_special_read( void *handle, snd_mixer_special_t
+  *special )
+
+  4.1.12. int snd_mixer_special_write( void *handle, snd_mixer_special_t
+  *special )
+
+  4.1.13. int snd_mixer_read( void *handle, snd_mixer_callbacks_t
+  *callbacks )
+
+  4.2.    Examples
+
+  5.      Digital Audio (PCM) Interface
+
+  5.1.    Low-Level Layer
+
+  5.1.1.  int snd_pcm_open( void **handle, int card, int device, int
+  mode )
+
+  5.1.2.  int snd_pcm_close( void *handle )
+
+  5.1.3.  int snd_pcm_file_descriptor( void *handle )
+
+  5.1.4.  int snd_pcm_block_mode( void *handle, int enable )
+
+  5.1.5.  int snd_pcm_info( void *handle, snd_pcm_info_t *info )
+
+  5.1.6.  int snd_pcm_playback_info( void *handle,
+  snd_pcm_playback_info_t *info )
+
+  5.1.7.  int snd_pcm_record_info( void *handle, snd_pcm_record_info_t
+  *info )
+
+  5.1.8.  int snd_pcm_playback_format( void *handle, snd_pcm_format_t
+  *format )
+
+  5.1.9.  int snd_pcm_record_format( void *handle, snd_pcm_format_t
+  *format )
+
+  5.1.10. int snd_pcm_playback_params( void *handle,
+  snd_pcm_playback_params_t *params )
+
+  5.1.11. int snd_pcm_record_params( void *handle,
+  snd_pcm_record_params_t *params )
+
+  5.1.12. int snd_pcm_playback_status( void *handle,
+  snd_pcm_playback_status_t *status )
+
+  5.1.13. int snd_pcm_record_status( void *handle,
+  snd_pcm_record_status_t *status )
+
+  5.1.14. int snd_pcm_drain_playback( void *handle )
+
+  5.1.15. int snd_pcm_flush_playback( void *handle )
+
+  5.1.16. int snd_pcm_flush_record( void *handle )
+
+  5.1.17. int snd_pcm_playback_time( void *handle, int enable )
+
+  5.1.18. int snd_pcm_record_time( void *handle, int enable )
+
+  5.1.19. ssize_t snd_pcm_write( void *handle, const void *buffer,
+  size_t size )
+
+  5.1.20. ssize_t snd_pcm_read( void *handle, void *buffer, size_t size
+  )
+
+  5.2.    Examples
+  ______________________________________________________________________
+
+  11..  IInnttrroodduuccttiioonn
+
+  The Advanced Linux Sound Architecture comes with a kernel API &
+  library API.  This document describes the library API and how it
+  interfaces with the kernel API.  The kernal API will probably never be
+  documented in standalone form.
+
+  Application programmers should use the library API rather than kernel
+  API.  The Library offers 100% of the functionally of the kernel API,
+  but add next major improvements in usability, making the application
+  code simpler and better looking. In addition, some of the some
+  fixes/compatibility code in, may be placed in the library code instead
+  of the kernel driver.
+
+  For a complete list of all variables and functions in the API you
+  should look at the following header files:
+
+  1. /usr/include/sys/soundlib.h
+
+  2. /usr/include/linux/sound.h
+
+  3. /usr/include/linux/sounddetect.h
+
+  22..  EErrrroorr CCooddeess
+
+  All functions return int (or some sort of signed value). If this value
+  is negative it represents an error code. Codes up to SND_ERROR_BEGIN
+  (500000) represents standard system errors. Codes equal or greather
+  than this value represents sound library API errors. All error codes
+  begin with the prefix _S_N_D___E_R_R_O_R__.
+
+  22..11..  EErrrroorr CCooddeess iinn DDeettaaiill
+
+     SSNNDD__EERRRROORR__UUNNCCOOMMPPAATTIIBBLLEE__VVEERRSSIIOONN ((550000000000))
+        This error is caused if the driver uses an incompatible kernel
+        API for this interface and hence the library doesn't know how
+        this API can be used.
+
+  22..22..  FFuunnccttiioonnss
+
+  22..22..11..
+
+  ccoonnsstt cchhaarr **ssnndd__ssttrreerrrroorr(( iinntt eerrrrnnuumm ))
+
+  This functions converts error code to a string. Its functionality is
+  the same as the _s_t_r_e_r_r_o_r function from the standard C library, but
+  this function returns correct strings for sound error codes, too.
+
+  33..  CCoonnttrrooll IInntteerrffaaccee
+
+  The control interfaces gives application various information about the
+  currently installed sound driver in the system. The interface should
+  be used to detect if another sound interface is present for selected
+  soundcard or, for example, to create a list of devices (MIXER, PCM
+  etc) from which the user can select.
+
+  33..11..  LLooww--LLeevveell LLaayyeerr
+
+  33..11..11..
+
+  iinntt ssnndd__ccaarrddss(( vvooiidd ))
+
+  Returns the number of soundcards present in the system, if any.
+  Otherwise it returns a negative value, which maps to an error code.
+  This function will return 0 if no soundcards are detected.
+
+  33..11..22..
+
+  uunnssiiggnneedd iinntt ssnndd__ccaarrddss__mmaasskk(( vvooiidd ))
+
+  Returns the bitmap of soundcards present in the system, if any.
+  Otherwise it returns a negative value, which maps to an error code.
+  This function will return 0 if no soundcards are detected. First
+  soundcard is represented with bit 0.
+
+  33..11..33..
+
+  iinntt ssnndd__ccttll__ooppeenn(( vvooiidd ****hhaannddllee,, iinntt ccaarrdd ))
+
+  Creates a new handle and opens communication with the kernel sound
+  control interface for soundcard number _c_a_r_d (0-N). The function also
+  checks if protocol is compatible, so as to prevent the use of old
+  programs with a new kernel API. Function returns zero if successful,
+  otherwise an error code is returned.
+
+  33..11..44..
+
+  iinntt ssnndd__ccttll__cclloossee(( vvooiidd **hhaannddllee ))
+
+  Function frees all resources allocated with control handle and closes
+  the kernel sound control interface. Function returns zero if
+  successful, otherwise it returns an error code.
+
+  33..11..55..
+
+  iinntt ssnndd__ccttll__ffiillee__ddeessccrriippttoorr(( vvooiidd **hhaannddllee ))
+
+  Function returns file descriptor for the kernel sound control
+  interface.  This function should be used in very special cases.
+  Function returns a negative error code if some error was encountered.
+  33..11..66..
+
+  iinntt ssnndd__ccttll__hhww__iinnffoo(( vvooiidd **hhaannddllee,, ssttrruucctt ssnndd__ccttll__hhww__iinnffoo **iinnffoo ))
+
+  Fills the info structure with data about the sound hardware referenced
+  by handle. Function returns zero if successful, otherwise it returns
+  an error code.
+
+  ______________________________________________________________________
+    #define SND_CTL_GCAPS_MIDI              0x0000001       /* driver has MIDI interface */
+
+    #define SND_CTL_LCAPS_SYNTH             0x0000001       /* soundcard has synthesizer */
+    #define SND_CTL_LCAPS_RAWFM             0x0000002       /* soundcard has RAW FM/OPL3 */
+
+    struct snd_ctl_hw_info {
+      unsigned int type;            /* type of card - see SND_CARD_TYPE_XXXX */
+      unsigned int gcaps;           /* see SND_CTL_GCAPS_XXXX */
+      unsigned int lcaps;           /* see SND_CTL_LCAPS_XXXX */
+      unsigned int pcmdevs;         /* count of PCM devices (0 to N) */
+      unsigned int mixerdevs;       /* count of MIXER devices (0 to N) */
+      unsigned int mididevs;        /* count of raw MIDI devices (0 to N) */
+      char id[8];                   /* ID of card (user selectable) */
+      char name[80];                /* name/info text about soundcard */
+      unsigned char reserved[128];  /* reserved for future use */
+    };
+
+  ______________________________________________________________________
+
+  33..11..77..
+
+  iinntt ssnndd__ccttll__ppccmm__iinnffoo(( vvooiidd **hhaannddllee,, iinntt ddeevv,, ssnndd__ppccmm__iinnffoo__tt **iinnffoo ))
+
+  Fills the *info structure with data about the PCM device. Function
+  returns zero if successful, otherwise it returns an error code.
+  Details about the snd_pcm_info_t structure are in the DDiiggiittaall AAuuddiioo
+  ((PPCCMM)) IInntteerrffaaccee section. The argument _d_e_v selects the device number
+  for the soundcard referenced by *handle. Its range is 0 to N where N
+  is _s_t_r_u_c_t _s_n_d___c_t_l___h_w___i_n_f_o _-_> _p_c_m_d_e_v_s _- _1. This function will work if
+  the selected PCM device is busy, too. It should be used to collect
+  information about PCM devices without exclusive lock.
+
+  33..11..88..
+
+  iinntt ssnndd__ccttll__ppccmm__ppllaayybbaacckk__iinnffoo(( vvooiidd **hhaannddllee,, iinntt ddeevv,, ssnndd__ppccmm__ppllaayy--
+  bbaacckk__iinnffoo__tt **iinnffoo ))
+
+  Fills the *info structure with data about the PCM device and playback
+  direction.  Function returns zero if successful, otherwise it returns
+  an error code.  Details about the snd_pcm_playback_info_t structure
+  are in the DDiiggiittaall AAuuddiioo ((PPCCMM)) IInntteerrffaaccee section. The argument _d_e_v
+  selects the device number for the soundcard referenced by *handle. Its
+  range is 0 to N where N is _s_t_r_u_c_t _s_n_d___c_t_l___h_w___i_n_f_o _-_> _p_c_m_d_e_v_s _- _1.
+  This function will work if the selected PCM device is busy, too. It
+  should be used to collect information about PCM devices without
+  exclusive lock.
+
+  33..11..99..
+
+  iinntt ssnndd__ccttll__ppccmm__rreeccoorrdd__iinnffoo(( vvooiidd **hhaannddllee,, iinntt ddeevv,,
+  ssnndd__ppccmm__rreeccoorrdd__iinnffoo__tt **iinnffoo ))
+
+  Fills the *info structure with data about the PCM device and record
+  direction.  Function returns zero if successful, otherwise it returns
+  an error code.  Details about the snd_pcm_record_info_t structure are
+  in the DDiiggiittaall AAuuddiioo ((PPCCMM)) IInntteerrffaaccee section. The argument _d_e_v selects
+  the device number for the soundcard referenced by *handle. Its range
+  is 0 to N where N is _s_t_r_u_c_t _s_n_d___c_t_l___h_w___i_n_f_o _-_> _p_c_m_d_e_v_s _- _1.  This
+  function will work if the selected PCM device is busy, too. It should
+  be used to collect information about PCM devices without exclusive
+  lock.
+
+  33..11..1100..
+
+  iinntt ssnndd__ccttll__mmiixxeerr__iinnffoo(( vvooiidd **hhaannddllee,, iinntt ddeevv,, ssnndd__mmiixxeerr__iinnffoo__tt **iinnffoo
+  ))
+
+  Fills the *info structure with data about the mixer device. Returns
+  zero if successful, otherwise it returns an error code. Details about
+  the snd_mixer_info_t structure are in the MMiixxeerr IInntteerrffaaccee section.
+  The argument _d_e_v specifies the device number for the appropriate
+  soundcard. Its range is 0 to N where N found from _s_t_r_u_c_t
+  _s_n_d___c_t_l___h_w___i_n_f_o _-_> _m_i_x_e_r_d_e_v_s _- _1.  It should be used to collect
+  information about mixer devices.
+
+  33..22..  EExxaammpplleess
+
+  The following example shows how all PCM devices can be detected for
+  the first soundcard (#0) in the system.
+
+       ______________________________________________________________________
+       int card = 0, err;
+       void *handle;
+       stuct snd_ctl_hw_info info;
+
+       if ( (err = snd_ctl_open( &handle, card )) < 0 ) {
+         fprintf( stderr, "open failed: %s\n", snd_strerror( err ) );
+         return;
+       }
+       if ( (err = snd_ctl_hw_info( handle, &info )) < 0 ) {
+         fprintf( stderr, "hw info failed: %s\n", snd_strerror( err ) );
+         snd_ctl_close( handle );
+         return;
+       }
+       printf( "Installed PCM devices for card #i: %i\n", card + 1, info.pcmdevs );
+       snd_ctl_close( handle );
+       ______________________________________________________________________
+
+  44..  MMiixxeerr IInntteerrffaaccee
+
+  The Mixer Interface allows applications to change the volume level of
+  a soundcard's input/output channels in both the linear range (0-100)
+  and in decibels. It also supports features like hardware mute, input
+  sound source, etc.
+
+  44..11..  LLooww--LLeevveell LLaayyeerr
+
+  Mixer devices aren't opened exclusively. This allows applications to
+  open a device multiple times with one or more processes.
+  44..11..11..
+
+  iinntt ssnndd__mmiixxeerr__ooppeenn(( vvooiidd ****hhaannddllee,, iinntt ccaarrdd,, iinntt ddeevviiccee ))
+
+  Creates new handle and opens a connection to the kernel sound mixer
+  interface for soundcard number _c_a_r_d (0-N) and mixer device number
+  _d_e_v_i_c_e.  Also checks if protocol is compatible to prevent use of old
+  programs with new kernel API. Function returns zero if successful,
+  otherwise it returns an error code.
+
+  44..11..22..
+
+  iinntt ssnndd__mmiixxeerr__cclloossee(( vvooiidd **hhaannddllee ))
+
+  Frees all resources allocated to the mixer handle and closes its
+  connection to the kernel sound mixer interface. Function returns zero
+  if successful, otherwise it returns an error code.
+
+  44..11..33..
+
+  iinntt ssnndd__mmiixxeerr__ffiillee__ddeessccrriippttoorr(( vvooiidd **hhaannddllee ))
+
+  Returns the file descriptor for the connection to the kernel sound
+  mixer interface. This function should be used only in very special
+  cases. Function returns a negative error code if an error was
+  encountered.
+
+  The file descriptor should be used for the _s_e_l_e_c_t synchronous
+  multiplexer function for deterimeing read direction. Applications
+  should call _s_n_d___m_i_x_e_r___r_e_a_d function if some data is waiting to be
+  read.  It is recomended that you do this, since it leaves place for
+  this function to handle some new kernel API specifications.
+
+  44..11..44..
+
+  iinntt ssnndd__mmiixxeerr__cchhaannnneellss(( vvooiidd **hhaannddllee ))
+
+  Returns the count of mixer channels for appropriate mixer device,
+  otherwise the return value is negative, and signifies an error code.
+  Never returns zero.
+
+  44..11..55..
+
+  iinntt ssnndd__mmiixxeerr__iinnffoo(( vvooiidd **hhaannddllee,, ssnndd__mmiixxeerr__iinnffoo__tt **iinnffoo ))
+
+  Fills the *info structure with information about the mixer associated
+  with *handle. Returns zero if successful, otherwise it returns an
+  error code.
+
+  ______________________________________________________________________
+    #define SND_MIXER_INFO_CAP_EXCL_RECORD  0x00000001
+
+    struct snd_mixer_info {
+      unsigned int type;            /* type of soundcard - SND_CARD_TYPE_XXXX */
+      unsigned int channels;        /* count of mixer devices */
+      unsigned int caps;            /* some flags about this device (SND_MIXER_INFO_CAP_XXXX) */
+      unsigned char id[32];         /* ID of this mixer */
+      unsigned char name[80];       /* name of this device */
+      char reserved[ 32 ];          /* reserved for future use */
+    };
+
+  ______________________________________________________________________
+
+  44..11..66..
+
+  iinntt ssnndd__mmiixxeerr__cchhaannnneell(( vvooiidd **hhaannddllee,, ccoonnsstt cchhaarr **cchhaannnneell__iidd ))
+
+  Returns the channel number (index) associated with channel_id (channel
+  name), or returns an error code.
+
+  ______________________________________________________________________
+    #define SND_MIXER_ID_MASTER             "Master"
+    #define SND_MIXER_ID_BASS               "Bass"
+    #define SND_MIXER_ID_TREBLE             "Treble"
+    #define SND_MIXER_ID_SYNTHESIZER        "Synth"
+    #define SND_MIXER_ID_SYNTHESIZER1       "Synth 1"
+    #define SND_MIXER_ID_FM                 "FM"
+    #define SND_MIXER_ID_EFFECT             "Effect"
+    #define SND_MIXER_ID_PCM                "PCM"
+    #define SND_MIXER_ID_PCM1               "PCM 1"
+    #define SND_MIXER_ID_LINE               "Line-In"
+    #define SND_MIXER_ID_MIC                "MIC"
+    #define SND_MIXER_ID_CD                 "CD"
+    #define SND_MIXER_ID_GAIN               "Record-Gain"
+    #define SND_MIXER_ID_IGAIN              "In-Gain"
+    #define SND_MIXER_ID_OGAIN              "Out-Gain"
+    #define SND_MIXER_ID_LOOPBACK           "Loopback"
+    #define SND_MIXER_ID_SPEAKER            "PC Speaker"
+    #define SND_MIXER_ID_AUXA               "Aux A"
+    #define SND_MIXER_ID_AUXB               "Aux B"
+    #define SND_MIXER_ID_AUXC               "Aux C"
+
+  ______________________________________________________________________
+
+  44..11..77..
+
+  iinntt ssnndd__mmiixxeerr__eexxaacctt__mmooddee(( vvooiidd **hhaannddllee,, iinntt eennaabbllee ))
+
+  Turns on or off (by default) exact mode. This mode allows to
+  application set/get volume values in exact range which uses hardware.
+  In non-exact mode is range always from 0 to 100 and conversion to
+  hardware range does driver. Function returns zero if successful,
+  otherwise it returns an error code.
+
+  44..11..88..
+
+  iinntt ssnndd__mmiixxeerr__cchhaannnneell__iinnffoo(( vvooiidd **hhaannddllee,, iinntt cchhaannnneell,, ssnndd__mmiixxeerr__cchhaann--
+  nneell__iinnffoo__tt **iinnffoo ))
+  Fills the *info structure. The argument _c_h_a_n_n_e_l specifies channel (0
+  to N) for which is the info requested. Function returns zero if
+  successful, otherwise it returns an error code.
+
+  ______________________________________________________________________
+    #define SND_MIXER_CINFO_CAP_RECORD      0x00000001
+    #define SND_MIXER_CINFO_CAP_STEREO      0x00000002
+    #define SND_MIXER_CINFO_CAP_MUTE        0x00000004
+    #define SND_MIXER_CINFO_CAP_HWMUTE      0x00000008      /* channel supports hardware mute */
+    #define SND_MIXER_CINFO_CAP_DIGITAL     0x00000010      /* channel does digital (not analog) mixing */
+    #define SND_MIXER_CINOF_CAP_INPUT       0x00000020      /* input channel */
+
+    struct snd_mixer_channel_info {
+      unsigned int channel;         /* channel # (filled by application) */
+      unsigned int parent;          /* parent channel # or SND_MIXER_PARENT */
+      unsigned char name[12];       /* name of this device */
+      unsigned int caps;            /* some flags about this device (SND_MIXER_CINFO_XXXX) */
+      int min;                      /* min. value when exact mode (or always 0) */
+      int max;                      /* max. value when exact mode (or always 100) */
+      int min_dB;                   /* minimum decibel value (*100) */
+      int max_dB;                   /* maximum decibel value (*100) */
+      int step_dB;                  /* step decibel value (*100) */
+      unsigned char reserved[16];
+    };
+
+  ______________________________________________________________________
+
+  44..11..99..
+
+  iinntt ssnndd__mmiixxeerr__cchhaannnneell__rreeaadd(( vvooiidd **hhaannddllee,, iinntt cchhaannnneell,, ssnndd__mmiixxeerr__cchhaann--
+  nneell__tt **ddaattaa ))
+
+  Fills the *data structure. The argument _c_h_a_n_n_e_l specifies the channel
+  (0 to N) for which is data requested. Function returns zero if
+  successful, otherwise it returns an error code.
+
+  ______________________________________________________________________
+    #define SND_MIXER_FLG_RECORD            0x00000001      /* channel record source flag */
+    #define SND_MIXER_FLG_MUTE_LEFT         0x00010000
+    #define SND_MIXER_FLG_MUTE_RIGHT        0x00020000
+    #define SND_MIXER_FLG_MUTE              0x00030000
+    #define SND_MIXER_FLG_DECIBEL           0x40000000
+    #define SND_MIXER_FLG_FORCE             0x80000000
+
+    struct snd_mixer_channel {
+      unsigned int channel;         /* channel # (filled by application) */
+      unsigned int flags;           /* some flags to read/write (SND_MIXER_FLG_XXXX) */
+      int left;                     /* min - max when exact mode (or 0 - 100) */
+      int right;                    /* min - max when exact mode (or 0 - 100) */
+      int left_dB;                  /* dB * 100 */
+      int right_dB;                 /* dB * 100 */
+      unsigned char reserved[16];
+    };
+
+  ______________________________________________________________________
+
+     SSNNDD__MMIIXXEERR__FFLLGG__RREECCOORRDD
+        Record source flag.
+
+     SSNNDD__MMIIXXEERR__FFLLGG__DDEECCIIBBEELL
+        If this bit is set, driver set volume from dB variables _l_e_f_t___d_B
+        and _r_i_g_h_t___d_B.
+
+     SSNNDD__MMIIXXEERR__FFLLGG__FFOORRCCEE
+        Force set - this bit shouldn't be used from user space. Reserved
+        for kernel.
+
+  44..11..1100..
+
+  iinntt ssnndd__mmiixxeerr__cchhaannnneell__wwrriittee(( vvooiidd **hhaannddllee,, iinntt cchhaannnneell,,
+  ssnndd__mmiixxeerr__cchhaannnneell__tt **ddaattaa ))
+
+  Writes the *data structure to kernel. The _c_h_a_n_n_e_l argument specifies
+  the channel (0 to N) for which is data is to be applied.  Function
+  returns zero if successful, otherwise it returns an error code.  This
+  functions is the opposite of _s_n_d___m_i_x_e_r___c_h_a_n_n_e_l___r_e_a_d.
+
+  44..11..1111..
+
+  iinntt ssnndd__mmiixxeerr__ssppeecciiaall__rreeaadd(( vvooiidd **hhaannddllee,, ssnndd__mmiixxeerr__ssppeecciiaall__tt **ssppeecciiaall
+  ))
+
+  Not documented...
+
+  44..11..1122..
+
+  iinntt ssnndd__mmiixxeerr__ssppeecciiaall__wwrriittee(( vvooiidd **hhaannddllee,, ssnndd__mmiixxeerr__ssppeecciiaall__tt **ssppee--
+  cciiaall ))
+
+  Not documented...
+
+  44..11..1133..
+
+  iinntt ssnndd__mmiixxeerr__rreeaadd(( vvooiidd **hhaannddllee,, ssnndd__mmiixxeerr__ccaallllbbaacckkss__tt **ccaallllbbaacckkss ))
+
+  This function reads and parses data from driver. Parsed actions are
+  returned back to the application using the _c_a_l_l_b_a_c_k_s structure.
+  Applications should not parse data from the driver in standard cases.
+  This function returns immediately after all data is read from driver.
+  Does not block process.
+
+  ______________________________________________________________________
+    typedef struct snd_mixer_callbacks {
+      void *private_data;           /* should be used by application */
+      void (*channel_was_changed)( void *private_data, int channel );
+      void *reserved[15];           /* reserved for future use - must be NULL!!! */
+    } snd_mixer_callbacks_t;
+
+  ______________________________________________________________________
+
+  44..22..  EExxaammpplleess
+
+  The following example shows installed mixer channels for soundcard #0
+  and mixer device #0 in the system, and also sets the master volume (if
+  present) to 50.
+
+  ______________________________________________________________________
+  int card = 0, device = 0, err;
+  void *handle;
+  snd_mixer_info_t info;
+  snd_mixer_channel_t channel;
+
+  if ( (err = snd_mixer_open( &handle, card, device )) < 0 ) {
+    fprintf( stderr, "open failed: %s\n", snd_strerror( err ) );
+    return;
+  }
+  if ( (err = snd_mixer_info( handle, &info )) < 0 ) {
+    fprintf( stderr, "info failed: %s\n", snd_strerror( err ) );
+    snd_mixer_close( handle );
+    return;
+  }
+  printf( "Installed MIXER channels for card #i and device %i: %i\n",
+                                          card + 1, device, info.channels );
+  master = snd_mixer_channel( handle, SND_MIXER_ID_MASTER );
+  if ( master >= 0 ) {
+    if ( (err = snd_mixer_read( handle, master, &channel )) < 0 ) {
+      fprintf( stderr, "master read failed: %s\n", snd_strerror( err ) );
+      snd_mixer_close( handle );
+      return;
+    }
+    channel -> left = channel -> right = 50;
+    if ( (err = snd_mixer_write( handle, master, &channel )) < 0 ) {
+      fprintf( stderr, "master write failed: %s\n", snd_strerror( err ) );
+      snd_mixer_close( handle );
+      return;
+    }
+  }
+  snd_mixer_close( handle );
+  ______________________________________________________________________
+
+  55..  DDiiggiittaall AAuuddiioo ((PPCCMM)) IInntteerrffaaccee
+
+  Digital audio is the most commonly used method of representing sound
+  inside a computer. In this method sound is stored as a sequence of
+  samples taken from the audio signal using constant time intervals. A
+  sample represents volume of the signal at the moment when it was
+  measured. In uncompressed digital audio each sample require one or
+  more bytes of storage. The number of bytes required depends on number
+  of channels (mono, stereo) and sample format (8 or 16 bits, mu-Law,
+  etc.). The length of this interval determines the sampling rate.
+  Commonly used sampling rates are between 8 kHz (telephone quality) and
+  48 kHz (DAT tapes).
+
+  The physical devices used in digital audio are called the ADC (Analog
+  to Digital Converter) and DAC (Digital to Analog Converter). A device
+  containing both ADC and DAC is commonly known as a codec. The codec
+  device used in a Sound Blaster cards is called a DSP which is somewhat
+  misleading since DSP also stands for Digital Signal Processor (the SB
+  DSP chip is very limited when compared to "true" DSP chips).
+
+  Sampling parameters affect the quality of sound which can be
+  reproduced from the recorded signal. The most fundamental parameter is
+  sampling rate which limits the highest frequency than can be stored.
+  It is well known (Nyquist's Sampling Theorem) that the highest
+  frequency that can be stored in a sampled signal is at most 1/2 of the
+  sampling frequency. For example, a 8 kHz sampling rate permits the
+  recording of a signal in which the highest frequency is less than 4
+  kHz. Higher frequency signals must be filtered out before feeding them
+  to DAC.
+
+  Sample encoding limits the dynamic range of recorded signal
+  (difference between the faintest and the loudest signal that can be
+  recorded). In theory the maximum dynamic range of signal is
+  number_of_bits * 6 dB . This means that 8 bits sampling resolution
+  gives dynamic range of 48 dB and 16 bit resolution gives 96 dB.
+
+  Quality has price. The number of bytes required to store an audio
+  sequence depends on sampling rate, number of channels and sampling
+  resolution. For example just 8000 bytes of memory is required to store
+  one second of sound using 8 kHz/8 bits/mono but 48 kHz/16bit/stereo
+  takes 192 kilobytes. A 64 kbps ISDN channel is required to transfer a
+  8kHz/8bit/mono audio stream in real time, and about 1.5 Mbps is
+  required for DAT quality (48kHz/16bit/stereo).  On the other hand it
+  is possible to store just 5.46 seconds of sound in a megabyte of
+  memory when using 48kHz/16bit/stereo sampling. With 8kHz/8bits/mono it
+  is possible to store 131 seconds of sound using the same amount of
+  memory. It is possible to reduce memory and communication costs by
+  compressing the recorded signal but this is out of the scope of this
+  document.
+
+  55..11..  LLooww--LLeevveell LLaayyeerr
+
+  Audio devices are opened exclusively for a selected direction. This
+  doesn't allow open from more than one processes for the same audio
+  device in the same direction, but does allow one open call to each
+  playback direction and second open call to record direction
+  independently. Audio devices return EBUSY error to applications when
+  other applications have already opened the requested direction.
+
+  Low-Level layer supports these formats:
+
+       ______________________________________________________________________
+       #define SND_PCM_SFMT_MU_LAW             0
+       #define SND_PCM_SFMT_A_LAW              1
+       #define SND_PCM_SFMT_IMA_ADPCM          2
+       #define SND_PCM_SFMT_U8                 3
+       #define SND_PCM_SFMT_S16_LE             4
+       #define SND_PCM_SFMT_S16_BE             5
+       #define SND_PCM_SFMT_S8                 6
+       #define SND_PCM_SFMT_U16_LE             7
+       #define SND_PCM_SFMT_U16_BE             8
+       #define SND_PCM_SFMT_MPEG               9
+       #define SND_PCM_SFMT_GSM                10
+
+       #define SND_PCM_FMT_MU_LAW              (1 << SND_PCM_SFMT_MU_LAW)
+       #define SND_PCM_FMT_A_LAW               (1 << SND_PCM_SFMT_A_LAW)
+       #define SND_PCM_FMT_IMA_ADPCM           (1 << SND_PCM_SFMT_IMA_ADPCM)
+       #define SND_PCM_FMT_U8                  (1 << SND_PCM_SFMT_U8)
+       #define SND_PCM_FMT_S16_LE              (1 << SND_PCM_SFMT_S16_LE)
+       #define SND_PCM_FMT_S16_BE              (1 << SND_PCM_SFMT_S16_BE)
+       #define SND_PCM_FMT_S8                  (1 << SND_PCM_SFMT_S8)
+       #define SND_PCM_FMT_U16_LE              (1 << SND_PCM_SFMT_U16_LE)
+       #define SND_PCM_FMT_U16_BE              (1 << SND_PCM_SFMT_U16_BE)
+       #define SND_PCM_FMT_MPEG                (1 << SND_PCM_SFMT_MPEG)
+       #define SND_PCM_FMT_GSM                 (1 << SND_PCM_SFMT_GSM)
+       ______________________________________________________________________
+
+  Constants with prefix SSNNDD__PPCCMM__FFMMTT__ are used in info structures and
+  constants with prefix SSNNDD__PPCCMM__SSFFMMTT__ are used in format structures.
+  55..11..11..
+
+  iinntt ssnndd__ppccmm__ooppeenn(( vvooiidd ****hhaannddllee,, iinntt ccaarrdd,, iinntt ddeevviiccee,, iinntt mmooddee ))
+
+  Creates a new handle and opens a connection to kernel sound audio
+  interface for soundcard number _c_a_r_d (0-N) and audio device number
+  _d_e_v_i_c_e. Function also checks if protocol is compatible to prevent use
+  of old programs with a new kernel API. Function returns zero if
+  successful,ful otherwise it returns an error code.  Error code -EBUSY
+  is returned when some process ownes the selected direction.
+
+  Default format after opening is mono _m_u_-_L_a_w at 8000Hz. This device can
+  be used directly for playback of standard .au (Sparc) files.
+
+  The following modes should be used for the _m_o_d_e argument:
+
+  ______________________________________________________________________
+    #define SND_PCM_OPEN_PLAYBACK   (O_WRONLY)
+    #define SND_PCM_OPEN_RECORD     (O_RDONLY)
+    #define SND_PCM_OPEN_DUPLEX     (O_RDWR)
+
+  ______________________________________________________________________
+
+  55..11..22..
+
+  iinntt ssnndd__ppccmm__cclloossee(( vvooiidd **hhaannddllee ))
+
+  Frees all resources allocated with audio handle and closes the
+  connection to the kernel sound audio interface. Function returns zero
+  if successful, otherwise it returns an error code.
+
+  55..11..33..
+
+  iinntt ssnndd__ppccmm__ffiillee__ddeessccrriippttoorr(( vvooiidd **hhaannddllee ))
+
+  Returns the file descriptor of the connection to the kernel sound
+  audio interface. Function returns an error code if an error was
+  encountered.
+
+  The file descriptor should be used for the _s_e_l_e_c_t synchronous
+  multiplexer function for setting the read direction. Application
+  should call _s_n_d___p_c_m___r_e_a_d or _s_n_d___p_c_m___w_r_i_t_e functions if some data is
+  waiting for reading or a write can be performed. Calling this function
+  is highly recomended, as it leaves a place for the API to things like
+  data conversions, if needed.
+
+  55..11..44..
+
+  iinntt ssnndd__ppccmm__bblloocckk__mmooddee(( vvooiidd **hhaannddllee,, iinntt eennaabbllee ))
+
+  Sets up block (default) or nonblock mode for a handle. Block mode
+  suspends execution of a program when _s_n_d___p_c_m___r_e_a_d or _s_n_d___p_c_m___w_r_i_t_e is
+  called for the time which is needed for the actual playback or record
+  over of the entire buffer. In nonblock mode, programs aren't suspended
+  and the above functions returns immediately with the count of bytes
+  which were read or written by the driver. When used in this way, don't
+  try to use the entire buffer after the call, but instead process the
+  number of bytes returned, and call the function again.
+
+  55..11..55..
+
+  iinntt ssnndd__ppccmm__iinnffoo(( vvooiidd **hhaannddllee,, ssnndd__ppccmm__iinnffoo__tt **iinnffoo ))
+
+  Fills the *info structure with data about the PCM device selected by
+  *handle. Function returns zero if successful, otherwise it returns an
+  error code.
+
+  ______________________________________________________________________
+    #define SND_PCM_INFO_CODEC              0x00000001
+    #define SND_PCM_INFO_DSP                SND_PCM_INFO_CODEC
+    #define SND_PCM_INFO_MMAP               0x00000002      /* reserved */
+    #define SND_PCM_INFO_PLAYBACK           0x00000100
+    #define SND_PCM_INFO_RECORD             0x00000200
+    #define SND_PCM_INFO_DUPLEX             0x00000400
+    #define SND_PCM_INFO_DUPLEX_LIMIT       0x00000800      /* rate for playback & record are same */
+
+    struct snd_pcm_info {
+      unsigned int type;                    /* soundcard type */
+      unsigned int flags;                   /* see SND_PCM_INFO_XXXX */
+      unsigned char id[32];                 /* ID of this PCM device */
+      unsigned char name[80];               /* name of this device */
+      unsigned char reserved[64];           /* reserved for future use */
+    };
+
+  ______________________________________________________________________
+
+     SSNNDD__PPCCMM__IINNFFOO__MMMMAAPP
+        This flag is reserved and should be never used. It remains for
+        compatibility with Open Sound System driver.
+
+     SSNNDD__PPCCMM__IINNFFOO__DDUUPPLLEEXX__LLIIMMIITT
+        If this bit is set, rate must be same for playback and record
+        direction.
+
+  55..11..66..
+
+  iinntt ssnndd__ppccmm__ppllaayybbaacckk__iinnffoo(( vvooiidd **hhaannddllee,, ssnndd__ppccmm__ppllaayybbaacckk__iinnffoo__tt **iinnffoo
+  ))
+
+  Fills the *info structure with data about PCM playback. Function
+  returns zero if successful, otherwise it returns an error code.
+
+  ______________________________________________________________________
+    #define SND_PCM_PINFO_BATCH             0x00000001
+    #define SND_PCM_PINFO_8BITONLY          0x00000002
+    #define SND_PCM_PINFO_16BITONLY         0x00000004
+
+    struct snd_pcm_playback_info {
+      unsigned int flags;                   /* see SND_PCM_PINFO_XXXX */
+      unsigned int formats;                 /* supported formats */
+      unsigned int min_rate;                /* min rate (in Hz) */
+      unsigned int max_rate;                /* max rate (in Hz) */
+      unsigned int min_channels;            /* min channels (probably always 1) */
+      unsigned int max_channels;            /* max channels */
+      unsigned int buffer_size;             /* playback buffer size */
+      unsigned int min_fragment_size;       /* min fragment size in bytes */
+      unsigned int max_fragment_size;       /* max fragment size in bytes */
+      unsigned int fragment_align;          /* align fragment value */
+      unsigned char reserved[64];           /* reserved for future use */
+    };
+
+  ______________________________________________________________________
+
+     SSNNDD__PPCCMM__PPIINNFFOO__BBAATTCCHH
+        Driver implements double buffering with this device. This means
+        that the chip used for data processing has its own memory, and
+        output should be more delayed than if a traditional codec chip
+        is used.
+
+     SSNNDD__PPCCMM__PPIINNFFOO__88BBIITTOONNLLYY
+        If this bit is set, the driver uses 8-bit format for 16-bit
+        samples and does software conversion. This bit is set on broken
+        SoundBlaster 16/AWE soundcards which can't do full 16-bit
+        duplex. If this bit is set application or highter digital audio
+        layer should do the conversion from 16-bit samples to 8-bit
+        samples rather than making the driver to do it in the kernel.
+
+     SSNNDD__PPCCMM__PPIINNFFOO__1166BBIITTOONNLLYY
+        If this bit is set, driver uses 16-bit format for 8-bit samples
+        and does software conversion. This bit is set on broken
+        SoundBlaster 16/AWE soundcards which can't do full 8-bit duplex.
+        If this bit is set the application or highter digital audio
+        layer should do conversion from 8-bit samples to 16-bit samples
+        rather than making the driver to do it in the kernel.
+
+  55..11..77..
+
+  iinntt ssnndd__ppccmm__rreeccoorrdd__iinnffoo(( vvooiidd **hhaannddllee,, ssnndd__ppccmm__rreeccoorrdd__iinnffoo__tt **iinnffoo ))
+
+  Fills the *info structure. Returns zero if successful, otherwise it
+  returns an error code.
+
+  ______________________________________________________________________
+    #define SND_PCM_RINFO_BATCH             0x00000001
+    #define SND_PCM_RINFO_8BITONLY          0x00000002
+    #define SND_PCM_RINFO_16BITONLY         0x00000004
+
+    struct snd_pcm_record_info {
+      unsigned int flags;                   /* see to SND_PCM_RINFO_XXXX */
+      unsigned int formats;                 /* supported formats */
+      unsigned int min_rate;                /* min rate (in Hz) */
+      unsigned int max_rate;                /* max rate (in Hz) */
+      unsigned int min_channels;            /* min channels (probably always 1) */
+      unsigned int max_channels;            /* max channels */
+      unsigned int buffer_size;             /* record buffer size */
+      unsigned int min_fragment_size;       /* min fragment size in bytes */
+      unsigned int max_fragment_size;       /* max fragment size in bytes */
+      unsigned int fragment_align;          /* align fragment value */
+      unsigned char reserved[64];           /* reserved for future... */
+    };
+
+  ______________________________________________________________________
+
+     SSNNDD__PPCCMM__PPIINNFFOO__BBAATTCCHH
+        Driver implements buffering for this device. This means that the
+        chip used for data processing has its own memory and output
+        should be more delayed than if a traditional codec chip is used.
+
+     SSNNDD__PPCCMM__PPIINNFFOO__88BBIITTOONNLLYY
+        If this bit is set, the device uses 8-bit format for 16-bit
+        samples and does software conversion. This bit is set on broken
+        SoundBlaster 16/AWE soundcards which can't do full 16-bit
+        duplex. If this bit is set the application or highter digital
+        audio layer should do conversion from 16-bit samples to 8-bit
+        samples rather than making the driver to do it in the kernel.
+
+     SSNNDD__PPCCMM__PPIINNFFOO__1166BBIITTOONNLLYY
+        If this bit is set, the device uses a 16-bit format for 8-bit
+        samples and does software conversion. This bit is set on broken
+        SoundBlaster 16/AWE soundcards which can't do full 8-bit duplex.
+        If this bit is set the application or highter digital audio
+        layer should do the conversion from 8-bit samples to 16-bit
+        samples rather than making the driver to do it in the kernel.
+
+  55..11..88..
+
+  iinntt ssnndd__ppccmm__ppllaayybbaacckk__ffoorrmmaatt(( vvooiidd **hhaannddllee,, ssnndd__ppccmm__ffoorrmmaatt__tt **ffoorrmmaatt ))
+
+  Sets up format, rate (in Hz) and number of channels for playback, in
+  the desired direction. Function returns zero if successful, otherwise
+  it returns an error code.
+
+  ______________________________________________________________________
+    struct snd_pcm_format {
+      unsigned int format;                  /* SND_PCM_SFMT_XXXX */
+      unsigned int rate;                    /* rate in Hz */
+      unsigned int channels;                /* channels (voices) */
+      unsigned char reserved[16];
+    };
+
+  ______________________________________________________________________
+
+  55..11..99..
+
+  iinntt ssnndd__ppccmm__rreeccoorrdd__ffoorrmmaatt(( vvooiidd **hhaannddllee,, ssnndd__ppccmm__ffoorrmmaatt__tt **ffoorrmmaatt ))
+
+  Sets up format, rate (in Hz) and number of channels for used for
+  recording in the specified direction. Function returns zero if
+  successful, otherwise it returns an error code.
+
+  ______________________________________________________________________
+    struct snd_pcm_format {
+      unsigned int format;                  /* SND_PCM_SFMT_XXXX */
+      unsigned int rate;                    /* rate in Hz */
+      unsigned int channels;                /* channels (voices) */
+      unsigned char reserved[16];
+    };
+
+  ______________________________________________________________________
+
+  55..11..1100..
+
+  iinntt ssnndd__ppccmm__ppllaayybbaacckk__ppaarraammss(( vvooiidd **hhaannddllee,, ssnndd__ppccmm__ppllaayybbaacckk__ppaarraammss__tt
+  **ppaarraammss ))
+
+  Sets various parameters for playback direction. Function returns zero
+  if successful, otherwise it returns an error code.
+
+  ______________________________________________________________________
+    struct snd_pcm_playback_params {
+      int fragment_size;
+      int fragments_max;
+      int fragments_room;
+      unsigned char reserved[16];           /* must be filled with zero */
+    };
+
+  ______________________________________________________________________
+
+     ffrraaggmmeenntt__ssiizzee
+        Requested size of fragment. This value should be aligned for
+        current format (for example to 4 if stereo 16-bit samples are
+        used) or with the _f_r_a_g_m_e_n_t___a_l_i_g_n variable from
+        _s_n_d___p_c_m___p_l_a_y_b_a_c_k___i_n_f_o___t structure. Its range can be from
+        _m_i_n___f_r_a_g_m_e_n_t___s_i_z_e to _m_a_x___f_r_a_g_m_e_n_t___s_i_z_e.
+
+     ffrraaggmmeennttss__mmaaxx
+        Maximum number of fragments in queue for wakeup. This number
+        doesn't counts partly used fragment. If current count of filled
+        playback fragments is greater than this value driver block
+        application or return immediately back if nonblock mode is
+        active.
+
+     ffrraaggmmeennttss__rroooomm
+        Minumum number of fragments writeable for wakeup. This value
+        should be in most cases 1 which means return back to application
+        if at least one fragment is free for playback. This value
+        includes partly used fragments, too.
+
+  55..11..1111..
+
+  iinntt ssnndd__ppccmm__rreeccoorrdd__ppaarraammss(( vvooiidd **hhaannddllee,, ssnndd__ppccmm__rreeccoorrdd__ppaarraammss__tt
+  **ppaarraammss ))
+  Function sets various parameters for the recording direction. Function
+  returns zero if successful, otherwise it returns an error code.
+
+  ______________________________________________________________________
+    struct snd_pcm_record_params {
+      int fragment_size;
+      int fragments_min;
+      unsigned char reserved[16];
+    };
+
+  ______________________________________________________________________
+
+     ffrraaggmmeenntt__ssiizzee
+        Requested size of fragment. This value should be aligned for
+        current format (for example to 4 if stereo 16-bit samples are
+        used) or set to the _f_r_a_g_m_e_n_t___a_l_i_g_n variable from
+        _s_n_d___p_c_m___p_l_a_y_b_a_c_k___i_n_f_o___t structure. Its range can be from
+        _m_i_n___f_r_a_g_m_e_n_t___s_i_z_e to _m_a_x___f_r_a_g_m_e_n_t___s_i_z_e.
+
+     ffrraaggmmeennttss__mmiinn
+        Minimum filled fragments for wakeup. Driver blocks the
+        application (if block mode is selected) until it isn't filled
+        with number of fragments specified with this value.
+
+  55..11..1122..
+
+  iinntt ssnndd__ppccmm__ppllaayybbaacckk__ssttaattuuss(( vvooiidd **hhaannddllee,, ssnndd__ppccmm__ppllaayybbaacckk__ssttaattuuss__tt
+  **ssttaattuuss ))
+
+  Fills the *status structure. Function returns zero if successful,
+  otherwise it returns an error code.
+
+  ______________________________________________________________________
+    struct snd_pcm_playback_status {
+      unsigned int rate;
+      int fragments;
+      int fragment_size;
+      int count;
+      int queue;
+      int underrun;
+      struct timeval time;
+      struct timeval stime;
+      unsigned char reserved[16];
+    };
+
+  ______________________________________________________________________
+
+     rraattee
+        Real playback rate. This value reflects hardware limitations.
+
+     ffrraaggmmeennttss
+        Currently allocated fragments by the driver for playback
+        direction.
+
+     ffrraaggmmeenntt__ssiizzee
+        Current fragment size used by driver for the playback direction.
+
+     ccoouunntt
+        Count of bytes writeable without blocking.
+
+     qquueeuuee
+        Count of bytes in queue. Note: _(_f_r_a_g_m_e_n_t_s _* _f_r_a_g_m_e_n_t___s_i_z_e_) _-
+        _q_u_e_u_e should not be equal to _c_o_u_n_t.
+
+     uunnddeerrrruunn
+        This value tells the application the number of underruns since
+        the ast call of _s_n_d___p_c_m___p_l_a_y_b_a_c_k___s_t_a_t_u_s.
+
+     ttiimmee
+        Delay till played of the first sample from next write. This
+        value should be used for time synchronization. Returned value is
+        in the same format as returned from the standard C function
+        _g_e_t_t_i_m_e_o_f_d_a_y_( _&_t_i_m_e_, _N_U_L_L _).  This variable contains right value
+        only if playback time mode is enabled (look to
+        _s_n_d___p_c_m___p_l_a_y_b_a_c_k___t_i_m_e function).
+
+     ssttiimmee
+        Time when playback was started.  This variable contains right
+        value only if playback time mode is enabled (look to
+        _s_n_d___p_c_m___p_l_a_y_b_a_c_k___t_i_m_e function).
+
+  55..11..1133..
+
+  iinntt ssnndd__ppccmm__rreeccoorrdd__ssttaattuuss(( vvooiidd **hhaannddllee,, ssnndd__ppccmm__rreeccoorrdd__ssttaattuuss__tt **ssttaa--
+  ttuuss ))
+
+  Fills the *status structure. Function returns zero if successful,
+  otherwise it returns an error code.
+
+  ______________________________________________________________________
+    struct snd_pcm_record_status {
+      unsigned int rate;
+      int fragments;
+      int fragment_size;
+      int count;
+      int free;
+      int overrun;
+      struct timeval time;
+      unsigned char reserved[16];
+    };
+
+  ______________________________________________________________________
+
+     rraattee
+        Real record rate. This value reflects hardware limitations.
+
+     ffrraaggmmeennttss
+        Currently allocated fragments by driver for the record
+        direction.
+
+     ffrraaggmmeenntt__ssiizzee
+        Current fragment size used by driver for the record direction.
+
+     ccoouunntt
+        Count of bytes readable without blocking.
+
+     ffrreeee
+        Count of bytes in buffer still free. Note: _(_f_r_a_g_m_e_n_t_s _*
+        _f_r_a_g_m_e_n_t___s_i_z_e_) _- _f_r_e_e should not be equal to _c_o_u_n_t.
+
+     oovveerrrruunn
+        This value tells application the count of overruns since the
+        last call to _s_n_d___p_c_m___r_e_c_o_r_d___s_t_a_t_u_s.
+     ttiimmee
+        Lag since the next sample read was recorded. This value should
+        be used for time synchronization. Returned value is in the same
+        format as returned by the from standard C function _g_e_t_t_i_m_e_o_f_d_a_y_(
+        _&_t_i_m_e_, _N_U_L_L _). This variable contains right value only if record
+        time mode is enabled (look to _s_n_d___p_c_m___r_e_c_o_r_d___t_i_m_e function).
+
+     ssttiimmee
+        Time when record was started. This variable contains right value
+        only if record time mode is enabled (look to _s_n_d___p_c_m___r_e_c_o_r_d___t_i_m_e
+        function).
+
+  55..11..1144..
+
+  iinntt ssnndd__ppccmm__ddrraaiinn__ppllaayybbaacckk(( vvooiidd **hhaannddllee ))
+
+  This function drain playback buffers immediately. Function returns
+  zero if successful, otherwise it returns an error code.
+
+  55..11..1155..
+
+  iinntt ssnndd__ppccmm__fflluusshh__ppllaayybbaacckk(( vvooiidd **hhaannddllee ))
+
+  This function flushes the playback buffers. It blocks the program
+  while the all the waiting samples in kernel playback buffers are
+  processed. Function returns zero if successful, otherwise it returns
+  an error code.
+
+  55..11..1166..
+
+  iinntt ssnndd__ppccmm__fflluusshh__rreeccoorrdd(( vvooiidd **hhaannddllee ))
+
+  This function flushes (destroyes) record buffers. Function returns
+  zero if successful, otherwise it returns an error code.
+
+  55..11..1177..
+
+  iinntt ssnndd__ppccmm__ppllaayybbaacckk__ttiimmee(( vvooiidd **hhaannddllee,, iinntt eennaabbllee ))
+
+  This function enables or disables time mode for playback direction.
+  Time mode allows to application better time synchronization. Function
+  returns zero if successful, otherwise it returns an error code.
+
+  55..11..1188..
+
+  iinntt ssnndd__ppccmm__rreeccoorrdd__ttiimmee(( vvooiidd **hhaannddllee,, iinntt eennaabbllee ))
+
+  This function enables or disables time mode for record direction. Time
+  mode allows to application better time synchronization. Function
+  returns zero if successful, otherwise it returns an error code.
+
+  55..11..1199..
+
+  ssssiizzee__tt ssnndd__ppccmm__wwrriittee(( vvooiidd **hhaannddllee,, ccoonnsstt vvooiidd **bbuuffffeerr,, ssiizzee__tt ssiizzee ))
+
+  Writes samples to the device which must be in the proper format
+  specified by the _s_n_d___p_c_m___p_l_a_y_b_a_c_k___f_o_r_m_a_t function. Function returns
+  zero or positive value if playback was successful (value represents
+  count of bytes which was successfuly written to device) or an error
+  value if error occured. Function should suspend process if block mode
+  is active.
+
+  55..11..2200..
+
+  ssssiizzee__tt ssnndd__ppccmm__rreeaadd(( vvooiidd **hhaannddllee,, vvooiidd **bbuuffffeerr,, ssiizzee__tt ssiizzee ))
+
+  Function reads samples from driver. Samples are in format specified by
+  _s_n_d___p_c_m___r_e_c_o_r_d___f_o_r_m_a_t function. Function returns zero or positive
+  value if record was success (value represents count of bytes which was
+  successfuly read from device) or negative error value if error
+  occured. Function should suspend process if block mode is active.
+
+  55..22..  EExxaammpplleess
+
+  The following example shows how to play the first 512kB from the
+  /tmp/test.au file with soundcard #0 and PCM device #0:
+
+       ______________________________________________________________________
+       int card = 0, device = 0, err, fd, count, size, idx;
+       void *handle;
+       snd_pcm_format_t format;
+       char *buffer;
+
+       buffer = (char *)malloc( 512 * 1024 );
+       if ( !buffer ) return;
+       if ( (err = snd_pcm_open( &handle, card, device, SND_PCM_OPEN_PLAYBACK )) < 0 ) {
+         fprintf( stderr, "open failed: %s\n", snd_strerror( err ) );
+         return;
+       }
+       format.format = SND_PCM_SFMT_MU_LAW;
+       format.rate = 8000;
+       format.voices = 1;
+       if ( (err = snd_pcm_playback_format( handle, &format )) < 0 ) {
+         fprintf( stderr, "format setup failed: %s\n", snd_strerror( err ) );
+         snd_pcm_close( handle );
+         return;
+       }
+       fd = open( "/tmp/test.au" );
+       if ( fd < 0 ) {
+         perror( "open file" );
+         snd_pcm_close( handle );
+         return;
+       }
+       idx = 0;
+       count = read( fd, buffer, 512 * 1024 );
+       if ( count <= 0 ) {
+         perror( "read from file" );
+         snd_pcm_close( handle );
+         return;
+       }
+       close( fd );
+       if ( !memcmp( buffer, ".snd", 4 ) ) {
+         idx = (buffer[4]<<24)|(buffer[5]<<16)|(buffer[6]<<8)|(buffer[7]);
+         if ( idx > 128 ) idx = 128;
+         if ( idx > count ) idx = count;
+       }
+       size = snd_pcm_write( handle, &buffer[ idx ], count - idx );
+       printf( "Bytes written %i from %i...\n", size, count - idx );
+       snd_pcm_close( handle );
+       free( buffer );
+       ______________________________________________________________________
+

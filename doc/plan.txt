@@ -1,0 +1,47 @@
+
+			      ALSA library plan
+			      =================
+
+=====
+ST: Status of coding
+NT: Note
+RP: Responsible person
+
+This file is maintained by Jaroslav Kysela <perex@jcu.cz>.
+===== 
+
+				Library code
+				============
+
+1: Control interface routines
+   ST: Low-Level code done
+   RP: Jaroslav Kysela <perex@jcu.cz>
+1.1: Network layer
+2: MIXER routines
+   ST: Low-Level code done
+   RP: Jaroslav Kysela <perex@jcu.cz>
+2.1: Network layer
+3: PCM routines
+   ST: Low-Level code done
+   RP: Jaroslav Kysela <perex@jcu.cz>
+3.1: Network layer + mixing routines to allow playback more than one input
+     to one exclusive device
+3.2: Player routines for digital data (.wav,.snd,.mp3 etc...) (???)
+4: Instrument loading routines
+4.1: Network layer
+4.2: Instrument format interface
+4.2.1: GF1 patches (.pat)
+4.2.2: AMD FFFF
+4.2.3: SoundFont (for SoundBlaster)
+4.2.4: FM/OPL3 instrument formats
+5: Raw FM/OPL3 interface
+6: SYNTH interface
+6.1: Network layer
+6.2: player for .MOD,.S3M etc. (???)
+7: Instrument server interface
+8: Instrument configuration routines for MIDI
+9: raw MIDI interface
+9.1: Network layer
+10: sequenced MIDI interface
+10.1: Network layer
+10.2: player for MIDI files
