@@ -5,6 +5,22 @@
  *                                                                          *
  ****************************************************************************/
 
+/* FM instrument support */
+
+typedef void snd_instr_fm_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm, const char *name, snd_seq_instr_put_t **put, size_t *size);
+int snd_instr_fm_convert_from_stream(snd_seq_instr_get_t *data, size_t size, snd_instr_fm_t **fm);
+int snd_instr_fm_free(snd_instr_fm_t *fm);
+
+#ifdef __cplusplus
+}
+#endif
+
 /* Simple Wave support */
 
 typedef void snd_instr_simple_t;
@@ -42,4 +58,3 @@ int snd_instr_iwffff_free(snd_instr_iwffff_t *iwffff);
 #ifdef __cplusplus
 }
 #endif
-
