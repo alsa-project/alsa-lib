@@ -30,6 +30,8 @@
 #include "pcm_ioplug.h"
 #include "pcm_ext_parm.h"
 
+#ifndef DOC_HIDDEN
+
 /* hw_params */
 typedef struct snd_pcm_ioplug_priv {
 	snd_pcm_ioplug_t *data;
@@ -700,55 +702,35 @@ static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.mmap_commit = snd_pcm_ioplug_mmap_commit,
 };
 
-void snd_pcm_ioplug_params_reset(snd_pcm_ioplug_t *ioplug)
-{
-	ioplug_priv_t *io = ioplug->pcm->private_data;
-	clear_io_params(io);
-}
+#endif /* !DOC_HIDDEN */
 
-int snd_pcm_ioplug_set_param_list(snd_pcm_ioplug_t *ioplug, int type, unsigned int num_list, const unsigned int *list)
-{
-	ioplug_priv_t *io = ioplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_IOPLUG_HW_PARAMS) {
-		SNDERR("IOPLUG: invalid parameter type %d", type);
-		return -EINVAL;
-	}
-	if (type == SND_PCM_IOPLUG_HW_PERIODS)
-		io->params[type].integer = 1;
-	return snd_ext_parm_set_list(&io->params[type], num_list, list);
-}
+/*
+ * Exported functions
+ */
 
-int snd_pcm_ioplug_set_param_minmax(snd_pcm_ioplug_t *ioplug, int type, unsigned int min, unsigned int max)
-{
-	ioplug_priv_t *io = ioplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_IOPLUG_HW_PARAMS) {
-		SNDERR("IOPLUG: invalid parameter type %d", type);
-		return -EINVAL;
-	}
-	if (type == SND_PCM_IOPLUG_HW_ACCESS || type == SND_PCM_IOPLUG_HW_FORMAT) {
-		SNDERR("IOPLUG: invalid parameter type %d", type);
-		return -EINVAL;
-	}
-	if (type == SND_PCM_IOPLUG_HW_PERIODS)
-		io->params[type].integer = 1;
-	return snd_ext_parm_set_minmax(&io->params[type], min, max);
-}
+/*! \page pcm_external_plugins
 
-int snd_pcm_ioplug_reinit_status(snd_pcm_ioplug_t *ioplug)
-{
-	ioplug->pcm->poll_fd = ioplug->poll_fd;
-	ioplug->pcm->poll_events = ioplug->poll_events;
-	ioplug->pcm->mmap_rw = ioplug->mmap_rw;
-	return 0;
-}
+\section pcm_ioplug External Plugin: I/O Plugin
 
-const snd_pcm_channel_area_t *snd_pcm_ioplug_mmap_areas(snd_pcm_ioplug_t *ioplug)
-{
-	if (ioplug->mmap_rw)
-		return snd_pcm_mmap_areas(ioplug->pcm);
-	return NULL;
-}
+The I/O-type plugin is a PCM plugin to work as the input or output terminal point,
+i.e. as a user-space PCM driver.
 
+*/
+
+/**
+ * \brief Create an ioplug instance
+ * \param ioplug the ioplug handle
+ * \param name name of PCM
+ * \param stream stream direction
+ * \param mode PCM open mode
+ * \return 0 if successful, or a negative error code
+ *
+ * Creates the ioplug instance.
+ *
+ * The callback is the mandatory field of ioplug handle.  At least, start, stop and
+ * pointer callbacks must be set before calling this function.
+ *
+ */
 int snd_pcm_ioplug_create(snd_pcm_ioplug_t *ioplug, const char *name,
 			  snd_pcm_stream_t stream, int mode)
 {
@@ -788,8 +770,108 @@ int snd_pcm_ioplug_create(snd_pcm_ioplug_t *ioplug, const char *name,
 	return 0;
 }
 
+/**
+ * \brief Delete the ioplug instance
+ * \param ioplug the ioplug handle
+ * \return 0 if successful, or a negative error code
+ */
 int snd_pcm_ioplug_delete(snd_pcm_ioplug_t *ioplug)
 {
 	return snd_pcm_close(ioplug->pcm);
 }
 
+
+/**
+ * \brief Reset ioplug parameters
+ * \param ioplug the ioplug handle
+ *
+ * Resets the all parameters for the given ioplug handle.
+ */
+void snd_pcm_ioplug_params_reset(snd_pcm_ioplug_t *ioplug)
+{
+	ioplug_priv_t *io = ioplug->pcm->private_data;
+	clear_io_params(io);
+}
+
+/**
+ * \brief Set parameter as the list
+ * \param ioplug the ioplug handle
+ * \param type parameter type
+ * \param num_list number of available values
+ * \param list the list of available values
+ * \return 0 if successful, or a negative error code
+ *
+ * Sets the parameter as the list.
+ * The available values of the given parameter type is restricted to the ones of the given list.
+ */
+int snd_pcm_ioplug_set_param_list(snd_pcm_ioplug_t *ioplug, int type, unsigned int num_list, const unsigned int *list)
+{
+	ioplug_priv_t *io = ioplug->pcm->private_data;
+	if (type < 0 && type >= SND_PCM_IOPLUG_HW_PARAMS) {
+		SNDERR("IOPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	if (type == SND_PCM_IOPLUG_HW_PERIODS)
+		io->params[type].integer = 1;
+	return snd_ext_parm_set_list(&io->params[type], num_list, list);
+}
+
+/**
+ * \brief Set parameter as the min/max values
+ * \param ioplug the ioplug handle
+ * \param type parameter type
+ * \param min the minimum value
+ * \param max the maximum value
+ * \return 0 if successful, or a negative error code
+ *
+ * Sets the parameter as the min/max values.
+ * The available values of the given parameter type is restricted between the given
+ * minimum and maximum values.
+ */
+int snd_pcm_ioplug_set_param_minmax(snd_pcm_ioplug_t *ioplug, int type, unsigned int min, unsigned int max)
+{
+	ioplug_priv_t *io = ioplug->pcm->private_data;
+	if (type < 0 && type >= SND_PCM_IOPLUG_HW_PARAMS) {
+		SNDERR("IOPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	if (type == SND_PCM_IOPLUG_HW_ACCESS || type == SND_PCM_IOPLUG_HW_FORMAT) {
+		SNDERR("IOPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	if (type == SND_PCM_IOPLUG_HW_PERIODS)
+		io->params[type].integer = 1;
+	return snd_ext_parm_set_minmax(&io->params[type], min, max);
+}
+
+/**
+ * \brief Reinitialize the poll and mmap status
+ * \param ioplug the ioplug handle
+ * \return 0 if successful, or a negative error code
+ *
+ * Reinitializes the poll and the mmap status of the PCM.
+ * Call this function to propagate the status change in the ioplug instance to
+ * its PCM internals.
+ */
+int snd_pcm_ioplug_reinit_status(snd_pcm_ioplug_t *ioplug)
+{
+	ioplug->pcm->poll_fd = ioplug->poll_fd;
+	ioplug->pcm->poll_events = ioplug->poll_events;
+	ioplug->pcm->mmap_rw = ioplug->mmap_rw;
+	return 0;
+}
+
+/**
+ * \brief Get mmap area of ioplug
+ * \param ioplug the ioplug handle
+ * \return the mmap channel areas if available, or NULL
+ *
+ * Returns the mmap channel areas if available.  When mmap_rw field is not set,
+ * this function always returns NULL.
+ */
+const snd_pcm_channel_area_t *snd_pcm_ioplug_mmap_areas(snd_pcm_ioplug_t *ioplug)
+{
+	if (ioplug->mmap_rw)
+		return snd_pcm_mmap_areas(ioplug->pcm);
+	return NULL;
+}

@@ -1,7 +1,7 @@
 /**
  * \file pcm/pcm_extplug.c
  * \ingroup Plugin_SDK
- * \brief External Plugin SDK
+ * \brief External Filter Plugin SDK
  * \author Takashi Iwai <tiwai@suse.de>
  * \date 2005
  */
@@ -31,6 +31,8 @@
 #include "pcm_extplug.h"
 #include "pcm_ext_parm.h"
 
+#ifndef DOC_HIDDEN
+
 typedef struct snd_pcm_extplug_priv {
 	snd_pcm_plugin_t plug;
 	snd_pcm_extplug_t *data;
@@ -54,8 +56,8 @@ static unsigned int excl_parbits[SND_PCM_EXTPLUG_HW_PARAMS] = {
 };
 
 /*
+ * set min/max values for the given parameter
  */
-
 int snd_ext_parm_set_minmax(struct snd_ext_parm *parm, unsigned int min, unsigned int max)
 {
 	parm->num_list = 0;
@@ -67,6 +69,9 @@ int snd_ext_parm_set_minmax(struct snd_ext_parm *parm, unsigned int min, unsigne
 	return 0;
 }
 
+/*
+ * set the list of available values for the given parameter
+ */
 static int val_compar(const void *ap, const void *bp)
 {
 	return *(const unsigned int *)ap - *(const unsigned int *)bp;
@@ -95,6 +100,9 @@ void snd_ext_parm_clear(struct snd_ext_parm *parm)
 	memset(parm, 0, sizeof(*parm));
 }
 
+/*
+ * limit the interval to the given list
+ */
 int snd_interval_list(snd_interval_t *ival, int num_list, unsigned int *list)
 {
 	int imin, imax;
@@ -129,6 +137,9 @@ int snd_interval_list(snd_interval_t *ival, int num_list, unsigned int *list)
 	return changed;
 }
 
+/*
+ * refine the interval parameter
+ */
 int snd_ext_parm_interval_refine(snd_interval_t *ival, struct snd_ext_parm *parm, int type)
 {
 	parm += type;
@@ -147,6 +158,9 @@ int snd_ext_parm_interval_refine(snd_interval_t *ival, struct snd_ext_parm *parm
 	return 0;
 }
 
+/*
+ * refine the mask parameter
+ */
 int snd_ext_parm_mask_refine(snd_mask_t *mask, struct snd_ext_parm *parm, int type)
 {
 	snd_mask_t bits;
@@ -161,8 +175,8 @@ int snd_ext_parm_mask_refine(snd_mask_t *mask, struct snd_ext_parm *parm, int ty
 
 
 /*
+ * hw_refine callback
  */
-
 static int extplug_hw_refine(snd_pcm_hw_params_t *hw_params,
 			     struct snd_ext_parm *parm)
 {
@@ -268,6 +282,9 @@ static int snd_pcm_extplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
 				       snd_pcm_generic_hw_refine);
 }
 
+/*
+ * hw_params callback
+ */
 static int snd_pcm_extplug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 
@@ -294,6 +311,9 @@ static int snd_pcm_extplug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
 	return 0;
 }
 
+/*
+ * hw_free callback
+ */
 static int snd_pcm_extplug_hw_free(snd_pcm_t *pcm)
 {
 	extplug_priv_t *ext = pcm->private_data;
@@ -304,6 +324,9 @@ static int snd_pcm_extplug_hw_free(snd_pcm_t *pcm)
 	return 0;
 }
 
+/*
+ * write_areas skeleton - call transfer callback
+ */
 static snd_pcm_uframes_t
 snd_pcm_extplug_write_areas(snd_pcm_t *pcm,
 			    const snd_pcm_channel_area_t *areas,
@@ -317,12 +340,15 @@ snd_pcm_extplug_write_areas(snd_pcm_t *pcm,
 
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	ext->data->callback->transfer(ext->data, slave_areas, slave_offset,
-				      areas, offset, size);
+	size = ext->data->callback->transfer(ext->data, slave_areas, slave_offset,
+					     areas, offset, size);
 	*slave_sizep = size;
 	return size;
 }
 
+/*
+ * read_areas skeleton - call transfer callback
+ */
 static snd_pcm_uframes_t
 snd_pcm_extplug_read_areas(snd_pcm_t *pcm,
 			   const snd_pcm_channel_area_t *areas,
@@ -336,12 +362,15 @@ snd_pcm_extplug_read_areas(snd_pcm_t *pcm,
 
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	ext->data->callback->transfer(ext->data, areas, offset,
-				      slave_areas, slave_offset, size);
+	size = ext->data->callback->transfer(ext->data, areas, offset,
+					     slave_areas, slave_offset, size);
 	*slave_sizep = size;
 	return size;
 }
 
+/*
+ * dump setup
+ */
 static void snd_pcm_extplug_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	extplug_priv_t *ext = pcm->private_data;
@@ -399,63 +428,41 @@ static snd_pcm_ops_t snd_pcm_extplug_ops = {
 	.munmap = snd_pcm_generic_munmap,
 };
 
+#endif /* !DOC_HIDDEN */
+
 /*
+ * Exported functions
  */
-void snd_pcm_extplug_params_reset(snd_pcm_extplug_t *extplug)
-{
-	extplug_priv_t *ext = extplug->pcm->private_data;
-	clear_ext_params(ext);
-}
 
-int snd_pcm_extplug_set_slave_param_list(snd_pcm_extplug_t *extplug, int type, unsigned int num_list, const unsigned int *list)
-{
-	extplug_priv_t *ext = extplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
-		return -EINVAL;
-	}
-	return snd_ext_parm_set_list(&ext->sparams[type], num_list, list);
-}
+/*! \page pcm_external_plugins
 
-int snd_pcm_extplug_set_slave_param_minmax(snd_pcm_extplug_t *extplug, int type, unsigned int min, unsigned int max)
-{
-	extplug_priv_t *ext = extplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
-		return -EINVAL;
-	}
-	if (is_mask_type(type)) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
-		return -EINVAL;
-	}
-	return snd_ext_parm_set_minmax(&ext->sparams[type], min, max);
-}
+\section pcm_extplug External Plugin: Filter-Type Plugin
 
-int snd_pcm_extplug_set_param_list(snd_pcm_extplug_t *extplug, int type, unsigned int num_list, const unsigned int *list)
-{
-	extplug_priv_t *ext = extplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
-		return -EINVAL;
-	}
-	return snd_ext_parm_set_list(&ext->params[type], num_list, list);
-}
+The filter-type plugin is a plugin to convert the PCM signals from the input
+and feeds to the output.  Thus, this plugin always needs a slave PCM as its output.
 
-int snd_pcm_extplug_set_param_minmax(snd_pcm_extplug_t *extplug, int type, unsigned int min, unsigned int max)
-{
-	extplug_priv_t *ext = extplug->pcm->private_data;
-	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
-		return -EINVAL;
-	}
-	if (is_mask_type(type)) {
-		SNDERR("EXTPLUG: invalid parameter type %d", type);
-		return -EINVAL;
-	}
-	return snd_ext_parm_set_minmax(&ext->params[type], min, max);
-}
+The plugin can modify the format and the channels of the input/output PCM.
+It can <i>not</i> modify the sample rate (because of simplicity reason).
 
-/*
+*/
+
+/**
+ * \brief Create an extplug instance
+ * \param extplug the extplug handle
+ * \param name name of the PCM
+ * \param root configuration tree root
+ * \param slave_conf slave configuration root
+ * \param stream stream direction
+ * \param mode PCM open mode
+ * \return 0 if successful, or a negative error code
+ *
+ * Creates the extplug instance based on the given handle.
+ * The slave_conf argument is mandatory, and usually taken from the config tree of the
+ * PCM plugin as "slave" config value.
+ * name, root, stream and mode arguments are the values used for opening the PCM.
+ *
+ * The callback is the mandatory field of extplug handle.  At least, transfer callback
+ * must be set before calling this function.
  */
 int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 			   snd_config_t *root, snd_config_t *slave_conf,
@@ -466,8 +473,10 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	snd_pcm_t *spcm, *pcm;
 	snd_config_t *sconf;
 
+	assert(root);
 	assert(extplug && extplug->callback);
 	assert(extplug->callback->transfer);
+	assert(slave_conf);
 
 	err = snd_pcm_slave_conf(root, slave_conf, &sconf, 0);
 	if (err < 0)
@@ -510,7 +519,125 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	return 0;
 }
 
+/**
+ * \brief Delete the extplug instance
+ * \param extplug the extplug handle to delete
+ * \return 0 if successful, or a negative error code
+ *
+ * The destructor of extplug instance.
+ * Closes the PCM and deletes the associated resources.
+ */
 int snd_pcm_extplug_delete(snd_pcm_extplug_t *extplug)
 {
 	return snd_pcm_close(extplug->pcm);
 }
+
+
+/**
+ * \brief Reset extplug parameters
+ * \param extplug the extplug handle
+ *
+ * Resets the all parameters for the given extplug handle.
+ */
+void snd_pcm_extplug_params_reset(snd_pcm_extplug_t *extplug)
+{
+	extplug_priv_t *ext = extplug->pcm->private_data;
+	clear_ext_params(ext);
+}
+
+/**
+ * \brief Set slave parameter as the list
+ * \param extplug the extplug handle
+ * \param type parameter type
+ * \param num_list number of available values
+ * \param list the list of available values
+ * \return 0 if successful, or a negative error code
+ *
+ * Sets the slave parameter as the list.
+ * The available values of the given parameter type of the slave PCM is restricted
+ * to the ones of the given list.
+ */
+int snd_pcm_extplug_set_slave_param_list(snd_pcm_extplug_t *extplug, int type, unsigned int num_list, const unsigned int *list)
+{
+	extplug_priv_t *ext = extplug->pcm->private_data;
+	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
+		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	return snd_ext_parm_set_list(&ext->sparams[type], num_list, list);
+}
+
+/**
+ * \brief Set slave parameter as the min/max values
+ * \param extplug the extplug handle
+ * \param type parameter type
+ * \param min the minimum value
+ * \param max the maximum value
+ * \return 0 if successful, or a negative error code
+ *
+ * Sets the slave parameter as the min/max values.
+ * The available values of the given parameter type of the slave PCM is restricted
+ * between the given minimum and maximum values.
+ */
+int snd_pcm_extplug_set_slave_param_minmax(snd_pcm_extplug_t *extplug, int type, unsigned int min, unsigned int max)
+{
+	extplug_priv_t *ext = extplug->pcm->private_data;
+	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
+		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	if (is_mask_type(type)) {
+		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	return snd_ext_parm_set_minmax(&ext->sparams[type], min, max);
+}
+
+/**
+ * \brief Set master parameter as the list
+ * \param extplug the extplug handle
+ * \param type parameter type
+ * \param num_list number of available values
+ * \param list the list of available values
+ * \return 0 if successful, or a negative error code
+ *
+ * Sets the master parameter as the list.
+ * The available values of the given parameter type of this PCM (as input) is restricted
+ * to the ones of the given list.
+ */
+int snd_pcm_extplug_set_param_list(snd_pcm_extplug_t *extplug, int type, unsigned int num_list, const unsigned int *list)
+{
+	extplug_priv_t *ext = extplug->pcm->private_data;
+	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
+		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	return snd_ext_parm_set_list(&ext->params[type], num_list, list);
+}
+
+/**
+ * \brief Set master parameter as the min/max values
+ * \param extplug the extplug handle
+ * \param type parameter type
+ * \param min the minimum value
+ * \param max the maximum value
+ * \return 0 if successful, or a negative error code
+ *
+ * Sets the master parameter as the min/max values.
+ * The available values of the given parameter type of this PCM (as input) is restricted
+ * between the given minimum and maximum values.
+ */
+int snd_pcm_extplug_set_param_minmax(snd_pcm_extplug_t *extplug, int type, unsigned int min, unsigned int max)
+{
+	extplug_priv_t *ext = extplug->pcm->private_data;
+	if (type < 0 && type >= SND_PCM_EXTPLUG_HW_PARAMS) {
+		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	if (is_mask_type(type)) {
+		SNDERR("EXTPLUG: invalid parameter type %d", type);
+		return -EINVAL;
+	}
+	return snd_ext_parm_set_minmax(&ext->params[type], min, max);
+}
+

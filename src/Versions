@@ -189,4 +189,6 @@ ALSA_1.0.9 {
     snd_pcm_extplug_set_slave_param_list;
     snd_pcm_extplug_set_slave_param_minmax;
 
+    snd_pcm_parse_control_id;
+
 } ALSA_1.0.5;

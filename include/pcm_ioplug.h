@@ -22,70 +22,123 @@
 #ifndef __ALSA_PCM_IOPLUG_H
 #define __ALSA_PCM_IOPLUG_H
 
-/* hw constraints */
+/** hw constraints for ioplug */
 enum {
-	SND_PCM_IOPLUG_HW_ACCESS = 0,
-	SND_PCM_IOPLUG_HW_FORMAT,
-	SND_PCM_IOPLUG_HW_CHANNELS,
-	SND_PCM_IOPLUG_HW_RATE,
-	SND_PCM_IOPLUG_HW_PERIOD_BYTES,
-	SND_PCM_IOPLUG_HW_BUFFER_BYTES,
-	SND_PCM_IOPLUG_HW_PERIODS,
-	SND_PCM_IOPLUG_HW_PARAMS
+	SND_PCM_IOPLUG_HW_ACCESS = 0,	/**< access type */
+	SND_PCM_IOPLUG_HW_FORMAT,	/**< format */
+	SND_PCM_IOPLUG_HW_CHANNELS,	/**< channels */
+	SND_PCM_IOPLUG_HW_RATE,		/**< rate */
+	SND_PCM_IOPLUG_HW_PERIOD_BYTES,	/**< period bytes */
+	SND_PCM_IOPLUG_HW_BUFFER_BYTES,	/**< buffer bytes */
+	SND_PCM_IOPLUG_HW_PERIODS,	/**< number of periods */
+	SND_PCM_IOPLUG_HW_PARAMS	/**< max number of hw constraints */
 };
 	
 typedef struct snd_pcm_ioplug snd_pcm_ioplug_t;
 typedef struct snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
 
-#define SND_PCM_IOPLUG_FLAG_LISTED	(1<<0)
+/**
+ * bit flags for additional conditions
+ */
+#define SND_PCM_IOPLUG_FLAG_LISTED	(1<<0)		/* list up this PCM */
 
-/* exported pcm data */
+/** handle of ioplug */
 struct snd_pcm_ioplug {
-	/* must be filled before calling snd_pcm_ioplug_create() */
+	/**
+	 * name of this plugin; must be filled before calling #snd_pcm_ioplug_create()
+	 */
 	const char *name;
-	unsigned int flags;	/* SND_PCM_IOPLUG_FLAG_XXX */
-	int poll_fd;
-	unsigned int poll_events;
-	unsigned int mmap_rw;		/* pseudo mmap */
+	unsigned int flags;	/**< SND_PCM_IOPLUG_FLAG_XXX */
+	int poll_fd;		/**< poll file descriptor */
+	unsigned int poll_events;	/**< poll events */
+	unsigned int mmap_rw;		/**< pseudo mmap mode */
+	/**
+	 * callbacks of this plugin; must be filled before calling #snd_pcm_ioplug_create()
+	 */
 	const snd_pcm_ioplug_callback_t *callback;
+	/**
+	 * private data, which can be used freely in the driver callbacks
+	 */
 	void *private_data;
-	/* filled by snd_pcm_ioplug_open() */
+	/**
+	 * PCM handle filled by #snd_pcm_extplug_create()
+	 */
 	snd_pcm_t *pcm;
-	/* read-only status */
-	snd_pcm_stream_t stream;
-	snd_pcm_state_t state;
-	volatile snd_pcm_uframes_t appl_ptr;
-	volatile snd_pcm_uframes_t hw_ptr;
-	int nonblock;
-	/* filled in hw_params */
-	snd_pcm_access_t access;
-	snd_pcm_format_t format;
-	unsigned int channels;
-	unsigned int rate;
-	snd_pcm_uframes_t period_size;
-	snd_pcm_uframes_t buffer_size;
+
+	snd_pcm_stream_t stream;	/* stream direcion; read-only */	
+	snd_pcm_state_t state;		/* current PCM state; read-only */
+	volatile snd_pcm_uframes_t appl_ptr;	/* application pointer; read-only */
+	volatile snd_pcm_uframes_t hw_ptr;	/* hw pointer; read-only */
+	int nonblock;			/* non-block mode; read-only */
+
+	snd_pcm_access_t access;	/* access type; filled after hw_params is called */
+	snd_pcm_format_t format;	/* format; filled after hw_params is called */
+	unsigned int channels;		/* channels; filled after hw_params is called */
+	unsigned int rate;		/* rate; filled after hw_params is called */
+	snd_pcm_uframes_t period_size;	/* period size; filled after hw_params is called */
+	snd_pcm_uframes_t buffer_size;	/* buffer size; filled after hw_params is called */
 };
 
-/* callback table */
+/** callback table of ioplug */
 struct snd_pcm_ioplug_callback {
-	/* required */
+	/**
+	 * start the PCM; required
+	 */
 	int (*start)(snd_pcm_ioplug_t *io);
+	/**
+	 * stop the PCM; required
+	 */
 	int (*stop)(snd_pcm_ioplug_t *io);
+	/**
+	 * get the current DMA position; required
+	 */
 	snd_pcm_sframes_t (*pointer)(snd_pcm_ioplug_t *io);
-	/* optional */
+	/**
+	 * transfer the data; optional
+	 */
 	snd_pcm_sframes_t (*transfer)(snd_pcm_ioplug_t *io,
 				      const snd_pcm_channel_area_t *areas,
 				      snd_pcm_uframes_t offset,
 				      snd_pcm_uframes_t size);
+	/**
+	 * close the PCM; optional
+	 */
 	int (*close)(snd_pcm_ioplug_t *io);
+	/**
+	 * hw_params; optional
+	 */
 	int (*hw_params)(snd_pcm_ioplug_t *io, snd_pcm_hw_params_t *params);
+	/**
+	 * hw_free; optional
+	 */
 	int (*hw_free)(snd_pcm_ioplug_t *io);
+	/**
+	 * sw_params; optional
+	 */
 	int (*sw_params)(snd_pcm_ioplug_t *io, snd_pcm_sw_params_t *params);
+	/**
+	 * prepare; optional
+	 */
 	int (*prepare)(snd_pcm_ioplug_t *io);
+	/**
+	 * drain; optional
+	 */
 	int (*drain)(snd_pcm_ioplug_t *io);
+	/**
+	 * toggle pause; optional
+	 */
 	int (*pause)(snd_pcm_ioplug_t *io, int enable);
+	/**
+	 * resume; optional
+	 */
 	int (*resume)(snd_pcm_ioplug_t *io);
+	/**
+	 * mangle poll events; optional
+	 */
 	int (*poll_revents)(snd_pcm_ioplug_t *io, struct pollfd *pfd, unsigned int nfds, unsigned short *revents);
+	/**
+	 * dump; optional
+	 */
 	void (*dump)(snd_pcm_ioplug_t *io, snd_output_t *out);
 };
 

@@ -22,48 +22,94 @@
 #ifndef __ALSA_PCM_EXTPLUG_H
 #define __ALSA_PCM_EXTPLUG_H
 
-/* hw constraints */
+/** hw constraints for extplug */
 enum {
-	SND_PCM_EXTPLUG_HW_FORMAT,
-	SND_PCM_EXTPLUG_HW_CHANNELS,
-	SND_PCM_EXTPLUG_HW_PARAMS
+	SND_PCM_EXTPLUG_HW_FORMAT,	/**< format */
+	SND_PCM_EXTPLUG_HW_CHANNELS,	/**< channels */
+	SND_PCM_EXTPLUG_HW_PARAMS	/**< max number of hw constraints */
 };
 	
 typedef struct snd_pcm_extplug snd_pcm_extplug_t;
 typedef struct snd_pcm_extplug_callback snd_pcm_extplug_callback_t;
 
-/* exported pcm data */
+/** handle of extplug */
 struct snd_pcm_extplug {
-	/* must be filled before calling snd_pcm_extplug_create() */
+	/**
+	 * name of this plugin; must be filled before calling #snd_pcm_extplug_create()
+	 */
 	const char *name;
+	/**
+	 * callbacks of this plugin; must be filled before calling #snd_pcm_extplug_create()
+	 */
 	const snd_pcm_extplug_callback_t *callback;
+	/**
+	 * private data, which can be used freely in the driver callbacks
+	 */
 	void *private_data;
-	/* filled by snd_pcm_extplug_open() */
+	/**
+	 * PCM handle filled by #snd_pcm_extplug_create()
+	 */
 	snd_pcm_t *pcm;
-	/* read-only status */
+	/**
+	 * stream direction; read-only status
+	 */
 	snd_pcm_stream_t stream;
-	/* filled in hw_params */
+	/**
+	 * format hw parameter; filled after hw_params is caled
+	 */
 	snd_pcm_format_t format;
+	/**
+	 * subformat hw parameter; filled after hw_params is caled
+	 */
 	snd_pcm_subformat_t subformat;
+	/**
+	 * channels hw parameter; filled after hw_params is caled
+	 */
 	unsigned int channels;
+	/**
+	 * rate hw parameter; filled after hw_params is caled
+	 */
 	unsigned int rate;
+	/**
+	 * slave_format hw parameter; filled after hw_params is caled
+	 */
 	snd_pcm_format_t slave_format;
+	/**
+	 * slave_subformat hw parameter; filled after hw_params is caled
+	 */
 	snd_pcm_subformat_t slave_subformat;
+	/**
+	 * slave_channels hw parameter; filled after hw_params is caled
+	 */
 	unsigned int slave_channels;
 };
 
-/* callback table */
+/** callback table of extplug */
 struct snd_pcm_extplug_callback {
-	/* required */
+	/**
+	 * transfer between source and destination; this is a required callback
+	 */
 	snd_pcm_sframes_t (*transfer)(snd_pcm_extplug_t *ext,
 				      const snd_pcm_channel_area_t *dst_areas,
 				      snd_pcm_uframes_t dst_offset,
 				      const snd_pcm_channel_area_t *src_areas,
 				      snd_pcm_uframes_t src_offset,
 				      snd_pcm_uframes_t size);
+	/**
+	 * close the PCM; optional
+	 */
 	int (*close)(snd_pcm_extplug_t *ext);
+	/**
+	 * hw_params; optional
+	 */
 	int (*hw_params)(snd_pcm_extplug_t *ext, snd_pcm_hw_params_t *params);
+	/**
+	 * hw_free; optional
+	 */
 	int (*hw_free)(snd_pcm_extplug_t *ext);
+	/**
+	 * dump; optional
+	 */
 	void (*dump)(snd_pcm_extplug_t *ext, snd_output_t *out);
 };
 
