@@ -217,18 +217,14 @@ struct adpcm_private_data {
 	adpcm_state_t state;
 };
 
-static void adpcm_conv_u8bit_adpcm(adpcm_state_t * state_ptr,
-				   unsigned char *src_ptr,
-				   unsigned char *dst_ptr, size_t size)
+static void adpcm_conv_u8bit_adpcm(adpcm_state_t * state_ptr, unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	unsigned int pcm;
 
 	while (size-- > 0) {
 		pcm = ((*src_ptr++) ^ 0x80) << 8;
 
-		state_ptr->io_buffer |=
-		    adpcm_encoder((signed short) (pcm),
-				  state_ptr) << state_ptr->io_shift;
+		state_ptr->io_buffer |= adpcm_encoder((signed short)(pcm), state_ptr) << state_ptr->io_shift;
 		if (!(state_ptr->io_shift)) {
 			*dst_ptr++ = state_ptr->io_buffer & 0xff;
 			state_ptr->io_buffer = 0;
@@ -240,18 +236,14 @@ static void adpcm_conv_u8bit_adpcm(adpcm_state_t * state_ptr,
 	}
 }
 
-static void adpcm_conv_s8bit_adpcm(adpcm_state_t * state_ptr,
-				   unsigned char *src_ptr,
-				   unsigned char *dst_ptr, size_t size)
+static void adpcm_conv_s8bit_adpcm(adpcm_state_t * state_ptr, unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	unsigned int pcm;
 
 	while (size-- > 0) {
 		pcm = *src_ptr++ << 8;
 
-		state_ptr->io_buffer |=
-		    adpcm_encoder((signed short) (pcm),
-				  state_ptr) << state_ptr->io_shift;
+		state_ptr->io_buffer |= adpcm_encoder((signed short)(pcm), state_ptr) << state_ptr->io_shift;
 		if (!(state_ptr->io_shift)) {
 			*dst_ptr++ = state_ptr->io_buffer & 0xff;
 			state_ptr->io_buffer = 0;
@@ -263,14 +255,10 @@ static void adpcm_conv_s8bit_adpcm(adpcm_state_t * state_ptr,
 	}
 }
 
-static void adpcm_conv_s16bit_adpcm(adpcm_state_t * state_ptr,
-				    unsigned short *src_ptr,
-				    unsigned char *dst_ptr, size_t size)
+static void adpcm_conv_s16bit_adpcm(adpcm_state_t * state_ptr, unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
-		state_ptr->io_buffer |=
-		    adpcm_encoder((signed short) (*src_ptr++),
-				  state_ptr) << state_ptr->io_shift;
+		state_ptr->io_buffer |= adpcm_encoder((signed short)(*src_ptr++), state_ptr) << state_ptr->io_shift;
 		if (!(state_ptr->io_shift)) {
 			*dst_ptr++ = state_ptr->io_buffer & 0xff;
 			state_ptr->io_buffer = 0;
@@ -282,15 +270,10 @@ static void adpcm_conv_s16bit_adpcm(adpcm_state_t * state_ptr,
 	}
 }
 
-static void adpcm_conv_s16bit_swap_adpcm(adpcm_state_t * state_ptr,
-					 unsigned short *src_ptr,
-					 unsigned char *dst_ptr,
-					 size_t size)
+static void adpcm_conv_s16bit_swap_adpcm(adpcm_state_t * state_ptr, unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
-		state_ptr->io_buffer |=
-		    adpcm_encoder((signed short) (bswap_16(*src_ptr++)),
-				  state_ptr) << state_ptr->io_shift;
+		state_ptr->io_buffer |= adpcm_encoder((signed short)(bswap_16(*src_ptr++)), state_ptr) << state_ptr->io_shift;
 		if (!(state_ptr->io_shift)) {
 			*dst_ptr++ = state_ptr->io_buffer & 0xff;
 			state_ptr->io_buffer = 0;
@@ -302,14 +285,10 @@ static void adpcm_conv_s16bit_swap_adpcm(adpcm_state_t * state_ptr,
 	}
 }
 
-static void adpcm_conv_u16bit_adpcm(adpcm_state_t * state_ptr,
-				    unsigned short *src_ptr,
-				    unsigned char *dst_ptr, size_t size)
+static void adpcm_conv_u16bit_adpcm(adpcm_state_t * state_ptr, unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
-		state_ptr->io_buffer |=
-		    adpcm_encoder((signed short) ((*src_ptr++) ^ 0x8000),
-				  state_ptr) << state_ptr->io_shift;
+		state_ptr->io_buffer |= adpcm_encoder((signed short)((*src_ptr++) ^ 0x8000), state_ptr) << state_ptr->io_shift;
 		if (!(state_ptr->io_shift)) {
 			*dst_ptr++ = state_ptr->io_buffer & 0xff;
 			state_ptr->io_buffer = 0;
@@ -321,19 +300,10 @@ static void adpcm_conv_u16bit_adpcm(adpcm_state_t * state_ptr,
 	}
 }
 
-static void adpcm_conv_u16bit_swap_adpcm(adpcm_state_t * state_ptr,
-					 unsigned short *src_ptr,
-					 unsigned char *dst_ptr,
-					 size_t size)
+static void adpcm_conv_u16bit_swap_adpcm(adpcm_state_t * state_ptr, unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
-		state_ptr->io_buffer |= adpcm_encoder((signed short)
-
-						      (bswap_16
-						       ((*src_ptr++) ^
-							0x8000)),
-						      state_ptr) <<
-		    state_ptr->io_shift;
+		state_ptr->io_buffer |= adpcm_encoder((signed short)(bswap_16((*src_ptr++) ^ 0x8000)), state_ptr) << state_ptr->io_shift;
 		if (!(state_ptr->io_shift)) {
 			*dst_ptr++ = state_ptr->io_buffer & 0xff;
 			state_ptr->io_buffer = 0;
@@ -345,100 +315,68 @@ static void adpcm_conv_u16bit_swap_adpcm(adpcm_state_t * state_ptr,
 	}
 }
 
-static void adpcm_conv_adpcm_u8bit(adpcm_state_t * state_ptr,
-				   unsigned char *src_ptr,
-				   unsigned char *dst_ptr, size_t size)
+static void adpcm_conv_adpcm_u8bit(adpcm_state_t * state_ptr, unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
 		if (state_ptr->io_shift) {
 			state_ptr->io_buffer = *src_ptr++;
 		}
-		*dst_ptr++ =
-		    (adpcm_decoder
-		     ((state_ptr->io_buffer >> state_ptr->io_shift) & 0xf,
-		      state_ptr) >> 8) ^ 0x80;
+		*dst_ptr++ = (adpcm_decoder((state_ptr->io_buffer >> state_ptr->io_shift) & 0xf, state_ptr) >> 8) ^ 0x80;
 		state_ptr->io_shift ^= 4;
 	}
 }
 
-static void adpcm_conv_adpcm_s8bit(adpcm_state_t * state_ptr,
-				   unsigned char *src_ptr,
-				   unsigned char *dst_ptr, size_t size)
+static void adpcm_conv_adpcm_s8bit(adpcm_state_t * state_ptr, unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
 		if (state_ptr->io_shift) {
 			state_ptr->io_buffer = *src_ptr++;
 		}
-		*dst_ptr++ =
-		    adpcm_decoder(
-				  (state_ptr->io_buffer >> state_ptr->
-				   io_shift) & 0xf, state_ptr) >> 8;
+		*dst_ptr++ = adpcm_decoder((state_ptr->io_buffer >> state_ptr->io_shift) & 0xf, state_ptr) >> 8;
 		state_ptr->io_shift ^= 4;
 	}
 }
 
-static void adpcm_conv_adpcm_s16bit(adpcm_state_t * state_ptr,
-				    unsigned char *src_ptr,
-				    unsigned short *dst_ptr, size_t size)
+static void adpcm_conv_adpcm_s16bit(adpcm_state_t * state_ptr, unsigned char *src_ptr, unsigned short *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
 		if (state_ptr->io_shift) {
 			state_ptr->io_buffer = *src_ptr++;
 		}
-		*dst_ptr++ =
-		    adpcm_decoder(
-				  (state_ptr->io_buffer >> state_ptr->
-				   io_shift) & 0xf, state_ptr);
+		*dst_ptr++ = adpcm_decoder((state_ptr->io_buffer >> state_ptr->io_shift) & 0xf, state_ptr);
 		state_ptr->io_shift ^= 4;
 	}
 }
 
-static void adpcm_conv_adpcm_swap_s16bit(adpcm_state_t * state_ptr,
-					 unsigned char *src_ptr,
-					 unsigned short *dst_ptr,
-					 size_t size)
+static void adpcm_conv_adpcm_swap_s16bit(adpcm_state_t * state_ptr, unsigned char *src_ptr, unsigned short *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
 		if (state_ptr->io_shift) {
 			state_ptr->io_buffer = *src_ptr++;
 		}
-		*dst_ptr++ =
-		    bswap_16(adpcm_decoder
-			     ((state_ptr->io_buffer >> state_ptr->io_shift)
-			      & 0xf, state_ptr));
+		*dst_ptr++ = bswap_16(adpcm_decoder((state_ptr->io_buffer >> state_ptr->io_shift) & 0xf, state_ptr));
 		state_ptr->io_shift ^= 4;
 	}
 }
 
-static void adpcm_conv_adpcm_u16bit(adpcm_state_t * state_ptr,
-				    unsigned char *src_ptr,
-				    unsigned short *dst_ptr, size_t size)
+static void adpcm_conv_adpcm_u16bit(adpcm_state_t * state_ptr, unsigned char *src_ptr, unsigned short *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
 		if (state_ptr->io_shift) {
 			state_ptr->io_buffer = *src_ptr++;
 		}
-		*dst_ptr++ =
-		    adpcm_decoder(
-				  (state_ptr->io_buffer >> state_ptr->
-				   io_shift) & 0xf, state_ptr) ^ 0x8000;
+		*dst_ptr++ = adpcm_decoder((state_ptr->io_buffer >> state_ptr->io_shift) & 0xf, state_ptr) ^ 0x8000;
 		state_ptr->io_shift ^= 4;
 	}
 }
 
-static void adpcm_conv_adpcm_swap_u16bit(adpcm_state_t * state_ptr,
-					 unsigned char *src_ptr,
-					 unsigned short *dst_ptr,
-					 size_t size)
+static void adpcm_conv_adpcm_swap_u16bit(adpcm_state_t * state_ptr, unsigned char *src_ptr, unsigned short *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
 		if (state_ptr->io_shift) {
 			state_ptr->io_buffer = *src_ptr++;
 		}
-		*dst_ptr++ =
-		    bswap_16(adpcm_decoder
-			     ((state_ptr->io_buffer >> state_ptr->io_shift)
-			      & 0xf, state_ptr) ^ 0x8000);
+		*dst_ptr++ = bswap_16(adpcm_decoder((state_ptr->io_buffer >> state_ptr->io_shift) & 0xf, state_ptr) ^ 0x8000);
 		state_ptr->io_shift ^= 4;
 	}
 }
@@ -450,37 +388,31 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 	struct adpcm_private_data *data;
 
 	if (plugin == NULL || src_ptr == NULL || src_size < 0 ||
-	    dst_ptr == NULL || dst_size < 0)
+	                      dst_ptr == NULL || dst_size < 0)
 		return -EINVAL;
 	if (src_size == 0)
 		return 0;
-	data = (struct adpcm_private_data *)
-	    snd_pcm_plugin_extra_data(plugin);
+	data = (struct adpcm_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (data == NULL)
 		return -EINVAL;
 	switch (data->cmd) {
 	case _U8_ADPCM:
 		if ((dst_size << 1) < src_size)
 			return -EINVAL;
-		adpcm_conv_u8bit_adpcm(&data->state, src_ptr, dst_ptr,
-				       src_size);
+		adpcm_conv_u8bit_adpcm(&data->state, src_ptr, dst_ptr, src_size);
 		return src_size >> 1;
 	case _S8_ADPCM:
 		if ((dst_size << 1) < src_size)
 			return -EINVAL;
-		adpcm_conv_s8bit_adpcm(&data->state, src_ptr, dst_ptr,
-				       src_size);
+		adpcm_conv_s8bit_adpcm(&data->state, src_ptr, dst_ptr, src_size);
 		return src_size >> 1;
 	case _S16LE_ADPCM:
 		if ((dst_size << 2) < src_size)
 			return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-		adpcm_conv_s16bit_adpcm(&data->state, (short *) src_ptr,
-					dst_ptr, src_size >> 1);
+		adpcm_conv_s16bit_adpcm(&data->state, (short *) src_ptr, dst_ptr, src_size >> 1);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-		adpcm_conv_s16bit_swap_adpcm(&data->state,
-					     (short *) src_ptr, dst_ptr,
-					     src_size >> 1);
+		adpcm_conv_s16bit_swap_adpcm(&data->state, (short *) src_ptr, dst_ptr, src_size >> 1);
 #else
 #error "Have to be coded..."
 #endif
@@ -489,12 +421,9 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 		if ((dst_size << 2) < src_size)
 			return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-		adpcm_conv_u16bit_adpcm(&data->state, (short *) src_ptr,
-					dst_ptr, src_size >> 1);
+		adpcm_conv_u16bit_adpcm(&data->state, (short *) src_ptr, dst_ptr, src_size >> 1);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-		adpcm_conv_u16bit_swap_adpcm(&data->state,
-					     (short *) src_ptr, dst_ptr,
-					     src_size >> 1);
+		adpcm_conv_u16bit_swap_adpcm(&data->state, (short *) src_ptr, dst_ptr, src_size >> 1);
 #else
 #error "Have to be coded..."
 #endif
@@ -503,12 +432,9 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 		if ((dst_size << 2) < src_size)
 			return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-		adpcm_conv_s16bit_swap_adpcm(&data->state,
-					     (short *) src_ptr, dst_ptr,
-					     src_size >> 1);
+		adpcm_conv_s16bit_swap_adpcm(&data->state, (short *) src_ptr, dst_ptr, src_size >> 1);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-		adpcm_conv_s16bit_adpcm(&data->state, (short *) src_ptr,
-					dst_ptr, src_size >> 1);
+		adpcm_conv_s16bit_adpcm(&data->state, (short *) src_ptr, dst_ptr, src_size >> 1);
 #else
 #error "Have to be coded..."
 #endif
@@ -517,12 +443,9 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 		if ((dst_size << 2) < src_size)
 			return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-		adpcm_conv_u16bit_swap_adpcm(&data->state,
-					     (short *) src_ptr, dst_ptr,
-					     src_size >> 1);
+		adpcm_conv_u16bit_swap_adpcm(&data->state, (short *) src_ptr, dst_ptr, src_size >> 1);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-		adpcm_conv_u16bit_adpcm(&data->state, (short *) src_ptr,
-					dst_ptr, src_size >> 1);
+		adpcm_conv_u16bit_adpcm(&data->state, (short *) src_ptr, dst_ptr, src_size >> 1);
 #else
 #error "Have to be coded..."
 #endif
@@ -530,25 +453,20 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 	case _ADPCM_U8:
 		if ((dst_size >> 1) < src_size)
 			return -EINVAL;
-		adpcm_conv_adpcm_u8bit(&data->state, src_ptr, dst_ptr,
-				       src_size << 1);
+		adpcm_conv_adpcm_u8bit(&data->state, src_ptr, dst_ptr, src_size << 1);
 		return src_size << 1;
 	case _ADPCM_S8:
 		if ((dst_size >> 1) < src_size)
 			return -EINVAL;
-		adpcm_conv_adpcm_s8bit(&data->state, src_ptr, dst_ptr,
-				       src_size << 1);
+		adpcm_conv_adpcm_s8bit(&data->state, src_ptr, dst_ptr, src_size << 1);
 		return src_size << 1;
 	case _ADPCM_S16LE:
 		if ((dst_size >> 2) < src_size)
 			return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-		adpcm_conv_adpcm_s16bit(&data->state, src_ptr,
-					(short *) dst_ptr, src_size << 1);
+		adpcm_conv_adpcm_s16bit(&data->state, src_ptr, (short *) dst_ptr, src_size << 1);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-		adpcm_conv_adpcm_swap_s16bit(&data->state, src_ptr,
-					     (short *) dst_ptr,
-					     src_size << 1);
+		adpcm_conv_adpcm_swap_s16bit(&data->state, src_ptr, (short *) dst_ptr, src_size << 1);
 #else
 #error "Have to be coded..."
 #endif
@@ -557,12 +475,9 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 		if ((dst_size >> 2) < src_size)
 			return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-		adpcm_conv_adpcm_u16bit(&data->state, src_ptr,
-					(short *) dst_ptr, src_size << 1);
+		adpcm_conv_adpcm_u16bit(&data->state, src_ptr, (short *) dst_ptr, src_size << 1);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-		adpcm_conv_adpcm_swap_u16bit(&data->state, src_ptr,
-					     (short *) dst_ptr,
-					     src_size << 1);
+		adpcm_conv_adpcm_swap_u16bit(&data->state, src_ptr, (short *) dst_ptr, src_size << 1);
 #else
 #error "Have to be coded..."
 #endif
@@ -571,12 +486,9 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 		if ((dst_size >> 2) < src_size)
 			return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-		adpcm_conv_adpcm_swap_s16bit(&data->state, src_ptr,
-					     (short *) dst_ptr,
-					     src_size << 1);
+		adpcm_conv_adpcm_swap_s16bit(&data->state, src_ptr, (short *) dst_ptr, src_size << 1);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-		adpcm_conv_adpcm_s16bit(&data->state, src_ptr,
-					(short *) dst_ptr, src_size << 1);
+		adpcm_conv_adpcm_s16bit(&data->state, src_ptr, (short *) dst_ptr, src_size << 1);
 #else
 #error "Have to be coded..."
 #endif
@@ -585,12 +497,9 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 		if ((dst_size << 2) < src_size)
 			return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-		adpcm_conv_adpcm_swap_u16bit(&data->state, src_ptr,
-					     (short *) dst_ptr,
-					     src_size << 1);
+		adpcm_conv_adpcm_swap_u16bit(&data->state, src_ptr, (short *) dst_ptr, src_size << 1);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-		adpcm_conv_adpcm_u16bit(&data->state, src_ptr,
-					(short *) dst_ptr, src_size << 1);
+		adpcm_conv_adpcm_u16bit(&data->state, src_ptr, (short *) dst_ptr, src_size << 1);
 #else
 #error "Have to be coded..."
 #endif
@@ -600,15 +509,13 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t * plugin,
 	}
 }
 
-static int adpcm_action(snd_pcm_plugin_t * plugin,
-			snd_pcm_plugin_action_t action)
+static int adpcm_action(snd_pcm_plugin_t * plugin, snd_pcm_plugin_action_t action)
 {
 	struct adpcm_private_data *data;
 
 	if (plugin == NULL)
 		return -EINVAL;
-	data = (struct adpcm_private_data *)
-	    snd_pcm_plugin_extra_data(plugin);
+	data = (struct adpcm_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (action == PREPARE)
 		adpcm_init_state(&data->state);
 	return 0;		/* silenty ignore other actions */
@@ -620,8 +527,7 @@ static ssize_t adpcm_src_size(snd_pcm_plugin_t * plugin, size_t size)
 
 	if (!plugin || size <= 0)
 		return -EINVAL;
-	data = (struct adpcm_private_data *)
-	    snd_pcm_plugin_extra_data(plugin);
+	data = (struct adpcm_private_data *)snd_pcm_plugin_extra_data(plugin);
 	switch (data->cmd) {
 	case _U8_ADPCM:
 	case _S8_ADPCM:
@@ -650,8 +556,7 @@ static ssize_t adpcm_dst_size(snd_pcm_plugin_t * plugin, size_t size)
 
 	if (!plugin || size <= 0)
 		return -EINVAL;
-	data = (struct adpcm_private_data *)
-	    snd_pcm_plugin_extra_data(plugin);
+	data = (struct adpcm_private_data *)snd_pcm_plugin_extra_data(plugin);
 	switch (data->cmd) {
 	case _U8_ADPCM:
 	case _S8_ADPCM:
@@ -723,8 +628,7 @@ int snd_pcm_plugin_build_adpcm(snd_pcm_format_t * src_format,
 				      sizeof(struct adpcm_private_data));
 	if (plugin == NULL)
 		return -ENOMEM;
-	data = (struct adpcm_private_data *)
-	    snd_pcm_plugin_extra_data(plugin);
+	data = (struct adpcm_private_data *)snd_pcm_plugin_extra_data(plugin);
 	data->cmd = cmd;
 	plugin->transfer = adpcm_transfer;
 	plugin->src_size = adpcm_src_size;
