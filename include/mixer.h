@@ -13,6 +13,11 @@ typedef struct snd_mixer_callbacks {
 	void *reserved[28];	/* reserved for the future use - must be NULL!!! */
 } snd_mixer_callbacks_t;
 
+typedef struct {
+	char *name;
+	int weight;
+} snd_mixer_weight_entry_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,6 +51,12 @@ int snd_mixer_element_info_free(snd_mixer_element_info_t * info);
 int snd_mixer_element_has_control(snd_mixer_eid_t *eid);
 int snd_mixer_element_build(snd_mixer_t *handle, snd_mixer_element_t * element);
 int snd_mixer_element_free(snd_mixer_element_t * element);
+
+void snd_mixer_sort_eid_name_index(snd_mixer_eid_t *list, int count);
+void snd_mixer_sort_eid_table(snd_mixer_eid_t *list, int count, snd_mixer_weight_entry_t *table);
+void snd_mixer_sort_gid_name_index(snd_mixer_gid_t *list, int count);
+void snd_mixer_sort_gid_table(snd_mixer_gid_t *list, int count, snd_mixer_weight_entry_t *table);
+snd_mixer_weight_entry_t *snd_mixer_default_weights;
 
 #ifdef __cplusplus
 }

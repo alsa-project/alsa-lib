@@ -28,6 +28,9 @@
 #include <sys/ioctl.h>
 #include "asoundlib.h"
 
+#define __USE_GNU
+#include <search.h>
+
 #define SND_FILE_MIXER		"/dev/snd/mixerC%iD%i"
 #define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
 
@@ -297,3 +300,229 @@ const char *snd_mixer_channel_name(int channel)
 		return "?";
 	return array[channel];
 }
+
+typedef int (*snd_mixer_compare_gid_func_t)(const snd_mixer_gid_t *a, const snd_mixer_gid_t *b, void* private_data);
+
+void snd_mixer_sort_gid_ptr(snd_mixer_gid_t **list, int count,
+			    void* private_data,
+			    snd_mixer_compare_gid_func_t compare)
+{
+	int _compare(const void* a, const void* b) {
+		snd_mixer_gid_t * const *_a = a;
+		snd_mixer_gid_t * const *_b = b;
+		return compare(*_a, *_b, private_data);
+	}
+	qsort(list, count, sizeof(snd_mixer_gid_t *), _compare);
+}	
+
+void snd_mixer_sort_gid(snd_mixer_gid_t *list, int count,
+			void* private_data,
+			snd_mixer_compare_gid_func_t compare)
+{
+	snd_mixer_gid_t *list1 = malloc(sizeof(snd_mixer_gid_t) * count);
+	snd_mixer_gid_t **ptrs = malloc(sizeof(snd_mixer_gid_t *) * count);
+	int k;
+	memcpy(list1, list, count * sizeof(snd_mixer_gid_t));
+	for (k = 0; k < count; ++k)
+		ptrs[k] = list1 + k;
+	snd_mixer_sort_gid_ptr(ptrs, count, private_data, compare);
+	for (k = 0; k < count; ++k)
+		memcpy(list + k, ptrs[k], sizeof(snd_mixer_gid_t));
+	free(list1);
+	free(ptrs);
+}
+
+/* Compare using name and index */
+int snd_mixer_compare_gid_name_index(const snd_mixer_gid_t *a,
+				     const snd_mixer_gid_t *b,
+				     void* ignored)
+{
+	int r = strcmp(a->name, b->name);
+	if (r != 0)
+		return r;
+	return a->index - b->index;
+}
+
+/* Compare using a table mapping name to weight */
+int snd_mixer_compare_gid_table(const snd_mixer_gid_t *a,
+				const snd_mixer_gid_t *b,
+				void* private_data)
+{
+	struct hsearch_data *htab = private_data;
+	ENTRY ea, eb;
+	ENTRY *ra, *rb;
+	int aw = 0, bw = 0;
+	int r;
+	ea.key = (char *) a->name;
+	if (hsearch_r(ea, FIND, &ra, htab))
+		aw = *(int *)ra->data;
+	eb.key = (char *) b->name;
+	if (hsearch_r(eb, FIND, &rb, htab))
+		bw = *(int *)rb->data;
+	r = aw - bw;
+	if (r != 0)
+		return r;
+	r = strcmp(a->name, b->name);
+	if (r != 0)
+		return r;
+	return a->index - b->index;
+}
+
+
+void snd_mixer_sort_gid_name_index(snd_mixer_gid_t *list, int count)
+{
+	snd_mixer_sort_gid(list, count, NULL, snd_mixer_compare_gid_name_index);
+}
+
+void snd_mixer_sort_gid_table(snd_mixer_gid_t *list, int count, snd_mixer_weight_entry_t *table)
+{
+	struct hsearch_data htab;
+	int k;
+	htab.table = NULL;
+	for (k = 0; table[k].name; ++k);
+	hcreate_r(k*2, &htab);
+	for (k = 0; table[k].name; ++k) {
+		ENTRY e;
+		ENTRY *r;
+		e.key = table[k].name;
+		e.data = (char *) &table[k].weight;
+		hsearch_r(e, ENTER, &r, &htab);
+	}
+	snd_mixer_sort_gid(list, count, &htab, snd_mixer_compare_gid_table);
+	hdestroy_r(&htab);
+}
+
+typedef int (*snd_mixer_compare_eid_func_t)(const snd_mixer_eid_t *a, const snd_mixer_eid_t *b, void* private_data);
+
+void snd_mixer_sort_eid_ptr(snd_mixer_eid_t **list, int count,
+			    void* private_data,
+			    snd_mixer_compare_eid_func_t compare)
+{
+	int _compare(const void* a, const void* b) {
+		snd_mixer_eid_t * const *_a = a;
+		snd_mixer_eid_t * const *_b = b;
+		return compare(*_a, *_b, private_data);
+	}
+	qsort(list, count, sizeof(snd_mixer_eid_t *), _compare);
+}	
+
+void snd_mixer_sort_eid(snd_mixer_eid_t *list, int count,
+			void* private_data,
+			snd_mixer_compare_eid_func_t compare)
+{
+	snd_mixer_eid_t *list1 = malloc(sizeof(snd_mixer_eid_t) * count);
+	snd_mixer_eid_t **ptrs = malloc(sizeof(snd_mixer_eid_t *) * count);
+	int k;
+	memcpy(list1, list, count * sizeof(snd_mixer_eid_t));
+	for (k = 0; k < count; ++k)
+		ptrs[k] = list1 + k;
+	snd_mixer_sort_eid_ptr(ptrs, count, private_data, compare);
+	for (k = 0; k < count; ++k)
+		memcpy(list + k, ptrs[k], sizeof(snd_mixer_eid_t));
+	free(list1);
+	free(ptrs);
+}
+
+/* Compare using name and index */
+int snd_mixer_compare_eid_name_index(const snd_mixer_eid_t *a,
+				     const snd_mixer_eid_t *b,
+				     void* ignored)
+{
+	int r = strcmp(a->name, b->name);
+	if (r != 0)
+		return r;
+	return a->index - b->index;
+}
+
+/* Compare using a table mapping name to weight */
+int snd_mixer_compare_eid_table(const snd_mixer_eid_t *a,
+				const snd_mixer_eid_t *b,
+				void* private_data)
+{
+	struct hsearch_data *htab = private_data;
+	ENTRY ea, eb;
+	ENTRY *ra, *rb;
+	int aw = 0, bw = 0;
+	int r;
+	ea.key = (char *) a->name;
+	if (hsearch_r(ea, FIND, &ra, htab))
+		aw = *(int *)ra->data;
+	eb.key = (char *) b->name;
+	if (hsearch_r(eb, FIND, &rb, htab))
+		bw = *(int *)rb->data;
+	r = aw - bw;
+	if (r != 0)
+		return r;
+	r = strcmp(a->name, b->name);
+	if (r != 0)
+		return r;
+	return a->index - b->index;
+}
+
+
+void snd_mixer_sort_eid_name_index(snd_mixer_eid_t *list, int count)
+{
+	snd_mixer_sort_eid(list, count, NULL, snd_mixer_compare_eid_name_index);
+}
+
+void snd_mixer_sort_eid_table(snd_mixer_eid_t *list, int count, snd_mixer_weight_entry_t *table            )
+{
+	struct hsearch_data htab;
+	int k;
+	htab.table = NULL;
+	for (k = 0; table[k].name; ++k);
+	hcreate_r(k*2, &htab);
+	for (k = 0; table[k].name; ++k) {
+		ENTRY e;
+		ENTRY *r;
+		e.key = table[k].name;
+		e.data = (char *) &table[k].weight;
+		hsearch_r(e, ENTER, &r, &htab);
+	}
+	snd_mixer_sort_eid(list, count, &htab, snd_mixer_compare_eid_table);
+	hdestroy_r(&htab);
+}
+
+
+static snd_mixer_weight_entry_t _snd_mixer_default_weights[] = {
+	{ SND_MIXER_OUT_MASTER,		-1360 },
+	{ SND_MIXER_OUT_MASTER_DIGITAL,	-1350 },
+	{ SND_MIXER_OUT_MASTER_MONO,	-1340 },
+	{ SND_MIXER_OUT_HEADPHONE,	-1330 },
+	{ SND_MIXER_OUT_PHONE,		-1320 },
+	{ SND_MIXER_GRP_EFFECT_3D,	-1310 },
+	{ SND_MIXER_GRP_BASS,		-1300 },
+	{ SND_MIXER_GRP_TREBLE,		-1290 },
+	{ SND_MIXER_GRP_EQUALIZER,	-1280 },
+	{ SND_MIXER_GRP_FADER,		-1270 },
+	{ SND_MIXER_OUT_CENTER,		-1260 },
+	{ SND_MIXER_IN_CENTER,		-1250 },
+	{ SND_MIXER_OUT_WOOFER,		-1240 },
+	{ SND_MIXER_IN_WOOFER,		-1230 },
+	{ SND_MIXER_OUT_SURROUND,	-1220 },
+	{ SND_MIXER_IN_SURROUND,	-1210 },
+	{ SND_MIXER_IN_SYNTHESIZER,	-1200 },
+	{ SND_MIXER_IN_FM,		-1190 },
+	{ SND_MIXER_GRP_EFFECT,		-1180 },
+	{ SND_MIXER_OUT_DSP,		-1170 },
+	{ SND_MIXER_IN_DSP,		-1160 },
+	{ SND_MIXER_IN_PCM,		-1150 },
+	{ SND_MIXER_IN_DAC,		-1140 },
+	{ SND_MIXER_IN_LINE,		-1130 },
+	{ SND_MIXER_IN_MIC,		-1120 },
+	{ SND_MIXER_IN_CD,		-1110 },
+	{ SND_MIXER_IN_VIDEO,		-1100 },
+	{ SND_MIXER_IN_RADIO,		-1090 },
+	{ SND_MIXER_IN_PHONE,		-1080 },
+	{ SND_MIXER_GRP_MIC_GAIN,	-1070 },
+	{ SND_MIXER_GRP_OGAIN,		-1060 },
+	{ SND_MIXER_GRP_IGAIN,		-1050 },
+	{ SND_MIXER_GRP_ANALOG_LOOPBACK,-1040 },
+	{ SND_MIXER_GRP_DIGITAL_LOOPBACK,-1030 },
+	{ SND_MIXER_IN_SPEAKER,		-1020 },
+	{ SND_MIXER_IN_MONO,		-1010 },
+	{ SND_MIXER_IN_AUX,		-1000 },
+	{ NULL, 0 }
+};
+
+snd_mixer_weight_entry_t *snd_mixer_default_weights = _snd_mixer_default_weights;
