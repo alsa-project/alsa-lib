@@ -12,26 +12,22 @@ typedef struct sndrv_timer_params snd_timer_params_t;
 typedef struct sndrv_timer_status snd_timer_status_t;
 typedef struct sndrv_timer_read snd_timer_read_t;
 
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_timer_type *snd_timer_type_t;
-typedef struct __snd_timer_slave_type *snd_timer_slave_type_t;
-#else
-typedef enum sndrv_timer_type snd_timer_type_t;
-typedef enum sndrv_timer_slave_type snd_timer_slave_type_t;
-#endif
+typedef enum _snd_timer_type {
+	SND_TIMER_TYPE_NONE = SNDRV_TIMER_TYPE_NONE,
+	SND_TIMER_TYPE_SLAVE = SNDRV_TIMER_TYPE_SLAVE,
+	SND_TIMER_TYPE_GLOBAL = SNDRV_TIMER_TYPE_GLOBAL,
+	SND_TIMER_TYPE_CARD = SNDRV_TIMER_TYPE_CARD,
+	SND_TIMER_TYPE_PCM = SNDRV_TIMER_TYPE_PCM,
+	SND_TIMER_TYPE_LAST = SNDRV_TIMER_TYPE_LAST,
+} snd_timer_type_t;
 
-#define SND_TIMER_TYPE_NONE ((snd_timer_type_t) SNDRV_TIMER_TYPE_NONE)
-#define SND_TIMER_TYPE_SLAVE ((snd_timer_type_t) SNDRV_TIMER_TYPE_SLAVE)
-#define SND_TIMER_TYPE_GLOBAL ((snd_timer_type_t) SNDRV_TIMER_TYPE_GLOBAL)
-#define SND_TIMER_TYPE_CARD ((snd_timer_type_t) SNDRV_TIMER_TYPE_CARD)
-#define SND_TIMER_TYPE_PCM ((snd_timer_type_t) SNDRV_TIMER_TYPE_PCM)
-#define SND_TIMER_TYPE_LAST ((snd_timer_type_t) SNDRV_TIMER_TYPE_LAST)
-
-#define SND_TIMER_STYPE_NONE ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_NONE
-#define SND_TIMER_STYPE_APPLICATION ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_APPLICATION
-#define SND_TIMER_STYPE_SEQUENCER ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_SEQUENCER
-#define SND_TIMER_STYPE_OSS_SEQUENCER ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_OSS_SEQUENCER
-#define SND_TIMER_STYPE_LAST ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_LAST
+typedef enum _snd_timer_slave_type {
+	SND_TIMER_STYPE_NONE = SNDRV_TIMER_STYPE_NONE,
+	SND_TIMER_STYPE_APPLICATION = SNDRV_TIMER_STYPE_APPLICATION,
+	SND_TIMER_STYPE_SEQUENCER = SNDRV_TIMER_STYPE_SEQUENCER,
+	SND_TIMER_STYPE_OSS_SEQUENCER = SNDRV_TIMER_STYPE_OSS_SEQUENCER,
+	SND_TIMER_STYPE_LAST = SNDRV_TIMER_STYPE_LAST,
+} snd_timer_slave_type_t;
 
 #define SND_TIMER_GLOBAL_SYSTEM SNDRV_TIMER_GLOBAL_SYSTEM
 #define SND_TIMER_GLOBAL_RTC SNDRV_TIMER_GLOBAL_RTC

@@ -300,22 +300,13 @@ typedef enum sndrv_seq_stop_mode snd_seq_stop_mode_t;
 
 #define SND_SEQ_NONBLOCK	1
 
-enum _snd_seq_type {
+typedef enum _snd_seq_type {
 	SND_SEQ_TYPE_HW,
 	SND_SEQ_TYPE_SHM,
 	SND_SEQ_TYPE_INET,
-};
+} snd_seq_type_t;
 
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_seq_type *snd_seq_type_t;
-#else
-typedef enum _snd_seq_type snd_seq_type_t;
-#endif
-
-#define	SND_SEQ_TYPE_HW ((snd_seq_type_t) SND_SEQ_TYPE_HW)
-#define	SND_SEQ_TYPE_SHM ((snd_seq_type_t) SND_SEQ_TYPE_SHM)
-#define	SND_SEQ_TYPE_INET ((snd_seq_type_t) SND_SEQ_TYPE_INET)
-
+/** Sequencer handle */
 typedef struct _snd_seq snd_seq_t;
 
 #ifdef __cplusplus

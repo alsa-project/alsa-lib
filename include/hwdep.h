@@ -5,28 +5,26 @@
  *                                                                          *
  ****************************************************************************/
 
+/** HwDep information container */
 typedef struct _snd_hwdep_info snd_hwdep_info_t;
 
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_hwdep_type *snd_hwdep_type_t;
-#else
-typedef enum sndrv_hwdep_type snd_hwdep_type_t;
-#endif
-
-#define SND_HWDEP_TYPE_OPL2 ((snd_hwdep_type_t) SNDRV_HWDEP_TYPE_OPL2)
-#define SND_HWDEP_TYPE_OPL3 ((snd_hwdep_type_t) SNDRV_HWDEP_TYPE_OPL3)
-#define SND_HWDEP_TYPE_OPL4 ((snd_hwdep_type_t) SNDRV_HWDEP_TYPE_OPL4)
-#define SND_HWDEP_TYPE_SB16CSP ((snd_hwdep_type_t) SNDRV_HWDEP_TYPE_SB16CSP)
-#define SND_HWDEP_TYPE_EMU10K1 ((snd_hwdep_type_t) SNDRV_HWDEP_TYPE_EMU10K1)
-#define SND_HWDEP_TYPE_YSS225 ((snd_hwdep_type_t) SNDRV_HWDEP_TYPE_YSS225)
-#define SND_HWDEP_TYPE_ICS2115 ((snd_hwdep_type_t) SNDRV_HWDEP_TYPE_ICS2115)
-#define SND_HWDEP_TYPE_LAST ((snd_hwdep_type_t) SNDRV_HWDEP_TYPE_LAST)
+typedef enum _snd_hwdep_type {
+	SND_HWDEP_TYPE_OPL2 = SNDRV_HWDEP_TYPE_OPL2,
+	SND_HWDEP_TYPE_OPL3 = SNDRV_HWDEP_TYPE_OPL3,
+	SND_HWDEP_TYPE_OPL4 = SNDRV_HWDEP_TYPE_OPL4,
+	SND_HWDEP_TYPE_SB16CSP = SNDRV_HWDEP_TYPE_SB16CSP,
+	SND_HWDEP_TYPE_EMU10K1 = SNDRV_HWDEP_TYPE_EMU10K1,
+	SND_HWDEP_TYPE_YSS225 = SNDRV_HWDEP_TYPE_YSS225,
+	SND_HWDEP_TYPE_ICS2115 = SNDRV_HWDEP_TYPE_ICS2115,
+	SND_HWDEP_TYPE_LAST = SNDRV_HWDEP_TYPE_LAST,
+} snd_hwdep_type_t;
 
 #define SND_HWDEP_OPEN_READ		(O_RDONLY)
 #define SND_HWDEP_OPEN_WRITE		(O_WRONLY)
 #define SND_HWDEP_OPEN_DUPLEX		(O_RDWR)
 #define SND_HWDEP_OPEN_NONBLOCK		(O_NONBLOCK)
 
+/** HwDep handle */
 typedef struct _snd_hwdep snd_hwdep_t;
 
 #ifdef __cplusplus

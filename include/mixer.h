@@ -17,20 +17,10 @@ typedef int (*snd_mixer_elem_callback_t)(snd_mixer_elem_t *elem,
 typedef int (*snd_mixer_compare_t)(const snd_mixer_elem_t *e1,
 				   const snd_mixer_elem_t *e2);
 
-enum _snd_mixer_elem_type {
+typedef enum _snd_mixer_elem_type {
 	SND_MIXER_ELEM_SIMPLE,
 	SND_MIXER_ELEM_LAST = SND_MIXER_ELEM_SIMPLE,
-};
-
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_mixer_elem_type *snd_mixer_elem_type_t;
-#else
-typedef enum _snd_mixer_elem_type snd_mixer_elem_type_t;
-#endif
-
-#define SND_MIXER_ELEM_SIMPLE ((snd_mixer_elem_type_t) SND_MIXER_ELEM_SIMPLE)
-#define SND_MIXER_ELEM_LAST ((snd_mixer_elem_type_t) SND_MIXER_ELEM_LAST)
-
+} snd_mixer_elem_type_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,7 +53,7 @@ int snd_mixer_class_unregister(snd_mixer_class_t *clss);
  *  Simple (legacy) mixer API
  */
 
-enum _snd_mixer_selem_channel_id {
+typedef enum _snd_mixer_selem_channel_id {
 	SND_MIXER_SCHN_UNKNOWN = -1,
 	SND_MIXER_SCHN_FRONT_LEFT = 0,
 	SND_MIXER_SCHN_FRONT_RIGHT,
@@ -73,27 +63,11 @@ enum _snd_mixer_selem_channel_id {
 	SND_MIXER_SCHN_WOOFER,
 	SND_MIXER_SCHN_LAST = 31,
 	SND_MIXER_SCHN_MONO = SND_MIXER_SCHN_FRONT_LEFT
-};
+} snd_mixer_selem_channel_id_t;
 
 /* Simple mixer */
 
 typedef struct _snd_mixer_selem_id snd_mixer_selem_id_t;
-
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_mixer_selem_channel_id *snd_mixer_selem_channel_id_t;
-#else
-typedef enum _snd_mixer_selem_channel_id snd_mixer_selem_channel_id_t;
-#endif
-
-#define SND_MIXER_SCHN_UNKNOWN ((snd_mixer_selem_channel_id_t) SND_MIXER_SCHN_UNKNOWN)
-#define SND_MIXER_SCHN_FRONT_LEFT ((snd_mixer_selem_channel_id_t) SND_MIXER_SCHN_FRONT_LEFT)
-#define SND_MIXER_SCHN_FRONT_RIGHT ((snd_mixer_selem_channel_id_t) SND_MIXER_SCHN_FRONT_RIGHT)
-#define SND_MIXER_SCHN_FRONT_CENTER ((snd_mixer_selem_channel_id_t) SND_MIXER_SCHN_FRONT_CENTER)
-#define SND_MIXER_SCHN_REAR_LEFT ((snd_mixer_selem_channel_id_t) SND_MIXER_SCHN_REAR_LEFT)
-#define SND_MIXER_SCHN_REAR_RIGHT ((snd_mixer_selem_channel_id_t) SND_MIXER_SCHN_REAR_RIGHT)
-#define SND_MIXER_SCHN_WOOFER ((snd_mixer_selem_channel_id_t) SND_MIXER_SCHN_WOOFER)
-#define SND_MIXER_SCHN_LAST ((snd_mixer_selem_channel_id_t) SND_MIXER_SCHN_LAST)
-#define SND_MIXER_SCHN_MONO ((snd_mixer_selem_channel_id_t) SND_MIXER_SCHN_MONO)
 
 #ifdef __cplusplus
 extern "C" {

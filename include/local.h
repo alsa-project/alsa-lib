@@ -43,21 +43,11 @@
 
 #include "asoundlib.h"
 
-enum _snd_set_mode {
+typedef enum _snd_set_mode {
 	SND_CHANGE,
 	SND_TRY,
 	SND_TEST,
-};
-
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_set_mode *snd_set_mode_t;
-#else
-typedef enum _snd_set_mode snd_set_mode_t;
-#endif
-
-#define SND_CHANGE ((snd_set_mode_t) SND_CHANGE)
-#define SND_TRY ((snd_set_mode_t) SND_TRY)
-#define SND_TEST ((snd_set_mode_t) SND_TEST)
+} snd_set_mode_t;
 
 size_t page_align(size_t size);
 size_t page_size(void);
