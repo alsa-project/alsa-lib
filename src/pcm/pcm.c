@@ -168,6 +168,7 @@ int snd_pcm_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t *setup)
 		*setup = str->setup;
 		return 0;
 	}
+	str->setup.stream = setup->stream;
 	if ((err = pcm->ops->stream_setup(pcm, &str->setup)) < 0)
 		return err;
 	*setup = str->setup;
