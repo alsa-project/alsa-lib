@@ -653,6 +653,7 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 			/* everything is ok, state == SND_PCM_STATE_XRUN at the moment */
 			return -EPIPE;
 		}
+		break;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
 	default:
