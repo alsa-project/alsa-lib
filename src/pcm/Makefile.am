@@ -14,7 +14,8 @@ libpcm_la_SOURCES = atomic.c mask.c interval.c \
 		    pcm_asym.c pcm_iec958.c pcm_softvol.c pcm_symbols.c
 noinst_HEADERS = pcm_local.h pcm_plugin.h mask.h mask_inline.h \
 	         interval.h interval_inline.h plugin_ops.h ladspa.h \
-		 pcm_direct.h pcm_dmix_i386.h pcm_dmix_x86_64.h
+		 pcm_direct.h pcm_dmix_i386.h pcm_dmix_x86_64.h \
+		 pcm_generic.h
 
 alsadir = $(datadir)/alsa
 
