@@ -615,9 +615,11 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 	for (dst = 0; dst < route->params.ndsts; dst++) {
 		snd_pcm_route_ttable_dst_t *d = &route->params.dsts[dst];
 		unsigned int src;
-		if (d->nsrcs == 0)
-			continue;
 		snd_output_printf(out, "%d <- ", dst);
+		if (d->nsrcs == 0) {
+			snd_output_printf(out, "none\n", dst);
+			continue;
+		}
 		src = 0;
 		while (1) {
 			snd_pcm_route_ttable_src_t *s = &d->srcs[src];
