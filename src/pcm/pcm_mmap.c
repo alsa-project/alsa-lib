@@ -436,7 +436,7 @@ ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size)
 			snd_pcm_channel_area_t *a = pcm->mmap_areas;
 			char *buf = snd_pcm_channel_area_addr(a, offset);
 			assert(pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED);
-			err = snd_pcm_writei(pcm, buf, frames);
+			err = _snd_pcm_writei(pcm, buf, size);
 		} else {
 			size_t channels = pcm->setup.format.channels;
 			unsigned int c;
@@ -446,7 +446,7 @@ ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size)
 				snd_pcm_channel_area_t *a = &pcm->mmap_areas[c];
 				bufs[c] = snd_pcm_channel_area_addr(a, offset);
 			}
-			err = snd_pcm_writen(pcm, bufs, frames);
+			err = _snd_pcm_writen(pcm, bufs, size);
 		}
 		if (err < 0)
 			break;
@@ -472,7 +472,7 @@ ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size)
 			snd_pcm_channel_area_t *a = pcm->mmap_areas;
 			char *buf = snd_pcm_channel_area_addr(a, offset);
 			assert(pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED);
-			err = snd_pcm_readi(pcm, buf, frames);
+			err = _snd_pcm_readi(pcm, buf, size);
 		} else {
 			size_t channels = pcm->setup.format.channels;
 			unsigned int c;
@@ -482,7 +482,7 @@ ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size)
 				snd_pcm_channel_area_t *a = &pcm->mmap_areas[c];
 				bufs[c] = snd_pcm_channel_area_addr(a, offset);
 			}
-			err = snd_pcm_readn(pcm, bufs, frames);
+			err = _snd_pcm_readn(pcm->fast_op_arg, bufs, size);
 		}
 		if (err < 0)
 			break;

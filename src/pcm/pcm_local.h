@@ -149,3 +149,23 @@ static inline size_t snd_pcm_channel_area_step(snd_pcm_channel_area_t *area)
 	return area->step / 8;
 }
 
+static inline ssize_t _snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
+{
+	return pcm->fast_ops->writei(pcm->fast_op_arg, buffer, size);
+}
+
+static inline ssize_t _snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size)
+{
+	return pcm->fast_ops->writen(pcm->fast_op_arg, bufs, size);
+}
+
+static inline ssize_t _snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size)
+{
+	return pcm->fast_ops->readi(pcm->fast_op_arg, buffer, size);
+}
+
+static inline ssize_t _snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size)
+{
+	return pcm->fast_ops->readn(pcm->fast_op_arg, bufs, size);
+}
+

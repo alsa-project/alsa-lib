@@ -219,7 +219,7 @@ ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
 	assert(pcm->valid_setup);
 	assert(pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED);
 	assert(!pcm->mmap_data);
-	return pcm->fast_ops->writei(pcm->fast_op_arg, buffer, size);
+	return _snd_pcm_writei(pcm, buffer, size);
 }
 
 ssize_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size)
@@ -229,7 +229,7 @@ ssize_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 	assert(pcm->valid_setup);
 	assert(pcm->setup.xfer_mode == SND_PCM_XFER_NONINTERLEAVED);
 	assert(!pcm->mmap_data);
-	return pcm->fast_ops->writen(pcm->fast_op_arg, bufs, size);
+	return _snd_pcm_writen(pcm, bufs, size);
 }
 
 ssize_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size)
@@ -239,7 +239,7 @@ ssize_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 	assert(pcm->valid_setup);
 	assert(pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED);
 	assert(!pcm->mmap_data);
-	return pcm->fast_ops->readi(pcm->fast_op_arg, buffer, size);
+	return _snd_pcm_readi(pcm, buffer, size);
 }
 
 ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size)
@@ -249,7 +249,7 @@ ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 	assert(pcm->valid_setup);
 	assert(pcm->setup.xfer_mode == SND_PCM_XFER_NONINTERLEAVED);
 	assert(!pcm->mmap_data);
-	return pcm->fast_ops->readn(pcm->fast_op_arg, bufs, size);
+	return _snd_pcm_readn(pcm, bufs, size);
 }
 
 ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count)
