@@ -272,6 +272,7 @@ enum sndrv_pcm_subformat {
 #define SNDRV_PCM_INFO_HALF_DUPLEX	0x00100000	/* only half duplex */
 #define SNDRV_PCM_INFO_JOINT_DUPLEX	0x00200000	/* playback and capture stream are somewhat correlated */
 #define SNDRV_PCM_INFO_SYNC_START	0x00400000	/* pcm support some kind of sync go */
+#define SNDRV_PCM_INFO_NONATOMIC_OPS	0x00800000	/* non-atomic prepare callback */
 
 enum sndrv_pcm_state {
 	SNDRV_PCM_STATE_OPEN = 0,	/* stream is open */
@@ -282,7 +283,8 @@ enum sndrv_pcm_state {
 	SNDRV_PCM_STATE_DRAINING,	/* stream is draining */
 	SNDRV_PCM_STATE_PAUSED,		/* stream is paused */
 	SNDRV_PCM_STATE_SUSPENDED,	/* hardware is suspended */
-	SNDRV_PCM_STATE_LAST = SNDRV_PCM_STATE_SUSPENDED,
+	SNDRV_PCM_STATE_DISCONNECTED,	/* hardware is disconnected */
+	SNDRV_PCM_STATE_LAST = SNDRV_PCM_STATE_DISCONNECTED,
 };
 
 enum {
