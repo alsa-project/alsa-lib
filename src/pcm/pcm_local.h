@@ -21,58 +21,44 @@
 
 #include <assert.h>
 #include "asoundlib.h"
-  
+
 struct snd_pcm_ops {
-	int (*stream_close)(snd_pcm_t *pcm, int stream);
-	int (*stream_nonblock)(snd_pcm_t *pcm, int stream, int nonblock);
-	int (*info)(snd_pcm_t *pcm, int stream, snd_pcm_info_t *info);
-	int (*stream_info)(snd_pcm_t *pcm, snd_pcm_stream_info_t *info);
-	int (*stream_params)(snd_pcm_t *pcm, snd_pcm_stream_params_t *params);
-	int (*stream_setup)(snd_pcm_t *pcm, snd_pcm_stream_setup_t *setup);
-	int (*channel_setup)(snd_pcm_t *pcm, int stream, snd_pcm_channel_setup_t *setup);
-	int (*stream_status)(snd_pcm_t *pcm, snd_pcm_stream_status_t *status);
-	int (*stream_prepare)(snd_pcm_t *pcm, int stream);
-	int (*stream_go)(snd_pcm_t *pcm, int stream);
-	int (*sync_go)(snd_pcm_t *pcm, int stream, snd_pcm_sync_t *sync);
-	int (*stream_drain)(snd_pcm_t *pcm, int stream);
-	int (*stream_flush)(snd_pcm_t *pcm, int stream);
-	int (*stream_pause)(snd_pcm_t *pcm, int stream, int enable);
-	int (*stream_state)(snd_pcm_t *pcm, int stream);
-	ssize_t (*stream_frame_io)(snd_pcm_t *pcm, int stream, int update);
-	ssize_t (*stream_frame_data)(snd_pcm_t *pcm, int stream, off_t offset);
-	ssize_t (*write)(snd_pcm_t *pcm, const void *buffer, size_t size);
-	ssize_t (*writev)(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
-	ssize_t (*read)(snd_pcm_t *pcm, void *buffer, size_t size);
-	ssize_t (*readv)(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
-	int (*mmap_status)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_status_t **status);
-	int (*mmap_control)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control);
-	int (*mmap_data)(snd_pcm_t *pcm, int stream, void **buffer, size_t bsize);
-	int (*munmap_status)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_status_t *status);
-	int (*munmap_control)(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t *control);
-	int (*munmap_data)(snd_pcm_t *pcm, int stream, void *buffer, size_t bsize);
-	int (*file_descriptor)(snd_pcm_t* pcm, int stream);
-	int (*channels_mask)(snd_pcm_t *pcm, int stream, bitset_t *client_vmask);
+	int (*close)(void *private);
+	int (*nonblock)(void *private, int nonblock);
+	int (*info)(void *private, snd_pcm_info_t *info);
+	int (*params)(void *private, snd_pcm_params_t *params);
+	int (*setup)(void *private, snd_pcm_setup_t *setup);
+	int (*channel_setup)(void *private, snd_pcm_channel_setup_t *setup);
+	int (*status)(void *private, snd_pcm_status_t *status);
+	int (*prepare)(void *private);
+	int (*go)(void *private);
+	int (*sync_go)(void *private, snd_pcm_sync_t *sync);
+	int (*drain)(void *private);
+	int (*flush)(void *private);
+	int (*pause)(void *private, int enable);
+	int (*state)(void *private);
+	ssize_t (*frame_io)(void *private, int update);
+	ssize_t (*frame_data)(void *private, off_t offset);
+	ssize_t (*write)(void *private, const void *buffer, size_t size);
+	ssize_t (*writev)(void *private, const struct iovec *vector, unsigned long count);
+	ssize_t (*read)(void *private, void *buffer, size_t size);
+	ssize_t (*readv)(void *private, const struct iovec *vector, unsigned long count);
+	int (*mmap_status)(void *private, snd_pcm_mmap_status_t **status);
+	int (*mmap_control)(void *private, snd_pcm_mmap_control_t **control);
+	int (*mmap_data)(void *private, void **buffer, size_t bsize);
+	int (*munmap_status)(void *private, snd_pcm_mmap_status_t *status);
+	int (*munmap_control)(void *private, snd_pcm_mmap_control_t *control);
+	int (*munmap_data)(void *private, void *buffer, size_t bsize);
+	int (*file_descriptor)(void *private);
+	int (*channels_mask)(void *private, bitset_t *client_vmask);
 };
 
-typedef struct {
-	snd_pcm_plugin_t *first;
-	snd_pcm_plugin_t *last;
-	void *alloc_ptr[2];
-	size_t alloc_size[2];
-	int alloc_lock[2];
-} snd_pcm_plug_stream_t;
-
-typedef struct {
-	int close_slave;
-	snd_pcm_t *slave;
-	snd_pcm_plug_stream_t stream[2];
-} snd_pcm_plug_t;
-
-typedef struct {
-	int open;
+struct snd_pcm {
+	snd_pcm_type_t type;
+	int stream;
 	int mode;
 	int valid_setup;
-	snd_pcm_stream_setup_t setup;
+	snd_pcm_setup_t setup;
 	snd_pcm_channel_area_t *channels;
 	size_t bits_per_sample;
 	size_t bits_per_frame;
@@ -81,46 +67,48 @@ typedef struct {
 	char *mmap_data;
 	size_t mmap_data_size;
 	enum { _INTERLEAVED, _NONINTERLEAVED, _COMPLEX } mmap_type;
-} snd_pcm_stream_t;
-
-struct snd_pcm {
-	snd_pcm_type_t type;
-	int mode;
 	struct snd_pcm_ops *ops;
-	snd_pcm_stream_t stream[2];
-	int private[0];
+	void *op_arg;
+	void *private;
 };
 
-int snd_pcm_abstract_open(snd_pcm_t **handle, int mode, snd_pcm_type_t type, size_t extra);
-
+#undef snd_pcm_plug_t
+typedef struct snd_pcm_plug {
+	int close_slave;
+	snd_pcm_t *handle;
+	snd_pcm_t *slave;
+	snd_pcm_plugin_t *first;
+	snd_pcm_plugin_t *last;
+	size_t frames_alloc;
+} snd_pcm_plug_t;
 
 unsigned int snd_pcm_plug_formats(unsigned int formats);
-int snd_pcm_plug_slave_params(snd_pcm_stream_params_t *params,
-			      snd_pcm_stream_info_t *slave_info,
-			      snd_pcm_stream_params_t *slave_params);
-int snd_pcm_plug_format(snd_pcm_plugin_handle_t *pcm,
-			snd_pcm_stream_params_t *params,
-			snd_pcm_stream_params_t *slave_params);
+int snd_pcm_plug_slave_params(snd_pcm_params_t *params,
+			      snd_pcm_info_t *slave_info,
+			      snd_pcm_params_t *slave_params);
+int snd_pcm_plug_format(snd_pcm_plug_t *plug,
+			snd_pcm_params_t *params,
+			snd_pcm_params_t *slave_params);
 
-ssize_t snd_pcm_plug_write_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plugin_channel_t *src_channels, size_t size);
-ssize_t snd_pcm_plug_read_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plugin_channel_t *dst_channels_final, size_t size);
-ssize_t snd_pcm_plug_client_channels_iovec(snd_pcm_plugin_handle_t *handle, int stream,
-					 const struct iovec *vector, unsigned long count,
+ssize_t snd_pcm_plug_write_transfer(snd_pcm_plug_t *plug, snd_pcm_plugin_channel_t *src_channels, size_t size);
+ssize_t snd_pcm_plug_read_transfer(snd_pcm_plug_t *plug, snd_pcm_plugin_channel_t *dst_channels_final, size_t size);
+ssize_t snd_pcm_plug_client_channels_iovec(snd_pcm_plug_t *plug,
+					   const struct iovec *vector, unsigned long count,
+					   snd_pcm_plugin_channel_t **channels);
+ssize_t snd_pcm_plug_client_channels_buf(snd_pcm_plug_t *plug,
+					 char *buf, size_t count,
 					 snd_pcm_plugin_channel_t **channels);
-ssize_t snd_pcm_plug_client_channels_buf(snd_pcm_plugin_handle_t *handle, int stream,
-				       char *buf, size_t count,
-				       snd_pcm_plugin_channel_t **channels);
 
-int snd_pcm_plug_playback_channels_mask(snd_pcm_plugin_handle_t *handle,
-				      bitset_t *client_vmask);
-int snd_pcm_plug_capture_channels_mask(snd_pcm_plugin_handle_t *handle,
-				     bitset_t *client_vmask);
+int snd_pcm_plug_playback_channels_mask(snd_pcm_plug_t *plug,
+					bitset_t *client_vmask);
+int snd_pcm_plug_capture_channels_mask(snd_pcm_plug_t *plug,
+				       bitset_t *client_vmask);
 int snd_pcm_plugin_client_channels(snd_pcm_plugin_t *plugin,
-                                 size_t frames,
-                                 snd_pcm_plugin_channel_t **channels);
+				   size_t frames,
+				   snd_pcm_plugin_channel_t **channels);
 
-void *snd_pcm_plug_buf_alloc(snd_pcm_t *pcm, int stream, size_t size);
-void snd_pcm_plug_buf_unlock(snd_pcm_t *pcm, int stream, void *ptr);
+void *snd_pcm_plug_buf_alloc(snd_pcm_plug_t *plug, size_t size);
+void snd_pcm_plug_buf_unlock(snd_pcm_plug_t *pcm, void *ptr);
 
 #define ROUTE_PLUGIN_RESOLUTION 16
 
@@ -133,7 +121,7 @@ int conv_index(int src_format, int dst_format);
 #define pdprintf( args... ) { ; }
 #endif
 
-static inline size_t snd_pcm_mmap_playback_frames_avail(snd_pcm_stream_t *str)
+static inline size_t snd_pcm_mmap_playback_frames_avail(snd_pcm_t *str)
 {
 	ssize_t frames_avail;
 	frames_avail = str->mmap_status->frame_io + str->setup.buffer_size - str->mmap_control->frame_data;
@@ -142,7 +130,7 @@ static inline size_t snd_pcm_mmap_playback_frames_avail(snd_pcm_stream_t *str)
 	return frames_avail;
 }
 
-static inline size_t snd_pcm_mmap_capture_frames_avail(snd_pcm_stream_t *str)
+static inline size_t snd_pcm_mmap_capture_frames_avail(snd_pcm_t *str)
 {
 	ssize_t frames_avail;
 	frames_avail = str->mmap_status->frame_io - str->mmap_control->frame_data;
@@ -151,3 +139,4 @@ static inline size_t snd_pcm_mmap_capture_frames_avail(snd_pcm_stream_t *str)
 	return frames_avail;
 }
 
+#define snd_pcm_plug_stream(plug) ((plug)->handle->stream)

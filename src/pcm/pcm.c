@@ -27,372 +27,219 @@
 #include <sys/uio.h>
 #include "pcm_local.h"
 
-int snd_pcm_abstract_open(snd_pcm_t **handle, int mode,
-			  snd_pcm_type_t type, size_t extra)
-{
-	snd_pcm_t *pcm;
-
-	assert(handle);
-	*handle = NULL;
-
-	pcm = (snd_pcm_t *) calloc(1, sizeof(snd_pcm_t) + extra);
-	if (pcm == NULL)
-		return -ENOMEM;
-	if (mode & SND_PCM_OPEN_PLAYBACK) {
-		snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
-		str->open = 1;
-		str->mode = (mode & SND_PCM_NONBLOCK_PLAYBACK) ? SND_PCM_NONBLOCK : 0;
-	}
-	if (mode & SND_PCM_OPEN_CAPTURE) {
-		snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
-		str->open = 1;
-		str->mode = (mode & SND_PCM_NONBLOCK_CAPTURE) ? SND_PCM_NONBLOCK : 0;
-	}
-	pcm->type = type;
-	pcm->mode = mode & SND_PCM_OPEN_DUPLEX;
-	*handle = pcm;
-	return 0;
-}
-
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *handle)
 {
+	assert(handle);
 	return handle->type;
 }
 
-int snd_pcm_stream_close(snd_pcm_t *pcm, int stream)
+snd_pcm_type_t snd_pcm(snd_pcm_t *handle)
+{
+	assert(handle);
+	return handle->stream;
+}
+
+int snd_pcm_close(snd_pcm_t *handle)
 {
 	int ret = 0;
 	int err;
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->open);
-	if (str->mmap_status) {
-		if ((err = snd_pcm_munmap_status(pcm, stream)) < 0)
+	assert(handle);
+	if (handle->mmap_status) {
+		if ((err = snd_pcm_munmap_status(handle)) < 0)
 			ret = err;
 	}
-	if (str->mmap_control) {
-		if ((err = snd_pcm_munmap_control(pcm, stream)) < 0)
+	if (handle->mmap_control) {
+		if ((err = snd_pcm_munmap_control(handle)) < 0)
 			ret = err;
 	}
-	if (str->mmap_data) {
-		if ((err = snd_pcm_munmap_data(pcm, stream)) < 0)
+	if (handle->mmap_data) {
+		if ((err = snd_pcm_munmap_data(handle)) < 0)
 			ret = err;
 	}
-	if ((err = pcm->ops->stream_close(pcm, stream)) < 0)
+	if ((err = handle->ops->close(handle->op_arg)) < 0)
 		ret = err;
-	str->open = 0;
-	str->valid_setup = 0;
+	handle->valid_setup = 0;
+	free(handle);
 	return ret;
 }	
 
-int snd_pcm_close(snd_pcm_t *pcm)
-{
-	int err, ret = 0;
-	int stream;
-
-	assert(pcm);
-	for (stream = 0; stream < 2; ++stream) {
-		if (pcm->stream[stream].open) {
-			if ((err = snd_pcm_stream_close(pcm, stream)) < 0)
-				ret = err;
-		}
-	}
-	free(pcm);
-	return ret;
-}
-
-int snd_pcm_stream_nonblock(snd_pcm_t *pcm, int stream, int nonblock)
+int snd_pcm_nonblock(snd_pcm_t *handle, int nonblock)
 {
 	int err;
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(pcm->stream[stream].open);
-	if ((err = pcm->ops->stream_nonblock(pcm, stream, nonblock)) < 0)
+	assert(handle);
+	if ((err = handle->ops->nonblock(handle->op_arg, nonblock)) < 0)
 		return err;
 	if (nonblock)
-		str->mode |= SND_PCM_NONBLOCK;
+		handle->mode |= SND_PCM_NONBLOCK;
 	else
-		str->mode &= ~SND_PCM_NONBLOCK;
+		handle->mode &= ~SND_PCM_NONBLOCK;
 	return 0;
 }
 
-int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
+int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t *info)
 {
-	int stream;
-	assert(pcm && info);
-	for (stream = 0; stream < 2; ++stream) {
-		if (pcm->stream[stream].open)
-			return pcm->ops->info(pcm, stream, info);
-	}
-	assert(0);
+	assert(handle && info);
+	/* Here we pass private and not op_arg.
+	   FIXME: find a better solution */
+	return handle->ops->info(handle->private, info);
 }
 
-int snd_pcm_stream_info(snd_pcm_t *pcm, snd_pcm_stream_info_t *info)
-{
-	assert(pcm && info);
-	assert(info->stream >= 0 && info->stream <= 1);
-	assert(pcm->stream[info->stream].open);
-	return pcm->ops->stream_info(pcm, info);
-}
-
-int snd_pcm_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t *params)
+int snd_pcm_setup(snd_pcm_t *handle, snd_pcm_setup_t *setup)
 {
 	int err;
-	snd_pcm_stream_setup_t setup;
-	snd_pcm_stream_t *str;
-	assert(pcm && params);
-	assert(params->stream >= 0 && params->stream <= 1);
-	str = &pcm->stream[params->stream];
-	assert(str->open);
-	assert(!str->mmap_data);
-	if ((err = pcm->ops->stream_params(pcm, params)) < 0)
-		return err;
-	str->valid_setup = 0;
-	setup.stream = params->stream;
-	return snd_pcm_stream_setup(pcm, &setup);
-}
-
-int snd_pcm_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t *setup)
-{
-	int err;
-	snd_pcm_stream_t *str;
-	assert(pcm && setup);
-	assert(setup->stream >= 0 && setup->stream <= 1);
-	str = &pcm->stream[setup->stream];
-	assert(str->open);
-	if (str->valid_setup) {
-		*setup = str->setup;
+	assert(handle && setup);
+	if (handle->valid_setup) {
+		*setup = handle->setup;
 		return 0;
 	}
-	str->setup.stream = setup->stream;
-	if ((err = pcm->ops->stream_setup(pcm, &str->setup)) < 0)
+	/* Here we pass private and not op_arg.
+	   FIXME: find a better solution */
+	if ((err = handle->ops->setup(handle->private, &handle->setup)) < 0)
 		return err;
-	*setup = str->setup;
-	str->bits_per_sample = snd_pcm_format_physical_width(setup->format.format);
-        str->bits_per_frame = str->bits_per_sample * setup->format.channels;
-	str->valid_setup = 1;
+	*setup = handle->setup;
+	handle->bits_per_sample = snd_pcm_format_physical_width(setup->format.format);
+        handle->bits_per_frame = handle->bits_per_sample * setup->format.channels;
+	handle->valid_setup = 1;
 	return 0;
 }
 
-const snd_pcm_stream_setup_t* snd_pcm_stream_cached_setup(snd_pcm_t *pcm, int stream)
+int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	return &str->setup;
+	assert(handle && setup);
+	assert(handle->valid_setup);
+	return handle->ops->channel_setup(handle->op_arg, setup);
 }
 
-int snd_pcm_channel_setup(snd_pcm_t *pcm, int stream, snd_pcm_channel_setup_t *setup)
+int snd_pcm_params(snd_pcm_t *handle, snd_pcm_params_t *params)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm && setup);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	return pcm->ops->channel_setup(pcm, stream, setup);
+	int err;
+	snd_pcm_setup_t setup;
+	assert(handle && params);
+	assert(!handle->mmap_data);
+	/* Here we pass private and not op_arg.
+	   FIXME: find a better solution */
+	if ((err = handle->ops->params(handle->private, params)) < 0)
+		return err;
+	handle->valid_setup = 0;
+	return snd_pcm_setup(handle, &setup);
 }
 
-int snd_pcm_stream_status(snd_pcm_t *pcm, snd_pcm_stream_status_t *status)
+int snd_pcm_status(snd_pcm_t *handle, snd_pcm_status_t *status)
 {
-	assert(pcm && status);
-	assert(status->stream >= 0 && status->stream <= 1);
-	assert(pcm->stream[status->stream].open);
-	return pcm->ops->stream_status(pcm, status);
+	assert(handle && status);
+	return handle->ops->status(handle->op_arg, status);
 }
 
-int snd_pcm_stream_state(snd_pcm_t *pcm, int stream)
+int snd_pcm_state(snd_pcm_t *handle)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->open);
-	if (str->mmap_status)
-		return str->mmap_status->state;
-	return pcm->ops->stream_state(pcm, stream);
+	assert(handle);
+	if (handle->mmap_status)
+		return handle->mmap_status->state;
+	return handle->ops->state(handle->op_arg);
 }
 
-int snd_pcm_stream_frame_io(snd_pcm_t *pcm, int stream, int update)
+int snd_pcm_frame_io(snd_pcm_t *handle, int update)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	if (str->mmap_status && !update)
-		return str->mmap_status->frame_io;
-	return pcm->ops->stream_frame_io(pcm, stream, update);
+	assert(handle);
+	assert(handle->valid_setup);
+	if (handle->mmap_status && !update)
+		return handle->mmap_status->frame_io;
+	return handle->ops->frame_io(handle->op_arg, update);
 }
 
-int snd_pcm_stream_prepare(snd_pcm_t *pcm, int stream)
+int snd_pcm_prepare(snd_pcm_t *handle)
 {
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	assert(pcm->stream[stream].open);
-	return pcm->ops->stream_prepare(pcm, stream);
+	assert(handle);
+	return handle->ops->prepare(handle->op_arg);
 }
 
-int snd_pcm_playback_prepare(snd_pcm_t *pcm)
+int snd_pcm_go(snd_pcm_t *handle)
 {
-	return snd_pcm_stream_prepare(pcm, SND_PCM_STREAM_PLAYBACK);
+	assert(handle);
+	return handle->ops->go(handle->op_arg);
 }
 
-int snd_pcm_capture_prepare(snd_pcm_t *pcm)
+int snd_pcm_sync_go(snd_pcm_t *handle, snd_pcm_sync_t *sync)
 {
-	return snd_pcm_stream_prepare(pcm, SND_PCM_STREAM_CAPTURE);
+	assert(handle);
+	return handle->ops->sync_go(handle->op_arg, sync);
 }
 
-int snd_pcm_stream_go(snd_pcm_t *pcm, int stream)
+int snd_pcm_drain(snd_pcm_t *handle)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	return pcm->ops->stream_go(pcm, stream);
+	assert(handle);
+	return handle->ops->drain(handle->op_arg);
 }
 
-int snd_pcm_playback_go(snd_pcm_t *pcm)
+int snd_pcm_flush(snd_pcm_t *handle)
 {
-	return snd_pcm_stream_go(pcm, SND_PCM_STREAM_PLAYBACK);
+	assert(handle);
+	return handle->ops->flush(handle->op_arg);
 }
 
-int snd_pcm_capture_go(snd_pcm_t *pcm)
+int snd_pcm_pause(snd_pcm_t *handle, int enable)
 {
-	return snd_pcm_stream_go(pcm, SND_PCM_STREAM_CAPTURE);
+	assert(handle);
+	return handle->ops->pause(handle->op_arg, enable);
 }
 
-int snd_pcm_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
-{
-	int stream;
-	assert(pcm && sync);
-	for (stream = 0; stream < 2; ++stream) {
-		if (pcm->stream[stream].open)
-			return pcm->ops->sync_go(pcm, stream, sync);
-	}
-	assert(0);
-}
 
-int snd_pcm_stream_drain(snd_pcm_t *pcm, int stream)
+ssize_t snd_pcm_frame_data(snd_pcm_t *handle, off_t offset)
 {
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	assert(pcm->stream[stream].open);
-	assert(stream == SND_PCM_STREAM_PLAYBACK);
-	return pcm->ops->stream_drain(pcm, stream);
-}
-
-int snd_pcm_playback_drain(snd_pcm_t *pcm)
-{
-	return snd_pcm_stream_drain(pcm, SND_PCM_STREAM_PLAYBACK);
-}
-
-int snd_pcm_stream_flush(snd_pcm_t *pcm, int stream)
-{
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	assert(pcm->stream[stream].open);
-	return pcm->ops->stream_flush(pcm, stream);
-}
-
-int snd_pcm_playback_flush(snd_pcm_t *pcm)
-{
-	return snd_pcm_stream_flush(pcm, SND_PCM_STREAM_PLAYBACK);
-}
-
-int snd_pcm_capture_flush(snd_pcm_t *pcm)
-{
-	return snd_pcm_stream_flush(pcm, SND_PCM_STREAM_CAPTURE);
-}
-
-int snd_pcm_stream_pause(snd_pcm_t *pcm, int stream, int enable)
-{
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	assert(pcm->stream[stream].open);
-	assert(stream == SND_PCM_STREAM_PLAYBACK);
-	return pcm->ops->stream_pause(pcm, stream, enable);
-}
-
-int snd_pcm_playback_pause(snd_pcm_t *pcm, int enable)
-{
-	return snd_pcm_stream_pause(pcm, SND_PCM_STREAM_PLAYBACK, enable);
-}
-
-ssize_t snd_pcm_stream_frame_data(snd_pcm_t *pcm, int stream, off_t offset)
-{
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	if (str->mmap_control) {
+	assert(handle);
+	assert(handle->valid_setup);
+	if (handle->mmap_control) {
 		if (offset == 0)
-			return str->mmap_control->frame_data;
-		if (str->mmap_status)
-			return snd_pcm_mmap_stream_frame_data(pcm, stream, offset);
+			return handle->mmap_control->frame_data;
 	}
-	return pcm->ops->stream_frame_data(pcm, stream, offset);
+	return handle->ops->frame_data(handle->op_arg, offset);
 }
 
-ssize_t snd_pcm_write(snd_pcm_t *pcm, const void *buffer, size_t size)
+ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
-	assert(str->valid_setup);
+	assert(handle);
 	assert(size == 0 || buffer);
-	assert(size % str->setup.frames_align == 0);
-	return pcm->ops->write(pcm, buffer, size);
+	assert(handle->valid_setup);
+	assert(size % handle->setup.frames_align == 0);
+	return handle->ops->write(handle->op_arg, buffer, size);
 }
 
-ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
 {
-	assert(pcm);
-	assert(pcm->stream[SND_PCM_STREAM_PLAYBACK].valid_setup);
+	assert(handle);
 	assert(count == 0 || vector);
-	return pcm->ops->writev(pcm, vector, count);
+	assert(handle->valid_setup);
+	return handle->ops->writev(handle->op_arg, vector, count);
 }
 
-ssize_t snd_pcm_read(snd_pcm_t *pcm, void *buffer, size_t size)
+ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
-	assert(str->valid_setup);
+	assert(handle);
 	assert(size == 0 || buffer);
-	assert(size % str->setup.frames_align == 0);
-	return pcm->ops->read(pcm, buffer, size);
+	assert(handle->valid_setup);
+	assert(size % handle->setup.frames_align == 0);
+	return handle->ops->read(handle->op_arg, buffer, size);
 }
 
-ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
 {
-	assert(pcm);
-	assert(pcm->stream[SND_PCM_STREAM_CAPTURE].valid_setup);
+	assert(handle);
 	assert(count == 0 || vector);
-	return pcm->ops->readv(pcm, vector, count);
+	assert(handle->valid_setup);
+	return handle->ops->readv(handle->op_arg, vector, count);
 }
 
-int snd_pcm_file_descriptor(snd_pcm_t* pcm, int stream)
+int snd_pcm_file_descriptor(snd_pcm_t *handle)
 {
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	assert(pcm->stream[stream].open);
-	return pcm->ops->file_descriptor(pcm, stream);
+	assert(handle);
+	return handle->ops->file_descriptor(handle->op_arg);
 }
 
-int snd_pcm_channels_mask(snd_pcm_t *pcm, int stream, bitset_t *client_vmask)
+int snd_pcm_channels_mask(snd_pcm_t *handle, bitset_t *client_vmask)
 {
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	assert(pcm->stream[stream].valid_setup);
-	return pcm->ops->channels_mask(pcm, stream, client_vmask);
+	assert(handle);
+	assert(handle->valid_setup);
+	return handle->ops->channels_mask(handle->op_arg, client_vmask);
 }
 
 typedef struct {
@@ -475,16 +322,13 @@ static assoc_t xruns[] = { XRUN(FLUSH), XRUN(DRAIN), END };
 static assoc_t fills[] = { FILL(NONE), FILL(SILENCE_WHOLE), FILL(SILENCE), END };
 static assoc_t onoff[] = { {0, "OFF", NULL}, {1, "ON", NULL}, {-1, "ON", NULL}, END };
 
-int snd_pcm_dump_setup(snd_pcm_t *pcm, int stream, FILE *fp)
+int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp)
 {
-	snd_pcm_stream_t *str;
-	snd_pcm_stream_setup_t *setup;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	setup = &str->setup;
-	fprintf(fp, "stream: %s\n", assoc(setup->stream, streams));
+	snd_pcm_setup_t *setup;
+	assert(handle);
+	assert(handle->valid_setup);
+	setup = &handle->setup;
+        fprintf(fp, "stream: %s\n", assoc(handle->stream, streams));
 	fprintf(fp, "mode: %s\n", assoc(setup->mode, modes));
 	fprintf(fp, "format: %s\n", assoc(setup->format.format, fmts));
 	fprintf(fp, "channels: %d\n", setup->format.channels);
@@ -532,42 +376,31 @@ int snd_pcm_get_format_value(const char* name)
 	return -1;
 }
 
-ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, int stream, int bytes)
+ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *handle, int bytes)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	return bytes * 8 / str->bits_per_frame;
+	assert(handle);
+	assert(handle->valid_setup);
+	return bytes * 8 / handle->bits_per_frame;
 }
 
-ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, int stream, int frames)
+ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *handle, int frames)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	return frames * str->bits_per_frame / 8;
+	assert(handle);
+	assert(handle->valid_setup);
+	return frames * handle->bits_per_frame / 8;
 }
 
-ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *pcm, int stream, int bytes)
+ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *handle, int bytes)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	return bytes * 8 / str->bits_per_sample;
+	assert(handle);
+	assert(handle->valid_setup);
+	return bytes * 8 / handle->bits_per_sample;
 }
 
-ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int stream, int samples)
+ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *handle, int samples)
 {
-	snd_pcm_stream_t *str;
-	assert(pcm);
-	assert(stream >= 0 && stream <= 1);
-	str = &pcm->stream[stream];
-	assert(str->valid_setup);
-	return samples * str->bits_per_sample / 8;
+	assert(handle);
+	assert(handle->valid_setup);
+	return samples * handle->bits_per_sample / 8;
 }
+

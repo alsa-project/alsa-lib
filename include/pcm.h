@@ -5,12 +5,7 @@
  *                                                                          *
  ****************************************************************************/
 
-#define SND_PCM_OPEN_PLAYBACK		0x0001
-#define SND_PCM_OPEN_CAPTURE		0x0002
-#define SND_PCM_OPEN_DUPLEX		0x0003
-#define SND_PCM_NONBLOCK_PLAYBACK	0x1000
-#define SND_PCM_NONBLOCK_CAPTURE	0x2000
-#define SND_PCM_NONBLOCK		0x3000
+#define SND_PCM_NONBLOCK		0x0001
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,65 +13,86 @@ extern "C" {
 
 typedef unsigned int bitset_t;
 
-static inline size_t bitset_size(int nbits)
+static inline size_t bitset_size(size_t nbits)
 {
 	return (nbits + sizeof(bitset_t) * 8 - 1) / (sizeof(bitset_t) * 8);
 }
 
-static inline bitset_t *bitset_alloc(int nbits)
+static inline bitset_t *bitset_alloc(size_t nbits)
 {
 	return (bitset_t*) calloc(bitset_size(nbits), sizeof(bitset_t));
 }
 	
 static inline void bitset_set(bitset_t *bitmap, unsigned int pos)
 {
-	int bits = sizeof(*bitmap) * 8;
-	bitmap[pos / bits] |= 1 << (pos % bits);
+	size_t bits = sizeof(*bitmap) * 8;
+	bitmap[pos / bits] |= 1U << (pos % bits);
 }
 
 static inline void bitset_reset(bitset_t *bitmap, unsigned int pos)
 {
-	int bits = sizeof(*bitmap) * 8;
-	bitmap[pos / bits] &= ~(1 << (pos % bits));
+	size_t bits = sizeof(*bitmap) * 8;
+	bitmap[pos / bits] &= ~(1U << (pos % bits));
 }
 
 static inline int bitset_get(bitset_t *bitmap, unsigned int pos)
 {
-	int bits = sizeof(*bitmap) * 8;
-	return !!(bitmap[pos / bits] & (1 << (pos % bits)));
+	size_t bits = sizeof(*bitmap) * 8;
+	return !!(bitmap[pos / bits] & (1U << (pos % bits)));
 }
 
-static inline void bitset_copy(bitset_t *dst, bitset_t *src, unsigned int nbits)
+static inline void bitset_copy(bitset_t *dst, bitset_t *src, size_t nbits)
 {
 	memcpy(dst, src, bitset_size(nbits) * sizeof(bitset_t));
 }
 
-static inline void bitset_and(bitset_t *dst, bitset_t *bs, unsigned int nbits)
+static inline void bitset_and(bitset_t *dst, bitset_t *bs, size_t nbits)
 {
 	bitset_t *end = dst + bitset_size(nbits);
 	while (dst < end)
 		*dst++ &= *bs++;
 }
 
-static inline void bitset_or(bitset_t *dst, bitset_t *bs, unsigned int nbits)
+static inline void bitset_or(bitset_t *dst, bitset_t *bs, size_t nbits)
 {
 	bitset_t *end = dst + bitset_size(nbits);
 	while (dst < end)
 		*dst++ |= *bs++;
 }
 
-static inline void bitset_zero(bitset_t *dst, unsigned int nbits)
+static inline void bitset_zero(bitset_t *dst, size_t nbits)
 {
 	bitset_t *end = dst + bitset_size(nbits);
 	while (dst < end)
 		*dst++ = 0;
 }
 
-static inline void bitset_one(bitset_t *dst, unsigned int nbits)
+static inline void bitset_one(bitset_t *dst, size_t nbits)
 {
 	bitset_t *end = dst + bitset_size(nbits);
 	while (dst < end)
 		*dst++ = ~(bitset_t)0;
+}
+
+static inline size_t hweight32(bitset_t v)
+{
+        v = (v & 0x55555555) + ((v >> 1) & 0x55555555);
+        v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+        v = (v & 0x0F0F0F0F) + ((v >> 4) & 0x0F0F0F0F);
+        v = (v & 0x00FF00FF) + ((v >> 8) & 0x00FF00FF);
+        return (v & 0x0000FFFF) + ((v >> 16) & 0x0000FFFF);
+}
+
+/* Count bits set */
+static inline size_t bitset_count(bitset_t *bitset, size_t nbits)
+{
+	bitset_t *end = bitset + bitset_size(nbits) - 1;
+	size_t bits = sizeof(*bitset) * 8;
+	size_t count = 0;
+	while (bitset < end)
+		count += hweight32(*bitset++);
+	count += hweight32(*bitset & ((1U << (nbits % bits)) - 1));
+	return count;
 }
 
 typedef struct snd_pcm snd_pcm_t;
@@ -84,71 +100,65 @@ typedef struct snd_pcm_loopback snd_pcm_loopback_t;
 
 typedef enum { SND_PCM_TYPE_HW, SND_PCM_TYPE_PLUG, SND_PCM_TYPE_MULTI } snd_pcm_type_t;
 
-int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode);
-int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int mode);
+int snd_pcm_hw_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int stream, int mode);
+int snd_pcm_hw_open(snd_pcm_t **handle, int card, int device, int stream, int mode);
 
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *handle);
 int snd_pcm_close(snd_pcm_t *handle);
-int snd_pcm_stream_close(snd_pcm_t *handle, int stream);
-int snd_pcm_file_descriptor(snd_pcm_t *handle, int stream);
-int snd_pcm_stream_nonblock(snd_pcm_t *handle, int stream, int nonblock);
+int snd_pcm_file_descriptor(snd_pcm_t *handle);
+int snd_pcm_nonblock(snd_pcm_t *handle, int nonblock);
 int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t *info);
-int snd_pcm_stream_info(snd_pcm_t *handle, snd_pcm_stream_info_t *info);
-int snd_pcm_stream_params(snd_pcm_t *handle, snd_pcm_stream_params_t *params);
-int snd_pcm_stream_setup(snd_pcm_t *handle, snd_pcm_stream_setup_t *setup);
-int snd_pcm_channel_setup(snd_pcm_t *handle, int stream, snd_pcm_channel_setup_t *setup);
-int snd_pcm_stream_status(snd_pcm_t *handle, snd_pcm_stream_status_t *status);
-int snd_pcm_playback_prepare(snd_pcm_t *handle);
-int snd_pcm_capture_prepare(snd_pcm_t *handle);
-int snd_pcm_stream_prepare(snd_pcm_t *handle, int stream);
-int snd_pcm_playback_go(snd_pcm_t *handle);
-int snd_pcm_capture_go(snd_pcm_t *handle);
-int snd_pcm_stream_go(snd_pcm_t *handle, int stream);
+int snd_pcm_params(snd_pcm_t *handle, snd_pcm_params_t *params);
+int snd_pcm_setup(snd_pcm_t *handle, snd_pcm_setup_t *setup);
+int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup);
+int snd_pcm_status(snd_pcm_t *handle, snd_pcm_status_t *status);
+int snd_pcm_prepare(snd_pcm_t *handle);
+int snd_pcm_go(snd_pcm_t *handle);
 int snd_pcm_sync_go(snd_pcm_t *handle, snd_pcm_sync_t *sync);
-int snd_pcm_playback_drain(snd_pcm_t *handle);
-int snd_pcm_stream_drain(snd_pcm_t *handle, int stream);
-int snd_pcm_playback_flush(snd_pcm_t *handle);
-int snd_pcm_capture_flush(snd_pcm_t *handle);
-int snd_pcm_stream_flush(snd_pcm_t *handle, int stream);
-int snd_pcm_playback_pause(snd_pcm_t *handle, int enable);
-int snd_pcm_stream_pause(snd_pcm_t *handle, int stream, int enable);
-int snd_pcm_stream_state(snd_pcm_t *handle, int stream);
-int snd_pcm_mmap_stream_state(snd_pcm_t *handle, int stream);
-ssize_t snd_pcm_stream_frame_io(snd_pcm_t *handle, int stream, int update);
-ssize_t snd_pcm_mmap_stream_frame_io(snd_pcm_t *handle, int stream);
-ssize_t snd_pcm_stream_frame_data(snd_pcm_t *handle, int stream, off_t offset);
-ssize_t snd_pcm_mmap_stream_frame_data(snd_pcm_t *handle, int stream, off_t offset);
+int snd_pcm_drain(snd_pcm_t *handle);
+int snd_pcm_flush(snd_pcm_t *handle);
+int snd_pcm_pause(snd_pcm_t *handle, int enable);
+int snd_pcm_state(snd_pcm_t *handle);
+ssize_t snd_pcm_frame_io(snd_pcm_t *handle, int update);
+ssize_t snd_pcm_frame_data(snd_pcm_t *handle, off_t offset);
 ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size);
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size);
-ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long  count);
-ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
+ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned long  count);
+ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned long count);
+int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp);
+
+int snd_pcm_channels_mask(snd_pcm_t *handle, bitset_t *client_vmask);
+
+/* mmap */
+int snd_pcm_mmap(snd_pcm_t *handle, snd_pcm_mmap_status_t **status, snd_pcm_mmap_control_t **control, void **buffer);
+int snd_pcm_munmap(snd_pcm_t *handle);
+int snd_pcm_mmap_state(snd_pcm_t *handle);
+ssize_t snd_pcm_mmap_frame_io(snd_pcm_t *handle);
+ssize_t snd_pcm_mmap_frame_data(snd_pcm_t *handle, off_t offset);
+int snd_pcm_mmap_status(snd_pcm_t *handle, snd_pcm_mmap_status_t **status);
+int snd_pcm_mmap_control(snd_pcm_t *handle, snd_pcm_mmap_control_t **control);
+int snd_pcm_mmap_data(snd_pcm_t *handle, void **buffer);
+int snd_pcm_munmap_status(snd_pcm_t *handle);
+int snd_pcm_munmap_control(snd_pcm_t *handle);
+int snd_pcm_munmap_data(snd_pcm_t *handle);
+int snd_pcm_mmap_ready(snd_pcm_t *handle);
+ssize_t snd_pcm_mmap_write(snd_pcm_t *handle, const void *buffer, size_t size);
+ssize_t snd_pcm_mmap_read(snd_pcm_t *handle, void *buffer, size_t size);
+ssize_t snd_pcm_mmap_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned long  count);
+ssize_t snd_pcm_mmap_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned long count);
+int snd_pcm_mmap_frames_avail(snd_pcm_t *handle, ssize_t *frames);
+ssize_t snd_pcm_mmap_frames_xfer(snd_pcm_t *handle, size_t frames);
+ssize_t snd_pcm_mmap_frames_offset(snd_pcm_t *handle);
+ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *channels, size_t frames);
+ssize_t snd_pcm_mmap_write_frames(snd_pcm_t *handle, const void *buffer, size_t frames);
+ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *channels, size_t frames);
+ssize_t snd_pcm_mmap_read_frames(snd_pcm_t *handle, const void *buffer, size_t frames);
+int snd_pcm_mmap_get_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *areas);
+
+
 const char *snd_pcm_get_format_name(int format);
 const char *snd_pcm_get_format_description(int format);
 int snd_pcm_get_format_value(const char* name);
-int snd_pcm_dump_setup(snd_pcm_t *pcm, int stream, FILE *fp);
-
-int snd_pcm_mmap(snd_pcm_t *handle, int stream, snd_pcm_mmap_status_t **status, snd_pcm_mmap_control_t **control, void **buffer);
-int snd_pcm_munmap(snd_pcm_t *handle, int stream);
-int snd_pcm_mmap_status(snd_pcm_t *handle, int stream, snd_pcm_mmap_status_t **status);
-int snd_pcm_mmap_control(snd_pcm_t *handle, int stream, snd_pcm_mmap_control_t **control);
-int snd_pcm_mmap_data(snd_pcm_t *handle, int stream, void **buffer);
-int snd_pcm_munmap_status(snd_pcm_t *handle, int stream);
-int snd_pcm_munmap_control(snd_pcm_t *handle, int stream);
-int snd_pcm_munmap_data(snd_pcm_t *handle, int stream);
-int snd_pcm_channels_mask(snd_pcm_t *pcm, int stream, bitset_t *client_vmask);
-int snd_pcm_mmap_ready(snd_pcm_t *pcm, int stream);
-ssize_t snd_pcm_mmap_write(snd_pcm_t *handle, const void *buffer, size_t size);
-ssize_t snd_pcm_mmap_read(snd_pcm_t *handle, void *buffer, size_t size);
-ssize_t snd_pcm_mmap_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long  count);
-ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
-int snd_pcm_mmap_frames_avail(snd_pcm_t *pcm, int stream, ssize_t *frames);
-ssize_t snd_pcm_mmap_frames_xfer(snd_pcm_t *pcm, int stream, size_t frames);
-ssize_t snd_pcm_mmap_frames_offset(snd_pcm_t *pcm, int stream);
-ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels, size_t frames);
-ssize_t snd_pcm_mmap_write_frames(snd_pcm_t *pcm, const void *buffer, size_t frames);
-ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels, size_t frames);
-ssize_t snd_pcm_mmap_read_frames(snd_pcm_t *pcm, const void *buffer, size_t frames);
-int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, int stream, snd_pcm_channel_area_t *areas);
 
 int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_channel, size_t dst_offset,
 			 size_t samples, int format);
@@ -161,10 +171,10 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_channels, size_t src_of
 		       const snd_pcm_channel_area_t *dst_channels, size_t dst_offset,
 		       size_t vcount, size_t frames, int format);
 
-ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, int stream, ssize_t bytes);
-ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, int stream, ssize_t frames);
-ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *pcm, int stream, ssize_t bytes);
-ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int stream, ssize_t samples);
+ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes);
+ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, ssize_t frames);
+ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes);
+ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, ssize_t samples);
 
 
 /* misc */
@@ -197,7 +207,7 @@ extern "C" {
 #endif
 
 typedef struct snd_stru_pcm_plugin snd_pcm_plugin_t;
-#define snd_pcm_plugin_handle_t snd_pcm_t
+#define snd_pcm_plug_t struct snd_pcm_plug
 
 typedef enum {
 	INIT = 0,
@@ -208,7 +218,6 @@ typedef enum {
 } snd_pcm_plugin_action_t;
 
 typedef struct snd_stru_pcm_plugin_channel {
-	void *aptr;			/* pointer to the allocated area */
 	snd_pcm_channel_area_t area;
 	unsigned int enabled:1;		/* channel need to be processed */
 	unsigned int wanted:1;		/* channel is wanted */
@@ -247,54 +256,47 @@ struct snd_stru_pcm_plugin {
 			     unsigned long *value);
 	snd_pcm_plugin_t *prev;
 	snd_pcm_plugin_t *next;
-	snd_pcm_plugin_handle_t *handle;
+	snd_pcm_plug_t *plug;
 	void *private_data;
 	void (*private_free)(snd_pcm_plugin_t *plugin, void *private_data);
-	snd_pcm_plugin_channel_t *src_channels;
-	snd_pcm_plugin_channel_t *dst_channels;
+	char *buf;
+	size_t buf_frames;
+	snd_pcm_plugin_channel_t *buf_channels;
 	bitset_t *src_vmask;
 	bitset_t *dst_vmask;
 	char extra_data[0];
 };
 
-int snd_pcm_plug_connect(snd_pcm_t **handle, snd_pcm_t *slave, int mode, int close_slave);
-int snd_pcm_plug_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int mode);
-int snd_pcm_plug_open(snd_pcm_t **handle, int card, int device, int mode);
+int snd_pcm_plug_create(snd_pcm_t **handle, snd_pcm_t *slave, int close_slave);
+int snd_pcm_plug_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int stream, int mode);
+int snd_pcm_plug_open(snd_pcm_t **handle, int card, int device, int stream, int mode);
 
 int snd_pcm_plugin_free(snd_pcm_plugin_t *plugin);
-int snd_pcm_plug_clear(snd_pcm_t *handle, int stream);
 int snd_pcm_plugin_insert(snd_pcm_plugin_t *plugin);
 int snd_pcm_plugin_append(snd_pcm_plugin_t *plugin);
-#if 0
-int snd_pcm_plugin_remove_to(snd_pcm_plugin_t *plugin);
-int snd_pcm_plug_remove_first(snd_pcm_t *handle, int stream);
-#endif
-snd_pcm_plugin_t *snd_pcm_plug_first(snd_pcm_t *handle, int stream);
-snd_pcm_plugin_t *snd_pcm_plug_last(snd_pcm_t *handle, int stream);
-int snd_pcm_plug_direct(snd_pcm_t *pcm, int stream);
-ssize_t snd_pcm_plug_client_size(snd_pcm_t *handle, int stream, size_t drv_frames);
-ssize_t snd_pcm_plug_slave_size(snd_pcm_t *handle, int stream, size_t clt_frames);
+int snd_pcm_plug_alloc(snd_pcm_plug_t *plug, size_t frames);
+int snd_pcm_plug_clear(snd_pcm_plug_t *plug);
+snd_pcm_plugin_t *snd_pcm_plug_first(snd_pcm_plug_t *plug);
+snd_pcm_plugin_t *snd_pcm_plug_last(snd_pcm_plug_t *plug);
+int snd_pcm_plug_direct(snd_pcm_plug_t *plug);
+ssize_t snd_pcm_plug_client_size(snd_pcm_plug_t *plug, size_t drv_frames);
+ssize_t snd_pcm_plug_slave_size(snd_pcm_plug_t *plug, size_t clt_frames);
 
 /*
  *  Plug-In constructors
  */
 
-int snd_pcm_plugin_build(snd_pcm_plugin_handle_t *handle,
-			 int stream,
+int snd_pcm_plugin_build(snd_pcm_plug_t *plug,
 			 const char *name,
 			 snd_pcm_format_t *src_format,
 			 snd_pcm_format_t *dst_format,
 			 size_t extra,
 			 snd_pcm_plugin_t **ret);
 /* basic I/O */
-int snd_pcm_plugin_build_io(snd_pcm_plugin_handle_t *handle,
-			    int stream,
-			    snd_pcm_t *slave,
+int snd_pcm_plugin_build_io(snd_pcm_plug_t *plug,
 			    snd_pcm_format_t *format,
 			    snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_mmap(snd_pcm_plugin_handle_t *handle,
-			      int stream,
-			      snd_pcm_t *slave,
+int snd_pcm_plugin_build_mmap(snd_pcm_plug_t *plug,
 			      snd_pcm_format_t *format,
 			      snd_pcm_plugin_t **r_plugin);
 
@@ -310,44 +312,36 @@ typedef int route_ttable_entry_t;
 #endif
 
 /* conversion plugins */
-int snd_pcm_plugin_build_interleave(snd_pcm_plugin_handle_t *handle,
-				    int stream,
+int snd_pcm_plugin_build_interleave(snd_pcm_plug_t *plug,
 				    snd_pcm_format_t *src_format,
 				    snd_pcm_format_t *dst_format,
 				    snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_linear(snd_pcm_plugin_handle_t *handle,
-				int stream,
+int snd_pcm_plugin_build_linear(snd_pcm_plug_t *plug,
 				snd_pcm_format_t *src_format,
 				snd_pcm_format_t *dst_format,
 				snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_mulaw(snd_pcm_plugin_handle_t *handle,
-			       int stream,
+int snd_pcm_plugin_build_mulaw(snd_pcm_plug_t *plug,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
 			       snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_alaw(snd_pcm_plugin_handle_t *handle,
-			      int stream,
+int snd_pcm_plugin_build_alaw(snd_pcm_plug_t *plug,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_adpcm(snd_pcm_plugin_handle_t *handle,
-			       int stream,
+int snd_pcm_plugin_build_adpcm(snd_pcm_plug_t *plug,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
 			       snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
-			      int stream,
+int snd_pcm_plugin_build_rate(snd_pcm_plug_t *plug,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_route(snd_pcm_plugin_handle_t *handle,
-			       int stream,
+int snd_pcm_plugin_build_route(snd_pcm_plug_t *plug,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
 			       route_ttable_entry_t *ttable,
 			       snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
-			      int stream,
+int snd_pcm_plugin_build_copy(snd_pcm_plug_t *plug,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin);
