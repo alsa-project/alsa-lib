@@ -95,10 +95,8 @@ int snd_config_get_ctl_iface(snd_config_t *conf);
 
 typedef int (snd_config_string_replace_callback_t)(const char *what, char **dst, void *private_data);
 
-int snd_config_string_replace(const char *src, char idchr,
-			      snd_config_string_replace_callback_t *callback,
-			      void *private_data,
-			      char **dst);
+int snd_config_refer_load(snd_config_t **dst, char **name,
+			  snd_config_t *root, snd_config_t *config);
 
 #ifdef __cplusplus
 }

@@ -606,32 +606,6 @@ static int snd_pcm_hook_ctl_elems_close(snd_pcm_hook_t *hook)
 	return err;
 }
 
-static int snd_pcm_hook_ctl_elems_replace(const char *what, char **dst, void *private_data)
-{
-	snd_pcm_t *pcm = private_data;
-	snd_pcm_info_t *info;
-	char str[12];
-	long val;
-	int err;
-
-	snd_pcm_info_alloca(&info);
-	err = snd_pcm_info(pcm, info);
-	if (err < 0)
-		return err;
-	if (!strcmp(what, "card")) {
-		val = snd_pcm_info_get_card(info);
-	} else if (!strcmp(what, "device")) {
-		val = snd_pcm_info_get_device(info);
-	} else if (!strcmp(what, "subdevice")) {
-		val = snd_pcm_info_get_subdevice(info);
-	} else
-		return 0;	/* empty string */
-	snprintf(str, sizeof(str), "%li", val);
-	str[sizeof(str)-1] = '\0';
-	*dst = strdup(str);
-	return 0;
-}
-
 int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 {
 	int err;
@@ -658,7 +632,7 @@ int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 		SNDERR("Cannot open CTL %s", ctl_name);
 		return err;
 	}
-	err = snd_sctl_build(&sctl, ctl, conf, snd_pcm_hook_ctl_elems_replace, pcm, 0);
+	err = snd_sctl_build(&sctl, ctl, conf, pcm, 0);
 	if (err < 0)
 		return -ENOMEM;
 	err = snd_pcm_hook_add(&h_hw_params, pcm, SND_PCM_HOOK_TYPE_HW_PARAMS,

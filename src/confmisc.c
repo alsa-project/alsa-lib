@@ -140,71 +140,89 @@ int snd_config_get_ctl_iface(snd_config_t *conf)
 }
 
 /**
- * \brief Expand the dynamic contents
- * \param src Source string
- * \param idchr Identification character
- * \param callback Callback function
- * \param private_data Private data for the given callback function
- * \param dst Destination string
+ * \brief Refer the configuration block to another
+ * \param dst new configuration block (if *dst != root -> dst needs to be deleted)
+ * \param name the identifier of new configuration block
+ * \param root the root of all configurations
+ * \param config redirect configuration
  */
-int snd_config_string_replace(const char *src, char idchr,
-			      snd_config_string_replace_callback_t *callback,
-			      void *private_data,
-			      char **dst)
+int snd_config_refer_load(snd_config_t **dst,
+			  char **name,
+			  snd_config_t *root,
+			  snd_config_t *config)
 {
-	int len = 0, len1, err;
-	const char *ptr, *end;
-	char *tmp, *what, *fptr, *rdst = NULL;
+	int err;
+	snd_config_t *result, *c;
+	char *rname;
 
-	assert(src && idchr && dst);
-	while (*src != '\0') {
-		ptr = strchr(src, idchr);
-		end = NULL;
-		if (ptr == src && *(ptr + 1) == '(' && (end = strchr(ptr + 2, ')')) != NULL) {
-			src = end + 1;
-			if (callback == NULL)
-				continue;
-			len1 = end - (ptr + 2);
-			if (len1 == 0)		/* empty */
-				continue;
-			what = malloc(len1 + 1);
-			memcpy(what, ptr + 2, len1);
-			what[len1] = '\0';
-			fptr = NULL;
-			err = callback(what, &fptr, private_data);
-			free(what);
-			if (err < 0) {
-				if (*dst != NULL)
-					free(*dst);
-				return err;
-			}
-			if (fptr == NULL)	/* empty */
-				continue;
-			len1 = strlen(ptr = fptr);
-		} else {
-			if (ptr == NULL) {
-				len1 = strlen(ptr = src);
-			} else {
-				len1 = ptr - src;
-				ptr = src;
-			}
-			src += len1;
-			fptr = NULL;
-		}
-		tmp = realloc(rdst, len + len1 + 1);
-		if (tmp == NULL) {
-			if (*dst != NULL)
-				free(*dst);
+	assert(dst);
+	assert(name);
+	assert(root);
+	assert(config);
+	if (snd_config_get_type(config) == SND_CONFIG_TYPE_STRING) {
+		const char *str;
+		snd_config_get_string(config, &str);
+		*name = strdup(str);
+		if (*name == NULL)
 			return -ENOMEM;
-		}
-		memcpy(tmp + len, ptr, len1);
-		tmp[len+=len1] = '\0';
-		if (fptr)
-			free(fptr);
-		rdst = tmp;
+		*dst = root;
+		return 0;
 	}
-	*dst = rdst;
+	if (snd_config_get_type(config) != SND_CONFIG_TYPE_COMPOUND)
+		return -EINVAL;
+	result = root;
+	rname = NULL;
+	if (snd_config_search(config, "file", &c) >= 0) {
+		snd_config_t *rconfig;
+		const char *filename;
+		snd_input_t *input;
+		err = snd_config_copy(&rconfig, root);
+		if (err < 0)
+			return err;
+		if (snd_config_get_type(c) == SND_CONFIG_TYPE_STRING) {
+			snd_config_get_string(c, &filename);
+		} else {
+			err = -EINVAL;
+		      __filename_error:
+			snd_config_delete(rconfig);
+			return err;
+		}
+		err = snd_input_stdio_open(&input, filename, "r");
+		if (err < 0) {
+			SNDERR("Unable to open filename %s: %s", filename, snd_strerror(err));
+			goto __filename_error;
+		}
+		err = snd_config_load(rconfig, input);
+		if (err < 0) {
+			snd_input_close(input);
+			goto __filename_error;
+		}
+		snd_input_close(input);
+		result = rconfig;
+	}
+	if (snd_config_search(config, "name", &c) >= 0) {
+		const char *ptr;
+		if ((err = snd_config_get_string(c, &ptr)) < 0)
+			goto __error;
+		rname = strdup(ptr);
+		if (rname == NULL) {
+			err = -ENOMEM;
+			goto __error;
+		}
+	}
+	if (rname == NULL) {
+		err = -EINVAL;
+		goto __error;
+	}
+	*dst = result;
+	*name = rname;
 	return 0;
+      __error:
+      	if (rname)
+      		free(rname);
+      	if (result != root)
+      		snd_config_delete(result);
+      	return err;
 }
 
 /*
@@ -315,7 +333,6 @@ int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, 
 }
 	
 	
-
 int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -514,7 +531,6 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, 
 int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
-	char *res = NULL;
 	snd_ctl_t *ctl = NULL;
 	snd_pcm_info_t *info;
 	long card, device, subdevice = 0;
@@ -575,18 +591,36 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		SNDERR("snd_ctl_pcm_info error: %s", snd_strerror(err));
 		goto __error;
 	}
-	res = strdup(snd_pcm_info_get_id(info));
-	if (res == NULL) {
-		err = -ENOMEM;
-		goto __error;
-	}
 	err = snd_config_make_string(dst, snd_config_get_id(src));
 	if (err >= 0)
-		err = snd_config_set_string(*dst, res);
-	free(res);
+		err = snd_config_set_string(*dst, snd_pcm_info_get_id(info));
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
+	return err;
+}
+
+int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
+{
+	char *res = NULL;
+	snd_pcm_info_t *info;
+	int err;
+
+	if (private_data == NULL)
+		return snd_config_copy(dst, src);
+	snd_pcm_info_alloca(&info);
+	err = snd_pcm_info((snd_pcm_t *)private_data, info);
+	if (err < 0) {
+		SNDERR("snd_ctl_pcm_info error: %s", snd_strerror(err));
+		return err;
+	}
+	res = strdup(snd_pcm_info_get_id(info));
+	if (res == NULL)
+		return -ENOMEM;
+	err = snd_config_make_integer(dst, snd_config_get_id(src));
+	if (err >= 0)
+		err = snd_config_set_integer(*dst, snd_pcm_info_get_subdevice(info));
+	free(res);
 	return err;
 }
 

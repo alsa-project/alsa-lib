@@ -371,74 +371,13 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 	return 0;
 }
 
-static int config_replace(snd_config_t *conf,
-			  snd_config_string_replace_callback_t *callback,
-			  void *private_data, char **res)
+static int add_elem(snd_sctl_t *h, snd_config_t *_conf, void *private_data)
 {
-	int err;
-	char *replace, *tmp;
-	
-	err = snd_config_get_ascii(conf, &tmp);
-	if (err < 0)
-		return err;
-	err = snd_config_string_replace(tmp, '&', callback, private_data, &replace);
-	free(tmp);
-	if (err < 0)
-		return err;
-	if (replace == NULL) {
-		SNDERR("Invalid value for '%s'", snd_config_get_id(conf));
-		return err;
-	}
-	*res = replace;
-	return 0;
-}
-
-static int config_replace_integer(snd_config_t *conf,
-				  snd_config_string_replace_callback_t *callback,
-				  void *private_data, long *res)
-{
-	char *tmp;
-	int err;
-	
-	err = config_replace(conf, callback, private_data, &tmp);
-	if (err < 0)
-		return err;
-	err = safe_strtol(tmp, res);
-	if (err < 0) {
-		SNDERR("Invalid value for '%s'", snd_config_get_id(conf));
-		return err;
-	}
-	return 0;
-}
-
-static int config_replace_bool(snd_config_t *conf,
-			       snd_config_string_replace_callback_t *callback,
-			       void *private_data, int *res)
-{
-	char *tmp;
-	int err;
-	
-	err = config_replace(conf, callback, private_data, &tmp);
-	if (err < 0)
-		return err;
-	err = snd_config_get_bool_ascii(tmp);
-	free(tmp);
-	if (err < 0) {
-		SNDERR("Invalid value for '%s'", snd_config_get_id(conf));
-		return err;
-	}
-	*res = err;
-	return 0;
-}
-
-static int add_elem(snd_sctl_t *h, snd_config_t *conf,
-		    snd_config_string_replace_callback_t *callback,
-		    void *private_data)
-{
+	snd_config_t *conf;
 	snd_config_iterator_t i, next;
 	char *tmp;
 	int iface = SND_CTL_ELEM_IFACE_MIXER;
-	char *name = NULL;
+	const char *name = NULL;
 	long index = 0;
 	long device = -1;
 	long subdevice = -1;
@@ -447,50 +386,80 @@ static int add_elem(snd_sctl_t *h, snd_config_t *conf,
 	snd_config_t *value = NULL, *mask = NULL;
 	snd_sctl_elem_t *elem = NULL;
 	int err;
+	err = snd_config_expand(_conf, _conf, NULL, private_data, &conf);
+	if (err < 0)
+		return err;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "iface") == 0 || strcmp(id, "interface") == 0) {
-			if ((err = config_replace(n, callback, private_data, &tmp)) < 0)
+			const char *ptr;
+			if ((err = snd_config_get_string(n, &ptr)) < 0) {
+				SNDERR("field %s is not a string", id);
 				goto _err;
-			if ((err = snd_config_get_ctl_iface_ascii(tmp)) < 0) {
+			}
+			if ((err = snd_config_get_ctl_iface_ascii(ptr)) < 0) {
 				SNDERR("Invalid value for '%s'", id);
 				free(tmp);
 				goto _err;
 			}
 			iface = err;
-			free(tmp);
 			continue;
 		}
 		if (strcmp(id, "name") == 0) {
-			if ((err = config_replace(n, callback, private_data, &name)) < 0)
+			if ((err = snd_config_get_string(n, &name)) < 0) {
+				SNDERR("field %s is not a string", id);
 				goto _err;
+			}
 			continue;
 		}
 		if (strcmp(id, "index") == 0) {
-			if ((err = config_replace_integer(n, callback, private_data, &index)) < 0)
+			if ((err = snd_config_get_integer(n, &index)) < 0) {
+				SNDERR("field %s is not an integer", id);
 				goto _err;
+			}
 			continue;
 		}
 		if (strcmp(id, "device") == 0) {
-			if ((err = config_replace_integer(n, callback, private_data, &device)) < 0)
+			if ((err = snd_config_get_integer(n, &device)) < 0) {
+				SNDERR("field %s is not an integer", id);
 				goto _err;
+			}
 			continue;
 		}
 		if (strcmp(id, "subdevice") == 0) {
-			if ((err = config_replace_integer(n, callback, private_data, &subdevice)) < 0)
+			if ((err = snd_config_get_integer(n, &subdevice)) < 0) {
+				SNDERR("field %s is not an integer", id);
 				goto _err;
+			}
+			continue;
 		}
 		if (strcmp(id, "lock") == 0) {
-			if ((err = config_replace_bool(n, callback, private_data, &lock)) < 0)
+			if ((err = snd_config_get_ascii(n, &tmp)) < 0) {
+				SNDERR("field %s has an invalid type", id);
 				goto _err;
+			}
+			err = snd_config_get_bool_ascii(tmp);
+			if (err < 0) {
+				SNDERR("field %s is not a boolean", id);
+				goto _err;
+			}
+			lock = err;
 			continue;
 		}
 		if (strcmp(id, "preserve") == 0) {
-			if ((err = config_replace_bool(n, callback, private_data, &preserve)) < 0)
+			if ((err = snd_config_get_ascii(n, &tmp)) < 0) {
+				SNDERR("field %s has an invalid type", id);
 				goto _err;
+			}
+			err = snd_config_get_bool_ascii(tmp);
+			if (err < 0) {
+				SNDERR("field %s is not a boolean", id);
+				goto _err;
+			}
+			preserve = err;
 			continue;
 		}
 		if (strcmp(id, "value") == 0) {
@@ -568,12 +537,9 @@ static int add_elem(snd_sctl_t *h, snd_config_t *conf,
 	if (err < 0)
 		goto _err;
 	list_add_tail(&elem->list, &h->elems);
-	return 0;
 
  _err:
- 	if (name)
- 		free(name);
- 	if (elem) {
+ 	if (err < 0 && elem) {
 		if (elem->id)
 			snd_ctl_elem_id_free(elem->id);
 		if (elem->info)
@@ -586,13 +552,12 @@ static int add_elem(snd_sctl_t *h, snd_config_t *conf,
 			snd_ctl_elem_value_free(elem->old);
 		free(elem);
 	}
+	if (conf)
+		snd_config_delete(conf);
 	return err;
 }
 
-int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf,
-		   snd_config_string_replace_callback_t *callback,
-		   void *private_data,
-		   int mode)
+int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf, void *private_data, int mode)
 {
 	snd_sctl_t *h;
 	snd_config_iterator_t i, next;
@@ -615,7 +580,7 @@ int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf,
 	INIT_LIST_HEAD(&h->elems);
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		err = add_elem(h, n, callback, private_data);
+		err = add_elem(h, n, private_data);
 		if (err < 0) {
 			free_elems(h);
 			return err;
