@@ -77,5 +77,5 @@ struct _snd_mixer_selem {
 	long volume[32];
 };
 
-snd_mixer_elem_t *snd_mixer_elem_add(snd_mixer_t *mixer);
+int snd_mixer_add_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem);
 void snd_mixer_free(snd_mixer_t *mixer);

@@ -47,19 +47,20 @@ int snd_mixer_open(snd_mixer_t **mixerp, char *name)
 	return 0;
 }
 
-snd_mixer_elem_t *snd_mixer_elem_add(snd_mixer_t *mixer)
+int snd_mixer_add_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem)
 {
-	snd_mixer_elem_t *elem;
-	elem = calloc(1, sizeof(*elem));
-	if (!elem)
-		return NULL;
 	elem->mixer = mixer;
 	list_add_tail(&elem->list, &mixer->elems);
 	mixer->count++;
-	return elem;
+	if (mixer->callback) {
+		int err = mixer->callback(mixer, SND_CTL_EVENT_ADD, elem);
+		if (err < 0)
+			return err;
+	}
+	return 0;
 }
 
-void snd_mixer_elem_remove(snd_mixer_elem_t *elem)
+void snd_mixer_remove_elem(snd_mixer_elem_t *elem)
 {
 	snd_mixer_t *mixer = elem->mixer;
 	if (elem->private_free)
@@ -74,7 +75,7 @@ void snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 void snd_mixer_free(snd_mixer_t *mixer)
 {
 	while (!list_empty(&mixer->elems))
-		snd_mixer_elem_remove(list_entry(mixer->elems.next, snd_mixer_elem_t, list));
+		snd_mixer_remove_elem(list_entry(mixer->elems.next, snd_mixer_elem_t, list));
 }
 
 int snd_mixer_close(snd_mixer_t *mixer)

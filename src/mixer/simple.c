@@ -70,7 +70,7 @@ typedef struct _selem {
 	/* -- */
 	mixer_simple_read_t *read;
 	mixer_simple_write_t *write;
-	snd_hctl_bag_t helems;		/* bag of associated helems */
+	snd_hctl_bag_t elems;		/* bag of associated elems */
 	unsigned long private_value;
 } selem_t;
 
@@ -173,11 +173,13 @@ static int hctl_elem_event(snd_hctl_elem_t *helem,
 	return 0;
 }
 
-static void hctl_elem_add(snd_hctl_bag_t *bag, snd_hctl_elem_t *helem)
+static void hctl_elem_add(selem_t *s, snd_hctl_elem_t *helem)
 {
-	snd_hctl_bag_add(bag, helem);
+	int err;
+	err = snd_hctl_bag_add(&s->elems, helem);
+	assert(err >= 0);
 	snd_hctl_elem_set_callback(helem, hctl_elem_event);
-	snd_hctl_elem_set_callback_private(helem, bag);
+	snd_hctl_elem_set_callback_private(helem, &s->elems);
 }
 
 static const char *get_full_name(const char *sname)
@@ -483,28 +485,27 @@ static void selem_free(snd_mixer_elem_t *elem)
 	selem_t *s;
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
 	s = elem->private;
-	snd_hctl_bag_destroy(&s->helems);
+	snd_hctl_bag_destroy(&s->elems);
 	free(s);
 }
 
-static selem_t *build_elem_scontrol(snd_mixer_t *mixer, const char *sname, int index)
+static int build_elem_scontrol(snd_mixer_t *mixer, selem_t *s,
+			       const char *sname, int index)
 {
 	snd_mixer_elem_t *elem;
-	selem_t *s;
-	s = calloc(1, sizeof(*s));
 	strcpy(s->id.name, sname);
 	s->id.index = index;
 	s->read = elem_read;
 	s->write = elem_write;
-	elem = snd_mixer_elem_add(mixer);
-	if (!elem) {
-		free(s);
-		return NULL;
-	}
+	elem = calloc(1, sizeof(*elem));
+	if (!elem)
+		return -ENOMEM;
+	s->elems.private = elem;
 	elem->type = SND_MIXER_ELEM_SIMPLE;
 	elem->private = s;
 	elem->private_free = selem_free;
-	return s;
+	snd_mixer_add_elem(mixer, elem);
+	return 0;
 }
 
 static int build_elem(snd_mixer_t *mixer, const char *sname)
@@ -518,7 +519,6 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 	snd_ctl_elem_info_t groute_info, proute_info, croute_info;
 	snd_ctl_elem_info_t csource_info;
 	long min, max;
-	snd_hctl_bag_t bag;
 	selem_t *simple;
 	snd_hctl_elem_t *helem;
 	const char *sname1;
@@ -533,11 +533,11 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 	memset(&proute_info, 0, sizeof(proute_info));
 	memset(&croute_info, 0, sizeof(croute_info));
 	while (1) {
+		simple = calloc(1, sizeof(*simple));
 		index++;
 		voices = 0;
 		present = caps = capture_item = 0;
 		min = max = 0;
-		memset(&bag, 0, sizeof(bag));
 		if ((helem = test_mixer_id(mixer, sname, index)) != NULL) {
 			if ((err = get_mixer_info(mixer, sname, index, &global_info)) < 0)
 				return err;
@@ -553,7 +553,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					if (max < global_info.value.integer.max)
 						max = global_info.value.integer.max;
 				}
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		sprintf(str, "%s Switch", sname);
@@ -565,7 +565,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					voices = gswitch_info.count;
 				caps |= SND_MIXER_SCTCAP_MUTE;
 				present |= MIXER_PRESENT_GLOBAL_SWITCH;
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		sprintf(str, "%s Route", sname);
@@ -577,7 +577,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					voices = 2;
 				caps |= SND_MIXER_SCTCAP_MUTE;
 				present |= MIXER_PRESENT_GLOBAL_ROUTE;
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		sprintf(str, "%s Volume", sname);
@@ -593,7 +593,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					max = gvolume_info.value.integer.max;
 				caps |= SND_MIXER_SCTCAP_VOLUME;
 				present |= MIXER_PRESENT_GLOBAL_VOLUME;
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		sprintf(str, "%s Playback Switch", sname);
@@ -605,7 +605,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					voices = pswitch_info.count;
 				caps |= SND_MIXER_SCTCAP_MUTE;
 				present |= MIXER_PRESENT_PLAYBACK_SWITCH;
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		sprintf(str, "%s Playback Route", sname);
@@ -617,7 +617,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					voices = 2;
 				caps |= SND_MIXER_SCTCAP_MUTE;
 				present |= MIXER_PRESENT_PLAYBACK_ROUTE;
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		sprintf(str, "%s Capture Switch", sname);
@@ -629,7 +629,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					voices = cswitch_info.count;
 				caps |= SND_MIXER_SCTCAP_CAPTURE;
 				present |= MIXER_PRESENT_CAPTURE_SWITCH;
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		sprintf(str, "%s Capture Route", sname);
@@ -641,7 +641,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					voices = 2;
 				caps |= SND_MIXER_SCTCAP_CAPTURE;
 				present |= MIXER_PRESENT_CAPTURE_ROUTE;
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		sprintf(str, "%s Playback Volume", sname);
@@ -657,7 +657,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					max = pvolume_info.value.integer.max;
 				caps |= SND_MIXER_SCTCAP_VOLUME;
 				present |= MIXER_PRESENT_PLAYBACK_VOLUME;
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		sprintf(str, "%s Capture Volume", sname);
@@ -673,7 +673,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					max = pvolume_info.value.integer.max;
 				caps |= SND_MIXER_SCTCAP_VOLUME;
 				present |= MIXER_PRESENT_CAPTURE_VOLUME;
-				hctl_elem_add(&bag, helem);
+				hctl_elem_add(simple, helem);
 			}
 		}
 		if (index == 0 && (helem = test_mixer_id(mixer, "Capture Source", 0)) != NULL) {
@@ -691,7 +691,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 						voices = csource_info.count;
 					caps |= SND_MIXER_SCTCAP_CAPTURE;
 					present |= MIXER_PRESENT_CAPTURE_SOURCE;
-					hctl_elem_add(&bag, helem);
+					hctl_elem_add(simple, helem);
 				} else for (capture_item = 1; capture_item < csource_info.value.enumerated.items; capture_item++) {
 					csource_info.value.enumerated.item = capture_item;
 					if ((err = snd_ctl_elem_info(mixer->ctl, &csource_info)) < 0)
@@ -701,7 +701,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 							voices = csource_info.count;
 						caps |= SND_MIXER_SCTCAP_CAPTURE;
 						present |= MIXER_PRESENT_CAPTURE_SOURCE;
-						hctl_elem_add(&bag, helem);
+						hctl_elem_add(simple, helem);
 						break;
 					}
 				}
@@ -751,14 +751,11 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					caps &= ~SND_MIXER_SCTCAP_JOIN_VOLUME;
 			}
 		}
-		if (present == 0)
+		if (present == 0) {
+			free(simple);
 			break;
-		sname1 = get_short_name(sname);
-		simple = build_elem_scontrol(mixer, sname1, index);
-		if (simple == NULL) {
-			snd_hctl_bag_destroy(&bag);
-			return -ENOMEM;
 		}
+		sname1 = get_short_name(sname);
 		simple->present = present;
 		simple->global_values = global_info.count;
 		simple->gswitch_values = gswitch_info.count;
@@ -776,8 +773,11 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 		simple->voices = voices;
 		simple->min = min;
 		simple->max = max;
-		bag.private = simple;
-		simple->helems = bag;
+		if (build_elem_scontrol(mixer, simple, sname1, index) < 0) {
+			snd_hctl_bag_destroy(&simple->elems);
+			free(simple);
+			return -ENOMEM;
+		}
 		// fprintf(stderr, "sname = '%s', index = %i, present = 0x%x, voices = %i\n", sname, index, present, voices);
 	};
 	return 0;
