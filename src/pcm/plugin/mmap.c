@@ -187,7 +187,7 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 	mmap_t *data;
 	snd_pcm_stream_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
-	snd_pcm_stream_t *stream;
+	snd_pcm_stream_t *str;
 	int err;
 
 	if (plugin == NULL)
@@ -200,8 +200,8 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 	ctrl = data->control;
 	if (ctrl == NULL)
 		return -EINVAL;
-	stream = &data->slave->stream[SND_PCM_STREAM_PLAYBACK];
-	setup = &stream->setup;
+	str = &data->slave->stream[SND_PCM_STREAM_PLAYBACK];
+	setup = &str->setup;
 
 #if 0
 	for (channel = 0; channel < plugin->src_format.channels; channel++) {
@@ -210,10 +210,10 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 	}
 #endif
 
-	snd_pcm_mmap_commit_frames(data->slave, SND_PCM_STREAM_PLAYBACK, frames);
+	snd_pcm_stream_seek(data->slave, SND_PCM_STREAM_PLAYBACK, frames * str->bits_per_frame / 8);
 	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
-	    (stream->setup.start_mode == SND_PCM_START_DATA ||
-	     (stream->setup.start_mode == SND_PCM_START_FULL &&
+	    (str->setup.start_mode == SND_PCM_START_DATA ||
+	     (str->setup.start_mode == SND_PCM_START_FULL &&
 	      !snd_pcm_mmap_ready(data->slave, plugin->stream)))) {
 		err = snd_pcm_stream_go(data->slave, plugin->stream);
 		if (err < 0)
@@ -228,8 +228,8 @@ static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
 				     size_t frames)
 {
 	mmap_t *data;
-	snd_pcm_stream_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
+	snd_pcm_stream_t *str;
 
 	if (plugin == NULL)
 		return -EINVAL;
@@ -240,10 +240,11 @@ static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
 	ctrl = data->control;
 	if (ctrl == NULL)
 		return -EINVAL;
-	setup = &data->slave->stream[SND_PCM_STREAM_CAPTURE].setup;
+	str = &data->slave->stream[SND_PCM_STREAM_CAPTURE];
 
 	/* FIXME: not here the increment */
-	snd_pcm_mmap_commit_frames(data->slave, SND_PCM_STREAM_CAPTURE, frames);
+	snd_pcm_stream_seek(data->slave, SND_PCM_STREAM_CAPTURE, frames * str->bits_per_frame / 8);
+
 	return frames;
 }
  

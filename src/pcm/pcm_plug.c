@@ -310,7 +310,7 @@ static int snd_pcm_plug_stream_nonblock(snd_pcm_t *pcm, int stream, int nonblock
 	return snd_pcm_stream_nonblock(plug->slave, stream, nonblock);
 }
 
-static int snd_pcm_plug_info(snd_pcm_t *pcm, int stream, snd_pcm_info_t * info)
+static int snd_pcm_plug_info(snd_pcm_t *pcm, int stream UNUSED, snd_pcm_info_t * info)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	return snd_pcm_info(plug->slave, info);
@@ -534,7 +534,7 @@ static int snd_pcm_plug_stream_go(snd_pcm_t *pcm, int stream)
 	return snd_pcm_stream_go(plug->slave, stream);
 }
 
-static int snd_pcm_plug_sync_go(snd_pcm_t *pcm, int stream, snd_pcm_sync_t *sync)
+static int snd_pcm_plug_sync_go(snd_pcm_t *pcm, int stream UNUSED, snd_pcm_sync_t *sync)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &pcm->private;
 	return snd_pcm_sync_go(plug->slave, sync);

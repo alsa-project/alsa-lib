@@ -112,10 +112,14 @@ int snd_pcm_capture_flush(snd_pcm_t *handle);
 int snd_pcm_stream_flush(snd_pcm_t *handle, int stream);
 int snd_pcm_playback_pause(snd_pcm_t *handle, int enable);
 int snd_pcm_stream_pause(snd_pcm_t *handle, int stream, int enable);
-ssize_t snd_pcm_transfer_size(snd_pcm_t *handle, int stream);
 int snd_pcm_stream_state(snd_pcm_t *handle, int stream);
+int snd_pcm_mmap_stream_state(snd_pcm_t *handle, int stream);
 ssize_t snd_pcm_stream_byte_io(snd_pcm_t *handle, int stream, int update);
+ssize_t snd_pcm_mmap_stream_byte_io(snd_pcm_t *handle, int stream);
+ssize_t snd_pcm_stream_byte_data(snd_pcm_t *handle, int stream);
+ssize_t snd_pcm_mmap_stream_byte_data(snd_pcm_t *handle, int stream);
 ssize_t snd_pcm_stream_seek(snd_pcm_t *pcm, int stream, off_t offset);
+ssize_t snd_pcm_mmap_stream_seek(snd_pcm_t *pcm, int stream, off_t offset);
 ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size);
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size);
 ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long  count);
@@ -137,11 +141,9 @@ ssize_t snd_pcm_mmap_write(snd_pcm_t *handle, const void *buffer, size_t size);
 ssize_t snd_pcm_mmap_read(snd_pcm_t *handle, void *buffer, size_t size);
 ssize_t snd_pcm_mmap_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long  count);
 ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
-int snd_pcm_mmap_frames_used(snd_pcm_t *pcm, int stream, ssize_t *frames);
-int snd_pcm_mmap_frames_free(snd_pcm_t *pcm, int stream, ssize_t *frames);
+int snd_pcm_mmap_frames_avail(snd_pcm_t *pcm, int stream, ssize_t *frames);
 ssize_t snd_pcm_mmap_frames_xfer(snd_pcm_t *pcm, int stream, size_t frames);
 ssize_t snd_pcm_mmap_frames_offset(snd_pcm_t *pcm, int stream);
-int snd_pcm_mmap_commit_frames(snd_pcm_t *pcm, int stream, int frames);
 ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels, size_t frames);
 ssize_t snd_pcm_mmap_write_frames(snd_pcm_t *pcm, const void *buffer, size_t frames);
 ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels, size_t frames);
@@ -160,6 +162,7 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *src_channel, size_t src_offs
 int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_channels, size_t src_offset,
 		       const snd_pcm_channel_area_t *dst_channels, size_t dst_offset,
 		       size_t vcount, size_t frames, int format);
+
 
 /* misc */
 

@@ -79,6 +79,7 @@ typedef struct {
 	size_t mmap_control_size;
 	char *mmap_data;
 	size_t mmap_data_size;
+	enum { _INTERLEAVED, _NONINTERLEAVED, _COMPLEX } mmap_type;
 } snd_pcm_stream_t;
 
 struct snd_pcm {
@@ -131,21 +132,19 @@ int conv_index(int src_format, int dst_format);
 #define pdprintf( args... ) { ; }
 #endif
 
-static inline ssize_t snd_pcm_mmap_playback_bytes_used(snd_pcm_stream_t *str)
+static inline size_t snd_pcm_mmap_playback_bytes_avail(snd_pcm_stream_t *str)
 {
-	ssize_t bytes_used;
-	bytes_used = str->mmap_control->byte_data - str->mmap_control->byte_io;
-	if (bytes_used < (ssize_t)(str->setup.buffer_size - str->setup.byte_boundary))
-		bytes_used += str->setup.byte_boundary;
-	return bytes_used;
+	ssize_t bytes_avail = str->mmap_control->byte_io + str->setup.buffer_size - str->mmap_control->byte_data;
+	if (bytes_avail < 0)
+		bytes_avail += str->setup.byte_boundary;
+	return bytes_avail;
 }
 
-static inline size_t snd_pcm_mmap_capture_bytes_used(snd_pcm_stream_t *str)
+static inline size_t snd_pcm_mmap_capture_bytes_avail(snd_pcm_stream_t *str)
 {
-	ssize_t bytes_used;
-	bytes_used = str->mmap_control->byte_io - str->mmap_control->byte_data;
-	if (bytes_used < 0)
-		bytes_used += str->setup.byte_boundary;
-	return bytes_used;
+	ssize_t bytes_avail = str->mmap_control->byte_io - str->mmap_control->byte_data;
+	if (bytes_avail < 0)
+		bytes_avail += str->setup.byte_boundary;
+	return bytes_avail;
 }
 
