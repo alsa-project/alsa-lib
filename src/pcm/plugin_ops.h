@@ -574,6 +574,269 @@ put_1234_4321: as_s32(dst) = bswap_32(sample); goto PUT_END;
 put_1234_4329: as_u32(dst) = bswap_32(sample) ^ 0x80; goto PUT_END;
 #endif
 
+#ifdef NORMS_LABELS
+static inline void _norms(const void *src, void *dst,
+			  int src_wid,
+			  int dst_sign, int dst_wid, int dst_end)
+{
+	int32_t s;
+	switch (src_wid) {
+	case 8:
+		s = *(int8_t*)src;
+		if (s >= 0x7f)
+			goto _min;
+		else if (s <= -0x80)
+			goto _max;
+		break;
+	case 16:
+		s = *(int16_t*)src;
+		if (s >= 0x7fff)
+			goto _min;
+		else if (s <= -0x8000)
+			goto _max;
+		break;
+	case 24:
+		s = *(int32_t*)src;
+		if (s >= 0x7fffff)
+			goto _min;
+		else if (s <= -0x800000)
+			goto _max;
+		break;
+	case 32:
+	{
+		int64_t s64;
+		s64 = *(int64_t*)src;
+		if (s64 >= 0x7fffffff)
+			goto _min;
+		else if (s64 <= -0x80000000)
+			goto _max;
+		s = s64;
+		break;
+	}
+	default:
+		assert(0);
+		return;
+	}
+	if (src_wid < dst_wid) {
+		unsigned int bits = dst_wid - src_wid;
+		s *= 1 << bits;
+	} else if (src_wid > dst_wid) {
+		unsigned int bits = src_wid - dst_wid;
+		s = (s + (1 << (bits - 1)))/ (1 << bits);
+	}
+	if (!dst_sign)
+		s += (1U << (dst_wid - 1));
+	switch (dst_wid) {
+	case 8:
+		*(u_int8_t*)dst = s;
+		break;
+	case 16:
+		if (dst_end)
+			s = bswap_16(s);
+		*(u_int16_t*)dst = s;
+		break;
+	case 24:
+	case 32:
+		if (dst_end)
+			s = bswap_32(s);
+		*(u_int32_t*)dst = s;
+		break;
+	}
+	return;
+
+ _min:
+	switch (dst_wid) {
+	case 8:
+		if (dst_sign)
+			*(u_int8_t*)dst = 0x80;
+		else
+			*(u_int8_t*)dst = 0;
+		break;
+	case 16:
+		if (dst_sign)
+			*(u_int16_t*)dst = dst_end ? 0x0080 : 0x8000;
+		else
+			*(u_int16_t*)dst = 0;
+		break;
+	case 24:
+		if (dst_sign)
+			*(u_int32_t*)dst = dst_end ? 0x00008000 : 0x00800000;
+		else
+			*(u_int32_t*)dst = 0;
+		break;
+	case 32:
+		if (dst_sign)
+			*(u_int32_t*)dst = dst_end ? 0x00000080 : 0x80000000;
+		else
+			*(u_int32_t*)dst = 0;
+		break;
+	default:
+		assert(0);
+		break;
+	}
+	return;
+
+ _max:
+	switch (dst_wid) {
+	case 8:
+		if (dst_sign)
+			*(u_int8_t*)dst = 0x7f;
+		else
+			*(u_int8_t*)dst = 0xff;
+		break;
+	case 16:
+		if (dst_sign)
+			*(u_int16_t*)dst = dst_end ? 0xff7f : 0x7fff;
+		else
+			*(u_int16_t*)dst = 0;
+		break;
+	case 24:
+		if (dst_sign)
+			*(u_int32_t*)dst = dst_end ? 0xffff7f00 : 0x007fffff;
+		else
+			*(u_int32_t*)dst = 0;
+		break;
+	case 32:
+		if (dst_sign)
+			*(u_int32_t*)dst = dst_end ? 0xffffff7f : 0x7fffffff;
+		else
+			*(u_int32_t*)dst = 0;
+		break;
+	default:
+		assert(0);
+		break;
+	}
+	return;
+}
+
+/* src_wid dst_sign dst_wid dst_end */
+static void *norms_labels[4 * 2 * 4 * 2] = {
+	&&norms_8_u8,	        /*  s8 -> u8 */
+	&&norms_8_u8,	        /*  s8 -> u8 */
+	&&norms_8_u16h,	        /*  s8 -> u16h */
+	&&norms_8_u16s,	        /*  s8 -> u16s */
+	&&norms_8_u24h,	        /*  s8 -> u24h */
+	&&norms_8_u24s,	        /*  s8 -> u24s */
+	&&norms_8_u32h,	        /*  s8 -> u32h */
+	&&norms_8_u32s,	        /*  s8 -> u32s */
+	&&norms_8_s8,	        /*  s8 -> s8 */
+	&&norms_8_s8,	        /*  s8 -> s8 */
+	&&norms_8_s16h,	        /*  s8 -> s16h */
+	&&norms_8_s16s,	        /*  s8 -> s16s */
+	&&norms_8_s24h,	        /*  s8 -> s24h */
+	&&norms_8_s24s,	        /*  s8 -> s24s */
+	&&norms_8_s32h,	        /*  s8 -> s32h */
+	&&norms_8_s32s,	        /*  s8 -> s32s */
+	&&norms_16_u8,	        /* s16 -> u8 */
+	&&norms_16_u8,	        /* s16 -> u8 */
+	&&norms_16_u16h,	/* s16 -> u16h */
+	&&norms_16_u16s,	/* s16 -> u16s */
+	&&norms_16_u24h,	/* s16 -> u24h */
+	&&norms_16_u24s,	/* s16 -> u24s */
+	&&norms_16_u32h,	/* s16 -> u32h */
+	&&norms_16_u32s,	/* s16 -> u32s */
+	&&norms_16_s8,		/* s16 -> s8 h*/
+	&&norms_16_s8,		/* s16 -> s8 */
+	&&norms_16_s16h,	/* s16 -> s16h */
+	&&norms_16_s16s,	/* s16 -> s16s */
+	&&norms_16_s24h,	/* s16 -> s24h */
+	&&norms_16_s24s,	/* s16 -> s24s */
+	&&norms_16_s32h,	/* s16 -> s32h */
+	&&norms_16_s32s,	/* s16 -> s32s */
+	&&norms_24_u8,		/* s24 -> u8 */
+	&&norms_24_u8,		/* s24 -> u8 */
+	&&norms_24_u16h,	/* s24 -> u16h */
+	&&norms_24_u16s,	/* s24 -> u16s */
+	&&norms_24_u24h,	/* s24 -> u24h */
+	&&norms_24_u24s,	/* s24 -> u24s */
+	&&norms_24_u32h,	/* s24 -> u32h */
+	&&norms_24_u32s,	/* s24 -> u32s */
+	&&norms_24_s8,		/* s24 -> s8 */
+	&&norms_24_s8,		/* s24 -> s8 */
+	&&norms_24_s16h,	/* s24 -> s16h */
+	&&norms_24_s16s,	/* s24 -> s16s */
+	&&norms_24_s24h,	/* s24 -> s24h */
+	&&norms_24_s24s,	/* s24 -> s24s */
+	&&norms_24_s32h,	/* s24 -> s32h */
+	&&norms_24_s32s,	/* s24 -> s32s */
+	&&norms_32_u8,		/* s32 -> u8 */
+	&&norms_32_u8,		/* s32 -> u8 */
+	&&norms_32_u16h,	/* s32 -> u16h */
+	&&norms_32_u16s,	/* s32 -> u16s */
+	&&norms_32_u24h,	/* s32 -> u24h */
+	&&norms_32_u24s,	/* s32 -> u24s */
+	&&norms_32_u32h,	/* s32 -> u32h */
+	&&norms_32_u32s,	/* s32 -> u32s */
+	&&norms_32_s8,		/* s32 -> s8 */
+	&&norms_32_s8,		/* s32 -> s8 */
+	&&norms_32_s16h,	/* s32 -> s16h */
+	&&norms_32_s16s,	/* s32 -> s16s */
+	&&norms_32_s24h,	/* s32 -> s24h */
+	&&norms_32_s24s,	/* s32 -> s24s */
+	&&norms_32_s32h,	/* s32 -> s32h */
+	&&norms_32_s32s,	/* s32 -> s32s */
+};
+#endif
+
+#ifdef NORMS_END
+norms_8_u8:	_norms(src, dst,  8, 0,  8, 0); goto NORMS_END;
+norms_8_u16h:	_norms(src, dst,  8, 0,  16, 0); goto NORMS_END;
+norms_8_u16s:	_norms(src, dst,  8, 0,  16, 1); goto NORMS_END;
+norms_8_u24h:	_norms(src, dst,  8, 0,  24, 0); goto NORMS_END;
+norms_8_u24s:	_norms(src, dst,  8, 0,  24, 1); goto NORMS_END;
+norms_8_u32h:	_norms(src, dst,  8, 0,  32, 0); goto NORMS_END;
+norms_8_u32s:	_norms(src, dst,  8, 0,  32, 1); goto NORMS_END;
+norms_8_s8:	_norms(src, dst,  8, 1,  8, 0); goto NORMS_END;
+norms_8_s16h:	_norms(src, dst,  8, 1,  16, 0); goto NORMS_END;
+norms_8_s16s:	_norms(src, dst,  8, 1,  16, 1); goto NORMS_END;
+norms_8_s24h:	_norms(src, dst,  8, 1,  24, 0); goto NORMS_END;
+norms_8_s24s:	_norms(src, dst,  8, 1,  24, 1); goto NORMS_END;
+norms_8_s32h:	_norms(src, dst,  8, 1,  32, 0); goto NORMS_END;
+norms_8_s32s:	_norms(src, dst,  8, 1,  32, 1); goto NORMS_END;
+norms_16_u8:	_norms(src, dst, 16, 0,  8, 0); goto NORMS_END;
+norms_16_u16h:	_norms(src, dst, 16, 0,  16, 0); goto NORMS_END;
+norms_16_u16s:	_norms(src, dst, 16, 0,  16, 1); goto NORMS_END;
+norms_16_u24h:	_norms(src, dst, 16, 0,  24, 0); goto NORMS_END;
+norms_16_u24s:	_norms(src, dst, 16, 0,  24, 1); goto NORMS_END;
+norms_16_u32h:	_norms(src, dst, 16, 0,  32, 0); goto NORMS_END;
+norms_16_u32s:	_norms(src, dst, 16, 0,  32, 1); goto NORMS_END;
+norms_16_s8:	_norms(src, dst, 16, 1,  8, 0); goto NORMS_END;
+norms_16_s16h:	_norms(src, dst, 16, 1,  16, 0); goto NORMS_END;
+norms_16_s16s:	_norms(src, dst, 16, 1,  16, 1); goto NORMS_END;
+norms_16_s24h:	_norms(src, dst, 16, 1,  24, 0); goto NORMS_END;
+norms_16_s24s:	_norms(src, dst, 16, 1,  24, 1); goto NORMS_END;
+norms_16_s32h:	_norms(src, dst, 16, 1,  32, 0); goto NORMS_END;
+norms_16_s32s:	_norms(src, dst, 16, 1,  32, 1); goto NORMS_END;
+norms_24_u8:	_norms(src, dst, 24, 0,  8, 0); goto NORMS_END;
+norms_24_u16h:	_norms(src, dst, 24, 0,  16, 0); goto NORMS_END;
+norms_24_u16s:	_norms(src, dst, 24, 0,  16, 1); goto NORMS_END;
+norms_24_u24h:	_norms(src, dst, 24, 0,  24, 0); goto NORMS_END;
+norms_24_u24s:	_norms(src, dst, 24, 0,  24, 1); goto NORMS_END;
+norms_24_u32h:	_norms(src, dst, 24, 0,  32, 0); goto NORMS_END;
+norms_24_u32s:	_norms(src, dst, 24, 0,  32, 1); goto NORMS_END;
+norms_24_s8:	_norms(src, dst, 24, 1,  8, 0); goto NORMS_END;
+norms_24_s16h:	_norms(src, dst, 24, 1,  16, 0); goto NORMS_END;
+norms_24_s16s:	_norms(src, dst, 24, 1,  16, 1); goto NORMS_END;
+norms_24_s24h:	_norms(src, dst, 24, 1,  24, 0); goto NORMS_END;
+norms_24_s24s:	_norms(src, dst, 24, 1,  24, 1); goto NORMS_END;
+norms_24_s32h:	_norms(src, dst, 24, 1,  32, 0); goto NORMS_END;
+norms_24_s32s:	_norms(src, dst, 24, 1,  32, 1); goto NORMS_END;
+norms_32_u8:	_norms(src, dst, 32, 0,  8, 0); goto NORMS_END;
+norms_32_u16h:	_norms(src, dst, 32, 0,  16, 0); goto NORMS_END;
+norms_32_u16s:	_norms(src, dst, 32, 0,  16, 1); goto NORMS_END;
+norms_32_u24h:	_norms(src, dst, 32, 0,  24, 0); goto NORMS_END;
+norms_32_u24s:	_norms(src, dst, 32, 0,  24, 1); goto NORMS_END;
+norms_32_u32h:	_norms(src, dst, 32, 0,  32, 0); goto NORMS_END;
+norms_32_u32s:	_norms(src, dst, 32, 0,  32, 1); goto NORMS_END;
+norms_32_s8:	_norms(src, dst, 32, 1,  8, 0); goto NORMS_END;
+norms_32_s16h:	_norms(src, dst, 32, 1,  16, 0); goto NORMS_END;
+norms_32_s16s:	_norms(src, dst, 32, 1,  16, 1); goto NORMS_END;
+norms_32_s24h:	_norms(src, dst, 32, 1,  24, 0); goto NORMS_END;
+norms_32_s24s:	_norms(src, dst, 32, 1,  24, 1); goto NORMS_END;
+norms_32_s32h:	_norms(src, dst, 32, 1,  32, 0); goto NORMS_END;
+norms_32_s32s:	_norms(src, dst, 32, 1,  32, 1); goto NORMS_END;
+#endif
+
 
 #undef as_u8
 #undef as_u16
