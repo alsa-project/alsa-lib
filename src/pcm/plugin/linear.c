@@ -188,14 +188,14 @@ conv_f convert_functions[4][4][2][2][2] = {
 	conv_8_24_sign,		/* 8->24 src_end sign: conv_8_24_sign */
 	conv_8_24_end,		/* 8->24 src_end dst_end: conv_8_24_end */
 	conv_8_24_sign_end,	/* 8->24 src_end dst_end sign: conv_8_24_sign_end */
-	conv_8_32,			/* 8->32: conv_8_32 */
-	conv_8_32_sign,			/* 8->32 sign: conv_8_32_sign */
-	conv_8_32_end,			/* 8->32 dst_end: conv_8_32_end */
-	conv_8_32_sign_end,			/* 8->32 dst_end sign: conv_8_32_sign_end */
-	conv_8_32,			/* 8->32 src_end: conv_8_32 */
-	conv_8_32_sign,			/* 8->32 src_end sign: conv_8_32_sign */
-	conv_8_32_end,			/* 8->32 src_end dst_end: conv_8_32_end */
-	conv_8_32_sign_end,			/* 8->32 src_end dst_end sign: conv_8_32_sign_end */
+	conv_8_32,		/* 8->32: conv_8_32 */
+	conv_8_32_sign,		/* 8->32 sign: conv_8_32_sign */
+	conv_8_32_end,		/* 8->32 dst_end: conv_8_32_end */
+	conv_8_32_sign_end,	/* 8->32 dst_end sign: conv_8_32_sign_end */
+	conv_8_32,		/* 8->32 src_end: conv_8_32 */
+	conv_8_32_sign,		/* 8->32 src_end sign: conv_8_32_sign */
+	conv_8_32_end,		/* 8->32 src_end dst_end: conv_8_32_end */
+	conv_8_32_sign_end,	/* 8->32 src_end dst_end sign: conv_8_32_sign_end */
 	conv_16_8,		/* 16->8: conv_16_8 */
 	conv_16_8_sign,		/* 16->8 sign: conv_16_8_sign */
 	conv_16_8,		/* 16->8 dst_end: conv_16_8 */
@@ -212,14 +212,6 @@ conv_f convert_functions[4][4][2][2][2] = {
 	conv_16_end_sign,	/* 16->16 src_end sign: conv_16_end_sign */
 	NULL,			/* 16->16 src_end dst_end: Nothing to do */
 	conv_16_end_sign_end,	/* 16->16 src_end dst_end sign: conv_16_end_sign_end */
-	conv_16_32,		/* 16->32: conv_16_32 */
-	conv_16_32_sign,	/* 16->32 sign: conv_16_32_sign */
-	conv_16_32_end,		/* 16->32 dst_end: conv_16_32_end */
-	conv_16_32_sign_end,	/* 16->32 dst_end sign: conv_16_32_sign_end */
-	conv_16_end_32,		/* 16->32 src_end: conv_16_end_32 */
-	conv_16_end_32_sign,	/* 16->32 src_end sign: conv_16_end_32_sign */
-	conv_16_end_32_end,	/* 16->32 src_end dst_end: conv_16_end_32_end */
-	conv_16_end_32_sign_end,/* 16->32 src_end dst_end sign: conv_16_end_32_sign_end */
 	conv_16_24,		/* 16->24: conv_16_24 */
 	conv_16_24_sign,	/* 16->24 sign: conv_16_24_sign */
 	conv_16_24_end,		/* 16->24 dst_end: conv_16_24_end */
@@ -228,6 +220,14 @@ conv_f convert_functions[4][4][2][2][2] = {
 	conv_16_end_24_sign,	/* 16->24 src_end sign: conv_16_end_24_sign */
 	conv_16_end_24_end,	/* 16->24 src_end dst_end: conv_16_end_24_end */
 	conv_16_end_24_sign_end,/* 16->24 src_end dst_end sign: conv_16_end_24_sign_end */
+	conv_16_32,		/* 16->32: conv_16_32 */
+	conv_16_32_sign,	/* 16->32 sign: conv_16_32_sign */
+	conv_16_32_end,		/* 16->32 dst_end: conv_16_32_end */
+	conv_16_32_sign_end,	/* 16->32 dst_end sign: conv_16_32_sign_end */
+	conv_16_end_32,		/* 16->32 src_end: conv_16_end_32 */
+	conv_16_end_32_sign,	/* 16->32 src_end sign: conv_16_end_32_sign */
+	conv_16_end_32_end,	/* 16->32 src_end dst_end: conv_16_end_32_end */
+	conv_16_end_32_sign_end,/* 16->32 src_end dst_end sign: conv_16_end_32_sign_end */
 	conv_24_8,		/* 24->8: conv_24_8 */
 	conv_24_8_sign,		/* 24->8 sign: conv_24_8_sign */
 	conv_24_8,		/* 24->8 dst_end: conv_24_8 */
