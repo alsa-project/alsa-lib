@@ -292,6 +292,15 @@ The timestamp mode specifies, if timestamps are activated. Currently, only
 \endlink modes are known. The mmap mode means that timestamp is taken
 on every period time boundary.
 
+\par Minimal sleep
+
+This parameters means the minimum of ticks to sleep using a standalone
+timer (usually the system timer). The tick resolution can be obtained
+via the function \link ::snd_pcm_hw_params_get_tick_time \endlink. This
+function can be used to fine-tune the transfer acknowledge process. It could
+be useful especially when some hardware does not support small transfer
+periods.
+
 \par Transfer align
 
 The read / write transfers can be aligned to this sample count. The modulo
