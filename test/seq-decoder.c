@@ -275,6 +275,7 @@ void event_decoder(snd_seq_t *handle, int argc, char *argv[])
 		fprintf(stderr, "Cannot set nonblock mode: %s\n", snd_strerror(err));
 	snd_seq_port_info_alloca(&pinfo);
 	snd_seq_port_info_set_name(pinfo, "Input");
+	snd_seq_port_info_set_type(pinfo, SND_SEQ_PORT_TYPE_MIDI_GENERIC);
 	snd_seq_port_info_set_capability(pinfo, SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_WRITE);
 	if ((err = snd_seq_create_port(handle, pinfo)) < 0) {
 		fprintf(stderr, "Cannot create input port: %s\n", snd_strerror(err));
