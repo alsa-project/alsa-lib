@@ -239,46 +239,85 @@ u_int64_t snd_pcm_format_silence_64(int format)
 		return 0;
 	case SND_PCM_SFMT_U8:
 		return 0x8080808080808080ULL;
+#ifdef SND_LITTLE_ENDIAN
 	case SND_PCM_SFMT_U16_LE:
-	case SND_PCM_SFMT_U24_LE:
-	case SND_PCM_SFMT_U32_LE:
-#ifdef SND_LITTLE_ENDIAN
 		return 0x8000800080008000ULL;
-#else
-		return 0x0080008000800080ULL;
-#endif
+	case SND_PCM_SFMT_U24_LE:
+		return 0x0080000000800000ULL;
+	case SND_PCM_SFMT_U32_LE:
+		return 0x8000000080000000ULL;
 	case SND_PCM_SFMT_U16_BE:
+		return 0x0080008000800080ULL;
 	case SND_PCM_SFMT_U24_BE:
+		return 0x0000800000008000ULL;
 	case SND_PCM_SFMT_U32_BE:
-#ifdef SND_LITTLE_ENDIAN
 		return 0x0000008000000080ULL;
 #else
+	case SND_PCM_SFMT_U16_LE:
+		return 0x0080008000800080ULL;
+	case SND_PCM_SFMT_U24_LE:
+		return 0x0000800000008000ULL;
+	case SND_PCM_SFMT_U32_LE:
+		return 0x0000008000000080ULL;
+	case SND_PCM_SFMT_U16_BE:
+		return 0x8000800080008000ULL;
+	case SND_PCM_SFMT_U24_BE:
+		return 0x0080000000800000ULL;
+	case SND_PCM_SFMT_U32_BE:
 		return 0x8000000080000000ULL;
 #endif
-	case SND_PCM_SFMT_FLOAT_LE:		
+	case SND_PCM_SFMT_FLOAT_LE:
+	{
+		union {
+			float f;
+			u_int32_t i;
+		} u;
+		u.f = 0.0;
 #ifdef SND_LITTLE_ENDIAN
-		return (float)0.0;
+		return u.i;
 #else
-		return bswap_32((u_int32_t)((float)0.0));
+		return bswap_32(u.i);
 #endif
+	}
 	case SND_PCM_SFMT_FLOAT64_LE:
+	{
+		union {
+			double f;
+			u_int64_t i;
+		} u;
+		u.f = 0.0;
 #ifdef SND_LITTLE_ENDIAN
-		return (double)0.0;
+		return u.i;
 #else
-		return bswap_64((u_int64_t)((double)0.0));
+		return bswap_64(u.i);
 #endif
+	}
 	case SND_PCM_SFMT_FLOAT_BE:		
+	{
+		union {
+			double f;
+			u_int32_t i;
+		} u;
+		u.f = 0.0;
 #ifdef SND_LITTLE_ENDIAN
-		return bswap_32((u_int32_t)((float)0.0));
+		return bswap_32(u.i);
 #else
-		return (float)0.0;
+		return u.i;
 #endif
+	}
 	case SND_PCM_SFMT_FLOAT64_BE:
+	{
+		union {
+			double f;
+			u_int64_t i;
+		} u;
+		u.f = 0.0;
 #ifdef SND_LITTLE_ENDIAN
-		return bswap_64((u_int64_t)((double)0.0));
+		return bswap_64(u.i);
 #else
-		return (double)0.0;
+		return u.i;
 #endif
+	}
 	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
 	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
 		return 0;	
