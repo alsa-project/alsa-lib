@@ -544,6 +544,20 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 			snd_pcm_format_mask_set(&sfmt_mask, f);
 		}
 
+		if (snd_pcm_format_mask_empty(&sfmt_mask)) {
+			SNDERR("Unable to find an useable slave format");
+			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
+				if (!snd_pcm_format_mask_test(format_mask, format))
+					continue;
+				SNDERR("Format: %s", snd_pcm_format_name(format));
+			}
+			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
+				if (!snd_pcm_format_mask_test(sformat_mask, format))
+					continue;
+				SNDERR("Slave format: %s", snd_pcm_format_name(format));
+			}
+			return -EINVAL;
+		}
 		err = snd_pcm_hw_param_set_mask(slave, sparams, SND_CHANGE,
 						SND_PCM_HW_PARAM_FORMAT, &sfmt_mask);
 		assert(err >= 0);
