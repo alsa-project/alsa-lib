@@ -58,12 +58,10 @@ int _snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi)
 	return rmidi->poll_fd;
 }
 
-int snd_rawmidi_poll_descriptors_count(snd_rawmidi_t *rmidi, unsigned int *count)
+int snd_rawmidi_poll_descriptors_count(snd_rawmidi_t *rmidi)
 {
 	assert(rmidi);
-	assert(count);
-	*count = 1;
-	return 0;
+	return 1;
 }
 
 int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsigned int space)

@@ -152,12 +152,10 @@ int _snd_seq_poll_descriptor(snd_seq_t *seq)
 	return seq->poll_fd;
 }
 
-int snd_seq_poll_descriptors_count(snd_seq_t *seq, unsigned int *count)
+int snd_seq_poll_descriptors_count(snd_seq_t *seq)
 {
 	assert(seq);
-	assert(count);
-	*count = 1;
-	return 0;
+	return 1;
 }
 
 int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int space)

@@ -84,12 +84,10 @@ int _snd_timer_poll_descriptor(snd_timer_t *handle)
 	return tmr->fd;
 }
 
-int snd_timer_poll_descriptors_count(snd_timer_t *timer, unsigned int *count)
+int snd_timer_poll_descriptors_count(snd_timer_t *timer)
 {
 	assert(timer);
-	assert(count);
-	*count = 1;
-	return 0;
+	return 1;
 }
 
 int snd_timer_poll_descriptors(snd_timer_t *timer, struct pollfd *pfds, unsigned int space)

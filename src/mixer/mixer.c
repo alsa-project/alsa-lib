@@ -438,23 +438,21 @@ int snd_mixer_set_compare(snd_mixer_t *mixer, snd_mixer_compare_t msort)
 	return 0;
 }
 
-int snd_mixer_poll_descriptors_count(snd_mixer_t *mixer, unsigned int *count)
+int snd_mixer_poll_descriptors_count(snd_mixer_t *mixer)
 {
 	struct list_head *pos;
-	unsigned int c = 0, v;
+	unsigned int c = 0;
 	assert(mixer);
-	assert(count);
 	list_for_each(pos, &mixer->slaves) {
 		snd_mixer_slave_t *s;
 		int n;
 		s = list_entry(pos, snd_mixer_slave_t, list);
-		n = snd_hctl_poll_descriptors_count(s->hctl, &v);
+		n = snd_hctl_poll_descriptors_count(s->hctl);
 		if (n < 0)
 			return n;
-		c += v;
+		c += n;
 	}
-	*count = c;
-	return 0;
+	return c;
 }
 
 int snd_mixer_poll_descriptors(snd_mixer_t *mixer, struct pollfd *pfds, unsigned int space)

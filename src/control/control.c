@@ -74,12 +74,10 @@ int _snd_ctl_poll_descriptor(snd_ctl_t *ctl)
 	return ctl->ops->poll_descriptor(ctl);
 }
 
-int snd_ctl_poll_descriptors_count(snd_ctl_t *ctl, unsigned int *count)
+int snd_ctl_poll_descriptors_count(snd_ctl_t *ctl)
 {
 	assert(ctl);
-	assert(count);
-	*count = 1;
-	return 0;
+	return 1;
 }
 
 int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int space)
