@@ -32,6 +32,8 @@ AC_HEADER_TIME
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
+AC_CHECK_FUNCS(hsearch_r)
+AM_CONDITIONAL(Have_hsearch_r, test x$ac_cv_func_hsearch_r = xyes)
 
 ALSA_CHECK_DRIVER
 SAVE_LIBRARY_VERSION
@@ -41,5 +43,6 @@ AC_OUTPUT(Makefile doc/Makefile include/Makefile src/Makefile \
           src/control/Makefile src/mixer/Makefile src/pcm/Makefile \
 	  src/pcm/plugin/Makefile src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/instr/Makefile \
+          src/compat/Makefile \
           test/Makefile utils/Makefile \
           utils/alsa-lib.spec)
