@@ -1,5 +1,5 @@
 /**
- * \file pcm.c
+ * \file pcm/pcm.c
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000-2001
@@ -48,7 +48,7 @@
 
 /**
  * \brief get identifier of PCM handle
- * \param pcm a PCM handle
+ * \param pcm PCM handle
  * \return ascii identifier of PCM handle
  *
  * Returns the ASCII identifier of given PCM handle. It's the same
@@ -62,7 +62,7 @@ const char *snd_pcm_name(snd_pcm_t *pcm)
 
 /**
  * \brief get type of PCM handle
- * \param pcm a PCM handle
+ * \param pcm PCM handle
  * \return type of PCM handle
  *
  * Returns the type #snd_pcm_type_t of given PCM handle.
@@ -75,7 +75,7 @@ snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm)
 
 /**
  * \brief get stream for a PCM handle
- * \param pcm a PCM handle
+ * \param pcm PCM handle
  * \return stream of PCM handle
  *
  * Returns the type #snd_pcm_stream_t of given PCM handle.
@@ -262,9 +262,9 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 }
 
 /**
- * \brief Obtain delay in frames for a running PCM handle
+ * \brief Obtain delay for a running PCM handle
  * \param pcm PCM handle
- * \param delayp Returned delay
+ * \param delayp Returned delay in frames
  * \return zero on success otherwise a negative error code
  *
  * Delay is distance between current application frame position and
@@ -911,7 +911,7 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
  * \param name ASCII identifier of the PCM handle
  * \param stream Wanted stream
  * \param mode Open mode (see #SND_PCM_NONBLOCK, #SND_PCM_ASYNC)
- * \return a negative error code on failure or zero on success
+ * \return 0 or a negative error code on failure or zero on success
  */
 int snd_pcm_open(snd_pcm_t **pcmp, const char *name, 
 		 snd_pcm_stream_t stream, int mode)
@@ -1056,9 +1056,9 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 
 /**
  * \brief Wait for a PCM to become ready
- * \param pcm a PCM handle
+ * \param pcm PCM handle
  * \param timeout maximum time in milliseconds to wait
- * \return a negative error code on failure or zero on success
+ * \return 0 or a negative error code on failure or zero on success
  */
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
@@ -1074,7 +1074,7 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 
 /**
  * \brief Return number of frames ready to be read/written
- * \param pcm a PCM handle
+ * \param pcm PCM handle
  * \return a positive number of frames ready otherwise a negative
  * error code
  *
@@ -1088,7 +1088,7 @@ snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 
 /**
  * \brief Advance PCM frame position in mmap buffer
- * \param pcm a PCM handle
+ * \param pcm PCM handle
  * \param size movement size
  * \return a positive number of actual movement size otherwise a negative
  * error code
@@ -1409,6 +1409,2571 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 		}
 	}
 	return 0;
+}
+
+/**
+ * \brief Dump a PCM hardware configuration space
+ * \param params Configuration space
+ * \param out Output handle
+ * \return zero on success otherwise a negative error code
+ */
+int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
+{
+	unsigned int k;
+	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; k++) {
+		snd_output_printf(out, "%s: ", snd_pcm_hw_param_name(k));
+		snd_pcm_hw_param_dump(params, k, out);
+		snd_output_putc(out, '\n');
+	}
+	return 0;
+}
+
+/**
+ * \brief Get rate exact info from a configuration space
+ * \param params Configuration space
+ * \param rate_num Pointer to returned rate numerator
+ * \param rate_den Pointer to returned rate denominator
+ * \return 0 or a negative error code if the info is not available
+ */
+int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
+				      unsigned int *rate_num, unsigned int *rate_den)
+{
+	if (params->rate_den == 0)
+		return -EINVAL;
+	*rate_num = params->rate_num;
+	*rate_den = params->rate_den;
+	return 0;
+}
+
+/**
+ * \brief Get sample resolution info from a configuration space
+ * \param params Configuration space
+ * \return significative bits in sample or a negative error code if the info is not available
+ */
+int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
+{
+	if (params->msbits == 0)
+		return -EINVAL;
+	return params->msbits;
+}
+
+/**
+ * \brief Get hardare fifo size info from a configuration space
+ * \param params Configuration space
+ * \return fifo size in frames or a negative error code if the info is not available
+ */
+int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params)
+{
+	if (params->fifo_size == 0)
+		return -EINVAL;
+	return params->fifo_size;
+}
+
+/**
+ * \brief Fill params with a full configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ */
+int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	_snd_pcm_hw_params_any(params);
+	return snd_pcm_hw_refine(pcm, params);
+}
+
+/**
+ * \brief get size of #snd_pcm_access_mask_t
+ * \return size in bytes
+ */
+size_t snd_pcm_access_mask_sizeof()
+{
+	return sizeof(snd_pcm_access_mask_t);
+}
+
+/**
+ * \brief allocate an empty #snd_pcm_access_mask_t using standard malloc
+ * \param ptr returned pointer
+ * \return zero on success otherwise negative error code
+ */
+int snd_pcm_access_mask_malloc(snd_pcm_access_mask_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_pcm_access_mask_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_pcm_access_mask_t
+ * \param pointer to object to free
+ */
+void snd_pcm_access_mask_free(snd_pcm_access_mask_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_pcm_access_mask_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_pcm_access_mask_copy(snd_pcm_access_mask_t *dst, const snd_pcm_access_mask_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief reset all bits in a #snd_pcm_access_mask_t
+ * \param mask pointer to mask
+ */
+void snd_pcm_access_mask_none(snd_pcm_access_mask_t *mask)
+{
+	snd_mask_none((snd_mask_t *) mask);
+}
+
+/**
+ * \brief set all bits in a #snd_pcm_access_mask_t
+ * \param mask pointer to mask
+ */
+void snd_pcm_access_mask_any(snd_pcm_access_mask_t *mask)
+{
+	snd_mask_any((snd_mask_t *) mask);
+}
+
+/**
+ * \brief test the presence of an access type in a #snd_pcm_access_mask_t
+ * \param mask pointer to mask
+ * \param val access type
+ */
+int snd_pcm_access_mask_test(const snd_pcm_access_mask_t *mask, snd_pcm_access_t val)
+{
+	return snd_mask_test((snd_mask_t *) mask, (unsigned long) val);
+}
+
+/**
+ * \brief make an access type present in a #snd_pcm_access_mask_t
+ * \param mask pointer to mask
+ * \param val access type
+ */
+void snd_pcm_access_mask_set(snd_pcm_access_mask_t *mask, snd_pcm_access_t val)
+{
+	snd_mask_set((snd_mask_t *) mask, (unsigned long) val);
+}
+
+/**
+ * \brief make an access type missing from a #snd_pcm_access_mask_t
+ * \param mask pointer to mask
+ * \param val access type
+ */
+void snd_pcm_access_mask_reset(snd_pcm_access_mask_t *mask, snd_pcm_access_t val)
+{
+	snd_mask_reset((snd_mask_t *) mask, (unsigned long) val);
+}
+
+/**
+ * \brief get size of #snd_pcm_format_mask_t
+ * \return size in bytes
+ */
+size_t snd_pcm_format_mask_sizeof()
+{
+	return sizeof(snd_pcm_format_mask_t);
+}
+
+/**
+ * \brief allocate an empty #snd_pcm_format_mask_t using standard malloc
+ * \param ptr returned pointer
+ * \return zero on success otherwise negative error code
+ */
+int snd_pcm_format_mask_malloc(snd_pcm_format_mask_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_pcm_format_mask_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_pcm_format_mask_t
+ * \param pointer to object to free
+ */
+void snd_pcm_format_mask_free(snd_pcm_format_mask_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_pcm_format_mask_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_pcm_format_mask_copy(snd_pcm_format_mask_t *dst, const snd_pcm_format_mask_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief reset all bits in a #snd_pcm_format_mask_t
+ * \param mask pointer to mask
+ */
+void snd_pcm_format_mask_none(snd_pcm_format_mask_t *mask)
+{
+	snd_mask_none((snd_mask_t *) mask);
+}
+
+/**
+ * \brief set all bits in a #snd_pcm_format_mask_t
+ * \param mask pointer to mask
+ */
+void snd_pcm_format_mask_any(snd_pcm_format_mask_t *mask)
+{
+	snd_mask_any((snd_mask_t *) mask);
+}
+
+/**
+ * \brief test the presence of a format in a #snd_pcm_format_mask_t
+ * \param mask pointer to mask
+ * \param val format
+ */
+int snd_pcm_format_mask_test(const snd_pcm_format_mask_t *mask, snd_pcm_format_t val)
+{
+	return snd_mask_test((snd_mask_t *) mask, (unsigned long) val);
+}
+
+/**
+ * \brief make a format present in a #snd_pcm_format_mask_t
+ * \param mask pointer to mask
+ * \param val format
+ */
+void snd_pcm_format_mask_set(snd_pcm_format_mask_t *mask, snd_pcm_format_t val)
+{
+	snd_mask_set((snd_mask_t *) mask, (unsigned long) val);
+}
+
+/**
+ * \brief make a format missing from a #snd_pcm_format_mask_t
+ * \param mask pointer to mask
+ * \param val format
+ */
+void snd_pcm_format_mask_reset(snd_pcm_format_mask_t *mask, snd_pcm_format_t val)
+{
+	snd_mask_reset((snd_mask_t *) mask, (unsigned long) val);
+}
+
+
+/**
+ * \brief get size of #snd_pcm_subformat_mask_t
+ * \return size in bytes
+ */
+size_t snd_pcm_subformat_mask_sizeof()
+{
+	return sizeof(snd_pcm_subformat_mask_t);
+}
+
+/**
+ * \brief allocate an empty #snd_pcm_subformat_mask_t using standard malloc
+ * \param ptr returned pointer
+ * \return zero on success otherwise negative error code
+ */
+int snd_pcm_subformat_mask_malloc(snd_pcm_subformat_mask_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_pcm_subformat_mask_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_pcm_subformat_mask_t
+ * \param pointer to object to free
+ */
+void snd_pcm_subformat_mask_free(snd_pcm_subformat_mask_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_pcm_subformat_mask_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_pcm_subformat_mask_copy(snd_pcm_subformat_mask_t *dst, const snd_pcm_subformat_mask_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief reset all bits in a #snd_pcm_subformat_mask_t
+ * \param mask pointer to mask
+ */
+void snd_pcm_subformat_mask_none(snd_pcm_subformat_mask_t *mask)
+{
+	snd_mask_none((snd_mask_t *) mask);
+}
+
+/**
+ * \brief set all bits in a #snd_pcm_subformat_mask_t
+ * \param mask pointer to mask
+ */
+void snd_pcm_subformat_mask_any(snd_pcm_subformat_mask_t *mask)
+{
+	snd_mask_any((snd_mask_t *) mask);
+}
+
+/**
+ * \brief test the presence of a subformat in a #snd_pcm_subformat_mask_t
+ * \param mask pointer to mask
+ * \param val subformat
+ */
+int snd_pcm_subformat_mask_test(const snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val)
+{
+	return snd_mask_test((snd_mask_t *) mask, (unsigned long) val);
+}
+
+/**
+ * \brief make a subformat present in a #snd_pcm_subformat_mask_t
+ * \param mask pointer to mask
+ * \param val subformat
+ */
+void snd_pcm_subformat_mask_set(snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val)
+{
+	snd_mask_set((snd_mask_t *) mask, (unsigned long) val);
+}
+
+/**
+ * \brief make a subformat missing from a #snd_pcm_subformat_mask_t
+ * \param mask pointer to mask
+ * \param val subformat
+ */
+void snd_pcm_subformat_mask_reset(snd_pcm_subformat_mask_t *mask, snd_pcm_subformat_t val)
+{
+	snd_mask_reset((snd_mask_t *) mask, (unsigned long) val);
+}
+
+
+/**
+ * \brief get size of #snd_pcm_hw_params_t
+ * \return size in bytes
+ */
+size_t snd_pcm_hw_params_sizeof()
+{
+	return sizeof(snd_pcm_hw_params_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_pcm_hw_params_t using standard malloc
+ * \param ptr returned pointer
+ * \return zero on success otherwise negative error code
+ */
+int snd_pcm_hw_params_malloc(snd_pcm_hw_params_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_pcm_hw_params_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_pcm_hw_params_t
+ * \param pointer to object to free
+ */
+void snd_pcm_hw_params_free(snd_pcm_hw_params_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_pcm_hw_params_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Extract access type from a configuration space
+ * \param params Configuration space
+ * \return access type or a negative error code if not exactly one is present
+ */
+int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_ACCESS, NULL);
+}
+
+/**
+ * \brief Verify if an access type is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val access type
+ * \return 1 if available 0 otherwise
+ */
+int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_ACCESS, snd_enum_to_int(val), 0);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one access type
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val access type
+ * \return 0 or a negative error code if configuration space would become empty
+ */
+int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_ACCESS, snd_enum_to_int(val), 0);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its first access type
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return access type
+ */
+snd_pcm_access_t snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_int_to_enum(snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL));
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its last access type
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return access type
+ */
+snd_pcm_access_t snd_pcm_hw_params_set_access_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_int_to_enum(snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL));
+}
+
+/**
+ * \brief Restrict a configuration space to contain only a set of access types
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param mask Access mask
+ * \return access type
+ */
+int snd_pcm_hw_params_set_access_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_mask_t *mask)
+{
+	return snd_pcm_hw_param_set_mask(pcm, params, SND_TRY, SND_PCM_HW_PARAM_ACCESS, (snd_mask_t *) mask);
+}
+
+
+/**
+ * \brief Extract format from a configuration space
+ * \param params Configuration space
+ * \return format or a negative error code if not exactly one is present
+ */
+int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, NULL);
+}
+
+/**
+ * \brief Verify if a format is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val format
+ * \return 1 if available 0 otherwise
+ */
+int snd_pcm_hw_params_test_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_FORMAT, snd_enum_to_int(val), 0);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one format
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val format
+ * \return 0 or a negative error code if configuration space would become empty
+ */
+int snd_pcm_hw_params_set_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_FORMAT, snd_enum_to_int(val), 0);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its first format
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return format
+ */
+snd_pcm_format_t snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_int_to_enum(snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL));
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its last format
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return format
+ */
+snd_pcm_format_t snd_pcm_hw_params_set_format_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_int_to_enum(snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL));
+}
+
+/**
+ * \brief Restrict a configuration space to contain only a set of formats
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param mask Format mask
+ * \return access type
+ */
+int snd_pcm_hw_params_set_format_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_mask_t *mask)
+{
+	return snd_pcm_hw_param_set_mask(pcm, params, SND_TRY, SND_PCM_HW_PARAM_FORMAT, (snd_mask_t *) mask);
+}
+
+
+/**
+ * \brief Verify if a subformat is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val subformat
+ * \return 1 if available 0 otherwise
+ */
+int snd_pcm_hw_params_test_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_SUBFORMAT, snd_enum_to_int(val), 0);
+}
+
+/**
+ * \brief Extract subformat from a configuration space
+ * \param params Configuration space
+ * \return subformat or a negative error code if not exactly one is present
+ */
+int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_SUBFORMAT, NULL);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one subformat
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val subformat
+ * \return 0 or a negative error code if configuration space would become empty
+ */
+int snd_pcm_hw_params_set_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_SUBFORMAT, snd_enum_to_int(val), 0);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its first subformat
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return subformat
+ */
+snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_int_to_enum(snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL));
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its last subformat
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return subformat
+ */
+snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_int_to_enum(snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL));
+}
+
+/**
+ * \brief Restrict a configuration space to contain only a set of subformats
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param mask Subformat mask
+ * \return access type
+ */
+int snd_pcm_hw_params_set_subformat_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_mask_t *mask)
+{
+	return snd_pcm_hw_param_set_mask(pcm, params, SND_TRY, SND_PCM_HW_PARAM_SUBFORMAT, (snd_mask_t *) mask);
+}
+
+
+/**
+ * \brief Extract channels from a configuration space
+ * \param params Configuration space
+ * \return channels count or a negative error code if not exactly one is present
+ */
+int snd_pcm_hw_params_get_channels(const snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+}
+
+/**
+ * \brief Extract minimum channels count from a configuration space
+ * \param params Configuration space
+ * \return minimum channels count
+ */
+unsigned int snd_pcm_hw_params_get_channels_min(const snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+}
+
+/**
+ * \brief Extract maximum channels count from a configuration space
+ * \param params Configuration space
+ * \return maximum channels count
+ */
+unsigned int snd_pcm_hw_params_get_channels_max(const snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+}
+
+/**
+ * \brief Verify if a channels count is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val channels count
+ * \return 1 if available 0 otherwise
+ */
+int snd_pcm_hw_params_test_channels(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_CHANNELS, val, 0);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one channels count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val channels count
+ * \return 0 or a negative error code if configuration space would become empty
+ */
+int snd_pcm_hw_params_set_channels(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_CHANNELS, val, 0);
+}
+
+/**
+ * \brief Restrict a configuration space with a minimum channels count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val minimum channels count (on return filled with actual minimum)
+ * \return 0 or a negative error code if configuration space would become empty
+ */
+int snd_pcm_hw_params_set_channels_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+{
+	return snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
+}
+
+/**
+ * \brief Restrict a configuration space with a maximum channels count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val maximum channels count (on return filled with actual maximum)
+ * \return 0 or a negative error code if configuration space would become empty
+ */
+int snd_pcm_hw_params_set_channels_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+{
+	return snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
+}
+
+/**
+ * \brief Restrict a configuration space to have channels counts in a given range
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param min minimum channels count (on return filled with actual minimum)
+ * \param max maximum channels count (on return filled with actual maximum)
+ * \return 0 or a negative error code if configuration space would become empty
+ */
+int snd_pcm_hw_params_set_channels_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *min, unsigned int *max)
+{
+	return snd_pcm_hw_param_set_minmax(pcm, params, SND_TRY, SND_PCM_HW_PARAM_CHANNELS, min, NULL, max, NULL);
+}
+
+/**
+ * \brief Restrict a configuration space to have channels count nearest to a target
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val target channels count
+ * \return choosen channels count
+ */
+unsigned int snd_pcm_hw_params_set_channels_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
+{
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_CHANNELS, val, NULL);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its minimum channels count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return channels count
+ */
+unsigned int snd_pcm_hw_params_set_channels_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its maximum channels count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return channels count
+ */
+unsigned int snd_pcm_hw_params_set_channels_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+}
+
+
+/**
+ * \brief Extract rate from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate rate or a negative error code if not exactly one is present
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+int snd_pcm_hw_params_get_rate(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_RATE, dir);
+}
+
+/**
+ * \brief Extract minimum rate from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate minimum rate
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_rate_min(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_RATE, dir);
+}
+
+/**
+ * \brief Extract maximum rate from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate maximum rate
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_rate_max(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_RATE, dir);
+}
+
+/**
+ * \brief Verify if a rate is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate rate
+ * \param dir Sub unit direction
+ * \return 1 if available 0 otherwise
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_test_rate(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_RATE, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one rate
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate rate
+ * \param dir Sub unit direction
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_rate(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_RATE, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a minimum rate
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate minimum rate (on return filled with actual minimum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_rate_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_RATE, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a maximum rate
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate maximum rate (on return filled with actual maximum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_rate_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_RATE, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to have rates in a given range
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param min approximate minimum rate (on return filled with actual minimum)
+ * \param mindir Sub unit direction for minimum (on return filled with actual direction)
+ * \param max approximate maximum rate (on return filled with actual maximum)
+ * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_rate_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *min, int *mindir, unsigned int *max, int *maxdir)
+{
+	return snd_pcm_hw_param_set_minmax(pcm, params, SND_TRY, SND_PCM_HW_PARAM_RATE, min, mindir, max, maxdir);
+}
+
+/**
+ * \brief Restrict a configuration space to have rate nearest to a target
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate target rate
+ * \return approximate choosen rate
+ *
+ * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_set_rate_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+{
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_RATE, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its minimum rate
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate rate
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_rate_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_RATE, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its maximum rate
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate rate
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_rate_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_RATE, dir);
+}
+
+
+/**
+ * \brief Extract period time from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate period duration in us or a negative error code if not exactly one is present
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+int snd_pcm_hw_params_get_period_time(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+}
+
+/**
+ * \brief Extract minimum period time from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate minimum period duration in us
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_period_time_min(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+}
+
+/**
+ * \brief Extract maximum period time from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate maximum period duration in us
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_period_time_max(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+}
+
+/**
+ * \brief Verify if a period time is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate period duration in us
+ * \param dir Sub unit direction
+ * \return 1 if available 0 otherwise
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_test_period_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one period time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate period duration in us
+ * \param dir Sub unit direction
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_period_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
+}
+
+
+/**
+ * \brief Restrict a configuration space with a minimum period time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate minimum period duration in us (on return filled with actual minimum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_period_time_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a maximum period time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate maximum period duration in us (on return filled with actual maximum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_period_time_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to have period times in a given range
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param min approximate minimum period duration in us (on return filled with actual minimum)
+ * \param mindir Sub unit direction for minimum (on return filled with actual direction)
+ * \param max approximate maximum period duration in us (on return filled with actual maximum)
+ * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_period_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *min, int *mindir, unsigned int *max, int *maxdir)
+{
+	return snd_pcm_hw_param_set_minmax(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_TIME, min, mindir, max, maxdir);
+}
+
+/**
+ * \brief Restrict a configuration space to have period time nearest to a target
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate target period duration in us
+ * \return approximate choosen period duration in us
+ *
+ * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_set_period_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+{
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its minimum period time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate period duration in us
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its maximum period time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate period duration in us
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_period_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, dir);
+}
+
+
+/**
+ * \brief Extract period size from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate period size in frames or a negative error code if not exactly one is present
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+snd_pcm_sframes_t snd_pcm_hw_params_get_period_size(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+}
+
+/**
+ * \brief Extract minimum period size from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate minimum period size in frames
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_get_period_size_min(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+}
+
+/**
+ * \brief Extract maximum period size from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate maximum period size in frames
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_get_period_size_max(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+}
+
+/**
+ * \brief Verify if a period size is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate period size in frames
+ * \param dir Sub unit direction
+ * \return 1 if available 0 otherwise
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_test_period_size(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_PERIOD_SIZE, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one period size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate period size in frames
+ * \param dir Sub unit direction
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_period_size(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_SIZE, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a minimum period size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate minimum period size in frames (on return filled with actual minimum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_period_size_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+{
+	unsigned int _val = *val;
+	int err = snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
+	*val = _val;
+	return err;
+}
+
+/**
+ * \brief Restrict a configuration space with a maximum period size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate maximum period size in frames (on return filled with actual maximum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_period_size_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
+{
+	unsigned int _val = *val;
+	int err = snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_SIZE, &_val, dir);
+	*val = _val;
+	return err;
+}
+
+/**
+ * \brief Restrict a configuration space to have period sizes in a given range
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param min approximate minimum period size in frames (on return filled with actual minimum)
+ * \param mindir Sub unit direction for minimum (on return filled with actual direction)
+ * \param max approximate maximum period size in frames (on return filled with actual maximum)
+ * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_period_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *min, int *mindir, snd_pcm_uframes_t *max, int *maxdir)
+{
+	unsigned int _min = *min;
+	unsigned int _max = *max;
+	int err = snd_pcm_hw_param_set_minmax(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_SIZE, &_min, mindir, &_max, maxdir);
+	*min = _min;
+	*max = _max;
+	return err;
+}
+
+/**
+ * \brief Restrict a configuration space to have period size nearest to a target
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate target period size in frames
+ * \return approximate choosen period size in frames
+ *
+ * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val, int *dir)
+{
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its minimum period size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate period size in frames
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its maximum period size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate period size in frames
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIOD_SIZE, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only integer period sizes
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return 0 or a negative error code if configuration space would become empty
+ */
+int snd_pcm_hw_params_set_period_size_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_set_integer(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIOD_SIZE);
+}
+
+
+/**
+ * \brief Extract periods from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate periods per buffer or a negative error code if not exactly one is present
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+int snd_pcm_hw_params_get_periods(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_PERIODS, dir);
+}
+
+/**
+ * \brief Extract minimum periods count from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate minimum periods per buffer
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_periods_min(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIODS, dir);
+}
+
+/**
+ * \brief Extract maximum periods count from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate maximum periods per buffer
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_periods_max(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIODS, dir);
+}
+
+/**
+ * \brief Verify if a periods count is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate periods per buffer
+ * \param dir Sub unit direction
+ * \return 1 if available 0 otherwise
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_test_periods(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_PERIODS, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one periods count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate periods per buffer
+ * \param dir Sub unit direction
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_periods(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIODS, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a minimum periods count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate minimum periods per buffer (on return filled with actual minimum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_periods_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIODS, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a maximum periods count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate maximum periods per buffer (on return filled with actual maximum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_periods_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIODS, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to have periods counts in a given range
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param min approximate minimum periods per buffer (on return filled with actual minimum)
+ * \param mindir Sub unit direction for minimum (on return filled with actual direction)
+ * \param max approximate maximum periods per buffer (on return filled with actual maximum)
+ * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_periods_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *min, int *mindir, unsigned int *max, int *maxdir)
+{
+	return snd_pcm_hw_param_set_minmax(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIODS, min, mindir, max, maxdir);
+}
+
+/**
+ * \brief Restrict a configuration space to have periods count nearest to a target
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate target periods per buffer
+ * \return approximate choosen periods per buffer
+ *
+ * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_set_periods_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+{
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_PERIODS, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its minimum periods count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate periods per buffer
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_periods_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIODS, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its maximum periods count
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate periods per buffer
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_periods_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_PERIODS, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only integer periods counts
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return 0 or a negative error code if configuration space would become empty
+ */
+int snd_pcm_hw_params_set_periods_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_set_integer(pcm, params, SND_TRY, SND_PCM_HW_PARAM_PERIODS);
+}
+
+
+/**
+ * \brief Extract buffer time from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate buffer duration in us or a negative error code if not exactly one is present
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+int snd_pcm_hw_params_get_buffer_time(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+}
+
+/**
+ * \brief Extract minimum buffer time from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate minimum buffer duration in us
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_buffer_time_min(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+}
+
+/**
+ * \brief Extract maximum buffer time from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate maximum buffer duration in us
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_buffer_time_max(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+}
+
+/**
+ * \brief Verify if a buffer time is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate buffer duration in us
+ * \param dir Sub unit direction
+ * \return 1 if available 0 otherwise
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_test_buffer_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one buffer time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate buffer duration in us
+ * \param dir Sub unit direction
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_buffer_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a minimum buffer time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate minimum buffer duration in us (on return filled with actual minimum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_buffer_time_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a maximum buffer time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate maximum buffer duration in us (on return filled with actual maximum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_buffer_time_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to have buffer times in a given range
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param min approximate minimum buffer duration in us (on return filled with actual minimum)
+ * \param mindir Sub unit direction for minimum (on return filled with actual direction)
+ * \param max approximate maximum buffer duration in us (on return filled with actual maximum)
+ * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_buffer_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *min, int *mindir, unsigned int *max, int *maxdir)
+{
+	return snd_pcm_hw_param_set_minmax(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_TIME, min, mindir, max, maxdir);
+}
+
+/**
+ * \brief Restrict a configuration space to have buffer time nearest to a target
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate target buffer duration in us
+ * \return approximate choosen buffer duration in us
+ *
+ * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_set_buffer_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+{
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its minimum buffer time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate buffer duration in us
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_buffer_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its maximum bufferd time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate buffer duration in us
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_buffer_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_TIME, dir);
+}
+
+
+/**
+ * \brief Extract buffer size from a configuration space
+ * \param params Configuration space
+ * \return buffer size in frames or a negative error code if not exactly one is present
+ */
+snd_pcm_sframes_t snd_pcm_hw_params_get_buffer_size(const snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+}
+
+/**
+ * \brief Extract minimum buffer size from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate minimum buffer size in frames
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_get_buffer_size_min(const snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+}
+
+/**
+ * \brief Extract maximum buffer size from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate maximum buffer size in frames
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_get_buffer_size_max(const snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+}
+
+/**
+ * \brief Verify if a buffer size is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val buffer size in frames
+ * \param dir Sub unit direction
+ * \return 1 if available 0 otherwise
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_test_buffer_size(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_BUFFER_SIZE, val, 0);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one buffer size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val buffer size in frames
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_buffer_size(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_SIZE, val, 0);
+}
+
+/**
+ * \brief Restrict a configuration space with a minimum buffer size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate minimum buffer size in frames (on return filled with actual minimum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_buffer_size_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+{
+	unsigned int _val = *val;
+	int err = snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
+	*val = _val;
+	return err;
+}
+
+/**
+ * \brief Restrict a configuration space with a maximum buffer size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate maximum buffer size in frames (on return filled with actual maximum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_buffer_size_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
+{
+	unsigned int _val = *val;
+	int err = snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_SIZE, &_val, NULL);
+	*val = _val;
+	return err;
+}
+
+/**
+ * \brief Restrict a configuration space to have buffer sizes in a given range
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param min approximate minimum buffer size in frames (on return filled with actual minimum)
+ * \param mindir Sub unit direction for minimum (on return filled with actual direction)
+ * \param max approximate maximum buffer size in frames (on return filled with actual maximum)
+ * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_buffer_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *min, snd_pcm_uframes_t *max)
+{
+	unsigned int _min = *min;
+	unsigned int _max = *max;
+	int err = snd_pcm_hw_param_set_minmax(pcm, params, SND_TRY, SND_PCM_HW_PARAM_BUFFER_SIZE, &_min, NULL, &_max, NULL);
+	*min = _min;
+	*max = _max;
+	return err;
+}
+
+/**
+ * \brief Restrict a configuration space to have buffer size nearest to a target
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate target buffer size in frames
+ * \return approximate choosen buffer size in frames
+ *
+ * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val)
+{
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, val, NULL);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its minimum buffer size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return buffer size in frames
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its maximum buffer size
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \return buffer size in frames
+ */
+snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, NULL);
+}
+
+
+/**
+ * \brief Extract tick time from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate tick duration in us or a negative error code if not exactly one is present
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+int snd_pcm_hw_params_get_tick_time(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+}
+
+/**
+ * \brief Extract minimum tick time from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate minimum tick duration in us
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_tick_time_min(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+}
+
+/**
+ * \brief Extract maximum tick time from a configuration space
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate maximum tick duration in us
+ *
+ * Exact value is <,=,> the returned one following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_get_tick_time_max(const snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+}
+
+/**
+ * \brief Verify if a tick time is available inside a configuration space for a PCM
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate tick duration in us
+ * \param dir Sub unit direction
+ * \return 1 if available 0 otherwise
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_test_tick_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only one tick time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate tick duration in us
+ * \param dir Sub unit direction
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted exact value is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_tick_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+{
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a minimum tick time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate minimum tick duration in us (on return filled with actual minimum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_tick_time_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space with a maximum tick time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate maximum tick duration in us (on return filled with actual maximum)
+ * \param dir Sub unit direction (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_tick_time_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+{
+	return snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to have tick times in a given range
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param min approximate minimum tick duration in us (on return filled with actual minimum)
+ * \param mindir Sub unit direction for minimum (on return filled with actual direction)
+ * \param max approximate maximum tick duration in us (on return filled with actual maximum)
+ * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
+ * \return 0 or a negative error code if configuration space would become empty
+ *
+ * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
+ */
+int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *min, int *mindir, unsigned int *max, int *maxdir)
+{
+	return snd_pcm_hw_param_set_minmax(pcm, params, SND_TRY, SND_PCM_HW_PARAM_TICK_TIME, min, mindir, max, maxdir);
+}
+
+/**
+ * \brief Restrict a configuration space to have tick time nearest to a target
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val approximate target tick duration in us
+ * \return approximate choosen tick duration in us
+ *
+ * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ */
+unsigned int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
+{
+	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its minimum tick time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate tick duration in us
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+}
+
+/**
+ * \brief Restrict a configuration space to contain only its maximum tick time
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param dir Sub unit direction
+ * \return approximate tick duration in us
+ *
+ * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ */
+unsigned int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir)
+{
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, dir);
+}
+
+/**
+ * \brief Return current software configuration for a PCM
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \return zero on success otherwise a negative error code
+ */
+int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
+{
+	assert(pcm && params);
+	assert(pcm->setup);
+	params->start_mode = snd_enum_to_int(pcm->start_mode);
+	params->xrun_mode = snd_enum_to_int(pcm->xrun_mode);
+	params->tstamp_mode = snd_enum_to_int(pcm->tstamp_mode);
+	params->period_step = pcm->period_step;
+	params->sleep_min = pcm->sleep_min;
+	params->avail_min = pcm->avail_min;
+	params->xfer_align = pcm->xfer_align;
+	params->silence_threshold = pcm->silence_threshold;
+	params->silence_size = pcm->silence_size;
+	params->boundary = pcm->boundary;
+	return 0;
+}
+
+/**
+ * \brief Dump a software configuration
+ * \param params Software configuration container
+ * \param out Output handle
+ * \return zero on success otherwise a negative error code
+ */
+int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out)
+{
+	snd_output_printf(out, "start_mode: %s\n", snd_pcm_start_mode_name(snd_pcm_sw_params_get_start_mode(params)));
+	snd_output_printf(out, "xrun_mode: %s\n", snd_pcm_xrun_mode_name(snd_pcm_sw_params_get_xrun_mode(params)));
+	snd_output_printf(out, "tstamp_mode: %s\n", snd_pcm_tstamp_mode_name(snd_pcm_sw_params_get_tstamp_mode(params)));
+	snd_output_printf(out, "period_step: %u\n", params->period_step);
+	snd_output_printf(out, "sleep_min: %u\n", params->sleep_min);
+	snd_output_printf(out, "avail_min: %lu\n", params->avail_min);
+	snd_output_printf(out, "xfer_align: %lu\n", params->xfer_align);
+	snd_output_printf(out, "silence_threshold: %lu\n", params->silence_threshold);
+	snd_output_printf(out, "silence_size: %lu\n", params->silence_size);
+	snd_output_printf(out, "boundary: %lu\n", params->boundary);
+	return 0;
+}
+
+/**
+ * \brief get size of #snd_pcm_sw_params_t
+ * \return size in bytes
+ */
+size_t snd_pcm_sw_params_sizeof()
+{
+	return sizeof(snd_pcm_sw_params_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_pcm_sw_params_t using standard malloc
+ * \param ptr returned pointer
+ * \return zero on success otherwise negative error code
+ */
+int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_pcm_sw_params_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_pcm_sw_params_t
+ * \param pointer to object to free
+ */
+void snd_pcm_sw_params_free(snd_pcm_sw_params_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_pcm_sw_params_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Set start mode inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Start mode
+ * \return 0 or a negative error code
+ */
+int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_start_t val)
+{
+	assert(pcm && params);
+	assert(val <= SND_PCM_START_LAST);
+	params->start_mode = snd_enum_to_int(val);
+	return 0;
+}
+
+/**
+ * \brief Get start mode from a software configuration container
+ * \param params Software configuration container
+ * \return start mode
+ */
+snd_pcm_start_t snd_pcm_sw_params_get_start_mode(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return snd_int_to_enum(params->start_mode);
+}
+
+
+/**
+ * \brief Set xrun mode inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Xrun mode
+ * \return 0 or a negative error code
+ */
+int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_xrun_t val)
+{
+	assert(pcm && params);
+	assert(val <= SND_PCM_XRUN_LAST);
+	params->xrun_mode = snd_enum_to_int(val);
+	return 0;
+}
+
+/**
+ * \brief Get xrun mode from a software configuration container
+ * \param params Software configuration container
+ * \return xrun mode
+ */
+snd_pcm_xrun_t snd_pcm_sw_params_get_xrun_mode(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return snd_int_to_enum(params->xrun_mode);
+}
+
+
+/**
+ * \brief Set timestamp mode inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Timestamp mode
+ * \return 0 or a negative error code
+ */
+int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_tstamp_t val)
+{
+	assert(pcm && params);
+	assert(val <= SND_PCM_TSTAMP_LAST);
+	params->tstamp_mode = snd_enum_to_int(val);
+	return 0;
+}
+
+/**
+ * \brief Get timestamp mode from a software configuration container
+ * \param params Software configuration container
+ * \return timestamp mode
+ */
+snd_pcm_tstamp_t snd_pcm_sw_params_get_tstamp_mode(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return snd_int_to_enum(params->tstamp_mode);
+}
+
+
+#if 0
+int snd_pcm_sw_params_set_period_step(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, unsigned int val)
+{
+	assert(pcm && params);
+	params->period_step = val;
+	return 0;
+}
+
+unsigned int snd_pcm_sw_params_get_period_step(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return params->period_step;
+}
+#endif
+
+
+/**
+ * \brief Set minimum number of ticks to sleep inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Minimum ticks to sleep or 0 to disable the use of tick timer
+ * \return 0 or a negative error code
+ */
+int snd_pcm_sw_params_set_sleep_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, unsigned int val)
+{
+	assert(pcm && params);
+	params->sleep_min = val;
+	return 0;
+}
+
+/**
+ * \brief Get minimum numbers of ticks to sleep from a software configuration container
+ * \param params Software configuration container
+ * \return minimum number of ticks to sleep or 0 if tick timer is disabled
+ */
+unsigned int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return params->sleep_min;
+}
+
+/**
+ * \brief Set avail min inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Minimum avail frames to consider PCM ready
+ * \return 0 or a negative error code
+ */
+int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+{
+	assert(pcm && params);
+	params->avail_min = val;
+	return 0;
+}
+
+/**
+ * \brief Get avail min from a software configuration container
+ * \param params Software configuration container
+ * \return minimum available frames to consider PCM ready
+ */
+snd_pcm_uframes_t snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return params->avail_min;
+}
+
+
+/**
+ * \brief Set xfer align inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Chunk size (frames are attempted to be transferred in chunks)
+ * \return 0 or a negative error code
+ */
+int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+{
+	assert(pcm && params);
+	assert(val % pcm->min_align == 0);
+	params->xfer_align = val;
+	return 0;
+}
+
+/**
+ * \brief Get xfer align from a software configuration container
+ * \param params Software configuration container
+ * \return Chunk size (frames are attempted to be transferred in chunks)
+ */
+snd_pcm_uframes_t snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return params->xfer_align;
+}
+
+
+/**
+ * \brief Set silence threshold inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Silence threshold in frames 
+ * \return 0 or a negative error code
+ *
+ * A portion of playback buffer is overwritten with silence (see 
+ * #snd_pcm_sw_params_set_silence_size) when playback underrun is nearer
+ * than silence threshold
+ */
+int snd_pcm_sw_params_set_silence_threshold(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+{
+	assert(pcm && params);
+	assert(val + params->silence_size <= pcm->buffer_size);
+	params->silence_threshold = val;
+	return 0;
+}
+
+/**
+ * \brief Get silence threshold from a software configuration container
+ * \param params Software configuration container
+ * \return Silence threshold in frames
+ *
+ * A portion of playback buffer is overwritten with silence (see 
+ * #snd_pcm_sw_params_get_silence_size) when playback underrun is nearer
+ * than silence threshold
+ */
+snd_pcm_uframes_t snd_pcm_sw_params_get_silence_threshold(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return params->silence_threshold;
+}
+
+
+/**
+ * \brief Set silence size inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val Silence size in frames (0 for disabled)
+ * \return 0 or a negative error code
+ *
+ * A portion of playback buffer is overwritten with silence when playback
+ * underrun is nearer than silence threshold (see 
+ * #snd_pcm_sw_params_set_silence_threshold)
+ */
+int snd_pcm_sw_params_set_silence_size(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+{
+	assert(pcm && params);
+	assert(val + params->silence_threshold <= pcm->buffer_size);
+	params->silence_size = val;
+	return 0;
+}
+
+/**
+ * \brief Get silence size from a software configuration container
+ * \param params Software configuration container
+ * \return Silence size in frames (0 for disabled)
+ *
+ * A portion of playback buffer is overwritten with silence when playback
+ * underrun is nearer than silence threshold (see 
+ * #snd_pcm_sw_params_set_silence_threshold)
+ */
+snd_pcm_uframes_t snd_pcm_sw_params_get_silence_size(const snd_pcm_sw_params_t *params)
+{
+	assert(params);
+	return params->silence_size;
+}
+
+
+/**
+ * \brief get size of #snd_pcm_status_t
+ * \return size in bytes
+ */
+size_t snd_pcm_status_sizeof()
+{
+	return sizeof(snd_pcm_status_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_pcm_status_t using standard malloc
+ * \param ptr returned pointer
+ * \return zero on success otherwise negative error code
+ */
+int snd_pcm_status_malloc(snd_pcm_status_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_pcm_status_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_pcm_status_t
+ * \param pointer to object to free
+ */
+void snd_pcm_status_free(snd_pcm_status_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_pcm_status_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_pcm_status_copy(snd_pcm_status_t *dst, const snd_pcm_status_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/** 
+ * \brief Get state from a PCM status container (see #snd_pcm_state)
+ * \return PCM state
+ */
+snd_pcm_state_t snd_pcm_status_get_state(const snd_pcm_status_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->state);
+}
+
+/** 
+ * \brief Get trigger timestamp from a PCM status container
+ * \param ptr Pointer to returned timestamp
+ */
+void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr)
+{
+	assert(obj && ptr);
+	*ptr = obj->trigger_tstamp;
+}
+
+/** 
+ * \brief Get "now" timestamp from a PCM status container
+ * \param ptr Pointer to returned timestamp
+ */
+void snd_pcm_status_get_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr)
+{
+	assert(obj && ptr);
+	*ptr = obj->tstamp;
+}
+
+/** 
+ * \brief Get delay from a PCM status container (see #snd_pcm_delay)
+ * \return Delay in frames
+ *
+ * Delay is distance between current application frame position and
+ * sound frame position.
+ * It's positive and less than buffer size in normal situation,
+ * negative on playback underrun and greater than buffer size on
+ * capture overrun.
+ */
+snd_pcm_sframes_t snd_pcm_status_get_delay(const snd_pcm_status_t *obj)
+{
+	assert(obj);
+	return obj->delay;
+}
+
+/** 
+ * \brief Get number of frames available from a PCM status container (see #snd_pcm_avail_update)
+ * \return Number of frames ready to be read/written
+ */
+snd_pcm_uframes_t snd_pcm_status_get_avail(const snd_pcm_status_t *obj)
+{
+	assert(obj);
+	return obj->avail;
+}
+
+/** 
+ * \brief Get maximum number of frames available from a PCM status container after last #snd_pcm_status call
+ * \return Maximum number of frames ready to be read/written
+ */
+snd_pcm_uframes_t snd_pcm_status_get_avail_max(const snd_pcm_status_t *obj)
+{
+	assert(obj);
+	return obj->avail_max;
+}
+
+/**
+ * \brief get size of #snd_pcm_info_t
+ * \return size in bytes
+ */
+size_t snd_pcm_info_sizeof()
+{
+	return sizeof(snd_pcm_info_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_pcm_info_t using standard malloc
+ * \param ptr returned pointer
+ * \return zero on success otherwise negative error code
+ */
+int snd_pcm_info_malloc(snd_pcm_info_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_pcm_info_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_pcm_info_t
+ * \param pointer to object to free
+ */
+void snd_pcm_info_free(snd_pcm_info_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_pcm_info_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_pcm_info_copy(snd_pcm_info_t *dst, const snd_pcm_info_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Get device from a PCM info container
+ * \param obj PCM info container
+ * \return device number
+ */
+unsigned int snd_pcm_info_get_device(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return obj->device;
+}
+
+/**
+ * \brief Get subdevice from a PCM info container
+ * \param obj PCM info container
+ * \return subdevice number
+ */
+unsigned int snd_pcm_info_get_subdevice(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return obj->subdevice;
+}
+
+/**
+ * \brief Get stream (direction) from a PCM info container
+ * \param obj PCM info container
+ * \return stream
+ */
+snd_pcm_stream_t snd_pcm_info_get_stream(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->stream);
+}
+
+/**
+ * \brief Get card from a PCM info container
+ * \param obj PCM info container
+ * \return card number or a negative error code if not associable to a card
+ */
+int snd_pcm_info_get_card(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return obj->card;
+}
+
+/**
+ * \brief Get id from a PCM info container
+ * \param obj PCM info container
+ * \return short id of PCM
+ */
+const char *snd_pcm_info_get_id(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return obj->id;
+}
+
+/**
+ * \brief Get name from a PCM info container
+ * \param obj PCM info container
+ * \return name of PCM
+ */
+const char *snd_pcm_info_get_name(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return obj->name;
+}
+
+/**
+ * \brief Get subdevice name from a PCM info container
+ * \param obj PCM info container
+ * \return name of used PCM subdevice
+ */
+const char *snd_pcm_info_get_subdevice_name(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return obj->subname;
+}
+
+/**
+ * \brief Get class from a PCM info container
+ * \param obj PCM info container
+ * \return class of PCM
+ */
+snd_pcm_class_t snd_pcm_info_get_class(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->dev_class);
+}
+
+/**
+ * \brief Get subclass from a PCM info container
+ * \param obj PCM info container
+ * \return subclass of PCM
+ */
+snd_pcm_subclass_t snd_pcm_info_get_subclass(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->dev_subclass);
+}
+
+/**
+ * \brief Get subdevices count from a PCM info container
+ * \param obj PCM info container
+ * \return subdevices total count of PCM
+ */
+unsigned int snd_pcm_info_get_subdevices_count(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return obj->subdevices_count;
+}
+
+/**
+ * \brief Get available subdevices count from a PCM info container
+ * \param obj PCM info container
+ * \return available subdevices count of PCM
+ */
+unsigned int snd_pcm_info_get_subdevices_avail(const snd_pcm_info_t *obj)
+{
+	assert(obj);
+	return obj->subdevices_avail;
+}
+
+/**
+ * \brief Set wanted device inside a PCM info container (see #snd_ctl_pcm_info)
+ * \param obj PCM info container
+ * \param val Device number
+ */
+void snd_pcm_info_set_device(snd_pcm_info_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->device = val;
+}
+
+/**
+ * \brief Set wanted subdevice inside a PCM info container (see #snd_ctl_pcm_info)
+ * \param obj PCM info container
+ * \param val Subdevice number
+ */
+void snd_pcm_info_set_subdevice(snd_pcm_info_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->subdevice = val;
+}
+
+/**
+ * \brief Set wanted stream inside a PCM info container (see #snd_ctl_pcm_info)
+ * \param obj PCM info container
+ * \param val Stream
+ */
+void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
+{
+	assert(obj);
+	obj->stream = snd_enum_to_int(val);
+}
+
+
+/**
+ * \brief Get channel areas for a given PCM when running
+ * \param pcm PCM handle
+ * \return pointer to channel areas (one for each channel)
+ */
+const snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm)
+{
+	return pcm->running_areas;
+}
+
+/**
+ * \brief Get channel areas for a given PCM when stopped
+ * \param pcm PCM handle
+ * \return pointer to channel areas (one for each channel)
+ */
+const snd_pcm_channel_area_t *snd_pcm_mmap_stopped_areas(snd_pcm_t *pcm)
+{
+	return pcm->stopped_areas;
+}
+
+/**
+ * \brief Get appropriate channel areas for a given PCM according to its state (running or stopped)
+ * \param pcm PCM handle
+ * \return pointer to channel areas (one for each channel)
+ */
+const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
+{
+	if (pcm->stopped_areas &&
+	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
+		return pcm->stopped_areas;
+	return pcm->running_areas;
+}
+
+/**
+ * \brief Correct frames count according to contiguity consideration inside PCM ring buffer
+ * \param pcm PCM handle
+ * \param frames Frames to transfer
+ * \return Number of contiguous frames transferrable
+ */
+snd_pcm_uframes_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+        assert(pcm);
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+		return snd_pcm_mmap_playback_xfer(pcm, frames);
+	else
+		return snd_pcm_mmap_capture_xfer(pcm, frames);
+}
+
+/**
+ * \brief Return application offset inside ring buffer
+ * \param pcm PCM handle
+ * \return Offset for frames transfer
+ */
+snd_pcm_uframes_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
+{
+        assert(pcm);
+	return *pcm->appl_ptr % pcm->buffer_size;
 }
 
 #ifndef DOC_HIDDEN

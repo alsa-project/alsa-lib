@@ -1,3 +1,8 @@
+/**
+ * \file pcm/pcm_meter.c
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2001
+ */
 /*
  *  PCM - Meter plugin
  *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
@@ -18,6 +23,8 @@
  *
  */
   
+#ifndef DOC_HIDDEN
+
 #include <byteswap.h>
 #include <time.h>
 #include <pthread.h>
@@ -161,21 +168,6 @@ int snd_pcm_scope_disable(snd_pcm_scope_t *scope)
 	scope->ops->disable(scope);
 	scope->enabled = 0;
 	return 0;
-}
-
-snd_pcm_scope_t *snd_pcm_meter_search_scope(snd_pcm_t *pcm, const char *name)
-{
-	snd_pcm_meter_t *meter;
-	struct list_head *pos;
-	assert(pcm->type == SND_PCM_TYPE_METER);
-	meter = pcm->private_data;
-	list_for_each(pos, &meter->scopes) {
-		snd_pcm_scope_t *scope;
-		scope = list_entry(pos, snd_pcm_scope_t, list);
-		if (scope->name && strcmp(scope->name, name) == 0)
-			return scope;
-	}
-	return NULL;
 }
 
 static void *snd_pcm_meter_thread(void *data)
@@ -785,6 +777,14 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
+#endif
+
+/**
+ * \brief Add a scope to a #SND_PCM_TYPE_METER PCM
+ * \param pcm PCM handle
+ * \param scope Scope handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_pcm_meter_add_scope(snd_pcm_t *pcm, snd_pcm_scope_t *scope)
 {
 	snd_pcm_meter_t *meter;
@@ -794,14 +794,46 @@ int snd_pcm_meter_add_scope(snd_pcm_t *pcm, snd_pcm_scope_t *scope)
 	return 0;
 }
 
+/**
+ * \brief Search an installed scope inside a #SND_PCM_TYPE_METER PCM
+ * \param pcm PCM handle
+ * \param name scope name
+ * \return pointer to found scope or NULL if none is found
+ */
+snd_pcm_scope_t *snd_pcm_meter_search_scope(snd_pcm_t *pcm, const char *name)
+{
+	snd_pcm_meter_t *meter;
+	struct list_head *pos;
+	assert(pcm->type == SND_PCM_TYPE_METER);
+	meter = pcm->private_data;
+	list_for_each(pos, &meter->scopes) {
+		snd_pcm_scope_t *scope;
+		scope = list_entry(pos, snd_pcm_scope_t, list);
+		if (scope->name && strcmp(scope->name, name) == 0)
+			return scope;
+	}
+	return NULL;
+}
+
+/**
+ * \brief Get meter buffer size from a #SND_PCM_TYPE_METER PCM
+ * \param pcm PCM handle
+ * \return meter buffer size in frames
+ */
 snd_pcm_uframes_t snd_pcm_meter_get_bufsize(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter;
 	assert(pcm->type == SND_PCM_TYPE_METER);
 	meter = pcm->private_data;
+	assert(meter->slave->setup);
 	return meter->buf_size;
 }
 
+/**
+ * \brief Get meter channels from a #SND_PCM_TYPE_METER PCM
+ * \param pcm PCM handle
+ * \return meter channels count
+ */
 unsigned int snd_pcm_meter_get_channels(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter;
@@ -811,6 +843,11 @@ unsigned int snd_pcm_meter_get_channels(snd_pcm_t *pcm)
 	return meter->slave->channels;
 }
 
+/**
+ * \brief Get meter rate from a #SND_PCM_TYPE_METER PCM
+ * \param pcm PCM handle
+ * \return approximate rate
+ */
 unsigned int snd_pcm_meter_get_rate(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter;
@@ -820,6 +857,11 @@ unsigned int snd_pcm_meter_get_rate(snd_pcm_t *pcm)
 	return meter->slave->rate;
 }
 
+/**
+ * \brief Get meter "now" frame pointer from a #SND_PCM_TYPE_METER PCM
+ * \param pcm PCM handle
+ * \return "now" frame pointer in frames (0 ... boundary - 1) see #snd_pcm_meter_get_boundary
+ */
 snd_pcm_uframes_t snd_pcm_meter_get_now(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter;
@@ -829,6 +871,11 @@ snd_pcm_uframes_t snd_pcm_meter_get_now(snd_pcm_t *pcm)
 	return meter->now;
 }
 
+/**
+ * \brief Get boundary for frame pointers from a #SND_PCM_TYPE_METER PCM
+ * \param pcm PCM handle
+ * \return boundary in frames
+ */
 snd_pcm_uframes_t snd_pcm_meter_get_boundary(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter;
@@ -838,31 +885,57 @@ snd_pcm_uframes_t snd_pcm_meter_get_boundary(snd_pcm_t *pcm)
 	return meter->slave->boundary;
 }
 
+/**
+ * \brief Set name of a #SND_PCM_TYPE_METER PCM scope
+ * \param scope PCM meter scope
+ * \param name scope name
+ */
 void snd_pcm_scope_set_name(snd_pcm_scope_t *scope, const char *val)
 {
 	scope->name = val;
 }
 
+/**
+ * \brief Get name of a #SND_PCM_TYPE_METER PCM scope
+ * \param scope PCM meter scope
+ * \return scope name
+ */
 const char *snd_pcm_scope_get_name(snd_pcm_scope_t *scope)
 {
 	return scope->name;
 }
 
+/**
+ * \brief Set callbacks for a #SND_PCM_TYPE_METER PCM scope
+ * \param scope PCM meter scope
+ * \param val callbacks
+ */
 void snd_pcm_scope_set_ops(snd_pcm_scope_t *scope, snd_pcm_scope_ops_t *val)
 {
 	scope->ops = val;
 }
 
+/**
+ * \brief Get callbacks private value for a #SND_PCM_TYPE_METER PCM scope
+ * \param scope PCM meter scope
+ * \return Private data value
+ */
 void *snd_pcm_scope_get_callback_private(snd_pcm_scope_t *scope)
 {
 	return scope->private_data;
 }
 
+/**
+ * \brief Get callbacks private value for a #SND_PCM_TYPE_METER PCM scope
+ * \param scope PCM meter scope
+ * \param val Private data value
+ */
 void snd_pcm_scope_set_callback_private(snd_pcm_scope_t *scope, void *val)
 {
 	scope->private_data = val;
 }
 
+#ifndef DOC_HIDDEN
 typedef struct _snd_pcm_scope_s16 {
 	snd_pcm_t *pcm;
 	snd_pcm_adpcm_state_t *adpcm_states;
@@ -1034,6 +1107,18 @@ snd_pcm_scope_ops_t s16_ops = {
 	reset: s16_reset,
 };
 
+#endif
+
+/**
+ * \brief Add a s16 pseudo scope to a #SND_PCM_TYPE_METER PCM
+ * \param name Scope name
+ * \param scopep Pointer to newly created and added scope
+ * \return zero on success otherwise a negative error code
+ *
+ * s16 pseudo scope convert #SND_PCM_TYPE_METER PCM frames in CPU endian 
+ * 16 bit frames for use with other scopes. Don't forget to insert it before
+ * and to not insert it more time (see #snd_pcm_meter_search_scope)
+ */
 int snd_pcm_scope_s16_open(snd_pcm_t *pcm, const char *name,
 			   snd_pcm_scope_t **scopep)
 {
@@ -1060,6 +1145,12 @@ int snd_pcm_scope_s16_open(snd_pcm_t *pcm, const char *name,
 	return 0;
 }
 
+/**
+ * \brief Get s16 pseudo scope frames buffer for a channel
+ * \param scope s16 pseudo scope handle
+ * \param channel Channel
+ * \return Pointer to channel buffer
+ */
 int16_t *snd_pcm_scope_s16_get_channel_buffer(snd_pcm_scope_t *scope,
 					      unsigned int channel)
 {
@@ -1074,6 +1165,11 @@ int16_t *snd_pcm_scope_s16_get_channel_buffer(snd_pcm_scope_t *scope,
 	return s16->buf_areas[channel].addr;
 }
 
+/**
+ * \brief allocate an invalid #snd_pcm_scope_t using standard malloc
+ * \param ptr returned pointer
+ * \return zero on success otherwise negative error code
+ */
 int snd_pcm_scope_malloc(snd_pcm_scope_t **ptr)
 {
 	assert(ptr);

@@ -281,6 +281,7 @@ typedef struct _snd_pcm_channel_area {
 	unsigned int step;
 } snd_pcm_channel_area_t;
 
+/** #SND_PCM_TYPE_METER scope handle */
 typedef struct _snd_pcm_scope snd_pcm_scope_t;
 
 #ifdef __cplusplus
@@ -330,12 +331,6 @@ snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
 /* HW params */
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
-int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
-					  snd_pcm_hw_params_t *fail,
-					  snd_pcm_hw_params_t *success,
-					  unsigned int depth,
-					  snd_output_t *out);
-
 int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 				      unsigned int *rate_num,
 				      unsigned int *rate_den);
@@ -343,6 +338,7 @@ int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out);
 
+#if 0
 typedef struct _snd_pcm_hw_strategy snd_pcm_hw_strategy_t;
 
 /* choices need to be sorted on ascending badness */
@@ -360,6 +356,13 @@ void snd_pcm_hw_strategy_free(snd_pcm_hw_strategy_t *strategy);
 int snd_pcm_hw_strategy_simple(snd_pcm_hw_strategy_t **strategyp,
 			       unsigned int badness_min,
 			       unsigned int badness_max);
+int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
+					  snd_pcm_hw_params_t *fail,
+					  snd_pcm_hw_params_t *success,
+					  unsigned int depth,
+					  snd_output_t *out);
+
+#endif
 
 int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
 int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out);
@@ -405,14 +408,21 @@ ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
 int snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes);
 ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples);
 
-/* meter */
+/** #SND_PCM_TYPE_METER scope functions */
 typedef struct _snd_pcm_scope_ops {
+	/** Enable and prepare it using current params */
 	int (*enable)(snd_pcm_scope_t *scope);
+	/** Disable */
 	void (*disable)(snd_pcm_scope_t *scope);
+	/** PCM has been started */
 	void (*start)(snd_pcm_scope_t *scope);
+	/** PCM has been stopped */
 	void (*stop)(snd_pcm_scope_t *scope);
+	/** New frames are present */
 	void (*update)(snd_pcm_scope_t *scope);
+	/** Reset status */
 	void (*reset)(snd_pcm_scope_t *scope);
+	/** PCM is closing */
 	void (*close)(snd_pcm_scope_t *scope);
 } snd_pcm_scope_ops_t;
 

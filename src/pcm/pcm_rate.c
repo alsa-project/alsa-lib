@@ -357,7 +357,7 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	}
 	rate->pitch = (((u_int64_t)dst_rate * DIV) + src_rate / 2) / src_rate;
 	assert(!rate->states);
-	rate->states = malloc(snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_CHANNELS, 0) * sizeof(*rate->states));
+	rate->states = malloc(rate->plug.slave->channels * sizeof(*rate->states));
 	return 0;
 }
 

@@ -92,29 +92,24 @@ void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params)
 	params->info = ~0U;
 }
 
-/* Fill PARAMS with full configuration space boundaries */
-int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
-{
-	_snd_pcm_hw_params_any(params);
-	return snd_pcm_hw_refine(pcm, params);
-}
-
 /* Return the value for field PAR if it's fixed in configuration space 
    defined by PARAMS. Return -EINVAL otherwise
 */
-unsigned int snd_pcm_hw_param_get(const snd_pcm_hw_params_t *params,
-				  snd_pcm_hw_param_t var, int *dir)
+int snd_pcm_hw_param_get(const snd_pcm_hw_params_t *params,
+			 snd_pcm_hw_param_t var, int *dir)
 {
 	if (hw_is_mask(var)) {
 		const snd_mask_t *mask = hw_param_mask_c(params, var);
-		assert(snd_mask_single(mask));
+		if (snd_mask_empty(mask) || !snd_mask_single(mask))
+			return -EINVAL;
 		if (dir)
 			*dir = 0;
 		return snd_mask_value(mask);
 	}
 	if (hw_is_interval(var)) {
 		const snd_interval_t *i = hw_param_interval_c(params, var);
-		assert(snd_interval_single(i));
+		if (snd_interval_empty(i) || !snd_interval_single(i))
+			return -EINVAL;
 		if (dir)
 			*dir = i->openmin;
 		return snd_interval_value(i);
@@ -947,35 +942,6 @@ int snd_pcm_hw_param_never_eq(const snd_pcm_hw_params_t *params,
 }
 
 
-/* Return rate numerator/denumerator obtainable for configuration space defined
-   by PARAMS */
-int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
-				      unsigned int *rate_num, unsigned int *rate_den)
-{
-	if (params->rate_den == 0)
-		return -EINVAL;
-	*rate_num = params->rate_num;
-	*rate_den = params->rate_den;
-	return 0;
-}
-
-/* Return significative bits in sample for configuration space defined
-   by PARAMS */
-int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
-{
-	if (params->msbits == 0)
-		return -EINVAL;
-	return params->msbits;
-}
-
-/* Return fifo size for configuration space defined by PARAMS */
-int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params)
-{
-	if (params->fifo_size == 0)
-		return -EINVAL;
-	return params->fifo_size;
-}
-
 /* Choose one configuration from configuration space defined by PARAMS
    The configuration choosen is that obtained fixing in this order:
    first access
@@ -999,56 +965,6 @@ void snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_BUFFER_SIZE, 0);
 	snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, 0);
 }
-
-/* Strategies */
-
-struct _snd_pcm_hw_strategy {
-	unsigned int badness_min, badness_max;
-	int (*choose_param)(const snd_pcm_hw_params_t *params,
-			    snd_pcm_t *pcm,
-			    const snd_pcm_hw_strategy_t *strategy);
-	int (*next_value)(snd_pcm_hw_params_t *params,
-			  unsigned int param,
-			  int value, int *dir,
-			  snd_pcm_t *pcm,
-			  const snd_pcm_hw_strategy_t *strategy);
-	int (*min_badness)(const snd_pcm_hw_params_t *params,
-			   unsigned int max_badness,
-			   snd_pcm_t *pcm,
-			   const snd_pcm_hw_strategy_t *strategy);
-	void *private_data;
-	void (*free)(snd_pcm_hw_strategy_t *strategy);
-};
-
-/* Independent badness */
-typedef struct _snd_pcm_hw_strategy_simple snd_pcm_hw_strategy_simple_t;
-
-struct _snd_pcm_hw_strategy_simple {
-	int valid;
-	unsigned int order;
-	int (*next_value)(snd_pcm_hw_params_t *params,
-			  unsigned int param,
-			  int value, int *dir,
-			  snd_pcm_t *pcm,
-			  const snd_pcm_hw_strategy_simple_t *par);
-	unsigned int (*min_badness)(const snd_pcm_hw_params_t *params,
-				    unsigned int param,
-				    snd_pcm_t *pcm,
-				    const snd_pcm_hw_strategy_simple_t *par);
-	void *private_data;
-	void (*free)(snd_pcm_hw_strategy_simple_t *strategy);
-};
-
-typedef struct _snd_pcm_hw_strategy_simple_near {
-	int best;
-	unsigned int mul;
-} snd_pcm_hw_strategy_simple_near_t;
-
-typedef struct _snd_pcm_hw_strategy_simple_choices {
-	unsigned int count;
-	/* choices need to be sorted on ascending badness */
-	snd_pcm_hw_strategy_simple_choices_list_t *choices;
-} snd_pcm_hw_strategy_simple_choices_t;
 
 unsigned int snd_pcm_hw_param_count(const snd_pcm_hw_params_t *params,
 				     snd_pcm_hw_param_t var)
@@ -1171,22 +1087,62 @@ const char *snd_pcm_hw_param_names[] = {
 	HW_PARAM(TICK_TIME),
 };
 
-static const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t param)
+const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t param)
 {
 	assert(param <= SND_PCM_HW_PARAM_LAST);
 	return snd_pcm_hw_param_names[snd_enum_to_int(param)];
 }
 
-int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
-{
-	unsigned int k;
-	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; k++) {
-		snd_output_printf(out, "%s: ", snd_pcm_hw_param_name(k));
-		snd_pcm_hw_param_dump(params, k, out);
-		snd_output_putc(out, '\n');
-	}
-	return 0;
-}
+#if 0
+/* Strategies */
+
+struct _snd_pcm_hw_strategy {
+	unsigned int badness_min, badness_max;
+	int (*choose_param)(const snd_pcm_hw_params_t *params,
+			    snd_pcm_t *pcm,
+			    const snd_pcm_hw_strategy_t *strategy);
+	int (*next_value)(snd_pcm_hw_params_t *params,
+			  unsigned int param,
+			  int value, int *dir,
+			  snd_pcm_t *pcm,
+			  const snd_pcm_hw_strategy_t *strategy);
+	int (*min_badness)(const snd_pcm_hw_params_t *params,
+			   unsigned int max_badness,
+			   snd_pcm_t *pcm,
+			   const snd_pcm_hw_strategy_t *strategy);
+	void *private_data;
+	void (*free)(snd_pcm_hw_strategy_t *strategy);
+};
+
+/* Independent badness */
+typedef struct _snd_pcm_hw_strategy_simple snd_pcm_hw_strategy_simple_t;
+
+struct _snd_pcm_hw_strategy_simple {
+	int valid;
+	unsigned int order;
+	int (*next_value)(snd_pcm_hw_params_t *params,
+			  unsigned int param,
+			  int value, int *dir,
+			  snd_pcm_t *pcm,
+			  const snd_pcm_hw_strategy_simple_t *par);
+	unsigned int (*min_badness)(const snd_pcm_hw_params_t *params,
+				    unsigned int param,
+				    snd_pcm_t *pcm,
+				    const snd_pcm_hw_strategy_simple_t *par);
+	void *private_data;
+	void (*free)(snd_pcm_hw_strategy_simple_t *strategy);
+};
+
+typedef struct _snd_pcm_hw_strategy_simple_near {
+	int best;
+	unsigned int mul;
+} snd_pcm_hw_strategy_simple_near_t;
+
+typedef struct _snd_pcm_hw_strategy_simple_choices {
+	unsigned int count;
+	/* choices need to be sorted on ascending badness */
+	snd_pcm_hw_strategy_simple_choices_list_t *choices;
+} snd_pcm_hw_strategy_simple_choices_t;
 
 int snd_pcm_hw_params_strategy(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			       const snd_pcm_hw_strategy_t *strategy,
@@ -1535,6 +1491,8 @@ int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
 	}
 	return snd_pcm_hw_params_try_explain_failure1(pcm, fail, success, depth, out);
 }
+
+#endif
 
 typedef struct _snd_pcm_hw_rule snd_pcm_hw_rule_t;
 
@@ -2050,23 +2008,6 @@ int snd_pcm_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	return err;
 }
 
-int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
-{
-	assert(pcm && params);
-	assert(pcm->setup);
-	params->start_mode = snd_enum_to_int(pcm->start_mode);
-	params->xrun_mode = snd_enum_to_int(pcm->xrun_mode);
-	params->tstamp_mode = snd_enum_to_int(pcm->tstamp_mode);
-	params->period_step = pcm->period_step;
-	params->sleep_min = pcm->sleep_min;
-	params->avail_min = pcm->avail_min;
-	params->xfer_align = pcm->xfer_align;
-	params->silence_threshold = pcm->silence_threshold;
-	params->silence_size = pcm->silence_size;
-	params->boundary = pcm->boundary;
-	return 0;
-}
-
 int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	assert(pcm && params);
@@ -2085,22 +2026,6 @@ int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		params->boundary *= 2;
 	return 0;
 }
-
-int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out)
-{
-	snd_output_printf(out, "start_mode: %s\n", snd_pcm_start_mode_name(snd_pcm_sw_params_get_start_mode(params)));
-	snd_output_printf(out, "xrun_mode: %s\n", snd_pcm_xrun_mode_name(snd_pcm_sw_params_get_xrun_mode(params)));
-	snd_output_printf(out, "tstamp_mode: %s\n", snd_pcm_tstamp_mode_name(snd_pcm_sw_params_get_tstamp_mode(params)));
-	snd_output_printf(out, "period_step: %u\n", params->period_step);
-	snd_output_printf(out, "sleep_min: %u\n", params->sleep_min);
-	snd_output_printf(out, "avail_min: %lu\n", params->avail_min);
-	snd_output_printf(out, "xfer_align: %lu\n", params->xfer_align);
-	snd_output_printf(out, "silence_threshold: %lu\n", params->silence_threshold);
-	snd_output_printf(out, "silence_size: %lu\n", params->silence_size);
-	snd_output_printf(out, "boundary: %lu\n", params->boundary);
-	return 0;
-}
-
 
 int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {

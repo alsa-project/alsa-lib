@@ -475,12 +475,16 @@ int snd_pcm_hw_param_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 int snd_pcm_hw_param_set_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			      snd_set_mode_t mode,
 			      snd_pcm_hw_param_t var, const snd_mask_t *mask);
-unsigned int snd_pcm_hw_param_get(const snd_pcm_hw_params_t *params,
-				  snd_pcm_hw_param_t var, int *dir);
+int snd_pcm_hw_param_get(const snd_pcm_hw_params_t *params,
+			 snd_pcm_hw_param_t var, int *dir);
 unsigned int snd_pcm_hw_param_get_min(const snd_pcm_hw_params_t *params,
 				      snd_pcm_hw_param_t var, int *dir);
 unsigned int snd_pcm_hw_param_get_max(const snd_pcm_hw_params_t *params,
 				      snd_pcm_hw_param_t var, int *dir);
+const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t param);
+void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
+			   snd_pcm_hw_param_t var, snd_output_t *out);
+#if 0
 int snd_pcm_hw_strategy_simple_near(snd_pcm_hw_strategy_t *strategy, int order,
 				    snd_pcm_hw_param_t var,
 				    unsigned int best,
@@ -489,6 +493,7 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int orde
 				       snd_pcm_hw_param_t var,
 				       unsigned int count,
 				       snd_pcm_hw_strategy_simple_choices_list_t *choices);
+#endif
 
 int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
 		       unsigned int count, ...);

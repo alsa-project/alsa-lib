@@ -44,24 +44,6 @@ size_t page_align(size_t size)
 	return size;
 }
 
-const snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm)
-{
-	return pcm->running_areas;
-}
-
-const snd_pcm_channel_area_t *snd_pcm_mmap_stopped_areas(snd_pcm_t *pcm)
-{
-	return pcm->stopped_areas;
-}
-
-const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
-{
-	if (pcm->stopped_areas &&
-	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
-		return pcm->stopped_areas;
-	return pcm->running_areas;
-}
-
 snd_pcm_uframes_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_uframes_t cont;
@@ -84,21 +66,6 @@ snd_pcm_uframes_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 	if (cont < frames)
 		frames = cont;
 	return frames;
-}
-
-snd_pcm_uframes_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
-{
-        assert(pcm);
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		return snd_pcm_mmap_playback_xfer(pcm, frames);
-	else
-		return snd_pcm_mmap_capture_xfer(pcm, frames);
-}
-
-snd_pcm_uframes_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
-{
-        assert(pcm);
-	return *pcm->appl_ptr % pcm->buffer_size;
 }
 
 snd_pcm_uframes_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)

@@ -38,6 +38,12 @@
 #include "pcm_local.h"
 #endif
 
+
+/**
+ * \brief Return sign info for a PCM sample linear format
+ * \param format Format
+ * \return 0 unsigned, 1 signed, a negative error code if format is not linear
+ */
 int snd_pcm_format_signed(snd_pcm_format_t format)
 {
 	switch (snd_enum_to_int(format)) {
@@ -62,6 +68,11 @@ int snd_pcm_format_signed(snd_pcm_format_t format)
 	}
 }
 
+/**
+ * \brief Return sign info for a PCM sample linear format
+ * \param format Format
+ * \return 0 signed, 1 unsigned, a negative error code if format is not linear
+ */
 int snd_pcm_format_unsigned(snd_pcm_format_t format)
 {
 	int val;
@@ -72,11 +83,21 @@ int snd_pcm_format_unsigned(snd_pcm_format_t format)
 	return !val;
 }
 
+/**
+ * \brief Return linear info for a PCM sample format
+ * \param format Format
+ * \return 0 non linear, 1 linear
+ */
 int snd_pcm_format_linear(snd_pcm_format_t format)
 {
 	return snd_pcm_format_signed(format) >= 0;
 }
 
+/**
+ * \brief Return endian info for a PCM sample format
+ * \param format Format
+ * \return 0 big endian, 1 little endian, a negative error code if endian independent
+ */
 int snd_pcm_format_little_endian(snd_pcm_format_t format)
 {
 	switch (snd_enum_to_int(format)) {
@@ -105,6 +126,11 @@ int snd_pcm_format_little_endian(snd_pcm_format_t format)
 	}
 }
 
+/**
+ * \brief Return endian info for a PCM sample format
+ * \param format Format
+ * \return 0 little endian, 1 big endian, a negative error code if endian independent
+ */
 int snd_pcm_format_big_endian(snd_pcm_format_t format)
 {
 	int val;
@@ -115,6 +141,11 @@ int snd_pcm_format_big_endian(snd_pcm_format_t format)
 	return !val;
 }
 
+/**
+ * \brief Return endian info for a PCM sample format
+ * \param format Format
+ * \return 0 swapped, 1 CPU endian, a negative error code if endian independent
+ */
 int snd_pcm_format_cpu_endian(snd_pcm_format_t format)
 {
 #ifdef SNDRV_LITTLE_ENDIAN
@@ -124,6 +155,11 @@ int snd_pcm_format_cpu_endian(snd_pcm_format_t format)
 #endif
 }
 
+/**
+ * \brief Return nominal bits per a PCM sample
+ * \param format Sample format
+ * \return bits per sample, a negative error code if not applicable
+ */
 int snd_pcm_format_width(snd_pcm_format_t format)
 {
 	switch (snd_enum_to_int(format)) {
@@ -163,6 +199,11 @@ int snd_pcm_format_width(snd_pcm_format_t format)
 	}
 }
 
+/**
+ * \brief Return bits needed to store a PCM sample
+ * \param format Sample format
+ * \return bits per sample, a negative error code if not applicable
+ */
 int snd_pcm_format_physical_width(snd_pcm_format_t format)
 {
 	switch (snd_enum_to_int(format)) {
@@ -200,6 +241,12 @@ int snd_pcm_format_physical_width(snd_pcm_format_t format)
 	}
 }
 
+/**
+ * \brief Return bytes needed to store a quantity of PCM sample
+ * \param format Sample format
+ * \param samples Samples count
+ * \return bytes needed, a negative error code if not integer or unknown
+ */
 ssize_t snd_pcm_format_size(snd_pcm_format_t format, size_t samples)
 {
 	switch (snd_enum_to_int(format)) {
@@ -241,6 +288,11 @@ ssize_t snd_pcm_format_size(snd_pcm_format_t format, size_t samples)
 	}
 }
 
+/**
+ * \brief Return 64 bit expressing silence for a PCM sample format
+ * \param format Sample format
+ * \return silence 64 bit word
+ */
 u_int64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 {
 	switch (snd_enum_to_int(format)) {
@@ -352,21 +404,45 @@ u_int64_t snd_pcm_format_silence_64(snd_pcm_format_t format)
 	return 0;
 }
 
+/**
+ * \brief Return 32 bit expressing silence for a PCM sample format
+ * \param format Sample format
+ * \return silence 32 bit word
+ */
 u_int32_t snd_pcm_format_silence_32(snd_pcm_format_t format)
 {
+	assert(snd_pcm_format_physical_width(format) <= 32);
 	return (u_int32_t)snd_pcm_format_silence_64(format);
 }
 
+/**
+ * \brief Return 16 bit expressing silence for a PCM sample format
+ * \param format Sample format
+ * \return silence 16 bit word
+ */
 u_int16_t snd_pcm_format_silence_16(snd_pcm_format_t format)
 {
+	assert(snd_pcm_format_physical_width(format) <= 16);
 	return (u_int16_t)snd_pcm_format_silence_64(format);
 }
 
+/**
+ * \brief Return 8 bit expressing silence for a PCM sample format
+ * \param format Sample format
+ * \return silence 8 bit word
+ */
 u_int8_t snd_pcm_format_silence(snd_pcm_format_t format)
 {
+	assert(snd_pcm_format_physical_width(format) <= 8);
 	return (u_int8_t)snd_pcm_format_silence_64(format);
 }
 
+/**
+ * \brief Silence a PCM samples buufer
+ * \param format Sample format
+ * \param data Buffer
+ * \return samples Samples count
+ */
 int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int samples)
 {
 	if (samples == 0)
@@ -405,6 +481,7 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int
 		break;
 	}
 	default:
+		assert(0);
 		return -EINVAL;
 	}
 	return 0;
@@ -429,6 +506,12 @@ static int linear_formats[4*2*2] = {
 	SNDRV_PCM_FORMAT_U32_BE
 };
 
+/**
+ * \brief Compose a PCM sample linear format
+ * \param width Nominal bits per sample
+ * \param unsignd Sign: 0 signed, 1 unsigned
+ * \return big_endian Endianness: 0 little endian, 1 big endian
+ */
 snd_pcm_format_t snd_pcm_build_linear_format(int width, int unsignd, int big_endian)
 {
 	switch (width) {

@@ -313,7 +313,7 @@ int snd_rawmidi_info_malloc(snd_rawmidi_info_t **info)
 
 /**
  * \brief frees the snd_rawmidi_info_t structure
- * \param params pointer to the snd_rawmidi_info_t structure to free
+ * \param info pointer to the snd_rawmidi_info_t structure to free
  *
  * Frees the given snd_rawmidi_params_t structure using the standard
  * free C library function.
