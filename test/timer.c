@@ -1,50 +1,57 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include "../include/asoundlib.h"
 
 void show_status(void *handle)
 {
 	int err;
-	snd_timer_status_t status;
+	snd_timer_status_t *status;
 	
-	if ((err = snd_timer_status(handle, &status)) < 0) {
+	snd_timer_status_alloca(&status);
+	if ((err = snd_timer_status(handle, status)) < 0) {
 		fprintf(stderr, "timer status %i (%s)\n", err, snd_strerror(err));
 		return;
 	}
 	printf("STATUS:\n");
-	printf("  resolution = %lu\n", status.resolution);
-	printf("  lost = %lu\n", status.lost);
-	printf("  overrun = %lu\n", status.overrun);
-	printf("  queue = %i\n", status.queue);
+	printf("  resolution = %li\n", snd_timer_status_get_resolution(status));
+	printf("  lost = %li\n", snd_timer_status_get_lost(status));
+	printf("  overrun = %li\n", snd_timer_status_get_overrun(status));
+	printf("  queue = %li\n", snd_timer_status_get_queue(status));
 }
 
 void read_loop(void *handle, int master_ticks, int timeout)
 {
-	int err, max;
-	fd_set in;
-	struct timeval tv;
+	int count, err;
+	struct pollfd *fds;
 	snd_timer_read_t tr;
 	
+	count = snd_timer_poll_descriptors_count(handle);
+	fds = calloc(count, sizeof(struct pollfd));
+	if (fds == NULL) {
+		fprintf(stderr, "malloc error\n");
+		exit(EXIT_FAILURE);
+	}
 	while (master_ticks-- > 0) {
-		FD_ZERO(&in);
-		max = snd_timer_poll_descriptor(handle);
-		FD_SET(max, &in);
-		tv.tv_sec = timeout;
-		tv.tv_usec = 0;
-		if ((err = select(max + 1, &in, NULL, NULL, &tv)) < 0) {
-			fprintf(stderr, "select error %i (%s)\n", err, strerror(err));
-			exit(0);
+		if ((err = snd_timer_poll_descriptors(handle, fds, count)) < 0) {
+			fprintf(stderr, "snd_timer_poll_descriptors error: %s\n", snd_strerror(err));
+			exit(EXIT_FAILURE);
+		}
+		if ((err = poll(fds, count, timeout)) < 0) {
+			fprintf(stderr, "poll error %i (%s)\n", err, strerror(err));
+			exit(EXIT_FAILURE);
 		}
 		if (err == 0) {
 			fprintf(stderr, "timer time out!!\n");
-			exit(0);
+			exit(EXIT_FAILURE);
 		}
 		while (snd_timer_read(handle, &tr, sizeof(tr)) == sizeof(tr)) {
-			printf("TIMER: resolution = %lu, ticks = %lu\n",
+			printf("TIMER: resolution = %u, ticks = %u\n",
 				tr.resolution, tr.ticks);
 		}
 	}
+	free(fds);
 }
 
 int main(int argc, char *argv[])
@@ -57,16 +64,21 @@ int main(int argc, char *argv[])
 	int subdevice = 0;
 	int list = 0;
 	snd_timer_t *handle;
-	snd_timer_select_t sel;
-	snd_timer_info_t info;
-	snd_timer_params_t params;
+	snd_timer_id_t *id;
+	snd_timer_info_t *info;
+	snd_timer_params_t *params;
+	char timername[64];
+
+	snd_timer_id_alloca(&id);
+	snd_timer_info_alloca(&info);
+	snd_timer_params_alloca(&params);
 
 	idx = 1;
 	while (idx < argc) {
 		if (!strncmp(argv[idx], "class=", 5)) {
-			class = atoi(argv[idx]+5);
+			class = atoi(argv[idx]+6);
 		} else if (!strncmp(argv[idx], "sclass=", 6)) {
-			sclass = atoi(argv[idx]+6);
+			sclass = atoi(argv[idx]+7);
 		} else if (!strncmp(argv[idx], "card=", 5)) {
 			card = atoi(argv[idx]+5);
 		} else if (!strncmp(argv[idx], "device=", 7)) {
@@ -80,66 +92,70 @@ int main(int argc, char *argv[])
 	}
 	if (class == SND_TIMER_CLASS_SLAVE && sclass == SND_TIMER_SCLASS_NONE) {
 		fprintf(stderr, "slave class is not set\n");
-		exit(0);
-	}
-	if ((err = snd_timer_open(&handle))<0) {
-		fprintf(stderr, "timer open %i (%s)\n", err, snd_strerror(err));
-		exit(0);
+		exit(EXIT_FAILURE);
 	}
 	if (list) {
-		bzero(&sel.id, sizeof(sel.id));
-		sel.id.class = -1;
+		snd_timer_query_t *qhandle;
+		if ((err = snd_timer_query_open(&qhandle, "hw", 0)) < 0) {
+			fprintf(stderr, "snd_timer_query_open error: %s\n", snd_strerror(err));
+			exit(EXIT_FAILURE);
+		}
+		snd_timer_id_set_class(id, SND_TIMER_CLASS_NONE);
 		while (1) {
-			if ((err = snd_timer_next_device(handle, &sel.id)) < 0) {
+			if ((err = snd_timer_query_next_device(qhandle, id)) < 0) {
 				fprintf(stderr, "timer next device error: %s\n", snd_strerror(err));
 				break;
 			}
-			if (sel.id.class < 0)
+			if (snd_timer_id_get_class(id) < 0)
 				break;
 			printf("Timer device: class %i, sclass %i, card %i, device %i, subdevice %i\n",
-					sel.id.class, sel.id.sclass, sel.id.card, sel.id.device, sel.id.subdevice);
+					snd_timer_id_get_class(id),
+					snd_timer_id_get_sclass(id),
+					snd_timer_id_get_card(id),
+					snd_timer_id_get_device(id),
+					snd_timer_id_get_subdevice(id));
 		}
+		snd_timer_query_close(qhandle);
+		exit(EXIT_SUCCESS);
+	}
+	sprintf(timername, "hw:CLASS=%i,SCLASS=%i,CARD=%i,DEV=%i,SUBDEV=%i", class, sclass, card, device, subdevice);
+	if ((err = snd_timer_open(&handle, timername, SND_TIMER_OPEN_NONBLOCK))<0) {
+		fprintf(stderr, "timer open %i (%s)\n", err, snd_strerror(err));
+		exit(EXIT_FAILURE);
 	}
 	printf("Using timer class %i, slave class %i, card %i, device %i, subdevice %i\n", class, sclass, card, device, subdevice);
-	bzero(&sel, sizeof(sel));
-	sel.id.class = class;
-	sel.id.sclass = sclass;
-	sel.id.card = card;
-	sel.id.device = device;
-	sel.id.subdevice = subdevice;
-	if ((err = snd_timer_select(handle, &sel)) < 0) {
-		fprintf(stderr, "timer select %i (%s)\n", err, snd_strerror(err));
+	if ((err = snd_timer_info(handle, info)) < 0) {
+		fprintf(stderr, "timer info %i (%s)\n", err, snd_strerror(err));
 		exit(0);
 	}
-	if (class != SND_TIMER_CLASS_SLAVE) {
-		if ((err = snd_timer_info(handle, &info)) < 0) {
-			fprintf(stderr, "timer info %i (%s)\n", err, snd_strerror(err));
-			exit(0);
-		}
-		printf("Timer info:\n");
-		printf("  flags = 0x%x\n", info.flags);
-		printf("  id = '%s'\n", info.id);
-		printf("  name = '%s'\n", info.name);
-		printf("  max ticks = %lu\n", info.ticks);
-		printf("  average resolution = %lu\n", info.resolution);
-		bzero(&params, sizeof(params));
-		params.flags = SND_TIMER_PSFLG_AUTO;
-		params.ticks = (1000000000 / info.resolution) / 50;	/* 50Hz */
-		if (params.ticks < 1)
-			params.ticks = 1;
-		printf("Using %lu tick(s)\n", params.ticks);
-		if ((err = snd_timer_params(handle, &params)) < 0) {
-			fprintf(stderr, "timer params %i (%s)\n", err, snd_strerror(err));
-			exit(0);
-		}
+	printf("Timer info:\n");
+	printf("  slave = %s\n", snd_timer_info_is_slave(info) ? "yes" : "no");
+	printf("  card = %i\n", snd_timer_info_get_card(info));
+	printf("  id = '%s'\n", snd_timer_info_get_id(info));
+	printf("  name = '%s'\n", snd_timer_info_get_name(info));
+	printf("  max ticks = %li\n", snd_timer_info_get_ticks(info));
+	printf("  average resolution = %li\n", snd_timer_info_get_resolution(info));
+	snd_timer_params_set_auto_start(params, 1);
+	if (!snd_timer_info_is_slave(info)) {
+		snd_timer_params_set_ticks(params, (1000000000 / snd_timer_info_get_resolution(info)) / 50); /* 50Hz */
+		if (snd_timer_params_get_ticks(params) < 1)
+			snd_timer_params_set_ticks(params, 1);
+		printf("Using %li tick(s)\n", snd_timer_params_get_ticks(params));
+	} else {
+		snd_timer_params_set_ticks(params, 1);
+	}
+	if ((err = snd_timer_params(handle, params)) < 0) {
+		fprintf(stderr, "timer params %i (%s)\n", err, snd_strerror(err));
+		exit(0);
 	}
 	show_status(handle);
 	if ((err = snd_timer_start(handle)) < 0) {
 		fprintf(stderr, "timer start %i (%s)\n", err, snd_strerror(err));
-		exit(0);
+		exit(EXIT_FAILURE);
 	}
-	read_loop(handle, 25, class == SND_TIMER_CLASS_SLAVE ? 10000 : 1);
+	read_loop(handle, 25, snd_timer_info_is_slave(info) ? 10000 : 25);
 	show_status(handle);
 	snd_timer_close(handle);
-	return 0;
+	printf("Done\n");
+	return EXIT_SUCCESS;
 }
