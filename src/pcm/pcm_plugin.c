@@ -324,7 +324,10 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 		const snd_pcm_channel_area_t *slave_areas;
 		snd_pcm_uframes_t slave_offset;
 		snd_pcm_uframes_t slave_frames = ULONG_MAX;
+		
 		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+		if (slave_frames == 0)
+			break;
 		frames = plugin->write(pcm, areas, offset, frames,
 				       slave_areas, slave_offset, &slave_frames);
 		assert(slave_frames <= snd_pcm_mmap_playback_avail(slave));
@@ -332,7 +335,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 		snd_pcm_mmap_appl_forward(pcm, frames);
 		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		snd_atomic_write_end(&plugin->watom);
-		if (result < 0)
+		if (result <= 0)
 			return xfer > 0 ? xfer : result;
 		offset += result;
 		xfer += result;
@@ -356,7 +359,10 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 		const snd_pcm_channel_area_t *slave_areas;
 		snd_pcm_uframes_t slave_offset;
 		snd_pcm_uframes_t slave_frames = ULONG_MAX;
+		
 		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
+		if (slave_frames == 0)
+			break;
 		frames = plugin->read(pcm, areas, offset, frames,
 				      slave_areas, slave_offset, &slave_frames);
 		assert(slave_frames <= snd_pcm_mmap_capture_avail(slave));
@@ -364,7 +370,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 		snd_pcm_mmap_appl_forward(pcm, frames);
 		result = snd_pcm_mmap_commit(slave, slave_offset, slave_frames);
 		snd_atomic_write_end(&plugin->watom);
-		if (result < 0)
+		if (result <= 0)
 			return xfer > 0 ? xfer : result;
 		offset += result;
 		xfer += result;
