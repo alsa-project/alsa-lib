@@ -33,7 +33,6 @@ struct snd_pcm_ops {
 	int (*status)(void *private, snd_pcm_status_t *status);
 	int (*prepare)(void *private);
 	int (*go)(void *private);
-	int (*sync_go)(void *private, snd_pcm_sync_t *sync);
 	int (*drain)(void *private);
 	int (*flush)(void *private);
 	int (*pause)(void *private, int enable);

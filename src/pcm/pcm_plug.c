@@ -309,12 +309,6 @@ static int snd_pcm_plug_go(void *private)
 	return snd_pcm_go(plug->slave);
 }
 
-static int snd_pcm_plug_sync_go(void *private, snd_pcm_sync_t *sync)
-{
-	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
-	return snd_pcm_sync_go(plug->slave, sync);
-}
-
 static int snd_pcm_plug_drain(void *private)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
@@ -592,7 +586,6 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 	state: snd_pcm_plug_state,
 	prepare: snd_pcm_plug_prepare,
 	go: snd_pcm_plug_go,
-	sync_go: snd_pcm_plug_sync_go,
 	drain: snd_pcm_plug_drain,
 	flush: snd_pcm_plug_flush,
 	pause: snd_pcm_plug_pause,

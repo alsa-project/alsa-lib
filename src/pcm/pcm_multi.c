@@ -292,19 +292,6 @@ static int snd_pcm_multi_go(void *private)
 	return 0;
 }
 
-static int snd_pcm_multi_sync_go(void *private, snd_pcm_sync_t *sync)
-{
-	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	unsigned int i;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_sync_go(handle, sync);
-		if (err < 0)
-			return err;
-	}
-	return 0;
-}
-
 static int snd_pcm_multi_drain(void *private)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
@@ -603,7 +590,6 @@ struct snd_pcm_ops snd_pcm_multi_ops = {
 	state: snd_pcm_multi_state,
 	prepare: snd_pcm_multi_prepare,
 	go: snd_pcm_multi_go,
-	sync_go: snd_pcm_multi_sync_go,
 	drain: snd_pcm_multi_drain,
 	flush: snd_pcm_multi_flush,
 	pause: snd_pcm_multi_pause,

@@ -100,6 +100,23 @@ typedef struct snd_pcm_loopback snd_pcm_loopback_t;
 
 typedef enum { SND_PCM_TYPE_HW, SND_PCM_TYPE_PLUG, SND_PCM_TYPE_MULTI } snd_pcm_type_t;
 
+typedef struct {
+	snd_pcm_t *handle;
+	snd_timestamp_t tstamp;
+	int result;
+	union {
+		char reserved[256];
+	} arg;
+} snd_pcm_synchro_request_t;
+
+typedef enum { SND_PCM_SYNCHRO_GO } snd_pcm_synchro_cmd_t;
+
+#define snd_pcm_synchro_mode_t snd_pcm_sync_mode_t
+#define SND_PCM_SYNCHRO_MODE_NORMAL SND_PCM_SYNC_MODE_NORMAL
+#define SND_PCM_SYNCHRO_MODE_HARDWARE SND_PCM_SYNC_MODE_HARDWARE
+#define SND_PCM_SYNCHRO_MODE_RELAXED SND_PCM_SYNC_MODE_RELAXED
+
+
 int snd_pcm_hw_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int stream, int mode);
 int snd_pcm_hw_open(snd_pcm_t **handle, int card, int device, int stream, int mode);
 
@@ -115,7 +132,9 @@ int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup);
 int snd_pcm_status(snd_pcm_t *handle, snd_pcm_status_t *status);
 int snd_pcm_prepare(snd_pcm_t *handle);
 int snd_pcm_go(snd_pcm_t *handle);
-int snd_pcm_sync_go(snd_pcm_t *handle, snd_pcm_sync_t *sync);
+int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd, 
+		    unsigned int reqs_count, snd_pcm_synchro_request_t *reqs,
+		    snd_pcm_synchro_mode_t mode);
 int snd_pcm_drain(snd_pcm_t *handle);
 int snd_pcm_flush(snd_pcm_t *handle);
 int snd_pcm_pause(snd_pcm_t *handle, int enable);

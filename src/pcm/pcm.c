@@ -23,6 +23,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/uio.h>
 #include "pcm_local.h"
@@ -167,11 +168,42 @@ int snd_pcm_go(snd_pcm_t *handle)
 	return handle->ops->go(handle->op_arg);
 }
 
-int snd_pcm_sync_go(snd_pcm_t *handle, snd_pcm_sync_t *sync)
+int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd, 
+		    unsigned int reqs_count, snd_pcm_synchro_request_t *reqs,
+		    snd_pcm_synchro_mode_t mode)
 {
-	assert(handle);
-	return handle->ops->sync_go(handle->op_arg, sync);
+	snd_pcm_sync_request_t *sync_reqs;
+	snd_pcm_sync_t sync;
+	unsigned int k;
+	assert(reqs_count > 0 && reqs);
+	sync_reqs = __builtin_alloca(sizeof(*sync_reqs) * reqs_count);
+	switch (cmd) {
+	case SND_PCM_SYNCHRO_GO:
+		break;
+	default:
+		assert(0);
+		return -EINVAL;
+	}
+	sync.mode = mode;
+	sync.requests_count = reqs_count;
+	sync.requests = sync_reqs;
+	for (k = 0; k < reqs_count; ++k) {
+		switch (snd_pcm_type(reqs[k].handle)) {
+		case SND_PCM_TYPE_HW:
+		case SND_PCM_TYPE_PLUG:
+			sync_reqs[k].fd = snd_pcm_file_descriptor(reqs[k].handle);
+			break;
+		default:
+			/* Not yet implemented */
+			assert(0);
+			return -ENOSYS;
+		}
+	}
+	if (ioctl(sync_reqs[0].fd, SND_PCM_IOCTL_SYNC, &sync) < 0)
+		return -errno;
+	return 0;
 }
+
 
 int snd_pcm_drain(snd_pcm_t *handle)
 {

@@ -158,15 +158,6 @@ static int snd_pcm_hw_go(void *private)
 	return 0;
 }
 
-static int snd_pcm_hw_sync_go(void *private, snd_pcm_sync_t *sync)
-{
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
-	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_SYNC_GO, sync) < 0)
-		return -errno;
-	return 0;
-}
-
 static int snd_pcm_hw_drain(void *private)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
@@ -352,7 +343,6 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	state: snd_pcm_hw_state,
 	prepare: snd_pcm_hw_prepare,
 	go: snd_pcm_hw_go,
-	sync_go: snd_pcm_hw_sync_go,
 	drain: snd_pcm_hw_drain,
 	flush: snd_pcm_hw_flush,
 	pause: snd_pcm_hw_pause,
