@@ -1,4 +1,4 @@
-/*
+/**
  * \file timer/timer.c
  * \brief Timer Interface
  * \author Jaroslav Kysela <perex@suse.cz>

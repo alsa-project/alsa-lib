@@ -1,4 +1,4 @@
-/*
+/**
  * \file mixer/simple.c
  * \brief Mixer Simple Element Class Interface
  * \author Jaroslav Kysela <perex@suse.cz>
@@ -110,7 +110,7 @@ static struct mixer_name_table {
 	{0, 0},
 };
 
-#endif
+#endif /* !DOC_HIDDEN */
 
 static const char *get_short_name(const char *lname)
 {

@@ -1,4 +1,4 @@
-/*
+/**
  * \file timer/timer_query.c
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2001

@@ -1,4 +1,4 @@
-/*
+/**
  * \file pcm/pcm_share.c
  * \ingroup PCM_Plugins
  * \brief PCM Share Plugin Interface
