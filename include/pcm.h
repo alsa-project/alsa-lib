@@ -26,6 +26,7 @@ typedef struct _snd_pcm_info snd_pcm_info_t;
 typedef struct _snd_pcm_hw_params snd_pcm_hw_params_t;
 typedef struct _snd_pcm_sw_params snd_pcm_sw_params_t;
 typedef struct _snd_pcm_status snd_pcm_status_t;
+
 #define SND_PCM_CLASS_GENERIC SNDRV_PCM_CLASS_GENERIC
 #define SND_PCM_CLASS_MULTI SNDRV_PCM_CLASS_MULTI
 #define SND_PCM_CLASS_MODEM SNDRV_PCM_CLASS_MODEM
