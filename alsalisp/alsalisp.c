@@ -37,7 +37,6 @@ static void interpret_filename(const char *file)
 	struct alisp_cfg cfg;
 	snd_input_t *in;
 	snd_output_t *out;
-	snd_config_t *root;
 	int err;
 
 	memset(&cfg, 0, sizeof(cfg));
@@ -57,27 +56,18 @@ static void interpret_filename(const char *file)
 		fprintf(stderr, "unable to attach stdout (%s)\n", strerror(errno));
 		return;
 	}
-	err = snd_config_top(&root);
-	if (err < 0)
-		fprintf(stderr, "unable to allocate config root\n");
-	else {
-		cfg.verbose = verbose;
-		cfg.warning = warning;
-		cfg.debug = debug;
-		cfg.in = in;
-		cfg.out = cfg.eout = cfg.vout = cfg.wout = cfg.dout = out;
-		cfg.root = root;
-		cfg.node = root;
-		err = alsa_lisp(&cfg, NULL);
-	}
+	cfg.verbose = verbose;
+	cfg.warning = warning;
+	cfg.debug = debug;
+	cfg.in = in;
+	cfg.out = cfg.eout = cfg.vout = cfg.wout = cfg.dout = out;
+	err = alsa_lisp(&cfg, NULL);
 	if (err < 0)
 		fprintf(stderr, "alsa lisp returned error %i (%s)\n", err, strerror(err));
 	else if (verbose)
 		printf("file %s passed ok via alsa lisp interpreter\n", file);
-	snd_config_save(root, out);
 	snd_output_close(out);
 	snd_input_close(in);
-	snd_config_delete(root);
 }
 
 static void usage(void)
