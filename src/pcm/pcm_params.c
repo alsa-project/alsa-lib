@@ -1821,7 +1821,7 @@ static snd_interval_t refine_intervals[SND_PCM_HW_PARAM_LAST_INTERVAL - SND_PCM_
 	},
 };
 
-#define RULES_DEBUG
+#undef RULES_DEBUG
 
 int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
