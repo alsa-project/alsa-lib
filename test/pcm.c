@@ -19,6 +19,7 @@ unsigned int channels = 1;			/* count of channels */
 unsigned int buffer_time = 500000;		/* ring buffer length in us */
 unsigned int period_time = 100000;		/* period time in us */
 double freq = 440;				/* sinusoidal wave frequency in Hz */
+int verbose = 0;				/* verbose flag */
 
 snd_pcm_sframes_t buffer_size;
 snd_pcm_sframes_t period_size;
@@ -148,7 +149,8 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
 		printf("Unable to determine current swparams for playback: %s\n", snd_strerror(err));
 		return err;
 	}
-	/* start the transfer when the buffer is almost full */
+	/* start the transfer when the buffer is almost full: */
+	/* (buffer_size / avail_min) * avail_min */
 	err = snd_pcm_sw_params_set_start_threshold(handle, swparams, (buffer_size / period_size) * period_size);
 	if (err < 0) {
 		printf("Unable to set start threshold mode for playback: %s\n", snd_strerror(err));
@@ -698,6 +700,7 @@ static void help(void)
 "-b,--buffer	ring buffer size in us\n"
 "-p,--period	period size in us\n"
 "-m,--method	transfer method\n"
+"-v,--verbose   show the PCM setup parameters\n"
 "\n");
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++(unsigned long) k) {
@@ -724,6 +727,7 @@ int main(int argc, char *argv[])
 		{"buffer", 1, NULL, 'b'},
 		{"period", 1, NULL, 'p'},
 		{"method", 1, NULL, 'm'},
+		{"verbose", 1, NULL, 'v'},
 		{NULL, 0, NULL, 0},
 	};
 	snd_pcm_t *handle;
@@ -741,7 +745,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:v", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -782,6 +786,9 @@ int main(int argc, char *argv[])
 			if (transfer_methods[method].name == NULL)
 				method = 0;
 			break;
+		case 'v':
+			verbose = 1;
+			break;
 		}
 	}
 
@@ -814,6 +821,9 @@ int main(int argc, char *argv[])
 		printf("Setting of swparams failed: %s\n", snd_strerror(err));
 		exit(EXIT_FAILURE);
 	}
+
+	if (verbose > 0)
+		snd_pcm_dump(handle, output);
 
 	samples = malloc((period_size * channels * snd_pcm_format_width(format)) / 8);
 	if (samples == NULL) {
