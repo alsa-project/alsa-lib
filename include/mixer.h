@@ -12,7 +12,7 @@ typedef int (*snd_mixer_callback_t)(snd_mixer_t *ctl,
 				    snd_ctl_event_type_t event,
 				    snd_mixer_elem_t *elem);
 typedef int (*snd_mixer_elem_callback_t)(snd_mixer_elem_t *elem,
-					    snd_ctl_event_type_t event);
+					 snd_ctl_event_type_t event);
 
 enum _snd_mixer_elem_type {
 	SND_MIXER_ELEM_SIMPLE,

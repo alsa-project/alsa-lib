@@ -31,17 +31,17 @@
 int snd_mixer_open(snd_mixer_t **mixerp, char *name)
 {
 	snd_mixer_t *mixer;
-	snd_ctl_t *ctl;
+	snd_hctl_t *hctl;
 	int err;
 	assert(mixerp);
-	if ((err = snd_ctl_open(&ctl, name)) < 0)
+	if ((err = snd_hctl_open(&hctl, name)) < 0)
 		return err;
 	mixer = calloc(1, sizeof(snd_mixer_t));
 	if (mixer == NULL) {
-		snd_ctl_close(ctl);
+		snd_hctl_close(hctl);
 		return -ENOMEM;
 	}
-	mixer->ctl = ctl;
+	mixer->hctl = hctl;
 	INIT_LIST_HEAD(&mixer->elems);
 	*mixerp = mixer;
 	return 0;
@@ -82,14 +82,14 @@ int snd_mixer_close(snd_mixer_t *mixer)
 {
 	assert(mixer);
 	snd_mixer_free(mixer);
-	return snd_ctl_close(mixer->ctl);
+	return snd_hctl_close(mixer->hctl);
 }
 
 int snd_mixer_poll_descriptor(snd_mixer_t *mixer)
 {
-	if (mixer == NULL || mixer->ctl == NULL)
+	if (mixer == NULL || mixer->hctl == NULL)
 		return -EIO;
-	return snd_ctl_poll_descriptor(mixer->ctl);
+	return snd_hctl_poll_descriptor(mixer->hctl);
 }
 
 snd_mixer_elem_t *snd_mixer_first_elem(snd_mixer_t *mixer)
@@ -126,6 +126,6 @@ snd_mixer_elem_t *snd_mixer_elem_prev(snd_mixer_elem_t *elem)
 
 int snd_mixer_events(snd_mixer_t *mixer)
 {
-	return snd_hctl_events(mixer->ctl);
+	return snd_hctl_events(mixer->hctl);
 }
 

@@ -112,43 +112,43 @@ static snd_hctl_elem_t *test_mixer_id(snd_mixer_t *mixer, const char *name, int 
 	id.iface = SNDRV_CTL_ELEM_IFACE_MIXER;
 	strcpy(id.name, name);
 	id.index = index;
-	helem = snd_hctl_find_elem(mixer->ctl, &id);
+	helem = snd_hctl_find_elem(mixer->hctl, &id);
 	// fprintf(stderr, "Looking for control: '%s', %i (0x%lx)\n", name, index, (long)helem);
 	return helem;
 }
 
 static int get_mixer_info(snd_mixer_t *mixer, const char *name, int index, snd_ctl_elem_info_t *info)
 {
-	memset(info, 0, sizeof(*info));
-	info->id.iface = SNDRV_CTL_ELEM_IFACE_MIXER;
-	strcpy(info->id.name, name);
-	info->id.index = index;
-	return snd_ctl_elem_info(mixer->ctl, info);
+	snd_hctl_elem_t *helem = test_mixer_id(mixer, name, index);
+	if (helem == NULL)
+		return -EINVAL;
+	return snd_hctl_elem_info(helem, info);
 }
 
 static int get_mixer_read(snd_mixer_t *mixer, const char *name, int index, snd_ctl_elem_t *control)
 {
-	memset(control, 0, sizeof(*control));
-	control->id.iface = SNDRV_CTL_ELEM_IFACE_MIXER;
-	strcpy(control->id.name, name);
-	control->id.index = index;
-	return snd_ctl_elem_read(mixer->ctl, control);
+	snd_hctl_elem_t *helem = test_mixer_id(mixer, name, index);
+	if (helem == NULL)
+		return -EINVAL;
+	return snd_hctl_elem_read(helem, control);
 }
 
 static int put_mixer_write(snd_mixer_t *mixer, const char *name, int index, snd_ctl_elem_t *control)
 {
+	snd_hctl_elem_t *helem = test_mixer_id(mixer, name, index);
+	if (helem == NULL)
+		return -EINVAL;
 	control->id.numid = 0;
 	control->id.iface = SNDRV_CTL_ELEM_IFACE_MIXER;
 	strcpy(control->id.name, name);
 	control->id.device = control->id.subdevice = 0;
 	control->id.index = index;
 	control->indirect = 0;
-	memset(&control->reserved, 0, sizeof(control->reserved));
-	return snd_ctl_elem_write(mixer->ctl, control);
+	return snd_hctl_elem_write(helem, control);
 }
 
 static int hctl_elem_event(snd_hctl_elem_t *helem,
-			      snd_ctl_event_type_t type)
+			   snd_ctl_event_type_t type)
 {
 	switch (type) {
 	case SND_CTL_EVENT_CHANGE:
@@ -694,7 +694,7 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 					hctl_elem_add(simple, helem);
 				} else for (capture_item = 1; capture_item < csource_info.value.enumerated.items; capture_item++) {
 					csource_info.value.enumerated.item = capture_item;
-					if ((err = snd_ctl_elem_info(mixer->ctl, &csource_info)) < 0)
+					if ((err = snd_hctl_elem_info(helem, &csource_info)) < 0)
 						return err;
 					if (!strcmp(csource_info.value.enumerated.name, str)) {
 						if (voices < csource_info.count)
@@ -783,11 +783,11 @@ static int build_elem(snd_mixer_t *mixer, const char *sname)
 	return 0;
 }
 
-int mixer_simple_ctl_callback(snd_ctl_t *ctl,
+int mixer_simple_ctl_callback(snd_hctl_t *hctl,
 			      snd_ctl_event_type_t event,
 			      snd_hctl_elem_t *elem ATTRIBUTE_UNUSED)
 {
-	snd_mixer_t *mixer = snd_hctl_get_callback_private(ctl);
+	snd_mixer_t *mixer = snd_hctl_get_callback_private(hctl);
 	int err;
 	switch (event) {
 	case SND_CTL_EVENT_REBUILD:
@@ -835,19 +835,17 @@ int snd_mixer_simple_build(snd_mixer_t *mixer)
 		"Capture Boost",
 		NULL
 	};
-	snd_ctl_t *ctl = mixer->ctl;
+	snd_hctl_t *hctl = mixer->hctl;
 	char **elem = elems;
 	int err;
 
-	if ((err = snd_hctl_build(ctl)) < 0)
-		return err;
 	while (*elem) {
 		if ((err = build_elem(mixer, *elem)) < 0)
 			return err;
 		elem++;
 	}
-	snd_hctl_set_callback(ctl, mixer_simple_ctl_callback);
-	snd_hctl_set_callback_private(ctl, mixer);
+	snd_hctl_set_callback(hctl, mixer_simple_ctl_callback);
+	snd_hctl_set_callback_private(hctl, mixer);
 	return 0;
 }
 

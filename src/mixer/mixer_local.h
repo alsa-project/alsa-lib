@@ -46,7 +46,7 @@ struct _snd_mixer_elem {
 };
 
 struct _snd_mixer {
-	snd_ctl_t *ctl;
+	snd_hctl_t *hctl;
 	struct list_head elems;	/* list of all elemss */
 	unsigned int count;
 	snd_mixer_callback_t callback;

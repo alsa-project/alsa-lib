@@ -39,7 +39,6 @@ int snd_ctl_close(snd_ctl_t *ctl)
 	int res;
 	assert(ctl);
 	res = ctl->ops->close(ctl);
-	snd_hctl_free(ctl);
 	free(ctl);
 	return res;
 }

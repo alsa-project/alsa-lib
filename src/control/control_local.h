@@ -50,7 +50,21 @@ struct _snd_ctl {
 	snd_ctl_ops_t *ops;
 	void *private;
 	int nonblock;
-	struct list_head hlist;	/* list of all controls */
+};
+
+struct _snd_hctl_elem {
+	snd_ctl_elem_id_t id; 		/* must be always on top */
+	struct list_head list;		/* links for list of all helems */
+	/* event callback */
+	snd_hctl_elem_callback_t callback;
+	void *callback_private;
+	/* links */
+	snd_hctl_t *hctl;		/* associated handle */
+};
+
+struct _snd_hctl {
+	snd_ctl_t *ctl;
+	struct list_head hlist;		/* list of all controls */
 	unsigned int halloc;	
 	unsigned int hcount;
 	snd_hctl_elem_t **helems;
@@ -59,20 +73,6 @@ struct _snd_ctl {
 	void *callback_private;
 };
 
-struct _snd_hctl_elem {
-	snd_ctl_elem_id_t id; 	/* must be always on top */
-	struct list_head list;		/* links for list of all helems */
-	/* event callback */
-	snd_hctl_elem_callback_t callback;
-	void *callback_private;
-	/* links */
-	snd_ctl_t *ctl;			/* associated handle */
-};
-
 
 int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card);
 int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, const char *sname);
-int snd_hctl_free(snd_ctl_t *ctl);
-int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
-			     const snd_hctl_elem_t *c2);
-

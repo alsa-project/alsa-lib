@@ -289,7 +289,6 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card)
 	ctl->type = SND_CTL_TYPE_HW;
 	ctl->ops = &snd_ctl_hw_ops;
 	ctl->private = hw;
-	INIT_LIST_HEAD(&ctl->hlist);
 	*handle = ctl;
 	return 0;
 }

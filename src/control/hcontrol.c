@@ -29,18 +29,77 @@
 #define __USE_GNU
 #include "control_local.h"
 
-static int _snd_hctl_find_elem(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id, int *dir)
+static int snd_hctl_build(snd_hctl_t *hctl);
+static int snd_hctl_free(snd_hctl_t *hctl);
+static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
+				    const snd_hctl_elem_t *c2);
+
+int snd_hctl_open(snd_hctl_t **hctlp, char *name)
+{
+	snd_hctl_t *hctl;
+	snd_ctl_t *ctl;
+	int err;
+	
+	assert(hctlp);
+	*hctlp = NULL;
+	if ((err = snd_ctl_open(&ctl, name)) < 0)
+		return err;
+	if ((hctl = (snd_hctl_t *)calloc(1, sizeof(snd_hctl_t))) == NULL) {
+		snd_ctl_close(ctl);
+		return -ENOMEM;
+	}
+	INIT_LIST_HEAD(&hctl->hlist);
+	hctl->ctl = ctl;
+	if ((err = snd_hctl_build(hctl)) < 0) {
+		snd_hctl_close(hctl);
+		return err;
+	}
+	*hctlp = hctl;
+	return 0;
+}
+
+int snd_hctl_close(snd_hctl_t *hctl)
+{
+	int err;
+
+	assert(hctl);
+	assert(hctl->ctl);
+	err = snd_ctl_close(hctl->ctl);
+	snd_hctl_free(hctl);
+	free(hctl);
+	return err;
+}
+
+int snd_hctl_nonblock(snd_hctl_t *hctl, int nonblock)
+{
+	assert(hctl && hctl->ctl);
+	return snd_ctl_nonblock(hctl->ctl, nonblock);
+}
+
+int snd_hctl_async(snd_hctl_t *hctl, int sig, pid_t pid)
+{
+	assert(hctl && hctl->ctl);
+	return snd_ctl_async(hctl->ctl, sig, pid);
+}
+
+int snd_hctl_poll_descriptor(snd_hctl_t *hctl)
+{
+	assert(hctl && hctl->ctl);
+	return snd_ctl_poll_descriptor(hctl->ctl);
+}
+
+static int _snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id, int *dir)
 {
 	unsigned int l, u;
 	int c = 0;
 	int idx = -1;
-	assert(ctl && id);
-	assert(ctl->hcompare);
+	assert(hctl && id);
+	assert(hctl->hcompare);
 	l = 0;
-	u = ctl->hcount;
+	u = hctl->hcount;
 	while (l < u) {
 		idx = (l + u) / 2;
-		c = ctl->hcompare((snd_hctl_elem_t *) id, ctl->helems[idx]);
+		c = hctl->hcompare((snd_hctl_elem_t *) id, hctl->helems[idx]);
 		if (c < 0)
 			u = idx;
 		else if (c > 0)
@@ -52,89 +111,88 @@ static int _snd_hctl_find_elem(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id, int 
 	return idx;
 }
 
-static int snd_hctl_elem_add(snd_ctl_t *ctl, snd_hctl_elem_t *elem)
+static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 {
 	int dir;
 	int idx; 
-	if (ctl->hcount == ctl->halloc) {
+	if (hctl->hcount == hctl->halloc) {
 		snd_hctl_elem_t **h;
-		ctl->halloc += 32;
-		h = realloc(ctl->helems, sizeof(*h) * ctl->halloc);
+		hctl->halloc += 32;
+		h = realloc(hctl->helems, sizeof(*h) * hctl->halloc);
 		if (!h)
 			return -ENOMEM;
-		ctl->helems = h;
+		hctl->helems = h;
 	}
-	if (ctl->hcount == 0) {
-		list_add_tail(&elem->list, &ctl->hlist);
-		ctl->helems[0] = elem;
+	if (hctl->hcount == 0) {
+		list_add_tail(&elem->list, &hctl->hlist);
+		hctl->helems[0] = elem;
 	} else {
-		idx = _snd_hctl_find_elem(ctl, &elem->id, &dir);
+		idx = _snd_hctl_find_elem(hctl, &elem->id, &dir);
 		assert(dir != 0);
 		if (dir > 0) {
-			list_add(&elem->list, &ctl->helems[idx]->list);
+			list_add(&elem->list, &hctl->helems[idx]->list);
 		} else {
-			list_add_tail(&elem->list, &ctl->helems[idx]->list);
+			list_add_tail(&elem->list, &hctl->helems[idx]->list);
 			idx++;
 		}
-		memmove(ctl->helems + idx + 1,
-			ctl->helems + idx,
-			ctl->hcount - idx);
+		memmove(hctl->helems + idx + 1,
+			hctl->helems + idx,
+			hctl->hcount - idx);
 	}
-	ctl->hcount++;
-	if (ctl->callback) {
-		int res = ctl->callback(ctl, SND_CTL_EVENT_ADD, elem);
+	hctl->hcount++;
+	if (hctl->callback) {
+		int res = hctl->callback(hctl, SND_CTL_EVENT_ADD, elem);
 		if (res < 0)
 			return res;
 	}
 	return 0;
 }
 
-
-static void snd_hctl_elem_remove(snd_ctl_t *ctl, unsigned int idx)
+static void snd_hctl_elem_remove(snd_hctl_t *hctl, unsigned int idx)
 {
-	snd_hctl_elem_t *elem = ctl->helems[idx];
+	snd_hctl_elem_t *elem = hctl->helems[idx];
 	unsigned int m;
 	if (elem->callback)
 		elem->callback(elem, SND_CTL_EVENT_REMOVE);
 	list_del(&elem->list);
 	free(elem);
-	ctl->hcount--;
-	m = ctl->hcount - idx;
+	hctl->hcount--;
+	m = hctl->hcount - idx;
 	if (m > 0)
-		memmove(ctl->helems + idx, ctl->helems + idx + 1, m);
+		memmove(hctl->helems + idx, hctl->helems + idx + 1, m);
 }
 
-int snd_hctl_free(snd_ctl_t *ctl)
+static int snd_hctl_free(snd_hctl_t *hctl)
 {
-	while (ctl->hcount > 0)
-		snd_hctl_elem_remove(ctl, ctl->hcount - 1);
-	free(ctl->helems);
-	ctl->helems = 0;
-	ctl->halloc = 0;
-	INIT_LIST_HEAD(&ctl->hlist);
+	while (hctl->hcount > 0)
+		snd_hctl_elem_remove(hctl, hctl->hcount - 1);
+	free(hctl->helems);
+	hctl->helems = 0;
+	hctl->halloc = 0;
+	INIT_LIST_HEAD(&hctl->hlist);
 	return 0;
 }
 
-static void snd_hctl_sort(snd_ctl_t *ctl)
+static void snd_hctl_sort(snd_hctl_t *hctl)
 {
 	unsigned int k;
 	int compar(const void *a, const void *b) {
-		return ctl->hcompare(*(const snd_hctl_elem_t **) a,
-				     *(const snd_hctl_elem_t **) b);
+		return hctl->hcompare(*(const snd_hctl_elem_t **) a,
+				      *(const snd_hctl_elem_t **) b);
 	}
-	assert(ctl);
-	assert(ctl->hcompare);
-	INIT_LIST_HEAD(&ctl->hlist);
-	qsort(ctl->helems, ctl->hcount, sizeof(*ctl->helems), compar);
-	for (k = 0; k < ctl->hcount; k++)
-		list_add_tail(&ctl->helems[k]->list, &ctl->hlist);
+	assert(hctl);
+	assert(hctl->hcompare);
+	INIT_LIST_HEAD(&hctl->hlist);
+	qsort(hctl->helems, hctl->hcount, sizeof(*hctl->helems), compar);
+	for (k = 0; k < hctl->hcount; k++)
+		list_add_tail(&hctl->helems[k]->list, &hctl->hlist);
 }
 
-void snd_hctl_set_compare(snd_ctl_t *ctl, snd_hctl_compare_t hsort)
+void snd_hctl_set_compare(snd_hctl_t *hctl, snd_hctl_compare_t hsort)
 {
-	assert(ctl);
-	ctl->hcompare = hsort;
-	snd_hctl_sort(ctl);
+	assert(hctl);
+	hctl->hcompare = hsort == NULL ? snd_hctl_compare_default : hsort;
+	snd_hctl_sort(hctl);
 }
 
 #define NOT_FOUND 1000000000
@@ -225,8 +283,8 @@ int snd_hctl_compare_fast(const snd_hctl_elem_t *c1,
 	return c1->id.numid - c2->id.numid;
 }
 
-int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
-			     const snd_hctl_elem_t *c2)
+static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
+				    const snd_hctl_elem_t *c2)
 {
 	int res, p1, p2;
 	int d = c1->id.iface - c2->id.iface;
@@ -246,26 +304,26 @@ int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 	return d;
 }
 
-snd_hctl_elem_t *snd_hctl_first_elem(snd_ctl_t *ctl)
+snd_hctl_elem_t *snd_hctl_first_elem(snd_hctl_t *hctl)
 {
-	assert(ctl);
-	if (list_empty(&ctl->hlist))
+	assert(hctl);
+	if (list_empty(&hctl->hlist))
 		return NULL;
-	return list_entry(ctl->hlist.next, snd_hctl_elem_t, list);
+	return list_entry(hctl->hlist.next, snd_hctl_elem_t, list);
 }
 
-snd_hctl_elem_t *snd_hctl_last_elem(snd_ctl_t *ctl)
+snd_hctl_elem_t *snd_hctl_last_elem(snd_hctl_t *hctl)
 {
-	assert(ctl);
-	if (list_empty(&ctl->hlist))
+	assert(hctl);
+	if (list_empty(&hctl->hlist))
 		return NULL;
-	return list_entry(ctl->hlist.prev, snd_hctl_elem_t, list);
+	return list_entry(hctl->hlist.prev, snd_hctl_elem_t, list);
 }
 
 snd_hctl_elem_t *snd_hctl_elem_next(snd_hctl_elem_t *elem)
 {
 	assert(elem);
-	if (elem->list.next == &elem->ctl->hlist)
+	if (elem->list.next == &elem->hctl->hlist)
 		return NULL;
 	return list_entry(elem->list.next, snd_hctl_elem_t, list);
 }
@@ -273,44 +331,45 @@ snd_hctl_elem_t *snd_hctl_elem_next(snd_hctl_elem_t *elem)
 snd_hctl_elem_t *snd_hctl_elem_prev(snd_hctl_elem_t *elem)
 {
 	assert(elem);
-	if (elem->list.prev == &elem->ctl->hlist)
+	if (elem->list.prev == &elem->hctl->hlist)
 		return NULL;
 	return list_entry(elem->list.prev, snd_hctl_elem_t, list);
 }
 
-snd_hctl_elem_t *snd_hctl_find_elem(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id)
+snd_hctl_elem_t *snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id)
 {
 	int dir;
-	int res = _snd_hctl_find_elem(ctl, id, &dir);
+	int res = _snd_hctl_find_elem(hctl, id, &dir);
 	if (res < 0 || dir != 0)
 		return NULL;
-	return ctl->helems[res];
+	return hctl->helems[res];
 }
 
-int snd_hctl_build(snd_ctl_t *ctl)
+static int snd_hctl_build(snd_hctl_t *hctl)
 {
 	snd_ctl_elem_list_t list;
 	int err = 0;
 	unsigned int idx;
 
-	assert(ctl);
-	assert(ctl->hcount == 0);
-	assert(list_empty(&ctl->hlist));
+	assert(hctl);
+	assert(hctl->ctl);
+	assert(hctl->hcount == 0);
+	assert(list_empty(&hctl->hlist));
 	memset(&list, 0, sizeof(list));
-	if ((err = snd_ctl_elem_list(ctl, &list)) < 0)
+	if ((err = snd_ctl_elem_list(hctl->ctl, &list)) < 0)
 		goto _end;
 	while (list.count != list.used) {
 		err = snd_ctl_elem_list_alloc_space(&list, list.count);
 		if (err < 0)
 			goto _end;
-		if ((err = snd_ctl_elem_list(ctl, &list)) < 0)
+		if ((err = snd_ctl_elem_list(hctl->ctl, &list)) < 0)
 			goto _end;
 	}
-	if (ctl->halloc < list.count) {
-		ctl->halloc = list.count;
-		free(ctl->helems);
-		ctl->helems = malloc(ctl->halloc * sizeof(*ctl->helems));
-		if (!ctl->helems) {
+	if (hctl->halloc < list.count) {
+		hctl->halloc = list.count;
+		free(hctl->helems);
+		hctl->helems = malloc(hctl->halloc * sizeof(*hctl->helems));
+		if (!hctl->helems) {
 			err = -ENOMEM;
 			goto _end;
 		}
@@ -319,23 +378,23 @@ int snd_hctl_build(snd_ctl_t *ctl)
 		snd_hctl_elem_t *elem;
 		elem = calloc(1, sizeof(snd_hctl_elem_t));
 		if (elem == NULL) {
-			snd_hctl_free(ctl);
+			snd_hctl_free(hctl);
 			err = -ENOMEM;
 			goto _end;
 		}
 		elem->id = list.pids[idx];
-		elem->ctl = ctl;
-		ctl->helems[idx] = elem;
-		list_add_tail(&elem->list, &ctl->hlist);
-		ctl->hcount++;
+		elem->hctl = hctl;
+		hctl->helems[idx] = elem;
+		list_add_tail(&elem->list, &hctl->hlist);
+		hctl->hcount++;
 	}
-	if (!ctl->hcompare)
-		ctl->hcompare = snd_hctl_compare_default;
-	snd_hctl_sort(ctl);
-	if (ctl->callback) {
-		for (idx = 0; idx < ctl->hcount; idx++) {
-			int res = ctl->callback(ctl, SND_CTL_EVENT_ADD,
-						ctl->helems[idx]);
+	if (!hctl->hcompare)
+		hctl->hcompare = snd_hctl_compare_default;
+	snd_hctl_sort(hctl);
+	if (hctl->callback) {
+		for (idx = 0; idx < hctl->hcount; idx++) {
+			int res = hctl->callback(hctl, SND_CTL_EVENT_ADD,
+						 hctl->helems[idx]);
 			if (res < 0)
 				return res;
 		}
@@ -346,49 +405,50 @@ int snd_hctl_build(snd_ctl_t *ctl)
 	return err;
 }
 
-void snd_hctl_set_callback(snd_ctl_t *ctl, snd_hctl_callback_t callback)
+void snd_hctl_set_callback(snd_hctl_t *hctl, snd_hctl_callback_t callback)
 {
-	assert(ctl);
-	ctl->callback = callback;
+	assert(hctl);
+	hctl->callback = callback;
 }
 
-void snd_hctl_set_callback_private(snd_ctl_t *ctl, void *callback_private)
+void snd_hctl_set_callback_private(snd_hctl_t *hctl, void *callback_private)
 {
-	assert(ctl);
-	ctl->callback_private = callback_private;
+	assert(hctl);
+	hctl->callback_private = callback_private;
 }
 
-void *snd_hctl_get_callback_private(snd_ctl_t *ctl)
+void *snd_hctl_get_callback_private(snd_hctl_t *hctl)
 {
-	assert(ctl);
-	return ctl->callback_private;
+	assert(hctl);
+	return hctl->callback_private;
 }
 
-unsigned int snd_hctl_get_count(snd_ctl_t *ctl)
+unsigned int snd_hctl_get_count(snd_hctl_t *hctl)
 {
-	return ctl->hcount;
+	return hctl->hcount;
 }
 
-int snd_hctl_event(snd_ctl_t *ctl, snd_ctl_event_t *event)
+int snd_hctl_event(snd_hctl_t *hctl, snd_ctl_event_t *event)
 {
 	snd_hctl_elem_t *elem;
 	int res;
 
-	assert(ctl);
+	assert(hctl);
+	assert(hctl->ctl);
 	switch (event->type) {
 	case SND_CTL_EVENT_REMOVE:
 	{
 		int dir;
-		res = _snd_hctl_find_elem(ctl, &event->data.id, &dir);
+		res = _snd_hctl_find_elem(hctl, &event->data.id, &dir);
 		assert(res >= 0 && dir == 0);
 		if (res < 0 || dir != 0)
 			return -ENOENT;
-		snd_hctl_elem_remove(ctl, res);
+		snd_hctl_elem_remove(hctl, res);
 		break;
 	}
 	case SND_CTL_EVENT_VALUE:
 	case SND_CTL_EVENT_CHANGE:
-		elem = snd_hctl_find_elem(ctl, &event->data.id);
+		elem = snd_hctl_find_elem(hctl, &event->data.id);
 		assert(elem);
 		if (!elem)
 			return -ENOENT;
@@ -403,16 +463,16 @@ int snd_hctl_event(snd_ctl_t *ctl, snd_ctl_event_t *event)
 		if (elem == NULL)
 			return -ENOMEM;
 		elem->id = event->data.id;
-		elem->ctl = ctl;
-		res = snd_hctl_elem_add(ctl, elem);
+		elem->hctl = hctl;
+		res = snd_hctl_elem_add(hctl, elem);
 		if (res < 0)
 			return res;
 		break;
 	case SND_CTL_EVENT_REBUILD:
-		snd_hctl_free(ctl);
-		res = snd_hctl_build(ctl);
-		if (ctl->callback) {
-			res = ctl->callback(ctl, event->type, NULL);
+		snd_hctl_free(hctl);
+		res = snd_hctl_build(hctl);
+		if (hctl->callback) {
+			res = hctl->callback(hctl, event->type, NULL);
 			if (res < 0)
 				return res;
 		}
@@ -424,14 +484,17 @@ int snd_hctl_event(snd_ctl_t *ctl, snd_ctl_event_t *event)
 	return 0;
 }
 
-int snd_hctl_events(snd_ctl_t *ctl)
+int snd_hctl_events(snd_hctl_t *hctl)
 {
 	snd_ctl_event_t event;
 	int res;
-	while ((res = snd_ctl_read(ctl, &event)) != 0) {
+	
+	assert(hctl);
+	assert(hctl->ctl);
+	while ((res = snd_ctl_read(hctl->ctl, &event)) != 0) {
 		if (res < 0)
 			return res;
-		res = snd_hctl_event(ctl, &event);
+		res = snd_hctl_event(hctl, &event);
 		if (res < 0)
 			return res;
 	}
@@ -440,19 +503,28 @@ int snd_hctl_events(snd_ctl_t *ctl)
 
 int snd_hctl_elem_info(snd_hctl_elem_t *elem, snd_ctl_elem_info_t *info)
 {
+	assert(elem);
+	assert(elem->hctl);
+	assert(info);
 	info->id = elem->id;
-	return snd_ctl_elem_info(elem->ctl, info);
+	return snd_ctl_elem_info(elem->hctl->ctl, info);
 }
 
 int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_t * value)
 {
+	assert(elem);
+	assert(elem->hctl);
+	assert(value);
 	value->id = elem->id;
-	return snd_ctl_elem_read(elem->ctl, value);
+	return snd_ctl_elem_read(elem->hctl->ctl, value);
 }
 
 int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_t * value)
 {
+	assert(elem);
+	assert(elem->hctl);
+	assert(value);
 	value->id = elem->id;
-	return snd_ctl_elem_write(elem->ctl, value);
+	return snd_ctl_elem_write(elem->hctl->ctl, value);
 }
 

@@ -475,7 +475,6 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *socket, 
 	ctl->type = SND_CTL_TYPE_SHM;
 	ctl->ops = &snd_ctl_shm_ops;
 	ctl->private = shm;
-	INIT_LIST_HEAD(&ctl->hlist);
 	*handlep = ctl;
 	return 0;
 
