@@ -23,7 +23,6 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <sys/stat.h>
-#include "asoundlib.h"
 #include "local.h"
 #include "list.h"
 

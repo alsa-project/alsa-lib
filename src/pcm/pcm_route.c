@@ -55,10 +55,10 @@ typedef struct {
 } snd_pcm_route_params_t;
 
 
-typedef void (*route_f)(const snd_pcm_channel_area_t *src_areas,
-			snd_pcm_uframes_t src_offset,
-			const snd_pcm_channel_area_t *dst_area,
+typedef void (*route_f)(const snd_pcm_channel_area_t *dst_area,
 			snd_pcm_uframes_t dst_offset,
+			const snd_pcm_channel_area_t *src_areas,
+			snd_pcm_uframes_t src_offset,
 			snd_pcm_uframes_t frames,
 			const snd_pcm_route_ttable_dst_t *ttable,
 			const snd_pcm_route_params_t *params);
@@ -87,10 +87,10 @@ typedef struct {
 } snd_pcm_route_t;
 
 
-void snd_pcm_route_convert1_zero(const snd_pcm_channel_area_t *src_areas ATTRIBUTE_UNUSED,
-				 snd_pcm_uframes_t src_offset ATTRIBUTE_UNUSED,
-				 const snd_pcm_channel_area_t *dst_area,
+void snd_pcm_route_convert1_zero(const snd_pcm_channel_area_t *dst_area,
 				 snd_pcm_uframes_t dst_offset,
+				 const snd_pcm_channel_area_t *src_areas ATTRIBUTE_UNUSED,
+				 snd_pcm_uframes_t src_offset ATTRIBUTE_UNUSED,
 				 snd_pcm_uframes_t frames,
 				 const snd_pcm_route_ttable_dst_t* ttable ATTRIBUTE_UNUSED,
 				 const snd_pcm_route_params_t *params)
@@ -104,10 +104,10 @@ void snd_pcm_route_convert1_zero(const snd_pcm_channel_area_t *src_areas ATTRIBU
 #endif
 }
 
-void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *src_areas,
-				snd_pcm_uframes_t src_offset,
-				const snd_pcm_channel_area_t *dst_area,
+void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *dst_area,
 				snd_pcm_uframes_t dst_offset,
+				const snd_pcm_channel_area_t *src_areas,
+				snd_pcm_uframes_t src_offset,
 				snd_pcm_uframes_t frames,
 				const snd_pcm_route_ttable_dst_t* ttable,
 				const snd_pcm_route_params_t *params)
@@ -126,7 +126,9 @@ void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *src_areas,
 			break;
 	}
 	if (srcidx == ttable->nsrcs) {
-		snd_pcm_route_convert1_zero(src_areas, src_offset, dst_area, dst_offset, frames, ttable, params);
+		snd_pcm_route_convert1_zero(dst_area, dst_offset,
+					    src_areas, src_offset,
+					    frames, ttable, params);
 		return;
 	}
 	
@@ -149,10 +151,10 @@ void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *src_areas,
-				 snd_pcm_uframes_t src_offset,
-				 const snd_pcm_channel_area_t *dst_area,
+void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 				 snd_pcm_uframes_t dst_offset,
+				 const snd_pcm_channel_area_t *src_areas,
+				 snd_pcm_uframes_t src_offset,
 				 snd_pcm_uframes_t frames,
 				 const snd_pcm_route_ttable_dst_t* ttable,
 				 const snd_pcm_route_params_t *params)
@@ -224,10 +226,14 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *src_areas,
 	}
 	nsrcs = srcidx1;
 	if (nsrcs == 0) {
-		snd_pcm_route_convert1_zero(src_areas, src_offset, dst_area, dst_offset, frames, ttable, params);
+		snd_pcm_route_convert1_zero(dst_area, dst_offset,
+					    src_areas, src_offset,
+					    frames, ttable, params);
 		return;
 	} else if (nsrcs == 1 && src_tt[0].as_int == ROUTE_PLUGIN_RESOLUTION) {
-		snd_pcm_route_convert1_one(src_areas, src_offset, dst_area, dst_offset, frames, ttable, params);
+		snd_pcm_route_convert1_one(dst_area, dst_offset,
+					   src_areas, src_offset,
+					   frames, ttable, params);
 		return;
 	}
 
@@ -382,10 +388,10 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-void snd_pcm_route_convert(const snd_pcm_channel_area_t *src_areas,
-			   snd_pcm_uframes_t src_offset,
-			   const snd_pcm_channel_area_t *dst_areas,
+void snd_pcm_route_convert(const snd_pcm_channel_area_t *dst_areas,
 			   snd_pcm_uframes_t dst_offset,
+			   const snd_pcm_channel_area_t *src_areas,
+			   snd_pcm_uframes_t src_offset,
 			   snd_pcm_uframes_t dst_channels,
 			   snd_pcm_uframes_t frames,
 			   snd_pcm_route_params_t *params)
@@ -398,9 +404,13 @@ void snd_pcm_route_convert(const snd_pcm_channel_area_t *src_areas,
 	dst_area = dst_areas;
 	for (dst_channel = 0; dst_channel < dst_channels; ++dst_channel) {
 		if (dst_channel >= params->ndsts)
-			snd_pcm_route_convert1_zero(src_areas, src_offset, dst_area, dst_offset, frames, dstp, params);
+			snd_pcm_route_convert1_zero(dst_area, dst_offset,
+						    src_areas, src_offset,
+						    frames, dstp, params);
 		else
-			dstp->func(src_areas, src_offset, dst_area, dst_offset, frames, dstp, params);
+			dstp->func(dst_area, dst_offset,
+				   src_areas, src_offset,
+				   frames, dstp, params);
 		dstp++;
 		dst_area++;
 	}
@@ -674,7 +684,6 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_route_ops = {
 	close: snd_pcm_route_close,
-	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_route_hw_refine,
 	hw_params: snd_pcm_route_hw_params,

@@ -26,7 +26,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include "local.h"
-#include "asoundlib.h"
 
 typedef struct _snd_input_ops {
 	int (*close)(snd_input_t *input);

@@ -146,8 +146,8 @@ snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(pcm, size - xfer);
 		snd_pcm_sframes_t err;
-		snd_pcm_areas_copy(areas, offset, 
-				   snd_pcm_mmap_areas(pcm), snd_pcm_mmap_offset(pcm),
+		snd_pcm_areas_copy(snd_pcm_mmap_areas(pcm), snd_pcm_mmap_offset(pcm),
+				   areas, offset, 
 				   pcm->channels, 
 				   frames, pcm->format);
 		err = snd_pcm_mmap_forward(pcm, frames);
@@ -173,8 +173,8 @@ snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(pcm, size - xfer);
 		snd_pcm_sframes_t err;
-		snd_pcm_areas_copy(snd_pcm_mmap_areas(pcm), snd_pcm_mmap_offset(pcm),
-				   areas, offset, 
+		snd_pcm_areas_copy(areas, offset, 
+				   snd_pcm_mmap_areas(pcm), snd_pcm_mmap_offset(pcm),
 				   pcm->channels, 
 				   frames, pcm->format);
 		err = snd_pcm_mmap_forward(pcm, frames);

@@ -29,7 +29,6 @@
 #include <sys/ioctl.h>
 #include "../control/control_local.h"
 #include "rawmidi_local.h"
-#include "asoundlib.h"
 
 #define SNDRV_FILE_RAWMIDI	"/dev/snd/midiC%iD%i"
 #define SNDRV_RAWMIDI_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)

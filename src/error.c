@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include "asoundlib.h"
+#include "local.h"
 
 static const char *snd_error_codes[] =
 {

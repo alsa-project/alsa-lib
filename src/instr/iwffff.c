@@ -25,7 +25,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <stdio.h>
-#include "asoundlib.h"
+#include "local.h"
 #include <linux/ainstr_iw.h>
 
 /*

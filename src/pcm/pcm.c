@@ -229,12 +229,6 @@ snd_pcm_sframes_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int 
 	return snd_pcm_readn(pcm, bufs, vector[0].iov_len);
 }
 
-int snd_pcm_card(snd_pcm_t *pcm)
-{
-	assert(pcm);
-	return pcm->ops->card(pcm->op_arg);
-}
-
 /* FIXME */
 #define snd_pcm_link_descriptor snd_pcm_poll_descriptor
 
@@ -545,12 +539,188 @@ int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out)
 	return 0;
 }
 
+size_t snd_pcm_info_sizeof()
+{
+	return sizeof(snd_pcm_info_t);
+}
+
+int snd_pcm_info_malloc(snd_pcm_info_t **infop)
+{
+	assert(infop);
+	*infop = malloc(sizeof(snd_pcm_info_t));
+	if (!*infop)
+		return -ENOMEM;
+	return 0;
+}
+
+int snd_pcm_info_free(snd_pcm_info_t *info)
+{
+	assert(info);
+	free(info);
+}
+
+void snd_pcm_info_copy(snd_pcm_info_t *dst,
+		       const snd_pcm_info_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+void snd_pcm_info_set_device(snd_pcm_info_t *info, unsigned int device)
+{
+	assert(info);
+	info->device = device;
+}
+
+void snd_pcm_info_set_subdevice(snd_pcm_info_t *info, unsigned int subdevice)
+{
+	assert(info);
+	info->subdevice = subdevice;
+}
+
+void snd_pcm_info_set_stream(snd_pcm_info_t *info, snd_pcm_stream_t stream)
+{
+	assert(info);
+	info->stream = stream;
+}
+
+int snd_pcm_info_card(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->card;
+}
+
+unsigned int snd_pcm_info_device(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->device;
+}
+
+unsigned int snd_pcm_info_subdevice(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->subdevice;
+}
+
+snd_pcm_stream_t snd_pcm_info_stream(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->stream;
+}
+
+const char *snd_pcm_info_device_id(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->id;
+}
+
+const char *snd_pcm_info_device_name(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->name;
+}
+
+const char *snd_pcm_info_subdevice_name(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->subname;
+}
+
+snd_pcm_class_t snd_pcm_info_device_class(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->class;
+}
+
+snd_pcm_subclass_t snd_pcm_info_device_subclass(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->subclass;
+}
+
+unsigned int snd_pcm_info_subdevices_count(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->subdevices_count;
+}
+
+unsigned int snd_pcm_info_subdevices_avail(snd_pcm_info_t *info)
+{
+	assert(info);
+	return info->subdevices_avail;
+}
+
+size_t snd_pcm_status_sizeof()
+{
+	return sizeof(snd_pcm_status_t);
+}
+
+int snd_pcm_status_malloc(snd_pcm_status_t **statusp)
+{
+	assert(statusp);
+	*statusp = malloc(sizeof(snd_pcm_status_t));
+	if (!*statusp)
+		return -ENOMEM;
+	return 0;
+}
+
+int snd_pcm_status_free(snd_pcm_status_t *status)
+{
+	assert(status);
+	free(status);
+}
+
+void snd_pcm_status_copy(snd_pcm_status_t *dst,
+			 const snd_pcm_status_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+snd_pcm_state_t snd_pcm_status_state(snd_pcm_status_t *status)
+{
+	assert(status);
+	return status->state;
+}
+
+int snd_pcm_status_delay(snd_pcm_status_t *status)
+{
+	assert(status);
+	return status->delay;
+}
+
+int snd_pcm_status_avail(snd_pcm_status_t *status)
+{
+	assert(status);
+	return status->avail;
+}
+
+int snd_pcm_status_avail_max(snd_pcm_status_t *status)
+{
+	assert(status);
+	return status->avail_max;
+}
+
+void snd_pcm_status_tstamp(snd_pcm_status_t *status,
+			   snd_timestamp_t *tstamp)
+{
+	assert(status && tstamp);
+	*tstamp = status->tstamp;
+}
+
+void snd_pcm_status_trigger_tstamp(snd_pcm_status_t *status,
+				  snd_timestamp_t *tstamp)
+{
+	assert(status && tstamp);
+	*tstamp = status->trigger_tstamp;
+}
+
 int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
 {
 	assert(status);
 	snd_output_printf(out, "state       : %s\n", snd_pcm_state_name(status->state));
 	snd_output_printf(out, "trigger_time: %ld.%06ld\n",
-		status->trigger_time.tv_sec, status->trigger_time.tv_usec);
+		status->trigger_tstamp.tv_sec, status->trigger_tstamp.tv_usec);
 	snd_output_printf(out, "tstamp      : %ld.%06ld\n",
 		status->tstamp.tv_sec, status->tstamp.tv_usec);
 	snd_output_printf(out, "delay       : %ld\n", (long)status->delay);
@@ -902,8 +1072,8 @@ int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, snd_pcm_ufram
 }
 
 
-int snd_pcm_area_copy(const snd_pcm_channel_area_t *src_area, snd_pcm_uframes_t src_offset,
-		      const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
+int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t dst_offset,
+		      const snd_pcm_channel_area_t *src_area, snd_pcm_uframes_t src_offset,
 		      unsigned int samples, int format)
 {
 	/* FIXME: sub byte resolution and odd dst_offset */
@@ -997,8 +1167,8 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *src_area, snd_pcm_uframes_t 
 	return 0;
 }
 
-int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
-		       const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+		       const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
 		       unsigned int channels, snd_pcm_uframes_t frames, int format)
 {
 	int width = snd_pcm_format_physical_width(format);
@@ -1032,10 +1202,14 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_
 			d.addr = dst_start->addr;
 			d.first = dst_start->first;
 			d.step = width;
-			snd_pcm_area_copy(&s, src_offset * chns, &d, dst_offset * chns, frames * chns, format);
+			snd_pcm_area_copy(&d, dst_offset * chns,
+					  &s, src_offset * chns, 
+					  frames * chns, format);
 			channels -= chns;
 		} else {
-			snd_pcm_area_copy(src_start, src_offset, dst_start, dst_offset, frames, format);
+			snd_pcm_area_copy(dst_start, dst_offset,
+					  src_start, src_offset,
+					  frames, format);
 			src_areas = src_start + 1;
 			dst_areas = dst_start + 1;
 			channels--;
@@ -1214,5 +1388,10 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 snd_pcm_uframes_t _snd_pcm_mmap_hw_ptr(snd_pcm_t *pcm)
 {
 	return *pcm->hw_ptr;
+}
+
+snd_pcm_uframes_t _snd_pcm_boundary(snd_pcm_t *pcm)
+{
+	return pcm->boundary;
 }
 

@@ -20,14 +20,27 @@
  *
  */
 
+#define _snd_interval sndrv_interval
+#define _snd_pcm_info sndrv_pcm_info
+#define _snd_pcm_hw_params sndrv_pcm_hw_params
+#define _snd_pcm_sw_params sndrv_pcm_sw_params
+#define _snd_pcm_status sndrv_pcm_status
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/uio.h>
 #include <errno.h>
-#include "asoundlib.h"
+
 #include "local.h"
+
+#define SND_INTERVAL_INLINE
+#include "interval.h"
+
+#define SND_MASK_INLINE
+#include "mask.h"
+
 
 typedef struct _snd_pcm_channel_info {
 	unsigned int channel;
@@ -49,7 +62,6 @@ typedef struct _snd_pcm_channel_info {
 
 typedef struct {
 	int (*close)(snd_pcm_t *pcm);
-	int (*card)(snd_pcm_t *pcm);
 	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
 	int (*async)(snd_pcm_t *pcm, int sig, pid_t pid);
 	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
@@ -365,6 +377,10 @@ int snd_pcm_hw_param_always_eq(const snd_pcm_hw_params_t *params,
 int snd_pcm_hw_param_never_eq(const snd_pcm_hw_params_t *params,
 			      snd_pcm_hw_param_t var,
 			      const snd_pcm_hw_params_t *params1);
+const snd_mask_t *snd_pcm_hw_param_value_mask(const snd_pcm_hw_params_t *params,
+					      snd_pcm_hw_param_t var);
+const snd_interval_t *snd_pcm_hw_param_value_interval(const snd_pcm_hw_params_t *params,
+						      snd_pcm_hw_param_t var);
 
 #define SND_PCM_HW_PARBIT_ACCESS	(1 << SND_PCM_HW_PARAM_ACCESS)
 #define SND_PCM_HW_PARBIT_FORMAT	(1 << SND_PCM_HW_PARAM_FORMAT)

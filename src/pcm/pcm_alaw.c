@@ -23,11 +23,11 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
-typedef void (*alaw_f)(const snd_pcm_channel_area_t *src_areas,
-			snd_pcm_uframes_t src_offset,
-			const snd_pcm_channel_area_t *dst_areas,
-			snd_pcm_uframes_t dst_offset,
-			unsigned int channels, snd_pcm_uframes_t frames, int getputidx);
+typedef void (*alaw_f)(const snd_pcm_channel_area_t *dst_areas,
+		       snd_pcm_uframes_t dst_offset,
+		       const snd_pcm_channel_area_t *src_areas,
+		       snd_pcm_uframes_t src_offset,
+		       unsigned int channels, snd_pcm_uframes_t frames, int getputidx);
 
 typedef struct {
 	/* This field need to be the first */
@@ -120,10 +120,10 @@ static int alaw_to_s16(unsigned char a_val)
 	return ((a_val & 0x80) ? t : -t);
 }
 
-void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *src_areas,
-			 snd_pcm_uframes_t src_offset,
-			 const snd_pcm_channel_area_t *dst_areas,
+void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *dst_areas,
 			 snd_pcm_uframes_t dst_offset,
+			 const snd_pcm_channel_area_t *src_areas,
+			 snd_pcm_uframes_t src_offset,
 			 unsigned int channels, snd_pcm_uframes_t frames, int putidx)
 {
 #define PUT16_LABELS
@@ -165,10 +165,10 @@ void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-void snd_pcm_alaw_encode(const snd_pcm_channel_area_t *src_areas,
-			 snd_pcm_uframes_t src_offset,
-			 const snd_pcm_channel_area_t *dst_areas,
+void snd_pcm_alaw_encode(const snd_pcm_channel_area_t *dst_areas,
 			 snd_pcm_uframes_t dst_offset,
+			 const snd_pcm_channel_area_t *src_areas,
+			 snd_pcm_uframes_t src_offset,
 			 unsigned int channels, snd_pcm_uframes_t frames, int getidx)
 {
 #define GET16_LABELS
@@ -348,10 +348,10 @@ static snd_pcm_sframes_t snd_pcm_alaw_write_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
-		alaw->func(areas, offset, 
-			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			    pcm->channels, frames,
-			    alaw->getput_idx);
+		alaw->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+			   areas, offset, 
+			   pcm->channels, frames,
+			   alaw->getput_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
@@ -383,8 +383,8 @@ static snd_pcm_sframes_t snd_pcm_alaw_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		alaw->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			   areas, offset, 
+		alaw->func(areas, offset, 
+			   snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			   pcm->channels, frames,
 			   alaw->getput_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
@@ -418,7 +418,6 @@ static void snd_pcm_alaw_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_alaw_ops = {
 	close: snd_pcm_plugin_close,
-	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_alaw_hw_refine,
 	hw_params: snd_pcm_alaw_hw_params,

@@ -23,7 +23,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "seq_local.h"
-#include "asoundlib.h"
 
 #define SNDRV_FILE_SEQ		"/dev/snd/seq"
 #define SNDRV_FILE_ALOADSEQ	"/dev/aloadSEQ"

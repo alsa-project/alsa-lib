@@ -20,7 +20,7 @@
  */
 
 #include <assert.h>
-#include "asoundlib.h"
+#include "local.h"
 #include "list.h"
 
 typedef struct _mixer_simple mixer_simple_t;

@@ -29,7 +29,6 @@
 #include <assert.h>
 #define __USE_GNU
 #include <search.h>
-#include "asoundlib.h"
 #include "control_local.h"
 
 static void snd_ctl_hfree1(snd_hcontrol_t *hcontrol);

@@ -20,12 +20,12 @@
  */
   
 #ifdef SND_INTERVAL_C
-#define INLINE inline
+#define INTERVAL_INLINE inline
 #else
-#define INLINE extern inline
+#define INTERVAL_INLINE extern inline
 #endif
 
-INLINE void snd_interval_any(snd_interval_t *i)
+INTERVAL_INLINE void snd_interval_any(snd_interval_t *i)
 {
 	i->min = 0;
 	i->openmin = 0;
@@ -35,59 +35,59 @@ INLINE void snd_interval_any(snd_interval_t *i)
 	i->empty = 0;
 }
 
-INLINE void snd_interval_none(snd_interval_t *i)
+INTERVAL_INLINE void snd_interval_none(snd_interval_t *i)
 {
 	i->empty = 1;
 }
 
-INLINE int snd_interval_checkempty(const snd_interval_t *i)
+INTERVAL_INLINE int snd_interval_checkempty(const snd_interval_t *i)
 {
 	return (i->min > i->max ||
 		(i->min == i->max && (i->openmin || i->openmax)));
 }
 
-INLINE int snd_interval_empty(const snd_interval_t *i)
+INTERVAL_INLINE int snd_interval_empty(const snd_interval_t *i)
 {
 	return i->empty;
 }
 
-INLINE int snd_interval_single(const snd_interval_t *i)
+INTERVAL_INLINE int snd_interval_single(const snd_interval_t *i)
 {
 	assert(!snd_interval_empty(i));
 	return (i->min == i->max || 
 		(i->min + 1 == i->max && i->openmax));
 }
 
-INLINE int snd_interval_value(const snd_interval_t *i)
+INTERVAL_INLINE int snd_interval_value(const snd_interval_t *i)
 {
 	assert(snd_interval_single(i));
 	return i->min;
 }
 
-INLINE int snd_interval_min(const snd_interval_t *i)
+INTERVAL_INLINE int snd_interval_min(const snd_interval_t *i)
 {
 	assert(!snd_interval_empty(i));
 	return i->min;
 }
 
-INLINE int snd_interval_max(const snd_interval_t *i)
+INTERVAL_INLINE int snd_interval_max(const snd_interval_t *i)
 {
 	assert(!snd_interval_empty(i));
 	return i->max;
 }
 
-INLINE int snd_interval_test(const snd_interval_t *i, unsigned int val)
+INTERVAL_INLINE int snd_interval_test(const snd_interval_t *i, unsigned int val)
 {
 	return !((i->min > val || (i->min == val && i->openmin) ||
 		  i->max < val || (i->max == val && i->openmax)));
 }
 
-INLINE void snd_interval_copy(snd_interval_t *d, const snd_interval_t *s)
+INTERVAL_INLINE void snd_interval_copy(snd_interval_t *d, const snd_interval_t *s)
 {
 	*d = *s;
 }
 
-INLINE int snd_interval_setinteger(snd_interval_t *i)
+INTERVAL_INLINE int snd_interval_setinteger(snd_interval_t *i)
 {
 	if (i->integer)
 		return 0;
@@ -97,7 +97,7 @@ INLINE int snd_interval_setinteger(snd_interval_t *i)
 	return 1;
 }
 
-INLINE void snd_interval_floor(snd_interval_t *i)
+INTERVAL_INLINE void snd_interval_floor(snd_interval_t *i)
 {
 	if (i->integer || snd_interval_empty(i))
 		return;
@@ -109,7 +109,7 @@ INLINE void snd_interval_floor(snd_interval_t *i)
 	i->integer = 1;
 }
 
-INLINE void snd_interval_unfloor(snd_interval_t *i)
+INTERVAL_INLINE void snd_interval_unfloor(snd_interval_t *i)
 {
 	if (snd_interval_empty(i))
 		return;
@@ -123,13 +123,13 @@ INLINE void snd_interval_unfloor(snd_interval_t *i)
 }
 
 
-INLINE int snd_interval_always_eq(const snd_interval_t *i1, const snd_interval_t *i2)
+INTERVAL_INLINE int snd_interval_always_eq(const snd_interval_t *i1, const snd_interval_t *i2)
 {
 	return snd_interval_single(i1) && snd_interval_single(i2) &&
 		snd_interval_value(i1) == snd_interval_value(i2);
 }
 
-INLINE int snd_interval_never_eq(const snd_interval_t *i1, const snd_interval_t *i2)
+INTERVAL_INLINE int snd_interval_never_eq(const snd_interval_t *i1, const snd_interval_t *i2)
 {
 	
 	return (i1->max < i2->min || 

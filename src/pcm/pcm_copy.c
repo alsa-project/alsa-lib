@@ -93,10 +93,10 @@ static int snd_pcm_copy_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 }
 
 static snd_pcm_sframes_t snd_pcm_copy_write_areas(snd_pcm_t *pcm,
-					const snd_pcm_channel_area_t *areas,
-					snd_pcm_uframes_t offset,
-					snd_pcm_uframes_t size,
-					snd_pcm_uframes_t *slave_sizep)
+						  const snd_pcm_channel_area_t *areas,
+						  snd_pcm_uframes_t offset,
+						  snd_pcm_uframes_t size,
+						  snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_copy_t *copy = pcm->private;
 	snd_pcm_t *slave = copy->plug.slave;
@@ -108,8 +108,8 @@ static snd_pcm_sframes_t snd_pcm_copy_write_areas(snd_pcm_t *pcm,
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		
-		snd_pcm_areas_copy(areas, offset, 
-				   snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+		snd_pcm_areas_copy(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+				   areas, offset, 
 				   pcm->channels, frames, pcm->format);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
@@ -128,10 +128,10 @@ static snd_pcm_sframes_t snd_pcm_copy_write_areas(snd_pcm_t *pcm,
 }
 
 static snd_pcm_sframes_t snd_pcm_copy_read_areas(snd_pcm_t *pcm,
-				       const snd_pcm_channel_area_t *areas,
-				       snd_pcm_uframes_t offset,
-				       snd_pcm_uframes_t size,
-				       snd_pcm_uframes_t *slave_sizep)
+						 const snd_pcm_channel_area_t *areas,
+						 snd_pcm_uframes_t offset,
+						 snd_pcm_uframes_t size,
+						 snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_copy_t *copy = pcm->private;
 	snd_pcm_t *slave = copy->plug.slave;
@@ -142,8 +142,8 @@ static snd_pcm_sframes_t snd_pcm_copy_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		snd_pcm_areas_copy(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-				   areas, offset, 
+		snd_pcm_areas_copy(areas, offset, 
+				   snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 				   pcm->channels, frames, pcm->format);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
@@ -175,7 +175,6 @@ static void snd_pcm_copy_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_copy_ops = {
 	close: snd_pcm_plugin_close,
-	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_copy_hw_refine,
 	hw_params: snd_pcm_copy_hw_params,

@@ -26,8 +26,7 @@
 #include <limits.h>
 #include <errno.h>
 #include <assert.h>
-#include "asoundlib.h"
-#include "interval.h"
+#include "pcm_local.h"
 
 static inline void div64_32(u_int64_t *n, u_int32_t div, u_int32_t *rem)
 {

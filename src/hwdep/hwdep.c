@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "asoundlib.h"
+#include "local.h"
 
 #define SNDRV_FILE_HWDEP	"/dev/snd/hwC%iD%i"
 #define SNDRV_HWDEP_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 0)

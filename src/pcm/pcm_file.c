@@ -81,8 +81,8 @@ static void snd_pcm_file_add_frames(snd_pcm_t *pcm,
 			n = cont;
 		if (n > avail)
 			n = avail;
-		snd_pcm_areas_copy(areas, offset,
-				   file->wbuf_areas, file->appl_ptr, 
+		snd_pcm_areas_copy(file->wbuf_areas, file->appl_ptr, 
+				   areas, offset,
 				   pcm->channels, n, pcm->format);
 		frames -= n;
 		file->appl_ptr += n;
@@ -107,12 +107,6 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 	}
 	free(file);
 	return 0;
-}
-
-static int snd_pcm_file_card(snd_pcm_t *pcm)
-{
-	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_card(file->slave);
 }
 
 static int snd_pcm_file_nonblock(snd_pcm_t *pcm, int nonblock)
@@ -377,7 +371,6 @@ static void snd_pcm_file_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_file_ops = {
 	close: snd_pcm_file_close,
-	card: snd_pcm_file_card,
 	info: snd_pcm_file_info,
 	hw_refine: snd_pcm_file_hw_refine,
 	hw_params: snd_pcm_file_hw_params,

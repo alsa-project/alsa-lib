@@ -26,7 +26,7 @@
 #include "pcm_plugin.h"
 
 typedef struct {
-	snd_timestamp_t trigger_time;
+	snd_timestamp_t trigger_tstamp;
 	int state;
 	int shmid;
 	snd_pcm_uframes_t appl_ptr;
@@ -42,11 +42,6 @@ static int snd_pcm_null_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_null_card(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	return -ENOENT;	/* not available */
-}
-
 static int snd_pcm_null_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -60,7 +55,12 @@ static int snd_pcm_null_async(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int sig ATTRIBUTE
 static int snd_pcm_null_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_info_t * info)
 {
 	memset(info, 0, sizeof(*info));
-	/* FIXME */
+	info->stream = pcm->stream;
+	info->card = -1;
+	strcpy(info->id, "null");
+	strcpy(info->name, "null");
+	strcpy(info->subname, "null");
+	info->subdevices_count = 1;
 	return 0;
 }
 
@@ -75,7 +75,7 @@ static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	snd_pcm_null_t *null = pcm->private;
 	memset(status, 0, sizeof(*status));
 	status->state = null->state;
-	status->trigger_time = null->trigger_time;
+	status->trigger_tstamp = null->trigger_tstamp;
 	gettimeofday(&status->tstamp, 0);
 	status->avail = pcm->buffer_size;
 	status->avail_max = status->avail;
@@ -287,7 +287,6 @@ static void snd_pcm_null_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_null_ops = {
 	close: snd_pcm_null_close,
-	card: snd_pcm_null_card,
 	info: snd_pcm_null_info,
 	hw_refine: snd_pcm_null_hw_refine,
 	hw_params: snd_pcm_null_hw_params,

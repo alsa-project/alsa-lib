@@ -18,10 +18,8 @@
  *
  */
   
-
 #include "../src/pcm/pcm_local.h"
 
-#define SND_PCM_IOCTL_CARD		_IO ('A', 0xf0)
 #define SND_PCM_IOCTL_STATE		_IO ('A', 0xf1)
 #define SND_PCM_IOCTL_MMAP		_IO ('A', 0xf2)
 #define SND_PCM_IOCTL_MUNMAP		_IO ('A', 0xf3)
@@ -68,7 +66,6 @@ typedef struct {
 
 #define PCM_SHM_SIZE sizeof(snd_pcm_shm_ctrl_t)
 		
-#define SND_CTL_IOCTL_CARD		_IO ('U', 0xf0)
 #define SND_CTL_IOCTL_READ		_IOR('U', 0xf1, snd_ctl_event_t)
 #define SND_CTL_IOCTL_CLOSE		_IO ('U', 0xf2)
 #define SND_CTL_IOCTL_POLL_DESCRIPTOR	_IO ('U', 0xf3)

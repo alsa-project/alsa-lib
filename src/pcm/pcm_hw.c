@@ -109,12 +109,6 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return 0;
 }
 
-static int snd_pcm_hw_card(snd_pcm_t *pcm)
-{
-	snd_pcm_hw_t *hw = pcm->private;
-	return hw->card;
-}
-
 static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private;
@@ -184,21 +178,21 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private;
-	snd_pcm_hw_channel_info_t hw_info;
+	struct sndrv_pcm_channel_info i;
 	int fd = hw->fd;
-	hw_info.channel = info->channel;
-	if (ioctl(fd, SNDRV_PCM_IOCTL_CHANNEL_INFO, &hw_info) < 0) {
+	i.channel = info->channel;
+	if (ioctl(fd, SNDRV_PCM_IOCTL_CHANNEL_INFO, &i) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_CHANNEL_INFO failed");
 		return -errno;
 	}
-	info->channel = hw_info.channel;
+	info->channel = i.channel;
 	if (pcm->info & SND_PCM_INFO_MMAP) {
 		info->addr = 0;
-		info->first = hw_info.first;
-		info->step = hw_info.step;
+		info->first = i.first;
+		info->step = i.step;
 		info->type = SND_PCM_AREA_MMAP;
 		info->u.mmap.fd = fd;
-		info->u.mmap.offset = hw_info.offset;
+		info->u.mmap.offset = i.offset;
 		return 0;
 	}
 	return snd_pcm_channel_info_shm(pcm, info, hw->shmid);
@@ -515,7 +509,6 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_hw_ops = {
 	close: snd_pcm_hw_close,
-	card: snd_pcm_hw_card,
 	info: snd_pcm_hw_info,
 	hw_refine: snd_pcm_hw_hw_refine,
 	hw_params: snd_pcm_hw_hw_params,

@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "asoundlib.h"
+#include "local.h"
 
 #define SNDRV_FILE_TIMER		"/dev/snd/timer"
 #define SNDRV_TIMER_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)

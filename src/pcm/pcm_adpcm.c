@@ -51,10 +51,10 @@ IMA compatability project proceedings, Vol 2, Issue 2, May 1992.
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
-typedef void (*adpcm_f)(const snd_pcm_channel_area_t *src_areas,
-			snd_pcm_uframes_t src_offset,
-			const snd_pcm_channel_area_t *dst_areas,
+typedef void (*adpcm_f)(const snd_pcm_channel_area_t *dst_areas,
 			snd_pcm_uframes_t dst_offset,
+			const snd_pcm_channel_area_t *src_areas,
+			snd_pcm_uframes_t src_offset,
 			unsigned int channels, snd_pcm_uframes_t frames, int getputidx,
 			snd_pcm_adpcm_state_t *states);
 
@@ -190,10 +190,10 @@ static int adpcm_decoder(unsigned char code, snd_pcm_adpcm_state_t * state)
 	return (state->pred_val);
 }
 
-void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *src_areas,
-			  snd_pcm_uframes_t src_offset,
-			  const snd_pcm_channel_area_t *dst_areas,
+void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
+			  const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
 			  unsigned int channels, snd_pcm_uframes_t frames, int putidx,
 			  snd_pcm_adpcm_state_t *states)
 {
@@ -251,10 +251,10 @@ void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-void snd_pcm_adpcm_encode(const snd_pcm_channel_area_t *src_areas,
-			  snd_pcm_uframes_t src_offset,
-			  const snd_pcm_channel_area_t *dst_areas,
+void snd_pcm_adpcm_encode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
+			  const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
 			  unsigned int channels, snd_pcm_uframes_t frames, int getidx,
 			  snd_pcm_adpcm_state_t *states)
 {
@@ -473,8 +473,8 @@ static snd_pcm_sframes_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
-		adpcm->func(areas, offset, 
-			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+		adpcm->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+			    areas, offset, 
 			    pcm->channels, frames,
 			    adpcm->getput_idx, adpcm->states);
 		err = snd_pcm_mmap_forward(slave, frames);
@@ -508,8 +508,8 @@ static snd_pcm_sframes_t snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		adpcm->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			    areas, offset, 
+		adpcm->func(areas, offset, 
+			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			    pcm->channels, frames,
 			    adpcm->getput_idx, adpcm->states);
 		err = snd_pcm_mmap_forward(slave, frames);
@@ -543,7 +543,6 @@ static void snd_pcm_adpcm_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_adpcm_ops = {
 	close: snd_pcm_plugin_close,
-	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_adpcm_hw_refine,
 	hw_params: snd_pcm_adpcm_hw_params,

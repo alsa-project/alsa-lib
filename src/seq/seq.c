@@ -23,7 +23,6 @@
 #include <sys/poll.h>
 #include <dlfcn.h>
 #include "seq_local.h"
-#include "asoundlib.h"
 
 int snd_seq_open(snd_seq_t **seqp, char *name, 
 		 int streams, int mode)

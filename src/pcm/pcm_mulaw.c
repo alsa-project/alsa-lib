@@ -137,10 +137,10 @@ static int ulaw_to_s16(unsigned char u_val)
 	return ((u_val & 0x80) ? (0x84 - t) : (t - 0x84));
 }
 
-void snd_pcm_mulaw_decode(const snd_pcm_channel_area_t *src_areas,
-			  snd_pcm_uframes_t src_offset,
-			  const snd_pcm_channel_area_t *dst_areas,
+void snd_pcm_mulaw_decode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
+			  const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
 			  unsigned int channels, snd_pcm_uframes_t frames, int putidx)
 {
 #define PUT16_LABELS
@@ -182,10 +182,10 @@ void snd_pcm_mulaw_decode(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-void snd_pcm_mulaw_encode(const snd_pcm_channel_area_t *src_areas,
-			  snd_pcm_uframes_t src_offset,
-			  const snd_pcm_channel_area_t *dst_areas,
+void snd_pcm_mulaw_encode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
+			  const snd_pcm_channel_area_t *src_areas,
+			  snd_pcm_uframes_t src_offset,
 			  unsigned int channels, snd_pcm_uframes_t frames, int getidx)
 {
 #define GET16_LABELS
@@ -363,8 +363,8 @@ static snd_pcm_sframes_t snd_pcm_mulaw_write_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
-		mulaw->func(areas, offset, 
-			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+		mulaw->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+			    areas, offset, 
 			    pcm->channels, frames,
 			    mulaw->getput_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
@@ -398,8 +398,8 @@ static snd_pcm_sframes_t snd_pcm_mulaw_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		mulaw->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			    areas, offset, 
+		mulaw->func(areas, offset, 
+			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			    pcm->channels, frames,
 			    mulaw->getput_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
@@ -433,7 +433,6 @@ static void snd_pcm_mulaw_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_mulaw_ops = {
 	close: snd_pcm_plugin_close,
-	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_mulaw_hw_refine,
 	hw_params: snd_pcm_mulaw_hw_params,

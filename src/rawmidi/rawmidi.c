@@ -27,7 +27,6 @@
 #include <errno.h>
 #include <dlfcn.h>
 #include "rawmidi_local.h"
-#include "asoundlib.h"
 
 int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 {

@@ -20,10 +20,6 @@
  */
   
 #include "pcm_local.h"
-#define SND_INTERVAL_INLINE
-#define SND_MASK_INLINE
-#include "interval.h"
-#include "mask.h"
 
 static inline int hw_is_mask(int var)
 {
@@ -2332,5 +2328,55 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	pcm->silence_size = params->silence_size;
 	pcm->boundary = params->boundary;
 	return 0;
+}
+
+size_t snd_pcm_hw_params_sizeof()
+{
+	return sizeof(snd_pcm_hw_params_t);
+}
+
+int snd_pcm_hw_params_malloc(snd_pcm_hw_params_t **paramsp)
+{
+	*paramsp = malloc(sizeof(snd_pcm_hw_params_t));
+	if (!*paramsp)
+		return -ENOMEM;
+	return 0;
+}
+
+int snd_pcm_hw_params_free(snd_pcm_hw_params_t *params)
+{
+	free(params);
+}
+
+
+void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst,
+			    const snd_pcm_hw_params_t *src)
+{
+	*dst = *src;
+}
+
+size_t snd_pcm_sw_params_sizeof()
+{
+	return sizeof(snd_pcm_sw_params_t);
+}
+
+int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **paramsp)
+{
+	*paramsp = malloc(sizeof(snd_pcm_sw_params_t));
+	if (!*paramsp)
+		return -ENOMEM;
+	return 0;
+}
+
+int snd_pcm_sw_params_free(snd_pcm_sw_params_t *params)
+{
+	free(params);
+}
+
+
+void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst,
+			    const snd_pcm_sw_params_t *src)
+{
+	*dst = *src;
 }
 

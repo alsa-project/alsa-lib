@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <math.h>
 #include "pcm_local.h"
-#include "interval.h"
 
 typedef struct {
 	snd_pcm_t *pcm;
@@ -67,14 +66,6 @@ static int snd_pcm_multi_close(snd_pcm_t *pcm)
 	return ret;
 }
 
-static int snd_pcm_multi_card(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	snd_pcm_multi_t *multi = pcm->private;
-	if (multi->slaves_count != 1)
-		return -ENOENT;	/* not available */
-	return snd_pcm_card(multi->slaves[0].pcm);
-}
-
 static int snd_pcm_multi_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -90,12 +81,15 @@ static int snd_pcm_multi_async(snd_pcm_t *pcm, int sig, pid_t pid)
 static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	int err;
-	snd_pcm_t *slave_0 = multi->slaves[0].pcm;
-	/* FIXME */
-	err = snd_pcm_info(slave_0, info);
-	if (err < 0)
-		return err;
+	if (multi->slaves_count == 1)
+		return snd_pcm_info(multi->slaves[0].pcm, info);
+	memset(info, 0, sizeof(*info));
+	info->stream = pcm->stream;
+	info->card = -1;
+	strcpy(info->id, "multi");
+	strcpy(info->name, "multi");
+	strcpy(info->subname, "multi");
+	info->subdevices_count = 1;
 	return 0;
 }
 
@@ -483,7 +477,6 @@ static void snd_pcm_multi_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_multi_ops = {
 	close: snd_pcm_multi_close,
-	card: snd_pcm_multi_card,
 	info: snd_pcm_multi_info,
 	hw_refine: snd_pcm_multi_hw_refine,
 	hw_params: snd_pcm_multi_hw_params,

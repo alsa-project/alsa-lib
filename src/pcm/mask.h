@@ -19,12 +19,6 @@
  *
  */
   
-#include <sys/types.h>
-#include <limits.h>
-#include <errno.h>
-#include <assert.h>
-#include "asoundlib.h"
-
 #define SND_MASK_MAX 31
 
 #ifdef SND_MASK_INLINE

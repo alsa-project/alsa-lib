@@ -26,6 +26,5 @@
 #include <limits.h>
 #include <errno.h>
 #include <assert.h>
-#include "asoundlib.h"
-#include "mask.h"
+#include "pcm_local.h"
 

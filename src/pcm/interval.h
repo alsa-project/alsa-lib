@@ -19,7 +19,7 @@
  *
  */
   
-#include <stdio.h>
+typedef struct _snd_interval snd_interval_t;
 
 #ifdef SND_INTERVAL_INLINE
 #include "interval_inline.h"

@@ -99,7 +99,7 @@ typedef struct {
 	int async_sig;
 	pid_t async_pid;
 	int drain_silenced;
-	struct timeval trigger_time;
+	struct timeval trigger_tstamp;
 	int state;
 	snd_pcm_uframes_t hw_ptr;
 	snd_pcm_uframes_t appl_ptr;
@@ -425,12 +425,6 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 	}
 }
 
-static int snd_pcm_share_card(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	snd_pcm_share_t *share = pcm->private;
-	return snd_pcm_card(share->slave->pcm);
-}
-
 static int snd_pcm_share_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -693,7 +687,7 @@ static int snd_pcm_share_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
  _notrunning:
 	status->delay = sd + d;
 	status->state = share->state;
-	status->trigger_time = share->trigger_time;
+	status->trigger_tstamp = share->trigger_tstamp;
  _end:
 	Pthread_mutex_unlock(&slave->mutex);
 	return err;
@@ -875,8 +869,8 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 			snd_pcm_uframes_t cont = pcm->buffer_size - offset;
 			if (cont < frames)
 				frames = cont;
-			snd_pcm_areas_copy(pcm->stopped_areas, xfer,
-					   pcm->running_areas, offset,
+			snd_pcm_areas_copy(pcm->running_areas, offset,
+					   pcm->stopped_areas, xfer,
 					   pcm->channels, frames,
 					   pcm->format);
 			xfer += frames;
@@ -892,7 +886,7 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 	}
 	slave->running_count++;
 	_snd_pcm_share_update(pcm);
-	gettimeofday(&share->trigger_time, 0);
+	gettimeofday(&share->trigger_tstamp, 0);
  _end:
 	Pthread_mutex_unlock(&slave->mutex);
 	return err;
@@ -976,10 +970,10 @@ static void _snd_pcm_share_stop(snd_pcm_t *pcm, int state)
 		/* PCM closing already begun in the main thread */
 		return;
 	}
-	gettimeofday(&share->trigger_time, 0);
+	gettimeofday(&share->trigger_tstamp, 0);
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
-		snd_pcm_areas_copy(pcm->running_areas, 0,
-				   pcm->stopped_areas, 0,
+		snd_pcm_areas_copy(pcm->stopped_areas, 0,
+				   pcm->running_areas, 0,
 				   pcm->channels, pcm->buffer_size,
 				   pcm->format);
 	} else if (slave->running_count > 1) {
@@ -1145,7 +1139,6 @@ static void snd_pcm_share_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_share_ops = {
 	close: snd_pcm_share_close,
-	card: snd_pcm_share_card,
 	info: snd_pcm_share_info,
 	hw_refine: snd_pcm_share_hw_refine,
 	hw_params: snd_pcm_share_hw_params,

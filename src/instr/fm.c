@@ -24,7 +24,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <stdio.h>
-#include "asoundlib.h"
+#include "local.h"
 #include <asm/byteorder.h>
 #include <linux/ainstr_fm.h>
 

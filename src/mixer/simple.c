@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "asoundlib.h"
 #include "mixer_local.h"
 
 static struct mixer_name_table {

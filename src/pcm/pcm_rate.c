@@ -23,7 +23,6 @@
 #include <byteswap.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
-#include "interval.h"
 
 #define DIV (1<<16)
 
@@ -33,14 +32,16 @@ typedef struct {
 	unsigned int pos;
 } snd_pcm_rate_state_t;
  
-typedef snd_pcm_uframes_t (*rate_f)(const snd_pcm_channel_area_t *src_areas,
-			 snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
-			 const snd_pcm_channel_area_t *dst_areas,
-			 snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
-			 unsigned int channels,
-			 int getidx, int putidx,
-			 unsigned int arg,
-			 snd_pcm_rate_state_t *states);
+typedef snd_pcm_uframes_t (*rate_f)(const snd_pcm_channel_area_t *dst_areas,
+				    snd_pcm_uframes_t dst_offset,
+				    snd_pcm_uframes_t *dst_framesp,
+				    const snd_pcm_channel_area_t *src_areas,
+				    snd_pcm_uframes_t src_offset,
+				    snd_pcm_uframes_t src_frames,
+				    unsigned int channels,
+				    int getidx, int putidx,
+				    unsigned int arg,
+				    snd_pcm_rate_state_t *states);
 
 typedef struct {
 	/* This field need to be the first */
@@ -54,10 +55,10 @@ typedef struct {
 	snd_pcm_rate_state_t *states;
 } snd_pcm_rate_t;
 
-snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *src_areas,
-				      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
-				      const snd_pcm_channel_area_t *dst_areas,
+snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 				      snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
+				      const snd_pcm_channel_area_t *src_areas,
+				      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
 				      unsigned int channels,
 				      int getidx, int putidx,
 				      unsigned int get_threshold,
@@ -136,10 +137,10 @@ snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *src_areas,
 	return src_frames1;
 }
 
-snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *src_areas,
-				      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
-				      const snd_pcm_channel_area_t *dst_areas,
+snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
 				      snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t *dst_framesp,
+				      const snd_pcm_channel_area_t *src_areas,
+				      snd_pcm_uframes_t src_offset, snd_pcm_uframes_t src_frames,
 				      unsigned int channels,
 				      int getidx, int putidx,
 				      unsigned int get_increment,
@@ -444,9 +445,9 @@ static snd_pcm_sframes_t snd_pcm_rate_write_areas(snd_pcm_t *pcm,
 		snd_pcm_uframes_t src_frames, dst_frames;
 		src_frames = client_size - client_xfer;
 		dst_frames = snd_pcm_mmap_playback_xfer(slave, slave_size - slave_xfer);
-		src_frames = rate->func(areas, client_offset, src_frames,
-					snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+		src_frames = rate->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 					&dst_frames, 
+					areas, client_offset, src_frames,
 					pcm->channels,
 					rate->get_idx, rate->put_idx,
 					rate->pitch, rate->states);
@@ -496,9 +497,9 @@ static snd_pcm_sframes_t snd_pcm_rate_read_areas(snd_pcm_t *pcm,
 		snd_pcm_uframes_t src_frames, dst_frames;
 		dst_frames = client_size - client_xfer;
 		src_frames = snd_pcm_mmap_capture_xfer(slave, slave_size - slave_xfer);
-		src_frames = rate->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+		src_frames = rate->func(areas, client_offset, &dst_frames,
+					snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 					src_frames,
-					areas, client_offset, &dst_frames,
 					pcm->channels,
 					rate->get_idx, rate->put_idx,
 					rate->pitch, rate->states);
@@ -564,7 +565,6 @@ static void snd_pcm_rate_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_rate_ops = {
 	close: snd_pcm_plugin_close,
-	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_rate_hw_refine,
 	hw_params: snd_pcm_rate_hw_params,

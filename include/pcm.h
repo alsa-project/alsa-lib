@@ -22,12 +22,10 @@ typedef sndrv_pcm_uframes_t snd_pcm_uframes_t;
 typedef sndrv_pcm_sframes_t snd_pcm_sframes_t;
 typedef struct timeval snd_timestamp_t;
 
-typedef struct sndrv_interval snd_interval_t;
-typedef struct sndrv_pcm_info snd_pcm_info_t;
-typedef struct sndrv_pcm_hw_params snd_pcm_hw_params_t;
-typedef struct sndrv_pcm_sw_params snd_pcm_sw_params_t;
-typedef struct sndrv_pcm_hw_channel_info snd_pcm_hw_channel_info_t;
-typedef struct sndrv_pcm_status snd_pcm_status_t;
+typedef struct _snd_pcm_info snd_pcm_info_t;
+typedef struct _snd_pcm_hw_params snd_pcm_hw_params_t;
+typedef struct _snd_pcm_sw_params snd_pcm_sw_params_t;
+typedef struct _snd_pcm_status snd_pcm_status_t;
 #define SND_PCM_CLASS_GENERIC SNDRV_PCM_CLASS_GENERIC
 #define SND_PCM_CLASS_MULTI SNDRV_PCM_CLASS_MULTI
 #define SND_PCM_CLASS_MODEM SNDRV_PCM_CLASS_MODEM
@@ -153,6 +151,7 @@ typedef struct sndrv_pcm_status snd_pcm_status_t;
 #define SND_PCM_NONBLOCK		0x0001
 #define SND_PCM_ASYNC			0x0002
 
+typedef struct _snd_mask snd_mask_t;
 typedef struct _snd_pcm snd_pcm_t;
 
 typedef enum _snd_pcm_type {
@@ -198,7 +197,6 @@ snd_pcm_sframes_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int 
 
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
 int snd_pcm_close(snd_pcm_t *pcm);
-int snd_pcm_card(snd_pcm_t *pcm);
 int snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid);
@@ -207,9 +205,9 @@ int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_free(snd_pcm_t *pcm);
 int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
-int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status);
 int snd_pcm_prepare(snd_pcm_t *pcm);
 int snd_pcm_reset(snd_pcm_t *pcm);
+int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status);
 int snd_pcm_start(snd_pcm_t *pcm);
 int snd_pcm_drop(snd_pcm_t *pcm);
 int snd_pcm_drain(snd_pcm_t *pcm);
@@ -226,7 +224,6 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out);
 int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out);
 int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out);
 int snd_pcm_dump(snd_pcm_t *pcm, snd_output_t *out);
-int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out);
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_unlink(snd_pcm_t *pcm);
 
@@ -234,20 +231,24 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm);
 int snd_pcm_set_avail_min(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 
-typedef struct _snd_mask snd_mask_t;
+
+/* Mask */
 size_t snd_mask_sizeof();
+#define snd_mask_alloca(maskp) ({(*maskp) = alloca(snd_mask_sizeof()); 0;})
+int snd_mask_malloc(snd_mask_t **maskp);
+void snd_mask_free(snd_mask_t *mask);
 void snd_mask_none(snd_mask_t *mask);
 void snd_mask_any(snd_mask_t *mask);
-void snd_mask_load(snd_mask_t *mask, unsigned int msk);
-int snd_mask_empty(const snd_mask_t *mask);
 void snd_mask_set(snd_mask_t *mask, unsigned int val);
 void snd_mask_reset(snd_mask_t *mask, unsigned int val);
-void snd_mask_copy(snd_mask_t *mask, const snd_mask_t *v);
-int snd_mask_test(const snd_mask_t *mask, unsigned int val);
-void snd_mask_intersect(snd_mask_t *mask, const snd_mask_t *v);
-void snd_mask_union(snd_mask_t *mask, const snd_mask_t *v);
-int snd_mask_eq(const snd_mask_t *a, const snd_mask_t *b);
-int snd_mask_single(const snd_mask_t *mask);
+void snd_mask_copy(snd_mask_t *dst, const snd_mask_t *src);
+
+/* HW params */
+size_t snd_pcm_hw_params_sizeof();
+#define snd_pcm_hw_params_alloca(paramsp) ({(*paramsp) = alloca(snd_pcm_hw_params_sizeof()); 0;})
+int snd_pcm_hw_params_malloc(snd_pcm_hw_params_t **paramsp);
+int snd_pcm_hw_params_free(snd_pcm_hw_params_t *params);
+void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t *src);
 
 int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_param_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
@@ -288,14 +289,10 @@ int snd_pcm_hw_param_minmax_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 				unsigned int *max, int *maxdir);
 int snd_pcm_hw_param_set_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			     snd_pcm_hw_param_t var, unsigned int val, int dir);
-int snd_pcm_hw_param_snd_mask_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+int snd_pcm_hw_param_mask_try(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			      snd_pcm_hw_param_t var, const snd_mask_t *mask);
 int snd_pcm_hw_param_value(const snd_pcm_hw_params_t *params,
 			   snd_pcm_hw_param_t var, int *dir);
-const snd_mask_t *snd_pcm_hw_param_value_mask(const snd_pcm_hw_params_t *params,
-					  snd_pcm_hw_param_t var);
-const snd_interval_t *snd_pcm_hw_param_value_interval(const snd_pcm_hw_params_t *params,
-						  snd_pcm_hw_param_t var);
 unsigned int snd_pcm_hw_param_value_min(const snd_pcm_hw_params_t *params,
 					snd_pcm_hw_param_t var, int *dir);
 unsigned int snd_pcm_hw_param_value_max(const snd_pcm_hw_params_t *params,
@@ -341,6 +338,7 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int orde
 				       unsigned int count,
 				       snd_pcm_hw_strategy_simple_choices_list_t *choices);
 
+/* SW params */
 typedef enum _snd_pcm_sw_param {
 	SND_PCM_SW_PARAM_START_MODE,
 	SND_PCM_SW_PARAM_XRUN_MODE,
@@ -354,11 +352,55 @@ typedef enum _snd_pcm_sw_param {
 	SND_PCM_SW_PARAM_LAST = SND_PCM_SW_PARAM_SILENCE_SIZE,
 } snd_pcm_sw_param_t;
 
+size_t snd_pcm_sw_params_sizeof();
+#define snd_pcm_sw_params_alloca(paramsp) ({(*paramsp) = alloca(snd_pcm_sw_params_sizeof()); 0;})
+int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **paramsp);
+int snd_pcm_sw_params_free(snd_pcm_sw_params_t *params);
+void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t *src);
+
 int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
 int snd_pcm_sw_param_set(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_sw_param_t var, unsigned int val);
 int snd_pcm_sw_param_near(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_sw_param_t var, unsigned int val);
 int snd_pcm_sw_param_value(snd_pcm_sw_params_t *params, snd_pcm_sw_param_t var);
 int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out);
+
+/* Info */
+size_t snd_pcm_info_sizeof();
+#define snd_pcm_info_alloca(infop) ({(*infop) = alloca(snd_pcm_info_sizeof()); 0;})
+int snd_pcm_info_malloc(snd_pcm_info_t **infop);
+int snd_pcm_info_free(snd_pcm_info_t *info);
+void snd_pcm_info_copy(snd_pcm_info_t *dst, const snd_pcm_info_t *src);
+void snd_pcm_info_set_device(snd_pcm_info_t *info, unsigned int device);
+void snd_pcm_info_set_subdevice(snd_pcm_info_t *info, unsigned int subdevice);
+void snd_pcm_info_set_stream(snd_pcm_info_t *info, snd_pcm_stream_t stream);
+int snd_pcm_info_card(snd_pcm_info_t *info);
+unsigned int snd_pcm_info_device(snd_pcm_info_t *info);
+unsigned int snd_pcm_info_subdevice(snd_pcm_info_t *info);
+snd_pcm_stream_t snd_pcm_info_stream(snd_pcm_info_t *info);
+const char *snd_pcm_info_device_id(snd_pcm_info_t *info);
+const char *snd_pcm_info_device_name(snd_pcm_info_t *info);
+const char *snd_pcm_info_subdevice_name(snd_pcm_info_t *info);
+snd_pcm_class_t snd_pcm_info_device_class(snd_pcm_info_t *info);
+snd_pcm_subclass_t snd_pcm_info_device_subclass(snd_pcm_info_t *info);
+unsigned int snd_pcm_info_subdevices_count(snd_pcm_info_t *info);
+unsigned int snd_pcm_info_subdevices_avail(snd_pcm_info_t *info);
+
+/* Status */
+size_t snd_pcm_status_sizeof();
+#define snd_pcm_status_alloca(statusp) ({(*statusp) = alloca(snd_pcm_status_sizeof()); 0;})
+int snd_pcm_status_malloc(snd_pcm_status_t **statusp);
+int snd_pcm_status_free(snd_pcm_status_t *status);
+void snd_pcm_status_copy(snd_pcm_status_t *dst, const snd_pcm_status_t *src);
+
+snd_pcm_state_t snd_pcm_status_state(snd_pcm_status_t *status);
+int snd_pcm_status_delay(snd_pcm_status_t *status);
+int snd_pcm_status_avail(snd_pcm_status_t *status);
+int snd_pcm_status_avail_max(snd_pcm_status_t *status);
+void snd_pcm_status_tstamp(snd_pcm_status_t *status,
+			   snd_timestamp_t *tstamp);
+void snd_pcm_status_trigger_tstamp(snd_pcm_status_t *status,
+				   snd_timestamp_t *tstamp);
+int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out);
 
 /* mmap */
 const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);
@@ -389,11 +431,11 @@ int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_channel, snd_pcm_ufra
 			 unsigned int samples, int format);
 int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_channels, snd_pcm_uframes_t dst_offset,
 			  unsigned int channels, snd_pcm_uframes_t frames, int format);
-int snd_pcm_area_copy(const snd_pcm_channel_area_t *src_channel, snd_pcm_uframes_t src_offset,
-		      const snd_pcm_channel_area_t *dst_channel, snd_pcm_uframes_t dst_offset,
+int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_channel, snd_pcm_uframes_t dst_offset,
+		      const snd_pcm_channel_area_t *src_channel, snd_pcm_uframes_t src_offset,
 		      unsigned int samples, int format);
-int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_channels, snd_pcm_uframes_t src_offset,
-		       const snd_pcm_channel_area_t *dst_channels, snd_pcm_uframes_t dst_offset,
+int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_channels, snd_pcm_uframes_t dst_offset,
+		       const snd_pcm_channel_area_t *src_channels, snd_pcm_uframes_t src_offset,
 		       unsigned int channels, snd_pcm_uframes_t frames, int format);
 
 snd_pcm_sframes_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes);

@@ -28,7 +28,6 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <dlfcn.h>
-#include "asoundlib.h"
 #include "control_local.h"
 
 snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl)
@@ -43,12 +42,6 @@ int snd_ctl_close(snd_ctl_t *ctl)
 	res = ctl->ops->close(ctl);
 	free(ctl);
 	return res;
-}
-
-int snd_ctl_card(snd_ctl_t *ctl)
-{
-	assert(ctl);
-	return ctl->ops->card(ctl);
 }
 
 int snd_ctl_poll_descriptor(snd_ctl_t *ctl)

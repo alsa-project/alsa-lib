@@ -87,8 +87,8 @@ int snd_pcm_linear_put_index(int src_format, int dst_format)
 	return width * 4 + endian * 2 + sign;
 }
 
-void snd_pcm_linear_convert(const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
-			    const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+			    const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
 			    unsigned int channels, snd_pcm_uframes_t frames, int convidx)
 {
 #define CONV_LABELS
@@ -247,8 +247,8 @@ static snd_pcm_sframes_t snd_pcm_linear_write_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
-		snd_pcm_linear_convert(areas, offset, 
-				       snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+		snd_pcm_linear_convert(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
+				       areas, offset, 
 				       pcm->channels, frames, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
@@ -281,8 +281,8 @@ static snd_pcm_sframes_t snd_pcm_linear_read_areas(snd_pcm_t *pcm,
 	assert(size > 0);
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		snd_pcm_linear_convert(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-				       areas, offset, 
+		snd_pcm_linear_convert(areas, offset, 
+				       snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 				       pcm->channels, frames, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
@@ -315,7 +315,6 @@ static void snd_pcm_linear_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 snd_pcm_ops_t snd_pcm_linear_ops = {
 	close: snd_pcm_plugin_close,
-	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_linear_hw_refine,
 	hw_params: snd_pcm_linear_hw_params,

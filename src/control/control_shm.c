@@ -34,8 +34,8 @@
 #include <sys/mman.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include "control_local.h"
 #include "aserver.h"
+#include "control_local.h"
 
 typedef struct {
 	int socket;
@@ -93,14 +93,6 @@ static int snd_ctl_shm_close(snd_ctl_t *ctl)
 	close(shm->socket);
 	free(shm);
 	return result;
-}
-
-static int snd_ctl_shm_card(snd_ctl_t *ctl)
-{
-	snd_ctl_shm_t *shm = ctl->private;
-	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_CTL_IOCTL_CARD;
-	return snd_ctl_shm_action(ctl);
 }
 
 static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
@@ -318,7 +310,6 @@ static int snd_ctl_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 
 snd_ctl_ops_t snd_ctl_shm_ops = {
 	close: snd_ctl_shm_close,
-	card: snd_ctl_shm_card,
 	poll_descriptor: snd_ctl_shm_poll_descriptor,
 	hw_info: snd_ctl_shm_hw_info,
 	clist: snd_ctl_shm_clist,

@@ -27,7 +27,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "asoundlib.h"
 #include "seq_local.h"
 
 /* direct passing (without queued) */

@@ -21,7 +21,7 @@
 
 #include <malloc.h>
 #include <errno.h>
-#include "asoundlib.h"
+#include "local.h"
 
 
 /* midi status */
