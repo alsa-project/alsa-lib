@@ -1,7 +1,7 @@
 sysincludedir = ${includedir}/sys
 alsaincludedir = ${includedir}/alsa
 
-alsainclude_HEADERS = asoundlib.h \
+alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      version.h global.h input.h output.h error.h \
 		      conf.h pcm.h rawmidi.h timer.h \
 		      hwdep.h control.h mixer.h \
@@ -40,7 +40,5 @@ stamp-vh: $(top_builddir)/configure.in
 INCLUDES=-I$(top_srcdir)/include
 
 install-data-hook:
-	rm -f $(DESTDIR)$(alsaincludedir)/asoundef.h
-	$(LN_S) -f ../sound/asoundef.h $(DESTDIR)$(alsaincludedir)/asoundef.h
 	test -d $(DESTDIR)$(sysincludedir) || mkdir -p $(DESTDIR)$(sysincludedir)
 	$(INSTALL_DATA) sys.h $(DESTDIR)$(sysincludedir)/asoundlib.h
