@@ -67,6 +67,11 @@ const char *_snd_module_pcm_dmix = "";
  
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
 
+typedef void (mix_areas1_t)(unsigned int size,
+			volatile signed short *dst, signed short *src,
+			volatile signed int *sum, unsigned int dst_step,
+			unsigned int src_step, unsigned int sum_step);
+
 /*
  *
  */
@@ -121,6 +126,7 @@ typedef struct {
 	pid_t server_pid;
 	snd_timer_t *timer; /* timer used as poll_fd */
 	int interleaved; /* we have interleaved buffer */
+	mix_areas1_t *mix_areas1;
 } snd_pcm_dmix_t;
 
 /*
@@ -562,7 +568,12 @@ static int check_interleave(snd_pcm_dmix_t *dmix)
  */
 
 #ifdef __i386__
+
 #define ADD_AND_SATURATE
+
+/*
+ *  for plain i386
+ */
 static void mix_areas1(unsigned int size,
 		       volatile signed short *dst, signed short *src,
 		       volatile signed int *sum, unsigned int dst_step,
@@ -677,6 +688,117 @@ static void mix_areas1(unsigned int size,
 		: "esi", "edi", "edx", "ecx", "ebx", "eax"
 	);
 }
+
+/*
+ *  MMX optimized
+ */
+static void mix_areas1_mmx(unsigned int size,
+			   volatile signed short *dst, signed short *src,
+			   volatile signed int *sum, unsigned int dst_step,
+			   unsigned int src_step, unsigned int sum_step)
+{
+	/*
+	 *  ESI - src
+	 *  EDI - dst
+	 *  EBX - sum
+	 *  ECX - old sample
+	 *  EAX - sample / temporary
+	 *  EDX - size
+	 */
+	__asm__ __volatile__ (
+		"\n"
+
+		/*
+		 *  initialization, load EDX, ESI, EDI, EBX registers
+		 */
+		"\tmovl %0, %%edx\n"
+		"\tmovl %1, %%edi\n"
+		"\tmovl %2, %%esi\n"
+		"\tmovl %3, %%ebx\n"
+
+		/*
+		 * while (size-- > 0) {
+		 */
+		"\tcmp $0, %%edx\n"
+		"jz 6f\n"
+
+		"1:"
+
+		/*
+		 *   sample = *src;
+		 *   if (cmpxchg(*dst, 0, 1) == 0)
+		 *     sample -= *sum;
+		 *   xadd(*sum, sample);
+		 */
+		"\tmovw $0, %%ax\n"
+		"\tmovw $1, %%cx\n"
+		"\tlock; cmpxchgw %%cx, (%%edi)\n"
+		"\tmovswl (%%esi), %%ecx\n"
+		"\tjnz 2f\n"
+		"\tsubl (%%ebx), %%ecx\n"
+		"2:"
+		"\tlock; addl %%ecx, (%%ebx)\n"
+
+		/*
+		 *   do {
+		 *     sample = old_sample = *sum;
+		 *     saturate(v);
+		 *     *dst = sample;
+		 *   } while (v != *sum);
+		 */
+
+		"3:"
+		"\tmovl (%%ebx), %%ecx\n"
+		"\tmovd %%ecx, %%mm0\n"
+		"\tpackssdw %%mm1, %%mm0\n"
+		"\tmovd %%mm0, %%eax\n"
+		"\tmovw %%ax, (%%edi)\n"
+		"\tcmpl %%ecx, (%%ebx)\n"
+		"\tjnz 3b\n"
+
+		/*
+		 * while (size-- > 0)
+		 */
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
+		"\tdecl %%edx\n"
+		"\tjnz 1b\n"
+		"\tjmp 6f\n"
+
+		"6:"
+		
+		"\temms\n"
+
+		: /* no output regs */
+		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
+		: "esi", "edi", "edx", "ecx", "ebx", "eax"
+	);
+}
+ 
+static void mix_select_callbacks(snd_pcm_dmix_t *dmix)
+{
+	FILE *in;
+	char line[255];
+	
+	/* safe settings for all i386 CPUs */
+	dmix->mix_areas1 = mix_areas1;
+	/* try to determine, if we have a MMX capable CPU */
+	in = fopen("/proc/cpuinfo", "r");
+	if (in == NULL)
+		return;
+	while (!feof(in)) {
+		fgets(line, sizeof(line), in);
+		if (!strncmp(line, "flags", 5)) {
+			fclose(in);
+			if (strstr(line, " mmx")) {
+				// printf("Selecting MMX mix_areas1\n");
+				dmix->mix_areas1 = mix_areas1_mmx;
+			}
+			return;
+		}
+	}
+}
 #endif
 
 #ifndef ADD_AND_SATURATE
@@ -708,6 +830,11 @@ static void mix_areas1(unsigned int size,
 		((char *)sum) += sum_step;		
 	}
 }
+
+static void mix_select_callbacks(snd_pcm_dmix_t *dmix)
+{
+	dmix->mix_areas1 = mix_areas1;
+}
 #endif
 
 static void mix_areas(snd_pcm_dmix_t *dmix,
@@ -729,13 +856,13 @@ static void mix_areas(snd_pcm_dmix_t *dmix,
 		 * process the all areas in one loop
 		 * it optimizes the memory accesses for this case
 		 */
-		mix_areas1(size * channels,
-			   ((signed short *)dst_areas[0].addr) + (dst_ofs * channels),
-			   ((signed short *)src_areas[0].addr) + (src_ofs * channels),
-			   dmix->sum_buffer + (dst_ofs * channels),
-			   sizeof(signed short),
-			   sizeof(signed short),
-			   sizeof(signed int));
+		dmix->mix_areas1(size * channels,
+				 ((signed short *)dst_areas[0].addr) + (dst_ofs * channels),
+				 ((signed short *)src_areas[0].addr) + (src_ofs * channels),
+				 dmix->sum_buffer + (dst_ofs * channels),
+				 sizeof(signed short),
+				 sizeof(signed short),
+				 sizeof(signed int));
 		return;
 	}
 	for (chn = 0; chn < channels; chn++) {
@@ -744,7 +871,7 @@ static void mix_areas(snd_pcm_dmix_t *dmix,
 		src = (signed short *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
 		dst = (signed short *)(((char *)dst_areas[chn].addr + dst_areas[chn].first / 8) + (dst_ofs * dst_step));
 		sum = dmix->sum_buffer + channels * dst_ofs + chn;
-		mix_areas1(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
+		dmix->mix_areas1(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
 	}
 }
 
@@ -1608,6 +1735,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	}
 
 	check_interleave(dmix);
+	mix_select_callbacks(dmix);
 		
 	pcm->poll_fd = dmix->poll_fd;
 	pcm->poll_events = POLLIN;	/* it's different than other plugins */
