@@ -2094,6 +2094,8 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 		}
 	}
 	err = snd_pcm_poll_descriptors(pcm, &pfd, 1);
+	if (err < 0)
+		return err;
 	assert(err == 1);
       __retry:
 	err_poll = poll(&pfd, 1, timeout);
