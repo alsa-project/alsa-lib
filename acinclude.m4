@@ -1,11 +1,5 @@
 dnl Check for ALSA driver package.
 AC_DEFUN(ALSA_CHECK_DRIVER, [
-myprefix=$prefix
-if test "$myprefix" = "NONE"; then
-  myprefix=$ac_default_prefix
-fi
-OLD_CFLAGS="$CFLAGS"
-CFLAGS="-I$myprefix/include"
 AC_MSG_CHECKING(for alsa-driver package)
 
 AC_TRY_COMPILE([
@@ -27,7 +21,6 @@ void main(void)
   [AC_MSG_RESULT(not found or wrong version);
    AC_MSG_ERROR([Install alsa-driver v0.6.0 package first...])]
 )
-CFLAGS="$OLD_CFLAGS"
 ])
 
 AC_DEFUN(SAVE_LIBRARY_VERSION, [
