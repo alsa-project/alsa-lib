@@ -29,7 +29,7 @@
 #include <sound/asound.h>
 
 /** version of the sequencer */
-#define SNDRV_SEQ_VERSION SNDRV_PROTOCOL_VERSION (1, 0, 0)
+#define SNDRV_SEQ_VERSION SNDRV_PROTOCOL_VERSION (1, 0, 1)
 
 /**
  * definition of sequencer event types
@@ -57,8 +57,8 @@
 #define SNDRV_SEQ_EVENT_CHANPRESS	12
 #define SNDRV_SEQ_EVENT_PITCHBEND	13	/**< from -8192 to 8191 */
 #define SNDRV_SEQ_EVENT_CONTROL14	14	/**< 14 bit controller value */
-#define SNDRV_SEQ_EVENT_NONREGPARAM	15	/**< 14 bit NRPN */
-#define SNDRV_SEQ_EVENT_REGPARAM	16	/**< 14 bit RPN */
+#define SNDRV_SEQ_EVENT_NONREGPARAM	15	/**< 14 bit NRPN address + 14 bit unsigned value */
+#define SNDRV_SEQ_EVENT_REGPARAM	16	/**< 14 bit RPN address + 14 bit unsigned value */
 
 /** synchronisation messages
  * event data type = #sndrv_seq_ev_ctrl
@@ -596,7 +596,7 @@ struct sndrv_seq_remove_events {
 #define SNDRV_SEQ_PORT_TYPE_MIDI_MT32	(1<<5)	/* MT-32 compatible device */
 
 /* other standards...*/
-#define SNDRV_SEQ_PORT_TYPE_SYNTH	(1<<10)	/* Synth device */
+#define SNDRV_SEQ_PORT_TYPE_SYNTH	(1<<10)	/* Synth device (no MIDI compatible - direct wavetable) */
 #define SNDRV_SEQ_PORT_TYPE_DIRECT_SAMPLE (1<<11)	/* Sampling device (support sample download) */
 #define SNDRV_SEQ_PORT_TYPE_SAMPLE	(1<<12)	/* Sampling device (sample can be downloaded at any time) */
 /*...*/
@@ -604,6 +604,8 @@ struct sndrv_seq_remove_events {
 
 /* misc. conditioning flags */
 #define SNDRV_SEQ_PORT_FLG_GIVEN_PORT	(1<<0)
+#define SNDRV_SEQ_PORT_FLG_TIMESTAMP	(1<<1)
+#define SNDRV_SEQ_PORT_FLG_TIME_REAL	(1<<1)
 
 struct sndrv_seq_port_info {
 	struct sndrv_seq_addr addr;	/* client/port numbers */
@@ -620,7 +622,8 @@ struct sndrv_seq_port_info {
 
 	void *kernel;			/* reserved for kernel use (must be NULL) */
 	unsigned int flags;		/* misc. conditioning */
-	char reserved[60];		/* for future use */
+	unsigned char time_queue;	/* queue # for timestamping */
+	char reserved[59];		/* for future use */
 };
 
 

@@ -105,9 +105,10 @@ enum sndrv_hwdep_iface {
 	SNDRV_HWDEP_IFACE_ICS2115,	/* Wavetable synth */
 	SNDRV_HWDEP_IFACE_SSCAPE,	/* Ensoniq SoundScape ISA card (MC68EC000) */
 	SNDRV_HWDEP_IFACE_VX,		/* Digigram VX cards */
+	SNDRV_HWDEP_IFACE_MIXART,	/* Digigram miXart cards */
 
 	/* Don't forget to change the following: */
-	SNDRV_HWDEP_IFACE_LAST = SNDRV_HWDEP_IFACE_VX,
+	SNDRV_HWDEP_IFACE_LAST = SNDRV_HWDEP_IFACE_MIXART,
 };
 
 struct sndrv_hwdep_info {
