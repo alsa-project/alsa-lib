@@ -432,6 +432,7 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *
 {
 	snd_config_t *n;
 	char *res = NULL;
+	char *str;
 	snd_ctl_t *ctl = NULL;
 	snd_ctl_card_info_t *info;
 	long v;
@@ -447,11 +448,19 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *
 		SNDERR("error evaluating card");
 		goto __error;
 	}
-	err = snd_config_get_integer(n, &v);
+	err = snd_config_get_ascii(n, &str);
 	if (err < 0) {
-		SNDERR("field card is not an integer");
+		SNDERR("field card is not an integer or a string");
 		goto __error;
 	}
+	v = snd_card_get_index(str);
+	if (v < 0) {
+		SNDERR("cannot find card '%s'", str);
+		free(str);
+		err = v;
+		goto __error;
+	}
+	free(str);
 	err = open_ctl(v, &ctl);
 	if (err < 0) {
 		SNDERR("could not open control for card %li", v);
@@ -681,4 +690,42 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src, vo
 		SNDERR("Unable to find definition '%s'", name);
  _end:
 	return err;
+}
+
+int snd_func_macro(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+{
+	snd_config_t *n;
+	const char *name;
+	char *buf = NULL;
+	int err;
+
+	err = snd_config_search(src, "name", &n);
+	if (err >= 0) {
+		err = snd_config_evaluate(n, root, private_data, NULL);
+		if (err < 0) {
+			SNDERR("error evaluating name");
+			goto _end;
+		}
+		err = snd_config_get_string(n, &name);
+		if (err < 0) {
+			SNDERR("name is not a string");
+			goto _end;
+		}
+	}
+	if (strchr(name, '.') == NULL) {
+		buf = malloc(6 + strlen(name) + 1);
+		if (buf == NULL) {
+			err = -ENOMEM;
+			goto _end;
+		}
+		strcpy(buf, "macro.");
+		strcat(buf, name);
+	}
+	err = snd_config_search_definition(root, NULL, name, dst);
+	if (err < 0)
+		SNDERR("Unable to find macro definition '%s'", name);
+       _end:
+       	if (buf)
+       		free(buf);
+       	return err;
 }
