@@ -1226,7 +1226,12 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
  * call, use \link ::snd_pcm_poll_descriptors_revents() \endlink function.
  * The field values in pollfd structs may be bogus regarding the stream
  * direction from the application perspective (POLLIN might not imply read
- * direction and POLLOUT might not imply write).
+ * direction and POLLOUT might not imply write), but
+ * the \link ::snd_pcm_poll_descriptors_revents() \endlink function
+ * does the right "demangling".
+ *
+ * You can use output from this function as arguments for the select()
+ * syscall, too.
  */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
@@ -1258,6 +1263,11 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
  *
  * This function does "demangling" of the revents mask returned from
  * the poll() syscall to correct semantics (POLLIN = read, POLLOUT = write).
+ *
+ * Note: The null event also exists. Even if poll() or select()
+ * syscall returned that some events are waiting, this function might
+ * return empty set of events. In this case, application should
+ * do next event waiting using poll() or select().
  */
 int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
