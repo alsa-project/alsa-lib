@@ -2002,6 +2002,7 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 {
 	snd_pcm_hw_params_t sparams;
 	int err;
+	unsigned int cmask, changed;
 	err = cprepare(pcm, params);
 	if (err < 0)
 		return err;
@@ -2010,22 +2011,26 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		ERR("Slave PCM not useable");
 		return err;
 	}
-	/* FIXME: loop begin? */
-	err = schange(pcm, params, &sparams);
-	if (err >= 0) {
-		err = srefine(pcm, &sparams);
-	}
-	if (err < 0) {
-		cchange(pcm, params, &sparams);
-		return err;
-	}
-	err = cchange(pcm, params, &sparams);
-	if (err < 0)
-		return err;
-	err = snd_pcm_hw_refine_soft(pcm, params);
-	if (err < 0)
-		return err;
-	/* FIXME: do we need to loop? */
+	do {
+		cmask = params->cmask;
+		params->cmask = 0;
+		err = schange(pcm, params, &sparams);
+		if (err >= 0) {
+			err = srefine(pcm, &sparams);
+		}
+		if (err < 0) {
+			cchange(pcm, params, &sparams);
+			return err;
+		}
+		err = cchange(pcm, params, &sparams);
+		if (err < 0)
+			return err;
+		err = snd_pcm_hw_refine_soft(pcm, params);
+		changed = params->cmask;
+		params->cmask |= cmask;
+		if (err < 0)
+			return err;
+	} while (changed);
 	return 0;
 }
 

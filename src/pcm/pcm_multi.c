@@ -216,6 +216,7 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	unsigned int k;
 	snd_pcm_hw_params_t sparams[multi->slaves_count];
 	int err;
+	unsigned int cmask, changed;
 	err = snd_pcm_multi_hw_refine_cprepare(pcm, params);
 	if (err < 0)
 		return err;
@@ -226,23 +227,27 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			return err;
 		}
 	}
-	/* FIXME: loop begin? */
-	for (k = 0; k < multi->slaves_count; ++k) {
-		err = snd_pcm_multi_hw_refine_schange(pcm, k, params, &sparams[k]);
-		if (err >= 0)
-			err = snd_pcm_multi_hw_refine_slave(pcm, k, &sparams[k]);
-		if (err < 0) {
-			snd_pcm_multi_hw_refine_cchange(pcm, k, params, &sparams[k]);
-			return err;
+	do {
+		cmask = params->cmask;
+		params->cmask = 0;
+		for (k = 0; k < multi->slaves_count; ++k) {
+			err = snd_pcm_multi_hw_refine_schange(pcm, k, params, &sparams[k]);
+			if (err >= 0)
+				err = snd_pcm_multi_hw_refine_slave(pcm, k, &sparams[k]);
+			if (err < 0) {
+				snd_pcm_multi_hw_refine_cchange(pcm, k, params, &sparams[k]);
+				return err;
+			}
+			err = snd_pcm_multi_hw_refine_cchange(pcm, k, params, &sparams[k]);
+			if (err < 0)
+				return err;
 		}
-		err = snd_pcm_multi_hw_refine_cchange(pcm, k, params, &sparams[k]);
+		err = snd_pcm_hw_refine_soft(pcm, params);
+		changed = params->cmask;
+		params->cmask |= cmask;
 		if (err < 0)
 			return err;
-	}
-	err = snd_pcm_hw_refine_soft(pcm, params);
-	if (err < 0)
-		return err;
-	/* FIXME: do we need to loop? */
+	} while (changed);
 	return 0;
 }
 
