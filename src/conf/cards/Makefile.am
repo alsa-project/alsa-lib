@@ -8,9 +8,9 @@ cfg_files = aliases.conf \
 	AU8830.conf \
 	Audigy.conf \
 	Audigy2.conf \
-	AudigyLS.conf \
 	Aureon51.conf \
 	Aureon71.conf \
+	CA0106.conf \
 	CMI8338.conf \
 	CMI8338-SWIEC.conf \
 	CMI8738-MC6.conf \
