@@ -144,14 +144,26 @@ int snd_mixer_groups(snd_mixer_t *handle, snd_mixer_groups_t * groups)
 	return 0;
 }
 
-int snd_mixer_group(snd_mixer_t *handle, snd_mixer_group_t * group)
+int snd_mixer_group_read(snd_mixer_t *handle, snd_mixer_group_t * group)
 {
 	snd_mixer_t *mixer;
 
 	mixer = handle;
 	if (!mixer)
 		return -EINVAL;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_GROUP, group) < 0)
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_GROUP_READ, group) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_mixer_group_write(snd_mixer_t *handle, snd_mixer_group_t * group)
+{
+	snd_mixer_t *mixer;
+
+	mixer = handle;
+	if (!mixer)
+		return -EINVAL;
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_GROUP_WRITE, group) < 0)
 		return -errno;
 	return 0;
 }
@@ -188,30 +200,6 @@ int snd_mixer_element_write(snd_mixer_t *handle, snd_mixer_element_t * element)
 	if (!mixer)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_ELEMENT_WRITE, element) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_mixer_channel_read(snd_mixer_t *handle, snd_mixer_channels_t * channels)
-{
-	snd_mixer_t *mixer;
-
-	mixer = handle;
-	if (!mixer)
-		return -EINVAL;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_READ, channels) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_mixer_channel_write(snd_mixer_t *handle, snd_mixer_channels_t * channels)
-{
-	snd_mixer_t *mixer;
-
-	mixer = handle;
-	if (!mixer)
-		return -EINVAL;
-	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_WRITE, channels) < 0)
 		return -errno;
 	return 0;
 }

@@ -26,12 +26,11 @@ int snd_mixer_info(snd_mixer_t *handle, snd_mixer_info_t * info);
 int snd_mixer_elements(snd_mixer_t *handle, snd_mixer_elements_t * elements);
 int snd_mixer_routes(snd_mixer_t *handle, snd_mixer_routes_t * routes);
 int snd_mixer_groups(snd_mixer_t *handle, snd_mixer_groups_t * groups);
-int snd_mixer_group(snd_mixer_t *handle, snd_mixer_group_t * group);
+int snd_mixer_group_read(snd_mixer_t *handle, snd_mixer_group_t * group);
+int snd_mixer_group_write(snd_mixer_t *handle, snd_mixer_group_t * group);
 int snd_mixer_element_info(snd_mixer_t *handle, snd_mixer_element_info_t * info);
 int snd_mixer_element_read(snd_mixer_t *handle, snd_mixer_element_t * element);
 int snd_mixer_element_write(snd_mixer_t *handle, snd_mixer_element_t * element);
-int snd_mixer_channel_read(snd_mixer_t *handle, snd_mixer_channels_t * channels);
-int snd_mixer_channel_write(snd_mixer_t *handle, snd_mixer_channels_t * channels);
 int snd_mixer_read(snd_mixer_t *handle, snd_mixer_callbacks_t * callbacks);
 
 void snd_mixer_set_bit(unsigned int *bitmap, int bit, int val);
