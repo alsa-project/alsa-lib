@@ -196,7 +196,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 	snd_pcm_sframes_t hw_avail;
 	snd_pcm_uframes_t missing = INT_MAX;
 	snd_pcm_sframes_t ready_missing;
-	//	printf("state=%d hw_ptr=%d appl_ptr=%d slave appl_ptr=%d safety=%d silence=%d\n", share->state, slave->hw_ptr, share->appl_ptr, *slave->pcm->appl_ptr, slave->safety_threshold, slave->silence_frames);
+	// printf("state=%s hw_ptr=%ld appl_ptr=%ld slave appl_ptr=%ld safety=%ld silence=%ld\n", snd_pcm_state_name(share->state), slave->hw_ptr, share->appl_ptr, *slave->pcm->appl_ptr, slave->safety_threshold, slave->silence_frames);
 	switch (share->state) {
 	case SND_PCM_STATE_RUNNING:
 		break;
@@ -316,7 +316,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 				missing = silence_missing;
 		}
 	}
-	//	printf("missing=%d\n", missing);
+	// printf("missing=%d\n", missing);
 	return missing;
 }
 
@@ -351,9 +351,9 @@ static void *snd_pcm_share_thread(void *data)
 	assert(err >= 0);
 	while (slave->open_count > 0) {
 		snd_pcm_uframes_t missing;
-		//		printf("begin min_missing\n");
+		// printf("begin min_missing\n");
 		missing = _snd_pcm_share_slave_missing(slave);
-		//		printf("min_missing=%d\n", missing);
+		// printf("min_missing=%ld\n", missing);
 		if (missing < INT_MAX) {
 			snd_pcm_uframes_t hw_ptr;
 			snd_pcm_sframes_t avail_min;
@@ -399,6 +399,7 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 	/* snd_pcm_sframes_t avail = */ snd_pcm_avail_update(spcm);
 	slave->hw_ptr = *slave->pcm->hw_ptr;
 	missing = _snd_pcm_share_missing(pcm);
+	// printf("missing %ld\n", missing);
 	if (!slave->polling) {
 		pthread_cond_signal(&slave->poll_cond);
 		return;
