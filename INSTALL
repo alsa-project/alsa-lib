@@ -10,14 +10,37 @@ For installation you can use these commands:
 	./configure
 	make install
 
-If ./configure command complain that alsa-driver package isn't installed,
+If ./configure command complain that alsa-driver package is not installed,
 please, check if --prefix option is same for alsa-driver and alsa-lib
 package. The configure script from alsa-lib package probably cannot find
-header file asound.h in $prefix/include/linux directory (usually in
-/usr/include/linux directory).
+header file asound.h in $prefix/include/sound directory (usually in
+/usr/include/sound directory).
 
 Note: If you change kernel sources frequently, please, check if you have
-      installed alsa-driver for current version of your kernel.
+      compiled and installed alsa-driver for current version of your kernel.
+
+
+Installation using a build-in version of ALSA in Linux kernel
+-------------------------------------------------------------
+
+If you use a kernel build-in version of ALSA, use:
+
+	./configure --with-kernel=<version>
+	make install
+
+The directory /lib/modules/<version>/build/include/sound must exists for
+this kind of configuration.
+
+You may also specify the full-base for ALSA kernel headers:
+
+	./configure --with-soundbase=<path_to_linux_include_dir>
+	make install
+
+example:
+
+	./configure --with-soundbase=/usr/src/linux-2.5.5/include
+	make install
+
 
 Compilation from CVS sources
 ----------------------------
@@ -39,6 +62,7 @@ The included cvscompile script does this job for you.
 
 Note: Some automake packages have missing aclocal program. Use newer version
       in the case.
+
 
 Compilation of static library
 -----------------------------
