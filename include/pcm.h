@@ -35,18 +35,6 @@ typedef enum _snd_pcm_type {
 	SND_PCM_TYPE_LBSERVER,
 } snd_pcm_type_t;
 
-enum {
-	SND_PCM_RULE_PAR_MASK = 0x00ff,
-	SND_PCM_RULE_REL_LT = 0x100,
-	SND_PCM_RULE_REL_GT = 0x200,
-	SND_PCM_RULE_REL_EQ = 0x300,
-	SND_PCM_RULE_REL_LE = 0x400,
-	SND_PCM_RULE_REL_GE = 0x500,
-	SND_PCM_RULE_REL_NEAR = 0x600,
-	SND_PCM_RULE_REL_BITS = 0x700,
-	SND_PCM_RULE_REL_MASK = 0xff00
-};
-
 typedef struct _snd_pcm_channel_area {
 	void *addr;			/* base address of channel samples */
 	unsigned int first;		/* offset to first sample in bits */
@@ -69,8 +57,7 @@ int snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info);
-int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info);
-int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
+int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
 int snd_pcm_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t *info);
 int snd_pcm_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t *params);
@@ -92,7 +79,7 @@ ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size);
 int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp);
 int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, FILE *fp);
 int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp);
-int snd_pcm_dump_hw_info(snd_pcm_hw_info_t *info, FILE *fp);
+int snd_pcm_dump_hw_params(snd_pcm_hw_params_t *params, FILE *fp);
 int snd_pcm_dump_hw_params_fail(snd_pcm_hw_params_t *params, FILE *fp);
 int snd_pcm_dump_sw_params_fail(snd_pcm_sw_params_t *params, FILE *fp);
 int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp);
@@ -103,8 +90,58 @@ int snd_pcm_unlink(snd_pcm_t *pcm);
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 ssize_t snd_pcm_avail_update(snd_pcm_t *pcm);
 int snd_pcm_set_avail_min(snd_pcm_t *pcm, size_t size);
-void snd_pcm_hw_info_any(snd_pcm_hw_info_t *info);
-int snd_pcm_hw_params_info(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_hw_info_t *info);
+
+typedef struct _mask mask_t;
+size_t mask_sizeof();
+void mask_none(mask_t *mask);
+void mask_all(mask_t *mask);
+void mask_load(mask_t *mask, unsigned int msk);
+int mask_empty(const mask_t *mask);
+void mask_set(mask_t *mask, unsigned int val);
+void mask_reset(mask_t *mask, unsigned int val);
+void mask_copy(mask_t *mask, const mask_t *v);
+int mask_test(const mask_t *mask, unsigned int val);
+void mask_intersect(mask_t *mask, const mask_t *v);
+int mask_eq(const mask_t *a, const mask_t *b);
+int mask_single(const mask_t *mask);
+
+int snd_pcm_hw_params_any(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			   unsigned int par, unsigned int val);
+int snd_pcm_hw_params_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			  unsigned int par, unsigned int val);
+int snd_pcm_hw_params_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			  unsigned int par, unsigned int val);
+int snd_pcm_hw_params_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			     unsigned int par, unsigned int min, unsigned int max);
+int snd_pcm_hw_params_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			    unsigned int par);
+int snd_pcm_hw_params_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			   unsigned int par);
+int snd_pcm_hw_params_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			  unsigned int par, unsigned int val);
+int snd_pcm_hw_params_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			   unsigned int par, const mask_t *mask);
+int snd_pcm_hw_params_info_rate(const snd_pcm_hw_params_t *params,
+				unsigned int *rate_num,
+				unsigned int *rate_den);
+int snd_pcm_hw_params_info_msbits(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_info_flags(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_info_fifo_size(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_info_dig_groups(const snd_pcm_hw_params_t *params);
+int snd_pcm_hw_params_value(const snd_pcm_hw_params_t *params,
+			    unsigned int var);
+const mask_t *snd_pcm_hw_params_value_mask(const snd_pcm_hw_params_t *params,
+					   unsigned int var);
+const interval_t *snd_pcm_hw_params_value_interval(const snd_pcm_hw_params_t *params,
+						   unsigned int var);
+unsigned int snd_pcm_hw_params_value_min(const snd_pcm_hw_params_t *params,
+					 unsigned int var);
+unsigned int snd_pcm_hw_params_value_max(const snd_pcm_hw_params_t *params,
+					 unsigned int var);
+int snd_pcm_hw_params_test(const snd_pcm_hw_params_t *params,
+			   unsigned int var, unsigned int val);
+int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 
 typedef struct _snd_pcm_strategy snd_pcm_strategy_t;
 
@@ -114,7 +151,7 @@ typedef struct _snd_pcm_strategy_simple_choices_list {
 	unsigned int badness;
 } snd_pcm_strategy_simple_choices_list_t;
 
-int snd_pcm_hw_info_strategy(snd_pcm_t *pcm, snd_pcm_hw_info_t *info,
+int snd_pcm_hw_info_strategy(snd_pcm_t *pcm, snd_pcm_hw_params_t *info,
 			     const snd_pcm_strategy_t *strategy);
 
 int snd_pcm_strategy_free(snd_pcm_strategy_t *strategy);
@@ -129,9 +166,9 @@ int snd_pcm_strategy_simple_choices(snd_pcm_strategy_t *strategy, int order,
 				    unsigned int param,
 				    unsigned int count,
 				    snd_pcm_strategy_simple_choices_list_t *choices);
-int snd_pcm_hw_info_try_explain_failure(snd_pcm_t *pcm,
-					snd_pcm_hw_info_t *fail,
-					snd_pcm_hw_info_t *success,
+int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
+					snd_pcm_hw_params_t *fail,
+					snd_pcm_hw_params_t *success,
 					unsigned int depth,
 					FILE *fp);
 
@@ -147,7 +184,12 @@ ssize_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, size_t size);
 ssize_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, size_t size);
 ssize_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, size_t size);
 
+const char *snd_pcm_access_name(unsigned int access);
 const char *snd_pcm_format_name(unsigned int format);
+const char *snd_pcm_subformat_name(unsigned int subformat);
+const char *snd_pcm_hw_param_name(unsigned int params);
+const char *snd_pcm_sw_param_name(unsigned int params);
+
 const char *snd_pcm_format_description(unsigned int format);
 int snd_pcm_format_value(const char* name);
 

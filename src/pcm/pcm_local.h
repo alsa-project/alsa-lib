@@ -1,6 +1,7 @@
 /*
  *  PCM Interface - local header file
- *  Copyright (c) 1999 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *                        Abramo Bagnara <abramo@alsa-project.org>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -58,7 +59,7 @@ typedef struct {
 	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
 	int (*async)(snd_pcm_t *pcm, int sig, pid_t pid);
 	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
-	int (*hw_info)(snd_pcm_t *pcm, snd_pcm_hw_info_t *info);
+	int (*hw_refine)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 	int (*hw_params)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 	int (*sw_params)(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
 	int (*dig_info)(snd_pcm_t *pcm, snd_pcm_dig_info_t *info);
@@ -168,15 +169,9 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 			    snd_pcm_xfer_areas_func_t func);
 ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size);
 ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size);
-int snd_pcm_hw_info_complete(snd_pcm_hw_info_t *info);
-void snd_pcm_hw_params_to_info(snd_pcm_hw_params_t *params, snd_pcm_hw_info_t *info);
-int snd_pcm_hw_info_to_params(snd_pcm_t *pcm, snd_pcm_hw_info_t *info, snd_pcm_hw_params_t *params);
+int snd_pcm_hw_info_complete(snd_pcm_hw_params_t *info);
 int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
-int snd_pcm_hw_info_par_nearest_next(const snd_pcm_hw_info_t *info,
-				     unsigned int param,
-				     unsigned int best, int value,
-				     snd_pcm_t *pcm);
 
 static inline size_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {
@@ -316,3 +311,50 @@ static inline int muldiv_near(int a, int b, int c)
 		n++;
 	return n;
 }
+
+int _snd_pcm_hw_refine(snd_pcm_hw_params_t *params);
+void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params);
+int _snd_pcm_hw_params_mask(snd_pcm_hw_params_t *params, int hw,
+			    unsigned int var, const mask_t *mask);
+int _snd_pcm_hw_params_first(snd_pcm_hw_params_t *params, int hw,
+			     unsigned int var);
+int _snd_pcm_hw_params_last(snd_pcm_hw_params_t *params, int hw,
+			    unsigned int var);
+int _snd_pcm_hw_params_set(snd_pcm_hw_params_t *params, int hw,
+			   unsigned int var, unsigned int val);
+int _snd_pcm_hw_params_min(snd_pcm_hw_params_t *params, int hw,
+			   unsigned int var, unsigned int val);
+int _snd_pcm_hw_params_max(snd_pcm_hw_params_t *params, int hw,
+			   unsigned int var, unsigned int val);
+int snd_pcm_hw_refine2(snd_pcm_hw_params_t *params,
+		       snd_pcm_hw_params_t *sparams,
+		       int (*func)(snd_pcm_t *slave,
+				   snd_pcm_hw_params_t *params),
+		       snd_pcm_t *slave,
+		       unsigned int links);
+int snd_pcm_hw_params2(snd_pcm_hw_params_t *params,
+		       snd_pcm_hw_params_t *sparams,
+		       int (*func)(snd_pcm_t *slave, 
+				   snd_pcm_hw_params_t *sparams),
+		       snd_pcm_t *slave,
+		       unsigned int links);
+
+#define SND_PCM_HW_PARBIT_ACCESS	(1 << SND_PCM_HW_PARAM_ACCESS)
+#define SND_PCM_HW_PARBIT_FORMAT	(1 << SND_PCM_HW_PARAM_FORMAT)
+#define SND_PCM_HW_PARBIT_SUBFORMAT	(1 << SND_PCM_HW_PARAM_SUBFORMAT)
+#define SND_PCM_HW_PARBIT_CHANNELS	(1 << SND_PCM_HW_PARAM_CHANNELS)
+#define SND_PCM_HW_PARBIT_RATE		(1 << SND_PCM_HW_PARAM_RATE)
+#define SND_PCM_HW_PARBIT_FRAGMENT_LENGTH (1 << SND_PCM_HW_PARAM_FRAGMENT_LENGTH)
+#define SND_PCM_HW_PARBIT_FRAGMENT_SIZE	(1 << SND_PCM_HW_PARAM_FRAGMENT_SIZE)
+#define SND_PCM_HW_PARBIT_FRAGMENTS	(1 << SND_PCM_HW_PARAM_FRAGMENTS)
+#define SND_PCM_HW_PARBIT_BUFFER_LENGTH	(1 << SND_PCM_HW_PARAM_BUFFER_LENGTH)
+#define SND_PCM_HW_PARBIT_BUFFER_SIZE	(1 << SND_PCM_HW_PARAM_BUFFER_SIZE)
+#define SND_PCM_HW_PARBIT_SAMPLE_BITS	(1 << SND_PCM_HW_PARAM_SAMPLE_BITS)
+#define SND_PCM_HW_PARBIT_FRAME_BITS	(1 << SND_PCM_HW_PARAM_FRAME_BITS)
+#define SND_PCM_HW_PARBIT_FRAGMENT_BYTES (1 << SND_PCM_HW_PARAM_FRAGMENT_BYTES)
+#define SND_PCM_HW_PARBIT_BUFFER_BYTES	(1 << SND_PCM_HW_PARAM_BUFFER_BYTES)
+
+
+#define SND_PCM_ACCBIT_MMAP ((1 << SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
+			     (1 << SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
+			     (1 << SND_PCM_ACCESS_MMAP_COMPLEX))

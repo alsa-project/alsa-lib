@@ -64,13 +64,14 @@ int get_index(int src_format, int dst_format);
 int put_index(int src_format, int dst_format);
 int conv_index(int src_format, int dst_format);
 
-#define SND_PCM_FMTBIT_LINEAR (SND_PCM_FMTBIT_S8     |SND_PCM_FMTBIT_U8 | \
-				SND_PCM_FMTBIT_S16_LE|SND_PCM_FMTBIT_S16_BE | \
-				SND_PCM_FMTBIT_U16_LE|SND_PCM_FMTBIT_U16_BE | \
-				SND_PCM_FMTBIT_S24_LE|SND_PCM_FMTBIT_S24_BE | \
-				SND_PCM_FMTBIT_U24_LE|SND_PCM_FMTBIT_U24_BE | \
-				SND_PCM_FMTBIT_S32_LE|SND_PCM_FMTBIT_S32_BE | \
-				SND_PCM_FMTBIT_U32_LE|SND_PCM_FMTBIT_U32_BE)
+#define SND_PCM_FMTBIT_LINEAR \
+	((1 << SND_PCM_FORMAT_S8    ) | (1 << SND_PCM_FORMAT_U8) | \
+	 (1 << SND_PCM_FORMAT_S16_LE) | (1 << SND_PCM_FORMAT_S16_BE) | \
+	 (1 << SND_PCM_FORMAT_U16_LE) | (1 << SND_PCM_FORMAT_U16_BE) | \
+	 (1 << SND_PCM_FORMAT_S24_LE) | (1 << SND_PCM_FORMAT_S24_BE) | \
+	 (1 << SND_PCM_FORMAT_U24_LE) | (1 << SND_PCM_FORMAT_U24_BE) | \
+	 (1 << SND_PCM_FORMAT_S32_LE) | (1 << SND_PCM_FORMAT_S32_BE) | \
+	 (1 << SND_PCM_FORMAT_U32_LE) | (1 << SND_PCM_FORMAT_U32_BE))
 
 extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
@@ -106,4 +107,10 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 		       unsigned int tt_cused, unsigned int tt_sused,
 		       snd_pcm_t *slave, int close_slave);
 int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, int sformat, int srate, snd_pcm_t *slave, int close_slave);
+
+
+#define SND_PCM_ACCBIT_PLUGIN ((1 << SND_PCM_ACCESS_MMAP_INTERLEAVED) | \
+			       (1 << SND_PCM_ACCESS_RW_INTERLEAVED) | \
+			       (1 << SND_PCM_ACCESS_MMAP_NONINTERLEAVED) | \
+			       (1 << SND_PCM_ACCESS_RW_NONINTERLEAVED))
 

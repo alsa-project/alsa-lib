@@ -42,7 +42,7 @@ typedef struct {
 			pid_t pid;
 		} async;
 		snd_pcm_info_t info;
-		snd_pcm_hw_info_t hw_info;
+		snd_pcm_hw_params_t hw_refine;
 		snd_pcm_hw_params_t hw_params;
 		snd_pcm_sw_params_t sw_params;
 		snd_pcm_dig_params_t dig_params;

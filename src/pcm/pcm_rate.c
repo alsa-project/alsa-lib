@@ -233,50 +233,60 @@ static int snd_pcm_rate_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_rate_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
+static int snd_pcm_rate_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_rate_t *rate = pcm->private;
-	unsigned int access_mask, format_mask;
-	unsigned int rate_min, rate_max;
+	snd_pcm_t *slave = rate->plug.slave;
 	int err;
-	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_INTERLEAVED |
-			      SND_PCM_ACCBIT_MMAP_NONINTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_NONINTERLEAVED);
-	access_mask = info->access_mask;
-	if (access_mask == 0)
-		return -EINVAL;
-
-	info->format_mask &= SND_PCM_FMTBIT_LINEAR;
-	format_mask = info->format_mask;
-	if (format_mask == 0)
-		return -EINVAL;
-
-	if (info->rate_min < RATE_MIN)
-		info->rate_min = RATE_MIN;
-	if (info->rate_max > RATE_MAX)
-		info->rate_max = RATE_MAX;
-	rate_min = info->rate_min;
-	rate_max = info->rate_max;
-	if (rate_max < rate_min)
-		return -EINVAL;
-	
-	info->access_mask = SND_PCM_ACCBIT_MMAP;
-	if (rate->sformat >= 0)
-		info->format_mask = 1U << rate->sformat;
-	info->rate_min = rate->srate;
-	info->rate_max = rate->srate;
-		
-	err = snd_pcm_hw_info(rate->plug.slave, info);
-	if (rate->sformat >= 0)
-		info->format_mask = format_mask;
-	info->rate_min = rate_min;
-	info->rate_max = rate_max;
-
+	snd_pcm_hw_params_t sparams;
+	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
+			      SND_PCM_HW_PARBIT_FRAGMENTS |
+			      SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
+			      SND_PCM_HW_PARBIT_BUFFER_LENGTH);
+	mask_t *access_mask = alloca(mask_sizeof());
+	mask_t *format_mask = alloca(mask_sizeof());
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
+	mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
+				      access_mask);
 	if (err < 0)
 		return err;
-	info->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
-	snd_pcm_hw_info_complete(info);
+	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_FORMAT,
+				      format_mask);
+	if (err < 0)
+		return err;
+	err = _snd_pcm_hw_params_min(params, 1,
+				     SND_PCM_HW_PARAM_RATE, RATE_MIN);
+	if (err < 0)
+		return err;
+	err = _snd_pcm_hw_params_max(params, 1,
+				     SND_PCM_HW_PARAM_RATE, RATE_MAX);
+	if (err < 0)
+		return err;
+
+	_snd_pcm_hw_params_any(&sparams);
+	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+				saccess_mask);
+	if (rate->sformat >= 0) {
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+				       rate->sformat);
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+				       SND_PCM_SUBFORMAT_STD);
+	} else
+		links |= (SND_PCM_HW_PARBIT_FORMAT |
+			  SND_PCM_HW_PARBIT_SUBFORMAT |
+			  SND_PCM_HW_PARBIT_SAMPLE_BITS |
+			  SND_PCM_HW_PARBIT_FRAME_BITS);
+	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_RATE,
+			       rate->srate);
+		
+	err = snd_pcm_hw_refine2(params, &sparams,
+				 snd_pcm_hw_refine, slave, links);
+	if (err < 0)
+		return err;
+	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
 }
 
@@ -284,32 +294,48 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_rate_t *rate = pcm->private;
 	snd_pcm_t *slave = rate->plug.slave;
-	snd_pcm_hw_info_t sinfo;
+	int err;
 	snd_pcm_hw_params_t sparams;
+	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
+			      SND_PCM_HW_PARBIT_FRAGMENTS |
+			      SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
+			      SND_PCM_HW_PARBIT_BUFFER_LENGTH);
 	unsigned int src_format, dst_format;
 	unsigned int src_rate, dst_rate;
-	int mul, div;
-	int err;
-	snd_pcm_hw_params_to_info(params, &sinfo);
-	if (rate->sformat >= 0)
-		sinfo.format_mask = 1 << rate->sformat;
-	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
-	sinfo.rate_min = rate->srate;
-	sinfo.rate_max = rate->srate;
-	err = snd_pcm_hw_params_info(slave, &sparams, &sinfo);
-	params->fail_mask = sparams.fail_mask;
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+
+	_snd_pcm_hw_params_any(&sparams);
+	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+				saccess_mask);
+	if (rate->sformat >= 0) {
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+				       rate->sformat);
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+				       SND_PCM_SUBFORMAT_STD);
+	} else
+		links |= (SND_PCM_HW_PARBIT_FORMAT |
+			  SND_PCM_HW_PARBIT_SUBFORMAT |
+			  SND_PCM_HW_PARBIT_SAMPLE_BITS |
+			  SND_PCM_HW_PARBIT_FRAME_BITS);
+	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_RATE,
+			       rate->srate);
+		
+	err = snd_pcm_hw_params2(params, &sparams,
+				 snd_pcm_hw_params, slave, links);
 	if (err < 0)
 		return err;
+	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		src_format = params->format;
+		src_format = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT);
 		dst_format = slave->format;
-		src_rate = params->rate;
+		src_rate = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_RATE);
 		dst_rate = slave->rate;
 	} else {
 		src_format = slave->format;
-		dst_format = params->format;
+		dst_format = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT);
 		src_rate = slave->rate;
-		dst_rate = params->rate;
+		dst_rate = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_RATE);
 	}
 	rate->get_idx = get_index(src_format, SND_PCM_FORMAT_S16);
 	rate->put_idx = put_index(SND_PCM_FORMAT_S16, dst_format);
@@ -321,16 +347,9 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		/* pitch is get_increment */
 	}
 	rate->pitch = (((u_int64_t)dst_rate * DIV) + src_rate / 2) / src_rate;
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		mul = DIV;
-		div = rate->pitch;
-	} else {
-		mul = rate->pitch;
-		div = DIV;
-	}
 	if (rate->states)
 		free(rate->states);
-	rate->states = malloc(params->channels * sizeof(*rate->states));
+	rate->states = malloc(snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_CHANNELS) * sizeof(*rate->states));
 	return 0;
 }
 
@@ -493,7 +512,7 @@ static void snd_pcm_rate_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_rate_ops = {
 	close: snd_pcm_rate_close,
 	info: snd_pcm_plugin_info,
-	hw_info: snd_pcm_rate_hw_info,
+	hw_refine: snd_pcm_rate_hw_refine,
 	hw_params: snd_pcm_rate_hw_params,
 	sw_params: snd_pcm_rate_sw_params,
 	dig_info: snd_pcm_plugin_dig_info,

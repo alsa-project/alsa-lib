@@ -228,35 +228,59 @@ static void mulaw_encode(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-static int snd_pcm_mulaw_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
+static int snd_pcm_mulaw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_mulaw_t *mulaw = pcm->private;
-	unsigned int format_mask, access_mask;
+	snd_pcm_t *slave = mulaw->plug.slave;
 	int err;
-	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_INTERLEAVED |
-			      SND_PCM_ACCBIT_MMAP_NONINTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_NONINTERLEAVED);
-	access_mask = info->access_mask;
-	if (access_mask == 0)
-		return -EINVAL;
-	if (mulaw->sformat == SND_PCM_FORMAT_MU_LAW)
-		info->format_mask &= SND_PCM_FMTBIT_LINEAR;
-	else
-		info->format_mask &= SND_PCM_FMTBIT_MU_LAW;
-	format_mask = info->format_mask;
-	if (format_mask == 0)
-		return -EINVAL;
-
-	info->format_mask = 1U << mulaw->sformat;
-	info->access_mask = SND_PCM_ACCBIT_MMAP;
-	err = snd_pcm_hw_info(mulaw->plug.slave, info);
-	info->format_mask = format_mask;
-	info->access_mask = access_mask;
+	snd_pcm_hw_params_t sparams;
+	mask_t *access_mask = alloca(mask_sizeof());
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
+				      access_mask);
 	if (err < 0)
 		return err;
-	info->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
-	snd_pcm_hw_info_complete(info);
+	if (mulaw->sformat == SND_PCM_FORMAT_MU_LAW) {
+		mask_t *format_mask = alloca(mask_sizeof());
+		mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
+		err = _snd_pcm_hw_params_mask(params, 1, 
+					      SND_PCM_HW_PARAM_FORMAT,
+					      format_mask);
+		if (err < 0)
+			return err;
+	} else {
+		err = _snd_pcm_hw_params_set(params, 1,
+					     SND_PCM_HW_PARAM_FORMAT,
+					     SND_PCM_FORMAT_MU_LAW);
+		if (err < 0)
+			return err;
+	}
+	err = _snd_pcm_hw_params_set(params, 1, SND_PCM_HW_PARAM_SUBFORMAT,
+				     SND_PCM_SUBFORMAT_STD);
+	if (err < 0)
+		return err;
+
+	_snd_pcm_hw_params_any(&sparams);
+	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+				saccess_mask);
+	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+			       mulaw->sformat);
+	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+			       SND_PCM_SUBFORMAT_STD);
+	err = snd_pcm_hw_refine2(params, &sparams,
+				 snd_pcm_hw_refine, slave,
+				 SND_PCM_HW_PARBIT_CHANNELS |
+				 SND_PCM_HW_PARBIT_RATE |
+				 SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
+				 SND_PCM_HW_PARBIT_BUFFER_SIZE |
+				 SND_PCM_HW_PARBIT_FRAGMENTS |
+				 SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
+				 SND_PCM_HW_PARBIT_BUFFER_LENGTH);
+	if (err < 0)
+		return err;
+	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
 }
 
@@ -264,19 +288,33 @@ static int snd_pcm_mulaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_mulaw_t *mulaw = pcm->private;
 	snd_pcm_t *slave = mulaw->plug.slave;
-	snd_pcm_hw_info_t sinfo;
-	snd_pcm_hw_params_t sparams;
 	int err;
-	snd_pcm_hw_params_to_info(params, &sinfo);
-	sinfo.format_mask = 1 << mulaw->sformat;
-	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
-	err = snd_pcm_hw_params_info(slave, &sparams, &sinfo);
-	params->fail_mask = sparams.fail_mask;
+	snd_pcm_hw_params_t sparams;
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+
+	_snd_pcm_hw_params_any(&sparams);
+	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+				saccess_mask);
+	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+			       mulaw->sformat);
+	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+			       SND_PCM_SUBFORMAT_STD);
+	err = snd_pcm_hw_params2(params, &sparams,
+				 snd_pcm_hw_params, slave,
+				 SND_PCM_HW_PARBIT_CHANNELS |
+				 SND_PCM_HW_PARBIT_RATE |
+				 SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
+				 SND_PCM_HW_PARBIT_BUFFER_SIZE |
+				 SND_PCM_HW_PARBIT_FRAGMENTS |
+				 SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
+				 SND_PCM_HW_PARBIT_BUFFER_LENGTH);
 	if (err < 0)
 		return err;
+	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (mulaw->sformat == SND_PCM_FORMAT_MU_LAW) {
-			mulaw->getput_idx = get_index(params->format, SND_PCM_FORMAT_S16);
+			mulaw->getput_idx = get_index(snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT), SND_PCM_FORMAT_S16);
 			mulaw->func = mulaw_encode;
 		} else {
 			mulaw->getput_idx = put_index(SND_PCM_FORMAT_S16, mulaw->sformat);
@@ -284,7 +322,7 @@ static int snd_pcm_mulaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		}
 	} else {
 		if (mulaw->sformat == SND_PCM_FORMAT_MU_LAW) {
-			mulaw->getput_idx = put_index(SND_PCM_FORMAT_S16, params->format);
+			mulaw->getput_idx = put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT));
 			mulaw->func = mulaw_decode;
 		} else {
 			mulaw->getput_idx = get_index(mulaw->sformat, SND_PCM_FORMAT_S16);
@@ -380,7 +418,7 @@ static void snd_pcm_mulaw_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_mulaw_ops = {
 	close: snd_pcm_plugin_close,
 	info: snd_pcm_plugin_info,
-	hw_info: snd_pcm_mulaw_hw_info,
+	hw_refine: snd_pcm_mulaw_hw_refine,
 	hw_params: snd_pcm_mulaw_hw_params,
 	sw_params: snd_pcm_plugin_sw_params,
 	dig_info: snd_pcm_plugin_dig_info,

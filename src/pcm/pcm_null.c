@@ -230,10 +230,11 @@ static int snd_pcm_null_set_avail_min(snd_pcm_t *pcm, size_t frames)
 	return 0;
 }
 
-static int snd_pcm_null_hw_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_info_t * info)
+static int snd_pcm_null_hw_refine(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
-	snd_pcm_hw_info_complete(info);
-	info->fifo_size = 0;
+	_snd_pcm_hw_refine(params);
+	params->fifo_size = 0;
+	params->dig_groups = 0;
 	return 0;
 }
 
@@ -245,15 +246,15 @@ static int snd_pcm_null_hw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_pa
 static int snd_pcm_null_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t * params)
 {
 	if (params->start_mode > SND_PCM_START_LAST) {
-		params->fail_mask = SND_PCM_SW_PARBIT_START_MODE;
+		params->fail_mask = 1 << SND_PCM_SW_PARAM_START_MODE;
 		return -EINVAL;
 	}
 	if (params->ready_mode > SND_PCM_READY_LAST) {
-		params->fail_mask = SND_PCM_SW_PARBIT_READY_MODE;
+		params->fail_mask = 1 << SND_PCM_SW_PARAM_READY_MODE;
 		return -EINVAL;
 	}
 	if (params->xrun_mode > SND_PCM_XRUN_LAST) {
-		params->fail_mask = SND_PCM_SW_PARBIT_XRUN_MODE;
+		params->fail_mask = 1 << SND_PCM_SW_PARAM_XRUN_MODE;
 		return -EINVAL;
 	}
 	return 0;
@@ -306,7 +307,7 @@ static void snd_pcm_null_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_null_ops = {
 	close: snd_pcm_null_close,
 	info: snd_pcm_null_info,
-	hw_info: snd_pcm_null_hw_info,
+	hw_refine: snd_pcm_null_hw_refine,
 	hw_params: snd_pcm_null_hw_params,
 	sw_params: snd_pcm_null_sw_params,
 	dig_params: snd_pcm_null_dig_params,

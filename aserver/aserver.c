@@ -379,8 +379,8 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_INFO:
 		ctrl->result = snd_pcm_info(pcm, (snd_pcm_info_t *) &ctrl->u.info);
 		break;
-	case SND_PCM_IOCTL_HW_INFO:
-		ctrl->result = snd_pcm_hw_info(pcm, (snd_pcm_hw_info_t *) &ctrl->u.hw_info);
+	case SND_PCM_IOCTL_HW_REFINE:
+		ctrl->result = snd_pcm_hw_refine(pcm, (snd_pcm_hw_params_t *) &ctrl->u.hw_refine);
 		break;
 	case SND_PCM_IOCTL_HW_PARAMS:
 		ctrl->result = snd_pcm_hw_params(pcm, (snd_pcm_hw_params_t *) &ctrl->u.hw_params);

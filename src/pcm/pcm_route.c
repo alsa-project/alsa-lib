@@ -425,50 +425,64 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_route_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
+static int snd_pcm_route_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_route_t *route = pcm->private;
-	unsigned int format_mask, access_mask;
-	unsigned int channels_min, channels_max;
+	snd_pcm_t *slave = route->plug.slave;
 	int err;
-	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_INTERLEAVED |
-			      SND_PCM_ACCBIT_MMAP_NONINTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_NONINTERLEAVED);
-	access_mask = info->access_mask;
-	if (access_mask == 0)
-		return -EINVAL;
-
-	info->format_mask &= SND_PCM_FMTBIT_LINEAR;
-	format_mask = info->format_mask;
-	if (format_mask == 0)
-		return -EINVAL;
-
-	if (info->channels_min < 1)
-		info->channels_min = 1;
-	channels_min = info->channels_min;
-	channels_max = info->channels_max;
-	if (channels_min > channels_max)
-		return -EINVAL;
-
-	if (route->sformat >= 0)
-		info->format_mask = 1U << route->sformat;
-	if (route->schannels >= 0)
-		info->channels_min = info->channels_max = route->schannels;
-		
-	info->access_mask = SND_PCM_ACCBIT_MMAP;
-	err = snd_pcm_hw_info(route->plug.slave, info);
-	info->access_mask = access_mask;
-	if (route->sformat >= 0)
-		info->format_mask = format_mask;
-	if (route->schannels >= 0) {
-		info->channels_min = channels_min;
-		info->channels_max = channels_max;
-	}
+	snd_pcm_hw_params_t sparams;
+	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
+			      SND_PCM_HW_PARBIT_FRAGMENTS |
+			      SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
+			      SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
+			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
+			      SND_PCM_HW_PARBIT_BUFFER_LENGTH);
+	mask_t *access_mask = alloca(mask_sizeof());
+	mask_t *format_mask = alloca(mask_sizeof());
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
+	mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
+				      access_mask);
 	if (err < 0)
 		return err;
-	info->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
-	snd_pcm_hw_info_complete(info);
+	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_FORMAT,
+				      format_mask);
+	if (err < 0)
+		return err;
+	err = _snd_pcm_hw_params_min(params, 1, SND_PCM_HW_PARAM_CHANNELS, 1);
+	if (err < 0)
+		return err;
+
+	_snd_pcm_hw_params_any(&sparams);
+	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+				saccess_mask);
+	if (route->sformat >= 0) {
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+				       route->sformat);
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+				       SND_PCM_SUBFORMAT_STD);
+	} else
+		links |= (SND_PCM_HW_PARBIT_FORMAT | 
+			  SND_PCM_HW_PARBIT_SUBFORMAT |
+			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
+	if (route->schannels >= 0) {
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_CHANNELS,
+				       route->schannels);
+	} else {
+		links |= SND_PCM_HW_PARBIT_CHANNELS;
+		if (route->sformat < 0)
+			links |= (SND_PCM_HW_PARBIT_FRAME_BITS |
+				  SND_PCM_HW_PARBIT_FRAGMENT_BYTES |
+				  SND_PCM_HW_PARBIT_BUFFER_BYTES);
+	}
+		
+	err = snd_pcm_hw_refine2(params, &sparams,
+				 snd_pcm_hw_refine, slave, links);
+	if (err < 0)
+		return err;
+	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
 }
 
@@ -476,26 +490,51 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_route_t *route = pcm->private;
 	snd_pcm_t *slave = route->plug.slave;
-	unsigned int src_format, dst_format;
-	snd_pcm_hw_info_t sinfo;
-	snd_pcm_hw_params_t sparams;
 	int err;
-	snd_pcm_hw_params_to_info(params, &sinfo);
-	if (route->sformat >= 0)
-		sinfo.format_mask = 1 << route->sformat;
-	if (route->schannels >= 0)
-		sinfo.channels_min = sinfo.channels_max = route->schannels;
-	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
-	err = snd_pcm_hw_params_info(slave, &sparams, &sinfo);
-	params->fail_mask = sparams.fail_mask;
+	snd_pcm_hw_params_t sparams;
+	unsigned int links = (SND_PCM_HW_PARBIT_FRAGMENTS |
+			      SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
+			      SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
+			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
+			      SND_PCM_HW_PARBIT_BUFFER_LENGTH);
+	unsigned int src_format, dst_format;
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+
+	_snd_pcm_hw_params_any(&sparams);
+	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+				saccess_mask);
+	if (route->sformat >= 0) {
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+				       route->sformat);
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+				       SND_PCM_SUBFORMAT_STD);
+	} else
+		links |= (SND_PCM_HW_PARBIT_FORMAT | 
+			  SND_PCM_HW_PARBIT_SUBFORMAT |
+			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
+	if (route->schannels >= 0) {
+		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_CHANNELS,
+				       route->schannels);
+	} else {
+		links |= SND_PCM_HW_PARBIT_CHANNELS;
+		if (route->sformat < 0)
+			links |= (SND_PCM_HW_PARBIT_FRAME_BITS |
+				  SND_PCM_HW_PARBIT_FRAGMENT_BYTES |
+				  SND_PCM_HW_PARBIT_BUFFER_BYTES);
+	}
+
+	err = snd_pcm_hw_params2(params, &sparams, 
+				 snd_pcm_hw_params, slave, links);
 	if (err < 0)
 		return err;
+	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		src_format = params->format;
+		src_format = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT);
 		dst_format = slave->format;
 	} else {
 		src_format = slave->format;
-		dst_format = params->format;
+		dst_format = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT);
 	}
 	route->params.get_idx = get_index(src_format, SND_PCM_FORMAT_U16);
 	route->params.put_idx = put_index(SND_PCM_FORMAT_U32, dst_format);
@@ -622,7 +661,7 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_route_ops = {
 	close: snd_pcm_route_close,
 	info: snd_pcm_plugin_info,
-	hw_info: snd_pcm_route_hw_info,
+	hw_refine: snd_pcm_route_hw_refine,
 	hw_params: snd_pcm_route_hw_params,
 	sw_params: snd_pcm_plugin_sw_params,
 	dig_info: snd_pcm_plugin_dig_info,

@@ -254,10 +254,10 @@ static int snd_pcm_file_set_avail_min(snd_pcm_t *pcm, size_t frames)
 	return snd_pcm_set_avail_min(file->slave, frames);
 }
 
-static int snd_pcm_file_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
+static int snd_pcm_file_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_hw_info(file->slave, info);
+	return snd_pcm_hw_refine(file->slave, params);
 }
 
 static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
@@ -314,7 +314,7 @@ static void snd_pcm_file_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_file_ops = {
 	close: snd_pcm_file_close,
 	info: snd_pcm_file_info,
-	hw_info: snd_pcm_file_hw_info,
+	hw_refine: snd_pcm_file_hw_refine,
 	hw_params: snd_pcm_file_hw_params,
 	sw_params: snd_pcm_file_sw_params,
 	dig_info: snd_pcm_file_dig_info,

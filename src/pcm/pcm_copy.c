@@ -28,40 +28,50 @@ typedef struct {
 	snd_pcm_plugin_t plug;
 } snd_pcm_copy_t;
 
-static int snd_pcm_copy_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
+static int snd_pcm_copy_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_copy_t *copy = pcm->private;
-	unsigned int access_mask;
+	snd_pcm_t *slave = copy->plug.slave;
 	int err;
-	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_INTERLEAVED |
-			      SND_PCM_ACCBIT_MMAP_NONINTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_NONINTERLEAVED);
-	access_mask = info->access_mask;
-	if (access_mask == 0)
-		return -EINVAL;
-
-	info->access_mask = SND_PCM_ACCBIT_MMAP;
-	err = snd_pcm_hw_info(copy->plug.slave, info);
-	info->access_mask = access_mask;
+	snd_pcm_hw_params_t sparams;
+	mask_t *access_mask = alloca(mask_sizeof());
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
+				      access_mask);
 	if (err < 0)
 		return err;
-	info->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
-	snd_pcm_hw_info_complete(info);
-	return 0;
+	_snd_pcm_hw_params_any(&sparams);
+	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+				saccess_mask);
+	err = snd_pcm_hw_refine2(params, &sparams,
+				 snd_pcm_hw_refine, slave, 
+				 ~SND_PCM_HW_PARBIT_ACCESS);
+	if (err < 0)
+		return err;
+	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
+	return err;
 }
 
 static int snd_pcm_copy_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_copy_t *copy = pcm->private;
 	snd_pcm_t *slave = copy->plug.slave;
-	snd_pcm_hw_info_t sinfo;
-	snd_pcm_hw_params_t sparams;
 	int err;
-	snd_pcm_hw_params_to_info(params, &sinfo);
-	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
-	err = snd_pcm_hw_params_info(slave, &sparams, &sinfo);
-	params->fail_mask = sparams.fail_mask;
+	snd_pcm_hw_params_t sparams;
+	mask_t *saccess_mask = alloca(mask_sizeof());
+	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+
+	_snd_pcm_hw_params_any(&sparams);
+	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+				saccess_mask);
+	err = snd_pcm_hw_params2(params, &sparams,
+				 snd_pcm_hw_params, slave, 
+				 ~SND_PCM_HW_PARBIT_ACCESS);
+	if (err < 0)
+		return err;
+	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return err;
 }
 
@@ -149,7 +159,7 @@ static void snd_pcm_copy_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_copy_ops = {
 	close: snd_pcm_plugin_close,
 	info: snd_pcm_plugin_info,
-	hw_info: snd_pcm_copy_hw_info,
+	hw_refine: snd_pcm_copy_hw_refine,
 	hw_params: snd_pcm_copy_hw_params,
 	sw_params: snd_pcm_plugin_sw_params,
 	dig_info: snd_pcm_plugin_dig_info,

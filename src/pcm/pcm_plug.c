@@ -118,12 +118,14 @@ static unsigned int nonlinear_preferred_formats[] = {
 	SND_PCM_FORMAT_IMA_ADPCM,
 };
 
-static int snd_pcm_plug_slave_format(int format, unsigned int format_mask)
+static int snd_pcm_plug_slave_format(int format, const mask_t *format_mask)
 {
 	int w, u, e, wid, w1, dw;
-	if (format_mask & (1 << format))
+	mask_t *lin = alloca(mask_sizeof());
+	if (mask_test(format_mask, format))
 		return format;
-	if (!((1 << format) & SND_PCM_FMTBIT_LINEAR)) {
+	mask_load(lin, SND_PCM_FMTBIT_LINEAR);
+	if (!mask_test(lin, format)) {
 		unsigned int i;
 		switch (format) {
 		case SND_PCM_FORMAT_MU_LAW:
@@ -131,7 +133,7 @@ static int snd_pcm_plug_slave_format(int format, unsigned int format_mask)
 		case SND_PCM_FORMAT_IMA_ADPCM:
 			for (i = 0; i < sizeof(linear_preferred_formats) / sizeof(linear_preferred_formats[0]); ++i) {
 				unsigned int f = linear_preferred_formats[i];
-				if (format_mask & (1 << f))
+				if (mask_test(format_mask, f))
 					return f;
 			}
 			/* Fall through */
@@ -140,11 +142,12 @@ static int snd_pcm_plug_slave_format(int format, unsigned int format_mask)
 		}
 
 	}
-	if (!(format_mask & SND_PCM_FMTBIT_LINEAR)) {
+	mask_intersect(lin, format_mask);
+	if (mask_empty(lin)) {
 		unsigned int i;
 		for (i = 0; i < sizeof(nonlinear_preferred_formats) / sizeof(nonlinear_preferred_formats[0]); ++i) {
 			unsigned int f = nonlinear_preferred_formats[i];
-			if (format_mask & (1 << f))
+			if (mask_test(format_mask, f))
 				return f;
 		}
 		return -EINVAL;
@@ -161,7 +164,7 @@ static int snd_pcm_plug_slave_format(int format, unsigned int format_mask)
 			for (sgn = 0; sgn < 2; ++sgn) {
 				int f;
 				f = snd_pcm_build_linear_format(w1, u1, e1);
-				if (f >= 0 && format_mask & (1 << f))
+				if (f >= 0 && mask_test(format_mask, f))
 					return f;
 				u1 = !u1;
 			}
@@ -177,123 +180,179 @@ static int snd_pcm_plug_slave_format(int format, unsigned int format_mask)
 	return -EINVAL;
 }
 
-static int snd_pcm_plug_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
+#define SND_PCM_FMTBIT_PLUG (SND_PCM_FMTBIT_LINEAR | \
+			     (1 << SND_PCM_FORMAT_MU_LAW) | \
+			     (1 << SND_PCM_FORMAT_A_LAW) | \
+			     (1 << SND_PCM_FORMAT_IMA_ADPCM))
+
+static int snd_pcm_plug_hw_refine1(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+				   snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_plug_t *plug = pcm->private;
 	snd_pcm_t *slave = plug->req_slave;
-	snd_pcm_hw_info_t sinfo;
-	int rate_min, rate_max;
-	int channels_min, channels_max;
-	unsigned int format, format_mask;
 	int err;
+	const mask_t *format_mask, *sformat_mask;
+	unsigned int rate_min, rate_max, srate_min, srate_max;
+	unsigned int channels_min, channels_max, schannels_min, schannels_max;
+	unsigned int format;
+	int same_rate, same_channels, same_format;
+	snd_pcm_hw_params_t tmp;
+	unsigned int links = (SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
+			      SND_PCM_HW_PARBIT_FRAGMENTS |
+			      SND_PCM_HW_PARBIT_BUFFER_LENGTH);
+	mask_t *tmp_mask = alloca(mask_sizeof());
+	mask_t *accplug_mask = alloca(mask_sizeof());
+	mask_t *mmap_mask = alloca(mask_sizeof());
+	mask_t *fmtplug_mask = alloca(mask_sizeof());
+	mask_load(accplug_mask, SND_PCM_ACCBIT_PLUGIN);
+	mask_load(mmap_mask, SND_PCM_ACCBIT_MMAP);
+	mask_load(fmtplug_mask, SND_PCM_FMTBIT_PLUG);
 	
-	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_INTERLEAVED |
-			      SND_PCM_ACCBIT_MMAP_NONINTERLEAVED | 
-			      SND_PCM_ACCBIT_RW_NONINTERLEAVED);
-	if (info->access_mask == 0)
-		return -EINVAL;
-
-	info->format_mask &= (SND_PCM_FMTBIT_LINEAR | SND_PCM_FMTBIT_MU_LAW |
-			      SND_PCM_FMTBIT_A_LAW | SND_PCM_FMTBIT_IMA_ADPCM);
-	if (info->format_mask == 0)
-		return -EINVAL;
-
-	info->subformat_mask &= SND_PCM_SUBFMTBIT_STD;
-	if (info->subformat_mask == 0)
-		return -EINVAL;
-
-	if (info->rate_min < RATE_MIN)
-		info->rate_min = RATE_MIN;
-	if (info->rate_max > RATE_MAX)
-		info->rate_max = RATE_MAX;
-	if (info->rate_max < info->rate_min)
-		return -EINVAL;
-
-	if (info->channels_min < 1)
-		info->channels_min = 1;
-	if (info->channels_max < info->channels_min)
-		return -EINVAL;
-
-	sinfo = *info;
-	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
-	sinfo.format_mask = (SND_PCM_FMTBIT_LINEAR | SND_PCM_FMTBIT_MU_LAW |
-			     SND_PCM_FMTBIT_A_LAW | SND_PCM_FMTBIT_IMA_ADPCM);
-	sinfo.channels_min = 1;
-	sinfo.channels_max = UINT_MAX;
-	sinfo.rate_min = RATE_MIN;
-	sinfo.rate_max = RATE_MAX;
-
-	err = snd_pcm_hw_info(slave, &sinfo);
-	if (err < 0)
-		goto _err;
-	
-	rate_min = snd_pcm_hw_info_par_nearest_next(&sinfo,
-						    SND_PCM_HW_INFO_RATE,
-						    info->rate_min, -1,
-						    slave);
-	assert(rate_min >= 0);
-	if ((int)info->rate_max - rate_min > 1) {
-		rate_max = snd_pcm_hw_info_par_nearest_next(&sinfo,
-							    SND_PCM_HW_INFO_RATE,
-							    info->rate_max, -1,
-							    slave);
-		assert(rate_max >= 0);
-	} else
-		rate_max = rate_min;
-	sinfo.rate_min = rate_min;
-	sinfo.rate_max = rate_max;
-
-	err = snd_pcm_hw_info(slave, &sinfo);
-	assert(err >= 0);
-
-	channels_min = snd_pcm_hw_info_par_nearest_next(&sinfo,
-						    SND_PCM_HW_INFO_CHANNELS,
-						    info->channels_min, -1,
-						    slave);
-	assert(channels_min >= 0);
-	if ((int)info->channels_max - channels_min > 1) {
-		channels_max = snd_pcm_hw_info_par_nearest_next(&sinfo,
-							    SND_PCM_HW_INFO_CHANNELS,
-							    info->channels_max, -1,
-							    slave);
-		assert(channels_max >= 0);
-	} else
-		channels_max = channels_min;
-	sinfo.channels_min = channels_min;
-	sinfo.channels_max = channels_max;
-
-	err = snd_pcm_hw_info(slave, &sinfo);
-	assert(err >= 0);
-
-	format_mask = 0;
-	for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
-		int f;
-		if (!(info->format_mask & (1 << format)))
-			continue;
-		f = snd_pcm_plug_slave_format(format, sinfo.format_mask);
-		assert(f >= 0);
-		format_mask |= (1 << f);
-	}
-	sinfo.format_mask = format_mask;
-
-	err = snd_pcm_hw_info(slave, &sinfo);
-	assert(err >= 0);
-
- _err:
-	info->subformat_mask = sinfo.subformat_mask;
-	info->fragment_length_min = sinfo.fragment_length_min;
-	info->fragment_length_max = sinfo.fragment_length_max;
-	info->fragments_min = sinfo.fragments_min;
-	info->fragments_max = sinfo.fragments_max;
-	info->buffer_length_min = sinfo.buffer_length_min;
-	info->buffer_length_max = sinfo.buffer_length_max;
-	
+	err = _snd_pcm_hw_params_min(params, 1, SND_PCM_HW_PARAM_CHANNELS, 1);
 	if (err < 0)
 		return err;
-	info->info = sinfo.info & ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
-	snd_pcm_hw_info_complete(info);
+	err = _snd_pcm_hw_params_min(params, 1, SND_PCM_HW_PARAM_RATE, RATE_MIN);
+	if (err < 0)
+		return err;
+	err = _snd_pcm_hw_params_max(params, 1, SND_PCM_HW_PARAM_RATE, RATE_MAX);
+	if (err < 0)
+		return err;
+
+	_snd_pcm_hw_params_any(sparams);
+	err = snd_pcm_hw_refine2(params, sparams,
+				 snd_pcm_hw_refine, slave, links);
+	if (err < 0)
+		return err;
+	
+	rate_min = snd_pcm_hw_params_value_min(params, SND_PCM_HW_PARAM_RATE);
+	rate_max = snd_pcm_hw_params_value_max(params, SND_PCM_HW_PARAM_RATE);
+	tmp = *sparams;
+	srate_min = snd_pcm_hw_params_near(slave, &tmp,
+					   SND_PCM_HW_PARAM_RATE, rate_min);
+	if (srate_min < rate_max) {
+		tmp = *sparams;
+		srate_max = snd_pcm_hw_params_near(slave, &tmp,
+						   SND_PCM_HW_PARAM_RATE, rate_max);
+	} else 
+		srate_max = srate_min;
+	err = snd_pcm_hw_params_minmax(slave, sparams,
+				       SND_PCM_HW_PARAM_RATE,
+				       srate_min, srate_max);
+	assert(err >= 0);
+
+	channels_min = snd_pcm_hw_params_value_min(params, SND_PCM_HW_PARAM_CHANNELS);
+	channels_max = snd_pcm_hw_params_value_max(params, SND_PCM_HW_PARAM_CHANNELS);
+	tmp = *sparams;
+	schannels_min = snd_pcm_hw_params_near(slave, &tmp,
+					       SND_PCM_HW_PARAM_CHANNELS, channels_min);
+	if (schannels_min < channels_max) {
+		tmp = *sparams;
+		schannels_max = snd_pcm_hw_params_near(slave, &tmp,
+						       SND_PCM_HW_PARAM_CHANNELS, channels_max);
+	} else 
+		schannels_max = schannels_min;
+	err = snd_pcm_hw_params_minmax(slave, sparams,
+				       SND_PCM_HW_PARAM_CHANNELS,
+				       schannels_min, schannels_max);
+	assert(err >= 0);
+
+	format_mask = snd_pcm_hw_params_value_mask(params,
+						   SND_PCM_HW_PARAM_FORMAT);
+	sformat_mask = snd_pcm_hw_params_value_mask(sparams,
+						    SND_PCM_HW_PARAM_FORMAT);
+	mask_none(tmp_mask);
+	for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
+		int f;
+		if (!mask_test(format_mask, format))
+			continue;
+		if (mask_test(sformat_mask, format))
+			f = format;
+		else {
+			f = snd_pcm_plug_slave_format(format, sformat_mask);
+			if (f < 0) {
+				mask_t *m = alloca(mask_sizeof());
+				mask_all(m);
+				mask_reset(m, format);
+				err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_FORMAT, m);
+				if (err < 0)
+					return err;
+				continue;
+			}
+		}
+		mask_set(tmp_mask, f);
+	}
+
+	err = _snd_pcm_hw_params_mask(sparams, 0, 
+				      SND_PCM_HW_PARAM_FORMAT, tmp_mask);
+	assert(err >= 0);
+	sformat_mask = snd_pcm_hw_params_value_mask(sparams,
+						    SND_PCM_HW_PARAM_FORMAT);
+
+	same_rate = (rate_min == rate_max && 
+		     rate_min == srate_min &&
+		     rate_min == srate_max);
+	same_channels = (channels_min == channels_max && 
+			 channels_min == schannels_min &&
+			 channels_min == schannels_max);
+	same_format = (mask_single(format_mask) && 
+		       mask_eq(format_mask, sformat_mask));
+	if (same_rate)
+		links |= (SND_PCM_HW_PARBIT_RATE |
+			  SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
+			  SND_PCM_HW_PARBIT_BUFFER_SIZE);
+	if (same_channels) {
+		links |= SND_PCM_HW_PARBIT_CHANNELS;
+		if (same_format)
+			links |= (SND_PCM_HW_PARBIT_FRAME_BITS |
+				  SND_PCM_HW_PARBIT_FRAGMENT_BYTES |
+				  SND_PCM_HW_PARBIT_BUFFER_BYTES);
+	}
+	if (same_format)
+		links |= (SND_PCM_HW_PARBIT_FORMAT |
+			  SND_PCM_HW_PARBIT_SUBFORMAT |
+			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
+
+	if (same_rate && same_channels && same_format) {
+		const mask_t *access_mask = snd_pcm_hw_params_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
+		mask_copy(tmp_mask, snd_pcm_hw_params_value_mask(sparams, SND_PCM_HW_PARAM_ACCESS));
+		mask_intersect(tmp_mask, access_mask);
+		if (!mask_empty(tmp_mask))
+			_snd_pcm_hw_params_mask(sparams, 0,
+						SND_PCM_HW_PARAM_ACCESS,
+						access_mask);
+		else
+		  _snd_pcm_hw_params_mask(sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+					  mmap_mask);
+	} else {
+		err = _snd_pcm_hw_params_mask(params, 1,
+					      SND_PCM_HW_PARAM_ACCESS,
+					      accplug_mask);
+		if (err < 0)
+			return err;
+		err = _snd_pcm_hw_params_mask(params, 1,
+					      SND_PCM_HW_PARAM_FORMAT,
+					      fmtplug_mask);
+		if (err < 0)
+			return err;
+		_snd_pcm_hw_params_mask(sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+					mmap_mask);
+		_snd_pcm_hw_params_mask(sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+					fmtplug_mask);
+	}
+	err = snd_pcm_hw_refine2(params, sparams,
+				 snd_pcm_hw_refine, slave, links);
+	if (err < 0)
+		return err;
+	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
+}
+
+
+
+static int snd_pcm_plug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	snd_pcm_hw_params_t sparams;
+	return snd_pcm_plug_hw_refine1(pcm, params, &sparams);
 }
 
 static void snd_pcm_plug_clear(snd_pcm_t *pcm)
@@ -309,7 +368,14 @@ static void snd_pcm_plug_clear(snd_pcm_t *pcm)
 	}
 }
 
-static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_hw_params_t *clt, snd_pcm_hw_params_t *slv)
+typedef struct {
+	unsigned int access;
+	unsigned int format;
+	unsigned int channels;
+	unsigned int rate;
+} snd_pcm_plug_params_t;
+
+static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *clt, snd_pcm_plug_params_t *slv)
 {
 	snd_pcm_plug_t *plug = pcm->private;
 	int err;
@@ -326,7 +392,7 @@ static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_hw_
 	return 1;
 }
 
-static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_hw_params_t *clt, snd_pcm_hw_params_t *slv)
+static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *clt, snd_pcm_plug_params_t *slv)
 {
 	snd_pcm_plug_t *plug = pcm->private;
 	unsigned int tt_ssize, tt_cused, tt_sused;
@@ -391,7 +457,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 	return 1;
 }
 
-static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_hw_params_t *clt, snd_pcm_hw_params_t *slv)
+static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *clt, snd_pcm_plug_params_t *slv)
 {
 	snd_pcm_plug_t *plug = pcm->private;
 	int err, cfmt;
@@ -451,7 +517,7 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_h
 	return 1;
 }
 
-static int snd_pcm_plug_change_access(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_hw_params_t *clt, snd_pcm_hw_params_t *slv)
+static int snd_pcm_plug_change_access(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *clt, snd_pcm_plug_params_t *slv)
 {
 	snd_pcm_plug_t *plug = pcm->private;
 	int err;
@@ -465,11 +531,11 @@ static int snd_pcm_plug_change_access(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_h
 }
 
 static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
-				       snd_pcm_hw_params_t *client,
-				       snd_pcm_hw_params_t *slave)
+				       snd_pcm_plug_params_t *client,
+				       snd_pcm_plug_params_t *slave)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	int (*funcs[])(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_hw_params_t *s, snd_pcm_hw_params_t *d) = {
+	int (*funcs[])(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *s, snd_pcm_plug_params_t *d) = {
 		snd_pcm_plug_change_format,
 		snd_pcm_plug_change_channels,
 		snd_pcm_plug_change_rate,
@@ -477,7 +543,7 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 		snd_pcm_plug_change_format,
 		snd_pcm_plug_change_access
 	};
-	snd_pcm_hw_params_t p = *slave;
+	snd_pcm_plug_params_t p = *slave;
 	unsigned int k = 0;
 	while (client->format != p.format ||
 	       client->channels != p.channels ||
@@ -505,70 +571,25 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_plug_t *plug = pcm->private;
 	snd_pcm_t *slave = plug->req_slave;
-	snd_pcm_hw_info_t sinfo;
+	snd_pcm_plug_params_t clt_params, slv_params;
 	snd_pcm_hw_params_t sparams;
-	int format;
-	int err;
-
-	sparams = *params;
-	snd_pcm_hw_params_to_info(&sparams, &sinfo);
-	sinfo.access_mask = ~0U;
-	sinfo.format_mask = (SND_PCM_FMTBIT_LINEAR | SND_PCM_FMTBIT_MU_LAW |
-			     SND_PCM_FMTBIT_A_LAW | SND_PCM_FMTBIT_IMA_ADPCM);
-	sinfo.subformat_mask = SND_PCM_SUBFMTBIT_STD;
-	sinfo.channels_min = 1;
-	sinfo.channels_max = UINT_MAX;
-	sinfo.rate_min = RATE_MIN;
-	sinfo.rate_max = RATE_MAX;
-
-	err = snd_pcm_hw_info(slave, &sinfo);
-	if (err < 0)
-		return err;
-
-	err = snd_pcm_hw_info_par_nearest_next(&sinfo,
-					       SND_PCM_HW_INFO_RATE,
-					       params->rate, -1,
-					       slave);
-	if (err < 0)
-		return err;
-	sinfo.rate_min = sinfo.rate_max = err;
-
-	err = snd_pcm_hw_info(slave, &sinfo);
+	int err = snd_pcm_plug_hw_refine1(pcm, params, &sparams);
 	assert(err >= 0);
 
-	err = snd_pcm_hw_info_par_nearest_next(&sinfo,
-					       SND_PCM_HW_INFO_CHANNELS,
-					       params->channels, -1,
-					       slave);
-	if (err < 0)
-		return err;
-	sinfo.channels_min = sinfo.channels_max = err;
+	clt_params.access = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_ACCESS);
+	clt_params.format = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT);
+	clt_params.channels = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_CHANNELS);
+	clt_params.rate = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_RATE);
 
-	err = snd_pcm_hw_info(slave, &sinfo);
-	assert(err >= 0);
-
-	format = snd_pcm_plug_slave_format(params->format, sinfo.format_mask);
-	assert(format >= 0);
-
-	sparams.format = format;
-	assert(sinfo.rate_min == sinfo.rate_max);
-	sparams.rate = sinfo.rate_min;
-	assert(sinfo.channels_min == sinfo.channels_max);
-	sparams.channels = sinfo.channels_min;
+	slv_params.access = snd_pcm_hw_params_first(slave, &sparams, SND_PCM_HW_PARAM_ACCESS);
+	slv_params.format = snd_pcm_hw_params_value(&sparams, SND_PCM_HW_PARAM_FORMAT);
+	slv_params.channels = snd_pcm_hw_params_value(&sparams, SND_PCM_HW_PARAM_CHANNELS);
+	slv_params.rate = snd_pcm_hw_params_value(&sparams, SND_PCM_HW_PARAM_RATE);
 
 	snd_pcm_plug_clear(pcm);
-	if (params->format != sparams.format ||
-	    params->channels != sparams.channels ||
-	    params->rate != sparams.rate ||
-	    !(sinfo.access_mask & (1 << params->access))) {
-		sinfo.access_mask &= SND_PCM_ACCBIT_MMAP;
-		assert(sinfo.access_mask);
-		sparams.access = ffs(sinfo.access_mask) - 1;
-		err = snd_pcm_plug_insert_plugins(pcm, params, &sparams);
-		if (err < 0)
-			return err;
-	}
-
+	err = snd_pcm_plug_insert_plugins(pcm, &clt_params, &slv_params);
+	if (err < 0)
+		return err;
 	err = snd_pcm_hw_params(plug->slave, params);
 	if (err < 0) {
 		snd_pcm_plug_clear(pcm);
@@ -638,7 +659,7 @@ static void snd_pcm_plug_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_plug_ops = {
 	close: snd_pcm_plug_close,
 	info: snd_pcm_plug_info,
-	hw_info: snd_pcm_plug_hw_info,
+	hw_refine: snd_pcm_plug_hw_refine,
 	hw_params: snd_pcm_plug_hw_params,
 	sw_params: snd_pcm_plug_sw_params,
 	dig_info: snd_pcm_plug_dig_info,

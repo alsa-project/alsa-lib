@@ -109,7 +109,7 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return 0;
 }
 
-static int _snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
+static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
@@ -120,12 +120,12 @@ static int _snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return 0;
 }
 
-static int snd_pcm_hw_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
+static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_HW_INFO, info) < 0) {
-		// SYSERR("SND_PCM_IOCTL_HW_INFO failed");
+	if (ioctl(fd, SND_PCM_IOCTL_HW_REFINE, params) < 0) {
+		// SYSERR("SND_PCM_IOCTL_HW_REFINE failed");
 		return -errno;
 	}
 	return 0;
@@ -521,8 +521,8 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_hw_ops = {
 	close: snd_pcm_hw_close,
-	info: _snd_pcm_hw_info,
-	hw_info: snd_pcm_hw_hw_info,
+	info: snd_pcm_hw_info,
+	hw_refine: snd_pcm_hw_hw_refine,
 	hw_params: snd_pcm_hw_hw_params,
 	sw_params: snd_pcm_hw_sw_params,
 	dig_info: snd_pcm_hw_dig_info,
