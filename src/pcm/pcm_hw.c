@@ -200,6 +200,8 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err < 0) {
 			snd_pcm_hw_params_t new = *params;
 
+			if (!(params->rmask & (1<<SND_PCM_HW_PARAM_ACCESS)))
+				return err;
 			if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_MMAP_INTERLEAVED) &&
 			    !snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_RW_INTERLEAVED))
 				snd_pcm_access_mask_set(&mask, SND_PCM_ACCESS_RW_INTERLEAVED);
@@ -223,22 +225,28 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_INTERLEAVED))
 				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 			snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_RW_INTERLEAVED);
+			params->cmask |= 1<<SND_PCM_HW_PARAM_ACCESS;
 		}
 		if (snd_pcm_access_mask_test(&mask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) {
 			if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
 				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
 			snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+			params->cmask |= 1<<SND_PCM_HW_PARAM_ACCESS;
 		}
 		if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_MMAP_INTERLEAVED)) {
 			if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_RW_INTERLEAVED)) {
-				if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_INTERLEAVED))
+				if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_INTERLEAVED)) {
 					snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+					params->cmask |= 1<<SND_PCM_HW_PARAM_ACCESS;
+				}
 			}
 		}
 		if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED)) {
 			if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) {
-				if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
+				if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) {
 					snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+					params->cmask |= 1<<SND_PCM_HW_PARAM_ACCESS;
+				}
 			}
 		}
 	} else {
