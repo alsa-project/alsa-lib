@@ -1,0 +1,9 @@
+#!/bin/bash
+
+aclocal
+automake --foreign
+autoconf
+export CFLAGS='-O2 -fomit-frame-pointer -Wall -pipe'
+./configure
+unset CFLAGS
+make
