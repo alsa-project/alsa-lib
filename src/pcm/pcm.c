@@ -269,7 +269,7 @@ static int mmap_playback_go(snd_pcm_t *pcm, int channel)
 	struct snd_pcm_chan *chan = &pcm->chan[channel];
 	if (chan->mmap_control->status != SND_PCM_STATUS_PREPARED)
 		return -EBADFD;
-	if (chan->mmap_control->frag_data == 0)
+	if (chan->mmap_control->byte_data == 0)
 		return -EIO;
 	chan->mmap_control->status = SND_PCM_STATUS_RUNNING;
 	pthread_mutex_lock(&chan->mutex);

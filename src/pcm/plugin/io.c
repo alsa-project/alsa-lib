@@ -1,5 +1,5 @@
 /*
- *  PCM Stream Plug-In Interface
+ *  PCM I/O Plug-In Interface
  *  Copyright (c) 1999 by Jaroslav Kysela <perex@suse.cz>
  *
  *
@@ -19,6 +19,15 @@
  *
  */
   
+#ifdef __KERNEL__
+#include "../../include/driver.h"
+#include "../../include/pcm.h"
+#include "../../include/pcm_plugin.h"
+#define snd_pcm_write(handle,buf,count) snd_pcm_oss_write3(handle,buf,count,1)
+#define snd_pcm_writev(handle,vec,count) snd_pcm_oss_writev3(handle,vec,count,1)
+#define snd_pcm_read(handle,buf,count) snd_pcm_oss_read3(handle,buf,count,1)
+#define snd_pcm_readv(handle,vec,count) snd_pcm_oss_readv3(handle,vec,count,1)
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -26,28 +35,29 @@
 #include <errno.h>
 #include <sys/uio.h>
 #include "../pcm_local.h"
+#endif
 
 /*
- *  Basic stream plugin
+ *  Basic io plugin
  */
  
-typedef struct stream_private_data {
-	snd_pcm_t *slave;
-} stream_t;
+typedef struct io_private_data {
+	snd_pcm_plugin_handle_t *slave;
+} io_t;
 
-static ssize_t stream_transfer(snd_pcm_plugin_t *plugin,
-			       const snd_pcm_plugin_voice_t *src_voices,
-			       snd_pcm_plugin_voice_t *dst_voices,
-			       size_t samples)
+static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
+			      const snd_pcm_plugin_voice_t *src_voices,
+			      snd_pcm_plugin_voice_t *dst_voices,
+			      size_t samples)
 {
-	stream_t *data;
+	io_t *data;
 	ssize_t result;
 	struct iovec *vec;
 	int count, voice;
 
 	if (plugin == NULL)
 		return -EINVAL;
-	data = (stream_t *)plugin->extra_data;
+	data = (io_t *)plugin->extra_data;
 	if (data == NULL)
 		return -EINVAL;
 	vec = (struct iovec *)((char *)data + sizeof(*data));
@@ -81,8 +91,9 @@ static ssize_t stream_transfer(snd_pcm_plugin_t *plugin,
 		count = plugin->dst_format.voices;
 		if (plugin->dst_format.interleave) {
 			result = snd_pcm_read(data->slave, dst_voices->area.addr, result);
-			for (voice = 0; voice < count; voice++)
+			for (voice = 0; voice < count; voice++) {
 				dst_voices[voice].enabled = src_voices[voice].enabled;
+			}
 		} else {
 			result /= count;
 			for (voice = 0; voice < count; voice++) {
@@ -103,9 +114,9 @@ static ssize_t stream_transfer(snd_pcm_plugin_t *plugin,
 	}
 }
  
-static int stream_src_voices(snd_pcm_plugin_t *plugin,
-			     size_t samples,
-			     snd_pcm_plugin_voice_t **voices)
+static int io_src_voices(snd_pcm_plugin_t *plugin,
+			    size_t samples,
+			    snd_pcm_plugin_voice_t **voices)
 {
 	int err;
 	unsigned int voice;
@@ -119,33 +130,33 @@ static int stream_src_voices(snd_pcm_plugin_t *plugin,
 	return 0;
 }
 
-int snd_pcm_plugin_build_stream(snd_pcm_plugin_handle_t *pcm,
-				int channel,
-				snd_pcm_t *slave,
-				snd_pcm_format_t *format,
-				snd_pcm_plugin_t **r_plugin)
+int snd_pcm_plugin_build_io(snd_pcm_plugin_handle_t *pcm,
+			       int channel,
+			       snd_pcm_plugin_handle_t *slave,
+			       snd_pcm_format_t *format,
+			       snd_pcm_plugin_t **r_plugin)
 {
 	int err;
-	stream_t *data;
+	io_t *data;
 	snd_pcm_plugin_t *plugin;
 
-	if (!r_plugin)
+	if (r_plugin == NULL)
 		return -EINVAL;
 	*r_plugin = NULL;
-	if (!pcm || channel < 0 || channel > 1)
+	if (pcm == NULL || format == NULL)
 		return -EINVAL;
 	err = snd_pcm_plugin_build(pcm, channel,
-				   "I/O stream",
+				   "I/O io",
 				   format, format,
-				   sizeof(stream_t) + sizeof(struct iovec) * format->voices,
+				   sizeof(io_t) + sizeof(struct iovec) * format->voices,
 				   &plugin);
 	if (err < 0)
 		return err;
-	data = (stream_t *)plugin->extra_data;
+	data = (io_t *)plugin->extra_data;
 	data->slave = slave;
-	plugin->transfer = stream_transfer;
+	plugin->transfer = io_transfer;
 	if (format->interleave && channel == SND_PCM_CHANNEL_PLAYBACK)
-		plugin->client_voices = stream_src_voices;
+		plugin->client_voices = io_src_voices;
 	*r_plugin = plugin;
 	return 0;
 }

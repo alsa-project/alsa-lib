@@ -213,9 +213,9 @@ struct snd_stru_pcm_plugin {
 	int dst_width;			/* sample width in bits */
 	ssize_t (*src_samples)(snd_pcm_plugin_t *plugin, size_t dst_samples);
 	ssize_t (*dst_samples)(snd_pcm_plugin_t *plugin, size_t src_samples);
-	int (*client_voices)(snd_pcm_plugin_t *plugin,
-			     size_t samples,
-			     snd_pcm_plugin_voice_t **voices);
+	ssize_t (*client_voices)(snd_pcm_plugin_t *plugin,
+				 size_t samples,
+				 snd_pcm_plugin_voice_t **voices);
 	int (*src_voices_mask)(snd_pcm_plugin_t *plugin,
 			       bitset_t *dst_vmask,
 			       bitset_t **src_vmask);
@@ -288,16 +288,11 @@ int snd_pcm_plugin_build(snd_pcm_plugin_handle_t *handle,
 			 int extra,
 			 snd_pcm_plugin_t **ret);
 /* basic I/O */
-int snd_pcm_plugin_build_stream(snd_pcm_plugin_handle_t *handle,
-				int channel,
-				snd_pcm_t *slave,
-				snd_pcm_format_t *format,
-				snd_pcm_plugin_t **r_plugin);
-int snd_pcm_plugin_build_block(snd_pcm_plugin_handle_t *handle,
-			       int channel,
-			       snd_pcm_t *slave,
-			       snd_pcm_format_t *format,
-			       snd_pcm_plugin_t **r_plugin);
+int snd_pcm_plugin_build_io(snd_pcm_plugin_handle_t *handle,
+			    int channel,
+			    snd_pcm_t *slave,
+			    snd_pcm_format_t *format,
+			    snd_pcm_plugin_t **r_plugin);
 int snd_pcm_plugin_build_mmap(snd_pcm_plugin_handle_t *handle,
 			      int channel,
 			      snd_pcm_t *slave,

@@ -57,10 +57,10 @@ static int snd_pcm_plugin_dst_voices_mask(snd_pcm_plugin_t *plugin,
 	return 0;
 }
 
-static int snd_pcm_plugin_side_voices(snd_pcm_plugin_t *plugin,
-				      int client_side,
-				      size_t samples,
-				      snd_pcm_plugin_voice_t **voices)
+static ssize_t snd_pcm_plugin_side_voices(snd_pcm_plugin_t *plugin,
+					  int client_side,
+					  size_t samples,
+					  snd_pcm_plugin_voice_t **voices)
 {
 	char *ptr;
 	int width;
@@ -104,19 +104,19 @@ static int snd_pcm_plugin_side_voices(snd_pcm_plugin_t *plugin,
 			v->area.step = width;
 		}
 	}
-	return 0;
+	return samples;
 }
 
-int snd_pcm_plugin_client_voices(snd_pcm_plugin_t *plugin,
-				 size_t samples,
-				 snd_pcm_plugin_voice_t **voices)
+ssize_t snd_pcm_plugin_client_voices(snd_pcm_plugin_t *plugin,
+				     size_t samples,
+				     snd_pcm_plugin_voice_t **voices)
 {
 	return snd_pcm_plugin_side_voices(plugin, 1, samples, voices);
 }
 
-int snd_pcm_plugin_slave_voices(snd_pcm_plugin_t *plugin,
-				size_t samples,
-				snd_pcm_plugin_voice_t **voices)
+ssize_t snd_pcm_plugin_slave_voices(snd_pcm_plugin_t *plugin,
+				    size_t samples,
+				    snd_pcm_plugin_voice_t **voices)
 {
 	return snd_pcm_plugin_side_voices(plugin, 0, samples, voices);
 }
@@ -1073,6 +1073,11 @@ ssize_t snd_pcm_plug_write_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plu
 				snd_pcm_plug_buf_unlock(handle, SND_PCM_CHANNEL_PLAYBACK, src_voices->aptr);
 				return err;
 			}
+			if (err != samples1) {
+				samples = err;
+				if (plugin->src_samples)
+					samples = plugin->src_samples(plugin, samples1);
+			}
 		} else {
 			if ((err = snd_pcm_plugin_slave_voices(plugin, samples, &dst_voices)) < 0)
 				return err;
@@ -1121,6 +1126,7 @@ ssize_t snd_pcm_plug_read_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plug
 				snd_pcm_plug_buf_unlock(handle, SND_PCM_CHANNEL_CAPTURE, src_voices->aptr);
 				return err;
 			}
+			samples = err;
 		} else {
 			dst_voices = dst_voices_final;
 		}

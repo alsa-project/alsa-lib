@@ -411,19 +411,12 @@ static int snd_pcm_plug_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t 
 	 *  I/O plugins
 	 */
 
-	if (params->mode == SND_PCM_MODE_STREAM) {
-		pdprintf("params stream plugin\n");
-		err = snd_pcm_plugin_build_stream(pcm, channel, plug->slave, &slave_params.format, &plugin);
-	} else if (params->mode == SND_PCM_MODE_BLOCK) {
-		if (slave_info.flags & SND_PCM_CHNINFO_MMAP) {
-			pdprintf("params mmap plugin\n");
-			err = snd_pcm_plugin_build_mmap(pcm, channel, plug->slave, &slave_params.format, &plugin);
-		} else {
-			pdprintf("params block plugin\n");
-			err = snd_pcm_plugin_build_block(pcm, channel, plug->slave, &slave_params.format, &plugin);
-		}
+	if (slave_info.flags & SND_PCM_CHNINFO_MMAP) {
+		pdprintf("params mmap plugin\n");
+		err = snd_pcm_plugin_build_mmap(pcm, channel, plug->slave, &slave_params.format, &plugin);
 	} else {
-		return -EINVAL;
+		pdprintf("params I/O plugin\n");
+		err = snd_pcm_plugin_build_io(pcm, channel, plug->slave, &slave_params.format, &plugin);
 	}
 	if (err < 0)
 		return err;
@@ -440,13 +433,11 @@ static int snd_pcm_plug_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t 
 	/* compute right sizes */
 	slave_params.buffer_size = snd_pcm_plug_slave_size(pcm, channel, slave_params.buffer_size);
 	slave_params.frag_size = snd_pcm_plug_slave_size(pcm, channel, slave_params.frag_size);
-	if (params->mode == SND_PCM_MODE_STREAM) {
-		slave_params.buf.stream.bytes_fill_max = snd_pcm_plug_slave_size(pcm, channel, slave_params.buf.stream.bytes_fill_max);
-		slave_params.buf.stream.bytes_min = snd_pcm_plug_slave_size(pcm, channel, slave_params.buf.stream.bytes_min);
-		slave_params.buf.stream.bytes_xrun_max = snd_pcm_plug_slave_size(pcm, channel, slave_params.buf.stream.bytes_xrun_max);
-		slave_params.buf.stream.bytes_align = snd_pcm_plug_slave_size(pcm, channel, slave_params.buf.stream.bytes_align);
-	} else if (params->mode != SND_PCM_MODE_BLOCK)
-		return -EINVAL;
+	slave_params.bytes_fill_max = snd_pcm_plug_slave_size(pcm, channel, slave_params.bytes_fill_max);
+	slave_params.bytes_min = snd_pcm_plug_slave_size(pcm, channel, slave_params.bytes_min);
+	slave_params.bytes_xrun_max = snd_pcm_plug_slave_size(pcm, channel, slave_params.bytes_xrun_max);
+	slave_params.bytes_align = snd_pcm_plug_slave_size(pcm, channel, slave_params.bytes_align);
+
 	pdprintf("params requested params: format = %i, rate = %i, voices = %i\n", slave_params.format.format, slave_params.format.rate, slave_params.format.voices);
 	err = snd_pcm_channel_params(plug->slave, &slave_params);
 	if (err < 0)
@@ -469,17 +460,14 @@ static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *s
 		return err;
 	if (snd_pcm_plug_direct(pcm, setup->channel))
 		return 0;
+	setup->byte_boundary /= setup->frag_size;
 	setup->frag_size = snd_pcm_plug_client_size(pcm, setup->channel, setup->frag_size);
+	setup->byte_boundary *= setup->frag_size;
 	setup->buffer_size = setup->frags * setup->frag_size;
-	setup->byte_boundary = setup->frag_boundary * setup->frag_size;
-	if (setup->mode == SND_PCM_MODE_STREAM) {
-		setup->buf.stream.bytes_min = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_min);
-		setup->buf.stream.bytes_align = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_align);
-		setup->buf.stream.bytes_xrun_max = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_xrun_max);
-		setup->buf.stream.bytes_fill_max = snd_pcm_plug_client_size(pcm, setup->channel, setup->buf.stream.bytes_fill_max);
-	} else if (setup->mode != SND_PCM_MODE_BLOCK) {
-		return -EINVAL;
-	}
+	setup->bytes_min = snd_pcm_plug_client_size(pcm, setup->channel, setup->bytes_min);
+	setup->bytes_align = snd_pcm_plug_client_size(pcm, setup->channel, setup->bytes_align);
+	setup->bytes_xrun_max = snd_pcm_plug_client_size(pcm, setup->channel, setup->bytes_xrun_max);
+	setup->bytes_fill_max = snd_pcm_plug_client_size(pcm, setup->channel, setup->bytes_fill_max);
 
 	plugchan = &plug->chan[setup->channel];
 	if (setup->channel == SND_PCM_CHANNEL_PLAYBACK)
@@ -504,7 +492,6 @@ static int snd_pcm_plug_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t 
 	status->byte_io = snd_pcm_plug_client_size(pcm, status->channel, status->byte_io);
 	status->byte_data = snd_pcm_plug_client_size(pcm, status->channel, status->byte_data);
 	status->bytes_used = snd_pcm_plug_client_size(pcm, status->channel, status->bytes_used);
-	status->bytes_free = snd_pcm_plug_client_size(pcm, status->channel, status->bytes_free);
 	return 0;	
 }
 

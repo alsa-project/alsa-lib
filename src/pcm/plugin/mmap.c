@@ -37,32 +37,31 @@ typedef struct mmap_private_data {
 	snd_pcm_t *slave;
 	snd_pcm_mmap_control_t *control;
 	void *buffer;
-	unsigned int frag;
+#if 0
 	char *silence;
+#endif
 } mmap_t;
 
 
-static int mmap_src_voices(snd_pcm_plugin_t *plugin,
-			   size_t samples,
-			   snd_pcm_plugin_voice_t **voices)
+static ssize_t mmap_src_voices(snd_pcm_plugin_t *plugin,
+			       size_t samples,
+			       snd_pcm_plugin_voice_t **voices)
 {
 	mmap_t *data;
-	unsigned int voice;
         snd_pcm_plugin_voice_t *sv;
 	snd_pcm_voice_area_t *dv;
 	struct snd_pcm_chan *chan;
 	snd_pcm_channel_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
-	int frag, f;
+	size_t pos;
 	int ready;
+	unsigned int voice;
 
 	if (plugin == NULL || voices == NULL)
 		return -EINVAL;
 	data = (mmap_t *)plugin->extra_data;
 	ctrl = data->control;
 	chan = &data->slave->chan[plugin->channel];
-	if (samples != chan->samples_per_frag)
-		return -EINVAL;
 
 	setup = &chan->setup;
 	if (ctrl->status < SND_PCM_STATUS_PREPARED)
@@ -86,29 +85,34 @@ static int mmap_src_voices(snd_pcm_plugin_t *plugin,
 			return -EPIPE;
 		assert(snd_pcm_mmap_ready(data->slave, plugin->channel));
 	}
-	frag = ctrl->frag_data;
-	f = frag % setup->frags;
+	pos = ctrl->byte_data % setup->buffer_size;
+	if ((pos * 8) % chan->bits_per_sample != 0)
+		return -EINVAL;
+	pos = (pos * 8) / chan->bits_per_sample;
 
 	sv = plugin->src_voices;
 	dv = chan->voices;
 	*voices = sv;
 	for (voice = 0; voice < plugin->src_format.voices; ++voice) {
 		sv->enabled = 1;
+#if 0
 		sv->wanted = !data->silence[voice * setup->frags + f];
+#else
+		sv->wanted = 1;
+#endif
 		sv->aptr = 0;
-		sv->area.addr = dv->addr + (dv->step * chan->samples_per_frag * f) / 8;
+		sv->area.addr = dv->addr + dv->step * pos / 8;
 		sv->area.first = dv->first;
 		sv->area.step = dv->step;
 		++sv;
 		++dv;
 	}
-	data->frag = frag;
-	return 0;
+	return snd_pcm_mmap_samples_xfer(data->slave, plugin->channel, samples);
 }
 
-static int mmap_dst_voices(snd_pcm_plugin_t *plugin,
-			   size_t samples,
-			   snd_pcm_plugin_voice_t **voices)
+static ssize_t mmap_dst_voices(snd_pcm_plugin_t *plugin,
+			       size_t samples,
+			       snd_pcm_plugin_voice_t **voices)
 {
 	mmap_t *data;
 	int err;
@@ -118,15 +122,13 @@ static int mmap_dst_voices(snd_pcm_plugin_t *plugin,
 	struct snd_pcm_chan *chan;
 	snd_pcm_channel_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
-	int frag, f;
+	size_t pos;
 	int ready;
 
 	if (plugin == NULL || voices == NULL)
 		return -EINVAL;
 	data = (mmap_t *)plugin->extra_data;
 	chan = &data->slave->chan[plugin->channel];
-	if (samples != chan->samples_per_frag)
-		return -EINVAL;
 
 	setup = &chan->setup;
 	ctrl = data->control;
@@ -156,9 +158,10 @@ static int mmap_dst_voices(snd_pcm_plugin_t *plugin,
 			return -EPIPE;
 		assert(snd_pcm_mmap_ready(data->slave, plugin->channel));
 	}
-
-	frag = ctrl->frag_data;
-	f = frag % setup->frags;
+	pos = ctrl->byte_data % setup->buffer_size;
+	if ((pos * 8) % chan->bits_per_sample != 0)
+		return -EINVAL;
+	pos = (pos * 8) / chan->bits_per_sample;
 
 	sv = chan->voices;
 	dv = plugin->dst_voices;
@@ -167,14 +170,13 @@ static int mmap_dst_voices(snd_pcm_plugin_t *plugin,
 		dv->enabled = 1;
 		dv->wanted = 0;
 		dv->aptr = 0;
-		dv->area.addr = sv->addr + (sv->step * chan->samples_per_frag * f) / 8;
+		dv->area.addr = sv->addr + sv->step * pos / 8;
 		dv->area.first = sv->first;
 		dv->area.step = sv->step;
 		++sv;
 		++dv;
 	}
-	data->frag = frag;
-	return 0;
+	return snd_pcm_mmap_samples_xfer(data->slave, plugin->channel, samples);
 }
 
 static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
@@ -183,11 +185,9 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 				      size_t samples)
 {
 	mmap_t *data;
-	unsigned int voice;
 	snd_pcm_channel_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
 	struct snd_pcm_chan *chan;
-	unsigned int frag, f;
 	int err;
 
 	if (plugin == NULL)
@@ -202,15 +202,13 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 		return -EINVAL;
 	chan = &data->slave->chan[SND_PCM_CHANNEL_PLAYBACK];
 	setup = &chan->setup;
-	frag = ctrl->frag_data;
-	if (frag != data->frag)
-		return -EIO;
-	f = frag % setup->frags;
 
+#if 0
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
 		if (src_voices[voice].enabled)
 			data->silence[voice * setup->frags + f] = 0;
 	}
+#endif
 
 	snd_pcm_mmap_commit_samples(data->slave, SND_PCM_CHANNEL_PLAYBACK, samples);
 	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
@@ -232,7 +230,6 @@ static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
 	mmap_t *data;
 	snd_pcm_channel_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
-	unsigned int frag;
 
 	if (plugin == NULL)
 		return -EINVAL;
@@ -243,9 +240,6 @@ static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
 	ctrl = data->control;
 	if (ctrl == NULL)
 		return -EINVAL;
-	frag = ctrl->frag_data;
-	if (frag != data->frag)
-		return -EIO;
 	setup = &data->slave->chan[SND_PCM_CHANNEL_CAPTURE].setup;
 
 	/* FIXME: not here the increment */
@@ -273,11 +267,13 @@ static int mmap_action(snd_pcm_plugin_t *plugin,
 			return result;
 		setup = &data->slave->chan[plugin->channel].setup;
 
+#if 0
 		if (plugin->channel == SND_PCM_CHANNEL_PLAYBACK) {
 			data->silence = malloc(setup->frags * setup->format.voices);
 			memset(data->silence, 0, setup->frags * setup->format.voices);
 		} else
 			data->silence = 0;
+#endif
 		return 0;
 	}
 	return 0;	/* silenty ignore other actions */
@@ -290,8 +286,10 @@ static void mmap_free(snd_pcm_plugin_t *plugin, void *private_data UNUSED)
 	if (plugin == NULL)
 		return;
 	data = (mmap_t *)plugin->extra_data;
+#if 0
 	if (data->silence)
 		free(data->silence);
+#endif
 	if (data->control)
 		snd_pcm_munmap(data->slave, plugin->channel);
 }

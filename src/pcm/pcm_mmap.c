@@ -29,8 +29,6 @@
 static void snd_pcm_mmap_clear(snd_pcm_t *pcm, int channel)
 {
 	struct snd_pcm_chan *chan = &pcm->chan[channel];
-	chan->mmap_control->frag_io = 0;
-	chan->mmap_control->frag_data = 0;
 	chan->mmap_control->byte_io = 0;
 	chan->mmap_control->byte_data = 0;
 }
@@ -61,15 +59,6 @@ void snd_pcm_mmap_status_change(snd_pcm_t *pcm, int channel, int newstatus)
 	}
 }
 
-static inline ssize_t snd_pcm_mmap_playback_frags_used(struct snd_pcm_chan *chan)
-{
-	ssize_t frags_used;
-	frags_used = chan->mmap_control->frag_data - chan->mmap_control->frag_io;
-	if (frags_used < (ssize_t)(chan->setup.frags - chan->setup.frag_boundary))
-		frags_used += chan->setup.frag_boundary;
-	return frags_used;
-}
-
 static inline ssize_t snd_pcm_mmap_playback_bytes_used(struct snd_pcm_chan *chan)
 {
 	ssize_t bytes_used;
@@ -81,24 +70,9 @@ static inline ssize_t snd_pcm_mmap_playback_bytes_used(struct snd_pcm_chan *chan
 
 static ssize_t snd_pcm_mmap_playback_samples_used(snd_pcm_t *pcm)
 {
-	struct snd_pcm_chan *chan;
-	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		ssize_t frags = snd_pcm_mmap_playback_frags_used(chan);
-		return frags * chan->samples_per_frag;
-	} else {
-		ssize_t bytes = snd_pcm_mmap_playback_bytes_used(chan);
-		return bytes * 8 / chan->bits_per_sample;
-	}
-}
-
-static inline size_t snd_pcm_mmap_capture_frags_used(struct snd_pcm_chan *chan)
-{
-	ssize_t frags_used;
-	frags_used = chan->mmap_control->frag_io - chan->mmap_control->frag_data;
-	if (frags_used < 0)
-		frags_used += chan->setup.frag_boundary;
-	return frags_used;
+	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
+	ssize_t bytes = snd_pcm_mmap_playback_bytes_used(chan);
+	return bytes * 8 / chan->bits_per_sample;
 }
 
 static inline size_t snd_pcm_mmap_capture_bytes_used(struct snd_pcm_chan *chan)
@@ -112,15 +86,9 @@ static inline size_t snd_pcm_mmap_capture_bytes_used(struct snd_pcm_chan *chan)
 
 static size_t snd_pcm_mmap_capture_samples_used(snd_pcm_t *pcm)
 {
-	struct snd_pcm_chan *chan;
-	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		size_t frags = snd_pcm_mmap_capture_frags_used(chan);
-		return frags * chan->samples_per_frag;
-	} else {
-		size_t bytes = snd_pcm_mmap_capture_bytes_used(chan);
-		return bytes * 8 / chan->bits_per_sample;
-	}
+	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
+	size_t bytes = snd_pcm_mmap_capture_bytes_used(chan);
+	return bytes * 8 / chan->bits_per_sample;
 }
 
 int snd_pcm_mmap_samples_used(snd_pcm_t *pcm, int channel, ssize_t *samples)
@@ -140,11 +108,6 @@ int snd_pcm_mmap_samples_used(snd_pcm_t *pcm, int channel, ssize_t *samples)
 	return 0;
 }
 
-static inline size_t snd_pcm_mmap_playback_frags_free(struct snd_pcm_chan *chan)
-{
-	return chan->setup.frags - snd_pcm_mmap_playback_frags_used(chan);
-}
-
 static inline size_t snd_pcm_mmap_playback_bytes_free(struct snd_pcm_chan *chan)
 {
 	return chan->setup.buffer_size - snd_pcm_mmap_playback_bytes_used(chan);
@@ -152,22 +115,10 @@ static inline size_t snd_pcm_mmap_playback_bytes_free(struct snd_pcm_chan *chan)
 
 static size_t snd_pcm_mmap_playback_samples_free(snd_pcm_t *pcm)
 {
-	struct snd_pcm_chan *chan;
-	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		size_t frags = snd_pcm_mmap_playback_frags_free(chan);
-		return frags * chan->samples_per_frag;
-	} else {
-		size_t bytes = snd_pcm_mmap_playback_bytes_free(chan);
-		return bytes * 8 / chan->bits_per_sample;
-	}
+	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
+	size_t bytes = snd_pcm_mmap_playback_bytes_free(chan);
+	return bytes * 8 / chan->bits_per_sample;
 }
-
-static inline ssize_t snd_pcm_mmap_capture_frags_free(struct snd_pcm_chan *chan)
-{
-	return chan->setup.frags - snd_pcm_mmap_capture_frags_used(chan);
-}
-
 
 static inline ssize_t snd_pcm_mmap_capture_bytes_free(struct snd_pcm_chan *chan)
 {
@@ -176,15 +127,9 @@ static inline ssize_t snd_pcm_mmap_capture_bytes_free(struct snd_pcm_chan *chan)
 
 static ssize_t snd_pcm_mmap_capture_samples_free(snd_pcm_t *pcm)
 {
-	struct snd_pcm_chan *chan;
-	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		ssize_t frags = snd_pcm_mmap_capture_frags_free(chan);
-		return frags * chan->samples_per_frag;
-	} else {
-		ssize_t bytes = snd_pcm_mmap_capture_bytes_free(chan);
-		return bytes * 8 / chan->bits_per_sample;
-	}
+	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
+	ssize_t bytes = snd_pcm_mmap_capture_bytes_free(chan);
+	return bytes * 8 / chan->bits_per_sample;
 }
 
 int snd_pcm_mmap_samples_free(snd_pcm_t *pcm, int channel, ssize_t *samples)
@@ -210,11 +155,7 @@ static int snd_pcm_mmap_playback_ready(snd_pcm_t *pcm)
 	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
 	if (chan->mmap_control->status == SND_PCM_STATUS_XRUN)
 		return -EPIPE;
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		return (chan->setup.frags - snd_pcm_mmap_playback_frags_used(chan)) >= chan->setup.buf.block.frags_min;
-	} else {
-		return (chan->setup.buffer_size - snd_pcm_mmap_playback_bytes_used(chan)) >= chan->setup.buf.stream.bytes_min;
-	}
+	return (chan->setup.buffer_size - snd_pcm_mmap_playback_bytes_used(chan)) >= chan->setup.bytes_min;
 }
 
 static int snd_pcm_mmap_capture_ready(snd_pcm_t *pcm)
@@ -227,13 +168,8 @@ static int snd_pcm_mmap_capture_ready(snd_pcm_t *pcm)
 		if (chan->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
 			return -EPIPE;
 	}
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		if (snd_pcm_mmap_capture_frags_used(chan) >= chan->setup.buf.block.frags_min)
-			return 1;
-	} else {
-		if (snd_pcm_mmap_capture_bytes_used(chan) >= chan->setup.buf.stream.bytes_min)
-			return 1;
-	}
+	if (snd_pcm_mmap_capture_bytes_used(chan) >= chan->setup.bytes_min)
+		return 1;
 	return ret;
 }
 
@@ -258,36 +194,6 @@ int snd_pcm_mmap_ready(snd_pcm_t *pcm, int channel)
 	}
 }
 
-static size_t snd_pcm_mmap_playback_frags_xfer(snd_pcm_t *pcm, size_t frags)
-{
-	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	snd_pcm_mmap_control_t *ctrl = chan->mmap_control;
-	size_t frags_cont;
-	size_t frag_data = ctrl->frag_data;
-	size_t frags_free = snd_pcm_mmap_playback_frags_free(chan);
-	if (frags_free < frags)
-		frags = frags_free;
-	frags_cont = chan->setup.frags - (frag_data % chan->setup.frags);
-	if (frags_cont < frags)
-		frags = frags_cont;
-	return frags;
-}
-
-static size_t snd_pcm_mmap_capture_frags_xfer(snd_pcm_t *pcm, size_t frags)
-{
-	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	snd_pcm_mmap_control_t *ctrl = chan->mmap_control;
-	size_t frags_cont;
-	size_t frag_data = ctrl->frag_data;
-	size_t frags_used = snd_pcm_mmap_capture_frags_used(chan);
-	if (frags_used < frags)
-		frags = frags_used;
-	frags_cont = chan->setup.frags - (frag_data % chan->setup.frags);
-	if (frags_cont < frags)
-		frags = frags_cont;
-	return frags;
-}
-
 static size_t snd_pcm_mmap_playback_bytes_xfer(snd_pcm_t *pcm, size_t bytes)
 {
 	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
@@ -300,7 +206,7 @@ static size_t snd_pcm_mmap_playback_bytes_xfer(snd_pcm_t *pcm, size_t bytes)
 	bytes_cont = chan->setup.buffer_size - (byte_data % chan->setup.buffer_size);
 	if (bytes_cont < bytes)
 		bytes = bytes_cont;
-	bytes -= bytes % chan->setup.buf.stream.bytes_align;
+	bytes -= bytes % chan->setup.bytes_align;
 	return bytes;
 }
 
@@ -316,38 +222,24 @@ static size_t snd_pcm_mmap_capture_bytes_xfer(snd_pcm_t *pcm, size_t bytes)
 	bytes_cont = chan->setup.buffer_size - (byte_data % chan->setup.buffer_size);
 	if (bytes_cont < bytes)
 		bytes = bytes_cont;
-	bytes -= bytes % chan->setup.buf.stream.bytes_align;
+	bytes -= bytes % chan->setup.bytes_align;
 	return bytes;
 }
 
 static ssize_t snd_pcm_mmap_playback_samples_xfer(snd_pcm_t *pcm, size_t samples)
 {
-	struct snd_pcm_chan *chan;
-	chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		size_t frags = samples / chan->samples_per_frag;
-		frags = snd_pcm_mmap_playback_frags_xfer(pcm, frags);
-		return frags * chan->samples_per_frag;
-	} else {
-		size_t bytes = samples * chan->bits_per_sample / 8;
-		bytes = snd_pcm_mmap_playback_bytes_xfer(pcm, bytes);
-		return bytes * 8 / chan->bits_per_sample;
-	}
+	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
+	size_t bytes = samples * chan->bits_per_sample / 8;
+	bytes = snd_pcm_mmap_playback_bytes_xfer(pcm, bytes);
+	return bytes * 8 / chan->bits_per_sample;
 }
 
 static ssize_t snd_pcm_mmap_capture_samples_xfer(snd_pcm_t *pcm, size_t samples)
 {
-	struct snd_pcm_chan *chan;
-	chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		size_t frags = samples / chan->samples_per_frag;
-		frags = snd_pcm_mmap_capture_frags_xfer(pcm, frags);
-		return frags * chan->samples_per_frag;
-	} else {
-		size_t bytes = samples * chan->bits_per_sample / 8;
-		bytes = snd_pcm_mmap_capture_bytes_xfer(pcm, bytes);
-		return bytes * 8 / chan->bits_per_sample;
-	}
+	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_CAPTURE];
+	size_t bytes = samples * chan->bits_per_sample / 8;
+	bytes = snd_pcm_mmap_capture_bytes_xfer(pcm, bytes);
+	return bytes * 8 / chan->bits_per_sample;
 }
 
 ssize_t snd_pcm_mmap_samples_xfer(snd_pcm_t *pcm, int channel, size_t samples)
@@ -380,16 +272,14 @@ ssize_t snd_pcm_mmap_samples_offset(snd_pcm_t *pcm, int channel)
 	ctrl = chan->mmap_control;
 	if (!ctrl)
 		return -EBADFD;
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK)
-		return (ctrl->frag_data % chan->setup.frags) * chan->samples_per_frag;
-	else
-		return (ctrl->byte_data % chan->setup.buffer_size) * 8 / chan->bits_per_sample;
+	return (ctrl->byte_data % chan->setup.buffer_size) * 8 / chan->bits_per_sample;
 }
 
 int snd_pcm_mmap_commit_samples(snd_pcm_t *pcm, int channel, int samples)
 {
 	struct snd_pcm_chan *chan;
 	snd_pcm_mmap_control_t *ctrl;
+	size_t byte_data, bytes;
         if (!pcm)
                 return -EFAULT;
         if (channel < 0 || channel > 1)
@@ -400,33 +290,15 @@ int snd_pcm_mmap_commit_samples(snd_pcm_t *pcm, int channel, int samples)
 	ctrl = chan->mmap_control;
 	if (!ctrl)
 		return -EBADFD;
-	if (chan->setup.mode == SND_PCM_MODE_BLOCK) {
-		size_t frag_data, frags;
-		if (samples % chan->samples_per_frag)
-			return -EINVAL;
-		frags = samples / chan->samples_per_frag;
-		frag_data = ctrl->frag_data + frags;
-		if (frag_data == chan->setup.frag_boundary) {
-			ctrl->frag_data = 0;
-			ctrl->byte_data = 0;
-		} else {
-			ctrl->frag_data = frag_data;
-			ctrl->byte_data = frag_data * chan->setup.frag_size;
-		}
+	bytes = samples * chan->bits_per_sample;
+	if (bytes % 8)
+		return -EINVAL;
+	bytes /= 8;
+	byte_data = ctrl->byte_data + bytes;
+	if (byte_data == chan->setup.byte_boundary) {
+		ctrl->byte_data = 0;
 	} else {
-		size_t byte_data;
-		size_t bytes = samples * chan->bits_per_sample;
-		if (bytes % 8)
-			return -EINVAL;
-		bytes /= 8;
-		byte_data = ctrl->byte_data + bytes;
-		if (byte_data == chan->setup.byte_boundary) {
-			ctrl->byte_data = 0;
-			ctrl->frag_data = 0;
-		} else {
-			ctrl->byte_data = byte_data;
-			ctrl->frag_data = byte_data / chan->setup.frag_size;
-		}
+		ctrl->byte_data = byte_data;
 	}
 	return 0;
 }
@@ -788,26 +660,48 @@ ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned 
 	return result * chan->bits_per_sample / 8;
 }
 
+static ssize_t mmap_playback_bytes_xfer(struct snd_pcm_chan *chan)
+{
+	snd_pcm_mmap_control_t *ctrl = chan->mmap_control;
+	size_t bytes_cont;
+	size_t byte_io = ctrl->byte_io;
+	ssize_t bytes = snd_pcm_mmap_playback_bytes_used(chan);
+	bytes_cont = chan->setup.buffer_size - (byte_io % chan->setup.buffer_size);
+	if ((ssize_t)bytes_cont < bytes)
+		bytes = bytes_cont;
+	bytes -= bytes % chan->setup.bytes_align;
+	return bytes;
+}
+
+static ssize_t mmap_capture_bytes_xfer(struct snd_pcm_chan *chan)
+{
+	snd_pcm_mmap_control_t *ctrl = chan->mmap_control;
+	size_t bytes_cont;
+	size_t byte_io = ctrl->byte_io;
+	ssize_t bytes = snd_pcm_mmap_capture_bytes_free(chan);
+	bytes_cont = chan->setup.buffer_size - (byte_io % chan->setup.buffer_size);
+	if ((ssize_t)bytes_cont < bytes)
+		bytes = bytes_cont;
+	bytes -= bytes % chan->setup.bytes_align;
+	return bytes;
+}
+
 static void *playback_mmap(void *d)
 {
 	snd_pcm_t *pcm = d;
 	struct snd_pcm_chan *chan = &pcm->chan[SND_PCM_CHANNEL_PLAYBACK];
 	snd_pcm_mmap_control_t *control;
 	char *data;
-	int frags;
-	int frag_size, voice_size, voice_frag_size;
+	size_t voice_size;
 	int voices;
 	control = chan->mmap_control;
 	data = chan->mmap_data;
-	frags = chan->setup.frags;
-	frag_size = chan->setup.frag_size;
 	voices = chan->setup.format.voices;
 	voice_size = chan->mmap_data_size / voices;
-	voice_frag_size = voice_size / frags;
 	while (1) {
 		int err;
 		struct pollfd pfd;
-		unsigned int f, frag;
+		size_t pos, p, bytes;
 		if (chan->mmap_thread_stop)
 			break;
 
@@ -832,25 +726,28 @@ static void *playback_mmap(void *d)
 			continue;
 		}
 
-		frag = control->frag_io;
-		if (snd_pcm_mmap_playback_frags_used(chan) <= 0) {
+		pos = control->byte_io;
+		bytes = mmap_playback_bytes_xfer(chan);
+		if (bytes <= 0) {
 			fprintf(stderr, "underrun\n");
 			usleep(10000);
 			continue;
 		}
-		f = frag % frags;
+		p = pos % chan->setup.buffer_size;
 		if (chan->setup.format.interleave) {
-			err = snd_pcm_write(pcm, data + f * frag_size, frag_size);
+			err = snd_pcm_write(pcm, data + pos, bytes);
 		} else {
 			struct iovec vector[voices];
 			struct iovec *v = vector;
 			int voice;
+			size_t size = bytes / voices;
+			size_t posv = p / voices;
 			for (voice = 0; voice < voices; ++voice) {
-				v->iov_base = data + voice_size * voice + f * voice_frag_size;
-				v->iov_len = voice_frag_size;
+				v->iov_base = data + voice_size * voice + posv;
+				v->iov_len = size;
 				v++;
 			}
-			err = snd_pcm_writev(pcm, vector, voice_frag_size);
+			err = snd_pcm_writev(pcm, vector, voices);
 		}
 		if (err <= 0) {
 			fprintf(stderr, "write err=%d\n", err);
@@ -860,10 +757,10 @@ static void *playback_mmap(void *d)
 		pthread_mutex_lock(&chan->mutex);
 		pthread_cond_signal(&chan->ready_cond);
 		pthread_mutex_unlock(&chan->mutex);
-		frag++;
-		if (frag == chan->setup.frag_boundary)
-			frag = 0;
-		control->frag_io = frag;
+		pos += bytes;
+		if (pos == chan->setup.byte_boundary)
+			pos = 0;
+		control->byte_io = pos;
 	}
 	return 0;
 }
@@ -887,7 +784,7 @@ static void *capture_mmap(void *d)
 	while (1) {
 		int err;
 		struct pollfd pfd;
-		unsigned int f, frag;
+		size_t pos, p, bytes;
 		if (chan->mmap_thread_stop)
 			break;
 
@@ -912,35 +809,41 @@ static void *capture_mmap(void *d)
 			continue;
 		}
 
-		frag = control->frag_io;
-		if (snd_pcm_mmap_capture_frags_free(chan) <= 0) {
+		pos = control->byte_io;
+		bytes = mmap_capture_bytes_xfer(chan);
+		if (bytes <= 0) {
 			fprintf(stderr, "overrun\n");
 			usleep(10000);
 			continue;
 		}
-		f = frag % frags;
+		p = pos % chan->setup.buffer_size;
 		if (chan->setup.format.interleave) {
-			err = snd_pcm_read(pcm, data + f * frag_size, frag_size);
+			err = snd_pcm_read(pcm, data + pos, bytes);
 		} else {
 			struct iovec vector[voices];
 			struct iovec *v = vector;
 			int voice;
+			size_t size = bytes / voices;
+			size_t posv = p / voices;
 			for (voice = 0; voice < voices; ++voice) {
-				v->iov_base = data + voice_size * voice + f * voice_frag_size;
-				v->iov_len = voice_frag_size;
+				v->iov_base = data + voice_size * voice + posv;
+				v->iov_len = size;
 				v++;
 			}
-			err = snd_pcm_readv(pcm, vector, voice_frag_size);
+			err = snd_pcm_readv(pcm, vector, voices);
 		}
 		if (err < 0) {
 			fprintf(stderr, "read err=%d\n", err);
 			snd_pcm_mmap_status_change(pcm, SND_PCM_CHANNEL_CAPTURE, -1);
 			continue;
 		}
-		frag++;
-		if (frag == chan->setup.frag_boundary)
-			frag = 0;
-		control->frag_io = frag;
+		pthread_mutex_lock(&chan->mutex);
+		pthread_cond_signal(&chan->ready_cond);
+		pthread_mutex_unlock(&chan->mutex);
+		pos += bytes;
+		if (pos == chan->setup.byte_boundary)
+			pos = 0;
+		control->byte_io = pos;
 	}
 	return 0;
 }
