@@ -33,21 +33,11 @@
 #include <dlfcn.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
+#include "iatomic.h"
 
 #ifndef PIC
 /* entry for static linking */
 const char *_snd_module_pcm_meter = "";
-#endif
-
-#if defined(__sparc__) || defined(__ia64__) || defined(__mips__)
-/* asm/atomic.h is unavailable on sparc and ia64 */
-#define atomic_t int
-#define atomic_read(x)	(*(x))
-#define atomic_dec(x)	((*(x))--)
-#define atomic_inc(x)	((*(x))++)
-#define atomic_set(x,i)	(*(x) = (i))
-#else
-#include <asm/atomic.h>
 #endif
 
 #ifndef DOC_HIDDEN
