@@ -53,7 +53,7 @@ typedef struct {
 	int srate;
 	enum snd_pcm_plug_route_policy route_policy;
 	snd_pcm_route_ttable_entry_t *ttable;
-	int ttable_ok;
+	int ttable_ok, ttable_last;
 	unsigned int tt_ssize, tt_cused, tt_sused;
 } snd_pcm_plug_t;
 
@@ -361,7 +361,8 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 	snd_pcm_route_ttable_entry_t *ttable;
 	int err;
 	assert(snd_pcm_format_linear(slv->format));
-	if (clt->channels == slv->channels && !plug->ttable)
+	if (clt->channels == slv->channels &&
+	    (!plug->ttable || !plug->ttable_last))
 		return 0;
 	if (clt->rate != slv->rate &&
 	    clt->channels > slv->channels)
@@ -560,7 +561,7 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 	};
 	snd_pcm_plug_params_t p = *slave;
 	unsigned int k = 0;
-	plug->ttable_ok = 0;
+	plug->ttable_ok = plug->ttable_last = 0;
 	while (client->format != p.format ||
 	       client->channels != p.channels ||
 	       client->rate != p.rate ||
@@ -584,6 +585,7 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 	if (plug->ttable && !plug->ttable_ok) {
 		snd_pcm_t *new;
 		int err;
+		plug->ttable_last = 1;
 		err = snd_pcm_plug_change_channels(pcm, &new, client, &p);
 		if (err < 0) {
 			snd_pcm_plug_clear(pcm);
