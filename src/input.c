@@ -38,7 +38,7 @@
 typedef struct _snd_input_ops {
 	int (*close)(snd_input_t *input);
 	int (*scan)(snd_input_t *input, const char *format, va_list args);
-	char *(*gets)(snd_input_t *input, char *str, size_t size);
+	char *(*(gets))(snd_input_t *input, char *str, size_t size);
 	int (*getch)(snd_input_t *input);
 	int (*ungetch)(snd_input_t *input, int c);
 } snd_input_ops_t;
@@ -93,7 +93,7 @@ int snd_input_scanf(snd_input_t *input, const char *format, ...)
  */
 char *snd_input_gets(snd_input_t *input, char *str, size_t size)
 {
-	return input->ops->gets(input, str, size);
+	return (input->ops->gets)(input, str, size);
 }
 			
 /**
