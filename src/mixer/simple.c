@@ -730,7 +730,8 @@ static int simple_update(snd_mixer_elem_t *melem)
 	}
 
 	/* exceptions */
-	if ((caps & (CAP_GSWITCH|CAP_PSWITCH|CAP_CSWITCH)) == (caps & CAP_GSWITCH)) {
+	if ((caps & (CAP_GSWITCH|CAP_PSWITCH|CAP_CSWITCH)) &&
+	    (caps & (CAP_GSWITCH|CAP_PSWITCH|CAP_CSWITCH)) == (caps & CAP_GSWITCH)) {
 		caps &= ~(CAP_GSWITCH|CAP_CSWITCH_JOIN|CAP_CSWITCH_EXCL);
 		caps |= CAP_PSWITCH;
 	}
