@@ -74,6 +74,7 @@ main(int argc, char **argv)
 	snd_seq_queue_status_t *status;
 	const snd_seq_real_time_t *rtime;
 	struct timeval tv, diff, diffdiff;
+	struct timespec ts;
 
 	snd_seq_queue_status_alloca(&status);
 
@@ -115,7 +116,6 @@ main(int argc, char **argv)
 
 	fprintf(stderr, "\n");
 //	sleep(1);
-	struct timespec ts;
 	ts.tv_sec = 0;
 	ts.tv_nsec = 500000000;
 	nanosleep(&ts, 0);

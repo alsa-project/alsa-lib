@@ -5,6 +5,10 @@
 #include <sched.h>
 #include <sys/time.h>
 
+#ifndef __builtin_expect
+#include <linux/compiler.h>
+#endif
+
 #define rdtscll(val) \
      __asm__ __volatile__("rdtsc" : "=A" (val))
 
@@ -212,6 +216,9 @@ int main(int argc, char **argv)
 	int i, t;
 	unsigned long long begin, end, diff, diffS, diff0, diff1, diff1_mmx, diff2;
         double cpu_clock = detect_cpu_clock();
+	s16 *dst = malloc(sizeof(*dst) * size);
+	s32 *sum = calloc(size, sizeof(*sum));
+	s16 **srcs = malloc(sizeof(*srcs) * n);
 
 	setscheduler();
 #ifndef CONFIG_SMP
@@ -226,9 +233,6 @@ int main(int argc, char **argv)
 	}
 	if (argc > 4)
 		cache_size = atoi(argv[4]) * 1024;
-	s16 *dst = malloc(sizeof(*dst) * size);
-	s32 *sum = calloc(size, sizeof(*sum));
-	s16 **srcs = malloc(sizeof(*srcs) * n);
 	for (i = 0; i < n; i++) {
 		int k;
 		s16 *s;
