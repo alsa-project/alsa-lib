@@ -44,7 +44,7 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 	const char *str;
 	char buf[256];
 	int err;
-	snd_config_t *conf, *type_conf;
+	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_hwdep_t **, const char *, snd_config_t *, snd_config_t *, int) = NULL;

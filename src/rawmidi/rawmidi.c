@@ -68,7 +68,7 @@ static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp
 	const char *str;
 	char buf[256];
 	int err;
-	snd_config_t *conf, *type_conf;
+	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	snd_rawmidi_params_t params;
 	const char *lib = NULL, *open_name = NULL;

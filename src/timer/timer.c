@@ -43,7 +43,7 @@ static int snd_timer_open_conf(snd_timer_t **timer,
 	const char *str;
 	char buf[256];
 	int err;
-	snd_config_t *conf, *type_conf;
+	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_timer_t **, const char *, snd_config_t *, snd_config_t *, int) = NULL;
