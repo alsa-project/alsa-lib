@@ -13,7 +13,6 @@ dist-hook:
 pack: clean-recursive
 	rm -f config.log config.cache config.status
 	rm -rf `find . -name ".deps"`
-	chown -R root.root ../alsa-lib
 	mv ../alsa-lib ../alsa-lib-$(SND_LIB_VERSION)
-	tar --exclude=CVS -cvI -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.bz2 alsa-lib-$(SND_LIB_VERSION)
+	tar --exclude=CVS --owner=root --group=root -cvI -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.bz2 alsa-lib-$(SND_LIB_VERSION)
 	mv ../alsa-lib-$(SND_LIB_VERSION) ../alsa-lib 
