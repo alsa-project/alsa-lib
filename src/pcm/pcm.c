@@ -5543,6 +5543,21 @@ void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestam
 }
 
 /** 
+ * \brief Get trigger hi-res timestamp from a PCM status container
+ * \param ptr Pointer to returned timestamp
+ */
+#ifndef DOXYGEN
+void INTERNAL(snd_pcm_status_get_trigger_htstamp)(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
+#else
+void snd_pcm_status_get_trigger_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
+#endif
+{
+	assert(obj && ptr);
+	*ptr = obj->trigger_tstamp;
+}
+default_symbol_version(__snd_pcm_status_get_trigger_htstamp, snd_pcm_status_get_trigger_htstamp, ALSA_0.9.0rc8);
+
+/** 
  * \brief Get "now" timestamp from a PCM status container
  * \param ptr Pointer to returned timestamp
  */
@@ -5552,6 +5567,21 @@ void snd_pcm_status_get_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr
 	ptr->tv_sec = obj->tstamp.tv_sec;
 	ptr->tv_usec = obj->tstamp.tv_nsec / 1000L;
 }
+
+/** 
+ * \brief Get "now" hi-res timestamp from a PCM status container
+ * \param ptr Pointer to returned timestamp
+ */
+#ifndef DOXYGEN
+void INTERNAL(snd_pcm_status_get_htstamp)(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
+#else
+void snd_pcm_status_get_htstamp(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
+#endif
+{
+	assert(obj && ptr);
+	*ptr = obj->tstamp;
+}
+default_symbol_version(__snd_pcm_status_get_htstamp, snd_pcm_status_get_htstamp, ALSA_0.9.0rc8);
 
 /** 
  * \brief Get delay from a PCM status container (see #snd_pcm_delay)
