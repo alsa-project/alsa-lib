@@ -1434,7 +1434,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, bindings) {
-		int cchannel = -1;
+		long cchannel = -1;
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		err = safe_strtol(id, &cchannel);
