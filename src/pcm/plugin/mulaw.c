@@ -21,6 +21,11 @@
  *
  */
   
+#ifdef __KERNEL__
+#include "../../include/driver.h"
+#include "../../include/pcm_plugin.h"
+#define bswap_16(x) __swab16((x))
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -29,6 +34,7 @@
 #include <endian.h>
 #include <byteswap.h>
 #include "../pcm_local.h"
+#endif
 
 #define	SIGN_BIT	(0x80)		/* Sign bit for a u-law byte. */
 #define	QUANT_MASK	(0xf)		/* Quantization field mask. */
@@ -241,8 +247,8 @@ static void mulaw_conv_mulaw_swap_u16bit(unsigned char *src_ptr, unsigned short 
 }
 
 static ssize_t mulaw_transfer(snd_pcm_plugin_t *plugin,
-			      char *src_ptr, size_t src_size,
-			      char *dst_ptr, size_t dst_size)
+			   char *src_ptr, size_t src_size,
+			   char *dst_ptr, size_t dst_size)
 {
 	struct mulaw_private_data *data;
 
@@ -436,7 +442,8 @@ int snd_pcm_plugin_build_mulaw(snd_pcm_format_t *src_format,
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->interleave != dst_format->interleave)
+	if (src_format->interleave != dst_format->interleave && 
+	    src_format->voices > 1)
 		return -EINVAL;
 	if (src_format->rate != dst_format->rate)
 		return -EINVAL;
@@ -480,3 +487,7 @@ int snd_pcm_plugin_build_mulaw(snd_pcm_format_t *src_format,
 	*r_plugin = plugin;
 	return 0;
 }
+
+#ifdef __KERNEL__
+EXPORT_SYMBOL(snd_pcm_plugin_build_mulaw);
+#endif

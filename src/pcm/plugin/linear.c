@@ -18,7 +18,12 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-  
+
+#ifdef __KERNEL__
+#include "../../include/driver.h"
+#include "../../include/pcm.h"
+#include "../../include/pcm_plugin.h"
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -27,6 +32,7 @@
 #include <endian.h>
 #include <byteswap.h>
 #include "../pcm_local.h"
+#endif
 
 /*
  *  Basic linear conversion plugin
@@ -48,14 +54,15 @@ typedef enum {
 } combination_t;
  
 typedef enum {
-	NONE,
-	SOURCE,
-	DESTINATION,
-	BOTH,
-	SIGN_NONE,
-	SIGN_SOURCE,
-	SIGN_DESTINATION,
-	SIGN_BOTH,
+	NONE = 0,
+	SOURCE = 1,
+	DESTINATION = 2,
+	BOTH = 3,
+	SIGN = 4,
+	SIGN_NONE = 4,
+	SIGN_SOURCE = 5,
+	SIGN_DESTINATION = 6,
+	SIGN_BOTH = 7,
 } endian_t;
  
 struct linear_private_data {
@@ -128,8 +135,8 @@ static void linear_conv_sign_16bit_8bit_swap(unsigned short *src_ptr,
 }
 
 static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
-			     char *src_ptr, size_t src_size,
-			     char *dst_ptr, size_t dst_size)
+			       char *src_ptr, size_t src_size,
+			       char *dst_ptr, size_t dst_size)
 {
 	struct linear_private_data *data;
 
@@ -170,13 +177,13 @@ static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 		case NONE:
 			linear_conv_16bit_8bit((short *)src_ptr, dst_ptr, src_size);
 			break;
-		case DESTINATION:
+		case SOURCE:
 			linear_conv_16bit_8bit_swap((short *)src_ptr, dst_ptr, src_size);
 			break;
 		case SIGN_NONE:
 			linear_conv_sign_16bit_8bit((short *)src_ptr, dst_ptr, src_size);
 			break;
-		case SIGN_DESTINATION:
+		case SIGN_SOURCE:
 			linear_conv_sign_16bit_8bit_swap((short *)src_ptr, dst_ptr, src_size);
 			break;
 		default:
@@ -248,68 +255,6 @@ static ssize_t linear_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 	}
 }
 
-static int linear_wide(int format)
-{
-	if (format >= 0 && format <= 1)
-		return 8;
-	if (format >= 2 && format <= 5)
-		return 16;
-	if (format >= 6 && format <= 9)
-		return 24;
-	if (format >= 10 && format <= 13)
-		return 32;
-	return -1;
-}
-
-static int linear_endian(int format)
-{
-	switch (format) {
-	case SND_PCM_SFMT_S8:
-	case SND_PCM_SFMT_U8:
-		return 0;
-	case SND_PCM_SFMT_S16_LE:
-	case SND_PCM_SFMT_U16_LE:
-	case SND_PCM_SFMT_S24_LE:
-	case SND_PCM_SFMT_U24_LE:
-	case SND_PCM_SFMT_S32_LE:
-	case SND_PCM_SFMT_U32_LE:
-		return __LITTLE_ENDIAN;
-	case SND_PCM_SFMT_S16_BE:
-	case SND_PCM_SFMT_U16_BE:
-	case SND_PCM_SFMT_S24_BE:
-	case SND_PCM_SFMT_U24_BE:
-	case SND_PCM_SFMT_S32_BE:
-	case SND_PCM_SFMT_U32_BE:
-		return __BIG_ENDIAN;
-	default:
-		return -1;
-	}
-}
- 
-static int linear_sign(int format)
-{
-	switch (format) {
-	case SND_PCM_SFMT_S8:
-	case SND_PCM_SFMT_S16_LE:
-	case SND_PCM_SFMT_S16_BE:
-	case SND_PCM_SFMT_S24_LE:
-	case SND_PCM_SFMT_S24_BE:
-	case SND_PCM_SFMT_S32_LE:
-	case SND_PCM_SFMT_S32_BE:
-		return 1;
-	case SND_PCM_SFMT_U8:
-	case SND_PCM_SFMT_U16_LE:
-	case SND_PCM_SFMT_U24_LE:
-	case SND_PCM_SFMT_U32_LE:
-	case SND_PCM_SFMT_U16_BE:
-	case SND_PCM_SFMT_U24_BE:
-	case SND_PCM_SFMT_U32_BE:
-		return 0;
-	default:
-		return -1;
-	}
-}
- 
 int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 				snd_pcm_format_t *dst_format,
 				snd_pcm_plugin_t **r_plugin)
@@ -317,40 +262,40 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 	struct linear_private_data *data;
 	snd_pcm_plugin_t *plugin;
 	combination_t cmd;
-	int wide1, wide2, endian1, endian2, sign1, sign2;
+	int width1, width2, endian1, endian2, sign1, sign2;
 
 	if (!r_plugin)
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->interleave != dst_format->interleave)
+	if (src_format->interleave != dst_format->interleave && 
+	    src_format->voices > 1)
 		return -EINVAL;
 	if (src_format->rate != dst_format->rate)
 		return -EINVAL;
 	if (src_format->voices != dst_format->voices)
 		return -EINVAL;
-
-	wide1 = linear_wide(src_format->format);
-	endian1 = linear_endian(src_format->format);
-	sign1 = linear_sign(src_format->format);
-	wide2 = linear_wide(dst_format->format);
-	endian2 = linear_endian(dst_format->format);
-	sign2 = linear_sign(dst_format->format);
-	if (wide1 < 0 || wide2 < 0 || endian1 < 0 || endian2 < 0 || sign1 < 0 || sign2 < 0)
+	if (!(snd_pcm_format_linear(src_format->format) &&
+	      snd_pcm_format_linear(dst_format->format)))
 		return -EINVAL;
+
+	width1 = snd_pcm_format_width(src_format->format);
+	sign1 = snd_pcm_format_signed(src_format->format);
+	width2 = snd_pcm_format_width(dst_format->format);
+	sign2 = snd_pcm_format_signed(dst_format->format);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-	endian1 = endian1 == __BIG_ENDIAN ? 1 : 0;
-	endian2 = endian2 == __BIG_ENDIAN ? 1 : 0;
+	endian1 = snd_pcm_format_little_endian(src_format->format);
+	endian2 = snd_pcm_format_little_endian(dst_format->format);
 #elif __BYTE_ORDER == __BIG_ENDIAN
-	endian1 = endian1 == __LITTLE_ENDIAN ? 1 : 0;
-	endian2 = endian2 == __LITTLE_ENDIAN ? 1 : 0;
+	endian1 = snd_pcm_format_big_endian(src_format->format);
+	endian2 = snd_pcm_format_big_endian(dst_format->format);
 #else
 #error "Unsupported endian..."
 #endif
 	cmd = _8BIT_16BIT;
-	switch (wide1) {
+	switch (width1) {
 	case 8:
-		switch (wide2) {
+		switch (width2) {
 		case 16:	cmd = _8BIT_16BIT; break;
 		case 24:	cmd = _8BIT_24BIT; break;
 		case 32:	cmd = _8BIT_32BIT; break;
@@ -358,7 +303,7 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 		}
 		break;
 	case 16:
-		switch (wide2) {
+		switch (width2) {
 		case 8:		cmd = _16BIT_8BIT; break;
 		case 24:	cmd = _16BIT_24BIT; break;
 		case 32:	cmd = _16BIT_32BIT; break;
@@ -366,7 +311,7 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 		}
 		break;
 	case 24:
-		switch (wide2) {
+		switch (width2) {
 		case 8:		cmd = _24BIT_8BIT; break;
 		case 16:	cmd = _24BIT_16BIT; break;
 		case 32:	cmd = _24BIT_32BIT; break;
@@ -374,7 +319,7 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 		}
 		break;
 	case 32:
-		switch (wide2) {
+		switch (width2) {
 		case 8:		cmd = _32BIT_8BIT; break;
 		case 16:	cmd = _32BIT_16BIT; break;
 		case 24:	cmd = _32BIT_24BIT; break;
@@ -390,20 +335,20 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 		return -ENOMEM;
 	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
 	data->cmd = cmd;
-	if (!endian1 && !endian2) {
-		data->endian = NONE;
-	} else if (endian1 && !endian2) {
-		data->endian = SOURCE;
-	} else if (!endian1 && endian2) {
-		data->endian = DESTINATION;
-	} else {
-		data->endian = BOTH;
-	}
+	data->endian = NONE;
+	if (endian1 == 0)
+		data->endian |= SOURCE;
+	if (endian2 == 0)
+		data->endian |= DESTINATION;
 	if (sign1 != sign2)
-		data->endian += 4;
+		data->endian |= SIGN;
 	plugin->transfer = linear_transfer;
 	plugin->src_size = linear_src_size;
 	plugin->dst_size = linear_dst_size;
 	*r_plugin = plugin;
 	return 0;
 }
+
+#ifdef __KERNEL__
+EXPORT_SYMBOL(snd_pcm_plugin_build_linear);
+#endif

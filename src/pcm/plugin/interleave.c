@@ -18,7 +18,11 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-  
+
+#ifdef __KERNEL__
+#include "../../include/driver.h"
+#include "../../include/pcm_plugin.h"
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -27,6 +31,7 @@
 #include <endian.h>
 #include <byteswap.h>
 #include "../pcm_local.h"
+#endif
 
 /*
  *  Basic interleave / non-interleave conversion plugin
@@ -188,6 +193,8 @@ int snd_pcm_plugin_build_interleave(snd_pcm_format_t *src_format,
 
 	if (!r_plugin)
 		return -EINVAL;
+	*r_plugin = NULL;
+
 	if (src_format->interleave && !dst_format->interleave) {
 		cmd = _INTERLEAVE_NON;
 	} else if (!src_format->interleave && dst_format->interleave) {
@@ -236,3 +243,7 @@ int snd_pcm_plugin_build_interleave(snd_pcm_format_t *src_format,
 	*r_plugin = plugin;
 	return 0;
 }
+
+#ifdef __KERNEL__
+EXPORT_SYMBOL(snd_pcm_plugin_build_interleave);
+#endif

@@ -19,6 +19,10 @@
  *
  */
   
+#ifdef __KERNEL__
+#include "../../include/driver.h"
+#include "../../include/pcm_plugin.h"
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -27,6 +31,7 @@
 #include <endian.h>
 #include <byteswap.h>
 #include "../pcm_local.h"
+#endif
 
 /*
  *  Basic voices conversion plugin
@@ -59,7 +64,6 @@ static void merge_8bit_unsigned(unsigned char *src_ptr,
 			        unsigned char *dst_ptr,
 			        int size)
 {
-	printf("unsigned!!\n");
 	while (size-- > 0) {
 		*dst_ptr++ = ((int)*src_ptr + (int)*(src_ptr + 1)) / 2;
 		src_ptr += 2;
@@ -170,7 +174,8 @@ int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->interleave != dst_format->interleave)
+	if (src_format->interleave != dst_format->interleave && 
+	    src_format->voices > 1)
 		return -EINVAL;
 	if (!dst_format->interleave)
 		return -EINVAL;
@@ -202,3 +207,7 @@ int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
 	*r_plugin = plugin;
 	return 0;
 }
+
+#ifdef __KERNEL__
+EXPORT_SYMBOL(snd_pcm_plugin_build_voices);
+#endif

@@ -52,6 +52,7 @@ int snd_pcm_munmap(snd_pcm_t *handle, int channel);
 
 int snd_pcm_format_signed(int format);
 int snd_pcm_format_unsigned(int format);
+int snd_pcm_format_linear(int format);
 int snd_pcm_format_little_endian(int format);
 int snd_pcm_format_big_endian(int format);
 int snd_pcm_format_width(int format);		/* in bits */

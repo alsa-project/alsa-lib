@@ -19,15 +19,18 @@
  *
  */
   
+#ifdef ALSA_BUILD
+#include "../include/driver.h"
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
+#include <endian.h>
+#include <byteswap.h>
 #include "pcm_local.h"
+#endif
 
 int snd_pcm_format_signed(int format)
 {
@@ -61,6 +64,11 @@ int snd_pcm_format_unsigned(int format)
 	if (val >= 0)
 		val ^= 1;
 	return val;
+}
+
+int snd_pcm_format_linear(int format)
+{
+	return snd_pcm_format_signed(format) >= 0;
 }
 
 int snd_pcm_format_little_endian(int format)

@@ -426,7 +426,8 @@ int snd_pcm_plugin_build_alaw(snd_pcm_format_t *src_format,
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->interleave != dst_format->interleave)
+	if (src_format->interleave != dst_format->interleave && 
+	    src_format->voices > 1)
 		return -EINVAL;
 	if (src_format->rate != dst_format->rate)
 		return -EINVAL;

@@ -19,6 +19,10 @@
  *
  */
   
+#ifdef __KERNEL__
+#include "../../include/driver.h"
+#include "../../include/pcm_plugin.h"
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -27,6 +31,7 @@
 #include <endian.h>
 #include <byteswap.h>
 #include "../pcm_local.h"
+#endif
 
 #define SHIFT	11
 #define BITS	(1<<SHIFT)
@@ -51,9 +56,9 @@ struct rate_private_data {
 	ssize_t old_src_size, old_dst_size;
 };
 
-static void mix16_expand(struct rate_private_data *data, int voices,
-			 signed short *src_ptr, int src_size,
-			 signed short *dst_ptr, int dst_size)
+static void resample16_expand(struct rate_private_data *data, int voices,
+			      signed short *src_ptr, int src_size,
+			      signed short *dst_ptr, int dst_size)
 {
 	unsigned int pos;
 	signed int val;
@@ -97,9 +102,9 @@ static void mix16_expand(struct rate_private_data *data, int voices,
 	}
 }
 
-static void mix16_shrink(struct rate_private_data *data, int voices,
-			 signed short *src_ptr, int src_size,
-			 signed short *dst_ptr, int dst_size)
+static void resample16_shrink(struct rate_private_data *data, int voices,
+			      signed short *src_ptr, int src_size,
+			      signed short *dst_ptr, int dst_size)
 {
 	unsigned int pos;
 	signed int val;
@@ -140,9 +145,9 @@ static void mix16_shrink(struct rate_private_data *data, int voices,
 	}
 }
 
-static void mix8_expand(struct rate_private_data *data, int voices,
-			unsigned char *src_ptr, int src_size,
-			unsigned char *dst_ptr, int dst_size)
+static void resample8_expand(struct rate_private_data *data, int voices,
+			     unsigned char *src_ptr, int src_size,
+			     unsigned char *dst_ptr, int dst_size)
 {
 	unsigned int pos;
 	signed int val;
@@ -186,9 +191,9 @@ static void mix8_expand(struct rate_private_data *data, int voices,
 	}
 }
 
-static void mix8_shrink(struct rate_private_data *data, int voices,
-			unsigned char *src_ptr, int src_size,
-			unsigned char *dst_ptr, int dst_size)
+static void resample8_shrink(struct rate_private_data *data, int voices,
+			     unsigned char *src_ptr, int src_size,
+			     unsigned char *dst_ptr, int dst_size)
 {
 	unsigned int pos;
 	signed int val;
@@ -245,21 +250,21 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 		return -EINVAL;
 	if (data->sample_size == 2) {
 		if (data->src_rate < data->dst_rate) {
-			mix16_expand(data, data->src_voices,
+			resample16_expand(data, data->src_voices,
 				     (signed short *)src_ptr, src_size / (data->src_voices * 2),
 				     (signed short *)dst_ptr, dst_size / (data->dst_voices * 2));
 		} else {
-			mix16_shrink(data, data->src_voices,
+			resample16_shrink(data, data->src_voices,
 				     (signed short *)src_ptr, src_size / (data->src_voices * 2),
 				     (signed short *)dst_ptr, dst_size / (data->dst_voices * 2));
 		}
 	} else {
 		if (data->src_rate < data->dst_rate) {
-			mix8_expand(data, data->src_voices,
+			resample8_expand(data, data->src_voices,
 				    src_ptr, src_size / data->src_voices,
 				    dst_ptr, dst_size / data->dst_voices);
 		} else {
-			mix8_shrink(data, data->src_voices,
+			resample8_shrink(data, data->src_voices,
 				    src_ptr, src_size / data->src_voices,
 				    dst_ptr, dst_size / data->dst_voices);
 		}
@@ -365,7 +370,8 @@ int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->interleave != dst_format->interleave)
+	if (src_format->interleave != dst_format->interleave && 
+	    src_format->voices > 1)
 		return -EINVAL;
 	if (src_format->format != dst_format->format)
 		return -EINVAL;
@@ -410,3 +416,7 @@ int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
 	*r_plugin = plugin;
 	return 0;
 }
+
+#ifdef __KERNEL__
+EXPORT_SYMBOL(snd_pcm_plugin_build_rate);
+#endif

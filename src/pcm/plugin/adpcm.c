@@ -892,9 +892,12 @@ int snd_pcm_plugin_build_adpcm(snd_pcm_format_t *src_format,
 		return -EINVAL;
 	*r_plugin = NULL;
 
-	if (src_format->interleave != dst_format->interleave ||
-	    src_format->voices != dst_format->voices ||
-	    src_format->rate != dst_format->rate)
+	if (src_format->interleave != dst_format->interleave && 
+	    src_format->voices > 1)
+		return -EINVAL;
+	if (src_format->rate != dst_format->rate)
+		return -EINVAL;
+	if (src_format->voices != dst_format->voices)
 		return -EINVAL;
 
 	if (dst_format->format == SND_PCM_SFMT_IMA_ADPCM) {
