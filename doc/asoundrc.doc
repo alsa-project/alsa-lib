@@ -79,6 +79,15 @@ sname		Slave name
 binding		Bindings table
   .N		Slave channel for client channel N
 
+- meter		Meter PCM
+Fields:
+sname		Slave name
+[frequency]	Updates per second
+scope		Scopes
+  .N		Scope #N
+    .type	Scope type
+    [.PARAMS]	Scope params
+
 - mix		Mix PCM (NYI)
 Fields:
 sname		Server name
@@ -133,6 +142,11 @@ Fields:
 [lib]		Library file
 open		Open function
 
+- scopetype	PCM scope type
+Fields:
+[lib]		Library file
+open		Open function
+
 - server	Server
 Fields:
 host		host where the server is located (if map to local address 
@@ -168,6 +182,19 @@ pcm.ice1712_spdif {
 	ttable.1.9 1
 	sname ice1712
 }
+
+pcm.m {
+	type meter
+	sname plug:trident
+	frequency 50
+	scope.0 {
+		type level
+	}
+}
+
+scopetype.level {
+	lib /home/abramo/scopes/liblevel.so
+} 
 
 Special PCM names:
 hw:#card,#dev,#subdev
