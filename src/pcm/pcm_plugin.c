@@ -248,7 +248,7 @@ double snd_pcm_plugin_hardware_ratio(snd_pcm_t *pcm, int channel)
 
 static unsigned int snd_pcm_plugin_formats(snd_pcm_t *pcm, unsigned int formats)
 {
-	formats |= SND_PCM_FMT_MU_LAW | SND_PCM_FMT_A_LAW;
+	formats |= SND_PCM_FMT_MU_LAW | SND_PCM_FMT_A_LAW | SND_PCM_FMT_IMA_ADPCM;
 	if (formats & (SND_PCM_FMT_U8|SND_PCM_FMT_S8|
 		       SND_PCM_FMT_U16_LE|SND_PCM_FMT_S16_LE))
 		formats |= SND_PCM_FMT_U8|SND_PCM_FMT_S8|
@@ -393,6 +393,18 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 			} else {
 				return -EINVAL;
 			}
+		case SND_PCM_SFMT_IMA_ADPCM:
+			if (sinfo.formats & SND_PCM_FMT_S16_LE) {
+				sparams.format.format = SND_PCM_SFMT_S16_LE;
+			} else if (sinfo.formats & SND_PCM_FMT_U16_LE) {
+				sparams.format.format = SND_PCM_SFMT_U16_LE;
+			} else if (sinfo.formats & SND_PCM_FMT_S8) {
+				sparams.format.format = SND_PCM_SFMT_S8;
+			} else if (sinfo.formats & SND_PCM_FMT_U8) {
+				sparams.format.format = SND_PCM_SFMT_U8;
+			} else {
+				return -EINVAL;
+			}
 			break;
 		default:
 			return -EINVAL;
@@ -448,6 +460,12 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 		dstfmt = sparams.format.format;
 		swap_formats(params->channel, &srcfmt, &dstfmt);
 		err = snd_pcm_plugin_build_alaw(srcfmt, dstfmt, &plugin);
+		break;
+	case SND_PCM_SFMT_IMA_ADPCM:
+		srcfmt = SND_PCM_SFMT_IMA_ADPCM;
+		dstfmt = sparams.format.format;
+		swap_formats(params->channel, &srcfmt, &dstfmt);
+		err = snd_pcm_plugin_build_adpcm(srcfmt, dstfmt, &plugin);
 		break;
 	default:
 		srcfmt = params->format.format;

@@ -1,8 +1,9 @@
 /*
  *  A-Law conversion Plug-In Interface
  *  Copyright (c) 1999 by Jaroslav Kysela <perex@suse.cz>
- *   Portions (c) by Sun Microsystems, Inc.
+ *                        Uros Bizjak <uros@kss-loka.si>
  *
+ *  Based on reference implementation by Sun Microsystems, Inc.
  *
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Library General Public License as
