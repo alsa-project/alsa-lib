@@ -4,7 +4,7 @@
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Takashi Iwai <tiwai@suse.de>
- * \date 1998-2003
+ * \date 1998-2001
  *
  * Application interface library for the ALSA driver
  *
@@ -35,28 +35,28 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <endian.h>
-#include <stdarg.h>
 #include <sys/poll.h>
 #include <errno.h>
+#include <stdarg.h>
 
-#include "asoundef.h"
-#include "version.h"
-#include "global.h"
-#include "input.h"
-#include "output.h"
-#include "error.h"
-#include "conf.h"
-#include "pcm.h"
-#include "rawmidi.h"
-#include "timer.h"
-#include "hwdep.h"
-#include "control.h"
-#include "mixer.h"
-#include "seq_event.h"
-#include "seq.h"
-#include "seqmid.h"
-#include "seq_midi_event.h"
-#include "conv.h"
-#include "instr.h"
+#include <alsa/asoundef.h>
+#include <alsa/version.h>
+#include <alsa/global.h>
+#include <alsa/input.h>
+#include <alsa/output.h>
+#include <alsa/error.h>
+#include <alsa/conf.h>
+#include <alsa/pcm.h>
+#include <alsa/rawmidi.h>
+#include <alsa/timer.h>
+#include <alsa/hwdep.h>
+#include <alsa/control.h>
+#include <alsa/mixer.h>
+#include <alsa/seq_event.h>
+#include <alsa/seq.h>
+#include <alsa/seqmid.h>
+#include <alsa/seq_midi_event.h>
+#include <alsa/conv.h>
+#include <alsa/instr.h>
 
 #endif /* __ASOUNDLIB_H */
