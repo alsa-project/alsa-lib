@@ -23,9 +23,9 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
-enum {
+typedef enum _snd_pcm_file_format {
 	SND_PCM_FILE_FORMAT_RAW
-};
+} snd_pcm_file_format_t;
 
 typedef struct {
 	snd_pcm_t *slave;
@@ -283,7 +283,7 @@ static snd_pcm_sframes_t snd_pcm_file_mmap_forward(snd_pcm_t *pcm, snd_pcm_ufram
 	if (n <= 0)
 		return n;
 	while (xfer < (snd_pcm_uframes_t)n) {
-		snd_pcm_uframes_t frames = size - xfer;
+		snd_pcm_uframes_t frames = n - xfer;
 		snd_pcm_uframes_t cont = pcm->buffer_size - ofs;
 		if (frames > cont)
 			frames = cont;
@@ -414,7 +414,15 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, char *name, char *fname, int fd, char *f
 {
 	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
+	snd_pcm_file_format_t format;
 	assert(pcmp);
+	if (fmt == NULL ||
+	    strcmp(fmt, "raw") == 0)
+		format = SND_PCM_FILE_FORMAT_RAW;
+	else {
+		ERR("file format %s is unknown", fmt);
+		return -EINVAL;
+	}
 	if (fname) {
 		fd = open(fname, O_WRONLY|O_CREAT, 0666);
 		if (fd < 0) {
@@ -428,14 +436,10 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, char *name, char *fname, int fd, char *f
 			close(fd);
 		return -ENOMEM;
 	}
-	if (fmt == NULL ||
-	    strcmp(fmt, "raw") == 0)
-		file->format = SND_PCM_FILE_FORMAT_RAW;
-	else
-		ERR("file format %s is unknown", fmt);
 
 	file->fname = fname;
 	file->fd = fd;
+	file->format = format;
 	file->slave = slave;
 	file->close_slave = close_slave;
 
