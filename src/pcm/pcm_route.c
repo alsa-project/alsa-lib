@@ -55,13 +55,13 @@ typedef struct {
 } route_params_t;
 
 
-typedef void (*route_f)(snd_pcm_channel_area_t *src_areas,
+typedef void (*route_f)(const snd_pcm_channel_area_t *src_areas,
 			size_t src_offset,
-			snd_pcm_channel_area_t *dst_area,
+			const snd_pcm_channel_area_t *dst_area,
 			size_t dst_offset,
 			size_t frames,
-			ttable_dst_t *ttable,
-			route_params_t *params);
+			const ttable_dst_t *ttable,
+			const route_params_t *params);
 
 struct ttable_dst {
 	int att;	/* Attenuated */
@@ -87,13 +87,13 @@ typedef struct {
 } snd_pcm_route_t;
 
 
-static void route1_zero(snd_pcm_channel_area_t *src_areas ATTRIBUTE_UNUSED,
+static void route1_zero(const snd_pcm_channel_area_t *src_areas ATTRIBUTE_UNUSED,
 			size_t src_offset ATTRIBUTE_UNUSED,
-			snd_pcm_channel_area_t *dst_area,
+			const snd_pcm_channel_area_t *dst_area,
 			size_t dst_offset,
 			size_t frames,
-			ttable_dst_t* ttable ATTRIBUTE_UNUSED,
-			route_params_t *params)
+			const ttable_dst_t* ttable ATTRIBUTE_UNUSED,
+			const route_params_t *params)
 {
 #if 0
 	if (dst_area->wanted)
@@ -104,19 +104,19 @@ static void route1_zero(snd_pcm_channel_area_t *src_areas ATTRIBUTE_UNUSED,
 #endif
 }
 
-static void route1_one(snd_pcm_channel_area_t *src_areas,
+static void route1_one(const snd_pcm_channel_area_t *src_areas,
 		       size_t src_offset,
-		       snd_pcm_channel_area_t *dst_area,
+		       const snd_pcm_channel_area_t *dst_area,
 		       size_t dst_offset,
 		       size_t frames,
-		       ttable_dst_t* ttable,
-		       route_params_t *params)
+		       const ttable_dst_t* ttable,
+		       const route_params_t *params)
 {
 #define CONV_LABELS
 #include "plugin_ops.h"
 #undef CONV_LABELS
 	void *conv;
-	snd_pcm_channel_area_t *src_area = 0;
+	const snd_pcm_channel_area_t *src_area = 0;
 	unsigned int srcidx;
 	char *src, *dst;
 	int src_step, dst_step;
@@ -149,13 +149,13 @@ static void route1_one(snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-static void route1_many(snd_pcm_channel_area_t *src_areas,
+static void route1_many(const snd_pcm_channel_area_t *src_areas,
 			size_t src_offset,
-			snd_pcm_channel_area_t *dst_area,
+			const snd_pcm_channel_area_t *dst_area,
 			size_t dst_offset,
 			size_t frames,
-			ttable_dst_t* ttable,
-			route_params_t *params)
+			const ttable_dst_t* ttable,
+			const route_params_t *params)
 {
 #define GET_LABELS
 #define PUT32_LABELS
@@ -212,7 +212,7 @@ static void route1_many(snd_pcm_channel_area_t *src_areas,
 	u_int32_t sample = 0;
 	int srcidx, srcidx1 = 0;
 	for (srcidx = 0; srcidx < nsrcs; ++srcidx) {
-		snd_pcm_channel_area_t *src_area = &src_areas[ttable->srcs[srcidx].channel];
+		const snd_pcm_channel_area_t *src_area = &src_areas[ttable->srcs[srcidx].channel];
 #if 0
 		if (!src_area->enabled)
 			continue;
@@ -382,9 +382,9 @@ static void route1_many(snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-static void route_transfer(snd_pcm_channel_area_t *src_areas,
+static void route_transfer(const snd_pcm_channel_area_t *src_areas,
 			   size_t src_offset,
-			   snd_pcm_channel_area_t *dst_areas,
+			   const snd_pcm_channel_area_t *dst_areas,
 			   size_t dst_offset,
 			   size_t frames,
 			   size_t dst_channels,
@@ -392,7 +392,7 @@ static void route_transfer(snd_pcm_channel_area_t *src_areas,
 {
 	size_t dst_channel;
 	ttable_dst_t *dstp;
-	snd_pcm_channel_area_t *dst_area;
+	const snd_pcm_channel_area_t *dst_area;
 
 	dstp = params->dsts;
 	dst_area = dst_areas;
@@ -514,7 +514,7 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 }
 
 static ssize_t snd_pcm_route_write_areas(snd_pcm_t *pcm,
-					 snd_pcm_channel_area_t *areas,
+					 const snd_pcm_channel_area_t *areas,
 					 size_t offset,
 					 size_t size,
 					 size_t *slave_sizep)
@@ -548,7 +548,7 @@ static ssize_t snd_pcm_route_write_areas(snd_pcm_t *pcm,
 }
 
 static ssize_t snd_pcm_route_read_areas(snd_pcm_t *pcm,
-					 snd_pcm_channel_area_t *areas,
+					 const snd_pcm_channel_area_t *areas,
 					 size_t offset,
 					 size_t size,
 					 size_t *slave_sizep)

@@ -142,7 +142,7 @@ static ssize_t snd_pcm_file_rewind(snd_pcm_t *pcm, size_t frames)
 }
 
 static void snd_pcm_file_write_areas(snd_pcm_t *pcm, 
-				     snd_pcm_channel_area_t *areas,
+				     const snd_pcm_channel_area_t *areas,
 				     size_t offset, size_t frames)
 {
 	snd_pcm_file_t *file = pcm->private;

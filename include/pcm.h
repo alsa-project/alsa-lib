@@ -135,9 +135,9 @@ int snd_pcm_hw_info_try_explain_failure(snd_pcm_t *pcm,
 					FILE *fp);
 
 /* mmap */
-snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);
-snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm);
-snd_pcm_channel_area_t *snd_pcm_mmap_stopped_areas(snd_pcm_t *pcm);
+const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);
+const snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm);
+const snd_pcm_channel_area_t *snd_pcm_mmap_stopped_areas(snd_pcm_t *pcm);
 ssize_t snd_pcm_mmap_forward(snd_pcm_t *pcm, size_t size);
 size_t snd_pcm_mmap_offset(snd_pcm_t *pcm);
 size_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, size_t size);
@@ -150,15 +150,15 @@ const char *snd_pcm_format_name(unsigned int format);
 const char *snd_pcm_format_description(unsigned int format);
 int snd_pcm_format_value(const char* name);
 
-int snd_pcm_area_silence(snd_pcm_channel_area_t *dst_channel, size_t dst_offset,
+int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_channel, size_t dst_offset,
 			 size_t samples, int format);
-int snd_pcm_areas_silence(snd_pcm_channel_area_t *dst_channels, size_t dst_offset,
+int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_channels, size_t dst_offset,
 			  size_t vcount, size_t frames, int format);
-int snd_pcm_area_copy(snd_pcm_channel_area_t *src_channel, size_t src_offset,
-		      snd_pcm_channel_area_t *dst_channel, size_t dst_offset,
+int snd_pcm_area_copy(const snd_pcm_channel_area_t *src_channel, size_t src_offset,
+		      const snd_pcm_channel_area_t *dst_channel, size_t dst_offset,
 		      size_t samples, int format);
-int snd_pcm_areas_copy(snd_pcm_channel_area_t *src_channels, size_t src_offset,
-		       snd_pcm_channel_area_t *dst_channels, size_t dst_offset,
+int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_channels, size_t src_offset,
+		       const snd_pcm_channel_area_t *dst_channels, size_t dst_offset,
 		       size_t channels, size_t frames, int format);
 
 ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes);

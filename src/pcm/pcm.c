@@ -953,7 +953,7 @@ ssize_t snd_pcm_mmap_forward(snd_pcm_t *pcm, size_t size)
 	return pcm->fast_ops->mmap_forward(pcm->fast_op_arg, size);
 }
 
-int snd_pcm_area_silence(snd_pcm_channel_area_t *dst_area, size_t dst_offset,
+int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, size_t dst_offset,
 			 size_t samples, int format)
 {
 	/* FIXME: sub byte resolution and odd dst_offset */
@@ -1035,14 +1035,14 @@ int snd_pcm_area_silence(snd_pcm_channel_area_t *dst_area, size_t dst_offset,
 	return 0;
 }
 
-int snd_pcm_areas_silence(snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
+int snd_pcm_areas_silence(const snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
 			  size_t channels, size_t frames, int format)
 {
 	int width = snd_pcm_format_physical_width(format);
 	while (channels > 0) {
 		void *addr = dst_areas->addr;
 		unsigned int step = dst_areas->step;
-		snd_pcm_channel_area_t *begin = dst_areas;
+		const snd_pcm_channel_area_t *begin = dst_areas;
 		int channels1 = channels;
 		unsigned int chns = 0;
 		int err;
@@ -1076,8 +1076,8 @@ int snd_pcm_areas_silence(snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
 }
 
 
-int snd_pcm_area_copy(snd_pcm_channel_area_t *src_area, size_t src_offset,
-		      snd_pcm_channel_area_t *dst_area, size_t dst_offset,
+int snd_pcm_area_copy(const snd_pcm_channel_area_t *src_area, size_t src_offset,
+		      const snd_pcm_channel_area_t *dst_area, size_t dst_offset,
 		      size_t samples, int format)
 {
 	/* FIXME: sub byte resolution and odd dst_offset */
@@ -1171,17 +1171,17 @@ int snd_pcm_area_copy(snd_pcm_channel_area_t *src_area, size_t src_offset,
 	return 0;
 }
 
-int snd_pcm_areas_copy(snd_pcm_channel_area_t *src_areas, size_t src_offset,
-		       snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
+int snd_pcm_areas_copy(const snd_pcm_channel_area_t *src_areas, size_t src_offset,
+		       const snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
 		       size_t channels, size_t frames, int format)
 {
 	int width = snd_pcm_format_physical_width(format);
 	while (channels > 0) {
 		unsigned int step = src_areas->step;
 		void *src_addr = src_areas->addr;
-		snd_pcm_channel_area_t *src_start = src_areas;
+		const snd_pcm_channel_area_t *src_start = src_areas;
 		void *dst_addr = dst_areas->addr;
-		snd_pcm_channel_area_t *dst_start = dst_areas;
+		const snd_pcm_channel_area_t *dst_start = dst_areas;
 		int channels1 = channels;
 		unsigned int chns = 0;
 		while (dst_areas->step == step) {
@@ -1218,7 +1218,7 @@ int snd_pcm_areas_copy(snd_pcm_channel_area_t *src_areas, size_t src_offset,
 	return 0;
 }
 
-ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
+ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 			   size_t offset, size_t size,
 			   snd_pcm_xfer_areas_func_t func)
 {
@@ -1273,7 +1273,7 @@ ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 	return err;
 }
 
-ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
+ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 			    size_t offset, size_t size,
 			    snd_pcm_xfer_areas_func_t func)
 {

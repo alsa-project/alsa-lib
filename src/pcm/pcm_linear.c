@@ -30,8 +30,8 @@ typedef struct {
 	int sformat;
 } snd_pcm_linear_t;
 
-static void linear_transfer(snd_pcm_channel_area_t *src_areas, size_t src_offset,
-			    snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
+static void linear_transfer(const snd_pcm_channel_area_t *src_areas, size_t src_offset,
+			    const snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
 			    size_t frames, size_t channels, int convidx)
 {
 #define CONV_LABELS
@@ -44,8 +44,8 @@ static void linear_transfer(snd_pcm_channel_area_t *src_areas, size_t src_offset
 		char *dst;
 		int src_step, dst_step;
 		size_t frames1;
-		snd_pcm_channel_area_t *src_area = &src_areas[channel];
-		snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
+		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
+		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 #if 0
 		if (!src_area->enabled) {
 			if (dst_area->wanted)
@@ -125,7 +125,7 @@ static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 }
 
 static ssize_t snd_pcm_linear_write_areas(snd_pcm_t *pcm,
-					  snd_pcm_channel_area_t *areas,
+					  const snd_pcm_channel_area_t *areas,
 					  size_t offset,
 					  size_t size,
 					  size_t *slave_sizep)
@@ -159,7 +159,7 @@ static ssize_t snd_pcm_linear_write_areas(snd_pcm_t *pcm,
 }
 
 static ssize_t snd_pcm_linear_read_areas(snd_pcm_t *pcm,
-					 snd_pcm_channel_area_t *areas,
+					 const snd_pcm_channel_area_t *areas,
 					 size_t offset,
 					 size_t size,
 					 size_t *slave_sizep)

@@ -56,9 +56,9 @@ typedef struct {
 	int step_idx;		/* Previous StepSize lookup index */
 } adpcm_state_t;
 
-typedef void (*adpcm_f)(snd_pcm_channel_area_t *src_areas,
+typedef void (*adpcm_f)(const snd_pcm_channel_area_t *src_areas,
 			size_t src_offset,
-			snd_pcm_channel_area_t *dst_areas,
+			const snd_pcm_channel_area_t *dst_areas,
 			size_t dst_offset,
 			size_t frames, size_t channels, int getputidx,
 			adpcm_state_t *states);
@@ -195,9 +195,9 @@ static int adpcm_decoder(unsigned char code, adpcm_state_t * state)
 	return (state->pred_val);
 }
 
-static void adpcm_decode(snd_pcm_channel_area_t *src_areas,
+static void adpcm_decode(const snd_pcm_channel_area_t *src_areas,
 			 size_t src_offset,
-			 snd_pcm_channel_area_t *dst_areas,
+			 const snd_pcm_channel_area_t *dst_areas,
 			 size_t dst_offset,
 			 size_t frames, size_t channels, int putidx,
 			 adpcm_state_t *states)
@@ -213,8 +213,8 @@ static void adpcm_decode(snd_pcm_channel_area_t *src_areas,
 		char *dst;
 		int src_step, srcbit_step, dst_step;
 		size_t frames1;
-		snd_pcm_channel_area_t *src_area = &src_areas[channel];
-		snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
+		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
+		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 #if 0
 		if (!src_area->enabled) {
 			if (dst_area->wanted)
@@ -256,9 +256,9 @@ static void adpcm_decode(snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-static void adpcm_encode(snd_pcm_channel_area_t *src_areas,
+static void adpcm_encode(const snd_pcm_channel_area_t *src_areas,
 			 size_t src_offset,
-			 snd_pcm_channel_area_t *dst_areas,
+			 const snd_pcm_channel_area_t *dst_areas,
 			 size_t dst_offset,
 			 size_t frames, size_t channels, int getidx,
 			 adpcm_state_t *states)
@@ -275,8 +275,8 @@ static void adpcm_encode(snd_pcm_channel_area_t *src_areas,
 		int dstbit;
 		int src_step, dst_step, dstbit_step;
 		size_t frames1;
-		snd_pcm_channel_area_t *src_area = &src_areas[channel];
-		snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
+		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
+		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 #if 0
 		if (!src_area->enabled) {
 			if (dst_area->wanted)
@@ -410,7 +410,7 @@ static int snd_pcm_adpcm_init(snd_pcm_t *pcm)
 }
 
 static ssize_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
-					 snd_pcm_channel_area_t *areas,
+					 const snd_pcm_channel_area_t *areas,
 					 size_t offset,
 					 size_t size,
 					 size_t *slave_sizep)
@@ -445,7 +445,7 @@ static ssize_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
 }
 
 static ssize_t snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
-					snd_pcm_channel_area_t *areas,
+					const snd_pcm_channel_area_t *areas,
 					size_t offset,
 					size_t size,
 					size_t *slave_sizep)

@@ -32,9 +32,9 @@ typedef struct {
 	unsigned int pos;
 } rate_state_t;
  
-typedef size_t (*rate_f)(snd_pcm_channel_area_t *src_areas,
+typedef size_t (*rate_f)(const snd_pcm_channel_area_t *src_areas,
 			 size_t src_offset, size_t src_frames,
-			 snd_pcm_channel_area_t *dst_areas,
+			 const snd_pcm_channel_area_t *dst_areas,
 			 size_t dst_offset, size_t *dst_framesp,
 			 size_t channels,
 			 int getidx, int putidx,
@@ -53,9 +53,9 @@ typedef struct {
 	rate_state_t *states;
 } snd_pcm_rate_t;
 
-static size_t resample_expand(snd_pcm_channel_area_t *src_areas,
+static size_t resample_expand(const snd_pcm_channel_area_t *src_areas,
 			      size_t src_offset, size_t src_frames,
-			      snd_pcm_channel_area_t *dst_areas,
+			      const snd_pcm_channel_area_t *dst_areas,
 			      size_t dst_offset, size_t *dst_framesp,
 			      size_t channels,
 			      int getidx, int putidx,
@@ -79,8 +79,8 @@ static size_t resample_expand(snd_pcm_channel_area_t *src_areas,
 	    dst_frames == 0)
 		return 0;
 	for (channel = 0; channel < channels; ++channel) {
-		snd_pcm_channel_area_t *src_area = &src_areas[channel];
-		snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
+		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
+		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 		char *src, *dst;
 		int src_step, dst_step;
 		int16_t old_sample = states->sample;
@@ -135,9 +135,9 @@ static size_t resample_expand(snd_pcm_channel_area_t *src_areas,
 	return src_frames1;
 }
 
-static size_t resample_shrink(snd_pcm_channel_area_t *src_areas,
+static size_t resample_shrink(const snd_pcm_channel_area_t *src_areas,
 			      size_t src_offset, size_t src_frames,
-			      snd_pcm_channel_area_t *dst_areas,
+			      const snd_pcm_channel_area_t *dst_areas,
 			      size_t dst_offset, size_t *dst_framesp,
 			      size_t channels,
 			      int getidx, int putidx,
@@ -161,8 +161,8 @@ static size_t resample_shrink(snd_pcm_channel_area_t *src_areas,
 	    dst_frames == 0)
 		return 0;
 	for (channel = 0; channel < channels; ++channel) {
-		snd_pcm_channel_area_t *src_area = &src_areas[channel];
-		snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
+		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
+		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 		unsigned int pos;
 		int sum;
 		char *src, *dst;
@@ -400,7 +400,7 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 }
 
 static ssize_t snd_pcm_rate_write_areas(snd_pcm_t *pcm,
-					snd_pcm_channel_area_t *areas,
+					const snd_pcm_channel_area_t *areas,
 					size_t client_offset,
 					size_t client_size,
 					size_t *slave_sizep)
@@ -445,7 +445,7 @@ static ssize_t snd_pcm_rate_write_areas(snd_pcm_t *pcm,
 }
 
 static ssize_t snd_pcm_rate_read_areas(snd_pcm_t *pcm,
-				       snd_pcm_channel_area_t *areas,
+				       const snd_pcm_channel_area_t *areas,
 				       size_t client_offset,
 				       size_t client_size,
 				       size_t *slave_sizep)

@@ -156,14 +156,14 @@ size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, size_t frames);
 size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, size_t frames);
 
 typedef ssize_t (*snd_pcm_xfer_areas_func_t)(snd_pcm_t *pcm, 
-					     snd_pcm_channel_area_t *areas,
+					     const snd_pcm_channel_area_t *areas,
 					     size_t offset, size_t size,
 					     size_t *slave_sizep);
 
-ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
+ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 			   size_t offset, size_t size,
 			   snd_pcm_xfer_areas_func_t func);
-ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
+ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 			    size_t offset, size_t size,
 			    snd_pcm_xfer_areas_func_t func);
 ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size);
@@ -243,14 +243,14 @@ static inline ssize_t snd_pcm_mmap_delay(snd_pcm_t *pcm)
 		return snd_pcm_mmap_capture_delay(pcm);
 }
 
-static inline void *snd_pcm_channel_area_addr(snd_pcm_channel_area_t *area, size_t offset)
+static inline void *snd_pcm_channel_area_addr(const snd_pcm_channel_area_t *area, size_t offset)
 {
 	size_t bitofs = area->first + area->step * offset;
 	assert(bitofs % 8 == 0);
 	return area->addr + bitofs / 8;
 }
 
-static inline size_t snd_pcm_channel_area_step(snd_pcm_channel_area_t *area)
+static inline size_t snd_pcm_channel_area_step(const snd_pcm_channel_area_t *area)
 {
 	assert(area->step % 8 == 0);
 	return area->step / 8;

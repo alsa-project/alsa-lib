@@ -34,7 +34,7 @@
 #endif
 
 
-snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
+const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
 {
 	if (pcm->stopped_areas &&
 	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
@@ -124,7 +124,7 @@ void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, size_t frames)
 }
 
 ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
-				 snd_pcm_channel_area_t *areas,
+				 const snd_pcm_channel_area_t *areas,
 				 size_t offset,
 				 size_t size,
 				 size_t *slave_sizep)
@@ -151,7 +151,7 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 }
 
 ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
-				snd_pcm_channel_area_t *areas,
+				const snd_pcm_channel_area_t *areas,
 				size_t offset,
 				size_t size,
 				size_t *slave_sizep)
@@ -400,7 +400,9 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 	free(pcm->mmap_channels);
+	free(pcm->running_areas);
 	pcm->mmap_channels = 0;
+	pcm->running_areas = 0;
 	return 0;
 }
 
@@ -418,7 +420,7 @@ ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size)
 		switch (pcm->access) {
 		case SND_PCM_ACCESS_MMAP_INTERLEAVED:
 		{
-			snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);
+			const snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);
 			char *buf = snd_pcm_channel_area_addr(a, offset);
 			err = _snd_pcm_writei(pcm, buf, size);
 			break;
@@ -428,9 +430,9 @@ ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size)
 			size_t channels = pcm->channels;
 			unsigned int c;
 			void *bufs[channels];
-			snd_pcm_channel_area_t *areas = snd_pcm_mmap_areas(pcm);
+			const snd_pcm_channel_area_t *areas = snd_pcm_mmap_areas(pcm);
 			for (c = 0; c < channels; ++c) {
-				snd_pcm_channel_area_t *a = &areas[c];
+				const snd_pcm_channel_area_t *a = &areas[c];
 				bufs[c] = snd_pcm_channel_area_addr(a, offset);
 			}
 			err = _snd_pcm_writen(pcm, bufs, size);
@@ -464,7 +466,7 @@ ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size)
 		switch (pcm->access) {
 		case SND_PCM_ACCESS_MMAP_INTERLEAVED:
 		{
-			snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);
+			const snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);
 			char *buf = snd_pcm_channel_area_addr(a, offset);
 			err = _snd_pcm_readi(pcm, buf, size);
 			break;
@@ -474,9 +476,9 @@ ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size)
 			size_t channels = pcm->channels;
 			unsigned int c;
 			void *bufs[channels];
-			snd_pcm_channel_area_t *areas = snd_pcm_mmap_areas(pcm);
+			const snd_pcm_channel_area_t *areas = snd_pcm_mmap_areas(pcm);
 			for (c = 0; c < channels; ++c) {
-				snd_pcm_channel_area_t *a = &areas[c];
+				const snd_pcm_channel_area_t *a = &areas[c];
 				bufs[c] = snd_pcm_channel_area_addr(a, offset);
 			}
 			err = _snd_pcm_readn(pcm->fast_op_arg, bufs, size);

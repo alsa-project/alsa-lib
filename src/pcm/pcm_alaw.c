@@ -23,9 +23,9 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
-typedef void (*alaw_f)(snd_pcm_channel_area_t *src_areas,
+typedef void (*alaw_f)(const snd_pcm_channel_area_t *src_areas,
 			size_t src_offset,
-			snd_pcm_channel_area_t *dst_areas,
+			const snd_pcm_channel_area_t *dst_areas,
 			size_t dst_offset,
 			size_t frames, size_t channels, int getputidx);
 
@@ -120,9 +120,9 @@ static int alaw_to_s16(unsigned char a_val)
 	return ((a_val & 0x80) ? t : -t);
 }
 
-static void alaw_decode(snd_pcm_channel_area_t *src_areas,
+static void alaw_decode(const snd_pcm_channel_area_t *src_areas,
 			size_t src_offset,
-			snd_pcm_channel_area_t *dst_areas,
+			const snd_pcm_channel_area_t *dst_areas,
 			size_t dst_offset,
 			size_t frames, size_t channels, int putidx)
 {
@@ -136,8 +136,8 @@ static void alaw_decode(snd_pcm_channel_area_t *src_areas,
 		char *dst;
 		int src_step, dst_step;
 		size_t frames1;
-		snd_pcm_channel_area_t *src_area = &src_areas[channel];
-		snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
+		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
+		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 #if 0
 		if (!src_area->enabled) {
 			if (dst_area->wanted)
@@ -165,9 +165,9 @@ static void alaw_decode(snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-static void alaw_encode(snd_pcm_channel_area_t *src_areas,
+static void alaw_encode(const snd_pcm_channel_area_t *src_areas,
 			 size_t src_offset,
-			 snd_pcm_channel_area_t *dst_areas,
+			 const snd_pcm_channel_area_t *dst_areas,
 			 size_t dst_offset,
 			 size_t frames, size_t channels, int getidx)
 {
@@ -182,8 +182,8 @@ static void alaw_encode(snd_pcm_channel_area_t *src_areas,
 		char *dst;
 		int src_step, dst_step;
 		size_t frames1;
-		snd_pcm_channel_area_t *src_area = &src_areas[channel];
-		snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
+		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
+		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 #if 0
 		if (!src_area->enabled) {
 			if (dst_area->wanted)
@@ -278,7 +278,7 @@ static int snd_pcm_alaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 }
 
 static ssize_t snd_pcm_alaw_write_areas(snd_pcm_t *pcm,
-					snd_pcm_channel_area_t *areas,
+					const snd_pcm_channel_area_t *areas,
 					size_t offset,
 					size_t size,
 					size_t *slave_sizep)
@@ -313,7 +313,7 @@ static ssize_t snd_pcm_alaw_write_areas(snd_pcm_t *pcm,
 }
 
 static ssize_t snd_pcm_alaw_read_areas(snd_pcm_t *pcm,
-				       snd_pcm_channel_area_t *areas,
+				       const snd_pcm_channel_area_t *areas,
 				       size_t offset,
 				       size_t size,
 				       size_t *slave_sizep)
