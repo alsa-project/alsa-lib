@@ -218,14 +218,18 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 		exit(0);
 	}
 
-	size = snd_pcm_hw_params_get_buffer_size(p_params) / 2;
+	size = snd_pcm_hw_params_get_period_size(p_params, NULL);
 	if (size > *bufsize)
 		*bufsize = size;
-	size = snd_pcm_hw_params_get_buffer_size(c_params) / 2;
+	size = snd_pcm_hw_params_get_period_size(c_params, NULL);
 	if (size > *bufsize)
 		*bufsize = size;
-	if (snd_pcm_hw_params_get_buffer_size(p_params) !=
-	    snd_pcm_hw_params_get_buffer_size(c_params))
+	if (snd_pcm_hw_params_get_period_time(p_params, NULL) !=
+	    snd_pcm_hw_params_get_period_time(c_params, NULL))
+		goto __again;
+	if (snd_pcm_hw_params_get_period_size(p_params, NULL) * 2 < snd_pcm_hw_params_get_buffer_size(p_params))
+		goto __again;
+	if (snd_pcm_hw_params_get_period_size(c_params, NULL) * 2 < snd_pcm_hw_params_get_buffer_size(c_params))
 		goto __again;
 
 	if ((err = setparams_set(phandle, p_params, p_swparams, "playback")) < 0) {
