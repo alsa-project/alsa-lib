@@ -169,6 +169,7 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		     const char *name, int mode)
 {
 	const char *str;
+	char buf[256];
 	int err;
 	snd_config_t *rawmidi_conf, *conf, *type_conf;
 	snd_config_iterator_t i, next;
@@ -208,37 +209,35 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		return err;
 	}
 	err = snd_config_searchv(snd_config, &type_conf, "rawmiditype", str, 0);
-	if (err < 0) {
-		SNDERR("Unknown RAWMIDI type %s", str);
-		return err;
-	}
-	snd_config_for_each(i, next, type_conf) {
-		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
-		if (strcmp(id, "comment") == 0)
-			continue;
-		if (strcmp(id, "lib") == 0) {
-			err = snd_config_get_string(n, &lib);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
+	if (err >= 0) {
+		snd_config_for_each(i, next, type_conf) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id = snd_config_get_id(n);
+			if (strcmp(id, "comment") == 0)
+				continue;
+			if (strcmp(id, "lib") == 0) {
+				err = snd_config_get_string(n, &lib);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					return -EINVAL;
+				}
+				continue;
 			}
-			continue;
-		}
-		if (strcmp(id, "open") == 0) {
-			err = snd_config_get_string(n, &open);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
+			if (strcmp(id, "open") == 0) {
+				err = snd_config_get_string(n, &open);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					return -EINVAL;
+				}
+				continue;
 			}
-			continue;
 			SNDERR("Unknown field %s", id);
 			return -EINVAL;
 		}
 	}
 	if (!open) {
-		SNDERR("open is not defined");
-		return -EINVAL;
+		open = buf;
+		snprintf(buf, sizeof(buf), "_snd_rawmidi_%s_open", str);
 	}
 	if (!lib)
 		lib = "libasound.so";
@@ -248,9 +247,9 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		return -ENOENT;
 	}
 	open_func = dlsym(h, open);
-	dlclose(h);
 	if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open, lib);
+		dlclose(h);
 		return -ENXIO;
 	}
 	err = open_func(inputp, outputp, name, rawmidi_conf, mode);

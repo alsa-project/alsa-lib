@@ -209,6 +209,8 @@ typedef struct _snd_pcm_channel_area {
 	unsigned int step;		/* samples distance in bits */
 } snd_pcm_channel_area_t;
 
+typedef struct _snd_pcm_scope snd_pcm_scope_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -331,6 +333,34 @@ ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
 int snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes);
 ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples);
 
+/* meter */
+typedef struct _snd_pcm_scope_ops {
+	int (*enable)(snd_pcm_scope_t *scope);
+	void (*disable)(snd_pcm_scope_t *scope);
+	void (*start)(snd_pcm_scope_t *scope);
+	void (*stop)(snd_pcm_scope_t *scope);
+	void (*update)(snd_pcm_scope_t *scope);
+	void (*reset)(snd_pcm_scope_t *scope);
+	void (*close)(snd_pcm_scope_t *scope);
+} snd_pcm_scope_ops_t;
+
+snd_pcm_uframes_t snd_pcm_meter_get_bufsize(snd_pcm_t *pcm);
+unsigned int snd_pcm_meter_get_channels(snd_pcm_t *pcm);
+unsigned int snd_pcm_meter_get_rate(snd_pcm_t *pcm);
+snd_pcm_uframes_t snd_pcm_meter_get_now(snd_pcm_t *pcm);
+snd_pcm_uframes_t snd_pcm_meter_get_boundary(snd_pcm_t *pcm);
+int snd_pcm_meter_add_scope(snd_pcm_t *pcm, snd_pcm_scope_t *scope);
+snd_pcm_scope_t *snd_pcm_meter_search_scope(snd_pcm_t *pcm, const char *name);
+int snd_pcm_scope_malloc(snd_pcm_scope_t **ptr);
+void snd_pcm_scope_set_ops(snd_pcm_scope_t *scope, snd_pcm_scope_ops_t *val);
+void snd_pcm_scope_set_name(snd_pcm_scope_t *scope, const char *val);
+const char *snd_pcm_scope_get_name(snd_pcm_scope_t *scope);
+void *snd_pcm_scope_get_callback_private(snd_pcm_scope_t *scope);
+void snd_pcm_scope_set_callback_private(snd_pcm_scope_t *scope, void *val);
+int snd_pcm_scope_s16_open(snd_pcm_t *pcm, const char *name,
+			   snd_pcm_scope_t **scopep);
+int16_t *snd_pcm_scope_s16_get_channel_buffer(snd_pcm_scope_t *scope,
+					      unsigned int channel);
 
 /* misc */
 

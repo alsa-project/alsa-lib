@@ -1,0 +1,11 @@
+#!/bin/bash
+
+aclocal $ACLOCAL_FLAGS
+automake --foreign --add-missing
+autoconf
+export CFLAGS='-O2 -Wall -W -pipe -g'
+echo "CFLAGS=$CFLAGS"
+echo "./configure $@"
+./configure $@
+unset CFLAGS
+make

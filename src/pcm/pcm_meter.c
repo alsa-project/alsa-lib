@@ -20,189 +20,41 @@
   
 #include <byteswap.h>
 #include <time.h>
-#include "pcm_meter.h"
+#include <pthread.h>
+#include <asm/atomic.h>
+#include <dlfcn.h>
+#include "list.h"
+#include "pcm_local.h"
+#include "pcm_plugin.h"
 
 #define FREQUENCY 50
 
-typedef struct _snd_pcm_meter_s16 {
-	snd_pcm_adpcm_state_t *adpcm_states;
-	unsigned int index;
-	snd_pcm_uframes_t old;
-} snd_pcm_meter_s16_t;
-
-int s16_open(snd_pcm_meter_scope_t *scope)
-{
-	snd_pcm_meter_t *meter = scope->pcm->private_data;
-	snd_pcm_t *spcm = meter->slave;
-	snd_pcm_channel_area_t *a;
-	unsigned int c;
-	snd_pcm_meter_s16_t *s16;
-	int index;
-	if (spcm->format == SND_PCM_FORMAT_S16 &&
-	    spcm->access == SND_PCM_ACCESS_MMAP_NONINTERLEAVED) {
-		meter->buf16 = (int16_t *) meter->buf;
-		return -EINVAL;
-	}
-	switch (spcm->format) {
-	case SND_PCM_FORMAT_A_LAW:
-	case SND_PCM_FORMAT_MU_LAW:
-	case SND_PCM_FORMAT_IMA_ADPCM:
-		index = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, SND_PCM_FORMAT_S16);
-		break;
-	case SND_PCM_FORMAT_S8:
-	case SND_PCM_FORMAT_S16_LE:
-	case SND_PCM_FORMAT_S16_BE:
-	case SND_PCM_FORMAT_S24_LE:
-	case SND_PCM_FORMAT_S24_BE:
-	case SND_PCM_FORMAT_S32_LE:
-	case SND_PCM_FORMAT_S32_BE:
-	case SND_PCM_FORMAT_U8:
-	case SND_PCM_FORMAT_U16_LE:
-	case SND_PCM_FORMAT_U16_BE:
-	case SND_PCM_FORMAT_U24_LE:
-	case SND_PCM_FORMAT_U24_BE:
-	case SND_PCM_FORMAT_U32_LE:
-	case SND_PCM_FORMAT_U32_BE:
-		index = snd_pcm_linear_convert_index(spcm->format, SND_PCM_FORMAT_S16);
-		break;
-	default:
-		return -EINVAL;
-	}
-	s16 = calloc(1, sizeof(*s16));
-	if (!s16)
-		return -ENOMEM;
-	s16->index = index;
-	if (spcm->format == SND_PCM_FORMAT_IMA_ADPCM) {
-		s16->adpcm_states = calloc(spcm->channels, sizeof(*s16->adpcm_states));
-		if (!s16->adpcm_states) {
-			free(s16);
-			return -ENOMEM;
-		}
-	}
-	meter->buf16 = malloc(meter->buf_size * 2 * spcm->channels);
-	if (!meter->buf16) {
-		if (s16->adpcm_states)
-			free(s16->adpcm_states);
-		free(s16);
-		return -ENOMEM;
-	}
-	a = calloc(spcm->channels, sizeof(*a));
-	if (!a) {
-		free(meter->buf16);
-		if (s16->adpcm_states)
-			free(s16->adpcm_states);
-		free(s16);
-		return -ENOMEM;
-	}
-	meter->buf16_areas = a;
-	for (c = 0; c < spcm->channels; c++, a++) {
-		a->addr = meter->buf16 + c * meter->buf_size;
-		a->first = 0;
-		a->step = 16;
-	}
-	scope->private_data = s16;
-	return 0;
-}
-
-void s16_close(snd_pcm_meter_scope_t *scope)
-{
-	snd_pcm_meter_t *meter = scope->pcm->private_data;
-	snd_pcm_meter_s16_t *s16 = scope->private_data;
-	if (s16->adpcm_states)
-		free(s16->adpcm_states);
-	free(s16);
-	free(meter->buf16);
-	meter->buf16 = NULL;
-	free(meter->buf16_areas);
-}
-
-void s16_start(snd_pcm_meter_scope_t *scope ATTRIBUTE_UNUSED)
-{
-}
-
-void s16_stop(snd_pcm_meter_scope_t *scope ATTRIBUTE_UNUSED)
-{
-}
-
-void s16_update(snd_pcm_meter_scope_t *scope)
-{
-	snd_pcm_meter_t *meter = scope->pcm->private_data;
-	snd_pcm_meter_s16_t *s16 = scope->private_data;
-	snd_pcm_t *spcm = meter->slave;
-	snd_pcm_sframes_t size;
-	snd_pcm_uframes_t offset;
-	size = meter->now - s16->old;
-	if (size < 0)
-		size += spcm->boundary;
-	offset = s16->old % meter->buf_size;
-	while (size > 0) {
-		snd_pcm_uframes_t frames = size;
-		snd_pcm_uframes_t cont = meter->buf_size - offset;
-		if (frames > cont)
-			frames = cont;
-		switch (spcm->format) {
-		case SND_PCM_FORMAT_A_LAW:
-			snd_pcm_alaw_decode(meter->buf16_areas, offset,
-					    meter->buf_areas, offset,
-					    spcm->channels, frames,
-					    s16->index);
-			break;
-		case SND_PCM_FORMAT_MU_LAW:
-			snd_pcm_mulaw_decode(meter->buf16_areas, offset,
-					     meter->buf_areas, offset,
-					     spcm->channels, frames,
-					     s16->index);
-			break;
-		case SND_PCM_FORMAT_IMA_ADPCM:
-			snd_pcm_adpcm_decode(meter->buf16_areas, offset,
-					     meter->buf_areas, offset,
-					     spcm->channels, frames,
-					     s16->index,
-					     s16->adpcm_states);
-			break;
-		default:
-			snd_pcm_linear_convert(meter->buf16_areas, offset,
-					       meter->buf_areas, offset,
-					       spcm->channels, frames,
-					       s16->index);
-			break;
-		}
-		if (frames == cont)
-			offset = 0;
-		else
-			offset += frames;
-		size -= frames;
-	}
-	s16->old = meter->now;
-}
-
-void s16_reset(snd_pcm_meter_scope_t *scope)
-{
-	snd_pcm_meter_t *meter = scope->pcm->private_data;
-	snd_pcm_meter_s16_t *s16 = scope->private_data;
-	s16->old = meter->now;
-}
-
-snd_pcm_meter_scope_t s16_scope = {
-	name: "s16",
-	open: s16_open,
-	start: s16_start,
-	stop: s16_stop,
-	update: s16_update,
-	reset: s16_reset,
-	close: s16_close,
-	pcm: NULL,
-	active: 0,
-	list: { 0, 0 },
-	private_data: NULL,
+struct _snd_pcm_scope {
+	int enabled;
+	const char *name;
+	snd_pcm_scope_ops_t *ops;
+	void *private_data;
+	struct list_head list;
 };
 
-void snd_pcm_meter_add_scope(snd_pcm_t *pcm, snd_pcm_meter_scope_t *scope)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	scope->pcm = pcm;
-	list_add_tail(&scope->list, &meter->scopes);
-}
+typedef struct _snd_pcm_meter {
+	snd_pcm_t *slave;
+	int close_slave;
+	snd_pcm_uframes_t rptr;
+	snd_pcm_uframes_t buf_size;
+	snd_pcm_channel_area_t *buf_areas;
+	snd_pcm_uframes_t now;
+	unsigned char *buf;
+	struct list_head scopes;
+	int closed;
+	int running;
+	atomic_t reset;
+	pthread_t thread;
+	pthread_mutex_t update_mutex;
+	pthread_mutex_t running_mutex;
+	pthread_cond_t running_cond;
+	struct timespec delay;
+} snd_pcm_meter_t;
 
 void snd_pcm_meter_add_frames(snd_pcm_t *pcm,
 			      const snd_pcm_channel_area_t *areas,
@@ -284,18 +136,59 @@ static int snd_pcm_meter_update_scope(snd_pcm_t *pcm)
 	return reset;
 }
 
+int snd_pcm_scope_remove(snd_pcm_scope_t *scope)
+{
+	if (scope->name)
+		free((void *)scope->name);
+	scope->ops->close(scope);
+	list_del(&scope->list);
+	free(scope);
+	return 0;
+}
+
+int snd_pcm_scope_enable(snd_pcm_scope_t *scope)
+{
+	int err;
+	assert(!scope->enabled);
+	err = scope->ops->enable(scope);
+	scope->enabled = (err >= 0);
+	return err;
+}
+
+int snd_pcm_scope_disable(snd_pcm_scope_t *scope)
+{
+	assert(scope->enabled);
+	scope->ops->disable(scope);
+	scope->enabled = 0;
+	return 0;
+}
+
+snd_pcm_scope_t *snd_pcm_meter_search_scope(snd_pcm_t *pcm, const char *name)
+{
+	snd_pcm_meter_t *meter;
+	struct list_head *pos;
+	assert(pcm->type == SND_PCM_TYPE_METER);
+	meter = pcm->private_data;
+	list_for_each(pos, &meter->scopes) {
+		snd_pcm_scope_t *scope;
+		scope = list_entry(pos, snd_pcm_scope_t, list);
+		if (scope->name && strcmp(scope->name, name) == 0)
+			return scope;
+	}
+	return NULL;
+}
+
 static void *snd_pcm_meter_thread(void *data)
 {
 	snd_pcm_t *pcm = data;
 	snd_pcm_meter_t *meter = pcm->private_data;
 	snd_pcm_t *spcm = meter->slave;
 	struct list_head *pos;
-	snd_pcm_meter_scope_t *scope;
-	int err, reset;
+	snd_pcm_scope_t *scope;
+	int reset;
 	list_for_each(pos, &meter->scopes) {
-		scope = list_entry(pos, snd_pcm_meter_scope_t, list);
-		err = scope->open(scope);
-		scope->active = (err >= 0);
+		scope = list_entry(pos, snd_pcm_scope_t, list);
+		snd_pcm_scope_enable(scope);
 	}
 	while (!meter->closed) {
 		snd_pcm_sframes_t now;
@@ -309,8 +202,8 @@ static void *snd_pcm_meter_thread(void *data)
 		     spcm->stream != SND_PCM_STREAM_PLAYBACK)) {
 			if (meter->running) {
 				list_for_each(pos, &meter->scopes) {
-					scope = list_entry(pos, snd_pcm_meter_scope_t, list);
-					scope->stop(scope);
+					scope = list_entry(pos, snd_pcm_scope_t, list);
+					scope->ops->stop(scope);
 				}
 				meter->running = 0;
 			}
@@ -341,45 +234,50 @@ static void *snd_pcm_meter_thread(void *data)
 		}
 		if (reset) {
 			list_for_each(pos, &meter->scopes) {
-				scope = list_entry(pos, snd_pcm_meter_scope_t, list);
-				if (scope->active)
-					scope->reset(scope);
+				scope = list_entry(pos, snd_pcm_scope_t, list);
+				if (scope->enabled)
+					scope->ops->reset(scope);
 			}
 			continue;
 		}
 		if (!meter->running) {
 			list_for_each(pos, &meter->scopes) {
-				scope = list_entry(pos, snd_pcm_meter_scope_t, list);
-				if (scope->active)
-					scope->start(scope);
+				scope = list_entry(pos, snd_pcm_scope_t, list);
+				if (scope->enabled)
+					scope->ops->start(scope);
 			}
 			meter->running = 1;
 		}
 		list_for_each(pos, &meter->scopes) {
-			scope = list_entry(pos, snd_pcm_meter_scope_t, list);
-			if (scope->active)
-				scope->update(scope);
+			scope = list_entry(pos, snd_pcm_scope_t, list);
+			if (scope->enabled)
+				scope->ops->update(scope);
 		}
 	        nanosleep(&meter->delay, NULL);
 	}
 	list_for_each(pos, &meter->scopes) {
-		scope = list_entry(pos, snd_pcm_meter_scope_t, list);
-		if (scope->active)
-			scope->close(scope);
+		scope = list_entry(pos, snd_pcm_scope_t, list);
+		if (scope->enabled)
+			snd_pcm_scope_disable(scope);
 	}
 	return NULL;
 }
 
-
 static int snd_pcm_meter_close(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
+	struct list_head *pos, *npos;
 	int err = 0;
 	pthread_mutex_destroy(&meter->update_mutex);
 	pthread_mutex_destroy(&meter->running_mutex);
 	pthread_cond_destroy(&meter->running_cond);
 	if (meter->close_slave)
 		err = snd_pcm_close(meter->slave);
+	list_for_each_safe(pos, npos, &meter->scopes) {
+		snd_pcm_scope_t *scope;
+		scope = list_entry(pos, snd_pcm_scope_t, list);
+		snd_pcm_scope_remove(scope);
+	}
 	free(meter);
 	return err;
 }
@@ -735,21 +633,89 @@ int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequenc
 	pthread_mutex_init(&meter->update_mutex, NULL);
 	pthread_mutex_init(&meter->running_mutex, NULL);
 	pthread_cond_init(&meter->running_cond, NULL);
-#if 1
-	snd_pcm_meter_add_scope(pcm, &s16_scope);
-#endif
 	return 0;
 }
 
+
+int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
+				 snd_config_t *conf)
+{
+	char buf[256];
+	snd_config_iterator_t i, next;
+	const char *lib = NULL, *open = NULL, *str = NULL;
+	snd_config_t *c, *type_conf;
+	int (*open_func)(snd_pcm_t *pcm, const char *name,
+			 snd_config_t *conf);
+	void *h;
+	int err;
+	err = snd_config_search(conf, "type", &c);
+	if (err < 0) {
+		SNDERR("type is not defined");
+		return err;
+	}
+	err = snd_config_get_string(c, &str);
+	if (err < 0) {
+		SNDERR("Invalid type for %s", snd_config_get_id(c));
+		return err;
+	}
+	err = snd_config_searchv(snd_config, &type_conf, "scopetype", str, 0);
+	if (err >= 0) {
+		snd_config_for_each(i, next, type_conf) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id = snd_config_get_id(n);
+			if (strcmp(id, "comment") == 0)
+				continue;
+			if (strcmp(id, "lib") == 0) {
+				err = snd_config_get_string(n, &lib);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					return -EINVAL;
+				}
+				continue;
+			}
+			if (strcmp(id, "open") == 0) {
+				err = snd_config_get_string(n, &open);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					return -EINVAL;
+				}
+				continue;
+			}
+			SNDERR("Unknown field %s", id);
+			return -EINVAL;
+		}
+	}
+	if (!open) {
+		open = buf;
+		snprintf(buf, sizeof(buf), "_snd_pcm_scope_%s_open", str);
+	}
+	if (!lib)
+		lib = "libasound.so";
+	h = dlopen(lib, RTLD_NOW);
+	if (!h) {
+		SNDERR("Cannot open shared library %s", lib);
+		return -ENOENT;
+	}
+	open_func = dlsym(h, open);
+	if (!open_func) {
+		SNDERR("symbol %s is not defined inside %s", open, lib);
+		dlclose(h);
+		return -ENXIO;
+	}
+	return open_func(pcm, name, conf);
+}
+
+			
 int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
-		       snd_config_t *conf, 
-		       snd_pcm_stream_t stream, int mode)
+			snd_config_t *conf, 
+			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
 	long frequency = -1;
+	snd_config_t *scopes = NULL;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
@@ -773,6 +739,14 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
+		if (strcmp(id, "scope") == 0) {
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
+			}
+			scopes = n;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -792,5 +766,315 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_pcm_meter_open(pcmp, name, frequency < 0 ? FREQUENCY : frequency, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
-	return err;
+	if (!scopes)
+		return 0;
+	snd_config_for_each(i, next, scopes) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		err = snd_pcm_meter_add_scope_conf(*pcmp, id, n);
+		if (err < 0) {
+			snd_pcm_close(*pcmp);
+			return -EINVAL;
+		}
+	}
+	return 0;
 }
+
+int snd_pcm_meter_add_scope(snd_pcm_t *pcm, snd_pcm_scope_t *scope)
+{
+	snd_pcm_meter_t *meter;
+	assert(pcm->type == SND_PCM_TYPE_METER);
+	meter = pcm->private_data;
+	list_add_tail(&scope->list, &meter->scopes);
+	return 0;
+}
+
+snd_pcm_uframes_t snd_pcm_meter_get_bufsize(snd_pcm_t *pcm)
+{
+	snd_pcm_meter_t *meter;
+	assert(pcm->type == SND_PCM_TYPE_METER);
+	meter = pcm->private_data;
+	return meter->buf_size;
+}
+
+unsigned int snd_pcm_meter_get_channels(snd_pcm_t *pcm)
+{
+	snd_pcm_meter_t *meter;
+	assert(pcm->type == SND_PCM_TYPE_METER);
+	meter = pcm->private_data;
+	assert(meter->slave->setup);
+	return meter->slave->channels;
+}
+
+unsigned int snd_pcm_meter_get_rate(snd_pcm_t *pcm)
+{
+	snd_pcm_meter_t *meter;
+	assert(pcm->type == SND_PCM_TYPE_METER);
+	meter = pcm->private_data;
+	assert(meter->slave->setup);
+	return meter->slave->rate;
+}
+
+snd_pcm_uframes_t snd_pcm_meter_get_now(snd_pcm_t *pcm)
+{
+	snd_pcm_meter_t *meter;
+	assert(pcm->type == SND_PCM_TYPE_METER);
+	meter = pcm->private_data;
+	assert(meter->slave->setup);
+	return meter->now;
+}
+
+snd_pcm_uframes_t snd_pcm_meter_get_boundary(snd_pcm_t *pcm)
+{
+	snd_pcm_meter_t *meter;
+	assert(pcm->type == SND_PCM_TYPE_METER);
+	meter = pcm->private_data;
+	assert(meter->slave->setup);
+	return meter->slave->boundary;
+}
+
+void snd_pcm_scope_set_name(snd_pcm_scope_t *scope, const char *val)
+{
+	scope->name = val;
+}
+
+const char *snd_pcm_scope_get_name(snd_pcm_scope_t *scope)
+{
+	return scope->name;
+}
+
+void snd_pcm_scope_set_ops(snd_pcm_scope_t *scope, snd_pcm_scope_ops_t *val)
+{
+	scope->ops = val;
+}
+
+void *snd_pcm_scope_get_callback_private(snd_pcm_scope_t *scope)
+{
+	return scope->private_data;
+}
+
+void snd_pcm_scope_set_callback_private(snd_pcm_scope_t *scope, void *val)
+{
+	scope->private_data = val;
+}
+
+typedef struct _snd_pcm_scope_s16 {
+	snd_pcm_t *pcm;
+	snd_pcm_adpcm_state_t *adpcm_states;
+	unsigned int index;
+	snd_pcm_uframes_t old;
+	int16_t *buf;
+	snd_pcm_channel_area_t *buf_areas;
+} snd_pcm_scope_s16_t;
+
+static int s16_enable(snd_pcm_scope_t *scope)
+{
+	snd_pcm_scope_s16_t *s16 = scope->private_data;
+	snd_pcm_meter_t *meter = s16->pcm->private_data;
+	snd_pcm_t *spcm = meter->slave;
+	snd_pcm_channel_area_t *a;
+	unsigned int c;
+	int index;
+	if (spcm->format == SND_PCM_FORMAT_S16 &&
+	    spcm->access == SND_PCM_ACCESS_MMAP_NONINTERLEAVED) {
+		s16->buf = (int16_t *) meter->buf;
+		return -EINVAL;
+	}
+	switch (spcm->format) {
+	case SND_PCM_FORMAT_A_LAW:
+	case SND_PCM_FORMAT_MU_LAW:
+	case SND_PCM_FORMAT_IMA_ADPCM:
+		index = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, SND_PCM_FORMAT_S16);
+		break;
+	case SND_PCM_FORMAT_S8:
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_S16_BE:
+	case SND_PCM_FORMAT_S24_LE:
+	case SND_PCM_FORMAT_S24_BE:
+	case SND_PCM_FORMAT_S32_LE:
+	case SND_PCM_FORMAT_S32_BE:
+	case SND_PCM_FORMAT_U8:
+	case SND_PCM_FORMAT_U16_LE:
+	case SND_PCM_FORMAT_U16_BE:
+	case SND_PCM_FORMAT_U24_LE:
+	case SND_PCM_FORMAT_U24_BE:
+	case SND_PCM_FORMAT_U32_LE:
+	case SND_PCM_FORMAT_U32_BE:
+		index = snd_pcm_linear_convert_index(spcm->format, SND_PCM_FORMAT_S16);
+		break;
+	default:
+		return -EINVAL;
+	}
+	s16->index = index;
+	if (spcm->format == SND_PCM_FORMAT_IMA_ADPCM) {
+		s16->adpcm_states = calloc(spcm->channels, sizeof(*s16->adpcm_states));
+		if (!s16->adpcm_states)
+			return -ENOMEM;
+	}
+	s16->buf = malloc(meter->buf_size * 2 * spcm->channels);
+	if (!s16->buf) {
+		if (s16->adpcm_states)
+			free(s16->adpcm_states);
+		return -ENOMEM;
+	}
+	a = calloc(spcm->channels, sizeof(*a));
+	if (!a) {
+		free(s16->buf);
+		if (s16->adpcm_states)
+			free(s16->adpcm_states);
+		return -ENOMEM;
+	}
+	s16->buf_areas = a;
+	for (c = 0; c < spcm->channels; c++, a++) {
+		a->addr = s16->buf + c * meter->buf_size;
+		a->first = 0;
+		a->step = 16;
+	}
+	return 0;
+}
+
+static void s16_disable(snd_pcm_scope_t *scope)
+{
+	snd_pcm_scope_s16_t *s16 = scope->private_data;
+	if (s16->adpcm_states) {
+		free(s16->adpcm_states);
+		s16->adpcm_states = NULL;
+	}
+	free(s16->buf);
+	s16->buf = NULL;
+	free(s16->buf_areas);
+	s16->buf_areas = 0;
+}
+
+static void s16_close(snd_pcm_scope_t *scope)
+{
+	snd_pcm_scope_s16_t *s16 = scope->private_data;
+	free(s16);
+}
+
+static void s16_start(snd_pcm_scope_t *scope ATTRIBUTE_UNUSED)
+{
+}
+
+static void s16_stop(snd_pcm_scope_t *scope ATTRIBUTE_UNUSED)
+{
+}
+
+static void s16_update(snd_pcm_scope_t *scope)
+{
+	snd_pcm_scope_s16_t *s16 = scope->private_data;
+	snd_pcm_meter_t *meter = s16->pcm->private_data;
+	snd_pcm_t *spcm = meter->slave;
+	snd_pcm_sframes_t size;
+	snd_pcm_uframes_t offset;
+	size = meter->now - s16->old;
+	if (size < 0)
+		size += spcm->boundary;
+	offset = s16->old % meter->buf_size;
+	while (size > 0) {
+		snd_pcm_uframes_t frames = size;
+		snd_pcm_uframes_t cont = meter->buf_size - offset;
+		if (frames > cont)
+			frames = cont;
+		switch (spcm->format) {
+		case SND_PCM_FORMAT_A_LAW:
+			snd_pcm_alaw_decode(s16->buf_areas, offset,
+					    meter->buf_areas, offset,
+					    spcm->channels, frames,
+					    s16->index);
+			break;
+		case SND_PCM_FORMAT_MU_LAW:
+			snd_pcm_mulaw_decode(s16->buf_areas, offset,
+					     meter->buf_areas, offset,
+					     spcm->channels, frames,
+					     s16->index);
+			break;
+		case SND_PCM_FORMAT_IMA_ADPCM:
+			snd_pcm_adpcm_decode(s16->buf_areas, offset,
+					     meter->buf_areas, offset,
+					     spcm->channels, frames,
+					     s16->index,
+					     s16->adpcm_states);
+			break;
+		default:
+			snd_pcm_linear_convert(s16->buf_areas, offset,
+					       meter->buf_areas, offset,
+					       spcm->channels, frames,
+					       s16->index);
+			break;
+		}
+		if (frames == cont)
+			offset = 0;
+		else
+			offset += frames;
+		size -= frames;
+	}
+	s16->old = meter->now;
+}
+
+static void s16_reset(snd_pcm_scope_t *scope)
+{
+	snd_pcm_scope_s16_t *s16 = scope->private_data;
+	snd_pcm_meter_t *meter = s16->pcm->private_data;
+	s16->old = meter->now;
+}
+
+snd_pcm_scope_ops_t s16_ops = {
+	enable: s16_enable,
+	disable: s16_disable,
+	close: s16_close,
+	start: s16_start,
+	stop: s16_stop,
+	update: s16_update,
+	reset: s16_reset,
+};
+
+int snd_pcm_scope_s16_open(snd_pcm_t *pcm, const char *name,
+			   snd_pcm_scope_t **scopep)
+{
+	snd_pcm_meter_t *meter;
+	snd_pcm_scope_t *scope;
+	snd_pcm_scope_s16_t *s16;
+	assert(pcm->type == SND_PCM_TYPE_METER);
+	meter = pcm->private_data;
+	scope = calloc(1, sizeof(*scope));
+	if (!scope)
+		return -ENOMEM;
+	s16 = calloc(1, sizeof(*s16));
+	if (!s16) {
+		free(scope);
+		return -ENOMEM;
+	}
+	if (name)
+		scope->name = strdup(name);
+	s16->pcm = pcm;
+	scope->ops = &s16_ops;
+	scope->private_data = s16;
+	list_add_tail(&scope->list, &meter->scopes);
+	*scopep = scope;
+	return 0;
+}
+
+int16_t *snd_pcm_scope_s16_get_channel_buffer(snd_pcm_scope_t *scope,
+					      unsigned int channel)
+{
+	snd_pcm_scope_s16_t *s16;
+	snd_pcm_meter_t *meter;
+	assert(scope->ops == &s16_ops);
+	s16 = scope->private_data;
+	meter = s16->pcm->private_data;
+	assert(meter->slave->setup);
+	assert(s16->buf_areas);
+	assert(channel < meter->slave->channels);
+	return s16->buf_areas[channel].addr;
+}
+
+int snd_pcm_scope_malloc(snd_pcm_scope_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_pcm_scope_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+

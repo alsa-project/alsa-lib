@@ -197,6 +197,7 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 int snd_ctl_open(snd_ctl_t **ctlp, const char *name)
 {
 	const char *str;
+	char buf[256];
 	int err;
 	snd_config_t *ctl_conf, *conf, *type_conf;
 	snd_config_iterator_t i, next;
@@ -229,36 +230,45 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name)
 	if (err < 0)
 		return err;
 	err = snd_config_searchv(snd_config, &type_conf, "ctltype", str, 0);
-	snd_config_for_each(i, next, type_conf) {
-		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
-		if (strcmp(id, "comment") == 0)
-			continue;
-		if (strcmp(id, "lib") == 0) {
-			err = snd_config_get_string(n, &lib);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		if (strcmp(id, "open") == 0) {
-			err = snd_config_get_string(n, &open);
-			if (err < 0)
-				return -EINVAL;
-			continue;
+	if (err >= 0) {
+		snd_config_for_each(i, next, type_conf) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id = snd_config_get_id(n);
+			if (strcmp(id, "comment") == 0)
+				continue;
+			if (strcmp(id, "lib") == 0) {
+				err = snd_config_get_string(n, &lib);
+				if (err < 0)
+					return -EINVAL;
+				continue;
+			}
+			if (strcmp(id, "open") == 0) {
+				err = snd_config_get_string(n, &open);
+				if (err < 0)
+					return -EINVAL;
+				continue;
+			}
+			SNDERR("Unknown field %s", id);
 			return -EINVAL;
 		}
 	}
-	if (!open)
-		return -EINVAL;
+	if (!open) {
+		open = buf;
+		snprintf(buf, sizeof(buf), "_snd_ctl_%s_open", str);
+	}
 	if (!lib)
 		lib = "libasound.so";
 	h = dlopen(lib, RTLD_NOW);
-	if (!h)
+	if (!h) {
+		SNDERR("Cannot open shared library %s", lib);
 		return -ENOENT;
+	}
 	open_func = dlsym(h, open);
-	dlclose(h);
-	if (!open_func)
+	if (!open_func) {
+		SNDERR("symbol %s is not defined inside %s", open, lib);
+		dlclose(h);
 		return -ENXIO;
+	}
 	return open_func(ctlp, name, ctl_conf);
 }
 
