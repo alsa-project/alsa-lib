@@ -96,8 +96,8 @@ static int hctl_elem_event_handler(snd_hctl_elem_t *helem,
 	case SND_CTL_EVENT_INFO:
 	{
 		int err = 0;
-		bag_iterator_t i, n;
-		bag_for_each(i, n, bag) {
+		bag_iterator_t i;
+		bag_for_each(i, bag) {
 			snd_mixer_elem_t *melem = bag_iterator_entry(i);
 			snd_mixer_class_t *class = melem->class;
 			err = class->event(class, event, helem, melem);
@@ -110,7 +110,7 @@ static int hctl_elem_event_handler(snd_hctl_elem_t *helem,
 	{
 		int err;
 		bag_iterator_t i, n;
-		bag_for_each(i, n, bag) {
+		bag_for_each_safe(i, n, bag) {
 			snd_mixer_elem_t *melem = bag_iterator_entry(i);
 			snd_mixer_class_t *class = melem->class;
 			err = class->event(class, event, helem, melem);
@@ -137,14 +137,14 @@ static int hctl_event_handler(snd_hctl_t *hctl, snd_ctl_event_type_t event,
 	switch (event) {
 	case SND_CTL_EVENT_ADD:
 	{
-		struct list_head *pos, *next;
+		struct list_head *pos;
 		bag_t *bag;
 		int err = bag_new(&bag);
 		if (err < 0)
 			return err;
 		snd_hctl_elem_set_callback(elem, hctl_elem_event_handler);
 		snd_hctl_elem_set_callback_private(elem, bag);
-		list_for_each(pos, next, &mixer->classes) {
+		list_for_each(pos, &mixer->classes) {
 			snd_mixer_class_t *c;
 			c = list_entry(pos, snd_mixer_class_t, list);
 			err = c->event(c, event, elem, NULL);
@@ -189,8 +189,8 @@ int snd_mixer_attach(snd_mixer_t *mixer, const char *name)
 
 int snd_mixer_detach(snd_mixer_t *mixer, const char *name)
 {
-	struct list_head *pos, *next;
-	list_for_each(pos, next, &mixer->slaves) {
+	struct list_head *pos;
+	list_for_each(pos, &mixer->slaves) {
 		snd_mixer_slave_t *s;
 		s = list_entry(pos, snd_mixer_slave_t, list);
 		if (strcmp(name, snd_hctl_name(s->hctl)) == 0) {
@@ -292,11 +292,9 @@ int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 	idx = _snd_mixer_find_elem(mixer, elem, &dir);
 	if (dir != 0)
 		return -EINVAL;
-      __again:
-	bag_for_each(i, n, &elem->helems) {
+	bag_for_each_safe(i, n, &elem->helems) {
 		snd_hctl_elem_t *helem = bag_iterator_entry(i);
 		snd_mixer_elem_detach(elem, helem);
-		goto __again;		/* FIXME: optimize */
 	}
 	err = snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_REMOVE);
 	list_del(&elem->list);
@@ -320,12 +318,12 @@ int snd_mixer_elem_change(snd_mixer_elem_t *elem)
 
 int snd_mixer_class_register(snd_mixer_class_t *class, snd_mixer_t *mixer)
 {
-	struct list_head *pos, *next;
+	struct list_head *pos;
 	class->mixer = mixer;
 	list_add_tail(&class->list, &mixer->classes);
 	if (!class->event)
 		return 0;
-	list_for_each(pos, next, &mixer->slaves) {
+	list_for_each(pos, &mixer->slaves) {
 		int err;
 		snd_mixer_slave_t *slave;
 		snd_hctl_elem_t *elem;
@@ -360,8 +358,8 @@ int snd_mixer_class_unregister(snd_mixer_class_t *class)
 
 int snd_mixer_load(snd_mixer_t *mixer)
 {
-	struct list_head *pos, *next;
-	list_for_each(pos, next, &mixer->slaves) {
+	struct list_head *pos;
+	list_for_each(pos, &mixer->slaves) {
 		int err;
 		snd_mixer_slave_t *s;
 		s = list_entry(pos, snd_mixer_slave_t, list);
@@ -374,8 +372,8 @@ int snd_mixer_load(snd_mixer_t *mixer)
 
 void snd_mixer_free(snd_mixer_t *mixer)
 {
-	struct list_head *pos, *next;
-	list_for_each(pos, next, &mixer->slaves) {
+	struct list_head *pos;
+	list_for_each(pos, &mixer->slaves) {
 		snd_mixer_slave_t *s;
 		s = list_entry(pos, snd_mixer_slave_t, list);
 		snd_hctl_free(s->hctl);
@@ -456,10 +454,10 @@ int snd_mixer_set_compare(snd_mixer_t *mixer, snd_mixer_compare_t msort)
 
 int snd_mixer_poll_descriptors(snd_mixer_t *mixer, struct pollfd *pfds, unsigned int space)
 {
-	struct list_head *pos, *next;
+	struct list_head *pos;
 	unsigned int count = 0;
 	assert(mixer);
-	list_for_each(pos, next, &mixer->slaves) {
+	list_for_each(pos, &mixer->slaves) {
 		snd_mixer_slave_t *s;
 		int n;
 		s = list_entry(pos, snd_mixer_slave_t, list);
@@ -532,10 +530,10 @@ snd_mixer_elem_t *snd_mixer_elem_prev(snd_mixer_elem_t *elem)
 
 int snd_mixer_handle_events(snd_mixer_t *mixer)
 {
-	struct list_head *pos, *next;
+	struct list_head *pos;
 	assert(mixer);
 	mixer->events = 0;
-	list_for_each(pos, next, &mixer->slaves) {
+	list_for_each(pos, &mixer->slaves) {
 		int err;
 		snd_mixer_slave_t *s;
 		s = list_entry(pos, snd_mixer_slave_t, list);

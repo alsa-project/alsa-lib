@@ -836,8 +836,8 @@ int snd_mixer_selem_register(snd_mixer_t *mixer, snd_mixer_class_t **classp)
 snd_mixer_elem_t *snd_mixer_find_selem(snd_mixer_t *mixer,
 				       const snd_mixer_selem_id_t *id)
 {
-	struct list_head *list, *next;
-	list_for_each(list, next, &mixer->elems) {
+	struct list_head *list;
+	list_for_each(list, &mixer->elems) {
 		snd_mixer_elem_t *e;
 		selem_t *s;
 		e = list_entry(list, snd_mixer_elem_t, list);

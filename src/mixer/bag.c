@@ -54,8 +54,8 @@ int bag_add(bag_t *bag, void *ptr)
 
 int bag_del(bag_t *bag, void *ptr)
 {
-	struct list_head *pos, *next;
-	list_for_each(pos, next, bag) {
+	struct list_head *pos;
+	list_for_each(pos, bag) {
 		bag1_t *b = list_entry(pos, bag1_t, list);
 		if (b->ptr == ptr) {
 			list_del(&b->list);

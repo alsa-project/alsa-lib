@@ -39,7 +39,8 @@ int bag_empty(bag_t *bag);
 typedef struct list_head *bag_iterator_t;
 
 #define bag_iterator_entry(i) (list_entry((i), bag1_t, list)->ptr)
-#define bag_for_each(pos, next, bag) list_for_each(pos, next, bag)
+#define bag_for_each(pos, bag) list_for_each(pos, bag)
+#define bag_for_each_safe(pos, next, bag) list_for_each_safe(pos, next, bag)
 
 #define MIXER_COMPARE_WEIGHT_SIMPLE_BASE	0
 #define MIXER_COMPARE_WEIGHT_NEXT_BASE		10000000

@@ -753,7 +753,7 @@ int inet_pending_handler(waiter_t *waiter, unsigned short events)
 	inet_pending_t *pdata;
 	client_t *client;
 	uint32_t cookie;
-	struct list_head *item, *next;
+	struct list_head *item;
 	int remove = 0;
 	if (events & POLLHUP)
 		remove = 1;
@@ -775,7 +775,7 @@ int inet_pending_handler(waiter_t *waiter, unsigned short events)
 		return 0;
 	}
 
-	list_for_each(item, next, &inet_pendings) {
+	list_for_each(item, &inet_pendings) {
 		pdata = list_entry(item, inet_pending_t, list);
 		if (pdata->cookie == cookie)
 			goto found;
