@@ -1153,15 +1153,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "ipc_key_add_uid") == 0) {
-			char *tmp;
-			err = snd_config_get_ascii(n, &tmp);
-			if (err < 0) {
-				SNDERR("The field ipc_key_add_uid must be a boolean type");
-				return err;
-			}
-			err = snd_config_get_bool_ascii(tmp);
-			free(tmp);
-			if (err < 0) {
+			if ((err = snd_config_get_bool(n)) < 0) {
 				SNDERR("The field ipc_key_add_uid must be a boolean type");
 				return err;
 			}
@@ -1177,18 +1169,9 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "slowptr") == 0) {
-			char *tmp;
-			err = snd_config_get_ascii(n, &tmp);
-			if (err < 0) {
-				SNDERR("The field slowptr must be a boolean type");
+			err = snd_config_get_bool(n);
+			if (err < 0)
 				return err;
-			}
-			err = snd_config_get_bool_ascii(tmp);
-			free(tmp);
-			if (err < 0) {
-				SNDERR("The field slowptr must be a boolean type");
-				return err;
-			}
 			slowptr = err;
 			continue;
 		}
