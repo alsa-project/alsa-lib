@@ -815,6 +815,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 				route_policy = PLUG_ROUTE_POLICY_COPY;
 			else if (!strcmp(str, "duplicate"))
 				route_policy = PLUG_ROUTE_POLICY_DUP;
+			continue;
 		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
