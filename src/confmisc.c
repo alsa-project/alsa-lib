@@ -501,7 +501,6 @@ int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNU
 			    snd_config_t *src, snd_config_t *private_data)
 {
 	int err;
-	snd_config_t *n;
 	const char *str, *id;
 
 	if (private_data == NULL)
@@ -578,7 +577,6 @@ int snd_func_private_card_driver(snd_config_t **dst, snd_config_t *root ATTRIBUT
 				 snd_config_t *private_data)
 {
 	char *driver;
-	snd_config_t *n;
 	const char *id;
 	int err;
 	long card;
@@ -588,7 +586,7 @@ int snd_func_private_card_driver(snd_config_t **dst, snd_config_t *root ATTRIBUT
 		SNDERR("field card not found");
 		return -EINVAL;
 	}
-	err = snd_config_get_integer(n, &card);
+	err = snd_config_get_integer(private_data, &card);
 	if (err < 0) {
 		SNDERR("field card is not an integer");
 		return err;
@@ -846,7 +844,6 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 				   snd_config_t *src, snd_config_t *private_data)
 {
 	snd_pcm_info_t *info;
-	snd_config_t *n;
 	const char *id;
 	snd_pcm_t *pcm;
 	int err;
