@@ -9,3 +9,6 @@
 
 /* DATA directory */
 #undef DATADIR
+
+/* NDEBUG */
+#undef NDEBUG

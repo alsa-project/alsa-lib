@@ -18,6 +18,7 @@ dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S 
+AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
 dnl path for linux/asound.h
@@ -73,6 +74,18 @@ case "$dir" in
 *) dir="$PWD/$dir"
 esac
 AC_DEFINE_UNQUOTED(DATADIR, "$dir")
+
+dnl Check for debug...
+AC_MSG_CHECKING(for debug)
+AC_ARG_WITH(debug,
+  [  --with-debug=yes,no  library will (not) be compiled with asserts],
+  debug="$withval", debug="yes")
+if test "$debug" = "yes"; then
+  AC_MSG_RESULT(yes)
+else
+  AC_DEFINE(NDEBUG)
+  AC_MSG_RESULT(no)
+fi
 
 AC_OUTPUT(Makefile doc/Makefile include/Makefile src/Makefile \
           src/control/Makefile src/mixer/Makefile src/pcm/Makefile \

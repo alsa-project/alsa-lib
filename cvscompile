@@ -1,8 +1,9 @@
 #!/bin/bash
 
+rm -f libtool ltmain.sh config.guess config.sub
 aclocal $ACLOCAL_FLAGS
 autoheader
-automake --foreign
+automake --foreign --copy --add-missing
 autoconf
 export CFLAGS='-O2 -Wall -W -pipe -g'
 echo "CFLAGS=$CFLAGS"
