@@ -641,9 +641,8 @@ static void mix_areas1(unsigned int size,
 
 	while (size-- > 0) {
 		sample = *src;
-		old_sample = *sum;
 		if (*dst == 0)
-			sample -= old_sample;
+			sample -= *sum;
 		*sum += sample;
 		do {
 			old_sample = *sum;
@@ -1375,7 +1374,7 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 
 	ret = snd_pcm_sw_params(spcm, sw_params);
 	if (ret < 0) {
-		SNDERR("unable to install sw params");
+		SNDERR("unable to install sw params (please upgrade to 0.9.0rc8+ driver)");
 		return ret;
 	}
 	
