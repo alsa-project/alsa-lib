@@ -32,9 +32,19 @@
 #define SND_FILE_SEQ		"/dev/snd/seq"
 #define SND_FILE_ALOADSEQ	"/dev/aloadSEQ"
 #define SND_SEQ_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
-#define SND_SEQ_OBUF_SIZE	(16*1024)	/* should be configurable */
-#define SND_SEQ_IBUF_SIZE	(4*1024)	/* should be configurable */
+#define SND_SEQ_OBUF_SIZE	(16*1024)	/* default size */
+#define SND_SEQ_IBUF_SIZE	(4*1024)	/* default size */
 
+/*
+ * prototypes
+ */
+static int snd_seq_free_event_static(snd_seq_event_t *ev);
+static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev);
+
+
+/*
+ * open a sequencer device so that it creates a user-client.
+ */
 int snd_seq_open(snd_seq_t **handle, int mode)
 {
 	int fd, ver, client, flg;
@@ -89,6 +99,9 @@ int snd_seq_open(snd_seq_t **handle, int mode)
 	return 0;
 }
 
+/*
+ * release sequencer client
+ */
 int snd_seq_close(snd_seq_t *seq)
 {
 	int res;
@@ -104,6 +117,9 @@ int snd_seq_close(snd_seq_t *seq)
 	return res;
 }
 
+/*
+ * returns the file descriptor of the client
+ */
 int snd_seq_file_descriptor(snd_seq_t *seq)
 {
 	if (!seq)
@@ -111,6 +127,9 @@ int snd_seq_file_descriptor(snd_seq_t *seq)
 	return seq->fd;
 }
 
+/*
+ * set blocking behavior
+ */
 int snd_seq_block_mode(snd_seq_t *seq, int enable)
 {
 	long flags;
@@ -128,6 +147,9 @@ int snd_seq_block_mode(snd_seq_t *seq, int enable)
 	return 0;
 }
 
+/*
+ * return the client id
+ */
 int snd_seq_client_id(snd_seq_t *seq)
 {
 	if (!seq)
@@ -135,6 +157,77 @@ int snd_seq_client_id(snd_seq_t *seq)
 	return seq->client;
 }
 
+/*
+ * return buffer size
+ */
+int snd_seq_output_buffer_size(snd_seq_t *seq)
+{
+	if (!seq)
+		return -EINVAL;
+	if (!seq->obuf)
+		return 0;
+	return seq->obufsize;
+}
+
+/*
+ * return buffer size
+ */
+int snd_seq_input_buffer_size(snd_seq_t *seq)
+{
+	if (!seq)
+		return -EINVAL;
+	if (!seq->ibuf)
+		return 0;
+	return seq->ibufsize;
+}
+
+/*
+ * resize output buffer
+ */
+int snd_seq_resize_output_buffer(snd_seq_t *seq, int size)
+{
+	if (!seq || !seq->obuf)
+		return -EINVAL;
+	if (size < sizeof(snd_seq_event_t))
+		return -EINVAL;
+	snd_seq_drain_output(seq);
+	if (size != seq->obufsize) {
+		char *newbuf;
+		newbuf = calloc(1, size);
+		if (newbuf == NULL)
+			return -ENOMEM;
+		free(seq->obuf);
+		seq->obuf = newbuf;
+		seq->obufsize = size;
+	}
+	return 0;
+}
+
+/*
+ * resize input buffer
+ */
+int snd_seq_resize_input_buffer(snd_seq_t *seq, int size)
+{
+	if (!seq || !seq->ibuf)
+		return -EINVAL;
+	if (size < sizeof(snd_seq_event_t))
+		return -EINVAL;
+	snd_seq_drain_input(seq);
+	if (size != seq->ibufsize) {
+		char *newbuf;
+		newbuf = calloc(1, size);
+		if (newbuf == NULL)
+			return -ENOMEM;
+		free(seq->ibuf);
+		seq->ibuf = newbuf;
+		seq->ibufsize = size;
+	}
+	return 0;
+}
+
+/*
+ * obtain system information
+ */
 int snd_seq_system_info(snd_seq_t *seq, snd_seq_system_info_t * info)
 {
 	if (!seq || !info)
@@ -144,6 +237,9 @@ int snd_seq_system_info(snd_seq_t *seq, snd_seq_system_info_t * info)
 	return 0;
 }
 
+/*
+ * obtain the current client information
+ */
 int snd_seq_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
 {
 	if (!seq || !info)
@@ -151,6 +247,9 @@ int snd_seq_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
 	return snd_seq_get_any_client_info(seq, seq->client, info);
 }
 
+/*
+ * obtain the information of given client
+ */
 int snd_seq_get_any_client_info(snd_seq_t *seq, int client, snd_seq_client_info_t * info)
 {
 	if (!seq || !info || client < 0)
@@ -162,6 +261,9 @@ int snd_seq_get_any_client_info(snd_seq_t *seq, int client, snd_seq_client_info_
 	return 0;
 }
 
+/*
+ * set the current client information
+ */
 int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
 {
 	if (!seq || !info)
@@ -172,6 +274,12 @@ int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
 		return -errno;
 	return 0;
 }
+
+/*----------------------------------------------------------------*/
+
+/*
+ * sequencer port handlers
+ */
 
 int snd_seq_create_port(snd_seq_t *seq, snd_seq_port_info_t * port)
 {
@@ -222,6 +330,12 @@ int snd_seq_set_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
 	return 0;
 }
 
+/*----------------------------------------------------------------*/
+
+/*
+ * subscription
+ */
+
 int snd_seq_get_port_subscription(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
 {
 	if (!seq || !sub)
@@ -257,6 +371,12 @@ int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subs_t * subs)
 		return -errno;
 	return 0;
 }
+
+/*----------------------------------------------------------------*/
+
+/*
+ * queue handlers
+ */
 
 int snd_seq_get_queue_status(snd_seq_t *seq, int q, snd_seq_queue_status_t * status)
 {
@@ -448,11 +568,19 @@ int snd_seq_get_named_queue(snd_seq_t *seq, char *name)
 	return info.queue;
 }
 
+/*----------------------------------------------------------------*/
+
+/*
+ * create an event cell
+ */
 snd_seq_event_t *snd_seq_create_event(void)
 {
 	return (snd_seq_event_t *) calloc(1, sizeof(snd_seq_event_t));
 }
 
+/*
+ * if the event contains extra buffer, release it.
+ */
 static int snd_seq_free_event_static(snd_seq_event_t *ev)
 {
 	if (!ev)
@@ -464,6 +592,9 @@ static int snd_seq_free_event_static(snd_seq_event_t *ev)
 	return 0;
 }
 
+/*
+ * free an event cell - if the event contains extra buffer, release it, too.
+ */
 int snd_seq_free_event(snd_seq_event_t *ev)
 {
 	int err;
@@ -474,6 +605,9 @@ int snd_seq_free_event(snd_seq_event_t *ev)
 	return 0;
 }
 
+/*
+ * calculates the (encoded) byte-stream size of the event
+ */
 int snd_seq_event_length(snd_seq_event_t *ev)
 {
 	int len = sizeof(snd_seq_event_t);
@@ -488,33 +622,162 @@ int snd_seq_event_length(snd_seq_event_t *ev)
 	return len;
 }
 
+/*----------------------------------------------------------------*/
+
+/*
+ * output to sequencer
+ */
+
+/*
+ * output an event - an event is once expanded on the output buffer.
+ * output buffer may be flushed if it becomes full.
+ */
 int snd_seq_event_output(snd_seq_t *seq, snd_seq_event_t *ev)
 {
-	int len, err;
+	int result;
+
+	result = snd_seq_event_output_buffer(seq, ev);
+	if (result == -EAGAIN) {
+		result = snd_seq_flush_output(seq);
+		if (result < 0)
+			return result;
+		return snd_seq_event_output_buffer(seq, ev);
+	}
+	return result;
+}
+
+/*
+ * output an event onto the lib buffer without flushing buffer.
+ * returns -EAGAIN if the buffer becomes full.
+ */
+int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
+{
+	int len;
 
 	if (!seq || !ev)
 		return -EINVAL;
 	len = snd_seq_event_length(ev);
 	if (len < 0)
 		return -EINVAL;
-	if ((seq->obufsize - seq->obufused) < len) {
-		err = snd_seq_flush_output(seq);
-		if (err < 0)
-			return err;
-		if ((seq->obufsize - seq->obufused) < len)
-			return -ENOMEM;
-	}
+	if ((seq->obufsize - seq->obufused) < len)
+		return -EAGAIN;
 	memcpy(seq->obuf + seq->obufused, ev, sizeof(snd_seq_event_t));
 	seq->obufused += sizeof(snd_seq_event_t);
 	if (snd_seq_ev_is_variable(ev)) {
-		if (ev->data.ext.len < 0)
-			return -EINVAL;
 		memcpy(seq->obuf + seq->obufused, ev->data.ext.ptr, ev->data.ext.len);
 		seq->obufused += ev->data.ext.len;
 	}
 	return seq->obufused;
 }
 
+/*
+ * output an event directly to the sequencer NOT through output buffer.
+ */
+int snd_seq_event_output_direct(snd_seq_t *seq, snd_seq_event_t *ev)
+{
+	int len, result, buf_alloc;
+	char *buf;
+
+	len = snd_seq_event_length(ev);
+	if (len == sizeof(*ev)) {
+		buf = (char*)ev;
+		buf_alloc = 0;
+	} else {
+		buf = malloc(len);
+		if (buf == NULL)
+			return -ENOMEM;
+		memcpy(buf, ev, sizeof(*ev));
+		if (snd_seq_ev_is_variable(ev))
+			memcpy(buf + sizeof(*ev), ev->data.ext.ptr, ev->data.ext.len);
+		buf_alloc = 1;
+	}
+
+	result = write(seq->fd, buf, len);
+	if (buf_alloc)
+		free(buf);
+
+	return (result < 0) ? -errno : result;
+}
+
+/*
+ * return the size of pending events on output buffer
+ */
+int snd_seq_event_output_pending(snd_seq_t *seq)
+{
+	if (!seq)
+		return -EINVAL;
+	return seq->obufused;
+}
+
+/*
+ * flush output buffer to sequencer
+ */
+int snd_seq_flush_output(snd_seq_t *seq)
+{
+	int result;
+
+	if (!seq)
+		return -EINVAL;
+	while (seq->obufused > 0) {
+		result = write(seq->fd, seq->obuf, seq->obufused);
+		if (result < 0)
+			return -errno;
+		if (result < seq->obufused)
+			memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
+		seq->obufused -= result;
+	}
+	return 0;
+}
+
+/*
+ * extract the first event in output buffer
+ * if ev_res is NULL, just remove the event.
+ */
+int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
+{
+	int len, olen, err;
+	snd_seq_event_t *ev;
+
+	if (!seq)
+		return -EINVAL;
+	if (ev_res)
+		*ev_res = NULL;
+	if ((olen = seq->obufused) <= 0)
+		return -ENOENT;
+	if (ev_res) {
+		/* extract the event */
+		char *buf;
+		ev = snd_seq_create_event();
+		if (ev == NULL)
+			return -ENOMEM;
+		buf = seq->obuf;
+		len = olen;
+		err = snd_seq_decode_event(&buf, &len, ev);
+		if (err < 0) {
+			snd_seq_free_event(ev);
+			return err;
+		}
+		*ev_res = ev;
+	} else {
+		/* remove the event */
+		ev = (snd_seq_event_t*)seq->obuf;
+		len = olen - snd_seq_event_length(ev);
+	}
+	if (len > 0)
+		memmove(seq->obuf, seq->obuf + (olen - len), len);
+	seq->obufused = len;
+	return 0;
+}
+
+/*----------------------------------------------------------------*/
+
+/*
+ * input from sequencer
+ */
+
+/*
+ * create an event cell for input FIFO
+ */
 static snd_seq_cell_t *snd_seq_create_cell(snd_seq_event_t *ev)
 {
 	snd_seq_cell_t *cell;
@@ -527,6 +790,9 @@ static snd_seq_cell_t *snd_seq_create_cell(snd_seq_event_t *ev)
 	return cell;
 }
 
+/*
+ * free an FIFO cell
+ */
 static int snd_seq_free_cell(snd_seq_cell_t *cell)
 {
 	if (!cell)
@@ -536,6 +802,9 @@ static int snd_seq_free_cell(snd_seq_cell_t *cell)
 	return 0;
 }
 
+/*
+ * pop a head cell out from input FIFO.
+ */
 static snd_seq_cell_t *snd_seq_input_cell_out(snd_seq_t *seq)
 {
 	snd_seq_cell_t *cell;
@@ -553,6 +822,9 @@ static snd_seq_cell_t *snd_seq_input_cell_out(snd_seq_t *seq)
 	return NULL;
 }
 
+/*
+ * append an event cell to FIFO.
+ */
 static int snd_seq_input_cell_in(snd_seq_t *seq, snd_seq_cell_t *cell)
 {
 	if (!seq)
@@ -568,6 +840,9 @@ static int snd_seq_input_cell_in(snd_seq_t *seq, snd_seq_cell_t *cell)
 	return 0;
 }
 
+/*
+ * return the number of cells in FIFO.
+ */
 static int snd_seq_input_cell_available(snd_seq_t *seq)
 {
 	if (!seq)
@@ -575,6 +850,9 @@ static int snd_seq_input_cell_available(snd_seq_t *seq)
 	return seq->cells;
 }
 
+/*
+ * decode from byte-stream to an event record
+ */
 static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev)
 {
 	if (!ev || !buf || !*buf || !len )
@@ -609,9 +887,8 @@ static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev)
 }
 
 /*
- *  Current implementation uses FIFO cache.
+ * read from sequencer to input buffer and decode events to input-FIFO.
  */
-
 static int snd_seq_event_read_buffer(snd_seq_t *seq)
 {
 	char *buf;
@@ -774,77 +1051,11 @@ int snd_seq_event_input_selective(snd_seq_t *seq, snd_seq_event_t **ev, int type
 	return seq->cells;
 }
 
-/*
- * return the size of pending events
- */
-int snd_seq_event_output_pending(snd_seq_t *seq)
-{
-	if (!seq)
-		return -EINVAL;
-	return seq->obufused;
-}
+/*----------------------------------------------------------------*/
 
 /*
- * flush output buffer to sequencer
+ * clear event buffers
  */
-int snd_seq_flush_output(snd_seq_t *seq)
-{
-	int result;
-
-	if (!seq)
-		return -EINVAL;
-	while (seq->obufused > 0) {
-		result = write(seq->fd, seq->obuf, seq->obufused);
-		if (result < 0)
-			return result;
-		if (result < seq->obufused)
-			memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
-		seq->obufused -= result;
-	}
-	return seq->obufused;
-}
-
-
-/*
- * extract the first event in output buffer
- * if ev_res is NULL, just remove the event.
- */
-int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
-{
-	int len, olen, err;
-	snd_seq_event_t *ev;
-
-	if (!seq)
-		return -EINVAL;
-	if (ev_res)
-		*ev_res = NULL;
-	if ((olen = seq->obufused) <= 0)
-		return -ENOENT;
-	if (ev_res) {
-		/* extract the event */
-		char *buf;
-		ev = snd_seq_create_event();
-		if (ev == NULL)
-			return -ENOMEM;
-		buf = seq->obuf;
-		len = olen;
-		err = snd_seq_decode_event(&buf, &len, ev);
-		if (err < 0) {
-			snd_seq_free_event(ev);
-			return err;
-		}
-		*ev_res = ev;
-	} else {
-		/* remove the event */
-		ev = (snd_seq_event_t*)seq->obuf;
-		len = olen - snd_seq_event_length(ev);
-	}
-	if (len > 0)
-		memmove(seq->obuf, seq->obuf + (olen - len), len);
-	seq->obufused = len;
-	return 0;
-}
-
 
 /*
  * clear output buffer
@@ -1028,6 +1239,12 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 	return 0;
 }
 
+/*----------------------------------------------------------------*/
+
+/*
+ * client memory pool
+ */
+
 int snd_seq_get_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
 {
 	if (!seq || !info)
@@ -1048,6 +1265,12 @@ int snd_seq_set_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
 	return 0;
 }
 
+/*----------------------------------------------------------------*/
+
+/*
+ * query functions
+ */
+
 int snd_seq_query_next_client(snd_seq_t *seq, snd_seq_client_info_t *info)
 {
 	if (!seq || !info)
@@ -1065,6 +1288,12 @@ int snd_seq_query_next_port(snd_seq_t *seq, snd_seq_port_info_t *info)
 		return -errno;
 	return 0;
 }
+
+/*----------------------------------------------------------------*/
+
+/*
+ * misc.
+ */
 
 void snd_seq_set_bit(int nr, void *array)
 {
