@@ -1456,6 +1456,17 @@ void snd_seq_port_subscribe_set_queue(snd_seq_port_subscribe_t *info, int q)
 }
 
 /**
+ * \brief Set the voices of a port_subscribe container
+ * \param info port_subscribe container
+ * \param voices voices to be allocated (0 = don't care)
+ */
+void snd_seq_port_subscribe_set_voices(snd_seq_port_subscribe_t *info, unsigned int voices)
+{
+	assert(info);
+	info->voices = voices;
+}
+
+/**
  * \brief Set the exclusive mode of a port_subscribe container
  * \param info port_subscribe container
  * \param val non-zero to enable

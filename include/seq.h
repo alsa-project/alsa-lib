@@ -309,6 +309,7 @@ int snd_seq_port_subscribe_get_time_real(const snd_seq_port_subscribe_t *info);
 void snd_seq_port_subscribe_set_sender(snd_seq_port_subscribe_t *info, const snd_seq_addr_t *addr);
 void snd_seq_port_subscribe_set_dest(snd_seq_port_subscribe_t *info, const snd_seq_addr_t *addr);
 void snd_seq_port_subscribe_set_queue(snd_seq_port_subscribe_t *info, int q);
+void snd_seq_port_subscribe_set_voices(snd_seq_port_subscribe_t *info, unsigned int voices);
 void snd_seq_port_subscribe_set_exclusive(snd_seq_port_subscribe_t *info, int val);
 void snd_seq_port_subscribe_set_time_update(snd_seq_port_subscribe_t *info, int val);
 void snd_seq_port_subscribe_set_time_real(snd_seq_port_subscribe_t *info, int val);
