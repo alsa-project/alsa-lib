@@ -7,10 +7,10 @@ AC_TRY_COMPILE([
 ],[
 void main(void)
 {
-#if !defined(SND_PROTOCOL_VERSION) || !defined(SND_PROTOCOL_INCOMPATIBLE)
+#if !defined(SNDRV_PROTOCOL_VERSION) || !defined(SNDRV_PROTOCOL_INCOMPATIBLE)
 #error not found
 #else
-#if !defined(SND_PCM_IOCTL_REWIND)
+#if !defined(SNDRV_PCM_IOCTL_REWIND)
 #error wrong version
 #endif
   exit(0);
