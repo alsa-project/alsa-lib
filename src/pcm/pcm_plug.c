@@ -551,7 +551,7 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 				       snd_pcm_plug_params_t *slave)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
-	int (*funcs[])(snd_pcm_t *_pcm, snd_pcm_t **new, snd_pcm_plug_params_t *s, snd_pcm_plug_params_t *d) = {
+	static int (*funcs[])(snd_pcm_t *_pcm, snd_pcm_t **new, snd_pcm_plug_params_t *s, snd_pcm_plug_params_t *d) = {
 		snd_pcm_plug_change_format,
 		snd_pcm_plug_change_channels,
 		snd_pcm_plug_change_rate,
