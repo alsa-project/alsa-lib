@@ -141,3 +141,31 @@ host		host where the server is located (if map to local address
 [socket]	PF_LOCAL socket name to listen/connect
 [port]		PF_INET port number to listen/connect
 
+Some examples:
+
+pcmtype.hw {
+	open _snd_pcm_hw_open
+}
+
+pcmtype.plug {
+	open _snd_pcm_plug_open
+}
+
+pcm.trident {
+	type hw
+	card 0
+	device 0
+}
+
+pcm.ice1712 {
+	type hw
+	card 1
+	device 0
+}
+
+pcm.ice1712_spdif {
+	type plug
+	ttable.0.8 1
+	ttable.1.9 1
+	sname ice1712
+}
