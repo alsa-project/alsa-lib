@@ -27,9 +27,9 @@
 #ifndef __ASOUNDLIB_H
 #define __ASOUNDLIB_H
 
-#include <linux/asound.h>
-#include <linux/asoundef.h>
-#include <linux/asequencer.h>
+#include <sound/asound.h>
+#include <sound/asoundef.h>
+#include <sound/asequencer.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
