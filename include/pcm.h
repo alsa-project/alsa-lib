@@ -345,7 +345,9 @@ enum _snd_pcm_type {
 	/** Linear Integer <-> Linear Float format conversion PCM */
 	SND_PCM_TYPE_LINEAR_FLOAT,
 	/** LADSPA integration plugin */
-	SND_PCM_TYPE_LADSPA
+	SND_PCM_TYPE_LADSPA,
+	/** Direct Mixing plugin */
+	SND_PCM_TYPE_DMIX
 };
 
 /** PCM type */
