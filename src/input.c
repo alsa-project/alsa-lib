@@ -149,7 +149,7 @@ int snd_input_stdio_open(snd_input_t **inputp, const char *file)
 	int err;
 	FILE *fp = fopen(file, "r");
 	if (!fp) {
-		SYSERR("fopen");
+		//SYSERR("fopen");
 		return -errno;
 	}
 	err = snd_input_stdio_attach(inputp, fp, 1);

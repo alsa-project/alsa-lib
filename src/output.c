@@ -148,7 +148,7 @@ int snd_output_stdio_open(snd_output_t **outputp, const char *file)
 	int err;
 	FILE *fp = fopen(file, "w");
 	if (!fp) {
-		SYSERR("fopen");
+		//SYSERR("fopen");
 		return -errno;
 	}
 	err = snd_output_stdio_attach(outputp, fp, 1);
