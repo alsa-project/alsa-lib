@@ -1,7 +1,7 @@
-cfg_files = front.conf rear.conf center_lfe.conf \
+cfg_files = front.conf rear.conf center_lfe.conf side.conf\
 	    surround40.conf surround41.conf \
 	    surround50.conf surround51.conf \
-	    iec958.conf
+	    surround71.conf iec958.conf
 
 EXTRA_DIST = $(cfg_files)
 
