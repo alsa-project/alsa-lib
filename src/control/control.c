@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 1)
+#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 1, 0)
 
 struct snd_ctl {
 	int card;
@@ -171,7 +171,7 @@ int snd_ctl_pcm_info(snd_ctl_t *handle, int dev, snd_pcm_info_t * info)
 	return 0;
 }
 
-int snd_ctl_pcm_playback_info(snd_ctl_t *handle, int dev, int subdev, snd_pcm_playback_info_t * info)
+int snd_ctl_pcm_channel_info(snd_ctl_t *handle, int dev, int subdev, snd_pcm_channel_info_t * info)
 {
 	snd_ctl_t *ctl;
 
@@ -182,23 +182,21 @@ int snd_ctl_pcm_playback_info(snd_ctl_t *handle, int dev, int subdev, snd_pcm_pl
 		return -errno;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_SUBDEVICE, &subdev) < 0)
 		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PLAYBACK_INFO, info) < 0)
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CHANNEL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_pcm_capture_info(snd_ctl_t *handle, int dev, int subdev, snd_pcm_capture_info_t * info)
+int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int dev, int subdev)
 {
 	snd_ctl_t *ctl;
 
 	ctl = handle;
-	if (!ctl || !info || dev < 0 || subdev < 0)
+	if (!ctl || dev < 0)
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
 		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_SUBDEVICE, &subdev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CAPTURE_INFO, info) < 0)
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	return 0;
 }
@@ -283,20 +281,6 @@ int snd_ctl_pcm_capture_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * 
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
 		return -errno;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CSWITCH_WRITE, sw) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int dev, int subdev)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || dev < 0)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	return 0;
 }

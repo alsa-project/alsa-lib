@@ -1,0 +1,8 @@
+EXTRA_LTLIBRARIES = libpcmplugin.la
+
+libpcmplugin_la_SOURCES = block.c mmap.c stream.c linear.c interleave.c \
+			  mulaw.c
+all: libpcmplugin.la
+
+
+INCLUDES=-I$(top_srcdir)/include

@@ -26,31 +26,31 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "asoundlib.h"
+#include <sys/mman.h>
+#include "pcm_local.h"
 
 #define SND_FILE_PCM		"/dev/snd/pcmC%iD%i"
-#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 1 )
-
-struct snd_pcm {
-	int card;
-	int device;
-	int fd;
-	int mode;
-};
+#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
 
 int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode)
 {
 	return snd_pcm_open_subdevice(handle, card, device, -1, mode);
 }
 
+#ifndef O_WRITEFLG
+#define O_WRITEFLG	0x10000000
+#endif
+#ifndef O_READFLG
+#define O_READFLG	0x20000000
+#endif
+
 int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int mode)
 {
-	int fd, ver, err, attempt = 0;
+	int fd, fmode, ver, err, attempt = 0;
 	char filename[32];
 	snd_pcm_t *pcm;
 	snd_ctl_t *ctl;
-	snd_pcm_playback_info_t pinfo;
-	snd_pcm_capture_info_t cinfo;
+	snd_pcm_channel_info_t info;
 
 	*handle = NULL;
 	
@@ -58,6 +58,17 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 		return -EINVAL;
 	if ((err = snd_ctl_open(&ctl, card)) < 0)
 		return err;
+	fmode = O_RDWR;
+	if (mode & SND_PCM_OPEN_PLAYBACK)
+		fmode |= O_WRITEFLG;
+	if (mode & SND_PCM_OPEN_CAPTURE)
+		fmode |= O_READFLG;
+	if (fmode == O_RDWR) {
+		snd_ctl_close(ctl);
+		return -EINVAL;
+	}
+	if (mode & SND_PCM_OPEN_STREAM)
+		fmode |= O_NONBLOCK;
       __again:
       	if (attempt++ > 3) {
       		snd_ctl_close(ctl);
@@ -68,7 +79,7 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 		return err;
 	}
 	sprintf(filename, SND_FILE_PCM, card, device);
-	if ((fd = open(filename, mode)) < 0) {
+	if ((fd = open(filename, fmode)) < 0) {
 		err = -errno;
 		snd_ctl_close(ctl);
 		return err;
@@ -84,26 +95,30 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 		snd_ctl_close(ctl);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
-	if (subdevice >= 0 && (mode == SND_PCM_OPEN_PLAYBACK || mode == SND_PCM_OPEN_DUPLEX)) {
-		if (ioctl(fd, SND_PCM_IOCTL_PLAYBACK_INFO, &pinfo) < 0) {
+	if (subdevice >= 0 && (mode & SND_PCM_OPEN_PLAYBACK) != 0) {
+		memset(&info, 0, sizeof(info));
+		info.channel = SND_PCM_CHANNEL_PLAYBACK;
+		if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, &info) < 0) {
 			err = -errno;
 			close(fd);
 			snd_ctl_close(ctl);
 			return err;
 		}
-		if (pinfo.subdevice != subdevice) {
+		if (info.subdevice != subdevice) {
 			close(fd);
 			goto __again;
 		}
 	}
-	if (subdevice >= 0 && (mode == SND_PCM_OPEN_CAPTURE || mode == SND_PCM_OPEN_DUPLEX)) {
-		if (ioctl(fd, SND_PCM_IOCTL_CAPTURE_INFO, &cinfo) < 0) {
+	if (subdevice >= 0 && (mode & SND_PCM_OPEN_CAPTURE) != 0) {
+		memset(&info, 0, sizeof(info));
+		info.channel = SND_PCM_CHANNEL_CAPTURE;
+		if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, &info) < 0) {
 			err = -errno;
 			close(fd);
 			snd_ctl_close(ctl);
 			return err;
 		}
-		if (cinfo.subdevice != subdevice) {
+		if (info.subdevice != subdevice) {
 			close(fd);
 			goto __again;
 		}
@@ -122,53 +137,30 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 	return 0;
 }
 
-int snd_pcm_close(snd_pcm_t *handle)
+int snd_pcm_close(snd_pcm_t *pcm)
 {
-	snd_pcm_t *pcm;
 	int res;
 
-	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
+	snd_pcm_munmap(pcm, SND_PCM_CHANNEL_PLAYBACK);
+	snd_pcm_munmap(pcm, SND_PCM_CHANNEL_CAPTURE);
+	snd_pcm_plugin_clear(pcm, SND_PCM_CHANNEL_PLAYBACK);
+	snd_pcm_plugin_clear(pcm, SND_PCM_CHANNEL_CAPTURE);
 	res = close(pcm->fd) < 0 ? -errno : 0;
 	free(pcm);
 	return res;
 }
 
-int snd_pcm_file_descriptor(snd_pcm_t *handle)
+int snd_pcm_file_descriptor(snd_pcm_t *pcm)
 {
-	snd_pcm_t *pcm;
-
-	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	return pcm->fd;
 }
 
-int snd_pcm_block_mode(snd_pcm_t *handle, int enable)
+int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
-	snd_pcm_t *pcm;
-	long flags;
-
-	pcm = handle;
-	if (!pcm)
-		return -EINVAL;
-	if ((flags = fcntl(pcm->fd, F_GETFL)) < 0)
-		return -errno;
-	if (enable)
-		flags &= ~O_NONBLOCK;
-	else
-		flags |= O_NONBLOCK;
-	if (fcntl(pcm->fd, F_SETFL, flags) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t * info)
-{
-	snd_pcm_t *pcm;
-
-	pcm = handle;
 	if (!pcm || !info)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_INFO, info) < 0)
@@ -176,107 +168,131 @@ int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t * info)
 	return 0;
 }
 
-int snd_pcm_playback_info(snd_pcm_t *handle, snd_pcm_playback_info_t * info)
+int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-	snd_pcm_t *pcm;
-
-	pcm = handle;
 	if (!pcm || !info)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_INFO, info) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CHANNEL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_pcm_capture_info(snd_pcm_t *handle, snd_pcm_capture_info_t * info)
+int snd_pcm_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
 {
-	snd_pcm_t *pcm;
+	int err;
 
-	pcm = handle;
-	if (!pcm || !info)
-		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_INFO, info) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_pcm_playback_format(snd_pcm_t *handle, snd_pcm_format_t * format)
-{
-	snd_pcm_t *pcm;
-
-	pcm = handle;
-	if (!pcm || !format)
-		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_FORMAT, format) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_pcm_capture_format(snd_pcm_t *handle, snd_pcm_format_t * format)
-{
-	snd_pcm_t *pcm;
-
-	pcm = handle;
-	if (!pcm || !format)
-		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_FORMAT, format) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_pcm_playback_params(snd_pcm_t *handle, snd_pcm_playback_params_t * params)
-{
-	snd_pcm_t *pcm;
-
-	pcm = handle;
 	if (!pcm || !params)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_PARAMS, params) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_pcm_capture_params(snd_pcm_t *handle, snd_pcm_capture_params_t * params)
-{
-	snd_pcm_t *pcm;
-
-	pcm = handle;
-	if (!pcm || !params)
+	if (params->channel < 0 || params->channel > 1)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_PARAMS, params) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CHANNEL_PARAMS, params) < 0)
 		return -errno;
+	pcm->setup_is_valid[params->channel] = 0;
+	memset(&pcm->setup[params->channel], 0, sizeof(snd_pcm_channel_setup_t));
+	pcm->setup[params->channel].channel = params->channel;
+	if ((err = snd_pcm_channel_setup(pcm, &pcm->setup[params->channel]))<0)
+		return err;
+	pcm->setup_is_valid[params->channel] = 1;
 	return 0;
 }
 
-int snd_pcm_playback_status(snd_pcm_t *handle, snd_pcm_playback_status_t * status)
+int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
 {
-	snd_pcm_t *pcm;
+	if (!pcm || !setup)
+		return -EINVAL;
+	if (setup->channel < 0 || setup->channel > 1)
+		return -EINVAL;
+	if (pcm->setup_is_valid[setup->channel]) {
+		memcpy(setup, &pcm->setup[setup->channel], sizeof(*setup));
+	} else {
+		if (ioctl(pcm->fd, SND_PCM_IOCTL_CHANNEL_SETUP, setup) < 0)
+			return -errno;
+		memcpy(&pcm->setup[setup->channel], setup, sizeof(*setup));
+		pcm->setup_is_valid[setup->channel] = 1;
+	}
+	return 0;
+}
 
-	pcm = handle;
+int snd_pcm_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t * status)
+{
 	if (!pcm || !status)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_STATUS, status) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CHANNEL_STATUS, status) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_pcm_capture_status(snd_pcm_t *handle, snd_pcm_capture_status_t * status)
+int snd_pcm_playback_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_t *pcm;
-
-	pcm = handle;
-	if (!pcm || !status)
+	if (!pcm)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_STATUS, status) < 0)
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_PREPARE) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_pcm_drain_playback(snd_pcm_t *handle)
+int snd_pcm_capture_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_t *pcm;
+	if (!pcm)
+		return -EINVAL;
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_PREPARE) < 0)
+		return -errno;
+	return 0;
+}
 
-	pcm = handle;
+int snd_pcm_channel_prepare(snd_pcm_t *pcm, int channel)
+{
+	switch (channel) {
+	case SND_PCM_CHANNEL_PLAYBACK:
+		return snd_pcm_playback_prepare(pcm);
+	case SND_PCM_CHANNEL_CAPTURE:
+		return snd_pcm_capture_prepare(pcm);
+	default:
+		return -EIO;
+	}
+}
+
+int snd_pcm_playback_go(snd_pcm_t *pcm)
+{
+	if (!pcm)
+		return -EINVAL;
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_GO) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_pcm_capture_go(snd_pcm_t *pcm)
+{
+	if (!pcm)
+		return -EINVAL;
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_GO) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_pcm_channel_go(snd_pcm_t *pcm, int channel)
+{
+	switch (channel) {
+	case SND_PCM_CHANNEL_PLAYBACK:
+		return snd_pcm_playback_go(pcm);
+	case SND_PCM_CHANNEL_CAPTURE:
+		return snd_pcm_capture_go(pcm);
+	default:
+		return -EIO;
+	}
+}
+
+int snd_pcm_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
+{
+	if (!pcm || !sync)
+		return -EINVAL;
+	if (ioctl(pcm->fd, SND_PCM_IOCTL_SYNC_GO, sync) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_pcm_drain_playback(snd_pcm_t *pcm)
+{
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_DRAIN_PLAYBACK) < 0)
@@ -284,11 +300,8 @@ int snd_pcm_drain_playback(snd_pcm_t *handle)
 	return 0;
 }
 
-int snd_pcm_flush_playback(snd_pcm_t *handle)
+int snd_pcm_flush_playback(snd_pcm_t *pcm)
 {
-	snd_pcm_t *pcm;
-
-	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_FLUSH_PLAYBACK) < 0)
@@ -296,11 +309,8 @@ int snd_pcm_flush_playback(snd_pcm_t *handle)
 	return 0;
 }
 
-int snd_pcm_flush_capture(snd_pcm_t *handle)
+int snd_pcm_flush_capture(snd_pcm_t *pcm)
 {
-	snd_pcm_t *pcm;
-
-	pcm = handle;
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_FLUSH_CAPTURE) < 0)
@@ -308,11 +318,20 @@ int snd_pcm_flush_capture(snd_pcm_t *handle)
 	return 0;
 }
 
-int snd_pcm_playback_pause(snd_pcm_t *handle, int enable)
+int snd_pcm_flush_channel(snd_pcm_t *pcm, int channel)
 {
-	snd_pcm_t *pcm;
+	switch (channel) {
+	case SND_PCM_CHANNEL_PLAYBACK:
+		return snd_pcm_flush_playback(pcm);
+	case SND_PCM_CHANNEL_CAPTURE:
+		return snd_pcm_flush_capture(pcm);
+	default:
+		return -EIO;
+	}
+}
 
-	pcm = handle;
+int snd_pcm_playback_pause(snd_pcm_t *pcm, int enable)
+{
 	if (!pcm)
 		return -EINVAL;
 	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_PAUSE, &enable) < 0)
@@ -320,36 +339,21 @@ int snd_pcm_playback_pause(snd_pcm_t *handle, int enable)
 	return 0;
 }
 
-int snd_pcm_playback_time(snd_pcm_t *handle, int enable)
+ssize_t snd_pcm_transfer_size(snd_pcm_t *pcm, int channel)
 {
-	snd_pcm_t *pcm;
-
-	pcm = handle;
-	if (!pcm)
+	if (!pcm || channel < 0 || channel > 1)
 		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_PLAYBACK_TIME, &enable) < 0)
-		return -errno;
-	return 0;
+	if (!pcm->setup_is_valid[channel])
+		return -EBADFD;
+	if (pcm->setup[channel].mode != SND_PCM_MODE_BLOCK)
+		return -EBADFD;
+	return pcm->setup[channel].buf.block.frag_size;
 }
 
-int snd_pcm_capture_time(snd_pcm_t *handle, int enable)
+ssize_t snd_pcm_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 {
-	snd_pcm_t *pcm;
-
-	pcm = handle;
-	if (!pcm)
-		return -EINVAL;
-	if (ioctl(pcm->fd, SND_PCM_IOCTL_CAPTURE_TIME, &enable) < 0)
-		return -errno;
-	return 0;
-}
-
-ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
-{
-	snd_pcm_t *pcm;
 	ssize_t result;
 
-	pcm = handle;
 	if (!pcm || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
 	result = write(pcm->fd, buffer, size);
@@ -358,16 +362,68 @@ ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
 	return result;
 }
 
-ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
+ssize_t snd_pcm_read(snd_pcm_t *pcm, void *buffer, size_t size)
 {
-	snd_pcm_t *pcm;
 	ssize_t result;
 
-	pcm = handle;
 	if (!pcm || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
 	result = read(pcm->fd, buffer, size);
 	if (result < 0)
 		return -errno;
 	return result;
+}
+
+int snd_pcm_mmap(snd_pcm_t *pcm, int channel, snd_pcm_mmap_control_t **control, void **buffer)
+{
+	snd_pcm_channel_info_t info;
+	int err;
+	void *caddr, *daddr;
+	off_t offset;
+
+	if (control)
+		*control = NULL;
+	if (buffer)
+		*buffer = NULL;
+	if (!pcm || channel < 0 || channel > 1 || !control || !buffer)
+		return -EINVAL;
+	memset(&info, 0, sizeof(info));
+	info.channel = channel;
+	if ((err = snd_pcm_channel_info(pcm, &info))<0)
+		return err;
+	offset = channel == SND_PCM_CHANNEL_PLAYBACK ?
+			SND_PCM_MMAP_OFFSET_PLAYBACK_CONTROL :
+			SND_PCM_MMAP_OFFSET_CAPTURE_CONTROL;
+	caddr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, pcm->fd, offset);
+	if (caddr == (caddr_t)-1 || caddr == NULL)
+		return -errno;
+	offset = channel == SND_PCM_CHANNEL_PLAYBACK ?
+			SND_PCM_MMAP_OFFSET_PLAYBACK :
+			SND_PCM_MMAP_OFFSET_CAPTURE;
+	daddr = mmap(NULL, info.mmap_size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, pcm->fd, offset);
+	if (daddr == (caddr_t)-1 || daddr == NULL) {
+		err = -errno;
+		munmap(caddr, sizeof(snd_pcm_mmap_control_t));
+		return err;
+	}
+	*control = pcm->mmap_caddr[channel] = caddr;
+	*buffer = pcm->mmap_daddr[channel] = daddr;
+	pcm->mmap_size[channel] = info.mmap_size;
+	return 0;
+}
+
+int snd_pcm_munmap(snd_pcm_t *pcm, int channel)
+{
+	if (!pcm || channel < 0 || channel > 1)
+		return -EINVAL;
+	if (pcm->mmap_caddr[channel]) {
+		munmap(pcm->mmap_caddr[channel], sizeof(snd_pcm_mmap_control_t));
+		pcm->mmap_caddr[channel] = NULL;
+	}
+	if (pcm->mmap_daddr[channel]) {
+		munmap(pcm->mmap_daddr[channel], pcm->mmap_size[channel]);
+		pcm->mmap_daddr[channel] = NULL;
+		pcm->mmap_size[channel] = 0;
+	}
+	return 0;
 }

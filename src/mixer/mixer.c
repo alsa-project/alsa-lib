@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_MIXER		"/dev/snd/mixerC%iD%i"
-#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(2, 1, 0)
+#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(2, 2, 0)
 
 struct snd_mixer {
 	int card;

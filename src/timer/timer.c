@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_TIMER		"/dev/snd/timer"
-#define SND_TIMER_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
+#define SND_TIMER_VERSION_MAX	SND_PROTOCOL_VERSION(1, 1, 0)
 
 struct snd_timer {
 	int fd;

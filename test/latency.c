@@ -4,6 +4,9 @@
 #include <sched.h>
 #include "../include/asoundlib.h"
 
+#define LATENCY_LIMIT	8192		/* in bytes */
+#define LOOP_LIMIT	(30 * 176400)	/* 30 seconds */
+
 static char *xitoa(int aaa)
 {
 	static char str[12];
@@ -12,136 +15,138 @@ static char *xitoa(int aaa)
 	return str;
 }
 
+static int syncro(snd_pcm_t *phandle, snd_pcm_t *chandle)
+{
+	snd_pcm_channel_info_t pinfo, cinfo;
+	int err;
+	
+	bzero(&pinfo, sizeof(pinfo));
+	bzero(&cinfo, sizeof(cinfo));
+	pinfo.channel = SND_PCM_CHANNEL_PLAYBACK;
+	cinfo.channel = SND_PCM_CHANNEL_CAPTURE;
+	pinfo.mode = cinfo.mode = SND_PCM_MODE_STREAM;
+	if ((err = snd_pcm_channel_info(phandle, &pinfo)) < 0) {
+		printf("Playback info error: %s\n", snd_strerror(err));
+		exit(0);
+	}
+	if ((err = snd_pcm_channel_info(chandle, &cinfo)) < 0) {
+		printf("Capture info error: %s\n", snd_strerror(err));
+		exit(0);
+	}
+	if (pinfo.sync.id32[0] == 0 && pinfo.sync.id32[1] == 0 &&
+	    pinfo.sync.id32[2] == 0 && pinfo.sync.id32[3] == 0)
+		return 0;
+	if (memcmp(&pinfo.sync, &cinfo.sync, sizeof(pinfo.sync)))
+		return 0;
+	return 1;
+}
+
+static void syncro_id(snd_pcm_sync_t *sync)
+{
+	sync->id32[0] = 0;	/* application */
+	sync->id32[1] = getpid();
+	sync->id32[2] = 0x89abcdef;
+	sync->id32[3] = 0xaaaaaaaa;
+}
+
 /*
  *  This small demo program can be used for measuring latency between
  *  capture and playback. This latency is measured from driver (diff when
  *  playback and capture was started). Scheduler is set to SCHED_RR.
  *
  *  Used format is 44100Hz, Signed Little Endian 16-bit, Stereo.
- *
- *  Program begins with 128-byte fragment (about 726us) and step is 32-byte
- *  until playback without underruns is reached. This program starts playback
- *  after two fragments are captureed (teoretical latency is 1452us by 128-byte
- *  fragment).
  */
 
-void setformat(void *phandle, void *rhandle)
+int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int sync, int *queue)
 {
-	int err;
-	snd_pcm_format_t format;
+	int err, again;
+	snd_pcm_channel_params_t params;
+	snd_pcm_channel_setup_t psetup, csetup;
 
-	bzero(&format, sizeof(format));
-	format.format = SND_PCM_SFMT_S16_LE;
-	format.channels = 2;
-	format.rate = 44100;
-	if ((err = snd_pcm_playback_format(phandle, &format)) < 0) {
-		printf("Playback format error: %s\n", snd_strerror(err));
+	bzero(&params, sizeof(params));
+	params.channel = SND_PCM_CHANNEL_PLAYBACK;
+	params.mode = SND_PCM_MODE_STREAM;
+	params.format.interleave = 1;
+	params.format.format = SND_PCM_SFMT_S16_LE;
+	params.format.voices = 2;
+	params.format.rate = 44100;
+	params.start_mode = SND_PCM_START_GO;
+	params.stop_mode = SND_PCM_STOP_STOP;
+	params.time = 1;
+	*queue += 16;
+	params.buf.stream.fill = SND_PCM_FILL_SILENCE;
+	params.buf.stream.max_fill = 1024;
+	if (sync)
+		syncro_id(&params.sync);
+      __again:
+	if (*queue > LATENCY_LIMIT)
+		return -1;
+      	again = 0;
+	params.buf.stream.queue_size = *queue;
+	if ((err = snd_pcm_plugin_params(phandle, &params)) < 0) {
+		printf("Playback params error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_capture_format(rhandle, &format)) < 0) {
-		printf("Record format error: %s\n", snd_strerror(err));
+	params.channel = SND_PCM_CHANNEL_CAPTURE;
+	if ((err = snd_pcm_plugin_params(chandle, &params)) < 0) {
+		printf("Capture params error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_playback_time(phandle, 1)) < 0) {
-		printf("Playback time error: %s\n", snd_strerror(err));
+	bzero(&psetup, sizeof(psetup));
+	psetup.mode = SND_PCM_MODE_STREAM;
+	psetup.channel = SND_PCM_CHANNEL_PLAYBACK;
+	if ((err = snd_pcm_plugin_setup(phandle, &psetup)) < 0) {
+		printf("Playback params error: %s\n", snd_strerror(err));
 		exit(0);
 	}
-	if ((err = snd_pcm_capture_time(rhandle, 1)) < 0) {
-		printf("Record time error: %s\n", snd_strerror(err));
+	bzero(&csetup, sizeof(csetup));
+	csetup.mode = SND_PCM_MODE_STREAM;
+	csetup.channel = SND_PCM_CHANNEL_CAPTURE;
+	if ((err = snd_pcm_plugin_setup(chandle, &csetup)) < 0) {
+		printf("Capture params error: %s\n", snd_strerror(err));
 		exit(0);
 	}
+	if (psetup.buf.stream.queue_size > *queue) {
+		*queue = psetup.buf.stream.queue_size;
+		again++;
+	}
+	if (csetup.buf.stream.queue_size > *queue) {
+		*queue = csetup.buf.stream.queue_size;
+		again++;
+	}
+	if (again)
+		goto __again;
+	if ((err = snd_pcm_playback_prepare(phandle)) < 0) {
+		printf("Playback prepare error: %s\n", snd_strerror(err));
+		exit(0);
+	}
+	if ((err = snd_pcm_capture_prepare(chandle)) < 0) {
+		printf("Capture prepare error: %s\n", snd_strerror(err));
+		exit(0);
+	}	
+	printf("Trying latency %i...\n", *queue);
+	fflush(stdout);
+	return 0;
 }
 
-int setparams(void *phandle, void *rhandle, int *fragmentsize)
-{
-	int err, step = 4;
-	snd_pcm_playback_info_t pinfo;
-	snd_pcm_capture_info_t rinfo;
-	snd_pcm_playback_params_t pparams;
-	snd_pcm_capture_params_t rparams;
-
-	if ((err = snd_pcm_playback_info(phandle, &pinfo)) < 0) {
-		printf("Playback info error: %s\n", snd_strerror(err));
-		exit(0);
-	}
-	if ((err = snd_pcm_capture_info(rhandle, &rinfo)) < 0) {
-		printf("Record info error: %s\n", snd_strerror(err));
-		exit(0);
-	}
-	if (step < pinfo.min_fragment_size)
-		step = pinfo.min_fragment_size;
-	if (step < rinfo.min_fragment_size)
-		step = rinfo.min_fragment_size;
-	while (step < 4096 &&
-	       (step & pinfo.fragment_align) != 0 &&
-	       (step & rinfo.fragment_align) != 0)
-		step++;
-	if (*fragmentsize) {
-		*fragmentsize += step;
-	} else {
-		if (step < 128)
-			*fragmentsize = 128;
-		else
-			*fragmentsize = step;
-	}
-	while (*fragmentsize < 4096) {
-		bzero(&pparams, sizeof(pparams));
-		pparams.fragment_size = *fragmentsize;
-		pparams.fragments_max = -1;	/* maximum */
-		pparams.fragments_room = 1;
-		if ((err = snd_pcm_playback_params(phandle, &pparams)) < 0) {
-			*fragmentsize += step;
-			continue;
-		}
-		bzero(&rparams, sizeof(rparams));
-		rparams.fragment_size = *fragmentsize;
-		rparams.fragments_min = 1;	/* wakeup if at least one fragment is ready */
-		if ((err = snd_pcm_capture_params(rhandle, &rparams)) < 0) {
-			*fragmentsize += step;
-			continue;
-		}
-		break;
-	}
-	if (*fragmentsize < 4096) {
-		printf("Trying fragment size %i...\n", *fragmentsize);
-		fflush(stdout);
-		return 0;
-	}
-	return -1;
-}
-
-int playbackunderrun(void *phandle)
+void showstat(snd_pcm_t *handle, int channel, snd_pcm_channel_status_t *rstatus)
 {
 	int err;
-	snd_pcm_playback_status_t pstatus;
+	snd_pcm_channel_status_t status;
+	char *str;
 
-	if ((err = snd_pcm_playback_status(phandle, &pstatus)) < 0) {
-		printf("Playback status error: %s\n", snd_strerror(err));
+	str = channel == SND_PCM_CHANNEL_CAPTURE ? "Capture" : "Playback";
+	bzero(&status, sizeof(status));
+	status.channel = channel;
+	status.mode = SND_PCM_MODE_STREAM;
+	if ((err = snd_pcm_plugin_status(handle, &status)) < 0) {
+		printf("Channel %s status error: %s\n", str, snd_strerror(err));
 		exit(0);
 	}
-	return pstatus.underrun;
-}
-
-void capturefragment(void *rhandle, char *buffer, int index, int fragmentsize)
-{
-	int err;
-
-	buffer += index * fragmentsize;
-	if ((err = snd_pcm_read(rhandle, buffer, fragmentsize)) != fragmentsize) {
-		printf("Read error: %s\n", err < 0 ? snd_strerror(err) : xitoa(err));
-		exit(0);
-	}
-}
-
-void playfragment(void *phandle, char *buffer, int index, int fragmentsize)
-{
-	int err;
-
-	buffer += index * fragmentsize;
-	if ((err = snd_pcm_write(phandle, buffer, fragmentsize)) != fragmentsize) {
-		printf("Write error: %s\n", err < 0 ? snd_strerror(err) : xitoa(err));
-		exit(0);
-	}
+	printf("%s:\n", str);
+	printf("  status = %i\n", status.status);
+	printf("  position = %u\n", status.scount);
+	*rstatus = status;
 }
 
 void setscheduler(void)
@@ -175,70 +180,99 @@ long timediff(struct timeval t1, struct timeval t2)
 	return (t1.tv_sec * 1000000) + l;
 }
 
+long readbuf(snd_pcm_t *handle, char *buf, long len)
+{
+	long r;
+	
+	r = snd_pcm_plugin_read(handle, buf, len);
+	return r;
+}
+
+long writebuf(snd_pcm_t *handle, char *buf, long len)
+{
+	long r;
+
+	while (len > 0) {
+		r = snd_pcm_plugin_write(handle, buf, len);
+		if (r < 0)
+			return r;
+		buf += r;
+		len -= r;
+	}
+	return 0;
+}
+
 int main(void)
 {
-	snd_pcm_t *phandle, *rhandle;
+	snd_pcm_t *phandle, *chandle;
 	char buffer[4096 * 2];	/* max two fragments by 4096 bytes */
 	int pcard = 0, pdevice = 0;
-	int rcard = 0, rdevice = 0;
-	int err, fragmentsize = 0;
-	int ridx, pidx, size, ok;
-	snd_pcm_playback_status_t pstatus;
-	snd_pcm_capture_status_t rstatus;
+	int ccard = 0, cdevice = 0;
+	int err, latency = 16;
+	int size, ok;
+	int sync;
+	snd_pcm_sync_t ssync;
+	snd_pcm_channel_status_t pstatus, cstatus;
+	long r;
 
 	setscheduler();
-	if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_PLAYBACK)) < 0) {
+	if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_STREAM_PLAYBACK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-	if ((err = snd_pcm_open(&rhandle, rcard, rdevice, SND_PCM_OPEN_CAPTURE)) < 0) {
+	if ((err = snd_pcm_open(&chandle, ccard, cdevice, SND_PCM_OPEN_STREAM_CAPTURE)) < 0) {
 		printf("Record open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-	setformat(phandle, rhandle);
+	sync = syncro(phandle, chandle);
+	if (sync)
+		printf("Using hardware synchronization mode\n");
 	while (1) {
-		if (setparams(phandle, rhandle, &fragmentsize) < 0)
+		if (setparams(phandle, chandle, sync, &latency) < 0)
 			break;
+		memset(buffer, 0, latency);
+		if (writebuf(phandle, buffer, latency) < 0)
+			break;
+		if (sync) {
+			syncro_id(&ssync);
+			if ((err = snd_pcm_sync_go(phandle, &ssync)) < 0) {
+				printf("Sync go error: %s\n", snd_strerror(err));
+				exit(0);
+			}
+		} else {
+			if ((err = snd_pcm_capture_go(chandle)) < 0) {
+				printf("Capture go error: %s\n", snd_strerror(err));
+				exit(0);
+			}
+			if ((err = snd_pcm_playback_go(phandle)) < 0) {
+				printf("Playback go error: %s\n", snd_strerror(err));
+				exit(0);
+			}
+		}
 		ok = 1;
-		ridx = pidx = size = 0;
-		capturefragment(rhandle, buffer, ridx++, fragmentsize);
-		capturefragment(rhandle, buffer, ridx++, fragmentsize);
-		if ((err = snd_pcm_capture_status(rhandle, &rstatus)) < 0) {
-			printf("Record status error: %s\n", snd_strerror(err));
-			exit(0);
-		}
-		ridx %= 2;
-		playfragment(phandle, buffer, 0, 2 * fragmentsize);
-		size += 2 * fragmentsize;
-		pidx += 2;
-		pidx %= 2;
-		while (ok && size < 3 * 176400) {	/* 30 seconds */
-			capturefragment(rhandle, buffer, ridx++, fragmentsize);
-			ridx %= 2;
-			playfragment(phandle, buffer, pidx++, fragmentsize);
-			size += fragmentsize;
-			pidx %= 2;
-			if (playbackunderrun(phandle) > 0)
+		size = 0;
+		while (ok && size < LOOP_LIMIT) {
+			if ((r = readbuf(chandle, buffer, latency)) < 0)
 				ok = 0;
+			if (writebuf(phandle, buffer, r) < 0)
+				ok = 0;
+			size += r;
 		}
-		if ((err = snd_pcm_playback_status(phandle, &pstatus)) < 0) {
-			printf("Playback status error: %s\n", snd_strerror(err));
-			exit(0);
-		}
-		snd_pcm_flush_capture(rhandle);
+		showstat(phandle, SND_PCM_CHANNEL_PLAYBACK, &pstatus);
+		showstat(chandle, SND_PCM_CHANNEL_CAPTURE, &cstatus);
+		snd_pcm_flush_capture(chandle);
 		snd_pcm_flush_playback(phandle);
-		if (ok && !playbackunderrun(phandle) > 0) {
-			printf("Playback OK!!!\n");
+		if (ok) {
 			printf("Playback time = %li.%i, Record time = %li.%i, diff = %li\n",
 			       pstatus.stime.tv_sec,
 			       (int)pstatus.stime.tv_usec,
-			       rstatus.stime.tv_sec,
-			       (int)rstatus.stime.tv_usec,
-			       timediff(pstatus.stime, rstatus.stime));
+			       cstatus.stime.tv_sec,
+			       (int)cstatus.stime.tv_usec,
+			       timediff(pstatus.stime, cstatus.stime));
 			break;
 		}
 	}
 	snd_pcm_close(phandle);
-	snd_pcm_close(rhandle);
+	snd_pcm_close(chandle);
 	return 0;
 }
