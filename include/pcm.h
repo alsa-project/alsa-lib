@@ -342,7 +342,8 @@ int snd_pcm_plugin_build_route(snd_pcm_plugin_handle_t *handle,
 			       snd_pcm_plugin_t **r_plugin);
 int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
 			      int channel,
-			      snd_pcm_format_t *format,
+			      snd_pcm_format_t *src_format,
+			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin);
 
 #ifdef __cplusplus

@@ -790,6 +790,7 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 		tmpparams.format.interleave = dstparams.format.interleave;
 		err = snd_pcm_plugin_build_copy(handle,
 						params->channel,
+						&srcparams->format,
 						&tmpparams.format,
 						&plugin);
 		pdprintf("interleave change: src=%i, dst=%i returns %i\n", srcparams->format.interleave, tmpparams.format.interleave, err);

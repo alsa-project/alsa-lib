@@ -49,11 +49,11 @@ static ssize_t copy_transfer(snd_pcm_plugin_t *plugin,
 		return 0;
 	nvoices = plugin->src_format.voices;
 	for (voice = 0; voice < nvoices; voice++) {
-		if (src_voices[voice].area.first % 8 != 0 || 
-		    src_voices[voice].area.step % 8 != 0)
+		if (src_voices->area.first % 8 != 0 || 
+		    src_voices->area.step % 8 != 0)
 			return -EINVAL;
-		if (dst_voices[voice].area.first % 8 != 0 || 
-		    dst_voices[voice].area.step % 8 != 0)
+		if (dst_voices->area.first % 8 != 0 || 
+		    dst_voices->area.step % 8 != 0)
 			return -EINVAL;
 		if (!src_voices->enabled) {
 			if (dst_voices->wanted)
@@ -61,15 +61,18 @@ static ssize_t copy_transfer(snd_pcm_plugin_t *plugin,
 			dst_voices->enabled = 0;
 			continue;
 		}
-		dst_voices[voice].enabled = 1;
+		dst_voices->enabled = 1;
 		snd_pcm_area_copy(&src_voices->area, 0, &dst_voices->area, 0, samples, plugin->src_format.format);
+		src_voices++;
+		dst_voices++;
 	}
 	return samples;
 }
 
 int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
 			      int channel,
-			      snd_pcm_format_t *format,
+			      snd_pcm_format_t *src_format,
+			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin)
 {
 	int err;
@@ -80,14 +83,21 @@ int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
 		return -EFAULT;
 	*r_plugin = NULL;
 
-	width = snd_pcm_format_physical_width(format->format);
+	if (src_format->format != dst_format->format)
+		return -EINVAL;
+	if (src_format->rate != dst_format->rate)
+		return -EINVAL;
+	if (src_format->voices != dst_format->voices)
+		return -EINVAL;
+
+	width = snd_pcm_format_physical_width(src_format->format);
 	if (width < 0)
 		return -EINVAL;
 
 	err = snd_pcm_plugin_build(handle, channel,
 				   "copy",
-				   format,
-				   format,
+				   src_format,
+				   dst_format,
 				   0,
 				   &plugin);
 	if (err < 0)
