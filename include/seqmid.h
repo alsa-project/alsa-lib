@@ -60,7 +60,7 @@ extern "C" {
  * \param ev event instance
  */
 #define snd_seq_ev_set_direct(ev) \
-	((ev)->queue = SNDRV_SEQ_QUEUE_DIRECT)
+	((ev)->queue = SND_SEQ_QUEUE_DIRECT)
 
 /**
  * \brief set tick-scheduling mode on queue
@@ -70,9 +70,9 @@ extern "C" {
  * \param ttick tick time-stap to be delivered
  */
 #define snd_seq_ev_schedule_tick(ev, q, relative, ttick) \
-	((ev)->flags &= ~(SNDRV_SEQ_TIME_STAMP_MASK | SNDRV_SEQ_TIME_MODE_MASK),\
-	 (ev)->flags |= SNDRV_SEQ_TIME_STAMP_TICK,\
-	 (ev)->flags |= (relative) ? SNDRV_SEQ_TIME_MODE_REL : SNDRV_SEQ_TIME_MODE_ABS,\
+	((ev)->flags &= ~(SND_SEQ_TIME_STAMP_MASK | SND_SEQ_TIME_MODE_MASK),\
+	 (ev)->flags |= SND_SEQ_TIME_STAMP_TICK,\
+	 (ev)->flags |= (relative) ? SND_SEQ_TIME_MODE_REL : SND_SEQ_TIME_MODE_ABS,\
 	 (ev)->time.tick = (ttick),\
 	 (ev)->queue = (q))
 
@@ -84,9 +84,9 @@ extern "C" {
  * \param rtime time-stamp to be delivered
  */
 #define snd_seq_ev_schedule_real(ev, q, relative, rtime) \
-	((ev)->flags &= ~( SNDRV_SEQ_TIME_STAMP_MASK | SNDRV_SEQ_TIME_MODE_MASK),\
-	 (ev)->flags |= SNDRV_SEQ_TIME_STAMP_REAL,\
-	 (ev)->flags |= (relative) ? SNDRV_SEQ_TIME_MODE_REL : SNDRV_SEQ_TIME_MODE_ABS,\
+	((ev)->flags &= ~(SND_SEQ_TIME_STAMP_MASK | SND_SEQ_TIME_MODE_MASK),\
+	 (ev)->flags |= SND_SEQ_TIME_STAMP_REAL,\
+	 (ev)->flags |= (relative) ? SND_SEQ_TIME_MODE_REL : SND_SEQ_TIME_MODE_ABS,\
 	 (ev)->time.time = *(rtime),\
 	 (ev)->queue = (q))
 
@@ -96,8 +96,8 @@ extern "C" {
  * \param high_prior 1 for high priority mode
  */
 #define snd_seq_ev_set_priority(ev, high_prior) \
-	((ev)->flags &= ~SNDRV_SEQ_PRIORITY_MASK,\
-	 (ev)->flags |= (high_prior) ? SNDRV_SEQ_PRIORITY_HIGH : SNDRV_SEQ_PRIORITY_NORMAL)
+	((ev)->flags &= ~SND_SEQ_PRIORITY_MASK,\
+	 (ev)->flags |= (high_prior) ? SND_SEQ_PRIORITY_HIGH : SND_SEQ_PRIORITY_NORMAL)
 
 /**
  * \brief set fixed data
@@ -106,8 +106,8 @@ extern "C" {
  * Sets the event length mode as fixed size.
  */
 #define snd_seq_ev_set_fixed(ev) \
-	((ev)->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK,\
-	 (ev)->flags |= SNDRV_SEQ_EVENT_LENGTH_FIXED)
+	((ev)->flags &= ~SND_SEQ_EVENT_LENGTH_MASK,\
+	 (ev)->flags |= SND_SEQ_EVENT_LENGTH_FIXED)
 
 /**
  * \brief set variable data
@@ -118,8 +118,8 @@ extern "C" {
  * Sets the event length mode as variable length and stores the data.
  */
 #define snd_seq_ev_set_variable(ev, datalen, dataptr) \
-	((ev)->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK,\
-	 (ev)->flags |= SNDRV_SEQ_EVENT_LENGTH_VARIABLE,\
+	((ev)->flags &= ~SND_SEQ_EVENT_LENGTH_MASK,\
+	 (ev)->flags |= SND_SEQ_EVENT_LENGTH_VARIABLE,\
 	 (ev)->data.ext.len = (datalen),\
 	 (ev)->data.ext.ptr = (dataptr))
 
@@ -132,8 +132,8 @@ extern "C" {
  * Sets the event length mode as variable user-space data and stores the data.
  */
 #define snd_seq_ev_set_varusr(ev, datalen, dataptr) \
-	((ev)->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK,\
-	 (ev)->flags |= SNDRV_SEQ_EVENT_LENGTH_VARUSR,\
+	((ev)->flags &= ~SND_SEQ_EVENT_LENGTH_MASK,\
+	 (ev)->flags |= SND_SEQ_EVENT_LENGTH_VARUSR,\
 	 (ev)->data.ext.len = (datalen),\
 	 (ev)->data.ext.ptr = (dataptr))
 
