@@ -1,5 +1,5 @@
 /**
- * \file <alsa/pcm.h>
+ * \file include/pcm.h
  * \brief Application interface library for the ALSA driver
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
@@ -8,8 +8,8 @@
  *
  * Application interface library for the ALSA driver.
  * See the \ref pcm page for more details.
- *
- *
+ */
+/*
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as
  *   published by the Free Software Foundation; either version 2.1 of

@@ -1,5 +1,5 @@
 /**
- * \file <alsa/input.h>
+ * \file include/input.h
  * \brief Application interface library for the ALSA driver
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>

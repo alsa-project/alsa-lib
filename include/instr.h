@@ -1,5 +1,5 @@
 /**
- * \file <file/instr.h>
+ * \file include/instr.h
  * \brief Application interface library for the ALSA driver
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
@@ -7,8 +7,8 @@
  * \date 1998-2001
  *
  * Application interface library for the ALSA driver
- *
- *
+ */
+/*
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as
  *   published by the Free Software Foundation; either version 2.1 of

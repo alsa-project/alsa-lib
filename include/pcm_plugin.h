@@ -1,5 +1,5 @@
 /**
- * \file <alsa/pcm_plugin.h>
+ * \file include/pcm_plugin.h
  * \brief Common PCM plugin code
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Jaroslav Kysela <perex@suse.cz>
@@ -11,8 +11,8 @@
  * \warning Using of contents of this header file might be dangerous
  *	    in the sense of compatibility reasons. The contents might be
  *	    freely changed in future.
- *
- *
+ */
+/*
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as
  *   published by the Free Software Foundation; either version 2.1 of

@@ -1,13 +1,13 @@
 /**
- * \file <alsa/mixer_ordinary.h>
+ * \file include/mixer_ordinary.h
  * \brief Application interface library for the ALSA driver
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2003
  *
  * Application interface library for the ALSA driver.
  * See the \ref mixer_ordinary page for more details.
- *
- *
+ */
+/*
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as
  *   published by the Free Software Foundation; either version 2.1 of

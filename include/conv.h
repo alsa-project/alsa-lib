@@ -1,5 +1,5 @@
 /**
- * \file <file/conv.h>
+ * \file include/conv.h
  * \brief Application interface library for the ALSA driver
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
