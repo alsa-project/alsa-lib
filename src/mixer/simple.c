@@ -442,6 +442,22 @@ static int elem_write_switch(selem_t *s, int dir, selem_ctl_type_t type)
 	return 0;
 }
 
+static int elem_write_switch_constant(selem_t *s, selem_ctl_type_t type, int val)
+{
+	snd_ctl_elem_value_t ctl;
+	unsigned int idx;
+	int err;
+	selem_ctl_t *c = &s->ctls[type];
+	memset(&ctl, 0, sizeof(ctl));
+	if ((err = snd_hctl_elem_read(c->elem, &ctl)) < 0)
+		return err;
+	for (idx = 0; idx < c->values; idx++)
+		ctl.value.integer.value[idx] = !!val;
+	if ((err = snd_hctl_elem_write(c->elem, &ctl)) < 0)
+		return err;
+	return 0;
+}
+
 static int elem_write_route(selem_t *s, int dir, selem_ctl_type_t type)
 {
 	snd_ctl_elem_value_t ctl;
@@ -483,7 +499,10 @@ static int selem_write(snd_mixer_elem_t *elem)
 			return err;
 	}
 	if (s->ctls[CTL_GLOBAL_SWITCH].elem) {
-		err = elem_write_switch(s, PLAY, CTL_GLOBAL_SWITCH);
+		if (s->ctls[CTL_PLAYBACK_SWITCH].elem && s->ctls[CTL_CAPTURE_SWITCH].elem)
+			err = elem_write_switch_constant(s, CTL_GLOBAL_SWITCH, 1);
+		else
+			err = elem_write_switch(s, PLAY, CTL_GLOBAL_SWITCH);
 		if (err < 0)
 			return err;
 	}
