@@ -4,6 +4,8 @@
  *
  *   Copyright (c) 1998 by Frank van de Pol <F.K.W.van.de.Pol@inter.nl.net>
  *
+ *   Modified so that this uses alsa-lib
+ *   1999 Jan. by Isaku Yamahata <yamahata@kusm.kyoto-u.ac.jp>
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -60,7 +62,6 @@ int local_tempo = 500000;
 static int dest_queue = DEST_QUEUE_NUMBER;
 static int dest_client = DEST_CLIENT_NUMBER;
 static int dest_port = 0;
-//static int dest_port = 1;
 static int source_channel = 0;
 static int source_port = 0;
 
@@ -123,6 +124,7 @@ void write_ev_im(snd_seq_event_t * ev)
 		if (written<0) {
 		  printf("written = %i (%s)\n", written, snd_strerror(written));
 		  sleep(1);
+		  //sched_yield ();
 		}
 	}
 }
@@ -152,6 +154,7 @@ void write_ev_var(snd_seq_event_t * ev, int len, void *ptr)
 	        if (written<0) {
 	          printf("written = %i (%s)\n", written, snd_strerror(written));
 	          sleep(1);
+		  //sched_yield ();
 		}
 	}
 }
@@ -191,7 +194,7 @@ void do_header(int format, int ntracks, int division)
 		//queue_info.tempo = -1;	/* don't change */
 		queue_info.tempo = 500000;	/* don't change */
 		if (snd_seq_set_queue_info (seq_handle, dest_queue, &queue_info) < 0) {
-			perror("ioctl");
+		        perror("ioctl");
 			exit(1);
 		}
 		printf("ALSA Timer updated, PPQ = %d\n", queue_info.ppq);
@@ -471,9 +474,32 @@ void do_sysex(int len, char *msg)
 /**/
 void alsa_sync ()
 {
+  int left;
+  snd_seq_event_t* input_event;
+  
+  //send echo event to self client.
+  snd_seq_event_t ev;
+  printf ("alsa_sync syncing... send ECHO(%d) event to myself. time=%f\n",
+	  SND_SEQ_EVENT_ECHO, (double) Mf_currtime+1);
+  ev.source.port = dest_port;
+  ev.source.channel = source_channel;
+  ev.dest.queue = dest_queue;
+  ev.dest.client = snd_seq_client_id (seq_handle);
+  ev.dest.port = source_port;
+  ev.dest.channel = 0;	/* don't care */
+
+#ifdef USE_REALTIME
+  ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_ABS;
+  tick2time(&ev.time.real, Mf_currtime+1);
+#else
+  ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_ABS;
+  ev.time.tick = Mf_currtime+1;
+#endif
+  ev.type = SND_SEQ_EVENT_ECHO;
+  write_ev_im (&ev);
+  
   //dump buffer
-  int left = snd_seq_flush_output (seq_handle);
-  printf ("alsa_sync syncing\n");
+  left = snd_seq_flush_output (seq_handle);
   while (left > 0)
     {
       sched_yield ();
@@ -485,22 +511,18 @@ void alsa_sync ()
 	}
     }
 
-  
-  for (;;)
+  //wait the echo event which I sent.
+  left = snd_seq_event_input (seq_handle, &input_event);
+  if (left < 0)
     {
-      snd_seq_queue_info_t queue_info;
-      int tmp = snd_seq_get_queue_info (seq_handle, dest_queue, &queue_info);
-      if (tmp < 0)
-        {
-          printf ("AlsaClient::sync snd_seq_get_queue_info:%s\n",
-		  snd_strerror (tmp));
-          break;
-	}
-      
-      if (Mf_currtime < queue_info.tick)
-	break;
-      sched_yield ();
+      printf ("alsa_sync error!:%s\n", snd_strerror (left));
+      return;
     }
+  printf ("alsa_sync got event. type=%d, flags=%d\n",
+	  input_event->type, input_event->flags);
+  snd_seq_free_event (input_event);
+  
+  printf ("alsa_sync synced\n");
 }
 
 
@@ -513,15 +535,11 @@ void alsa_start_timer(void)
 	ev.source.channel = 0;
 
 	ev.dest.queue = dest_queue;
-	//ev.dest.client = 0;	/* system */
 	ev.dest.client = SND_SEQ_CLIENT_SYSTEM;	/* system */
-	//ev.dest.client = dest_client;	/* broadcast */
-	ev.dest.client = 255;	/* broadcast */
-	ev.dest.port = 0;	/* timer */
+	ev.dest.port = SND_SEQ_PORT_SYSTEM_TIMER;	/* timer */
 	ev.dest.channel = 0;	/* don't care */
 
 	ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_REL;
-	//ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_REL;
 	ev.time.real.tv_sec = 0;
 	ev.time.real.tv_nsec = 0;
 
@@ -541,9 +559,8 @@ void alsa_stop_timer(void)
 	ev.source.channel = 0;
 
 	ev.dest.queue = dest_queue;
-	ev.dest.client = 0;	/* system */
-	ev.dest.client = dest_client;	/* broadcast */
-	ev.dest.port = 0;	/* timer */
+	ev.dest.client = SND_SEQ_CLIENT_SYSTEM;	/* system */
+	ev.dest.port = SND_SEQ_PORT_SYSTEM_TIMER;	/* timer */
 	ev.dest.channel = 0;	/* don't care */
 
 #ifdef USE_REALTIME
@@ -574,14 +591,16 @@ int main(int argc, char *argv[])
 #endif
 
 	/* open sequencer device */
-	//tmp = snd_seq_open (&seq_handle, SND_SEQ_OPEN_OUT);
+	//Here we open the device read/write mode.
+	//Becase we write SND_SEQ_EVENT_ECHO to myself to sync.
 	tmp = snd_seq_open (&seq_handle, SND_SEQ_OPEN);
 	if (tmp < 0) {
 		perror("open /dev/snd/seq");
 		exit(1);
 	}
 	
-	tmp = snd_seq_block_mode (seq_handle, 0);
+	//tmp = snd_seq_block_mode (seq_handle, 0);
+	tmp = snd_seq_block_mode (seq_handle, 1);
 	if (tmp < 0)
 	  {
 	    perror ("block_mode");
@@ -590,7 +609,11 @@ int main(int argc, char *argv[])
 	
 		
 	/* set name */
+	//set event filter to recieve only echo event
 	memset(&inf, 0, sizeof(snd_seq_client_info_t));
+	inf.filter |= SND_SEQ_FILTER_USE_EVENT;
+	memset (&inf.event_filter, 0, sizeof (inf.event_filter));
+	snd_seq_set_bit (SND_SEQ_EVENT_ECHO, inf.event_filter);
 	strcpy(inf.name, "MIDI file player");
 	if (snd_seq_set_client_info (seq_handle, &inf) < 0) {
 		perror("ioctl");
@@ -599,7 +622,7 @@ int main(int argc, char *argv[])
 
 	//create port
 	memset (&src_port_info, 0, sizeof (snd_seq_port_info_t));
-	src_port_info.capability = SND_SEQ_PORT_CAP_OUT | SND_SEQ_PORT_CAP_SUBSCRIPTION;
+	src_port_info.capability = SND_SEQ_PORT_CAP_OUT | SND_SEQ_PORT_CAP_SUBSCRIPTION | SND_SEQ_PORT_CAP_IN;
 	src_port_info.type = SND_SEQ_PORT_TYPE_MIDI_GENERIC;
 	src_port_info.midi_channels = 16;
 	src_port_info.synth_voices = 0;
@@ -611,20 +634,13 @@ int main(int argc, char *argv[])
 	    perror ("creat port");
 	    exit (1);
 	  }
+	source_port = src_port_info.port;
 	
 	//setup queue
 	queue_info.used = 1;
-	//queue_info.low = 100;//???
-	//queue_info.low = SND_SEQ_MAX_EVENTS-1;//???
-	//queue_info.low = 500-1;//???
-	//queue_info.low = 1;//???
-	queue_info.low = 0;
-	//queue_info.low = 0x7ffffff;//???
-	//queue_info.high = 0x7ffffff;//???
+	queue_info.low = 1;//???
+	//queue_info.low = 0;
 	queue_info.high = 500-100;//???
-	//queue_info.high = 50;//???
-	//queue_info.high = 0;//???
-	//queue_info.high = 1;//???
 	tmp = snd_seq_set_queue_client (seq_handle, dest_queue,
 					&queue_info);
 	if (tmp < 0)
@@ -632,7 +648,6 @@ int main(int argc, char *argv[])
 	    perror ("queue_client");
 	    exit (1);
 	  }
-#if (DEST_CLIENT_NUMBER == 64) || (DEST_CLIENT_NUMBER == 72)
 	//setup subscriber
 	printf ("debug subscribe src_port_info.client=%d\n",
 		src_port_info.client);
@@ -650,7 +665,6 @@ int main(int argc, char *argv[])
 	    perror ("subscribe");
 	    exit (1);
 	  }
-#endif
 	
 	if (argc > 1)
 		F = fopen(argv[1], "r");
@@ -673,29 +687,7 @@ int main(int argc, char *argv[])
 
 
 	/* stop timer in case it was left running by a previous client */
-	{
-		snd_seq_event_t ev;
-
-		ev.source.port = 0;
-		ev.source.channel = 0;
-
-		ev.dest.queue = dest_queue;
-		ev.dest.client = 0;	/* system */
-		//ev.dest.client = dest_client;	/* broadcast */
-		ev.dest.client = 255;	/* broadcast */
-		ev.dest.port = 0;	/* timer */
-		ev.dest.channel = 0;	/* don't care */
-
-		ev.flags = SND_SEQ_TIME_STAMP_REAL | SND_SEQ_TIME_MODE_REL;
-		//ev.flags = SND_SEQ_TIME_STAMP_TICK | SND_SEQ_TIME_MODE_REL;
-		ev.time.real.tv_sec = 0;
-		ev.time.real.tv_nsec = 0;
-		
-		//ev.type = SND_SEQ_EVENT_STOP;
-		ev.type = SND_SEQ_EVENT_START;
-
-		write_ev(&ev);
-	}
+	alsa_stop_timer ();
 	alsa_start_timer ();
 	
 	/* go.. go.. go.. */
