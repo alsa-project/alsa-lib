@@ -343,7 +343,6 @@ static int snd_pcm_rate_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 	slave_params.buffer_size = muldiv64(params->buffer_size, srate, crate);
 	slave_params.frag_size = muldiv64(params->frag_size, srate, crate);
 	slave_params.xfer_align = muldiv64(params->xfer_align, srate, crate);
-	slave_params.xrun_max = muldiv64(params->xrun_max, srate, crate);
 	/* FIXME: boundary? */
 	slave_params.xfer_mode = SND_PCM_XFER_UNSPECIFIED;
 	slave_params.mmap_shape = SND_PCM_MMAP_UNSPECIFIED;;
@@ -415,7 +414,6 @@ static int snd_pcm_rate_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 	setup->mmap_bytes = 0;
 	setup->avail_min = muldiv64(setup->avail_min, mul, div);
 	setup->xfer_min = muldiv64(setup->xfer_min, mul, div);
-	setup->xrun_max = muldiv64(setup->xrun_max, mul, div);
 
 	/* FIXME: the three above are not a lot sensible */
 	setup->buffer_size = muldiv64(setup->buffer_size, mul, div);

@@ -432,7 +432,6 @@ int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp)
 	fprintf(fp, "xfer_min   : %ld\n", (long)setup->xfer_min);
 	fprintf(fp, "xfer_align : %ld\n", (long)setup->xfer_align);
 	fprintf(fp, "xrun_mode  : %s\n", assoc(setup->xrun_mode, xruns));
-	fprintf(fp, "xrun_max   : %ld\n", (long)setup->xrun_max);
 	fprintf(fp, "mmap_shape : %s\n", assoc(setup->mmap_shape, mmaps));
 	fprintf(fp, "buffer_size: %ld\n", (long)setup->buffer_size);
 	fprintf(fp, "frag_size  : %ld\n", (long)setup->frag_size);
