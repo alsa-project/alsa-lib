@@ -216,8 +216,11 @@
 #define A_C_00100000	0xd5
 #define A_GPR_ACCU	0xd6		/* ACCUM, accumulator */
 #define A_GPR_COND	0xd7		/* CCR, condition register */
-/* 0xd8 = noise1 */
-/* 0xd9 = noise2 */
+#define A_GPR_NOISE0	0xd8		/* noise source */
+#define A_GPR_NOISE1	0xd9		/* noise source */
+#define A_GPR_IRQ	0xda		/* IRQ register */
+#define A_GPR_DBAC	0xdb		/* TRAM Delay Base Address Counter - internal */
+#define A_GPR_DBACE	0xde		/* TRAM Delay Base Address Counter - external */
 
 /* definitions for debug register */
 #define EMU10K1_DBG_ZC			0x80000000	/* zero tram counter */
@@ -258,20 +261,20 @@ enum emu10k1_ctl_elem_iface {
 	EMU10K1_CTL_ELEM_IFACE_PCM = 3,		/* PCM device */
 };
 
-struct emu10k1_ctl_elem_id {
+typedef struct {
 	unsigned int pad;		/* don't use */
 	enum emu10k1_ctl_elem_iface iface;/* interface identifier */
 	unsigned int device;		/* device/client number */
 	unsigned int subdevice;		/* subdevice (substream) number */
 	unsigned char name[44];		/* ASCII name of item */ 
 	unsigned int index;		/* index of item */
-};
+} emu10k1_ctl_elem_id_t;
 
 typedef struct {
 	emu10k1_ctl_elem_id_t id;	/* full control ID definition */
 	unsigned int vcount;		/* visible count */
 	unsigned int count;		/* count of GPR (1..16) */
-	unsigned char gpr[32];		/* GPR number(s) */
+	unsigned short gpr[32];		/* GPR number(s) */
 	unsigned int value[32];		/* initial values */
 	unsigned int min;		/* minimum range */
 	unsigned int max;		/* maximum range */
@@ -281,25 +284,25 @@ typedef struct {
 typedef struct {
 	char name[128];
 
-	unsigned long gpr_valid[0x100/(sizeof(unsigned long)*8)]; /* bitmask of valid initializers */
-	unsigned int gpr_map[0x100];	  /* initializers */
+	unsigned long gpr_valid[0x200/(sizeof(unsigned long)*8)]; /* bitmask of valid initializers */
+	unsigned int gpr_map[0x200];	  /* initializers */
 
 	unsigned int gpr_add_control_count; /* count of GPR controls to add/replace */
-	emu10k1_fx8010_control_gpr_t __user *gpr_add_controls; /* GPR controls to add/replace */
+	emu10k1_fx8010_control_gpr_t *gpr_add_controls; /* GPR controls to add/replace */
 
 	unsigned int gpr_del_control_count; /* count of GPR controls to remove */
-	emu10k1_ctl_elem_id_t __user *gpr_del_controls; /* IDs of GPR controls to remove */
+	emu10k1_ctl_elem_id_t *gpr_del_controls; /* IDs of GPR controls to remove */
 
 	unsigned int gpr_list_control_count; /* count of GPR controls to list */
 	unsigned int gpr_list_control_total; /* total count of GPR controls */
-	emu10k1_fx8010_control_gpr_t __user *gpr_list_controls; /* listed GPR controls */
+	emu10k1_fx8010_control_gpr_t *gpr_list_controls; /* listed GPR controls */
 
-	unsigned long tram_valid[0xa0/(sizeof(unsigned long)*8)]; /* bitmask of valid initializers */
-	unsigned int tram_data_map[0xa0]; /* data initializers */
-	unsigned int tram_addr_map[0xa0]; /* map initializers */
+	unsigned long tram_valid[0x100/(sizeof(unsigned long)*8)]; /* bitmask of valid initializers */
+	unsigned int tram_data_map[0x100]; /* data initializers */
+	unsigned int tram_addr_map[0x100]; /* map initializers */
 
-	unsigned long code_valid[512/(sizeof(unsigned long)*8)];  /* bitmask of valid instructions */
-	unsigned int code[512][2];	  /* one instruction - 64 bits */
+	unsigned long code_valid[1024/(sizeof(unsigned long)*8)];  /* bitmask of valid instructions */
+	unsigned int code[1024][2];	  /* one instruction - 64 bits */
 } emu10k1_fx8010_code_t;
 
 typedef struct {
@@ -315,12 +318,12 @@ typedef struct {
 	unsigned int channels;		/* 16-bit channels count, zero = remove this substream */
 	unsigned int tram_start;	/* ring buffer position in TRAM (in samples) */
 	unsigned int buffer_size;	/* count of buffered samples */
-	unsigned char gpr_size;		/* GPR containing size of ringbuffer in samples (host) */
-	unsigned char gpr_ptr;		/* GPR containing current pointer in the ring buffer (host = reset, FX8010) */
-	unsigned char gpr_count;	/* GPR containing count of samples between two interrupts (host) */
-	unsigned char gpr_tmpcount;	/* GPR containing current count of samples to interrupt (host = set, FX8010) */
-	unsigned char gpr_trigger;	/* GPR containing trigger (activate) information (host) */
-	unsigned char gpr_running;	/* GPR containing info if PCM is running (FX8010) */
+	unsigned short gpr_size;		/* GPR containing size of ringbuffer in samples (host) */
+	unsigned short gpr_ptr;		/* GPR containing current pointer in the ring buffer (host = reset, FX8010) */
+	unsigned short gpr_count;	/* GPR containing count of samples between two interrupts (host) */
+	unsigned short gpr_tmpcount;	/* GPR containing current count of samples to interrupt (host = set, FX8010) */
+	unsigned short gpr_trigger;	/* GPR containing trigger (activate) information (host) */
+	unsigned short gpr_running;	/* GPR containing info if PCM is running (FX8010) */
 	unsigned char pad;		/* reserved */
 	unsigned char etram[32];	/* external TRAM address & data (one per channel) */
 	unsigned int res2;		/* reserved */
