@@ -52,9 +52,9 @@ enum snds_pcm_access_type {
 
 /** Simple PCM xrun type */
 enum snds_pcm_xrun_type {
-	/** driver / library will not care about xruns, stream runs forever (default) */
-	SNDS_PCM_XRUN_NOCARE = 0,
-	/** driver / library stops the stream when xrun occurs */
+	/** driver / library will ignore all xruns, the stream runs forever (default) */
+	SNDS_PCM_XRUN_IGNORE = 0,
+	/** driver / library stops the stream when an xrun occurs */
 	SNDS_PCM_XRUN_STOP
 };
 
