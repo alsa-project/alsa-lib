@@ -1430,6 +1430,18 @@ static const char *snd_pcm_format_names[] = {
 	FORMAT(U18_3BE),
 };
 
+static const char *snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
+	FORMAT(S16),
+	FORMAT(U16),
+	FORMAT(S24),
+	FORMAT(U24),
+	FORMAT(S32),
+	FORMAT(U32),
+	FORMAT(FLOAT),
+	FORMAT(FLOAT64),
+	FORMAT(IEC958_SUBFRAME),
+};
+
 static const char *snd_pcm_format_descriptions[] = {
 	FORMATD(S8, "Signed 8 bit"), 
 	FORMATD(U8, "Unsigned 8 bit"),
@@ -1581,6 +1593,10 @@ snd_pcm_format_t snd_pcm_format_value(const char* name)
 	for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 		if (snd_pcm_format_names[format] &&
 		    strcasecmp(name, snd_pcm_format_names[format]) == 0) {
+			return format;
+		}
+		if (snd_pcm_format_aliases[format] &&
+		    strcasecmp(name, snd_pcm_format_aliases[format]) == 0) {
 			return format;
 		}
 	}
