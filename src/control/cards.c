@@ -28,7 +28,7 @@
 #include <sys/ioctl.h>
 #include "asoundlib.h"
 
-#define SND_FILE_CONTROL	"/dev/sndcontrol%i"
+#define SND_FILE_CONTROL	"/dev/snd/control%i"
 
 int snd_cards( void )
 {
