@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <sys/uio.h>
-#include <asm/system.h>
 
 #define _snd_pcm_access_mask _snd_mask
 #define _snd_pcm_format_mask _snd_mask

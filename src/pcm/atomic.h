@@ -18,7 +18,7 @@
  *
  */
 
-#include <asm/system.h>
+#include "iatomic.h"
 
 /* Max number of times we must spin on a spinlock calling sched_yield().
    After MAX_SPIN_COUNT iterations, we put the calling thread to sleep. */
