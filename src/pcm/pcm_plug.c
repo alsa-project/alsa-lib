@@ -297,26 +297,28 @@ static int snd_pcm_plug_hw_refine1(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	same_rate = (rate_min == rate_max && 
 		     rate_min == srate_min &&
 		     rate_min == srate_max);
-	same_channels = (channels_min == channels_max && 
-			 channels_min == schannels_min &&
-			 channels_min == schannels_max);
-	same_format = (mask_single(format_mask) && 
-		       mask_eq(format_mask, sformat_mask));
 	if (same_rate)
 		links |= (SND_PCM_HW_PARBIT_RATE |
 			  SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
 			  SND_PCM_HW_PARBIT_BUFFER_SIZE);
-	if (same_channels) {
+	same_channels = (channels_min == channels_max && 
+			 channels_min == schannels_min &&
+			 channels_min == schannels_max);
+	if (same_channels)
 		links |= SND_PCM_HW_PARBIT_CHANNELS;
-		if (same_format)
-			links |= (SND_PCM_HW_PARBIT_FRAME_BITS |
-				  SND_PCM_HW_PARBIT_FRAGMENT_BYTES |
-				  SND_PCM_HW_PARBIT_BUFFER_BYTES);
-	}
-	if (same_format)
+	same_format = (mask_single(format_mask) && 
+		       mask_eq(format_mask, sformat_mask));
+	if (same_format) {
 		links |= (SND_PCM_HW_PARBIT_FORMAT |
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
+		if (same_channels) {
+			links |= SND_PCM_HW_PARBIT_FRAME_BITS;
+			if (same_rate) 
+				links |= (SND_PCM_HW_PARBIT_FRAGMENT_BYTES |
+					  SND_PCM_HW_PARBIT_BUFFER_BYTES);
+		}
+	}
 
 	if (same_rate && same_channels && same_format) {
 		const mask_t *access_mask = snd_pcm_hw_params_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
