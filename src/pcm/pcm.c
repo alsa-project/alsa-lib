@@ -3418,7 +3418,7 @@ int snd_pcm_hw_params_set_channels_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val target channels count, returned chosen channels count
- * \return 0 otherwise a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space is empty
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_channels_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
@@ -3598,7 +3598,7 @@ int snd_pcm_hw_params_set_rate_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target rate / returned approximate set rate
- * \return 0 otherwise a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
@@ -3787,7 +3787,7 @@ int snd_pcm_hw_params_set_period_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target period duration in us / returned chosen approximate target period duration
- * \return 0 otherwise a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
@@ -3999,7 +3999,7 @@ int snd_pcm_hw_params_set_period_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target period size in frames / returned chosen approximate target period size
- * \return 0 otherwise a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
@@ -4210,7 +4210,7 @@ int snd_pcm_hw_params_set_periods_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target periods per buffer / returned chosen approximate target periods per buffer
- * \return 0 otherwise a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
@@ -4410,7 +4410,7 @@ int snd_pcm_hw_params_set_buffer_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target buffer duration in us / returned chosen approximate target buffer duration
- * \return 0 otherwise a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
@@ -4619,7 +4619,7 @@ int snd_pcm_hw_params_set_buffer_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target buffer size in frames / returned chosen approximate target buffer size in frames
- * \return 0 otherwise a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
@@ -4813,7 +4813,7 @@ int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target tick duration in us / returned chosen approximate target tick duration in us
- * \return 0 otherwise a negative error code if configuration space would become empty
+ * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
