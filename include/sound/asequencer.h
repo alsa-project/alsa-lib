@@ -1,6 +1,6 @@
 /*
  *  Main header file for the ALSA sequencer
- *  Copyright (c) 1998-1999 by Frank van de Pol <fvdpol@home.nl>
+ *  Copyright (c) 1998-1999 by Frank van de Pol <fvdpol@coil.demon.nl>
  *            (c) 1998-1999 by Jaroslav Kysela <perex@suse.cz>
  *
  *
