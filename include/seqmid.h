@@ -49,6 +49,16 @@ extern "C" {
 	memset(ev, 0, sizeof(snd_seq_event_t))
 
 /**
+ * \brief set the tag for given event
+ * \param ev event record
+ * \param tag event tag
+ *
+ * This macro sets the tag to the given event record.
+ */
+#define snd_seq_ev_set_tag(ev,t) \
+	((ev)->tag = (t))
+
+/**
  * \brief set the explicit destination
  * \param ev event record
  * \param c destination client id
