@@ -2055,7 +2055,9 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
  * \brief Update #snd_config rereading (if needed) files specified in
  * environment variable ALSA_CONFIG_PATH. If it's not set the default value is
  * "/usr/share/alsa/alsa.conf".
- * \return 0 if no action is needed, 1 if tree has been rebuilt otherwise a negative error code
+ * \return non-negative value on success, otherwise a negative error code
+ * \retval 0 no action is needed
+ * \retval 1 tree has been rebuild
  *
  * Warning: If config tree is reread all the string pointer and config 
  * node handle previously obtained from this tree become invalid
