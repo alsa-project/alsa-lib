@@ -161,7 +161,7 @@ void mix_areas1(unsigned int size,
 		/*
 		 * while (size-- > 0) {
 		 */
-		"\tcmp $0, %%edx\n"
+		"\tcmp $0, %0\n"
 		"jz 6f\n"
 
 		"\t.p2align 4,,15\n"
@@ -282,7 +282,7 @@ void mix_areas1_mmx(unsigned int size,
 		/*
 		 * while (size-- > 0) {
 		 */
-		"\tcmp $0, %%edx\n"
+		"\tcmp $0, %0\n"
 		"\tjz 6f\n"
 
 		"\t.p2align 4,,15\n"
