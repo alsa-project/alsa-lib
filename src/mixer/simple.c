@@ -739,10 +739,12 @@ int snd_mixer_simple_build(snd_mixer_t *handle)
 		"Synth Tone Control - Bass",
 		"Synth Tone Control - Treble",
 		"PCM",
+		"Surround",
 		"Synth",
 		"FM",
 		"Wave",
 		"Music",
+		"DSP",
 		"Line",
 		"CD",
 		"Mic",
@@ -750,8 +752,11 @@ int snd_mixer_simple_build(snd_mixer_t *handle)
 		"Phone",
 		"PC Speaker",
 		"Aux",
+		"Mono",
+		"Mono Output",
 		"Playback",
 		"Capture",
+		"Capture Boost",
 		NULL
 	};
 	char **input = inputs;
