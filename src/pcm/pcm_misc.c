@@ -228,7 +228,7 @@ const char *snd_pcm_get_format_name(int format)
 	return formats[format];
 }
 
-static int linear_formats[4][2][2] = {
+static int linear_formats[4*2*2] = {
 	SND_PCM_SFMT_S8,
 	SND_PCM_SFMT_U8,
 	SND_PCM_SFMT_S8,
@@ -265,5 +265,5 @@ int snd_pcm_build_linear_format(int width, int unsignd, int big_endian)
 	default:
 		return -1;
 	}
-	return linear_formats[width][!!unsignd][!!big_endian];
+	return ((int(*)[2][2])linear_formats)[width][!!unsignd][!!big_endian];
 }
