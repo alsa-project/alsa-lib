@@ -23,6 +23,8 @@
  *
  */
 
+#include <stdint.h>
+
 /*
  * ---- FX8010 ----
  */
@@ -285,7 +287,7 @@ typedef struct {
 	char name[128];
 
 	unsigned long gpr_valid[0x200/(sizeof(unsigned long)*8)]; /* bitmask of valid initializers */
-	unsigned int gpr_map[0x200];	  /* initializers */
+	uint32_t *gpr_map;		  /* initializers */
 
 	unsigned int gpr_add_control_count; /* count of GPR controls to add/replace */
 	emu10k1_fx8010_control_gpr_t *gpr_add_controls; /* GPR controls to add/replace */
@@ -298,11 +300,11 @@ typedef struct {
 	emu10k1_fx8010_control_gpr_t *gpr_list_controls; /* listed GPR controls */
 
 	unsigned long tram_valid[0x100/(sizeof(unsigned long)*8)]; /* bitmask of valid initializers */
-	unsigned int tram_data_map[0x100]; /* data initializers */
-	unsigned int tram_addr_map[0x100]; /* map initializers */
+	uint32_t *tram_data_map;	/* data initializers */
+	uint32_t *tram_addr_map;	/* map initializers */
 
 	unsigned long code_valid[1024/(sizeof(unsigned long)*8)];  /* bitmask of valid instructions */
-	unsigned int code[1024][2];	  /* one instruction - 64 bits */
+	uint32_t *code;			/* one instruction - 64 bits */
 } emu10k1_fx8010_code_t;
 
 typedef struct {
