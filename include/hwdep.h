@@ -63,7 +63,10 @@ typedef enum _snd_hwdep_iface {
 	SND_HWDEP_IFACE_VX,		/**< Digigram VX cards */
 	SND_HWDEP_IFACE_MIXART,		/**< Digigram miXart cards */
 	SND_HWDEP_IFACE_USX2Y,		/**< Tascam US122, US224 & US428 usb */
-	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_USX2Y  /**< last know hwdep interface */
+	SNDRV_HWDEP_IFACE_EMUX_WAVETABLE, /* EmuX wavetable */
+	SNDRV_HWDEP_IFACE_BLUETOOTH,	/* Bluetooth audio */
+                
+	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_BLUETOOTH  /**< last know hwdep interface */
 } snd_hwdep_iface_t;
 
 /** open for reading */
