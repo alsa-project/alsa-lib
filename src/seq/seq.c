@@ -2468,9 +2468,9 @@ ssize_t snd_seq_event_length(snd_seq_event_t *ev)
  * \return the number of remaining events or a negative error code
  *
  * An event is once expanded on the output buffer.
- * output buffer may be flushed if it becomes full.
+ * The output buffer will be drained automatically if it becomes full.
  *
- * If events remain unprocessed on output buffer before flush,
+ * If events remain unprocessed on output buffer before drained,
  * the size of total byte data on output buffer is returned.
  * If the output buffer is empty, this returns zero.
  */
@@ -2489,10 +2489,12 @@ int snd_seq_event_output(snd_seq_t *seq, snd_seq_event_t *ev)
 }
 
 /**
- * \brief output an event onto the lib buffer without flushing buffer
+ * \brief output an event onto the lib buffer without draining buffer
  * \param seq sequencer handle
  * \param ev event ot be output
- * \return the number of remaining events. \c -EAGAIN if the buffer becomes full.
+ * \return the byte size of remaining events. \c -EAGAIN if the buffer becomes full.
+ *
+ * This function doesn't drain buffer unlike snd_seq_event_output().
  */
 int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
 {
@@ -2541,7 +2543,12 @@ static int alloc_tmpbuf(snd_seq_t *seq, size_t len)
  * \brief output an event directly to the sequencer NOT through output buffer
  * \param seq sequencer handle
  * \param ev event to be output
- * \return the number of remaining events or a negative error code
+ * \return the byte size sent to sequencer or a negative error code
+ *
+ * This function sends an event to the sequencer directly not through the
+ * output buffer.  When the event is a variable length event, a temporary
+ * buffer is allocated inside alsa-lib and the data is copied there before
+ * actually sent.
  */
 int snd_seq_event_output_direct(snd_seq_t *seq, snd_seq_event_t *ev)
 {
@@ -2566,7 +2573,7 @@ int snd_seq_event_output_direct(snd_seq_t *seq, snd_seq_event_t *ev)
 /**
  * \brief return the size of pending events on output buffer
  * \param seq sequencer handle
- * \return the number of pending events
+ * \return the byte size of total of pending events
  */
 int snd_seq_event_output_pending(snd_seq_t *seq)
 {
@@ -2577,15 +2584,21 @@ int snd_seq_event_output_pending(snd_seq_t *seq)
 /**
  * \brief drain output buffer to sequencer
  * \param seq sequencer handle
+ * \return 0 when all events are drained and sent to sequencer.
+ *         When events still remain on the buffer, the byte size of remaining
+ *         events are returned.  On error a negative error code is returned.
  */
 int snd_seq_drain_output(snd_seq_t *seq)
 {
-	ssize_t result;
+	ssize_t result, processed = 0;
 	assert(seq);
 	while (seq->obufused > 0) {
 		result = seq->ops->write(seq, seq->obuf, seq->obufused);
-		if (result < 0)
+		if (result < 0) {
+			if (result == -EAGAIN && processed)
+				return seq->obufused;
 			return result;
+		}
 		if ((size_t)result < seq->obufused)
 			memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
 		seq->obufused -= result;
@@ -2690,7 +2703,7 @@ static int snd_seq_event_retrieve_buffer(snd_seq_t *seq, snd_seq_event_t **retp)
  * lost.
  * Once this error is returned, the input FIFO is cleared automatically.
  *
- * Function returns the number of remaining event sizes on the input buffer
+ * Function returns the byte size of remaining events on the input buffer
  * if an event is successfully received.
  * Application can determine from the returned value whether to call
  * input once more or not.
@@ -2728,15 +2741,15 @@ static int snd_seq_event_input_feed(snd_seq_t *seq, int timeout)
 }
 
 /**
- * \brief check events in input queue
+ * \brief check events in input buffer
+ * \return the byte size of remaining input events on input buffer.
  *
- * Returns the number of remaining input events.
  * If events remain on the input buffer of user-space, function returns
- * the number of events on it.
+ * the total byte size of events on it.
  * If fetch_sequencer argument is non-zero,
- * this function checks the presence of events on sequencer FIFO via
- * select syscall.  When events exist, they are
- * transferred to the input buffer, and the number of received events are returned.
+ * this function checks the presence of events on sequencer FIFO
+ * When events exist, they are transferred to the input buffer,
+ * and the number of received events are returned.
  * If fetch_sequencer argument is zero and
  * no events remain on the input buffer, function simplly returns zero.
  */
@@ -2759,7 +2772,7 @@ int snd_seq_event_input_pending(snd_seq_t *seq, int fetch_sequencer)
  * \param seq sequencer handle
  *
  * Removes all events on user-space output buffer.
- * Unlike snd_seq_drain_output(0, this function doesn't remove
+ * Unlike snd_seq_drain_output(), this function doesn't remove
  * events on output memory pool of sequencer.
  */
 int snd_seq_drop_output_buffer(snd_seq_t *seq)
