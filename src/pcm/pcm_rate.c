@@ -42,7 +42,7 @@ const char *_snd_module_pcm_rate = "";
 
 typedef struct {
 	int init;
-	int16_t sample;
+	int16_t old_sample, new_sample;
 	int sum;
 	unsigned int pos;
 } snd_pcm_rate_state_t;
@@ -117,7 +117,8 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 		const char *src;
 		char *dst;
 		int src_step, dst_step;
-		int16_t old_sample = states->sample;
+		int16_t old_sample = states->old_sample;
+		int16_t new_sample = states->new_sample;
 		unsigned int pos = states->pos;
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
@@ -126,27 +127,36 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 		src_frames1 = 0;
 		dst_frames1 = 0;
 		if (states->init) {
-			old_sample = initial_sample(src, getidx);
+			new_sample = initial_sample(src, getidx);
+			src_frames1++;
 			states->init = 0;
 		}
 		while (dst_frames1 < dst_frames) {
 			if (pos >= get_threshold) {
-				int16_t new_sample;
 				if (src_frames1 == src_frames)
 					break;
+				old_sample = new_sample;
 				pos -= get_threshold;
 				goto *get;
 #define GET16_END after_get
 #include "plugin_ops.h"
 #undef GET16_END
 			after_get:
+				new_sample = sample;
 				src += src_step;
 				src_frames1++;
-				new_sample = sample;
-				sample = (old_sample * (DIV - pos) + new_sample * pos) / DIV;
-				old_sample = new_sample;
-			} else
-				sample = old_sample;
+#if 1 /* fast-change interpolation */
+      /* this interpolation gives us better results especially for low-rate sources */
+				// sample = (((int)old_sample * (DIV - pos)) + ((int)new_sample * pos)) / DIV;
+				sample = ((int)old_sample + (int)new_sample) / 2;
+			} else {
+				sample = new_sample;
+			}
+#else /* linear interpolation */
+      /* in some cases, a high-band filter is required to remove high noises */
+			}
+			sample = (((int)old_sample * (DIV - pos)) + ((int)new_sample * pos)) / DIV;
+#endif
 			goto *put;
 #define PUT16_END after_put
 #include "plugin_ops.h"
@@ -156,7 +166,8 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 			dst_frames1++;
 			pos += DIV;
 		}
-		states->sample = old_sample;
+		states->old_sample = old_sample;
+		states->new_sample = new_sample;
 		states->pos = pos;
 		states++;
 	}
@@ -447,7 +458,8 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 	unsigned int k;
 	for (k = 0; k < pcm->channels; ++k) {
 		rate->states[k].sum = 0;
-		rate->states[k].sample = 0;
+		rate->states[k].old_sample = 0;
+		rate->states[k].new_sample = 0;
 		rate->states[k].pos = 0;
 		rate->states[k].init = 0;
 	}
