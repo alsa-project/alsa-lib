@@ -383,12 +383,11 @@ int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 
 		if (! seq)
 			return -EINVAL;
-		*p = 0;
 		if (len <= 0)
 			return -EINVAL;
 		cinfo.client = -1;
 		while (snd_seq_query_next_client(seq, &cinfo) >= 0) {
-			if (! strncmp(cinfo.name, arg, len)) {
+			if (! strncmp(arg, cinfo.name, len)) {
 				addr->client = cinfo.client;
 				return 0;
 			}
