@@ -88,12 +88,14 @@ static void snd_pcm_share_interrupt(snd_pcm_share_slave_t *slave)
 			else {
 				if (pcm->mode & SND_PCM_ASYNC)
 					kill(share->async_pid, share->async_sig);
+				share->hw_ptr = *slave->pcm->hw_ptr;
 				ready = 0;
 			}
 			break;
 		case SND_PCM_STATE_RUNNING:
 			if (pcm->mode & SND_PCM_ASYNC)
 				kill(share->async_pid, share->async_sig);
+			share->hw_ptr = *slave->pcm->hw_ptr;
 			ready = (snd_pcm_mmap_avail(pcm) >= pcm->setup.avail_min);
 			break;
 		default:
@@ -154,6 +156,7 @@ static void snd_pcm_share_stop(snd_pcm_t *pcm, int state)
 	slave->running_count--;
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
 		snd_pcm_avail_update(slave->pcm);
+		share->hw_ptr = *slave->pcm->hw_ptr;
 		snd_pcm_areas_copy(pcm->running_areas, 0,
 				   pcm->stopped_areas, 0,
 				   pcm->setup.format.channels, pcm->setup.buffer_size,
@@ -189,12 +192,14 @@ static void snd_pcm_share_slave_forward(snd_pcm_share_slave_t *slave)
 		snd_pcm_t *pcm = share->pcm;
 		switch (share->state) {
 		case SND_PCM_STATE_RUNNING:
+			share->hw_ptr = *slave->pcm->hw_ptr;
 			break;
 		case SND_PCM_STATE_DRAINING:
 		{
 			size_t a, offset;
 			if (pcm->stream != SND_PCM_STREAM_PLAYBACK)
 				continue;
+			share->hw_ptr = *slave->pcm->hw_ptr;
 			a = snd_pcm_mmap_avail(pcm);
 			frames = a - share->draining_silence;
 			offset = snd_pcm_mmap_offset(pcm);
@@ -600,11 +605,11 @@ static ssize_t _snd_pcm_share_mmap_forward(snd_pcm_t *pcm, size_t size)
 			ret = snd_pcm_rewind(slave->pcm, frames);
 			if (ret < 0)
 				return ret;
-			size += ret;
 		}
 	}
 	snd_pcm_mmap_appl_forward(pcm, size);
-	snd_pcm_share_slave_forward(share->slave);
+	if (share->state == SND_PCM_STATE_RUNNING)
+		snd_pcm_share_slave_forward(share->slave);
 	return size;
 }
 
@@ -650,6 +655,7 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 	share->state = SND_PCM_STATE_RUNNING;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		size_t hw_avail = snd_pcm_mmap_playback_hw_avail(pcm);
+		size_t xfer = 0;
 		if (hw_avail == 0) {
 			err = -EPIPE;
 			goto _end;
@@ -666,11 +672,19 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 		assert(share->hw_ptr == 0);
 		share->hw_ptr = *slave->pcm->hw_ptr;
 		share->appl_ptr = *slave->pcm->appl_ptr;
-		snd_pcm_areas_copy(pcm->stopped_areas, 0,
-				   pcm->running_areas, snd_pcm_mmap_offset(pcm),
-				   pcm->setup.format.channels, hw_avail,
-				   pcm->setup.format.sfmt);
-		_snd_pcm_share_mmap_forward(pcm, pcm->setup.buffer_size);
+		while (xfer < hw_avail) {
+			size_t frames = hw_avail - xfer;
+			size_t offset = snd_pcm_mmap_offset(pcm);
+			size_t cont = pcm->setup.buffer_size - offset;
+			if (cont < frames)
+				frames = cont;
+			snd_pcm_areas_copy(pcm->stopped_areas, xfer,
+					   pcm->running_areas, offset,
+					   pcm->setup.format.channels, frames,
+					   pcm->setup.format.sfmt);
+			xfer += frames;
+		}
+		_snd_pcm_share_mmap_forward(pcm, hw_avail);
 	}
 	if (slave->running_count == 0) {
 		err = snd_pcm_start(slave->pcm);
@@ -895,12 +909,6 @@ static int snd_pcm_share_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
 	return 0;
 }
 		
-int snd_pcm_share_poll_descriptor(snd_pcm_t *pcm)
-{
-	snd_pcm_share_t *share = pcm->private;
-	return share->client_socket;
-}
-
 static void snd_pcm_share_dump(snd_pcm_t *pcm, FILE *fp)
 {
 	snd_pcm_share_t *share = pcm->private;
