@@ -35,7 +35,7 @@
 #ifndef DOC_HIDDEN
 typedef struct _snd_output_ops {
 	int (*close)(snd_output_t *output);
-	int (*printf)(snd_output_t *output, const char *format, va_list args);
+	int (*print)(snd_output_t *output, const char *format, va_list args);
 	int (*puts)(snd_output_t *output, const char *str);
 	int (*putch)(snd_output_t *output, int c);
 	int (*flush)(snd_output_t *output);
@@ -72,7 +72,7 @@ int snd_output_printf(snd_output_t *output, const char *format, ...)
 	int result;
 	va_list args;
 	va_start(args, format);
-	result = output->ops->printf(output, format, args);
+	result = output->ops->print(output, format, args);
 	va_end(args);
 	return result;
 }
@@ -124,7 +124,7 @@ static int snd_output_stdio_close(snd_output_t *output ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static int snd_output_stdio_printf(snd_output_t *output, const char *format, va_list args)
+static int snd_output_stdio_print(snd_output_t *output, const char *format, va_list args)
 {
 	snd_output_stdio_t *stdio = output->private_data;
 	return vfprintf(stdio->fp, format, args);
@@ -150,7 +150,7 @@ static int snd_output_stdio_flush(snd_output_t *output)
 
 static snd_output_ops_t snd_output_stdio_ops = {
 	close: snd_output_stdio_close,
-	printf: snd_output_stdio_printf,
+	print: snd_output_stdio_print,
 	puts: snd_output_stdio_puts,
 	putch: snd_output_stdio_putc,
 	flush: snd_output_stdio_flush,
@@ -242,7 +242,7 @@ static int snd_output_buffer_need(snd_output_t *output, size_t size)
 	return buffer->alloc - buffer->size;
 }
 
-static int snd_output_buffer_printf(snd_output_t *output, const char *format, va_list args)
+static int snd_output_buffer_print(snd_output_t *output, const char *format, va_list args)
 {
 	snd_output_buffer_t *buffer = output->private_data;
 	size_t size = 256;
@@ -298,7 +298,7 @@ static int snd_output_buffer_flush(snd_output_t *output ATTRIBUTE_UNUSED)
 
 static snd_output_ops_t snd_output_buffer_ops = {
 	close: snd_output_buffer_close,
-	printf: snd_output_buffer_printf,
+	print: snd_output_buffer_print,
 	puts: snd_output_buffer_puts,
 	putch: snd_output_buffer_putc,
 	flush: snd_output_buffer_flush,

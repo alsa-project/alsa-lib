@@ -36,7 +36,7 @@
 
 typedef struct _snd_input_ops {
 	int (*close)(snd_input_t *input);
-	int (*scanf)(snd_input_t *input, const char *format, va_list args);
+	int (*scan)(snd_input_t *input, const char *format, va_list args);
 	char *(*gets)(snd_input_t *input, char *str, size_t size);
 	int (*getch)(snd_input_t *input);
 	int (*ungetch)(snd_input_t *input, int c);
@@ -73,7 +73,7 @@ int snd_input_scanf(snd_input_t *input, const char *format, ...)
 	int result;
 	va_list args;
 	va_start(args, format);
-	result = input->ops->scanf(input, format, args);
+	result = input->ops->scan(input, format, args);
 	va_end(args);
 	return result;
 }
@@ -126,7 +126,7 @@ static int snd_input_stdio_close(snd_input_t *input ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static int snd_input_stdio_scanf(snd_input_t *input, const char *format, va_list args)
+static int snd_input_stdio_scan(snd_input_t *input, const char *format, va_list args)
 {
 	snd_input_stdio_t *stdio = input->private_data;
 	extern int vfscanf(FILE *, const char *, va_list);
@@ -153,7 +153,7 @@ static int snd_input_stdio_ungetc(snd_input_t *input, int c)
 
 static snd_input_ops_t snd_input_stdio_ops = {
 	close: snd_input_stdio_close,
-	scanf: snd_input_stdio_scanf,
+	scan: snd_input_stdio_scan,
 	gets: snd_input_stdio_gets,
 	getch: snd_input_stdio_getc,
 	ungetch: snd_input_stdio_ungetc,
@@ -226,7 +226,7 @@ static int snd_input_buffer_close(snd_input_t *input)
 	return 0;
 }
 
-static int snd_input_buffer_scanf(snd_input_t *input, const char *format, va_list args)
+static int snd_input_buffer_scan(snd_input_t *input, const char *format, va_list args)
 {
 	snd_input_buffer_t *buffer = input->private_data;
 	extern int vsscanf(const char *, const char *, va_list);
@@ -275,7 +275,7 @@ static int snd_input_buffer_ungetc(snd_input_t *input, int c)
 
 static snd_input_ops_t snd_input_buffer_ops = {
 	close: snd_input_buffer_close,
-	scanf: snd_input_buffer_scanf,
+	scan: snd_input_buffer_scan,
 	gets: snd_input_buffer_gets,
 	getch: snd_input_buffer_getc,
 	ungetch: snd_input_buffer_ungetc,

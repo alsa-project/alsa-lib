@@ -934,11 +934,10 @@ static int server(const char *sockname, int port)
 
 static void usage(void)
 {
-	fprintf(stderr, "\
-Usage: %s [OPTIONS] server
-
---help			help
-", command);
+	fprintf(stderr,
+		"Usage: %s [OPTIONS] server\n"
+		"--help			help\n",
+		command);
 }
 
 int main(int argc, char **argv)

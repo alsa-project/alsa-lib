@@ -1722,6 +1722,7 @@ static int parse_id(const char **ptr)
 		case '\0':
 			return 0;
 		default:
+			break;
 		}
 		(*ptr)++;
 	}
