@@ -45,7 +45,8 @@ const char *_snd_module_pcm_rate = "";
 #ifndef DOC_HIDDEN
 
 /* LINEAR_DIV needs to be large enough to handle resampling from 192000 -> 8000 */
-#define LINEAR_DIV (1<<19)
+#define LINEAR_DIV_SHIFT 19
+#define LINEAR_DIV (1<<LINEAR_DIV_SHIFT)
 
 enum rate_type {
 	RATE_TYPE_LINEAR,		/* linear interpolation */
@@ -206,9 +207,12 @@ static void snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
 		const char *src;
 		char *dst;
 		int src_step, dst_step;
+		int16_t old_sample = 0;
+		int16_t new_sample = 0;
+		int old_weight, new_weight;
 		sum = states->u.linear.sum;
 		//int16_t old_sample = states->u.linear.old_sample;
-		pos = LINEAR_DIV/2; /* Start at 0.5 */
+		pos = LINEAR_DIV - get_increment; /* Force first sample to be copied */
 		states->u.linear.init = 0;
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
@@ -223,11 +227,15 @@ static void snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
 #include "plugin_ops.h"
 #undef GET16_END
 		after_get:
+			new_sample = sample;
 			src += src_step;
 			src_frames1++;
 			pos += get_increment;
 			if (pos >= LINEAR_DIV) {
 				pos -= LINEAR_DIV;
+				old_weight = (pos << (32 - LINEAR_DIV_SHIFT)) / (get_increment >> (LINEAR_DIV_SHIFT - 16));
+				new_weight = 0x10000 - old_weight;
+				sample = (old_sample * old_weight + new_sample * new_weight) >> 16;
 				goto *put;
 #define PUT16_END after_put
 #include "plugin_ops.h"
@@ -237,6 +245,7 @@ static void snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
 				dst_frames1++;
 				assert(dst_frames1 <= dst_frames);
 			}
+			old_sample = new_sample;
 		}
 
 		states->u.linear.sum = sum;
