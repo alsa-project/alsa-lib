@@ -75,11 +75,11 @@ int snd_card_name(const char *string)
 	void *handle;
 	struct snd_ctl_hw_info info;
 
+	if (!string)
+		return -EINVAL;
 	bitmask = snd_cards_mask();
 	if (!bitmask)
 		return -ENODEV;
-	if (!string)
-		return -EINVAL;
 	if ((isdigit(*string) && *(string + 1) == 0) ||
 	    (isdigit(*string) && isdigit(*(string + 1)) && *(string + 2) == 0)) {
 		sscanf(string, "%i", &card);

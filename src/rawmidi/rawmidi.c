@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_RAWMIDI	"/dev/snd/midi%i%i"
-#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
+#define SND_RAWMIDI_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
 
 typedef struct {
 	int card;
@@ -53,7 +53,7 @@ int snd_rawmidi_open(void **handle, int card, int device, int mode)
 		close(fd);
 		return -errno;
 	}
-	if (SND_PROTOCOL_UNCOMPATIBLE(ver, SND_PCM_VERSION_MAX)) {
+	if (SND_PROTOCOL_UNCOMPATIBLE(ver, SND_RAWMIDI_VERSION_MAX)) {
 		close(fd);
 		return -SND_ERROR_UNCOMPATIBLE_VERSION;
 	}
@@ -116,7 +116,7 @@ int snd_rawmidi_info(void *handle, snd_rawmidi_info_t * info)
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !info)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_INFO, info) < 0)
 		return -errno;
@@ -143,7 +143,7 @@ int snd_rawmidi_output_switch(void *handle, const char *switch_id)
 	int idx, switches, err;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !switch_id)
 		return -EINVAL;
 	/* bellow implementation isn't optimized for speed */
 	/* info about switches should be cached in the snd_mixer_t structure */
@@ -163,8 +163,9 @@ int snd_rawmidi_output_switch_read(void *handle, int switchn, snd_rawmidi_switch
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !data || switchn < 0)
 		return -EINVAL;
+	bzero(data, sizeof(snd_rawmidi_switch_t));
 	data->switchn = switchn;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OSWITCH_READ, data) < 0)
 		return -errno;
@@ -176,7 +177,7 @@ int snd_rawmidi_output_switch_write(void *handle, int switchn, snd_rawmidi_switc
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !data || switchn < 0)
 		return -EINVAL;
 	data->switchn = switchn;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OSWITCH_WRITE, data) < 0)
@@ -204,7 +205,7 @@ int snd_rawmidi_input_switch(void *handle, const char *switch_id)
 	int idx, switches, err;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !switch_id)
 		return -EINVAL;
 	/* bellow implementation isn't optimized for speed */
 	/* info about switches should be cached in the snd_mixer_t structure */
@@ -224,8 +225,9 @@ int snd_rawmidi_input_switch_read(void *handle, int switchn, snd_rawmidi_switch_
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !data || switchn < 0)
 		return -EINVAL;
+	bzero(data, sizeof(snd_rawmidi_switch_t));
 	data->switchn = switchn;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_ISWITCH_READ, data) < 0)
 		return -errno;
@@ -237,7 +239,7 @@ int snd_rawmidi_input_switch_write(void *handle, int switchn, snd_rawmidi_switch
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !data || switchn < 0)
 		return -EINVAL;
 	data->switchn = switchn;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_ISWITCH_WRITE, data) < 0)
@@ -250,7 +252,7 @@ int snd_rawmidi_output_params(void *handle, snd_rawmidi_output_params_t * params
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !params)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OUTPUT_PARAMS, params) < 0)
 		return -errno;
@@ -262,7 +264,7 @@ int snd_rawmidi_input_params(void *handle, snd_rawmidi_input_params_t * params)
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !params)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_INPUT_PARAMS, params) < 0)
 		return -errno;
@@ -274,7 +276,7 @@ int snd_rawmidi_output_status(void *handle, snd_rawmidi_output_status_t * status
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !status)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OUTPUT_STATUS, status) < 0)
 		return -errno;
@@ -286,7 +288,7 @@ int snd_rawmidi_input_status(void *handle, snd_rawmidi_input_status_t * status)
 	snd_rawmidi_t *rmidi;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || !status)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_INPUT_STATUS, status) < 0)
 		return -errno;
@@ -335,7 +337,7 @@ ssize_t snd_rawmidi_write(void *handle, const void *buffer, size_t size)
 	ssize_t result;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
 	result = write(rmidi->fd, buffer, size);
 	if (result < 0)
@@ -349,7 +351,7 @@ ssize_t snd_rawmidi_read(void *handle, void *buffer, size_t size)
 	ssize_t result;
 
 	rmidi = (snd_rawmidi_t *) handle;
-	if (!rmidi)
+	if (!rmidi || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
 	result = read(rmidi->fd, buffer, size);
 	if (result < 0)

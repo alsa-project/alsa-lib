@@ -110,7 +110,7 @@ int snd_mixer_info(void *handle, snd_mixer_info_t * info)
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !info)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_INFO, info) < 0)
 		return -errno;
@@ -136,7 +136,7 @@ int snd_mixer_channel(void *handle, const char *channel_id)
 	int idx, channels, err;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !channel_id)
 		return -EINVAL;
 	/* bellow implementation isn't optimized for speed */
 	/* info about channels should be cached in the snd_mixer_t structure */
@@ -156,7 +156,7 @@ int snd_mixer_channel_info(void *handle, int channel, snd_mixer_channel_info_t *
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !info || channel < 0)
 		return -EINVAL;
 	info->channel = channel;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_INFO, info) < 0)
@@ -169,8 +169,9 @@ int snd_mixer_channel_read(void *handle, int channel, snd_mixer_channel_t * data
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !data || channel < 0)
 		return -EINVAL;
+	bzero(data, sizeof(snd_mixer_channel_t));
 	data->channel = channel;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_READ, data) < 0)
 		return -errno;
@@ -182,7 +183,7 @@ int snd_mixer_channel_write(void *handle, int channel, snd_mixer_channel_t * dat
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !data)
 		return -EINVAL;
 	data->channel = channel;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_WRITE, data) < 0)
@@ -195,8 +196,9 @@ int snd_mixer_channel_record_read(void *handle, int channel, snd_mixer_channel_t
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !data || channel < 0)
 		return -EINVAL;
+	bzero(data, sizeof(snd_mixer_channel_t));
 	data->channel = channel;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_RREAD, data) < 0)
 		return -errno;
@@ -208,7 +210,7 @@ int snd_mixer_channel_record_write(void *handle, int channel, snd_mixer_channel_
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !data || channel < 0)
 		return -EINVAL;
 	data->channel = channel;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_RWRITE, data) < 0)
@@ -236,7 +238,7 @@ int snd_mixer_switch(void *handle, const char *switch_id)
 	int idx, switches, err;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !switch_id)
 		return -EINVAL;
 	/* bellow implementation isn't optimized for speed */
 	/* info about switches should be cached in the snd_mixer_t structure */
@@ -256,8 +258,9 @@ int snd_mixer_switch_read(void *handle, int switchn, snd_mixer_switch_t * data)
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !data || switchn < 0)
 		return -EINVAL;
+	bzero(data, sizeof(snd_mixer_switch_t));
 	data->switchn = switchn;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_READ, data) < 0)
 		return -errno;
@@ -269,7 +272,7 @@ int snd_mixer_switch_write(void *handle, int switchn, snd_mixer_switch_t * data)
 	snd_mixer_t *mixer;
 
 	mixer = (snd_mixer_t *) handle;
-	if (!mixer)
+	if (!mixer || !data || switchn < 0)
 		return -EINVAL;
 	data->switchn = switchn;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_SWITCH_WRITE, data) < 0)
