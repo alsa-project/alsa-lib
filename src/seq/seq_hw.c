@@ -530,12 +530,13 @@ int _snd_seq_hw_open(snd_seq_t **handlep, char *name, snd_config_t *conf,
 {
 	snd_config_iterator_t i;
 	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(n->id, "type") == 0)
+		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(n->id, "streams") == 0)
+		if (strcmp(id, "streams") == 0)
 			continue;
 		return -EINVAL;
 	}

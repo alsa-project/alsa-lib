@@ -19,10 +19,28 @@
  *
  */
 
+#define _snd_config_iterator list_head
+
 #include <stdarg.h>
 #include <sys/stat.h>
 #include "local.h"
 #include "list.h"
+
+struct _snd_config {
+	char *id;
+	snd_config_type_t type;
+	union {
+		long integer;
+		char *string;
+		double real;
+		struct {
+			struct list_head fields;
+			int join;
+		} compound;
+	} u;
+	struct list_head list;
+	snd_config_t *father;
+};
 
 #define SYS_ASOUNDRC "/etc/asound.conf"
 #define USR_ASOUNDRC ".asoundrc"
@@ -319,6 +337,16 @@ static int get_string(char **string, int id, input_t *input)
 	}
 }
 
+snd_config_type_t snd_config_get_type(snd_config_t *config)
+{
+	return config->type;
+}
+
+char *snd_config_get_id(snd_config_t *config)
+{
+	return config->id;
+}
+
 static int _snd_config_make(snd_config_t **config, char *id,
 			    snd_config_type_t type)
 {
@@ -357,7 +385,7 @@ static int _snd_config_search(snd_config_t *config, const char *id, int len, snd
 {
 	snd_config_iterator_t i;
 	snd_config_foreach(i, config) {
-		snd_config_t *n = snd_config_entry(i);
+		snd_config_t *n = snd_config_iterator_entry(i);
 		if (len < 0) {
 			if (strcmp(n->id, id) == 0) {
 				*result = n;
@@ -637,7 +665,7 @@ int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 	snd_config_iterator_t i;
 	assert(father && leaf);
 	snd_config_foreach(i, father) {
-		snd_config_t *n = snd_config_entry(i);
+		snd_config_t *n = snd_config_iterator_entry(i);
 		if (strcmp(leaf->id, n->id) == 0)
 			return -EEXIST;
 	}
@@ -657,7 +685,7 @@ int snd_config_delete(snd_config_t *config)
 		i = config->u.compound.fields.next;
 		while (i != &config->u.compound.fields) {
 			struct list_head *nexti = i->next;
-			snd_config_t *leaf = snd_config_entry(i);
+			snd_config_t *leaf = snd_config_iterator_entry(i);
 			err = snd_config_delete(leaf);
 			if (err < 0)
 				return err;
@@ -691,22 +719,22 @@ int snd_config_make(snd_config_t **config, const char *id,
 	return _snd_config_make(config, id1, type);
 }
 
-int snd_config_integer_make(snd_config_t **config, const char *id)
+int snd_config_make_integer(snd_config_t **config, const char *id)
 {
 	return snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER);
 }
 
-int snd_config_real_make(snd_config_t **config, const char *id)
+int snd_config_make_real(snd_config_t **config, const char *id)
 {
 	return snd_config_make(config, id, SND_CONFIG_TYPE_REAL);
 }
 
-int snd_config_string_make(snd_config_t **config, const char *id)
+int snd_config_make_string(snd_config_t **config, const char *id)
 {
 	return snd_config_make(config, id, SND_CONFIG_TYPE_STRING);
 }
 
-int snd_config_compound_make(snd_config_t **config, const char *id,
+int snd_config_make_compound(snd_config_t **config, const char *id,
 			     int join)
 {
 	int err;
@@ -717,7 +745,7 @@ int snd_config_compound_make(snd_config_t **config, const char *id,
 	return 0;
 }
 
-int snd_config_integer_set(snd_config_t *config, long value)
+int snd_config_set_integer(snd_config_t *config, long value)
 {
 	assert(config);
 	if (config->type != SND_CONFIG_TYPE_INTEGER)
@@ -726,7 +754,7 @@ int snd_config_integer_set(snd_config_t *config, long value)
 	return 0;
 }
 
-int snd_config_real_set(snd_config_t *config, double value)
+int snd_config_set_real(snd_config_t *config, double value)
 {
 	assert(config);
 	if (config->type != SND_CONFIG_TYPE_REAL)
@@ -735,7 +763,7 @@ int snd_config_real_set(snd_config_t *config, double value)
 	return 0;
 }
 
-int snd_config_string_set(snd_config_t *config, const char *value)
+int snd_config_set_string(snd_config_t *config, const char *value)
 {
 	assert(config);
 	if (config->type != SND_CONFIG_TYPE_STRING)
@@ -748,7 +776,7 @@ int snd_config_string_set(snd_config_t *config, const char *value)
 	return 0;
 }
 
-int snd_config_integer_get(snd_config_t *config, long *ptr)
+int snd_config_get_integer(snd_config_t *config, long *ptr)
 {
 	assert(config && ptr);
 	if (config->type != SND_CONFIG_TYPE_INTEGER)
@@ -757,7 +785,7 @@ int snd_config_integer_get(snd_config_t *config, long *ptr)
 	return 0;
 }
 
-int snd_config_real_get(snd_config_t *config, double *ptr)
+int snd_config_get_real(snd_config_t *config, double *ptr)
 {
 	assert(config && ptr);
 	if (config->type != SND_CONFIG_TYPE_REAL)
@@ -766,7 +794,7 @@ int snd_config_real_get(snd_config_t *config, double *ptr)
 	return 0;
 }
 
-int snd_config_string_get(snd_config_t *config, const char **ptr)
+int snd_config_get_string(snd_config_t *config, const char **ptr)
 {
 	assert(config && ptr);
 	if (config->type != SND_CONFIG_TYPE_STRING)
@@ -905,7 +933,7 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 	snd_config_iterator_t i;
 	assert(config && out);
 	snd_config_foreach(i, config) {
-		snd_config_t *n = snd_config_entry(i);
+		snd_config_t *n = snd_config_iterator_entry(i);
 		if (n->type == SND_CONFIG_TYPE_COMPOUND &&
 		    n->u.compound.join) {
 			err = _snd_config_save_leaves(n, out, level, joins + 1);
@@ -1052,3 +1080,26 @@ int snd_config_update()
 	}
 	return 0;
 }
+
+snd_config_iterator_t snd_config_iterator_first(snd_config_t *node)
+{
+	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
+	return node->u.compound.fields.next;
+}
+
+snd_config_iterator_t snd_config_iterator_next(snd_config_iterator_t iterator)
+{
+	return iterator->next;
+}
+
+snd_config_iterator_t snd_config_iterator_end(snd_config_t *node)
+{
+	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
+	return &node->u.compound.fields;
+}
+
+snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator)
+{
+	return list_entry(iterator, snd_config_t, list);
+}
+

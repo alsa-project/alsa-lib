@@ -278,17 +278,18 @@ int _snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, snd_config_t *conf
 	const char *str;
 	int err;
 	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(n->id, "type") == 0)
+		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(n->id, "streams") == 0)
+		if (strcmp(id, "streams") == 0)
 			continue;
-		if (strcmp(n->id, "card") == 0) {
-			err = snd_config_integer_get(n, &card);
+		if (strcmp(id, "card") == 0) {
+			err = snd_config_get_integer(n, &card);
 			if (err < 0) {
-				err = snd_config_string_get(n, &str);
+				err = snd_config_get_string(n, &str);
 				if (err < 0)
 					return -EINVAL;
 				card = snd_card_get_index(str);
@@ -297,14 +298,14 @@ int _snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, snd_config_t *conf
 			}
 			continue;
 		}
-		if (strcmp(n->id, "device") == 0) {
-			err = snd_config_integer_get(n, &device);
+		if (strcmp(id, "device") == 0) {
+			err = snd_config_get_integer(n, &device);
 			if (err < 0)
 				return err;
 			continue;
 		}
-		if (strcmp(n->id, "subdevice") == 0) {
-			err = snd_config_integer_get(n, &subdevice);
+		if (strcmp(id, "subdevice") == 0) {
+			err = snd_config_get_integer(n, &subdevice);
 			if (err < 0)
 				return err;
 			continue;

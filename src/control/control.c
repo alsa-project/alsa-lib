@@ -197,27 +197,28 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 		ERR("Unknown control %s", name);
 		return -ENOENT;
 	}
-	if (snd_config_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND)
+	if (snd_config_get_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND)
 		return -EINVAL;
 	err = snd_config_search(ctl_conf, "type", &conf);
 	if (err < 0)
 		return err;
-	err = snd_config_string_get(conf, &str);
+	err = snd_config_get_string(conf, &str);
 	if (err < 0)
 		return err;
 	err = snd_config_searchv(snd_config, &type_conf, "ctltype", str, 0);
 	snd_config_foreach(i, type_conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(n->id, "lib") == 0) {
-			err = snd_config_string_get(n, &lib);
+		if (strcmp(id, "lib") == 0) {
+			err = snd_config_get_string(n, &lib);
 			if (err < 0)
 				return -EINVAL;
 			continue;
 		}
-		if (strcmp(n->id, "open") == 0) {
-			err = snd_config_string_get(n, &open);
+		if (strcmp(id, "open") == 0) {
+			err = snd_config_get_string(n, &open);
 			if (err < 0)
 				return -EINVAL;
 			continue;

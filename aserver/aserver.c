@@ -970,34 +970,35 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(n->id, "host") == 0) {
-			err = snd_config_string_get(n, &host);
+		if (strcmp(id, "host") == 0) {
+			err = snd_config_get_string(n, &host);
 			if (err < 0) {
-				ERROR("Invalid type for %s", n->id);
+				ERROR("Invalid type for %s", id);
 				return 1;
 			}
 			continue;
 		}
-		if (strcmp(n->id, "socket") == 0) {
-			err = snd_config_string_get(n, &socket);
+		if (strcmp(id, "socket") == 0) {
+			err = snd_config_get_string(n, &socket);
 			if (err < 0) {
-				ERROR("Invalid type for %s", n->id);
+				ERROR("Invalid type for %s", id);
 				return 1;
 			}
 			continue;
 		}
-		if (strcmp(n->id, "port") == 0) {
-			err = snd_config_integer_get(n, &port);
+		if (strcmp(id, "port") == 0) {
+			err = snd_config_get_integer(n, &port);
 			if (err < 0) {
-				ERROR("Invalid type for %s", n->id);
+				ERROR("Invalid type for %s", id);
 				return 1;
 			}
 			continue;
 		}
-		ERROR("Unknown field %s", n->id);
+		ERROR("Unknown field %s", id);
 		return 1;
 	}
 	if (!host) {

@@ -597,30 +597,31 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	unsigned int slaves_count = 0;
 	unsigned int channels_count = 0;
 	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(n->id, "type") == 0)
+		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(n->id, "stream") == 0)
+		if (strcmp(id, "stream") == 0)
 			continue;
-		if (strcmp(n->id, "slave") == 0) {
-			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				ERR("Invalid type for %s", n->id);
+		if (strcmp(id, "slave") == 0) {
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				ERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			slave = n;
 			continue;
 		}
-		if (strcmp(n->id, "binding") == 0) {
-			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				ERR("Invalid type for %s", n->id);
+		if (strcmp(id, "binding") == 0) {
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				ERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			binding = n;
 			continue;
 		}
-		ERR("Unknown field %s", n->id);
+		ERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!slave) {
@@ -637,11 +638,12 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	snd_config_foreach(i, binding) {
 		int cchannel = -1;
 		char *p;
-		snd_config_t *m = snd_config_entry(i);
+		snd_config_t *m = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(m);
 		errno = 0;
-		cchannel = strtol(m->id, &p, 10);
+		cchannel = strtol(id, &p, 10);
 		if (errno || *p || cchannel < 0) {
-			ERR("Invalid channel number: %s", m->id);
+			ERR("Invalid channel number: %s", id);
 			return -EINVAL;
 		}
 		if ((unsigned)cchannel >= channels_count)
@@ -662,31 +664,32 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		channels_sidx[idx] = -1;
 	idx = 0;
 	snd_config_foreach(i, slave) {
-		snd_config_t *m = snd_config_entry(i);
+		snd_config_t *m = snd_config_iterator_entry(i);
 		const char *name = NULL;
 		long channels = -1;
-		slaves_id[idx] = m->id;
+		slaves_id[idx] = snd_config_get_id(m);
 		snd_config_foreach(j, m) {
-			snd_config_t *n = snd_config_entry(j);
-			if (strcmp(n->id, "comment") == 0)
+			snd_config_t *n = snd_config_iterator_entry(j);
+			const char *id = snd_config_get_id(n);
+			if (strcmp(id, "comment") == 0)
 				continue;
-			if (strcmp(n->id, "name") == 0) {
-				err = snd_config_string_get(n, &name);
+			if (strcmp(id, "name") == 0) {
+				err = snd_config_get_string(n, &name);
 				if (err < 0) {
-					ERR("Invalid type for %s", n->id);
+					ERR("Invalid type for %s", id);
 					goto _free;
 				}
 				continue;
 			}
-			if (strcmp(n->id, "channels") == 0) {
-				err = snd_config_integer_get(n, &channels);
+			if (strcmp(id, "channels") == 0) {
+				err = snd_config_get_integer(n, &channels);
 				if (err < 0) {
-					ERR("Invalid type for %s", n->id);
+					ERR("Invalid type for %s", id);
 					goto _free;
 				}
 				continue;
 			}
-			ERR("Unknown field %s", n->id);
+			ERR("Unknown field %s", id);
 			err = -EINVAL;
 			goto _free;
 		}
@@ -706,30 +709,32 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	}
 
 	snd_config_foreach(i, binding) {
-		snd_config_t *m = snd_config_entry(i);
+		snd_config_t *m = snd_config_iterator_entry(i);
 		long cchannel = -1;
 		long schannel = -1;
 		int slave = -1;
 		long val;
 		const char *str;
-		cchannel = strtol(m->id, 0, 10);
+		const char *id = snd_config_get_id(m);
+		cchannel = strtol(id, 0, 10);
 		if (cchannel < 0) {
-			ERR("Invalid channel number: %s", m->id);
+			ERR("Invalid channel number: %s", id);
 			err = -EINVAL;
 			goto _free;
 		}
 		snd_config_foreach(j, m) {
-			snd_config_t *n = snd_config_entry(j);
-			if (strcmp(n->id, "comment") == 0)
+			snd_config_t *n = snd_config_iterator_entry(j);
+			const char *id = snd_config_get_id(n);
+			if (strcmp(id, "comment") == 0)
 				continue;
-			if (strcmp(n->id, "sidx") == 0) {
+			if (strcmp(id, "sidx") == 0) {
 				char buf[32];
 				unsigned int k;
-				err = snd_config_string_get(n, &str);
+				err = snd_config_get_string(n, &str);
 				if (err < 0) {
-					err = snd_config_integer_get(n, &val);
+					err = snd_config_get_integer(n, &val);
 					if (err < 0) {
-						ERR("Invalid value for %s", n->id);
+						ERR("Invalid value for %s", id);
 						goto _free;
 					}
 					sprintf(buf, "%ld", val);
@@ -741,15 +746,15 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 				}
 				continue;
 			}
-			if (strcmp(n->id, "schannel") == 0) {
-				err = snd_config_integer_get(n, &schannel);
+			if (strcmp(id, "schannel") == 0) {
+				err = snd_config_get_integer(n, &schannel);
 				if (err < 0) {
-					ERR("Invalid type for %s", n->id);
+					ERR("Invalid type for %s", id);
 					goto _free;
 				}
 				continue;
 			}
-			ERR("Unknown field %s", n->id);
+			ERR("Unknown field %s", id);
 			err = -EINVAL;
 			goto _free;
 		}

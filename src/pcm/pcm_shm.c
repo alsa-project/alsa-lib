@@ -730,30 +730,31 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	int local;
 	struct hostent *h;
 	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(n->id, "type") == 0)
+		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(n->id, "stream") == 0)
+		if (strcmp(id, "stream") == 0)
 			continue;
-		if (strcmp(n->id, "server") == 0) {
-			err = snd_config_string_get(n, &server);
+		if (strcmp(id, "server") == 0) {
+			err = snd_config_get_string(n, &server);
 			if (err < 0) {
-				ERR("Invalid type for %s", n->id);
+				ERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		if (strcmp(n->id, "sname") == 0) {
-			err = snd_config_string_get(n, &sname);
+		if (strcmp(id, "sname") == 0) {
+			err = snd_config_get_string(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for %s", n->id);
+				ERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		ERR("Unknown field %s", n->id);
+		ERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (!sname) {
@@ -770,34 +771,35 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		return -EINVAL;
 	}
 	snd_config_foreach(i, sconfig) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(n->id, "host") == 0) {
-			err = snd_config_string_get(n, &host);
+		if (strcmp(id, "host") == 0) {
+			err = snd_config_get_string(n, &host);
 			if (err < 0) {
-				ERR("Invalid type for %s", n->id);
+				ERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		if (strcmp(n->id, "socket") == 0) {
-			err = snd_config_string_get(n, &socket);
+		if (strcmp(id, "socket") == 0) {
+			err = snd_config_get_string(n, &socket);
 			if (err < 0) {
-				ERR("Invalid type for %s", n->id);
+				ERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		if (strcmp(n->id, "port") == 0) {
-			err = snd_config_integer_get(n, &port);
+		if (strcmp(id, "port") == 0) {
+			err = snd_config_get_integer(n, &port);
 			if (err < 0) {
-				ERR("Invalid type for %s", n->id);
+				ERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		ERR("Unknown field %s", n->id);
+		ERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 

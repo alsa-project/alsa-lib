@@ -187,15 +187,16 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 		ERR("Unknown RAWMIDI %s", name);
 		return -ENOENT;
 	}
-	if (snd_config_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
+	if (snd_config_get_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		ERR("Invalid type for RAWMIDI %s definition", name);
 		return -EINVAL;
 	}
 	err = snd_config_search(rawmidi_conf, "streams", &conf);
 	if (err >= 0) {
-		err = snd_config_string_get(conf, &str);
+		const char *id = snd_config_get_id(conf);
+		err = snd_config_get_string(conf, &str);
 		if (err < 0) {
-			ERR("Invalid type for %s", conf->id);
+			ERR("Invalid type for %s", id);
 			return err;
 		}
 		if (strcmp(str, "output") == 0) {
@@ -208,7 +209,7 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 			if (streams != SND_RAWMIDI_OPEN_DUPLEX)
 				return -EINVAL;
 		} else {
-			ERR("Invalid value for %s", conf->id);
+			ERR("Invalid value for %s", id);
 			return -EINVAL;
 		}
 	}
@@ -217,9 +218,9 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 		ERR("type is not defined");
 		return err;
 	}
-	err = snd_config_string_get(conf, &str);
+	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		ERR("Invalid type for %s", conf->id);
+		ERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
 	err = snd_config_searchv(snd_config, &type_conf, "rawmiditype", str, 0);
@@ -228,25 +229,26 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 		return err;
 	}
 	snd_config_foreach(i, type_conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(n->id, "lib") == 0) {
-			err = snd_config_string_get(n, &lib);
+		if (strcmp(id, "lib") == 0) {
+			err = snd_config_get_string(n, &lib);
 			if (err < 0) {
-				ERR("Invalid type for %s", n->id);
+				ERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		if (strcmp(n->id, "open") == 0) {
-			err = snd_config_string_get(n, &open);
+		if (strcmp(id, "open") == 0) {
+			err = snd_config_get_string(n, &open);
 			if (err < 0) {
-				ERR("Invalid type for %s", n->id);
+				ERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			continue;
-			ERR("Unknown field %s", n->id);
+			ERR("Unknown field %s", id);
 			return -EINVAL;
 		}
 	}

@@ -681,46 +681,47 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	const char *str;
 	int err;
 	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(n->id, "type") == 0)
+		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(n->id, "stream") == 0)
+		if (strcmp(id, "stream") == 0)
 			continue;
-		if (strcmp(n->id, "card") == 0) {
-			err = snd_config_integer_get(n, &card);
+		if (strcmp(id, "card") == 0) {
+			err = snd_config_get_integer(n, &card);
 			if (err < 0) {
-				err = snd_config_string_get(n, &str);
+				err = snd_config_get_string(n, &str);
 				if (err < 0) {
-					ERR("Invalid type for %s", n->id);
+					ERR("Invalid type for %s", id);
 					return -EINVAL;
 				}
 				card = snd_card_get_index(str);
 				if (card < 0) {
-					ERR("Invalid value for %s", n->id);
+					ERR("Invalid value for %s", id);
 					return card;
 				}
 			}
 			continue;
 		}
-		if (strcmp(n->id, "device") == 0) {
-			err = snd_config_integer_get(n, &device);
+		if (strcmp(id, "device") == 0) {
+			err = snd_config_get_integer(n, &device);
 			if (err < 0) {
-				ERR("Invalid type for %s", n->id);
+				ERR("Invalid type for %s", id);
 				return err;
 			}
 			continue;
 		}
-		if (strcmp(n->id, "subdevice") == 0) {
-			err = snd_config_integer_get(n, &subdevice);
+		if (strcmp(id, "subdevice") == 0) {
+			err = snd_config_get_integer(n, &subdevice);
 			if (err < 0) {
-				ERR("Invalid type for %s", n->id);
+				ERR("Invalid type for %s", id);
 				return err;
 			}
 			continue;
 		}
-		ERR("Unknown field %s", n->id);
+		ERR("Unknown field %s", id);
 		return -EINVAL;
 	}
 	if (card < 0) {
