@@ -35,10 +35,12 @@ static void MIX_AREAS1(unsigned int size,
 		       volatile signed int *sum, size_t dst_step,
 		       size_t src_step, size_t sum_step)
 {
+	unsigned long long old_rbx;
+
 	/*
-	 *  ESI - src
-	 *  EDI - dst
-	 *  EBX - sum
+	 *  RSI - src
+	 *  RDI - dst
+	 *  RBX - sum
 	 *  ECX - old sample
 	 *  EAX - sample / temporary
 	 *  EDX - temporary
@@ -46,9 +48,9 @@ static void MIX_AREAS1(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tpush %%rbx\n"
+		"\tmovq %%rbx, %7\n"
 		/*
-		 *  initialization, load ESI, EDI, EBX registers
+		 *  initialization, load RSI, RDI, RBX registers
 		 */
 		"\tmovq %1, %%rdi\n"
 		"\tmovq %2, %%rsi\n"
@@ -106,16 +108,17 @@ static void MIX_AREAS1(unsigned int size,
 		"\tadd %6, %%rbx\n"
 		"\tdecl %0\n"
 		"\tjnz 1b\n"
-		"\tjmp 6f\n"
 
 		"6:"
 		
 		"\temms\n"
-		"\tpop %%rbx\n"
+		"\tmovq %7, %%rbx\n"
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
-		: "rsi", "rdi", "edx", "ecx", "rbx", "eax"
+		: "m" (size), "m" (dst), "m" (src),
+		  "m" (sum), "m" (dst_step), "m" (src_step),
+		  "m" (sum_step), "m" (old_rbx)
+		: "rsi", "rdi", "edx", "ecx", "eax"
 	);
 }
 
@@ -127,10 +130,12 @@ static void MIX_AREAS2(unsigned int size,
 		       volatile signed int *sum, size_t dst_step,
 		       size_t src_step, size_t sum_step)
 {
+	unsigned long long old_rbx;
+
 	/*
-	 *  ESI - src
-	 *  EDI - dst
-	 *  EBX - sum
+	 *  RSI - src
+	 *  RDI - dst
+	 *  RBX - sum
 	 *  ECX - old sample
 	 *  EAX - sample / temporary
 	 *  EDX - temporary
@@ -138,7 +143,7 @@ static void MIX_AREAS2(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tpush %%rbx\n"
+		"\tmovq %%rbx, %7\n"
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -220,14 +225,15 @@ static void MIX_AREAS2(unsigned int size,
 		"\tadd %6, %%rbx\n"
 		"\tdecl %0\n"
 		"\tjnz 1b\n"
-		// "\tjmp 6f\n"
 		
 		"6:"
-		"\tpop %%rbx\n"
+		"\tmovq %7, %%rbx\n"
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
-		: "rsi", "rdi", "edx", "ecx", "rbx", "eax"
+		: "m" (size), "m" (dst), "m" (src),
+		  "m" (sum), "m" (dst_step), "m" (src_step),
+		  "m" (sum_step), "m" (old_rbx)
+		: "rsi", "rdi", "edx", "ecx", "eax"
 	);
 }
 
