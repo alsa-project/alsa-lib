@@ -74,3 +74,14 @@ If your machine does not have FP unit, you should use '--with-softfloat'
 option. This option disables usage of float numbers in PCM route plugin.
 ALSA could then leave much more CPU cycles for your applications, but you 
 could still need some floating point emulator.
+
+Jack plugin
+-----------
+
+To build the jack pcm plugin, use this sequence:
+
+cd alsa-lib/src/pcm/ext
+make jack
+make jack-install
+
+The default directory for add-on modules is ${prefix}/lib/alsa-lib.
