@@ -116,9 +116,9 @@ int main(int argc,char** argv)
 			fprintf(stderr,"snd_rawmidi_open %d %d failed: %d\n",card_in,device_in,err);
 		}
 	}
-	if (node_in) {
+	if (node_in && (!node_out || strcmp(node_out,node_in))) {
 		fd_in = open(node_in,O_RDONLY);		
-		if (err) {
+		if (fd_in<0) {
 			fprintf(stderr,"open %s for input failed\n",node_in);
 		}	
 	}
@@ -131,18 +131,26 @@ int main(int argc,char** argv)
 			fprintf(stderr,"snd_rawmidi_open %d %d failed: %d\n",card_out,device_out,err);
 		}
 	}
-	if (node_out) {
+	if (node_out && (!node_in || strcmp(node_out,node_in))) {
 		fd_out = open(node_out,O_WRONLY);		
-		if (err) {
+		if (fd_out<0) {
 			fprintf(stderr,"open %s for output failed\n",node_out);
 		}	
 	}
 
+	if (node_in && node_out && strcmp(node_out,node_in)==0) {
+		fd_in = fd_out = open(node_out,O_RDWR);		
+		if (fd_out<0) {
+			fprintf(stderr,"open %s for input and output failed\n",node_out);
+		}		
+	}
+
+
+
 	if (!thru) {
 		if (handle_in || fd_in!=-1) {
-			if (verbose) {
-				fprintf(stderr,"Read midi in\n");
-			}
+			fprintf(stderr,"Read midi in\n");
+			fprintf(stderr,"Press ctrl-c to stop\n");
 		}
 
 		if (handle_in) {
@@ -165,9 +173,7 @@ int main(int argc,char** argv)
 		}
 
 		if (handle_out || fd_out!=-1) {
-			if (verbose) {
-				fprintf(stderr,"Writing note on / note off\n");
-			}
+			fprintf(stderr,"Writing note on / note off\n");
 		}
 
 		if (handle_out) {
