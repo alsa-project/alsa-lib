@@ -95,13 +95,13 @@ static int snd_pcm_plugin_side_voices(snd_pcm_plugin_t *plugin,
 		v->wanted = 0;
 		v->aptr = ptr;
 		if (format->interleave) {
-			v->addr = ptr;
-			v->first = voice * width;
-			v->step = format->voices * width;
+			v->area.addr = ptr;
+			v->area.first = voice * width;
+			v->area.step = format->voices * width;
 		} else {
-			v->addr = ptr + (voice * size);
-			v->first = 0;
-			v->step = width;
+			v->area.addr = ptr + (voice * size);
+			v->area.first = 0;
+			v->area.step = width;
 		}
 	}
 	return 0;
@@ -208,10 +208,8 @@ ssize_t snd_pcm_plugin_src_samples_to_size(snd_pcm_plugin_t *plugin, size_t samp
 	if (plugin == NULL)
 		return -EFAULT;
 	result = samples * plugin->src_format.voices * plugin->src_width;
-#if 0
 	if ((result % 8) != 0)
 		return -EINVAL;
-#endif
 	return result / 8;
 }
 
@@ -222,10 +220,8 @@ ssize_t snd_pcm_plugin_dst_samples_to_size(snd_pcm_plugin_t *plugin, size_t samp
 	if (plugin == NULL)
 		return -EFAULT;
 	result = samples * plugin->dst_format.voices * plugin->dst_width;
-#if 0
 	if ((result % 8) != 0)
 		return -EINVAL;
-#endif
 	return result / 8;
 }
 
@@ -238,10 +234,8 @@ ssize_t snd_pcm_plugin_src_size_to_samples(snd_pcm_plugin_t *plugin, size_t size
 		return -EFAULT;
 	result = size * 8;
 	tmp = plugin->src_format.voices * plugin->src_width;
-#if 0
 	if ((result % tmp) != 0)
 		return -EINVAL;
-#endif
 	return result / tmp;
 }
 
@@ -254,10 +248,8 @@ ssize_t snd_pcm_plugin_dst_size_to_samples(snd_pcm_plugin_t *plugin, size_t size
 		return -EFAULT;
 	result = size * 8;
 	tmp = plugin->dst_format.voices * plugin->dst_width;
-#if 0
 	if ((result % tmp) != 0)
 		return -EINVAL;
-#endif
 	return result / tmp;
 }
 
@@ -362,7 +354,7 @@ ssize_t snd_pcm_plug_client_size(snd_pcm_plugin_handle_t *handle, int channel, s
 		result = snd_pcm_plugin_src_size_to_samples(plugin, drv_size);
 		if (result < 0)
 			return result;
-		result = snd_pcm_plug_client_samples(handle, SND_PCM_CHANNEL_PLAYBACK, result);
+		result = snd_pcm_plug_client_samples(handle, SND_PCM_CHANNEL_CAPTURE, result);
 		if (result < 0)
 			return result;
 		plugin = snd_pcm_plug_last(handle, SND_PCM_CHANNEL_CAPTURE);
@@ -402,7 +394,7 @@ ssize_t snd_pcm_plug_slave_size(snd_pcm_plugin_handle_t *handle, int channel, si
 		result = snd_pcm_plugin_dst_size_to_samples(plugin, clt_size);
 		if (result < 0)
 			return result;
-		result = snd_pcm_plug_slave_samples(handle, SND_PCM_CHANNEL_PLAYBACK, result);
+		result = snd_pcm_plug_slave_samples(handle, SND_PCM_CHANNEL_CAPTURE, result);
 		if (result < 0)
 			return result;
 		plugin = snd_pcm_plug_first(handle, SND_PCM_CHANNEL_CAPTURE);
@@ -849,9 +841,9 @@ ssize_t snd_pcm_plug_client_voices_buf(snd_pcm_plugin_handle_t *handle,
 			v->enabled = 1;
 			v->wanted = (channel == SND_PCM_CHANNEL_CAPTURE);
 			v->aptr = NULL;
-			v->addr = buf;
-			v->first = voice * width;
-			v->step = nvoices * width;
+			v->area.addr = buf;
+			v->area.first = voice * width;
+			v->area.step = nvoices * width;
 		}
 		return count;
 	} else
@@ -893,9 +885,9 @@ int snd_pcm_plug_client_voices_iovec(snd_pcm_plugin_handle_t *handle,
 			v->enabled = 1;
 			v->wanted = (channel == SND_PCM_CHANNEL_CAPTURE);
 			v->aptr = NULL;
-			v->addr = vector->iov_base;
-			v->first = voice * width;
-			v->step = nvoices * width;
+			v->area.addr = vector->iov_base;
+			v->area.first = voice * width;
+			v->area.step = nvoices * width;
 		}
 		return vector->iov_len;
 	} else {
@@ -911,9 +903,9 @@ int snd_pcm_plug_client_voices_iovec(snd_pcm_plugin_handle_t *handle,
 			v->enabled = (vector->iov_base != NULL);
 			v->wanted = (v->enabled && (channel == SND_PCM_CHANNEL_CAPTURE));
 			v->aptr = NULL;
-			v->addr = vector->iov_base;
-			v->first = 0;
-			v->step = width;
+			v->area.addr = vector->iov_base;
+			v->area.first = 0;
+			v->area.step = width;
 		}
 		return len * nvoices;
 	}
@@ -1067,72 +1059,6 @@ static int snd_pcm_plug_capture_disable_useless_voices(snd_pcm_plugin_handle_t *
 	return 0;
 }
 
-void snd_pcm_plugin_silence_voice(snd_pcm_plugin_t *plugin,
-				  const snd_pcm_plugin_voice_t *dst_voice,
-				  size_t samples)
-{
-	char *dst = dst_voice->addr + dst_voice->first / 8;
-	int dst_step = dst_voice->step / 8;
-	switch (plugin->dst_width) {
-	case 4: {
-		u_int8_t silence = snd_pcm_format_silence_64(plugin->dst_format.format);
-		u_int8_t s0 = silence & 0x0f;
-		u_int8_t s1 = silence & 0xf0;
-		int dstbit = dst_voice->first % 8;
-		int dstbit_step = dst_voice->step % 8;
-		while (samples-- > 0) {
-			if (dstbit) {
-				*dst &= 0x0f;
-				*dst |= s1;
-			} else {
-				*dst &= 0xf0;
-				*dst |= s0;
-			}
-			dst += dst_step;
-			dstbit += dstbit_step;
-			if (dstbit == 8) {
-				dst++;
-				dstbit = 0;
-			}
-		}
-		break;
-	}
-	case 8: {
-		u_int8_t silence = snd_pcm_format_silence_64(plugin->dst_format.format);
-		while (samples-- > 0) {
-			*dst = silence;
-			dst += dst_step;
-		}
-		break;
-	}
-	case 16: {
-		u_int16_t silence = snd_pcm_format_silence_64(plugin->dst_format.format);
-		while (samples-- > 0) {
-			*(u_int16_t*)dst = silence;
-			dst += dst_step;
-		}
-		break;
-	}
-	case 32: {
-		u_int32_t silence = snd_pcm_format_silence_64(plugin->dst_format.format);
-		while (samples-- > 0) {
-			*(u_int32_t*)dst = silence;
-			dst += dst_step;
-		}
-		break;
-	}
-	case 64: {
-		u_int64_t silence = snd_pcm_format_silence_64(plugin->dst_format.format);
-		while (samples-- > 0) {
-			*(u_int64_t*)dst = silence;
-			dst += dst_step;
-		}
-		break;
-	}
-	}
-}
-
-
 ssize_t snd_pcm_plug_write_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plugin_voice_t *src_voices, size_t size)
 {
 	snd_pcm_plugin_t *plugin, *next;
@@ -1232,4 +1158,269 @@ ssize_t snd_pcm_plug_read_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plug
 	}
 	snd_pcm_plug_buf_unlock(handle, SND_PCM_CHANNEL_CAPTURE, src_voices->aptr);
 	return snd_pcm_plugin_dst_samples_to_size(snd_pcm_plug_last(handle, SND_PCM_CHANNEL_CAPTURE), samples);
+}
+
+int snd_pcm_area_silence(const snd_pcm_voice_area_t *dst_area, size_t dst_offset,
+			  size_t samples, int format)
+{
+	/* FIXME: sub byte resolution and odd dst_offset */
+	char *dst;
+	unsigned int dst_step;
+	int width;
+	u_int64_t silence;
+	if (!dst_area->addr)
+		return 0;
+	dst = dst_area->addr + (dst_area->first + dst_area->step * dst_offset) / 8;
+	width = snd_pcm_format_physical_width(format);
+	silence = snd_pcm_format_silence_64(format);
+	if (dst_area->step == (unsigned int) width) {
+		size_t dwords = samples * width / 64;
+		samples -= dwords * 64 / width;
+		while (dwords-- > 0)
+			*((u_int64_t*)dst)++ = silence;
+		if (samples == 0)
+			return 0;
+	}
+	dst_step = dst_area->step / 8;
+	switch (width) {
+	case 4: {
+		u_int8_t s0 = silence & 0xf0;
+		u_int8_t s1 = silence & 0x0f;
+		int dstbit = dst_area->first % 8;
+		int dstbit_step = dst_area->step % 8;
+		while (samples-- > 0) {
+			if (dstbit) {
+				*dst &= 0xf0;
+				*dst |= s1;
+			} else {
+				*dst &= 0x0f;
+				*dst |= s0;
+			}
+			dst += dst_step;
+			dstbit += dstbit_step;
+			if (dstbit == 8) {
+				dst++;
+				dstbit = 0;
+			}
+		}
+		break;
+	}
+	case 8: {
+		u_int8_t sil = silence;
+		while (samples-- > 0) {
+			*dst = sil;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 16: {
+		u_int16_t sil = silence;
+		while (samples-- > 0) {
+			*(u_int16_t*)dst = sil;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 32: {
+		u_int32_t sil = silence;
+		while (samples-- > 0) {
+			*(u_int32_t*)dst = sil;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 64: {
+		while (samples-- > 0) {
+			*(u_int64_t*)dst = silence;
+			dst += dst_step;
+		}
+		break;
+	}
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+
+int snd_pcm_areas_silence(const snd_pcm_voice_area_t *dst_areas, size_t dst_offset,
+			  size_t vcount, size_t samples, int format)
+{
+	int width = snd_pcm_format_physical_width(format);
+	while (vcount > 0) {
+		void *addr = dst_areas->addr;
+		unsigned int step = dst_areas->step;
+		const snd_pcm_voice_area_t *begin = dst_areas;
+		int vc = vcount;
+		unsigned int v = 0;
+		int err;
+		while (1) {
+			vc--;
+			v++;
+			dst_areas++;
+			if (vc == 0 ||
+			    dst_areas->addr != addr ||
+			    dst_areas->step != step ||
+			    dst_areas->first != dst_areas[-1].first + width)
+				break;
+		}
+		if (v > 1 && v * width == step) {
+			/* Collapse the areas */
+			snd_pcm_voice_area_t d;
+			d.addr = begin->addr;
+			d.first = begin->first;
+			d.step = width;
+			err = snd_pcm_area_silence(&d, dst_offset * v, samples * v, format);
+			vcount -= v;
+		} else {
+			err = snd_pcm_area_silence(begin, dst_offset, samples, format);
+			dst_areas = begin + 1;
+			vcount--;
+		}
+		if (err < 0)
+			return err;
+	}
+	return 0;
+}
+
+
+int snd_pcm_area_copy(const snd_pcm_voice_area_t *src_area, size_t src_offset,
+		      const snd_pcm_voice_area_t *dst_area, size_t dst_offset,
+		      size_t samples, int format)
+{
+	/* FIXME: sub byte resolution and odd dst_offset */
+	char *src, *dst;
+	int width;
+	int src_step, dst_step;
+	src = src_area->addr + (src_area->first + src_area->step * src_offset) / 8;
+	if (!src_area->addr)
+		return snd_pcm_area_silence(dst_area, dst_offset, samples, format);
+	dst = dst_area->addr + (dst_area->first + dst_area->step * dst_offset) / 8;
+	if (!dst_area->addr)
+		return 0;
+	width = snd_pcm_format_physical_width(format);
+	if (src_area->step == (unsigned int) width &&
+	    dst_area->step == (unsigned int) width) {
+		size_t bytes = samples * width / 8;
+		samples -= bytes * 8 / width;
+		memcpy(dst, src, bytes);
+		if (samples == 0)
+			return 0;
+	}
+	src_step = src_area->step / 8;
+	dst_step = dst_area->step / 8;
+	switch (width) {
+	case 4: {
+		int srcbit = src_area->first % 8;
+		int srcbit_step = src_area->step % 8;
+		int dstbit = dst_area->first % 8;
+		int dstbit_step = dst_area->step % 8;
+		while (samples-- > 0) {
+			unsigned char srcval;
+			if (srcbit)
+				srcval = *src & 0x0f;
+			else
+				srcval = *src & 0xf0;
+			if (dstbit)
+				*dst &= 0xf0;
+			else
+				*dst &= 0x0f;
+			*dst |= srcval;
+			src += src_step;
+			srcbit += srcbit_step;
+			if (srcbit == 8) {
+				src++;
+				srcbit = 0;
+			}
+			dst += dst_step;
+			dstbit += dstbit_step;
+			if (dstbit == 8) {
+				dst++;
+				dstbit = 0;
+			}
+		}
+		break;
+	}
+	case 8: {
+		while (samples-- > 0) {
+			*dst = *src;
+			src += src_step;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 16: {
+		while (samples-- > 0) {
+			*(u_int16_t*)dst = *(u_int16_t*)src;
+			src += src_step;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 32: {
+		while (samples-- > 0) {
+			*(u_int32_t*)dst = *(u_int32_t*)src;
+			src += src_step;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 64: {
+		while (samples-- > 0) {
+			*(u_int64_t*)dst = *(u_int64_t*)src;
+			src += src_step;
+			dst += dst_step;
+		}
+		break;
+	}
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+
+int snd_pcm_areas_copy(const snd_pcm_voice_area_t *src_areas, size_t src_offset,
+		       const snd_pcm_voice_area_t *dst_areas, size_t dst_offset,
+		       size_t vcount, size_t samples, int format)
+{
+	int width = snd_pcm_format_physical_width(format);
+	while (vcount > 0) {
+		unsigned int step = src_areas->step;
+		void *src_addr = src_areas->addr;
+		const snd_pcm_voice_area_t *src_start = src_areas;
+		void *dst_addr = dst_areas->addr;
+		const snd_pcm_voice_area_t *dst_start = dst_areas;
+		int vc = vcount;
+		unsigned int v = 0;
+		while (dst_areas->step == step) {
+			vc--;
+			v++;
+			src_areas++;
+			dst_areas++;
+			if (vc == 0 ||
+			    src_areas->step != step ||
+			    src_areas->addr != src_addr ||
+			    dst_areas->addr != dst_addr ||
+			    src_areas->first != src_areas[-1].first + width ||
+			    dst_areas->first != dst_areas[-1].first + width)
+				break;
+		}
+		if (v > 1 && v * width == step) {
+			/* Collapse the areas */
+			snd_pcm_voice_area_t s, d;
+			s.addr = src_start->addr;
+			s.first = src_start->first;
+			s.step = width;
+			d.addr = dst_start->addr;
+			d.first = dst_start->first;
+			d.step = width;
+			snd_pcm_area_copy(&s, src_offset * v, &d, dst_offset * v, samples * v, format);
+			vcount -= v;
+		} else {
+			snd_pcm_area_copy(src_start, src_offset, dst_start, dst_offset, samples, format);
+			src_areas = src_start + 1;
+			dst_areas = dst_start + 1;
+			vcount--;
+		}
+	}
+	return 0;
 }
