@@ -32,13 +32,13 @@ typedef enum {
 typedef struct _snd_hdsp_peak_rms hdsp_peak_rms_t;
 
 struct _snd_hdsp_peak_rms {
-	unsigned int input_peaks[26];
-	unsigned int playback_peaks[26];
-	unsigned int output_peaks[28];
-	unsigned long long input_rms[26];
-	unsigned long long playback_rms[26];
+	u_int32_t input_peaks[26];
+	u_int32_t playback_peaks[26];
+	u_int32_t output_peaks[28];
+	u_int64_t input_rms[26];
+	u_int64_t playback_rms[26];
 	/* These are only used for H96xx cards */
-	unsigned long long output_rms[26];
+	u_int64_t output_rms[26];
 };
 
 #define SNDRV_HDSP_IOCTL_GET_PEAK_RMS _IOR('H', 0x40, hdsp_peak_rms_t)
