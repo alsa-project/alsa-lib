@@ -1005,27 +1005,10 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 				 const char *name, snd_pcm_stream_t stream, int mode)
 {
 	int err;
-	snd_config_t *pcm_conf, *conf;
+	snd_config_t *pcm_conf;
 	err = snd_config_search_definition(root, "pcm", name, &pcm_conf);
 	if (err < 0) {
 		SNDERR("Unknown PCM %s", name);
-		return err;
-	}
-	if (snd_config_search(pcm_conf, "refer", &conf) >= 0) {
-		snd_config_t *tmp_conf;
-		int conf_free_tmp;
-		char *refer_name = NULL;
-		err = snd_config_refer_load(root, conf, &refer_name, &tmp_conf, &conf_free_tmp);
-		snd_config_delete(pcm_conf);
-		if (err < 0) {
-			SNDERR("Refer load error for %s: %s", name, snd_strerror(err));
-			return err;
-		}
-		err = snd_pcm_open_noupdate(pcmp, tmp_conf, refer_name, stream, mode);
-		if (refer_name)
-			free(refer_name);
-		if (conf_free_tmp)
-			snd_config_delete(tmp_conf);
 		return err;
 	}
 	err = snd_pcm_open_conf(pcmp, name, root, pcm_conf, stream, mode);

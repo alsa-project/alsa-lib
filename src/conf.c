@@ -1863,13 +1863,17 @@ static int _snd_config_expand(snd_config_t *src,
 }
 
 static int evaluate_node(snd_config_t *father, snd_config_t *src,
-			 void *private_data, snd_config_t **_dst)
+			 void *private_data, snd_config_t **dst)
 {
 	snd_config_iterator_t i, next;
-	const char *lib = NULL, *func = NULL, *type = NULL;
+	const char *lib = NULL, *func = NULL;
 	int err;
+	char buf[64];
+	char *evaluate_name = NULL;
+	int (*evaluate_func)(snd_config_t **dst, snd_config_t *src, void *private_data);
+	void *h;
 
-	assert(father && src && _dst);
+	assert(father && src && dst);
 
 	snd_config_for_each(i, next, src) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1908,125 +1912,46 @@ static int evaluate_node(snd_config_t *father, snd_config_t *src,
 			if (func == NULL)
 				goto __error;
 			snd_config_delete(n);
-		} else if (!strcmp(id, "type")) {
-			if ((err = snd_config_get_string(n, &type)) < 0)
-				goto _invalid_field;
-			type = strdup(type);
-			if (type == NULL)
-				goto __error;
-			snd_config_delete(n);
 		}
 	}
 	
 	if (func == NULL) {
-		*_dst = NULL;
+		*dst = NULL;
 		return 0;
 	}
 
-	{
-		char buf[64];
-		snd_config_type_t t;
-		snd_config_t *dst = NULL;
-		char *evaluate_name = NULL;
-		int (*evaluate_func)(snd_config_t **dst, snd_config_t *src, void *private_data);
-		void *h;
-	
-		if (evaluate_name == NULL) {
-			snprintf(buf, sizeof(buf), "snd_func_%s", func);
-			buf[sizeof(buf)-1] = '\0';
-			evaluate_name = buf;
-		}
-	
-		h = dlopen(lib, RTLD_NOW);
-		if (!h) {
-			SNDERR("Cannot open shared library %s", lib);
-			err = -ENOENT;
-			goto __error;
-		}
-		evaluate_func = dlsym(h, evaluate_name);
-		if (!evaluate_func) {
-			dlclose(h);
-			SNDERR("symbol %s is not defined inside %s", evaluate_name, lib ? lib : ALSA_LIB);
-			err = -ENXIO;
-			goto __error;
-		}
-		err = evaluate_func(&dst, src, private_data);
-		dlclose(h);
-		if (err < 0) {
-			SNDERR("function %s returned error: %s", evaluate_name, snd_strerror(err));
-			goto __error;
-		}
-		if (type == NULL) {
-			t = SND_CONFIG_TYPE_STRING;
-		} else {
-			err = snd_config_get_type_ascii(type, &t);
-			if (err < 0) {
-				err = -EINVAL;
-			      __err:
-				snd_config_delete(dst);
-				goto __error;
-			}
-		}
-		if (t != snd_config_get_type(dst)) {
-			char *ptr;
-			snd_config_t *n;
-			if (t == SND_CONFIG_TYPE_COMPOUND) {
-				SNDERR("conversion to compound is not supported for field %s", snd_config_get_id(src));
-				err = -EINVAL;
-				goto __err;
-			}
-			err = snd_config_make(&n, snd_config_get_id(dst), t);
-			if (err < 0)
-				goto __err;
-			err = snd_config_get_ascii(dst, &ptr);
-			if (err < 0) {
-			      __err1:
-				snd_config_delete(n);
-				goto __err;
-			}
-			switch (t) {
-			case SND_CONFIG_TYPE_STRING:
-				n->u.string = ptr;
-				ptr = NULL;
-				err = 0;
-				break;
-			case SND_CONFIG_TYPE_INTEGER:
-				{
-					long v;
-					err = safe_strtol(ptr, &v);
-					if (err >= 0)
-						snd_config_set_integer(dst, v);
-				}
-				break;
-			case SND_CONFIG_TYPE_REAL:
-				{
-					double r;
-					err = safe_strtod(ptr, &r);
-					if (err >= 0)
-						snd_config_set_real(dst, r);
-				}
-				break;
-			default:
-				err = -EINVAL;
-			}
-			if (ptr)
-				free(ptr);
-			if (err < 0)
-				goto __err1;
-			snd_config_delete(dst);
-			dst = n;
-		}
-		*_dst = dst;
+	if (evaluate_name == NULL) {
+		snprintf(buf, sizeof(buf), "snd_func_%s", func);
+		buf[sizeof(buf) - 1] = '\0';
+		evaluate_name = buf;
 	}
 	
+	h = dlopen(lib, RTLD_NOW);
+	if (!h) {
+		SNDERR("Cannot open shared library %s", lib);
+		err = -ENOENT;
+		goto __error;
+	}
+	evaluate_func = dlsym(h, evaluate_name);
+	if (!evaluate_func) {
+		dlclose(h);
+		SNDERR("symbol %s is not defined inside %s", evaluate_name, lib ? lib : ALSA_LIB);
+		err = -ENXIO;
+		goto __error;
+	}
+	err = evaluate_func(dst, src, private_data);
+	dlclose(h);
+	if (err < 0) {
+		SNDERR("function %s returned error: %s", evaluate_name, snd_strerror(err));
+		goto __error;
+	}
 	err = 0;
+
       __error:
       	if (func)
       		free((void *)func);
       	if (lib)
       		free((void *)lib);
-      	if (type)
-      		free((void *)type);
 	return err;
 }
 
@@ -2509,10 +2434,7 @@ int snd_config_search_definition(snd_config_t *config,
 	err = snd_config_search_alias(config, base, key, &conf);
 	if (err < 0)
 		return err;
-	err = snd_config_expand(conf, args, NULL, result);
-	if (err < 0)
-		return err;
-	
+	return snd_config_expand(conf, args, NULL, result);
 }
 
 

@@ -207,98 +207,6 @@ int snd_config_string_replace(const char *src, char idchr,
 	return 0;
 }
 
-/**
- * \brief Redirect the configuration block to an another
- * \param root the root of all configurations
- * \param config redirect configuration
- * \param name the identifier of new configuration block
- * \param dst_config new configuration block
- * \param dst_dynamic new configuration block is dynamically allocated
- */
-int snd_config_refer_load(snd_config_t *root,
-			  snd_config_t *config,
-			  char **name,
-			  snd_config_t **dst_config,
-			  int *dst_dynamic)
-{
-	int err, dynamic;
-	snd_config_t *result, *c;
-	char *rname;
-
-	assert(config);
-	assert(name);
-	assert(dst_config);
-	assert(dst_dynamic);
-	if (snd_config_get_type(config) == SND_CONFIG_TYPE_STRING) {
-		const char *str;
-		snd_config_get_string(config, &str);
-		*name = strdup(str);
-		if (*name == NULL)
-			return -ENOMEM;
-		*dst_config = root;
-		*dst_dynamic = 0;
-		return 0;
-	}
-	if (snd_config_get_type(config) != SND_CONFIG_TYPE_COMPOUND)
-		return -EINVAL;
-	result = root;
-	dynamic = 0;
-	rname = NULL;
-	if (snd_config_search(config, "filename", &c) >= 0) {
-		snd_config_t *rconfig;
-		const char *filename;
-		snd_input_t *input;
-		err = snd_config_copy(&rconfig, root);
-		if (err < 0)
-			return err;
-		if (snd_config_get_type(c) == SND_CONFIG_TYPE_STRING) {
-			snd_config_get_string(c, &filename);
-		} else {
-			err = -EINVAL;
-		      __filename_error:
-			snd_config_delete(rconfig);
-			return err;
-		}
-		err = snd_input_stdio_open(&input, filename, "r");
-		if (err < 0) {
-			SNDERR("Unable to open filename %s: %s", filename, snd_strerror(err));
-			goto __filename_error;
-		}
-		err = snd_config_load(rconfig, input);
-		if (err < 0) {
-			snd_input_close(input);
-			goto __filename_error;
-		}
-		snd_input_close(input);
-		result = rconfig;
-		dynamic = 1;
-	}
-	if (snd_config_search(config, "name", &c) >= 0) {
-		const char *ptr;
-		if ((err = snd_config_get_string(c, &ptr)) < 0)
-			goto __error;
-		rname = strdup(ptr);
-		if (rname == NULL) {
-			err = -ENOMEM;
-			goto __error;
-		}
-	}
-	if (rname == NULL) {
-		err = -EINVAL;
-		goto __error;
-	}
-	*dst_config = result;
-	*dst_dynamic = dynamic;
-	*name = rname;
-	return 0;
-      __error:
-      	if (rname)
-      		free(rname);
-      	if (dynamic)
-      		snd_config_delete(result);
-      	return err;
-}
-
 /*
  *  Helper functions for the configuration file
  */
@@ -372,6 +280,34 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *src, void *private_data)
 	snd_config_delete(e);
 	return err;
 }
+
+int snd_func_igetenv(snd_config_t **dst, snd_config_t *src, void *private_data)
+{
+	snd_config_t *d;
+	const char *str;
+	int err;
+	long v;
+	err = snd_func_getenv(&d, src, private_data);
+	if (err < 0)
+		return err;
+	err = snd_config_get_string(d, &str);
+	if (err < 0)
+		goto _end;
+	err = safe_strtol(str, &v);
+	if (err < 0)
+		goto _end;
+	err = snd_config_make_integer(dst, snd_config_get_id(src));
+	if (err < 0)
+		goto _end;
+	snd_config_set_integer(*dst, v);
+	err = 0;
+
+ _end:
+	snd_config_delete(d);
+	return err;
+}
+	
+	
 
 int snd_func_concat(snd_config_t **dst, snd_config_t *src, void *private_data)
 {
@@ -627,5 +563,70 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data)
       	if (ctl)
       		snd_ctl_close(ctl);
 	snd_config_delete(e);
+	return err;
+}
+
+int snd_func_refer(snd_config_t **dst, snd_config_t *src, void *private_data)
+{
+	snd_config_t *n, *e;
+	snd_config_t *root = NULL;
+	const char *file = NULL, *name = NULL;
+	int err;
+	
+	err = snd_config_expand(src, NULL, private_data, &e);
+	if (err < 0)
+		return err;
+	err = snd_config_search(e, "file", &n);
+	if (err >= 0) {
+		err = snd_config_get_string(n, &file);
+		if (err < 0) {
+			SNDERR("file is not a string");
+			goto _end;
+		}
+	}
+	err = snd_config_search(e, "name", &n);
+	if (err >= 0) {
+		err = snd_config_get_string(n, &name);
+		if (err < 0) {
+			SNDERR("name is not a string");
+			goto _end;
+		}
+	}
+	if (!file && !name) {
+		err = -EINVAL;
+		SNDERR("neither file or name are specified");
+		goto _end;
+	}
+	if (!file)
+		root = snd_config;
+	else {
+		snd_input_t *input;
+		err = snd_config_top(&root);
+		if (err < 0)
+			goto _end;
+		err = snd_input_stdio_open(&input, file, "r");
+		if (err < 0) {
+			SNDERR("Unable to open file %s: %s", file, snd_strerror(err));
+			goto _end;
+		}
+		err = snd_config_load(root, input);
+		if (err < 0) {
+			snd_input_close(input);
+			goto _end;
+		}
+	}
+	if (!name) {
+		if (root == snd_config)
+			snd_config_copy(dst, root);
+		else
+			*dst = root;
+		err = 0;
+	} else
+		err = snd_config_search_definition(root, 0, name, dst);
+	if (err >= 0)
+		err = snd_config_set_id(*dst, snd_config_get_id(src));
+ _end:
+	if (root && root != snd_config)
+		snd_config_delete(root);
 	return err;
 }
