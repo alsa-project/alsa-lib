@@ -29,11 +29,21 @@
 #include <byteswap.h>
 #include <time.h>
 #include <pthread.h>
-#include <asm/atomic.h>
 #include <dlfcn.h>
 #include "list.h"
 #include "pcm_local.h"
 #include "pcm_plugin.h"
+
+#if defined(__sparc__) || defined __ia64__
+/* asm/atomic.h is unavailable on sparc and ia64 */
+#define atomic_t int
+#define atomic_read(x)	(*(x))
+#define atomic_dec(x)	((*(x))--)
+#define atomic_inc(x)	((*(x))++)
+#define atomic_set(x,i)	(*(x) = (i))
+#else
+#include <asm/atomic.h>
+#endif
 
 #ifndef DOC_HIDDEN
 #define FREQUENCY 50
