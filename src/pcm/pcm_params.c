@@ -868,12 +868,12 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 		else {
 			unsigned int k;
 			const char *(*f)(unsigned int k);
+			assert(var < sizeof(funcs) / sizeof(funcs[0]));
 			f = funcs[var];
+			assert(f);
 			for (k = 0; k <= MASK_MAX; ++k) {
 				if (mask_test(mask, k)) {
 					putc(' ', fp);
-					assert(var < sizeof(funcs) / sizeof(funcs[0]));
-					assert(f);
 					fputs(f(k), fp);
 				}
 			}
