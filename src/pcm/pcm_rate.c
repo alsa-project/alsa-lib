@@ -418,14 +418,20 @@ static ssize_t snd_pcm_rate_write_areas(snd_pcm_t *pcm,
 					pcm->channels,
 					rate->get_idx, rate->put_idx,
 					rate->pitch, rate->states);
-		err = snd_pcm_mmap_forward(slave, dst_frames);
-		if (err < 0)
-			break;
-		assert((size_t)err == dst_frames);
-		client_offset += src_frames;
-		client_xfer += src_frames;
-		snd_pcm_mmap_hw_forward(pcm, src_frames);
-		slave_xfer += dst_frames;
+		assert(src_frames || dst_frames);
+		if (dst_frames > 0) {
+			err = snd_pcm_mmap_forward(slave, dst_frames);
+			if (err < 0)
+				break;
+			assert((size_t)err == dst_frames);
+			slave_xfer += dst_frames;
+		}
+
+		if (src_frames > 0) {
+			client_offset += src_frames;
+			client_xfer += src_frames;
+			snd_pcm_mmap_hw_forward(pcm, src_frames);
+		}
 	}
 	if (client_xfer > 0 || slave_xfer > 0) {
 		if (slave_sizep)
@@ -464,14 +470,19 @@ static ssize_t snd_pcm_rate_read_areas(snd_pcm_t *pcm,
 					pcm->channels,
 					rate->get_idx, rate->put_idx,
 					rate->pitch, rate->states);
-		err = snd_pcm_mmap_forward(slave, src_frames);
-		if (err < 0)
-			break;
-		assert((size_t)err == src_frames);
-		client_offset += dst_frames;
-		client_xfer += dst_frames;
-		snd_pcm_mmap_hw_forward(pcm, dst_frames);
-		slave_xfer += src_frames;
+		assert(src_frames || dst_frames);
+		if (src_frames > 0) {
+			err = snd_pcm_mmap_forward(slave, src_frames);
+			if (err < 0)
+				break;
+			assert((size_t)err == src_frames);
+			slave_xfer += src_frames;
+		}
+		if (dst_frames > 0) {
+			client_offset += dst_frames;
+			client_xfer += dst_frames;
+			snd_pcm_mmap_hw_forward(pcm, dst_frames);
+		}
 	}
 	if (client_xfer > 0 || slave_xfer > 0) {
 		if (slave_sizep)
