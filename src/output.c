@@ -250,6 +250,8 @@ static int snd_output_buffer_need(snd_output_t *output, size_t size)
 	snd_output_buffer_t *buffer = output->private_data;
 	size_t _free = buffer->alloc - buffer->size;
 	size_t alloc;
+	unsigned char *buf;
+
 	if (_free >= size)
 		return _free;
 	if (buffer->alloc == 0)
@@ -258,9 +260,10 @@ static int snd_output_buffer_need(snd_output_t *output, size_t size)
 		alloc = buffer->alloc;
 	while (alloc < size)
 		alloc *= 2;
-	buffer->buf = realloc(buffer->buf, alloc);
-	if (!buffer->buf)
+	buf = realloc(buffer->buf, alloc);
+	if (!buf)
 		return -ENOMEM;
+	buffer->buf = buf;
 	buffer->alloc = alloc;
 	return buffer->alloc - buffer->size;
 }
