@@ -1,7 +1,7 @@
 dnl Configure Paths for Alsa
 dnl Christopher Lansdown <lansdoct@cs.alfred.edu>
 dnl Jaroslav Kysela <perex@suse.cz>
-dnl Last modification: 04/12/2000
+dnl Last modification: 07/12/2000
 dnl AM_PATH_ALSA(MINIMUM-VERSION)
 dnl Test for libasound, and define ALSA_CFLAGS and ALSA_LIBS as appropriate.
 dnl enables arguments --with-alsa-prefix= --with-alsa-enc-prefix= --disable-alsatest
@@ -32,8 +32,8 @@ if test "$alsa_prefix" != "" ; then
 fi
 
 dnl add the alsa library
-ALSA_LIBS="$ALSA_LIBS -lasound -lm"
-LIBS="$LIBS -lasound -lm"
+ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl"
+LIBS="$LIBS -lasound -lm -ldl"
 AC_MSG_RESULT($ALSA_LIBS)
 
 dnl Check for a working version of libasound that is of the right version.
