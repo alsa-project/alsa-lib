@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <assert.h>
 #include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
@@ -44,8 +45,7 @@ int snd_ctl_open(snd_ctl_t **handle, int card)
 
 	*handle = NULL;	
 
-	if (card < 0 || card >= SND_CARDS)
-		return -EINVAL;
+	assert(card >= 0 && card < SND_CARDS);
 	sprintf(filename, SND_FILE_CONTROL, card);
 	if ((fd = open(filename, O_RDWR)) < 0) {
 		snd_card_load(card);
@@ -74,176 +74,98 @@ int snd_ctl_open(snd_ctl_t **handle, int card)
 
 int snd_ctl_close(snd_ctl_t *handle)
 {
-	snd_ctl_t *ctl;
 	int res;
-
-	ctl = handle;
-	if (!ctl)
-		return -EINVAL;
-	res = close(ctl->fd) < 0 ? -errno : 0;
-	free(ctl);
+	assert(handle);
+	res = close(handle->fd) < 0 ? -errno : 0;
+	free(handle);
 	return res;
 }
 
 int snd_ctl_file_descriptor(snd_ctl_t *handle)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl)
-		return -EINVAL;
-	return ctl->fd;
+	assert(handle);
+	return handle->fd;
 }
 
 int snd_ctl_hw_info(snd_ctl_t *handle, struct snd_ctl_hw_info *info)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !info)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_HW_INFO, info) < 0)
+	assert(handle && info);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_HW_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
 int snd_ctl_switch_list(snd_ctl_t *handle, snd_switch_list_t *list)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !list)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCH_LIST, list) < 0)
+	assert(handle && list);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_SWITCH_LIST, list) < 0)
 		return -errno;
 	return 0;
 }
 
 int snd_ctl_switch_read(snd_ctl_t *handle, snd_switch_t *sw)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !sw || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCH_READ, sw) < 0)
+	assert(handle && sw && sw->name[0]);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_SWITCH_READ, sw) < 0)
 		return -errno;
 	return 0;
 }
 
 int snd_ctl_switch_write(snd_ctl_t *handle, snd_switch_t *sw)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !sw || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCH_WRITE, sw) < 0)
+	assert(handle && sw && sw->name[0]);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_SWITCH_WRITE, sw) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_hwdep_info(snd_ctl_t *handle, int dev, snd_hwdep_info_t * info)
+int snd_ctl_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !info || dev < 0)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_HWDEP_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_HWDEP_INFO, info) < 0)
+	assert(handle && info);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_HWDEP_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_pcm_info(snd_ctl_t *handle, int dev, snd_pcm_info_t * info)
+int snd_ctl_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !info || dev < 0)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_INFO, info) < 0)
+	assert(handle && info);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_PCM_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_pcm_stream_info(snd_ctl_t *handle, int dev, int str, int subdev, snd_pcm_stream_info_t * info)
+int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !info || dev < 0 || str < 0 || str > 1 || subdev < 0)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_STREAM, &str) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_SUBDEVICE, &subdev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_STREAM_INFO, info) < 0)
+	assert(handle);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_pcm_stream_prefer_subdevice(snd_ctl_t *handle, int dev, int str, int subdev)
+int snd_ctl_mixer_info(snd_ctl_t *handle, snd_mixer_info_t * info)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || dev < 0 || str < 0 || str > 1)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_STREAM, &str) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
+	assert(handle && info);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_MIXER_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_mixer_info(snd_ctl_t *handle, int dev, snd_mixer_info_t * info)
+int snd_ctl_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info)
 {
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !info || dev < 0)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_INFO, info) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_rawmidi_info(snd_ctl_t *handle, int dev, snd_rawmidi_info_t * info)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !info)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_INFO, info) < 0)
+	assert(handle && info);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_RAWMIDI_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
 int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
 {
-	snd_ctl_t *ctl;
 	int result, count;
 	snd_ctl_read_t r;
-
-	ctl = handle;
-	if (!ctl)
-		return -EINVAL;
+	assert(handle);
 	count = 0;
-	while ((result = read(ctl->fd, &r, sizeof(r))) > 0) {
+	while ((result = read(handle->fd, &r, sizeof(r))) > 0) {
 		if (result != sizeof(r))
 			return -EIO;
 		if (!callbacks)
