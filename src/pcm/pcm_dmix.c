@@ -545,6 +545,14 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 
+	switch (dmix->state) {
+	case SNDRV_PCM_STATE_DRAINING:
+	case SNDRV_PCM_STATE_RUNNING:
+		snd_pcm_dmix_sync_ptr(pcm);
+		break;
+	default:
+		break;
+	}
 	memset(status, 0, sizeof(*status));
 	status->state = dmix->state;
 	status->trigger_tstamp = dmix->trigger_tstamp;

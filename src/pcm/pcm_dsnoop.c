@@ -322,6 +322,14 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 
+	switch(dsnoop->state) {
+	case SNDRV_PCM_STATE_DRAINING:
+	case SNDRV_PCM_STATE_RUNNING:
+		snd_pcm_dsnoop_sync_ptr(pcm);
+		break;
+	default:
+		break;
+	}
 	memset(status, 0, sizeof(*status));
 	status->state = dsnoop->state;
 	status->trigger_tstamp = dsnoop->trigger_tstamp;

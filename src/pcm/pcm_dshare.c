@@ -339,6 +339,14 @@ static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
 
+	switch (dshare->state) {
+	case SNDRV_PCM_STATE_DRAINING:
+	case SNDRV_PCM_STATE_RUNNING:
+		snd_pcm_dshare_sync_ptr(pcm);
+		break;
+	default:
+		break;
+	}
 	memset(status, 0, sizeof(*status));
 	status->state = dshare->state;
 	status->trigger_tstamp = dshare->trigger_tstamp;
@@ -360,7 +368,7 @@ static int snd_pcm_dshare_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	snd_pcm_direct_t *dshare = pcm->private_data;
 	int err;
 	
-	switch(dshare->state) {
+	switch (dshare->state) {
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
 		err = snd_pcm_dshare_sync_ptr(pcm);
