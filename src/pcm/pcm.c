@@ -5095,7 +5095,7 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
  * \param pcm PCM handle 
  * \param areas Returned mmap channel areas
  * \param offset Returned mmap area offset in area steps (== frames)
- * \param size mmap area portion size in frames (wanted on entry, contiguous available on exit)
+ * \param frames mmap area portion size in frames (wanted on entry, contiguous available on exit)
  * \return 0 on success otherwise a negative error code
  *
  * It is necessary to call the snd_pcm_avail_update() function directly before
