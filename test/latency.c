@@ -441,23 +441,23 @@ void applyeffect(char* buffer,int r)
 void help(void)
 {
 	int k;
-	printf("\
-Usage: latency [OPTION]... [FILE]...
--h,--help      help
--P,--pdevice   playback device
--C,--cdevice   capture device
--m,--min       minimum latency in frames
--M,--max       maximum latency in frames
--F,--frames    frames to transfer
--f,--format    sample format
--c,--channels  channels
--r,--rate      rate
--s,--seconds   duration of test in seconds
--b,--block     block mode
--t,--time      maximal tick time in us
--p,--poll      use poll (wait for event - reduces CPU usage)
--e,--effect    apply an effect (bandpass filter sweep)
-");
+	printf(
+"Usage: latency [OPTION]... [FILE]...\n"
+"-h,--help      help\n"
+"-P,--pdevice   playback device\n"
+"-C,--cdevice   capture device\n"
+"-m,--min       minimum latency in frames\n"
+"-M,--max       maximum latency in frames\n"
+"-F,--frames    frames to transfer\n"
+"-f,--format    sample format\n"
+"-c,--channels  channels\n"
+"-r,--rate      rate\n"
+"-s,--seconds   duration of test in seconds\n"
+"-b,--block     block mode\n"
+"-t,--time      maximal tick time in us\n"
+"-p,--poll      use poll (wait for event - reduces CPU usage)\n"
+"-e,--effect    apply an effect (bandpass filter sweep)\n"
+);
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++(unsigned long) k) {
                 const char *s = snd_pcm_format_name(k);
@@ -465,13 +465,13 @@ Usage: latency [OPTION]... [FILE]...
                         printf(" %s", s);
         }
         printf("\n\n");
-        printf("\
-Tip #1 (usable latency with large periods, non-blocking mode, good CPU usage,
-        superb xrun prevention):
-  latency -m 8192 -M 8192 -t 1 -p
-Tip #2 (superb latency, non-blocking mode, but heavy CPU usage):
-  latency -m 128 -M 128
-");
+        printf(
+"Tip #1 (usable latency with large periods, non-blocking mode, good CPU usage,\n"
+"        superb xrun prevention):\n"
+"  latency -m 8192 -M 8192 -t 1 -p\n"
+"Tip #2 (superb latency, non-blocking mode, but heavy CPU usage):\n"
+"  latency -m 128 -M 128\n"
+);
 }
 
 int main(int argc, char *argv[])
