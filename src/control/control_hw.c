@@ -315,10 +315,16 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 		if ((fd = open(filename, O_RDWR)) < 0)
 			return -errno;
 	}
-		
-	if (ioctl(fd, SNDRV_CTL_IOCTL_PVERSION, &ver) < 0) {
+	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+		SYSERR("fcntl FD_CLOEXEC failed");
+		err = -errno;
 		close(fd);
-		return -errno;
+		return err;
+	}
+	if (ioctl(fd, SNDRV_CTL_IOCTL_PVERSION, &ver) < 0) {
+		err = -errno;
+		close(fd);
+		return err;
 	}
 	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_CTL_VERSION_MAX)) {
 		close(fd);

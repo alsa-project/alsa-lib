@@ -105,7 +105,7 @@ static snd_hwdep_ops_t snd_hwdep_hw_ops = {
 
 int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int device, int mode)
 {
-	int fd, ver;
+	int fd, ver, ret;
 	char filename[32];
 	snd_hwdep_t *hwdep;
 	assert(handle);
@@ -120,9 +120,16 @@ int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int devi
 		if ((fd = open(filename, mode)) < 0)
 			return -errno;
 	}
-	if (ioctl(fd, SNDRV_HWDEP_IOCTL_PVERSION, &ver) < 0) {
+	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+		SYSERR("fcntl FD_CLOEXEC failed");
+		ret = -errno;
 		close(fd);
-		return -errno;
+		return ret;
+	}
+	if (ioctl(fd, SNDRV_HWDEP_IOCTL_PVERSION, &ver) < 0) {
+		ret = -errno;
+		close(fd);
+		return ret;
 	}
 	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_HWDEP_VERSION_MAX)) {
 		close(fd);

@@ -447,6 +447,12 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 			return -errno;
 		}
 	}
+	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+		SYSERR("fcntl FD_CLOEXEC failed");
+		ret = -errno;
+		close(fd);
+		return ret;
+	}
 	if (ioctl(fd, SNDRV_SEQ_IOCTL_PVERSION, &ver) < 0) {
 		SYSERR("SNDRV_SEQ_IOCTL_PVERSION failed");
 		close(fd);

@@ -161,7 +161,7 @@ static snd_timer_ops_t snd_timer_hw_ops = {
 
 int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int dev_sclass, int card, int device, int subdevice, int mode)
 {
-	int fd, ver, tmode;
+	int fd, ver, tmode, ret;
 	snd_timer_t *tmr;
 	struct sndrv_timer_select sel;
 
@@ -172,9 +172,16 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 		tmode |= O_NONBLOCK;	
 	if ((fd = open(SNDRV_FILE_TIMER, tmode)) < 0)
 		return -errno;
-	if (ioctl(fd, SNDRV_TIMER_IOCTL_PVERSION, &ver) < 0) {
+	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+		SYSERR("fcntl FD_CLOEXEC failed");
+		ret = -errno;
 		close(fd);
-		return -errno;
+		return ret;
+	}
+	if (ioctl(fd, SNDRV_TIMER_IOCTL_PVERSION, &ver) < 0) {
+		ret = -errno;
+		close(fd);
+		return ret;
 	}
 	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_TIMER_VERSION_MAX)) {
 		close(fd);
@@ -187,9 +194,9 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 	sel.id.device = device;
 	sel.id.subdevice = subdevice;
 	if (ioctl(fd, SNDRV_TIMER_IOCTL_SELECT, &sel) < 0) {
-		int err = -errno;
+		ret = -errno;
 		close(fd);
-		return err;
+		return ret;
 	}
 	tmr = (snd_timer_t *) calloc(1, sizeof(snd_timer_t));
 	if (tmr == NULL) {
