@@ -594,6 +594,7 @@ struct sndrv_seq_remove_events {
 #define SNDRV_SEQ_PORT_TYPE_MIDI_GS	(1<<3)	/* GS compatible device */
 #define SNDRV_SEQ_PORT_TYPE_MIDI_XG	(1<<4)	/* XG compatible device */
 #define SNDRV_SEQ_PORT_TYPE_MIDI_MT32	(1<<5)	/* MT-32 compatible device */
+#define SNDRV_SEQ_PORT_TYPE_MIDI_GM2	(1<<6)	/* General MIDI 2 compatible device */
 
 /* other standards...*/
 #define SNDRV_SEQ_PORT_TYPE_SYNTH	(1<<10)	/* Synth device (no MIDI compatible - direct wavetable) */
@@ -605,7 +606,7 @@ struct sndrv_seq_remove_events {
 /* misc. conditioning flags */
 #define SNDRV_SEQ_PORT_FLG_GIVEN_PORT	(1<<0)
 #define SNDRV_SEQ_PORT_FLG_TIMESTAMP	(1<<1)
-#define SNDRV_SEQ_PORT_FLG_TIME_REAL	(1<<1)
+#define SNDRV_SEQ_PORT_FLG_TIME_REAL	(1<<2)
 
 struct sndrv_seq_port_info {
 	struct sndrv_seq_addr addr;	/* client/port numbers */
