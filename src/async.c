@@ -89,6 +89,7 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 	h->private_data = private_data;
 	was_empty = list_empty(&snd_async_handlers);
 	list_add_tail(&h->glist, &snd_async_handlers);
+	INIT_LIST_HEAD(&h->hlist);
 	*handler = h;
 	if (was_empty) {
 		int err;
@@ -129,7 +130,8 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 	}
 	if (handler->type == SND_ASYNC_HANDLER_GENERIC)
 		goto _end;
-	list_del(&handler->hlist);
+	if (!list_empty(&handler->hlist))
+		list_del(&handler->hlist);
 	if (!list_empty(&handler->hlist))
 		goto _end;
 	switch (handler->type) {
