@@ -398,7 +398,7 @@ int pcm_shm_cmd(client_t *client)
 		ctrl->result = snd_pcm_state(pcm);
 		break;
 	case SND_PCM_IOCTL_DELAY:
-		ctrl->result = snd_pcm_delay(pcm, (ssize_t *) &ctrl->u.delay.frames);
+		ctrl->result = snd_pcm_delay(pcm, (snd_pcm_sframes_t *) &ctrl->u.delay.frames);
 		break;
 	case SND_PCM_IOCTL_AVAIL_UPDATE:
 		ctrl->result = snd_pcm_avail_update(pcm);
