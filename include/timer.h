@@ -64,7 +64,7 @@ typedef enum _snd_timer_class {
 	SND_TIMER_CLASS_GLOBAL,		/**< global timer */
 	SND_TIMER_CLASS_CARD,		/**< card timer */
 	SND_TIMER_CLASS_PCM,		/**< PCM timer */
-	SND_TIMER_CLASS_LAST = SND_TIMER_CLASS_PCM,	/**< last timer */
+	SND_TIMER_CLASS_LAST = SND_TIMER_CLASS_PCM	/**< last timer */
 } snd_timer_class_t;
 
 /** timer slave class */
@@ -73,7 +73,7 @@ typedef enum _snd_timer_slave_class {
 	SND_TIMER_SCLASS_APPLICATION,		/**< for internal use */
 	SND_TIMER_SCLASS_SEQUENCER,		/**< sequencer timer */
 	SND_TIMER_SCLASS_OSS_SEQUENCER,		/**< OSS sequencer timer */
-	SND_TIMER_SCLASS_LAST = SND_TIMER_SCLASS_OSS_SEQUENCER,	/**< last slave timer */
+	SND_TIMER_SCLASS_LAST = SND_TIMER_SCLASS_OSS_SEQUENCER	/**< last slave timer */
 } snd_timer_slave_class_t;
 
 /** global timer - system */
@@ -91,7 +91,7 @@ typedef enum _snd_timer_type {
 	/** Shared memory client timer (not yet implemented) */
 	SND_TIMER_TYPE_SHM,
 	/** INET client timer (not yet implemented) */
-	SND_TIMER_TYPE_INET,
+	SND_TIMER_TYPE_INET
 } snd_timer_type_t;
 
 /** timer query handle */

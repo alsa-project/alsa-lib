@@ -68,7 +68,7 @@ do {\
 typedef enum _snd_seq_type {
 	SND_SEQ_TYPE_HW,		/**< hardware */
 	SND_SEQ_TYPE_SHM,		/**< shared memory (NYI) */
-	SND_SEQ_TYPE_INET,		/**< network (NYI) */
+	SND_SEQ_TYPE_INET		/**< network (NYI) */
 } snd_seq_type_t;
 
 /** special client (port) ids */
@@ -455,7 +455,7 @@ int snd_seq_set_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tem
 typedef enum {
 	SND_SEQ_TIMER_ALSA = 0,		/* ALSA timer */
 	SND_SEQ_TIMER_MIDI_CLOCK = 1,	/* Midi Clock (CLOCK event) */
-	SND_SEQ_TIMER_MIDI_TICK = 2,	/* Midi Timer Tick (TICK event */
+	SND_SEQ_TIMER_MIDI_TICK = 2	/* Midi Timer Tick (TICK event */
 } snd_seq_queue_timer_type_t;
 
 size_t snd_seq_queue_timer_sizeof(void);

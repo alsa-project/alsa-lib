@@ -46,7 +46,7 @@ typedef enum _snd_input_type {
 	/** Input from a stdio stream */
 	SND_INPUT_STDIO,
 	/** Input from a memory buffer */
-	SND_INPUT_BUFFER,
+	SND_INPUT_BUFFER
 } snd_input_type_t;
 
 int snd_input_stdio_open(snd_input_t **inputp, const char *file, const char *mode);

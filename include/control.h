@@ -81,7 +81,7 @@ typedef enum _snd_ctl_elem_type {
 	SND_CTL_ELEM_TYPE_BYTES,
 	/** IEC958 (S/PDIF) setting content */
 	SND_CTL_ELEM_TYPE_IEC958,
-	SND_CTL_ELEM_TYPE_LAST = SND_CTL_ELEM_TYPE_IEC958,
+	SND_CTL_ELEM_TYPE_LAST = SND_CTL_ELEM_TYPE_IEC958
 } snd_ctl_elem_type_t;
 
 /** CTL related interface */
@@ -100,14 +100,14 @@ typedef enum _snd_ctl_elem_iface {
 	SND_CTL_ELEM_IFACE_TIMER,
 	/** Sequencer */
 	SND_CTL_ELEM_IFACE_SEQUENCER,
-	SND_CTL_ELEM_IFACE_LAST = SND_CTL_ELEM_IFACE_SEQUENCER,
+	SND_CTL_ELEM_IFACE_LAST = SND_CTL_ELEM_IFACE_SEQUENCER
 } snd_ctl_elem_iface_t;
 
 /** Event class */
 typedef enum _snd_ctl_event_type {
 	/** Elements related event */
 	SND_CTL_EVENT_ELEM = 0,
-	SND_CTL_EVENT_LAST = SND_CTL_EVENT_ELEM,
+	SND_CTL_EVENT_LAST = SND_CTL_EVENT_ELEM
 }snd_ctl_event_type_t;
 
 /** Element has been removed (Warning: test this first and if set don't

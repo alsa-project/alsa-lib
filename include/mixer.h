@@ -78,7 +78,7 @@ typedef int (*snd_mixer_compare_t)(const snd_mixer_elem_t *e1,
 typedef enum _snd_mixer_elem_type {
 	/* Simple (legacy) mixer elements */
 	SND_MIXER_ELEM_SIMPLE,
-	SND_MIXER_ELEM_LAST = SND_MIXER_ELEM_SIMPLE,
+	SND_MIXER_ELEM_LAST = SND_MIXER_ELEM_SIMPLE
 } snd_mixer_elem_type_t;
 
 int snd_mixer_open(snd_mixer_t **mixer, int mode);

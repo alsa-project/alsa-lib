@@ -68,7 +68,7 @@ typedef enum _snd_pcm_class {
 	SND_PCM_CLASS_MODEM,
 	/** digitizer device */
 	SND_PCM_CLASS_DIGITIZER,
-	SND_PCM_CLASS_LAST = SND_PCM_CLASS_DIGITIZER,
+	SND_PCM_CLASS_LAST = SND_PCM_CLASS_DIGITIZER
 } snd_pcm_class_t;
 
 /** PCM subclass */
@@ -77,7 +77,7 @@ typedef enum _snd_pcm_subclass {
 	SND_PCM_SUBCLASS_GENERIC_MIX = 0,
 	/** multichannel subdevices are mixed together */
 	SND_PCM_SUBCLASS_MULTI_MIX,
-	SND_PCM_SUBCLASS_LAST = SND_PCM_SUBCLASS_MULTI_MIX,
+	SND_PCM_SUBCLASS_LAST = SND_PCM_SUBCLASS_MULTI_MIX
 } snd_pcm_subclass_t;
 
 /** PCM stream (direction) */
@@ -86,7 +86,7 @@ typedef enum _snd_pcm_stream {
 	SND_PCM_STREAM_PLAYBACK = 0,
 	/** Capture stream */
 	SND_PCM_STREAM_CAPTURE,
-	SND_PCM_STREAM_LAST = SND_PCM_STREAM_CAPTURE,
+	SND_PCM_STREAM_LAST = SND_PCM_STREAM_CAPTURE
 } snd_pcm_stream_t;
 
 /** PCM access type */
@@ -101,7 +101,7 @@ typedef enum _snd_pcm_access {
 	SND_PCM_ACCESS_RW_INTERLEAVED,
 	/** snd_pcm_readn/snd_pcm_writen access */
 	SND_PCM_ACCESS_RW_NONINTERLEAVED,
-	SND_PCM_ACCESS_LAST = SND_PCM_ACCESS_RW_NONINTERLEAVED,
+	SND_PCM_ACCESS_LAST = SND_PCM_ACCESS_RW_NONINTERLEAVED
 } snd_pcm_access_t;
 
 /** PCM sample format */
@@ -180,7 +180,7 @@ typedef enum _snd_pcm_format {
 	/** Float 64 bit CPU endian */
 	SND_PCM_FORMAT_FLOAT64 = SND_PCM_FORMAT_FLOAT64_LE,
 	/** IEC-958 CPU Endian */
-	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_LE,
+	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_LE
 #elif __BYTE_ORDER == __BIG_ENDIAN
 	/** Signed 16 bit CPU endian */
 	SND_PCM_FORMAT_S16 = SND_PCM_FORMAT_S16_BE,
@@ -199,7 +199,7 @@ typedef enum _snd_pcm_format {
 	/** Float 64 bit CPU endian */
 	SND_PCM_FORMAT_FLOAT64 = SND_PCM_FORMAT_FLOAT64_BE,
 	/** IEC-958 CPU Endian */
-	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_BE,
+	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_BE
 #else
 #error "Unknown endian"
 #endif
@@ -209,7 +209,7 @@ typedef enum _snd_pcm_format {
 typedef enum _snd_pcm_subformat {
 	/** Standard */
 	SND_PCM_SUBFORMAT_STD = 0,
-	SND_PCM_SUBFORMAT_LAST = SND_PCM_SUBFORMAT_STD,
+	SND_PCM_SUBFORMAT_LAST = SND_PCM_SUBFORMAT_STD
 } snd_pcm_subformat_t;
 
 /** PCM state */
@@ -230,7 +230,7 @@ typedef enum _snd_pcm_state {
 	SND_PCM_STATE_PAUSED,
 	/** Hardware is suspended */
 	SND_PCM_STATE_SUSPENDED,
-	SND_PCM_STATE_LAST = SND_PCM_STATE_SUSPENDED,
+	SND_PCM_STATE_LAST = SND_PCM_STATE_SUSPENDED
 } snd_pcm_state_t;
 
 /** PCM start mode */
@@ -239,7 +239,7 @@ typedef enum _snd_pcm_start {
 	SND_PCM_START_DATA = 0,
 	/** Explicit start */
 	SND_PCM_START_EXPLICIT,
-	SND_PCM_START_LAST = SND_PCM_START_EXPLICIT,
+	SND_PCM_START_LAST = SND_PCM_START_EXPLICIT
 } snd_pcm_start_t;
 
 /** PCM xrun mode */
@@ -248,7 +248,7 @@ typedef enum _snd_pcm_xrun {
 	SND_PCM_XRUN_NONE = 0,
 	/** Stop on xrun detection */
 	SND_PCM_XRUN_STOP,
-	SND_PCM_XRUN_LAST = SND_PCM_XRUN_STOP,
+	SND_PCM_XRUN_LAST = SND_PCM_XRUN_STOP
 } snd_pcm_xrun_t;
 
 /** PCM timestamp mode */
@@ -257,7 +257,7 @@ typedef enum _snd_pcm_tstamp {
 	SND_PCM_TSTAMP_NONE = 0,
 	/** Update mmap'ed timestamp */
 	SND_PCM_TSTAMP_MMAP,
-	SND_PCM_TSTAMP_LAST = SND_PCM_TSTAMP_MMAP,
+	SND_PCM_TSTAMP_LAST = SND_PCM_TSTAMP_MMAP
 } snd_pcm_tstamp_t;
 
 /** Unsigned frames quantity */
@@ -321,7 +321,7 @@ enum _snd_pcm_type {
 	/** Linear Integer <-> Linear Float format conversion PCM */
 	SND_PCM_TYPE_LINEAR_FLOAT,
 	/** LADSPA integration plugin */
-	SND_PCM_TYPE_LADSPA,
+	SND_PCM_TYPE_LADSPA
 };
 
 /** PCM type */
@@ -855,7 +855,7 @@ typedef enum _snd_pcm_hook_type {
 	SND_PCM_HOOK_TYPE_HW_PARAMS = 0,
 	SND_PCM_HOOK_TYPE_HW_FREE,
 	SND_PCM_HOOK_TYPE_CLOSE,
-	SND_PCM_HOOK_TYPE_LAST = SND_PCM_HOOK_TYPE_CLOSE,
+	SND_PCM_HOOK_TYPE_LAST = SND_PCM_HOOK_TYPE_CLOSE
 } snd_pcm_hook_type_t;
 
 /** PCM hook container */

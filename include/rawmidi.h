@@ -54,7 +54,7 @@ typedef enum _snd_rawmidi_stream {
 	SND_RAWMIDI_STREAM_OUTPUT = 0,
 	/** Input stream */
 	SND_RAWMIDI_STREAM_INPUT,
-	SND_RAWMIDI_STREAM_LAST = SND_RAWMIDI_STREAM_INPUT,
+	SND_RAWMIDI_STREAM_LAST = SND_RAWMIDI_STREAM_INPUT
 } snd_rawmidi_stream_t;
 
 /** Append (flag to open mode) \hideinitializer */
@@ -74,7 +74,7 @@ typedef enum _snd_rawmidi_type {
 	/** Shared memory client RawMidi (not yet implemented) */
 	SND_RAWMIDI_TYPE_SHM,
 	/** INET client RawMidi (not yet implemented) */
-	SND_RAWMIDI_TYPE_INET,
+	SND_RAWMIDI_TYPE_INET
 } snd_rawmidi_type_t;
 
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,

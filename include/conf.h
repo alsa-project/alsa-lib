@@ -54,7 +54,7 @@ typedef enum _snd_config_type {
         /** Pointer - runtime only - cannot be saved */
         SND_CONFIG_TYPE_POINTER,
 	/** Compound */
-	SND_CONFIG_TYPE_COMPOUND = 1024,
+	SND_CONFIG_TYPE_COMPOUND = 1024
 } snd_config_type_t;
 
 /** Config node handle */

@@ -46,7 +46,7 @@ typedef enum _snd_output_type {
 	/** Output to a stdio stream */
 	SND_OUTPUT_STDIO,
 	/** Output to a memory buffer */
-	SND_OUTPUT_BUFFER,
+	SND_OUTPUT_BUFFER
 } snd_output_type_t;
 
 int snd_output_stdio_open(snd_output_t **outputp, const char *file, const char *mode);

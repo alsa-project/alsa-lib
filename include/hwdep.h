@@ -53,7 +53,7 @@ typedef enum _snd_hwdep_iface {
 	SND_HWDEP_IFACE_EMU10K1,	/**< EMU10K1 driver */
 	SND_HWDEP_IFACE_YSS225,		/**< YSS225 driver */
 	SND_HWDEP_IFACE_ICS2115,	/**< ICS2115 driver */
-	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_ICS2115,  /**< last know hwdep interface */
+	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_ICS2115  /**< last know hwdep interface */
 } snd_hwdep_iface_t;
 
 /** open for reading */
@@ -72,7 +72,7 @@ typedef enum _snd_hwdep_type {
 	/** Shared memory client HwDep (not yet implemented) */
 	SND_HWDEP_TYPE_SHM,
 	/** INET client HwDep (not yet implemented) */
-	SND_HWDEP_TYPE_INET,
+	SND_HWDEP_TYPE_INET
 } snd_hwdep_type_t;
 
 /** HwDep handle */
