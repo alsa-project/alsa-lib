@@ -61,7 +61,7 @@ int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm,
 	if (name)
 		strncpy(data->name, name, sizeof(data->name)-1);
 	data->type = SND_SEQ_INSTR_ATYPE_DATA;
-	strcpy(data->data.format, SND_SEQ_INSTR_ID_OPL3);
+	strcpy(data->data.format, SND_SEQ_INSTR_ID_OPL2_3);
 	/* build data section */
 	xinstr = (fm_xinstrument_t *)(data + 1);
 	xinstr->stype = FM_STRU_INSTR;
@@ -69,6 +69,7 @@ int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm,
 	xinstr->share_id[1] = __cpu_to_le32(instr->share_id[1]);
 	xinstr->share_id[2] = __cpu_to_le32(instr->share_id[2]);
 	xinstr->share_id[3] = __cpu_to_le32(instr->share_id[3]);
+	xinstr->type = instr->type;
 	for (idx = 0; idx < 4; idx++) {
 		xinstr->op[idx].am_vib = instr->op[idx].am_vib;
 		xinstr->op[idx].ksl_level = instr->op[idx].ksl_level;
