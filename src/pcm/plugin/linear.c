@@ -330,10 +330,10 @@ int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t
 		return -EINVAL;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	endian1 = endian1 == __BIG_ENDIAN ? 1 : 0;
-	endian1 = endian2 == __BIG_ENDIAN ? 1 : 0;
+	endian2 = endian2 == __BIG_ENDIAN ? 1 : 0;
 #elif __BYTE_ORDER == __BIG_ENDIAN
 	endian1 = endian1 == __LITTLE_ENDIAN ? 1 : 0;
-	endian1 = endian2 == __LITTLE_ENDIAN ? 1 : 0;
+	endian2 = endian2 == __LITTLE_ENDIAN ? 1 : 0;
 #else
 #error "Unsupported endian..."
 #endif
@@ -380,7 +380,7 @@ int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t
 		return -ENOMEM;
 	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
 	data->cmd = cmd;
-	if (!endian1 && !endian2) {
+	if (endian1 == endian2) {
 		data->endian = NONE;
 	} else if (endian1 && !endian2) {
 		data->endian = SOURCE;

@@ -97,6 +97,22 @@ int snd_pcm_plugin_insert(snd_pcm_t *pcm, int channel, snd_pcm_plugin_t *plugin)
 	return 0;
 }
 
+int snd_pcm_plugin_append(snd_pcm_t *pcm, int channel, snd_pcm_plugin_t *plugin)
+{
+	if (!pcm || channel < 0 || channel > 1 || !plugin)
+		return -EINVAL;
+	plugin->next = NULL;
+	plugin->prev = pcm->plugin_last[channel];
+	if (pcm->plugin_last[channel]) {
+		pcm->plugin_last[channel]->next = plugin;
+		pcm->plugin_last[channel] = plugin;
+	} else {
+		pcm->plugin_last[channel] =
+		pcm->plugin_first[channel] = plugin;
+	}
+	return 0;
+}
+
 int snd_pcm_plugin_remove_to(snd_pcm_t *pcm, int channel, snd_pcm_plugin_t *plugin)
 {
 	snd_pcm_plugin_t *plugin1, *plugin1_prev;
@@ -247,6 +263,9 @@ int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 	if ((err = snd_pcm_channel_info(pcm, info)) < 0)
 		return err;
 	info->formats = snd_pcm_plugin_formats(pcm, info->formats);
+	info->min_rate = 4000;
+	info->max_rate = 192000;
+	info->rates = SND_PCM_RATE_8000_48000;
 	return 0;
 }
 
@@ -372,25 +391,90 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 	 */
 
 	snd_pcm_plugin_clear(pcm, params->channel);
-	if (sinfo.mode == SND_PCM_MODE_STREAM) {
-		err = snd_pcm_plugin_build_stream(pcm, params->channel, &plugin);
-	} else if (sinfo.mode == SND_PCM_MODE_BLOCK) {
-		if (sinfo.flags & SND_PCM_CHNINFO_MMAP) {
-			err = snd_pcm_plugin_build_mmap(pcm, params->channel, &plugin);
-		} else {
-			err = snd_pcm_plugin_build_block(pcm, params->channel, &plugin);
+
+      	if (sparams.format.voices < sinfo.min_voices ||
+      	    sparams.format.voices > sinfo.max_voices) {
+		int src_voices = sparams.format.voices;
+		int dst_voices = sparams.format.voices < sinfo.min_voices ?
+				 sinfo.min_voices : sinfo.max_voices;
+		if (sparams.format.rate < sinfo.min_rate ||
+		    sparams.format.rate > sinfo.max_rate)
+			dst_voices = 2;
+		sparams.format.voices = dst_voices;
+		swap_formats(params->channel, &src_voices, &dst_voices);
+      		err = snd_pcm_plugin_build_voices(params->format.format, src_voices,
+						  params->format.format, dst_voices,
+						  &plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}      					    
+		err = snd_pcm_plugin_append(pcm, params->channel, plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
 		}
-	} else {
-		return -EINVAL;
+      	}
+
+      	/*
+      	 *  formats
+      	 */
+      
+	if (params->format.format == sparams.format.format)
+		goto __format_skip;
+	/* build additional plugins for conversion */
+	switch (params->format.format) {
+	case SND_PCM_SFMT_MU_LAW:
+		srcfmt = SND_PCM_SFMT_MU_LAW;
+		dstfmt = sparams.format.format;
+		swap_formats(params->channel, &srcfmt, &dstfmt);
+		err = snd_pcm_plugin_build_mulaw(srcfmt, dstfmt, &plugin);
+		break;
+	default:
+		srcfmt = params->format.format;
+		dstfmt = sparams.format.format;
+		swap_formats(params->channel, &srcfmt, &dstfmt);
+		err = snd_pcm_plugin_build_linear(srcfmt, dstfmt, &plugin);
 	}
 	if (err < 0)
 		return err;
-	err = snd_pcm_plugin_insert(pcm, params->channel, plugin);
+	err = snd_pcm_plugin_append(pcm, params->channel, plugin);
 	if (err < 0) {
 		snd_pcm_plugin_free(plugin);
 		return err;
 	}
 
+      __format_skip:
+
+	/*
+	 *  rate
+	 */
+
+        if (sparams.format.rate < sinfo.min_rate ||
+            sparams.format.rate > sinfo.max_rate) {
+        	int src_rate = sparams.format.rate;
+        	int dst_rate = sparams.format.rate < sinfo.min_rate ?
+        		       sinfo.min_rate : sinfo.max_rate;
+		sparams.format.rate = dst_rate;
+		swap_formats(params->channel, &src_rate, &dst_rate);
+        	err = snd_pcm_plugin_build_rate(sparams.format.format, src_rate, sparams.format.voices,
+        					sparams.format.format, dst_rate, sparams.format.voices,
+        					&plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}      					    
+		err = snd_pcm_plugin_append(pcm, params->channel, plugin);
+		if (err < 0) {
+			snd_pcm_plugin_free(plugin);
+			return err;
+		}
+        }
+      
+	/*
+	 *  interleave
+         */
+      
 	if (params->format.voices > 1 && sinfo.mode == SND_PCM_MODE_BLOCK) {
 		int src_interleave, dst_interleave;
 
@@ -409,7 +493,7 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 			err = snd_pcm_plugin_build_interleave(src_interleave, dst_interleave, sparams.format.format, &plugin);
 			if (err < 0)
 				return err;
-			err = snd_pcm_plugin_insert(pcm, params->channel, plugin);
+			err = snd_pcm_plugin_append(pcm, params->channel, plugin);
 			if (err < 0) {
 				snd_pcm_plugin_free(plugin);
 				return err;
@@ -417,31 +501,33 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 		}
 	}
 
-	if (params->format.format == sparams.format.format)
-		goto __skip;
-	/* build additional plugins for conversion */
-	switch (params->format.format) {
-	case SND_PCM_SFMT_MU_LAW:
-		srcfmt = SND_PCM_SFMT_MU_LAW;
-		dstfmt = sparams.format.format;
-		swap_formats(params->channel, &srcfmt, &dstfmt);
-		err = snd_pcm_plugin_build_mulaw(srcfmt, dstfmt, &plugin);
-		break;
-	default:
-		srcfmt = params->format.format;
-		dstfmt = sparams.format.format;
-		swap_formats(params->channel, &srcfmt, &dstfmt);
-		err = snd_pcm_plugin_build_linear(srcfmt, dstfmt, &plugin);
+	/*
+	 *  I/O plugins
+	 */
+
+	if (sinfo.mode == SND_PCM_MODE_STREAM) {
+		err = snd_pcm_plugin_build_stream(pcm, params->channel, &plugin);
+	} else if (sinfo.mode == SND_PCM_MODE_BLOCK) {
+		if (sinfo.flags & SND_PCM_CHNINFO_MMAP) {
+			err = snd_pcm_plugin_build_mmap(pcm, params->channel, &plugin);
+		} else {
+			err = snd_pcm_plugin_build_block(pcm, params->channel, &plugin);
+		}
+	} else {
+		return -EINVAL;
 	}
 	if (err < 0)
 		return err;
-	err = snd_pcm_plugin_insert(pcm, params->channel, plugin);
+	err = snd_pcm_plugin_append(pcm, params->channel, plugin);
 	if (err < 0) {
 		snd_pcm_plugin_free(plugin);
 		return err;
 	}
 
-      __skip:
+	/*
+	 *  ratio
+	 */
+
 	ratio = snd_pcm_plugin_hardware_ratio(pcm, params->channel);
 	if (ratio <= 0)
 		return -EINVAL;

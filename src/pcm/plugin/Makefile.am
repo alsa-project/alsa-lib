@@ -1,7 +1,7 @@
 EXTRA_LTLIBRARIES = libpcmplugin.la
 
 libpcmplugin_la_SOURCES = block.c mmap.c stream.c linear.c interleave.c \
-			  mulaw.c
+			  mulaw.c rate.c voices.c
 all: libpcmplugin.la
 
 
