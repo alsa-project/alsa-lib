@@ -399,7 +399,7 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 			return err;
 		}
 	}
-	if (avail >= pcm->setup.buffer_size)
+	if (avail > pcm->setup.buffer_size)
 		return -EPIPE;
 	return avail;
 }
