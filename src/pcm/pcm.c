@@ -746,7 +746,7 @@ int snd_pcm_hw_params_current(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	assert(pcm && params);
 	if (!pcm->setup)
 		return -EBADFD;
-	snd_pcm_hw_params_clear(params);
+	memset(params, 0, snd_pcm_hw_params_sizeof());
 	snd_mask_copy(&params->masks[SND_PCM_HW_PARAM_ACCESS], (snd_mask_t *)&pcm->access);
 	snd_mask_copy(&params->masks[SND_PCM_HW_PARAM_FORMAT], (snd_mask_t *)&pcm->format);
 	snd_mask_copy(&params->masks[SND_PCM_HW_PARAM_SUBFORMAT], (snd_mask_t *)&pcm->subformat);
@@ -2824,16 +2824,6 @@ int snd_pcm_hw_params_malloc(snd_pcm_hw_params_t **ptr)
 void snd_pcm_hw_params_free(snd_pcm_hw_params_t *obj)
 {
 	free(obj);
-}
-
-/**
- * \brief clear snd_pcm_hw_params_t structure
- * \param obj pointer to structure
- */
-void snd_pcm_hw_params_clear(snd_pcm_hw_params_t *obj)
-{
-	assert(obj);
-	memset(obj, 0, snd_pcm_hw_params_sizeof());
 }
 
 /**
@@ -4971,16 +4961,6 @@ void snd_pcm_sw_params_free(snd_pcm_sw_params_t *obj)
 }
 
 /**
- * \brief clear snd_pcm_sw_params_t structure
- * \param obj pointer to structure
- */
-void snd_pcm_sw_params_clear(snd_pcm_sw_params_t *obj)
-{
-	assert(obj);
-	memset(obj, 0, snd_pcm_sw_params_sizeof());
-}
-
-/**
  * \brief copy one #snd_pcm_sw_params_t to another
  * \param dst pointer to destination
  * \param src pointer to source
@@ -5458,16 +5438,6 @@ void snd_pcm_status_free(snd_pcm_status_t *obj)
 }
 
 /**
- * \brief clear snd_pcm_status_t structure
- * \param obj pointer to structure
- */
-void snd_pcm_status_clear(snd_pcm_status_t *obj)
-{
-	assert(obj);
-	memset(obj, 0, snd_pcm_status_sizeof());
-}
-
-/**
  * \brief copy one #snd_pcm_status_t to another
  * \param dst pointer to destination
  * \param src pointer to source
@@ -5584,16 +5554,6 @@ int snd_pcm_info_malloc(snd_pcm_info_t **ptr)
 void snd_pcm_info_free(snd_pcm_info_t *obj)
 {
 	free(obj);
-}
-
-/**
- * \brief clear snd_pcm_info_t structure
- * \param obj pointer to structure
- */
-void snd_pcm_info_clear(snd_pcm_info_t *obj)
-{
-	assert(obj);
-	memset(obj, 0, snd_pcm_info_sizeof());
 }
 
 /**
