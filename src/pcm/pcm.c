@@ -373,16 +373,21 @@ samples - \link ::snd_pcm_status_get_overrange \endlink. The last two
 parameters - avail_max and overrange are reset to zero after the status
 call.
 
-\subsection pcm_status_fast Obtaining fast device status
+\subsection pcm_status_fast Obtaining device status fast
 
 The function \link ::snd_pcm_avail_update \endlink updates the current
 available count of samples for writing (playback) or filled samples for
-reading (capture).
+reading (capture). It is a light version of
+\link ::snd_pcm_status_get_avail \endlink, because it does not require
+the user <-> kernel context switch, but the value is less accurate,
+because ring buffer pointers are updated in kernel drivers only when
+an interrupt occurs.
 <p>
 The function \link ::snd_pcm_delay \endlink returns the delay in samples.
 For playback, it means count of samples in the ring buffer before
 the next sample will be sent to DAC. For capture, it means count of samples
-in the ring buffer before the next sample will be captured from ADC.
+in the ring buffer before the next sample will be captured from ADC. It works
+only when the stream is in the running or draining state.
 
 \section pcm_action Managing the stream state
 
