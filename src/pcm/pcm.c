@@ -382,14 +382,14 @@ Using standalone, it is a light method to obtain current stream position,
 because it does not require the user <-> kernel context switch, but the value
 is less accurate, because ring buffer pointers are updated in kernel drivers
 only when an interrupt occurs. If you want to get accurate stream state,
-use functions \link ::snd_pcm_avail \endlink or \link ::snd_pcm_delay \endlink.
+use functions \link ::snd_pcm_hwsync \endlink or \link ::snd_pcm_delay \endlink.
 Note that both of these functions do not update the current r/w pointer
 for applications, so the function \link ::snd_pcm_avail_update \endlink must
 be called afterwards before any read/write begin+commit operations.
 <p>
-The function \link ::snd_pcm_avail \endlink returns current available space
-in the ring buffer. Note that this function does not update the current r/w
-pointer for applications, so the function \link ::snd_pcm_avail_update \endlink
+The function \link ::snd_pcm_hwsync \endlink reads the current hardware pointer
+in the ring buffer from hardware. Note that this function does not update the current
+r/w pointer for applications, so the function \link ::snd_pcm_avail_update \endlink
 must be called afterwards before any read/write/begin+commit operations.
 <p>
 The function \link ::snd_pcm_delay \endlink returns the delay in samples.
@@ -2778,6 +2778,16 @@ void snd_pcm_hw_params_free(snd_pcm_hw_params_t *obj)
 }
 
 /**
+ * \brief clear snd_pcm_hw_params_t structure
+ * \param obj pointer to structure
+ */
+void snd_pcm_hw_params_clear(snd_pcm_hw_params_t *obj)
+{
+	assert(obj);
+	memset(obj, 0, snd_pcm_hw_params_sizeof());
+}
+
+/**
  * \brief copy one #snd_pcm_hw_params_t to another
  * \param dst pointer to destination
  * \param src pointer to source
@@ -4912,6 +4922,16 @@ void snd_pcm_sw_params_free(snd_pcm_sw_params_t *obj)
 }
 
 /**
+ * \brief clear snd_pcm_sw_params_t structure
+ * \param obj pointer to structure
+ */
+void snd_pcm_sw_params_clear(snd_pcm_sw_params_t *obj)
+{
+	assert(obj);
+	memset(obj, 0, snd_pcm_sw_params_sizeof());
+}
+
+/**
  * \brief copy one #snd_pcm_sw_params_t to another
  * \param dst pointer to destination
  * \param src pointer to source
@@ -5332,6 +5352,16 @@ void snd_pcm_status_free(snd_pcm_status_t *obj)
 }
 
 /**
+ * \brief clear snd_pcm_status_t structure
+ * \param obj pointer to structure
+ */
+void snd_pcm_status_clear(snd_pcm_status_t *obj)
+{
+	assert(obj);
+	memset(obj, 0, snd_pcm_status_sizeof());
+}
+
+/**
  * \brief copy one #snd_pcm_status_t to another
  * \param dst pointer to destination
  * \param src pointer to source
@@ -5448,6 +5478,16 @@ int snd_pcm_info_malloc(snd_pcm_info_t **ptr)
 void snd_pcm_info_free(snd_pcm_info_t *obj)
 {
 	free(obj);
+}
+
+/**
+ * \brief clear snd_pcm_info_t structure
+ * \param obj pointer to structure
+ */
+void snd_pcm_info_clear(snd_pcm_info_t *obj)
+{
+	assert(obj);
+	memset(obj, 0, snd_pcm_info_sizeof());
 }
 
 /**
