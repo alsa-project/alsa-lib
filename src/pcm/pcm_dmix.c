@@ -405,7 +405,7 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	
 	switch (snd_pcm_state(dmix->spcm)) {
 	case SND_PCM_STATE_DISCONNECTED:
-		dmix->state = -ENOTTY;
+		dmix->state = SND_PCM_STATE_DISCONNECTED;
 		return -ENOTTY;
 	default:
 		break;
@@ -474,7 +474,7 @@ static snd_pcm_state_t snd_pcm_dmix_state(snd_pcm_t *pcm)
 	case SND_PCM_STATE_SUSPENDED:
 		return -ESTRPIPE;
 	case SND_PCM_STATE_DISCONNECTED:
-		dmix->state = -ENOTTY;
+		dmix->state = SND_PCM_STATE_DISCONNECTED;
 		return -ENOTTY;
 	default:
 		break;
