@@ -1014,6 +1014,21 @@ int snd_config_searchv(snd_config_t *config,
 	return 0;
 }
 
+int snd_config_search_alias(snd_config_t *config,
+			    const char *base, const char *key,
+			    snd_config_t **result)
+{
+	int err;
+	assert(config && base && key && result);
+	err = snd_config_searchv(config, result, base, key, 0);
+	if (err < 0)
+		return err;
+	while (snd_config_get_string(*result, &key) >= 0 &&
+	       snd_config_searchv(config, result, base, key, 0) >= 0)
+		;
+	return 0;
+}
+
 snd_config_t *snd_config = 0;
 static dev_t sys_asoundrc_device;
 static ino_t sys_asoundrc_inode;

@@ -524,6 +524,163 @@ put_1234_4321: as_s32(dst) = bswap_32(sample); goto PUT_END;
 put_1234_4329: as_u32(dst) = bswap_32(sample) ^ 0x80; goto PUT_END;
 #endif
 
+#ifdef GETS_LABELS
+static inline int32_t getS(const void *src, int src_sign, int src_wid, int src_end,
+			   int dst_wid)
+{
+	int32_t s;
+	switch (src_wid) {
+	case 8:
+		s = *(u_int8_t*)src;
+		break;
+	case 16:
+		s = *(u_int16_t*)src;
+		if (src_end)
+			s = bswap_16(s);
+		break;
+	case 24:
+	case 32:
+		s = *(u_int32_t*)src;
+		if (src_end)
+			s = bswap_32(s);
+		break;
+	}
+	if (!src_sign)
+		s -= 1U << (src_wid - 1);
+	if (src_wid < dst_wid)
+		return s * (1 << (dst_wid - src_wid));
+	else
+		return s / (1 << (src_wid - dst_wid)); 
+}
+
+/* src_sign src_wid src_end dst_wid */
+static void *gets_labels[2 * 4 * 2 * 4] = {
+	&&gets_u8_8,	/*  u8h -> s8 */
+	&&gets_u8_16,	/*  u8h -> s16 */
+	&&gets_u8_24,	/*  u8h -> s24 */
+	&&gets_u8_32,	/*  u8h -> s32 */
+	&&gets_u8_8,	/*  u8s -> s8 */
+	&&gets_u8_16,	/*  u8s -> s16 */
+	&&gets_u8_24,	/*  u8s -> s24 */
+	&&gets_u8_32,	/*  u8s -> s32 */
+	&&gets_u16h_8,	/* u16h -> s8 */
+	&&gets_u16h_16,	/* u16h -> s16 */
+	&&gets_u16h_24,	/* u16h -> s24 */
+	&&gets_u16h_32,	/* u16h -> s32 */
+	&&gets_u16s_8,	/* u16s -> s8 */
+	&&gets_u16s_16,	/* u16s -> s16 */
+	&&gets_u16s_24,	/* u16s -> s24 */
+	&&gets_u16s_32,	/* u16s -> s32 */
+	&&gets_u24h_8,	/* u24h -> s8 */
+	&&gets_u24h_16,	/* u24h -> s16 */
+	&&gets_u24h_24,	/* u24h -> s24 */
+	&&gets_u24h_32,	/* u24h -> s32 */
+	&&gets_u24s_8,	/* u24s -> s8 */
+	&&gets_u24s_16,	/* u24s -> s16 */
+	&&gets_u24s_24,	/* u24s -> s24 */
+	&&gets_u24s_32,	/* u24s -> s32 */
+	&&gets_u32h_8,	/* u32h -> s8 */
+	&&gets_u32h_16,	/* u32h -> s16 */
+	&&gets_u32h_24,	/* u32h -> s24 */
+	&&gets_u32h_32,	/* u32h -> s32 */
+	&&gets_u32s_8,	/* u32s -> s8 */
+	&&gets_u32s_16,	/* u32s -> s16 */
+	&&gets_u32s_24,	/* u32s -> s24 */
+	&&gets_u32s_32,	/* u32s -> s32 */
+	&&gets_s8_8,	/*  s8h -> s8 */
+	&&gets_s8_16,	/*  s8h -> s16 */
+	&&gets_s8_24,	/*  s8h -> s24 */
+	&&gets_s8_32,	/*  s8h -> s32 */
+	&&gets_s8_8,	/*  s8s -> s8 */
+	&&gets_s8_16,	/*  s8s -> s16 */
+	&&gets_s8_24,	/*  s8s -> s24 */
+	&&gets_s8_32,	/*  s8s -> s32 */
+	&&gets_s16h_8,	/* s16h -> s8 */
+	&&gets_s16h_16,	/* s16h -> s16 */
+	&&gets_s16h_24,	/* s16h -> s24 */
+	&&gets_s16h_32,	/* s16h -> s32 */
+	&&gets_s16s_8,	/* s16s -> s8 */
+	&&gets_s16s_16,	/* s16s -> s16 */
+	&&gets_s16s_24,	/* s16s -> s24 */
+	&&gets_s16s_32,	/* s16s -> s32 */
+	&&gets_s24h_8,	/* s24h -> s8 */
+	&&gets_s24h_16,	/* s24h -> s16 */
+	&&gets_s24h_24,	/* s24h -> s24 */
+	&&gets_s24h_32,	/* s24h -> s32 */
+	&&gets_s24s_8,	/* s24s -> s8 */
+	&&gets_s24s_16,	/* s24s -> s16 */
+	&&gets_s24s_24,	/* s24s -> s24 */
+	&&gets_s24s_32,	/* s24s -> s32 */
+	&&gets_s32h_8,	/* s32h -> s8 */
+	&&gets_s32h_16,	/* s32h -> s16 */
+	&&gets_s32h_24,	/* s32h -> s24 */
+	&&gets_s32h_32,	/* s32h -> s32 */
+	&&gets_s32s_8,	/* s32s -> s8 */
+	&&gets_s32s_16,	/* s32s -> s16 */
+	&&gets_s32s_24,	/* s32s -> s24 */
+	&&gets_s32s_32,	/* s32s -> s32 */
+};
+#endif
+
+#ifdef GETS_END
+gets_u8_8:    sample = getS(src, 0,  8, 0,  8); goto GETS_END;
+gets_u8_16:   sample = getS(src, 0,  8, 0, 16); goto GETS_END;
+gets_u8_24:   sample = getS(src, 0,  8, 0, 24); goto GETS_END;
+gets_u8_32:   sample = getS(src, 0,  8, 0, 32); goto GETS_END;
+gets_u16h_8:  sample = getS(src, 0, 16, 0,  8); goto GETS_END;
+gets_u16h_16: sample = getS(src, 0, 16, 0, 16); goto GETS_END;
+gets_u16h_24: sample = getS(src, 0, 16, 0, 24); goto GETS_END;
+gets_u16h_32: sample = getS(src, 0, 16, 0, 32); goto GETS_END;
+gets_u16s_8:  sample = getS(src, 0, 16, 1,  8); goto GETS_END;
+gets_u16s_16: sample = getS(src, 0, 16, 1, 16); goto GETS_END;
+gets_u16s_24: sample = getS(src, 0, 16, 1, 24); goto GETS_END;
+gets_u16s_32: sample = getS(src, 0, 16, 1, 32); goto GETS_END;
+gets_u24h_8:  sample = getS(src, 0, 24, 0,  8); goto GETS_END;
+gets_u24h_16: sample = getS(src, 0, 24, 0, 16); goto GETS_END;
+gets_u24h_24: sample = getS(src, 0, 24, 0, 24); goto GETS_END;
+gets_u24h_32: sample = getS(src, 0, 24, 0, 32); goto GETS_END;
+gets_u24s_8:  sample = getS(src, 0, 24, 1,  8); goto GETS_END;
+gets_u24s_16: sample = getS(src, 0, 24, 1, 16); goto GETS_END;
+gets_u24s_24: sample = getS(src, 0, 24, 1, 24); goto GETS_END;
+gets_u24s_32: sample = getS(src, 0, 24, 1, 32); goto GETS_END;
+gets_u32h_8:  sample = getS(src, 0, 32, 0,  8); goto GETS_END;
+gets_u32h_16: sample = getS(src, 0, 32, 0, 16); goto GETS_END;
+gets_u32h_24: sample = getS(src, 0, 32, 0, 24); goto GETS_END;
+gets_u32h_32: sample = getS(src, 0, 32, 0, 32); goto GETS_END;
+gets_u32s_8:  sample = getS(src, 0, 32, 1,  8); goto GETS_END;
+gets_u32s_16: sample = getS(src, 0, 32, 1, 16); goto GETS_END;
+gets_u32s_24: sample = getS(src, 0, 32, 1, 24); goto GETS_END;
+gets_u32s_32: sample = getS(src, 0, 32, 1, 32); goto GETS_END;
+gets_s8_8:    sample = getS(src, 1,  8, 0,  8); goto GETS_END;
+gets_s8_16:   sample = getS(src, 1,  8, 0, 16); goto GETS_END;
+gets_s8_24:   sample = getS(src, 1,  8, 0, 24); goto GETS_END;
+gets_s8_32:   sample = getS(src, 1,  8, 0, 32); goto GETS_END;
+gets_s16h_8:  sample = getS(src, 1, 16, 0,  8); goto GETS_END;
+gets_s16h_16: sample = getS(src, 1, 16, 0, 16); goto GETS_END;
+gets_s16h_24: sample = getS(src, 1, 16, 0, 24); goto GETS_END;
+gets_s16h_32: sample = getS(src, 1, 16, 0, 32); goto GETS_END;
+gets_s16s_8:  sample = getS(src, 1, 16, 1,  8); goto GETS_END;
+gets_s16s_16: sample = getS(src, 1, 16, 1, 16); goto GETS_END;
+gets_s16s_24: sample = getS(src, 1, 16, 1, 24); goto GETS_END;
+gets_s16s_32: sample = getS(src, 1, 16, 1, 32); goto GETS_END;
+gets_s24h_8:  sample = getS(src, 1, 24, 0,  8); goto GETS_END;
+gets_s24h_16: sample = getS(src, 1, 24, 0, 16); goto GETS_END;
+gets_s24h_24: sample = getS(src, 1, 24, 0, 24); goto GETS_END;
+gets_s24h_32: sample = getS(src, 1, 24, 0, 32); goto GETS_END;
+gets_s24s_8:  sample = getS(src, 1, 24, 1,  8); goto GETS_END;
+gets_s24s_16: sample = getS(src, 1, 24, 1, 16); goto GETS_END;
+gets_s24s_24: sample = getS(src, 1, 24, 1, 24); goto GETS_END;
+gets_s24s_32: sample = getS(src, 1, 24, 1, 32); goto GETS_END;
+gets_s32h_8:  sample = getS(src, 1, 32, 0,  8); goto GETS_END;
+gets_s32h_16: sample = getS(src, 1, 32, 0, 16); goto GETS_END;
+gets_s32h_24: sample = getS(src, 1, 32, 0, 24); goto GETS_END;
+gets_s32h_32: sample = getS(src, 1, 32, 0, 32); goto GETS_END;
+gets_s32s_8:  sample = getS(src, 1, 32, 1,  8); goto GETS_END;
+gets_s32s_16: sample = getS(src, 1, 32, 1, 16); goto GETS_END;
+gets_s32s_24: sample = getS(src, 1, 32, 1, 24); goto GETS_END;
+gets_s32s_32: sample = getS(src, 1, 32, 1, 32); goto GETS_END;
+#endif
+
 #undef as_u8
 #undef as_u16
 #undef as_u32

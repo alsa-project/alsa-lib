@@ -968,10 +968,14 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	srvname = argv[optind];
-	err = snd_config_searchv(snd_config, &conf, "server", srvname, 0);
+	err = snd_config_search_alias(snd_config, "server", srvname, &conf);
 	if (err < 0) {
 		ERROR("Missing definition for server %s", srvname);
 		return 1;
+	}
+	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("Invalid type for server %s definition", srvname);
+		return -EINVAL;
 	}
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);

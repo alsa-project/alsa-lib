@@ -33,33 +33,31 @@
 #include "pcm_local.h"
 #include "list.h"
 
-static LIST_HEAD(slaves);
-static pthread_mutex_t slaves_mutex = PTHREAD_MUTEX_INITIALIZER;
-char *slaves_mutex_holder;
 
-#define _S(x) #x
-#define S(x) _S(x)
+static LIST_HEAD(snd_pcm_share_slaves);
+static pthread_mutex_t snd_pcm_share_slaves_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#if 1
-#define Pthread_mutex_lock(mutex) pthread_mutex_lock(mutex)
-#define Pthread_mutex_unlock(mutex) pthread_mutex_unlock(mutex)
-#else
+#ifdef MUTEX_DEBUG
 #define Pthread_mutex_lock(mutex) \
+char *snd_pcm_share_slaves_mutex_holder;
 do { \
-  int err = pthread_mutex_trylock(mutex); \
-  if (err == EBUSY) { \
-    fprintf(stderr, "lock " #mutex " is busy (%s): waiting in " __FUNCTION__ "\n", *(mutex##_holder)); \
-    pthread_mutex_lock(mutex); \
-    fprintf(stderr, "... got\n"); \
-  } \
-  *(mutex##_holder) = __FUNCTION__; \
+	int err = pthread_mutex_trylock(mutex); \
+	if (err < 0) { \
+		fprintf(stderr, "lock " #mutex " is busy (%s): waiting in " __FUNCTION__ "\n", *(mutex##_holder)); \
+		pthread_mutex_lock(mutex); \
+		fprintf(stderr, "... got\n"); \
+	} \
+	*(mutex##_holder) = __FUNCTION__; \
 } while (0)
 
 #define Pthread_mutex_unlock(mutex) \
 do { \
-  *(mutex##_holder) = 0; \
-  pthread_mutex_unlock(mutex); \
+	*(mutex##_holder) = 0; \
+	pthread_mutex_unlock(mutex); \
 } while (0)
+#else
+#define Pthread_mutex_lock(mutex) pthread_mutex_lock(mutex)
+#define Pthread_mutex_unlock(mutex) pthread_mutex_unlock(mutex)
 #endif
 
 typedef struct {
@@ -68,7 +66,9 @@ typedef struct {
 	snd_pcm_t *pcm;
 	snd_pcm_format_t format;
 	int rate;
-	unsigned int channels_count;
+	unsigned int channels;
+	int period_time;
+	int buffer_time;
 	unsigned int open_count;
 	unsigned int setup_count;
 	unsigned int mmap_count;
@@ -82,7 +82,9 @@ typedef struct {
 	int polling;
 	pthread_t thread;
 	pthread_mutex_t mutex;
+#ifdef MUTEX_DEBUG
 	char *mutex_holder;
+#endif
 	pthread_cond_t poll_cond;
 } snd_pcm_share_slave_t;
 
@@ -92,11 +94,6 @@ typedef struct {
 	snd_pcm_share_slave_t *slave;
 	unsigned int channels_count;
 	int *slave_channels;
-	int xfer_mode;
-	int xrun_mode;
-	snd_pcm_uframes_t avail_min;
-	int async_sig;
-	pid_t async_pid;
 	int drain_silenced;
 	struct timeval trigger_tstamp;
 	snd_pcm_state_t state;
@@ -138,7 +135,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *sla
 	min_frames = slave_avail;
 	max_frames = 0;
 	slave_appl_ptr = *slave->pcm->appl_ptr;
-	for (i = slave->clients.next; i != &slave->clients; i = i->next) {
+	list_for_each(i, &slave->clients) {
 		snd_pcm_share_t *share = list_entry(i, snd_pcm_share_t, list);
 		snd_pcm_t *pcm = share->pcm;
 		switch (snd_enum_to_int(share->state)) {
@@ -259,7 +256,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm, int slave_xrun)
 			if ((snd_pcm_uframes_t)hw_avail < missing)
 				missing = hw_avail;
 		}
-		ready_missing = share->avail_min - avail;
+		ready_missing = pcm->avail_min - avail;
 		if (ready_missing > 0) {
 			ready = 0;
 			if ((snd_pcm_uframes_t)ready_missing < missing)
@@ -328,7 +325,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_missing(snd_pcm_share_slave_t *sla
 	snd_pcm_sframes_t avail = snd_pcm_avail_update(slave->pcm);
 	int slave_xrun = (avail == -EPIPE);
 	slave->hw_ptr = *slave->pcm->hw_ptr;
-	for (i = slave->clients.next; i != &slave->clients; i = i->next) {
+	list_for_each(i, &slave->clients) {
 		snd_pcm_share_t *share = list_entry(i, snd_pcm_share_t, list);
 		snd_pcm_t *pcm = share->pcm;
 		snd_pcm_uframes_t m = _snd_pcm_share_missing(pcm, slave_xrun);
@@ -432,17 +429,8 @@ static int snd_pcm_share_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock 
 	return 0;
 }
 
-static int snd_pcm_share_async(snd_pcm_t *pcm, int sig, pid_t pid)
+static int snd_pcm_share_async(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int sig ATTRIBUTE_UNUSED, pid_t pid ATTRIBUTE_UNUSED)
 {
-	snd_pcm_share_t *share = pcm->private_data;
-	if (sig)
-		share->async_sig = sig;
-	else
-		share->async_sig = SIGIO;
-	if (pid)
-		share->async_pid = pid;
-	else
-		share->async_pid = getpid();
 	return -ENOSYS;
 }
 
@@ -480,6 +468,18 @@ static int snd_pcm_share_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 		if (err < 0)
 			return err;
 	}
+	if (slave->period_time >= 0) {
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_PERIOD_TIME,
+					    slave->period_time, 0);
+		if (err < 0)
+			return err;
+	}
+	if (slave->buffer_time >= 0) {
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_BUFFER_TIME,
+					    slave->buffer_time, 0);
+		if (err < 0)
+			return err;
+	}
 	params->info |= SND_PCM_INFO_DOUBLE;
 	return 0;
 }
@@ -493,7 +493,7 @@ static int snd_pcm_share_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 				   &saccess_mask);
 	_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_CHANNELS,
-			      slave->channels_count, 0);
+			      slave->channels, 0);
 	return 0;
 }
 
@@ -1093,7 +1093,7 @@ static int snd_pcm_share_close(snd_pcm_t *pcm)
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
-	Pthread_mutex_lock(&slaves_mutex);
+	Pthread_mutex_lock(&snd_pcm_share_slaves_mutex);
 	Pthread_mutex_lock(&slave->mutex);
 	slave->open_count--;
 	if (slave->open_count == 0) {
@@ -1111,7 +1111,7 @@ static int snd_pcm_share_close(snd_pcm_t *pcm)
 		list_del(&share->list);
 		Pthread_mutex_unlock(&slave->mutex);
 	}
-	Pthread_mutex_unlock(&slaves_mutex);
+	Pthread_mutex_unlock(&snd_pcm_share_slaves_mutex);
 	close(share->client_socket);
 	close(share->slave_socket);
 	free(share->slave_channels);
@@ -1183,6 +1183,7 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		       snd_pcm_format_t sformat, int srate,
 		       unsigned int schannels_count,
+		       int speriod_time, int sbuffer_time,
 		       unsigned int channels_count, int *channels_map,
 		       snd_pcm_stream_t stream, int mode)
 {
@@ -1263,8 +1264,8 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		return err;
 	}
 
-	Pthread_mutex_lock(&slaves_mutex);
-	for (i = slaves.next; i != &slaves; i = i->next) {
+	Pthread_mutex_lock(&snd_pcm_share_slaves_mutex);
+	list_for_each(i, &snd_pcm_share_slaves) {
 		snd_pcm_share_slave_t *s = list_entry(i, snd_pcm_share_slave_t, list);
 		if (s->pcm->name && strcmp(s->pcm->name, sname) == 0) {
 			slave = s;
@@ -1275,7 +1276,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		snd_pcm_t *spcm;
 		err = snd_pcm_open(&spcm, sname, stream, mode);
 		if (err < 0) {
-			Pthread_mutex_unlock(&slaves_mutex);
+			Pthread_mutex_unlock(&snd_pcm_share_slaves_mutex);
 			close(sd[0]);
 			close(sd[1]);
 			free(pcm);
@@ -1285,7 +1286,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		}
 		slave = calloc(1, sizeof(*slave));
 		if (!slave) {
-			Pthread_mutex_unlock(&slaves_mutex);
+			Pthread_mutex_unlock(&snd_pcm_share_slaves_mutex);
 			snd_pcm_close(spcm);
 			close(sd[0]);
 			close(sd[1]);
@@ -1296,20 +1297,22 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		}
 		INIT_LIST_HEAD(&slave->clients);
 		slave->pcm = spcm;
-		slave->channels_count = schannels_count;
+		slave->channels = schannels_count;
 		slave->format = sformat;
 		slave->rate = srate;
+		slave->period_time = speriod_time;
+		slave->buffer_time = sbuffer_time;
 		pthread_mutex_init(&slave->mutex, NULL);
 		pthread_cond_init(&slave->poll_cond, NULL);
-		list_add_tail(&slave->list, &slaves);
+		list_add_tail(&slave->list, &snd_pcm_share_slaves);
 		Pthread_mutex_lock(&slave->mutex);
 		err = pthread_create(&slave->thread, NULL, snd_pcm_share_thread, slave);
 		assert(err == 0);
-		Pthread_mutex_unlock(&slaves_mutex);
+		Pthread_mutex_unlock(&snd_pcm_share_slaves_mutex);
 	} else {
 		Pthread_mutex_lock(&slave->mutex);
-		Pthread_mutex_unlock(&slaves_mutex);
-		for (i = slave->clients.next; i != &slave->clients; i = i->next) {
+		Pthread_mutex_unlock(&snd_pcm_share_slaves_mutex);
+		list_for_each(i, &slave->clients) {
 			snd_pcm_share_t *sh = list_entry(i, snd_pcm_share_t, list);
 			unsigned int k;
 			for (k = 0; k < sh->channels_count; ++k) {
@@ -1331,8 +1334,6 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	share->pcm = pcm;
 	share->client_socket = sd[0];
 	share->slave_socket = sd[1];
-	share->async_sig = SIGIO;
-	share->async_pid = getpid();
 	
 	if (name)
 		pcm->name = strdup(name);
@@ -1363,15 +1364,17 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 {
 	snd_config_iterator_t i, next;
 	const char *sname = NULL;
-	snd_config_t *binding = NULL;
+	snd_config_t *bindings = NULL;
 	int err;
+	snd_config_t *slave = NULL;
 	unsigned int idx;
 	int *channels_map;
 	unsigned int channels_count = 0;
-	long schannels_count = -1;
-	unsigned int schannel_max = 0;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
-	long srate = -1;
+	int schannels = -1;
+	int srate = -1;
+	int speriod_time= -1, sbuffer_time = -1;
+	unsigned int schannel_max = 0;
 	
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1380,64 +1383,43 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "sname") == 0) {
+		if (strcmp(id, "slave") == 0) {
 			err = snd_config_get_string(n, &sname);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
+			slave = n;
 			continue;
 		}
-		if (strcmp(id, "sformat") == 0) {
-			const char *f;
-			err = snd_config_get_string(n, &f);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			sformat = snd_pcm_format_value(f);
-			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
-				SNDERR("Unknown format %s", f);
-				return -EINVAL;
-			}
-			continue;
-		}
-		if (strcmp(id, "schannels") == 0) {
-			err = snd_config_get_integer(n, &schannels_count);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			continue;
-		}
-		if (strcmp(id, "srate") == 0) {
-			err = snd_config_get_integer(n, &srate);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			continue;
-		}
-		if (strcmp(id, "binding") == 0) {
+		if (strcmp(id, "bindings") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
-			binding = n;
+			bindings = n;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (!sname) {
-		SNDERR("sname is not defined");
+	if (!slave) {
+		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	if (!binding) {
-		SNDERR("binding is not defined");
+	err = snd_pcm_slave_conf(slave, &sname, 5,
+				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
+				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels,
+				 SND_PCM_HW_PARAM_RATE, 0, &srate,
+				 SND_PCM_HW_PARAM_PERIOD_TIME, 0, &speriod_time,
+				 SND_PCM_HW_PARAM_BUFFER_TIME, 0, &sbuffer_time);
+	if (err < 0)
+		return err;
+	if (!bindings) {
+		SNDERR("bindings is not defined");
 		return -EINVAL;
 	}
-	snd_config_for_each(i, next, binding) {
+	snd_config_for_each(i, next, bindings) {
 		int cchannel = -1;
 		char *p;
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1459,7 +1441,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	for (idx = 0; idx < channels_count; ++idx)
 		channels_map[idx] = -1;
 
-	snd_config_for_each(i, next, binding) {
+	snd_config_for_each(i, next, bindings) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
 		long cchannel;
@@ -1468,15 +1450,15 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		err = snd_config_get_integer(n, &schannel);
 		if (err < 0)
 			goto _free;
-		assert(schannels_count <= 0 || schannel < schannels_count);
+		assert(schannels <= 0 || schannel < schannels);
 		channels_map[cchannel] = schannel;
 		if ((unsigned)schannel > schannel_max)
 			schannel_max = schannel;
 	}
-	if (schannels_count <= 0)
-		schannels_count = schannel_max + 1;
+	if (schannels <= 0)
+		schannels = schannel_max + 1;
 	    err = snd_pcm_share_open(pcmp, name, sname, sformat, srate, 
-				     schannels_count,
+				     schannels, speriod_time, sbuffer_time,
 				     channels_count, channels_map, stream, mode);
 _free:
 	free(channels_map);

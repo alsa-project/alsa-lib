@@ -584,8 +584,8 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, inext, j, jnext;
-	snd_config_t *slave = NULL;
-	snd_config_t *binding = NULL;
+	snd_config_t *slaves = NULL;
+	snd_config_t *bindings = NULL;
 	int err;
 	unsigned int idx;
 	const char **slaves_id = NULL;
@@ -603,37 +603,37 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "slave") == 0) {
+		if (strcmp(id, "slaves") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
-			slave = n;
+			slaves = n;
 			continue;
 		}
-		if (strcmp(id, "binding") == 0) {
+		if (strcmp(id, "bindings") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
-			binding = n;
+			bindings = n;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (!slave) {
-		SNDERR("slave is not defined");
+	if (!slaves) {
+		SNDERR("slaves is not defined");
 		return -EINVAL;
 	}
-	if (!binding) {
-		SNDERR("binding is not defined");
+	if (!bindings) {
+		SNDERR("bindings is not defined");
 		return -EINVAL;
 	}
-	snd_config_for_each(i, inext, slave) {
+	snd_config_for_each(i, inext, slaves) {
 		++slaves_count;
 	}
-	snd_config_for_each(i, inext, binding) {
+	snd_config_for_each(i, inext, bindings) {
 		int cchannel = -1;
 		char *p;
 		snd_config_t *m = snd_config_iterator_entry(i);
@@ -661,52 +661,21 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	for (idx = 0; idx < channels_count; ++idx)
 		channels_sidx[idx] = -1;
 	idx = 0;
-	snd_config_for_each(i, inext, slave) {
+	snd_config_for_each(i, inext, slaves) {
 		snd_config_t *m = snd_config_iterator_entry(i);
-		const char *name = NULL;
-		long channels = -1;
+		const char *name;
+		int channels;
 		slaves_id[idx] = snd_config_get_id(m);
-		snd_config_for_each(j, jnext, m) {
-			snd_config_t *n = snd_config_iterator_entry(j);
-			const char *id = snd_config_get_id(n);
-			if (strcmp(id, "comment") == 0)
-				continue;
-			if (strcmp(id, "name") == 0) {
-				err = snd_config_get_string(n, &name);
-				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
-					goto _free;
-				}
-				continue;
-			}
-			if (strcmp(id, "channels") == 0) {
-				err = snd_config_get_integer(n, &channels);
-				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
-					goto _free;
-				}
-				continue;
-			}
-			SNDERR("Unknown field %s", id);
-			err = -EINVAL;
+		err = snd_pcm_slave_conf(m, &name, 1,
+					 SND_PCM_HW_PARAM_CHANNELS, 1, &channels);
+		if (err < 0)
 			goto _free;
-		}
-		if (!name) {
-			SNDERR("name is not defined");
-			err = -EINVAL;
-			goto _free;
-		}
-		if (channels < 0) {
-			SNDERR("channels is not defined");
-			err = -EINVAL;
-			goto _free;
-		}
 		slaves_name[idx] = strdup(name);
 		slaves_channels[idx] = channels;
 		++idx;
 	}
 
-	snd_config_for_each(i, inext, binding) {
+	snd_config_for_each(i, inext, bindings) {
 		snd_config_t *m = snd_config_iterator_entry(i);
 		long cchannel = -1;
 		long schannel = -1;
@@ -725,7 +694,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			const char *id = snd_config_get_id(n);
 			if (strcmp(id, "comment") == 0)
 				continue;
-			if (strcmp(id, "sidx") == 0) {
+			if (strcmp(id, "slave") == 0) {
 				char buf[32];
 				unsigned int k;
 				err = snd_config_get_string(n, &str);
@@ -744,7 +713,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 				}
 				continue;
 			}
-			if (strcmp(id, "schannel") == 0) {
+			if (strcmp(id, "channel") == 0) {
 				err = snd_config_get_integer(n, &schannel);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);

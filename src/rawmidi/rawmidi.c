@@ -178,20 +178,22 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	int (*open_func)(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			 const char *name, snd_config_t *conf, int mode);
 	void *h;
+	const char *name1;
 	assert((inputp || outputp) && name);
 	err = snd_config_update();
 	if (err < 0)
 		return err;
-	err = snd_config_searchv(snd_config, &rawmidi_conf, "rawmidi", name, 0);
-	if (err < 0) {
+	err = snd_config_search_alias(snd_config, "rawmidi", name, &rawmidi_conf);
+	name1 = name;
+	if (err < 0 || snd_config_get_string(rawmidi_conf, &name1) >= 0) {
 		int card, dev, subdev;
-		err = sscanf(name, "hw:%d,%d,%d", &card, &dev, &subdev);
+		err = sscanf(name1, "hw:%d,%d,%d", &card, &dev, &subdev);
 		if (err == 3)
 			return snd_rawmidi_hw_open(inputp, outputp, name, card, dev, subdev, mode);
-		err = sscanf(name, "hw:%d,%d", &card, &dev);
+		err = sscanf(name1, "hw:%d,%d", &card, &dev);
 		if (err == 2)
 			return snd_rawmidi_hw_open(inputp, outputp, name, card, dev, -1, mode);
-		SNDERR("Unknown RAWMIDI %s", name);
+		SNDERR("Unknown RAWMIDI %s", name1);
 		return -ENOENT;
 	}
 	if (snd_config_get_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
@@ -208,7 +210,7 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
-	err = snd_config_searchv(snd_config, &type_conf, "rawmiditype", str, 0);
+	err = snd_config_search_alias(snd_config, "rawmidi_type", str, &type_conf);
 	if (err >= 0) {
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);

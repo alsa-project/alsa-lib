@@ -143,6 +143,8 @@ struct _snd_pcm {
 	snd_pcm_uframes_t silence_size;	/* Silence filling size */
 	snd_pcm_uframes_t xfer_align;	/* xfer size need to be a multiple */
 	snd_pcm_uframes_t boundary;	/* pointers wrap point */
+	int async_sig;
+	pid_t async_pid;
 	unsigned int info;		/* Info for returned setup */
 	unsigned int msbits;		/* used most significant bits */
 	unsigned int rate_num;		/* rate numerator */
@@ -485,6 +487,9 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int orde
 				       snd_pcm_hw_param_t var,
 				       unsigned int count,
 				       snd_pcm_hw_strategy_simple_choices_list_t *choices);
+
+int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
+		       unsigned int count, ...);
 
 #define SND_PCM_HW_PARBIT_ACCESS	(1 << SND_PCM_HW_PARAM_ACCESS)
 #define SND_PCM_HW_PARBIT_FORMAT	(1 << SND_PCM_HW_PARAM_FORMAT)

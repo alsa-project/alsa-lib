@@ -156,44 +156,47 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 #include "plugin_ops.h"
 #undef GETU_LABELS
 #undef PUT32_LABELS
-	static void *zero_labels[3] = { &&zero_int32, &&zero_int64,
+	static void *zero_labels[3] = {
+		&&zero_int32, &&zero_int64,
 #if ROUTE_PLUGIN_FLOAT
-				 &&zero_float
+		&&zero_float
 #endif
 	};
 	/* sum_type att */
-	static void *add_labels[3 * 2] = { &&add_int32_noatt, &&add_int32_att,
-				    &&add_int64_noatt, &&add_int64_att,
+	static void *add_labels[3 * 2] = {
+		&&add_int32_noatt, &&add_int32_att,
+		&&add_int64_noatt, &&add_int64_att,
 #if ROUTE_PLUGIN_FLOAT
-				    &&add_float_noatt, &&add_float_att
+		&&add_float_noatt, &&add_float_att
 #endif
 	};
 	/* sum_type att shift */
-	static void *norm_labels[3 * 2 * 4] = { 0,
-					 &&norm_int32_8_noatt,
-					 &&norm_int32_16_noatt,
-					 &&norm_int32_24_noatt,
-					 0,
-					 &&norm_int32_8_att,
-					 &&norm_int32_16_att,
-					 &&norm_int32_24_att,
-					 &&norm_int64_0_noatt,
-					 &&norm_int64_8_noatt,
-					 &&norm_int64_16_noatt,
-					 &&norm_int64_24_noatt,
-					 &&norm_int64_0_att,
-					 &&norm_int64_8_att,
-					 &&norm_int64_16_att,
-					 &&norm_int64_24_att,
+	static void *norm_labels[3 * 2 * 4] = {
+		0,
+		&&norm_int32_8_noatt,
+		&&norm_int32_16_noatt,
+		&&norm_int32_24_noatt,
+		0,
+		&&norm_int32_8_att,
+		&&norm_int32_16_att,
+		&&norm_int32_24_att,
+		&&norm_int64_0_noatt,
+		&&norm_int64_8_noatt,
+		&&norm_int64_16_noatt,
+		&&norm_int64_24_noatt,
+		&&norm_int64_0_att,
+		&&norm_int64_8_att,
+		&&norm_int64_16_att,
+		&&norm_int64_24_att,
 #if ROUTE_PLUGIN_FLOAT
-					 &&norm_float_0,
-					 &&norm_float_8,
-					 &&norm_float_16,
-					 &&norm_float_24,
-					 &&norm_float_0,
-					 &&norm_float_8,
-					 &&norm_float_16,
-					 &&norm_float_24,
+		&&norm_float_0,
+		&&norm_float_8,
+		&&norm_float_16,
+		&&norm_float_24,
+		&&norm_float_0,
+		&&norm_float_8,
+		&&norm_float_16,
+		&&norm_float_24,
 #endif
 	};
 	void *zero, *get, *add, *norm, *put32;
@@ -843,8 +846,9 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
+	snd_config_t *slave = NULL;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
-	long schannels = -1;
+	int schannels = -1;
 	snd_config_t *tt = NULL;
 	snd_pcm_route_ttable_entry_t ttable[MAX_CHANNELS*MAX_CHANNELS];
 	unsigned int cused, sused;
@@ -855,38 +859,8 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "sname") == 0) {
-			err = snd_config_get_string(n, &sname);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			continue;
-		}
-		if (strcmp(id, "sformat") == 0) {
-			const char *f;
-			err = snd_config_get_string(n, &f);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			sformat = snd_pcm_format_value(f);
-			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
-				SNDERR("Unknown sformat");
-				return -EINVAL;
-			}
-			if (snd_pcm_format_linear(sformat) != 1) {
-				SNDERR("sformat is not linear");
-				return -EINVAL;
-			}
-			continue;
-		}
-		if (strcmp(id, "schannels") == 0) {
-			err = snd_config_get_integer(n, &schannels);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
+		if (strcmp(id, "slave") == 0) {
+			slave = n;
 			continue;
 		}
 		if (strcmp(id, "ttable") == 0) {
@@ -900,12 +874,22 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (!sname) {
-		SNDERR("sname is not defined");
+	if (!slave) {
+		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
 	if (!tt) {
 		SNDERR("ttable is not defined");
+		return -EINVAL;
+	}
+	err = snd_pcm_slave_conf(slave, &sname, 2,
+				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
+				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels);
+	if (err < 0)
+		return err;
+	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
+	    snd_pcm_format_linear(sformat) != 1) {
+		SNDERR("slave format is not linear");
 		return -EINVAL;
 	}
 

@@ -48,15 +48,17 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 	int (*open_func)(snd_seq_t **seqp, const char *name, snd_config_t *conf, 
 			 int streams, int mode);
 	void *h;
+	const char *name1;
 	assert(seqp && name);
 	err = snd_config_update();
 	if (err < 0)
 		return err;
-	err = snd_config_searchv(snd_config, &seq_conf, "seq", name, 0);
-	if (err < 0) {
-		if (strcmp(name, "hw") == 0)
+	err = snd_config_search_alias(snd_config, "seq", name, &seq_conf);
+	name1 = name;
+	if (err < 0 || snd_config_get_string(seq_conf, &name1) >= 0) {
+		if (strcmp(name1, "hw") == 0)
 			return snd_seq_hw_open(seqp, name, streams, mode);
-		SNDERR("Unknown SEQ %s", name);
+		SNDERR("Unknown SEQ %s", name1);
 		return -ENOENT;
 	}
 	if (snd_config_get_type(seq_conf) != SND_CONFIG_TYPE_COMPOUND) {
@@ -73,7 +75,7 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
-	err = snd_config_searchv(snd_config, &type_conf, "seqtype", str, 0);
+	err = snd_config_search_alias(snd_config, "seq_type", str, &type_conf);
 	if (err >= 0) {
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);

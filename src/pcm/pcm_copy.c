@@ -198,6 +198,7 @@ int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
+	snd_config_t *slave = NULL;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
@@ -205,21 +206,20 @@ int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "sname") == 0) {
-			err = snd_config_get_string(n, &sname);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
+		if (strcmp(id, "slave") == 0) {
+			slave = n;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (!sname) {
-		SNDERR("sname is not defined");
+	if (!slave) {
+		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
+	err = snd_pcm_slave_conf(slave, &sname, 0);
+	if (err < 0)
+		return err;
 	/* This is needed cause snd_config_update may destroy config */
 	sname = strdup(sname);
 	if (!sname)

@@ -425,7 +425,8 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
+	snd_config_t *slave = NULL;
+	snd_pcm_format_t sformat;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
@@ -433,42 +434,24 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "sname") == 0) {
-			err = snd_config_get_string(n, &sname);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			continue;
-		}
-		if (strcmp(id, "sformat") == 0) {
-			const char *f;
-			err = snd_config_get_string(n, &f);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			sformat = snd_pcm_format_value(f);
-			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
-				SNDERR("Unknown sformat");
-				return -EINVAL;
-			}
-			if (snd_pcm_format_linear(sformat) != 1 &&
-			    sformat != SND_PCM_FORMAT_A_LAW) {
-				SNDERR("Invalid sformat");
-				return -EINVAL;
-			}
+		if (strcmp(id, "slave") == 0) {
+			slave = n;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (!sname) {
-		SNDERR("sname is not defined");
+	if (!slave) {
+		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	if (sformat == SND_PCM_FORMAT_UNKNOWN) {
-		SNDERR("sformat is not defined");
+	err = snd_pcm_slave_conf(slave, &sname, 1,
+				 SND_PCM_HW_PARAM_FORMAT, 1, &sformat);
+	if (err < 0)
+		return err;
+	if (snd_pcm_format_linear(sformat) != 1 &&
+	    sformat != SND_PCM_FORMAT_A_LAW) {
+		SNDERR("invalid slave format");
 		return -EINVAL;
 	}
 	/* This is needed cause snd_config_update may destroy config */

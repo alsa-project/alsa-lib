@@ -721,7 +721,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 {
 	snd_config_iterator_t i, next;
 	const char *server = NULL;
-	const char *sname = NULL;
+	const char *pcm_name = NULL;
 	snd_config_t *sconfig;
 	const char *host = NULL;
 	const char *socket = NULL;
@@ -744,8 +744,8 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			}
 			continue;
 		}
-		if (strcmp(id, "sname") == 0) {
-			err = snd_config_get_string(n, &sname);
+		if (strcmp(id, "pcm") == 0) {
+			err = snd_config_get_string(n, &pcm_name);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
@@ -755,17 +755,21 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (!sname) {
-		SNDERR("sname is not defined");
+	if (!pcm_name) {
+		SNDERR("pcm is not defined");
 		return -EINVAL;
 	}
 	if (!server) {
 		SNDERR("server is not defined");
 		return -EINVAL;
 	}
-	err = snd_config_searchv(snd_config, &sconfig, "server", server, 0);
+	err = snd_config_search_alias(snd_config, "server", server, &sconfig);
 	if (err < 0) {
 		SNDERR("Unknown server %s", server);
+		return -EINVAL;
+	}
+	if (snd_config_get_type(sconfig) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("Invalid type for server %s definition", server);
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, sconfig) {
@@ -819,6 +823,6 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		SNDERR("%s is not the local host", host);
 		return -EINVAL;
 	}
-	return snd_pcm_shm_open(pcmp, name, socket, sname, stream, mode);
+	return snd_pcm_shm_open(pcmp, name, socket, pcm_name, stream, mode);
 }
 				

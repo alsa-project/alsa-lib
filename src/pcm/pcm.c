@@ -23,6 +23,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <stdarg.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/shm.h>
@@ -89,8 +90,20 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 
 int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
+	int err;
 	assert(pcm);
-	return pcm->ops->async(pcm->op_arg, sig, pid);
+	err = pcm->ops->async(pcm->op_arg, sig, pid);
+	if (err < 0)
+		return err;
+	if (sig)
+		pcm->async_sig = sig;
+	else
+		pcm->async_sig = SIGIO;
+	if (pid)
+		pcm->async_pid = pid;
+	else
+		pcm->async_pid = getpid();
+	return 0;
 }
 
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
@@ -564,28 +577,31 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 	int (*open_func)(snd_pcm_t **pcmp, const char *name, snd_config_t *conf, 
 			 snd_pcm_stream_t stream, int mode);
 	void *h;
+	const char *name1;
 	assert(pcmp && name);
 	err = snd_config_update();
 	if (err < 0)
 		return err;
-	err = snd_config_searchv(snd_config, &pcm_conf, "pcm", name, 0);
-	if (err < 0) {
+
+	err = snd_config_search_alias(snd_config, "pcm", name, &pcm_conf);
+	name1 = name;
+	if (err < 0 || snd_config_get_string(pcm_conf, &name1) >= 0) {
 		int card, dev, subdev;
 		char socket[256], sname[256];
 		char format[16], file[256];
-		err = sscanf(name, "hw:%d,%d,%d", &card, &dev, &subdev);
+		err = sscanf(name1, "hw:%d,%d,%d", &card, &dev, &subdev);
 		if (err == 3)
 			return snd_pcm_hw_open(pcmp, name, card, dev, subdev, stream, mode);
-		err = sscanf(name, "hw:%d,%d", &card, &dev);
+		err = sscanf(name1, "hw:%d,%d", &card, &dev);
 		if (err == 2)
 			return snd_pcm_hw_open(pcmp, name, card, dev, -1, stream, mode);
-		err = sscanf(name, "plug:%d,%d,%d", &card, &dev, &subdev);
+		err = sscanf(name1, "plug:%d,%d,%d", &card, &dev, &subdev);
 		if (err == 3)
 			return snd_pcm_plug_open_hw(pcmp, name, card, dev, subdev, stream, mode);
-		err = sscanf(name, "plug:%d,%d", &card, &dev);
+		err = sscanf(name1, "plug:%d,%d", &card, &dev);
 		if (err == 2)
 			return snd_pcm_plug_open_hw(pcmp, name, card, dev, -1, stream, mode);
-		err = sscanf(name, "plug:%256[^,]", sname);
+		err = sscanf(name1, "plug:%256[^,]", sname);
 		if (err == 1) {
 			snd_pcm_t *slave;
 			err = snd_pcm_open(&slave, sname, stream, mode);
@@ -593,18 +609,18 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 				return err;
 			return snd_pcm_plug_open(pcmp, name, NULL, 0, 0, 0, slave, 1);
 		}
-		err = sscanf(name, "shm:%256[^,],%256[^,]", socket, sname);
+		err = sscanf(name1, "shm:%256[^,],%256[^,]", socket, sname);
 		if (err == 2)
 			return snd_pcm_shm_open(pcmp, name, socket, sname, stream, mode);
-		err = sscanf(name, "file:%256[^,],%16[^,],%256[^,]", file, format, sname);
+		err = sscanf(name1, "file:%256[^,],%16[^,],%256[^,]", file, format, sname);
 		if (err == 3) {
 			snd_pcm_t *slave;
 			err = snd_pcm_open(&slave, sname, stream, mode);
 			if (err < 0)
 				return err;
-			return snd_pcm_file_open(pcmp, name, file, -1, format, slave, 1);
+			return snd_pcm_file_open(pcmp, name1, file, -1, format, slave, 1);
 		}
-		err = sscanf(name, "file:%256[^,],%16[^,]", file, format);
+		err = sscanf(name1, "file:%256[^,],%16[^,]", file, format);
 		if (err == 2) {
 			snd_pcm_t *slave;
 			err = snd_pcm_null_open(&slave, name, stream, mode);
@@ -612,7 +628,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 				return err;
 			return snd_pcm_file_open(pcmp, name, file, -1, format, slave, 1);
 		}
-		err = sscanf(name, "file:%256[^,]", file);
+		err = sscanf(name1, "file:%256[^,]", file);
 		if (err == 1) {
 			snd_pcm_t *slave;
 			err = snd_pcm_null_open(&slave, name, stream, mode);
@@ -620,13 +636,13 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 				return err;
 			return snd_pcm_file_open(pcmp, name, file, -1, "raw", slave, 1);
 		}
-		if (strcmp(name, "null") == 0)
+		if (strcmp(name1, "null") == 0)
 			return snd_pcm_null_open(pcmp, name, stream, mode);
-		SNDERR("Unknown PCM %s", name);
+		SNDERR("Unknown PCM %s", name1);
 		return -ENOENT;
 	}
 	if (snd_config_get_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid type for PCM %s definition", name);
+		SNDERR("Invalid type for PCM %s definition", name1);
 		return -EINVAL;
 	}
 	err = snd_config_search(pcm_conf, "type", &conf);
@@ -639,8 +655,12 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
-	err = snd_config_searchv(snd_config, &type_conf, "pcmtype", str, 0);
+	err = snd_config_search_alias(snd_config, "pcm_type", str, &type_conf);
 	if (err >= 0) {
+		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
+			SNDERR("Invalid type for PCM type %s definition", str);
+			return -EINVAL;
+		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			const char *id = snd_config_get_id(n);
@@ -1181,3 +1201,109 @@ snd_pcm_uframes_t _snd_pcm_boundary(snd_pcm_t *pcm)
 	return pcm->boundary;
 }
 
+static const char *names[SND_PCM_HW_PARAM_LAST + 1] = {
+	[SND_PCM_HW_PARAM_FORMAT] = "format",
+	[SND_PCM_HW_PARAM_CHANNELS] = "channels",
+	[SND_PCM_HW_PARAM_RATE] = "rate",
+	[SND_PCM_HW_PARAM_PERIOD_TIME] = "period_time",
+	[SND_PCM_HW_PARAM_BUFFER_TIME] = "buffer_time"
+};
+
+int snd_pcm_slave_conf(snd_config_t *conf, const char **namep, 
+		       unsigned int count, ...)
+{
+	snd_config_iterator_t i, next;
+	const char *str;
+	struct {
+		unsigned int index;
+		int mandatory;
+		void *ptr;
+		int valid;
+	} fields[count];
+	unsigned int k;
+	int pcm_valid = 0;
+	int err;
+	va_list args;
+	if (snd_config_get_string(conf, &str) >= 0) {
+		err = snd_config_search_alias(snd_config, "pcm_slave", str, &conf);
+		if (err < 0) {
+			SNDERR("unkown pcm_slave %s", str);
+			return err;
+		}
+	}
+	va_start(args, count);
+	for (k = 0; k < count; ++k) {
+		fields[k].index = va_arg(args, int);
+		fields[k].mandatory = va_arg(args, int);
+		fields[k].ptr = va_arg(args, void *);
+		fields[k].valid = 0;
+	}
+	va_end(args);
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		if (strcmp(id, "comment") == 0)
+			continue;
+		if (strcmp(id, "pcm") == 0) {
+			if (pcm_valid) {
+			_duplicated:
+				SNDERR("duplicated %s", id);
+				return -EINVAL;
+			}
+			err = snd_config_get_string(n, namep);
+			if (err < 0) {
+			_invalid:
+				SNDERR("invalid type for %s", id);
+				return err;
+			}
+			pcm_valid = 1;
+			continue;
+		}
+		for (k = 0; k < count; ++k) {
+			unsigned int idx = fields[k].index;
+			long v;
+			assert(idx < SND_PCM_HW_PARAM_LAST);
+			assert(names[idx]);
+			if (strcmp(id, names[idx]) != 0)
+				continue;
+			if (fields[k].valid)
+				goto _duplicated;
+			switch (idx) {
+			case SND_PCM_HW_PARAM_FORMAT:
+			{
+				snd_pcm_format_t f;
+				err = snd_config_get_string(n, &str);
+				if (err < 0)
+					goto _invalid;
+				f = snd_pcm_format_value(str);
+				if (f == SND_PCM_FORMAT_UNKNOWN) {
+					SNDERR("unknown format");
+					return -EINVAL;
+				}
+				*(snd_pcm_format_t*)fields[k].ptr = f;
+					break;
+			}
+			default:
+				err = snd_config_get_integer(n, &v);
+				if (err < 0)
+					goto _invalid;
+				*(int*)fields[k].ptr = v;
+				break;
+			}
+			fields[k].valid = 1;
+			break;
+		}
+		if (k < count)
+			continue;
+		SNDERR("Unknown field %s", id);
+		return -EINVAL;
+	}
+	for (k = 0; k < count; ++k) {
+		if (fields[k].mandatory && !fields[k].valid) {
+			SNDERR("missing field %s", names[fields[k].index]);
+			return -EINVAL;
+		}
+	}
+	return 0;
+}
+		

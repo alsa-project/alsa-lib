@@ -467,6 +467,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
+	snd_config_t *slave = NULL;
 	const char *fname = NULL;
 	const char *format = NULL;
 	long fd = -1;
@@ -477,12 +478,8 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "sname") == 0) {
-			err = snd_config_get_string(n, &sname);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
+		if (strcmp(id, "slave") == 0) {
+			slave = n;
 			continue;
 		}
 		if (strcmp(id, "format") == 0) {
@@ -507,10 +504,13 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (!sname) {
-		SNDERR("sname is not defined");
+	if (!slave) {
+		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
+	err = snd_pcm_slave_conf(slave, &sname, 0);
+	if (err < 0)
+		return err;
 	if (!fname && fd < 0) {
 		SNDERR("file is not defined");
 		return -EINVAL;

@@ -658,7 +658,7 @@ int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 		SNDERR("Invalid type for %s", snd_config_get_id(c));
 		return err;
 	}
-	err = snd_config_searchv(snd_config, &type_conf, "scopetype", str, 0);
+	err = snd_config_search_alias(snd_config, "pcm_scope_type", str, &type_conf);
 	if (err >= 0) {
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
@@ -714,6 +714,7 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
+	snd_config_t *slave = NULL;
 	long frequency = -1;
 	snd_config_t *scopes = NULL;
 	snd_config_for_each(i, next, conf) {
@@ -723,12 +724,8 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		if (strcmp(id, "type") == 0)
 			continue;
-		if (strcmp(id, "sname") == 0) {
-			err = snd_config_get_string(n, &sname);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
+		if (strcmp(id, "slave") == 0) {
+			slave = n;
 			continue;
 		}
 		if (strcmp(id, "frequency") == 0) {
@@ -739,7 +736,7 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
-		if (strcmp(id, "scope") == 0) {
+		if (strcmp(id, "scopes") == 0) {
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
@@ -750,11 +747,13 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (!sname) {
-		SNDERR("sname is not defined");
+	if (!slave) {
+		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-
+	err = snd_pcm_slave_conf(slave, &sname, 0);
+	if (err < 0)
+		return err;
 	/* This is needed cause snd_config_update may destroy config */
 	sname = strdup(sname);
 	if (!sname)

@@ -544,9 +544,13 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
 		SNDERR("server is not defined");
 		return -EINVAL;
 	}
-	err = snd_config_searchv(snd_config, &sconfig, "server", server, 0);
+	err = snd_config_search_alias(snd_config, "server", server, &sconfig);
 	if (err < 0) {
 		SNDERR("Unknown server %s", server);
+		return -EINVAL;
+	}
+	if (snd_config_get_type(sconfig) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("Invalid type for server %s definition", server);
 		return -EINVAL;
 	}
 	snd_config_for_each(i, next, conf) {

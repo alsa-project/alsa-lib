@@ -204,33 +204,42 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name)
 	const char *lib = NULL, *open = NULL;
 	int (*open_func)(snd_ctl_t **ctlp, const char *name, snd_config_t *conf);
 	void *h;
+	const char *name1;
 	assert(ctlp && name);
 	err = snd_config_update();
 	if (err < 0)
 		return err;
-	err = snd_config_searchv(snd_config, &ctl_conf, "ctl", name, 0);
-	if (err < 0) {
+
+	err = snd_config_search_alias(snd_config, "ctl", name, &ctl_conf);
+	name1 = name;
+	if (err < 0 || snd_config_get_string(ctl_conf, &name1) >= 0) {
 		int card;
 		char socket[256], sname[256];
-		err = sscanf(name, "hw:%d", &card);
+		err = sscanf(name1, "hw:%d", &card);
 		if (err == 1)
 			return snd_ctl_hw_open(ctlp, name, card);
-		err = sscanf(name, "shm:%256[^,],%256[^,]", socket, sname);
+		err = sscanf(name1, "shm:%256[^,],%256[^,]", socket, sname);
 		if (err == 2)
 			return snd_ctl_shm_open(ctlp, name, socket, sname);
-		SNDERR("Unknown control %s", name);
+		SNDERR("Unknown ctl %s", name1);
 		return -ENOENT;
 	}
-	if (snd_config_get_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND)
+	if (snd_config_get_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("Invalid type for %s", snd_config_get_id(ctl_conf));
 		return -EINVAL;
+	}
 	err = snd_config_search(ctl_conf, "type", &conf);
 	if (err < 0)
 		return err;
 	err = snd_config_get_string(conf, &str);
 	if (err < 0)
 		return err;
-	err = snd_config_searchv(snd_config, &type_conf, "ctltype", str, 0);
+	err = snd_config_search_alias(snd_config, "ctl_type", str, &type_conf);
 	if (err >= 0) {
+		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
+			SNDERR("Invalid type for ctl type %s definition", str);
+			return -EINVAL;
+		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			const char *id = snd_config_get_id(n);
