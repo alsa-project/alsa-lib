@@ -236,8 +236,8 @@ snd_pcm_uframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 		snd_pcm_uframes_t frames = size;
 		snd_pcm_uframes_t slave_cont = slave->buffer_size - slave_offset;
 		snd_pcm_uframes_t slave_frames = slave_cont;
-		frames = plugin->write(pcm, areas, offset, frames,
-				       slave_areas, slave_offset, &slave_frames);
+		frames = plugin->read(pcm, areas, offset, frames,
+				      slave_areas, slave_offset, &slave_frames);
 		assert(slave_frames <= snd_pcm_mmap_capture_avail(slave));
 		snd_pcm_mmap_appl_forward(pcm, frames);
 		snd_pcm_mmap_hw_forward(pcm, frames);
