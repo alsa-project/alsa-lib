@@ -1959,9 +1959,15 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 					   snd_pcm_hw_params_t *sparams))
 
 {
+#ifdef RULES_DEBUG
+	snd_output_t *log;
+#endif
 	snd_pcm_hw_params_t sparams;
 	int err;
 	unsigned int cmask, changed;
+#ifdef RULES_DEBUG
+	snd_output_stdio_attach(&log, stderr, 0);
+#endif
 	err = cprepare(pcm, params);
 	if (err < 0)
 		return err;
@@ -1970,26 +1976,54 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		SNDERR("Slave PCM not useable");
 		return err;
 	}
+#ifdef RULES_DEBUG
+	snd_output_printf(log, "hw_refine_slave - enter '%s'\n", pcm->name);
+#endif
 	do {
 		cmask = params->cmask;
 		params->cmask = 0;
+#ifdef RULES_DEBUG
+		snd_output_printf(log, "schange '%s'\n", pcm->name);
+		snd_pcm_hw_params_dump(params, log);
+#endif
 		err = schange(pcm, params, &sparams);
 		if (err >= 0) {
+#ifdef RULES_DEBUG
+			snd_output_printf(log, "srefine '%s'\n", pcm->name);
+			snd_pcm_hw_params_dump(params, log);
+#endif
 			err = srefine(pcm, &sparams);
 		}
 		if (err < 0) {
+#ifdef RULES_DEBUG
+			snd_output_printf(log, "cchange '%s', schange < 0\n", pcm->name);
+			snd_pcm_hw_params_dump(params, log);
+#endif
 			cchange(pcm, params, &sparams);
 			return err;
 		}
+#ifdef RULES_DEBUG
+		snd_output_printf(log, "cchange '%s'\n", pcm->name);
+#endif
 		err = cchange(pcm, params, &sparams);
 		if (err < 0)
 			return err;
+#ifdef RULES_DEBUG
+		snd_output_printf(log, "refine_soft '%s'\n", pcm->name);
+#endif
 		err = snd_pcm_hw_refine_soft(pcm, params);
 		changed = params->cmask;
 		params->cmask |= cmask;
 		if (err < 0)
 			return err;
+#ifdef RULES_DEBUG
+		snd_output_printf(log, "refine_soft ok '%s'\n", pcm->name);
+#endif
 	} while (changed);
+#ifdef RULES_DEBUG
+	snd_output_printf(log, "refine_slave - leave '%s'\n", pcm->name);
+	snd_output_close(log);
+#endif
 	return 0;
 }
 
