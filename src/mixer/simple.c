@@ -425,9 +425,16 @@ static int selem_write(snd_mixer_elem_t *elem,
 
 static void selem_free(snd_mixer_elem_t *elem)
 {
+	int k;
+
 	selem_t *s;
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
 	s = elem->private_data;
+	for (k = 0; k <= CTL_LAST; k++) {
+		if (s->ctls[k].elem)
+			snd_mixer_elem_detach(elem, s->ctls[k].elem);
+	}
+	elem->private_data = NULL;
 	free(s);
 }
 
