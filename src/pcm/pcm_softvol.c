@@ -42,8 +42,10 @@ typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
 	snd_pcm_format_t sformat;
+	unsigned int cchannels;
 	snd_ctl_t *ctl;
 	snd_ctl_elem_value_t elem;
+	unsigned int cur_vol[2];
 	unsigned int max_val;
 	double min_dB;
 	unsigned short *dB_value;
@@ -55,38 +57,38 @@ typedef struct {
 #define PRESET_MIN_DB		-48.0
 
 static unsigned short preset_dB_value[PRESET_RESOLUTION] = {
-	0x0000, 0x0930, 0x094f, 0x096e, 0x098e, 0x09af, 0x09cf, 0x09f0,
-	0x0a12, 0x0a34, 0x0a56, 0x0a79, 0x0a9d, 0x0ac0, 0x0ae5, 0x0b0a,
-	0x0b2f, 0x0b55, 0x0b7b, 0x0ba2, 0x0bc9, 0x0bf1, 0x0c19, 0x0c42,
-	0x0c6b, 0x0c95, 0x0cc0, 0x0ceb, 0x0d16, 0x0d42, 0x0d6f, 0x0d9c,
-	0x0dca, 0x0df9, 0x0e28, 0x0e58, 0x0e88, 0x0eb9, 0x0eeb, 0x0f1d,
-	0x0f51, 0x0f84, 0x0fb9, 0x0fee, 0x1023, 0x105a, 0x1091, 0x10c9,
-	0x1102, 0x113b, 0x1175, 0x11b0, 0x11ec, 0x1228, 0x1266, 0x12a4,
-	0x12e3, 0x1322, 0x1363, 0x13a5, 0x13e7, 0x142a, 0x146e, 0x14b3,
-	0x14f9, 0x1540, 0x1587, 0x15d0, 0x161a, 0x1664, 0x16b0, 0x16fd,
-	0x174a, 0x1799, 0x17e8, 0x1839, 0x188b, 0x18de, 0x1932, 0x1987,
-	0x19dd, 0x1a34, 0x1a8d, 0x1ae6, 0x1b41, 0x1b9d, 0x1bfa, 0x1c59,
-	0x1cb8, 0x1d19, 0x1d7c, 0x1ddf, 0x1e44, 0x1eaa, 0x1f12, 0x1f7a,
-	0x1fe5, 0x2050, 0x20bd, 0x212c, 0x219c, 0x220d, 0x2280, 0x22f5,
-	0x236b, 0x23e2, 0x245b, 0x24d6, 0x2553, 0x25d1, 0x2650, 0x26d2,
-	0x2755, 0x27d9, 0x2860, 0x28e8, 0x2972, 0x29fe, 0x2a8c, 0x2b1b,
-	0x2bad, 0x2c40, 0x2cd6, 0x2d6d, 0x2e06, 0x2ea2, 0x2f3f, 0x2fdf,
-	0x3080, 0x3124, 0x31ca, 0x3272, 0x331c, 0x33c9, 0x3477, 0x3529,
-	0x35dc, 0x3692, 0x374a, 0x3805, 0x38c2, 0x3981, 0x3a43, 0x3b08,
-	0x3bcf, 0x3c99, 0x3d66, 0x3e35, 0x3f07, 0x3fdc, 0x40b3, 0x418e,
-	0x426b, 0x434b, 0x442e, 0x4514, 0x45fe, 0x46ea, 0x47d9, 0x48cc,
-	0x49c2, 0x4aba, 0x4bb7, 0x4cb6, 0x4db9, 0x4ec0, 0x4fc9, 0x50d7,
-	0x51e8, 0x52fc, 0x5414, 0x5530, 0x564f, 0x5773, 0x589a, 0x59c5,
-	0x5af4, 0x5c27, 0x5d5e, 0x5e99, 0x5fd9, 0x611c, 0x6264, 0x63b0,
-	0x6501, 0x6655, 0x67af, 0x690d, 0x6a6f, 0x6bd7, 0x6d43, 0x6eb3,
-	0x7029, 0x71a4, 0x7323, 0x74a8, 0x7632, 0x77c1, 0x7955, 0x7aee,
-	0x7c8d, 0x7e32, 0x7fdc, 0x818b, 0x8341, 0x84fc, 0x86bc, 0x8883,
-	0x8a50, 0x8c23, 0x8dfc, 0x8fdb, 0x91c1, 0x93ad, 0x959f, 0x9798,
-	0x9998, 0x9b9e, 0x9dac, 0x9fc0, 0xa1db, 0xa3fd, 0xa627, 0xa858,
-	0xaa90, 0xacd0, 0xaf17, 0xb166, 0xb3bd, 0xb61c, 0xb882, 0xbaf1,
-	0xbd68, 0xbfe7, 0xc26f, 0xc4ff, 0xc798, 0xca3a, 0xcce5, 0xcf98,
-	0xd255, 0xd51b, 0xd7ea, 0xdac3, 0xdda5, 0xe092, 0xe388, 0xe688,
-	0xe992, 0xeca6, 0xefc5, 0xf2ee, 0xf622, 0xf961, 0xfcab, 0xffff,
+	0x0000, 0x0104, 0x010a, 0x0110, 0x0116, 0x011c, 0x0122, 0x0129,
+	0x012f, 0x0136, 0x013d, 0x0144, 0x014b, 0x0152, 0x015a, 0x0161,
+	0x0169, 0x0171, 0x0179, 0x0181, 0x018a, 0x0193, 0x019c, 0x01a5,
+	0x01ae, 0x01b7, 0x01c1, 0x01cb, 0x01d5, 0x01df, 0x01ea, 0x01f5,
+	0x0200, 0x020b, 0x0216, 0x0222, 0x022e, 0x023b, 0x0247, 0x0254,
+	0x0261, 0x026e, 0x027c, 0x028a, 0x0298, 0x02a7, 0x02b6, 0x02c5,
+	0x02d5, 0x02e5, 0x02f5, 0x0306, 0x0317, 0x0328, 0x033a, 0x034c,
+	0x035f, 0x0372, 0x0385, 0x0399, 0x03ad, 0x03c2, 0x03d7, 0x03ed,
+	0x0403, 0x041a, 0x0431, 0x0448, 0x0460, 0x0479, 0x0492, 0x04ac,
+	0x04c6, 0x04e1, 0x04fd, 0x0519, 0x0535, 0x0553, 0x0571, 0x058f,
+	0x05af, 0x05cf, 0x05ef, 0x0611, 0x0633, 0x0656, 0x067a, 0x069e,
+	0x06c3, 0x06ea, 0x0710, 0x0738, 0x0761, 0x078a, 0x07b5, 0x07e0,
+	0x080d, 0x083a, 0x0868, 0x0898, 0x08c8, 0x08fa, 0x092c, 0x0960,
+	0x0995, 0x09cb, 0x0a02, 0x0a3a, 0x0a74, 0x0aae, 0x0aeb, 0x0b28,
+	0x0b67, 0x0ba7, 0x0be9, 0x0c2c, 0x0c70, 0x0cb6, 0x0cfe, 0x0d47,
+	0x0d92, 0x0dde, 0x0e2d, 0x0e7c, 0x0ece, 0x0f21, 0x0f76, 0x0fce,
+	0x1027, 0x1081, 0x10de, 0x113d, 0x119f, 0x1202, 0x1267, 0x12cf,
+	0x1339, 0x13a5, 0x1414, 0x1485, 0x14f8, 0x156e, 0x15e7, 0x1662,
+	0x16e0, 0x1761, 0x17e5, 0x186b, 0x18f5, 0x1981, 0x1a11, 0x1aa4,
+	0x1b3a, 0x1bd3, 0x1c70, 0x1d10, 0x1db4, 0x1e5b, 0x1f06, 0x1fb4,
+	0x2067, 0x211d, 0x21d8, 0x2297, 0x2359, 0x2420, 0x24ec, 0x25bc,
+	0x2690, 0x2769, 0x2847, 0x292a, 0x2a12, 0x2aff, 0x2bf1, 0x2ce8,
+	0x2de5, 0x2ee8, 0x2ff0, 0x30fe, 0x3211, 0x332b, 0x344c, 0x3572,
+	0x369f, 0x37d2, 0x390d, 0x3a4e, 0x3b96, 0x3ce6, 0x3e3d, 0x3f9b,
+	0x4101, 0x426f, 0x43e6, 0x4564, 0x46eb, 0x487a, 0x4a12, 0x4bb3,
+	0x4d5d, 0x4f11, 0x50ce, 0x5295, 0x5466, 0x5642, 0x5827, 0x5a18,
+	0x5c13, 0x5e19, 0x602b, 0x6249, 0x6472, 0x66a8, 0x68ea, 0x6b39,
+	0x6d94, 0x6ffd, 0x7274, 0x74f8, 0x778b, 0x7a2c, 0x7cdc, 0x7f9b,
+	0x826a, 0x8548, 0x8836, 0x8b35, 0x8e45, 0x9166, 0x9499, 0x97de,
+	0x9b35, 0x9e9f, 0xa21c, 0xa5ad, 0xa952, 0xad0b, 0xb0da, 0xb4bd,
+	0xb8b7, 0xbcc7, 0xc0ee, 0xc52d, 0xc983, 0xcdf1, 0xd279, 0xd71a,
+	0xdbd5, 0xe0ab, 0xe59c, 0xeaa9, 0xefd3, 0xf519, 0xfa7d, 0xffff,
 };
 
 #endif /* DOC_HIDDEN */
@@ -96,7 +98,7 @@ typedef union {
 	int i;
 	short s[2];
 } val_t;
-static inline int MULTI_DIV(int a, unsigned short b)
+static inline int MULTI_DIV_int(int a, unsigned short b)
 {
 	val_t v, x, y;
 	v.i = a;
@@ -113,71 +115,135 @@ static inline int MULTI_DIV(int a, unsigned short b)
 	return y.i;
 }
 
+/* (16bit x 16bit) >> 16 */
+#define MULTI_DIV_short(src,scale) (((int)(src) * (scale)) >> VOL_SCALE_SHIFT)
+
+
 /*
  * apply volumue attenuation
  *
  * TODO: use SIMD operations
  */
-static void snd_pcm_softvol_convert(snd_pcm_softvol_t *svol,
-				    const snd_pcm_channel_area_t *dst_areas,
-				    snd_pcm_uframes_t dst_offset,
-				    const snd_pcm_channel_area_t *src_areas,
-				    snd_pcm_uframes_t src_offset,
-				    unsigned int channels,
-				    snd_pcm_uframes_t frames,
-				    unsigned int cur_vol)
+
+#define CONVERT_AREA(TYPE) do {	\
+	unsigned int ch, fr; \
+	TYPE *src, *dst; \
+	for (ch = 0; ch < channels; ch++) { \
+		src_area = &src_areas[ch]; \
+		dst_area = &dst_areas[ch]; \
+		src = snd_pcm_channel_area_addr(src_area, src_offset); \
+		dst = snd_pcm_channel_area_addr(dst_area, dst_offset); \
+		src_step = snd_pcm_channel_area_step(src_area) / sizeof(TYPE); \
+		dst_step = snd_pcm_channel_area_step(dst_area) / sizeof(TYPE); \
+		GET_VOL_SCALE; \
+		fr = frames; \
+		if (! vol_scale) { \
+			while (fr--) { \
+				*dst = 0; \
+				dst += dst_step; \
+			} \
+		} else if (vol_scale == 0xffff) { \
+			while (fr--) { \
+				*dst = *src; \
+				src += src_step; \
+				dst += dst_step; \
+			} \
+		} else { \
+			while (fr--) { \
+				*dst = MULTI_DIV_##TYPE(*src, vol_scale);\
+				src += src_step; \
+				dst += dst_step; \
+			} \
+		} \
+	} \
+} while (0)
+	
+
+		
+#define GET_VOL_SCALE \
+	switch (ch) { \
+	case 0: \
+	case 2: \
+		vol_scale = (channels == ch + 1) ? vol_c : vol[0]; \
+		break; \
+	case 4: \
+	case 5: \
+		vol_scale = vol_c; \
+		break; \
+	default: \
+		vol_scale = vol[ch & 1]; \
+		break; \
+	}
+
+/* 2-channel stereo control */
+static void softvol_convert_stereo_vol(snd_pcm_softvol_t *svol,
+				       const snd_pcm_channel_area_t *dst_areas,
+				       snd_pcm_uframes_t dst_offset,
+				       const snd_pcm_channel_area_t *src_areas,
+				       snd_pcm_uframes_t src_offset,
+				       unsigned int channels,
+				       snd_pcm_uframes_t frames)
 {
 	const snd_pcm_channel_area_t *dst_area, *src_area;
 	unsigned int src_step, dst_step;
-	unsigned int ch;
-	unsigned int fr;
-	unsigned int vol_scale;
+	unsigned int vol_scale, vol[2], vol_c;
 
-	if (cur_vol == 0) {
+	if (svol->cur_vol[0] == 0 && svol->cur_vol[1] == 0) {
 		snd_pcm_areas_silence(dst_areas, dst_offset, channels, frames,
 				      svol->sformat);
 		return;
-	} else if (cur_vol == svol->max_val) {
+	} else if (svol->cur_vol[0] == svol->max_val &&
+		   svol->cur_vol[1] == svol->max_val) {
 		snd_pcm_areas_copy(dst_areas, dst_offset, src_areas, src_offset,
 				   channels, frames, svol->sformat);
 		return;
 	}
 
-	vol_scale = svol->dB_value[cur_vol];
+	vol[0] = svol->dB_value[svol->cur_vol[0]];
+	vol[1] = svol->dB_value[svol->cur_vol[1]];
+	vol_c = svol->dB_value[(svol->cur_vol[0] + svol->cur_vol[1]) / 2];
 	if (svol->sformat == SND_PCM_FORMAT_S16) {
 		/* 16bit samples */
-		short *src, *dst;
-		for (ch = 0; ch < channels; ch++) {
-			src_area = &src_areas[ch];
-			dst_area = &dst_areas[ch];
-			src = snd_pcm_channel_area_addr(src_area, src_offset);
-			dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
-			src_step = snd_pcm_channel_area_step(src_area) / sizeof(short);
-			dst_step = snd_pcm_channel_area_step(dst_area) / sizeof(short);
-			fr = frames;
-			while (fr--) {
-				*dst = ((int)*src * vol_scale) >> VOL_SCALE_SHIFT;
-				src += src_step;
-				dst += dst_step;
-			}
-		}
+		CONVERT_AREA(short);
 	} else {
 		/* 32bit samples */
-		int *src, *dst;
-		for (ch = 0; ch < channels; ch++) {
-			src_area = &src_areas[ch];
-			dst_area = &dst_areas[ch];
-			src = snd_pcm_channel_area_addr(src_area, src_offset);
-			dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
-			src_step = snd_pcm_channel_area_step(src_area) / sizeof(int);
-			dst_step = snd_pcm_channel_area_step(dst_area) / sizeof(int);
-			fr = frames;
-			while (fr--) {
-				*dst = MULTI_DIV(*src, vol_scale);
-				src += src_step;
-				dst += dst_step;
-			}
-		}
+		CONVERT_AREA(int);
+	}
+}
+
+#undef GET_VOL_SCALE
+#define GET_VOL_SCALE
+
+/* mono control */
+static void softvol_convert_mono_vol(snd_pcm_softvol_t *svol,
+				     const snd_pcm_channel_area_t *dst_areas,
+				     snd_pcm_uframes_t dst_offset,
+				     const snd_pcm_channel_area_t *src_areas,
+				     snd_pcm_uframes_t src_offset,
+				     unsigned int channels,
+				     snd_pcm_uframes_t frames)
+{
+	const snd_pcm_channel_area_t *dst_area, *src_area;
+	unsigned int src_step, dst_step;
+	unsigned int vol_scale;
+
+	if (svol->cur_vol[0] == 0) {
+		snd_pcm_areas_silence(dst_areas, dst_offset, channels, frames,
+				      svol->sformat);
+		return;
+	} else if (svol->cur_vol[0] == svol->max_val) {
+		snd_pcm_areas_copy(dst_areas, dst_offset, src_areas, src_offset,
+				   channels, frames, svol->sformat);
+		return;
+	}
+
+	vol_scale = svol->dB_value[svol->cur_vol[0]];
+	if (svol->sformat == SND_PCM_FORMAT_S16) {
+		/* 16bit samples */
+		CONVERT_AREA(short);
+	} else {
+		/* 32bit samples */
+		CONVERT_AREA(int);
 	}
 }
 
@@ -186,16 +252,19 @@ static void snd_pcm_softvol_convert(snd_pcm_softvol_t *svol,
  *
  * TODO: mmap support?
  */
-static unsigned int get_current_volume(snd_pcm_softvol_t *svol)
+static void get_current_volume(snd_pcm_softvol_t *svol)
 {
 	unsigned int val;
+	unsigned int i;
+
 	if (snd_ctl_elem_read(svol->ctl, &svol->elem) < 0)
-		return 0;
-	/* set max vol as default */
-	val = svol->elem.value.integer.value[0];
-	if (val > svol->max_val)
-		val = svol->max_val;
-	return val;
+		return;
+	for (i = 0; i < svol->cchannels; i++) {
+		val = svol->elem.value.integer.value[i];
+		if (val > svol->max_val)
+			val = svol->max_val;
+		svol->cur_vol[i] = val;
+	}
 }
 
 static void softvol_free(snd_pcm_softvol_t *svol)
@@ -251,7 +320,6 @@ static int snd_pcm_softvol_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_
 		_snd_pcm_hw_params_set_format(sparams, svol->sformat);
 		_snd_pcm_hw_params_set_subformat(sparams, SND_PCM_SUBFORMAT_STD);
 	}
-	_snd_pcm_hw_params_set_subformat(sparams, SND_PCM_SUBFORMAT_STD);
 	return 0;
 }
 
@@ -345,10 +413,13 @@ snd_pcm_softvol_write_areas(snd_pcm_t *pcm,
 	snd_pcm_softvol_t *svol = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	snd_pcm_softvol_convert(svol, slave_areas, slave_offset,
-				areas, offset, 
-				pcm->channels,
-				size, get_current_volume(svol));
+	get_current_volume(svol);
+	if (svol->cchannels == 1)
+		softvol_convert_mono_vol(svol, slave_areas, slave_offset,
+					 areas, offset, pcm->channels, size);
+	else
+		softvol_convert_stereo_vol(svol, slave_areas, slave_offset,
+					   areas, offset, pcm->channels, size);
 	*slave_sizep = size;
 	return size;
 }
@@ -365,10 +436,13 @@ snd_pcm_softvol_read_areas(snd_pcm_t *pcm,
 	snd_pcm_softvol_t *svol = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	snd_pcm_softvol_convert(svol, areas, offset, 
-				slave_areas, slave_offset,
-				pcm->channels,
-				size, get_current_volume(svol));
+	get_current_volume(svol);
+	if (svol->cchannels == 1)
+		softvol_convert_mono_vol(svol, areas, offset, slave_areas,
+					 slave_offset, pcm->channels, size);
+	else
+		softvol_convert_stereo_vol(svol, areas, offset, slave_areas,
+					   slave_offset, pcm->channels, size);
 	*slave_sizep = size;
 	return size;
 }
@@ -388,14 +462,17 @@ static void snd_pcm_softvol_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(svol->plug.slave, out);
 }
 
-static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo)
+static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo, int count)
 {
 	int err;
+	unsigned int i;
 
-	err = snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, 1, 0, svol->max_val, 0);
+	err = snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, count, 0, svol->max_val, 0);
 	if (err < 0)
 		return err;
-	svol->elem.value.integer.value[0] = svol->max_val;
+	/* set max value as default */
+	for (i = 0; i < count; i++)
+		svol->elem.value.integer.value[i] = svol->max_val;
 	return snd_ctl_elem_write(svol->ctl, &svol->elem);
 }
 
@@ -407,7 +484,7 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo)
  */
 static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 				int ctl_card, snd_ctl_elem_id_t *ctl_id,
-				double min_dB, int resolution)
+				int cchannels, double min_dB, int resolution)
 {
 	char tmp_name[32];
 	snd_pcm_info_t *info;
@@ -444,7 +521,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			SNDERR("Cannot get info for CTL %s", tmp_name);
 			return err;
 		}
-		err = add_user_ctl(svol, cinfo);
+		err = add_user_ctl(svol, cinfo, cchannels);
 		if (err < 0) {
 			SNDERR("Cannot add a control");
 			return err;
@@ -455,13 +532,16 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			return 1; /* notify */
 
 		} else if (cinfo->type != SND_CTL_ELEM_TYPE_INTEGER ||
-		    cinfo->count != 1 ||
-		    cinfo->value.integer.min != 0 ||
-		    cinfo->value.integer.max != resolution - 1) {
-			snd_ctl_elem_remove(svol->ctl, &cinfo->id);
-			err = add_user_ctl(svol, cinfo);
-			if (err < 0) {
-				SNDERR("Cannot replace a control");
+			   cinfo->count != (unsigned int)cchannels ||
+			   cinfo->value.integer.min != 0 ||
+			   cinfo->value.integer.max != resolution - 1) {
+			if ((err = snd_ctl_elem_remove(svol->ctl, &cinfo->id)) < 0) {
+				SNDERR("Control %s mismatch", tmp_name);
+				return err;
+			}
+			snd_ctl_elem_info_set_id(cinfo, ctl_id); /* reset numid */
+			if ((err = add_user_ctl(svol, cinfo, cchannels)) < 0) {
+				SNDERR("Cannot add a control");
 				return err;
 			}
 		}
@@ -479,7 +559,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 		svol->min_dB = min_dB;
 		for (i = 1; i < svol->max_val; i++) {
 			double db = svol->min_dB - ((i - 1) * svol->min_dB) / (svol->max_val - 1);
-			double v = (pow(2.0, db / 10.0) * (double)(1 << VOL_SCALE_SHIFT));
+			double v = (pow(10.0, db / 20.0) * (double)(1 << VOL_SCALE_SHIFT));
 			svol->dB_value[i] = (unsigned short)v;
 		}
 		svol->dB_value[svol->max_val] = 65535;
@@ -525,6 +605,7 @@ static snd_pcm_ops_t snd_pcm_softvol_ops = {
 int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 			 snd_pcm_format_t sformat,
 			 int ctl_card, snd_ctl_elem_id_t *ctl_id,
+			 int cchannels,
 			 double min_dB, int resolution,
 			 snd_pcm_t *slave, int close_slave)
 {
@@ -539,7 +620,8 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	svol = calloc(1, sizeof(*svol));
 	if (! svol)
 		return -ENOMEM;
-	err = softvol_load_control(slave, svol, ctl_card, ctl_id, min_dB, resolution);
+	err = softvol_load_control(slave, svol, ctl_card, ctl_id, cchannels,
+				   min_dB, resolution);
 	if (err < 0) {
 		softvol_free(svol);
 		return err;
@@ -553,6 +635,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	/* do softvol */
 	snd_pcm_plugin_init(&svol->plug);
 	svol->sformat = sformat;
+	svol->cchannels = cchannels;
 	svol->plug.read = snd_pcm_softvol_read_areas;
 	svol->plug.write = snd_pcm_softvol_write_areas;
 	svol->plug.undo_read = snd_pcm_plugin_undo_read_generic;
@@ -580,7 +663,8 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 /*
  * parse card index and id for the softvol control
  */
-static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int *cardp)
+static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int *cardp,
+			    int *cchannelsp)
 {
 	snd_config_iterator_t i, next;
 	int iface = SND_CTL_ELEM_IFACE_MIXER;
@@ -591,6 +675,7 @@ static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int *
 	int err;
 
 	*cardp = -1;
+	*cchannelsp = 2;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -648,6 +733,19 @@ static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int *
 			}
 			continue;
 		}
+		if (strcmp(id, "count") == 0) {
+			long v;
+			if ((err = snd_config_get_integer(n, &v)) < 0) {
+				SNDERR("field %s is not an integer", id);
+				goto _err;
+			}
+			if (v < 1 || v > 2) {
+				SNDERR("Invalid count %ld", v);
+				goto _err;
+			}
+			*cchannelsp = v;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -680,6 +778,9 @@ static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int *
 This plugin applies the software volume attenuation.
 The format, rate and channels must match for both of source and destination.
 
+When the control is stereo (count=2), the channels are assumed to be either
+mono, 2.0, 2.1, 4.0, 4.1, 5.1 or 7.1.
+
 If the control already exists and it's a system control (i.e. no
 user-defined control), the plugin simply passes its slave without
 any changes.
@@ -697,13 +798,14 @@ pcm.name {
         }
         control {
 	        name STR        # control element id string
-		[card STR]      # control name (e.g. hw:0)
+		[card INT]      # control card index
 		[iface STR]     # interface of the element
 		[index INT]     # index of the element
 		[device INT]    # device number of the element
 		[subdevice INT] # subdevice number of the element
+		[count INT]     # control channels 1 or 2 (default: 2)
 	}
-	[min_dB REAL]           # minimal dB value (default: -48 dB)
+	[min_dB REAL]           # minimal dB value (default: -48.0)
 	[resolution INT]        # resolution (default: 256)
 }
 \endcode
@@ -743,7 +845,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	snd_ctl_elem_id_t *ctl_id;
 	int resolution = PRESET_RESOLUTION;
 	double min_dB = PRESET_MIN_DB;
-	int card = -1;
+	int card = -1, cchannels = 2;
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -813,11 +915,12 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 	snd_ctl_elem_id_alloca(&ctl_id);
-	if ((err = parse_control_id(control, ctl_id, &card)) < 0) {
+	if ((err = parse_control_id(control, ctl_id, &card, &cchannels)) < 0) {
 		snd_pcm_close(spcm);
 		return err;
 	}
-	err = snd_pcm_softvol_open(pcmp, name, sformat, card, ctl_id, min_dB, resolution, spcm, 1);
+	err = snd_pcm_softvol_open(pcmp, name, sformat, card, ctl_id, cchannels,
+				   min_dB, resolution, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
