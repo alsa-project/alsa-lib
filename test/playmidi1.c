@@ -48,11 +48,11 @@
 
 #include "../include/asoundlib.h"
 
-/* define this if you want to send real-time time stamps instead of midi ticks to the ALSA sequencer */
-/* #define USE_REALTIME */
+/* send real-time time stamps instead of midi ticks to the ALSA sequencer */
+static int use_realtime = 0;
 
-/* define this if you want to control event buffering by blocking mode */
-#define USE_BLOCKING_MODE
+/* control event buffering by blocking mode */
+static int use_blocking_mode = 1;
 
 /* default destination queue, client and port numbers */
 #define DEST_CLIENT_NUMBER	65
@@ -66,12 +66,13 @@
 static FILE *F;
 static snd_seq_t *seq_handle = NULL;
 static int ppq = 96;
+static int slave_ppq = 96;
 
 static double local_secs = 0;
 static int local_ticks = 0;
 static int local_tempo = 500000;
 
-static int dest_queue = 0;
+static int dest_queue = -1;
 static int dest_client = DEST_CLIENT_NUMBER;
 static int dest_port = DEST_PORT_NUMBER;
 static int my_port = 0;
@@ -93,33 +94,25 @@ static inline double tick2time_dbl(int tick)
 	return local_secs + ((double) (tick - local_ticks) * (double) local_tempo * 1.0E-6 / (double) ppq);
 }
 
-#ifdef USE_REALTIME
 static void tick2time(snd_seq_real_time_t * tm, int tick)
 {
 	double secs = tick2time_dbl(tick);
 	tm->tv_sec = secs;
 	tm->tv_nsec = (secs - tm->tv_sec) * 1.0E9;
 }
-#endif
 
-#ifdef USE_BLOCKING_MODE
-/* write event - using blocking mode */
-static void write_ev(snd_seq_event_t *ev)
-{
-	int written;
-
-	written = snd_seq_event_output(seq_handle, ev);
-	if (written < 0) {
-		printf("written = %i (%s)\n", written, snd_strerror(written));
-		exit(1);
-	}
-}
-#else
-/* write event - using select syscall */
 static void write_ev(snd_seq_event_t *ev)
 {
 	int rc;
 
+	if (use_blocking_mode) {
+		rc = snd_seq_event_output(seq_handle, ev);
+		if (rc < 0) {
+			printf("written = %i (%s)\n", rc, snd_strerror(rc));
+			exit(1);
+		}
+		return;
+	}
 	while ((rc = snd_seq_event_output(seq_handle, ev)) < 0) {
 		int seqfd;
 		fd_set fds;
@@ -132,7 +125,6 @@ static void write_ev(snd_seq_event_t *ev)
 		}
 	}
 }
-#endif
 
 /* read byte */
 static int mygetc(void)
@@ -173,12 +165,16 @@ static void do_header(int format, int ntracks, int division)
     		exit(1);
 	}
 	if (tempo.ppq != ppq) {
+		slave_ppq = tempo.ppq;
 		tempo.ppq = ppq;
 		if (snd_seq_set_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
     			perror("set_queue_tempo");
     			if (!slave)
     				exit(1);
-		}
+			else
+				printf("different PPQ %d in SMF from queue PPQ %d\n", ppq, slave_ppq);
+		} else
+			slave_ppq = ppq;
 		if (verbose >= VERB_INFO)
 			printf("ALSA Timer updated, PPQ = %d\n", tempo.ppq);
 	}
@@ -197,13 +193,17 @@ static void do_header(int format, int ntracks, int division)
 /* fill time */
 static void set_event_time(snd_seq_event_t *ev, unsigned int currtime)
 {
-#ifdef USE_REALTIME
-	snd_seq_real_time_t rtime;
-	tick2time(&rtime, currtime);
-	snd_seq_ev_schedule_real(ev, dest_queue, 0, &rtime);
-#else
-	snd_seq_ev_schedule_tick(ev, dest_queue, 0, currtime);
-#endif
+	if (use_realtime) {
+		snd_seq_real_time_t rtime;
+		if (ppq != slave_ppq)
+			currtime = (currtime * slave_ppq) / ppq;
+		tick2time(&rtime, currtime);
+		snd_seq_ev_schedule_real(ev, dest_queue, 0, &rtime);
+	} else {
+		if (ppq != slave_ppq)
+			currtime = (currtime * slave_ppq) / ppq;
+		snd_seq_ev_schedule_tick(ev, dest_queue, 0, currtime);
+	}
 }
 
 /* fill normal event header */
@@ -357,24 +357,25 @@ static snd_seq_event_t *wait_for_event(void)
 	int left;
 	snd_seq_event_t *input_event;
   
-#ifdef USE_BLOCKING_MODE
-	/* read event - blocked until any event is read */
-	left = snd_seq_event_input(seq_handle, &input_event);
-#else
-	/* read event - using select syscall */
-	while ((left = snd_seq_event_input(seq_handle, &input_event)) >= 0 &&
-	       input_event == NULL) {
-		int seqfd;
-		fd_set fds;
-		seqfd = snd_seq_file_descriptor(seq_handle);
-		FD_ZERO(&fds);
-		FD_SET(seqfd, &fds);
-		if ((left = select(seqfd + 1, &fds, NULL, NULL, NULL)) < 0) {
-			printf("select error = %i (%s)\n", left, snd_strerror(left));
-			exit(1);
+	if (use_blocking_mode) {
+		/* read event - blocked until any event is read */
+		left = snd_seq_event_input(seq_handle, &input_event);
+	} else {
+		/* read event - using select syscall */
+		while ((left = snd_seq_event_input(seq_handle, &input_event)) >= 0 &&
+		       input_event == NULL) {
+			int seqfd;
+			fd_set fds;
+			seqfd = snd_seq_file_descriptor(seq_handle);
+			FD_ZERO(&fds);
+			FD_SET(seqfd, &fds);
+			if ((left = select(seqfd + 1, &fds, NULL, NULL, NULL)) < 0) {
+				printf("select error = %i (%s)\n", left, snd_strerror(left));
+				exit(1);
+			}
 		}
 	}
-#endif
+
 	if (left < 0) {
 		printf("alsa_sync error!:%s\n", snd_strerror(left));
 		return NULL;
@@ -458,7 +459,10 @@ static void usage(void)
 	fprintf(stderr, "  -v: verbose mode\n");
 	fprintf(stderr, "  -a client:port : set destination address (default=%d:%d)\n",
 		DEST_CLIENT_NUMBER, DEST_PORT_NUMBER);
+	fprintf(stderr, "  -q queue: use the specified queue\n");
 	fprintf(stderr, "  -s queue: slave mode (allow external clock synchronisation)\n");
+	fprintf(stderr, "  -r : play on real-time mode\n");
+	fprintf(stderr, "  -b : play on non-blocking mode\n");
 }
 
 /* parse destination address (-a option) */
@@ -476,13 +480,20 @@ int main(int argc, char *argv[])
 	int tmp;
 	int c;
 
-	while ((c = getopt(argc, argv, "s:a:v")) != -1) {
+	while ((c = getopt(argc, argv, "s:a:q:vrb")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose++;
 			break;
 		case 'a':
 			parse_address(optarg, &dest_client, &dest_port);
+			break;
+		case 'q':
+			dest_queue = atoi(optarg);
+			if (dest_queue < 0) {
+				fprintf(stderr, "invalid queue number %d\n", dest_queue);
+				exit(1);
+			}
 			break;
 		case 's':
 			slave = 1;
@@ -492,6 +503,12 @@ int main(int argc, char *argv[])
 				exit(1);
 			}
 			break;
+		case 'r':
+			use_realtime = 1;
+			break;
+		case 'b':
+			use_blocking_mode = 0;
+			break;
 		default:
 			usage();
 			exit(1);
@@ -499,11 +516,10 @@ int main(int argc, char *argv[])
 	}
 
 	if (verbose >= VERB_INFO) {
-#ifdef USE_REALTIME
-		printf("ALSA MIDI Player, feeding events to real-time queue\n");
-#else
-		printf("ALSA MIDI Player, feeding events to song queue\n");
-#endif
+		if (use_realtime)
+			printf("ALSA MIDI Player, feeding events to real-time queue\n");
+		else
+			printf("ALSA MIDI Player, feeding events to song queue\n");
 	}
 
 	/* open sequencer device */
@@ -515,11 +531,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	
-#ifdef USE_BLOCKING_MODE
-	tmp = snd_seq_block_mode(seq_handle, 1);
-#else
-	tmp = snd_seq_block_mode(seq_handle, 0);
-#endif
+	tmp = snd_seq_block_mode(seq_handle, use_blocking_mode);
 	if (tmp < 0) {
 		perror("block_mode");
 		exit(1);
@@ -544,8 +556,11 @@ int main(int argc, char *argv[])
 	}
 	
 	/* setup queue */
-	if (slave) {
-		snd_seq_use_queue(seq_handle, dest_queue, 1);
+	if (dest_queue >= 0) {
+		if (snd_seq_use_queue(seq_handle, dest_queue, 1) < 0) {
+			perror("use queue");
+			exit(1);
+		}
 	} else {
 		dest_queue = snd_seq_alloc_queue(seq_handle);
 		if (dest_queue < 0) {
@@ -565,7 +580,7 @@ int main(int argc, char *argv[])
 	if (slave) {	
 		tmp = snd_seq_connect_from(seq_handle, my_port,
 					   SND_SEQ_CLIENT_SYSTEM,
-					   SND_SEQ_PORT_SYSTEM_TIMER);
+					   snd_seq_queue_sync_port(dest_queue));
 		if (tmp < 0) {
 			perror("subscribe");
 			exit(1);

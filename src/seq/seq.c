@@ -504,6 +504,23 @@ int snd_seq_alloc_queue(snd_seq_t *seq)
 	return snd_seq_alloc_named_queue(seq, NULL);
 }
 
+#ifdef SND_SEQ_SYNC_SUPPORT
+int snd_seq_alloc_sync_queue(snd_seq_t *seq, char *name)
+{
+	snd_seq_queue_info_t info;
+
+	if (!seq)
+		return -EINVAL;	
+
+	memset(&info, 0, sizeof(info));
+	info.locked = 1;
+	if (name)
+		strncpy(info.name, name, sizeof(info.name) - 1);
+	info.flags = SND_SEQ_QUEUE_FLG_SYNC;
+	return snd_seq_create_queue(seq, &info);
+}
+#endif
+
 int snd_seq_free_queue(snd_seq_t *seq, int q)
 {
 	snd_seq_queue_info_t info;
@@ -550,6 +567,101 @@ int snd_seq_get_named_queue(snd_seq_t *seq, char *name)
 		return -errno;
 	return info.queue;
 }
+
+/*----------------------------------------------------------------*/
+
+#ifdef SND_SEQ_SYNC_SUPPORT
+/*
+ * sync stuff
+ */
+
+int snd_seq_add_sync_master(snd_seq_t *seq,
+			    int queue,
+			    snd_seq_addr_t *dest,
+			    snd_seq_queue_sync_t *info)
+{
+	snd_seq_port_subscribe_t subs;
+
+	memset(&subs, 0, sizeof(subs));
+	subs.convert_time = 1;
+	if (info->format & SND_SEQ_SYNC_TIME)
+		subs.realtime = 1;
+	subs.sync = 1;
+	subs.sender.client = SND_SEQ_CLIENT_SYSTEM;
+	subs.sender.port = snd_seq_queue_sync_port(queue);
+	subs.dest = *dest;
+	subs.queue = queue;
+	subs.opt.sync_info = *info;
+	return snd_seq_subscribe_port(seq, &subs);
+}
+
+int snd_seq_add_sync_std_master(snd_seq_t *seq,
+				int queue,
+				snd_seq_addr_t *dest,
+				int format, int time_format,
+				unsigned char *optinfo)
+{
+	snd_seq_queue_sync_t sync_info;
+
+	memset(&sync_info, 0, sizeof(sync_info));
+	sync_info.format = format;
+	sync_info.time_format = time_format;
+	if (optinfo)
+		memcpy(sync_info.info, optinfo, sizeof(sync_info.info));
+
+	return snd_seq_add_sync_master(seq, queue, dest, &sync_info);
+}
+
+
+int snd_seq_remove_sync_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest)
+{
+	snd_seq_port_subscribe_t subs;
+
+	memset(&subs, 0, sizeof(subs));
+	subs.sync = 1;
+	subs.sender.client = SND_SEQ_CLIENT_SYSTEM;
+	subs.sender.port = snd_seq_queue_sync_port(queue);
+	subs.dest = *dest;
+	subs.queue = queue;
+	return snd_seq_unsubscribe_port(seq, &subs);
+}
+
+
+int snd_seq_set_sync_slave(snd_seq_t *seq,
+			   int queue,
+			   snd_seq_addr_t *src,
+			   snd_seq_queue_sync_t *info)
+{
+	snd_seq_port_subscribe_t subs;
+
+	memset(&subs, 0, sizeof(subs));
+	subs.convert_time = 1;
+	if (info->format & SND_SEQ_SYNC_TIME)
+		subs.realtime = 1;
+	subs.sync = 1;
+	subs.sender = *src;
+	subs.dest.client = SND_SEQ_CLIENT_SYSTEM;
+	subs.dest.port = snd_seq_queue_sync_port(queue);
+	subs.queue = queue;
+	subs.opt.sync_info = *info;
+	return snd_seq_subscribe_port(seq, &subs);
+}
+
+int snd_seq_reset_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src)
+{
+	snd_seq_port_subscribe_t subs;
+
+	memset(&subs, 0, sizeof(subs));
+	subs.sync = 1;
+	subs.sender = *src;
+	subs.dest.client = SND_SEQ_CLIENT_SYSTEM;
+	subs.dest.port = snd_seq_queue_sync_port(queue);
+	subs.queue = queue;
+	return snd_seq_unsubscribe_port(seq, &subs);
+}
+
+
+#endif
 
 /*----------------------------------------------------------------*/
 

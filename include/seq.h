@@ -49,6 +49,9 @@ int snd_seq_set_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t *q
 int snd_seq_create_queue(snd_seq_t *seq, snd_seq_queue_info_t *info);
 int snd_seq_alloc_named_queue(snd_seq_t *seq, char *name);
 int snd_seq_alloc_queue(snd_seq_t *handle);
+#ifdef SND_SEQ_SYNC_SUPPORT
+int snd_seq_alloc_sync_queue(snd_seq_t *seq, char *name);
+#endif
 int snd_seq_free_queue(snd_seq_t *handle, int q);
 int snd_seq_get_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info);
 int snd_seq_set_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info);
@@ -57,6 +60,17 @@ int snd_seq_get_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
 int snd_seq_set_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
 int snd_seq_query_next_client(snd_seq_t *handle, snd_seq_client_info_t * info);
 int snd_seq_query_next_port(snd_seq_t *handle, snd_seq_port_info_t * info);
+#ifdef SND_SEQ_SYNC_SUPPORT
+int snd_seq_add_sync_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest, snd_seq_queue_sync_t *info);
+int snd_seq_remove_sync_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest);
+int snd_seq_add_sync_std_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest, int format, int time_format, unsigned char *opt_info);
+#define snd_seq_add_sync_master_clock(seq,q,dest) snd_seq_add_sync_std_master(seq, q, dest, SND_SEQ_SYNC_FMT_MIDI_CLOCK, 0, 0)
+#define snd_seq_add_sync_master_mtc(seq,q,dest,tfmt) snd_seq_add_sync_std_master(seq, q, dest, SND_SEQ_SYNC_FMT_MTC, tfmt, 0)
+
+int snd_seq_set_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src, snd_seq_queue_sync_t *info);
+int snd_seq_reset_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src);
+
+#endif
 
 /* event routines */
 snd_seq_event_t *snd_seq_create_event(void);
