@@ -693,15 +693,8 @@ static int parse_control_id(snd_config_t *conf, snd_ctl_elem_id_t *ctl_id, int *
 			continue;
 		}
 		if (strcmp(id, "iface") == 0 || strcmp(id, "interface") == 0) {
-			const char *ptr;
-			if ((err = snd_config_get_string(n, &ptr)) < 0) {
-				SNDERR("field %s is not a string", id);
+			if ((err = snd_config_get_bool(n)) < 0)
 				goto _err;
-			}
-			if ((err = snd_config_get_ctl_iface_ascii(ptr)) < 0) {
-				SNDERR("Invalid value for '%s'", id);
-				goto _err;
-			}
 			iface = err;
 			continue;
 		}
