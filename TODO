@@ -1,4 +1,3 @@
 H solve multi/server mmap'ing problem
-H add now_ptr stuff and fix appl_ptr seek
 M add abstraction layer to timer, rawmidi, hwdep, seq
 L move OSS emulation to user space? (pseudo device driver and daemon)
