@@ -172,7 +172,7 @@ extern "C" {
 #define MIDI_CTL_MSB_MODWHEEL         	0x01	/**< Modwheel */
 #define MIDI_CTL_MSB_BREATH           	0x02	/**< Breath */
 #define MIDI_CTL_MSB_FOOT             	0x04	/**< Foot */
-#define MIDI_CTL_MSB_PORTNAMENTO_TIME 	0x05	/**< Portnamento time */
+#define MIDI_CTL_MSB_PORTAMENTO_TIME 	0x05	/**< Portamento time */
 #define MIDI_CTL_MSB_DATA_ENTRY		0x06	/**< Data entry */
 #define MIDI_CTL_MSB_MAIN_VOLUME      	0x07	/**< Main volume */
 #define MIDI_CTL_MSB_BALANCE          	0x08	/**< Balance */
@@ -188,7 +188,7 @@ extern "C" {
 #define MIDI_CTL_LSB_MODWHEEL        	0x21	/**< Modwheel */
 #define MIDI_CTL_LSB_BREATH           	0x22	/**< Breath */
 #define MIDI_CTL_LSB_FOOT             	0x24	/**< Foot */
-#define MIDI_CTL_LSB_PORTNAMENTO_TIME 	0x25	/**< Portnamento time */
+#define MIDI_CTL_LSB_PORTAMENTO_TIME 	0x25	/**< Portamento time */
 #define MIDI_CTL_LSB_DATA_ENTRY		0x26	/**< Data entry */
 #define MIDI_CTL_LSB_MAIN_VOLUME      	0x27	/**< Main volume */
 #define MIDI_CTL_LSB_BALANCE          	0x28	/**< Balance */
@@ -202,7 +202,7 @@ extern "C" {
 #define MIDI_CTL_LSB_GENERAL_PURPOSE4 	0x33	/**< General purpose 4 */
 #define MIDI_CTL_SUSTAIN              	0x40	/**< Sustain */
 #define MIDI_CTL_PORTAMENTO           	0x41	/**< Portamento */
-#define MIDI_CTL_SUSTENUTO            	0x42	/**< Sostenuto */
+#define MIDI_CTL_SUSTENUTO            	0x42	/**< Sustenuto */
 #define MIDI_CTL_SOFT_PEDAL           	0x43	/**< Soft pedal */
 #define MIDI_CTL_LEGATO_FOOTSWITCH	0x44	/**< Legato foot switch */
 #define MIDI_CTL_HOLD2                	0x45	/**< Hold2 */
