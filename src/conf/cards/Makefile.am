@@ -1,5 +1,6 @@
 alsadir = $(datadir)/alsa/cards
 cfg_files = aliases.conf \
+	ATIIXP.conf \
 	AU8810.conf \
 	AU8820.conf \
 	AU8830.conf \
