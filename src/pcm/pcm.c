@@ -6085,16 +6085,6 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 	return xfer > 0 ? (snd_pcm_sframes_t) xfer : err;
 }
 
-snd_pcm_uframes_t _snd_pcm_mmap_hw_ptr(snd_pcm_t *pcm)
-{
-	return *pcm->hw.ptr;
-}
-
-snd_pcm_uframes_t _snd_pcm_boundary(snd_pcm_t *pcm)
-{
-	return pcm->boundary;
-}
-
 static const char *names[SND_PCM_HW_PARAM_LAST_INTERVAL + 1] = {
 	[SND_PCM_HW_PARAM_FORMAT] = "format",
 	[SND_PCM_HW_PARAM_CHANNELS] = "channels",
