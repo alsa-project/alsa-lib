@@ -1,6 +1,7 @@
 EXTRA_LTLIBRARIES=libhwdep.la
 
 libhwdep_la_SOURCES = hwdep.c hwdep_hw.c
+noinst_HEADERS = hwdep_local.h
 all: libhwdep.la
 
 
