@@ -87,6 +87,10 @@ typedef struct {
 	snd_pcm_type_t type;	/* PCM type (currently only hw) */
 	snd_pcm_hw_params_t hw_params;
 	snd_pcm_sw_params_t sw_params;
+	struct {
+		snd_pcm_uframes_t buffer_size;
+		snd_pcm_uframes_t boundary;
+	} s;
 } snd_pcm_dmix_share_t;
 
 typedef struct {
@@ -528,16 +532,16 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 	/* add sample areas here */
 	src_areas = snd_pcm_mmap_areas(pcm);
 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
-	slave_appl_ptr = dmix->slave_appl_ptr % dmix->spcm->buffer_size;
+	slave_appl_ptr = dmix->slave_appl_ptr % dmix->shmptr->s.buffer_size;
 	dmix->slave_appl_ptr += size;
-	dmix->slave_appl_ptr %= dmix->spcm->boundary;
+	dmix->slave_appl_ptr %= dmix->shmptr->s.boundary;
 	while (size > 0) {
 		transfer = appl_ptr + size > pcm->buffer_size ? pcm->buffer_size - appl_ptr : size;
-		transfer = slave_appl_ptr + transfer > dmix->spcm->buffer_size ? dmix->spcm->buffer_size - slave_appl_ptr : transfer;
+		transfer = slave_appl_ptr + transfer > dmix->shmptr->s.buffer_size ? dmix->shmptr->s.buffer_size - slave_appl_ptr : transfer;
 		size -= transfer;
 		mix_areas(src_areas, dst_areas, pcm->channels, appl_ptr, slave_appl_ptr, transfer);
 		slave_appl_ptr += transfer;
-		slave_appl_ptr %= dmix->spcm->buffer_size;
+		slave_appl_ptr %= dmix->shmptr->s.buffer_size;
 		appl_ptr += transfer;
 		appl_ptr %= pcm->buffer_size;
 	}
@@ -558,7 +562,7 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	if (diff == 0)		/* fast path */
 		return 0;
 	if (diff < 0) {
-		slave_hw_ptr += dmix->spcm->boundary;
+		slave_hw_ptr += dmix->shmptr->s.boundary;
 		diff = slave_hw_ptr - old_slave_hw_ptr;
 	}
 	dmix->hw_ptr += diff;
@@ -813,7 +817,7 @@ static int snd_pcm_dmix_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
 
-	assert(pcm->boundary == dmix->spcm->boundary);	/* for sure */
+	assert(pcm->boundary == dmix->shmptr->s.boundary);	/* for sure */
 	dmix->state = SND_PCM_STATE_PREPARED;
 	dmix->appl_ptr = 0;
 	dmix->hw_ptr = 0;
@@ -1038,6 +1042,7 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 	snd_pcm_sw_params_t *sw_params;
 	int ret, buffer_is_not_initialized;
 	snd_pcm_uframes_t boundary;
+	struct pollfd fd;
 
 	hw_params = &dmix->shmptr->hw_params;
 	sw_params = &dmix->shmptr->sw_params;
@@ -1155,7 +1160,15 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 		return ret;
 	}
 
-	sleep(3);
+	if (snd_pcm_poll_descriptors_count(spcm) != 1) {
+		SNDERR("unable to use hardware pcm with fd more than one!!!\n");
+		return ret;
+	}
+	snd_pcm_poll_descriptors(spcm, &fd, 1);
+	dmix->hw_fd = fd.fd;
+	
+	dmix->shmptr->s.boundary = spcm->boundary;
+	dmix->shmptr->s.buffer_size = spcm->buffer_size;
 
 	return 0;
 }
@@ -1298,6 +1311,8 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 			SNDERR("unable to create server\n");
 			goto _err;
 		}
+
+		dmix->shmptr->type = spcm->type;
 	} else {
 		ret = client_connect(dmix);
 		if (ret < 0) {
@@ -1310,6 +1325,8 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 			SNDERR("unable to open hardware\n");
 			goto _err;
 		}
+		
+		dmix->spcm = spcm;
 	}
 
 	ret = snd_pcm_dmix_initialize_poll_fd(dmix);
@@ -1321,8 +1338,6 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_fd = dmix->poll_fd;
 	pcm->poll_events = POLLIN;	/* it's different than other plugins */
 		
-	dmix->shmptr->type = spcm->type;
-
 	pcm->mmap_rw = 1;
 	snd_pcm_set_hw_ptr(pcm, &dmix->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &dmix->appl_ptr, -1, 0);
