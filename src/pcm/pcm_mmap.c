@@ -26,14 +26,14 @@
 #include <sys/uio.h>
 #include "pcm_local.h"
 
-int snd_pcm_frames_avail(snd_pcm_t *handle, ssize_t *frames)
+int snd_pcm_avail(snd_pcm_t *handle, ssize_t *frames)
 {
         assert(handle);
 	assert(handle->mmap_status && handle->mmap_control);
 	if (handle->stream == SND_PCM_STREAM_PLAYBACK)
-		*frames = snd_pcm_mmap_playback_frames_avail(handle);
+		*frames = snd_pcm_mmap_playback_avail(handle);
 	else
-		*frames = snd_pcm_mmap_capture_frames_avail(handle);
+		*frames = snd_pcm_mmap_capture_avail(handle);
 	return 0;
 }
 
@@ -41,7 +41,7 @@ static int snd_pcm_mmap_playback_ready(snd_pcm_t *handle)
 {
 	if (handle->mmap_status->state == SND_PCM_STATE_XRUN)
 		return -EPIPE;
-	return snd_pcm_mmap_playback_frames_avail(handle) >= handle->setup.frames_min;
+	return snd_pcm_mmap_playback_avail(handle) >= handle->setup.avail_min;
 }
 
 static int snd_pcm_mmap_capture_ready(snd_pcm_t *handle)
@@ -52,7 +52,7 @@ static int snd_pcm_mmap_capture_ready(snd_pcm_t *handle)
 		if (handle->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
 			return -EPIPE;
 	}
-	if (snd_pcm_mmap_capture_frames_avail(handle) >= handle->setup.frames_min)
+	if (snd_pcm_mmap_capture_avail(handle) >= handle->setup.avail_min)
 		return 1;
 	return ret;
 }
@@ -69,47 +69,47 @@ int snd_pcm_mmap_ready(snd_pcm_t *handle)
 	}
 }
 
-static size_t snd_pcm_mmap_playback_frames_xfer(snd_pcm_t *handle, size_t frames)
+static size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *handle, size_t frames)
 {
 	snd_pcm_mmap_control_t *control = handle->mmap_control;
-	size_t frames_cont;
-	size_t frames_avail = snd_pcm_mmap_playback_frames_avail(handle);
-	if (frames_avail < frames)
-		frames = frames_avail;
-	frames_cont = handle->setup.buffer_size - control->frame_data % handle->setup.buffer_size;
-	if (frames_cont < frames)
-		frames = frames_cont;
+	size_t cont;
+	size_t avail = snd_pcm_mmap_playback_avail(handle);
+	if (avail < frames)
+		frames = avail;
+	cont = handle->setup.buffer_size - control->appl_ptr % handle->setup.buffer_size;
+	if (cont < frames)
+		frames = cont;
 	return frames;
 }
 
-static size_t snd_pcm_mmap_capture_frames_xfer(snd_pcm_t *handle, size_t frames)
+static size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *handle, size_t frames)
 {
 	snd_pcm_mmap_control_t *control = handle->mmap_control;
-	size_t frames_cont;
-	size_t frames_avail = snd_pcm_mmap_capture_frames_avail(handle);
-	if (frames_avail < frames)
-		frames = frames_avail;
-	frames_cont = handle->setup.buffer_size - control->frame_data % handle->setup.buffer_size;
-	if (frames_cont < frames)
-		frames = frames_cont;
+	size_t cont;
+	size_t avail = snd_pcm_mmap_capture_avail(handle);
+	if (avail < frames)
+		frames = avail;
+	cont = handle->setup.buffer_size - control->appl_ptr % handle->setup.buffer_size;
+	if (cont < frames)
+		frames = cont;
 	return frames;
 }
 
-ssize_t snd_pcm_mmap_frames_xfer(snd_pcm_t *handle, size_t frames)
+ssize_t snd_pcm_mmap_xfer(snd_pcm_t *handle, size_t frames)
 {
         assert(handle);
 	assert(handle->mmap_status && handle->mmap_control);
 	if (handle->stream == SND_PCM_STREAM_PLAYBACK)
-		return snd_pcm_mmap_playback_frames_xfer(handle, frames);
+		return snd_pcm_mmap_playback_xfer(handle, frames);
 	else
-		return snd_pcm_mmap_capture_frames_xfer(handle, frames);
+		return snd_pcm_mmap_capture_xfer(handle, frames);
 }
 
-ssize_t snd_pcm_mmap_frames_offset(snd_pcm_t *handle)
+ssize_t snd_pcm_mmap_offset(snd_pcm_t *handle)
 {
         assert(handle);
 	assert(handle->mmap_control);
-	return handle->mmap_control->frame_data % handle->setup.buffer_size;
+	return handle->mmap_control->appl_ptr % handle->setup.buffer_size;
 }
 
 int snd_pcm_mmap_state(snd_pcm_t *handle)
@@ -119,26 +119,26 @@ int snd_pcm_mmap_state(snd_pcm_t *handle)
 	return handle->mmap_status->state;
 }
 
-ssize_t snd_pcm_mmap_frame_io(snd_pcm_t *handle)
+ssize_t snd_pcm_mmap_hw_ptr(snd_pcm_t *handle)
 {
 	assert(handle);
 	assert(handle->mmap_status);
-	return handle->mmap_status->frame_io;
+	return handle->mmap_status->hw_ptr;
 }
 
-ssize_t snd_pcm_mmap_frame_data(snd_pcm_t *handle, off_t offset)
+ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *handle, off_t offset)
 {
-	ssize_t frame_data;
+	ssize_t appl_ptr;
 	assert(handle);
 	assert(handle->mmap_status && handle->mmap_control);
 	assert(offset == 0 || handle->type == SND_PCM_TYPE_HW);
-	frame_data = handle->mmap_control->frame_data;
+	appl_ptr = handle->mmap_control->appl_ptr;
 	if (offset == 0)
-		return frame_data;
+		return appl_ptr;
 	switch (handle->mmap_status->state) {
 	case SND_PCM_STATE_RUNNING:
 		if (handle->setup.mode == SND_PCM_MODE_FRAME)
-			snd_pcm_frame_io(handle, 1);
+			snd_pcm_hw_ptr(handle, 1);
 		break;
 	case SND_PCM_STATE_READY:
 	case SND_PCM_STATE_NOTREADY:
@@ -148,25 +148,25 @@ ssize_t snd_pcm_mmap_frame_data(snd_pcm_t *handle, off_t offset)
 		if (offset < -(ssize_t)handle->setup.buffer_size)
 			offset = -(ssize_t)handle->setup.buffer_size;
 		else
-			offset -= offset % handle->setup.frames_align;
-		frame_data += offset;
-		if (frame_data < 0)
-			frame_data += handle->setup.frame_boundary;
+			offset -= offset % handle->setup.align;
+		appl_ptr += offset;
+		if (appl_ptr < 0)
+			appl_ptr += handle->setup.boundary;
 	} else {
-		size_t frames_avail;
+		size_t avail;
 		if (handle->stream == SND_PCM_STREAM_PLAYBACK)
-			frames_avail = snd_pcm_mmap_playback_frames_avail(handle);
+			avail = snd_pcm_mmap_playback_avail(handle);
 		else
-			frames_avail = snd_pcm_mmap_capture_frames_avail(handle);
-		if ((size_t)offset > frames_avail)
-			offset = frames_avail;
-		offset -= offset % handle->setup.frames_align;
-		frame_data += offset;
-		if ((size_t)frame_data >= handle->setup.frame_boundary)
-			frame_data -= handle->setup.frame_boundary;
+			avail = snd_pcm_mmap_capture_avail(handle);
+		if ((size_t)offset > avail)
+			offset = avail;
+		offset -= offset % handle->setup.align;
+		appl_ptr += offset;
+		if ((size_t)appl_ptr >= handle->setup.boundary)
+			appl_ptr -= handle->setup.boundary;
 	}
-	handle->mmap_control->frame_data = frame_data;
-	return frame_data;
+	handle->mmap_control->appl_ptr = appl_ptr;
+	return appl_ptr;
 }
 
 ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *channels, size_t frames)
@@ -184,7 +184,7 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *chan
 	} else {
 		if (status->state == SND_PCM_STATE_RUNNING &&
 		    handle->mode & SND_PCM_NONBLOCK)
-			snd_pcm_frame_io(handle, 1);
+			snd_pcm_hw_ptr(handle, 1);
 	}
 	while (frames > 0) {
 		ssize_t mmap_offset;
@@ -207,13 +207,13 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *chan
 				return result > 0 ? result : -EPIPE;
 			assert(snd_pcm_mmap_playback_ready(handle));
 		}
-		frames1 = snd_pcm_mmap_playback_frames_xfer(handle, frames);
+		frames1 = snd_pcm_mmap_playback_xfer(handle, frames);
 		assert(frames1 > 0);
-		mmap_offset = snd_pcm_mmap_frames_offset(handle);
+		mmap_offset = snd_pcm_mmap_offset(handle);
 		snd_pcm_areas_copy(channels, offset, handle->channels, mmap_offset, handle->setup.format.channels, frames1, handle->setup.format.format);
 		if (status->state == SND_PCM_STATE_XRUN)
 			return result > 0 ? result : -EPIPE;
-		snd_pcm_frame_data(handle, frames1);
+		snd_pcm_appl_ptr(handle, frames1);
 		frames -= frames1;
 		offset += frames1;
 		result += frames1;
@@ -316,7 +316,7 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *chann
 	} else {
 		if (status->state == SND_PCM_STATE_RUNNING &&
 		    handle->mode & SND_PCM_NONBLOCK)
-			snd_pcm_frame_io(handle, 1);
+			snd_pcm_hw_ptr(handle, 1);
 	}
 	if (status->state == SND_PCM_STATE_PREPARED &&
 	    handle->setup.start_mode == SND_PCM_START_DATA) {
@@ -345,14 +345,14 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *chann
 				return result > 0 ? result : -EPIPE;
 			assert(snd_pcm_mmap_capture_ready(handle));
 		}
-		frames1 = snd_pcm_mmap_capture_frames_xfer(handle, frames);
+		frames1 = snd_pcm_mmap_capture_xfer(handle, frames);
 		assert(frames1 > 0);
-		mmap_offset = snd_pcm_mmap_frames_offset(handle);
+		mmap_offset = snd_pcm_mmap_offset(handle);
 		snd_pcm_areas_copy(handle->channels, mmap_offset, channels, offset, handle->setup.format.channels, frames1, handle->setup.format.format);
 		if (status->state == SND_PCM_STATE_XRUN &&
 		    handle->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
 			return result > 0 ? result : -EPIPE;
-		snd_pcm_frame_data(handle, frames1);
+		snd_pcm_appl_ptr(handle, frames1);
 		frames -= frames1;
 		offset += frames1;
 		result += frames1;

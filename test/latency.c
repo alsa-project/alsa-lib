@@ -59,7 +59,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 	if (*bufsize > LATENCY_MAX)
 		return -1;
 	params.frag_size = *bufsize / 2;
-	params.frames_min = 1;
+	params.avail_min = 1;
 	params.buffer_size = *bufsize;
 
 	if ((err = snd_pcm_params(phandle, &params)) < 0) {
@@ -109,9 +109,9 @@ void showstat(snd_pcm_t *handle, snd_pcm_status_t *rstatus, size_t frames)
 	}
 	printf("  state = %i\n", status.state);
 	printf("  frames = %i\n", frames);
-	printf("  frame_io = %li\n", (long)status.frame_io);
-	printf("  frame_data = %li\n", (long)status.frame_data);
-	printf("  frames_avail = %li\n", (long)status.frames_avail);
+	printf("  hw_ptr = %li\n", (long)status.hw_ptr);
+	printf("  appl_ptr = %li\n", (long)status.appl_ptr);
+	printf("  avail = %li\n", (long)status.avail);
 	if (rstatus)
 		*rstatus = status;
 }

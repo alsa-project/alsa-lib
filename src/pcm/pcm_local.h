@@ -43,8 +43,8 @@ struct snd_pcm_fast_ops {
 	int (*flush)(snd_pcm_t *pcm);
 	int (*pause)(snd_pcm_t *pcm, int enable);
 	int (*state)(snd_pcm_t *pcm);
-	ssize_t (*frame_io)(snd_pcm_t *pcm, int update);
-	ssize_t (*frame_data)(snd_pcm_t *pcm, off_t offset);
+	ssize_t (*hw_ptr)(snd_pcm_t *pcm, int update);
+	ssize_t (*appl_ptr)(snd_pcm_t *pcm, off_t offset);
 	ssize_t (*write)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const void *buffer, size_t size);
 	ssize_t (*writev)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count);
 	ssize_t (*read)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, void *buffer, size_t size);
@@ -131,22 +131,22 @@ int conv_index(int src_format, int dst_format);
 #define pdprintf( args... ) { ; }
 #endif
 
-static inline size_t snd_pcm_mmap_playback_frames_avail(snd_pcm_t *str)
+static inline size_t snd_pcm_mmap_playback_avail(snd_pcm_t *str)
 {
-	ssize_t frames_avail;
-	frames_avail = str->mmap_status->frame_io + str->setup.buffer_size - str->mmap_control->frame_data;
-	if (frames_avail < 0)
-		frames_avail += str->setup.frame_boundary;
-	return frames_avail;
+	ssize_t avail;
+	avail = str->mmap_status->hw_ptr + str->setup.buffer_size - str->mmap_control->appl_ptr;
+	if (avail < 0)
+		avail += str->setup.boundary;
+	return avail;
 }
 
-static inline size_t snd_pcm_mmap_capture_frames_avail(snd_pcm_t *str)
+static inline size_t snd_pcm_mmap_capture_avail(snd_pcm_t *str)
 {
-	ssize_t frames_avail;
-	frames_avail = str->mmap_status->frame_io - str->mmap_control->frame_data;
-	if (frames_avail < 0)
-		frames_avail += str->setup.frame_boundary;
-	return frames_avail;
+	ssize_t avail;
+	avail = str->mmap_status->hw_ptr - str->mmap_control->appl_ptr;
+	if (avail < 0)
+		avail += str->setup.boundary;
+	return avail;
 }
 
 #define snd_pcm_plug_stream(plug) ((plug)->handle->stream)

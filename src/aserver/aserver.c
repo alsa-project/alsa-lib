@@ -368,8 +368,8 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_STATUS:
 		ctrl->result = snd_pcm_status(pcm, &ctrl->u.status);
 		break;
-	case SND_PCM_IOCTL_FRAME_IO:
-		ctrl->result = snd_pcm_frame_io(pcm, ctrl->u.frame_io);
+	case SND_PCM_IOCTL_HW_PTR:
+		ctrl->result = snd_pcm_hw_ptr(pcm, ctrl->u.hw_ptr);
 		break;
 	case SND_PCM_IOCTL_PREPARE:
 		ctrl->result = snd_pcm_prepare(pcm);
@@ -475,8 +475,8 @@ int pcm_shm_cmd(client_t *client)
 		ctrl->result = snd_pcm_readv(pcm, vector, ctrl->u.readv.count);
 		break;
 	}
-	case SND_PCM_IOCTL_FRAME_DATA:
-		ctrl->result = snd_pcm_frame_data(pcm, ctrl->u.frame_data);
+	case SND_PCM_IOCTL_APPL_PTR:
+		ctrl->result = snd_pcm_appl_ptr(pcm, ctrl->u.appl_ptr);
 		break;
 	case SND_PCM_IOCTL_LINK:
 	{

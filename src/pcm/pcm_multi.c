@@ -175,7 +175,7 @@ static int snd_pcm_multi_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 			p.format.interleave = 1;
 		p.format.channels = multi->slaves[i].channels_total;
 #if 1
-		p.frames_xrun_max = ~0;
+		p.xrun_max = ~0;
 #endif
 		err = snd_pcm_params(handle, &p);
 		if (err < 0)
@@ -211,7 +211,7 @@ static int snd_pcm_multi_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
 			return err;
 		if (setup->format.rate != s.format.rate)
 			return -EINVAL;
-		if (setup->frames_align % s.frames_align != 0)
+		if (setup->align % s.align != 0)
 			return -EINVAL;
 	}
 	setup->format.interleave = multi->interleave;
@@ -275,11 +275,11 @@ static int snd_pcm_multi_state(snd_pcm_t *pcm)
 	return snd_pcm_state(handle);
 }
 
-static ssize_t snd_pcm_multi_frame_io(snd_pcm_t *pcm, int update)
+static ssize_t snd_pcm_multi_hw_ptr(snd_pcm_t *pcm, int update)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	snd_pcm_t *handle = multi->slaves[0].handle;
-	return snd_pcm_frame_io(handle, update);
+	return snd_pcm_hw_ptr(handle, update);
 }
 
 static int snd_pcm_multi_prepare(snd_pcm_t *pcm)
@@ -367,25 +367,25 @@ static int snd_pcm_multi_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *
 	return 0;
 }
 
-static ssize_t snd_pcm_multi_frame_data(snd_pcm_t *pcm, off_t offset)
+static ssize_t snd_pcm_multi_appl_ptr(snd_pcm_t *pcm, off_t offset)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	ssize_t pos, newpos;
 	unsigned int i;
 	snd_pcm_t *handle_0 = multi->slaves[0].handle;
 
-	pos = snd_pcm_frame_data(handle_0, 0);
-	newpos = snd_pcm_frame_data(handle_0, offset);
+	pos = snd_pcm_appl_ptr(handle_0, 0);
+	newpos = snd_pcm_appl_ptr(handle_0, offset);
 	if (newpos < 0)
 		return newpos;
 	offset = newpos - pos;
 	if (offset < 0)
-		offset += handle_0->setup.frame_boundary;
+		offset += handle_0->setup.boundary;
 
 	for (i = 1; i < multi->slaves_count; ++i) {
 		snd_pcm_t *handle_i = multi->slaves[i].handle;
 		ssize_t newpos_i;
-		newpos_i = snd_pcm_frame_data(handle_i, offset);
+		newpos_i = snd_pcm_appl_ptr(handle_i, offset);
 		if (newpos_i < 0)
 			return newpos_i;
 		if (newpos_i != newpos)
@@ -578,7 +578,7 @@ static int snd_pcm_multi_mmap_control(snd_pcm_t *pcm, snd_pcm_mmap_control_t **c
 	unsigned int i;
 	for (i = 1; i < multi->slaves_count; ++i) {
 		snd_pcm_setup_t *setup = &multi->slaves[i].handle->setup;
-		/* Don't permit mmap if frame_data's have
+		/* Don't permit mmap if appl_ptr's have
 		   different ranges */
 		if (setup->buffer_size != setup_0->buffer_size)
 			return -EBADFD;
@@ -737,7 +737,7 @@ struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
 	channel_params: snd_pcm_multi_channel_params,
 	channel_setup: snd_pcm_multi_channel_setup,
 	status: snd_pcm_multi_status,
-	frame_io: snd_pcm_multi_frame_io,
+	hw_ptr: snd_pcm_multi_hw_ptr,
 	state: snd_pcm_multi_state,
 	prepare: snd_pcm_multi_prepare,
 	go: snd_pcm_multi_go,
@@ -748,7 +748,7 @@ struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
 	writev: snd_pcm_multi_writev,
 	read: snd_pcm_multi_read,
 	readv: snd_pcm_multi_readv,
-	frame_data: snd_pcm_multi_frame_data,
+	appl_ptr: snd_pcm_multi_appl_ptr,
 	mmap_status: snd_pcm_multi_mmap_status,
 	mmap_control: snd_pcm_multi_mmap_control,
 	mmap_data: snd_pcm_multi_mmap_data,

@@ -150,11 +150,11 @@ static int snd_pcm_hw_state(snd_pcm_t *pcm)
 	return status.state;
 }
 
-static ssize_t snd_pcm_hw_frame_io(snd_pcm_t *pcm, int update ATTRIBUTE_UNUSED)
+static ssize_t snd_pcm_hw_hw_ptr(snd_pcm_t *pcm, int update ATTRIBUTE_UNUSED)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	ssize_t pos = ioctl(fd, SND_PCM_IOCTL_FRAME_IO);
+	ssize_t pos = ioctl(fd, SND_PCM_IOCTL_HW_PTR);
 	if (pos < 0)
 		return -errno;
 	return pos;
@@ -205,14 +205,14 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 	return 0;
 }
 
-static ssize_t snd_pcm_hw_frame_data(snd_pcm_t *pcm, off_t offset)
+static ssize_t snd_pcm_hw_appl_ptr(snd_pcm_t *pcm, off_t offset)
 {
 	ssize_t result;
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (pcm->mmap_status && pcm->mmap_control)
-		return snd_pcm_mmap_frame_data(pcm, offset);
-	result = ioctl(fd, SND_PCM_IOCTL_FRAME_DATA, offset);
+		return snd_pcm_mmap_appl_ptr(pcm, offset);
+	result = ioctl(fd, SND_PCM_IOCTL_APPL_PTR, offset);
 	if (result < 0)
 		return -errno;
 	return result;
@@ -392,14 +392,14 @@ struct snd_pcm_fast_ops snd_pcm_hw_fast_ops = {
 	channel_params: snd_pcm_hw_channel_params,
 	channel_setup: snd_pcm_hw_channel_setup,
 	status: snd_pcm_hw_status,
-	frame_io: snd_pcm_hw_frame_io,
+	hw_ptr: snd_pcm_hw_hw_ptr,
 	state: snd_pcm_hw_state,
 	prepare: snd_pcm_hw_prepare,
 	go: snd_pcm_hw_go,
 	drain: snd_pcm_hw_drain,
 	flush: snd_pcm_hw_flush,
 	pause: snd_pcm_hw_pause,
-	frame_data: snd_pcm_hw_frame_data,
+	appl_ptr: snd_pcm_hw_appl_ptr,
 	write: snd_pcm_hw_write,
 	writev: snd_pcm_hw_writev,
 	read: snd_pcm_hw_read,

@@ -80,8 +80,8 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 			return -EPIPE;
 		assert(snd_pcm_mmap_ready(stream));
 	}
-	pos = snd_pcm_mmap_frames_offset(stream);
-	assert(pos % setup->frames_align == 0);
+	pos = snd_pcm_mmap_offset(stream);
+	assert(pos % setup->align == 0);
 
 	sv = plugin->buf_channels;
 	dv = stream->channels;
@@ -99,7 +99,7 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 		++sv;
 		++dv;
 	}
-	return snd_pcm_mmap_frames_xfer(stream, frames);
+	return snd_pcm_mmap_xfer(stream, frames);
 }
 
 static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
@@ -147,8 +147,8 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 			return -EPIPE;
 		assert(snd_pcm_mmap_ready(stream));
 	}
-	pos = snd_pcm_mmap_frames_offset(stream);
-	assert(pos % setup->frames_align == 0);
+	pos = snd_pcm_mmap_offset(stream);
+	assert(pos % setup->align == 0);
 
 	sv = stream->channels;
 	dv = plugin->buf_channels;
@@ -162,7 +162,7 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 		++sv;
 		++dv;
 	}
-	return snd_pcm_mmap_frames_xfer(stream, frames);
+	return snd_pcm_mmap_xfer(stream, frames);
 }
 
 static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
@@ -188,7 +188,7 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 	}
 #endif
 
-	err = snd_pcm_frame_data(stream, frames);
+	err = snd_pcm_appl_ptr(stream, frames);
 	if (err < 0)
 		return err;
 	if (snd_pcm_mmap_state(stream) == SND_PCM_STATE_PREPARED &&
@@ -216,7 +216,7 @@ static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
 	stream = plugin->plug->slave;
 
 	/* FIXME: not here the increment */
-	err = snd_pcm_frame_data(stream, frames);
+	err = snd_pcm_appl_ptr(stream, frames);
 	if (err < 0)
 		return err;
 

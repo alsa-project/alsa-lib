@@ -270,14 +270,14 @@ static int snd_pcm_plug_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
 		return err;
 	if (!plug->first)
 		return 0;
-	setup->frame_boundary /= setup->frag_size;
+	setup->boundary /= setup->frag_size;
 	setup->frag_size = snd_pcm_plug_client_size(plug, setup->frag_size);
-	setup->frame_boundary *= setup->frag_size;
+	setup->boundary *= setup->frag_size;
 	setup->buffer_size = setup->frags * setup->frag_size;
-	setup->frames_min = snd_pcm_plug_client_size(plug, setup->frames_min);
-	setup->frames_align = snd_pcm_plug_client_size(plug, setup->frames_align);
-	setup->frames_xrun_max = snd_pcm_plug_client_size(plug, setup->frames_xrun_max);
-	setup->frames_fill_max = snd_pcm_plug_client_size(plug, setup->frames_fill_max);
+	setup->avail_min = snd_pcm_plug_client_size(plug, setup->avail_min);
+	setup->align = snd_pcm_plug_client_size(plug, setup->align);
+	setup->xrun_max = snd_pcm_plug_client_size(plug, setup->xrun_max);
+	setup->fill_max = snd_pcm_plug_client_size(plug, setup->fill_max);
 	setup->mmap_bytes = 0;
 	if (plug->handle->stream == SND_PCM_STREAM_PLAYBACK)
 		setup->format = plug->first->src_format;
@@ -301,10 +301,10 @@ static int snd_pcm_plug_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 	if (err < 0)
 		return err;
 
-	status->frame_io = snd_pcm_plug_client_size(plug, status->frame_io);
-	status->frame_data = snd_pcm_plug_client_size(plug, status->frame_data);
-	status->frames_avail = snd_pcm_plug_client_size(plug, status->frames_avail);
-	status->frames_avail_max = snd_pcm_plug_client_size(plug, status->frames_avail_max);
+	status->hw_ptr = snd_pcm_plug_client_size(plug, status->hw_ptr);
+	status->appl_ptr = snd_pcm_plug_client_size(plug, status->appl_ptr);
+	status->avail = snd_pcm_plug_client_size(plug, status->avail);
+	status->avail_max = snd_pcm_plug_client_size(plug, status->avail_max);
 	return 0;	
 }
 
@@ -314,13 +314,13 @@ static int snd_pcm_plug_state(snd_pcm_t *pcm)
 	return snd_pcm_state(plug->slave);
 }
 
-static ssize_t snd_pcm_plug_frame_io(snd_pcm_t *pcm, int update)
+static ssize_t snd_pcm_plug_hw_ptr(snd_pcm_t *pcm, int update)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	ssize_t frame_io = snd_pcm_frame_io(plug->slave, update);
-	if (frame_io < 0)
-		return frame_io;
-	return snd_pcm_plug_client_size(plug, frame_io);
+	ssize_t hw_ptr = snd_pcm_hw_ptr(plug->slave, update);
+	if (hw_ptr < 0)
+		return hw_ptr;
+	return snd_pcm_plug_client_size(plug, hw_ptr);
 }
 
 static int snd_pcm_plug_prepare(snd_pcm_t *pcm)
@@ -398,7 +398,7 @@ static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_c
 	return -ENOSYS;
 }
 
-static ssize_t snd_pcm_plug_frame_data(snd_pcm_t *pcm, off_t offset)
+static ssize_t snd_pcm_plug_appl_ptr(snd_pcm_t *pcm, off_t offset)
 {
 	ssize_t ret;
 	snd_pcm_plug_t *plug = pcm->private;
@@ -412,7 +412,7 @@ static ssize_t snd_pcm_plug_frame_data(snd_pcm_t *pcm, off_t offset)
 		if (offset < 0)
 			return offset;
 	}
-	ret = snd_pcm_frame_data(plug->slave, offset);
+	ret = snd_pcm_appl_ptr(plug->slave, offset);
 	if (ret < 0)
 		return ret;
 	return snd_pcm_plug_client_size(plug, ret);
@@ -661,14 +661,14 @@ struct snd_pcm_fast_ops snd_pcm_plug_fast_ops = {
 	channel_params: snd_pcm_plug_channel_params,
 	channel_setup: snd_pcm_plug_channel_setup,
 	status: snd_pcm_plug_status,
-	frame_io: snd_pcm_plug_frame_io,
+	hw_ptr: snd_pcm_plug_hw_ptr,
 	state: snd_pcm_plug_state,
 	prepare: snd_pcm_plug_prepare,
 	go: snd_pcm_plug_go,
 	drain: snd_pcm_plug_drain,
 	flush: snd_pcm_plug_flush,
 	pause: snd_pcm_plug_pause,
-	frame_data: snd_pcm_plug_frame_data,
+	appl_ptr: snd_pcm_plug_appl_ptr,
 	write: snd_pcm_plug_write,
 	writev: snd_pcm_plug_writev,
 	read: snd_pcm_plug_read,
@@ -690,18 +690,18 @@ static void snd_pcm_plug_slave_params(snd_pcm_plug_t *plug,
 	/* compute right sizes */
 	slave_params->frag_size = snd_pcm_plug_slave_size(plug, params->frag_size);
 	slave_params->buffer_size = snd_pcm_plug_slave_size(plug, params->buffer_size);
-	slave_params->frames_fill_max = snd_pcm_plug_slave_size(plug, params->frames_fill_max);
-	slave_params->frames_min = snd_pcm_plug_slave_size(plug, params->frames_min);
-	slave_params->frames_xrun_max = snd_pcm_plug_slave_size(plug, params->frames_xrun_max);
-	slave_params->frames_align = snd_pcm_plug_slave_size(plug, params->frames_align);
-	if (slave_params->frame_boundary == 0 || slave_params->frame_boundary > LONG_MAX)
-		slave_params->frame_boundary = LONG_MAX;
+	slave_params->fill_max = snd_pcm_plug_slave_size(plug, params->fill_max);
+	slave_params->avail_min = snd_pcm_plug_slave_size(plug, params->avail_min);
+	slave_params->xrun_max = snd_pcm_plug_slave_size(plug, params->xrun_max);
+	slave_params->align = snd_pcm_plug_slave_size(plug, params->align);
+	if (slave_params->boundary == 0 || slave_params->boundary > LONG_MAX)
+		slave_params->boundary = LONG_MAX;
 	assert(params->buffer_size > 0);
-	slave_params->frame_boundary /= params->buffer_size;
-	if (slave_params->frame_boundary > LONG_MAX / slave_params->buffer_size)
-		slave_params->frame_boundary = LONG_MAX;
+	slave_params->boundary /= params->buffer_size;
+	if (slave_params->boundary > LONG_MAX / slave_params->buffer_size)
+		slave_params->boundary = LONG_MAX;
 	else
-		slave_params->frame_boundary *= slave_params->buffer_size;
+		slave_params->boundary *= slave_params->buffer_size;
 }
 
 

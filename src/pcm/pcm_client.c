@@ -298,13 +298,13 @@ static int snd_pcm_client_shm_state(snd_pcm_t *pcm)
 	return status.state;
 }
 
-static ssize_t snd_pcm_client_shm_frame_io(snd_pcm_t *pcm, int update)
+static ssize_t snd_pcm_client_shm_hw_ptr(snd_pcm_t *pcm, int update)
 {
 	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_FRAME_IO;
-	ctrl->u.frame_io = update;
+	ctrl->cmd = SND_PCM_IOCTL_HW_PTR;
+	ctrl->u.hw_ptr = update;
 	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
@@ -372,13 +372,13 @@ static int snd_pcm_client_shm_pause(snd_pcm_t *pcm, int enable)
 	return ctrl->result;
 }
 
-static ssize_t snd_pcm_client_shm_frame_data(snd_pcm_t *pcm, off_t offset)
+static ssize_t snd_pcm_client_shm_appl_ptr(snd_pcm_t *pcm, off_t offset)
 {
 	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_FRAME_DATA;
-	ctrl->u.frame_data = offset;
+	ctrl->cmd = SND_PCM_IOCTL_APPL_PTR;
+	ctrl->u.appl_ptr = offset;
 	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
@@ -654,14 +654,14 @@ struct snd_pcm_fast_ops snd_pcm_client_fast_ops = {
 	channel_params: snd_pcm_client_shm_channel_params,
 	channel_setup: snd_pcm_client_shm_channel_setup,
 	status: snd_pcm_client_shm_status,
-	frame_io: snd_pcm_client_shm_frame_io,
+	hw_ptr: snd_pcm_client_shm_hw_ptr,
 	state: snd_pcm_client_shm_state,
 	prepare: snd_pcm_client_shm_prepare,
 	go: snd_pcm_client_shm_go,
 	drain: snd_pcm_client_shm_drain,
 	flush: snd_pcm_client_shm_flush,
 	pause: snd_pcm_client_shm_pause,
-	frame_data: snd_pcm_client_shm_frame_data,
+	appl_ptr: snd_pcm_client_shm_appl_ptr,
 	write: snd_pcm_client_shm_write,
 	writev: snd_pcm_client_shm_writev,
 	read: snd_pcm_client_shm_read,

@@ -152,13 +152,13 @@ int snd_pcm_state(snd_pcm_t *handle)
 	return handle->fast_ops->state(handle->fast_op_arg);
 }
 
-ssize_t snd_pcm_frame_io(snd_pcm_t *handle, int update)
+ssize_t snd_pcm_hw_ptr(snd_pcm_t *handle, int update)
 {
 	assert(handle);
 	assert(handle->valid_setup);
 	if (handle->mmap_status && !update)
-		return handle->mmap_status->frame_io;
-	return handle->fast_ops->frame_io(handle->fast_op_arg, update);
+		return handle->mmap_status->hw_ptr;
+	return handle->fast_ops->hw_ptr(handle->fast_op_arg, update);
 }
 
 int snd_pcm_prepare(snd_pcm_t *handle)
@@ -192,15 +192,15 @@ int snd_pcm_pause(snd_pcm_t *handle, int enable)
 }
 
 
-ssize_t snd_pcm_frame_data(snd_pcm_t *handle, off_t offset)
+ssize_t snd_pcm_appl_ptr(snd_pcm_t *handle, off_t offset)
 {
 	assert(handle);
 	assert(handle->valid_setup);
 	if (handle->mmap_control) {
 		if (offset == 0)
-			return handle->mmap_control->frame_data;
+			return handle->mmap_control->appl_ptr;
 	}
-	return handle->fast_ops->frame_data(handle->fast_op_arg, offset);
+	return handle->fast_ops->appl_ptr(handle->fast_op_arg, offset);
 }
 
 ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
@@ -208,7 +208,7 @@ ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
 	assert(handle);
 	assert(size == 0 || buffer);
 	assert(handle->valid_setup);
-	assert(size % handle->setup.frames_align == 0);
+	assert(size % handle->setup.align == 0);
 	return handle->fast_ops->write(handle->fast_op_arg, 0, buffer, size);
 }
 
@@ -227,7 +227,7 @@ ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
 	assert(handle);
 	assert(size == 0 || buffer);
 	assert(handle->valid_setup);
-	assert(size % handle->setup.frames_align == 0);
+	assert(size % handle->setup.align == 0);
 	return handle->fast_ops->read(handle->fast_op_arg, 0, buffer, size);
 }
 
@@ -398,13 +398,13 @@ int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp)
 	fprintf(fp, "buffer_size: %ld\n", (long)setup->buffer_size);
 	fprintf(fp, "frag_size: %ld\n", (long)setup->frag_size);
 	fprintf(fp, "frags: %ld\n", (long)setup->frags);
-	fprintf(fp, "frame_boundary: %ld\n", (long)setup->frame_boundary);
+	fprintf(fp, "boundary: %ld\n", (long)setup->boundary);
 	fprintf(fp, "msbits_per_sample: %d\n", setup->msbits_per_sample);
-	fprintf(fp, "frames_min: %ld\n", (long)setup->frames_min);
-	fprintf(fp, "frames_align: %ld\n", (long)setup->frames_align);
-	fprintf(fp, "frames_xrun_max: %ld\n", (long)setup->frames_xrun_max);
+	fprintf(fp, "avail_min: %ld\n", (long)setup->avail_min);
+	fprintf(fp, "align: %ld\n", (long)setup->align);
+	fprintf(fp, "xrun_max: %ld\n", (long)setup->xrun_max);
 	fprintf(fp, "fill_mode: %s\n", assoc(setup->fill_mode, fills));
-	fprintf(fp, "frames_fill_max: %ld\n", (long)setup->frames_fill_max);
+	fprintf(fp, "fill_max: %ld\n", (long)setup->fill_max);
 	return 0;
 }
 

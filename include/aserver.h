@@ -40,8 +40,8 @@ typedef struct {
 		snd_pcm_channel_info_t channel_info;
 		snd_pcm_channel_params_t channel_params;
 		snd_pcm_channel_setup_t channel_setup;
-		off_t frame_data;
-		int frame_io;
+		off_t appl_ptr;
+		int hw_ptr;
 		int link;
 		snd_xfer_t read;
 		snd_xfer_t write;
