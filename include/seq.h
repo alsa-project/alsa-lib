@@ -586,8 +586,7 @@ enum {
 	SND_SEQ_EVFLG_RAW,
 	SND_SEQ_EVFLG_FIXED,
 	SND_SEQ_EVFLG_VARIABLE,
-	SND_SEQ_EVFLG_VARUSR,
-	SND_SEQ_EVFLG_IPC
+	SND_SEQ_EVFLG_VARUSR
 };
 
 enum {
@@ -655,9 +654,6 @@ extern const unsigned int snd_seq_event_types[];
 /** event type check: user pointer events */
 #define snd_seq_ev_is_varusr_type(ev) \
 	snd_seq_type_check(ev, SND_SEQ_EVFLG_VARUSR)
-/** event type check: ipc events */
-#define snd_seq_ev_is_varipc_type(ev) \
-	snd_seq_type_check(ev, SND_SEQ_EVFLG_IPC)
 /** event type check: reserved for kernel */
 #define snd_seq_ev_is_reserved(ev) \
 	(! snd_seq_event_types[(ev)->type])
@@ -681,9 +677,6 @@ extern const unsigned int snd_seq_event_types[];
 /** variable length on user-space */
 #define snd_seq_ev_is_varusr(ev) \
 	(snd_seq_ev_length_type(ev) == SND_SEQ_EVENT_LENGTH_VARUSR)
-/** variable length on IPC shm */
-#define snd_seq_ev_is_varipc(ev) \
-	(snd_seq_ev_length_type(ev) == SND_SEQ_EVENT_LENGTH_VARIPC)
 
 /** time-stamp type */
 #define snd_seq_ev_timestamp_type(ev) \

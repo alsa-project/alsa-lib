@@ -429,7 +429,6 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 			return -ENOMEM;
 		switch (ev->flags & SNDRV_SEQ_EVENT_LENGTH_MASK) {
 		case SNDRV_SEQ_EVENT_LENGTH_FIXED:
-		case SNDRV_SEQ_EVENT_LENGTH_VARIPC:
 			return -EINVAL;	/* invalid event */
 		}
 		memcpy(dev->buf, ev->data.ext.ptr, qlen);

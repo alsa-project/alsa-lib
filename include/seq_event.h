@@ -277,7 +277,6 @@ typedef union snd_seq_timestamp {
 #define SND_SEQ_EVENT_LENGTH_FIXED	(0<<2)	/**< fixed event size */
 #define SND_SEQ_EVENT_LENGTH_VARIABLE	(1<<2)	/**< variable event size */
 #define SND_SEQ_EVENT_LENGTH_VARUSR	(2<<2)	/**< variable event size - user memory space */
-#define SND_SEQ_EVENT_LENGTH_VARIPC	(3<<2)	/**< variable event size - IPC */
 #define SND_SEQ_EVENT_LENGTH_MASK	(3<<2)	/**< mask for event length bits */
 
 #define SND_SEQ_PRIORITY_NORMAL		(0<<4)	/**< normal priority */
@@ -317,14 +316,6 @@ typedef struct snd_seq_ev_ext {
 	unsigned int len;		/**< length of data */
 	void *ptr;			/**< pointer to data (note: can be 64-bit) */
 } snd_seq_ev_ext_t;
-
-#if 0 /* FIXME: not implemented */
-/** external stored data - IPC shared memory */
-typedef struct snd_seq_ev_ipcshm {
-	unsigned int len;		/**< length of data */
-	key_t ipc;			/**< IPC key */
-} snd_seq_ev_ipcshm_t;
-#endif
 
 /** Instrument cluster type */
 typedef unsigned int snd_seq_instr_cluster_t;
@@ -444,7 +435,6 @@ typedef struct snd_seq_event {
 		snd_seq_ev_raw8_t raw8;		/**< raw8 data */
 		snd_seq_ev_raw32_t raw32;	/**< raw32 data */
 		snd_seq_ev_ext_t ext;		/**< external data */
-		/* snd_seq_ev_ipcshm_t ipcshm; */	/* IPC shared memory */
 		snd_seq_ev_queue_control_t queue; /**< queue control */
 		snd_seq_timestamp_t time;	/**< timestamp */
 		snd_seq_addr_t addr;		/**< address */
