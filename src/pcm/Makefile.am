@@ -2,9 +2,9 @@ EXTRA_LTLIBRARIES = libpcm.la
 
 if HAVE_JACK
 JACK_PLUGIN = pcm_jack.c
-else !HAVE_JACK
+else
 JACK_PLUGIN =
-endif !HAVE_JACK
+endif
 
 libpcm_la_SOURCES = atomic.c mask.c interval.c \
 		    pcm.c pcm_params.c \
