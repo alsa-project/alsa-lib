@@ -29,9 +29,9 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 			  snd_pcm_uframes_t offset,
 			  int count, double *_phase)
 {
+	static double max_phase = 2. * M_PI;
 	double phase = *_phase;
-	double max_phase = 1.0 / freq;
-	double step = 1.0 / (double)rate;
+	double step = max_phase*freq/(double)rate;
 	double res;
 	signed short *samples[channels];
 	int steps[channels];
@@ -53,7 +53,7 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	}
 	/* fill the channel areas */
 	while (count-- > 0) {
-		res = sin((phase * 2 * M_PI) / max_phase - M_PI) * 32767;
+		res = sin(phase) * 32767;
 		ires = res;
 		for (chn = 0; chn < channels; chn++) {
 			*samples[chn] = ires;
