@@ -871,8 +871,6 @@ int snd_pcm_ioplug_create(snd_pcm_ioplug_t *ioplug, const char *name,
 	ioplug_priv_t *io;
 	int err;
 	snd_pcm_t *pcm;
-	snd_pcm_access_t def_access = SND_PCM_ACCESS_RW_INTERLEAVED;
-	snd_pcm_format_t def_format = SND_PCM_FORMAT_S16;
 
 	assert(ioplug && ioplug->callback);
 	assert(ioplug->callback->start &&
