@@ -237,6 +237,15 @@ int snd_seq_set_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
 	return 0;
 }
 
+int snd_seq_get_port_subscription(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
+{
+	if (!seq || !sub)
+		return -EINVAL;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_SUBSCRIPTION, sub) < 0)
+		return -errno;
+	return 0;
+}
+
 int snd_seq_subscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
 {
 	if (!seq || !sub)
@@ -251,6 +260,15 @@ int snd_seq_unsubscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
 	if (!seq || !sub)
 		return -EINVAL;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_UNSUBSCRIBE_PORT, sub) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subs_t * subs)
+{
+	if (!seq || !subs)
+		return -EINVAL;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_QUERY_SUBS, subs) < 0)
 		return -errno;
 	return 0;
 }
@@ -800,6 +818,26 @@ int snd_seq_set_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
 		return -EINVAL;
 	info->client = seq->client;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_CLIENT_POOL, info) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_query_next_client(snd_seq_t *seq, snd_seq_client_info_t *info)
+{
+	if (!seq || !info)
+		return -EINVAL;
+	info->client = seq->client;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_QUERY_NEXT_CLIENT, info) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_query_next_port(snd_seq_t *seq, snd_seq_port_info_t *info)
+{
+	if (!seq || !info)
+		return -EINVAL;
+	info->client = seq->client;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_QUERY_NEXT_PORT, info) < 0)
 		return -errno;
 	return 0;
 }

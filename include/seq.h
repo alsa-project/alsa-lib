@@ -29,8 +29,10 @@ int snd_seq_delete_port(snd_seq_t *handle, snd_seq_port_info_t *info);
 int snd_seq_get_port_info(snd_seq_t *handle, int port, snd_seq_port_info_t *info);
 int snd_seq_get_any_port_info(snd_seq_t *handle, int client, int port, snd_seq_port_info_t *info);
 int snd_seq_set_port_info(snd_seq_t *handle, int port, snd_seq_port_info_t *info);
+int snd_seq_get_port_subscription(snd_seq_t *handle, snd_seq_port_subscribe_t *sub);
 int snd_seq_subscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t *sub);
 int snd_seq_unsubscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t *sub);
+int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subs_t * subs);
 int snd_seq_get_queue_status(snd_seq_t *handle, int q, snd_seq_queue_status_t *status);
 int snd_seq_get_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tempo);
 int snd_seq_set_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tempo);
@@ -46,6 +48,9 @@ int snd_seq_alloc_queue(snd_seq_t *handle);
 int snd_seq_free_queue(snd_seq_t *handle, int q);
 int snd_seq_get_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
 int snd_seq_set_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
+int snd_seq_query_next_client(snd_seq_t *handle, snd_seq_client_info_t * info);
+int snd_seq_query_next_port(snd_seq_t *handle, snd_seq_port_info_t * info);
+
 /* event routines */
 snd_seq_event_t *snd_seq_create_event(void);
 int snd_seq_free_event(snd_seq_event_t *ev);

@@ -1,6 +1,6 @@
 ================================================================
 	aconnect - control subscriptions
-		ver.0.1
+		ver.0.1.1
 	Copyright (C) 1999 Takashi Iwai
 ================================================================
 
@@ -39,6 +39,9 @@ Similary, to see the output ports, use -o flag.
 Some ports may have permission for its own group.
 In such a case, change the group of aconnect to the appropriate one by
 using -g option.
+
+The option -l together with -i or -o shows subscribers and tracking
+for each port.
 
 The option -D specifies the sequencer device file (as default,
 /dev/snd/seq).  Usually, you don't have to change it.

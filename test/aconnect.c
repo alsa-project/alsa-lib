@@ -1,6 +1,6 @@
 /*
  * connect / disconnect two subscriber ports
- *   ver.0.1
+ *   ver.0.1.1
  *
  * Copyright (C) 1999 Takashi Iwai
  * 
@@ -22,10 +22,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <linux/asound.h>
-#include <linux/asequencer.h>
+#include <sys/asoundlib.h>
 
-#define DEVICE_FILE	"/dev/snd/seq"
 #define DEFAULT_QUEUE	0
 
 static void usage(void)
@@ -35,12 +33,15 @@ static void usage(void)
 	fprintf(stderr, "usage: aconnect [-d] [-q queue] [-g group] sender receiver\n");
 	fprintf(stderr, "            -d = disconnect\n");
 	fprintf(stderr, "            sender, receiver = client:port\n");
-	fprintf(stderr, "       aconnect -i [-g group]\n");
+	fprintf(stderr, "       aconnect -i [-g group] [-l]\n");
 	fprintf(stderr, "            list input ports\n");
-	fprintf(stderr, "       aconnect -o [-g group]\n");
+	fprintf(stderr, "       aconnect -o [-g group] [-l]\n");
 	fprintf(stderr, "            list output ports\n");
 }
 
+/*
+ * parse command line to client:port
+ */
 static void parse_address(snd_seq_addr_t *addr, char *arg)
 {
 	char *p;
@@ -52,6 +53,9 @@ static void parse_address(snd_seq_addr_t *addr, char *arg)
 		addr->port = 0;
 }
 
+/*
+ * check permission (capability) of specified port
+ */
 static int check_permission(snd_seq_port_info_t *pinfo, char *group, int perm)
 {
 	if ((pinfo->capability & perm) == perm &&
@@ -65,9 +69,43 @@ static int check_permission(snd_seq_port_info_t *pinfo, char *group, int perm)
 }
 
 /*
+ * list subscribers of specified type
+ */
+static void list_each_subs(snd_seq_t *seq, snd_seq_query_subs_t *subs, int type, char *msg)
+{
+	subs->type = type;
+	subs->index = 0;
+	while (snd_seq_query_port_subscribers(seq, subs) >= 0) {
+		if (subs->index == 0)
+			printf("\t%s: %d:%d:%d", msg,
+			       subs->addr.queue, subs->addr.client, subs->addr.port);
+		else
+			printf(", %d:%d:%d", subs->addr.queue, subs->addr.client, subs->addr.port);
+		subs->index++;
+	}
+	if (subs->index)
+		printf("\n");
+}
+
+/*
+ * list subscribers
+ */
+static void list_subscribers(snd_seq_t *seq, int client, int port)
+{
+	snd_seq_query_subs_t subs;
+	memset(&subs, 0, sizeof(subs));
+	subs.client = client;
+	subs.port = port;
+	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_READ, "Read Subscribers");
+	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_WRITE, "Write Subscribers");
+	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_READ_TRACK, "Read Tracking");
+	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_WRITE_TRACK, "Write Tracking");
+}
+
+/*
  * list all ports
  */
-static void list_ports(int fd, char *group, int perm)
+static void list_ports(snd_seq_t *seq, char *group, int perm, int list_subs)
 {
 	snd_seq_client_info_t cinfo;
 	snd_seq_port_info_t pinfo;
@@ -76,14 +114,14 @@ static void list_ports(int fd, char *group, int perm)
 	cinfo.client = -1;
 	cinfo.name[0] = 0;
 	cinfo.group[0] = 0;
-	while (ioctl(fd, SND_SEQ_IOCTL_QUERY_NEXT_CLIENT, &cinfo) >= 0) {
+	while (snd_seq_query_next_client(seq, &cinfo) >= 0) {
 		/* reset query info */
 		pinfo.client = cinfo.client;
 		pinfo.port = -1;
 		pinfo.name[0] = 0;
 		strncpy(pinfo.group, group, sizeof(pinfo.group));
 		client_printed = 0;
-		while (ioctl(fd, SND_SEQ_IOCTL_QUERY_NEXT_PORT, &pinfo) >= 0) {
+		while (snd_seq_query_next_port(seq, &pinfo) >= 0) {
 			if (check_permission(&pinfo, group, perm)) {
 				if (! client_printed) {
 					printf("client %d: '%s' [group=%s] [type=%s]\n",
@@ -92,6 +130,8 @@ static void list_ports(int fd, char *group, int perm)
 					client_printed = 1;
 				}
 				printf("  %3d '%-16s' [group=%s]\n", pinfo.port, pinfo.name, pinfo.group);
+				if (list_subs)
+					list_subscribers(seq, pinfo.client, pinfo.port);
 			}
 			/* reset query names */
 			pinfo.name[0] = 0;
@@ -110,16 +150,17 @@ enum {
 
 int main(int argc, char **argv)
 {
-	int c, fd;
+	int c;
+	snd_seq_t *seq;
 	int queue = DEFAULT_QUEUE;
 	int command = SUBSCRIBE;
-	char *device = DEVICE_FILE;
 	char *group = "";
 	int client;
+	int list_subs = 0;
 	snd_seq_client_info_t cinfo;
 	snd_seq_port_subscribe_t subs;
 
-	while ((c = getopt(argc, argv, "diog:D:q:")) != -1) {
+	while ((c = getopt(argc, argv, "diog:D:q:l")) != -1) {
 		switch (c) {
 		case 'd':
 			command = UNSUBSCRIBE;
@@ -133,11 +174,11 @@ int main(int argc, char **argv)
 		case 'g':
 			group = optarg;
 			break;
-		case 'D':
-			device = optarg;
-			break;
 		case 'q':
 			queue = atoi(optarg);
+			break;
+		case 'l':
+			list_subs = 1;
 			break;
 		default:
 			usage();
@@ -145,25 +186,29 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if ((fd = open(device, O_RDWR)) < 0) {
+	if (snd_seq_open(&seq, SND_SEQ_OPEN) < 0) {
 		fprintf(stderr, "can't open sequencer\n");
 		return 1;
 	}
 	
 	if (command == LIST_INPUT) {
-		list_ports(fd, group, SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ);
+		list_ports(seq, group, SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ, list_subs);
+		snd_seq_close(seq);
 		return 0;
 	} else if (command == LIST_OUTPUT) {
-		list_ports(fd, group, SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE);
+		list_ports(seq, group, SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE, list_subs);
+		snd_seq_close(seq);
 		return 0;
 	}
 
 	if (optind + 2 > argc) {
+		snd_seq_close(seq);
 		usage();
 		exit(1);
 	}
 
-	if (ioctl(fd, SND_SEQ_IOCTL_CLIENT_ID, &client) < 0) {
+	if ((client = snd_seq_client_id(seq)) < 0) {
+		snd_seq_close(seq);
 		fprintf(stderr, "can't get client id\n");
 		return 1;
 	}
@@ -174,7 +219,8 @@ int main(int argc, char **argv)
 	cinfo.type = USER_CLIENT;
 	strcpy(cinfo.name, "ALSA Connector");
 	strncpy(cinfo.group, group, sizeof(cinfo.group) - 1);
-	if (ioctl(fd, SND_SEQ_IOCTL_SET_CLIENT_INFO, &cinfo) < 0) {
+	if (snd_seq_set_client_info(seq, &cinfo) < 0) {
+		snd_seq_close(seq);
 		fprintf(stderr, "can't set client info\n");
 		return 0;
 	}
@@ -188,24 +234,30 @@ int main(int argc, char **argv)
 	subs.realtime = 0;
 
 	if (command == UNSUBSCRIBE) {
-		if (ioctl(fd, SND_SEQ_IOCTL_GET_SUBSCRIPTION, &subs) < 0) {
+		if (snd_seq_get_port_subscription(seq, &subs) < 0) {
+			snd_seq_close(seq);
 			fprintf(stderr, "No subscription is found\n");
 			return 1;
 		}
-		if (ioctl(fd, SND_SEQ_IOCTL_UNSUBSCRIBE_PORT, &subs) < 0) {
+		if (snd_seq_unsubscribe_port(seq, &subs) < 0) {
+			snd_seq_close(seq);
 			fprintf(stderr, "Disconnection failed (errno=%d)\n", errno);
 			return 1;
 		}
 	} else {
-		if (ioctl(fd, SND_SEQ_IOCTL_GET_SUBSCRIPTION, &subs) >= 0) {
+		if (snd_seq_get_port_subscription(seq, &subs) < 0) {
+			snd_seq_close(seq);
 			fprintf(stderr, "Connection is already subscribed\n");
 			return 1;
 		}
-		if (ioctl(fd, SND_SEQ_IOCTL_SUBSCRIBE_PORT, &subs) < 0) {
+		if (snd_seq_subscribe_port(seq, &subs) < 0) {
+			snd_seq_close(seq);
 			fprintf(stderr, "Connection failed (errno=%d)\n", errno);
 			return 1;
 		}
 	}
+
+	snd_seq_close(seq);
 
 	return 0;
 }
