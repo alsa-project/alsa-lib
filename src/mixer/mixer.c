@@ -221,12 +221,61 @@ int snd_mixer_elem_throw_event(snd_mixer_elem_t *elem,
 	return 0;
 }
 
+static int _snd_mixer_find_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem, int *dir)
+{
+	unsigned int l, u;
+	int c = 0;
+	int idx = -1;
+	assert(mixer && elem);
+	assert(mixer->compare);
+	l = 0;
+	u = mixer->count;
+	while (l < u) {
+		idx = (l + u) / 2;
+		c = mixer->compare(elem, mixer->pelems[idx]);
+		if (c < 0)
+			u = idx;
+		else if (c > 0)
+			l = idx + 1;
+		else
+			break;
+	}
+	*dir = c;
+	return idx;
+}
+
 int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class)
 {
+	int dir, idx;
 	snd_mixer_t *mixer = class->mixer;
 	elem->class = class;
 
-	list_add_tail(&elem->list, &mixer->elems);
+	if (mixer->count == mixer->alloc) {
+		snd_mixer_elem_t **m;
+		mixer->alloc += 32;
+		m = realloc(mixer->pelems, sizeof(*m) * mixer->alloc);
+		if (!m) {
+			mixer->alloc -= 32;
+			return -ENOMEM;
+		}
+		mixer->pelems = m;
+	}
+	if (mixer->count == 0) {
+		list_add_tail(&elem->list, &mixer->elems);
+		mixer->pelems[0] = elem;
+	} else {
+		idx = _snd_mixer_find_elem(mixer, elem, &dir);
+		assert(dir != 0);
+		if (dir > 0) {
+			list_add(&elem->list, &mixer->pelems[idx]->list);
+		} else {
+			list_add_tail(&elem->list, &mixer->pelems[idx]->list);
+			idx++;
+		}
+		memmove(mixer->pelems + idx + 1,
+			mixer->pelems + idx,
+			mixer->count - idx);
+	}
 	mixer->count++;
 	return snd_mixer_throw_event(mixer, SND_CTL_EVENT_ADD, elem);
 }
@@ -234,11 +283,19 @@ int snd_mixer_elem_add(snd_mixer_elem_t *elem, snd_mixer_class_t *class)
 int snd_mixer_elem_remove(snd_mixer_elem_t *elem)
 {
 	snd_mixer_t *mixer = elem->class->mixer;
-	int err;
+	int err, idx, dir;
+	unsigned int m;
+	assert(elem);
+	idx = _snd_mixer_find_elem(mixer, elem, &dir);
+	if (dir != 0)
+		return -EINVAL;
 	err = snd_mixer_elem_throw_event(elem, SND_CTL_EVENT_REMOVE);
 	list_del(&elem->list);
 	free(elem);
 	mixer->count--;
+	m = mixer->count - idx;
+	if (m > 0)
+		memmove(mixer->pelems + idx, mixer->pelems + idx + 1, m);
 	return err;
 }
 
@@ -323,6 +380,10 @@ int snd_mixer_close(snd_mixer_t *mixer)
 		snd_mixer_class_unregister(c);
 	}
 	assert(list_empty(&mixer->elems));
+	if (mixer->pelems) {
+		free(mixer->pelems);
+		mixer->pelems = NULL;
+	}
 	while (!list_empty(&mixer->slaves)) {
 		int err;
 		snd_mixer_slave_t *s;
@@ -356,25 +417,12 @@ static int snd_mixer_sort(snd_mixer_t *mixer)
 		return mixer->compare(*(const snd_mixer_elem_t **) a,
 				      *(const snd_mixer_elem_t **) b);
 	}
-	snd_mixer_elem_t **ptr;
-	struct list_head *pos, *next;
-
 	assert(mixer);
 	assert(mixer->compare);
-	ptr = malloc(sizeof(snd_mixer_elem_t) * mixer->count);
-	if (ptr == NULL)
-		return -ENOMEM;
-	k = 0;
-	list_for_each(pos, next, &mixer->elems) {
-		snd_mixer_elem_t *e;
-		e = list_entry(pos, snd_mixer_elem_t, list);
-		ptr[k++] = e;
-	}
 	INIT_LIST_HEAD(&mixer->elems);
-	qsort(ptr, mixer->count, sizeof(snd_mixer_elem_t), compar);
+	qsort(mixer->pelems, mixer->count, sizeof(snd_mixer_elem_t), compar);
 	for (k = 0; k < mixer->count; k++)
-		list_add_tail(&ptr[k]->list, &mixer->elems);
-	free(ptr);
+		list_add_tail(&mixer->pelems[k]->list, &mixer->elems);
 	return 0;
 }
 

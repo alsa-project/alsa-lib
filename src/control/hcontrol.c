@@ -134,8 +134,10 @@ static int snd_hctl_elem_add(snd_hctl_t *hctl, snd_hctl_elem_t *elem)
 		snd_hctl_elem_t **h;
 		hctl->alloc += 32;
 		h = realloc(hctl->pelems, sizeof(*h) * hctl->alloc);
-		if (!h)
+		if (!h) {
+			hctl->alloc -= 32;
 			return -ENOMEM;
+		}
 		hctl->pelems = h;
 	}
 	if (hctl->count == 0) {
