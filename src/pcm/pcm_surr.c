@@ -53,6 +53,8 @@ struct _snd_pcm_surround {
 	unsigned int channels;	/* count of channels (4 or 6) */
 	int pcms;		/* count of PCM channels */
 	int use_fd;		/* use this FD for the direct access */
+	int use_fd_four;
+	int use_fd_six;
 	snd_pcm_t *pcm[3];	/* up to three PCM stereo streams */
 	int use_route: 1;	/* route is used */
 	int route[6];		/* channel route */
@@ -652,13 +654,25 @@ int load_surround_config(snd_ctl_t *ctl, snd_pcm_surround_t *surr,
 			} else if (isdigit(*str) && atoi(str) != 0)
 				surr->caps |= SURR_CAP_6CH;
 		}
-		if (snd_config_search(n, "use_fd", &n1) >= 0) {
+		if (snd_config_search(n, "use_fd_four", &n1) >= 0) {
+			unsigned long i;
+			if ((err = snd_config_get_integer(n1, &i)) < 0) {
+				SNDERR("Invalid type for %s", id);
+				goto __error;
+			} else if (i <= 1)
+				surr->use_fd_four = i;
+			else {
+				SNDERR("Invalid range for use_fd (0-2): %li", i);
+				goto __error;
+			}
+		}
+		if (snd_config_search(n, "use_fd_six", &n1) >= 0) {
 			unsigned long i;
 			if ((err = snd_config_get_integer(n1, &i)) < 0) {
 				SNDERR("Invalid type for %s", id);
 				goto __error;
 			} else if (i <= 2)
-				surr->use_fd = i;
+				surr->use_fd_six = i;
 			else {
 				SNDERR("Invalid range for use_fd (0-2): %li", i);
 				goto __error;
@@ -725,6 +739,7 @@ int load_surround_config(snd_ctl_t *ctl, snd_pcm_surround_t *surr,
 		if (snd_config_search(n, "open_single", &n1) >= 0) {
 			snd_config_iterator_t i, next;
 			int device = 0, subdevice = -1;
+			surr->use_fd = 0;
 			if (snd_config_get_type(n1) != SND_CONFIG_TYPE_COMPOUND) {
 				SNDERR("compound type expected");
 				goto __error;
@@ -818,12 +833,14 @@ int load_surround_config(snd_ctl_t *ctl, snd_pcm_surround_t *surr,
 			}
 			switch (stype) {
 			case SND_PCM_SURROUND_40:
+				surr->use_fd = surr->use_fd_four;
 				if (!(surr->caps & SURR_CAP_4CH)) {
 					err = -ENODEV;
 					goto __error;
 				}
 				break;
 			case SND_PCM_SURROUND_51:
+				surr->use_fd = surr->use_fd_six;
 				if (!(surr->caps & SURR_CAP_6CH)) {
 					err = -ENODEV;
 					goto __error;
@@ -834,6 +851,8 @@ int load_surround_config(snd_ctl_t *ctl, snd_pcm_surround_t *surr,
 				SNDERR("surround single stream open error %i,%i,%i,%i,%i,%i,%i: %s", surr->card, device[0], subdevice[0], device[1], subdevice[1], device[2], subdevice[2], snd_strerror(err));
 				goto __error;
 			}
+			if (surr->pcm[surr->use_fd] == NULL)
+				surr->use_fd = 0;
 			opened = 1;
 		}
 		if (opened == 0) {
