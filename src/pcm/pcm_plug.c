@@ -564,15 +564,22 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	clt_params.channels = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_CHANNELS, 0);
 	clt_params.rate = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_RATE, 0);
 
-	slv_params.access = snd_pcm_hw_param_first(slave, &sparams, SND_PCM_HW_PARAM_ACCESS, 0);
 	slv_params.format = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_FORMAT, 0);
 	slv_params.channels = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_CHANNELS, 0);
 	slv_params.rate = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_RATE, 0);
 	snd_pcm_plug_clear(pcm);
-	err = snd_pcm_plug_insert_plugins(pcm, &clt_params, &slv_params);
-	if (err < 0)
-		return err;
-	err = snd_pcm_hw_params(plug->slave, params);
+	if (!(clt_params.format == slv_params.format &&
+	      clt_params.channels == slv_params.channels &&
+	      clt_params.rate == slv_params.rate &&
+	      snd_pcm_hw_param_test(&sparams, SND_PCM_HW_PARAM_ACCESS, 
+				    clt_params.access))) {
+		slv_params.access = snd_pcm_hw_param_first(slave, &sparams, SND_PCM_HW_PARAM_ACCESS, 0);
+		err = snd_pcm_plug_insert_plugins(pcm, &clt_params, &slv_params);
+		if (err < 0)
+			return err;
+	}
+	slave = plug->slave;
+	err = snd_pcm_hw_params(slave, params);
 	if (err < 0) {
 		snd_pcm_plug_clear(pcm);
 		return err;
@@ -594,24 +601,7 @@ static int snd_pcm_plug_hw_free(snd_pcm_t *pcm)
 static int snd_pcm_plug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	snd_pcm_t *slave = plug->req_slave;
-	snd_pcm_uframes_t avail_min, xfer_align, silence_threshold, silence_size;
-	int err;
-	avail_min = params->avail_min;
-	xfer_align = params->xfer_align;
-	silence_threshold = params->silence_threshold;
-	silence_size = params->silence_size;
-	params->avail_min = muldiv_near(params->avail_min, slave->rate, pcm->rate);
-	params->xfer_align = muldiv_near(params->xfer_align, slave->rate, pcm->rate);
-	params->silence_threshold = muldiv_near(params->silence_threshold, slave->rate, pcm->rate);
-	params->silence_size = muldiv_near(params->silence_size, slave->rate, pcm->rate);
-	err = snd_pcm_sw_params(slave, params);
-	params->avail_min = avail_min;
-	params->xfer_align = xfer_align;
-	params->silence_threshold = silence_threshold;
-	params->silence_size = silence_size;
-	params->boundary = LONG_MAX - pcm->buffer_size * 2 - LONG_MAX % pcm->buffer_size;
-	return err;
+	return snd_pcm_sw_params(plug->slave, params);
 }
 
 static int snd_pcm_plug_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)

@@ -396,23 +396,13 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_rate_t *rate = pcm->private;
 	snd_pcm_t *slave = rate->plug.slave;
-	snd_pcm_uframes_t avail_min, xfer_align, silence_threshold, silence_size;
-	int err;
-	avail_min = params->avail_min;
-	xfer_align = params->xfer_align;
-	silence_threshold = params->silence_threshold;
-	silence_size = params->silence_size;
-	params->avail_min = muldiv_near(params->avail_min, slave->rate, pcm->rate);
-	params->xfer_align = muldiv_near(params->xfer_align, slave->rate, pcm->rate);
-	params->silence_threshold = muldiv_near(params->silence_threshold, slave->rate, pcm->rate);
-	params->silence_size = muldiv_near(params->silence_size, slave->rate, pcm->rate);
-	err = snd_pcm_sw_params(slave, params);
-	params->avail_min = avail_min;
-	params->xfer_align = xfer_align;
-	params->silence_threshold = silence_threshold;
-	params->silence_size = silence_size;
-	params->boundary = LONG_MAX - pcm->buffer_size * 2 - LONG_MAX % pcm->buffer_size;
-	return err;
+	snd_pcm_sw_params_t sparams;
+	sparams = *params;
+	sparams.avail_min = muldiv_near(sparams.avail_min, slave->rate, pcm->rate);
+	sparams.xfer_align = muldiv_near(sparams.xfer_align, slave->rate, pcm->rate);
+	sparams.silence_threshold = muldiv_near(sparams.silence_threshold, slave->rate, pcm->rate);
+	sparams.silence_size = muldiv_near(sparams.silence_size, slave->rate, pcm->rate);
+	return snd_pcm_sw_params(slave, &sparams);
 }
 
 static int snd_pcm_rate_init(snd_pcm_t *pcm)
