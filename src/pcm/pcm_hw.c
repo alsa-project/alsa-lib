@@ -79,6 +79,7 @@ struct sndrv_pcm_hw_params_old {
 
 #define SND_PCM_IOCTL_HWSYNC _IO ('A', 0x22)
 #define SND_PCM_IOCTL_XRUN   _IO ('A', 0x48)
+#define SND_PCM_IOCTL_FORWARD _IOW('A', 0x49, sndrv_pcm_uframes_t)
 
 static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t *params);
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm);
@@ -103,7 +104,7 @@ typedef struct {
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
 #define SNDRV_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
-#define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 3)
+#define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 4)
 
 /* update appl_ptr with driver */
 #define UPDATE_SHADOW_PTR(hw) \
@@ -453,12 +454,11 @@ static int snd_pcm_hw_reset(snd_pcm_t *pcm)
 static int snd_pcm_hw_start(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int fd = hw->fd;
 #if 0
 	assert(pcm->stream != SND_PCM_STREAM_PLAYBACK ||
 	       snd_pcm_mmap_playback_hw_avail(pcm) > 0);
 #endif
-	if (ioctl(fd, SNDRV_PCM_IOCTL_START) < 0) {
+	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_START) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_START failed");
 #if 0
 		if (errno == EBADFD)
@@ -472,8 +472,7 @@ static int snd_pcm_hw_start(snd_pcm_t *pcm)
 static int snd_pcm_hw_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int fd = hw->fd;
-	if (ioctl(fd, SNDRV_PCM_IOCTL_DROP) < 0) {
+	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_DROP) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_DROP failed");
 		return -errno;
 	}
@@ -483,8 +482,7 @@ static int snd_pcm_hw_drop(snd_pcm_t *pcm)
 static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int fd = hw->fd;
-	if (ioctl(fd, SNDRV_PCM_IOCTL_DRAIN) < 0) {
+	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_DRAIN) < 0) {
 		if (errno != EAGAIN)
 			SYSERR("SNDRV_PCM_IOCTL_DRAIN failed");
 		return -errno;
@@ -495,8 +493,7 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int fd = hw->fd;
-	if (ioctl(fd, SNDRV_PCM_IOCTL_PAUSE, enable) < 0) {
+	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_PAUSE, enable) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_PAUSE failed");
 		return -errno;
 	}
@@ -506,8 +503,7 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int fd = hw->fd;
-	if (ioctl(fd, SNDRV_PCM_IOCTL_REWIND, &frames) < 0) {
+	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_REWIND, &frames) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_REWIND failed");
 		return -errno;
 	}
@@ -517,26 +513,34 @@ static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fra
 static snd_pcm_sframes_t snd_pcm_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	snd_pcm_sframes_t avail;
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 4) <= hw->version) {
+		if (ioctl(hw->fd, SND_PCM_IOCTL_FORWARD, &frames) < 0) {
+			SYSERR("SNDRV_PCM_IOCTL_FORWARD failed");
+			return -errno;
+		}
+		return frames;
+	} else {
+		snd_pcm_sframes_t avail;
 
-	switch (FAST_PCM_STATE(hw)) {
-	case SNDRV_PCM_STATE_RUNNING:
-	case SNDRV_PCM_STATE_DRAINING:
-	case SNDRV_PCM_STATE_PAUSED:
-	case SNDRV_PCM_STATE_PREPARED:
-		break;
-	case SNDRV_PCM_STATE_XRUN:
-		return -EPIPE;
-	default:
-		return -EBADFD;
+		switch (FAST_PCM_STATE(hw)) {
+		case SNDRV_PCM_STATE_RUNNING:
+		case SNDRV_PCM_STATE_DRAINING:
+		case SNDRV_PCM_STATE_PAUSED:
+		case SNDRV_PCM_STATE_PREPARED:
+			break;
+		case SNDRV_PCM_STATE_XRUN:
+			return -EPIPE;
+		default:
+			return -EBADFD;
+		}
+		avail = snd_pcm_mmap_avail(pcm);
+		if (avail < 0)
+			return 0;
+		if (frames > (snd_pcm_uframes_t)avail)
+			frames = avail;
+		snd_pcm_mmap_appl_forward(pcm, frames);
+		return frames;
 	}
-	avail = snd_pcm_mmap_avail(pcm);
-	if (avail < 0)
-		return 0;
-	if (frames > (snd_pcm_uframes_t)avail)
-		frames = avail;
-	snd_pcm_mmap_appl_forward(pcm, frames);
-	return frames;
 }
 
 static int snd_pcm_hw_resume(snd_pcm_t *pcm)
