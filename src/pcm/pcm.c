@@ -4032,11 +4032,11 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 	else
 		*areas = pcm->running_areas;
 	*offset = *pcm->appl_ptr % pcm->buffer_size;
+	cont = pcm->buffer_size - *offset;
 	avail = snd_pcm_mmap_avail(pcm);
 	f = *frames;
 	if (f > avail)
 		f = avail;
-	cont = pcm->buffer_size - *pcm->appl_ptr % pcm->buffer_size;
 	if (f > cont)
 		f = cont;
 	*frames = f;
