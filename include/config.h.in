@@ -1,6 +1,29 @@
-/*
- *  Configuration header file for compilation of the ALSA driver
- */
+/* include/config.h.in.  Generated automatically from configure.in by autoheader.  */
 
-#undef SND_LIB_VERSION
+/* Define to empty if the keyword does not work.  */
+#undef const
+
+/* Define as __inline if that's what the C compiler calls it.  */
+#undef inline
+
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
+/* Define if you can safely include both <sys/time.h> and <time.h>.  */
+#undef TIME_WITH_SYS_TIME
+
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 #undef WORDS_BIGENDIAN
+
+/* Package name */
+#undef PACKAGE
+
+/* Package version */
+#undef VERSION
+
+/* Sound library version string */
+#undef SND_LIB_VERSION
+
+/* Define if you have the <linux/asound.h> header file.  */
+#undef HAVE_LINUX_ASOUND_H
