@@ -1388,10 +1388,12 @@ void snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem,
 	selem_t *s;
 	assert(elem);
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	assert(min < max);
 	s = elem->private_data;
 	s->str[PLAY].range = 1;
 	s->str[PLAY].min = min;
 	s->str[PLAY].max = max;
+	selem_read(elem);
 }
 
 /**
@@ -1648,10 +1650,12 @@ void snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem,
 	selem_t *s;
 	assert(elem);
 	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	assert(min < max);
 	s = elem->private_data;
 	s->str[CAPT].range = 1;
 	s->str[CAPT].min = min;
 	s->str[CAPT].max = max;
+	selem_read(elem);
 }
 
 /**
