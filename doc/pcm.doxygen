@@ -197,7 +197,8 @@ returns 24 in the case.
 There are two methods to transfer samples in application. The first method
 is the standard read / write one. The second method, uses the direct audio
 buffer to communicate with the device while ALSA library manages this space
-itself.
+itself. You can find example of all communication schemes for playback
+in \ref example_test_pcm "Sine-wave generator example".
 
 \subsection alsa_pcm_rw Read / Write transfer
 
@@ -222,4 +223,37 @@ to allow the ALSA library update the pointers to ring buffer. This sort of
 communication is also called "zero-copy", because the device does not require
 to copy the samples from application to another place in system memory.
 
+\par
+
+If you like to use the compatibility functions in mmap mode, there are
+read / write routines equaling to standard read / write transfers. Using
+these functions discards the benefits of direct access to memory region.
+See the \link ::snd_pcm_mmap_readi() \endlink,
+\link ::snd_pcm_writei() \endlink, \link ::snd_pcm_readn() \endlink
+and \link ::snd_pcm_writen() \endlink functions.
+
+\section pcm_examples Examples
+
+The full featured examples with cross-links:
+
+\par Sine-wave generator
+\ref example_test_pcm "example code"
+\par
+This example shows various transfer methods for the playback direction.
+
+\par Latency measuring tool
+\ref example_test_latency "example code"
+\par
+This example shows the measuring of minimal latency between capture and
+playback devices.
+
 */
+
+/**
+ * \example ../test/pcm.c
+ * \anchor example_test_pcm
+ */
+/**
+ * \example ../test/latency.c
+ * \anchor example_test_latency
+ */
