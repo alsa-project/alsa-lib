@@ -1,6 +1,6 @@
 check_PROGRAMS=control pcm latency seq \
 	       playmidi1 timer rawmidi midiloop \
-	       code
+	       omixer code
 
 control_LDADD=../src/libasound.la
 pcm_LDADD=../src/libasound.la
@@ -10,6 +10,7 @@ playmidi1_LDADD=../src/libasound.la
 timer_LDADD=../src/libasound.la
 rawmidi_LDADD=../src/libasound.la
 midiloop_LDADD=../src/libasound.la
+omixer_LDADD=../src/libasound.la
 code_CFLAGS=-Wall -pipe -g -O2
 
 INCLUDES=-I$(top_srcdir)/include

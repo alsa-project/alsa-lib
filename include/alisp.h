@@ -32,9 +32,22 @@ struct alisp_cfg {
 };
 
 struct alisp_instance;
+struct alisp_object;
+struct alisp_seq_iterator;
 
+struct alisp_cfg *alsa_lisp_default_cfg(snd_input_t *input);
+void alsa_lisp_default_cfg_free(struct alisp_cfg *cfg);
 int alsa_lisp(struct alisp_cfg *cfg, struct alisp_instance **instance);
 void alsa_lisp_free(struct alisp_instance *instance);
-
-extern struct alisp_object alsa_lisp_nil;
-extern struct alisp_object alsa_lisp_t;
+int alsa_lisp_function(struct alisp_instance *instance, struct alisp_seq_iterator **result,
+		       const char *id, const char *args, ...)
+#ifndef DOC_HIDDEN
+		       __attribute__ ((format (printf, 4, 5)))
+#endif
+		       ;
+int alsa_lisp_seq_first(struct alisp_instance *instance, const char *id,
+			struct alisp_seq_iterator **seq);
+int alsa_lisp_seq_next(struct alisp_seq_iterator **seq);
+int alsa_lisp_seq_count(struct alisp_seq_iterator *seq);
+int alsa_lisp_seq_integer(struct alisp_seq_iterator *seq, long *val);
+int alsa_lisp_seq_pointer(struct alisp_seq_iterator *seq, const char *ptr_id, void **ptr);

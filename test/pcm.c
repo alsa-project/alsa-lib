@@ -691,7 +691,7 @@ static void help(void)
 {
 	int k;
 	printf(
-"Usage: latency [OPTION]... [FILE]...\n"
+"Usage: pcm [OPTION]... [FILE]...\n"
 "-h,--help	help\n"
 "-D,--device	playback device\n"
 "-r,--rate	stream rate in Hz\n"

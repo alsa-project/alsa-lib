@@ -88,3 +88,8 @@
 
 (&stat-memory)
 (&dump-memory "memory.dump")
+
+(defun autotest () (princ "abcd\n"))
+(setq auto-exec 'autotest)
+
+(princ (path 'data) "\n")

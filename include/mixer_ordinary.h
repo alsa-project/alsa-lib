@@ -95,6 +95,7 @@ enum sndo_mixer_io_type {
 };
 
 typedef struct sndo_mixer sndo_mixer_t;
+struct alisp_cfg;
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,7 +107,7 @@ extern "C" {
  *  \{
  */
 
-int sndo_mixer_open(sndo_mixer_t **pmixer, const char *playback_name, const char *capture_name, snd_config_t *lconf);
+int sndo_mixer_open(sndo_mixer_t **pmixer, const char *playback_name, const char *capture_name, struct alisp_cfg *lconf);
 int sndo_mixer_close(sndo_mixer_t *mixer);
 int sndo_mixer_poll_descriptors_count(sndo_mixer_t *mixer);
 int sndo_mixer_poll_descriptors(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int space);

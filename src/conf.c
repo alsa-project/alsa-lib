@@ -2780,30 +2780,12 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 				goto _err;
 			}
 			if (i == idx) {
-				wordexp_t we;
 				char *name;
 				if ((err = snd_config_get_ascii(n, &name)) < 0)
 					goto _err;
-				err = wordexp(name, &we, WRDE_NOCMD);
-				switch (err) {
-				case WRDE_NOSPACE:
-					err = -ENOMEM;
+				if ((err = snd_user_file(name, &fi[idx].name)) < 0)
 					goto _err;
-				case 0:
-					if (we.we_wordc == 1)
-						break;
-					/* Fall through */
-				default:
-					err = -EINVAL;
-					goto _err;
-				}
-				fi[idx].name = strdup(we.we_wordv[0]);
-				wordfree(&we);
 				free(name);
-				if (fi[idx].name == NULL) {
-					err = -ENOMEM;
-					goto _err;
-				}
 				idx++;
 				hit = 1;
 			}
@@ -2924,7 +2906,6 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 	int err;
 	const char *configs, *c;
 	unsigned int k;
-	wordexp_t we;
 	size_t l;
 	snd_config_update_t *local;
 	snd_config_update_t *update;
@@ -2963,25 +2944,9 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 		char name[l + 1];
 		memcpy(name, c, l);
 		name[l] = 0;
-		err = wordexp(name, &we, WRDE_NOCMD);
-		switch (err) {
-		case WRDE_NOSPACE:
-			err = -ENOMEM;
+		err = snd_user_file(name, &local->finfo[k].name);
+		if (err < 0)
 			goto _end;
-		case 0:
-			if (we.we_wordc == 1)
-				break;
-			/* Fall through */
-		default:
-			err = -EINVAL;
-			goto _end;
-		}
-		local->finfo[k].name = strdup(we.we_wordv[0]);
-		wordfree(&we);
-		if (!local->finfo[k].name) {
-			err = -ENOMEM;
-			goto _end;
-		}
 		c += l;
 		k++;
 		if (!*c)

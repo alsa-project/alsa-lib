@@ -126,3 +126,11 @@ ALSA_0.9.6 {
     snd_seq_port_info_set_timestamp_real;
     snd_seq_port_info_set_timestamp_queue;
 } ALSA_0.9.5;
+
+ALSA_0.9.7 {
+  global:
+
+    snd_user_file;
+    sndo_*;
+    alsa_lisp_*;
+} ALSA_0.9.6;

@@ -56,10 +56,15 @@ Write something here
 #include <sys/mman.h>
 #include <limits.h>
 #include "local.h"
+#include "alisp.h"
 #include "mixer_ordinary.h"
 
 struct sndo_mixer {
-	snd_mixer_t *mixer;
+	struct alisp_cfg *cfg;
+	struct alisp_instance *alisp;
+	int hctl_count;
+	snd_hctl_t **hctl;
+	int _free_cfg;
 };
 
 /**
@@ -73,10 +78,78 @@ struct sndo_mixer {
 int sndo_mixer_open(sndo_mixer_t **pmixer,
 		    const char *playback_name,
 		    const char *capture_name,
-		    snd_config_t *lconf)
+		    struct alisp_cfg *lconf)
 {
+	struct alisp_cfg *cfg = lconf;
+	struct alisp_instance *alisp;
+	struct alisp_seq_iterator *iterator;
+	sndo_mixer_t *mixer;
+	int err, count;
+	long val;
+
 	*pmixer = NULL;
-	return -ENODEV;
+	if (cfg == NULL) {
+		char *file;
+		snd_input_t *input;
+		file = getenv("ALSA_ORDINARY_MIXER");
+		if (!file)
+			file = DATADIR "/alsa/sndo-mixer.alisp";
+		if ((err = snd_input_stdio_open(&input, file, "r")) < 0) {
+			SNDERR("unable to open alisp file '%s'", file);
+			return err;
+		}
+		cfg = alsa_lisp_default_cfg(input);
+		if (cfg == NULL)
+			return -ENOMEM;
+	}
+	err = alsa_lisp(cfg, &alisp);
+	if (err < 0)
+		goto __error;
+	err = alsa_lisp_function(alisp, &iterator, "open", "%s%s", playback_name, capture_name);
+	if (err < 0) {
+		alsa_lisp_free(alisp);
+		goto __error;
+	}
+	err = alsa_lisp_seq_integer(iterator, &val);
+	if (err == 0 && val < 0)
+		err = val;
+	if (err < 0) {
+		alsa_lisp_free(alisp);
+		goto __error;
+	}
+	count = 0;
+	if (alsa_lisp_seq_first(alisp, "hctls", &iterator) == 0) {
+		count = alsa_lisp_seq_count(iterator);
+		if (count < 0)
+			count = 0;
+	}
+	mixer = malloc(sizeof(sndo_mixer_t) + count * sizeof(snd_hctl_t *));
+	if (mixer == NULL) {
+		alsa_lisp_free(alisp);
+		err = -ENOMEM;
+		goto __error;
+	}
+	memset(mixer, 0, sizeof(sndo_mixer_t));
+	if (count > 0) {
+		mixer->hctl = (snd_hctl_t **)(mixer + 1);
+		do {
+			if (alsa_lisp_seq_pointer(iterator, "hctl", (void **)&mixer->hctl[mixer->hctl_count++]))
+				break;
+		} while (mixer->hctl_count < count && alsa_lisp_seq_next(&iterator) == 0);
+		if (mixer->hctl_count < count) {
+			mixer->hctl = NULL;
+			mixer->hctl_count = 0;
+		}
+	}
+	mixer->alisp = alisp;
+	mixer->cfg = cfg;
+	mixer->_free_cfg = cfg != lconf;
+	*pmixer = mixer;
+	return 0;
+      __error:
+	if (cfg != lconf)
+		alsa_lisp_default_cfg_free(cfg);
+	return err;
 }
 
 /**
@@ -86,7 +159,14 @@ int sndo_mixer_open(sndo_mixer_t **pmixer,
  */
 int sndo_mixer_close(sndo_mixer_t *mixer)
 {
-	return -ENODEV;
+	int res;
+	
+	res = alsa_lisp_function(mixer->alisp, NULL, "close", "n");
+	alsa_lisp_free(mixer->alisp);
+	if (mixer->_free_cfg)
+		alsa_lisp_default_cfg_free(mixer->cfg);
+	free(mixer);
+	return res;
 }
 
 /**
@@ -96,7 +176,25 @@ int sndo_mixer_close(sndo_mixer_t *mixer)
  */
 int sndo_mixer_poll_descriptors_count(sndo_mixer_t *mixer)
 {
-	return snd_mixer_poll_descriptors_count(mixer->mixer);
+	int idx, err, res = -EIO;
+
+	if (mixer->hctl_count > 0) {
+		for (idx = 0; idx < mixer->hctl_count; idx++) {
+			err = snd_hctl_poll_descriptors_count(mixer->hctl[idx]);
+			if (err < 0)
+				return err;
+			res += err;
+		}
+	} else {
+		struct alisp_seq_iterator *result;
+		long val;
+		err = alsa_lisp_function(mixer->alisp, &result, "poll_descriptors_count", "n");
+		if (err < 0)
+			return err;
+		err = alsa_lisp_seq_integer(result, &val);
+		return err < 0 ? err : val;
+	}
+	return res;
 }
 
 /**
@@ -108,7 +206,8 @@ int sndo_mixer_poll_descriptors_count(sndo_mixer_t *mixer)
  */     
 int sndo_mixer_poll_descriptors(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int space)
 {
-	return snd_mixer_poll_descriptors(mixer->mixer, pfds, space);
+	//return snd_mixer_poll_descriptors(mixer->mixer, pfds, space);
+	return -ENODEV;
 }
 
 /**
@@ -121,7 +220,8 @@ int sndo_mixer_poll_descriptors(sndo_mixer_t *mixer, struct pollfd *pfds, unsign
  */ 
 int sndo_mixer_poll_descriptors_revents(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
-	return snd_mixer_poll_descriptors_revents(mixer->mixer, pfds, nfds, revents);
+	//return snd_mixer_poll_descriptors_revents(mixer->mixer, pfds, nfds, revents);
+	return -ENODEV;
 }
 
 /**

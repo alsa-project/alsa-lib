@@ -30,10 +30,14 @@
 #include <ctype.h>
 #include <math.h>
 #include <err.h>
+#include <wordexp.h>
+
+#define alisp_seq_iterator alisp_object
 
 #include "local.h"
 #include "alisp.h"
 #include "alisp_local.h"
+
 
 #define ALISP_FREE_OBJ_POOL	500	/* free objects above this pool */
 #define ALISP_AUTO_GC_THRESHOLD	200	/* run automagically garbage-collect when this threshold is reached */
@@ -51,6 +55,9 @@ static struct alisp_object * eval(struct alisp_instance *instance, struct alisp_
 /* functions */
 static struct alisp_object *F_eval(struct alisp_instance *instance, struct alisp_object *);
 static struct alisp_object *F_progn(struct alisp_instance *instance, struct alisp_object *);
+
+/* others */
+static int alisp_include_file(struct alisp_instance *instance, const char *filename);
 
 /*
  *  object handling
@@ -655,13 +662,13 @@ static struct alisp_object_pair * set_object(struct alisp_instance *instance, st
 	return p;
 }
 
-static void unset_object(struct alisp_instance *instance, struct alisp_object * name)
+static void unset_object1(struct alisp_instance *instance, const char *id)
 {
 	struct alisp_object_pair *p, *p1;
 
 	for (p = instance->setobjs_list, p1 = NULL; p != NULL; p1 = p, p = p->next) {
 		if (p->name->value.id != NULL &&
-		    !strcmp(name->value.id, p->name->value.id)) {
+		    !strcmp(id, p->name->value.id)) {
 		    	if (p1)
 		    		p1->next = p->next;
 		    	else
@@ -672,16 +679,26 @@ static void unset_object(struct alisp_instance *instance, struct alisp_object * 
 	}
 }
 
-static struct alisp_object * get_object(struct alisp_instance *instance, struct alisp_object * name)
+static inline void unset_object(struct alisp_instance *instance, struct alisp_object * name)
+{
+	return unset_object1(instance, name->value.id);
+}
+
+static struct alisp_object * get_object1(struct alisp_instance *instance, const char *id)
 {
 	struct alisp_object_pair *p;
 
 	for (p = instance->setobjs_list; p != NULL; p = p->next)
 		if (p->name->value.id != NULL &&
-		    !strcmp(name->value.id, p->name->value.id))
+		    !strcmp(id, p->name->value.id))
 			return p->value;
 
 	return &alsa_lisp_nil;
+}
+
+static inline struct alisp_object * get_object(struct alisp_instance *instance, struct alisp_object * name)
+{
+	return get_object1(instance, name->value.id);
 }
 
 static void dump_objects(struct alisp_instance *instance, const char *fname)
@@ -910,32 +927,60 @@ static struct alisp_object * F_cdr(struct alisp_instance *instance, struct alisp
 static struct alisp_object * F_add(struct alisp_instance *instance, struct alisp_object * args)
 {
 	struct alisp_object * p = args, * p1;
-	long v = 0;
-	double f = 0;
-	int type = ALISP_OBJ_INTEGER;
 
-	do {
-		p1 = eval(instance, car(p));
-		if (p1->type == ALISP_OBJ_INTEGER) {
-			if (type == ALISP_OBJ_FLOAT)
-				f += p1->value.i;
-			else
-				v += p1->value.i;
-		} else if (p1->type == ALISP_OBJ_FLOAT) {
-			f += p1->value.f + v;
-			v = 0;
-			type = ALISP_OBJ_FLOAT;
-		} else {
-			lisp_warn(instance, "sum with a non integer or float operand");
+	p1 = eval(instance, car(p));
+	if (p1->type == ALISP_OBJ_INTEGER || p1->type == ALISP_OBJ_FLOAT) {
+		long v = 0;
+		double f = 0;
+		int type = ALISP_OBJ_INTEGER;
+		for (;;) {
+			if (p1->type == ALISP_OBJ_INTEGER) {
+				if (type == ALISP_OBJ_FLOAT)
+					f += p1->value.i;
+				else
+					v += p1->value.i;
+			} else if (p1->type == ALISP_OBJ_FLOAT) {
+				f += p1->value.f + v;
+				v = 0;
+				type = ALISP_OBJ_FLOAT;
+			} else {
+				lisp_warn(instance, "sum with a non integer or float operand");
+			}
+			p = cdr(p);
+			if (p == &alsa_lisp_nil)
+				break;
+			p1 = eval(instance, car(p));
 		}
-		p = cdr(p);
-	} while (p != &alsa_lisp_nil);
-
-	if (type == ALISP_OBJ_INTEGER) {
-		return new_integer(instance, v);
-	} else {
-		return new_float(instance, f);
+		if (type == ALISP_OBJ_INTEGER) {
+			return new_integer(instance, v);
+		} else {
+			return new_float(instance, f);
+		}
+	} else if (p1->type == ALISP_OBJ_STRING || p1->type == ALISP_OBJ_IDENTIFIER) {
+		char *str = NULL, *str1;
+		for (;;) {
+			if (p1->type == ALISP_OBJ_STRING || p1->type == ALISP_OBJ_IDENTIFIER) {
+				str1 = realloc(str, strlen(str) + strlen(p1->value.s) + 1);
+				if (str1 == NULL) {
+					nomem();
+					if (str)
+						free(str);
+					return NULL;
+				}
+				strcat(str, p1->value.s);
+			} else {
+				lisp_warn(instance, "concat with a non string or identifier operand");
+			}
+			p = cdr(p);
+			if (p == &alsa_lisp_nil)
+				break;
+			p1 = eval(instance, car(p));
+		}
+		p = new_string(instance, str);
+		free(str);
+		return p;
 	}
+	return &alsa_lisp_nil;
 }
 
 /*
@@ -1753,7 +1798,7 @@ static struct alisp_object * F_defun(struct alisp_instance *instance, struct ali
 static struct alisp_object * eval_func(struct alisp_instance *instance, struct alisp_object * p, struct alisp_object * args)
 {
 	struct alisp_object * p1, * p2, * p3, * p4, * p5;
-	struct alisp_object * eval_objs[64], * save_objs[64];
+	struct alisp_object ** eval_objs, ** save_objs;
 	int i;
 
 	p1 = car(p);
@@ -1761,33 +1806,40 @@ static struct alisp_object * eval_func(struct alisp_instance *instance, struct a
 		p2 = car(cdr(p));
 		p3 = args;
 
-		if (count_list(p2) != count_list(p3)) {
+		if ((i = count_list(p2)) != count_list(p3)) {
 			lisp_warn(instance, "wrong number of parameters");
 			return &alsa_lisp_nil;
 		}
 
+		eval_objs = malloc(2 * i * sizeof(struct alisp_object *));
+		if (eval_objs == NULL) {
+			nomem();
+			goto _err;
+		}
+		save_objs = eval_objs + i;
+		
 		/*
 		 * Save the new variable values.
 		 */
 		i = 0;
-		do {
+		while (p3 != &alsa_lisp_nil) {
 			p5 = eval(instance, car(p3));
 			eval_objs[i++] = p5;
 			p3 = cdr(p3);
-		} while (p3 != &alsa_lisp_nil);
+		}
 
 		/*
 		 * Save the old variable values and set the new ones.
 		 */
 		i = 0;
-		do {
+		while (p2 != &alsa_lisp_nil) {
 			p4 = car(p2);
 			save_objs[i] = get_object(instance, p4);
 			if (set_object(instance, p4, eval_objs[i]) == NULL)
-				return NULL;
+				goto _err;
 			p2 = cdr(p2);
 			++i;
-		} while (p2 != &alsa_lisp_nil);
+		}
 
 		p5 = F_progn(instance, cdr(cdr(p)));
 
@@ -1796,17 +1848,25 @@ static struct alisp_object * eval_func(struct alisp_instance *instance, struct a
 		 */
 		p2 = car(cdr(p));
 		i = 0;
-		do {
+		while (p2 != &alsa_lisp_nil) {
 			p4 = car(p2);
 			if (set_object(instance, p4, save_objs[i++]) == NULL)
 				return NULL;
 			p2 = cdr(p2);
-		} while (p2 != &alsa_lisp_nil);
+		}
+
+		if (eval_objs)
+			free(eval_objs);
 
 		return p5;
 	}
 
 	return &alsa_lisp_nil;
+
+       _err:
+	if (eval_objs)
+		free(eval_objs);
+       	return NULL;
 }
 
 struct alisp_object * F_gc(struct alisp_instance *instance, struct alisp_object * args ATTRIBUTE_UNUSED)
@@ -1814,6 +1874,39 @@ struct alisp_object * F_gc(struct alisp_instance *instance, struct alisp_object 
 	garbage_collect(instance);
 
 	return &alsa_lisp_t;
+}
+
+/*
+ * Syntax: (path what)
+ * what is string ('data')
+ */
+struct alisp_object * F_path(struct alisp_instance *instance, struct alisp_object * args)
+{
+	struct alisp_object * p = args, * p1;
+
+	p1 = eval(instance, car(p));
+	if (p1->type != ALISP_STRING && p1->type != ALISP_IDENTIFIER)
+		return &alsa_lisp_nil;
+	if (!strcmp(p1->value.s, "data"))
+		return new_string(instance, DATADIR);
+	return &alsa_lisp_nil;
+}
+
+/*
+ * Syntax: (include filename...)
+ */
+struct alisp_object * F_include(struct alisp_instance *instance, struct alisp_object * args)
+{
+	struct alisp_object * p = args, * p1;
+
+	do {
+		p1 = eval(instance, car(p));
+		if (p1->type == ALISP_STRING && p1->type == ALISP_IDENTIFIER)
+			alisp_include_file(instance, p1->value.s);
+		p = cdr(p);
+	} while (p != &alsa_lisp_nil);
+
+	return p1;
 }
 
 /*
@@ -1932,6 +2025,27 @@ struct alisp_object * F_assq(struct alisp_instance *instance, struct alisp_objec
 }
 
 /*
+ *  Syntax: (nth index alist)
+ */
+struct alisp_object * F_nth(struct alisp_instance *instance, struct alisp_object * args)
+{
+	struct alisp_object * p1, * p2;
+	long idx;
+
+	p1 = eval(instance, car(args));
+	p2 = eval(instance, car(cdr(args)));
+
+	if (p1->type != ALISP_OBJ_INTEGER)
+		return &alsa_lisp_nil;
+	if (p2->type != ALISP_OBJ_CONS)
+		return &alsa_lisp_nil;
+	idx = p1->value.i;
+	while (idx-- > 0)
+		p2 = cdr(p2);
+	return car(p2);
+}
+
+/*
  *  Syntax: (rassq value alist)
  */
 struct alisp_object * F_rassq(struct alisp_instance *instance, struct alisp_object * args)
@@ -2031,10 +2145,13 @@ static struct intrinsic intrinsics[] = {
 	{ "gc", F_gc },
 	{ "if", F_if },
 	{ "int", F_int },
+	{ "include", F_include },
 	{ "list", F_list },
 	{ "not", F_not },
+	{ "nth", F_nth },
 	{ "null", F_not },
 	{ "or", F_or },
+	{ "path", F_path },
 	{ "princ", F_princ },
 	{ "prog1", F_prog1 },
 	{ "prog2", F_prog2 },
@@ -2087,7 +2204,6 @@ static struct alisp_object * eval_cons(struct alisp_instance *instance, struct a
 				    sizeof snd_intrinsics[0], compar)) != NULL)
 			return item->func(instance, p2);
 
-
 		if ((p3 = get_object(instance, p1)) != &alsa_lisp_nil)
 			return eval_func(instance, p3, p2);
 		else
@@ -2120,12 +2236,91 @@ static struct alisp_object * F_eval(struct alisp_instance *instance, struct alis
 /*
  *  main routine
  */
+
+static int alisp_include_file(struct alisp_instance *instance, const char *filename)
+{
+	snd_input_t *old_in;
+	struct alisp_object *p, *p1, *omain;
+	struct alisp_object_pair *pmain;
+	char *name, *uname;
+	int retval = 0, err;
+
+	err = snd_user_file(filename, &name);
+	if (err < 0)
+		return err;
+	old_in = instance->in;
+	err = snd_input_stdio_open(&instance->in, name, "r");
+	if (err < 0) {
+		retval = err;
+		goto _err;
+	}
+	if (instance->verbose)
+		lisp_verbose(instance, "** include filename '%s'", name);
+	uname = malloc(sizeof(ALISP_MAIN_ID) + strlen(name) + 2);
+	if (uname == NULL) {
+		retval = -ENOMEM;
+		goto _err;
+	}
+	strcpy(uname, ALISP_MAIN_ID);
+	strcat(uname, "-");
+	strcat(uname, name);
+	omain = new_identifier(instance, uname);
+	free(uname);
+	if (omain == NULL) {
+		retval = -ENOMEM;
+		goto _err;
+	}
+	pmain = set_object(instance, omain, &alsa_lisp_t);
+	if (pmain == NULL) {
+		retval = -ENOMEM;
+		goto _err;
+	}
+
+	for (;;) {
+		if ((p = parse_object(instance, 0)) == NULL)
+			break;
+		if (instance->verbose) {
+			lisp_verbose(instance, "** code");
+			princ_object(instance->vout, p);
+			snd_output_putc(instance->vout, '\n');
+		}
+		pmain->value = p;		/* protect the code tree from garbage-collect */
+		p1 = eval(instance, p);
+		if (p1 == NULL) {
+			retval = -ENOMEM;
+			break;
+		}
+		if (instance->verbose) {
+			lisp_verbose(instance, "** result");
+			princ_object(instance->vout, p1);
+			snd_output_putc(instance->vout, '\n');
+		}
+		if (instance->debug) {
+			lisp_debug(instance, "** objects before collection");
+			print_obj_lists(instance, instance->dout);
+		}
+		pmain->value = &alsa_lisp_t;	/* let garbage-collect working */
+		garbage_collect(instance);
+		if (instance->debug) {
+			lisp_debug(instance, "** objects after collection");
+			print_obj_lists(instance, instance->dout);
+		}
+	}	
+
+	unset_object(instance, omain);
+
+       _err:
+	free(name);
+	instance->in = old_in;
+	return retval;
+}
  
 int alsa_lisp(struct alisp_cfg *cfg, struct alisp_instance **_instance)
 {
 	struct alisp_instance *instance;
 	struct alisp_object *p, *p1, *omain;
 	struct alisp_object_pair *pmain;
+	int retval = 0;
 	
 	instance = (struct alisp_instance *)malloc(sizeof(struct alisp_instance));
 	if (instance == NULL) {
@@ -2167,7 +2362,10 @@ int alsa_lisp(struct alisp_cfg *cfg, struct alisp_instance **_instance)
 		}
 		pmain->value = p;		/* protect the code tree from garbage-collect */
 		p1 = eval(instance, p);
-		pmain->value = &alsa_lisp_t;	/* let garbage-collect working */
+		if (p1 == NULL) {
+			retval = -ENOMEM;
+			break;
+		}
 		if (instance->verbose) {
 			lisp_verbose(instance, "** result");
 			princ_object(instance->vout, p1);
@@ -2177,6 +2375,7 @@ int alsa_lisp(struct alisp_cfg *cfg, struct alisp_instance **_instance)
 			lisp_debug(instance, "** objects before collection");
 			print_obj_lists(instance, instance->dout);
 		}
+		pmain->value = &alsa_lisp_t;	/* let garbage-collect working */
 		garbage_collect(instance);
 		if (instance->debug) {
 			lisp_debug(instance, "** objects after collection");
@@ -2185,6 +2384,22 @@ int alsa_lisp(struct alisp_cfg *cfg, struct alisp_instance **_instance)
 	}
 
 	unset_object(instance, omain);
+
+	for (;;) {
+		p = get_object1(instance, "auto-exec");
+		if (p == &alsa_lisp_nil)
+			break;
+		p = get_object(instance, p);
+		if (p == &alsa_lisp_nil)
+			break;
+		unset_object1(instance, "auto-exec");
+		p1 = eval_func(instance, p, &alsa_lisp_nil);
+		if (p1 == NULL) {
+			retval = -ENOMEM;
+			break;
+		}
+		garbage_collect(instance);
+	}
 
 	done_lex(instance);
 	if (_instance)
@@ -2201,4 +2416,206 @@ void alsa_lisp_free(struct alisp_instance *instance)
 		return;
 	free_objects(instance);
 	free(instance);
+}
+
+struct alisp_cfg *alsa_lisp_default_cfg(snd_input_t *input)
+{
+	snd_output_t *output, *eoutput;
+	struct alisp_cfg *cfg;
+	int err;
+	
+	err = snd_output_stdio_attach(&output, stdout, 0);
+	if (err < 0)
+		return NULL;
+	err = snd_output_stdio_attach(&eoutput, stderr, 0);
+	if (err < 0) {
+		snd_output_close(output);
+		return NULL;
+	}
+	cfg = calloc(1, sizeof(struct alisp_cfg));
+	if (cfg == NULL) {
+		snd_output_close(eoutput);
+		snd_output_close(output);
+		return NULL;
+	}
+	cfg->out = output;
+	cfg->wout = eoutput;
+	cfg->eout = eoutput;
+	cfg->dout = eoutput;
+	cfg->in = input;
+	return cfg;
+}
+
+void alsa_lisp_default_cfg_free(struct alisp_cfg *cfg)
+{
+	snd_input_close(cfg->in);
+	snd_output_close(cfg->out);
+	snd_output_close(cfg->dout);
+	free(cfg);
+}
+
+int alsa_lisp_function(struct alisp_instance *instance, struct alisp_seq_iterator **result,
+		       const char *id, const char *args, ...)
+{
+	int err = 0;
+	struct alisp_object *aargs = NULL, *p3, *res;
+
+	if (args && *args != 'n') {
+		va_list ap;
+		struct alisp_object *p, *obj;
+		p = NULL;
+		va_start(ap, args);
+		while (*args) {
+			if (*args++ != '%') {
+				err = -EINVAL;
+				break;
+			}
+			if (*args == '\0') {
+				err = -EINVAL;
+				break;
+			}
+			obj = NULL;
+			err = 0;
+			switch (*args++) {
+			case 's':
+				obj = new_string(instance, va_arg(ap, char *));
+				break;
+			case 'i':
+				obj = new_integer(instance, va_arg(ap, int));
+				break;
+			case 'l':
+				obj = new_integer(instance, va_arg(ap, long));
+				break;
+			case 'f':
+			case 'd':
+				obj = new_integer(instance, va_arg(ap, double));
+				break;
+			default:
+				err = -EINVAL;
+				break;
+			}
+			if (err < 0)
+				goto __args_end;
+			if (obj == NULL) {
+				err = -ENOMEM;
+				goto __args_end;
+			}
+			if (p == NULL) {
+				p = aargs = new_object(instance, ALISP_OBJ_CONS);
+			} else {
+				p->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
+				p = p->value.c.cdr;
+			}
+			if (p == NULL) {
+				err = -ENOMEM;
+				goto __args_end;
+			}
+			p->value.c.car = obj;
+		}
+	      __args_end:
+		va_end(ap);
+		if (err < 0)
+			return err;
+#if 0
+		snd_output_printf(instance->wout, ">>>");
+		princ_object(instance->wout, aargs);
+		snd_output_printf(instance->wout, "<<<\n");
+#endif
+	}
+
+	err = -ENOENT;
+	if (aargs == NULL)
+		aargs = &alsa_lisp_nil;
+	if ((p3 = get_object1(instance, id)) != &alsa_lisp_nil) {
+		res = eval_func(instance, p3, aargs);
+		err = 0;
+	} else {
+		struct intrinsic key, *item;
+		key.name = id;
+		if ((item = bsearch(&key, intrinsics,
+				    sizeof intrinsics / sizeof intrinsics[0],
+				    sizeof intrinsics[0], compar)) != NULL) {
+			res = item->func(instance, aargs);
+			err = 0;
+		} else if ((item = bsearch(&key, snd_intrinsics,
+				         sizeof snd_intrinsics / sizeof snd_intrinsics[0],
+					 sizeof snd_intrinsics[0], compar)) != NULL) {
+			res = item->func(instance, aargs);
+			err = 0;
+		} else {
+			res = &alsa_lisp_nil;
+		}
+	}
+	if (res == NULL)
+		err = -ENOMEM;
+	if (err == 0 && result)
+		*result = res;
+
+	return 0;
+}
+
+int alsa_lisp_seq_first(struct alisp_instance *instance, const char *id,
+			struct alisp_seq_iterator **seq)
+{
+	struct alisp_object * p1;
+
+	p1 = get_object1(instance, id);
+	if (p1 == NULL)
+		return -ENOMEM;
+	*seq = p1;
+	return 0;
+}
+
+int alsa_lisp_seq_next(struct alisp_seq_iterator **seq)
+{
+	struct alisp_object * p1 = *seq;
+
+	p1 = cdr(p1);
+	if (p1 == &alsa_lisp_nil)
+		return -ENOENT;
+	*seq = p1;
+	return 0;
+}
+
+int alsa_lisp_seq_count(struct alisp_seq_iterator *seq)
+{
+	int count = 0;
+	
+	while (seq != &alsa_lisp_nil) {
+		count++;
+		seq = cdr(seq);
+	}
+	return count;
+}
+
+int alsa_lisp_seq_integer(struct alisp_seq_iterator *seq, long *val)
+{
+	if (seq->type == ALISP_OBJ_CONS)
+		seq = seq->value.c.cdr;
+	if (seq->type == ALISP_OBJ_INTEGER)
+		*val = seq->value.i;
+	else
+		return -EINVAL;
+	return 0;
+}
+
+int alsa_lisp_seq_pointer(struct alisp_seq_iterator *seq, const char *ptr_id, void **ptr)
+{
+	struct alisp_object * p2;
+	
+	if (seq->type == ALISP_OBJ_CONS && seq->value.c.cdr->type == ALISP_OBJ_CONS)
+		seq = seq->value.c.cdr;
+	if (seq->type == ALISP_OBJ_CONS) {
+		p2 = seq->value.c.car;
+		if (p2->type != ALISP_OBJ_STRING && p2->type != ALISP_OBJ_IDENTIFIER)
+			return -EINVAL;
+		if (strcmp(p2->value.s, ptr_id))
+			return -EINVAL;
+		p2 = seq->value.c.cdr;
+		if (p2->type != ALISP_OBJ_POINTER)
+			return -EINVAL;
+		*ptr = (void *)seq->value.ptr;
+	} else
+		return -EINVAL;
+	return 0;
 }
