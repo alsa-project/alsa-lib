@@ -431,7 +431,7 @@ static int snd_pcm_route_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_t *slave = route->plug.slave;
 	int err;
 	snd_pcm_hw_params_t sparams;
-	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
+	unsigned int links = (SND_PCM_HW_PARBIT_RATE |
 			      SND_PCM_HW_PARBIT_FRAGMENTS |
 			      SND_PCM_HW_PARBIT_FRAGMENT_SIZE |
 			      SND_PCM_HW_PARBIT_FRAGMENT_LENGTH |
