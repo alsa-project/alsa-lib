@@ -757,7 +757,48 @@ int load_surround_config(snd_ctl_t *ctl, snd_pcm_surround_t *surr,
 			goto __error;
 		}
 		if (snd_config_search(n, "open_control", &n1) >= 0) {
-			if ((err = snd_sctl_build(ctl, &surr->store, n1, NULL)) < 0) {
+			snd_sctl_replace_t replace[4];
+			char values[3][10] = { "123", "123", "123" };
+			snd_pcm_info_t *info;
+			int ridx = 0;
+			
+			snd_pcm_info_alloca(&info);
+			if ((err = snd_pcm_info(surr->pcm[0], info)) < 0) {
+				SNDERR("snd_pcm_info failed", snd_strerror(err));
+				goto __error;
+			}
+			sprintf(values[0], "%i", snd_pcm_info_get_subdevice(info));
+			replace[ridx].key = "index";
+			replace[ridx].old_value = "subdevice0";
+			replace[ridx].new_value = values[0];
+			ridx++;
+			
+			if (surr->pcm[1]) {
+				if ((err = snd_pcm_info(surr->pcm[1], info)) < 0) {
+					SNDERR("snd_pcm_info failed", snd_strerror(err));
+					goto __error;
+				}
+				sprintf(values[1], "%i", snd_pcm_info_get_subdevice(info));
+				replace[ridx].key = "index";
+				replace[ridx].old_value = "subdevice1";
+				replace[ridx].new_value = values[1];
+				ridx++;
+			}
+			if (surr->pcm[2]) {
+				if ((err = snd_pcm_info(surr->pcm[2], info)) < 0) {
+					SNDERR("snd_pcm_info failed", snd_strerror(err));
+					goto __error;
+				}
+				sprintf(values[2], "%i", snd_pcm_info_get_subdevice(info));
+				replace[ridx].key = "index";
+				replace[ridx].old_value = "subdevice2";
+				replace[ridx].new_value = values[2];
+				ridx++;
+			}
+			replace[ridx].key = NULL;
+			replace[ridx].old_value = NULL;
+			replace[ridx].new_value = NULL;
+			if ((err = snd_sctl_build(ctl, &surr->store, n1, replace)) < 0) {
 				SNDERR("snd_sctl_build : %s\n", snd_strerror(err));
 				goto __error;
 			}
