@@ -32,7 +32,7 @@
 static void snd_mixer_simple_read_rebuild(snd_ctl_t *ctl_handle, void *private_data);
 static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle, void *private_data, snd_hcontrol_t *hcontrol);
 
-int snd_mixer_open(snd_mixer_t **r_handle, int card)
+int snd_mixer_open(snd_mixer_t **r_handle, char *name)
 {
 	snd_mixer_t *handle;
 	snd_ctl_t *ctl_handle;
@@ -41,7 +41,7 @@ int snd_mixer_open(snd_mixer_t **r_handle, int card)
 	if (r_handle == NULL)
 		return -EINVAL;
 	*r_handle = NULL;
-	if ((err = snd_ctl_open(&ctl_handle, card)) < 0)
+	if ((err = snd_ctl_open(&ctl_handle, name)) < 0)
 		return err;
 	handle = (snd_mixer_t *) calloc(1, sizeof(snd_mixer_t));
 	if (handle == NULL) {

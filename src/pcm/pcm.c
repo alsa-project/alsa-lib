@@ -788,7 +788,7 @@ static int _snd_pcm_open_client(snd_pcm_t **handlep, snd_config_t *conf,
 	} else  {
 		if (port < 0 || !name)
 			return -EINVAL;
-		return snd_pcm_client_create(handlep, host, port, SND_TRANSPORT_TYPE_SHM, name, stream, mode);
+		return snd_pcm_client_create(handlep, host, port, SND_TRANSPORT_TYPE_TCP, name, stream, mode);
 	}
 }
 				

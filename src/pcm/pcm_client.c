@@ -38,7 +38,6 @@
 #include "aserver.h"
 
 typedef struct {
-	snd_pcm_t *handle;
 	int data_fd;
 	int ctrl_fd;
 	union {
@@ -80,13 +79,14 @@ int receive_fd(int socket, void *data, size_t len, int *fd)
     return ret;
 }
 
-static void clean_state(snd_pcm_client_t *client)
+static void clean_poll(snd_pcm_t *pcm)
 {
+	snd_pcm_client_t *client = pcm->private;
 	struct pollfd pfd;
 	int err;
 	char buf[1];
 	pfd.fd = client->data_fd;
-	switch (client->handle->stream) {
+	switch (pcm->stream) {
 	case SND_PCM_STREAM_PLAYBACK:
 		pfd.events = POLLOUT;
 		while (1) {
@@ -112,11 +112,13 @@ static void clean_state(snd_pcm_client_t *client)
 	}
 }
 
-static int snd_pcm_client_shm_action(snd_pcm_client_t *client)
+static int snd_pcm_client_shm_action(snd_pcm_t *pcm)
 {
+	snd_pcm_client_t *client = pcm->private;
 	int err;
 	char buf[1];
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
+	clean_poll(pcm);
 	err = write(client->ctrl_fd, buf, 1);
 	if (err != 1)
 		return -EBADFD;
@@ -130,12 +132,14 @@ static int snd_pcm_client_shm_action(snd_pcm_client_t *client)
 	return 0;
 }
 
-static int snd_pcm_client_shm_action_fd(snd_pcm_client_t *client)
+static int snd_pcm_client_shm_action_fd(snd_pcm_t *pcm)
 {
+	snd_pcm_client_t *client = pcm->private;
 	int err;
 	char buf[1];
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int fd;
+	clean_poll(pcm);
 	err = write(client->ctrl_fd, buf, 1);
 	if (err != 1)
 		return -EBADFD;
@@ -151,242 +155,242 @@ static int snd_pcm_client_shm_action_fd(snd_pcm_client_t *client)
 	return fd;
 }
 
-static int snd_pcm_client_shm_close(void *private)
+static int snd_pcm_client_shm_close(snd_pcm_t *pcm)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int result;
 	ctrl->cmd = SND_PCM_IOCTL_CLOSE;
-	result = snd_pcm_client_shm_action(client);
+	result = snd_pcm_client_shm_action(pcm);
 	if (result >= 0)
 		result = ctrl->result;
 	shmdt((void *)ctrl);
 	close(client->data_fd);
 	close(client->ctrl_fd);
+	free(client);
 	return result;
 }
 
-static int snd_pcm_client_shm_nonblock(void *private, int nonblock)
+static int snd_pcm_client_shm_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	/* FIXME */
 	return 0;
 }
 
-static int snd_pcm_client_shm_info(void *private, snd_pcm_info_t * info)
+static int snd_pcm_client_shm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 //	ctrl->u.info = *info;
 	ctrl->cmd = SND_PCM_IOCTL_INFO;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
-	memcpy(info, &ctrl->u.info, sizeof(*info));
+	*info = ctrl->u.info;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_params_info(void *private, snd_pcm_params_info_t * info)
+static int snd_pcm_client_shm_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_PARAMS_INFO;
 	ctrl->u.params_info = *info;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	*info = ctrl->u.params_info;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_params(void *private, snd_pcm_params_t * params)
+static int snd_pcm_client_shm_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_PARAMS;
 	ctrl->u.params = *params;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	*params = ctrl->u.params;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_setup(void *private, snd_pcm_setup_t * setup)
+static int snd_pcm_client_shm_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_SETUP;
 	// ctrl->u.setup = *setup;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	*setup = ctrl->u.setup;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_channel_info(void *private, snd_pcm_channel_info_t * info)
+static int snd_pcm_client_shm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_INFO;
 	ctrl->u.channel_info = *info;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	*info = ctrl->u.channel_info;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_channel_params(void *private, snd_pcm_channel_params_t * params)
+static int snd_pcm_client_shm_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_PARAMS;
 	ctrl->u.channel_params = *params;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	*params = ctrl->u.channel_params;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_channel_setup(void *private, snd_pcm_channel_setup_t * setup)
+static int snd_pcm_client_shm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_SETUP;
 	ctrl->u.channel_setup = *setup;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	*setup = ctrl->u.channel_setup;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_status(void *private, snd_pcm_status_t * status)
+static int snd_pcm_client_shm_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_STATUS;
 	// ctrl->u.status = *status;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	*status = ctrl->u.status;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_state(void *private)
+static int snd_pcm_client_shm_state(snd_pcm_t *pcm)
 {
 	snd_pcm_status_t status;
-	int err = snd_pcm_client_shm_status(private, &status);
+	int err = snd_pcm_client_shm_status(pcm, &status);
 	if (err < 0)
 		return err;
 	return status.state;
 }
 
-static ssize_t snd_pcm_client_shm_frame_io(void *private, int update)
+static ssize_t snd_pcm_client_shm_frame_io(snd_pcm_t *pcm, int update)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_FRAME_IO;
 	ctrl->u.frame_io = update;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_prepare(void *private)
+static int snd_pcm_client_shm_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_PREPARE;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_go(void *private)
+static int snd_pcm_client_shm_go(snd_pcm_t *pcm)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_GO;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_drain(void *private)
+static int snd_pcm_client_shm_drain(snd_pcm_t *pcm)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_DRAIN;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_flush(void *private)
+static int snd_pcm_client_shm_flush(snd_pcm_t *pcm)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_FLUSH;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_pause(void *private, int enable)
+static int snd_pcm_client_shm_pause(snd_pcm_t *pcm, int enable)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_PAUSE;
 	ctrl->u.pause = enable;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
 }
 
-static ssize_t snd_pcm_client_shm_frame_data(void *private, off_t offset)
+static ssize_t snd_pcm_client_shm_frame_data(snd_pcm_t *pcm, off_t offset)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_FRAME_DATA;
 	ctrl->u.frame_data = offset;
-	clean_state(client);
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
 }
 
-static ssize_t snd_pcm_client_shm_write(void *private, snd_timestamp_t *tstamp, const void *buffer, size_t size)
+static ssize_t snd_pcm_client_shm_write(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const void *buffer, size_t size)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	size_t maxsize = PCM_SHM_DATA_MAXLEN;
-	size_t bytes = snd_pcm_frames_to_bytes(client->handle, size);
+	size_t bytes = snd_pcm_frames_to_bytes(pcm, size);
 	int err;
 	if (bytes > maxsize)
 		return -EINVAL;
@@ -394,21 +398,20 @@ static ssize_t snd_pcm_client_shm_write(void *private, snd_timestamp_t *tstamp, 
 //	ctrl->u.write.tstamp = *tstamp;
 	ctrl->u.write.count = size;
 	memcpy(ctrl->data, buffer, bytes);
-	clean_state(client);
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
 }
 
-static ssize_t snd_pcm_client_shm_writev(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
+static ssize_t snd_pcm_client_shm_writev(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
 {
 	/* FIXME: interleaved */
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	size_t vecsize = count * sizeof(struct iovec);
 	size_t maxsize = PCM_SHM_DATA_MAXLEN;
-	int bits_per_sample = client->handle->bits_per_sample;
+	int bits_per_sample = pcm->bits_per_sample;
 	char *base;
 	struct iovec *vec;
 	unsigned long k;
@@ -430,44 +433,42 @@ static ssize_t snd_pcm_client_shm_writev(void *private, snd_timestamp_t *tstamp,
 		vec[k].iov_base = (void *) ofs;
 		ofs += len;
 	}
-	clean_state(client);
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
 }
 
-static ssize_t snd_pcm_client_shm_read(void *private, snd_timestamp_t *tstamp, void *buffer, size_t size)
+static ssize_t snd_pcm_client_shm_read(snd_pcm_t *pcm, snd_timestamp_t *tstamp, void *buffer, size_t size)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	size_t maxsize = PCM_SHM_DATA_MAXLEN;
-	size_t bytes = snd_pcm_frames_to_bytes(client->handle, size);
+	size_t bytes = snd_pcm_frames_to_bytes(pcm, size);
 	int err;
 	if (bytes > maxsize)
 		return -EINVAL;
 	ctrl->cmd = SND_PCM_IOCTL_READ_FRAMES;
 //	ctrl->u.read.tstamp = *tstamp;
 	ctrl->u.read.count = size;
-	clean_state(client);
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	if (ctrl->result <= 0)
 		return ctrl->result;
-	bytes = snd_pcm_frames_to_bytes(client->handle, ctrl->result);
+	bytes = snd_pcm_frames_to_bytes(pcm, ctrl->result);
 	memcpy(buffer, ctrl->data, bytes);
 	return ctrl->result;
 }
 
-ssize_t snd_pcm_client_shm_readv(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_client_shm_readv(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
 {
 	/* FIXME: interleaved */
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	size_t vecsize = count * sizeof(struct iovec);
 	size_t maxsize = PCM_SHM_DATA_MAXLEN;
-	int bits_per_sample = client->handle->bits_per_sample;
+	int bits_per_sample = pcm->bits_per_sample;
 	char *base;
 	struct iovec *vec;
 	unsigned long k;
@@ -488,13 +489,12 @@ ssize_t snd_pcm_client_shm_readv(void *private, snd_timestamp_t *tstamp, const s
 		vec[k].iov_base = (void *) ofs;
 		ofs += len;
 	}
-	clean_state(client);
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	if (ctrl->result <= 0)
 		return ctrl->result;
-	bytes = snd_pcm_frames_to_bytes(client->handle, ctrl->result);
+	bytes = snd_pcm_frames_to_bytes(pcm, ctrl->result);
 	ofs = 0;
 	for (k = 0; k < count; ++k) {
 		/* FIXME: optimize partial read */
@@ -505,14 +505,14 @@ ssize_t snd_pcm_client_shm_readv(void *private, snd_timestamp_t *tstamp, const s
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_mmap_status(void *private, snd_pcm_mmap_status_t **status)
+static int snd_pcm_client_shm_mmap_status(snd_pcm_t *pcm, snd_pcm_mmap_status_t **status)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	void *ptr;
 	int fd;
 	ctrl->cmd = SND_PCM_IOCTL_MMAP_STATUS;
-	fd = snd_pcm_client_shm_action_fd(client);
+	fd = snd_pcm_client_shm_action_fd(pcm);
 	if (fd < 0)
 		return fd;
 	ptr = mmap(NULL, sizeof(snd_pcm_mmap_status_t), PROT_READ, MAP_FILE|MAP_SHARED, 
@@ -524,14 +524,14 @@ static int snd_pcm_client_shm_mmap_status(void *private, snd_pcm_mmap_status_t *
 	return 0;
 }
 
-static int snd_pcm_client_shm_mmap_control(void *private, snd_pcm_mmap_control_t **control)
+static int snd_pcm_client_shm_mmap_control(snd_pcm_t *pcm, snd_pcm_mmap_control_t **control)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	void *ptr;
 	int fd;
 	ctrl->cmd = SND_PCM_IOCTL_MMAP_CONTROL;
-	fd = snd_pcm_client_shm_action_fd(client);
+	fd = snd_pcm_client_shm_action_fd(pcm);
 	if (fd < 0)
 		return fd;
 	ptr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
@@ -543,18 +543,18 @@ static int snd_pcm_client_shm_mmap_control(void *private, snd_pcm_mmap_control_t
 	return 0;
 }
 
-static int snd_pcm_client_shm_mmap_data(void *private, void **buffer, size_t bsize ATTRIBUTE_UNUSED)
+static int snd_pcm_client_shm_mmap_data(snd_pcm_t *pcm, void **buffer, size_t bsize ATTRIBUTE_UNUSED)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	void *ptr;
 	int prot;
 	int fd;
 	ctrl->cmd = SND_PCM_IOCTL_MMAP_DATA;
-	fd = snd_pcm_client_shm_action_fd(client);
+	fd = snd_pcm_client_shm_action_fd(pcm);
 	if (fd < 0)
 		return fd;
-	prot = client->handle->stream == SND_PCM_STREAM_PLAYBACK ? PROT_WRITE : PROT_READ;
+	prot = pcm->stream == SND_PCM_STREAM_PLAYBACK ? PROT_WRITE : PROT_READ;
 	ptr = mmap(NULL, bsize, prot, MAP_FILE|MAP_SHARED, 
 		     fd, SND_PCM_MMAP_OFFSET_DATA);
 	close(fd);
@@ -564,14 +564,14 @@ static int snd_pcm_client_shm_mmap_data(void *private, void **buffer, size_t bsi
 	return 0;
 }
 
-static int snd_pcm_client_shm_munmap_status(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_status_t *status ATTRIBUTE_UNUSED)
+static int snd_pcm_client_shm_munmap_status(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_mmap_status_t *status ATTRIBUTE_UNUSED)
 {
 #if 0
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_MUNMAP_STATUS;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
@@ -582,14 +582,14 @@ static int snd_pcm_client_shm_munmap_status(void *private ATTRIBUTE_UNUSED, snd_
 #endif
 }
 
-static int snd_pcm_client_shm_munmap_control(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_control_t *control ATTRIBUTE_UNUSED)
+static int snd_pcm_client_shm_munmap_control(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_mmap_control_t *control ATTRIBUTE_UNUSED)
 {
 #if 0
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_MUNMAP_CONTROL;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
@@ -600,14 +600,14 @@ static int snd_pcm_client_shm_munmap_control(void *private ATTRIBUTE_UNUSED, snd
 #endif
 }
 
-static int snd_pcm_client_shm_munmap_data(void *private ATTRIBUTE_UNUSED, void *buffer, size_t bsize)
+static int snd_pcm_client_shm_munmap_data(snd_pcm_t *pcm ATTRIBUTE_UNUSED, void *buffer, size_t bsize)
 {
 #if 0
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_MUNMAP_DATA;
-	err = snd_pcm_client_shm_action(client);
+	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
 	return ctrl->result;
@@ -618,26 +618,24 @@ static int snd_pcm_client_shm_munmap_data(void *private ATTRIBUTE_UNUSED, void *
 #endif
 }
 
-static int snd_pcm_client_file_descriptor(void *private)
+static int snd_pcm_client_file_descriptor(snd_pcm_t *pcm)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
+	snd_pcm_client_t *client = pcm->private;
 	return client->data_fd;
 }
 
-static int snd_pcm_client_channels_mask(void *private ATTRIBUTE_UNUSED,
+static int snd_pcm_client_channels_mask(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 					bitset_t *client_vmask ATTRIBUTE_UNUSED)
 {
 	return 0;
 }
 
-static void snd_pcm_client_dump(void *private, FILE *fp)
+static void snd_pcm_client_dump(snd_pcm_t *pcm, FILE *fp)
 {
-	snd_pcm_client_t *client = (snd_pcm_client_t*) private;
-	snd_pcm_t *handle = client->handle;
 	fprintf(fp, "Client PCM\n");
-	if (handle->valid_setup) {
+	if (pcm->valid_setup) {
 		fprintf(fp, "\nIts setup is:\n");
-		snd_pcm_dump_setup(handle, fp);
+		snd_pcm_dump_setup(pcm, fp);
 	}
 }
 
@@ -844,7 +842,6 @@ int snd_pcm_client_create(snd_pcm_t **handlep, char *host, int port, int transpo
 		goto _err;
 	}
 
-	client->handle = handle;
 	client->data_fd = fds[0];
 	client->ctrl_fd = fds[1];
 	switch (transport) {
@@ -855,9 +852,9 @@ int snd_pcm_client_create(snd_pcm_t **handlep, char *host, int port, int transpo
 	handle->type = SND_PCM_TYPE_CLIENT;
 	handle->stream = stream;
 	handle->ops = &snd_pcm_client_ops;
-	handle->op_arg = client;
+	handle->op_arg = handle;
 	handle->fast_ops = &snd_pcm_client_fast_ops;
-	handle->fast_op_arg = client;
+	handle->fast_op_arg = handle;
 	handle->mode = mode;
 	handle->private = client;
 	*handlep = handle;

@@ -1,6 +1,6 @@
 /*
  *  Control Interface - main file
- *  Copyright (c) 1998,1999,2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -25,145 +25,98 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/ioctl.h>
 #include <assert.h>
 #include "asoundlib.h"
 #include "control_local.h"
 
-#define SND_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
-
-int snd_ctl_open(snd_ctl_t **handle, int card)
+snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl)
 {
-	int fd, ver;
-	char filename[32];
-	snd_ctl_t *ctl;
-
-	*handle = NULL;	
-
-	assert(card >= 0 && card < SND_CARDS);
-	sprintf(filename, SND_FILE_CONTROL, card);
-	if ((fd = open(filename, O_RDWR)) < 0) {
-		snd_card_load(card);
-		if ((fd = open(filename, O_RDWR)) < 0)
-			return -errno;
-	}
-		
-	if (ioctl(fd, SND_CTL_IOCTL_PVERSION, &ver) < 0) {
-		close(fd);
-		return -errno;
-	}
-	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_CTL_VERSION_MAX)) {
-		close(fd);
-		return -SND_ERROR_INCOMPATIBLE_VERSION;
-	}
-	ctl = (snd_ctl_t *) calloc(1, sizeof(snd_ctl_t));
-	if (ctl == NULL) {
-		close(fd);
-		return -ENOMEM;
-	}
-	ctl->card = card;
-	ctl->fd = fd;
-	INIT_LIST_HEAD(&ctl->hlist);
-	*handle = ctl;
-	return 0;
+	return ctl->type;
 }
 
-int snd_ctl_close(snd_ctl_t *handle)
+int snd_ctl_close(snd_ctl_t *ctl)
 {
 	int res;
-	assert(handle);
-	res = close(handle->fd) < 0 ? -errno : 0;
-	free(handle);
+	assert(ctl);
+	res = ctl->ops->close(ctl);
+	free(ctl);
 	return res;
 }
 
-int snd_ctl_file_descriptor(snd_ctl_t *handle)
+int snd_ctl_file_descriptor(snd_ctl_t *ctl)
 {
-	assert(handle);
-	return handle->fd;
+	assert(ctl);
+	return ctl->ops->file_descriptor(ctl);
 }
 
-int snd_ctl_hw_info(snd_ctl_t *handle, snd_ctl_hw_info_t *info)
+int snd_ctl_hw_info(snd_ctl_t *ctl, snd_ctl_hw_info_t *info)
 {
-	assert(handle && info);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_HW_INFO, info) < 0)
-		return -errno;
-	return 0;
+	assert(ctl && info);
+	return ctl->ops->hw_info(ctl, info);
 }
 
-int snd_ctl_clist(snd_ctl_t *handle, snd_control_list_t *list)
+int snd_ctl_clist(snd_ctl_t *ctl, snd_control_list_t *list)
 {
-	assert(handle && list);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_LIST, list) < 0)
-		return -errno;
-	return 0;
+	assert(ctl && list);
+	return ctl->ops->clist(ctl, list);
 }
 
-int snd_ctl_cinfo(snd_ctl_t *handle, snd_control_info_t *info)
+int snd_ctl_cinfo(snd_ctl_t *ctl, snd_control_info_t *info)
 {
-	assert(handle && info && (info->id.name[0] || info->id.numid));
-	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_INFO, info) < 0)
-		return -errno;
-	return 0;
+	assert(ctl && info && (info->id.name[0] || info->id.numid));
+	return ctl->ops->cinfo(ctl, info);
 }
 
-int snd_ctl_cread(snd_ctl_t *handle, snd_control_t *control)
+int snd_ctl_cread(snd_ctl_t *ctl, snd_control_t *control)
 {
-	assert(handle && control && (control->id.name[0] || control->id.numid));
-	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_READ, control) < 0)
-		return -errno;
-	return 0;
+	assert(ctl && control && (control->id.name[0] || control->id.numid));
+	return ctl->ops->cread(ctl, control);
 }
 
-int snd_ctl_cwrite(snd_ctl_t *handle, snd_control_t *control)
+int snd_ctl_cwrite(snd_ctl_t *ctl, snd_control_t *control)
 {
-	assert(handle && control && (control->id.name[0] || control->id.numid));
-	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_WRITE, control) < 0)
-		return -errno;
-	return 0;
+	assert(ctl && control && (control->id.name[0] || control->id.numid));
+	return ctl->ops->cwrite(ctl, control);
 }
 
-int snd_ctl_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info)
+int snd_ctl_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info)
 {
-	assert(handle && info);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_HWDEP_INFO, info) < 0)
-		return -errno;
-	return 0;
+	assert(ctl && info);
+	return ctl->ops->hwdep_info(ctl, info);
 }
 
-int snd_ctl_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info)
+int snd_ctl_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t * info)
 {
-	assert(handle && info);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_PCM_INFO, info) < 0)
-		return -errno;
-	return 0;
+	assert(ctl && info);
+	return ctl->ops->pcm_info(ctl, info);
 }
 
-int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev)
+int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 {
-	assert(handle);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
-		return -errno;
-	return 0;
+	assert(ctl);
+	return ctl->ops->pcm_prefer_subdevice(ctl, subdev);
 }
 
-int snd_ctl_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info)
+int snd_ctl_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info)
 {
-	assert(handle && info);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_RAWMIDI_INFO, info) < 0)
-		return -errno;
-	return 0;
+	assert(ctl && info);
+	return ctl->ops->rawmidi_info(ctl, info);
 }
 
-int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
+int snd_ctl_read1(snd_ctl_t *ctl, snd_ctl_event_t *event)
+{
+	assert(ctl && event);
+	return ctl->ops->read(ctl, event);
+}
+
+int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_callbacks_t * callbacks)
 {
 	int result, count;
 	snd_ctl_event_t r;
 
-	assert(handle);
+	assert(ctl);
 	count = 0;
-	while ((result = read(handle->fd, &r, sizeof(r))) > 0) {
+	while ((result = snd_ctl_read1(ctl, &r)) > 0) {
 		if (result != sizeof(r))
 			return -EIO;
 		if (!callbacks)
@@ -171,26 +124,142 @@ int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
 		switch (r.type) {
 		case SND_CTL_EVENT_REBUILD:
 			if (callbacks->rebuild)
-				callbacks->rebuild(handle, callbacks->private_data);
+				callbacks->rebuild(ctl, callbacks->private_data);
 			break;
 		case SND_CTL_EVENT_VALUE:
 			if (callbacks->value)
-				callbacks->value(handle, callbacks->private_data, &r.data.id);
+				callbacks->value(ctl, callbacks->private_data, &r.data.id);
 			break;
 		case SND_CTL_EVENT_CHANGE:
 			if (callbacks->change)
-				callbacks->change(handle, callbacks->private_data, &r.data.id);
+				callbacks->change(ctl, callbacks->private_data, &r.data.id);
 			break;
 		case SND_CTL_EVENT_ADD:
 			if (callbacks->add)
-				callbacks->add(handle, callbacks->private_data, &r.data.id);
+				callbacks->add(ctl, callbacks->private_data, &r.data.id);
 			break;
 		case SND_CTL_EVENT_REMOVE:
 			if (callbacks->remove)
-				callbacks->remove(handle, callbacks->private_data, &r.data.id);
+				callbacks->remove(ctl, callbacks->private_data, &r.data.id);
 			break;
 		}
 		count++;
 	}
 	return result >= 0 ? count : -errno;
+}
+
+static int _snd_ctl_open_hw(snd_ctl_t **handlep, snd_config_t *conf)
+{
+	snd_config_iterator_t i;
+	long card = -1;
+	char *str;
+	int err;
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "type") == 0)
+			continue;
+		if (strcmp(n->id, "card") == 0) {
+			err = snd_config_integer_get(n, &card);
+			if (err < 0) {
+				err = snd_config_string_get(n, &str);
+				if (err < 0)
+					return -EINVAL;
+				card = snd_card_get_index(str);
+				if (card < 0)
+					return card;
+			}
+			continue;
+		}
+		return -EINVAL;
+	}
+	if (card < 0)
+		return -EINVAL;
+	return snd_ctl_hw_open(handlep, card);
+}
+				
+static int _snd_ctl_open_client(snd_ctl_t **handlep, snd_config_t *conf)
+{
+	snd_config_iterator_t i;
+	char *socket = NULL;
+	char *name = NULL;
+	char *host = NULL;
+	long port = -1;
+	int err;
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "type") == 0)
+			continue;
+		if (strcmp(n->id, "socket") == 0) {
+			err = snd_config_string_get(n, &socket);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		if (strcmp(n->id, "host") == 0) {
+			err = snd_config_string_get(n, &host);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		if (strcmp(n->id, "port") == 0) {
+			err = snd_config_integer_get(n, &port);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		if (strcmp(n->id, "name") == 0) {
+			err = snd_config_string_get(n, &name);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		return -EINVAL;
+	}
+	if (!name)
+		return -EINVAL;
+	if (socket) {
+		if (port >= 0 || host)
+			return -EINVAL;
+		return snd_ctl_client_open(handlep, socket, -1, SND_TRANSPORT_TYPE_SHM, name);
+	} else  {
+		if (port < 0 || !name)
+			return -EINVAL;
+		return snd_ctl_client_open(handlep, host, port, SND_TRANSPORT_TYPE_TCP, name);
+	}
+}
+				
+int snd_ctl_open(snd_ctl_t **handlep, char *name)
+{
+	char *str;
+	int err;
+	snd_config_t *ctl_conf, *conf;
+	assert(handlep && name);
+	err = snd_config_update();
+	if (err < 0)
+		return err;
+	err = snd_config_searchv(snd_config, &ctl_conf, "ctl", name, 0);
+	if (err < 0) {
+		int idx = snd_card_get_index(name);
+		if (idx < 0)
+			return idx;
+		return snd_ctl_hw_open(handlep, idx);
+	}
+	if (snd_config_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND)
+		return -EINVAL;
+	err = snd_config_search(ctl_conf, "type", &conf);
+	if (err < 0)
+		return err;
+	err = snd_config_string_get(conf, &str);
+	if (err < 0)
+		return err;
+	if (strcmp(str, "hw") == 0)
+		return _snd_ctl_open_hw(handlep, ctl_conf);
+	else if (strcmp(str, "client") == 0)
+		return _snd_ctl_open_client(handlep, ctl_conf);
+	else
+		return -EINVAL;
 }

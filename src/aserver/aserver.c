@@ -35,6 +35,7 @@
 #include "asoundlib.h"
 #include "pcm_local.h"
 #include "aserver.h"
+#include "list.h"
 
 char *command;
 
@@ -140,20 +141,66 @@ int send_fd(int socket, void *data, size_t len, int fd)
     return ret;
 }
 
+struct pollfd pollfds[OPEN_MAX];
+unsigned int pollfds_count = 0;
+typedef struct waiter waiter_t;
+typedef int (*waiter_handler_t)(waiter_t *waiter, unsigned short events);
+struct waiter {
+	int fd;
+	void *private_data;
+	waiter_handler_t handler;
+};
+waiter_t waiters[OPEN_MAX];
+
+void add_waiter(int fd, unsigned short events, waiter_handler_t handler,
+		void *data)
+{
+	waiter_t *w = &waiters[fd];
+	struct pollfd *pfd = &pollfds[pollfds_count];
+	assert(!w->handler);
+	pfd->fd = fd;
+	pfd->events = events;
+	pfd->revents = 0;
+	w->fd = fd;
+	w->private_data = data;
+	w->handler = handler;
+	pollfds_count++;
+}
+
+void del_waiter(int fd)
+{
+	waiter_t *w = &waiters[fd];
+	unsigned int k;
+	assert(w->handler);
+	w->handler = 0;
+	for (k = 0; k < pollfds_count; ++k) {
+		if (pollfds[k].fd == fd)
+			break;
+	}
+	assert(k < pollfds_count);
+	pollfds_count--;
+	memmove(&pollfds[k], &pollfds[k + 1], pollfds_count - k);
+}
+
+typedef struct {
+	struct list_head list;
+	int fd;
+	int local;
+} master_t;
+LIST_HEAD(masters);
+
 typedef struct client client_t;
 
 typedef struct {
 	int (*open)(client_t *client, int *cookie);
 	int (*cmd)(client_t *client);
 	int (*close)(client_t *client);
-	int (*poll_prepare)(client_t *client, struct pollfd *pfds, int pindex);
-	void (*poll_events)(client_t *client, struct pollfd *pfds);
 } transport_ops_t;
 
 struct client {
+	struct list_head list;
 	struct socket {
 		int fd;
-		int pindex;
 		int local;
 	} data, ctrl;
 	int transport_type;
@@ -166,12 +213,12 @@ struct client {
 		struct {
 			snd_pcm_t *handle;
 			int fd;
-			int pindex;
 		} pcm;
-#if 0
 		struct {
 			snd_ctl_t *handle;
+			int fd;
 		} control;
+#if 0
 		struct {
 			snd_rawmidi_t *handle;
 		} rawmidi;
@@ -186,7 +233,8 @@ struct client {
 		} seq;
 #endif
 	} device;
-	enum { CLOSED = 0, STOPPED, NORMAL, UNKNOWN } state;
+	int polling;
+	int open;
 	int cookie;
 	union {
 		struct {
@@ -196,11 +244,38 @@ struct client {
 	} transport;
 };
 
-#define PENDINGS_MAX 4
-#define CLIENTS_MAX 2
+LIST_HEAD(clients);
 
-client_t clients[CLIENTS_MAX];
-int clients_count = 0;
+typedef struct {
+	struct list_head list;
+	int fd;
+	uint32_t cookie;
+	int local;
+} pending_t;
+LIST_HEAD(pendings);
+
+int pcm_handler(waiter_t *waiter, unsigned short events)
+{
+	client_t *client = waiter->private_data;
+	char buf[1];
+	ssize_t n;
+	if (events & POLLIN) {
+		n = write(client->data.fd, buf, 1);
+		if (n != 1) {
+			perrno("write");
+			return -errno;
+		}
+	} else if (events & POLLOUT) {
+		n = read(client->data.fd, buf, 1);
+		if (n != 1) {
+			perrno("read");
+			return -errno;
+		}
+	}
+	del_waiter(waiter->fd);
+	client->polling = 0;
+	return 0;
+}
 
 int pcm_shm_open(client_t *client, int *cookie)
 {
@@ -241,6 +316,10 @@ int pcm_shm_close(client_t *client)
 {
 	int err;
 	snd_pcm_client_shm_t *ctrl = client->transport.shm.ctrl;
+	if (client->polling) {
+		del_waiter(client->device.pcm.fd);
+		client->polling = 0;
+	}
 	/* FIXME: blocking */
 	err = snd_pcm_close(client->device.pcm.handle);
 	ctrl->result = err;
@@ -255,51 +334,8 @@ int pcm_shm_close(client_t *client)
 			perrno("shmctl");
 		client->transport.shm.ctrl = 0;
 	}
-	client->state = CLOSED;
+	client->open = 0;
 	return 0;
-}
-
-int pcm_poll_prepare(client_t *client, struct pollfd *pfds, int pindex)
-{
-	struct pollfd *pfd = &pfds[pindex];
-	pfd->events = 0;
-	switch (client->state) {
-	case UNKNOWN:
-		pfd->events = client->stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
-	case NORMAL:
-		pfd->fd = client->device.pcm.fd;
-		client->device.pcm.pindex = pindex;
-		return 1;
-		break;
-	default:
-		client->device.pcm.pindex = -1;
-		return 0;
-	}
-}
-
-void pcm_poll_events(client_t *client, struct pollfd *pfds)
-{
-	int n;
-	char zero = 0;
-	struct pollfd *pfd;
-	if (client->device.pcm.pindex < 0)
-		return;
-	pfd = &pfds[client->device.pcm.pindex];
-	if (pfd->revents & POLLIN) {
-		client->state = NORMAL;
-		n = write(client->data.fd, &zero, 1);
-		if (n != 1) {
-			perrno("write");
-			exit(1);
-		}
-	} else if (pfd->revents & POLLOUT) {
-		client->state = NORMAL;
-		n = read(client->data.fd, &zero, 1);
-		if (n != 1) {
-			perrno("read");
-			exit(1);
-		}
-	}
 }
 
 int pcm_shm_cmd(client_t *client)
@@ -362,7 +398,6 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_WRITE_FRAMES:
 	{
 		size_t maxsize = PCM_SHM_DATA_MAXLEN;
-		client->state = UNKNOWN;
 		maxsize = snd_pcm_bytes_to_frames(pcm, maxsize);
 		if (ctrl->u.write.count > maxsize) {
 			ctrl->result = -EFAULT;
@@ -375,7 +410,6 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_READ_FRAMES:
 	{
 		size_t maxsize = PCM_SHM_DATA_MAXLEN;
-		client->state = UNKNOWN;
 		maxsize = snd_pcm_bytes_to_frames(pcm, maxsize);
 		if (ctrl->u.read.count > maxsize) {
 			ctrl->result = -EFAULT;
@@ -394,7 +428,6 @@ int pcm_shm_cmd(client_t *client)
 		size_t vecsize;
 		char *base;
 		int bits_per_sample = snd_pcm_samples_to_bytes(pcm, 8);
-		client->state = UNKNOWN;
 		vecsize = ctrl->u.writev.count * sizeof(struct iovec);
 		if (vecsize > maxsize) {
 			ctrl->result = -EFAULT;
@@ -423,7 +456,6 @@ int pcm_shm_cmd(client_t *client)
 		size_t vecsize;
 		char *base;
 		int bits_per_sample = snd_pcm_samples_to_bytes(pcm, 8);
-		client->state = UNKNOWN;
 		vecsize = ctrl->u.readv.count * sizeof(struct iovec);
 		if (vecsize > maxsize) {
 			ctrl->result = -EFAULT;
@@ -444,17 +476,17 @@ int pcm_shm_cmd(client_t *client)
 		break;
 	}
 	case SND_PCM_IOCTL_FRAME_DATA:
-		client->state = UNKNOWN;
 		ctrl->result = snd_pcm_frame_data(pcm, ctrl->u.frame_data);
 		break;
 	case SND_PCM_IOCTL_LINK:
 	{
-		int k;
-		for (k = 0; k < clients_count; ++k) {
-			if (clients[k].state == CLOSED)
+		struct list_head *item;
+		list_for_each(item, &clients) {
+			client_t *client = list_entry(item, client_t, list);
+			if (!client->open)
 				continue;
-			if (clients[k].data.fd == ctrl->u.link) {
-				ctrl->result = snd_pcm_link(pcm, clients[k].device.pcm.handle);
+			if (client->data.fd == ctrl->u.link) {
+				ctrl->result = snd_pcm_link(pcm, client->device.pcm.handle);
 				break;
 			}
 		}
@@ -484,7 +516,6 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_MUNMAP_STATUS:
 		ctrl->result = 0;
 		break;
-	}
 #endif
 	case SND_PCM_IOCTL_CLOSE:
 		client->ops->close(client);
@@ -500,6 +531,10 @@ int pcm_shm_cmd(client_t *client)
 	err = write(client->ctrl.fd, buf, 1);
 	if (err != 1)
 		return -EBADFD;
+	if (!client->polling) {
+		add_waiter(client->device.pcm.fd, POLLIN | POLLOUT, pcm_handler, client);
+		client->polling = 1;
+	}
 	return 0;
 }
 
@@ -507,11 +542,171 @@ transport_ops_t pcm_shm_ops = {
 	open: pcm_shm_open,
 	cmd: pcm_shm_cmd,
 	close: pcm_shm_close,
-	poll_prepare: pcm_poll_prepare,
-	poll_events: pcm_poll_events,
 };
 
-void snd_client_open(client_t *client)
+int ctl_handler(waiter_t *waiter, unsigned short events)
+{
+	client_t *client = waiter->private_data;
+	char buf[1];
+	ssize_t n;
+	if (events & POLLIN) {
+		n = write(client->data.fd, buf, 1);
+		if (n != 1) {
+			perrno("write");
+			return -errno;
+		}
+	}
+	del_waiter(waiter->fd);
+	client->polling = 0;
+	return 0;
+}
+
+int ctl_shm_open(client_t *client, int *cookie)
+{
+	int shmid;
+	snd_ctl_t *ctl;
+	int err;
+	int result;
+	err = snd_ctl_open(&ctl, client->name);
+	if (err < 0)
+		return err;
+	client->device.control.handle = ctl;
+	client->device.control.fd = snd_ctl_file_descriptor(ctl);
+
+	shmid = shmget(IPC_PRIVATE, CTL_SHM_SIZE, 0666);
+	if (shmid < 0) {
+		result = -errno;
+		perrno("shmget");
+		goto _err;
+	}
+	client->transport.shm.ctrl_id = shmid;
+	client->transport.shm.ctrl = shmat(shmid, 0, 0);
+	if (!client->transport.shm.ctrl) {
+		result = -errno;
+		shmctl(shmid, IPC_RMID, 0);
+		perrno("shmat");
+		goto _err;
+	}
+	*cookie = shmid;
+	add_waiter(client->device.control.fd, POLLIN, ctl_handler, client);
+	client->polling = 1;
+	return 0;
+
+ _err:
+	snd_ctl_close(ctl);
+	return result;
+
+}
+
+int ctl_shm_close(client_t *client)
+{
+	int err;
+	snd_ctl_client_shm_t *ctrl = client->transport.shm.ctrl;
+	if (client->polling) {
+		del_waiter(client->device.control.fd);
+		client->polling = 0;
+	}
+	/* FIXME: blocking */
+	err = snd_ctl_close(client->device.control.handle);
+	ctrl->result = err;
+	if (err < 0) 
+		perrno("snd_ctl_close");
+	if (client->transport.shm.ctrl) {
+		err = shmdt((void *)client->transport.shm.ctrl);
+		if (err < 0)
+			perrno("shmdt");
+		err = shmctl(client->transport.shm.ctrl_id, IPC_RMID, 0);
+		if (err < 0)
+			perrno("shmctl");
+		client->transport.shm.ctrl = 0;
+	}
+	client->open = 0;
+	return 0;
+}
+
+extern int snd_ctl_read1(snd_ctl_t *ctl, snd_ctl_event_t *event);
+
+int ctl_shm_cmd(client_t *client)
+{
+	snd_ctl_client_shm_t *ctrl = client->transport.shm.ctrl;
+	struct pollfd pfd;
+	char buf[1];
+	int err;
+	int cmd;
+	snd_ctl_t *ctl;
+	err = read(client->ctrl.fd, buf, 1);
+	if (err != 1)
+		return -EBADFD;
+	cmd = ctrl->cmd;
+	ctrl->cmd = 0;
+	ctl = client->device.control.handle;
+	switch (cmd) {
+	case SND_CTL_IOCTL_HW_INFO:
+		ctrl->result = snd_ctl_hw_info(ctl, &ctrl->u.hw_info);
+		break;
+	case SND_CTL_IOCTL_CONTROL_LIST:
+	{
+		size_t maxsize = CTL_SHM_DATA_MAXLEN;
+		if (ctrl->u.clist.controls_request * sizeof(*ctrl->u.clist.pids) > maxsize) {
+			ctrl->result = -EFAULT;
+			break;
+		}
+		ctrl->u.clist.pids = (snd_control_id_t*) ctrl->data;
+		ctrl->result = snd_ctl_clist(ctl, &ctrl->u.clist);
+		break;
+	}
+	case SND_CTL_IOCTL_CONTROL_INFO:
+		ctrl->result = snd_ctl_cinfo(ctl, &ctrl->u.cinfo);
+		break;
+	case SND_CTL_IOCTL_CONTROL_READ:
+		ctrl->result = snd_ctl_cread(ctl, &ctrl->u.cread);
+		break;
+	case SND_CTL_IOCTL_CONTROL_WRITE:
+		ctrl->result = snd_ctl_cwrite(ctl, &ctrl->u.cwrite);
+		break;
+	case SND_CTL_IOCTL_HWDEP_INFO:
+		ctrl->result = snd_ctl_hwdep_info(ctl, &ctrl->u.hwdep_info);
+		break;
+	case SND_CTL_IOCTL_PCM_INFO:
+		ctrl->result = snd_ctl_pcm_info(ctl, &ctrl->u.pcm_info);
+		break;
+	case SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE:
+		ctrl->result = snd_ctl_pcm_prefer_subdevice(ctl, ctrl->u.pcm_prefer_subdevice);
+		break;
+	case SND_CTL_IOCTL_RAWMIDI_INFO:
+		ctrl->result = snd_ctl_rawmidi_info(ctl, &ctrl->u.rawmidi_info);
+		break;
+	case SND_CTL_IOCTL_READ:
+		ctrl->result = snd_ctl_read1(ctl, &ctrl->u.read);
+		break;
+	case SND_CTL_IOCTL_CLOSE:
+		client->ops->close(client);
+		break;
+	default:
+		fprintf(stderr, "Bogus cmd: %x\n", ctrl->cmd);
+		ctrl->result = -ENOSYS;
+	}
+	pfd.fd = client->ctrl.fd;
+	pfd.events = POLLHUP;
+	if (poll(&pfd, 1, 0) == 1)
+		return -EBADFD;
+	err = write(client->ctrl.fd, buf, 1);
+	if (err != 1)
+		return -EBADFD;
+	if (!client->polling) {
+		add_waiter(client->device.control.fd, POLLIN, ctl_handler, client);
+		client->polling = 1;
+	}
+	return 0;
+}
+
+transport_ops_t ctl_shm_ops = {
+	open: ctl_shm_open,
+	cmd: ctl_shm_cmd,
+	close: ctl_shm_close,
+};
+
+int snd_client_open(client_t *client)
 {
 	int err;
 	snd_client_open_request_t req;
@@ -549,6 +744,16 @@ void snd_client_open(client_t *client)
 			goto _answer;
 		}
 		break;
+	case SND_DEV_TYPE_CONTROL:
+		switch (req.transport_type) {
+		case SND_TRANSPORT_TYPE_SHM:
+			client->ops = &ctl_shm_ops;
+			break;
+		default:
+			ans.result = -EINVAL;
+			goto _answer;
+		}
+		break;
 	default:
 		ans.result = -EINVAL;
 		goto _answer;
@@ -565,7 +770,7 @@ void snd_client_open(client_t *client)
 	if (err < 0) {
 		ans.result = err;
 	} else {
-		client->state = STOPPED;
+		client->open = 1;
 		ans.result = client->data.fd;
 	}
 
@@ -575,53 +780,141 @@ void snd_client_open(client_t *client)
 		perrno("write");
 		exit(1);
 	}
-	return;
+	return 0;
+}
+
+int client_data_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
+{
+	client_t *client = waiter->private_data;
+	if (client->open)
+		client->ops->close(client);
+	close(client->data.fd);
+	close(client->ctrl.fd);
+	del_waiter(client->data.fd);
+	del_waiter(client->ctrl.fd);
+	list_del(&client->list);
+	free(client);
+	return 0;
+}
+
+int client_ctrl_handler(waiter_t *waiter, unsigned short events)
+{
+	client_t *client = waiter->private_data;
+	if (events & POLLHUP)
+		return client_data_handler(waiter, events);
+	if (client->open)
+		return client->ops->cmd(client);
+	else
+		return snd_client_open(client);
+}
+
+int pending_handler(waiter_t *waiter, unsigned short events)
+{
+	pending_t *pending = waiter->private_data;
+	pending_t *pdata;
+	client_t *client;
+	uint32_t cookie;
+	struct list_head *item;
+	int remove = 0;
+	if (events & POLLHUP)
+		remove = 1;
+	else {
+		int err = read(waiter->fd, &cookie, sizeof(cookie));
+		if (err != sizeof(cookie))
+			remove = 1;
+		else {
+			err = write(waiter->fd, &cookie, sizeof(cookie));
+			if (err != sizeof(cookie))
+				remove = 1;
+		}
+	}
+	del_waiter(waiter->fd);
+	if (remove) {
+		close(waiter->fd);
+		list_del(&pending->list);
+		free(pending);
+		return 0;
+	}
+
+	list_for_each(item, &pendings) {
+		pdata = list_entry(item, pending_t, list);
+		if (pdata->cookie == cookie)
+			goto found;
+	}
+	pending->cookie = cookie;
+	return 0;
+
+ found:
+	client = calloc(sizeof(*client), 1);
+	client->data.fd = pdata->fd;
+	client->data.local = pdata->local;
+	client->ctrl.fd = waiter->fd;
+	client->ctrl.local = pending->local;
+	add_waiter(client->ctrl.fd, POLLIN | POLLHUP, client_ctrl_handler, client);
+	add_waiter(client->data.fd, POLLHUP, client_data_handler, client);
+	client->open = 0;
+	list_add_tail(&client->list, &clients);
+	list_del(&pending->list);
+	list_del(&pdata->list);
+	free(pending);
+	free(pdata);
+	return 0;
+}
+
+int master_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
+{
+	master_t *master = waiter->private_data;
+	int sock;
+	sock = accept(waiter->fd, 0, 0);
+	if (sock < 0) {
+		int result = -errno;
+		perrno("accept");
+		return result;
+	} else {
+		pending_t *pending = calloc(sizeof(*pending), 1);
+		pending->fd = sock;
+		pending->local = master->local;
+		pending->cookie = 0;
+		add_waiter(sock, POLLIN, pending_handler, pending);
+		list_add_tail(&pending->list, &pendings);
+	}
+	return 0;
 }
 
 int server(char *sockname, int port)
 {
-	typedef struct {
-		int fd;
-		int pindex;
-		int local;
-	} master_t;
-	master_t masters[2];
-	int masters_count = 0;
-	typedef struct {
-		int fd;
-		int pindex;
-		uint32_t cookie;
-		int local;
-	} pending_t;
-	pending_t pendings[PENDINGS_MAX];
-	int pendings_count = 0;
-	struct pollfd pfds[CLIENTS_MAX * 3 + 16];
-	int pfds_count;
+	struct list_head *item;
 	int err;
-	int k;
+	unsigned int k;
 
 	if (sockname) {
-		int master = make_local_socket(sockname);
-		if (master < 0)
-			return master;
-		masters[masters_count].fd = master;
-		masters[masters_count].local = 1;
-		masters_count++;
+		int sock = make_local_socket(sockname);
+		master_t *master;
+		if (sock < 0)
+			return sock;
+		master = calloc(sizeof(*master), 1);
+		master->fd = sock;
+		master->local = 1;
+		add_waiter(sock, POLLIN, master_handler, master);
+		list_add_tail(&master->list, &masters);
 	}
 	if (port >= 0) {
-		int master = make_inet_socket(port);
-		if (master < 0)
-			return master;
-		masters[masters_count].fd = master;
-		masters[masters_count].local = 0;
-		masters_count++;
+		int sock = make_inet_socket(port);
+		master_t *master;
+		if (sock < 0)
+			return sock;
+		master = calloc(sizeof(*master), 1);
+		master->fd = sock;
+		master->local = 0;
+		add_waiter(sock, POLLIN, master_handler, master);
+		list_add_tail(&master->list, &masters);
 	}
 
-	if (masters_count == 0)
+	if (list_empty(&masters))
 		return -EINVAL;
 
-	for (k = 0; k < masters_count; ++k) {
-		master_t *master = &masters[k];
+	list_for_each(item, &masters) {
+		master_t *master = list_entry(item, master_t, list);
 		if (fcntl(master->fd, F_SETFL, O_NONBLOCK) < 0) {
 			int result = -errno;
 			perrno("fcntl");
@@ -634,205 +927,30 @@ int server(char *sockname, int port)
 		}
 	}
 
-	for (k = 0; k < PENDINGS_MAX; ++k) {
-		pendings[k].fd = -1;
-	}
-
 	while (1) {
-		pfds_count = 0;
-		
-		/* Prepare to poll masters */
-		if (pendings_count < PENDINGS_MAX) {
-			for (k = 0; k < masters_count; ++k) {
-				master_t *master = &masters[k];
-				master->pindex = pfds_count;
-				pfds[pfds_count].fd = master->fd;
-				pfds[pfds_count].events = POLLIN;
-				pfds_count++;
-			}
-		} else {
-			for (k = 0; k < masters_count; ++k) {
-				master_t *master = &masters[k];
-				master->pindex = -1;
-			}
-		}
-
-		/* Prepare to poll pendings */
-		for (k = 0; k < PENDINGS_MAX; ++k) {
-			pending_t *pending = &pendings[k];
-			if (pending->fd < 0 ||
-			    pending->cookie != 0) {
-				pending->pindex = -1;
-				continue;
-			}
-			pending->pindex = pfds_count;
-			pfds[pfds_count].fd = pending->fd;
-			pfds[pfds_count].events = POLLHUP;
-			if (pendings_count < PENDINGS_MAX &&
-			    clients_count < CLIENTS_MAX)
-				pfds[pfds_count].events |= POLLIN;
-			pfds_count++;
-		}
-
-		/* Prepare to poll clients */
-		for (k = 0; k < clients_count; ++k) {
-			client_t *client = &clients[k];
-			client->data.pindex = pfds_count;
-			pfds[pfds_count].fd = client->data.fd;
-			pfds[pfds_count].events = POLLHUP;
-			pfds_count++;
-
-			client->ctrl.pindex = pfds_count;
-			pfds[pfds_count].fd = client->ctrl.fd;
-			pfds[pfds_count].events = POLLIN | POLLHUP;
-			pfds_count++;
-		}
-
-		/* Prepare to poll devices */
-		for (k = 0; k < clients_count; ++k) {
-			client_t *client = &clients[k];
-			int n;
-			if (client->state == CLOSED)
-				continue;
-			n = client->ops->poll_prepare(client, pfds, pfds_count);
-			pfds_count += n;
-		}
-		
-
-		/* Poll */
+		struct pollfd pfds[OPEN_MAX];
+		size_t pfds_count;
 		do {
-			err = poll(pfds, pfds_count, 1000);
+			err = poll(pollfds, pollfds_count, 1000);
 		} while (err == 0);
 		if (err < 0) {
-			int result = -errno;
 			perrno("poll");
-			return result;
+			continue;
 		}
 
-		/* Handle clients events */
-		for (k = clients_count - 1; k >= 0; --k) {
-			client_t *client;
-			struct pollfd *data_pfd = &pfds[clients[k].data.pindex];
-			struct pollfd *ctrl_pfd = &pfds[clients[k].ctrl.pindex];
-			if (!data_pfd->revents && !ctrl_pfd->revents)
-				continue;
-			client = &clients[k];
-			if ((data_pfd->revents & POLLHUP) ||
-			    (ctrl_pfd->revents & POLLHUP)) {
-				if (client->state != CLOSED) {
-					client->ops->close(client);
-				}
-				close(client->data.fd);
-				if (client->ctrl.fd >= 0)
-					close(client->ctrl.fd);
-				memmove(client, client + 1,
-					(clients_count - k) * sizeof(client_t));
-				clients_count--;
-				continue;
-			}
-			if (ctrl_pfd->revents & POLLIN) {
-				if (client->state == CLOSED)
-					snd_client_open(client);
-				else
-					client->ops->cmd(client);
-			}
-		}
-
-		/* Handle device events */
-		for (k = 0; k < clients_count; ++k) {
-			client_t *client = &clients[k];
-			client->ops->poll_events(client, pfds);
-		}
-
-		/* Handle pending events */
-		for (k = 0; k < PENDINGS_MAX; ++k) {
-			struct pollfd *pfd;
-			uint32_t cookie;
-			int j;
-			pending_t *pending = &pendings[k];
-			client_t *client;
-			int remove = 0;
-			if (pending->pindex < 0)
-				continue;
-			pfd = &pfds[pending->pindex];
-			if (!pfd->revents)
-				continue;
-			if (pfd->revents & POLLHUP)
-				remove = 1;
-			else {
-				if (clients_count >= CLIENTS_MAX)
+		pfds_count = pollfds_count;
+		memcpy(pfds, pollfds, sizeof(*pfds) * pfds_count);
+		for (k = 0; k < pfds_count; k++) {
+			struct pollfd *pfd = &pfds[k];
+			if (pfd->revents) {
+				waiter_t *w = &waiters[pfd->fd];
+				if (!w->handler)
 					continue;
-				err = read(pfd->fd, &cookie, sizeof(cookie));
-				if (err != sizeof(cookie))
-					remove = 1;
-				else {
-					err = write(pfd->fd, &cookie, sizeof(cookie));
-					if (err != sizeof(cookie))
-						remove = 1;
-				}
-			}
-			if (remove) {
-				close(pending->fd);
-				pending->fd = -1;
-				pendings_count--;
-				continue;
-			}
-
-			for (j = 0; j < PENDINGS_MAX; ++j) {
-				if (pendings[j].cookie == cookie)
-					break;
-			}
-			if (j == PENDINGS_MAX) {
-				pendings[k].cookie = cookie;
-				continue;
-			}
-			
-			client = &clients[clients_count];
-			memset(client, 0, sizeof(*client));
-			client->data.fd = pendings[j].fd;
-			client->data.local = pendings[j].local;
-			client->ctrl.fd = pendings[k].fd;
-			client->ctrl.local = pendings[k].local;
-			client->state = CLOSED;
-			clients_count++;
-			pendings[j].fd = -1;
-			pendings[k].fd = -1;
-			pendings_count -= 2;
-		}
-
-		/* Handle master events */
-		for (k = 0; k < masters_count; ++k) {
-			struct pollfd *pfd;
-			master_t *master;
-			int sock;
-			if (pendings_count >= PENDINGS_MAX)
-				break;
-			master = &masters[k];
-			if (master->pindex < 0)
-				continue;
-			pfd = &pfds[master->pindex];
-			if (!pfd->revents)
-				continue;
-			
-			sock = accept(master->fd, 0, 0);
-			if (sock < 0) {
-				int result = -errno;
-                                perrno("accept");
-                                return result;
-			} else {
-				int j;
-				for (j = 0; j < PENDINGS_MAX; ++j) {
-					if (pendings[j].fd < 0)
-						break;
-				}
-				assert(j < PENDINGS_MAX);
-				pendings[j].fd = sock;
-				pendings[j].local = master->local;
-				pendings[j].cookie = 0;
-				pendings_count++;
+				err = w->handler(w, pfd->revents);
+				if (err < 0)
+					perrno("handler");
 			}
 		}
-		
 	}
 	return 0;
 }

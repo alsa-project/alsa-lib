@@ -23,40 +23,40 @@
 #include "asoundlib.h"
 
 struct snd_pcm_ops {
-	int (*close)(void *private);
-	int (*info)(void *private, snd_pcm_info_t *info);
-	int (*params_info)(void *private, snd_pcm_params_info_t *info);
-	int (*params)(void *private, snd_pcm_params_t *params);
-	int (*setup)(void *private, snd_pcm_setup_t *setup);
-	void (*dump)(void *private, FILE *fp);
+	int (*close)(snd_pcm_t *pcm);
+	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
+	int (*params_info)(snd_pcm_t *pcm, snd_pcm_params_info_t *info);
+	int (*params)(snd_pcm_t *pcm, snd_pcm_params_t *params);
+	int (*setup)(snd_pcm_t *pcm, snd_pcm_setup_t *setup);
+	void (*dump)(snd_pcm_t *pcm, FILE *fp);
 };
 
 struct snd_pcm_fast_ops {
-	int (*nonblock)(void *private, int nonblock);
-	int (*status)(void *private, snd_pcm_status_t *status);
-	int (*channel_info)(void *private, snd_pcm_channel_info_t *info);
-	int (*channel_params)(void *private, snd_pcm_channel_params_t *params);
-	int (*channel_setup)(void *private, snd_pcm_channel_setup_t *setup);
-	int (*prepare)(void *private);
-	int (*go)(void *private);
-	int (*drain)(void *private);
-	int (*flush)(void *private);
-	int (*pause)(void *private, int enable);
-	int (*state)(void *private);
-	ssize_t (*frame_io)(void *private, int update);
-	ssize_t (*frame_data)(void *private, off_t offset);
-	ssize_t (*write)(void *private, snd_timestamp_t *tstamp, const void *buffer, size_t size);
-	ssize_t (*writev)(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count);
-	ssize_t (*read)(void *private, snd_timestamp_t *tstamp, void *buffer, size_t size);
-	ssize_t (*readv)(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count);
-	int (*file_descriptor)(void *private);
-	int (*channels_mask)(void *private, bitset_t *client_vmask);
-	int (*mmap_status)(void *private, snd_pcm_mmap_status_t **status);
-	int (*mmap_control)(void *private, snd_pcm_mmap_control_t **control);
-	int (*mmap_data)(void *private, void **buffer, size_t bsize);
-	int (*munmap_status)(void *private, snd_pcm_mmap_status_t *status);
-	int (*munmap_control)(void *private, snd_pcm_mmap_control_t *control);
-	int (*munmap_data)(void *private, void *buffer, size_t bsize);
+	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
+	int (*status)(snd_pcm_t *pcm, snd_pcm_status_t *status);
+	int (*channel_info)(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
+	int (*channel_params)(snd_pcm_t *pcm, snd_pcm_channel_params_t *params);
+	int (*channel_setup)(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup);
+	int (*prepare)(snd_pcm_t *pcm);
+	int (*go)(snd_pcm_t *pcm);
+	int (*drain)(snd_pcm_t *pcm);
+	int (*flush)(snd_pcm_t *pcm);
+	int (*pause)(snd_pcm_t *pcm, int enable);
+	int (*state)(snd_pcm_t *pcm);
+	ssize_t (*frame_io)(snd_pcm_t *pcm, int update);
+	ssize_t (*frame_data)(snd_pcm_t *pcm, off_t offset);
+	ssize_t (*write)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const void *buffer, size_t size);
+	ssize_t (*writev)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count);
+	ssize_t (*read)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, void *buffer, size_t size);
+	ssize_t (*readv)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count);
+	int (*file_descriptor)(snd_pcm_t *pcm);
+	int (*channels_mask)(snd_pcm_t *pcm, bitset_t *client_vmask);
+	int (*mmap_status)(snd_pcm_t *pcm, snd_pcm_mmap_status_t **status);
+	int (*mmap_control)(snd_pcm_t *pcm, snd_pcm_mmap_control_t **control);
+	int (*mmap_data)(snd_pcm_t *pcm, void **buffer, size_t bsize);
+	int (*munmap_status)(snd_pcm_t *pcm, snd_pcm_mmap_status_t *status);
+	int (*munmap_control)(snd_pcm_t *pcm, snd_pcm_mmap_control_t *control);
+	int (*munmap_data)(snd_pcm_t *pcm, void *buffer, size_t bsize);
 };
 
 struct snd_pcm {
@@ -73,9 +73,9 @@ struct snd_pcm {
 	char *mmap_data;
 	enum { _INTERLEAVED, _NONINTERLEAVED, _COMPLEX } mmap_type;
 	struct snd_pcm_ops *ops;
-	void *op_arg;
 	struct snd_pcm_fast_ops *fast_ops;
-	void *fast_op_arg;
+	snd_pcm_t *op_arg;
+	snd_pcm_t *fast_op_arg;
 	void *private;
 };
 

@@ -11,7 +11,7 @@ typedef struct snd_mixer snd_mixer_t;
 extern "C" {
 #endif
 
-int snd_mixer_open(snd_mixer_t **handle, int card);
+int snd_mixer_open(snd_mixer_t **handle, char *name);
 int snd_mixer_close(snd_mixer_t *handle);
 int snd_mixer_file_descriptor(snd_mixer_t *handle);
 

@@ -54,6 +54,30 @@ typedef struct {
 #define PCM_SHM_SIZE 65536
 #define PCM_SHM_DATA_MAXLEN (PCM_SHM_SIZE - offsetof(snd_pcm_client_shm_t, data))
 		
+#define SND_CTL_IOCTL_READ		_IOR('U', 0xf0, snd_ctl_event_t)
+#define SND_CTL_IOCTL_CLOSE		_IO ('U', 0xf1)
+
+typedef struct {
+	int result;
+	int cmd;
+	union {
+		snd_ctl_hw_info_t hw_info;
+		snd_control_list_t clist;
+		snd_control_info_t cinfo;
+		snd_control_t cread;
+		snd_control_t cwrite;
+		snd_hwdep_info_t hwdep_info;
+		snd_pcm_info_t pcm_info;
+		int pcm_prefer_subdevice;
+		snd_rawmidi_info_t rawmidi_info;
+		snd_ctl_event_t read;
+	} u;
+	char data[0];
+} snd_ctl_client_shm_t;
+
+#define CTL_SHM_SIZE 65536
+#define CTL_SHM_DATA_MAXLEN (CTL_SHM_SIZE - offsetof(snd_ctl_client_shm_t, data))
+
 typedef struct {
 	unsigned char dev_type;
 	unsigned char transport_type;
@@ -68,10 +92,3 @@ typedef struct {
 	int cookie;
 } snd_client_open_answer_t;
 
-struct cmsg_fd
-{
-    int len;   /* sizeof structure */
-    int level; /* SOL_SOCKET */
-    int type;  /* SCM_RIGHTS */
-    int fd;    /* fd to pass */
-};

@@ -19,11 +19,30 @@
  *
  */
 
+#include <assert.h>
+#include "asoundlib.h"
 #include "list.h"
 
+struct snd_ctl_ops {
+	int (*close)(snd_ctl_t *handle);
+	int (*file_descriptor)(snd_ctl_t *handle);
+	int (*hw_info)(snd_ctl_t *handle, snd_ctl_hw_info_t *info);
+	int (*clist)(snd_ctl_t *handle, snd_control_list_t *list);
+	int (*cinfo)(snd_ctl_t *handle, snd_control_info_t *info);
+	int (*cread)(snd_ctl_t *handle, snd_control_t *control);
+	int (*cwrite)(snd_ctl_t *handle, snd_control_t *control);
+	int (*hwdep_info)(snd_ctl_t *handle, snd_hwdep_info_t * info);
+	int (*pcm_info)(snd_ctl_t *handle, snd_pcm_info_t * info);
+	int (*pcm_prefer_subdevice)(snd_ctl_t *handle, int subdev);
+	int (*rawmidi_info)(snd_ctl_t *handle, snd_rawmidi_info_t * info);
+	int (*read)(snd_ctl_t *handle, snd_ctl_event_t *event);
+};
+
+
 struct snd_ctl {
-	int card;
-	int fd;
+	snd_ctl_type_t type;
+	struct snd_ctl_ops *ops;
+	void *private;
 	int hcount;
 	int herr;
 	struct list_head hlist;	/* list of all controls */

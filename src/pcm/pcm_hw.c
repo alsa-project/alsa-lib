@@ -30,7 +30,6 @@
 #include "pcm_local.h"
 
 typedef struct {
-	snd_pcm_t *handle;
 	int fd;
 	int card, device, subdevice;
 	void *mmap_data_ptr;
@@ -40,21 +39,21 @@ typedef struct {
 #define SND_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
 
-static int snd_pcm_hw_close(void *private)
+static int snd_pcm_hw_close(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	free(private);
+	free(hw);
 	if (fd >= 0)
 		if (close(fd))
 			return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_nonblock(void *private, int nonblock)
+static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	long flags;
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 
 	if ((flags = fcntl(fd, F_GETFL)) < 0)
@@ -68,63 +67,63 @@ static int snd_pcm_hw_nonblock(void *private, int nonblock)
 	return 0;
 }
 
-static int snd_pcm_hw_info(void *private, snd_pcm_info_t * info)
+static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_params_info(void *private, snd_pcm_params_info_t * info)
+static int snd_pcm_hw_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_PARAMS_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_params(void *private, snd_pcm_params_t * params)
+static int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_PARAMS, params) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_setup(void *private, snd_pcm_setup_t * setup)
+static int snd_pcm_hw_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_SETUP, setup) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_info(void *private, snd_pcm_channel_info_t * info)
+static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_params(void *private, snd_pcm_channel_params_t * params)
+static int snd_pcm_hw_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_PARAMS, params) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_channel_setup(void *private, snd_pcm_channel_setup_t * setup)
+static int snd_pcm_hw_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_SETUP, setup) < 0)
 		return -errno;
@@ -132,18 +131,18 @@ static int snd_pcm_hw_channel_setup(void *private, snd_pcm_channel_setup_t * set
 	return 0;
 }
 
-static int snd_pcm_hw_status(void *private, snd_pcm_status_t * status)
+static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STATUS, status) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_state(void *private)
+static int snd_pcm_hw_state(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	snd_pcm_status_t status;
 	if (ioctl(fd, SND_PCM_IOCTL_STATUS, status) < 0)
@@ -151,9 +150,9 @@ static int snd_pcm_hw_state(void *private)
 	return status.state;
 }
 
-static ssize_t snd_pcm_hw_frame_io(void *private, int update ATTRIBUTE_UNUSED)
+static ssize_t snd_pcm_hw_frame_io(snd_pcm_t *pcm, int update ATTRIBUTE_UNUSED)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	ssize_t pos = ioctl(fd, SND_PCM_IOCTL_FRAME_IO);
 	if (pos < 0)
@@ -161,69 +160,68 @@ static ssize_t snd_pcm_hw_frame_io(void *private, int update ATTRIBUTE_UNUSED)
 	return pos;
 }
 
-static int snd_pcm_hw_prepare(void *private)
+static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_PREPARE) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_go(void *private)
+static int snd_pcm_hw_go(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_GO) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_drain(void *private)
+static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_DRAIN) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_flush(void *private)
+static int snd_pcm_hw_flush(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_FLUSH) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_pause(void *private, int enable)
+static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_PAUSE, enable) < 0)
 		return -errno;
 	return 0;
 }
 
-static ssize_t snd_pcm_hw_frame_data(void *private, off_t offset)
+static ssize_t snd_pcm_hw_frame_data(snd_pcm_t *pcm, off_t offset)
 {
 	ssize_t result;
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
-	snd_pcm_t *handle = hw->handle;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (handle->mmap_status && handle->mmap_control)
-		return snd_pcm_mmap_frame_data(handle, offset);
+	if (pcm->mmap_status && pcm->mmap_control)
+		return snd_pcm_mmap_frame_data(pcm, offset);
 	result = ioctl(fd, SND_PCM_IOCTL_FRAME_DATA, offset);
 	if (result < 0)
 		return -errno;
 	return result;
 }
 
-static ssize_t snd_pcm_hw_write(void *private, snd_timestamp_t *tstamp, const void *buffer, size_t size)
+static ssize_t snd_pcm_hw_write(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const void *buffer, size_t size)
 {
 	ssize_t result;
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	snd_xfer_t xfer;
 	if (tstamp)
@@ -238,10 +236,10 @@ static ssize_t snd_pcm_hw_write(void *private, snd_timestamp_t *tstamp, const vo
 	return result;
 }
 
-static ssize_t snd_pcm_hw_writev(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
+static ssize_t snd_pcm_hw_writev(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
 {
 	ssize_t result;
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	snd_xferv_t xferv;
 	if (tstamp)
@@ -256,10 +254,10 @@ static ssize_t snd_pcm_hw_writev(void *private, snd_timestamp_t *tstamp, const s
 	return result;
 }
 
-static ssize_t snd_pcm_hw_read(void *private, snd_timestamp_t *tstamp, void *buffer, size_t size)
+static ssize_t snd_pcm_hw_read(snd_pcm_t *pcm, snd_timestamp_t *tstamp, void *buffer, size_t size)
 {
 	ssize_t result;
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	snd_xfer_t xfer;
 	if (tstamp)
@@ -274,10 +272,10 @@ static ssize_t snd_pcm_hw_read(void *private, snd_timestamp_t *tstamp, void *buf
 	return result;
 }
 
-ssize_t snd_pcm_hw_readv(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_hw_readv(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
 {
 	ssize_t result;
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	snd_xferv_t xferv;
 	if (tstamp)
@@ -292,9 +290,9 @@ ssize_t snd_pcm_hw_readv(void *private, snd_timestamp_t *tstamp, const struct io
 	return result;
 }
 
-static int snd_pcm_hw_mmap_status(void *private, snd_pcm_mmap_status_t **status)
+static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm, snd_pcm_mmap_status_t **status)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	void *ptr;
 	ptr = mmap(NULL, sizeof(snd_pcm_mmap_status_t), PROT_READ, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_STATUS);
@@ -304,9 +302,9 @@ static int snd_pcm_hw_mmap_status(void *private, snd_pcm_mmap_status_t **status)
 	return 0;
 }
 
-static int snd_pcm_hw_mmap_control(void *private, snd_pcm_mmap_control_t **control)
+static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm, snd_pcm_mmap_control_t **control)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	void *ptr;
 	ptr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_CONTROL);
@@ -316,12 +314,12 @@ static int snd_pcm_hw_mmap_control(void *private, snd_pcm_mmap_control_t **contr
 	return 0;
 }
 
-static int snd_pcm_hw_mmap_data(void *private, void **buffer, size_t bsize)
+static int snd_pcm_hw_mmap_data(snd_pcm_t *pcm, void **buffer, size_t bsize)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	void *ptr;
 	int prot;
-	prot = hw->handle->stream == SND_PCM_STREAM_PLAYBACK ? PROT_WRITE : PROT_READ;
+	prot = pcm->stream == SND_PCM_STREAM_PLAYBACK ? PROT_WRITE : PROT_READ;
 	ptr = mmap(NULL, bsize, prot, MAP_FILE|MAP_SHARED, 
 		     hw->fd, SND_PCM_MMAP_OFFSET_DATA);
 	if (ptr == MAP_FAILED || ptr == NULL)
@@ -330,53 +328,52 @@ static int snd_pcm_hw_mmap_data(void *private, void **buffer, size_t bsize)
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_status(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_status_t *status)
+static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_mmap_status_t *status)
 {
 	if (munmap(status, sizeof(*status)) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_control(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_control_t *control)
+static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_mmap_control_t *control)
 {
 	if (munmap(control, sizeof(*control)) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_data(void *private, void *buffer, size_t bsize)
+static int snd_pcm_hw_munmap_data(snd_pcm_t *pcm, void *buffer, size_t bsize)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	if (munmap(buffer, bsize) < 0)
 		return -errno;
 	hw->mmap_data_ptr = NULL;
 	return 0;
 }
 
-static int snd_pcm_hw_file_descriptor(void *private)
+static int snd_pcm_hw_file_descriptor(snd_pcm_t *pcm)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	snd_pcm_hw_t *hw = pcm->private;
 	return hw->fd;
 }
 
-static int snd_pcm_hw_channels_mask(void *private ATTRIBUTE_UNUSED,
+static int snd_pcm_hw_channels_mask(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 				    bitset_t *client_vmask ATTRIBUTE_UNUSED)
 {
 	return 0;
 }
 
-static void snd_pcm_hw_dump(void *private, FILE *fp)
+static void snd_pcm_hw_dump(snd_pcm_t *pcm, FILE *fp)
 {
-	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
-	snd_pcm_t *handle = hw->handle;
+	snd_pcm_hw_t *hw = pcm->private;
 	char *name = "Unknown";
 	snd_card_get_name(hw->card, &name);
 	fprintf(fp, "Hardware PCM card %d '%s' device %d subdevice %d\n",
 		hw->card, name, hw->device, hw->subdevice);
 	free(name);
-	if (handle->valid_setup) {
+	if (pcm->valid_setup) {
 		fprintf(fp, "\nIts setup is:\n");
-		snd_pcm_dump_setup(handle, fp);
+		snd_pcm_dump_setup(pcm, fp);
 	}
 }
 
@@ -433,7 +430,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int sub
 	assert(handlep);
 	*handlep = 0;
 
-	if ((ret = snd_ctl_open(&ctl, card)) < 0)
+	if ((ret = snd_ctl_hw_open(&ctl, card)) < 0)
 		return ret;
 
 	switch (stream) {
@@ -492,7 +489,6 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int sub
 		ret = -ENOMEM;
 		goto __end;
 	}
-	hw->handle = handle;
 	hw->card = card;
 	hw->device = device;
 	hw->subdevice = subdevice;
@@ -500,9 +496,9 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int sub
 	handle->type = SND_PCM_TYPE_HW;
 	handle->stream = stream;
 	handle->ops = &snd_pcm_hw_ops;
-	handle->op_arg = hw;
+	handle->op_arg = handle;
 	handle->fast_ops = &snd_pcm_hw_fast_ops;
-	handle->fast_op_arg = hw;
+	handle->fast_op_arg = handle;
 	handle->mode = mode;
 	handle->private = hw;
 	*handlep = handle;
