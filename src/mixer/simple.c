@@ -145,7 +145,7 @@ static int selem_info(snd_mixer_elem_t *elem,
 	simple = elem->private_data;
 
 	info->caps = simple->caps;
-	info->channels |= (1 << (simple->channels + 1)) - 1;
+	info->channels |= (1 << simple->channels) - 1;
 	info->capture_group = 0;
 	info->min = simple->min;
 	info->max = simple->max;
