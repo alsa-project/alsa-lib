@@ -339,6 +339,7 @@ int snd_ctl_elem_info_is_volatile(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_inactive(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_locked(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_owner(const snd_ctl_elem_info_t *obj);
+int snd_ctl_elem_info_is_user(const snd_ctl_elem_info_t *obj);
 pid_t snd_ctl_elem_info_get_owner(const snd_ctl_elem_info_t *obj);
 unsigned int snd_ctl_elem_info_get_count(const snd_ctl_elem_info_t *obj);
 long snd_ctl_elem_info_get_min(const snd_ctl_elem_info_t *obj);
@@ -366,6 +367,12 @@ void snd_ctl_elem_info_set_device(snd_ctl_elem_info_t *obj, unsigned int val);
 void snd_ctl_elem_info_set_subdevice(snd_ctl_elem_info_t *obj, unsigned int val);
 void snd_ctl_elem_info_set_name(snd_ctl_elem_info_t *obj, const char *val);
 void snd_ctl_elem_info_set_index(snd_ctl_elem_info_t *obj, unsigned int val);
+
+int snd_ctl_elem_add_integer(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id, unsigned int count, long imin, long imax, long istep);;
+int snd_ctl_elem_add_integer64(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id, unsigned int count, long long imin, long long imax, long long istep);;
+int snd_ctl_elem_add_boolean(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id, unsigned int count);
+int snd_ctl_elem_add_iec958(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id);
+int snd_ctl_elem_remove(snd_ctl_t *ctl, snd_ctl_elem_id_t *id);
 
 size_t snd_ctl_elem_value_sizeof(void);
 /** \hideinitializer

@@ -160,3 +160,13 @@ ALSA_1.0.5 {
     snd_timer_params_set_early_event;
     snd_timer_params_get_early_event;
 } ALSA_1.0.4;
+
+ALSA_1.0.8 {
+  global:
+
+    snd_ctl_elem_add_integer;
+    snd_ctl_elem_add_integer64;
+    snd_ctl_elem_add_boolean;
+    snd_ctl_elem_add_iec958;
+    snd_ctl_elem_remove;
+} ALSA_1.0.5;

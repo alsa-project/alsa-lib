@@ -253,31 +253,118 @@ int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
 }
 
 /**
- * \brief Create and add an user CTL element
+ * \brief Create and add an user INTEGER CTL element
  * \param ctl CTL handle
- * \param info CTL element info
+ * \param id CTL element id to add
+ * \param count number of elements
+ * \param min minimum value
+ * \param max maximum value
+ * \param step value step
  * \return 0 on success otherwise a negative error code
- *
- * Note that the new element is locked!
  */
-int snd_ctl_elem_add(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
+int snd_ctl_elem_add_integer(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			     unsigned int count, long min, long max, long step)
 {
-	assert(ctl && info && info->id.name[0]);
+	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_value_t *val;
+	unsigned int i;
+	int err;
+
+	assert(ctl && id && id->name[0]);
+	snd_ctl_elem_info_alloca(&info);
+	info->id = *id;
+	info->type = SND_CTL_ELEM_TYPE_INTEGER;
+	info->count = count;
+	info->value.integer.min = min;
+	info->value.integer.max = max;
+	info->value.integer.step = step;
+	err = ctl->ops->element_add(ctl, info);
+	if (err < 0)
+		return err;
+	snd_ctl_elem_value_alloca(&val);
+	val->id = *id;
+	for (i = 0; i < count; i++)
+		val->value.integer.value[i] = min;
+	err = ctl->ops->element_write(ctl, val);
+	return err;
+}
+
+/**
+ * \brief Create and add an user INTEGER64 CTL element
+ * \param ctl CTL handle
+ * \param id CTL element id to add
+ * \param count number of elements
+ * \param min minimum value
+ * \param max maximum value
+ * \param step value step
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_elem_add_integer64(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			       unsigned int count, long long min, long long max,
+			       long long step)
+{
+	snd_ctl_elem_info_t *info;
+	snd_ctl_elem_value_t *val;
+	unsigned int i;
+	int err;
+
+	assert(ctl && id && id->name[0]);
+	snd_ctl_elem_info_alloca(&info);
+	info->id = *id;
+	info->type = SND_CTL_ELEM_TYPE_INTEGER64;
+	info->count = count;
+	info->value.integer64.min = min;
+	info->value.integer64.max = max;
+	info->value.integer64.step = step;
+	err = ctl->ops->element_add(ctl, info);
+	if (err < 0)
+		return err;
+	snd_ctl_elem_value_alloca(&val);
+	val->id = *id;
+	for (i = 0; i < count; i++)
+		val->value.integer64.value[i] = min;
+	err = ctl->ops->element_write(ctl, val);
+	return err;
+}
+
+/**
+ * \brief Create and add an user BOOLEAN CTL element
+ * \param ctl CTL handle
+ * \param id CTL element id to add
+ * \param count number of elements
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_elem_add_boolean(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			     unsigned int count)
+{
+	snd_ctl_elem_info_t *info;
+
+	assert(ctl && id && id->name[0]);
+	snd_ctl_elem_info_alloca(&info);
+	info->id = *id;
+	info->type = SND_CTL_ELEM_TYPE_BOOLEAN;
+	info->count = count;
+	info->value.integer.min = 0;
+	info->value.integer.max = 1;
 	return ctl->ops->element_add(ctl, info);
 }
 
 /**
- * \brief Replace an user CTL element
+ * \brief Create and add an user IEC958 CTL element
  * \param ctl CTL handle
- * \param info CTL element info
+ * \param id CTL element info to add
  * \return 0 on success otherwise a negative error code
- *
- * Note that the new element is locked!
  */
-int snd_ctl_elem_replace(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
+int snd_ctl_elem_add_iec958(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id)
 {
-	assert(ctl && info && info->id.name[0]);
-	return ctl->ops->element_replace(ctl, info);
+	snd_ctl_elem_info_t *info;
+
+	assert(ctl && id && id->name[0]);
+	snd_ctl_elem_info_alloca(&info);
+	info->id = *id;
+	info->type = SND_CTL_ELEM_TYPE_IEC958;
+	info->count = 1;
+	return ctl->ops->element_add(ctl, info);
 }
 
 /**
@@ -285,8 +372,6 @@ int snd_ctl_elem_replace(snd_ctl_t *ctl, snd_ctl_elem_info_t *info)
  * \param ctl CTL handle
  * \param id CTL element identification
  * \return 0 on success otherwise a negative error code
- *
- * Note that the new element is locked!
  */
 int snd_ctl_elem_remove(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
 {
@@ -1567,6 +1652,17 @@ int snd_ctl_elem_info_is_owner(const snd_ctl_elem_info_t *obj)
 {
 	assert(obj);
 	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_OWNER);
+}
+
+/**
+ * \brief Get info if it's a user element
+ * \param obj CTL element id/info
+ * \return 0 if element value is a system element, 1 if it's a user-created element
+ */
+int snd_ctl_elem_info_is_user(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_USER);
 }
 
 /**

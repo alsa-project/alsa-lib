@@ -333,23 +333,9 @@ static void snd_pcm_softvol_dump(snd_pcm_t *pcm, snd_output_t *out)
 int snd_ctl_elem_add(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
 int snd_ctl_elem_replace(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
 
-static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo, int replace)
+static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo)
 {
-	int err;
-
-	cinfo->type = SND_CTL_ELEM_TYPE_INTEGER;
-	cinfo->count = 1;
-	cinfo->value.integer.min = 0;
-	cinfo->value.integer.max = svol->max_val;
-	if (replace)
-		err = snd_ctl_elem_replace(svol->ctl, cinfo);
-	else
-		err = snd_ctl_elem_add(svol->ctl, cinfo);
-	if (err < 0)
-		return err;
-	/* initialize */
-	svol->elem.value.integer.value[0] = 0;
-	return snd_ctl_elem_write(svol->ctl, &svol->elem);
+	return snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, 1, 0, svol->max_val, 0);
 }
 
 static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
@@ -392,7 +378,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 			SNDERR("Cannot get info for CTL %s", ctl_name);
 			return err;
 		}
-		err = add_user_ctl(svol, cinfo, 0);
+		err = add_user_ctl(svol, cinfo);
 		if (err < 0) {
 			SNDERR("Cannot add a control");
 			return err;
@@ -406,7 +392,8 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 				SNDERR("Invalid control");
 				return -EINVAL;
 			}
-			err = add_user_ctl(svol, cinfo, 1);
+			snd_ctl_elem_remove(svol->ctl, &cinfo->id);
+			err = add_user_ctl(svol, cinfo);
 			if (err < 0) {
 				SNDERR("Cannot replace a control");
 				return err;
