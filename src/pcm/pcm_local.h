@@ -26,8 +26,10 @@ struct snd_pcm {
 	int device;
 	int fd;
 	int mode;
+	int ver;
 	int setup_is_valid[2];
 	snd_pcm_channel_setup_t setup[2];
+	int mmap_ctrl_fd[2];
 	snd_pcm_mmap_control_t *mmap_caddr[2];
 	char *mmap_daddr[2];
 	long mmap_size[2];

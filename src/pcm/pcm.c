@@ -30,19 +30,13 @@
 #include "pcm_local.h"
 
 #define SND_FILE_PCM		"/dev/snd/pcmC%iD%i"
+#define SND_FILE_PCM_CONTROL	"/dev/snd/pcmcontrol"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
 
 int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode)
 {
 	return snd_pcm_open_subdevice(handle, card, device, -1, mode);
 }
-
-#ifndef O_WRITEFLG
-#define O_WRITEFLG	0x10000000
-#endif
-#ifndef O_READFLG
-#define O_READFLG	0x20000000
-#endif
 
 int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int mode)
 {
@@ -58,16 +52,18 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 		return -EINVAL;
 	if ((err = snd_ctl_open(&ctl, card)) < 0)
 		return err;
-	fmode = O_RDWR;
-	if (mode & SND_PCM_OPEN_PLAYBACK)
-		fmode |= O_WRITEFLG;
-	if (mode & SND_PCM_OPEN_CAPTURE)
-		fmode |= O_READFLG;
-	if (fmode == O_RDWR) {
+	if ((mode & (SND_PCM_OPEN_PLAYBACK|SND_PCM_OPEN_CAPTURE)) ==
+	            (SND_PCM_OPEN_PLAYBACK|SND_PCM_OPEN_CAPTURE)) {
+		fmode = O_RDWR;
+	} else if (mode & SND_PCM_OPEN_PLAYBACK) {
+		fmode = O_WRONLY;
+	} else if (mode & SND_PCM_OPEN_CAPTURE) {
+		fmode = O_RDONLY;
+	} else {
 		snd_ctl_close(ctl);
 		return -EINVAL;
 	}
-	if (mode & SND_PCM_OPEN_STREAM)
+	if (mode & SND_PCM_OPEN_NONBLOCK)
 		fmode |= O_NONBLOCK;
       __again:
       	if (attempt++ > 3) {
@@ -133,6 +129,8 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 	pcm->device = device;
 	pcm->fd = fd;
 	pcm->mode = mode;
+	pcm->ver = ver;
+	pcm->mmap_ctrl_fd[0] = pcm->mmap_ctrl_fd[1] = -1;
 	*handle = pcm;
 	return 0;
 }
@@ -394,9 +392,9 @@ ssize_t snd_pcm_read(snd_pcm_t *pcm, void *buffer, size_t size)
 int snd_pcm_mmap(snd_pcm_t *pcm, int channel, snd_pcm_mmap_control_t **control, void **buffer)
 {
 	snd_pcm_channel_info_t info;
-	int err;
+	snd_pcm_mmap_select_t sel;
+	int err, ctrl_fd, ver, prot;
 	void *caddr, *daddr;
-	off_t offset;
 
 	if (control)
 		*control = NULL;
@@ -408,24 +406,44 @@ int snd_pcm_mmap(snd_pcm_t *pcm, int channel, snd_pcm_mmap_control_t **control, 
 	info.channel = channel;
 	if ((err = snd_pcm_channel_info(pcm, &info))<0)
 		return err;
-	offset = channel == SND_PCM_CHANNEL_PLAYBACK ?
-			SND_PCM_MMAP_OFFSET_PLAYBACK_CONTROL :
-			SND_PCM_MMAP_OFFSET_CAPTURE_CONTROL;
-	caddr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, pcm->fd, offset);
-	if (caddr == (caddr_t)-1 || caddr == NULL)
+	ctrl_fd = open(SND_FILE_PCM_CONTROL, O_RDWR);
+	if (ctrl_fd < 0)
 		return -errno;
-	offset = channel == SND_PCM_CHANNEL_PLAYBACK ?
-			SND_PCM_MMAP_OFFSET_PLAYBACK :
-			SND_PCM_MMAP_OFFSET_CAPTURE;
-	daddr = mmap(NULL, info.mmap_size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, pcm->fd, offset);
+	if (ioctl(ctrl_fd, SND_PCM_CTRL_IOCTL_PVERSION, &ver) < 0) {
+		err = -errno;
+		close(ctrl_fd);
+		return err;
+	}
+	if (pcm->ver != ver) {
+		close(ctrl_fd);
+		return -SND_ERROR_INCOMPATIBLE_VERSION;
+	}
+	sel.card = pcm->card;
+	sel.device = pcm->device;
+	sel.subdevice = info.subdevice;
+	sel.channel = channel;
+	if (ioctl(ctrl_fd, SND_PCM_CTRL_IOCTL_SELECT, &sel) < 0) {
+		err = -errno;
+		close(ctrl_fd);
+		return err;
+	}
+	caddr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, ctrl_fd, SND_PCM_MMAP_OFFSET_CONTROL);
+	if (caddr == (caddr_t)-1 || caddr == NULL) {
+		close(ctrl_fd);
+		return -errno;
+	}
+	prot = channel == SND_PCM_CHANNEL_PLAYBACK ? PROT_WRITE : PROT_READ;
+	daddr = mmap(NULL, info.mmap_size, prot, MAP_FILE|MAP_SHARED, ctrl_fd, SND_PCM_MMAP_OFFSET_DATA);
 	if (daddr == (caddr_t)-1 || daddr == NULL) {
 		err = -errno;
 		munmap(caddr, sizeof(snd_pcm_mmap_control_t));
+		close(ctrl_fd);
 		return err;
 	}
 	*control = pcm->mmap_caddr[channel] = caddr;
 	*buffer = pcm->mmap_daddr[channel] = daddr;
 	pcm->mmap_size[channel] = info.mmap_size;
+	pcm->mmap_ctrl_fd[channel] = ctrl_fd;
 	return 0;
 }
 
@@ -441,6 +459,10 @@ int snd_pcm_munmap(snd_pcm_t *pcm, int channel)
 		munmap(pcm->mmap_daddr[channel], pcm->mmap_size[channel]);
 		pcm->mmap_daddr[channel] = NULL;
 		pcm->mmap_size[channel] = 0;
+	}
+	if (pcm->mmap_ctrl_fd[channel] >= 0) {
+		close(pcm->mmap_ctrl_fd[channel]);
+		pcm->mmap_ctrl_fd[channel] = -1;
 	}
 	return 0;
 }
