@@ -527,7 +527,7 @@ int main(int argc, char *argv[])
 			err = atoi(optarg) / 2;
 			latency_max = latency_min > err ? latency_min : err;
 			break;
-		case 'F':
+		case 'f':
 			format = snd_pcm_format_value(optarg);
 			if (format == SND_PCM_FORMAT_UNKNOWN) {
 				printf("Unknown format, setting to default S16_LE\n");
