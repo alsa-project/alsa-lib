@@ -487,6 +487,7 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 
 	/* format change */
 	if (srcparams.format.format != dstparams->format.format) {
+		tmpparams.format.format = dstparams->format.format;
 		switch (params->format.format) {
 		case SND_PCM_SFMT_MU_LAW:
 			err = snd_pcm_plugin_build_mulaw(&srcparams.format,
@@ -605,6 +606,7 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 	} else {
 		return -EINVAL;
 	}
+	// printf("requested format: format = %i, rate = %i, voices = %i\n", hwparams.format.format, hwparams.format.rate, hwparams.format.voices);
 	err = snd_pcm_channel_params(pcm, &hwparams);
 	if (err < 0)
 		return err;
