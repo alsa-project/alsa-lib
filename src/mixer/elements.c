@@ -50,6 +50,7 @@ int snd_mixer_element_has_info(snd_mixer_eid_t *eid)
 	case SND_MIXER_ETYPE_MUX1:
 	case SND_MIXER_ETYPE_MUX2:
 	case SND_MIXER_ETYPE_TONE_CONTROL1:
+	case SND_MIXER_ETYPE_PAN_CONTROL1:
 	case SND_MIXER_ETYPE_3D_EFFECT1:
 	case SND_MIXER_ETYPE_PRE_EFFECT1:
 		return 1;
@@ -145,6 +146,15 @@ int snd_mixer_element_info_build(snd_mixer_t *handle, snd_mixer_element_info_t *
 		if ((err = snd_mixer_element_info(handle, element)) < 0)
 			return err;
 		break;
+	case SND_MIXER_ETYPE_PAN_CONTROL1:
+		element->data.pc1.range_size = element->data.pc1.range_over;
+		element->data.pc1.range = element->data.pc1.range_over = 0;
+		element->data.pc1.prange = (struct snd_mixer_element_pan_control1_range *)malloc(element->data.pc1.range_size * sizeof(struct snd_mixer_element_pan_control1_range));
+		if (!element->data.pc1.prange)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_info(handle, element)) < 0)
+			return err;
+		break;
 	}
 	return 0;
 }
@@ -179,6 +189,9 @@ int snd_mixer_element_info_free(snd_mixer_element_info_t *element)
 		safe_free((void **)&element->data.peffect1.pitems);
 		safe_free((void **)&element->data.peffect1.pparameters);
 		break;
+	case SND_MIXER_ETYPE_PAN_CONTROL1:
+		safe_free((void **)&element->data.pc1.prange);
+		break;
 	}
 	return 0;
 }
@@ -197,6 +210,7 @@ int snd_mixer_element_has_control(snd_mixer_eid_t *eid)
 	case SND_MIXER_ETYPE_MUX1:
 	case SND_MIXER_ETYPE_MUX2:
 	case SND_MIXER_ETYPE_TONE_CONTROL1:
+	case SND_MIXER_ETYPE_PAN_CONTROL1:
 	case SND_MIXER_ETYPE_3D_EFFECT1:
 	case SND_MIXER_ETYPE_PRE_EFFECT1:
 		return 1;
@@ -278,6 +292,15 @@ int snd_mixer_element_build(snd_mixer_t *handle, snd_mixer_element_t *element)
 				return err;
 		}
 		break;
+	case SND_MIXER_ETYPE_PAN_CONTROL1:
+		element->data.pc1.pan_size = element->data.pc1.pan_over;
+		element->data.pc1.pan = element->data.pc1.pan_over = 0;
+		element->data.pc1.ppan = (int *)malloc(element->data.pc1.pan_size * sizeof(int));
+		if (!element->data.pc1.ppan)
+			return -ENOMEM;
+		if ((err = snd_mixer_element_read(handle, element)) < 0)
+			return err;
+		break;
 	}
 	return 0;
 }
@@ -309,6 +332,8 @@ int snd_mixer_element_free(snd_mixer_element_t *element)
 		if (element->data.peffect1.item < 0)
 			safe_free((void **)&element->data.peffect1.pparameters);
 		break;
+	case SND_MIXER_ETYPE_PAN_CONTROL1:
+		safe_free((void **)&element->data.pc1.ppan);
 	}
 	return 0;
 }
