@@ -326,7 +326,7 @@ static int snd_pcm_hw_mmap_data(void *private, void **buffer, size_t bsize)
 		     hw->fd, SND_PCM_MMAP_OFFSET_DATA);
 	if (ptr == MAP_FAILED || ptr == NULL)
 		return -errno;
-	*buffer = hw->mmap_data_ptr = daddr;
+	*buffer = hw->mmap_data_ptr = ptr;
 	return 0;
 }
 
