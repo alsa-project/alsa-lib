@@ -293,6 +293,26 @@ pcm.NAME {
   }
 
 
+  type ladspa		# LADSPA plugin PCM
+  slave STR		# Slave name (see pcm_slave)
+  path STR		# Path or paths (delimited with ':')
+  plugins | playback_plugins | capture_plugins {
+    N {			# Configuration for LADSPA plugin N
+      id #		# LADSPA plugin ID (for example 1043)
+      label STR		# LADSPA plugin label (for example 'delay_5s')
+      filename STR	# Full filename of .so library with LADPA plugin code
+      policy STR	# Policy can be 'none' or 'duplicate'
+      input | output {
+        bindings {
+          C INT or STR  # C - channel, INT - audio port index, STR - audio port name
+        }
+        controls {
+          I INT or REAL # I - control port index, INT or REAL - control value
+        }
+      }
+    }
+  }
+
 }
 
 # CTL type definition
@@ -404,3 +424,20 @@ pcm.m {
 pcm_scope_type.level {
 	lib /home/abramo/scopes/liblevel.so
 } 
+
+# an example command is 'aplay -D plug:ladspa <filename>'
+# otherwise, the ladspa plugin expects FLOAT type which
+# is very rare
+pcm.ladspa {
+        type ladspa
+        slave.pcm "plughw:0,0";
+        path "/home/perex/src/ladspa_sdk/plugins";
+        plugins [
+                {
+                        label delay_5s
+                        input {
+                                controls [ 0.8 0.2 ]
+                        }
+                }
+        ]
+}
