@@ -476,8 +476,8 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 		return err;
 	free(pcm->mmap_channels);
 	free(pcm->running_areas);
-	pcm->mmap_channels = 0;
-	pcm->running_areas = 0;
+	pcm->mmap_channels = NULL;
+	pcm->running_areas = NULL;
 	return 0;
 }
 
