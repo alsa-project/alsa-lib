@@ -4853,8 +4853,12 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
  * \param size area portion size in frames
  * \return 0 on success otherwise a negative error code
  *
- * To call this with offset/frames values different from that returned
- * by snd_pcm_mmap_begin() has undefined effects and it has to be avoided.
+ * You should pass this function the offset value that
+ * snd_pcm_mmap_begin() returned. The frames parameter should hold the
+ * number of frames you have written or read to/from the audio
+ * buffer. The frames parameter must never exceed the configuous frames
+ * count that snd_pcm_mmap_begin() returned. Each call to snd_pcm_mmap_begin()
+ * must be followed by a call to snd_pcm_mmap_commit().
  *
  * Example:
 \code
