@@ -353,6 +353,7 @@ int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t
 		case 32:	cmd = _16BIT_32BIT; break;
 		default:	return -EINVAL;
 		}
+		break;
 	case 24:
 		switch (wide2) {
 		case 8:		cmd = _24BIT_8BIT; break;
@@ -360,6 +361,7 @@ int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t
 		case 32:	cmd = _24BIT_32BIT; break;
 		default:	return -EINVAL;
 		}
+		break;
 	case 32:
 		switch (wide2) {
 		case 8:		cmd = _32BIT_8BIT; break;
@@ -367,8 +369,11 @@ int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t
 		case 24:	cmd = _32BIT_24BIT; break;
 		default:	return -EINVAL;
 		}
+		break;
+	default:
+		return -EINVAL;
 	}
-	plugin = snd_pcm_plugin_build("wide conversion",
+	plugin = snd_pcm_plugin_build("linear format conversion",
 				      sizeof(struct linear_private_data));
 	if (plugin == NULL)
 		return -ENOMEM;
