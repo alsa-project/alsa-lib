@@ -28,6 +28,8 @@ include/asoundlib.h:	include/header.h include/version.h include/error.h include/
 	    include/footer.h > include/asoundlib.h
 
 install: all
+	$(INSTALL) -m 755 -o root -g root -d ${aclocaldir}
+	$(INSTALL) -m 755 -o root -g root aclocal.m4 ${aclocaldir}/alsa-lib.m4
 	$(INSTALL) -m 755 -o root -g root -d ${includedir}/sys
 	$(INSTALL) -m 644 -o root -g root include/asoundlib.h ${includedir}/sys
 	$(INSTALL) -m 755 -o root -g root -d ${libdir}
