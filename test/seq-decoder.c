@@ -89,12 +89,14 @@ static char *event_names[256] = {
 	[SND_SEQ_EVENT_USR_VAR2]=	"User Var2",
 	[SND_SEQ_EVENT_USR_VAR3]=	"User Var3",
 	[SND_SEQ_EVENT_USR_VAR4]=	"User Var4",
+#if 0
 	[SND_SEQ_EVENT_IPCSHM]=	"IPC Shm",
 	[SND_SEQ_EVENT_USR_VARIPC0]=	"User IPC0",
 	[SND_SEQ_EVENT_USR_VARIPC1]=	"User IPC1",
 	[SND_SEQ_EVENT_USR_VARIPC2]=	"User IPC2",
 	[SND_SEQ_EVENT_USR_VARIPC3]=	"User IPC3",
 	[SND_SEQ_EVENT_USR_VARIPC4]=	"User IPC4",
+#endif
 	[SND_SEQ_EVENT_NONE]=	"None",
 };
 
