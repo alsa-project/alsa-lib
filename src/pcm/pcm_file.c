@@ -420,29 +420,42 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, char *name,
 			continue;
 		if (strcmp(n->id, "sname") == 0) {
 			err = snd_config_string_get(n, &sname);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			continue;
 		}
 		if (strcmp(n->id, "format") == 0) {
 			err = snd_config_string_get(n, &format);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			continue;
 		}
 		if (strcmp(n->id, "file") == 0) {
 			err = snd_config_string_get(n, &fname);
 			if (err < 0) {
 				err = snd_config_integer_get(n, &fd);
-				if (err < 0)
+				if (err < 0) {
+					ERR("Invalid type for %s", n->id);
 					return -EINVAL;
+				}
 			}
 			continue;
 		}
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
-	if (!sname || (!fname && fd < 0))
+	if (!sname) {
+		ERR("sname is not defined");
 		return -EINVAL;
+	}
+	if (!fname && fd < 0) {
+		ERR("file is not defined");
+		return -EINVAL;
+	}
 	if (fname) {
 		fname = strdup(fname);
 		if (!fname)

@@ -966,7 +966,7 @@ int main(int argc, char **argv)
 	srvname = argv[optind];
 	err = snd_config_searchv(snd_config, &conf, "server", srvname, 0);
 	if (err < 0) {
-		ERROR("unknown server %s", srvname);
+		ERROR("Missing definition for server %s", srvname);
 		return 1;
 	}
 	snd_config_foreach(i, conf) {
@@ -976,7 +976,7 @@ int main(int argc, char **argv)
 		if (strcmp(n->id, "host") == 0) {
 			err = snd_config_string_get(n, &host);
 			if (err < 0) {
-				ERROR("Invalid type for host");
+				ERROR("Invalid type for %s", n->id);
 				return 1;
 			}
 			continue;
@@ -984,7 +984,7 @@ int main(int argc, char **argv)
 		if (strcmp(n->id, "socket") == 0) {
 			err = snd_config_string_get(n, &socket);
 			if (err < 0) {
-				ERROR("Invalid type for socket");
+				ERROR("Invalid type for %s", n->id);
 				return 1;
 			}
 			continue;
@@ -992,12 +992,12 @@ int main(int argc, char **argv)
 		if (strcmp(n->id, "port") == 0) {
 			err = snd_config_integer_get(n, &port);
 			if (err < 0) {
-				ERROR("Invalid type for port");
+				ERROR("Invalid type for %s", n->id);
 				return 1;
 			}
 			continue;
 		}
-		ERROR("Unknown field: %s", n->id);
+		ERROR("Unknown field %s", n->id);
 		return 1;
 	}
 	if (!host) {

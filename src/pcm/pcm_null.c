@@ -403,6 +403,7 @@ int _snd_pcm_null_open(snd_pcm_t **pcmp, char *name,
 			continue;
 		if (strcmp(n->id, "stream") == 0)
 			continue;
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
 	return snd_pcm_null_open(pcmp, name, stream, mode);

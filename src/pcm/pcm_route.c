@@ -778,8 +778,10 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, ttable_entry_t *ttable,
 		errno = 0;
 		cchannel = strtol(in->id, &p, 10);
 		if (errno || *p || 
-		    cchannel < 0 || (unsigned int) cchannel > tt_csize)
+		    cchannel < 0 || (unsigned int) cchannel > tt_csize) {
+			ERR("Invalid client channel: %s", in->id);
 			return -EINVAL;
+		}
 		if (snd_config_type(in) != SND_CONFIG_TYPE_COMPOUND)
 			return -EINVAL;
 		snd_config_foreach(j, in) {
@@ -791,14 +793,18 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, ttable_entry_t *ttable,
 			schannel = strtol(jn->id, &p, 10);
 			if (errno || *p || 
 			    schannel < 0 || (unsigned int) schannel > tt_ssize || 
-			    (schannels > 0 && schannel >= schannels))
+			    (schannels > 0 && schannel >= schannels)) {
+				ERR("Invalid slave channel: %s", jn->id);
 				return -EINVAL;
+			}
 			err = snd_config_real_get(jn, &value);
 			if (err < 0) {
 				long v;
 				err = snd_config_integer_get(jn, &v);
-				if (err < 0)
+				if (err < 0) {
+					ERR("Invalid type for %s", jn->id);
 					return -EINVAL;
+				}
 				value = v;
 			}
 			ttable[cchannel * tt_ssize + schannel] = value;
@@ -838,38 +844,57 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 			continue;
 		if (strcmp(n->id, "sname") == 0) {
 			err = snd_config_string_get(n, &sname);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			continue;
 		}
 		if (strcmp(n->id, "sformat") == 0) {
 			char *f;
 			err = snd_config_string_get(n, &f);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			sformat = snd_pcm_format_value(f);
-			if (sformat < 0)
+			if (sformat < 0) {
+				ERR("Unknown sformat");
 				return -EINVAL;
-			if (snd_pcm_format_linear(sformat) != 1)
+			}
+			if (snd_pcm_format_linear(sformat) != 1) {
+				ERR("sformat is not linear");
 				return -EINVAL;
+			}
 			continue;
 		}
 		if (strcmp(n->id, "schannels") == 0) {
 			err = snd_config_integer_get(n, &schannels);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			continue;
 		}
 		if (strcmp(n->id, "ttable") == 0) {
-			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
+			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			tt = n;
 			continue;
 		}
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
-	if (!sname || !tt)
+	if (!sname) {
+		ERR("sname is not defined");
 		return -EINVAL;
+	}
+	if (!tt) {
+		ERR("ttable is not defined");
+		return -EINVAL;
+	}
 
 	err = snd_pcm_route_load_ttable(tt, ttable, MAX_CHANNELS, MAX_CHANNELS,
 					&cused, &sused, schannels);

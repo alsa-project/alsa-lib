@@ -707,30 +707,41 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			err = snd_config_integer_get(n, &card);
 			if (err < 0) {
 				err = snd_config_string_get(n, &str);
-				if (err < 0)
+				if (err < 0) {
+					ERR("Invalid type for %s", n->id);
 					return -EINVAL;
+				}
 				card = snd_card_get_index(str);
-				if (card < 0)
+				if (card < 0) {
+					ERR("Invalid value for %s", n->id);
 					return card;
+				}
 			}
 			continue;
 		}
 		if (strcmp(n->id, "device") == 0) {
 			err = snd_config_integer_get(n, &device);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return err;
+			}
 			continue;
 		}
 		if (strcmp(n->id, "subdevice") == 0) {
 			err = snd_config_integer_get(n, &subdevice);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return err;
+			}
 			continue;
 		}
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
-	if (card < 0)
+	if (card < 0) {
+		ERR("card is not defined");
 		return -EINVAL;
+	}
 	return snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream, mode);
 }
 				

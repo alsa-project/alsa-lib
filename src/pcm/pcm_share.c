@@ -498,7 +498,6 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	Pthread_mutex_lock(&slave->mutex);
 	if (slave->setup_count > 1 || 
 	    (slave->setup_count == 1 && !pcm->setup)) {
-		params->fail_mask = 0;
 		if (params->format != spcm->format)
 			params->fail_mask |= SND_PCM_HW_PARBIT_FORMAT;
 		if (params->subformat != spcm->subformat)
@@ -1305,7 +1304,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (strcmp(n->id, "sname") == 0) {
 			err = snd_config_string_get(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for sname");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
@@ -1314,7 +1313,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			char *f;
 			err = snd_config_string_get(n, &f);
 			if (err < 0) {
-				ERR("Invalid type for sformat");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			sformat = snd_pcm_format_value(f);
@@ -1327,7 +1326,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (strcmp(n->id, "schannels") == 0) {
 			err = snd_config_integer_get(n, &schannels_count);
 			if (err < 0) {
-				ERR("Invalid type for schannels");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
@@ -1335,20 +1334,20 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (strcmp(n->id, "srate") == 0) {
 			err = snd_config_integer_get(n, &srate);
 			if (err < 0) {
-				ERR("Invalid type for srate");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
 		}
 		if (strcmp(n->id, "binding") == 0) {
 			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND) {
-				ERR("Invalid type for binding");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			binding = n;
 			continue;
 		}
-		ERR("Unknown field: %s", n->id);
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
 	if (!sname) {

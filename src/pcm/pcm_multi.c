@@ -507,21 +507,32 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (strcmp(n->id, "stream") == 0)
 			continue;
 		if (strcmp(n->id, "slave") == 0) {
-			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
+			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			slave = n;
 			continue;
 		}
 		if (strcmp(n->id, "binding") == 0) {
-			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
+			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			binding = n;
 			continue;
 		}
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
-	if (!slave || !binding)
+	if (!slave) {
+		ERR("slave is not defined");
 		return -EINVAL;
+	}
+	if (!binding) {
+		ERR("binding is not defined");
+		return -EINVAL;
+	}
 	snd_config_foreach(i, slave) {
 		++slaves_count;
 	}
@@ -531,13 +542,17 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		snd_config_t *m = snd_config_entry(i);
 		errno = 0;
 		cchannel = strtol(m->id, &p, 10);
-		if (errno || *p || cchannel < 0)
+		if (errno || *p || cchannel < 0) {
+			ERR("Invalid channel number: %s", m->id);
 			return -EINVAL;
+		}
 		if ((unsigned)cchannel >= channels_count)
 			channels_count = cchannel + 1;
 	}
-	if (channels_count == 0)
+	if (channels_count == 0) {
+		ERR("No cannels defined");
 		return -EINVAL;
+	}
 	slaves_id = calloc(slaves_count, sizeof(*slaves_id));
 	slaves_name = calloc(slaves_count, sizeof(*slaves_name));
 	slaves_pcm = calloc(slaves_count, sizeof(*slaves_pcm));
@@ -547,31 +562,43 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	idx = 0;
 	for (idx = 0; idx < channels_count; ++idx)
 		channels_sidx[idx] = -1;
+	idx = 0;
 	snd_config_foreach(i, slave) {
 		snd_config_t *m = snd_config_entry(i);
 		char *name = NULL;
 		long channels = -1;
-		slaves_id[idx] = snd_config_id(m);
+		slaves_id[idx] = m->id;
 		snd_config_foreach(j, m) {
 			snd_config_t *n = snd_config_entry(j);
 			if (strcmp(n->id, "comment") == 0)
 				continue;
 			if (strcmp(n->id, "name") == 0) {
 				err = snd_config_string_get(n, &name);
-				if (err < 0)
+				if (err < 0) {
+					ERR("Invalid type for %s", n->id);
 					goto _free;
+				}
 				continue;
 			}
 			if (strcmp(n->id, "channels") == 0) {
 				err = snd_config_integer_get(n, &channels);
-				if (err < 0)
+				if (err < 0) {
+					ERR("Invalid type for %s", n->id);
 					goto _free;
+				}
 				continue;
 			}
+			ERR("Unknown field %s", n->id);
 			err = -EINVAL;
 			goto _free;
 		}
-		if (!name || channels < 0) {
+		if (!name) {
+			ERR("name is not defined");
+			err = -EINVAL;
+			goto _free;
+		}
+		if (channels < 0) {
+			ERR("channels is not defined");
 			err = -EINVAL;
 			goto _free;
 		}
@@ -588,6 +615,11 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		long val;
 		char *str;
 		cchannel = strtol(m->id, 0, 10);
+		if (cchannel < 0) {
+			ERR("Invalid channel number: %s", m->id);
+			err = -EINVAL;
+			goto _free;
+		}
 		snd_config_foreach(j, m) {
 			snd_config_t *n = snd_config_entry(j);
 			if (strcmp(n->id, "comment") == 0)
@@ -598,8 +630,10 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 				err = snd_config_string_get(n, &str);
 				if (err < 0) {
 					err = snd_config_integer_get(n, &val);
-					if (err < 0)
+					if (err < 0) {
+						ERR("Invalid value for %s", n->id);
 						goto _free;
+					}
 					sprintf(buf, "%ld", val);
 					str = buf;
 				}
@@ -611,22 +645,24 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 			}
 			if (strcmp(n->id, "schannel") == 0) {
 				err = snd_config_integer_get(n, &schannel);
-				if (err < 0)
+				if (err < 0) {
+					ERR("Invalid type for %s", n->id);
 					goto _free;
+				}
 				continue;
 			}
+			ERR("Unknown field %s", n->id);
 			err = -EINVAL;
 			goto _free;
 		}
-		if (cchannel < 0 || slave < 0 || schannel < 0) {
+		if (slave < 0 || (size_t)slave >= slaves_count) {
+			ERR("Invalid or missing sidx");
 			err = -EINVAL;
 			goto _free;
 		}
-		if ((size_t)slave >= slaves_count) {
-			err = -EINVAL;
-			goto _free;
-		}
-		if ((unsigned int) schannel >= slaves_channels[slave]) {
+		if (schannel < 0 || 
+		    (unsigned int) schannel >= slaves_channels[slave]) {
+			ERR("Invalid or missing schannel");
 			err = -EINVAL;
 			goto _free;
 		}

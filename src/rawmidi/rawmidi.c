@@ -150,14 +150,14 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 		return -ENOENT;
 	}
 	if (snd_config_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		ERR("Invalid type for RAWMIDI definition");
+		ERR("Invalid type for RAWMIDI %s definition", name);
 		return -EINVAL;
 	}
 	err = snd_config_search(rawmidi_conf, "streams", &conf);
 	if (err >= 0) {
 		err = snd_config_string_get(conf, &str);
 		if (err < 0) {
-			ERR("Invalid type for streams");
+			ERR("Invalid type for %s", conf->id);
 			return err;
 		}
 		if (strcmp(str, "output") == 0) {
@@ -170,7 +170,7 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 			if (streams != SND_RAWMIDI_OPEN_DUPLEX)
 				return -EINVAL;
 		} else {
-			ERR("Invalid value for streams");
+			ERR("Invalid value for %s", conf->id);
 			return -EINVAL;
 		}
 	}
@@ -181,7 +181,7 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 	}
 	err = snd_config_string_get(conf, &str);
 	if (err < 0) {
-		ERR("Invalid type for type");
+		ERR("Invalid type for %s", conf->id);
 		return err;
 	}
 	err = snd_config_searchv(snd_config, &type_conf, "rawmiditype", str, 0);
@@ -196,7 +196,7 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 		if (strcmp(n->id, "lib") == 0) {
 			err = snd_config_string_get(n, &lib);
 			if (err < 0) {
-				ERR("Invalid type for lib");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
@@ -204,11 +204,11 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 		if (strcmp(n->id, "open") == 0) {
 			err = snd_config_string_get(n, &open);
 			if (err < 0) {
-				ERR("Invalid type for open");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
-			ERR("Unknown field: %s", n->id);
+			ERR("Unknown field %s", n->id);
 			return -EINVAL;
 		}
 	}

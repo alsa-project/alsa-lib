@@ -721,7 +721,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (strcmp(n->id, "server") == 0) {
 			err = snd_config_string_get(n, &server);
 			if (err < 0) {
-				ERR("Invalid type for server");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
@@ -729,12 +729,12 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (strcmp(n->id, "sname") == 0) {
 			err = snd_config_string_get(n, &sname);
 			if (err < 0) {
-				ERR("Invalid type for sname");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		ERR("Unknown field: %s", n->id);
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
 	if (!sname) {
@@ -757,7 +757,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (strcmp(n->id, "host") == 0) {
 			err = snd_config_string_get(n, &host);
 			if (err < 0) {
-				ERR("Invalid type for host");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
@@ -765,7 +765,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (strcmp(n->id, "socket") == 0) {
 			err = snd_config_string_get(n, &socket);
 			if (err < 0) {
-				ERR("Invalid type for socket");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
@@ -773,12 +773,12 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (strcmp(n->id, "port") == 0) {
 			err = snd_config_integer_get(n, &port);
 			if (err < 0) {
-				ERR("Invalid type for port");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
 		}
-		ERR("Unknown field: %s", n->id);
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
 

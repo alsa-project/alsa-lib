@@ -198,7 +198,38 @@ static int snd_pcm_plug_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	sinfo.buffer_size_min = muldiv_down(info->buffer_size_min, sinfo.rate_min, info->rate_max);
 	sinfo.buffer_size_max = muldiv_up(info->buffer_size_max, sinfo.rate_max, info->rate_min);
 
-	err = snd_pcm_hw_info(slave, &sinfo);
+	/* FIXME: tricky here. This is not the right way to cope with this */
+	if (info->rate_min == info->rate_max) {
+		snd_pcm_hw_info_t i1 = sinfo;
+		snd_pcm_hw_info_t i2 = sinfo;
+		int err1, err2;
+		unsigned int rate = info->rate_min;
+		i1.rate_max = rate;
+		err1 = snd_pcm_hw_info(slave, &i1);
+		if (err1 < 0 || rate - i1.rate_max > 1) {
+			i2.rate_min = rate + 1;
+			err2 = snd_pcm_hw_info(slave, &i2);
+		} else
+			err2 = -EINVAL;
+		if (err1 < 0) {
+			sinfo = i2;
+			if (err2 >= 0)
+				sinfo.rate_max = sinfo.rate_min;
+			err = err2;
+		} else {
+			if (err2 < 0 ||
+			    rate - i1.rate_max <= i2.rate_min - rate) {
+				sinfo = i1;
+				sinfo.rate_min = sinfo.rate_max;
+				err = err1;
+			} else {
+				sinfo = i2;
+				sinfo.rate_max = sinfo.rate_min;
+				err = err2;
+			}
+		}
+	} else
+		err = snd_pcm_hw_info(slave, &sinfo);
 	info->subformat_mask = sinfo.subformat_mask;
 	info->fragments_min = sinfo.fragments_min;
 	info->fragments_max = sinfo.fragments_max;
@@ -209,6 +240,8 @@ static int snd_pcm_plug_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	size = muldiv_up(sinfo.fragment_size_max, info->rate_max, sinfo.rate_min);
 	if (info->fragment_size_max > size)
 		info->fragment_size_max = size;
+	if (info->fragment_size_min > info->fragment_size_max)
+		return -EINVAL;
 
 	size = muldiv_down(sinfo.buffer_size_min, info->rate_min, sinfo.rate_max);
 	if (info->buffer_size_min < size)
@@ -216,6 +249,8 @@ static int snd_pcm_plug_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	size = muldiv_up(sinfo.buffer_size_max, info->rate_max, sinfo.rate_min);
 	if (info->buffer_size_max > size)
 		info->buffer_size_max = size;
+	if (info->buffer_size_min > info->buffer_size_max)
+		return -EINVAL;
 
 	n = info->buffer_size_min / info->fragment_size_max;
 	if (info->fragments_min < n)
@@ -223,6 +258,8 @@ static int snd_pcm_plug_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	n = info->buffer_size_max / info->fragment_size_min;
 	if (info->fragments_max > n)
 		info->fragments_max = n;
+	if (info->fragments_min > info->fragments_max)
+		return -EINVAL;
 
 	if (err < 0)
 		return err;
@@ -434,8 +471,6 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_strategy_simple_choices_list_t formats[SND_PCM_FORMAT_LAST + 1];
 	unsigned int nformats;
 	int err;
-
-	params->fail_mask = 0;
 
 	sparams = *params;
 	snd_pcm_hw_params_to_info(&sparams, &sinfo);
@@ -654,20 +689,27 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, char *name,
 			continue;
 		if (strcmp(n->id, "sname") == 0) {
 			err = snd_config_string_get(n, &sname);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			continue;
 		}
 		if (strcmp(n->id, "ttable") == 0) {
-			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
+			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			tt = n;
 			continue;
 		}
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
-	if (!sname)
+	if (!sname) {
+		ERR("sname is not defined");
 		return -EINVAL;
+	}
 	if (tt) {
 		ttable = malloc(MAX_CHANNELS * MAX_CHANNELS * sizeof(*ttable));
 		err = snd_pcm_route_load_ttable(tt, ttable, MAX_CHANNELS, MAX_CHANNELS,

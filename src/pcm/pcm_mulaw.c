@@ -453,27 +453,42 @@ int _snd_pcm_mulaw_open(snd_pcm_t **pcmp, char *name,
 			continue;
 		if (strcmp(n->id, "sname") == 0) {
 			err = snd_config_string_get(n, &sname);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			continue;
 		}
 		if (strcmp(n->id, "sformat") == 0) {
 			char *f;
 			err = snd_config_string_get(n, &f);
-			if (err < 0)
+			if (err < 0) {
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
+			}
 			sformat = snd_pcm_format_value(f);
-			if (sformat < 0)
+			if (sformat < 0) {
+				ERR("Unknown sformat");
 				return -EINVAL;
+			}
 			if (snd_pcm_format_linear(sformat) != 1 &&
-			    sformat != SND_PCM_FORMAT_MU_LAW)
+			    sformat != SND_PCM_FORMAT_MU_LAW) {
+				ERR("Invalid sformat");
 				return -EINVAL;
+			}
 			continue;
 		}
+		ERR("Unknown field %s", n->id);
 		return -EINVAL;
 	}
-	if (!sname || !sformat)
+	if (!sname) {
+		ERR("sname is not defined");
 		return -EINVAL;
+	}
+	if (sformat < 0) {
+		ERR("sformat is not defined");
+		return -EINVAL;
+	}
 	/* This is needed cause snd_config_update may destroy config */
 	sname = strdup(sname);
 	if (!sname)

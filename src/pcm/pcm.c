@@ -826,14 +826,14 @@ int snd_pcm_open(snd_pcm_t **pcmp, char *name,
 		return -ENOENT;
 	}
 	if (snd_config_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		ERR("Invalid type for PCM definition");
+		ERR("Invalid type for PCM %s definition", name);
 		return -EINVAL;
 	}
 	err = snd_config_search(pcm_conf, "stream", &conf);
 	if (err >= 0) {
 		err = snd_config_string_get(conf, &str);
 		if (err < 0) {
-			ERR("Invalid type for stream");
+			ERR("Invalid type for %s", conf->id);
 			return err;
 		}
 		if (strcmp(str, "playback") == 0) {
@@ -843,7 +843,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, char *name,
 			if (stream != SND_PCM_STREAM_CAPTURE)
 				return -EINVAL;
 		} else {
-			ERR("Invalid value for stream");
+			ERR("Invalid value for %s", conf->id);
 			return -EINVAL;
 		}
 	}
@@ -854,7 +854,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, char *name,
 	}
 	err = snd_config_string_get(conf, &str);
 	if (err < 0) {
-		ERR("Invalid type for type");
+		ERR("Invalid type for %s", conf->id);
 		return err;
 	}
 	err = snd_config_searchv(snd_config, &type_conf, "pcmtype", str, 0);
@@ -869,7 +869,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, char *name,
 		if (strcmp(n->id, "lib") == 0) {
 			err = snd_config_string_get(n, &lib);
 			if (err < 0) {
-				ERR("Invalid type for lib");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
@@ -877,11 +877,11 @@ int snd_pcm_open(snd_pcm_t **pcmp, char *name,
 		if (strcmp(n->id, "open") == 0) {
 			err = snd_config_string_get(n, &open);
 			if (err < 0) {
-				ERR("Invalid type for open");
+				ERR("Invalid type for %s", n->id);
 				return -EINVAL;
 			}
 			continue;
-			ERR("Unknown field: %s", n->id);
+			ERR("Unknown field %s", n->id);
 			return -EINVAL;
 		}
 	}
@@ -1962,6 +1962,7 @@ int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		params->fail_mask = snd_pcm_hw_info_fail_mask(&info);
 		return err;
 	}
+	params->fail_mask = 0;
 	
 	if ((err = pcm->ops->hw_params(pcm->op_arg, params)) < 0)
 		return err;
