@@ -661,6 +661,10 @@ int snd_pcm_close(snd_pcm_t *pcm)
 		return err;
 	if (pcm->name)
 		free(pcm->name);
+	if (pcm->hw.link_dst)
+		free(pcm->hw.link_dst);
+	if (pcm->appl.link_dst)
+		free(pcm->appl.link_dst);
 	free(pcm);
 	return 0;
 }	
