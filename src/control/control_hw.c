@@ -187,10 +187,11 @@ static int snd_ctl_hw_pcm_next_device(snd_ctl_t *handle, int * device)
 	return 0;
 }
 
+extern int snd_pcm_surround_next_device(snd_ctl_t *ctl, snd_pcm_surround_type_t type, int *device);
+
 static int snd_ctl_hw_pcm_surround_next_device(snd_ctl_t *handle, snd_pcm_surround_type_t type, int * device)
 {
-	snd_ctl_hw_t *hw = handle->private_data;
-	return 0;
+	return snd_pcm_surround_next_device(handle, type, device);
 }
 
 static int snd_ctl_hw_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info)
