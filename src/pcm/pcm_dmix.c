@@ -138,22 +138,20 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 	char line[255];
 	int smp = 0, mmx = 0;
 	
-	/* safe settings for all i386 CPUs */
-	dmix->u.dmix.mix_areas1 = mix_areas1_smp;
 	/* try to determine, if we have a MMX capable CPU */
 	in = fopen("/proc/cpuinfo", "r");
-	if (in == NULL)
-		return;
-	while (!feof(in)) {
-		fgets(line, sizeof(line), in);
-		if (!strncmp(line, "processor", 9))
-			smp++;
-		else if (!strncmp(line, "flags", 5)) {
-			if (strstr(line, " mmx"))
-				mmx = 1;
+	if (in) {
+		while (!feof(in)) {
+			fgets(line, sizeof(line), in);
+			if (!strncmp(line, "processor", 9))
+				smp++;
+			else if (!strncmp(line, "flags", 5)) {
+				if (strstr(line, " mmx"))
+					mmx = 1;
+			}
 		}
+		fclose(in);
 	}
-	fclose(in);
 	// printf("MMX: %i, SMP: %i\n", mmx, smp);
 	if (mmx) {
 		dmix->u.dmix.mix_areas1 = smp > 1 ? mix_areas1_smp_mmx : mix_areas1_mmx;
@@ -164,12 +162,54 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 }
 #endif
 
+#ifdef __x86_64__
+#define ADD_AND_SATURATE
+
+#define MIX_AREAS1 mix_areas1
+#define MIX_AREAS2 mix_areas2
+#define LOCK_PREFIX ""
+#include "pcm_dmix_x86_64.h"
+#undef MIX_AREAS1
+#undef MIX_AREAS2
+#undef LOCK_PREFIX
+
+#define MIX_AREAS1 mix_areas1_smp
+#define MIX_AREAS2 mix_areas2_smp
+#define LOCK_PREFIX "lock ; "
+#include "pcm_dmix_x86_64.h"
+#undef MIX_AREAS1
+#undef MIX_AREAS2
+#undef LOCK_PREFIX
+ 
+static void mix_select_callbacks(snd_pcm_direct_t *dmix)
+{
+	FILE *in;
+	char line[255];
+	int smp = 0;
+	
+	/* try to determine, if we have SMP */
+	in = fopen("/proc/cpuinfo", "r");
+	if (in) {
+		while (!feof(in)) {
+			fgets(line, sizeof(line), in);
+			if (!strncmp(line, "processor", 9))
+				smp++;
+		}
+		fclose(in);
+	}
+	// printf("SMP: %i\n", smp);
+	dmix->u.dmix.mix_areas1 = smp > 1 ? mix_areas1_smp : mix_areas1;
+	dmix->u.dmix.mix_areas2 = smp > 1 ? mix_areas2_smp : mix_areas2;
+}
+#endif
+
+
 #ifndef ADD_AND_SATURATE
 #warning Please, recode mix_areas1() routine to your architecture...
 static void mix_areas1(unsigned int size,
 		       volatile signed short *dst, signed short *src,
-		       volatile signed int *sum, unsigned int dst_step,
-		       unsigned int src_step, unsigned int sum_step)
+		       volatile signed int *sum, size_t dst_step,
+		       size_t src_step, size_t sum_step)
 {
 	register signed int sample, old_sample;
 
@@ -198,8 +238,8 @@ static void mix_areas1(unsigned int size,
 #warning Please, recode mix_areas2() routine to your architecture...
 static void mix_areas2(unsigned int size,
 		       volatile signed int *dst, signed int *src,
-		       volatile signed int *sum, unsigned int dst_step,
-		       unsigned int src_step, unsigned int sum_step)
+		       volatile signed int *sum, size_t dst_step,
+		       size_t src_step, size_t sum_step)
 {
 	register signed int sample, old_sample;
 

@@ -33,13 +33,13 @@
 
 typedef void (mix_areas1_t)(unsigned int size,
 			volatile signed short *dst, signed short *src,
-			volatile signed int *sum, unsigned int dst_step,
-			unsigned int src_step, unsigned int sum_step);
+			volatile signed int *sum, size_t dst_step,
+			size_t src_step, size_t sum_step);
 
 typedef void (mix_areas2_t)(unsigned int size,
 			volatile signed int *dst, signed int *src,
-			volatile signed int *sum, unsigned int dst_step,
-			unsigned int src_step, unsigned int sum_step);
+			volatile signed int *sum, size_t dst_step,
+			size_t src_step, size_t sum_step);
 
 struct slave_params {
 	snd_pcm_format_t format;

@@ -1,13 +1,14 @@
 /**
- * \file pcm/pcm_dmix_i386.h
+ * \file pcm/pcm_dmix_x86_64.h
  * \ingroup PCM_Plugins
- * \brief PCM Direct Stream Mixing (dmix) Plugin Interface - I386 assembler code
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \brief PCM Direct Stream Mixing (dmix) Plugin Interface - X86-64 assembler code
+ * \author Takashi Iwai <tiwai@suse.de>
  * \date 2003
  */
 /*
  *  PCM - Direct Stream Mixing
  *  Copyright (c) 2003 by Jaroslav Kysela <perex@suse.cz>
+ *                        Takashi Iwai <tiwai@suse.de>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -27,7 +28,7 @@
  */
 
 /*
- *  for plain i386
+ *  MMX optimized
  */
 static void MIX_AREAS1(unsigned int size,
 		       volatile signed short *dst, signed short *src,
@@ -48,9 +49,9 @@ static void MIX_AREAS1(unsigned int size,
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
+		"\tmovq %1, %%rdi\n"
+		"\tmovq %2, %%rsi\n"
+		"\tmovq %3, %%rbx\n"
 
 		/*
 		 * while (size-- > 0) {
@@ -71,13 +72,13 @@ static void MIX_AREAS1(unsigned int size,
 		 */
 		"\tmovw $0, %%ax\n"
 		"\tmovw $1, %%cx\n"
-		"\tmovl (%%ebx), %%edx\n"
-		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
-		"\tmovswl (%%esi), %%ecx\n"
+		"\tmovl (%%rbx), %%edx\n"
+		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%rdi)\n"
+		"\tmovswl (%%rsi), %%ecx\n"
 		"\tjnz 2f\n"
 		"\tsubl %%edx, %%ecx\n"
 		"2:"
-		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
+		"\t" LOCK_PREFIX "addl %%ecx, (%%rbx)\n"
 
 		/*
 		 *   do {
@@ -88,143 +89,20 @@ static void MIX_AREAS1(unsigned int size,
 		 */
 
 		"3:"
-		"\tmovl (%%ebx), %%ecx\n"
-		"\tcmpl $0x7fff,%%ecx\n"
-		"\tjg 4f\n"
-		"\tcmpl $-0x8000,%%ecx\n"
-		"\tjl 5f\n"
-		"\tmovw %%cx, (%%edi)\n"
-		"\tcmpl %%ecx, (%%ebx)\n"
-		"\tjnz 3b\n"
-
-		/*
-		 * while (size-- > 0)
-		 */
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
-		"\tjnz 1b\n"
-		"\tjmp 6f\n"
-
-		/*
-		 *  sample > 0x7fff
-		 */
-
-		"\t.p2align 4,,15\n"
-
-		"4:"
-		"\tmovw $0x7fff, (%%edi)\n"
-		"\tcmpl %%ecx,(%%ebx)\n"
-		"\tjnz 3b\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
-		"\tjnz 1b\n"
-		"\tjmp 6f\n"
-
-		/*
-		 *  sample < -0x8000
-		 */
-
-		"\t.p2align 4,,15\n"
-
-		"5:"
-		"\tmovw $-0x8000, (%%edi)\n"
-		"\tcmpl %%ecx, (%%ebx)\n"
-		"\tjnz 3b\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
-		"\tjnz 1b\n"
-		// "\tjmp 6f\n"
-		
-		"6:"
-
-		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
-		: "esi", "edi", "edx", "ecx", "ebx", "eax"
-	);
-}
-
-/*
- *  MMX optimized
- */
-static void MIX_AREAS1_MMX(unsigned int size,
-			   volatile signed short *dst, signed short *src,
-			   volatile signed int *sum, size_t dst_step,
-			   size_t src_step, size_t sum_step)
-{
-	/*
-	 *  ESI - src
-	 *  EDI - dst
-	 *  EBX - sum
-	 *  ECX - old sample
-	 *  EAX - sample / temporary
-	 *  EDX - temporary
-	 */
-	__asm__ __volatile__ (
-		"\n"
-
-		/*
-		 *  initialization, load ESI, EDI, EBX registers
-		 */
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
-
-		/*
-		 * while (size-- > 0) {
-		 */
-		"\tcmpl $0, %0\n"
-		"jz 6f\n"
-
-		"\t.p2align 4,,15\n"
-
-		"1:"
-
-		/*
-		 *   sample = *src;
-		 *   sum_sample = *sum;
-		 *   if (cmpxchg(*dst, 0, 1) == 0)
-		 *     sample -= sum_sample;
-		 *   xadd(*sum, sample);
-		 */
-		"\tmovw $0, %%ax\n"
-		"\tmovw $1, %%cx\n"
-		"\tmovl (%%ebx), %%edx\n"
-		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%edi)\n"
-		"\tmovswl (%%esi), %%ecx\n"
-		"\tjnz 2f\n"
-		"\tsubl %%edx, %%ecx\n"
-		"2:"
-		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
-
-		/*
-		 *   do {
-		 *     sample = old_sample = *sum;
-		 *     saturate(v);
-		 *     *dst = sample;
-		 *   } while (v != *sum);
-		 */
-
-		"3:"
-		"\tmovl (%%ebx), %%ecx\n"
+		"\tmovl (%%rbx), %%ecx\n"
 		"\tmovd %%ecx, %%mm0\n"
 		"\tpackssdw %%mm1, %%mm0\n"
 		"\tmovd %%mm0, %%eax\n"
-		"\tmovw %%ax, (%%edi)\n"
-		"\tcmpl %%ecx, (%%ebx)\n"
+		"\tmovw %%ax, (%%rdi)\n"
+		"\tcmpl %%ecx, (%%rbx)\n"
 		"\tjnz 3b\n"
 
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
+		"\tadd %4, %%rdi\n"
+		"\tadd %5, %%rsi\n"
+		"\tadd %6, %%rbx\n"
 		"\tdecl %0\n"
 		"\tjnz 1b\n"
 		"\tjmp 6f\n"
@@ -235,12 +113,12 @@ static void MIX_AREAS1_MMX(unsigned int size,
 
 		: /* no output regs */
 		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
-		: "esi", "edi", "edx", "ecx", "ebx", "eax"
+		: "rsi", "rdi", "edx", "ecx", "rbx", "eax"
 	);
 }
 
 /*
- *  for plain i386, 32-bit version (24-bit resolution)
+ *  32-bit version (24-bit resolution)
  */
 static void MIX_AREAS2(unsigned int size,
 		       volatile signed int *dst, signed int *src,
@@ -261,9 +139,9 @@ static void MIX_AREAS2(unsigned int size,
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
+		"\tmovq %1, %%rdi\n"
+		"\tmovq %2, %%rsi\n"
+		"\tmovq %3, %%rbx\n"
 
 		/*
 		 * while (size-- > 0) {
@@ -284,20 +162,20 @@ static void MIX_AREAS2(unsigned int size,
 		 */
 		"\tmovl $0, %%eax\n"
 		"\tmovl $1, %%ecx\n"
-		"\tmovl (%%ebx), %%edx\n"
-		"\t" LOCK_PREFIX "cmpxchgl %%ecx, (%%edi)\n"
+		"\tmovl (%%rbx), %%edx\n"
+		"\t" LOCK_PREFIX "cmpxchgl %%ecx, (%%rdi)\n"
 		"\tjnz 2f\n"
-		"\tmovl (%%esi), %%ecx\n"
+		"\tmovl (%%rsi), %%ecx\n"
 		/* sample >>= 8 */
 		"\tsarl $8, %%ecx\n"
 		"\tsubl %%edx, %%ecx\n"
 		"\tjmp 21f\n"
 		"2:"
-		"\tmovl (%%esi), %%ecx\n"
+		"\tmovl (%%rsi), %%ecx\n"
 		/* sample >>= 8 */
 		"\tsarl $8, %%ecx\n"
 		"21:"
-		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
+		"\t" LOCK_PREFIX "addl %%ecx, (%%rbx)\n"
 
 		/*
 		 *   do {
@@ -308,7 +186,7 @@ static void MIX_AREAS2(unsigned int size,
 		 */
 
 		"3:"
-		"\tmovl (%%ebx), %%ecx\n"
+		"\tmovl (%%rbx), %%ecx\n"
 		/*
 		 *  if (sample > 0x7fff00)
 		 */
@@ -327,16 +205,16 @@ static void MIX_AREAS2(unsigned int size,
 		 *  sample <<= 8;
 		 */
 		"\tsall $8, %%eax\n"
-		"\tmovl %%eax, (%%edi)\n"
-		"\tcmpl %%ecx, (%%ebx)\n"
+		"\tmovl %%eax, (%%rdi)\n"
+		"\tcmpl %%ecx, (%%rbx)\n"
 		"\tjnz 3b\n"
 
 		/*
 		 * while (size-- > 0)
 		 */
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
+		"\tadd %4, %%rdi\n"
+		"\tadd %5, %%rsi\n"
+		"\tadd %6, %%rbx\n"
 		"\tdecl %0\n"
 		"\tjnz 1b\n"
 		// "\tjmp 6f\n"
@@ -344,7 +222,7 @@ static void MIX_AREAS2(unsigned int size,
 		"6:"
 		: /* no output regs */
 		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
-		: "esi", "edi", "edx", "ecx", "ebx", "eax"
+		: "rsi", "rdi", "edx", "ecx", "rbx", "eax"
 	);
 }
 
