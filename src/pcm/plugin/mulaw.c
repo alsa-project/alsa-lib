@@ -362,7 +362,7 @@ static ssize_t mulaw_transfer(snd_pcm_plugin_t *plugin,
 #else
 #error "Have to be coded..."
 #endif
-		return dst_size << 1;
+		return src_size << 1;
 	default:
 		return -EIO;
 	}
