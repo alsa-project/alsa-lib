@@ -35,14 +35,41 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#define SURR_FLG_CAPTURE	(1<<0)
+#define SURR_FLG_NO_4CH		(1<<1)
+#define SURR_FLG_NO_6CH		(1<<2)
+#define SURR_FLG_NO_CTL_CLOSE	(1<<3)
+
+typedef struct _snd_pcm_surround snd_pcm_surround_t;
+
 typedef struct {
+	snd_card_type_t type;
+	unsigned int flags;
+	int (*scount)(snd_ctl_t *ctl, snd_ctl_card_info_t *info, snd_pcm_surround_type_t type);
+	int (*sopen)(snd_pcm_surround_t *surr,
+		     snd_ctl_card_info_t *info,
+		     snd_pcm_surround_type_t type,
+		     snd_pcm_stream_t stream,
+		     int mode);
+	void (*sclose)(snd_pcm_surround_t *surr);
+} surround_open_t;
+
+struct _snd_pcm_surround {
 	int card;		/* card number */
 	int device;		/* device number */
 	unsigned int channels;	/* count of channels (4 or 6) */
 	int pcms;		/* count of PCM channels */
 	snd_pcm_t *pcm[3];	/* up to three PCM stereo streams */	
 	int linked[3];		/* streams are linked */
-} snd_pcm_surround_t;
+	snd_ctl_t *ctl;		/* CTL handle */
+	surround_open_t *po;
+	union {
+		struct {
+			snd_ctl_elem_value_t *sw4ch;
+			snd_ctl_elem_value_t *sw_pcm;
+		} ens1370;
+	} s;
+};
 
 static int snd_pcm_surround_free(snd_pcm_surround_t *surr);
 
@@ -443,6 +470,10 @@ static int snd_pcm_surround_free(snd_pcm_surround_t *surr)
 		snd_pcm_close(surr->pcm[i]);
 		surr->pcm[i] = NULL;
 	}
+	if (surr->po->sclose)
+		surr->po->sclose(surr);
+	if (surr->ctl)
+		snd_ctl_close(surr->ctl);
 	free(surr);
 	return 0;
 }
@@ -505,7 +536,6 @@ static int count_si7018(snd_ctl_t *ctl ATTRIBUTE_UNUSED,
 }
 
 static int open_si7018(snd_pcm_surround_t *surr,
-		       snd_ctl_t *ctl ATTRIBUTE_UNUSED,
 		       snd_ctl_card_info_t *info,
 		       snd_pcm_surround_type_t type,
 		       snd_pcm_stream_t stream, int mode)
@@ -521,7 +551,6 @@ static int open_si7018(snd_pcm_surround_t *surr,
 }		       
 
 static int open_fm801(snd_pcm_surround_t *surr,
-		      snd_ctl_t *ctl ATTRIBUTE_UNUSED,
 		      snd_ctl_card_info_t *info,
 		      snd_pcm_surround_type_t type,
 		      snd_pcm_stream_t stream, int mode)
@@ -535,27 +564,83 @@ static int open_fm801(snd_pcm_surround_t *surr,
 	return 0;
 }		       
 
+static int open_ens1370(snd_pcm_surround_t *surr,
+		        snd_ctl_card_info_t *info,
+		        snd_pcm_surround_type_t type,
+		        snd_pcm_stream_t stream, int mode)
+{
+	int err;
+	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_value_t *val, *value;
+
+	if ((err = snd_pcm_surround_three_streams(surr, type,
+						  snd_ctl_card_info_get_card(info),
+						  1, 0, 0, 0, -1, -1,
+						  stream, mode)) < 0)
+		return err;
+	snd_ctl_elem_id_alloca(&id);
+	snd_ctl_elem_value_alloca(&val);
+
+	/* OK, reroute PCM0 (rear) to Line-In Jack */
+	snd_ctl_elem_id_set_interface(id, SNDRV_CTL_ELEM_IFACE_CARD);
+	snd_ctl_elem_id_set_name(id, "PCM 0 Output also on Line-In Jack");
+	snd_ctl_elem_id_set_index(id, 0);
+	if ((err = snd_ctl_elem_lock(surr->ctl, id)) < 0)
+		return err;
+	snd_ctl_elem_value_malloc(&value);
+	snd_ctl_elem_value_set_id(value, id);
+	if ((err = snd_ctl_elem_read(surr->ctl, value)) < 0) {
+		free(value);
+		return err;
+	}
+	surr->s.ens1370.sw4ch = value;
+	snd_ctl_elem_value_copy(val, value);
+	snd_ctl_elem_value_set_boolean(val, 0, 1);
+	if ((err = snd_ctl_elem_write(surr->ctl, val)) < 0)
+		return err;
+
+
+	/* Turn off the PCM volume, the second PCM (front speakers) uses the FM control */
+	snd_ctl_elem_id_set_interface(id, SNDRV_CTL_ELEM_IFACE_MIXER);
+	snd_ctl_elem_id_set_name(id, "FM");
+	snd_ctl_elem_id_set_index(id, 0);
+	if ((err = snd_ctl_elem_lock(surr->ctl, id)) < 0)
+		return err;
+	snd_ctl_elem_value_malloc(&value);
+	snd_ctl_elem_value_set_id(value, id);
+	if ((err = snd_ctl_elem_read(surr->ctl, value)) < 0) {
+		free(value);
+		return err;
+	}
+	surr->s.ens1370.sw_pcm = value;
+	snd_ctl_elem_value_copy(val, value);
+	snd_ctl_elem_value_set_boolean(val, 0, 0);
+	snd_ctl_elem_value_set_boolean(val, 1, 0);
+	if ((err = snd_ctl_elem_write(surr->ctl, val)) < 0)
+		return err;
+	
+	return 0;
+}		       
+
+static void close_ens1370(snd_pcm_surround_t *surr)
+{
+	if (surr->s.ens1370.sw4ch) {
+		snd_ctl_elem_write(surr->ctl, surr->s.ens1370.sw4ch);
+		free(surr->s.ens1370.sw4ch);
+	}
+	if (surr->s.ens1370.sw_pcm) {
+		snd_ctl_elem_write(surr->ctl, surr->s.ens1370.sw_pcm);
+		free(surr->s.ens1370.sw_pcm);
+	}
+}
+
 #define SND_CARD_TYPE_NONE	SNDRV_CARD_TYPE_SB_10	/* this card definitely doesn't support surround */
 
-#define SURR_FLG_CAPTURE	(1<<0)
-#define SURR_FLG_NO_4CH		(1<<1)
-#define SURR_FLG_NO_6CH		(1<<2)
-
-typedef struct {
-	snd_card_type_t type;
-	unsigned int flags;
-	int (*scount)(snd_ctl_t *ctl, snd_ctl_card_info_t *info, snd_pcm_surround_type_t type);
-	int (*sopen)(snd_pcm_surround_t *surr,
-		     snd_ctl_t *ctl, snd_ctl_card_info_t *info,
-		     snd_pcm_surround_type_t type,
-		     snd_pcm_stream_t stream,
-		     int mode);
-} surround_open_t;
-
 static surround_open_t open_table[] = {
-	{ type: SND_CARD_TYPE_SI_7018, flags: 0, scount: count_si7018, sopen: open_si7018 },
-	{ type: SND_CARD_TYPE_FM801, flags: 0, scount: count_generic, sopen: open_fm801 },
-	{ type: SND_CARD_TYPE_NONE, flags: 0, scount: NULL, sopen: NULL }
+	{ type: SND_CARD_TYPE_SI_7018, flags: 0, scount: count_si7018, sopen: open_si7018, sclose: NULL },
+	{ type: SND_CARD_TYPE_FM801, flags: 0, scount: count_generic, sopen: open_fm801, sclose: NULL },
+	{ type: SND_CARD_TYPE_ENS1370, flags: SURR_FLG_NO_6CH|SURR_FLG_NO_CTL_CLOSE, scount: count_generic, sopen: open_ens1370, sclose: close_ens1370 },
+	{ type: SND_CARD_TYPE_NONE, flags: 0, scount: NULL, sopen: NULL, sclose: NULL }
 };
 
 int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,
@@ -591,12 +676,14 @@ int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,
 		snd_pcm_surround_free(surr);
 		return err;
 	}
+	surr->ctl = ctl;
 	snd_ctl_card_info_alloca(&info);
 	if ((err = snd_ctl_card_info(ctl, info)) < 0)
 		goto __error;
 	ctype = snd_ctl_card_info_get_type(info);
 	for (po = open_table; po->type != SND_CARD_TYPE_NONE; po++) {
 		if (po->type == ctype) {
+			surr->po = po;
 			if (stream == SND_PCM_STREAM_CAPTURE && !(po->flags & SURR_FLG_CAPTURE)) {
 				err = -ENODEV;
 				goto __error;
@@ -615,7 +702,7 @@ int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,
 				}
 				break;
 			}
-			if ((err = po->sopen(surr, ctl, info, type, stream, mode)) < 0)
+			if ((err = po->sopen(surr, info, type, stream, mode)) < 0)
 				goto __error;
 			break;
 		}
@@ -624,7 +711,10 @@ int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,
 		err = -ENODEV;
 		goto __error;
 	}
-	snd_ctl_close(ctl);
+	if (!(po->flags & SURR_FLG_NO_CTL_CLOSE)) {
+		snd_ctl_close(ctl);
+		surr->ctl = NULL;
+	}
 	ctl = NULL;
 	pcm = calloc(1, sizeof(snd_pcm_t));
 	if (!pcm) {
