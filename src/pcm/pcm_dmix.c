@@ -222,8 +222,10 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 	dmix->slave_appl_ptr %= dmix->shmptr->s.boundary;
 	while (size > 0) {
 		transfer = appl_ptr + size > pcm->buffer_size ? pcm->buffer_size - appl_ptr : size;
-		if ((transfer = slave_appl_ptr + transfer > dmix->shmptr->s.buffer_size ? dmix->shmptr->s.buffer_size - slave_appl_ptr : transfer))
-		mix_areas(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
+		if (slave_appl_ptr + transfer > dmix->shmptr->s.buffer_size)
+			transfer = dmix->shmptr->s.buffer_size - slave_appl_ptr;
+		if (transfer)
+			mix_areas(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
 		if (transfer >= size)
 			return;
 		size -= transfer;
