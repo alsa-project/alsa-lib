@@ -83,8 +83,8 @@ implementation can be found in the \ref alsa_pcm_rw section.
 \subsection pcm_transfer_event Event waiting routines
 
 The poll or select functions (see 'man 2 poll' or 'man 2 select' for further
-details) allows to receive the acknowledges from the device while
-application can wait to events from other sources (like keyboard, screen,
+details) allows to receive requests/events from the device while
+an application is waiting on events from other sources (like keyboard, screen,
 network etc.), too. The select function is old and deprecated in modern
 applications, so the ALSA library does not support it. The implemented
 transfer routines can be found in the \ref alsa_transfers section.
@@ -231,6 +231,155 @@ these functions discards the benefits of direct access to memory region.
 See the \link ::snd_pcm_mmap_readi() \endlink,
 \link ::snd_pcm_writei() \endlink, \link ::snd_pcm_readn() \endlink
 and \link ::snd_pcm_writen() \endlink functions.
+
+\section pcm_params Managing parameters
+
+The ALSA PCM device uses two groups of PCM related parameters. The hardware
+parameters contains the stream description like format, rate, count of
+channels, ring buffer size etc. The software parameters contains the
+software (driver) related parameters. The communicatino behaviour can be
+controlled via these parameters, like automatic start, automatic stop,
+interrupting (chunk acknowledge) etc. The software parameters can be
+modified at any time (when valid hardware parameters are set). It includes
+the running state as well.
+
+\subsection pcm_hw_params Hardware related parameters
+
+The ALSA PCM devices use the parameter refining system for hardware
+parameters - \link ::snd_pcm_hw_params_t \endlink. It means, that
+application choose the full-range of configurations at first and then
+application sets single parameters until all parameters are elementary
+(definite).
+
+\par Access modes
+
+ALSA knows about five access modes. The first three can be used for direct
+communication. The access mode \link ::SND_PCM_ACCESS_MMAP_INTERLEAVED \endlink
+determines the direct memory area and interleaved sample organization.
+Interleaved organization means, that samples from channels are mixed together.
+The access mode \link ::SND_PCM_ACCESS_MMAP_NONINTERLEAVED \endlink
+determines the direct memory area and non-interleaved sample organization.
+Each channel has a separate buffer in the case. The complex direct memory
+organization represents the \link ::SND_PCM_ACCESS_MMAP_COMPLEX \endlink
+access mode. The sample organization does not fit the interleaved or
+non-interleaved access modes in the case. The last two access modes
+describes the read / write access methods.
+The \link ::SND_PCM_ACCESS_RW_INTERLEAVED \endlink access represents the read /
+write interleaved access and the \link ::SND_PCM_ACCESS_RW_NONINTERLEAVED \endlink
+represents the non-interleaved access.
+
+\par Formats
+
+The full list of formats is available in \link ::snd_pcm_format_t \endlink
+enumeration.
+
+\subsection pcm_sw_params Software related parameters
+
+These parameters - \link ::snd_pcm_sw_params_t \endlink can be modified at
+any time including the running state.
+
+\par Minimum available count of samples
+
+This parameter controls the wakeup point. If the count of available samples
+is equal or greater than this value, then application will be activated.
+
+\par Timestamp mode
+
+The timestamp mode specifies, if timestamps are activated. Currently, only
+\link ::SND_PCM_TSTAMP_NONE \endlink and \link ::SND_PCM_TSTAMP_MMAP
+\endlink modes are known. The mmap mode means that timestamp is taken
+on every period time boundary.
+
+\par Transfer align
+
+The read / write transfers can be aligned to this sample count. The modulo
+is ignored by device. Usually, this value is set to one (no align).
+
+\par Start threshold
+
+The start threshold parameter is used to determine the start point in
+stream. For playback, if samples in ring buffer is equal or greater than
+the start threshold parameters and the stream is not running, the stream will
+be started automatically from the device. For capture, if the application wants
+to read count of samples equal or greater then the stream will be started.
+If you want to use explicit start (\link ::snd_pcm_start \endlink), you can
+set this value greater than ring buffer size (in samples), but use the
+constant MAXINT is not a bad idea.
+
+\par Stop threshold
+
+Similarly, the stop threshold parameter is used to automatically stop
+the running stream, when the available samples crosses this boundary.
+It means, for playback, the empty samples in ring buffer and for capture,
+the filled (used) samples in ring buffer.
+
+\par Silence threshold
+
+The silence threshold specifies count of samples filled with silence
+ahead of the current application pointer for playback. It is useable
+for applications when an overrun is possible (like tasks depending on
+network I/O etc.). If application wants to manage the ahead samples itself,
+the \link ::snd_pcm_rewind() \endlink function allows to forget the last
+samples in the stream.
+
+\section pcm_status Obtaining device status
+
+The device status is stored in \link ::snd_pcm_status_t \endlink structure.
+These parameters can be obtained: the current stream state -
+\link ::snd_pcm_status_get_state \endlink, timestamp of trigger -
+\link ::snd_pcm_status_get_trigger_tstamp \endlink, timestamp of last
+update \link ::snd_pcm_status_get_tstamp \endlink, delay in samples -
+\link ::snd_pcm_status_get_delay \endlink, available count in samples -
+\link ::snd_pcm_status_get_avail \endlink, maximum available samples -
+\link ::snd_pcm_status_get_avail_max \endlink, ADC overrange count in
+samples - \link ::snd_pcm_status_get_overrange \endlink. The last two
+parameters - avail_max and overrange are reset to zero after the status
+call.
+
+\section pcm_action Managing the stream state
+
+These functions directly and indirectly affecting the stream state:
+
+\par snd_pcm_hw_params
+The \link ::snd_pcm_hw_params \endlink function brings the stream state
+to \link ::SND_PCM_STATE_SETUP \endlink
+if successfully finishes, otherwise the state \link ::SND_PCM_STATE_OPEN
+\endlink is entered.
+
+\par snd_pcm_prepare
+The \link ::snd_pcm_prepare \endlink function enters the
+\link ::SND_PCM_STATE_PREPARED \endlink after a successfull finish.
+
+\par snd_pcm_start
+The \link ::snd_pcm_start \endlink function enters
+the \link ::SND_PCM_STATE_RUNNING \endlink after a successfull finish.
+
+\par snd_pcm_drop
+The \link ::snd_pcm_drop \endlink function enters the
+\link ::SND_PCM_STATE_SETUP \endlink state.
+
+\par snd_pcm_drain
+The \link ::snd_pcm_drain \endlink function enters the
+\link ::SND_PCM_STATE_DRAINING \endlink, if
+the capture device has some samples in the ring buffer otherwise
+\link ::SND_PCM_STATE_SETUP \endlink state is entered.
+
+\par snd_pcm_pause
+The \link ::snd_pcm_pause \endlink function enters the
+\link ::SND_PCM_STATE_PAUSED \endlink or
+\link ::SND_PCM_STATE_RUNNING \endlink.
+
+\par snd_pcm_writei, snd_pcm_writen
+The \link ::snd_pcm_writei \endlink and \link ::snd_pcm_writen \endlink
+functions can conditionally start the stream -
+\link ::SND_PCM_STATE_RUNNING \endlink. They depend on the start threshold
+software parameter.
+
+\par snd_pcm_readi, snd_pcm_readn
+The \link ::snd_pcm_readi \endlink and \link ::snd_pcm_readn \endlink
+functions can conditionally start the stream -
+\link ::SND_PCM_STATE_RUNNING \endlink. They depend on the start threshold
+software parameter.
 
 \section pcm_examples Examples
 
