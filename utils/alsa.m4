@@ -9,17 +9,17 @@ AC_DEFUN(AM_PATH_ALSA,
 [dnl
 dnl Get the clfags and libraries for alsa
 dnl
-AC_ARG_WITH(alsa-prefix,[ --with-alsa-prefix=PFX  Prefix where Alsa library is installed(optional)],
+AC_ARG_WITH(alsa-prefix,[  --with-alsa-prefix=PFX  Prefix where Alsa library is installed(optional)],
 	[alsa_prefix="$withval"], [alsa_prefix=""])
-AC_ARG_WITH(alsa-inc-prefix, [ --with-alsa-inc-prefix=PFX  Prefix where include libraries are (optional)],
+AC_ARG_WITH(alsa-inc-prefix, [  --with-alsa-inc-prefix=PFX  Prefix where include libraries are (optional)],
 	[alsa_inc_prefix="$withval"], [alsa_inc_prefix=""])
-AC_ARG_ENABLE(alsatest, [ --disable-alsatest       Do not try to compile and run a test Alsa program], [enable_alsatest=no], [enable_alsatest=yes])
+AC_ARG_ENABLE(alsatest, [  --disable-alsatest      Do not try to compile and run a test Alsa program], [enable_alsatest=no], [enable_alsatest=yes])
 
 dnl Add any special include directories
-AC_MSG_CHECKING(for ALSA CFLAGS)
+AC_MSG_CHECKING(for ALSA CPPFLAGS)
 if test "$alsa_inc_prefix" != "" ; then
 	ALSA_CFLAGS="$ALSA_CFLAGS -I$alsa_inc_prefix"
-	CFLAGS="-I$alsa_inc_prefix"
+	CPPFLAGS="$CPPFLAGS -I$alsa_inc_prefix"
 fi
 AC_MSG_RESULT($ALSA_CFLAGS)
 
@@ -27,12 +27,12 @@ dnl add any special lib dirs
 AC_MSG_CHECKING(for ALSA LDFLAGS)
 if test "$alsa_prefix" != "" ; then
 	ALSA_LIBS="$ALSA_LIBS -L$alsa_prefix"
-	LIBS="-L$alsa_prefix"
+	LDFLAGS="$LDFLAGS -L$alsa_prefix"
 fi
 
 dnl add the alsa library
 ALSA_LIBS="$ALSA_LIBS -lasound -lm"
-LDFLAGS="$ALSA_LIBS"
+LIBS="$LIBS -lasound -lm"
 AC_MSG_RESULT($ALSA_LIBS)
 
 dnl Check for the presence of the library
