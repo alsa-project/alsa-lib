@@ -314,7 +314,7 @@ static int selem_read(snd_mixer_elem_t *elem)
 		return err;
 
 	if ((s->caps & (CAP_GSWITCH|CAP_PSWITCH)) == 0) {
-		s->str[CAPT].sw = 0;
+		s->str[PLAY].sw = 0;
 		goto __skip_pswitch;
 	}
 	if (s->ctls[CTL_PLAYBACK_SWITCH].elem) {
