@@ -10,8 +10,8 @@ static void usage(void)
 	fprintf(stderr, "Usage: midiloop [options]\n");
 	fprintf(stderr, "  options:\n");
 	fprintf(stderr, "    -v: verbose mode\n");
-	fprintf(stderr, "    -i [ card-id device-id ] : test input device\n");
-	fprintf(stderr, "    -o [ card-id device-id ] : test output device\n");
+	fprintf(stderr, "    -i <rawmidi device> : test input device\n");
+	fprintf(stderr, "    -o <rawmidi device> : test output device\n");
 }
 
 int stop = 0;
@@ -73,25 +73,26 @@ int main(int argc, char** argv)
 	long long diff;
 	snd_rawmidi_status_t *istat, *ostat;
 	
-	if (argc == 1) {
-		usage();
-		exit(EXIT_SUCCESS);
-	}
-	
 	for (i = 1 ; i<argc ; i++) {
 		if (argv[i][0]=='-') {
+			if (!strcmp(argv[i], "--help")) {
+				usage();
+				return 0;
+			}
 			switch (argv[i][1]) {
 				case 'h':
 					usage();
-					break;
+					return 0;
 				case 'v':
 					verbose = 1;
 					break;
 				case 'i':
-					iname = argv[i+1];
+					if (i + 1 < argc)
+						iname = argv[i+1];
 					break;
 				case 'o':
-					oname = argv[i+1];
+					if (i + 1 < argc)
+						oname = argv[i+1];
 					break;
 			}			
 		}
