@@ -130,7 +130,7 @@ pcm.NAME {
   }
   route_policy STR	# route policy for automatic ttable generation
 			# STR can be 'sum', 'copy', 'duplicate'
-			# sum: result is sum of input channels
+			# sum: result is sum of input channels (default)
 			# copy: only first channels are copied to destination
 			# duplicate: duplicate first set of channels
   ttable {	 	# Transfer table (bidimensional compound of 
