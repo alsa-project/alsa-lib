@@ -155,35 +155,35 @@ int snd_rawmidi_stream_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * statu
 	return 0;
 }
 
-int snd_rawmidi_output_drain(snd_rawmidi_t *rmidi)
+int snd_rawmidi_output_drop(snd_rawmidi_t *rmidi)
 {
 	int str = SND_RAWMIDI_STREAM_OUTPUT;
 	if (!rmidi)
+		return -EINVAL;
+	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_STREAM_DROP, &str) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_rawmidi_stream_drain(snd_rawmidi_t *rmidi, int str)
+{
+	if (!rmidi)
+		return -EINVAL;
+	if (str < 0 || str > 1)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_STREAM_DRAIN, &str) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_rawmidi_stream_flush(snd_rawmidi_t *rmidi, int str)
+int snd_rawmidi_output_drain(snd_rawmidi_t *rmidi)
 {
-	if (!rmidi)
-		return -EINVAL;
-	if (str < 0 || str > 1)
-		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_STREAM_FLUSH, &str) < 0)
-		return -errno;
-	return 0;
+	return snd_rawmidi_stream_drain(rmidi, SND_RAWMIDI_STREAM_OUTPUT);
 }
 
-int snd_rawmidi_output_flush(snd_rawmidi_t *rmidi)
+int snd_rawmidi_input_drain(snd_rawmidi_t *rmidi)
 {
-	return snd_rawmidi_stream_flush(rmidi, SND_RAWMIDI_STREAM_OUTPUT);
-}
-
-int snd_rawmidi_input_flush(snd_rawmidi_t *rmidi)
-{
-	return snd_rawmidi_stream_flush(rmidi, SND_RAWMIDI_STREAM_INPUT);
+	return snd_rawmidi_stream_drain(rmidi, SND_RAWMIDI_STREAM_INPUT);
 }
 
 ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)

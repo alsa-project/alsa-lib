@@ -189,7 +189,7 @@ int snd_seq_resize_output_buffer(snd_seq_t *seq, size_t size)
 		return -EINVAL;
 	if (size < sizeof(snd_seq_event_t))
 		return -EINVAL;
-	snd_seq_drain_output(seq);
+	snd_seq_drop_output(seq);
 	if (size != seq->obufsize) {
 		char *newbuf;
 		newbuf = calloc(1, size);
@@ -211,7 +211,7 @@ int snd_seq_resize_input_buffer(snd_seq_t *seq, size_t size)
 		return -EINVAL;
 	if (size < sizeof(snd_seq_event_t))
 		return -EINVAL;
-	snd_seq_drain_input(seq);
+	snd_seq_drop_input(seq);
 	size = (size + sizeof(snd_seq_event_t) - 1) / sizeof(snd_seq_event_t);
 	if (size != seq->ibufsize) {
 		snd_seq_event_t *newbuf;
@@ -711,7 +711,7 @@ int snd_seq_event_output(snd_seq_t *seq, snd_seq_event_t *ev)
 
 	result = snd_seq_event_output_buffer(seq, ev);
 	if (result == -EAGAIN) {
-		result = snd_seq_flush_output(seq);
+		result = snd_seq_drain_output(seq);
 		if (result < 0)
 			return result;
 		return snd_seq_event_output_buffer(seq, ev);
@@ -803,9 +803,9 @@ int snd_seq_event_output_pending(snd_seq_t *seq)
 }
 
 /*
- * flush output buffer to sequencer
+ * drain output buffer to sequencer
  */
-int snd_seq_flush_output(snd_seq_t *seq)
+int snd_seq_drain_output(snd_seq_t *seq)
 {
 	int result;
 
@@ -951,7 +951,7 @@ int snd_seq_event_input_pending(snd_seq_t *seq, int fetch_sequencer)
 /*
  * clear output buffer
  */
-int snd_seq_drain_output_buffer(snd_seq_t *seq)
+int snd_seq_drop_output_buffer(snd_seq_t *seq)
 {
 	if (!seq)
 		return -EINVAL;
@@ -962,7 +962,7 @@ int snd_seq_drain_output_buffer(snd_seq_t *seq)
 /*
  * clear input buffer
  */
-int snd_seq_drain_input_buffer(snd_seq_t *seq)
+int snd_seq_drop_input_buffer(snd_seq_t *seq)
 {
 	if (!seq)
 		return -EINVAL;
@@ -974,7 +974,7 @@ int snd_seq_drain_input_buffer(snd_seq_t *seq)
 /*
  * clear output buffer and remove events in sequencer queue
  */
-int snd_seq_drain_output(snd_seq_t *seq)
+int snd_seq_drop_output(snd_seq_t *seq)
 {
 	snd_seq_remove_events_t rminfo;
 
@@ -992,7 +992,7 @@ int snd_seq_drain_output(snd_seq_t *seq)
 /*
  * clear input buffer and and remove events in sequencer queue
  */
-int snd_seq_drain_input(snd_seq_t *seq)
+int snd_seq_drop_input(snd_seq_t *seq)
 {
 	snd_seq_remove_events_t rminfo;
 
@@ -1095,7 +1095,7 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 		 * in the library.
 		 */
 		if (rmp->remove_mode == 0)
-			snd_seq_drain_input_buffer(seq);
+			snd_seq_drop_input_buffer(seq);
 		/* other modes are not supported yet */
 	}
 
@@ -1106,7 +1106,7 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 		 */
 		 if (rmp->remove_mode == 0) {
 			 /* The simple case - remove all */
-			 snd_seq_drain_output_buffer(seq);
+			 snd_seq_drop_output_buffer(seq);
 		} else {
 			char *ep;
 			size_t len;

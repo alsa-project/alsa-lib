@@ -146,7 +146,7 @@ int snd_pcm_status(snd_pcm_t *handle, snd_pcm_status_t *status);
 int snd_pcm_prepare(snd_pcm_t *handle);
 int snd_pcm_start(snd_pcm_t *handle);
 int snd_pcm_stop(snd_pcm_t *handle);
-int snd_pcm_flush(snd_pcm_t *handle);
+int snd_pcm_drain(snd_pcm_t *handle);
 int snd_pcm_pause(snd_pcm_t *handle, int enable);
 int snd_pcm_state(snd_pcm_t *handle);
 int snd_pcm_delay(snd_pcm_t *handle, ssize_t *delayp);

@@ -207,11 +207,11 @@ static int snd_pcm_hw_stop(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_hw_flush(snd_pcm_t *pcm)
+static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_FLUSH) < 0)
+	if (ioctl(fd, SND_PCM_IOCTL_DRAIN) < 0)
 		return -errno;
 	return 0;
 }
@@ -454,7 +454,7 @@ struct snd_pcm_fast_ops snd_pcm_hw_fast_ops = {
 	prepare: snd_pcm_hw_prepare,
 	start: snd_pcm_hw_start,
 	stop: snd_pcm_hw_stop,
-	flush: snd_pcm_hw_flush,
+	drain: snd_pcm_hw_drain,
 	pause: snd_pcm_hw_pause,
 	rewind: snd_pcm_hw_rewind,
 	writei: snd_pcm_hw_writei,

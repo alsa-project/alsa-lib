@@ -142,10 +142,10 @@ int snd_pcm_plugin_stop(snd_pcm_t *pcm)
 	return snd_pcm_stop(plugin->slave);
 }
 
-int snd_pcm_plugin_flush(snd_pcm_t *pcm)
+int snd_pcm_plugin_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	return snd_pcm_flush(plugin->slave);
+	return snd_pcm_drain(plugin->slave);
 }
 
 int snd_pcm_plugin_pause(snd_pcm_t *pcm, int enable)
@@ -397,7 +397,7 @@ struct snd_pcm_fast_ops snd_pcm_plugin_fast_ops = {
 	prepare: snd_pcm_plugin_prepare,
 	start: snd_pcm_plugin_start,
 	stop: snd_pcm_plugin_stop,
-	flush: snd_pcm_plugin_flush,
+	drain: snd_pcm_plugin_drain,
 	pause: snd_pcm_plugin_pause,
 	rewind: snd_pcm_plugin_rewind,
 	writei: snd_pcm_plugin_writei,

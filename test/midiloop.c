@@ -200,9 +200,9 @@ int main(int argc, char** argv)
 		fprintf(stderr,"Closing\n");
 	}
 	
-	snd_rawmidi_input_flush(handle_in); 
+	snd_rawmidi_input_drain(handle_in); 
 	snd_rawmidi_close(handle_in);	
-	snd_rawmidi_output_flush(handle_out); 
+	snd_rawmidi_output_drain(handle_out); 
 	snd_rawmidi_close(handle_out);	
 
 	return 0;

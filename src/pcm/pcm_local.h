@@ -50,7 +50,7 @@ struct snd_pcm_fast_ops {
 	int (*prepare)(snd_pcm_t *pcm);
 	int (*start)(snd_pcm_t *pcm);
 	int (*stop)(snd_pcm_t *pcm);
-	int (*flush)(snd_pcm_t *pcm);
+	int (*drain)(snd_pcm_t *pcm);
 	int (*pause)(snd_pcm_t *pcm, int enable);
 	int (*state)(snd_pcm_t *pcm);
 	int (*delay)(snd_pcm_t *pcm, ssize_t *delayp);

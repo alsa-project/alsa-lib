@@ -404,7 +404,7 @@ void event_decoder_start_timer(snd_seq_t *handle, int queue, int client, int por
 
 	if ((err = snd_seq_start_queue(handle, queue, NULL))<0)
 		fprintf(stderr, "Timer event output error: %s\n", snd_strerror(err));
-	while (snd_seq_flush_output(handle)>0)
+	while (snd_seq_drain_output(handle)>0)
 		sleep(1);
 }
 

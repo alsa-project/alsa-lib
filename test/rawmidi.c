@@ -181,12 +181,12 @@ int main(int argc,char** argv)
 			ch=0x90; snd_rawmidi_write(handle_out,&ch,1);
 			ch=60;   snd_rawmidi_write(handle_out,&ch,1);
 			ch=100;  snd_rawmidi_write(handle_out,&ch,1);
-			snd_rawmidi_output_flush(handle_in); 
+			snd_rawmidi_output_drain(handle_in); 
 			sleep(1);
 			ch=0x90; snd_rawmidi_write(handle_out,&ch,1);
 			ch=60;   snd_rawmidi_write(handle_out,&ch,1);
 			ch=0;    snd_rawmidi_write(handle_out,&ch,1);
-			snd_rawmidi_output_flush(handle_out); 
+			snd_rawmidi_output_drain(handle_out); 
 		}
 		if (fd_out!=-1) {
 			unsigned char ch;
@@ -218,7 +218,7 @@ int main(int argc,char** argv)
 
 				if (handle_out) {
 					snd_rawmidi_write(handle_out,&ch,1);
-					snd_rawmidi_output_flush(handle_out); 
+					snd_rawmidi_output_drain(handle_out); 
 				}
 				if (fd_out!=-1) {
 					write(fd_out,&ch,1);
@@ -235,11 +235,11 @@ int main(int argc,char** argv)
 	}
 	
 	if (handle_in) {
-		snd_rawmidi_output_flush(handle_in); 
+		snd_rawmidi_output_drain(handle_in); 
 		snd_rawmidi_close(handle_in);	
 	}
 	if (handle_out) {
-		snd_rawmidi_output_flush(handle_in); 
+		snd_rawmidi_output_drain(handle_in); 
 		snd_rawmidi_close(handle_in);	
 	}
 	if (fd_in!=-1) {

@@ -83,7 +83,7 @@ void event_sender_start_timer(snd_seq_t *handle, int client, int queue, snd_pcm_
 #endif
 	if ((err = snd_seq_start_queue(handle, queue, NULL))<0)
 		fprintf(stderr, "Timer event output error: %s\n", snd_strerror(err));
-	snd_seq_flush_output(handle);
+	snd_seq_drain_output(handle);
 }
 
 void event_sender_filter(snd_seq_t *handle)
@@ -134,8 +134,8 @@ void send_event(snd_seq_t *handle, int queue, int client, int port,
 	ev.data.note.duration = 500;	/* 0.5sec */
 	if ((err = snd_seq_event_output(handle, &ev))<0)
 		fprintf(stderr, "Event output error: %s\n", snd_strerror(err));
-	if ((err = snd_seq_flush_output(handle))<0)
-		fprintf(stderr, "Event flush error: %s\n", snd_strerror(err));
+	if ((err = snd_seq_drain_output(handle))<0)
+		fprintf(stderr, "Event drain error: %s\n", snd_strerror(err));
 }
 
 void event_sender(snd_seq_t *handle, int argc, char *argv[])
@@ -248,7 +248,7 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 		}
 #endif
 		if (FD_ISSET(snd_seq_poll_descriptor(handle), &out))
-			snd_seq_flush_output(handle);
+			snd_seq_drain_output(handle);
 		if (FD_ISSET(snd_seq_poll_descriptor(handle), &in)) {
 			do {
 				if ((err = snd_seq_event_input(handle, &ev))<0)

@@ -51,7 +51,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 	params.format.channels = 2;
 	params.format.rate = USED_RATE;
 	params.start_mode = SND_PCM_START_EXPLICIT;
-	params.xrun_action = SND_PCM_XRUN_ACT_DRAIN;
+	params.xrun_action = SND_PCM_XRUN_ACT_DROP;
 	params.time = 1;
 	*bufsize += 4;
 
@@ -244,7 +244,7 @@ int main(void)
 		if (pstatus.trigger_time.tv_sec == cstatus.trigger_time.tv_sec &&
 		    pstatus.trigger_time.tv_usec == cstatus.trigger_time.tv_usec)
 			printf("Hardware sync\n");
-		snd_pcm_flush(phandle);
+		snd_pcm_drain(phandle);
 		if (ok) {
 #if 0
 			printf("Playback time = %li.%i, Record time = %li.%i, diff = %li\n",

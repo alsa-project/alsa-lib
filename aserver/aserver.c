@@ -383,8 +383,8 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_START:
 		ctrl->result = snd_pcm_start(pcm);
 		break;
-	case SND_PCM_IOCTL_FLUSH:
-		ctrl->result = snd_pcm_flush(pcm);
+	case SND_PCM_IOCTL_DRAIN:
+		ctrl->result = snd_pcm_drain(pcm);
 		break;
 	case SND_PCM_IOCTL_STOP:
 		ctrl->result = snd_pcm_stop(pcm);

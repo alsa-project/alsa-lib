@@ -110,10 +110,10 @@ static int snd_pcm_file_stop(snd_pcm_t *pcm)
 	return snd_pcm_stop(file->slave);
 }
 
-static int snd_pcm_file_flush(snd_pcm_t *pcm)
+static int snd_pcm_file_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private;
-	return snd_pcm_flush(file->slave);
+	return snd_pcm_drain(file->slave);
 }
 
 static int snd_pcm_file_pause(snd_pcm_t *pcm, int enable)
@@ -341,7 +341,7 @@ struct snd_pcm_fast_ops snd_pcm_file_fast_ops = {
 	prepare: snd_pcm_file_prepare,
 	start: snd_pcm_file_start,
 	stop: snd_pcm_file_stop,
-	flush: snd_pcm_file_flush,
+	drain: snd_pcm_file_drain,
 	pause: snd_pcm_file_pause,
 	rewind: snd_pcm_file_rewind,
 	writei: snd_pcm_file_writei,

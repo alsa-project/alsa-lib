@@ -259,10 +259,10 @@ static int snd_pcm_multi_stop(snd_pcm_t *pcm)
 	return snd_pcm_stop(multi->slaves[0].handle);
 }
 
-static int snd_pcm_multi_flush(snd_pcm_t *pcm)
+static int snd_pcm_multi_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	return snd_pcm_flush(multi->slaves[0].handle);
+	return snd_pcm_drain(multi->slaves[0].handle);
 }
 
 static int snd_pcm_multi_pause(snd_pcm_t *pcm, int enable)
@@ -521,7 +521,7 @@ struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
 	prepare: snd_pcm_multi_prepare,
 	start: snd_pcm_multi_start,
 	stop: snd_pcm_multi_stop,
-	flush: snd_pcm_multi_flush,
+	drain: snd_pcm_multi_drain,
 	pause: snd_pcm_multi_pause,
 	writei: snd_pcm_mmap_writei,
 	writen: snd_pcm_mmap_writen,

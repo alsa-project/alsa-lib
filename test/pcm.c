@@ -86,11 +86,11 @@ void method2(void)
 		return;
 	}
 	printf("done...\n");
-	if ((err = snd_pcm_flush_capture(rhandle)) < 0) {
-		printf("Record flush error: %s\n", snd_strerror(err));
+	if ((err = snd_pcm_drain_capture(rhandle)) < 0) {
+		printf("Record drain error: %s\n", snd_strerror(err));
 		return;
 	}
-	printf("Record flush done...\n");
+	printf("Record drain done...\n");
 	printf("Playback... ");
 	fflush(stdout);
 	if ((err = snd_pcm_writei(phandle, buffer, sizeof(buffer))) != sizeof(buffer)) {
@@ -98,11 +98,11 @@ void method2(void)
 		return;
 	}
 	printf("done...\n");
-	if ((err = snd_pcm_flush_playback(phandle)) < 0) {
-		printf("Playback flush error: %s\n", snd_strerror(err));
+	if ((err = snd_pcm_drain_playback(phandle)) < 0) {
+		printf("Playback drain error: %s\n", snd_strerror(err));
 		return;
 	}
-	printf("Playback flush done...\n");
+	printf("Playback drain done...\n");
 	snd_pcm_close(phandle);
 	printf("Playback close...\n");
 	snd_pcm_close(rhandle);
@@ -127,11 +127,11 @@ void method3(void)
 		return;
 	}
 	printf("done...\n");
-	if ((err = snd_pcm_flush_capture(handle)) < 0) {
-		printf("Record flush error: %s\n", snd_strerror(err));
+	if ((err = snd_pcm_drain_capture(handle)) < 0) {
+		printf("Record drain error: %s\n", snd_strerror(err));
 		return;
 	}
-	printf("Record flush done...\n");
+	printf("Record drain done...\n");
 	printf("Playback... ");
 	fflush(stdout);
 	if ((err = snd_pcm_writei(handle, buffer, sizeof(buffer))) != sizeof(buffer)) {
@@ -139,11 +139,11 @@ void method3(void)
 		return;
 	}
 	printf("done...\n");
-	if ((err = snd_pcm_flush_playback(handle)) < 0) {
-		printf("Playback flush error: %s\n", snd_strerror(err));
+	if ((err = snd_pcm_drain_playback(handle)) < 0) {
+		printf("Playback drain error: %s\n", snd_strerror(err));
 		return;
 	}
-	printf("Playback flush done...\n");
+	printf("Playback drain done...\n");
 	snd_pcm_close(handle);
 	printf("Close...\n");
 }

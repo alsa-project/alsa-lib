@@ -49,7 +49,7 @@ static int snd_pcm_mmap_capture_ready(snd_pcm_t *pcm)
 	int ret = 0;
 	if (pcm->mmap_status->state == SND_PCM_STATE_XRUN) {
 		ret = -EPIPE;
-		if (pcm->setup.xrun_act == SND_PCM_XRUN_ACT_DRAIN)
+		if (pcm->setup.xrun_act == SND_PCM_XRUN_ACT_DROP)
 			return -EPIPE;
 	}
 	if (snd_pcm_mmap_capture_avail(pcm) >= pcm->setup.avail_min)

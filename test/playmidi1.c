@@ -404,7 +404,7 @@ static void alsa_sync(void)
 	write_ev(&ev);
   
 	/* dump buffer */
-	left = snd_seq_flush_output(seq_handle);
+	left = snd_seq_drain_output(seq_handle);
 
 	/* wait for the timer start event */
 	for (;;) {

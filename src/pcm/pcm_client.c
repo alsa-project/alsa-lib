@@ -362,12 +362,12 @@ static int snd_pcm_client_shm_stop(snd_pcm_t *pcm)
 	return ctrl->result;
 }
 
-static int snd_pcm_client_shm_flush(snd_pcm_t *pcm)
+static int snd_pcm_client_shm_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_client_t *client = pcm->private;
 	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_FLUSH;
+	ctrl->cmd = SND_PCM_IOCTL_DRAIN;
 	err = snd_pcm_client_shm_action(pcm);
 	if (err < 0)
 		return err;
@@ -567,7 +567,7 @@ struct snd_pcm_fast_ops snd_pcm_client_fast_ops = {
 	prepare: snd_pcm_client_shm_prepare,
 	start: snd_pcm_client_shm_start,
 	stop: snd_pcm_client_shm_stop,
-	flush: snd_pcm_client_shm_flush,
+	drain: snd_pcm_client_shm_drain,
 	pause: snd_pcm_client_shm_pause,
 	rewind: snd_pcm_client_shm_rewind,
 	writei: snd_pcm_mmap_writei,
