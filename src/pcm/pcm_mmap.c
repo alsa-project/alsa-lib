@@ -295,6 +295,8 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 	err = pcm->ops->mmap(pcm);
 	if (err < 0)
 		return err;
+	if (pcm->shadow_mmap)
+		return 0;
 	pcm->mmap_channels = calloc(pcm->channels, sizeof(pcm->mmap_channels[0]));
 	if (!pcm->mmap_channels)
 		return -ENOMEM;
@@ -427,6 +429,8 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 	unsigned int c;
 	assert(pcm);
 	assert(pcm->mmap_channels);
+	if (pcm->shadow_mmap)
+		return pcm->ops->munmap(pcm);
 	for (c = 0; c < pcm->channels; ++c) {
 		snd_pcm_channel_info_t *i = &pcm->mmap_channels[c];
 		unsigned int c1;

@@ -937,13 +937,23 @@ static int snd_pcm_plug_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *inf
 	return snd_pcm_channel_info(plug->slave, info);
 }
 
-static int snd_pcm_plug_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+static int snd_pcm_plug_mmap(snd_pcm_t *pcm)
 {
+	snd_pcm_plug_t *plug = pcm->private_data;
+	pcm->mmap_channels = plug->slave->mmap_channels;
+	pcm->running_areas = plug->slave->running_areas;
+	pcm->stopped_areas = plug->slave->stopped_areas;
+	pcm->shadow_mmap = 1;
 	return 0;
 }
 
-static int snd_pcm_plug_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+static int snd_pcm_plug_munmap(snd_pcm_t *pcm)
 {
+	// snd_pcm_plug_t *plug = pcm->private_data;
+	pcm->mmap_channels = NULL;
+	pcm->running_areas = NULL;
+	pcm->stopped_areas = NULL;
+	pcm->shadow_mmap = 0;
 	return 0;
 }
 
