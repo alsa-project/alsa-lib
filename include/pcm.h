@@ -69,6 +69,10 @@ const char *snd_pcm_get_format_name(int format);
  *  PCM Plug-In interface
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct snd_stru_pcm_plugin snd_pcm_plugin_t;
 #define snd_pcm_plugin_handle_t snd_pcm_t
 
@@ -216,6 +220,10 @@ int snd_pcm_plugin_build_route(snd_pcm_plugin_handle_t *handle,
 			       snd_pcm_format_t *dst_format,
 			       float *ttable,
 			       snd_pcm_plugin_t **r_plugin);
+
+#ifdef __cplusplus
+}
+#endif
 
 /*
  *  Loopback interface
