@@ -1862,124 +1862,112 @@ static int _snd_config_expand(snd_config_t *src,
 	return 1;
 }
 
-static int evaluate_node(snd_config_t *father, snd_config_t *src,
-			 void *private_data, snd_config_t **dst)
+void snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 {
-	snd_config_iterator_t i, next;
-	const char *lib = NULL, *func = NULL;
-	int err;
-	char buf[64];
-	char *evaluate_name = NULL;
-	int (*evaluate_func)(snd_config_t **dst, snd_config_t *src, void *private_data);
-	void *h;
-
-	assert(father && src && dst);
-
-	snd_config_for_each(i, next, src) {
-		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id;
-		if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND) {
-			snd_config_t *n1;
-			err = evaluate_node(src, n, private_data, &n1);
-			if (err < 0) {
-				SNDERR("Error in node %s", snd_config_get_id(n));
-				goto __error;
-			}
-			if (n1) {			/* replace node */
-				snd_config_delete(n);
-				err = snd_config_add(src, n1);
-				if (err < 0)
-					goto __error;
-			}
-		}
-		id = snd_config_get_id(n);
-		if (*id++ != '@')	/* quick look */
-			continue;
-		if (!strcmp(id, "lib")) {
-			if ((err = snd_config_get_string(n, &lib)) < 0) {
-			       _invalid_field:
-				SNDERR("Unknown type of field %s", id);
-				return err;
-			}
-			lib = strdup(lib);
-			if (lib == NULL)
-				goto __error;
-			snd_config_delete(n);
-		} else if (!strcmp(id, "func")) {
-			if ((err = snd_config_get_string(n, &func)) < 0)
-				goto _invalid_field;
-			func = strdup(func);
-			if (func == NULL)
-				goto __error;
-			snd_config_delete(n);
-		}
-	}
-	
-	if (func == NULL) {
-		*dst = NULL;
-		return 0;
-	}
-
-	if (evaluate_name == NULL) {
-		snprintf(buf, sizeof(buf), "snd_func_%s", func);
-		buf[sizeof(buf) - 1] = '\0';
-		evaluate_name = buf;
-	}
-	
-	h = dlopen(lib, RTLD_NOW);
-	if (!h) {
-		SNDERR("Cannot open shared library %s", lib);
-		err = -ENOENT;
-		goto __error;
-	}
-	evaluate_func = dlsym(h, evaluate_name);
-	if (!evaluate_func) {
-		dlclose(h);
-		SNDERR("symbol %s is not defined inside %s", evaluate_name, lib ? lib : ALSA_LIB);
-		err = -ENXIO;
-		goto __error;
-	}
-	err = evaluate_func(dst, src, private_data);
-	dlclose(h);
-	if (err < 0) {
-		SNDERR("function %s returned error: %s", evaluate_name, snd_strerror(err));
-		goto __error;
-	}
-	err = 0;
-
-      __error:
-      	if (func)
-      		free((void *)func);
-      	if (lib)
-      		free((void *)lib);
-	return err;
+	free(dst->id);
+	dst->id = src->id;
+	dst->type = src->type;
+	dst->u = src->u;
 }
 
-int snd_config_evaluate(snd_config_t *conf, void *private_data)
+static int _snd_config_evaluate(snd_config_t *src,
+				snd_config_t **dst ATTRIBUTE_UNUSED,
+				snd_config_walk_pass_t pass,
+				void *private_data)
 {
-	snd_config_iterator_t i, next;
-
-	assert(conf);
-	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND)
-		return 0;
-	snd_config_for_each(i, next, conf) {
-		snd_config_t *n = snd_config_iterator_entry(i);
-		if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND) {
-			snd_config_t *n1;
-			int err = evaluate_node(conf, n, private_data, &n1);
-			if (err < 0) {
-				SNDERR("Error in node %s", snd_config_get_id(n));
-				return err;
+	int err;
+	if (pass == SND_CONFIG_WALK_PASS_PRE) {
+		char buf[256];
+		const char *lib = NULL, *func_name = NULL;
+		const char *str;
+		int (*func)(snd_config_t **dst, snd_config_t *src,
+			    void *private_data);
+		void *h;
+		snd_config_t *c, *eval, *func_conf = NULL;
+		err = snd_config_search(src, "@func", &c);
+		if (err < 0)
+			return 1;
+		err = snd_config_get_string(c, &str);
+		if (err < 0) {
+			SNDERR("Invalid type for @func");
+			return err;
+		}
+		err = snd_config_search_definition(snd_config, "func", str, &func_conf);
+		if (err >= 0) {
+			snd_config_iterator_t i, next;
+			if (snd_config_get_type(func_conf) != SND_CONFIG_TYPE_COMPOUND) {
+				SNDERR("Invalid type for func %s definition", str);
+				goto _err;
 			}
-			if (n1) {			/* replace node */
-				snd_config_delete(n);
-				err = snd_config_add(conf, n1);
-				if (err < 0)
-					return err;
+			snd_config_for_each(i, next, func_conf) {
+				snd_config_t *n = snd_config_iterator_entry(i);
+				const char *id = snd_config_get_id(n);
+				if (strcmp(id, "comment") == 0)
+					continue;
+				if (strcmp(id, "lib") == 0) {
+					err = snd_config_get_string(n, &lib);
+					if (err < 0) {
+						SNDERR("Invalid type for %s", id);
+						goto _err;
+					}
+					continue;
+				}
+				if (strcmp(id, "open") == 0) {
+					err = snd_config_get_string(n, &func_name);
+					if (err < 0) {
+						SNDERR("Invalid type for %s", id);
+						goto _err;
+					}
+					continue;
+				}
+				SNDERR("Unknown field %s", id);
+			_err:
+				snd_config_delete(func_conf);
+				return -EINVAL;
 			}
 		}
+		if (!func_name) {
+			func_name = buf;
+			snprintf(buf, sizeof(buf), "snd_func_%s", str);
+		}
+		if (!lib)
+			lib = ALSA_LIB;
+		h = dlopen(lib, RTLD_NOW);
+		if (h)
+			func = dlsym(h, func_name);
+		if (func_conf)
+			snd_config_delete(func_conf);
+		if (!h) {
+			SNDERR("Cannot open shared library %s", lib);
+			return -ENOENT;
+		}
+		if (!func) {
+			SNDERR("symbol %s is not defined inside %s", func_name, lib);
+			dlclose(h);
+			return -ENXIO;
+		}
+		err = func(&eval, src, private_data);
+		dlclose(h);
+		if (err < 0) {
+			SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
+			return err;
+		}
+		if (eval) {
+			snd_config_substitute(src, eval);
+			free(eval);
+		}
+		return 0;
 	}
-	return 0;
+	return 1;
+}
+
+
+int snd_config_evaluate(snd_config_t *config, void *private_data,
+			snd_config_t **result)
+{
+	/* FIXME: Only in place evaluation is currently implemented */
+	assert(result == NULL);
+	return snd_config_walk(config, result, _snd_config_evaluate, private_data);
 }
 
 static int load_defaults(snd_config_t *subs, snd_config_t *defs)
@@ -2383,13 +2371,18 @@ int snd_config_expand(snd_config_t *config, const char *args,
 			SNDERR("Parse arguments error: %s", snd_strerror(err));
 			goto _end;
 		}
+		err = snd_config_evaluate(subs, private_data, NULL);
+		if (err < 0) {
+			SNDERR("Args evaluate error: %s", snd_strerror(err));
+			goto _end;
+		}
 		err = snd_config_walk(config, &res, _snd_config_expand, subs);
 		if (err < 0) {
 			SNDERR("Expand error (walk): %s", snd_strerror(err));
 			goto _end;
 		}
 	}
-	err = snd_config_evaluate(res, private_data);
+	err = snd_config_evaluate(res, private_data, NULL);
 	if (err < 0) {
 		SNDERR("Evaluate error: %s", snd_strerror(err));
 		snd_config_delete(res);
@@ -2429,7 +2422,7 @@ int snd_config_search_definition(snd_config_t *config,
 		memcpy(key, name, args - name - 1);
 		key[args - name - 1] = '\0';
 	} else {
-		key = (char *) base;
+		key = (char *) name;
 	} 
 	err = snd_config_search_alias(config, base, key, &conf);
 	if (err < 0)

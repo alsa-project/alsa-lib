@@ -40,6 +40,8 @@ int snd_config_search_definition(snd_config_t *config,
 
 int snd_config_expand(snd_config_t *config, const char *args,
 		      void *private_data, snd_config_t **result);
+int snd_config_evaluate(snd_config_t *config, void *private_data,
+			snd_config_t **result);
 
 int snd_config_add(snd_config_t *config, snd_config_t *leaf);
 int snd_config_delete(snd_config_t *config);
