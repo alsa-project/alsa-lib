@@ -109,6 +109,8 @@ typedef struct _snd_timer_tread {
 #define SND_TIMER_GLOBAL_SYSTEM 0
 /** global timer - RTC */
 #define SND_TIMER_GLOBAL_RTC 	1
+/** global timer - HPET */
+#define SND_TIMER_GLOBAL_HPET	2
 
 /** timer open mode flag - non-blocking behaviour */
 #define SND_TIMER_OPEN_NONBLOCK		(1<<0)
