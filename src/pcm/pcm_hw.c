@@ -268,7 +268,7 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_DRAIN) < 0) {
-//		SYSERR("SND_PCM_IOCTL_DRAIN failed");
+		SYSERR("SND_PCM_IOCTL_DRAIN failed");
 		return -errno;
 	}
 	return 0;
@@ -620,8 +620,10 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 		fmode |= O_NONBLOCK;
 	if (mode & SND_PCM_ASYNC)
 		fmode |= O_ASYNC;
-	if ((fd = open(filename, fmode)) < 0)
+	if ((fd = open(filename, fmode)) < 0) {
+		SYSERR("open %s failed", filename);
 		return -errno;
+	}
 	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
 		SYSERR("SND_PCM_IOCTL_PVERSION failed");
 		ret = -errno;

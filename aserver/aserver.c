@@ -467,17 +467,7 @@ int pcm_shm_cmd(client_t *client)
 	}
 	case SND_PCM_IOCTL_MUNMAP:
 	{
-		size_t k;
 		ctrl->result = snd_pcm_munmap(pcm);
-		if (ctrl->result < 0)
-			break;
-		for (k = 0; k < pcm->mmap_info_count; ++k) {
-			snd_pcm_mmap_info_t *i = &pcm->mmap_info[k];
-			if (i->type == SND_PCM_MMAP_USER) {
-				int err = shmdt(i->addr);
-				assert(err >= 0);
-			}
-		}
 		break;
 	}
 	case SND_PCM_IOCTL_MMAP_FORWARD:

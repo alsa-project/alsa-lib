@@ -468,9 +468,6 @@ static int snd_pcm_shm_close(snd_pcm_t *pcm)
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int result;
-	if (!(pcm->mode & SND_PCM_NONBLOCK) &&
-	    snd_pcm_shm_state(pcm) == SND_PCM_STATE_RUNNING)
-		snd_pcm_shm_drain(pcm);
 	ctrl->cmd = SND_PCM_IOCTL_CLOSE;
 	result = snd_pcm_shm_action(pcm);
 	shmdt((void *)ctrl);

@@ -315,8 +315,10 @@ static int snd_pcm_rate_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 
 	memset(&slave_info, 0, sizeof(slave_info));
 	slave_info.req = *params;
-	if (rate->req_sformat >= 0)
+	if (rate->req_sformat >= 0) {
 		slave_info.req.format.sfmt = rate->req_sformat;
+		slave_params.format.sfmt = rate->req_sformat;
+	}
 	slave_info.req.format.rate = rate->req_srate;
 	slave_info.req_mask = ~0;
 	err = snd_pcm_params_info(slave, &slave_info);

@@ -47,6 +47,12 @@ int snd_pcm_close(snd_pcm_t *pcm)
 	int ret = 0;
 	int err;
 	assert(pcm);
+	if (pcm->valid_setup) {
+		if (pcm->mode & SND_PCM_NONBLOCK)
+			snd_pcm_drop(pcm);
+		else
+			snd_pcm_drain(pcm);
+	}
 	if (pcm->mmap_info) {
 		if ((err = snd_pcm_munmap(pcm)) < 0)
 			ret = err;
