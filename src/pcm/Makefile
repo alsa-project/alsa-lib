@@ -7,8 +7,8 @@ include ../../Makefile.conf
 
 TARGET=libpcm.a
 STARGET=libpcm.Sa
-OBJECTS=pcm.o
-SOBJECTS=pcm.So
+OBJECTS=pcm.o pcm_loopback.o
+SOBJECTS=pcm.So pcm_loopback.So
 TARGETS=$(TARGET) $(STARGET)
 
 .SUFFIXES: .c .s .S .o .So .a .Sa
