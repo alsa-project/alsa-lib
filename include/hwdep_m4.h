@@ -16,7 +16,7 @@ const char *snd_hwdep_info_get_id(const snd_hwdep_info_t *obj);
 
 const char *snd_hwdep_info_get_name(const snd_hwdep_info_t *obj);
 
-snd_hwdep_type_t snd_hwdep_info_get_type(const snd_hwdep_info_t *obj);
+snd_hwdep_iface_t snd_hwdep_info_get_iface(const snd_hwdep_info_t *obj);
 
 void snd_hwdep_info_set_device(snd_hwdep_info_t *obj, unsigned int val);
 

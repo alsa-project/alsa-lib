@@ -50,8 +50,8 @@ void read_loop(void *handle, int master_ticks, int timeout)
 int main(int argc, char *argv[])
 {
 	int idx, err;
-	int type = SND_TIMER_TYPE_GLOBAL;
-	int stype = SND_TIMER_TYPE_NONE;
+	int class = SND_TIMER_CLASS_GLOBAL;
+	int sclass = SND_TIMER_CLASS_NONE;
 	int card = 0;
 	int device = SND_TIMER_GLOBAL_SYSTEM;
 	int subdevice = 0;
@@ -63,10 +63,10 @@ int main(int argc, char *argv[])
 
 	idx = 1;
 	while (idx < argc) {
-		if (!strncmp(argv[idx], "type=", 5)) {
-			type = atoi(argv[idx]+5);
-		} else if (!strncmp(argv[idx], "stype=", 6)) {
-			stype = atoi(argv[idx]+6);
+		if (!strncmp(argv[idx], "class=", 5)) {
+			class = atoi(argv[idx]+5);
+		} else if (!strncmp(argv[idx], "sclass=", 6)) {
+			sclass = atoi(argv[idx]+6);
 		} else if (!strncmp(argv[idx], "card=", 5)) {
 			card = atoi(argv[idx]+5);
 		} else if (!strncmp(argv[idx], "device=", 7)) {
@@ -78,8 +78,8 @@ int main(int argc, char *argv[])
 		}
 		idx++;
 	}
-	if (type == SND_TIMER_TYPE_SLAVE && stype == SND_TIMER_STYPE_NONE) {
-		fprintf(stderr, "sync_type is not set\n");
+	if (class == SND_TIMER_CLASS_SLAVE && sclass == SND_TIMER_SCLASS_NONE) {
+		fprintf(stderr, "slave class is not set\n");
 		exit(0);
 	}
 	if ((err = snd_timer_open(&handle))<0) {
@@ -88,22 +88,22 @@ int main(int argc, char *argv[])
 	}
 	if (list) {
 		bzero(&sel.id, sizeof(sel.id));
-		sel.id.type = -1;
+		sel.id.class = -1;
 		while (1) {
 			if ((err = snd_timer_next_device(handle, &sel.id)) < 0) {
 				fprintf(stderr, "timer next device error: %s\n", snd_strerror(err));
 				break;
 			}
-			if (sel.id.type < 0)
+			if (sel.id.class < 0)
 				break;
-			printf("Timer device: type %i, stype %i, card %i, device %i, subdevice %i\n",
-					sel.id.type, sel.id.stype, sel.id.card, sel.id.device, sel.id.subdevice);
+			printf("Timer device: class %i, sclass %i, card %i, device %i, subdevice %i\n",
+					sel.id.class, sel.id.sclass, sel.id.card, sel.id.device, sel.id.subdevice);
 		}
 	}
-	printf("Using timer type %i, slave type %i, card %i, device %i, subdevice %i\n", type, stype, card, device, subdevice);
+	printf("Using timer class %i, slave class %i, card %i, device %i, subdevice %i\n", class, sclass, card, device, subdevice);
 	bzero(&sel, sizeof(sel));
-	sel.id.type = type;
-	sel.id.stype = stype;
+	sel.id.class = class;
+	sel.id.sclass = sclass;
 	sel.id.card = card;
 	sel.id.device = device;
 	sel.id.subdevice = subdevice;
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "timer select %i (%s)\n", err, snd_strerror(err));
 		exit(0);
 	}
-	if (type != SND_TIMER_TYPE_SLAVE) {
+	if (class != SND_TIMER_CLASS_SLAVE) {
 		if ((err = snd_timer_info(handle, &info)) < 0) {
 			fprintf(stderr, "timer info %i (%s)\n", err, snd_strerror(err));
 			exit(0);
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "timer start %i (%s)\n", err, snd_strerror(err));
 		exit(0);
 	}
-	read_loop(handle, 25, type == SND_TIMER_TYPE_SLAVE ? 10000 : 1);
+	read_loop(handle, 25, class == SND_TIMER_CLASS_SLAVE ? 10000 : 1);
 	show_status(handle);
 	snd_timer_close(handle);
 	return 0;
