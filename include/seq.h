@@ -259,6 +259,9 @@ int snd_seq_port_info_get_synth_voices(const snd_seq_port_info_t *info);
 int snd_seq_port_info_get_read_use(const snd_seq_port_info_t *info);
 int snd_seq_port_info_get_write_use(const snd_seq_port_info_t *info);
 int snd_seq_port_info_get_port_specified(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_timestamping(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_timestamp_real(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_timestamp_queue(const snd_seq_port_info_t *info);
 
 void snd_seq_port_info_set_client(snd_seq_port_info_t *info, int client);
 void snd_seq_port_info_set_port(snd_seq_port_info_t *info, int port);
@@ -270,6 +273,9 @@ void snd_seq_port_info_set_midi_channels(snd_seq_port_info_t *info, int channels
 void snd_seq_port_info_set_midi_voices(snd_seq_port_info_t *info, int voices);
 void snd_seq_port_info_set_synth_voices(snd_seq_port_info_t *info, int voices);
 void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int val);
+void snd_seq_port_info_set_timestamping(snd_seq_port_info_t *info, int enable);
+void snd_seq_port_info_set_timestamp_real(snd_seq_port_info_t *info, int realtime);
+void snd_seq_port_info_set_timestamp_queue(snd_seq_port_info_t *info, int queue);
 
 int snd_seq_create_port(snd_seq_t *handle, snd_seq_port_info_t *info);
 int snd_seq_delete_port(snd_seq_t *handle, int port);
