@@ -31,6 +31,8 @@ typedef enum _snd_rawmidi_stream {
 #define SND_RAWMIDI_APPEND	1
 /** Non blocking mode \hideinitializer */
 #define SND_RAWMIDI_NONBLOCK	2
+/** Write sync mode \hideinitializer */
+#define SND_RAWMIDI_SYNC	4
 
 /** RawMidi handle */
 typedef struct _snd_rawmidi snd_rawmidi_t;

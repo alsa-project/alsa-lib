@@ -208,6 +208,10 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	if (mode & SND_RAWMIDI_NONBLOCK) {
 		fmode |= O_NONBLOCK;
 	}
+	
+	if (mode & SND_RAWMIDI_SYNC) {
+		fmode |= O_SYNC;
+	}
 
 	assert(!(mode & ~(SND_RAWMIDI_APPEND|SND_RAWMIDI_NONBLOCK)));
 
