@@ -292,6 +292,8 @@ static int input_put(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simp
 	if (simple->caps & SND_MIXER_SCTCAP_VOLUME) {
 		if (simple->present & MIXER_PRESENT_PLAYBACK_VOLUME) {
 			input_put_volume(handle, simple, control, "Playback ", simple->pvolume_values);
+			if (simple->present & MIXER_PRESENT_CAPTURE_VOLUME)
+				input_put_volume(handle, simple, control, "Capture ", simple->cvolume_values);
 		} else if (simple->present & MIXER_PRESENT_GLOBAL_VOLUME) {
 			input_put_volume(handle, simple, control, "", simple->gvolume_values);
 		}
