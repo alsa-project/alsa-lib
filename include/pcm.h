@@ -318,8 +318,8 @@ enum _snd_pcm_type {
 	SND_PCM_TYPE_DROUTE,
 	/** Loopback server plugin (not yet implemented) */
 	SND_PCM_TYPE_LBSERVER,
-	/** Surround plugin */
-	SND_PCM_TYPE_SURROUND,
+	/** LADSPA integration plugin */
+	SND_PCM_TYPE_LADSPA,
 };
 
 /** PCM type */
