@@ -74,23 +74,23 @@ void debug_start(snd_pcm_meter_scope_t *scope ATTRIBUTE_UNUSED)
 
 void debug_stop(snd_pcm_meter_scope_t *scope ATTRIBUTE_UNUSED)
 {
-	fprintf(stderr, "stop\n");
+	fprintf(stderr, "\nstop\n");
 }
 
 void debug_update(snd_pcm_meter_scope_t *scope ATTRIBUTE_UNUSED)
 {
 	snd_pcm_meter_t *meter = scope->pcm->private_data;
-	fprintf(stderr, "update %ld\r", meter->now);
+	fprintf(stderr, "update %08ld\r", meter->now);
 }
 
 void debug_reset(snd_pcm_meter_scope_t *scope ATTRIBUTE_UNUSED)
 {
-	fprintf(stderr, "reset\n");
+	fprintf(stderr, "\nreset\n");
 }
 
 void debug_close(snd_pcm_meter_scope_t *scope ATTRIBUTE_UNUSED)
 {
-	fprintf(stderr, "close\n");
+	fprintf(stderr, "\nclose\n");
 }
 
 snd_pcm_meter_scope_t debug_scope = {
@@ -278,8 +278,6 @@ static int snd_pcm_meter_close(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	int err = 0;
-	if (meter->close_slave)
-		err = snd_pcm_close(meter->slave);
 	meter->closed = 1;
 	pthread_mutex_lock(&meter->running_mutex);
 	pthread_cond_signal(&meter->running_cond);
@@ -289,6 +287,8 @@ static int snd_pcm_meter_close(snd_pcm_t *pcm)
 	pthread_mutex_destroy(&meter->update_mutex);
 	pthread_mutex_destroy(&meter->running_mutex);
 	pthread_cond_destroy(&meter->running_cond);
+	if (meter->close_slave)
+		err = snd_pcm_close(meter->slave);
 	free(meter);
 	return 0;
 }
