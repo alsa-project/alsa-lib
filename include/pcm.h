@@ -662,6 +662,7 @@ void snd_pcm_access_mask_copy(snd_pcm_access_mask_t *dst, const snd_pcm_access_m
 void snd_pcm_access_mask_none(snd_pcm_access_mask_t *mask);
 void snd_pcm_access_mask_any(snd_pcm_access_mask_t *mask);
 int snd_pcm_access_mask_test(const snd_pcm_access_mask_t *mask, snd_pcm_access_t val);
+int snd_pcm_access_mask_empty(const snd_pcm_access_mask_t *mask);
 void snd_pcm_access_mask_set(snd_pcm_access_mask_t *mask, snd_pcm_access_t val);
 void snd_pcm_access_mask_reset(snd_pcm_access_mask_t *mask, snd_pcm_access_t val);
 
