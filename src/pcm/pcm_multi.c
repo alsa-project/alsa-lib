@@ -408,7 +408,7 @@ static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 		snd_pcm_t *slave_i = multi->slaves[i].pcm;
 		snd_pcm_uframes_t f = pos[i] - frames;
 		if (f > 0)
-			snd_pcm_mmap_appl_forward(slave_i, f);
+			snd_pcm_mmap_forward(slave_i, f);
 	}
 	return frames;
 }

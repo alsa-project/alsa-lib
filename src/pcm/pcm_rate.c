@@ -419,106 +419,39 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 	return 0;
 }
 
-static snd_pcm_sframes_t snd_pcm_rate_write_areas(snd_pcm_t *pcm,
-					const snd_pcm_channel_area_t *areas,
-					snd_pcm_uframes_t client_offset,
-					snd_pcm_uframes_t client_size,
-					snd_pcm_uframes_t *slave_sizep)
+static snd_pcm_uframes_t
+snd_pcm_rate_write_areas(snd_pcm_t *pcm,
+			 const snd_pcm_channel_area_t *areas,
+			 snd_pcm_uframes_t offset,
+			 snd_pcm_uframes_t size,
+			 const snd_pcm_channel_area_t *slave_areas,
+			 snd_pcm_uframes_t slave_offset,
+			 snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_t *slave = rate->plug.slave;
-	snd_pcm_uframes_t client_xfer = 0;
-	snd_pcm_uframes_t slave_xfer = 0;
-	snd_pcm_sframes_t err = 0;
-	snd_pcm_uframes_t slave_size;
-	if (slave_sizep)
-		slave_size = *slave_sizep;
-	else
-		slave_size = INT_MAX;
-	assert(client_size > 0 && slave_size > 0);
-	while (client_xfer < client_size &&
-	       slave_xfer < slave_size) {
-		snd_pcm_uframes_t src_frames, dst_frames;
-		src_frames = client_size - client_xfer;
-		dst_frames = snd_pcm_mmap_playback_xfer(slave, slave_size - slave_xfer);
-		src_frames = rate->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-					&dst_frames, 
-					areas, client_offset, src_frames,
-					pcm->channels,
-					rate->get_idx, rate->put_idx,
-					rate->pitch, rate->states);
-		assert(src_frames || dst_frames);
-		if (dst_frames > 0) {
-			err = snd_pcm_mmap_forward(slave, dst_frames);
-			if (err < 0)
-				break;
-			assert((snd_pcm_uframes_t)err == dst_frames);
-			slave_xfer += dst_frames;
-		}
-
-		if (src_frames > 0) {
-			client_offset += src_frames;
-			client_xfer += src_frames;
-			snd_pcm_mmap_hw_forward(pcm, src_frames);
-		}
-	}
-	if (client_xfer > 0 || slave_xfer > 0) {
-		if (slave_sizep)
-			*slave_sizep = slave_xfer;
-		return client_xfer;
-	}
-	return err;
+	return rate->func(slave_areas, slave_offset, slave_sizep, 
+			  areas, offset, size,
+			  pcm->channels,
+			  rate->get_idx, rate->put_idx,
+			  rate->pitch, rate->states);
 }
 
-static snd_pcm_sframes_t snd_pcm_rate_read_areas(snd_pcm_t *pcm,
-						 const snd_pcm_channel_area_t *areas,
-						 snd_pcm_uframes_t client_offset,
-						 snd_pcm_uframes_t client_size,
-						 snd_pcm_uframes_t *slave_sizep)
-
+static snd_pcm_uframes_t
+snd_pcm_rate_read_areas(snd_pcm_t *pcm,
+			 const snd_pcm_channel_area_t *areas,
+			 snd_pcm_uframes_t offset,
+			 snd_pcm_uframes_t size,
+			 const snd_pcm_channel_area_t *slave_areas,
+			 snd_pcm_uframes_t slave_offset,
+			 snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_t *slave = rate->plug.slave;
-	snd_pcm_uframes_t client_xfer = 0;
-	snd_pcm_uframes_t slave_xfer = 0;
-	snd_pcm_sframes_t err = 0;
-	snd_pcm_uframes_t slave_size;
-	if (slave_sizep)
-		slave_size = *slave_sizep;
-	else
-		slave_size = INT_MAX;
-	assert(client_size > 0 && slave_size > 0);
-	while (client_xfer < client_size &&
-	       slave_xfer < slave_size) {
-		snd_pcm_uframes_t src_frames, dst_frames;
-		dst_frames = client_size - client_xfer;
-		src_frames = snd_pcm_mmap_capture_xfer(slave, slave_size - slave_xfer);
-		src_frames = rate->func(areas, client_offset, &dst_frames,
-					snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-					src_frames,
-					pcm->channels,
-					rate->get_idx, rate->put_idx,
-					rate->pitch, rate->states);
-		assert(src_frames || dst_frames);
-		if (src_frames > 0) {
-			err = snd_pcm_mmap_forward(slave, src_frames);
-			if (err < 0)
-				break;
-			assert((snd_pcm_uframes_t)err == src_frames);
-			slave_xfer += src_frames;
-		}
-		if (dst_frames > 0) {
-			client_offset += dst_frames;
-			client_xfer += dst_frames;
-			snd_pcm_mmap_hw_forward(pcm, dst_frames);
-		}
-	}
-	if (client_xfer > 0 || slave_xfer > 0) {
-		if (slave_sizep)
-			*slave_sizep = slave_xfer;
-		return client_xfer;
-	}
-	return err;
+	*slave_sizep = rate->func(areas, offset, &size,
+				  slave_areas, slave_offset, *slave_sizep,
+				  pcm->channels,
+				  rate->get_idx, rate->put_idx,
+				  rate->pitch, rate->states);
+	return size;
 }
 
 snd_pcm_sframes_t snd_pcm_rate_client_frames(snd_pcm_t *pcm, snd_pcm_sframes_t frames)

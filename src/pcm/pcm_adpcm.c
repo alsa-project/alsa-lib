@@ -452,74 +452,44 @@ static int snd_pcm_adpcm_init(snd_pcm_t *pcm)
 	return 0;
 }
 
-static snd_pcm_sframes_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
-					 const snd_pcm_channel_area_t *areas,
-					 snd_pcm_uframes_t offset,
-					 snd_pcm_uframes_t size,
-					 snd_pcm_uframes_t *slave_sizep)
+static snd_pcm_uframes_t
+snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
+			  const snd_pcm_channel_area_t *areas,
+			  snd_pcm_uframes_t offset,
+			  snd_pcm_uframes_t size,
+			  const snd_pcm_channel_area_t *slave_areas,
+			  snd_pcm_uframes_t slave_offset,
+			  snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_adpcm_t *adpcm = pcm->private_data;
-	snd_pcm_t *slave = adpcm->plug.slave;
-	snd_pcm_uframes_t xfer = 0;
-	snd_pcm_sframes_t err = 0;
-	if (slave_sizep && *slave_sizep < size)
+	if (size > *slave_sizep)
 		size = *slave_sizep;
-	assert(size > 0);
-	while (xfer < size) {
-		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
-		adpcm->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			    areas, offset, 
-			    pcm->channels, frames,
-			    adpcm->getput_idx, adpcm->states);
-		err = snd_pcm_mmap_forward(slave, frames);
-		if (err < 0)
-			break;
-		assert((snd_pcm_uframes_t)err == frames);
-		offset += err;
-		xfer += err;
-		snd_pcm_mmap_hw_forward(pcm, err);
-	}
-	if (xfer > 0) {
-		if (slave_sizep)
-			*slave_sizep = xfer;
-		return xfer;
-	}
-	return err;
+	adpcm->func(slave_areas, slave_offset,
+		    areas, offset, 
+		    pcm->channels, size,
+		    adpcm->getput_idx, adpcm->states);
+	*slave_sizep = size;
+	return size;
 }
 
-static snd_pcm_sframes_t snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
-					const snd_pcm_channel_area_t *areas,
-					snd_pcm_uframes_t offset,
-					snd_pcm_uframes_t size,
-					snd_pcm_uframes_t *slave_sizep)
+static snd_pcm_uframes_t
+snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
+			 const snd_pcm_channel_area_t *areas,
+			 snd_pcm_uframes_t offset,
+			 snd_pcm_uframes_t size,
+			 const snd_pcm_channel_area_t *slave_areas,
+			 snd_pcm_uframes_t slave_offset,
+			 snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_adpcm_t *adpcm = pcm->private_data;
-	snd_pcm_t *slave = adpcm->plug.slave;
-	snd_pcm_uframes_t xfer = 0;
-	snd_pcm_sframes_t err = 0;
-	if (slave_sizep && *slave_sizep < size)
+	if (size > *slave_sizep)
 		size = *slave_sizep;
-	assert(size > 0);
-	while (xfer < size) {
-		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
-		adpcm->func(areas, offset, 
-			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			    pcm->channels, frames,
-			    adpcm->getput_idx, adpcm->states);
-		err = snd_pcm_mmap_forward(slave, frames);
-		if (err < 0)
-			break;
-		assert((snd_pcm_uframes_t)err == frames);
-		offset += err;
-		xfer += err;
-		snd_pcm_mmap_hw_forward(pcm, err);
-	}
-	if (xfer > 0) {
-		if (slave_sizep)
-			*slave_sizep = xfer;
-		return xfer;
-	}
-	return err;
+	adpcm->func(areas, offset, 
+		    slave_areas, slave_offset,
+		    pcm->channels, size,
+		    adpcm->getput_idx, adpcm->states);
+	*slave_sizep = size;
+	return size;
 }
 
 static void snd_pcm_adpcm_dump(snd_pcm_t *pcm, snd_output_t *out)

@@ -1053,7 +1053,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		if (frames > (snd_pcm_uframes_t) avail)
 			frames = avail;
 		assert(frames != 0);
-		err = func(pcm, areas, offset, frames, 0);
+		err = func(pcm, areas, offset, frames);
 		if (err < 0)
 			break;
 		assert((snd_pcm_uframes_t)err == frames);
@@ -1130,7 +1130,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		if (frames > (snd_pcm_uframes_t) avail)
 			frames = avail;
 		assert(frames != 0);
-		err = func(pcm, areas, offset, frames, 0);
+		err = func(pcm, areas, offset, frames);
 		if (err < 0)
 			break;
 		assert((snd_pcm_uframes_t)err == frames);

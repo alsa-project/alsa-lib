@@ -19,11 +19,20 @@
  *
  */
   
+typedef snd_pcm_uframes_t (*snd_pcm_slave_xfer_areas_func_t)
+     (snd_pcm_t *pcm, 
+      const snd_pcm_channel_area_t *areas,
+      snd_pcm_uframes_t offset, 
+      snd_pcm_uframes_t size,
+      const snd_pcm_channel_area_t *slave_areas,
+      snd_pcm_uframes_t slave_offset, 
+      snd_pcm_uframes_t *slave_sizep);
+
 typedef struct {
 	snd_pcm_t *slave;
 	int close_slave;
-	snd_pcm_xfer_areas_func_t read;
-	snd_pcm_xfer_areas_func_t write;
+	snd_pcm_slave_xfer_areas_func_t read;
+	snd_pcm_slave_xfer_areas_func_t write;
 	snd_pcm_sframes_t (*client_frames)(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
 	snd_pcm_sframes_t (*slave_frames)(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
 	int (*init)(snd_pcm_t *pcm);

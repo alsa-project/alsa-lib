@@ -143,57 +143,69 @@ void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	*pcm->hw_ptr = hw_ptr;
 }
 
-snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
+snd_pcm_uframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 					   const snd_pcm_channel_area_t *areas,
 					   snd_pcm_uframes_t offset,
-					   snd_pcm_uframes_t size,
-					   snd_pcm_uframes_t *slave_sizep)
+					   snd_pcm_uframes_t size)
 {
-	snd_pcm_uframes_t xfer;
-	if (slave_sizep && *slave_sizep < size)
-		size = *slave_sizep;
-	xfer = 0;
-	while (xfer < size) {
-		snd_pcm_uframes_t frames = snd_pcm_mmap_playback_xfer(pcm, size - xfer);
-		snd_pcm_sframes_t err;
-		snd_pcm_areas_copy(snd_pcm_mmap_areas(pcm), snd_pcm_mmap_offset(pcm),
+	const snd_pcm_channel_area_t *pcm_areas;
+	snd_pcm_uframes_t pcm_offset;
+	snd_pcm_uframes_t xfer = size;
+	assert(snd_pcm_mmap_playback_avail(pcm) >= size);
+	pcm_areas = snd_pcm_mmap_areas(pcm);
+	pcm_offset = snd_pcm_mmap_offset(pcm);
+	while (size > 0) {
+		snd_pcm_uframes_t frames = size;
+		snd_pcm_uframes_t cont = pcm->buffer_size - pcm_offset;
+		int err;
+		if (frames > cont)
+			frames = cont;
+		snd_pcm_areas_copy(pcm_areas, pcm_offset,
 				   areas, offset, 
 				   pcm->channels, 
 				   frames, pcm->format);
 		err = snd_pcm_mmap_forward(pcm, frames);
 		assert(err == (snd_pcm_sframes_t)frames);
+		if (frames == cont)
+			pcm_offset = 0;
+		else
+			pcm_offset += frames;
 		offset += frames;
-		xfer += frames;
+		size -= frames;
 	}
-	if (slave_sizep)
-		*slave_sizep = xfer;
 	return xfer;
 }
 
-snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
+snd_pcm_uframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 					  const snd_pcm_channel_area_t *areas,
 					  snd_pcm_uframes_t offset,
-					  snd_pcm_uframes_t size,
-					  snd_pcm_uframes_t *slave_sizep)
+					  snd_pcm_uframes_t size)
 {
-	snd_pcm_uframes_t xfer;
-	if (slave_sizep && *slave_sizep < size)
-		size = *slave_sizep;
-	xfer = 0;
-	while (xfer < size) {
-		snd_pcm_uframes_t frames = snd_pcm_mmap_capture_xfer(pcm, size - xfer);
-		snd_pcm_sframes_t err;
+	const snd_pcm_channel_area_t *pcm_areas;
+	snd_pcm_uframes_t pcm_offset;
+	snd_pcm_uframes_t xfer = size;
+	assert(snd_pcm_mmap_capture_avail(pcm) >= size);
+	pcm_areas = snd_pcm_mmap_areas(pcm);
+	pcm_offset = snd_pcm_mmap_offset(pcm);
+	while (size > 0) {
+		snd_pcm_uframes_t frames = size;
+		snd_pcm_uframes_t cont = pcm->buffer_size - pcm_offset;
+		int err;
+		if (frames > cont)
+			frames = cont;
 		snd_pcm_areas_copy(areas, offset, 
-				   snd_pcm_mmap_areas(pcm), snd_pcm_mmap_offset(pcm),
+				   pcm_areas, pcm_offset,
 				   pcm->channels, 
 				   frames, pcm->format);
 		err = snd_pcm_mmap_forward(pcm, frames);
 		assert(err == (snd_pcm_sframes_t)frames);
+		if (frames == cont)
+			pcm_offset = 0;
+		else
+			pcm_offset += frames;
 		offset += frames;
-		xfer += frames;
+		size -= frames;
 	}
-	if (slave_sizep)
-		*slave_sizep = xfer;
 	return xfer;
 }
 
