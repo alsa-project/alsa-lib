@@ -269,7 +269,8 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_DRAIN) < 0) {
-		SYSERR("SNDRV_PCM_IOCTL_DRAIN failed");
+		if (errno != EAGAIN)
+			SYSERR("SNDRV_PCM_IOCTL_DRAIN failed");
 		return -errno;
 	}
 	return 0;
