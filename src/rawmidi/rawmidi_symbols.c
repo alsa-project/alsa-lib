@@ -21,9 +21,11 @@
 #ifndef PIC
 
 extern const char *_snd_module_rawmidi_hw;
+extern const char *_snd_module_rawmidi_virt;
 
 static const char **snd_rawmidi_open_objects[] = {
-	&_snd_module_rawmidi_hw
+	&_snd_module_rawmidi_hw,
+	&_snd_module_rawmidi_virt
 };
 	
 void *snd_rawmidi_open_symbols(void)

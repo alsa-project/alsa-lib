@@ -53,3 +53,7 @@ struct _snd_rawmidi {
 int snd_rawmidi_hw_open(snd_rawmidi_t **input, snd_rawmidi_t **output,
 			const char *name, int card, int device, int subdevice,
 			int mode);
+
+int snd_rawmidi_virt_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+			  const char *name, snd_seq_t *seq_handle, int port,
+			  int merge, int mode);
