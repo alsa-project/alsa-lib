@@ -161,9 +161,12 @@ static int snd_pcm_null_pause(snd_pcm_t *pcm, int enable)
 	if (enable) {
 		if (null->state != SND_PCM_STATE_RUNNING)
 			return -EBADFD;
-	} else if (null->state != SND_PCM_STATE_PAUSED)
-		return -EBADFD;
-	null->state = SND_PCM_STATE_PAUSED;
+		null->state = SND_PCM_STATE_PAUSED;
+	} else {
+		if (null->state != SND_PCM_STATE_PAUSED)
+			return -EBADFD;
+		null->state = SND_PCM_STATE_RUNNING;
+	}
 	return 0;
 }
 
