@@ -37,8 +37,10 @@ int snd_mixer_element_has_info(snd_mixer_eid_t *eid)
 	switch (eid->type) {
 	case SND_MIXER_ETYPE_INPUT:
 	case SND_MIXER_ETYPE_OUTPUT:
-	case SND_MIXER_ETYPE_CAPTURE:
-	case SND_MIXER_ETYPE_PLAYBACK:
+	case SND_MIXER_ETYPE_CAPTURE1:
+	case SND_MIXER_ETYPE_CAPTURE2:
+	case SND_MIXER_ETYPE_PLAYBACK1:
+	case SND_MIXER_ETYPE_PLAYBACK2:
 	case SND_MIXER_ETYPE_ADC:
 	case SND_MIXER_ETYPE_DAC:
 	case SND_MIXER_ETYPE_SWITCH3:
@@ -77,12 +79,12 @@ int snd_mixer_element_info_build(snd_mixer_t *handle, snd_mixer_element_info_t *
 		if ((err = snd_mixer_element_info(handle, element)) < 0)
 			return err;
 		break;
-	case SND_MIXER_ETYPE_CAPTURE:
-	case SND_MIXER_ETYPE_PLAYBACK:
-		element->data.pcm.devices_size = element->data.pcm.devices_over;
-		element->data.pcm.devices = element->data.pcm.devices_over = 0;
-		element->data.pcm.pdevices = (int *)malloc(element->data.pcm.devices_size * sizeof(int));
-		if (!element->data.pcm.pdevices)
+	case SND_MIXER_ETYPE_CAPTURE1:
+	case SND_MIXER_ETYPE_PLAYBACK1:
+		element->data.pcm1.devices_size = element->data.pcm1.devices_over;
+		element->data.pcm1.devices = element->data.pcm1.devices_over = 0;
+		element->data.pcm1.pdevices = (int *)malloc(element->data.pcm1.devices_size * sizeof(int));
+		if (!element->data.pcm1.pdevices)
 			return -ENOMEM;
 		if ((err = snd_mixer_element_info(handle, element)) < 0)
 			return err;
@@ -168,9 +170,9 @@ int snd_mixer_element_info_free(snd_mixer_element_info_t *element)
 	case SND_MIXER_ETYPE_OUTPUT:
 		safe_free((void **)&element->data.io.pvoices);
 		break;
-	case SND_MIXER_ETYPE_CAPTURE:
-	case SND_MIXER_ETYPE_PLAYBACK:
-		safe_free((void **)&element->data.pcm.pdevices);
+	case SND_MIXER_ETYPE_CAPTURE1:
+	case SND_MIXER_ETYPE_PLAYBACK1:
+		safe_free((void **)&element->data.pcm1.pdevices);
 		break;
 	case SND_MIXER_ETYPE_SWITCH3:
 		safe_free((void **)&element->data.switch3.pvoices);
