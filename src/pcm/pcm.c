@@ -20,6 +20,7 @@
  */
   
 #include <stdio.h>
+#include <string.h>
 #include <malloc.h>
 #include <errno.h>
 #include <sys/poll.h>
@@ -579,7 +580,7 @@ static assoc_t fmts[] = {
 static assoc_t starts[] = { START(GO), START(DATA), START(FULL), END };
 static assoc_t xruns[] = { XRUN(FLUSH), XRUN(DRAIN), END };
 static assoc_t fills[] = { FILL(NONE), FILL(SILENCE_WHOLE), FILL(SILENCE), END };
-static assoc_t onoff[] = { {0, "OFF"}, {1, "ON"}, {-1, "ON"}, END };
+static assoc_t onoff[] = { {0, "OFF", NULL}, {1, "ON", NULL}, {-1, "ON", NULL}, END };
 
 int snd_pcm_dump_setup(snd_pcm_t *pcm, int channel, FILE *fp)
 {
