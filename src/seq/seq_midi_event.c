@@ -120,7 +120,9 @@ static struct extra_event_list_t {
 	/*{SND_SEQ_EVENT_REGPARAM, extra_decode_rpn},*/
 };
 
+#ifndef DOC_HIDDEN
 #define numberof(ary)	(sizeof(ary)/sizeof(ary[0]))
+#endif
 
 /**
  * \brief Initialize MIDI event parser

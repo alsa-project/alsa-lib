@@ -32,6 +32,7 @@ do {\
  */
 #define SND_SEQ_NONBLOCK	1	/**< non-blocking mode */
 
+/** sequencer handle type */
 typedef enum _snd_seq_type {
 	SND_SEQ_TYPE_HW,		/**< hardware */
 	SND_SEQ_TYPE_SHM,		/**< shared memory (NYI) */
@@ -543,6 +544,7 @@ enum {
 	SND_SEQ_EVFLG_NOTE_ONEARG,
 	SND_SEQ_EVFLG_NOTE_TWOARG
 };
+
 enum {
 	SND_SEQ_EVFLG_QUEUE_NOARG,
 	SND_SEQ_EVFLG_QUEUE_TICK,
@@ -557,10 +559,11 @@ enum {
  */
 extern const unsigned int snd_seq_event_types[];
 
-#define _SND_SEQ_TYPE(x)	(1<<(x))	/* 24bit */
-#define _SND_SEQ_TYPE_OPT(x)	((x)<<24)	/* 8bit */
+#define _SND_SEQ_TYPE(x)	(1<<(x))	/**< master type - 24bit */
+#define _SND_SEQ_TYPE_OPT(x)	((x)<<24)	/**< optional type - 8bit */
 
-#define snd_seq_type_check(ev,x)	(snd_seq_event_types[(ev)->type] & _SND_SEQ_TYPE(x))
+/** check the event type */
+#define snd_seq_type_check(ev,x) (snd_seq_event_types[(ev)->type] & _SND_SEQ_TYPE(x))
 
 /** event type check: result events */
 #define snd_seq_ev_is_result_type(ev) \

@@ -11,6 +11,7 @@
  *  \{
  */
 
+/** IEC958 structure */
 typedef struct sndrv_aes_iec958 snd_aes_iec958_t;
 
 /** CTL card info container */
@@ -393,7 +394,6 @@ int snd_hctl_load(snd_hctl_t *hctl);
 int snd_hctl_free(snd_hctl_t *hctl);
 int snd_hctl_handle_events(snd_hctl_t *hctl);
 const char *snd_hctl_name(snd_hctl_t *hctl);
-snd_ctl_type_t snd_hctl_type(snd_hctl_t *hctl);
 int snd_hctl_wait(snd_hctl_t *hctl, int timeout);
 
 snd_hctl_elem_t *snd_hctl_elem_next(snd_hctl_elem_t *elem);

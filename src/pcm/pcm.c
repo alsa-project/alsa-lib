@@ -3473,7 +3473,9 @@ int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 	return 0;
 }
 
+#ifndef DOC_HIDDEN
 link_warning(snd_pcm_sw_params_set_start_mode, "Warning: start_mode is deprecated, consider to use start_threshold");
+#endif
 
 /**
  * \brief (DEPRECATED) Get start mode from a software configuration container
@@ -3487,8 +3489,9 @@ snd_pcm_start_t snd_pcm_sw_params_get_start_mode(const snd_pcm_sw_params_t *para
 	return params->start_threshold > 1024 * 1024 ? SND_PCM_START_EXPLICIT : SND_PCM_START_DATA;
 }
 
+#ifndef DOC_HIDDEN
 link_warning(snd_pcm_sw_params_get_start_mode, "Warning: start_mode is deprecated, consider to use start_threshold");
-
+#endif
 
 /**
  * \brief (DEPRECATED) Set xrun mode inside a software configuration container
@@ -3514,7 +3517,9 @@ int snd_pcm_sw_params_set_xrun_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_
 	return 0;
 }
 
+#ifndef DOC_HIDDEN
 link_warning(snd_pcm_sw_params_set_xrun_mode, "Warning: xrun_mode is deprecated, consider to use stop_threshold");
+#endif
 
 /**
  * \brief (DEPRECATED) Get xrun mode from a software configuration container
@@ -3528,7 +3533,9 @@ snd_pcm_xrun_t snd_pcm_sw_params_get_xrun_mode(const snd_pcm_sw_params_t *params
 	return params->stop_threshold > 1024 * 1024 ? SND_PCM_XRUN_NONE : SND_PCM_XRUN_STOP;
 }
 
+#ifndef DOC_HIDDEN
 link_warning(snd_pcm_sw_params_get_xrun_mode, "Warning: xrun_mode is deprecated, consider to use stop_threshold");
+#endif
 
 /**
  * \brief Set timestamp mode inside a software configuration container

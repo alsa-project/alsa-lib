@@ -1,3 +1,8 @@
+/**
+ * \file control/cards.c
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 1998-2001
+ */
 /*
  *  Control Interface - main file
  *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
@@ -28,9 +33,16 @@
 #include <sys/ioctl.h>
 #include "control_local.h"
 
+#ifndef DOC_HIDDEN
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
 #define SND_FILE_LOAD		"/dev/aloadC%i"
+#endif
 
+/**
+ * \brief Try to load the driver for a card.
+ * \param card Card number.
+ * \return 1 if driver is present, zero if driver is not present
+ */
 int snd_card_load(int card)
 {
 	int open_dev;
@@ -47,9 +59,19 @@ int snd_card_load(int card)
 		close (open_dev);
 		return 0;
 	}
-	return open_dev;
+	return open_dev ? 1 : 0;
 }
 
+/**
+ * \brief Try to determine the next card.
+ * \param rcard pointer to card number
+ * \result zero if success, otherwise a negative error code
+ *
+ * Tries to determine the next card from given card number.
+ * If card number is -1, then the first available card is
+ * returned. If the result card number is -1, no more cards
+ * are available.
+ */
 int snd_card_next(int *rcard)
 {
 	int card;
@@ -68,6 +90,14 @@ int snd_card_next(int *rcard)
 	return 0;
 }
 
+/**
+ * \brief Convert card string to an integer value.
+ * \param string String containing card identifier
+ * \return zero if success, otherwise a negative error code
+ *
+ * The accepted format is an integer value in ASCII representation
+ * or the card identifier (snd_id parameter for soundcard drivers).
+ */
 int snd_card_get_index(const char *string)
 {
 	int card;
@@ -101,6 +131,12 @@ int snd_card_get_index(const char *string)
 	return -ENODEV;
 }
 
+/**
+ * \brief Obtain the card name.
+ * \param card Card number
+ * \param name Result - card name corresponding to card number
+ * \result zero if success, otherwise a negative error code
+ */
 int snd_card_get_name(int card, char **name)
 {
 	snd_ctl_t *handle;
@@ -122,6 +158,12 @@ int snd_card_get_name(int card, char **name)
 	return 0;
 }
 
+/**
+ * \brief Obtain the card long name.
+ * \param card Card number
+ * \param name Result - card long name corresponding to card number
+ * \result zero if success, otherwise a negative error code
+ */
 int snd_card_get_longname(int card, char **name)
 {
 	snd_ctl_t *handle;

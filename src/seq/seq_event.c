@@ -6,8 +6,11 @@
 
 #include "../../include/asoundlib.h"
 
+#ifndef DOC_HIDDEN
 #define FIXED_EV(x)	(_SND_SEQ_TYPE(SND_SEQ_EVFLG_FIXED) | _SND_SEQ_TYPE(x))
+#endif
 
+/** Event types conversion array */
 const unsigned int snd_seq_event_types[256] = {
 	[SND_SEQ_EVENT_SYSTEM ... SND_SEQ_EVENT_RESULT]
 	= FIXED_EV(SND_SEQ_EVFLG_RESULT),

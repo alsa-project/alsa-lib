@@ -17,6 +17,7 @@
 extern "C" {
 #endif
 
+/** container for sequencer instrument header */
 typedef struct _snd_instr_header snd_instr_header_t;
 
 size_t snd_instr_header_sizeof(void);

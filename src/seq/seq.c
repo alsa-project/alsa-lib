@@ -1973,7 +1973,7 @@ int snd_seq_get_queue_usage(snd_seq_t *seq, int q)
 	return info.used;
 }
 
-/*
+/**
  * \brief Set the queue usage flag to the client
  * \param seq sequencer handle
  * \param q queue id

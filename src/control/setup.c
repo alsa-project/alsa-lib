@@ -72,6 +72,11 @@ static int free_elems(snd_sctl_t *h)
 	return err;
 }
 
+/**
+ * \brief Install given values to control elements
+ * \param h Setup control handle
+ * \result zero if success, otherwise a negative error code
+ */
 int snd_sctl_install(snd_sctl_t *h)
 {
 	struct list_head *pos;
@@ -165,6 +170,11 @@ int snd_sctl_install(snd_sctl_t *h)
 	return 0;
 }
 
+/**
+ * \brief Remove (restore) previous values from control elements
+ * \param h Setup control handle
+ * \result zero if success, otherwise a negative error code
+ */
 int snd_sctl_remove(snd_sctl_t *h)
 {
 	struct list_head *pos;
@@ -556,6 +566,15 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, void *private_data)
 	return err;
 }
 
+/**
+ * \brief Build setup control handle
+ * \param sctl Result - setup control handle
+ * \param handle Master control handle
+ * \param conf Setup configuration
+ * \param private_data Private data for runtime evaluation
+ * \param mode Build mode - SND_SCTL_xxxx
+ * \result zero if success, otherwise a negative error code
+ */
 int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf, void *private_data, int mode)
 {
 	snd_sctl_t *h;
@@ -589,6 +608,11 @@ int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf, voi
 	return 0;
 }
 
+/**
+ * \brief Free setup control handle
+ * \param sctl Setup control handle
+ * \result zero if success, otherwise a negative error code
+ */
 int snd_sctl_free(snd_sctl_t *sctl)
 {
 	assert(sctl);

@@ -2502,7 +2502,14 @@ static int _snd_config_evaluate(snd_config_t *src,
 	return 1;
 }
 
-
+/**
+ * \brief Evaluate a config node in runtime
+ * \param config source configuration node
+ * \param root root of the source configuration
+ * \param private_data private data for runtime evaluation
+ * \param result result configuration node
+ * \return zero if success, otherwise a negative error code
+ */
 int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
 		        void *private_data, snd_config_t **result)
 {

@@ -18,6 +18,7 @@
  */
 typedef unsigned char snd_seq_event_type_t;
 
+/** Sequencer event type */
 enum snd_seq_event_type {
 	/** system status; event data type = #snd_seq_result_t */
 	SND_SEQ_EVENT_SYSTEM = 0,

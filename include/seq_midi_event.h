@@ -11,6 +11,7 @@
  *  \{
  */
 
+/** container for sequencer midi event parsers */
 typedef struct snd_midi_event snd_midi_event_t;
 
 #ifdef __cplusplus

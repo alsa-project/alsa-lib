@@ -345,7 +345,6 @@ int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 	} else {
 		/* convert from the name */
 		snd_seq_client_info_t cinfo;
-		int len;
 
 		*p = 0;
 		if (len <= 0)
