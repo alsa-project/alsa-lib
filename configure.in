@@ -32,8 +32,8 @@ AC_HEADER_TIME
 
 dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
-AC_CHECK_FUNCS(hsearch_r)
-AM_CONDITIONAL(Have_hsearch_r, test x$ac_cv_func_hsearch_r = xyes)
+AC_CHECK_FUNC(hsearch_r, , [ COMPAT_SRCS="$COMPAT_SRCS hsearch_r.c" ])
+AC_SUBST(COMPAT_SRCS)
 
 ALSA_CHECK_DRIVER
 SAVE_LIBRARY_VERSION
