@@ -41,7 +41,6 @@ int snd_mixer_close(snd_mixer_t *mixer);
 int snd_mixer_info(snd_mixer_t *mixer, snd_mixer_info_t *info);
 snd_mixer_elem_t *snd_mixer_first_elem(snd_mixer_t *mixer);
 snd_mixer_elem_t *snd_mixer_last_elem(snd_mixer_t *mixer);
-size_t snd_mixer_elem_count(snd_mixer_t *mixer);
 int snd_mixer_handle_events(snd_mixer_t *mixer);
 int snd_mixer_attach(snd_mixer_t *mixer, const char *name);
 int snd_mixer_detach(snd_mixer_t *mixer, const char *name);

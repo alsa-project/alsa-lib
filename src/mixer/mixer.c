@@ -529,12 +529,6 @@ snd_mixer_elem_t *snd_mixer_elem_prev(snd_mixer_elem_t *elem)
 	return list_entry(elem->list.prev, snd_mixer_elem_t, list);
 }
 
-size_t snd_mixer_elem_count(snd_mixer_t *mixer)
-{
-	assert(mixer);
-	return mixer->count;
-}
-
 int snd_mixer_handle_events(snd_mixer_t *mixer)
 {
 	struct list_head *pos;
