@@ -218,14 +218,14 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 	char *res, *def = NULL;
 	int idx = 0, err;
 	
-	err = snd_config_search(src, "envname", &n);
+	err = snd_config_search(src, "vars", &n);
 	if (err < 0) {
-		SNDERR("field envname not found");
+		SNDERR("field vars not found");
 		goto __error;
 	}
 	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
-		SNDERR("error evaluating envname");
+		SNDERR("error evaluating vars");
 		goto __error;
 	}
 	err = snd_config_search(src, "default", &d);
