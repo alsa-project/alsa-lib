@@ -480,6 +480,7 @@ int snd_pcm_hw_params_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	snd_pcm_hw_params_t save;
 	int v;
 	unsigned int max1 = val, min2 = add(val, 1);
+	unsigned int hw_cmask;
 	save = *params;
 	v = snd_pcm_hw_params_max(pcm, params, var, max1);
 	if (v >= 0) {
@@ -501,7 +502,9 @@ int snd_pcm_hw_params_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		assert(v >= 0);
 	}
  _end:
+	hw_cmask = params->hw_cmask;
 	v = snd_pcm_hw_params_set(pcm, params, var, v);
+	params->hw_cmask |= hw_cmask;
 	assert(v >= 0);
 	return v;
 }
@@ -618,7 +621,7 @@ int snd_pcm_hw_params_info_fifo_size(const snd_pcm_hw_params_t *params)
 void snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	int err;
-	unsigned int hw_cmask = 0;
+	unsigned int hw_cmask = params->hw_cmask;
 
 	err = snd_pcm_hw_params_first(pcm, params, SND_PCM_HW_PARAM_ACCESS);
 	assert(err >= 0);
@@ -676,7 +679,9 @@ int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	int err;
-	params->hw_cmask = 0;
+	err = snd_pcm_hw_refine(pcm, params);
+	if (err < 0)
+		return err;
 	snd_pcm_hw_params_choose(pcm, params);
 	if (pcm->mmap_channels) {
 		err = snd_pcm_munmap(pcm);
