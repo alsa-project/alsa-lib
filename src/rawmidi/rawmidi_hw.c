@@ -28,6 +28,9 @@
 #include <sys/ioctl.h>
 #include "../control/control_local.h"
 #include "rawmidi_local.h"
+#ifdef SUPPORT_RESMGR
+#include <resmgr.h>
+#endif
 
 #ifndef PIC
 /* entry for static linking */
@@ -220,9 +223,19 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 
 	assert(!(mode & ~(SND_RAWMIDI_APPEND|SND_RAWMIDI_NONBLOCK|SND_RAWMIDI_SYNC)));
 
-	if ((fd = open(filename, fmode)) < 0) {
+#ifdef SUPPORT_RESMGR
+	fd = rsm_open_device(filename, fmode);
+#else
+	fd = open(filename, fmode);
+#endif
+	if (fd < 0) {
 		snd_card_load(card);
-		if ((fd = open(filename, fmode)) < 0) {
+#ifdef SUPPORT_RESMGR
+		fd = rsm_open_device(filename, fmode);
+#else
+		fd = open(filename, fmode);
+#endif
+		if (fd < 0) {
 			snd_ctl_close(ctl);
 			SYSERR("open %s failed", filename);
 			return -errno;

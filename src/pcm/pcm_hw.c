@@ -39,6 +39,9 @@
 #include <sys/shm.h>
 #include "pcm_local.h"
 #include "../control/control_local.h"
+#ifdef SUPPORT_RESMGR
+#include <resmgr.h>
+#endif
 
 //#define DEBUG_RW		/* use to debug readi/writei/readn/writen */
 //#define DEBUG_MMAP		/* debug mmap_commit */
@@ -1203,7 +1206,12 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		fmode |= O_NONBLOCK;
 	if (mode & SND_PCM_ASYNC)
 		fmode |= O_ASYNC;
-	if ((fd = open(filename, fmode)) < 0) {
+#ifdef SUPPORT_RESMGR
+	fd = rsm_open_device(filename, fmode);
+#else
+	fd = open(filename, fmode);
+#endif
+	if (fd < 0) {
 		ret = -errno;
 		SYSMSG("open %s failed", filename);
 		goto _err;

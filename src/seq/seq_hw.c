@@ -23,6 +23,9 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "seq_local.h"
+#ifdef SUPPORT_RESMGR
+#include <resmgr.h>
+#endif
 
 #ifndef PIC
 /* entry for static linking */
@@ -415,7 +418,7 @@ snd_seq_ops_t snd_seq_hw_ops = {
 int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 {
 	int fd, ver, client, fmode, ret;
-	char filename[32];
+	const char *filename;
 	snd_seq_t *seq;
 	snd_seq_hw_t *hw;
 
@@ -439,10 +442,26 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 	if (mode & SND_SEQ_NONBLOCK)
 		fmode |= O_NONBLOCK;
 
-	sprintf(filename, SNDRV_FILE_SEQ);
-	if ((fd = open(filename, fmode)) < 0) {
-		close(open(SNDRV_FILE_ALOADSEQ, O_RDWR));
-		if ((fd = open(filename, fmode)) < 0) {
+	filename = SNDRV_FILE_SEQ;
+#ifdef SUPPORT_RESMGR
+	fd = rsm_open_device(filename, fmode);
+#else
+	fd = open(filename, fmode);
+#endif
+	if (fd < 0) {
+#ifdef SUPPORT_RESMGR
+		fd = open(SNDRV_FILE_ALOADSEQ, O_RDWR);
+#else
+		fd = open(SNDRV_FILE_ALOADSEQ, fmode);
+#endif
+		if (fd >= 0)
+			close(fd);
+#ifdef SUPPORT_RESMGR
+		fd = rsm_open_device(filename, fmode);
+#else
+		fd = open(filename, fmode);
+#endif
+		if (fd < 0) {
 			SYSERR("open %s failed", filename);
 			return -errno;
 		}

@@ -26,6 +26,9 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "hwdep_local.h"
+#ifdef SUPPORT_RESMGR
+#include <resmgr.h>
+#endif
 
 #ifndef PIC
 /* entry for static linking */
@@ -115,9 +118,19 @@ int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int devi
 	if (card < 0 || card >= 32)
 		return -EINVAL;
 	sprintf(filename, SNDRV_FILE_HWDEP, card, device);
-	if ((fd = open(filename, mode)) < 0) {
+#ifdef SUPPORT_RESMGR
+	fd = rsm_open_device(filename, mode);
+#else
+	fd = open(filename, mode);
+#endif
+	if (fd < 0) {
 		snd_card_load(card);
-		if ((fd = open(filename, mode)) < 0)
+#ifdef SUPPORT_RESMGR
+		fd = rsm_open_device(filename, mode);
+#else
+		fd = open(filename, mode);
+#endif
+		if (fd < 0)
 			return -errno;
 	}
 #if 0

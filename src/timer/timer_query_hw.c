@@ -26,6 +26,9 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "timer_local.h"
+#ifdef SUPPORT_RESMGR
+#include <resmgr.h>
+#endif
 
 #ifndef PIC
 /* entry for static linking */
@@ -99,7 +102,12 @@ int snd_timer_query_hw_open(snd_timer_query_t **handle, const char *name, int mo
 	tmode = O_RDONLY;
 	if (mode & SND_TIMER_OPEN_NONBLOCK)
 		tmode |= O_NONBLOCK;	
-	if ((fd = open(SNDRV_FILE_TIMER, tmode)) < 0)
+#ifdef SUPPORT_RESMGR
+	fd = rsm_open_device(SNDRV_FILE_TIMER, tmode);
+#else
+	fd = open(SNDRV_FILE_TIMER, tmode);
+#endif
+	if (fd < 0)
 		return -errno;
 	if (ioctl(fd, SNDRV_TIMER_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
