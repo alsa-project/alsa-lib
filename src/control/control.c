@@ -431,7 +431,7 @@ int snd_ctl_rawmidi_input_switch_write(snd_ctl_t *handle, int dev, snd_switch_t 
 	return snd_ctl_rawmidi_channel_switch_write(handle, dev, SND_RAWMIDI_CHANNEL_INPUT, sw);
 }
 
-int snd_control_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
+int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
 {
 	snd_ctl_t *ctl;
 	int result, count;
