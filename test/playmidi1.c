@@ -73,6 +73,7 @@ static int source_channel = 0;
 static int source_port = 0;
 
 static int verbose = 0;
+static int slave   = 0;	
 
 #define VERB_INFO	1
 #define VERB_MUCH	2
@@ -188,14 +189,16 @@ static void do_header(int format, int ntracks, int division)
 		tempo.ppq = ppq;
 		if (snd_seq_set_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
     			perror("set_queue_tempo");
-    			exit(1);
+    			if (!slave)
+    				exit(1);
 		}
 		if (verbose >= VERB_INFO)
 			printf("ALSA Timer updated, PPQ = %d\n", tempo.ppq);
 	}
 
 	/* start playing... */
-	alsa_start_timer();
+	if (!slave)
+		alsa_start_timer();
 }
 
 /* fill normal event header */
@@ -475,6 +478,8 @@ static void usage(void)
 	fprintf(stderr, "  -v: verbose mode\n");
 	fprintf(stderr, "  -a queue:client:port : set destination address (default=%d:%d:%d)\n",
 		DEST_QUEUE_NUMBER, DEST_CLIENT_NUMBER, DEST_PORT_NUMBER);
+	fprintf(stderr, "  -s: slave mode (allow external clock synchronisation)\n");
+		
 }
 
 /* parse destination address (-a option) */
@@ -500,13 +505,16 @@ int main(int argc, char *argv[])
 	int tmp;
 	int c;
 
-	while ((c = getopt(argc, argv, "a:v")) != -1) {
+	while ((c = getopt(argc, argv, "sa:v")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose++;
 			break;
 		case 'a':
 			parse_address(optarg, &dest_queue, &dest_client, &dest_port);
+			break;
+		case 's':
+			slave = 1;
 			break;
 		default:
 			usage();
