@@ -2008,11 +2008,11 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
 	struct pollfd pfd;
 	unsigned short revents;
-	int err;
+	int err, err_poll;
 	err = snd_pcm_poll_descriptors(pcm, &pfd, 1);
 	assert(err == 1);
-	err = poll(&pfd, 1, timeout);
-	if (err < 0)
+	err_poll = poll(&pfd, 1, timeout);
+	if (err_poll < 0)
 		return -errno;
 	err = snd_pcm_poll_descriptors_revents(pcm, &pfd, 1, &revents);
 	if (err < 0)
@@ -2028,7 +2028,7 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 			return -EIO;
 		}
 	}
-	return err > 0 ? 1 : 0;
+	return err_pol > 0 ? 1 : 0;
 }
 
 /**
