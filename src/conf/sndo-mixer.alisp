@@ -108,6 +108,7 @@
 (defun sndo_mixer_close nil
   (sndo_mixer_close1 (nth 1 hctls) "c")
   (sndo_mixer_close1 (nth 0 hctls) "p")
+  (snd_card_alias_unset)
   (unsetq hctls)
 )
 

@@ -23,3 +23,7 @@
   (setq r (if (null r) cardname r))
   (unsetq r)
 )
+
+(defun snd_card_alias_unset ()
+  (unsetq snd_card_aliases_array snd_card_alias)
+)

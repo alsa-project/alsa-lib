@@ -3,7 +3,7 @@
  * \ingroup Mixer_ordinary
  * \brief Ordinary mixer interface
  * \author Jaroslav Kysela <perex@suse.cz>
- * \date 2003
+ * \date 2003,2004
  *
  * Ordinary mixer interface is a high level abtraction for soundcard's
  * mixing.
