@@ -779,6 +779,55 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
+int snd_pcm_route_determine_ttable(snd_config_t *tt,
+				   unsigned int *tt_csize,
+				   unsigned int *tt_ssize)
+{
+	snd_config_iterator_t i, inext;
+	long csize = 0, ssize = 0;
+	int err;
+
+	assert(tt && tt_csize && tt_ssize);
+	snd_config_for_each(i, inext, tt) {
+		snd_config_t *in = snd_config_iterator_entry(i);
+		snd_config_iterator_t j, jnext;
+		long cchannel;
+		const char *id;
+		if (!snd_config_get_id(in, &id) < 0)
+			continue;
+		err = safe_strtol(id, &cchannel);
+		if (err < 0) {
+			SNDERR("Invalid client channel: %s", id);
+			return -EINVAL;
+		}
+		if (cchannel + 1 > csize)
+			csize = cchannel + 1;
+		if (snd_config_get_type(in) != SND_CONFIG_TYPE_COMPOUND)
+			return -EINVAL;
+		snd_config_for_each(j, jnext, in) {
+			snd_config_t *jnode = snd_config_iterator_entry(j);
+			long schannel;
+			const char *id;
+			if (snd_config_get_id(jnode, &id) < 0)
+				continue;
+			err = safe_strtol(id, &schannel);
+			if (err < 0) {
+				SNDERR("Invalid slave channel: %s", id);
+				return -EINVAL;
+			}
+			if (schannel + 1 > ssize)
+				ssize = schannel + 1;
+		}
+	}
+	if (csize == 0 || ssize == 0) {
+		SNDERR("Invalid null ttable configuration");
+		return -EINVAL;
+	}
+	*tt_csize = csize;
+	*tt_ssize = ssize;
+	return 0;
+}
+
 /* this functions is used from pcm_plug.c */
 int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
 			      unsigned int tt_csize, unsigned int tt_ssize,
@@ -843,8 +892,6 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 	return 0;
 }
 
-#define MAX_CHANNELS 32
-
 int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)
@@ -856,7 +903,8 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int schannels = -1;
 	snd_config_t *tt = NULL;
-	snd_pcm_route_ttable_entry_t ttable[MAX_CHANNELS*MAX_CHANNELS];
+	snd_pcm_route_ttable_entry_t *ttable = NULL;
+	unsigned int csize, ssize;
 	unsigned int cused, sused;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -900,21 +948,35 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 
-	err = snd_pcm_route_load_ttable(tt, ttable, MAX_CHANNELS, MAX_CHANNELS,
+	err = snd_pcm_route_determine_ttable(tt, &csize, &ssize);
+	if (err < 0) {
+		snd_config_delete(sconf);
+		return err;
+	}
+	ttable = malloc(csize * ssize * sizeof(snd_pcm_route_ttable_entry_t));
+	if (ttable == NULL) {
+		snd_config_delete(sconf);
+		return -ENOMEM;
+	}
+	err = snd_pcm_route_load_ttable(tt, ttable, csize, ssize,
 					&cused, &sused, schannels);
 	if (err < 0) {
+		free(ttable);
 		snd_config_delete(sconf);
 		return err;
 	}
 
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
 	snd_config_delete(sconf);
-	if (err < 0)
+	if (err < 0) {
+		free(ttable);
 		return err;
+	}
 	err = snd_pcm_route_open(pcmp, name, sformat, schannels,
-				 ttable, MAX_CHANNELS,
+				 ttable, ssize,
 				 cused, sused,
 				 spcm, 1);
+	free(ttable);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
