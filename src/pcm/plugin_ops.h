@@ -789,14 +789,14 @@ static inline void _norms(const void *src, void *dst,
 	int32_t s;
 	switch (src_wid) {
 	case 8:
-		s = *(int8_t*)src;
+		s = *(int32_t*)src;
 		if (s >= 0x7f)
 			goto _max;
 		else if (s <= -0x80)
 			goto _min;
 		break;
 	case 16:
-		s = *(int16_t*)src;
+		s = *(int32_t*)src;
 		if (s >= 0x7fff)
 			goto _max;
 		else if (s <= -0x8000)
@@ -829,7 +829,7 @@ static inline void _norms(const void *src, void *dst,
 		s *= 1 << bits;
 	} else if (src_wid > dst_wid) {
 		unsigned int bits = src_wid - dst_wid;
-		s = (s + (1 << (bits - 1)))/ (1 << bits);
+		s = (s + (1 << (bits - 1))) / (1 << bits);
 	}
 	if (!dst_sign)
 		s += (1U << (dst_wid - 1));
