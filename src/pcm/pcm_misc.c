@@ -232,7 +232,7 @@ int snd_pcm_format_width(snd_pcm_format_t format)
 		return 64;
 	case SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE:
 	case SNDRV_PCM_FORMAT_IEC958_SUBFRAME_BE:
-		return 24;
+		return 32;
 	case SNDRV_PCM_FORMAT_MU_LAW:
 	case SNDRV_PCM_FORMAT_A_LAW:
 		return 8;
