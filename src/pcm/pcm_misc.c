@@ -357,7 +357,7 @@ ssize_t snd_pcm_format_set_silence(int format, void *data, size_t samples)
 		u_int8_t silence = snd_pcm_format_silence_64(format);
 		size_t samples1;
 		if (samples % 2 != 0)
-		  return -EINVAL;
+			return -EINVAL;
 		samples1 = samples / 2;
 		memset(data, silence, samples1);
 		break;
@@ -383,11 +383,12 @@ ssize_t snd_pcm_format_set_silence(int format, void *data, size_t samples)
 		u_int64_t silence = snd_pcm_format_silence_64(format);
 		while (samples-- > 0)
 			*((u_int64_t *)data)++ = silence;
+		break;
 	}
 	default:
 		return -EINVAL;
 	}
-	return samples;
+	return 0;
 }
 
 static int linear_formats[4*2*2] = {
