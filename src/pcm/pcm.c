@@ -1441,7 +1441,7 @@ int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm,
 	was_empty = list_empty(&pcm->async_handlers);
 	list_add_tail(&h->hlist, &pcm->async_handlers);
 	if (was_empty) {
-		err = snd_pcm_async(pcm, snd_async_signo(h), getpid());
+		err = snd_pcm_async(pcm, snd_async_handler_get_signo(h), getpid());
 		if (err < 0) {
 			snd_async_del_handler(h);
 			return err;

@@ -444,7 +444,7 @@ int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl,
 	was_empty = list_empty(&ctl->async_handlers);
 	list_add_tail(&h->hlist, &ctl->async_handlers);
 	if (was_empty) {
-		err = snd_ctl_async(ctl, snd_async_get_signo(h), getpid());
+		err = snd_ctl_async(ctl, snd_async_handler_get_signo(h), getpid());
 		if (err < 0) {
 			snd_async_del_handler(h);
 			return err;
