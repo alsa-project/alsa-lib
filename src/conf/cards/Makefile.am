@@ -15,7 +15,9 @@ cfg_files = aliases.conf \
 	RME9652.conf \
 	SI7018.conf \
 	TRID4DWAVENX.conf \
-	YMF744.conf
+	YMF744.conf \
+	VIA8233.conf \
+	VIA8233A.conf
 
 EXTRA_DIST = $(cfg_files)
 alsa_DATA = $(cfg_files)
