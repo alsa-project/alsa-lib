@@ -151,6 +151,7 @@ static int get_compare_weight(const char *name, unsigned int idx)
 		"Surround",
 		"Center",
 		"LFE",
+		"Side",
 		"Synth",
 		"FM",
 		"Wave",
