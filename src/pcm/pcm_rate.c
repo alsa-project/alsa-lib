@@ -397,6 +397,8 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	sparams.xfer_align = muldiv_near(sparams.xfer_align, slave->rate, pcm->rate);
 	sparams.silence_threshold = muldiv_near(sparams.silence_threshold, slave->rate, pcm->rate);
 	sparams.silence_size = muldiv_near(sparams.silence_size, slave->rate, pcm->rate);
+	sparams.start_threshold = muldiv_near(sparams.start_threshold, slave->rate, pcm->rate);
+	sparams.stop_threshold = muldiv_near(sparams.stop_threshold, slave->rate, pcm->rate);
 	return snd_pcm_sw_params(slave, &sparams);
 }
 
@@ -409,7 +411,7 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 		rate->states[k].sample = 0;
 		if (rate->func == snd_pcm_rate_expand) {
 			/* Get a sample on entry */
-			rate->states[k].pos = rate->pitch + DIV;
+			rate->states[k].pos = rate->pitch;
 		} else {
 			rate->states[k].pos = 0;
 		}
