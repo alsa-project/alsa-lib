@@ -48,6 +48,7 @@ to reduce overhead accessing the real controls in kernel drivers.
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <pthread.h>
 #ifndef DOC_HIDDEN
 #define __USE_GNU
 #endif
@@ -409,17 +410,26 @@ int snd_hctl_free(snd_hctl_t *hctl)
 	return 0;
 }
 
+static snd_hctl_t *compare_hctl;
+static int hctl_compare(const void *a, const void *b) {
+	return compare_hctl->compare(*(const snd_hctl_elem_t * const *) a,
+			     *(const snd_hctl_elem_t * const *) b);
+}
+
 static void snd_hctl_sort(snd_hctl_t *hctl)
 {
 	unsigned int k;
-	int compar(const void *a, const void *b) {
-		return hctl->compare(*(const snd_hctl_elem_t * const *) a,
-				     *(const snd_hctl_elem_t * const *) b);
-	}
+	static pthread_mutex_t sync_lock = PTHREAD_MUTEX_INITIALIZER;
+
 	assert(hctl);
 	assert(hctl->compare);
 	INIT_LIST_HEAD(&hctl->elems);
-	qsort(hctl->pelems, hctl->count, sizeof(*hctl->pelems), compar);
+
+	pthread_mutex_lock(&sync_lock);
+	compare_hctl = hctl;
+	qsort(hctl->pelems, hctl->count, sizeof(*hctl->pelems), hctl_compare);
+	pthread_mutex_unlock(&sync_lock);
+
 	for (k = 0; k < hctl->count; k++)
 		list_add_tail(&hctl->pelems[k]->list, &hctl->elems);
 }
