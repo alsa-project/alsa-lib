@@ -129,10 +129,11 @@ pcm.NAME {
     [rate INT]		# Slave rate (default nearest) or "unchanged"
   }
   route_policy STR	# route policy for automatic ttable generation
-			# STR can be 'sum', 'copy', 'duplicate'
-			# sum: result is sum of input channels (default)
+			# STR can be 'default', 'sum', 'copy', 'duplicate'
+			# sum: result is sum of input channels
 			# copy: only first channels are copied to destination
 			# duplicate: duplicate first set of channels
+			# default: copy policy, except for mono capture - sum
   ttable {	 	# Transfer table (bidimensional compound of 
 	        	# cchannels * schannels numbers)
     CCHANNEL {
