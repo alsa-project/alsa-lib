@@ -442,7 +442,7 @@ snd_pcm_sframes_t snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 		snd_atomic_write_begin(&plugin->watom);
 		snd_pcm_mmap_appl_forward(pcm, size);
 		snd_atomic_write_end(&plugin->watom);
-		return 0;
+		return size;
 	}
 	slave_size = snd_pcm_avail_update(slave);
 	if (slave_size < 0)
