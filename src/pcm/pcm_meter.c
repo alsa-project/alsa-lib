@@ -325,6 +325,12 @@ static int snd_pcm_meter_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_hwsync(meter->slave);
 }
 
+static int snd_pcm_meter_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	snd_pcm_meter_t *meter = pcm->private_data;
+	return INTERNAL(snd_pcm_hwptr)(meter->slave, hwptr);
+}
+
 static int snd_pcm_meter_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;

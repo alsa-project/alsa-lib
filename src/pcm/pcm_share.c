@@ -737,6 +737,36 @@ static int snd_pcm_share_hwsync(snd_pcm_t *pcm)
 	return err;
 }
 
+static int _snd_pcm_share_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	snd_pcm_share_t *share = pcm->private_data;
+	snd_pcm_share_slave_t *slave = share->slave;
+	switch (share->state) {
+	case SND_PCM_STATE_RUNNING:
+	case SND_PCM_STATE_DRAINING:
+	case SND_PCM_STATE_PREPARED:
+	case SND_PCM_STATE_PAUSED:
+	case SND_PCM_STATE_SUSPENDED:
+		*hwptr = *pcm->hw.ptr;
+		return 0;
+	case SND_PCM_STATE_XRUN:
+		return -EPIPE;
+	default:
+		return -EBADFD;
+	}
+}
+
+static int snd_pcm_share_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	snd_pcm_share_t *share = pcm->private_data;
+	snd_pcm_share_slave_t *slave = share->slave;
+	int err;
+	Pthread_mutex_lock(&slave->mutex);
+	err = _snd_pcm_share_hwptr(pcm, hwptr);
+	Pthread_mutex_unlock(&slave->mutex);
+	return err;
+}
+
 static int _snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_share_t *share = pcm->private_data;
@@ -1234,6 +1264,7 @@ static snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	status: snd_pcm_share_status,
 	state: snd_pcm_share_state,
 	hwsync: snd_pcm_share_hwsync,
+	hwptr: snd_pcm_share_hwptr,
 	delay: snd_pcm_share_delay,
 	prepare: snd_pcm_share_prepare,
 	reset: snd_pcm_share_reset,

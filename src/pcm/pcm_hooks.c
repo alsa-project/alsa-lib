@@ -122,6 +122,12 @@ static int snd_pcm_hooks_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_hwsync(h->slave);
 }
 
+static int snd_pcm_hooks_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	snd_pcm_hooks_t *h = pcm->private_data;
+	return INTERNAL(snd_pcm_hwptr)(h->slave, hwptr);
+}
+
 static int snd_pcm_hooks_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
@@ -299,6 +305,7 @@ static snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	status: snd_pcm_hooks_status,
 	state: snd_pcm_hooks_state,
 	hwsync: snd_pcm_hooks_hwsync,
+	hwptr: snd_pcm_hooks_hwptr,
 	delay: snd_pcm_hooks_delay,
 	prepare: snd_pcm_hooks_prepare,
 	reset: snd_pcm_hooks_reset,

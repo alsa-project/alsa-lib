@@ -105,6 +105,23 @@ static int snd_pcm_null_hwsync(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
+static int snd_pcm_null_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	switch (snd_pcm_state(pcm)) {
+	case SND_PCM_STATE_RUNNING:
+	case SND_PCM_STATE_DRAINING:
+	case SND_PCM_STATE_PREPARED:
+	case SND_PCM_STATE_PAUSED:
+	case SND_PCM_STATE_SUSPENDED:
+		*hwptr = *pcm->hw.ptr;
+		return 0;
+	case SND_PCM_STATE_XRUN:
+		return -EPIPE;
+	default:
+		return -EBADFD;
+	}
+}
+
 static int snd_pcm_null_delay(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sframes_t *delayp)
 {
 	*delayp = 0;
@@ -312,6 +329,7 @@ static snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	status: snd_pcm_null_status,
 	state: snd_pcm_null_state,
 	hwsync: snd_pcm_null_hwsync,
+	hwptr: snd_pcm_null_hwptr,
 	delay: snd_pcm_null_delay,
 	prepare: snd_pcm_null_prepare,
 	reset: snd_pcm_null_reset,

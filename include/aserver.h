@@ -50,6 +50,7 @@ typedef enum _snd_transport_type {
 #define SND_PCM_IOCTL_POLL_DESCRIPTOR	_IO ('A', 0xf8)
 #define SND_PCM_IOCTL_HW_PTR_FD		_IO ('A', 0xf9)
 #define SND_PCM_IOCTL_APPL_PTR_FD	_IO ('A', 0xfa)
+#define SND_PCM_IOCTL_HWPTR		_IO ('A', 0xfb)
 
 typedef struct {
 	snd_pcm_uframes_t ptr;
@@ -73,6 +74,9 @@ typedef struct {
 		snd_pcm_hw_params_t hw_params;
 		snd_pcm_sw_params_t sw_params;
 		snd_pcm_status_t status;
+		struct {
+			snd_pcm_uframes_t frames;
+		} hwptr;
 		struct {
 			snd_pcm_uframes_t frames;
 		} avail;

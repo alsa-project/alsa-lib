@@ -168,6 +168,12 @@ static int snd_pcm_file_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_hwsync(file->slave);
 }
 
+static int snd_pcm_file_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	return INTERNAL(snd_pcm_hwptr)(file->slave, hwptr);
+}
+
 static int snd_pcm_file_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -366,6 +372,9 @@ static int snd_pcm_file_hw_free(snd_pcm_t *pcm)
 static int snd_pcm_file_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_file_t *file = pcm->private_data;
+	/* we don't support mode without xrun detection */
+	if (params->stop_threshold >= params->boundary)
+		return -EINVAL;
 	return snd_pcm_sw_params(file->slave, params);
 }
 
@@ -413,6 +422,7 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	status: snd_pcm_file_status,
 	state: snd_pcm_file_state,
 	hwsync: snd_pcm_file_hwsync,
+	hwptr: snd_pcm_file_hwptr,
 	delay: snd_pcm_file_delay,
 	prepare: snd_pcm_file_prepare,
 	reset: snd_pcm_file_reset,

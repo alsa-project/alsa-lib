@@ -89,7 +89,7 @@ static int snd_pcm_multi_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock 
 static int snd_pcm_multi_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave_0 = multi->slaves[0].pcm;
+	snd_pcm_t *slave_0 = multi->slaves[multi->master_slave].pcm;
 	return snd_pcm_async(slave_0, sig, pid);
 }
 
@@ -340,28 +340,35 @@ static int snd_pcm_multi_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 static int snd_pcm_multi_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave = multi->slaves[0].pcm;
+	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
 	return snd_pcm_status(slave, status);
 }
 
 static snd_pcm_state_t snd_pcm_multi_state(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave = multi->slaves[0].pcm;
+	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
 	return snd_pcm_state(slave);
 }
 
 static int snd_pcm_multi_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave = multi->slaves[0].pcm;
+	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
 	return snd_pcm_hwsync(slave);
+}
+
+static int snd_pcm_multi_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
+	return INTERNAL(snd_pcm_hwptr)(slave, hwptr);
 }
 
 static int snd_pcm_multi_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave = multi->slaves[0].pcm;
+	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
 	return snd_pcm_delay(slave, delayp);
 }
 
@@ -602,6 +609,7 @@ static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	status: snd_pcm_multi_status,
 	state: snd_pcm_multi_state,
 	hwsync: snd_pcm_multi_hwsync,
+	hwptr: snd_pcm_multi_hwptr,
 	delay: snd_pcm_multi_delay,
 	prepare: snd_pcm_multi_prepare,
 	reset: snd_pcm_multi_reset,

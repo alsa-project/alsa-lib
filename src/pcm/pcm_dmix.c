@@ -954,7 +954,6 @@ static int snd_pcm_dmix_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	snd_pcm_dmix_t *dmix = pcm->private_data;
 	int err;
 	
-	assert(pcm && delayp);
 	switch(dmix->state) {
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
@@ -982,6 +981,25 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 		return snd_pcm_dmix_sync_ptr(pcm);
 	case SNDRV_PCM_STATE_PREPARED:
 	case SNDRV_PCM_STATE_SUSPENDED:
+		return 0;
+	case SNDRV_PCM_STATE_XRUN:
+		return -EPIPE;
+	default:
+		return -EBADFD;
+	}
+}
+
+static int snd_pcm_dmix_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	snd_pcm_dmix_t *dmix = pcm->private_data;
+
+	switch(dmix->state) {
+	case SNDRV_PCM_STATE_DRAINING:
+	case SNDRV_PCM_STATE_RUNNING:
+	case SNDRV_PCM_STATE_PREPARED:
+	case SNDRV_PCM_STATE_PAUSED:
+	case SNDRV_PCM_STATE_SUSPENDED:
+		*hwptr = *pcm->hw.ptr;
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
@@ -1206,6 +1224,7 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
 	status: snd_pcm_dmix_status,
 	state: snd_pcm_dmix_state,
 	hwsync: snd_pcm_dmix_hwsync,
+	hwptr: snd_pcm_dmix_hwptr,
 	delay: snd_pcm_dmix_delay,
 	prepare: snd_pcm_dmix_prepare,
 	reset: snd_pcm_dmix_reset,

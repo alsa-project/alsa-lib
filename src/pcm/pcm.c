@@ -869,6 +869,30 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
 }
 
 /**
+ * \brief Return hardware pointer
+ * \param pcm PCM handle
+ * \return 0 on success otherwise a negative error code
+ *
+ * The hardware pointer is in range 0 ... (boundary - 1). It contains
+ * count_of_ring_buffer_crosses * buffer_size + offset in the ring buffer.
+ *
+ * Note this function does not return the real hardware pointer.
+ * The function \link ::snd_pcm_hwsync \endlink have to be called
+ * before to obtain the real hardware position.
+ */
+#ifndef DOXYGEN
+int INTERNAL(snd_pcm_hwptr)(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+#else
+int snd_pcm_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+#endif
+{
+	assert(pcm);
+	assert(pcm->setup);
+	return pcm->fast_ops->hwptr(pcm->fast_op_arg, hwptr);
+}
+default_symbol_version(__snd_pcm_hwptr, snd_pcm_hwptr, ALSA_0.9.0rc8);
+
+/**
  * \brief Obtain delay for a running PCM handle
  * \param pcm PCM handle
  * \param delayp Returned delay in frames
@@ -5792,7 +5816,7 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
  * \brief Application request to access a portion of direct (mmap) area
  * \param pcm PCM handle 
  * \param areas Returned mmap channel areas
- * \param offset Returned mmap area offset in area steps (== frames)
+ * \param offset mmap area offset in area steps (== frames) (wanted on entry (see note), returned on exit)
  * \param frames mmap area portion size in frames (wanted on entry, contiguous available on exit)
  * \return 0 on success otherwise a negative error code
  *
@@ -5805,6 +5829,9 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
  *
  * See the snd_pcm_mmap_commit() function to finish the frame processing in
  * the direct areas.
+ *
+ * Note: The offset value is always overriden when stop_threshold < boundary.
+ *       Otherwise, the application must specify it's own offset value.
  * 
  */
 int snd_pcm_mmap_begin(snd_pcm_t *pcm,
@@ -5817,12 +5844,18 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 	snd_pcm_uframes_t avail;
 	assert(pcm && areas && offset && frames);
 	*areas = snd_pcm_mmap_areas(pcm);
-	*offset = *pcm->appl.ptr % pcm->buffer_size;
+	if (pcm->stop_threshold < pcm->boundary) {
+		*offset = *pcm->appl.ptr % pcm->buffer_size;
+		avail = snd_pcm_mmap_avail(pcm);
+		if (avail > pcm->buffer_size)
+			avail = pcm->buffer_size;
+	} else {
+		if (*offset >= pcm->buffer_size)
+			return -EINVAL;
+		avail = pcm->buffer_size;
+	}
 	cont = pcm->buffer_size - *offset;
 	f = *frames;
-	avail = snd_pcm_mmap_avail(pcm);
-	if (avail > pcm->buffer_size)
-		avail = pcm->buffer_size;
 	if (f > avail)
 		f = avail;
 	if (f > cont)

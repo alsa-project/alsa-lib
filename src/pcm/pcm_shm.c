@@ -451,6 +451,19 @@ static int snd_pcm_shm_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_shm_action(pcm);
 }
 
+static int snd_pcm_shm_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *uframes)
+{
+	snd_pcm_shm_t *shm = pcm->private_data;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->cmd = SND_PCM_IOCTL_HWPTR;
+	return snd_pcm_shm_action(pcm);
+	if (err < 0)
+		return err;
+	*uframes = ctrl->u.hwptr.frames;
+	return err;
+}
+
 static int snd_pcm_shm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
@@ -619,6 +632,7 @@ static snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	status: snd_pcm_shm_status,
 	state: snd_pcm_shm_state,
 	hwsync: snd_pcm_shm_hwsync,
+	hwptr: snd_pcm_shm_hwptr,
 	delay: snd_pcm_shm_delay,
 	prepare: snd_pcm_shm_prepare,
 	reset: snd_pcm_shm_reset,

@@ -199,6 +199,12 @@ int snd_pcm_plugin_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_hwsync(plugin->slave);
 }
 
+int snd_pcm_plugin_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	snd_pcm_plugin_t *plugin = pcm->private_data;
+	return INTERNAL(snd_pcm_hwptr)(plugin->slave, hwptr);
+}
+
 int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
@@ -626,6 +632,7 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	status: snd_pcm_plugin_status,
 	state: snd_pcm_plugin_state,
 	hwsync: snd_pcm_plugin_hwsync,
+	hwptr: snd_pcm_plugin_hwptr,
 	delay: snd_pcm_plugin_delay,
 	prepare: snd_pcm_plugin_prepare,
 	reset: snd_pcm_plugin_reset,

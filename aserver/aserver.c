@@ -471,6 +471,9 @@ static int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_HWSYNC:
 		ctrl->result = snd_pcm_hwsync(pcm);
 		break;
+	case SND_PCM_IOCTL_HWPTR:
+		ctrl->result = snd_pcm_hwptr(pcm, (snd_pcm_uframes_t *) &ctrl->u.hwptr.frames);
+		break;
 	case SNDRV_PCM_IOCTL_DELAY:
 		ctrl->result = snd_pcm_delay(pcm, (snd_pcm_sframes_t *) &ctrl->u.delay.frames);
 		break;

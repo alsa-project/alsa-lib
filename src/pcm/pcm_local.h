@@ -147,6 +147,7 @@ typedef struct {
 	int (*pause)(snd_pcm_t *pcm, int enable);
 	snd_pcm_state_t (*state)(snd_pcm_t *pcm);
 	int (*hwsync)(snd_pcm_t *pcm);
+	int (*hwptr)(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr);
 	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 	int (*resume)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
@@ -549,6 +550,8 @@ int snd_pcm_hw_param_get_max(const snd_pcm_hw_params_t *params,
 			     unsigned int *val, int *dir);
 
 #ifdef INTERNAL
+int INTERNAL(snd_pcm_hwptr)(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr);
+
 int INTERNAL(snd_pcm_hw_params_get_access)(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access);
 int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t access);
 int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t access);

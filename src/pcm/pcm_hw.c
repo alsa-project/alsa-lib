@@ -345,6 +345,9 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		hw->mmap_control->avail_min = params->avail_min;
 		return 0;
 	}
+	/* FIXME */
+	if (hw->mmap_shm && params->stop_threshold >= params->boundary)
+		return -EINVAL;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_SW_PARAMS, params) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_SW_PARAMS failed");
 		return -errno;
@@ -426,6 +429,23 @@ static int snd_pcm_hw_hwsync(snd_pcm_t *pcm)
 		}
 	}
 	return 0;
+}
+
+static int snd_pcm_hw_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+{
+	switch (snd_pcm_state(pcm)) {
+	case SND_PCM_STATE_RUNNING:
+	case SND_PCM_STATE_DRAINING:
+	case SND_PCM_STATE_PREPARED:
+	case SND_PCM_STATE_PAUSED:
+	case SND_PCM_STATE_SUSPENDED:
+		*hwptr = *pcm->hw.ptr;
+		return 0;
+	case SND_PCM_STATE_XRUN:
+		return -EPIPE;
+	default:
+		return -EBADFD;
+	}
 }
 
 static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
@@ -690,7 +710,7 @@ static int snd_pcm_hw_close(snd_pcm_t *pcm)
 }
 
 static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
-						snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						snd_pcm_uframes_t offset,
 						snd_pcm_uframes_t size)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
@@ -698,6 +718,12 @@ static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
 	if (hw->mmap_shm) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		    	snd_pcm_sframes_t result = 0, res;
+			snd_pcm_uframes_t last_offset;
+
+			/* FIXME */
+			last_offset = *pcm->appl.ptr - offset;
+			if (last_offset != offset)
+				return -EINVAL;
 
 			do {
 				res = snd_pcm_write_mmap(pcm, size);
@@ -793,6 +819,7 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	status: snd_pcm_hw_status,
 	state: snd_pcm_hw_state,
 	hwsync: snd_pcm_hw_hwsync,
+	hwptr: snd_pcm_hw_hwptr,
 	delay: snd_pcm_hw_delay,
 	prepare: snd_pcm_hw_prepare,
 	reset: snd_pcm_hw_reset,

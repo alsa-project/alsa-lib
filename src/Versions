@@ -6,6 +6,7 @@ ALSA_0.9 {
   local:
     *;
 };
+
 ALSA_0.9.0rc4 {
   global:
 
@@ -77,4 +78,11 @@ ALSA_0.9.0rc4 {
     snd_pcm_hw_params_set_tick_time_first;
     snd_pcm_hw_params_set_tick_time_last;
 
-}ALSA_0.9;
+} ALSA_0.9;
+
+ALSA_0.9.0rc8 {
+  global:
+
+    snd_pcm_hwptr;
+
+} ALSA_0.9.0rc4;
