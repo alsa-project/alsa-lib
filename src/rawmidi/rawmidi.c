@@ -35,6 +35,7 @@ struct snd_rawmidi {
 	int card;
 	int device;
 	int fd;
+	int mode;
 };
 
 int snd_rawmidi_open(snd_rawmidi_t **handle, int card, int device, int mode)
@@ -69,16 +70,15 @@ int snd_rawmidi_open(snd_rawmidi_t **handle, int card, int device, int mode)
 	rmidi->card = card;
 	rmidi->device = device;
 	rmidi->fd = fd;
+	rmidi->mode = mode;
 	*handle = rmidi;
 	return 0;
 }
 
-int snd_rawmidi_close(snd_rawmidi_t *handle)
+int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_t *rmidi;
 	int res;
 
-	rmidi = handle;
 	if (!rmidi)
 		return -EINVAL;
 	res = close(rmidi->fd) < 0 ? -errno : 0;
@@ -86,23 +86,21 @@ int snd_rawmidi_close(snd_rawmidi_t *handle)
 	return res;
 }
 
-int snd_rawmidi_file_descriptor(snd_rawmidi_t *handle)
+int snd_rawmidi_file_descriptor(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_t *rmidi;
-
-	rmidi = handle;
 	if (!rmidi)
 		return -EINVAL;
 	return rmidi->fd;
 }
 
-int snd_rawmidi_block_mode(snd_rawmidi_t *handle, int enable)
+int snd_rawmidi_block_mode(snd_rawmidi_t *rmidi, int enable)
 {
-	snd_rawmidi_t *rmidi;
 	long flags;
 
-	rmidi = handle;
 	if (!rmidi)
+		return -EINVAL;
+	if (rmidi->mode == SND_RAWMIDI_OPEN_OUTPUT_APPEND ||
+	    rmidi->mode == SND_RAWMIDI_OPEN_DUPLEX_APPEND)
 		return -EINVAL;
 	if ((flags = fcntl(rmidi->fd, F_GETFL)) < 0)
 		return -errno;
@@ -115,11 +113,8 @@ int snd_rawmidi_block_mode(snd_rawmidi_t *handle, int enable)
 	return 0;
 }
 
-int snd_rawmidi_info(snd_rawmidi_t *handle, snd_rawmidi_info_t * info)
+int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 {
-	snd_rawmidi_t *rmidi;
-
-	rmidi = handle;
 	if (!rmidi || !info)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_INFO, info) < 0)
@@ -127,11 +122,8 @@ int snd_rawmidi_info(snd_rawmidi_t *handle, snd_rawmidi_info_t * info)
 	return 0;
 }
 
-int snd_rawmidi_output_params(snd_rawmidi_t *handle, snd_rawmidi_output_params_t * params)
+int snd_rawmidi_output_params(snd_rawmidi_t *rmidi, snd_rawmidi_output_params_t * params)
 {
-	snd_rawmidi_t *rmidi;
-
-	rmidi = handle;
 	if (!rmidi || !params)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OUTPUT_PARAMS, params) < 0)
@@ -139,11 +131,8 @@ int snd_rawmidi_output_params(snd_rawmidi_t *handle, snd_rawmidi_output_params_t
 	return 0;
 }
 
-int snd_rawmidi_input_params(snd_rawmidi_t *handle, snd_rawmidi_input_params_t * params)
+int snd_rawmidi_input_params(snd_rawmidi_t *rmidi, snd_rawmidi_input_params_t * params)
 {
-	snd_rawmidi_t *rmidi;
-
-	rmidi = handle;
 	if (!rmidi || !params)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_INPUT_PARAMS, params) < 0)
@@ -151,11 +140,8 @@ int snd_rawmidi_input_params(snd_rawmidi_t *handle, snd_rawmidi_input_params_t *
 	return 0;
 }
 
-int snd_rawmidi_output_status(snd_rawmidi_t *handle, snd_rawmidi_output_status_t * status)
+int snd_rawmidi_output_status(snd_rawmidi_t *rmidi, snd_rawmidi_output_status_t * status)
 {
-	snd_rawmidi_t *rmidi;
-
-	rmidi = handle;
 	if (!rmidi || !status)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_OUTPUT_STATUS, status) < 0)
@@ -163,11 +149,8 @@ int snd_rawmidi_output_status(snd_rawmidi_t *handle, snd_rawmidi_output_status_t
 	return 0;
 }
 
-int snd_rawmidi_input_status(snd_rawmidi_t *handle, snd_rawmidi_input_status_t * status)
+int snd_rawmidi_input_status(snd_rawmidi_t *rmidi, snd_rawmidi_input_status_t * status)
 {
-	snd_rawmidi_t *rmidi;
-
-	rmidi = handle;
 	if (!rmidi || !status)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_INPUT_STATUS, status) < 0)
@@ -175,11 +158,8 @@ int snd_rawmidi_input_status(snd_rawmidi_t *handle, snd_rawmidi_input_status_t *
 	return 0;
 }
 
-int snd_rawmidi_drain_output(snd_rawmidi_t *handle)
+int snd_rawmidi_drain_output(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_t *rmidi;
-
-	rmidi = handle;
 	if (!rmidi)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_DRAIN_OUTPUT) < 0)
@@ -187,11 +167,8 @@ int snd_rawmidi_drain_output(snd_rawmidi_t *handle)
 	return 0;
 }
 
-int snd_rawmidi_flush_output(snd_rawmidi_t *handle)
+int snd_rawmidi_flush_output(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_t *rmidi;
-
-	rmidi = handle;
 	if (!rmidi)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_FLUSH_OUTPUT) < 0)
@@ -199,11 +176,8 @@ int snd_rawmidi_flush_output(snd_rawmidi_t *handle)
 	return 0;
 }
 
-int snd_rawmidi_flush_input(snd_rawmidi_t *handle)
+int snd_rawmidi_flush_input(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_t *rmidi;
-
-	rmidi = handle;
 	if (!rmidi)
 		return -EINVAL;
 	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_FLUSH_INPUT) < 0)
@@ -211,12 +185,10 @@ int snd_rawmidi_flush_input(snd_rawmidi_t *handle)
 	return 0;
 }
 
-ssize_t snd_rawmidi_write(snd_rawmidi_t *handle, const void *buffer, size_t size)
+ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
 {
-	snd_rawmidi_t *rmidi;
 	ssize_t result;
 
-	rmidi = handle;
 	if (!rmidi || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
 	result = write(rmidi->fd, buffer, size);
@@ -225,12 +197,10 @@ ssize_t snd_rawmidi_write(snd_rawmidi_t *handle, const void *buffer, size_t size
 	return result;
 }
 
-ssize_t snd_rawmidi_read(snd_rawmidi_t *handle, void *buffer, size_t size)
+ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
 {
-	snd_rawmidi_t *rmidi;
 	ssize_t result;
 
-	rmidi = handle;
 	if (!rmidi || (!buffer && size > 0) || size < 0)
 		return -EINVAL;
 	result = read(rmidi->fd, buffer, size);

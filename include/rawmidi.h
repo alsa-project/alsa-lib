@@ -6,8 +6,11 @@
  ****************************************************************************/
 
 #define SND_RAWMIDI_OPEN_OUTPUT		(O_WRONLY)
+#define SND_RAWMIDI_OPEN_OUTPUT_APPEND	(O_WRONLY|O_APPEND|O_NONBLOCK)
 #define SND_RAWMIDI_OPEN_INPUT		(O_RDONLY)
 #define SND_RAWMIDI_OPEN_DUPLEX		(O_RDWR)
+#define SND_RAWMIDI_OPEN_DUPLEX_APPEND	(O_RDWR|O_APPEND|O_NONBLOCK)
+#define SND_RAWMIDI_OPEN_NONBLOCK	(O_NONBLOCK)
 
 #ifdef __cplusplus
 extern "C" {
