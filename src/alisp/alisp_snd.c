@@ -97,6 +97,46 @@ static const void *get_ptr(struct alisp_object * obj, const char *_ptr_id)
 	return get_pointer(cdr(obj));
 }
 
+static struct alisp_object * new_lexpr(struct alisp_instance * instance, int err)
+{
+	struct alisp_object * lexpr;
+
+	lexpr = new_object(instance, ALISP_OBJ_CONS);
+	if (lexpr == NULL)
+		return NULL;
+	lexpr->value.c.car = new_integer(instance, err);
+	if (lexpr->value.c.car == NULL)
+		return NULL;
+	lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
+	if (lexpr->value.c.cdr == NULL)
+		return NULL;
+	return lexpr;
+}
+
+static struct alisp_object * add_cons(struct alisp_instance * instance, struct alisp_object *lexpr, int cdr, const char *id, struct alisp_object *obj)
+{
+	struct alisp_object * p1;
+
+	if (lexpr == NULL || obj == NULL)
+		return NULL;
+	if (cdr) {
+		p1 = lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
+	} else {
+		p1 = lexpr->value.c.car = new_object(instance, ALISP_OBJ_CONS);
+	}
+	lexpr = p1;
+	if (p1 == NULL)
+		return NULL;
+	p1->value.c.car = new_object(instance, ALISP_OBJ_CONS);
+	if ((p1 = p1->value.c.car) == NULL)
+		return NULL;
+	p1->value.c.car = new_string(instance, id);
+	if (p1->value.c.car == NULL)
+		return NULL;
+	p1->value.c.cdr = obj;
+	return lexpr;
+}
+
 static inline struct alisp_object * new_result(struct alisp_instance * instance, int err)
 {
 	return new_integer(instance, err);
@@ -114,17 +154,40 @@ static struct alisp_object * new_result1(struct alisp_instance * instance, int e
 	lexpr->value.c.car = new_integer(instance, err);
 	if (lexpr->value.c.car == NULL)
 		return NULL;
-	p1 = lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
+	p1 = add_cons(instance, lexpr, 1, ptr_id, new_pointer(instance, ptr));
 	if (p1 == NULL)
 		return NULL;
-	p1->value.c.car = new_object(instance, ALISP_OBJ_CONS);
-	if ((p1 = p1->value.c.car) == NULL)
+	return lexpr;
+}
+
+static struct alisp_object * new_result2(struct alisp_instance * instance, int err, int val)
+{
+	struct alisp_object * lexpr, * p1;
+
+	if (err < 0)
+		val = 0;
+	lexpr = new_lexpr(instance, err);
+	if (lexpr == NULL)
 		return NULL;
-	p1->value.c.car = new_string(instance, ptr_id);
+	p1 = lexpr->value.c.cdr;
+	p1->value.c.car = new_integer(instance, val);
 	if (p1->value.c.car == NULL)
 		return NULL;
-	p1->value.c.cdr = new_pointer(instance, ptr);
-	if (p1->value.c.cdr == NULL)
+	return lexpr;
+}
+
+static struct alisp_object * new_result3(struct alisp_instance * instance, int err, const char *str)
+{
+	struct alisp_object * lexpr, * p1;
+
+	if (err < 0)
+		str = "";
+	lexpr = new_lexpr(instance, err);
+	if (lexpr == NULL)
+		return NULL;
+	p1 = lexpr->value.c.cdr;
+	p1->value.c.car = new_string(instance, str);
+	if (p1->value.c.car == NULL)
 		return NULL;
 	return lexpr;
 }
@@ -140,6 +203,9 @@ static struct alisp_object * new_result1(struct alisp_instance * instance, int e
 typedef int (*snd_xxx_open_t)(void **rctl, const char *name, int mode);
 typedef int (*snd_xxx_open1_t)(void **rctl, void *handle);
 typedef int (*snd_xxx_close_t)(void **rctl);
+typedef int (*snd_int_intp_t)(int *val);
+typedef int (*snd_int_str_t)(const char *str);
+typedef int (*snd_int_int_strp_t)(int val, char **str);
 
 static struct alisp_object * FA_xxx_open(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
@@ -187,11 +253,78 @@ static struct alisp_object * FA_xxx_close(struct alisp_instance * instance, stru
 	return new_result(instance, ((snd_xxx_close_t)item->xfunc)(handle));
 }
 
+static struct alisp_object * FA_int_intp(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	int val, err;
+
+	args = eval(instance, args);
+	if (args->type != ALISP_OBJ_INTEGER)
+		return &alsa_lisp_nil;
+	val = args->value.i;
+	err = ((snd_int_intp_t)item->xfunc)(&val);
+	return new_result2(instance, err, val);
+}
+
+static struct alisp_object * FA_int_str(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	int err;
+
+	args = eval(instance, args);
+	if (args->type != ALISP_OBJ_STRING && args->type != ALISP_OBJ_IDENTIFIER)
+		return &alsa_lisp_nil;
+	err = ((snd_int_str_t)item->xfunc)(args->value.s);
+	return new_result(instance, err);
+}
+
+static struct alisp_object * FA_int_int_strp(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	int err;
+	char *str;
+
+	args = eval(instance, args);
+	if (args->type != ALISP_OBJ_INTEGER)
+		return &alsa_lisp_nil;
+	err = ((snd_int_int_strp_t)item->xfunc)(args->value.i, &str);
+	return new_result3(instance, err, str);
+}
+
+static struct alisp_object * FA_card_info(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	snd_ctl_t *handle;
+	struct alisp_object * lexpr, * p1;
+	snd_ctl_card_info_t *info;
+	int err;
+
+	args = eval(instance, args);
+	handle = (snd_ctl_t *)get_ptr(args, item->prefix);
+	if (handle == NULL)
+		return &alsa_lisp_nil;
+	snd_ctl_card_info_alloca(&info);
+	err = snd_ctl_card_info(handle, info);
+	lexpr = new_lexpr(instance, err);
+	if (err < 0)
+		return lexpr;
+	p1 = add_cons(instance, lexpr->value.c.cdr, 0, "id", new_string(instance, snd_ctl_card_info_get_id(info)));
+	p1 = add_cons(instance, p1, 1, "driver", new_string(instance, snd_ctl_card_info_get_driver(info)));
+	p1 = add_cons(instance, p1, 1, "name", new_string(instance, snd_ctl_card_info_get_name(info)));
+	p1 = add_cons(instance, p1, 1, "longname", new_string(instance, snd_ctl_card_info_get_longname(info)));
+	p1 = add_cons(instance, p1, 1, "mixername", new_string(instance, snd_ctl_card_info_get_mixername(info)));
+	p1 = add_cons(instance, p1, 1, "components", new_string(instance, snd_ctl_card_info_get_components(info)));
+	if (p1 == NULL)
+		return NULL;
+	return lexpr;
+}
+
 /*
  *  main code
  */
 
 static struct acall_table acall_table[] = {
+	{ "card_get_index", &FA_int_str, (void *)snd_card_get_index, NULL },
+	{ "card_get_longname", &FA_int_int_strp, (void *)snd_card_get_longname, NULL },
+	{ "card_get_name", &FA_int_int_strp, (void *)snd_card_get_name, NULL },
+	{ "card_next", &FA_int_intp, (void *)&snd_card_next, NULL },
+	{ "ctl_card_info", &FA_card_info, NULL, "ctl" },
 	{ "ctl_close", &FA_xxx_close, (void *)&snd_ctl_close, "ctl" },
 	{ "ctl_open", &FA_xxx_open, (void *)&snd_ctl_open, "ctl" },
 	{ "hctl_close", &FA_xxx_close, (void *)&snd_hctl_close, "hctl" },
@@ -223,6 +356,22 @@ static struct alisp_object * F_acall(struct alisp_instance *instance, struct ali
 	return &alsa_lisp_nil;
 }
 
+static struct alisp_object * F_ahandle(struct alisp_instance *instance ATTRIBUTE_UNUSED, struct alisp_object * args)
+{
+	return car(cdr(eval(instance, car(args))));
+}
+
+static struct alisp_object * F_aerror(struct alisp_instance *instance, struct alisp_object * args)
+{
+	args = car(eval(instance, car(args)));
+	if (args == &alsa_lisp_nil)
+		return new_integer(instance, SND_ERROR_ALISP_NIL);
+	return args;
+}
+
 static struct intrinsic snd_intrinsics[] = {
 	{ "acall", F_acall },
+	{ "aerror", F_aerror },
+	{ "ahandle", F_ahandle },
+	{ "aresult", F_ahandle },
 };

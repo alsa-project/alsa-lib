@@ -1350,7 +1350,7 @@ static inline int eq(struct alisp_object * p1, struct alisp_object * p2)
 
 static int equal(struct alisp_object * p1, struct alisp_object * p2)
 {
-	if (eq(p1, p1))
+	if (eq(p1, p2))
 		return 1;
 
 	if (p1->type == ALISP_OBJ_CONS || p2->type == ALISP_OBJ_CONS)

@@ -649,22 +649,6 @@ int snd_ctl_open_lconf(snd_ctl_t **ctlp, const char *name,
 	return snd_ctl_open_noupdate(ctlp, lconf, name, mode);
 }
 
-/**
- * \brief Set CTL element #SND_CTL_ELEM_TYPE_BYTES value
- * \param ctl CTL handle
- * \param data Bytes value
- * \param size Size in bytes
- */
-void snd_ctl_elem_set_bytes(snd_ctl_elem_value_t *obj, void *data, size_t size)
-{
-	assert(obj);
-	if (size >= sizeof(obj->value.bytes.data)) {
-		assert(0);
-		return;
-	}
-	memcpy(obj->value.bytes.data, data, size);
-}
-
 #ifndef DOC_HIDDEN
 #define TYPE(v) [SND_CTL_ELEM_TYPE_##v] = #v
 #define IFACE(v) [SND_CTL_ELEM_IFACE_##v] = #v
@@ -2209,6 +2193,22 @@ void snd_ctl_elem_value_set_byte(snd_ctl_elem_value_t *obj, unsigned int idx, un
 {
 	assert(obj);
 	obj->value.bytes.data[idx] = val;
+}
+
+/**
+ * \brief Set CTL element #SND_CTL_ELEM_TYPE_BYTES value
+ * \param ctl CTL handle
+ * \param data Bytes value
+ * \param size Size in bytes
+ */
+void snd_ctl_elem_set_bytes(snd_ctl_elem_value_t *obj, void *data, size_t size)
+{
+	assert(obj);
+	if (size >= sizeof(obj->value.bytes.data)) {
+		assert(0);
+		return;
+	}
+	memcpy(obj->value.bytes.data, data, size);
 }
 
 /**

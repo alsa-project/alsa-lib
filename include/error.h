@@ -40,6 +40,7 @@ extern "C" {
 
 #define SND_ERROR_BEGIN				500000			/**< Lower boundary of sound error codes. */
 #define SND_ERROR_INCOMPATIBLE_VERSION		(SND_ERROR_BEGIN+0)	/**< Kernel/library protocols are not compatible. */
+#define SND_ERROR_ALISP_NIL			(SND_ERROR_BEGIN+1)	/**< Lisp encountered an error during acall. */
 
 const char *snd_strerror(int errnum);
 

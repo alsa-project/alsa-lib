@@ -232,7 +232,6 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout);
 const char *snd_ctl_name(snd_ctl_t *ctl);
 snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl);
 
-void snd_ctl_elem_set_bytes(snd_ctl_elem_value_t *obj, void *data, size_t size);
 const char *snd_ctl_elem_type_name(snd_ctl_elem_type_t type);
 const char *snd_ctl_elem_iface_name(snd_ctl_elem_iface_t iface);
 const char *snd_ctl_event_type_name(snd_ctl_event_type_t type);
@@ -402,6 +401,7 @@ void snd_ctl_elem_value_set_integer(snd_ctl_elem_value_t *obj, unsigned int idx,
 void snd_ctl_elem_value_set_integer64(snd_ctl_elem_value_t *obj, unsigned int idx, long long val);
 void snd_ctl_elem_value_set_enumerated(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned int val);
 void snd_ctl_elem_value_set_byte(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned char val);
+void snd_ctl_elem_set_bytes(snd_ctl_elem_value_t *obj, void *data, size_t size);
 const void * snd_ctl_elem_value_get_bytes(const snd_ctl_elem_value_t *obj);
 void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec958_t *ptr);
 void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec958_t *ptr);
