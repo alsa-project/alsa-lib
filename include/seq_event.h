@@ -93,7 +93,7 @@ enum snd_seq_event_type {
 	SND_SEQ_EVENT_OSS,
 
 	/** New client has connected; event data type = #snd_seq_addr_t */
-	SND_SEQ_EVENT_CLIENT_START,
+	SND_SEQ_EVENT_CLIENT_START = 60,
 	/** Client has left the system; event data type = #snd_seq_addr_t */
 	SND_SEQ_EVENT_CLIENT_EXIT,
 	/** Client status/info has changed; event data type = #snd_seq_addr_t */
