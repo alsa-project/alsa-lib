@@ -80,6 +80,8 @@ int snd_seq_system_info_get_queues(const snd_seq_system_info_t *info);
 int snd_seq_system_info_get_clients(const snd_seq_system_info_t *info);
 int snd_seq_system_info_get_ports(const snd_seq_system_info_t *info);
 int snd_seq_system_info_get_channels(const snd_seq_system_info_t *info);
+int snd_seq_system_info_get_cur_clients(const snd_seq_system_info_t *info);
+int snd_seq_system_info_get_cur_queues(const snd_seq_system_info_t *info);
 
 int snd_seq_system_info(snd_seq_t *handle, snd_seq_system_info_t *info);
 

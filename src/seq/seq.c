@@ -500,6 +500,27 @@ int snd_seq_system_info_get_channels(const snd_seq_system_info_t *info)
 	return info->channels;
 }
 
+/**
+ * \brief Get the current number of clients
+ * \param info #snd_seq_system_info_t container
+ * \return current number of clients
+ */
+int snd_seq_system_info_get_cur_clients(const snd_seq_system_info_t *info)
+{
+	assert(info);
+	return info->cur_clients;
+}
+
+/**
+ * \brief Get the current number of queues
+ * \param info #snd_seq_system_info_t container
+ * \return current number of queues
+ */
+int snd_seq_system_info_get_cur_queues(const snd_seq_system_info_t *info)
+{
+	assert(info);
+	return info->cur_queues;
+}
 
 /**
  * \brief obtain the sequencer system information
