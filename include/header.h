@@ -39,7 +39,7 @@
 #define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 #endif
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 95)
 #define SNDERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, __VA_ARGS__)
 #define SYSERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, __VA_ARGS__)
 #else
