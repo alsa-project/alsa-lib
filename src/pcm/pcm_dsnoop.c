@@ -185,7 +185,7 @@ static snd_pcm_state_t snd_pcm_dsnoop_state(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	switch (snd_pcm_state(dsnoop->spcm)) {
 	case SND_PCM_STATE_SUSPENDED:
-		return -ESTRPIPE;
+		return SND_PCM_STATE_SUSPENDED;
 	case SND_PCM_STATE_DISCONNECTED:
 		dsnoop->state = SNDRV_PCM_STATE_DISCONNECTED;
 		return -ENOTTY;
@@ -349,10 +349,10 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	return frames;
 }
 
-static int snd_pcm_dsnoop_resume(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+static int snd_pcm_dsnoop_resume(snd_pcm_t *pcm)
 {
-	// snd_pcm_direct_t *dsnoop = pcm->private_data;
-	// FIXME
+	snd_pcm_direct_t *dsnoop = pcm->private_data;
+	snd_pcm_resume(dsnoop->spcm);
 	return 0;
 }
 
@@ -398,6 +398,14 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_mmap_commit(snd_pcm_t *pcm,
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	int err;
 
+	switch (snd_pcm_state(dsnoop->spcm)) {
+	case SND_PCM_STATE_XRUN:
+		return -EPIPE;
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	default:
+		break;
+	}
 	if (dsnoop->state == SND_PCM_STATE_RUNNING) {
 		err = snd_pcm_dsnoop_sync_ptr(pcm);
 		if (err < 0)

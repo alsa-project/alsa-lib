@@ -421,7 +421,7 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 	unsigned short events;
 	/* rbuf might be overwriten by multiple plugins */
 	/* we don't need the value */
-	static snd_timer_read_t rbuf[5];
+	static snd_timer_tread_t rbuf;
 
 	assert(pfds && nfds == 1 && revents);
 	events = pfds[0].revents;
@@ -439,6 +439,14 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 		while (empty && snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf)) ;
 		if (empty)
 			events &= ~(POLLOUT|POLLIN);
+	}
+	switch (snd_pcm_state(dmix->spcm)) {
+	case SND_PCM_STATE_XRUN:
+	case SND_PCM_STATE_SUSPENDED:
+		events |= POLLERR;
+		break;
+	default:
+		break;
 	}
 	*revents = events;
 	return 0;
@@ -840,7 +848,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 				snd_pcm_info_get_card(info),
 				snd_pcm_info_get_device(info),
 				snd_pcm_info_get_subdevice(info) * 2 + capture);
-	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK);
+	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
 	if (ret < 0) {
 		SNDERR("unable to open timer '%s'", name);
 		return ret;
@@ -848,6 +856,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	snd_timer_params_set_auto_start(params, 1);
 	snd_timer_params_set_early_event(params, 1);
 	snd_timer_params_set_ticks(params, 1);
+	snd_timer_params_set_filter(params, (1<<SND_TIMER_EVENT_TICK)|(1<<SND_TIMER_EVENT_MPAUSE));
 	ret = snd_timer_params(dmix->timer, params);
 	if (ret < 0) {
 		SNDERR("unable to set timer parameters", name);

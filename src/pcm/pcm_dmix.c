@@ -314,7 +314,7 @@ static snd_pcm_state_t snd_pcm_dmix_state(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	switch (snd_pcm_state(dmix->spcm)) {
 	case SND_PCM_STATE_SUSPENDED:
-		return -ESTRPIPE;
+		return SND_PCM_STATE_SUSPENDED;
 	case SND_PCM_STATE_DISCONNECTED:
 		dmix->state = SND_PCM_STATE_DISCONNECTED;
 		return -ENOTTY;
@@ -493,10 +493,10 @@ static snd_pcm_sframes_t snd_pcm_dmix_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	return frames;
 }
 
-static int snd_pcm_dmix_resume(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+static int snd_pcm_dmix_resume(snd_pcm_t *pcm)
 {
-	// snd_pcm_direct_t *dmix = pcm->private_data;
-	// FIXME
+	snd_pcm_direct_t *dmix = pcm->private_data;
+	snd_pcm_resume(dmix->spcm);
 	return 0;
 }
 
@@ -543,6 +543,14 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	int err;
 
+	switch (snd_pcm_state(dmix->spcm)) {
+	case SND_PCM_STATE_XRUN:
+		return -EPIPE;
+	case SND_PCM_STATE_SUSPENDED:
+		return -ESTRPIPE;
+	default:
+		break;
+	}
 	snd_pcm_mmap_appl_forward(pcm, size);
 	if (dmix->state == SND_PCM_STATE_RUNNING) {
 		err = snd_pcm_dmix_sync_ptr(pcm);
