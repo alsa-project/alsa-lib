@@ -26,7 +26,7 @@
 typedef float float_t;
 typedef double double_t;
 
-#if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR <= 91)
+#if __GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR__ <= 91)
 #define BUGGY_GCC
 #endif
 
