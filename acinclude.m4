@@ -16,7 +16,7 @@ void main(void)
 #if !defined(SND_PROTOCOL_VERSION) || !defined(SND_PROTOCOL_INCOMPATIBLE)
 #error not found
 #else
-#if !defined(SND_PCM_IOCTL_CHANNEL_UPDATE)
+#if !defined(SND_PCM_IOCTL_STREAM_UPDATE)
 #error wrong version
 #endif
   exit(0);
