@@ -1,19 +1,14 @@
 
+/** Input handle */
 typedef struct _snd_input snd_input_t;
 
-enum _snd_input_type {
+/** Input type */
+typedef enum _snd_input_type {
+	/** Input from a stdio stream */
 	SND_INPUT_STDIO,
+	/** Input from a memory buffer */
 	SND_INPUT_BUFFER,
-};
-
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_input_type *snd_input_type_t;
-#else
-typedef enum _snd_input_type snd_input_type_t;
-#endif
-
-#define SND_INPUT_STDIO ((snd_input_type_t) SND_INPUT_STDIO)
-#define SND_INPUT_BUFFER ((snd_input_type_t) SND_INPUT_BUFFER)
+} snd_input_type_t;
 
 #ifdef __cplusplus
 extern "C" {

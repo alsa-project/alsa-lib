@@ -1,23 +1,19 @@
 
-enum _snd_config_type {
+/** Config node type */
+typedef enum _snd_config_type {
+	/** Integer number */
         SND_CONFIG_TYPE_INTEGER,
+	/** Real number */
         SND_CONFIG_TYPE_REAL,
+	/** Character string */
         SND_CONFIG_TYPE_STRING,
+	/** Compound */
 	SND_CONFIG_TYPE_COMPOUND,
-};
+} snd_config_type_t;
 
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_config_type *snd_config_type_t;
-#else
-typedef enum _snd_config_type snd_config_type_t;
-#endif
-
-#define SND_CONFIG_TYPE_INTEGER ((snd_config_type_t) SND_CONFIG_TYPE_INTEGER)
-#define SND_CONFIG_TYPE_REAL ((snd_config_type_t) SND_CONFIG_TYPE_REAL)
-#define SND_CONFIG_TYPE_STRING ((snd_config_type_t) SND_CONFIG_TYPE_STRING)
-#define SND_CONFIG_TYPE_COMPOUND ((snd_config_type_t) SND_CONFIG_TYPE_COMPOUND)
-
+/** Config node handle */
 typedef struct _snd_config snd_config_t;
+/** Config compound iterator */
 typedef struct _snd_config_iterator *snd_config_iterator_t;
 
 #ifdef __cplusplus
@@ -62,6 +58,13 @@ snd_config_iterator_t snd_config_iterator_next(snd_config_iterator_t iterator);
 snd_config_iterator_t snd_config_iterator_end(snd_config_t *node);
 snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator);
 
+/** Helper for compound config node leaves traversal
+ * \param pos Current node iterator
+ * \param next Next node iterator
+ * \param node Compound config node
+ *
+ * This macro is designed to permit the removal of current node.
+ */
 #define snd_config_for_each(pos, next, node) \
 	for (pos = snd_config_iterator_first(node), next = snd_config_iterator_next(pos); pos != snd_config_iterator_end(node); pos = next, next = snd_config_iterator_next(pos))
 

@@ -2,6 +2,8 @@
  * \file pcm/pcm_meter.c
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2001
+ *
+ * Helper functions for #SND_PCM_TYPE_METER PCM scopes
  */
 /*
  *  PCM - Meter plugin

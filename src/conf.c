@@ -19,6 +19,7 @@
  *
  */
 
+#ifndef DOC_HIDDEN
 #define _snd_config_iterator list_head
 
 #include <stdarg.h>
@@ -41,9 +42,6 @@ struct _snd_config {
 	struct list_head list;
 	snd_config_t *father;
 };
-
-#define SYS_ASOUNDRC "/etc/asound.conf"
-#define USR_ASOUNDRC ".asoundrc"
 
 struct filedesc {
 	char *name;
@@ -337,16 +335,6 @@ static int get_string(char **string, int id, input_t *input)
 	}
 }
 
-snd_config_type_t snd_config_get_type(snd_config_t *config)
-{
-	return config->type;
-}
-
-const char *snd_config_get_id(snd_config_t *config)
-{
-	return config->id;
-}
-
 static int _snd_config_make(snd_config_t **config, char *id,
 			    snd_config_type_t type)
 {
@@ -593,216 +581,6 @@ static int parse_defs(snd_config_t *father, input_t *input)
 	return 0;
 }
 
-int snd_config_top(snd_config_t **config)
-{
-	assert(config);
-	return _snd_config_make(config, 0, SND_CONFIG_TYPE_COMPOUND);
-}
-
-int snd_config_load(snd_config_t *config, snd_input_t *in)
-{
-	int err;
-	input_t input;
-	struct filedesc *fd;
-	assert(config && in);
-	fd = malloc(sizeof(*fd));
-	fd->name = NULL;
-	fd->in = in;
-	fd->line = 1;
-	fd->column = 0;
-	fd->next = NULL;
-	input.current = fd;
-	input.unget = 0;
-	input.error = 0;
-	err = parse_defs(config, &input);
-	fd = input.current;
-	if (err < 0) {
-		if (input.error < 0) {
-			char *str;
-			switch (input.error) {
-			case UNTERMINATED_STRING:
-				str = "Unterminated string";
-				break;
-			case UNTERMINATED_QUOTE:
-				str = "Unterminated quote";
-				break;
-			case UNEXPECTED_CHAR:
-				str = "Unexpected char";
-				break;
-			case UNEXPECTED_EOF:
-				str = "Unexpected end of file";
-				break;
-			default:
-				assert(0);
-				break;
-			}
-			SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "",
-			    fd->line, fd->column, str);
-		}
-		snd_config_delete(config);
-		goto _end;
-	}
-	if (get_char(&input) != EOF) {
-		SNDERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "",
-		    fd->line, fd->column);
-		snd_config_delete(config);
-		err = -EINVAL;
-		goto _end;
-	}
- _end:
-	while (fd->next) {
-		snd_input_close(fd->in);
-		free(fd->name);
-		free(fd);
-		fd = fd->next;
-	}
-	free(fd);
-	return err;
-}
-
-int snd_config_add(snd_config_t *father, snd_config_t *leaf)
-{
-	snd_config_iterator_t i, next;
-	assert(father && leaf);
-	snd_config_for_each(i, next, father) {
-		snd_config_t *n = snd_config_iterator_entry(i);
-		if (strcmp(leaf->id, n->id) == 0)
-			return -EEXIST;
-	}
-	leaf->father = father;
-	list_add_tail(&leaf->list, &father->u.compound.fields);
-	return 0;
-}
-
-int snd_config_delete(snd_config_t *config)
-{
-	assert(config);
-	switch (snd_enum_to_int(config->type)) {
-	case SND_CONFIG_TYPE_COMPOUND:
-	{
-		int err;
-		struct list_head *i;
-		i = config->u.compound.fields.next;
-		while (i != &config->u.compound.fields) {
-			struct list_head *nexti = i->next;
-			snd_config_t *leaf = snd_config_iterator_entry(i);
-			err = snd_config_delete(leaf);
-			if (err < 0)
-				return err;
-			i = nexti;
-		}
-		break;
-	}
-	case SND_CONFIG_TYPE_STRING:
-		if (config->u.string)
-			free(config->u.string);
-		break;
-	default:
-		break;
-	}
-	if (config->father)
-		list_del(&config->list);
-	return 0;
-}
-
-int snd_config_make(snd_config_t **config, const char *id,
-		    snd_config_type_t type)
-{
-	char *id1;
-	assert(config);
-	if (id) {
-		id1 = strdup(id);
-		if (!id1)
-			return -ENOMEM;
-	} else
-		id1 = NULL;
-	return _snd_config_make(config, id1, type);
-}
-
-int snd_config_make_integer(snd_config_t **config, const char *id)
-{
-	return snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER);
-}
-
-int snd_config_make_real(snd_config_t **config, const char *id)
-{
-	return snd_config_make(config, id, SND_CONFIG_TYPE_REAL);
-}
-
-int snd_config_make_string(snd_config_t **config, const char *id)
-{
-	return snd_config_make(config, id, SND_CONFIG_TYPE_STRING);
-}
-
-int snd_config_make_compound(snd_config_t **config, const char *id,
-			     int join)
-{
-	int err;
-	err = snd_config_make(config, id, SND_CONFIG_TYPE_COMPOUND);
-	if (err < 0)
-		return err;
-	(*config)->u.compound.join = join;
-	return 0;
-}
-
-int snd_config_set_integer(snd_config_t *config, long value)
-{
-	assert(config);
-	if (config->type != SND_CONFIG_TYPE_INTEGER)
-		return -EINVAL;
-	config->u.integer = value;
-	return 0;
-}
-
-int snd_config_set_real(snd_config_t *config, double value)
-{
-	assert(config);
-	if (config->type != SND_CONFIG_TYPE_REAL)
-		return -EINVAL;
-	config->u.real = value;
-	return 0;
-}
-
-int snd_config_set_string(snd_config_t *config, const char *value)
-{
-	assert(config);
-	if (config->type != SND_CONFIG_TYPE_STRING)
-		return -EINVAL;
-	if (config->u.string)
-		free(config->u.string);
-	config->u.string = strdup(value);
-	if (!config->u.string)
-		return -ENOMEM;
-	return 0;
-}
-
-int snd_config_get_integer(snd_config_t *config, long *ptr)
-{
-	assert(config && ptr);
-	if (config->type != SND_CONFIG_TYPE_INTEGER)
-		return -EINVAL;
-	*ptr = config->u.integer;
-	return 0;
-}
-
-int snd_config_get_real(snd_config_t *config, double *ptr)
-{
-	assert(config && ptr);
-	if (config->type != SND_CONFIG_TYPE_REAL)
-		return -EINVAL;
-	*ptr = config->u.real;
-	return 0;
-}
-
-int snd_config_get_string(snd_config_t *config, const char **ptr)
-{
-	assert(config && ptr);
-	if (config->type != SND_CONFIG_TYPE_STRING)
-		return -EINVAL;
-	*ptr = config->u.string;
-	return 0;
-}
-
 void string_print(char *str, int id, snd_output_t *out)
 {
 	unsigned char *p = str;
@@ -963,13 +741,348 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 	}
 	return 0;
 }
+#endif
 
+
+/**
+ * \brief Return type of a config node
+ * \param config Config node handle
+ * \return node type
+ */
+snd_config_type_t snd_config_get_type(snd_config_t *config)
+{
+	return config->type;
+}
+
+/**
+ * \brief Return id of a config node
+ * \param config Config node handle
+ * \return node id
+ */
+const char *snd_config_get_id(snd_config_t *config)
+{
+	return config->id;
+}
+
+/**
+ * \brief Build a top level config node
+ * \param configp Returned config node handle pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_top(snd_config_t **configp)
+{
+	assert(configp);
+	return _snd_config_make(configp, 0, SND_CONFIG_TYPE_COMPOUND);
+}
+
+/**
+ * \brief Load a config tree
+ * \param config Config top node handle
+ * \param in Input handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_load(snd_config_t *config, snd_input_t *in)
+{
+	int err;
+	input_t input;
+	struct filedesc *fd;
+	assert(config && in);
+	fd = malloc(sizeof(*fd));
+	fd->name = NULL;
+	fd->in = in;
+	fd->line = 1;
+	fd->column = 0;
+	fd->next = NULL;
+	input.current = fd;
+	input.unget = 0;
+	input.error = 0;
+	err = parse_defs(config, &input);
+	fd = input.current;
+	if (err < 0) {
+		if (input.error < 0) {
+			char *str;
+			switch (input.error) {
+			case UNTERMINATED_STRING:
+				str = "Unterminated string";
+				break;
+			case UNTERMINATED_QUOTE:
+				str = "Unterminated quote";
+				break;
+			case UNEXPECTED_CHAR:
+				str = "Unexpected char";
+				break;
+			case UNEXPECTED_EOF:
+				str = "Unexpected end of file";
+				break;
+			default:
+				assert(0);
+				break;
+			}
+			SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "",
+			    fd->line, fd->column, str);
+		}
+		snd_config_delete(config);
+		goto _end;
+	}
+	if (get_char(&input) != EOF) {
+		SNDERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "",
+		    fd->line, fd->column);
+		snd_config_delete(config);
+		err = -EINVAL;
+		goto _end;
+	}
+ _end:
+	while (fd->next) {
+		snd_input_close(fd->in);
+		free(fd->name);
+		free(fd);
+		fd = fd->next;
+	}
+	free(fd);
+	return err;
+}
+
+/**
+ * \brief Add a leaf to a config compound node
+ * \param father Config compound node handle
+ * \param leaf Leaf config node handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_add(snd_config_t *father, snd_config_t *leaf)
+{
+	snd_config_iterator_t i, next;
+	assert(father && leaf);
+	snd_config_for_each(i, next, father) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		if (strcmp(leaf->id, n->id) == 0)
+			return -EEXIST;
+	}
+	leaf->father = father;
+	list_add_tail(&leaf->list, &father->u.compound.fields);
+	return 0;
+}
+
+/**
+ * \brief Remove a leaf config node (freeing all the related resources)
+ * \param config Config node handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_delete(snd_config_t *config)
+{
+	assert(config);
+	switch (snd_enum_to_int(config->type)) {
+	case SND_CONFIG_TYPE_COMPOUND:
+	{
+		int err;
+		struct list_head *i;
+		i = config->u.compound.fields.next;
+		while (i != &config->u.compound.fields) {
+			struct list_head *nexti = i->next;
+			snd_config_t *leaf = snd_config_iterator_entry(i);
+			err = snd_config_delete(leaf);
+			if (err < 0)
+				return err;
+			i = nexti;
+		}
+		break;
+	}
+	case SND_CONFIG_TYPE_STRING:
+		if (config->u.string)
+			free(config->u.string);
+		break;
+	default:
+		break;
+	}
+	if (config->father)
+		list_del(&config->list);
+	return 0;
+}
+
+/**
+ * \brief Build a config node
+ * \param configp Returned config node handle pointer
+ * \param id Node id
+ * \param type Node type
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_make(snd_config_t **config, const char *id,
+		    snd_config_type_t type)
+{
+	char *id1;
+	assert(config);
+	if (id) {
+		id1 = strdup(id);
+		if (!id1)
+			return -ENOMEM;
+	} else
+		id1 = NULL;
+	return _snd_config_make(config, id1, type);
+}
+
+/**
+ * \brief Build an integer config node
+ * \param configp Returned config node handle pointer
+ * \param id Node id
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_make_integer(snd_config_t **config, const char *id)
+{
+	return snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER);
+}
+
+/**
+ * \brief Build a real config node
+ * \param configp Returned config node handle pointer
+ * \param id Node id
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_make_real(snd_config_t **config, const char *id)
+{
+	return snd_config_make(config, id, SND_CONFIG_TYPE_REAL);
+}
+
+/**
+ * \brief Build a string config node
+ * \param configp Returned config node handle pointer
+ * \param id Node id
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_make_string(snd_config_t **config, const char *id)
+{
+	return snd_config_make(config, id, SND_CONFIG_TYPE_STRING);
+}
+
+/**
+ * \brief Build an empty compound config node
+ * \param configp Returned config node handle pointer
+ * \param id Node id
+ * \param join Join flag (checked in snd_config_save to change look)
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_make_compound(snd_config_t **config, const char *id,
+			     int join)
+{
+	int err;
+	err = snd_config_make(config, id, SND_CONFIG_TYPE_COMPOUND);
+	if (err < 0)
+		return err;
+	(*config)->u.compound.join = join;
+	return 0;
+}
+
+/**
+ * \brief Change the value of an integer config node
+ * \param config Config node handle
+ * \param value Value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_set_integer(snd_config_t *config, long value)
+{
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_INTEGER)
+		return -EINVAL;
+	config->u.integer = value;
+	return 0;
+}
+
+/**
+ * \brief Change the value of a real config node
+ * \param config Config node handle
+ * \param value Value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_set_real(snd_config_t *config, double value)
+{
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_REAL)
+		return -EINVAL;
+	config->u.real = value;
+	return 0;
+}
+
+/**
+ * \brief Change the value of a string config node
+ * \param config Config node handle
+ * \param value Value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_set_string(snd_config_t *config, const char *value)
+{
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_STRING)
+		return -EINVAL;
+	if (config->u.string)
+		free(config->u.string);
+	config->u.string = strdup(value);
+	if (!config->u.string)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief Get the value of an integer config node
+ * \param config Config node handle
+ * \param ptr Returned value pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_get_integer(snd_config_t *config, long *ptr)
+{
+	assert(config && ptr);
+	if (config->type != SND_CONFIG_TYPE_INTEGER)
+		return -EINVAL;
+	*ptr = config->u.integer;
+	return 0;
+}
+
+/**
+ * \brief Get the value of a real config node
+ * \param config Config node handle
+ * \param ptr Returned value pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_get_real(snd_config_t *config, double *ptr)
+{
+	assert(config && ptr);
+	if (config->type != SND_CONFIG_TYPE_REAL)
+		return -EINVAL;
+	*ptr = config->u.real;
+	return 0;
+}
+
+/**
+ * \brief Get the value of a string config node
+ * \param config Config node handle
+ * \param ptr Returned value pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_get_string(snd_config_t *config, const char **ptr)
+{
+	assert(config && ptr);
+	if (config->type != SND_CONFIG_TYPE_STRING)
+		return -EINVAL;
+	*ptr = config->u.string;
+	return 0;
+}
+
+/**
+ * \brief Dump a config tree contents
+ * \param config Config node handle
+ * \param out Output handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_config_save(snd_config_t *config, snd_output_t *out)
 {
 	assert(config && out);
 	return _snd_config_save_leaves(config, out, 0, 0);
 }
 
+/**
+ * \brief Search a node inside a config tree
+ * \param config Config node handle
+ * \param key Dot separated search key
+ * \param result Pointer to found node
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_config_search(snd_config_t *config, const char *key, snd_config_t **result)
 {
 	assert(config && key && result);
@@ -990,6 +1103,13 @@ int snd_config_search(snd_config_t *config, const char *key, snd_config_t **resu
 	}
 }
 
+/**
+ * \brief Search a node inside a config tree
+ * \param config Config node handle
+ * \param result Pointer to found node
+ * \param ... one or more concatenated dot separated search key
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_config_searchv(snd_config_t *config,
 		       snd_config_t **result, ...)
 {
@@ -1014,6 +1134,17 @@ int snd_config_searchv(snd_config_t *config,
 	return 0;
 }
 
+/**
+ * \brief Search a node inside a config tree using alias
+ * \param config Config node handle
+ * \param base Key base
+ * \param key Key suffix
+ * \param result Pointer to found node
+ * \return 0 on success otherwise a negative error code
+ *
+ * If base.key is found and it's a string the value found is recursively
+ * tried instead of suffix.
+ */
 int snd_config_search_alias(snd_config_t *config,
 			    const char *base, const char *key,
 			    snd_config_t **result)
@@ -1029,16 +1160,29 @@ int snd_config_search_alias(snd_config_t *config,
 	return 0;
 }
 
-snd_config_t *snd_config = 0;
-static dev_t sys_asoundrc_device;
-static ino_t sys_asoundrc_inode;
-static time_t sys_asoundrc_mtime;
-static dev_t usr_asoundrc_device;
-static ino_t usr_asoundrc_inode;
-static time_t usr_asoundrc_mtime;
-	
+/** File used for system wide ALSA configuration */
+#define SYS_ASOUNDRC "/etc/asound.conf"
+/** File resident in home directory used for user specific ALSA configuration */
+#define USR_ASOUNDRC ".asoundrc"
+
+/** Config top node */
+snd_config_t *snd_config = NULL;
+
+/** 
+ * \brief Update #snd_config rereading if needed #SYS_ASOUNDRC and #USR_ASOUNDRC
+ * \return 0 if no action is needed, 1 if tree has been rebuilt otherwise a negative error code
+ *
+ * Warning: If config tree is reread all the string pointer and config 
+ * node handle previously obtained from this tree become invalid
+ */
 int snd_config_update()
 {
+	static dev_t sys_asoundrc_device;
+	static ino_t sys_asoundrc_inode;
+	static time_t sys_asoundrc_mtime;
+	static dev_t usr_asoundrc_device;
+	static ino_t usr_asoundrc_inode;
+	static time_t usr_asoundrc_mtime;
 	int err;
 	char *usr_asoundrc = NULL;
 	char *home = getenv("HOME");
@@ -1102,26 +1246,46 @@ int snd_config_update()
 		usr_asoundrc_inode = usr_st.st_ino;
 		usr_asoundrc_mtime = usr_st.st_mtime;
 	}
-	return 0;
+	return 1;
 }
 
+/**
+ * \brief Return an iterator pointing to first leaf of a compound config node
+ * \param node Config node handle
+ * \return iterator value for first leaf
+ */
 snd_config_iterator_t snd_config_iterator_first(snd_config_t *node)
 {
 	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
 	return node->u.compound.fields.next;
 }
 
+/**
+ * \brief Return an iterator pointing to next leaf
+ * \param iterator Config node iterator
+ * \return iterator value for next leaf
+ */
 snd_config_iterator_t snd_config_iterator_next(snd_config_iterator_t iterator)
 {
 	return iterator->next;
 }
 
+/**
+ * \brief Return an iterator pointing past the last leaf of a compound config node
+ * \param node Config node handle
+ * \return iterator value for end
+ */
 snd_config_iterator_t snd_config_iterator_end(snd_config_t *node)
 {
 	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
 	return &node->u.compound.fields;
 }
 
+/**
+ * \brief Return the node handle pointed by iterator
+ * \param iterator Config node iterator
+ * \return config node handle
+ */
 snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator)
 {
 	return list_entry(iterator, snd_config_t, list);

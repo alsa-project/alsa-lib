@@ -1,20 +1,14 @@
 
+/** Output handle */
 typedef struct _snd_output snd_output_t;
 
-enum _snd_output_type {
+/** Output type */
+typedef enum _snd_output_type {
+	/** Output to a stdio stream */
 	SND_OUTPUT_STDIO,
+	/** Output to a memory buffer */
 	SND_OUTPUT_BUFFER,
-};
-
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_output_type *snd_output_type_t;
-#else
-typedef enum _snd_output_type snd_output_type_t;
-#endif
-
-#define SND_OUTPUT_STDIO ((snd_output_type_t) SND_OUTPUT_STDIO)
-#define SND_OUTPUT_BUFFER ((snd_output_type_t) SND_OUTPUT_BUFFER)
-
+} snd_output_type_t;
 
 #ifdef __cplusplus
 extern "C" {

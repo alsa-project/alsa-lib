@@ -1,3 +1,10 @@
+/**
+ * \file input.c
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000
+ *
+ * Generic stdio-like input interface
+ */
 /*
  *  Input object
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -19,6 +26,7 @@
  *
  */
 
+#ifndef DOC_HIDDEN
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +46,13 @@ struct _snd_input {
 	snd_input_ops_t *ops;
 	void *private_data;
 };
+#endif
 
+/**
+ * \brief close input handle
+ * \param input Input handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_input_close(snd_input_t *input)
 {
 	int err = input->ops->close(input);
@@ -46,6 +60,13 @@ int snd_input_close(snd_input_t *input)
 	return err;
 }
 
+/**
+ * \brief fscanf(3) like on an input handle
+ * \param input Input handle
+ * \param format fscanf format
+ * \param ... other fscanf arguments
+ * \return number of input itmes assigned or a negative error code
+ */
 int snd_input_scanf(snd_input_t *input, const char *format, ...)
 {
 	int result;
@@ -56,27 +77,46 @@ int snd_input_scanf(snd_input_t *input, const char *format, ...)
 	return result;
 }
 
+/**
+ * \brief fgets(3) like on an input handle
+ * \param input Input handle
+ * \param str Destination buffer pointer
+ * \param size Buffer size
+ * \return Pointer to buffer or NULL on error
+ */
 char *snd_input_gets(snd_input_t *input, char *str, size_t size)
 {
 	return input->ops->gets(input, str, size);
 }
 			
+/**
+ * \brief fgetc(3) like on an input handle
+ * \param input Input handle
+ * \return character read or EOF on end of file or error
+ */
 int snd_input_getc(snd_input_t *input)
 {
 	return input->ops->getch(input);
 }
 
+/**
+ * \brief ungetc(3) like on an input handle
+ * \param input Input handle
+ * \param c Char to push back
+ * \return character pushed back or EOF on error
+ */
 int snd_input_ungetc(snd_input_t *input, int c)
 {
 	return input->ops->ungetch(input, c);
 }
 
+#ifndef DOC_HIDDEN
 typedef struct _snd_input_stdio {
 	int close;
 	FILE *fp;
 } snd_input_stdio_t;
 
-int snd_input_stdio_close(snd_input_t *input ATTRIBUTE_UNUSED)
+static int snd_input_stdio_close(snd_input_t *input ATTRIBUTE_UNUSED)
 {
 	snd_input_stdio_t *stdio = input->private_data;
 	if (close)
@@ -85,39 +125,47 @@ int snd_input_stdio_close(snd_input_t *input ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-int snd_input_stdio_scanf(snd_input_t *input, const char *format, va_list args)
+static int snd_input_stdio_scanf(snd_input_t *input, const char *format, va_list args)
 {
 	snd_input_stdio_t *stdio = input->private_data;
 	extern int vfscanf(FILE *fp, const char *format, va_list args);
 	return vfscanf(stdio->fp, format, args);
 }
 
-char *snd_input_stdio_gets(snd_input_t *input, char *str, size_t size)
+static char *snd_input_stdio_gets(snd_input_t *input, char *str, size_t size)
 {
 	snd_input_stdio_t *stdio = input->private_data;
 	return fgets(str, size, stdio->fp);
 }
 			
-int snd_input_stdio_getc(snd_input_t *input)
+static int snd_input_stdio_getc(snd_input_t *input)
 {
 	snd_input_stdio_t *stdio = input->private_data;
 	return getc(stdio->fp);
 }
 
-int snd_input_stdio_ungetc(snd_input_t *input, int c)
+static int snd_input_stdio_ungetc(snd_input_t *input, int c)
 {
 	snd_input_stdio_t *stdio = input->private_data;
 	return ungetc(c, stdio->fp);
 }
 
-snd_input_ops_t snd_input_stdio_ops = {
+static snd_input_ops_t snd_input_stdio_ops = {
 	close: snd_input_stdio_close,
 	scanf: snd_input_stdio_scanf,
 	gets: snd_input_stdio_gets,
 	getch: snd_input_stdio_getc,
 	ungetch: snd_input_stdio_ungetc,
 };
+#endif
 
+/**
+ * \brief Create a new input using an existing stdio FILE pointer
+ * \param inputp Pointer to returned input handle
+ * \param fp FILE pointer
+ * \param close Close flag (1 if FILE is fclose'd when input handle is closed)
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int close)
 {
 	snd_input_t *input;
@@ -140,6 +188,12 @@ int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int close)
 	return 0;
 }
 	
+/**
+ * \brief Open a new input from a file
+ * \param inputp Pointer to returned input handle
+ * \param file File name
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_input_stdio_open(snd_input_t **inputp, const char *file)
 {
 	int err;
@@ -154,13 +208,15 @@ int snd_input_stdio_open(snd_input_t **inputp, const char *file)
 	return err;
 }
 
+#ifndef DOC_HIDDEN
+
 typedef struct _snd_input_buffer {
 	unsigned char *buf;
 	unsigned char *ptr;
 	size_t size;
 } snd_input_buffer_t;
 
-int snd_input_buffer_close(snd_input_t *input)
+static int snd_input_buffer_close(snd_input_t *input)
 {
 	snd_input_buffer_t *buffer = input->private_data;
 	free(buffer->buf);
@@ -168,7 +224,7 @@ int snd_input_buffer_close(snd_input_t *input)
 	return 0;
 }
 
-int snd_input_buffer_scanf(snd_input_t *input, const char *format, va_list args)
+static int snd_input_buffer_scanf(snd_input_t *input, const char *format, va_list args)
 {
 	snd_input_buffer_t *buffer = input->private_data;
 	extern int vsscanf(const char *buf, const char *format, va_list args);
@@ -177,7 +233,7 @@ int snd_input_buffer_scanf(snd_input_t *input, const char *format, va_list args)
 	return vsscanf(buffer->ptr, format, args);
 }
 
-char *snd_input_buffer_gets(snd_input_t *input, char *str, size_t size)
+static char *snd_input_buffer_gets(snd_input_t *input, char *str, size_t size)
 {
 	snd_input_buffer_t *buffer = input->private_data;
 	size_t bsize = buffer->size;
@@ -195,7 +251,7 @@ char *snd_input_buffer_gets(snd_input_t *input, char *str, size_t size)
 	return str;
 }
 			
-int snd_input_buffer_getc(snd_input_t *input)
+static int snd_input_buffer_getc(snd_input_t *input)
 {
 	snd_input_buffer_t *buffer = input->private_data;
 	if (buffer->size == 0)
@@ -204,7 +260,7 @@ int snd_input_buffer_getc(snd_input_t *input)
 	return *buffer->ptr++;
 }
 
-int snd_input_buffer_ungetc(snd_input_t *input, int c)
+static int snd_input_buffer_ungetc(snd_input_t *input, int c)
 {
 	snd_input_buffer_t *buffer = input->private_data;
 	if (buffer->ptr == buffer->buf)
@@ -215,14 +271,22 @@ int snd_input_buffer_ungetc(snd_input_t *input, int c)
 	return c;
 }
 
-snd_input_ops_t snd_input_buffer_ops = {
+static snd_input_ops_t snd_input_buffer_ops = {
 	close: snd_input_buffer_close,
 	scanf: snd_input_buffer_scanf,
 	gets: snd_input_buffer_gets,
 	getch: snd_input_buffer_getc,
 	ungetch: snd_input_buffer_ungetc,
 };
+#endif
 
+/**
+ * \brief Open a new input from a memory buffer
+ * \param inputp Pointer to returned input handle
+ * \param buf Buffer pointer
+ * \param size Buffer size
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_input_buffer_open(snd_input_t **inputp, const char *buf, int size)
 {
 	snd_input_t *input;

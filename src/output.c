@@ -1,3 +1,10 @@
+/**
+ * \file output.c
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000
+ *
+ * Generic stdio-like output interface
+ */
 /*
  *  Output object
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -19,6 +26,7 @@
  *
  */
 
+#ifndef DOC_HIDDEN
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +46,13 @@ struct _snd_output {
 	snd_output_ops_t *ops;
 	void *private_data;
 };
+#endif
 
+/**
+ * \brief close output handle
+ * \param output Output handle
+ * \return zero on success otherwise a negative error code
+ */
 int snd_output_close(snd_output_t *output)
 {
 	int err = output->ops->close(output);
@@ -46,6 +60,13 @@ int snd_output_close(snd_output_t *output)
 	return err;
 }
 
+/**
+ * \brief fprintf(3) like on an output handle
+ * \param output Output handle
+ * \param format fprintf format
+ * \param ... other fprintf arguments
+ * \return number of characters written or a negative error code
+ */
 int snd_output_printf(snd_output_t *output, const char *format, ...)
 {
 	int result;
@@ -56,27 +77,45 @@ int snd_output_printf(snd_output_t *output, const char *format, ...)
 	return result;
 }
 
+/**
+ * \brief fputs(3) like on an output handle
+ * \param output Output handle
+ * \param str Buffer pointer 
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_output_puts(snd_output_t *output, const char *str)
 {
 	return output->ops->puts(output, str);
 }
 			
+/**
+ * \brief fputs(3) like on an output handle
+ * \param output Output handle
+ * \param str Source buffer pointer
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_output_putc(snd_output_t *output, int c)
 {
 	return output->ops->putch(output, c);
 }
 
+/**
+ * \brief fflush(3) like on an output handle
+ * \param output Output handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_output_flush(snd_output_t *output)
 {
 	return output->ops->flush(output);
 }
 
+#ifndef DOC_HIDDEN
 typedef struct _snd_output_stdio {
 	int close;
 	FILE *fp;
 } snd_output_stdio_t;
 
-int snd_output_stdio_close(snd_output_t *output ATTRIBUTE_UNUSED)
+static int snd_output_stdio_close(snd_output_t *output ATTRIBUTE_UNUSED)
 {
 	snd_output_stdio_t *stdio = output->private_data;
 	if (close)
@@ -85,31 +124,31 @@ int snd_output_stdio_close(snd_output_t *output ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-int snd_output_stdio_printf(snd_output_t *output, const char *format, va_list args)
+static int snd_output_stdio_printf(snd_output_t *output, const char *format, va_list args)
 {
 	snd_output_stdio_t *stdio = output->private_data;
 	return vfprintf(stdio->fp, format, args);
 }
 
-int snd_output_stdio_puts(snd_output_t *output, const char *str)
+static int snd_output_stdio_puts(snd_output_t *output, const char *str)
 {
 	snd_output_stdio_t *stdio = output->private_data;
 	return fputs(str, stdio->fp);
 }
 			
-int snd_output_stdio_putc(snd_output_t *output, int c)
+static int snd_output_stdio_putc(snd_output_t *output, int c)
 {
 	snd_output_stdio_t *stdio = output->private_data;
 	return putc(c, stdio->fp);
 }
 
-int snd_output_stdio_flush(snd_output_t *output)
+static int snd_output_stdio_flush(snd_output_t *output)
 {
 	snd_output_stdio_t *stdio = output->private_data;
 	return fflush(stdio->fp);
 }
 
-snd_output_ops_t snd_output_stdio_ops = {
+static snd_output_ops_t snd_output_stdio_ops = {
 	close: snd_output_stdio_close,
 	printf: snd_output_stdio_printf,
 	puts: snd_output_stdio_puts,
@@ -117,6 +156,15 @@ snd_output_ops_t snd_output_stdio_ops = {
 	flush: snd_output_stdio_flush,
 };
 
+#endif
+
+/**
+ * \brief Create a new output using an existing stdio FILE pointer
+ * \param outputp Pointer to returned output handle
+ * \param fp FILE pointer
+ * \param close Close flag (1 if FILE is fclose'd when output handle is closed)
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int close)
 {
 	snd_output_t *output;
@@ -153,13 +201,15 @@ int snd_output_stdio_open(snd_output_t **outputp, const char *file)
 	return err;
 }
 
+#ifndef DOC_HIDDEN
+
 typedef struct _snd_output_buffer {
 	unsigned char *buf;
 	size_t alloc;
 	size_t size;
 } snd_output_buffer_t;
 
-int snd_output_buffer_close(snd_output_t *output ATTRIBUTE_UNUSED)
+static int snd_output_buffer_close(snd_output_t *output ATTRIBUTE_UNUSED)
 {
 	snd_output_buffer_t *buffer = output->private_data;
 	free(buffer->buf);
@@ -167,7 +217,7 @@ int snd_output_buffer_close(snd_output_t *output ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-int snd_output_buffer_need(snd_output_t *output, size_t size)
+static int snd_output_buffer_need(snd_output_t *output, size_t size)
 {
 	snd_output_buffer_t *buffer = output->private_data;
 	size_t free = buffer->alloc - buffer->size;
@@ -185,7 +235,7 @@ int snd_output_buffer_need(snd_output_t *output, size_t size)
 	return buffer->alloc - buffer->size;
 }
 
-int snd_output_buffer_printf(snd_output_t *output, const char *format, va_list args)
+static int snd_output_buffer_printf(snd_output_t *output, const char *format, va_list args)
 {
 	snd_output_buffer_t *buffer = output->private_data;
 	size_t size = 256;
@@ -208,7 +258,7 @@ int snd_output_buffer_printf(snd_output_t *output, const char *format, va_list a
 	return result;
 }
 
-int snd_output_buffer_puts(snd_output_t *output, const char *str)
+static int snd_output_buffer_puts(snd_output_t *output, const char *str)
 {
 	snd_output_buffer_t *buffer = output->private_data;
 	size_t size = strlen(str);
@@ -221,7 +271,7 @@ int snd_output_buffer_puts(snd_output_t *output, const char *str)
 	return size;
 }
 			
-int snd_output_buffer_putc(snd_output_t *output, int c)
+static int snd_output_buffer_putc(snd_output_t *output, int c)
 {
 	snd_output_buffer_t *buffer = output->private_data;
 	int err;
@@ -232,13 +282,28 @@ int snd_output_buffer_putc(snd_output_t *output, int c)
 	return 0;
 }
 
-int snd_output_buffer_flush(snd_output_t *output ATTRIBUTE_UNUSED)
+static int snd_output_buffer_flush(snd_output_t *output ATTRIBUTE_UNUSED)
 {
 	snd_output_buffer_t *buffer = output->private_data;
 	buffer->size = 0;
 	return 0;
 }
 
+static snd_output_ops_t snd_output_buffer_ops = {
+	close: snd_output_buffer_close,
+	printf: snd_output_buffer_printf,
+	puts: snd_output_buffer_puts,
+	putch: snd_output_buffer_putc,
+	flush: snd_output_buffer_flush,
+};
+#endif
+
+/**
+ * \brief Return buffer info for a #SND_OUTPUT_TYPE_BUFFER output handle
+ * \param output Output handle
+ * \param buf Pointer to returned buffer
+ * \return size of data in buffer
+ */
 size_t snd_output_buffer_string(snd_output_t *output, char **buf)
 {
 	snd_output_buffer_t *buffer = output->private_data;
@@ -246,14 +311,11 @@ size_t snd_output_buffer_string(snd_output_t *output, char **buf)
 	return buffer->size;
 }
 
-snd_output_ops_t snd_output_buffer_ops = {
-	close: snd_output_buffer_close,
-	printf: snd_output_buffer_printf,
-	puts: snd_output_buffer_puts,
-	putch: snd_output_buffer_putc,
-	flush: snd_output_buffer_flush,
-};
-
+/**
+ * \brief Open a new output to an auto extended  memory buffer
+ * \param outputp Pointer to returned output handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_output_buffer_open(snd_output_t **outputp)
 {
 	snd_output_t *output;
