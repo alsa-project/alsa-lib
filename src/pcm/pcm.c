@@ -26,6 +26,8 @@
 #include <stdarg.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
+#include <sys/shm.h>
+#include <sys/mman.h>
 #include <dlfcn.h>
 #include "pcm_local.h"
 #include "list.h"
@@ -138,25 +140,37 @@ int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
 	return pcm->ops->channel_setup(pcm->op_arg, setup);
 }
 
-int snd_pcm_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
+int _snd_pcm_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 {
 	int err;
 	snd_pcm_setup_t setup;
-	int mmap = 0;
-	assert(pcm && params);
+	if ((err = pcm->ops->params(pcm->op_arg, params)) < 0)
+		return err;
+	pcm->valid_setup = 0;
+	return snd_pcm_setup(pcm, &setup);
+}
+
+int snd_pcm_params_mmap(snd_pcm_t *pcm, snd_pcm_params_t *params)
+{
+	int err;
 	if (pcm->mmap_info) {
-		mmap = 1;
 		err = snd_pcm_munmap(pcm);
 		if (err < 0)
 			return err;
 	}
-	if ((err = pcm->ops->params(pcm->op_arg, params)) < 0)
-		return err;
-	pcm->valid_setup = 0;
-	err = snd_pcm_setup(pcm, &setup);
-	if (pcm->mmap_auto || mmap)
-		snd_pcm_mmap(pcm);
+	err = _snd_pcm_params(pcm, params);
+	if (pcm->valid_setup)
+	        snd_pcm_mmap(pcm);
 	return err;
+}
+
+int snd_pcm_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
+{
+	assert(pcm && params);
+	if (pcm->mmap_auto)
+		return snd_pcm_params_mmap(pcm, params);
+	assert(!pcm->mmap_info);
+	return _snd_pcm_params(pcm, params);
 }
 
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
@@ -227,7 +241,7 @@ int snd_pcm_set_avail_min(snd_pcm_t *pcm, size_t frames)
 	int err;
 	assert(pcm);
 	assert(pcm->valid_setup);
-	assert(frames > 0 && frames < pcm->setup.buffer_size);
+	assert(frames > 0);
 	err = pcm->fast_ops->set_avail_min(pcm->fast_op_arg, frames);
 	if (err < 0)
 		return err;
@@ -1067,6 +1081,60 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 	if (xfer > 0)
 		return xfer;
 	return err;
+}
+
+int snd_pcm_alloc_user_mmap(snd_pcm_t *pcm, snd_pcm_mmap_info_t *i)
+{
+	i->type = SND_PCM_MMAP_USER;
+	i->size = snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size);
+	i->u.user.shmid = shmget(IPC_PRIVATE, i->size, 0666);
+	if (i->u.user.shmid < 0) {
+		SYSERR("shmget failed");
+		return -errno;
+	}
+	i->addr = shmat(i->u.user.shmid, 0, 0);
+	if (i->addr == (void*) -1) {
+		SYSERR("shmat failed");
+		return -errno;
+	}
+	return 0;
+}
+
+int snd_pcm_alloc_kernel_mmap(snd_pcm_t *pcm, snd_pcm_mmap_info_t *i, int fd)
+{
+	i->type = SND_PCM_MMAP_KERNEL;
+	i->size = pcm->setup.mmap_bytes;
+	i->addr = mmap(NULL, pcm->setup.mmap_bytes,
+		       PROT_WRITE | PROT_READ,
+		       MAP_FILE|MAP_SHARED, 
+		       fd, SND_PCM_MMAP_OFFSET_DATA);
+	if (i->addr == MAP_FAILED ||
+	    i->addr == NULL) {
+		SYSERR("data mmap failed");
+		return -errno;
+	}
+	i->u.kernel.fd = fd;
+	return 0;
+}
+
+int snd_pcm_free_mmap(snd_pcm_t *pcm, snd_pcm_mmap_info_t *i)
+{
+	if (i->type == SND_PCM_MMAP_USER) {
+		if (shmdt(i->addr) < 0) {
+			SYSERR("shmdt failed");
+			return -errno;
+		}
+		if (shmctl(i->u.user.shmid, IPC_RMID, 0) < 0) {
+			SYSERR("shmctl IPC_RMID failed");
+			return -errno;
+		}
+	} else {
+		if (munmap(pcm->mmap_info->addr, pcm->mmap_info->size) < 0) {
+			SYSERR("data munmap failed");
+			return -errno;
+		}
+	}
+	return 0;
 }
 
 void snd_pcm_error(const char *file, int line, const char *function, int err, const char *fmt, ...)

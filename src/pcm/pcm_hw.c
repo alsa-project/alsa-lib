@@ -393,37 +393,21 @@ static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	snd_pcm_mmap_info_t *i = calloc(1, sizeof(*i));
+	int err;
 	if (!i)
 		return -ENOMEM;
 	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
-		i->type = SND_PCM_MMAP_USER;
-		i->size = snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size);
-		i->u.user.shmid = shmget(IPC_PRIVATE, i->size, 0666);
-		if (i->u.user.shmid < 0) {
-			SYSERR("shmget failed");
+		err = snd_pcm_alloc_user_mmap(pcm, i);
+		if (err < 0) {
 			free(i);
-			return -errno;
-		}
-		i->addr = shmat(i->u.user.shmid, 0, 0);
-		if (i->addr == (void*) -1) {
-			SYSERR("shmat failed");
-			free(i);
-			return -errno;
+			return err;
 		}
 	} else {
-		i->type = SND_PCM_MMAP_KERNEL;
-		i->size = pcm->setup.mmap_bytes;
-		i->addr = mmap(NULL, pcm->setup.mmap_bytes,
-					    PROT_WRITE | PROT_READ,
-					    MAP_FILE|MAP_SHARED, 
-					    hw->fd, SND_PCM_MMAP_OFFSET_DATA);
-		if (i->addr == MAP_FAILED ||
-		    i->addr == NULL) {
-			SYSERR("data mmap failed");
+		err = snd_pcm_alloc_kernel_mmap(pcm, i, hw->fd);
+		if (err < 0) {
 			free(i);
-			return -errno;
+			return err;
 		}
-		i->u.kernel.fd = hw->fd;
 	}
 	pcm->mmap_info = i;
 	pcm->mmap_info_count = 1;
@@ -452,21 +436,9 @@ static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_munmap(snd_pcm_t *pcm)
 {
-	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
-		if (shmdt(pcm->mmap_info->addr) < 0) {
-			SYSERR("shmdt failed");
-			return -errno;
-		}
-		if (shmctl(pcm->mmap_info->u.user.shmid, IPC_RMID, 0) < 0) {
-			SYSERR("shmctl IPC_RMID failed");
-			return -errno;
-		}
-	} else {
-		if (munmap(pcm->mmap_info->addr, pcm->mmap_info->size) < 0) {
-			SYSERR("data munmap failed");
-			return -errno;
-		}
-	}
+	int err = snd_pcm_free_mmap(pcm, pcm->mmap_info);
+	if (err < 0)
+		return err;
 	pcm->mmap_info_count = 0;
 	free(pcm->mmap_info);
 	pcm->mmap_info = 0;

@@ -494,7 +494,7 @@ static int snd_pcm_route_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 		params->format.channels = route->req_schannels;
 	params->xfer_mode = SND_PCM_XFER_UNSPECIFIED;
 	params->mmap_shape = SND_PCM_MMAP_UNSPECIFIED;;
-	err = snd_pcm_params(slave, params);
+	err = snd_pcm_params_mmap(slave, params);
 	params->format.sfmt = route->cformat;
 	params->format.channels = route->cchannels;
 	params->xfer_mode = route->cxfer_mode;

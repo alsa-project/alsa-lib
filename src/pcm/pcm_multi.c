@@ -221,7 +221,7 @@ static int snd_pcm_multi_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_t *slave = multi->slaves[i].pcm;
 		p.format.channels = multi->slaves[i].channels_count;
-		err = snd_pcm_params(slave, &p);
+		err = snd_pcm_params_mmap(slave, &p);
 		if (err < 0) {
 			params->fail_mask = p.fail_mask;
 			params->fail_reason = p.fail_reason;

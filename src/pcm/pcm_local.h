@@ -112,8 +112,7 @@ struct snd_pcm {
 void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void *buf);
 void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void **bufs);
 
-int snd_pcm_mmap(snd_pcm_t *pcm);
-int snd_pcm_munmap(snd_pcm_t *pcm);
+int snd_pcm_params_mmap(snd_pcm_t *pcm, snd_pcm_params_t *params);
 int snd_pcm_mmap_ready(snd_pcm_t *pcm);
 ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset);
 void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, size_t frames);
@@ -137,6 +136,9 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 			    snd_pcm_xfer_areas_func_t func);
 ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size);
 ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size);
+int snd_pcm_alloc_user_mmap(snd_pcm_t *pcm, snd_pcm_mmap_info_t *i);
+int snd_pcm_alloc_kernel_mmap(snd_pcm_t *pcm, snd_pcm_mmap_info_t *i, int fd);
+int snd_pcm_free_mmap(snd_pcm_t *pcm, snd_pcm_mmap_info_t *i);
 
 static inline size_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {
@@ -158,10 +160,13 @@ static inline size_t snd_pcm_mmap_capture_avail(snd_pcm_t *pcm)
 
 static inline size_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
 {
+	ssize_t avail;
+	avail = *pcm->hw_ptr - *pcm->appl_ptr;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		return snd_pcm_mmap_playback_avail(pcm);
-	else
-		return snd_pcm_mmap_capture_avail(pcm);
+		avail += pcm->setup.buffer_size;
+	if (avail < 0)
+		avail += pcm->setup.boundary;
+	return avail;
 }
 
 static inline ssize_t snd_pcm_mmap_playback_hw_avail(snd_pcm_t *pcm)
@@ -184,10 +189,13 @@ static inline ssize_t snd_pcm_mmap_capture_hw_avail(snd_pcm_t *pcm)
 
 static inline ssize_t snd_pcm_mmap_hw_avail(snd_pcm_t *pcm)
 {
+	ssize_t avail;
+	avail = *pcm->hw_ptr - *pcm->appl_ptr;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		return snd_pcm_mmap_playback_hw_avail(pcm);
-	else
-		return snd_pcm_mmap_capture_hw_avail(pcm);
+		avail += pcm->setup.buffer_size;
+	if (avail < 0)
+		avail += pcm->setup.boundary;
+	return pcm->setup.buffer_size - avail;
 }
 
 #define snd_pcm_mmap_playback_delay snd_pcm_mmap_playback_hw_avail

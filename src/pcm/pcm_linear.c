@@ -120,7 +120,7 @@ static int snd_pcm_linear_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 	params->format.sfmt = linear->sformat;
 	params->xfer_mode = SND_PCM_XFER_UNSPECIFIED;
 	params->mmap_shape = SND_PCM_MMAP_UNSPECIFIED;
-	err = snd_pcm_params(slave, params);
+	err = snd_pcm_params_mmap(slave, params);
 	params->format.sfmt = linear->cformat;
 	params->xfer_mode = linear->cxfer_mode;
 	params->mmap_shape = linear->cmmap_shape;

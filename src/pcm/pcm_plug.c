@@ -323,7 +323,6 @@ static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_for
 	err = snd_pcm_rate_open(new, NULL, slv->sfmt, slv->rate, plug->slave, plug->slave != plug->req_slave);
 	if (err < 0)
 		return err;
-	(*new)->mmap_auto = 1;
 	slv->rate = clt->rate;
 	if (snd_pcm_format_linear(clt->sfmt))
 		slv->sfmt = clt->sfmt;
@@ -388,7 +387,6 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 	err = snd_pcm_route_open(new, NULL, slv->sfmt, slv->channels, ttable, tt_ssize, tt_cused, tt_sused, plug->slave, plug->slave != plug->req_slave);
 	if (err < 0)
 		return err;
-	(*new)->mmap_auto = 1;
 	slv->channels = clt->channels;
 	if (snd_pcm_format_linear(clt->sfmt))
 		slv->sfmt = clt->sfmt;
@@ -453,7 +451,6 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_f
 	err = f(new, NULL, slv->sfmt, plug->slave, plug->slave != plug->req_slave);
 	if (err < 0)
 		return err;
-	(*new)->mmap_auto = 1;
 	slv->sfmt = cfmt;
 	return 1;
 }
@@ -492,7 +489,6 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 		}
 		k++;
 	}
-	plug->slave->mmap_auto = 0;
 	assert(0);
 	return 0;
 }

@@ -74,7 +74,9 @@ sname		Slave PCM name on server
 - share		Share PCM
 Fields:
 sname		Slave name
-[schannels]	Slave channels 
+[schannels]	Slave channels
+[sformat]	Slave format
+[srate]		Slave rate
 binding		Bindings table
   .N		Slave channel for client channel N
 
