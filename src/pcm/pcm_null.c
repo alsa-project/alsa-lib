@@ -275,6 +275,8 @@ static snd_pcm_sframes_t snd_pcm_null_avail_update(snd_pcm_t *pcm)
 static int snd_pcm_null_hw_refine(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err = snd_pcm_hw_refine_soft(pcm, params);
+	params->info = SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID |
+		       SND_PCM_INFO_RESUME | SND_PCM_INFO_PAUSE;
 	params->fifo_size = 0;
 	return err;
 }
