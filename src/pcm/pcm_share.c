@@ -152,18 +152,17 @@ static void snd_pcm_share_stop(snd_pcm_t *pcm, int state)
 	gettimeofday(&share->trigger_time, 0);
 	slave->prepared_count--;
 	slave->running_count--;
-	if (slave->running_count == 0) {
-		int err = snd_pcm_drop(slave->pcm);
-		assert(err >= 0);
-	}
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
+		snd_pcm_avail_update(slave->pcm);
 		snd_pcm_areas_copy(pcm->running_areas, 0,
 				   pcm->stopped_areas, 0,
 				   pcm->setup.format.channels, pcm->setup.buffer_size,
 				   pcm->setup.format.sfmt);
 	}
-	share->hw_ptr = *slave->pcm->hw_ptr;
-	pcm->hw_ptr = &share->hw_ptr;
+	if (slave->running_count == 0) {
+		int err = snd_pcm_drop(slave->pcm);
+		assert(err >= 0);
+	}
 }
 
 /* Warning: take the mutex before to call this */
@@ -557,6 +556,8 @@ static ssize_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 	ssize_t ret = 0;
 	pthread_mutex_lock(&slave->mutex);
 	ret = snd_pcm_avail_update(slave->pcm);
+	if (share->state == SND_PCM_STATE_RUNNING)
+		share->hw_ptr = *slave->pcm->hw_ptr;
 	if (ret == -EPIPE) {
 	  	struct list_head *i;
 		for (i = slave->clients.next; i != &slave->clients; i = i->next) {
@@ -570,8 +571,12 @@ static ssize_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 	pthread_mutex_unlock(&slave->mutex);
 	if (ret >= 0) {
 		ret = snd_pcm_mmap_avail(pcm);
-		if ((size_t)ret > pcm->setup.buffer_size)
+		if ((size_t)ret > pcm->setup.buffer_size) {
+			if (share->state == SND_PCM_STATE_RUNNING &&
+			    pcm->setup.xrun_mode != SND_PCM_XRUN_NONE)
+				snd_pcm_share_stop(pcm, SND_PCM_STATE_XRUN);
 			return -EPIPE;
+		}
 	}
 	return ret;
 }
@@ -659,8 +664,7 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 				goto _end;
 		}
 		assert(share->hw_ptr == 0);
-		/* Share the same hw_ptr of slave */
-		pcm->hw_ptr = slave->pcm->hw_ptr;
+		share->hw_ptr = *slave->pcm->hw_ptr;
 		share->appl_ptr = *slave->pcm->appl_ptr;
 		snd_pcm_areas_copy(pcm->stopped_areas, 0,
 				   pcm->running_areas, snd_pcm_mmap_offset(pcm),

@@ -34,6 +34,8 @@
 typedef struct {
 	long result;
 	int cmd;
+	size_t hw_ptr;
+	size_t appl_ptr;
 	union {
 		struct {
 			int sig;
@@ -45,14 +47,24 @@ typedef struct {
 		snd_pcm_params_info_t params_info;
 		snd_pcm_setup_t setup;
 		snd_pcm_status_t status;
-		ssize_t delay;
-		int pause;
+		struct {
+			ssize_t frames;
+		} delay;
+		struct {
+			int enable;
+		} pause;
 		snd_pcm_channel_info_t channel_info;
 		snd_pcm_channel_params_t channel_params;
 		snd_pcm_channel_setup_t channel_setup;
-		ssize_t rewind;
-		int link;
-		size_t mmap_forward;
+		struct {
+			ssize_t frames;
+		} rewind;
+		struct {
+			int fd;
+		} link;
+		struct {
+			ssize_t frames;
+		} mmap_forward;
 	} u;
 	char data[0];
 } snd_pcm_shm_ctrl_t;

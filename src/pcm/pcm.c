@@ -1039,6 +1039,7 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 			err = snd_pcm_start(pcm);
 			if (err < 0)
 				break;
+			state = SND_PCM_STATE_RUNNING;
 		}
 	}
 	if (xfer > 0)

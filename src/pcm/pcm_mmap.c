@@ -122,7 +122,6 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 				 size_t *slave_sizep)
 {
 	size_t xfer;
-	ssize_t err = 0;
 	if (slave_sizep && *slave_sizep < size)
 		size = *slave_sizep;
 	xfer = 0;
@@ -132,19 +131,13 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
 				   snd_pcm_mmap_areas(pcm), snd_pcm_mmap_offset(pcm),
 				   pcm->setup.format.channels, 
 				   frames, pcm->setup.format.sfmt);
-		err = snd_pcm_mmap_forward(pcm, frames);
-		if (err < 0)
-			break;
-		assert((size_t)err == frames);
-		offset += err;
-		xfer += err;
+		snd_pcm_mmap_forward(pcm, frames);
+		offset += frames;
+		xfer += frames;
 	}
-	if (xfer > 0) {
-		if (slave_sizep)
-			*slave_sizep = xfer;
-		return xfer;
-	}
-	return err;
+	if (slave_sizep)
+		*slave_sizep = xfer;
+	return xfer;
 }
 
 ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
@@ -154,7 +147,6 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 				size_t *slave_sizep)
 {
 	size_t xfer;
-	ssize_t err = 0;
 	if (slave_sizep && *slave_sizep < size)
 		size = *slave_sizep;
 	xfer = 0;
@@ -164,19 +156,13 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
 				   areas, offset, 
 				   pcm->setup.format.channels, 
 				   frames, pcm->setup.format.sfmt);
-		err = snd_pcm_mmap_forward(pcm, frames);
-		if (err < 0)
-			break;
-		assert((size_t)err == frames);
-		offset += err;
-		xfer += err;
+		snd_pcm_mmap_forward(pcm, frames);
+		offset += frames;
+		xfer += frames;
 	}
-	if (xfer > 0) {
-		if (slave_sizep)
-			*slave_sizep = xfer;
-		return xfer;
-	}
-	return err;
+	if (slave_sizep)
+		*slave_sizep = xfer;
+	return xfer;
 }
 
 ssize_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, size_t size)

@@ -547,6 +547,30 @@ static int snd_pcm_route_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 	return 0;
 }
 
+static int snd_pcm_route_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
+{
+#if 0
+	snd_pcm_plugin_t *plugin = pcm->private;
+	int err;
+	err = snd_pcm_channel_setup(plugin->slave, setup);
+	if (err < 0)
+		return err;
+#endif
+	if (!pcm->mmap_info)
+		return 0;
+	if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
+		setup->running_area.addr = pcm->mmap_info->addr;
+		setup->running_area.first = setup->channel * pcm->bits_per_sample;
+		setup->running_area.step = pcm->bits_per_frame;
+	} else {
+		setup->running_area.addr = pcm->mmap_info->addr + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
+		setup->running_area.first = 0;
+		setup->running_area.step = pcm->bits_per_sample;
+	}
+	setup->stopped_area = setup->running_area;
+	return 0;
+}
+
 static ssize_t snd_pcm_route_write_areas(snd_pcm_t *pcm,
 					 snd_pcm_channel_area_t *areas,
 					 size_t offset,
@@ -579,30 +603,6 @@ static ssize_t snd_pcm_route_write_areas(snd_pcm_t *pcm,
 		return xfer;
 	}
 	return err;
-}
-
-static int snd_pcm_route_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
-{
-#if 0
-	snd_pcm_plugin_t *plugin = pcm->private;
-	int err;
-	err = snd_pcm_channel_setup(plugin->slave, setup);
-	if (err < 0)
-		return err;
-#endif
-	if (!pcm->mmap_info)
-		return 0;
-	if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
-		setup->running_area.addr = pcm->mmap_info->addr;
-		setup->running_area.first = setup->channel * pcm->bits_per_sample;
-		setup->running_area.step = pcm->bits_per_frame;
-	} else {
-		setup->running_area.addr = pcm->mmap_info->addr + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
-		setup->running_area.first = 0;
-		setup->running_area.step = pcm->bits_per_sample;
-	}
-	setup->stopped_area = setup->running_area;
-	return 0;
 }
 
 static ssize_t snd_pcm_route_read_areas(snd_pcm_t *pcm,

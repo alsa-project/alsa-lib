@@ -40,9 +40,7 @@
 
 typedef struct {
 	int socket;
-	void *ctrl;
-	size_t hw_ptr;
-	size_t appl_ptr;
+	volatile snd_pcm_shm_ctrl_t *ctrl;
 	snd_pcm_mmap_info_t *slave_mmap_info;
 } snd_pcm_shm_t;
 
@@ -85,7 +83,7 @@ static int snd_pcm_shm_action(snd_pcm_t *pcm)
 	snd_pcm_shm_t *shm = pcm->private;
 	int err;
 	char buf[1];
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
 		return -EBADFD;
@@ -104,7 +102,7 @@ static int snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 	snd_pcm_shm_t *shm = pcm->private;
 	int err;
 	char buf[1];
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
 		return -EBADFD;
@@ -118,36 +116,6 @@ static int snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 	return ctrl->result;
 }
 
-static int snd_pcm_shm_drain(snd_pcm_t *pcm)
-{
-	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
-	ctrl->cmd = SND_PCM_IOCTL_DRAIN;
-	err = snd_pcm_shm_action(pcm);
-	if (err < 0)
-		return err;
-	if (!(pcm->mode & SND_PCM_NONBLOCK))
-		snd_pcm_wait(pcm, -1);
-	return err;
-}
-
-static int snd_pcm_shm_close(snd_pcm_t *pcm)
-{
-	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	int result;
-	if (!(pcm->mode & SND_PCM_NONBLOCK))
-		snd_pcm_shm_drain(pcm);
-	ctrl->cmd = SND_PCM_IOCTL_CLOSE;
-	result = snd_pcm_shm_action(pcm);
-	shmdt((void *)ctrl);
-	close(shm->socket);
-	close(pcm->poll_fd);
-	free(shm);
-	return result;
-}
-
 static int snd_pcm_shm_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -156,7 +124,7 @@ static int snd_pcm_shm_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock AT
 static int snd_pcm_shm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_ASYNC;
 	ctrl->u.async.sig = sig;
 	if (pid == 0)
@@ -168,7 +136,7 @@ static int snd_pcm_shm_async(snd_pcm_t *pcm, int sig, pid_t pid)
 static int snd_pcm_shm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 //	ctrl->u.info = *info;
 	ctrl->cmd = SND_PCM_IOCTL_INFO;
@@ -182,7 +150,7 @@ static int snd_pcm_shm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 static int snd_pcm_shm_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_PARAMS_INFO;
 	ctrl->u.params_info = *info;
@@ -196,7 +164,7 @@ static int snd_pcm_shm_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
 static int snd_pcm_shm_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_PARAMS;
 	ctrl->u.params = *params;
@@ -210,7 +178,7 @@ static int snd_pcm_shm_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 static int snd_pcm_shm_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_SETUP;
 	// ctrl->u.setup = *setup;
@@ -224,7 +192,7 @@ static int snd_pcm_shm_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 static int snd_pcm_shm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_INFO;
 	ctrl->u.channel_info = *info;
@@ -238,7 +206,7 @@ static int snd_pcm_shm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * inf
 static int snd_pcm_shm_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_PARAMS;
 	ctrl->u.channel_params = *params;
@@ -270,7 +238,7 @@ static void *convert_addr(void *addr, size_t count, snd_pcm_mmap_info_t *old, sn
 static int snd_pcm_shm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_SETUP;
 	ctrl->u.channel_setup = *setup;
@@ -288,7 +256,7 @@ static int snd_pcm_shm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * s
 static int snd_pcm_shm_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_STATUS;
 	// ctrl->u.status = *status;
@@ -302,7 +270,7 @@ static int snd_pcm_shm_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static int snd_pcm_shm_state(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_STATE;
 	return snd_pcm_shm_action(pcm);
 }
@@ -310,37 +278,32 @@ static int snd_pcm_shm_state(snd_pcm_t *pcm)
 static int snd_pcm_shm_delay(snd_pcm_t *pcm, ssize_t *delayp)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_DELAY;
 	err = snd_pcm_shm_action(pcm);
 	if (err < 0)
 		return err;
-	*delayp = ctrl->u.delay;
+	*delayp = ctrl->u.delay.frames;
 	return err;
 }
 
 static ssize_t snd_pcm_shm_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->cmd = SND_PCM_IOCTL_AVAIL_UPDATE;
 	err = snd_pcm_shm_action(pcm);
 	if (err < 0)
 		return err;
-	shm->hw_ptr = shm->appl_ptr;
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		snd_pcm_mmap_hw_backward(pcm, err);
-	else
-		snd_pcm_mmap_hw_forward(pcm, err);
 	return err;
 }
 
 static int snd_pcm_shm_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_PREPARE;
 	return snd_pcm_shm_action(pcm);
 }
@@ -348,7 +311,7 @@ static int snd_pcm_shm_prepare(snd_pcm_t *pcm)
 static int snd_pcm_shm_start(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_START;
 	return snd_pcm_shm_action(pcm);
 }
@@ -356,37 +319,47 @@ static int snd_pcm_shm_start(snd_pcm_t *pcm)
 static int snd_pcm_shm_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_DROP;
 	return snd_pcm_shm_action(pcm);
+}
+
+static int snd_pcm_shm_drain(snd_pcm_t *pcm)
+{
+	snd_pcm_shm_t *shm = pcm->private;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->cmd = SND_PCM_IOCTL_DRAIN;
+	err = snd_pcm_shm_action(pcm);
+	if (err < 0)
+		return err;
+	if (!(pcm->mode & SND_PCM_NONBLOCK))
+		snd_pcm_wait(pcm, -1);
+	return err;
 }
 
 static int snd_pcm_shm_pause(snd_pcm_t *pcm, int enable)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_PAUSE;
-	ctrl->u.pause = enable;
+	ctrl->u.pause.enable = enable;
 	return snd_pcm_shm_action(pcm);
 }
 
 static ssize_t snd_pcm_shm_rewind(snd_pcm_t *pcm, size_t frames)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_REWIND;
-	ctrl->u.rewind = frames;
-	err = snd_pcm_shm_action(pcm);
-	if (err >= 0)
-		snd_pcm_mmap_appl_backward(pcm, err);
-	return err;
+	ctrl->u.rewind.frames = frames;
+	return snd_pcm_shm_action(pcm);
 }
 
 static int snd_pcm_shm_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int count, k, err, fd;
 	ctrl->cmd = SND_PCM_IOCTL_MMAP;
 	count = snd_pcm_shm_action(pcm);
@@ -432,7 +405,7 @@ static int snd_pcm_shm_mmap(snd_pcm_t *pcm)
 static int snd_pcm_shm_munmap(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	unsigned int k;
 	ctrl->cmd = SND_PCM_IOCTL_MUNMAP;
@@ -464,20 +437,16 @@ static int snd_pcm_shm_munmap(snd_pcm_t *pcm)
 static ssize_t snd_pcm_shm_mmap_forward(snd_pcm_t *pcm, size_t size)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_MMAP_FORWARD;
-	ctrl->u.mmap_forward = size;
-	err = snd_pcm_shm_action(pcm);
-	if (err >= 0)
-		snd_pcm_mmap_appl_forward(pcm, err);
-	return err;
+	ctrl->u.mmap_forward.frames = size;
+	return snd_pcm_shm_action(pcm);
 }
 
 static int snd_pcm_shm_poll_descriptor(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
-	snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int fd, err;
 	ctrl->cmd = SND_PCM_IOCTL_POLL_DESCRIPTOR;
 	err = snd_pcm_shm_action_fd(pcm, &fd);
@@ -490,6 +459,23 @@ static int snd_pcm_shm_channels_mask(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 					bitset_t *cmask ATTRIBUTE_UNUSED)
 {
 	return 0;
+}
+
+static int snd_pcm_shm_close(snd_pcm_t *pcm)
+{
+	snd_pcm_shm_t *shm = pcm->private;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	int result;
+	if (!(pcm->mode & SND_PCM_NONBLOCK) &&
+	    snd_pcm_shm_state(pcm) == SND_PCM_STATE_RUNNING)
+		snd_pcm_shm_drain(pcm);
+	ctrl->cmd = SND_PCM_IOCTL_CLOSE;
+	result = snd_pcm_shm_action(pcm);
+	shmdt((void *)ctrl);
+	close(shm->socket);
+	close(pcm->poll_fd);
+	free(shm);
+	return result;
 }
 
 static void snd_pcm_shm_dump(snd_pcm_t *pcm, FILE *fp)
@@ -680,8 +666,8 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, in
 		return err;
 	}
 	pcm->poll_fd = err;
-	pcm->hw_ptr = &shm->hw_ptr;
-	pcm->appl_ptr = &shm->appl_ptr;
+	pcm->hw_ptr = &ctrl->hw_ptr;
+	pcm->appl_ptr = &ctrl->appl_ptr;
 	*pcmp = pcm;
 	return 0;
 

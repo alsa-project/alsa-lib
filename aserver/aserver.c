@@ -288,7 +288,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 	}
 	client->transport.shm.ctrl_id = shmid;
 	client->transport.shm.ctrl = shmat(shmid, 0, 0);
-	if (!client->transport.shm.ctrl) {
+	if (client->transport.shm.ctrl == (void*) -1) {
 		result = -errno;
 		shmctl(shmid, IPC_RMID, 0);
 		SYSERR("shmat");
@@ -360,7 +360,7 @@ int shm_ack_fd(client_t *client, int fd)
 
 int pcm_shm_cmd(client_t *client)
 {
-	snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
+	volatile snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
 	char buf[1];
 	int err;
 	int cmd;
@@ -376,34 +376,39 @@ int pcm_shm_cmd(client_t *client)
 		ctrl->result = snd_pcm_async(pcm, ctrl->u.async.sig, ctrl->u.async.pid);
 		break;
 	case SND_PCM_IOCTL_INFO:
-		ctrl->result = snd_pcm_info(pcm, &ctrl->u.info);
+		ctrl->result = snd_pcm_info(pcm, (snd_pcm_info_t *) &ctrl->u.info);
 		break;
 	case SND_PCM_IOCTL_PARAMS:
-		ctrl->result = snd_pcm_params(pcm, &ctrl->u.params);
+		ctrl->result = snd_pcm_params(pcm, (snd_pcm_params_t *) &ctrl->u.params);
 		break;
 	case SND_PCM_IOCTL_PARAMS_INFO:
-		ctrl->result = snd_pcm_params_info(pcm, &ctrl->u.params_info);
+		ctrl->result = snd_pcm_params_info(pcm, (snd_pcm_params_info_t *) &ctrl->u.params_info);
 		break;
 	case SND_PCM_IOCTL_SETUP:
-		ctrl->result = snd_pcm_setup(pcm, &ctrl->u.setup);
+		ctrl->result = snd_pcm_setup(pcm, (snd_pcm_setup_t *) &ctrl->u.setup);
 		break;
 	case SND_PCM_IOCTL_STATUS:
-		ctrl->result = snd_pcm_status(pcm, &ctrl->u.status);
+		ctrl->result = snd_pcm_status(pcm, (snd_pcm_status_t *) &ctrl->u.status);
 		break;
 	case SND_PCM_IOCTL_STATE:
 		ctrl->result = snd_pcm_state(pcm);
 		break;
 	case SND_PCM_IOCTL_DELAY:
-		ctrl->result = snd_pcm_delay(pcm, &ctrl->u.delay);
+		ctrl->result = snd_pcm_delay(pcm, (ssize_t *) &ctrl->u.delay.frames);
 		break;
 	case SND_PCM_IOCTL_AVAIL_UPDATE:
 		ctrl->result = snd_pcm_avail_update(pcm);
+		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
 	case SND_PCM_IOCTL_PREPARE:
 		ctrl->result = snd_pcm_prepare(pcm);
+		ctrl->appl_ptr = *pcm->appl_ptr;
+		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
 	case SND_PCM_IOCTL_START:
 		ctrl->result = snd_pcm_start(pcm);
+		ctrl->appl_ptr = *pcm->appl_ptr;
+		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
 	case SND_PCM_IOCTL_DRAIN:
 		ctrl->result = snd_pcm_drain(pcm);
@@ -412,19 +417,20 @@ int pcm_shm_cmd(client_t *client)
 		ctrl->result = snd_pcm_drop(pcm);
 		break;
 	case SND_PCM_IOCTL_PAUSE:
-		ctrl->result = snd_pcm_pause(pcm, ctrl->u.pause);
+		ctrl->result = snd_pcm_pause(pcm, ctrl->u.pause.enable);
 		break;
 	case SND_PCM_IOCTL_CHANNEL_INFO:
-		ctrl->result = snd_pcm_channel_info(pcm, &ctrl->u.channel_info);
+		ctrl->result = snd_pcm_channel_info(pcm, (snd_pcm_channel_info_t *) &ctrl->u.channel_info);
 		break;
 	case SND_PCM_IOCTL_CHANNEL_PARAMS:
-		ctrl->result = snd_pcm_channel_params(pcm, &ctrl->u.channel_params);
+		ctrl->result = snd_pcm_channel_params(pcm, (snd_pcm_channel_params_t *) &ctrl->u.channel_params);
 		break;
 	case SND_PCM_IOCTL_CHANNEL_SETUP:
-		ctrl->result = snd_pcm_channel_setup(pcm, &ctrl->u.channel_setup);
+		ctrl->result = snd_pcm_channel_setup(pcm, (snd_pcm_channel_setup_t *) &ctrl->u.channel_setup);
 		break;
 	case SND_PCM_IOCTL_REWIND:
-		ctrl->result = snd_pcm_rewind(pcm, ctrl->u.rewind);
+		ctrl->result = snd_pcm_rewind(pcm, ctrl->u.rewind.frames);
+		ctrl->appl_ptr = *pcm->appl_ptr;
 		break;
 	case SND_PCM_IOCTL_LINK:
 	{
@@ -454,11 +460,18 @@ int pcm_shm_cmd(client_t *client)
 		}
 		i = &pcm->mmap_info[index];
 		if (i->type == SND_PCM_MMAP_USER) {
-			i->u.user.shmid = shmget(IPC_PRIVATE, i->size, 0666);
-			if (i->u.user.shmid < 0) {
+			void *ptr;
+			int shmid = shmget(IPC_PRIVATE, i->size, 0666);
+			if (shmid < 0) {
 				SYSERR("shmget");
 				return -EINVAL;
 			}
+			ptr = shmat(shmid, i->addr, 0);
+			if (ptr != i->addr) {
+				SYSERR("shmat");
+				return -EINVAL;
+			}
+			i->u.user.shmid = shmid;
 		}
 		ctrl->u.mmap_info = *i;
 		ctrl->u.mmap_info.index = index;
@@ -483,7 +496,8 @@ int pcm_shm_cmd(client_t *client)
 		break;
 	}
 	case SND_PCM_IOCTL_MMAP_FORWARD:
-		ctrl->result = snd_pcm_mmap_forward(pcm, ctrl->u.mmap_forward);
+		ctrl->result = snd_pcm_mmap_forward(pcm, ctrl->u.mmap_forward.frames);
+		ctrl->appl_ptr = *pcm->appl_ptr;
 		break;
 	case SND_PCM_IOCTL_POLL_DESCRIPTOR:
 		ctrl->result = 0;
@@ -895,7 +909,7 @@ int server(char *sockname, int port)
 		struct pollfd pfds[OPEN_MAX];
 		size_t pfds_count;
 		do {
-			err = poll(pollfds, pollfds_count, 1000);
+			err = poll(pollfds, pollfds_count, -1);
 		} while (err == 0);
 		if (err < 0) {
 			SYSERR("poll");
