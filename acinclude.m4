@@ -10,7 +10,7 @@ void main(void)
 #if !defined(SND_PROTOCOL_VERSION) || !defined(SND_PROTOCOL_INCOMPATIBLE)
 #error not found
 #else
-#if !defined(SND_PCM_IOCTL_FRAME_IO)
+#if !defined(SND_PCM_IOCTL_HW_PTR)
 #error wrong version
 #endif
   exit(0);
