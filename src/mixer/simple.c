@@ -597,7 +597,9 @@ static int selem_write(snd_mixer_elem_t *elem)
 		if ((err = snd_hctl_elem_write(c->elem, &ctl)) < 0)
 			return err;
 		/* update the element, don't remove */
-		return selem_read(elem);
+		err = selem_read(elem);
+		if (err < 0)
+			return err;
 	}
 	return 0;
 }
