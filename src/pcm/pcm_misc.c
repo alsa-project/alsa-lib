@@ -30,7 +30,6 @@
 #include <string.h>
 #include <byteswap.h>
 #include <errno.h>
-#include <endian.h>
 #include <byteswap.h>
 #include "pcm_local.h"
 #endif
@@ -249,54 +248,42 @@ u_int64_t snd_pcm_format_silence_64(int format)
 	case SND_PCM_SFMT_U16_LE:
 	case SND_PCM_SFMT_U24_LE:
 	case SND_PCM_SFMT_U32_LE:
-#if defined(LITTLE_ENDIAN)
+#ifdef SND_LITTLE_ENDIAN
 		return 0x8000800080008000UL;
-#elif defined(BIG_ENDIAN)
-		return 0x0080008000800080UL;
 #else
-#error "endian"
+		return 0x0080008000800080UL;
 #endif
 	case SND_PCM_SFMT_U16_BE:
 	case SND_PCM_SFMT_U24_BE:
 	case SND_PCM_SFMT_U32_BE:
-#if defined(LITTLE_ENDIAN)
+#ifdef SND_LITTLE_ENDIAN
 		return 0x0000008000000080UL;
-#elif defined(BIG_ENDIAN)
-		return 0x8000000080000000UL;
 #else
-#error "endian"
+		return 0x8000000080000000UL;
 #endif
 	case SND_PCM_SFMT_FLOAT_LE:		
-#if defined(LITTLE_ENDIAN)
+#ifdef SND_LITTLE_ENDIAN
 		return (float)0.0;
-#elif defined(BIG_ENDIAN)
-		return bswap_32((u_int32_t)((float)0.0));
 #else
-#error "endian"
+		return bswap_32((u_int32_t)((float)0.0));
 #endif
 	case SND_PCM_SFMT_FLOAT64_LE:
-#if defined(LITTLE_ENDIAN)
+#ifdef SND_LITTLE_ENDIAN
 		return (double)0.0;
-#elif defined(BIG_ENDIAN)
-		return bswap_64((u_int64_t)((double)0.0));
 #else
-#error "endian"
+		return bswap_64((u_int64_t)((double)0.0));
 #endif
 	case SND_PCM_SFMT_FLOAT_BE:		
-#if defined(LITTLE_ENDIAN)
+#ifdef SND_LITTLE_ENDIAN
 		return bswap_32((u_int32_t)((float)0.0));
-#elif defined(BIG_ENDIAN)
-		return (float)0.0;
 #else
-#error "endian"
+		return (float)0.0;
 #endif
 	case SND_PCM_SFMT_FLOAT64_BE:
-#if defined(LITTLE_ENDIAN)
+#ifdef SND_LITTLE_ENDIAN
 		return bswap_64((u_int64_t)((double)0.0));
-#elif defined(BIG_ENDIAN)
-		return (double)0.0;
 #else
-#error "endian"
+		return (double)0.0;
 #endif
 	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
 	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:

@@ -30,7 +30,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <endian.h>
 #include <byteswap.h>
 #include <sys/uio.h>
 #include "../pcm_local.h"
@@ -116,14 +115,12 @@ int conv_index(int src_format, int dst_format)
 
 	sign = (snd_pcm_format_signed(src_format) !=
 		snd_pcm_format_signed(dst_format));
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#ifdef SND_LITTLE_ENDIAN
 	src_endian = snd_pcm_format_big_endian(src_format);
 	dst_endian = snd_pcm_format_big_endian(dst_format);
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#else
 	src_endian = snd_pcm_format_little_endian(src_format);
 	dst_endian = snd_pcm_format_little_endian(dst_format);
-#else
-#error "Unsupported endian..."
 #endif
 
 	if (src_endian < 0)

@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <endian.h>
 #include <byteswap.h>
 #include <sys/uio.h>
 #include "../pcm_local.h"

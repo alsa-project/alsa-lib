@@ -51,7 +51,6 @@ IMA compatability project proceedings, Vol 2, Issue 2, May 1992.
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <endian.h>
 #include <byteswap.h>
 #include "../pcm_local.h"
 

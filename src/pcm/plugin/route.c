@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <endian.h>
 #include <byteswap.h>
 #include <math.h>
 #include "../pcm_local.h"
@@ -530,12 +529,10 @@ int getput_index(int format)
 	int sign, width, endian;
 	sign = !snd_pcm_format_signed(format);
 	width = snd_pcm_format_width(format) / 8 - 1;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#ifdef SND_LITTLE_ENDIAN
 	endian = snd_pcm_format_big_endian(format);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-	endian = snd_pcm_format_little_endian(format);
 #else
-#error "Unsupported endian..."
+	endian = snd_pcm_format_little_endian(format);
 #endif
 	if (endian < 0)
 		endian = 0;
