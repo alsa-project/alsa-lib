@@ -28,6 +28,10 @@
 #ifndef __ALSA_INPUT_H
 #define __ALSA_INPUT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup Input Input Interface
  *  Input Interface
@@ -45,10 +49,6 @@ typedef enum _snd_input_type {
 	SND_INPUT_BUFFER,
 } snd_input_type_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int snd_input_stdio_open(snd_input_t **inputp, const char *file, const char *mode);
 int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int _close);
 int snd_input_buffer_open(snd_input_t **inputp, const char *buffer, ssize_t size);
@@ -58,11 +58,11 @@ char *snd_input_gets(snd_input_t *input, char *str, size_t size);
 int snd_input_getc(snd_input_t *input);
 int snd_input_ungetc(snd_input_t *input, int c);
 
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
 
-/** \} */
-
 #endif /* __ALSA_INPUT_H */
-
+ 

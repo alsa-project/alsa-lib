@@ -28,16 +28,16 @@
 #ifndef __ALSA_SEQMID_H
 #define __ALSA_SEQMID_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup SeqMiddle Sequencer Middle Level Interface
  *  Sequencer Middle Level Interface
  *  \ingroup Sequencer
  *  \{
  */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * \brief initialize event record
@@ -427,11 +427,11 @@ int snd_seq_reset_pool_input(snd_seq_t *seq);
 	((ev)->type = SND_SEQ_EVENT_SYSEX,\
 	 snd_seq_ev_set_variable(ev, datalen, dataptr))
 
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
-
-/** \} */
 
 #endif /* __ALSA_SEQMID_H */
 

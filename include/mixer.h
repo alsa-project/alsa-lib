@@ -28,6 +28,10 @@
 #ifndef __ALSA_MIXER_H
 #define __ALSA_MIXER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup Mixer Mixer Interface
  *  The mixer interface.
@@ -77,10 +81,6 @@ typedef enum _snd_mixer_elem_type {
 	SND_MIXER_ELEM_LAST = SND_MIXER_ELEM_SIMPLE,
 } snd_mixer_elem_type_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int snd_mixer_open(snd_mixer_t **mixer, int mode);
 int snd_mixer_close(snd_mixer_t *mixer);
 snd_mixer_elem_t *snd_mixer_first_elem(snd_mixer_t *mixer);
@@ -107,10 +107,6 @@ void * snd_mixer_elem_get_callback_private(const snd_mixer_elem_t *obj);
 void snd_mixer_elem_set_callback_private(snd_mixer_elem_t *obj, void * val);
 snd_mixer_elem_type_t snd_mixer_elem_get_type(const snd_mixer_elem_t *obj);
 
-
-#ifdef __cplusplus
-}
-#endif
 
 /**
  *  \defgroup SimpleMixer Simple Mixer Interface
@@ -144,10 +140,6 @@ typedef enum _snd_mixer_selem_channel_id {
 
 /** Mixer simple element identificator */
 typedef struct _snd_mixer_selem_id snd_mixer_selem_id_t;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel);
 
@@ -213,13 +205,13 @@ unsigned int snd_mixer_selem_id_get_index(const snd_mixer_selem_id_t *obj);
 void snd_mixer_selem_id_set_name(snd_mixer_selem_id_t *obj, const char *val);
 void snd_mixer_selem_id_set_index(snd_mixer_selem_id_t *obj, unsigned int val);
 
+/** \} */
+
+/** \} */
 
 #ifdef __cplusplus
 }
 #endif
-
-/** \} */
-/** \} */
 
 #endif /* __ALSA_MIXER_H */
 

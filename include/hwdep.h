@@ -28,6 +28,10 @@
 #ifndef __ALSA_HWDEP_H
 #define __ALSA_HWDEP_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup HwDep Hardware Dependant Interface
  *  The Hardware Dependant Interface.
@@ -74,10 +78,6 @@ typedef enum _snd_hwdep_type {
 /** HwDep handle */
 typedef struct _snd_hwdep snd_hwdep_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int snd_hwdep_open(snd_hwdep_t **hwdep, const char *name, int mode);
 int snd_hwdep_close(snd_hwdep_t *hwdep);
 int snd_hwdep_poll_descriptors(snd_hwdep_t *hwdep, struct pollfd *pfds, unsigned int space);
@@ -101,11 +101,11 @@ const char *snd_hwdep_info_get_name(const snd_hwdep_info_t *obj);
 snd_hwdep_iface_t snd_hwdep_info_get_iface(const snd_hwdep_info_t *obj);
 void snd_hwdep_info_set_device(snd_hwdep_info_t *obj, unsigned int val);
 
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
-
-/** \} */
 
 #endif /* __ALSA_HWDEP_H */
 

@@ -28,6 +28,10 @@
 #ifndef __ALSA_ERROR_H
 #define __ALSA_ERROR_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup Error Error handling
  *  Error handling
@@ -36,10 +40,6 @@
 
 #define SND_ERROR_BEGIN				500000			/**< begin boundary of sound error codes */
 #define SND_ERROR_INCOMPATIBLE_VERSION		(SND_ERROR_BEGIN+0)	/**< protocol is not compatible */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 const char *snd_strerror(int errnum);
 
@@ -56,10 +56,6 @@ typedef void (snd_lib_error_handler_t)(const char *file, int line, const char *f
 extern snd_lib_error_handler_t *snd_lib_error;
 extern int snd_lib_error_set_handler(snd_lib_error_handler_t *handler);
 
-#ifdef __cplusplus
-}
-#endif
-
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 95)
 #define SNDERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, __VA_ARGS__) /**< show sound error */
 #define SYSERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, __VA_ARGS__) /**< show system error */
@@ -69,6 +65,10 @@ extern int snd_lib_error_set_handler(snd_lib_error_handler_t *handler);
 #endif
 
 /** \} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __ALSA_ERROR_H */
 

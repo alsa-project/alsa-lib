@@ -28,16 +28,15 @@
 #ifndef __ALSA_SEQ_H
 #define __ALSA_SEQ_H
 
-/**
- *  \defgroup SeqGlobal Sequencer System
- *  Global System Interface
- *  \ingroup Sequencer
- *  \{
- */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ *  \defgroup Sequencer MIDI Sequencer
+ *  MIDI Sequencer Interface
+ *  \{
+ */
 
 /** dlsym version for interface entry callback */
 #define SND_SEQ_DLSYM_VERSION		_dlsym_seq_001

@@ -28,6 +28,10 @@
 #ifndef __ALSA_INSTR_H
 #define __ALSA_INSTR_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup Instrument Instrument Interface
  *  The Instrument Interface.
@@ -35,10 +39,6 @@
  */
 
 /* instrument get/put */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /** container for sequencer instrument header */
 typedef struct _snd_instr_header snd_instr_header_t;
@@ -74,10 +74,6 @@ void snd_instr_header_set_type(snd_instr_header_t *info, int type);
 void snd_instr_header_set_format(snd_instr_header_t *info, const char *format);
 void snd_instr_header_set_alias(snd_instr_header_t *info, const snd_seq_instr_t *instr);
 void snd_instr_header_set_follow_alias(snd_instr_header_t *info, int val);
-
-#ifdef __cplusplus
-}
-#endif
 
 /**
  *  Instrument abstraction layer
@@ -136,17 +132,9 @@ void snd_instr_header_set_follow_alias(snd_instr_header_t *info, int val);
 /** FM instrument data structure */
 typedef void snd_instr_fm_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm, const char *name, snd_instr_header_t **put, size_t *size);
 int snd_instr_fm_convert_from_stream(snd_instr_header_t *data, size_t size, snd_instr_fm_t **fm);
 int snd_instr_fm_free(snd_instr_fm_t *fm);
-
-#ifdef __cplusplus
-}
-#endif
 
 
 /**
@@ -156,17 +144,9 @@ int snd_instr_fm_free(snd_instr_fm_t *fm);
 /** simple instrument data structure */
 typedef void snd_instr_simple_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple, const char *name, snd_instr_header_t **put, size_t *size);
 int snd_instr_simple_convert_from_stream(snd_instr_header_t *data, size_t size, snd_instr_simple_t **simple);
 int snd_instr_simple_free(snd_instr_simple_t *simple);
-
-#ifdef __cplusplus
-}
-#endif
 
 
 /**
@@ -178,10 +158,6 @@ typedef void snd_instr_iwffff_t;
 /** IW FFFF handler */
 typedef struct _snd_iwffff_handle snd_iwffff_handle_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int snd_instr_iwffff_open(snd_iwffff_handle_t **handle, const char *name_fff, const char *name_dta);
 int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, int file);
 int snd_instr_iwffff_open_rom_file(snd_iwffff_handle_t **handle, const char *name, int bank, int file);
@@ -191,11 +167,11 @@ int snd_instr_iwffff_convert_to_stream(snd_instr_iwffff_t *iwffff, const char *n
 int snd_instr_iwffff_convert_from_stream(snd_instr_header_t *data, size_t size, snd_instr_iwffff_t **iwffff);
 int snd_instr_iwffff_free(snd_instr_iwffff_t *iwffff);
 
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
-
-/** \} */
 
 #endif /* __ALSA_INSTR_H */
 

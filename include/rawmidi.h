@@ -28,6 +28,10 @@
 #ifndef __ALSA_RAWMIDI_H
 #define __ALSA_RAWMIDI_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup RawMidi RawMidi Interface
  *  The RawMidi Interface.
@@ -72,10 +76,6 @@ typedef enum _snd_rawmidi_type {
 	/** INET client RawMidi (not yet implemented) */
 	SND_RAWMIDI_TYPE_INET,
 } snd_rawmidi_type_t;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 int snd_rawmidi_open(snd_rawmidi_t **in_rmidi, snd_rawmidi_t **out_rmidi,
 		     const char *name, int mode);
@@ -144,11 +144,11 @@ const char *snd_rawmidi_name(snd_rawmidi_t *rmidi);
 snd_rawmidi_type_t snd_rawmidi_type(snd_rawmidi_t *rmidi);
 snd_rawmidi_stream_t snd_rawmidi_stream(snd_rawmidi_t *rawmidi);
 
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
-
-/** \} */
 
 #endif /* __RAWMIDI_H */
 

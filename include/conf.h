@@ -28,6 +28,10 @@
 #ifndef __ALSA_CONF_H
 #define __ALSA_CONF_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup Config Configuration Interface
  *  Configuration Interface
@@ -55,10 +59,6 @@ typedef enum _snd_config_type {
 typedef struct _snd_config snd_config_t;
 /** Config compound iterator */
 typedef struct _snd_config_iterator *snd_config_iterator_t;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 int snd_config_top(snd_config_t **config);
 
@@ -128,11 +128,11 @@ int snd_config_get_bool(snd_config_t *conf);
 int snd_config_get_ctl_iface_ascii(const char *ascii);
 int snd_config_get_ctl_iface(snd_config_t *conf);
 
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
-
-/** \} */
 
 #endif /* __ALSA_CONF_H */
 

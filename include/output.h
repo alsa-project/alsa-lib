@@ -28,6 +28,10 @@
 #ifndef __ALSA_OUTPUT_H
 #define __ALSA_OUTPUT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup Output Output Interface
  *  Output Interface
@@ -45,10 +49,6 @@ typedef enum _snd_output_type {
 	SND_OUTPUT_BUFFER,
 } snd_output_type_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 int snd_output_stdio_open(snd_output_t **outputp, const char *file, const char *mode);
 int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int _close);
 int snd_output_buffer_open(snd_output_t **outputp);
@@ -59,11 +59,11 @@ int snd_output_puts(snd_output_t *output, const char *str);
 int snd_output_putc(snd_output_t *output, int c);
 int snd_output_flush(snd_output_t *output);
 
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
-
-/** \} */
 
 #endif /* __ALSA_OUTPUT_H */
 

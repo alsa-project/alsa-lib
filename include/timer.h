@@ -28,6 +28,10 @@
 #ifndef __ALSA_TIMER_H
 #define __ALSA_TIMER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup Timer Timer Interface
  *  Timer Interface
@@ -95,10 +99,6 @@ typedef struct _snd_timer_query snd_timer_query_t;
 /** timer handle */
 typedef struct _snd_timer snd_timer_t;
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 int snd_timer_query_open(snd_timer_query_t **handle, const char *name, int mode);
 int snd_timer_query_close(snd_timer_query_t *handle);
@@ -174,11 +174,11 @@ long snd_timer_status_get_lost(snd_timer_status_t * status);
 long snd_timer_status_get_overrun(snd_timer_status_t * status);
 long snd_timer_status_get_queue(snd_timer_status_t * status);
 
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
-
-/** \} */
 
 #endif /** __ALSA_TIMER_H */
 

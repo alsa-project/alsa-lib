@@ -28,6 +28,10 @@
 #ifndef __ALSA_CONTROL_H
 #define __ALSA_CONTROL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *  \defgroup Control Control Interface
  *  The control interface.
@@ -181,10 +185,6 @@ typedef struct _snd_ctl snd_ctl_t;
 
 /** SCTL type */
 typedef struct _snd_sctl snd_sctl_t;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 int snd_card_load(int card);
 int snd_card_next(int *card);
@@ -398,10 +398,6 @@ const void * snd_ctl_elem_value_get_bytes(const snd_ctl_elem_value_t *obj);
 void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec958_t *ptr);
 void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec958_t *ptr);
 
-#ifdef __cplusplus
-}
-#endif
-
 /**
  *  \defgroup HControl Highlevel Control Interface
  *  \ingroup Control
@@ -414,10 +410,6 @@ typedef struct _snd_hctl_elem snd_hctl_elem_t;
 
 /** HCTL handle */
 typedef struct _snd_hctl snd_hctl_t;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * \brief Compare function for sorting HCTL elements
@@ -486,12 +478,13 @@ void snd_hctl_elem_set_callback(snd_hctl_elem_t *obj, snd_hctl_elem_callback_t v
 void * snd_hctl_elem_get_callback_private(const snd_hctl_elem_t *obj);
 void snd_hctl_elem_set_callback_private(snd_hctl_elem_t *obj, void * val);
 
+/** \} */
+
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
-
-/** \} */
-/** \} */
 
 #endif /* __ALSA_CONTROL_H */
 
