@@ -84,7 +84,7 @@ int snd_ctl_file_descriptor(snd_ctl_t *handle)
 	return handle->fd;
 }
 
-int snd_ctl_hw_info(snd_ctl_t *handle, struct snd_ctl_hw_info *info)
+int snd_ctl_hw_info(snd_ctl_t *handle, snd_ctl_hw_info_t *info)
 {
 	assert(handle && info);
 	if (ioctl(handle->fd, SND_CTL_IOCTL_HW_INFO, info) < 0)

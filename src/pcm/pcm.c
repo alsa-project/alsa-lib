@@ -523,7 +523,7 @@ static int _snd_pcm_open_hw(snd_pcm_t **handlep, snd_config_t *conf,
 				err = snd_config_string_get(n, &str);
 				if (err < 0)
 					return -EINVAL;
-				card = snd_card_name(str);
+				card = snd_card_get_index(str);
 				if (card < 0)
 					return card;
 			}
@@ -569,7 +569,7 @@ static int _snd_pcm_open_plug(snd_pcm_t **handlep, snd_config_t *conf,
 				err = snd_config_string_get(n, &str);
 				if (err < 0)
 					return -EINVAL;
-				card = snd_card_name(str);
+				card = snd_card_get_index(str);
 				if (card < 0)
 					return card;
 			}

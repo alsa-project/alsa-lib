@@ -38,6 +38,10 @@ int snd_config_delete(snd_config_t *config);
 
 int snd_config_make(snd_config_t **config, char *key,
 		    snd_config_type_t type);
+int snd_config_integer_make(snd_config_t **config, char *key);
+int snd_config_real_make(snd_config_t **config, char *key);
+int snd_config_string_make(snd_config_t **config, char *key);
+int snd_config_compound_make(snd_config_t **config, char *key, int join);
 
 int snd_config_integer_set(snd_config_t *config, long value);
 int snd_config_real_set(snd_config_t *config, double value);

@@ -32,7 +32,7 @@ int main(void)
 {
 	int idx, idx1, cards, err;
 	snd_ctl_t *handle;
-	struct snd_ctl_hw_info info;
+	snd_ctl_hw_info_t info;
 
 	cards = snd_cards();
 	printf("Detected %i soundcard%s...\n", cards, cards > 1 ? "s" : "");

@@ -6,7 +6,7 @@ int main(void)
 {
 	int idx, idx1, cards, err;
 	snd_ctl_t *handle;
-	struct snd_ctl_hw_info info;
+	snd_ctl_hw_info_t info;
 	snd_pcm_info_t pcminfo;
 	snd_mixer_info_t mixerinfo;
 	snd_rawmidi_info_t rawmidiinfo;

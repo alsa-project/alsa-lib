@@ -29,9 +29,15 @@
 #define SYS_ASOUNDRC "/etc/asound.conf"
 #define USR_ASOUNDRC ".asoundrc"
 
-typedef struct {
+struct filedesc {
+	char *name;
 	FILE *fp;
 	unsigned int line, column;
+	struct filedesc *next;
+};
+
+typedef struct {
+	struct filedesc *current;
 	int unget;
 	int ch;
 	enum {
@@ -45,23 +51,33 @@ typedef struct {
 static int get_char(input_t *input)
 {
 	int c;
+	struct filedesc *fd;
 	if (input->unget) {
 		input->unget = 0;
 		return input->ch;
 	}
-	c = getc(input->fp);
+ again:
+	fd = input->current;
+	c = getc(fd->fp);
 	switch (c) {
 	case '\n':
-		input->column = 0;
-		input->line++;
+		fd->column = 0;
+		fd->line++;
 		break;
 	case '\t':
-		input->column += 8 - input->column % 8;
+		fd->column += 8 - fd->column % 8;
 		break;
 	case EOF:
+		if (fd->next) {
+			fclose(fd->fp);
+			free(fd->name);
+			input->current = fd->next;
+			free(fd);
+			goto again;
+		}
 		break;
 	default:
-		input->column++;
+		fd->column++;
 		break;
 	}
 	return c;
@@ -74,11 +90,32 @@ static void unget_char(int c, input_t *input)
 	input->unget = 1;
 }
 
+static int get_delimstring(char **string, int delim, input_t *input);
+
 static int get_char_skip_comments(input_t *input)
 {
 	int c;
 	while (1) {
 		c = get_char(input);
+		if (c == '<') {
+			char *file;
+			FILE *fp;
+			struct filedesc *fd;
+			int err = get_delimstring(&file, '>', input);
+			if (err < 0)
+				return err;
+			fp = fopen(file, "r");
+			if (!fp)
+				return -errno;
+			fd = malloc(sizeof(*fd));
+			fd->name = file;
+			fd->fp = fp;
+			fd->next = input->current;
+			fd->line = 1;
+			fd->column = 0;
+			input->current = fd;
+			continue;
+		}
 		if (c != '#')
 			break;
 		while (1) {
@@ -89,9 +126,11 @@ static int get_char_skip_comments(input_t *input)
 				break;
 		}
 	}
+		
 	return c;
 }
 			
+
 static int get_nonwhite(input_t *input)
 {
 	int c;
@@ -346,6 +385,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 	snd_config_t *n;
 	enum {MERGE, NOCREATE, REMOVE} mode;
 	while (1) {
+#if 0
 		c = get_nonwhite(input);
 		switch (c) {
 		case '?':
@@ -358,6 +398,9 @@ static int parse_def(snd_config_t *father, input_t *input)
 			mode = MERGE;
 			unget_char(c, input);
 		}
+#else
+		mode = MERGE;
+#endif
 		err = get_string(&id, input);
 		if (err < 0)
 			return err;
@@ -521,10 +564,15 @@ int snd_config_load(snd_config_t *config, FILE *fp)
 {
 	int err;
 	input_t input;
+	struct filedesc *fd;
 	assert(config && fp);
-	input.fp = fp;
-	input.line = 1;
-	input.column = 0;
+	fd = malloc(sizeof(*fd));
+	fd->name = NULL;
+	fd->fp = fp;
+	fd->line = 1;
+	fd->column = 0;
+	fd->next = NULL;
+	input.current = fd;
 	input.unget = 0;
 	err = parse_defs(config, &input);
 	if (err < 0) {
@@ -538,17 +586,17 @@ int snd_config_load(snd_config_t *config, FILE *fp)
 	return 0;
 }
 
-int snd_config_add(snd_config_t *config, snd_config_t *leaf)
+int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 {
 	snd_config_iterator_t i;
-	assert(config && leaf);
-	snd_config_foreach(i, config) {
+	assert(father && leaf);
+	snd_config_foreach(i, father) {
 		snd_config_t *n = snd_config_entry(i);
 		if (strcmp(leaf->id, n->id) == 0)
 			return -EEXIST;
 	}
-	leaf->father = config;
-	list_add_tail(&leaf->list, &config->u.compound.fields);
+	leaf->father = father;
+	list_add_tail(&leaf->list, &father->u.compound.fields);
 	return 0;
 }
 
@@ -594,7 +642,33 @@ int snd_config_make(snd_config_t **config, char *id,
 			return -ENOMEM;
 	} else
 		id1 = NULL;
-	return _snd_config_make(config, id, type);
+	return _snd_config_make(config, id1, type);
+}
+
+int snd_config_integer_make(snd_config_t **config, char *id)
+{
+	return snd_config_make(config, id, SND_CONFIG_TYPE_INTEGER);
+}
+
+int snd_config_real_make(snd_config_t **config, char *id)
+{
+	return snd_config_make(config, id, SND_CONFIG_TYPE_REAL);
+}
+
+int snd_config_string_make(snd_config_t **config, char *id)
+{
+	return snd_config_make(config, id, SND_CONFIG_TYPE_STRING);
+}
+
+int snd_config_compound_make(snd_config_t **config, char *id,
+			     int join)
+{
+	int err;
+	err = snd_config_make(config, id, SND_CONFIG_TYPE_COMPOUND);
+	if (err < 0)
+		return err;
+	(*config)->u.compound.join = join;
+	return 0;
 }
 
 int snd_config_integer_set(snd_config_t *config, long value)
@@ -860,12 +934,12 @@ int snd_config_search(snd_config_t *config, char *key, snd_config_t **result)
 		snd_config_t *n;
 		int err;
 		char *p = strchr(key, '.');
+		if (config->type != SND_CONFIG_TYPE_COMPOUND)
+			return -ENOENT;
 		if (p) {
 			err = _snd_config_search(config, key, p - key, &n);
 			if (err < 0)
 				return err;
-			if (n->type != SND_CONFIG_TYPE_COMPOUND)
-				return -EINVAL;
 			config = n;
 			key = p + 1;
 		} else
@@ -876,40 +950,25 @@ int snd_config_search(snd_config_t *config, char *key, snd_config_t **result)
 int snd_config_searchv(snd_config_t *config,
 		       snd_config_t **result, ...)
 {
+	snd_config_t *n;
 	va_list arg;
-	const size_t bufsize = 256;
-	char _buf[bufsize];
-	char *buf = _buf;
-	size_t alloc = bufsize;
-	size_t idx = 0;
-	size_t dot = 0;
 	assert(config && result);
 	va_start(arg, result);
 	while (1) {
 		char *k = va_arg(arg, char *);
-		size_t len;
+		int err;
 		if (!k)
 			break;
-		len = strlen(k);
-		if (idx + len + dot>= alloc) {
-			size_t old_alloc = alloc;
-			alloc = idx + len + dot;
-			alloc += bufsize - alloc % bufsize;
-			if (old_alloc == bufsize) {
-				buf = malloc(alloc);
-				memcpy(buf, _buf, old_alloc);
-			} else 
-				buf = realloc(buf, alloc);
-		}
-		if (dot)
-			buf[idx] = '.';
-		memcpy(buf + idx + dot, k, len);
-		idx += len + dot;
-		if (dot == 0)
-			dot = 1;
+		if (config->type != SND_CONFIG_TYPE_COMPOUND)
+			return -ENOENT;
+		err = _snd_config_search(config, k, -1, &n);
+		if (err < 0)
+			return err;
+		config = n;
 	}
-	buf[idx] = '\0';
-	return snd_config_search(config, buf, result);
+	va_end(arg);
+	*result = n;
+	return 0;
 }
 
 snd_config_t *snd_config = 0;

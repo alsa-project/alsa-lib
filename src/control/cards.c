@@ -36,17 +36,19 @@ int snd_card_load(int card)
 {
 	int open_dev;
 	char control[32];
-	char aload[32];
 
 	sprintf(control, SND_FILE_CONTROL, card);
-	sprintf(aload, SND_FILE_LOAD, card);
 
 	if ((open_dev=open(control, O_RDONLY)) < 0) {
-		close(open(aload, O_RDONLY));
-	} else {
-		close (open_dev);
+		char aload[32];
+		sprintf(aload, SND_FILE_LOAD, card);
+		open_dev = open(aload, O_RDONLY);
 	}
-	return 0;
+	if (open_dev >= 0) {
+		close (open_dev);
+		return 0;
+	}
+	return open_dev;
 }
 
 int snd_cards(void)
@@ -70,50 +72,39 @@ int snd_cards(void)
 
 unsigned int snd_cards_mask(void)
 {
-	int fd, idx;
+	int idx;
 	unsigned int mask;
-	char filename[32];
 	static unsigned int save_mask = 0;
 
 	if (save_mask)
 		return save_mask;
 	for (idx = 0, mask = 0; idx < SND_CARDS; idx++) {
-	        snd_card_load(idx);
-		sprintf(filename, SND_FILE_CONTROL, idx);
-		if ((fd = open(filename, O_RDWR)) < 0) {
-			snd_card_load(idx);
-			if ((fd = open(filename, O_RDWR)) < 0)
-				continue;
-		}
-		close(fd);
-		mask |= 1 << idx;
+	        if (snd_card_load(idx) >= 0)
+			mask |= 1 << idx;
 	}
 	save_mask = mask;
 	return mask;
 }
 
-int snd_card_name(const char *string)
+int snd_card_get_index(const char *string)
 {
-	int card, bitmask;
+	int card;
 	snd_ctl_t *handle;
-	struct snd_ctl_hw_info info;
+	snd_ctl_hw_info_t info;
 
 	if (!string || *string == '\0')
 		return -EINVAL;
-	bitmask = snd_cards_mask();
-	if (!bitmask)
-		return -ENODEV;
 	if ((isdigit(*string) && *(string + 1) == 0) ||
 	    (isdigit(*string) && isdigit(*(string + 1)) && *(string + 2) == 0)) {
 		sscanf(string, "%i", &card);
 		if (card < 0 || card > 31)
 			return -EINVAL;
-		if (card < 0 || !((1 << card) & bitmask))
-			return -EINVAL;
-		return card;
+	        if (snd_card_load(card) >= 0)
+			return card;
+		return -EINVAL;
 	}
 	for (card = 0; card < 32; card++) {
-		if (!((1 << card) & bitmask))
+		if (snd_card_load(card) < 0)
 			continue;
 		if (snd_ctl_open(&handle, card) < 0)
 			continue;
@@ -131,7 +122,7 @@ int snd_card_name(const char *string)
 int snd_card_get_name(int card, char **name)
 {
 	snd_ctl_t *handle;
-	struct snd_ctl_hw_info info;
+	snd_ctl_hw_info_t info;
 	int err;
 	
 	if (name == NULL)
@@ -152,7 +143,7 @@ int snd_card_get_name(int card, char **name)
 int snd_card_get_longname(int card, char **name)
 {
 	snd_ctl_t *handle;
-	struct snd_ctl_hw_info info;
+	snd_ctl_hw_info_t info;
 	int err;
 	
 	if (name == NULL)

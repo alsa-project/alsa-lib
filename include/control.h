@@ -24,7 +24,7 @@ extern "C" {
 int snd_card_load(int card);
 int snd_cards(void);
 unsigned int snd_cards_mask(void);
-int snd_card_name(const char *name);
+int snd_card_get_index(const char *name);
 int snd_card_get_name(int card, char **name);
 int snd_card_get_longname(int card, char **name);
 
@@ -38,7 +38,7 @@ int snd_defaults_rawmidi_device(void);
 int snd_ctl_open(snd_ctl_t **handle, int card);
 int snd_ctl_close(snd_ctl_t *handle);
 int snd_ctl_file_descriptor(snd_ctl_t *handle);
-int snd_ctl_hw_info(snd_ctl_t *handle, struct snd_ctl_hw_info *info);
+int snd_ctl_hw_info(snd_ctl_t *handle, snd_ctl_hw_info_t *info);
 int snd_ctl_clist(snd_ctl_t *handle, snd_control_list_t * list);
 int snd_ctl_cinfo(snd_ctl_t *handle, snd_control_info_t * sw);
 int snd_ctl_cread(snd_ctl_t *handle, snd_control_t * control);
@@ -62,6 +62,16 @@ int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks);
 struct list_head {
         struct list_head *next, *prev;
 };        
+
+/**
+ * list_entry - get the struct for this entry
+ * @ptr:	the &struct list_head pointer.
+ * @type:	the type of the struct this is embedded in.
+ * @member:	the name of the list_struct within the struct.
+ */
+#define list_entry(ptr, type, member) \
+	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+
 
 typedef struct snd_hcontrol_list_stru snd_hcontrol_list_t;
 typedef struct snd_hcontrol_stru snd_hcontrol_t;

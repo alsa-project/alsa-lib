@@ -31,7 +31,7 @@ static int defaults_card(const char *env)
 	e = getenv(env);
 	if (!e)
 		return -ENOENT;
-	return snd_card_name(e);
+	return snd_card_get_index(e);
 }
 
 static int defaults_device(const char *env)
