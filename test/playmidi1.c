@@ -73,6 +73,8 @@ static int local_ticks = 0;
 static int local_tempo = 500000;
 
 static int dest_queue = -1;
+static int shared_queue = 0;
+static int tick_offset = 0;
 static int dest_client = DEST_CLIENT_NUMBER;
 static int dest_port = DEST_PORT_NUMBER;
 static int my_port = 0;
@@ -153,7 +155,8 @@ static void do_header(int format, int ntracks, int division)
 
 	if (format != 0 || ntracks != 1) {
 		printf("This player does not support merging of tracks.\n");
-		alsa_stop_timer();
+		if (! shared_queue)
+			alsa_stop_timer();
 		exit(1);
 	}
 	/* set ppq */
@@ -163,12 +166,11 @@ static void do_header(int format, int ntracks, int division)
     		perror("get_queue_tempo");
     		exit(1);
 	}
-	if (snd_seq_queue_tempo_get_ppq(tempo) != ppq) {
-		slave_ppq = snd_seq_queue_tempo_get_ppq(tempo);
+	if ((slave_ppq = snd_seq_queue_tempo_get_ppq(tempo)) != ppq) {
 		snd_seq_queue_tempo_set_ppq(tempo, ppq);
 		if (snd_seq_set_queue_tempo(seq_handle, dest_queue, tempo) < 0) {
     			perror("set_queue_tempo");
-    			if (!slave)
+    			if (!slave && !shared_queue)
     				exit(1);
 			else
 				printf("different PPQ %d in SMF from queue PPQ %d\n", ppq, slave_ppq);
@@ -185,8 +187,16 @@ static void do_header(int format, int ntracks, int division)
 		wait_start();
 		if (verbose >= VERB_INFO)
 			printf("Go!\n");	
-	} else
+	} else if (shared_queue) {
+		snd_seq_queue_status_t *stat;
+		snd_seq_queue_status_alloca(&stat);
+		snd_seq_get_queue_status(seq_handle, dest_queue, stat);
+		tick_offset = snd_seq_queue_status_get_tick_time(stat);
+		fprintf(stderr, "tick offset = %d\n", tick_offset);
+	} else {
 		alsa_start_timer();
+		tick_offset = 0;
+	}
 }
 
 /* fill time */
@@ -201,6 +211,7 @@ static void set_event_time(snd_seq_event_t *ev, unsigned int currtime)
 	} else {
 		if (ppq != slave_ppq)
 			currtime = (currtime * slave_ppq) / ppq;
+		currtime += tick_offset;
 		snd_seq_ev_schedule_tick(ev, dest_queue, 0, currtime);
 	}
 }
@@ -254,7 +265,7 @@ static void do_noteon(int chan, int pitch, int vol)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("NoteOn (%d) %d %d\n", chan, pitch, vol);
+		printf("%d: NoteOn (%d) %d %d\n", Mf_currtime, chan, pitch, vol);
 	set_event_header(&ev);
 	snd_seq_ev_set_noteon(&ev, chan, pitch, vol);
 	write_ev(&ev);
@@ -266,7 +277,7 @@ static void do_noteoff(int chan, int pitch, int vol)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("NoteOff (%d) %d %d\n", chan, pitch, vol);
+		printf("%d: NoteOff (%d) %d %d\n", Mf_currtime, chan, pitch, vol);
 	set_event_header(&ev);
 	snd_seq_ev_set_noteoff(&ev, chan, pitch, vol);
 	write_ev(&ev);
@@ -278,7 +289,7 @@ static void do_program(int chan, int program)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("Program (%d) %d\n", chan, program);
+		printf("%d: Program (%d) %d\n", Mf_currtime, chan, program);
 	set_event_header(&ev);
 	snd_seq_ev_set_pgmchange(&ev, chan, program);
 	write_ev(&ev);
@@ -290,7 +301,7 @@ static void do_parameter(int chan, int control, int value)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("Control (%d) %d %d\n", chan, control, value);
+		printf("%d: Control (%d) %d %d\n", Mf_currtime, chan, control, value);
 	set_event_header(&ev);
 	snd_seq_ev_set_controller(&ev, chan, control, value);
 	write_ev(&ev);
@@ -302,7 +313,7 @@ static void do_pitchbend(int chan, int lsb, int msb)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("Pitchbend (%d) %d %d\n", chan, lsb, msb);
+		printf("%d: Pitchbend (%d) %d %d\n", Mf_currtime, chan, lsb, msb);
 	set_event_header(&ev);
 	snd_seq_ev_set_pitchbend(&ev, chan, (lsb + (msb << 7)) - 8192);
 	write_ev(&ev);
@@ -313,7 +324,7 @@ static void do_pressure(int chan, int pitch, int pressure)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("KeyPress (%d) %d %d\n", chan, pitch, pressure);
+		printf("%d: KeyPress (%d) %d %d\n", Mf_currtime, chan, pitch, pressure);
 	set_event_header(&ev);
 	snd_seq_ev_set_keypress(&ev, chan, pitch, pressure);
 	write_ev(&ev);
@@ -324,7 +335,7 @@ static void do_chanpressure(int chan, int pressure)
 	snd_seq_event_t ev;
 
 	if (verbose >= VERB_EVENT)
-		printf("ChanPress (%d) %d\n", chan, pressure);
+		printf("%d: ChanPress (%d) %d\n", Mf_currtime, chan, pressure);
 	set_event_header(&ev);
 	snd_seq_ev_set_chanpress(&ev, chan, pressure);
 	write_ev(&ev);
@@ -336,7 +347,7 @@ static void do_sysex(int len, char *msg)
 
 	if (verbose >= VERB_MUCH) {
 		int c;
-		printf("Sysex, len=%d\n", len);
+		printf("%d: Sysex, len=%d\n", Mf_currtime, len);
 		for (c = 0; c < len; c++) {
 			printf(" %02x", (unsigned char)msg[c]);
 			if (c % 16 == 15)
@@ -440,7 +451,7 @@ int main(int argc, char *argv[])
 	int tmp;
 	int c;
 	snd_seq_addr_t dest_addr;
-	const char *addr = NULL;
+	const char *addr = "65:0";
 
 	while ((c = getopt(argc, argv, "s:a:p:q:vrb")) != -1) {
 		switch (c) {
@@ -525,11 +536,13 @@ int main(int argc, char *argv[])
 
 	/* setup queue */
 	if (dest_queue >= 0) {
+		shared_queue = 1;
 		if (snd_seq_set_queue_usage(seq_handle, dest_queue, 1) < 0) {
 			perror("use queue");
 			exit(1);
 		}
 	} else {
+		shared_queue = 0;
 		dest_queue = snd_seq_alloc_queue(seq_handle);
 		if (dest_queue < 0) {
 			perror("alloc queue");
@@ -590,7 +603,8 @@ int main(int argc, char *argv[])
 	mfread();
 
 	alsa_sync();
-	alsa_stop_timer();
+	if (! shared_queue)
+		alsa_stop_timer();
 
 	snd_seq_close(seq_handle);
 

@@ -98,8 +98,8 @@ enum snd_seq_event_type {
 	SND_SEQ_EVENT_CLOCK,
 	/** MIDI Real Time Tick message; event data type = #snd_seq_ev_queue_control_t */
 	SND_SEQ_EVENT_TICK,
-	/** Sync signal; event data type = #snd_seq_ev_queue_control_t */
-	SND_SEQ_EVENT_SYNC,
+	/** Queue timer skew; event data type = #snd_seq_ev_queue_control_t */
+	SND_SEQ_EVENT_QUEUE_SKEW,
 	/** Sync position changed; event data type = #snd_seq_ev_queue_control_t */
 	SND_SEQ_EVENT_SYNC_POS,
 
@@ -403,6 +403,11 @@ typedef struct snd_seq_result {
 	int result;		/**< status */
 } snd_seq_result_t;
 
+/** Queue skew values */
+typedef struct snd_seq_queue_skew {
+	unsigned int value;
+	unsigned int base;
+} snd_seq_queue_skew_t;
 
 /** queue timer control */
 typedef struct snd_seq_ev_queue_control {
@@ -412,6 +417,7 @@ typedef struct snd_seq_ev_queue_control {
 		signed int value;		/**< affected value (e.g. tempo) */
 		snd_seq_timestamp_t time;	/**< time */
 		unsigned int position;		/**< sync position */
+		snd_seq_queue_skew_t skew;	/**< queue skew */
 		unsigned int d32[2];		/**< any data */
 		unsigned char d8[8];		/**< any data */
 	} param;				/**< data value union */

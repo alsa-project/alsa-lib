@@ -2261,6 +2261,28 @@ int snd_seq_queue_tempo_get_ppq(const snd_seq_queue_tempo_t *info)
 }
 
 /**
+ * \brief Get the timer skew value of a queue_status container
+ * \param info queue_status container
+ * \return timer skew value
+ */
+unsigned int snd_seq_queue_tempo_get_skew(const snd_seq_queue_tempo_t *info)
+{
+	assert(info);
+	return info->skew_value;
+}
+
+/**
+ * \brief Get the timer skew base value of a queue_status container
+ * \param info queue_status container
+ * \return timer skew base value
+ */
+unsigned int snd_seq_queue_tempo_get_skew_base(const snd_seq_queue_tempo_t *info)
+{
+	assert(info);
+	return info->skew_base;
+}
+
+/**
  * \brief Set the tempo of a queue_status container
  * \param info queue_status container
  * \param tempo tempo value
@@ -2282,6 +2304,30 @@ void snd_seq_queue_tempo_set_ppq(snd_seq_queue_tempo_t *info, int ppq)
 	info->ppq = ppq;
 }
 
+/**
+ * \brief Set the timer skew value of a queue_status container
+ * \param info queue_status container
+ * \param skew timer skew value
+ *
+ * The skew of timer is calculated as skew / base.
+ * For example, to play with double speed, pass base * 2 as the skew value.
+ */
+void snd_seq_queue_tempo_set_skew(snd_seq_queue_tempo_t *info, unsigned int skew)
+{
+	assert(info);
+	info->skew_value = skew;
+}
+
+/**
+ * \brief Set the timer skew base value of a queue_status container
+ * \param info queue_status container
+ * \param base timer skew base value
+ */
+void snd_seq_queue_tempo_set_skew_base(snd_seq_queue_tempo_t *info, unsigned int base)
+{
+	assert(info);
+	info->skew_base = base;
+}
 
 /**
  * \brief obtain the current tempo of the queue
