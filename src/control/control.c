@@ -50,8 +50,10 @@ int snd_ctl_open( void **handle, int card )
     close( fd );
     return -errno;
   }
-  if ( SND_PROTOCOL_UNCOMPATIBLE( ver, SND_CTL_VERSION_MAX ) )
+  if ( SND_PROTOCOL_UNCOMPATIBLE( ver, SND_CTL_VERSION_MAX ) ) {
+    close( fd );
     return -SND_ERROR_UNCOMPATIBLE_VERSION;
+  }
   ctl = (snd_ctl_t *)calloc( 1, sizeof( snd_ctl_t ) );
   if ( ctl == NULL ) {
     close( fd );

@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_MIXER		"/dev/snd/mixer%i%i"
-#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 1 )
+#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 1, 0 )
  
 typedef struct {
   int card;
@@ -51,8 +51,10 @@ int snd_mixer_open( void **handle, int card, int device )
     close( fd );
     return -errno;
   }
-  if ( SND_PROTOCOL_UNCOMPATIBLE( ver, SND_MIXER_VERSION_MAX ) )
+  if ( SND_PROTOCOL_UNCOMPATIBLE( ver, SND_MIXER_VERSION_MAX ) ) {
+    close( fd );
     return -SND_ERROR_UNCOMPATIBLE_VERSION;
+  }
   mixer = (snd_mixer_t *)calloc( 1, sizeof( snd_mixer_t ) );
   if ( mixer == NULL ) {
     close( fd );

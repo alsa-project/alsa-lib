@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_PCM		"/dev/snd/pcm%i%i"
-#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
+#define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 1 )
  
 typedef struct {
   int card;
@@ -51,8 +51,10 @@ int snd_pcm_open( void **handle, int card, int device, int mode )
     close( fd );
     return -errno;
   }
-  if ( SND_PROTOCOL_UNCOMPATIBLE( ver, SND_PCM_VERSION_MAX ) )
+  if ( SND_PROTOCOL_UNCOMPATIBLE( ver, SND_PCM_VERSION_MAX ) ) {
+    close( fd );
     return -SND_ERROR_UNCOMPATIBLE_VERSION;
+  }
   pcm = (snd_pcm_t *)calloc( 1, sizeof( snd_pcm_t ) );
   if ( pcm == NULL ) {
     close( fd );
