@@ -23,14 +23,17 @@
 #include <netdb.h>
 #include <sys/asoundlib.h>
 #include <unistd.h>
+#include <signal.h>
 
 /*
  * prototypes
  */
 static void usage(void);
 static void init_buf(void);
+static void close_files(void);
 static void init_seq(char *source, char *dest);
 static int get_port(char *service);
+static void sigterm_exit(int sig);
 static void init_server(int port);
 static void init_client(char *server, int port);
 static void do_loop(void);
@@ -54,7 +57,7 @@ static int cur_wrlen, max_wrlen;
 #define MAX_CONNECTION	10
 
 static snd_seq_t *handle;
-static int seqfd, sockfd, netfd[MAX_CONNECTION] = {[1 ... MAX_CONNECTION] = -1};
+static int seqfd, sockfd, netfd[MAX_CONNECTION] = {[0 ... MAX_CONNECTION-1] = -1};
 static int max_connection;
 static int cur_connected;
 static int seq_port;
@@ -68,7 +71,7 @@ static int server_mode;
 
 int main(int argc, char **argv)
 {
-	int c, i;
+	int c;
 	int port = DEFAULT_PORT;
 	char *source = NULL, *dest = NULL;
 
@@ -92,6 +95,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	signal(SIGINT, sigterm_exit);
+	signal(SIGTERM, sigterm_exit);
+
 	init_buf();
 	init_seq(source, dest);
 
@@ -107,12 +113,7 @@ int main(int argc, char **argv)
 
 	do_loop();
 
-	for (i = 0; i < max_connection; i++) {
-		if (netfd[i] >= 0)
-			close(netfd[i]);
-	}
-	if (sockfd >= 0)
-		close(sockfd);
+	close_files();
 
 	return 0;
 }
@@ -167,14 +168,29 @@ static void parse_addr(snd_seq_addr_t *addr, char *arg)
 		addr->port = 0;
 }
 
+
+/*
+ * close all files
+ */
+static void close_files(void)
+{
+	int i;
+fprintf(stderr, "closing files..\n");
+	for (i = 0; i < max_connection; i++) {
+		if (netfd[i] >= 0)
+			close(netfd[i]);
+	}
+	if (sockfd >= 0)
+		close(sockfd);
+}
+
+
 /*
  * initialize sequencer
  */
 static void init_seq(char *source, char *dest)
 {
-	snd_seq_client_info_t cinfo;
-	snd_seq_port_info_t pinfo;
-	snd_seq_port_subscribe_t subs;
+	snd_seq_addr_t addr;
 
 	if (snd_seq_open(&handle, SND_SEQ_OPEN) < 0) {
 		perror("snd_seq_open");
@@ -184,49 +200,38 @@ static void init_seq(char *source, char *dest)
 	snd_seq_block_mode(handle, 0);
 
 	/* set client info */
-	memset(&cinfo, 0, sizeof(cinfo));
 	if (server_mode)
-		strcpy(cinfo.name, "Net Server");
+		snd_seq_set_client_name(handle, "Net Server");
 	else
-		strcpy(cinfo.name, "Net Client");
-	if (snd_seq_set_client_info(handle, &cinfo) < 0) {
-		perror("set client info");
-		exit(1);
-	}
+		snd_seq_set_client_name(handle, "Net Client");
 
 	/* create a port */
-	memset(&pinfo, 0, sizeof(pinfo));
-	pinfo.capability = SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_WRITE|
-			   SND_SEQ_PORT_CAP_SUBS_READ|SND_SEQ_PORT_CAP_SUBS_WRITE;
-	strcpy(pinfo.name, "Network");
-	pinfo.port = 0;
-	if (snd_seq_create_port(handle, &pinfo) < 0) {
+	seq_port = snd_seq_create_simple_port(handle, "Network",
+					      SND_SEQ_PORT_CAP_READ |
+					      SND_SEQ_PORT_CAP_WRITE |
+					      SND_SEQ_PORT_CAP_SUBS_READ |
+					      SND_SEQ_PORT_CAP_SUBS_WRITE,
+					      SND_SEQ_PORT_TYPE_MIDI_GENERIC);
+	if (seq_port < 0) {
 		perror("create seq port");
 		exit(1);
 	}
-	seq_port = pinfo.port;
-	fprintf(stderr, "sequencer opened: %d:%d\n", pinfo.client, pinfo.port);
+	fprintf(stderr, "sequencer opened: %d:%d\n",
+		snd_seq_client_id(handle), seq_port);
 
 	/* explicit subscriptions */
-	memset(&subs, 0, sizeof(subs));
 	if (source) {
 		/* read subscription */
-		parse_addr(&subs.sender, source);
-		subs.dest.client = pinfo.client;
-		subs.dest.port = pinfo.port;
-		subs.sender.queue = subs.dest.queue = 0;
-		if (snd_seq_subscribe_port(handle, &subs)) {
+		parse_addr(&addr, source);
+		if (snd_seq_connect_from(handle, seq_port, addr.client, addr.port)) {
 			perror("read subscription");
 			exit(1);
 		}
 	}
 	if (dest) {
 		/* write subscription */
-		parse_addr(&subs.dest, dest);
-		subs.sender.client = pinfo.client;
-		subs.sender.port = pinfo.port;
-		subs.sender.queue = subs.dest.queue = 0;
-		if (snd_seq_subscribe_port(handle, &subs)) {
+		parse_addr(&addr, dest);
+		if (snd_seq_connect_to(handle, seq_port, addr.client, addr.port)) {
 			perror("write subscription");
 			exit(1);
 		}
@@ -247,6 +252,16 @@ static int get_port(char *service)
 	}
 	return sp->s_port;
 }
+
+/*
+ * signal handler
+ */
+static void sigterm_exit(int sig)
+{
+	close_files();
+	exit(1);
+}
+
 
 /*
  * initialize network server
@@ -396,11 +411,6 @@ static void do_loop(void)
 
 
 /*
- * is variable length event?
- */
-#define is_varlen(ev) (((ev)->flags & SND_SEQ_EVENT_LENGTH_MASK) == SND_SEQ_EVENT_LENGTH_VARIABLE)
-
-/*
  * flush write buffer - send data to the socket
  */
 static void flush_writebuf(void)
@@ -442,7 +452,7 @@ static int copy_local_to_remote(void)
 			snd_seq_free_event(ev);
 			continue;
 		}
-		if (is_varlen(ev)) {
+		if (snd_seq_ev_is_variable(ev)) {
 			int len;
 			len = sizeof(snd_seq_event_t) + ev->data.ext.len;
 			buf = get_writebuf(len);
@@ -483,7 +493,7 @@ static int copy_remote_to_local(int fd)
 		memcpy(ev, buf, sizeof(snd_seq_event_t));
 		buf += sizeof(snd_seq_event_t);
 		count -= sizeof(snd_seq_event_t);
-		if (is_varlen(ev) && ev->data.ext.len > 0) {
+		if (snd_seq_ev_is_variable(ev) && ev->data.ext.len > 0) {
 			ev->data.ext.ptr = malloc(ev->data.ext.len);
 			if (ev->data.ext.ptr == NULL) {
 				fprintf(stderr, "can't malloc\n");
@@ -493,8 +503,9 @@ static int copy_remote_to_local(int fd)
 			buf += ev->data.ext.len;
 			count -= ev->data.ext.len;
 		}
-		ev->source.port = seq_port;
-		ev->dest.queue = SND_SEQ_ADDRESS_SUBSCRIBERS;
+		snd_seq_ev_set_direct(ev);
+		snd_seq_ev_set_source(ev, seq_port);
+		snd_seq_ev_set_subs(ev);
 		snd_seq_event_output(handle, ev);
 		snd_seq_free_event(ev);
 	}

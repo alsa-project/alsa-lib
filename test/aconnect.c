@@ -37,6 +37,7 @@ static void usage(void)
 	fprintf(stderr, "            list input ports\n");
 	fprintf(stderr, "       aconnect -o [-g group] [-l]\n");
 	fprintf(stderr, "            list output ports\n");
+	fprintf(stderr, "            -l = list current connections\n");
 }
 
 /*

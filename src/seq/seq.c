@@ -27,32 +27,13 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "asoundlib.h"
+#include "seq_priv.h"
 
 #define SND_FILE_SEQ		"/dev/snd/seq"
 #define SND_FILE_ALOADSEQ	"/dev/aloadSEQ"
 #define SND_SEQ_VERSION_MAX	SND_PROTOCOL_VERSION( 0, 0, 1 )
 #define SND_SEQ_OBUF_SIZE	(16*1024)	/* should be configurable */
 #define SND_SEQ_IBUF_SIZE	(4*1024)	/* should be configurable */
-
-typedef struct snd_stru_seq_cell {
-	snd_seq_event_t ev;
-	struct snd_stru_seq_cell *next;
-} snd_seq_cell_t;
-
-struct snd_seq {
-	int client;		/* client number */
-	int fd;
-	/* buffers */
-	char *obuf;		/* output buffer */
-	int obufsize;		/* output buffer size */
-	int obufused;		/* output buffer used size */
-	char *ibuf;		/* input buffer */
-	int ibufsize;		/* input buffer size */
-	/* input queue */
-	int cells;
-	snd_seq_cell_t *head;
-	snd_seq_cell_t *tail;
-};
 
 int snd_seq_open(snd_seq_t **handle, int mode)
 {
@@ -862,5 +843,4 @@ int snd_seq_get_bit(int nr, void *array)
 {
 	return ((((unsigned int *)array)[nr >> 5]) & (1UL << (nr & 31))) ? 1 : 0;
 }
-
 
