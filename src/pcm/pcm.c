@@ -643,11 +643,7 @@ int snd_pcm_close(snd_pcm_t *pcm)
 	int err;
 	assert(pcm);
 	if (pcm->setup) {
-		if ((pcm->mode & SND_PCM_NONBLOCK) || 
-		    pcm->stream == SND_PCM_STREAM_CAPTURE)
-			snd_pcm_drop(pcm);
-		else
-			snd_pcm_drain(pcm);
+		snd_pcm_drop(pcm);
 		err = snd_pcm_hw_free(pcm);
 		if (err < 0)
 			return err;
