@@ -773,6 +773,16 @@ int snd_seq_event_input_selective(snd_seq_t *seq, snd_seq_event_t **ev, int type
 }
 
 /*
+ * return the size of pending events
+ */
+int snd_seq_event_output_pending(snd_seq_t *seq)
+{
+	if (!seq)
+		return -EINVAL;
+	return seq->obufused;
+}
+
+/*
  * flush output buffer to sequencer
  */
 int snd_seq_flush_output(snd_seq_t *seq)
@@ -842,6 +852,7 @@ int snd_seq_drain_output_buffer(snd_seq_t *seq)
 	if (!seq)
 		return -EINVAL;
 	seq->obufused = 0;
+	return 0;
 }
 
 /*
@@ -857,7 +868,7 @@ int snd_seq_drain_input_buffer(snd_seq_t *seq)
 }
 
 /*
- * clear output buffer and and remove events in sequencer queue
+ * clear output buffer and remove events in sequencer queue
  */
 int snd_seq_drain_output(snd_seq_t *seq)
 {

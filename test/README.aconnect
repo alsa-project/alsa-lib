@@ -1,7 +1,7 @@
 ================================================================
 	aconnect - control subscriptions
-		ver.0.1.2
-	Copyright (C) 1999 Takashi Iwai
+		ver.0.1.3
+	Copyright (C) 1999-2000 Takashi Iwai
 ================================================================
 
 aconnect is a utility to control subscriptions of two ports as the
@@ -42,8 +42,9 @@ using -g option.
 
 The option -l together with -i or -o shows subscribers for each port.
 
-The option -D specifies the sequencer device file (as default,
-/dev/snd/seq).  Usually, you don't have to change it.
-The option -q specifies the queue number.  The argument must be a
-valid queue number, usually from 0 to 7.
+Ports are connected exclusively when the option -e is specified.
 
+For modifying time-stamp with a queue, use -r or -t option followed by
+a queue index which updates the time-stamp.  Former uses real-time queue,
+while the latter uses tick queue.  The queue must be used (not necessarily
+owned) by the receiver client.

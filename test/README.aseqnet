@@ -1,7 +1,7 @@
 ================================================================
-	ALSA sequencer connectors
+	ALSA sequencer connectors over network
 		ver.0.1
-	Copyright (C) 1999 Takashi Iwai
+	Copyright (C) 1999-2000 Takashi Iwai
 ================================================================
 
 * ASEQNET

@@ -18,4 +18,5 @@ aseqnet_LDADD=../src/libasound.la
 INCLUDES=-I$(top_srcdir)/include
 CFLAGS=-static -Wall -pipe -g
 
-EXTRA_DIST=seq-decoder.c seq-sender.c midifile.h midifile.c midifile.3
+EXTRA_DIST=seq-decoder.c seq-sender.c midifile.h midifile.c midifile.3 \
+	aconnect.1 README.aconnect aseqnet.1 README.aseqnet

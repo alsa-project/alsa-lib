@@ -83,9 +83,7 @@ void event_sender_start_timer(snd_seq_t *handle, int client, int queue, snd_pcm_
 #endif
 	if ((err = snd_seq_start_queue(handle, queue, NULL))<0)
 		fprintf(stderr, "Timer event output error: %s\n", snd_strerror(err));
-	/* ugly, but working */
-	while (snd_seq_flush_output(handle)>0)
-		sleep(1);
+	snd_seq_flush_output(handle);
 }
 
 void event_sender_filter(snd_seq_t *handle)
@@ -123,6 +121,11 @@ void send_event(snd_seq_t *handle, int queue, int client, int port,
 		fprintf(stderr, "Event output error: %s\n", snd_strerror(err));
 	ev.dest.client = sub->dest.client;
 	ev.dest.port = sub->dest.port;
+	ev.type = SND_SEQ_EVENT_PGMCHANGE;
+	ev.data.control.channel = 0;
+	ev.data.control.value = 16;
+	if ((err = snd_seq_event_output(handle, &ev))<0)
+		fprintf(stderr, "Event output error: %s\n", snd_strerror(err));
 	ev.type = SND_SEQ_EVENT_NOTE;
 	ev.data.note.channel = 0;
 	ev.data.note.note = 64 + (queue*2);
@@ -141,13 +144,13 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 	snd_seq_port_info_t port;
 	snd_seq_port_subscribe_t sub;
 	fd_set out, in;
-	int client, queue, max, err, v1, v2, time = 0, first, pcm_flag = 0;
+	int client, queue, max, err, v1, v2, time = 0, pcm_flag = 0;
 	char *ptr;
 	snd_pcm_t *phandle = NULL;
 	char *pbuf = NULL;
 
 	if (argc < 1) {
-		fprintf(stderr, "Invalid destonation...\n");
+		fprintf(stderr, "Invalid destination...\n");
 		return;
 	}
 
@@ -197,7 +200,7 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 		}
 	}
 
-	printf("Destonation client = %i, port = %i\n", sub.dest.client, sub.dest.port);
+	printf("Destination client = %i, port = %i\n", sub.dest.client, sub.dest.port);
 
 #ifdef USE_PCM
 	if (pcm_flag) {
@@ -217,13 +220,17 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 #endif
 	event_sender_start_timer(handle, client, queue, phandle);
 	
-	first = 1;
+	/* send the first event */
+	send_event(handle, queue, client, port.port, &sub, &time);
+
 	while (1) {
 		FD_ZERO(&out);
 		FD_ZERO(&in);
 		max = snd_seq_file_descriptor(handle);
-		FD_SET(snd_seq_file_descriptor(handle), &out);
 		FD_SET(snd_seq_file_descriptor(handle), &in);
+		if (snd_seq_event_output_pending(handle)) {
+			FD_SET(snd_seq_file_descriptor(handle), &out);
+		}
 #ifdef USE_PCM
 		if (phandle) {
 			if (snd_pcm_file_descriptor(phandle) > max)
@@ -241,12 +248,8 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 			}
 		}
 #endif
-		if (FD_ISSET(snd_seq_file_descriptor(handle), &out)) {
-			if (first) {
-				send_event(handle, queue, client, port.port, &sub, &time);
-				first = 0;
-			}
-		}
+		if (FD_ISSET(snd_seq_file_descriptor(handle), &out))
+			snd_seq_flush_output(handle);
 		if (FD_ISSET(snd_seq_file_descriptor(handle), &in)) {
 			do {
 				if ((err = snd_seq_event_input(handle, &ev))<0)

@@ -2,7 +2,7 @@
  * network server/client for ALSA sequencer
  *   ver.0.1
  *
- * Copyright (C) 1999 Takashi Iwai
+ * Copyright (C) 1999-2000 Takashi Iwai
  * 
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -22,7 +22,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/asoundlib.h>
-#include <unistd.h>
+#include <getopt.h>
 #include <signal.h>
 
 /*
@@ -69,13 +69,21 @@ static int server_mode;
  * main routine
  */
 
+static struct option long_option[] = {
+	{"port", 1, NULL, 'p'},
+	{"source", 1, NULL, 's'},
+	{"dest", 1, NULL, 'd'},
+	{"help", 0, NULL, 'h'},
+	{NULL, 0, NULL, 0},
+};
+
 int main(int argc, char **argv)
 {
 	int c;
 	int port = DEFAULT_PORT;
 	char *source = NULL, *dest = NULL;
 
-	while ((c = getopt(argc, argv, "p:s:d:")) != -1) {
+	while ((c = getopt_long(argc, argv, "p:s:d:", long_option, NULL)) != -1) {
 		switch (c) {
 		case 'p':
 			if (isdigit(*optarg))
@@ -130,9 +138,9 @@ static void usage(void)
 	fprintf(stderr, "  server mode: aseqnet [-options]\n");
 	fprintf(stderr, "  client mode: aseqnet [-options] server_host\n");
 	fprintf(stderr, "options:\n");
-	fprintf(stderr, "  -p port : sepcify TCP port (digit or service name)\n");
-	fprintf(stderr, "  -s addr : read from given addr (client:port)\n");
-	fprintf(stderr, "  -d addr : write to given addr (client:port)\n");
+	fprintf(stderr, "  -p,--port # : sepcify TCP port (digit or service name)\n");
+	fprintf(stderr, "  -s,--source addr : read from given addr (client:port)\n");
+	fprintf(stderr, "  -d,--dest addr : write to given addr (client:port)\n");
 }
 
 
@@ -157,15 +165,17 @@ static void init_buf(void)
 /*
  * parse client:port argument
  */
-static void parse_addr(snd_seq_addr_t *addr, char *arg)
+static int parse_addr(snd_seq_addr_t *addr, char *arg)
 {
 	char *p;
 
+	if (! isdigit(*arg))
+		return -1;
+	if ((p = strpbrk(arg, ":.")) == NULL)
+		return -1;
 	addr->client = atoi(arg);
-	if ((p = strchr(arg, ':')) != NULL)
-		addr->port = atoi(p + 1);
-	else
-		addr->port = 0;
+	addr->port = atoi(p + 1);
+	return 0;
 }
 
 
@@ -222,7 +232,10 @@ static void init_seq(char *source, char *dest)
 	/* explicit subscriptions */
 	if (source) {
 		/* read subscription */
-		parse_addr(&addr, source);
+		if (parse_addr(&addr, source) < 0) {
+			fprintf(stderr, "invalid source address %s\n", source);
+			exit(1);
+		}
 		if (snd_seq_connect_from(handle, seq_port, addr.client, addr.port)) {
 			perror("read subscription");
 			exit(1);
@@ -230,7 +243,10 @@ static void init_seq(char *source, char *dest)
 	}
 	if (dest) {
 		/* write subscription */
-		parse_addr(&addr, dest);
+		if (parse_addr(&addr, dest) < 0) {
+			fprintf(stderr, "invalid destination address %s\n", dest);
+			exit(1);
+		}
 		if (snd_seq_connect_to(handle, seq_port, addr.client, addr.port)) {
 			perror("write subscription");
 			exit(1);

@@ -1,6 +1,6 @@
 /*
  * connect / disconnect two subscriber ports
- *   ver.0.1.2
+ *   ver.0.1.3
  *
  * Copyright (C) 1999 Takashi Iwai
  * 
@@ -16,42 +16,50 @@
  */
 
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <getopt.h>
 #include <sys/ioctl.h>
 #include <sys/asoundlib.h>
 
-#define DEFAULT_QUEUE	0
-
 static void usage(void)
 {
-	fprintf(stderr, "connect / disconnect two subscriber ports\n");
-	fprintf(stderr, "copyright (C) 1999 Takashi Iwai\n");
-	fprintf(stderr, "usage: aconnect [-d] [-q queue] [-g group] sender receiver\n");
-	fprintf(stderr, "            -d = disconnect\n");
-	fprintf(stderr, "            sender, receiver = client:port\n");
-	fprintf(stderr, "       aconnect -i [-g group] [-l]\n");
-	fprintf(stderr, "            list input ports\n");
-	fprintf(stderr, "       aconnect -o [-g group] [-l]\n");
-	fprintf(stderr, "            list output ports\n");
-	fprintf(stderr, "            -l = list current connections\n");
+	fprintf(stderr, "aconnect - ALSA sequencer connection manager\n");
+	fprintf(stderr, "Copyright (C) 1999-2000 Takashi Iwai\n");
+	fprintf(stderr, "Usage:\n");
+	fprintf(stderr, " * Connection/disconnection betwen two ports\n");
+	fprintf(stderr, "   aconnect [-options] sender receiver\n");
+	fprintf(stderr, "     sender, receiver = client:port pair\n");
+	fprintf(stderr, "     -d,--disconnect     disconnect\n");
+	fprintf(stderr, "     -e,--exclusive      exclusive connection\n");
+	fprintf(stderr, "     -r,--real #         convert real-time-stamp on queue\n");
+	fprintf(stderr, "     -t,--tick #         convert tick-time-stamp on queue\n");
+	fprintf(stderr, "     -g,--group name     set the group name\n");
+	fprintf(stderr, " * List connected ports (no subscription action)\n");
+	fprintf(stderr, "   aconnect -i|-o [-options]\n");
+	fprintf(stderr, "     -i,--input          list input (readable) ports\n");
+	fprintf(stderr, "     -o,--output         list output (writable) ports\n");
+	fprintf(stderr, "     -g,--group name     specify the group name\n");
+	fprintf(stderr, "     -l,--list           list current connections of each port\n");
 }
 
 /*
  * parse command line to client:port
  */
-static void parse_address(snd_seq_addr_t *addr, char *arg)
+static int parse_address(snd_seq_addr_t *addr, char *arg)
 {
 	char *p;
 
+	if (! isdigit(*arg))
+		return -1;
+	if ((p = strpbrk(arg, ":.")) == NULL)
+		return -1;
 	addr->client = atoi(arg);
-	if ((p = strchr(arg, ':')) != NULL)
-		addr->port = atoi(p + 1);
-	else
-		addr->port = 0;
+	addr->port = atoi(p + 1);
+	return 0;
 }
 
 /*
@@ -153,11 +161,23 @@ enum {
 	SUBSCRIBE, UNSUBSCRIBE, LIST_INPUT, LIST_OUTPUT
 };
 
+static struct option long_option[] = {
+	{"disconnect", 0, NULL, 'd'},
+	{"input", 0, NULL, 'i'},
+	{"output", 0, NULL, 'o'},
+	{"group", 1, NULL, 'g'},
+	{"real", 1, NULL, 'r'},
+	{"tick", 1, NULL, 't'},
+	{"exclusive", 0, NULL, 'e'},
+	{"list", 0, NULL, 'l'},
+	{NULL, 0, NULL, 0},
+};
+
 int main(int argc, char **argv)
 {
 	int c;
 	snd_seq_t *seq;
-	int queue = DEFAULT_QUEUE;
+	int queue = 0, convert_time = 0, convert_real = 0, exclusive = 0;
 	int command = SUBSCRIBE;
 	char *group = "";
 	int client;
@@ -165,7 +185,7 @@ int main(int argc, char **argv)
 	snd_seq_client_info_t cinfo;
 	snd_seq_port_subscribe_t subs;
 
-	while ((c = getopt(argc, argv, "diog:D:q:l")) != -1) {
+	while ((c = getopt_long(argc, argv, "diog:r:t:el", long_option, NULL)) != -1) {
 		switch (c) {
 		case 'd':
 			command = UNSUBSCRIBE;
@@ -179,8 +199,18 @@ int main(int argc, char **argv)
 		case 'g':
 			group = optarg;
 			break;
-		case 'q':
+		case 'e':
+			exclusive = 1;
+			break;
+		case 'r':
 			queue = atoi(optarg);
+			convert_time = 1;
+			convert_real = 1;
+			break;
+		case 't':
+			queue = atoi(optarg);
+			convert_time = 1;
+			convert_real = 0;
 			break;
 		case 'l':
 			list_subs = 1;
@@ -232,12 +262,18 @@ int main(int argc, char **argv)
 
 	/* set subscription */
 	memset(&subs, 0, sizeof(subs));
-	parse_address(&subs.sender, argv[optind]);
-	parse_address(&subs.dest, argv[optind + 1]);
+	if (parse_address(&subs.sender, argv[optind]) < 0) {
+		fprintf(stderr, "invalid sender address %s\n", argv[optind]);
+		return 1;
+	}
+	if (parse_address(&subs.dest, argv[optind + 1]) < 0) {
+		fprintf(stderr, "invalid destination address %s\n", argv[optind + 1]);
+		return 1;
+	}
 	subs.queue = queue;
-	subs.exclusive = 0;
-	subs.convert_time = 0;
-	subs.realtime = 0;
+	subs.exclusive = exclusive;
+	subs.convert_time = convert_time;
+	subs.realtime = convert_real;
 
 	if (command == UNSUBSCRIBE) {
 		if (snd_seq_get_port_subscription(seq, &subs) < 0) {
@@ -247,7 +283,7 @@ int main(int argc, char **argv)
 		}
 		if (snd_seq_unsubscribe_port(seq, &subs) < 0) {
 			snd_seq_close(seq);
-			fprintf(stderr, "Disconnection failed (errno=%d)\n", errno);
+			fprintf(stderr, "Disconnection failed (%s)\n", snd_strerror(errno));
 			return 1;
 		}
 	} else {
@@ -258,7 +294,7 @@ int main(int argc, char **argv)
 		}
 		if (snd_seq_subscribe_port(seq, &subs) < 0) {
 			snd_seq_close(seq);
-			fprintf(stderr, "Connection failed (errno=%d)\n", errno);
+			fprintf(stderr, "Connection failed (%s)\n", snd_strerror(errno));
 			return 1;
 		}
 	}

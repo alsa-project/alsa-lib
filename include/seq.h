@@ -64,6 +64,7 @@ int snd_seq_event_input(snd_seq_t *handle, snd_seq_event_t **ev);
 int snd_seq_event_input_pending(snd_seq_t *seq, int fetch_sequencer);
 int snd_seq_event_input_selective(snd_seq_t *seq, snd_seq_event_t **ev, int type, int blocking);
 int snd_seq_flush_output(snd_seq_t *handle);
+int snd_seq_event_output_pending(snd_seq_t *seq);
 int snd_seq_extract_output(snd_seq_t *handle, snd_seq_event_t **ev);
 int snd_seq_drain_output(snd_seq_t *handle);
 int snd_seq_drain_output_buffer(snd_seq_t *handle);

@@ -4,48 +4,48 @@
 
 static char *event_names[256] = {
 	/* 0   */	"System",
-	/* 1   */	"Note",
-	/* 2   */	"Note On",
-	/* 3   */	"Note Off",
+	/* 1   */	"Result",
+	/* 2   */	"Reserved 2",
+	/* 3   */	"Reserved 3",
 	/* 4   */	"Reserved 4",
-	/* 5   */	"Reserved 5",
-	/* 6   */	"Reserved 6",
-	/* 7   */	"Reserved 7",
-	/* 8   */	"Reserved 8",
+	/* 5   */	"Note",
+	/* 6   */	"Note On",
+	/* 7   */	"Note Off",
+	/* 8   */	"Key Pressure",
 	/* 9   */	"Reserved 9",
-	/* 10   */	"KeyPress",
-	/* 11   */	"Controller",
-	/* 12   */	"Program Change",
-	/* 13   */	"Channel Pressure",
-	/* 14   */	"Pitchbend",
-	/* 15   */	"Control14",
-	/* 16   */	"Nonregparam",
-	/* 17   */	"Regparam",
+	/* 10   */	"Controller",
+	/* 11   */	"Program Change",
+	/* 12   */	"Channel Pressure",
+	/* 13   */	"Pitchbend",
+	/* 14   */	"Control14",
+	/* 15   */	"Nonregparam",
+	/* 16   */	"Regparam",
+	/* 17   */	"Reserved 17",
 	/* 18   */	"Reserved 18",
 	/* 19   */	"Reserved 19",
 	/* 20   */	"Song Position",
 	/* 21   */	"Song Select",
-	/* 22   */	"Clock",
-	/* 23   */	"Start",
-	/* 24   */	"Continue",
-	/* 25   */	"Stop",
-	/* 26   */	"Qframe",
+	/* 22   */	"Qframe",
+	/* 23   */	"SMF Time Signature",
+	/* 24   */	"SMF Key Signature",
+	/* 25   */	"Reserved 25",
+	/* 26   */	"Reserved 26",
 	/* 27   */	"Reserved 27",
 	/* 28   */	"Reserved 28",
 	/* 29   */	"Reserved 29",
-	/* 30   */	"Tempo",
-	/* 31   */	"SMF Time Signature",
-	/* 32   */	"SMF Key Signature",
-	/* 33   */	"Reserved 33",
-	/* 34   */	"Reserved 34",
-	/* 35   */	"Reserved 35",
-	/* 36   */	"Reserved 36",
-	/* 37   */	"Reserved 37",
+	/* 30   */	"Start",
+	/* 31   */	"Continue",
+	/* 32   */	"Stop",
+	/* 33   */	"Set Position Tick",
+	/* 34   */	"Set Position Time",
+	/* 35   */	"Tempo",
+	/* 36   */	"Clock",
+	/* 37   */	"Tick",
 	/* 38   */	"Reserved 38",
 	/* 39   */	"Reserved 39",
-	/* 40   */	"System Exclusive",
-	/* 41   */	"Heart Beat",
-	/* 42   */	"Reserved 42",
+	/* 40   */	"Tune Request",
+	/* 41   */	"Reset",
+	/* 42   */	"Active Sensing",
 	/* 43   */	"Reserved 43",
 	/* 44   */	"Reserved 44",
 	/* 45   */	"Reserved 45",
@@ -53,8 +53,8 @@ static char *event_names[256] = {
 	/* 47   */	"Reserved 47",
 	/* 48   */	"Reserved 48",
 	/* 49   */	"Reserved 49",
-	/* 50   */	"Heart Beat (Active sensing)",
-	/* 51   */	"Echo",
+	/* 50   */	"Echo",
+	/* 51   */	"OSS",
 	/* 52   */	"Reserved 52",
 	/* 53   */	"Reserved 53",
 	/* 54   */	"Reserved 54",
@@ -69,206 +69,196 @@ static char *event_names[256] = {
 	/* 63   */	"Port Start",
 	/* 64   */	"Port Exit",
 	/* 65   */	"Port Change",
-	/* 66   */	"Reserved 66",
-	/* 67   */	"Reserved 67",
-	/* 68   */	"Reserved 68",
-	/* 69   */	"Reserved 69",
-	/* 70   */	"Reserved 70",
-	/* 71   */	"Reserved 71",
-	/* 72   */	"Reserved 72",
-	/* 73   */	"Reserved 73",
-	/* 74   */	"Reserved 74",
-	/* 75   */	"Reserved 75",
-	/* 76   */	"Reserved 76",
-	/* 77   */	"Reserved 77",
-	/* 78   */	"Reserved 78",
+	/* 66   */	"Port Subscribed",
+	/* 67   */	"Port Used",
+	/* 68   */	"Port Unsubscribed",
+	/* 69   */	"Port Unused",
+	/* 70   */	"Sample",
+	/* 71   */	"Sample Cluster",
+	/* 72   */	"Sample Start",
+	/* 73   */	"Sample Stop",
+	/* 74   */	"Sample Freq",
+	/* 75   */	"Sample Volume",
+	/* 76   */	"Sample Loop",
+	/* 77   */	"Sample Position",
+	/* 78   */	"Sample Private1",
 	/* 79   */	"Reserved 79",
-	/* 80   */	"Sample Select",
-	/* 81   */	"Sample Start",
-	/* 82   */	"Sample Stop",
-	/* 83   */	"Sample Frequency",
-	/* 84   */	"Sample Volume",
-	/* 85   */	"Sample Loop",
-	/* 86   */	"Sample Position",
-	/* 87   */	"Reseved 87",
-	/* 88   */	"Reseved 88",
-	/* 89   */	"Reseved 89",
-	/* 90   */	"Reseved 90",
-	/* 91   */	"Reseved 91",
-	/* 92   */	"Reseved 92",
-	/* 93   */	"Reseved 93",
-	/* 94   */	"Reseved 94",
-	/* 95   */	"Reseved 95",
-	/* 96   */	"Reseved 96",
-	/* 97   */	"Reseved 97",
-	/* 98   */	"Reseved 98",
-	/* 99   */	"Reseved 99",
-	/* 100  */	"Reseved 100",
-	/* 101  */	"Reseved 101",
-	/* 102  */	"Reseved 102",
-	/* 103  */	"Reseved 103",
-	/* 104  */	"Reseved 104",
-	/* 105  */	"Reseved 105",
-	/* 106  */	"Reseved 106",
-	/* 107  */	"Reseved 107",
-	/* 108  */	"Reseved 108",
-	/* 109  */	"Reseved 109",
-	/* 100  */	"Reserved 100"
-	/* 101  */	"Reserved 101"
-	/* 102  */	"Reserved 102"
-	/* 103  */	"Reserved 103"
-	/* 104  */	"Reserved 104"
-	/* 105  */	"Reserved 105"
-	/* 106  */	"Reserved 106"
-	/* 107  */	"Reserved 107"
-	/* 108  */	"Reserved 108"
-	/* 109  */	"Reserved 109"
-	/* 110  */	"Reserved 110"
-	/* 111  */	"Reserved 111"
-	/* 112  */	"Reserved 112"
-	/* 113  */	"Reserved 113"
-	/* 114  */	"Reserved 114"
-	/* 115  */	"Reserved 115"
-	/* 116  */	"Reserved 116"
-	/* 117  */	"Reserved 117"
-	/* 118  */	"Reserved 118"
-	/* 119  */	"Reserved 119"
-	/* 120  */	"Reserved 120"
-	/* 121  */	"Reserved 121"
-	/* 122  */	"Reserved 122"
-	/* 123  */	"Reserved 123"
-	/* 124  */	"Reserved 124"
-	/* 125  */	"Reserved 125"
-	/* 126  */	"Reserved 126"
-	/* 127  */	"Reserved 127"
-	/* 128  */	"Reserved 128"
-	/* 129  */	"Reserved 129"
-	/* 130  */	"Reserved 130"
-	/* 131  */	"Reserved 131"
-	/* 132  */	"Reserved 132"
-	/* 133  */	"Reserved 133"
-	/* 134  */	"Reserved 134"
-	/* 135  */	"Reserved 135"
-	/* 136  */	"Reserved 136"
-	/* 137  */	"Reserved 137"
-	/* 138  */	"Reserved 138"
-	/* 139  */	"Reserved 139"
-	/* 140  */	"Reserved 140"
-	/* 141  */	"Reserved 141"
-	/* 142  */	"Reserved 142"
-	/* 143  */	"Reserved 143"
-	/* 144  */	"Reserved 144"
-	/* 145  */	"Reserved 145"
-	/* 146  */	"Reserved 146"
-	/* 147  */	"Reserved 147"
-	/* 148  */	"Reserved 148"
-	/* 149  */	"Reserved 149"
-	/* 150  */	"Reserved 150"
-	/* 151  */	"Reserved 151"
-	/* 152  */	"Reserved 152"
-	/* 153  */	"Reserved 153"
-	/* 154  */	"Reserved 154"
-	/* 155  */	"Reserved 155"
-	/* 156  */	"Reserved 156"
-	/* 157  */	"Reserved 157"
-	/* 158  */	"Reserved 158"
-	/* 159  */	"Reserved 159"
-	/* 160  */	"Reserved 160"
-	/* 161  */	"Reserved 161"
-	/* 162  */	"Reserved 162"
-	/* 163  */	"Reserved 163"
-	/* 164  */	"Reserved 164"
-	/* 165  */	"Reserved 165"
-	/* 166  */	"Reserved 166"
-	/* 167  */	"Reserved 167"
-	/* 168  */	"Reserved 168"
-	/* 169  */	"Reserved 169"
-	/* 170  */	"Reserved 170"
-	/* 171  */	"Reserved 171"
-	/* 172  */	"Reserved 172"
-	/* 173  */	"Reserved 173"
-	/* 174  */	"Reserved 174"
-	/* 175  */	"Reserved 175"
-	/* 176  */	"Reserved 176"
-	/* 177  */	"Reserved 177"
-	/* 178  */	"Reserved 178"
-	/* 179  */	"Reserved 179"
-	/* 180  */	"Reserved 180"
-	/* 181  */	"Reserved 181"
-	/* 182  */	"Reserved 182"
-	/* 183  */	"Reserved 183"
-	/* 184  */	"Reserved 184"
-	/* 185  */	"Reserved 185"
-	/* 186  */	"Reserved 186"
-	/* 187  */	"Reserved 187"
-	/* 188  */	"Reserved 188"
-	/* 189  */	"Reserved 189"
-	/* 190  */	"Reserved 190"
-	/* 191  */	"Reserved 191"
-	/* 192  */	"Reserved 192"
-	/* 193  */	"Reserved 193"
-	/* 194  */	"Reserved 194"
-	/* 195  */	"Reserved 195"
-	/* 196  */	"Reserved 196"
-	/* 197  */	"Reserved 197"
-	/* 198  */	"Reserved 198"
-	/* 199  */	"Reserved 199"
-	/* 200  */	"Reserved 200"
-	/* 201  */	"Reserved 201"
-	/* 202  */	"Reserved 202"
-	/* 203  */	"Reserved 203"
-	/* 204  */	"Reserved 204"
-	/* 205  */	"Reserved 205"
-	/* 206  */	"Reserved 206"
-	/* 207  */	"Reserved 207"
-	/* 208  */	"Reserved 208"
-	/* 209  */	"Reserved 209"
-	/* 210  */	"Reserved 210"
-	/* 211  */	"Reserved 211"
-	/* 212  */	"Reserved 212"
-	/* 213  */	"Reserved 213"
-	/* 214  */	"Reserved 214"
-	/* 215  */	"Reserved 215"
-	/* 216  */	"Reserved 216"
-	/* 217  */	"Reserved 217"
-	/* 218  */	"Reserved 218"
-	/* 219  */	"Reserved 219"
-	/* 220  */	"Reserved 220"
-	/* 221  */	"Reserved 221"
-	/* 222  */	"Reserved 222"
-	/* 223  */	"Reserved 223"
-	/* 224  */	"Reserved 224"
-	/* 225  */	"Reserved 225"
-	/* 226  */	"Reserved 226"
-	/* 227  */	"Reserved 227"
-	/* 228  */	"Reserved 228"
-	/* 229  */	"Reserved 229"
-	/* 230  */	"Reserved 230"
-	/* 231  */	"Reserved 231"
-	/* 232  */	"Reserved 232"
-	/* 233  */	"Reserved 233"
-	/* 234  */	"Reserved 234"
-	/* 235  */	"Reserved 235"
-	/* 236  */	"Reserved 236"
-	/* 237  */	"Reserved 237"
-	/* 238  */	"Reserved 238"
-	/* 239  */	"Reserved 239"
-	/* 240  */	"Reserved 240"
-	/* 241  */	"Reserved 241"
-	/* 242  */	"Reserved 242"
-	/* 243  */	"Reserved 243"
-	/* 244  */	"Reserved 244"
-	/* 245  */	"Reserved 245"
-	/* 246  */	"Reserved 246"
-	/* 247  */	"Reserved 247"
-	/* 248  */	"Reserved 248"
-	/* 249  */	"Reserved 249"
-	/* 250  */	"Reserved 250"
-	/* 251  */	"Reserved 251"
-	/* 252  */	"Reserved 252"
-	/* 253  */	"Reserved 253"
-	/* 254  */	"Reserved 254"
-	/* 255  */	"Reserved 255"
+	/* 80   */	"Reserved 80",
+	/* 81   */	"Reserved 81",
+	/* 82   */	"Reserved 82",
+	/* 83   */	"Reserved 83",
+	/* 84   */	"Reserved 84",
+	/* 85   */	"Reserved 85",
+	/* 86   */	"Reserved 86",
+	/* 87   */	"Reserved 87",
+	/* 88   */	"Reserved 88",
+	/* 89   */	"Reserved 89",
+	/* 90   */	"User 0",
+	/* 91   */	"User 1",
+	/* 92   */	"User 2",
+	/* 93   */	"User 3",
+	/* 94   */	"User 4",
+	/* 95   */	"User 5",
+	/* 96   */	"User 6",
+	/* 97   */	"User 7",
+	/* 98   */	"User 8",
+	/* 99   */	"User 9",
+	/* 100  */	"Instr Begin",
+	/* 101  */	"Instr End",
+	/* 102  */	"Instr Info",
+	/* 103  */	"Instr Info Result",
+	/* 104  */	"Instr Finfo",
+	/* 105  */	"Instr Finfo Result",
+	/* 106  */	"Instr Reset",
+	/* 107  */	"Instr Status",
+	/* 108  */	"Instr Status Result",
+	/* 109  */	"Instr Put",
+	/* 110  */	"Instr Get",
+	/* 111  */	"Instr Get Result",
+	/* 112  */	"Instr Free",
+	/* 113  */	"Instr List",
+	/* 114  */	"Instr List Result",
+	/* 115  */	"Instr Cluster",
+	/* 116  */	"Instr Cluster Get",
+	/* 117  */	"Instr Cluster Result",
+	/* 118  */	"Instr Change",
+	/* 119  */	"Reserved 119",
+	/* 120  */	"Reserved 120",
+	/* 121  */	"Reserved 121",
+	/* 122  */	"Reserved 122",
+	/* 123  */	"Reserved 123",
+	/* 124  */	"Reserved 124",
+	/* 125  */	"Reserved 125",
+	/* 126  */	"Reserved 126",
+	/* 127  */	"Reserved 127",
+	/* 128  */	"Reserved 128",
+	/* 129  */	"Reserved 129",
+	/* 130  */	"Sysex",
+	/* 131  */	"Bounce",
+	/* 132  */	"Reserved 132",
+	/* 133  */	"Reserved 133",
+	/* 134  */	"Reserved 134",
+	/* 135  */	"User Var0",
+	/* 136  */	"User Var1",
+	/* 137  */	"User Var2",
+	/* 138  */	"User Var3",
+	/* 139  */	"User Var4",
+	/* 140  */	"IPC Shm",
+	/* 141  */	"Reserved 141",
+	/* 142  */	"Reserved 142",
+	/* 143  */	"Reserved 143",
+	/* 144  */	"Reserved 144",
+	/* 145  */	"User IPC0",
+	/* 146  */	"User IPC1",
+	/* 147  */	"User IPC2",
+	/* 148  */	"User IPC3",
+	/* 149  */	"User IPC4",
+	/* 150  */	"Reserved 150",
+	/* 151  */	"Reserved 151",
+	/* 152  */	"Reserved 152",
+	/* 153  */	"Reserved 153",
+	/* 154  */	"Reserved 154",
+	/* 155  */	"Reserved 155",
+	/* 156  */	"Reserved 156",
+	/* 157  */	"Reserved 157",
+	/* 158  */	"Reserved 158",
+	/* 159  */	"Reserved 159",
+	/* 160  */	"Reserved 160",
+	/* 161  */	"Reserved 161",
+	/* 162  */	"Reserved 162",
+	/* 163  */	"Reserved 163",
+	/* 164  */	"Reserved 164",
+	/* 165  */	"Reserved 165",
+	/* 166  */	"Reserved 166",
+	/* 167  */	"Reserved 167",
+	/* 168  */	"Reserved 168",
+	/* 169  */	"Reserved 169",
+	/* 170  */	"Reserved 170",
+	/* 171  */	"Reserved 171",
+	/* 172  */	"Reserved 172",
+	/* 173  */	"Reserved 173",
+	/* 174  */	"Reserved 174",
+	/* 175  */	"Reserved 175",
+	/* 176  */	"Reserved 176",
+	/* 177  */	"Reserved 177",
+	/* 178  */	"Reserved 178",
+	/* 179  */	"Reserved 179",
+	/* 180  */	"Reserved 180",
+	/* 181  */	"Reserved 181",
+	/* 182  */	"Reserved 182",
+	/* 183  */	"Reserved 183",
+	/* 184  */	"Reserved 184",
+	/* 185  */	"Reserved 185",
+	/* 186  */	"Reserved 186",
+	/* 187  */	"Reserved 187",
+	/* 188  */	"Reserved 188",
+	/* 189  */	"Reserved 189",
+	/* 190  */	"Reserved 190",
+	/* 191  */	"Reserved 191",
+	/* 192  */	"Reserved 192",
+	/* 193  */	"Reserved 193",
+	/* 194  */	"Reserved 194",
+	/* 195  */	"Reserved 195",
+	/* 196  */	"Reserved 196",
+	/* 197  */	"Reserved 197",
+	/* 198  */	"Reserved 198",
+	/* 199  */	"Reserved 199",
+	/* 200  */	"Reserved 200",
+	/* 201  */	"Reserved 201",
+	/* 202  */	"Reserved 202",
+	/* 203  */	"Reserved 203",
+	/* 204  */	"Reserved 204",
+	/* 205  */	"Reserved 205",
+	/* 206  */	"Reserved 206",
+	/* 207  */	"Reserved 207",
+	/* 208  */	"Reserved 208",
+	/* 209  */	"Reserved 209",
+	/* 210  */	"Reserved 210",
+	/* 211  */	"Reserved 211",
+	/* 212  */	"Reserved 212",
+	/* 213  */	"Reserved 213",
+	/* 214  */	"Reserved 214",
+	/* 215  */	"Reserved 215",
+	/* 216  */	"Reserved 216",
+	/* 217  */	"Reserved 217",
+	/* 218  */	"Reserved 218",
+	/* 219  */	"Reserved 219",
+	/* 220  */	"Reserved 220",
+	/* 221  */	"Reserved 221",
+	/* 222  */	"Reserved 222",
+	/* 223  */	"Reserved 223",
+	/* 224  */	"Reserved 224",
+	/* 225  */	"Reserved 225",
+	/* 226  */	"Reserved 226",
+	/* 227  */	"Reserved 227",
+	/* 228  */	"Reserved 228",
+	/* 229  */	"Reserved 229",
+	/* 230  */	"Reserved 230",
+	/* 231  */	"Reserved 231",
+	/* 232  */	"Reserved 232",
+	/* 233  */	"Reserved 233",
+	/* 234  */	"Reserved 234",
+	/* 235  */	"Reserved 235",
+	/* 236  */	"Reserved 236",
+	/* 237  */	"Reserved 237",
+	/* 238  */	"Reserved 238",
+	/* 239  */	"Reserved 239",
+	/* 240  */	"Reserved 240",
+	/* 241  */	"Reserved 241",
+	/* 242  */	"Reserved 242",
+	/* 243  */	"Reserved 243",
+	/* 244  */	"Reserved 244",
+	/* 245  */	"Reserved 245",
+	/* 246  */	"Reserved 246",
+	/* 247  */	"Reserved 247",
+	/* 248  */	"Reserved 248",
+	/* 249  */	"Reserved 249",
+	/* 250  */	"Reserved 250",
+	/* 251  */	"Reserved 251",
+	/* 252  */	"Reserved 252",
+	/* 253  */	"Reserved 253",
+	/* 254  */	"Reserved 254",
+	/* 255  */	"None"
 };
 
 int decode_event(snd_seq_event_t * ev)
@@ -299,10 +289,11 @@ int decode_event(snd_seq_event_t * ev)
 	/* decode actual event data... */
 	switch (ev->type) {
 		case SND_SEQ_EVENT_NOTE:
-			printf("; ch=%d, note=%d, velocity=%d, duration=%d\n",
+			printf("; ch=%d, note=%d, velocity=%d, off_velocity=%d, duration=%d\n",
 			       ev->data.note.channel,
 			       ev->data.note.note,
 			       ev->data.note.velocity,
+			       ev->data.note.off_velocity,
 			       ev->data.note.duration);
 			break;
 
@@ -384,6 +375,10 @@ int decode_event(snd_seq_event_t * ev)
 		case SND_SEQ_EVENT_PORT_START:
 		case SND_SEQ_EVENT_PORT_EXIT:
 		case SND_SEQ_EVENT_PORT_CHANGE:
+		case SND_SEQ_EVENT_PORT_SUBSCRIBED:
+		case SND_SEQ_EVENT_PORT_USED:
+		case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:
+		case SND_SEQ_EVENT_PORT_UNUSED:
 			printf("; client=%i, port = %i\n", ev->data.addr.client, ev->data.addr.port);
 			break;
 
@@ -437,6 +432,7 @@ void event_decoder(snd_seq_t *handle, int argc, char *argv[])
 	bzero(&port, sizeof(port));
 	strcpy(port.name, "Input");
 	port.capability = SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_READ; 
+	port.capability |= SND_SEQ_PORT_CAP_SUBS_WRITE; 
 	if ((err = snd_seq_create_port(handle, &port)) < 0) {
 		fprintf(stderr, "Cannot create input port: %s\n", snd_strerror(err));
 		return;
