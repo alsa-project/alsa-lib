@@ -641,8 +641,9 @@ static void mix_areas1(unsigned int size,
 
 	while (size-- > 0) {
 		sample = *src;
+		old_sample = *sum;
 		if (*dst == 0)
-			sample -= *sum;
+			sample -= old_sample;
 		*sum += sample;
 		do {
 			old_sample = *sum;
