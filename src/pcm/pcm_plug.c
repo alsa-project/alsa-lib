@@ -70,6 +70,8 @@ static int snd_pcm_plug_close(snd_pcm_t *pcm)
 		return -EINVAL;
 	}
 	if (plug->close_slave) {
+		snd_pcm_unlink_hw_ptr(pcm, plug->req_slave);
+		snd_pcm_unlink_appl_ptr(pcm, plug->req_slave);
 		err = snd_pcm_close(plug->req_slave);
 		if (err < 0)
 			result = err;
@@ -313,6 +315,8 @@ static void snd_pcm_plug_clear(snd_pcm_t *pcm)
 	snd_pcm_t *slave = plug->req_slave;
 	/* Clear old plugins */
 	if (plug->slave != slave) {
+		snd_pcm_unlink_hw_ptr(pcm, plug->slave);
+		snd_pcm_unlink_appl_ptr(pcm, plug->slave);
 		snd_pcm_close(plug->slave);
 		plug->slave = slave;
 		pcm->fast_ops = slave->fast_ops;

@@ -6291,7 +6291,7 @@ static void snd_pcm_unlink_ptr(snd_pcm_t *pcm, snd_pcm_rbptr_t *pcm_rbptr,
 			goto __found;
 		}
 	}
-	assert(0);
+	/* assert(0); */
 	return;
 
       __found:
