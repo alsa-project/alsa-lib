@@ -78,6 +78,13 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #include "asoundlib.h"
 #include "list.h"
 
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define SND_LITTLE_ENDIAN
+#endif
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define SND_BIG_ENDIAN
+#endif
+
 extern int snd_async_signo;
 
 struct _snd_async_handler {
