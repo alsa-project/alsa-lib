@@ -39,6 +39,7 @@ struct snd_midi_event {
 	size_t read;	/* chars read */
 	int type;	/* current event type */
 	unsigned char lastcmd;
+	unsigned char nostat;
 	size_t bufsize;
 	unsigned char *buf;	/* input buffer */
 };
@@ -169,6 +170,11 @@ void snd_midi_event_free(snd_midi_event_t *dev)
 			free(dev->buf);
 		free(dev);
 	}
+}
+
+void snd_midi_event_no_status(snd_midi_event_t *dev, int on)
+{
+	dev->nostat = on ? 1 : 0;
 }
 
 /*
@@ -436,7 +442,7 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 	} else {
 		unsigned char xbuf[4];
 
-		if ((cmd & 0xf0) == 0xf0 || dev->lastcmd != cmd) {
+		if ((cmd & 0xf0) == 0xf0 || dev->lastcmd != cmd || dev->nostat) {
 			dev->lastcmd = cmd;
 			xbuf[0] = cmd;
 			if (status_event[type].decode)
@@ -493,23 +499,38 @@ static void songpos_decode(snd_seq_event_t *ev, unsigned char *buf)
 /* decode 14bit control */
 static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int count, snd_seq_event_t *ev)
 {
+	unsigned char cmd;
+	int idx = 0;
+
 	if (ev->data.control.param < 32) {
-		if (count < 5)
+		if (count < 4)
 			return -ENOMEM;
-		buf[0] = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
-		buf[1] = ev->data.control.param;
-		buf[2] = (ev->data.control.value >> 7) & 0x7f;
-		buf[3] = ev->data.control.param + 32;
-		buf[4] = ev->data.control.value & 0x7f;
-		dev->lastcmd = buf[0];
-		return 5;
+		if (dev->nostat && count < 6)
+			return -ENOMEM;
+		cmd = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
+		if (cmd != dev->lastcmd || dev->nostat) {
+			if (count < 5)
+				return -ENOMEM;
+			buf[idx++] = dev->lastcmd = cmd;
+		}
+		buf[idx++] = ev->data.control.param;
+		buf[idx++] = (ev->data.control.value >> 7) & 0x7f;
+		if (dev->nostat)
+			buf[idx++] = cmd;
+		buf[idx++] = ev->data.control.param + 32;
+		buf[idx++] = ev->data.control.value & 0x7f;
+		return idx;
 	} else {
-		if (count < 3)
+		if (count < 2)
 			return -ENOMEM;
-		buf[0] = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
-		buf[1] = ev->data.control.param & 0x7f;
-		buf[4] = ev->data.control.value & 0x7f;
-		dev->lastcmd = buf[0];
-		return 3;
+		cmd = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
+		if (cmd != dev->lastcmd || dev->nostat) {
+			if (count < 3)
+				return -ENOMEM;
+			buf[idx++] = dev->lastcmd = cmd;
+		}
+		buf[idx++] = ev->data.control.param & 0x7f;
+		buf[idx++] = ev->data.control.value & 0x7f;
+		return idx;
 	}
 }
