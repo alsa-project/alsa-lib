@@ -583,9 +583,25 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 		err = sscanf(name, "plug:%d,%d", &card, &dev);
 		if (err == 2)
 			return snd_pcm_plug_open_hw(pcmp, name, card, dev, -1, stream, mode);
+		err = sscanf(name, "plug:%256[^,]", sname);
+		if (err == 1) {
+			snd_pcm_t *slave;
+			err = snd_pcm_open(&slave, sname, stream, mode);
+			if (err < 0)
+				return err;
+			return snd_pcm_plug_open(pcmp, name, NULL, 0, 0, 0, slave, 1);
+		}
 		err = sscanf(name, "shm:%256[^,],%256[^,]", socket, sname);
 		if (err == 2)
 			return snd_pcm_shm_open(pcmp, name, socket, sname, stream, mode);
+		err = sscanf(name, "file:%256[^,],%16[^,],%256[^,]", file, format, sname);
+		if (err == 3) {
+			snd_pcm_t *slave;
+			err = snd_pcm_open(&slave, sname, stream, mode);
+			if (err < 0)
+				return err;
+			return snd_pcm_file_open(pcmp, name, file, -1, format, slave, 1);
+		}
 		err = sscanf(name, "file:%256[^,],%16[^,]", file, format);
 		if (err == 2) {
 			snd_pcm_t *slave;
