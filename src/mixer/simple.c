@@ -29,6 +29,17 @@
 #include "asoundlib.h"
 #include "mixer_local.h"
 
+static struct mixer_name_table {
+	const char *longname;
+	const char *shortname;
+} name_table[] = {
+	{"Tone Control - Bass", "Bass"},
+	{"Tone Control - Treble", "Treble"},
+	{"Synth Tone Control - Bass", "Synth Bass"},
+	{"Synth Tone Control - Treble", "Synth Treble"},
+	{0, 0},
+};
+
 static snd_hcontrol_t *test_mixer_id(snd_mixer_t *handle, const char *name, int index)
 {
 	snd_control_id_t id;
@@ -139,11 +150,22 @@ static int simple_remove(snd_mixer_t *handle, mixer_simple_t *scontrol)
 
 static const char *get_full_name(const char *sname)
 {
-	if (!strcmp(sname, "Bass"))
-		return "Tone Control - Bass";
-	if (!strcmp(sname, "Treble"))
-		return "Tone Control - Treble";
+	struct mixer_name_table *p;
+	for (p = name_table; p->longname; p++) {
+		if (!strcmp(sname, p->shortname))
+			return p->longname;
+	}
 	return sname;
+}
+
+static const char *get_short_name(const char *lname)
+{
+	struct mixer_name_table *p;
+	for (p = name_table; p->longname; p++) {
+		if (!strcmp(lname, p->longname))
+			return p->shortname;
+	}
+	return lname;
 }
 
 static int input_get_volume(snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control, const char *direction, const char *postfix, int voices)
@@ -677,11 +699,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 		}
 		if (present == 0)
 			break;
-		sname1 = sname;
-		if (!strcmp(sname, "Tone Control - Bass"))
-			sname1 = "Bass";
-		else if (!strcmp(sname, "Tone Control - Treble"))
-			sname1 = "Treble";
+		sname1 = get_short_name(sname);
 		simple = build_input_scontrol(handle, sname1, index);
 		if (simple == NULL) {
 			snd_ctl_hbag_destroy(&bag, NULL);
@@ -718,6 +736,8 @@ int snd_mixer_simple_build(snd_mixer_t *handle)
 		"Master Digital",
 		"Tone Control - Bass",
 		"Tone Control - Treble",
+		"Synth Tone Control - Bass",
+		"Synth Tone Control - Treble",
 		"PCM",
 		"Synth",
 		"FM",
