@@ -46,4 +46,4 @@ install-exec-hook:
 	rm -f $(alsaincludedir)/asoundef.h
 	(cd $(DESTDIR)$(alsaincludedir) && $(LN_S) -f ../sound/asoundef.h asoundef.h)
 	# should be removed in future
-	(cd $(DESTDIR)$(sysincludedir) && $(LN_S) -f ../alsa/asoundlib.h asoundlib.h)
+	$(INSTALL_DATA) sys.h $(DESTDIR)$(sysincludedir)/asoundlib.h
