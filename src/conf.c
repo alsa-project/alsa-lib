@@ -219,6 +219,29 @@ a.0 "first"
 a.1 "second"
 \endcode
 
+\section conf_mode Parsed node operation mode
+
+By default, the node operation node is 'merge+create'. It means, if
+a configuration node is not present a new one is created, otherwise
+the latest assignment is merged (if possible - type checking). The
+'merge+create' operation mode is specified with a prefix char plus (+).
+
+The operation mode 'merge' merges the node with old one (which must
+exists). Type checking is done, so string cannot be assigned to integer
+and so on. This mode is specified with a prefix char minus (-).
+
+The operation mode 'do not override' ignores a new configuration node
+if a configuration node with same name exists. This mode is specified with
+a prefix char note of interrogation (?).
+
+The operation mode 'override' always overrides the old configuration node
+with new contents. This mode is specified with a prefix char note of
+exclamation (!).
+
+\code
+!defaults.pcm.device 1
+\endcode
+
 \section conf_syntax_summary Syntax summary
 
 \code
@@ -251,7 +274,11 @@ name.0 [=] value0 [,|;]
 name.1 [=] value1 [,|;]
 \endcode
 
+\section conf_syntax_ref References
 
+\ref confarg
+\ref conffunc
+\ref confhooks
 
 */
 
@@ -290,6 +317,23 @@ Arguments are refered by dollar-sign ($) and name of argument:
 \code
   card $CARD
 \endcode
+
+\section confarg_usage Usage
+
+Arguments are replaced with real values when the key contains part after
+colon (:). For example, all these names for PCM interface gives same result:
+
+\code
+hw:0,1
+hw:CARD=0,DEV=1
+hw:{CARD 0 DEV 1}
+plug:"hw:0,1"
+plug:{SLAVE="hw:{CARD 0 DEV 1}"}
+\endcode
+
+As you see, the argument can be specified by order or by name. Note that
+arguments closed into braces are parsed in same way like configuration files,
+but with the override method by default.
 
 \section confarg_example Example
 
@@ -330,6 +374,40 @@ func.remove_first_char {
 	func "extend_remove_first_char"
 }
 \endcode
+
+*/
+
+/*! \page confhooks Configuration - hooks
+
+<P>The hook extension in the ALSA library allows expanding of configuration
+nodes at run-time lookup. The presence of a hook is determined with a @hooks
+compound node.</P>
+
+<P>The example definition a hook which loads two configuration files at beginning:</P>
+
+\code
+@hooks [
+	{
+		func load
+		files [
+			"/etc/asound.conf"
+			"~/.asoundrc"
+		]
+		errors false
+	}
+]
+\endcode
+
+\section confhooks_ref Function reference
+
+<UL>
+  <LI>The function load - snd_config_hook_load() - loads and parses the given
+      configuration files.
+  <LI>The function load_for_all_cards - snd_config_hook_load_for_all_cards() -
+      loads and parses the given configuration files for all installed soundcards.
+      The driver name (type of soundcard) is passed in the private configuration
+      node.
+</UL>
 
 */
 
@@ -500,8 +578,8 @@ static int get_char_skip_comments(input_t *input)
 			break;
 		while (1) {
 			c = get_char(input);
-			if (c == EOF)
-				return LOCAL_UNEXPECTED_EOF;
+			if (c < 0)
+				return c;
 			if (c == '\n')
 				break;
 		}
@@ -577,7 +655,16 @@ static int get_freestring(char **string, int id, input_t *input)
 	while (1) {
 		c = get_char(input);
 		if (c < 0) {
-			if (buf != _buf)
+			if (c == LOCAL_UNEXPECTED_EOF) {
+				char *s = malloc(idx + 1);
+				if (!s)
+					return -ENOMEM;
+				memcpy(s, buf, idx);
+				s[idx] = '\0';
+				*string = s;
+				c = 0;
+			}
+			if (alloc > bufsize)
 				free(buf);
 			return c;
 		}
@@ -852,10 +939,10 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 	return 0;
 }
 
-static int parse_defs(snd_config_t *father, input_t *input, int skip);
-static int parse_array_defs(snd_config_t *farther, input_t *input, int skip);
+static int parse_defs(snd_config_t *father, input_t *input, int skip, int override);
+static int parse_array_defs(snd_config_t *farther, input_t *input, int skip, int override);
 
-static int parse_array_def(snd_config_t *father, input_t *input, int idx, int skip)
+static int parse_array_def(snd_config_t *father, input_t *input, int idx, int skip, int override)
 {
 	char static_id[12], *id = NULL;
 	int c;
@@ -893,10 +980,10 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx, int sk
 			}
 		}
 		if (c == '{') {
-			err = parse_defs(n, input, skip);
+			err = parse_defs(n, input, skip, override);
 			endchr = '}';
 		} else {
-			err = parse_array_defs(n, input, skip);
+			err = parse_array_defs(n, input, skip, override);
 			endchr = ']';
 		}
 		c = get_nonwhite(input);
@@ -926,7 +1013,7 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx, int sk
       	return err;
 }
 
-static int parse_array_defs(snd_config_t *father, input_t *input, int skip)
+static int parse_array_defs(snd_config_t *father, input_t *input, int skip, int override)
 {
 	int idx = 0;
 	while (1) {
@@ -936,14 +1023,14 @@ static int parse_array_defs(snd_config_t *father, input_t *input, int skip)
 		unget_char(c, input);
 		if (c == ']')
 			return 0;
-		err = parse_array_def(father, input, idx++, skip);
+		err = parse_array_def(father, input, idx++, skip, override);
 		if (err < 0)
 			return err;
 	}
 	return 0;
 }
 
-static int parse_def(snd_config_t *father, input_t *input, int skip)
+static int parse_def(snd_config_t *father, input_t *input, int skip, int override)
 {
 	char *id = NULL;
 	int c;
@@ -955,6 +1042,12 @@ static int parse_def(snd_config_t *father, input_t *input, int skip)
 		if (c < 0)
 			return c;
 		switch (c) {
+		case '+':
+			mode = MERGE_CREATE;
+			break;
+		case '-':
+			mode = MERGE;
+			break;
 		case '?':
 			mode = DONT_OVERRIDE;
 			break;
@@ -962,7 +1055,7 @@ static int parse_def(snd_config_t *father, input_t *input, int skip)
 			mode = OVERRIDE;
 			break;
 		default:
-			mode = MERGE_CREATE;
+			mode = !override ? MERGE_CREATE : OVERRIDE;
 			unget_char(c, input);
 		}
 		err = get_string(&id, 1, input);
@@ -1046,10 +1139,10 @@ static int parse_def(snd_config_t *father, input_t *input, int skip)
 			}
 		}
 		if (c == '{') {
-			err = parse_defs(n, input, skip);
+			err = parse_defs(n, input, skip, override);
 			endchr = '}';
 		} else {
-			err = parse_array_defs(n, input, skip);
+			err = parse_array_defs(n, input, skip, override);
 			endchr = ']';
 		}
 		c = get_nonwhite(input);
@@ -1082,7 +1175,7 @@ static int parse_def(snd_config_t *father, input_t *input, int skip)
 	return err;
 }
 		
-static int parse_defs(snd_config_t *father, input_t *input, int skip)
+static int parse_defs(snd_config_t *father, input_t *input, int skip, int override)
 {
 	int c, err;
 	while (1) {
@@ -1092,7 +1185,7 @@ static int parse_defs(snd_config_t *father, input_t *input, int skip)
 		unget_char(c, input);
 		if (c == '}')
 			return 0;
-		err = parse_def(father, input, skip);
+		err = parse_def(father, input, skip, override);
 		if (err < 0)
 			return err;
 	}
@@ -1387,13 +1480,7 @@ int snd_config_top(snd_config_t **config)
 	return _snd_config_make(config, 0, SND_CONFIG_TYPE_COMPOUND);
 }
 
-/**
- * \brief Load a config tree
- * \param config Config top node handle
- * \param in Input handle
- * \return 0 on success otherwise a negative error code
- */
-int snd_config_load(snd_config_t *config, snd_input_t *in)
+static int snd_config_load1(snd_config_t *config, snd_input_t *in, int override)
 {
 	int err;
 	input_t input;
@@ -1409,7 +1496,7 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 	fd->next = NULL;
 	input.current = fd;
 	input.unget = 0;
-	err = parse_defs(config, &input, 0);
+	err = parse_defs(config, &input, 0, override);
 	fd = input.current;
 	if (err < 0) {
 		const char *str;
@@ -1448,6 +1535,28 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 	}
 	free(fd);
 	return err;
+}
+
+/**
+ * \brief Load a config tree
+ * \param config Config top node handle
+ * \param in Input handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_load(snd_config_t *config, snd_input_t *in)
+{
+	return snd_config_load1(config, in, 0);
+}
+
+/**
+ * \brief Load a config tree and override existing configuration nodes
+ * \param config Config top node handle
+ * \param in Input handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_load_override(snd_config_t *config, snd_input_t *in)
+{
+	return snd_config_load1(config, in, 1);
 }
 
 /**
@@ -3433,7 +3542,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		err = snd_input_buffer_open(&input, str + 1, len - 1);
 		if (err < 0)
 			return err;
-		err = snd_config_load(subs, input);
+		err = snd_config_load_override(subs, input);
 		snd_input_close(input);
 		if (err < 0)
 			return err;
@@ -3609,7 +3718,7 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
 /**
  * \brief Search a definition inside a config tree using alias and expand hooks and arguments
  * \param config Config node handle
- * \param base Key base (or NULL)
+ * \param base Implicit key base (or NULL - none)
  * \param key Key suffix
  * \param result Pointer to expanded found node
  * \return 0 on success otherwise a negative error code
@@ -3633,10 +3742,12 @@ int snd_config_search_definition(snd_config_t *config,
 		key[args - name - 1] = '\0';
 	} else {
 		key = (char *) name;
-	} 
-	err = snd_config_search_alias_hooks(config, NULL, key, &conf);
-	if (err < 0)
-		err = snd_config_search_alias_hooks(config, base, key, &conf);
+	}
+	/*
+	 *  if key contains dot (.), the implicit base is ignored
+	 *  and the key starts from root given by the 'config' parameter
+	 */
+	err = snd_config_search_alias_hooks(config, strchr(key, '.') ? NULL : base, key, &conf);
 	if (err < 0)
 		return err;
 	return snd_config_expand(conf, config, args, NULL, result);

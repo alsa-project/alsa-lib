@@ -34,7 +34,7 @@
 
 /*! \page conffunc
 
-\section Function reference
+\section conffunc_ref Function reference
 
 <UL>
   <LI>The getenv function - snd_func_getenv() - allows to obtain

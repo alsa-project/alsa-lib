@@ -39,6 +39,7 @@ may be placed in the library code instead of the kernel driver.</P>
   <LI>Page \ref conf explains the syntax of library configuration files.
   <LI>Page \ref confarg explains the run-time argument syntax.
   <LI>Page \ref conffunc explains the run-time function definition and usage.
+  <LI>Page \ref confhooks explains the run-time hooks definition and usage.
 </UL>
 
 */

@@ -405,8 +405,8 @@ typedef struct snd_seq_result {
 
 /** Queue skew values */
 typedef struct snd_seq_queue_skew {
-	unsigned int value;
-	unsigned int base;
+	unsigned int value;	/**< skew value */
+	unsigned int base;	/**< skew base */
 } snd_seq_queue_skew_t;
 
 /** queue timer control */
