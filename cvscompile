@@ -10,4 +10,6 @@ echo "CFLAGS=$CFLAGS"
 echo "./configure $@"
 ./configure $@
 unset CFLAGS
-make
+if [ -z "$CVSCOMPILE_NO_MAKE" ]; then
+  make
+fi
