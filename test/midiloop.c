@@ -88,11 +88,11 @@ int main(int argc, char** argv)
 					break;
 				case 'i':
 					if (i + 1 < argc)
-						iname = argv[i+1];
+						iname = argv[++i];
 					break;
 				case 'o':
 					if (i + 1 < argc)
-						oname = argv[i+1];
+						oname = argv[++i];
 					break;
 			}			
 		}
