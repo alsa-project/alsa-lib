@@ -1,5 +1,5 @@
-check_PROGRAMS=control mixer switches pause pcm latency seq playmidi1 timer \
-               loopback
+check_PROGRAMS=control mixer switches pause pcm latency seq \
+	       playmidi1 timer loopback
 
 control_LDADD=../src/libasound.la
 mixer_LDADD=../src/libasound.la
