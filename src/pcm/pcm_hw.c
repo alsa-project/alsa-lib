@@ -1,7 +1,7 @@
 /**
  * \file pcm/pcm_hw.c
  * \ingroup PCM_Plugins
- * \brief PCM HW Interface
+ * \brief PCM HW Plugin Interface
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2000-2001

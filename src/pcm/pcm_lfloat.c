@@ -1,3 +1,10 @@
+/**
+ * \file pcm/pcm_lfloat.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Linear<->Float Conversion Plugin Interface
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 2001
+ */
 /*
  *  PCM - Linear Integer <-> Linear Float conversion
  *  Copyright (c) 2001 by Jaroslav Kysela <perex@suse.cz>
@@ -22,6 +29,8 @@
 #include <byteswap.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
+
+#ifndef DOC_HIDDEN
 
 typedef float float_t;
 typedef double double_t;
@@ -76,7 +85,11 @@ int snd_pcm_lfloat_put_s32_index(snd_pcm_format_t format)
 	return snd_pcm_lfloat_get_s32_index(format);
 }
 
+#endif /* DOC_HIDDEN */
+
 #ifndef BUGGY_GCC
+
+#ifndef DOC_HIDDEN
 
 void snd_pcm_lfloat_convert_integer_float(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 					  const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
@@ -168,6 +181,8 @@ void snd_pcm_lfloat_convert_float_integer(const snd_pcm_channel_area_t *dst_area
 		}
 	}
 }
+
+#endif /* DOC_HIDDEN */
 
 static int snd_pcm_lfloat_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
@@ -334,7 +349,7 @@ static void snd_pcm_lfloat_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(lfloat->plug.slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_lfloat_ops = {
+static snd_pcm_ops_t snd_pcm_lfloat_ops = {
 	close: snd_pcm_plugin_close,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_lfloat_hw_refine,
@@ -349,6 +364,18 @@ snd_pcm_ops_t snd_pcm_lfloat_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
+/**
+ * \brief Creates a new linear conversion PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param sformat Slave (destination) format
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -384,6 +411,49 @@ int snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_lfloat Plugin: linear<->float
+
+This plugin converts linear to float samples and float to linear samples from master
+linear<->float conversion PCM to given slave PCM. The channel count, format and rate must
+match for both of them.
+
+\code
+pcm.name {
+        type lfloat             # Linear<->Float conversion PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+        }
+}
+\endcode
+
+\subsection pcm_plugins_lfloat_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_lfloat_open()
+  <LI>_snd_pcm_lfloat_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new linear<->float conversion PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with copy PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
 			 snd_config_t *root, snd_config_t *conf, 
 			 snd_pcm_stream_t stream, int mode)
@@ -430,7 +500,9 @@ int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_lfloat_open, SND_PCM_DLSYM_VERSION);
+#endif
 
 #else /* BUGGY_GCC */
 

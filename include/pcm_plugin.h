@@ -67,23 +67,68 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		     snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		     snd_pcm_stream_t stream, int mode);
 
+/*
+ *  Copy plugin
+ */
 int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 		      snd_pcm_t *slave, int close_slave);
+int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
+		       snd_config_t *root, snd_config_t *conf,
+                       snd_pcm_stream_t stream, int mode);
+                                              
+/*
+ *  Linear conversion plugin
+ */
 int snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_format_t sformat, snd_pcm_t *slave,
 			int close_slave);
+int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
+			 snd_config_t *root, snd_config_t *conf,
+			 snd_pcm_stream_t stream, int mode);
+
+/*
+ *  Linear<->Float conversion plugin
+ */
 int snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_format_t sformat, snd_pcm_t *slave,
 			int close_slave);
+int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
+			 snd_config_t *root, snd_config_t *conf,
+			 snd_pcm_stream_t stream, int mode);
+
+/*
+ *  Linear<->mu-Law conversion plugin
+ */
 int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_format_t sformat, snd_pcm_t *slave,
 		       int close_slave);
+int _snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name,
+			snd_config_t *root, snd_config_t *conf,
+                        snd_pcm_stream_t stream, int mode);
+
+/*
+ *  Linear<->a-Law conversion plugin
+ */
 int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 		      snd_pcm_format_t sformat, snd_pcm_t *slave,
 		      int close_slave);
+int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
+		       snd_config_t *root, snd_config_t *conf,
+		       snd_pcm_stream_t stream, int mode);
+
+/*
+ *  Linear<->Ima-ADPCM conversion plugin
+ */
 int snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_format_t sformat, snd_pcm_t *slave,
 		       int close_slave);
+int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
+			snd_config_t *root, snd_config_t *conf,
+			snd_pcm_stream_t stream, int mode);
+
+/*
+ *  Route plugin for linear formats
+ */
 int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
 			      unsigned int tt_csize, unsigned int tt_ssize,
 			      unsigned int *tt_cused, unsigned int *tt_sused,
@@ -94,9 +139,19 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
 		       snd_pcm_t *slave, int close_slave);
+int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
+			snd_config_t *root, snd_config_t *conf,
+			snd_pcm_stream_t stream, int mode);
+
+/*
+ *  Rate plugin for linear formats
+ */
 int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		      snd_pcm_format_t sformat, unsigned int srate,
 		      snd_pcm_t *slave, int close_slave);
+int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
+		       snd_config_t *root, snd_config_t *conf,
+		       snd_pcm_stream_t stream, int mode);
 
 /*
  *  Hooks plugin
@@ -106,6 +161,18 @@ int snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode);
+
+/*
+ *  LADSPA plugin
+ */
+int snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
+			const char *ladspa_path,
+			snd_config_t *ladspa_pplugins,
+			snd_config_t *ladspa_cplugins,
+			snd_pcm_t *slave, int close_slave);
+int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
+			 snd_config_t *root, snd_config_t *conf,
+			 snd_pcm_stream_t stream, int mode);
 
 /** \} */
 

@@ -1,3 +1,10 @@
+/**
+ * \file pcm/pcm_copy.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Copy Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
  *  PCM - Copy conversion
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -28,10 +35,12 @@
 const char *_snd_module_pcm_copy = "";
 #endif
 
+#ifndef DOC_HIDDEN
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
 } snd_pcm_copy_t;
+#endif
 
 static int snd_pcm_copy_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
@@ -143,7 +152,7 @@ static void snd_pcm_copy_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(copy->plug.slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_copy_ops = {
+static snd_pcm_ops_t snd_pcm_copy_ops = {
 	close: snd_pcm_plugin_close,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_copy_hw_refine,
@@ -158,6 +167,17 @@ snd_pcm_ops_t snd_pcm_copy_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
+/**
+ * \brief Creates a new copy PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -189,6 +209,48 @@ int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int 
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_copy Plugin: copy
+
+This plugin copies samples from master copy PCM to given slave PCM.
+The channel count, format and rate must match for both of them. 
+
+\code
+pcm.name {
+	type copy		# Copy PCM
+	slave STR		# Slave name
+	# or
+	slave {			# Slave definition
+		pcm STR		# Slave PCM name
+		# or
+		pcm { }		# Slave PCM definition
+	}
+}
+\endcode
+
+\subsection pcm_plugins_copy_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_copy_open()
+  <LI>_snd_pcm_copy_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new copy PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with copy PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
@@ -227,4 +289,6 @@ int _snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_copy_open, SND_PCM_DLSYM_VERSION);
+#endif
