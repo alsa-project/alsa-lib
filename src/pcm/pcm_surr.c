@@ -39,6 +39,7 @@
 #define SURR_FLG_NO_4CH		(1<<1)
 #define SURR_FLG_NO_6CH		(1<<2)
 #define SURR_FLG_NO_CTL_CLOSE	(1<<3)
+#define SURR_FLG_FD1		(1<<4)
 
 typedef struct _snd_pcm_surround snd_pcm_surround_t;
 
@@ -643,12 +644,36 @@ static void close_ens1370(snd_pcm_surround_t *surr)
 	}
 }
 
+static int count_ymfpci(snd_ctl_t *ctl ATTRIBUTE_UNUSED,
+			snd_ctl_card_info_t *info ATTRIBUTE_UNUSED,
+			snd_pcm_surround_type_t type ATTRIBUTE_UNUSED)
+{
+	/* this card supports multiopen also for 4CH !!! */
+	return 32 / 2 / 2;	/* 32 voices / 2 (stereo) / 2 (count of streams) */
+}
+
+static int open_ymfpci(snd_pcm_surround_t *surr,
+		        snd_ctl_card_info_t *info,
+		        snd_pcm_surround_type_t type,
+		        snd_pcm_stream_t stream, int mode)
+{
+	int err;
+
+	if ((err = snd_pcm_surround_three_streams(surr, type,
+						  snd_ctl_card_info_get_card(info),
+						  0, 0, 2, 0, -1, -1,
+						  stream, mode)) < 0)
+		return err;
+	return 0;
+}
+
 #define SND_CARD_TYPE_NONE	SNDRV_CARD_TYPE_SB_10	/* this card definitely doesn't support surround */
 
 static surround_open_t open_table[] = {
 	{ type: SND_CARD_TYPE_SI_7018, flags: 0, scount: count_si7018, sopen: open_si7018, sclose: NULL },
 	{ type: SND_CARD_TYPE_FM801, flags: 0, scount: count_generic, sopen: open_fm801, sclose: NULL },
-	{ type: SND_CARD_TYPE_ENS1370, flags: SURR_FLG_NO_6CH|SURR_FLG_NO_CTL_CLOSE, scount: count_generic, sopen: open_ens1370, sclose: close_ens1370 },
+	{ type: SND_CARD_TYPE_ENS1370, flags: SURR_FLG_NO_6CH|SURR_FLG_NO_CTL_CLOSE|SURR_FLG_FD1, scount: count_generic, sopen: open_ens1370, sclose: close_ens1370 },
+	{ type: SND_CARD_TYPE_YMFPCI, flags: SURR_FLG_NO_6CH, scount: count_ymfpci, sopen: open_ymfpci, sclose: NULL },
 	{ type: SND_CARD_TYPE_NONE, flags: 0, scount: NULL, sopen: NULL, sclose: NULL }
 };
 
@@ -740,9 +765,9 @@ int snd_pcm_surround_open(snd_pcm_t **pcmp, const char *name, int card, int dev,
 	pcm->fast_ops = &snd_pcm_surround_fast_ops;
 	pcm->fast_op_arg = pcm;
 	pcm->private_data = surr;
-	pcm->poll_fd = surr->pcm[0]->poll_fd;
-	pcm->hw_ptr = surr->pcm[0]->hw_ptr;
-	pcm->appl_ptr = surr->pcm[0]->appl_ptr;
+	pcm->poll_fd = surr->pcm[po->flags & SURR_FLG_FD1 ? 1 : 0]->poll_fd;
+	pcm->hw_ptr = surr->pcm[po->flags & SURR_FLG_FD1 ? 1 : 0]->hw_ptr;
+	pcm->appl_ptr = surr->pcm[po->flags & SURR_FLG_FD1 ? 1 : 0]->appl_ptr;
 	
 	*pcmp = pcm;
 
