@@ -1,5 +1,5 @@
 check_PROGRAMS=control mixer switches pause pcm latency seq \
-	       playmidi1 timer loopback
+	       playmidi1 timer loopback aconnect
 
 control_LDADD=../src/libasound.la
 mixer_LDADD=../src/libasound.la
@@ -11,6 +11,7 @@ seq_LDADD=../src/libasound.la
 playmidi1_LDADD=../src/libasound.la
 timer_LDADD=../src/libasound.la
 loopback_LDADD=../src/libasound.la
+aconnect_LDADD=../src/libasound.la
 
 INCLUDES=-I$(top_srcdir)/include
 CFLAGS=-static -Wall -pipe -g
