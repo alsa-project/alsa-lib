@@ -255,7 +255,9 @@ static int snd_output_buffer_need(snd_output_t *output, size_t size)
 	if (buffer->alloc == 0)
 		alloc = 256;
 	else
-		alloc = buffer->alloc * 2;
+		alloc = buffer->alloc;
+	while (alloc < size)
+		alloc *= 2;
 	buffer->buf = realloc(buffer->buf, alloc);
 	if (!buffer->buf)
 		return -ENOMEM;
@@ -281,8 +283,9 @@ static int snd_output_buffer_print(snd_output_t *output, const char *format, va_
 	result = snd_output_buffer_need(output, size);
 	if (result < 0)
 		return result;
-	result = vsprintf(buffer->buf + buffer->size, format, args);
+	result = vsnprintf(buffer->buf + buffer->size, result, format, args);
 	assert(result == (int)size);
+	buffer->size += result;
 	return result;
 }
 
