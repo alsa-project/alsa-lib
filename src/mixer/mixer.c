@@ -29,7 +29,7 @@
 #include "soundlib.h"
 
 #define SND_FILE_MIXER		"/dev/sndmixer%i%i"
-#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
+#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 1 )
  
 typedef struct {
   int card;
@@ -51,7 +51,8 @@ int snd_mixer_open( void **handle, int card, int device )
     close( fd );
     return -errno;
   }
-  if ( ver > SND_CTL_VERSION_MAX ) return -SND_ERROR_UNCOMPATIBLE_VERSION;
+  if ( SND_PROTOCOL_UNCOMPATIBLE( ver, SND_MIXER_VERSION_MAX ) )
+    return -SND_ERROR_UNCOMPATIBLE_VERSION;
   mixer = (snd_mixer_t *)calloc( 1, sizeof( snd_mixer_t ) );
   if ( mixer == NULL ) {
     close( fd );
@@ -176,24 +177,59 @@ int snd_mixer_channel_write( void *handle, int channel, snd_mixer_channel_t *dat
   return 0;
 }
 
-int snd_mixer_special_read( void *handle, snd_mixer_special_t *special )
+int snd_mixer_switches( void *handle )
+{
+  snd_mixer_t *mixer;
+  int result;
+  
+  mixer = (snd_mixer_t *)handle;
+  if ( !mixer ) return -EINVAL;
+  if ( ioctl( mixer -> fd, SND_MIXER_IOCTL_SWITCHES, &result ) < 0 )
+    return -errno;
+  return result;
+}
+
+int snd_mixer_switch( void *handle, const char *switch_id )
+{
+  snd_mixer_t *mixer;
+  snd_mixer_switch_t uswitch;
+  int idx, switches, err;
+  
+  mixer = (snd_mixer_t *)handle;
+  if ( !mixer ) return -EINVAL;
+  /* bellow implementation isn't optimized for speed */
+  /* info about switches should be cached in the snd_mixer_t structure */
+  if ( (switches = snd_mixer_switches( handle )) < 0 )
+    return switches;
+  for ( idx = 0; idx < switches; idx++ ) {
+    if ( (err = snd_mixer_switch_read( handle, idx, &uswitch )) < 0 )
+      return err;
+    if ( !strncmp( switch_id, uswitch.name, sizeof( uswitch.name ) ) )
+      return idx;
+  }
+  return -EINVAL;
+}
+
+int snd_mixer_switch_read( void *handle, int switchn, snd_mixer_switch_t *data )
 {
   snd_mixer_t *mixer;
   
   mixer = (snd_mixer_t *)handle;
   if ( !mixer ) return -EINVAL;
-  if ( ioctl( mixer -> fd, SND_MIXER_IOCTL_SPECIAL_READ, special ) < 0 )
+  data -> switchn = switchn;
+  if ( ioctl( mixer -> fd, SND_MIXER_IOCTL_SWITCH_READ, data ) < 0 )
     return -errno;
   return 0;
 }
 
-int snd_mixer_special_write( void *handle, snd_mixer_special_t *special )
+int snd_mixer_switch_write( void *handle, int switchn, snd_mixer_switch_t *data )
 {
   snd_mixer_t *mixer;
   
   mixer = (snd_mixer_t *)handle;
   if ( !mixer ) return -EINVAL;
-  if ( ioctl( mixer -> fd, SND_MIXER_IOCTL_SPECIAL_WRITE, special ) < 0 )
+  data -> switchn = switchn;
+  if ( ioctl( mixer -> fd, SND_MIXER_IOCTL_SWITCH_WRITE, data ) < 0 )
     return -errno;
   return 0;
 }
@@ -216,6 +252,9 @@ int snd_mixer_read( void *handle, snd_mixer_callbacks_t *callbacks )
       tmp = *(unsigned int *)&buffer[ idx + 4 ];
       if ( cmd == 0 && callbacks -> channel_was_changed ) {        
         callbacks -> channel_was_changed( callbacks -> private_data, (int)tmp );
+      }
+      if ( cmd == 1 && callbacks -> switch_was_changed ) {
+        callbacks -> switch_was_changed( callbacks -> private_data, (int)tmp );
       }
     }
     count += result >> 3;	/* return only number of changes */
