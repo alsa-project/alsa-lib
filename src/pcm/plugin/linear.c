@@ -165,6 +165,7 @@ static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 	case _16BIT_8BIT:
 		if (dst_size < (src_size >> 1))
 			return -EINVAL;
+		src_size >>= 1;
 		switch (data->endian) {
 		case NONE:
 			linear_conv_16bit_8bit((short *)src_ptr, dst_ptr, src_size);
@@ -181,7 +182,7 @@ static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 		default:
 			return -EINVAL;
 		}
-		return src_size >> 1;
+		return src_size;
 	default:
 		return -EIO;
 	}
