@@ -220,21 +220,34 @@ __asm__ __volatile__(LOCK "orl %0,%1" \
  * On IA-64, counter must always be volatile to ensure that that the
  * memory accesses are ordered.
  */
-typedef struct { volatile __s32 counter; } atomic_t;
+typedef struct { volatile int counter; } atomic_t;
 
 #define ATOMIC_INIT(i)		((atomic_t) { (i) })
 
 #define atomic_read(v)		((v)->counter)
 #define atomic_set(v,i)		(((v)->counter) = (i))
 
+/* stripped version - we need only 4byte version */
+#define ia64_cmpxchg(sem,ptr,old,new,size) \
+({ \
+	__typeof__(ptr) _p_ = (ptr); \
+	__typeof__(new) _n_ = (new); \
+	unsigned long _o_, _r_; \
+	_o_ = (unsigned int) (long) (old); \
+	__asm__ __volatile__ ("mov ar.ccv=%0;;" :: "rO"(_o_)); \
+	__asm__ __volatile__ ("cmpxchg4."sem" %0=[%1],%2,ar.ccv" \
+			      : "=r"(_r_) : "r"(_p_), "r"(_n_) : "memory"); \
+	(__typeof__(old)) _r_; \
+})
+
 static __inline__ int
 ia64_atomic_add (int i, atomic_t *v)
 {
-	__s32 old, new;
-	CMPXCHG_BUGCHECK_DECL
+	int old, new;
+	// CMPXCHG_BUGCHECK_DECL
 
 	do {
-		CMPXCHG_BUGCHECK(v);
+		// CMPXCHG_BUGCHECK(v);
 		old = atomic_read(v);
 		new = old + i;
 	} while (ia64_cmpxchg("acq", v, old, old + i, sizeof(atomic_t)) != old);
@@ -244,16 +257,48 @@ ia64_atomic_add (int i, atomic_t *v)
 static __inline__ int
 ia64_atomic_sub (int i, atomic_t *v)
 {
-	__s32 old, new;
-	CMPXCHG_BUGCHECK_DECL
+	int old, new;
+	// CMPXCHG_BUGCHECK_DECL
 
 	do {
-		CMPXCHG_BUGCHECK(v);
+		// CMPXCHG_BUGCHECK(v);
 		old = atomic_read(v);
 		new = old - i;
 	} while (ia64_cmpxchg("acq", v, old, new, sizeof(atomic_t)) != old);
 	return new;
 }
+
+#define IA64_FETCHADD(tmp,v,n,sz)						\
+({										\
+	switch (sz) {								\
+	      case 4:								\
+		__asm__ __volatile__ ("fetchadd4.rel %0=[%1],%2"		\
+				      : "=r"(tmp) : "r"(v), "i"(n) : "memory");	\
+		break;								\
+										\
+	      case 8:								\
+		__asm__ __volatile__ ("fetchadd8.rel %0=[%1],%2"		\
+				      : "=r"(tmp) : "r"(v), "i"(n) : "memory");	\
+		break;								\
+	}									\
+})
+
+#define ia64_fetch_and_add(i,v)							\
+({										\
+	unsigned long _tmp;								\
+	volatile __typeof__(*(v)) *_v = (v);					\
+	switch (i) {								\
+	      case -16:	IA64_FETCHADD(_tmp, _v, -16, sizeof(*(v))); break;	\
+	      case  -8:	IA64_FETCHADD(_tmp, _v,  -8, sizeof(*(v))); break;	\
+	      case  -4:	IA64_FETCHADD(_tmp, _v,  -4, sizeof(*(v))); break;	\
+	      case  -1:	IA64_FETCHADD(_tmp, _v,  -1, sizeof(*(v))); break;	\
+	      case   1:	IA64_FETCHADD(_tmp, _v,   1, sizeof(*(v))); break;	\
+	      case   4:	IA64_FETCHADD(_tmp, _v,   4, sizeof(*(v))); break;	\
+	      case   8:	IA64_FETCHADD(_tmp, _v,   8, sizeof(*(v))); break;	\
+	      case  16:	IA64_FETCHADD(_tmp, _v,  16, sizeof(*(v))); break;	\
+	}									\
+	(__typeof__(*v)) (_tmp + (i));	/* return new value */			\
+})
 
 /*
  * Atomically add I to V and return TRUE if the resulting value is
