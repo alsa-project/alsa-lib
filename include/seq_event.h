@@ -315,7 +315,7 @@ typedef struct snd_seq_ev_raw32 {
 typedef struct snd_seq_ev_ext {
 	unsigned int len;		/**< length of data */
 	void *ptr;			/**< pointer to data (note: can be 64-bit) */
-} snd_seq_ev_ext_t;
+} __attribute__((packed)) snd_seq_ev_ext_t;
 
 /** Instrument cluster type */
 typedef unsigned int snd_seq_instr_cluster_t;
