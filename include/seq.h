@@ -44,12 +44,9 @@ int snd_seq_get_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t *own
 int snd_seq_set_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t *owner);
 int snd_seq_get_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t *timer);
 int snd_seq_set_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t *timer);
-#ifdef use_seqsync
-int snd_seq_get_queue_sync(snd_seq_t *handle, int q, snd_seq_queue_sync_t *sync);
-int snd_seq_set_queue_sync(snd_seq_t *handle, int q, snd_seq_queue_sync_t *sync);
-#endif
 int snd_seq_get_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t *queue);
 int snd_seq_set_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t *queue);
+int snd_seq_create_queue(snd_seq_t *seq, snd_seq_queue_info_t *info);
 int snd_seq_alloc_named_queue(snd_seq_t *seq, char *name);
 int snd_seq_alloc_queue(snd_seq_t *handle);
 int snd_seq_free_queue(snd_seq_t *handle, int q);
@@ -71,7 +68,6 @@ int snd_seq_event_output_buffer(snd_seq_t *handle, snd_seq_event_t *ev);
 int snd_seq_event_output_direct(snd_seq_t *handle, snd_seq_event_t *ev);
 int snd_seq_event_input(snd_seq_t *handle, snd_seq_event_t **ev);
 int snd_seq_event_input_pending(snd_seq_t *seq, int fetch_sequencer);
-int snd_seq_event_input_selective(snd_seq_t *seq, snd_seq_event_t **ev, int type, int blocking);
 int snd_seq_flush_output(snd_seq_t *handle);
 int snd_seq_event_output_pending(snd_seq_t *seq);
 int snd_seq_extract_output(snd_seq_t *handle, snd_seq_event_t **ev);

@@ -22,11 +22,6 @@
 #ifndef __SEQ_PRIV_H
 #define __SEQ_PRIV_H
 
-typedef struct snd_stru_seq_cell {
-	snd_seq_event_t ev;
-	struct snd_stru_seq_cell *next;
-} snd_seq_cell_t;
-
 struct snd_seq {
 	int client;		/* client number */
 	int fd;
@@ -34,12 +29,12 @@ struct snd_seq {
 	char *obuf;		/* output buffer */
 	size_t obufsize;		/* output buffer size */
 	size_t obufused;		/* output buffer used size */
-	char *ibuf;		/* input buffer */
+	snd_seq_event_t *ibuf;	/* input buffer */
+	size_t ibufptr;		/* current pointer of input buffer */
+	size_t ibuflen;		/* queued length */
 	size_t ibufsize;		/* input buffer size */
-	/* input queue */
-	int cells;
-	snd_seq_cell_t *head;
-	snd_seq_cell_t *tail;
+	snd_seq_event_t *tmpbuf;	/* temporary event for extracted event */
+	size_t tmpbufsize;		/* size of errbuf */
 };
 
 #endif
