@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <errno.h>
 #include <ctype.h>
 #include <fcntl.h>
@@ -125,4 +126,46 @@ int snd_card_name(const char *string)
 			return card;
 	}
 	return -ENODEV;
+}
+
+int snd_card_get_name(int card, char **name)
+{
+	snd_ctl_t *handle;
+	struct snd_ctl_hw_info info;
+	int err;
+	
+	if (name == NULL)
+		return -EINVAL;
+	if ((err = snd_ctl_open(&handle, card)) < 0)
+		return err;
+	if ((err = snd_ctl_hw_info(handle, &info)) < 0) {
+		snd_ctl_close(handle);
+		return err;
+	}
+	snd_ctl_close(handle);
+	*name = strdup(info.name);
+	if (*name == NULL)
+		return -ENOMEM;
+	return 0;
+}
+
+int snd_card_get_longname(int card, char **name)
+{
+	snd_ctl_t *handle;
+	struct snd_ctl_hw_info info;
+	int err;
+	
+	if (name == NULL)
+		return -EINVAL;
+	if ((err = snd_ctl_open(&handle, card)) < 0)
+		return err;
+	if ((err = snd_ctl_hw_info(handle, &info)) < 0) {
+		snd_ctl_close(handle);
+		return err;
+	}
+	snd_ctl_close(handle);
+	*name = strdup(info.longname);
+	if (*name == NULL)
+		return -ENOMEM;
+	return 0;
 }

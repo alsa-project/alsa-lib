@@ -22,6 +22,8 @@ int snd_card_load(int card);
 int snd_cards(void);
 unsigned int snd_cards_mask(void);
 int snd_card_name(const char *name);
+int snd_card_get_name(int card, char **name);
+int snd_card_get_longname(int card, char **name);
 
 int snd_defaults_card(void);
 int snd_defaults_mixer_card(void);
