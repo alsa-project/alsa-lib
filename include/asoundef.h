@@ -67,37 +67,37 @@ extern "C" {
 #define IEC958_AES1_PRO_USERBITS_NOTID	(0<<4)	/**< not indicated */
 #define IEC958_AES1_PRO_USERBITS_192	(8<<4)	/**< 192-bit structure */
 #define IEC958_AES1_PRO_USERBITS_UDEF	(12<<4)	/**< user defined application */
-#define IEC958_AES1_CON_CATEGORY	0x7f
-#define IEC958_AES1_CON_GENERAL		0x00
-#define IEC958_AES1_CON_EXPERIMENTAL	0x40
-#define IEC958_AES1_CON_SOLIDMEM_MASK	0x0f
-#define IEC958_AES1_CON_SOLIDMEM_ID	0x08
-#define IEC958_AES1_CON_BROADCAST1_MASK 0x07
-#define IEC958_AES1_CON_BROADCAST1_ID	0x04
-#define IEC958_AES1_CON_DIGDIGCONV_MASK 0x07
-#define IEC958_AES1_CON_DIGDIGCONV_ID	0x02
-#define IEC958_AES1_CON_ADC_COPYRIGHT_MASK 0x1f
-#define IEC958_AES1_CON_ADC_COPYRIGHT_ID 0x06
-#define IEC958_AES1_CON_ADC_MASK	0x1f
-#define IEC958_AES1_CON_ADC_ID		0x16
-#define IEC958_AES1_CON_BROADCAST2_MASK 0x0f
-#define IEC958_AES1_CON_BROADCAST2_ID	0x0e
-#define IEC958_AES1_CON_LASEROPT_MASK	0x07
-#define IEC958_AES1_CON_LASEROPT_ID	0x01
-#define IEC958_AES1_CON_MUSICAL_MASK	0x07
-#define IEC958_AES1_CON_MUSICAL_ID	0x05
-#define IEC958_AES1_CON_MAGNETIC_MASK	0x07
-#define IEC958_AES1_CON_MAGNETIC_ID	0x03
-#define IEC958_AES1_CON_IEC908_CD	(IEC958_AES1_CON_LASEROPT_ID|0x00)
-#define IEC958_AES1_CON_NON_IEC908_CD	(IEC958_AES1_CON_LASEROPT_ID|0x08)
-#define IEC958_AES1_CON_PCM_CODER	(IEC958_AES1_CON_DIGDIGCONV_ID|0x00)
-#define IEC958_AES1_CON_SAMPLER		(IEC958_AES1_CON_DIGDIGCONV_ID|0x20)
-#define IEC958_AES1_CON_MIXER		(IEC958_AES1_CON_DIGDIGCONV_ID|0x10)
-#define IEC958_AES1_CON_RATE_CONVERTER	(IEC958_AES1_CON_DIGDIGCONV_ID|0x18)
-#define IEC958_AES1_CON_SYNTHESIZER	(IEC958_AES1_CON_MUSICAL_ID|0x00)
-#define IEC958_AES1_CON_MICROPHONE	(IEC958_AES1_CON_MUSICAL_ID|0x08)
-#define IEC958_AES1_CON_DAT		(IEC958_AES1_CON_MAGNETIC_ID|0x00)
-#define IEC958_AES1_CON_VCR		(IEC958_AES1_CON_MAGNETIC_ID|0x08)
+#define IEC958_AES1_CON_CATEGORY	0x7f	/**< consumer category */
+#define IEC958_AES1_CON_GENERAL		0x00	/**< general category */
+#define IEC958_AES1_CON_EXPERIMENTAL	0x40	/**< experimental category */
+#define IEC958_AES1_CON_SOLIDMEM_MASK	0x0f	/**< ??? */
+#define IEC958_AES1_CON_SOLIDMEM_ID	0x08	/**< ??? */
+#define IEC958_AES1_CON_BROADCAST1_MASK 0x07	/**< ??? */
+#define IEC958_AES1_CON_BROADCAST1_ID	0x04	/**< ??? */
+#define IEC958_AES1_CON_DIGDIGCONV_MASK 0x07	/**< digital<->digital converter mask */
+#define IEC958_AES1_CON_DIGDIGCONV_ID	0x02	/**< digital<->digital converter id */
+#define IEC958_AES1_CON_ADC_COPYRIGHT_MASK 0x1f	/**< ADC Copyright mask */
+#define IEC958_AES1_CON_ADC_COPYRIGHT_ID 0x06	/**< ADC Copyright ID */
+#define IEC958_AES1_CON_ADC_MASK	0x1f	/**< ADC Mask */
+#define IEC958_AES1_CON_ADC_ID		0x16	/**< ADC ID */
+#define IEC958_AES1_CON_BROADCAST2_MASK 0x0f	/**< Broadcast mask */
+#define IEC958_AES1_CON_BROADCAST2_ID	0x0e	/**< Broadcast ID */
+#define IEC958_AES1_CON_LASEROPT_MASK	0x07	/**< Laser-optical mask */
+#define IEC958_AES1_CON_LASEROPT_ID	0x01	/**< Laser-optical ID */
+#define IEC958_AES1_CON_MUSICAL_MASK	0x07	/**< Musical device mask */
+#define IEC958_AES1_CON_MUSICAL_ID	0x05	/**< Musical device ID */
+#define IEC958_AES1_CON_MAGNETIC_MASK	0x07	/**< Magnetic device mask */
+#define IEC958_AES1_CON_MAGNETIC_ID	0x03	/**< Magnetic device ID */
+#define IEC958_AES1_CON_IEC908_CD	(IEC958_AES1_CON_LASEROPT_ID|0x00)	/**< IEC958 CD compatible device */
+#define IEC958_AES1_CON_NON_IEC908_CD	(IEC958_AES1_CON_LASEROPT_ID|0x08)	/**< non-IEC958 CD compatible device */
+#define IEC958_AES1_CON_PCM_CODER	(IEC958_AES1_CON_DIGDIGCONV_ID|0x00)	/**< PCM coder */
+#define IEC958_AES1_CON_SAMPLER		(IEC958_AES1_CON_DIGDIGCONV_ID|0x20)	/**< PCM sampler */
+#define IEC958_AES1_CON_MIXER		(IEC958_AES1_CON_DIGDIGCONV_ID|0x10)	/**< Mixer */
+#define IEC958_AES1_CON_RATE_CONVERTER	(IEC958_AES1_CON_DIGDIGCONV_ID|0x18)	/**< Rate converter */
+#define IEC958_AES1_CON_SYNTHESIZER	(IEC958_AES1_CON_MUSICAL_ID|0x00)	/**< Synthesizer */
+#define IEC958_AES1_CON_MICROPHONE	(IEC958_AES1_CON_MUSICAL_ID|0x08)	/**< Microphone */
+#define IEC958_AES1_CON_DAT		(IEC958_AES1_CON_MAGNETIC_ID|0x00)	/**< Digital Audio Tape */
+#define IEC958_AES1_CON_VCR		(IEC958_AES1_CON_MAGNETIC_ID|0x08)	/**< Video recorder */
 #define IEC958_AES1_CON_ORIGINAL	(1<<7)	/**< this bits depends on the category code */
 #define IEC958_AES2_PRO_SBITS		(7<<0)	/**< mask - sample bits */
 #define IEC958_AES2_PRO_SBITS_20	(2<<0)	/**< 20-bit - coordination */
@@ -168,78 +168,78 @@ extern "C" {
  * \{
  */
 
-#define MIDI_CTL_MSB_BANK		0x00
-#define MIDI_CTL_MSB_MODWHEEL         	0x01
-#define MIDI_CTL_MSB_BREATH           	0x02
-#define MIDI_CTL_MSB_FOOT             	0x04
-#define MIDI_CTL_MSB_PORTNAMENTO_TIME 	0x05
-#define MIDI_CTL_MSB_DATA_ENTRY		0x06
-#define MIDI_CTL_MSB_MAIN_VOLUME      	0x07
-#define MIDI_CTL_MSB_BALANCE          	0x08
-#define MIDI_CTL_MSB_PAN              	0x0a
-#define MIDI_CTL_MSB_EXPRESSION       	0x0b
-#define MIDI_CTL_MSB_EFFECT1		0x0c
-#define MIDI_CTL_MSB_EFFECT2		0x0d
-#define MIDI_CTL_MSB_GENERAL_PURPOSE1 	0x10
-#define MIDI_CTL_MSB_GENERAL_PURPOSE2 	0x11
-#define MIDI_CTL_MSB_GENERAL_PURPOSE3 	0x12
-#define MIDI_CTL_MSB_GENERAL_PURPOSE4 	0x13
-#define MIDI_CTL_LSB_BANK		0x20
-#define MIDI_CTL_LSB_MODWHEEL        	0x21
-#define MIDI_CTL_LSB_BREATH           	0x22
-#define MIDI_CTL_LSB_FOOT             	0x24
-#define MIDI_CTL_LSB_PORTNAMENTO_TIME 	0x25
-#define MIDI_CTL_LSB_DATA_ENTRY		0x26
-#define MIDI_CTL_LSB_MAIN_VOLUME      	0x27
-#define MIDI_CTL_LSB_BALANCE          	0x28
-#define MIDI_CTL_LSB_PAN              	0x2a
-#define MIDI_CTL_LSB_EXPRESSION       	0x2b
-#define MIDI_CTL_LSB_EFFECT1		0x2c
-#define MIDI_CTL_LSB_EFFECT2		0x2d
-#define MIDI_CTL_LSB_GENERAL_PURPOSE1 	0x30
-#define MIDI_CTL_LSB_GENERAL_PURPOSE2 	0x31
-#define MIDI_CTL_LSB_GENERAL_PURPOSE3 	0x32
-#define MIDI_CTL_LSB_GENERAL_PURPOSE4 	0x33
-#define MIDI_CTL_SUSTAIN              	0x40
-#define MIDI_CTL_PORTAMENTO           	0x41
-#define MIDI_CTL_SUSTENUTO            	0x42
-#define MIDI_CTL_SOFT_PEDAL           	0x43
-#define MIDI_CTL_LEGATO_FOOTSWITCH	0x44
-#define MIDI_CTL_HOLD2                	0x45
-#define MIDI_CTL_SC1_SOUND_VARIATION	0x46
-#define MIDI_CTL_SC2_TIMBRE		0x47
-#define MIDI_CTL_SC3_RELEASE_TIME	0x48
-#define MIDI_CTL_SC4_ATTACK_TIME	0x49
-#define MIDI_CTL_SC5_BRIGHTNESS		0x4a
-#define MIDI_CTL_SC6			0x4b
-#define MIDI_CTL_SC7			0x4c
-#define MIDI_CTL_SC8			0x4d
-#define MIDI_CTL_SC9			0x4e
-#define MIDI_CTL_SC10			0x4f
-#define MIDI_CTL_GENERAL_PURPOSE5     	0x50
-#define MIDI_CTL_GENERAL_PURPOSE6     	0x51
-#define MIDI_CTL_GENERAL_PURPOSE7     	0x52
-#define MIDI_CTL_GENERAL_PURPOSE8     	0x53
-#define MIDI_CTL_PORNAMENTO_CONTROL	0x54
-#define MIDI_CTL_E1_REVERB_DEPTH	0x5b
-#define MIDI_CTL_E2_TREMOLO_DEPTH	0x5c
-#define MIDI_CTL_E3_CHORUS_DEPTH	0x5d
-#define MIDI_CTL_E4_DETUNE_DEPTH	0x5e
-#define MIDI_CTL_E5_PHASER_DEPTH	0x5f
-#define MIDI_CTL_DATA_INCREMENT       	0x60
-#define MIDI_CTL_DATA_DECREMENT       	0x61
-#define MIDI_CTL_NONREG_PARM_NUM_LSB  	0x62
-#define MIDI_CTL_NONREG_PARM_NUM_MSB  	0x63
-#define MIDI_CTL_REGIST_PARM_NUM_LSB  	0x64
-#define MIDI_CTL_REGIST_PARM_NUM_MSB	0x65
-#define MIDI_CTL_ALL_SOUNDS_OFF		0x78
-#define MIDI_CTL_RESET_CONTROLLERS	0x79
-#define MIDI_CTL_LOCAL_CONTROL_SWITCH	0x7a
-#define MIDI_CTL_ALL_NOTES_OFF		0x7b
-#define MIDI_CTL_OMNI_OFF		0x7c
-#define MIDI_CTL_OMNI_ON		0x7d
-#define MIDI_CTL_MONO1			0x7e
-#define MIDI_CTL_MONO2			0x7f
+#define MIDI_CTL_MSB_BANK		0x00	/**< Bank selection */
+#define MIDI_CTL_MSB_MODWHEEL         	0x01	/**< Modwheel */
+#define MIDI_CTL_MSB_BREATH           	0x02	/**< Breath */
+#define MIDI_CTL_MSB_FOOT             	0x04	/**< Foot */
+#define MIDI_CTL_MSB_PORTNAMENTO_TIME 	0x05	/**< Portnamento time */
+#define MIDI_CTL_MSB_DATA_ENTRY		0x06	/**< Data entry */
+#define MIDI_CTL_MSB_MAIN_VOLUME      	0x07	/**< Main volume */
+#define MIDI_CTL_MSB_BALANCE          	0x08	/**< Balance */
+#define MIDI_CTL_MSB_PAN              	0x0a	/**< Pan */
+#define MIDI_CTL_MSB_EXPRESSION       	0x0b	/**< Expression */
+#define MIDI_CTL_MSB_EFFECT1		0x0c	/**< Effect1 */
+#define MIDI_CTL_MSB_EFFECT2		0x0d	/**< Effect2 */
+#define MIDI_CTL_MSB_GENERAL_PURPOSE1 	0x10	/**< General purpose 1 */
+#define MIDI_CTL_MSB_GENERAL_PURPOSE2 	0x11	/**< General purpose 2 */
+#define MIDI_CTL_MSB_GENERAL_PURPOSE3 	0x12	/**< General purpose 3 */
+#define MIDI_CTL_MSB_GENERAL_PURPOSE4 	0x13	/**< General purpose 4 */
+#define MIDI_CTL_LSB_BANK		0x20	/**< Bank selection */
+#define MIDI_CTL_LSB_MODWHEEL        	0x21	/**< Modwheel */
+#define MIDI_CTL_LSB_BREATH           	0x22	/**< Breath */
+#define MIDI_CTL_LSB_FOOT             	0x24	/**< Foot */
+#define MIDI_CTL_LSB_PORTNAMENTO_TIME 	0x25	/**< Portnamento time */
+#define MIDI_CTL_LSB_DATA_ENTRY		0x26	/**< Data entry */
+#define MIDI_CTL_LSB_MAIN_VOLUME      	0x27	/**< Main volume */
+#define MIDI_CTL_LSB_BALANCE          	0x28	/**< Balance */
+#define MIDI_CTL_LSB_PAN              	0x2a	/**< Pan */
+#define MIDI_CTL_LSB_EXPRESSION       	0x2b	/**< Expression */
+#define MIDI_CTL_LSB_EFFECT1		0x2c	/**< Effect1 */
+#define MIDI_CTL_LSB_EFFECT2		0x2d	/**< Effect2 */
+#define MIDI_CTL_LSB_GENERAL_PURPOSE1 	0x30	/**< General purpose 1 */
+#define MIDI_CTL_LSB_GENERAL_PURPOSE2 	0x31	/**< General purpose 2 */
+#define MIDI_CTL_LSB_GENERAL_PURPOSE3 	0x32	/**< General purpose 3 */
+#define MIDI_CTL_LSB_GENERAL_PURPOSE4 	0x33	/**< General purpose 4 */
+#define MIDI_CTL_SUSTAIN              	0x40	/**< Sustain */
+#define MIDI_CTL_PORTAMENTO           	0x41	/**< Portamento */
+#define MIDI_CTL_SUSTENUTO            	0x42	/**< Sostenuto */
+#define MIDI_CTL_SOFT_PEDAL           	0x43	/**< Soft pedal */
+#define MIDI_CTL_LEGATO_FOOTSWITCH	0x44	/**< Legato foot switch */
+#define MIDI_CTL_HOLD2                	0x45	/**< Hold2 */
+#define MIDI_CTL_SC1_SOUND_VARIATION	0x46	/**< SC1 Sound Variation */
+#define MIDI_CTL_SC2_TIMBRE		0x47	/**< SC2 Timbre */
+#define MIDI_CTL_SC3_RELEASE_TIME	0x48	/**< SC3 Release Time */
+#define MIDI_CTL_SC4_ATTACK_TIME	0x49	/**< SC4 Attack Time */
+#define MIDI_CTL_SC5_BRIGHTNESS		0x4a	/**< SC5 Brightness */
+#define MIDI_CTL_SC6			0x4b	/**< SC6 */
+#define MIDI_CTL_SC7			0x4c	/**< SC7 */
+#define MIDI_CTL_SC8			0x4d	/**< SC8 */
+#define MIDI_CTL_SC9			0x4e	/**< SC9 */
+#define MIDI_CTL_SC10			0x4f	/**< SC10 */
+#define MIDI_CTL_GENERAL_PURPOSE5     	0x50	/**< General purpose 5 */
+#define MIDI_CTL_GENERAL_PURPOSE6     	0x51	/**< General purpose 6 */
+#define MIDI_CTL_GENERAL_PURPOSE7     	0x52	/**< General purpose 7 */
+#define MIDI_CTL_GENERAL_PURPOSE8     	0x53	/**< General purpose 8 */
+#define MIDI_CTL_PORNAMENTO_CONTROL	0x54	/**< Pornamento control */
+#define MIDI_CTL_E1_REVERB_DEPTH	0x5b	/**< E1 Reverb Depth */
+#define MIDI_CTL_E2_TREMOLO_DEPTH	0x5c	/**< E2 Tremolo Depth */
+#define MIDI_CTL_E3_CHORUS_DEPTH	0x5d	/**< E3 Chorus Depth */
+#define MIDI_CTL_E4_DETUNE_DEPTH	0x5e	/**< E4 Detune Depth */
+#define MIDI_CTL_E5_PHASER_DEPTH	0x5f	/**< E5 Phaser Depth */
+#define MIDI_CTL_DATA_INCREMENT       	0x60	/**< Data Increment */
+#define MIDI_CTL_DATA_DECREMENT       	0x61	/**< Data Decrement */
+#define MIDI_CTL_NONREG_PARM_NUM_LSB  	0x62	/**< Nonregister parameter number */
+#define MIDI_CTL_NONREG_PARM_NUM_MSB  	0x63	/**< Nonregister parameter number */
+#define MIDI_CTL_REGIST_PARM_NUM_LSB  	0x64	/**< Register parameter number */
+#define MIDI_CTL_REGIST_PARM_NUM_MSB	0x65	/**< Register parameter number */
+#define MIDI_CTL_ALL_SOUNDS_OFF		0x78	/**< All sounds off */
+#define MIDI_CTL_RESET_CONTROLLERS	0x79	/**< Reset Controllers */
+#define MIDI_CTL_LOCAL_CONTROL_SWITCH	0x7a	/**< Local control switch */
+#define MIDI_CTL_ALL_NOTES_OFF		0x7b	/**< All notes off */
+#define MIDI_CTL_OMNI_OFF		0x7c	/**< Omni off */
+#define MIDI_CTL_OMNI_ON		0x7d	/**< Omni on */
+#define MIDI_CTL_MONO1			0x7e	/**< Mono1 */
+#define MIDI_CTL_MONO2			0x7f	/**< Mono2 */
 
 /** \} */
 
