@@ -2372,6 +2372,15 @@ int snd_pcm_area_copy(const snd_pcm_channel_area_t *dst_area, snd_pcm_uframes_t 
 		}
 		break;
 	}
+	case 24:
+		while (samples-- > 0) {
+			*(dst + 0) = *(src + 0);
+			*(dst + 1) = *(src + 1);
+			*(dst + 2) = *(src + 2);
+			src += src_step;
+			dst += dst_step;
+		}
+		break;
 	case 32: {
 		while (samples-- > 0) {
 			*(u_int32_t*)dst = *(const u_int32_t*)src;
