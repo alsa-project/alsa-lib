@@ -11,7 +11,7 @@ Group: System/Libraries
 Source: ftp://ftp.alsa-project.org/pub/lib/alsa-lib-%{ver}.tar.bz2
 BuildRoot: /tmp/alsa-lib-%{ver}
 URL: http://www.alsa-project.org
-Docdir: %{prefix}/usr/doc
+#Docdir: %{prefix}/usr/doc
 Requires: alsa-driver
 
 %description
@@ -19,6 +19,12 @@ Requires: alsa-driver
 Advanced Linux Sound Architecture (ALSA) - Library
 
 %changelog
+
+* Sun Nov 11 2001 Miroslav Benes <mbenes@tenez.cz>
+
+- dangerous command "rpm -rf $RPM_BUILD_ROOT" checks $RPM_BUILD_ROOT variable
+- unset key "Docdir" - on some new systems are documentation in /usr/share/doc
+
 
 * Mon May 28 1998 Helge Jensen <slog@slog.dk>
 
@@ -32,13 +38,15 @@ Advanced Linux Sound Architecture (ALSA) - Library
 make
 
 %install
+[ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
+
 mkdir -p $RPM_BUILD_ROOT/usr/include/alsa
 mkdir -p $RPM_BUILD_ROOT/usr/lib
 
 make prefix="$RPM_BUILD_ROOT/usr" install
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+[ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-, root, root)
@@ -51,3 +59,13 @@ rm -rf $RPM_BUILD_ROOT
 %{prefix}/usr/lib/lib*
 %{prefix}/usr/share/aclocal/alsa.m4
 %{prefix}/usr/share/alsa/*
+
+
+
+
+
+
+
+
+
+
