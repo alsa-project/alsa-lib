@@ -795,10 +795,9 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 				len = snd_seq_event_length(ev);
 
 				if (remove_match(rmp, ev)) {
-
 					/* Remove event */
-					memcpy(ep, ep + len, len);
 					seq->obufused -= len;
+					memmove(ep, ep + len, seq->obufused - (seq->obuf - ep));
 				} else {
 					ep += len;
 				}
