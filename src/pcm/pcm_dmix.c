@@ -626,9 +626,13 @@ static int snd_pcm_dmix_pause(snd_pcm_t *pcm, int enable)
 
 static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
+#if 0
 	/* FIXME: substract samples from the mix ring buffer, too? */
 	snd_pcm_mmap_appl_backward(pcm, frames);
 	return frames;
+#else
+	return -EIO;
+#endif
 }
 
 static snd_pcm_sframes_t snd_pcm_dmix_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
