@@ -7,3 +7,7 @@ aserver_LDADD = ../libasound.la
 all: aserver
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/src/pcm
+
+../libasound.la:
+	$(MAKE) -C .. libasound.la
+
