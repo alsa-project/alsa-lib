@@ -2925,12 +2925,12 @@ static struct alisp_object * F_stat_memory(struct alisp_instance *instance, stru
 {
 	snd_output_printf(instance->out, "*** Memory stats\n");
 	snd_output_printf(instance->out, "  used_objs = %li, free_objs = %li, max_objs = %li, obj_size = %i (total bytes = %li, max bytes = %li)\n",
-		instance->used_objs,
-		instance->free_objs,
-		instance->max_objs,
-		sizeof(struct alisp_object),
-		(instance->used_objs + instance->free_objs) * sizeof(struct alisp_object),
-		instance->max_objs * sizeof(struct alisp_object));
+			  instance->used_objs,
+			  instance->free_objs,
+			  instance->max_objs,
+			  (int)sizeof(struct alisp_object),
+			  (long)((instance->used_objs + instance->free_objs) * sizeof(struct alisp_object)),
+			  (long)(instance->max_objs * sizeof(struct alisp_object)));
 	delete_tree(instance, args);
 	return &alsa_lisp_nil;
 }
