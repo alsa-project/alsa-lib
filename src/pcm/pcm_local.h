@@ -99,8 +99,8 @@ struct _snd_pcm {
 	unsigned int access;		/* access mode */
 	unsigned int format;		/* SND_PCM_FORMAT_* */
 	unsigned int subformat;		/* subformat */
-	unsigned int rate;		/* rate in Hz */
 	unsigned int channels;		/* channels */
+	unsigned int rate;		/* rate in Hz */
 	size_t fragment_size;		/* fragment size */
 	unsigned int fragments;		/* fragments */
 	unsigned int start_mode;	/* start mode */
