@@ -451,6 +451,116 @@ for hardware synchronizated streams. When the \link ::snd_pcm_link \endlink
 function is called, all operations managing the stream state for these two
 streams are joined. The oposite function is \link ::snd_pcm_unlink \endlink.
 
+\section pcm_dev_names PCM naming conventions
+
+The ALSA library uses a generic string representation for names of devices.
+The devices might be virtual, physical or a mix of both. The generic string
+is passed to \link ::snd_pcm_open() \endlink or \link ::snd_pcm_open_lconf() \endlink.
+It contains two parts: device name and arguments. Devices and arguments are described
+in configuration files. The usual place for default definitions is at /usr/share/alsa/alsa.conf.
+For detailed descriptions about integrated PCM plugins look to \ref pcm_plugins.
+
+\subsection pcm_dev_names_default Default device
+
+The default device is equal to plug plugin with hw plugin as slave. The defaults are
+used:
+
+defaults.pcm.card 0
+defaults.pcm.device 0
+defaults.pcm.subdevice -1
+
+These defaults can be freely overwritten in local configuration files.
+
+Example:
+
+\code
+default
+\endcode
+
+\subsection pcm_dev_names_hw HW device
+
+The hw device description uses the hw plugin. The three arguments (in order: CARD,DEV,SUBDEV)
+specify card number or identifier, device number and subdevice number (-1 means any).
+
+Example:
+
+\code
+hw
+hw:0
+hw:0,0
+hw:supersonic,1
+hw:soundwave,1,2
+hw:DEV=1,CARD=soundwave,SUBDEV=2
+\endcode
+
+\subsection pcm_dev_names_plughw Plug->HW device
+
+The plughw device description uses the plug plugin and hw plugin as slave. The arguments
+are same as for hw device.
+
+Example:
+
+\code
+plughw
+plughw:0
+plughw:0,0
+plughw:supersonic,1
+plughw:soundwave,1,2
+plughw:DEV=1,CARD=soundwave,SUBDEV=2
+\endcode
+
+\subsection pcm_dev_names_plug Plug device
+
+The plug device uses the plug plugin. The one SLAVE argument specifies the slave plugin.
+
+Example:
+
+\code
+plug:mypcmdef
+plug:hw
+plug:'hw:0,0'
+plug:SLAVE=hw
+\endcode
+
+\subsection pcm_dev_names_shm Shared memory device
+
+The shm device uses the shm plugin. The two arguments (in order: SOCKET,PCM) specify
+unix socket name (for example /tmp/alsa.socket) for server communication and server's PCM name.
+
+Example:
+
+\code
+shm:'/tmp/alsa.sock',default
+shm:SOCKET='/tmp/alsa.sock',PCM=default
+\endcode
+
+\subsection pcm_dev_names_tee Tee device
+
+The tee device stores contents of a stream to given file plus transfers it to given slave plugin.
+The three arguments (in order: SLAVE,FILE,FORMAT) specify slave plugin, filename and file format.
+
+Example:
+
+\code
+tee:hw,'/tmp/out.raw',raw
+\endcode
+
+\subsection pcm_dev_names_file File device
+
+The file device is file plugin with null plugin as slave. The arguments (in order: FILE,FORMAT)
+specify filename and file format.
+
+Example:
+
+\code
+file:'/tmp/out.raw',raw
+\endcode
+
+\subsection pcm_dev_names_null Null device
+
+The null device is null plugin. This device has not any arguments.
+
+
 \section pcm_examples Examples
 
 The full featured examples with cross-links:
