@@ -1,7 +1,7 @@
 /*
  *  Sequencer Interface - middle-level routines
  *
- *  Copyright (c) 1999 by Takashi Iwai <iwai@ww.uni-erlangen.de>
+ *  Copyright (c) 1999 by Takashi Iwai <tiwai@suse.de>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -28,13 +28,22 @@
 #include <sys/ioctl.h>
 #include "seq_local.h"
 
-/* direct passing (without queued) */
+/**
+ * \brief set direct passing mode (without queued)
+ * \param ev event instance
+ */
 void snd_seq_ev_set_direct(snd_seq_event_t *ev)
 {
 	ev->queue = SND_SEQ_QUEUE_DIRECT;
 }
 
-/* queued on tick */
+/**
+ * \brief set tick-scheduling mode on queue
+ * \param ev event instance
+ * \param q queue id to schedule
+ * \param relative relative time-stamp if non-zero
+ * \param tick tick time-stap to be delivered
+ */
 void snd_seq_ev_schedule_tick(snd_seq_event_t *ev, int q, int relative,
 			      snd_seq_tick_time_t tick)
 {
@@ -45,7 +54,13 @@ void snd_seq_ev_schedule_tick(snd_seq_event_t *ev, int q, int relative,
 	ev->queue = q;
 }
 
-/* queued on real-time */
+/**
+ * \brief set real-time-scheduling mode on queue
+ * \param ev event instance
+ * \param q queue id to schedule
+ * \param relative relative time-stamp if non-zero
+ * \param _time time-stamp to be delivered
+ */
 void snd_seq_ev_schedule_real(snd_seq_event_t *ev, int q, int relative,
 			      snd_seq_real_time_t *_time)
 {
@@ -56,21 +71,33 @@ void snd_seq_ev_schedule_real(snd_seq_event_t *ev, int q, int relative,
 	ev->queue = q;
 }
 
-/* set event priority */
+/**
+ * \brief set event priority
+ * \param ev event instance
+ * \param high_prior 1 for high priority mode
+ */
 void snd_seq_ev_set_priority(snd_seq_event_t *ev, int high_prior)
 {
 	ev->flags &= ~SND_SEQ_PRIORITY_MASK;
 	ev->flags |= high_prior ? SND_SEQ_PRIORITY_HIGH : SND_SEQ_PRIORITY_NORMAL;
 }
 
-/* set fixed data */
+/**
+ * \brief set fixed data
+ *
+ * Sets the event length mode as fixed size.
+ */
 void snd_seq_ev_set_fixed(snd_seq_event_t *ev)
 {
 	ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
 	ev->flags |= SND_SEQ_EVENT_LENGTH_FIXED;
 }
 
-/* set variable data */
+/**
+ * \brief set variable data
+ *
+ * Sets the event length mode as variable length and stores the data.
+ */
 void snd_seq_ev_set_variable(snd_seq_event_t *ev, int len, void *ptr)
 {
 	ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
@@ -79,7 +106,11 @@ void snd_seq_ev_set_variable(snd_seq_event_t *ev, int len, void *ptr)
 	ev->data.ext.ptr = ptr;
 }
 
-/* set varusr data */
+/**
+ * \brief set varusr data
+ *
+ * Sets the event length mode as variable user-space data and stores the data.
+ */
 void snd_seq_ev_set_varusr(snd_seq_event_t *ev, int len, void *ptr)
 {
 	ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
@@ -89,7 +120,9 @@ void snd_seq_ev_set_varusr(snd_seq_event_t *ev, int len, void *ptr)
 }
 
 
-/* use or unuse a queue */
+/**
+ * \brief use or unuse a queue
+ */
 int snd_seq_use_queue(snd_seq_t *seq, int q, int use)
 {
 	snd_seq_queue_client_t info;
@@ -100,9 +133,17 @@ int snd_seq_use_queue(snd_seq_t *seq, int q, int use)
 }
 
 
-/* queue controls - start/stop/continue */
-/* if ev is NULL, send events immediately.
-   otherwise, duplicate the given event data. */
+/**
+ * \brief queue controls - start/stop/continue
+ * \param seq sequencer handle
+ * \param q queue id to control
+ * \param type event type
+ * \param value event value
+ * \param ev event instance
+ *
+ * if ev is NULL, send events immediately.
+ * otherwise, duplicate the given event data.
+ */
 int snd_seq_control_queue(snd_seq_t *seq, int q, int type, int value, snd_seq_event_t *ev)
 {
 	snd_seq_event_t tmpev;
@@ -115,7 +156,9 @@ int snd_seq_control_queue(snd_seq_t *seq, int q, int type, int value, snd_seq_ev
 	return snd_seq_event_output(seq, ev);
 }
 
-/* reset queue position:
+/**
+ * \brief reset queue position
+ *
  * new values of both real-time and tick values must be given.
  */
 int snd_seq_setpos_queue(snd_seq_t *seq, int q, snd_seq_timestamp_t *rtime, snd_seq_event_t *ev)
@@ -141,7 +184,9 @@ int snd_seq_setpos_queue(snd_seq_t *seq, int q, snd_seq_timestamp_t *rtime, snd_
 	return result;
 }
 
-/* create a port - simple version
+/**
+ * \brief create a port - simple version
+ *
  * return the port number
  */
 int snd_seq_create_simple_port(snd_seq_t *seq, const char *name,
@@ -168,7 +213,9 @@ int snd_seq_create_simple_port(snd_seq_t *seq, const char *name,
 		return pinfo.port;
 }
 
-/* delete the port */
+/**
+ * \brief delete the port
+ */
 int snd_seq_delete_simple_port(snd_seq_t *seq, int port)
 {
 	snd_seq_port_info_t pinfo;
@@ -179,8 +226,8 @@ int snd_seq_delete_simple_port(snd_seq_t *seq, int port)
 	return snd_seq_delete_port(seq, &pinfo);
 }
 
-/*
- * sipmle subscription (w/o exclusive & time conversion)
+/**
+ * \brief sipmle subscription (w/o exclusive & time conversion)
  */
 int snd_seq_connect_from(snd_seq_t *seq, int myport, int src_client, int src_port)
 {
@@ -196,6 +243,9 @@ int snd_seq_connect_from(snd_seq_t *seq, int myport, int src_client, int src_por
 	return snd_seq_subscribe_port(seq, &subs);
 }
 
+/**
+ * \brief sipmle subscription (w/o exclusive & time conversion)
+ */
 int snd_seq_connect_to(snd_seq_t *seq, int myport, int dest_client, int dest_port)
 {
 	snd_seq_port_subscribe_t subs;
@@ -210,6 +260,9 @@ int snd_seq_connect_to(snd_seq_t *seq, int myport, int dest_client, int dest_por
 	return snd_seq_subscribe_port(seq, &subs);
 }
 
+/**
+ * \brief sipmle disconnection (w/o exclusive & time conversion)
+ */
 int snd_seq_disconnect_from(snd_seq_t *seq, int myport, int src_client, int src_port)
 {
 	snd_seq_port_subscribe_t subs;
@@ -224,6 +277,9 @@ int snd_seq_disconnect_from(snd_seq_t *seq, int myport, int src_client, int src_
 	return snd_seq_unsubscribe_port(seq, &subs);
 }
 
+/**
+ * \brief sipmle disconnection (w/o exclusive & time conversion)
+ */
 int snd_seq_disconnect_to(snd_seq_t *seq, int myport, int dest_client, int dest_port)
 {
 	snd_seq_port_subscribe_t subs;
@@ -241,6 +297,9 @@ int snd_seq_disconnect_to(snd_seq_t *seq, int myport, int dest_client, int dest_
 /*
  * set client information
  */
+/**
+ * \brief set client name
+ */
 int snd_seq_set_client_name(snd_seq_t *seq, const char *name)
 {
 	snd_seq_client_info_t info;
@@ -252,6 +311,9 @@ int snd_seq_set_client_name(snd_seq_t *seq, const char *name)
 	return snd_seq_set_client_info(seq, &info);
 }
 
+/**
+ * \brief set client group
+ */
 int snd_seq_set_client_group(snd_seq_t *seq, const char *name)
 {
 	snd_seq_client_info_t info;
@@ -263,6 +325,9 @@ int snd_seq_set_client_group(snd_seq_t *seq, const char *name)
 	return snd_seq_set_client_info(seq, &info);
 }
 
+/**
+ * \brief set client filter
+ */
 int snd_seq_set_client_filter(snd_seq_t *seq, unsigned int filter)
 {
 	snd_seq_client_info_t info;
@@ -274,6 +339,9 @@ int snd_seq_set_client_filter(snd_seq_t *seq, unsigned int filter)
 	return snd_seq_set_client_info(seq, &info);
 }
 
+/**
+ * \brief set client event filter
+ */
 int snd_seq_set_client_event_filter(snd_seq_t *seq, int event_type)
 {
 	snd_seq_client_info_t info;
@@ -286,6 +354,9 @@ int snd_seq_set_client_event_filter(snd_seq_t *seq, int event_type)
 	return snd_seq_set_client_info(seq, &info);
 }
 
+/**
+ * \brief change the output pool size of the given client
+ */
 int snd_seq_set_client_pool_output(snd_seq_t *seq, int size)
 {
 	snd_seq_client_pool_t info;
@@ -297,6 +368,9 @@ int snd_seq_set_client_pool_output(snd_seq_t *seq, int size)
 	return snd_seq_set_client_pool(seq, &info);
 }
 
+/**
+ * \brief change the output room size of the given client
+ */
 int snd_seq_set_client_pool_output_room(snd_seq_t *seq, int size)
 {
 	snd_seq_client_pool_t info;
@@ -308,6 +382,9 @@ int snd_seq_set_client_pool_output_room(snd_seq_t *seq, int size)
 	return snd_seq_set_client_pool(seq, &info);
 }
 
+/**
+ * \brief change the input pool size of the given client
+ */
 int snd_seq_set_client_pool_input(snd_seq_t *seq, int size)
 {
 	snd_seq_client_pool_t info;
@@ -319,9 +396,8 @@ int snd_seq_set_client_pool_input(snd_seq_t *seq, int size)
 	return snd_seq_set_client_pool(seq, &info);
 }
 
-/*
- * reset client input/output pool
- * use REMOVE_EVENTS ioctl
+/**
+ * \brief reset client output pool
  */
 int snd_seq_reset_pool_output(snd_seq_t *seq)
 {
@@ -333,6 +409,9 @@ int snd_seq_reset_pool_output(snd_seq_t *seq)
 	return snd_seq_remove_events(seq, &rmp);
 }
 
+/**
+ * \brief reset client input pool
+ */
 int snd_seq_reset_pool_input(snd_seq_t *seq)
 {
 	snd_seq_remove_events_t rmp;

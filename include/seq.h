@@ -312,7 +312,7 @@ typedef enum _snd_seq_type {
 	SND_SEQ_TYPE_INET,
 } snd_seq_type_t;
 
-/** Sequencer handle */
+/* Sequencer handle */
 typedef struct _snd_seq snd_seq_t;
 
 #ifdef __cplusplus
@@ -366,6 +366,7 @@ int snd_seq_set_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
 int snd_seq_query_next_client(snd_seq_t *handle, snd_seq_client_info_t * info);
 int snd_seq_query_next_port(snd_seq_t *handle, snd_seq_port_info_t * info);
 #ifdef SND_SEQ_SYNC_SUPPORT
+typedef struct sndrv_seq_queue_sync snd_seq_queue_sync_t;    
 int snd_seq_add_sync_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest, snd_seq_queue_sync_t *info);
 int snd_seq_remove_sync_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest);
 int snd_seq_add_sync_std_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest, int format, int time_format, unsigned char *opt_info);
