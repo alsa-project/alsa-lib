@@ -443,7 +443,7 @@ int snd_ctl_open(snd_ctl_t **ctlp, const char *name, int mode)
 			return -EINVAL;
 		}
 	}
-	if (!open) {
+	if (!open_name) {
 		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_ctl_%s_open", str);
 	}
