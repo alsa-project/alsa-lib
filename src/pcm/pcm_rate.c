@@ -751,7 +751,8 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 	switch (rate->type) {
 	case RATE_TYPE_LINEAR:
 		/* for expand */
-		memset(rate->old_sample, 0, sizeof(*rate->old_sample) * pcm->channels);
+		if (rate->old_sample)
+			memset(rate->old_sample, 0, sizeof(*rate->old_sample) * pcm->channels);
 		break;
 	default:
 		assert(0);
