@@ -156,7 +156,7 @@ static void snd_pcm_ladspa_free_plugins(struct list_head *plugins)
 	while (!list_empty(plugins)) {
 		snd_pcm_ladspa_plugin_t *plugin = list_entry(plugins->next, snd_pcm_ladspa_plugin_t, list);
 		if (plugin->dl_handle)
-			snd_dlclose(plugin->dl_handle);
+			dlclose(plugin->dl_handle);
 		if (plugin->filename)
 			free(plugin->filename);
 		list_del(&plugin->list);
@@ -412,7 +412,8 @@ static int snd_pcm_ladspa_allocate_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *l
 				return -EINVAL;
 			}
 			list_add_tail(&instance->list, &plugin->instances);
-			plugin->desc->activate(instance->handle);
+			if (plugin->desc->activate)
+				plugin->desc->activate(instance->handle);
 			if (plugin->policy == SND_PCM_LADSPA_POLICY_DUPLICATE) {
 				err = snd_pcm_ladspa_connect_plugin_duplicate(plugin, &plugin->input, instance, idx);
 				if (err < 0) {
@@ -719,9 +720,9 @@ static int snd_pcm_ladspa_check_file(snd_pcm_ladspa_plugin_t * const plugin,
 	void *handle;
 
 	assert(filename);
-	handle = snd_dlopen(filename, RTLD_LAZY);
+	handle = dlopen(filename, RTLD_LAZY);
 	if (handle) {
-		LADSPA_Descriptor_Function fcn = (LADSPA_Descriptor_Function)snd_dlsym(handle, "ladspa_descriptor", SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION));
+		LADSPA_Descriptor_Function fcn = (LADSPA_Descriptor_Function)dlsym(handle, "ladspa_descriptor", SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION));
 		if (fcn) {
 			long idx;
 			const LADSPA_Descriptor *d;
@@ -738,7 +739,7 @@ static int snd_pcm_ladspa_check_file(snd_pcm_ladspa_plugin_t * const plugin,
 				return 1;
 			}
 		}
-		snd_dlclose(handle);
+		dlclose(handle);
 	}
 	return -ENOENT;
 }
