@@ -173,14 +173,24 @@ esac
 
 dnl Check for resmgr support...
 AC_MSG_CHECKING(for resmgr support)
-AC_ARG_WITH(resmgr,
-  [  --with-resmgr          support resmgr (optional)],
+AC_ARG_ENABLE(resmgr,
+  [  --enable-resmgr         support resmgr (optional)],
   resmgr="$withval", resmgr="no")
 AC_MSG_RESULT($resmgr)
 if test "$resmgr" = "yes"; then
   AC_CHECK_LIB(resmgr, rsm_open_device,,
     AC_ERROR([Cannot find libresmgr]))
   AC_DEFINE(SUPPORT_RESMGR, "1", [Support resmgr with alsa-lib])
+fi
+
+dnl Check for aload* support...
+AC_MSG_CHECKING(for aload* support)
+AC_ARG_ENABLE(aload,
+  [  --disable-aload         disable reading /dev/aload*],
+  aload="$enableval", aload="yes")
+AC_MSG_RESULT($aload)
+if test "$aload" = "yes"; then
+  AC_DEFINE(SUPPORT_ALOAD, "1", [Support /dev/aload* access for auto-loading])
 fi
 
 dnl Make a symlink for inclusion of alsa/xxx.h

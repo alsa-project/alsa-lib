@@ -441,6 +441,7 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 
 	filename = SNDRV_FILE_SEQ;
 	fd = snd_open_device(filename, fmode);
+#ifdef SUPPORT_ALOAD
 	if (fd < 0) {
 		fd = snd_open_device(SNDRV_FILE_ALOADSEQ, fmode);
 		if (fd >= 0)
@@ -451,6 +452,7 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 			return -errno;
 		}
 	}
+#endif
 #if 0
 	/*
          * this is bogus, an application have to care about open filedescriptors
