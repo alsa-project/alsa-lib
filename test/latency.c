@@ -436,6 +436,10 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "write error\n");
 			break;
 		}
+		if (writebuf(phandle, buffer, latency, &frames_out) < 0) {
+			fprintf(stderr, "write error\n");
+			break;
+		}
 
 		if ((err = snd_pcm_start(chandle)) < 0) {
 			printf("Go error: %s\n", snd_strerror(err));
