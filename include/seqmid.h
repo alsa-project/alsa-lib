@@ -1,12 +1,32 @@
-/****************************************************************************
- *                                                                          *
- *                      Sequencer Middle Level                              *
- *                                                                          *
- ****************************************************************************/
+/**
+ * \file <alsa/seqmid.h>
+ * \brief Application interface library for the ALSA driver
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Takashi Iwai <tiwai@suse.de>
+ * \date 1998-2001
+ *
+ * Application interface library for the ALSA driver
+ *
+ *
+ *   This library is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as
+ *   published by the Free Software Foundation; either version 2 of
+ *   the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef __ALSA_SEQMID_H
+#define __ALSA_SEQMID_H
 
 /**
  *  \defgroup SeqMiddle Sequencer Middle Level Interface
@@ -14,6 +34,10 @@ extern "C" {
  *  \ingroup Sequencer
  *  \{
  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * \brief initialize event record
@@ -403,9 +427,11 @@ int snd_seq_reset_pool_input(snd_seq_t *seq);
 	((ev)->type = SND_SEQ_EVENT_SYSEX,\
 	 snd_seq_ev_set_variable(ev, datalen, dataptr))
 
-/** \} */
-
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
+
+#endif /* __ALSA_SEQMID_H */
 

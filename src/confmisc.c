@@ -25,7 +25,6 @@
 #include <string.h>
 #include <ctype.h>
 #include "local.h"
-#include "asoundlib.h"
 
 /**
  * \brief Get the boolean value from given ASCII string

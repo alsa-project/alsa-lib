@@ -1,20 +1,14 @@
-alsaincludedir = ${includedir}/alsa
-alsainclude_HEADERS = asoundlib.h
-
 sysincludedir = ${includedir}/sys
+alsaincludedir = ${includedir}/alsa
 
-# This is the order they will be concatenated into asoundlib.h!
-#
-header_files=header.h version.h global.h input.h output.h error.h \
-	     conf.h pcm.h rawmidi.h timer.h \
-	     hwdep.h control.h mixer.h \
-	     seq_event.h seq.h seqmid.h seq_midi_event.h \
-             conv.h instr.h footer.h
+alsainclude_HEADERS = asoundlib.h \
+		      version.h global.h input.h output.h error.h \
+		      conf.h pcm.h rawmidi.h timer.h \
+		      hwdep.h control.h mixer.h \
+		      seq_event.h seq.h seqmid.h seq_midi_event.h \
+		      conv.h instr.h
 
-noinst_HEADERS=$(header_files) search.h list.h aserver.h local.h
-
-asoundlib.h: $(header_files)
-	cat $^ > $@
+noinst_HEADERS=search.h list.h aserver.h local.h config.h
 
 version.h: stamp-vh
 	@:

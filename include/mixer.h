@@ -1,9 +1,32 @@
-/****************************************************************************
- *                                                                          *
- *                               mixer.h                                    *
- *                           Mixer Interface                                *
- *                                                                          *
- ****************************************************************************/
+/**
+ * \file <alsa/mixer.h>
+ * \brief Application interface library for the ALSA driver
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Takashi Iwai <tiwai@suse.de>
+ * \date 1998-2001
+ *
+ * Application interface library for the ALSA driver
+ *
+ *
+ *   This library is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as
+ *   published by the Free Software Foundation; either version 2 of
+ *   the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+#ifndef __ALSA_MIXER_H
+#define __ALSA_MIXER_H
 
 /**
  *  \defgroup Mixer Mixer Interface
@@ -71,11 +94,19 @@ int snd_mixer_load(snd_mixer_t *mixer);
 void snd_mixer_free(snd_mixer_t *mixer);
 int snd_mixer_wait(snd_mixer_t *mixer, int timeout);
 int snd_mixer_set_compare(snd_mixer_t *mixer, snd_mixer_compare_t msort);
+void snd_mixer_set_callback(snd_mixer_t *obj, snd_mixer_callback_t val);
+void * snd_mixer_get_callback_private(const snd_mixer_t *obj);
+void snd_mixer_set_callback_private(snd_mixer_t *obj, void * val);
+unsigned int snd_mixer_get_count(const snd_mixer_t *obj);
+int snd_mixer_class_unregister(snd_mixer_class_t *clss);
 
 snd_mixer_elem_t *snd_mixer_elem_next(snd_mixer_elem_t *elem);
 snd_mixer_elem_t *snd_mixer_elem_prev(snd_mixer_elem_t *elem);
+void snd_mixer_elem_set_callback(snd_mixer_elem_t *obj, snd_mixer_elem_callback_t val);
+void * snd_mixer_elem_get_callback_private(const snd_mixer_elem_t *obj);
+void snd_mixer_elem_set_callback_private(snd_mixer_elem_t *obj, void * val);
+snd_mixer_elem_type_t snd_mixer_elem_get_type(const snd_mixer_elem_t *obj);
 
-int snd_mixer_class_unregister(snd_mixer_class_t *clss);
 
 #ifdef __cplusplus
 }
@@ -177,30 +208,10 @@ size_t snd_mixer_selem_id_sizeof(void);
 int snd_mixer_selem_id_malloc(snd_mixer_selem_id_t **ptr);
 void snd_mixer_selem_id_free(snd_mixer_selem_id_t *obj);
 void snd_mixer_selem_id_copy(snd_mixer_selem_id_t *dst, const snd_mixer_selem_id_t *src);
-
 const char *snd_mixer_selem_id_get_name(const snd_mixer_selem_id_t *obj);
-
 unsigned int snd_mixer_selem_id_get_index(const snd_mixer_selem_id_t *obj);
-
 void snd_mixer_selem_id_set_name(snd_mixer_selem_id_t *obj, const char *val);
-
 void snd_mixer_selem_id_set_index(snd_mixer_selem_id_t *obj, unsigned int val);
-
-void snd_mixer_set_callback(snd_mixer_t *obj, snd_mixer_callback_t val);
-
-void * snd_mixer_get_callback_private(const snd_mixer_t *obj);
-
-void snd_mixer_set_callback_private(snd_mixer_t *obj, void * val);
-
-unsigned int snd_mixer_get_count(const snd_mixer_t *obj);
-
-void snd_mixer_elem_set_callback(snd_mixer_elem_t *obj, snd_mixer_elem_callback_t val);
-
-void * snd_mixer_elem_get_callback_private(const snd_mixer_elem_t *obj);
-
-void snd_mixer_elem_set_callback_private(snd_mixer_elem_t *obj, void * val);
-
-snd_mixer_elem_type_t snd_mixer_elem_get_type(const snd_mixer_elem_t *obj);
 
 
 #ifdef __cplusplus
@@ -209,4 +220,6 @@ snd_mixer_elem_type_t snd_mixer_elem_get_type(const snd_mixer_elem_t *obj);
 
 /** \} */
 /** \} */
+
+#endif /* __ALSA_MIXER_H */
 

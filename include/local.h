@@ -22,6 +22,16 @@
 #ifndef __LOCAL_H
 #define __LOCAL_H
 
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <assert.h>
+#include <endian.h>
+#include <sys/poll.h>
+#include <errno.h>
+
 #include "config.h"
 
 #define _snd_config_iterator list_head
@@ -76,7 +86,24 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #include <sound/asound.h>
 #include <sound/asoundef.h>
 #include <sound/asequencer.h>
-#include "asoundlib.h"
+#include "version.h"
+#include "global.h"
+#include "input.h"
+#include "output.h"
+#include "error.h"
+#include "conf.h"
+#include "pcm.h"
+#include "rawmidi.h"
+#include "timer.h"
+#include "hwdep.h"
+#include "control.h"
+#include "mixer.h"
+#include "seq_event.h"
+#include "seq.h"
+#include "seqmid.h"
+#include "seq_midi_event.h"
+#include "conv.h"
+#include "instr.h"
 #include "list.h"
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN

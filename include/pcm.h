@@ -1,9 +1,32 @@
-/****************************************************************************
- *                                                                          *
- *                                pcm.h                                     *
- *                        Digital Audio Interface                           *
- *                                                                          *
- ****************************************************************************/
+/**
+ * \file <alsa/pcm.h>
+ * \brief Application interface library for the ALSA driver
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Takashi Iwai <tiwai@suse.de>
+ * \date 1998-2001
+ *
+ * Application interface library for the ALSA driver
+ *
+ *
+ *   This library is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as
+ *   published by the Free Software Foundation; either version 2 of
+ *   the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+#ifndef __ALSA_PCM_H
+#define __ALSA_PCM_H
 
 /**
  *  \defgroup PCM PCM Interface
@@ -304,7 +327,7 @@ typedef struct _snd_pcm_channel_area {
 	unsigned int step;
 } snd_pcm_channel_area_t;
 
-/* PCM synchronization ID */
+/** PCM synchronization ID */
 typedef union _snd_pcm_sync_id {
 	/** 8-bit ID */
 	unsigned char id[16];
@@ -783,4 +806,6 @@ int snd_pcm_hook_remove(snd_pcm_hook_t *hook);
 #endif
 
 /** \} */
+
+#endif /* __ALSA_PCM_H */
 

@@ -1,5 +1,5 @@
 /**
- * \file asoundlib.h
+ * \file <alsa/asoundlib.h>
  * \brief Application interface library for the ALSA driver
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
@@ -28,9 +28,6 @@
 #ifndef __ASOUNDLIB_H
 #define __ASOUNDLIB_H
 
-#ifndef __ASOUNDEF_H
-#include <alsa/asoundef.h>
-#endif
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,15 +38,24 @@
 #include <sys/poll.h>
 #include <errno.h>
 
-#ifndef ATTRIBUTE_UNUSED
-#define ATTRIBUTE_UNUSED __attribute__ ((__unused__)) /**< don't print warning when attribute is not used */
-#endif
+#include <alsa/asoundef.h>
+#include <alsa/version.h>
+#include <alsa/global.h>
+#include <alsa/input.h>
+#include <alsa/output.h>
+#include <alsa/error.h>
+#include <alsa/conf.h>
+#include <alsa/pcm.h>
+#include <alsa/rawmidi.h>
+#include <alsa/timer.h>
+#include <alsa/hwdep.h>
+#include <alsa/control.h>
+#include <alsa/mixer.h>
+#include <alsa/seq_event.h>
+#include <alsa/seq.h>
+#include <alsa/seqmid.h>
+#include <alsa/seq_midi_event.h>
+#include <alsa/conv.h>
+#include <alsa/instr.h>
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 95)
-#define SNDERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, __VA_ARGS__) /**< show sound error */
-#define SYSERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, __VA_ARGS__) /**< show system error */
-#else
-#define SNDERR(args...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, ##args) /**< show sound error */
-#define SYSERR(args...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, ##args) /**< show system error */
-#endif
-
+#endif /* __ASOUNDLIB_H */

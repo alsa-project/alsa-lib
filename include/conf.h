@@ -1,4 +1,34 @@
 /**
+ * \file <alsa/conf.h>
+ * \brief Application interface library for the ALSA driver
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Takashi Iwai <tiwai@suse.de>
+ * \date 1998-2001
+ *
+ * Application interface library for the ALSA driver
+ *
+ *
+ *   This library is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU Library General Public License as
+ *   published by the Free Software Foundation; either version 2 of
+ *   the License, or (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Library General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Library General Public
+ *   License along with this library; if not, write to the Free Software
+ *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+#ifndef __ALSA_CONF_H
+#define __ALSA_CONF_H
+
+/**
  *  \defgroup Config Configuration Interface
  *  Configuration Interface
  *  \{
@@ -103,4 +133,6 @@ int snd_config_get_ctl_iface(snd_config_t *conf);
 #endif
 
 /** \} */
+
+#endif /* __ALSA_CONF_H */
 
