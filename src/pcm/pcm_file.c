@@ -273,6 +273,14 @@ static int snd_pcm_file_resume(snd_pcm_t *pcm)
 	return snd_pcm_resume(file->slave);
 }
 
+static int snd_pcm_file_poll_ask(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	if (file->slave->fast_ops->poll_ask)
+		return file->slave->fast_ops->poll_ask(file->slave->fast_op_arg);
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_file_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -467,6 +475,7 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	.rewind = snd_pcm_file_rewind,
 	.forward = snd_pcm_file_forward,
 	.resume = snd_pcm_file_resume,
+	.poll_ask = snd_pcm_file_poll_ask,
 	.writei = snd_pcm_file_writei,
 	.writen = snd_pcm_file_writen,
 	.readi = snd_pcm_file_readi,

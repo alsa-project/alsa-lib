@@ -560,6 +560,23 @@ static int snd_pcm_multi_resume(snd_pcm_t *pcm)
 	return err;
 }
 
+static int snd_pcm_multi_poll_ask(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	snd_pcm_t *slave;
+	int err = 0;
+	unsigned int i;
+	for (i = 0; i < multi->slaves_count; ++i) {
+		slave = multi->slaves[i].pcm;
+		if (slave->fast_ops->poll_ask == NULL)
+			continue;
+		err = slave->fast_ops->poll_ask(slave->fast_op_arg);
+		if (err < 0)
+			return err;
+	}
+	return err;
+}
+
 static snd_pcm_sframes_t snd_pcm_multi_mmap_commit(snd_pcm_t *pcm,
 						   snd_pcm_uframes_t offset,
 						   snd_pcm_uframes_t size)
@@ -646,6 +663,7 @@ static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	.rewind = snd_pcm_multi_rewind,
 	.forward = snd_pcm_multi_forward,
 	.resume = snd_pcm_multi_resume,
+	.poll_ask = snd_pcm_multi_poll_ask,
 	.avail_update = snd_pcm_multi_avail_update,
 	.mmap_commit = snd_pcm_multi_mmap_commit,
 };

@@ -1230,7 +1230,15 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
  */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
+	int err;
+
 	assert(pcm && pfds);
+	if (pcm->fast_ops->poll_ask) {
+		err = pcm->fast_ops->poll_ask(pcm->fast_op_arg);
+		if (err < 0)
+			return err;
+	}
+	assert(pcm->poll_fd >= 0);
 	if (space >= 1 && pfds) {
 		pfds->fd = pcm->poll_fd;
 		pfds->events = pcm->poll_events | POLLERR | POLLNVAL;
@@ -1255,7 +1263,7 @@ int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsign
 {
 	assert(pcm && pfds && revents);
 	if (pcm->ops->poll_revents)
-		return pcm->ops->poll_revents(pcm, pfds, nfds, revents);
+		return pcm->ops->poll_revents(pcm->op_arg, pfds, nfds, revents);
 	if (nfds == 1) {
 		*revents = pfds->revents;
 		return 0;
@@ -2008,6 +2016,8 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 		pcm->name = strdup(name);
 	pcm->stream = stream;
 	pcm->mode = mode;
+	pcm->poll_fd_count = 1;
+	pcm->poll_fd = -1;
 	pcm->op_arg = pcm;
 	pcm->fast_op_arg = pcm;
 	INIT_LIST_HEAD(&pcm->async_handlers);
@@ -2061,6 +2071,17 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 	err_poll = poll(&pfd, 1, timeout);
 	if (err_poll < 0)
 		return -errno;
+#if 0 /* very useful code to test poll related problems */
+	{
+		snd_pcm_sframes_t delay, avail_update;
+		snd_pcm_hwsync(pcm);
+		avail_update = snd_pcm_avail_update(pcm);
+		if (avail_update < pcm->avail_min) {
+			printf("*** snd_pcm_wait() FATAL ERROR!!!\n");
+			printf("avail_min = %li, avail_update = %li\n", pcm->avail_min, avail_update);
+		}
+	}
+#endif
 	err = snd_pcm_poll_descriptors_revents(pcm, &pfd, 1, &revents);
 	if (err < 0)
 		return err;

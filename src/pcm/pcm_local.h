@@ -149,6 +149,7 @@ typedef struct {
 	int (*hwsync)(snd_pcm_t *pcm);
 	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 	int (*resume)(snd_pcm_t *pcm);
+	int (*poll_ask)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 	snd_pcm_sframes_t (*forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
@@ -165,6 +166,7 @@ struct _snd_pcm {
 	snd_pcm_type_t type;
 	snd_pcm_stream_t stream;
 	int mode;
+	int poll_fd_count;
 	int poll_fd;
 	unsigned short poll_events;
 	int setup;

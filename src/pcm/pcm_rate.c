@@ -79,6 +79,8 @@ typedef struct {
 	int close_slave;
 	snd_atomic_write_t watom;
 	snd_pcm_uframes_t appl_ptr, hw_ptr;
+	snd_pcm_uframes_t orig_avail_min;
+	snd_pcm_sw_params_t sw_params;
 	enum rate_type type;
 	unsigned int get_idx;
 	unsigned int put_idx;
@@ -556,10 +558,11 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_t *slave = rate->slave;
-	snd_pcm_sw_params_t sparams;
+	snd_pcm_sw_params_t *sparams;
 	snd_pcm_uframes_t boundary1, boundary2;
 
-	sparams = *params;
+	rate->sw_params = *params;
+	sparams = &rate->sw_params;
 	if ((rate->pitch >= LINEAR_DIV ? 1 : 0) ^ (pcm->stream == SND_PCM_STREAM_CAPTURE ? 1 : 0)) {
 		boundary1 = pcm->buffer_size;
 		boundary2 = slave->buffer_size;
@@ -576,7 +579,7 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		}
 	}
 	params->boundary = boundary1;
-	sparams.boundary = boundary2;
+	sparams->boundary = boundary2;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		rate->pitch = (((u_int64_t)slave->period_size * LINEAR_DIV) + pcm->period_size - 1) / pcm->period_size;
 		do {
@@ -624,17 +627,18 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		} while (1);
 		assert((snd_pcm_uframes_t)snd_pcm_rate_slave_frames(pcm, pcm->period_size - 1) == slave->period_size - 1);
 	}
-	recalc(pcm, &sparams.avail_min);
-	recalc(pcm, &sparams.xfer_align);
-	recalc(pcm, &sparams.start_threshold);
-	if (sparams.stop_threshold >= sparams.boundary) {
-		sparams.stop_threshold = sparams.boundary;
+	recalc(pcm, &sparams->avail_min);
+	rate->orig_avail_min = sparams->avail_min;
+	recalc(pcm, &sparams->xfer_align);
+	recalc(pcm, &sparams->start_threshold);
+	if (sparams->stop_threshold >= sparams->boundary) {
+		sparams->stop_threshold = sparams->boundary;
 	} else {
-		recalc(pcm, &sparams.stop_threshold);
+		recalc(pcm, &sparams->stop_threshold);
 	}
-	recalc(pcm, &sparams.silence_threshold);
-	recalc(pcm, &sparams.silence_size);
-	return snd_pcm_sw_params(slave, &sparams);
+	recalc(pcm, &sparams->silence_threshold);
+	recalc(pcm, &sparams->silence_size);
+	return snd_pcm_sw_params(slave, sparams);
 }
 
 static int snd_pcm_rate_init(snd_pcm_t *pcm)
@@ -911,6 +915,36 @@ static int snd_pcm_rate_resume(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	return snd_pcm_resume(rate->slave);
+}
+
+static int snd_pcm_rate_poll_ask(snd_pcm_t *pcm)
+{
+	snd_pcm_rate_t *rate = pcm->private_data;
+	snd_pcm_uframes_t avail_min;
+	int err;
+
+	if (rate->slave->fast_ops->poll_ask) {
+		err = rate->slave->fast_ops->poll_ask(rate->slave->fast_op_arg);
+		if (err < 0)
+			return err;
+	}
+	avail_min = rate->appl_ptr % pcm->period_size;
+	if (avail_min > 0) {
+		recalc(pcm, &avail_min);
+		if (avail_min < rate->slave->buffer_size &&
+		    avail_min != rate->slave->period_size)
+			avail_min++;	/* 1st small little rounding correction */
+		if (avail_min < rate->slave->buffer_size &&
+		    avail_min != rate->slave->period_size)
+			avail_min++;	/* 2nd small little rounding correction */
+		avail_min += rate->orig_avail_min;
+	} else {
+		avail_min = rate->orig_avail_min;
+	}
+	if (rate->sw_params.avail_min == avail_min)
+		return 0;
+	rate->sw_params.avail_min = avail_min;
+	return snd_pcm_sw_params(rate->slave, &rate->sw_params);
 }
 
 static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t appl_offset)
@@ -1291,6 +1325,7 @@ static snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.rewind = snd_pcm_rate_rewind,
 	.forward = snd_pcm_rate_forward,
 	.resume = snd_pcm_rate_resume,
+	.poll_ask = snd_pcm_rate_poll_ask,
 	.writei = snd_pcm_mmap_writei,
 	.writen = snd_pcm_mmap_writen,
 	.readi = snd_pcm_mmap_readi,

@@ -495,6 +495,7 @@ static snd_pcm_fast_ops_t snd_pcm_dshare_fast_ops = {
 	.rewind = snd_pcm_dshare_rewind,
 	.forward = snd_pcm_dshare_forward,
 	.resume = snd_pcm_dshare_resume,
+	.poll_ask = NULL,
 	.writei = snd_pcm_mmap_writei,
 	.writen = snd_pcm_mmap_writen,
 	.readi = snd_pcm_dshare_readi,

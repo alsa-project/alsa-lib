@@ -872,6 +872,7 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.rewind = snd_pcm_hw_rewind,
 	.forward = snd_pcm_hw_forward,
 	.resume = snd_pcm_hw_resume,
+	.poll_ask = NULL,
 	.writei = snd_pcm_hw_writei,
 	.writen = snd_pcm_hw_writen,
 	.readi = snd_pcm_hw_readi,

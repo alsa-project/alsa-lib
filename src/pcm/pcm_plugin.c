@@ -343,6 +343,14 @@ int snd_pcm_plugin_resume(snd_pcm_t *pcm)
 	return snd_pcm_resume(plugin->slave);
 }
 
+int snd_pcm_plugin_poll_ask(snd_pcm_t *pcm)
+{
+	snd_pcm_plugin_t *plugin = pcm->private_data;
+	if (plugin->slave->fast_ops->poll_ask)
+		return plugin->slave->fast_ops->poll_ask(plugin->slave->fast_op_arg);
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 						    const snd_pcm_channel_area_t *areas,
 						    snd_pcm_uframes_t offset,
@@ -662,6 +670,7 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	.rewind = snd_pcm_plugin_rewind,
 	.forward = snd_pcm_plugin_forward,
 	.resume = snd_pcm_plugin_resume,
+	.poll_ask = snd_pcm_plugin_poll_ask,
 	.writei = snd_pcm_plugin_writei,
 	.writen = snd_pcm_plugin_writen,
 	.readi = snd_pcm_plugin_readi,

@@ -411,6 +411,14 @@ static int snd_pcm_meter_resume(snd_pcm_t *pcm)
 	return snd_pcm_resume(meter->slave);
 }
 
+static int snd_pcm_meter_poll_ask(snd_pcm_t *pcm)
+{
+	snd_pcm_meter_t *meter = pcm->private_data;
+	if (meter->slave->fast_ops->poll_ask)
+		return meter->slave->fast_ops->poll_ask(meter->slave->fast_op_arg);
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
 						   snd_pcm_uframes_t offset,
 						   snd_pcm_uframes_t size)
@@ -619,6 +627,7 @@ static snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	.rewind = snd_pcm_meter_rewind,
 	.forward = snd_pcm_meter_forward,
 	.resume = snd_pcm_meter_resume,
+	.poll_ask = snd_pcm_meter_poll_ask,
 	.writei = snd_pcm_mmap_writei,
 	.writen = snd_pcm_mmap_writen,
 	.readi = snd_pcm_mmap_readi,

@@ -182,6 +182,14 @@ static int snd_pcm_hooks_resume(snd_pcm_t *pcm)
 	return snd_pcm_resume(h->slave);
 }
 
+static int snd_pcm_hooks_poll_ask(snd_pcm_t *pcm)
+{
+	snd_pcm_hooks_t *h = pcm->private_data;
+	if (h->slave->fast_ops->poll_ask)
+		return h->slave->fast_ops->poll_ask(h->slave->fast_op_arg);
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_hooks_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
@@ -315,6 +323,7 @@ static snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	.rewind = snd_pcm_hooks_rewind,
 	.forward = snd_pcm_hooks_forward,
 	.resume = snd_pcm_hooks_resume,
+	.poll_ask = snd_pcm_hooks_poll_ask,
 	.writei = snd_pcm_hooks_writei,
 	.writen = snd_pcm_hooks_writen,
 	.readi = snd_pcm_hooks_readi,
