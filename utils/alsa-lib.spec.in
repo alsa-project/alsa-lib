@@ -74,6 +74,6 @@ rm -rf $RPM_BUILD_ROOT
 %doc doc/*.sgml
 %doc doc/*.txt
 
-%{prefix}/usr/include/sys/soundlib.h
+%{prefix}/usr/include/sys/asoundlib.h
 %{prefix}/usr/lib/lib*
-${prefix}/usr/share/aclocal/alsa.m4
+%{prefix}/usr/share/aclocal/alsa.m4
