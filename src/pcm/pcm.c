@@ -4301,13 +4301,20 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
 }
 
 /**
- * \brief Application request to access a portion of mmap area
- * \param pcm PCM handle
+ * \brief Application request to access a portion of direct (mmap) area
+ * \param pcm PCM handle 
  * \param areas Returned mmap channel areas
  * \param offset Returned mmap area offset
- * \param size mmap area portion size (wanted on entry, contiguous
-available on exit)
+ * \param size mmap area portion size (wanted on entry, contiguous available on exit)
  * \return 0 on success otherwise a negative error code
+ *
+ * The function should be called before a sample-direct area can be accessed.
+ * The resulting size parameter is always less or equal to the input count of frames
+ * and can be zero, if no frames can be processed (the ring buffer is full).
+ *
+ * See the snd_pcm_mmap_commit() function to finish the frame processing in
+ * the direct areas.
+ * 
  */
 int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		       const snd_pcm_channel_area_t **areas,
@@ -4336,13 +4343,32 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 }
 
 /**
- * \brief Application has completed the access to area requested with
-#snd_pcm_mmap_begin
+ * \brief Application has completed the access to area requested with #snd_pcm_mmap_begin
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
  *
  * To call this with offset/frames values different from that returned
- * by snd_pcm_mmap_begin has undefined effects and it has to be avoided.
+ * by snd_pcm_mmap_begin() has undefined effects and it has to be avoided.
+ *
+ * Example:
+\code
+  double phase = 0;
+  const snd_pcm_area_t *areas;
+  snd_pcm_uframes_t offset, frames;
+
+  frames = frame_buffer_size;
+  err = snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &frames);
+  if (err < 0)
+    error(err);
+  // this function fills the areas from offset with count of frames
+  generate_sine(areas, offset, frames, &phase);
+  err = snd_pcm_mmap_commit(pcm_handle, offset, frames);
+  if (err < 0)
+    error(err);
+\endcode
+ *
+ * Look to the \ref example_test_pcm "Sine-wave generator" example
+ * for more details about the generate_sine function.
  */
 int snd_pcm_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
 			snd_pcm_uframes_t frames)
