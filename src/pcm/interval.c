@@ -105,7 +105,8 @@ static inline unsigned int muldiv32(unsigned int a, unsigned int b,
 int snd_interval_refine_min(snd_interval_t *i, unsigned int min, int openmin)
 {
 	int changed = 0;
-	assert(!snd_interval_empty(i));
+	if (snd_interval_empty(i))
+		return -ENOENT;
 	if (i->min < min) {
 		i->min = min;
 		i->openmin = openmin;
@@ -130,7 +131,8 @@ int snd_interval_refine_min(snd_interval_t *i, unsigned int min, int openmin)
 int snd_interval_refine_max(snd_interval_t *i, unsigned int max, int openmax)
 {
 	int changed = 0;
-	assert(!snd_interval_empty(i));
+	if (snd_interval_empty(i))
+		return -ENOENT;
 	if (i->max > max) {
 		i->max = max;
 		i->openmax = openmax;
@@ -156,7 +158,8 @@ int snd_interval_refine_max(snd_interval_t *i, unsigned int max, int openmax)
 int snd_interval_refine(snd_interval_t *i, const snd_interval_t *v)
 {
 	int changed = 0;
-	assert(!snd_interval_empty(i));
+	if (snd_interval_empty(i))
+		return -ENOENT;
 	if (i->min < v->min) {
 		i->min = v->min;
 		i->openmin = v->openmin;
@@ -197,7 +200,8 @@ int snd_interval_refine(snd_interval_t *i, const snd_interval_t *v)
 
 int snd_interval_refine_first(snd_interval_t *i)
 {
-	assert(!snd_interval_empty(i));
+	if (snd_interval_empty(i))
+		return -ENOENT;
 	if (snd_interval_single(i))
 		return 0;
 	i->max = i->min;
@@ -209,7 +213,8 @@ int snd_interval_refine_first(snd_interval_t *i)
 
 int snd_interval_refine_last(snd_interval_t *i)
 {
-	assert(!snd_interval_empty(i));
+	if (snd_interval_empty(i))
+		return -ENOENT;
 	if (snd_interval_single(i))
 		return 0;
 	i->min = i->max;

@@ -212,7 +212,8 @@ MASK_INLINE int snd_mask_single(const snd_mask_t *mask)
 MASK_INLINE int snd_mask_refine(snd_mask_t *mask, const snd_mask_t *v)
 {
 	snd_mask_t old;
-	assert(!snd_mask_empty(mask));
+	if (snd_mask_empty(mask))
+		return -ENOENT;
 	snd_mask_copy(&old, mask);
 	snd_mask_intersect(mask, v);
 	if (snd_mask_empty(mask))
@@ -222,7 +223,8 @@ MASK_INLINE int snd_mask_refine(snd_mask_t *mask, const snd_mask_t *v)
 
 MASK_INLINE int snd_mask_refine_first(snd_mask_t *mask)
 {
-	assert(!snd_mask_empty(mask));
+	if (snd_mask_empty(mask))
+		return -ENOENT;
 	if (snd_mask_single(mask))
 		return 0;
 	snd_mask_leave(mask, snd_mask_min(mask));
@@ -231,7 +233,8 @@ MASK_INLINE int snd_mask_refine_first(snd_mask_t *mask)
 
 MASK_INLINE int snd_mask_refine_last(snd_mask_t *mask)
 {
-	assert(!snd_mask_empty(mask));
+	if (snd_mask_empty(mask))
+		return -ENOENT;
 	if (snd_mask_single(mask))
 		return 0;
 	snd_mask_leave(mask, snd_mask_max(mask));
@@ -240,7 +243,8 @@ MASK_INLINE int snd_mask_refine_last(snd_mask_t *mask)
 
 MASK_INLINE int snd_mask_refine_min(snd_mask_t *mask, unsigned int val)
 {
-	assert(!snd_mask_empty(mask));
+	if (snd_mask_empty(mask))
+		return -ENOENT;
 	if (snd_mask_min(mask) >= val)
 		return 0;
 	snd_mask_reset_range(mask, 0, val - 1);
@@ -251,7 +255,8 @@ MASK_INLINE int snd_mask_refine_min(snd_mask_t *mask, unsigned int val)
 
 MASK_INLINE int snd_mask_refine_max(snd_mask_t *mask, unsigned int val)
 {
-	assert(!snd_mask_empty(mask));
+	if (snd_mask_empty(mask))
+		return -ENOENT;
 	if (snd_mask_max(mask) <= val)
 		return 0;
 	snd_mask_reset_range(mask, val + 1, SND_MASK_MAX);
@@ -263,7 +268,8 @@ MASK_INLINE int snd_mask_refine_max(snd_mask_t *mask, unsigned int val)
 MASK_INLINE int snd_mask_refine_set(snd_mask_t *mask, unsigned int val)
 {
 	int changed;
-	assert(!snd_mask_empty(mask));
+	if (snd_mask_empty(mask))
+		return -ENOENT;
 	changed = !snd_mask_single(mask);
 	snd_mask_leave(mask, val);
 	if (snd_mask_empty(mask))

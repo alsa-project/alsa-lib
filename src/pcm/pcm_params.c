@@ -296,7 +296,7 @@ static int _snd_pcm_hw_param_set_first(snd_pcm_hw_params_t *params,
 		assert(0);
 		return -EINVAL;
 	}
-	if (changed) {
+	if (changed > 0) {
 		params->cmask |= 1 << var;
 		params->rmask |= 1 << var;
 	}
@@ -338,7 +338,7 @@ static int _snd_pcm_hw_param_set_last(snd_pcm_hw_params_t *params,
 		assert(0);
 		return -EINVAL;
 	}
-	if (changed) {
+	if (changed > 0) {
 		params->cmask |= 1 << var;
 		params->rmask |= 1 << var;
 	}
@@ -1936,7 +1936,9 @@ static snd_interval_t refine_intervals[SND_PCM_HW_PARAM_LAST_INTERVAL - SND_PCM_
 	},
 };
 
-#undef RULES_DEBUG
+#if 0
+#define RULES_DEBUG
+#endif
 
 int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
