@@ -114,9 +114,9 @@ static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
 	}
 }
  
-static int io_src_voices(snd_pcm_plugin_t *plugin,
-			    size_t samples,
-			    snd_pcm_plugin_voice_t **voices)
+static ssize_t io_src_voices(snd_pcm_plugin_t *plugin,
+			     size_t samples,
+			     snd_pcm_plugin_voice_t **voices)
 {
 	int err;
 	unsigned int voice;
@@ -127,7 +127,7 @@ static int io_src_voices(snd_pcm_plugin_t *plugin,
 	*voices = v;
 	for (voice = 0; voice < plugin->src_format.voices; ++voice, ++v)
 		v->wanted = 1;
-	return 0;
+	return samples;
 }
 
 int snd_pcm_plugin_build_io(snd_pcm_plugin_handle_t *pcm,
