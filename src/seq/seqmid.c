@@ -48,6 +48,7 @@ void snd_seq_ev_schedule_tick(snd_seq_event_t *ev, int q, int relative,
 	ev->flags |= SND_SEQ_TIME_STAMP_TICK;
 	ev->flags |= relative ? SND_SEQ_TIME_MODE_REL : SND_SEQ_TIME_MODE_ABS;
 	ev->time.tick = tick;
+	ev->queue = q;
 }
 
 /* queued on real-time */
@@ -60,6 +61,7 @@ void snd_seq_ev_schedule_real(snd_seq_event_t *ev, int q, int relative,
 	ev->flags |= SND_SEQ_TIME_STAMP_REAL;
 	ev->flags |= relative ? SND_SEQ_TIME_MODE_REL : SND_SEQ_TIME_MODE_ABS;
 	ev->time.real = *real;
+	ev->queue = q;
 }
 
 /* set event priority */
