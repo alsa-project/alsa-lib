@@ -5,6 +5,8 @@
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Takashi Iwai <tiwai@suse.de>
  * \date 2000-2001
+ *
+ * See \ref seq page for more details.
  */
 
 /* 
@@ -25,6 +27,12 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
+
+/*! \page seq Sequencer interface
+
+<P>Description...
+
+*/
 
 #include <dlfcn.h>
 #include <sys/poll.h>

@@ -5,19 +5,7 @@
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000-2001
  *
- * RawMidi Interface is designed to write or read raw (unchanged) MIDI
- * data over the MIDI line. MIDI stands Musical Instrument Digital Interface
- * and more information about this standard can be found at
- * http://www.midi.org.
- *
- * RawMidi devices are opened exclusively for a selected direction.
- * While more than one process may not open a given MIDI device in the same
- * direction simultaneously, separate processes may open a single MIDI device
- * in different directions (i.e. process one opens a MIDI device in write
- * direction and process two opens the same device in read direction). MIDI
- * devices return EBUSY error to applications when other applications have
- * already opened the requested direction (nonblock behaviour) or wait
- * until the device is not available (block behaviour).
+ * See the \ref rawmidi page for more details.
  */
 /*
  *
@@ -37,6 +25,112 @@
  *
  */
 
+/*! \page rawmidi RawMidi interface
+
+<P>RawMidi Interface is designed to write or read raw (unchanged) MIDI
+data over the MIDI line without any timestamps defined in interface. MIDI
+stands Musical Instrument Digital Interface and more information about
+this standard can be found at http://www.midi.org.
+
+\section rawmidi_general_overview General overview
+
+The rawmidi implementation uses ring buffers to store outgoing and incoming
+MIDI stream. The buffer size is tunable and drivers report underruns for incoming
+stream as well.
+
+\section rawmidi_open Open handling
+
+RawMidi devices are opened exclusively for a selected direction.
+While more than one process may not open a given MIDI device in the same
+direction simultaneously, separate processes may open a single MIDI device
+in different directions (i.e. process one opens a MIDI device in write
+direction and process two opens the same device in read direction).
+
+\subsection rawmidi_open_nonblock Nonblocking open (flag)
+
+Using #SND_RAWMIDI_NONBLOCK flag for snd_rawmidi_open() or snd_rawmidi_open_lconf()
+instruct device driver to return the -EBUSY error when device is already occupied
+with another application. This flag also changes behaviour of snd_rawmidi_write()
+and snd_rawmidi_read() returning -EAGAIN when no more bytes can be processed.
+
+Note: In opposite (default) behaviour, application is blocked until device resources
+are free.
+
+\subsection rawmidi_open_append Append open (flag)
+
+Using #SND_RAWMIDI_APPEND flag (output only) instruct device driver to append
+contents of written buffer - passed by snd_rawmidi_write() - atomically
+to output ring buffer in the kernel space. This flag also means that device
+is not opened exclusively, so more applications can share given rawmidi device.
+
+\subsection rawmidi_open_sync Sync open (flag)
+
+Using #SND_RAWMIDI_SYNC flag (output only) assures that the contents of output
+buffer specified using snd_rawmidi_write() is always drained before the function
+exits. This behaviour is same like 'snd_rawmidi_write() followed by
+snd_rawmidi_drain() immediately'.
+
+\subsection rawmidi_io I/O handling
+
+There is only standard read/write access to device internal ring buffer. Use
+snd_rawmidi_read() and snd_rawmidi_write() functions to obtain / write MIDI bytes.
+
+\subsection rawmidi_dev_names RawMidi naming conventions
+
+The ALSA library uses a generic string representation for names of devices.
+The devices might be virtual, physical or a mix of both. The generic string
+is passed to \link ::snd_rawmidi_open() \endlink or \link ::snd_rawmidi_open_lconf() \endlink.
+It contains two parts: device name and arguments. Devices and arguments are described
+in configuration files. The usual place for default definitions is at /usr/share/alsa/alsa.conf.
+
+\subsection rawmidi_dev_names_default 
+
+The default device is equal to hw device. The defaults are used:
+
+defaults.rawmidi.card 0
+defaults.rawmidi.device 0
+defaults.rawmidi.subdevice -1
+
+These defaults can be freely overwritten in local cofiguration files.
+
+Example:
+
+\code
+default
+\endcode
+
+\subsection rawmidi_dev_names_hw HW device
+
+The hw device description uses the hw plugin. The three arguments (in order: CARD,DEV,SUBDEV)
+specify card number or identifier, device number and subdevice number (-1 means any).
+
+Example:
+
+\code
+hw
+hw:0
+hw:0,0
+hw:supersonic,1
+hw:soundwave,1,2
+hw:DEV=1,CARD=soundwave,SUBDEV=2
+\endcode
+
+\section rawmidi_examples Examples
+
+The full featured examples with cross-links:
+
+\par Simple input/output test program
+\ref example_test_rawmidi "example code"
+\par
+This example shows open and read/write rawmidi operations.
+
+*/
+
+/**
+ * \example ../test/rawmidi.c
+ * \anchor example_test_rawmidi
+ */
+ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

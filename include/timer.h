@@ -34,7 +34,7 @@ extern "C" {
 
 /**
  *  \defgroup Timer Timer Interface
- *  Timer Interface
+ *  Timer Interface. See \ref timer page for more details.
  *  \{
  */
 

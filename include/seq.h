@@ -5,7 +5,8 @@
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Takashi Iwai <tiwai@suse.de>
  * \date 1998-2001
- *
+ */
+/*
  * Application interface library for the ALSA driver
  *
  *
@@ -34,7 +35,8 @@ extern "C" {
 
 /**
  *  \defgroup Sequencer MIDI Sequencer
- *  MIDI Sequencer Interface
+ *  MIDI Sequencer Interface.
+ *  See \ref seq page for more details.
  *  \{
  */
 
@@ -44,7 +46,7 @@ extern "C" {
 /** Sequencer handle */
 typedef struct _snd_seq snd_seq_t;
 
-/** \internal */
+/** Allocate and initialize array on stack \internal */
 #define SND_ALLOCA(type,ptr) \
 do {\
 	assert(ptr);\

@@ -35,6 +35,7 @@ extern "C" {
 /**
  *  \defgroup Control Control Interface
  *  The control interface.
+ *  See \ref control page for more details.
  *  \{
  */
 
@@ -398,6 +399,7 @@ void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec9
  *  \defgroup HControl Highlevel Control Interface
  *  \ingroup Control
  *  The highlevel control interface.
+ *  See \ref hcontrol page for more details.
  *  \{
  */
 

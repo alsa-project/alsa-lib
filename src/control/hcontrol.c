@@ -7,6 +7,7 @@
  *
  * HCTL interface is designed to access preloaded and sorted primitive controls.
  * Callbacks may be used for event handling.
+ * See \ref hcontrol page for more details.
  */
 /*
  *  Control Interface - highlevel API
@@ -29,6 +30,17 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
+
+/*! \page hcontrol High level control interface
+
+<P> High level control interface is designed to access preloaded and sorted primitive controls.
+
+\section hcontrol_general_overview General overview
+
+<P> High level control interface caches the accesses to primitive controls
+to reduce overhead accessing the real controls in kernel drivers.
+
+*/
 
 #include <stdio.h>
 #include <stdlib.h>

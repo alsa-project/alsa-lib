@@ -5,6 +5,7 @@
  * \date 2000
  *
  * CTL interface is designed to access primitive controls.
+ * See \ref control page for more details.
  */
 /*
  *  Control Interface - main file
@@ -26,6 +27,18 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
+
+/*! \page control Control interface
+
+<P>Control interface is designed to access primitive controls. There is
+also interface notifying about control and structure changes.
+
+\section control_general_overview General overview
+
+The primitive controls can be integer, boolean, enumerators, bytes
+and IEC958 structure.
+
+*/
 
 #include <stdio.h>
 #include <stdlib.h>

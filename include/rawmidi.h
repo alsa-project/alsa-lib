@@ -34,7 +34,7 @@ extern "C" {
 
 /**
  *  \defgroup RawMidi RawMidi Interface
- *  The RawMidi Interface.
+ *  The RawMidi Interface. See \ref rawmidi page for more details.
  *  \{
  */
 

@@ -30,8 +30,13 @@ may be placed in the library code instead of the kernel driver.</P>
 <H2>API links</H2>
 
 <UL>
+  <LI>Page \ref control explains the primitive controls API
+  <LI>Page \ref hcontrol explains the high-level primitive controls API
   <LI>Page \ref pcm explains the design of PCM (digital audio) API
   <LI>Page \ref pcm_plugins explains the design of PCM (digital audio) plugins
+  <LI>Page \ref rawmidi explains the design of RawMidi API
+  <LI>Page \ref timer explains the design of Timer API
+  <LI>Page \ref seq explains the design of Sequencer API
 </UL>
 
 <H2>Configuration</H2>

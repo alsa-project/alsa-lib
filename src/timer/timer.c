@@ -5,6 +5,7 @@
  * \date 1998-2001
  *
  * Timer Interface is designed to access timers.
+ * See \ref timer page for more details.
  */
 /*
  *  Timer Interface - main file
@@ -25,6 +26,45 @@
  *   License along with this library; if not, write to the Free Software
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
+ */
+
+/*! \page timer Timer interface
+
+<P> Timer interface is designed to use internal timers in sound hardware, but
+it can be driven with any timer.
+
+\section timer_general_overview General overview
+
+The timer implementation uses ring buffer to store information about timing
+events. In this buffer is recorded count of ticks and current tick resolution
+in nanoseconds.
+
+\section timer_open Opening
+
+Timer devices can be opened in two ways. When #SND_TIMER_OPEN_NONBLOCK flag
+is used, then the open functions return immediately with -EBUSY error code when
+resources are occupied with another application. When #SND_TIMER_OPEN_NONBLOCK
+is not used (by default) the open functions block the application requesting
+device until resources are not free.
+
+\section timer_events Events
+
+Events are read via snd_timer_read() function.
+
+\section timer_examples Examples
+
+The full featured examples with cross-links:
+
+\par Simple timer test program
+\ref example_test_timer "example code"
+\par
+This example shows opening a timer device and reading of timer events.
+
+*/
+
+/**
+ * \example ../test/timer.c
+ * \anchor example_test_timer
  */
 
 #include <stdio.h>
