@@ -23,6 +23,11 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_pcm_linear = "";
+#endif
+
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
@@ -319,7 +324,6 @@ int snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	return 0;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_pcm_linear_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
 			 snd_config_t *root, snd_config_t *conf, 
 			 snd_pcm_stream_t stream, int mode)
@@ -363,5 +367,4 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
-				
-
+SND_DLSYM_BUILD_VERSION(_snd_pcm_linear_open, SND_PCM_DLSYM_VERSION);

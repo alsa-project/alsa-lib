@@ -27,6 +27,11 @@
 #include <sys/ioctl.h>
 #include "timer_local.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_timer_hw = "";
+#endif
+
 #define SNDRV_FILE_TIMER		"/dev/snd/timer"
 #define SNDRV_TIMER_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
@@ -200,7 +205,6 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 	return 0;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_timer_hw_open, SND_TIMER_DLSYM_VERSION);
 int _snd_timer_hw_open(snd_timer_t **timer, char *name,
 		       snd_config_t *root ATTRIBUTE_UNUSED,
 		       snd_config_t *conf, int mode)
@@ -260,3 +264,4 @@ int _snd_timer_hw_open(snd_timer_t **timer, char *name,
 		return -EINVAL;
 	return snd_timer_hw_open(timer, name, dev_class, dev_sclass, card, device, subdevice, mode);
 }
+SND_DLSYM_BUILD_VERSION(_snd_timer_hw_open, SND_TIMER_DLSYM_VERSION);

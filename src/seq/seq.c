@@ -26,8 +26,8 @@
  *
  */
 
-#include <sys/poll.h>
 #include <dlfcn.h>
+#include <sys/poll.h>
 #include "seq_local.h"
 
 /****************************************************************************
@@ -77,6 +77,9 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 	int (*open_func)(snd_seq_t **, const char *,
 			 snd_config_t *, snd_config_t *, 
 			 int, int) = NULL;
+#ifndef PIC
+	extern void *snd_seq_open_symbols(void);
+#endif
 	void *h;
 	if (snd_config_get_type(seq_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
@@ -129,21 +132,19 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_seq_%s_open", str);
 	}
-	h = dlopen(lib, RTLD_NOW);
-	if (h) {
-		if ((err = snd_dlsym_verify(h, open_name, SND_DLSYM_VERSION(SND_SEQ_DLSYM_VERSION))) < 0) {
-			dlclose(h);
-			goto _err;
-		}
-		open_func = dlsym(h, open_name);
-	}
+#ifndef PIC
+	snd_seq_open_symbols();
+#endif
+	h = snd_dlopen(lib, RTLD_NOW);
+	if (h)
+		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_SEQ_DLSYM_VERSION));
 	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		err = -ENOENT;
 	} else if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
-		dlclose(h);
+		snd_dlclose(h);
 		err = -ENXIO;
 	}
        _err:

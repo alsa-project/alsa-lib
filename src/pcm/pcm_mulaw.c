@@ -23,6 +23,11 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_pcm_mulaw = "";
+#endif
+
 typedef void (*mulaw_f)(const snd_pcm_channel_area_t *src_areas,
 			snd_pcm_uframes_t src_offset,
 			const snd_pcm_channel_area_t *dst_areas,
@@ -429,7 +434,6 @@ int snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 	return 0;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_pcm_mulaw_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)
@@ -474,5 +478,4 @@ int _snd_pcm_mulaw_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
-				
-
+SND_DLSYM_BUILD_VERSION(_snd_pcm_mulaw_open, SND_PCM_DLSYM_VERSION);

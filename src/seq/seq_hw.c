@@ -24,6 +24,11 @@
 #include <sys/ioctl.h>
 #include "seq_local.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_seq_hw = "";
+#endif
+
 #define SNDRV_FILE_SEQ		"/dev/snd/seq"
 #define SNDRV_FILE_ALOADSEQ	"/dev/aloadSEQ"
 #define SNDRV_SEQ_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 0)
@@ -503,7 +508,6 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 	return 0;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_seq_hw_open, SND_SEQ_DLSYM_VERSION);
 int _snd_seq_hw_open(snd_seq_t **handlep, char *name,
 		     snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		     int streams, int mode)
@@ -520,4 +524,4 @@ int _snd_seq_hw_open(snd_seq_t **handlep, char *name,
 	}
 	return snd_seq_hw_open(handlep, name, streams, mode);
 }
-				
+SND_DLSYM_BUILD_VERSION(_snd_seq_hw_open, SND_SEQ_DLSYM_VERSION);

@@ -31,8 +31,8 @@
 
 #include <stdarg.h>
 #include <wordexp.h>
-#include <sys/stat.h>
 #include <dlfcn.h>
+#include <sys/stat.h>
 #include "local.h"
 
 #ifndef DOC_HIDDEN
@@ -1801,17 +1801,15 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, void 
 		buf[len-1] = '\0';
 		func_name = buf;
 	}
-	h = dlopen(lib, RTLD_NOW);
-	if ((err = snd_dlsym_verify(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_HOOK))) < 0)
-		goto _err;
-	func = h ? dlsym(h, func_name) : NULL;
+	h = snd_dlopen(lib, RTLD_NOW);
+	func = h ? snd_dlsym(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_HOOK)) : NULL;
 	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		err = -ENOENT;
 	} else if (!func) {
 		SNDERR("symbol %s is not defined inside %s", func_name, lib);
-		dlclose(h);
+		snd_dlclose(h);
 		err = -ENXIO;
 	}
 	_err:
@@ -1822,7 +1820,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, void 
 		err = func(root, config, &nroot, private_data);
 		if (err < 0)
 			SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
-		dlclose(h);
+		snd_dlclose(h);
 		if (err >= 0 && nroot)
 			snd_config_substitute(root, nroot);
 	}
@@ -1869,9 +1867,6 @@ static int snd_config_hooks(snd_config_t *config, void *private_data)
 	return err;
 }
 
-#ifndef DOC_HIDDEN
-SND_DLSYM_BUILD_VERSION(snd_config_hook_load, SND_CONFIG_DLSYM_VERSION_HOOK);
-#endif
 /**
  * \brief Load configuration from specified files
  * \param root Configuration root node
@@ -2001,14 +1996,14 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 	snd_config_delete(n);
 	return err;
 }
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(snd_config_hook_load, SND_CONFIG_DLSYM_VERSION_HOOK);
+#endif
 
 #ifndef DOC_HIDDEN
 int snd_determine_driver(int card, char **driver);
 #endif
 
-#ifndef DOC_HIDDEN
-SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VERSION_HOOK);
-#endif
 /**
  * \brief Load configuration for all present cards
  * \param root Configuration root node
@@ -2056,6 +2051,9 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 	*dst = NULL;
 	return 0;
 }
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VERSION_HOOK);
+#endif
 
 /** 
  * \brief Update #snd_config rereading (if needed) files specified in
@@ -2510,19 +2508,16 @@ static int _snd_config_evaluate(snd_config_t *src,
 			buf[len-1] = '\0';
 			func_name = buf;
 		}
-		h = dlopen(lib, RTLD_NOW);
-		if (h) {
-			if ((err = snd_dlsym_verify(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_EVALUATE))) < 0)
-				goto _err;
-			func = dlsym(h, func_name);
-		}
+		h = snd_dlopen(lib, RTLD_NOW);
+		if (h)
+			func = snd_dlsym(h, func_name, SND_DLSYM_VERSION(SND_CONFIG_DLSYM_VERSION_EVALUATE));
 		err = 0;
 		if (!h) {
 			SNDERR("Cannot open shared library %s", lib);
 			return -ENOENT;
 		} else if (!func) {
 			SNDERR("symbol %s is not defined inside %s", func_name, lib);
-			dlclose(h);
+			snd_dlclose(h);
 			return -ENXIO;
 		}
 	       _err:
@@ -2533,7 +2528,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 			err = func(&eval, root, src, private_data);
 			if (err < 0)
 				SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
-			dlclose(h);
+			snd_dlclose(h);
 			if (err >= 0 && eval)
 				snd_config_substitute(src, eval);
 		}

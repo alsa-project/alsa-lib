@@ -30,6 +30,41 @@
 #include <dlfcn.h>
 #include "local.h"
 
+#ifndef DOC_HIDDEN
+#ifndef PIC
+struct snd_dlsym_link *snd_dlsym_start = NULL;
+#endif
+#endif
+
+/**
+ * \brief Open the dynamic library, with ALSA extension
+ * \param name name, similar to dlopen
+ * \param mode mode, similar to dlopen
+ * \return pointer to handle
+ */
+void *snd_dlopen(const char *name, int mode)
+{
+#ifndef PIC
+	if (name == NULL)
+		return &snd_dlsym_start;
+#endif
+	return dlopen(name, mode);
+}
+
+/**
+ * \brief Close the dynamic library, with ALSA extension
+ * \param handle handle, similar to dlclose
+ * \return zero if success, otherwise an error code
+ */
+int snd_dlclose(void *handle)
+{
+#ifndef PIC
+	if (handle == &snd_dlsym_start)
+		return 0;
+#endif
+	return dlclose(handle);
+}
+
 /**
  * \brief Verify dynamically loaded symbol
  * \param handle dlopen handle
@@ -37,7 +72,7 @@
  * \param version version of symbol
  * \return zero is success, otherwise a negative error code
  */
-int snd_dlsym_verify(void *handle, const char *name, const char *version)
+static int snd_dlsym_verify(void *handle, const char *name, const char *version)
 {
 	int res;
 	char *vname;
@@ -53,4 +88,32 @@ int snd_dlsym_verify(void *handle, const char *name, const char *version)
 	if (res < 0)
 		SNDERR("unable to verify version for symbol %s", name);
 	return res;
+}
+/**
+ * \brief Resolve the symbol, with ALSA extension
+ * \param handle handle, similar to dlsym
+ * \param name symbol name
+ * \param version symbol version
+ */
+void *snd_dlsym(void *handle, const char *name, const char *version)
+{
+	int err;
+
+#ifndef PIC
+	if (handle == &snd_dlsym_start) {
+		/* it's the funny part, we are looking for a symbol */
+		/* in a static library */
+		struct snd_dlsym_link *link = snd_dlsym_start;
+		while (link) {
+			if (!strcmp(name, link->dlsym_name))
+				return (void *)link->dlsym_ptr;
+			link = link->next;
+		}
+		return NULL;
+	}
+#endif
+	err = snd_dlsym_verify(handle, name, version);
+	if (err < 0)
+		return NULL;
+	return dlsym(handle, name);
 }

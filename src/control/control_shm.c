@@ -35,6 +35,11 @@
 #include <netdb.h>
 #include "aserver.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_control_shm = "";
+#endif
+
 typedef struct {
 	int socket;
 	volatile snd_ctl_shm_ctrl_t *ctrl;
@@ -553,7 +558,6 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 	return result;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_ctl_shm_open, SND_CONTROL_DLSYM_VERSION);
 int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -668,3 +672,4 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 	snd_config_delete(sconfig);
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(_snd_ctl_shm_open, SND_CONTROL_DLSYM_VERSION);

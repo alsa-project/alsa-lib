@@ -34,4 +34,15 @@ For compilation you can use these commands:
 	make
 
 Note: Some automake packages have missing aclocal program. Use newer version
-      in this case.
+      in the case.
+
+Compilation of static library
+-----------------------------
+
+If you would like to use the static ALSA library, you need to use these
+options for the configure script:
+
+	./configure --enable-shared=no --enable-static=yes
+
+Unfortunately, due to bug in the libtool script, the shared and static
+library cannot be built together.

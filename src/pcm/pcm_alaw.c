@@ -23,6 +23,11 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_pcm_alaw = "";
+#endif
+
 typedef void (*alaw_f)(const snd_pcm_channel_area_t *dst_areas,
 		       snd_pcm_uframes_t dst_offset,
 		       const snd_pcm_channel_area_t *src_areas,
@@ -414,7 +419,6 @@ int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	return 0;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_pcm_alaw_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
@@ -459,5 +463,4 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
-				
-
+SND_DLSYM_BUILD_VERSION(_snd_pcm_alaw_open, SND_PCM_DLSYM_VERSION);

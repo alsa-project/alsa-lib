@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <sys/time.h>
 #include "../include/asoundlib.h"
 #include <string.h>
 #include <signal.h>

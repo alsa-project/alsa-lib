@@ -26,6 +26,11 @@
 #include <math.h>
 #include "pcm_local.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_pcm_multi = "";
+#endif
+
 typedef struct {
 	snd_pcm_t *pcm;
 	unsigned int channels_count;
@@ -659,7 +664,6 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_pcm_multi_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
@@ -863,4 +867,4 @@ _free:
 		free(channels_schannel);
 	return err;
 }
-
+SND_DLSYM_BUILD_VERSION(_snd_pcm_multi_open, SND_PCM_DLSYM_VERSION);

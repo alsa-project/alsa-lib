@@ -142,7 +142,6 @@ int snd_config_get_ctl_iface(snd_config_t *conf)
  *  Helper functions for the configuration file
  */
 
-SND_DLSYM_BUILD_VERSION(snd_func_getenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n, *d;
@@ -220,8 +219,8 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
       		free(def);
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_getenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
-SND_DLSYM_BUILD_VERSION(snd_func_igetenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *d;
@@ -246,8 +245,8 @@ int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, 
  _end:
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_igetenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 		
-SND_DLSYM_BUILD_VERSION(snd_func_concat, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -311,8 +310,8 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
       __error:
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_concat, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
-SND_DLSYM_BUILD_VERSION(snd_func_datadir, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_datadir(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 		     snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
 {
@@ -321,6 +320,7 @@ int snd_func_datadir(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
 		err = snd_config_set_string(*dst, DATADIR "/alsa");
 	return 0;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_datadir, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
 static int open_ctl(long card, snd_ctl_t **ctl)
 {
@@ -344,7 +344,6 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
-SND_DLSYM_BUILD_VERSION(snd_func_private_string, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
 {
 	int err;
@@ -356,6 +355,7 @@ int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNU
 		err = snd_config_set_string(*dst, (char *)private_data);
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_private_string, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
 int snd_determine_driver(int card, char **driver)
 {
@@ -389,7 +389,6 @@ int snd_determine_driver(int card, char **driver)
 	return err;
 }
 
-SND_DLSYM_BUILD_VERSION(snd_func_private_card_strtype, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
 {
 	char *driver;
@@ -403,8 +402,8 @@ int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBU
 	free(driver);
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_private_card_strtype, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
-SND_DLSYM_BUILD_VERSION(snd_func_card_strtype, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -436,8 +435,8 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *
 	free(str);
 	return snd_func_private_card_strtype(dst, root, src, (void *)v);
 }
+SND_DLSYM_BUILD_VERSION(snd_func_card_strtype, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
-SND_DLSYM_BUILD_VERSION(snd_func_card_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -487,8 +486,8 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, 
       		snd_ctl_close(ctl);
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_card_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
-SND_DLSYM_BUILD_VERSION(snd_func_pcm_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -560,8 +559,8 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
       		snd_ctl_close(ctl);
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_pcm_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
-SND_DLSYM_BUILD_VERSION(snd_func_private_pcm_subdevice, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
 {
 	char *res = NULL;
@@ -585,8 +584,8 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 	free(res);
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_private_pcm_subdevice, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 
-SND_DLSYM_BUILD_VERSION(snd_func_refer, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
@@ -645,3 +644,4 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src, vo
  _end:
 	return err;
 }
+SND_DLSYM_BUILD_VERSION(snd_func_refer, SND_CONFIG_DLSYM_VERSION_EVALUATE);

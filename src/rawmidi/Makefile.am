@@ -1,6 +1,6 @@
 EXTRA_LTLIBRARIES=librawmidi.la
 
-librawmidi_la_SOURCES = rawmidi.c rawmidi_hw.c
+librawmidi_la_SOURCES = rawmidi.c rawmidi_hw.c rawmidi_symbols.c
 noinst_HEADERS = rawmidi_local.h
 
 all: librawmidi.la

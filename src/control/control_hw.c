@@ -29,6 +29,11 @@
 #include <sys/ioctl.h>
 #include "control_local.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_control_hw = "";
+#endif
+
 #ifndef F_SETSIG
 #define F_SETSIG 10
 #endif
@@ -336,7 +341,6 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 	return 0;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_ctl_hw_open, SND_CONTROL_DLSYM_VERSION);
 int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf)
 {
 	snd_config_iterator_t i, next;
@@ -368,4 +372,4 @@ int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBU
 		return -EINVAL;
 	return snd_ctl_hw_open(handlep, name, card, 0);
 }
-				
+SND_DLSYM_BUILD_VERSION(_snd_ctl_hw_open, SND_CONTROL_DLSYM_VERSION);

@@ -27,6 +27,11 @@
 #include <sys/ioctl.h>
 #include "hwdep_local.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_hwdep_hw = "";
+#endif
+
 #define SNDRV_FILE_HWDEP	"/dev/snd/hwC%iD%i"
 #define SNDRV_HWDEP_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 0)
 
@@ -137,7 +142,6 @@ int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int devi
 	return 0;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_hwdep_hw_open, SND_HWDEP_DLSYM_VERSION);
 int _snd_hwdep_hw_open(snd_hwdep_t **hwdep, char *name,
 		       snd_config_t *root ATTRIBUTE_UNUSED,
 		       snd_config_t *conf, int mode)
@@ -178,3 +182,4 @@ int _snd_hwdep_hw_open(snd_hwdep_t **hwdep, char *name,
 		return -EINVAL;
 	return snd_hwdep_hw_open(hwdep, name, card, device, mode);
 }
+SND_DLSYM_BUILD_VERSION(_snd_hwdep_hw_open, SND_HWDEP_DLSYM_VERSION);

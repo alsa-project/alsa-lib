@@ -22,6 +22,11 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_pcm_plug = "";
+#endif
+
 enum snd_pcm_plug_route_policy {
 	PLUG_ROUTE_POLICY_NONE,
 	PLUG_ROUTE_POLICY_DEFAULT,
@@ -788,7 +793,6 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 
 #define MAX_CHANNELS 64
 
-SND_DLSYM_BUILD_VERSION(_snd_pcm_plug_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
@@ -872,4 +876,4 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
-				
+SND_DLSYM_BUILD_VERSION(_snd_pcm_plug_open, SND_PCM_DLSYM_VERSION);

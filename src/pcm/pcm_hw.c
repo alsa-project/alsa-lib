@@ -31,6 +31,11 @@
 #include "pcm_local.h"
 #include "../control/control_local.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_pcm_hw = "";
+#endif
+
 #ifndef F_SETSIG
 #define F_SETSIG 10
 #endif
@@ -654,7 +659,6 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, in
 	return ret;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_pcm_hw_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		     snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		     snd_pcm_stream_t stream, int mode)
@@ -709,4 +713,4 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	}
 	return snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream, mode);
 }
-				
+SND_DLSYM_BUILD_VERSION(_snd_pcm_hw_open, SND_PCM_DLSYM_VERSION);

@@ -29,7 +29,12 @@
 #include "../control/control_local.h"
 #include "rawmidi_local.h"
 
-#define SNDRV_FILE_RAWMIDI	"/dev/snd/midiC%iD%i"
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_rawmidi_hw = "";
+#endif
+
+#define SNDRV_FILE_RAWMIDI		"/dev/snd/midiC%iD%i"
 #define SNDRV_RAWMIDI_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
 typedef struct {
@@ -302,7 +307,6 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	return -ENOMEM;
 }
 
-SND_DLSYM_BUILD_VERSION(_snd_rawmidi_hw_open, SND_RAWMIDI_DLSYM_VERSION);
 int _snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			 char *name, snd_config_t *root ATTRIBUTE_UNUSED,
 			 snd_config_t *conf, int mode)
@@ -348,4 +352,4 @@ int _snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		return -EINVAL;
 	return snd_rawmidi_hw_open(inputp, outputp, name, card, device, subdevice, mode);
 }
-				
+SND_DLSYM_BUILD_VERSION(_snd_rawmidi_hw_open, SND_RAWMIDI_DLSYM_VERSION);

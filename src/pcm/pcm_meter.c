@@ -34,6 +34,11 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_pcm_meter = "";
+#endif
+
 #if defined(__sparc__) || defined(__ia64__) || defined(__mips__)
 /* asm/atomic.h is unavailable on sparc and ia64 */
 #define atomic_t int
@@ -728,8 +733,6 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 	return err >= 0 ? open_func(pcm, name, root, conf) : err;
 }
 
-			
-SND_DLSYM_BUILD_VERSION(_snd_pcm_meter_open, SND_PCM_DLSYM_VERSION);
 int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)
@@ -807,6 +810,7 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 	}
 	return 0;
 }
+SND_DLSYM_BUILD_VERSION(_snd_pcm_meter_open, SND_PCM_DLSYM_VERSION);
 
 #endif
 

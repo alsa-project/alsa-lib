@@ -38,12 +38,12 @@
 #include <malloc.h>
 #include <stdarg.h>
 #include <signal.h>
+#include <dlfcn.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/shm.h>
 #include <sys/mman.h>
 #include <limits.h>
-#include <dlfcn.h>
 #include "pcm_local.h"
 
 /**
@@ -1027,6 +1027,9 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 	int (*open_func)(snd_pcm_t **, const char *, 
 			 snd_config_t *, snd_config_t *, 
 			 snd_pcm_stream_t, int) = NULL;
+#ifndef PIC
+	extern void *snd_pcm_open_symbols(void);
+#endif
 	void *h;
 	if (snd_config_get_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
@@ -1081,21 +1084,19 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_pcm_%s_open", str);
 	}
-	h = dlopen(lib, RTLD_NOW);
-	if (h) {
-		if ((err = snd_dlsym_verify(h, open_name, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION))) < 0) {
-			dlclose(h);
-			goto _err;
-		}
-		open_func = dlsym(h, open_name);
-	}
+#ifndef PIC
+	snd_pcm_open_symbols();	/* this call is for static linking only */
+#endif
+	h = snd_dlopen(lib, RTLD_NOW);
+	if (h)
+		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION));
 	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		err = -ENOENT;
 	} else if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
-		dlclose(h);
+		snd_dlclose(h);
 		err = -ENXIO;
 	}
        _err:
@@ -1139,7 +1140,6 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 }
 
 #ifndef DOC_HIDDEN
-
 int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 		snd_pcm_stream_t stream, int mode)
 {
