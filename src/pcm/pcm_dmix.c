@@ -653,7 +653,7 @@ static void mix_areas1(unsigned int size,
 #endif
 
 #ifndef ADD_AND_SATURATE
-#warning Please, recode add_and_saturate routine to your architecture...
+#warning Please, recode mix_areas1() routine to your architecture...
 static void mix_areas1(unsigned int size,
 		       volatile signed short *dst, signed short *src,
 		       volatile signed int *sum, unsigned int dst_step,
