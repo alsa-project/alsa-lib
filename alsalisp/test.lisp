@@ -47,6 +47,9 @@
 (+ 1.1 2.2 3.3)			(&check-memory)
 (+ 'aaaa)			(&check-memory)
 (+ 'aaaa 'bbbb)			(&check-memory)
+(+ "aaaa")			(&check-memory)
+(+ "aaaa" "bbbb")		(&check-memory)
+(+ "aaaa" "bbbb" "cccc")	(&check-memory)
 
 (-)				(&check-memory)
 (- 1)				(&check-memory)

@@ -45,13 +45,12 @@ enum alisp_objects {
 
 struct alisp_object;
 
-#define ALISP_MAX_REFS	0x0fffffff
-#define ALISP_MAX_REFS_LIMIT ((ALISP_MAX_REFS + 1) / 2)
-
 #define ALISP_TYPE_MASK	0xf0000000
 #define ALISP_TYPE_SHIFT 28
 #define ALISP_REFS_MASK 0x0fffffff
 #define ALISP_REFS_SHIFT 0
+#define ALISP_MAX_REFS (ALISP_REFS_MASK>>ALISP_REFS_SHIFT)
+#define ALISP_MAX_REFS_LIMIT ((ALISP_MAX_REFS + 1) / 2)
 
 struct alisp_object {
 	struct list_head list;

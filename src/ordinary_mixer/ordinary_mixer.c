@@ -101,6 +101,11 @@ int sndo_mixer_open(sndo_mixer_t **pmixer,
 		cfg = alsa_lisp_default_cfg(input);
 		if (cfg == NULL)
 			return -ENOMEM;
+#if 0
+		cfg->debug = 1;
+		cfg->verbose = 1;
+		cfg->warning = 1;
+#endif
 	}
 	err = alsa_lisp(cfg, &alisp);
 	if (err < 0)

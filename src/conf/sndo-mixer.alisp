@@ -66,7 +66,9 @@
   (setq r (sndo_mixer_open1 ppcm "p"))
   (when (= r 0) (setq r (sndo_mixer_open1 cpcm "c")))
   (when (!= r 0) (sndo_mixer_close))
-  (unsetq r)
+  (unsetq sndo_mixer_open sndo_mixer_open1
+          sndo_mixer_open_virtual sndo_mixer_open_fcn
+	  sndo_include r)
 )
 
 (defun sndo_mixer_close1 (hctl stream)

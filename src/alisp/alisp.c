@@ -1138,9 +1138,8 @@ static struct alisp_object * F_add(struct alisp_instance *instance, struct alisp
 				lisp_warn(instance, "sum with a non integer or float operand");
 			}
 			delete_tree(instance, p1);
-			n = cdr(p);
-			delete_object(instance, p);
-			p = n;
+			p = cdr(n = p);
+			delete_object(instance, n);
 			if (p == &alsa_lisp_nil)
 				break;
 			p1 = eval(instance, car(p));
@@ -1170,13 +1169,11 @@ static struct alisp_object * F_add(struct alisp_instance *instance, struct alisp
 				lisp_warn(instance, "concat with a non string or identifier operand");
 			}
 			delete_tree(instance, p1);
-			n = cdr(p);
-			delete_object(instance, p);
-			p = n;
+			p = cdr(n = p);
+			delete_object(instance, n);
 			if (p == &alsa_lisp_nil)
 				break;
 			p1 = eval(instance, car(p));
-			delete_object(instance, car(p));
 		}
 		p = new_string(instance, str);
 		free(str);
@@ -1626,6 +1623,7 @@ static void princ_string(snd_output_t *out, char *s)
 		case '\r': snd_output_putc(out, '\\'); snd_output_putc(out, 'r'); break;
 		case '\t': snd_output_putc(out, '\\'); snd_output_putc(out, 't'); break;
 		case '\v': snd_output_putc(out, '\\'); snd_output_putc(out, 'v'); break;
+		case '"': snd_output_putc(out, '\\'); snd_output_putc(out, '"'); break;
 		default: snd_output_putc(out, *p);
 		}
 	snd_output_putc(out, '"');
@@ -2219,11 +2217,9 @@ static struct alisp_object * F_unsetq(struct alisp_instance *instance, struct al
 	do {
 		if (p1)
 			delete_tree(instance, p1);
-		p1 = car(p);
-		delete_tree(instance, unset_object(instance, p1));
-		n = cdr(p);
-		delete_object(instance, p);
-		p = n;
+		p1 = unset_object(instance, car(p));
+		p = cdr(n = p);
+		delete_object(instance, n);
 	} while (p != &alsa_lisp_nil);
 
 	return p1;
@@ -2482,13 +2478,19 @@ struct alisp_object * F_str(struct alisp_instance *instance, struct alisp_object
 		return p;
 	if (alisp_compare_type(p, ALISP_OBJ_INTEGER) ||
 	    alisp_compare_type(p, ALISP_OBJ_FLOAT)) {
-		char buf[64];
-		if (alisp_compare_type(p, ALISP_INTEGER)) {
+		char *buf = malloc(64);
+		if (buf == NULL) {
+			delete_tree(instance, p);
+			nomem();
+			return NULL;
+		}
+		if (alisp_compare_type(p, ALISP_OBJ_INTEGER)) {
 			snprintf(buf, sizeof(buf), "%ld", p->value.i);
 		} else {
 			snprintf(buf, sizeof(buf), "%.f", p->value.f);
 		}
 		p1 = new_string(instance, buf);
+		free(buf);
 	} else {
 		lisp_warn(instance, "expected an integer or float for integer conversion");
 		p1 = &alsa_lisp_nil;
