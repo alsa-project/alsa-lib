@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/poll.h>
 #include "../pcm_local.h"
 
 /*
@@ -37,6 +38,90 @@ struct mmap_private_data {
 	char *buffer;
 	int frag;
 };
+
+static int poll_playback(snd_pcm_t *pcm)
+{
+	int err;
+	struct pollfd pfd;
+	
+	if (pcm->mode & SND_PCM_OPEN_NONBLOCK)
+		return -EAGAIN;
+	pfd.fd = pcm->fd[SND_PCM_CHANNEL_PLAYBACK];
+	pfd.events = POLLOUT;
+	pfd.revents = 0;
+	err = poll(&pfd, 1, 1000);
+	return err < 0 ? err : 0;
+}
+
+static int query_playback(struct mmap_private_data *data,
+			  snd_pcm_mmap_control_t *control,
+			  int not_use_poll)
+{
+	int err;
+
+	switch (control->status.status) {
+	case SND_PCM_STATUS_PREPARED:
+		err = snd_pcm_channel_go(data->pcm, data->channel);
+		if (err < 0)
+			return err;
+		break;
+	case SND_PCM_STATUS_RUNNING:
+		if (!not_use_poll) {
+			control->status.expblock = control->status.block + 1;
+			err = poll_playback(data->pcm);
+			if (err < 0)
+				return err;
+		}
+		break;
+	case SND_PCM_STATUS_UNDERRUN:
+		return -EAGAIN;
+	default:
+		return -EIO;
+	}
+	return 0;
+}
+
+static int poll_capture(snd_pcm_t *pcm)
+{
+	int err;
+	struct pollfd pfd;
+
+	if (pcm->mode & SND_PCM_OPEN_NONBLOCK)
+		return -EAGAIN;
+	pfd.fd = pcm->fd[SND_PCM_CHANNEL_CAPTURE];
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+	err = poll(&pfd, 1, 1000);
+	return err < 0 ? err : 0;
+}
+
+static int query_capture(struct mmap_private_data *data,
+			 snd_pcm_mmap_control_t *control,
+			 int not_use_poll)
+{
+	int err;
+
+	switch (control->status.status) {
+	case SND_PCM_STATUS_PREPARED:
+		err = snd_pcm_channel_go(data->pcm, data->channel);
+		if (err < 0)
+			return err;
+		break;
+	case SND_PCM_STATUS_RUNNING:
+		if (!not_use_poll) {
+			control->status.expblock = control->status.block + 1;
+			err = poll_capture(data->pcm);
+			if (err < 0)
+				return err;
+		}
+		break;
+	case SND_PCM_STATUS_OVERRUN:
+		return -EAGAIN;
+	default:
+		return -EIO;
+	}
+	return 0;
+}
 
 static int mmap_transfer_src_ptr(snd_pcm_plugin_t *plugin, char **buffer, size_t *size)
 {
@@ -58,18 +143,9 @@ static int mmap_transfer_src_ptr(snd_pcm_plugin_t *plugin, char **buffer, size_t
 		if (data->channel == SND_PCM_CHANNEL_PLAYBACK) {
 			/* wait until the block is not free */
 			while (control->fragments[data->frag].data) {
-				switch (control->status.status) {
-				case SND_PCM_STATUS_PREPARED:
-					err = snd_pcm_channel_go(data->pcm, data->channel);
-					if (err < 0)
-						return err;
-					break;
-				case SND_PCM_STATUS_RUNNING:
-					usleep(10000);
-					break;
-				default:
-					return -EIO;
-				}
+				err = query_playback(data, control, 0);
+				if (err < 0)
+					return err;
 			}
 		}
 		*size = control->status.frag_size;
@@ -105,21 +181,12 @@ static ssize_t mmap_transfer(snd_pcm_plugin_t *plugin,
 			return -EINVAL;
 	}
 	if (data->channel == SND_PCM_CHANNEL_PLAYBACK) {
+		while (control->fragments[data->frag].data) {
+			err = query_playback(data, control, 0);
+			if (err < 0)
+				return err;
+		}
 		if (interleave) {
-			while (control->fragments[data->frag].data) {
-				switch (control->status.status) {
-				case SND_PCM_STATUS_PREPARED:
-					err = snd_pcm_channel_go(data->pcm, data->channel);
-					if (err < 0)
-						return err;
-					break;
-				case SND_PCM_STATUS_RUNNING:
-					usleep(10000);
-					break;
-				default:
-					return -EIO;
-				}
-			}
 			addr = data->buffer + control->fragments[data->frag].addr;
 			if (dst_ptr != addr)
 				memcpy(addr, dst_ptr, dst_size);
@@ -131,18 +198,9 @@ static ssize_t mmap_transfer(snd_pcm_plugin_t *plugin,
 			for (voice = 0; voice < control->status.voices; voice++) {
 				frag = data->frag + (voice * (control->status.frags / control->status.voices));
 				while (control->fragments[frag].data) {
-					switch (control->status.status) {
-					case SND_PCM_STATUS_PREPARED:
-						err = snd_pcm_channel_go(data->pcm, data->channel);
-						if (err < 0)
-							return err;
-						break;
-					case SND_PCM_STATUS_RUNNING:
-						usleep(10000);
-						break;
-					default:
-						return -EIO;
-					}
+					err = query_playback(data, control, 1);
+					if (err < 0)
+						return err;
 				}
 				addr = data->buffer + control->fragments[frag].addr;
 				if (dst_ptr != addr)
@@ -155,21 +213,12 @@ static ssize_t mmap_transfer(snd_pcm_plugin_t *plugin,
 		}
 		return dst_size;
 	} else if (data->channel == SND_PCM_CHANNEL_CAPTURE) {
+		while (!control->fragments[data->frag].data) {
+			err = query_capture(data, control, 0);
+			if (err < 0)
+				return err;
+		}
 		if (interleave) {
-			while (!control->fragments[data->frag].data) {
-				switch (control->status.status) {
-				case SND_PCM_STATUS_PREPARED:
-					err = snd_pcm_channel_go(data->pcm, data->channel);
-					if (err < 0)
-						return err;
-					break;
-				case SND_PCM_STATUS_RUNNING:
-					usleep(10000);
-					break;
-				default:
-					return -EIO;
-				}
-			}
 			addr = data->buffer + control->fragments[data->frag].addr;
 			if (dst_ptr != addr)
 				memcpy(dst_ptr, addr, dst_size);
@@ -178,18 +227,9 @@ static ssize_t mmap_transfer(snd_pcm_plugin_t *plugin,
 		} else {
 			for (voice = 0; voice < control->status.voices; voice++) {
 				while (!control->fragments[data->frag].data) {
-					switch (control->status.status) {
-					case SND_PCM_STATUS_PREPARED:
-						err = snd_pcm_channel_go(data->pcm, data->channel);
-						if (err < 0)
-							return err;
-						break;
-					case SND_PCM_STATUS_RUNNING:
-						usleep(10000);
-						break;
-					default:
-						return -EIO;
-					}
+					err = query_capture(data, control, 1);
+					if (err < 0)
+						return err;
 				}
 				addr = data->buffer + control->fragments[data->frag].addr;
 				if (dst_ptr != addr)

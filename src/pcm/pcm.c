@@ -193,6 +193,10 @@ int snd_pcm_nonblock_mode(snd_pcm_t *pcm, int nonblock)
 			flags &= ~O_NONBLOCK;
 		if (fcntl(fd, F_SETFL, flags) < 0)
 			return -errno;
+		if (nonblock)
+			pcm->mode |= SND_PCM_OPEN_NONBLOCK;
+		else
+			pcm->mode &= ~SND_PCM_OPEN_NONBLOCK;
 	}
 	return 0;
 }
