@@ -1864,8 +1864,17 @@ static int _snd_config_expand(snd_config_t *src,
 
 void snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 {
+	if (src->type == SND_CONFIG_TYPE_COMPOUND) {
+		snd_config_iterator_t i, next;
+		snd_config_for_each(i, next, src) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			n->father = dst;
+		}
+		src->u.compound.fields.next->prev = &dst->u.compound.fields;
+		src->u.compound.fields.prev->next = &dst->u.compound.fields;
+	}
 	free(dst->id);
-	dst->id = src->id;
+	dst->id  = src->id;
 	dst->type = src->type;
 	dst->u = src->u;
 }

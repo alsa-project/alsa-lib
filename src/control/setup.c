@@ -460,6 +460,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *conf,
 				free(tmp);
 				goto _err;
 			}
+			iface = err;
 			free(tmp);
 			continue;
 		}
