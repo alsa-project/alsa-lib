@@ -354,7 +354,7 @@ typedef unsigned int snd_seq_position_t; /**< playback position (in samples) * 1
 typedef enum snd_seq_stop_mode {
 	SND_SEQ_SAMPLE_STOP_IMMEDIATELY = 0,	/**< terminate playing immediately */
 	SND_SEQ_SAMPLE_STOP_VENVELOPE = 1,	/**< finish volume envelope */
-	SDN_SEQ_SAMPLE_STOP_LOOP = 2		/**< terminate loop and finish wave */
+	SND_SEQ_SAMPLE_STOP_LOOP = 2		/**< terminate loop and finish wave */
 } snd_seq_stop_mode_t;
 
 /** sample frequency */
