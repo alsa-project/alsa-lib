@@ -153,7 +153,7 @@ enum {
  *                                                                           *
  *****************************************************************************/
 
-#define SNDRV_PCM_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 6)
+#define SNDRV_PCM_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 7)
 
 typedef unsigned long sndrv_pcm_uframes_t;
 typedef long sndrv_pcm_sframes_t;
@@ -428,6 +428,22 @@ struct sndrv_pcm_mmap_control {
 	sndrv_pcm_uframes_t avail_min;	/* RW: min available frames for wakeup */
 };
 
+#define SNDRV_PCM_SYNC_PTR_HWSYNC	(1<<0)	/* execute hwsync */
+#define SNDRV_PCM_SYNC_PTR_APPL		(1<<1)	/* get appl_ptr from driver (r/w op) */
+#define SNDRV_PCM_SYNC_PTR_AVAIL_MIN	(1<<2)	/* get avail_min from driver */
+
+struct sndrv_pcm_sync_ptr {
+	unsigned int flags;
+	union {
+		struct sndrv_pcm_mmap_status status;
+		unsigned char reserved[64];
+	} s;
+	union {
+		struct sndrv_pcm_mmap_control control;
+		unsigned char reserved[64];
+	} c;
+};
+
 struct sndrv_xferi {
 	sndrv_pcm_sframes_t result;
 	void *buf;
@@ -451,6 +467,7 @@ enum {
 	SNDRV_PCM_IOCTL_STATUS = _IOR('A', 0x20, struct sndrv_pcm_status),
 	SNDRV_PCM_IOCTL_DELAY = _IOR('A', 0x21, sndrv_pcm_sframes_t),
 	SNDRV_PCM_IOCTL_HWSYNC = _IO('A', 0x22),
+	SNDRV_PCM_IOCTL_SYNC_PTR = _IOWR('A', 0x23, struct sndrv_pcm_sync_ptr),
 	SNDRV_PCM_IOCTL_CHANNEL_INFO = _IOR('A', 0x32, struct sndrv_pcm_channel_info),
 	SNDRV_PCM_IOCTL_PREPARE = _IO('A', 0x40),
 	SNDRV_PCM_IOCTL_RESET = _IO('A', 0x41),

@@ -68,7 +68,7 @@ typedef int snd_pcm_route_ttable_entry_t;
 int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		    int card, int device, int subdevice,
 		    snd_pcm_stream_t stream, int mode,
-		    int mmap_emulation);
+		    int mmap_emulation, int sync_ptr_ioctl);
 int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		     snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
 		     snd_pcm_stream_t stream, int mode);

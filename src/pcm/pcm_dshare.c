@@ -632,7 +632,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 			return ret;
 		}
 			
-		ret = snd_pcm_hw_open_fd(&spcm, "dshare_client", dshare->hw_fd, 0);
+		ret = snd_pcm_hw_open_fd(&spcm, "dshare_client", dshare->hw_fd, 0, 0);
 		if (ret < 0) {
 			SNDERR("unable to open hardware");
 			goto _err;
