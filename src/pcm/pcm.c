@@ -27,6 +27,7 @@
 #include <sys/poll.h>
 #include <sys/uio.h>
 #include "pcm_local.h"
+#include "list.h"
 
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *handle)
 {
@@ -501,3 +502,170 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *handle, ssize_t samples)
 	return samples * handle->bits_per_sample / 8;
 }
 
+static int _snd_pcm_open_hw(snd_pcm_t **handlep, snd_config_t *conf, 
+			    int stream, int mode)
+{
+	snd_config_iterator_t i;
+	long card = -1, device = -1, subdevice = -1;
+	char *str;
+	int err;
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "type") == 0)
+			continue;
+		if (strcmp(n->id, "stream") == 0)
+			continue;
+		if (strcmp(n->id, "card") == 0) {
+			err = snd_config_integer_get(n, &card);
+			if (err < 0) {
+				err = snd_config_string_get(n, &str);
+				if (err < 0)
+					return -EINVAL;
+				card = snd_card_name(str);
+				if (card < 0)
+					return card;
+			}
+			continue;
+		}
+		if (strcmp(n->id, "device") == 0) {
+			err = snd_config_integer_get(n, &device);
+			if (err < 0)
+				return err;
+			continue;
+		}
+		if (strcmp(n->id, "subdevice") == 0) {
+			err = snd_config_integer_get(n, &subdevice);
+			if (err < 0)
+				return err;
+			continue;
+		}
+		return -EINVAL;
+	}
+	if (card < 0 || device < 0)
+		return -EINVAL;
+	return snd_pcm_hw_open_subdevice(handlep, card, device, subdevice, stream, mode);
+}
+				
+static int _snd_pcm_open_plug(snd_pcm_t **handlep, snd_config_t *conf, 
+			      int stream, int mode)
+{
+	snd_config_iterator_t i;
+	long card = -1, device = -1, subdevice = -1;
+	char *str;
+	int err;
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "type") == 0)
+			continue;
+		if (strcmp(n->id, "stream") == 0)
+			continue;
+		if (strcmp(n->id, "card") == 0) {
+			err = snd_config_integer_get(n, &card);
+			if (err < 0) {
+				err = snd_config_string_get(n, &str);
+				if (err < 0)
+					return -EINVAL;
+				card = snd_card_name(str);
+				if (card < 0)
+					return card;
+			}
+			continue;
+		}
+		if (strcmp(n->id, "device") == 0) {
+			err = snd_config_integer_get(n, &device);
+			if (err < 0)
+				return err;
+			continue;
+		}
+		if (strcmp(n->id, "subdevice") == 0) {
+			err = snd_config_integer_get(n, &subdevice);
+			if (err < 0)
+				return err;
+			continue;
+		}
+		return -EINVAL;
+	}
+	if (card < 0 || device < 0)
+		return -EINVAL;
+	return snd_pcm_plug_open_subdevice(handlep, card, device, subdevice, stream, mode);
+}
+				
+static int _snd_pcm_open_multi(snd_pcm_t **handle, snd_config_t *conf, 
+			      int stream, int mode)
+{
+	snd_config_iterator_t i;
+	char *str;
+	int err;
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "type") == 0)
+			continue;
+		if (strcmp(n->id, "stream") == 0)
+			continue;
+		if (strcmp(n->id, "slave") == 0) {
+			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
+				return -EINVAL;
+			/* Not yet implemented */
+			continue;
+		}
+		if (strcmp(n->id, "binding") == 0) {
+			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
+				return -EINVAL;
+			/* Not yet implemented */
+			continue;
+		}
+		return -EINVAL;
+	}
+	return -ENOSYS;
+}
+
+int snd_pcm_open(snd_pcm_t **handlep, char *name, 
+		 int stream, int mode)
+{
+	char *str;
+	int err;
+	snd_config_t *pcm_conf, *conf;
+	assert(handlep && name);
+	err = snd_config_update();
+	if (err < 0)
+		return err;
+	err = snd_config_searchv(snd_config, &pcm_conf, "pcm", name, 0);
+	if (err < 0)
+		return err;
+	if (snd_config_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND)
+		return -EINVAL;
+	err = snd_config_search(pcm_conf, "stream", &conf);
+	if (err >= 0) {
+		err = snd_config_string_get(conf, &str);
+		if (err < 0)
+			return err;
+		if (strcmp(str, "playback") == 0) {
+			if (stream != SND_PCM_STREAM_PLAYBACK)
+				return -EINVAL;
+		} else if (strcmp(str, "capture") == 0) {
+			if (stream != SND_PCM_STREAM_CAPTURE)
+				return -EINVAL;
+		} else
+			return -EINVAL;
+	}
+	err = snd_config_search(pcm_conf, "type", &conf);
+	if (err < 0)
+		return err;
+	err = snd_config_string_get(conf, &str);
+	if (err < 0)
+		return err;
+	if (strcmp(str, "hw") == 0)
+		return _snd_pcm_open_hw(handlep, pcm_conf, stream, mode);
+	else if (strcmp(str, "plug") == 0)
+		return _snd_pcm_open_plug(handlep, pcm_conf, stream, mode);
+	else if (strcmp(str, "multi") == 0)
+		return _snd_pcm_open_multi(handlep, pcm_conf, stream, mode);
+	else
+		return -EINVAL;
+}

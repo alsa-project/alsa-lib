@@ -737,6 +737,7 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 	char client_map[32] = { 0 };
 	char slave_map[32][32] = { { 0 } };
 
+	assert(handlep);
 	assert(slaves_count > 0 && slaves_handle && slaves_channels_count);
 	assert(binds_count > 0 && binds_slave && binds_client_channel && binds_slave_channel);
 

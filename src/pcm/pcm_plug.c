@@ -789,6 +789,7 @@ int snd_pcm_plug_create(snd_pcm_t **handlep, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *handle;
 	snd_pcm_plug_t *plug;
+	assert(handlep && slave);
 	handle = calloc(1, sizeof(snd_pcm_t));
 	if (!handle)
 		return -ENOMEM;

@@ -122,6 +122,9 @@ int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd,
 #endif
 
 
+int snd_pcm_open(snd_pcm_t **handle, char *name, 
+		 int stream, int mode);
+
 int snd_pcm_hw_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int stream, int mode);
 int snd_pcm_hw_open(snd_pcm_t **handle, int card, int device, int stream, int mode);
 

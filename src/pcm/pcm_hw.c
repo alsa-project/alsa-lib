@@ -406,6 +406,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int sub
 	snd_pcm_t *handle;
 	snd_pcm_hw_t *hw;
 
+	assert(handlep);
 	*handlep = 0;
 
 	if ((ret = snd_ctl_open(&ctl, card)) < 0)

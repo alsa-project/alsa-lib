@@ -22,8 +22,12 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <sys/stat.h>
 #include "asoundlib.h"
 #include "list.h"
+
+#define SYS_ASOUNDRC "/etc/asound.conf"
+#define USR_ASOUNDRC ".asoundrc"
 
 typedef struct {
 	FILE *fp;
@@ -183,7 +187,7 @@ static int get_freestring(char **string, input_t *input)
 		}
 		if (idx >= alloc) {
 			size_t old_alloc = alloc;
-			alloc *= 2;
+			alloc += bufsize;
 			if (old_alloc == bufsize) {
 				buf = malloc(alloc);
 				memcpy(buf, _buf, old_alloc);
@@ -227,7 +231,7 @@ static int get_delimstring(char **string, int delim, input_t *input)
 		}
 		if (idx >= alloc) {
 			size_t old_alloc = alloc;
-			alloc *= 2;
+			alloc += bufsize;
 			if (old_alloc == bufsize) {
 				buf = malloc(alloc);
 				memcpy(buf, _buf, old_alloc);
@@ -507,30 +511,30 @@ static int parse_defs(snd_config_t *father, input_t *input)
 	return 0;
 }
 
+int snd_config_top(snd_config_t **config)
+{
+	assert(config);
+	return _snd_config_make(config, 0, SND_CONFIG_TYPE_COMPOUND);
+}
 
-int snd_config_load(snd_config_t **config, FILE *fp)
+int snd_config_load(snd_config_t *config, FILE *fp)
 {
 	int err;
 	input_t input;
-	snd_config_t *c;
 	assert(config && fp);
-	err = _snd_config_make(&c, 0, SND_CONFIG_TYPE_COMPOUND);
-	if (err < 0)
-		return err;
 	input.fp = fp;
 	input.line = 1;
 	input.column = 0;
 	input.unget = 0;
-	err = parse_defs(c, &input);
+	err = parse_defs(config, &input);
 	if (err < 0) {
-		snd_config_delete(c);
+		snd_config_delete(config);
 		return err;
 	}
 	if (get_char(&input) != EOF) {
-		snd_config_delete(c);
+		snd_config_delete(config);
 		return -1;
 	}
-	*config = c;
 	return 0;
 }
 
@@ -595,14 +599,18 @@ int snd_config_make(snd_config_t **config, char *id,
 
 int snd_config_integer_set(snd_config_t *config, long value)
 {
-	assert(config->type == SND_CONFIG_TYPE_INTEGER);
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_INTEGER)
+		return -EINVAL;
 	config->u.integer = value;
 	return 0;
 }
 
 int snd_config_real_set(snd_config_t *config, double value)
 {
-	assert(config->type == SND_CONFIG_TYPE_REAL);
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_REAL)
+		return -EINVAL;
 	config->u.real = value;
 	return 0;
 }
@@ -610,7 +618,8 @@ int snd_config_real_set(snd_config_t *config, double value)
 int snd_config_string_set(snd_config_t *config, char *value)
 {
 	assert(config);
-	assert(config->type == SND_CONFIG_TYPE_INTEGER);
+	if (config->type != SND_CONFIG_TYPE_STRING)
+		return -EINVAL;
 	if (config->u.string)
 		free(config->u.string);
 	config->u.string = strdup(value);
@@ -645,7 +654,8 @@ int snd_config_set(snd_config_t *config, ...)
 int snd_config_integer_get(snd_config_t *config, long *ptr)
 {
 	assert(config && ptr);
-	assert(config->type == SND_CONFIG_TYPE_INTEGER);
+	if (config->type != SND_CONFIG_TYPE_INTEGER)
+		return -EINVAL;
 	*ptr = config->u.integer;
 	return 0;
 }
@@ -653,7 +663,8 @@ int snd_config_integer_get(snd_config_t *config, long *ptr)
 int snd_config_real_get(snd_config_t *config, double *ptr)
 {
 	assert(config && ptr);
-	assert(config->type == SND_CONFIG_TYPE_REAL);
+	if (config->type != SND_CONFIG_TYPE_REAL)
+		return -EINVAL;
 	*ptr = config->u.real;
 	return 0;
 }
@@ -661,7 +672,8 @@ int snd_config_real_get(snd_config_t *config, double *ptr)
 int snd_config_string_get(snd_config_t *config, char **ptr)
 {
 	assert(config && ptr);
-	assert(config->type == SND_CONFIG_TYPE_INTEGER);
+	if (config->type != SND_CONFIG_TYPE_STRING)
+		return -EINVAL;
 	*ptr = config->u.string;
 	return 0;
 }
@@ -860,4 +872,110 @@ int snd_config_search(snd_config_t *config, char *key, snd_config_t **result)
 			return _snd_config_search(config, key, -1, result);
 	}
 }
+
+int snd_config_searchv(snd_config_t *config,
+		       snd_config_t **result, ...)
+{
+	va_list arg;
+	const size_t bufsize = 256;
+	char _buf[bufsize];
+	char *buf = _buf;
+	size_t alloc = bufsize;
+	size_t idx = 0;
+	size_t dot = 0;
+	assert(config && result);
+	va_start(arg, result);
+	while (1) {
+		char *k = va_arg(arg, char *);
+		size_t len;
+		if (!k)
+			break;
+		len = strlen(k);
+		if (idx + len + dot>= alloc) {
+			size_t old_alloc = alloc;
+			alloc = idx + len + dot;
+			alloc += bufsize - alloc % bufsize;
+			if (old_alloc == bufsize) {
+				buf = malloc(alloc);
+				memcpy(buf, _buf, old_alloc);
+			} else 
+				buf = realloc(buf, alloc);
+		}
+		if (dot)
+			buf[idx] = '.';
+		memcpy(buf + idx + dot, k, len);
+		idx += len + dot;
+		if (dot == 0)
+			dot = 1;
+	}
+	buf[idx] = '\0';
+	return snd_config_search(config, buf, result);
+}
+
+snd_config_t *snd_config = 0;
+static dev_t sys_asoundrc_device;
+static ino_t sys_asoundrc_inode;
+static time_t sys_asoundrc_mtime;
+static dev_t usr_asoundrc_device;
+static ino_t usr_asoundrc_inode;
+static time_t usr_asoundrc_mtime;
 	
+int snd_config_update()
+{
+	int err;
+	char *usr_asoundrc = NULL;
+	char *home = getenv("HOME");
+	struct stat st;
+	int reload;
+	FILE *fp;
+	if (home) {
+		size_t len = strlen(home);
+		size_t len1 = strlen(USR_ASOUNDRC);
+		usr_asoundrc = alloca(len + len1 + 2);
+		memcpy(usr_asoundrc, home, len);
+		usr_asoundrc[len] = '/';
+		memcpy(usr_asoundrc + len + 1, USR_ASOUNDRC, len1);
+		usr_asoundrc[len + 1 + len1] = '\0';
+	}
+	reload = (snd_config == NULL);
+	if (!reload &&
+	    stat(usr_asoundrc, &st) == 0 &&
+	    (st.st_dev != usr_asoundrc_device ||
+	     st.st_ino != usr_asoundrc_inode ||
+	     st.st_mtime != usr_asoundrc_mtime))
+		reload = 1;
+	if (!reload &&
+	    stat(SYS_ASOUNDRC, &st) == 0 &&
+	    (st.st_dev != sys_asoundrc_device ||
+	     st.st_ino != sys_asoundrc_inode ||
+	     st.st_mtime != sys_asoundrc_mtime))
+		reload = 1;
+	if (!reload)
+		return 0;
+	if (snd_config == NULL) {
+		err = snd_config_top(&snd_config);
+		if (err < 0)
+			return err;
+	}
+	fp = fopen(SYS_ASOUNDRC, "r");
+	if (fp) {
+		err = snd_config_load(snd_config, fp);
+		if (err < 0) {
+			snd_config = NULL;
+			fclose(fp);
+			return err;
+		}
+		fclose(fp);
+	}
+	fp = fopen(usr_asoundrc, "r");
+	if (fp) {
+		err = snd_config_load(snd_config, fp);
+		if (err < 0) {
+			snd_config = NULL;
+			fclose(fp);
+			return err;
+		}
+		fclose(fp);
+	}
+	return 0;
+}
