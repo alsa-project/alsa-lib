@@ -2066,6 +2066,20 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 	struct pollfd pfd;
 	unsigned short revents;
 	int err, err_poll;
+	
+	if (snd_pcm_mmap_avail(pcm) >= pcm->avail_min) {
+		/* check more precisely */
+		switch (snd_pcm_state(pcm)) {
+		case SND_PCM_STATE_XRUN:
+			return -EPIPE;
+		case SND_PCM_STATE_SUSPENDED:
+			return -ESTRPIPE;
+		case SND_PCM_STATE_DISCONNECTED:
+			return -ENOTTY;	/* linux VFS does this? */
+		default:
+			return 1;
+		}
+	}
 	err = snd_pcm_poll_descriptors(pcm, &pfd, 1);
 	assert(err == 1);
 	err_poll = poll(&pfd, 1, timeout);
