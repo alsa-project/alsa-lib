@@ -42,12 +42,11 @@ int snd_ctl_hw_info(snd_ctl_t *handle, struct snd_ctl_hw_info *info);
 int snd_ctl_switch_list(snd_ctl_t *handle, snd_switch_list_t * list);
 int snd_ctl_switch_read(snd_ctl_t *handle, snd_switch_t * sw);
 int snd_ctl_switch_write(snd_ctl_t *handle, snd_switch_t * sw);
-int snd_ctl_hwdep_info(snd_ctl_t *handle, int dev, snd_hwdep_info_t * info);
-int snd_ctl_pcm_info(snd_ctl_t *handle, int dev, snd_pcm_info_t * info);
-int snd_ctl_pcm_stream_info(snd_ctl_t *handle, int dev, int channel, int subdev, snd_pcm_stream_info_t * info);
-int snd_ctl_pcm_stream_prefer_subdevice(snd_ctl_t *handle, int dev, int channel, int subdev);
-int snd_ctl_mixer_info(snd_ctl_t *handle, int dev, snd_mixer_info_t * info);
-int snd_ctl_rawmidi_info(snd_ctl_t *handle, int dev, snd_rawmidi_info_t * info);
+int snd_ctl_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info);
+int snd_ctl_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info);
+int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev);
+int snd_ctl_mixer_info(snd_ctl_t *handle, snd_mixer_info_t * info);
+int snd_ctl_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info);
 int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks);
 
 #ifdef __cplusplus
