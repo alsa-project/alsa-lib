@@ -80,7 +80,7 @@ int snd_ctl_cwrite(snd_ctl_t *ctl, snd_control_t *control)
 	return ctl->ops->cwrite(ctl, control);
 }
 
-int snd_ctl_hwdep_next_device(snd_ctl_t *ctl, int * device)
+int snd_ctl_hwdep_next_device(snd_ctl_t *ctl, int *device)
 {
 	assert(ctl && device);
 	return ctl->ops->hwdep_next_device(ctl, device);

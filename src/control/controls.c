@@ -214,7 +214,7 @@ int snd_ctl_hsort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2)
 	if (c1->id.iface > c2->id.iface)
 		return 1;
 	if ((res = strcmp(c1->id.name, c2->id.name)) != 0) {
-		if (c1->id.iface != SND_CONTROL_IFACE_MIXER)
+		if (c1->id.iface != SNDRV_CONTROL_IFACE_MIXER)
 			return res;
 		p1 = snd_ctl_hsort_mixer_priority(c1->id.name);
 		p2 = snd_ctl_hsort_mixer_priority(c2->id.name);
