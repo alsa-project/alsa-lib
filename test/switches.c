@@ -4,10 +4,6 @@
 #include <errno.h>
 #include "../include/asoundlib.h"
 
-static snd_ctl_t *ctl_handle;
-static int sw_interface;
-static int sw_device;
-
 const char *get_type(unsigned int type)
 {
 	switch (type) {
@@ -30,87 +26,23 @@ const char *get_type(unsigned int type)
 	}
 }
 
-const char *get_interface(void)
+const char *get_interface(int iface)
 {
-	switch (sw_interface) {
-	case 0:
+	switch (iface) {
+	case SND_CTL_IFACE_CONTROL:
 		return "control";
-	case 1:
+	case SND_CTL_IFACE_MIXER:
 		return "mixer";
-	case 2:
-		return "PCM playback";
-	case 3:
-		return "PCM capture";
-	case 4:
-		return "rawmidi output";
-	case 5:
-		return "rawmidi input";
+	case SND_CTL_IFACE_PCM:
+		return "pcm";
+	case SND_CTL_IFACE_RAWMIDI:
+		return "rawmidi";
 	default:
 		return "unknown";
 	}
 }
 
-int switch_list(snd_switch_list_t *list)
-{
-	switch (sw_interface) {
-	case 0:
-		return snd_ctl_switch_list(ctl_handle, list);
-	case 1:
-		return snd_ctl_mixer_switch_list(ctl_handle, sw_device, list);
-	case 2:
-		return snd_ctl_pcm_playback_switch_list(ctl_handle, sw_device, list);
-	case 3:
-		return snd_ctl_pcm_capture_switch_list(ctl_handle, sw_device, list);
-	case 4:
-		return snd_ctl_rawmidi_output_switch_list(ctl_handle, sw_device, list);
-	case 5:
-		return snd_ctl_rawmidi_input_switch_list(ctl_handle, sw_device, list);
-	default:
-		return -ENOLINK;
-	}
-}
-
-int switch_read(snd_switch_t *sw)
-{
-	switch (sw_interface) {
-	case 0:
-		return snd_ctl_switch_read(ctl_handle, sw);
-	case 1:
-		return snd_ctl_mixer_switch_read(ctl_handle, sw_device, sw);
-	case 2:
-		return snd_ctl_pcm_playback_switch_read(ctl_handle, sw_device, sw);
-	case 3:
-		return snd_ctl_pcm_capture_switch_write(ctl_handle, sw_device, sw);
-	case 4:
-		return snd_ctl_rawmidi_output_switch_read(ctl_handle, sw_device, sw);
-	case 5:
-		return snd_ctl_rawmidi_input_switch_read(ctl_handle, sw_device, sw);
-	default:
-		return -ENOLINK;
-	}
-}
-
-int switch_write(snd_switch_t *sw)
-{
-	switch (sw_interface) {
-	case 0:
-		return snd_ctl_switch_write(ctl_handle, sw);
-	case 1:
-		return snd_ctl_mixer_switch_write(ctl_handle, sw_device, sw);
-	case 2:
-		return snd_ctl_pcm_playback_switch_write(ctl_handle, sw_device, sw);
-	case 3:
-		return snd_ctl_pcm_capture_switch_write(ctl_handle, sw_device, sw);
-	case 4:
-		return snd_ctl_rawmidi_output_switch_write(ctl_handle, sw_device, sw);
-	case 5:
-		return snd_ctl_rawmidi_input_switch_write(ctl_handle, sw_device, sw);
-	default:
-		return -ENOLINK;
-	}
-} 
-
-void print_switch(char *space, char *prefix, snd_switch_t *sw)
+void print_switch(snd_ctl_t *ctl_handle, char *space, char *prefix, snd_switch_t *sw)
 {
 	snd_switch_t sw1;
 	int low, err;
@@ -121,8 +53,8 @@ void print_switch(char *space, char *prefix, snd_switch_t *sw)
 			memcpy(&sw1, sw,  sizeof(sw1));
 			sw1.type = SND_SW_TYPE_LIST_ITEM;
 			sw1.low = sw1.high = low;
-			if ((err = switch_read(&sw1)) < 0) {
-				printf("Switch list item read failed for %s interface and device %i: %s\n", get_interface(), sw_device, snd_strerror(err));
+			if ((err = snd_ctl_switch_read(ctl_handle, &sw1)) < 0) {
+				printf("Switch list item read failed for %s interface and device %i channel %i: %s\n", get_interface(sw->iface), sw->device, sw->channel, snd_strerror(err));
 				continue;
 			}
 			printf("  %s%s : '%s' [%s] {%s}\n", space, prefix, sw1.name, get_type(sw1.type), sw1.value.item);
@@ -130,17 +62,18 @@ void print_switch(char *space, char *prefix, snd_switch_t *sw)
 	}
 }
 
-void process(char *space, char *prefix, int interface, int device)
+void process(snd_ctl_t *ctl_handle, char *space, char *prefix, int iface, int device, int channel)
 {
 	snd_switch_list_t list;
 	snd_switch_t sw;
 	int err, idx;
 
-	sw_interface = interface;
-	sw_device = device;
 	bzero(&list, sizeof(list));
-	if ((err = switch_list(&list)) < 0) {
-		printf("Switch listing failed for the %s interface and the device %i: %s\n", get_interface(), device, snd_strerror(err));
+	list.iface = iface;
+	list.device = device;
+	list.channel = channel;
+	if ((err = snd_ctl_switch_list(ctl_handle, &list)) < 0) {
+		printf("Switch listing failed for the %s interface and the device %i: %s\n", get_interface(iface), device, snd_strerror(err));
 		return;
 	}
 	if (list.switches_over <= 0)
@@ -152,24 +85,28 @@ void process(char *space, char *prefix, int interface, int device)
 		printf("No enough memory... (%i switches)\n", list.switches_size);
 		return;
 	}
-	if ((err = switch_list(&list)) < 0) {
-		printf("Second switch listing failed for the %s interface and the device %i: %s\n", get_interface(), device, snd_strerror(err));
+	if ((err = snd_ctl_switch_list(ctl_handle, &list)) < 0) {
+		printf("Second switch listing failed for the %s interface and the device %i: %s\n", get_interface(iface), device, snd_strerror(err));
 		return;
 	}
 	for (idx = 0; idx < list.switches; idx++) {
 		bzero(&sw, sizeof(sw));
+		sw.iface = iface;
+		sw.device = device;
+		sw.channel = channel;
 		strncpy(sw.name, list.pswitches[idx].name, sizeof(sw.name));
-		if ((err = switch_read(&sw)) < 0) {
-			printf("Switch read failed for the %s interface and the device %i: %s\n", get_interface(), device, snd_strerror(err));
+		if ((err = snd_ctl_switch_read(ctl_handle, &sw)) < 0) {
+			printf("Switch read failed for the %s interface and the device %i channel %i: %s\n", get_interface(iface), device, channel, snd_strerror(err));
 			continue;
 		}
-		print_switch(space, prefix, &sw);
+		print_switch(ctl_handle, space, prefix, &sw);
 	}
 	free(list.pswitches);
 }
 
 int main(void)
 {
+	snd_ctl_t *ctl_handle;
 	int cards, card, err, idx;
 	snd_ctl_hw_info_t info;
 
@@ -190,12 +127,12 @@ int main(void)
 			continue;
 		}
 		printf("CARD %i:\n", card);
-		process("  ", "Control", 0, 0);
+		process(ctl_handle, "  ", "Control", SND_CTL_IFACE_CONTROL, 0, 0);
 		for (idx = 0; idx < info.mixerdevs; idx++)
-			process("  ", "Mixer", 1, idx);
+			process(ctl_handle, "  ", "Mixer", SND_CTL_IFACE_MIXER, idx, 0);
 		for (idx = 0; idx < info.pcmdevs; idx++) {
-			process("  ", "PCM playback", 2, idx);
-			process("  ", "PCM capture", 3, idx);
+			process(ctl_handle, "  ", "PCM playback", SND_CTL_IFACE_PCM, idx, SND_PCM_CHANNEL_PLAYBACK);
+			process(ctl_handle, "  ", "PCM capture", SND_CTL_IFACE_PCM, idx, SND_PCM_CHANNEL_CAPTURE);
 		}
 		snd_ctl_close(ctl_handle);
 	}

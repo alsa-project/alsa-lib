@@ -8,7 +8,9 @@
 typedef struct snd_ctl_callbacks {
 	void *private_data;	/* should be used by an application */
 	void (*rebuild) (void *private_data);
-	void (*xswitch) (void *private_data, int cmd, int iface, snd_switch_list_item_t *item);
+	void (*xswitch) (void *private_data, int cmd,
+			 int iface, int device, int channel,
+			 snd_switch_list_item_t *item);
 	void *reserved[29];	/* reserved for the future use - must be NULL!!! */
 } snd_ctl_callbacks_t;
 
@@ -44,26 +46,8 @@ int snd_ctl_hwdep_info(snd_ctl_t *handle, int dev, snd_hwdep_info_t * info);
 int snd_ctl_pcm_info(snd_ctl_t *handle, int dev, snd_pcm_info_t * info);
 int snd_ctl_pcm_channel_info(snd_ctl_t *handle, int dev, int channel, int subdev, snd_pcm_channel_info_t * info);
 int snd_ctl_pcm_channel_prefer_subdevice(snd_ctl_t *handle, int dev, int channel, int subdev);
-int snd_ctl_pcm_channel_switch_list(snd_ctl_t *handle, int dev, int channel, snd_switch_list_t * list);
-int snd_ctl_pcm_playback_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t * list);
-int snd_ctl_pcm_capture_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t * list);
-int snd_ctl_pcm_channel_switch_read(snd_ctl_t *handle, int dev, int channel, snd_switch_t * sw);
-int snd_ctl_pcm_playback_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw);
-int snd_ctl_pcm_capture_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw);
-int snd_ctl_pcm_channel_switch_write(snd_ctl_t *handle, int dev, int channel, snd_switch_t * sw);
-int snd_ctl_pcm_playback_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw);
-int snd_ctl_pcm_capture_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw);
 int snd_ctl_mixer_info(snd_ctl_t *handle, int dev, snd_mixer_info_t * info);
-int snd_ctl_mixer_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list);
-int snd_ctl_mixer_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw);
-int snd_ctl_mixer_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw);
 int snd_ctl_rawmidi_info(snd_ctl_t *handle, int dev, snd_rawmidi_info_t * info);
-int snd_ctl_rawmidi_output_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list);
-int snd_ctl_rawmidi_output_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw);
-int snd_ctl_rawmidi_output_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw);
-int snd_ctl_rawmidi_input_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list);
-int snd_ctl_rawmidi_input_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw);
-int snd_ctl_rawmidi_input_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw);
 int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks);
 
 #ifdef __cplusplus

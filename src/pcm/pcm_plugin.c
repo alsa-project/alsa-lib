@@ -352,7 +352,7 @@ int snd_pcm_plugin_prepare(snd_pcm_t *pcm, int channel)
 	return snd_pcm_channel_prepare(pcm, channel);
 }
 
-int snd_pcm_plugin_drain_playback(snd_pcm_t *pcm)
+int snd_pcm_plugin_playback_drain(snd_pcm_t *pcm)
 {
 	int err;
 

@@ -1,6 +1,6 @@
 /*
  *  Control Interface - main file
- *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 1998,1999,2000 by Jaroslav Kysela <perex@suse.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -205,84 +205,6 @@ int snd_ctl_pcm_channel_prefer_subdevice(snd_ctl_t *handle, int dev, int chn, in
 	return 0;
 }
 
-int snd_ctl_pcm_channel_switch_list(snd_ctl_t *handle, int dev, int chn, snd_switch_list_t *list)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || dev < 0 || chn < 0 || chn > 1 || !list)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CHANNEL, &chn) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_SWITCH_LIST, list) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_pcm_playback_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list)
-{
-	return snd_ctl_pcm_channel_switch_list(handle, dev, SND_PCM_CHANNEL_PLAYBACK, list);
-}
-
-int snd_ctl_pcm_capture_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list)
-{
-	return snd_ctl_pcm_channel_switch_list(handle, dev, SND_PCM_CHANNEL_CAPTURE, list);
-}
-
-int snd_ctl_pcm_channel_switch_read(snd_ctl_t *handle, int dev, int chn, snd_switch_t * sw)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !sw || dev < 0 || chn < 0 || chn > 1 || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CHANNEL, &chn) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_SWITCH_READ, sw) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_pcm_playback_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	return snd_ctl_pcm_channel_switch_read(handle, dev, SND_PCM_CHANNEL_PLAYBACK, sw);
-}
-
-int snd_ctl_pcm_capture_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	return snd_ctl_pcm_channel_switch_read(handle, dev, SND_PCM_CHANNEL_CAPTURE, sw);
-}
-
-int snd_ctl_pcm_channel_switch_write(snd_ctl_t *handle, int dev, int chn, snd_switch_t * sw)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !sw || dev < 0 || chn < 0 || chn > 1 || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_CHANNEL, &chn) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_SWITCH_WRITE, sw) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_pcm_playback_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	return snd_ctl_pcm_channel_switch_write(handle, dev, SND_PCM_CHANNEL_PLAYBACK, sw);
-}
-
-int snd_ctl_pcm_capture_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	return snd_ctl_pcm_channel_switch_write(handle, dev, SND_PCM_CHANNEL_CAPTURE, sw);
-}
-
 int snd_ctl_mixer_info(snd_ctl_t *handle, int dev, snd_mixer_info_t * info)
 {
 	snd_ctl_t *ctl;
@@ -293,48 +215,6 @@ int snd_ctl_mixer_info(snd_ctl_t *handle, int dev, snd_mixer_info_t * info)
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
 		return -errno;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_INFO, info) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_mixer_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t * list)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !list || dev < 0)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_SWITCH_LIST, list) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_mixer_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_SWITCH_READ, sw) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_mixer_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_SWITCH_WRITE, sw) < 0)
 		return -errno;
 	return 0;
 }
@@ -351,84 +231,6 @@ int snd_ctl_rawmidi_info(snd_ctl_t *handle, int dev, snd_rawmidi_info_t * info)
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_INFO, info) < 0)
 		return -errno;
 	return 0;
-}
-
-int snd_ctl_rawmidi_channel_switch_list(snd_ctl_t *handle, int dev, int chn, snd_switch_list_t *list)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !list || dev < 0)
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_CHANNEL, &chn) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_SWITCH_LIST, list) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_rawmidi_channel_switch_read(snd_ctl_t *handle, int dev, int chn, snd_switch_t * sw)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_CHANNEL, &chn) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_SWITCH_READ, sw) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_rawmidi_channel_switch_write(snd_ctl_t *handle, int dev, int chn, snd_switch_t * sw)
-{
-	snd_ctl_t *ctl;
-
-	ctl = handle;
-	if (!ctl || !sw || dev < 0 || sw->name[0] == '\0')
-		return -EINVAL;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_CHANNEL, &chn) < 0)
-		return -errno;
-	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_SWITCH_WRITE, sw) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_ctl_rawmidi_output_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list)
-{
-	return snd_ctl_rawmidi_channel_switch_list(handle, dev, SND_RAWMIDI_CHANNEL_OUTPUT, list);
-}
-
-int snd_ctl_rawmidi_output_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	return snd_ctl_rawmidi_channel_switch_read(handle, dev, SND_RAWMIDI_CHANNEL_OUTPUT, sw);
-}
-
-int snd_ctl_rawmidi_output_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	return snd_ctl_rawmidi_channel_switch_write(handle, dev, SND_RAWMIDI_CHANNEL_OUTPUT, sw);
-}
-
-int snd_ctl_rawmidi_input_switch_list(snd_ctl_t *handle, int dev, snd_switch_list_t *list)
-{
-	return snd_ctl_rawmidi_channel_switch_list(handle, dev, SND_RAWMIDI_CHANNEL_INPUT, list);
-}
-
-int snd_ctl_rawmidi_input_switch_read(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	return snd_ctl_rawmidi_channel_switch_read(handle, dev, SND_RAWMIDI_CHANNEL_INPUT, sw);
-}
-
-int snd_ctl_rawmidi_input_switch_write(snd_ctl_t *handle, int dev, snd_switch_t * sw)
-{
-	return snd_ctl_rawmidi_channel_switch_write(handle, dev, SND_RAWMIDI_CHANNEL_INPUT, sw);
 }
 
 int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
@@ -456,7 +258,11 @@ int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
 		case SND_CTL_READ_SWITCH_ADD:
 		case SND_CTL_READ_SWITCH_REMOVE:
 			if (callbacks->xswitch)
-				callbacks->xswitch(callbacks->private_data, r.cmd, r.data.sw.iface, &r.data.sw.switem);
+				callbacks->xswitch(callbacks->private_data,
+						   r.cmd, r.data.sw.iface,
+						   r.data.sw.device,
+						   r.data.sw.channel,
+						   &r.data.sw.switem);
 			break;
 		}
 		count++;

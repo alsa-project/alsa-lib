@@ -109,7 +109,7 @@ int snd_pcm_plugin_params(snd_pcm_t *handle, snd_pcm_channel_params_t *params);
 int snd_pcm_plugin_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup);
 int snd_pcm_plugin_status(snd_pcm_t *handle, snd_pcm_channel_status_t *status);
 int snd_pcm_plugin_prepare(snd_pcm_t *handle, int channel);
-int snd_pcm_plugin_drain_playback(snd_pcm_t *handle);
+int snd_pcm_plugin_playback_drain(snd_pcm_t *handle);
 int snd_pcm_plugin_flush(snd_pcm_t *handle, int channel);
 int snd_pcm_plugin_pointer(snd_pcm_t *pcm, int channel, void **ptr, size_t *size);
 ssize_t snd_pcm_plugin_write(snd_pcm_t *handle, const void *buffer, size_t size);
