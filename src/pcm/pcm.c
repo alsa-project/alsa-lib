@@ -348,9 +348,12 @@ ssize_t snd_pcm_stream_seek(snd_pcm_t *pcm, int stream, off_t offset)
 
 ssize_t snd_pcm_write(snd_pcm_t *pcm, const void *buffer, size_t size)
 {
+	snd_pcm_stream_t *str;
 	assert(pcm);
-	assert(pcm->stream[SND_PCM_STREAM_PLAYBACK].valid_setup);
+	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
+	assert(str->valid_setup);
 	assert(size == 0 || buffer);
+	assert(size % str->setup.bytes_align == 0);
 	return pcm->ops->write(pcm, buffer, size);
 }
 
@@ -364,9 +367,12 @@ ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long
 
 ssize_t snd_pcm_read(snd_pcm_t *pcm, void *buffer, size_t size)
 {
+	snd_pcm_stream_t *str;
 	assert(pcm);
-	assert(pcm->stream[SND_PCM_STREAM_CAPTURE].valid_setup);
+	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
+	assert(str->valid_setup);
 	assert(size == 0 || buffer);
+	assert(size % str->setup.bytes_align == 0);
 	return pcm->ops->read(pcm, buffer, size);
 }
 

@@ -85,7 +85,7 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 		assert(snd_pcm_mmap_ready(data->slave, plugin->stream));
 	}
 	pos = ctrl->byte_data % setup->buffer_size;
-	assert((pos * 8) % stream->bits_per_frame == 0);
+	assert(pos % setup->bytes_align == 0);
 	pos = (pos * 8) / stream->bits_per_frame;
 
 	sv = plugin->src_channels;
@@ -156,7 +156,7 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 		assert(snd_pcm_mmap_ready(data->slave, plugin->stream));
 	}
 	pos = ctrl->byte_data % setup->buffer_size;
-	assert((pos * 8) % stream->bits_per_frame == 0);
+	assert(pos % setup->bytes_align == 0);
 	pos = (pos * 8) / stream->bits_per_frame;
 
 	sv = stream->channels;

@@ -334,7 +334,8 @@ static int snd_pcm_plug_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t *p
 	snd_pcm_stream_info_t slave_info;
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_plug_t *plug;
-	size_t bytes_per_frame;
+	size_t bits;
+	size_t bytes_align;
 	int err;
 	int stream = params->stream;
 	
@@ -366,20 +367,21 @@ static int snd_pcm_plug_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t *p
 		return snd_pcm_stream_params(plug->slave, params);
 
 	/* compute right sizes */
-	bytes_per_frame = snd_pcm_format_size(params->format.format, params->format.channels);
-	if (bytes_per_frame == 0)
-		bytes_per_frame = 1;
-	params1.frag_size -= params1.frag_size % bytes_per_frame;
+	bits = snd_pcm_format_physical_width(params->format.format) * params->format.channels;
+	while (bits % 8 != 0)
+		bits *= 2;
+	bytes_align = bits / 8;
+	params1.frag_size -= params1.frag_size % bytes_align;
 	slave_params.frag_size = snd_pcm_plug_slave_size(pcm, stream, params1.frag_size);
-	params1.buffer_size -= params1.buffer_size % bytes_per_frame;
+	params1.buffer_size -= params1.buffer_size % bytes_align;
 	slave_params.buffer_size = snd_pcm_plug_slave_size(pcm, stream, params1.buffer_size);
-	params1.bytes_fill_max -= params1.bytes_fill_max % bytes_per_frame;
+	params1.bytes_fill_max -= params1.bytes_fill_max % bytes_align;
 	slave_params.bytes_fill_max = snd_pcm_plug_slave_size(pcm, stream, params1.bytes_fill_max);
-	params1.bytes_min -= params1.bytes_min % bytes_per_frame;
+	params1.bytes_min -= params1.bytes_min % bytes_align;
 	slave_params.bytes_min = snd_pcm_plug_slave_size(pcm, stream, params1.bytes_min);
-	params1.bytes_xrun_max -= params1.bytes_xrun_max % bytes_per_frame;
+	params1.bytes_xrun_max -= params1.bytes_xrun_max % bytes_align;
 	slave_params.bytes_xrun_max = snd_pcm_plug_slave_size(pcm, stream, params1.bytes_xrun_max);
-	params1.bytes_align -= params1.bytes_align % bytes_per_frame;
+	params1.bytes_align -= params1.bytes_align % bytes_align;
 	slave_params.bytes_align = snd_pcm_plug_slave_size(pcm, stream, params1.bytes_align);
 	if (slave_params.byte_boundary == 0 || slave_params.byte_boundary > INT_MAX)
 		slave_params.byte_boundary = INT_MAX;
