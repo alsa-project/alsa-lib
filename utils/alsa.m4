@@ -31,8 +31,8 @@ if test "$alsa_prefix" != "" ; then
 fi
 
 dnl add the alsa library
-ALSA_LIBS="$ALSA_LIBS -lasound"
-LDFLAGS="$ALSA_LIBS -lasound"
+ALSA_LIBS="$ALSA_LIBS -lasound -lm"
+LDFLAGS="$ALSA_LIBS"
 AC_MSG_RESULT($ALSA_LIBS)
 
 dnl Check for the presence of the library
