@@ -505,7 +505,7 @@ static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 		snd_pcm_uframes_t f = pos[i] - frames;
 		snd_pcm_sframes_t result;
 		if (f > 0) {
-			result = snd_pcm_forward(slave_i, f);
+			result = INTERNAL(snd_pcm_forward)(slave_i, f);
 			if (result < 0)
 				return result;
 			if ((snd_pcm_uframes_t)result != f)
@@ -523,7 +523,7 @@ static snd_pcm_sframes_t snd_pcm_multi_forward(snd_pcm_t *pcm, snd_pcm_uframes_t
 	memset(pos, 0, sizeof(pos));
 	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_t *slave_i = multi->slaves[i].pcm;
-		snd_pcm_sframes_t f = snd_pcm_forward(slave_i, frames);
+		snd_pcm_sframes_t f = INTERNAL(snd_pcm_forward)(slave_i, frames);
 		if (f < 0)
 			return f;
 		pos[i] = f;

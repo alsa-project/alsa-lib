@@ -1049,7 +1049,7 @@ static snd_pcm_sframes_t _snd_pcm_share_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	if ((snd_pcm_uframes_t)n > frames)
 		frames = n;
 	if (share->state == SND_PCM_STATE_RUNNING && frames > 0) {
-		snd_pcm_sframes_t ret = snd_pcm_forward(slave->pcm, frames);
+		snd_pcm_sframes_t ret = INTERNAL(snd_pcm_forward)(slave->pcm, frames);
 		if (ret < 0)
 			return ret;
 		frames = ret;

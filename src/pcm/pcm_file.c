@@ -253,7 +253,7 @@ static snd_pcm_sframes_t snd_pcm_file_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	n = snd_pcm_frames_to_bytes(pcm, frames);
 	if (file->wbuf_used_bytes + n > file->wbuf_size_bytes)
 		frames = snd_pcm_bytes_to_frames(pcm, file->wbuf_size_bytes - file->wbuf_used_bytes);
-	err = snd_pcm_forward(file->slave, frames);
+	err = INTERNAL(snd_pcm_forward)(file->slave, frames);
 	if (err > 0) {
 		snd_pcm_uframes_t n = snd_pcm_frames_to_bytes(pcm, err);
 		file->wbuf_used_bytes += n;

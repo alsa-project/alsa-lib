@@ -173,7 +173,7 @@ static snd_pcm_sframes_t snd_pcm_hooks_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 static snd_pcm_sframes_t snd_pcm_hooks_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
-	return snd_pcm_forward(h->slave, frames);
+	return INTERNAL(snd_pcm_forward)(h->slave, frames);
 }
 
 static int snd_pcm_hooks_resume(snd_pcm_t *pcm)

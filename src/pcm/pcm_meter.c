@@ -399,7 +399,7 @@ static snd_pcm_sframes_t snd_pcm_meter_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 static snd_pcm_sframes_t snd_pcm_meter_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	snd_pcm_sframes_t err = snd_pcm_forward(meter->slave, frames);
+	snd_pcm_sframes_t err = INTERNAL(snd_pcm_forward)(meter->slave, frames);
 	if (err > 0 && pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		meter->rptr = *pcm->appl.ptr;
 	return err;
