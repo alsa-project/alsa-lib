@@ -23,6 +23,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <dlfcn.h>
@@ -83,13 +84,19 @@ int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	int err;
 	assert(pcm);
-	if ((err = pcm->ops->nonblock(pcm->fast_op_arg, nonblock)) < 0)
+	if ((err = pcm->ops->nonblock(pcm->op_arg, nonblock)) < 0)
 		return err;
 	if (nonblock)
 		pcm->mode |= SND_PCM_NONBLOCK;
 	else
 		pcm->mode &= ~SND_PCM_NONBLOCK;
 	return 0;
+}
+
+int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid)
+{
+	assert(pcm);
+	return pcm->ops->async(pcm->op_arg, sig, pid);
 }
 
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
@@ -1037,3 +1044,14 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 	return err;
 }
 
+void snd_pcm_error_default(const char *file, int line, const char *function, const char *fmt, ...)
+{
+	va_list arg;
+	va_start(arg, fmt);
+	fprintf(stderr, "ALSA PCM lib %s:%i:(%s) ", file, line, function);
+	vfprintf(stderr, fmt, arg);
+	putc('\n', stderr);
+	va_end(arg);
+}
+
+void (*snd_pcm_error)(const char *file, int line, const char *function, const char *fmt, ...) = snd_pcm_error_default;

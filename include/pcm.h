@@ -6,6 +6,7 @@
  ****************************************************************************/
 
 #define SND_PCM_NONBLOCK		0x0001
+#define SND_PCM_ASYNC			0x0002
 
 #ifdef __cplusplus
 extern "C" {
@@ -117,6 +118,7 @@ typedef enum {
 	SND_PCM_TYPE_LBSERVER,
 } snd_pcm_type_t;
 
+extern void (*snd_pcm_error)(const char *file, int line, const char *function, const char *fmt, ...);
 
 int snd_pcm_open(snd_pcm_t **handle, char *name, 
 		 int stream, int mode);
@@ -136,6 +138,7 @@ snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
 int snd_pcm_close(snd_pcm_t *pcm);
 int snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock);
+int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info);
 int snd_pcm_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info);
 int snd_pcm_params(snd_pcm_t *pcm, snd_pcm_params_t *params);

@@ -412,6 +412,7 @@ struct snd_pcm_ops snd_pcm_alaw_ops = {
 	channel_setup: snd_pcm_plugin_channel_setup,
 	dump: snd_pcm_alaw_dump,
 	nonblock: snd_pcm_plugin_nonblock,
+	async: snd_pcm_plugin_async,
 	mmap_status: snd_pcm_plugin_mmap_status,
 	mmap_control: snd_pcm_plugin_mmap_control,
 	mmap_data: snd_pcm_plugin_mmap_data,

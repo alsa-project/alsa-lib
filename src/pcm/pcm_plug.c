@@ -189,6 +189,12 @@ static int snd_pcm_plug_nonblock(snd_pcm_t *pcm, int nonblock)
 	return snd_pcm_nonblock(plug->slave, nonblock);
 }
 
+static int snd_pcm_plug_async(snd_pcm_t *pcm, int sig, pid_t pid)
+{
+	snd_pcm_plug_t *plug = pcm->private;
+	return snd_pcm_async(plug->slave, sig, pid);
+}
+
 static int snd_pcm_plug_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
 	snd_pcm_plug_t *plug = pcm->private;
@@ -658,6 +664,7 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 	channel_setup: snd_pcm_plug_channel_setup,
 	dump: snd_pcm_plug_dump,
 	nonblock: snd_pcm_plug_nonblock,
+	async: snd_pcm_plug_async,
 	mmap_status: snd_pcm_plug_mmap_status,
 	mmap_control: snd_pcm_plug_mmap_control,
 	mmap_data: snd_pcm_plug_mmap_data,

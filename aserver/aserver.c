@@ -353,6 +353,9 @@ int pcm_shm_cmd(client_t *client)
 	ctrl->cmd = 0;
 	pcm = client->device.pcm.handle;
 	switch (cmd) {
+	case SND_PCM_IOCTL_ASYNC:
+		ctrl->result = snd_pcm_async(pcm, ctrl->u.async.sig, ctrl->u.async.pid);
+		break;
 	case SND_PCM_IOCTL_INFO:
 		ctrl->result = snd_pcm_info(pcm, &ctrl->u.info);
 		break;

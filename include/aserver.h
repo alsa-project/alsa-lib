@@ -26,14 +26,19 @@
 #define SND_PCM_IOCTL_MUNMAP_DATA	_IO ('A', 0xf4)
 #define SND_PCM_IOCTL_MUNMAP_CONTROL	_IO ('A', 0xf5)
 #define SND_PCM_IOCTL_MUNMAP_STATUS	_IO ('A', 0xf6)
-#define SND_PCM_IOCTL_MMAP_FORWARD	_IOW('A', 0xf7, size_t)
+#define SND_PCM_IOCTL_MMAP_FORWARD	_IO ('A', 0xf7)
 #define SND_PCM_IOCTL_AVAIL_UPDATE	_IO ('A', 0xf8)
-#define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xf9)
+#define SND_PCM_IOCTL_ASYNC		_IO ('A', 0xf9)
+#define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xfa)
 
 typedef struct {
 	long result;
 	int cmd;
 	union {
+		struct {
+			int sig;
+			pid_t pid;
+		} async;
 		snd_pcm_info_t info;
 		snd_pcm_params_t params;
 		snd_pcm_params_info_t params_info;

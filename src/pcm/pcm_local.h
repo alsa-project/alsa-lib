@@ -26,9 +26,16 @@
 #include <errno.h>
 #include "asoundlib.h"
 
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+#define ERR(...) snd_pcm_error(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#else
+#define ERR(args...) snd_pcm_error(__FILE__, __LINE__, __FUNCTION__, ##args)
+#endif
+
 struct snd_pcm_ops {
 	int (*close)(snd_pcm_t *pcm);
 	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
+	int (*async)(snd_pcm_t *pcm, int sig, pid_t pid);
 	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
 	int (*params_info)(snd_pcm_t *pcm, snd_pcm_params_info_t *info);
 	int (*params)(snd_pcm_t *pcm, snd_pcm_params_t *params);

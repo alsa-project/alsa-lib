@@ -50,6 +50,12 @@ static int snd_pcm_file_nonblock(snd_pcm_t *pcm, int nonblock)
 	return snd_pcm_nonblock(file->slave, nonblock);
 }
 
+static int snd_pcm_file_async(snd_pcm_t *pcm, int sig, pid_t pid)
+{
+	snd_pcm_file_t *file = pcm->private;
+	return snd_pcm_async(file->slave, sig, pid);
+}
+
 static int snd_pcm_file_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_file_t *file = pcm->private;
@@ -342,6 +348,7 @@ struct snd_pcm_ops snd_pcm_file_ops = {
 	channel_setup: snd_pcm_file_channel_setup,
 	dump: snd_pcm_file_dump,
 	nonblock: snd_pcm_file_nonblock,
+	async: snd_pcm_file_async,
 	mmap_status: snd_pcm_file_mmap_status,
 	mmap_control: snd_pcm_file_mmap_control,
 	mmap_data: snd_pcm_file_mmap_data,

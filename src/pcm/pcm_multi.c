@@ -72,6 +72,13 @@ static int snd_pcm_multi_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock 
 	return 0;
 }
 
+static int snd_pcm_multi_async(snd_pcm_t *pcm, int sig, pid_t pid)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_t *slave_0 = multi->slaves[0].pcm;
+	return snd_pcm_async(slave_0, sig, pid);
+}
+
 static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
 	snd_pcm_multi_t *multi = pcm->private;
@@ -504,6 +511,7 @@ struct snd_pcm_ops snd_pcm_multi_ops = {
 	channel_setup: snd_pcm_multi_channel_setup,
 	dump: snd_pcm_multi_dump,
 	nonblock: snd_pcm_multi_nonblock,
+	async: snd_pcm_multi_async,
 	mmap_status: snd_pcm_multi_mmap_status,
 	mmap_control: snd_pcm_multi_mmap_control,
 	mmap_data: snd_pcm_multi_mmap_data,

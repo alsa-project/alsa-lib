@@ -39,6 +39,12 @@ int snd_pcm_plugin_nonblock(snd_pcm_t *pcm, int nonblock)
 	return snd_pcm_nonblock(plugin->slave, nonblock);
 }
 
+int snd_pcm_plugin_async(snd_pcm_t *pcm, int sig, pid_t pid)
+{
+	snd_pcm_plugin_t *plugin = pcm->private;
+	return snd_pcm_async(plugin->slave, sig, pid);
+}
+
 int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;

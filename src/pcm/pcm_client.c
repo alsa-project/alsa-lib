@@ -175,6 +175,22 @@ static int snd_pcm_client_shm_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonb
 	return 0;
 }
 
+static int snd_pcm_client_async(snd_pcm_t *pcm, int sig, pid_t pid)
+{
+	snd_pcm_client_t *client = pcm->private;
+	snd_pcm_client_shm_t *ctrl = client->u.shm.ctrl;
+	int err;
+	ctrl->cmd = SND_PCM_IOCTL_ASYNC;
+	ctrl->u.async.sig = sig;
+	if (pid == 0)
+		pid = getpid();
+	ctrl->u.async.pid = pid;
+	err = snd_pcm_client_shm_action(pcm);
+	if (err < 0)
+		return err;
+	return ctrl->result;
+}
+
 static int snd_pcm_client_shm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_client_t *client = pcm->private;
@@ -550,6 +566,7 @@ struct snd_pcm_ops snd_pcm_client_ops = {
 	channel_setup: snd_pcm_client_shm_channel_setup,
 	dump: snd_pcm_client_dump,
 	nonblock: snd_pcm_client_shm_nonblock,
+	async: snd_pcm_client_async,
 	mmap_status: snd_pcm_client_shm_mmap_status,
 	mmap_control: snd_pcm_client_shm_mmap_control,
 	mmap_data: snd_pcm_client_shm_mmap_data,
