@@ -19,7 +19,7 @@
  *
  */
   
-#ifdef ALSA_BUILD
+#ifdef __KERNEL__
 #include "../include/driver.h"
 #else
 #include <stdio.h>
