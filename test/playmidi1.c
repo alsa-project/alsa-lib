@@ -298,6 +298,7 @@ static void do_tempo(int us)
 	local_tempo = us;
 
 	set_timer_event_header(&ev, SND_SEQ_EVENT_TEMPO);
+	ev.data.queue.addr.queue = dest_queue;
 	ev.data.queue.value = us;
 	if (!slave)
 		write_ev(&ev);
@@ -622,7 +623,7 @@ int main(int argc, char *argv[])
 	/* setup queue */
 	dest_queue = snd_seq_alloc_queue(seq_handle);
 	if (dest_queue < 0) {
-		perrror("alloc queue");
+		perror("alloc queue");
 		exit(1);
 	}
 
