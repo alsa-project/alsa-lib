@@ -291,6 +291,7 @@ static void server_job(snd_pcm_direct_t *dmix)
 	snd_pcm_direct_shm_discard(dmix);
 	snd_pcm_direct_semaphore_discard(dmix);
 	server_printf("DIRECT SERVER EXIT\n");
+	close(0); close(1); close(2);
 	_exit(EXIT_SUCCESS);
 }
 
