@@ -51,11 +51,11 @@ typedef struct {
 
 	snd_seq_event_t out_event;
 	int pending;
-} snd_rawmidi_virt_t;
+} snd_rawmidi_virtual_t;
 
-static int snd_rawmidi_virt_close(snd_rawmidi_t *rmidi)
+static int snd_rawmidi_virtual_close(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_virt_t *virt = rmidi->private_data;
+	snd_rawmidi_virtual_t *virt = rmidi->private_data;
 	virt->open--;
 	if (virt->open)
 		return 0;
@@ -66,16 +66,16 @@ static int snd_rawmidi_virt_close(snd_rawmidi_t *rmidi)
 	return 0;
 }
 
-static int snd_rawmidi_virt_nonblock(snd_rawmidi_t *rmidi, int nonblock)
+static int snd_rawmidi_virtual_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 {
-	snd_rawmidi_virt_t *virt = rmidi->private_data;
+	snd_rawmidi_virtual_t *virt = rmidi->private_data;
 
 	return snd_seq_nonblock(virt->handle, nonblock);
 }
 
-static int snd_rawmidi_virt_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
+static int snd_rawmidi_virtual_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 {
-	// snd_rawmidi_virt_t *virt = rmidi->private_data;
+	// snd_rawmidi_virtual_t *virt = rmidi->private_data;
 
 	info->stream = rmidi->stream;
 	/* FIXME: what values should be there? */
@@ -91,7 +91,7 @@ static int snd_rawmidi_virt_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info
 	return 0;
 }
 
-static int snd_rawmidi_virt_input_params(snd_rawmidi_virt_t *virt, snd_rawmidi_params_t *params)
+static int snd_rawmidi_virtual_input_params(snd_rawmidi_virtual_t *virt, snd_rawmidi_params_t *params)
 {
 	int err;
 
@@ -111,7 +111,7 @@ static int snd_rawmidi_virt_input_params(snd_rawmidi_virt_t *virt, snd_rawmidi_p
 }
 
 
-static int snd_rawmidi_virt_output_params(snd_rawmidi_virt_t *virt, snd_rawmidi_params_t *params)
+static int snd_rawmidi_virtual_output_params(snd_rawmidi_virtual_t *virt, snd_rawmidi_params_t *params)
 {
 	int err;
 
@@ -130,28 +130,28 @@ static int snd_rawmidi_virt_output_params(snd_rawmidi_virt_t *virt, snd_rawmidi_
 }
 
 
-static int snd_rawmidi_virt_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
+static int snd_rawmidi_virtual_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
 {
-	snd_rawmidi_virt_t *virt = rmidi->private_data;
+	snd_rawmidi_virtual_t *virt = rmidi->private_data;
 	params->stream = rmidi->stream;
 
 	if (rmidi->stream == SND_RAWMIDI_STREAM_INPUT)
-		return snd_rawmidi_virt_input_params(virt, params);
+		return snd_rawmidi_virtual_input_params(virt, params);
 	else
-		return snd_rawmidi_virt_output_params(virt, params);
+		return snd_rawmidi_virtual_output_params(virt, params);
 }
 
-static int snd_rawmidi_virt_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
+static int snd_rawmidi_virtual_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
-	// snd_rawmidi_virt_t *virt = rmidi->private_data;
+	// snd_rawmidi_virtual_t *virt = rmidi->private_data;
 	memset(status, 0, sizeof(*status));
 	status->stream = rmidi->stream;
 	return 0;
 }
 
-static int snd_rawmidi_virt_drop(snd_rawmidi_t *rmidi)
+static int snd_rawmidi_virtual_drop(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_virt_t *virt = rmidi->private_data;
+	snd_rawmidi_virtual_t *virt = rmidi->private_data;
 	if (rmidi->stream == SND_RAWMIDI_STREAM_OUTPUT) {
 		snd_seq_drop_output(virt->handle);
 		snd_midi_event_reset_encode(virt->midi_event);
@@ -164,9 +164,9 @@ static int snd_rawmidi_virt_drop(snd_rawmidi_t *rmidi)
 	return 0;
 }
 
-static int snd_rawmidi_virt_drain(snd_rawmidi_t *rmidi)
+static int snd_rawmidi_virtual_drain(snd_rawmidi_t *rmidi)
 {
-	snd_rawmidi_virt_t *virt = rmidi->private_data;
+	snd_rawmidi_virtual_t *virt = rmidi->private_data;
 	int err;
 
 	if (rmidi->stream == SND_RAWMIDI_STREAM_OUTPUT) {
@@ -179,12 +179,12 @@ static int snd_rawmidi_virt_drain(snd_rawmidi_t *rmidi)
 		snd_seq_drain_output(virt->handle);
 		snd_seq_sync_output_queue(virt->handle);
 	}
-	return snd_rawmidi_virt_drop(rmidi);
+	return snd_rawmidi_virtual_drop(rmidi);
 }
 
-static ssize_t snd_rawmidi_virt_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
+static ssize_t snd_rawmidi_virtual_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
 {
-	snd_rawmidi_virt_t *virt = rmidi->private_data;
+	snd_rawmidi_virtual_t *virt = rmidi->private_data;
 	ssize_t result = 0;
 	ssize_t size1;
 	int err;
@@ -227,9 +227,9 @@ static ssize_t snd_rawmidi_virt_write(snd_rawmidi_t *rmidi, const void *buffer, 
 	return result;
 }
 
-static ssize_t snd_rawmidi_virt_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
+static ssize_t snd_rawmidi_virtual_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
 {
-	snd_rawmidi_virt_t *virt = rmidi->private_data;
+	snd_rawmidi_virtual_t *virt = rmidi->private_data;
 	ssize_t result = 0;
 	int size1, err;
 
@@ -272,16 +272,16 @@ static ssize_t snd_rawmidi_virt_read(snd_rawmidi_t *rmidi, void *buffer, size_t 
 	return result;
 }
 
-snd_rawmidi_ops_t snd_rawmidi_virt_ops = {
-	.close = snd_rawmidi_virt_close,
-	.nonblock = snd_rawmidi_virt_nonblock,
-	.info = snd_rawmidi_virt_info,
-	.params = snd_rawmidi_virt_params,
-	.status = snd_rawmidi_virt_status,
-	.drop = snd_rawmidi_virt_drop,
-	.drain = snd_rawmidi_virt_drain,
-	.write = snd_rawmidi_virt_write,
-	.read = snd_rawmidi_virt_read,
+snd_rawmidi_ops_t snd_rawmidi_virtual_ops = {
+	.close = snd_rawmidi_virtual_close,
+	.nonblock = snd_rawmidi_virtual_nonblock,
+	.info = snd_rawmidi_virtual_info,
+	.params = snd_rawmidi_virtual_params,
+	.status = snd_rawmidi_virtual_status,
+	.drop = snd_rawmidi_virtual_drop,
+	.drain = snd_rawmidi_virtual_drain,
+	.write = snd_rawmidi_virtual_write,
+	.read = snd_rawmidi_virtual_read,
 };
 
 
@@ -289,27 +289,28 @@ snd_rawmidi_ops_t snd_rawmidi_virt_ops = {
 
 \section rawmidi_virt Virtual RawMidi interface
 
-The "virt" plugin creates a virtual RawMidi instance on the ALSA sequencer,
-which can be accessed through the connection of the sequencer ports.
+The "virtual" plugin creates a virtual RawMidi instance on the ALSA
+sequencer, which can be accessed through the connection of the sequencer
+ports.
 There is no connection established as default.
 
-For creating a virtual RawMidi instance, pass "virt" as its name at
+For creating a virtual RawMidi instance, pass "virtual" as its name at
 creation.
 
 Example:
 \code
-snd_rawmidi_open(&read_handle, &write_handle, "virt", 0);
+snd_rawmidi_open(&read_handle, &write_handle, "virtual", 0);
 \endcode
 
 */
 
-int snd_rawmidi_virt_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-			  const char *name, snd_seq_t *seq_handle, int port,
-			  int merge, int mode)
+int snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+			     const char *name, snd_seq_t *seq_handle, int port,
+			     int merge, int mode)
 {
 	int err;
 	snd_rawmidi_t *rmidi;
-	snd_rawmidi_virt_t *virt = NULL;
+	snd_rawmidi_virtual_t *virt = NULL;
 	struct pollfd pfd;
 
 	if (inputp)
@@ -338,14 +339,14 @@ int snd_rawmidi_virt_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		}
 		if (name)
 			rmidi->name = strdup(name);
-		rmidi->type = SND_RAWMIDI_TYPE_VIRT;
+		rmidi->type = SND_RAWMIDI_TYPE_VIRTUAL;
 		rmidi->stream = SND_RAWMIDI_STREAM_INPUT;
 		rmidi->mode = mode;
 		err = snd_seq_poll_descriptors(seq_handle, &pfd, 1, POLLIN);
 		if (err < 0)
 			goto _err;
 		rmidi->poll_fd = pfd.fd;
-		rmidi->ops = &snd_rawmidi_virt_ops;
+		rmidi->ops = &snd_rawmidi_virtual_ops;
 		rmidi->private_data = virt;
 		virt->open++;
 		*inputp = rmidi;
@@ -358,14 +359,14 @@ int snd_rawmidi_virt_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		}
 		if (name)
 			rmidi->name = strdup(name);
-		rmidi->type = SND_RAWMIDI_TYPE_VIRT;
+		rmidi->type = SND_RAWMIDI_TYPE_VIRTUAL;
 		rmidi->stream = SND_RAWMIDI_STREAM_OUTPUT;
 		rmidi->mode = mode;
 		err = snd_seq_poll_descriptors(seq_handle, &pfd, 1, POLLOUT);
 		if (err < 0)
 			goto _err;
 		rmidi->poll_fd = pfd.fd;
-		rmidi->ops = &snd_rawmidi_virt_ops;
+		rmidi->ops = &snd_rawmidi_virtual_ops;
 		rmidi->private_data = virt;
 		virt->open++;
 		*outputp = rmidi;
@@ -387,7 +388,7 @@ int snd_rawmidi_virt_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	return err;
 }
 
-int _snd_rawmidi_virt_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+int _snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			   char *name, snd_config_t *root ATTRIBUTE_UNUSED,
 			   snd_config_t *conf, int mode)
 {
@@ -446,7 +447,7 @@ int _snd_rawmidi_virt_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	if (outputp)
 		caps |= SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SYNC_READ | SND_SEQ_PORT_CAP_SUBS_READ;
 	if (inputp && outputp)
-		pinfo.capability |= SNDRV_SEQ_PORT_CAP_DUPLEX;
+		caps |= SNDRV_SEQ_PORT_CAP_DUPLEX;
 
 	port = snd_seq_create_simple_port(seq_handle, "Virtual RawMIDI",
 					  caps, SNDRV_SEQ_PORT_TYPE_MIDI_GENERIC);
@@ -455,10 +456,10 @@ int _snd_rawmidi_virt_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		return port;
 	}
 
-	return snd_rawmidi_virt_open(inputp, outputp, name, seq_handle, port,
+	return snd_rawmidi_virtual_open(inputp, outputp, name, seq_handle, port,
 				     merge, mode);
 }
 
 #ifndef DOC_HIDDEN
-SND_DLSYM_BUILD_VERSION(_snd_rawmidi_virt_open, SND_RAWMIDI_DLSYM_VERSION);
+SND_DLSYM_BUILD_VERSION(_snd_rawmidi_virtual_open, SND_RAWMIDI_DLSYM_VERSION);
 #endif
