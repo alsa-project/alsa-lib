@@ -56,7 +56,7 @@ void snd_mixer_sort_eid_name_index(snd_mixer_eid_t *list, int count);
 void snd_mixer_sort_eid_table(snd_mixer_eid_t *list, int count, snd_mixer_weight_entry_t *table);
 void snd_mixer_sort_gid_name_index(snd_mixer_gid_t *list, int count);
 void snd_mixer_sort_gid_table(snd_mixer_gid_t *list, int count, snd_mixer_weight_entry_t *table);
-snd_mixer_weight_entry_t *snd_mixer_default_weights;
+extern snd_mixer_weight_entry_t *snd_mixer_default_weights;
 
 #ifdef __cplusplus
 }
