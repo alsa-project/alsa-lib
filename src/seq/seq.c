@@ -134,13 +134,13 @@ int snd_seq_block_mode(void *handle, int enable)
 	seq = (snd_seq_t *) handle;
 	if (!seq)
 		return -EINVAL;
-	if (fcntl(seq->fd, F_GETFL, &flags) < 0)
+	if ((flags = fcntl(seq->fd, F_GETFL)) < 0)
 		return -errno;
 	if (enable)
 		flags |= O_NONBLOCK;
 	else
 		flags &= ~O_NONBLOCK;
-	if (fcntl(seq->fd, F_SETFL, &flags) < 0)
+	if (fcntl(seq->fd, F_SETFL, flags) < 0)
 		return -errno;
 	return 0;
 }

@@ -100,13 +100,13 @@ int snd_rawmidi_block_mode(void *handle, int enable)
 	rmidi = (snd_rawmidi_t *) handle;
 	if (!rmidi)
 		return -EINVAL;
-	if (fcntl(rmidi->fd, F_GETFL, &flags) < 0)
+	if ((flags = fcntl(rmidi->fd, F_GETFL)) < 0)
 		return -errno;
 	if (enable)
 		flags |= O_NONBLOCK;
 	else
 		flags &= ~O_NONBLOCK;
-	if (fcntl(rmidi->fd, F_SETFL, &flags) < 0)
+	if (fcntl(rmidi->fd, F_SETFL, flags) < 0)
 		return -errno;
 	return 0;
 }
