@@ -97,6 +97,13 @@ static int snd_pcm_file_prepare(snd_pcm_t *pcm)
 	return snd_pcm_prepare(file->slave);
 }
 
+static int snd_pcm_file_reset(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private;
+	/* FIXME */
+	return snd_pcm_reset(file->slave);
+}
+
 static int snd_pcm_file_start(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private;
@@ -325,6 +332,7 @@ snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	state: snd_pcm_file_state,
 	delay: snd_pcm_file_delay,
 	prepare: snd_pcm_file_prepare,
+	reset: snd_pcm_file_reset,
 	start: snd_pcm_file_start,
 	drop: snd_pcm_file_drop,
 	drain: snd_pcm_file_drain,

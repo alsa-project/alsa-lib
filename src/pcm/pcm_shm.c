@@ -348,6 +348,14 @@ static int snd_pcm_shm_prepare(snd_pcm_t *pcm)
 	return snd_pcm_shm_action(pcm);
 }
 
+static int snd_pcm_shm_reset(snd_pcm_t *pcm)
+{
+	snd_pcm_shm_t *shm = pcm->private;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	ctrl->cmd = SND_PCM_IOCTL_RESET;
+	return snd_pcm_shm_action(pcm);
+}
+
 static int snd_pcm_shm_start(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
@@ -470,6 +478,7 @@ snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	state: snd_pcm_shm_state,
 	delay: snd_pcm_shm_delay,
 	prepare: snd_pcm_shm_prepare,
+	reset: snd_pcm_shm_reset,
 	start: snd_pcm_shm_start,
 	drop: snd_pcm_shm_drop,
 	drain: snd_pcm_shm_drain,

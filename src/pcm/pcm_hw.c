@@ -237,6 +237,17 @@ static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int snd_pcm_hw_reset(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private;
+	int fd = hw->fd;
+	if (ioctl(fd, SND_PCM_IOCTL_RESET) < 0) {
+		SYSERR("SND_PCM_IOCTL_RESET failed");
+		return -errno;
+	}
+	return 0;
+}
+
 static int snd_pcm_hw_start(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
@@ -529,6 +540,7 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	state: snd_pcm_hw_state,
 	delay: snd_pcm_hw_delay,
 	prepare: snd_pcm_hw_prepare,
+	reset: snd_pcm_hw_reset,
 	start: snd_pcm_hw_start,
 	drop: snd_pcm_hw_drop,
 	drain: snd_pcm_hw_drain,

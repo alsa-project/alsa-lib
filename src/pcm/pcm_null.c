@@ -98,6 +98,14 @@ static int snd_pcm_null_prepare(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int snd_pcm_null_reset(snd_pcm_t *pcm)
+{
+	snd_pcm_null_t *null = pcm->private;
+	null->appl_ptr = 0;
+	null->hw_ptr = 0;
+	return 0;
+}
+
 static int snd_pcm_null_start(snd_pcm_t *pcm)
 {
 	snd_pcm_null_t *null = pcm->private;
@@ -316,6 +324,7 @@ snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	state: snd_pcm_null_state,
 	delay: snd_pcm_null_delay,
 	prepare: snd_pcm_null_prepare,
+	reset: snd_pcm_null_reset,
 	start: snd_pcm_null_start,
 	drop: snd_pcm_null_drop,
 	drain: snd_pcm_null_drain,

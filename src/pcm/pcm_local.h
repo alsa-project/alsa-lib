@@ -72,6 +72,7 @@ typedef struct {
 typedef struct {
 	int (*status)(snd_pcm_t *pcm, snd_pcm_status_t *status);
 	int (*prepare)(snd_pcm_t *pcm);
+	int (*reset)(snd_pcm_t *pcm);
 	int (*start)(snd_pcm_t *pcm);
 	int (*drop)(snd_pcm_t *pcm);
 	int (*drain)(snd_pcm_t *pcm);

@@ -121,6 +121,22 @@ int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 	return 0;
 }
 
+int snd_pcm_plugin_reset(snd_pcm_t *pcm)
+{
+	snd_pcm_plugin_t *plugin = pcm->private;
+	int err = snd_pcm_reset(plugin->slave);
+	if (err < 0)
+		return err;
+	plugin->hw_ptr = 0;
+	plugin->appl_ptr = 0;
+	if (plugin->init) {
+		err = plugin->init(pcm);
+		if (err < 0)
+			return err;
+	}
+	return 0;
+}
+
 int snd_pcm_plugin_start(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
@@ -395,6 +411,7 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	state: snd_pcm_plugin_state,
 	delay: snd_pcm_plugin_delay,
 	prepare: snd_pcm_plugin_prepare,
+	reset: snd_pcm_plugin_reset,
 	start: snd_pcm_plugin_start,
 	drop: snd_pcm_plugin_drop,
 	drain: snd_pcm_plugin_drain,

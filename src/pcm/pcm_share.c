@@ -725,6 +725,20 @@ static int snd_pcm_share_prepare(snd_pcm_t *pcm)
 	return err;
 }
 
+static int snd_pcm_share_reset(snd_pcm_t *pcm)
+{
+	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_slave_t *slave = share->slave;
+	int err = 0;
+	/* FIXME? */
+	Pthread_mutex_lock(&slave->mutex);
+	snd_pcm_areas_silence(pcm->running_areas, 0, pcm->channels, pcm->buffer_size, pcm->format);
+	share->hw_ptr = *slave->pcm->hw_ptr;
+	share->appl_ptr = share->hw_ptr;
+	Pthread_mutex_unlock(&slave->mutex);
+	return err;
+}
+
 static int snd_pcm_share_start(snd_pcm_t *pcm)
 {
 	snd_pcm_share_t *share = pcm->private;
@@ -1062,6 +1076,7 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	state: snd_pcm_share_state,
 	delay: snd_pcm_share_delay,
 	prepare: snd_pcm_share_prepare,
+	reset: snd_pcm_share_reset,
 	start: snd_pcm_share_start,
 	drop: snd_pcm_share_drop,
 	drain: snd_pcm_share_drain,

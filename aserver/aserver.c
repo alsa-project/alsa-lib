@@ -412,6 +412,11 @@ int pcm_shm_cmd(client_t *client)
 		ctrl->appl_ptr = *pcm->appl_ptr;
 		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
+	case SND_PCM_IOCTL_RESET:
+		ctrl->result = snd_pcm_reset(pcm);
+		ctrl->appl_ptr = *pcm->appl_ptr;
+		ctrl->hw_ptr = *pcm->hw_ptr;
+		break;
 	case SND_PCM_IOCTL_START:
 		ctrl->result = snd_pcm_start(pcm);
 		ctrl->appl_ptr = *pcm->appl_ptr;

@@ -292,6 +292,13 @@ int snd_pcm_prepare(snd_pcm_t *pcm)
 	return pcm->fast_ops->prepare(pcm->fast_op_arg);
 }
 
+int snd_pcm_reset(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	assert(pcm->setup);
+	return pcm->fast_ops->reset(pcm->fast_op_arg);
+}
+
 int snd_pcm_start(snd_pcm_t *pcm)
 {
 	assert(pcm);

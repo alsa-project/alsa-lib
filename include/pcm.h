@@ -75,6 +75,7 @@ int snd_pcm_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t *info);
 int snd_pcm_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t *params);
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status);
 int snd_pcm_prepare(snd_pcm_t *pcm);
+int snd_pcm_reset(snd_pcm_t *pcm);
 int snd_pcm_start(snd_pcm_t *pcm);
 int snd_pcm_drop(snd_pcm_t *pcm);
 int snd_pcm_drain(snd_pcm_t *pcm);

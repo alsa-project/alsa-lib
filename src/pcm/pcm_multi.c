@@ -225,6 +225,12 @@ static int snd_pcm_multi_prepare(snd_pcm_t *pcm)
 	return snd_pcm_prepare(multi->slaves[0].pcm);
 }
 
+static int snd_pcm_multi_reset(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	return snd_pcm_reset(multi->slaves[0].pcm);
+}
+
 static int snd_pcm_multi_start(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
@@ -374,6 +380,7 @@ snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	state: snd_pcm_multi_state,
 	delay: snd_pcm_multi_delay,
 	prepare: snd_pcm_multi_prepare,
+	reset: snd_pcm_multi_reset,
 	start: snd_pcm_multi_start,
 	drop: snd_pcm_multi_drop,
 	drain: snd_pcm_multi_drain,
