@@ -1700,7 +1700,7 @@ int snd_ctl_elem_info_get_dimensions(const snd_ctl_elem_info_t *obj)
 	if (obj->access & SNDRV_CTL_ELEM_ACCESS_DINDIRECT)
 		return 0;			/* FIXME: implement indirect access as well */
 	for (i = 3; i >= 0; i++)
-		if (obj->dimen.d[0])
+		if (obj->dimen.d[i])
 			break;
 	return i >= 0 ? i + 1 : 0;
 }
