@@ -152,6 +152,7 @@ void showstat(snd_pcm_t *handle, int channel, snd_pcm_channel_status_t *rstatus)
 	printf("%s:\n", str);
 	printf("  status = %i\n", status.status);
 	printf("  position = %u\n", status.scount);
+	printf("  free = %i\n", status.free);
 	if (rstatus)
 		*rstatus = status;
 }
@@ -230,11 +231,11 @@ int main(void)
 
 	// latency = 4096 - 16;
 	setscheduler();
-	if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_STREAM_PLAYBACK)) < 0) {
+	if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_PLAYBACK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return 0;
 	}
-	if ((err = snd_pcm_open(&chandle, ccard, cdevice, SND_PCM_OPEN_STREAM_CAPTURE)) < 0) {
+	if ((err = snd_pcm_open(&chandle, ccard, cdevice, SND_PCM_OPEN_CAPTURE)) < 0) {
 		printf("Record open error: %s\n", snd_strerror(err));
 		return 0;
 	}
@@ -274,8 +275,8 @@ int main(void)
 		}
 		showstat(phandle, SND_PCM_CHANNEL_PLAYBACK, &pstatus);
 		showstat(chandle, SND_PCM_CHANNEL_CAPTURE, &cstatus);
-		snd_pcm_flush_capture(chandle);
-		snd_pcm_flush_playback(phandle);
+		snd_pcm_capture_flush(chandle);
+		snd_pcm_playback_flush(phandle);
 		if (ok) {
 			printf("Playback time = %li.%i, Record time = %li.%i, diff = %li\n",
 			       pstatus.stime.tv_sec,

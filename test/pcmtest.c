@@ -2,11 +2,13 @@
 #include <string.h>
 #include "../include/asoundlib.h"
 
-void info_channel(snd_pcm_t *handle, char *id)
+void info_channel(snd_pcm_t *handle, int channel, char *id)
 {
 	snd_pcm_channel_info_t chninfo;
 	int err;
 	
+	bzero(&chninfo, sizeof(chninfo));
+	chninfo.channel = channel;
 	if ((err = snd_pcm_channel_info(handle, &chninfo))<0) {
 		fprintf(stderr, "channel info error: %s\n", snd_strerror(err));
 		return;
@@ -146,7 +148,7 @@ void info(void)
 	snd_pcm_info_t info;
 	int err;
 
-	if ((err = snd_pcm_open(&handle, 0, 0, SND_PCM_OPEN_PLAYBACK))<0) {
+	if ((err = snd_pcm_open(&handle, 0, 0, SND_PCM_OPEN_DUPLEX))<0) {
 		fprintf(stderr, "open error: %s\n", snd_strerror(err));
 		return;
 	}
@@ -162,9 +164,9 @@ void info(void)
 	printf("  playback  : %i\n", info.playback);
 	printf("  capture   : %i\n", info.capture);
 	if (info.flags & SND_PCM_INFO_PLAYBACK)
-		info_channel(handle, "Playback");
+		info_channel(handle, SND_PCM_CHANNEL_PLAYBACK, "Playback");
 	if (info.flags & SND_PCM_INFO_CAPTURE)
-		info_channel(handle, "Capture");
+		info_channel(handle, SND_PCM_CHANNEL_CAPTURE, "Capture");
 	snd_pcm_close(handle);
 }
 
