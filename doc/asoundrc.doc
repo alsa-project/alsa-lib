@@ -42,10 +42,15 @@ hook_args.NAME {
   ...			# Arbitrary arguments
 }
 
-# PCM hook definition
-pcm_hook.NAME {
+# PCM hook type
+pcm_hook_type.NAME {
   [lib STR]		# Library file (default libasound.so)
   [install STR]		# Install function (default _snd_pcm_hook_NAME_install)
+}
+
+# PCM hook definition
+pcm_hook.NAME {
+  type STR		# PCM Hook type (see pcm_hook_type)
   [args STR]		# Arguments for install function (see hook_args)
   # or
   [args { }]		# Arguments for install function

@@ -721,10 +721,10 @@ void snd_pcm_info_set_subdevice(snd_pcm_info_t *obj, unsigned int val);
 void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val);
 
 typedef enum _snd_pcm_hook_type {
-	SND_PCM_HOOK_HW_PARAMS,
-	SND_PCM_HOOK_HW_FREE,
-	SND_PCM_HOOK_CLOSE,
-	SND_PCM_HOOK_LAST = SND_PCM_HOOK_CLOSE,
+	SND_PCM_HOOK_TYPE_HW_PARAMS,
+	SND_PCM_HOOK_TYPE_HW_FREE,
+	SND_PCM_HOOK_TYPE_CLOSE,
+	SND_PCM_HOOK_TYPE_LAST = SND_PCM_HOOK_TYPE_CLOSE,
 } snd_pcm_hook_type_t;
 
 typedef struct _snd_pcm_hook snd_pcm_hook_t;

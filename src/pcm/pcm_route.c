@@ -784,16 +784,15 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 	int sused = -1;
 	snd_config_iterator_t i, inext;
 	unsigned int k;
+	int err;
 	for (k = 0; k < tt_csize * tt_ssize; ++k)
 		ttable[k] = 0.0;
 	snd_config_for_each(i, inext, tt) {
 		snd_config_t *in = snd_config_iterator_entry(i);
 		snd_config_iterator_t j, jnext;
-		char *p;
 		long cchannel;
-		errno = 0;
-		cchannel = strtol(snd_config_get_id(in), &p, 10);
-		if (errno || *p || 
+		err = safe_strtol(snd_config_get_id(in), &cchannel);
+		if (err < 0 || 
 		    cchannel < 0 || (unsigned int) cchannel > tt_csize) {
 			SNDERR("Invalid client channel: %s", snd_config_get_id(in));
 			return -EINVAL;
@@ -804,11 +803,9 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 			snd_config_t *jnode = snd_config_iterator_entry(j);
 			double value;
 			long schannel;
-			int err;
 			const char *id = snd_config_get_id(jnode);
-			errno = 0;
-			schannel = strtol(id, &p, 10);
-			if (errno || *p || 
+			err = safe_strtol(id, &schannel);
+			if (err < 0 || 
 			    schannel < 0 || (unsigned int) schannel > tt_ssize || 
 			    (schannels > 0 && schannel >= schannels)) {
 				SNDERR("Invalid slave channel: %s", id);

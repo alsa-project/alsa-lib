@@ -79,15 +79,14 @@ static int snd_pcm_multi_async(snd_pcm_t *pcm, int sig, pid_t pid)
 static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
-	if (multi->slaves_count == 1)
-		return snd_pcm_info(multi->slaves[0].pcm, info);
-	memset(info, 0, sizeof(*info));
-	info->stream = snd_enum_to_int(pcm->stream);
-	info->card = -1;
-	strncpy(info->id, pcm->name, sizeof(info->id));
-	strncpy(info->name, pcm->name, sizeof(info->name));
-	strncpy(info->subname, pcm->name, sizeof(info->subname));
-	info->subdevices_count = 1;
+	int err, n;
+	assert(info->subdevice < multi->slaves_count);
+	n = info->subdevice;
+	info->subdevice = 0;
+	err = snd_pcm_info(multi->slaves[n].pcm, info);
+	if (err < 0)
+		return err;
+	info->subdevices_count = multi->slaves_count;
 	return 0;
 }
 
@@ -698,17 +697,15 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		++slaves_count;
 	}
 	snd_config_for_each(i, inext, bindings) {
-		int cchannel = -1;
-		char *p;
+		long cchannel;
 		snd_config_t *m = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(m);
-		errno = 0;
-		cchannel = strtol(id, &p, 10);
-		if (errno || *p || cchannel < 0) {
+		err = safe_strtol(id, &cchannel);
+		if (err < 0 || cchannel < 0) {
 			SNDERR("Invalid channel number: %s", id);
 			return -EINVAL;
 		}
-		if ((unsigned)cchannel >= channels_count)
+		if ((unsigned long)cchannel >= channels_count)
 			channels_count = cchannel + 1;
 	}
 	if (channels_count == 0) {
@@ -745,8 +742,8 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		long val;
 		const char *str;
 		const char *id = snd_config_get_id(m);
-		cchannel = strtol(id, 0, 10);
-		if (cchannel < 0) {
+		err = safe_strtol(id, &cchannel);
+		if (err < 0 || cchannel < 0) {
 			SNDERR("Invalid channel number: %s", id);
 			err = -EINVAL;
 			goto _free;

@@ -1435,12 +1435,10 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	}
 	snd_config_for_each(i, next, bindings) {
 		int cchannel = -1;
-		char *p;
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id = snd_config_get_id(n);
-		errno = 0;
-		cchannel = strtol(id, &p, 10);
-		if (errno || *p || cchannel < 0) {
+		err = safe_strtol(id, &cchannel);
+		if (err < 0 || cchannel < 0) {
 			SNDERR("Invalid client channel in binding: %s", id);
 			return -EINVAL;
 		}
@@ -1458,7 +1456,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		const char *id = snd_config_get_id(n);
 		long cchannel;
 		long schannel = -1;
-		cchannel = strtol(id, 0, 10);
+		cchannel = atoi(id);
 		err = snd_config_get_integer(n, &schannel);
 		if (err < 0)
 			goto _free;

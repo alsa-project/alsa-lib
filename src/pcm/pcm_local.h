@@ -576,3 +576,4 @@ int snd_pcm_conf_generic_id(const char *id);
 	 (1U << SND_PCM_FORMAT_U32_LE) | \
 	 (1U << SND_PCM_FORMAT_U32_BE))
 
+int safe_strtol(const char *str, long *val);

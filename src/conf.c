@@ -1610,7 +1610,7 @@ static int load_defaults(snd_config_t *subs, snd_config_t *defs)
 	return 0;
 }
 
-static int safe_strtol(const char *str, long *val)
+int safe_strtol(const char *str, long *val)
 {
 	char *end;
 	long v;
