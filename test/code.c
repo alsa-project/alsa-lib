@@ -149,8 +149,9 @@ void mix_areas2(unsigned int size,
 {
 	while (size-- > 0) {
 		s32 sample = *src;
+		s32 old_sample = *sum;
 		if (cmpxchg(dst, 0, 1) == 0)
-			sample -= *sum;
+			sample -= old_sample;
 		atomic_add(sum, sample);
 		do {
 			sample = *sum;
