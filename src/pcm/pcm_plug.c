@@ -1012,6 +1012,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *tt = NULL;
 	enum snd_pcm_plug_route_policy route_policy = PLUG_ROUTE_POLICY_DEFAULT;
 	snd_pcm_route_ttable_entry_t *ttable = NULL;
+	unsigned int csize, ssize;
 	unsigned int cused, sused;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int schannels = -1, srate = -1;
@@ -1089,7 +1090,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 	err = snd_pcm_plug_open(pcmp, name, sformat, schannels, srate,
-				route_policy, ttable, MAX_CHANNELS, cused, sused, spcm, 1);
+				route_policy, ttable, ssize, cused, sused, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
