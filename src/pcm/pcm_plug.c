@@ -235,7 +235,6 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 	snd_pcm_plug_t *plug = pcm->private_data;
 	unsigned int tt_ssize, tt_cused, tt_sused;
 	snd_pcm_route_ttable_entry_t *ttable;
-	enum snd_pcm_plug_route_policy rpolicy;
 	int err;
 	assert(snd_pcm_format_linear(slv->format));
 	if (clt->channels == slv->channels)
@@ -243,23 +242,31 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 	if (clt->rate != slv->rate &&
 	    clt->channels > slv->channels)
 		return 0;
-	     
-	ttable = plug->ttable;
-	if (ttable) {
-		tt_ssize = plug->tt_ssize;
-		tt_cused = plug->tt_cused;
-		tt_sused = plug->tt_sused;
+	tt_ssize = slv->channels;
+	tt_cused = clt->channels;
+	tt_sused = slv->channels;
+	ttable = alloca(tt_cused * tt_sused * sizeof(*ttable));
+	if (plug->ttable) {	/* expand or shrink table */
+		unsigned int c = 0, s = 0;
+		for (c = 0; c < tt_cused; c++) {
+			for (s = 0; s < tt_sused; s++) {
+				snd_pcm_route_ttable_entry_t v;
+				if (c >= plug->tt_cused)
+					v = 0;
+				else if (s >= plug->tt_sused)
+					v = 0;
+				else
+					v = plug->ttable[c * plug->tt_ssize + s];
+				ttable[c * tt_ssize + s] = v;
+			}
+		}
 	} else {
 		unsigned int k;
 		unsigned int c = 0, s = 0;
+		enum snd_pcm_plug_route_policy rpolicy = plug->route_policy;
 		int n;
-		tt_ssize = slv->channels;
-		tt_cused = clt->channels;
-		tt_sused = slv->channels;
-		ttable = alloca(tt_cused * tt_sused * sizeof(*ttable));
 		for (k = 0; k < tt_cused * tt_sused; ++k)
 			ttable[k] = 0;
-		rpolicy = plug->route_policy;
 		if (rpolicy == PLUG_ROUTE_POLICY_DEFAULT) {
 			rpolicy = PLUG_ROUTE_POLICY_COPY;
 			if (pcm->stream == SND_PCM_STREAM_CAPTURE && clt->channels == 1)
