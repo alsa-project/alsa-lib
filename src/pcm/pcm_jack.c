@@ -40,6 +40,8 @@
 #include <jack/jack.h>
 #endif
 
+#define PCM_JACK_DEBUG
+
 #ifndef PIC
 /* entry for static linking */
 const char *_snd_module_pcm_jack = "";
@@ -73,7 +75,9 @@ static int snd_pcm_jack_close(snd_pcm_t *pcm)
 	snd_pcm_jack_t *jack = pcm->private_data;
 	int err = 0;
 
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_close\n"); fflush(stdout);
+#endif
 #ifdef USE_JACK
 	if (jack->client)
 		jack_client_close(jack->client);
@@ -85,13 +89,17 @@ static int snd_pcm_jack_close(snd_pcm_t *pcm)
 static int snd_pcm_jack_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_nonblock\n"); fflush(stdout);
+#endif
 	return 0;
 }
 
 static int snd_pcm_jack_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_async\n"); fflush(stdout);
+#endif
 	return -ENOSYS;
 }
 
@@ -101,7 +109,9 @@ static int snd_pcm_jack_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsign
 	unsigned short events;
 	char buf[1];
 	
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_poll_revents\n"); fflush(stdout);
+#endif
 	
 	assert(pfds && nfds == 1 && revents);
 
@@ -113,7 +123,9 @@ static int snd_pcm_jack_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsign
 
 static int snd_pcm_jack_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_info\n"); fflush(stdout);
+#endif
 	memset(info, 0, sizeof(*info));
 	info->stream = pcm->stream;
 	info->card = -1;
@@ -127,14 +139,18 @@ static int snd_pcm_jack_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 static int snd_pcm_jack_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_channel_info\n"); fflush(stdout);
+#endif
 	return snd_pcm_channel_info_shm(pcm, info, -1);
 }
 
 static int snd_pcm_jack_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_status\n"); fflush(stdout);
+#endif
 	memset(status, 0, sizeof(*status));
 	status->state = jack->state;
 	status->trigger_tstamp = jack->trigger_tstamp;
@@ -147,20 +163,26 @@ static int snd_pcm_jack_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 static snd_pcm_state_t snd_pcm_jack_state(snd_pcm_t *pcm)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_state\n"); fflush(stdout);
+#endif
 	return jack->state;
 }
 
 static int snd_pcm_jack_hwsync(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_hwsync\n"); fflush(stdout);
+#endif
 	return 0;
 }
 
 static int snd_pcm_jack_delay(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sframes_t *delayp)
 {
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_delay\n"); fflush(stdout);
-	*delayp = snd_pcm_mmap_hw_avail(pcm);
+#endif
+	*delayp = snd_pcm_mmap_hw_avail(pcm); 
 	return 0;
 }
 
@@ -174,7 +196,9 @@ snd_pcm_jack_process_cb (jack_nframes_t nframes, snd_pcm_t *pcm)
 	snd_pcm_channel_area_t area;	
 	char buf[1];
 
+#ifdef PCM_JACK_DEBUG
 	printf("PROCESS!\n");
+#endif
 
 	area.addr = jack_port_get_buffer (jack->ports[0], nframes);
 	area.first = 0;
@@ -191,17 +215,25 @@ snd_pcm_jack_process_cb (jack_nframes_t nframes, snd_pcm_t *pcm)
 		if (cont < frames)
 			frames = cont;
 
+#ifdef PCM_JACK_DEBUG
 		printf("snd_pcm_jack_process_cb hw=%d=%d + nframes=%d / frames=%d / bufsize=%d\n",
+#endif
 			offset,jack->hw_ptr,nframes,frames,pcm->buffer_size); fflush(stdout);
 
-		snd_pcm_area_copy(&area, xfer, &areas[0], offset, frames, pcm->format);
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+			snd_pcm_area_copy(&area, xfer, &areas[0], offset, frames, pcm->format);
+		} else {
+			snd_pcm_area_copy(&areas[0], offset, &area, xfer, frames, pcm->format);
+		}
 		
 		snd_pcm_mmap_hw_forward(pcm,frames);
 		xfer += frames;
 	}
 	write(jack->fd,buf,1); /* for polling */
 
+#ifdef PCM_JACK_DEBUG
 	printf("jack_process = %d\n",snd_pcm_mmap_hw_offset(pcm)); fflush(stdout);
+#endif
 	
 	return 0;      
 }
@@ -212,7 +244,9 @@ static int snd_pcm_jack_prepare(snd_pcm_t *pcm)
 	int i;
 	
 	snd_pcm_jack_t *jack = pcm->private_data;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_prepare\n"); fflush(stdout);
+#endif
 	jack->state = SND_PCM_STATE_PREPARED;
 	*pcm->appl.ptr = 0;
 	*pcm->hw.ptr = 0;
@@ -224,23 +258,67 @@ static int snd_pcm_jack_prepare(snd_pcm_t *pcm)
 	for (i = 0; i < pcm->channels; i++)
 	{
 		char port_name[32];
-		sprintf(port_name,"chn%03d\n",i);
-		jack->ports[i] = jack_port_register (
-			jack->client, port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+
+			sprintf(port_name,"out_%03d\n",i);
+			jack->ports[i] = jack_port_register (
+				jack->client, port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+		}else{
+			sprintf(port_name,"in__%03d\n",i);
+			jack->ports[i] = jack_port_register (
+				jack->client, port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
+		}
 	}
 
 	jack_set_process_callback (jack->client,
 		(JackProcessCallback)snd_pcm_jack_process_cb, pcm);
 	jack_activate (jack->client);
 
-	for (i = 0; i < pcm->channels; i++)
-	{
-		if (jack_connect (jack->client, jack_port_name (jack->ports[i]), "alsa_pcm:playback_1"))
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		for (i = 0; i < pcm->channels; i++)
 		{
-			fprintf (stderr, "cannot connect output ports\n");
-			exit(-1);
-		}else{
-			printf("connected %s to alsa_pcm:playback_1",jack_port_name(jack->ports[i]));
+			if (jack_connect (jack->client, jack_port_name (jack->ports[i]), "alsa_pcm:playback_1"))
+			{
+				fprintf (stderr, "cannot connect output ports\n");
+				exit(-1);
+			}else{
+#ifdef PCM_JACK_DEBUG
+				printf("connected %s to alsa_pcm:playback_1",jack_port_name(jack->ports[i]));
+#endif
+			}
+			if (jack_connect (jack->client, jack_port_name (jack->ports[i]),"alsa_pcm:playback_2"))
+			{
+				fprintf (stderr, "cannot connect output ports\n");
+				exit(-1);
+			}else{
+#ifdef PCM_JACK_DEBUG
+				printf("connected %s to alsa_pcm:playback_2",jack_port_name(jack->ports[i]));
+#endif
+			}
+		}
+	}else{
+		for (i = 0; i < pcm->channels; i++)
+		{
+			if (jack_connect (jack->client, 
+				"alsa_pcm:capture_1",jack_port_name (jack->ports[i])))
+			{
+				fprintf (stderr, "cannot connect input ports\n");
+				exit(-1);
+			}else{
+#ifdef PCM_JACK_DEBUG
+				printf("connected %s to alsa_pcm:capture_1",jack_port_name(jack->ports[i]));
+#endif
+			}
+			if (jack_connect (jack->client, 
+				"alsa_pcm:capture_2",jack_port_name (jack->ports[i])))
+			{
+				fprintf (stderr, "cannot connect input ports\n");
+				exit(-1);
+			}else{
+#ifdef PCM_JACK_DEBUG
+				printf("connected %s to alsa_pcm:capture_2",jack_port_name(jack->ports[i]));
+#endif
+			}
 		}
 	}
 #endif
@@ -250,7 +328,9 @@ static int snd_pcm_jack_prepare(snd_pcm_t *pcm)
 
 static int snd_pcm_jack_reset(snd_pcm_t *pcm)
 {
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_reset\n"); fflush(stdout);
+#endif
 	*pcm->appl.ptr = 0;
 	*pcm->hw.ptr = 0;
 	return 0;
@@ -261,7 +341,9 @@ static int snd_pcm_jack_start(snd_pcm_t *pcm)
 	snd_pcm_jack_t *jack = pcm->private_data;
 	assert(jack->state == SND_PCM_STATE_PREPARED);
 
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_start\n"); fflush(stdout);
+#endif
 	
 	jack->state = SND_PCM_STATE_RUNNING;
 
@@ -271,7 +353,9 @@ static int snd_pcm_jack_start(snd_pcm_t *pcm)
 static int snd_pcm_jack_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_drop\n"); fflush(stdout);
+#endif
 	assert(jack->state != SND_PCM_STATE_OPEN);
 	jack->state = SND_PCM_STATE_SETUP;
 	return 0;
@@ -280,7 +364,9 @@ static int snd_pcm_jack_drop(snd_pcm_t *pcm)
 static int snd_pcm_jack_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_drain\n"); fflush(stdout);
+#endif
 	assert(jack->state != SND_PCM_STATE_OPEN);
 	jack->state = SND_PCM_STATE_SETUP;
 	return 0;
@@ -289,7 +375,9 @@ static int snd_pcm_jack_drain(snd_pcm_t *pcm)
 static int snd_pcm_jack_pause(snd_pcm_t *pcm, int enable)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_pause\n"); fflush(stdout);
+#endif
 	if (enable) {
 		if (jack->state != SND_PCM_STATE_RUNNING)
 			return -EBADFD;
@@ -304,7 +392,9 @@ static snd_pcm_sframes_t snd_pcm_jack_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	snd_pcm_jack_t *jack = pcm->private_data;
 	snd_pcm_uframes_t n = snd_pcm_frames_to_bytes(pcm, frames);
 	snd_pcm_sframes_t ptr;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_rewind\n"); fflush(stdout);
+#endif
 	return n;
 }
 
@@ -325,7 +415,9 @@ static snd_pcm_sframes_t snd_pcm_jack_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
 	int ret = snd_pcm_mmap_avail(pcm);
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_avail_update appl=%d hw=%d ret=%d\n",jack->appl_ptr,jack->hw_ptr,ret); fflush(stdout);
+#endif
 	return ret;
 }
 
@@ -356,29 +448,21 @@ static int snd_pcm_jack_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_interval_t t;
 
 	snd_pcm_format_mask_t format_mask = { SND_PCM_FMTBIT_FLOAT };
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_hw_refine\n"); fflush(stdout);
+#endif
 
 	t.openmin = 0;
 	t.openmax = 0;
 	t.empty = 0;
 	t.integer = 1;
-	t.min = 44100; /* TODO: get this value from jack */
-	t.max = 44100; /* TODO: get this value from jack */
+	t.min = t.max = jack_get_sample_rate ( jack->client);
 
 	snd_mask_refine(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS), &access);
 
 	snd_mask_refine(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT),
 		&format_mask);
-	/*** this should work, right? */
-	/* snd_interval_refine(hw_param_interval(params,SND_PCM_HW_PARAM_RATE),&t);
-	*/
-	/*** but it doesn't... the following does... ***/
-	err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_RATE,
-					   44100, 0, 
-					   44100, 1);
-						 
-	if (err < 0)
-		return err;
+	snd_interval_refine(hw_param_interval(params,SND_PCM_HW_PARAM_RATE),&t);
 
 	return 0;
 }
@@ -388,27 +472,35 @@ static int snd_pcm_jack_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	snd_pcm_jack_t *jack = pcm->private_data;
 	int err;
 	
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_hw_params\n"); fflush(stdout);
+#endif
 
 	return 0;
 }
 
 static int snd_pcm_jack_hw_free(snd_pcm_t *pcm)
 {
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_hw_free\n"); fflush(stdout);
+#endif
 	return 0;
 }
 
 static int snd_pcm_jack_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_sw_params\n"); fflush(stdout);
+#endif
 	return 0;
 }
 
 static int snd_pcm_jack_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_jack_t *jack = pcm->private_data;
+#ifdef PCM_JACK_DEBUG
 	printf("snd_pcm_jack_mmap\n"); fflush(stdout);
+#endif
 
 	return 0;
 }
@@ -487,16 +579,17 @@ int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 	
 	assert(pcmp);
 	printf("snd_pcm_jack_open\n"); fflush(stdout);
-	if (stream == SND_PCM_STREAM_PLAYBACK) {
-	} else {
-	}
 	jack = calloc(1, sizeof(snd_pcm_jack_t));
 	if (!jack) {
 		return -ENOMEM;
 	}
 
 #ifdef USE_JACK
-	jack->client = jack_client_new("alsa");
+	if (stream == SND_PCM_STREAM_PLAYBACK)
+		jack->client = jack_client_new("alsaP");
+	else
+		jack->client = jack_client_new("alsaC");
+	
 	if (jack->client==0)
 		return -ENOENT;	
 #endif
@@ -519,6 +612,7 @@ int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 	
 	jack->fd = fd[0];
 	pcm->poll_fd = fd[1];
+	pcm->poll_events = POLLIN;
 
 	snd_pcm_set_hw_ptr(pcm, &jack->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &jack->appl_ptr, -1, 0);
