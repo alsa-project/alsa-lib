@@ -795,32 +795,32 @@ static inline void _norms(const void *src, void *dst,
 	case 8:
 		s = *(int8_t*)src;
 		if (s >= 0x7f)
-			goto _min;
-		else if (s <= -0x80)
 			goto _max;
+		else if (s <= -0x80)
+			goto _min;
 		break;
 	case 16:
 		s = *(int16_t*)src;
 		if (s >= 0x7fff)
-			goto _min;
-		else if (s <= -0x8000)
 			goto _max;
+		else if (s <= -0x8000)
+			goto _min;
 		break;
 	case 24:
 		s = *(int32_t*)src;
 		if (s >= 0x7fffff)
-			goto _min;
-		else if (s <= -0x800000)
 			goto _max;
+		else if (s <= -0x800000)
+			goto _min;
 		break;
 	case 32:
 	{
 		int64_t s64;
 		s64 = *(int64_t*)src;
 		if (s64 >= 0x7fffffff)
-			goto _min;
-		else if (s64 <= -0x80000000)
 			goto _max;
+		else if (s64 <= -0x80000000)
+			goto _min;
 		s = s64;
 		break;
 	}
