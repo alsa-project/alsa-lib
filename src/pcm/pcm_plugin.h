@@ -47,7 +47,6 @@ typedef struct {
 	snd_pcm_sframes_t (*client_frames)(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
 	snd_pcm_sframes_t (*slave_frames)(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
 	int (*init)(snd_pcm_t *pcm);
-	int shmid;
 	snd_pcm_uframes_t appl_ptr, hw_ptr;
 	snd_atomic_write_t watom;
 } snd_pcm_plugin_t;	

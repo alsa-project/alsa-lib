@@ -178,8 +178,7 @@ int snd_pcm_plugin_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 
 int snd_pcm_plugin_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
-	snd_pcm_plugin_t *plugin = pcm->private_data;
-	return snd_pcm_channel_info_shm(pcm, info, plugin->shmid);
+	return snd_pcm_channel_info_shm(pcm, info, -1);
 }
 
 snd_pcm_state_t snd_pcm_plugin_state(snd_pcm_t *pcm)
@@ -569,26 +568,13 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	}
 }
 
-int snd_pcm_plugin_mmap(snd_pcm_t *pcm)
+int snd_pcm_plugin_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_plugin_t *plug = pcm->private_data;
-	size_t size = snd_pcm_frames_to_bytes(pcm, (snd_pcm_sframes_t) pcm->buffer_size);
-	int id = shmget(IPC_PRIVATE, size, 0666);
-	if (id < 0) {
-		SYSERR("shmget failed");
-		return -errno;
-	}
-	plug->shmid = id;
 	return 0;
 }
 
-int snd_pcm_plugin_munmap(snd_pcm_t *pcm)
+int snd_pcm_plugin_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_plugin_t *plug = pcm->private_data;
-	if (shmctl(plug->shmid, IPC_RMID, 0) < 0) {
-		SYSERR("shmctl IPC_RMID failed");
-			return -errno;
-	}
 	return 0;
 }
 

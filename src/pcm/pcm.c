@@ -672,16 +672,7 @@ int snd_pcm_close(snd_pcm_t *pcm)
 	err = pcm->ops->close(pcm->op_arg);
 	if (err < 0)
 		return err;
-	if (pcm->name)
-		free(pcm->name);
-	if (pcm->hw.link_dst)
-		free(pcm->hw.link_dst);
-	if (pcm->appl.link_dst)
-		free(pcm->appl.link_dst);
-	if (pcm->dl_handle)
-		snd_dlclose(pcm->dl_handle);
-	free(pcm);
-	return 0;
+	return snd_pcm_free(pcm);
 }	
 
 /**
@@ -1872,6 +1863,21 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 	pcm->fast_op_arg = pcm;
 	INIT_LIST_HEAD(&pcm->async_handlers);
 	*pcmp = pcm;
+	return 0;
+}
+
+int snd_pcm_free(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	if (pcm->name)
+		free(pcm->name);
+	if (pcm->hw.link_dst)
+		free(pcm->hw.link_dst);
+	if (pcm->appl.link_dst)
+		free(pcm->appl.link_dst);
+	if (pcm->dl_handle)
+		snd_dlclose(pcm->dl_handle);
+	free(pcm);
 	return 0;
 }
 
@@ -5782,11 +5788,7 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 	snd_pcm_uframes_t f;
 	snd_pcm_uframes_t avail;
 	assert(pcm && areas && offset && frames);
-	if (pcm->stopped_areas &&
-	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
-		*areas = pcm->stopped_areas;
-	else
-		*areas = pcm->running_areas;
+	*areas = snd_pcm_mmap_areas(pcm);
 	*offset = *pcm->appl.ptr % pcm->buffer_size;
 	cont = pcm->buffer_size - *offset;
 	f = *frames;

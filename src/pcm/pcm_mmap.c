@@ -282,6 +282,7 @@ int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info,
 	info->addr = 0;
 	info->type = SND_PCM_AREA_SHM;
 	info->u.shm.shmid = shmid;
+	info->u.shm.remove = 0;
 	return 0;
 }	
 
@@ -361,6 +362,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 						return -errno;
 					}
 					i->u.shm.shmid = id;
+					i->u.shm.remove = 1;
 				}
 				ptr = shmat(i->u.shm.shmid, 0, 0);
 				if (ptr == (void*) -1) {
@@ -437,6 +439,14 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 			if (err < 0) {
 				SYSERR("shmdt failed");
 				return -errno;
+			}
+			if (i->u.shm.remove) {
+				if (shmctl(i->u.shm.shmid, IPC_RMID, 0) < 0) {
+					SYSERR("shmctl IPC_RMID failed");
+					return -errno;
+				}
+				i->u.shm.shmid = -1;
+				i->u.shm.remove = 0;
 			}
 			break;
 		default:

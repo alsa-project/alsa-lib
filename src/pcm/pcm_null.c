@@ -41,7 +41,6 @@ const char *_snd_module_pcm_null = "";
 typedef struct {
 	snd_timestamp_t trigger_tstamp;
 	snd_pcm_state_t state;
-	int shmid;
 	snd_pcm_uframes_t appl_ptr;
 	snd_pcm_uframes_t hw_ptr;
 	int poll_fd;
@@ -81,7 +80,7 @@ static int snd_pcm_null_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_info_t * i
 static int snd_pcm_null_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	snd_pcm_null_t *null = pcm->private_data;
-	return snd_pcm_channel_info_shm(pcm, info, null->shmid);
+	return snd_pcm_channel_info_shm(pcm, info, -1);
 }
 
 static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
@@ -273,28 +272,13 @@ static int snd_pcm_null_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_pa
 	return 0;
 }
 
-static int snd_pcm_null_mmap(snd_pcm_t *pcm)
+static int snd_pcm_null_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_null_t *null = pcm->private_data;
-	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
-		size_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
-		int id = shmget(IPC_PRIVATE, size, 0666);
-		if (id < 0) {
-			SYSERR("shmget failed");
-			return -errno;
-		}
-		null->shmid = id;
-	}
 	return 0;
 }
 
-static int snd_pcm_null_munmap(snd_pcm_t *pcm)
+static int snd_pcm_null_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_null_t *null = pcm->private_data;
-	if (shmctl(null->shmid, IPC_RMID, 0) < 0) {
-		SYSERR("shmctl IPC_RMID failed");
-			return -errno;
-	}
 	return 0;
 }
 

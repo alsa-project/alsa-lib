@@ -111,6 +111,7 @@ typedef struct _snd_pcm_channel_info {
 	union {
 		struct {
 			int shmid;
+			int remove;
 		} shm;
 		struct {
 			int fd;
@@ -214,6 +215,7 @@ struct _snd_pcm {
 
 int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 		snd_pcm_stream_t stream, int mode);
+int snd_pcm_free(snd_pcm_t *pcm);
 
 void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void *buf);
 void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void **bufs);
@@ -708,6 +710,8 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 		       snd_config_t *conf, snd_pcm_stream_t stream,
 		       int mode);
 int snd_pcm_conf_generic_id(const char *id);
+
+int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd, int mmap_emulation);
 
 #define SND_PCM_HW_PARBIT_ACCESS	(1U << SND_PCM_HW_PARAM_ACCESS)
 #define SND_PCM_HW_PARBIT_FORMAT	(1U << SND_PCM_HW_PARAM_FORMAT)

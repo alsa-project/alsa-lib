@@ -1322,7 +1322,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	}
 	err = socketpair(AF_LOCAL, SOCK_STREAM, 0, sd);
 	if (err < 0) {
-		free(pcm);
+		snd_pcm_free(pcm);
 		free(share->slave_channels);
 		free(share);
 		return -errno;
@@ -1348,7 +1348,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		err = -errno;
 		close(sd[0]);
 		close(sd[1]);
-		free(pcm);
+		snd_pcm_free(pcm);
 		free(share->slave_channels);
 		free(share);
 		return err;
@@ -1369,7 +1369,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 			Pthread_mutex_unlock(&snd_pcm_share_slaves_mutex);
 			close(sd[0]);
 			close(sd[1]);
-			free(pcm);
+			snd_pcm_free(pcm);
 			free(share->slave_channels);
 			free(share);
 			return err;
@@ -1382,7 +1382,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 			snd_pcm_close(spcm);
 			close(sd[0]);
 			close(sd[1]);
-			free(pcm);
+			snd_pcm_free(pcm);
 			free(share->slave_channels);
 			free(share);
 			return err;
@@ -1412,7 +1412,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 					Pthread_mutex_unlock(&slave->mutex);
 					close(sd[0]);
 					close(sd[1]);
-					free(pcm);
+					snd_pcm_free(pcm);
 					free(share->slave_channels);
 					free(share);
 					return -EBUSY;
