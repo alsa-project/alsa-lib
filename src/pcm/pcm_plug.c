@@ -430,9 +430,6 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	interval_t t;
 	const interval_t *buffer_size;
 	const interval_t *srate, *crate;
-	err = _snd_pcm_hw_params_refine(sparams, links, params);
-	if (err < 0)
-		return err;
 	snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_RATE,
 				     params);
 	snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_CHANNELS,
@@ -475,6 +472,9 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	interval_muldiv(buffer_size, srate, crate, &t);
 	interval_round(&t);
 	err = _snd_pcm_hw_param_refine_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
+	if (err < 0)
+		return err;
+	err = _snd_pcm_hw_params_refine(sparams, links, params);
 	if (err < 0)
 		return err;
 	return 0;

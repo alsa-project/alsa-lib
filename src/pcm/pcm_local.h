@@ -342,6 +342,10 @@ int _snd_pcm_hw_param_min(snd_pcm_hw_params_t *params,
 			   unsigned int var, unsigned int val, int dir);
 int _snd_pcm_hw_param_max(snd_pcm_hw_params_t *params,
 			   unsigned int var, unsigned int val, int dir);
+int _snd_pcm_hw_param_minmax(snd_pcm_hw_params_t *params,
+			     snd_pcm_hw_param_t var,
+			     unsigned int min, int mindir,
+			     unsigned int max, int maxdir);
 int _snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
 			     snd_pcm_hw_param_t var,
 			     const snd_pcm_hw_params_t *src);

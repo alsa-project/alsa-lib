@@ -279,8 +279,8 @@ static int snd_pcm_rate_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 		_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_SUBFORMAT,
 				      SND_PCM_SUBFORMAT_STD, 0);
 	}
-	_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_RATE,
-			      rate->srate, 0);
+	_snd_pcm_hw_param_minmax(sparams, SND_PCM_HW_PARAM_RATE,
+				 rate->srate, 0, rate->srate + 1, -1);
 	return 0;
 }
 
