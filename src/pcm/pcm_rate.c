@@ -87,22 +87,6 @@ typedef struct {
 	snd_pcm_channel_area_t *sareas;	/* areas for splitted period (slave pcm) */
 } snd_pcm_rate_t;
 
-static int16_t initial_sample(const char *src, unsigned int getidx)
-{
-#define GET16_LABELS
-#include "plugin_ops.h"
-#undef GET16_LABELS
-	void *get = get16_labels[getidx];
-	int sample = 0;
-
-	goto *get;
-#define GET16_END after_get
-#include "plugin_ops.h"
-#undef GET16_END
-      after_get:
-	return sample;
-}
-
 static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 				snd_pcm_uframes_t dst_offset, snd_pcm_uframes_t dst_frames,
 				const snd_pcm_channel_area_t *src_areas,
@@ -125,6 +109,7 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 	int16_t sample = 0;
 	
 	for (channel = 0; channel < channels; ++channel) {
+		//int xpos = 0;
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
 		const char *src;
@@ -139,23 +124,27 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 		dst_step = snd_pcm_channel_area_step(dst_area);
 		src_frames1 = 0;
 		dst_frames1 = 0;
-		if (! states->u.linear.init) {
-			sample = initial_sample(src, getidx);
-			old_sample = new_sample = sample;
-			states->u.linear.init = 1;
+		if (!states->u.linear.init) {
+			goto __force_get;
+		} else {
+			states->u.linear.init = 2;
 		}
 		while (dst_frames1 < dst_frames) {
 			if (states->u.linear.init == 2) {
 				old_sample = new_sample;
+			      __force_get:
 				goto *get;
 #define GET16_END after_get
 #include "plugin_ops.h"
 #undef GET16_END
 			after_get:
 				new_sample = sample;
+				if (!states->u.linear.init)
+					old_sample = sample;
 				states->u.linear.init = 1;
 			}
 			sample = (((int64_t)old_sample * (int64_t)(get_threshold - pos)) + ((int64_t)new_sample * pos)) / get_threshold;
+			//printf("sample[%i] = %i (old_sample = %i, new_sample = %i)\n", xpos++, sample, old_sample, new_sample);
 			goto *put;
 #define PUT16_END after_put
 #include "plugin_ops.h"
@@ -169,6 +158,7 @@ static void snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 				src += src_step;
 				src_frames1++;
 				states->u.linear.init = 2; /* get a new sample */
+				//printf("new_src_pos = %i\n", (src - (char *)snd_pcm_channel_area_addr(src_area, src_offset)) / src_step);
 				assert(src_frames1 <= src_frames);
 			}
 		} 
@@ -415,8 +405,6 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		return err;
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		period_size = slave->period_size;
-		buffer_size = slave->buffer_size;
 		err = INTERNAL(snd_pcm_hw_params_get_format)(params, &src_format);
 		if (err < 0)
 			return err;
@@ -426,12 +414,6 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		dst_rate = slave->rate;
 		err = INTERNAL(snd_pcm_hw_params_get_rate)(params, &src_rate, 0);
 	} else {
-		err = INTERNAL(snd_pcm_hw_params_get_period_size)(params, &period_size, 0);
-		if (err < 0)
-			return err;
-		err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(params, &buffer_size);
-		if (err < 0)
-			return err;
 		sformat = src_format = slave->format;
 		err = INTERNAL(snd_pcm_hw_params_get_format)(params, &dst_format);
 		if (err < 0)
@@ -440,6 +422,12 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		src_rate = slave->rate;
 		err = INTERNAL(snd_pcm_hw_params_get_rate)(params, &dst_rate, 0);
 	}
+	if (err < 0)
+		return err;
+	err = INTERNAL(snd_pcm_hw_params_get_period_size)(params, &period_size, 0);
+	if (err < 0)
+		return err;
+	err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(params, &buffer_size);
 	if (err < 0)
 		return err;
 	err = INTERNAL(snd_pcm_hw_params_get_channels)(params, &channels);
@@ -460,7 +448,8 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	rate->states = malloc(channels * sizeof(*rate->states));
 	if (rate->states == NULL)
 		return -ENOMEM;
-	if ((buffer_size / period_size) * period_size == buffer_size)
+	if ((buffer_size / period_size) * period_size == buffer_size &&
+	    (slave->buffer_size / slave->period_size) * slave->period_size == slave->buffer_size)
 		return 0;
 	rate->pareas = malloc(2 * channels * sizeof(*rate->pareas));
 	if (rate->pareas == NULL)
@@ -1130,6 +1119,7 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 		snd_pcm_mmap_appl_forward(pcm, pcm->period_size);
 		snd_atomic_write_end(&rate->watom);
 	}
+	size %= pcm->period_size;
 	if (size > 0) {
 		snd_atomic_write_begin(&rate->watom);
 		snd_pcm_mmap_appl_forward(pcm, size);
