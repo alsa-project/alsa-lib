@@ -1475,7 +1475,7 @@ int snd_config_search_alias(snd_config_t *config,
 #define ALSA_CONFIG_PATH_VAR "ALSA_CONFIG_PATH"
 
 /** Default files used by #snd_config_update */
-#define ALSA_CONFIG_PATH_DEFAULT DATADIR "/alsa/alsa.conf:/etc/asound.conf:~/.asoundrc"
+#define ALSA_CONFIG_PATH_DEFAULT DATADIR "/alsa/alsa.conf"
 
 /** \ingroup Config
   * Config top node */
@@ -1486,14 +1486,129 @@ static struct finfo {
 	dev_t dev;
 	ino_t ino;
 	time_t mtime;
-} *files_info = NULL;
+} *files_info = NULL, *preloaded_files_info = NULL;
 
-static unsigned int files_info_count = 0;
+static unsigned int files_info_count = 0, preloaded_files_info_count = 0;
+
+static int snd_config_preload(snd_config_t *root)
+{
+	snd_config_t *n;
+	snd_config_iterator_t i, next;
+	struct finfo *fi = NULL;
+	int err, idx = 0, fi_idx = 0, fi_count = 0, hit;
+
+	if ((err = snd_config_search(root, "preload", &n)) < 0)
+		return 0;
+	if ((err = snd_config_search(n, "filenames", &n)) < 0) {
+		SNDERR("Unable to find filenames in the preload section");
+		return -EINVAL;
+	}
+	if ((err = snd_config_expand(n, root, NULL, NULL, &n)) < 0) {
+		SNDERR("Unable to expand filenames in the preload section");
+		return err;
+	}
+	if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("Invalid type for field filenames");
+		goto _err;
+	}
+	snd_config_for_each(i, next, n) {
+		snd_config_t *c = snd_config_iterator_entry(i);
+		const char *str;
+		if ((err = snd_config_get_string(c, &str)) < 0) {
+			SNDERR("Field %s is not a string", snd_config_get_id(c));
+			goto _err;
+		}
+		fi_count++;
+	}
+	fi = calloc(fi_count, sizeof(*fi));
+	if (fi == NULL) {
+		err = -ENOMEM;
+		goto _err;
+	}
+	do {
+		hit = 0;
+		snd_config_for_each(i, next, n) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id = snd_config_get_id(n);
+			long i;
+			err = safe_strtol(id, &i);
+			if (err < 0) {
+				SNDERR("id of field %s is not and integer", id);
+				err = -EINVAL;
+				goto _err;
+			}
+			if (i == idx) {
+				wordexp_t we;
+				struct stat st;
+				char *name;
+				if ((err = snd_config_get_ascii(n, &name)) < 0)
+					goto _err;
+				err = wordexp(name, &we, WRDE_NOCMD);
+				switch (err) {
+				case WRDE_NOSPACE:
+					err = -ENOMEM;
+					goto _err;
+				case 0:
+					if (we.we_wordc == 1)
+						break;
+					/* Fall through */
+				default:
+					err = -EINVAL;
+					goto _err;
+				}
+				fi[fi_idx].name = strdup(we.we_wordv[0]);
+				wordfree(&we);
+				free(name);
+				if (fi[fi_idx].name == NULL) {
+					err = -ENOMEM;
+					goto _err;
+				}
+				if (stat(fi[fi_idx].name, &st) < 0) {
+					free(fi[fi_idx].name);
+					fi[fi_idx].name = NULL;
+					fi_count--;
+				} else {
+					fi[fi_idx].dev = st.st_dev;
+					fi[fi_idx].ino = st.st_ino;
+					fi[fi_idx].mtime = st.st_mtime;
+					fi_idx++;
+				}
+				idx++;
+				hit = 1;
+			}
+		}
+	} while (hit);
+	for (fi_idx = 0; fi_idx < fi_count; fi_idx++) {
+		snd_input_t *in;
+		err = snd_input_stdio_open(&in, fi[fi_idx].name, "r");
+		if (err >= 0) {
+			err = snd_config_load(snd_config, in);
+			snd_input_close(in);
+			if (err < 0) {
+				SNDERR("%s may be old or corrupted: consider to remove or fix it", fi[fi_idx].name);
+				goto _err;
+			}
+		} else {
+			SNDERR("cannot access file %s", fi[fi_idx].name);
+		}
+	}
+	preloaded_files_info = fi; fi = NULL;
+	preloaded_files_info_count = fi_count; fi_count = 0;
+	err = 0;
+       _err:
+       	for (fi_idx = 0; fi_idx < fi_count; fi_idx++)
+       		if (fi[fi_idx].name)
+       			free(fi[fi_idx].name);
+       	if (fi)
+       		free(fi);
+	snd_config_delete(n);
+	return err;
+}
 
 /** 
  * \brief Update #snd_config rereading (if needed) files specified in
  * environment variable ALSA_CONFIG_PATH. If it's not set the default value is
- * "/usr/share/alsa/alsa.conf:/etc/asound.conf:~/.asoundrc"
+ * "/usr/share/alsa/alsa.conf".
  * \return 0 if no action is needed, 1 if tree has been rebuilt otherwise a negative error code
  *
  * Warning: If config tree is reread all the string pointer and config 
@@ -1506,7 +1621,7 @@ int snd_config_update()
 	unsigned int k;
 	wordexp_t we;
 	size_t l;
-	struct finfo *fi;
+	struct finfo *fi = NULL;
 	unsigned int fi_count;
 	configs = getenv(ALSA_CONFIG_PATH_VAR);
 	if (!configs)
@@ -1519,6 +1634,8 @@ int snd_config_update()
 		c++;
 	}
 	fi_count = k;
+	if (fi_count == 0)
+		goto _reread;
 	fi = calloc(fi_count, sizeof(*fi));
 	if (!fi)
 		return -ENOMEM;
@@ -1557,6 +1674,10 @@ int snd_config_update()
 			fi[k].dev = st.st_dev;
 			fi[k].ino = st.st_ino;
 			fi[k].mtime = st.st_mtime;
+		} else {
+			memmove(&fi[k], &fi[k+1], sizeof(*fi) * (fi_count - k - 1));
+			k--;
+			fi_count--;
 		}
 	}
 	if (!files_info)
@@ -1570,6 +1691,15 @@ int snd_config_update()
 		    fi[k].mtime != files_info[k].mtime)
 			goto _reread;
 	}
+	for (k = 0; k < preloaded_files_info_count; k++) {
+		struct stat st;
+		if (stat(preloaded_files_info[k].name, &st) >= 0) {
+			if (preloaded_files_info[k].dev != st.st_dev ||
+			    preloaded_files_info[k].ino != st.st_ino ||
+			    preloaded_files_info[k].mtime != st.st_mtime)
+				goto _reread;
+		}
+	}
 	err = 0;
 
  _end:
@@ -1579,7 +1709,8 @@ int snd_config_update()
 	}
 	for (k = 0; k < fi_count; ++k)
 		free(fi[k].name);
-	free(fi);
+	if (fi)
+		free(fi);
 	return err;
 
  _reread:
@@ -1589,6 +1720,13 @@ int snd_config_update()
 		free(files_info);
 		files_info = NULL;
 		files_info_count = 0;
+	}
+	if (preloaded_files_info) {
+		for (k = 0; k < preloaded_files_info_count; ++k)
+			free(preloaded_files_info[k].name);
+		free(preloaded_files_info);
+		preloaded_files_info = NULL;
+		preloaded_files_info_count = 0;
 	}
 	if (snd_config) {
 		snd_config_delete(snd_config);
@@ -1607,7 +1745,14 @@ int snd_config_update()
 				SNDERR("%s may be old or corrupted: consider to remove or fix it", fi[k].name);
 				goto _end;
 			}
+		} else {
+			SNDERR("cannot access file %s", fi[k].name);
 		}
+	}
+	err = snd_config_preload(snd_config);
+	if (err < 0) {
+		SNDERR("preload failed, removing configuration");
+		goto _end;
 	}
 	files_info = fi;
 	files_info_count = fi_count;
