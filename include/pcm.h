@@ -214,7 +214,7 @@ int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
 int snd_pcm_plugin_build_route(snd_pcm_plugin_handle_t *handle,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
-			       ttable_entry_t *ttable,
+			       float *ttable,
 			       snd_pcm_plugin_t **r_plugin);
 
 /*
