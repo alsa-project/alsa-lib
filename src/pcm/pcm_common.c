@@ -851,11 +851,11 @@ ssize_t snd_pcm_plug_client_voices_buf(snd_pcm_plugin_handle_t *handle,
 		return -EINVAL;
 }
 
-int snd_pcm_plug_client_voices_iovec(snd_pcm_plugin_handle_t *handle,
-				     int channel,
-				     const struct iovec *vector,
-				     unsigned long count,
-				     snd_pcm_plugin_voice_t **voices)
+ssize_t snd_pcm_plug_client_voices_iovec(snd_pcm_plugin_handle_t *handle,
+					 int channel,
+					 const struct iovec *vector,
+					 unsigned long count,
+					 snd_pcm_plugin_voice_t **voices)
 {
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_plugin_voice_t *v;
