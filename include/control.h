@@ -269,6 +269,8 @@ int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t * list);
 int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
 int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *value);
 int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *value);
+int snd_ctl_elem_lock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id);
+int snd_ctl_elem_unlock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id);
 int snd_ctl_hwdep_next_device(snd_ctl_t *ctl, int * device);
 int snd_ctl_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info);
 int snd_ctl_pcm_next_device(snd_ctl_t *ctl, int *device);

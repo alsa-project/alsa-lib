@@ -111,6 +111,8 @@ typedef struct {
 		snd_ctl_elem_info_t element_info;
 		snd_ctl_elem_value_t element_read;
 		snd_ctl_elem_value_t element_write;
+		snd_ctl_elem_id_t element_lock;
+		snd_ctl_elem_id_t element_unlock;
 		snd_hwdep_info_t hwdep_info;
 		snd_pcm_info_t pcm_info;
 		int pcm_prefer_subdevice;
