@@ -783,10 +783,10 @@ static int _snd_config_save_leaf(snd_config_t *n, FILE *fp,
 	unsigned int k;
 	switch (n->type) {
 	case SND_CONFIG_TYPE_INTEGER:
-		printf("%ld", n->u.integer);
+		fprintf(fp, "%ld", n->u.integer);
 		break;
 	case SND_CONFIG_TYPE_REAL:
-		printf("%16g", n->u.real);
+		fprintf(fp, "%16g", n->u.real);
 		break;
 	case SND_CONFIG_TYPE_STRING:
 		quoted_print(n->u.string, fp);
