@@ -20,7 +20,9 @@
  */
   
 #ifdef __KERNEL__
+#if 0
 #define PLUGIN_DEBUG
+#endif
 #include "../include/driver.h"
 #include "../include/pcm.h"
 typedef snd_pcm_runtime_t PLUGIN_BASE;
