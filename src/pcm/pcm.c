@@ -1365,6 +1365,10 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 		       unsigned int channels, snd_pcm_uframes_t frames, snd_pcm_format_t format)
 {
 	int width = snd_pcm_format_physical_width(format);
+	assert(dst_areas);
+	assert(src_areas);
+	assert(channels > 0);
+	assert(frames > 0);
 	while (channels > 0) {
 		unsigned int step = src_areas->step;
 		void *src_addr = src_areas->addr;
