@@ -91,9 +91,9 @@ int snd_timer_id_malloc(snd_timer_id_t **ptr);
 void snd_timer_id_free(snd_timer_id_t *obj);
 void snd_timer_id_copy(snd_timer_id_t *dst, const snd_timer_id_t *src);
 
-void snd_timer_id_set_class(snd_timer_id_t *id, int class);
+void snd_timer_id_set_class(snd_timer_id_t *id, int dev_class);
 int snd_timer_id_get_class(snd_timer_id_t *id);
-void snd_timer_id_set_sclass(snd_timer_id_t *id, int sclass);
+void snd_timer_id_set_sclass(snd_timer_id_t *id, int dev_sclass);
 int snd_timer_id_get_sclass(snd_timer_id_t *id);
 void snd_timer_id_set_card(snd_timer_id_t *id, int card);
 int snd_timer_id_get_card(snd_timer_id_t *id);
