@@ -288,11 +288,15 @@ static void MIX_AREAS2(unsigned int size,
 		"\t" LOCK_PREFIX "cmpxchgl %%ecx, (%%edi)\n"
 		"\tjnz 2f\n"
 		"\tmovl (%%esi), %%ecx\n"
-		"\tshr $8, %%ecx\n"
+		/* sample >>= 8 */
+		"\tsarl $8, %%ecx\n"
 		"\tsubl %%edx, %%ecx\n"
+		"\tjmp 21f\n"
 		"2:"
 		"\tmovl (%%esi), %%ecx\n"
-		"\tshr $8, %%ecx\n"
+		/* sample >>= 8 */
+		"\tsarl $8, %%ecx\n"
+		"21:"
 		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
 
 		/*
@@ -305,12 +309,24 @@ static void MIX_AREAS2(unsigned int size,
 
 		"3:"
 		"\tmovl (%%ebx), %%ecx\n"
-		"\tcmpl $0x7fffff,%%ecx\n"
+		/*
+		 *  if (sample > 0x7fff00)
+		 */
+		"\tmovl $0x7fffff, %%eax\n"
+		"\tcmpl %%eax, %%ecx\n"
 		"\tjg 4f\n"
-		"\tcmpl $-0x800000,%%ecx\n"
-		"\tjl 5f\n"
-		"\tmov %%ecx, %%eax\n"
-		"\tshl $8, %%eax\n"
+		/*
+		 *  if (sample < -0x800000)
+		 */
+		"\tmovl $-0x800000, %%eax\n"
+		"\tcmpl %%eax, %%ecx\n"
+		"\tjl 4f\n"
+		"\tmovl %%ecx, %%eax\n"
+		"4:"
+		/*
+		 *  sample <<= 8;
+		 */
+		"\tsall $8, %%eax\n"
 		"\tmovl %%eax, (%%edi)\n"
 		"\tcmpl %%ecx, (%%ebx)\n"
 		"\tjnz 3b\n"
@@ -323,44 +339,9 @@ static void MIX_AREAS2(unsigned int size,
 		"\tadd %6, %%ebx\n"
 		"\tdecl %0\n"
 		"\tjnz 1b\n"
-		"\tjmp 6f\n"
-
-		/*
-		 *  sample > 0x7fff00
-		 */
-
-		"\t.p2align 4,,15\n"
-
-		"4:"
-		"\tmovl $0x7fffffff, (%%edi)\n"
-		"\tcmpl %%ecx,(%%ebx)\n"
-		"\tjnz 3b\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
-		"\tjnz 1b\n"
-		"\tjmp 6f\n"
-
-		/*
-		 *  sample < -0x800000
-		 */
-
-		"\t.p2align 4,,15\n"
-
-		"5:"
-		"\tmovl $-0x80000000, (%%edi)\n"
-		"\tcmpl %%ecx, (%%ebx)\n"
-		"\tjnz 3b\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %0\n"
-		"\tjnz 1b\n"
 		// "\tjmp 6f\n"
 		
 		"6:"
-
 		: /* no output regs */
 		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
 		: "esi", "edi", "edx", "ecx", "ebx", "eax"
