@@ -41,8 +41,8 @@
 
 typedef struct {
 	int socket;
-	unsigned int access_mask;
 	volatile snd_pcm_shm_ctrl_t *ctrl;
+	unsigned int access_mask;
 } snd_pcm_shm_t;
 
 int receive_fd(int socket, void *data, size_t len, int *fd)
@@ -156,18 +156,19 @@ static int snd_pcm_shm_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
 	unsigned int access_mask = info->access_mask;
 	ctrl->cmd = SND_PCM_IOCTL_HW_INFO;
 	ctrl->u.hw_info = *info;
-	ctrl->u.hw_info.access_mask |= SND_PCM_ACCBIT_MMAP;
+	ctrl->u.hw_info.access_mask = SND_PCM_ACCBIT_MMAP;
 	err = snd_pcm_shm_action(pcm);
-	*info = ctrl->u.hw_info;
-	if (info->access_mask) {
-		shm->access_mask = info->access_mask;
-		info->access_mask |= (SND_PCM_ACCESS_RW_INTERLEAVED |
-				      SND_PCM_ACCESS_RW_NONINTERLEAVED);
-		info->access_mask &= access_mask;
-	}
 	if (err < 0)
 		return err;
-	return err;
+	access_mask &= (SND_PCM_ACCESS_RW_INTERLEAVED |
+			SND_PCM_ACCESS_RW_NONINTERLEAVED |
+			ctrl->u.hw_info.access_mask);
+	if (!access_mask)
+		return -EINVAL;
+	*info = ctrl->u.hw_info;
+	shm->access_mask = info->access_mask;
+	info->access_mask = access_mask;
+	return 0;
 }
 
 static int snd_pcm_shm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)

@@ -455,34 +455,38 @@ static int snd_pcm_share_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	access_mask = info->access_mask;
 	if (access_mask == 0)
 		return -EINVAL;
-	if (info->channels_min < share->channels_count)
-		info->channels_min = share->channels_count;
-	if (info->channels_max > share->channels_count)
-		info->channels_max = share->channels_count;
-	if (info->channels_max > info->channels_max)
-		return -EINVAL;
+
 	if (slave->format >= 0) {
 		info->format_mask &= 1U << slave->format;
 		if (!info->format_mask)
 			return -EINVAL;
 	}
+
+	if (info->channels_min < share->channels_count)
+		info->channels_min = share->channels_count;
+	if (info->channels_max > share->channels_count)
+		info->channels_max = share->channels_count;
+	if (info->channels_min > info->channels_max)
+		return -EINVAL;
+
 	if (slave->rate >= 0) {
 		if (info->rate_min < (unsigned)slave->rate)
 			info->rate_min = slave->rate;
 		if (info->rate_max > (unsigned)slave->rate)
 			info->rate_max = slave->rate;
-		if (info->rate_max > info->rate_max)
+		if (info->rate_min > info->rate_max)
 			return -EINVAL;
 	}
+
 	info->access_mask = SND_PCM_ACCBIT_MMAP;
 	info->channels_min = info->channels_max = slave->channels_count;
 	err = snd_pcm_hw_info(slave->pcm, info);
-	if (info->channels_min <= info->channels_max)
-		info->channels_min = info->channels_max = share->channels_count;
-	if (info->access_mask)
-		info->access_mask = access_mask;
+	info->access_mask = access_mask;
+	info->channels_min = info->channels_max = share->channels_count;
+	if (err < 0)
+		return err;
 	info->info |= SND_PCM_INFO_DOUBLE;
-	return err;
+	return 0;
 }
 
 static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
@@ -494,15 +498,21 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	Pthread_mutex_lock(&slave->mutex);
 	if (slave->setup_count > 1 || 
 	    (slave->setup_count == 1 && !pcm->setup)) {
-		if (params->access != spcm->access ||
-		    params->format != spcm->format ||
-		    params->subformat != spcm->subformat ||
-		    params->rate != spcm->rate ||
-		    params->fragments != spcm->fragments ||
-		    params->fragment_size != spcm->fragment_size) {
-			ERR("slave is already running with different setup");
+		params->fail_mask = 0;
+		if (params->format != spcm->format)
 			params->fail_mask |= SND_PCM_HW_PARBIT_FORMAT;
-			return -EBUSY;
+		if (params->subformat != spcm->subformat)
+			params->fail_mask |= SND_PCM_HW_PARBIT_SUBFORMAT;
+		if (params->rate != spcm->rate)
+			params->fail_mask |= SND_PCM_HW_PARBIT_RATE;
+		if (params->fragments != spcm->fragments)
+			params->fail_mask |= SND_PCM_HW_PARBIT_FRAGMENTS;
+		if (params->fragment_size != spcm->fragment_size)
+			params->fail_mask |= SND_PCM_HW_PARBIT_FRAGMENT_SIZE;
+		if (params->fail_mask) {
+			ERR("slave is already running with different setup");
+			err = -EBUSY;
+			goto _end;
 		}
 	} else {
 		snd_pcm_hw_params_t sparams = *params;

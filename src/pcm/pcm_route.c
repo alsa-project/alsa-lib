@@ -428,7 +428,8 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 static int snd_pcm_route_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 {
 	snd_pcm_route_t *route = pcm->private;
-	unsigned int format_mask, access_mask, channels_min, channels_max;
+	unsigned int format_mask, access_mask;
+	unsigned int channels_min, channels_max;
 	int err;
 	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
 			      SND_PCM_ACCBIT_RW_INTERLEAVED |
@@ -437,18 +438,19 @@ static int snd_pcm_route_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	access_mask = info->access_mask;
 	if (access_mask == 0)
 		return -EINVAL;
+
 	info->format_mask &= SND_PCM_FMTBIT_LINEAR;
 	format_mask = info->format_mask;
 	if (format_mask == 0)
 		return -EINVAL;
+
 	if (info->channels_min < 1)
 		info->channels_min = 1;
-	if (info->channels_max > 1024)
-		info->channels_max = 1024;
-	if (info->channels_max < info->channels_min)
-		return -EINVAL;
 	channels_min = info->channels_min;
 	channels_max = info->channels_max;
+	if (channels_min > channels_max)
+		return -EINVAL;
+
 	if (route->sformat >= 0)
 		info->format_mask = 1U << route->sformat;
 	if (route->schannels >= 0)
@@ -456,18 +458,13 @@ static int snd_pcm_route_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 		
 	info->access_mask = SND_PCM_ACCBIT_MMAP;
 	err = snd_pcm_hw_info(route->plug.slave, info);
-	if (info->format_mask) 
+	info->access_mask = access_mask;
+	if (route->sformat >= 0)
 		info->format_mask = format_mask;
-	if (info->channels_min <= info->channels_max) {
+	if (route->schannels >= 0) {
 		info->channels_min = channels_min;
 		info->channels_max = channels_max;
 	}
-	if (info->access_mask) {
-		route->plug.saccess_mask = info->access_mask;
-		info->access_mask = access_mask;
-	}
-	if (info->format_mask)
-		info->format_mask = format_mask;
 	if (err < 0)
 		return err;
 	info->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
@@ -479,34 +476,26 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_route_t *route = pcm->private;
 	snd_pcm_t *slave = route->plug.slave;
-	unsigned int format, access, channels;
 	unsigned int src_format, dst_format;
+	snd_pcm_hw_info_t sinfo;
+	snd_pcm_hw_params_t sparams;
 	int err;
-	format = params->format;
-	channels = params->channels;
-	access = params->access;
+	snd_pcm_hw_params_to_info(params, &sinfo);
 	if (route->sformat >= 0)
-		params->format = route->sformat;
+		sinfo.format_mask = 1 << route->sformat;
 	if (route->schannels >= 0)
-		params->channels = route->schannels;
-	if (route->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_INTERLEAVED)
-		params->access = SND_PCM_ACCESS_MMAP_INTERLEAVED;
-	else if (route->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_NONINTERLEAVED)
-		params->access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;
-	else
-		assert(0);
-	err = snd_pcm_hw_params(slave, params);
-	params->format = format;
-	params->channels = channels;
-	params->access = access;
+		sinfo.channels_min = sinfo.channels_max = route->schannels;
+	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
+	err = snd_pcm_hw_params_info(slave, &sparams, &sinfo);
+	params->fail_mask = sparams.fail_mask;
 	if (err < 0)
 		return err;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		src_format = format;
+		src_format = params->format;
 		dst_format = slave->format;
 	} else {
 		src_format = slave->format;
-		dst_format = format;
+		dst_format = params->format;
 	}
 	route->params.get_idx = get_index(src_format, SND_PCM_FORMAT_U16);
 	route->params.put_idx = put_index(SND_PCM_FORMAT_U32, dst_format);

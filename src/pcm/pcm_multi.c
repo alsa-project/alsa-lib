@@ -31,7 +31,6 @@ typedef struct {
 	snd_pcm_t *pcm;
 	unsigned int channels_count;
 	int close_slave;
-	unsigned int access_mask;
 } snd_pcm_multi_slave_t;
 
 typedef struct {
@@ -96,61 +95,76 @@ static int snd_pcm_multi_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int k;
 	snd_pcm_hw_info_t i;
-	unsigned int access_mask = ~0;
+	unsigned int access_mask, saccess_mask;
+	int changed = 0;
 	int err = 0;
 	if (info->channels_min < multi->channels_count)
 		info->channels_min = multi->channels_count;
 	if (info->channels_max > multi->channels_count)
 		info->channels_max = multi->channels_count;
-	if (info->channels_max > info->channels_max)
+	if (info->channels_min > info->channels_max)
 		return -EINVAL;
 	i = *info;
-	for (k = 0; k < multi->slaves_count; ++k) {
-		snd_pcm_t *slave = multi->slaves[k].pcm;
-		i.access_mask = SND_PCM_ACCBIT_MMAP;
-		i.channels_min = i.channels_max = multi->slaves[k].channels_count;
-		err = snd_pcm_hw_info(slave, &i);
-		access_mask &= i.access_mask;
-		if (err < 0)
-			break;
-		multi->slaves[k].access_mask = i.access_mask;
-	}
+	saccess_mask = ~0;
+	changed = 0;
+	do {
+		for (k = 0; k < multi->slaves_count; ++k) {
+			snd_pcm_t *slave = multi->slaves[k].pcm;
+			snd_pcm_hw_info_t sinfo = i;
+			sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
+			sinfo.channels_min = sinfo.channels_max = multi->slaves[k].channels_count;
+			err = snd_pcm_hw_info(slave, &sinfo);
+			if (err < 0) {
+				sinfo.access_mask = info->access_mask;
+				sinfo.channels_min = multi->channels_count;
+				sinfo.channels_max = multi->channels_count;
+				*info = sinfo;
+				return err;
+			}
+			if (i.format_mask != sinfo.format_mask ||
+			    i.subformat_mask != sinfo.subformat_mask ||
+			    i.rate_min != sinfo.rate_min ||
+			    i.rate_max != sinfo.rate_max ||
+			    i.fragment_size_min != sinfo.fragment_size_min ||
+			    i.fragment_size_max != sinfo.fragment_size_max ||
+			    i.fragments_min != sinfo.fragments_min ||
+			    i.fragments_max != sinfo.fragments_max ||
+			    i.buffer_size_min != sinfo.buffer_size_min ||
+			    i.buffer_size_max != sinfo.buffer_size_max)
+				changed++;
+			saccess_mask &= sinfo.access_mask;
+			i = sinfo;
+		}
+	} while (changed && multi->slaves_count > 1);
+	access_mask = info->access_mask;
 	*info = i;
-	if (i.channels_min <= i.channels_max) 
-		info->channels_min = info->channels_max = multi->channels_count;
-	if (i.access_mask) {
-		if (!(access_mask & SND_PCM_ACCBIT_MMAP_INTERLEAVED) ||
-		    multi->slaves_count > 1)
-			info->access_mask &= ~SND_PCM_ACCBIT_MMAP_INTERLEAVED;
-		if (!(access_mask & SND_PCM_ACCBIT_MMAP_NONINTERLEAVED))
-			info->access_mask &= ~SND_PCM_ACCBIT_MMAP_NONINTERLEAVED;
-	}
-	return err;
+	info->access_mask = access_mask;
+	if (!(saccess_mask & SND_PCM_ACCBIT_MMAP_INTERLEAVED) ||
+	    multi->slaves_count > 1)
+		info->access_mask &= ~SND_PCM_ACCBIT_MMAP_INTERLEAVED;
+	if (!(saccess_mask & SND_PCM_ACCBIT_MMAP_NONINTERLEAVED))
+		info->access_mask &= ~SND_PCM_ACCBIT_MMAP_NONINTERLEAVED;
+	if (!info->access_mask)
+		return -EINVAL;
+	info->channels_min = info->channels_max = multi->channels_count;
+	return 0;
 }
 
 static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
-	snd_pcm_hw_params_t p;
 	int err;
-	if (params->channels != multi->channels_count) {
-		params->fail_mask = SND_PCM_HW_PARBIT_CHANNELS;
-		return -EINVAL;
-	}
-	p = *params;
 	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_t *slave = multi->slaves[i].pcm;
-		if (multi->slaves[i].access_mask & SND_PCM_ACCBIT_MMAP_INTERLEAVED)
-			p.access = SND_PCM_ACCESS_MMAP_INTERLEAVED;
-		else if (multi->slaves[i].access_mask & SND_PCM_ACCBIT_MMAP_NONINTERLEAVED)
-			p.access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;
-		else
-			assert(0);
-		p.channels = multi->slaves[i].channels_count;
-		err = snd_pcm_hw_params(slave, &p);
+		snd_pcm_hw_info_t sinfo;
+		snd_pcm_hw_params_t sparams;
+		snd_pcm_hw_params_to_info(params, &sinfo);
+		sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
+		sinfo.channels_min = sinfo.channels_max = multi->slaves[i].channels_count;
+		err = snd_pcm_hw_params_info(slave, &sparams, &sinfo);
 		if (err < 0) {
-			params->fail_mask = p.fail_mask;
+			params->fail_mask = sparams.fail_mask;
 			return err;
 		}
 		err = snd_pcm_areas_silence(slave->running_areas, 0, slave->channels, slave->buffer_size, slave->format);

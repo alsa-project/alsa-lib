@@ -234,12 +234,8 @@ static int snd_pcm_alaw_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
 	info->format_mask = 1U << alaw->sformat;
 	info->access_mask = SND_PCM_ACCBIT_MMAP;
 	err = snd_pcm_hw_info(alaw->plug.slave, info);
-	if (info->format_mask)
-		info->format_mask = format_mask;
-	if (info->access_mask) {
-		alaw->plug.saccess_mask = info->access_mask;
-		info->access_mask = access_mask;
-	}
+	info->format_mask = format_mask;
+	info->access_mask = access_mask;
 	if (err < 0)
 		return err;
 	info->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
@@ -251,25 +247,19 @@ static int snd_pcm_alaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_alaw_t *alaw = pcm->private;
 	snd_pcm_t *slave = alaw->plug.slave;
-	unsigned int format, access;
+	snd_pcm_hw_info_t sinfo;
+	snd_pcm_hw_params_t sparams;
 	int err;
-	format = params->format;
-	access = params->access;
-	params->format = alaw->sformat;
-	if (alaw->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_INTERLEAVED)
-		params->access = SND_PCM_ACCESS_MMAP_INTERLEAVED;
-	else if (alaw->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_NONINTERLEAVED)
-		params->access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;
-	else
-		assert(0);
-	err = snd_pcm_hw_params(slave, params);
-	params->format = format;
-	params->access = access;
+	snd_pcm_hw_params_to_info(params, &sinfo);
+	sinfo.format_mask = 1 << alaw->sformat;
+	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
+	err = snd_pcm_hw_params_info(slave, &sparams, &sinfo);
+	params->fail_mask = sparams.fail_mask;
 	if (err < 0)
 		return err;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (alaw->sformat == SND_PCM_FORMAT_MU_LAW) {
-			alaw->getput_idx = get_index(format, SND_PCM_FORMAT_S16);
+			alaw->getput_idx = get_index(params->format, SND_PCM_FORMAT_S16);
 			alaw->func = alaw_encode;
 		} else {
 			alaw->getput_idx = put_index(SND_PCM_FORMAT_S16, alaw->sformat);
@@ -277,7 +267,7 @@ static int snd_pcm_alaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		}
 	} else {
 		if (alaw->sformat == SND_PCM_FORMAT_MU_LAW) {
-			alaw->getput_idx = put_index(SND_PCM_FORMAT_S16, format);
+			alaw->getput_idx = put_index(SND_PCM_FORMAT_S16, params->format);
 			alaw->func = alaw_decode;
 		} else {
 			alaw->getput_idx = get_index(alaw->sformat, SND_PCM_FORMAT_S16);

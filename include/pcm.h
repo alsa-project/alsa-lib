@@ -102,17 +102,8 @@ int snd_pcm_unlink(snd_pcm_t *pcm);
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 ssize_t snd_pcm_avail_update(snd_pcm_t *pcm);
 int snd_pcm_set_avail_min(snd_pcm_t *pcm, size_t size);
-void snd_pcm_hw_info_all(snd_pcm_hw_info_t *info);
-int snd_pcm_hw_params_rules(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
-			    unsigned int count, int *rules);
-int snd_pcm_hw_params_rulesv(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ...);
-int snd_pcm_hw_info_rules(snd_pcm_t *pcm, 
-			  snd_pcm_hw_info_t *info,
-			  snd_pcm_hw_params_t *params,
-			  unsigned int count, int *rules);
-int snd_pcm_hw_info_rulesv(snd_pcm_t *pcm, 
-			   snd_pcm_hw_info_t *info,
-			   snd_pcm_hw_params_t *params, ...);
+void snd_pcm_hw_info_any(snd_pcm_hw_info_t *info);
+int snd_pcm_hw_params_info(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_hw_info_t *info);
 
 typedef struct _snd_pcm_strategy snd_pcm_strategy_t;
 
@@ -123,19 +114,25 @@ typedef struct _snd_pcm_strategy_simple_choices_list {
 } snd_pcm_strategy_simple_choices_list_t;
 
 int snd_pcm_hw_info_strategy(snd_pcm_t *pcm, snd_pcm_hw_info_t *info,
-			     const snd_pcm_strategy_t *strategy,
-			     unsigned int min_badness, unsigned int max_badness);
+			     const snd_pcm_strategy_t *strategy);
 
 int snd_pcm_strategy_free(snd_pcm_strategy_t *strategy);
-int snd_pcm_strategy_simple(snd_pcm_strategy_t **strategyp);
-int snd_pcm_strategy_simple_near(snd_pcm_strategy_t *strategy,
+int snd_pcm_strategy_simple(snd_pcm_strategy_t **strategyp,
+			    unsigned int badness_min,
+			    unsigned int badness_max);
+int snd_pcm_strategy_simple_near(snd_pcm_strategy_t *strategy, int order,
 				 unsigned int param,
 				 unsigned long best,
 				 unsigned int mul);
-int snd_pcm_strategy_simple_choices(snd_pcm_strategy_t *strategy,
+int snd_pcm_strategy_simple_choices(snd_pcm_strategy_t *strategy, int order,
 				    unsigned int param,
 				    unsigned int count,
 				    snd_pcm_strategy_simple_choices_list_t *choices);
+int snd_pcm_hw_info_try_explain_failure(snd_pcm_t *pcm,
+					snd_pcm_hw_info_t *fail,
+					snd_pcm_hw_info_t *success,
+					unsigned int depth,
+					FILE *fp);
 
 /* mmap */
 snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);
@@ -149,8 +146,8 @@ ssize_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, size_t size);
 ssize_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, size_t size);
 ssize_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, size_t size);
 
-const char *snd_pcm_format_name(int format);
-const char *snd_pcm_format_description(int format);
+const char *snd_pcm_format_name(unsigned int format);
+const char *snd_pcm_format_description(unsigned int format);
 int snd_pcm_format_value(const char* name);
 
 int snd_pcm_area_silence(snd_pcm_channel_area_t *dst_channel, size_t dst_offset,
@@ -177,6 +174,7 @@ int snd_pcm_format_unsigned(int format);
 int snd_pcm_format_linear(int format);
 int snd_pcm_format_little_endian(int format);
 int snd_pcm_format_big_endian(int format);
+int snd_pcm_format_cpu_endian(int format);
 int snd_pcm_format_width(int format);			/* in bits */
 int snd_pcm_format_physical_width(int format);		/* in bits */
 int snd_pcm_build_linear_format(int width, int unsignd, int big_endian);

@@ -170,8 +170,7 @@ ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size);
 ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size);
 int snd_pcm_hw_info_complete(snd_pcm_hw_info_t *info);
 void snd_pcm_hw_params_to_info(snd_pcm_hw_params_t *params, snd_pcm_hw_info_t *info);
-void snd_pcm_hw_info_to_params(snd_pcm_hw_info_t *info, snd_pcm_hw_params_t *params);
-void snd_pcm_hw_info_to_params_fail(snd_pcm_hw_info_t *info, snd_pcm_hw_params_t *params);
+int snd_pcm_hw_info_to_params(snd_pcm_t *pcm, snd_pcm_hw_info_t *info, snd_pcm_hw_params_t *params);
 int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
 

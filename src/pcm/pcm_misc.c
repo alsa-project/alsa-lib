@@ -65,9 +65,9 @@ int snd_pcm_format_unsigned(int format)
 	int val;
 
 	val = snd_pcm_format_signed(format);
-	if (val >= 0)
-		val ^= 1;
-	return val;
+	if (val < 0)
+		return val;
+	return !val;
 }
 
 int snd_pcm_format_linear(int format)
@@ -111,6 +111,15 @@ int snd_pcm_format_big_endian(int format)
 	if (val < 0)
 		return val;
 	return !val;
+}
+
+int snd_pcm_format_cpu_endian(int format)
+{
+#ifdef SND_LITTLE_ENDIAN
+	return snd_pcm_format_little_endian(format);
+#else
+	return snd_pcm_format_big_endian(format);
+#endif
 }
 
 int snd_pcm_format_width(int format)

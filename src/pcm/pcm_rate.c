@@ -238,7 +238,7 @@ static int snd_pcm_rate_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
 	snd_pcm_rate_t *rate = pcm->private;
 	snd_pcm_hw_info_t sinfo;
 	unsigned int access_mask;
-	size_t fragment_size_min, fragment_size_max;
+	size_t size;
 	int err;
 	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
 			      SND_PCM_ACCBIT_RW_INTERLEAVED |
@@ -250,58 +250,56 @@ static int snd_pcm_rate_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
 	info->format_mask &= SND_PCM_FMTBIT_LINEAR;
 	if (info->format_mask == 0)
 		return -EINVAL;
-	if (info->rate_min < 4000)
-		info->rate_min = 4000;
-	if (info->rate_max > 192000)
-		info->rate_max = 192000;
+	info->subformat_mask &= SND_PCM_SUBFMTBIT_STD;
+	if (info->subformat_mask == 0)
+		return -EINVAL;
+	if (info->rate_min < RATE_MIN)
+		info->rate_min = RATE_MIN;
+	if (info->rate_max > RATE_MAX)
+		info->rate_max = RATE_MAX;
 	if (info->rate_max < info->rate_min)
 		return -EINVAL;
-	if (info->fragment_size_max > 1024 * 1024)
-		info->fragment_size_max = 1024 * 1024;
-	if (info->fragment_size_max < info->fragment_size_min)
-		return -EINVAL;
-	sinfo = *info;
 
-	sinfo.rate_min = rate->srate;
-	sinfo.rate_max = rate->srate;
+	sinfo = *info;
+	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
 	if (rate->sformat >= 0)
 		sinfo.format_mask = 1U << rate->sformat;
+	sinfo.rate_min = rate->srate;
+	sinfo.rate_max = rate->srate;
 	sinfo.fragment_size_min = muldiv_down(info->fragment_size_min, sinfo.rate_min, info->rate_max);
 	sinfo.fragment_size_max = muldiv_up(info->fragment_size_max, sinfo.rate_max, info->rate_min);
+	sinfo.buffer_size_min = muldiv_down(info->buffer_size_min, sinfo.rate_min, info->rate_max);
+	sinfo.buffer_size_max = muldiv_up(info->buffer_size_max, sinfo.rate_max, info->rate_min);
 		
-	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
 	err = snd_pcm_hw_info(rate->plug.slave, &sinfo);
-	info->subformat_mask = sinfo.subformat_mask;
+	if (rate->sformat < 0)
+		info->format_mask = sinfo.format_mask;
 	info->channels_min = sinfo.channels_min;
 	info->channels_max = sinfo.channels_max;
 	info->fragments_min = sinfo.fragments_min;
 	info->fragments_max = sinfo.fragments_max;
 
-	if (!sinfo.access_mask) {
-		info->access_mask = 0;
-	}
-	if (!sinfo.format_mask) {
-		info->format_mask = 0;
-	}
-	if (sinfo.rate_min > sinfo.rate_max) {
-		info->rate_min = UINT_MAX;
-		info->rate_max = 0;
-	}
-	if (sinfo.fragment_size_min > sinfo.fragment_size_max) {
-		info->fragment_size_min = ULONG_MAX;
-		info->fragment_size_max = 0;
-	}
+	size = muldiv_down(sinfo.fragment_size_min, info->rate_min, sinfo.rate_max);
+	if (info->fragment_size_min < size)
+		info->fragment_size_min = size;
+	size = muldiv_up(sinfo.fragment_size_max, info->rate_max, sinfo.rate_min);
+	if (info->fragment_size_max > size)
+		info->fragment_size_max = size;
+	if (info->fragment_size_min > info->fragment_size_max)
+		return -EINVAL;
+
+	size = muldiv_down(sinfo.buffer_size_min, info->rate_min, sinfo.rate_max);
+	if (info->buffer_size_min < size)
+		info->buffer_size_min = size;
+	size = muldiv_up(sinfo.buffer_size_max, info->rate_max, sinfo.rate_min);
+	if (info->buffer_size_max > size)
+		info->buffer_size_max = size;
+	if (info->buffer_size_min > info->buffer_size_max)
+		return -EINVAL;
 	if (err < 0)
 		return err;
-	
-	fragment_size_min = muldiv_down(sinfo.fragment_size_min, info->rate_min, sinfo.rate_max);
-	fragment_size_max = muldiv_up(sinfo.fragment_size_max, info->rate_max, sinfo.rate_min);
-	if (fragment_size_min > info->fragment_size_min)
-		info->fragment_size_min = fragment_size_min;
-	if (fragment_size_max < info->fragment_size_max)
-		info->fragment_size_max = fragment_size_max;
-	rate->plug.saccess_mask = sinfo.access_mask;
-	info->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
+
+	info->info = sinfo.info & ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	snd_pcm_hw_info_complete(info);
 	return 0;
 }
@@ -311,51 +309,35 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	snd_pcm_rate_t *rate = pcm->private;
 	snd_pcm_t *slave = rate->plug.slave;
 	snd_pcm_hw_info_t sinfo;
-	unsigned int format, access, crate;
+	snd_pcm_hw_params_t sparams;
 	unsigned int src_format, dst_format;
 	unsigned int src_rate, dst_rate;
-	size_t fragment_size;
 	int mul, div;
 	int err;
-	crate = params->rate;
-	format = params->format;
-	fragment_size = params->fragment_size;
-	access = params->access;
-	params->rate = rate->srate;
-	if (rate->sformat >= 0)
-		params->format = rate->sformat;
-	if (rate->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_INTERLEAVED)
-		params->access = SND_PCM_ACCESS_MMAP_INTERLEAVED;
-	else if (rate->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_NONINTERLEAVED)
-		params->access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;
-	else
-		assert(0);
-	params->fragment_size = muldiv_near(params->fragment_size, params->rate, crate);
 	snd_pcm_hw_params_to_info(params, &sinfo);
-	sinfo.fragment_size_min = 0;
-	sinfo.fragment_size_max = ULONG_MAX;
-	err = snd_pcm_hw_info_rulesv(slave, &sinfo, params,
-				     SND_PCM_RULE_REL_NEAR | SND_PCM_HW_PARAM_FRAGMENT_SIZE,
-				     -1);
-	snd_pcm_hw_info_to_params(&sinfo, params);
-	if (err >= 0)
-		err = snd_pcm_hw_params(slave, params);
-	params->format = format;
-	params->rate = crate;
-	params->access = access;
-	params->fragment_size = fragment_size;
+	if (rate->sformat >= 0)
+		sinfo.format_mask = 1 << rate->sformat;
+	sinfo.access_mask = SND_PCM_ACCBIT_MMAP;
+	sinfo.rate_min = rate->srate;
+	sinfo.rate_max = rate->srate;
+	sinfo.fragment_size_min = muldiv_down(params->fragment_size, rate->srate, params->rate);
+	sinfo.fragment_size_max = muldiv_up(params->fragment_size, rate->srate, params->rate);
+	sinfo.buffer_size_min = muldiv_down(params->fragment_size * params->fragments, rate->srate, params->rate);
+	sinfo.buffer_size_max = muldiv_up(params->fragment_size * params->fragments, rate->srate, params->rate);
+	err = snd_pcm_hw_params_info(slave, &sparams, &sinfo);
+	params->fail_mask = sparams.fail_mask;
 	if (err < 0)
 		return err;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		src_format = format;
+		src_format = params->format;
 		dst_format = slave->format;
-		src_rate = crate;
+		src_rate = params->rate;
 		dst_rate = slave->rate;
 	} else {
 		src_format = slave->format;
-		dst_format = format;
+		dst_format = params->format;
 		src_rate = slave->rate;
-		dst_rate = crate;
+		dst_rate = params->rate;
 	}
 	rate->get_idx = get_index(src_format, SND_PCM_FORMAT_S16);
 	rate->put_idx = put_index(SND_PCM_FORMAT_S16, dst_format);
