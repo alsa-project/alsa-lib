@@ -32,7 +32,7 @@ Advanced Linux Sound Architecture (ALSA) - Library
 make
 
 %install
-mkdir -p $RPM_BUILD_ROOT/usr/include/sys
+mkdir -p $RPM_BUILD_ROOT/usr/include/alsa
 mkdir -p $RPM_BUILD_ROOT/usr/lib
 
 make prefix="$RPM_BUILD_ROOT/usr" install
@@ -47,6 +47,6 @@ rm -rf $RPM_BUILD_ROOT
 %doc doc/*.sgml
 %doc doc/*.txt
 
-%{prefix}/usr/include/sys/asoundlib.h
+%{prefix}/usr/include/alsa/asoundlib.h
 %{prefix}/usr/lib/lib*
 %{prefix}/usr/share/aclocal/alsa.m4

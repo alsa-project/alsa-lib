@@ -73,7 +73,7 @@ no_alsa=""
 AC_LANG_SAVE
 AC_LANG_C
 AC_TRY_COMPILE([
-#include <sys/asoundlib.h>
+#include <alsa/asoundlib.h>
 ], [
 void main(void)
 {
