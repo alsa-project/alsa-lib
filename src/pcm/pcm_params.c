@@ -91,7 +91,9 @@ void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params)
 {
 	unsigned int k;
 	memset(params, 0, sizeof(*params));
-	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; k++)
+	for (k = SND_PCM_HW_PARAM_FIRST_MASK; k <= SND_PCM_HW_PARAM_LAST_MASK; k++)
+		_snd_pcm_hw_param_any(params, k);
+	for (k = SND_PCM_HW_PARAM_FIRST_INTERVAL; k <= SND_PCM_HW_PARAM_LAST_INTERVAL; k++)
 		_snd_pcm_hw_param_any(params, k);
 	params->info = ~0U;
 }
@@ -618,7 +620,7 @@ int _snd_pcm_hw_param_set(snd_pcm_hw_params_t *params,
 		snd_mask_t *m = hw_param_mask(params, var);
 		if (val == 0 && dir < 0) {
 			changed = -EINVAL;
-		snd_mask_none(m);
+			snd_mask_none(m);
 		} else {
 			if (dir > 0)
 				val++;
@@ -1144,7 +1146,7 @@ const char *snd_pcm_hw_param_names[] = {
 
 const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t param)
 {
-	assert(param <= SND_PCM_HW_PARAM_LAST);
+	assert(param <= SND_PCM_HW_PARAM_LAST_INTERVAL);
 	return snd_pcm_hw_param_names[param];
 }
 
@@ -1250,7 +1252,7 @@ void snd_pcm_hw_strategy_simple_free(snd_pcm_hw_strategy_t *strategy)
 {
 	snd_pcm_hw_strategy_simple_t *pars = strategy->private_data;
 	int k;
-	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; ++k) {
+	for (k = 0; k <= SND_PCM_HW_PARAM_LAST_INTERVAL; ++k) {
 		if (pars[k].valid && pars[k].free)
 			pars[k].free(&pars[k]);
 	}
@@ -1266,7 +1268,7 @@ int snd_pcm_hw_strategy_simple_choose_param(const snd_pcm_hw_params_t *params,
 	const snd_pcm_hw_strategy_simple_t *pars = strategy->private_data;
 	unsigned int min_choices = UINT_MAX;
 	unsigned int min_order = UINT_MAX;
-	for (var = 0; var <= SND_PCM_HW_PARAM_LAST; ++var) {
+	for (var = 0; var <= SND_PCM_HW_PARAM_LAST_INTERVAL; ++var) {
 		const snd_pcm_hw_strategy_simple_t *p = &pars[var];
 		unsigned int choices;
 		if (!p->valid)
@@ -1306,7 +1308,7 @@ int snd_pcm_hw_strategy_simple_min_badness(const snd_pcm_hw_params_t *params,
 	snd_pcm_hw_param_t var;
 	unsigned int badness = 0;
 	const snd_pcm_hw_strategy_simple_t *pars = strategy->private_data;
-	for (var = 0; var <= SND_PCM_HW_PARAM_LAST; ++var) {
+	for (var = 0; var <= SND_PCM_HW_PARAM_LAST_INTERVAL; ++var) {
 		unsigned int b;
 		if (!pars[var].valid)
 			continue;
@@ -1418,7 +1420,7 @@ int snd_pcm_hw_strategy_simple(snd_pcm_hw_strategy_t **strategyp,
 	snd_pcm_hw_strategy_simple_t *data;
 	snd_pcm_hw_strategy_t *s;
 	assert(strategyp);
-	data = calloc(SND_PCM_HW_PARAM_LAST + 1, sizeof(*data));
+	data = calloc(SND_PCM_HW_PARAM_LAST_INTERVAL + 1, sizeof(*data));
 	if (!data)
 		return -ENOMEM;
 	s = calloc(1, sizeof(*s));
@@ -1446,7 +1448,7 @@ int snd_pcm_hw_strategy_simple_near(snd_pcm_hw_strategy_t *strategy,
 	snd_pcm_hw_strategy_simple_t *s = strategy->private_data;
 	snd_pcm_hw_strategy_simple_near_t *data;
 	assert(strategy);
-	assert(var <= SND_PCM_HW_PARAM_LAST);
+	assert(var <= SND_PCM_HW_PARAM_LAST_INTERVAL);
 	assert(!s->valid);
 	data = calloc(1, sizeof(*data));
 	if (!data)
@@ -1472,7 +1474,7 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy,
 	snd_pcm_hw_strategy_simple_t *s = strategy->private_data;
 	snd_pcm_hw_strategy_simple_choices_t *data;
 	assert(strategy);
-	assert(var <= SND_PCM_HW_PARAM_LAST);
+	assert(var <= SND_PCM_HW_PARAM_LAST_INTERVAL);
 	assert(!s->valid);
 	data = calloc(1, sizeof(*data));
 	if (!data)
@@ -1499,7 +1501,7 @@ int snd_pcm_hw_params_try_explain_failure1(snd_pcm_t *pcm,
 	snd_pcm_hw_params_t i;
 	if (depth < 1)
 		return -ENOENT;
-	for (var = 0; var <= SND_PCM_HW_PARAM_LAST; var++) {
+	for (var = 0; var <= SND_PCM_HW_PARAM_LAST_INTERVAL; var++) {
 		int err;
 		i = *success;
 		_snd_pcm_hw_param_copy(&i, var, fail);
@@ -1526,7 +1528,7 @@ int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
 	snd_pcm_hw_param_t var;
 	int done = 0;
 	assert(pcm && fail);
-	for (var = 0; var <= SND_PCM_HW_PARAM_LAST; var++) {
+	for (var = 0; var <= SND_PCM_HW_PARAM_LAST_INTERVAL; var++) {
 		if (!snd_pcm_hw_param_empty(fail, var))
 			continue;
 		snd_output_printf(out, "%s is empty\n", snd_pcm_hw_param_name(var));
@@ -1805,16 +1807,16 @@ static snd_pcm_hw_rule_t refine_rules[] = {
 
 static snd_mask_t refine_masks[SND_PCM_HW_PARAM_LAST_MASK - SND_PCM_HW_PARAM_FIRST_MASK + 1] = {
 	[SND_PCM_HW_PARAM_ACCESS - SND_PCM_HW_PARAM_FIRST_MASK] = {
-		bits: 0x1f,
+		bits: { 0x1f },
 	},
 	[SND_PCM_HW_PARAM_FORMAT - SND_PCM_HW_PARAM_FIRST_MASK] = {
-		bits: 0x81ffffff,
+		bits: { 0x81ffffff, 0xfff},
 	},
 	[SND_PCM_HW_PARAM_SUBFORMAT - SND_PCM_HW_PARAM_FIRST_MASK] = {
-		bits: 0x1,
+		bits: { 0x1 },
 	},
 };
-
+  
 static snd_interval_t refine_intervals[SND_PCM_HW_PARAM_LAST_INTERVAL - SND_PCM_HW_PARAM_FIRST_INTERVAL + 1] = {
 	[SND_PCM_HW_PARAM_SAMPLE_BITS - SND_PCM_HW_PARAM_FIRST_INTERVAL] = {
 		min: 1, max: UINT_MAX,
@@ -1873,7 +1875,7 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 	unsigned int k;
 	snd_interval_t *i;
 	unsigned int rstamps[RULES];
-	unsigned int vstamps[SND_PCM_HW_PARAM_LAST + 1];
+	unsigned int vstamps[SND_PCM_HW_PARAM_LAST_INTERVAL + 1];
 	unsigned int stamp = 2;
 	int changed, again;
 #ifdef RULES_DEBUG
@@ -1885,7 +1887,7 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 		if (!(params->rmask & (1 << k)))
 			continue;
 		changed = snd_mask_refine(hw_param_mask(params, k),
-				  &refine_masks[k - SND_PCM_HW_PARAM_FIRST_MASK]);
+					  &refine_masks[k - SND_PCM_HW_PARAM_FIRST_MASK]);
 		if (changed)
 			params->cmask |= 1 << k;
 		if (changed < 0)
@@ -1905,7 +1907,7 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 
 	for (k = 0; k < RULES; k++)
 		rstamps[k] = 0;
-	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; k++)
+	for (k = 0; k <= SND_PCM_HW_PARAM_LAST_INTERVAL; k++)
 		vstamps[k] = (params->rmask & (1 << k)) ? 1 : 0;
 	do {
 		again = 0;
@@ -1978,7 +1980,7 @@ int _snd_pcm_hw_params_refine(snd_pcm_hw_params_t *params,
 {
 	int changed, err = 0;
 	unsigned int k;
-	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; ++k) {
+	for (k = 0; k <= SND_PCM_HW_PARAM_LAST_INTERVAL; ++k) {
 		if (!(vars & (1 << k)))
 			continue;
 		changed = _snd_pcm_hw_param_refine(params, k, src);

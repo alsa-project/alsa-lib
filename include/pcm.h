@@ -160,7 +160,31 @@ typedef enum _snd_pcm_format {
 	SND_PCM_FORMAT_GSM,
 	/** Special */
 	SND_PCM_FORMAT_SPECIAL = 31,
-	SND_PCM_FORMAT_LAST = SND_PCM_FORMAT_SPECIAL,
+	/** Signed 24bit Little Endian in 3bytes format */
+	SND_PCM_FORMAT_S24_3LE = 32,
+	/** Signed 24bit Big Endian in 3bytes format */
+	SND_PCM_FORMAT_S24_3BE,
+	/** Unsigned 24bit Little Endian in 3bytes format */
+	SND_PCM_FORMAT_U24_3LE,
+	/** Unsigned 24bit Big Endian in 3bytes format */
+	SND_PCM_FORMAT_U24_3BE,
+	/** Signed 20bit Little Endian in 3bytes format */
+	SND_PCM_FORMAT_S20_3LE,
+	/** Signed 20bit Big Endian in 3bytes format */
+	SND_PCM_FORMAT_S20_3BE,
+	/** Unsigned 20bit Little Endian in 3bytes format */
+	SND_PCM_FORMAT_U20_3LE,
+	/** Unsigned 20bit Big Endian in 3bytes format */
+	SND_PCM_FORMAT_U20_3BE,
+	/** Signed 18bit Little Endian in 3bytes format */
+	SND_PCM_FORMAT_S18_3LE,
+	/** Signed 18bit Big Endian in 3bytes format */
+	SND_PCM_FORMAT_S18_3BE,
+	/** Unsigned 18bit Little Endian in 3bytes format */
+	SND_PCM_FORMAT_U18_3LE,
+	/** Unsigned 18bit Big Endian in 3bytes format */
+	SND_PCM_FORMAT_U18_3BE,
+	SND_PCM_FORMAT_LAST = SND_PCM_FORMAT_U18_3BE,
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	/** Signed 16 bit CPU endian */
@@ -817,7 +841,7 @@ int snd_pcm_format_big_endian(snd_pcm_format_t format);
 int snd_pcm_format_cpu_endian(snd_pcm_format_t format);
 int snd_pcm_format_width(snd_pcm_format_t format);			/* in bits */
 int snd_pcm_format_physical_width(snd_pcm_format_t format);		/* in bits */
-snd_pcm_format_t snd_pcm_build_linear_format(int width, int unsignd, int big_endian);
+snd_pcm_format_t snd_pcm_build_linear_format(int width, int pwidth, int unsignd, int big_endian);
 ssize_t snd_pcm_format_size(snd_pcm_format_t format, size_t samples);
 u_int8_t snd_pcm_format_silence(snd_pcm_format_t format);
 u_int16_t snd_pcm_format_silence_16(snd_pcm_format_t format);

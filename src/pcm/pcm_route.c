@@ -62,6 +62,7 @@ typedef struct {
 	unsigned int get_idx;
 	unsigned int put_idx;
 	unsigned int conv_idx;
+	int use_getput;
 	unsigned int src_size;
 	snd_pcm_format_t dst_sfmt;
 	unsigned int ndsts;
@@ -160,6 +161,53 @@ static void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *dst_area,
 	}
 }
 
+static void snd_pcm_route_convert1_one_getput(const snd_pcm_channel_area_t *dst_area,
+					      snd_pcm_uframes_t dst_offset,
+					      const snd_pcm_channel_area_t *src_areas,
+					      snd_pcm_uframes_t src_offset,
+					      snd_pcm_uframes_t frames,
+					      const snd_pcm_route_ttable_dst_t* ttable,
+					      const snd_pcm_route_params_t *params)
+{
+#define CONV24_LABELS
+#include "plugin_ops.h"
+#undef CONV24_LABELS
+	void *get, *put;
+	const snd_pcm_channel_area_t *src_area = 0;
+	unsigned int srcidx;
+	const char *src;
+	char *dst;
+	int src_step, dst_step;
+	u_int32_t sample = 0;
+	for (srcidx = 0; srcidx < ttable->nsrcs; ++srcidx) {
+		src_area = &src_areas[ttable->srcs[srcidx].channel];
+		if (src_area->addr != NULL)
+			break;
+	}
+	if (srcidx == ttable->nsrcs) {
+		snd_pcm_route_convert1_zero(dst_area, dst_offset,
+					    src_areas, src_offset,
+					    frames, ttable, params);
+		return;
+	}
+	
+	get = get32_labels[params->get_idx];
+	put = put32_labels[params->put_idx];
+	src = snd_pcm_channel_area_addr(src_area, src_offset);
+	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
+	src_step = snd_pcm_channel_area_step(src_area);
+	dst_step = snd_pcm_channel_area_step(dst_area);
+	while (frames-- > 0) {
+		goto *get;
+#define CONV24_END after
+#include "plugin_ops.h"
+#undef CONV24_END
+	after:
+		src += src_step;
+		dst += dst_step;
+	}
+}
+
 static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 					snd_pcm_uframes_t dst_offset,
 					const snd_pcm_channel_area_t *src_areas,
@@ -239,9 +287,14 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 					    frames, ttable, params);
 		return;
 	} else if (nsrcs == 1 && src_tt[0].as_int == SND_PCM_PLUGIN_ROUTE_RESOLUTION) {
-		snd_pcm_route_convert1_one(dst_area, dst_offset,
-					   src_areas, src_offset,
-					   frames, ttable, params);
+		if (params->use_getput)
+			snd_pcm_route_convert1_one_getput(dst_area, dst_offset,
+							  src_areas, src_offset,
+							  frames, ttable, params);
+		else
+			snd_pcm_route_convert1_one(dst_area, dst_offset,
+						   src_areas, src_offset,
+						   frames, ttable, params);
 		return;
 	}
 
@@ -561,8 +614,10 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		src_format = slave->format;
 		dst_format = snd_pcm_hw_params_get_format(params);
 	}
+	route->params.use_getput = snd_pcm_format_physical_width(src_format) == 24 ||
+		snd_pcm_format_physical_width(dst_format) == 24;
 	route->params.get_idx = snd_pcm_linear_get_index(src_format, SND_PCM_FORMAT_S16);
-	route->params.put_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S32, dst_format);
+	route->params.put_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, dst_format);
 	route->params.conv_idx = snd_pcm_linear_convert_index(src_format, dst_format);
 	route->params.src_size = snd_pcm_format_width(src_format) / 8;
 	route->params.dst_sfmt = dst_format;
@@ -730,9 +785,12 @@ static int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t st
 		dptr->nsrcs = nsrcs;
 		if (nsrcs == 0)
 			dptr->func = snd_pcm_route_convert1_zero;
-		else if (nsrcs == 1 && !att)
-			dptr->func = snd_pcm_route_convert1_one;
-		else
+		else if (nsrcs == 1 && !att) {
+			if (params->use_getput)
+				dptr->func = snd_pcm_route_convert1_one_getput;
+			else
+				dptr->func = snd_pcm_route_convert1_one;
+		} else
 			dptr->func = snd_pcm_route_convert1_many;
 		if (nsrcs > 0) {
 			dptr->srcs = calloc((unsigned int) nsrcs, sizeof(*srcs));

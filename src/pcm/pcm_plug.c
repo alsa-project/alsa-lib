@@ -145,6 +145,39 @@ static snd_pcm_format_t linear_preferred_formats[] = {
 	SND_PCM_FORMAT_S24_LE,
 	SND_PCM_FORMAT_U24_LE,
 #endif
+#ifdef SND_LITTLE_ENDIAN
+	SND_PCM_FORMAT_S24_3LE,
+	SND_PCM_FORMAT_U24_3LE,
+	SND_PCM_FORMAT_S24_3BE,
+	SND_PCM_FORMAT_U24_3BE,
+#else
+	SND_PCM_FORMAT_S24_3BE,
+	SND_PCM_FORMAT_U24_3BE,
+	SND_PCM_FORMAT_S24_3LE,
+	SND_PCM_FORMAT_U24_3LE,
+#endif
+#ifdef SND_LITTLE_ENDIAN
+	SND_PCM_FORMAT_S20_3LE,
+	SND_PCM_FORMAT_U20_3LE,
+	SND_PCM_FORMAT_S20_3BE,
+	SND_PCM_FORMAT_U20_3BE,
+#else
+	SND_PCM_FORMAT_S20_3BE,
+	SND_PCM_FORMAT_U20_3BE,
+	SND_PCM_FORMAT_S20_3LE,
+	SND_PCM_FORMAT_U20_3LE,
+#endif
+#ifdef SND_LITTLE_ENDIAN
+	SND_PCM_FORMAT_S18_3LE,
+	SND_PCM_FORMAT_U18_3LE,
+	SND_PCM_FORMAT_S18_3BE,
+	SND_PCM_FORMAT_U18_3BE,
+#else
+	SND_PCM_FORMAT_S18_3BE,
+	SND_PCM_FORMAT_U18_3BE,
+	SND_PCM_FORMAT_S18_3LE,
+	SND_PCM_FORMAT_U18_3LE,
+#endif
 };
 
 static snd_pcm_format_t nonlinear_preferred_formats[] = {
@@ -167,9 +200,39 @@ static snd_pcm_format_t float_preferred_formats[] = {
 #endif
 };
 
+static char linear_format_widths[32] = {
+	0, 0, 0, 0, 0, 0, 0, 1,
+	0, 0, 0, 0, 0, 0, 0, 1,
+	0, 1, 0, 1, 0, 0, 0, 1,
+	0, 0, 0, 0, 0, 0, 0, 1,
+};
+
+static int check_linear_format(const snd_pcm_format_mask_t *format_mask, int wid, int sgn, int ed)
+{
+	int e, s;
+	if (! linear_format_widths[wid - 1])
+		return SND_PCM_FORMAT_UNKNOWN;
+	for (e = 0; e < 2; e++) {
+		for (s = 0; s < 2; s++) {
+			int pw = ((wid + 7) / 8) * 8;
+			for (; pw <= 32; pw += 8) {
+				snd_pcm_format_t f;
+				f = snd_pcm_build_linear_format(wid, pw, sgn, ed);
+				if (f != SND_PCM_FORMAT_UNKNOWN &&
+				    snd_pcm_format_mask_test(format_mask, f))
+					return f;
+			}
+			sgn = !sgn;
+		}
+		ed = !ed;
+	}
+	return SND_PCM_FORMAT_UNKNOWN;
+}
+
 static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const snd_pcm_format_mask_t *format_mask)
 {
-	int w, u, e, wid, w1, dw;
+	int w, w1, u, e;
+	snd_pcm_format_t f;
 	snd_pcm_format_mask_t lin = { SND_PCM_FMTBIT_LINEAR };
 	snd_pcm_format_mask_t fl = { SND_PCM_FMTBIT_FLOAT };
 	if (snd_pcm_format_mask_test(format_mask, format))
@@ -228,28 +291,15 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 		u = snd_pcm_format_unsigned(format);
 		e = snd_pcm_format_big_endian(format);
 	}
-	w1 = w;
-	dw = 8;
-	for (wid = 0; wid < 4; ++wid) {
-		int end, e1 = e;
-		for (end = 0; end < 2; ++end) {
-			int sgn, u1 = u;
-			for (sgn = 0; sgn < 2; ++sgn) {
-				snd_pcm_format_t f;
-				f = snd_pcm_build_linear_format(w1, u1, e1);
-				assert(f != SND_PCM_FORMAT_UNKNOWN);
-				if (snd_pcm_format_mask_test(format_mask, f))
-					return f;
-				u1 = !u1;
-			}
-			e1 = !e1;
-		}
-		if (w1 < 32)
-			w1 += dw;
-		else {
-			w1 = w - 8;
-			dw = -8;
-		}
+	for (w1 = w; w1 <= 32; w1++) {
+		f = check_linear_format(format_mask, w1, u, e);
+		if (f != SND_PCM_FORMAT_UNKNOWN)
+			return f;
+	}
+	for (w1 = w - 1; w1 > 0; w1--) {
+		f = check_linear_format(format_mask, w1, u, e);
+		if (f != SND_PCM_FORMAT_UNKNOWN)
+			return f;
 	}
 	return SND_PCM_FORMAT_UNKNOWN;
 }

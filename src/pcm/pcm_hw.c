@@ -54,7 +54,36 @@ const char *_snd_module_pcm_hw = "";
 #define F_SETSIG 10
 #endif
 
+/*
+ *  Compatibility
+ */
+
+struct sndrv_pcm_hw_params_old {
+	unsigned int flags;
+	unsigned int masks[SNDRV_PCM_HW_PARAM_SUBFORMAT -
+			   SNDRV_PCM_HW_PARAM_ACCESS + 1];
+	struct sndrv_interval intervals[SNDRV_PCM_HW_PARAM_TICK_TIME -
+					SNDRV_PCM_HW_PARAM_SAMPLE_BITS + 1];
+	unsigned int rmask;
+	unsigned int cmask;
+	unsigned int info;
+	unsigned int msbits;
+	unsigned int rate_num;
+	unsigned int rate_den;
+	sndrv_pcm_uframes_t fifo_size;
+	unsigned char reserved[64];
+};
+
+#define SND_PCM_IOCTL_HW_REFINE_OLD _IOWR('A', 0x10, struct sndrv_pcm_hw_params_old)
+#define SND_PCM_IOCTL_HW_PARAMS_OLD _IOWR('A', 0x11, struct sndrv_pcm_hw_params_old)
+
 #define SND_PCM_IOCTL_XRUN _IO('A', 0x48)
+
+static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t *params);
+
+/*
+ *
+ */
 
 typedef struct {
 	int version;
@@ -72,7 +101,7 @@ typedef struct {
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
 #define SNDRV_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
-#define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 1)
+#define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 2)
 
 /* update appl_ptr with driver */
 #define UPDATE_SHADOW_PTR(hw) \
@@ -146,17 +175,25 @@ static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return 0;
 }
 
+static inline int hw_refine_call(snd_pcm_hw_t *pcm_hw, snd_pcm_hw_params_t *params)
+{
+	/* check for new hw_params structure; it's available from 2.0.2 version of PCM API */
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 2) <= pcm_hw->version)
+		return ioctl(pcm_hw->fd, SNDRV_PCM_IOCTL_HW_REFINE, params);
+	return use_old_hw_params_ioctl(pcm_hw->fd, SND_PCM_IOCTL_HW_REFINE_OLD, params);
+}
+
 static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int fd = hw->fd;
 	if (hw->mmap_emulation) {
 		int err = 0;
 		snd_pcm_access_mask_t oldmask = *snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
-		snd_pcm_access_mask_t mask = { 0 };
+		snd_pcm_access_mask_t mask;
 		const snd_mask_t *pmask;
 
-		if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, params) < 0)
+		snd_mask_empty(&mask);
+		if (hw_refine_call(hw, params) < 0)
 			err = -errno;
 		if (err < 0) {
 			snd_pcm_hw_params_t new = *params;
@@ -170,8 +207,8 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			if (snd_pcm_access_mask_empty(&mask))
 				return err;
 			pmask = snd_pcm_hw_param_get_mask(&new, SND_PCM_HW_PARAM_ACCESS);
-			((snd_mask_t *)pmask)->bits = mask.bits;
-			if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, &new) < 0)
+			*(snd_mask_t *)pmask = mask;
+			if (hw_refine_call(hw, &new) < 0)
 				return -errno;
 			*params = new;
 		}
@@ -203,7 +240,7 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			}
 		}
 	} else {
-		if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, params) < 0) {
+		if (hw_refine_call(hw, params) < 0) {
 			// SYSERR("SNDRV_PCM_IOCTL_HW_REFINE failed");
 			return -errno;
 		}
@@ -212,13 +249,20 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	return 0;
 }
 
+static inline int hw_params_call(snd_pcm_hw_t *pcm_hw, snd_pcm_hw_params_t *params)
+{
+	/* check for new hw_params structure; it's available from 2.0.2 version of PCM API */
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 2) <= pcm_hw->version)
+		return ioctl(pcm_hw->fd, SNDRV_PCM_IOCTL_HW_PARAMS, params);
+	return use_old_hw_params_ioctl(pcm_hw->fd, SND_PCM_IOCTL_HW_PARAMS_OLD, params);
+}
+
 static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int fd = hw->fd;
 	if (hw->mmap_emulation) {
 		snd_pcm_hw_params_t old = *params;
-		if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0) {
+		if (hw_params_call(hw, params) < 0) {
 			snd_pcm_access_mask_t oldmask;
 			const snd_mask_t *pmask;
 
@@ -237,13 +281,13 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 			default:
 				goto _err;
 			}
-			if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0)
+			if (hw_params_call(hw, params) < 0)
 				goto _err;
 			hw->mmap_shm = 1;
 			*(snd_pcm_access_mask_t *)pmask = oldmask;
 		}
 	} else {
-		if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0) {
+		if (hw_params_call(hw, params) < 0) {
 		      _err:
 			SYSERR("SNDRV_PCM_IOCTL_HW_PARAMS failed");
 			return -errno;
@@ -964,3 +1008,68 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_hw_open, SND_PCM_DLSYM_VERSION);
 #endif
+
+/*
+ *  To be removed helpers, but keep binary compatibility at the time
+ */
+
+#define __OLD_TO_NEW_MASK(x) ((x&7)|((x&0x07fffff8)<<5))
+#define __NEW_TO_OLD_MASK(x) ((x&7)|((x&0xffffff00)>>5))
+
+static void snd_pcm_hw_convert_from_old_params(snd_pcm_hw_params_t *params,
+					       struct sndrv_pcm_hw_params_old *oparams)
+{
+	unsigned int i;
+
+	memset(params, 0, sizeof(*params));
+	params->flags = oparams->flags;
+	for (i = 0; i < sizeof(oparams->masks) / sizeof(unsigned int); i++)
+		params->masks[i].bits[0] = oparams->masks[i];
+	memcpy(params->intervals, oparams->intervals, sizeof(oparams->intervals));
+	params->rmask = __OLD_TO_NEW_MASK(oparams->rmask);
+	params->cmask = __OLD_TO_NEW_MASK(oparams->cmask);
+	params->info = oparams->info;
+	params->msbits = oparams->msbits;
+	params->rate_num = oparams->rate_num;
+	params->rate_den = oparams->rate_den;
+	params->fifo_size = oparams->fifo_size;
+}
+
+static void snd_pcm_hw_convert_to_old_params(struct sndrv_pcm_hw_params_old *oparams,
+					     snd_pcm_hw_params_t *params,
+					     unsigned int *cmask)
+{
+	unsigned int i, j;
+
+	memset(oparams, 0, sizeof(*oparams));
+	oparams->flags = params->flags;
+	for (i = 0; i < sizeof(oparams->masks) / sizeof(unsigned int); i++) {
+		oparams->masks[i] = params->masks[i].bits[0];
+		for (j = 1; j < sizeof(params->masks[i].bits) / sizeof(unsigned int); j++)
+			if (params->masks[i].bits[j]) {
+				*cmask |= 1 << i;
+				break;
+			}
+	}
+	memcpy(oparams->intervals, params->intervals, sizeof(oparams->intervals));
+	oparams->rmask = __NEW_TO_OLD_MASK(params->rmask);
+	oparams->cmask = __NEW_TO_OLD_MASK(params->cmask);
+	oparams->info = params->info;
+	oparams->msbits = params->msbits;
+	oparams->rate_num = params->rate_num;
+	oparams->rate_den = params->rate_den;
+	oparams->fifo_size = params->fifo_size;
+}
+
+static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t *params)
+{
+	struct sndrv_pcm_hw_params_old oparams;
+	unsigned int cmask = 0;
+	int res;
+	
+	snd_pcm_hw_convert_to_old_params(&oparams, params, &cmask);
+	res = ioctl(fd, cmd, &oparams);
+	snd_pcm_hw_convert_from_old_params(params, &oparams);
+	params->cmask |= cmask;
+	return res;
+}

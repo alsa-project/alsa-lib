@@ -105,12 +105,18 @@ snd_pcm_sframes_t snd_pcm_plugin_undo_write_generic
 
 int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
+int snd_pcm_linear_get32_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
+int snd_pcm_linear_put32_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_convert_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 
 void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
 			    const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
 			    unsigned int channels, snd_pcm_uframes_t frames,
 			    unsigned int convidx);
+void snd_pcm_linear_getput(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+			   const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
+			   unsigned int channels, snd_pcm_uframes_t frames,
+			   unsigned int get_idx, unsigned int put_idx);
 void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *dst_areas,
 			 snd_pcm_uframes_t dst_offset,
 			 const snd_pcm_channel_area_t *src_areas,

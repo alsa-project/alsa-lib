@@ -1200,6 +1200,18 @@ static const char *snd_pcm_format_names[] = {
 	FORMAT(MPEG),
 	FORMAT(GSM),
 	FORMAT(SPECIAL),
+	FORMAT(S24_3LE),
+	FORMAT(S24_3BE),
+	FORMAT(U24_3LE),
+	FORMAT(U24_3BE),
+	FORMAT(S20_3LE),
+	FORMAT(S20_3BE),
+	FORMAT(U20_3LE),
+	FORMAT(U20_3BE),
+	FORMAT(S18_3LE),
+	FORMAT(S18_3BE),
+	FORMAT(U18_3LE),
+	FORMAT(U18_3BE),
 };
 
 static const char *snd_pcm_format_descriptions[] = {
@@ -1229,6 +1241,18 @@ static const char *snd_pcm_format_descriptions[] = {
 	FORMATD(MPEG, "MPEG"),
 	FORMATD(GSM, "GSM"),
 	FORMATD(SPECIAL, "Special"),
+	FORMATD(S24_3LE, "Signed 24 bit Little Endian in 3bytes"),
+	FORMATD(S24_3BE, "Signed 24 bit Big Endian in 3bytes"),
+	FORMATD(U24_3LE, "Unsigned 24 bit Little Endian in 3bytes"),
+	FORMATD(U24_3BE, "Unsigned 24 bit Big Endian in 3bytes"),
+	FORMATD(S20_3LE, "Signed 20 bit Little Endian in 3bytes"),
+	FORMATD(S20_3BE, "Signed 20 bit Big Endian in 3bytes"),
+	FORMATD(U20_3LE, "Unsigned 20 bit Little Endian in 3bytes"),
+	FORMATD(U20_3BE, "Unsigned 20 bit Big Endian in 3bytes"),
+	FORMATD(S18_3LE, "Signed 18 bit Little Endian in 3bytes"),
+	FORMATD(S18_3BE, "Signed 18 bit Big Endian in 3bytes"),
+	FORMATD(U18_3LE, "Unsigned 18 bit Little Endian in 3bytes"),
+	FORMATD(U18_3BE, "Unsigned 18 bit Big Endian in 3bytes"),
 };
 
 static const char *snd_pcm_subformat_names[] = {
@@ -2129,6 +2153,13 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 	return 0;
 }
 
+static void dump_one_param(snd_pcm_hw_params_t *params, unsigned int k, snd_output_t *out)
+{
+	snd_output_printf(out, "%s: ", snd_pcm_hw_param_name(k));
+	snd_pcm_hw_param_dump(params, k, out);
+	snd_output_putc(out, '\n');
+}
+
 /**
  * \brief Dump a PCM hardware configuration space
  * \param params Configuration space
@@ -2138,11 +2169,10 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_
 int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
 {
 	unsigned int k;
-	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; k++) {
-		snd_output_printf(out, "%s: ", snd_pcm_hw_param_name(k));
-		snd_pcm_hw_param_dump(params, k, out);
-		snd_output_putc(out, '\n');
-	}
+	for (k = SND_PCM_HW_PARAM_FIRST_MASK; k <= SND_PCM_HW_PARAM_LAST_MASK; k++)
+		dump_one_param(params, k, out);
+	for (k = SND_PCM_HW_PARAM_FIRST_INTERVAL; k <= SND_PCM_HW_PARAM_LAST_INTERVAL; k++)
+		dump_one_param(params, k, out);
 	return 0;
 }
 
@@ -5433,7 +5463,7 @@ snd_pcm_uframes_t _snd_pcm_boundary(snd_pcm_t *pcm)
 	return pcm->boundary;
 }
 
-static const char *names[SND_PCM_HW_PARAM_LAST + 1] = {
+static const char *names[SND_PCM_HW_PARAM_LAST_INTERVAL + 1] = {
 	[SND_PCM_HW_PARAM_FORMAT] = "format",
 	[SND_PCM_HW_PARAM_CHANNELS] = "channels",
 	[SND_PCM_HW_PARAM_RATE] = "rate",
@@ -5498,7 +5528,7 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 		for (k = 0; k < count; ++k) {
 			unsigned int idx = fields[k].index;
 			long v;
-			assert(idx < SND_PCM_HW_PARAM_LAST);
+			assert(idx < SND_PCM_HW_PARAM_LAST_INTERVAL);
 			assert(names[idx]);
 			if (strcmp(id, names[idx]) != 0)
 				continue;

@@ -39,7 +39,9 @@ const char *_snd_module_pcm_linear = "";
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
+	unsigned int use_getput;
 	unsigned int conv_idx;
+	unsigned int get_idx, put_idx;
 	snd_pcm_format_t sformat;
 } snd_pcm_linear_t;
 #endif
@@ -74,10 +76,9 @@ int snd_pcm_linear_convert_index(snd_pcm_format_t src_format,
 
 int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
 {
-	int sign, width, endian;
+	int sign, width, pwidth, endian;
 	sign = (snd_pcm_format_signed(src_format) != 
 		snd_pcm_format_signed(dst_format));
-	width = snd_pcm_format_width(src_format) / 8 - 1;
 #ifdef SND_LITTLE_ENDIAN
 	endian = snd_pcm_format_big_endian(src_format);
 #else
@@ -85,7 +86,28 @@ int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_f
 #endif
 	if (endian < 0)
 		endian = 0;
-	return width * 4 + endian * 2 + sign;
+	pwidth = snd_pcm_format_physical_width(src_format);
+	width = snd_pcm_format_width(src_format);
+	if (pwidth == 24) {
+		switch (width) {
+		case 24:
+			width = 0; break;
+		case 20:
+			width = 1; break;
+		case 18:
+		default:
+			width = 2; break;
+		}
+		return width * 4 + endian * 2 + sign + 16;
+	} else {
+		width = width / 8 - 1;
+		return width * 4 + endian * 2 + sign;
+	}
+}
+
+int snd_pcm_linear_get32_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
+{
+	return snd_pcm_linear_get_index(src_format, dst_format);
 }
 
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
@@ -102,6 +124,37 @@ int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_f
 	if (endian < 0)
 		endian = 0;
 	return width * 4 + endian * 2 + sign;
+}
+
+int snd_pcm_linear_put32_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format)
+{
+	int sign, width, pwidth, endian;
+	sign = (snd_pcm_format_signed(src_format) != 
+		snd_pcm_format_signed(dst_format));
+#ifdef SND_LITTLE_ENDIAN
+	endian = snd_pcm_format_big_endian(dst_format);
+#else
+	endian = snd_pcm_format_little_endian(dst_format);
+#endif
+	if (endian < 0)
+		endian = 0;
+	pwidth = snd_pcm_format_physical_width(dst_format);
+	width = snd_pcm_format_width(dst_format);
+	if (pwidth == 24) {
+		switch (width) {
+		case 24:
+			width = 0; break;
+		case 20:
+			width = 1; break;
+		case 18:
+		default:
+			width = 2; break;
+		}
+		return width * 4 + endian * 2 + sign + 16;
+	} else {
+		width = width / 8 - 1;
+		return width * 4 + endian * 2 + sign;
+	}
 }
 
 void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
@@ -131,6 +184,42 @@ void snd_pcm_linear_convert(const snd_pcm_channel_area_t *dst_areas, snd_pcm_ufr
 #define CONV_END after
 #include "plugin_ops.h"
 #undef CONV_END
+		after:
+			src += src_step;
+			dst += dst_step;
+		}
+	}
+}
+
+void snd_pcm_linear_getput(const snd_pcm_channel_area_t *dst_areas, snd_pcm_uframes_t dst_offset,
+			   const snd_pcm_channel_area_t *src_areas, snd_pcm_uframes_t src_offset,
+			   unsigned int channels, snd_pcm_uframes_t frames,
+			   unsigned int get_idx, unsigned int put_idx)
+{
+#define CONV24_LABELS
+#include "plugin_ops.h"
+#undef CONV24_LABELS
+	void *get = get32_labels[get_idx];
+	void *put = put32_labels[put_idx];
+	unsigned int channel;
+	u_int32_t sample = 0;
+	for (channel = 0; channel < channels; ++channel) {
+		const char *src;
+		char *dst;
+		int src_step, dst_step;
+		snd_pcm_uframes_t frames1;
+		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
+		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
+		src = snd_pcm_channel_area_addr(src_area, src_offset);
+		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
+		src_step = snd_pcm_channel_area_step(src_area);
+		dst_step = snd_pcm_channel_area_step(dst_area);
+		frames1 = frames;
+		while (frames1-- > 0) {
+			goto *get;
+#define CONV24_END after
+#include "plugin_ops.h"
+#undef CONV24_END
 		after:
 			src += src_step;
 			dst += dst_step;
@@ -228,12 +317,24 @@ static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					  snd_pcm_plugin_hw_params_slave);
 	if (err < 0)
 		return err;
-	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		linear->conv_idx = snd_pcm_linear_convert_index(snd_pcm_hw_params_get_format(params),
-								linear->sformat);
-	else
-		linear->conv_idx = snd_pcm_linear_convert_index(linear->sformat,
-								snd_pcm_hw_params_get_format(params));
+	linear->use_getput = (snd_pcm_format_physical_width(snd_pcm_hw_params_get_format(params)) == 24 ||
+			      snd_pcm_format_physical_width(linear->sformat) == 24);
+	if (linear->use_getput) {
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+			linear->get_idx = snd_pcm_linear_get32_index(snd_pcm_hw_params_get_format(params), SND_PCM_FORMAT_S32);
+			linear->put_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, linear->sformat);
+		} else {
+			linear->get_idx = snd_pcm_linear_get32_index(linear->sformat, SND_PCM_FORMAT_S32);
+			linear->put_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, snd_pcm_hw_params_get_format(params));
+		}
+	} else {
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+			linear->conv_idx = snd_pcm_linear_convert_index(snd_pcm_hw_params_get_format(params),
+									linear->sformat);
+		else
+			linear->conv_idx = snd_pcm_linear_convert_index(linear->sformat,
+									snd_pcm_hw_params_get_format(params));
+	}
 	return 0;
 }
 
@@ -249,9 +350,15 @@ snd_pcm_linear_write_areas(snd_pcm_t *pcm,
 	snd_pcm_linear_t *linear = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	snd_pcm_linear_convert(slave_areas, slave_offset,
-			       areas, offset, 
-			       pcm->channels, size, linear->conv_idx);
+	if (linear->use_getput)
+		snd_pcm_linear_getput(slave_areas, slave_offset,
+				      areas, offset, 
+				      pcm->channels, size,
+				      linear->get_idx, linear->put_idx);
+	else
+		snd_pcm_linear_convert(slave_areas, slave_offset,
+				       areas, offset, 
+				       pcm->channels, size, linear->conv_idx);
 	*slave_sizep = size;
 	return size;
 }
@@ -268,9 +375,15 @@ snd_pcm_linear_read_areas(snd_pcm_t *pcm,
 	snd_pcm_linear_t *linear = pcm->private_data;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
-	snd_pcm_linear_convert(areas, offset, 
-			       slave_areas, slave_offset,
-			       pcm->channels, size, linear->conv_idx);
+	if (linear->use_getput)
+		snd_pcm_linear_getput(areas, offset, 
+				      slave_areas, slave_offset,
+				      pcm->channels, size,
+				      linear->get_idx, linear->put_idx);
+	else
+		snd_pcm_linear_convert(areas, offset, 
+				       slave_areas, slave_offset,
+				       pcm->channels, size, linear->conv_idx);
 	*slave_sizep = size;
 	return size;
 }
