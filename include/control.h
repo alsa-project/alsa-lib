@@ -210,8 +210,8 @@ const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_driver(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_longname(const snd_ctl_card_info_t *obj);
-const char *snd_ctl_card_info_get_mixerid(const snd_ctl_card_info_t *obj);
 const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj);
+const char *snd_ctl_card_info_get_components(const snd_ctl_card_info_t *obj);
 
 size_t snd_ctl_event_sizeof(void);
 /** \hideinitializer

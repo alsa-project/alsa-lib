@@ -1032,17 +1032,6 @@ const char *snd_ctl_card_info_get_longname(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card mixer identificator from a CTL card info
- * \param obj CTL card info
- * \return card mixer identificator
- */
-const char *snd_ctl_card_info_get_mixerid(const snd_ctl_card_info_t *obj)
-{
-	assert(obj);
-	return obj->mixerid;
-}
-
-/**
  * \brief Get card mixer name from a CTL card info
  * \param obj CTL card info
  * \return card mixer name
@@ -1051,6 +1040,17 @@ const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj)
 {
 	assert(obj);
 	return obj->mixername;
+}
+
+/**
+ * \brief Get card component list from a CTL card info
+ * \param obj CTL card info
+ * \return card mixer identificator
+ */
+const char *snd_ctl_card_info_get_components(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return obj->components;
 }
 
 /**
