@@ -1451,25 +1451,21 @@ int snd_config_search_alias(snd_config_t *config,
 			    const char *base, const char *key,
 			    snd_config_t **result)
 {
-	snd_config_t *res;
+	snd_config_t *res = NULL;
 	int err;
 	assert(config && key);
-	if (base) {
-		err = snd_config_searchv(config, &res, base, key, NULL);
-	} else {
+	do {
 		err = snd_config_search(config, key, &res);
-	}
-	if (err < 0)
-		return err;
-	while (snd_config_get_string(res, &base) >= 0) {
-		err = snd_config_search(config, base, &res);
-		if (err >= 0) {
-			if (snd_config_get_string(res, &key) >= 0)
-				err = snd_config_search(res, key, &res);
+		if (err < 0) {
+			if (!base)
+				break;
+			err = snd_config_searchv(config, &res, base, key, NULL);
+			if (err < 0)
+				break;
 		}
-		if (err < 0)
-			break;
-	}
+	} while (snd_config_get_string(res, &key) >= 0);
+	if (!res)
+		return err;
 	if (result)
 		*result = res;
 	return 0;
