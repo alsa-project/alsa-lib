@@ -129,6 +129,7 @@ unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t *elem);
 snd_mixer_elem_t *snd_mixer_find_selem(snd_mixer_t *mixer,
 				       const snd_mixer_selem_id_t *id);
 
+int snd_mixer_selem_is_active(snd_mixer_elem_t *elem);
 int snd_mixer_selem_is_playback_mono(snd_mixer_elem_t *elem);
 int snd_mixer_selem_has_playback_channel(snd_mixer_elem_t *obj, snd_mixer_selem_channel_id_t channel);
 int snd_mixer_selem_is_capture_mono(snd_mixer_elem_t *elem);
