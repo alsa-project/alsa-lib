@@ -86,7 +86,7 @@ int snd_hwdep_close(snd_hwdep_t *hwdep)
 	return res;
 }
 
-int snd_hwdep_file_descriptor(snd_hwdep_t *hwdep)
+int snd_hwdep_poll_descriptor(snd_hwdep_t *hwdep)
 {
 	if (!hwdep)
 		return -EINVAL;

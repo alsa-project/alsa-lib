@@ -25,256 +25,287 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
-#include <sys/uio.h>
+#include <dlfcn.h>
 #include "pcm_local.h"
 #include "list.h"
 
-snd_pcm_type_t snd_pcm_type(snd_pcm_t *handle)
+int snd_pcm_init(snd_pcm_t *pcm)
 {
-	assert(handle);
-	return handle->type;
+	int err;
+	err = snd_pcm_mmap_status(pcm, NULL);
+	if (err < 0)
+		return err;
+	err = snd_pcm_mmap_control(pcm, NULL);
+	if (err < 0)
+		return err;
+	return 0;
 }
 
-snd_pcm_type_t snd_pcm(snd_pcm_t *handle)
+snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm)
 {
-	assert(handle);
-	return handle->stream;
+	assert(pcm);
+	return pcm->type;
 }
 
-int snd_pcm_close(snd_pcm_t *handle)
+snd_pcm_type_t snd_pcm(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	return pcm->stream;
+}
+
+int snd_pcm_close(snd_pcm_t *pcm)
 {
 	int ret = 0;
 	int err;
-	assert(handle);
-	if (handle->mmap_status) {
-		if ((err = snd_pcm_munmap_status(handle)) < 0)
+	assert(pcm);
+	if (pcm->mmap_status) {
+		if ((err = snd_pcm_munmap_status(pcm)) < 0)
 			ret = err;
 	}
-	if (handle->mmap_control) {
-		if ((err = snd_pcm_munmap_control(handle)) < 0)
+	if (pcm->mmap_control) {
+		if ((err = snd_pcm_munmap_control(pcm)) < 0)
 			ret = err;
 	}
-	if (handle->mmap_data) {
-		if ((err = snd_pcm_munmap_data(handle)) < 0)
+	if (pcm->mmap_data) {
+		if ((err = snd_pcm_munmap_data(pcm)) < 0)
 			ret = err;
 	}
-	if ((err = handle->ops->close(handle->op_arg)) < 0)
+	if ((err = pcm->ops->close(pcm->op_arg)) < 0)
 		ret = err;
-	handle->valid_setup = 0;
-	free(handle);
+	pcm->valid_setup = 0;
+	free(pcm);
 	return ret;
 }	
 
-int snd_pcm_nonblock(snd_pcm_t *handle, int nonblock)
+int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	int err;
-	assert(handle);
-	if ((err = handle->fast_ops->nonblock(handle->fast_op_arg, nonblock)) < 0)
+	assert(pcm);
+	if ((err = pcm->ops->nonblock(pcm->fast_op_arg, nonblock)) < 0)
 		return err;
 	if (nonblock)
-		handle->mode |= SND_PCM_NONBLOCK;
+		pcm->mode |= SND_PCM_NONBLOCK;
 	else
-		handle->mode &= ~SND_PCM_NONBLOCK;
+		pcm->mode &= ~SND_PCM_NONBLOCK;
 	return 0;
 }
 
-int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t *info)
+int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
-	assert(handle && info);
-	return handle->ops->info(handle->op_arg, info);
+	assert(pcm && info);
+	return pcm->ops->info(pcm->op_arg, info);
 }
 
-int snd_pcm_params_info(snd_pcm_t *handle, snd_pcm_params_info_t *info)
+int snd_pcm_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info)
 {
-	assert(handle && info);
-	return handle->ops->params_info(handle->op_arg, info);
+	assert(pcm && info);
+	return pcm->ops->params_info(pcm->op_arg, info);
 }
 
-int snd_pcm_setup(snd_pcm_t *handle, snd_pcm_setup_t *setup)
+int snd_pcm_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
 {
 	int err;
-	assert(handle && setup);
-	if (handle->valid_setup) {
-		*setup = handle->setup;
+	assert(pcm && setup);
+	if (pcm->valid_setup) {
+		*setup = pcm->setup;
 		return 0;
 	}
-	if ((err = handle->ops->setup(handle->op_arg, &handle->setup)) < 0)
+	if ((err = pcm->ops->setup(pcm->op_arg, &pcm->setup)) < 0)
 		return err;
-	*setup = handle->setup;
-	handle->bits_per_sample = snd_pcm_format_physical_width(setup->format.format);
-        handle->bits_per_frame = handle->bits_per_sample * setup->format.channels;
-	handle->valid_setup = 1;
+	*setup = pcm->setup;
+	pcm->bits_per_sample = snd_pcm_format_physical_width(setup->format.sfmt);
+        pcm->bits_per_frame = pcm->bits_per_sample * setup->format.channels;
+	pcm->valid_setup = 1;
 	return 0;
 }
 
-int snd_pcm_channel_info(snd_pcm_t *handle, snd_pcm_channel_info_t *info)
+int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
-	assert(handle && info);
-	return handle->fast_ops->channel_info(handle->fast_op_arg, info);
+	assert(pcm && info);
+	assert(pcm->valid_setup);
+	assert(info->channel < pcm->setup.format.channels);
+	return pcm->ops->channel_info(pcm->op_arg, info);
 }
 
-int snd_pcm_channel_params(snd_pcm_t *handle, snd_pcm_channel_params_t *params)
+int snd_pcm_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 {
-	assert(handle && params);
-	return handle->fast_ops->channel_params(handle->fast_op_arg, params);
+	assert(pcm && params);
+	assert(pcm->valid_setup);
+	assert(params->channel < pcm->setup.format.channels);
+	return pcm->ops->channel_params(pcm->op_arg, params);
 }
 
-int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup)
+int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
 {
-	assert(handle && setup);
-	assert(handle->valid_setup);
-	return handle->fast_ops->channel_setup(handle->fast_op_arg, setup);
+	assert(pcm && setup);
+	assert(pcm->valid_setup);
+	assert(setup->channel < pcm->setup.format.channels);
+	return pcm->ops->channel_setup(pcm->op_arg, setup);
 }
 
-int snd_pcm_params(snd_pcm_t *handle, snd_pcm_params_t *params)
+int snd_pcm_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 {
 	int err;
 	snd_pcm_setup_t setup;
-	assert(handle && params);
-	assert(!handle->mmap_data);
-	if ((err = handle->ops->params(handle->op_arg, params)) < 0)
+	assert(pcm && params);
+	assert(!pcm->mmap_data);
+	if ((err = pcm->ops->params(pcm->op_arg, params)) < 0)
 		return err;
-	handle->valid_setup = 0;
-	return snd_pcm_setup(handle, &setup);
+	pcm->valid_setup = 0;
+	return snd_pcm_setup(pcm, &setup);
 }
 
-int snd_pcm_status(snd_pcm_t *handle, snd_pcm_status_t *status)
+int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
-	assert(handle && status);
-	return handle->fast_ops->status(handle->fast_op_arg, status);
+	assert(pcm && status);
+	return pcm->fast_ops->status(pcm->fast_op_arg, status);
 }
 
-int snd_pcm_state(snd_pcm_t *handle)
+int snd_pcm_state(snd_pcm_t *pcm)
 {
-	assert(handle);
-	if (handle->mmap_status)
-		return handle->mmap_status->state;
-	return handle->fast_ops->state(handle->fast_op_arg);
+	assert(pcm);
+	return pcm->fast_ops->state(pcm->fast_op_arg);
 }
 
-ssize_t snd_pcm_hw_ptr(snd_pcm_t *handle, int update)
+int snd_pcm_delay(snd_pcm_t *pcm, ssize_t *delayp)
 {
-	assert(handle);
-	assert(handle->valid_setup);
-	if (handle->mmap_status && !update)
-		return handle->mmap_status->hw_ptr;
-	return handle->fast_ops->hw_ptr(handle->fast_op_arg, update);
+	assert(pcm);
+	return pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
 }
 
-int snd_pcm_prepare(snd_pcm_t *handle)
+int snd_pcm_prepare(snd_pcm_t *pcm)
 {
-	assert(handle);
-	return handle->fast_ops->prepare(handle->fast_op_arg);
+	assert(pcm);
+	return pcm->fast_ops->prepare(pcm->fast_op_arg);
 }
 
-int snd_pcm_go(snd_pcm_t *handle)
+int snd_pcm_start(snd_pcm_t *pcm)
 {
-	assert(handle);
-	return handle->fast_ops->go(handle->fast_op_arg);
+	assert(pcm);
+	return pcm->fast_ops->start(pcm->fast_op_arg);
 }
 
-int snd_pcm_drain(snd_pcm_t *handle)
+int snd_pcm_stop(snd_pcm_t *pcm)
 {
-	assert(handle);
-	return handle->fast_ops->drain(handle->fast_op_arg);
+	assert(pcm);
+	return pcm->fast_ops->stop(pcm->fast_op_arg);
 }
 
-int snd_pcm_flush(snd_pcm_t *handle)
+int snd_pcm_flush(snd_pcm_t *pcm)
 {
-	assert(handle);
-	return handle->fast_ops->flush(handle->fast_op_arg);
+	assert(pcm);
+	return pcm->fast_ops->flush(pcm->fast_op_arg);
 }
 
-int snd_pcm_pause(snd_pcm_t *handle, int enable)
+int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 {
-	assert(handle);
-	return handle->fast_ops->pause(handle->fast_op_arg, enable);
+	assert(pcm);
+	return pcm->fast_ops->pause(pcm->fast_op_arg, enable);
 }
 
 
-ssize_t snd_pcm_appl_ptr(snd_pcm_t *handle, off_t offset)
+ssize_t snd_pcm_appl_ptr(snd_pcm_t *pcm, off_t offset)
 {
-	assert(handle);
-	assert(handle->valid_setup);
-	if (handle->mmap_control) {
+	assert(pcm);
+	assert(pcm->valid_setup);
+	if (pcm->mmap_control) {
 		if (offset == 0)
-			return handle->mmap_control->appl_ptr;
+			return pcm->mmap_control->appl_ptr;
 	}
-	return handle->fast_ops->appl_ptr(handle->fast_op_arg, offset);
+	return pcm->fast_ops->appl_ptr(pcm->fast_op_arg, offset);
 }
 
-ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
+ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
 {
-	assert(handle);
+	assert(pcm);
 	assert(size == 0 || buffer);
-	assert(handle->valid_setup);
-	assert(size % handle->setup.align == 0);
-	return handle->fast_ops->write(handle->fast_op_arg, 0, buffer, size);
+	assert(pcm->valid_setup);
+	assert(pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED);
+	assert(!pcm->mmap_data);
+	return pcm->fast_ops->writei(pcm->fast_op_arg, buffer, size);
 }
 
-ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 {
-	assert(handle);
-	assert(count == 0 || vector);
-	assert(handle->valid_setup);
-	assert(handle->setup.format.interleave || 
-	       count % handle->setup.format.channels == 0);
-	return handle->fast_ops->writev(handle->fast_op_arg, 0, vector, count);
+	assert(pcm);
+	assert(size == 0 || bufs);
+	assert(pcm->valid_setup);
+	assert(pcm->setup.xfer_mode == SND_PCM_XFER_NONINTERLEAVED);
+	assert(!pcm->mmap_data);
+	return pcm->fast_ops->writen(pcm->fast_op_arg, bufs, size);
 }
 
-ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
+ssize_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 {
-	assert(handle);
+	assert(pcm);
 	assert(size == 0 || buffer);
-	assert(handle->valid_setup);
-	assert(size % handle->setup.align == 0);
-	return handle->fast_ops->read(handle->fast_op_arg, 0, buffer, size);
+	assert(pcm->valid_setup);
+	assert(pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED);
+	assert(!pcm->mmap_data);
+	return pcm->fast_ops->readi(pcm->fast_op_arg, buffer, size);
 }
 
-ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 {
-	assert(handle);
-	assert(count == 0 || vector);
-	assert(handle->valid_setup);
-	return handle->fast_ops->readv(handle->fast_op_arg, 0, vector, count);
+	assert(pcm);
+	assert(size == 0 || bufs);
+	assert(pcm->valid_setup);
+	assert(pcm->setup.xfer_mode == SND_PCM_XFER_NONINTERLEAVED);
+	assert(!pcm->mmap_data);
+	return pcm->fast_ops->readn(pcm->fast_op_arg, bufs, size);
 }
 
-int snd_pcm_link(snd_pcm_t *handle1, snd_pcm_t *handle2)
+ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count)
 {
-	int fd1, fd2;
-	switch (handle1->type) {
-	case SND_PCM_TYPE_HW:
-	case SND_PCM_TYPE_PLUG:
-	case SND_PCM_TYPE_MULTI:
-		fd1 = snd_pcm_file_descriptor(handle1);
-		break;
-	default:
-		errno = -ENOSYS;
-		return -1;
+	void **bufs;
+	int k;
+	assert(pcm);
+	assert(pcm->valid_setup);
+	assert((int)pcm->setup.format.channels == count);
+	bufs = alloca(sizeof(*bufs) * count);
+	for (k = 0; k < count; ++k) {
+		bufs[k] = vector[k].iov_base;
+		assert(vector[k].iov_len == vector[0].iov_len);
 	}
-	switch (handle2->type) {
-	case SND_PCM_TYPE_HW:
-	case SND_PCM_TYPE_PLUG:
-	case SND_PCM_TYPE_MULTI:
-		fd2 = snd_pcm_file_descriptor(handle2);
-		break;
-	default:
-		errno = -ENOSYS;
-		return -1;
+	return snd_pcm_writen(pcm, bufs, vector[0].iov_len);
+}
+
+ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count)
+{
+	void **bufs;
+	int k;
+	assert(pcm);
+	assert(pcm->valid_setup);
+	assert((int)pcm->setup.format.channels == count);
+	bufs = alloca(sizeof(*bufs) * count);
+	for (k = 0; k < count; ++k) {
+		bufs[k] = vector[k].iov_base;
+		assert(vector[k].iov_len == vector[0].iov_len);
 	}
+	return snd_pcm_readn(pcm, bufs, vector[0].iov_len);
+}
+
+/* FIXME */
+#define snd_pcm_link_descriptor snd_pcm_poll_descriptor
+
+int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
+{
+	int fd1 = snd_pcm_link_descriptor(pcm1);
+	int fd2 = snd_pcm_link_descriptor(pcm2);
+	if (fd1 < 0 || fd2 < 0)
+		return -ENOSYS;
 	if (ioctl(fd1, SND_PCM_IOCTL_LINK, fd2) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_pcm_unlink(snd_pcm_t *handle)
+int snd_pcm_unlink(snd_pcm_t *pcm)
 {
 	int fd;
-	switch (handle->type) {
+	switch (pcm->type) {
 	case SND_PCM_TYPE_HW:
-	case SND_PCM_TYPE_PLUG:
 	case SND_PCM_TYPE_MULTI:
-		fd = snd_pcm_file_descriptor(handle);
+		fd = snd_pcm_poll_descriptor(pcm);
 		break;
 	default:
 		errno = -ENOSYS;
@@ -285,17 +316,17 @@ int snd_pcm_unlink(snd_pcm_t *handle)
 	return 0;
 }
 
-int snd_pcm_file_descriptor(snd_pcm_t *handle)
+int snd_pcm_poll_descriptor(snd_pcm_t *pcm)
 {
-	assert(handle);
-	return handle->fast_ops->file_descriptor(handle->fast_op_arg);
+	assert(pcm);
+	return pcm->fast_ops->poll_descriptor(pcm->fast_op_arg);
 }
 
-int snd_pcm_channels_mask(snd_pcm_t *handle, bitset_t *client_vmask)
+int snd_pcm_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
 {
-	assert(handle);
-	assert(handle->valid_setup);
-	return handle->fast_ops->channels_mask(handle->fast_op_arg, client_vmask);
+	assert(pcm);
+	assert(pcm->valid_setup);
+	return pcm->fast_ops->channels_mask(pcm->fast_op_arg, cmask);
 }
 
 typedef struct {
@@ -306,7 +337,7 @@ typedef struct {
 
 static assoc_t *assoc_value(int value, assoc_t *alist)
 {
-	while (alist->desc) {
+	while (alist->name) {
 		if (value == alist->value)
 			return alist;
 		alist++;
@@ -333,86 +364,112 @@ static const char *assoc(int value, assoc_t *alist)
 	return "UNKNOWN";
 }
 
+#define STATE(v) { SND_PCM_STATE_##v, #v, #v }
 #define STREAM(v) { SND_PCM_STREAM_##v, #v, #v }
-#define MODE(v) { SND_PCM_MODE_##v, #v, #v }
-#define FMT(v, d) { SND_PCM_SFMT_##v, #v, d }
+#define READY(v) { SND_PCM_READY_##v, #v, #v }
 #define XRUN(v) { SND_PCM_XRUN_##v, #v, #v }
+#define XFER(v) { SND_PCM_XFER_##v, #v, #v }
+#define MMAP(v) { SND_PCM_MMAP_##v, #v, #v }
+#define SFMT(v, d) { SND_PCM_SFMT_##v, #v, d }
+#define XRUN_ACT(v) { SND_PCM_XRUN_ACT_##v, #v, #v }
 #define START(v) { SND_PCM_START_##v, #v, #v }
 #define FILL(v) { SND_PCM_FILL_##v, #v, #v }
 #define END { 0, NULL, NULL }
 
+static assoc_t states[] = { STATE(NOTREADY), STATE(READY), STATE(PREPARED),
+			    STATE(RUNNING), STATE(XRUN), STATE(PAUSED), END };
 static assoc_t streams[] = { STREAM(PLAYBACK), STREAM(CAPTURE), END };
-static assoc_t modes[] = { MODE(FRAME), MODE(FRAGMENT), END };
+static assoc_t xruns[] = { XRUN(ASAP), XRUN(FRAGMENT), END };
 static assoc_t fmts[] = {
-	FMT(S8, "Signed 8-bit"), 
-	FMT(U8, "Unsigned 8-bit"),
-	FMT(S16_LE, "Signed 16-bit Little Endian"),
-	FMT(S16_BE, "Signed 16-bit Big Endian"),
-	FMT(U16_LE, "Unsigned 16-bit Little Endian"),
-	FMT(U16_BE, "Unsigned 16-bit Big Endian"),
-	FMT(S24_LE, "Signed 24-bit Little Endian"),
-	FMT(S24_BE, "Signed 24-bit Big Endian"),
-	FMT(U24_LE, "Unsigned 24-bit Little Endian"),
-	FMT(U24_BE, "Unsigned 24-bit Big Endian"),
-	FMT(S32_LE, "Signed 32-bit Little Endian"),
-	FMT(S32_BE, "Signed 32-bit Big Endian"),
-	FMT(U32_LE, "Unsigned 32-bit Little Endian"),
-	FMT(U32_BE, "Unsigned 32-bit Big Endian"),
-	FMT(FLOAT_LE, "Float Little Endian"),
-	FMT(FLOAT_BE, "Float Big Endian"),
-	FMT(FLOAT64_LE, "Float64 Little Endian"),
-	FMT(FLOAT64_BE, "Float64 Big Endian"),
-	FMT(IEC958_SUBFRAME_LE, "IEC-958 Little Endian"),
-	FMT(IEC958_SUBFRAME_BE, "IEC-958 Big Endian"),
-	FMT(MU_LAW, "Mu-Law"),
-	FMT(A_LAW, "A-Law"),
-	FMT(IMA_ADPCM, "Ima-ADPCM"),
-	FMT(MPEG, "MPEG"),
-	FMT(GSM, "GSM"),
-	FMT(SPECIAL, "Special"),
+	SFMT(S8, "Signed 8-bit"), 
+	SFMT(U8, "Unsigned 8-bit"),
+	SFMT(S16_LE, "Signed 16-bit Little Endian"),
+	SFMT(S16_BE, "Signed 16-bit Big Endian"),
+	SFMT(U16_LE, "Unsigned 16-bit Little Endian"),
+	SFMT(U16_BE, "Unsigned 16-bit Big Endian"),
+	SFMT(S24_LE, "Signed 24-bit Little Endian"),
+	SFMT(S24_BE, "Signed 24-bit Big Endian"),
+	SFMT(U24_LE, "Unsigned 24-bit Little Endian"),
+	SFMT(U24_BE, "Unsigned 24-bit Big Endian"),
+	SFMT(S32_LE, "Signed 32-bit Little Endian"),
+	SFMT(S32_BE, "Signed 32-bit Big Endian"),
+	SFMT(U32_LE, "Unsigned 32-bit Little Endian"),
+	SFMT(U32_BE, "Unsigned 32-bit Big Endian"),
+	SFMT(FLOAT_LE, "Float Little Endian"),
+	SFMT(FLOAT_BE, "Float Big Endian"),
+	SFMT(FLOAT64_LE, "Float64 Little Endian"),
+	SFMT(FLOAT64_BE, "Float64 Big Endian"),
+	SFMT(IEC958_SUBFRAME_LE, "IEC-958 Little Endian"),
+	SFMT(IEC958_SUBFRAME_BE, "IEC-958 Big Endian"),
+	SFMT(MU_LAW, "Mu-Law"),
+	SFMT(A_LAW, "A-Law"),
+	SFMT(IMA_ADPCM, "Ima-ADPCM"),
+	SFMT(MPEG, "MPEG"),
+	SFMT(GSM, "GSM"),
+	SFMT(SPECIAL, "Special"),
 	END 
 };
 
-static assoc_t starts[] = { START(GO), START(DATA), START(FULL), END };
-static assoc_t xruns[] = { XRUN(FLUSH), XRUN(DRAIN), END };
-static assoc_t fills[] = { FILL(NONE), FILL(SILENCE_WHOLE), FILL(SILENCE), END };
+static assoc_t starts[] = { START(EXPLICIT), START(DATA), END };
+static assoc_t readys[] = { READY(FRAGMENT), READY(ASAP), END };
+static assoc_t xfers[] = { XFER(INTERLEAVED), XFER(NONINTERLEAVED), END };
+static assoc_t mmaps[] = { MMAP(INTERLEAVED), MMAP(NONINTERLEAVED), END };
+static assoc_t xrun_acts[] = { XRUN_ACT(FLUSH), XRUN_ACT(DRAIN), END };
 static assoc_t onoff[] = { {0, "OFF", NULL}, {1, "ON", NULL}, {-1, "ON", NULL}, END };
 
-int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp)
+int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp)
 {
 	snd_pcm_setup_t *setup;
-	assert(handle);
+	assert(pcm);
 	assert(fp);
-	assert(handle->valid_setup);
-	setup = &handle->setup;
-        fprintf(fp, "stream: %s\n", assoc(handle->stream, streams));
-	fprintf(fp, "mode: %s\n", assoc(setup->mode, modes));
-	fprintf(fp, "format: %s\n", assoc(setup->format.format, fmts));
-	fprintf(fp, "channels: %d\n", setup->format.channels);
-	fprintf(fp, "rate: %d (%d/%d=%g)\n", setup->format.rate, setup->rate_master, setup->rate_divisor, (double) setup->rate_master / setup->rate_divisor);
+	assert(pcm->valid_setup);
+	setup = &pcm->setup;
+        fprintf(fp, "stream     : %s\n", assoc(pcm->stream, streams));
+	fprintf(fp, "format     : %s\n", assoc(setup->format.sfmt, fmts));
+	fprintf(fp, "channels   : %d\n", setup->format.channels);
+	fprintf(fp, "rate       : %d (%d/%d=%g)\n", setup->format.rate, setup->rate_master, setup->rate_divisor, (double) setup->rate_master / setup->rate_divisor);
 	// digital
-	fprintf(fp, "start_mode: %s\n", assoc(setup->start_mode, starts));
-	fprintf(fp, "xrun_mode: %s\n", assoc(setup->xrun_mode, xruns));
-	fprintf(fp, "time: %s\n", assoc(setup->time, onoff));
-	// ust_time
+	fprintf(fp, "start_mode : %s\n", assoc(setup->start_mode, starts));
+	fprintf(fp, "ready_mode : %s\n", assoc(setup->ready_mode, readys));
+	fprintf(fp, "avail_min  : %ld\n", (long)setup->avail_min);
+	fprintf(fp, "xfer_mode  : %s\n", assoc(setup->xfer_mode, xfers));
+	fprintf(fp, "xfer_min   : %ld\n", (long)setup->xfer_min);
+	fprintf(fp, "xfer_align : %ld\n", (long)setup->xfer_align);
+	fprintf(fp, "xrun_mode  : %s\n", assoc(setup->xrun_mode, xruns));
+	fprintf(fp, "xrun_act   : %s\n", assoc(setup->xrun_act, xrun_acts));
+	fprintf(fp, "xrun_max   : %ld\n", (long)setup->xrun_max);
+	fprintf(fp, "mmap_shape : %s\n", assoc(setup->mmap_shape, mmaps));
 	fprintf(fp, "buffer_size: %ld\n", (long)setup->buffer_size);
-	fprintf(fp, "frag_size: %ld\n", (long)setup->frag_size);
-	fprintf(fp, "frags: %ld\n", (long)setup->frags);
-	fprintf(fp, "boundary: %ld\n", (long)setup->boundary);
-	fprintf(fp, "msbits_per_sample: %d\n", setup->msbits_per_sample);
-	fprintf(fp, "avail_min: %ld\n", (long)setup->avail_min);
-	fprintf(fp, "align: %ld\n", (long)setup->align);
-	fprintf(fp, "xrun_max: %ld\n", (long)setup->xrun_max);
-	fprintf(fp, "fill_mode: %s\n", assoc(setup->fill_mode, fills));
-	fprintf(fp, "fill_max: %ld\n", (long)setup->fill_max);
+	fprintf(fp, "frag_size  : %ld\n", (long)setup->frag_size);
+	fprintf(fp, "boundary   : %ld\n", (long)setup->boundary);
+	fprintf(fp, "time       : %s\n", assoc(setup->time, onoff));
+	fprintf(fp, "frags      : %ld\n", (long)setup->frags);
+	fprintf(fp, "msbits     : %d\n", setup->msbits);
 	return 0;
 }
 
-int snd_pcm_dump(snd_pcm_t *handle, FILE *fp)
+int snd_pcm_dump_status(snd_pcm_status_t *status, FILE *fp)
 {
-	assert(handle);
+	assert(status);
+	fprintf(fp, "state       : %s\n", assoc(status->state, states));
+	fprintf(fp, "trigger_time: %ld.%06ld\n",
+		status->trigger_time.tv_sec, status->trigger_time.tv_usec);
+	fprintf(fp, "tstamp      : %ld.%06ld\n",
+		status->tstamp.tv_sec, status->tstamp.tv_usec);
+	fprintf(fp, "delay       : %ld\n", (long)status->delay);
+	fprintf(fp, "avail_max   : %ld\n", (long)status->avail_max);
+	fprintf(fp, "xruns       : %ld\n", (long)status->xruns);
+	fprintf(fp, "appl_ptr    : %ld\n", (long)status->appl_ptr);
+	fprintf(fp, "hw_ptr      : %ld\n", (long)status->hw_ptr);
+	fprintf(fp, "avail       : %ld\n", (long)status->avail);
+	return 0;
+}
+
+int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp)
+{
+	assert(pcm);
 	assert(fp);
-	handle->ops->dump(handle->op_arg, fp);
+	pcm->ops->dump(pcm->op_arg, fp);
 	return 0;
 }
 
@@ -440,365 +497,46 @@ int snd_pcm_format_value(const char* name)
 	return -1;
 }
 
-ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *handle, ssize_t bytes)
+ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes)
 {
-	assert(handle);
-	assert(handle->valid_setup);
-	return bytes * 8 / handle->bits_per_frame;
+	assert(pcm);
+	assert(pcm->valid_setup);
+	return bytes * 8 / pcm->bits_per_frame;
 }
 
-ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *handle, ssize_t frames)
+ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, ssize_t frames)
 {
-	assert(handle);
-	assert(handle->valid_setup);
-	return frames * handle->bits_per_frame / 8;
+	assert(pcm);
+	assert(pcm->valid_setup);
+	return frames * pcm->bits_per_frame / 8;
 }
 
-ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *handle, ssize_t bytes)
+ssize_t snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
 {
-	assert(handle);
-	assert(handle->valid_setup);
-	return bytes * 8 / handle->bits_per_sample;
+	assert(pcm);
+	assert(pcm->valid_setup);
+	return bytes * 8 / pcm->bits_per_sample;
 }
 
-ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *handle, ssize_t samples)
+ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, ssize_t samples)
 {
-	assert(handle);
-	assert(handle->valid_setup);
-	return samples * handle->bits_per_sample / 8;
+	assert(pcm);
+	assert(pcm->valid_setup);
+	return samples * pcm->bits_per_sample / 8;
 }
 
-static int _snd_pcm_open_hw(snd_pcm_t **handlep, snd_config_t *conf, 
-			    int stream, int mode)
-{
-	snd_config_iterator_t i;
-	long card = -1, device = -1, subdevice = -1;
-	char *str;
-	int err;
-	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
-			continue;
-		if (strcmp(n->id, "type") == 0)
-			continue;
-		if (strcmp(n->id, "stream") == 0)
-			continue;
-		if (strcmp(n->id, "card") == 0) {
-			err = snd_config_integer_get(n, &card);
-			if (err < 0) {
-				err = snd_config_string_get(n, &str);
-				if (err < 0)
-					return -EINVAL;
-				card = snd_card_get_index(str);
-				if (card < 0)
-					return card;
-			}
-			continue;
-		}
-		if (strcmp(n->id, "device") == 0) {
-			err = snd_config_integer_get(n, &device);
-			if (err < 0)
-				return err;
-			continue;
-		}
-		if (strcmp(n->id, "subdevice") == 0) {
-			err = snd_config_integer_get(n, &subdevice);
-			if (err < 0)
-				return err;
-			continue;
-		}
-		return -EINVAL;
-	}
-	if (card < 0 || device < 0)
-		return -EINVAL;
-	return snd_pcm_hw_open_subdevice(handlep, card, device, subdevice, stream, mode);
-}
-				
-static int _snd_pcm_open_plug(snd_pcm_t **handlep, snd_config_t *conf, 
-			      int stream, int mode)
-{
-	snd_config_iterator_t i;
-	char *slave = NULL;
-	int err;
-	snd_pcm_t *slave_handle;
-	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
-			continue;
-		if (strcmp(n->id, "type") == 0)
-			continue;
-		if (strcmp(n->id, "stream") == 0)
-			continue;
-		if (strcmp(n->id, "slave") == 0) {
-			err = snd_config_string_get(n, &slave);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		return -EINVAL;
-	}
-	if (!slave)
-		return -EINVAL;
-	/* This is needed cause snd_config_update may destroy config */
-	slave = strdup(slave);
-	if (!slave)
-		return  -ENOMEM;
-	err = snd_pcm_open(&slave_handle, slave, stream, mode);
-	free(slave);
-	if (err < 0)
-		return err;
-	err = snd_pcm_plug_create(handlep, slave_handle, 1);
-	if (err < 0)
-		snd_pcm_close(slave_handle);
-	return err;
-}
-				
-static int _snd_pcm_open_multi(snd_pcm_t **handlep, snd_config_t *conf, 
-			      int stream, int mode)
-{
-	snd_config_iterator_t i, j;
-	snd_config_t *slave = NULL;
-	snd_config_t *binding = NULL;
-	int err;
-	unsigned int idx;
-	char **slaves_id = NULL;
-	char **slaves_name = NULL;
-	snd_pcm_t **slaves_handle = NULL;
-	size_t *slaves_channels = NULL;
-	unsigned int *bindings_cchannel = NULL;
-	unsigned int *bindings_slave = NULL;
-	unsigned int *bindings_schannel = NULL;
-	size_t slaves_count = 0;
-	size_t bindings_count = 0;
-	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
-			continue;
-		if (strcmp(n->id, "type") == 0)
-			continue;
-		if (strcmp(n->id, "stream") == 0)
-			continue;
-		if (strcmp(n->id, "slave") == 0) {
-			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
-				return -EINVAL;
-			slave = n;
-			continue;
-		}
-		if (strcmp(n->id, "binding") == 0) {
-			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
-				return -EINVAL;
-			binding = n;
-			continue;
-		}
-		return -EINVAL;
-	}
-	if (!slave || !binding)
-		return -EINVAL;
-	snd_config_foreach(i, slave) {
-		++slaves_count;
-	}
-	snd_config_foreach(i, binding) {
-		++bindings_count;
-	}
-	slaves_id = calloc(slaves_count, sizeof(*slaves_id));
-	slaves_name = calloc(slaves_count, sizeof(*slaves_name));
-	slaves_handle = calloc(slaves_count, sizeof(*slaves_handle));
-	slaves_channels = calloc(slaves_count, sizeof(*slaves_channels));
-	bindings_cchannel = calloc(bindings_count, sizeof(*bindings_cchannel));
-	bindings_slave = calloc(bindings_count, sizeof(*bindings_slave));
-	bindings_schannel = calloc(bindings_count, sizeof(*bindings_schannel));
-	idx = 0;
-	snd_config_foreach(i, slave) {
-		snd_config_t *m = snd_config_entry(i);
-		char *pcm = NULL;
-		long channels = -1;
-		slaves_id[idx] = snd_config_id(m);
-		snd_config_foreach(j, m) {
-			snd_config_t *n = snd_config_entry(j);
-			if (strcmp(n->id, "comment") == 0)
-				continue;
-			if (strcmp(n->id, "pcm") == 0) {
-				err = snd_config_string_get(n, &pcm);
-				if (err < 0)
-					goto _free;
-				continue;
-			}
-			if (strcmp(n->id, "channels") == 0) {
-				err = snd_config_integer_get(n, &channels);
-				if (err < 0)
-					goto _free;
-				continue;
-			}
-			err = -EINVAL;
-			goto _free;
-		}
-		if (!pcm || channels < 0) {
-			err = -EINVAL;
-			goto _free;
-		}
-		slaves_name[idx] = strdup(pcm);
-		slaves_channels[idx] = channels;
-		++idx;
-	}
-
-	idx = 0;
-	snd_config_foreach(i, binding) {
-		snd_config_t *m = snd_config_entry(i);
-		long cchannel = -1, schannel = -1;
-		int slave = -1;
-		long val;
-		char *str;
-		snd_config_foreach(j, m) {
-			snd_config_t *n = snd_config_entry(j);
-			if (strcmp(n->id, "comment") == 0)
-				continue;
-			if (strcmp(n->id, "client_channel") == 0) {
-				err = snd_config_integer_get(n, &cchannel);
-				if (err < 0)
-					goto _free;
-				continue;
-			}
-			if (strcmp(n->id, "slave") == 0) {
-				char buf[32];
-				unsigned int k;
-				err = snd_config_string_get(n, &str);
-				if (err < 0) {
-					err = snd_config_integer_get(n, &val);
-					if (err < 0)
-						goto _free;
-					sprintf(buf, "%ld", val);
-					str = buf;
-				}
-				for (k = 0; k < slaves_count; ++k) {
-					if (strcmp(slaves_id[k], str) == 0)
-						slave = k;
-				}
-				continue;
-			}
-			if (strcmp(n->id, "slave_channel") == 0) {
-				err = snd_config_integer_get(n, &schannel);
-				if (err < 0)
-					goto _free;
-				continue;
-			}
-			err = -EINVAL;
-			goto _free;
-		}
-		if (cchannel < 0 || slave < 0 || schannel < 0) {
-			err = -EINVAL;
-			goto _free;
-		}
-		if ((size_t)slave >= slaves_count) {
-			err = -EINVAL;
-			goto _free;
-		}
-		if ((unsigned int) schannel >= slaves_channels[slave]) {
-			err = -EINVAL;
-			goto _free;
-		}
-		bindings_cchannel[idx] = cchannel;
-		bindings_slave[idx] = slave;
-		bindings_schannel[idx] = schannel;
-		++idx;
-	}
-	
-	for (idx = 0; idx < slaves_count; ++idx) {
-		err = snd_pcm_open(&slaves_handle[idx], slaves_name[idx], stream, mode);
-		if (err < 0)
-			goto _free;
-	}
-	err = snd_pcm_multi_create(handlep, slaves_count, slaves_handle,
-				   slaves_channels,
-				   bindings_count, bindings_cchannel,
-				   bindings_slave, bindings_schannel,
-				   1);
-_free:
-	if (err < 0) {
-		for (idx = 0; idx < slaves_count; ++idx) {
-			if (slaves_handle[idx])
-				snd_pcm_close(slaves_handle[idx]);
-			if (slaves_name[idx])
-				free(slaves_name[idx]);
-		}
-	}
-	if (slaves_name)
-		free(slaves_name);
-	if (slaves_handle)
-		free(slaves_handle);
-	if (slaves_channels)
-		free(slaves_channels);
-	if (bindings_cchannel)
-		free(bindings_cchannel);
-	if (bindings_slave)
-		free(bindings_slave);
-	if (bindings_schannel)
-		free(bindings_schannel);
-	return err;
-}
-
-static int _snd_pcm_open_client(snd_pcm_t **handlep, snd_config_t *conf, 
-				int stream, int mode)
-{
-	snd_config_iterator_t i;
-	char *socket = NULL;
-	char *name = NULL;
-	char *host = NULL;
-	long port = -1;
-	int err;
-	snd_config_foreach(i, conf) {
-		snd_config_t *n = snd_config_entry(i);
-		if (strcmp(n->id, "comment") == 0)
-			continue;
-		if (strcmp(n->id, "type") == 0)
-			continue;
-		if (strcmp(n->id, "stream") == 0)
-			continue;
-		if (strcmp(n->id, "socket") == 0) {
-			err = snd_config_string_get(n, &socket);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		if (strcmp(n->id, "host") == 0) {
-			err = snd_config_string_get(n, &host);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		if (strcmp(n->id, "port") == 0) {
-			err = snd_config_integer_get(n, &port);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		if (strcmp(n->id, "name") == 0) {
-			err = snd_config_string_get(n, &name);
-			if (err < 0)
-				return -EINVAL;
-			continue;
-		}
-		return -EINVAL;
-	}
-	if (!name)
-		return -EINVAL;
-	if (socket) {
-		if (port >= 0 || host)
-			return -EINVAL;
-		return snd_pcm_client_create(handlep, socket, -1, SND_TRANSPORT_TYPE_SHM, name, stream, mode);
-	} else  {
-		if (port < 0 || !name)
-			return -EINVAL;
-		return snd_pcm_client_create(handlep, host, port, SND_TRANSPORT_TYPE_TCP, name, stream, mode);
-	}
-}
-				
-int snd_pcm_open(snd_pcm_t **handlep, char *name, 
+int snd_pcm_open(snd_pcm_t **pcmp, char *name, 
 		 int stream, int mode)
 {
 	char *str;
 	int err;
-	snd_config_t *pcm_conf, *conf;
-	assert(handlep && name);
+	snd_config_t *pcm_conf, *conf, *type_conf;
+	snd_config_iterator_t i;
+	char *lib = NULL, *open = NULL;
+	int (*open_func)(snd_pcm_t **pcmp, char *name, snd_config_t *conf, 
+			 int stream, int mode);
+	void *h;
+	assert(pcmp && name);
 	err = snd_config_update();
 	if (err < 0)
 		return err;
@@ -827,14 +565,480 @@ int snd_pcm_open(snd_pcm_t **handlep, char *name,
 	err = snd_config_string_get(conf, &str);
 	if (err < 0)
 		return err;
-	if (strcmp(str, "hw") == 0)
-		return _snd_pcm_open_hw(handlep, pcm_conf, stream, mode);
-	else if (strcmp(str, "plug") == 0)
-		return _snd_pcm_open_plug(handlep, pcm_conf, stream, mode);
-	else if (strcmp(str, "multi") == 0)
-		return _snd_pcm_open_multi(handlep, pcm_conf, stream, mode);
-	else if (strcmp(str, "client") == 0)
-		return _snd_pcm_open_client(handlep, pcm_conf, stream, mode);
-	else
+	err = snd_config_searchv(snd_config, &type_conf, "pcmtype", str, 0);
+	if (err < 0)
+		return err;
+	snd_config_foreach(i, type_conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "lib") == 0) {
+			err = snd_config_string_get(n, &lib);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		if (strcmp(n->id, "open") == 0) {
+			err = snd_config_string_get(n, &open);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+			return -EINVAL;
+		}
+	}
+	if (!open)
 		return -EINVAL;
+	if (!lib)
+		lib = "libasound.so";
+	h = dlopen(lib, RTLD_NOW);
+	if (!h)
+		return -ENOENT;
+	open_func = dlsym(h, open);
+	dlclose(h);
+	if (!open_func)
+		return -ENXIO;
+	return open_func(pcmp, name, pcm_conf, stream, mode);
 }
+
+void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, 
+			    void *buf)
+{
+	unsigned int channel;
+	unsigned int channels = pcm->setup.format.channels;
+	for (channel = 0; channel < channels; ++channel, ++areas) {
+		areas->addr = buf;
+		areas->first = channel * pcm->bits_per_sample;
+		areas->step = pcm->bits_per_frame;
+	}
+}
+
+void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, 
+			     void **bufs)
+{
+	unsigned int channel;
+	unsigned int channels = pcm->setup.format.channels;
+	for (channel = 0; channel < channels; ++channel, ++areas, ++bufs) {
+		areas->addr = *bufs;
+		areas->first = 0;
+		areas->step = pcm->bits_per_sample;
+	}
+}
+
+int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
+{
+	struct pollfd pfd;
+	int err;
+#if 0
+	size_t bavail, aavail;
+	struct timeval before, after, diff;
+	bavail = snd_pcm_avail_update(pcm);
+	gettimeofday(&before, 0);
+#endif
+	pfd.fd = snd_pcm_poll_descriptor(pcm);
+	pfd.events = pcm->stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
+	err = poll(&pfd, 1, timeout);
+	if (err < 0)
+		return err;
+#if 0
+	aavail = snd_pcm_avail_update(pcm);
+	gettimeofday(&after, 0);
+	timersub(&after, &before, &diff);
+	fprintf(stderr, "%s %ld.%06ld: get=%d (%d-%d)\n", pcm->stream == SND_PCM_STREAM_PLAYBACK ? "playback" : "capture", diff.tv_sec, diff.tv_usec, aavail - bavail, aavail, bavail);
+#endif
+	return 0;
+}
+
+ssize_t snd_pcm_avail_update(snd_pcm_t *pcm)
+{
+	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
+}
+
+ssize_t snd_pcm_mmap_forward(snd_pcm_t *pcm, size_t size)
+{
+	assert(size > 0);
+	return pcm->fast_ops->mmap_forward(pcm->fast_op_arg, size);
+}
+
+size_t snd_pcm_hw_ptr(snd_pcm_t *pcm)
+{
+	return pcm->mmap_status->hw_ptr;
+}
+
+int snd_pcm_area_silence(snd_pcm_channel_area_t *dst_area, size_t dst_offset,
+			 size_t samples, int format)
+{
+	/* FIXME: sub byte resolution and odd dst_offset */
+	char *dst;
+	unsigned int dst_step;
+	int width;
+	u_int64_t silence;
+	if (!dst_area->addr)
+		return 0;
+	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
+	width = snd_pcm_format_physical_width(format);
+	silence = snd_pcm_format_silence_64(format);
+	if (dst_area->step == (unsigned int) width) {
+		size_t dwords = samples * width / 64;
+		samples -= dwords * 64 / width;
+		while (dwords-- > 0)
+			*((u_int64_t*)dst)++ = silence;
+		if (samples == 0)
+			return 0;
+	}
+	dst_step = dst_area->step / 8;
+	switch (width) {
+	case 4: {
+		u_int8_t s0 = silence & 0xf0;
+		u_int8_t s1 = silence & 0x0f;
+		int dstbit = dst_area->first % 8;
+		int dstbit_step = dst_area->step % 8;
+		while (samples-- > 0) {
+			if (dstbit) {
+				*dst &= 0xf0;
+				*dst |= s1;
+			} else {
+				*dst &= 0x0f;
+				*dst |= s0;
+			}
+			dst += dst_step;
+			dstbit += dstbit_step;
+			if (dstbit == 8) {
+				dst++;
+				dstbit = 0;
+			}
+		}
+		break;
+	}
+	case 8: {
+		u_int8_t sil = silence;
+		while (samples-- > 0) {
+			*dst = sil;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 16: {
+		u_int16_t sil = silence;
+		while (samples-- > 0) {
+			*(u_int16_t*)dst = sil;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 32: {
+		u_int32_t sil = silence;
+		while (samples-- > 0) {
+			*(u_int32_t*)dst = sil;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 64: {
+		while (samples-- > 0) {
+			*(u_int64_t*)dst = silence;
+			dst += dst_step;
+		}
+		break;
+	}
+	default:
+		assert(0);
+	}
+	return 0;
+}
+
+int snd_pcm_areas_silence(snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
+			  size_t channels, size_t frames, int format)
+{
+	int width = snd_pcm_format_physical_width(format);
+	while (channels > 0) {
+		void *addr = dst_areas->addr;
+		unsigned int step = dst_areas->step;
+		snd_pcm_channel_area_t *begin = dst_areas;
+		int channels1 = channels;
+		unsigned int chns = 0;
+		int err;
+		while (1) {
+			channels1--;
+			chns++;
+			dst_areas++;
+			if (channels1 == 0 ||
+			    dst_areas->addr != addr ||
+			    dst_areas->step != step ||
+			    dst_areas->first != dst_areas[-1].first + width)
+				break;
+		}
+		if (chns > 1 && chns * width == step) {
+			/* Collapse the areas */
+			snd_pcm_channel_area_t d;
+			d.addr = begin->addr;
+			d.first = begin->first;
+			d.step = width;
+			err = snd_pcm_area_silence(&d, dst_offset * chns, frames * chns, format);
+			channels -= chns;
+		} else {
+			err = snd_pcm_area_silence(begin, dst_offset, frames, format);
+			dst_areas = begin + 1;
+			channels--;
+		}
+		if (err < 0)
+			return err;
+	}
+	return 0;
+}
+
+
+int snd_pcm_area_copy(snd_pcm_channel_area_t *src_area, size_t src_offset,
+		      snd_pcm_channel_area_t *dst_area, size_t dst_offset,
+		      size_t samples, int format)
+{
+	/* FIXME: sub byte resolution and odd dst_offset */
+	char *src, *dst;
+	int width;
+	int src_step, dst_step;
+	if (!src_area->addr)
+		return snd_pcm_area_silence(dst_area, dst_offset, samples, format);
+	src = snd_pcm_channel_area_addr(src_area, src_offset);
+	if (!dst_area->addr)
+		return 0;
+	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
+	width = snd_pcm_format_physical_width(format);
+	if (src_area->step == (unsigned int) width &&
+	    dst_area->step == (unsigned int) width) {
+		size_t bytes = samples * width / 8;
+		samples -= bytes * 8 / width;
+		memcpy(dst, src, bytes);
+		if (samples == 0)
+			return 0;
+	}
+	src_step = src_area->step / 8;
+	dst_step = dst_area->step / 8;
+	switch (width) {
+	case 4: {
+		int srcbit = src_area->first % 8;
+		int srcbit_step = src_area->step % 8;
+		int dstbit = dst_area->first % 8;
+		int dstbit_step = dst_area->step % 8;
+		while (samples-- > 0) {
+			unsigned char srcval;
+			if (srcbit)
+				srcval = *src & 0x0f;
+			else
+				srcval = *src & 0xf0;
+			if (dstbit)
+				*dst &= 0xf0;
+			else
+				*dst &= 0x0f;
+			*dst |= srcval;
+			src += src_step;
+			srcbit += srcbit_step;
+			if (srcbit == 8) {
+				src++;
+				srcbit = 0;
+			}
+			dst += dst_step;
+			dstbit += dstbit_step;
+			if (dstbit == 8) {
+				dst++;
+				dstbit = 0;
+			}
+		}
+		break;
+	}
+	case 8: {
+		while (samples-- > 0) {
+			*dst = *src;
+			src += src_step;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 16: {
+		while (samples-- > 0) {
+			*(u_int16_t*)dst = *(u_int16_t*)src;
+			src += src_step;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 32: {
+		while (samples-- > 0) {
+			*(u_int32_t*)dst = *(u_int32_t*)src;
+			src += src_step;
+			dst += dst_step;
+		}
+		break;
+	}
+	case 64: {
+		while (samples-- > 0) {
+			*(u_int64_t*)dst = *(u_int64_t*)src;
+			src += src_step;
+			dst += dst_step;
+		}
+		break;
+	}
+	default:
+		assert(0);
+	}
+	return 0;
+}
+
+int snd_pcm_areas_copy(snd_pcm_channel_area_t *src_areas, size_t src_offset,
+		       snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
+		       size_t channels, size_t frames, int format)
+{
+	int width = snd_pcm_format_physical_width(format);
+	while (channels > 0) {
+		unsigned int step = src_areas->step;
+		void *src_addr = src_areas->addr;
+		snd_pcm_channel_area_t *src_start = src_areas;
+		void *dst_addr = dst_areas->addr;
+		snd_pcm_channel_area_t *dst_start = dst_areas;
+		int channels1 = channels;
+		unsigned int chns = 0;
+		while (dst_areas->step == step) {
+			channels1--;
+			chns++;
+			src_areas++;
+			dst_areas++;
+			if (channels1 == 0 ||
+			    src_areas->step != step ||
+			    src_areas->addr != src_addr ||
+			    dst_areas->addr != dst_addr ||
+			    src_areas->first != src_areas[-1].first + width ||
+			    dst_areas->first != dst_areas[-1].first + width)
+				break;
+		}
+		if (chns > 1 && chns * width == step) {
+			/* Collapse the areas */
+			snd_pcm_channel_area_t s, d;
+			s.addr = src_start->addr;
+			s.first = src_start->first;
+			s.step = width;
+			d.addr = dst_start->addr;
+			d.first = dst_start->first;
+			d.step = width;
+			snd_pcm_area_copy(&s, src_offset * chns, &d, dst_offset * chns, frames * chns, format);
+			channels -= chns;
+		} else {
+			snd_pcm_area_copy(src_start, src_offset, dst_start, dst_offset, frames, format);
+			src_areas = src_start + 1;
+			dst_areas = dst_start + 1;
+			channels--;
+		}
+	}
+	return 0;
+}
+
+ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
+			   size_t offset, size_t size,
+			   snd_pcm_xfer_areas_func_t func)
+{
+	size_t xfer = 0;
+	ssize_t err = 0;
+	int state = snd_pcm_state(pcm);
+	assert(size > 0);
+	assert(state >= SND_PCM_STATE_PREPARED);
+	if (state == SND_PCM_STATE_PREPARED &&
+	    pcm->setup.start_mode != SND_PCM_START_EXPLICIT) {
+		err = snd_pcm_start(pcm);
+		if (err < 0)
+			return err;
+		state = SND_PCM_STATE_RUNNING;
+	}
+	while (xfer < size) {
+		ssize_t avail;
+		size_t frames;
+	again:
+		avail = snd_pcm_avail_update(pcm);
+		if (avail < 0) {
+			err = avail;
+			break;
+		}
+		if ((size_t)avail < pcm->setup.avail_min) {
+			if (state != SND_PCM_STATE_RUNNING) {
+				err = -EPIPE;
+				break;
+			}
+			if (pcm->mode & SND_PCM_NONBLOCK) {
+				err = -EAGAIN;
+				break;
+			}
+			err = snd_pcm_wait(pcm, -1);
+			if (err < 0)
+				break;
+			state = snd_pcm_state(pcm);
+			goto again;
+		}
+		frames = size - xfer;
+		if (frames > (size_t)avail)
+			frames = avail;
+		err = func(pcm, areas, offset, frames, 0);
+		if (err < 0)
+			break;
+		assert((size_t)err == frames);
+		xfer += err;
+		offset += err;
+	}
+	if (xfer > 0)
+		return xfer;
+	return err;
+}
+
+ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
+			    size_t offset, size_t size,
+			    snd_pcm_xfer_areas_func_t func)
+{
+	size_t xfer = 0;
+	ssize_t err = 0;
+	int state = snd_pcm_state(pcm);
+	assert(size > 0);
+	assert(state >= SND_PCM_STATE_PREPARED);
+	while (xfer < size) {
+		ssize_t avail;
+		size_t frames;
+	again:
+		if (state == SND_PCM_STATE_XRUN) {
+			err = -EPIPE;
+			break;
+		}
+		avail = snd_pcm_avail_update(pcm);
+		if (avail < 0) {
+			err = avail;
+			break;
+		}
+		if ((size_t)avail < pcm->setup.avail_min) {
+			if (state != SND_PCM_STATE_RUNNING) {
+				err = -EPIPE;
+				break;
+			}
+			if (pcm->mode & SND_PCM_NONBLOCK) {
+				err = -EAGAIN;
+				break;
+			}
+			err = snd_pcm_wait(pcm, -1);
+			if (err < 0)
+				break;
+			state = snd_pcm_state(pcm);
+			goto again;
+		}
+		frames = size - xfer;
+		if (frames > (size_t)avail)
+			frames = avail;
+		err = func(pcm, areas, offset, frames, 0);
+		if (err < 0)
+			break;
+		assert((size_t)err == frames);
+		xfer += err;
+		offset += err;
+		if (state == SND_PCM_STATE_PREPARED &&
+		    pcm->setup.start_mode != SND_PCM_START_EXPLICIT) {
+			err = snd_pcm_start(pcm);
+			if (err < 0)
+				break;
+		}
+	}
+	if (xfer > 0)
+		return xfer;
+	return err;
+}
+

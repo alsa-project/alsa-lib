@@ -20,7 +20,7 @@ typedef struct snd_rawmidi snd_rawmidi_t;
 
 int snd_rawmidi_open(snd_rawmidi_t **handle, int card, int device, int mode);
 int snd_rawmidi_close(snd_rawmidi_t *handle);
-int snd_rawmidi_file_descriptor(snd_rawmidi_t *handle);
+int snd_rawmidi_poll_descriptor(snd_rawmidi_t *handle);
 int snd_rawmidi_block_mode(snd_rawmidi_t *handle, int enable);
 int snd_rawmidi_info(snd_rawmidi_t *handle, snd_rawmidi_info_t * info);
 int snd_rawmidi_stream_params(snd_rawmidi_t *handle, snd_rawmidi_params_t * params);

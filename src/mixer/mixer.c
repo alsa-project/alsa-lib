@@ -77,11 +77,11 @@ int snd_mixer_close(snd_mixer_t *handle)
 	return err;
 }
 
-int snd_mixer_file_descriptor(snd_mixer_t *handle)
+int snd_mixer_poll_descriptor(snd_mixer_t *handle)
 {
 	if (handle == NULL || handle->ctl_handle == NULL)
 		return -EIO;
-	return snd_ctl_file_descriptor(handle->ctl_handle);
+	return snd_ctl_poll_descriptor(handle->ctl_handle);
 }
 
 const char *snd_mixer_simple_channel_name(int channel)

@@ -186,7 +186,7 @@ static int get_quotedchar(input_t *input)
 	}
 }
 
-static int get_freestring(char **string, input_t *input)
+static int get_freestring(char **string, int id, input_t *input)
 {
 	const size_t bufsize = 256;
 	char _buf[bufsize];
@@ -197,13 +197,15 @@ static int get_freestring(char **string, input_t *input)
 	while (1) {
 		c = get_char(input);
 		switch (c) {
+		case '.':
+			if (!id)
+				break;
 		case ' ':
 		case '\f':
 		case '\t':
 		case '\n':
 		case '\r':
 		case EOF:
-		case '.':
 		case '=':
 		case '{':
 		case '}':
@@ -283,7 +285,7 @@ static int get_delimstring(char **string, int delim, input_t *input)
 }
 
 /* Return 0 for free string, 1 for delimited string */
-static int get_string(char **string, input_t *input)
+static int get_string(char **string, int id, input_t *input)
 {
 	int c = get_nonwhite(input);
 	int err;
@@ -312,7 +314,7 @@ static int get_string(char **string, input_t *input)
 		return 1;
 	default:
 		unget_char(c, input);
-		err = get_freestring(string, input);
+		err = get_freestring(string, id, input);
 		if (err < 0)
 			return err;
 		return 0;
@@ -401,7 +403,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 #else
 		mode = MERGE;
 #endif
-		err = get_string(&id, input);
+		err = get_string(&id, 1, input);
 		if (err < 0)
 			return err;
 		c = get_nonwhite(input);
@@ -472,7 +474,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 	{
 		char *s;
 		unget_char(c, input);
-		err = get_string(&s, input);
+		err = get_string(&s, 0, input);
 		if (err < 0)
 			return err;
 		if (!err && ((s[0] >= '0' && s[0] <= '9') || s[0] == '-')) {

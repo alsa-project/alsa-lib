@@ -47,11 +47,11 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 	params.mode = SND_PCM_MODE_FRAME;
 #endif
 	params.format.interleave = 1;
-	params.format.format = SND_PCM_SFMT_S16_LE;
+	params.format.sfmt = SND_PCM_SFMT_S16_LE;
 	params.format.channels = 2;
 	params.format.rate = USED_RATE;
-	params.start_mode = SND_PCM_START_GO;
-	params.xrun_mode = SND_PCM_XRUN_DRAIN;
+	params.start_mode = SND_PCM_START_EXPLICIT;
+	params.xrun_action = SND_PCM_XRUN_ACT_DRAIN;
 	params.time = 1;
 	*bufsize += 4;
 
@@ -152,7 +152,7 @@ long readbuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 	long r;
 	
 	do {
-		r = snd_pcm_read(handle, buf, len);
+		r = snd_pcm_readi(handle, buf, len);
 	} while (r == -EAGAIN);
 	if (r > 0)
 		*frames += r;
@@ -166,7 +166,7 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 	long r;
 
 	while (len > 0) {
-		r = snd_pcm_write(handle, buf, len);
+		r = snd_pcm_writei(handle, buf, len);
 		if (r == -EAGAIN)
 			continue;
 		// printf("write = %li\n", r);
@@ -225,7 +225,7 @@ int main(void)
 			break;
 		}
 
-		if ((err = snd_pcm_go(phandle)) < 0) {
+		if ((err = snd_pcm_start(phandle)) < 0) {
 			printf("Go error: %s\n", snd_strerror(err));
 			exit(0);
 		}

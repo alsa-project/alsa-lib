@@ -101,7 +101,7 @@ static int snd_ctl_client_shm_close(snd_ctl_t *ctl)
 	return result;
 }
 
-static int snd_ctl_client_file_descriptor(snd_ctl_t *ctl)
+static int snd_ctl_client_poll_descriptor(snd_ctl_t *ctl)
 {
 	snd_ctl_client_t *client = ctl->private;
 	return client->data_fd;
@@ -255,7 +255,7 @@ static int snd_ctl_client_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 
 struct snd_ctl_ops snd_ctl_client_ops = {
 	close: snd_ctl_client_shm_close,
-	file_descriptor: snd_ctl_client_file_descriptor,
+	poll_descriptor: snd_ctl_client_poll_descriptor,
 	hw_info: snd_ctl_client_shm_hw_info,
 	clist: snd_ctl_client_shm_clist,
 	cinfo: snd_ctl_client_shm_cinfo,

@@ -39,7 +39,7 @@ int main(void)
 		fprintf(stderr, "open failed: %s\n", snd_strerror(err));
 		return 0;
 	}
-	format.format = SND_PCM_SFMT_MU_LAW;
+	format.sfmt = SND_PCM_SFMT_MU_LAW;
 	format.rate = 8000;
 	format.channels = 1;
 	if ((err = snd_pcm_playback_format(handle, &format)) < 0) {
@@ -82,7 +82,7 @@ int main(void)
 	}
 	count1 = status.fragment_size * 12;
 	show_playback_status(handle);
-	size = snd_pcm_write(handle, buffer1, count1);
+	size = snd_pcm_writei(handle, buffer1, count1);
 	sleep(2);
 	show_playback_status(handle);
 	printf("Pause.. Bytes written %i from %i...\n", size, count1);
@@ -94,7 +94,7 @@ int main(void)
 	printf("Pause end..\n");
 	snd_pcm_playback_pause(handle, 0);
 	show_playback_status(handle);
-	size = snd_pcm_write(handle, buffer1, count);
+	size = snd_pcm_writei(handle, buffer1, count);
 	printf("Pause end.. Bytes written %i from %i...\n", size, count);
 	snd_pcm_close(handle);
 	free(buffer);

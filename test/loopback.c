@@ -15,7 +15,7 @@ static void show_format1(const char *prefix, snd_pcm_format_t *format)
 			format->interleave ? 1 : 0,
 			format->rate,
 			format->voices,
-			format->format);
+			format->sfmt);
 }
 
 static void show_format(snd_pcm_loopback_t *handle)

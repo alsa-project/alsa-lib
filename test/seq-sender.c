@@ -14,7 +14,7 @@ void set_format(snd_pcm_t *phandle)
 	snd_pcm_format_t format;
 
 	bzero(&format, sizeof(format));
-	format.format = SND_PCM_SFMT_S16_LE;
+	format.sfmt = SND_PCM_SFMT_S16_LE;
 	format.channels = 2;
 	format.rate = 44100;
 	if ((err = snd_pcm_playback_format(phandle, &format)) < 0) {
@@ -225,31 +225,31 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 	while (1) {
 		FD_ZERO(&out);
 		FD_ZERO(&in);
-		max = snd_seq_file_descriptor(handle);
-		FD_SET(snd_seq_file_descriptor(handle), &in);
+		max = snd_seq_poll_descriptor(handle);
+		FD_SET(snd_seq_poll_descriptor(handle), &in);
 		if (snd_seq_event_output_pending(handle)) {
-			FD_SET(snd_seq_file_descriptor(handle), &out);
+			FD_SET(snd_seq_poll_descriptor(handle), &out);
 		}
 #ifdef USE_PCM
 		if (phandle) {
-			if (snd_pcm_file_descriptor(phandle) > max)
-				max = snd_pcm_file_descriptor(phandle);
-			FD_SET(snd_pcm_file_descriptor(phandle), &out);
+			if (snd_pcm_poll_descriptor(phandle) > max)
+				max = snd_pcm_poll_descriptor(phandle);
+			FD_SET(snd_pcm_poll_descriptor(phandle), &out);
 		}
 #endif
 		if (select(max + 1, &in, &out, NULL, NULL) < 0)
 			break;
 #ifdef USE_PCM
-		if (phandle && FD_ISSET(snd_pcm_file_descriptor(phandle), &out)) {
-			if (snd_pcm_write(phandle, pbuf, pfragment_size) != pfragment_size) {
+		if (phandle && FD_ISSET(snd_pcm_poll_descriptor(phandle), &out)) {
+			if (snd_pcm_writei(phandle, pbuf, pfragment_size) != pfragment_size) {
 				fprintf(stderr, "Playback write error!!\n");
 				exit(0);
 			}
 		}
 #endif
-		if (FD_ISSET(snd_seq_file_descriptor(handle), &out))
+		if (FD_ISSET(snd_seq_poll_descriptor(handle), &out))
 			snd_seq_flush_output(handle);
-		if (FD_ISSET(snd_seq_file_descriptor(handle), &in)) {
+		if (FD_ISSET(snd_seq_poll_descriptor(handle), &in)) {
 			do {
 				if ((err = snd_seq_event_input(handle, &ev))<0)
 					break;

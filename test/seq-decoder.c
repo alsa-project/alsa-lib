@@ -481,7 +481,7 @@ void event_decoder(snd_seq_t *handle, int argc, char *argv[])
 	
 	while (1) {
 		FD_ZERO(&in);
-		FD_SET(max = snd_seq_file_descriptor(handle), &in);
+		FD_SET(max = snd_seq_poll_descriptor(handle), &in);
 		if (select(max + 1, &in, NULL, NULL, NULL) < 0)
 			break;
 		do {

@@ -28,7 +28,7 @@ void read_loop(void *handle, int master_ticks, int timeout)
 	
 	while (master_ticks-- > 0) {
 		FD_ZERO(&in);
-		max = snd_timer_file_descriptor(handle);
+		max = snd_timer_poll_descriptor(handle);
 		FD_SET(max, &in);
 		tv.tv_sec = timeout;
 		tv.tv_usec = 0;

@@ -18,7 +18,7 @@ void setformat(void *phandle, void *rhandle)
 	snd_pcm_format_t format;
 
 	bzero(&format, sizeof(format));
-	format.format = SND_PCM_SFMT_S16_LE;
+	format.sfmt = SND_PCM_SFMT_S16_LE;
 	format.channels = 2;
 	format.rate = 22050;
 	if ((err = snd_pcm_playback_format(phandle, &format)) < 0) {
@@ -46,14 +46,14 @@ void method1(void)
 	setformat(phandle, rhandle);
 	printf("Recording... ");
 	fflush(stdout);
-	if ((err = snd_pcm_read(rhandle, buffer, sizeof(buffer))) != sizeof(buffer)) {
+	if ((err = snd_pcm_readi(rhandle, buffer, sizeof(buffer))) != sizeof(buffer)) {
 		printf("Read error: %s\n", err < 0 ? snd_strerror(err) : xitoa(err));
 		return;
 	}
 	printf("done...\n");
 	printf("Playback... ");
 	fflush(stdout);
-	if ((err = snd_pcm_write(phandle, buffer, sizeof(buffer))) != sizeof(buffer)) {
+	if ((err = snd_pcm_writei(phandle, buffer, sizeof(buffer))) != sizeof(buffer)) {
 		printf("Write error: %s\n", err < 0 ? snd_strerror(err) : xitoa(err));
 		return;
 	}
@@ -81,7 +81,7 @@ void method2(void)
 	setformat(phandle, rhandle);
 	printf("Recording... ");
 	fflush(stdout);
-	if ((err = snd_pcm_read(rhandle, buffer, sizeof(buffer))) != sizeof(buffer)) {
+	if ((err = snd_pcm_readi(rhandle, buffer, sizeof(buffer))) != sizeof(buffer)) {
 		printf("Read error: %s\n", err < 0 ? snd_strerror(err) : xitoa(err));
 		return;
 	}
@@ -93,7 +93,7 @@ void method2(void)
 	printf("Record flush done...\n");
 	printf("Playback... ");
 	fflush(stdout);
-	if ((err = snd_pcm_write(phandle, buffer, sizeof(buffer))) != sizeof(buffer)) {
+	if ((err = snd_pcm_writei(phandle, buffer, sizeof(buffer))) != sizeof(buffer)) {
 		printf("Write error: %s\n", err < 0 ? snd_strerror(err) : xitoa(err));
 		return;
 	}
@@ -122,7 +122,7 @@ void method3(void)
 	setformat(handle, handle);
 	printf("Recording... ");
 	fflush(stdout);
-	if ((err = snd_pcm_read(handle, buffer, sizeof(buffer))) != sizeof(buffer)) {
+	if ((err = snd_pcm_readi(handle, buffer, sizeof(buffer))) != sizeof(buffer)) {
 		printf("Read error: %s\n", err < 0 ? snd_strerror(err) : xitoa(err));
 		return;
 	}
@@ -134,7 +134,7 @@ void method3(void)
 	printf("Record flush done...\n");
 	printf("Playback... ");
 	fflush(stdout);
-	if ((err = snd_pcm_write(handle, buffer, sizeof(buffer))) != sizeof(buffer)) {
+	if ((err = snd_pcm_writei(handle, buffer, sizeof(buffer))) != sizeof(buffer)) {
 		printf("Write error: %s\n", err < 0 ? snd_strerror(err) : xitoa(err));
 		return;
 	}

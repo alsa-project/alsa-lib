@@ -19,125 +19,168 @@
  *
  */
   
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <math.h>
-#include <sys/uio.h>
-#include <limits.h>
 #include "pcm_local.h"
+#include "pcm_plugin.h"
 
-/* snd_pcm_plugin externs */
 
-int snd_pcm_plugin_insert(snd_pcm_plugin_t *plugin)
+typedef struct {
+	snd_pcm_t *req_slave;
+	int close_slave;
+	snd_pcm_t *slave;
+	ttable_entry_t *ttable;
+	unsigned int tt_ssize, tt_cused, tt_sused;
+} snd_pcm_plug_t;
+
+
+unsigned int snd_pcm_plug_formats(unsigned int formats)
 {
-	snd_pcm_plug_t *plug;
-	assert(plugin);
-	plug = plugin->plug;
-	plugin->next = plug->first;
-	plugin->prev = NULL;
-	if (plug->first) {
-		plug->first->prev = plugin;
-		plug->first = plugin;
-	} else {
-		plug->last =
-		plug->first = plugin;
-	}
-	return 0;
+	int fmts = (SND_PCM_LINEAR_FORMATS | SND_PCM_FMT_MU_LAW |
+		    SND_PCM_FMT_A_LAW | SND_PCM_FMT_IMA_ADPCM);
+	if (formats & fmts)
+		formats |= fmts;
+	return formats;
 }
 
-int snd_pcm_plugin_append(snd_pcm_plugin_t *plugin)
+static int preferred_formats[] = {
+	SND_PCM_SFMT_S16_LE,
+	SND_PCM_SFMT_S16_BE,
+	SND_PCM_SFMT_U16_LE,
+	SND_PCM_SFMT_U16_BE,
+	SND_PCM_SFMT_S24_LE,
+	SND_PCM_SFMT_S24_BE,
+	SND_PCM_SFMT_U24_LE,
+	SND_PCM_SFMT_U24_BE,
+	SND_PCM_SFMT_S32_LE,
+	SND_PCM_SFMT_S32_BE,
+	SND_PCM_SFMT_U32_LE,
+	SND_PCM_SFMT_U32_BE,
+	SND_PCM_SFMT_S8,
+	SND_PCM_SFMT_U8
+};
+
+static int snd_pcm_plug_slave_fmt(int format,
+				  snd_pcm_params_info_t *slave_info)
 {
-	snd_pcm_plug_t *plug;
-	assert(plugin);
-	plug = plugin->plug;
-	plugin->next = NULL;
-	plugin->prev = plug->last;
-	if (plug->last) {
-		plug->last->next = plugin;
-		plug->last = plugin;
+	if ((snd_pcm_plug_formats(slave_info->formats) & (1 << format)) == 0)
+		return -EINVAL;
+	if (snd_pcm_format_linear(format)) {
+		int width = snd_pcm_format_width(format);
+		int unsignd = snd_pcm_format_unsigned(format);
+		int big = snd_pcm_format_big_endian(format);
+		int format1;
+		int wid, width1=width;
+		int dwidth1 = 8;
+		for (wid = 0; wid < 4; ++wid) {
+			int end, big1 = big;
+			for (end = 0; end < 2; ++end) {
+				int sgn, unsignd1 = unsignd;
+				for (sgn = 0; sgn < 2; ++sgn) {
+					format1 = snd_pcm_build_linear_format(width1, unsignd1, big1);
+					if (format1 >= 0 &&
+					    slave_info->formats & (1 << format1))
+						goto _found;
+					unsignd1 = !unsignd1;
+				}
+				big1 = !big1;
+			}
+			if (width1 == 32) {
+				dwidth1 = -dwidth1;
+				width1 = width;
+			}
+			width1 += dwidth1;
+		}
+		return -EINVAL;
+	_found:
+		return format1;
 	} else {
-		plug->last =
-		plug->first = plugin;
+		unsigned int i;
+		switch (format) {
+		case SND_PCM_SFMT_MU_LAW:
+		case SND_PCM_SFMT_A_LAW:
+		case SND_PCM_SFMT_IMA_ADPCM:
+			for (i = 0; i < sizeof(preferred_formats) / sizeof(preferred_formats[0]); ++i) {
+				int format1 = preferred_formats[i];
+				if (slave_info->formats & (1 << format1))
+					return format1;
+			}
+		default:
+			return -EINVAL;
+		}
 	}
-	return 0;
 }
 
-void snd_pcm_plugin_dump(snd_pcm_plugin_t *plugin, FILE *fp)
+struct {
+	unsigned int rate;
+	unsigned int flag;
+} snd_pcm_rates[] = {
+	{ 8000, SND_PCM_RATE_8000 },
+	{ 11025, SND_PCM_RATE_11025 },
+	{ 16000, SND_PCM_RATE_16000 },
+	{ 22050, SND_PCM_RATE_22050 },
+	{ 32000, SND_PCM_RATE_32000 },
+	{ 44100, SND_PCM_RATE_44100 },
+	{ 48000, SND_PCM_RATE_48000 },
+	{ 88200, SND_PCM_RATE_88200 },
+	{ 96000, SND_PCM_RATE_96000 },
+	{ 176400, SND_PCM_RATE_176400 },
+	{ 192000, SND_PCM_RATE_192000 }
+};
+
+static int snd_pcm_plug_slave_rate(unsigned int rate,
+				   snd_pcm_params_info_t *slave_info)
 {
-	fprintf(fp, "----------- %s\n", plugin->name);
-	fprintf(fp, "Buffer: %ld frames\n", (long)plugin->buf_frames);
-	if (plugin->src_format.interleave != plugin->dst_format.interleave) {
-		if (plugin->src_format.interleave)
-			fprintf(fp, "Interleaved -> Non interleaved\n");
+        if (rate <= slave_info->min_rate)
+		return slave_info->min_rate;
+	else if (rate >= slave_info->max_rate)
+		return slave_info->max_rate;
+	else if (!(slave_info->rates & (SND_PCM_RATE_CONTINUOUS |
+					SND_PCM_RATE_KNOT))) {
+		unsigned int k;
+		unsigned int rate1 = 0, rate2 = 0;
+		int delta1, delta2;
+		for (k = 0; k < sizeof(snd_pcm_rates) / 
+			     sizeof(snd_pcm_rates[0]); ++k) {
+			if (!(snd_pcm_rates[k].flag & slave_info->rates))
+				continue;
+			if (snd_pcm_rates[k].rate < rate) {
+				rate1 = snd_pcm_rates[k].rate;
+			} else if (snd_pcm_rates[k].rate >= rate) {
+				rate2 = snd_pcm_rates[k].rate;
+				break;
+			}
+		}
+		if (rate1 == 0)
+			return rate2;
+		if (rate2 == 0)
+			return rate1;
+		delta1 = rate - rate1;
+		delta2 = rate2 - rate;
+		if (delta1 < delta2)
+			return rate1;
 		else
-			fprintf(fp, "Non interleaved -> Interleaved\n");
+			return rate2;
 	}
-	if (plugin->src_format.channels != plugin->dst_format.channels) {
-		fprintf(fp, "Channels: %d -> %d\n", 
-			plugin->src_format.channels, 
-			plugin->dst_format.channels);
-	}
-	if (plugin->src_format.format != plugin->dst_format.format) {
-		fprintf(fp, "Format: %s -> %s\n", 
-			snd_pcm_format_name(plugin->src_format.format),
-			snd_pcm_format_name(plugin->dst_format.format));
-	}
-	if (plugin->src_format.rate != plugin->dst_format.rate) {
-		fprintf(fp, "Rate: %d -> %d\n", 
-			plugin->src_format.rate, 
-			plugin->dst_format.rate);
-	}
-	if (plugin->dump)
-		plugin->dump(plugin, fp);
+	return rate;
 }
-
-/* snd_pcm_plug externs */
-
-int snd_pcm_plug_clear(snd_pcm_plug_t *plug)
-{
-	snd_pcm_plugin_t *plugin, *plugin_next;
-	
-	assert(plug);
-
-	plugin = plug->first;
-	plug->first = NULL;
-	plug->last = NULL;
-	while (plugin) {
-		plugin_next = plugin->next;
-		snd_pcm_plugin_free(plugin);
-		plugin = plugin_next;
-	}
-	return 0;
-}
-
-snd_pcm_plugin_t *snd_pcm_plug_first(snd_pcm_plug_t *plug)
-{
-	assert(plug);
-	return plug->first;
-}
-
-snd_pcm_plugin_t *snd_pcm_plug_last(snd_pcm_plug_t *plug)
-{
-	assert(plug);
-	return plug->last;
-}
-
-/*
- *
- */
 
 static int snd_pcm_plug_close(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	snd_pcm_plug_clear(plug);
-	free(plug->handle->fast_ops);
-	if (plug->close_slave)
-		return snd_pcm_close(plug->slave);
+	int err, result = 0;
+	if (plug->ttable)
+		free(plug->ttable);
+	if (plug->slave != plug->req_slave) {
+		err = snd_pcm_close(plug->slave);
+		if (err < 0)
+			result = err;
+	}
+	if (plug->close_slave) {
+		err = snd_pcm_close(plug->req_slave);
+		if (err < 0)
+			result = err;
+	}
 	free(plug);
-	return 0;
+	return result;
 }
 
 static int snd_pcm_plug_nonblock(snd_pcm_t *pcm, int nonblock)
@@ -148,13 +191,12 @@ static int snd_pcm_plug_nonblock(snd_pcm_t *pcm, int nonblock)
 
 static int snd_pcm_plug_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
-	int err;
 	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_t *slave = plug->req_slave;
+	int err;
 	
-	if ((err = snd_pcm_info(plug->slave, info)) < 0)
+	if ((err = snd_pcm_info(slave, info)) < 0)
 		return err;
-	info->flags &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
-	info->flags |= SND_PCM_INFO_INTERLEAVE | SND_PCM_INFO_NONINTERLEAVE;
 	return 0;
 }
 
@@ -162,12 +204,12 @@ static int snd_pcm_plug_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info)
 {
 	int err;
 	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_t *slave = plug->req_slave;
 	snd_pcm_params_info_t slave_info;
-	int rate;
-	int slave_format, slave_rate;
-	unsigned int slave_channels;
+	int sformat, srate;
+	unsigned int schannels;
+	int crate;
 
-	memset(&info->formats, 0, (char*)(info + 1) - (char*) &info->formats);
 	info->req.fail_reason = 0;
 	info->req.fail_mask = 0;
 
@@ -178,8 +220,8 @@ static int snd_pcm_plug_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info)
 		info->min_rate = 4000;
 		info->max_rate = 192000;
 	}
-	/* ??? */
 	info->rates = SND_PCM_RATE_CONTINUOUS | SND_PCM_RATE_8000_192000;
+
 	if (info->req_mask & SND_PCM_PARAMS_CHANNELS) {
 		info->min_channels = info->req.format.channels;
 		info->max_channels = info->req.format.channels;
@@ -189,30 +231,34 @@ static int snd_pcm_plug_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info)
 	}
 
 	memset(&slave_info, 0, sizeof(slave_info));
-	if ((err = snd_pcm_params_info(plug->slave, &slave_info)) < 0)
+	if ((err = snd_pcm_params_info(slave, &slave_info)) < 0)
 		return err;
 
-	if (info->req_mask & SND_PCM_PARAMS_FORMAT) 
-		info->formats = 1 << info->req.format.format;
-	else
-		info->formats = snd_pcm_plug_formats(slave_info.formats);
+	info->flags = slave_info.flags;
+	info->flags |= SND_PCM_INFO_INTERLEAVED | SND_PCM_INFO_NONINTERLEAVED;
 
 	info->min_fragments = slave_info.min_fragments;
 	info->max_fragments = slave_info.max_fragments;
 	
-	if (!(info->req_mask & SND_PCM_PARAMS_FORMAT))
+	if (info->req_mask & SND_PCM_PARAMS_SFMT) 
+		info->formats = 1 << info->req.format.sfmt;
+	else {
+		info->formats = snd_pcm_plug_formats(slave_info.formats);
 		return 0;
-	slave_format = snd_pcm_plug_slave_fmt(info->req.format.format, &slave_info);
-	if (slave_format < 0) {
-		info->req.fail_mask = SND_PCM_PARAMS_FORMAT;
+	}
+
+	sformat = snd_pcm_plug_slave_fmt(info->req.format.sfmt, &slave_info);
+	if (sformat < 0) {
+		info->req.fail_mask = SND_PCM_PARAMS_SFMT;
 		info->req.fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
 		return -EINVAL;
 	}
 
 	if (!(info->req_mask & SND_PCM_PARAMS_RATE))
 		return 0;
-	slave_rate = snd_pcm_plug_slave_rate(info->req.format.rate, &slave_info);
-	if (slave_rate < 0) {
+	crate = info->req.format.rate;
+	srate = snd_pcm_plug_slave_rate(crate, &slave_info);
+	if (srate < 0) {
 		info->req.fail_mask = SND_PCM_PARAMS_RATE;
 		info->req.fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
 		return -EINVAL;
@@ -220,431 +266,358 @@ static int snd_pcm_plug_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info)
 
 	if (!(info->req_mask & SND_PCM_PARAMS_CHANNELS))
 		return 0;
-	slave_channels = info->req.format.rate;
-	if (slave_channels < info->min_channels)
-		slave_channels = info->min_channels;
-	else if (slave_channels > info->max_channels)
-		slave_channels = info->max_channels;
+	schannels = info->req.format.channels;
+	if (schannels < info->min_channels)
+		schannels = info->min_channels;
+	else if (schannels > info->max_channels)
+		schannels = info->max_channels;
 
-	slave_info.req_mask = (SND_PCM_PARAMS_FORMAT |
+	slave_info.req_mask = (SND_PCM_PARAMS_SFMT |
 			       SND_PCM_PARAMS_CHANNELS |
 			       SND_PCM_PARAMS_RATE);
-	slave_info.req.format.format = info->req.format.format;
-	slave_info.req.format.channels = info->req.format.channels;
-	slave_info.req.format.rate = info->req.format.rate;
-	if ((err = snd_pcm_params_info(plug->slave, &slave_info)) < 0) {
+	slave_info.req.format.sfmt = sformat;
+	slave_info.req.format.channels = schannels;
+	slave_info.req.format.rate = srate;
+	if ((err = snd_pcm_params_info(slave, &slave_info)) < 0) {
 		info->req.fail_mask = slave_info.req.fail_mask;
 		info->req.fail_reason = slave_info.req.fail_reason;
 		return err;
 	}
-	rate = info->req.format.rate;
-	info->buffer_size = slave_info.buffer_size * rate / slave_rate;
-	info->min_fragment_size = slave_info.min_fragment_size * rate / slave_rate;
-	info->max_fragment_size = slave_info.max_fragment_size * rate / slave_rate;
-	info->fragment_align = slave_info.fragment_align * rate / slave_rate;
+	info->buffer_size = muldiv64(slave_info.buffer_size, crate, srate);
+	info->min_fragment_size = muldiv64(slave_info.min_fragment_size, crate, srate);
+	info->max_fragment_size = muldiv64(slave_info.max_fragment_size, crate, srate);
+	info->fragment_align = muldiv64(slave_info.fragment_align, crate, srate);
+	if (sformat != info->req.format.sfmt ||
+	    (unsigned int) srate != info->req.format.rate ||
+	    schannels != info->req.format.channels)
+		info->flags &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
 }
 
-static int snd_pcm_plug_action(snd_pcm_plug_t *plug, int action,
-			       unsigned long data)
+static void snd_pcm_plug_clear(snd_pcm_t *pcm)
 {
-	int err;
-	snd_pcm_plugin_t *plugin = plug->first;
-	while (plugin) {
-		if (plugin->action) {
-			if ((err = plugin->action(plugin, action, data))<0)
-				return err;
-		}
-		plugin = plugin->next;
+	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_t *slave = plug->req_slave;
+	/* Clear old plugins */
+	if (plug->slave != slave) {
+		snd_pcm_close(plug->slave);
+		plug->slave = slave;
+		pcm->fast_ops = slave->fast_ops;
+		pcm->fast_op_arg = slave->fast_op_arg;
 	}
+}
+
+static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_format_t *clt, snd_pcm_format_t *slv)
+{
+	snd_pcm_plug_t *plug = pcm->private;
+	int err;
+	assert(snd_pcm_format_linear(slv->sfmt));
+	if (clt->rate == slv->rate)
+		return 0;
+	err = snd_pcm_rate_open(new, slv->sfmt, slv->rate, plug->slave, plug->slave != plug->req_slave);
+	if (err < 0)
+		return err;
+	slv->rate = clt->rate;
+	if (snd_pcm_format_linear(clt->sfmt))
+		slv->sfmt = clt->sfmt;
+	return 1;
+}
+
+static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_format_t *clt, snd_pcm_format_t *slv)
+{
+	snd_pcm_plug_t *plug = pcm->private;
+	unsigned int tt_ssize, tt_cused, tt_sused;
+	ttable_entry_t *ttable;
+	int err;
+	assert(snd_pcm_format_linear(slv->sfmt));
+	if (clt->channels == slv->channels)
+		return 0;
+	if (clt->rate != slv->rate &&
+	    clt->channels > slv->channels)
+		return 0;
+	     
+	ttable = plug->ttable;
+	if (ttable) {
+		tt_ssize = plug->tt_ssize;
+		tt_cused = plug->tt_cused;
+		tt_sused = plug->tt_sused;
+	} else {
+		unsigned int k;
+		unsigned int c = 0, s = 0;
+		int n;
+		tt_ssize = slv->channels;
+		tt_cused = clt->channels;
+		tt_sused = slv->channels;
+		ttable = alloca(tt_cused * tt_sused * sizeof(*ttable));
+		for (k = 0; k < tt_cused * tt_sused; ++k)
+			ttable[k] = 0;
+		if (clt->channels > slv->channels) {
+			n = clt->channels;
+		} else {
+			n = slv->channels;
+		}
+		while (n-- > 0) {
+			ttable_entry_t v = FULL;
+			if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
+			    clt->channels > slv->channels) {
+				int srcs = clt->channels / slv->channels;
+				if (s < clt->channels % slv->channels)
+					srcs++;
+				v /= srcs;
+			} else if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
+				   slv->channels > clt->channels) {
+				int srcs = slv->channels / clt->channels;
+				if (s < slv->channels % clt->channels)
+					srcs++;
+				v /= srcs;
+			}
+			ttable[c * tt_ssize + s] = v;
+			if (++c == clt->channels)
+				c = 0;
+			if (++s == slv->channels)
+				s = 0;
+		}
+	}
+	err = snd_pcm_route_open(new, slv->sfmt, slv->channels, ttable, tt_ssize, tt_cused, tt_sused, plug->slave, plug->slave != plug->req_slave);
+	if (err < 0)
+		return err;
+	slv->channels = clt->channels;
+	if (snd_pcm_format_linear(clt->sfmt))
+		slv->sfmt = clt->sfmt;
+	return 1;
+}
+
+static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_format_t *clt, snd_pcm_format_t *slv)
+{
+	snd_pcm_plug_t *plug = pcm->private;
+	int err, cfmt;
+	int (*f)(snd_pcm_t **handle, int sformat, snd_pcm_t *slave, int close_slave);
+	if (snd_pcm_format_linear(slv->sfmt)) {
+		/* Conversion is done in another plugin */
+		if (clt->sfmt == slv->sfmt ||
+		    clt->rate != slv->rate ||
+		    clt->channels != slv->channels)
+			return 0;
+	} else {
+		/* No conversion is needed */
+		if (clt->sfmt == slv->sfmt &&
+		    clt->rate == slv->rate &&
+		    clt->channels == clt->channels)
+			return 0;
+	}
+	if (snd_pcm_format_linear(slv->sfmt)) {
+		cfmt = clt->sfmt;
+		switch (clt->sfmt) {
+		case SND_PCM_SFMT_MU_LAW:
+			f = snd_pcm_mulaw_open;
+			break;
+		case SND_PCM_SFMT_A_LAW:
+			f = snd_pcm_alaw_open;
+			break;
+		case SND_PCM_SFMT_IMA_ADPCM:
+			f = snd_pcm_adpcm_open;
+			break;
+		default:
+			assert(snd_pcm_format_linear(clt->sfmt));
+			f = snd_pcm_linear_open;
+			break;
+		}
+	} else {
+		switch (slv->sfmt) {
+		case SND_PCM_SFMT_MU_LAW:
+			f = snd_pcm_mulaw_open;
+			break;
+		case SND_PCM_SFMT_A_LAW:
+			f = snd_pcm_alaw_open;
+			break;
+		case SND_PCM_SFMT_IMA_ADPCM:
+			f = snd_pcm_adpcm_open;
+			break;
+		default:
+			assert(0);
+			return -EINVAL;
+		}
+		if (snd_pcm_format_linear(clt->sfmt))
+			cfmt = clt->sfmt;
+		else
+			cfmt = SND_PCM_SFMT_S16;
+	}
+	err = f(new, slv->sfmt, plug->slave, plug->slave != plug->req_slave);
+	if (err < 0)
+		return err;
+	slv->sfmt = cfmt;
+	return 1;
+}
+
+static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
+				       snd_pcm_format_t *client_fmt,
+				       snd_pcm_format_t *slave_fmt)
+{
+	snd_pcm_plug_t *plug = pcm->private;
+	int (*funcs[])(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_format_t *s, snd_pcm_format_t *d) = {
+		snd_pcm_plug_change_format,
+		snd_pcm_plug_change_channels,
+		snd_pcm_plug_change_rate,
+		snd_pcm_plug_change_channels,
+		snd_pcm_plug_change_format
+	};
+	snd_pcm_format_t sfmt = *slave_fmt;
+	unsigned int k = 0;
+	while (1) {
+		snd_pcm_t *new;
+		int err;
+		if (client_fmt->sfmt == sfmt.sfmt &&
+		    client_fmt->channels == sfmt.channels &&
+		    client_fmt->rate == sfmt.rate)
+			return 0;
+		assert(k < sizeof(funcs)/sizeof(*funcs));
+		err = funcs[k](pcm, &new, client_fmt, &sfmt);
+		if (err < 0) {
+			snd_pcm_plug_clear(pcm);
+			return err;
+		}
+		if (err) {
+			plug->slave = new;
+			pcm->fast_ops = new->fast_ops;
+			pcm->fast_op_arg = new->fast_op_arg;
+		}
+		k++;
+	}
+	assert(0);
 	return 0;
+}
+
+static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
+{
+	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_t *slave = plug->req_slave;
+	snd_pcm_format_t *slave_format, *format;
+	snd_pcm_params_info_t slave_info;
+	int srate;
+	int err;
+	
+	memset(&slave_info, 0, sizeof(slave_info));
+	err = snd_pcm_params_info(slave, &slave_info);
+	if (err < 0)
+		return err;
+
+	slave_info.req = *params;
+	format = &params->format;
+	slave_format = &slave_info.req.format;
+
+	if ((slave_info.formats & (1 << format->sfmt)) == 0) {
+		int slave_fmt = snd_pcm_plug_slave_fmt(format->sfmt, &slave_info);
+		if (slave_fmt < 0) {
+			params->fail_mask = SND_PCM_PARAMS_SFMT;
+			params->fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
+			return slave_fmt;
+		}
+		slave_format->sfmt = slave_fmt;
+	}
+
+      	if (format->channels < slave_info.min_channels)
+		slave_format->channels = slave_info.min_channels;
+	else if (format->channels > slave_info.max_channels)
+		slave_format->channels = slave_info.max_channels;
+
+	srate = snd_pcm_plug_slave_rate(format->rate, &slave_info);
+	if (srate < 0) {
+		params->fail_mask = SND_PCM_PARAMS_RATE;
+		params->fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
+		return srate;
+	}
+	slave_format->rate = srate;
+		   
+	slave_info.req_mask = ~0;
+	err = snd_pcm_params_info(slave, &slave_info);
+	if (err < 0) {
+		params->fail_mask = slave_info.req.fail_mask;
+		params->fail_reason = slave_info.req.fail_reason;
+		return err;
+	}
+
+	if (slave_format->rate - slave_info.min_rate < slave_info.max_rate - slave_format->rate)
+		slave_format->rate = slave_info.min_rate;
+	else
+		slave_format->rate = slave_info.max_rate;
+
+	err = snd_pcm_plug_insert_plugins(pcm, format, slave_format);
+	if (err < 0)
+		return err;
+	slave = plug->slave;
+
+	err = snd_pcm_params(slave, params);
+	if (err < 0)
+		snd_pcm_plug_clear(pcm);
+	return err;
 }
 
 static int snd_pcm_plug_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
 {
-	int err;
 	snd_pcm_plug_t *plug = pcm->private;
-
-	err = snd_pcm_setup(plug->slave, setup);
-	if (err < 0)
-		return err;
-	if (!plug->first)
-		return 0;
-	setup->boundary /= setup->frag_size;
-	setup->frag_size = snd_pcm_plug_client_size(plug, setup->frag_size);
-	setup->boundary *= setup->frag_size;
-	setup->buffer_size = setup->frags * setup->frag_size;
-	setup->avail_min = snd_pcm_plug_client_size(plug, setup->avail_min);
-	setup->align = snd_pcm_plug_client_size(plug, setup->align);
-	setup->xrun_max = snd_pcm_plug_client_size(plug, setup->xrun_max);
-	setup->fill_max = snd_pcm_plug_client_size(plug, setup->fill_max);
-	setup->mmap_bytes = 0;
-	if (plug->handle->stream == SND_PCM_STREAM_PLAYBACK)
-		setup->format = plug->first->src_format;
-	else
-		setup->format = plug->last->dst_format;
-	/* FIXME: this is not exact */
-	setup->rate_master = setup->format.rate;
-	setup->rate_divisor = 1;
-	err = snd_pcm_plug_alloc(plug, setup->frag_size);
-	if (err < 0)
-		return err;
-	return 0;	
+	return snd_pcm_setup(plug->slave, setup);
 }
 
-static int snd_pcm_plug_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
-{
-	int err;
-	snd_pcm_plug_t *plug = pcm->private;
-
-	err = snd_pcm_status(plug->slave, status);
-	if (err < 0)
-		return err;
-
-	status->hw_ptr = snd_pcm_plug_client_size(plug, status->hw_ptr);
-	status->appl_ptr = snd_pcm_plug_client_size(plug, status->appl_ptr);
-	status->avail = snd_pcm_plug_client_size(plug, status->avail);
-	status->avail_max = snd_pcm_plug_client_size(plug, status->avail_max);
-	return 0;	
-}
-
-static int snd_pcm_plug_state(snd_pcm_t *pcm)
+static int snd_pcm_plug_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	return snd_pcm_state(plug->slave);
+	return snd_pcm_channel_info(plug->slave, info);
 }
 
-static ssize_t snd_pcm_plug_hw_ptr(snd_pcm_t *pcm, int update)
+static int snd_pcm_plug_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	ssize_t hw_ptr = snd_pcm_hw_ptr(plug->slave, update);
-	if (hw_ptr < 0)
-		return hw_ptr;
-	return snd_pcm_plug_client_size(plug, hw_ptr);
+	return snd_pcm_channel_params(plug->slave, params);
 }
 
-static int snd_pcm_plug_prepare(snd_pcm_t *pcm)
+static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	int err;
-	err = snd_pcm_prepare(plug->slave);
-	if (err < 0)
-		return err;
-	if ((err = snd_pcm_plug_action(plug, PREPARE, 0))<0)
-		return err;
-	return 0;
+	return snd_pcm_channel_setup(plug->slave, setup);
 }
 
-static int snd_pcm_plug_go(snd_pcm_t *pcm)
+static int snd_pcm_plug_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	return snd_pcm_go(plug->slave);
+	return snd_pcm_mmap_status(plug->slave, NULL);
 }
 
-static int snd_pcm_plug_drain(snd_pcm_t *pcm)
+static int snd_pcm_plug_mmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	int err;
-
-	if ((err = snd_pcm_drain(plug->slave)) < 0)
-		return err;
-	if ((err = snd_pcm_plug_action(plug, DRAIN, 0))<0)
-		return err;
-	return 0;
+	return snd_pcm_mmap_control(plug->slave, NULL);
 }
 
-static int snd_pcm_plug_flush(snd_pcm_t *pcm)
+static int snd_pcm_plug_mmap_data(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	int err;
-
-	if ((err = snd_pcm_flush(plug->slave)) < 0)
-		return err;
-	if ((err = snd_pcm_plug_action(plug, FLUSH, 0))<0)
-		return err;
-	return 0;
+	return snd_pcm_mmap_data(plug->slave, NULL);
 }
 
-static int snd_pcm_plug_pause(snd_pcm_t *pcm, int enable)
+static int snd_pcm_plug_munmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	int err;
-	
-	if ((err = snd_pcm_pause(plug->slave, enable)) < 0)
-		return err;
-	if ((err = snd_pcm_plug_action(plug, PAUSE, 0))<0)
-		return err;
-	return 0;
-}
-
-static int snd_pcm_plug_channel_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_channel_info_t *info ATTRIBUTE_UNUSED)
-{
-	/* FIXME: if route plugin is not inserted or its ttable is trivial
-	   this should be implemented */
-	return -ENOSYS;
-}
-
-static int snd_pcm_plug_channel_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_channel_params_t *params ATTRIBUTE_UNUSED)
-{
-	/* FIXME: if route plugin is not inserted or its ttable is trivial
-	   this should be implemented */
-	return -ENOSYS;
-}
-
-static int snd_pcm_plug_channel_setup(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_channel_setup_t *setup ATTRIBUTE_UNUSED)
-{
-	/* FIXME: if route plugin is not inserted or its ttable is trivial
-	   this should be implemented for non mmap setups */
-	return -ENOSYS;
-}
-
-static ssize_t snd_pcm_plug_appl_ptr(snd_pcm_t *pcm, off_t offset)
-{
-	ssize_t ret;
-	snd_pcm_plug_t *plug = pcm->private;
-	if (offset < 0) {
-		offset = snd_pcm_plug_slave_size(plug, -offset);
-		if (offset < 0)
-			return offset;
-		offset = -offset;
-	} else {
-		offset = snd_pcm_plug_slave_size(plug, offset);
-		if (offset < 0)
-			return offset;
-	}
-	ret = snd_pcm_appl_ptr(plug->slave, offset);
-	if (ret < 0)
-		return ret;
-	return snd_pcm_plug_client_size(plug, ret);
-}
-  
-ssize_t snd_pcm_plug_writev(snd_pcm_t *pcm, snd_timestamp_t *tstamp ATTRIBUTE_UNUSED, const struct iovec *vector, unsigned long count)
-{
-	snd_pcm_plug_t *plug = pcm->private;
-	snd_pcm_t *handle = plug->handle;
-	unsigned int k, step;
-	size_t result = 0;
-	assert(plug->frames_alloc);
-	if (handle->setup.format.interleave)
-		step = 1;
-	else
-		step = handle->setup.format.channels;
-	for (k = 0; k < count; k += step) {
-		snd_pcm_plugin_channel_t *channels;
-		ssize_t frames;
-		frames = snd_pcm_plug_client_channels_iovec(plug, vector, step, &channels);
-		if (frames < 0) {
-			if (result > 0)
-				return result;
-			return frames;
-		}
-		while (1) {
-			unsigned int c;
-			ssize_t ret;
-			size_t frames1 = frames;
-			if (frames1 > plug->frames_alloc)
-				frames1 = plug->frames_alloc;
-			ret = snd_pcm_plug_write_transfer(plug, channels, frames1);
-			if (ret < 0) {
-				if (result > 0)
-					return result;
-				return ret;
-			}
-			result += ret;
-			frames -= ret;
-			if (frames == 0)
-				break;
-			for (c = 0; c < handle->setup.format.channels; ++c)
-				channels[c].area.addr += ret * channels[c].area.step / 8;
-		}
-		vector += step;
-	}
-	return result;
-}
-
-ssize_t snd_pcm_plug_readv(snd_pcm_t *pcm, snd_timestamp_t *tstamp ATTRIBUTE_UNUSED, const struct iovec *vector, unsigned long count)
-{
-	snd_pcm_plug_t *plug = pcm->private;
-	snd_pcm_t *handle = plug->handle;
-	unsigned int k, step;
-	size_t result = 0;
-	assert(plug->frames_alloc);
-	if (handle->setup.format.interleave)
-		step = 1;
-	else
-		step = handle->setup.format.channels;
-	for (k = 0; k < count; k += step) {
-		snd_pcm_plugin_channel_t *channels;
-		ssize_t frames;
-		frames = snd_pcm_plug_client_channels_iovec(plug, vector, step, &channels);
-		if (frames < 0) {
-			if (result > 0)
-				return result;
-			return frames;
-		}
-		while (1) {
-			unsigned int c;
-			ssize_t ret;
-			size_t frames1 = frames;
-			if (frames1 > plug->frames_alloc)
-				frames1 = plug->frames_alloc;
-			ret = snd_pcm_plug_read_transfer(plug, channels, frames1);
-			if (ret < 0) {
-				if (result > 0)
-					return result;
-				return ret;
-			}
-			result += ret;
-			frames -= ret;
-			if (frames == 0)
-				break;
-			for (c = 0; c < handle->setup.format.channels; ++c)
-				channels[c].area.addr += ret * channels[c].area.step / 8;
-		}
-		vector += step;
-	}
-	return result;
-}
-
-ssize_t snd_pcm_plug_write(snd_pcm_t *pcm, snd_timestamp_t *tstamp ATTRIBUTE_UNUSED, const void *buf, size_t count)
-{
-	snd_pcm_plug_t *plug = pcm->private;
-	snd_pcm_t *handle = plug->handle;
-	ssize_t frames;
-	snd_pcm_plugin_channel_t *channels;
-	size_t size = 0;
-	assert(plug->frames_alloc);
-	frames = snd_pcm_plug_client_channels_buf(plug, (char *)buf, count, &channels);
-	if (frames < 0)
-		return frames;
-
-	while (1) {
-		unsigned int c;
-		ssize_t ret;
-		size_t frames1 = frames;
-		if (frames1 > plug->frames_alloc)
-			frames1 = plug->frames_alloc;
-		ret = snd_pcm_plug_write_transfer(plug, channels, frames1);
-		if (ret < 0) {
-			if (size > 0)
-				return size;
-			return ret;
-		}
-		size += ret;
-		frames -= ret;
-		if (frames == 0)
-			break;
-		for (c = 0; c < handle->setup.format.channels; ++c)
-			channels[c].area.addr += ret * channels[c].area.step / 8;
-	}
-	return size;
-}
-
-ssize_t snd_pcm_plug_read(snd_pcm_t *pcm, snd_timestamp_t *tstamp ATTRIBUTE_UNUSED, void *buf, size_t count)
-{
-	snd_pcm_plug_t *plug = pcm->private;
-	snd_pcm_t *handle = plug->handle;
-	ssize_t frames;
-	snd_pcm_plugin_channel_t *channels;
-	size_t size = 0;
-	assert(plug->frames_alloc);
-	frames = snd_pcm_plug_client_channels_buf(plug, buf, count, &channels);
-	if (frames < 0)
-		return frames;
-
-	while (1) {
-		unsigned int c;
-		ssize_t ret;
-		size_t frames1 = frames;
-		if (frames1 > plug->frames_alloc)
-			frames1 = plug->frames_alloc;
-		ret = snd_pcm_plug_read_transfer(plug, channels, frames1);
-		if (ret < 0) {
-			if (size > 0)
-				return size;
-			return ret;
-		}
-		size += ret;
-		frames -= ret;
-		if (frames == 0)
-			break;
-		for (c = 0; c < handle->setup.format.channels; ++c)
-			channels[c].area.addr += ret * channels[c].area.step / 8;
-	}
-	return size;
-}
-
-static int snd_pcm_plug_mmap_status(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_mmap_status_t **status ATTRIBUTE_UNUSED)
-{
-	return -EBADFD;
-}
-
-static int snd_pcm_plug_mmap_control(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_mmap_control_t **control ATTRIBUTE_UNUSED)
-{
-	return -EBADFD;
-}
-
-static int snd_pcm_plug_mmap_data(snd_pcm_t *pcm ATTRIBUTE_UNUSED, void **buffer ATTRIBUTE_UNUSED, size_t bsize ATTRIBUTE_UNUSED)
-{
-	return -EBADFD;
-}
-
-static int snd_pcm_plug_munmap_status(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_mmap_status_t *status ATTRIBUTE_UNUSED)
-{
-	return -EBADFD;
+	return snd_pcm_munmap_status(plug->slave);
 }
 		
-static int snd_pcm_plug_munmap_control(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_mmap_control_t *control ATTRIBUTE_UNUSED)
-{
-	return -EBADFD;
-}
-		
-static int snd_pcm_plug_munmap_data(snd_pcm_t *pcm ATTRIBUTE_UNUSED, void *buffer ATTRIBUTE_UNUSED, size_t size ATTRIBUTE_UNUSED)
-{
-	return -EBADFD;
-}
-		
-static int snd_pcm_plug_channels_mask(snd_pcm_t *pcm,
-				    bitset_t *client_vmask)
+static int snd_pcm_plug_munmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	if (plug->handle->stream == SND_PCM_STREAM_PLAYBACK)
-		return snd_pcm_plug_playback_channels_mask(plug, client_vmask);
-	else
-		return snd_pcm_plug_capture_channels_mask(plug, client_vmask);
+	return snd_pcm_munmap_control(plug->slave);
 }
-
-int snd_pcm_plug_file_descriptor(snd_pcm_t *pcm)
+		
+static int snd_pcm_plug_munmap_data(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	return snd_pcm_file_descriptor(plug->slave);
+	return snd_pcm_munmap_data(plug->slave);
 }
-
+		
 static void snd_pcm_plug_dump(snd_pcm_t *pcm, FILE *fp)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	snd_pcm_t *handle = plug->handle;
-	snd_pcm_plugin_t *plugin;
-	if (!plug->first) {
-		fprintf(fp, "Plug PCM -> ");
-		snd_pcm_dump(plug->slave, fp);
-		return;
-	}
-	fprintf(fp, "Plug PCM\n");
-	if (handle->valid_setup) {
-		fprintf(fp, "\nIts setup is:\n");
-		snd_pcm_dump_setup(handle, fp);
-	}
-	fprintf(fp, "\nPlugins:\n");
-	plugin = plug->first;
-	while (plugin) {
-		snd_pcm_plugin_dump(plugin, fp);
-		plugin = plugin->next;
-	}
-	fprintf(fp, "\n");
+	fprintf(fp, "Plug PCM: ");
+	snd_pcm_dump(plug->slave, fp);
 }
-
-static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params);
 
 struct snd_pcm_ops snd_pcm_plug_ops = {
 	close: snd_pcm_plug_close,
@@ -652,187 +625,59 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 	params_info: snd_pcm_plug_params_info,
 	params: snd_pcm_plug_params,
 	setup: snd_pcm_plug_setup,
-	dump: snd_pcm_plug_dump,
-};
-
-struct snd_pcm_fast_ops snd_pcm_plug_fast_ops = {
-	nonblock: snd_pcm_plug_nonblock,
 	channel_info: snd_pcm_plug_channel_info,
 	channel_params: snd_pcm_plug_channel_params,
 	channel_setup: snd_pcm_plug_channel_setup,
-	status: snd_pcm_plug_status,
-	hw_ptr: snd_pcm_plug_hw_ptr,
-	state: snd_pcm_plug_state,
-	prepare: snd_pcm_plug_prepare,
-	go: snd_pcm_plug_go,
-	drain: snd_pcm_plug_drain,
-	flush: snd_pcm_plug_flush,
-	pause: snd_pcm_plug_pause,
-	appl_ptr: snd_pcm_plug_appl_ptr,
-	write: snd_pcm_plug_write,
-	writev: snd_pcm_plug_writev,
-	read: snd_pcm_plug_read,
-	readv: snd_pcm_plug_readv,
+	dump: snd_pcm_plug_dump,
+	nonblock: snd_pcm_plug_nonblock,
 	mmap_status: snd_pcm_plug_mmap_status,
 	mmap_control: snd_pcm_plug_mmap_control,
 	mmap_data: snd_pcm_plug_mmap_data,
 	munmap_status: snd_pcm_plug_munmap_status,
 	munmap_control: snd_pcm_plug_munmap_control,
 	munmap_data: snd_pcm_plug_munmap_data,
-	file_descriptor: snd_pcm_plug_file_descriptor,
-	channels_mask: snd_pcm_plug_channels_mask,
 };
 
-static void snd_pcm_plug_slave_params(snd_pcm_plug_t *plug,
-				      snd_pcm_params_t *params,
-				      snd_pcm_params_t *slave_params)
-{
-	/* compute right sizes */
-	slave_params->frag_size = snd_pcm_plug_slave_size(plug, params->frag_size);
-	slave_params->buffer_size = snd_pcm_plug_slave_size(plug, params->buffer_size);
-	slave_params->fill_max = snd_pcm_plug_slave_size(plug, params->fill_max);
-	slave_params->avail_min = snd_pcm_plug_slave_size(plug, params->avail_min);
-	slave_params->xrun_max = snd_pcm_plug_slave_size(plug, params->xrun_max);
-	slave_params->align = snd_pcm_plug_slave_size(plug, params->align);
-	if (slave_params->boundary == 0 || slave_params->boundary > LONG_MAX)
-		slave_params->boundary = LONG_MAX;
-	assert(params->buffer_size > 0);
-	slave_params->boundary /= params->buffer_size;
-	if (slave_params->boundary > LONG_MAX / slave_params->buffer_size)
-		slave_params->boundary = LONG_MAX;
-	else
-		slave_params->boundary *= slave_params->buffer_size;
-}
-
-
-
-static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
-{
-	snd_pcm_params_t slave_params;
-	snd_pcm_info_t slave_info;
-	snd_pcm_format_t *req_format, *real_format, format1;
-	snd_pcm_params_info_t slave_params_info;
-	snd_pcm_plugin_t *plugin;
-	snd_pcm_plug_t *plug;
-	int err;
-	int first = 1;
-	
-	plug = pcm->private;
-
-	/*
-	 *  try to decide, if a conversion is required
-         */
-
-	memset(&slave_info, 0, sizeof(slave_info));
-	if ((err = snd_pcm_info(plug->slave, &slave_info)) < 0) {
-		snd_pcm_plug_clear(plug);
-		return err;
-	}
-	memset(&slave_params_info, 0, sizeof(slave_params_info));
-	if ((err = snd_pcm_params_info(plug->slave, &slave_params_info)) < 0) {
-		snd_pcm_plug_clear(plug);
-		return err;
-	}
-
-	slave_params = *params;
-	if ((err = snd_pcm_plug_slave_format(&params->format, &slave_info, &slave_params_info, &slave_params.format)) < 0)
-		return err;
-
- retry:
-	/* add necessary plugins */
-	format1 = params->format;
-	snd_pcm_plug_clear(plug);
-	if ((err = snd_pcm_plug_format_plugins(plug, &format1, 
-					       &slave_params.format)) < 0)
-		return err;
-
-	/* compute right sizes */
-	snd_pcm_plug_slave_params(plug, params, &slave_params);
-
-	pdprintf("params requested params: format = %i, rate = %i, channels = %i\n", slave_params.format.format, slave_params.format.rate, slave_params.format.channels);
-
-	err = snd_pcm_params(plug->slave, &slave_params);
-	if (err < 0) {
-		params->fail_mask = slave_params.fail_mask;
-		params->fail_reason = slave_params.fail_reason;
-		return err;
-	}
-	req_format = &slave_params.format;
-	real_format = &plug->slave->setup.format;
-	if (real_format->interleave != req_format->interleave ||
-	    real_format->format != req_format->format ||
-	    real_format->rate != req_format->rate ||
-	    real_format->channels != req_format->channels) {
-		assert(first);
-		slave_params.format = *real_format;
-		first = 0;
-		goto retry;
-	}
-
-	if (!plug->first) {
-		*plug->handle->fast_ops = *plug->slave->fast_ops;
-		plug->handle->fast_op_arg = plug->slave->fast_op_arg;
-		return 0;
-	}
-
-	*plug->handle->fast_ops = snd_pcm_plug_fast_ops;
-	plug->handle->fast_op_arg = pcm;
-
-	/*
-	 *  I/O plugins
-	 */
-
-	if (slave_info.flags & SND_PCM_INFO_MMAP) {
-		pdprintf("params mmap plugin\n");
-		err = snd_pcm_plugin_build_mmap(plug, &slave_params.format, &plugin);
-	} else {
-		pdprintf("params I/O plugin\n");
-		err = snd_pcm_plugin_build_io(plug, &slave_params.format, &plugin);
-	}
-	if (err < 0)
-		return err;
-	if (plug->slave->stream == SND_PCM_STREAM_PLAYBACK) {
-		err = snd_pcm_plugin_append(plugin);
-	} else {
-		err = snd_pcm_plugin_insert(plugin);
-	}
-	if (err < 0) {
-		snd_pcm_plugin_free(plugin);
-		return err;
-	}
-
-	err = snd_pcm_plug_action(plug, INIT, 0);
-	if (err < 0)
-		return err;
-	return 0;
-}
-
-int snd_pcm_plug_create(snd_pcm_t **handlep, snd_pcm_t *slave, int close_slave)
+int snd_pcm_plug_open(snd_pcm_t **handlep,
+		      ttable_entry_t *ttable,
+		      unsigned int tt_ssize,
+		      unsigned int tt_cused, unsigned int tt_sused,
+		      snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *handle;
 	snd_pcm_plug_t *plug;
+	int err;
 	assert(handlep && slave);
-	handle = calloc(1, sizeof(snd_pcm_t));
-	if (!handle)
-		return -ENOMEM;
 	plug = calloc(1, sizeof(snd_pcm_plug_t));
-	if (!plug) {
-		free(handle);
+	if (!plug)
+		return -ENOMEM;
+	plug->slave = plug->req_slave = slave;
+	plug->close_slave = close_slave;
+	plug->ttable = ttable;
+	plug->tt_ssize = tt_ssize;
+	plug->tt_cused = tt_cused;
+	plug->tt_sused = tt_sused;
+	
+	handle = calloc(1, sizeof(snd_pcm_t));
+	if (!handle) {
+		free(plug);
 		return -ENOMEM;
 	}
-	plug->handle = handle;
-	plug->slave = slave;
-	plug->close_slave = close_slave;
 	handle->type = SND_PCM_TYPE_PLUG;
 	handle->stream = slave->stream;
 	handle->ops = &snd_pcm_plug_ops;
 	handle->op_arg = handle;
-	handle->fast_ops = malloc(sizeof(*handle->fast_ops));
-	*handle->fast_ops = snd_pcm_plug_fast_ops;
-	handle->fast_op_arg = handle;
+	handle->fast_ops = slave->fast_ops;
+	handle->fast_op_arg = slave->fast_op_arg;
 	handle->mode = slave->mode;
 	handle->private = plug;
+	err = snd_pcm_init(handle);
+	if (err < 0) {
+		snd_pcm_close(handle);
+		return err;
+	}
 	*handlep = handle;
+
 	return 0;
 }
 
@@ -843,12 +688,70 @@ int snd_pcm_plug_open_subdevice(snd_pcm_t **handlep, int card, int device, int s
 	err = snd_pcm_hw_open_subdevice(&slave, card, device, subdevice, stream, mode);
 	if (err < 0)
 		return err;
-	return snd_pcm_plug_create(handlep, slave, 1);
+	return snd_pcm_plug_open(handlep, 0, 0, 0, 0, slave, 1);
 }
 
-int snd_pcm_plug_open(snd_pcm_t **handlep, int card, int device, int stream, int mode)
+int snd_pcm_plug_open_card(snd_pcm_t **handlep, int card, int device, int stream, int mode)
 {
 	return snd_pcm_plug_open_subdevice(handlep, card, device, -1, stream, mode);
 }
 
+#define MAX_CHANNELS 32
 
+int _snd_pcm_plug_open(snd_pcm_t **pcmp, char *name,
+		       snd_config_t *conf, 
+		       int stream, int mode)
+{
+	snd_config_iterator_t i;
+	char *sname = NULL;
+	int err;
+	snd_pcm_t *spcm;
+	snd_config_t *tt = NULL;
+	ttable_entry_t *ttable = NULL;
+	unsigned int cused, sused;
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "type") == 0)
+			continue;
+		if (strcmp(n->id, "stream") == 0)
+			continue;
+		if (strcmp(n->id, "sname") == 0) {
+			err = snd_config_string_get(n, &sname);
+			if (err < 0)
+				return -EINVAL;
+			continue;
+		}
+		if (strcmp(n->id, "ttable") == 0) {
+			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
+				return -EINVAL;
+			tt = n;
+			continue;
+		}
+		return -EINVAL;
+	}
+	if (!sname)
+		return -EINVAL;
+	if (tt) {
+		ttable = malloc(MAX_CHANNELS * MAX_CHANNELS * sizeof(*ttable));
+		err = snd_pcm_route_load_ttable(tt, ttable, MAX_CHANNELS, MAX_CHANNELS,
+						&cused, &sused, -1);
+		if (err < 0)
+			return err;
+	}
+		
+	/* This is needed cause snd_config_update may destroy config */
+	sname = strdup(sname);
+	if (!sname)
+		return  -ENOMEM;
+	err = snd_pcm_open(&spcm, sname, stream, mode);
+	free(sname);
+	if (err < 0)
+		return err;
+	err = snd_pcm_plug_open(pcmp, ttable, MAX_CHANNELS, cused, sused, spcm, 1);
+	if (err < 0)
+		snd_pcm_close(spcm);
+	return err;
+}
+				

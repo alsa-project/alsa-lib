@@ -17,7 +17,7 @@ typedef struct snd_seq snd_seq_t;
 
 int snd_seq_open(snd_seq_t **handle, int mode);
 int snd_seq_close(snd_seq_t *handle);
-int snd_seq_file_descriptor(snd_seq_t *handle);
+int snd_seq_poll_descriptor(snd_seq_t *handle);
 int snd_seq_block_mode(snd_seq_t *handle, int enable);
 int snd_seq_client_id(snd_seq_t *handle);
 int snd_seq_output_buffer_size(snd_seq_t *handle);

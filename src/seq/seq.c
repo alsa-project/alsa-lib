@@ -119,7 +119,7 @@ int snd_seq_close(snd_seq_t *seq)
 /*
  * returns the file descriptor of the client
  */
-int snd_seq_file_descriptor(snd_seq_t *seq)
+int snd_seq_poll_descriptor(snd_seq_t *seq)
 {
 	if (!seq)
 		return -EINVAL;

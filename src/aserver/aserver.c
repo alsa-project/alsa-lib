@@ -287,7 +287,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 	if (err < 0)
 		return err;
 	client->device.pcm.handle = pcm;
-	client->device.pcm.fd = snd_pcm_file_descriptor(pcm);
+	client->device.pcm.fd = snd_pcm_poll_descriptor(pcm);
 
 	shmid = shmget(IPC_PRIVATE, PCM_SHM_SIZE, 0666);
 	if (shmid < 0) {
@@ -368,20 +368,26 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_STATUS:
 		ctrl->result = snd_pcm_status(pcm, &ctrl->u.status);
 		break;
-	case SND_PCM_IOCTL_HW_PTR:
-		ctrl->result = snd_pcm_hw_ptr(pcm, ctrl->u.hw_ptr);
+	case SND_PCM_IOCTL_STATE:
+		ctrl->result = snd_pcm_state(pcm);
+		break;
+	case SND_PCM_IOCTL_DELAY:
+		ctrl->result = snd_pcm_delay(pcm, &ctrl->u.delay);
+		break;
+	case SND_PCM_IOCTL_AVAIL_UPDATE:
+		ctrl->result = snd_pcm_avail_update(pcm);
 		break;
 	case SND_PCM_IOCTL_PREPARE:
 		ctrl->result = snd_pcm_prepare(pcm);
 		break;
-	case SND_PCM_IOCTL_GO:
-		ctrl->result = snd_pcm_go(pcm);
+	case SND_PCM_IOCTL_START:
+		ctrl->result = snd_pcm_start(pcm);
 		break;
 	case SND_PCM_IOCTL_FLUSH:
 		ctrl->result = snd_pcm_flush(pcm);
 		break;
-	case SND_PCM_IOCTL_DRAIN:
-		ctrl->result = snd_pcm_drain(pcm);
+	case SND_PCM_IOCTL_STOP:
+		ctrl->result = snd_pcm_stop(pcm);
 		break;
 	case SND_PCM_IOCTL_PAUSE:
 		ctrl->result = snd_pcm_pause(pcm, ctrl->u.pause);
@@ -395,86 +401,6 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_CHANNEL_SETUP:
 		ctrl->result = snd_pcm_channel_setup(pcm, &ctrl->u.channel_setup);
 		break;
-	case SND_PCM_IOCTL_WRITE_FRAMES:
-	{
-		size_t maxsize = PCM_SHM_DATA_MAXLEN;
-		maxsize = snd_pcm_bytes_to_frames(pcm, maxsize);
-		if (ctrl->u.write.count > maxsize) {
-			ctrl->result = -EFAULT;
-			break;
-		}
-		/* FIXME: blocking */
-		ctrl->result = snd_pcm_write(pcm, ctrl->data, ctrl->u.write.count);
-		break;
-	}
-	case SND_PCM_IOCTL_READ_FRAMES:
-	{
-		size_t maxsize = PCM_SHM_DATA_MAXLEN;
-		maxsize = snd_pcm_bytes_to_frames(pcm, maxsize);
-		if (ctrl->u.read.count > maxsize) {
-			ctrl->result = -EFAULT;
-			break;
-		}
-		/* FIXME: blocking */
-		ctrl->result = snd_pcm_read(pcm, ctrl->data, ctrl->u.read.count);
-		break;
-	}
-	case SND_PCM_IOCTL_WRITEV_FRAMES:
-	{
-		/* FIXME: interleaved */
-		size_t maxsize = PCM_SHM_DATA_MAXLEN;
-		unsigned long k;
-		struct iovec *vector;
-		size_t vecsize;
-		char *base;
-		int bits_per_sample = snd_pcm_samples_to_bytes(pcm, 8);
-		vecsize = ctrl->u.writev.count * sizeof(struct iovec);
-		if (vecsize > maxsize) {
-			ctrl->result = -EFAULT;
-			break;
-		}
-		maxsize -= vecsize;
-		vector = (struct iovec *) ctrl->data;
-		base = ctrl->data + vecsize;
-		for (k = 0; k < ctrl->u.writev.count; ++k) {
-			unsigned long ofs = (unsigned long) vector[k].iov_base;
-			size_t len = vector[k].iov_len * bits_per_sample / 8;
-			if (ofs + len > maxsize)
-				return -EFAULT;
-			vector[k].iov_base = base + ofs;
-		}
-		/* FIXME: blocking */
-		ctrl->result = snd_pcm_writev(pcm, vector, ctrl->u.writev.count);
-		break;
-	}
-	case SND_PCM_IOCTL_READV_FRAMES:
-	{
-		/* FIXME: interleaved */
-		size_t maxsize = PCM_SHM_DATA_MAXLEN;
-		unsigned long k;
-		struct iovec *vector;
-		size_t vecsize;
-		char *base;
-		int bits_per_sample = snd_pcm_samples_to_bytes(pcm, 8);
-		vecsize = ctrl->u.readv.count * sizeof(struct iovec);
-		if (vecsize > maxsize) {
-			ctrl->result = -EFAULT;
-			break;
-		}
-		maxsize -= vecsize;
-		vector = (struct iovec *) ctrl->data;
-		base = ctrl->data + vecsize;
-		for (k = 0; k < ctrl->u.readv.count; ++k) {
-			unsigned long ofs = (unsigned long) vector[k].iov_base;
-			size_t len = vector[k].iov_len * bits_per_sample / 8;
-			if (ofs + len > maxsize)
-				return -EFAULT;
-			vector[k].iov_base = base + ofs;
-		}
-		/* FIXME: blocking */
-		ctrl->result = snd_pcm_readv(pcm, vector, ctrl->u.readv.count);
-		break;
-	}
 	case SND_PCM_IOCTL_APPL_PTR:
 		ctrl->result = snd_pcm_appl_ptr(pcm, ctrl->u.appl_ptr);
 		break;
@@ -510,13 +436,14 @@ int pcm_shm_cmd(client_t *client)
 		ctrl->result = 0;
 		return 0;
 	}
-#if 0
 	case SND_PCM_IOCTL_MUNMAP_DATA:
 	case SND_PCM_IOCTL_MUNMAP_CONTROL:
 	case SND_PCM_IOCTL_MUNMAP_STATUS:
 		ctrl->result = 0;
 		break;
-#endif
+	case SND_PCM_IOCTL_MMAP_FORWARD:
+		ctrl->result = snd_pcm_mmap_forward(pcm, ctrl->u.mmap_forward);
+		break;
 	case SND_PCM_IOCTL_CLOSE:
 		client->ops->close(client);
 		break;
@@ -571,7 +498,7 @@ int ctl_shm_open(client_t *client, int *cookie)
 	if (err < 0)
 		return err;
 	client->device.control.handle = ctl;
-	client->device.control.fd = snd_ctl_file_descriptor(ctl);
+	client->device.control.fd = snd_ctl_poll_descriptor(ctl);
 
 	shmid = shmget(IPC_PRIVATE, CTL_SHM_SIZE, 0666);
 	if (shmid < 0) {

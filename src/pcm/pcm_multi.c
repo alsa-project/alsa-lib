@@ -32,9 +32,6 @@ typedef struct {
 	snd_pcm_t *handle;
 	unsigned int channels_total;
 	int close_slave;
-	char *buf;
-	snd_pcm_channel_area_t *areas;
-	struct iovec *iovec;
 } snd_pcm_multi_slave_t;
 
 typedef struct {
@@ -49,9 +46,7 @@ typedef struct {
 	size_t bindings_count;
 	snd_pcm_multi_bind_t *bindings;
 	size_t channels_count;
-	size_t frames_alloc;
-	int interleave;
-	int one_to_many;
+	int xfer_mode, mmap_shape;
 } snd_pcm_multi_t;
 
 static int snd_pcm_multi_close(snd_pcm_t *pcm)
@@ -68,12 +63,6 @@ static int snd_pcm_multi_close(snd_pcm_t *pcm)
 				ret = err;
 		} else
 			snd_pcm_unlink(slave->handle);
-		if (slave->buf) {
-			free(slave->buf);
-			free(slave->areas);
-		}
-		if (slave->iovec)
-			free(slave->iovec);
 	}
 	free(multi->slaves);
 	free(multi->bindings);
@@ -91,23 +80,12 @@ static int snd_pcm_multi_nonblock(snd_pcm_t *pcm, int nonblock)
 static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int i;
 	int err;
 	snd_pcm_t *handle_0 = multi->slaves[0].handle;
+	/* FIXME */
 	err = snd_pcm_info(handle_0, info);
 	if (err < 0)
 		return err;
-	for (i = 1; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle_i = multi->slaves[i].handle;
-		snd_pcm_info_t info_i;
-		memset(&info_i, 0, sizeof(info_i));
-		err = snd_pcm_info(handle_i, &info_i);
-		if (err < 0)
-			return err;
-		info->flags &= info_i.flags;
-	}
-	if (multi->one_to_many)
-		info->flags &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
 }
 
@@ -118,7 +96,9 @@ static int snd_pcm_multi_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info
 	int err;
 	snd_pcm_t *handle_0 = multi->slaves[0].handle;
 	unsigned int old_mask = info->req_mask;
-	info->req_mask &= ~SND_PCM_PARAMS_CHANNELS;
+	info->req_mask &= ~(SND_PCM_PARAMS_CHANNELS |
+			    SND_PCM_PARAMS_MMAP_SHAPE |
+			    SND_PCM_PARAMS_XFER_MODE);
 	err = snd_pcm_params_info(handle_0, info);
 	if (err < 0)
 		return err;
@@ -128,6 +108,8 @@ static int snd_pcm_multi_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info
 		snd_pcm_t *handle_i = multi->slaves[i].handle;
 		snd_pcm_params_info_t info_i;
 		info_i = *info;
+		info_i.req_mask |= SND_PCM_PARAMS_CHANNELS;
+		info_i.req.format.channels = multi->slaves[i].channels_total;
 		err = snd_pcm_params_info(handle_i, &info_i);
 		if (err < 0)
 			return err;
@@ -147,6 +129,7 @@ static int snd_pcm_multi_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info
 			info->min_fragments = info_i.min_fragments;
 		if (info_i.max_fragments < info->max_fragments)
 			info->max_fragments = info_i.max_fragments;
+		info->flags &= info_i.flags;
 	}
 	info->req_mask = old_mask;
 	return 0;
@@ -159,35 +142,38 @@ static int snd_pcm_multi_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 	snd_pcm_params_t p;
 	if (params->format.channels != multi->channels_count)
 		return -EINVAL;
+	multi->xfer_mode = params->xfer_mode;
+	multi->mmap_shape = params->mmap_shape;
 	p = *params;
-	multi->interleave = params->format.interleave;
 	for (i = 0; i < multi->slaves_count; ++i) {
 		int err;
 		snd_pcm_t *handle = multi->slaves[i].handle;
-		snd_pcm_info_t info;
-		err = snd_pcm_info(handle, &info);
-		if (err < 0)
-			return err;
-		p.format.interleave = params->format.interleave;
-		if (!(info.flags & SND_PCM_INFO_INTERLEAVE))
-			p.format.interleave = 0;
-		else if (!(info.flags & SND_PCM_INFO_NONINTERLEAVE))
-			p.format.interleave = 1;
+		if (handle->mmap_data) {
+			err = snd_pcm_munmap_data(handle);
+			if (err < 0)
+				return err;
+		}
+		p.xfer_mode = SND_PCM_XFER_UNSPECIFIED;
+		p.mmap_shape = SND_PCM_MMAP_UNSPECIFIED;
 		p.format.channels = multi->slaves[i].channels_total;
 #if 1
 		p.xrun_max = ~0;
 #endif
 		err = snd_pcm_params(handle, &p);
+		if (err < 0) {
+			params->fail_mask = p.fail_mask;
+			params->fail_reason = p.fail_reason;
+			return err;
+		}
+	}
+	for (i = 0; i < multi->slaves_count; ++i) {
+		snd_pcm_t *handle = multi->slaves[i].handle;
+		int err = snd_pcm_mmap_data(handle, NULL);
 		if (err < 0)
 			return err;
-		if (i == 0 && params->mode == SND_PCM_MODE_FRAGMENT) {
-			snd_pcm_setup_t s;
-			err = snd_pcm_setup(handle, &s);
-			if (err < 0)
-				return err;
-			p.frag_size = s.frag_size;
-			p.buffer_size = s.buffer_size;
-		}
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+			snd_pcm_areas_silence(handle->mmap_areas, 0, handle->setup.format.channels, 
+					      handle->setup.buffer_size, handle->setup.format.sfmt);
 	}
 	return 0;
 }
@@ -202,7 +188,6 @@ static int snd_pcm_multi_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
 	if (err < 0)
 		return err;
 	frames_alloc = multi->slaves[0].handle->setup.frag_size;
-	multi->frames_alloc = 0;
 	for (i = 1; i < multi->slaves_count; ++i) {
 		snd_pcm_setup_t s;
 		snd_pcm_t *sh = multi->slaves[i].handle;
@@ -211,53 +196,21 @@ static int snd_pcm_multi_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup)
 			return err;
 		if (setup->format.rate != s.format.rate)
 			return -EINVAL;
-		if (setup->align % s.align != 0)
+		/* mmap is not feasible */
+		if (setup->buffer_size != s.buffer_size)
 			return -EINVAL;
+		if (setup->mmap_shape != SND_PCM_MMAP_NONINTERLEAVED ||
+		    s.mmap_shape != SND_PCM_MMAP_NONINTERLEAVED)
+			setup->mmap_shape = SND_PCM_MMAP_COMPLEX;
 	}
-	setup->format.interleave = multi->interleave;
 	setup->format.channels = multi->channels_count;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_multi_slave_t *s = &multi->slaves[i];
-		snd_pcm_t *sh = s->handle;
-		unsigned int c;
-		if (s->buf) {
-			free(s->buf);
-			s->buf = 0;
-			free(s->areas);
-			s->areas = 0;
-		}
-		if (s->iovec)
-			free(s->iovec);
-		if (!sh->setup.format.interleave) {
-			s->iovec = calloc(s->channels_total, sizeof(*s->iovec));
-			if (!pcm->setup.format.interleave)
-				continue;
-		}
-		s->buf = malloc(frames_alloc * sh->bits_per_frame / 8);
-		if (!s->buf)
-			return -ENOMEM;
-		snd_pcm_format_set_silence(sh->setup.format.format, s->buf,
-					   sh->setup.frag_size * sh->setup.format.channels);
-		s->areas = calloc(s->channels_total, sizeof(*s->areas));
-		if (!s->areas)
-			return -ENOMEM;
-		for (c = 0; c < s->channels_total; ++c) {
-			snd_pcm_channel_area_t *a = &s->areas[c];
-			if (sh->setup.format.interleave) {
-				a->addr = s->buf;
-				a->first = c * sh->bits_per_sample;
-				a->step = sh->bits_per_frame;
-			} else {
-				a->addr = s->buf + sh->setup.frag_size * sh->bits_per_sample / 8;
-				a->first = 0;
-				a->step = sh->bits_per_sample;
-				s->iovec[c].iov_base = a->addr;
-			}
-		}
-	}
-	multi->frames_alloc = frames_alloc;
-	/* Loaded with a value != 0 if mmap is feasible */
-	setup->mmap_bytes = !multi->one_to_many;
+	if (multi->xfer_mode == SND_PCM_XFER_UNSPECIFIED)
+		setup->xfer_mode = SND_PCM_XFER_NONINTERLEAVED;
+	else
+		setup->xfer_mode = multi->xfer_mode;
+	if (multi->mmap_shape != SND_PCM_MMAP_UNSPECIFIED &&
+	    multi->mmap_shape != setup->mmap_shape)
+		return -EINVAL;
 	return 0;
 }
 
@@ -275,11 +228,18 @@ static int snd_pcm_multi_state(snd_pcm_t *pcm)
 	return snd_pcm_state(handle);
 }
 
-static ssize_t snd_pcm_multi_hw_ptr(snd_pcm_t *pcm, int update)
+static int snd_pcm_multi_delay(snd_pcm_t *pcm, ssize_t *delayp)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	snd_pcm_t *handle = multi->slaves[0].handle;
-	return snd_pcm_hw_ptr(handle, update);
+	return snd_pcm_delay(handle, delayp);
+}
+
+static ssize_t snd_pcm_multi_avail_update(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	snd_pcm_t *handle = multi->slaves[0].handle;
+	return snd_pcm_avail_update(handle);
 }
 
 static int snd_pcm_multi_prepare(snd_pcm_t *pcm)
@@ -288,16 +248,16 @@ static int snd_pcm_multi_prepare(snd_pcm_t *pcm)
 	return snd_pcm_prepare(multi->slaves[0].handle);
 }
 
-static int snd_pcm_multi_go(snd_pcm_t *pcm)
+static int snd_pcm_multi_start(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	return snd_pcm_go(multi->slaves[0].handle);
+	return snd_pcm_start(multi->slaves[0].handle);
 }
 
-static int snd_pcm_multi_drain(snd_pcm_t *pcm)
+static int snd_pcm_multi_stop(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	return snd_pcm_drain(multi->slaves[0].handle);
+	return snd_pcm_stop(multi->slaves[0].handle);
 }
 
 static int snd_pcm_multi_flush(snd_pcm_t *pcm)
@@ -394,206 +354,21 @@ static ssize_t snd_pcm_multi_appl_ptr(snd_pcm_t *pcm, off_t offset)
 	return newpos;
 }
 
-static int snd_pcm_multi_write_copy(snd_pcm_t *pcm, const void *buf,
-				    size_t offset, size_t count)
+static int snd_pcm_multi_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int i;
-	snd_pcm_channel_area_t area;
-	area.addr = (void *) buf + offset * pcm->bits_per_frame;
-	area.step = pcm->bits_per_frame;
-	for (i = 0; i < multi->bindings_count; ++i) {
-		snd_pcm_multi_bind_t *bind = &multi->bindings[i];
-		snd_pcm_multi_slave_t *slave = &multi->slaves[bind->slave];
-		int err;
-		assert(slave->buf);
-		area.first = pcm->bits_per_sample * bind->client_channel;
-		err = snd_pcm_area_copy(&area, 0, &slave->areas[bind->slave_channel], 0, count, pcm->setup.format.format);
-		if (err < 0)
-			return err;
-		if (!slave->handle->setup.format.interleave) {
-			struct iovec *vec = &slave->iovec[bind->slave_channel];
-			vec->iov_len = count;
-		}
-	}
+	pcm->mmap_status = multi->slaves[0].handle->mmap_status;
 	return 0;
 }
 
-static int snd_pcm_multi_writev_copy(snd_pcm_t *pcm, const struct iovec *vec,
-				     size_t offset, size_t count)
+static int snd_pcm_multi_mmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int i;
-	snd_pcm_channel_area_t area;
-	area.first = 0;
-	area.step = pcm->bits_per_sample;
-	for (i = 0; i < multi->bindings_count; ++i) {
-		snd_pcm_multi_bind_t *bind = &multi->bindings[i];
-		snd_pcm_multi_slave_t *slave = &multi->slaves[bind->slave];
-		int err;
-		area.addr = vec[bind->client_channel].iov_base + 
-			offset * pcm->bits_per_sample;
-		if (slave->handle->setup.format.interleave) {
-			assert(slave->buf);
-			err = snd_pcm_area_copy(&area, 0, &slave->areas[bind->slave_channel], 0, count, pcm->setup.format.format);
-			if (err < 0)
-				return err;
-		} else {
-			struct iovec *vec = &slave->iovec[bind->slave_channel];
-			vec->iov_base = area.addr;
-			vec->iov_len = count;
-		}
-	}
+	pcm->mmap_control = multi->slaves[0].handle->mmap_control;
 	return 0;
 }
 
-static ssize_t snd_pcm_multi_write_io(snd_pcm_t *pcm, size_t count)
-{
-	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int i;
-	ssize_t frames = count;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_multi_slave_t *slave = &multi->slaves[i];
-		snd_pcm_t *sh = slave->handle;
-		if (sh->setup.format.interleave) {
-			frames = snd_pcm_write(sh, slave->buf, frames);
-		} else {
-			int channels = sh->setup.format.channels;
-			frames = snd_pcm_writev(sh, slave->iovec, channels);
-		}
-		if (frames <= 0)
-			break;
-	}
-	return frames;
-}
-
-static ssize_t snd_pcm_multi_write(snd_pcm_t *pcm, snd_timestamp_t *timestamp ATTRIBUTE_UNUSED, const void *buf, size_t count)
-{
-	snd_pcm_multi_t *multi = pcm->private;
-	size_t result = 0;
-	while (count > 0) {
-		int err;
-		ssize_t ret;
-		size_t frames = count;
-		if (frames > multi->frames_alloc)
-			frames = multi->frames_alloc;
-		err = snd_pcm_multi_write_copy(pcm, buf, result, frames);
-		if (err < 0)
-			return err;
-		ret = snd_pcm_multi_write_io(pcm, frames);
-		if (ret > 0)
-			result += ret;
-		if (ret != (ssize_t)frames) {
-			if (result > 0)
-				return result;
-			return ret;
-		}
-		count -= ret;
-	}
-	return result;
-}
-
-static ssize_t snd_pcm_multi_writev1(snd_pcm_t *pcm, const struct iovec *vector, size_t count)
-{
-	snd_pcm_multi_t *multi = pcm->private;
-	size_t result = 0;
-	while (count > 0) {
-		int err;
-		ssize_t ret;
-		size_t frames = count;
-		if (frames > multi->frames_alloc)
-			frames = multi->frames_alloc;
-		err = snd_pcm_multi_writev_copy(pcm, vector, result, frames);
-		if (err < 0)
-			return err;
-		ret = snd_pcm_multi_write_io(pcm, frames);
-		if (ret > 0)
-			result += ret;
-		if (ret != (ssize_t) frames) {
-			if (result > 0)
-				return result;
-			return ret;
-		}
-		count -= ret;
-	}
-	return result;
-}
-
-static ssize_t snd_pcm_multi_writev(snd_pcm_t *pcm, snd_timestamp_t *timestamp ATTRIBUTE_UNUSED, const struct iovec *vector, unsigned long count)
-{
-	unsigned int k, step;
-	size_t result = 0;
-	if (pcm->setup.format.interleave)
-		step = 1;
-	else
-		step = pcm->setup.format.channels;
-	for (k = 0; k < count; k += step) {
-		ssize_t ret;
-		if (pcm->setup.format.interleave)
-			ret = snd_pcm_multi_write(pcm, timestamp, vector->iov_base, vector->iov_len);
-		else
-			ret = snd_pcm_multi_writev1(pcm, vector, vector->iov_len);
-		if (ret > 0)
-			result += ret;
-		if (ret != (ssize_t) vector->iov_len) {
-			if (result > 0)
-				return result;
-			return ret;
-		}
-		vector += step;
-	}
-	return result;
-}
-
-static ssize_t snd_pcm_multi_read(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_timestamp_t *timestamp ATTRIBUTE_UNUSED, void *buf ATTRIBUTE_UNUSED, size_t count ATTRIBUTE_UNUSED)
-{
-	// snd_pcm_multi_t *multi = pcm->private;
-	return -ENOSYS;
-}
-
-static ssize_t snd_pcm_multi_readv(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_timestamp_t *timestamp ATTRIBUTE_UNUSED, const struct iovec *vector ATTRIBUTE_UNUSED, unsigned long count ATTRIBUTE_UNUSED)
-{
-	// snd_pcm_multi_t *multi = pcm->private;
-	return -ENOSYS;
-}
-
-static int snd_pcm_multi_mmap_status(snd_pcm_t *pcm, snd_pcm_mmap_status_t **status)
-{
-	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int i;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_mmap_status(handle, status);
-		if (err < 0)
-			return err;
-	}
-	*status = multi->slaves[0].handle->mmap_status;
-	return 0;
-}
-
-static int snd_pcm_multi_mmap_control(snd_pcm_t *pcm, snd_pcm_mmap_control_t **control)
-{
-	snd_pcm_multi_t *multi = pcm->private;
-	snd_pcm_setup_t *setup_0 = &multi->slaves[0].handle->setup;
-	unsigned int i;
-	for (i = 1; i < multi->slaves_count; ++i) {
-		snd_pcm_setup_t *setup = &multi->slaves[i].handle->setup;
-		/* Don't permit mmap if appl_ptr's have
-		   different ranges */
-		if (setup->buffer_size != setup_0->buffer_size)
-			return -EBADFD;
-	}
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_mmap_control(handle, control);
-		if (err < 0)
-			return err;
-	}
-	*control = multi->slaves[0].handle->mmap_control;
-	return 0;
-}
-
-static int snd_pcm_multi_mmap_data(snd_pcm_t *pcm, void **buffer, size_t bsize ATTRIBUTE_UNUSED)
+static int snd_pcm_multi_mmap_data(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
@@ -609,44 +384,26 @@ static int snd_pcm_multi_mmap_data(snd_pcm_t *pcm, void **buffer, size_t bsize A
 			err = snd_pcm_mmap_get_areas(handle, areas);
 			if (err < 0)
 				return err;
-			err = snd_pcm_areas_silence(areas, 0, setup->format.channels, setup->buffer_size, setup->format.format);
+			err = snd_pcm_areas_silence(areas, 0, setup->format.channels, setup->buffer_size, setup->format.sfmt);
 			if (err < 0)
 				return err;
 		}
 	}
-	*buffer = multi->slaves[0].handle->mmap_data;
+	pcm->mmap_data = multi->slaves[0].handle->mmap_data;
 	return 0;
 }
 
-static int snd_pcm_multi_munmap_status(snd_pcm_t *pcm, snd_pcm_mmap_status_t *status ATTRIBUTE_UNUSED)
+static int snd_pcm_multi_munmap_status(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int i;
-	int ret = 0;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_munmap_status(handle);
-		if (err < 0)
-			ret = err;
-	}
-	return ret;
+	return 0;
 }
 		
-static int snd_pcm_multi_munmap_control(snd_pcm_t *pcm, snd_pcm_mmap_control_t *control ATTRIBUTE_UNUSED)
+static int snd_pcm_multi_munmap_control(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int i;
-	int ret = 0;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		snd_pcm_t *handle = multi->slaves[i].handle;
-		int err = snd_pcm_munmap_control(handle);
-		if (err < 0)
-			ret = err;
-	}
-	return ret;
+	return 0;
 }
 		
-static int snd_pcm_multi_munmap_data(snd_pcm_t *pcm, void *buffer ATTRIBUTE_UNUSED, size_t size ATTRIBUTE_UNUSED)
+static int snd_pcm_multi_munmap_data(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
@@ -660,44 +417,64 @@ static int snd_pcm_multi_munmap_data(snd_pcm_t *pcm, void *buffer ATTRIBUTE_UNUS
 	return ret;
 }
 		
-static int snd_pcm_multi_channels_mask(snd_pcm_t *pcm, bitset_t *client_vmask)
+static ssize_t snd_pcm_multi_mmap_forward(snd_pcm_t *pcm, size_t size)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int i;
-	bitset_t *vmasks[multi->slaves_count];
+
+	for (i = 0; i < multi->slaves_count; ++i) {
+		snd_pcm_t *handle = multi->slaves[i].handle;
+		ssize_t frames = snd_pcm_mmap_forward(handle, size);
+		if (frames < 0)
+			return frames;
+		if (i == 0) {
+			size = frames;
+			continue;
+		}
+		if ((size_t) frames != size)
+			return -EBADFD;
+	}
+	return size;
+}
+
+static int snd_pcm_multi_channels_mask(snd_pcm_t *pcm, bitset_t *cmask)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	unsigned int i;
+	bitset_t *cmasks[multi->slaves_count];
 	int err;
 	for (i = 0; i < multi->slaves_count; ++i)
-		vmasks[i] = bitset_alloc(multi->slaves[i].channels_total);
+		cmasks[i] = bitset_alloc(multi->slaves[i].channels_total);
 	for (i = 0; i < multi->bindings_count; ++i) {
 		snd_pcm_multi_bind_t *b = &multi->bindings[i];
-		if (bitset_get(client_vmask, b->client_channel))
-			bitset_set(vmasks[b->slave], b->slave_channel);
+		if (bitset_get(cmask, b->client_channel))
+			bitset_set(cmasks[b->slave], b->slave_channel);
 	}
 	for (i = 0; i < multi->slaves_count; ++i) {
 		snd_pcm_t *handle = multi->slaves[i].handle;
-		err = snd_pcm_channels_mask(handle, vmasks[i]);
+		err = snd_pcm_channels_mask(handle, cmasks[i]);
 		if (err < 0) {
 			for (i = 0; i <= multi->slaves_count; ++i)
-				free(vmasks[i]);
+				free(cmasks[i]);
 			return err;
 		}
 	}
-	bitset_zero(client_vmask, pcm->setup.format.channels);
+	bitset_zero(cmask, pcm->setup.format.channels);
 	for (i = 0; i < multi->bindings_count; ++i) {
 		snd_pcm_multi_bind_t *b = &multi->bindings[i];
-		if (bitset_get(vmasks[b->slave], b->slave_channel))
-			bitset_set(client_vmask, b->client_channel);
+		if (bitset_get(cmasks[b->slave], b->slave_channel))
+			bitset_set(cmask, b->client_channel);
 	}
 	for (i = 0; i < multi->slaves_count; ++i)
-		free(vmasks[i]);
+		free(cmasks[i]);
 	return 0;
 }
 		
-int snd_pcm_multi_file_descriptor(snd_pcm_t *pcm)
+int snd_pcm_multi_poll_descriptor(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	snd_pcm_t *handle = multi->slaves[0].handle;
-	return snd_pcm_file_descriptor(handle);
+	return snd_pcm_poll_descriptor(handle);
 }
 
 static void snd_pcm_multi_dump(snd_pcm_t *pcm, FILE *fp)
@@ -728,35 +505,37 @@ struct snd_pcm_ops snd_pcm_multi_ops = {
 	params_info: snd_pcm_multi_params_info,
 	params: snd_pcm_multi_params,
 	setup: snd_pcm_multi_setup,
-	dump: snd_pcm_multi_dump,
-};
-
-struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
-	nonblock: snd_pcm_multi_nonblock,
 	channel_info: snd_pcm_multi_channel_info,
 	channel_params: snd_pcm_multi_channel_params,
 	channel_setup: snd_pcm_multi_channel_setup,
-	status: snd_pcm_multi_status,
-	hw_ptr: snd_pcm_multi_hw_ptr,
-	state: snd_pcm_multi_state,
-	prepare: snd_pcm_multi_prepare,
-	go: snd_pcm_multi_go,
-	drain: snd_pcm_multi_drain,
-	flush: snd_pcm_multi_flush,
-	pause: snd_pcm_multi_pause,
-	write: snd_pcm_multi_write,
-	writev: snd_pcm_multi_writev,
-	read: snd_pcm_multi_read,
-	readv: snd_pcm_multi_readv,
-	appl_ptr: snd_pcm_multi_appl_ptr,
+	dump: snd_pcm_multi_dump,
+	nonblock: snd_pcm_multi_nonblock,
 	mmap_status: snd_pcm_multi_mmap_status,
 	mmap_control: snd_pcm_multi_mmap_control,
 	mmap_data: snd_pcm_multi_mmap_data,
 	munmap_status: snd_pcm_multi_munmap_status,
 	munmap_control: snd_pcm_multi_munmap_control,
 	munmap_data: snd_pcm_multi_munmap_data,
-	file_descriptor: snd_pcm_multi_file_descriptor,
+};
+
+struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
+	status: snd_pcm_multi_status,
+	state: snd_pcm_multi_state,
+	delay: snd_pcm_multi_delay,
+	prepare: snd_pcm_multi_prepare,
+	start: snd_pcm_multi_start,
+	stop: snd_pcm_multi_stop,
+	flush: snd_pcm_multi_flush,
+	pause: snd_pcm_multi_pause,
+	writei: snd_pcm_mmap_writei,
+	writen: snd_pcm_mmap_writen,
+	readi: snd_pcm_mmap_readi,
+	readn: snd_pcm_mmap_readn,
+	appl_ptr: snd_pcm_multi_appl_ptr,
+	poll_descriptor: snd_pcm_multi_poll_descriptor,
 	channels_mask: snd_pcm_multi_channels_mask,
+	avail_update: snd_pcm_multi_avail_update,
+	mmap_forward: snd_pcm_multi_mmap_forward,
 };
 
 int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
@@ -769,6 +548,7 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 	snd_pcm_multi_t *multi;
 	size_t channels = 0;
 	unsigned int i;
+	int err;
 	int stream;
 	char client_map[32] = { 0 };
 	char slave_map[32][32] = { { 0 } };
@@ -777,12 +557,8 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 	assert(slaves_count > 0 && slaves_handle && schannels_count);
 	assert(bindings_count > 0 && bindings_slave && bindings_cchannel && bindings_schannel);
 
-	handle = calloc(1, sizeof(snd_pcm_t));
-	if (!handle)
-		return -ENOMEM;
 	multi = calloc(1, sizeof(snd_pcm_multi_t));
 	if (!multi) {
-		free(handle);
 		return -ENOMEM;
 	}
 
@@ -808,21 +584,20 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 		bind->client_channel = bindings_cchannel[i];
 		bind->slave = bindings_slave[i];
 		bind->slave_channel = bindings_schannel[i];
-		if (slave_map[bindings_slave[i]][bindings_schannel[i]]) {
-			assert(stream == SND_PCM_STREAM_CAPTURE);
-			multi->one_to_many = 1;
-		}
+		assert(!slave_map[bindings_slave[i]][bindings_schannel[i]]);
 		slave_map[bindings_slave[i]][bindings_schannel[i]] = 1;
-		if (client_map[bindings_cchannel[i]]) {
-			assert(stream == SND_PCM_STREAM_PLAYBACK);
-			multi->one_to_many = 1;
-		}
+		assert(!client_map[bindings_cchannel[i]]);
 		client_map[bindings_cchannel[i]] = 1;
 		if (bindings_cchannel[i] >= channels)
 			channels = bindings_cchannel[i] + 1;
 	}
 	multi->channels_count = channels;
 
+	handle = calloc(1, sizeof(snd_pcm_t));
+	if (!handle) {
+		free(multi);
+		return -ENOMEM;
+	}
 	handle->type = SND_PCM_TYPE_MULTI;
 	handle->stream = stream;
 	handle->mode = multi->slaves[0].handle->mode;
@@ -831,6 +606,195 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 	handle->fast_ops = &snd_pcm_multi_fast_ops;
 	handle->fast_op_arg = handle;
 	handle->private = multi;
+	err = snd_pcm_init(handle);
+	if (err < 0) {
+		snd_pcm_close(handle);
+		return err;
+	}
 	*handlep = handle;
 	return 0;
 }
+
+int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
+			int stream, int mode)
+{
+	snd_config_iterator_t i, j;
+	snd_config_t *slave = NULL;
+	snd_config_t *binding = NULL;
+	int err;
+	unsigned int idx;
+	char **slaves_id = NULL;
+	char **slaves_name = NULL;
+	snd_pcm_t **slaves_pcm = NULL;
+	size_t *slaves_channels = NULL;
+	unsigned int *bindings_cchannel = NULL;
+	unsigned int *bindings_slave = NULL;
+	unsigned int *bindings_schannel = NULL;
+	size_t slaves_count = 0;
+	size_t bindings_count = 0;
+	snd_config_foreach(i, conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "type") == 0)
+			continue;
+		if (strcmp(n->id, "stream") == 0)
+			continue;
+		if (strcmp(n->id, "slave") == 0) {
+			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
+				return -EINVAL;
+			slave = n;
+			continue;
+		}
+		if (strcmp(n->id, "binding") == 0) {
+			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
+				return -EINVAL;
+			binding = n;
+			continue;
+		}
+		return -EINVAL;
+	}
+	if (!slave || !binding)
+		return -EINVAL;
+	snd_config_foreach(i, slave) {
+		++slaves_count;
+	}
+	snd_config_foreach(i, binding) {
+		++bindings_count;
+	}
+	slaves_id = calloc(slaves_count, sizeof(*slaves_id));
+	slaves_name = calloc(slaves_count, sizeof(*slaves_name));
+	slaves_pcm = calloc(slaves_count, sizeof(*slaves_pcm));
+	slaves_channels = calloc(slaves_count, sizeof(*slaves_channels));
+	bindings_cchannel = calloc(bindings_count, sizeof(*bindings_cchannel));
+	bindings_slave = calloc(bindings_count, sizeof(*bindings_slave));
+	bindings_schannel = calloc(bindings_count, sizeof(*bindings_schannel));
+	idx = 0;
+	snd_config_foreach(i, slave) {
+		snd_config_t *m = snd_config_entry(i);
+		char *pcm = NULL;
+		long channels = -1;
+		slaves_id[idx] = snd_config_id(m);
+		snd_config_foreach(j, m) {
+			snd_config_t *n = snd_config_entry(j);
+			if (strcmp(n->id, "comment") == 0)
+				continue;
+			if (strcmp(n->id, "pcm") == 0) {
+				err = snd_config_string_get(n, &pcm);
+				if (err < 0)
+					goto _free;
+				continue;
+			}
+			if (strcmp(n->id, "channels") == 0) {
+				err = snd_config_integer_get(n, &channels);
+				if (err < 0)
+					goto _free;
+				continue;
+			}
+			err = -EINVAL;
+			goto _free;
+		}
+		if (!pcm || channels < 0) {
+			err = -EINVAL;
+			goto _free;
+		}
+		slaves_name[idx] = strdup(pcm);
+		slaves_channels[idx] = channels;
+		++idx;
+	}
+
+	idx = 0;
+	snd_config_foreach(i, binding) {
+		snd_config_t *m = snd_config_entry(i);
+		long cchannel = -1, schannel = -1;
+		int slave = -1;
+		long val;
+		char *str;
+		snd_config_foreach(j, m) {
+			snd_config_t *n = snd_config_entry(j);
+			if (strcmp(n->id, "comment") == 0)
+				continue;
+			if (strcmp(n->id, "client_channel") == 0) {
+				err = snd_config_integer_get(n, &cchannel);
+				if (err < 0)
+					goto _free;
+				continue;
+			}
+			if (strcmp(n->id, "slave") == 0) {
+				char buf[32];
+				unsigned int k;
+				err = snd_config_string_get(n, &str);
+				if (err < 0) {
+					err = snd_config_integer_get(n, &val);
+					if (err < 0)
+						goto _free;
+					sprintf(buf, "%ld", val);
+					str = buf;
+				}
+				for (k = 0; k < slaves_count; ++k) {
+					if (strcmp(slaves_id[k], str) == 0)
+						slave = k;
+				}
+				continue;
+			}
+			if (strcmp(n->id, "slave_channel") == 0) {
+				err = snd_config_integer_get(n, &schannel);
+				if (err < 0)
+					goto _free;
+				continue;
+			}
+			err = -EINVAL;
+			goto _free;
+		}
+		if (cchannel < 0 || slave < 0 || schannel < 0) {
+			err = -EINVAL;
+			goto _free;
+		}
+		if ((size_t)slave >= slaves_count) {
+			err = -EINVAL;
+			goto _free;
+		}
+		if ((unsigned int) schannel >= slaves_channels[slave]) {
+			err = -EINVAL;
+			goto _free;
+		}
+		bindings_cchannel[idx] = cchannel;
+		bindings_slave[idx] = slave;
+		bindings_schannel[idx] = schannel;
+		++idx;
+	}
+	
+	for (idx = 0; idx < slaves_count; ++idx) {
+		err = snd_pcm_open(&slaves_pcm[idx], slaves_name[idx], stream, mode);
+		if (err < 0)
+			goto _free;
+	}
+	err = snd_pcm_multi_create(pcmp, slaves_count, slaves_pcm,
+				   slaves_channels,
+				   bindings_count, bindings_cchannel,
+				   bindings_slave, bindings_schannel,
+				   1);
+_free:
+	if (err < 0) {
+		for (idx = 0; idx < slaves_count; ++idx) {
+			if (slaves_pcm[idx])
+				snd_pcm_close(slaves_pcm[idx]);
+			if (slaves_name[idx])
+				free(slaves_name[idx]);
+		}
+	}
+	if (slaves_name)
+		free(slaves_name);
+	if (slaves_pcm)
+		free(slaves_pcm);
+	if (slaves_channels)
+		free(slaves_channels);
+	if (bindings_cchannel)
+		free(bindings_cchannel);
+	if (bindings_slave)
+		free(bindings_slave);
+	if (bindings_schannel)
+		free(bindings_schannel);
+	return err;
+}
+

@@ -86,7 +86,7 @@ int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 	return res;
 }
 
-int snd_rawmidi_file_descriptor(snd_rawmidi_t *rmidi)
+int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi)
 {
 	if (!rmidi)
 		return -EINVAL;

@@ -25,7 +25,7 @@
 
 struct snd_ctl_ops {
 	int (*close)(snd_ctl_t *handle);
-	int (*file_descriptor)(snd_ctl_t *handle);
+	int (*poll_descriptor)(snd_ctl_t *handle);
 	int (*hw_info)(snd_ctl_t *handle, snd_ctl_hw_info_t *info);
 	int (*clist)(snd_ctl_t *handle, snd_control_list_t *list);
 	int (*cinfo)(snd_ctl_t *handle, snd_control_info_t *info);

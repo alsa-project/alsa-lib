@@ -26,461 +26,313 @@
 #include <sys/uio.h>
 #include "pcm_local.h"
 
-int snd_pcm_avail(snd_pcm_t *handle, ssize_t *frames)
+size_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
 {
-        assert(handle);
-	assert(handle->mmap_status && handle->mmap_control);
-	if (handle->stream == SND_PCM_STREAM_PLAYBACK)
-		*frames = snd_pcm_mmap_playback_avail(handle);
+        assert(pcm);
+	assert(pcm->mmap_status && pcm->mmap_control);
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+		return snd_pcm_mmap_playback_avail(pcm);
 	else
-		*frames = snd_pcm_mmap_capture_avail(handle);
+		return snd_pcm_mmap_capture_avail(pcm);
 	return 0;
 }
 
-static int snd_pcm_mmap_playback_ready(snd_pcm_t *handle)
+static int snd_pcm_mmap_playback_ready(snd_pcm_t *pcm)
 {
-	if (handle->mmap_status->state == SND_PCM_STATE_XRUN)
+	if (pcm->mmap_status->state == SND_PCM_STATE_XRUN)
 		return -EPIPE;
-	return snd_pcm_mmap_playback_avail(handle) >= handle->setup.avail_min;
+	return snd_pcm_mmap_playback_avail(pcm) >= pcm->setup.avail_min;
 }
 
-static int snd_pcm_mmap_capture_ready(snd_pcm_t *handle)
+static int snd_pcm_mmap_capture_ready(snd_pcm_t *pcm)
 {
 	int ret = 0;
-	if (handle->mmap_status->state == SND_PCM_STATE_XRUN) {
+	if (pcm->mmap_status->state == SND_PCM_STATE_XRUN) {
 		ret = -EPIPE;
-		if (handle->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
+		if (pcm->setup.xrun_act == SND_PCM_XRUN_ACT_DRAIN)
 			return -EPIPE;
 	}
-	if (snd_pcm_mmap_capture_avail(handle) >= handle->setup.avail_min)
+	if (snd_pcm_mmap_capture_avail(pcm) >= pcm->setup.avail_min)
 		return 1;
 	return ret;
 }
 
-int snd_pcm_mmap_ready(snd_pcm_t *handle)
+int snd_pcm_mmap_ready(snd_pcm_t *pcm)
 {
-        assert(handle);
-	assert(handle->mmap_status && handle->mmap_control);
-	assert(handle->mmap_status->state >= SND_PCM_STATE_PREPARED);
-	if (handle->stream == SND_PCM_STREAM_PLAYBACK) {
-		return snd_pcm_mmap_playback_ready(handle);
+        assert(pcm);
+	assert(pcm->mmap_status && pcm->mmap_control);
+	assert(pcm->mmap_status->state >= SND_PCM_STATE_PREPARED);
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		return snd_pcm_mmap_playback_ready(pcm);
 	} else {
-		return snd_pcm_mmap_capture_ready(handle);
+		return snd_pcm_mmap_capture_ready(pcm);
 	}
 }
 
-static size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *handle, size_t frames)
+size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, size_t frames)
 {
-	snd_pcm_mmap_control_t *control = handle->mmap_control;
+	snd_pcm_mmap_control_t *control = pcm->mmap_control;
 	size_t cont;
-	size_t avail = snd_pcm_mmap_playback_avail(handle);
+	size_t avail = snd_pcm_mmap_playback_avail(pcm);
 	if (avail < frames)
 		frames = avail;
-	cont = handle->setup.buffer_size - control->appl_ptr % handle->setup.buffer_size;
+	cont = pcm->setup.buffer_size - control->appl_ptr % pcm->setup.buffer_size;
 	if (cont < frames)
 		frames = cont;
 	return frames;
 }
 
-static size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *handle, size_t frames)
+size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, size_t frames)
 {
-	snd_pcm_mmap_control_t *control = handle->mmap_control;
+	snd_pcm_mmap_control_t *control = pcm->mmap_control;
 	size_t cont;
-	size_t avail = snd_pcm_mmap_capture_avail(handle);
+	size_t avail = snd_pcm_mmap_capture_avail(pcm);
 	if (avail < frames)
 		frames = avail;
-	cont = handle->setup.buffer_size - control->appl_ptr % handle->setup.buffer_size;
+	cont = pcm->setup.buffer_size - control->appl_ptr % pcm->setup.buffer_size;
 	if (cont < frames)
 		frames = cont;
 	return frames;
 }
 
-ssize_t snd_pcm_mmap_xfer(snd_pcm_t *handle, size_t frames)
+size_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, size_t frames)
 {
-        assert(handle);
-	assert(handle->mmap_status && handle->mmap_control);
-	if (handle->stream == SND_PCM_STREAM_PLAYBACK)
-		return snd_pcm_mmap_playback_xfer(handle, frames);
+        assert(pcm);
+	assert(pcm->mmap_status && pcm->mmap_control);
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+		return snd_pcm_mmap_playback_xfer(pcm, frames);
 	else
-		return snd_pcm_mmap_capture_xfer(handle, frames);
+		return snd_pcm_mmap_capture_xfer(pcm, frames);
 }
 
-ssize_t snd_pcm_mmap_offset(snd_pcm_t *handle)
+size_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
 {
-        assert(handle);
-	assert(handle->mmap_control);
-	return handle->mmap_control->appl_ptr % handle->setup.buffer_size;
+        assert(pcm);
+	assert(pcm->mmap_control);
+	return pcm->mmap_control->appl_ptr % pcm->setup.buffer_size;
 }
 
-int snd_pcm_mmap_state(snd_pcm_t *handle)
+size_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
 {
-	assert(handle);
-	assert(handle->mmap_status);
-	return handle->mmap_status->state;
+        assert(pcm);
+	assert(pcm->mmap_status);
+	return pcm->mmap_status->hw_ptr % pcm->setup.buffer_size;
 }
 
-ssize_t snd_pcm_mmap_hw_ptr(snd_pcm_t *handle)
+int snd_pcm_mmap_state(snd_pcm_t *pcm)
 {
-	assert(handle);
-	assert(handle->mmap_status);
-	return handle->mmap_status->hw_ptr;
+	assert(pcm);
+	assert(pcm->mmap_status);
+	return pcm->mmap_status->state;
 }
 
-ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *handle, off_t offset)
+ssize_t snd_pcm_mmap_hw_ptr(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	assert(pcm->mmap_status);
+	return pcm->mmap_status->hw_ptr;
+}
+
+ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset)
 {
 	ssize_t appl_ptr;
-	assert(handle);
-	assert(handle->mmap_status && handle->mmap_control);
-	assert(offset == 0 || handle->type == SND_PCM_TYPE_HW);
-	appl_ptr = handle->mmap_control->appl_ptr;
+	assert(pcm);
+	assert(pcm->mmap_status && pcm->mmap_control);
+	assert(offset == 0 || pcm->type == SND_PCM_TYPE_HW);
+	appl_ptr = pcm->mmap_control->appl_ptr;
 	if (offset == 0)
 		return appl_ptr;
-	switch (handle->mmap_status->state) {
+	switch (pcm->mmap_status->state) {
 	case SND_PCM_STATE_RUNNING:
-		if (handle->setup.mode == SND_PCM_MODE_FRAME)
-			snd_pcm_hw_ptr(handle, 1);
+		if (pcm->setup.xrun_mode == SND_PCM_XRUN_ASAP)
+			snd_pcm_avail_update(pcm);
 		break;
 	case SND_PCM_STATE_READY:
 	case SND_PCM_STATE_NOTREADY:
 		return -EBADFD;
 	}
 	if (offset < 0) {
-		if (offset < -(ssize_t)handle->setup.buffer_size)
-			offset = -(ssize_t)handle->setup.buffer_size;
-		else
-			offset -= offset % handle->setup.align;
+		if (offset < -(ssize_t)pcm->setup.buffer_size)
+			offset = -(ssize_t)pcm->setup.buffer_size;
 		appl_ptr += offset;
 		if (appl_ptr < 0)
-			appl_ptr += handle->setup.boundary;
+			appl_ptr += pcm->setup.boundary;
 	} else {
 		size_t avail;
-		if (handle->stream == SND_PCM_STREAM_PLAYBACK)
-			avail = snd_pcm_mmap_playback_avail(handle);
+		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+			avail = snd_pcm_mmap_playback_avail(pcm);
 		else
-			avail = snd_pcm_mmap_capture_avail(handle);
+			avail = snd_pcm_mmap_capture_avail(pcm);
 		if ((size_t)offset > avail)
 			offset = avail;
-		offset -= offset % handle->setup.align;
 		appl_ptr += offset;
-		if ((size_t)appl_ptr >= handle->setup.boundary)
-			appl_ptr -= handle->setup.boundary;
+		if ((size_t)appl_ptr >= pcm->setup.boundary)
+			appl_ptr -= pcm->setup.boundary;
 	}
-	handle->mmap_control->appl_ptr = appl_ptr;
+	pcm->mmap_control->appl_ptr = appl_ptr;
 	return appl_ptr;
 }
 
-ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *channels, size_t frames)
+void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, size_t frames)
 {
-	snd_pcm_mmap_status_t *status;
-	size_t offset = 0;
-	size_t result = 0;
-	int err;
-
-	assert(handle->mmap_data && handle->mmap_status && handle->mmap_control);
-	status = handle->mmap_status;
-	assert(status->state >= SND_PCM_STATE_PREPARED);
-	if (handle->setup.mode == SND_PCM_MODE_FRAGMENT) {
-		assert(frames % handle->setup.frag_size == 0);
-	} else {
-		if (status->state == SND_PCM_STATE_RUNNING &&
-		    handle->mode & SND_PCM_NONBLOCK)
-			snd_pcm_hw_ptr(handle, 1);
-	}
-	while (frames > 0) {
-		ssize_t mmap_offset;
-		size_t frames1;
-		int ready = snd_pcm_mmap_playback_ready(handle);
-		if (ready < 0)
-			return ready;
-		if (!ready) {
-			struct pollfd pfd;
-			if (status->state != SND_PCM_STATE_RUNNING)
-				return result > 0 ? result : -EPIPE;
-			if (handle->mode & SND_PCM_NONBLOCK)
-				return result > 0 ? result : -EAGAIN;
-			pfd.fd = snd_pcm_file_descriptor(handle);
-			pfd.events = POLLOUT | POLLERR;
-			ready = poll(&pfd, 1, 10000);
-			if (ready < 0)
-				return result > 0 ? result : ready;
-			if (ready && pfd.revents & POLLERR)
-				return result > 0 ? result : -EPIPE;
-			assert(snd_pcm_mmap_playback_ready(handle));
-		}
-		frames1 = snd_pcm_mmap_playback_xfer(handle, frames);
-		assert(frames1 > 0);
-		mmap_offset = snd_pcm_mmap_offset(handle);
-		snd_pcm_areas_copy(channels, offset, handle->channels, mmap_offset, handle->setup.format.channels, frames1, handle->setup.format.format);
-		if (status->state == SND_PCM_STATE_XRUN)
-			return result > 0 ? result : -EPIPE;
-		snd_pcm_appl_ptr(handle, frames1);
-		frames -= frames1;
-		offset += frames1;
-		result += frames1;
-		if (status->state == SND_PCM_STATE_PREPARED &&
-		    (handle->setup.start_mode == SND_PCM_START_DATA ||
-		     (handle->setup.start_mode == SND_PCM_START_FULL &&
-		      !snd_pcm_mmap_playback_ready(handle)))) {
-			err = snd_pcm_go(handle);
-			if (err < 0)
-				return result > 0 ? result : err;
-		}
-	}
-	return result;
+	size_t appl_ptr = pcm->mmap_control->appl_ptr;
+	appl_ptr += frames;
+	if (appl_ptr >= pcm->setup.boundary)
+		appl_ptr -= pcm->setup.boundary;
+	pcm->mmap_control->appl_ptr = appl_ptr;
 }
 
-ssize_t snd_pcm_mmap_write(snd_pcm_t *handle, const void *buffer, size_t frames)
+void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, size_t frames)
 {
-	unsigned int nchannels;
-	assert(handle);
-	assert(handle->mmap_data && handle->mmap_status && handle->mmap_control);
-	assert(frames == 0 || buffer);
-	nchannels = handle->setup.format.channels;
-	assert(handle->setup.format.interleave || nchannels == 1);
-	{
-		snd_pcm_channel_area_t channels[nchannels];
-		unsigned int channel;
-		for (channel = 0; channel < nchannels; ++channel) {
-			channels[channel].addr = (char*)buffer;
-			channels[channel].first = handle->bits_per_sample * channel;
-			channels[channel].step = handle->bits_per_frame;
-		}
-		return snd_pcm_mmap_write_areas(handle, channels, frames);
-	}
+	size_t hw_ptr = pcm->mmap_status->hw_ptr;
+	hw_ptr += frames;
+	if (hw_ptr >= pcm->setup.boundary)
+		hw_ptr -= pcm->setup.boundary;
+	pcm->mmap_status->hw_ptr = hw_ptr;
 }
 
-ssize_t snd_pcm_mmap_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned long vcount)
+ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,
+				 snd_pcm_channel_area_t *areas,
+				 size_t offset,
+				 size_t size,
+				 size_t *slave_sizep)
 {
-	size_t result = 0;
-	unsigned int nchannels;
-	assert(handle);
-	assert(handle->mmap_data && handle->mmap_status && handle->mmap_control);
-	assert(vcount == 0 || vector);
-	nchannels = handle->setup.format.channels;
-	if (handle->setup.format.interleave) {
-		unsigned int b;
-		for (b = 0; b < vcount; b++) {
-			ssize_t ret;
-			size_t frames = vector[b].iov_len;
-			ret = snd_pcm_mmap_write(handle, vector[b].iov_base, frames);
-			if (ret < 0) {
-				if (result <= 0)
-					return ret;
-				break;
-			}
-			result += ret;
-		}
-	} else {
-		snd_pcm_channel_area_t channels[nchannels];
-		unsigned long bcount;
-		unsigned int b;
-		assert(vcount % nchannels == 0);
-		bcount = vcount / nchannels;
-		for (b = 0; b < bcount; b++) {
-			unsigned int v;
-			ssize_t ret;
-			size_t frames = vector[0].iov_len;
-			for (v = 0; v < nchannels; ++v) {
-				assert(vector[v].iov_len == frames);
-				channels[v].addr = vector[v].iov_base;
-				channels[v].first = 0;
-				channels[v].step = handle->bits_per_sample;
-			}
-			ret = snd_pcm_mmap_write_areas(handle, channels, frames);
-			if (ret < 0) {
-				if (result <= 0)
-					return ret;
-				break;
-			}
-			result += ret;
-			if ((size_t)ret != frames)
-				break;
-			vector += nchannels;
-		}
-	}
-	return result;
-}
-
-ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *channels, size_t frames)
-{
-	snd_pcm_mmap_status_t *status;
-	size_t offset = 0;
-	size_t result = 0;
-	int err;
-
-	assert(handle->mmap_data && handle->mmap_status && handle->mmap_control);
-	status = handle->mmap_status;
-	assert(status->state >= SND_PCM_STATE_PREPARED);
-	if (handle->setup.mode == SND_PCM_MODE_FRAGMENT) {
-		assert(frames % handle->setup.frag_size == 0);
-	} else {
-		if (status->state == SND_PCM_STATE_RUNNING &&
-		    handle->mode & SND_PCM_NONBLOCK)
-			snd_pcm_hw_ptr(handle, 1);
-	}
-	if (status->state == SND_PCM_STATE_PREPARED &&
-	    handle->setup.start_mode == SND_PCM_START_DATA) {
-		err = snd_pcm_go(handle);
+	size_t xfer;
+	ssize_t err = 0;
+	if (slave_sizep && *slave_sizep < size)
+		size = *slave_sizep;
+	xfer = 0;
+	while (xfer < size) {
+		size_t frames = snd_pcm_mmap_playback_xfer(pcm, size - xfer);
+		snd_pcm_areas_copy(areas, offset, 
+				   pcm->mmap_areas, snd_pcm_mmap_offset(pcm),
+				   pcm->setup.format.channels, 
+				   frames, pcm->setup.format.sfmt);
+		err = snd_pcm_mmap_forward(pcm, frames);
 		if (err < 0)
-			return err;
+			break;
+		assert((size_t)err == frames);
+		offset += err;
+		xfer += err;
 	}
-	while (frames > 0) {
-		ssize_t mmap_offset;
-		size_t frames1;
-		int ready = snd_pcm_mmap_capture_ready(handle);
-		if (ready < 0)
-			return ready;
-		if (!ready) {
-			struct pollfd pfd;
-			if (status->state != SND_PCM_STATE_RUNNING)
-				return result > 0 ? result : -EPIPE;
-			if (handle->mode & SND_PCM_NONBLOCK)
-				return result > 0 ? result : -EAGAIN;
-			pfd.fd = snd_pcm_file_descriptor(handle);
-			pfd.events = POLLIN | POLLERR;
-			ready = poll(&pfd, 1, 10000);
-			if (ready < 0)
-				return result > 0 ? result : ready;
-			if (ready && pfd.revents & POLLERR)
-				return result > 0 ? result : -EPIPE;
-			assert(snd_pcm_mmap_capture_ready(handle));
-		}
-		frames1 = snd_pcm_mmap_capture_xfer(handle, frames);
-		assert(frames1 > 0);
-		mmap_offset = snd_pcm_mmap_offset(handle);
-		snd_pcm_areas_copy(handle->channels, mmap_offset, channels, offset, handle->setup.format.channels, frames1, handle->setup.format.format);
-		if (status->state == SND_PCM_STATE_XRUN &&
-		    handle->setup.xrun_mode == SND_PCM_XRUN_DRAIN)
-			return result > 0 ? result : -EPIPE;
-		snd_pcm_appl_ptr(handle, frames1);
-		frames -= frames1;
-		offset += frames1;
-		result += frames1;
+	if (xfer > 0) {
+		if (slave_sizep)
+			*slave_sizep = xfer;
+		return xfer;
 	}
-	return result;
+	return err;
 }
 
-ssize_t snd_pcm_mmap_read(snd_pcm_t *handle, void *buffer, size_t frames)
+ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
+				snd_pcm_channel_area_t *areas,
+				size_t offset,
+				size_t size,
+				size_t *slave_sizep)
 {
-	unsigned int nchannels;
-	assert(handle);
-	assert(handle->mmap_data && handle->mmap_status && handle->mmap_control);
-	assert(frames == 0 || buffer);
-	nchannels = handle->setup.format.channels;
-	assert(handle->setup.format.interleave || nchannels == 1);
-	{
-		snd_pcm_channel_area_t channels[nchannels];
-		unsigned int channel;
-		for (channel = 0; channel < nchannels; ++channel) {
-			channels[channel].addr = (char*)buffer;
-			channels[channel].first = handle->bits_per_sample * channel;
-			channels[channel].step = handle->bits_per_frame;
-		}
-		return snd_pcm_mmap_read_areas(handle, channels, frames);
+	size_t xfer;
+	ssize_t err = 0;
+	if (slave_sizep && *slave_sizep < size)
+		size = *slave_sizep;
+	xfer = 0;
+	while (xfer < size) {
+		size_t frames = snd_pcm_mmap_capture_xfer(pcm, size - xfer);
+		snd_pcm_areas_copy(pcm->mmap_areas, snd_pcm_mmap_offset(pcm),
+				   areas, offset, 
+				   pcm->setup.format.channels, 
+				   frames, pcm->setup.format.sfmt);
+		err = snd_pcm_mmap_forward(pcm, frames);
+		if (err < 0)
+			break;
+		assert((size_t)err == frames);
+		offset += err;
+		xfer += err;
 	}
+	if (xfer > 0) {
+		if (slave_sizep)
+			*slave_sizep = xfer;
+		return xfer;
+	}
+	return err;
 }
 
-ssize_t snd_pcm_mmap_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned long vcount)
+ssize_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
 {
-	size_t result = 0;
-	unsigned int nchannels;
-	assert(handle);
-	assert(handle->mmap_data && handle->mmap_status && handle->mmap_control);
-	assert(vcount == 0 || vector);
-	nchannels = handle->setup.format.channels;
-	if (handle->setup.format.interleave) {
-		unsigned int b;
-		for (b = 0; b < vcount; b++) {
-			ssize_t ret;
-			size_t frames = vector[b].iov_len;
-			ret = snd_pcm_mmap_read(handle, vector[b].iov_base, frames);
-			if (ret < 0) {
-				if (result <= 0)
-					return ret;
-				break;
-			}
-			result += ret;
-		}
-	} else {
-		snd_pcm_channel_area_t channels[nchannels];
-		unsigned long bcount;
-		unsigned int b;
-		assert(vcount % nchannels == 0);
-		bcount = vcount / nchannels;
-		for (b = 0; b < bcount; b++) {
-			unsigned int v;
-			ssize_t ret;
-			size_t frames = vector[0].iov_len;
-			for (v = 0; v < nchannels; ++v) {
-				assert(vector[v].iov_len == frames);
-				channels[v].addr = vector[v].iov_base;
-				channels[v].first = 0;
-				channels[v].step = handle->bits_per_sample;
-			}
-			ret = snd_pcm_mmap_read_areas(handle, channels, frames);
-			if (ret < 0) {
-				if (result <= 0)
-					return ret;
-				break;
-			}
-			result += ret;
-			if ((size_t)ret != frames)
-				break;
-			vector += nchannels;
-		}
-	}
-	return result;
+	snd_pcm_channel_area_t areas[pcm->setup.format.channels];
+	snd_pcm_areas_from_buf(pcm, areas, (void*)buffer);
+	return snd_pcm_write_areas(pcm, areas, 0, size,
+				   snd_pcm_mmap_write_areas);
 }
 
-int snd_pcm_mmap_status(snd_pcm_t *handle, snd_pcm_mmap_status_t **status)
+ssize_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, size_t size)
+{
+	snd_pcm_channel_area_t areas[pcm->setup.format.channels];
+	snd_pcm_areas_from_bufs(pcm, areas, bufs);
+	return snd_pcm_write_areas(pcm, areas, 0, size,
+				   snd_pcm_mmap_write_areas);
+}
+
+ssize_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, size_t size)
+{
+	snd_pcm_channel_area_t areas[pcm->setup.format.channels];
+	snd_pcm_areas_from_buf(pcm, areas, buffer);
+	return snd_pcm_read_areas(pcm, areas, 0, size,
+				  snd_pcm_mmap_read_areas);
+}
+
+ssize_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, size_t size)
+{
+	snd_pcm_channel_area_t areas[pcm->setup.format.channels];
+	snd_pcm_areas_from_bufs(pcm, areas, bufs);
+	return snd_pcm_read_areas(pcm, areas, 0, size,
+				  snd_pcm_mmap_read_areas);
+}
+
+int snd_pcm_mmap_status(snd_pcm_t *pcm, snd_pcm_mmap_status_t **status)
 {
 	int err;
-	assert(handle);
-	assert(handle->valid_setup);
-	if (handle->mmap_status) {
+	assert(pcm);
+	if (pcm->mmap_status) {
 		if (status)
-			*status = handle->mmap_status;
+			*status = pcm->mmap_status;
 		return 0;
 	}
 
-	if ((err = handle->fast_ops->mmap_status(handle->fast_op_arg, &handle->mmap_status)) < 0)
+	if ((err = pcm->ops->mmap_status(pcm->op_arg)) < 0)
 		return err;
 	if (status)
-		*status = handle->mmap_status;
+		*status = pcm->mmap_status;
 	return 0;
 }
 
-int snd_pcm_mmap_control(snd_pcm_t *handle, snd_pcm_mmap_control_t **control)
+int snd_pcm_mmap_control(snd_pcm_t *pcm, snd_pcm_mmap_control_t **control)
 {
 	int err;
-	assert(handle);
-	assert(handle->valid_setup);
-	if (handle->mmap_control) {
+	assert(pcm);
+	if (pcm->mmap_control) {
 		if (control)
-			*control = handle->mmap_control;
+			*control = pcm->mmap_control;
 		return 0;
 	}
 
-	if ((err = handle->fast_ops->mmap_control(handle->fast_op_arg, &handle->mmap_control)) < 0)
+	if ((err = pcm->ops->mmap_control(pcm->op_arg)) < 0)
 		return err;
 	if (control)
-		*control = handle->mmap_control;
+		*control = pcm->mmap_control;
 	return 0;
 }
 
-int snd_pcm_mmap_get_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *areas)
+int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas)
 {
 	snd_pcm_channel_setup_t s;
 	snd_pcm_channel_area_t *a, *ap;
 	unsigned int channel;
-	int interleaved = 1, noninterleaved = 1;
 	int err;
-	assert(handle);
-	assert(handle->mmap_data);
-	a = calloc(handle->setup.format.channels, sizeof(*areas));
-	for (channel = 0, ap = a; channel < handle->setup.format.channels; ++channel, ++ap) {
+	assert(pcm);
+	assert(pcm->mmap_data);
+	a = calloc(pcm->setup.format.channels, sizeof(*areas));
+	for (channel = 0, ap = a; channel < pcm->setup.format.channels; ++channel, ++ap) {
 		s.channel = channel;
-		err = snd_pcm_channel_setup(handle, &s);
+		err = snd_pcm_channel_setup(pcm, &s);
 		if (err < 0) {
 			free(a);
 			return err;
@@ -488,110 +340,146 @@ int snd_pcm_mmap_get_areas(snd_pcm_t *handle, snd_pcm_channel_area_t *areas)
 		if (areas)
 			areas[channel] = s.area;
 		*ap = s.area;
-		if (ap->step != handle->bits_per_sample || ap->first != 0)
-			noninterleaved = 0;
-		if (ap->addr != a[0].addr || 
-		    ap->step != handle->bits_per_frame || 
-		    ap->first != channel * handle->bits_per_sample)
-			interleaved = 0;
 	}
-	if (noninterleaved)
-		handle->mmap_type = _NONINTERLEAVED;
-	else if (interleaved)
-		handle->mmap_type = _INTERLEAVED;
-	else
-		handle->mmap_type = _COMPLEX;
-	handle->channels = a;
+	pcm->mmap_areas = a;
 	return 0;
 }
 
-int snd_pcm_mmap_data(snd_pcm_t *handle, void **data)
+int snd_pcm_mmap_data(snd_pcm_t *pcm, void **data)
 {
 	int err;
-	assert(handle);
-	assert(handle->valid_setup);
-	if (handle->mmap_data) {
+	assert(pcm);
+	assert(pcm->valid_setup);
+	if (pcm->mmap_data) {
 		if (data)
-			*data = handle->mmap_data;
+			*data = pcm->mmap_data;
 		return 0;
 	}
 
-	if (handle->setup.mmap_bytes == 0)
-		return -ENXIO;
-	if ((err = handle->fast_ops->mmap_data(handle->fast_op_arg, (void**)&handle->mmap_data, handle->setup.mmap_bytes)) < 0)
+	if ((err = pcm->ops->mmap_data(pcm->op_arg)) < 0)
 		return err;
 	if (data) 
-		*data = handle->mmap_data;
-	err = snd_pcm_mmap_get_areas(handle, NULL);
+		*data = pcm->mmap_data;
+	err = snd_pcm_mmap_get_areas(pcm, NULL);
 	if (err < 0)
 		return err;
 	return 0;
 }
 
-int snd_pcm_mmap(snd_pcm_t *handle, snd_pcm_mmap_status_t **status, snd_pcm_mmap_control_t **control, void **data)
+int snd_pcm_munmap_status(snd_pcm_t *pcm)
 {
 	int err;
-	err = snd_pcm_mmap_status(handle, status);
-	if (err < 0)
+	assert(pcm);
+	assert(pcm->mmap_status);
+	if ((err = pcm->ops->munmap_status(pcm->op_arg)) < 0)
 		return err;
-	err = snd_pcm_mmap_control(handle, control);
-	if (err < 0) {
-		snd_pcm_munmap_status(handle);
+	pcm->mmap_status = 0;
+	return 0;
+}
+
+int snd_pcm_munmap_control(snd_pcm_t *pcm)
+{
+	int err;
+	assert(pcm);
+	assert(pcm->mmap_control);
+	if ((err = pcm->ops->munmap_control(pcm->op_arg)) < 0)
 		return err;
+	pcm->mmap_control = 0;
+	return 0;
+}
+
+int snd_pcm_munmap_data(snd_pcm_t *pcm)
+{
+	int err;
+	assert(pcm);
+	assert(pcm->mmap_data);
+	if ((err = pcm->ops->munmap_data(pcm->op_arg)) < 0)
+		return err;
+	free(pcm->mmap_areas);
+	pcm->mmap_areas = 0;
+	pcm->mmap_data = 0;
+	return 0;
+}
+
+int snd_pcm_mmap(snd_pcm_t *pcm, void **data)
+{
+	return snd_pcm_mmap_data(pcm, data);
+}
+
+int snd_pcm_munmap(snd_pcm_t *pcm)
+{
+	return snd_pcm_munmap_data(pcm);
+}
+
+
+ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size)
+{
+	size_t xfer = 0;
+	ssize_t err = 0;
+	assert(size > 0);
+	while (xfer < size) {
+		size_t frames = size - xfer;
+		size_t offset = snd_pcm_mmap_hw_offset(pcm);
+		size_t cont = pcm->setup.buffer_size - offset;
+		if (cont < frames)
+			frames = cont;
+		if (pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED) {
+			snd_pcm_channel_area_t *a = pcm->mmap_areas;
+			char *buf = snd_pcm_channel_area_addr(a, offset);
+			assert(pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED);
+			err = snd_pcm_writei(pcm, buf, frames);
+		} else {
+			size_t channels = pcm->setup.format.channels;
+			unsigned int c;
+			void *bufs[channels];
+			assert(pcm->setup.mmap_shape == SND_PCM_MMAP_NONINTERLEAVED);
+			for (c = 0; c < channels; ++c) {
+				snd_pcm_channel_area_t *a = &pcm->mmap_areas[c];
+				bufs[c] = snd_pcm_channel_area_addr(a, offset);
+			}
+			err = snd_pcm_writen(pcm, bufs, frames);
+		}
+		if (err < 0)
+			break;
+		xfer += frames;
 	}
-	err = snd_pcm_mmap_data(handle, data);
-	if (err < 0) {
-		snd_pcm_munmap_status(handle);
-		snd_pcm_munmap_control(handle);
-		return err;
+	if (xfer > 0)
+		return xfer;
+	return err;
+}
+
+ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size)
+{
+	size_t xfer = 0;
+	ssize_t err = 0;
+	assert(size > 0);
+	while (xfer < size) {
+		size_t frames = size - xfer;
+		size_t offset = snd_pcm_mmap_hw_offset(pcm);
+		size_t cont = pcm->setup.buffer_size - offset;
+		if (cont < frames)
+			frames = cont;
+		if (pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED) {
+			snd_pcm_channel_area_t *a = pcm->mmap_areas;
+			char *buf = snd_pcm_channel_area_addr(a, offset);
+			assert(pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED);
+			err = snd_pcm_readi(pcm, buf, frames);
+		} else {
+			size_t channels = pcm->setup.format.channels;
+			unsigned int c;
+			void *bufs[channels];
+			assert(pcm->setup.mmap_shape == SND_PCM_MMAP_NONINTERLEAVED);
+			for (c = 0; c < channels; ++c) {
+				snd_pcm_channel_area_t *a = &pcm->mmap_areas[c];
+				bufs[c] = snd_pcm_channel_area_addr(a, offset);
+			}
+			err = snd_pcm_readn(pcm, bufs, frames);
+		}
+		if (err < 0)
+			break;
+		xfer += frames;
 	}
-	return 0;
+	if (xfer > 0)
+		return xfer;
+	return err;
 }
-
-int snd_pcm_munmap_status(snd_pcm_t *handle)
-{
-	int err;
-	assert(handle);
-	assert(handle->mmap_status);
-	if ((err = handle->fast_ops->munmap_status(handle->fast_op_arg, handle->mmap_status)) < 0)
-		return err;
-	handle->mmap_status = 0;
-	return 0;
-}
-
-int snd_pcm_munmap_control(snd_pcm_t *handle)
-{
-	int err;
-	assert(handle);
-	assert(handle->mmap_control);
-	if ((err = handle->fast_ops->munmap_control(handle->fast_op_arg, handle->mmap_control)) < 0)
-		return err;
-	handle->mmap_control = 0;
-	return 0;
-}
-
-int snd_pcm_munmap_data(snd_pcm_t *handle)
-{
-	int err;
-	assert(handle);
-	assert(handle->mmap_data);
-	if ((err = handle->fast_ops->munmap_data(handle->fast_op_arg, handle->mmap_data, handle->setup.mmap_bytes)) < 0)
-		return err;
-	free(handle->channels);
-	handle->channels = 0;
-	handle->mmap_data = 0;
-	return 0;
-}
-
-int snd_pcm_munmap(snd_pcm_t *handle)
-{
-	int err;
-	err = snd_pcm_munmap_status(handle);
-	if (err < 0)
-		return err;
-	err = snd_pcm_munmap_control(handle);
-	if (err < 0)
-		return err;
-	return snd_pcm_munmap_data(handle);
-}
-

@@ -13,7 +13,7 @@ typedef struct snd_timer snd_timer_t;
 
 int snd_timer_open(snd_timer_t **handle);
 int snd_timer_close(snd_timer_t *handle);
-int snd_timer_file_descriptor(snd_timer_t *handle);
+int snd_timer_poll_descriptor(snd_timer_t *handle);
 int snd_timer_general_info(snd_timer_t *handle, snd_timer_general_info_t * info);
 int snd_timer_select(snd_timer_t *handle, snd_timer_select_t *tselect);
 int snd_timer_info(snd_timer_t *handle, snd_timer_info_t *timer);

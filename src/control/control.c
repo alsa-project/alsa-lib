@@ -43,10 +43,10 @@ int snd_ctl_close(snd_ctl_t *ctl)
 	return res;
 }
 
-int snd_ctl_file_descriptor(snd_ctl_t *ctl)
+int snd_ctl_poll_descriptor(snd_ctl_t *ctl)
 {
 	assert(ctl);
-	return ctl->ops->file_descriptor(ctl);
+	return ctl->ops->poll_descriptor(ctl);
 }
 
 int snd_ctl_hw_info(snd_ctl_t *ctl, snd_ctl_hw_info_t *info)

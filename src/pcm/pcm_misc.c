@@ -23,6 +23,9 @@
 #include "../include/driver.h"
 #include "../include/pcm.h"
 #include "../include/pcm_plugin.h"
+#define bswap_16 swab16
+#define bswap_32 swab32
+#define bswap_64 swab64
 #else
 #include <stdio.h>
 #include <stdlib.h>

@@ -20,43 +20,49 @@
  */
 
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/uio.h>
+#include <errno.h>
 #include "asoundlib.h"
 
 struct snd_pcm_ops {
 	int (*close)(snd_pcm_t *pcm);
+	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
 	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
 	int (*params_info)(snd_pcm_t *pcm, snd_pcm_params_info_t *info);
 	int (*params)(snd_pcm_t *pcm, snd_pcm_params_t *params);
 	int (*setup)(snd_pcm_t *pcm, snd_pcm_setup_t *setup);
-	void (*dump)(snd_pcm_t *pcm, FILE *fp);
-};
-
-struct snd_pcm_fast_ops {
-	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
-	int (*status)(snd_pcm_t *pcm, snd_pcm_status_t *status);
 	int (*channel_info)(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 	int (*channel_params)(snd_pcm_t *pcm, snd_pcm_channel_params_t *params);
 	int (*channel_setup)(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup);
+	void (*dump)(snd_pcm_t *pcm, FILE *fp);
+	int (*mmap_status)(snd_pcm_t *pcm);
+	int (*mmap_control)(snd_pcm_t *pcm);
+	int (*mmap_data)(snd_pcm_t *pcm);
+	int (*munmap_status)(snd_pcm_t *pcm);
+	int (*munmap_control)(snd_pcm_t *pcm);
+	int (*munmap_data)(snd_pcm_t *pcm);
+};
+
+struct snd_pcm_fast_ops {
+	int (*status)(snd_pcm_t *pcm, snd_pcm_status_t *status);
 	int (*prepare)(snd_pcm_t *pcm);
-	int (*go)(snd_pcm_t *pcm);
-	int (*drain)(snd_pcm_t *pcm);
+	int (*start)(snd_pcm_t *pcm);
+	int (*stop)(snd_pcm_t *pcm);
 	int (*flush)(snd_pcm_t *pcm);
 	int (*pause)(snd_pcm_t *pcm, int enable);
 	int (*state)(snd_pcm_t *pcm);
-	ssize_t (*hw_ptr)(snd_pcm_t *pcm, int update);
+	int (*delay)(snd_pcm_t *pcm, ssize_t *delayp);
 	ssize_t (*appl_ptr)(snd_pcm_t *pcm, off_t offset);
-	ssize_t (*write)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const void *buffer, size_t size);
-	ssize_t (*writev)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count);
-	ssize_t (*read)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, void *buffer, size_t size);
-	ssize_t (*readv)(snd_pcm_t *pcm, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count);
-	int (*file_descriptor)(snd_pcm_t *pcm);
-	int (*channels_mask)(snd_pcm_t *pcm, bitset_t *client_vmask);
-	int (*mmap_status)(snd_pcm_t *pcm, snd_pcm_mmap_status_t **status);
-	int (*mmap_control)(snd_pcm_t *pcm, snd_pcm_mmap_control_t **control);
-	int (*mmap_data)(snd_pcm_t *pcm, void **buffer, size_t bsize);
-	int (*munmap_status)(snd_pcm_t *pcm, snd_pcm_mmap_status_t *status);
-	int (*munmap_control)(snd_pcm_t *pcm, snd_pcm_mmap_control_t *control);
-	int (*munmap_data)(snd_pcm_t *pcm, void *buffer, size_t bsize);
+	ssize_t (*writei)(snd_pcm_t *pcm, const void *buffer, size_t size);
+	ssize_t (*writen)(snd_pcm_t *pcm, void **bufs, size_t size);
+	ssize_t (*readi)(snd_pcm_t *pcm, void *buffer, size_t size);
+	ssize_t (*readn)(snd_pcm_t *pcm, void **bufs, size_t size);
+	int (*poll_descriptor)(snd_pcm_t *pcm);
+	int (*channels_mask)(snd_pcm_t *pcm, bitset_t *cmask);
+	ssize_t (*avail_update)(snd_pcm_t *pcm);
+	ssize_t (*mmap_forward)(snd_pcm_t *pcm, size_t size);
 };
 
 struct snd_pcm {
@@ -65,13 +71,12 @@ struct snd_pcm {
 	int mode;
 	int valid_setup;
 	snd_pcm_setup_t setup;
-	snd_pcm_channel_area_t *channels;
 	size_t bits_per_sample;
 	size_t bits_per_frame;
 	snd_pcm_mmap_status_t *mmap_status;
 	snd_pcm_mmap_control_t *mmap_control;
-	char *mmap_data;
-	enum { _INTERLEAVED, _NONINTERLEAVED, _COMPLEX } mmap_type;
+	void *mmap_data;
+	snd_pcm_channel_area_t *mmap_areas;
 	struct snd_pcm_ops *ops;
 	struct snd_pcm_fast_ops *fast_ops;
 	snd_pcm_t *op_arg;
@@ -79,74 +84,67 @@ struct snd_pcm {
 	void *private;
 };
 
-#undef snd_pcm_plug_t
-typedef struct snd_pcm_plug {
-	int close_slave;
-	snd_pcm_t *handle;
-	snd_pcm_t *slave;
-	snd_pcm_plugin_t *first;
-	snd_pcm_plugin_t *last;
-	size_t frames_alloc;
-} snd_pcm_plug_t;
+int snd_pcm_init(snd_pcm_t *pcm);
+void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void *buf);
+void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas, void **bufs);
 
-unsigned int snd_pcm_plug_formats(unsigned int slave_formats);
-int snd_pcm_plug_slave_fmt(int format, snd_pcm_params_info_t *slave_info);
-int snd_pcm_plug_slave_rate(unsigned int rate, snd_pcm_params_info_t *slave_info);
-int snd_pcm_plug_slave_format(snd_pcm_format_t *format,
-			      snd_pcm_info_t *slave_info,
-			      snd_pcm_params_info_t *slave_params_info,
-			      snd_pcm_format_t *slave_format);
-int snd_pcm_plug_format_plugins(snd_pcm_plug_t *plug,
-				snd_pcm_format_t *format,
-				snd_pcm_format_t *slave_format);
+int snd_pcm_mmap_status(snd_pcm_t *pcm, snd_pcm_mmap_status_t **status);
+int snd_pcm_mmap_control(snd_pcm_t *pcm, snd_pcm_mmap_control_t **control);
+int snd_pcm_mmap_data(snd_pcm_t *pcm, void **buffer);
+int snd_pcm_munmap_status(snd_pcm_t *pcm);
+int snd_pcm_munmap_control(snd_pcm_t *pcm);
+int snd_pcm_munmap_data(snd_pcm_t *pcm);
+int snd_pcm_mmap_ready(snd_pcm_t *pcm);
+ssize_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset);
+void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, size_t frames);
+void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, size_t frames);
+size_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm);
+size_t snd_pcm_mmap_avail(snd_pcm_t *pcm);
+size_t snd_pcm_mmap_playback_xfer(snd_pcm_t *pcm, size_t frames);
+size_t snd_pcm_mmap_capture_xfer(snd_pcm_t *pcm, size_t frames);
 
-ssize_t snd_pcm_plug_write_transfer(snd_pcm_plug_t *plug, snd_pcm_plugin_channel_t *src_channels, size_t size);
-ssize_t snd_pcm_plug_read_transfer(snd_pcm_plug_t *plug, snd_pcm_plugin_channel_t *dst_channels_final, size_t size);
-ssize_t snd_pcm_plug_client_channels_iovec(snd_pcm_plug_t *plug,
-					   const struct iovec *vector, unsigned long count,
-					   snd_pcm_plugin_channel_t **channels);
-ssize_t snd_pcm_plug_client_channels_buf(snd_pcm_plug_t *plug,
-					 char *buf, size_t count,
-					 snd_pcm_plugin_channel_t **channels);
+typedef ssize_t (*snd_pcm_xfer_areas_func_t)(snd_pcm_t *pcm, 
+					     snd_pcm_channel_area_t *areas,
+					     size_t offset, size_t size,
+					     size_t *slave_sizep);
 
-int snd_pcm_plug_playback_channels_mask(snd_pcm_plug_t *plug,
-					bitset_t *client_vmask);
-int snd_pcm_plug_capture_channels_mask(snd_pcm_plug_t *plug,
-				       bitset_t *client_vmask);
-ssize_t snd_pcm_plugin_client_channels(snd_pcm_plugin_t *plugin,
-				       size_t frames,
-				       snd_pcm_plugin_channel_t **channels);
+ssize_t snd_pcm_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
+			   size_t offset, size_t size,
+			   snd_pcm_xfer_areas_func_t func);
+ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
+			    size_t offset, size_t size,
+			    snd_pcm_xfer_areas_func_t func);
+ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size);
+ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size);
 
-void *snd_pcm_plug_buf_alloc(snd_pcm_plug_t *plug, size_t size);
-void snd_pcm_plug_buf_unlock(snd_pcm_plug_t *pcm, void *ptr);
-
-#define ROUTE_PLUGIN_RESOLUTION 16
-
-int getput_index(int format);
-int conv_index(int src_format, int dst_format);
-
-#ifdef PLUGIN_DEBUG
-#define pdprintf( args... ) fprintf(stderr, "plugin: " ##args)
-#else
-#define pdprintf( args... ) { ; }
-#endif
-
-static inline size_t snd_pcm_mmap_playback_avail(snd_pcm_t *str)
+static inline size_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {
 	ssize_t avail;
-	avail = str->mmap_status->hw_ptr + str->setup.buffer_size - str->mmap_control->appl_ptr;
+	avail = pcm->mmap_status->hw_ptr + pcm->setup.buffer_size - pcm->mmap_control->appl_ptr;
 	if (avail < 0)
-		avail += str->setup.boundary;
+		avail += pcm->setup.boundary;
 	return avail;
 }
 
-static inline size_t snd_pcm_mmap_capture_avail(snd_pcm_t *str)
+static inline size_t snd_pcm_mmap_capture_avail(snd_pcm_t *pcm)
 {
 	ssize_t avail;
-	avail = str->mmap_status->hw_ptr - str->mmap_control->appl_ptr;
+	avail = pcm->mmap_status->hw_ptr - pcm->mmap_control->appl_ptr;
 	if (avail < 0)
-		avail += str->setup.boundary;
+		avail += pcm->setup.boundary;
 	return avail;
 }
 
-#define snd_pcm_plug_stream(plug) ((plug)->handle->stream)
+static inline void *snd_pcm_channel_area_addr(snd_pcm_channel_area_t *area, size_t offset)
+{
+	size_t bitofs = area->first + area->step * offset;
+	assert(bitofs % 8 == 0);
+	return area->addr + bitofs / 8;
+}
+
+static inline size_t snd_pcm_channel_area_step(snd_pcm_channel_area_t *area)
+{
+	assert(area->step % 8 == 0);
+	return area->step / 8;
+}
+

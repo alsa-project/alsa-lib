@@ -78,7 +78,7 @@ int snd_timer_close(snd_timer_t *handle)
 	return res;
 }
 
-int snd_timer_file_descriptor(snd_timer_t *handle)
+int snd_timer_poll_descriptor(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
 

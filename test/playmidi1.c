@@ -116,7 +116,7 @@ static void write_ev(snd_seq_event_t *ev)
 	while ((rc = snd_seq_event_output(seq_handle, ev)) < 0) {
 		int seqfd;
 		fd_set fds;
-		seqfd = snd_seq_file_descriptor(seq_handle);
+		seqfd = snd_seq_poll_descriptor(seq_handle);
 		FD_ZERO(&fds);
 		FD_SET(seqfd, &fds);
 		if ((rc = select(seqfd + 1, NULL, &fds, NULL, NULL)) < 0) {
@@ -366,7 +366,7 @@ static snd_seq_event_t *wait_for_event(void)
 		       input_event == NULL) {
 			int seqfd;
 			fd_set fds;
-			seqfd = snd_seq_file_descriptor(seq_handle);
+			seqfd = snd_seq_poll_descriptor(seq_handle);
 			FD_ZERO(&fds);
 			FD_SET(seqfd, &fds);
 			if ((left = select(seqfd + 1, &fds, NULL, NULL, NULL)) < 0) {
