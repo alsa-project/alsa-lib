@@ -254,6 +254,9 @@ static int snd_pcm_plug_setup(void *private, snd_pcm_setup_t *setup)
 		setup->format = plug->first->src_format;
 	else
 		setup->format = plug->last->dst_format;
+	/* FIXME: this is not exact */
+	setup->rate_master = setup->format.rate;
+	setup->rate_divisor = 1;
 	err = snd_pcm_plug_alloc(plug, setup->frag_size);
 	if (err < 0)
 		return err;

@@ -372,7 +372,7 @@ int snd_pcm_dump_setup(snd_pcm_t *handle, FILE *fp)
 	fprintf(fp, "mode: %s\n", assoc(setup->mode, modes));
 	fprintf(fp, "format: %s\n", assoc(setup->format.format, fmts));
 	fprintf(fp, "channels: %d\n", setup->format.channels);
-	fprintf(fp, "rate: %d\n", setup->format.rate);
+	fprintf(fp, "rate: %d (%d/%d=%g)\n", setup->format.rate, setup->rate_master, setup->rate_divisor, (double) setup->rate_master / setup->rate_divisor);
 	// digital
 	fprintf(fp, "start_mode: %s\n", assoc(setup->start_mode, starts));
 	fprintf(fp, "xrun_mode: %s\n", assoc(setup->xrun_mode, xruns));
