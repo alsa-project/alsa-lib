@@ -1,8 +1,11 @@
+/*!
+ * \file error.c
+ * Error code handling routines.
+ */
 /*
- *  Error Routines
  *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
  *
- *  snd_strerror routine needs to be recoded for locale support
+ *  snd_strerror routine needs to be recoded for the locale support
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -32,6 +35,13 @@ static const char *snd_error_codes[] =
 	"Sound protocol is not compatible"
 };
 
+/*!
+ * \fn const char * snd_strerror(int errnum)
+ * \brief Get the error string.
+ * \param errnum The error code number.
+ *
+ * Returns the ASCII description of the given numeric error code.
+ */
 const char *snd_strerror(int errnum)
 {
 	if (errnum < 0)
@@ -44,6 +54,19 @@ const char *snd_strerror(int errnum)
 	return snd_error_codes[errnum];
 }
 
+#ifndef DOC_PUBLIC
+/*!
+ * \fn static void snd_lib_error_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
+ * \brief The default error handler function.
+ * \param file The filename where the error was hit.
+ * \param line The line number.
+ * \param function The function name.
+ * \param err The error number.
+ * \param fmt The message (including the format characters).
+ * \param ... Optional arguments.
+ *
+ * Prints the error message including location to stderr.
+ */
 static void snd_lib_error_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
 {
 	va_list arg;
@@ -55,9 +78,24 @@ static void snd_lib_error_default(const char *file, int line, const char *functi
 	putc('\n', stderr);
 	va_end(arg);
 }
+#endif /* !DOC_PUBLIC */
 
+#ifndef DOC_PUBLIC
+/*!
+ * \var snd_lib_error_handler_t *snd_lib_error;
+ * Pointer to the error handler function.
+ */
 snd_lib_error_handler_t *snd_lib_error = snd_lib_error_default;
+#endif /* !DOC_PUBLIC */
 
+/*!
+ * \fn int snd_lib_error_set_handler(snd_lib_error_handler_t *handler)
+ * \brief Set the error handler.
+ * \param handler The pointer to the new error handler function.
+ *
+ * This function sets a new error handler or the default one (if the NULL
+ * parameter is given) which prints the error messages to stderr.
+ */
 int snd_lib_error_set_handler(snd_lib_error_handler_t *handler)
 {
 	snd_lib_error = handler == NULL ? snd_lib_error_default : handler;
