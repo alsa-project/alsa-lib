@@ -381,3 +381,57 @@ void interval_print(const interval_t *i, snd_output_t *out)
 				i->min, i->max,
 				i->openmax ? ')' : ']');
 }
+
+void boundary_abs(int a, int adir, int *b, int *bdir)
+{
+	if (a < 0 || (a == 0 && adir < 0)) {
+		*b = -a;
+		*bdir = -adir;
+	} else {
+		*b = a;
+		*bdir = adir;
+	}
+}
+
+void boundary_sub(int a, int adir, int b, int bdir, int *c, int *cdir)
+{
+	adir = adir < 0 ? -1 : (adir > 0 ? 1 : 0);
+	bdir = bdir < 0 ? -1 : (bdir > 0 ? 1 : 0);
+	*c = a - b;
+	*cdir = adir - bdir;
+	if (*cdir == -2) {
+		assert(*c > INT_MIN);
+		(*c)--;
+	} else if (*cdir == 2) {
+		assert(*c < INT_MAX);
+		(*c)++;
+	}
+}
+
+int boundary_lt(unsigned int a, int adir, unsigned int b, int bdir)
+{
+	assert(a > 0 || adir >= 0);
+	assert(b > 0 || bdir >= 0);
+	if (adir < 0) {
+		a--;
+		adir = 1;
+	} else if (adir > 0)
+		adir = 1;
+	if (bdir < 0) {
+		b--;
+		bdir = 1;
+	} else if (bdir > 0)
+		bdir = 1;
+	return a < b || (a == b && adir < bdir);
+}
+
+/* Return 1 if min is nearer to best than max */
+int boundary_nearer(int min, int mindir, int best, int bestdir, int max, int maxdir)
+{
+	int dmin, dmindir;
+	int dmax, dmaxdir;
+	boundary_sub(best, bestdir, min, mindir, &dmin, &dmindir);
+	boundary_sub(max, maxdir, best, bestdir, &dmax, &dmaxdir);
+	return boundary_lt(dmin, dmindir, dmax, dmaxdir);
+}
+

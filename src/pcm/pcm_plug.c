@@ -488,6 +488,8 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 	interval_t t;
 	const interval_t *sbuffer_size;
 	const interval_t *srate, *crate;
+	unsigned int rate_min, srate_min;
+	int rate_mindir, srate_mindir;
 	format_mask = snd_pcm_hw_param_value_mask(params,
 						   SND_PCM_HW_PARAM_FORMAT);
 	sformat_mask = snd_pcm_hw_param_value_mask(sparams,
@@ -511,6 +513,15 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 				     SND_PCM_HW_PARAM_FORMAT, fmt_mask);
 	if (err < 0)
 		return err;
+
+	/* This is a temporary hack, waiting for a better solution */
+	rate_min = snd_pcm_hw_param_value_min(params, SND_PCM_HW_PARAM_RATE, &rate_mindir);
+	srate_min = snd_pcm_hw_param_value_min(sparams, SND_PCM_HW_PARAM_RATE, &srate_mindir);
+	if (rate_min == srate_min && srate_mindir > rate_mindir) {
+		err = _snd_pcm_hw_param_min(params, SND_PCM_HW_PARAM_RATE, srate_min, srate_mindir);
+		if (err < 0)
+			return err;
+	}
 
 	sbuffer_size = snd_pcm_hw_param_value_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE);
 	crate = snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_RATE);

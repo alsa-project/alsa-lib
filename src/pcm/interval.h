@@ -57,3 +57,6 @@ int interval_refine(interval_t *i, const interval_t *v);
 int interval_refine_first(interval_t *i);
 int interval_refine_last(interval_t *i);
 int interval_refine_set(interval_t *i, unsigned int val);
+void boundary_sub(int a, int adir, int b, int bdir, int *c, int *cdir);
+int boundary_lt(unsigned int a, int adir, unsigned int b, int bdir);
+int boundary_nearer(int min, int mindir, int best, int bestdir, int max, int maxdir);

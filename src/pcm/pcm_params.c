@@ -25,53 +25,6 @@
 #include "interval.h"
 #include "mask.h"
 
-static void approx_sub(int a, int adir,
-		       int b, int bdir,
-		       int *c, int *cdir)
-{
-	adir = adir < 0 ? -1 : (adir > 0 ? 1 : 0);
-	bdir = bdir < 0 ? -1 : (bdir > 0 ? 1 : 0);
-	*c = a - b;
-	*cdir = adir - bdir;
-	if (*cdir == -2) {
-		assert(*c > INT_MIN);
-		(*c)--;
-	} else if (*cdir == 2) {
-		assert(*c < INT_MAX);
-		(*c)++;
-	}
-}
-
-static int approx_lt(unsigned int a, int adir,
-		     unsigned int b, int bdir)
-{
-	assert(a > 0 || adir >= 0);
-	assert(b > 0 || bdir >= 0);
-	if (adir < 0) {
-		a--;
-		adir = 1;
-	} else if (adir > 0)
-		adir = 1;
-	if (bdir < 0) {
-		b--;
-		bdir = 1;
-	} else if (bdir > 0)
-		bdir = 1;
-	return a < b || (a == b && adir < bdir);
-}
-
-/* Return 1 if min is nearer to best than max */
-static int approx_nearer(int min, int mindir,
-			 int best, int bestdir,
-			 int max, int maxdir)
-{
-	int dmin, dmindir;
-	int dmax, dmaxdir;
-	approx_sub(best, bestdir, min, mindir, &dmin, &dmindir);
-	approx_sub(max, maxdir, best, bestdir, &dmax, &dmaxdir);
-	return approx_lt(dmin, dmindir, dmax, dmaxdir);
-}
-
 static inline int hw_is_mask(int var)
 {
 	return var >= SND_PCM_HW_PARAM_FIRST_MASK &&
@@ -771,7 +724,7 @@ int snd_pcm_hw_param_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		max = snd_pcm_hw_param_max(pcm, &params1, var, max, &maxdir);
 		if (max < 0)
 			goto _end;
-		if (approx_nearer(max, maxdir, best, valdir, min, mindir)) {
+		if (boundary_nearer(max, maxdir, best, valdir, min, mindir)) {
 			*params = params1;
 			last = 1;
 		}
@@ -813,7 +766,7 @@ int snd_pcm_hw_param_next(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	/* FIXME */
 	if (best > INT_MAX)
 		best = INT_MAX;
-	approx_sub(val, valdir, best, bestdir, &diff, &diffdir);
+	boundary_sub(val, valdir, best, bestdir, &diff, &diffdir);
 	if (diff < 0 || (diff == 0 && diffdir < 0)) {
 		min = best - diff;
 		mindir = bestdir - diffdir;
@@ -839,7 +792,7 @@ int snd_pcm_hw_param_next(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		max = snd_pcm_hw_param_max(pcm, &params1, var, max, &maxdir);
 		if (max < 0)
 			goto _end;
-		if (approx_nearer(max, maxdir, best, bestdir, min, mindir)) {
+		if (boundary_nearer(max, maxdir, best, bestdir, min, mindir)) {
 			*params = params1;
 			last = 1;
 		}
@@ -869,13 +822,13 @@ void snd_pcm_hw_param_near_minmax(snd_pcm_t *pcm,
 {
 	snd_pcm_hw_params_t tmp;
 	int err;
-	if (!approx_lt(min, *mindir, max, *maxdir)) {
+	if (!boundary_lt(min, *mindir, max, *maxdir)) {
 		snd_pcm_hw_param_near(pcm, params, var, min, mindir);
 		return;
 	}
 	tmp = *params;
 	min = snd_pcm_hw_param_near(pcm, &tmp, var, min, mindir);
-	if (approx_lt(min, *mindir, max, *maxdir)) {
+	if (boundary_lt(min, *mindir, max, *maxdir)) {
 		tmp = *params;
 		max = snd_pcm_hw_param_near(pcm, &tmp, var, max, maxdir);
 	} else {
