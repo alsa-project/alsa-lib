@@ -410,19 +410,33 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples);
 
 /** #SND_PCM_TYPE_METER scope functions */
 typedef struct _snd_pcm_scope_ops {
-	/** Enable and prepare it using current params */
+	/** \brief Enable and prepare it using current params
+	 * \param scope scope handle
+	 */
 	int (*enable)(snd_pcm_scope_t *scope);
-	/** Disable */
+	/** \brief Disable
+	 * \param scope scope handle
+	 */
 	void (*disable)(snd_pcm_scope_t *scope);
-	/** PCM has been started */
+	/** \brief PCM has been started
+	 * \param scope scope handle
+	 */
 	void (*start)(snd_pcm_scope_t *scope);
-	/** PCM has been stopped */
+	/** \brief PCM has been stopped
+	 * \param scope scope handle
+	 */
 	void (*stop)(snd_pcm_scope_t *scope);
-	/** New frames are present */
+	/** \brief New frames are present
+	 * \param scope scope handle
+	 */
 	void (*update)(snd_pcm_scope_t *scope);
-	/** Reset status */
+	/** \brief Reset status
+	 * \param scope scope handle
+	 */
 	void (*reset)(snd_pcm_scope_t *scope);
-	/** PCM is closing */
+	/** \brief PCM is closing
+	 * \param scope scope handle
+	 */
 	void (*close)(snd_pcm_scope_t *scope);
 } snd_pcm_scope_ops_t;
 

@@ -5,40 +5,39 @@
  *                                                                          *
  ****************************************************************************/
 
+/** RawMidi information container */
 typedef struct _snd_rawmidi_info snd_rawmidi_info_t;
+/** RawMidi settings container */
 typedef struct _snd_rawmidi_params snd_rawmidi_params_t;
+/** RawMidi status container */
 typedef struct _snd_rawmidi_status snd_rawmidi_status_t;
 
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_rawmidi_stream *snd_rawmidi_stream_t;
-#else
-typedef enum sndrv_rawmidi_stream snd_rawmidi_stream_t;
-#endif
+/** RawMidi stream (direction) */
+typedef enum _snd_rawmidi_stream {
+	/** Output stream */
+	SND_RAWMIDI_STREAM_OUTPUT = SNDRV_RAWMIDI_STREAM_OUTPUT,
+	/** Input stream */
+	SND_RAWMIDI_STREAM_INPUT = SNDRV_RAWMIDI_STREAM_INPUT,
+	SND_RAWMIDI_STREAM_LAST = SNDRV_RAWMIDI_STREAM_LAST,
+} snd_rawmidi_stream_t;
 
-#define SND_RAWMIDI_STREAM_OUTPUT ((snd_rawmidi_stream_t) SNDRV_RAWMIDI_STREAM_OUTPUT)
-#define SND_RAWMIDI_STREAM_INPUT ((snd_rawmidi_stream_t) SNDRV_RAWMIDI_STREAM_INPUT)
-#define SND_RAWMIDI_STREAM_LAST ((snd_rawmidi_stream_t) SNDRV_RAWMIDI_STREAM_LAST)
-
+/** Append \hideinitializer */
 #define SND_RAWMIDI_APPEND	1
+/** Non blocking mode \hideinitializer */
 #define SND_RAWMIDI_NONBLOCK	2
 
+/** RawMidi handle */
 typedef struct _snd_rawmidi snd_rawmidi_t;
 
-enum _snd_rawmidi_type {
+/** RawMidi type */
+typedef enum _snd_rawmidi_type {
+	/** Kernel level RawMidi */
 	SND_RAWMIDI_TYPE_HW,
+	/** Shared memory client RawMidi (not yet implemented) */
 	SND_RAWMIDI_TYPE_SHM,
+	/** INET client RawMidi (not yet implemented) */
 	SND_RAWMIDI_TYPE_INET,
-};
-
-#ifdef SND_ENUM_TYPECHECK
-typedef struct __snd_rawmidi_type *snd_rawmidi_type_t;
-#else
-typedef enum _snd_rawmidi_type snd_rawmidi_type_t;
-#endif
-
-#define	SND_RAWMIDI_TYPE_HW ((snd_rawmidi_type_t) SND_RAWMIDI_TYPE_HW)
-#define	SND_RAWMIDI_TYPE_SHM ((snd_rawmidi_type_t) SND_RAWMIDI_TYPE_SHM)
-#define	SND_RAWMIDI_TYPE_INET ((snd_rawmidi_type_t) SND_RAWMIDI_TYPE_INET)
+} snd_rawmidi_type_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,6 +50,10 @@ int snd_rawmidi_poll_descriptors_count(snd_rawmidi_t *rmidi);
 int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rmidi, struct pollfd *pfds, unsigned int space);
 int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock);
 size_t snd_rawmidi_info_sizeof();
+/** \hideinitializer
+ * \brief allocate an invalid #snd_rawmidi_info_t using standard alloca
+ * \param ptr returned pointer
+ */
 #define snd_rawmidi_info_alloca(ptr) do { assert(ptr); *ptr = (snd_rawmidi_info_t *) alloca(snd_rawmidi_info_sizeof()); memset(*ptr, 0, snd_rawmidi_info_sizeof()); } while (0)
 int snd_rawmidi_info_malloc(snd_rawmidi_info_t **ptr);
 void snd_rawmidi_info_free(snd_rawmidi_info_t *obj);
@@ -70,6 +73,10 @@ void snd_rawmidi_info_set_subdevice(snd_rawmidi_info_t *obj, unsigned int val);
 void snd_rawmidi_info_set_stream(snd_rawmidi_info_t *obj, snd_rawmidi_stream_t val);
 int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info);
 size_t snd_rawmidi_params_sizeof();
+/** \hideinitializer
+ * \brief allocate an invalid #snd_rawmidi_params_t using standard alloca
+ * \param ptr returned pointer
+ */
 #define snd_rawmidi_params_alloca(ptr) do { assert(ptr); *ptr = (snd_rawmidi_params_t *) alloca(snd_rawmidi_params_sizeof()); memset(*ptr, 0, snd_rawmidi_params_sizeof()); } while (0)
 int snd_rawmidi_params_malloc(snd_rawmidi_params_t **ptr);
 void snd_rawmidi_params_free(snd_rawmidi_params_t *obj);
@@ -83,6 +90,10 @@ int snd_rawmidi_params_get_no_active_sensing(const snd_rawmidi_params_t *params)
 int snd_rawmidi_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params);
 int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *params);
 size_t snd_rawmidi_status_sizeof();
+/** \hideinitializer
+ * \brief allocate an invalid #snd_rawmidi_status_t using standard alloca
+ * \param ptr returned pointer
+ */
 #define snd_rawmidi_status_alloca(ptr) do { assert(ptr); *ptr = (snd_rawmidi_status_t *) alloca(snd_rawmidi_status_sizeof()); memset(*ptr, 0, snd_rawmidi_status_sizeof()); } while (0)
 int snd_rawmidi_status_malloc(snd_rawmidi_status_t **ptr);
 void snd_rawmidi_status_free(snd_rawmidi_status_t *obj);
