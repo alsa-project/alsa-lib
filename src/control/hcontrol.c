@@ -1,3 +1,12 @@
+/**
+ * \file control/hcontrol.c
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000
+ *
+ * HCTL interface is designed to access preloaded and sorted primitive controls.
+ * Callbacks may be used for event handling.
+ */
 /*
  *  Control Interface - highlevel API
  *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
@@ -20,6 +29,7 @@
  *
  */
 
+#ifndef DOC_HIDDEN  
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -34,6 +44,15 @@
 static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 				    const snd_hctl_elem_t *c2);
 
+#endif
+
+/**
+ * \brief Opens an HCTL
+ * \param hctlp Returned HCTL handle
+ * \param name ASCII identifier of the underlying CTL handle
+ * \param mode Open mode (see #SND_CTL_NONBLOCK, #SND_CTL_ASYNC)
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_hctl_open(snd_hctl_t **hctlp, const char *name, int mode)
 {
 	snd_hctl_t *hctl;
@@ -54,6 +73,14 @@ int snd_hctl_open(snd_hctl_t **hctlp, const char *name, int mode)
 	return 0;
 }
 
+/**
+ * \brief close HCTL handle
+ * \param hctl HCTL handle
+ * \return 0 on success otherwise a negative error code
+ *
+ * Closes the specified HCTL handle and frees all associated
+ * resources.
+ */
 int snd_hctl_close(snd_hctl_t *hctl)
 {
 	int err;
@@ -65,37 +92,72 @@ int snd_hctl_close(snd_hctl_t *hctl)
 	return err;
 }
 
+/**
+ * \brief get identifier of HCTL handle
+ * \param hctl HCTL handle
+ * \return ascii identifier of HCTL handle
+ *
+ * Returns the ASCII identifier of given HCTL handle. It's the same
+ * identifier specified in snd_hctl_open().
+ */
 const char *snd_hctl_name(snd_hctl_t *hctl)
 {
 	assert(hctl);
 	return snd_ctl_name(hctl->ctl);
 }
 
+/**
+ * \brief set nonblock mode
+ * \param hctl HCTL handle
+ * \param nonblock 0 = block, 1 = nonblock mode
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_hctl_nonblock(snd_hctl_t *hctl, int nonblock)
 {
 	assert(hctl);
 	return snd_ctl_nonblock(hctl->ctl, nonblock);
 }
 
+/**
+ * \brief set async mode
+ * \param hctl HCTL handle
+ * \param sig Signal to raise: < 0 disable, 0 default (SIGIO)
+ * \param pid Process ID to signal: 0 current
+ * \return 0 on success otherwise a negative error code
+ *
+ * A signal is raised when a change happens.
+ */
 int snd_hctl_async(snd_hctl_t *hctl, int sig, pid_t pid)
 {
 	assert(hctl);
 	return snd_ctl_async(hctl->ctl, sig, pid);
 }
 
+/**
+ * \brief get count of poll descriptors for HCTL handle
+ * \param hctl HCTL handle
+ * \return count of poll descriptors
+ */
 int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl)
 {
 	assert(hctl);
 	return snd_ctl_poll_descriptors_count(hctl->ctl);
 }
 
+/**
+ * \brief get poll descriptors
+ * \param hctl HCTL handle
+ * \param pfds array of poll descriptors
+ * \param space space in the poll descriptor array
+ * \return count of filled descriptors
+ */
 int snd_hctl_poll_descriptors(snd_hctl_t *hctl, struct pollfd *pfds, unsigned int space)
 {
 	assert(hctl);
 	return snd_ctl_poll_descriptors(hctl->ctl, pfds, space);
 }
 
-int snd_hctl_throw_event(snd_hctl_t *hctl, unsigned int mask,
+static int snd_hctl_throw_event(snd_hctl_t *hctl, unsigned int mask,
 			 snd_hctl_elem_t *elem)
 {
 	if (hctl->callback)
@@ -103,7 +165,7 @@ int snd_hctl_throw_event(snd_hctl_t *hctl, unsigned int mask,
 	return 0;
 }
 
-int snd_hctl_elem_throw_event(snd_hctl_elem_t *elem,
+static int snd_hctl_elem_throw_event(snd_hctl_elem_t *elem,
 			      unsigned int mask)
 {
 	if (elem->callback)
@@ -274,6 +336,11 @@ static void snd_hctl_elem_remove(snd_hctl_t *hctl, unsigned int idx)
 			m * sizeof(snd_hctl_elem_t *));
 }
 
+/**
+ * \brief free HCTL loaded elements
+ * \param hctl HCTL handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_hctl_free(snd_hctl_t *hctl)
 {
 	while (hctl->count > 0)
@@ -300,14 +367,26 @@ static void snd_hctl_sort(snd_hctl_t *hctl)
 		list_add_tail(&hctl->pelems[k]->list, &hctl->elems);
 }
 
-int snd_hctl_set_compare(snd_hctl_t *hctl, snd_hctl_compare_t hsort)
+/**
+ * \brief Change HCTL compare function and reorder elements
+ * \param hctl HCTL handle
+ * \param compare Element compare function
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_hctl_set_compare(snd_hctl_t *hctl, snd_hctl_compare_t compare)
 {
 	assert(hctl);
-	hctl->compare = hsort == NULL ? snd_hctl_compare_default : hsort;
+	hctl->compare = compare == NULL ? snd_hctl_compare_default : compare;
 	snd_hctl_sort(hctl);
 	return 0;
 }
 
+/**
+ * \brief A "don't care" fast compare functions that may be used with #snd_hctl_set_compare
+ * \param c1 First HCTL element
+ * \param c2 Second HCTL element
+ * \return -1 if c1 < c2, 0 if c1 == c2, 1 if c1 > c2
+ */
 int snd_hctl_compare_fast(const snd_hctl_elem_t *c1,
 			  const snd_hctl_elem_t *c2)
 {
@@ -333,6 +412,11 @@ static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 	return d;
 }
 
+/**
+ * \brief get first element for an HCTL
+ * \param hctl HCTL handle
+ * \return pointer to first element
+ */
 snd_hctl_elem_t *snd_hctl_first_elem(snd_hctl_t *hctl)
 {
 	assert(hctl);
@@ -341,6 +425,11 @@ snd_hctl_elem_t *snd_hctl_first_elem(snd_hctl_t *hctl)
 	return list_entry(hctl->elems.next, snd_hctl_elem_t, list);
 }
 
+/**
+ * \brief get last element for an HCTL
+ * \param hctl HCTL handle
+ * \return pointer to last element
+ */
 snd_hctl_elem_t *snd_hctl_last_elem(snd_hctl_t *hctl)
 {
 	assert(hctl);
@@ -349,6 +438,11 @@ snd_hctl_elem_t *snd_hctl_last_elem(snd_hctl_t *hctl)
 	return list_entry(hctl->elems.prev, snd_hctl_elem_t, list);
 }
 
+/**
+ * \brief get next HCTL element
+ * \param elem HCTL element
+ * \return pointer to next element
+ */
 snd_hctl_elem_t *snd_hctl_elem_next(snd_hctl_elem_t *elem)
 {
 	assert(elem);
@@ -357,6 +451,11 @@ snd_hctl_elem_t *snd_hctl_elem_next(snd_hctl_elem_t *elem)
 	return list_entry(elem->list.next, snd_hctl_elem_t, list);
 }
 
+/**
+ * \brief get previous HCTL element
+ * \param elem HCTL element
+ * \return pointer to previous element
+ */
 snd_hctl_elem_t *snd_hctl_elem_prev(snd_hctl_elem_t *elem)
 {
 	assert(elem);
@@ -365,6 +464,12 @@ snd_hctl_elem_t *snd_hctl_elem_prev(snd_hctl_elem_t *elem)
 	return list_entry(elem->list.prev, snd_hctl_elem_t, list);
 }
 
+/**
+ * \brief Search an HCTL element
+ * \param hctl HCTL handle
+ * \param id Element identificator
+ * \return pointer to found HCTL element or NULL if it does not exists
+ */
 snd_hctl_elem_t *snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id)
 {
 	int dir;
@@ -374,6 +479,11 @@ snd_hctl_elem_t *snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *i
 	return hctl->pelems[res];
 }
 
+/**
+ * \brief Load an HCTL with all elements and sort them
+ * \param hctl HCTL handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_hctl_load(snd_hctl_t *hctl)
 {
 	snd_ctl_elem_list_t list;
@@ -435,29 +545,55 @@ int snd_hctl_load(snd_hctl_t *hctl)
 	return err;
 }
 
+/**
+ * \brief Set callback function for an HCTL
+ * \param hctl HCTL handle
+ * \param callback callback function
+ */
 void snd_hctl_set_callback(snd_hctl_t *hctl, snd_hctl_callback_t callback)
 {
 	assert(hctl);
 	hctl->callback = callback;
 }
 
+/**
+ * \brief Set callback private value for an HCTL
+ * \param hctl HCTL handle
+ * \param callback_private callback private value
+ */
 void snd_hctl_set_callback_private(snd_hctl_t *hctl, void *callback_private)
 {
 	assert(hctl);
 	hctl->callback_private = callback_private;
 }
 
+/**
+ * \brief Get callback private value for an HCTL
+ * \param hctl HCTL handle
+ * \return callback private value
+ */
 void *snd_hctl_get_callback_private(snd_hctl_t *hctl)
 {
 	assert(hctl);
 	return hctl->callback_private;
 }
 
+/**
+ * \brief Get number of loaded elements for an HCTL
+ * \param hctl HCTL handle
+ * \return elements count
+ */
 unsigned int snd_hctl_get_count(snd_hctl_t *hctl)
 {
 	return hctl->count;
 }
 
+/**
+ * \brief Wait for a HCTL to become ready (i.e. at least one event pending)
+ * \param hctl HCTL handle
+ * \param timeout maximum time in milliseconds to wait
+ * \return 0 otherwise a negative error code on failure
+ */
 int snd_hctl_wait(snd_hctl_t *hctl, int timeout)
 {
 	struct pollfd pfd;
@@ -470,7 +606,7 @@ int snd_hctl_wait(snd_hctl_t *hctl, int timeout)
 	return 0;
 }
 
-int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event)
+static int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event)
 {
 	snd_hctl_elem_t *elem;
 	int res;
@@ -517,6 +653,11 @@ int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event)
 	return 0;
 }
 
+/**
+ * \brief Handle pending HCTL events invoking callbacks
+ * \param hctl HCTL handle
+ * \return 0 otherwise a negative error code on failure
+ */
 int snd_hctl_handle_events(snd_hctl_t *hctl)
 {
 	snd_ctl_event_t event;
@@ -537,6 +678,12 @@ int snd_hctl_handle_events(snd_hctl_t *hctl)
 	return count;
 }
 
+/**
+ * \brief Get information for an HCTL element
+ * \param elem HCTL element
+ * \param info HCTL element information
+ * \return 0 otherwise a negative error code on failure
+ */
 int snd_hctl_elem_info(snd_hctl_elem_t *elem, snd_ctl_elem_info_t *info)
 {
 	assert(elem);
@@ -546,6 +693,12 @@ int snd_hctl_elem_info(snd_hctl_elem_t *elem, snd_ctl_elem_info_t *info)
 	return snd_ctl_elem_info(elem->hctl->ctl, info);
 }
 
+/**
+ * \brief Get value for an HCTL element
+ * \param elem HCTL element
+ * \param value HCTL element value
+ * \return 0 otherwise a negative error code on failure
+ */
 int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value)
 {
 	assert(elem);
@@ -555,6 +708,12 @@ int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value)
 	return snd_ctl_elem_read(elem->hctl->ctl, value);
 }
 
+/**
+ * \brief Set value for an HCTL element
+ * \param elem HCTL element
+ * \param value HCTL element value
+ * \return 0 otherwise a negative error code on failure
+ */
 int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value)
 {
 	assert(elem);
@@ -564,8 +723,124 @@ int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value)
 	return snd_ctl_elem_write(elem->hctl->ctl, value);
 }
 
+/**
+ * \brief Get HCTL handle for an HCTL element
+ * \param elem HCTL element
+ * \return HCTL handle
+ */
 snd_hctl_t *snd_hctl_elem_get_hctl(snd_hctl_elem_t *elem)
 {
 	assert(elem);
 	return elem->hctl;
 }
+
+/**
+ * \brief Get CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \param ptr Pointer to returned CTL element identificator
+ */
+void snd_hctl_elem_get_id(const snd_hctl_elem_t *obj, snd_ctl_elem_id_t *ptr)
+{
+	assert(obj && ptr);
+	*ptr = obj->id;
+}
+
+/**
+ * \brief Get element numeric identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return element numeric identificator
+ */
+unsigned int snd_hctl_elem_get_numid(const snd_hctl_elem_t *obj)
+{
+	assert(obj);
+	return obj->id.numid;
+}
+
+/**
+ * \brief Get interface part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return interface part of element identificator
+ */
+snd_ctl_elem_iface_t snd_hctl_elem_get_interface(const snd_hctl_elem_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->id.iface);
+}
+
+/**
+ * \brief Get device part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return device part of element identificator
+ */
+unsigned int snd_hctl_elem_get_device(const snd_hctl_elem_t *obj)
+{
+	assert(obj);
+	return obj->id.device;
+}
+
+/**
+ * \brief Get subdevice part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return subdevice part of element identificator
+ */
+unsigned int snd_hctl_elem_get_subdevice(const snd_hctl_elem_t *obj)
+{
+	assert(obj);
+	return obj->id.subdevice;
+}
+
+/**
+ * \brief Get name part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return name part of element identificator
+ */
+const char *snd_hctl_elem_get_name(const snd_hctl_elem_t *obj)
+{
+	assert(obj);
+	return obj->id.name;
+}
+
+/**
+ * \brief Get index part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return index part of element identificator
+ */
+unsigned int snd_hctl_elem_get_index(const snd_hctl_elem_t *obj)
+{
+	assert(obj);
+	return obj->id.index;
+}
+
+/**
+ * \brief Set callback function for an HCTL element
+ * \param obj HCTL element
+ * \param val callback function
+ */
+void snd_hctl_elem_set_callback(snd_hctl_elem_t *obj, snd_hctl_elem_callback_t val)
+{
+	assert(obj);
+	obj->callback = val;
+}
+
+/**
+ * \brief Set callback private value for an HCTL element
+ * \param obj HCTL element
+ * \param val callback private value
+ */
+void snd_hctl_elem_set_callback_private(snd_hctl_elem_t *obj, void * val)
+{
+	assert(obj);
+	obj->callback_private = val;
+}
+
+/**
+ * \brief Get callback private value for an HCTL element
+ * \param obj HCTL element
+ * \return callback private value
+ */
+void * snd_hctl_elem_get_callback_private(const snd_hctl_elem_t *obj)
+{
+	assert(obj);
+	return obj->callback_private;
+}
+

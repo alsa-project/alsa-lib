@@ -79,12 +79,10 @@ static void snd_lib_error_default(const char *file, int line, const char *functi
 	va_end(arg);
 }
 
-#ifndef DOC_HIDDEN
 /**
  * Pointer to the error handler function.
  */
 snd_lib_error_handler_t *snd_lib_error = snd_lib_error_default;
-#endif
 
 /**
  * \brief Set the error handler.

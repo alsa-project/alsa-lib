@@ -187,10 +187,17 @@ int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int close)
 	return 0;
 }
 	
-int snd_output_stdio_open(snd_output_t **outputp, const char *file)
+/**
+ * \brief Open a new output to a file
+ * \param outputp Pointer to returned output handle
+ * \param file File name
+ * \param mode fopen(3) open mode
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_output_stdio_open(snd_output_t **outputp, const char *file, const char *mode)
 {
 	int err;
-	FILE *fp = fopen(file, "w");
+	FILE *fp = fopen(file, mode);
 	if (!fp) {
 		//SYSERR("fopen");
 		return -errno;

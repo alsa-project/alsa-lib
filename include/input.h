@@ -14,7 +14,7 @@ typedef enum _snd_input_type {
 extern "C" {
 #endif
 
-int snd_input_stdio_open(snd_input_t **inputp, const char *file);
+int snd_input_stdio_open(snd_input_t **inputp, const char *file, const char *mode);
 int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int close);
 int snd_input_buffer_open(snd_input_t **inputp, const char *buffer, int size);
 int snd_input_close(snd_input_t *input);

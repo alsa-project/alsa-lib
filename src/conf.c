@@ -118,7 +118,7 @@ static int get_char_skip_comments(input_t *input)
 			int err = get_delimstring(&file, '>', input);
 			if (err < 0)
 				return err;
-			err = snd_input_stdio_open(&in, file);
+			err = snd_input_stdio_open(&in, file, "r");
 			if (err < 0)
 				return err;
 			fd = malloc(sizeof(*fd));
@@ -1220,7 +1220,7 @@ int snd_config_update()
 	err = snd_config_top(&snd_config);
 	if (err < 0)
 		return err;
-	err = snd_input_stdio_open(&in, SYS_ASOUNDRC);
+	err = snd_input_stdio_open(&in, SYS_ASOUNDRC, "r");
 	if (err >= 0) {
 		err = snd_config_load(snd_config, in);
 		snd_input_close(in);
@@ -1233,7 +1233,7 @@ int snd_config_update()
 		sys_asoundrc_inode = sys_st.st_ino;
 		sys_asoundrc_mtime = sys_st.st_mtime;
 	}
-	err = snd_input_stdio_open(&in, usr_asoundrc);
+	err = snd_input_stdio_open(&in, usr_asoundrc, "r");
 	if (err >= 0) {
 		err = snd_config_load(snd_config, in);
 		snd_input_close(in);

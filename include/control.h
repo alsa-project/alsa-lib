@@ -273,7 +273,6 @@ void snd_hctl_set_callback_private(snd_hctl_t *hctl, void *data);
 void *snd_hctl_get_callback_private(snd_hctl_t *hctl);
 int snd_hctl_load(snd_hctl_t *hctl);
 int snd_hctl_free(snd_hctl_t *hctl);
-int snd_hctl_handle_event(snd_hctl_t *hctl, snd_ctl_event_t *event);
 int snd_hctl_handle_events(snd_hctl_t *hctl);
 const char *snd_hctl_name(snd_hctl_t *hctl);
 snd_ctl_type_t snd_hctl_type(snd_hctl_t *hctl);

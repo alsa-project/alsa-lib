@@ -572,18 +572,6 @@ unsigned int snd_ctl_event_elem_get_mask(const snd_ctl_event_t *obj)
 }
 
 /**
- * \brief Get element numeric identificator for an element related event
- * \param obj CTL event
- * \return element numeric identificator for element related event
- */
-unsigned int snd_ctl_event_elem_get_numid(const snd_ctl_event_t *obj)
-{
-	assert(obj);
-	assert(obj->type == SND_CTL_EVENT_ELEM);
-	return obj->data.elem.id.numid;
-}
-
-/**
  * \brief Get CTL element identificator for an element related event
  * \param obj CTL event
  * \param ptr Pointer to returned CTL element identificator
@@ -593,6 +581,18 @@ void snd_ctl_event_elem_get_id(const snd_ctl_event_t *obj, snd_ctl_elem_id_t *pt
 	assert(obj && ptr);
 	assert(obj->type == SND_CTL_EVENT_ELEM);
 	*ptr = obj->data.elem.id;
+}
+
+/**
+ * \brief Get element numeric identificator for an element related event
+ * \param obj CTL event
+ * \return element numeric identificator
+ */
+unsigned int snd_ctl_event_elem_get_numid(const snd_ctl_event_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_EVENT_ELEM);
+	return obj->data.elem.id.numid;
 }
 
 /**
@@ -662,3 +662,1217 @@ int _snd_ctl_poll_descriptor(snd_ctl_t *ctl)
 	return ctl->ops->poll_descriptor(ctl);
 }
 #endif
+
+/**
+ * \brief get size of #snd_ctl_elem_id_t
+ * \return size in bytes
+ */
+size_t snd_ctl_elem_id_sizeof()
+{
+	return sizeof(snd_ctl_elem_id_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_ctl_elem_id_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_ctl_elem_id_malloc(snd_ctl_elem_id_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_ctl_elem_id_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_ctl_elem_id_t
+ * \param pointer to object to free
+ */
+void snd_ctl_elem_id_free(snd_ctl_elem_id_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_ctl_elem_id_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_ctl_elem_id_copy(snd_ctl_elem_id_t *dst, const snd_ctl_elem_id_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Get numeric identificator from a CTL element identificator
+ * \param obj CTL element identificator
+ * \return CTL element numeric identificator
+ */
+unsigned int snd_ctl_elem_id_get_numid(const snd_ctl_elem_id_t *obj)
+{
+	assert(obj);
+	return obj->numid;
+}
+
+/**
+ * \brief Get interface part of a CTL element identificator
+ * \param obj CTL element identificator
+ * \return CTL element related interface
+ */
+snd_ctl_elem_iface_t snd_ctl_elem_id_get_interface(const snd_ctl_elem_id_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->iface);
+}
+
+/**
+ * \brief Get device part of a CTL element identificator
+ * \param obj CTL element identificator
+ * \return CTL element related device
+ */
+unsigned int snd_ctl_elem_id_get_device(const snd_ctl_elem_id_t *obj)
+{
+	assert(obj);
+	return obj->device;
+}
+
+/**
+ * \brief Get subdevice part of a CTL element identificator
+ * \param obj CTL element identificator
+ * \return CTL element related subdevice
+ */
+unsigned int snd_ctl_elem_id_get_subdevice(const snd_ctl_elem_id_t *obj)
+{
+	assert(obj);
+	return obj->subdevice;
+}
+
+/**
+ * \brief Get name part of a CTL element identificator
+ * \param obj CTL element identificator
+ * \return CTL element name
+ */
+const char *snd_ctl_elem_id_get_name(const snd_ctl_elem_id_t *obj)
+{
+	assert(obj);
+	return obj->name;
+}
+
+/**
+ * \brief Get index part of a CTL element identificator
+ * \param obj CTL element identificator
+ * \return CTL element index
+ */
+unsigned int snd_ctl_elem_id_get_index(const snd_ctl_elem_id_t *obj)
+{
+	assert(obj);
+	return obj->index;
+}
+
+/**
+ * \brief Set numeric identificator for a CTL element identificator
+ * \param obj CTL element identificator
+ * \param val CTL element numeric identificator
+ */
+void snd_ctl_elem_id_set_numid(snd_ctl_elem_id_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->numid = val;
+}
+
+/**
+ * \brief Set interface part for a CTL element identificator
+ * \param obj CTL element identificator
+ * \param val CTL element related interface
+ */
+void snd_ctl_elem_id_set_interface(snd_ctl_elem_id_t *obj, snd_ctl_elem_iface_t val)
+{
+	assert(obj);
+	obj->iface = snd_enum_to_int(val);
+}
+
+/**
+ * \brief Set device part for a CTL element identificator
+ * \param obj CTL element identificator
+ * \param val CTL element related device
+ */
+void snd_ctl_elem_id_set_device(snd_ctl_elem_id_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->device = val;
+}
+
+/**
+ * \brief Set subdevice part for a CTL element identificator
+ * \param obj CTL element identificator
+ * \param val CTL element related subdevice
+ */
+void snd_ctl_elem_id_set_subdevice(snd_ctl_elem_id_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->subdevice = val;
+}
+
+/**
+ * \brief Set name part for a CTL element identificator
+ * \param obj CTL element identificator
+ * \param val CTL element name
+ */
+void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t *obj, const char *val)
+{
+	assert(obj);
+	strncpy(obj->name, val, sizeof(obj->name));
+}
+
+/**
+ * \brief Set index part for a CTL element identificator
+ * \param obj CTL element identificator
+ * \param val CTL element index
+ */
+void snd_ctl_elem_id_set_index(snd_ctl_elem_id_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->index = val;
+}
+
+/**
+ * \brief get size of #snd_ctl_card_info_t
+ * \return size in bytes
+ */
+size_t snd_ctl_card_info_sizeof()
+{
+	return sizeof(snd_ctl_card_info_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_ctl_card_info_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_ctl_card_info_malloc(snd_ctl_card_info_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_ctl_card_info_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_ctl_card_info_t
+ * \param pointer to object to free
+ */
+void snd_ctl_card_info_free(snd_ctl_card_info_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_ctl_card_info_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_ctl_card_info_copy(snd_ctl_card_info_t *dst, const snd_ctl_card_info_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Get card number from a CTL card info
+ * \param obj CTL card info
+ * \return card number
+ */
+int snd_ctl_card_info_get_card(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return obj->card;
+}
+
+/**
+ * \brief Get card type from a CTL card info
+ * \param obj CTL card info
+ * \return card type
+ */
+snd_card_type_t snd_ctl_card_info_get_type(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->type);
+}
+
+/**
+ * \brief Get card identificator from a CTL card info
+ * \param obj CTL card info
+ * \return card identificator
+ */
+const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return obj->id;
+}
+
+/**
+ * \brief Get card abbreviation from a CTL card info
+ * \param obj CTL card info
+ * \return card abbreviation
+ */
+const char *snd_ctl_card_info_get_abbreviation(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return obj->abbreviation;
+}
+
+/**
+ * \brief Get card name from a CTL card info
+ * \param obj CTL card info
+ * \return card name
+ */
+const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return obj->name;
+}
+
+/**
+ * \brief Get card long name from a CTL card info
+ * \param obj CTL card info
+ * \return card long name
+ */
+const char *snd_ctl_card_info_get_longname(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return obj->longname;
+}
+
+/**
+ * \brief Get card mixer identificator from a CTL card info
+ * \param obj CTL card info
+ * \return card mixer identificator
+ */
+const char *snd_ctl_card_info_get_mixerid(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return obj->mixerid;
+}
+
+/**
+ * \brief Get card mixer name from a CTL card info
+ * \param obj CTL card info
+ * \return card mixer name
+ */
+const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj)
+{
+	assert(obj);
+	return obj->mixername;
+}
+
+/**
+ * \brief get size of #snd_ctl_event_t
+ * \return size in bytes
+ */
+size_t snd_ctl_event_sizeof()
+{
+	return sizeof(snd_ctl_event_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_ctl_event_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_ctl_event_malloc(snd_ctl_event_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_ctl_event_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_ctl_event_t
+ * \param pointer to object to free
+ */
+void snd_ctl_event_free(snd_ctl_event_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_ctl_event_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_ctl_event_copy(snd_ctl_event_t *dst, const snd_ctl_event_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Get type of a CTL event
+ * \param obj CTL event
+ * \return CTL event type
+ */
+snd_ctl_event_type_t snd_ctl_event_get_type(const snd_ctl_event_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->type);
+}
+
+/**
+ * \brief get size of #snd_ctl_elem_list_t
+ * \return size in bytes
+ */
+size_t snd_ctl_elem_list_sizeof()
+{
+	return sizeof(snd_ctl_elem_list_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_ctl_elem_list_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_ctl_elem_list_malloc(snd_ctl_elem_list_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_ctl_elem_list_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_ctl_elem_list_t
+ * \param pointer to object to free
+ */
+void snd_ctl_elem_list_free(snd_ctl_elem_list_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_ctl_elem_list_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_ctl_elem_list_copy(snd_ctl_elem_list_t *dst, const snd_ctl_elem_list_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Set index of first wanted CTL element identificator in a CTL element identificators list
+ * \param obj CTL element identificators list
+ * \param val index of CTL element to put at position 0 of list
+ */
+void snd_ctl_elem_list_set_offset(snd_ctl_elem_list_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->offset = val;
+}
+
+/**
+ * \brief Get number of used entries in CTL element identificators list
+ * \param obj CTL element identificator list
+ * \return number of used entries
+ */
+unsigned int snd_ctl_elem_list_get_used(const snd_ctl_elem_list_t *obj)
+{
+	assert(obj);
+	return obj->used;
+}
+
+/**
+ * \brief Get total count of elements present in CTL device (information present in every filled CTL element identificators list)
+ * \param obj CTL element identificator list
+ * \return total number of elements
+ */
+unsigned int snd_ctl_elem_list_get_count(const snd_ctl_elem_list_t *obj)
+{
+	assert(obj);
+	return obj->count;
+}
+
+/**
+ * \brief Get CTL element identificator for an entry of a CTL element identificators list
+ * \param obj CTL element identificator list
+ * \param idx Index of entry
+ * \param ptr Pointer to returned CTL element identificator
+ */
+void snd_ctl_elem_list_get_id(const snd_ctl_elem_list_t *obj, unsigned int idx, snd_ctl_elem_id_t *ptr)
+{
+	assert(obj && ptr);
+	assert(idx < obj->used);
+	*ptr = obj->pids[idx];
+}
+
+/**
+ * \brief Get CTL element numeric identificator for an entry of a CTL element identificators list
+ * \param obj CTL element identificator list
+ * \param idx Index of entry
+ * \return CTL element numeric identificator
+ */
+unsigned int snd_ctl_elem_list_get_numid(const snd_ctl_elem_list_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < obj->used);
+	return obj->pids[idx].numid;
+}
+
+/**
+ * \brief Get interface part of CTL element identificator for an entry of a CTL element identificators list
+ * \param obj CTL element identificator list
+ * \param idx Index of entry
+ * \return CTL element related interface
+ */
+snd_ctl_elem_iface_t snd_ctl_elem_list_get_interface(const snd_ctl_elem_list_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < obj->used);
+	return snd_int_to_enum(obj->pids[idx].iface);
+}
+
+/**
+ * \brief Get device part of CTL element identificator for an entry of a CTL element identificators list
+ * \param obj CTL element identificator list
+ * \param idx Index of entry
+ * \return CTL element related device
+ */
+unsigned int snd_ctl_elem_list_get_device(const snd_ctl_elem_list_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < obj->used);
+	return obj->pids[idx].device;
+}
+
+/**
+ * \brief Get subdevice part of CTL element identificator for an entry of a CTL element identificators list
+ * \param obj CTL element identificator list
+ * \param idx Index of entry
+ * \return CTL element related subdevice
+ */
+unsigned int snd_ctl_elem_list_get_subdevice(const snd_ctl_elem_list_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < obj->used);
+	return obj->pids[idx].subdevice;
+}
+
+/**
+ * \brief Get name part of CTL element identificator for an entry of a CTL element identificators list
+ * \param obj CTL element identificator list
+ * \param idx Index of entry
+ * \return CTL element name
+ */
+const char *snd_ctl_elem_list_get_name(const snd_ctl_elem_list_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < obj->used);
+	return obj->pids[idx].name;
+}
+
+/**
+ * \brief Get index part of CTL element identificator for an entry of a CTL element identificators list
+ * \param obj CTL element identificator list
+ * \param idx Index of entry
+ * \return CTL element index
+ */
+unsigned int snd_ctl_elem_list_get_index(const snd_ctl_elem_list_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < obj->used);
+	return obj->pids[idx].index;
+}
+
+/**
+ * \brief get size of #snd_ctl_elem_info_t
+ * \return size in bytes
+ */
+size_t snd_ctl_elem_info_sizeof()
+{
+	return sizeof(snd_ctl_elem_info_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_ctl_elem_info_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_ctl_elem_info_malloc(snd_ctl_elem_info_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_ctl_elem_info_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_ctl_elem_info_t
+ * \param pointer to object to free
+ */
+void snd_ctl_elem_info_free(snd_ctl_elem_info_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_ctl_elem_info_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_ctl_elem_info_copy(snd_ctl_elem_info_t *dst, const snd_ctl_elem_info_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Get type from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return CTL element content type
+ */
+snd_ctl_elem_type_t snd_ctl_elem_info_get_type(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->type);
+}
+
+/**
+ * \brief Get info about readability from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return 0 if element is not redable, 1 if element is readable
+ */
+int snd_ctl_elem_info_is_readable(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_READ);
+}
+
+/**
+ * \brief Get info about writability from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return 0 if element is not writable, 1 if element is not writable
+ */
+int snd_ctl_elem_info_is_writable(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_WRITE);
+}
+
+/**
+ * \brief Get info about notification feasibility from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return 0 if all element value changes are notified to subscribed applications, 1 otherwise
+ */
+int snd_ctl_elem_info_is_volatile(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_VOLATILE);
+}
+
+/**
+ * \brief Get info about status from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return 0 if element value is not active, 1 if is active
+ */
+int snd_ctl_elem_info_is_inactive(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_INACTIVE);
+}
+
+/**
+ * \brief Get info about status from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return 0 if element value is currently changeable, 1 if it's locked by another application
+ */
+int snd_ctl_elem_info_is_locked(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_LOCK);
+}
+
+/**
+ * \brief Get info about values passing policy from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return 0 if element value need to be passed by contents, 1 if need to be passed with a pointer
+ */
+int snd_ctl_elem_info_is_indirect(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_INDIRECT);
+}
+
+/**
+ * \brief Get number of value entries from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return value entries count
+ */
+unsigned int snd_ctl_elem_info_get_count(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return obj->count;
+}
+
+/**
+ * \brief Get minimum value from a #SND_CTL_ELEM_TYPE_INTEGER CTL element id/info
+ * \param obj CTL element id/info
+ * \return Minimum value
+ */
+long snd_ctl_elem_info_get_min(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_ELEM_TYPE_INTEGER);
+	return obj->value.integer.min;
+}
+
+/**
+ * \brief Get maximum value from a #SND_CTL_ELEM_TYPE_INTEGER CTL element id/info
+ * \param obj CTL element id/info
+ * \return Maximum value
+ */
+long snd_ctl_elem_info_get_max(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_ELEM_TYPE_INTEGER);
+	return obj->value.integer.max;
+}
+
+/**
+ * \brief Get value step from a #SND_CTL_ELEM_TYPE_INTEGER CTL element id/info
+ * \param obj CTL element id/info
+ * \return Step
+ */
+long snd_ctl_elem_info_get_step(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_ELEM_TYPE_INTEGER);
+	return obj->value.integer.step;
+}
+
+/**
+ * \brief Get number of items available from a #SND_CTL_ELEM_TYPE_ENUMERATED CTL element id/info
+ * \param obj CTL element id/info
+ * \return items count
+ */
+unsigned int snd_ctl_elem_info_get_items(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_ELEM_TYPE_ENUMERATED);
+	return obj->value.enumerated.items;
+}
+
+/**
+ * \brief Select item in a #SND_CTL_ELEM_TYPE_ENUMERATED CTL element id/info
+ * \param obj CTL element id/info
+ * \param val item number
+ */
+void snd_ctl_elem_info_set_item(snd_ctl_elem_info_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->value.enumerated.item = val;
+}
+
+/**
+ * \brief Get name for selected item in a #SND_CTL_ELEM_TYPE_ENUMERATED CTL element id/info
+ * \param obj CTL element id/info
+ * \return name of choosen item
+ */
+const char *snd_ctl_elem_info_get_item_name(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	assert(obj->type == SND_CTL_ELEM_TYPE_ENUMERATED);
+	return obj->value.enumerated.name;
+}
+
+/**
+ * \brief Get CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param ptr Pointer to returned CTL element identificator
+ */
+void snd_ctl_elem_info_get_id(const snd_ctl_elem_info_t *obj, snd_ctl_elem_id_t *ptr)
+{
+	assert(obj && ptr);
+	*ptr = obj->id;
+}
+
+/**
+ * \brief Get element numeric identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \return element numeric identificator
+ */
+unsigned int snd_ctl_elem_info_get_numid(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return obj->id.numid;
+}
+
+/**
+ * \brief Get interface part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \return interface part of element identificator
+ */
+snd_ctl_elem_iface_t snd_ctl_elem_info_get_interface(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->id.iface);
+}
+
+/**
+ * \brief Get device part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \return device part of element identificator
+ */
+unsigned int snd_ctl_elem_info_get_device(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return obj->id.device;
+}
+
+/**
+ * \brief Get subdevice part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \return subdevice part of element identificator
+ */
+unsigned int snd_ctl_elem_info_get_subdevice(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return obj->id.subdevice;
+}
+
+/**
+ * \brief Get name part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \return name part of element identificator
+ */
+const char *snd_ctl_elem_info_get_name(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return obj->id.name;
+}
+
+/**
+ * \brief Get index part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \return index part of element identificator
+ */
+unsigned int snd_ctl_elem_info_get_index(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return obj->id.index;
+}
+
+/**
+ * \brief Set CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param ptr CTL element identificator
+ */
+void snd_ctl_elem_info_set_id(snd_ctl_elem_info_t *obj, const snd_ctl_elem_id_t *ptr)
+{
+	assert(obj && ptr);
+	obj->id = *ptr;
+}
+
+/**
+ * \brief Set element numeric identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param val element numeric identificator
+ */
+void snd_ctl_elem_info_set_numid(snd_ctl_elem_info_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->id.numid = val;
+}
+
+/**
+ * \brief Set interface part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param val interface part of element identificator
+ */
+void snd_ctl_elem_info_set_interface(snd_ctl_elem_info_t *obj, snd_ctl_elem_iface_t val)
+{
+	assert(obj);
+	obj->id.iface = snd_enum_to_int(val);
+}
+
+/**
+ * \brief Set device part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param val device part of element identificator
+ */
+void snd_ctl_elem_info_set_device(snd_ctl_elem_info_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->id.device = val;
+}
+
+/**
+ * \brief Set subdevice part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param val subdevice part of element identificator
+ */
+void snd_ctl_elem_info_set_subdevice(snd_ctl_elem_info_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->id.subdevice = val;
+}
+
+/**
+ * \brief Set name part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param val name part of element identificator
+ */
+void snd_ctl_elem_info_set_name(snd_ctl_elem_info_t *obj, const char *val)
+{
+	assert(obj);
+	strncpy(obj->id.name, val, sizeof(obj->id.name));
+}
+
+/**
+ * \brief Set index part of CTL element identificator of a CTL element id/info
+ * \param obj CTL element id/info
+ * \param val index part of element identificator
+ */
+void snd_ctl_elem_info_set_index(snd_ctl_elem_info_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->id.index = val;
+}
+
+/**
+ * \brief get size of #snd_ctl_elem_value_t
+ * \return size in bytes
+ */
+size_t snd_ctl_elem_value_sizeof()
+{
+	return sizeof(snd_ctl_elem_value_t);
+}
+
+/**
+ * \brief allocate an invalid #snd_ctl_elem_value_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_ctl_elem_value_malloc(snd_ctl_elem_value_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_ctl_elem_value_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_ctl_elem_value_t
+ * \param pointer to object to free
+ */
+void snd_ctl_elem_value_free(snd_ctl_elem_value_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_ctl_elem_value_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_ctl_elem_value_copy(snd_ctl_elem_value_t *dst, const snd_ctl_elem_value_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Get CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \param ptr Pointer to returned CTL element identificator
+ */
+void snd_ctl_elem_value_get_id(const snd_ctl_elem_value_t *obj, snd_ctl_elem_id_t *ptr)
+{
+	assert(obj && ptr);
+	*ptr = obj->id;
+}
+
+/**
+ * \brief Get element numeric identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return element numeric identificator
+ */
+unsigned int snd_ctl_elem_value_get_numid(const snd_ctl_elem_value_t *obj)
+{
+	assert(obj);
+	return obj->id.numid;
+}
+
+/**
+ * \brief Get interface part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return interface part of element identificator
+ */
+snd_ctl_elem_iface_t snd_ctl_elem_value_get_interface(const snd_ctl_elem_value_t *obj)
+{
+	assert(obj);
+	return snd_int_to_enum(obj->id.iface);
+}
+
+/**
+ * \brief Get device part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return device part of element identificator
+ */
+unsigned int snd_ctl_elem_value_get_device(const snd_ctl_elem_value_t *obj)
+{
+	assert(obj);
+	return obj->id.device;
+}
+
+/**
+ * \brief Get subdevice part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return subdevice part of element identificator
+ */
+unsigned int snd_ctl_elem_value_get_subdevice(const snd_ctl_elem_value_t *obj)
+{
+	assert(obj);
+	return obj->id.subdevice;
+}
+
+/**
+ * \brief Get name part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return name part of element identificator
+ */
+const char *snd_ctl_elem_value_get_name(const snd_ctl_elem_value_t *obj)
+{
+	assert(obj);
+	return obj->id.name;
+}
+
+/**
+ * \brief Get index part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \return index part of element identificator
+ */
+unsigned int snd_ctl_elem_value_get_index(const snd_ctl_elem_value_t *obj)
+{
+	assert(obj);
+	return obj->id.index;
+}
+
+/**
+ * \brief Set CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \param ptr CTL element identificator
+ */
+void snd_ctl_elem_value_set_id(snd_ctl_elem_value_t *obj, const snd_ctl_elem_id_t *ptr)
+{
+	assert(obj && ptr);
+	obj->id = *ptr;
+}
+
+/**
+ * \brief Set element numeric identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \param val element numeric identificator
+ */
+void snd_ctl_elem_value_set_numid(snd_ctl_elem_value_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->id.numid = val;
+}
+
+/**
+ * \brief Set interface part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \param val interface part of element identificator
+ */
+void snd_ctl_elem_value_set_interface(snd_ctl_elem_value_t *obj, snd_ctl_elem_iface_t val)
+{
+	assert(obj);
+	obj->id.iface = snd_enum_to_int(val);
+}
+
+/**
+ * \brief Set device part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \param val device part of element identificator
+ */
+void snd_ctl_elem_value_set_device(snd_ctl_elem_value_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->id.device = val;
+}
+
+/**
+ * \brief Set subdevice part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \param val subdevice part of element identificator
+ */
+void snd_ctl_elem_value_set_subdevice(snd_ctl_elem_value_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->id.subdevice = val;
+}
+
+/**
+ * \brief Set name part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \param val name part of element identificator
+ */
+void snd_ctl_elem_value_set_name(snd_ctl_elem_value_t *obj, const char *val)
+{
+	assert(obj);
+	strncpy(obj->id.name, val, sizeof(obj->id.name));
+}
+
+/**
+ * \brief Set index part of CTL element identificator of a CTL element id/value
+ * \param obj CTL element id/value
+ * \param val index part of element identificator
+ */
+void snd_ctl_elem_value_set_index(snd_ctl_elem_value_t *obj, unsigned int val)
+{
+	assert(obj);
+	obj->id.index = val;
+}
+
+/**
+ * \brief Get value for an entry of a #SND_CTL_ELEM_TYPE_BOOLEAN CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \return value for the entry
+ */ 
+int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < sizeof(obj->value.integer.value) / sizeof(obj->value.integer.value[0]));
+	return obj->value.integer.value[idx];
+}
+
+/**
+ * \brief Get value for an entry of a #SND_CTL_ELEM_TYPE_INTEGER CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \return value for the entry
+ */ 
+long snd_ctl_elem_value_get_integer(const snd_ctl_elem_value_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < sizeof(obj->value.integer.value) / sizeof(obj->value.integer.value[0]));
+	return obj->value.integer.value[idx];
+}
+
+/**
+ * \brief Get value for an entry of a #SND_CTL_ELEM_TYPE_ENUMERATED CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \return value for the entry
+ */ 
+unsigned int snd_ctl_elem_value_get_enumerated(const snd_ctl_elem_value_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < sizeof(obj->value.enumerated.item) / sizeof(obj->value.enumerated.item[0]));
+	return obj->value.enumerated.item[idx];
+}
+
+/**
+ * \brief Get value for an entry of a #SND_CTL_ELEM_TYPE_BYTES CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \return value for the entry
+ */ 
+unsigned char snd_ctl_elem_value_get_byte(const snd_ctl_elem_value_t *obj, unsigned int idx)
+{
+	assert(obj);
+	assert(idx < sizeof(obj->value.bytes.data));
+	return obj->value.bytes.data[idx];
+}
+
+/**
+ * \brief Set value for an entry of a #SND_CTL_ELEM_TYPE_BOOLEAN CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \param val value for the entry
+ */ 
+void snd_ctl_elem_value_set_boolean(snd_ctl_elem_value_t *obj, unsigned int idx, long val)
+{
+	assert(obj);
+	obj->value.integer.value[idx] = val;
+}
+
+/**
+ * \brief Set value for an entry of a #SND_CTL_ELEM_TYPE_INTEGER CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \param val value for the entry
+ */ 
+void snd_ctl_elem_value_set_integer(snd_ctl_elem_value_t *obj, unsigned int idx, long val)
+{
+	assert(obj);
+	obj->value.integer.value[idx] = val;
+}
+
+/**
+ * \brief Set value for an entry of a #SND_CTL_ELEM_TYPE_ENUMERATED CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \param val value for the entry
+ */ 
+void snd_ctl_elem_value_set_enumerated(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned int val)
+{
+	assert(obj);
+	obj->value.enumerated.item[idx] = val;
+}
+
+/**
+ * \brief Set value for an entry of a #SND_CTL_ELEM_TYPE_BYTES CTL element id/value 
+ * \param obj CTL element id/value
+ * \param idx Entry index
+ * \param val value for the entry
+ */ 
+void snd_ctl_elem_value_set_byte(snd_ctl_elem_value_t *obj, unsigned int idx, unsigned char val)
+{
+	assert(obj);
+	obj->value.bytes.data[idx] = val;
+}
+
+/**
+ * \brief Get value for a #SND_CTL_ELEM_TYPE_BYTES CTL element id/value 
+ * \param obj CTL element id/value
+ * \return Pointer to CTL element value
+ */ 
+const void * snd_ctl_elem_value_get_bytes(const snd_ctl_elem_value_t *obj)
+{
+	assert(obj);
+	return obj->value.bytes.data;
+}
+
+/**
+ * \brief Get value for a #SND_CTL_ELEM_TYPE_IEC958 CTL element id/value 
+ * \param obj CTL element id/value
+ * \param Pointer to returned CTL element value
+ */ 
+void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec958_t *ptr)
+{
+	assert(obj && ptr);
+	*ptr = obj->value.iec958;
+}
+
+/**
+ * \brief Set value for a #SND_CTL_ELEM_TYPE_IEC958 CTL element id/value 
+ * \param obj CTL element id/value
+ * \param Pointer to CTL element value
+ */ 
+void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec958_t *ptr)
+{
+	assert(obj && ptr);
+	obj->value.iec958 = *ptr;
+}
+

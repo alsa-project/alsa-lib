@@ -184,7 +184,7 @@ void snd_ctl_elem_value_set_name(snd_ctl_elem_value_t *obj, const char *val);
 
 void snd_ctl_elem_value_set_index(snd_ctl_elem_value_t *obj, unsigned int val);
 
-long snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj, unsigned int idx);
+int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t *obj, unsigned int idx);
 
 long snd_ctl_elem_value_get_integer(const snd_ctl_elem_value_t *obj, unsigned int idx);
 

@@ -192,12 +192,13 @@ int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int close)
  * \brief Open a new input from a file
  * \param inputp Pointer to returned input handle
  * \param file File name
+ * \param mode fopen(3) open mode
  * \return 0 on success otherwise a negative error code
  */
-int snd_input_stdio_open(snd_input_t **inputp, const char *file)
+int snd_input_stdio_open(snd_input_t **inputp, const char *file, const char *mode)
 {
 	int err;
-	FILE *fp = fopen(file, "r");
+	FILE *fp = fopen(file, mode);
 	if (!fp) {
 		//SYSERR("fopen");
 		return -errno;
