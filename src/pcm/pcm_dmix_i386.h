@@ -34,6 +34,8 @@ static void MIX_AREAS1(unsigned int size,
 		       volatile signed int *sum, size_t dst_step,
 		       size_t src_step, size_t sum_step)
 {
+	unsigned int old_ebx;
+
 	/*
 	 *  ESI - src
 	 *  EDI - dst
@@ -45,7 +47,7 @@ static void MIX_AREAS1(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tpush %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -138,10 +140,12 @@ static void MIX_AREAS1(unsigned int size,
 		"\tjnz 1b\n"
 		
 		"7:"
-		"\tpop %%ebx\n"		/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
+		: "m" (size), "m" (dst), "m" (src),
+		  "m" (sum), "m" (dst_step), "m" (src_step),
+		  "m" (sum_step), "m" (old_ebx)
 		: "esi", "edi", "edx", "ecx", "eax"
 	);
 }
@@ -154,6 +158,8 @@ static void MIX_AREAS1_MMX(unsigned int size,
 			   volatile signed int *sum, size_t dst_step,
 			   size_t src_step, size_t sum_step)
 {
+	unsigned int old_ebx;
+
 	/*
 	 *  ESI - src
 	 *  EDI - dst
@@ -165,7 +171,7 @@ static void MIX_AREAS1_MMX(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tpush %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -224,10 +230,12 @@ static void MIX_AREAS1_MMX(unsigned int size,
 		"\tjnz 1b\n"
 		"\temms\n"
                 "5:"
-		"\tpop %%ebx\n"		/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
+		: "m" (size), "m" (dst), "m" (src),
+		  "m" (sum), "m" (dst_step), "m" (src_step),
+		  "m" (sum_step), "m" (old_ebx)
 		: "esi", "edi", "edx", "ecx", "eax"
 	);
 }
@@ -240,6 +248,8 @@ static void MIX_AREAS2(unsigned int size,
 		       volatile signed int *sum, size_t dst_step,
 		       size_t src_step, size_t sum_step)
 {
+	unsigned int old_ebx;
+
 	/*
 	 *  ESI - src
 	 *  EDI - dst
@@ -251,7 +261,7 @@ static void MIX_AREAS2(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
-		"\tpush %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -333,10 +343,12 @@ static void MIX_AREAS2(unsigned int size,
 		"\tjmp 1b\n"
 		
 		"6:"
-		"\tpop %%ebx\n"		/* ebx is GOT pointer (-fPIC) */
+		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
 
 		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
+		: "m" (size), "m" (dst), "m" (src),
+		  "m" (sum), "m" (dst_step), "m" (src_step),
+		  "m" (sum_step), "m" (old_ebx)
 		: "esi", "edi", "edx", "ecx", "eax"
 	);
 }
