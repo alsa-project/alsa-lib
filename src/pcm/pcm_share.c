@@ -713,7 +713,7 @@ static snd_pcm_state_t snd_pcm_share_state(snd_pcm_t *pcm)
 	return share->state;
 }
 
-static int _snd_pcm_share_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+static int _snd_pcm_share_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
@@ -723,16 +723,16 @@ static int _snd_pcm_share_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
 	default:
 		break;
 	}
-	return snd_pcm_avail(slave->pcm, availp);
+	return snd_pcm_hwsync(slave->pcm);
 }
 
-static int snd_pcm_share_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+static int snd_pcm_share_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err;
 	Pthread_mutex_lock(&slave->mutex);
-	err = _snd_pcm_share_avail(pcm, availp);
+	err = _snd_pcm_share_hwsync(pcm);
 	Pthread_mutex_unlock(&slave->mutex);
 	return err;
 }
@@ -1233,7 +1233,7 @@ static snd_pcm_ops_t snd_pcm_share_ops = {
 static snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	status: snd_pcm_share_status,
 	state: snd_pcm_share_state,
-	avail: snd_pcm_share_avail,
+	hwsync: snd_pcm_share_hwsync,
 	delay: snd_pcm_share_delay,
 	prepare: snd_pcm_share_prepare,
 	reset: snd_pcm_share_reset,

@@ -188,17 +188,10 @@ snd_pcm_state_t snd_pcm_plugin_state(snd_pcm_t *pcm)
 	return snd_pcm_state(plugin->slave);
 }
 
-int snd_pcm_plugin_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+int snd_pcm_plugin_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
-	snd_pcm_uframes_t sd;
-	int err = snd_pcm_avail(plugin->slave, &sd);
-	if (err < 0)
-		return err;
-	if (plugin->client_frames)
-		sd = plugin->client_frames(pcm, sd);
-	*availp = sd;
-	return 0;
+	return snd_pcm_hwsync(plugin->slave);
 }
 
 int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
@@ -640,7 +633,7 @@ int snd_pcm_plugin_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	status: snd_pcm_plugin_status,
 	state: snd_pcm_plugin_state,
-	avail: snd_pcm_plugin_avail,
+	hwsync: snd_pcm_plugin_hwsync,
 	delay: snd_pcm_plugin_delay,
 	prepare: snd_pcm_plugin_prepare,
 	reset: snd_pcm_plugin_reset,

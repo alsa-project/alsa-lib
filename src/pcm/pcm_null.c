@@ -102,9 +102,8 @@ static snd_pcm_state_t snd_pcm_null_state(snd_pcm_t *pcm)
 	return null->state;
 }
 
-static int snd_pcm_null_avail(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_uframes_t *availp)
+static int snd_pcm_null_hwsync(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	*availp = pcm->buffer_size;
 	return 0;
 }
 
@@ -326,7 +325,7 @@ static snd_pcm_ops_t snd_pcm_null_ops = {
 static snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	status: snd_pcm_null_status,
 	state: snd_pcm_null_state,
-	avail: snd_pcm_null_avail,
+	hwsync: snd_pcm_null_hwsync,
 	delay: snd_pcm_null_delay,
 	prepare: snd_pcm_null_prepare,
 	reset: snd_pcm_null_reset,

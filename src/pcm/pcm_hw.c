@@ -77,8 +77,8 @@ struct sndrv_pcm_hw_params_old {
 #define SND_PCM_IOCTL_HW_REFINE_OLD _IOWR('A', 0x10, struct sndrv_pcm_hw_params_old)
 #define SND_PCM_IOCTL_HW_PARAMS_OLD _IOWR('A', 0x11, struct sndrv_pcm_hw_params_old)
 
-#define SND_PCM_IOCTL_AVAIL _IOR('A', 0x22, sndrv_pcm_uframes_t)
-#define SND_PCM_IOCTL_XRUN  _IO ('A', 0x48)
+#define SND_PCM_IOCTL_HWSYNC _IO ('A', 0x22)
+#define SND_PCM_IOCTL_XRUN   _IO ('A', 0x48)
 
 static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t *params);
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm);
@@ -395,28 +395,26 @@ static int snd_pcm_hw_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	return 0;
 }
 
-static int snd_pcm_hw_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+static int snd_pcm_hw_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 3) <= hw->version) {
-		if (ioctl(fd, SND_PCM_IOCTL_AVAIL, availp) < 0) {
-			// SYSERR("SND_PCM_IOCTL_AVAIL failed");
+		if (ioctl(fd, SND_PCM_IOCTL_HWSYNC) < 0) {
+			// SYSERR("SND_PCM_IOCTL_HWSYNC failed");
 			return -errno;
 		}
 	} else {
 		snd_pcm_sframes_t delay;
 		int err = snd_pcm_hw_delay(pcm, &delay);
 		if (err < 0) {
-			delay = snd_pcm_hw_avail_update(pcm);
-			if (delay < 0)
-				return delay;
-			*availp = delay;
-		} else {
-			delay = pcm->stream == SND_PCM_STREAM_PLAYBACK ? pcm->buffer_size - delay : delay;
-			if (delay < 0)
-				delay = 0;
-			*availp = delay;
+			switch (snd_pcm_state(pcm)) {
+			case SND_PCM_STATE_PREPARED:
+			case SND_PCM_STATE_SUSPENDED:
+				return 0;
+			default:
+				return err;
+			}
 		}
 	}
 	return 0;
@@ -786,7 +784,7 @@ static snd_pcm_ops_t snd_pcm_hw_ops = {
 static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	status: snd_pcm_hw_status,
 	state: snd_pcm_hw_state,
-	avail: snd_pcm_hw_avail,
+	hwsync: snd_pcm_hw_hwsync,
 	delay: snd_pcm_hw_delay,
 	prepare: snd_pcm_hw_prepare,
 	reset: snd_pcm_hw_reset,

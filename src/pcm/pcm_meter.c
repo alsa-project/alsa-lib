@@ -319,10 +319,10 @@ static snd_pcm_state_t snd_pcm_meter_state(snd_pcm_t *pcm)
 	return snd_pcm_state(meter->slave);
 }
 
-static int snd_pcm_meter_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+static int snd_pcm_meter_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_avail(meter->slave, availp);
+	return snd_pcm_hwsync(meter->slave);
 }
 
 static int snd_pcm_meter_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
@@ -599,7 +599,7 @@ static snd_pcm_ops_t snd_pcm_meter_ops = {
 static snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	status: snd_pcm_meter_status,
 	state: snd_pcm_meter_state,
-	avail: snd_pcm_meter_avail,
+	hwsync: snd_pcm_meter_hwsync,
 	delay: snd_pcm_meter_delay,
 	prepare: snd_pcm_meter_prepare,
 	reset: snd_pcm_meter_reset,

@@ -405,7 +405,7 @@ int snd_pcm_drop(snd_pcm_t *pcm);
 int snd_pcm_drain(snd_pcm_t *pcm);
 int snd_pcm_pause(snd_pcm_t *pcm, int enable);
 snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm);
-int snd_pcm_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp);
+int snd_pcm_hwsync(snd_pcm_t *pcm);
 int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 int snd_pcm_resume(snd_pcm_t *pcm);
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm);

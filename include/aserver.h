@@ -39,7 +39,7 @@ typedef enum _snd_transport_type {
 	SND_TRANSPORT_TYPE_TCP,
 } snd_transport_type_t;
 
-#define SND_PCM_IOCTL_AVAIL		_IOR('A', 0x22, sndrv_pcm_uframes_t)
+#define SND_PCM_IOCTL_HWSYNC		_IO ('A', 0x22)
 #define SND_PCM_IOCTL_STATE		_IO ('A', 0xf1)
 #define SND_PCM_IOCTL_MMAP		_IO ('A', 0xf2)
 #define SND_PCM_IOCTL_MUNMAP		_IO ('A', 0xf3)

@@ -351,11 +351,11 @@ static snd_pcm_state_t snd_pcm_multi_state(snd_pcm_t *pcm)
 	return snd_pcm_state(slave);
 }
 
-static int snd_pcm_multi_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+static int snd_pcm_multi_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
 	snd_pcm_t *slave = multi->slaves[0].pcm;
-	return snd_pcm_avail(slave, availp);
+	return snd_pcm_hwsync(slave);
 }
 
 static int snd_pcm_multi_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
@@ -601,7 +601,7 @@ static snd_pcm_ops_t snd_pcm_multi_ops = {
 static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	status: snd_pcm_multi_status,
 	state: snd_pcm_multi_state,
-	avail: snd_pcm_multi_avail,
+	hwsync: snd_pcm_multi_hwsync,
 	delay: snd_pcm_multi_delay,
 	prepare: snd_pcm_multi_prepare,
 	reset: snd_pcm_multi_reset,

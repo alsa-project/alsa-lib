@@ -859,27 +859,19 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 }
 
 /**
- * \brief Obtain available frames for a running PCM handle
+ * \brief Synchronize stream position with hardware
  * \param pcm PCM handle
- * \param availp Returned available frames
  * \return 0 on success otherwise a negative error code
- *
- * Returns available frames to be filled inside ring buffer.
- * This value might be greater than buffer size when
- * underrun (playback) or overrun (capture) occurs.
- *
- * This function returns accurate value, because it updates
- * stream position from hardware.
  *
  * Note this function does not update the actual r/w pointer
  * for applications. The function \link ::snd_pcm_avail_update \endlink
  * have to be called before any read/write/begin+commit operation.
  */
-int snd_pcm_avail(snd_pcm_t *pcm, snd_pcm_uframes_t *availp)
+int snd_pcm_hwsync(snd_pcm_t *pcm)
 {
 	assert(pcm);
 	assert(pcm->setup);
-	return pcm->fast_ops->avail(pcm->fast_op_arg, availp);
+	return pcm->fast_ops->hwsync(pcm->fast_op_arg);
 }
 
 /**
