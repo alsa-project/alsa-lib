@@ -80,6 +80,10 @@ const char *snd_config_get_id(snd_config_t *config);
 extern snd_config_t *snd_config;
 int snd_config_update(void);
 
+int snd_config_redirect_load(snd_config_t *root, snd_config_t *config,
+			     char **name, snd_config_t **dst_config,
+			     int *dst_dynamic);
+
 #ifdef __cplusplus
 }
 #endif

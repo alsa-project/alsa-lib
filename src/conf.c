@@ -63,6 +63,38 @@ typedef struct {
 	} error;
 } input_t;
 
+int safe_strtol(const char *str, long *val)
+{
+	char *end;
+	long v;
+	if (!*str)
+		return -EINVAL;
+	errno = 0;
+	v = strtol(str, &end, 0);
+	if (errno)
+		return -errno;
+	if (*end)
+		return -EINVAL;
+	*val = v;
+	return 0;
+}
+
+static int safe_strtod(const char *str, double *val)
+{
+	char *end;
+	double v;
+	if (!*str)
+		return -EINVAL;
+	errno = 0;
+	v = strtod(str, &end);
+	if (errno)
+		return -errno;
+	if (*end)
+		return -EINVAL;
+	*val = v;
+	return 0;
+}
+
 static int get_char(input_t *input)
 {
 	int c;
@@ -721,7 +753,7 @@ static int _snd_config_save_leaf(snd_config_t *n, snd_output_t *out,
 		snd_output_printf(out, "%ld", n->u.integer);
 		break;
 	case SND_CONFIG_TYPE_REAL:
-		snd_output_printf(out, "%16g", n->u.real);
+		snd_output_printf(out, "%-16g", n->u.real);
 		break;
 	case SND_CONFIG_TYPE_STRING:
 		string_print(n->u.string, 0, out);
@@ -882,7 +914,7 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 				assert(0);
 				break;
 			}
-			SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "",
+			SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "_toplevel_",
 			    fd->line, fd->column, str);
 		}
 		goto _end;
@@ -1084,6 +1116,48 @@ int snd_config_set_string(snd_config_t *config, const char *value)
 }
 
 /**
+ * \brief Change the value of a config node
+ * \param config Config node handle
+ * \param ascii Value in ASCII form
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_set_ascii(snd_config_t *config, const char *ascii)
+{
+	assert(config && ascii);
+	switch (snd_enum_to_int(config->type)) {
+	case SND_CONFIG_TYPE_INTEGER:
+		{
+			long i;
+			int err = safe_strtol(ascii, &i);
+			if (err < 0)
+				return err;
+			config->u.integer = i;
+		}
+		break;
+	case SND_CONFIG_TYPE_REAL:
+		{
+			double d;
+			int err = safe_strtod(ascii, &d);
+			if (err < 0)
+				return err;
+			config->u.real = d;
+			break;
+		}
+	case SND_CONFIG_TYPE_STRING:
+		{
+			char *ptr = realloc(config->u.string, strlen(ascii) + 1);
+			if (ptr == NULL)
+				return -ENOMEM;
+			strcpy(config->u.string, ascii);
+		}
+		break;
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+
+/**
  * \brief Get the value of an integer config node
  * \param config Config node handle
  * \param ptr Returned value pointer
@@ -1125,6 +1199,51 @@ int snd_config_get_string(snd_config_t *config, const char **ptr)
 	if (config->type != SND_CONFIG_TYPE_STRING)
 		return -EINVAL;
 	*ptr = config->u.string;
+	return 0;
+}
+
+/**
+ * \brief Get the value in ASCII form
+ * \param config Config node handle
+ * \param ascii Returned dynamically allocated ASCII string
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_get_ascii(snd_config_t *config, char **ascii)
+{
+	assert(config && ascii);
+	switch (snd_enum_to_int(config->type)) {
+	case SND_CONFIG_TYPE_INTEGER:
+		{
+			char res[12];
+			int err;
+			err = snprintf(res, sizeof(res), "%li", config->u.integer);
+			if (err < 0 || err == sizeof(res)) {
+				assert(0);
+				return -ENOMEM;
+			}
+			*ascii = strdup(res);
+		}
+		break;
+	case SND_CONFIG_TYPE_REAL:
+		{
+			char res[32];
+			int err;
+			err = snprintf(res, sizeof(res), "%-16g", config->u.real);
+			if (err < 0 || err == sizeof(res)) {
+				assert(0);
+				return -ENOMEM;
+			}
+			*ascii = strdup(res);
+		}
+		break;
+	case SND_CONFIG_TYPE_STRING:
+		*ascii = strdup(config->u.string);
+		break;
+	default:
+		return -EINVAL;
+	}
+	if (*ascii == NULL)
+		return -ENOMEM;
 	return 0;
 }
 
@@ -1526,10 +1645,95 @@ static int _snd_config_copy(snd_config_t *src,
 	return 1;
 }
 
+/**
+ * \brief Return the copy of configuration
+ * \param dst Destination configuration handle
+ * \return src Source configuration handle
+ */
 int snd_config_copy(snd_config_t **dst,
 		    snd_config_t *src)
 {
 	return snd_config_walk(src, dst, _snd_config_copy, NULL);
+}
+
+/**
+ * \brief Expand the dynamic contents
+ * \param src Source string
+ * \param idchr Identification character
+ * \param callback Callback function
+ * \param private_data Private data for the given callback function
+ * \param dst Destination string
+ */
+int snd_config_string_replace(const char *src, char idchr,
+			      int (*callback)(const char *what, char **dst, void *private_data),
+			      void *private_data,
+			      char **dst)
+{
+	int len = 0, len1, err;
+	const char *ptr, *end;
+	char *tmp, *what, *fptr, *rdst = NULL;
+
+	assert(src && idchr && dst);
+	while (*src != '\0') {
+		ptr = strchr(src, idchr);
+		end = NULL;
+		if (ptr == src && *(ptr + 1) == '(' && (end = strchr(ptr + 2, ')')) != NULL) {
+			src = end + 1;
+			if (callback == NULL)
+				continue;
+			len1 = end - (ptr + 2);
+			if (len1 == 0)		/* empty */
+				continue;
+			what = malloc(len1 + 1);
+			memcpy(what, ptr + 2, len1);
+			what[len1] = '\0';
+			fptr = NULL;
+			err = callback(what, &fptr, private_data);
+			free(what);
+			if (err < 0) {
+				if (*dst != NULL)
+					free(*dst);
+				return err;
+			}
+			if (fptr == NULL)	/* empty */
+				continue;
+			len1 = strlen(ptr = fptr);
+		} else {
+			if (ptr == NULL) {
+				len1 = strlen(ptr = src);
+			} else {
+				len1 = ptr - src;
+				ptr = src;
+			}
+			src += len1;
+			fptr = NULL;
+		}
+		tmp = realloc(rdst, len + len1 + 1);
+		if (tmp == NULL) {
+			if (*dst != NULL)
+				free(*dst);
+			return -ENOMEM;
+		}
+		memcpy(tmp + len, ptr, len1);
+		tmp[len+=len1] = '\0';
+		if (fptr)
+			free(fptr);
+		rdst = tmp;
+	}
+	*dst = rdst;
+	return 0;
+}
+
+static int _snd_config_expand_replace(const char *what, char **dst, void *private_data)
+{
+	snd_config_t *vars = private_data;
+	snd_config_t *val;
+
+	assert(dst);
+	if (snd_config_search(vars, what, &val) < 0)
+		return 0;	/* empty */
+	else
+		return snd_config_get_ascii(val, dst);
 }
 
 static int _snd_config_expand(snd_config_t *src,
@@ -1578,8 +1782,11 @@ static int _snd_config_expand(snd_config_t *src,
 			snd_config_t *val;
 			snd_config_t *vars = private_data;
 			err = snd_config_get_string(src, &s);
-			if (s[0] == '$') {
-				if (snd_config_search(vars, s + 1, &val) < 0)
+			if (strncmp(s, "$(", 2) == 0 && s[strlen(s) - 1] == ')') {
+				char *str = alloca((strlen(s) - 3) + 1);
+				memcpy(str, s + 2, strlen(s) - 3);
+				str[strlen(s) - 3] = 0;
+				if (snd_config_search(vars, str, &val) < 0)
 					return 0;
 				err = snd_config_copy(dst, val);
 				if (err < 0)
@@ -1593,10 +1800,26 @@ static int _snd_config_expand(snd_config_t *src,
 				err = snd_config_make(dst, id, type);
 				if (err < 0)
 					return err;
-				err = snd_config_set_string(*dst, s);
-				if (err < 0) {
-					snd_config_delete(*dst);
-					return err;
+				if (strstr(s, "$(") != NULL) {
+					char *str = NULL;
+					err = snd_config_string_replace(s, '$', _snd_config_expand_replace, vars, &str);
+					if (err < 0)
+						return err;
+					if (str == NULL) {
+						snd_config_delete(*dst);
+						return 0;
+					}
+					err = snd_config_set_string(*dst, str);
+					if (err < 0) {
+						snd_config_delete(*dst);
+						return err;
+					}
+				} else {
+					err = snd_config_set_string(*dst, s);
+					if (err < 0) {
+						snd_config_delete(*dst);
+						return err;
+					}
 				}
 			}
 			break;
@@ -1646,39 +1869,6 @@ static int load_defaults(snd_config_t *subs, snd_config_t *defs)
 	}
 	return 0;
 }
-
-int safe_strtol(const char *str, long *val)
-{
-	char *end;
-	long v;
-	if (!*str)
-		return -EINVAL;
-	errno = 0;
-	v = strtol(str, &end, 0);
-	if (errno)
-		return -errno;
-	if (*end)
-		return -EINVAL;
-	*val = v;
-	return 0;
-}
-
-static int safe_strtod(const char *str, double *val)
-{
-	char *end;
-	double v;
-	if (!*str)
-		return -EINVAL;
-	errno = 0;
-	v = strtod(str, &end);
-	if (errno)
-		return -errno;
-	if (*end)
-		return -EINVAL;
-	*val = v;
-	return 0;
-}
-
 
 static void skip_blank(const char **ptr)
 {
@@ -2062,3 +2252,183 @@ static void _snd_config_end(void)
 	files_info_count = 0;
 }
 #endif
+
+static int _snd_config_redirect_load_replace(const char *what, char **dst, void *private_data ATTRIBUTE_UNUSED)
+{
+	enum {
+		CARD_ID,
+		PCM_ID,
+		RAWMIDI_ID
+	} id;
+	int len;
+
+	if (!strcmp(what, "datadir")) {
+		*dst = strdup(DATADIR "/alsa");
+		return *dst == NULL ? -ENOMEM : 0;
+	}
+	if (!strncmp(what, "card_id:", len = 8))
+		id = CARD_ID;
+	else if (!strncmp(what, "pcm_id:", len = 7))
+		id = PCM_ID;
+	else if (!strncmp(what, "rawmidi_id:", len = 11))
+		id = RAWMIDI_ID;
+	else
+		return 0;
+	{
+		snd_ctl_t *ctl;
+		int err;
+		char name[12];
+		const char *str = NULL;
+		char *fstr = NULL;
+		sprintf(name, "hw:%d", atoi(what + len));
+		err = snd_ctl_open(&ctl, name, 0);
+		if (err < 0)
+			return err;
+		switch (id) {
+		case CARD_ID:
+			{
+				snd_ctl_card_info_t *info;
+				snd_ctl_card_info_alloca(&info);
+				err = snd_ctl_card_info(ctl, info);
+				if (err < 0)
+					return err;
+				err = snd_card_type_enum_to_string(snd_ctl_card_info_get_type(info), &fstr);
+			}
+			break;
+		case PCM_ID:
+			{
+				char *ptr = strchr(what + len, ',');
+				int dev = atoi(what + len);
+				int subdev = ptr ? atoi(ptr + 1) : -1;
+				snd_pcm_info_t *info;
+				snd_pcm_info_alloca(&info);
+				snd_pcm_info_set_device(info, dev);
+				snd_pcm_info_set_subdevice(info, subdev);
+				err = snd_ctl_pcm_info(ctl, info);
+				if (err < 0)
+					return err;
+				str = snd_pcm_info_get_id(info);
+			}
+			break;
+		case RAWMIDI_ID:
+			{
+				char *ptr = strchr(what + len, ',');
+				int dev = atoi(what + len);
+				int subdev = ptr ? atoi(ptr + 1) : -1;
+				snd_rawmidi_info_t *info;
+				snd_rawmidi_info_alloca(&info);
+				snd_rawmidi_info_set_device(info, dev);
+				snd_rawmidi_info_set_subdevice(info, subdev);
+				err = snd_ctl_rawmidi_info(ctl, info);
+				if (err < 0)
+					return err;
+				str = snd_rawmidi_info_get_id(info);
+			}
+			break;
+		}
+		if (err < 0)
+			return err;
+		snd_ctl_close(ctl);
+		*dst = fstr ? fstr : (str ? strdup(str) : NULL);
+		if (*dst == NULL)
+			return 0;
+		return 0;
+	}
+	return 0;	/* empty */
+}
+
+/**
+ * \brief Redirect the configuration block to an another
+ * \param root the root of all configurations
+ * \param config redirect configuration
+ * \param name the identifier of new configuration block
+ * \param dst_config new configuration block
+ * \param dst_dynamic new configuration block is dynamically allocated
+ */
+int snd_config_redirect_load(snd_config_t *root,
+			     snd_config_t *config,
+			     char **name,
+			     snd_config_t **dst_config,
+			     int *dst_dynamic)
+{
+	int err, dynamic;
+	snd_config_t *result, *c;
+	char *rname;
+
+	assert(config);
+	assert(name);
+	assert(dst_config);
+	assert(dst_dynamic);
+	if (snd_config_get_type(config) == SND_CONFIG_TYPE_STRING) {
+		const char *str;
+		snd_config_get_string(config, &str);
+		*name = strdup(str);
+		if (*name == NULL)
+			return -ENOMEM;
+		*dst_config = root;
+		*dst_dynamic = 0;
+		return 0;
+	}
+	if (snd_config_get_type(config) != SND_CONFIG_TYPE_COMPOUND)
+		return -EINVAL;
+	result = root;
+	dynamic = 0;
+	rname = NULL;
+	if (snd_config_search(config, "filename", &c) >= 0) {
+		snd_config_t *rconfig;
+		char *filename;
+		snd_input_t *input;
+		err = snd_config_copy(&rconfig, root);
+		if (err < 0)
+			return err;
+		if (snd_config_get_type(c) == SND_CONFIG_TYPE_STRING) {
+			snd_config_get_string(c, (const char **)&filename);
+			if ((err = snd_config_string_replace(filename, '&', _snd_config_redirect_load_replace, NULL, &filename)) < 0)
+				goto __filename_error;
+			if (filename == NULL)
+				goto __filename_error_einval;
+		} else {
+		      __filename_error_einval:
+			err = -EINVAL;
+		      __filename_error:
+			snd_config_delete(rconfig);
+			return err;
+		}
+		err = snd_input_stdio_open(&input, filename, "r");
+		if (err < 0) {
+			SNDERR("Unable to open filename %s: %s", filename, snd_strerror(err));
+			goto __filename_error;
+		}
+		err = snd_config_load(rconfig, input);
+		if (err < 0) {
+			snd_input_close(input);
+			goto __filename_error;
+			return err;
+		}
+		snd_input_close(input);
+		free(filename);
+		result = rconfig;
+		dynamic = 1;
+	}
+	if (snd_config_search(config, "name", &c) >= 0) {
+		const char *ptr;
+		if ((err = snd_config_get_string(c, &ptr)) < 0)
+			goto __error;
+		if ((err = snd_config_string_replace(ptr, '&', _snd_config_redirect_load_replace, NULL, &rname)) < 0)
+			goto __error;
+	}
+	if (rname == NULL) {
+		err = -EINVAL;
+		goto __error;
+	}
+	*dst_config = result;
+	*dst_dynamic = dynamic;
+	*name = rname;
+	return 0;
+      __error:
+      	if (rname)
+      		free(rname);
+      	if (dynamic)
+      		snd_config_delete(result);
+      	return err;
+}

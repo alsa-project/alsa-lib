@@ -995,29 +995,67 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
-static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, const char *name, 
-				 snd_pcm_stream_t stream, int mode)
+static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
+				 const char *name, snd_pcm_stream_t stream, int mode)
 {
 	int err;
 	snd_config_t *pcm_conf;
+	char *key;
 	const char *args = strchr(name, ':');
 	char *base;
+	snd_config_t *conf;
 	if (args) {
 		args++;
 		base = alloca(args - name);
 		memcpy(base, name, args - name - 1);
-		base[args - name - 1] = 0;
-	} else
-		base = (char *) name;
-	err = snd_config_search_alias(snd_config, "pcm", base, &pcm_conf);
-	if (err < 0) {
-		SNDERR("Unknown PCM %s", name);
-		return err;
+		base[args - name - 1] = '\0';
+		key = strchr(base, '.');
+		if (key)
+			*key++ = '\0';
+	} else {
+		key = strchr(name, '.');
+		if (key) {
+			key++;
+			base = alloca(key - name);
+			memcpy(base, name, key - name - 1);
+			base[key - name - 1] = '\0';
+		} else
+			base = (char *) name;
 	}
+	if (key == NULL) {
+		key = base;
+		base = NULL;
+	}
+	err = snd_config_search_alias(root, base, key, &pcm_conf);
+	if (err < 0) {
+		(void)(base == NULL && (err = snd_config_search_alias(root, "pcm", key, &pcm_conf)));
+		if (err < 0) {
+			SNDERR("Unknown PCM %s", name);
+			return err;
+		}
+	}
+	if (args == NULL && snd_config_search(pcm_conf, "$", &conf) >= 0) /* expand arguments */
+		args = "";
 	if (args) {
 		err = snd_config_expand(pcm_conf, args, &pcm_conf);
 		if (err < 0)
 			return err;
+	}
+	if (snd_config_search(pcm_conf, "redirect", &conf) >= 0) {
+		snd_config_t *tmp_conf;
+		int conf_free_tmp;
+		char *redir_name = NULL;
+		err = snd_config_redirect_load(root, conf, &redir_name, &tmp_conf, &conf_free_tmp);
+		if (args)
+			snd_config_delete(pcm_conf);
+		if (err < 0)
+			return err;
+		err = snd_pcm_open_noupdate(pcmp, tmp_conf, redir_name, stream, mode);
+		if (redir_name)
+			free(redir_name);
+		if (conf_free_tmp)
+			snd_config_delete(tmp_conf);
+		return err;
 	}
 	err = snd_pcm_open_conf(pcmp, name, pcm_conf, stream, mode);
 	if (args)
@@ -1041,7 +1079,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_config_update();
 	if (err < 0)
 		return err;
-	return snd_pcm_open_noupdate(pcmp, name, stream, mode);
+	return snd_pcm_open_noupdate(pcmp, snd_config, name, stream, mode);
 }
 
 #ifndef DOC_HIDDEN
@@ -1050,7 +1088,7 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *conf,
 {
 	const char *str;
 	if (snd_config_get_string(conf, &str) >= 0)
-		return snd_pcm_open_noupdate(pcmp, str, stream, mode);
+		return snd_pcm_open_noupdate(pcmp, snd_config, str, stream, mode);
 	return snd_pcm_open_conf(pcmp, NULL, conf, stream, mode);
 }
 #endif
