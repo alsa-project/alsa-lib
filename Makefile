@@ -44,10 +44,13 @@ clean:
 	rm -f core .depend *.o *.orig *~
 	rm -f `find . -name "out.txt"`
 
-cvsclean: clean
-	rm -f configure config.cache config.log config.status Makefile.conf \
-              utils/alsa-lib.spec include/config.h include/asoundlib.h include/version.h
+mrproper: clean
+	rm -f config.cache config.log config.status Makefile.conf \
+              utils/alsa-lib.spec include/config.h include/version.h
 
-pack: cvsclean
+cvsclean: mrproper
+	rm -f configure include/asoundlib.h
+
+pack: mrproper
 	chown -R root.root ../alsa-lib
 	tar cvz -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.gz alsa-lib
