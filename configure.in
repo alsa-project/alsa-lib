@@ -115,7 +115,7 @@ AC_ARG_WITH(versioned,
   [  --with-versioned=yes,no  shared library will (not) be compiled with versioned symbols],
   versioned="$withval", versioned="yes")
 if test "$versioned" = "yes"; then
-  AC_DEFINE(VERSIONED_SYMBOLS)
+  AC_DEFINE(VERSIONED_SYMBOLS,,[compiled with versioned symbols])
   AC_MSG_RESULT(yes)
 else
   AC_MSG_RESULT(no)
@@ -196,4 +196,4 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile src/Makef
           src/compat/Makefile src/conf/Makefile \
 	  src/conf/cards/Makefile src/conf/pcm/Makefile \
 	  aserver/Makefile test/Makefile utils/Makefile \
-          utils/alsa-lib.spec)
+          utils/alsa-lib.spec utils/alsa.pc)
