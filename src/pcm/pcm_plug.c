@@ -133,7 +133,7 @@ static int snd_pcm_plug_close(void *private)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_plug_clear(plug);
-	free(plug->handle->ops);
+	free(plug->handle->fast_ops);
 	if (plug->close_slave)
 		return snd_pcm_close(plug->slave);
 	free(private);
@@ -403,7 +403,7 @@ static ssize_t snd_pcm_plug_frame_data(void *private, off_t offset)
 	return snd_pcm_plug_client_size(plug, ret);
 }
   
-ssize_t snd_pcm_plug_writev(void *private, snd_timestamp_t tstamp UNUSED, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_plug_writev(void *private, snd_timestamp_t *tstamp UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
@@ -447,7 +447,7 @@ ssize_t snd_pcm_plug_writev(void *private, snd_timestamp_t tstamp UNUSED, const 
 	return result;
 }
 
-ssize_t snd_pcm_plug_readv(void *private, snd_timestamp_t tstamp UNUSED, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_plug_readv(void *private, snd_timestamp_t *tstamp UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
@@ -491,7 +491,7 @@ ssize_t snd_pcm_plug_readv(void *private, snd_timestamp_t tstamp UNUSED, const s
 	return result;
 }
 
-ssize_t snd_pcm_plug_write(void *private, snd_timestamp_t tstamp UNUSED, const void *buf, size_t count)
+ssize_t snd_pcm_plug_write(void *private, snd_timestamp_t *tstamp UNUSED, const void *buf, size_t count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
@@ -525,7 +525,7 @@ ssize_t snd_pcm_plug_write(void *private, snd_timestamp_t tstamp UNUSED, const v
 	return size;
 }
 
-ssize_t snd_pcm_plug_read(void *private, snd_timestamp_t tstamp UNUSED, void *buf, size_t count)
+ssize_t snd_pcm_plug_read(void *private, snd_timestamp_t *tstamp UNUSED, void *buf, size_t count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
@@ -628,11 +628,15 @@ static int snd_pcm_plug_params(void *private, snd_pcm_params_t *params);
 
 struct snd_pcm_ops snd_pcm_plug_ops = {
 	close: snd_pcm_plug_close,
-	nonblock: snd_pcm_plug_nonblock,
 	info: snd_pcm_plug_info,
 	params_info: snd_pcm_plug_params_info,
 	params: snd_pcm_plug_params,
 	setup: snd_pcm_plug_setup,
+	dump: snd_pcm_plug_dump,
+};
+
+struct snd_pcm_fast_ops snd_pcm_plug_fast_ops = {
+	nonblock: snd_pcm_plug_nonblock,
 	channel_setup: snd_pcm_plug_channel_setup,
 	status: snd_pcm_plug_status,
 	frame_io: snd_pcm_plug_frame_io,
@@ -655,7 +659,6 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 	munmap_data: snd_pcm_plug_munmap_data,
 	file_descriptor: snd_pcm_plug_file_descriptor,
 	channels_mask: snd_pcm_plug_channels_mask,
-	dump: snd_pcm_plug_dump,
 };
 
 static void snd_pcm_plug_slave_params(snd_pcm_plug_t *plug,
@@ -745,17 +748,13 @@ static int snd_pcm_plug_params(void *private, snd_pcm_params_t *params)
 	}
 
 	if (!plug->first) {
-		*plug->handle->ops = *plug->slave->ops;
-		plug->handle->ops->params = snd_pcm_plug_params;
-		plug->handle->ops->setup = snd_pcm_plug_setup;
-		plug->handle->ops->info = snd_pcm_plug_info;
-		plug->handle->ops->params_info = snd_pcm_plug_params_info;
-		plug->handle->op_arg = plug->slave->op_arg;
+		*plug->handle->fast_ops = *plug->slave->fast_ops;
+		plug->handle->fast_op_arg = plug->slave->fast_op_arg;
 		return 0;
 	}
 
-	*plug->handle->ops = snd_pcm_plug_ops;
-	plug->handle->op_arg = plug;
+	*plug->handle->fast_ops = snd_pcm_plug_fast_ops;
+	plug->handle->fast_op_arg = plug;
 
 	/*
 	 *  I/O plugins
@@ -803,13 +802,11 @@ int snd_pcm_plug_create(snd_pcm_t **handlep, snd_pcm_t *slave, int close_slave)
 	plug->close_slave = close_slave;
 	handle->type = SND_PCM_TYPE_PLUG;
 	handle->stream = slave->stream;
-	handle->ops = malloc(sizeof(*handle->ops));
-	*handle->ops = *slave->ops;
-	handle->ops->params = snd_pcm_plug_params;
-	handle->ops->setup = snd_pcm_plug_setup;
-	handle->ops->info = snd_pcm_plug_info;
-	handle->ops->params_info = snd_pcm_plug_params_info;
-	handle->op_arg = slave->op_arg;
+	handle->ops = &snd_pcm_plug_ops;
+	handle->op_arg = plug;
+	handle->fast_ops = malloc(sizeof(*handle->fast_ops));
+	*handle->fast_ops = snd_pcm_plug_fast_ops;
+	handle->fast_op_arg = plug;
 	handle->mode = slave->mode;
 	handle->private = plug;
 	*handlep = handle;

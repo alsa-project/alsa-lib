@@ -465,7 +465,7 @@ static ssize_t snd_pcm_multi_write_io(snd_pcm_multi_t *multi, size_t count)
 	return frames;
 }
 
-static ssize_t snd_pcm_multi_write(void *private, snd_timestamp_t timestamp UNUSED, const void *buf, size_t count)
+static ssize_t snd_pcm_multi_write(void *private, snd_timestamp_t *timestamp UNUSED, const void *buf, size_t count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	size_t result = 0;
@@ -516,7 +516,7 @@ static ssize_t snd_pcm_multi_writev1(snd_pcm_multi_t *multi, const struct iovec 
 	return result;
 }
 
-static ssize_t snd_pcm_multi_writev(void *private, snd_timestamp_t timestamp UNUSED, const struct iovec *vector, unsigned long count)
+static ssize_t snd_pcm_multi_writev(void *private, snd_timestamp_t *timestamp UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	snd_pcm_t *handle = multi->handle;
@@ -544,13 +544,13 @@ static ssize_t snd_pcm_multi_writev(void *private, snd_timestamp_t timestamp UNU
 	return result;
 }
 
-static ssize_t snd_pcm_multi_read(void *private, snd_timestamp_t timestamp UNUSED, void *buf, size_t count)
+static ssize_t snd_pcm_multi_read(void *private, snd_timestamp_t *timestamp UNUSED, void *buf, size_t count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	return -ENOSYS;
 }
 
-static ssize_t snd_pcm_multi_readv(void *private, snd_timestamp_t timestamp UNUSED, const struct iovec *vector, unsigned long count)
+static ssize_t snd_pcm_multi_readv(void *private, snd_timestamp_t *timestamp UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	return -ENOSYS;
@@ -724,11 +724,15 @@ static void snd_pcm_multi_dump(void *private, FILE *fp)
 
 struct snd_pcm_ops snd_pcm_multi_ops = {
 	close: snd_pcm_multi_close,
-	nonblock: snd_pcm_multi_nonblock,
 	info: snd_pcm_multi_info,
 	params_info: snd_pcm_multi_params_info,
 	params: snd_pcm_multi_params,
 	setup: snd_pcm_multi_setup,
+	dump: snd_pcm_multi_dump,
+};
+
+struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
+	nonblock: snd_pcm_multi_nonblock,
 	channel_setup: snd_pcm_multi_channel_setup,
 	status: snd_pcm_multi_status,
 	frame_io: snd_pcm_multi_frame_io,
@@ -751,7 +755,6 @@ struct snd_pcm_ops snd_pcm_multi_ops = {
 	munmap_data: snd_pcm_multi_munmap_data,
 	file_descriptor: snd_pcm_multi_file_descriptor,
 	channels_mask: snd_pcm_multi_channels_mask,
-	dump: snd_pcm_multi_dump,
 };
 
 int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
@@ -821,6 +824,8 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 	handle->mode = multi->slaves[0].handle->mode;
 	handle->ops = &snd_pcm_multi_ops;
 	handle->op_arg = multi;
+	handle->fast_ops = &snd_pcm_multi_fast_ops;
+	handle->fast_op_arg = multi;
 	handle->private = multi;
 	*handlep = handle;
 	return 0;

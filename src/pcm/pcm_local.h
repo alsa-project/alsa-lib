@@ -24,13 +24,17 @@
 
 struct snd_pcm_ops {
 	int (*close)(void *private);
-	int (*nonblock)(void *private, int nonblock);
 	int (*info)(void *private, snd_pcm_info_t *info);
 	int (*params_info)(void *private, snd_pcm_params_info_t *info);
 	int (*params)(void *private, snd_pcm_params_t *params);
 	int (*setup)(void *private, snd_pcm_setup_t *setup);
-	int (*channel_setup)(void *private, snd_pcm_channel_setup_t *setup);
+	void (*dump)(void *private, FILE *fp);
+};
+
+struct snd_pcm_fast_ops {
+	int (*nonblock)(void *private, int nonblock);
 	int (*status)(void *private, snd_pcm_status_t *status);
+	int (*channel_setup)(void *private, snd_pcm_channel_setup_t *setup);
 	int (*prepare)(void *private);
 	int (*go)(void *private);
 	int (*drain)(void *private);
@@ -39,19 +43,18 @@ struct snd_pcm_ops {
 	int (*state)(void *private);
 	ssize_t (*frame_io)(void *private, int update);
 	ssize_t (*frame_data)(void *private, off_t offset);
-	ssize_t (*write)(void *private, snd_timestamp_t tstamp, const void *buffer, size_t size);
-	ssize_t (*writev)(void *private, snd_timestamp_t tstamp, const struct iovec *vector, unsigned long count);
-	ssize_t (*read)(void *private, snd_timestamp_t tstamp, void *buffer, size_t size);
-	ssize_t (*readv)(void *private, snd_timestamp_t tstamp, const struct iovec *vector, unsigned long count);
+	ssize_t (*write)(void *private, snd_timestamp_t *tstamp, const void *buffer, size_t size);
+	ssize_t (*writev)(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count);
+	ssize_t (*read)(void *private, snd_timestamp_t *tstamp, void *buffer, size_t size);
+	ssize_t (*readv)(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count);
+	int (*file_descriptor)(void *private);
+	int (*channels_mask)(void *private, bitset_t *client_vmask);
 	int (*mmap_status)(void *private, snd_pcm_mmap_status_t **status);
 	int (*mmap_control)(void *private, snd_pcm_mmap_control_t **control);
 	int (*mmap_data)(void *private, void **buffer, size_t bsize);
 	int (*munmap_status)(void *private, snd_pcm_mmap_status_t *status);
 	int (*munmap_control)(void *private, snd_pcm_mmap_control_t *control);
 	int (*munmap_data)(void *private, void *buffer, size_t bsize);
-	int (*file_descriptor)(void *private);
-	int (*channels_mask)(void *private, bitset_t *client_vmask);
-	void (*dump)(void *private, FILE *fp);
 };
 
 struct snd_pcm {
@@ -69,6 +72,8 @@ struct snd_pcm {
 	enum { _INTERLEAVED, _NONINTERLEAVED, _COMPLEX } mmap_type;
 	struct snd_pcm_ops *ops;
 	void *op_arg;
+	struct snd_pcm_fast_ops *fast_ops;
+	void *fast_op_arg;
 	void *private;
 };
 

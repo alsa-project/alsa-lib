@@ -200,13 +200,16 @@ static ssize_t snd_pcm_hw_frame_data(void *private, off_t offset)
 	return result;
 }
 
-static ssize_t snd_pcm_hw_write(void *private, snd_timestamp_t tstamp, const void *buffer, size_t size)
+static ssize_t snd_pcm_hw_write(void *private, snd_timestamp_t *tstamp, const void *buffer, size_t size)
 {
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
 	snd_xfer_t xfer;
-	xfer.tstamp = tstamp;
+	if (tstamp)
+		xfer.tstamp = *tstamp;
+	else
+		xfer.tstamp.tv_sec = xfer.tstamp.tv_usec = 0;
 	xfer.buf = (char*) buffer;
 	xfer.count = size;
 	result = ioctl(fd, SND_PCM_IOCTL_WRITE_FRAMES, &xfer);
@@ -215,13 +218,16 @@ static ssize_t snd_pcm_hw_write(void *private, snd_timestamp_t tstamp, const voi
 	return result;
 }
 
-static ssize_t snd_pcm_hw_writev(void *private, snd_timestamp_t tstamp, const struct iovec *vector, unsigned long count)
+static ssize_t snd_pcm_hw_writev(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
 {
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
 	snd_xferv_t xferv;
-	xferv.tstamp = tstamp;
+	if (tstamp)
+		xferv.tstamp = *tstamp;
+	else
+		xferv.tstamp.tv_sec = xferv.tstamp.tv_usec = 0;
 	xferv.vector = vector;
 	xferv.count = count;
 	result = ioctl(fd, SND_PCM_IOCTL_WRITEV_FRAMES, &xferv);
@@ -230,13 +236,16 @@ static ssize_t snd_pcm_hw_writev(void *private, snd_timestamp_t tstamp, const st
 	return result;
 }
 
-static ssize_t snd_pcm_hw_read(void *private, snd_timestamp_t tstamp, void *buffer, size_t size)
+static ssize_t snd_pcm_hw_read(void *private, snd_timestamp_t *tstamp, void *buffer, size_t size)
 {
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
 	snd_xfer_t xfer;
-	xfer.tstamp = tstamp;
+	if (tstamp)
+		xfer.tstamp = *tstamp;
+	else
+		xfer.tstamp.tv_sec = xfer.tstamp.tv_usec = 0;
 	xfer.buf = buffer;
 	xfer.count = size;
 	result = ioctl(fd, SND_PCM_IOCTL_READ_FRAMES, &xfer);
@@ -245,13 +254,16 @@ static ssize_t snd_pcm_hw_read(void *private, snd_timestamp_t tstamp, void *buff
 	return result;
 }
 
-ssize_t snd_pcm_hw_readv(void *private, snd_timestamp_t tstamp, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_hw_readv(void *private, snd_timestamp_t *tstamp, const struct iovec *vector, unsigned long count)
 {
 	ssize_t result;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
 	snd_xferv_t xferv;
-	xferv.tstamp = tstamp;
+	if (tstamp)
+		xferv.tstamp = *tstamp;
+	else
+		xferv.tstamp.tv_sec = xferv.tstamp.tv_usec = 0;
 	xferv.vector = vector;
 	xferv.count = count;
 	result = ioctl(fd, SND_PCM_IOCTL_READV_FRAMES, &xferv);
@@ -348,11 +360,15 @@ static void snd_pcm_hw_dump(void *private, FILE *fp)
 
 struct snd_pcm_ops snd_pcm_hw_ops = {
 	close: snd_pcm_hw_close,
-	nonblock: snd_pcm_hw_nonblock,
 	info: snd_pcm_hw_info,
 	params_info: snd_pcm_hw_params_info,
 	params: snd_pcm_hw_params,
 	setup: snd_pcm_hw_setup,
+	dump: snd_pcm_hw_dump,
+};
+
+struct snd_pcm_fast_ops snd_pcm_hw_fast_ops = {
+	nonblock: snd_pcm_hw_nonblock,
 	channel_setup: snd_pcm_hw_channel_setup,
 	status: snd_pcm_hw_status,
 	frame_io: snd_pcm_hw_frame_io,
@@ -375,7 +391,6 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	munmap_data: snd_pcm_hw_munmap_data,
 	file_descriptor: snd_pcm_hw_file_descriptor,
 	channels_mask: snd_pcm_hw_channels_mask,
-	dump: snd_pcm_hw_dump,
 };
 
 int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int subdevice, int stream, int mode)
@@ -461,6 +476,8 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **handlep, int card, int device, int sub
 	handle->stream = stream;
 	handle->ops = &snd_pcm_hw_ops;
 	handle->op_arg = hw;
+	handle->fast_ops = &snd_pcm_hw_fast_ops;
+	handle->fast_op_arg = hw;
 	handle->mode = mode;
 	handle->private = hw;
 	*handlep = handle;

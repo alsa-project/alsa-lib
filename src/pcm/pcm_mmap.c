@@ -442,7 +442,7 @@ int snd_pcm_mmap_status(snd_pcm_t *handle, snd_pcm_mmap_status_t **status)
 		return 0;
 	}
 
-	if ((err = handle->ops->mmap_status(handle->op_arg, &handle->mmap_status)) < 0)
+	if ((err = handle->fast_ops->mmap_status(handle->fast_op_arg, &handle->mmap_status)) < 0)
 		return err;
 	if (status)
 		*status = handle->mmap_status;
@@ -460,7 +460,7 @@ int snd_pcm_mmap_control(snd_pcm_t *handle, snd_pcm_mmap_control_t **control)
 		return 0;
 	}
 
-	if ((err = handle->ops->mmap_control(handle->op_arg, &handle->mmap_control)) < 0)
+	if ((err = handle->fast_ops->mmap_control(handle->fast_op_arg, &handle->mmap_control)) < 0)
 		return err;
 	if (control)
 		*control = handle->mmap_control;
@@ -517,7 +517,7 @@ int snd_pcm_mmap_data(snd_pcm_t *handle, void **data)
 
 	if (handle->setup.mmap_bytes == 0)
 		return -ENXIO;
-	if ((err = handle->ops->mmap_data(handle->op_arg, (void**)&handle->mmap_data, handle->setup.mmap_bytes)) < 0)
+	if ((err = handle->fast_ops->mmap_data(handle->fast_op_arg, (void**)&handle->mmap_data, handle->setup.mmap_bytes)) < 0)
 		return err;
 	if (data) 
 		*data = handle->mmap_data;
@@ -552,7 +552,7 @@ int snd_pcm_munmap_status(snd_pcm_t *handle)
 	int err;
 	assert(handle);
 	assert(handle->mmap_status);
-	if ((err = handle->ops->munmap_status(handle->op_arg, handle->mmap_status)) < 0)
+	if ((err = handle->fast_ops->munmap_status(handle->fast_op_arg, handle->mmap_status)) < 0)
 		return err;
 	handle->mmap_status = 0;
 	return 0;
@@ -563,7 +563,7 @@ int snd_pcm_munmap_control(snd_pcm_t *handle)
 	int err;
 	assert(handle);
 	assert(handle->mmap_control);
-	if ((err = handle->ops->munmap_control(handle->op_arg, handle->mmap_control)) < 0)
+	if ((err = handle->fast_ops->munmap_control(handle->fast_op_arg, handle->mmap_control)) < 0)
 		return err;
 	handle->mmap_control = 0;
 	return 0;
@@ -574,7 +574,7 @@ int snd_pcm_munmap_data(snd_pcm_t *handle)
 	int err;
 	assert(handle);
 	assert(handle->mmap_data);
-	if ((err = handle->ops->munmap_data(handle->op_arg, handle->mmap_data, handle->setup.mmap_bytes)) < 0)
+	if ((err = handle->fast_ops->munmap_data(handle->fast_op_arg, handle->mmap_data, handle->setup.mmap_bytes)) < 0)
 		return err;
 	free(handle->channels);
 	handle->channels = 0;

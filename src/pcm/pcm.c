@@ -68,7 +68,7 @@ int snd_pcm_nonblock(snd_pcm_t *handle, int nonblock)
 {
 	int err;
 	assert(handle);
-	if ((err = handle->ops->nonblock(handle->op_arg, nonblock)) < 0)
+	if ((err = handle->fast_ops->nonblock(handle->fast_op_arg, nonblock)) < 0)
 		return err;
 	if (nonblock)
 		handle->mode |= SND_PCM_NONBLOCK;
@@ -80,17 +80,13 @@ int snd_pcm_nonblock(snd_pcm_t *handle, int nonblock)
 int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t *info)
 {
 	assert(handle && info);
-	/* Here we pass private and not op_arg.
-	   FIXME: find a better solution */
-	return handle->ops->info(handle->private, info);
+	return handle->ops->info(handle->op_arg, info);
 }
 
 int snd_pcm_params_info(snd_pcm_t *handle, snd_pcm_params_info_t *info)
 {
 	assert(handle && info);
-	/* Here we pass private and not op_arg.
-	   FIXME: find a better solution */
-	return handle->ops->params_info(handle->private, info);
+	return handle->ops->params_info(handle->op_arg, info);
 }
 
 int snd_pcm_setup(snd_pcm_t *handle, snd_pcm_setup_t *setup)
@@ -101,9 +97,7 @@ int snd_pcm_setup(snd_pcm_t *handle, snd_pcm_setup_t *setup)
 		*setup = handle->setup;
 		return 0;
 	}
-	/* Here we pass private and not op_arg.
-	   FIXME: find a better solution */
-	if ((err = handle->ops->setup(handle->private, &handle->setup)) < 0)
+	if ((err = handle->ops->setup(handle->op_arg, &handle->setup)) < 0)
 		return err;
 	*setup = handle->setup;
 	handle->bits_per_sample = snd_pcm_format_physical_width(setup->format.format);
@@ -116,7 +110,7 @@ int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup)
 {
 	assert(handle && setup);
 	assert(handle->valid_setup);
-	return handle->ops->channel_setup(handle->op_arg, setup);
+	return handle->fast_ops->channel_setup(handle->fast_op_arg, setup);
 }
 
 int snd_pcm_params(snd_pcm_t *handle, snd_pcm_params_t *params)
@@ -125,9 +119,7 @@ int snd_pcm_params(snd_pcm_t *handle, snd_pcm_params_t *params)
 	snd_pcm_setup_t setup;
 	assert(handle && params);
 	assert(!handle->mmap_data);
-	/* Here we pass private and not op_arg.
-	   FIXME: find a better solution */
-	if ((err = handle->ops->params(handle->private, params)) < 0)
+	if ((err = handle->ops->params(handle->op_arg, params)) < 0)
 		return err;
 	handle->valid_setup = 0;
 	return snd_pcm_setup(handle, &setup);
@@ -136,7 +128,7 @@ int snd_pcm_params(snd_pcm_t *handle, snd_pcm_params_t *params)
 int snd_pcm_status(snd_pcm_t *handle, snd_pcm_status_t *status)
 {
 	assert(handle && status);
-	return handle->ops->status(handle->op_arg, status);
+	return handle->fast_ops->status(handle->fast_op_arg, status);
 }
 
 int snd_pcm_state(snd_pcm_t *handle)
@@ -144,7 +136,7 @@ int snd_pcm_state(snd_pcm_t *handle)
 	assert(handle);
 	if (handle->mmap_status)
 		return handle->mmap_status->state;
-	return handle->ops->state(handle->op_arg);
+	return handle->fast_ops->state(handle->fast_op_arg);
 }
 
 int snd_pcm_frame_io(snd_pcm_t *handle, int update)
@@ -153,19 +145,19 @@ int snd_pcm_frame_io(snd_pcm_t *handle, int update)
 	assert(handle->valid_setup);
 	if (handle->mmap_status && !update)
 		return handle->mmap_status->frame_io;
-	return handle->ops->frame_io(handle->op_arg, update);
+	return handle->fast_ops->frame_io(handle->fast_op_arg, update);
 }
 
 int snd_pcm_prepare(snd_pcm_t *handle)
 {
 	assert(handle);
-	return handle->ops->prepare(handle->op_arg);
+	return handle->fast_ops->prepare(handle->fast_op_arg);
 }
 
 int snd_pcm_go(snd_pcm_t *handle)
 {
 	assert(handle);
-	return handle->ops->go(handle->op_arg);
+	return handle->fast_ops->go(handle->fast_op_arg);
 }
 
 int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd, 
@@ -216,19 +208,19 @@ int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd,
 int snd_pcm_drain(snd_pcm_t *handle)
 {
 	assert(handle);
-	return handle->ops->drain(handle->op_arg);
+	return handle->fast_ops->drain(handle->fast_op_arg);
 }
 
 int snd_pcm_flush(snd_pcm_t *handle)
 {
 	assert(handle);
-	return handle->ops->flush(handle->op_arg);
+	return handle->fast_ops->flush(handle->fast_op_arg);
 }
 
 int snd_pcm_pause(snd_pcm_t *handle, int enable)
 {
 	assert(handle);
-	return handle->ops->pause(handle->op_arg, enable);
+	return handle->fast_ops->pause(handle->fast_op_arg, enable);
 }
 
 
@@ -240,7 +232,7 @@ ssize_t snd_pcm_frame_data(snd_pcm_t *handle, off_t offset)
 		if (offset == 0)
 			return handle->mmap_control->frame_data;
 	}
-	return handle->ops->frame_data(handle->op_arg, offset);
+	return handle->fast_ops->frame_data(handle->fast_op_arg, offset);
 }
 
 ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
@@ -249,7 +241,7 @@ ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size)
 	assert(size == 0 || buffer);
 	assert(handle->valid_setup);
 	assert(size % handle->setup.frames_align == 0);
-	return handle->ops->write(handle->op_arg, 0, buffer, size);
+	return handle->fast_ops->write(handle->fast_op_arg, 0, buffer, size);
 }
 
 ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
@@ -259,7 +251,7 @@ ssize_t snd_pcm_writev(snd_pcm_t *handle, const struct iovec *vector, unsigned l
 	assert(handle->valid_setup);
 	assert(handle->setup.format.interleave || 
 	       count % handle->setup.format.channels == 0);
-	return handle->ops->writev(handle->op_arg, 0, vector, count);
+	return handle->fast_ops->writev(handle->fast_op_arg, 0, vector, count);
 }
 
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
@@ -268,7 +260,7 @@ ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size)
 	assert(size == 0 || buffer);
 	assert(handle->valid_setup);
 	assert(size % handle->setup.frames_align == 0);
-	return handle->ops->read(handle->op_arg, 0, buffer, size);
+	return handle->fast_ops->read(handle->fast_op_arg, 0, buffer, size);
 }
 
 ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned long count)
@@ -276,20 +268,20 @@ ssize_t snd_pcm_readv(snd_pcm_t *handle, const struct iovec *vector, unsigned lo
 	assert(handle);
 	assert(count == 0 || vector);
 	assert(handle->valid_setup);
-	return handle->ops->readv(handle->op_arg, 0, vector, count);
+	return handle->fast_ops->readv(handle->fast_op_arg, 0, vector, count);
 }
 
 int snd_pcm_file_descriptor(snd_pcm_t *handle)
 {
 	assert(handle);
-	return handle->ops->file_descriptor(handle->op_arg);
+	return handle->fast_ops->file_descriptor(handle->fast_op_arg);
 }
 
 int snd_pcm_channels_mask(snd_pcm_t *handle, bitset_t *client_vmask)
 {
 	assert(handle);
 	assert(handle->valid_setup);
-	return handle->ops->channels_mask(handle->op_arg, client_vmask);
+	return handle->fast_ops->channels_mask(handle->fast_op_arg, client_vmask);
 }
 
 typedef struct {
