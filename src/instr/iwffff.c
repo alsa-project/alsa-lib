@@ -693,9 +693,9 @@ static int iwffff_size(iwffff_instrument_t *instr)
 
 static void copy_lfo_to_stream(iwffff_xlfo_t *xlfo, iwffff_lfo_t *lfo)
 {
-	xlfo->freq = snd_htoi_16(lfo->freq);
-	xlfo->depth = snd_htoi_16(lfo->depth);
-	xlfo->sweep = snd_htoi_16(lfo->sweep);
+	xlfo->freq = __cpu_to_le16(lfo->freq);
+	xlfo->depth = __cpu_to_le16(lfo->depth);
+	xlfo->sweep = __cpu_to_le16(lfo->sweep);
 	xlfo->shape = lfo->shape;
 	xlfo->delay = lfo->delay;
 	
@@ -720,19 +720,19 @@ static int copy_env_to_stream(iwffff_xenv_t *xenv, iwffff_env_t *env, __u32 styp
 		ptr += sizeof(*xrec);
 		size += sizeof(*xrec);
 		xrec->stype = stype;
-		xrec->nattack = snd_htoi_16(rec->nattack);
-		xrec->nrelease = snd_htoi_16(rec->nrelease);
-		xrec->sustain_offset = snd_htoi_16(rec->sustain_offset);
-		xrec->sustain_rate = snd_htoi_16(rec->sustain_rate);
-		xrec->release_rate = snd_htoi_16(rec->release_rate);
+		xrec->nattack = __cpu_to_le16(rec->nattack);
+		xrec->nrelease = __cpu_to_le16(rec->nrelease);
+		xrec->sustain_offset = __cpu_to_le16(rec->sustain_offset);
+		xrec->sustain_rate = __cpu_to_le16(rec->sustain_rate);
+		xrec->release_rate = __cpu_to_le16(rec->release_rate);
 		xrec->hirange = rec->hirange;
 		point = (iwffff_env_point_t *)(rec + 1);
 		for (idx = 0; idx < xrec->nattack + xrec->nrelease; idx++) {
 			xpoint = (iwffff_xenv_point_t *)ptr;
 			ptr += sizeof(*xpoint);
 			size += sizeof(*xpoint);
-			xpoint->offset = snd_htoi_16(point->offset);
-			xpoint->rate = snd_htoi_16(point->rate);
+			xpoint->offset = __cpu_to_le16(point->offset);
+			xpoint->rate = __cpu_to_le16(point->rate);
 			point++;
 		}
 	}
@@ -774,9 +774,9 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 	/* build data section */
 	xinstr = (iwffff_xinstrument_t *)(data + 1);
 	xinstr->stype = IWFFFF_STRU_INSTR;
-	xinstr->exclusion = snd_htoi_16(instr->exclusion);
-	xinstr->layer_type = snd_htoi_16(instr->layer_type);
-	xinstr->exclusion_group = snd_htoi_16(instr->exclusion_group);
+	xinstr->exclusion = __cpu_to_le16(instr->exclusion);
+	xinstr->layer_type = __cpu_to_le16(instr->layer_type);
+	xinstr->exclusion_group = __cpu_to_le16(instr->exclusion_group);
 	xinstr->effect1 = instr->effect1;
 	xinstr->effect1_depth = instr->effect1_depth;
 	xinstr->effect2 = instr->effect2;
@@ -796,7 +796,7 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 		xlayer->attenuation = layer->attenuation;
 		copy_lfo_to_stream(&xlayer->tremolo, &layer->tremolo);
 		copy_lfo_to_stream(&xlayer->vibrato, &layer->vibrato);
-		xlayer->freq_scale = snd_htoi_16(layer->freq_scale);
+		xlayer->freq_scale = __cpu_to_le16(layer->freq_scale);
 		xlayer->freq_center = layer->freq_center;
 		ptr += copy_env_to_stream(&xlayer->penv, &layer->penv, IWFFFF_STRU_ENV_RECP);
 		ptr += copy_env_to_stream(&xlayer->venv, &layer->venv, IWFFFF_STRU_ENV_RECV);
@@ -804,17 +804,17 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 			xwave = (iwffff_xwave_t *)ptr;
 			ptr += sizeof(*xwave);
 			xwave->stype = IWFFFF_STRU_WAVE;
-			xwave->share_id[1] = snd_htoi_32(wave->share_id[1]);
-			xwave->share_id[2] = snd_htoi_32(wave->share_id[2]);
-			xwave->share_id[3] = snd_htoi_32(wave->share_id[3]);
-			xwave->share_id[4] = snd_htoi_32(wave->share_id[4]);
-			xwave->format = snd_htoi_32(wave->format);
-			xwave->size = snd_htoi_32(wave->size);
-			xwave->start = snd_htoi_32(wave->start);
-			xwave->loop_start = snd_htoi_32(wave->loop_start);
-			xwave->loop_end = snd_htoi_32(wave->loop_end);
-			xwave->loop_repeat = snd_htoi_32(wave->loop_repeat);
-			xwave->sample_ratio = snd_htoi_32(wave->sample_ratio);
+			xwave->share_id[1] = __cpu_to_le32(wave->share_id[1]);
+			xwave->share_id[2] = __cpu_to_le32(wave->share_id[2]);
+			xwave->share_id[3] = __cpu_to_le32(wave->share_id[3]);
+			xwave->share_id[4] = __cpu_to_le32(wave->share_id[4]);
+			xwave->format = __cpu_to_le32(wave->format);
+			xwave->size = __cpu_to_le32(wave->size);
+			xwave->start = __cpu_to_le32(wave->start);
+			xwave->loop_start = __cpu_to_le32(wave->loop_start);
+			xwave->loop_end = __cpu_to_le32(wave->loop_end);
+			xwave->loop_repeat = __cpu_to_le32(wave->loop_repeat);
+			xwave->sample_ratio = __cpu_to_le32(wave->sample_ratio);
 			xwave->attenuation = wave->attenuation;
 			xwave->low_note = wave->low_note;
 			xwave->high_note = wave->high_note;
@@ -822,7 +822,7 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 				memcpy(ptr, wave->address.ptr, wave->size);
 				ptr += wave->size;
 			} else {
-				xwave->offset = snd_htoi_32(wave->address.memory);
+				xwave->offset = __cpu_to_le32(wave->address.memory);
 			}
 		}
 	}

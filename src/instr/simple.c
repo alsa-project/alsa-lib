@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include "asoundlib.h"
+#include <asm/byteorder.h>
 #include <linux/ainstr_simple.h>
 
 static long simple_size(simple_instrument_t *instr)
@@ -71,16 +72,16 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	/* build data section */
 	xinstr = (simple_xinstrument_t *)(data + 1);
 	xinstr->stype = SIMPLE_STRU_INSTR;
-	xinstr->share_id[0] = snd_htoi_32(instr->share_id[0]);
-	xinstr->share_id[1] = snd_htoi_32(instr->share_id[1]);
-	xinstr->share_id[2] = snd_htoi_32(instr->share_id[2]);
-	xinstr->share_id[3] = snd_htoi_32(instr->share_id[3]);
-	xinstr->format = snd_htoi_32(instr->format);
-	xinstr->size = snd_htoi_32(instr->size);
-	xinstr->start = snd_htoi_32(instr->start);
-	xinstr->loop_start = snd_htoi_32(instr->loop_start);
-	xinstr->loop_end = snd_htoi_32(instr->loop_end);
-	xinstr->loop_repeat = snd_htoi_16(instr->loop_repeat);
+	xinstr->share_id[0] = __cpu_to_le32(instr->share_id[0]);
+	xinstr->share_id[1] = __cpu_to_le32(instr->share_id[1]);
+	xinstr->share_id[2] = __cpu_to_le32(instr->share_id[2]);
+	xinstr->share_id[3] = __cpu_to_le32(instr->share_id[3]);
+	xinstr->format = __cpu_to_le32(instr->format);
+	xinstr->size = __cpu_to_le32(instr->size);
+	xinstr->start = __cpu_to_le32(instr->start);
+	xinstr->loop_start = __cpu_to_le32(instr->loop_start);
+	xinstr->loop_end = __cpu_to_le32(instr->loop_end);
+	xinstr->loop_repeat = __cpu_to_le16(instr->loop_repeat);
 	xinstr->effect1 = instr->effect1;
 	xinstr->effect1_depth = instr->effect1_depth;
 	xinstr->effect2 = instr->effect2;
