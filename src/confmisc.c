@@ -428,39 +428,16 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
-int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
 {
-	snd_config_t *n;
 	char *res = NULL;
-	char *str;
 	snd_ctl_t *ctl = NULL;
 	snd_ctl_card_info_t *info;
 	long v;
 	int err;
 	
-	err = snd_config_search(src, "card", &n);
-	if (err < 0) {
-		SNDERR("field card not found");
-		goto __error;
-	}
-	err = snd_config_evaluate(n, root, private_data, NULL);
-	if (err < 0) {
-		SNDERR("error evaluating card");
-		goto __error;
-	}
-	err = snd_config_get_ascii(n, &str);
-	if (err < 0) {
-		SNDERR("field card is not an integer or a string");
-		goto __error;
-	}
-	v = snd_card_get_index(str);
-	if (v < 0) {
-		SNDERR("cannot find card '%s'", str);
-		free(str);
-		err = v;
-		goto __error;
-	}
-	free(str);
+	v = (long)private_data;
+	assert(v >= 0 && v <= 32);
 	err = open_ctl(v, &ctl);
 	if (err < 0) {
 		SNDERR("could not open control for card %li", v);
@@ -485,6 +462,38 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *
       	if (ctl)
       		snd_ctl_close(ctl);
 	return err;
+}
+
+int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+{
+	snd_config_t *n;
+	char *str;
+	long v;
+	int err;
+	
+	err = snd_config_search(src, "card", &n);
+	if (err < 0) {
+		SNDERR("field card not found");
+		return err;
+	}
+	err = snd_config_evaluate(n, root, private_data, NULL);
+	if (err < 0) {
+		SNDERR("error evaluating card");
+		return err;
+	}
+	err = snd_config_get_ascii(n, &str);
+	if (err < 0) {
+		SNDERR("field card is not an integer or a string");
+		return err;
+	}
+	v = snd_card_get_index(str);
+	if (v < 0) {
+		SNDERR("cannot find card '%s'", str);
+		free(str);
+		return v;
+	}
+	free(str);
+	return snd_func_private_card_strtype(dst, root, src, (void *)v);
 }
 
 int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)

@@ -1,4 +1,4 @@
-SUBDIRS=control mixer pcm rawmidi timer hwdep seq instr compat cards
+SUBDIRS=control mixer pcm rawmidi timer hwdep seq instr compat conf
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
 lib_LTLIBRARIES = libasound.la
@@ -9,11 +9,6 @@ libasound_la_LIBADD = control/libcontrol.la mixer/libmixer.la pcm/libpcm.la \
 		      compat/libcompat.la -lm -ldl -lpthread
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
-
-EXTRA_DIST = alsa.conf
-
-alsadir = $(datadir)/alsa
-alsa_DATA = alsa.conf
 
 control/libcontrol.la:
 	$(MAKE) -C control libcontrol.la

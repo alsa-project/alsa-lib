@@ -51,17 +51,17 @@ struct filedesc {
 	struct filedesc *next;
 };
 
+#define LOCAL_ERROR			(-0x68000000)
+
+#define LOCAL_UNTERMINATED_STRING 	(LOCAL_ERROR - 0)
+#define LOCAL_UNTERMINATED_QUOTE	(LOCAL_ERROR - 1)
+#define LOCAL_UNEXPECTED_CHAR		(LOCAL_ERROR - 2)
+#define LOCAL_UNEXPECTED_EOF		(LOCAL_ERROR - 3)
+
 typedef struct {
 	struct filedesc *current;
 	int unget;
 	int ch;
-	enum {
-		UNTERMINATED_STRING = -1,
-		UNTERMINATED_QUOTE = -2,
-		UNEXPECTED_CHAR = -3,
-		UNEXPECTED_EOF = -4,
-		BAD_ENV_DEFAULT = -5,
-	} error;
 } input_t;
 
 int safe_strtol(const char *str, long *val)
@@ -123,12 +123,12 @@ static int get_char(input_t *input)
 			free(fd);
 			goto again;
 		}
-		break;
+		return LOCAL_UNEXPECTED_EOF;
 	default:
 		fd->column++;
 		break;
 	}
-	return c;
+	return (unsigned char)c;
 }
 
 static void unget_char(int c, input_t *input)
@@ -152,9 +152,21 @@ static int get_char_skip_comments(input_t *input)
 			int err = get_delimstring(&str, '>', input);
 			if (err < 0)
 				return err;
+			if (!strncmp(str, "confdir:", 8)) {
+				char *tmp = malloc(strlen(DATADIR "/alsa") + 1 + strlen(str + 8) + 1);
+				if (tmp == NULL) {
+					free(str);
+					return -ENOMEM;
+				}
+				sprintf(tmp, DATADIR "/alsa/%s", str + 8);
+				free(str);
+				str = tmp;
+			}
 			err = snd_input_stdio_open(&in, str, "r");
-			if (err < 0)
+			if (err < 0) {
+				free(str);
 				return err;
+			}
 			fd = malloc(sizeof(*fd));
 			if (!fd)
 				return -ENOMEM;
@@ -171,7 +183,7 @@ static int get_char_skip_comments(input_t *input)
 		while (1) {
 			c = get_char(input);
 			if (c == EOF)
-				return c;
+				return LOCAL_UNEXPECTED_EOF;
 			if (c == '\n')
 				break;
 		}
@@ -246,6 +258,11 @@ static int get_freestring(char **string, int id, input_t *input)
 	int c;
 	while (1) {
 		c = get_char(input);
+		if (c < 0) {
+			if (buf != _buf)
+				free(buf);
+			return c;
+		}
 		switch (c) {
 		case '.':
 			if (!id)
@@ -255,7 +272,6 @@ static int get_freestring(char **string, int id, input_t *input)
 		case '\t':
 		case '\n':
 		case '\r':
-		case EOF:
 		case '=':
 		case ',':
 		case ';':
@@ -314,16 +330,13 @@ static int get_delimstring(char **string, int delim, input_t *input)
 	int c;
 	while (1) {
 		c = get_char(input);
+		if (c < 0)
+			return c;
 		switch (c) {
-		case EOF:
-			input->error = UNTERMINATED_STRING;
-			return -EINVAL;
 		case '\\':
 			c = get_quotedchar(input);
-			if (c < 0) {
-				input->error = UNTERMINATED_QUOTE;
-				return -EINVAL;
-			}
+			if (c < 0)
+				return c;
 			break;
 		default:
 			if (c == delim) {
@@ -362,12 +375,10 @@ static int get_delimstring(char **string, int delim, input_t *input)
 /* Return 0 for free string, 1 for delimited string */
 static int get_string(char **string, int id, input_t *input)
 {
-	int c = get_nonwhite(input);
-	int err;
+	int c = get_nonwhite(input), err;
+	if (c < 0)
+		return c;
 	switch (c) {
-	case EOF:
-		input->error = UNEXPECTED_EOF;
-		return -EINVAL;
 	case '=':
 	case ',':
 	case ';':
@@ -376,8 +387,7 @@ static int get_string(char **string, int id, input_t *input)
 	case '}':
 	case '[':
 	case ']':
-		input->error = UNEXPECTED_CHAR;
-		return -EINVAL;
+		return LOCAL_UNEXPECTED_CHAR;
 	case '\'':
 	case '"':
 		err = get_delimstring(string, c, input);
@@ -534,6 +544,10 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx)
 	if (id == NULL)
 		return -ENOMEM;
 	c = get_nonwhite(input);
+	if (c < 0) {
+		err = c;
+		goto __end;
+	}
 	switch (c) {
 	case '{':
 	case '[':
@@ -558,10 +572,13 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx)
 			endchr = ']';
 		}
 		c = get_nonwhite(input);
+		if (c < 0) {
+			err = c;
+			goto __end;
+		}
 		if (c != endchr) {
 			snd_config_delete(n);
-			input->error = (c == EOF ? UNEXPECTED_EOF : UNEXPECTED_CHAR);
-			err = -EINVAL;
+			err = LOCAL_UNEXPECTED_CHAR;
 			goto __end;
 		}
 		break;
@@ -584,10 +601,9 @@ static int parse_array_defs(snd_config_t *father, input_t *input)
 {
 	int idx = 0;
 	while (1) {
-		int c = get_nonwhite(input);
-		int err;
-		if (c == EOF)
-			return 0;
+		int c = get_nonwhite(input), err;
+		if (c < 0)
+			return c;
 		unget_char(c, input);
 		if (c == ']')
 			return 0;
@@ -607,15 +623,15 @@ static int parse_def(snd_config_t *father, input_t *input)
 	enum {MERGE, NOCREATE, REMOVE} mode;
 	while (1) {
 		c = get_nonwhite(input);
+		if (c < 0)
+			return c;
 		switch (c) {
-#if 0
 		case '?':
 			mode = NOCREATE;
 			break;
 		case '!':
 			mode = REMOVE;
 			break;
-#endif
 		default:
 			mode = MERGE;
 			unget_char(c, input);
@@ -650,8 +666,11 @@ static int parse_def(snd_config_t *father, input_t *input)
 		n->u.compound.join = 1;
 		father = n;
 	}
-	if (c == '=')
+	if (c == '=') {
 		c = get_nonwhite(input);
+		if (c < 0)
+			return c;
+	}
 	if (_snd_config_search(father, id, -1, &n) == 0) {
 		if (mode == REMOVE) {
 			snd_config_delete(n);
@@ -691,8 +710,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 		c = get_nonwhite(input);
 		if (c != endchr) {
 			snd_config_delete(n);
-			input->error = (c == EOF ? UNEXPECTED_EOF : UNEXPECTED_CHAR);
-			err = -EINVAL;
+			err = LOCAL_UNEXPECTED_CHAR;
 			goto __end;
 		}
 		break;
@@ -720,11 +738,11 @@ static int parse_def(snd_config_t *father, input_t *input)
 		
 static int parse_defs(snd_config_t *father, input_t *input)
 {
+	int c, err;
 	while (1) {
-		int c = get_nonwhite(input);
-		int err;
-		if (c == EOF)
-			return 0;
+		c = get_nonwhite(input);
+		if (c < 0)
+			return c == LOCAL_UNEXPECTED_EOF ? 0 : c;
 		unget_char(c, input);
 		if (c == '}')
 			return 0;
@@ -905,12 +923,12 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 /**
  * \brief Substitute one node to another
  * \brief dst Destination node
- * \brief src Source node (invalid after cal)
+ * \brief src Source node (invalid after call)
  */
 int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 {
 	assert(dst && src);
-	if (src->type == SND_CONFIG_TYPE_COMPOUND) {
+	if (src->type == SND_CONFIG_TYPE_COMPOUND) {	/* append */
 		snd_config_iterator_t i, next;
 		snd_config_for_each(i, next, src) {
 			snd_config_t *n = snd_config_iterator_entry(i);
@@ -919,8 +937,9 @@ int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 		src->u.compound.fields.next->prev = &dst->u.compound.fields;
 		src->u.compound.fields.prev->next = &dst->u.compound.fields;
 	}
-	free(dst->id);
-	dst->id  = src->id;
+	if (dst->id)
+		free(dst->id);
+	dst->id = src->id;
 	dst->type = src->type;
 	dst->u = src->u;
 	free(src);
@@ -1022,40 +1041,32 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 	fd->next = NULL;
 	input.current = fd;
 	input.unget = 0;
-	input.error = 0;
 	err = parse_defs(config, &input);
 	fd = input.current;
 	if (err < 0) {
-		if (input.error < 0) {
-			const char *str;
-			switch (input.error) {
-			case UNTERMINATED_STRING:
-				str = "Unterminated string";
-				break;
-			case UNTERMINATED_QUOTE:
-				str = "Unterminated quote";
-				break;
-			case UNEXPECTED_CHAR:
-				str = "Unexpected char";
-				break;
-			case UNEXPECTED_EOF:
-				str = "Unexpected end of file";
-				break;
-			case BAD_ENV_DEFAULT:
-				str = "Bad environment default value";
-				break;
-			default:
-				assert(0);
-				break;
-			}
-			SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "_toplevel_",
-			    fd->line, fd->column, str);
+		const char *str;
+		switch (err) {
+		case LOCAL_UNTERMINATED_STRING:
+			str = "Unterminated string";
+			break;
+		case LOCAL_UNTERMINATED_QUOTE:
+			str = "Unterminated quote";
+			break;
+		case LOCAL_UNEXPECTED_CHAR:
+			str = "Unexpected char";
+			break;
+		case LOCAL_UNEXPECTED_EOF:
+			str = "Unexpected end of file";
+			break;
+		default:
+			str = strerror(-err);
+			break;
 		}
+		SNDERR("%s:%d:%d:%s", fd->name ? fd->name : "_toplevel_", fd->line, fd->column, str);
 		goto _end;
 	}
-	if (get_char(&input) != EOF) {
-		SNDERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "",
-		    fd->line, fd->column);
+	if (get_char(&input) != LOCAL_UNEXPECTED_EOF) {
+		SNDERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "", fd->line, fd->column);
 		err = -EINVAL;
 		goto _end;
 	}
@@ -1541,9 +1552,9 @@ int snd_config_search_alias(snd_config_t *config,
  */
 int snd_config_search_hooks(snd_config_t *config, const char *key, snd_config_t **result)
 {
-	static int snd_config_hooks(snd_config_t *config);
+	static int snd_config_hooks(snd_config_t *config, void *private_data);
 	SND_CONFIG_SEARCH(config, key, result, \
-					err = snd_config_hooks(config); \
+					err = snd_config_hooks(config, NULL); \
 					if (err < 0) \
 						return err; \
 			 );
@@ -1602,14 +1613,14 @@ static struct finfo {
 
 static unsigned int files_info_count = 0;
 
-static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config)
+static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, void *private_data)
 {
 	void *h = NULL;
 	snd_config_t *c, *func_conf = NULL;
 	char *buf = NULL;
 	const char *lib = NULL, *func_name = NULL;
 	const char *str;
-	int (*func)(snd_config_t *root, snd_config_t *config, snd_config_t **dst) = NULL;
+	int (*func)(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data) = NULL;
 	int err;
 
 	err = snd_config_search(config, "func", &c);
@@ -1678,7 +1689,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config)
 		snd_config_delete(func_conf);
 	if (err >= 0) {
 		snd_config_t *nroot;
-		err = func(root, config, &nroot);
+		err = func(root, config, &nroot, private_data);
 		if (err < 0)
 			SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
 		dlclose(h);
@@ -1692,7 +1703,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config)
 	return 0;
 }
 
-static int snd_config_hooks(snd_config_t *config)
+static int snd_config_hooks(snd_config_t *config, void *private_data)
 {
 	snd_config_t *n;
 	snd_config_iterator_t i, next;
@@ -1714,7 +1725,7 @@ static int snd_config_hooks(snd_config_t *config)
 				goto _err;
 			}
 			if (i == idx) {
-				err = snd_config_hooks_call(config, n);
+				err = snd_config_hooks_call(config, n, private_data);
 				if (err < 0)
 					return err;
 				idx++;
@@ -1728,7 +1739,7 @@ static int snd_config_hooks(snd_config_t *config)
 	return err;
 }
 
-int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst)
+int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data)
 {
 	snd_config_t *n, *res = NULL;
 	snd_config_iterator_t i, next;
@@ -1752,7 +1763,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 		SNDERR("Unable to find field files in the preload section");
 		return -EINVAL;
 	}
-	if ((err = snd_config_expand(n, root, NULL, NULL, &n)) < 0) {
+	if ((err = snd_config_expand(n, root, NULL, private_data, &n)) < 0) {
 		SNDERR("Unable to expand filenames in the preload section");
 		return err;
 	}
@@ -1848,6 +1859,25 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
        		snd_config_delete(res);
 	snd_config_delete(n);
 	return err;
+}
+
+int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data ATTRIBUTE_UNUSED)
+{
+	int card = -1, err;
+	
+	do {
+		err = snd_card_next(&card);
+		if (err < 0)
+			return err;
+		if (card >= 0) {
+			snd_config_t *nroot;
+			err = snd_config_hook_load(root, config, &nroot, (void *)(unsigned long)card);
+			if (err < 0)
+				return err;
+		}
+	} while (card >= 0);
+	*dst = NULL;
+	return 0;
 }
 
 /** 
@@ -1978,7 +2008,7 @@ int snd_config_update()
 			SNDERR("cannot access file %s", fi[k].name);
 		}
 	}
-	err = snd_config_hooks(snd_config);
+	err = snd_config_hooks(snd_config, NULL);
 	if (err < 0) {
 		SNDERR("hooks failed, removing configuration");
 		goto _end;
@@ -2796,7 +2826,9 @@ int snd_config_search_definition(snd_config_t *config,
 	} else {
 		key = (char *) name;
 	} 
-	err = snd_config_search_alias_hooks(config, base, key, &conf);
+	err = snd_config_search_alias_hooks(config, NULL, key, &conf);
+	if (err < 0)
+		err = snd_config_search_alias_hooks(config, base, key, &conf);
 	if (err < 0)
 		return err;
 	return snd_config_expand(conf, config, args, NULL, result);
