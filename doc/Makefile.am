@@ -1,5 +1,4 @@
-EXTRA_DIST=plan.txt soundapi.txt soundapi.sgml \
-           soundapi.html soundapi-1.html soundapi-2.html \
-           soundapi-3.html soundapi-4.html soundapi-5.html
+EXTRA_DIST=plan.txt alsa-lib.lyx alsa-lib.html \
+           pcmbuf.ps pcmbuf.gif pcmbuf1.ps pcmbuf1.gif
 
 INCLUDES=-I$(top_srcdir)/include

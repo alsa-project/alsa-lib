@@ -1,0 +1,9667 @@
+#This file was created by <emng> Mon Jan 11 02:36:51 1999
+#LyX 1.0 (C) 1995-1998 Matthias Ettrich and the LyX Team
+\lyxformat 2.15
+\textclass article
+\language default
+\inputencoding default
+\fontscheme default
+\graphics default
+\paperfontsize default
+\spacing single 
+\papersize Default
+\paperpackage widemarginsa4
+\use_geometry 0
+\use_amsmath 0
+\paperorientation portrait
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Title
+\added_space_top vfill \added_space_bottom vfill 
+Advanced Linux Sound Architecture - Library API
+\layout Author
+
+
+\series bold 
+Jaroslav Kysela <perex@jcu.cz>
+\series default 
+ with assistance from Alan Robinson and Fred Floberg
+\layout Date
+
+1998-11-11
+\layout Standard
+\align center 
+
+\shape italic 
+This document describes, in full detail, the Advanced Linux Sound Architecture
+ library API.
+ 
+\layout Standard
+
+
+\begin_inset LatexCommand \tableofcontents
+
+\end_inset 
+
+
+\layout Section
+
+Introduction
+\layout Standard
+
+The Advanced Linux Sound Architecture comes with a kernel API & library
+ API.
+ This document describes the library API and how it interfaces with the
+ kernel API.
+ The kernal API will probably never be documented in standalone form.
+ 
+\layout Standard
+
+Application programmers should use the library API rather than kernel API.
+ The Library offers 100% of the functionally of the kernel API, but add
+ major improvements in usability, making the application code simpler and
+ better looking.
+ In addition, some of the some fixes/compatibility code may be placed in
+ the library code instead of the kernel driver.
+ 
+\layout Standard
+
+For a complete list of all variables and functions in the API you should
+ look at the following header files: 
+\layout Itemize
+
+/usr/include/sys/asoundlib.h
+\layout Itemize
+
+/usr/include/linux/asound.h
+\layout Itemize
+
+/usr/include/linux/asoundid.h
+\layout Section
+
+Error Codes
+\layout Standard
+
+All functions return int (or some sort of signed value).
+ If this value is negative it represents an error code.
+ Codes up to 
+\shape italic 
+SND_ERROR_BEGIN (500000)
+\shape default 
+ represent standard system errors.
+ Codes equal to or greather than this value represent sound library API
+ errors.
+ All error codes begin with the prefix 
+\shape italic 
+SND_ERROR_
+\shape default 
+.
+ 
+\layout Subsection
+
+Error Codes in Detail
+\layout Standard
+\added_space_top 0.3cm \added_space_bottom 0.3cm \LyXTable
+multicol5
+1 2 0 0 -1 -1 -1 -1
+1 1 0 0
+8 1 1 "" ""
+8 1 1 "" ""
+0 8 1 0 0 0 0 "" ""
+0 8 1 0 0 0 0 "" ""
+
+SND_ERROR_UNCOMPATIBLE_VERSION
+\newline 
+500000
+\layout Standard
+
+This error is caused if the driver uses an incompatible kernel API for this
+ interface and hence the library doesn't know how this API can be used.
+ 
+\layout Subsection
+
+Functions
+\layout Subsubsection*
+
+const char *snd_strerror(int errnum) 
+\layout Standard
+
+This function converts an error code to a string.
+ Its functionality is the same as the 
+\shape italic 
+strerror
+\shape default 
+ function from the standard C library, but this function returns error message
+ strings for sound error codes, as well.
+\layout Section
+
+Control Interface
+\layout Standard
+
+The control interface gives applications various information about the currently
+ installed sound driver in the system.
+ The interface should be used to detect if another sound interface is present
+ for a selected soundcard or, for example, to create a list of devices (MIXER,
+ PCM etc) from which the user can select.
+\layout Subsection
+
+Low-Level Layer
+\layout Subsubsection*
+
+int snd_cards(void)
+\layout Standard
+
+Returns the number of soundcards present in the system, if any.
+ Otherwise it returns a negative value, which maps to an error code.
+ This function will return 0 if no soundcards are detected.
+\layout Subsubsection*
+
+unsigned int snd_cards_mask(void)
+\layout Standard
+
+Returns the bitmap of soundcards present in the system, if any.
+ This function will return 0 if no soundcards are detected.
+ The first soundcard is represented with bit 0 (0x00000001).
+ See the documentation on installing ALSA and /etc/conf.modules configuration
+ for information on assigning numbers to soundcards.
+\layout Subsubsection*
+
+int snd_card_name(const char *name)
+\layout Standard
+
+Returns soundcard number for appropriate soundcard name.
+ String 
+\shape italic 
+name
+\shape default 
+ can contain word identification for card (ALSA driver allows the user choose
+ card identification using snd_id module parameter) or soundcard index (1-N)
+ encoded into ASCII.
+\layout Subsubsection*
+
+int snd_ctl_open(void **handle, int card)
+\layout Standard
+
+Creates a new handle and opens communication with the kernel sound control
+ interface for soundcard number 
+\shape italic 
+card
+\shape default 
+ (0-N).
+ The function also checks if the protocol is compatible, so as to prevent
+ the use of old programs with a new kernel API.
+ Function returns zero if successful, otherwise an error code is returned.
+ 
+\layout Subsubsection*
+
+int snd_ctl_close(void *handle)
+\layout Standard
+
+Frees all resources allocated with control handle and closes the kernel
+ sound control interface.
+ This function returns zero if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_ctl_file_descriptor(void *handle)
+\layout Standard
+
+Returns a file descriptor for the kernel sound control interface.
+ This function is normally only used in very special cases.
+ This function returns a negative error code if an error was encountered.
+\layout Subsubsection*
+
+int snd_ctl_hw_info(void *handle, snd_ctl_hw_info_t *info)
+\layout Standard
+
+Fills the info structure with data about the sound hardware referenced by
+ handle.
+ This function returns zero if successful, otherwise it returns an error
+ code.
+\layout LyX-Code
+
+
+\shape italic 
+/* driver has MIDI interface */ 
+\layout LyX-Code
+
+#define SND_CTL_GCAPS_MIDI 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x0000001 
+\layout LyX-Code
+
+
+\shape italic 
+/* soundcard has synthesizer */
+\layout LyX-Code
+
+#define SND_CTL_LCAPS_SYNTH 
+\protected_separator 
+ 
+\protected_separator 
+ 0x0000001
+\layout LyX-Code
+
+
+\shape italic 
+/* soundcard has RAW FM/OPL3 */
+\layout LyX-Code
+
+#define SND_CTL_LCAPS_RAWFM 
+\protected_separator 
+ 
+\protected_separator 
+ 0x0000002
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_ctl_hw_info {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* type of card - see SND_CARD_TYPE_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int type;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* global capabilities - see SND_CTL_GCAPS_XXXX*/
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int gcaps;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+
+\protected_separator 
+
+\protected_separator 
+
+\protected_separator 
+
+\protected_separator 
+
+\shape italic 
+/* local capabilities \i \={ }
+ see SND_CTL_LCAPS_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int lcaps;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+
+\protected_separator 
+
+\protected_separator 
+
+\shape italic 
+/* count of PCM devices (0 to N) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+unsigned int pcmdevs;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* count of MIXER devices (0 to N)*/
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int mixerdevs;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* count of raw MIDI devices (0 to N) */
+\layout LyX-Code
+
+
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+unsigned int mididevs;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* ID of card (user selectable) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+char id[80];
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* name/info text about soundcard */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ char name[80];
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* count of control switches */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int switches;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* reserved for future use */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[124];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_ctl_switches(void *handle)
+\layout Standard
+
+Returns the number of control switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types of control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value should be zero if the soundcard doesn't have any control switches.
+\layout Subsubsection*
+
+int snd_ctl_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns the index for the switch with the name 
+\shape italic 
+switch_id
+\shape default 
+.
+ This function returns switch index if successful, otherwise it returns
+ an error code.
+\layout Subsubsection*
+
+int snd_ctl_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_ctl_switch_t *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about the switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ This function returns zero if successful, otherwise it returns an error
+ code.
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 or 1 (enable member of union) */
+\layout LyX-Code
+
+#define SND_CTL_SW_TYPE_BOOLEAN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 255 - from low to high (data8[0] member of union) */
+\layout LyX-Code
+
+#define SND_CTL_SW_TYPE_BYTE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+1
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 65535 - from low to high (data16[0] member of union) */
+\layout LyX-Code
+
+#define SND_CTL_SW_TYPE_WORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+2
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 4294967296 \i \={ }
+ from low to high (data32[0] member of union) */
+\layout LyX-Code
+
+#define SND_CTL_SW_TYPE_DWORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 3
+\layout LyX-Code
+
+
+\shape italic 
+/* user type - no type control */
+\layout LyX-Code
+
+#define SND_CTL_SW_TYPE_USER 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(~0)
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+
+\shape italic 
+/* well known (named) switches */
+\layout LyX-Code
+
+#define SND_CTL_SW_JOYSTICK 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "Joystick"
+\layout LyX-Code
+
+#define SND_CTL_SW_JOYSTICK_ADDRESS 
+\protected_separator 
+ "Joystick Address"
+\layout LyX-Code
+
+#define SND_CTL_SW_JOYSTICK_SPEED 
+\protected_separator 
+ 
+\protected_separator 
+ "Joystick Speed"
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_ctl_switch {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* switch index (filled by application) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int switchn;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* indentification of switch (for driver) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char name[32];
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* type of switch value - See SND_CTL_SW_TYPE_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int type;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* low range value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int low;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* high range value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int high;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ union {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int enable; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* 0 = off\i \c{ }
+ 1 = on */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char data8[32]; 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* 8-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned short data16[16]; 
+\protected_separator 
+
+\shape italic 
+/* 16-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int data32[8]; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* 32-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ } value;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* reserved for future use \i \={ }
+ must be zero !!! */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[32];
+\layout LyX-Code
+
+}
+\layout Subsubsection*
+
+int snd_ctl_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_ctl_switch_t *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about the switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ This function returns zero if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_ctl_mixer_info(void *handle, int dev, snd_mixer_info_t *info)
+\layout Standard
+
+Fills the *info structure with data about the mixer device.
+ Returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_mixer_info_t
+\shape default 
+ structure are in the 
+\series bold 
+Mixer Interface
+\series default 
+ section.
+ The argument 
+\shape italic 
+dev
+\shape default 
+ specifies the device number for the appropriate soundcard.
+ Its range is 0 to N where N is determined by 
+\shape italic 
+struct snd_ctl_hw_info->mixerdevs - 1
+\shape default 
+.
+ It should be used to collect information about mixer devices.
+\layout Subsubsection*
+
+int snd_ctl_mixer_switches(void *handle)
+\layout Standard
+
+Returns count of mixer switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types control.
+ This function returns count if successful, otherwise it returns an error
+ code.
+ Return value should be zero if soundcard doesn't have any mixer switches.
+\layout Subsubsection*
+
+int snd_ctl_mixer_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns the index for the switch with the name 
+\shape italic 
+switch_id
+\shape default 
+.
+ This function returns switch index if successful, otherwise it returns
+ an error code.
+\layout Subsubsection*
+
+int snd_ctl_mixer_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_mixer_switch_t
+ *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about the switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ This function returns zero if successful, otherwise it returns an error
+ code.
+ Details about the 
+\shape italic 
+snd_mixer_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+Mixer Interface
+\series default 
+ section.
+\layout Subsubsection*
+
+int snd_ctl_mixer_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_mixer_switch_t
+ *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_mixer_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+Mixer Interface
+\series default 
+ Interface section.
+\layout Subsubsection*
+
+int snd_ctl_pcm_info(void *handle, int dev, snd_pcm_info_t *info)
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure with data about the PCM device.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_pcm_info_t
+\shape default 
+ structure are in the 
+\series bold 
+Digital Audio (PCM)
+\series default 
+ Interface section.
+ The argument 
+\shape italic 
+dev
+\shape default 
+ selects the device number for the sound card referenced by 
+\shape italic 
+*handle
+\shape default 
+.
+ Its range is 0 to N where N is 
+\shape italic 
+struct snd_ctl_hw_info->pcmdevs - 1
+\shape default 
+.
+ This function will work if the selected PCM device is busy, too.
+ It should be used to collect information about PCM devices without exclusive
+ lock.
+ 
+\layout Subsubsection*
+
+int snd_ctl_pcm_playback_info(void *handle, int dev, snd_pcm_playback_info_t
+ *info) 
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure with data about the PCM device and playback direction.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_pcm_playback_info_t
+\shape default 
+ structure are in the 
+\series bold 
+Digital Audio (PCM) Interface
+\series default 
+ section.
+ The argument 
+\shape italic 
+dev
+\shape default 
+ selects the device number for the sound card referenced by 
+\shape italic 
+*handle
+\shape default 
+.
+ Its range is 0 to N where N is 
+\shape italic 
+struct snd_ctl_hw_info->pcmdevs - 1
+\shape default 
+.
+ This function will work if the selected PCM device is busy, too.
+ It should be used to collect information about PCM devices without exclusive
+ lock.
+ 
+\layout Subsubsection*
+
+int snd_ctl_pcm_playback_switches(void *handle)
+\layout Standard
+
+Returns count of PCM playback switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types of control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value should be zero if sound card doesn't have any PCM playback
+ switch.
+\layout Subsubsection*
+
+int snd_ctl_pcm_playback_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns index for switch with name 
+\shape italic 
+switch_id
+\shape default 
+.
+ Function returns switch index if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_ctl_pcm_playback_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_pcm_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+Digital Audio (PCM)
+\series default 
+ Interface section.
+\layout Subsubsection*
+
+int snd_ctl_pcm_playback_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_pcm_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+Digital Audio (PCM)
+\series default 
+ Interface section.
+\layout Subsubsection*
+
+int snd_ctl_pcm_record_info(void *handle, int dev, snd_pcm_record_info_t
+ *info)
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure with data about the PCM device and record direction.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_pcm_record_info_t
+\shape default 
+ structure are in the 
+\series bold 
+Digital Audio (PCM) Interface
+\series default 
+ section.
+ The argument 
+\shape italic 
+dev
+\shape default 
+ selects the device number for the sound card referenced by 
+\shape italic 
+*handle
+\shape default 
+.
+ Its range is 0 to N where N is 
+\shape italic 
+struct snd_ctl_hw_info->pcmdevs - 1
+\shape default 
+.
+ This function will work if the selected PCM device is busy, too.
+ It should be used to collect information about PCM devices without exclusive
+ lock.
+ 
+\layout Subsubsection*
+
+int snd_ctl_pcm_record_switches(void *handle)
+\layout Standard
+
+Returns count of PCM record switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types of control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value should be zero if sound card doesn't have any PCM record switch.
+\layout Subsubsection*
+
+int snd_ctl_pcm_record_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns index for switch with name 
+\shape italic 
+switch_id
+\shape default 
+.
+ Function returns switch index if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_ctl_pcm_record_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_pcm_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+Digital Audio (PCM)
+\series default 
+ Interface section.
+\layout Subsubsection*
+
+int snd_ctl_pcm_record_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_pcm_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+Digital Audio (PCM)
+\series default 
+ Interface section.
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_info(void *handle, int dev, snd_rawmidi_info_t *info)
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure with data about the rawmidi device.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_rawmidi_info_t
+\shape default 
+ structure are in the 
+\series bold 
+RawMidi Interface
+\series default 
+ section.
+ The argument 
+\shape italic 
+dev
+\shape default 
+ selects the device number for the sound card referenced by 
+\shape italic 
+*handle
+\shape default 
+.
+ Its range is 0 to N where N is 
+\shape italic 
+struct snd_ctl_hw_info->mididevs - 1
+\shape default 
+.
+ This function will work if the selected rawmidi device is busy, too.
+ It should be used to collect information about rawmidi devices without
+ exclusive lock.
+ 
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_output_info(void *handle, int dev, snd_rawmidi_output_info_t
+ *info) 
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure with data about the rawmidi device and output direction.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_pcm_playback_info_t
+\shape default 
+ structure are in the 
+\series bold 
+RawMidi Interface
+\series default 
+ section.
+ The argument 
+\shape italic 
+dev
+\shape default 
+ selects the device number for the sound card referenced by 
+\shape italic 
+*handle
+\shape default 
+.
+ Its range is 0 to N where N is 
+\shape italic 
+struct snd_ctl_hw_info->mididevs - 1
+\shape default 
+.
+ This function will work if the selected rawmidi device is busy, too.
+ It should be used to collect information about rawmidi devices without
+ exclusive lock.
+ 
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_output_switches(void *handle)
+\layout Standard
+
+Returns count of rawmidi output switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types of control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value should be zero if sound card doesn't have any control switch.
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_output_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns index for switch with name 
+\shape italic 
+switch_id
+\shape default 
+.
+ Function returns switch index if successful, otherwise it returns an error
+ code.
+ Return value should be zero if sound card doesn't have any rawmidi output
+ switch.
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_output_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_rawmidi_swit
+ch_t *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_rawmidi_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+RawMidi Interface
+\series default 
+ section.
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_output_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_rawmidi_swi
+tch_t *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_rawmidi_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+RawMidi Interface
+\series default 
+ section.
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_input_info(void *handle, int dev, snd_rawmidi_input_info_t
+ *info)
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure with data about the rawmidi device and input direction.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_rawmidi_record_info_t
+\shape default 
+ structure are in the 
+\series bold 
+RawMidi Interface
+\series default 
+ section.
+ The argument 
+\shape italic 
+dev
+\shape default 
+ selects the device number for the sound card referenced by 
+\shape italic 
+*handle
+\shape default 
+.
+ Its range is 0 to N where N is 
+\shape italic 
+struct snd_ctl_hw_info->pcmdevs - 1
+\shape default 
+.
+ This function will work if the selected rawmidi device is busy, too.
+ It should be used to collect information about rawmidi devices without
+ exclusive lock.
+ 
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_input_switches(void *handle)
+\layout Standard
+
+Returns count of rawmidi input switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types of control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value should be zero if sound card doesn't have any rawmidi input
+ switch.
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_input_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns index for switch with name 
+\shape italic 
+switch_id
+\shape default 
+.
+ Function returns switch index if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_input_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_rawmidi_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+RawMidi Interface
+\series default 
+ Interface section.
+\layout Subsubsection*
+
+int snd_ctl_rawmidi_input_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ Details about the 
+\shape italic 
+snd_rawmidi_switch_t
+\shape default 
+ structure are in the 
+\series bold 
+RawMidi Interface
+\series default 
+ section.
+\layout Subsubsection
+
+Examples
+\layout Standard
+
+The following example shows how all PCM devices can be detected for the
+ first sound card (#0) in the system.
+\layout LyX-Code
+
+int card = 0, err; 
+\layout LyX-Code
+
+void *handle; 
+\layout LyX-Code
+
+snd_ctl_hw_info_t info;
+\newline 
+
+\layout LyX-Code
+
+if ((err = snd_ctl_open(&handle, card)) < 0) { 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "open failed: %s
+\backslash 
+n", snd_strerror(err));
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return; 
+\layout LyX-Code
+
+} 
+\layout LyX-Code
+
+if ((err = snd_ctl_hw_info(handle, &info)) < 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "hw info failed: %s
+\backslash 
+n",
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_strerror(err)); 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_ctl_close(handle);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+return; 
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+printf("Installed PCM devices for card #i: %i
+\backslash 
+n",
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ card + 1, info.pcmdevs); 
+\layout LyX-Code
+
+snd_ctl_close(handle); 
+\layout Section
+
+Mixer Interface
+\layout Standard
+
+The Mixer Interface allows applications to change the volume level of a
+ sound card's input/output channels in both the linear range\i \c{ }
+ percentage
+ range (0-100) and in decibels.
+ It also supports features like hardware mute, input sound source, stereo
+ signal routing etc.
+\layout Subsection
+
+Low-Level Layer
+\layout Standard
+
+Mixer devices aren't opened exclusively.
+ This allows applications to open a device multiple times with one or more
+ processes.
+\layout Subsubsection*
+
+int snd_mixer_open(void **handle, int card, int device) 
+\layout Standard
+
+Creates new handle and opens a connection to the kernel sound mixer interface
+ for sound card number 
+\shape italic 
+card
+\shape default 
+ (0-N) and mixer device number 
+\shape italic 
+device
+\shape default 
+.
+ Also checks if protocol is compatible to prevent use of old programs with
+ new kernel API.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_mixer_close(void *handle)
+\layout Standard
+
+Frees all resources allocated to the mixer handle and closes its connection
+ to the kernel sound mixer interface.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_mixer_file_descriptor(void *handle)
+\layout Standard
+
+Returns the file descriptor for the connection to the kernel sound mixer
+ interface.
+ This function should be used only in very special cases.
+ Function returns a negative error code if an error was encountered.
+\layout Standard
+
+The file descriptor should be used for the 
+\shape italic 
+select(2)
+\shape default 
+ synchronous multiplexer function for determining read direction.
+ Applications should call 
+\shape italic 
+snd_mixer_read()
+\shape default 
+ function if some data is waiting to be read.
+ It is recommended that you do this, since it leaves place for this function
+ to handle some new kernel API specifications.
+\layout Subsubsection*
+
+int snd_mixer_channels(void *handle) 
+\layout Standard
+
+Returns the count of mixer channels for appropriate mixer device, otherwise
+ the return value is negative, and signifies an error code.
+ Never returns zero.
+\layout Subsubsection*
+
+int snd_mixer_info(void *handle, snd_mixer_info_t *info) 
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure with information about the mixer associated with 
+\shape italic 
+*handle
+\shape default 
+.
+ Returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+
+\shape italic 
+/* mixer can do only exclusive record */
+\layout LyX-Code
+
+#define SND_MIXER_INFO_CAP_EXCL_RECORD 
+\protected_separator 
+ 0x00000001
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_mixer_info {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* type of sound card - SND_CARD_TYPE_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int type;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* count of mixer devices */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+unsigned int channels;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* some flags about this device (SND_MIXER_INFO_CAP_XXXX) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int caps;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* ID of this mixer */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char id[32];
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* name of this device */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char name[80];
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* reserved for future use */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ char reserved[ 32 ];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_mixer_switches(void *handle)
+\layout Standard
+
+Returns count of mixer switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types of control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value will be zero if sound card doesn't have any mixer switch.
+\layout Subsubsection*
+
+int snd_mixer_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns index for switch with name 
+\shape italic 
+switch_id
+\shape default 
+.
+ Function returns switch index if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_mixer_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_mixer_switch_t *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 or 1 (enable member of union) */
+\layout LyX-Code
+
+#define SND_MIXER_SW_TYPE_BOOLEAN 
+\protected_separator 
+ 
+\protected_separator 
+ 0
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 255 - from low to high (data8[0] member of union) */
+\layout LyX-Code
+
+#define SND_MIXER_SW_TYPE_BYTE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+1
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 65535 - from low to high (data16[0] member of union) */
+\layout LyX-Code
+
+#define SND_MIXER_SW_TYPE_WORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+2
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 4294967296 \i \={ }
+ from low to high (data32[0] member of union) */
+\layout LyX-Code
+
+#define SND_MIXER_SW_TYPE_DWORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 3
+\layout LyX-Code
+
+
+\shape italic 
+/* user type - no type control */
+\layout LyX-Code
+
+#define SND_MIXER_SW_TYPE_USER 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(~0)
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+
+\shape italic 
+/* well known (named) switches */
+\layout LyX-Code
+
+#define SND_MIXER_SW_LOUDNESS 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "Loudness" 
+\protected_separator 
+
+\shape italic 
+/* bass boost */
+\layout LyX-Code
+
+#define SND_MIXER_SW_SIM_STEREO 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "Simulated Stereo Enhancement"
+\layout LyX-Code
+
+#define SND_MIXER_SW_3D 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "3D Stereo Enhancement"
+\layout LyX-Code
+
+
+\shape italic 
+/* microphone gain */
+\layout LyX-Code
+
+#define SND_MIXER_SW_MIC_GAIN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "MIC Gain"
+\layout LyX-Code
+
+
+\shape italic 
+/* microphone auto gain control */
+\layout LyX-Code
+
+#define SND_MIXER_SW_MIC_GAIN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "MIC Auto-Gain-Control"
+\layout LyX-Code
+
+
+\shape italic 
+/* change microphone impedance */
+\layout LyX-Code
+
+#define SND_MIXER_SW_MIC_GAIN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "Change MIC Impedance"
+\layout LyX-Code
+
+
+\shape italic 
+/* change line-in to output */
+\layout LyX-Code
+
+#define SND_MIXER_SW_MIC_GAIN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "Line In to Output"
+\layout LyX-Code
+
+#define SND_MIXER_SW_IEC958OUT
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "IEC-958 (S/PDIF) Output"
+\layout LyX-Code
+
+#define SND_MIXER_SW_IEC958IN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "IEC-958 (S/PDIF) Input"
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_mixer_switch {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* switch index (filled by application) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int switchn;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* identification of switch (for driver) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char name[32];
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* type of switch value \i \={ }
+ See SND_CTL_SW_TYPE_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int type;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* low range value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int low;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* high range value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int high;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ union {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int enable; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* 0 = off\i \c{ }
+ 1 = on */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char data8[32]; 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* 8-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned short data16[16]; 
+\protected_separator 
+
+\shape italic 
+/* 16-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int data32[8]; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* 32-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ } value;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* reserved for future use \i \={ }
+ must be zero !!! */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[32];
+\layout LyX-Code
+
+}
+\layout Subsubsection*
+
+int snd_mixer_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_mixer_switch_t *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+int snd_mixer_exact_mode(void *handle, int enable)
+\layout Standard
+
+Turns on = 1 or off = 0 (by default) exact mode.
+ This mode allows application to set/get volume values in exact range which
+ uses hardware.
+ In non-exact mode range is always from percentage 0 to 100 and driver does
+ conversion to hardware range.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_mixer_channel(void *handle, const char *channel_id)
+\layout Standard
+
+Returns the channel number (index) associated with 
+\shape italic 
+channel_id
+\shape default 
+ (channel name), or returns an error code.
+ Note: Below mixer channel IDs are subject to change and will be extended
+ if new hardware has support for other mixer input/output channels.
+\layout LyX-Code
+
+#define SND_MIXER_ID_MASTER 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Master"
+\layout LyX-Code
+
+#define SND_MIXER_ID_MASTER1
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Master 1"
+\layout LyX-Code
+
+
+\shape italic 
+/* digital master */
+\layout LyX-Code
+
+#define SND_MIXER_ID_MASTERD 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+"Master D"
+\layout LyX-Code
+
+
+\shape italic 
+/* second digital master */
+\layout LyX-Code
+
+#define SND_MIXER_ID_MASTERD1 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Master D1"
+\layout LyX-Code
+
+#define SND_MIXER_ID_HEADPHONE
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Headphone"
+\layout LyX-Code
+
+#define SND_MIXER_ID_MASTER_MONO
+\protected_separator 
+ 
+\protected_separator 
+"Master M"
+\layout LyX-Code
+
+#define SND_MIXER_ID_3D 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"3D Wide"
+\layout LyX-Code
+
+#define SND_MIXER_ID_3D_VOLUME
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"3D Volume"
+\layout LyX-Code
+
+#define SND_MIXER_ID_3D_CENTER
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"3D Center"
+\layout LyX-Code
+
+#define SND_MIXER_ID_3D_SPACE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"3D Space"
+\layout LyX-Code
+
+#define SND_MIXER_ID_3D_DEPTH 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"3D Depth"
+\layout LyX-Code
+
+#define SND_MIXER_ID_BASS 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Bass"
+\layout LyX-Code
+
+#define SND_MIXER_ID_TREBLE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Treble"
+\layout LyX-Code
+
+#define SND_MIXER_ID_FADER 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "Fader"
+\layout LyX-Code
+
+#define SND_MIXER_ID_SYNTHESIZER 
+\protected_separator 
+ "Synth"
+\layout LyX-Code
+
+#define SND_MIXER_ID_SYNTHESIZER1 
+\protected_separator 
+"Synth 1"
+\layout LyX-Code
+
+#define SND_MIXER_ID_FM 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"FM"
+\layout LyX-Code
+
+#define SND_MIXER_ID_EFFECT 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Effect"
+\layout LyX-Code
+
+#define SND_MIXER_ID_DSP 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"DSP"
+\layout LyX-Code
+
+#define SND_MIXER_ID_PCM 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "PCM"
+\layout LyX-Code
+
+#define SND_MIXER_ID_PCM1 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"PCM 1"
+\layout LyX-Code
+
+#define SND_MIXER_ID_LINE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Line-In"
+\layout LyX-Code
+
+#define SND_MIXER_ID_MIC 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "MIC"
+\layout LyX-Code
+
+#define SND_MIXER_ID_CD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"CD"
+\layout LyX-Code
+
+#define SND_MIXER_ID_VIDEO
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Video"
+\layout LyX-Code
+
+#define SND_MIXER_ID_PHONE
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Phone"
+\layout LyX-Code
+
+#define SND_MIXER_ID_GAIN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Record-Gain"
+\layout LyX-Code
+
+#define SND_MIXER_ID_MIC_GAIN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Mic-Gain"
+\layout LyX-Code
+
+#define SND_MIXER_ID_IGAIN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "In-Gain"
+\layout LyX-Code
+
+#define SND_MIXER_ID_OGAIN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "Out-Gain"
+\layout LyX-Code
+
+#define SND_MIXER_ID_LOOPBACK 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Loopback"
+\layout LyX-Code
+
+#define SND_MIXER_ID_SPEAKER 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "PC Speaker"
+\layout LyX-Code
+
+#define SND_MIXER_ID_MONO 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ "Mono"
+\layout LyX-Code
+
+#define SND_MIXER_ID_MONO1 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Mono 1"
+\layout LyX-Code
+
+#define SND_MIXER_ID_MONO2 
+\protected_separator 
+ 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Mono 2"
+\layout LyX-Code
+
+#define SND_MIXER_ID_AUXA 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Aux A"
+\layout LyX-Code
+
+#define SND_MIXER_ID_AUXB 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Aux B"
+\layout LyX-Code
+
+#define SND_MIXER_ID_AUXC 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+"Aux C"
+\layout Subsubsection*
+
+int snd_mixer_channel_info(void *handle, int channel, snd_mixer_channel_info_t
+ *info) 
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure.
+ The argument 
+\shape italic 
+channel
+\shape default 
+ specifies channel (0 to N) for which is the info requested.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+
+\shape italic 
+/* mixer channel is record source */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_RECORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000001
+\layout LyX-Code
+
+
+\shape italic 
+/* mixer channel is stereo */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_STEREO 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000002
+\layout LyX-Code
+
+
+\shape italic 
+/* always set at this moment\i \c{ }
+ driver emulates mute */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_MUTE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000004
+\layout LyX-Code
+
+
+\shape italic 
+/* channel supports hardware mute */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_HWMUTE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000008
+\layout LyX-Code
+
+
+\shape italic 
+/* channel does digital (not analog) mixing */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_DIGITAL 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00000010
+\layout LyX-Code
+
+
+\shape italic 
+/* external input channel */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_INPUT 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00000020
+\layout LyX-Code
+
+
+\shape italic 
+/* join mute is supported only */
+\layout LyX-Code
+
+
+\shape italic 
+/* left and right channel doesn't have separate mute control */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_JOINMUTE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000040
+\layout LyX-Code
+
+
+\shape italic 
+/* join record is supported only *
+\layout LyX-Code
+
+
+\shape italic 
+/* left and right channel doesn't have separate record control */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_JOINRECORD 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000080
+\layout LyX-Code
+
+
+\shape italic 
+/* route left input to right output is supported */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_LTOR_OUT 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000100
+\layout LyX-Code
+
+
+\shape italic 
+/* route right input to left output is supported */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_RTOL_OUT 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000200
+\layout LyX-Code
+
+
+\shape italic 
+/* route left input to right ADC is supported */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_LTOR_IN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00000400
+\layout LyX-Code
+
+
+\shape italic 
+/* route right input to left ADC is supported */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_RTOL_IN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00000800
+\layout LyX-Code
+
+
+\shape italic 
+/* output route is only switch (cannot be used separately) */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_SWITCH_OUT 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00001000
+\layout LyX-Code
+
+
+\shape italic 
+/* input route is only switch (cannot be used separately) */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_SWITCH_IN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00002000
+\layout LyX-Code
+
+
+\shape italic 
+/* data can be recorded even if output path is muted */
+\layout LyX-Code
+
+
+\shape italic 
+/* (to avoid loopback) */
+\layout LyX-Code
+
+#define SND_MIXER_CINFO_CAP_RECORDBYMUTE 
+\protected_separator 
+ 0x00004000
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_mixer_channel_info {
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* channel index (filled by application) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int channel;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* parent channel # or SND_MIXER_PARENT */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int parent;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* name of this device */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char name[12];
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* some flags about this device (SND_MIXER_CINFO_XXXX) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int caps;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* min.
+ value when exact mode (or always 0) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int min; 
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* max.
+ value when exact mode (or always 100) */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int max;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* minimum decibel value (*100) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int min_dB;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* maximum decibel value (*100) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int max_dB;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* step decibel value (*100) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int step_dB;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_mixer_channel_read(void *handle, int channel, snd_mixer_channel_t
+ *data) 
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure.
+ The argument 
+\shape italic 
+channel
+\shape default 
+ specifies the channel (0 to N) for which is data requested.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+/* channel record source flags */
+\layout LyX-Code
+
+#define SND_MIXER_FLG_RECORD_LEFT
+\protected_separator 
+ 0x00000001
+\layout LyX-Code
+
+#define SND_MIXER_FLG_RECORD_RIGHT 0x00000002
+\layout LyX-Code
+
+#define SND_MIXER_FLG_RECORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000003
+\layout LyX-Code
+
+/* mute channel flags */
+\layout LyX-Code
+
+#define SND_MIXER_FLG_MUTE_LEFT 
+\protected_separator 
+ 
+\protected_separator 
+0x00010000
+\layout LyX-Code
+
+#define SND_MIXER_FLG_MUTE_RIGHT 
+\protected_separator 
+ 0x00020000
+\layout LyX-Code
+
+#define SND_MIXER_FLG_MUTE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00030000
+\layout LyX-Code
+
+/* input to output route setup */
+\layout LyX-Code
+
+#define SND_MIXER_FLG_LTOR_OUT 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00100000
+\layout LyX-Code
+
+#define SND_MIXER_FLG_RTOL_OUT 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00200000
+\layout LyX-Code
+
+#define SND_MIXER_FLG_SWITCH_OUT 
+\protected_separator 
+ 0x00300000
+\layout LyX-Code
+
+/* input to ADC route setup */
+\layout LyX-Code
+
+#define SND_MIXER_FLG_LTOR_IN 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+ 0x00400000
+\layout LyX-Code
+
+#define SND_MIXER_FLG_RTOL_IN 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+ 0x00800000
+\layout LyX-Code
+
+#define SND_MIXER_FLG_SWITCH_IN 
+\protected_separator 
+
+\protected_separator 
+ 0x00c00000
+\layout LyX-Code
+
+/* set volume in decibels from dB variables */
+\layout LyX-Code
+
+#define SND_MIXER_FLG_DECIBEL 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x40000000
+\layout LyX-Code
+
+/* reserved for kernel use, don't use this flag from application */
+\layout LyX-Code
+
+#define SND_MIXER_FLG_FORCE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x80000000
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_mixer_channel {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* channel # (filled by application) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int channel;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* some flags to read/write (SND_MIXER_FLG_XXXX) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int flags;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* min - max when exact mode (or 0 - 100) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int left;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* min - max when exact mode (or 0 - 100) */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int right;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* dB * 100 */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int left_dB;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* dB * 100 */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int right_dB;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+}; 
+\layout Subsubsection*
+
+int snd_mixer_channel_write(void *handle, int channel, snd_mixer_channel_t
+ *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure to kernel.
+ The 
+\shape italic 
+channel
+\shape default 
+ argument specifies the channel (0 to N) for which is data is to be applied.
+ Function returns zero if successful, otherwise it returns an error code.
+ This functions is the opposite of 
+\shape italic 
+snd_mixer_channel_read
+\shape default 
+.
+\layout Subsubsection*
+
+int snd_mixer_read(void *handle, snd_mixer_callbacks_t *callbacks)
+\layout Standard
+
+This function reads and parses data from driver.
+ Parsed actions are returned back to the application using the 
+\shape italic 
+callbacks
+\shape default 
+ structure.
+ Applications should not parse data from the driver in standard cases.
+ This function returns immediately after all data is read from driver.
+ Does not block process.
+\layout LyX-Code
+
+typedef struct snd_mixer_callbacks {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* should be used by application */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ void *private_data;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ void (*channel_was_changed)(void *private_data, int channel);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ void (*switch_was_changed)(void *private_data,
+\protected_separator 
+int switchn);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use - must be NULL!!! */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ void *reserved[14];
+\layout LyX-Code
+
+} snd_mixer_callbacks_t;
+\layout Subsubsection
+
+Examples
+\layout Standard
+
+The following example shows installed mixer channels for sound card #0 and
+ mixer device #0 in the system, and also sets the master volume (if present)
+ to 50.
+\layout LyX-Code
+
+int card = 0, device = 0, err;
+\layout LyX-Code
+
+void *handle;
+\layout LyX-Code
+
+snd_mixer_info_t info;
+\layout LyX-Code
+
+snd_mixer_channel_t channel;
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+if ((err = snd_mixer_open(&handle, card, device)) < 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "open failed: %s
+\backslash 
+n", snd_strerror(err));
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+if ((err = snd_mixer_info(handle, &info)) < 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "info failed: %s
+\backslash 
+n", snd_strerror(err)); 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_mixer_close(handle);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+printf("Installed MIXER channels for card #i and device %i: %i
+\backslash 
+n", 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ card + 1, device, 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ info.channels);
+\layout LyX-Code
+
+master = snd_mixer_channel(handle, SND_MIXER_ID_MASTER);
+\layout LyX-Code
+
+if (master >= 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ if ((err = snd_mixer_read(handle, master, &channel)) < 0) { 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "master read failed: %s
+\backslash 
+n", 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_strerror( err )); 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_mixer_close( handle );
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ }
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ channel.left = channel.right = 50;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ if ((err = snd_mixer_write(handle, master, &channel)) < 0 ) { 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "master write failed: %s
+\backslash 
+n", 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_strerror( err )); 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_mixer_close(handle);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ }
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+snd_mixer_close(handle);
+\layout Section
+
+Digital Audio (PCM) Interface
+\layout Standard
+
+Digital audio is the most commonly used method of representing sound inside
+ a computer.
+ In this method sound is stored as a sequence of samples taken from the
+ audio signal using constant time intervals.
+ A sample represents volume of the signal at the moment when it was measured.
+ In uncompressed digital audio each sample require one or more bytes of
+ storage.
+ The number of bytes required depends on number of channels (mono, stereo)
+ and sample format (8 or 16 bits, mu-Law, etc.).
+ The length of this interval determines the sampling rate.
+ Commonly used sampling rates are between 8 kHz (telephone quality) and
+ 48 kHz (DAT tapes).
+\layout Standard
+
+The physical devices used in digital audio are called the ADC (Analog to
+ Digital Converter) and DAC (Digital to Analog Converter).
+ A device containing both ADC and DAC is commonly known as a codec.
+ The codec device used in a Sound Blaster cards is called a DSP which is
+ somewhat misleading since DSP also stands for Digital Signal Processor
+ (the SB DSP chip is very limited when compared to "true" DSP chips).
+\layout Standard
+
+Sampling parameters affect the quality of sound which can be reproduced
+ from the recorded signal.
+ The most fundamental parameter is sampling rate which limits the highest
+ frequency that can be stored.
+ It is well known (Nyquist's Sampling Theorem) that the highest frequency
+ that can be stored in a sampled signal is at most 1/2 of the sampling frequency.
+ For example, an 8 kHz sampling rate permits the recording of a signal in
+ which the highest frequency is less than 4 kHz.
+ Higher frequency signals must be filtered out before feeding them to DAC.
+\layout Standard
+
+Sample encoding limits the dynamic range of a recorded signal (difference
+ between the faintest and the loudest signal that can be recorded).
+ In theory the maximum dynamic range of signal is number_of_bits * 6 dB
+ .
+ This means that 8 bits sampling resolution gives dynamic range of 48 dB
+ and 16 bit resolution gives 96 dB.
+\layout Standard
+
+Quality has price.
+ The number of bytes required to store an audio sequence depends on sampling
+ rate, number of channels and sampling resolution.
+ For example just 8000 bytes of memory is required to store one second of
+ sound using 8 kHz/8 bits/mono but 48 kHz/16bit/stereo takes 192 kilobytes.
+ A 64 kbps ISDN channel is required to transfer a 8kHz/8bit/mono audio stream
+ in real time, and about 1.5 Mbps is required for DAT quality (48kHz/16bit/stereo
+).
+ On the other hand it is possible to store just 5.46 seconds of sound in
+ a megabyte of memory when using 48kHz/16bit/stereo sampling.
+ With 8kHz/8bits/mono it is possible to store 131 seconds of sound using
+ the same amount of memory.
+ It is possible to reduce memory and communication costs by compressing
+ the recorded signal but this is beyond the scope of this document.
+ 
+\layout Subsection
+
+Low-Level Layer
+\layout Standard
+
+Audio devices are opened exclusively for a selected direction.
+ This doesn't allow open from more than one processes for the same audio
+ device in the same direction, but does allow one open call to each playback
+ direction and second open call to record direction independently.
+ Audio devices return EBUSY error to applications when other applications
+ have already opened the requested direction.
+\layout Standard
+
+Low-Level layer supports these formats:
+\layout LyX-Code
+
+
+\shape italic 
+/* muLaw compressed samples */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_MU_LAW 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0
+\layout LyX-Code
+
+
+\shape italic 
+/* aLaw compressed samples */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_A_LAW 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+1
+\layout LyX-Code
+
+
+\shape italic 
+/* Ima-ADPM 4:1 compressed samples */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_IMA_ADPCM 
+\protected_separator 
+ 
+\protected_separator 
+2
+\layout LyX-Code
+
+
+\shape italic 
+/* Unsigned 8-bit samples (most common 8-bit format) */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_U8 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 3
+\layout LyX-Code
+
+
+\shape italic 
+/* Signed 16-bit Little Endian samples (most common 16-bit format) */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_S16_LE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 4
+\layout LyX-Code
+
+
+\shape italic 
+/* Signed 16-bit Big Endian samples */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_S16_BE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 5
+\layout LyX-Code
+
+
+\shape italic 
+/* Signed 8-bit samples */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_S8 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 6
+\layout LyX-Code
+
+
+\shape italic 
+/* Unsigned 16-bit Little Endian samples */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_U16_LE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 7
+\layout LyX-Code
+
+
+\shape italic 
+/* Unsigned 16-bit Big Endian samples */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_U16_BE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 8
+\layout LyX-Code
+
+
+\shape italic 
+/* MPEG 1/2 stream */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_MPEG 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 9
+\layout LyX-Code
+
+
+\shape italic 
+/* GSM stream */
+\layout LyX-Code
+
+#define SND_PCM_SFMT_GSM 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+10
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+#define SND_PCM_FMT_MU_LAW 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ (1 << SND_PCM_SFMT_MU_LAW)
+\layout LyX-Code
+
+#define SND_PCM_FMT_A_LAW 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(1 << SND_PCM_SFMT_A_LAW)
+\layout LyX-Code
+
+#define SND_PCM_FMT_IMA_ADPCM 
+\protected_separator 
+ 
+\protected_separator 
+(1 << SND_PCM_SFMT_IMA_ADPCM)
+\layout LyX-Code
+
+#define SND_PCM_FMT_U8 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ (1 << SND_PCM_SFMT_U8)
+\layout LyX-Code
+
+#define SND_PCM_FMT_S16_LE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ (1 << SND_PCM_SFMT_S16_LE)
+\layout LyX-Code
+
+#define SND_PCM_FMT_S16_BE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ (1 << SND_PCM_SFMT_S16_BE)
+\layout LyX-Code
+
+#define SND_PCM_FMT_S8 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ (1 << SND_PCM_SFMT_S8)
+\layout LyX-Code
+
+#define SND_PCM_FMT_U16_LE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ (1 << SND_PCM_SFMT_U16_LE)
+\layout LyX-Code
+
+#define SND_PCM_FMT_U16_BE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ (1 << SND_PCM_SFMT_U16_BE)
+\layout LyX-Code
+
+#define SND_PCM_FMT_MPEG 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ (1 << SND_PCM_SFMT_MPEG)
+\layout LyX-Code
+
+#define SND_PCM_FMT_GSM 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(1 << SND_PCM_SFMT_GSM)
+\layout Standard
+
+Constants with prefix 
+\shape italic 
+SND_PCM_FMT_
+\shape default 
+ are used in info structures and constants with prefix 
+\shape italic 
+SND_PCM_SFMT_
+\shape default 
+ are used in format structures.
+\layout Standard
+
+ALSA PCM API uses an enhanced double buffering scheme.
+ This allows the user to implement a more comfortable buffer setup.
+ Audio buffer is separated to small fragments.
+ Each fragment has the same size.
+ Application can set wakeup limits like 
+\begin_inset Quotes eld
+\end_inset 
+
+I want to get recorded data when at least two fragments with size 160 bytes
+ are filled.
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ For more information you should see description of 
+\shape italic 
+snd_pcm_*_params_t
+\shape default 
+ and 
+\shape italic 
+snd_pcm_*_status_t
+\shape default 
+ structures and the 
+\emph on 
+snd_pcm_playback_status(), snd_pcm_record_status() 
+\emph default 
+functions, documented below.
+\layout Subsubsection*
+
+int snd_pcm_open(void **handle, int card, int device, int mode)
+\layout Standard
+
+Creates a new handle and opens a connection to the kernel sound audio interface
+ for sound card number 
+\shape italic 
+card
+\shape default 
+ (0-N) and audio device number 
+\shape italic 
+device
+\shape default 
+.
+ Function also checks if protocol is compatible to prevent use of old programs
+ with a new kernel API.
+ Function returns zero if successful otherwise it returns an error code.
+ Error code -EBUSY is returned when some process owns the selected direction.
+\layout Standard
+
+Default format after opening is mono 
+\shape italic 
+mu-Law
+\shape default 
+ at 8000Hz.
+ This device can be used directly for playback of standard .au (Sparc) files.
+ 
+\layout Standard
+
+The following modes should be used for the 
+\shape italic 
+mode
+\shape default 
+ argument: 
+\layout LyX-Code
+
+#define SND_PCM_OPEN_PLAYBACK 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(O_WRONLY)
+\layout LyX-Code
+
+#define SND_PCM_OPEN_RECORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(O_RDONLY)
+\layout LyX-Code
+
+#define SND_PCM_OPEN_DUPLEX 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(O_RDWR)
+\layout Subsubsection*
+
+int snd_pcm_close(void *handle)
+\layout Standard
+
+Frees all resources allocated with audio handle and closes the connection
+ to the kernel sound audio interface.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_pcm_file_descriptor(void *handle)
+\layout Standard
+
+Returns the file descriptor of the connection to the kernel sound audio
+ interface.
+ Function returns an error code if an error was encountered.
+\layout Standard
+
+The file descriptor should be used for the 
+\shape italic 
+select(2)
+\shape default 
+ synchronous multiplexer function for setting the read direction.
+ Application should call 
+\shape italic 
+snd_pcm_read()
+\shape default 
+ or 
+\shape italic 
+snd_pcm_write()
+\shape default 
+ functions if data is waiting to be read or a write can be performed.
+ Calling these functions is highly recommended, as it leaves a place for
+ the API to do things like data conversions, if needed.
+\layout Subsubsection*
+
+int snd_pcm_block_mode(void *handle, int enable) 
+\layout Standard
+
+Sets up block (default) or non-block mode for a handle.
+ Block mode suspends execution of a program when 
+\shape italic 
+snd_pcm_read()
+\shape default 
+ or 
+\shape italic 
+snd_pcm_write()
+\shape default 
+ is called for the time which is needed for the actual playback or record
+ over of the selected limit.
+ In non-block mode, programs aren't suspended and the above functions return
+ immediately with the count of bytes which were read or written by the driver.
+ When used in this way, don't try to use the entire buffer after the call,
+ but instead process the number of bytes returned, and call the function
+ again.
+\layout Subsubsection*
+
+int snd_pcm_info(void *handle, snd_pcm_info_t *info)
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure with data about the PCM device selected by 
+\shape italic 
+*handle
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+
+\shape italic 
+/* hardware have codec */
+\layout LyX-Code
+
+#define SND_PCM_INFO_CODEC 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00000001
+\layout LyX-Code
+
+#define SND_PCM_INFO_DSP 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+SND_PCM_INFO_CODEC
+\layout LyX-Code
+
+
+\shape italic 
+/* this flag is reserved and should be never used */
+\layout LyX-Code
+
+
+\shape italic 
+/* It remains for compatibility with Open Sound System driver.
+ */
+\layout LyX-Code
+
+#define SND_PCM_INFO_MMAP 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000002
+\layout LyX-Code
+
+
+\shape italic 
+/* playback direction is supported */
+\layout LyX-Code
+
+#define SND_PCM_INFO_PLAYBACK 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000100
+\layout LyX-Code
+
+
+\shape italic 
+/* record direction is supported */
+\layout LyX-Code
+
+#define SND_PCM_INFO_RECORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000200
+\layout LyX-Code
+
+#define SND_PCM_INFO_DUPLEX 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000400
+\layout LyX-Code
+
+
+\shape italic 
+/* rate for playback & record must be same */
+\layout LyX-Code
+
+#define SND_PCM_INFO_DUPLEX_LIMIT 
+\protected_separator 
+ 0x00000800
+\layout LyX-Code
+
+
+\shape italic 
+/* duplex is supported only by mono (one channel) format */
+\layout LyX-Code
+
+#define SND_PCM_INFO_DUPLEX_MONO 
+\protected_separator 
+ 
+\protected_separator 
+0x00001000
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_pcm_info {
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* sound card type */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int type;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* see SND_PCM_INFO_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int flags;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* ID of this PCM device */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char id[32];
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* name of this device */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char name[80];
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[64];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_pcm_playback_info(void *handle, snd_pcm_playback_info_t *info)
+\layout Standard
+
+Fills the *info structure with data about PCM playback.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+#define SND_PCM_PINFO_BATCH 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00000001
+\layout LyX-Code
+
+#define SND_PCM_PINFO_8BITONLY 
+\protected_separator 
+ 0x00000002
+\layout LyX-Code
+
+#define SND_PCM_PINFO_16BITONLY 
+\protected_separator 
+0x00000004
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_pcm_playback_info {
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* see SND_PCM_PINFO_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int flags;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* supported formats */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int formats;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* min rate (in Hz) */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int min_rate;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* max rate (in Hz) */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int max_rate;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* min channels - voices (probably always 1) */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int min_channels;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* max channels - voices */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int max_channels;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* playback buffer size in bytes */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int buffer_size;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* min fragment size in bytes */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int min_fragment_size;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* max fragment size in bytes */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int max_fragment_size;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* align fragment value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int fragment_align;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* supported formats directly by hardware */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int hw_formats;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* count of playback switches */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int switches;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[56];
+\layout LyX-Code
+
+};
+\layout Description
+
+SND_PCM_PINFO_BATCH Driver implements double buffering with this device.
+ This means that the chip used for data processing has its own memory, and
+ output will be more delayed than if a traditional codec chip is used.
+\layout Description
+
+SND_PCM_PINFO_8BITONLY If this bit is set, the driver uses 8-bit format
+ for 16-bit samples and does software conversion.
+ This bit is set on broken SoundBlaster 16/AWE sound cards which can't do
+ full 16-bit duplex.
+ If this bit is set application or higher digital audio layer should do
+ the conversion from 16-bit samples to 8-bit samples rather than making
+ the driver to do it in the kernel.
+\layout Description
+
+SND_PCM_PINFO_16BITONLY If this bit is set, driver uses 16-bit format for
+ 8-bit samples and does software conversion.
+ This bit is set on broken SoundBlaster 16/AWE sound cards which can't do
+ full 8-bit duplex.
+ If this bit is set the application or higher digital audio layer should
+ do conversion from 8-bit samples to 16-bit samples rather than making the
+ driver to do it in the kernel.
+ 
+\layout Subsubsection*
+
+int snd_pcm_record_info(void *handle, snd_pcm_record_info_t *info)
+\layout Standard
+
+Fills the *info structure.
+ Returns zero if successful, otherwise it returns an error code.
+ 
+\layout LyX-Code
+
+#define SND_PCM_RINFO_BATCH 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00000001
+\layout LyX-Code
+
+#define SND_PCM_RINFO_8BITONLY 
+\protected_separator 
+ 0x00000002
+\layout LyX-Code
+
+#define SND_PCM_RINFO_16BITONLY 
+\protected_separator 
+0x00000004
+\layout LyX-Code
+
+#define SND_PCM_RINFO_OVERRANGE 
+\protected_separator 
+0x00001000
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_pcm_record_info {
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* see SND_PCM_RINFO_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int flags;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* supported formats */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int formats;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* min rate (in Hz) */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int min_rate;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* max rate (in Hz) */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int max_rate;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* min channels - voices (probably always 1) */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int min_channels;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* max channels - voices */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int max_channels;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* playback buffer size in bytes */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int buffer_size;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* min fragment size in bytes */ 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int min_fragment_size;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* max fragment size in bytes */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int max_fragment_size;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* align fragment value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int fragment_align;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* supported formats directly by hardware */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int hw_formats;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* count of record switches */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int switches;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[56];
+\layout LyX-Code
+
+};
+\layout Description
+
+SND_PCM_RINFO_BATCH Driver implements double buffering with this device.
+ This means that the chip used for data processing has its own memory, and
+ input will be more delayed than if a traditional codec chip is used.
+\layout Description
+
+SND_PCM_RINFO_8BITONLY If this bit is set, the driver uses 8-bit format
+ for 16-bit samples and does software conversion.
+ This bit is set on broken SoundBlaster 16/AWE sound cards which can't do
+ full 16-bit duplex.
+ If this bit is set application or higher digital audio layer should do
+ the conversion from 16-bit samples to 8-bit samples rather than making
+ the driver to do it in the kernel.
+\layout Description
+
+SND_PCM_RINFO_16BITONLY If this bit is set, driver uses 16-bit format for
+ 8-bit samples and does software conversion.
+ This bit is set on broken SoundBlaster 16/AWE sound cards which can't do
+ full 8-bit duplex.
+ If this bit is set the application or higher digital audio layer should
+ do conversion from 8-bit samples to 16-bit samples rather than making the
+ driver to do it in the kernel.
+ 
+\layout Description
+
+SND_PCM_RINFO_OVERRANGE If this bit is set\i \c{ }
+ the hardware can do ADC over-range
+ detection.
+\layout Subsubsection*
+
+int snd_pcm_playback_switches(void *handle)
+\layout Standard
+
+Returns count of PCM playback switches.
+ In this contents switch means universal control interface between kernel
+ and application which allows variable type control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value should be zero if sound card doesn't have any PCM playback
+ switch.
+\layout Subsubsection*
+
+int snd_pcm_playback_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns index for switch with name 
+\shape italic 
+switch_id
+\shape default 
+.
+ Function returns switch index if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_pcm_playback_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 or 1 (enable member of union) */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_BOOLEAN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 255 - from low to high (data8[0] member of union) */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_BYTE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+1
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 65535 - from low to high (data16[0] member of union) */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_WORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+2
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 4294967296 \i \={ }
+ from low to high (data32[0] member of union) */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_DWORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 3
+\layout LyX-Code
+
+
+\shape italic 
+/* user type - no type control */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_USER 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(~0)
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_pcm_switch {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* switch index (filled by application) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int switchn;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* identification of switch (for driver) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char name[32];
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* type of switch value \i \={ }
+ See SND_PCM_SW_TYPE_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int type;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* low range value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int low;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* high range value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int high;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ union {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int enable; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* 0 = off\i \c{ }
+ 1 = on */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char data8[32]; 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* 8-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned short data16[16]; 
+\protected_separator 
+
+\shape italic 
+/* 16-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int data32[8]; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* 32-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ } value;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* reserved for future use \i \={ }
+ must be zero !!! */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[32];
+\layout LyX-Code
+
+}
+\layout Subsubsection*
+
+int snd_pcm_playback_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+int snd_pcm_record_switches(void *handle)
+\layout Standard
+
+Returns count of PCM record switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types of control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value should be zero if sound card doesn't have any PCM record switch.
+\layout Subsubsection*
+
+int snd_pcm_record_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns index for switch with name 
+\shape italic 
+switch_id
+\shape default 
+.
+ Function returns switch index if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_pcm_record_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_pcm_record_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_pcm_switch_t
+ *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+int snd_pcm_playback_format(void *handle, snd_pcm_format_t *format)
+\layout Standard
+
+Sets up format, rate (in Hz) and number of channels for playback, in the
+ desired direction.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+struct snd_pcm_format {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int format; 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* SND_PCM_SFMT_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int rate; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* rate in Hz */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int channels; 
+\protected_separator 
+
+\shape italic 
+/* channels (voices) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_pcm_record_format(void *handle, snd_pcm_format_t *format) 
+\layout Standard
+
+Sets up format, rate (in Hz) and number of channels for used for recording
+ in the specified direction.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout LyX-Code
+
+struct snd_pcm_format {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int format; 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* SND_PCM_SFMT_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int rate; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* rate in Hz */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int channels; 
+\protected_separator 
+
+\shape italic 
+/* channels (voices) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_pcm_playback_params(void *handle, snd_pcm_playback_params_t *params)
+\layout Standard
+
+Sets various parameters for playback direction.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout LyX-Code
+
+struct snd_pcm_playback_params {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int fragment_size;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int fragments_max;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int fragments_room;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use - must be filled with zero */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+}; 
+\layout Description
+
+fragment_size Requested size of fragment.
+ This value should be aligned for current format (for example to 4 if stereo
+ 16-bit samples are used) or with the 
+\shape italic 
+fragment_align
+\shape default 
+ variable from 
+\shape italic 
+snd_pcm_playback_info_t
+\shape default 
+ structure.
+ Its range can be from 
+\shape italic 
+min_fragment_size
+\shape default 
+ to 
+\shape italic 
+max_fragment_size
+\shape default 
+.
+\layout Description
+
+fragments_max Maximum number of fragments in queue for wakeup.
+ This number doesn't include partly used fragments.
+ If the current count of filled playback fragments is greater than this
+ value the driver will block the application or return immediately back
+ if non-block mode is active.
+\layout Description
+
+fragments_room Minimum number of fragments writable for wakeup.
+ This value should in most cases be 1 which means return back to application
+ if at least one fragment is free for playback.
+ This value includes partly used fragments, too.
+\layout Subsubsection*
+
+int snd_pcm_record_params(void *handle, snd_pcm_record_params_t *params)
+\layout Standard
+
+Function sets various parameters for the recording direction.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+struct snd_pcm_record_params {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int fragment_size;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int fragments_min;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use - must be filled with zero */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+}; 
+\layout Description
+
+fragment_size Requested size of fragment.
+ This value should be aligned for current format (for example to 4 if stereo
+ 16-bit samples are used) or set to the 
+\shape italic 
+fragment_align
+\shape default 
+ variable from 
+\shape italic 
+snd_pcm_playback_info_t
+\shape default 
+ structure.
+ Its range can be from 
+\shape italic 
+min_fragment_size
+\shape default 
+ to 
+\shape italic 
+max_fragment_size
+\shape default 
+.
+\layout Description
+
+fragments_min Minimum filled fragments for wakeup.
+ Driver blocks the application (if block mode is selected) until input buffer
+ is filled with less than the number of fragments specified with this value.
+\layout Subsubsection*
+
+int snd_pcm_playback_status(void *handle, snd_pcm_playback_status_t *status)
+\layout Standard
+
+Fills the 
+\shape italic 
+*status
+\shape default 
+ structure.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+struct snd_pcm_playback_status {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int rate;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int fragments;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int fragment_size;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int count;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int queue;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int underrun;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ struct timeval time;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ struct timeval stime;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int scount;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use - must be filled with zero */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+};
+\layout Description
+
+rate Real playback rate.
+ This value reflects hardware limitations.
+ 
+\layout Description
+
+fragments Currently allocated fragments by the driver for playback direction.
+\layout Description
+
+fragment_size Current fragment size used by driver for the playback direction.
+\layout Description
+
+count Count of bytes writable without blocking.
+\layout Description
+
+queue Count of bytes in queue.
+ Note: 
+\shape italic 
+(fragments*fragment_size) - queue
+\shape default 
+ should not be equal to 
+\shape italic 
+count
+\shape default 
+.
+\layout Description
+
+underrun This value tells the application the number of underruns since
+ the last call to 
+\shape italic 
+snd_pcm_playback_status
+\shape default 
+\emph on 
+()
+\emph default 
+.
+ 
+\layout Description
+
+time Estimated time when the next written sample will actually be played
+ (time is always in the future).
+ The estimate is calculated with: current time + sample queue
+\emph on 
+ 
+\emph default 
+converted to time (number of samples waiting for write to device, i.e., the
+ same as the 
+\emph on 
+queue 
+\emph default 
+member above).
+ This value should be used for time synchronization.
+ Returned value is in the same format as returned from the standard C function
+ 
+\emph on 
+gettimeofday
+\emph default 
+(&
+\emph on 
+time
+\emph default 
+, 
+\emph on 
+NULL
+\emph default 
+).
+ This variable contains valid information only if playback time mode is
+ enabled (see 
+\shape italic 
+snd_pcm_playback_time()
+\shape default 
+ function).
+ 
+\layout Description
+
+stime Time when playback was started.
+ This variable contains valid information only if playback time mode is
+ enabled (see 
+\shape italic 
+snd_pcm_playback_time()
+\shape default 
+ function).
+\layout Description
+
+scount Number of bytes processed (actually played) from playback start.
+ This number is not necessarily the same as byte count written by application.
+\layout Standard
+\added_space_top 0.3cm \added_space_bottom 0.3cm \align center 
+
+\begin_inset Figure size 654 212
+file pcmbuf.ps
+width 3 100
+flags 9
+
+\end_inset 
+
+
+\layout Standard
+
+The figure above shows an example situation in the audio playback buffer
+ in the ALSA driver.
+ The driver splits the audio buffer into 16 
+\emph on 
+fragments
+\emph default 
+, each being
+\emph on 
+ fragment_size 
+\emph default 
+bytes long.
+ Fragments 0 and 12-15 are filled with samples.
+ Fragment 1 is filled partly (about 75%).
+ Driver is playing and current playback position is in fragment 12 (about
+ 35%).
+ As you can see\i \c{ }
+ free space (structure member 
+\shape italic 
+count
+\shape default 
+) is counted without including the fragment which is being played.
+\layout Subsubsection*
+
+int snd_pcm_record_status(void *handle, snd_pcm_record_status_t *status)
+\layout Standard
+
+Fills the 
+\shape italic 
+*status
+\shape default 
+ structure.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+struct snd_pcm_record_status {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int rate;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int fragments;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int fragment_size;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int count;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int free;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int overrun;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ struct timeval time;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ struct timeval stime;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int scount;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int overrange;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use - must be filled with zero */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+};
+\layout Description
+
+rate Real record rate.
+ This value reflects hardware limitations.
+\layout Description
+
+fragments Currently allocated fragments by driver for the record direction.
+\layout Description
+
+fragment_size Current fragment size used by driver for the record direction.
+\layout Description
+
+count Count of bytes readable without blocking.
+\layout Description
+
+free Count of bytes in buffer still free.
+ Note: 
+\shape italic 
+(fragments*fragment_size) - free
+\shape default 
+ should not be equal to 
+\shape italic 
+count
+\shape default 
+.
+\layout Description
+
+overrun This value tells application the count of overruns since the last
+ call to 
+\shape italic 
+snd_pcm_record_status
+\shape default 
+.
+\layout Description
+
+time Returns a timestamp for the next sample to be read from the record
+ ring buffer (time is always in the past).
+ The timestamp is calculated with: current time - sample queue converted
+ to time (waiting for application read() + current position in fragment
+ is the same as record count + current position in fragment).
+ This value should be used for time synchronization.
+ Returned value is in the same format as returned by the standard C function
+ gettimeofday(&time, NULL).
+ This variable contains right valid information only if record time mode
+ is enabled (see 
+\shape italic 
+snd_pcm_record_time()
+\shape default 
+ function).
+ 
+\layout Description
+
+stime Time when record was started.
+ This variable contains valid information only if record time mode is enabled
+ (see 
+\shape italic 
+snd_pcm_record_time
+\shape default 
+ function).
+\layout Description
+
+scount Number of bytes processed (actually recorded) from record start (stime).
+ This number is not necessarily the same as the byte count read by application.
+\layout Description
+
+overrange ADC overrange count.
+ This value is used only when 
+\shape italic 
+SND_PCM_RINFO_OVERRANGE
+\shape default 
+ bit in 
+\shape italic 
+struct snd_pcm_record_info_t->flags
+\shape default 
+ is set (if hardware supports this feature).
+\layout Standard
+\added_space_top 0.3cm \added_space_bottom 0.3cm \align center 
+
+\begin_inset Figure size 595 121
+file pcmbuf1.ps
+width 3 100
+flags 9
+
+\end_inset 
+
+
+\layout Standard
+
+The figure above shows an example situation in the audio record buffer in
+ the ALSA driver.
+ The driver splits the audio buffer into 16 
+\emph on 
+fragments
+\emph default 
+, each being 
+\emph on 
+fragment_size 
+\emph default 
+bytes in length.
+ Fragments 0 and 12-15 are filled with samples.
+ Fragment 1 is partly filled (about 75%) and at the end of the filled area
+ is the active record position.
+ Data which is ready for the application begins in fragment 12 (about 35%).
+ As you can see\i \c{ }
+ free space (structure member 
+\shape italic 
+free
+\shape default 
+) is counted without including the fragment which is partly filled with
+ samples and the application reads data from this fragment.
+\layout Subsubsection*
+
+int snd_pcm_drain_playback(void *handle)
+\layout Standard
+
+This function stops and drains (destroys) the playback buffers immediately.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+int snd_pcm_flush_playback(void *handle)
+\layout Standard
+
+This function flushes the playback buffers.
+ It blocks the program while the all the waiting samples in kernel playback
+ buffers are processed.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_pcm_flush_record(void *handle)
+\layout Standard
+
+This function flushes (destroys) record buffers.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+int snd_pcm_playback_pause(void *handle\i \c{ }
+ int enable)
+\layout Standard
+
+This function pauses playback if 
+\shape italic 
+enable
+\shape default 
+ is non-zero.
+ To restore playing mode call this function with 
+\shape italic 
+enable
+\shape default 
+ equal to zero.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+int snd_pcm_playback_time(void *handle, int enable)
+\layout Standard
+
+This function enables or disables time mode for the playback direction.
+ Time mode is useful in synchronizing an application with other events.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_pcm_record_time(void *handle, int enable)
+\layout Standard
+
+This function enables or disables time mode for record direction.
+ Time mode is useful in synchronizing an application with other events.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+ssize_t snd_pcm_write(void *handle, const void *buffer, size_t size)
+\layout Standard
+
+Writes samples to the device which must be in the proper format specified
+ by the 
+\shape italic 
+snd_pcm_playback_format
+\shape default 
+ function.
+ Function returns zero or positive value if playback was successful (value
+ represents count of bytes which were successfully written to device) or
+ an error value if an error occurred.
+ Function will suspend process if block mode is active.
+\layout Subsubsection*
+
+ssize_t snd_pcm_read(void *handle, void *buffer, size_t size)
+\layout Standard
+
+Function reads samples from driver.
+ Samples are in format specified by 
+\shape italic 
+snd_pcm_record_format
+\shape default 
+ function.
+ Function returns zero or positive value if record was success (value represents
+ count of bytes which was successfully read from device) or negative error
+ value if error occurred.
+ Function will suspend process if block mode is active.
+\layout Subsubsection
+
+Example
+\layout Standard
+
+The following example shows how to play the first 512kB from the /tmp/test.au
+ file with sound card #0 and PCM device #0:
+\layout LyX-Code
+
+int card = 0, device = 0, err, fd, count, size, idx;
+\layout LyX-Code
+
+void *handle;
+\layout LyX-Code
+
+snd_pcm_format_t format;
+\layout LyX-Code
+
+char *buffer;
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+buffer = (char *)malloc(512 * 1024);
+\layout LyX-Code
+
+if (!buffer) return;
+\layout LyX-Code
+
+if ((err = snd_pcm_open(&handle, card, device,
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ SND_PCM_OPEN_PLAYBACK)) < 0) { 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "open failed: %s
+\backslash 
+n", snd_strerror( err )); 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+bzero(&format\i \c{ }
+ sizeof(format));
+\layout LyX-Code
+
+format.format = SND_PCM_SFMT_MU_LAW;
+\layout LyX-Code
+
+format.rate = 8000;
+\layout LyX-Code
+
+format.channels = 1;
+\layout LyX-Code
+
+if ((err = snd_pcm_playback_format(handle, &format)) < 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "format setup failed: %s
+\backslash 
+n",
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+snd_strerror( err )); 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_pcm_close( handle );
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+fd = open("/tmp/test.au", O_RDONLY);
+\layout LyX-Code
+
+if (fd < 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ perror("open file");
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_pcm_close(handle);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+idx = 0;
+\layout LyX-Code
+
+count = read(fd, buffer, 512 * 1024);
+\layout LyX-Code
+
+if (count <= 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ perror("read from file");
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_pcm_close( handle );
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+close( fd );
+\layout LyX-Code
+
+if (!memcmp(buffer, ".snd", 4)) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ idx = (buffer[4]<<24)|(buffer[5]<<16)|
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ (buffer[6]<<8)|(buffer[7]);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ if (idx > 128) idx = 128;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ if (idx > count) idx = count;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+size = snd_pcm_write(handle, &buffer[ idx ], count - idx);
+\layout LyX-Code
+
+printf("Bytes written %i from %i...
+\backslash 
+n", size, count - idx);
+\layout LyX-Code
+
+snd_pcm_close(handle);
+\layout LyX-Code
+
+free(buffer);
+\layout Subsection
+
+PCM Loopback Interface
+\layout Standard
+
+This interface is designed to pass data currently being played or recorded
+ from one application to another application for other processing like a
+ graphical equalizer\i \c{ }
+ sample recorder etc...
+ The programmer should be aware that each loopback connection eats CPU time
+ (for data copying from the process which is doing the playback or record).
+\layout Subsubsection*
+
+int snd_pcm_loopback_open(void **handle, int card, int device, int mode)
+\layout Standard
+
+Creates a new handle and opens a connection to the kernel sound audio loopback
+ interface for sound card number 
+\shape italic 
+card
+\shape default 
+ (0-N) and audio device number 
+\shape italic 
+device
+\shape default 
+.
+ Function also checks if protocol is compatible to prevent use of old programs
+ with a new kernel API.
+ Function returns zero if successful otherwise it returns an error code.
+ Error code -EBUSY is returned when another process owns the selected direction.
+\layout Standard
+
+The following modes should be used for the 
+\shape italic 
+mode
+\shape default 
+ argument: 
+\layout LyX-Code
+
+#define SND_PCM_LB_OPEN_PLAYBACK
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0
+\layout LyX-Code
+
+#define SND_PCM_LB_OPEN_RECORD 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+1
+\layout Subsubsection*
+
+int snd_pcm_loopback_close(void *handle)
+\layout Standard
+
+Frees all resources allocated with audio handle and closes the connection
+ to the kernel sound audio interface.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_pcm_loopback_file_descriptor(void *handle)
+\layout Standard
+
+Returns the file descriptor of the connection to the kernel sound audio
+ interface.
+ Function returns an error code if an error was encountered.
+\layout Standard
+
+The file descriptor should be used for the 
+\shape italic 
+select(2)
+\shape default 
+ synchronous multiplexer function for setting the read direction.
+ Application should call 
+\shape italic 
+snd_pcm_loopback_read()
+\shape default 
+ function if data is waiting to be read.
+\layout Subsubsection*
+
+int snd_pcm_loopback_block_mode(void *handle, int enable) 
+\layout Standard
+
+Sets up block (default) or non-block mode for a handle.
+ Block mode suspends execution of a program when 
+\shape italic 
+snd_pcm_loopback_read()
+\shape default 
+ is called for the time until some data arrives for file descriptor.
+ In non-block mode, programs aren't suspended and the above function returns
+ immediately with the count of bytes which were read by the driver.
+ When used in this way, don't try to use the entire buffer after the call,
+ but instead process the number of bytes returned, and call the function
+ again.
+\layout Subsubsection*
+
+int snd_pcm_loopback_stream_mode(void *handle, int mode)
+\layout Standard
+
+Sets up stream mode which should be one of these values:
+\layout LyX-Code
+
+#define SND_PCM_LB_STREAM_MODE_RAW
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0
+\layout LyX-Code
+
+#define SND_PCM_LB_STREAM_MODE_PACKET 
+\protected_separator 
+1
+\layout Standard
+
+Mode raw (default mode) means that the stream contains only PCM samples.
+ Packet mode is more complicated.
+ The stream contains a header at the begining of the packet.
+ Information like data type and data size is contain in this header.
+\layout LyX-Code
+
+#define SND_PCM_LB_TYPE_DATA
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0 
+\protected_separator 
+ 
+\shape italic 
+/* sample data */
+\layout LyX-Code
+
+#define SND_PCM_LB_TYPE_FORMAT 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 1 
+\protected_separator 
+ 
+\shape italic 
+/* PCM format */
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_pcm_loopback_header {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int size; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* block size */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int type; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* block type (SND_PCM_LB_TYPE_*) */
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_pcm_loopback_format(void *handle, snd_pcm_format_t *format) 
+\layout Standard
+
+Get current format for PCM stream.
+ 
+\layout LyX-Code
+
+struct snd_pcm_format {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int format; 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* SND_PCM_SFMT_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int rate; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* rate in Hz */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int channels; 
+\protected_separator 
+
+\shape italic 
+/* number of channels (voices) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+ssize_t snd_pcm_loopback_read(void *handle, void *buffer, size_t size)
+\layout Standard
+
+This function reads samples or loopback packets from the stream.
+ Data depends on stream mode which should be set with 
+\shape italic 
+snd_pcm_loopback_stream_mode()
+\shape default 
+ function.
+ Function returns zero or positive value if record was success (value represents
+ count of bytes which were successfully read from device) or negative error
+ value if error occurred.
+ Function will suspend process if block mode is active.
+\layout Section
+
+RawMidi Interface
+\layout Standard
+
+RawMidi Interface is designed to write or read raw (unchanged) MIDI data
+ over the MIDI line.
+ MIDI stands Musical Instrument Digital Interface and more informations
+ about this standard can be found at 
+\series bold 
+http://www.midi.org
+\series default 
+.
+\layout Subsection
+
+Low Level Layer
+\layout Standard
+
+RawMidi devices are opened exclusively for a selected direction.
+ While more than one process may not open a given MIDI device in the same
+ direction simultaniously, seperate processes may open a single MIDI device
+ in different directions (i.e.
+ process one opens a MIDI device in playback direction and process two opens
+ the same device in record direction).
+ Audio devices (with MIDI ports) return EBUSY error to applications when
+ other applications have already opened the requested direction.
+\layout Subsubsection*
+
+int snd_rawmidi_open(void **handle, int card, int device, int mode)
+\layout Standard
+
+Creates a new handle and opens a connection to the kernel sound audio interface
+ for sound card number 
+\shape italic 
+card
+\shape default 
+ (0-N) and rawmidi device number 
+\shape italic 
+device
+\shape default 
+.
+ Function also checks if protocol is compatible to prevent use of old programs
+ with a new kernel API.
+ Function returns zero if successful, otherwise it returns an error code.
+ Error code -EBUSY is returned when another process owns the selected direction.
+\layout Standard
+
+The following modes should be used for the 
+\shape italic 
+mode
+\shape default 
+ argument: 
+\layout LyX-Code
+
+#define SND_RAWMIDI_OPEN_OUTPUT 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(O_WRONLY)
+\layout LyX-Code
+
+#define SND_RAWMIDI_OPEN_INPUT 
+\protected_separator 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(O_RDONLY)
+\layout LyX-Code
+
+#define SND_RAWMIDI_OPEN_DUPLEX 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(O_RDWR)
+\layout Subsubsection*
+
+int snd_rawmidi_close(void *handle)
+\layout Standard
+
+Frees all resources allocated with audio handle and closes the connection
+ to the kernel sound rawmidi interface.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_rawmidi_file_descriptor(void *handle)
+\layout Standard
+
+Returns the file descriptor of the connection to the kernel sound audio
+ interface.
+ Function returns an error code if an error was encountered.
+\layout Standard
+
+The file descriptor should be used for the 
+\shape italic 
+select(2)
+\shape default 
+ synchronous multiplexer function for setting the read direction.
+ Application should call 
+\shape italic 
+snd_rawmidi_read()
+\shape default 
+ or 
+\shape italic 
+snd_rawmidi_write()
+\shape default 
+ functions if data is waiting to be read or a write can be performed.
+ Calling these functions is highly recommended.
+\layout Subsubsection*
+
+int snd_rawmidi_block_mode(void *handle, int enable) 
+\layout Standard
+
+Sets up block (default) or non-block mode for a handle.
+ Block mode suspends execution of a program when 
+\shape italic 
+snd_rawmidi_read()
+\shape default 
+ or 
+\shape italic 
+snd_rawmidi_write()
+\shape default 
+ is called for the time which is needed for the actual output or input over
+ of the selected limit.
+ In non-block mode, programs aren't suspended and the above functions return
+ immediately with the count of bytes which were read or written by the driver.
+ When used in this way, don't try to use the entire buffer after the call,
+ but instead process the number of bytes returned, and call the function
+ again.
+\layout Subsubsection*
+
+int snd_rawmidi_info(void *handle, snd_pcm_info_t *info)
+\layout Standard
+
+Fills the 
+\shape italic 
+*info
+\shape default 
+ structure with data about the PCM device selected by 
+\shape italic 
+*handle
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+
+\shape italic 
+/*
+\shape default 
+ device is capable rawmidi output *
+\shape italic 
+/
+\layout LyX-Code
+
+#define SND_RAWMIDI_INFO_OUTPUT 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00000001 
+\layout LyX-Code
+
+
+\shape italic 
+/* device is capable rawmidi input */
+\layout LyX-Code
+
+#define SND_RAWMIDI_INFO_INPUT 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0x00000002
+\layout LyX-Code
+
+
+\shape italic 
+/* device is capable duplex mode */
+\layout LyX-Code
+
+#define SND_RAWMIDI_INFO_DUPLEX 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+0x00000004
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_rawmidi_info {
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* sound card type */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int type;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* see SND_RAWMIDI_INFO_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int flags;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* ID of this PCM device */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char id[32];
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* name of this device */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char name[80];
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[64];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_rawmidi_output_info(void *handle, snd_rawmidi_output_info_t *info)
+\layout Standard
+
+Fills the *info structure with data about rawmidi output.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+struct snd_rawmidi_output_info {
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* count of output switches */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int switches;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[64];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_rawmidi_input_info(void *handle, snd_pcm_record_info_t *info)
+\layout Standard
+
+Fills the *info structure.
+ Returns zero if successful, otherwise it returns an error code.
+ 
+\layout LyX-Code
+
+struct snd_rawmidi_input_info {
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* count of output switches */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int switches;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[64];
+\layout LyX-Code
+
+};
+\layout Subsubsection*
+
+int snd_rawmidi_output_switches(void *handle)
+\layout Standard
+
+Returns count of rawmidi output switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types of control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value should be zero if sound card doesn't have any rawmidi output
+ switch.
+\layout Subsubsection*
+
+int snd_rawmidi_output_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns index for switch with name 
+\shape italic 
+switch_id
+\shape default 
+.
+ Function returns switch index if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_rawmidi_output_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_rawmidi_switch_t
+ *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 or 1 (enable member of union) */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_BOOLEAN 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 0
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 255 - from low to high (data8[0] member of union) */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_BYTE 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+1
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 65535 - from low to high (data16[0] member of union) */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_WORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+2
+\layout LyX-Code
+
+
+\shape italic 
+/* 0 to 4294967296 \i \={ }
+ from low to high (data32[0] member of union) */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_DWORD 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 3
+\layout LyX-Code
+
+
+\shape italic 
+/* user type - no type control */
+\layout LyX-Code
+
+#define SND_PCM_SW_TYPE_USER 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+(~0)
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+struct snd_rawmidi_switch {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* switch index (filled by application) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int switchn;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* identification of switch (for driver) */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char name[32];
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* type of switch value \i \={ }
+ See SND_PCM_SW_TYPE_XXXX */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int type;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* low range value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int low;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* high range value */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int high;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ union {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int enable; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* 0 = off\i \c{ }
+ 1 = on */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char data8[32]; 
+\protected_separator 
+ 
+\protected_separator 
+
+\shape italic 
+/* 8-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned short data16[16]; 
+\protected_separator 
+
+\shape italic 
+/* 16-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned int data32[8]; 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* 32-bit data */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ } value;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\shape italic 
+/* reserved for future use \i \={ }
+ must be zero !!! */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[32];
+\layout LyX-Code
+
+}
+\layout Subsubsection*
+
+int snd_rawmidi_output_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_rawmidi_switch_
+t *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+int snd_rawmidi_input_switches(void *handle)
+\layout Standard
+
+Returns count of rawmidi input switches.
+ In this context 'switch' means universal control interface between kernel
+ and application which allows various types of control.
+ Function returns count if successful, otherwise it returns an error code.
+ Return value should be zero if sound card doesn't have any rawmidi input
+ switch.
+\layout Subsubsection*
+
+int snd_rawmidi_input_switch(void *handle, const char *switch_id)
+\layout Standard
+
+Returns index for switch with name 
+\shape italic 
+switch_id
+\shape default 
+.
+ Function returns switch index if successful, otherwise it returns an error
+ code.
+\layout Subsubsection*
+
+int snd_rawmidi_input_switch_read(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_rawmidi_switch_t
+ *data)
+\layout Standard
+
+Fills the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_rawmidi_input_switch_write(void *handle\i \c{ }
+ int switchn\i \c{ }
+ snd_rawmidi_switch_t
+ *data)
+\layout Standard
+
+Writes the 
+\shape italic 
+*data
+\shape default 
+ structure with data about switch with index 
+\shape italic 
+switchn
+\shape default 
+ to kernel.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+int snd_rawmidi_output_params(void *handle, snd_rawmidi_output_params_t
+ *params)
+\layout Standard
+
+Sets various parameters for output direction.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout LyX-Code
+
+struct snd_rawmidi_output_params {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int size;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int max;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int room;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use - must be filled with zero */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+}; 
+\layout Description
+
+size Requested queue size of output buffer in bytes (default setup is 4096
+ [i386] or 8192 [alpha] bytes - this is system architecture dependent).
+\layout Description
+
+max Maximum number of bytes in queue for wakeup.
+ If the current byte count of filled portion of output buffer is greater
+ than this value the driver will block an application or return immediately
+ if non block mode is active.
+\layout Description
+
+room Minimum number of bytes writable for wakeup.
+ This value should be in most cases 1 which means return back to application
+ if at least one byte is free in output buffer.
+\layout Subsubsection*
+
+int snd_rawmidi_input_params(void *handle, snd_rawmidi_input_params_t *params)
+\layout Standard
+
+Function sets various parameters for the recording direction.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+struct snd_rawmidi_input_params {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int size;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int min;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use - must be filled with zero */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+}; 
+\layout Description
+
+size Requested queue size of input buffer in bytes (default setup is 4096
+ [i386] or 8192 [alpha] bytes - this is system architecture dependent).
+\layout Description
+
+min Minimum filled bytes in queue for wakeup.
+ Driver blocks the application (if block mode is selected) until input buffer
+ is filled with fewer than the number of bytes specified with this value.
+\layout Subsubsection*
+
+int snd_rawmidi_output_status(void *handle, snd_rawmidi_output_status_t
+ *status)
+\layout Standard
+
+Fills the 
+\shape italic 
+*status
+\shape default 
+ structure.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+struct snd_rawmidi_output_status {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int size;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int count;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int queue;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use - must be filled with zero */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+};
+\layout Description
+
+size Size of currently allocated queue in bytes.
+\layout Description
+
+count Count of bytes writable without blocking.
+\layout Description
+
+queue Count of bytes in queue (number of bytes waiting to be output).
+\layout Subsubsection*
+
+int snd_rawmidi_input_status(void *handle, snd_rawmidi_input_status_t *status)
+\layout Standard
+
+Fills the 
+\shape italic 
+*status
+\shape default 
+ structure.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout LyX-Code
+
+struct snd_rawmidi_input_status {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int size;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int count;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int free;
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ int overrun;
+\layout LyX-Code
+
+
+\shape italic 
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ /* reserved for future use - must be filled with zero */
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ unsigned char reserved[16];
+\layout LyX-Code
+
+};
+\layout Description
+
+size Size of currently allocated queue in bytes.
+\layout Description
+
+count Count of bytes readable without blocking.
+\layout Description
+
+free Count of bytes in queue still free.
+\layout Description
+
+overrun This value tells the application the count of overruns since the
+ last call to 
+\shape italic 
+snd_rawmidi_input_status
+\shape default 
+.
+\layout Subsubsection*
+
+int snd_rawmidi_drain_output(void *handle)
+\layout Standard
+
+This function stops and drains (destroys) the output queue immediately.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+int snd_rawmidi_flush_output(void *handle)
+\layout Standard
+
+This function flushes the output queue.
+ It blocks the program while the all the waiting bytes in kernel output
+ queue are processed.
+ Function returns zero if successful, otherwise it returns an error code.
+\layout Subsubsection*
+
+int snd_rawmidi_flush_input(void *handle)
+\layout Standard
+
+This function flushes (destroys) input queue.
+ Function returns zero if successful, otherwise it returns an error code.
+ 
+\layout Subsubsection*
+
+ssize_t snd_rawmidi_write(void *handle, const void *buffer, size_t size)
+\layout Standard
+
+Writes bytes to the output queue.
+ Function returns zero or positive value if the write was successful (value
+ represents count of bytes which were successfully written to the device)
+ or an error value if error occurred.
+ Function will suspend the process if block mode is active.
+\layout Subsubsection*
+
+ssize_t snd_rawmidi_read(void *handle, void *buffer, size_t size)
+\layout Standard
+
+Function reads bytes from input queue.
+ Function returns zero or positive value if the read was successful (value
+ represents count of bytes which were successfully read from device) or
+ negative error value if error occurred.
+ Function will suspend the process if block mode is active.
+\layout Subsubsection
+
+Example
+\layout Standard
+
+The following example shows how to send a control sequence (such as SysEx)
+ to a MIDI device.
+ Sound card #0 and rawmidi device #0 are used here:
+\layout LyX-Code
+
+int card = 0, device = 0, err, fd, count, size;
+\layout LyX-Code
+
+void *handle;
+\layout LyX-Code
+
+snd_pcm_format_t format;
+\layout LyX-Code
+
+char *buffer;
+\layout Standard
+
+
+\protected_separator 
+
+\layout LyX-Code
+
+buffer = (char *)malloc(64 * 1024);
+\layout LyX-Code
+
+if (!buffer) return;
+\layout LyX-Code
+
+if ((err = snd_rawmidi_open(&handle, card, device,
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ SND_RAWMIDI_OPEN_OUTPUT)) < 0) { 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "open failed: %s
+\backslash 
+n", snd_strerror( err )); 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+if ((err = snd_rawmidi_block_mode(handle\i \c{ }
+ 1)) < 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ fprintf(stderr, "block failed: %s
+\backslash 
+n", snd_strerror( err )); 
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_rawmidi_close(handle);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+fd = open("/tmp/test.sysex", O_RDONLY);
+\layout LyX-Code
+
+if (fd < 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ perror("open file");
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_rawmidi_close(handle);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+idx = 0;
+\layout LyX-Code
+
+count = read(fd, buffer, 64 * 1024);
+\layout LyX-Code
+
+if (count <= 0) {
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ perror("read from file");
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ snd_rawmidi_close(handle);
+\layout LyX-Code
+
+
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ 
+\protected_separator 
+ return;
+\layout LyX-Code
+
+}
+\layout LyX-Code
+
+close(fd);
+\layout LyX-Code
+
+size = snd_rawmidi_write(handle, &buffer, count);
+\layout LyX-Code
+
+printf("Bytes written %i from %i...
+\backslash 
+n", size, count);
+\layout LyX-Code
+
+snd_rawmidi_close(handle);
+\layout LyX-Code
+
+free(buffer);
+\the_end
