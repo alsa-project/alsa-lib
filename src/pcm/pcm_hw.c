@@ -43,9 +43,12 @@ const char *_snd_module_pcm_hw = "";
 typedef struct {
 	int fd;
 	int card, device, subdevice;
+	int mmap_emulation;
 	volatile struct sndrv_pcm_mmap_status *mmap_status;
 	struct sndrv_pcm_mmap_control *mmap_control;
-	int shadow_appl_ptr: 1, avail_update_flag: 1;
+	int shadow_appl_ptr: 1,
+	    avail_update_flag: 1,
+	    mmap_shm: 1;
 	snd_pcm_uframes_t appl_ptr;
 	int shmid;
 } snd_pcm_hw_t;
@@ -126,10 +129,69 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
-	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, params) < 0) {
-		// SYSERR("SNDRV_PCM_IOCTL_HW_REFINE failed");
-		return -errno;
+	if (hw->mmap_emulation) {
+		int err = 0;
+		snd_pcm_access_mask_t oldmask = *snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
+		snd_pcm_access_mask_t mask = { 0 };
+		const snd_mask_t *pmask;
+
+		if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, params) < 0)
+			err = -errno;
+		if (err < 0) {
+			snd_pcm_hw_params_t new = *params;
+
+			if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_MMAP_INTERLEAVED) &&
+			    !snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_RW_INTERLEAVED))
+				snd_pcm_access_mask_set(&mask, SND_PCM_ACCESS_RW_INTERLEAVED);
+			if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED) &&
+			    !snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
+				snd_pcm_access_mask_set(&mask, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+			if (snd_pcm_access_mask_empty(&mask))
+				return err;
+			pmask = snd_pcm_hw_param_get_mask(&new, SND_PCM_HW_PARAM_ACCESS);
+			((snd_mask_t *)pmask)->bits = mask.bits;
+			if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, &new) < 0)
+				return -errno;
+			*params = new;
+		}
+		pmask = snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
+		if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED) ||
+		    snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED) ||
+		    snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_MMAP_COMPLEX))
+			return 0;
+		if (snd_pcm_access_mask_test(&mask, SND_PCM_ACCESS_RW_INTERLEAVED)) {
+			if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_INTERLEAVED))
+				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+			snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_RW_INTERLEAVED);
+		}
+		if (snd_pcm_access_mask_test(&mask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) {
+			if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
+				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+			snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+		}
+		if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_MMAP_INTERLEAVED)) {
+			if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_RW_INTERLEAVED)) {
+				if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_INTERLEAVED))
+					snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+			} else {
+				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+			}
+		}
+		if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED)) {
+			if (snd_pcm_access_mask_test(&oldmask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) {
+				if (snd_pcm_access_mask_test(pmask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
+					snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+			} else {
+				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+			}
+		}
+	} else {
+		if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, params) < 0) {
+			// SYSERR("SNDRV_PCM_IOCTL_HW_REFINE failed");
+			return -errno;
+		}
 	}
+	
 	return 0;
 }
 
@@ -137,12 +199,41 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
-	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0) {
-		SYSERR("SNDRV_PCM_IOCTL_HW_PARAMS failed");
-		return -errno;
+	if (hw->mmap_emulation) {
+		snd_pcm_hw_params_t old = *params;
+		if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0) {
+			snd_pcm_access_mask_t oldmask;
+			const snd_mask_t *pmask;
+
+			*params = old;
+			pmask = snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
+			oldmask = *(snd_pcm_access_mask_t *)pmask;
+			switch (snd_pcm_hw_params_get_access(params)) {
+			case SND_PCM_ACCESS_MMAP_INTERLEAVED:
+				snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_RW_INTERLEAVED);
+				break;
+			case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
+				snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+				break;
+			default:
+				goto _err;
+			}
+			if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0)
+				goto _err;
+			hw->mmap_shm = 1;
+			*(snd_pcm_access_mask_t *)pmask = oldmask;
+		}
+	} else {
+		if (ioctl(fd, SNDRV_PCM_IOCTL_HW_PARAMS, params) < 0) {
+		      _err:
+			SYSERR("SNDRV_PCM_IOCTL_HW_PARAMS failed");
+			return -errno;
+		}
 	}
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
-		if (!(params->info & SNDRV_PCM_INFO_MMAP)) {
+		if (hw->mmap_shm) {
 			hw->shadow_appl_ptr = 1;
 			hw->appl_ptr = 0;
 			pcm->appl_ptr = &hw->appl_ptr;
@@ -198,7 +289,7 @@ static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info
 		return -errno;
 	}
 	info->channel = i.channel;
-	if (pcm->info & SND_PCM_INFO_MMAP) {
+	if (!hw->mmap_shm) {
 		info->addr = 0;
 		info->first = i.first;
 		info->step = i.step;
@@ -449,9 +540,10 @@ static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
+	if (hw->mmap_shm) {
 		snd_pcm_uframes_t size = snd_pcm_frames_to_bytes(pcm, (snd_pcm_sframes_t) pcm->buffer_size);
 		int id = shmget(IPC_PRIVATE, size, 0666);
+		hw->mmap_shm = 1;
 		if (id < 0) {
 			SYSERR("shmget failed");
 			return -errno;
@@ -464,7 +556,7 @@ static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
 static int snd_pcm_hw_munmap(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
+	if (hw->mmap_shm) {
 		if (shmctl(hw->shmid, IPC_RMID, 0) < 0) {
 			SYSERR("shmctl IPC_RMID failed");
 			return -errno;
@@ -490,10 +582,12 @@ static int snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
 				  snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
 				  snd_pcm_uframes_t size)
 {
-	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
+	snd_pcm_hw_t *hw = pcm->private_data;
+	if (hw->mmap_shm) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		    	snd_pcm_sframes_t res;
-		    	do {
+
+			do {
 				res = snd_pcm_write_mmap(pcm, size);
 				if (res < 0)
 					return res;
@@ -511,12 +605,13 @@ static int snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
 
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 {
+	snd_pcm_hw_t *hw = pcm->private_data;
 	snd_pcm_uframes_t avail;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		avail = snd_pcm_mmap_playback_avail(pcm);
 	} else {
 		avail = snd_pcm_mmap_capture_avail(pcm);
-		if (avail > 0 && !(pcm->info & SND_PCM_INFO_MMAP)) {
+		if (avail > 0 && hw->mmap_shm) {
 			snd_pcm_sframes_t err;
 			snd_pcm_hw_t *hw = pcm->private_data;
 			hw->avail_update_flag = 1;
@@ -583,7 +678,10 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	mmap_commit: snd_pcm_hw_mmap_commit,
 };
 
-int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, int subdevice, snd_pcm_stream_t stream, int mode)
+int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
+		    int card, int device, int subdevice,
+		    snd_pcm_stream_t stream, int mode,
+		    int mmap_emulation)
 {
 	char filename[32];
 	const char *filefmt;
@@ -661,6 +759,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, in
 	hw->device = device;
 	hw->subdevice = subdevice;
 	hw->fd = fd;
+	hw->mmap_emulation = mmap_emulation;
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_HW, name, stream, mode);
 	if (err < 0) {
@@ -703,7 +802,7 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_iterator_t i, next;
 	long card = -1, device = 0, subdevice = -1;
 	const char *str;
-	int err;
+	int err, mmap_emulation = 0;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -743,6 +842,13 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
+		if (strcmp(id, "mmap_emulation") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				continue;
+			mmap_emulation = err;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -750,6 +856,6 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("card is not defined");
 		return -EINVAL;
 	}
-	return snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream, mode);
+	return snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream, mode, mmap_emulation);
 }
 SND_DLSYM_BUILD_VERSION(_snd_pcm_hw_open, SND_PCM_DLSYM_VERSION);
