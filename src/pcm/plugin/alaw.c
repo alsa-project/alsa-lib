@@ -191,7 +191,7 @@ static void alaw_conv_u16bit_alaw(unsigned short *src_ptr, unsigned char *dst_pt
 static void alaw_conv_u16bit_swap_alaw(unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	while (size-- > 0)
-		*dst_ptr++ = linear2alaw((signed short)(bswap_16((*src_ptr++) ^ 0x8000)));
+		*dst_ptr++ = linear2alaw((signed short)(bswap_16(*src_ptr++) ^ 0x8000));
 }
 
 static void alaw_conv_alaw_u8bit(unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)

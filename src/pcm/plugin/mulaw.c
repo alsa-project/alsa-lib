@@ -207,7 +207,7 @@ static void mulaw_conv_u16bit_mulaw(unsigned short *src_ptr, unsigned char *dst_
 static void mulaw_conv_u16bit_swap_mulaw(unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	while (size-- > 0)
-		*dst_ptr++ = linear2ulaw((signed short)(bswap_16((*src_ptr++) ^ 0x8000)));
+		*dst_ptr++ = linear2ulaw((signed short)(bswap_16(*src_ptr++) ^ 0x8000));
 }
 
 static void mulaw_conv_mulaw_u8bit(unsigned char *src_ptr, unsigned char *dst_ptr, size_t size)

@@ -303,7 +303,7 @@ static void adpcm_conv_u16bit_adpcm(adpcm_state_t * state_ptr, unsigned short *s
 static void adpcm_conv_u16bit_swap_adpcm(adpcm_state_t * state_ptr, unsigned short *src_ptr, unsigned char *dst_ptr, size_t size)
 {
 	while (size-- > 0) {
-		state_ptr->io_buffer |= adpcm_encoder((signed short)(bswap_16((*src_ptr++) ^ 0x8000)), state_ptr) << state_ptr->io_shift;
+		state_ptr->io_buffer |= adpcm_encoder((signed short)(bswap_16(*src_ptr++) ^ 0x8000), state_ptr) << state_ptr->io_shift;
 		if (!(state_ptr->io_shift)) {
 			*dst_ptr++ = state_ptr->io_buffer & 0xff;
 			state_ptr->io_buffer = 0;
