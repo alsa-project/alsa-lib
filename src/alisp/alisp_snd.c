@@ -59,12 +59,16 @@ struct flags {
 	unsigned int mask;
 }; 
 
-static unsigned int get_flags(struct alisp_object * obj, const struct flags * flags, unsigned int deflt)
+static unsigned int get_flags(struct alisp_instance * instance,
+			      struct alisp_object * obj,
+			      const struct flags * flags,
+			      unsigned int deflt)
 {
 	const char *key;
 	int invert;
 	unsigned int result;
 	const struct flags *ptr;
+	struct alisp_object *n;
 
 	if (obj == &alsa_lisp_nil)
 		return deflt;
@@ -86,21 +90,32 @@ static unsigned int get_flags(struct alisp_object * obj, const struct flags * fl
 				ptr++;
 			}
 		}
-		obj = cdr(obj);
+		delete_tree(instance, car(obj));
+		obj = cdr(n = obj);
+		delete_object(instance, n);
 	} while (obj != &alsa_lisp_nil);
 	return result;
 }
 
-static const void *get_ptr(struct alisp_object * obj, const char *_ptr_id)
+static const void *get_ptr(struct alisp_instance * instance,
+			   struct alisp_object * obj,
+			   const char *_ptr_id)
 {
 	const char *ptr_id;
+	const void *ptr;
 	
 	ptr_id = get_string(car(obj), NULL);
-	if (ptr_id == NULL)
+	if (ptr_id == NULL) {
+		delete_tree(instance, obj);
 		return NULL;
-	if (strcmp(ptr_id, _ptr_id))
+	}
+	if (strcmp(ptr_id, _ptr_id)) {
+		delete_tree(instance, obj);
 		return NULL;
-	return get_pointer(cdr(obj));
+	}
+	ptr = get_pointer(cdr(obj));
+	delete_tree(instance, obj);
+	return ptr;
 }
 
 static struct alisp_object * new_lexpr(struct alisp_instance * instance, int err)
@@ -111,83 +126,84 @@ static struct alisp_object * new_lexpr(struct alisp_instance * instance, int err
 	if (lexpr == NULL)
 		return NULL;
 	lexpr->value.c.car = new_integer(instance, err);
-	if (lexpr->value.c.car == NULL)
+	if (lexpr->value.c.car == NULL) {
+		delete_object(instance, lexpr);
 		return NULL;
+	}
 	lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
-	if (lexpr->value.c.cdr == NULL)
+	if (lexpr->value.c.cdr == NULL) {
+		delete_object(instance, lexpr->value.c.car);
+		delete_object(instance, lexpr);
 		return NULL;
+	}
 	return lexpr;
 }
 
-static struct alisp_object * add_cons(struct alisp_instance * instance, struct alisp_object *lexpr, int cdr, const char *id, struct alisp_object *obj)
+static struct alisp_object * add_cons(struct alisp_instance * instance,
+				      struct alisp_object *lexpr,
+				      int cdr, const char *id,
+				      struct alisp_object *obj)
 {
-	struct alisp_object * p1;
+	struct alisp_object * p1, * p2;
 
-	if (lexpr == NULL || obj == NULL)
+	if (lexpr == NULL || obj == NULL) {
+		delete_tree(instance, obj);
 		return NULL;
+	}
 	if (cdr) {
 		p1 = lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
 	} else {
 		p1 = lexpr->value.c.car = new_object(instance, ALISP_OBJ_CONS);
 	}
 	lexpr = p1;
-	if (p1 == NULL)
+	if (p1 == NULL) {
+		delete_tree(instance, obj);
 		return NULL;
+	}
 	p1->value.c.car = new_object(instance, ALISP_OBJ_CONS);
-	if ((p1 = p1->value.c.car) == NULL)
+	if ((p2 = p1->value.c.car) == NULL)
+		goto __err;
+	p2->value.c.car = new_string(instance, id);
+	if (p2->value.c.car == NULL) {
+	      __err:
+		if (cdr)
+			lexpr->value.c.cdr = NULL;
+		else
+			lexpr->value.c.car = NULL;
+		delete_tree(instance, p1);
+		delete_tree(instance, obj);
 		return NULL;
-	p1->value.c.car = new_string(instance, id);
-	if (p1->value.c.car == NULL)
-		return NULL;
-	p1->value.c.cdr = obj;
+	}
+	p2->value.c.cdr = obj;
 	return lexpr;
 }
 
-#if 0
-static struct alisp_object * add_cons1(struct alisp_instance * instance, struct alisp_object *lexpr, int cdr, int id, struct alisp_object *obj)
+static struct alisp_object * add_cons2(struct alisp_instance * instance,
+				       struct alisp_object *lexpr,
+				       int cdr, struct alisp_object *obj)
 {
 	struct alisp_object * p1;
 
-	if (lexpr == NULL || obj == NULL)
+	if (lexpr == NULL || obj == NULL) {
+		delete_tree(instance, obj);
 		return NULL;
+	}
 	if (cdr) {
 		p1 = lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
 	} else {
 		p1 = lexpr->value.c.car = new_object(instance, ALISP_OBJ_CONS);
 	}
 	lexpr = p1;
-	if (p1 == NULL)
+	if (p1 == NULL) {
+		delete_tree(instance, obj);
 		return NULL;
-	p1->value.c.car = new_object(instance, ALISP_OBJ_CONS);
-	if ((p1 = p1->value.c.car) == NULL)
-		return NULL;
-	p1->value.c.car = new_integer(instance, id);
-	if (p1->value.c.car == NULL)
-		return NULL;
-	p1->value.c.cdr = obj;
-	return lexpr;
-}
-#endif
-
-static struct alisp_object * add_cons2(struct alisp_instance * instance, struct alisp_object *lexpr, int cdr, struct alisp_object *obj)
-{
-	struct alisp_object * p1;
-
-	if (lexpr == NULL || obj == NULL)
-		return NULL;
-	if (cdr) {
-		p1 = lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
-	} else {
-		p1 = lexpr->value.c.car = new_object(instance, ALISP_OBJ_CONS);
 	}
-	lexpr = p1;
-	if (p1 == NULL)
-		return NULL;
 	p1->value.c.car = obj;
 	return lexpr;
 }
 
-static struct alisp_object * new_result1(struct alisp_instance * instance, int err, const char *ptr_id, void *ptr)
+static struct alisp_object * new_result1(struct alisp_instance * instance,
+					 int err, const char *ptr_id, void *ptr)
 {
 	struct alisp_object * lexpr, * p1;
 
@@ -197,15 +213,20 @@ static struct alisp_object * new_result1(struct alisp_instance * instance, int e
 	if (lexpr == NULL)
 		return NULL;
 	lexpr->value.c.car = new_integer(instance, err);
-	if (lexpr->value.c.car == NULL)
+	if (lexpr->value.c.car == NULL) {
+		delete_object(instance, lexpr);
 		return NULL;
+	}
 	p1 = add_cons(instance, lexpr, 1, ptr_id, new_pointer(instance, ptr));
-	if (p1 == NULL)
+	if (p1 == NULL) {
+		delete_object(instance, lexpr);
 		return NULL;
+	}
 	return lexpr;
 }
 
-static struct alisp_object * new_result2(struct alisp_instance * instance, int err, int val)
+static struct alisp_object * new_result2(struct alisp_instance * instance,
+					 int err, int val)
 {
 	struct alisp_object * lexpr, * p1;
 
@@ -216,12 +237,15 @@ static struct alisp_object * new_result2(struct alisp_instance * instance, int e
 		return NULL;
 	p1 = lexpr->value.c.cdr;
 	p1->value.c.car = new_integer(instance, val);
-	if (p1->value.c.car == NULL)
+	if (p1->value.c.car == NULL) {
+		delete_object(instance, lexpr);
 		return NULL;
+	}
 	return lexpr;
 }
 
-static struct alisp_object * new_result3(struct alisp_instance * instance, int err, const char *str)
+static struct alisp_object * new_result3(struct alisp_instance * instance,
+					 int err, const char *str)
 {
 	struct alisp_object * lexpr, * p1;
 
@@ -232,8 +256,10 @@ static struct alisp_object * new_result3(struct alisp_instance * instance, int e
 		return NULL;
 	p1 = lexpr->value.c.cdr;
 	p1->value.c.car = new_string(instance, str);
-	if (p1->value.c.car == NULL)
+	if (p1->value.c.car == NULL) {
+		delete_object(instance, lexpr);
 		return NULL;
+	}
 	return lexpr;
 }
 
@@ -259,6 +285,7 @@ static struct alisp_object * FA_int_pp_strp_int(struct alisp_instance * instance
 	const char *name;
 	int err, mode;
 	void *handle;
+	struct alisp_object *p1, *p2;
 	static struct flags flags[] = {
 		{ "nonblock", SND_CTL_NONBLOCK },
 		{ "async", SND_CTL_ASYNC },
@@ -266,12 +293,16 @@ static struct alisp_object * FA_int_pp_strp_int(struct alisp_instance * instance
 		{ NULL, 0 }
 	};
 
-	name = get_string(eval(instance, car(args)), NULL);
+	name = get_string(p1 = eval(instance, car(args)), NULL);
 	if (name == NULL)
 		return &alsa_lisp_nil;
-	mode = get_flags(eval(instance, car(cdr(args))), flags, 0);
-	
+	mode = get_flags(instance, p2 = eval(instance, car(cdr(args))), flags, 0);
+	delete_tree(instance, cdr(cdr(args)));
+	delete_object(instance, cdr(args));
+	delete_object(instance, args);
+	delete_tree(instance, p2);
 	err = ((snd_int_pp_strp_int_t)item->xfunc)(&handle, name, mode);
+	delete_tree(instance, p1);
 	return new_result1(instance, err, item->prefix, handle);
 }
 
@@ -280,13 +311,18 @@ static struct alisp_object * FA_int_pp_p(struct alisp_instance * instance, struc
 	int err;
 	void *handle;
 	const char *prefix1;
+	struct alisp_object *p1;
 
 	if (item->xfunc == &snd_hctl_open_ctl)
 		prefix1 = "ctl";
-	else
+	else {
+		delete_tree(instance, args);
 		return &alsa_lisp_nil;
-	args = eval(instance, car(args));
-	handle = (void *)get_ptr(args, prefix1);
+	}
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	handle = (void *)get_ptr(instance, p1, prefix1);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
 	err = ((snd_int_pp_p_t)item->xfunc)(&handle, handle);
@@ -297,6 +333,7 @@ static struct alisp_object * FA_p_p(struct alisp_instance * instance, struct aca
 {
 	void *handle;
 	const char *prefix1;
+	struct alisp_object * p1;
 
 	if (item->xfunc == &snd_hctl_first_elem ||
 	    item->xfunc == &snd_hctl_last_elem ||
@@ -305,10 +342,14 @@ static struct alisp_object * FA_p_p(struct alisp_instance * instance, struct aca
 		prefix1 = "hctl_elem";
 	else if (item->xfunc == &snd_hctl_ctl)
 		prefix1 = "ctl";
-	else
+	else {
+		delete_tree(instance, args);
 		return &alsa_lisp_nil;
-	args = eval(instance, car(args));
-	handle = (void *)get_ptr(args, item->prefix);
+	}
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	handle = (void *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
 	handle = ((snd_p_p_t)item->xfunc)(handle);
@@ -318,9 +359,12 @@ static struct alisp_object * FA_p_p(struct alisp_instance * instance, struct aca
 static struct alisp_object * FA_int_p(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
 	void *handle;
+	struct alisp_object * p1;
 
-	args = eval(instance, car(args));
-	handle = (void *)get_ptr(args, item->prefix);
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	handle = (void *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
 	return new_integer(instance, ((snd_int_p_t)item->xfunc)(handle));
@@ -329,9 +373,12 @@ static struct alisp_object * FA_int_p(struct alisp_instance * instance, struct a
 static struct alisp_object * FA_str_p(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
 	void *handle;
+	struct alisp_object * p1;
 
-	args = eval(instance, car(args));
-	handle = (void *)get_ptr(args, item->prefix);
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	handle = (void *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
 	return new_string(instance, ((snd_str_p_t)item->xfunc)(handle));
@@ -340,11 +387,17 @@ static struct alisp_object * FA_str_p(struct alisp_instance * instance, struct a
 static struct alisp_object * FA_int_intp(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
 	int val, err;
+	struct alisp_object * p1;
 
-	args = eval(instance, car(args));
-	if (!alisp_compare_type(args, ALISP_OBJ_INTEGER))
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	if (!alisp_compare_type(p1, ALISP_OBJ_INTEGER)) {
+		delete_tree(instance, p1);
 		return &alsa_lisp_nil;
-	val = args->value.i;
+	}
+	val = p1->value.i;
+	delete_tree(instance, p1);
 	err = ((snd_int_intp_t)item->xfunc)(&val);
 	return new_result2(instance, err, val);
 }
@@ -352,12 +405,18 @@ static struct alisp_object * FA_int_intp(struct alisp_instance * instance, struc
 static struct alisp_object * FA_int_str(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
 {
 	int err;
+	struct alisp_object * p1;
 
-	args = eval(instance, car(args));
-	if (!alisp_compare_type(args, ALISP_OBJ_STRING) &&
-	    !alisp_compare_type(args, ALISP_OBJ_IDENTIFIER))
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	if (!alisp_compare_type(p1, ALISP_OBJ_STRING) &&
+	    !alisp_compare_type(p1, ALISP_OBJ_IDENTIFIER)) {
+		delete_tree(instance, p1);
 		return &alsa_lisp_nil;
-	err = ((snd_int_str_t)item->xfunc)(args->value.s);
+	}
+	err = ((snd_int_str_t)item->xfunc)(p1->value.s);
+	delete_tree(instance, p1);
 	return new_integer(instance, err);
 }
 
@@ -365,11 +424,19 @@ static struct alisp_object * FA_int_int_strp(struct alisp_instance * instance, s
 {
 	int err;
 	char *str;
+	long val;
+	struct alisp_object * p1;
 
-	args = eval(instance, car(args));
-	if (!alisp_compare_type(args, ALISP_OBJ_INTEGER))
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	if (!alisp_compare_type(p1, ALISP_OBJ_INTEGER)) {
+		delete_tree(instance, p1);
 		return &alsa_lisp_nil;
-	err = ((snd_int_int_strp_t)item->xfunc)(args->value.i, &str);
+	}
+	val = p1->value.i;
+	delete_tree(instance, p1);
+	err = ((snd_int_int_strp_t)item->xfunc)(val, &str);
 	return new_result3(instance, err, str);
 }
 
@@ -377,11 +444,13 @@ static struct alisp_object * FA_card_info(struct alisp_instance * instance, stru
 {
 	snd_ctl_t *handle;
 	struct alisp_object * lexpr, * p1;
-	snd_ctl_card_info_t *info;
+	snd_ctl_card_info_t * info;
 	int err;
 
-	args = eval(instance, car(args));
-	handle = (snd_ctl_t *)get_ptr(args, item->prefix);
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	handle = (snd_ctl_t *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
 	snd_ctl_card_info_alloca(&info);
@@ -395,8 +464,10 @@ static struct alisp_object * FA_card_info(struct alisp_instance * instance, stru
 	p1 = add_cons(instance, p1, 1, "longname", new_string(instance, snd_ctl_card_info_get_longname(info)));
 	p1 = add_cons(instance, p1, 1, "mixername", new_string(instance, snd_ctl_card_info_get_mixername(info)));
 	p1 = add_cons(instance, p1, 1, "components", new_string(instance, snd_ctl_card_info_get_components(info)));
-	if (p1 == NULL)
+	if (p1 == NULL) {
+		delete_tree(instance, lexpr);
 		return NULL;
+	}
 	return lexpr;
 }
 
@@ -411,7 +482,9 @@ static struct alisp_object * create_ctl_elem_id(struct alisp_instance * instance
 	return cons;
 }
 
-static int parse_ctl_elem_id(struct alisp_object * cons, snd_ctl_elem_id_t * id)
+static int parse_ctl_elem_id(struct alisp_instance * instance,
+			     struct alisp_object * cons,
+			     snd_ctl_elem_id_t * id)
 {
 	struct alisp_object *p1;
 	const char *xid;
@@ -440,7 +513,9 @@ static int parse_ctl_elem_id(struct alisp_object * cons, snd_ctl_elem_id_t * id)
 				snd_ctl_elem_id_set_index(id, get_integer(p1->value.c.cdr));
 			}
 		}
-	        cons = cdr(cons);
+		delete_tree(instance, p1);
+	        cons = cdr(p1 = cons);
+	        delete_object(instance, p1);
 	} while (cons != &alsa_lisp_nil);
 	return 0;
 }
@@ -449,12 +524,20 @@ static struct alisp_object * FA_hctl_find_elem(struct alisp_instance * instance,
 {
 	snd_hctl_t *handle;
 	snd_ctl_elem_id_t *id;
+	struct alisp_object *p1;
 
-	handle = (snd_hctl_t *)get_ptr(car(args), item->prefix);
-	if (handle == NULL)
+	handle = (snd_hctl_t *)get_ptr(instance, car(args), item->prefix);
+	if (handle == NULL) {
+		delete_tree(instance, cdr(args));
+		delete_object(instance, args);
 		return &alsa_lisp_nil;
+	}
 	snd_ctl_elem_id_alloca(&id);
-	if (parse_ctl_elem_id(eval(instance, car(cdr(args))), id) < 0)
+	p1 = car(cdr(args));
+	delete_tree(instance, cdr(cdr(args)));
+	delete_object(instance, cdr(args));
+	delete_object(instance, args);
+	if (parse_ctl_elem_id(instance, eval(instance, p1), id) < 0)
 		return &alsa_lisp_nil;
 	return new_cons_pointer(instance, "hctl_elem", snd_hctl_find_elem(handle, id));
 }
@@ -468,8 +551,10 @@ static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance,
 	snd_ctl_elem_type_t type;
 	int err;
 
-	args = eval(instance, car(args));
-	handle = (snd_hctl_elem_t *)get_ptr(args, item->prefix);
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	handle = (snd_hctl_elem_t *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
 	snd_ctl_elem_info_alloca(&info);
@@ -481,8 +566,10 @@ static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance,
 	type = snd_ctl_elem_info_get_type(info);
 	p1 = add_cons(instance, lexpr->value.c.cdr, 0, "id", p2 = new_object(instance, ALISP_OBJ_CONS));
 	snd_ctl_elem_info_get_id(info, id);
-	if (create_ctl_elem_id(instance, id, p2) == NULL)
+	if (create_ctl_elem_id(instance, id, p2) == NULL) {
+		delete_tree(instance, lexpr);
 		return NULL;
+	}
 	p1 = add_cons(instance, p1, 1, "type", new_string(instance, snd_ctl_elem_type_name(type)));
 	p1 = add_cons(instance, p1, 1, "readable", new_integer(instance, snd_ctl_elem_info_is_readable(info)));
 	p1 = add_cons(instance, p1, 1, "writeable", new_integer(instance, snd_ctl_elem_info_is_writable(info)));
@@ -528,8 +615,10 @@ static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance,
 	default:
 		break;
 	}
-	if (p1 == NULL)
+	if (p1 == NULL) {
+		delete_tree(instance, lexpr);
 		return NULL;
+	}
 	return lexpr;
 }
 
@@ -543,8 +632,10 @@ static struct alisp_object * FA_hctl_elem_read(struct alisp_instance * instance,
 	unsigned int idx, count;
 	int err;
 
-	args = eval(instance, car(args));
-	handle = (snd_hctl_elem_t *)get_ptr(args, item->prefix);
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	handle = (snd_hctl_elem_t *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
 	snd_ctl_elem_info_alloca(&info);
@@ -588,8 +679,10 @@ static struct alisp_object * FA_hctl_elem_read(struct alisp_instance * instance,
 			p1 = add_cons2(instance, p1, 1, obj);
 		}
 	}
-	if (p1 == NULL)
+	if (p1 == NULL) {
+		delete_tree(instance, lexpr);
 		return &alsa_lisp_nil;
+	}
 	return lexpr;
 }
 
@@ -604,15 +697,22 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 	int err;
 
 	p1 = car(cdr(args));
-	args = eval(instance, car(args));
-	handle = (snd_hctl_elem_t *)get_ptr(args, item->prefix);
-	if (handle == NULL)
+	obj = eval(instance, car(args));
+	delete_tree(instance, cdr(cdr(args)));
+	delete_object(instance, cdr(args));
+	delete_object(instance, args);
+	handle = (snd_hctl_elem_t *)get_ptr(instance, obj, item->prefix);
+	if (handle == NULL) {
+		delete_tree(instance, p1);
 		return &alsa_lisp_nil;
+	}
 	snd_ctl_elem_info_alloca(&info);
 	snd_ctl_elem_value_alloca(&value);
 	err = snd_hctl_elem_info(handle, info);
-	if (err < 0)
+	if (err < 0) {
+		delete_tree(instance, p1);
 		return new_integer(instance, err);
+	}
 	type = snd_ctl_elem_info_get_type(info);
 	count = snd_ctl_elem_info_get_count(info);
 	if (type == SND_CTL_ELEM_TYPE_IEC958) {
@@ -621,8 +721,10 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 	}
 	idx = -1;
 	do {
-		if (++idx >= count)
+		if (++idx >= count) {
+			delete_tree(instance, p1);
 			break;
+		}
 		obj = car(p1);
 		switch (type) {
 		case SND_CTL_ELEM_TYPE_BOOLEAN:
@@ -641,10 +743,11 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 			snd_ctl_elem_value_set_byte(value, idx, get_integer(obj));
 			break;
 		default:
-			obj = NULL;
 			break;
 		}
-		p1 = cdr(p1);
+		delete_tree(instance, obj);
+		p1 = cdr(obj = p1);
+		delete_object(instance, obj);
 	} while (p1 != &alsa_lisp_nil);
 	err = snd_hctl_elem_write(handle, value);
 	return new_integer(instance, err);
@@ -657,8 +760,10 @@ static struct alisp_object * FA_pcm_info(struct alisp_instance * instance, struc
 	snd_pcm_info_t *info;
 	int err;
 
-	args = eval(instance, car(args));
-	handle = (snd_pcm_t *)get_ptr(args, item->prefix);
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	handle = (snd_pcm_t *)get_ptr(instance, p1, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
 	snd_pcm_info_alloca(&info);
@@ -722,29 +827,56 @@ static struct alisp_object * F_acall(struct alisp_instance *instance, struct ali
 	struct acall_table key, *item;
 
 	p1 = eval(instance, car(args));
-	if (!alisp_compare_type(p1, ALISP_OBJ_IDENTIFIER) &&
-	    !alisp_compare_type(p1, ALISP_OBJ_STRING))
-		return &alsa_lisp_nil;
 	p2 = cdr(args);
+	delete_object(instance, args);
+	if (!alisp_compare_type(p1, ALISP_OBJ_IDENTIFIER) &&
+	    !alisp_compare_type(p1, ALISP_OBJ_STRING)) {
+	    	delete_tree(instance, p2);
+		return &alsa_lisp_nil;
+	}
 	key.name = p1->value.s;
 	if ((item = bsearch(&key, acall_table,
 			    sizeof acall_table / sizeof acall_table[0],
-			    sizeof acall_table[0], acall_compar)) != NULL)
+			    sizeof acall_table[0], acall_compar)) != NULL) {
+		delete_tree(instance, p1);
 		return item->func(instance, item, p2);
+	}
+	delete_tree(instance, p1);
+	delete_tree(instance, p2);
 	lisp_warn(instance, "acall function %s' is undefined", p1->value.s);
 	return &alsa_lisp_nil;
 }
 
-static struct alisp_object * F_ahandle(struct alisp_instance *instance ATTRIBUTE_UNUSED, struct alisp_object * args)
+static struct alisp_object * F_ahandle(struct alisp_instance *instance, struct alisp_object * args)
 {
-	return car(cdr(eval(instance, car(args))));
+	struct alisp_object *p1;
+
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	args = car(cdr(p1));
+	delete_tree(instance, cdr(cdr(p1)));
+	delete_object(instance, cdr(p1));
+	delete_tree(instance, car(p1));
+	delete_object(instance, p1);
+	return args;
 }
 
 static struct alisp_object * F_aerror(struct alisp_instance *instance, struct alisp_object * args)
 {
-	args = car(eval(instance, car(args)));
-	if (args == &alsa_lisp_nil)
+	struct alisp_object *p1;
+
+	p1 = eval(instance, car(args));
+	delete_tree(instance, cdr(args));
+	delete_object(instance, args);
+	args = car(p1);
+	if (args == &alsa_lisp_nil) {
+		delete_tree(instance, p1);
 		return new_integer(instance, SND_ERROR_ALISP_NIL);
+	} else {
+		delete_tree(instance, cdr(p1));
+		delete_object(instance, p1);
+	}
 	return args;
 }
 
@@ -755,8 +887,10 @@ static int common_error(snd_output_t **rout, struct alisp_instance *instance, st
 	int err;
 	
 	err = snd_output_buffer_open(&out);
-	if (err < 0)
+	if (err < 0) {
+		delete_tree(instance, args);
 		return err;
+	}
 
 	do {
 		p1 = eval(instance, car(p));
@@ -764,7 +898,9 @@ static int common_error(snd_output_t **rout, struct alisp_instance *instance, st
 			snd_output_printf(out, "%s", p1->value.s);
 		else
 			princ_object(out, p1);
-		p = cdr(p);
+		delete_tree(instance, p1);
+		p = cdr(p1 = p);
+		delete_object(instance, p1);
 	} while (p != &alsa_lisp_nil);
 
 	*rout = out;
