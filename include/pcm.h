@@ -53,6 +53,7 @@ ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count);
 
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
 int snd_pcm_close(snd_pcm_t *pcm);
+int snd_pcm_card(snd_pcm_t *pcm);
 int snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid);

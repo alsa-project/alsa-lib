@@ -34,6 +34,12 @@ int snd_pcm_plugin_close(snd_pcm_t *pcm)
 	return 0;
 }
 
+int snd_pcm_plugin_card(snd_pcm_t *pcm)
+{
+	snd_pcm_plugin_t *plugin = pcm->private;
+	return snd_pcm_card(plugin->slave);
+}
+
 int snd_pcm_plugin_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;

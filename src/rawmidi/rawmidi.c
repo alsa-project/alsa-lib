@@ -41,6 +41,12 @@ int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 	return 0;
 }
 
+int snd_rawmidi_card(snd_rawmidi_t *rmidi)
+{
+	assert(rmidi);
+	return rmidi->ops->card(rmidi);
+}
+
 int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi)
 {
 	assert(rmidi);

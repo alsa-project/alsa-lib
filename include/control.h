@@ -42,6 +42,7 @@ int snd_defaults_rawmidi_device(void);
 snd_ctl_type_t snd_ctl_type(snd_ctl_t *handle);
 int snd_ctl_open(snd_ctl_t **handle, char *name);
 int snd_ctl_close(snd_ctl_t *handle);
+int snd_ctl_card(snd_ctl_t *handle);
 int snd_ctl_poll_descriptor(snd_ctl_t *handle);
 int snd_ctl_hw_info(snd_ctl_t *handle, snd_ctl_hw_info_t *info);
 int snd_ctl_clist(snd_ctl_t *handle, snd_control_list_t * list);

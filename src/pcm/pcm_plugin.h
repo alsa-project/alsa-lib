@@ -31,6 +31,7 @@ typedef struct {
 } snd_pcm_plugin_t;	
 
 int snd_pcm_plugin_close(snd_pcm_t *pcm);
+int snd_pcm_plugin_card(snd_pcm_t *pcm);
 int snd_pcm_plugin_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_plugin_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_info_t * info);

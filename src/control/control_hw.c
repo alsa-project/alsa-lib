@@ -48,6 +48,12 @@ static int snd_ctl_hw_close(snd_ctl_t *handle)
 	return res;
 }
 
+static int snd_ctl_hw_card(snd_ctl_t *handle)
+{
+	snd_ctl_hw_t *hw = handle->private;
+	return hw->card;
+}
+
 static int snd_ctl_hw_poll_descriptor(snd_ctl_t *handle)
 {
 	snd_ctl_hw_t *hw = handle->private;
@@ -166,6 +172,7 @@ static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 
 snd_ctl_ops_t snd_ctl_hw_ops = {
 	close: snd_ctl_hw_close,
+	card: snd_ctl_hw_card,
 	poll_descriptor: snd_ctl_hw_poll_descriptor,
 	hw_info: snd_ctl_hw_hw_info,
 	clist: snd_ctl_hw_clist,

@@ -116,6 +116,18 @@ static int snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 	return ctrl->result;
 }
 
+static int snd_pcm_shm_card(snd_pcm_t *pcm)
+{
+	snd_pcm_shm_t *shm = pcm->private;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->cmd = SND_PCM_IOCTL_CARD;
+	err = snd_pcm_shm_action(pcm);
+	if (err < 0)
+		return err;
+	return ctrl->u.card;
+}
+
 static int snd_pcm_shm_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -442,6 +454,7 @@ static void snd_pcm_shm_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_shm_ops = {
 	close: snd_pcm_shm_close,
+	card: snd_pcm_shm_card,
 	info: snd_pcm_shm_info,
 	hw_refine: snd_pcm_shm_hw_refine,
 	hw_params: snd_pcm_shm_hw_params,

@@ -109,6 +109,12 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return 0;
 }
 
+static int snd_pcm_hw_card(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private;
+	return hw->card;
+}
+
 static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private;
@@ -499,6 +505,7 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_hw_ops = {
 	close: snd_pcm_hw_close,
+	card: snd_pcm_hw_card,
 	info: snd_pcm_hw_info,
 	hw_refine: snd_pcm_hw_hw_refine,
 	hw_params: snd_pcm_hw_hw_params,

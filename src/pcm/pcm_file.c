@@ -49,6 +49,12 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int snd_pcm_file_card(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private;
+	return snd_pcm_card(file->slave);
+}
+
 static int snd_pcm_file_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	snd_pcm_file_t *file = pcm->private;
@@ -301,6 +307,7 @@ static void snd_pcm_file_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_file_ops = {
 	close: snd_pcm_file_close,
+	card: snd_pcm_file_card,
 	info: snd_pcm_file_info,
 	hw_refine: snd_pcm_file_hw_refine,
 	hw_params: snd_pcm_file_hw_params,

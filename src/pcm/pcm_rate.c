@@ -511,6 +511,7 @@ static void snd_pcm_rate_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_rate_ops = {
 	close: snd_pcm_rate_close,
+	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_rate_hw_refine,
 	hw_params: snd_pcm_rate_hw_params,

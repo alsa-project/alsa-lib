@@ -50,6 +50,12 @@ static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 	return 0;
 }
 
+static int snd_rawmidi_hw_card(snd_rawmidi_t *rmidi)
+{
+	snd_rawmidi_hw_t *hw = rmidi->private;
+	return hw->card;
+}
+
 static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private;
@@ -142,6 +148,7 @@ static ssize_t snd_rawmidi_hw_read(snd_rawmidi_t *rmidi, void *buffer, size_t si
 
 snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
 	close: snd_rawmidi_hw_close,
+	card: snd_rawmidi_hw_card,
 	nonblock: snd_rawmidi_hw_nonblock,
 	info: snd_rawmidi_hw_info,
 	params: snd_rawmidi_hw_params,

@@ -261,6 +261,12 @@ ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count)
 	return snd_pcm_readn(pcm, bufs, vector[0].iov_len);
 }
 
+int snd_pcm_card(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	return pcm->ops->card(pcm->op_arg);
+}
+
 /* FIXME */
 #define snd_pcm_link_descriptor snd_pcm_poll_descriptor
 

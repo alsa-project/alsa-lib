@@ -51,6 +51,12 @@ static int snd_pcm_plug_close(snd_pcm_t *pcm)
 	return result;
 }
 
+static int snd_pcm_plug_card(snd_pcm_t *pcm)
+{
+	snd_pcm_plug_t *plug = pcm->private;
+	return snd_pcm_card(plug->slave);
+}
+
 static int snd_pcm_plug_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	snd_pcm_plug_t *plug = pcm->private;
@@ -645,6 +651,7 @@ static void snd_pcm_plug_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_plug_ops = {
 	close: snd_pcm_plug_close,
+	card: snd_pcm_plug_card,
 	info: snd_pcm_plug_info,
 	hw_refine: snd_pcm_plug_hw_refine,
 	hw_params: snd_pcm_plug_hw_params,

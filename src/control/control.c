@@ -45,6 +45,12 @@ int snd_ctl_close(snd_ctl_t *ctl)
 	return res;
 }
 
+int snd_ctl_card(snd_ctl_t *ctl)
+{
+	assert(ctl);
+	return ctl->ops->card(ctl);
+}
+
 int snd_ctl_poll_descriptor(snd_ctl_t *ctl)
 {
 	assert(ctl);

@@ -373,6 +373,10 @@ int pcm_shm_cmd(client_t *client)
 	ctrl->cmd = 0;
 	pcm = client->device.pcm.handle;
 	switch (cmd) {
+	case SND_PCM_IOCTL_CARD:
+		ctrl->result = 0;
+		ctrl->u.card = snd_pcm_card(pcm);
+		break;
 	case SND_PCM_IOCTL_ASYNC:
 		ctrl->result = snd_pcm_async(pcm, ctrl->u.async.sig, ctrl->u.async.pid);
 		break;
@@ -627,6 +631,9 @@ int ctl_shm_cmd(client_t *client)
 	case SND_CTL_IOCTL_CLOSE:
 		client->ops->close(client);
 		break;
+	case SND_PCM_IOCTL_CARD:
+		ctrl->result = 0;
+		return shm_ack_fd(client, snd_ctl_card(ctl));
 	case SND_PCM_IOCTL_POLL_DESCRIPTOR:
 		ctrl->result = 0;
 		return shm_ack_fd(client, snd_ctl_poll_descriptor(ctl));

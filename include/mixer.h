@@ -13,6 +13,7 @@ extern "C" {
 
 int snd_mixer_open(snd_mixer_t **handle, char *name);
 int snd_mixer_close(snd_mixer_t *handle);
+int snd_mixer_card(snd_mixer_t *handle);
 int snd_mixer_poll_descriptor(snd_mixer_t *handle);
 
 #ifdef __cplusplus

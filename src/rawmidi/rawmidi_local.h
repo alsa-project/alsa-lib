@@ -36,6 +36,7 @@
 
 typedef struct {
 	int (*close)(snd_rawmidi_t *rawmidi);
+	int (*card)(snd_rawmidi_t *rawmidi);
 	int (*nonblock)(snd_rawmidi_t *rawmidi, int nonblock);
 	int (*info)(snd_rawmidi_t *rawmidi, snd_rawmidi_info_t *info);
 	int (*params)(snd_rawmidi_t *rawmidi, snd_rawmidi_params_t *params);

@@ -26,6 +26,7 @@ typedef enum _snd_rawmidi_type {
 
 int snd_rawmidi_open(snd_rawmidi_t **handle, char *name, int streams, int mode);
 int snd_rawmidi_close(snd_rawmidi_t *handle);
+int snd_rawmidi_card(snd_rawmidi_t *handle);
 int snd_rawmidi_poll_descriptor(snd_rawmidi_t *handle);
 int snd_rawmidi_nonblock(snd_rawmidi_t *handle, int nonblock);
 int snd_rawmidi_info(snd_rawmidi_t *handle, snd_rawmidi_info_t * info);

@@ -67,6 +67,11 @@ static int snd_pcm_multi_close(snd_pcm_t *pcm)
 	return ret;
 }
 
+static int snd_pcm_multi_card(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return -ENOENT;	/* not available */
+}
+
 static int snd_pcm_multi_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -390,6 +395,7 @@ static void snd_pcm_multi_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_multi_ops = {
 	close: snd_pcm_multi_close,
+	card: snd_pcm_multi_card,
 	info: snd_pcm_multi_info,
 	hw_refine: snd_pcm_multi_hw_refine,
 	hw_params: snd_pcm_multi_hw_params,

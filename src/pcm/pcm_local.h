@@ -56,6 +56,7 @@ typedef struct _snd_pcm_channel_info {
 
 typedef struct {
 	int (*close)(snd_pcm_t *pcm);
+	int (*card)(snd_pcm_t *pcm);
 	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
 	int (*async)(snd_pcm_t *pcm, int sig, pid_t pid);
 	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);

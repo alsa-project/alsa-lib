@@ -417,6 +417,7 @@ static void snd_pcm_mulaw_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_mulaw_ops = {
 	close: snd_pcm_plugin_close,
+	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_mulaw_hw_refine,
 	hw_params: snd_pcm_mulaw_hw_params,

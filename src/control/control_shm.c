@@ -95,6 +95,18 @@ static int snd_ctl_shm_close(snd_ctl_t *ctl)
 	return result;
 }
 
+static int snd_ctl_shm_card(snd_ctl_t *ctl)
+{
+	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	int card, err;
+	ctrl->cmd = SND_CTL_IOCTL_CARD;
+	err = snd_ctl_shm_action_fd(ctl, &card);
+	if (err < 0)
+		return err;
+	return card;
+}
+
 static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
 {
 	snd_ctl_shm_t *shm = ctl->private;
@@ -310,6 +322,7 @@ static int snd_ctl_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 
 snd_ctl_ops_t snd_ctl_shm_ops = {
 	close: snd_ctl_shm_close,
+	card: snd_ctl_shm_card,
 	poll_descriptor: snd_ctl_shm_poll_descriptor,
 	hw_info: snd_ctl_shm_hw_info,
 	clist: snd_ctl_shm_clist,

@@ -21,15 +21,16 @@
 
 #include "../src/pcm/pcm_local.h"
 
-#define SND_PCM_IOCTL_STATE		_IO ('A', 0xf0)
-#define SND_PCM_IOCTL_MMAP		_IO ('A', 0xf1)
-#define SND_PCM_IOCTL_MUNMAP		_IO ('A', 0xf4)
-#define SND_PCM_IOCTL_MMAP_FORWARD	_IO ('A', 0xf7)
-#define SND_PCM_IOCTL_AVAIL_UPDATE	_IO ('A', 0xf8)
-#define SND_PCM_IOCTL_ASYNC		_IO ('A', 0xf9)
-#define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xfa)
-#define SND_PCM_IOCTL_POLL_DESCRIPTOR	_IO ('A', 0xfc)
-#define SND_PCM_IOCTL_SET_AVAIL_MIN	_IO ('A', 0xfd)
+#define SND_PCM_IOCTL_CARD		_IO ('A', 0xf0)
+#define SND_PCM_IOCTL_STATE		_IO ('A', 0xf1)
+#define SND_PCM_IOCTL_MMAP		_IO ('A', 0xf2)
+#define SND_PCM_IOCTL_MUNMAP		_IO ('A', 0xf3)
+#define SND_PCM_IOCTL_MMAP_FORWARD	_IO ('A', 0xf4)
+#define SND_PCM_IOCTL_AVAIL_UPDATE	_IO ('A', 0xf5)
+#define SND_PCM_IOCTL_ASYNC		_IO ('A', 0xf6)
+#define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xf7)
+#define SND_PCM_IOCTL_POLL_DESCRIPTOR	_IO ('A', 0xf8)
+#define SND_PCM_IOCTL_SET_AVAIL_MIN	_IO ('A', 0xf9)
 
 typedef struct {
 	long result;
@@ -37,6 +38,7 @@ typedef struct {
 	size_t hw_ptr;
 	size_t appl_ptr;
 	union {
+		int card;
 		struct {
 			int sig;
 			pid_t pid;
@@ -71,9 +73,10 @@ typedef struct {
 
 #define PCM_SHM_SIZE sizeof(snd_pcm_shm_ctrl_t)
 		
-#define SND_CTL_IOCTL_READ		_IOR('U', 0xf0, snd_ctl_event_t)
-#define SND_CTL_IOCTL_CLOSE		_IO ('U', 0xf1)
-#define SND_CTL_IOCTL_POLL_DESCRIPTOR	_IO ('U', 0xf2)
+#define SND_CTL_IOCTL_CARD		_IO ('U', 0xf0)
+#define SND_CTL_IOCTL_READ		_IOR('U', 0xf1, snd_ctl_event_t)
+#define SND_CTL_IOCTL_CLOSE		_IO ('U', 0xf2)
+#define SND_CTL_IOCTL_POLL_DESCRIPTOR	_IO ('U', 0xf3)
 
 typedef struct {
 	int result;

@@ -158,6 +158,7 @@ static void snd_pcm_copy_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_copy_ops = {
 	close: snd_pcm_plugin_close,
+	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_copy_hw_refine,
 	hw_params: snd_pcm_copy_hw_params,
