@@ -1,5 +1,5 @@
 SUBDIRS=doc include src aserver alsalisp test utils
-EXTRA_DIST=ChangeLog INSTALL TODO configure cvscompile libtool depcomp version
+EXTRA_DIST=ChangeLog INSTALL TODO configure cvscompile libtool depcomp version MEMORY-LEAK
 
 INCLUDES=-I$(top_srcdir)/include
 
