@@ -65,7 +65,7 @@ static int snd_pcm_null_async(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int sig ATTRIBUTE
 	return -ENOSYS;
 }
 
-static int snd_pcm_null_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_info_t * info)
+static int snd_pcm_null_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	memset(info, 0, sizeof(*info));
 	info->stream = pcm->stream;
@@ -79,7 +79,6 @@ static int snd_pcm_null_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_info_t * i
 
 static int snd_pcm_null_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-	snd_pcm_null_t *null = pcm->private_data;
 	return snd_pcm_channel_info_shm(pcm, info, -1);
 }
 

@@ -27,6 +27,7 @@
 typedef struct {
 	int (*close)(snd_timer_t *timer);
 	int (*nonblock)(snd_timer_t *timer, int nonblock);
+	int (*async)(snd_timer_t *timer, int sig, pid_t pid);
 	int (*info)(snd_timer_t *timer, snd_timer_info_t *info);
 	int (*params)(snd_timer_t *timer, snd_timer_params_t *params);
 	int (*status)(snd_timer_t *timer, snd_timer_status_t *status);
@@ -62,3 +63,5 @@ struct _snd_timer_query {
 };
 
 int snd_timer_query_hw_open(snd_timer_query_t **handle, const char *name, int mode);
+
+int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);

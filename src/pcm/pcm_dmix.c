@@ -51,6 +51,12 @@ const char *_snd_module_pcm_dmix = "";
 /*
  *
  */
+ 
+int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
+
+/*
+ *
+ */
 
 struct slave_params {
 	snd_pcm_format_t format;
@@ -433,23 +439,50 @@ static int client_discard(snd_pcm_dmix_t *dmix)
 }
 
 /*
+ *  ring buffer operation
+ */
+
+/*
+ *  synchronize shm ring buffer with hardware
+ */
+static void snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+{
+	snd_pcm_dmix_t *dmix = pcm->private_data;
+	snd_pcm_uframes_t appl_ptr;
+	
+	/* get the start of update area */
+	appl_ptr = dmix->appl_ptr - size;
+	if (appl_ptr > pcm->boundary)
+		appl_ptr += pcm->boundary;
+}
+
+/*
  *  plugin implementation
  */
 
-static int snd_pcm_dmix_nonblock(snd_pcm_t *pcm, int nonblock)
+static int snd_pcm_dmix_nonblock(snd_pcm_t *pcm, int nonblock ATTRIBUTE_UNUSED)
 {
+	/* value is cached for us in pcm->mode (SND_PCM_NONBLOCK flag) */
 	return 0;
 }
 
 static int snd_pcm_dmix_async(snd_pcm_t *pcm, int sig, pid_t pid)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
-	return 0;
+	return snd_timer_async(dmix->timer, sig, pid);
 }
 
 static int snd_pcm_dmix_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
+	memset(info, 0, sizeof(*info));
+	info->stream = pcm->stream;
+	info->card = -1;
+	/* FIXME: fill this with something more useful: we know the hardware name */
+	strncpy(info->id, pcm->name, sizeof(info->id));
+	strncpy(info->name, pcm->name, sizeof(info->name));
+	strncpy(info->subname, pcm->name, sizeof(info->subname));
+	info->subdevices_count = 1;
 	return 0;
 }
 
@@ -499,26 +532,25 @@ static int snd_pcm_dmix_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 static int snd_pcm_dmix_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
-	snd_pcm_dmix_t *dmix = pcm->private_data;
+	// snd_pcm_dmix_t *dmix = pcm->private_data;
 	return 0;
 }
 
 static int snd_pcm_dmix_hw_free(snd_pcm_t *pcm)
 {
-	snd_pcm_dmix_t *dmix = pcm->private_data;
+	// snd_pcm_dmix_t *dmix = pcm->private_data;
 	return 0;
 }
 
 static int snd_pcm_dmix_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
-	snd_pcm_dmix_t *dmix = pcm->private_data;
+	// snd_pcm_dmix_t *dmix = pcm->private_data;
 	return 0;
 }
 
 static int snd_pcm_dmix_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
-	snd_pcm_dmix_t *dmix = pcm->private_data;
-	return 0;
+        return snd_pcm_channel_info_shm(pcm, info, -1);
 }
 
 static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
@@ -595,33 +627,35 @@ static int snd_pcm_dmix_resume(snd_pcm_t *pcm)
 
 static snd_pcm_sframes_t snd_pcm_dmix_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
-	return -ENODEV;
+	int res = snd_pcm_mmap_writei(pcm, buffer, size);
+	snd_pcm_dmix_sync_ptr(pcm, size);
+	return res;
 }
 
 static snd_pcm_sframes_t snd_pcm_dmix_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
-	return -ENODEV;
+	int res = snd_pcm_mmap_writen(pcm, bufs, size);
+	snd_pcm_dmix_sync_ptr(pcm, size);
+	return res;
 }
 
-static snd_pcm_sframes_t snd_pcm_dmix_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_dmix_readi(snd_pcm_t *pcm ATTRIBUTE_UNUSED, void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size ATTRIBUTE_UNUSED)
 {
 	return -ENODEV;
 }
 
-static snd_pcm_sframes_t snd_pcm_dmix_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t snd_pcm_dmix_readn(snd_pcm_t *pcm ATTRIBUTE_UNUSED, void **bufs ATTRIBUTE_UNUSED, snd_pcm_uframes_t size ATTRIBUTE_UNUSED)
 {
 	return -ENODEV;
 }
 
-static int snd_pcm_dmix_mmap(snd_pcm_t *pcm)
+static int snd_pcm_dmix_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_dmix_t *dmix = pcm->private_data;
 	return 0;
 }
 
-static int snd_pcm_dmix_munmap(snd_pcm_t *pcm)
+static int snd_pcm_dmix_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_dmix_t *dmix = pcm->private_data;
 	return 0;
 }
 
@@ -648,16 +682,17 @@ static int snd_pcm_dmix_close(snd_pcm_t *pcm)
 }
 
 static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
-						snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
-						snd_pcm_uframes_t size)
+						  snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+						  snd_pcm_uframes_t size)
 {
-	snd_pcm_dmix_t *hw = pcm->private_data;
-	return 0;
+	snd_pcm_mmap_appl_forward(pcm, size);
+	snd_pcm_dmix_sync_ptr(pcm, size);
+	return size;
 }
 
-static snd_pcm_sframes_t snd_pcm_dmix_avail_update(snd_pcm_t *pcm)
+static snd_pcm_sframes_t snd_pcm_dmix_avail_update(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_dmix_t *hw = pcm->private_data;
+	//snd_pcm_dmix_t *dmix = pcm->private_data;
 	return 0;
 }
 

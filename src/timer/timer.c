@@ -73,6 +73,7 @@ This example shows opening a timer device and reading of timer events.
 #include <string.h>
 #include <fcntl.h>
 #include <dlfcn.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 #include "timer_local.h"
 
@@ -349,6 +350,27 @@ int snd_timer_nonblock(snd_timer_t *timer, int nonblock)
 		timer->mode &= ~SND_TIMER_OPEN_NONBLOCK;
 	return 0;
 }
+
+#ifndef DOC_HIDDEN
+/**
+ * \brief set async mode
+ * \param timer timer handle
+ * \param sig Signal to raise: < 0 disable, 0 default (SIGIO)
+ * \param pid Process ID to signal: 0 current
+ * \return 0 on success otherwise a negative error code
+ *
+ * A signal is raised every period.
+ */
+int snd_timer(snd_timer_t *timer, int sig, pid_t pid)
+{
+	assert(timer);
+        if (sig == 0)
+                sig = SIGIO;
+	if (pid == 0)
+		pid = getpid();
+	return timer->ops->async(timer, sig, pid);
+}
+#endif
 
 /**
  * \brief get size of the snd_timer_info_t structure in bytes

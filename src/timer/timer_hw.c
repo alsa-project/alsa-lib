@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#define __USE_GNU
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "timer_local.h"
@@ -58,6 +59,38 @@ static int snd_timer_hw_nonblock(snd_timer_t *timer, int nonblock)
 		flags &= ~O_NONBLOCK;
 	if (fcntl(timer->poll_fd, F_SETFL, flags) < 0)
 		return -errno;
+	return 0;
+}
+
+static int snd_timer_hw_async(snd_timer_t *timer, int sig, pid_t pid)
+{
+	long flags;
+	int fd;
+
+	assert(timer);
+	fd = timer->poll_fd;
+	if ((flags = fcntl(fd, F_GETFL)) < 0) {
+		SYSERR("F_GETFL failed");
+		return -errno;
+	}
+	if (sig >= 0)
+		flags |= O_ASYNC;
+	else
+		flags &= ~O_ASYNC;
+	if (fcntl(fd, F_SETFL, flags) < 0) {
+		SYSERR("F_SETFL for O_ASYNC failed");
+		return -errno;
+	}
+	if (sig < 0)
+		return 0;
+	if (fcntl(fd, F_SETSIG, (long)sig) < 0) {
+		SYSERR("F_SETSIG failed");
+		return -errno;
+	}
+	if (fcntl(fd, F_SETOWN, (long)pid) < 0) {
+		SYSERR("F_SETOWN failed");
+		return -errno;
+	}
 	return 0;
 }
 
@@ -148,15 +181,16 @@ static ssize_t snd_timer_hw_read(snd_timer_t *handle, void *buffer, size_t size)
 }
 
 static snd_timer_ops_t snd_timer_hw_ops = {
-	close: snd_timer_hw_close,
-	nonblock: snd_timer_hw_nonblock,
-	info: snd_timer_hw_info,
-	params: snd_timer_hw_params,
-	status: snd_timer_hw_status,
-	rt_start: snd_timer_hw_start,
-	rt_stop: snd_timer_hw_stop,
-	rt_continue: snd_timer_hw_continue,
-	read: snd_timer_hw_read,
+	.close = snd_timer_hw_close,
+	.nonblock = snd_timer_hw_nonblock,
+	.async = snd_timer_hw_async,
+	.info = snd_timer_hw_info,
+	.params = snd_timer_hw_params,
+	.status = snd_timer_hw_status,
+	.rt_start = snd_timer_hw_start,
+	.rt_stop = snd_timer_hw_stop,
+	.rt_continue = snd_timer_hw_continue,
+	.read = snd_timer_hw_read,
 };
 
 int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int dev_sclass, int card, int device, int subdevice, int mode)
