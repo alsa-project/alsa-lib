@@ -116,6 +116,14 @@ else
   AC_MSG_RESULT(no)
 fi
 
+dnl Temporary directory
+AC_MSG_CHECKING(for tmpdir)
+AC_ARG_WITH(tmpdir,
+  [  --with-tmpdir=directory   directory to put tmp socket files (/tmp)],
+  tmpdir="$withval", tmpdir="/tmp")
+AC_MSG_RESULT($tmpdir)
+AC_DEFINE_UNQUOTED(TMPDIR, "$tmpdir", [directory to put tmp socket files])
+
 dnl Check for softfloat...
 AC_MSG_CHECKING(for softfloat)
 AC_ARG_WITH(softfloat,

@@ -152,7 +152,7 @@ static int get_tmp_name(char *filename, size_t size)
 	struct timeval tv;
 
 	gettimeofday(&tv, NULL);
-	snprintf(filename, size, "/tmp/alsa-dmix-%i-%li-%li", getpid(), tv.tv_sec, tv.tv_usec);
+	snprintf(filename, size, TMPDIR "/alsa-dmix-%i-%li-%li", getpid(), tv.tv_sec, tv.tv_usec);
 	filename[size-1] = '\0';
 	return 0;
 }
@@ -179,18 +179,18 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm)
 	if (server) {
 		if (bind(sock, (struct sockaddr *) addr, size) < 0) {
 			int result = -errno;
-			SYSERR("bind failed");
+			SYSERR("bind failed: %s", filename);
 			return result;
 		} else {
 			if (chmod(filename, ipc_perm) < 0) {
 				int result = -errno;
-				SYSERR("chmod failed");
+				SYSERR("chmod failed: %s", filename);
 				return result;
 			}
 		}
 	} else {
 		if (connect(sock, (struct sockaddr *) addr, size) < 0) {
-			SYSERR("connect failed");
+			SYSERR("connect failed: %s", filename);
 			return -errno;
 		}
 	}
