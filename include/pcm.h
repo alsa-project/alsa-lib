@@ -284,7 +284,7 @@ struct snd_stru_pcm_plugin {
 	snd_pcm_plugin_t *next;
 	snd_pcm_plug_t *plug;
 	void *private_data;
-	void (*private_free)(snd_pcm_plugin_t *plugin, void *private_data);
+	void (*private_free)(snd_pcm_plugin_t *plugin);
 	char *buf;
 	size_t buf_frames;
 	snd_pcm_plugin_channel_t *buf_channels;

@@ -210,7 +210,7 @@ int snd_pcm_plugin_free(snd_pcm_plugin_t *plugin)
 {
 	assert(plugin);
 	if (plugin->private_free)
-		plugin->private_free(plugin, plugin->private_data);
+		plugin->private_free(plugin);
 	if (plugin->name)
 		free(plugin->name);
 	free(plugin->buf_channels);

@@ -410,7 +410,7 @@ int route_dst_channels_mask(snd_pcm_plugin_t *plugin,
 	return 0;
 }
 
-static void route_free(snd_pcm_plugin_t *plugin, void* private_data ATTRIBUTE_UNUSED)
+static void route_free(snd_pcm_plugin_t *plugin)
 {
 	route_t *data = (route_t *)plugin->extra_data;
 	unsigned int dst_channel;

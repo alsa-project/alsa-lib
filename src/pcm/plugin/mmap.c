@@ -258,7 +258,7 @@ static int mmap_action(snd_pcm_plugin_t *plugin,
 	return 0;	/* silenty ignore other actions */
 }
 
-static void mmap_free(snd_pcm_plugin_t *plugin, void *private_data ATTRIBUTE_UNUSED)
+static void mmap_free(snd_pcm_plugin_t *plugin)
 {
 	struct mmap_private_data *data;
 
