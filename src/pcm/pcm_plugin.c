@@ -26,13 +26,61 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
+
 /*!
- * \page pcm_plugins PCM (digital audio) plugins
- * 
- * PCM plugins extends functionality and features of PCM devices.
- * The plugins take care about various sample conversions, sample
- * copying among channels and so on.
- */
+
+\page pcm_plugins PCM (digital audio) plugins
+
+PCM plugins extends functionality and features of PCM devices.
+The plugins take care about various sample conversions, sample
+copying among channels and so on.
+
+\section pcm_plugins_slave Slave definition
+
+The slave plugin can be specified directly with a string or the definition
+can be entered inside a compound configuration node. Some restrictions can
+be also specified (like static rate or count of channels).
+
+\code
+pcm_slave.NAME {
+	pcm STR		# PCM name
+	# or
+	pcm { }		# PCM definition
+	format STR	# Format or "unchanged"
+	channels INT	# Count of channels or "unchanged" string
+	rate INT	# Rate in Hz or "unchanged" string
+	period_time INT	# Period time in us or "unchanged" string
+	buffer_time INT # Buffer time in us or "unchanged" string
+}
+\endcode
+
+Example:
+
+\code
+pcm_slave.slave_rate44100Hz {
+	pcm "hw:0,0"
+	rate 44100
+}
+
+pcm.rate44100Hz {
+	type plug
+	slave slave_rate44100Hz
+}
+\endcode
+
+The equivalent configuration (in one compound):
+
+\code
+pcm.rate44100Hz {
+	type plug
+	slave {
+		pcm "hw:0,0"
+		rate 44100
+	}
+}
+\endcode
+
+*/
   
 #include <sys/shm.h>
 #include <limits.h>

@@ -1,5 +1,12 @@
+/**
+ * \file pcm/pcm_route.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Route & Volume Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
- *  PCM - Linear conversion
+ *  PCM - Route & Volume Plugin
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *
@@ -28,6 +35,8 @@
 /* entry for static linking */
 const char *_snd_module_pcm_route = "";
 #endif
+
+#ifndef DOC_HIDDEN
 
 /* The best possible hack to support missing optimization in gcc 2.7.2.3 */
 #if SND_PCM_PLUGIN_ROUTE_RESOLUTION & (SND_PCM_PLUGIN_ROUTE_RESOLUTION - 1) != 0
@@ -91,6 +100,7 @@ typedef struct {
 	snd_pcm_route_params_t params;
 } snd_pcm_route_t;
 
+#endif /* DOC_HIDDEN */
 
 static void snd_pcm_route_convert1_zero(const snd_pcm_channel_area_t *dst_area,
 					snd_pcm_uframes_t dst_offset,
@@ -102,6 +112,8 @@ static void snd_pcm_route_convert1_zero(const snd_pcm_channel_area_t *dst_area,
 {
 	snd_pcm_area_silence(dst_area, dst_offset, frames, params->dst_sfmt);
 }
+
+#ifndef DOC_HIDDEN
 
 static void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *dst_area,
 				       snd_pcm_uframes_t dst_offset,
@@ -381,6 +393,8 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 	}
 }
 
+#endif /* DOC_HIDDEN */
+
 static void snd_pcm_route_convert(const snd_pcm_channel_area_t *dst_areas,
 				  snd_pcm_uframes_t dst_offset,
 				  const snd_pcm_channel_area_t *src_areas,
@@ -646,7 +660,7 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(route->plug.slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_route_ops = {
+static snd_pcm_ops_t snd_pcm_route_ops = {
 	close: snd_pcm_route_close,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_route_hw_refine,
@@ -732,7 +746,23 @@ static int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t st
 	return 0;
 }
 
-
+/**
+ * \brief Creates a new Route & Volume PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param sformat Slave format
+ * \param schannels Slave channels
+ * \param ttable Attenuation table
+ * \param tt_ssize Attenuation table - slave size
+ * \param tt_cused Attenuation table - client used count
+ * \param tt_sused Attenuation table - slave used count
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_format_t sformat, int schannels,
 		       snd_pcm_route_ttable_entry_t *ttable,
@@ -779,6 +809,13 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
+/**
+ * \brief Determine route matrix sizes
+ * \param tt Configuration root describing route matrix
+ * \param tt_csize Returned client size in elements
+ * \param tt_ssize Returned slave size in elements
+ * \retval zero on success otherwise a negative error code
+ */
 int snd_pcm_route_determine_ttable(snd_config_t *tt,
 				   unsigned int *tt_csize,
 				   unsigned int *tt_ssize)
@@ -828,7 +865,17 @@ int snd_pcm_route_determine_ttable(snd_config_t *tt,
 	return 0;
 }
 
-/* this functions is used from pcm_plug.c */
+/**
+ * \brief Load route matrix
+ * \param tt Configuration root describing route matrix
+ * \param ttable Returned route matrix
+ * \param tt_csize Client size in elements
+ * \param tt_ssize Slave size in elements
+ * \param tt_cused Used client elements
+ * \param tt_sused Used slave elements
+ * \param schannels Slave channels
+ * \retval zero on success otherwise a negative error code
+ */
 int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
 			      unsigned int tt_csize, unsigned int tt_ssize,
 			      unsigned int *tt_cused, unsigned int *tt_sused,
@@ -892,6 +939,48 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_route Plugin: Route & Volume
+
+This plugin converts channels and applies volume during the conversion.
+The format and rate must match for both of them.
+
+\code
+pcm.name {
+        type route              # Route & Volume conversion PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+        }
+}
+\endcode
+
+\subsection pcm_plugins_route_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_route_open()
+  <LI>_snd_pcm_route_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new Route & Volume PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with Route & Volume PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)
@@ -981,4 +1070,6 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_route_open, SND_PCM_DLSYM_VERSION);
+#endif

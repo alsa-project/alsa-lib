@@ -575,7 +575,7 @@ static void snd_pcm_meter_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(meter->slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_meter_ops = {
+static snd_pcm_ops_t snd_pcm_meter_ops = {
 	close: snd_pcm_meter_close,
 	info: snd_pcm_meter_info,
 	hw_refine: snd_pcm_meter_hw_refine,
@@ -590,7 +590,7 @@ snd_pcm_ops_t snd_pcm_meter_ops = {
 	munmap: snd_pcm_meter_munmap,
 };
 
-snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
+static snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	status: snd_pcm_meter_status,
 	state: snd_pcm_meter_state,
 	delay: snd_pcm_meter_delay,
@@ -610,6 +610,18 @@ snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	mmap_commit: snd_pcm_meter_mmap_commit,
 };
 
+/**
+ * \brief Creates a new Meter PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param frequency Update frequency
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequency,
 		       snd_pcm_t *slave, int close_slave)
 {
@@ -730,6 +742,63 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 	return err >= 0 ? open_func(pcm, name, root, conf) : err;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_meter Plugin: Meter
+
+Show meter (visual waveform representation).
+
+\code
+pcm_scope_type.NAME {
+	[lib STR]		# Library file (default libasound.so)
+	[open STR]		# Open function (default _snd_pcm_scope_NAME_open)
+}
+
+pcm_scope.name {
+	type STR		# Scope type
+	...
+}
+
+pcm.name {
+        type meter              # Meter PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+        }
+	[frequency INT]		# Updates per second
+	scopes {
+		ID STR		# Scope name (see pcm_scope)
+		# or
+		ID { }		# Scope definition (see pcm_scope)
+	}
+}
+\endcode
+
+\subsection pcm_plugins_meter_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_meter_open()
+  <LI>_snd_pcm_meter_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new Meter PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with Meter PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)

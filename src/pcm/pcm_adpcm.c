@@ -1,5 +1,14 @@
+/**
+ * \file pcm/pcm_adpcm.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Ima-ADPCM Conversion Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Uros Bizjak <uros@kss-loka.si>
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 2000-2001
+ */
 /*
- *  PCM - Ima-ADPC conversion
+ *  PCM - Ima-ADPCM conversion
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *  Copyright (c) 1999 by Uros Bizjak <uros@kss-loka.si>
  *                        Jaroslav Kysela <perex@suse.cz>
@@ -56,6 +65,8 @@ IMA compatability project proceedings, Vol 2, Issue 2, May 1992.
 const char *_snd_module_pcm_adpcm = "";
 #endif
 
+#ifndef DOC_HIDDEN
+
 typedef void (*adpcm_f)(const snd_pcm_channel_area_t *dst_areas,
 			snd_pcm_uframes_t dst_offset,
 			const snd_pcm_channel_area_t *src_areas,
@@ -72,6 +83,8 @@ typedef struct {
 	snd_pcm_format_t sformat;
 	snd_pcm_adpcm_state_t *states;
 } snd_pcm_adpcm_t;
+
+#endif
 
 /* First table lookup for Ima-ADPCM quantizer */
 static char IndexAdjust[8] = { -1, -1, -1, -1, 2, 4, 6, 8 };
@@ -196,6 +209,8 @@ static int adpcm_decoder(unsigned char code, snd_pcm_adpcm_state_t * state)
 	return (state->pred_val);
 }
 
+#ifndef DOC_HIDDEN
+
 void snd_pcm_adpcm_decode(const snd_pcm_channel_area_t *dst_areas,
 			  snd_pcm_uframes_t dst_offset,
 			  const snd_pcm_channel_area_t *src_areas,
@@ -301,6 +316,8 @@ void snd_pcm_adpcm_encode(const snd_pcm_channel_area_t *dst_areas,
 		}
 	}
 }
+
+#endif
 
 static int snd_pcm_adpcm_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
@@ -495,7 +512,7 @@ static void snd_pcm_adpcm_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(adpcm->plug.slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_adpcm_ops = {
+static snd_pcm_ops_t snd_pcm_adpcm_ops = {
 	close: snd_pcm_plugin_close,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_adpcm_hw_refine,
@@ -510,6 +527,18 @@ snd_pcm_ops_t snd_pcm_adpcm_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
+/**
+ * \brief Creates a new Ima-ADPCM conversion PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param sformat Slave (destination) format
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -546,6 +575,49 @@ int snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_adpcm Plugin: Ima-ADPCM
+
+This plugin converts Ima-ADPCM samples to linear or linear to Mu-Law samples
+from master Ima-ADPCM conversion PCM to given slave PCM. The channel count,
+format and rate must match for both of them.
+
+\code
+pcm.name {
+        type adpcm              # Ima-ADPCM conversion PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+        }
+}
+\endcode
+
+\subsection pcm_plugins_adpcm_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_adpcm_open()
+  <LI>_snd_pcm_adpcm_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new Ima-ADPCM conversion PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with copy PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf, 
 			snd_pcm_stream_t stream, int mode)
@@ -592,4 +664,6 @@ int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_adpcm_open, SND_PCM_DLSYM_VERSION);
+#endif

@@ -1,3 +1,10 @@
+/**
+ * \file pcm/pcm_share.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Share Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
  *  PCM - Share
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -36,6 +43,8 @@
 /* entry for static linking */
 const char *_snd_module_pcm_share = "";
 #endif
+
+#ifndef DOC_HIDDEN
 
 static LIST_HEAD(snd_pcm_share_slaves);
 static pthread_mutex_t snd_pcm_share_slaves_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -105,6 +114,8 @@ typedef struct {
 	int client_socket;
 	int slave_socket;
 } snd_pcm_share_t;
+
+#endif /* DOC_HIDDEN */
 
 static void _snd_pcm_share_stop(snd_pcm_t *pcm, snd_pcm_state_t state);
 
@@ -1177,7 +1188,7 @@ static void snd_pcm_share_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(slave->pcm, out);
 }
 
-snd_pcm_ops_t snd_pcm_share_ops = {
+static snd_pcm_ops_t snd_pcm_share_ops = {
 	close: snd_pcm_share_close,
 	info: snd_pcm_share_info,
 	hw_refine: snd_pcm_share_hw_refine,
@@ -1192,7 +1203,7 @@ snd_pcm_ops_t snd_pcm_share_ops = {
 	munmap: snd_pcm_share_munmap,
 };
 
-snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
+static snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	status: snd_pcm_share_status,
 	state: snd_pcm_share_state,
 	delay: snd_pcm_share_delay,
@@ -1212,6 +1223,25 @@ snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	mmap_commit: snd_pcm_share_mmap_commit,
 };
 
+/**
+ * \brief Creates a new Share PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param sname Slave name
+ * \param sformat Slave format
+ * \param srate Slave rate
+ * \param schannels Slave channels
+ * \param speriod_time Slave period time
+ * \param sbuffer_time Slave buffer time
+ * \param channels Count of channels
+ * \param channels_map Map of channels
+ * \param stream Direction
+ * \param mode PCM mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 		       snd_pcm_format_t sformat, int srate,
 		       unsigned int schannels,
@@ -1383,6 +1413,50 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_share Plugin: Share
+
+This plugin allows sharing of multiple channels with more clients.
+
+\code
+pcm.name {
+        type share              # Share PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+        }
+	bindings {
+		N INT		# Slave channel INT for client channel N
+	}
+}
+\endcode
+
+\subsection pcm_plugins_share_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_share_open()
+  <LI>_snd_pcm_share_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new Share PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with Share PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
@@ -1502,4 +1576,6 @@ _free:
 		free((char *)sname);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_share_open, SND_PCM_DLSYM_VERSION);
+#endif

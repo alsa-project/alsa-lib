@@ -1,3 +1,10 @@
+/**
+ * \file pcm/pcm_file.c
+ * \ingroup PCM_Plugins
+ * \brief PCM File Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
  *  PCM - File plugin
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -28,6 +35,8 @@
 const char *_snd_module_pcm_file = "";
 #endif
 
+#ifndef DOC_HIDDEN
+
 typedef enum _snd_pcm_file_format {
 	SND_PCM_FILE_FORMAT_RAW
 } snd_pcm_file_format_t;
@@ -47,6 +56,8 @@ typedef struct {
 	snd_pcm_channel_area_t *wbuf_areas;
 	size_t buffer_bytes;
 } snd_pcm_file_t;
+
+#endif /* DOC_HIDDEN */
 
 static void snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 {
@@ -373,7 +384,7 @@ static void snd_pcm_file_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(file->slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_file_ops = {
+static snd_pcm_ops_t snd_pcm_file_ops = {
 	close: snd_pcm_file_close,
 	info: snd_pcm_file_info,
 	hw_refine: snd_pcm_file_hw_refine,
@@ -388,7 +399,7 @@ snd_pcm_ops_t snd_pcm_file_ops = {
 	munmap: snd_pcm_file_munmap,
 };
 
-snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
+static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	status: snd_pcm_file_status,
 	state: snd_pcm_file_state,
 	delay: snd_pcm_file_delay,
@@ -408,7 +419,23 @@ snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	mmap_commit: snd_pcm_file_mmap_commit,
 };
 
-int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int fd, const char *fmt, snd_pcm_t *slave, int close_slave)
+/**
+ * \brief Creates a new File PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param fname Filename (or NULL if file descriptor is available)
+ * \param fd File descriptor
+ * \param fmt File format ("raw" is supported only)
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
+int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
+		      const char *fname, int fd, const char *fmt,
+		      snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
@@ -461,6 +488,51 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name, const char *fname, int
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_file Plugin: File
+
+This plugin stores contents of a PCM stream to file.
+
+\code
+pcm.name {
+        type file               # File PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+        }
+	file STR		# Filename
+	or
+	file INT		# File descriptor number
+	[format STR]		# File format (only "raw" at the moment)
+}
+\endcode
+
+\subsection pcm_plugins_file_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_file_open()
+  <LI>_snd_pcm_file_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new File PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with File PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
@@ -526,4 +598,6 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_file_open, SND_PCM_DLSYM_VERSION);
+#endif

@@ -1,3 +1,10 @@
+/**
+ * \file pcm/pcm_multi.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Multi Streams to One Conversion Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
  *  PCM - Multi
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -31,6 +38,8 @@
 const char *_snd_module_pcm_multi = "";
 #endif
 
+#ifndef DOC_HIDDEN
+
 typedef struct {
 	snd_pcm_t *pcm;
 	unsigned int channels_count;
@@ -50,6 +59,8 @@ typedef struct {
 	unsigned int channels_count;
 	snd_pcm_multi_channel_t *channels;
 } snd_pcm_multi_t;
+
+#endif
 
 static int snd_pcm_multi_close(snd_pcm_t *pcm)
 {
@@ -557,7 +568,7 @@ static void snd_pcm_multi_dump(snd_pcm_t *pcm, snd_output_t *out)
 	}
 }
 
-snd_pcm_ops_t snd_pcm_multi_ops = {
+static snd_pcm_ops_t snd_pcm_multi_ops = {
 	close: snd_pcm_multi_close,
 	info: snd_pcm_multi_info,
 	hw_refine: snd_pcm_multi_hw_refine,
@@ -572,7 +583,7 @@ snd_pcm_ops_t snd_pcm_multi_ops = {
 	munmap: snd_pcm_multi_munmap,
 };
 
-snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
+static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	status: snd_pcm_multi_status,
 	state: snd_pcm_multi_state,
 	delay: snd_pcm_multi_delay,
@@ -592,6 +603,23 @@ snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	mmap_commit: snd_pcm_multi_mmap_commit,
 };
 
+/**
+ * \brief Creates a new Multi PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param slaves_count Count of slaves
+ * \param master_slave Master slave number
+ * \param slaves_pcm Array with slave PCMs
+ * \param schannels_count Array with slave channel counts
+ * \param channels_count Count of channels
+ * \param sidxs Array with channels indexes to slaves
+ * \param schannels Array with slave channels
+ * \param close_slaves When set, the slave PCM handle is closed
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		       unsigned int slaves_count, unsigned int master_slave,
 		       snd_pcm_t **slaves_pcm, unsigned int *schannels_count,
@@ -660,6 +688,57 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_multi Plugin: Multiple streams to One
+
+This plugin converts multiple streams to one.
+
+\code
+pcm.name {
+        type multi              # Multiple streams conversion PCM
+        slaves {		# Slaves definition
+		ID STR		# Slave PCM name
+		# or
+		ID {
+			pcm STR		# Slave PCM name
+			# or
+			pcm { } 	# Slave PCM definition
+			channels INT	# Slave channels
+		}
+        }
+	bindings {		# Bindings table
+		N {
+			slave STR	# Slave key
+			channel INT	# Slave channel
+		}
+	}
+	[master INT]		# Define the master slave
+}
+\endcode
+
+\subsection pcm_plugins_multi_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_multi_open()
+  <LI>_snd_pcm_multi_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new Multi PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with Multi PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			snd_config_t *root, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
@@ -874,4 +953,6 @@ _free:
 		free(channels_schannel);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_multi_open, SND_PCM_DLSYM_VERSION);
+#endif

@@ -1,4 +1,11 @@
 /*
+ * \file pcm/pcm_plug.c
+ * \ingroup PCM_Plugins
+ * \brief PCM Route & Volume Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
+/*
  *  PCM - Plug
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *
@@ -27,6 +34,8 @@
 const char *_snd_module_pcm_plug = "";
 #endif
 
+#ifndef DOC_HIDDEN
+
 enum snd_pcm_plug_route_policy {
 	PLUG_ROUTE_POLICY_NONE,
 	PLUG_ROUTE_POLICY_DEFAULT,
@@ -47,6 +56,8 @@ typedef struct {
 	int ttable_ok;
 	unsigned int tt_ssize, tt_cused, tt_sused;
 } snd_pcm_plug_t;
+
+#endif
 
 static int snd_pcm_plug_close(snd_pcm_t *pcm)
 {
@@ -864,7 +875,7 @@ static void snd_pcm_plug_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(plug->slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_plug_ops = {
+static snd_pcm_ops_t snd_pcm_plug_ops = {
 	close: snd_pcm_plug_close,
 	info: snd_pcm_plug_info,
 	hw_refine: snd_pcm_plug_hw_refine,
@@ -879,6 +890,18 @@ snd_pcm_ops_t snd_pcm_plug_ops = {
 	munmap: snd_pcm_plug_munmap,
 };
 
+/**
+ * \brief Creates a new Plug PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param sformat Slave (destination) format
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_plug_open(snd_pcm_t **pcmp,
 		      const char *name,
 		      snd_pcm_format_t sformat, int schannels, int srate,
@@ -923,8 +946,61 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	return 0;
 }
 
-#define MAX_CHANNELS 64
+/*! \page pcm_plugins
 
+\section pcm_plugins_plug Automatic conversion plugin
+
+This plugin converts channels, rate and format on request.
+
+\code
+pcm.name {
+        type plug               # Automatic conversion PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+		[format STR]	# Slave format (default nearest) or "unchanged"
+		[channels INT]	# Slave channels (default nearest) or "unchanged"
+		[rate INT]	# Slave rate (default nearest) or "unchanged"
+        }
+	route_policy STR	# route policy for automatic ttable generation
+				# STR can be 'default', 'average', 'copy', 'duplicate'
+				# average: result is average of input channels
+				# copy: only first channels are copied to destination
+				# duplicate: duplicate first set of channels
+				# default: copy policy, except for mono capture - sum
+	ttable {		# Transfer table (bidimensional compound of cchannels * schannels numbers)
+		CCHANNEL {
+			SCHANNEL REAL	# route value (0.0 - 1.0)
+		}
+	}
+}
+\endcode
+
+\subsection pcm_plugins_plug_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_plug_open()
+  <LI>_snd_pcm_plug_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new Plug PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with Plug PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
@@ -991,9 +1067,17 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 	if (tt) {
-		ttable = malloc(MAX_CHANNELS * MAX_CHANNELS * sizeof(*ttable));
-		err = snd_pcm_route_load_ttable(tt, ttable, MAX_CHANNELS, MAX_CHANNELS,
-						&cused, &sused, -1);
+		err = snd_pcm_route_determine_ttable(tt, &csize, &ssize);
+		if (err < 0) {
+			snd_config_delete(sconf);
+			return err;
+		}
+		ttable = malloc(csize * ssize * sizeof(*ttable));
+		if (ttable == NULL) {
+			snd_config_delete(sconf);
+			return err;
+		}
+		err = snd_pcm_route_load_ttable(tt, ttable, csize, ssize, &cused, &sused, -1);
 		if (err < 0) {
 			snd_config_delete(sconf);
 			return err;
@@ -1010,4 +1094,6 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_plug_open, SND_PCM_DLSYM_VERSION);
+#endif

@@ -1,3 +1,10 @@
+/**
+ * \file pcm/pcm_ladspa.c
+ * \ingroup PCM_Plugins
+ * \brief ALSA Plugin <-> LADSPA Plugin Interface
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 2001
+ */
 /*
  *  PCM - LADSPA integration plugin
  *  Copyright (c) 2001 by Jaroslav Kysela <perex@suse.cz>
@@ -31,6 +38,8 @@
 /* entry for static linking */
 const char *_snd_module_pcm_ladspa = "";
 #endif
+
+#ifndef DOC_HIDDEN
 
 #define NO_ASSIGN	0xffffffff
 
@@ -88,6 +97,8 @@ typedef struct {
 	snd_pcm_ladspa_plugin_io_t output;
 	struct list_head instances;
 } snd_pcm_ladspa_plugin_t;
+
+#endif /* DOC_HIDDEN */
 
 static int snd_pcm_ladspa_find_port(unsigned int *res,
 				    snd_pcm_ladspa_plugin_t *lplug,
@@ -684,7 +695,7 @@ static void snd_pcm_ladspa_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(ladspa->plug.slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_ladspa_ops = {
+static snd_pcm_ops_t snd_pcm_ladspa_ops = {
 	close: snd_pcm_ladspa_close,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_ladspa_hw_refine,
@@ -1095,6 +1106,18 @@ static int snd_pcm_ladspa_build_plugins(struct list_head *list,
 	return 0;
 }
 
+/**
+ * \brief Creates a new LADSPA<->ALSA Plugin
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param sformat Slave (destination) format
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 			const char *ladspa_path,
 			snd_config_t *ladspa_pplugins,
@@ -1154,6 +1177,70 @@ int snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_ladpsa Plugin: LADSPA <-> ALSA
+
+This plugin allows to apply a set of LADPSA plugins.
+The input and output format is always #SND_PCM_FORMAT_FLOAT (note: this type
+can be either little or big-endian depending on architecture).
+
+\code
+pcm.name {
+        type ladspa             # ALSA<->LADSPA PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+        }
+	path STR		# Path (directory) with LADSPA plugins
+	plugins |		# Definition for both directions
+        playback_plugins |	# Definition for playback direction
+	capture_plugins {	# Definition for capture direction
+		N {		# Configuration for LADPSA plugin N
+			id INT		# LADSPA plugin ID (for example 1043)
+			label STR	# LADSPA plugin label (for example 'delay_5s')
+			filename STR	# Full filename of .so library with LADSPA plugin code
+			policy STR	# Policy can be 'none' or 'duplicate'
+			input | output {
+				bindings {
+					C INT or STR	# C - channel, INT - audio port index, STR - audio port name
+				}
+				controls {
+					I INT or REAL	# I - control port index, INT or REAL - control value
+					# or
+					STR INT or REAL	# STR - control port name, INT or REAL - control value
+				}
+			}
+		}
+	}
+}
+\endcode
+
+\subsection pcm_plugins_ladspa_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_ladspa_open()
+  <LI>_snd_pcm_ladspa_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new LADSPA<->ALSA PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with LADSPA<->ALSA PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 			 snd_config_t *root, snd_config_t *conf, 
 			 snd_pcm_stream_t stream, int mode)
@@ -1218,4 +1305,6 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_ladspa_open, SND_PCM_DLSYM_VERSION);
+#endif

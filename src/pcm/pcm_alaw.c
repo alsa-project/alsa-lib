@@ -1,3 +1,10 @@
+/**
+ * \file pcm/pcm_alaw.c
+ * \ingroup PCM_Plugins
+ * \brief PCM A-Law Conversion Plugin Interface
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \date 2000-2001
+ */
 /*
  *  PCM - A-Law conversion
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
@@ -28,6 +35,8 @@
 const char *_snd_module_pcm_alaw = "";
 #endif
 
+#ifndef DOC_HIDDEN
+
 typedef void (*alaw_f)(const snd_pcm_channel_area_t *dst_areas,
 		       snd_pcm_uframes_t dst_offset,
 		       const snd_pcm_channel_area_t *src_areas,
@@ -42,6 +51,8 @@ typedef struct {
 	alaw_f func;
 	snd_pcm_format_t sformat;
 } snd_pcm_alaw_t;
+
+#endif
 
 static inline int val_seg(int val)
 {
@@ -126,6 +137,8 @@ static int alaw_to_s16(unsigned char a_val)
 	return ((a_val & 0x80) ? t : -t);
 }
 
+#ifndef DOC_HIDDEN
+
 void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *dst_areas,
 			 snd_pcm_uframes_t dst_offset,
 			 const snd_pcm_channel_area_t *src_areas,
@@ -200,6 +213,8 @@ void snd_pcm_alaw_encode(const snd_pcm_channel_area_t *dst_areas,
 		}
 	}
 }
+
+#endif /* DOC_HIDDEN */
 
 static int snd_pcm_alaw_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
@@ -369,7 +384,7 @@ static void snd_pcm_alaw_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(alaw->plug.slave, out);
 }
 
-snd_pcm_ops_t snd_pcm_alaw_ops = {
+static snd_pcm_ops_t snd_pcm_alaw_ops = {
 	close: snd_pcm_plugin_close,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_alaw_hw_refine,
@@ -384,6 +399,18 @@ snd_pcm_ops_t snd_pcm_alaw_ops = {
 	munmap: snd_pcm_plugin_munmap,
 };
 
+/**
+ * \brief Creates a new A-Law conversion PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param sformat Slave (destination) format
+ * \param slave Slave PCM handle
+ * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */           
 int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -419,6 +446,49 @@ int snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	return 0;
 }
 
+/*! \page pcm_plugins
+
+\section pcm_plugins_alaw Plugin: A-Law
+
+This plugin converts A-Law samples to linear or linear to A-Law samples
+from master A-Law conversion PCM to given slave PCM. The channel count,
+format and rate must match for both of them.
+
+\code
+pcm.name {
+        type alaw               # A-Law conversion PCM
+        slave STR               # Slave name
+        # or
+        slave {                 # Slave definition
+                pcm STR         # Slave PCM name
+                # or
+                pcm { }         # Slave PCM definition
+        }
+}
+\endcode
+
+\subsection pcm_plugins_alaw_funcref Function reference
+
+<UL>
+  <LI>snd_pcm_alaw_open()
+  <LI>_snd_pcm_alaw_open()
+</UL>
+
+*/
+
+/**
+ * \brief Creates a new A-Law conversion PCM
+ * \param pcmp Returns created PCM handle
+ * \param name Name of PCM
+ * \param root Root configuration node
+ * \param conf Configuration node with copy PCM description
+ * \param stream Stream type
+ * \param mode Stream mode
+ * \retval zero on success otherwise a negative error code
+ * \warning Using of this function might be dangerous in the sense
+ *          of compatibility reasons. The prototype might be freely
+ *          changed in future.
+ */
 int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
@@ -465,4 +535,6 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(spcm);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_alaw_open, SND_PCM_DLSYM_VERSION);
+#endif
