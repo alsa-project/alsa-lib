@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include "local.h"
 #include <asm/byteorder.h>
-#include <linux/ainstr_simple.h>
+#include <sound/ainstr_simple.h>
 
 int snd_instr_simple_free(snd_instr_simple_t *simple)
 {

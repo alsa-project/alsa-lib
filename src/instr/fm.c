@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include "local.h"
 #include <asm/byteorder.h>
-#include <linux/ainstr_fm.h>
+#include <sound/ainstr_fm.h>
 
 int snd_instr_fm_free(snd_instr_simple_t *fm)
 {

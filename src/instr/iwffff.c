@@ -25,7 +25,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include "local.h"
-#include <linux/ainstr_iw.h>
+#include <sound/ainstr_iw.h>
 
 /*
  *  defines
