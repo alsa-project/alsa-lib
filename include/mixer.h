@@ -5,6 +5,12 @@
  *                                                                          *
  ****************************************************************************/
 
+/**
+ *  \defgroup Mixer Mixer Interface
+ *  The mixer interface.
+ *  \{
+ */
+
 /** Mixer handle */
 typedef struct _snd_mixer snd_mixer_t;
 /** Mixer elements class handle */
@@ -74,6 +80,13 @@ int snd_mixer_class_unregister(snd_mixer_class_t *clss);
 #ifdef __cplusplus
 }
 #endif
+
+/**
+ *  \defgroup SimpleMixer Simple Mixer Interface
+ *  \ingroup Mixer
+ *  The simple mixer interface.
+ *  \{
+ */
 
 /* Simple (legacy) mixer elements API */
 
@@ -192,4 +205,7 @@ snd_mixer_elem_type_t snd_mixer_elem_get_type(const snd_mixer_elem_t *obj);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
+/** \} */
 

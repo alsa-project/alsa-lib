@@ -1,3 +1,8 @@
+/**
+ *  \defgroup Output Output Interface
+ *  Output Interface
+ *  \{
+ */
 
 /** Output handle */
 typedef struct _snd_output snd_output_t;
@@ -27,3 +32,6 @@ int snd_output_flush(snd_output_t *output);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
+

@@ -5,6 +5,12 @@
  *                                                                          *
  ****************************************************************************/
 
+/**
+ *  \defgroup RawMidi RawMidi Interface
+ *  The RawMidi Interface.
+ *  \{
+ */
+
 /** RawMidi information container */
 typedef struct _snd_rawmidi_info snd_rawmidi_info_t;
 /** RawMidi settings container */
@@ -114,4 +120,6 @@ snd_rawmidi_stream_t snd_rawmidi_stream(snd_rawmidi_t *rawmidi);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
 

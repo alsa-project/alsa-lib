@@ -5,6 +5,12 @@
  *                                                                          *
  ****************************************************************************/
 
+/**
+ *  \defgroup Instrument Instrument Interface
+ *  The Instrument Interface.
+ *  \{
+ */
+
 /* FM instrument support */
 
 typedef void snd_instr_fm_t;
@@ -58,3 +64,6 @@ int snd_instr_iwffff_free(snd_instr_iwffff_t *iwffff);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
+

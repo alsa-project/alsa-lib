@@ -1,3 +1,8 @@
+/**
+ *  \defgroup Config Configuration Interface
+ *  Configuration Interface
+ *  \{
+ */
 
 /** Config node type */
 typedef enum _snd_config_type {
@@ -74,4 +79,6 @@ int snd_config_update(void);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
 

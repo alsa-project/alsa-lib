@@ -1,3 +1,8 @@
+/**
+ *  \defgroup Input Input Interface
+ *  Input Interface
+ *  \{
+ */
 
 /** Input handle */
 typedef struct _snd_input snd_input_t;
@@ -26,3 +31,6 @@ int snd_input_ungetc(snd_input_t *input, int c);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
+

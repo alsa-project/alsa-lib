@@ -5,6 +5,12 @@
  *                                                                          *
  ****************************************************************************/
 
+/**
+ *  \defgroup Timer Timer Interface
+ *  Timer Interface
+ *  \{
+ */
+
 typedef struct sndrv_timer_id snd_timer_id_t;
 typedef struct sndrv_timer_select snd_timer_select_t;
 typedef struct sndrv_timer_info snd_timer_info_t;
@@ -61,4 +67,6 @@ ssize_t snd_timer_read(snd_timer_t *handle, void *buffer, size_t size);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
 

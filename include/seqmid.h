@@ -4,6 +4,13 @@
  *                                                                          *
  ****************************************************************************/
 
+/**
+ *  \defgroup SeqMiddle Sequencer Middle Level Interface
+ *  Sequencer Middle Level Interface
+ *  \ingroup Sequencer
+ *  \{
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -211,4 +218,6 @@ int snd_seq_reset_pool_input(snd_seq_t *seq);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
 

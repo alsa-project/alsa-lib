@@ -1,5 +1,7 @@
-/*
+/**
+ *  \defgroup Global Global defines
  *  Global defines
+ *  \{
  */
 
 #ifdef SNDRV_LITTLE_ENDIAN
@@ -13,3 +15,6 @@
 #define snd_enum_to_int(v) (v)
 #define snd_int_to_enum(v) (v)
 #define snd_enum_incr(v) (++(v))
+
+/** \} */
+

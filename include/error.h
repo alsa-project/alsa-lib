@@ -1,5 +1,7 @@
-/*
- *  error.h
+/**
+ *  \defgroup Error Error handling
+ *  Error handling
+ *  \{
  */
 
 #define SND_ERROR_BEGIN				500000
@@ -27,4 +29,6 @@ extern int snd_lib_error_set_handler(snd_lib_error_handler_t *handler);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
 

@@ -80,6 +80,7 @@ static void snd_lib_error_default(const char *file, int line, const char *functi
 }
 
 /**
+ * \ingroup Error
  * Pointer to the error handler function.
  */
 snd_lib_error_handler_t *snd_lib_error = snd_lib_error_default;

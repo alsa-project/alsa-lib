@@ -5,6 +5,12 @@
  *                                                                          *
  ****************************************************************************/
 
+/**
+ *  \defgroup Sequencer Sequencer Interface
+ *  Sequencer Interface
+ *  \{
+ */
+
 typedef sndrv_seq_tick_time_t snd_seq_tick_time_t;
 typedef sndrv_seq_position_t snd_seq_position_t;
 typedef sndrv_seq_frequency_t snd_seq_frequency_t;
@@ -398,4 +404,6 @@ int snd_seq_get_bit(int nr, void *array);
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
 

@@ -4,6 +4,13 @@
  *                                                                          *
  ****************************************************************************/
 
+/**
+ *  \defgroup MIDI_Event Sequencer event <-> MIDI byte stream coder
+ *  \ingroup Sequencer
+ *  Sequencer event <-> MIDI byte stream coder
+ *  \{
+ */
+
 typedef struct snd_midi_event snd_midi_event_t;
 
 #ifdef __cplusplus
@@ -25,4 +32,6 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 #ifdef __cplusplus
 }
 #endif
+
+/** \} */
 

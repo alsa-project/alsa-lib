@@ -1164,7 +1164,8 @@ int snd_config_search_alias(snd_config_t *config,
 /** File resident in home directory used for user specific ALSA configuration */
 #define USR_ASOUNDRC ".asoundrc"
 
-/** Config top node */
+/** \ingroup Config
+  * Config top node */
 snd_config_t *snd_config = NULL;
 
 /** 
