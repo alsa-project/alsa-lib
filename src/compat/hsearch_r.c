@@ -156,7 +156,7 @@ hsearch_r (item, action, retval, htab)
       hval += item.key[count];
     }
 
-  /* First hash function: simply take the modul but prevent zero. */
+  /* First hash function: simply take the modulo but prevent zero. */
   hval %= htab->size;
   if (hval == 0)
     ++hval;
@@ -185,7 +185,7 @@ hsearch_r (item, action, retval, htab)
       do
 	{
 	  /* Because SIZE is prime this guarantees to step through all
-             available indeces.  */
+             available indexes.  */
           if (idx <= hval2)
 	    idx = htab->size + idx - hval2;
 	  else

@@ -10,7 +10,7 @@
  *          The file format implemented here is called
  *          Standard MIDI Files, and is part of the Musical
  *          instrument Digital Interface specification.
- *          The spec is avaiable from:
+ *          The spec is available from:
  *
  *               International MIDI Association
  *               5316 West 57th Street
@@ -24,7 +24,7 @@
  *	(1) can now set the global variable Mf_interactive to 1 to prevent the
  *	    reading functions from looking for file and track headers
  *	(2) can now write system exclusive data with
- *		mf_write_midi_event(delta_time, system_exlusive, 0, data, size)
+ *		mf_write_midi_event(delta_time, system_exclusive, 0, data, size)
  *	(3) changed definition of 'sequencer_specific' in midifile.h to 0x7f
  *	(4) changed mf_write_tempo to take additional delta_time as first argument
  *	    (since delta need not be zero)
@@ -39,7 +39,7 @@
  *		because Mf_currtime does not really measure time at all, since
  *		its units change value at every tempo change.  Mf_realtime is
  *		the midi-time elapsed in units of 1/16 of a centisecond (but it
- *		does not handle smpte times)
+ *		does not handle SMPTE times)
  *	(9) maintains a history of tempo settings to update Mf_currtempo,
  *		to handle tempo tracks.
  *	(10) if there is an Mf_error function, the error routine no longer
@@ -777,7 +777,7 @@ biggermsg ()
 static int laststatus = 0;
 
 /*
- * mfwrite() - The only fuction you'll need to call to write out
+ * mfwrite() - The only function you'll need to call to write out
  *             a midi file.
  *
  * format      0 - Single multi-channel track
@@ -791,7 +791,7 @@ static int laststatus = 0;
  *             bits 14 through 0 represent the number of delta-time
  *             "ticks" which make up a quarter note.  If bit  15 of
  *             division  is  a one, delta-times in a file correspond to
- *             subdivisions of a second similiar to  SMPTE  and  MIDI
+ *             subdivisions of a second similar to  SMPTE  and  MIDI
  *             time code.  In  this format bits 14 through 8 contain
  *             one of four values - 24, -25, -29, or -30,
  *             corresponding  to  the  four standard  SMPTE and MIDI

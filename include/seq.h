@@ -81,7 +81,7 @@ typedef enum _snd_seq_type {
 /** known client numbers */
 #define SND_SEQ_CLIENT_SYSTEM		0	/**< system client */
 #define SND_SEQ_CLIENT_DUMMY		62	/**< dummy ports */
-#define SND_SEQ_CLIENT_OSS		63	/**< oss sequencer emulator */
+#define SND_SEQ_CLIENT_OSS		63	/**< OSS sequencer emulator */
 
 /*
  */
@@ -211,7 +211,7 @@ typedef struct _snd_seq_port_info snd_seq_port_info_t;
 
 /** known port numbers */
 #define SND_SEQ_PORT_SYSTEM_TIMER	0	/**< system timer port */
-#define SND_SEQ_PORT_SYSTEM_ANNOUNCE	1	/**< sysem announce port */
+#define SND_SEQ_PORT_SYSTEM_ANNOUNCE	1	/**< system announce port */
 
 /** port capabilities (32 bits) */
 #define SND_SEQ_PORT_CAP_READ		(1<<0)	/**< readable from this port */
@@ -550,7 +550,7 @@ int snd_seq_remove_events(snd_seq_t *handle, snd_seq_remove_events_t *info);
 
 /**
  *  \defgroup SeqMisc Sequencer Miscellaneous
- *  Sequencer Mescellaneous
+ *  Sequencer Miscellaneous
  *  \ingroup Sequencer
  *  \{
  */

@@ -1038,7 +1038,7 @@ int snd_mixer_selem_register(snd_mixer_t *mixer, void *options ATTRIBUTE_UNUSED,
 /**
  * \brief Find a mixer simple element
  * \param mixer Mixer handle
- * \param id Mixer simple element identificator
+ * \param id Mixer simple element identifier
  * \return mixer simple element handle or NULL if not found
  */
 snd_mixer_elem_t *snd_mixer_find_selem(snd_mixer_t *mixer,
@@ -1059,9 +1059,9 @@ snd_mixer_elem_t *snd_mixer_find_selem(snd_mixer_t *mixer,
 }
 
 /**
- * \brief Get mixer simple element identificator
+ * \brief Get mixer simple element identifier
  * \param elem Mixer simple element handle
- * \param id returned mixer simple element identificator
+ * \param id returned mixer simple element identifier
  */
 void snd_mixer_selem_get_id(snd_mixer_elem_t *elem,
 			    snd_mixer_selem_id_t *id)
@@ -1074,9 +1074,9 @@ void snd_mixer_selem_get_id(snd_mixer_elem_t *elem,
 }
 
 /**
- * \brief Get name part of mixer simple element identificator
+ * \brief Get name part of mixer simple element identifier
  * \param elem Mixer simple element handle
- * \return name part of simple element identificator
+ * \return name part of simple element identifier
  */
 const char *snd_mixer_selem_get_name(snd_mixer_elem_t *elem)
 {
@@ -1088,9 +1088,9 @@ const char *snd_mixer_selem_get_name(snd_mixer_elem_t *elem)
 }
 
 /**
- * \brief Get index part of mixer simple element identificator
+ * \brief Get index part of mixer simple element identifier
  * \param elem Mixer simple element handle
- * \return index part of simple element identificator
+ * \return index part of simple element identifier
  */
 unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t *elem)
 {
@@ -1199,7 +1199,7 @@ static int _snd_mixer_selem_set_switch_all(snd_mixer_elem_t *elem, int dir, int 
 
 /**
  * \brief Return name of mixer simple element channel
- * \param channel mixer simple element channel identificator
+ * \param channel mixer simple element channel identifier
  * \return channel name
  */
 const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
@@ -1255,7 +1255,7 @@ int snd_mixer_selem_is_playback_mono(snd_mixer_elem_t *elem)
 /**
  * \brief Get info about channels of playback stream of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel Mixer simple element channel identificator
+ * \param channel Mixer simple element channel identifier
  * \return 0 if channel is not present, 1 if present
  */
 int snd_mixer_selem_has_playback_channel(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel)
@@ -1362,7 +1362,7 @@ int snd_mixer_selem_has_playback_switch_joined(snd_mixer_elem_t *elem)
 /**
  * \brief Return value of playback volume control of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel mixer simple element channel identificator
+ * \param channel mixer simple element channel identifier
  * \param value pointer to returned value
  * \return 0 on success otherwise a negative error code
  */
@@ -1383,7 +1383,7 @@ int snd_mixer_selem_get_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_
 /**
  * \brief Return value of playback switch control of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel mixer simple element channel identificator
+ * \param channel mixer simple element channel identifier
  * \param value pointer to returned value
  * \return 0 on success otherwise a negative error code
  */
@@ -1404,7 +1404,7 @@ int snd_mixer_selem_get_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_
 /**
  * \brief Set value of playback volume control of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel mixer simple element channel identificator
+ * \param channel mixer simple element channel identifier
  * \param value control value
  * \return 0 on success otherwise a negative error code
  */
@@ -1449,7 +1449,7 @@ int snd_mixer_selem_set_playback_volume_all(snd_mixer_elem_t *elem, long value)
 /**
  * \brief Set value of playback switch control of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel mixer simple element channel identificator
+ * \param channel mixer simple element channel identifier
  * \param value control value
  * \return 0 on success otherwise a negative error code
  */
@@ -1508,7 +1508,7 @@ int snd_mixer_selem_is_capture_mono(snd_mixer_elem_t *elem)
 /**
  * \brief Get info about channels of capture stream of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel Mixer simple element channel identificator
+ * \param channel Mixer simple element channel identifier
  * \return 0 if channel is not present, 1 if present
  */
 int snd_mixer_selem_has_capture_channel(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel)
@@ -1644,7 +1644,7 @@ int snd_mixer_selem_get_capture_group(snd_mixer_elem_t *elem)
 /**
  * \brief Return value of capture volume control of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel mixer simple element channel identificator
+ * \param channel mixer simple element channel identifier
  * \param value pointer to returned value
  * \return 0 on success otherwise a negative error code
  */
@@ -1665,7 +1665,7 @@ int snd_mixer_selem_get_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_c
 /**
  * \brief Return value of capture switch control of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel mixer simple element channel identificator
+ * \param channel mixer simple element channel identifier
  * \param value pointer to returned value
  * \return 0 on success otherwise a negative error code
  */
@@ -1686,7 +1686,7 @@ int snd_mixer_selem_get_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_c
 /**
  * \brief Set value of capture volume control of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel mixer simple element channel identificator
+ * \param channel mixer simple element channel identifier
  * \param value control value
  * \return 0 on success otherwise a negative error code
  */
@@ -1731,7 +1731,7 @@ int snd_mixer_selem_set_capture_volume_all(snd_mixer_elem_t *elem, long value)
 /**
  * \brief Set value of capture switch control of a mixer simple element
  * \param elem Mixer simple element handle
- * \param channel mixer simple element channel identificator
+ * \param channel mixer simple element channel identifier
  * \param value control value
  * \return 0 on success otherwise a negative error code
  */
@@ -1817,8 +1817,8 @@ void snd_mixer_selem_id_copy(snd_mixer_selem_id_t *dst, const snd_mixer_selem_id
 }
 
 /**
- * \brief Get name part of a mixer simple element identificator
- * \param obj Mixer simple element identificator
+ * \brief Get name part of a mixer simple element identifier
+ * \param obj Mixer simple element identifier
  * \return name part
  */
 const char *snd_mixer_selem_id_get_name(const snd_mixer_selem_id_t *obj)
@@ -1828,8 +1828,8 @@ const char *snd_mixer_selem_id_get_name(const snd_mixer_selem_id_t *obj)
 }
 
 /**
- * \brief Get index part of a mixer simple element identificator
- * \param obj Mixer simple element identificator
+ * \brief Get index part of a mixer simple element identifier
+ * \param obj Mixer simple element identifier
  * \return index part
  */
 unsigned int snd_mixer_selem_id_get_index(const snd_mixer_selem_id_t *obj)
@@ -1839,8 +1839,8 @@ unsigned int snd_mixer_selem_id_get_index(const snd_mixer_selem_id_t *obj)
 }
 
 /**
- * \brief Set name part of a mixer simple element identificator
- * \param obj Mixer simple element identificator
+ * \brief Set name part of a mixer simple element identifier
+ * \param obj Mixer simple element identifier
  * \param val name part
  */
 void snd_mixer_selem_id_set_name(snd_mixer_selem_id_t *obj, const char *val)
@@ -1850,8 +1850,8 @@ void snd_mixer_selem_id_set_name(snd_mixer_selem_id_t *obj, const char *val)
 }
 
 /**
- * \brief Set index part of a mixer simple element identificator
- * \param obj Mixer simple element identificator
+ * \brief Set index part of a mixer simple element identifier
+ * \param obj Mixer simple element identifier
  * \param val index part
  */
 void snd_mixer_selem_id_set_index(snd_mixer_selem_id_t *obj, unsigned int val)

@@ -66,7 +66,7 @@ b
 
 The ASCII characters representing whitespace can occur within literal
 strings, int which case they are protected from the normal parsing process
-(tey remain as part of the string). For example:
+(they remain as part of the string). For example:
 
 \code
   name "John Smith"
@@ -129,7 +129,7 @@ a {
 
 \subsection conf_brackets Brackets
 
-Open and close brackets indicate single array definition. The identificators
+Open and close brackets indicate single array definition. The identifiers
 are automatically generated starting with zero.
 
 \code
@@ -310,9 +310,9 @@ and default value is specified in the compound:
 }
 \endcode
 
-\section confarg_refer Refering argument
+\section confarg_refer Referring argument
 
-Arguments are refered by dollar-sign ($) and name of argument:
+Arguments are referred by dollar-sign ($) and name of argument:
 
 \code
   card $CARD
@@ -361,7 +361,7 @@ pcm.demo {
 <P>The ALSA library accepts the runtime modification of configuration.
 The several build-in functions are available.</P>
 
-<P>The function is refered using id @func and function name. All other
+<P>The function is referred using id @func and function name. All other
 values in the current compound are used as configuration for the function.
 If compound func.<function_name> is defined in the root leafs, then library
 and function from this compound configuration is used, otherwise the prefix
@@ -404,8 +404,8 @@ compound node.</P>
   <LI>The function load - snd_config_hook_load() - loads and parses the given
       configuration files.
   <LI>The function load_for_all_cards - snd_config_hook_load_for_all_cards() -
-      loads and parses the given configuration files for all installed soundcards.
-      The driver name (type of soundcard) is passed in the private configuration
+      loads and parses the given configuration files for all installed sound-cards.
+      The driver name (type of sound-card) is passed in the private configuration
       node.
 </UL>
 
@@ -2537,11 +2537,11 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 		}
 	}
 	if ((err = snd_config_search(config, "files", &n)) < 0) {
-		SNDERR("Unable to find field files in the preload section");
+		SNDERR("Unable to find field files in the pre-load section");
 		return -EINVAL;
 	}
 	if ((err = snd_config_expand(n, root, NULL, private_data, &n)) < 0) {
-		SNDERR("Unable to expand filenames in the preload section");
+		SNDERR("Unable to expand filenames in the pre-load section");
 		return err;
 	}
 	if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {

@@ -53,10 +53,10 @@ typedef struct snd_aes_iec958 {
 /** CTL card info container */
 typedef struct _snd_ctl_card_info snd_ctl_card_info_t;
 
-/** CTL element identificator container */
+/** CTL element identifier container */
 typedef struct _snd_ctl_elem_id snd_ctl_elem_id_t;
 
-/** CTL element identificator list container */
+/** CTL element identifier list container */
 typedef struct _snd_ctl_elem_list snd_ctl_elem_list_t;
 
 /** CTL element info container */
@@ -396,9 +396,9 @@ void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec9
 void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec958_t *ptr);
 
 /**
- *  \defgroup HControl Highlevel Control Interface
+ *  \defgroup HControl High level Control Interface
  *  \ingroup Control
- *  The highlevel control interface.
+ *  The high level control interface.
  *  See \ref hcontrol page for more details.
  *  \{
  */

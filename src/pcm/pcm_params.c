@@ -971,7 +971,7 @@ int snd_pcm_hw_param_never_eq(const snd_pcm_hw_params_t *params,
 
 
 /* Choose one configuration from configuration space defined by PARAMS
-   The configuration choosen is that obtained fixing in this order:
+   The configuration chosen is that obtained fixing in this order:
    first access
    first format
    first subformat
@@ -2017,7 +2017,7 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		return err;
 	err = sprepare(pcm, &sparams);
 	if (err < 0) {
-		SNDERR("Slave PCM not useable");
+		SNDERR("Slave PCM not usable");
 		return err;
 	}
 #ifdef RULES_DEBUG
@@ -2148,7 +2148,7 @@ int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 /* Install one of the configurations present in configuration
    space defined by PARAMS.
-   The configuration choosen is that obtained fixing in this order:
+   The configuration chosen is that obtained fixing in this order:
    first access
    first format
    first subformat

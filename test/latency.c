@@ -3,7 +3,7 @@
  *
  *     Author: Jaroslav Kysela <perex@suse.cz>
  *
- *     Author of bandpass filtersweep effect:
+ *     Author of bandpass filter sweep effect:
  *	       Maarten de Boer <mdeboer@iua.upf.es>
  *
  *  This small demo program can be used for measuring latency between
@@ -383,7 +383,7 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 #define FILTERSWEEP_LFO_FREQ 0.2
 #define FILTER_BANDWIDTH 50
 
-/* filter sweep variables */
+/* filter the sweep variables */
 float lfo,dlfo,fs,fc,BW,C,D,a0,a1,a2,b1,b2,*x[3],*y[3];
 
 void applyeffect(char* buffer,int r)
@@ -439,7 +439,7 @@ Usage: latency [OPTION]... [FILE]...
 -b,--block     block mode
 -t,--time      maximal tick time in us
 -p,--poll      use poll (wait for event - reduces CPU usage)
--e,--effect    apply an effect (bandpass filtersweep)
+-e,--effect    apply an effect (bandpass filter sweep)
 ");
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++(unsigned long) k) {
@@ -449,7 +449,7 @@ Usage: latency [OPTION]... [FILE]...
         }
         printf("\n\n");
         printf("\
-Tip #1 (useable latency with large periods, non-blocking mode, good CPU usage,
+Tip #1 (usable latency with large periods, non-blocking mode, good CPU usage,
         superb xrun prevention):
   latency -m 8192 -M 8192 -t 1 -p
 Tip #2 (superb latency, non-blocking mode, but heavy CPU usage):
@@ -576,7 +576,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	/* initialize filter sweep variables */
+	/* initialize the filter sweep variables */
 	if (effect) {
 		fs = (float) rate;
 		BW = FILTER_BANDWIDTH;

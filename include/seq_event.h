@@ -90,7 +90,7 @@ enum snd_seq_event_type {
 	SND_SEQ_EVENT_STOP,
 	/** Set tick queue position; event data type = #snd_seq_ev_queue_control_t */
 	SND_SEQ_EVENT_SETPOS_TICK,
-	/** Set realtime queue position; event data type = #snd_seq_ev_queue_control_t */
+	/** Set real-time queue position; event data type = #snd_seq_ev_queue_control_t */
 	SND_SEQ_EVENT_SETPOS_TIME,
 	/** (SMF) Tempo event; event data type = #snd_seq_ev_queue_control_t */
 	SND_SEQ_EVENT_TEMPO,

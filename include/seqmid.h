@@ -91,7 +91,7 @@ extern "C" {
  * \param ev event instance
  * \param q queue id to schedule
  * \param relative relative time-stamp if non-zero
- * \param ttick tick time-stap to be delivered
+ * \param ttick tick time-stamp to be delivered
  */
 #define snd_seq_ev_schedule_tick(ev, q, relative, ttick) \
 	((ev)->flags &= ~(SND_SEQ_TIME_STAMP_MASK | SND_SEQ_TIME_MODE_MASK),\
@@ -177,7 +177,7 @@ extern "C" {
 /**
  * \brief set the start queue event
  * \param ev event record
- * \param q queud id to start
+ * \param q queue id to start
  */
 #define snd_seq_ev_set_queue_start(ev, q) \
 	snd_seq_ev_set_queue_control(ev, SND_SEQ_EVENT_START, q, 0)
@@ -185,7 +185,7 @@ extern "C" {
 /**
  * \brief set the stop queue event
  * \param ev event record
- * \param q queud id to stop
+ * \param q queue id to stop
  */
 #define snd_seq_ev_set_queue_stop(ev, q) \
 	snd_seq_ev_set_queue_control(ev, SND_SEQ_EVENT_STOP, q, 0)
@@ -193,7 +193,7 @@ extern "C" {
 /**
  * \brief set the stop queue event
  * \param ev event record
- * \param q queud id to continue
+ * \param q queue id to continue
  */
 #define snd_seq_ev_set_queue_continue(ev, q) \
 	snd_seq_ev_set_queue_control(ev, SND_SEQ_EVENT_CONTINUE, q, 0)
@@ -201,7 +201,7 @@ extern "C" {
 /**
  * \brief set the stop queue event
  * \param ev event record
- * \param q queud id to change tempo
+ * \param q queue id to change tempo
  * \param val the new tempo value
  */
 #define snd_seq_ev_set_queue_tempo(ev, q, val) \
@@ -210,7 +210,7 @@ extern "C" {
 /**
  * \brief set the real-time position of a queue
  * \param ev event record
- * \param q queud id to change tempo
+ * \param q queue id to change tempo
  * \param rtime the new real-time pointer
  */
 #define snd_seq_ev_set_queue_pos_real(ev, q, rtime) \
@@ -222,7 +222,7 @@ extern "C" {
 /**
  * \brief set the tick-time position of a queue
  * \param ev event record
- * \param q queud id to change tempo
+ * \param q queue id to change tempo
  * \param ttime the new tick-time
  */
 #define snd_seq_ev_set_queue_pos_tick(ev, q, ttime) \
@@ -392,7 +392,7 @@ int snd_seq_reset_pool_input(snd_seq_t *seq);
 	 (ev)->data.control.value = (val))
 
 /**
- * \brief set pitchbend event
+ * \brief set pitch-bend event
  * \param ev event record
  * \param ch channel number
  * \param val pitch bend; zero centered from -8192 to 8191

@@ -10,7 +10,7 @@
  * See \ref hcontrol page for more details.
  */
 /*
- *  Control Interface - highlevel API
+ *  Control Interface - high level API
  *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
  *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
  *
@@ -497,7 +497,7 @@ snd_hctl_elem_t *snd_hctl_elem_prev(snd_hctl_elem_t *elem)
 /**
  * \brief Search an HCTL element
  * \param hctl HCTL handle
- * \param id Element identificator
+ * \param id Element identifier
  * \return pointer to found HCTL element or NULL if it does not exists
  */
 snd_hctl_elem_t *snd_hctl_find_elem(snd_hctl_t *hctl, const snd_ctl_elem_id_t *id)
@@ -764,9 +764,9 @@ snd_hctl_t *snd_hctl_elem_get_hctl(snd_hctl_elem_t *elem)
 }
 
 /**
- * \brief Get CTL element identificator of a CTL element id/value
+ * \brief Get CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \param ptr Pointer to returned CTL element identificator
+ * \param ptr Pointer to returned CTL element identifier
  */
 void snd_hctl_elem_get_id(const snd_hctl_elem_t *obj, snd_ctl_elem_id_t *ptr)
 {
@@ -775,9 +775,9 @@ void snd_hctl_elem_get_id(const snd_hctl_elem_t *obj, snd_ctl_elem_id_t *ptr)
 }
 
 /**
- * \brief Get element numeric identificator of a CTL element id/value
+ * \brief Get element numeric identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return element numeric identificator
+ * \return element numeric identifier
  */
 unsigned int snd_hctl_elem_get_numid(const snd_hctl_elem_t *obj)
 {
@@ -786,9 +786,9 @@ unsigned int snd_hctl_elem_get_numid(const snd_hctl_elem_t *obj)
 }
 
 /**
- * \brief Get interface part of CTL element identificator of a CTL element id/value
+ * \brief Get interface part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return interface part of element identificator
+ * \return interface part of element identifier
  */
 snd_ctl_elem_iface_t snd_hctl_elem_get_interface(const snd_hctl_elem_t *obj)
 {
@@ -797,9 +797,9 @@ snd_ctl_elem_iface_t snd_hctl_elem_get_interface(const snd_hctl_elem_t *obj)
 }
 
 /**
- * \brief Get device part of CTL element identificator of a CTL element id/value
+ * \brief Get device part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return device part of element identificator
+ * \return device part of element identifier
  */
 unsigned int snd_hctl_elem_get_device(const snd_hctl_elem_t *obj)
 {
@@ -808,9 +808,9 @@ unsigned int snd_hctl_elem_get_device(const snd_hctl_elem_t *obj)
 }
 
 /**
- * \brief Get subdevice part of CTL element identificator of a CTL element id/value
+ * \brief Get subdevice part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return subdevice part of element identificator
+ * \return subdevice part of element identifier
  */
 unsigned int snd_hctl_elem_get_subdevice(const snd_hctl_elem_t *obj)
 {
@@ -819,9 +819,9 @@ unsigned int snd_hctl_elem_get_subdevice(const snd_hctl_elem_t *obj)
 }
 
 /**
- * \brief Get name part of CTL element identificator of a CTL element id/value
+ * \brief Get name part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return name part of element identificator
+ * \return name part of element identifier
  */
 const char *snd_hctl_elem_get_name(const snd_hctl_elem_t *obj)
 {
@@ -830,9 +830,9 @@ const char *snd_hctl_elem_get_name(const snd_hctl_elem_t *obj)
 }
 
 /**
- * \brief Get index part of CTL element identificator of a CTL element id/value
+ * \brief Get index part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return index part of element identificator
+ * \return index part of element identifier
  */
 unsigned int snd_hctl_elem_get_index(const snd_hctl_elem_t *obj)
 {

@@ -146,12 +146,12 @@ static snd_pcm_sframes_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm,
  * \return a positive number of frames actually written otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
- * \retval -EPIPE an underrun occured
- * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ * \retval -EPIPE an underrun occurred
+ * \retval -ESTRPIPE a suspend event occurred (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour is selected, then routine waits until
  * all requested bytes are played or put to the playback ring buffer.
- * The count of bytes can be less only if a signal or underrun occured.
+ * The count of bytes can be less only if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */
@@ -171,12 +171,12 @@ snd_pcm_sframes_t snd_pcm_mmap_writei(snd_pcm_t *pcm, const void *buffer, snd_pc
  * \return a positive number of frames actually written otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
- * \retval -EPIPE an underrun occured
- * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ * \retval -EPIPE an underrun occurred
+ * \retval -ESTRPIPE a suspend event occurred (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour is selected, then routine waits until
  * all requested bytes are played or put to the playback ring buffer.
- * The count of bytes can be less only if a signal or underrun occured.
+ * The count of bytes can be less only if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */
@@ -196,12 +196,12 @@ snd_pcm_sframes_t snd_pcm_mmap_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_ufram
  * \return a positive number of frames actually read otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
- * \retval -EPIPE an overrun occured
- * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ * \retval -EPIPE an overrun occurred
+ * \retval -ESTRPIPE a suspend event occurred (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour was selected, then routine waits until
  * all requested bytes are filled. The count of bytes can be less only
- * if a signal or underrun occured.
+ * if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */
@@ -221,12 +221,12 @@ snd_pcm_sframes_t snd_pcm_mmap_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_ufram
  * \return a positive number of frames actually read otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
- * \retval -EPIPE an overrun occured
- * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ * \retval -EPIPE an overrun occurred
+ * \retval -ESTRPIPE a suspend event occurred (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour was selected, then routine waits until
  * all requested bytes are filled. The count of bytes can be less only
- * if a signal or underrun occured.
+ * if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */

@@ -401,7 +401,7 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 This plugin discards contents of a PCM stream or creates a stream with zero
 samples.
 
-Note: This implementation uses devices /dev/null (playback, must be writeable)
+Note: This implementation uses devices /dev/null (playback, must be writable)
 and /dev/full (capture, must be readable).
 
 \code

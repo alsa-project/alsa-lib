@@ -282,7 +282,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 		case SND_CTL_ELEM_TYPE_IEC958:
 			break;
 		default:
-			SNDERR("Unknow control type: %d", type);
+			SNDERR("Unknown control type: %d", type);
 			return -EINVAL;
 		}
 	}

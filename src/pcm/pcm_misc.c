@@ -444,7 +444,7 @@ u_int8_t snd_pcm_format_silence(snd_pcm_format_t format)
 }
 
 /**
- * \brief Silence a PCM samples buufer
+ * \brief Silence a PCM samples buffer
  * \param format Sample format
  * \param data Buffer
  * \return samples Samples count
@@ -516,7 +516,7 @@ static int linear_formats[4*2*2] = {
  * \brief Compose a PCM sample linear format
  * \param width Nominal bits per sample
  * \param unsignd Sign: 0 signed, 1 unsigned
- * \return big_endian Endianness: 0 little endian, 1 big endian
+ * \return big_endian Endian: 0 little endian, 1 big endian
  */
 snd_pcm_format_t snd_pcm_build_linear_format(int width, int unsignd, int big_endian)
 {

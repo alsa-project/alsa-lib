@@ -67,21 +67,21 @@ representation via digital to analog converters (DAC).</P>
 specific time. One frame might contain one sample (when only one converter is
 used - mono) or more samples (for example: stereo has signals from two converters
 recorded at same time). Digital audio stream contains collection of frames
-recorded at boundaries of continous time periods.</P>
+recorded at boundaries of continuous time periods.</P>
 
 \section pcm_general_overview General overview
 
 ALSA uses the ring buffer to store outgoing (playback) and incoming (capture,
-record) samples. There are two pointers being mantained to allow
+record) samples. There are two pointers being maintained to allow
 a precise communication between application and device pointing to current
 processed sample by hardware and last processed sample by application.
 The modern audio chips allow to program the transfer time periods.
 It means that the stream of samples is divided to small chunks. Device
 acknowledges to application when the transfer of a chunk is complete.
 
-\section pcm_transfer Transfer methods in unix environments
+\section pcm_transfer Transfer methods in UNIX environments
 
-In the unix environment, data chunk acknowledges are received via standard I/O
+In the UNIX environment, data chunk acknowledges are received via standard I/O
 calls or event waiting routines (poll or select function). To accomplish
 this list, the asynchronous notification of acknowledges should be listed
 here. The ALSA implementation for these methods is described in
@@ -205,7 +205,7 @@ to leave this state.
 The full list of formats present the \link ::snd_pcm_format_t \endlink type.
 The 24-bit linear samples uses 32-bit physical space, but the sample is
 stored in low three bits. Some hardware does not support processing of full
-range, thus you may get the significative bits for linear samples via
+range, thus you may get the significant bits for linear samples via
 \link ::snd_pcm_hw_params_get_sbits \endlink function. The example: ICE1712
 chips support 32-bit sample processing, but low byte is ignored (playback)
 or zero (capture). The function \link ::snd_pcm_hw_params_get_sbits() \endlink
@@ -231,7 +231,7 @@ interleaved transfers: \link ::snd_pcm_writei \endlink,
 these functions: \link ::snd_pcm_writen \endlink and \link ::snd_pcm_readn
 \endlink.
 
-\subsection alsa_mmap_rw Direct Read / Write transfer (via mmaped areas)
+\subsection alsa_mmap_rw Direct Read / Write transfer (via mmap'ed areas)
 
 There are two functions for this kind of transfer. Application can get an
 access to memory areas via \link ::snd_pcm_mmap_begin \endlink function.
@@ -257,7 +257,7 @@ and \link ::snd_pcm_writen() \endlink functions.
 The ALSA PCM device uses two groups of PCM related parameters. The hardware
 parameters contains the stream description like format, rate, count of
 channels, ring buffer size etc. The software parameters contains the
-software (driver) related parameters. The communicatino behaviour can be
+software (driver) related parameters. The communication behaviour can be
 controlled via these parameters, like automatic start, automatic stop,
 interrupting (chunk acknowledge) etc. The software parameters can be
 modified at any time (when valid hardware parameters are set). It includes
@@ -345,7 +345,7 @@ the filled (used) samples in ring buffer.
 \par Silence threshold
 
 The silence threshold specifies count of samples filled with silence
-ahead of the current application pointer for playback. It is useable
+ahead of the current application pointer for playback. It is usable
 for applications when an overrun is possible (like tasks depending on
 network I/O etc.). If application wants to manage the ahead samples itself,
 the \link ::snd_pcm_rewind() \endlink function allows to forget the last
@@ -360,7 +360,7 @@ These parameters can be obtained: the current stream state -
 update \link ::snd_pcm_status_get_tstamp \endlink, delay in samples -
 \link ::snd_pcm_status_get_delay \endlink, available count in samples -
 \link ::snd_pcm_status_get_avail \endlink, maximum available samples -
-\link ::snd_pcm_status_get_avail_max \endlink, ADC overrange count in
+\link ::snd_pcm_status_get_avail_max \endlink, ADC over-range count in
 samples - \link ::snd_pcm_status_get_overrange \endlink. The last two
 parameters - avail_max and overrange are reset to zero after the status
 call.
@@ -368,7 +368,7 @@ call.
 \subsection pcm_status_fast Obtaining fast device status
 
 The function \link ::snd_pcm_avail_update \endlink updates the current
-available count of samples for writting (playback) or filled samples for
+available count of samples for writing (playback) or filled samples for
 reading (capture).
 <p>
 The function \link ::snd_pcm_delay \endlink returns the delay in samples.
@@ -388,11 +388,11 @@ if successfully finishes, otherwise the state \link ::SND_PCM_STATE_OPEN
 
 \par snd_pcm_prepare
 The \link ::snd_pcm_prepare \endlink function enters the
-\link ::SND_PCM_STATE_PREPARED \endlink after a successfull finish.
+\link ::SND_PCM_STATE_PREPARED \endlink after a successful finish.
 
 \par snd_pcm_start
 The \link ::snd_pcm_start \endlink function enters
-the \link ::SND_PCM_STATE_RUNNING \endlink after a successfull finish.
+the \link ::SND_PCM_STATE_RUNNING \endlink after a successful finish.
 
 \par snd_pcm_drop
 The \link ::snd_pcm_drop \endlink function enters the
@@ -428,9 +428,9 @@ case, the linking means that all operations are synchronized. Because the
 drivers cannot guarantee the synchronization (sample resolution) on hardware
 lacking this feature, the \link ::snd_pcm_info_get_sync \endlink function
 returns synchronization ID - \link ::snd_pcm_sync_id_t \endlink, which is equal
-for hardware synchronizated streams. When the \link ::snd_pcm_link \endlink
+for hardware synchronized streams. When the \link ::snd_pcm_link \endlink
 function is called, all operations managing the stream state for these two
-streams are joined. The oposite function is \link ::snd_pcm_unlink \endlink.
+streams are joined. The opposite function is \link ::snd_pcm_unlink \endlink.
 
 \section pcm_dev_names PCM naming conventions
 
@@ -506,7 +506,7 @@ plug:SLAVE=hw
 \subsection pcm_dev_names_shm Shared memory device
 
 The shm device uses the shm plugin. The two arguments (in order: SOCKET,PCM) specify
-unix socket name (for example /tmp/alsa.socket) for server communication and server's PCM name.
+UNIX socket name (for example /tmp/alsa.socket) for server communication and server's PCM name.
 
 Example:
 
@@ -709,12 +709,12 @@ int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 	return pcm->ops->info(pcm->op_arg, info);
 }
 
-/** \brief Install one PCM hardware configuration choosen from a configuration space and #snd_pcm_prepare it
+/** \brief Install one PCM hardware configuration chosen from a configuration space and #snd_pcm_prepare it
  * \param pcm PCM handle
  * \param params Configuration space definition container
  * \return 0 on success otherwise a negative error code
  *
- * The configuration is choosen fixing single parameters in this order:
+ * The configuration is chosen fixing single parameters in this order:
  * first access, first format, first subformat, min channels, min rate, 
  * min period time, max buffer size, min tick time
  */
@@ -890,7 +890,7 @@ int snd_pcm_drop(snd_pcm_t *pcm)
  * \brief Stop a PCM preserving pending frames
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
- * \retval -ESTRPIPE a suspend event occured
+ * \retval -ESTRPIPE a suspend event occurred
  *
  * For playback wait for all pending frames to be played and then stop
  * the PCM.
@@ -939,12 +939,12 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
  * \return a positive number of frames actually written otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
- * \retval -EPIPE an underrun occured
- * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ * \retval -EPIPE an underrun occurred
+ * \retval -ESTRPIPE a suspend event occurred (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour is selected, then routine waits until
  * all requested bytes are played or put to the playback ring buffer.
- * The count of bytes can be less only if a signal or underrun occured.
+ * The count of bytes can be less only if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */ 
@@ -965,12 +965,12 @@ snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_ufr
  * \return a positive number of frames actually written otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
- * \retval -EPIPE an underrun occured
- * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ * \retval -EPIPE an underrun occurred
+ * \retval -ESTRPIPE a suspend event occurred (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour is selected, then routine waits until
  * all requested bytes are played or put to the playback ring buffer.
- * The count of bytes can be less only if a signal or underrun occured.
+ * The count of bytes can be less only if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */ 
@@ -991,12 +991,12 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
  * \return a positive number of frames actually read otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
- * \retval -EPIPE an overrun occured
- * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ * \retval -EPIPE an overrun occurred
+ * \retval -ESTRPIPE a suspend event occurred (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour was selected, then routine waits until
  * all requested bytes are filled. The count of bytes can be less only
- * if a signal or underrun occured.
+ * if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */ 
@@ -1017,12 +1017,12 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
  * \return a positive number of frames actually read otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
- * \retval -EPIPE an overrun occured
- * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
+ * \retval -EPIPE an overrun occurred
+ * \retval -ESTRPIPE a suspend event occurred (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour was selected, then routine waits until
  * all requested bytes are filled. The count of bytes can be less only
- * if a signal or underrun occured.
+ * if a signal or underrun occurred.
  *
  * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */ 
@@ -1776,7 +1776,7 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
  * \param pcm PCM handle
  * \param timeout maximum time in milliseconds to wait
  * \return a positive value on success otherwise a negative error code
- * \retval 0 timeout occured
+ * \retval 0 timeout occurred
  * \retval 1 PCM stream is ready for I/O
  */
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
@@ -2284,7 +2284,7 @@ int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 /**
  * \brief Get sample resolution info from a configuration space
  * \param params Configuration space
- * \return significative bits in sample otherwise a negative error code if the info is not available
+ * \return signification bits in sample otherwise a negative error code if the info is not available
  */
 int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
 {
@@ -2294,9 +2294,9 @@ int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
 }
 
 /**
- * \brief Get hardare fifo size info from a configuration space
+ * \brief Get hard are FIFO size info from a configuration space
  * \param params Configuration space
- * \return fifo size in frames otherwise a negative error code if the info is not available
+ * \return FIFO size in frames otherwise a negative error code if the info is not available
  */
 int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params)
 {
@@ -3024,7 +3024,7 @@ int snd_pcm_hw_params_set_channels_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val target channels count
- * \return choosen channels count
+ * \return chosen channels count
  */
 unsigned int snd_pcm_hw_params_set_channels_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
 {
@@ -3187,9 +3187,9 @@ int snd_pcm_hw_params_set_rate_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target rate
- * \return approximate choosen rate
+ * \return approximate chosen rate
  *
- * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 unsigned int snd_pcm_hw_params_set_rate_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {
@@ -3359,9 +3359,9 @@ int snd_pcm_hw_params_set_period_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target period duration in us
- * \return approximate choosen period duration in us
+ * \return approximate chosen period duration in us
  *
- * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 unsigned int snd_pcm_hw_params_set_period_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {
@@ -3541,9 +3541,9 @@ int snd_pcm_hw_params_set_period_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target period size in frames
- * \return approximate choosen period size in frames
+ * \return approximate chosen period size in frames
  *
- * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 snd_pcm_uframes_t snd_pcm_hw_params_set_period_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val, int *dir)
 {
@@ -3723,9 +3723,9 @@ int snd_pcm_hw_params_set_periods_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target periods per buffer
- * \return approximate choosen periods per buffer
+ * \return approximate chosen periods per buffer
  *
- * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 unsigned int snd_pcm_hw_params_set_periods_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {
@@ -3905,9 +3905,9 @@ int snd_pcm_hw_params_set_buffer_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target buffer duration in us
- * \return approximate choosen buffer duration in us
+ * \return approximate chosen buffer duration in us
  *
- * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 unsigned int snd_pcm_hw_params_set_buffer_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {
@@ -3937,7 +3937,7 @@ unsigned int snd_pcm_hw_params_set_buffer_time_first(snd_pcm_t *pcm, snd_pcm_hw_
 }
 
 /**
- * \brief Restrict a configuration space to contain only its maximum bufferd time
+ * \brief Restrict a configuration space to contain only its maximum buffered time
  * \param pcm PCM handle
  * \param params Configuration space
  * \param dir Sub unit direction
@@ -4083,9 +4083,9 @@ int snd_pcm_hw_params_set_buffer_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target buffer size in frames
- * \return approximate choosen buffer size in frames
+ * \return approximate chosen buffer size in frames
  *
- * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 snd_pcm_uframes_t snd_pcm_hw_params_set_buffer_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t val)
 {
@@ -4248,9 +4248,9 @@ int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target tick duration in us
- * \return approximate choosen tick duration in us
+ * \return approximate chosen tick duration in us
  *
- * target/choosen exact value is <,=,> val following dir (-1,0,1)
+ * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 unsigned int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int *dir)
 {

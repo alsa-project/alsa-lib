@@ -91,7 +91,7 @@ defaults.rawmidi.card 0
 defaults.rawmidi.device 0
 defaults.rawmidi.subdevice -1
 
-These defaults can be freely overwritten in local cofiguration files.
+These defaults can be freely overwritten in local configuration files.
 
 Example:
 

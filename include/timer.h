@@ -81,7 +81,7 @@ typedef enum _snd_timer_slave_class {
 /** global timer - RTC */
 #define SND_TIMER_GLOBAL_RTC 	1
 
-/** timer open mode flag - nonblocking behaviour */
+/** timer open mode flag - non-blocking behaviour */
 #define SND_TIMER_OPEN_NONBLOCK		0x0001
 
 /** timer handle type */

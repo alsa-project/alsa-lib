@@ -627,7 +627,7 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		}
 
 		if (snd_pcm_format_mask_empty(&sfmt_mask)) {
-			SNDERR("Unable to find an useable slave format for '%s'", pcm->name);
+			SNDERR("Unable to find an usable slave format for '%s'", pcm->name);
 			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 				if (!snd_pcm_format_mask_test(format_mask, format))
 					continue;
@@ -654,7 +654,7 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 					   &access_mask);
 		if (snd_pcm_access_mask_empty(snd_pcm_hw_param_get_mask(sparams, SND_PCM_HW_PARAM_ACCESS))) {
-			SNDERR("Unable to find an useable access for '%s'", pcm->name);
+			SNDERR("Unable to find an usable access for '%s'", pcm->name);
 			return -EINVAL;
 		}
 	}
@@ -721,7 +721,7 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 		}
 
 		if (snd_pcm_format_mask_empty(&fmt_mask)) {
-			SNDERR("Unable to find an useable client format");
+			SNDERR("Unable to find an usable client format");
 			for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 				if (!snd_pcm_format_mask_test(format_mask, format))
 					continue;
@@ -971,7 +971,7 @@ pcm.name {
 				# copy: only first channels are copied to destination
 				# duplicate: duplicate first set of channels
 				# default: copy policy, except for mono capture - sum
-	ttable {		# Transfer table (bidimensional compound of cchannels * schannels numbers)
+	ttable {		# Transfer table (bi-dimensional compound of cchannels * schannels numbers)
 		CCHANNEL {
 			SCHANNEL REAL	# route value (0.0 - 1.0)
 		}

@@ -211,7 +211,7 @@ static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
  * Creates a new handle and opens a connection to the kernel
  * sequencer interface.
  * After a client is created successfully, an event
- * with #SND_SEQ_EVENT_CLIENT_START is broadcasted to announce port.
+ * with #SND_SEQ_EVENT_CLIENT_START is broadcast to announce port.
  */
 int snd_seq_open(snd_seq_t **seqp, const char *name, 
 		 int streams, int mode)
@@ -250,7 +250,7 @@ int snd_seq_open_lconf(snd_seq_t **seqp, const char *name,
  *
  * Closes the sequencer client and releases its resources.
  * After a client is closed, an event with
- * #SND_SEQ_EVENT_CLIENT_EXIT is broadcasted to announce port.
+ * #SND_SEQ_EVENT_CLIENT_EXIT is broadcast to announce port.
  * The connection between other clients are disconnected.
  * Call this just before exiting your program.
  */
@@ -280,7 +280,7 @@ int snd_seq_close(snd_seq_t *seq)
  * \return the number of poll descriptors.
  *
  * Get the number of poll descriptors.  The polling events to be checked
- * can be specifed by the second argument.  When both input and output
+ * can be specified by the second argument.  When both input and output
  * are checked, pass \c POLLIN|POLLOUT
  */
 int snd_seq_poll_descriptors_count(snd_seq_t *seq, short events)
@@ -1160,7 +1160,7 @@ void snd_seq_port_info_set_synth_voices(snd_seq_port_info_t *info, int voices)
 }
 
 /**
- * \brief Set the port-specifiied mode of a port_info container
+ * \brief Set the port-specified mode of a port_info container
  * \param info port_info container
  * \param val non-zero if specifying the port id at creation
  */
@@ -1209,9 +1209,9 @@ void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int val)
  * - #SND_SEQ_PORT_TYPE_SYNTH Synth device
  * - #SND_SEQ_PORT_TYPE_DIRECT_SAMPLE Sampling device (supporting download)
  * - #SND_SEQ_PORT_TYPE_SAMPLE Sampling device (sample can be downloaded at any time)
- * - #SND_SEQ_PORT_TYPE_APPLICATION Application (suquencer/editor)
+ * - #SND_SEQ_PORT_TYPE_APPLICATION Application (sequencer/editor)
  *
- * A port may contain speicific midi channels, midi voices and synth voices.
+ * A port may contain specific midi channels, midi voices and synth voices.
  * These values could be zero as default.
  */
 int snd_seq_create_port(snd_seq_t *seq, snd_seq_port_info_t * port)
@@ -1240,7 +1240,7 @@ int snd_seq_delete_port(snd_seq_t *seq, int port)
 }
 
 /**
- * \brief obatin the information of a port on an arbitrary client
+ * \brief obtain the information of a port on an arbitrary client
  * \param seq sequencer handle
  * \param client client id to get
  * \param port port id to get
@@ -1257,7 +1257,7 @@ int snd_seq_get_any_port_info(snd_seq_t *seq, int client, int port, snd_seq_port
 }
 
 /**
- * \brief obatin the information of a port on the current client
+ * \brief obtain the information of a port on the current client
  * \param seq sequencer handle
  * \param port port id to get
  * \param info pointer information returns
@@ -1641,7 +1641,7 @@ int snd_seq_query_subscribe_get_index(const snd_seq_query_subscribe_t *info)
 }
 
 /**
- * \brief Get the number of subscriptiosn of a query_subscribe container
+ * \brief Get the number of subscriptions of a query_subscribe container
  * \param info query_subscribe container
  * \return number of subscriptions
  */
@@ -1919,7 +1919,7 @@ void snd_seq_queue_info_set_locked(snd_seq_queue_info_t *info, int locked)
 /**
  * \brief Set the conditional bit flags of a queue_info container
  * \param info queue_info container
- * \param flags contidional bit flags
+ * \param flags conditional bit flags
  */
 void snd_seq_queue_info_set_flags(snd_seq_queue_info_t *info, unsigned int flags)
 {
@@ -1946,7 +1946,7 @@ int snd_seq_create_queue(snd_seq_t *seq, snd_seq_queue_info_t *info)
 }
 
 /**
- * \brief allocate a queue with the speicified name
+ * \brief allocate a queue with the specified name
  * \param seq sequencer handle
  * \param name the name of the new queue
  * \return the queue id (zero or positive) on success otherwise a negative error code
@@ -1972,7 +1972,7 @@ int snd_seq_alloc_queue(snd_seq_t *seq)
 }
 
 /**
- * \breif delete the specified queue
+ * \brief delete the specified queue
  * \param seq sequencer handle
  * \param q queue id to delete
  * \return 0 on success otherwise a negative error code
@@ -2597,7 +2597,7 @@ int snd_seq_event_output(snd_seq_t *seq, snd_seq_event_t *ev)
 /**
  * \brief output an event onto the lib buffer without draining buffer
  * \param seq sequencer handle
- * \param ev event ot be output
+ * \param ev event to be output
  * \return the byte size of remaining events. \c -EAGAIN if the buffer becomes full.
  *
  * This function doesn't drain buffer unlike snd_seq_event_output().
@@ -2796,10 +2796,10 @@ static int snd_seq_event_retrieve_buffer(snd_seq_t *seq, snd_seq_event_t **retp)
  * The event is created via snd_seq_create_event(), and its pointer is stored on
  * ev argument.
  *
- * This function firstly recives the event byte-stream data from sequencer
+ * This function firstly receives the event byte-stream data from sequencer
  * as much as possible at once.  Then it retrieves the first event record
  * and store the pointer on ev.
- * By calling this function succeedingly, events are extract from the input buffer.
+ * By calling this function sequentially, events are extracted from the input buffer.
  *
  * If there is no input from sequencer, function falls into sleep
  * in blocking mode until an event is received,
@@ -2857,7 +2857,7 @@ static int snd_seq_event_input_feed(snd_seq_t *seq, int timeout)
  * When events exist, they are transferred to the input buffer,
  * and the number of received events are returned.
  * If fetch_sequencer argument is zero and
- * no events remain on the input buffer, function simplly returns zero.
+ * no events remain on the input buffer, function simply returns zero.
  */
 int snd_seq_event_input_pending(snd_seq_t *seq, int fetch_sequencer)
 {
@@ -3635,7 +3635,7 @@ int snd_instr_header_get_follow_alias(const snd_instr_header_t *info)
 /**
  * \brief Set the instrument id of an instr_header container
  * \param info instr_header container
- * \param id instrumen id pointer
+ * \param id instrument id pointer
  */
 void snd_instr_header_set_id(snd_instr_header_t *info, const snd_seq_instr_t *id)
 {

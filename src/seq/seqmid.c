@@ -41,7 +41,7 @@
  * To send at scheduled time, set the schedule in \a ev.
  * If \a ev is NULL, the event is composed locally and sent immediately
  * to the specified queue.  In any cases, you need to call #snd_seq_drain_event
- * apropriately to feed the event.
+ * appropriately to feed the event.
  */
 int snd_seq_control_queue(snd_seq_t *seq, int q, int type, int value, snd_seq_event_t *ev)
 {
@@ -92,7 +92,7 @@ int snd_seq_create_simple_port(snd_seq_t *seq, const char *name,
  * \brief delete the port
  * \param seq sequencer handle
  * \param port port id
- * \return 0 on success or negavie error code
+ * \return 0 on success or negative error code
  */
 int snd_seq_delete_simple_port(snd_seq_t *seq, int port)
 {
@@ -124,7 +124,7 @@ int snd_seq_connect_from(snd_seq_t *seq, int myport, int src_client, int src_por
 }
 
 /**
- * \brief sipmle subscription (w/o exclusive & time conversion)
+ * \brief simple subscription (w/o exclusive & time conversion)
  * \param myport the port id as sender
  * \param dest_client destination client id
  * \param dest_port destination port id

@@ -1040,7 +1040,7 @@ static __inline__ void atomic_clear_mask(unsigned long mask, unsigned long *addr
 /*
  * non supported architecture.
  */
-#warning "Atomic operations are not supported on this archictecture."
+#warning "Atomic operations are not supported on this architecture."
 
 typedef struct { volatile int counter; } atomic_t;
 
@@ -1066,17 +1066,17 @@ typedef struct { volatile int counter; } atomic_t;
  *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
  */
 
-/* Max number of times we must spin on a spinlock calling sched_yield().
+/* Max number of times we must spin on a spin-lock calling sched_yield().
    After MAX_SPIN_COUNT iterations, we put the calling thread to sleep. */
 
 #ifndef MAX_SPIN_COUNT
 #define MAX_SPIN_COUNT 50
 #endif
 
-/* Duration of sleep (in nanoseconds) when we can't acquire a spinlock
+/* Duration of sleep (in nanoseconds) when we can't acquire a spin-lock
    after MAX_SPIN_COUNT iterations of sched_yield().
    This MUST BE > 2ms.
-   (Otherwise the kernel does busy-waiting for realtime threads,
+   (Otherwise the kernel does busy-waiting for real-time threads,
     giving other threads no chance to run.) */
 
 #ifndef SPIN_SLEEP_DURATION

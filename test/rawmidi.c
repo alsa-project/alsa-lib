@@ -17,7 +17,7 @@ static void usage(void)
 	fprintf(stderr, "  example:\n");
 	fprintf(stderr, "    rawmidi -i hw:0,0 -o /dev/midi1\n");
 	fprintf(stderr, "    tests input for card 0, device 0, using snd_rawmidi API\n");
-	fprintf(stderr, "    and /dev/midi1 using file desciptors\n");
+	fprintf(stderr, "    and /dev/midi1 using file descriptors\n");
 }
 
 int stop=0;

@@ -938,7 +938,7 @@ int16_t *snd_pcm_scope_s16_get_channel_buffer(snd_pcm_scope_t *scope,
  * \{
  */
 
-/* Deprecated functions, for compatibity */
+/* Deprecated functions, for compatibility */
 const char *snd_pcm_start_mode_name(snd_pcm_start_t mode);
 const char *snd_pcm_xrun_mode_name(snd_pcm_xrun_t mode);
 int snd_pcm_sw_params_set_start_mode(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_start_t val);

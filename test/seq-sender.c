@@ -80,7 +80,7 @@ void event_sender_start_timer(snd_seq_t *handle, int client, int queue, snd_pcm_
 		}
 		bzero(&qtimer, sizeof(qtimer));
 		qtimer.type = SND_SEQ_TIMER_MASTER;
-		/* note: last bit from subdevices specifies playback */
+		/* note: last bit from the subdevices specifies playback */
 		/* or capture direction for the timer specification */
 		qtimer.number = SND_TIMER_PCM(pcard, pdevice, pinfo.subdevice << 1);
 		if ((err = snd_seq_set_queue_timer(handle, queue, &qtimer)) < 0) {

@@ -118,7 +118,7 @@ snd_mixer_elem_type_t snd_mixer_elem_get_type(const snd_mixer_elem_t *obj);
 
 /* Simple (legacy) mixer elements API */
 
-/** Mixer simple element channel identificator */
+/** Mixer simple element channel identifier */
 typedef enum _snd_mixer_selem_channel_id {
 	/** Unknown */
 	SND_MIXER_SCHN_UNKNOWN = -1,
@@ -139,7 +139,7 @@ typedef enum _snd_mixer_selem_channel_id {
 	SND_MIXER_SCHN_MONO = SND_MIXER_SCHN_FRONT_LEFT
 } snd_mixer_selem_channel_id_t;
 
-/** Mixer simple element identificator */
+/** Mixer simple element identifier */
 typedef struct _snd_mixer_selem_id snd_mixer_selem_id_t;
 
 const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel);

@@ -40,7 +40,7 @@ is being recommended by the IMA Digital Audio Technical Working Group.
 
 The algorithm for this coder was taken from:
 Proposal for Standardized Audio Interstreamge Formats,
-IMA compatability project proceedings, Vol 2, Issue 2, May 1992.
+IMA compatibility project proceedings, Vol 2, Issue 2, May 1992.
 
 - No, this is *not* a G.721 coder/decoder. The algorithm used by G.721
   is very complicated, requiring oodles of floating-point ops per
@@ -127,7 +127,7 @@ static char adpcm_encoder(int sl, snd_pcm_adpcm_state_t * state)
 	 *
 	 * But in shift step bits are dropped. The net result of this is
 	 * that even if you have fast mul/div hardware you cannot put it to
-	 * good use since the fixup would be too expensive.
+	 * good use since the fix-up would be too expensive.
 	 */
 
 	step = StepSize[state->step_idx];

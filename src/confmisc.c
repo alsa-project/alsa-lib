@@ -45,8 +45,8 @@
       strings. The result is string.
   <LI>The datadir function - snd_func_datadir() - returns the
       data directory. The result is string.
-  <LI>The refer function - snd_func_refer() - copies the refered
-      configuration. The result is same as the refered node.
+  <LI>The refer function - snd_func_refer() - copies the referred
+      configuration. The result is same as the referred node.
   <LI>The card_driver function - snd_func_card_driver() - returns
       the driver identification. The result is string.
   <LI>The card_id function - snd_func_card_id() - returns
@@ -881,8 +881,8 @@ SND_DLSYM_BUILD_VERSION(snd_func_private_pcm_subdevice, SND_CONFIG_DLSYM_VERSION
 #endif
 
 /**
- * \brief Copy the refered configuration node
- * \param dst The destination node (result type is same as refered node)
+ * \brief Copy the referred configuration node
+ * \param dst The destination node (result type is same as referred node)
  * \param root The root source node (can be modified!!!)
  * \param src The source node
  * \param private_data The private_data node

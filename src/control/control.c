@@ -226,9 +226,9 @@ int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 }
 
 /**
- * \brief Get a list of element identificators
+ * \brief Get a list of element identifiers
  * \param ctl CTL handle
- * \param list CTL element identificators list pointer
+ * \param list CTL element identifiers list pointer
  * \return 0 on success otherwise a negative error code
  */
 int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list)
@@ -717,8 +717,8 @@ const char *snd_ctl_event_type_name(snd_ctl_event_type_t type)
 }
 
 /**
- * \brief allocate space for CTL element identificators list
- * \param obj CTL element identificators list
+ * \brief allocate space for CTL element identifiers list
+ * \param obj CTL element identifiers list
  * \param entries Entries to allocate
  * \return 0 on success otherwise a negative error code
  */
@@ -736,8 +736,8 @@ int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries
 }  
 
 /**
- * \brief free previously allocated space for CTL element identificators list
- * \param obj CTL element identificators list
+ * \brief free previously allocated space for CTL element identifiers list
+ * \param obj CTL element identifiers list
  */
 void snd_ctl_elem_list_free_space(snd_ctl_elem_list_t *obj)
 {
@@ -758,9 +758,9 @@ unsigned int snd_ctl_event_elem_get_mask(const snd_ctl_event_t *obj)
 }
 
 /**
- * \brief Get CTL element identificator for an element related event
+ * \brief Get CTL element identifier for an element related event
  * \param obj CTL event
- * \param ptr Pointer to returned CTL element identificator
+ * \param ptr Pointer to returned CTL element identifier
  */
 void snd_ctl_event_elem_get_id(const snd_ctl_event_t *obj, snd_ctl_elem_id_t *ptr)
 {
@@ -770,9 +770,9 @@ void snd_ctl_event_elem_get_id(const snd_ctl_event_t *obj, snd_ctl_elem_id_t *pt
 }
 
 /**
- * \brief Get element numeric identificator for an element related event
+ * \brief Get element numeric identifier for an element related event
  * \param obj CTL event
- * \return element numeric identificator
+ * \return element numeric identifier
  */
 unsigned int snd_ctl_event_elem_get_numid(const snd_ctl_event_t *obj)
 {
@@ -782,9 +782,9 @@ unsigned int snd_ctl_event_elem_get_numid(const snd_ctl_event_t *obj)
 }
 
 /**
- * \brief Get interface part of CTL element identificator for an element related event
+ * \brief Get interface part of CTL element identifier for an element related event
  * \param obj CTL event
- * \return interface part of element identificator
+ * \return interface part of element identifier
  */
 snd_ctl_elem_iface_t snd_ctl_event_elem_get_interface(const snd_ctl_event_t *obj)
 {
@@ -794,9 +794,9 @@ snd_ctl_elem_iface_t snd_ctl_event_elem_get_interface(const snd_ctl_event_t *obj
 }
 
 /**
- * \brief Get device part of CTL element identificator for an element related event
+ * \brief Get device part of CTL element identifier for an element related event
  * \param obj CTL event
- * \return device part of element identificator
+ * \return device part of element identifier
  */
 unsigned int snd_ctl_event_elem_get_device(const snd_ctl_event_t *obj)
 {
@@ -806,9 +806,9 @@ unsigned int snd_ctl_event_elem_get_device(const snd_ctl_event_t *obj)
 }
 
 /**
- * \brief Get subdevice part of CTL element identificator for an element related event
+ * \brief Get subdevice part of CTL element identifier for an element related event
  * \param obj CTL event
- * \return subdevice part of element identificator
+ * \return subdevice part of element identifier
  */
 unsigned int snd_ctl_event_elem_get_subdevice(const snd_ctl_event_t *obj)
 {
@@ -818,9 +818,9 @@ unsigned int snd_ctl_event_elem_get_subdevice(const snd_ctl_event_t *obj)
 }
 
 /**
- * \brief Get name part of CTL element identificator for an element related event
+ * \brief Get name part of CTL element identifier for an element related event
  * \param obj CTL event
- * \return name part of element identificator
+ * \return name part of element identifier
  */
 const char *snd_ctl_event_elem_get_name(const snd_ctl_event_t *obj)
 {
@@ -830,9 +830,9 @@ const char *snd_ctl_event_elem_get_name(const snd_ctl_event_t *obj)
 }
 
 /**
- * \brief Get index part of CTL element identificator for an element related event
+ * \brief Get index part of CTL element identifier for an element related event
  * \param obj CTL event
- * \return index part of element identificator
+ * \return index part of element identifier
  */
 unsigned int snd_ctl_event_elem_get_index(const snd_ctl_event_t *obj)
 {
@@ -902,9 +902,9 @@ void snd_ctl_elem_id_copy(snd_ctl_elem_id_t *dst, const snd_ctl_elem_id_t *src)
 }
 
 /**
- * \brief Get numeric identificator from a CTL element identificator
- * \param obj CTL element identificator
- * \return CTL element numeric identificator
+ * \brief Get numeric identifier from a CTL element identifier
+ * \param obj CTL element identifier
+ * \return CTL element numeric identifier
  */
 unsigned int snd_ctl_elem_id_get_numid(const snd_ctl_elem_id_t *obj)
 {
@@ -913,8 +913,8 @@ unsigned int snd_ctl_elem_id_get_numid(const snd_ctl_elem_id_t *obj)
 }
 
 /**
- * \brief Get interface part of a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Get interface part of a CTL element identifier
+ * \param obj CTL element identifier
  * \return CTL element related interface
  */
 snd_ctl_elem_iface_t snd_ctl_elem_id_get_interface(const snd_ctl_elem_id_t *obj)
@@ -924,8 +924,8 @@ snd_ctl_elem_iface_t snd_ctl_elem_id_get_interface(const snd_ctl_elem_id_t *obj)
 }
 
 /**
- * \brief Get device part of a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Get device part of a CTL element identifier
+ * \param obj CTL element identifier
  * \return CTL element related device
  */
 unsigned int snd_ctl_elem_id_get_device(const snd_ctl_elem_id_t *obj)
@@ -935,8 +935,8 @@ unsigned int snd_ctl_elem_id_get_device(const snd_ctl_elem_id_t *obj)
 }
 
 /**
- * \brief Get subdevice part of a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Get subdevice part of a CTL element identifier
+ * \param obj CTL element identifier
  * \return CTL element related subdevice
  */
 unsigned int snd_ctl_elem_id_get_subdevice(const snd_ctl_elem_id_t *obj)
@@ -946,8 +946,8 @@ unsigned int snd_ctl_elem_id_get_subdevice(const snd_ctl_elem_id_t *obj)
 }
 
 /**
- * \brief Get name part of a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Get name part of a CTL element identifier
+ * \param obj CTL element identifier
  * \return CTL element name
  */
 const char *snd_ctl_elem_id_get_name(const snd_ctl_elem_id_t *obj)
@@ -957,8 +957,8 @@ const char *snd_ctl_elem_id_get_name(const snd_ctl_elem_id_t *obj)
 }
 
 /**
- * \brief Get index part of a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Get index part of a CTL element identifier
+ * \param obj CTL element identifier
  * \return CTL element index
  */
 unsigned int snd_ctl_elem_id_get_index(const snd_ctl_elem_id_t *obj)
@@ -968,9 +968,9 @@ unsigned int snd_ctl_elem_id_get_index(const snd_ctl_elem_id_t *obj)
 }
 
 /**
- * \brief Set numeric identificator for a CTL element identificator
- * \param obj CTL element identificator
- * \param val CTL element numeric identificator
+ * \brief Set numeric identifier for a CTL element identifier
+ * \param obj CTL element identifier
+ * \param val CTL element numeric identifier
  */
 void snd_ctl_elem_id_set_numid(snd_ctl_elem_id_t *obj, unsigned int val)
 {
@@ -979,8 +979,8 @@ void snd_ctl_elem_id_set_numid(snd_ctl_elem_id_t *obj, unsigned int val)
 }
 
 /**
- * \brief Set interface part for a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Set interface part for a CTL element identifier
+ * \param obj CTL element identifier
  * \param val CTL element related interface
  */
 void snd_ctl_elem_id_set_interface(snd_ctl_elem_id_t *obj, snd_ctl_elem_iface_t val)
@@ -990,8 +990,8 @@ void snd_ctl_elem_id_set_interface(snd_ctl_elem_id_t *obj, snd_ctl_elem_iface_t 
 }
 
 /**
- * \brief Set device part for a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Set device part for a CTL element identifier
+ * \param obj CTL element identifier
  * \param val CTL element related device
  */
 void snd_ctl_elem_id_set_device(snd_ctl_elem_id_t *obj, unsigned int val)
@@ -1001,8 +1001,8 @@ void snd_ctl_elem_id_set_device(snd_ctl_elem_id_t *obj, unsigned int val)
 }
 
 /**
- * \brief Set subdevice part for a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Set subdevice part for a CTL element identifier
+ * \param obj CTL element identifier
  * \param val CTL element related subdevice
  */
 void snd_ctl_elem_id_set_subdevice(snd_ctl_elem_id_t *obj, unsigned int val)
@@ -1012,8 +1012,8 @@ void snd_ctl_elem_id_set_subdevice(snd_ctl_elem_id_t *obj, unsigned int val)
 }
 
 /**
- * \brief Set name part for a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Set name part for a CTL element identifier
+ * \param obj CTL element identifier
  * \param val CTL element name
  */
 void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t *obj, const char *val)
@@ -1023,8 +1023,8 @@ void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t *obj, const char *val)
 }
 
 /**
- * \brief Set index part for a CTL element identificator
- * \param obj CTL element identificator
+ * \brief Set index part for a CTL element identifier
+ * \param obj CTL element identifier
  * \param val CTL element index
  */
 void snd_ctl_elem_id_set_index(snd_ctl_elem_id_t *obj, unsigned int val)
@@ -1097,9 +1097,9 @@ int snd_ctl_card_info_get_card(const snd_ctl_card_info_t *obj)
 }
 
 /**
- * \brief Get card identificator from a CTL card info
+ * \brief Get card identifier from a CTL card info
  * \param obj CTL card info
- * \return card identificator
+ * \return card identifier
  */
 const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj)
 {
@@ -1154,7 +1154,7 @@ const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj)
 /**
  * \brief Get card component list from a CTL card info
  * \param obj CTL card info
- * \return card mixer identificator
+ * \return card mixer identifier
  */
 const char *snd_ctl_card_info_get_components(const snd_ctl_card_info_t *obj)
 {
@@ -1278,8 +1278,8 @@ void snd_ctl_elem_list_copy(snd_ctl_elem_list_t *dst, const snd_ctl_elem_list_t 
 }
 
 /**
- * \brief Set index of first wanted CTL element identificator in a CTL element identificators list
- * \param obj CTL element identificators list
+ * \brief Set index of first wanted CTL element identifier in a CTL element identifiers list
+ * \param obj CTL element identifiers list
  * \param val index of CTL element to put at position 0 of list
  */
 void snd_ctl_elem_list_set_offset(snd_ctl_elem_list_t *obj, unsigned int val)
@@ -1289,8 +1289,8 @@ void snd_ctl_elem_list_set_offset(snd_ctl_elem_list_t *obj, unsigned int val)
 }
 
 /**
- * \brief Get number of used entries in CTL element identificators list
- * \param obj CTL element identificator list
+ * \brief Get number of used entries in CTL element identifiers list
+ * \param obj CTL element identifier list
  * \return number of used entries
  */
 unsigned int snd_ctl_elem_list_get_used(const snd_ctl_elem_list_t *obj)
@@ -1300,8 +1300,8 @@ unsigned int snd_ctl_elem_list_get_used(const snd_ctl_elem_list_t *obj)
 }
 
 /**
- * \brief Get total count of elements present in CTL device (information present in every filled CTL element identificators list)
- * \param obj CTL element identificator list
+ * \brief Get total count of elements present in CTL device (information present in every filled CTL element identifiers list)
+ * \param obj CTL element identifier list
  * \return total number of elements
  */
 unsigned int snd_ctl_elem_list_get_count(const snd_ctl_elem_list_t *obj)
@@ -1311,10 +1311,10 @@ unsigned int snd_ctl_elem_list_get_count(const snd_ctl_elem_list_t *obj)
 }
 
 /**
- * \brief Get CTL element identificator for an entry of a CTL element identificators list
- * \param obj CTL element identificator list
+ * \brief Get CTL element identifier for an entry of a CTL element identifiers list
+ * \param obj CTL element identifier list
  * \param idx Index of entry
- * \param ptr Pointer to returned CTL element identificator
+ * \param ptr Pointer to returned CTL element identifier
  */
 void snd_ctl_elem_list_get_id(const snd_ctl_elem_list_t *obj, unsigned int idx, snd_ctl_elem_id_t *ptr)
 {
@@ -1324,10 +1324,10 @@ void snd_ctl_elem_list_get_id(const snd_ctl_elem_list_t *obj, unsigned int idx, 
 }
 
 /**
- * \brief Get CTL element numeric identificator for an entry of a CTL element identificators list
- * \param obj CTL element identificator list
+ * \brief Get CTL element numeric identifier for an entry of a CTL element identifiers list
+ * \param obj CTL element identifier list
  * \param idx Index of entry
- * \return CTL element numeric identificator
+ * \return CTL element numeric identifier
  */
 unsigned int snd_ctl_elem_list_get_numid(const snd_ctl_elem_list_t *obj, unsigned int idx)
 {
@@ -1337,8 +1337,8 @@ unsigned int snd_ctl_elem_list_get_numid(const snd_ctl_elem_list_t *obj, unsigne
 }
 
 /**
- * \brief Get interface part of CTL element identificator for an entry of a CTL element identificators list
- * \param obj CTL element identificator list
+ * \brief Get interface part of CTL element identifier for an entry of a CTL element identifiers list
+ * \param obj CTL element identifier list
  * \param idx Index of entry
  * \return CTL element related interface
  */
@@ -1350,8 +1350,8 @@ snd_ctl_elem_iface_t snd_ctl_elem_list_get_interface(const snd_ctl_elem_list_t *
 }
 
 /**
- * \brief Get device part of CTL element identificator for an entry of a CTL element identificators list
- * \param obj CTL element identificator list
+ * \brief Get device part of CTL element identifier for an entry of a CTL element identifiers list
+ * \param obj CTL element identifier list
  * \param idx Index of entry
  * \return CTL element related device
  */
@@ -1363,8 +1363,8 @@ unsigned int snd_ctl_elem_list_get_device(const snd_ctl_elem_list_t *obj, unsign
 }
 
 /**
- * \brief Get subdevice part of CTL element identificator for an entry of a CTL element identificators list
- * \param obj CTL element identificator list
+ * \brief Get subdevice part of CTL element identifier for an entry of a CTL element identifiers list
+ * \param obj CTL element identifier list
  * \param idx Index of entry
  * \return CTL element related subdevice
  */
@@ -1376,8 +1376,8 @@ unsigned int snd_ctl_elem_list_get_subdevice(const snd_ctl_elem_list_t *obj, uns
 }
 
 /**
- * \brief Get name part of CTL element identificator for an entry of a CTL element identificators list
- * \param obj CTL element identificator list
+ * \brief Get name part of CTL element identifier for an entry of a CTL element identifiers list
+ * \param obj CTL element identifier list
  * \param idx Index of entry
  * \return CTL element name
  */
@@ -1389,8 +1389,8 @@ const char *snd_ctl_elem_list_get_name(const snd_ctl_elem_list_t *obj, unsigned 
 }
 
 /**
- * \brief Get index part of CTL element identificator for an entry of a CTL element identificators list
- * \param obj CTL element identificator list
+ * \brief Get index part of CTL element identifier for an entry of a CTL element identifiers list
+ * \param obj CTL element identifier list
  * \param idx Index of entry
  * \return CTL element index
  */
@@ -1467,7 +1467,7 @@ snd_ctl_elem_type_t snd_ctl_elem_info_get_type(const snd_ctl_elem_info_t *obj)
 /**
  * \brief Get info about readability from a CTL element id/info
  * \param obj CTL element id/info
- * \return 0 if element is not redable, 1 if element is readable
+ * \return 0 if element is not readable, 1 if element is readable
  */
 int snd_ctl_elem_info_is_readable(const snd_ctl_elem_info_t *obj)
 {
@@ -1625,7 +1625,7 @@ void snd_ctl_elem_info_set_item(snd_ctl_elem_info_t *obj, unsigned int val)
 /**
  * \brief Get name for selected item in a #SND_CTL_ELEM_TYPE_ENUMERATED CTL element id/info
  * \param obj CTL element id/info
- * \return name of choosen item
+ * \return name of chosen item
  */
 const char *snd_ctl_elem_info_get_item_name(const snd_ctl_elem_info_t *obj)
 {
@@ -1635,9 +1635,9 @@ const char *snd_ctl_elem_info_get_item_name(const snd_ctl_elem_info_t *obj)
 }
 
 /**
- * \brief Get CTL element identificator of a CTL element id/info
+ * \brief Get CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \param ptr Pointer to returned CTL element identificator
+ * \param ptr Pointer to returned CTL element identifier
  */
 void snd_ctl_elem_info_get_id(const snd_ctl_elem_info_t *obj, snd_ctl_elem_id_t *ptr)
 {
@@ -1646,9 +1646,9 @@ void snd_ctl_elem_info_get_id(const snd_ctl_elem_info_t *obj, snd_ctl_elem_id_t 
 }
 
 /**
- * \brief Get element numeric identificator of a CTL element id/info
+ * \brief Get element numeric identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \return element numeric identificator
+ * \return element numeric identifier
  */
 unsigned int snd_ctl_elem_info_get_numid(const snd_ctl_elem_info_t *obj)
 {
@@ -1657,9 +1657,9 @@ unsigned int snd_ctl_elem_info_get_numid(const snd_ctl_elem_info_t *obj)
 }
 
 /**
- * \brief Get interface part of CTL element identificator of a CTL element id/info
+ * \brief Get interface part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \return interface part of element identificator
+ * \return interface part of element identifier
  */
 snd_ctl_elem_iface_t snd_ctl_elem_info_get_interface(const snd_ctl_elem_info_t *obj)
 {
@@ -1668,9 +1668,9 @@ snd_ctl_elem_iface_t snd_ctl_elem_info_get_interface(const snd_ctl_elem_info_t *
 }
 
 /**
- * \brief Get device part of CTL element identificator of a CTL element id/info
+ * \brief Get device part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \return device part of element identificator
+ * \return device part of element identifier
  */
 unsigned int snd_ctl_elem_info_get_device(const snd_ctl_elem_info_t *obj)
 {
@@ -1679,9 +1679,9 @@ unsigned int snd_ctl_elem_info_get_device(const snd_ctl_elem_info_t *obj)
 }
 
 /**
- * \brief Get subdevice part of CTL element identificator of a CTL element id/info
+ * \brief Get subdevice part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \return subdevice part of element identificator
+ * \return subdevice part of element identifier
  */
 unsigned int snd_ctl_elem_info_get_subdevice(const snd_ctl_elem_info_t *obj)
 {
@@ -1690,9 +1690,9 @@ unsigned int snd_ctl_elem_info_get_subdevice(const snd_ctl_elem_info_t *obj)
 }
 
 /**
- * \brief Get name part of CTL element identificator of a CTL element id/info
+ * \brief Get name part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \return name part of element identificator
+ * \return name part of element identifier
  */
 const char *snd_ctl_elem_info_get_name(const snd_ctl_elem_info_t *obj)
 {
@@ -1701,9 +1701,9 @@ const char *snd_ctl_elem_info_get_name(const snd_ctl_elem_info_t *obj)
 }
 
 /**
- * \brief Get index part of CTL element identificator of a CTL element id/info
+ * \brief Get index part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \return index part of element identificator
+ * \return index part of element identifier
  */
 unsigned int snd_ctl_elem_info_get_index(const snd_ctl_elem_info_t *obj)
 {
@@ -1712,9 +1712,9 @@ unsigned int snd_ctl_elem_info_get_index(const snd_ctl_elem_info_t *obj)
 }
 
 /**
- * \brief Set CTL element identificator of a CTL element id/info
+ * \brief Set CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \param ptr CTL element identificator
+ * \param ptr CTL element identifier
  */
 void snd_ctl_elem_info_set_id(snd_ctl_elem_info_t *obj, const snd_ctl_elem_id_t *ptr)
 {
@@ -1723,9 +1723,9 @@ void snd_ctl_elem_info_set_id(snd_ctl_elem_info_t *obj, const snd_ctl_elem_id_t 
 }
 
 /**
- * \brief Set element numeric identificator of a CTL element id/info
+ * \brief Set element numeric identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \param val element numeric identificator
+ * \param val element numeric identifier
  */
 void snd_ctl_elem_info_set_numid(snd_ctl_elem_info_t *obj, unsigned int val)
 {
@@ -1734,9 +1734,9 @@ void snd_ctl_elem_info_set_numid(snd_ctl_elem_info_t *obj, unsigned int val)
 }
 
 /**
- * \brief Set interface part of CTL element identificator of a CTL element id/info
+ * \brief Set interface part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \param val interface part of element identificator
+ * \param val interface part of element identifier
  */
 void snd_ctl_elem_info_set_interface(snd_ctl_elem_info_t *obj, snd_ctl_elem_iface_t val)
 {
@@ -1745,9 +1745,9 @@ void snd_ctl_elem_info_set_interface(snd_ctl_elem_info_t *obj, snd_ctl_elem_ifac
 }
 
 /**
- * \brief Set device part of CTL element identificator of a CTL element id/info
+ * \brief Set device part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \param val device part of element identificator
+ * \param val device part of element identifier
  */
 void snd_ctl_elem_info_set_device(snd_ctl_elem_info_t *obj, unsigned int val)
 {
@@ -1756,9 +1756,9 @@ void snd_ctl_elem_info_set_device(snd_ctl_elem_info_t *obj, unsigned int val)
 }
 
 /**
- * \brief Set subdevice part of CTL element identificator of a CTL element id/info
+ * \brief Set subdevice part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \param val subdevice part of element identificator
+ * \param val subdevice part of element identifier
  */
 void snd_ctl_elem_info_set_subdevice(snd_ctl_elem_info_t *obj, unsigned int val)
 {
@@ -1767,9 +1767,9 @@ void snd_ctl_elem_info_set_subdevice(snd_ctl_elem_info_t *obj, unsigned int val)
 }
 
 /**
- * \brief Set name part of CTL element identificator of a CTL element id/info
+ * \brief Set name part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \param val name part of element identificator
+ * \param val name part of element identifier
  */
 void snd_ctl_elem_info_set_name(snd_ctl_elem_info_t *obj, const char *val)
 {
@@ -1778,9 +1778,9 @@ void snd_ctl_elem_info_set_name(snd_ctl_elem_info_t *obj, const char *val)
 }
 
 /**
- * \brief Set index part of CTL element identificator of a CTL element id/info
+ * \brief Set index part of CTL element identifier of a CTL element id/info
  * \param obj CTL element id/info
- * \param val index part of element identificator
+ * \param val index part of element identifier
  */
 void snd_ctl_elem_info_set_index(snd_ctl_elem_info_t *obj, unsigned int val)
 {
@@ -1841,9 +1841,9 @@ void snd_ctl_elem_value_copy(snd_ctl_elem_value_t *dst, const snd_ctl_elem_value
 }
 
 /**
- * \brief Get CTL element identificator of a CTL element id/value
+ * \brief Get CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \param ptr Pointer to returned CTL element identificator
+ * \param ptr Pointer to returned CTL element identifier
  */
 void snd_ctl_elem_value_get_id(const snd_ctl_elem_value_t *obj, snd_ctl_elem_id_t *ptr)
 {
@@ -1852,9 +1852,9 @@ void snd_ctl_elem_value_get_id(const snd_ctl_elem_value_t *obj, snd_ctl_elem_id_
 }
 
 /**
- * \brief Get element numeric identificator of a CTL element id/value
+ * \brief Get element numeric identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return element numeric identificator
+ * \return element numeric identifier
  */
 unsigned int snd_ctl_elem_value_get_numid(const snd_ctl_elem_value_t *obj)
 {
@@ -1863,9 +1863,9 @@ unsigned int snd_ctl_elem_value_get_numid(const snd_ctl_elem_value_t *obj)
 }
 
 /**
- * \brief Get interface part of CTL element identificator of a CTL element id/value
+ * \brief Get interface part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return interface part of element identificator
+ * \return interface part of element identifier
  */
 snd_ctl_elem_iface_t snd_ctl_elem_value_get_interface(const snd_ctl_elem_value_t *obj)
 {
@@ -1874,9 +1874,9 @@ snd_ctl_elem_iface_t snd_ctl_elem_value_get_interface(const snd_ctl_elem_value_t
 }
 
 /**
- * \brief Get device part of CTL element identificator of a CTL element id/value
+ * \brief Get device part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return device part of element identificator
+ * \return device part of element identifier
  */
 unsigned int snd_ctl_elem_value_get_device(const snd_ctl_elem_value_t *obj)
 {
@@ -1885,9 +1885,9 @@ unsigned int snd_ctl_elem_value_get_device(const snd_ctl_elem_value_t *obj)
 }
 
 /**
- * \brief Get subdevice part of CTL element identificator of a CTL element id/value
+ * \brief Get subdevice part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return subdevice part of element identificator
+ * \return subdevice part of element identifier
  */
 unsigned int snd_ctl_elem_value_get_subdevice(const snd_ctl_elem_value_t *obj)
 {
@@ -1896,9 +1896,9 @@ unsigned int snd_ctl_elem_value_get_subdevice(const snd_ctl_elem_value_t *obj)
 }
 
 /**
- * \brief Get name part of CTL element identificator of a CTL element id/value
+ * \brief Get name part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return name part of element identificator
+ * \return name part of element identifier
  */
 const char *snd_ctl_elem_value_get_name(const snd_ctl_elem_value_t *obj)
 {
@@ -1907,9 +1907,9 @@ const char *snd_ctl_elem_value_get_name(const snd_ctl_elem_value_t *obj)
 }
 
 /**
- * \brief Get index part of CTL element identificator of a CTL element id/value
+ * \brief Get index part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \return index part of element identificator
+ * \return index part of element identifier
  */
 unsigned int snd_ctl_elem_value_get_index(const snd_ctl_elem_value_t *obj)
 {
@@ -1918,9 +1918,9 @@ unsigned int snd_ctl_elem_value_get_index(const snd_ctl_elem_value_t *obj)
 }
 
 /**
- * \brief Set CTL element identificator of a CTL element id/value
+ * \brief Set CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \param ptr CTL element identificator
+ * \param ptr CTL element identifier
  */
 void snd_ctl_elem_value_set_id(snd_ctl_elem_value_t *obj, const snd_ctl_elem_id_t *ptr)
 {
@@ -1929,9 +1929,9 @@ void snd_ctl_elem_value_set_id(snd_ctl_elem_value_t *obj, const snd_ctl_elem_id_
 }
 
 /**
- * \brief Set element numeric identificator of a CTL element id/value
+ * \brief Set element numeric identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \param val element numeric identificator
+ * \param val element numeric identifier
  */
 void snd_ctl_elem_value_set_numid(snd_ctl_elem_value_t *obj, unsigned int val)
 {
@@ -1940,9 +1940,9 @@ void snd_ctl_elem_value_set_numid(snd_ctl_elem_value_t *obj, unsigned int val)
 }
 
 /**
- * \brief Set interface part of CTL element identificator of a CTL element id/value
+ * \brief Set interface part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \param val interface part of element identificator
+ * \param val interface part of element identifier
  */
 void snd_ctl_elem_value_set_interface(snd_ctl_elem_value_t *obj, snd_ctl_elem_iface_t val)
 {
@@ -1951,9 +1951,9 @@ void snd_ctl_elem_value_set_interface(snd_ctl_elem_value_t *obj, snd_ctl_elem_if
 }
 
 /**
- * \brief Set device part of CTL element identificator of a CTL element id/value
+ * \brief Set device part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \param val device part of element identificator
+ * \param val device part of element identifier
  */
 void snd_ctl_elem_value_set_device(snd_ctl_elem_value_t *obj, unsigned int val)
 {
@@ -1962,9 +1962,9 @@ void snd_ctl_elem_value_set_device(snd_ctl_elem_value_t *obj, unsigned int val)
 }
 
 /**
- * \brief Set subdevice part of CTL element identificator of a CTL element id/value
+ * \brief Set subdevice part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \param val subdevice part of element identificator
+ * \param val subdevice part of element identifier
  */
 void snd_ctl_elem_value_set_subdevice(snd_ctl_elem_value_t *obj, unsigned int val)
 {
@@ -1973,9 +1973,9 @@ void snd_ctl_elem_value_set_subdevice(snd_ctl_elem_value_t *obj, unsigned int va
 }
 
 /**
- * \brief Set name part of CTL element identificator of a CTL element id/value
+ * \brief Set name part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \param val name part of element identificator
+ * \param val name part of element identifier
  */
 void snd_ctl_elem_value_set_name(snd_ctl_elem_value_t *obj, const char *val)
 {
@@ -1984,9 +1984,9 @@ void snd_ctl_elem_value_set_name(snd_ctl_elem_value_t *obj, const char *val)
 }
 
 /**
- * \brief Set index part of CTL element identificator of a CTL element id/value
+ * \brief Set index part of CTL element identifier of a CTL element id/value
  * \param obj CTL element id/value
- * \param val index part of element identificator
+ * \param val index part of element identifier
  */
 void snd_ctl_elem_value_set_index(snd_ctl_elem_value_t *obj, unsigned int val)
 {

@@ -66,7 +66,7 @@ unsigned int tempo;
 .fi
 
 .SH DESCRIPTION
-The \fCmfread\fR function reads and inteprets a standard MIDI file.
+The \fCmfread\fR function reads and interprets a standard MIDI file.
 To use it you need to understand the general form of a
 MIDI file and the type of information it contains, but you don't
 need to know much, if anything, about the detailed format of the file
@@ -180,14 +180,14 @@ types:
 0x05		Lyric
 0x06		Marker
 0x07		Cue Point
-0x08-0x0F	Reserverd but Undefined
+0x08-0x0F	Reserved but Undefined
 .fi
 .in -1i
 
 \fCMf_text\fR is called for each of these; the arguments are
 the type number, the message length, and a pointer to the message buffer.
 
-Misceallaneous \fImeta\fR messages are handled by \fCMf_metamisc\fR,
+Miscellaneous \fImeta\fR messages are handled by \fCMf_metamisc\fR,
 sequencer-specific messages are handled by \fCMf_seqspecific\fR, and
 arbitrary "escape" messages (started with 0xF7) are handled by
 \fCMf_arbitrary\fR.
@@ -243,7 +243,7 @@ access your MIDI data structure, which can make use of other library
 routines to write the actual MIDI data.  The routine
 \fCMf_writetrack\fR will be passed a single parameter which is the
 number of the track to be written.  The pointer \fCMf_putc\fR should be
-set to point to a routine that accepts a charcter as input, writes that
+set to point to a routine that accepts a character as input, writes that
 character to a file, and returns the value that was written.  In the
 case of a format 1 file, a routine has to be written to write a tempo
 map, and assigned to the function pointer \fCMf_writetempotrack\fR.
@@ -268,7 +268,7 @@ whether bit 15 is set or not.  If bit 15 of division is zero,
 bits 14 through 0 represent the number of delta-time "ticks"
 which make up a quarter note.  If bit 15 of division is a one,
 delta-times in a file correspond to subdivisions of a second
-similiar to SMPTE and MIDI time code. In this format bits
+similar to SMPTE and MIDI time code. In this format bits
 14 through 8 contain one of four values - 24, -25, -29, or -30,
 corresponding to the four standard SMPTE and MIDI time code
 frame per second formats, where -29 represents 30 drop frame.
@@ -279,7 +279,7 @@ the the resolution within a frame.  Refer the Standard MIDI Files
 .SH WRITING EXAMPLE
 The following is a simple program to demonstrate writing MIDI files.
 The track would consist of a series of quarter notes from lowest to
-highest in pitch at constant velocity, each separted by a quarter-note
+highest in pitch at constant velocity, each separated by a quarter-note
 rest.
 .sp
 .in +1i

@@ -6,7 +6,7 @@
  * \author Takashi Iwai <tiwai@suse.de>
  * \date 1998-2001
  *
- * Definitions of constatns for the ALSA driver
+ * Definitions of constants for the ALSA driver
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /**
- * \defgroup Digital_Audio_Interface Contants For Digital Audio Interface
+ * \defgroup Digital_Audio_Interface Constants For Digital Audio Interface
  * AES/IEC958 channel status bits
  * \{
  */
@@ -228,10 +228,10 @@ extern "C" {
 #define MIDI_CTL_E5_PHASER_DEPTH	0x5f	/**< E5 Phaser Depth */
 #define MIDI_CTL_DATA_INCREMENT       	0x60	/**< Data Increment */
 #define MIDI_CTL_DATA_DECREMENT       	0x61	/**< Data Decrement */
-#define MIDI_CTL_NONREG_PARM_NUM_LSB  	0x62	/**< Nonregister parameter number */
-#define MIDI_CTL_NONREG_PARM_NUM_MSB  	0x63	/**< Nonregister parameter number */
-#define MIDI_CTL_REGIST_PARM_NUM_LSB  	0x64	/**< Register parameter number */
-#define MIDI_CTL_REGIST_PARM_NUM_MSB	0x65	/**< Register parameter number */
+#define MIDI_CTL_NONREG_PARM_NUM_LSB  	0x62	/**< Non-registered parameter number */
+#define MIDI_CTL_NONREG_PARM_NUM_MSB  	0x63	/**< Non-registered parameter number */
+#define MIDI_CTL_REGIST_PARM_NUM_LSB  	0x64	/**< Registered parameter number */
+#define MIDI_CTL_REGIST_PARM_NUM_MSB	0x65	/**< Registered parameter number */
 #define MIDI_CTL_ALL_SOUNDS_OFF		0x78	/**< All sounds off */
 #define MIDI_CTL_RESET_CONTROLLERS	0x79	/**< Reset Controllers */
 #define MIDI_CTL_LOCAL_CONTROL_SWITCH	0x7a	/**< Local control switch */

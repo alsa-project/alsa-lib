@@ -230,7 +230,7 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	for (k = 0; k < multi->slaves_count; ++k) {
 		err = snd_pcm_multi_hw_refine_sprepare(pcm, k, &sparams[k]);
 		if (err < 0) {
-			SNDERR("Slave PCM #%d not useable", k);
+			SNDERR("Slave PCM #%d not usable", k);
 			return err;
 		}
 	}
@@ -828,7 +828,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			channels_count = cchannel + 1;
 	}
 	if (channels_count == 0) {
-		SNDERR("No cannels defined");
+		SNDERR("No channels defined");
 		return -EINVAL;
 	}
 	slaves_id = calloc(slaves_count, sizeof(*slaves_id));

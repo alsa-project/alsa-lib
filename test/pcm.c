@@ -1,5 +1,5 @@
 /*
- *  This small demo generates simple sinus wave on output of speakers.
+ *  This small demo sends a simple sinusoidal wave to your speakers.
  */
 
 #include <stdio.h>
@@ -18,7 +18,7 @@ int rate = 44100;				 /* stream rate */
 int channels = 1;				 /* count of channels */
 int buffer_time = 500000;			 /* ring buffer length in us */
 int period_time = 100000;			 /* period time in us */
-double freq = 440;				 /* sinus wave frequency in Hz */
+double freq = 440;				 /* sinusoidal wave frequency in Hz */
 
 snd_pcm_sframes_t buffer_size;
 snd_pcm_sframes_t period_size;
@@ -105,14 +105,14 @@ static int set_hwparams(snd_pcm_t *handle,
 		printf("Rate doesn't match (requested %iHz, get %iHz)\n", rate, err);
 		return -EINVAL;
 	}
-	/* set buffer time */
+	/* set the buffer time */
 	err = snd_pcm_hw_params_set_buffer_time_near(handle, params, buffer_time, &dir);
 	if (err < 0) {
 		printf("Unable to set buffer time %i for playback: %s\n", buffer_time, snd_strerror(err));
 		return err;
 	}
 	buffer_size = snd_pcm_hw_params_get_buffer_size(params);
-	/* set period time */
+	/* set the period time */
 	err = snd_pcm_hw_params_set_period_time_near(handle, params, period_time, &dir);
 	if (err < 0) {
 		printf("Unable to set period time %i for playback: %s\n", period_time, snd_strerror(err));
@@ -132,31 +132,31 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
 {
 	int err;
 
-	/* get current swparams */
+	/* get the current swparams */
 	err = snd_pcm_sw_params_current(handle, swparams);
 	if (err < 0) {
 		printf("Unable to determine current swparams for playback: %s\n", snd_strerror(err));
 		return err;
 	}
-	/* start transfer when the buffer is full */
+	/* start the transfer when the buffer is full */
 	err = snd_pcm_sw_params_set_start_threshold(handle, swparams, buffer_size);
 	if (err < 0) {
 		printf("Unable to set start threshold mode for playback: %s\n", snd_strerror(err));
 		return err;
 	}
-	/* allow transfer when at least period_size samples can be processed */
+	/* allow the transfer when at least period_size samples can be processed */
 	err = snd_pcm_sw_params_set_avail_min(handle, swparams, period_size);
 	if (err < 0) {
 		printf("Unable to set avail min for playback: %s\n", snd_strerror(err));
 		return err;
 	}
-	/* align all transfers to 1 samples */
+	/* align all transfers to 1 sample */
 	err = snd_pcm_sw_params_set_xfer_align(handle, swparams, 1);
 	if (err < 0) {
 		printf("Unable to set transfer align for playback: %s\n", snd_strerror(err));
 		return err;
 	}
-	/* write the parameters to device */
+	/* write the parameters to the playback device */
 	err = snd_pcm_sw_params(handle, swparams);
 	if (err < 0) {
 		printf("Unable to set sw params for playback: %s\n", snd_strerror(err));
@@ -171,14 +171,14 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
  
 static int xrun_recovery(snd_pcm_t *handle, int err)
 {
-	if (err == -EPIPE) {	/* underrun */
+	if (err == -EPIPE) {	/* under-run */
 		err = snd_pcm_prepare(handle);
 		if (err < 0)
 			printf("Can't recovery from underrun, prepare failed: %s\n", snd_strerror(err));
 		return 0;
 	} else if (err == -ESTRPIPE) {
 		while ((err = snd_pcm_resume(handle)) == -EAGAIN)
-			sleep(1);	/* wait until suspend flag is released */
+			sleep(1);	/* wait until the suspend flag is released */
 		if (err < 0) {
 			err = snd_pcm_prepare(handle);
 			if (err < 0)
@@ -304,8 +304,8 @@ static int write_and_poll_loop(snd_pcm_t *handle,
 			cptr -= err;
 			if (cptr == 0)
 				break;
-			/* it is possible, that initial buffer cannot store */
-			/* all data from last period, so wait awhile */
+			/* it is possible, that the initial buffer cannot store */
+			/* all data from the last period, so wait awhile */
 			err = wait_for_poll(handle, ufds, count);
 			if (err < 0) {
 				if (snd_pcm_state(handle) == SND_PCM_STATE_XRUN ||
@@ -554,7 +554,7 @@ Usage: latency [OPTION]... [FILE]...
 -f,--frequency  sine wave frequency in Hz
 -b,--buffer     ring buffer size in samples
 -p,--period     period size in us
--m,--method     tranfer method
+-m,--method     transfer method
 
 ");
         printf("Recognized sample formats are:");
@@ -564,7 +564,7 @@ Usage: latency [OPTION]... [FILE]...
                         printf(" %s", s);
         }
         printf("\n");
-        printf("Recognized tranfer methods are:");
+        printf("Recognized transfer methods are:");
         for (k = 0; transfer_methods[k].name; k++)
         	printf(" %s", transfer_methods[k].name);
 	printf("\n");

@@ -126,7 +126,7 @@ int decode_event(snd_seq_event_t * ev)
 		printf("%sEvent = %s", space, event_names[ev->type]);
 	else
 		printf("%sEvent = Reserved %d\n", space, ev->type);
-	/* decode actual event data... */
+	/* decode the actual event data... */
 	switch (ev->type) {
 	case SND_SEQ_EVENT_NOTE:
 		printf("; ch=%d, note=%d, velocity=%d, off_velocity=%d, duration=%d\n",
