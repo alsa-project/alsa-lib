@@ -498,6 +498,7 @@ static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 	
 	memset(&slave_info, 0, sizeof(slave_info));
 	err = snd_pcm_params_info(slave, &slave_info);
+	assert(err > 0);
 	if (err < 0)
 		return err;
 
@@ -514,11 +515,22 @@ static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 		}
 		slave_format->sfmt = slave_fmt;
 	}
+	slave_info.req_mask |= SND_PCM_PARAMS_SFMT;
+	err = snd_pcm_params_info(slave, &slave_info);
+	assert(err > 0);
+	if (err < 0)
+		return err;
 
       	if (format->channels < slave_info.min_channels)
 		slave_format->channels = slave_info.min_channels;
 	else if (format->channels > slave_info.max_channels)
 		slave_format->channels = slave_info.max_channels;
+	slave_info.req_mask |= SND_PCM_PARAMS_CHANNELS;
+	err = snd_pcm_params_info(slave, &slave_info);
+	assert(err > 0);
+	if (err < 0)
+		return err;
+
 
 	srate = snd_pcm_plug_slave_rate(format->rate, &slave_info);
 	if (srate < 0) {
@@ -527,14 +539,11 @@ static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 		return srate;
 	}
 	slave_format->rate = srate;
-		   
-	slave_info.req_mask = ~0;
+	slave_info.req_mask |= SND_PCM_PARAMS_RATE;
 	err = snd_pcm_params_info(slave, &slave_info);
-	if (err < 0) {
-		params->fail_mask = slave_info.req.fail_mask;
-		params->fail_reason = slave_info.req.fail_reason;
+	assert(err > 0);
+	if (err < 0)
 		return err;
-	}
 
 	if (slave_format->rate - slave_info.min_rate < slave_info.max_rate - slave_format->rate)
 		slave_format->rate = slave_info.min_rate;
