@@ -83,12 +83,12 @@ void zero_voice(snd_pcm_plugin_t *plugin,
 		const snd_pcm_plugin_voice_t *dst_voice,
 		size_t samples)
 {
-	char *dst = dst_voice->addr + dst_voice->offset / 8;
-	int dst_step = dst_voice->next / 8;
+	char *dst = dst_voice->addr + dst_voice->first / 8;
+	int dst_step = dst_voice->step / 8;
 	switch (plugin->dst_width) {
 	case 4: {
-		int dstbit = dst_voice->offset % 8;
-		int dstbit_step = dst_voice->next % 8;
+		int dstbit = dst_voice->first % 8;
+		int dstbit_step = dst_voice->step % 8;
 		while (samples-- > 0) {
 			if (dstbit)
 				*dst &= 0x0f;
@@ -165,10 +165,10 @@ static void route_to_voice_one(snd_pcm_plugin_t *plugin,
 	}
 
 	copy = copy_labels[data->copy];
-	src = src_voice->addr + src_voice->offset / 8;
-	src_step = src_voice->next / 8;
-	dst = dst_voice->addr + dst_voice->offset / 8;
-	dst_step = dst_voice->next / 8;
+	src = src_voice->addr + src_voice->first / 8;
+	src_step = src_voice->step / 8;
+	dst = dst_voice->addr + dst_voice->first / 8;
+	dst_step = dst_voice->step / 8;
 	while (samples-- > 0) {
 		goto *copy;
 #define COPY_END after
@@ -244,8 +244,8 @@ static void route_to_voice(snd_pcm_plugin_t *plugin,
 		const snd_pcm_plugin_voice_t *src_voice = &src_voices[ttable->srcs[srcidx].voice];
 		if (src_voice->addr == NULL)
 			continue;
-		srcs[srcidx1] = src_voice->addr + src_voices->offset / 8;
-		src_steps[srcidx1] = src_voice->next / 8;
+		srcs[srcidx1] = src_voice->addr + src_voices->first / 8;
+		src_steps[srcidx1] = src_voice->step / 8;
 		src_tt[srcidx1] = ttable->srcs[srcidx];
 		srcidx1++;
 	}
@@ -263,8 +263,8 @@ static void route_to_voice(snd_pcm_plugin_t *plugin,
 	add = add_labels[data->sum_type * 2 + ttable->att];
 	norm = norm_labels[data->sum_type * 8 + ttable->att * 4 + 4 - data->src_sample_size];
 	put32 = put32_labels[data->put];
-	dst = dst_voice->addr + dst_voice->offset / 8;
-	dst_step = dst_voice->next / 8;
+	dst = dst_voice->addr + dst_voice->first / 8;
+	dst_step = dst_voice->step / 8;
 
 	while (samples-- > 0) {
 		ttable_src_t *ttp = src_tt;
@@ -516,15 +516,15 @@ static ssize_t route_transfer(snd_pcm_plugin_t *plugin,
 
 	src_nvoices = plugin->src_format.voices;
 	for (src_voice = 0; src_voice < src_nvoices; ++src_voice) {
-		if (src_voices[src_voice].offset % 8 != 0 || 
-		    src_voices[src_voice].next % 8 != 0)
+		if (src_voices[src_voice].first % 8 != 0 || 
+		    src_voices[src_voice].step % 8 != 0)
 			return -EINVAL;
 	}
 
 	dst_nvoices = plugin->dst_format.voices;
 	for (dst_voice = 0; dst_voice < dst_nvoices; ++dst_voice) {
-		if (dst_voices[dst_voice].offset % 8 != 0 || 
-		    dst_voices[dst_voice].next % 8 != 0)
+		if (dst_voices[dst_voice].first % 8 != 0 || 
+		    dst_voices[dst_voice].step % 8 != 0)
 			return -EINVAL;
 	}
 

@@ -236,12 +236,12 @@ static void adpcm_decode(snd_pcm_plugin_t *plugin,
 			}
 			continue;
 		}
-		src = src_voices[voice].addr + src_voices[voice].offset / 8;
-		srcbit = src_voices[voice].offset % 8;
-		dst = dst_voices[voice].addr + dst_voices[voice].offset / 8;
-		src_step = src_voices[voice].next / 8;
-		srcbit_step = src_voices[voice].next % 8;
-		dst_step = dst_voices[voice].next / 8;
+		src = src_voices[voice].addr + src_voices[voice].first / 8;
+		srcbit = src_voices[voice].first % 8;
+		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
+		src_step = src_voices[voice].step / 8;
+		srcbit_step = src_voices[voice].step % 8;
+		dst_step = dst_voices[voice].step / 8;
 		state = &data->voices[voice];
 		samples1 = samples;
 		while (samples1-- > 0) {
@@ -295,12 +295,12 @@ static void adpcm_encode(snd_pcm_plugin_t *plugin,
 			}
 			continue;
 		}
-		src = src_voices[voice].addr + src_voices[voice].offset / 8;
-		dst = dst_voices[voice].addr + dst_voices[voice].offset / 8;
-		dstbit = dst_voices[voice].offset % 8;
-		src_step = src_voices[voice].next / 8;
-		dst_step = dst_voices[voice].next / 8;
-		dstbit_step = dst_voices[voice].next % 8;
+		src = src_voices[voice].addr + src_voices[voice].first / 8;
+		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
+		dstbit = dst_voices[voice].first % 8;
+		src_step = src_voices[voice].step / 8;
+		dst_step = dst_voices[voice].step / 8;
+		dstbit_step = dst_voices[voice].step % 8;
 		state = &data->voices[voice];
 		samples1 = samples;
 		while (samples1-- > 0) {
@@ -345,16 +345,16 @@ static ssize_t adpcm_transfer(snd_pcm_plugin_t *plugin,
 		    dst_voices[voice].addr == NULL)
 			return -EFAULT;
 		if (plugin->src_format.format == SND_PCM_SFMT_IMA_ADPCM) {
-			if (src_voices[voice].offset % 4 != 0 ||
-			    src_voices[voice].next % 4 != 0 ||
-			    dst_voices[voice].offset % 8 != 0 ||
-			    dst_voices[voice].next % 8 != 0)
+			if (src_voices[voice].first % 4 != 0 ||
+			    src_voices[voice].step % 4 != 0 ||
+			    dst_voices[voice].first % 8 != 0 ||
+			    dst_voices[voice].step % 8 != 0)
 				return -EINVAL;
 		} else {
-			if (src_voices[voice].offset % 8 != 0 ||
-			    src_voices[voice].next % 8 != 0 ||
-			    dst_voices[voice].offset % 4 != 0 ||
-			    dst_voices[voice].next % 4 != 0)
+			if (src_voices[voice].first % 8 != 0 ||
+			    src_voices[voice].step % 8 != 0 ||
+			    dst_voices[voice].first % 4 != 0 ||
+			    dst_voices[voice].step % 4 != 0)
 				return -EINVAL;
 		}
 	}

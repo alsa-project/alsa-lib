@@ -166,10 +166,10 @@ static void alaw_decode(snd_pcm_plugin_t *plugin,
 			}
 			continue;
 		}
-		src = src_voices[voice].addr + src_voices[voice].offset / 8;
-		dst = dst_voices[voice].addr + dst_voices[voice].offset / 8;
-		src_step = src_voices[voice].next / 8;
-		dst_step = dst_voices[voice].next / 8;
+		src = src_voices[voice].addr + src_voices[voice].first / 8;
+		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
+		src_step = src_voices[voice].step / 8;
+		dst_step = dst_voices[voice].step / 8;
 		samples1 = samples;
 		while (samples1-- > 0) {
 			signed short sample = alaw2linear(*src);
@@ -209,10 +209,10 @@ static void alaw_encode(snd_pcm_plugin_t *plugin,
 			}
 			continue;
 		}
-		src = src_voices[voice].addr + src_voices[voice].offset / 8;
-		dst = dst_voices[voice].addr + dst_voices[voice].offset / 8;
-		src_step = src_voices[voice].next / 8;
-		dst_step = dst_voices[voice].next / 8;
+		src = src_voices[voice].addr + src_voices[voice].first / 8;
+		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
+		src_step = src_voices[voice].step / 8;
+		dst_step = dst_voices[voice].step / 8;
 		samples1 = samples;
 		while (samples1-- > 0) {
 			goto *get;
@@ -245,11 +245,11 @@ static ssize_t alaw_transfer(snd_pcm_plugin_t *plugin,
 		if (src_voices[voice].addr != NULL && 
 		    dst_voices[voice].addr == NULL)
 			return -EFAULT;
-		if (src_voices[voice].offset % 8 != 0 || 
-		    src_voices[voice].next % 8 != 0)
+		if (src_voices[voice].first % 8 != 0 || 
+		    src_voices[voice].step % 8 != 0)
 			return -EINVAL;
-		if (dst_voices[voice].offset % 8 != 0 || 
-		    dst_voices[voice].next % 8 != 0)
+		if (dst_voices[voice].first % 8 != 0 || 
+		    dst_voices[voice].step % 8 != 0)
 			return -EINVAL;
 	}
 	data = (alaw_t *)plugin->extra_data;

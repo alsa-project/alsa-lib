@@ -111,10 +111,10 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 			}
 			continue;
 		}
-		src = (char *)src_voices[voice].addr + src_voices[voice].offset / 8;
-		dst = (char *)dst_voices[voice].addr + dst_voices[voice].offset / 8;
-		src_step = src_voices[voice].next / 8;
-		dst_step = dst_voices[voice].next / 8;
+		src = (char *)src_voices[voice].addr + src_voices[voice].first / 8;
+		dst = (char *)dst_voices[voice].addr + dst_voices[voice].first / 8;
+		src_step = src_voices[voice].step / 8;
+		dst_step = dst_voices[voice].step / 8;
 		src_samples1 = src_samples;
 		dst_samples1 = dst_samples;
 		if (pos & ~MASK) {
@@ -195,10 +195,10 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 			}
 			continue;
 		}
-		src = (char *)src_voices[voice].addr + src_voices[voice].offset / 8;
-		dst = (char *)dst_voices[voice].addr + dst_voices[voice].offset / 8;
-		src_step = src_voices[voice].next / 8;
-		dst_step = dst_voices[voice].next / 8;
+		src = (char *)src_voices[voice].addr + src_voices[voice].first / 8;
+		dst = (char *)dst_voices[voice].addr + dst_voices[voice].first / 8;
+		src_step = src_voices[voice].step / 8;
+		dst_step = dst_voices[voice].step / 8;
 		src_samples1 = src_samples;
 		dst_samples1 = dst_samples;
 		while (dst_samples1 > 0) {
@@ -318,11 +318,11 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 		if (src_voices[voice].addr != NULL && 
 		    dst_voices[voice].addr == NULL)
 			return -EFAULT;
-		if (src_voices[voice].offset % 8 != 0 || 
-		    src_voices[voice].next % 8 != 0)
+		if (src_voices[voice].first % 8 != 0 || 
+		    src_voices[voice].step % 8 != 0)
 			return -EINVAL;
-		if (dst_voices[voice].offset % 8 != 0 || 
-		    dst_voices[voice].next % 8 != 0)
+		if (dst_voices[voice].first % 8 != 0 || 
+		    dst_voices[voice].step % 8 != 0)
 			return -EINVAL;
 	}
 
