@@ -113,6 +113,18 @@ typedef struct {
 	((hw)->mmap_status->tstamp)
 #endif /* DOC_HIDDEN */
 
+static inline int check_std_error(int error)
+{
+	switch (error) {
+	case -EAGAIN:
+	case -EPIPE:
+	case -ESTRPIPE:
+	case -ENXIO:
+	case -ENOSYS:
+		return 0;
+	}
+	return 1;
+}
 
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm)
 {
@@ -130,7 +142,7 @@ static int sync_ptr1(snd_pcm_hw_t *hw, unsigned int flags)
 	hw->sync_ptr->flags = flags;
 	err = ioctl((hw)->fd, SNDRV_PCM_IOCTL_SYNC_PTR, (hw)->sync_ptr);
 	if (err < 0) {
-		(err) = -errno;
+		err = -errno;
 		SYSERR("SNDRV_PCM_IOCTL_SYNC_PTR failed");
 		return err;
 	}
@@ -474,7 +486,8 @@ static int snd_pcm_hw_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	}
 	if (ioctl(fd, SNDRV_PCM_IOCTL_DELAY, delayp) < 0) {
 		err = -errno;
-		// SYSERR("SNDRV_PCM_IOCTL_DELAY failed");
+		if (check_std_error(err))
+			SYSERR("SNDRV_PCM_IOCTL_DELAY failed");
 		return err;
 	}
 	return 0;
@@ -492,7 +505,8 @@ static int snd_pcm_hw_hwsync(snd_pcm_t *pcm)
 		} else {
 			if (ioctl(fd, SNDRV_PCM_IOCTL_HWSYNC) < 0) {
 				err = -errno;
-				// SYSERR("SNDRV_PCM_IOCTL_HWSYNC failed");
+				if (check_std_error(err))
+					SYSERR("SNDRV_PCM_IOCTL_HWSYNC failed");
 				return err;
 			}
 		}
@@ -574,7 +588,7 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 	int err;
 	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_DRAIN) < 0) {
 		err = -errno;
-		if (err != -EAGAIN)
+		if (check_std_error(err))
 			SYSERR("SNDRV_PCM_IOCTL_DRAIN failed");
 		return err;
 	}
@@ -587,7 +601,8 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 	int err;
 	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_PAUSE, enable) < 0) {
 		err = -errno;
-		SYSERR("SNDRV_PCM_IOCTL_PAUSE failed");
+		if (check_std_error(err))
+			SYSERR("SNDRV_PCM_IOCTL_PAUSE failed");
 		return err;
 	}
 	return 0;
@@ -599,7 +614,8 @@ static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fra
 	int err;
 	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_REWIND, &frames) < 0) {
 		err = -errno;
-		SYSERR("SNDRV_PCM_IOCTL_REWIND failed");
+		if (check_std_error(err))
+			SYSERR("SNDRV_PCM_IOCTL_REWIND failed");
 		return err;
 	}
 	return frames;
@@ -612,7 +628,8 @@ static snd_pcm_sframes_t snd_pcm_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 4) <= hw->version) {
 		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_FORWARD, &frames) < 0) {
 			err = -errno;
-			SYSERR("SNDRV_PCM_IOCTL_FORWARD failed");
+			if (check_std_error(err))
+				SYSERR("SNDRV_PCM_IOCTL_FORWARD failed");
 			return err;
 		}
 		return frames;
@@ -652,7 +669,7 @@ static int snd_pcm_hw_resume(snd_pcm_t *pcm)
 	int fd = hw->fd, err;
 	if (ioctl(fd, SNDRV_PCM_IOCTL_RESUME) < 0) {
 		err = -errno;
-		if (err != -ENXIO && err != -ENOSYS)
+		if (check_std_error(err))
 			SYSERR("SNDRV_PCM_IOCTL_RESUME failed");
 		return err;
 	}
