@@ -341,7 +341,7 @@ int decode_event(snd_seq_event_t * ev)
 			break;
 			
 		case SND_SEQ_EVENT_QFRAME:
-			printf("; frame=%i\n", ev->data.control.value);
+			printf("; frame=0x%02x\n", ev->data.control.value);
 			break;
 			
 		case SND_SEQ_EVENT_CLOCK:
@@ -444,7 +444,9 @@ void event_decoder(snd_seq_t *handle, int argc, char *argv[])
 	sub.sender.port = SND_SEQ_PORT_SYSTEM_ANNOUNCE;
 	sub.dest.client = client;
 	sub.dest.port = port.port;
+	sub.queue = queue;
 	sub.exclusive = 0;
+	sub.convert_time = 1;
 	sub.realtime = 1;
 	if ((err = snd_seq_subscribe_port(handle, &sub))<0) {
 		fprintf(stderr, "Cannot subscribe announce port: %s\n", snd_strerror(err));
