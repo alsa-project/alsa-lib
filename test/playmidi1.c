@@ -73,7 +73,7 @@ static int source_channel = 0;
 static int source_port = 0;
 
 static int verbose = 0;
-static int slave   = 0;	
+static int slave   = 0;		/* allow external sync */
 
 #define VERB_INFO	1
 #define VERB_MUCH	2
@@ -81,6 +81,7 @@ static int slave   = 0;
 
 static void alsa_start_timer(void);
 static void alsa_stop_timer(void);
+static void wait_start(void);
 
 
 static inline double tick2time_dbl(int tick)
@@ -197,7 +198,13 @@ static void do_header(int format, int ntracks, int division)
 	}
 
 	/* start playing... */
-	if (!slave)
+	if (slave) {
+		if (verbose >= VERB_INFO)
+			printf("Wait till timer starts...\n");	
+		wait_start();
+		if (verbose >= VERB_INFO)
+			printf("Go!\n");	
+	} else
 		alsa_start_timer();
 }
 
@@ -290,7 +297,8 @@ static void do_tempo(int us)
 
 	set_timer_event_header(&ev, SND_SEQ_EVENT_TEMPO);
 	ev.data.control.value = us;
-	write_ev(&ev);
+	if (!slave)
+		write_ev(&ev);
 }
 
 static void do_noteon(int chan, int pitch, int vol)
@@ -436,7 +444,7 @@ static void alsa_sync(void)
 	/* dump buffer */
 	left = snd_seq_flush_output(seq_handle);
 
-	/* wait the echo event which I sent. */
+	/* wait for the timer start event */
 #ifdef USE_BLOCKING_MODE
 	/* read event - blocked until any event is read */
 	left = snd_seq_event_input(seq_handle, &input_event);
@@ -467,6 +475,49 @@ static void alsa_sync(void)
   
 	if (verbose >= VERB_MUCH)
 		printf("alsa_sync synced\n");
+}
+
+
+/* wait for start of the queue */
+static void wait_start(void)
+{
+	int left;
+	snd_seq_event_t* input_event;
+  
+	/* wait the start event from the system timer */
+  	do {
+#ifdef USE_BLOCKING_MODE
+		/* read event - blocked until any event is read */
+		left = snd_seq_event_input(seq_handle, &input_event);
+#else
+		/* read event - using select syscall */
+		while ((left = snd_seq_event_input(seq_handle, &input_event)) >= 0 &&
+		       input_event == NULL) {
+			int seqfd;
+			fd_set fds;
+			seqfd = snd_seq_file_descriptor(seq_handle);
+			FD_ZERO(&fds);
+			FD_SET(seqfd, &fds);
+			if ((left = select(seqfd + 1, &fds, NULL, NULL, NULL)) < 0) {
+				printf("select error = %i (%s)\n", left, snd_strerror(left));
+				exit(1);
+			}
+		}
+#endif
+		if (left < 0) {
+			printf("alsa_sync error!:%s\n", snd_strerror(left));
+			return;
+		}
+
+		if (verbose >= VERB_MUCH)
+			printf("wait_start got event. type=%d, flags=%d\n",
+			       input_event->type, input_event->flags);
+		snd_seq_free_event(input_event);
+	
+	} while (input_event->type != SND_SEQ_EVENT_START);
+			
+	if (verbose >= VERB_MUCH)
+		printf("start received\n");
 }
 
 
@@ -532,7 +583,7 @@ int main(int argc, char *argv[])
 
 	/* open sequencer device */
 	/* Here we open the device read/write mode. */
-	/* Becase we write SND_SEQ_EVENT_ECHO to myself to sync. */
+	/* Because we write SND_SEQ_EVENT_ECHO to myself to sync. */
 	tmp = snd_seq_open(&seq_handle, SND_SEQ_OPEN);
 	if (tmp < 0) {
 		perror("open /dev/snd/seq");
@@ -548,14 +599,16 @@ int main(int argc, char *argv[])
 		perror("block_mode");
 		exit(1);
 	}
-	
-		
+			
 	/* set name */
 	/* set event filter to recieve only echo event */
+	/* if running in slave mode also listen for START event */
 	memset(&inf, 0, sizeof(snd_seq_client_info_t));
 	inf.filter |= SND_SEQ_FILTER_USE_EVENT;
 	memset(&inf.event_filter, 0, sizeof(inf.event_filter));
 	snd_seq_set_bit(SND_SEQ_EVENT_ECHO, inf.event_filter);
+	if (slave)
+		snd_seq_set_bit(SND_SEQ_EVENT_START, inf.event_filter);
 	strcpy(inf.name, "MIDI file player");
 	if (snd_seq_set_client_info(seq_handle, &inf) < 0) {
 		perror("ioctl");
@@ -577,6 +630,7 @@ int main(int argc, char *argv[])
 	source_port = src_port_info.port;
 	
 	/* setup queue */
+	bzero(&queue_info,sizeof(queue_info));
 	queue_info.used = 1;
 	tmp = snd_seq_set_queue_client(seq_handle, dest_queue, &queue_info);
 	if (tmp < 0) {
@@ -585,6 +639,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* setup subscriber */
+	bzero(&subscribe,sizeof(subscribe));
 	if (verbose >= VERB_INFO)
 		printf("debug subscribe src_port_info.client=%d\n",
 		       src_port_info.client);
@@ -601,8 +656,26 @@ int main(int argc, char *argv[])
 		perror("subscribe");
 		exit(1);
 	}
+
+	/* subscribe for timer START event */	
+	if (slave) {	
+		subscribe.sender.client = SND_SEQ_CLIENT_SYSTEM;
+		subscribe.sender.queue = dest_queue;
+		subscribe.sender.port = SND_SEQ_PORT_SYSTEM_TIMER;
+		subscribe.dest.client = snd_seq_client_id(seq_handle);
+		subscribe.dest.port = src_port_info.port;
+		subscribe.dest.queue = dest_queue;
+		subscribe.realtime = 0;
+		subscribe.exclusive = 0;
+		tmp = snd_seq_subscribe_port(seq_handle, &subscribe);
+		if (tmp < 0) {
+			perror("subscribe");
+			exit(1);
+		}	
+	}
 	
 	/* change pool size */
+	bzero(&pool,sizeof(pool));
 	pool.output_pool = WRITE_POOL_SIZE;
 	pool.input_pool = READ_POOL_SIZE;
 	pool.output_room = WRITE_POOL_SPACE;
