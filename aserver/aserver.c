@@ -1117,7 +1117,7 @@ int main(int argc, char **argv)
 		ERROR("Cannot resolve %s", host);
 		return 1;
 	}
-	if (!is_local(h)) {
+	if (!snd_is_local(h)) {
 		ERROR("%s is not the local host", host);
 		return 1;
 	}

@@ -172,6 +172,13 @@ void snd_midi_event_free(snd_midi_event_t *dev)
 	}
 }
 
+/**
+ * \brief Enable/disable MIDI command merging
+ * \param dev MIDI event parser
+ * \param on 0 - enable MIDI command merging, 1 - always pass the command
+ *
+ * Enable/disable MIDI command merging
+ */
 void snd_midi_event_no_status(snd_midi_event_t *dev, int on)
 {
 	dev->nostat = on ? 1 : 0;

@@ -1016,8 +1016,10 @@ SND_DLSYM_BUILD_VERSION(_snd_pcm_hw_open, SND_PCM_DLSYM_VERSION);
  *  To be removed helpers, but keep binary compatibility at the time
  */
 
+#ifndef DOC_HIDDEN
 #define __OLD_TO_NEW_MASK(x) ((x&7)|((x&0x07fffff8)<<5))
 #define __NEW_TO_OLD_MASK(x) ((x&7)|((x&0xffffff00)>>5))
+#endif
 
 static void snd_pcm_hw_convert_from_old_params(snd_pcm_hw_params_t *params,
 					       struct sndrv_pcm_hw_params_old *oparams)

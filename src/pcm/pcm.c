@@ -2722,6 +2722,9 @@ void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t 
  * \param params Configuration space
  * \param access Returned value
  * \return access type otherwise a negative error code if not exactly one is present
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_access)(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
@@ -2766,6 +2769,9 @@ int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, sn
  * \param params Configuration space
  * \param access Returned first access type
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_access_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
@@ -2782,6 +2788,9 @@ int snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \param params Configuration space
  * \param val Returned last access type
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_access_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t *access)
@@ -2823,6 +2832,9 @@ int snd_pcm_hw_params_get_access_mask(snd_pcm_hw_params_t *params, snd_pcm_acces
  * \param params Configuration space
  * \param format returned format
  * \return format otherwise a negative error code if not exactly one is present
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_format)(const snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
@@ -2863,6 +2875,9 @@ int snd_pcm_hw_params_set_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, sn
  * \param params Configuration space
  * \param format Returned first format
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_format_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
@@ -2879,6 +2894,9 @@ int snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \param params Configuration space
  * \param format Returned last format
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_format_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
@@ -2917,6 +2935,9 @@ void snd_pcm_hw_params_get_format_mask(snd_pcm_hw_params_t *params, snd_pcm_form
  * \param params Configuration space
  * \param subformat Returned subformat value
  * \return subformat otherwise a negative error code if not exactly one is present
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_subformat)(const snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
@@ -2957,6 +2978,9 @@ int snd_pcm_hw_params_set_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  * \param params Configuration space
  * \param subformat Returned subformat
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_subformat_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
@@ -2973,6 +2997,9 @@ int snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param params Configuration space
  * \param subformat Returned subformat
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_subformat_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t *subformat)
@@ -3011,6 +3038,9 @@ void snd_pcm_hw_params_get_subformat_mask(snd_pcm_hw_params_t *params, snd_pcm_s
  * \param params Configuration space
  * \param val Returned channels count
  * \return 0 otherwise a negative error code if not exactly one is present
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_channels)(const snd_pcm_hw_params_t *params, unsigned int *val)
@@ -3026,6 +3056,9 @@ int snd_pcm_hw_params_get_channels(const snd_pcm_hw_params_t *params, unsigned i
  * \param params Configuration space
  * \param val minimum channels count
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_channels_min)(const snd_pcm_hw_params_t *params, unsigned int *val)
@@ -3041,6 +3074,9 @@ int snd_pcm_hw_params_get_channels_min(const snd_pcm_hw_params_t *params, unsign
  * \param params Configuration space
  * \param val maximum channels count
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_channels_max)(const snd_pcm_hw_params_t *params, unsigned int *val)
@@ -3118,6 +3154,9 @@ int snd_pcm_hw_params_set_channels_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param params Configuration space
  * \param val target channels count, returned chosen channels count
  * \return chosen channels count
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_channels_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
@@ -3134,6 +3173,9 @@ int snd_pcm_hw_params_set_channels_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  * \param params Configuration space
  * \param val minimum channels count
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_channels_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
@@ -3150,6 +3192,9 @@ int snd_pcm_hw_params_set_channels_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * \param params Configuration space
  * \param val maximum channels count
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_channels_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
@@ -3169,6 +3214,9 @@ int snd_pcm_hw_params_set_channels_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_rate)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3187,6 +3235,9 @@ int snd_pcm_hw_params_get_rate(const snd_pcm_hw_params_t *params, unsigned int *
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_rate_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3205,6 +3256,9 @@ int snd_pcm_hw_params_get_rate_min(const snd_pcm_hw_params_t *params, unsigned i
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_rate_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3300,6 +3354,9 @@ int snd_pcm_hw_params_set_rate_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \return approximate chosen rate
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_rate_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3319,6 +3376,9 @@ int snd_pcm_hw_params_set_rate_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_rate_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3338,6 +3398,9 @@ int snd_pcm_hw_params_set_rate_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_rate_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3357,6 +3420,9 @@ int snd_pcm_hw_params_set_rate_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_period_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3375,6 +3441,9 @@ int snd_pcm_hw_params_get_period_time(const snd_pcm_hw_params_t *params, unsigne
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_period_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3393,6 +3462,9 @@ int snd_pcm_hw_params_get_period_time_min(const snd_pcm_hw_params_t *params, uns
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_period_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3489,6 +3561,9 @@ int snd_pcm_hw_params_set_period_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \return approximate chosen period duration in us
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_period_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3508,6 +3583,9 @@ int snd_pcm_hw_params_set_period_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_period_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3526,6 +3604,9 @@ int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t 
  * \return approximate period duration in us
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_period_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3545,6 +3626,9 @@ int snd_pcm_hw_params_set_period_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_period_size)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
@@ -3567,6 +3651,9 @@ int snd_pcm_hw_params_get_period_size(const snd_pcm_hw_params_t *params, snd_pcm
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_period_size_min)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
@@ -3589,6 +3676,9 @@ int snd_pcm_hw_params_get_period_size_min(const snd_pcm_hw_params_t *params, snd
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_period_size_max)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
@@ -3701,6 +3791,9 @@ int snd_pcm_hw_params_set_period_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \return 0 otherwise a negative error code
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_period_size_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
@@ -3724,6 +3817,9 @@ int snd_pcm_hw_params_set_period_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_period_size_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
@@ -3747,6 +3843,9 @@ int snd_pcm_hw_params_set_period_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t 
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_period_size_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val, int *dir)
@@ -3781,6 +3880,9 @@ int snd_pcm_hw_params_set_period_size_integer(snd_pcm_t *pcm, snd_pcm_hw_params_
  * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_periods)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3799,6 +3901,9 @@ int snd_pcm_hw_params_get_periods(const snd_pcm_hw_params_t *params, unsigned in
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_periods_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3817,6 +3922,9 @@ int snd_pcm_hw_params_get_periods_min(const snd_pcm_hw_params_t *params, unsigne
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_periods_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3912,6 +4020,9 @@ int snd_pcm_hw_params_set_periods_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * \return approximate chosen periods per buffer
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_periods_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3931,6 +4042,9 @@ int snd_pcm_hw_params_set_periods_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_periods_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3950,6 +4064,9 @@ int snd_pcm_hw_params_set_periods_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_periods_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3981,6 +4098,9 @@ int snd_pcm_hw_params_set_periods_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_buffer_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -3999,6 +4119,9 @@ int snd_pcm_hw_params_get_buffer_time(const snd_pcm_hw_params_t *params, unsigne
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_buffer_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4017,6 +4140,9 @@ int snd_pcm_hw_params_get_buffer_time_min(const snd_pcm_hw_params_t *params, uns
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_buffer_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4112,6 +4238,9 @@ int snd_pcm_hw_params_set_buffer_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \return approximate chosen buffer duration in us
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_buffer_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4131,6 +4260,9 @@ int snd_pcm_hw_params_set_buffer_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_buffer_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4150,6 +4282,9 @@ int snd_pcm_hw_params_set_buffer_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t 
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_buffer_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4166,6 +4301,9 @@ int snd_pcm_hw_params_set_buffer_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \param params Configuration space
  * \param val Returned buffer size in frames
  * \return 0 otherwise a negative error code if not exactly one is present
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_buffer_size)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
@@ -4188,6 +4326,9 @@ int snd_pcm_hw_params_get_buffer_size(const snd_pcm_hw_params_t *params, snd_pcm
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_buffer_size_min)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
@@ -4210,6 +4351,9 @@ int snd_pcm_hw_params_get_buffer_size_min(const snd_pcm_hw_params_t *params, snd
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_buffer_size_max)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
@@ -4321,6 +4465,9 @@ int snd_pcm_hw_params_set_buffer_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \return approximate chosen buffer size in frames
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
@@ -4341,6 +4488,9 @@ int snd_pcm_hw_params_set_buffer_size_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \param params Configuration space
  * \param val Returned minimum buffer size in frames
  * \return buffer size in frames
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_buffer_size_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
@@ -4361,6 +4511,9 @@ int snd_pcm_hw_params_set_buffer_size_first(snd_pcm_t *pcm, snd_pcm_hw_params_t 
  * \param params Configuration space
  * \param val Returned maximum buffer size in frames
  * \return 0 otherwise a negative error code
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_buffer_size_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
@@ -4384,6 +4537,9 @@ int snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \return 0 otherwise a negative error code if not exactly one is present
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_tick_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4402,6 +4558,9 @@ int snd_pcm_hw_params_get_tick_time(const snd_pcm_hw_params_t *params, unsigned 
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_tick_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4420,6 +4579,9 @@ int snd_pcm_hw_params_get_tick_time_min(const snd_pcm_hw_params_t *params, unsig
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_tick_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4515,6 +4677,9 @@ int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \return approximate chosen tick duration in us
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_tick_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4534,6 +4699,9 @@ int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_tick_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4553,6 +4721,9 @@ int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \return 0 otherwise a negative error code
  *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
+ *
+ * Note: To use this function add '#define ALSA_PCM_NEW_HW_PARAMS_API' before '#include <alsa/asoundlib.h>'
+ *       to enable this new function prototype. Using of older function with same name is deprecated.
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_tick_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -5985,18 +6156,11 @@ void snd_pcm_unlink_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
 
 #ifdef USE_VERSIONED_SYMBOLS
 
-#ifndef SND_COMPATIBILITY_BUILD_RC3
-
+/* it's really not so nice: obsolete, but default */
+/* forced by developers on alsa-devel */
 #define OBSOLETE1(name, what, new) \
-  symbol_version(__old_##name, name, what); \
-  default_symbol_version(__##name, name, new);
-
-#else
-
-#define OBSOLETE1(name, what, new) \
+  symbol_version(__##name, name, new); \
   default_symbol_version(__old_##name, name, what);
-
-#endif
 
 #define __OLD_GET(name, val_type, ret_type) \
 ret_type __old_##name(const snd_pcm_hw_params_t *params) \

@@ -73,7 +73,7 @@ static int snd_ctl_shm_action_fd(snd_ctl_t *ctl, int *fd)
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
 		return -EBADFD;
-	err = receive_fd(shm->socket, buf, 1, fd);
+	err = snd_receive_fd(shm->socket, buf, 1, fd);
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
@@ -666,7 +666,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 		SNDERR("Cannot resolve %s", host);
 		goto _err;
 	}
-	local = is_local(h);
+	local = snd_is_local(h);
 	if (!local) {
 		SNDERR("%s is not the local host", host);
 		goto _err;

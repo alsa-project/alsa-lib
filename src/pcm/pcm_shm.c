@@ -58,7 +58,7 @@ typedef struct {
 #endif
 
 #ifndef DOC_HIDDEN
-int receive_fd(int sock, void *data, size_t len, int *fd)
+int snd_receive_fd(int sock, void *data, size_t len, int *fd)
 {
 	int ret;
 	size_t cmsg_len = CMSG_LEN(sizeof(int));
@@ -103,7 +103,7 @@ static long snd_pcm_shm_action_fd0(snd_pcm_t *pcm, int *fd)
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
 		return -EBADFD;
-	err = receive_fd(shm->socket, buf, 1, fd);
+	err = snd_receive_fd(shm->socket, buf, 1, fd);
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
@@ -192,7 +192,7 @@ static long snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
 		return -EBADFD;
-	err = receive_fd(shm->socket, buf, 1, fd);
+	err = snd_receive_fd(shm->socket, buf, 1, fd);
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
@@ -794,7 +794,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 }
 
 #ifndef DOC_HIDDEN
-int is_local(struct hostent *hent)
+int snd_is_local(struct hostent *hent)
 {
 	int s;
 	int err;
@@ -984,7 +984,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Cannot resolve %s", host);
 		goto _err;
 	}
-	local = is_local(h);
+	local = snd_is_local(h);
 	if (!local) {
 		SNDERR("%s is not the local host", host);
 		goto _err;

@@ -33,6 +33,7 @@
 #include <sched.h>
 #include <errno.h>
 #include <getopt.h>
+#define ALSA_PCM_NEW_HW_PARAMS_API
 #include "../include/asoundlib.h"
 #include <sys/time.h>
 #include <math.h>
@@ -100,16 +101,16 @@ int setparams_bufsize(snd_pcm_t *handle,
 		      const char *id)
 {
 	int err;
-	snd_pcm_uframes_t rbufsize, periodsize;
+	snd_pcm_uframes_t periodsize;
 
 	snd_pcm_hw_params_copy(params, tparams);
-	rbufsize = bufsize * 2;
-	err = snd_pcm_hw_params_set_buffer_size_near(handle, params, &rbufsize);
+	periodsize = bufsize * 2;
+	err = snd_pcm_hw_params_set_buffer_size_near(handle, params, &periodsize);
 	if (err < 0) {
 		printf("Unable to set buffer size %li for %s: %s\n", bufsize * 2, id, snd_strerror(err));
 		return err;
 	}
-	periodsize = snd_pcm_hw_params_get_buffer_size(params) / 2;
+	periodsize /= 2;
 	err = snd_pcm_hw_params_set_period_size_near(handle, params, &periodsize, 0);
 	if (err < 0) {
 		printf("Unable to set period size %li for %s: %s\n", periodsize, id, snd_strerror(err));
@@ -123,7 +124,9 @@ int setparams_set(snd_pcm_t *handle,
 		  snd_pcm_sw_params_t *swparams,
 		  const char *id)
 {
-	int err, val, sleep_min = 0;
+	int err;
+	snd_pcm_uframes_t val;
+	unsigned int sleep_min = 0;
 
 	err = snd_pcm_hw_params(handle, params);
 	if (err < 0) {
@@ -143,8 +146,8 @@ int setparams_set(snd_pcm_t *handle,
 	tick_time_ok = 0;
 	if (tick_time > 0) {
 		int time, ttime;
-		time = snd_pcm_hw_params_get_period_time(params, NULL);
-		ttime = snd_pcm_hw_params_get_tick_time(params, NULL);
+		snd_pcm_hw_params_get_period_time(params, &time, NULL);
+		 snd_pcm_hw_params_get_tick_time(params, &ttime, NULL);
 		if (time < ttime) {
 			printf("Skipping to set minimal sleep: period time < tick time\n");
 		} else if (ttime <= 0) {
@@ -161,7 +164,10 @@ int setparams_set(snd_pcm_t *handle,
 			tick_time_ok = sleep_min * ttime;
 		}
 	}
-	val = !block ? 4 : snd_pcm_hw_params_get_period_size(params, NULL);
+	if (!block)
+		val = 4;
+	else
+		snd_pcm_hw_params_get_period_size(params, &val, NULL);
 	if (tick_time_ok > 0)
 		val = 16;
 	err = snd_pcm_sw_params_set_avail_min(handle, swparams, val);
@@ -189,7 +195,8 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 	snd_pcm_hw_params_t *pt_params, *ct_params;	/* templates with rate, format and channels */
 	snd_pcm_hw_params_t *p_params, *c_params;
 	snd_pcm_sw_params_t *p_swparams, *c_swparams;
-	snd_pcm_sframes_t size;
+	snd_pcm_uframes_t size, p_size, c_size, p_psize, c_psize;
+	unsigned int p_time, c_time;
 
 	snd_pcm_hw_params_alloca(&p_params);
 	snd_pcm_hw_params_alloca(&c_params);
@@ -221,18 +228,24 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 		exit(0);
 	}
 
-	size = snd_pcm_hw_params_get_period_size(p_params, NULL);
+	snd_pcm_hw_params_get_period_size(p_params, &size, NULL);
 	if (size > *bufsize)
 		*bufsize = size;
-	size = snd_pcm_hw_params_get_period_size(c_params, NULL);
+	snd_pcm_hw_params_get_period_size(c_params, &size, NULL);
 	if (size > *bufsize)
 		*bufsize = size;
-	if (snd_pcm_hw_params_get_period_time(p_params, NULL) !=
-	    snd_pcm_hw_params_get_period_time(c_params, NULL))
+	snd_pcm_hw_params_get_period_time(p_params, &p_time, NULL);
+	snd_pcm_hw_params_get_period_time(c_params, &c_time, NULL);
+	if (p_time != c_time)
 		goto __again;
-	if (snd_pcm_hw_params_get_period_size(p_params, NULL) * 2 < snd_pcm_hw_params_get_buffer_size(p_params))
+
+	snd_pcm_hw_params_get_period_size(p_params, &p_psize, NULL);
+	snd_pcm_hw_params_get_buffer_size(p_params, &p_size);
+	if (p_psize * 2 < p_size)
 		goto __again;
-	if (snd_pcm_hw_params_get_period_size(c_params, NULL) * 2 < snd_pcm_hw_params_get_buffer_size(c_params))
+	snd_pcm_hw_params_get_period_size(c_params, &c_psize, NULL);
+	snd_pcm_hw_params_get_buffer_size(c_params, &c_size);
+	if (c_psize * 2 < c_size)
 		goto __again;
 
 	if ((err = setparams_set(phandle, p_params, p_swparams, "playback")) < 0) {

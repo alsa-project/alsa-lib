@@ -1,14 +1,6 @@
 sysincludedir = ${includedir}/sys
 alsaincludedir = ${includedir}/alsa
 
-if COMPATIBILITY_BUILD_RC3
-  SND_LIB_MAJOR = 0
-  SND_LIB_MINOR = 9
-  SND_LIB_SUBMINOR = 0
-  SND_LIB_EXTRAVER = 100000  # there was a bug....
-  SND_LIB_VERSION = 0.9.0rc3
-endif
-
 alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      version.h global.h input.h output.h error.h \
 		      conf.h pcm.h pcm_plugin.h rawmidi.h timer.h \
@@ -39,9 +31,6 @@ stamp-vh: $(top_builddir)/configure.in
 	@echo "/** library version (string) */" >> ver.tmp
 	@echo "#define SND_LIB_VERSION_STR	\"$(SND_LIB_VERSION)\"" >> ver.tmp
 	@echo >> ver.tmp
-if COMPATIBILITY_BUILD_RC3
-	@echo "#define SND_COMPATIBILITY_BUILD_RC3 1" >> ver.tmp
-endif
 	@cmp -s version.h ver.tmp \
           || (echo "Updating version.h"; \
               cp ver.tmp version.h; \

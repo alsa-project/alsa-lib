@@ -8,6 +8,7 @@
 #include <sched.h>
 #include <errno.h>
 #include <getopt.h>
+#define ALSA_PCM_NEW_HW_PARAMS_API
 #include "../include/asoundlib.h"
 #include <sys/time.h>
 #include <math.h>

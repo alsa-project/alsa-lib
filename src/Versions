@@ -1,5 +1,9 @@
 ALSA_0.9 {
   global:
+    __snd_*;
+    _snd_*;
+    snd_*;
+  local:
     *;
 };
 ALSA_0.9.0rc4 {

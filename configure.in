@@ -9,7 +9,7 @@ dnl remove API = c+1:0:0
 dnl *************************************************
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE(alsa-lib, 0.9.0rc3)
-eval LIBTOOL_VERSION_INFO="3:0:0"
+eval LIBTOOL_VERSION_INFO="2:0:0"
 dnl *************************************************
 AM_CONDITIONAL(INSTALL_M4, test -n "${ACLOCAL}")
 
@@ -175,19 +175,6 @@ arm*)
   echo "No atomic operations supported.." 
   ;;
 esac
-
-dnl Compatibility build, to be removed....
-AC_MSG_CHECKING(for 0.9.0rc3 compatibility build)
-AC_ARG_WITH(compat-rc3,
-  [  --with-compat-rc3       build library compatible with 0.9.0rc3],
-  [  AC_DEFINE(COMPATIBILITY_BUILD_RC3, "1", [0.9.0rc3 compatibility build])
-     comp_rc3="yes" ],)
-if test "$comp_rc3" = "yes" ; then
-  AC_MSG_RESULT(yes)
-else
-  AC_MSG_RESULT(no)
-fi
-AM_CONDITIONAL(COMPATIBILITY_BUILD_RC3, [test "x$comp_rc3" = xyes])
 
 AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile src/Makefile \
           src/control/Makefile src/mixer/Makefile src/pcm/Makefile \

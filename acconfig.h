@@ -18,6 +18,3 @@
 
 /* Use versioned symbols for shared library? */
 #undef VERSIONED_SYMBOLS
-
-/* 0.9.0rc3 compatibility build */
-#undef COMPATIBILITY_BUILD_RC3
