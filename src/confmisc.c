@@ -139,88 +139,72 @@ int snd_config_get_ctl_iface(snd_config_t *conf)
 	return err;
 }
 
-static int _snd_config_redirect_load_replace(const char *what, char **dst, void *private_data ATTRIBUTE_UNUSED)
+/**
+ * \brief Expand the dynamic contents
+ * \param src Source string
+ * \param idchr Identification character
+ * \param callback Callback function
+ * \param private_data Private data for the given callback function
+ * \param dst Destination string
+ */
+int snd_config_string_replace(const char *src, char idchr,
+			      snd_config_string_replace_callback_t *callback,
+			      void *private_data,
+			      char **dst)
 {
-	enum {
-		CARD_ID,
-		PCM_ID,
-		RAWMIDI_ID
-	} id;
-	int len;
+	int len = 0, len1, err;
+	const char *ptr, *end;
+	char *tmp, *what, *fptr, *rdst = NULL;
 
-	if (!strcmp(what, "datadir")) {
-		*dst = strdup(DATADIR "/alsa");
-		return *dst == NULL ? -ENOMEM : 0;
-	}
-	if (!strncmp(what, "card_id:", len = 8))
-		id = CARD_ID;
-	else if (!strncmp(what, "pcm_id:", len = 7))
-		id = PCM_ID;
-	else if (!strncmp(what, "rawmidi_id:", len = 11))
-		id = RAWMIDI_ID;
-	else
-		return 0;
-	{
-		snd_ctl_t *ctl;
-		int err;
-		char name[12];
-		const char *str = NULL;
-		char *fstr = NULL;
-		sprintf(name, "hw:%d", atoi(what + len));
-		err = snd_ctl_open(&ctl, name, 0);
-		if (err < 0)
-			return err;
-		switch (id) {
-		case CARD_ID:
-			{
-				snd_ctl_card_info_t *info;
-				snd_ctl_card_info_alloca(&info);
-				err = snd_ctl_card_info(ctl, info);
-				if (err < 0)
-					return err;
-				err = snd_card_type_enum_to_string(snd_ctl_card_info_get_type(info), &fstr);
+	assert(src && idchr && dst);
+	while (*src != '\0') {
+		ptr = strchr(src, idchr);
+		end = NULL;
+		if (ptr == src && *(ptr + 1) == '(' && (end = strchr(ptr + 2, ')')) != NULL) {
+			src = end + 1;
+			if (callback == NULL)
+				continue;
+			len1 = end - (ptr + 2);
+			if (len1 == 0)		/* empty */
+				continue;
+			what = malloc(len1 + 1);
+			memcpy(what, ptr + 2, len1);
+			what[len1] = '\0';
+			fptr = NULL;
+			err = callback(what, &fptr, private_data);
+			free(what);
+			if (err < 0) {
+				if (*dst != NULL)
+					free(*dst);
+				return err;
 			}
-			break;
-		case PCM_ID:
-			{
-				char *ptr = strchr(what + len, ',');
-				int dev = atoi(what + len);
-				int subdev = ptr ? atoi(ptr + 1) : -1;
-				snd_pcm_info_t *info;
-				snd_pcm_info_alloca(&info);
-				snd_pcm_info_set_device(info, dev);
-				snd_pcm_info_set_subdevice(info, subdev);
-				err = snd_ctl_pcm_info(ctl, info);
-				if (err < 0)
-					return err;
-				str = snd_pcm_info_get_id(info);
+			if (fptr == NULL)	/* empty */
+				continue;
+			len1 = strlen(ptr = fptr);
+		} else {
+			if (ptr == NULL) {
+				len1 = strlen(ptr = src);
+			} else {
+				len1 = ptr - src;
+				ptr = src;
 			}
-			break;
-		case RAWMIDI_ID:
-			{
-				char *ptr = strchr(what + len, ',');
-				int dev = atoi(what + len);
-				int subdev = ptr ? atoi(ptr + 1) : -1;
-				snd_rawmidi_info_t *info;
-				snd_rawmidi_info_alloca(&info);
-				snd_rawmidi_info_set_device(info, dev);
-				snd_rawmidi_info_set_subdevice(info, subdev);
-				err = snd_ctl_rawmidi_info(ctl, info);
-				if (err < 0)
-					return err;
-				str = snd_rawmidi_info_get_id(info);
-			}
-			break;
+			src += len1;
+			fptr = NULL;
 		}
-		if (err < 0)
-			return err;
-		snd_ctl_close(ctl);
-		*dst = fstr ? fstr : (str ? strdup(str) : NULL);
-		if (*dst == NULL)
-			return 0;
-		return 0;
+		tmp = realloc(rdst, len + len1 + 1);
+		if (tmp == NULL) {
+			if (*dst != NULL)
+				free(*dst);
+			return -ENOMEM;
+		}
+		memcpy(tmp + len, ptr, len1);
+		tmp[len+=len1] = '\0';
+		if (fptr)
+			free(fptr);
+		rdst = tmp;
 	}
-	return 0;	/* empty */
+	*dst = rdst;
+	return 0;
 }
 
 /**
@@ -262,19 +246,14 @@ int snd_config_redirect_load(snd_config_t *root,
 	rname = NULL;
 	if (snd_config_search(config, "filename", &c) >= 0) {
 		snd_config_t *rconfig;
-		char *filename;
+		const char *filename;
 		snd_input_t *input;
 		err = snd_config_copy(&rconfig, root);
 		if (err < 0)
 			return err;
 		if (snd_config_get_type(c) == SND_CONFIG_TYPE_STRING) {
-			snd_config_get_string(c, (const char **)&filename);
-			if ((err = snd_config_string_replace(filename, '&', _snd_config_redirect_load_replace, NULL, &filename)) < 0)
-				goto __filename_error;
-			if (filename == NULL)
-				goto __filename_error_einval;
+			snd_config_get_string(c, &filename);
 		} else {
-		      __filename_error_einval:
 			err = -EINVAL;
 		      __filename_error:
 			snd_config_delete(rconfig);
@@ -289,10 +268,8 @@ int snd_config_redirect_load(snd_config_t *root,
 		if (err < 0) {
 			snd_input_close(input);
 			goto __filename_error;
-			return err;
 		}
 		snd_input_close(input);
-		free(filename);
 		result = rconfig;
 		dynamic = 1;
 	}
@@ -300,8 +277,11 @@ int snd_config_redirect_load(snd_config_t *root,
 		const char *ptr;
 		if ((err = snd_config_get_string(c, &ptr)) < 0)
 			goto __error;
-		if ((err = snd_config_string_replace(ptr, '&', _snd_config_redirect_load_replace, NULL, &rname)) < 0)
+		rname = strdup(ptr);
+		if (rname == NULL) {
+			err = -ENOMEM;
 			goto __error;
+		}
 	}
 	if (rname == NULL) {
 		err = -EINVAL;
@@ -317,4 +297,321 @@ int snd_config_redirect_load(snd_config_t *root,
       	if (dynamic)
       		snd_config_delete(result);
       	return err;
+}
+
+/*
+ *  Helper functions for the configuration file
+ */
+
+int snd_func_getenv(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+{
+	snd_config_t *n, *d, *e;
+	snd_config_iterator_t i, next;
+	const char *res;
+	char *def = NULL;
+	int idx = 0, err;
+	
+	err = snd_config_expand(src, NULL, NULL, &e);
+	if (err < 0)
+		return err;
+	err = snd_config_search(e, "envname", &n);
+	if (err < 0) {
+		SNDERR("field envname not found");
+		goto __error;
+	}
+	err = snd_config_search(e, "default", &d);
+	if (err < 0) {
+		SNDERR("field default not found");
+		goto __error;
+	}
+	err = snd_config_get_ascii(d, &def);
+	if (err < 0) {
+		SNDERR("error getting field default");
+		goto __error;
+	}
+      __retry:
+	snd_config_for_each(i, next, n) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id = snd_config_get_id(n);
+		const char *ptr, *env;
+		long i;
+		if (snd_config_get_type(n) != SND_CONFIG_TYPE_STRING) {
+			SNDERR("field %s is not a string", id);
+			err = -EINVAL;
+			goto __error;
+		}
+		err = safe_strtol(id, &i);
+		if (err < 0) {
+			SNDERR("id of field %s is not an integer", id);
+			err = -EINVAL;
+			goto __error;
+		}
+		if (i == idx) {
+			idx++;
+			snd_config_get_string(n, &ptr);
+			env = getenv(ptr);
+			if (env != NULL && *env != '\0') {
+				res = strdup(env);
+				goto __ok;
+			}
+			goto __retry;
+		}
+	}
+	res = def;
+	def = NULL;
+      __ok:
+	err = res == NULL ? -ENOMEM : 0;
+	*dst = (char *)res;
+      __error:
+      	if (def)
+      		free(def);
+	snd_config_delete(e);
+	return err;
+}
+
+int snd_func_concat(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+{
+	snd_config_t *n, *e;
+	snd_config_iterator_t i, next;
+	char *res = NULL, *tmp;
+	int idx = 0, len = 0, len1, err;
+	
+	err = snd_config_expand(src, NULL, NULL, &e);
+	if (err < 0)
+		return err;
+	err = snd_config_search(e, "strings", &n);
+	if (err < 0) {
+		SNDERR("field strings not found");
+		goto __error;
+	}
+      __retry:
+	snd_config_for_each(i, next, n) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		char *ptr;
+		const char *id = snd_config_get_id(n);
+		long i;
+		err = safe_strtol(id, &i);
+		if (err < 0) {
+			SNDERR("id of field %s is not an integer", id);
+			err = -EINVAL;
+			goto __error;
+		}
+		if (i == idx) {
+			idx++;
+			snd_config_get_ascii(n, &ptr);
+			len1 = strlen(ptr);
+			tmp = realloc(res, len + len1 + 1);
+			if (tmp == NULL) {
+				free(ptr);
+				if (res)
+					free(res);
+				err = -ENOMEM;
+				goto __error;
+			}
+			memcpy(tmp + len, ptr, len1);
+			free(ptr);
+			len += len1;
+			tmp[len] = '\0';
+			res = tmp;
+			goto __retry;
+		}
+	}
+	if (res == NULL) {
+		SNDERR("empty string is not accepted");
+		err = -EINVAL;
+		goto __error;
+	}
+	err = 0;
+	*dst = res;
+      __error:
+	snd_config_delete(e);
+	return err;
+}
+
+int snd_func_datadir(char **dst, snd_config_t *src ATTRIBUTE_UNUSED, void *private_data ATTRIBUTE_UNUSED)
+{
+	char *res = strdup(DATADIR "/alsa");
+	if (res == NULL)
+		return -ENOMEM;
+	*dst = res;
+	return 0;
+}
+
+static int open_ctl(long card, snd_ctl_t **ctl)
+{
+	char name[16];
+	snprintf(name, sizeof(name), "hw:%li", card);
+	name[sizeof(name)-1] = '\0';
+	return snd_ctl_open(ctl, name, 0);
+}
+
+#if 0
+static int string_from_integer(char **dst, long v)
+{
+	char str[32];
+	char *res;
+	sprintf(str, "%li", v);
+	res = strdup(str);
+	if (res == NULL)
+		return -ENOMEM;
+	*dst = res;
+	return 0;
+}
+#endif
+
+int snd_func_card_strtype(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+{
+	snd_config_t *n, *e;
+	char *res = NULL;
+	snd_ctl_t *ctl = NULL;
+	snd_ctl_card_info_t *info;
+	long v;
+	int err;
+	
+	err = snd_config_expand(src, NULL, NULL, &e);
+	if (err < 0)
+		return err;
+	err = snd_config_search(e, "card", &n);
+	if (err < 0) {
+		SNDERR("field card not found");
+		goto __error;
+	}
+	err = snd_config_get_integer(n, &v);
+	if (err < 0) {
+		SNDERR("field card is not an integer");
+		goto __error;
+	}
+	err = open_ctl(v, &ctl);
+	if (err < 0) {
+		SNDERR("could not open control for card %li", v);
+		goto __error;
+	}
+	snd_ctl_card_info_alloca(&info);
+	err = snd_ctl_card_info(ctl, info);
+	if (err < 0) {
+		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
+		goto __error;
+	}
+	err = snd_card_type_enum_to_string(snd_ctl_card_info_get_type(info), &res);
+	if (err < 0) {
+		SNDERR("snd_card_type_enum_to_string failed for %i", (int)snd_ctl_card_info_get_type(info));
+		goto __error;
+	}
+	*dst = res;
+      __error:
+      	if (ctl)
+      		snd_ctl_close(ctl);
+	snd_config_delete(e);
+	return err;
+}
+
+int snd_func_card_id(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+{
+	snd_config_t *n, *e;
+	char *res = NULL;
+	snd_ctl_t *ctl = NULL;
+	snd_ctl_card_info_t *info;
+	long v;
+	int err;
+	
+	err = snd_config_expand(src, NULL, NULL, &e);
+	if (err < 0)
+		return err;
+	err = snd_config_search(e, "card", &n);
+	if (err < 0) {
+		SNDERR("field card not found");
+		goto __error;
+	}
+	err = snd_config_get_integer(n, &v);
+	if (err < 0) {
+		SNDERR("field card is not an integer");
+		goto __error;
+	}
+	err = open_ctl(v, &ctl);
+	if (err < 0) {
+		SNDERR("could not open control for card %li", v);
+		goto __error;
+	}
+	snd_ctl_card_info_alloca(&info);
+	err = snd_ctl_card_info(ctl, info);
+	if (err < 0) {
+		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
+		goto __error;
+	}
+	res = strdup(snd_ctl_card_info_get_id(info));
+	if (res == NULL) {
+		err = -ENOMEM;
+		goto __error;
+	}
+	*dst = res;
+      __error:
+      	if (ctl)
+      		snd_ctl_close(ctl);
+	snd_config_delete(e);
+	return err;
+}
+
+int snd_func_pcm_id(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+{
+	snd_config_t *n, *e;
+	char *res = NULL;
+	snd_ctl_t *ctl = NULL;
+	snd_pcm_info_t *info;
+	long card, device, subdevice = 0;
+	int err;
+	
+	err = snd_config_expand(src, NULL, NULL, &e);
+	if (err < 0)
+		return err;
+	err = snd_config_search(e, "card", &n);
+	if (err < 0) {
+		SNDERR("field card not found");
+		goto __error;
+	}
+	err = snd_config_get_integer(n, &card);
+	if (err < 0) {
+		SNDERR("field card is not an integer");
+		goto __error;
+	}
+	err = snd_config_search(e, "device", &n);
+	if (err < 0) {
+		SNDERR("field device not found");
+		goto __error;
+	}
+	err = snd_config_get_integer(n, &device);
+	if (err < 0) {
+		SNDERR("field device is not an integer");
+		goto __error;
+	}
+	if (snd_config_search(e, "subdevice", &n) >= 0) {
+		err = snd_config_get_integer(n, &subdevice);
+		if (err < 0) {
+			SNDERR("field subdevice is not an integer");
+			goto __error;
+		}
+	}
+	err = open_ctl(card, &ctl);
+	if (err < 0) {
+		SNDERR("could not open control for card %li", card);
+		goto __error;
+	}
+	snd_pcm_info_alloca(&info);
+	snd_pcm_info_set_device(info, device);
+	snd_pcm_info_set_subdevice(info, subdevice);
+	err = snd_ctl_pcm_info(ctl, info);
+	if (err < 0) {
+		SNDERR("snd_ctl_pcm_info error: %s", snd_strerror(err));
+		goto __error;
+	}
+	res = strdup(snd_pcm_info_get_id(info));
+	if (res == NULL) {
+		err = -ENOMEM;
+		goto __error;
+	}
+	*dst = res;
+      __error:
+      	if (ctl)
+      		snd_ctl_close(ctl);
+	snd_config_delete(e);
+	return err;
 }

@@ -478,7 +478,7 @@ int snd_ctl_open_noupdate(snd_ctl_t **ctlp, const char *name, int mode)
 		return err;
 	}
 	if (args) {
-		err = snd_config_expand(ctl_conf, args, &ctl_conf);
+		err = snd_config_expand(ctl_conf, args, NULL, &ctl_conf);
 		if (err < 0)
 			return err;
 	}

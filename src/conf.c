@@ -1,6 +1,7 @@
 /*
  *  Configuration helper functions
- *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
+ *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>,
+ *			  Jaroslav Kysela <perex@suse.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -22,6 +23,7 @@
 #include <stdarg.h>
 #include <wordexp.h>
 #include <sys/stat.h>
+#include <dlfcn.h>
 #include "local.h"
 #include "list.h"
 
@@ -151,44 +153,9 @@ static int get_char_skip_comments(input_t *input)
 			int err = get_delimstring(&str, '>', input);
 			if (err < 0)
 				return err;
-			if (strlen(str) < 3 ||
-			    str[0] != '@' ||
-			    str[strlen(str)-1] != '@' ||
-			    strchr(str, ':') == NULL) {
-				err = snd_input_stdio_open(&in, str, "r");
-				if (err < 0)
-					return err;
-			} else {
-				char *envvar = str + 1;
-				char *envdef = strchr(str, ':');
-				char *env, *end;
-				
-				str[strlen(str)-1] = '\0';
-				*envdef++ = '\0';
-				if (*envdef == '\0') {
-					free(str);
-					input->error = BAD_ENV_DEFAULT;
-					return -EINVAL;
-				}
-				while (1) {
-					end = strchr(envvar, ',');
-					if (end)
-						*end = '\0';
-					env = getenv(envvar);
-					if (env != NULL && *env != '\0')
-						break;
-					if (end) {
-						*end = ',';	/* repair for fd->name */
-						envvar = end + 1;
-					} else {
-						env = envdef;
-						break;
-					}
-				}
-				err = snd_input_buffer_open(&in, env, strlen(env));
-				if (err < 0)
-					return err;
-			}
+			err = snd_input_stdio_open(&in, str, "r");
+			if (err < 0)
+				return err;
 			fd = malloc(sizeof(*fd));
 			if (!fd)
 				return -ENOMEM;
@@ -272,7 +239,7 @@ static int get_quotedchar(input_t *input)
 
 static int get_freestring(char **string, int id, input_t *input)
 {
-	const size_t bufsize = 256;
+	const size_t bufsize = 64;
 	char _buf[bufsize];
 	char *buf = _buf;
 	size_t alloc = bufsize;
@@ -295,6 +262,8 @@ static int get_freestring(char **string, int id, input_t *input)
 		case ';':
 		case '{':
 		case '}':
+		case '[':
+		case ']':
 		case '\'':
 		case '"':
 		case '\\':
@@ -319,11 +288,17 @@ static int get_freestring(char **string, int id, input_t *input)
 			alloc *= 2;
 			if (old_alloc == bufsize) {
 				buf = malloc(alloc);
+				if (buf == NULL)
+					return -ENOMEM;
 				memcpy(buf, _buf, old_alloc);
-			} else
-				buf = realloc(buf, alloc);
-			if (!buf)
-				return -ENOMEM;
+			} else {
+				char *ptr = realloc(buf, alloc);
+				if (ptr == NULL) {
+					free(buf);
+					return -ENOMEM;
+				}
+				buf = ptr;
+			}
 		}
 		buf[idx++] = c;
 	}
@@ -332,7 +307,7 @@ static int get_freestring(char **string, int id, input_t *input)
 			
 static int get_delimstring(char **string, int delim, input_t *input)
 {
-	const size_t bufsize = 256;
+	const size_t bufsize = 64;
 	char _buf[bufsize];
 	char *buf = _buf;
 	size_t alloc = bufsize;
@@ -369,11 +344,17 @@ static int get_delimstring(char **string, int delim, input_t *input)
 			alloc *= 2;
 			if (old_alloc == bufsize) {
 				buf = malloc(alloc);
+				if (buf == NULL)
+					return -ENOMEM;
 				memcpy(buf, _buf, old_alloc);
-			} else
-				buf = realloc(buf, alloc);
-			if (!buf)
-				return -ENOMEM;
+			} else {
+				char *ptr = realloc(buf, alloc);
+				if (ptr == NULL) {
+					free(buf);
+					return -ENOMEM;
+				}
+				buf = ptr;
+			}
 		}
 		buf[idx++] = c;
 	}
@@ -394,6 +375,8 @@ static int get_string(char **string, int id, input_t *input)
 	case '.':
 	case '{':
 	case '}':
+	case '[':
+	case ']':
 		input->error = UNEXPECTED_CHAR;
 		return -EINVAL;
 	case '\'':
@@ -411,17 +394,21 @@ static int get_string(char **string, int id, input_t *input)
 	}
 }
 
-static int _snd_config_make(snd_config_t **config, char *id,
-			    snd_config_type_t type)
+static int _snd_config_make(snd_config_t **config, char **id, snd_config_type_t type)
 {
 	snd_config_t *n;
 	n = calloc(1, sizeof(*n));
 	if (n == NULL) {
-		if (id)
-			free(id);
+		if (*id) {
+			free(*id);
+			*id = NULL;
+		}
 		return -ENOMEM;
 	}
-	n->id = id;
+	if (id) {
+		n->id = *id;
+		*id = NULL;
+	}
 	n->type = type;
 	if (type == SND_CONFIG_TYPE_COMPOUND)
 		INIT_LIST_HEAD(&n->u.compound.fields);
@@ -430,7 +417,7 @@ static int _snd_config_make(snd_config_t **config, char *id,
 }
 	
 
-static int _snd_config_make_add(snd_config_t **config, char *id,
+static int _snd_config_make_add(snd_config_t **config, char **id,
 				snd_config_type_t type, snd_config_t *father)
 {
 	snd_config_t *n;
@@ -457,38 +444,182 @@ static int _snd_config_search(snd_config_t *config,
 		} else if (strlen(n->id) != (size_t) len ||
 			   memcmp(n->id, id, (size_t) len) != 0)
 			continue;
-		*result = n;
+		if (result)
+			*result = n;
 		return 0;
 	}
 	return -ENOENT;
 }
 
+static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, char **id)
+{
+	snd_config_t *n = *_n;
+	char *s;
+	int err;
+
+	err = get_string(&s, 0, input);
+	if (err < 0)
+		return err;
+	if ((s[0] >= '0' && s[0] <= '9') || s[0] == '-') {
+		long i;
+		errno = 0;
+		err = safe_strtol(s, &i);
+		if (err < 0) {
+			double r;
+			err = safe_strtod(s, &r);
+			if (err >= 0) {
+				free(s);
+				if (n) {
+					if (n->type != SND_CONFIG_TYPE_REAL) {
+						SNDERR("%s is not a real", id);
+						return -EINVAL;
+					}
+				} else {
+					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_REAL, father);
+					if (err < 0)
+						return err;
+				}
+				n->u.real = r;
+				*_n = n;
+				return 0;
+			}
+		} else {
+			free(s);
+			if (n) {
+				if (n->type != SND_CONFIG_TYPE_INTEGER) {
+					SNDERR("%s is not an integer", id);
+					return -EINVAL;
+				}
+			} else {
+				err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER, father);
+				if (err < 0)
+					return err;
+			}
+			n->u.integer = i;
+			*_n = n;
+			return 0;
+		}
+	}
+	if (n) {
+		if (n->type != SND_CONFIG_TYPE_STRING) {
+			SNDERR("%s is not a string", id);
+			free(s);
+			return -EINVAL;
+		}
+	} else {
+		err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_STRING, father);
+		if (err < 0)
+			return err;
+	}
+	if (n->u.string)
+		free(n->u.string);
+	n->u.string = s;
+	*_n = n;
+	return 0;
+}
+
 static int parse_defs(snd_config_t *father, input_t *input);
+static int parse_array_defs(snd_config_t *farther, input_t *input);
+
+static int parse_array_def(snd_config_t *father, input_t *input, int idx)
+{
+	char static_id[12], *id;
+	int c;
+	int err;
+	snd_config_t *n = NULL;
+
+	snprintf(static_id, sizeof(static_id), "%i", idx);
+	static_id[sizeof(static_id)-1] = '\0';
+	id = strdup(static_id);
+	if (id == NULL)
+		return -ENOMEM;
+	c = get_nonwhite(input);
+	switch (c) {
+	case '{':
+	case '[':
+	{
+		char endchr;
+		if (n) {
+			if (n->type != SND_CONFIG_TYPE_COMPOUND) {
+				SNDERR("%s is not a compound", id);
+				err = -EINVAL;
+				goto __end;
+			}
+		} else {
+			err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
+			if (err < 0)
+				goto __end;
+		}
+		if (c == '{') {
+			err = parse_defs(n, input);
+			endchr = '}';
+		} else {
+			err = parse_array_defs(n, input);
+			endchr = ']';
+		}
+		c = get_nonwhite(input);
+		if (c != endchr) {
+			snd_config_delete(n);
+			input->error = (c == EOF ? UNEXPECTED_EOF : UNEXPECTED_CHAR);
+			err = -EINVAL;
+			goto __end;
+		}
+		break;
+	}
+	default:
+		unget_char(c, input);
+		err = parse_value(&n, father, input, &id);
+		if (err < 0)
+			goto __end;
+		break;
+	}
+	err = 0;
+      __end:
+      	if (id)
+      		free(id);
+      	return err;
+}
+
+static int parse_array_defs(snd_config_t *father, input_t *input)
+{
+	int idx = 0;
+	while (1) {
+		int c = get_nonwhite(input);
+		int err;
+		if (c == EOF)
+			return 0;
+		unget_char(c, input);
+		if (c == ']')
+			return 0;
+		err = parse_array_def(father, input, idx++);
+		if (err < 0)
+			return err;
+	}
+	return 0;
+}
 
 static int parse_def(snd_config_t *father, input_t *input)
 {
-	char *id;
+	char *id = NULL;
 	int c;
 	int err;
 	snd_config_t *n;
 	enum {MERGE, NOCREATE, REMOVE} mode;
 	while (1) {
-#if 0
 		c = get_nonwhite(input);
 		switch (c) {
+#if 0
 		case '?':
 			mode = NOCREATE;
 			break;
 		case '!':
 			mode = REMOVE;
 			break;
+#endif
 		default:
 			mode = MERGE;
 			unget_char(c, input);
 		}
-#else
-		mode = MERGE;
-#endif
 		err = get_string(&id, 1, input);
 		if (err < 0)
 			return err;
@@ -510,12 +641,12 @@ static int parse_def(snd_config_t *father, input_t *input)
 		}
 		if (mode == NOCREATE) {
 			SNDERR("%s does not exists", id);
-			free(id);
-			return -ENOENT;
+			err = -ENOENT;
+			goto __end;
 		}
-		err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_COMPOUND, father);
+		err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
 		if (err < 0)
-			return err;
+			goto __end;
 		n->u.compound.join = 1;
 		father = n;
 	}
@@ -526,104 +657,52 @@ static int parse_def(snd_config_t *father, input_t *input)
 			snd_config_delete(n);
 			n = NULL;
 		}
-		else
-			free(id);
 	} else {
 		n = NULL;
 		if (mode == NOCREATE) {
 			SNDERR("%s does not exists", id);
-			free(id);
-			return -ENOENT;
+			err = -ENOENT;
+			goto __end;
 		}
 	}
 	switch (c) {
 	case '{':
+	case '[':
 	{
+		char endchr;
 		if (n) {
 			if (n->type != SND_CONFIG_TYPE_COMPOUND) {
 				SNDERR("%s is not a compound", id);
-				return -EINVAL;
+				err = -EINVAL;
+				goto __end;
 			}
 		} else {
-			err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_COMPOUND, father);
+			err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
 			if (err < 0)
-				return err;
+				goto __end;
 		}
-		err = parse_defs(n, input);
-		if (err < 0) {
-			snd_config_delete(n);
-			return err;
+		if (c == '{') {
+			err = parse_defs(n, input);
+			endchr = '}';
+		} else {
+			err = parse_array_defs(n, input);
+			endchr = ']';
 		}
 		c = get_nonwhite(input);
-		if (c != '}') {
+		if (c != endchr) {
 			snd_config_delete(n);
 			input->error = (c == EOF ? UNEXPECTED_EOF : UNEXPECTED_CHAR);
-			return -EINVAL;
+			err = -EINVAL;
+			goto __end;
 		}
 		break;
 	}
 	default:
-	{
-		char *s;
 		unget_char(c, input);
-		err = get_string(&s, 0, input);
+		err = parse_value(&n, father, input, &id);
 		if (err < 0)
-			return err;
-		if (!err && ((s[0] >= '0' && s[0] <= '9') || s[0] == '-')) {
-			char *ptr;
-			long i;
-			errno = 0;
-			i = strtol(s, &ptr, 0);
-			if (*ptr == '.' || errno != 0) {
-				double r;
-				errno = 0;
-				r = strtod(s, &ptr);
-				if (errno == 0) {
-					free(s);
-					if (n) {
-						if (n->type != SND_CONFIG_TYPE_REAL) {
-							SNDERR("%s is not a real", id);
-							return -EINVAL;
-						}
-					} else {
-						err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_REAL, father);
-						if (err < 0)
-							return err;
-					}
-					n->u.real = r;
-					break;
-				}
-			} else if (*ptr == '\0') {
-				free(s);
-				if (n) {
-					if (n->type != SND_CONFIG_TYPE_INTEGER) {
-						SNDERR("%s is not an integer", id);
-						return -EINVAL;
-					}
-				} else {
-					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER, father);
-					if (err < 0)
-						return err;
-				}
-				n->u.integer = i;
-				break;
-			}
-		}
-		if (n) {
-			if (n->type != SND_CONFIG_TYPE_STRING) {
-				SNDERR("%s is not a string", id);
-				free(s);
-				return -EINVAL;
-			}
-		} else {
-			err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_STRING, father);
-			if (err < 0)
-				return err;
-		}
-		if (n->u.string)
-			free(n->u.string);
-		n->u.string = s;
-	}
+			goto __end;
+		break;
 	}
 	c = get_nonwhite(input);
 	switch (c) {
@@ -633,6 +712,9 @@ static int parse_def(snd_config_t *father, input_t *input)
 	default:
 		unget_char(c, input);
 	}
+      __end:
+      	if (id)
+	      	free(id);
 	return err;
 }
 		
@@ -819,6 +901,33 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 }
 #endif
 
+
+/**
+ * \brief Return type of a config node from an ASCII string
+ * \param config Config node handle
+ * \return node type
+ */
+int snd_config_get_type_ascii(const char *ascii, snd_config_type_t *type)
+{
+	assert(ascii && type);
+	if (!strcmp(ascii, "integer")) {
+		*type = SND_CONFIG_TYPE_INTEGER;
+		return 0;
+	}
+	if (!strcmp(ascii, "real")) {
+		*type = SND_CONFIG_TYPE_REAL;
+		return 0;
+	}
+	if (!strcmp(ascii, "string")) {
+		*type = SND_CONFIG_TYPE_STRING;
+		return 0;
+	}
+	if (!strcmp(ascii, "compound")) {
+		*type = SND_CONFIG_TYPE_COMPOUND;
+		return 0;
+	}
+	return -EINVAL;
+}
 
 /**
  * \brief Return type of a config node
@@ -1012,7 +1121,7 @@ int snd_config_make(snd_config_t **config, const char *id,
 			return -ENOMEM;
 	} else
 		id1 = NULL;
-	return _snd_config_make(config, id1, type);
+	return _snd_config_make(config, &id1, type);
 }
 
 /**
@@ -1233,6 +1342,15 @@ int snd_config_get_ascii(snd_config_t *config, char **ascii)
 				assert(0);
 				return -ENOMEM;
 			}
+			if (res[0]) {		/* trim the string */
+				char *ptr;
+				ptr = res + strlen(res) - 1;
+				while (ptr != res && *ptr == ' ')
+					ptr--;
+				if (*ptr != ' ')
+					ptr++;
+				*ptr = '\0';
+			}
 			*ascii = strdup(res);
 		}
 		break;
@@ -1268,7 +1386,7 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
  */
 int snd_config_search(snd_config_t *config, const char *key, snd_config_t **result)
 {
-	assert(config && key && result);
+	assert(config && key);
 	while (1) {
 		snd_config_t *n;
 		int err;
@@ -1544,7 +1662,8 @@ typedef enum _snd_config_walk_pass {
 } snd_config_walk_pass_t;
 
 
-/* Return 1 if node need to be attached to father */
+/* Return 1 if node needs to be attached to father */
+/* Return 2 if compound is replaced with standard node */
 typedef int (*snd_config_walk_callback_t)(snd_config_t *src,
 					  snd_config_t **dst,
 					  snd_config_walk_pass_t pass,
@@ -1656,86 +1775,6 @@ int snd_config_copy(snd_config_t **dst,
 	return snd_config_walk(src, dst, _snd_config_copy, NULL);
 }
 
-/**
- * \brief Expand the dynamic contents
- * \param src Source string
- * \param idchr Identification character
- * \param callback Callback function
- * \param private_data Private data for the given callback function
- * \param dst Destination string
- */
-int snd_config_string_replace(const char *src, char idchr,
-			      snd_config_string_replace_callback_t *callback,
-			      void *private_data,
-			      char **dst)
-{
-	int len = 0, len1, err;
-	const char *ptr, *end;
-	char *tmp, *what, *fptr, *rdst = NULL;
-
-	assert(src && idchr && dst);
-	while (*src != '\0') {
-		ptr = strchr(src, idchr);
-		end = NULL;
-		if (ptr == src && *(ptr + 1) == '(' && (end = strchr(ptr + 2, ')')) != NULL) {
-			src = end + 1;
-			if (callback == NULL)
-				continue;
-			len1 = end - (ptr + 2);
-			if (len1 == 0)		/* empty */
-				continue;
-			what = malloc(len1 + 1);
-			memcpy(what, ptr + 2, len1);
-			what[len1] = '\0';
-			fptr = NULL;
-			err = callback(what, &fptr, private_data);
-			free(what);
-			if (err < 0) {
-				if (*dst != NULL)
-					free(*dst);
-				return err;
-			}
-			if (fptr == NULL)	/* empty */
-				continue;
-			len1 = strlen(ptr = fptr);
-		} else {
-			if (ptr == NULL) {
-				len1 = strlen(ptr = src);
-			} else {
-				len1 = ptr - src;
-				ptr = src;
-			}
-			src += len1;
-			fptr = NULL;
-		}
-		tmp = realloc(rdst, len + len1 + 1);
-		if (tmp == NULL) {
-			if (*dst != NULL)
-				free(*dst);
-			return -ENOMEM;
-		}
-		memcpy(tmp + len, ptr, len1);
-		tmp[len+=len1] = '\0';
-		if (fptr)
-			free(fptr);
-		rdst = tmp;
-	}
-	*dst = rdst;
-	return 0;
-}
-
-static int _snd_config_expand_replace(const char *what, char **dst, void *private_data)
-{
-	snd_config_t *vars = private_data;
-	snd_config_t *val;
-
-	assert(dst);
-	if (snd_config_search(vars, what, &val) < 0)
-		return 0;	/* empty */
-	else
-		return snd_config_get_ascii(val, dst);
-}
-
 static int _snd_config_expand(snd_config_t *src,
 			      snd_config_t **dst,
 			      snd_config_walk_pass_t pass,
@@ -1746,12 +1785,14 @@ static int _snd_config_expand(snd_config_t *src,
 	snd_config_type_t type = snd_config_get_type(src);
 	switch (pass) {
 	case SND_CONFIG_WALK_PASS_PRE:
-		if (strcmp(id, "$") == 0)
+	{
+		if (strcmp(id, "args") == 0)
 			return 0;
 		err = snd_config_make_compound(dst, id, src->u.compound.join);
 		if (err < 0)
 			return err;
 		break;
+	}
 	case SND_CONFIG_WALK_PASS_LEAF:
 		switch (type) {
 		case SND_CONFIG_TYPE_INTEGER:
@@ -1781,11 +1822,12 @@ static int _snd_config_expand(snd_config_t *src,
 			const char *s;
 			snd_config_t *val;
 			snd_config_t *vars = private_data;
-			err = snd_config_get_string(src, &s);
-			if (strncmp(s, "$(", 2) == 0 && s[strlen(s) - 1] == ')') {
-				char *str = alloca((strlen(s) - 3) + 1);
-				memcpy(str, s + 2, strlen(s) - 3);
-				str[strlen(s) - 3] = 0;
+			snd_config_get_string(src, &s);
+                        if (strncmp(s, "$(", 2) == 0 && s[strlen(s) - 1] == ')') {
+                        	int len = strlen(s) - 3;
+				char *str = alloca(len + 1);
+				memcpy(str, s + 2, len);
+				str[len] = '\0';
 				if (snd_config_search(vars, str, &val) < 0)
 					return 0;
 				err = snd_config_copy(dst, val);
@@ -1800,22 +1842,10 @@ static int _snd_config_expand(snd_config_t *src,
 				err = snd_config_make(dst, id, type);
 				if (err < 0)
 					return err;
-				if (strstr(s, "$(") != NULL) {
-					char *str = NULL;
-					err = snd_config_string_replace(s, '$', _snd_config_expand_replace, vars, &str);
-					if (err < 0)
-						return err;
-					if (str == NULL) {
-						snd_config_delete(*dst);
-						return 0;
-					}
-					(*dst)->u.string = str;
-				} else {
-					err = snd_config_set_string(*dst, s);
-					if (err < 0) {
-						snd_config_delete(*dst);
-						return err;
-					}
+				err = snd_config_set_string(*dst, s);
+				if (err < 0) {
+					snd_config_delete(*dst);
+					return err;
 				}
 			}
 			break;
@@ -1828,6 +1858,181 @@ static int _snd_config_expand(snd_config_t *src,
 		break;
 	}
 	return 1;
+}
+
+static int evaluate_node(snd_config_t *father, snd_config_t *src,
+			 void *private_data, snd_config_t **_dst)
+{
+	snd_config_iterator_t i, next;
+	const char *lib = NULL, *func = NULL, *type = NULL;
+	int err;
+
+	assert(father && src && _dst);
+
+	snd_config_for_each(i, next, src) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND) {
+			snd_config_t *n1;
+			err = evaluate_node(src, n, private_data, &n1);
+			if (err < 0) {
+				SNDERR("Error in node %s", snd_config_get_id(n));
+				goto __error;
+			}
+			if (n1) {			/* replace node */
+				snd_config_delete(n);
+				err = snd_config_add(src, n1);
+				if (err < 0)
+					goto __error;
+			}
+		}
+		id = snd_config_get_id(n);
+		if (*id++ != '@')	/* quick look */
+			continue;
+		if (!strcmp(id, "lib")) {
+			if ((err = snd_config_get_string(n, &lib)) < 0) {
+			       _invalid_field:
+				SNDERR("Unknown type of field %s", id);
+				return err;
+			}
+			lib = strdup(lib);
+			if (lib == NULL)
+				goto __error;
+			snd_config_delete(n);
+		} else if (!strcmp(id, "func")) {
+			if ((err = snd_config_get_string(n, &func)) < 0)
+				goto _invalid_field;
+			func = strdup(func);
+			if (func == NULL)
+				goto __error;
+			snd_config_delete(n);
+		} else if (!strcmp(id, "type")) {
+			if ((err = snd_config_get_string(n, &type)) < 0)
+				goto _invalid_field;
+			type = strdup(type);
+			if (type == NULL)
+				goto __error;
+			snd_config_delete(n);
+		}
+	}
+	
+	if (func == NULL) {
+		*_dst = NULL;
+		return 0;
+	}
+
+	{
+		char buf[64], *ptr;
+		snd_config_type_t t;
+		snd_config_t *dst = NULL;
+		char *evaluate_name = NULL;
+		int (*evaluate_func)(char **dst, snd_config_t *src, void *private_data);
+		void *h;
+	
+		if (evaluate_name == NULL) {
+			snprintf(buf, sizeof(buf), "snd_func_%s", func);
+			buf[sizeof(buf)-1] = '\0';
+			evaluate_name = buf;
+		}
+	
+		h = dlopen(lib, RTLD_NOW);
+		if (!h) {
+			SNDERR("Cannot open shared library %s", lib);
+			return -ENOENT;
+		}
+		evaluate_func = dlsym(h, evaluate_name);
+		if (!evaluate_func) {
+			dlclose(h);
+			SNDERR("symbol %s is not defined inside %s", evaluate_name, lib ? lib : ALSA_LIB);
+			return -ENXIO;
+		}
+		err = evaluate_func(&ptr, src, private_data);
+		dlclose(h);
+		if (err < 0) {
+			SNDERR("function %s returned error: %s", evaluate_name, snd_strerror(err));
+			return err;
+		}
+		if (type == NULL) {
+			t = SND_CONFIG_TYPE_STRING;
+		} else {
+			err = snd_config_get_type_ascii(type, &t);
+			if (err < 0 || t == SND_CONFIG_TYPE_COMPOUND) {
+				free(ptr);
+				return -EINVAL;
+			}
+		}
+		err = snd_config_make(&dst, snd_config_get_id(src), t);
+		if (err < 0) {
+			free(ptr);
+			return err;
+		}
+		switch (t) {
+		case SND_CONFIG_TYPE_INTEGER:
+			{
+				long v;
+				err = safe_strtol(ptr, &v);
+				if (err < 0) {
+					free(ptr);
+					snd_config_delete(dst);
+					return err;
+				}
+				snd_config_set_integer(dst, v);
+			}
+			break;
+		case SND_CONFIG_TYPE_REAL:
+			{
+				double r;
+				err = safe_strtod(ptr, &r);
+				if (err < 0) {
+					free(ptr);
+					snd_config_delete(dst);
+					return err;
+				}
+				snd_config_set_real(dst, r);
+			}
+			break;
+		default:
+			snd_config_set_string(dst, ptr);
+			break;
+		}
+		free(ptr);
+		*_dst = dst;
+	}
+	
+	err = 0;
+      __error:
+      	if (func)
+      		free((void *)func);
+      	if (lib)
+      		free((void *)lib);
+      	if (type)
+      		free((void *)type);
+	return err;
+}
+
+int snd_config_evaluate(snd_config_t *conf, void *private_data)
+{
+	snd_config_iterator_t i, next;
+
+	assert(conf);
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND) {
+			snd_config_t *n1;
+			int err = evaluate_node(conf, n, private_data, &n1);
+			if (err < 0) {
+				SNDERR("Error in node %s", snd_config_get_id(n));
+				return err;
+			}
+			if (n1) {			/* replace node */
+				snd_config_delete(n);
+				err = snd_config_add(conf, n1);
+				if (err < 0)
+					return err;
+			}
+		}
+	}
+	return 0;
 }
 
 static int load_defaults(snd_config_t *subs, snd_config_t *defs)
@@ -2055,6 +2260,8 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 {
 	int err;
 	int arg = 0;
+	if (str == NULL)
+		return 0;
 	skip_blank(&str);
 	if (!*str)
 		return 0;
@@ -2198,35 +2405,54 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 }
 
 /**
- * \brief Expand a node applying arguments
+ * \brief Expand a node applying arguments and functions
  * \param config Config node handle
- * \param args Arguments string
+ * \param args Arguments string (optional)
+ * \param private_data Private data for functions
  * \param result Pointer to found node
  * \return 0 on success otherwise a negative error code
  */
 int snd_config_expand(snd_config_t *config, const char *args,
-		      snd_config_t **result)
+		      void *private_data, snd_config_t **result)
 {
 	int err;
-	snd_config_t *defs, *subs;
-	err = snd_config_search(config, "$", &defs);
-	if (err < 0)
-		return -EINVAL;
-	err = snd_config_top(&subs);
-	if (err < 0)
-		return err;
-	err = load_defaults(subs, defs);
-	if (err < 0)
+	snd_config_t *defs, *subs = NULL, *res;
+	err = snd_config_search(config, "args", &defs);
+	if (err < 0) {
+		err = snd_config_copy(&res, config);
+		if (err < 0)
+			return err;
+	} else {
+		err = snd_config_top(&subs);
+		if (err < 0)
+			return err;
+		err = load_defaults(subs, defs);
+		if (err < 0) {
+			SNDERR("Load defaults error: %s", snd_strerror(err));
+			goto _end;
+		}
+		err = parse_args(subs, args, defs);
+		if (err < 0) {
+			SNDERR("Parse arguments error: %s", snd_strerror(err));
+			goto _end;
+		}
+		err = snd_config_walk(config, &res, _snd_config_expand, subs);
+		if (err < 0) {
+			SNDERR("Expand error (walk): %s", snd_strerror(err));
+			goto _end;
+		}
+	}
+	err = snd_config_evaluate(res, private_data);
+	if (err < 0) {
+		SNDERR("Evaluate error: %s", snd_strerror(err));
+		snd_config_delete(res);
 		goto _end;
-	err = parse_args(subs, args, defs);
-	if (err < 0)
-		goto _end;
-	err = snd_config_walk(config, result, _snd_config_expand, subs);
-	if (err < 0)
-		goto _end;
+	}
+	*result = res;
 	err = 1;
  _end:
-	snd_config_delete(subs);
+ 	if (subs)
+		snd_config_delete(subs);
 	return err;
 }
 	

@@ -161,7 +161,7 @@ static int snd_seq_open_noupdate(snd_seq_t **seqp, const char *name,
 		return err;
 	}
 	if (args) {
-		err = snd_config_expand(seq_conf, args, &seq_conf);
+		err = snd_config_expand(seq_conf, args, NULL, &seq_conf);
 		if (err < 0)
 			return err;
 	}

@@ -39,7 +39,7 @@ int snd_config_search_alias(snd_config_t *config,
 			    snd_config_t **result);
 
 int snd_config_expand(snd_config_t *config, const char *args,
-		      snd_config_t **result);
+		      void *private_data, snd_config_t **result);
 
 int snd_config_add(snd_config_t *config, snd_config_t *leaf);
 int snd_config_delete(snd_config_t *config);
@@ -96,10 +96,11 @@ int snd_config_string_replace(const char *src, char idchr,
 			      snd_config_string_replace_callback_t *callback,
 			      void *private_data,
 			      char **dst);
-int snd_config_redirect_load(snd_config_t *root, snd_config_t *config,
-			     char **name, snd_config_t **dst_config,
+int snd_config_redirect_load(snd_config_t *root,
+			     snd_config_t *config,
+			     char **name,
+			     snd_config_t **dst_config,
 			     int *dst_dynamic);
-
 
 #ifdef __cplusplus
 }

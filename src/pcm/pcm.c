@@ -1035,12 +1035,10 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 			return err;
 		}
 	}
-	if (args == NULL && snd_config_search(pcm_conf, "$", &conf) >= 0) /* expand arguments */
-		args = "";
-	if (args) {
-		err = snd_config_expand(pcm_conf, args, &pcm_conf);
-		if (err < 0)
-			return err;
+	err = snd_config_expand(pcm_conf, args, NULL, &pcm_conf);
+	if (err < 0) {
+		SNDERR("Could not expand configuration: %s", snd_strerror(err));
+		return err;
 	}
 	if (snd_config_search(pcm_conf, "redirect", &conf) >= 0) {
 		snd_config_t *tmp_conf;
@@ -1049,8 +1047,10 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 		err = snd_config_redirect_load(root, conf, &redir_name, &tmp_conf, &conf_free_tmp);
 		if (args)
 			snd_config_delete(pcm_conf);
-		if (err < 0)
+		if (err < 0) {
+			SNDERR("Redirect error: %s", snd_strerror(err));
 			return err;
+		}
 		err = snd_pcm_open_noupdate(pcmp, tmp_conf, redir_name, stream, mode);
 		if (redir_name)
 			free(redir_name);
@@ -1059,8 +1059,7 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 		return err;
 	}
 	err = snd_pcm_open_conf(pcmp, name, root, pcm_conf, stream, mode);
-	if (args)
-		snd_config_delete(pcm_conf);
+	snd_config_delete(pcm_conf);
 	return err;
 }
 

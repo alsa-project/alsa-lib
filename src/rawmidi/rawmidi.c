@@ -175,7 +175,7 @@ int snd_rawmidi_open_noupdate(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		return err;
 	}
 	if (args) {
-		err = snd_config_expand(rawmidi_conf, args, &rawmidi_conf);
+		err = snd_config_expand(rawmidi_conf, args, NULL, &rawmidi_conf);
 		if (err < 0)
 			return err;
 	}
