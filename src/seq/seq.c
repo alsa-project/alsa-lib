@@ -564,7 +564,7 @@ snd_seq_event_t *snd_seq_create_event(void)
 /*
  * free an event - only for compatibility
  */
-int snd_seq_free_event(snd_seq_event_t *ev)
+int snd_seq_free_event(snd_seq_event_t *ev ATTRIBUTE_UNUSED)
 {
 	return 0;
 }
@@ -578,11 +578,8 @@ ssize_t snd_seq_event_length(snd_seq_event_t *ev)
 
 	if (!ev)
 		return -EINVAL;
-	if (snd_seq_ev_is_variable(ev)) {
-		if (ev->data.ext.len < 0)
-			return -EINVAL;
+	if (snd_seq_ev_is_variable(ev))
 		len += ev->data.ext.len;
-	}
 	return len;
 }
 
@@ -720,7 +717,6 @@ int snd_seq_flush_output(snd_seq_t *seq)
 int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 {
 	size_t len, olen;
-	int err;
 	snd_seq_event_t ev;
 
 	if (!seq)
@@ -765,7 +761,7 @@ static ssize_t snd_seq_event_read_buffer(snd_seq_t *seq)
 
 static int snd_seq_event_retrieve_buffer(snd_seq_t *seq, snd_seq_event_t **retp)
 {
-	int ncells, err;
+	size_t ncells;
 	snd_seq_event_t *ev;
 
 	*retp = ev = &seq->ibuf[seq->ibufptr];
@@ -797,7 +793,7 @@ int snd_seq_event_input(snd_seq_t *seq, snd_seq_event_t **ev)
 		return -EINVAL;
 
 	if (seq->ibuflen <= 0) {
-		if (err = snd_seq_event_read_buffer(seq) < 0)
+		if ((err = snd_seq_event_read_buffer(seq)) < 0)
 			return err;
 	}
 
