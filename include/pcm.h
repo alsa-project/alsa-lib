@@ -6,7 +6,8 @@
  * \author Takashi Iwai <tiwai@suse.de>
  * \date 1998-2001
  *
- * Application interface library for the ALSA driver
+ * Application interface library for the ALSA driver.
+ * See the \ref pcm page for more details.
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -34,7 +35,7 @@ extern "C" {
 
 /**
  *  \defgroup PCM PCM Interface
- *  The PCM Interface.
+ *  See the \ref pcm page for more details.
  *  \{
  */
 
@@ -59,6 +60,7 @@ typedef struct _snd_pcm_subformat_mask snd_pcm_subformat_mask_t;
 /** PCM class */
 typedef enum _snd_pcm_class {
 	/** standard device */
+
 	SND_PCM_CLASS_GENERIC = 0,
 	/** multichannel device */
 	SND_PCM_CLASS_MULTI,
@@ -388,8 +390,8 @@ int snd_pcm_unlink(snd_pcm_t *pcm);
 
 /**
  * \defgroup PCM_Info Stream Information
- * PCM Stream Information
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -422,8 +424,8 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val);
 
 /**
  * \defgroup PCM_HW_Params Hardware Parameters
- * PCM Hardware Parameters
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -596,8 +598,8 @@ unsigned int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_par
 
 /**
  * \defgroup PCM_SW_Params Software Parameters
- * PCM Software Parameters
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -637,8 +639,8 @@ snd_pcm_uframes_t snd_pcm_sw_params_get_silence_size(const snd_pcm_sw_params_t *
 
 /**
  * \defgroup PCM_Access Access Mask Functions
- * PCM Access Mask Functions
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -661,8 +663,8 @@ void snd_pcm_access_mask_reset(snd_pcm_access_mask_t *mask, snd_pcm_access_t val
 
 /**
  * \defgroup PCM_Format Format Mask Functions
- * PCM Format Mask Functions
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -685,8 +687,8 @@ void snd_pcm_format_mask_reset(snd_pcm_format_mask_t *mask, snd_pcm_format_t val
 
 /**
  * \defgroup PCM_SubFormat Subformat Mask Functions
- * PCM Subformat Mask Functions
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -709,8 +711,8 @@ void snd_pcm_subformat_mask_reset(snd_pcm_subformat_mask_t *mask, snd_pcm_subfor
 
 /**
  * \defgroup PCM_Status Status Functions
- * PCM Status Functions
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -735,8 +737,8 @@ snd_pcm_uframes_t snd_pcm_status_get_overrange(const snd_pcm_status_t *obj);
 
 /**
  * \defgroup PCM_Description Description Functions
- * PCM Description Functions
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -754,8 +756,8 @@ const char *snd_pcm_state_name(const snd_pcm_state_t state);
 
 /**
  * \defgroup PCM_Dump Debug Functions
- * PCM Debug Functions
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -771,8 +773,8 @@ int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out);
 
 /**
  * \defgroup PCM_Direct Direct Access (MMAP) Functions
- * PCM Direct Access (MMAP) Functions
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -791,8 +793,8 @@ snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframe
 
 /**
  * \defgroup PCM_Helpers Helper Functions
- * PCM Helper Functions
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -832,8 +834,8 @@ int snd_pcm_areas_copy(const snd_pcm_channel_area_t *dst_channels, snd_pcm_ufram
 
 /**
  * \defgroup PCM_Hook Hook Extension
- * PCM Hook Extension
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -861,8 +863,8 @@ int snd_pcm_hook_remove(snd_pcm_hook_t *hook);
 
 /**
  * \defgroup PCM_Scope Scope Plugin Extension
- * PCM Scope Plugin Extension
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -920,8 +922,8 @@ int16_t *snd_pcm_scope_s16_get_channel_buffer(snd_pcm_scope_t *scope,
 
 /**
  * \defgroup PCM_Deprecated Deprecated Functions
- * PCM Deprecated Functions
  * \ingroup PCM
+ * See the \ref pcm page for more details.
  * \{
  */
 
@@ -940,4 +942,3 @@ snd_pcm_xrun_t snd_pcm_sw_params_get_xrun_mode(const snd_pcm_sw_params_t *params
 #endif
 
 #endif /* __ALSA_PCM_H */
-

@@ -30,7 +30,8 @@
 
 #ifdef SND_ASYNC_RT_SIGNAL
 /** async signal number */
-int snd_async_signo;
+static int snd_async_signo;
+
 void snd_async_init(void) __attribute__ ((constructor));
 
 void snd_async_init(void)
@@ -43,7 +44,7 @@ void snd_async_init(void)
 }
 #else
 /** async signal number */
-int snd_async_signo = SIGIO;
+static int snd_async_signo = SIGIO;
 #endif
 
 static LIST_HEAD(snd_async_handlers);
@@ -68,12 +69,18 @@ static void snd_async_handler(int signo ATTRIBUTE_UNUSED, siginfo_t *siginfo, vo
  * \param callback - Async callback
  * \param private_data - Private data for async callback
  * \result zero if success, otherwise a negative error code
+ *
+ * The function create the async handler. The ALSA extension
+ * for the standard SIGIO signal contains the multiplexer
+ * for multiple asynchronous notifiers using one sigaction
+ * callback.
  */
 int snd_async_add_handler(snd_async_handler_t **handler, int fd, 
 			  snd_async_callback_t callback, void *private_data)
 {
 	snd_async_handler_t *h;
 	int was_empty;
+	assert(handler);
 	h = malloc(sizeof(*h));
 	if (!h)
 		return -ENOMEM;
@@ -107,6 +114,7 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 int snd_async_del_handler(snd_async_handler_t *handler)
 {
 	int err = 0;
+	assert(handler);
 	list_del(&handler->glist);
 	if (list_empty(&snd_async_handlers)) {
 		struct sigaction act;
@@ -140,12 +148,24 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 }
 
 /**
+ * \brief Get signal number assigned to async handler
+ * \param handler Async handler
+ * \result signal number if success, otherwise a negative error code
+ */
+int snd_async_handler_get_signo(snd_async_handler_t *handler)
+{
+	assert(handler);
+	return snd_async_signo;
+}
+
+/**
  * \brief Get file descriptor assigned to async handler
  * \param handler Async handler
  * \result file descriptor if success, otherwise a negative error code
  */
 int snd_async_handler_get_fd(snd_async_handler_t *handler)
 {
+	assert(handler);
 	return handler->fd;
 }
 
@@ -156,6 +176,7 @@ int snd_async_handler_get_fd(snd_async_handler_t *handler)
  */
 void *snd_async_handler_get_callback_private(snd_async_handler_t *handler)
 {
+	assert(handler);
 	return handler->private_data;
 }
 

@@ -51,8 +51,10 @@ typedef enum _snd_config_type {
         SND_CONFIG_TYPE_REAL,
 	/** Character string */
         SND_CONFIG_TYPE_STRING,
+        /** Pointer - runtime only - cannot be saved */
+        SND_CONFIG_TYPE_POINTER,
 	/** Compound */
-	SND_CONFIG_TYPE_COMPOUND,
+	SND_CONFIG_TYPE_COMPOUND = 1024,
 } snd_config_type_t;
 
 /** Config node handle */
@@ -60,10 +62,13 @@ typedef struct _snd_config snd_config_t;
 /** Config compound iterator */
 typedef struct _snd_config_iterator *snd_config_iterator_t;
 
+extern snd_config_t *snd_config;
+
 int snd_config_top(snd_config_t **config);
 
 int snd_config_load(snd_config_t *config, snd_input_t *in);
 int snd_config_save(snd_config_t *config, snd_output_t *out);
+int snd_config_update(void);
 
 int snd_config_search(snd_config_t *config, const char *key,
 		      snd_config_t **result);
@@ -74,10 +79,10 @@ int snd_config_search_definition(snd_config_t *config,
 				 snd_config_t **result);
 
 int snd_config_expand(snd_config_t *config, snd_config_t *root,
-		      const char *args, void *private_data,
+		      const char *args, snd_config_t *private_data,
 		      snd_config_t **result);
 int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
-			void *private_data, snd_config_t **result);
+			snd_config_t *private_data, snd_config_t **result);
 
 int snd_config_add(snd_config_t *config, snd_config_t *leaf);
 int snd_config_delete(snd_config_t *config);
@@ -88,17 +93,24 @@ int snd_config_make(snd_config_t **config, const char *key,
 int snd_config_make_integer(snd_config_t **config, const char *key);
 int snd_config_make_real(snd_config_t **config, const char *key);
 int snd_config_make_string(snd_config_t **config, const char *key);
+int snd_config_make_pointer(snd_config_t **config, const char *key);
 int snd_config_make_compound(snd_config_t **config, const char *key, int join);
+
+snd_config_type_t snd_config_get_type(snd_config_t *config);
 
 int snd_config_set_id(snd_config_t *config, const char *id);
 int snd_config_set_integer(snd_config_t *config, long value);
 int snd_config_set_real(snd_config_t *config, double value);
 int snd_config_set_string(snd_config_t *config, const char *value);
 int snd_config_set_ascii(snd_config_t *config, const char *ascii);
+int snd_config_set_pointer(snd_config_t *config, const void *ptr);
+int snd_config_get_id(snd_config_t *config, const char **value);
 int snd_config_get_integer(snd_config_t *config, long *value);
 int snd_config_get_real(snd_config_t *config, double *value);
 int snd_config_get_string(snd_config_t *config, const char **value);
 int snd_config_get_ascii(snd_config_t *config, char **value);
+int snd_config_get_pointer(snd_config_t *config, const void **value);
+int snd_config_test_id(snd_config_t *config, const char *id);
 
 snd_config_iterator_t snd_config_iterator_first(snd_config_t *node);
 snd_config_iterator_t snd_config_iterator_next(snd_config_iterator_t iterator);
@@ -114,12 +126,6 @@ snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator);
  */
 #define snd_config_for_each(pos, next, node) \
 	for (pos = snd_config_iterator_first(node), next = snd_config_iterator_next(pos); pos != snd_config_iterator_end(node); pos = next, next = snd_config_iterator_next(pos))
-
-snd_config_type_t snd_config_get_type(snd_config_t *config);
-const char *snd_config_get_id(snd_config_t *config);
-
-extern snd_config_t *snd_config;
-int snd_config_update(void);
 
 /* Misc functions */
 

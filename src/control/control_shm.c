@@ -572,7 +572,9 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 	struct hostent *h;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "type") == 0)
@@ -617,7 +619,9 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_c
 	}
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "host") == 0) {

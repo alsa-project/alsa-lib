@@ -335,7 +335,10 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		err = safe_strtol(snd_config_get_id(n), &idx);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		err = safe_strtol(id, &idx);
 		if (err < 0 || idx < 0 || (unsigned int) idx >= count) {
 			SNDERR("bad value index");
 			return -EINVAL;
@@ -381,7 +384,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 	return 0;
 }
 
-static int add_elem(snd_sctl_t *h, snd_config_t *_conf, void *private_data)
+static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_data)
 {
 	snd_config_t *conf;
 	snd_config_iterator_t i, next;
@@ -401,7 +404,9 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, void *private_data)
 		return err;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "iface") == 0 || strcmp(id, "interface") == 0) {
@@ -576,7 +581,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, void *private_data)
  * \param mode Build mode - SND_SCTL_xxxx
  * \result zero if success, otherwise a negative error code
  */
-int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf, void *private_data, int mode)
+int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf, snd_config_t *private_data, int mode)
 {
 	snd_sctl_t *h;
 	snd_config_iterator_t i, next;

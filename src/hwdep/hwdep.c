@@ -46,6 +46,7 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 	int err;
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
+	const char *id;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_hwdep_t **, const char *, snd_config_t *, snd_config_t *, int) = NULL;
 #ifndef PIC
@@ -64,9 +65,14 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 		SNDERR("type is not defined");
 		return err;
 	}
+	err = snd_config_get_id(conf, &id);
+	if (err < 0) {
+		SNDERR("unable to get id");
+		return err;
+	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", snd_config_get_id(conf));
+		SNDERR("Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(hwdep_root, "hwdep_type", str, &type_conf);
@@ -77,7 +83,9 @@ static int snd_hwdep_open_conf(snd_hwdep_t **hwdep,
 		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
+			const char *id;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			if (strcmp(id, "comment") == 0)
 				continue;
 			if (strcmp(id, "lib") == 0) {

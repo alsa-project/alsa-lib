@@ -113,8 +113,6 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #define SND_BIG_ENDIAN
 #endif
 
-extern int snd_async_signo;
-
 struct _snd_async_handler {
 	enum {
 		SND_ASYNC_HANDLER_GENERIC,

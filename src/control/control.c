@@ -444,7 +444,7 @@ int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl,
 	was_empty = list_empty(&ctl->async_handlers);
 	list_add_tail(&h->hlist, &ctl->async_handlers);
 	if (was_empty) {
-		err = snd_ctl_async(ctl, getpid(), snd_async_signo);
+		err = snd_ctl_async(ctl, snd_async_get_signo(h), getpid());
 		if (err < 0) {
 			snd_async_del_handler(h);
 			return err;
@@ -474,6 +474,7 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
+	const char *id;
 	int (*open_func)(snd_ctl_t **, const char *, snd_config_t *, snd_config_t *, int) = NULL;
 #ifndef PIC
 	extern void *snd_control_open_symbols(void);
@@ -491,9 +492,14 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 		SNDERR("type is not defined");
 		return err;
 	}
+	err = snd_config_get_id(conf, &id);
+	if (err < 0) {
+		SNDERR("unable to get id");
+		return err;
+	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", snd_config_get_id(conf));
+		SNDERR("Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(ctl_root, "ctl_type", str, &type_conf);
@@ -504,7 +510,9 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
+			const char *id;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			if (strcmp(id, "comment") == 0)
 				continue;
 			if (strcmp(id, "lib") == 0) {

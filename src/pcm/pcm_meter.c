@@ -663,6 +663,7 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 {
 	char buf[256];
 	snd_config_iterator_t i, next;
+	const char *id;
 	const char *lib = NULL, *open_name = NULL, *str = NULL;
 	snd_config_t *c, *type_conf;
 	int (*open_func)(snd_pcm_t *, const char *,
@@ -679,16 +680,23 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 		SNDERR("type is not defined");
 		goto _err;
 	}
+	err = snd_config_get_id(c, &id);
+	if (err < 0) {
+		SNDERR("unable to get id");
+		goto _err;
+	}
 	err = snd_config_get_string(c, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", snd_config_get_id(c));
+		SNDERR("Invalid type for %s", id);
 		goto _err;
 	}
 	err = snd_config_search_definition(root, "pcm_scope_type", str, &type_conf);
 	if (err >= 0) {
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
+			const char *id;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			if (strcmp(id, "comment") == 0)
 				continue;
 			if (strcmp(id, "lib") == 0) {
@@ -745,7 +753,9 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *scopes = NULL;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "slave") == 0) {
@@ -791,8 +801,9 @@ int _snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name,
 		return 0;
 	snd_config_for_each(i, next, scopes) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
-		const char *str;
+		const char *id, *str;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (snd_config_get_string(n, &str) >= 0) {
 			err = snd_config_search_definition(root, "pcm_scope", str, &n);
 			if (err < 0) {

@@ -41,6 +41,9 @@ struct snd_dlsym_link *snd_dlsym_start = NULL;
  * \param name name, similar to dlopen
  * \param mode mode, similar to dlopen
  * \return pointer to handle
+ *
+ * The extension is a special code for the static build of
+ * the alsa-lib library.
  */
 void *snd_dlopen(const char *name, int mode)
 {
@@ -55,6 +58,9 @@ void *snd_dlopen(const char *name, int mode)
  * \brief Close the dynamic library, with ALSA extension
  * \param handle handle, similar to dlclose
  * \return zero if success, otherwise an error code
+ *
+ * The extension is a special code for the static build of
+ * the alsa-lib library.
  */
 int snd_dlclose(void *handle)
 {
@@ -80,6 +86,8 @@ static int snd_dlsym_verify(void *handle, const char *name, const char *version)
 	if (handle == NULL)
 		return -EINVAL;
 	vname = alloca(1 + strlen(name) + strlen(version) + 1);
+	if (vname == NULL)
+		return -ENOMEM;
 	vname[0] = '_';
 	strcpy(vname + 1, name);
 	strcat(vname, version);
@@ -89,11 +97,16 @@ static int snd_dlsym_verify(void *handle, const char *name, const char *version)
 		SNDERR("unable to verify version for symbol %s", name);
 	return res;
 }
+
 /**
  * \brief Resolve the symbol, with ALSA extension
  * \param handle handle, similar to dlsym
  * \param name symbol name
  * \param version symbol version
+ *
+ * This special version of dlsym function checks also
+ * the version of symbol. The version of a symbol should
+ * be defined using #SND_DLSYM_BUILD_VERSION macro.
  */
 void *snd_dlsym(void *handle, const char *name, const char *version)
 {
@@ -101,8 +114,8 @@ void *snd_dlsym(void *handle, const char *name, const char *version)
 
 #ifndef PIC
 	if (handle == &snd_dlsym_start) {
-		/* it's the funny part, we are looking for a symbol */
-		/* in a static library */
+		/* it's the funny part: */
+		/* we are looking for a symbol in a static library */
 		struct snd_dlsym_link *link = snd_dlsym_start;
 		while (link) {
 			if (!strcmp(name, link->dlsym_name))

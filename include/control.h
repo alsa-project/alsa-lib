@@ -192,12 +192,6 @@ int snd_card_get_index(const char *name);
 int snd_card_get_name(int card, char **name);
 int snd_card_get_longname(int card, char **name);
 
-int snd_sctl_build(snd_sctl_t **ctl, snd_ctl_t *handle, snd_config_t *config,
-		   void *private_data, int mode);
-int snd_sctl_free(snd_sctl_t *handle);
-int snd_sctl_install(snd_sctl_t *handle);
-int snd_sctl_remove(snd_sctl_t *handle);
-
 int snd_ctl_open(snd_ctl_t **ctl, const char *name, int mode);
 int snd_ctl_close(snd_ctl_t *ctl);
 int snd_ctl_nonblock(snd_ctl_t *ctl, int nonblock);
@@ -482,9 +476,23 @@ void snd_hctl_elem_set_callback_private(snd_hctl_elem_t *obj, void * val);
 
 /** \} */
 
+/**
+ *  \defgroup SControl Setup Control Interface
+ *  \ingroup Control
+ *  The setup control interface - set or modify control elements from a configuration file.
+ *  \{
+ */
+
+int snd_sctl_build(snd_sctl_t **ctl, snd_ctl_t *handle, snd_config_t *config,
+		   snd_config_t *private_data, int mode);
+int snd_sctl_free(snd_sctl_t *handle);
+int snd_sctl_install(snd_sctl_t *handle);
+int snd_sctl_remove(snd_sctl_t *handle);
+
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __ALSA_CONTROL_H */
-

@@ -828,7 +828,9 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	int schannels = -1, srate = -1;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "slave") == 0) {

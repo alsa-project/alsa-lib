@@ -29,13 +29,14 @@
 #define __ALSA_GLOBAL_H_
 
 /**
- *  \defgroup Global Global defines
- *  Global defines
+ *  \defgroup Global Global defines and functions
+ *  Global defines and functions.
  *  \{
  */
 
 #ifndef ATTRIBUTE_UNUSED
-#define ATTRIBUTE_UNUSED __attribute__ ((__unused__)) /**< don't print warning when attribute is not used */
+/** do not print warning (gcc) when function parameter is not used */
+#define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 #endif
 
 #ifdef PIC /* dynamic build */
@@ -88,9 +89,9 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 			  snd_async_callback_t callback, void *private_data);
 int snd_async_del_handler(snd_async_handler_t *handler);
 int snd_async_handler_get_fd(snd_async_handler_t *handler);
+int snd_async_handler_get_signo(snd_async_handler_t *handler);
 void *snd_async_handler_get_callback_private(snd_async_handler_t *handler);
 
 /** \} */
 
 #endif /* __ALSA_GLOBAL_H */
-

@@ -796,10 +796,13 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 		snd_config_t *in = snd_config_iterator_entry(i);
 		snd_config_iterator_t j, jnext;
 		long cchannel;
-		err = safe_strtol(snd_config_get_id(in), &cchannel);
+		const char *id;
+		if (!snd_config_get_id(in, &id) < 0)
+			continue;
+		err = safe_strtol(id, &cchannel);
 		if (err < 0 || 
 		    cchannel < 0 || (unsigned int) cchannel > tt_csize) {
-			SNDERR("Invalid client channel: %s", snd_config_get_id(in));
+			SNDERR("Invalid client channel: %s", id);
 			return -EINVAL;
 		}
 		if (snd_config_get_type(in) != SND_CONFIG_TYPE_COMPOUND)
@@ -808,7 +811,9 @@ int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *tt
 			snd_config_t *jnode = snd_config_iterator_entry(j);
 			double value;
 			long schannel;
-			const char *id = snd_config_get_id(jnode);
+			const char *id;
+			if (snd_config_get_id(jnode, &id) < 0)
+				continue;
 			err = safe_strtol(id, &schannel);
 			if (err < 0 || 
 			    schannel < 0 || (unsigned int) schannel > tt_ssize || 
@@ -855,7 +860,9 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	unsigned int cused, sused;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "slave") == 0) {

@@ -1388,7 +1388,9 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 	
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "slave") == 0) {
@@ -1436,7 +1438,9 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_for_each(i, next, bindings) {
 		long cchannel = -1;
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
 			SNDERR("Invalid client channel in binding: %s", id);
@@ -1455,9 +1459,11 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 
 	snd_config_for_each(i, next, bindings) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
 		long cchannel;
 		long schannel = -1;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		cchannel = atoi(id);
 		err = snd_config_get_integer(n, &schannel);
 		if (err < 0) {

@@ -740,7 +740,9 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 	struct hostent *h;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "server") == 0) {
@@ -781,7 +783,9 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 	}
 	snd_config_for_each(i, next, sconfig) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "host") == 0) {

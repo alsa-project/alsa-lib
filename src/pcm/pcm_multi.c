@@ -684,7 +684,9 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	unsigned int channels_count = 0;
 	snd_config_for_each(i, inext, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "slaves") == 0) {
@@ -731,7 +733,9 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_for_each(i, inext, bindings) {
 		long cchannel;
 		snd_config_t *m = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(m);
+		const char *id;
+		if (snd_config_get_id(m, &id) < 0)
+			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
 			SNDERR("Invalid channel number: %s", id);
@@ -756,8 +760,11 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	idx = 0;
 	snd_config_for_each(i, inext, slaves) {
 		snd_config_t *m = snd_config_iterator_entry(i);
+		const char *id;
 		int channels;
-		slaves_id[idx] = snd_config_get_id(m);
+		if (snd_config_get_id(m, &id) < 0)
+			continue;
+		slaves_id[idx] = id;
 		err = snd_pcm_slave_conf(root, m, &slaves_conf[idx], 1,
 					 SND_PCM_HW_PARAM_CHANNELS, SCONF_MANDATORY, &channels);
 		if (err < 0)
@@ -773,7 +780,9 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		int slave = -1;
 		long val;
 		const char *str;
-		const char *id = snd_config_get_id(m);
+		const char *id;
+		if (snd_config_get_id(m, &id) < 0)
+			continue;
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
 			SNDERR("Invalid channel number: %s", id);
@@ -782,7 +791,9 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		}
 		snd_config_for_each(j, jnext, m) {
 			snd_config_t *n = snd_config_iterator_entry(j);
-			id = snd_config_get_id(n);
+			const char *id;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			if (strcmp(id, "comment") == 0)
 				continue;
 			if (strcmp(id, "slave") == 0) {
@@ -817,13 +828,13 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			goto _free;
 		}
 		if (slave < 0 || (unsigned int)slave >= slaves_count) {
-			SNDERR("Invalid or missing sidx");
+			SNDERR("Invalid or missing sidx for channel %s", id);
 			err = -EINVAL;
 			goto _free;
 		}
 		if (schannel < 0 || 
 		    (unsigned int) schannel >= slaves_channels[slave]) {
-			SNDERR("Invalid or missing schannel");
+			SNDERR("Invalid or missing schannel for channel %s", id);
 			err = -EINVAL;
 			goto _free;
 		}

@@ -73,6 +73,7 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 	int err;
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
+	const char *id;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_seq_t **, const char *,
 			 snd_config_t *, snd_config_t *, 
@@ -93,9 +94,14 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 		SNDERR("type is not defined");
 		return err;
 	}
+	err = snd_config_get_id(conf, &id);
+	if (err < 0) {
+		SNDERR("unable to get id");
+		return err;
+	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", snd_config_get_id(conf));
+		SNDERR("Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(seq_root, "seq_type", str, &type_conf);
@@ -106,7 +112,9 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
+			const char *id;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			if (strcmp(id, "comment") == 0)
 				continue;
 			if (strcmp(id, "lib") == 0) {

@@ -5,7 +5,7 @@
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2000-2001
  *
- * Generic stdio-like input interface
+ * Tree based, full nesting configuration functions.
  */
 /*
  *  Configuration helper functions
@@ -29,6 +29,306 @@
  *
  */
 
+/*! \page conf Configuration files
+
+<P>Configuration files are using a simple format allowing the modern
+data description like nesting and array assignments.</P>
+
+\section conf_whitespace Whitespace
+
+Whitespace is the collective name given to spaces (blanks), horizontal and
+vertical tabs, newline characters, and comments. Whitespace can serve to
+indicate where configuration tokens start and end, but beyond this function,
+any surplus whitespace is discarded. For example, the two sequences
+
+\code
+  a 1 b 2
+\endcode
+
+and
+
+\code
+  a 1 
+     b 2
+\endcode
+
+are lexically equivalent and parse identically to give the four tokens:
+
+\code
+a
+1
+b
+2
+\endcode
+
+The ASCII characters representing whitespace can occur within literal
+strings, int which case they are protected from the normal parsing process
+(tey remain as part of the string). For example:
+
+\code
+  name "John Smith"
+\endcode
+
+parses to two tokens, including the single literal-string token "John
+Smith".
+
+\section conf_linesplicing Line splicing with \
+
+A special case occurs, if the final newline character encountered is
+preceded by a backslash (\) in the string value definition. The backslash
+and new line are both discarded, allowing two physical lines of text to be
+treated as one unit.
+
+\code
+"John \
+Smith"
+\endcode
+
+is parsed as "John Smith".
+
+\section conf_comments Comments
+
+A single-line comments are defined using character #. The comment can start
+in any position, and extends until the next new line.
+
+\code
+  a 1  # this is a comment
+\endcode
+
+\section conf_include Include another configuration file
+
+A new configuration file can be included using <filename> syntax. The global
+configuration directory can be referenced using <confdir:filename> syntax.
+
+\code
+</etc/alsa1.conf>
+<confdir:pcm/surround.conf>
+\endcode
+
+\section conf_punctuators Punctuators
+
+The configuration punctuators (also known as separators) are:
+
+\code
+  {} [] , ; = . ' " new-line form-feed carriage-return whitespace
+\endcode
+
+\subsection conf_braces Braces
+
+Open and close braces { } indicate the start and end of a compound
+statement:
+
+\code
+a {
+  b 1
+}
+\endcode
+
+\subsection conf_brackets Brackets
+
+Open and close brackets indicate single array definition. The identificators
+are automatically generated starting with zero.
+
+\code
+a [
+  "first"
+  "second"
+]
+\endcode
+
+Above code is equal to
+
+\code
+a.0 "first"
+a.1 "second"
+\endcode
+
+\subsection conf_comma_semicolon Comma and semicolon
+
+The comma (,) or semicolon (;) can separate the value assignments. It is not
+strictly required to use these separators, because any whitespace supplies
+them.
+
+\code
+a 1;
+b 1,
+\endcode
+
+\subsection conf_equal Equal sign
+
+The equal sign (=) separates can separate variable declarations from
+initialization lists:
+
+\code
+a=1
+b=2
+\endcode
+
+Using the equal signs is not required, because any whitespace supplies
+them.
+
+\section conf_assigns Assigns
+
+The configuration file defines id (key) and value pairs. The id (key) can be
+composed from any ASCII digits or chars from a to z or A to Z, including
+char _. The value can be either a string, integer or real number.
+
+\subsection conf_single Single assign
+
+\code
+a 1	# is equal to
+a=1	# is equal to
+a=1;	# is equal to
+a 1,
+\endcode
+
+\subsection conf_compound Compound assign (definition using braces)
+
+\code
+a {
+  b = 1
+}
+a={
+  b 1,
+}
+\endcode
+
+\section conf_compound1 Compound assign (one key definition)
+
+\code
+a.b 1
+a.b=1
+\endcode
+
+\subsection conf_array Array assign (definition using brackets)
+
+\code
+a [
+  "first"
+  "second"
+]
+\endcode
+
+\subsection conf_array1 Array assign (one key definition)
+
+\code
+a.0 "first"
+a.1 "second"
+\endcode
+
+\section conf_summary Summary
+
+\code
+# Configuration file syntax
+
+# Include a new configuration file
+<filename>
+
+# Simple assign
+name [=] value [,|;]
+
+# Compound assign (first style)
+name [=] {
+        name1 [=] value [,|;]
+        ...
+}
+
+# Compound assign (second style)
+name.name1 [=] value [,|;]
+
+# Array assign (first style)
+name [
+        value0 [,|;]
+        value1 [,|;]
+        ...
+]
+
+# Array assign (second style)
+name.0 [=] value0 [,|;]
+name.1 [=] value1 [,|;]
+\endcode
+
+*/
+
+/*! \page confarg Configuration - runtime arguments
+
+<P>The ALSA library can accept runtime arguments for some configuration
+blocks. This extension is on top of the basic syntax of the configuration
+files.<P>
+
+\section confarg_define Defining arguments
+
+Arguments are specified by id (key) @args and array values containing
+the string names of arguments:
+
+\code
+@args [ CARD ]	# or
+@args.0 CARD
+\endcode
+
+\section confarg_type Defining argument type and default value
+
+Arguments type is specified by id (key) @args and argument name. The type
+and default value is specified in the compound:
+
+\code
+@args.CARD {
+  type string
+  default "abcd"
+}
+\endcode
+
+\section confarg_refer Refering argument
+
+Arguments are refered by dollar-sign ($) and name of argument:
+
+\code
+  card $CARD
+\endcode
+
+\section confarg_example Example
+
+\code
+pcm.demo {
+	@args [ CARD DEVICE ]
+	@args.CARD {
+		type string
+		default "supersonic"
+	}
+	@args.DEVICE {
+		type integer
+		default 0
+	}
+	type hw
+	card $CARD
+	device $DEVICE
+}
+\endcode
+
+*/
+
+/*! \page conffunc Configuration - runtime functions
+
+<P>The ALSA library accepts the runtime modification of configuration.
+The several build-in functions are available.</P>
+
+<P>The function is refered using id @func and function name. All other
+values in the current compound are used as configuration for the function.
+If compound func.<function_name> is defined in the root leafs, then library
+and function from this compound configuration is used, otherwise the prefix
+'snd_func_' is added to string and the code from the ALSA library is used.
+The definition of function looks like:</P> 
+
+\code
+func.remove_first_char {
+	lib "/usr/lib/libasoundextend.so"
+	func "extend_remove_first_char"
+}
+\endcode
+
+*/
+
+
 #include <stdarg.h>
 #include <wordexp.h>
 #include <dlfcn.h>
@@ -44,6 +344,7 @@ struct _snd_config {
 		long integer;
 		char *string;
 		double real;
+		const void *ptr;
 		struct {
 			struct list_head fields;
 			int join;
@@ -895,6 +1196,9 @@ static int _snd_config_save_leaf(snd_config_t *n, snd_output_t *out,
 	case SND_CONFIG_TYPE_STRING:
 		string_print(n->u.string, 0, out);
 		break;
+	case SND_CONFIG_TYPE_POINTER:
+		SNDERR("cannot save runtime pointer type");
+		return -EINVAL;
 	case SND_CONFIG_TYPE_COMPOUND:
 		snd_output_putc(out, '{');
 		snd_output_putc(out, '\n');
@@ -1024,11 +1328,14 @@ snd_config_type_t snd_config_get_type(snd_config_t *config)
 /**
  * \brief Return id of a config node
  * \param config Config node handle
- * \return node id
+ * \param value The result id
+ * \return 0 on success otherwise a negative error code
  */
-const char *snd_config_get_id(snd_config_t *config)
+int snd_config_get_id(snd_config_t *config, const char **id)
 {
-	return config->id;
+	assert(config && id);
+	*id = config->id;
+	return 0;
 }
 
 /**
@@ -1246,6 +1553,17 @@ int snd_config_make_string(snd_config_t **config, const char *id)
 }
 
 /**
+ * \brief Build a pointer config node
+ * \param config Returned config node handle pointer
+ * \param id Node id
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_make_pointer(snd_config_t **config, const char *id)
+{
+	return snd_config_make(config, id, SND_CONFIG_TYPE_POINTER);
+}
+
+/**
  * \brief Build an empty compound config node
  * \param config Returned config node handle pointer
  * \param id Node id
@@ -1309,6 +1627,21 @@ int snd_config_set_string(snd_config_t *config, const char *value)
 	config->u.string = strdup(value);
 	if (!config->u.string)
 		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief Change the value of a pointer config node
+ * \param config Config node handle
+ * \param ptr Value
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_set_pointer(snd_config_t *config, const void *value)
+{
+	assert(config);
+	if (config->type != SND_CONFIG_TYPE_POINTER)
+		return -EINVAL;
+	config->u.ptr = value;
 	return 0;
 }
 
@@ -1400,6 +1733,21 @@ int snd_config_get_string(snd_config_t *config, const char **ptr)
 }
 
 /**
+ * \brief Get the value of a pointer config node
+ * \param config Config node handle
+ * \param ptr Returned value pointer
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_config_get_pointer(snd_config_t *config, const void **ptr)
+{
+	assert(config && ptr);
+	if (config->type != SND_CONFIG_TYPE_POINTER)
+		return -EINVAL;
+	*ptr = config->u.ptr;
+	return 0;
+}
+
+/**
  * \brief Get the value in ASCII form
  * \param config Config node handle
  * \param ascii Returned dynamically allocated ASCII string
@@ -1451,6 +1799,18 @@ int snd_config_get_ascii(snd_config_t *config, char **ascii)
 	if (*ascii == NULL)
 		return -ENOMEM;
 	return 0;
+}
+
+/**
+ * \brief Compare the config node id and given ASCII id
+ * \param config Config node handle
+ * \param id ASCII id
+ * \return the same value as result of the strcmp function
+ */
+int snd_config_test_id(snd_config_t *config, const char *id)
+{
+	assert(config && id);
+	return strcmp(config->id, id);
 }
 
 /**
@@ -1666,7 +2026,7 @@ int snd_config_search_alias(snd_config_t *config,
  */
 int snd_config_search_hooks(snd_config_t *config, const char *key, snd_config_t **result)
 {
-	static int snd_config_hooks(snd_config_t *config, void *private_data);
+	static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data);
 	SND_CONFIG_SEARCH(config, key, result, \
 					err = snd_config_hooks(config, NULL); \
 					if (err < 0) \
@@ -1683,7 +2043,7 @@ int snd_config_search_hooks(snd_config_t *config, const char *key, snd_config_t 
  */
 int snd_config_searcha_hooks(snd_config_t *root, snd_config_t *config, const char *key, snd_config_t **result)
 {
-	static int snd_config_hooks(snd_config_t *config, void *private_data);
+	static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data);
 	SND_CONFIG_SEARCHA(root, config, key, result,
 					snd_config_searcha_hooks,
 					err = snd_config_hooks(config, NULL); \
@@ -1745,14 +2105,14 @@ static struct finfo {
 
 static unsigned int files_info_count = 0;
 
-static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, void *private_data)
+static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_config_t *private_data)
 {
 	void *h = NULL;
 	snd_config_t *c, *func_conf = NULL;
 	char *buf = NULL;
 	const char *lib = NULL, *func_name = NULL;
 	const char *str;
-	int (*func)(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data) = NULL;
+	int (*func)(snd_config_t *root, snd_config_t *config, snd_config_t **dst, snd_config_t *private_data) = NULL;
 	int err;
 
 	err = snd_config_search(config, "func", &c);
@@ -1774,7 +2134,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, void 
 		}
 		snd_config_for_each(i, next, func_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
+			const char *id = n->id;
 			if (strcmp(id, "comment") == 0)
 				continue;
 			if (strcmp(id, "lib") == 0) {
@@ -1833,7 +2193,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, void 
 	return 0;
 }
 
-static int snd_config_hooks(snd_config_t *config, void *private_data)
+static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data)
 {
 	snd_config_t *n;
 	snd_config_iterator_t i, next;
@@ -1846,7 +2206,7 @@ static int snd_config_hooks(snd_config_t *config, void *private_data)
 		hit = 0;
 		snd_config_for_each(i, next, n) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
+			const char *id = n->id;
 			long i;
 			err = safe_strtol(id, &i);
 			if (err < 0) {
@@ -1877,7 +2237,7 @@ static int snd_config_hooks(snd_config_t *config, void *private_data)
  * \param private_data Private data
  * \return zero if success, otherwise a negative error code
  */
-int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data)
+int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst, snd_config_t *private_data)
 {
 	snd_config_t *n, *res = NULL;
 	snd_config_iterator_t i, next;
@@ -1913,7 +2273,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 		snd_config_t *c = snd_config_iterator_entry(i);
 		const char *str;
 		if ((err = snd_config_get_string(c, &str)) < 0) {
-			SNDERR("Field %s is not a string", snd_config_get_id(c));
+			SNDERR("Field %s is not a string", c->id);
 			goto _err;
 		}
 		fi_count++;
@@ -1927,7 +2287,7 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 		hit = 0;
 		snd_config_for_each(i, next, n) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
+			const char *id = n->id;
 			long i;
 			err = safe_strtol(id, &i);
 			if (err < 0) {
@@ -2014,7 +2374,7 @@ int snd_determine_driver(int card, char **driver);
  * \param private_data Private data
  * \return zero if success, otherwise a negative error code
  */
-int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data ATTRIBUTE_UNUSED)
+int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, snd_config_t *private_data ATTRIBUTE_UNUSED)
 {
 	int card = -1, err;
 	
@@ -2023,12 +2383,16 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 		if (err < 0)
 			return err;
 		if (card >= 0) {
-			snd_config_t *n;
+			snd_config_t *n, *private_data = NULL;
 			const char *driver;
 			char *fdriver = NULL;
 			err = snd_determine_driver(card, &fdriver);
 			if (err < 0)
 				return err;
+			err = snd_config_make_string(&private_data, "string");
+			if (err < 0)
+				goto __err;
+			snd_config_set_string(private_data, fdriver);
 			if (snd_config_search(root, fdriver, &n) >= 0) {
 				if (snd_config_get_string(n, &driver) < 0)
 					continue;
@@ -2043,7 +2407,10 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			} else {
 				driver = fdriver;
 			}
-			err = snd_config_hook_load(root, config, &n, (void *)driver);
+			err = snd_config_hook_load(root, config, &n, private_data);
+		      __err:
+			if (private_data)
+				snd_config_delete(private_data);
 			if (fdriver)
 				free(fdriver);
 			if (err < 0)
@@ -2255,14 +2622,14 @@ typedef int (*snd_config_walk_callback_t)(snd_config_t *src,
 					  snd_config_t *root,
 					  snd_config_t **dst,
 					  snd_config_walk_pass_t pass,
-					  void *private_data);
+					  snd_config_t *private_data);
 #endif
 
 static int snd_config_walk(snd_config_t *src,
 			   snd_config_t *root,
 			   snd_config_t **dst, 
 			   snd_config_walk_callback_t callback,
-			   void *private_data)
+			   snd_config_t *private_data)
 {
 	int err;
 	snd_config_iterator_t i, next;
@@ -2303,10 +2670,10 @@ static int _snd_config_copy(snd_config_t *src,
 			    snd_config_t *root ATTRIBUTE_UNUSED,
 			    snd_config_t **dst,
 			    snd_config_walk_pass_t pass,
-			    void *private_data ATTRIBUTE_UNUSED)
+			    snd_config_t *private_data ATTRIBUTE_UNUSED)
 {
 	int err;
-	const char *id = snd_config_get_id(src);
+	const char *id = src->id;
 	snd_config_type_t type = snd_config_get_type(src);
 	switch (pass) {
 	case SND_CONFIG_WALK_PASS_PRE:
@@ -2370,10 +2737,10 @@ static int _snd_config_expand(snd_config_t *src,
 			      snd_config_t *root ATTRIBUTE_UNUSED,
 			      snd_config_t **dst,
 			      snd_config_walk_pass_t pass,
-			      void *private_data)
+			      snd_config_t *private_data)
 {
 	int err;
-	const char *id = snd_config_get_id(src);
+	const char *id = src->id;
 	snd_config_type_t type = snd_config_get_type(src);
 	switch (pass) {
 	case SND_CONFIG_WALK_PASS_PRE:
@@ -2453,7 +2820,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 				snd_config_t *root,
 				snd_config_t **dst ATTRIBUTE_UNUSED,
 				snd_config_walk_pass_t pass,
-				void *private_data)
+				snd_config_t *private_data)
 {
 	int err;
 	if (pass == SND_CONFIG_WALK_PASS_PRE) {
@@ -2461,7 +2828,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 		const char *lib = NULL, *func_name = NULL;
 		const char *str;
 		int (*func)(snd_config_t **dst, snd_config_t *root,
-			    snd_config_t *src, void *private_data) = NULL;
+			    snd_config_t *src, snd_config_t *private_data) = NULL;
 		void *h = NULL;
 		snd_config_t *c, *func_conf = NULL;
 		err = snd_config_search(src, "@func", &c);
@@ -2481,7 +2848,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 			}
 			snd_config_for_each(i, next, func_conf) {
 				snd_config_t *n = snd_config_iterator_entry(i);
-				const char *id = snd_config_get_id(n);
+				const char *id = n->id;
 				if (strcmp(id, "comment") == 0)
 					continue;
 				if (strcmp(id, "lib") == 0) {
@@ -2552,7 +2919,7 @@ static int _snd_config_evaluate(snd_config_t *src,
  * \return zero if success, otherwise a negative error code
  */
 int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
-		        void *private_data, snd_config_t **result)
+		        snd_config_t *private_data, snd_config_t **result)
 {
 	/* FIXME: Only in place evaluation is currently implemented */
 	assert(result == NULL);
@@ -2569,7 +2936,7 @@ static int load_defaults(snd_config_t *subs, snd_config_t *defs)
 			continue;
 		snd_config_for_each(f, fnext, def) {
 			snd_config_t *fld = snd_config_iterator_entry(f);
-			const char *id = snd_config_get_id(fld);
+			const char *id = fld->id;
 			if (strcmp(id, "type") == 0)
 				continue;
 			if (strcmp(id, "default") == 0) {
@@ -2578,7 +2945,7 @@ static int load_defaults(snd_config_t *subs, snd_config_t *defs)
 				err = snd_config_copy(&deflt, fld);
 				if (err < 0)
 					return err;
-				err = snd_config_set_id(deflt, snd_config_get_id(def));
+				err = snd_config_set_id(deflt, def->id);
 				if (err < 0) {
 					snd_config_delete(deflt);
 					return err;
@@ -2818,7 +3185,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		snd_config_for_each(i, next, subs) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			snd_config_t *d;
-			const char *id = snd_config_get_id(n);
+			const char *id = n->id;
 			err = snd_config_search(defs, id, &d);
 			if (err < 0) {
 				SNDERR("Unknown parameter %s", id);
@@ -2856,7 +3223,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 			err = -EINVAL;
 			goto _err;
 		}
-		var = snd_config_get_id(def);
+		var = def->id;
 		err = snd_config_search(subs, var, &sub);
 		if (err >= 0)
 			snd_config_delete(sub);
@@ -2936,7 +3303,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
  * \return 0 on success otherwise a negative error code
  */
 int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args,
-		      void *private_data, snd_config_t **result)
+		      snd_config_t *private_data, snd_config_t **result)
 {
 	int err;
 	snd_config_t *defs, *subs = NULL, *res;

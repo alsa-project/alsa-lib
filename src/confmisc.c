@@ -1,3 +1,11 @@
+/**
+ * \file confmisc.c
+ * \brief Configuration helper functions
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 2000-2001
+ * 
+ * Configuration helper functions.
 /*
  *  Miscellaneous configuration helper functions
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>,
@@ -19,6 +27,40 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+
+/*! \page conffunc
+
+\section Function reference
+
+<UL>
+  <LI>The getenv function - snd_func_getenv() - allows to obtain
+      an environment value. The result is string.
+  <LI>The igetenv function - snd_func_igetenv() - allows to obtain
+      an environment value. The result is integer.
+  <LI>The concat function - snd_func_concat() - merges all specified
+      strings. The result is string.
+  <LI>The datadir function - snd_func_datadir() - returns the
+      data directory. The result is string.
+  <LI>The refer function - snd_func_refer() - copies the refered
+      configuration. The result is same as the refered node.
+  <LI>The card_driver function - snd_func_card_driver() - returns
+      the driver identification. The result is string.
+  <LI>The card_id function - snd_func_card_id() - returns
+      the card identification. The result is string.
+  <LI>The pcm_id function - snd_func_pcm_id() - returns
+      the pcm identification. The result is string.
+  <LI>The private_string - snd_func_private_string() - returns
+      string using private_data node.
+  <LI>The private_card_driver - snd_func_private_card_driver() -
+      returns the driver identification using private_data node.
+      The result is string.
+  <LI>The private_pcm_subdevice - snd_func_private_pcm_subdevice() -
+      returns the PCM subdevice number using the private_data node.
+      The result is string.
+</UL>
+
+*/
+
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -62,21 +104,24 @@ int snd_config_get_bool_ascii(const char *ascii)
 int snd_config_get_bool(snd_config_t *conf)
 {
 	long v;
-	const char *str;
+	const char *str, *id;
 	int err;
 
+	err = snd_config_get_id(conf, &id);
+	if (err < 0)
+		return err;
 	err = snd_config_get_integer(conf, &v);
 	if (err >= 0) {
 		if (v < 0 || v > 1) {
 		_invalid_value:
-			SNDERR("Invalid value for %s", snd_config_get_id(conf));
+			SNDERR("Invalid value for %s", id);
 			return -EINVAL;
 		}
 		return v;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", snd_config_get_id(conf));
+		SNDERR("Invalid type for %s", id);
 		return -EINVAL;
 	}
 	err = snd_config_get_bool_ascii(str);
@@ -116,20 +161,24 @@ int snd_config_get_ctl_iface_ascii(const char *ascii)
 int snd_config_get_ctl_iface(snd_config_t *conf)
 {
 	long v;
-	const char *str;
+	const char *str, *id;
 	int err;
+
+	err = snd_config_get_id(conf, &id);
+	if (err < 0)
+		return err;
 	err = snd_config_get_integer(conf, &v);
 	if (err >= 0) {
 		if (v < 0 || v > SND_CTL_ELEM_IFACE_LAST) {
 		_invalid_value:
-			SNDERR("Invalid value for %s", snd_config_get_id(conf));
+			SNDERR("Invalid value for %s", id);
 			return -EINVAL;
 		}
 		return v;
 	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", snd_config_get_id(conf));
+		SNDERR("Invalid type for %s", id);
 		return -EINVAL;
 	}
 	err = snd_config_get_ctl_iface_ascii(str);
@@ -142,7 +191,25 @@ int snd_config_get_ctl_iface(snd_config_t *conf)
  *  Helper functions for the configuration file
  */
 
-int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+/**
+ * \brief Get environment value
+ * \param dst The destination node (result type is string)
+ * \param root The root source node
+ * \param src The source node, with vars and default definition
+ * \param private_data The private_data node
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example:
+\code
+	{
+		@func getenv
+		vars [ MY_CARD CARD C ]
+		default 0
+	}
+\endcode
+ */ 
+int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
+		    snd_config_t *private_data)
 {
 	snd_config_t *n, *d;
 	snd_config_iterator_t i, next;
@@ -178,9 +245,10 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		hit = 0;
 		snd_config_for_each(i, next, n) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
-			const char *ptr, *env;
+			const char *id, *ptr, *env;
 			long i;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_STRING) {
 				SNDERR("field %s is not a string", id);
 				err = -EINVAL;
@@ -209,9 +277,13 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
       __ok:
 	err = res == NULL ? -ENOMEM : 0;
 	if (err >= 0) {
-		err = snd_config_make_string(dst, snd_config_get_id(src));
-		if (err >= 0)
-			snd_config_set_string(*dst, res);
+		const char *id;
+		err = snd_config_get_id(src, &id);
+		if (err >= 0) {
+			err = snd_config_make_string(dst, id);
+			if (err >= 0)
+				snd_config_set_string(*dst, res);
+		}
 		free(res);
 	}
       __error:
@@ -219,38 +291,80 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
       		free(def);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_getenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 
-int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+/**
+ * \brief Get integer environment value
+ * \param dst The destination node (result type is integer)
+ * \param root The root source node
+ * \param src The source node, with vars and default definition
+ * \param private_data The private_data node
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example:
+\code
+	{
+		@func getenv
+		vars [ MY_DEVICE DEVICE D ]
+		default 0
+	}
+\endcode
+ */ 
+int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
+		     snd_config_t *private_data)
 {
 	snd_config_t *d;
-	const char *str;
+	const char *str, *id;
 	int err;
 	long v;
+
 	err = snd_func_getenv(&d, root, src, private_data);
 	if (err < 0)
 		return err;
 	err = snd_config_get_string(d, &str);
 	if (err < 0)
-		goto _end;
+		return err;
 	err = safe_strtol(str, &v);
 	if (err < 0)
-		goto _end;
-	err = snd_config_make_integer(dst, snd_config_get_id(src));
+		return err;;
+	err = snd_config_get_id(src, &id);
 	if (err < 0)
-		goto _end;
+		return err;
+	err = snd_config_make_integer(dst, id);
+	if (err < 0)
+		return err;
 	snd_config_set_integer(*dst, v);
-	err = 0;
-
- _end:
-	return err;
+	return 0;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_igetenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 		
-int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+/**
+ * \brief Merge given strings
+ * \param dst The destination node (result type is string)
+ * \param root The root source node
+ * \param src The source node, with strings definition
+ * \param private_data The private_data node
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example (result is string "a1b2c3" ]:
+\code
+	{
+		@func concat
+		strings [ "a1" "b2" "c3" ]
+		default 0
+	}
+\endcode
+ */ 
+int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
+		    snd_config_t *private_data)
 {
 	snd_config_t *n;
 	snd_config_iterator_t i, next;
+	const char *id;
 	char *res = NULL, *tmp;
 	int idx = 0, len = 0, len1, err, hit;
 	
@@ -269,8 +383,10 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		snd_config_for_each(i, next, n) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			char *ptr;
-			const char *id = snd_config_get_id(n);
+			const char *id;
 			long i;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			err = safe_strtol(id, &i);
 			if (err < 0) {
 				SNDERR("id of field %s is not an integer", id);
@@ -303,24 +419,52 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		err = -EINVAL;
 		goto __error;
 	}
-	err = snd_config_make_string(dst, snd_config_get_id(src));
-	if (err >= 0)
-		snd_config_set_string(*dst, res);
+	err = snd_config_get_id(src, &id);
+	if (err >= 0) {
+		err = snd_config_make_string(dst, id);
+		if (err >= 0)
+			snd_config_set_string(*dst, res);
+	}
 	free(res);
       __error:
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_concat, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 
+/**
+ * \brief Get data directory
+ * \param dst The destination node (result type is string)
+ * \param root The root source node
+ * \param src The source node
+ * \param private_data The private_data node (unused)
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example (result is "/usr/share/alsa" using default paths):
+\code
+	{
+		@func datadir
+	}
+\endcode
+ */ 
 int snd_func_datadir(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
-		     snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+		     snd_config_t *src, snd_config_t *private_data ATTRIBUTE_UNUSED)
 {
-	int err = snd_config_make_string(dst, snd_config_get_id(src));
+	int err;
+	const char *id;
+	
+	err = snd_config_get_id(src, &id);
+	if (err < 0)
+		return err;
+	err = snd_config_make_string(dst, id);
 	if (err >= 0)
 		err = snd_config_set_string(*dst, DATADIR "/alsa");
-	return 0;
+	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_datadir, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 
 static int open_ctl(long card, snd_ctl_t **ctl)
 {
@@ -344,19 +488,53 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
-int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
+/**
+ * \brief Get string from private_data
+ * \param dst The destination node (result type is string)
+ * \param root The root source node
+ * \param src The source node
+ * \param private_data The private_data node (type string, id == "string")
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example:
+\code
+	{
+		@func private_string
+	}
+\endcode
+ */ 
+int snd_func_private_string(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
+			    snd_config_t *src, snd_config_t *private_data)
 {
 	int err;
+	snd_config_t *n;
+	const char *str, *id;
 
 	if (private_data == NULL)
 		return snd_config_copy(dst, src);
-	err = snd_config_make_string(dst, snd_config_get_id(src));
-	if (err >= 0)
-		err = snd_config_set_string(*dst, (char *)private_data);
+	err = snd_config_test_id(private_data, "string");
+	if (err) {
+		SNDERR("field string not found");
+		return -EINVAL;
+	}
+	err = snd_config_get_string(private_data, &str);
+	if (err < 0) {
+		SNDERR("field string is not a string");
+		return err;
+	}
+	err = snd_config_get_id(src, &id);
+	if (err >= 0) {
+		err = snd_config_make_string(dst, id);
+		if (err >= 0)
+			err = snd_config_set_string(*dst, str);
+	}
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_private_string, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 
+#ifndef DOC_HIDDEN
 int snd_determine_driver(int card, char **driver)
 {
 	snd_ctl_t *ctl = NULL;
@@ -388,25 +566,77 @@ int snd_determine_driver(int card, char **driver)
 		snd_ctl_close(ctl);
 	return err;
 }
+#endif
 
-int snd_func_private_card_strtype(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
+/**
+ * \brief Get driver identification using private_data
+ * \param dst The destination node (result type is string)
+ * \param root The root source node
+ * \param src The source node
+ * \param private_data The private_data node (type = integer, id = "card")
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example:
+\code
+	{
+		@func private_card_driver
+	}
+\endcode
+ */ 
+int snd_func_private_card_driver(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src,
+				 snd_config_t *private_data)
 {
 	char *driver;
+	snd_config_t *n;
+	const char *id;
 	int err;
+	long card;
 
-	if ((err = snd_determine_driver((long)private_data, &driver)) < 0)
+	err = snd_config_test_id(private_data, "card");
+	if (err) {
+		SNDERR("field card not found");
+		return -EINVAL;
+	}
+	err = snd_config_get_integer(n, &card);
+	if (err < 0) {
+		SNDERR("field card is not an integer");
 		return err;
-	err = snd_config_make_string(dst, snd_config_get_id(src));
-	if (err >= 0)
-		err = snd_config_set_string(*dst, driver);
+	}
+	if ((err = snd_determine_driver(card, &driver)) < 0)
+		return err;
+	err = snd_config_get_id(src, &id);
+	if (err >= 0) {
+		err = snd_config_make_string(dst, id);
+		if (err >= 0)
+			err = snd_config_set_string(*dst, driver);
+	}
 	free(driver);
 	return err;
 }
-SND_DLSYM_BUILD_VERSION(snd_func_private_card_strtype, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(snd_func_private_card_driver, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 
-int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+/**
+ * \brief Get driver identification
+ * \param dst The destination node (result type is string)
+ * \param root The root source node
+ * \param src The source node
+ * \param private_data The private_data node
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example:
+\code
+	{
+		@func card_driver
+		card 0
+	}
+\endcode
+ */ 
+int snd_func_card_driver(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
+			 snd_config_t *private_data)
 {
-	snd_config_t *n;
+	snd_config_t *n, *val;
 	char *str;
 	long v;
 	int err;
@@ -433,16 +663,42 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *
 		return v;
 	}
 	free(str);
-	return snd_func_private_card_strtype(dst, root, src, (void *)v);
+	err = snd_config_make_integer(&val, "card");
+	if (err < 0)
+		return err;
+	snd_config_set_integer(val, v);
+	err = snd_func_private_card_driver(dst, root, src, val);
+	snd_config_delete(val);
+	return err;
 }
-SND_DLSYM_BUILD_VERSION(snd_func_card_strtype, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(snd_func_card_driver, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 
-int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+/**
+ * \brief Get card identification
+ * \param dst The destination node (result type is string)
+ * \param root The root source node
+ * \param src The source node
+ * \param private_data The private_data node
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example:
+\code
+	{
+		@func card_id
+		card 0
+	}
+\endcode
+ */ 
+int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
+		     snd_config_t *private_data)
 {
 	snd_config_t *n;
 	char *res = NULL;
 	snd_ctl_t *ctl = NULL;
 	snd_ctl_card_info_t *info;
+	const char *id;
 	long v;
 	int err;
 	
@@ -477,22 +733,46 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, 
 		err = -ENOMEM;
 		goto __error;
 	}
-	err = snd_config_make_string(dst, snd_config_get_id(src));
-	if (err >= 0)
-		err = snd_config_set_string(*dst, res);
+	err = snd_config_get_id(src, &id);
+	if (err >= 0) {
+		err = snd_config_make_string(dst, id);
+		if (err >= 0)
+			err = snd_config_set_string(*dst, res);
+	}
 	free(res);
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_card_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 
+/**
+ * \brief Get pcm identification
+ * \param dst The destination node (result type is string)
+ * \param root The root source node
+ * \param src The source node
+ * \param private_data The private_data node
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example:
+\code
+	{
+		@func pcm_id
+		card 0
+		device 0
+		subdevice 0	# optional
+	}
+\endcode
+ */ 
 int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
 	snd_ctl_t *ctl = NULL;
 	snd_pcm_info_t *info;
+	const char *id;
 	long card, device, subdevice = 0;
 	int err;
 	
@@ -551,42 +831,94 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		SNDERR("snd_ctl_pcm_info error: %s", snd_strerror(err));
 		goto __error;
 	}
-	err = snd_config_make_string(dst, snd_config_get_id(src));
-	if (err >= 0)
-		err = snd_config_set_string(*dst, snd_pcm_info_get_id(info));
+	err = snd_config_get_id(src, &id);
+	if (err >= 0) {
+		err = snd_config_make_string(dst, id);
+		if (err >= 0)
+			err = snd_config_set_string(*dst, snd_pcm_info_get_id(info));
+	}
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_pcm_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 
-int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *src, void *private_data)
+/**
+ * \brief Get pcm subdevice using private_data
+ * \param dst The destination node (result type is integer)
+ * \param root The root source node
+ * \param src The source node
+ * \param private_data The private_data node (type = pointer, id = "pcm_handle")
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example:
+\code
+	{
+		@func private_pcm_subdevice
+	}
+\endcode
+ */ 
+int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
+				   snd_config_t *src, snd_config_t *private_data)
 {
-	char *res = NULL;
 	snd_pcm_info_t *info;
+	snd_config_t *n;
+	const char *id;
+	snd_pcm_t *pcm;
 	int err;
 
 	if (private_data == NULL)
 		return snd_config_copy(dst, src);
+	err = snd_config_test_id(private_data, "pcm_handle");
+	if (err) {
+		SNDERR("field pcm_handle not found");
+		return -EINVAL;
+	}
+	err = snd_config_get_pointer(private_data, (const void **)&pcm);
+	if (err < 0) {
+		SNDERR("field pcm_handle is not a pointer");
+		return err;
+	}
 	snd_pcm_info_alloca(&info);
-	err = snd_pcm_info((snd_pcm_t *)private_data, info);
+	err = snd_pcm_info(pcm, info);
 	if (err < 0) {
 		SNDERR("snd_ctl_pcm_info error: %s", snd_strerror(err));
 		return err;
 	}
-	res = strdup(snd_pcm_info_get_id(info));
-	if (res == NULL)
-		return -ENOMEM;
-	err = snd_config_make_integer(dst, snd_config_get_id(src));
-	if (err >= 0)
-		err = snd_config_set_integer(*dst, snd_pcm_info_get_subdevice(info));
-	free(res);
+	err = snd_config_get_id(src, &id);
+	if (err >= 0) {
+		err = snd_config_make_integer(dst, id);
+		if (err >= 0)
+			err = snd_config_set_integer(*dst, snd_pcm_info_get_subdevice(info));
+	}
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_private_pcm_subdevice, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
 
-int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+/**
+ * \brief Copy the refered configuration node
+ * \param dst The destination node (result type is same as refered node)
+ * \param root The root source node (can be modified!!!)
+ * \param src The source node
+ * \param private_data The private_data node
+ * \return a positive value when success otherwise a negative error number
+ *
+ * Example:
+\code
+	{
+		@func refer
+		file "/etc/myconf.conf"		# optional
+		name "id1.id2.id3"
+	}
+\endcode
+ */ 
+int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
+		   snd_config_t *private_data)
 {
 	snd_config_t *n;
 	const char *file = NULL, *name = NULL;
@@ -631,17 +963,21 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src, vo
 			goto _end;
 		}
 		err = snd_config_load(root, input);
-		if (err < 0) {
-			snd_input_close(input);
+		snd_input_close(input);
+		if (err < 0)
 			goto _end;
-		}
 	}
 	err = snd_config_search_definition(root, NULL, name, dst);
-	if (err >= 0)
-		err = snd_config_set_id(*dst, snd_config_get_id(src));
-	else
+	if (err >= 0) {
+		const char *id;
+		err = snd_config_get_id(src, &id);
+		if (err >= 0)
+			err = snd_config_set_id(*dst, id);
+	} else
 		SNDERR("Unable to find definition '%s'", name);
  _end:
 	return err;
 }
+#ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_refer, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif

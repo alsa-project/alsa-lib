@@ -335,7 +335,7 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 {
 	int err;
 	char buf[256];
-	const char *str;
+	const char *str, *id;
 	const char *lib = NULL, *install = NULL;
 	snd_config_t *type = NULL, *args = NULL;
 	snd_config_iterator_t i, next;
@@ -347,7 +347,9 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 	}
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "type") == 0) {
@@ -365,9 +367,14 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 		SNDERR("type is not defined");
 		return -EINVAL;
 	}
+	err = snd_config_get_id(type, &id);
+	if (err < 0) {
+		SNDERR("unable to get id");
+		return err;
+	}
 	err = snd_config_get_string(type, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", snd_config_get_id(type));
+		SNDERR("Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(root, "pcm_hook_type", str, &type);
@@ -378,7 +385,9 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 		}
 		snd_config_for_each(i, next, type) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
+			const char *id;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			if (strcmp(id, "comment") == 0)
 				continue;
 			if (strcmp(id, "lib") == 0) {
@@ -446,7 +455,9 @@ int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *hooks = NULL;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "slave") == 0) {
@@ -620,6 +631,7 @@ int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 	char ctl_name[16];
 	snd_ctl_t *ctl;
 	snd_sctl_t *sctl;
+	snd_config_t *pcm_conf = NULL;
 	snd_pcm_hook_t *h_hw_params = NULL, *h_hw_free = NULL, *h_close = NULL;
 	assert(conf);
 	assert(snd_config_get_type(conf) == SND_CONFIG_TYPE_COMPOUND);
@@ -638,9 +650,13 @@ int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 		SNDERR("Cannot open CTL %s", ctl_name);
 		return err;
 	}
-	err = snd_sctl_build(&sctl, ctl, conf, pcm, 0);
+	err = snd_config_make_pointer(&pcm_conf, "pcm_handle");
 	if (err < 0)
-		return -ENOMEM;
+		goto _err;
+	snd_config_set_pointer(pcm_conf, pcm);
+	err = snd_sctl_build(&sctl, ctl, conf, pcm_conf, 0);
+	if (err < 0)
+		goto _err;
 	err = snd_pcm_hook_add(&h_hw_params, pcm, SND_PCM_HOOK_TYPE_HW_PARAMS,
 			       snd_pcm_hook_ctl_elems_hw_params, sctl);
 	if (err < 0)
@@ -662,5 +678,7 @@ int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 	if (h_close)
 		snd_pcm_hook_remove(h_close);
 	snd_sctl_free(sctl);
+	if (pcm_conf)
+		snd_config_delete(pcm_conf);
 	return err;
 }

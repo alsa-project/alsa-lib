@@ -1,5 +1,6 @@
 /**
  * \file pcm/pcm.c
+ * \ingroup PCM
  * \brief PCM Interface
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
@@ -11,6 +12,8 @@
  * 44100 you'll hear 44100 frames per second. The size in bytes of a
  * frame may be obtained from bits needed to store a sample and
  * channels count.
+ *
+ * See the \ref pcm page for more details.
  */
 /*
  *  PCM Interface - main file
@@ -32,6 +35,449 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+
+/*! \page pcm PCM (digital audio) interface
+
+<P>Although abbreviation PCM stands for Pulse Code Modulation, we are
+understanding it as general digital audio processing with volume samples
+generated in continuous time periods.</P>
+
+<P>Digital audio is the most commonly used method of representing
+sound inside a computer. In this method sound is stored as a sequence of
+samples taken from the audio signal using constant time intervals. 
+A sample represents volume of the signal at the moment when it
+was measured. In uncompressed digital audio each sample require one
+or more bytes of storage. The number of bytes required depends on number
+of channels (mono, stereo) and sample format (8 or 16 bits, mu-Law, etc.).
+The length of this interval determines the sampling rate. Commonly used
+sampling rates are between 8kHz (telephone quality) and
+48kHz (DAT tapes).</P>
+
+<P>The physical devices used in digital audio are called the
+ADC (Analog to Digital Converter) and DAC (Digital to Analog Converter).
+A device containing both ADC and DAC is commonly known as a codec. 
+The codec device used in a Sound Blaster cards is called a DSP which
+is somewhat misleading since DSP also stands for Digital Signal Processor
+(the SB DSP chip is very limited when compared to "true" DSP chips).</P>
+
+<P>Sampling parameters affect the quality of sound which can be
+reproduced from the recorded signal. The most fundamental parameter
+is sampling rate which limits the highest frequency that can be stored.
+It is well known (Nyquist's Sampling Theorem) that the highest frequency
+that can be stored in a sampled signal is at most 1/2 of the sampling
+frequency. For example, an 8 kHz sampling rate permits the recording of
+a signal in which the highest frequency is less than 4 kHz. Higher frequency
+signals must be filtered out before feeding them to ADC.</P>
+
+<P>Sample encoding limits the dynamic range of a recorded signal
+(difference between the faintest and the loudest signal that can be
+recorded). In theory the maximum dynamic range of signal is number_of_bits *
+6dB. This means that 8 bits sampling resolution gives dynamic range of
+48dB and 16 bit resolution gives 96dB.</P>
+
+<P>Quality has price. The number of bytes required to store an audio
+sequence depends on sampling rate, number of channels and sampling
+resolution. For example just 8000 bytes of memory is required to store
+one second of sound using 8kHz/8 bits/mono but 48kHz/16bit/stereo takes
+192 kilobytes. A 64 kbps ISDN channel is required to transfer a
+8kHz/8bit/mono audio stream in real time, and about 1.5Mbps is required
+for DAT quality (48kHz/16bit/stereo). On the other hand it is possible
+to store just 5.46 seconds of sound in a megabyte of memory when using
+48kHz/16bit/stereo sampling. With 8kHz/8bits/mono it is possible to store
+131 seconds of sound using the same amount of memory. It is possible
+to reduce memory and communication costs by compressing the recorded
+signal but this is beyond the scope of this document. </P>
+
+\section pcm_general_overview General overview
+
+ALSA uses the ring buffer to store outgoing (playback) and incoming (capture,
+record) samples. There are two pointers being mantained to allow
+a precise communication between application and device pointing to current
+processed sample by hardware and last processed sample by application.
+The modern audio chips allow to program the transfer time periods.
+It means that the stream of samples is divided to small chunks. Device
+acknowledges to application when the transfer of a chunk is complete.
+
+\section pcm_transfer Transfer methods in unix environments
+
+In the unix environment, data chunk acknowledges are received via standard I/O
+calls or event waiting routines (poll or select function). To accomplish
+this list, the asynchronous notification of acknowledges should be listed
+here. The ALSA implementation for these methods is described in
+the \ref alsa_transfers section.
+
+\subsection pcm_transfer_io Standard I/O transfers
+
+The standard I/O transfers are using the read (see 'man 2 read') and write
+(see 'man 2 write') C functions. There are two basic behaviours of these
+functions - blocked and non-blocked (see the O_NONBLOCK flag for the
+standard C open function - see 'man 2 open'). In non-blocked behaviour,
+these I/O functions never stops, they return -EAGAIN error code, when no
+data can be transferred (the ring buffer is full in our case). In blocked
+behaviour, these I/O functions stop and wait until there is a room in the
+ring buffer (playback) or until there are a new samples (capture). The ALSA
+implementation can be found in the \ref alsa_pcm_rw section.
+
+\subsection pcm_transfer_event Event waiting routines
+
+The poll or select functions (see 'man 2 poll' or 'man 2 select' for further
+details) allows to receive requests/events from the device while
+an application is waiting on events from other sources (like keyboard, screen,
+network etc.), too. The select function is old and deprecated in modern
+applications, so the ALSA library does not support it. The implemented
+transfer routines can be found in the \ref alsa_transfers section.
+
+\subsection pcm_transfer_async Asynchronous notification
+
+ALSA driver and library knows to handle the asynchronous notifications over
+the SIGIO signal. This signal allows to interrupt application and transfer
+data in the signal handler. For further details see the sigaction function
+('man 2 sigaction'). The section \ref pcm_async describes the ALSA API for
+this extension. The implemented transfer routines can be found in the
+\ref alsa_transfers section.
+
+\section pcm_open_behaviour Blocked and non-blocked open
+
+The ALSA PCM API uses a different behaviour when the device is opened
+with blocked or non-blocked mode. The mode can be specified with
+\a mode argument in \link ::snd_pcm_open() \endlink function.
+The blocked mode is the default (without \link ::SND_PCM_NONBLOCK \endlink mode).
+In this mode, the behaviour is that if the resources have already used
+with another application, then it blocks the caller, until resources are
+free. The non-blocked behaviour (with \link ::SND_PCM_NONBLOCK \endlink)
+doesn't block the caller in any way and returns -EBUSY error when the
+resources are not available. Note that the mode also determines the
+behaviour of standard I/O calls, returning -EAGAIN when non-blocked mode is
+used and the ring buffer is full (playback) or empty (capture).
+The operation mode for I/O calls can be changed later with
+the \link snd_pcm_nonblock() \endlink function.
+
+\section pcm_async Asynchronous mode
+
+There is also possibility to receive asynchronous notification after
+specified time periods. You may see the \link ::SND_PCM_ASYNC \endlink
+mode for \link ::snd_pcm_open() \endlink function and
+\link ::snd_async_add_pcm_handler() \endlink function for further details.
+
+\section pcm_handshake Handshake between application and library
+
+The ALSA PCM API design uses the states to determine the communication
+phase between application and library. The actual state can be determined
+using \link ::snd_pcm_state() \endlink call. There are these states:
+
+\par SND_PCM_STATE_OPEN
+The PCM device is in the open state. After the \link ::snd_pcm_open() \endlink open call,
+the device is in this state. Also, when \link ::snd_pcm_hw_params() \endlink call fails,
+then this state is entered to force application calling 
+\link ::snd_pcm_hw_params() \endlink function to set right communication
+parameters.
+
+\par SND_PCM_STATE_SETUP
+The PCM device has accepted communication parameters and it is waiting
+for \link ::snd_pcm_prepare() \endlink call to prepare the hardware for
+selected operation (playback or capture).
+
+\par SND_PCM_STATE_PREPARE
+The PCM device is prepared for operation. Application can use
+\link ::snd_pcm_start() \endlink call, write or read data to start
+the operation.
+
+\par SND_PCM_STATE_RUNNING
+The PCM device is running. It processes the samples. The stream can
+be stopped using the \link ::snd_pcm_drop() \endlink or
+\link ::snd_pcm_drain \endlink calls.
+
+\par SND_PCM_STATE_XRUN
+The PCM device reached overrun (capture) or underrun (playback).
+You can use the -EPIPE return code from I/O functions
+(\link ::snd_pcm_writei() \endlink, \link ::snd_pcm_writen() \endlink,
+ \link ::snd_pcm_readi() \endlink, \link ::snd_pcm_readi() \endlink)
+to determine this state without checking
+the actual state via \link ::snd_pcm_state() \endlink call. You can recover from
+this state with \link ::snd_pcm_prepare() \endlink,
+\link ::snd_pcm_drop() \endlink or \link ::snd_pcm_drain() \endlink calls.
+
+\par SND_PCM_STATE_DRAINING
+The device is in this state when application using the capture mode
+called \link ::snd_pcm_drain() \endlink function. Until all data are
+read from the internal ring buffer using I/O routines
+(\link ::snd_pcm_readi() \endlink, \link ::snd_pcm_readn() \endlink),
+then the device stays in this state.
+
+\par SND_PCM_STATE_PAUSED
+The device is in this state when application called
+the \link ::snd_pcm_pause() \endlink function until the pause is released.
+Not all hardware supports this feature. Application should check the
+capability with the \link ::snd_pcm_hw_params_can_pause() \endlink.
+
+\par SND_PCM_STATE_SUSPENDED
+The device is in the suspend state provoked with the power management
+system. The stream can be resumed using \link ::snd_pcm_resume() \endlink
+call, but not all hardware supports this feature. Application should check
+the capability with the \link ::snd_pcm_hw_params_can_resume() \endlink.
+In other case, the calls \link ::snd_pcm_prepare() \endlink,
+\link ::snd_pcm_drop() \endlink, \link ::snd_pcm_drain() \endlink can be used
+to leave this state.
+
+\section pcm_formats PCM formats
+
+The full list of formats present the \link ::snd_pcm_format_t \endlink type.
+The 24-bit linear samples uses 32-bit physical space, but the sample is
+stored in low three bits. Some hardware does not support processing of full
+range, thus you may get the significative bits for linear samples via
+\link ::snd_pcm_hw_params_get_sbits \endlink function. The example: ICE1712
+chips support 32-bit sample processing, but low byte is ignored (playback)
+or zero (capture). The function \link ::snd_pcm_hw_params_get_sbits() \endlink
+returns 24 in the case.
+
+\section alsa_transfers ALSA transfers
+
+There are two methods to transfer samples in application. The first method
+is the standard read / write one. The second method, uses the direct audio
+buffer to communicate with the device while ALSA library manages this space
+itself. You can find examples of all communication schemes for playback
+in \ref example_test_pcm "Sine-wave generator example". To complete the
+list, we should note that \link ::snd_pcm_wait \endlink function contains
+embedded poll waiting implementation.
+
+\subsection alsa_pcm_rw Read / Write transfer
+
+There are two versions of read / write routines. The first expects the
+interleaved samples at input, and the second one expects non-interleaved
+(samples in separated buffers) at input. There are these functions for
+interleaved transfers: \link ::snd_pcm_writei \endlink,
+\link ::snd_pcm_readi \endlink. For non-interleaved transfers, there are
+these functions: \link ::snd_pcm_writen \endlink and \link ::snd_pcm_readn
+\endlink.
+
+\subsection alsa_mmap_rw Direct Read / Write transfer (via mmaped areas)
+
+There are two functions for this kind of transfer. Application can get an
+access to memory areas via \link ::snd_pcm_mmap_begin \endlink function.
+This functions returns the areas (single area is equal to a channel)
+containing the direct pointers to memory and sample position description
+in \link ::snd_pcm_channel_area_t \endlink structure. After application
+transfers the data in the memory areas, then it must be acknowledged
+the end of transfer via \link ::snd_pcm_mmap_commit() \endlink function
+to allow the ALSA library update the pointers to ring buffer. This sort of
+communication is also called "zero-copy", because the device does not require
+to copy the samples from application to another place in system memory.
+
+\par
+
+If you like to use the compatibility functions in mmap mode, there are
+read / write routines equaling to standard read / write transfers. Using
+these functions discards the benefits of direct access to memory region.
+See the \link ::snd_pcm_mmap_readi() \endlink,
+\link ::snd_pcm_writei() \endlink, \link ::snd_pcm_readn() \endlink
+and \link ::snd_pcm_writen() \endlink functions.
+
+\section pcm_params Managing parameters
+
+The ALSA PCM device uses two groups of PCM related parameters. The hardware
+parameters contains the stream description like format, rate, count of
+channels, ring buffer size etc. The software parameters contains the
+software (driver) related parameters. The communicatino behaviour can be
+controlled via these parameters, like automatic start, automatic stop,
+interrupting (chunk acknowledge) etc. The software parameters can be
+modified at any time (when valid hardware parameters are set). It includes
+the running state as well.
+
+\subsection pcm_hw_params Hardware related parameters
+
+The ALSA PCM devices use the parameter refining system for hardware
+parameters - \link ::snd_pcm_hw_params_t \endlink. It means, that
+application choose the full-range of configurations at first and then
+application sets single parameters until all parameters are elementary
+(definite).
+
+\par Access modes
+
+ALSA knows about five access modes. The first three can be used for direct
+communication. The access mode \link ::SND_PCM_ACCESS_MMAP_INTERLEAVED \endlink
+determines the direct memory area and interleaved sample organization.
+Interleaved organization means, that samples from channels are mixed together.
+The access mode \link ::SND_PCM_ACCESS_MMAP_NONINTERLEAVED \endlink
+determines the direct memory area and non-interleaved sample organization.
+Each channel has a separate buffer in the case. The complex direct memory
+organization represents the \link ::SND_PCM_ACCESS_MMAP_COMPLEX \endlink
+access mode. The sample organization does not fit the interleaved or
+non-interleaved access modes in the case. The last two access modes
+describes the read / write access methods.
+The \link ::SND_PCM_ACCESS_RW_INTERLEAVED \endlink access represents the read /
+write interleaved access and the \link ::SND_PCM_ACCESS_RW_NONINTERLEAVED \endlink
+represents the non-interleaved access.
+
+\par Formats
+
+The full list of formats is available in \link ::snd_pcm_format_t \endlink
+enumeration.
+
+\subsection pcm_sw_params Software related parameters
+
+These parameters - \link ::snd_pcm_sw_params_t \endlink can be modified at
+any time including the running state.
+
+\par Minimum available count of samples
+
+This parameter controls the wakeup point. If the count of available samples
+is equal or greater than this value, then application will be activated.
+
+\par Timestamp mode
+
+The timestamp mode specifies, if timestamps are activated. Currently, only
+\link ::SND_PCM_TSTAMP_NONE \endlink and \link ::SND_PCM_TSTAMP_MMAP
+\endlink modes are known. The mmap mode means that timestamp is taken
+on every period time boundary.
+
+\par Minimal sleep
+
+This parameters means the minimum of ticks to sleep using a standalone
+timer (usually the system timer). The tick resolution can be obtained
+via the function \link ::snd_pcm_hw_params_get_tick_time \endlink. This
+function can be used to fine-tune the transfer acknowledge process. It could
+be useful especially when some hardware does not support small transfer
+periods.
+
+\par Transfer align
+
+The read / write transfers can be aligned to this sample count. The modulo
+is ignored by device. Usually, this value is set to one (no align).
+
+\par Start threshold
+
+The start threshold parameter is used to determine the start point in
+stream. For playback, if samples in ring buffer is equal or greater than
+the start threshold parameters and the stream is not running, the stream will
+be started automatically from the device. For capture, if the application wants
+to read count of samples equal or greater then the stream will be started.
+If you want to use explicit start (\link ::snd_pcm_start \endlink), you can
+set this value greater than ring buffer size (in samples), but use the
+constant MAXINT is not a bad idea.
+
+\par Stop threshold
+
+Similarly, the stop threshold parameter is used to automatically stop
+the running stream, when the available samples crosses this boundary.
+It means, for playback, the empty samples in ring buffer and for capture,
+the filled (used) samples in ring buffer.
+
+\par Silence threshold
+
+The silence threshold specifies count of samples filled with silence
+ahead of the current application pointer for playback. It is useable
+for applications when an overrun is possible (like tasks depending on
+network I/O etc.). If application wants to manage the ahead samples itself,
+the \link ::snd_pcm_rewind() \endlink function allows to forget the last
+samples in the stream.
+
+\section pcm_status Obtaining device status
+
+The device status is stored in \link ::snd_pcm_status_t \endlink structure.
+These parameters can be obtained: the current stream state -
+\link ::snd_pcm_status_get_state \endlink, timestamp of trigger -
+\link ::snd_pcm_status_get_trigger_tstamp \endlink, timestamp of last
+update \link ::snd_pcm_status_get_tstamp \endlink, delay in samples -
+\link ::snd_pcm_status_get_delay \endlink, available count in samples -
+\link ::snd_pcm_status_get_avail \endlink, maximum available samples -
+\link ::snd_pcm_status_get_avail_max \endlink, ADC overrange count in
+samples - \link ::snd_pcm_status_get_overrange \endlink. The last two
+parameters - avail_max and overrange are reset to zero after the status
+call.
+
+\subsection pcm_status_fast Obtaining fast device status
+
+The function \link ::snd_pcm_avail_update \endlink updates the current
+available count of samples for writting (playback) or filled samples for
+reading (capture).
+<p>
+The function \link ::snd_pcm_delay \endlink returns the delay in samples.
+For playback, it means count of samples in the ring buffer before
+the next sample will be sent to DAC. For capture, it means count of samples
+in the ring buffer before the next sample will be captured from ADC.
+
+\section pcm_action Managing the stream state
+
+These functions directly and indirectly affecting the stream state:
+
+\par snd_pcm_hw_params
+The \link ::snd_pcm_hw_params \endlink function brings the stream state
+to \link ::SND_PCM_STATE_SETUP \endlink
+if successfully finishes, otherwise the state \link ::SND_PCM_STATE_OPEN
+\endlink is entered.
+
+\par snd_pcm_prepare
+The \link ::snd_pcm_prepare \endlink function enters the
+\link ::SND_PCM_STATE_PREPARED \endlink after a successfull finish.
+
+\par snd_pcm_start
+The \link ::snd_pcm_start \endlink function enters
+the \link ::SND_PCM_STATE_RUNNING \endlink after a successfull finish.
+
+\par snd_pcm_drop
+The \link ::snd_pcm_drop \endlink function enters the
+\link ::SND_PCM_STATE_SETUP \endlink state.
+
+\par snd_pcm_drain
+The \link ::snd_pcm_drain \endlink function enters the
+\link ::SND_PCM_STATE_DRAINING \endlink, if
+the capture device has some samples in the ring buffer otherwise
+\link ::SND_PCM_STATE_SETUP \endlink state is entered.
+
+\par snd_pcm_pause
+The \link ::snd_pcm_pause \endlink function enters the
+\link ::SND_PCM_STATE_PAUSED \endlink or
+\link ::SND_PCM_STATE_RUNNING \endlink.
+
+\par snd_pcm_writei, snd_pcm_writen
+The \link ::snd_pcm_writei \endlink and \link ::snd_pcm_writen \endlink
+functions can conditionally start the stream -
+\link ::SND_PCM_STATE_RUNNING \endlink. They depend on the start threshold
+software parameter.
+
+\par snd_pcm_readi, snd_pcm_readn
+The \link ::snd_pcm_readi \endlink and \link ::snd_pcm_readn \endlink
+functions can conditionally start the stream -
+\link ::SND_PCM_STATE_RUNNING \endlink. They depend on the start threshold
+software parameter.
+
+\section pcm_sync Streams synchronization
+
+There are two functions allowing link multiple streams together. In the
+case, the linking means that all operations are synchronized. Because the
+drivers cannot guarantee the synchronization (sample resolution) on hardware
+lacking this feature, the \link ::snd_pcm_info_get_sync \endlink function
+returns synchronization ID - \link ::snd_pcm_sync_id_t \endlink, which is equal
+for hardware synchronizated streams. When the \link ::snd_pcm_link \endlink
+function is called, all operations managing the stream state for these two
+streams are joined. The oposite function is \link ::snd_pcm_unlink \endlink.
+
+\section pcm_examples Examples
+
+The full featured examples with cross-links:
+
+\par Sine-wave generator
+\ref example_test_pcm "example code"
+\par
+This example shows various transfer methods for the playback direction.
+
+\par Latency measuring tool
+\ref example_test_latency "example code"
+\par
+This example shows the measuring of minimal latency between capture and
+playback devices.
+
+*/
+
+/**
+ * \example ../test/pcm.c
+ * \anchor example_test_pcm
+ */
+/**
+ * \example ../test/latency.c
+ * \anchor example_test_latency
+ */
+
 
 #include <stdio.h>
 #include <string.h>
@@ -995,7 +1441,7 @@ int snd_async_add_pcm_handler(snd_async_handler_t **handler, snd_pcm_t *pcm,
 	was_empty = list_empty(&pcm->async_handlers);
 	list_add_tail(&h->hlist, &pcm->async_handlers);
 	if (was_empty) {
-		err = snd_pcm_async(pcm, snd_async_signo, getpid());
+		err = snd_pcm_async(pcm, snd_async_signo(h), getpid());
 		if (err < 0) {
 			snd_async_del_handler(h);
 			return err;
@@ -1025,6 +1471,7 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 	int err;
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
+	const char *id;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_pcm_t **, const char *, 
 			 snd_config_t *, snd_config_t *, 
@@ -1045,9 +1492,14 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		SNDERR("type is not defined");
 		return err;
 	}
+	err = snd_config_get_id(conf, &id);
+	if (err < 0) {
+		SNDERR("unable to get id");
+		return err;
+	}
 	err = snd_config_get_string(conf, &str);
 	if (err < 0) {
-		SNDERR("Invalid type for %s", snd_config_get_id(conf));
+		SNDERR("Invalid type for %s", id);
 		return err;
 	}
 	err = snd_config_search_definition(pcm_root, "pcm_type", str, &type_conf);
@@ -1058,7 +1510,9 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		}
 		snd_config_for_each(i, next, type_conf) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
+			const char *id;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
 			if (strcmp(id, "comment") == 0)
 				continue;
 			if (strcmp(id, "lib") == 0) {
@@ -4645,7 +5099,9 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 	va_end(args);
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "pcm") == 0) {
