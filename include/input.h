@@ -65,4 +65,3 @@ int snd_input_ungetc(snd_input_t *input, int c);
 #endif
 
 #endif /* __ALSA_INPUT_H */
- 
