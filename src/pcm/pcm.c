@@ -108,6 +108,7 @@ int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevi
 			goto __again;
 		}
 	}
+	snd_ctl_close(ctl);
 	pcm = (snd_pcm_t *) calloc(1, sizeof(snd_pcm_t));
 	if (pcm == NULL) {
 		close(fd);
