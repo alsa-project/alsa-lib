@@ -75,7 +75,7 @@ MASK_INLINE void snd_mask_none(snd_mask_t *mask)
 
 MASK_INLINE void snd_mask_any(snd_mask_t *mask)
 {
-	memset(mask, 0xff, MASK_SIZE * 4);
+	memset(mask, 0xff, MASK_SIZE * sizeof(u_int32_t));
 }
 
 MASK_INLINE int snd_mask_empty(const snd_mask_t *mask)
