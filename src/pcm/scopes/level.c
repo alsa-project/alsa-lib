@@ -218,7 +218,8 @@ int snd_pcm_scope_level_open(snd_pcm_t *pcm, const char *name,
 }
 
 int _snd_pcm_scope_level_open(snd_pcm_t *pcm, const char *name,
-			      snd_config_t *conf)
+			      snd_config_t *root, snd_config_t *conf,
+			      snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
 	snd_pcm_scope_t *scope;
@@ -226,7 +227,9 @@ int _snd_pcm_scope_level_open(snd_pcm_t *pcm, const char *name,
 	int err;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "type") == 0)
