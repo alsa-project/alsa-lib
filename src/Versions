@@ -114,3 +114,14 @@ ALSA_0.9.5 {
 
     alsa_lisp;
 } ALSA_0.9.3;
+
+ALSA_0.9.6 {
+  global:
+
+    snd_seq_port_info_get_timestamping;
+    snd_seq_port_info_get_timestamp_real;
+    snd_seq_port_info_get_timestamp_queue;
+    snd_seq_port_info_set_timestamping;
+    snd_seq_port_info_set_timestamp_real;
+    snd_seq_port_info_set_timestamp_queue;
+} ALSA_0.9.5;
