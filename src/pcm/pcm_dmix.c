@@ -581,7 +581,6 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 		gettimeofday(&dmix->trigger_tstamp, 0);
 		dmix->state = SND_PCM_STATE_XRUN;
 		dmix->avail_max = avail;
-		printf("XRUN?\n");
 		return -EPIPE;
 	}
 	if (avail > dmix->avail_max)
@@ -825,7 +824,7 @@ static int snd_pcm_dmix_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
 
-	assert(pcm->boundary == dmix->shmptr->s.boundary);	/* for sure */
+	// assert(pcm->boundary == dmix->shmptr->s.boundary);	/* for sure */
 	dmix->state = SND_PCM_STATE_PREPARED;
 	dmix->appl_ptr = 0;
 	dmix->hw_ptr = 0;
@@ -877,11 +876,24 @@ static int snd_pcm_dmix_drop(snd_pcm_t *pcm)
 static int snd_pcm_dmix_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
+	snd_pcm_uframes_t stop_threshold;
+	int err;
+
 	if (dmix->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
-	snd_timer_stop(dmix->timer);
-	dmix->state = SND_PCM_STATE_SETUP;
-	return 0;
+	stop_threshold = pcm->stop_threshold;
+	if (pcm->stop_threshold > pcm->buffer_size)
+		pcm->stop_threshold = pcm->buffer_size;
+	while (dmix->state == SND_PCM_STATE_RUNNING) {
+		err = snd_pcm_dmix_sync_ptr(pcm);
+		if (err < 0)
+			break;
+		if (pcm->mode & SND_PCM_NONBLOCK)
+			return -EAGAIN;
+		snd_pcm_wait(pcm, -1);
+	}
+	pcm->stop_threshold = stop_threshold;
+	return snd_pcm_dmix_drop(pcm);
 }
 
 static int snd_pcm_dmix_pause(snd_pcm_t *pcm, int enable)
