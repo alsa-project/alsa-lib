@@ -29,6 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
+#define SND_FILE_LOAD		"/dev/loadC%i"
 
 int snd_card_load(int card)
 {
@@ -36,14 +37,15 @@ int snd_card_load(int card)
 	char control[32];
 	char aload[32];
 
-	sprintf (control, "/dev/snd/control%d",card);
-	sprintf (aload, "/dev/aload%d", card);	 
+	sprintf (control, SND_FILE_CONTROL, card);
+	sprintf (aload, SND_FILE_LOAD, card);
 
 	if ((open_dev=open(control, O_RDONLY)) < 0) {
 		close(open(aload, O_RDONLY));
 	} else {
 		close (open_dev);
 	}
+	return 0;
 }
 
 int snd_cards(void)
