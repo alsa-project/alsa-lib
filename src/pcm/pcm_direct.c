@@ -415,13 +415,26 @@ int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return snd_timer_async(dmix->timer, sig, pid);
 }
 
+/* empty the timer read queue */
+static void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
+{
+	/* rbuf might be overwriten by multiple plugins */
+	/* we don't need the value */
+	snd_timer_tread_t rbuf;
+	while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf))
+		;
+}
+
+int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix)
+{
+	snd_timer_stop(dmix->timer);
+	snd_pcm_direct_clear_timer_queue(dmix);
+}
+
 int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	unsigned short events;
-	/* rbuf might be overwriten by multiple plugins */
-	/* we don't need the value */
-	static snd_timer_tread_t rbuf;
 
 	assert(pfds && nfds == 1 && revents);
 	events = pfds[0].revents;
@@ -435,8 +448,8 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 		} else {
 			empty = snd_pcm_mmap_capture_avail(pcm) < pcm->avail_min;
 		}
-		/* empty the timer read queue */
-		while (empty && snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf)) ;
+		if (empty)
+			snd_pcm_direct_clear_timer_queue(dmix);
 		if (empty)
 			events &= ~(POLLOUT|POLLIN);
 	}

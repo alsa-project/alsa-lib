@@ -270,6 +270,10 @@ static int _snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, int do_slave_sync)
 	diff = slave_hw_ptr - old_slave_hw_ptr;
 	if (diff == 0)		/* fast path */
 		return 0;
+	if (dmix->state != SNDRV_PCM_STATE_RUNNING &&
+	    dmix->state != SNDRV_PCM_STATE_DRAINING)
+		/* not really started yet - don't update hw_ptr */
+		return 0;
 	if (diff < 0) {
 		slave_hw_ptr += dmix->shmptr->s.boundary;
 		diff = slave_hw_ptr - old_slave_hw_ptr;
@@ -280,7 +284,7 @@ static int _snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, int do_slave_sync)
 		return 0;
 	if ((avail = snd_pcm_mmap_playback_avail(pcm)) >= pcm->stop_threshold) {
 		struct timeval tv;
-		snd_timer_stop(dmix->timer);
+		snd_pcm_direct_timer_stop(dmix);
 		gettimeofday(&tv, 0);
 		dmix->trigger_tstamp.tv_sec = tv.tv_sec;
 		dmix->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
@@ -419,6 +423,19 @@ static int snd_pcm_dmix_reset(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int snd_pcm_dmix_start_timer(snd_pcm_direct_t *dmix)
+{
+	int err;
+
+	snd_pcm_hwsync(dmix->spcm);
+	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
+	err = snd_timer_start(dmix->timer);
+	if (err < 0)
+		return err;
+	dmix->state = SND_PCM_STATE_RUNNING;
+	return 0;
+}
+
 static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
@@ -428,8 +445,6 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 	
 	if (dmix->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
-	snd_pcm_hwsync(dmix->spcm);
-	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
 	avail = snd_pcm_mmap_playback_hw_avail(pcm);
 	if (avail == 0)
 		dmix->state = STATE_RUN_PENDING;
@@ -438,10 +453,8 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 	else {
 		if (avail > (snd_pcm_sframes_t)pcm->buffer_size)
 			avail = pcm->buffer_size;
-		err = snd_timer_start(dmix->timer);
-		if (err < 0)
+		if ((err = snd_pcm_dmix_start_timer(dmix)) < 0)
 			return err;
-		dmix->state = SND_PCM_STATE_RUNNING;
 		snd_pcm_dmix_sync_area(pcm, avail);
 	}
 	gettimeofday(&tv, 0);
@@ -455,7 +468,7 @@ static int snd_pcm_dmix_drop(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	if (dmix->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
-	snd_timer_stop(dmix->timer);
+	snd_pcm_direct_timer_stop(dmix);
 	dmix->state = SND_PCM_STATE_SETUP;
 	return 0;
 }
@@ -491,7 +504,7 @@ static int snd_pcm_dmix_pause(snd_pcm_t *pcm, int enable)
 	snd_pcm_direct_t *dmix = pcm->private_data;
         if (enable) {
 		if (dmix->state == SND_PCM_STATE_RUNNING)
-			snd_timer_stop(dmix->timer);
+			snd_pcm_direct_timer_stop(dmix);
 		else if (dmix->state != STATE_RUN_PENDING)
 			return -EBADFD;
 		dmix->state = SND_PCM_STATE_PAUSED;
@@ -500,6 +513,7 @@ static int snd_pcm_dmix_pause(snd_pcm_t *pcm, int enable)
 			return -EBADFD;
 		if (snd_pcm_mmap_playback_hw_avail(pcm) > 0) {
 			dmix->state = SND_PCM_STATE_RUNNING;
+			/* FIXME: sync the hwptr */
 			snd_timer_start(dmix->timer);
 		} else
 			dmix->state = STATE_RUN_PENDING;
@@ -589,13 +603,11 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 	default:
 		break;
 	}
-	snd_pcm_mmap_appl_forward(pcm, size);
 	if (dmix->state == STATE_RUN_PENDING) {
-		err = snd_timer_start(dmix->timer);
-		if (err < 0)
+		if ((err = snd_pcm_dmix_start_timer(dmix)) < 0)
 			return err;
-		dmix->state = SND_PCM_STATE_RUNNING;
 	}
+	snd_pcm_mmap_appl_forward(pcm, size);
 	if (dmix->state == SND_PCM_STATE_RUNNING) {
 		err = snd_pcm_dmix_sync_ptr(pcm);
 		if (err < 0)
