@@ -1,5 +1,5 @@
 SUBDIRS=doc include src aserver test utils
-EXTRA_DIST=ChangeLog INSTALL TODO configure cvscompile libtool depmod version
+EXTRA_DIST=ChangeLog INSTALL TODO configure cvscompile libtool depcomp version
 
 INCLUDES=-I$(top_srcdir)/include
 
