@@ -88,6 +88,7 @@ struct alisp_instance {
 	long free_objs;
 	long used_objs;
 	long max_objs;
+	long gc_thr_objs;
 	struct alisp_object *free_objs_list;
 	struct alisp_object *used_objs_list;
 	/* set object */

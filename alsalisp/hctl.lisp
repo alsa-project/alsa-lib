@@ -9,6 +9,7 @@
     (setq card (aresult card))
   )
 )
+(unsetq card)
 
 (princ "card_get_index test (SI7018): " (acall 'card_get_index "SI7018") "\n")
 (princ "card_get_index test (ABCD): " (acall 'card_get_index "ABCD") "\n")
@@ -29,6 +30,7 @@
     (princ "open failed: " hctl "\n")
   )
 )
+(unsetq hctl)
 
 (setq ctl (acall 'ctl_open 'default nil))
 (if (= (aerror ctl) 0)
@@ -38,6 +40,7 @@
     (setq info (aresult (acall 'ctl_card_info ctl)))
     (princ "ctl card info: " info "\n")
     (princ "ctl card info (mixername): " (cdr (assq "mixername" info)) "\n")
+    (unsetq info)
     (setq hctl (acall 'hctl_open_ctl ctl))
     (if (= (aerror hctl) 0)
       (progn
@@ -59,6 +62,8 @@
 	    (when (equal (cdr (assq "name" (car (cdr (assq "id" (aresult info)))))) "Master Playback Volume")
 	      (princ "write Master: " (acall 'hctl_elem_write elem (20 20)) "\n")
 	    )
+	    (unsetq info value)
+	    (gc)
 	    (setq elem (acall 'hctl_elem_next elem))
 	  )
         )
@@ -69,14 +74,17 @@
         )
       )
       (progn
-        (princ "hctl open failed: " ctl "\n")
+        (princ "hctl open failed: " hctl "\n")
 	(acall 'ctl_close ctl)
       )
     )
+    (unsetq hctl)
   )
   (progn
     (princ "ctl open failed: " ctl "\n")
   )
 )
+(unsetq ctl)
 
 (&stat-memory)
+(&dump-memory "memory.dump")
