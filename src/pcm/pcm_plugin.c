@@ -496,11 +496,10 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 		const snd_pcm_channel_area_t *areas;
 		snd_pcm_uframes_t xfer, hw_offset, size;
 		
-		size = snd_pcm_mmap_capture_avail(pcm);
-		size = pcm->buffer_size - size;
+		xfer = snd_pcm_mmap_capture_avail(pcm);
+		size = pcm->buffer_size - xfer;
 		areas = snd_pcm_mmap_areas(pcm);
 		hw_offset = snd_pcm_mmap_hw_offset(pcm);
-		xfer = 0;
 		while (size > 0 && slave_size > 0) {
 			snd_pcm_uframes_t frames = size;
 			snd_pcm_uframes_t cont = pcm->buffer_size - hw_offset;
