@@ -361,7 +361,7 @@ int snd_timer_nonblock(snd_timer_t *timer, int nonblock)
  *
  * A signal is raised every period.
  */
-int snd_timer(snd_timer_t *timer, int sig, pid_t pid)
+int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid)
 {
 	assert(timer);
         if (sig == 0)
