@@ -139,6 +139,7 @@ typedef enum _snd_set_mode {
 
 size_t page_align(size_t size);
 size_t page_size(void);
+size_t page_ptr(size_t object_offset, size_t object_size, size_t *offset, size_t *mmap_offset);
 
 int safe_strtol(const char *str, long *val);
 

@@ -211,8 +211,8 @@ int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 		snd_atomic_write_end(&plugin->watom);
 		return err;
 	}
-	plugin->hw_ptr = 0;
-	plugin->appl_ptr = 0;
+	*pcm->hw.ptr = 0;
+	*pcm->appl.ptr = 0;
 	snd_atomic_write_end(&plugin->watom);
 	if (plugin->init) {
 		err = plugin->init(pcm);
@@ -232,8 +232,8 @@ static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 		snd_atomic_write_end(&plugin->watom);
 		return err;
 	}
-	plugin->hw_ptr = 0;
-	plugin->appl_ptr = 0;
+	*pcm->hw.ptr = 0;
+	*pcm->appl.ptr = 0;
 	snd_atomic_write_end(&plugin->watom);
 	if (plugin->init) {
 		err = plugin->init(pcm);
@@ -504,12 +504,12 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED)
 		goto _capture;
 	if (plugin->client_frames) {
-		plugin->hw_ptr = plugin->client_frames(pcm, *slave->hw_ptr);
+		*pcm->hw.ptr = plugin->client_frames(pcm, *slave->hw.ptr);
 		if (slave_size <= 0)
 			return slave_size;
 		return plugin->client_frames(pcm, slave_size);
 	} else {
-		plugin->hw_ptr = *slave->hw_ptr;
+		*pcm->hw.ptr = *slave->hw.ptr;
 		return slave_size;
 	}
  _capture:
@@ -599,8 +599,8 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		snd_atomic_read_ok(&ratom);
 		return err;
 	}
-	status->appl_ptr = plugin->appl_ptr;
-	status->hw_ptr = plugin->hw_ptr;
+	status->appl_ptr = *pcm->appl.ptr;
+	status->hw_ptr = *pcm->hw.ptr;
 	status->avail = pcm->buffer_size;
 	snd_pcm_plugin_delay(pcm, &status->delay);
 	if (!snd_atomic_read_ok(&ratom)) {

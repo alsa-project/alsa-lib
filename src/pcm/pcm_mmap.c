@@ -36,48 +36,66 @@ size_t page_size(void)
 size_t page_align(size_t size)
 {
 	size_t r;
-	long psz = sysconf(_SC_PAGE_SIZE);
-	assert(psz > 0);
+	long psz = page_size();
 	r = size % psz;
 	if (r)
 		return size + psz - r;
 	return size;
 }
 
+size_t page_ptr(size_t object_offset, size_t object_size, size_t *offset, size_t *mmap_offset)
+{
+	size_t r;
+	long psz = page_size();
+	assert(offset);
+	assert(mmap_offset);
+	*mmap_offset = object_offset;
+	object_offset %= psz;
+	*mmap_offset -= object_offset;
+	object_size += object_offset;
+	r = object_size % psz;
+	if (r)
+		r = object_size + psz - r;
+	else
+		r = object_size;
+	*offset = object_offset;
+	return r;
+}
+
 void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_sframes_t appl_ptr = *pcm->appl_ptr;
+	snd_pcm_sframes_t appl_ptr = *pcm->appl.ptr;
 	appl_ptr -= frames;
 	if (appl_ptr < 0)
 		appl_ptr += pcm->boundary;
-	*pcm->appl_ptr = appl_ptr;
+	*pcm->appl.ptr = appl_ptr;
 }
 
 void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_uframes_t appl_ptr = *pcm->appl_ptr;
+	snd_pcm_uframes_t appl_ptr = *pcm->appl.ptr;
 	appl_ptr += frames;
 	if (appl_ptr >= pcm->boundary)
 		appl_ptr -= pcm->boundary;
-	*pcm->appl_ptr = appl_ptr;
+	*pcm->appl.ptr = appl_ptr;
 }
 
 void snd_pcm_mmap_hw_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_sframes_t hw_ptr = *pcm->hw_ptr;
+	snd_pcm_sframes_t hw_ptr = *pcm->hw.ptr;
 	hw_ptr -= frames;
 	if (hw_ptr < 0)
 		hw_ptr += pcm->boundary;
-	*pcm->hw_ptr = hw_ptr;
+	*pcm->hw.ptr = hw_ptr;
 }
 
 void snd_pcm_mmap_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-	snd_pcm_uframes_t hw_ptr = *pcm->hw_ptr;
+	snd_pcm_uframes_t hw_ptr = *pcm->hw.ptr;
 	hw_ptr += frames;
 	if (hw_ptr >= pcm->boundary)
 		hw_ptr -= pcm->boundary;
-	*pcm->hw_ptr = hw_ptr;
+	*pcm->hw.ptr = hw_ptr;
 }
 
 static snd_pcm_sframes_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm,

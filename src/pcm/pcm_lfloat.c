@@ -407,8 +407,8 @@ int snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->private_data = lfloat;
 	pcm->poll_fd = slave->poll_fd;
-	pcm->hw_ptr = &lfloat->plug.hw_ptr;
-	pcm->appl_ptr = &lfloat->plug.appl_ptr;
+	snd_pcm_set_hw_ptr(pcm, &lfloat->plug.hw_ptr, -1, 0);
+	snd_pcm_set_appl_ptr(pcm, &lfloat->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;
 	
 	return 0;

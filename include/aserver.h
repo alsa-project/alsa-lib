@@ -47,12 +47,21 @@ typedef enum _snd_transport_type {
 #define SND_PCM_IOCTL_ASYNC		_IO ('A', 0xf6)
 #define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xf7)
 #define SND_PCM_IOCTL_POLL_DESCRIPTOR	_IO ('A', 0xf8)
+#define SND_PCM_IOCTL_HW_PTR_FD		_IO ('A', 0xf9)
+#define SND_PCM_IOCTL_APPL_PTR_FD	_IO ('A', 0xfa)
+
+typedef struct {
+	snd_pcm_uframes_t ptr;
+	int use_mmap;
+	off_t offset;		/* for mmap */
+	int changed;
+} snd_pcm_shm_rbptr_t;
 
 typedef struct {
 	long result;
 	int cmd;
-	snd_pcm_uframes_t hw_ptr;
-	snd_pcm_uframes_t appl_ptr;
+	snd_pcm_shm_rbptr_t hw;
+	snd_pcm_shm_rbptr_t appl;
 	union {
 		struct {
 			int sig;
@@ -80,6 +89,11 @@ typedef struct {
 			snd_pcm_uframes_t offset;
 			snd_pcm_uframes_t frames;
 		} mmap_commit;
+		struct {
+			char use_mmap;
+			int shmid;
+			off_t offset;
+		} rbptr;
 	} u;
 	char data[0];
 } snd_pcm_shm_ctrl_t;

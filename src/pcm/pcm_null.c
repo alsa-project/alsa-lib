@@ -112,16 +112,15 @@ static int snd_pcm_null_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_null_t *null = pcm->private_data;
 	null->state = SND_PCM_STATE_PREPARED;
-	null->appl_ptr = 0;
-	null->hw_ptr = 0;
+	*pcm->appl.ptr = 0;
+	*pcm->hw.ptr = 0;
 	return 0;
 }
 
 static int snd_pcm_null_reset(snd_pcm_t *pcm)
 {
-	snd_pcm_null_t *null = pcm->private_data;
-	null->appl_ptr = 0;
-	null->hw_ptr = 0;
+	*pcm->appl.ptr = 0;
+	*pcm->hw.ptr = 0;
 	return 0;
 }
 
@@ -131,9 +130,9 @@ static int snd_pcm_null_start(snd_pcm_t *pcm)
 	assert(null->state == SND_PCM_STATE_PREPARED);
 	null->state = SND_PCM_STATE_RUNNING;
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE)
-		*pcm->hw_ptr = *pcm->appl_ptr + pcm->buffer_size;
+		*pcm->hw.ptr = *pcm->appl.ptr + pcm->buffer_size;
 	else
-		*pcm->hw_ptr = *pcm->appl_ptr;
+		*pcm->hw.ptr = *pcm->appl.ptr;
 	return 0;
 }
 
@@ -387,8 +386,8 @@ int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t strea
 	pcm->fast_ops = &snd_pcm_null_fast_ops;
 	pcm->private_data = null;
 	pcm->poll_fd = fd;
-	pcm->hw_ptr = &null->hw_ptr;
-	pcm->appl_ptr = &null->appl_ptr;
+	snd_pcm_set_hw_ptr(pcm, &null->hw_ptr, -1, 0);
+	snd_pcm_set_appl_ptr(pcm, &null->appl_ptr, -1, 0);
 	*pcmp = pcm;
 
 	return 0;

@@ -108,35 +108,35 @@ static int make_inet_socket(int port)
 
 static int send_fd(int sock, void *data, size_t len, int fd)
 {
-    int ret;
-    size_t cmsg_len = CMSG_LEN(sizeof(int));
-    struct cmsghdr *cmsg = alloca(cmsg_len);
-    int *fds = (int *) CMSG_DATA(cmsg);
-    struct msghdr msghdr;
-    struct iovec vec;
+	int ret;
+	size_t cmsg_len = CMSG_LEN(sizeof(int));
+	struct cmsghdr *cmsg = alloca(cmsg_len);
+	int *fds = (int *) CMSG_DATA(cmsg);
+	struct msghdr msghdr;
+	struct iovec vec;
 
-    vec.iov_base = (void *)&data;
-    vec.iov_len = len;
+	vec.iov_base = (void *)&data;
+	vec.iov_len = len;
 
-    cmsg->cmsg_len = cmsg_len;
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-    *fds = fd;
+	cmsg->cmsg_len = cmsg_len;
+	cmsg->cmsg_level = SOL_SOCKET;
+	cmsg->cmsg_type = SCM_RIGHTS;
+	*fds = fd;
 
-    msghdr.msg_name = NULL;
-    msghdr.msg_namelen = 0;
-    msghdr.msg_iov = &vec;
-    msghdr.msg_iovlen = 1;
-    msghdr.msg_control = cmsg;
-    msghdr.msg_controllen = cmsg_len;
-    msghdr.msg_flags = 0;
+	msghdr.msg_name = NULL;
+	msghdr.msg_namelen = 0;
+	msghdr.msg_iov = &vec;
+ 	msghdr.msg_iovlen = 1;
+	msghdr.msg_control = cmsg;
+	msghdr.msg_controllen = cmsg_len;
+	msghdr.msg_flags = 0;
 
-    ret = sendmsg(sock, &msghdr, 0 );
-    if (ret < 0) {
-	    SYSERROR("sendmsg failed");
-	    return -errno;
-    }
-    return ret;
+	ret = sendmsg(sock, &msghdr, 0 );
+	if (ret < 0) {
+		SYSERROR("sendmsg failed");
+		return -errno;
+	}
+	return ret;
 }
 
 struct pollfd *pollfds;
@@ -271,6 +271,44 @@ static int pcm_handler(waiter_t *waiter, unsigned short events)
 }
 #endif
 
+static void pcm_shm_hw_ptr_changed(snd_pcm_t *pcm, snd_pcm_t *src ATTRIBUTE_UNUSED)
+{
+	client_t *client = pcm->hw.private_data;
+	volatile snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
+	snd_pcm_t *loop;
+
+	ctrl->hw.changed = 1;
+	if (pcm->hw.fd >= 0) {
+		ctrl->hw.use_mmap = 1;
+		ctrl->hw.offset = pcm->hw.offset;
+		return;
+	}
+	ctrl->hw.use_mmap = 0;
+	ctrl->hw.ptr = pcm->hw.ptr ? *pcm->hw.ptr : 0;
+	for (loop = pcm->hw.master; loop; loop = loop->hw.master)
+		loop->hw.ptr = &ctrl->hw.ptr;
+	pcm->hw.ptr = &ctrl->hw.ptr;
+}
+
+static void pcm_shm_appl_ptr_changed(snd_pcm_t *pcm, snd_pcm_t *src ATTRIBUTE_UNUSED)
+{
+	client_t *client = pcm->appl.private_data;
+	volatile snd_pcm_shm_ctrl_t *ctrl = client->transport.shm.ctrl;
+	snd_pcm_t *loop;
+
+	ctrl->appl.changed = 1;
+	if (pcm->appl.fd >= 0) {
+		ctrl->appl.use_mmap = 1;
+		ctrl->appl.offset = pcm->appl.offset;
+		return;
+	}
+	ctrl->appl.use_mmap = 0;
+	ctrl->appl.ptr = pcm->appl.ptr ? *pcm->appl.ptr : 0;
+	for (loop = pcm->appl.master; loop; loop = loop->appl.master)
+		loop->appl.ptr = &ctrl->appl.ptr;
+	pcm->appl.ptr = &ctrl->appl.ptr;
+}
+
 static int pcm_shm_open(client_t *client, int *cookie)
 {
 	int shmid;
@@ -282,6 +320,10 @@ static int pcm_shm_open(client_t *client, int *cookie)
 		return err;
 	client->device.pcm.handle = pcm;
 	client->device.pcm.fd = _snd_pcm_poll_descriptor(pcm);
+	pcm->hw.private_data = client;
+	pcm->hw.changed = pcm_shm_hw_ptr_changed;
+	pcm->appl.private_data = client;
+	pcm->appl.changed = pcm_shm_appl_ptr_changed;
 
 	shmid = shmget(IPC_PRIVATE, PCM_SHM_SIZE, 0666);
 	if (shmid < 0) {
@@ -361,6 +403,13 @@ static int shm_ack_fd(client_t *client, int fd)
 	return 0;
 }
 
+static int shm_rbptr_fd(client_t *client, snd_pcm_rbptr_t *rbptr)
+{
+	if (rbptr->fd < 0)
+		return -EINVAL;
+	return shm_ack_fd(client, rbptr->fd);
+}
+
 static void async_handler(snd_async_handler_t *handler)
 {
 	client_t *client = snd_async_handler_get_callback_private(handler);
@@ -424,22 +473,15 @@ static int pcm_shm_cmd(client_t *client)
 		break;
 	case SND_PCM_IOCTL_AVAIL_UPDATE:
 		ctrl->result = snd_pcm_avail_update(pcm);
-		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
 	case SNDRV_PCM_IOCTL_PREPARE:
 		ctrl->result = snd_pcm_prepare(pcm);
-		ctrl->appl_ptr = *pcm->appl_ptr;
-		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
 	case SNDRV_PCM_IOCTL_RESET:
 		ctrl->result = snd_pcm_reset(pcm);
-		ctrl->appl_ptr = *pcm->appl_ptr;
-		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
 	case SNDRV_PCM_IOCTL_START:
 		ctrl->result = snd_pcm_start(pcm);
-		ctrl->appl_ptr = *pcm->appl_ptr;
-		ctrl->hw_ptr = *pcm->hw_ptr;
 		break;
 	case SNDRV_PCM_IOCTL_DRAIN:
 		ctrl->result = snd_pcm_drain(pcm);
@@ -458,7 +500,6 @@ static int pcm_shm_cmd(client_t *client)
 		break;
 	case SNDRV_PCM_IOCTL_REWIND:
 		ctrl->result = snd_pcm_rewind(pcm, ctrl->u.rewind.frames);
-		ctrl->appl_ptr = *pcm->appl_ptr;
 		break;
 	case SNDRV_PCM_IOCTL_LINK:
 	{
@@ -485,7 +526,6 @@ static int pcm_shm_cmd(client_t *client)
 		ctrl->result = snd_pcm_mmap_commit(pcm,
 						   ctrl->u.mmap_commit.offset,
 						   ctrl->u.mmap_commit.frames);
-		ctrl->appl_ptr = *pcm->appl_ptr;
 		break;
 	case SND_PCM_IOCTL_POLL_DESCRIPTOR:
 		ctrl->result = 0;
@@ -493,6 +533,10 @@ static int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_CLOSE:
 		client->ops->close(client);
 		break;
+	case SND_PCM_IOCTL_HW_PTR_FD:
+		return shm_rbptr_fd(client, &pcm->hw);
+	case SND_PCM_IOCTL_APPL_PTR_FD:
+		return shm_rbptr_fd(client, &pcm->appl);
 	default:
 		ERROR("Bogus cmd: %x", ctrl->cmd);
 		ctrl->result = -ENOSYS;

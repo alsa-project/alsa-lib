@@ -344,8 +344,8 @@ int snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int
 	pcm->fast_ops = &snd_pcm_hooks_fast_ops;
 	pcm->private_data = h;
 	pcm->poll_fd = slave->poll_fd;
-	pcm->hw_ptr = slave->hw_ptr;
-	pcm->appl_ptr = slave->appl_ptr;
+	snd_pcm_link_hw_ptr(pcm, slave);
+	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
 
 	return 0;

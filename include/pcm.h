@@ -827,8 +827,8 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *buf, unsigned int 
 
 snd_pcm_sframes_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes);
 ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, snd_pcm_sframes_t frames);
-int snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes);
-ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples);
+long snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes);
+ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, long samples);
 
 int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_channel, snd_pcm_uframes_t dst_offset,
 			 unsigned int samples, snd_pcm_format_t format);

@@ -1528,7 +1528,7 @@ ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
  * \param bytes quantity in bytes
  * \return quantity expressed in samples
  */
-int snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
+long snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
 {
 	assert(pcm);
 	assert(pcm->setup);
@@ -1541,7 +1541,7 @@ int snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
  * \param samples quantity in samples
  * \return quantity expressed in bytes
  */
-ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
+ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, long samples)
 {
 	assert(pcm);
 	assert(pcm->setup);
@@ -5131,7 +5131,7 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		*areas = pcm->stopped_areas;
 	else
 		*areas = pcm->running_areas;
-	*offset = *pcm->appl_ptr % pcm->buffer_size;
+	*offset = *pcm->appl.ptr % pcm->buffer_size;
 	cont = pcm->buffer_size - *offset;
 	f = *frames;
 	avail = snd_pcm_mmap_avail(pcm);
@@ -5202,7 +5202,7 @@ snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
 				      snd_pcm_uframes_t frames)
 {
 	assert(pcm);
-	assert(offset == *pcm->appl_ptr % pcm->buffer_size);
+	assert(offset == *pcm->appl.ptr % pcm->buffer_size);
 	assert(frames <= snd_pcm_mmap_avail(pcm));
 	return pcm->fast_ops->mmap_commit(pcm->fast_op_arg, offset, frames);
 }
@@ -5421,7 +5421,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 
 snd_pcm_uframes_t _snd_pcm_mmap_hw_ptr(snd_pcm_t *pcm)
 {
-	return *pcm->hw_ptr;
+	return *pcm->hw.ptr;
 }
 
 snd_pcm_uframes_t _snd_pcm_boundary(snd_pcm_t *pcm)
@@ -5579,6 +5579,113 @@ int snd_pcm_conf_generic_id(const char *id)
 			return 1;
 	}
 	return 0;
+}
+
+static void snd_pcm_set_ptr(snd_pcm_t *pcm, snd_pcm_rbptr_t *rbptr,
+			    volatile snd_pcm_uframes_t *hw_ptr, int fd, off_t offset)
+{
+	rbptr->master = NULL;	/* I'm master */
+	rbptr->ptr = hw_ptr;
+	rbptr->fd = fd;
+	rbptr->offset = offset;
+	if (rbptr->changed)
+		rbptr->changed(pcm, NULL);
+}
+
+void snd_pcm_set_hw_ptr(snd_pcm_t *pcm, volatile snd_pcm_uframes_t *hw_ptr, int fd, off_t offset)
+{
+	assert(pcm);
+	assert(hw_ptr);
+	snd_pcm_set_ptr(pcm, &pcm->hw, hw_ptr, fd, offset);
+}
+
+void snd_pcm_set_appl_ptr(snd_pcm_t *pcm, volatile snd_pcm_uframes_t *appl_ptr, int fd, off_t offset)
+{
+	assert(pcm);
+	assert(appl_ptr);
+	snd_pcm_set_ptr(pcm, &pcm->appl, appl_ptr, fd, offset);
+}
+
+static void snd_pcm_link_ptr(snd_pcm_t *pcm, snd_pcm_rbptr_t *pcm_rbptr,
+			     snd_pcm_t *slave, snd_pcm_rbptr_t *slave_rbptr)
+{
+	snd_pcm_t **a;
+	int idx;
+	
+	a = slave_rbptr->link_dst;
+	for (idx = 0; idx < slave_rbptr->link_dst_count; idx++)
+		if (a[idx] == NULL) {
+			a[idx] = pcm;
+			goto __found_free_place;
+		}
+	a = realloc(a, sizeof(snd_pcm_t *) * (slave_rbptr->link_dst_count + 1));
+	if (a == NULL) {
+		pcm_rbptr->ptr = NULL;
+		pcm_rbptr->fd = -1;
+		pcm_rbptr->offset = 0UL;
+		return;
+	}
+	a[slave_rbptr->link_dst_count++] = pcm;
+      __found_free_place:
+	pcm_rbptr->master = slave_rbptr->master ? slave_rbptr->master : slave;
+	pcm_rbptr->ptr = slave_rbptr->ptr;
+	pcm_rbptr->fd = slave_rbptr->fd;
+	pcm_rbptr->offset = slave_rbptr->offset;
+	slave_rbptr->link_dst = a;
+	if (pcm_rbptr->changed)
+		pcm_rbptr->changed(pcm, slave);
+}
+
+static void snd_pcm_unlink_ptr(snd_pcm_t *pcm, snd_pcm_rbptr_t *pcm_rbptr,
+			       snd_pcm_t *slave, snd_pcm_rbptr_t *slave_rbptr)
+{
+	snd_pcm_t **a;
+	int idx;
+
+	a = slave_rbptr->link_dst;
+	for (idx = 0; idx < slave_rbptr->link_dst_count; idx++)
+		if (a[idx] == pcm) {
+			a[idx] = NULL;
+			goto __found;
+		}
+	assert(0);
+	return;
+
+      __found:
+      	pcm_rbptr->master = NULL;
+	pcm_rbptr->ptr = NULL;
+	pcm_rbptr->fd = -1;
+	pcm_rbptr->offset = 0UL;
+	if (pcm_rbptr->changed)
+		pcm_rbptr->changed(pcm, slave);
+}
+
+void snd_pcm_link_hw_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
+{
+	assert(pcm);
+	assert(slave);
+	snd_pcm_link_ptr(pcm, &pcm->hw, slave, &slave->hw);
+}
+
+void snd_pcm_link_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
+{
+	assert(pcm);
+	assert(slave);
+	snd_pcm_link_ptr(pcm, &pcm->appl, slave, &slave->appl);
+}
+
+void snd_pcm_unlink_hw_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
+{
+	assert(pcm);
+	assert(slave);
+	snd_pcm_unlink_ptr(pcm, &pcm->hw, slave, &slave->hw);
+}
+
+void snd_pcm_unlink_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
+{
+	assert(pcm);
+	assert(slave);
+	snd_pcm_unlink_ptr(pcm, &pcm->appl, slave, &slave->appl);
 }
 
 #endif

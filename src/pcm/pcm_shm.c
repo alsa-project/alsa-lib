@@ -60,45 +60,100 @@ typedef struct {
 #ifndef DOC_HIDDEN
 int receive_fd(int sock, void *data, size_t len, int *fd)
 {
-    int ret;
-    size_t cmsg_len = CMSG_LEN(sizeof(int));
-    struct cmsghdr *cmsg = alloca(cmsg_len);
-    int *fds = (int *) CMSG_DATA(cmsg);
-    struct msghdr msghdr;
-    struct iovec vec;
+	int ret;
+	size_t cmsg_len = CMSG_LEN(sizeof(int));
+	struct cmsghdr *cmsg = alloca(cmsg_len);
+	int *fds = (int *) CMSG_DATA(cmsg);
+	struct msghdr msghdr;
+	struct iovec vec;
 
-    vec.iov_base = (void *)&data;
-    vec.iov_len = len;
+	vec.iov_base = (void *)&data;
+	vec.iov_len = len;
 
-    cmsg->cmsg_len = cmsg_len;
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-    *fds = -1;
+	cmsg->cmsg_len = cmsg_len;
+	cmsg->cmsg_level = SOL_SOCKET;
+	cmsg->cmsg_type = SCM_RIGHTS;
+	*fds = -1;
 
-    msghdr.msg_name = NULL;
-    msghdr.msg_namelen = 0;
-    msghdr.msg_iov = &vec;
-    msghdr.msg_iovlen = 1;
-    msghdr.msg_control = cmsg;
-    msghdr.msg_controllen = cmsg_len;
-    msghdr.msg_flags = 0;
+	msghdr.msg_name = NULL;
+	msghdr.msg_namelen = 0;
+	msghdr.msg_iov = &vec;
+	msghdr.msg_iovlen = 1;
+	msghdr.msg_control = cmsg;
+	msghdr.msg_controllen = cmsg_len;
+	msghdr.msg_flags = 0;
 
-    ret = recvmsg(sock, &msghdr, 0);
-    if (ret < 0) {
-	    SYSERR("recvmsg failed");
-	    return -errno;
-    }
-    *fd = *fds;
-    return ret;
+	ret = recvmsg(sock, &msghdr, 0);
+	if (ret < 0) {
+		SYSERR("recvmsg failed");
+		return -errno;
+	}
+	*fd = *fds;
+	return ret;
 }
 #endif
 
-static long snd_pcm_shm_action(snd_pcm_t *pcm)
+static long snd_pcm_shm_action_fd0(snd_pcm_t *pcm, int *fd)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
 	int err;
 	char buf[1];
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+
+	err = write(shm->socket, buf, 1);
+	if (err != 1)
+		return -EBADFD;
+	err = receive_fd(shm->socket, buf, 1, fd);
+	if (err != 1)
+		return -EBADFD;
+	if (ctrl->cmd) {
+		SNDERR("Server has not done the cmd");
+		return -EBADFD;
+	}
+	return ctrl->result;
+}
+
+static int snd_pcm_shm_new_rbptr(snd_pcm_t *pcm, snd_pcm_shm_t *shm,
+				 snd_pcm_rbptr_t *rbptr, volatile snd_pcm_shm_rbptr_t *shm_rbptr)
+{
+	if (!shm_rbptr->use_mmap) {
+		if (&pcm->hw == rbptr)
+			snd_pcm_set_hw_ptr(pcm, &shm_rbptr->ptr, -1, 0);
+		else
+			snd_pcm_set_appl_ptr(pcm, &shm_rbptr->ptr, -1, 0);
+	} else {
+		void *ptr;
+		size_t mmap_size, mmap_offset, offset;
+		int fd;
+		long result;
+		
+		shm->ctrl->cmd = &pcm->hw == rbptr ? SND_PCM_IOCTL_HW_PTR_FD : SND_PCM_IOCTL_APPL_PTR_FD;
+		result = snd_pcm_shm_action_fd0(pcm, &fd);
+		if (result < 0)
+			return result;
+		mmap_size = page_ptr(shm_rbptr->offset, sizeof(snd_pcm_uframes_t), &offset, &mmap_offset);
+		ptr = mmap(NULL, mmap_size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, mmap_offset);
+		if (ptr == MAP_FAILED || ptr == NULL) {
+			SYSERR("shm rbptr mmap failed");
+			return -errno;
+		}
+		if (&pcm->hw == rbptr)
+			snd_pcm_set_hw_ptr(pcm, (snd_pcm_uframes_t *)((char *)ptr + offset), fd, shm_rbptr->offset);
+		else
+			snd_pcm_set_appl_ptr(pcm, (snd_pcm_uframes_t *)((char *)ptr + offset), fd, shm_rbptr->offset);
+	}
+	return 0;
+}
+
+static long snd_pcm_shm_action(snd_pcm_t *pcm)
+{
+	snd_pcm_shm_t *shm = pcm->private_data;
+	int err, result;
+	char buf[1];
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+
+	if (ctrl->hw.changed || ctrl->appl.changed)
+		return -EBADFD;
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
 		return -EBADFD;
@@ -109,7 +164,20 @@ static long snd_pcm_shm_action(snd_pcm_t *pcm)
 		SNDERR("Server has not done the cmd");
 		return -EBADFD;
 	}
-	return ctrl->result;
+	result = ctrl->result;
+	if (ctrl->hw.changed) {
+		err = snd_pcm_shm_new_rbptr(pcm, shm, &pcm->hw, &ctrl->hw);
+		if (err < 0)
+			return err;
+		ctrl->hw.changed = 0;
+	}
+	if (ctrl->appl.changed) {
+		err = snd_pcm_shm_new_rbptr(pcm, shm, &pcm->appl, &ctrl->appl);
+		if (err < 0)
+			return err;
+		ctrl->appl.changed = 0;
+	}
+	return result;
 }
 
 static long snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
@@ -118,6 +186,9 @@ static long snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 	int err;
 	char buf[1];
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+
+	if (ctrl->hw.changed || ctrl->appl.changed)
+		return -EBADFD;
 	err = write(shm->socket, buf, 1);
 	if (err != 1)
 		return -EBADFD;
@@ -127,6 +198,18 @@ static long snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 	if (ctrl->cmd) {
 		SNDERR("Server has not done the cmd");
 		return -EBADFD;
+	}
+	if (ctrl->hw.changed) {
+		err = snd_pcm_shm_new_rbptr(pcm, shm, &pcm->hw, &ctrl->hw);
+		if (err < 0)
+			return err;
+		ctrl->hw.changed = 0;
+	}
+	if (ctrl->appl.changed) {
+		err = snd_pcm_shm_new_rbptr(pcm, shm, &pcm->appl, &ctrl->appl);
+		if (err < 0)
+			return err;
+		ctrl->appl.changed = 0;
 	}
 	return ctrl->result;
 }
@@ -422,8 +505,13 @@ static int snd_pcm_shm_drain(snd_pcm_t *pcm)
 	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->cmd = SNDRV_PCM_IOCTL_DRAIN;
-	err = snd_pcm_shm_action(pcm);
+	do {
+		ctrl->cmd = SNDRV_PCM_IOCTL_DRAIN;
+		err = snd_pcm_shm_action(pcm);
+		if (err != -EAGAIN)
+			break;
+		usleep(10000);
+	} while (1);
 	if (err < 0)
 		return err;
 	if (!(pcm->mode & SND_PCM_NONBLOCK))
@@ -691,8 +779,8 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	}
 	pcm->poll_fd = err;
-	pcm->hw_ptr = &ctrl->hw_ptr;
-	pcm->appl_ptr = &ctrl->appl_ptr;
+	snd_pcm_set_hw_ptr(pcm, &ctrl->hw.ptr, -1, 0);
+	snd_pcm_set_appl_ptr(pcm, &ctrl->appl.ptr, -1, 0);
 	*pcmp = pcm;
 	return 0;
 

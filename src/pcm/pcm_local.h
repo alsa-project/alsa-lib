@@ -91,6 +91,17 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 /** device can do a kind of synchronized start */
 #define SND_PCM_INFO_SYNC_START SNDRV_PCM_INFO_SYNC_START
 
+typedef struct _snd_pcm_rbptr {
+	snd_pcm_t *master;
+	volatile snd_pcm_uframes_t *ptr;
+	int fd;
+	off_t offset;
+	int link_dst_count;
+	snd_pcm_t **link_dst;
+	void *private_data;
+	void (*changed)(snd_pcm_t *pcm, snd_pcm_t *src);
+} snd_pcm_rbptr_t;
+
 typedef struct _snd_pcm_channel_info {
 	unsigned int channel;
 	void *addr;			/* base address of channel samples */
@@ -178,9 +189,9 @@ struct _snd_pcm {
 	snd_pcm_uframes_t buffer_size;
 	unsigned int sample_bits;
 	unsigned int frame_bits;
-	snd_pcm_uframes_t *appl_ptr;
+	snd_pcm_rbptr_t appl;
+	snd_pcm_rbptr_t hw;
 	snd_pcm_uframes_t min_align;
-	volatile snd_pcm_uframes_t *hw_ptr;
 	int mmap_rw;
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
@@ -207,6 +218,12 @@ int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_mmap(snd_pcm_t *pcm);
 int snd_pcm_munmap(snd_pcm_t *pcm);
 int snd_pcm_mmap_ready(snd_pcm_t *pcm);
+void snd_pcm_set_hw_ptr(snd_pcm_t *pcm, volatile snd_pcm_uframes_t *hw_ptr, int fd, off_t offset);
+void snd_pcm_set_appl_ptr(snd_pcm_t *pcm, volatile snd_pcm_uframes_t *appl_ptr, int fd, off_t offset);
+void snd_pcm_link_hw_ptr(snd_pcm_t *pcm, snd_pcm_t *slave);
+void snd_pcm_link_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave);
+void snd_pcm_unlink_hw_ptr(snd_pcm_t *pcm, snd_pcm_t *slave);
+void snd_pcm_unlink_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave);
 snd_pcm_sframes_t snd_pcm_mmap_appl_ptr(snd_pcm_t *pcm, off_t offset);
 void snd_pcm_mmap_appl_backward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 void snd_pcm_mmap_appl_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
@@ -238,7 +255,7 @@ int _snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {
 	snd_pcm_sframes_t avail;
-	avail = *pcm->hw_ptr + pcm->buffer_size - *pcm->appl_ptr;
+	avail = *pcm->hw.ptr + pcm->buffer_size - *pcm->appl.ptr;
 	if (avail < 0)
 		avail += pcm->boundary;
 	else if ((snd_pcm_uframes_t) avail >= pcm->boundary)
@@ -249,7 +266,7 @@ static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 static inline snd_pcm_uframes_t snd_pcm_mmap_capture_avail(snd_pcm_t *pcm)
 {
 	snd_pcm_sframes_t avail;
-	avail = *pcm->hw_ptr - *pcm->appl_ptr;
+	avail = *pcm->hw.ptr - *pcm->appl.ptr;
 	if (avail < 0)
 		avail += pcm->boundary;
 	return avail;
@@ -276,7 +293,7 @@ static inline snd_pcm_sframes_t snd_pcm_mmap_capture_hw_avail(snd_pcm_t *pcm)
 static inline snd_pcm_sframes_t snd_pcm_mmap_hw_avail(snd_pcm_t *pcm)
 {
 	snd_pcm_sframes_t avail;
-	avail = *pcm->hw_ptr - *pcm->appl_ptr;
+	avail = *pcm->hw.ptr - *pcm->appl.ptr;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		avail += pcm->buffer_size;
 	if (avail < 0)
@@ -295,13 +312,13 @@ static inline const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm)
 static inline snd_pcm_uframes_t snd_pcm_mmap_offset(snd_pcm_t *pcm)
 {
         assert(pcm);
-	return *pcm->appl_ptr % pcm->buffer_size;
+	return *pcm->appl.ptr % pcm->buffer_size;
 }
 
 static inline snd_pcm_uframes_t snd_pcm_mmap_hw_offset(snd_pcm_t *pcm)
 {
         assert(pcm);
-	return *pcm->hw_ptr % pcm->buffer_size;
+	return *pcm->hw.ptr % pcm->buffer_size;
 }
 
 #define snd_pcm_mmap_playback_delay snd_pcm_mmap_playback_hw_avail

@@ -29,6 +29,7 @@
   
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
@@ -60,7 +61,7 @@ typedef struct {
 	int fd;
 	int card, device, subdevice;
 	int mmap_emulation;
-	volatile struct sndrv_pcm_mmap_status *mmap_status;
+	volatile struct sndrv_pcm_mmap_status * mmap_status;
 	struct sndrv_pcm_mmap_control *mmap_control;
 	int shadow_appl_ptr: 1,
 	    avail_update_flag: 1,
@@ -256,10 +257,10 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		if (hw->mmap_shm) {
 			hw->shadow_appl_ptr = 1;
 			hw->appl_ptr = 0;
-			pcm->appl_ptr = &hw->appl_ptr;
+			snd_pcm_set_appl_ptr(pcm, &hw->appl_ptr, -1, 0);
 		} else {
 			hw->shadow_appl_ptr = 0;
-			pcm->appl_ptr = &hw->mmap_control->appl_ptr;
+			snd_pcm_set_appl_ptr(pcm, &hw->mmap_control->appl_ptr, hw->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
 		}
 	}
 	return 0;
@@ -529,7 +530,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 		return -errno;
 	}
 	hw->mmap_status = ptr;
-	pcm->hw_ptr = &hw->mmap_status->hw_ptr;
+	snd_pcm_set_hw_ptr(pcm, &hw->mmap_status->hw_ptr, hw->fd, SNDRV_PCM_MMAP_OFFSET_STATUS + offsetof(struct sndrv_pcm_mmap_status, hw_ptr));
 	return 0;
 }
 
@@ -545,7 +546,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 		return -errno;
 	}
 	hw->mmap_control = ptr;
-	pcm->appl_ptr = &hw->mmap_control->appl_ptr;
+	snd_pcm_set_appl_ptr(pcm, &hw->mmap_control->appl_ptr, hw->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
 	return 0;
 }
 

@@ -105,7 +105,7 @@ static void snd_pcm_meter_update_main(snd_pcm_t *pcm)
 	int locked;
 	locked = (pthread_mutex_trylock(&meter->update_mutex) >= 0);
 	areas = snd_pcm_mmap_areas(pcm);
-	rptr = *pcm->hw_ptr;
+	rptr = *pcm->hw.ptr;
 	old_rptr = meter->rptr;
 	meter->rptr = rptr;
 	frames = rptr - old_rptr;
@@ -131,7 +131,7 @@ static int snd_pcm_meter_update_scope(snd_pcm_t *pcm)
 	pthread_mutex_lock(&meter->update_mutex);
 	areas = snd_pcm_mmap_areas(pcm);
  _again:
-	rptr = *pcm->hw_ptr;
+	rptr = *pcm->hw.ptr;
 	old_rptr = meter->rptr;
 	rmb();
 	if (atomic_read(&meter->reset)) {
@@ -333,9 +333,9 @@ static int snd_pcm_meter_prepare(snd_pcm_t *pcm)
 	err = snd_pcm_prepare(meter->slave);
 	if (err >= 0) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-			meter->rptr = *pcm->appl_ptr;
+			meter->rptr = *pcm->appl.ptr;
 		else
-			meter->rptr = *pcm->hw_ptr;
+			meter->rptr = *pcm->hw.ptr;
 	}
 	return err;
 }
@@ -346,7 +346,7 @@ static int snd_pcm_meter_reset(snd_pcm_t *pcm)
 	int err = snd_pcm_reset(meter->slave);
 	if (err >= 0) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-			meter->rptr = *pcm->appl_ptr;
+			meter->rptr = *pcm->appl.ptr;
 	}
 	return err;
 }
@@ -386,7 +386,7 @@ static snd_pcm_sframes_t snd_pcm_meter_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	snd_pcm_meter_t *meter = pcm->private_data;
 	snd_pcm_sframes_t err = snd_pcm_rewind(meter->slave, frames);
 	if (err > 0 && pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		meter->rptr = *pcm->appl_ptr;
+		meter->rptr = *pcm->appl.ptr;
 	return err;
 }
 
@@ -401,13 +401,13 @@ static snd_pcm_sframes_t snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
 						   snd_pcm_uframes_t size)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	snd_pcm_uframes_t old_rptr = *pcm->appl_ptr;
+	snd_pcm_uframes_t old_rptr = *pcm->appl.ptr;
 	snd_pcm_sframes_t result = snd_pcm_mmap_commit(meter->slave, offset, size);
 	if (result <= 0)
 		return result;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		snd_pcm_meter_add_frames(pcm, snd_pcm_mmap_areas(pcm), old_rptr, result);
-		meter->rptr = *pcm->appl_ptr;
+		meter->rptr = *pcm->appl.ptr;
 	}
 	return result;
 }
@@ -648,8 +648,8 @@ int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequenc
 	pcm->fast_ops = &snd_pcm_meter_fast_ops;
 	pcm->private_data = meter;
 	pcm->poll_fd = slave->poll_fd;
-	pcm->hw_ptr = slave->hw_ptr;
-	pcm->appl_ptr = slave->appl_ptr;
+	snd_pcm_link_hw_ptr(pcm, slave);
+	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
 
 	pthread_mutex_init(&meter->update_mutex, NULL);

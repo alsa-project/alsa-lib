@@ -1173,8 +1173,8 @@ int snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->private_data = ladspa;
 	pcm->poll_fd = slave->poll_fd;
-	pcm->hw_ptr = &ladspa->plug.hw_ptr;
-	pcm->appl_ptr = &ladspa->plug.appl_ptr;
+	snd_pcm_set_hw_ptr(pcm, &ladspa->plug.hw_ptr, -1, 0);
+	snd_pcm_set_appl_ptr(pcm, &ladspa->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;
 
 	return 0;

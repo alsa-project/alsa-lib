@@ -832,8 +832,10 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		snd_pcm_plug_clear(pcm);
 		return err;
 	}
-	pcm->hw_ptr = slave->hw_ptr;
-	pcm->appl_ptr = slave->appl_ptr;
+	snd_pcm_unlink_hw_ptr(pcm, plug->req_slave);
+	snd_pcm_unlink_appl_ptr(pcm, plug->req_slave);
+	snd_pcm_link_hw_ptr(pcm, slave);
+	snd_pcm_link_appl_ptr(pcm, slave);
 	return 0;
 }
 
@@ -915,6 +917,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	snd_pcm_plug_t *plug;
 	int err;
 	assert(pcmp && slave);
+
 	plug = calloc(1, sizeof(snd_pcm_plug_t));
 	if (!plug)
 		return -ENOMEM;
@@ -939,8 +942,8 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	pcm->fast_op_arg = slave->fast_op_arg;
 	pcm->private_data = plug;
 	pcm->poll_fd = slave->poll_fd;
-	pcm->hw_ptr = slave->hw_ptr;
-	pcm->appl_ptr = slave->appl_ptr;
+	snd_pcm_link_hw_ptr(pcm, slave);
+	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
 
 	return 0;
@@ -1084,7 +1087,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 			return err;
 		}
 	}
-		
+	
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
 	snd_config_delete(sconf);
 	if (err < 0)

@@ -800,8 +800,8 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	pcm->fast_ops = &snd_pcm_plugin_fast_ops;
 	pcm->private_data = route;
 	pcm->poll_fd = slave->poll_fd;
-	pcm->hw_ptr = &route->plug.hw_ptr;
-	pcm->appl_ptr = &route->plug.appl_ptr;
+	snd_pcm_set_hw_ptr(pcm, &route->plug.hw_ptr, -1, 0);
+	snd_pcm_set_appl_ptr(pcm, &route->plug.appl_ptr, -1, 0);
 	err = route_load_ttable(&route->params, pcm->stream, tt_ssize, ttable, tt_cused, tt_sused);
 	if (err < 0) {
 		snd_pcm_close(pcm);

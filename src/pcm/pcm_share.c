@@ -123,7 +123,7 @@ static snd_pcm_uframes_t snd_pcm_share_slave_avail(snd_pcm_share_slave_t *slave)
 {
 	snd_pcm_sframes_t avail;
 	snd_pcm_t *pcm = slave->pcm;
-  	avail = slave->hw_ptr - *pcm->appl_ptr;
+  	avail = slave->hw_ptr - *pcm->appl.ptr;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		avail += pcm->buffer_size;
 	if (avail < 0)
@@ -147,7 +147,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *sla
 	buffer_size = slave->pcm->buffer_size;
 	min_frames = slave_avail;
 	max_frames = 0;
-	slave_appl_ptr = *slave->pcm->appl_ptr;
+	slave_appl_ptr = *slave->pcm->appl.ptr;
 	list_for_each(i, &slave->clients) {
 		snd_pcm_share_t *share = list_entry(i, snd_pcm_share_t, list);
 		snd_pcm_t *pcm = share->pcm;
@@ -336,7 +336,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_missing(snd_pcm_share_slave_t *sla
 	snd_pcm_uframes_t missing = INT_MAX;
 	struct list_head *i;
 	/* snd_pcm_sframes_t avail = */ snd_pcm_avail_update(slave->pcm);
-	slave->hw_ptr = *slave->pcm->hw_ptr;
+	slave->hw_ptr = *slave->pcm->hw.ptr;
 	list_for_each(i, &slave->clients) {
 		snd_pcm_share_t *share = list_entry(i, snd_pcm_share_t, list);
 		snd_pcm_t *pcm = share->pcm;
@@ -353,6 +353,7 @@ static void *snd_pcm_share_thread(void *data)
 	snd_pcm_t *spcm = slave->pcm;
 	struct pollfd pfd[2];
 	int err;
+
 	pfd[0].fd = slave->poll[0];
 	pfd[0].events = POLLIN;
 	err = snd_pcm_poll_descriptors(spcm, &pfd[1], 1);
@@ -373,7 +374,7 @@ static void *snd_pcm_share_thread(void *data)
 			if (hw_ptr >= spcm->boundary)
 				hw_ptr -= spcm->boundary;
 			hw_ptr -= hw_ptr % spcm->period_size;
-			avail_min = hw_ptr - *spcm->appl_ptr;
+			avail_min = hw_ptr - *spcm->appl.ptr;
 			if (spcm->stream == SND_PCM_STREAM_PLAYBACK)
 				avail_min += spcm->buffer_size;
 			if (avail_min < 0)
@@ -408,7 +409,7 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 	snd_pcm_t *spcm = slave->pcm;
 	snd_pcm_uframes_t missing;
 	/* snd_pcm_sframes_t avail = */ snd_pcm_avail_update(spcm);
-	slave->hw_ptr = *slave->pcm->hw_ptr;
+	slave->hw_ptr = *slave->pcm->hw.ptr;
 	missing = _snd_pcm_share_missing(pcm);
 	// printf("missing %ld\n", missing);
 	if (!slave->polling) {
@@ -423,7 +424,7 @@ static void _snd_pcm_share_update(snd_pcm_t *pcm)
 		if (hw_ptr >= spcm->boundary)
 			hw_ptr -= spcm->boundary;
 		hw_ptr -= hw_ptr % spcm->period_size;
-		avail_min = hw_ptr - *spcm->appl_ptr;
+		avail_min = hw_ptr - *spcm->appl.ptr;
 		if (spcm->stream == SND_PCM_STREAM_PLAYBACK)
 			avail_min += spcm->buffer_size;
 		if (avail_min < 0)
@@ -760,7 +761,7 @@ static snd_pcm_sframes_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 			Pthread_mutex_unlock(&slave->mutex);
 			return avail;
 		}
-		share->hw_ptr = *slave->pcm->hw_ptr;
+		share->hw_ptr = *slave->pcm->hw.ptr;
 	}
 	Pthread_mutex_unlock(&slave->mutex);
 	avail = snd_pcm_mmap_avail(pcm);
@@ -781,7 +782,7 @@ static snd_pcm_sframes_t _snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
 	snd_pcm_sframes_t frames;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
 	    share->state == SND_PCM_STATE_RUNNING) {
-		frames = *spcm->appl_ptr - share->appl_ptr;
+		frames = *spcm->appl.ptr - share->appl_ptr;
 		if (frames > (snd_pcm_sframes_t)pcm->buffer_size)
 			frames -= pcm->boundary;
 		else if (frames < -(snd_pcm_sframes_t)pcm->buffer_size)
@@ -860,7 +861,7 @@ static int snd_pcm_share_reset(snd_pcm_t *pcm)
 	/* FIXME? */
 	Pthread_mutex_lock(&slave->mutex);
 	snd_pcm_areas_silence(pcm->running_areas, 0, pcm->channels, pcm->buffer_size, pcm->format);
-	share->hw_ptr = *slave->pcm->hw_ptr;
+	share->hw_ptr = *slave->pcm->hw.ptr;
 	share->appl_ptr = share->hw_ptr;
 	Pthread_mutex_unlock(&slave->mutex);
 	return err;
@@ -893,8 +894,8 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 				goto _end;
 		}
 		assert(share->hw_ptr == 0);
-		share->hw_ptr = *spcm->hw_ptr;
-		share->appl_ptr = *spcm->appl_ptr;
+		share->hw_ptr = *spcm->hw.ptr;
+		share->appl_ptr = *spcm->appl.ptr;
 		while (xfer < hw_avail) {
 			snd_pcm_uframes_t frames = hw_avail - xfer;
 			snd_pcm_uframes_t offset = snd_pcm_mmap_offset(pcm);
@@ -1142,6 +1143,7 @@ static int snd_pcm_share_close(snd_pcm_t *pcm)
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
+
 	Pthread_mutex_lock(&snd_pcm_share_slaves_mutex);
 	Pthread_mutex_lock(&slave->mutex);
 	slave->open_count--;
@@ -1353,7 +1355,9 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 			free(share);
 			return err;
 		}
-		slave = calloc(1, sizeof(*slave));
+		/* FIXME: bellow is a real ugly hack to get things working */
+		/* there is a memory leak somewhere, but I'm unable to trace it --jk */
+		slave = calloc(1, sizeof(snd_pcm_share_slave_t) * 8);
 		if (!slave) {
 			Pthread_mutex_unlock(&snd_pcm_share_slaves_mutex);
 			snd_pcm_close(spcm);
@@ -1408,8 +1412,8 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	pcm->fast_ops = &snd_pcm_share_fast_ops;
 	pcm->private_data = share;
 	pcm->poll_fd = share->client_socket;
-	pcm->hw_ptr = &share->hw_ptr;
-	pcm->appl_ptr = &share->appl_ptr;
+	snd_pcm_set_hw_ptr(pcm, &share->hw_ptr, -1, 0);
+	snd_pcm_set_appl_ptr(pcm, &share->appl_ptr, -1, 0);
 
 	slave->open_count++;
 	list_add_tail(&share->list, &slave->clients);
@@ -1424,7 +1428,11 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 
 \section pcm_plugins_share Plugin: Share
 
-This plugin allows sharing of multiple channels with more clients.
+This plugin allows sharing of multiple channels with more clients. The access
+to each channel is exlusive (samples are not mixed together). It means, if
+the channel zero is used with first client, the channel cannot be used with
+second one. If you are looking for a mixing plugin, use the
+\ref pcm_plugins_smix "smix plugin".
 
 \code
 pcm.name {
@@ -1433,8 +1441,6 @@ pcm.name {
         # or
         slave {                 # Slave definition
                 pcm STR         # Slave PCM name
-                # or
-                pcm { }         # Slave PCM definition
         }
 	bindings {
 		N INT		# Slave channel INT for client channel N
@@ -1520,7 +1526,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_config_get_string(sconf, &sname);
 	sname = err >= 0 && sname ? strdup(sname) : NULL;
 	snd_config_delete(sconf);
-	if (err < 0) {
+	if (sname == NULL) {
 		SNDERR("slave.pcm is not a string");
 		return err;
 	}

@@ -485,8 +485,8 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	pcm->fast_ops = &snd_pcm_file_fast_ops;
 	pcm->private_data = file;
 	pcm->poll_fd = slave->poll_fd;
-	pcm->hw_ptr = slave->hw_ptr;
-	pcm->appl_ptr = slave->appl_ptr;
+	snd_pcm_link_hw_ptr(pcm, slave);
+	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
 
 	return 0;
