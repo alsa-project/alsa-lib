@@ -329,8 +329,12 @@ static int selem_read(snd_mixer_elem_t *elem)
 	csw = s->str[CAPT].sw;
 	s->str[CAPT].sw = ~0U;
 
-	if (s->ctls[CTL_ENUMLIST].elem)
-		return elem_read_enum(s);
+	if (s->ctls[CTL_ENUMLIST].elem) {
+		err = elem_read_enum(s);
+		if (err < 0)
+			return err;
+		goto __skip_cswitch;
+	}
 
 	if (s->ctls[CTL_PLAYBACK_VOLUME].elem)
 		err = elem_read_volume(s, PLAY, CTL_PLAYBACK_VOLUME);
