@@ -118,7 +118,7 @@ typedef struct _snd_output_stdio {
 static int snd_output_stdio_close(snd_output_t *output ATTRIBUTE_UNUSED)
 {
 	snd_output_stdio_t *stdio = output->private_data;
-	if (close)
+	if (stdio->close)
 		fclose(stdio->fp);
 	free(stdio);
 	return 0;
