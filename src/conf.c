@@ -1948,7 +1948,12 @@ int snd_config_get_ascii(const snd_config_t *config, char **ascii)
 		}
 		break;
 	case SND_CONFIG_TYPE_STRING:
-		*ascii = strdup(config->u.string);
+		if (config->u.string)
+			*ascii = strdup(config->u.string);
+		else {
+			*ascii = NULL;
+			return 0;
+		}
 		break;
 	default:
 		return -EINVAL;
@@ -2548,9 +2553,6 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			err = snd_determine_driver(card, &fdriver);
 			if (err < 0)
 				return err;
-			err = snd_config_imake_string(&private_data, "string", fdriver);
-			if (err < 0)
-				goto __err;
 			if (snd_config_search(root, fdriver, &n) >= 0) {
 				if (snd_config_get_string(n, &driver) < 0)
 					continue;
@@ -2565,6 +2567,9 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			} else {
 				driver = fdriver;
 			}
+			err = snd_config_imake_string(&private_data, "string", driver);
+			if (err < 0)
+				goto __err;
 			err = snd_config_hook_load(root, config, &n, private_data);
 		      __err:
 			if (private_data)
