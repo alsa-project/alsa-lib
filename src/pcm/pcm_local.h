@@ -152,7 +152,7 @@ typedef struct {
 	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 	int (*resume)(snd_pcm_t *pcm);
 	int (*poll_ask)(snd_pcm_t *pcm);
-	int (*link_fd)(snd_pcm_t *pcm);
+	int (*link_fd)(snd_pcm_t *pcm, int *fds, int count, int (**failed)(snd_pcm_t *, int));
 	int (*link)(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 	int (*unlink)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
@@ -265,7 +265,8 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
 int _snd_pcm_poll_descriptor(snd_pcm_t *pcm);
-int _snd_pcm_link_descriptor(snd_pcm_t *pcm);
+int _snd_pcm_link_descriptors(snd_pcm_t *pcm, int *fds, int size, int (**failed)(snd_pcm_t *, int));
+#define _snd_pcm_link_descriptor _snd_pcm_poll_descriptor /* FIXME */
 #define _snd_pcm_async_descriptor _snd_pcm_poll_descriptor /* FIXME */
 
 /* handle special error cases */

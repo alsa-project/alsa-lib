@@ -656,25 +656,40 @@ static int snd_pcm_hw_resume(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_hw_link_fd(snd_pcm_t *pcm)
+static int snd_pcm_hw_link_fd(snd_pcm_t *pcm, int *fds, int count, int (**failed)(snd_pcm_t *, int))
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 
-	return hw->fd;
+	if (count < 1)
+		return -EINVAL;
+	*failed = NULL;
+	fds[0] = hw->fd;
+	return 1;
 }
 
 static int snd_pcm_hw_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
 	snd_pcm_hw_t *hw = pcm1->private_data;
-	int fd2 = _snd_pcm_link_descriptor(pcm2);
+	int fds[16];
+	int (*failed)(snd_pcm_t *, int) = NULL;
+	int count = _snd_pcm_link_descriptors(pcm2, fds, 16, &failed);
+	int i, err = 0;
 
-	if (fd2 < 0)
-		return -ENOSYS;
-	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_LINK, fd2) < 0) {
-		SYSMSG("SNDRV_PCM_IOCTL_LINK failed");
-		return -errno;
+	if (count < 0)
+		return count;
+	for (i = 0; i < count; i++) {
+		if (fds[i] < 0)
+			return 0;
+		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_LINK, fds[i]) < 0) {
+			if (failed != NULL) {
+				err = failed(pcm2, fds[i]);
+			} else {
+				SYSMSG("SNDRV_PCM_IOCTL_LINK failed");
+				err = -errno;
+			}
+		}
 	}
-	return 0;
+	return err;
 }
 
 static int snd_pcm_hw_unlink(snd_pcm_t *pcm)

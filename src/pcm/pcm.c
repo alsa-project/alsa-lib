@@ -603,7 +603,6 @@ playback devices.
 #include <stdarg.h>
 #include <signal.h>
 #include <dlfcn.h>
-#include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/shm.h>
 #include <sys/mman.h>
@@ -6140,11 +6139,12 @@ snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
 
 #ifndef DOC_HIDDEN
 
-int _snd_pcm_link_descriptor(snd_pcm_t *pcm)
+int _snd_pcm_link_descriptors(snd_pcm_t *pcm, int *fds, int count,
+			      int (**failed)(snd_pcm_t *, int))
 {
 	assert(pcm);
 	if (pcm->fast_ops->link_fd)
-		return pcm->fast_ops->link_fd(pcm);
+		return pcm->fast_ops->link_fd(pcm, fds, count, failed);
 	return -ENOSYS;
 }
 

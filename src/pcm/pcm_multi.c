@@ -32,6 +32,7 @@
 #include <string.h>
 #include <math.h>
 #include "pcm_local.h"
+#include "pcm_generic.h"
 
 #ifndef PIC
 /* entry for static linking */
@@ -56,6 +57,7 @@ typedef struct {
 	unsigned int slaves_count;
 	unsigned int master_slave;
 	snd_pcm_multi_slave_t *slaves;
+	int slave_link_master;
 	unsigned int channels_count;
 	snd_pcm_multi_channel_t *channels;
 } snd_pcm_multi_t;
@@ -296,6 +298,7 @@ static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		}
 	}
 	multi->slaves[0].linked = 0;
+	multi->slave_link_master = 0;
 	for (i = 1; i < multi->slaves_count; ++i) {
 		err = snd_pcm_link(multi->slaves[0].pcm, multi->slaves[i].pcm);
 		multi->slaves[i].linked = (err >= 0);
@@ -577,6 +580,49 @@ static int snd_pcm_multi_poll_ask(snd_pcm_t *pcm)
 	return err;
 }
 
+static int snd_pcm_multi_link_fd_failed(snd_pcm_t *pcm, int fd)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	unsigned int i;
+
+	for (i = 0; i < multi->slaves_count; ++i) {
+		if (_snd_pcm_link_descriptor(multi->slaves[i].pcm) != fd)
+			continue;
+		 multi->slaves[i].linked = 0;
+	}
+	return 0;
+}
+
+static int snd_pcm_multi_link_fd(snd_pcm_t *pcm, int *fds, int count, int (**failed)(snd_pcm_t *pcm, int fd))
+{ 
+	snd_pcm_multi_t *multi = pcm->private_data;
+	unsigned int i;
+
+	if (count < (int)multi->slaves_count)
+		return -ENOMEM;
+	for (i = 0; i < multi->slaves_count; ++i) {
+		if (multi->slaves[i].linked)
+			snd_pcm_unlink(multi->slaves[i].pcm);
+		fds[i] = _snd_pcm_link_descriptor(multi->slaves[i].pcm);
+		multi->slaves[i].linked = 1;
+	}
+	*failed = snd_pcm_multi_link_fd_failed;
+	return multi->slaves_count;
+}
+
+static int snd_pcm_multi_unlink(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	unsigned int i;
+
+	for (i = 0; i < multi->slaves_count; ++i) {
+		if (multi->slaves[i].linked)
+			snd_pcm_unlink(multi->slaves[i].pcm);
+		multi->slaves[i].linked = 0;
+	}
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_multi_mmap_commit(snd_pcm_t *pcm,
 						   snd_pcm_uframes_t offset,
 						   snd_pcm_uframes_t size)
@@ -664,6 +710,9 @@ static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	.forward = snd_pcm_multi_forward,
 	.resume = snd_pcm_multi_resume,
 	.poll_ask = snd_pcm_multi_poll_ask,
+	.link_fd = snd_pcm_multi_link_fd,
+	.link = snd_pcm_generic_link2,
+	.unlink = snd_pcm_multi_unlink,
 	.avail_update = snd_pcm_multi_avail_update,
 	.mmap_commit = snd_pcm_multi_mmap_commit,
 };
