@@ -1,4 +1,3 @@
-M fix adpcm plugin volume problem
 M plug sync and pos problems
 M Loopback implementation?
 M Implement PCM alias via ~/.asound.conf to permit snd_pcm_open(name) and this compose pcm_hw, pcm_plug, pcm_multi according to the definition
