@@ -610,6 +610,11 @@ static void snd_pcm_plug_dump(void *private, FILE *fp)
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
 	snd_pcm_plugin_t *plugin;
+	if (!plug->first) {
+		fprintf(fp, "Plug PCM -> ");
+		snd_pcm_dump(plug->slave, fp);
+		return;
+	}
 	fprintf(fp, "Plug PCM\n");
 	if (handle->valid_setup) {
 		fprintf(fp, "\nIts setup is:\n");
