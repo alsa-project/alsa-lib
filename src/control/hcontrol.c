@@ -170,12 +170,18 @@ static int get_compare_weight(const char *name)
 		"Rear",
 		"Pan",
 		"Output",
+		"-",
 		NULL
 	};
 	static char *names2[] = {
 		"Switch",
 		"Volume",
 		"Bypass",
+		"Depth",
+		"Wide",
+		"Space",
+		"Level",
+		"Center",
 		NULL
 	};
 	int res, res1;

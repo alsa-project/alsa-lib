@@ -110,8 +110,15 @@ static int get_compare_weight(const char *name, int index)
 		"Master",
 		"Master Mono",
 		"Master Digital",
+		"Headphone",
 		"Bass",
 		"Treble",
+		"3D Control - Switch",
+		"3D Control - Depth",
+		"3D Control - Wide",
+		"3D Control - Space",
+		"3D Control - Level",
+		"3D Control - Center",
 		"PCM",
 		"Surround",
 		"Synth",
@@ -633,7 +640,8 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 		size_t l;
 		if (nlen > slen) {
 			l = nlen - slen;
-			if (strncmp(name + l, p->suffix, slen) == 0) {
+			if (strncmp(name + l, p->suffix, slen) == 0 &&
+			    (l < 1 || name[l-1] != '-')) {	/* 3D Control - Switch */
 				*type = p->type;
 				return l;
 			}
