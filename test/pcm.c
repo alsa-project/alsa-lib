@@ -18,7 +18,7 @@ void setformat(void *phandle, void *rhandle)
 	snd_pcm_format_t format;
 
 	bzero(&format, sizeof(format));
-	format.sfmt = SND_PCM_SFMT_S16_LE;
+	format.sfmt = SND_PCM_FORMAT_S16_LE;
 	format.channels = 2;
 	format.rate = 22050;
 	if ((err = snd_pcm_playback_format(phandle, &format)) < 0) {

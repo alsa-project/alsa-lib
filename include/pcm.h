@@ -12,94 +12,9 @@
 extern "C" {
 #endif
 
-typedef unsigned int bitset_t;
+typedef struct _snd_pcm snd_pcm_t;
 
-static inline size_t bitset_size(size_t nbits)
-{
-	return (nbits + sizeof(bitset_t) * 8 - 1) / (sizeof(bitset_t) * 8);
-}
-
-static inline bitset_t *bitset_alloc(size_t nbits)
-{
-	return (bitset_t*) calloc(bitset_size(nbits), sizeof(bitset_t));
-}
-	
-static inline void bitset_set(bitset_t *bitmap, unsigned int pos)
-{
-	size_t bits = sizeof(*bitmap) * 8;
-	bitmap[pos / bits] |= 1U << (pos % bits);
-}
-
-static inline void bitset_reset(bitset_t *bitmap, unsigned int pos)
-{
-	size_t bits = sizeof(*bitmap) * 8;
-	bitmap[pos / bits] &= ~(1U << (pos % bits));
-}
-
-static inline int bitset_get(bitset_t *bitmap, unsigned int pos)
-{
-	size_t bits = sizeof(*bitmap) * 8;
-	return !!(bitmap[pos / bits] & (1U << (pos % bits)));
-}
-
-static inline void bitset_copy(bitset_t *dst, bitset_t *src, size_t nbits)
-{
-	memcpy(dst, src, bitset_size(nbits) * sizeof(bitset_t));
-}
-
-static inline void bitset_and(bitset_t *dst, bitset_t *bs, size_t nbits)
-{
-	bitset_t *end = dst + bitset_size(nbits);
-	while (dst < end)
-		*dst++ &= *bs++;
-}
-
-static inline void bitset_or(bitset_t *dst, bitset_t *bs, size_t nbits)
-{
-	bitset_t *end = dst + bitset_size(nbits);
-	while (dst < end)
-		*dst++ |= *bs++;
-}
-
-static inline void bitset_zero(bitset_t *dst, size_t nbits)
-{
-	bitset_t *end = dst + bitset_size(nbits);
-	while (dst < end)
-		*dst++ = 0;
-}
-
-static inline void bitset_one(bitset_t *dst, size_t nbits)
-{
-	bitset_t *end = dst + bitset_size(nbits);
-	while (dst < end)
-		*dst++ = ~(bitset_t)0;
-}
-
-static inline size_t hweight32(bitset_t v)
-{
-        v = (v & 0x55555555) + ((v >> 1) & 0x55555555);
-        v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
-        v = (v & 0x0F0F0F0F) + ((v >> 4) & 0x0F0F0F0F);
-        v = (v & 0x00FF00FF) + ((v >> 8) & 0x00FF00FF);
-        return (v & 0x0000FFFF) + ((v >> 16) & 0x0000FFFF);
-}
-
-/* Count bits set */
-static inline size_t bitset_count(bitset_t *bitset, size_t nbits)
-{
-	bitset_t *end = bitset + bitset_size(nbits) - 1;
-	size_t bits = sizeof(*bitset) * 8;
-	size_t count = 0;
-	while (bitset < end)
-		count += hweight32(*bitset++);
-	count += hweight32(*bitset & ((1U << (nbits % bits)) - 1));
-	return count;
-}
-
-typedef struct snd_pcm snd_pcm_t;
-typedef struct snd_pcm_loopback snd_pcm_loopback_t;
-
-typedef enum {
+typedef enum _snd_pcm_type {
 	SND_PCM_TYPE_HW,
 	SND_PCM_TYPE_MULTI,
 	SND_PCM_TYPE_FILE,
@@ -119,16 +34,28 @@ typedef enum {
 	SND_PCM_TYPE_LBSERVER,
 } snd_pcm_type_t;
 
-extern void snd_pcm_error(const char *file, int line, const char *function, int err, const char *fmt, ...)  __attribute__ ((weak, format (printf, 5, 6)));
+enum {
+	SND_PCM_RULE_PAR_MASK = 0x00ff,
+	SND_PCM_RULE_REL_LT = 0x100,
+	SND_PCM_RULE_REL_GT = 0x200,
+	SND_PCM_RULE_REL_EQ = 0x300,
+	SND_PCM_RULE_REL_LE = 0x400,
+	SND_PCM_RULE_REL_GE = 0x500,
+	SND_PCM_RULE_REL_NEAR = 0x600,
+	SND_PCM_RULE_REL_BITS = 0x700,
+	SND_PCM_RULE_REL_MASK = 0xff00
+};
+
+typedef struct _snd_pcm_channel_area {
+	void *addr;			/* base address of channel samples */
+	unsigned int first;		/* offset to first sample in bits */
+	unsigned int step;		/* samples distance in bits */
+} snd_pcm_channel_area_t;
 
 int snd_pcm_open(snd_pcm_t **pcm, char *name, 
 		 int stream, int mode);
 
 /* Obsolete functions */
-int snd_pcm_hw_open_subdevice(snd_pcm_t **pcm, int card, int device, int subdevice, int stream, int mode);
-int snd_pcm_hw_open_device(snd_pcm_t **pcm, int card, int device, int stream, int mode);
-int snd_pcm_plug_open_subdevice(snd_pcm_t **pcm, int card, int device, int subdevice, int stream, int mode);
-int snd_pcm_plug_open_device(snd_pcm_t **pcm, int card, int device, int stream, int mode);
 #define snd_pcm_write snd_pcm_writei
 #define snd_pcm_read snd_pcm_readi
 ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count);
@@ -141,12 +68,11 @@ int snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 int snd_pcm_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info);
-int snd_pcm_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t *info);
-int snd_pcm_params(snd_pcm_t *pcm, snd_pcm_params_t *params);
-int snd_pcm_setup(snd_pcm_t *pcm, snd_pcm_setup_t *setup);
-int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
-int snd_pcm_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params);
-int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t *setup);
+int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info);
+int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
+int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
+int snd_pcm_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t *info);
+int snd_pcm_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t *params);
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status);
 int snd_pcm_prepare(snd_pcm_t *pcm);
 int snd_pcm_start(snd_pcm_t *pcm);
@@ -160,23 +86,35 @@ ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size);
 ssize_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, size_t size);
 ssize_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, size_t size);
 ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size);
+
+int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp);
+int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, FILE *fp);
 int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp);
+int snd_pcm_dump_hw_params_fail(snd_pcm_hw_params_t *params, FILE *fp);
+int snd_pcm_dump_sw_params_fail(snd_pcm_sw_params_t *params, FILE *fp);
 int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp);
 int snd_pcm_dump_status(snd_pcm_status_t *status, FILE *fp);
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_unlink(snd_pcm_t *pcm);
 
-int snd_pcm_channels_mask(snd_pcm_t *pcm, bitset_t *cmask);
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 ssize_t snd_pcm_avail_update(snd_pcm_t *pcm);
 int snd_pcm_set_avail_min(snd_pcm_t *pcm, size_t size);
-
+int snd_pcm_hw_params_rules(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
+			    unsigned int count, int *rules);
+int snd_pcm_hw_params_rulesv(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ...);
+int snd_pcm_hw_info_rules(snd_pcm_t *pcm, 
+			  snd_pcm_hw_info_t *info,
+			  snd_pcm_hw_params_t *params,
+			  unsigned int count, int *rules);
+int snd_pcm_hw_info_rulesv(snd_pcm_t *pcm, 
+			   snd_pcm_hw_info_t *info,
+			   snd_pcm_hw_params_t *params, ...);
 
 /* mmap */
-int snd_pcm_mmap(snd_pcm_t *pcm);
-int snd_pcm_munmap(snd_pcm_t *pcm);
 snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);
-int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *stopped_areas, snd_pcm_channel_area_t *running_areas);
+snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm);
+snd_pcm_channel_area_t *snd_pcm_mmap_stopped_areas(snd_pcm_t *pcm);
 ssize_t snd_pcm_mmap_forward(snd_pcm_t *pcm, size_t size);
 size_t snd_pcm_mmap_offset(snd_pcm_t *pcm);
 size_t snd_pcm_mmap_xfer(snd_pcm_t *pcm, size_t size);

@@ -46,3 +46,5 @@
 #define SND_TRANSPORT_TYPE_SHM	0
 #define SND_TRANSPORT_TYPE_TCP	1
 
+extern void snd_lib_error(const char *file, int line, const char *function, int err, const char *fmt, ...)  __attribute__ ((weak, format (printf, 5, 6)));
+

@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <limits.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -40,8 +41,8 @@
 
 typedef struct {
 	int socket;
+	unsigned int access_mask;
 	volatile snd_pcm_shm_ctrl_t *ctrl;
-	snd_pcm_mmap_info_t *slave_mmap_info;
 } snd_pcm_shm_t;
 
 int receive_fd(int socket, void *data, size_t len, int *fd)
@@ -147,46 +148,123 @@ static int snd_pcm_shm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return err;
 }
 
-static int snd_pcm_shm_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
+static int snd_pcm_shm_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_PARAMS_INFO;
-	ctrl->u.params_info = *info;
+	unsigned int access_mask = info->access_mask;
+	ctrl->cmd = SND_PCM_IOCTL_HW_INFO;
+	ctrl->u.hw_info = *info;
+	ctrl->u.hw_info.access_mask |= SND_PCM_ACCBIT_MMAP;
 	err = snd_pcm_shm_action(pcm);
+	*info = ctrl->u.hw_info;
+	if (info->access_mask) {
+		shm->access_mask = info->access_mask;
+		info->access_mask |= (SND_PCM_ACCESS_RW_INTERLEAVED |
+				      SND_PCM_ACCESS_RW_NONINTERLEAVED);
+		info->access_mask &= access_mask;
+	}
 	if (err < 0)
 		return err;
-	*info = ctrl->u.params_info;
 	return err;
 }
 
-static int snd_pcm_shm_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
+static int snd_pcm_shm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	unsigned int access = params->access;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_PARAMS;
-	ctrl->u.params = *params;
+	ctrl->cmd = SND_PCM_IOCTL_HW_PARAMS;
+	ctrl->u.hw_params = *params;
+	if (shm->access_mask & SND_PCM_ACCBIT_MMAP_INTERLEAVED)
+		ctrl->u.hw_params.access = SND_PCM_ACCESS_MMAP_INTERLEAVED;
+	else if (shm->access_mask & SND_PCM_ACCBIT_MMAP_NONINTERLEAVED)
+		ctrl->u.hw_params.access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;
+	else
+		assert(0);
 	err = snd_pcm_shm_action(pcm);
+	params->access = access;
+	*params = ctrl->u.hw_params;
 	if (err < 0)
 		return err;
-	*params = ctrl->u.params;
 	return err;
 }
 
-static int snd_pcm_shm_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
+static int snd_pcm_shm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
-	ctrl->cmd = SND_PCM_IOCTL_SETUP;
-	// ctrl->u.setup = *setup;
+	ctrl->cmd = SND_PCM_IOCTL_SW_PARAMS;
+	ctrl->u.sw_params = *params;
+	err = snd_pcm_shm_action(pcm);
+	*params = ctrl->u.sw_params;
+	if (err < 0)
+		return err;
+	return err;
+}
+
+static int snd_pcm_shm_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t * info)
+{
+	snd_pcm_shm_t *shm = pcm->private;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->cmd = SND_PCM_IOCTL_DIG_INFO;
+	ctrl->u.dig_info = *info;
 	err = snd_pcm_shm_action(pcm);
 	if (err < 0)
 		return err;
-	*setup = ctrl->u.setup;
+	*info = ctrl->u.dig_info;
 	return err;
+}
+
+static int snd_pcm_shm_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t * params)
+{
+	snd_pcm_shm_t *shm = pcm->private;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->cmd = SND_PCM_IOCTL_DIG_PARAMS;
+	ctrl->u.dig_params = *params;
+	err = snd_pcm_shm_action(pcm);
+	*params = ctrl->u.dig_params;
+	if (err < 0)
+		return err;
+	return err;
+}
+
+static int snd_pcm_shm_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+
+static int snd_pcm_shm_munmap(snd_pcm_t *pcm)
+{
+	unsigned int c;
+	for (c = 0; c < pcm->channels; ++c) {
+		snd_pcm_channel_info_t *i = &pcm->mmap_channels[c];
+		unsigned int c1;
+		int err;
+		if (i->type != SND_PCM_AREA_MMAP)
+			continue;
+		if (i->u.mmap.fd < 0)
+			continue;
+		for (c1 = c + 1; c1 < pcm->channels; ++c1) {
+			snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
+			if (i1->type != SND_PCM_AREA_MMAP)
+				continue;
+			if (i1->u.mmap.fd != i->u.mmap.fd)
+				continue;
+			i1->u.mmap.fd = -1;
+		}
+		err = close(i->u.mmap.fd);
+		if (err < 0) {
+			SYSERR("close failed");
+			return -errno;
+		}
+	}
+	return 0;
 }
 
 static int snd_pcm_shm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
@@ -194,61 +272,23 @@ static int snd_pcm_shm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * inf
 	snd_pcm_shm_t *shm = pcm->private;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
+	int fd;
 	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_INFO;
 	ctrl->u.channel_info = *info;
-	err = snd_pcm_shm_action(pcm);
+	err = snd_pcm_shm_action_fd(pcm, &fd);
 	if (err < 0)
 		return err;
 	*info = ctrl->u.channel_info;
-	return err;
-}
-
-static int snd_pcm_shm_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
-{
-	snd_pcm_shm_t *shm = pcm->private;
-	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
-	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_PARAMS;
-	ctrl->u.channel_params = *params;
-	err = snd_pcm_shm_action(pcm);
-	if (err < 0)
-		return err;
-	*params = ctrl->u.channel_params;
-	return err;
-}
-
-static void *convert_addr(void *addr, size_t count, snd_pcm_mmap_info_t *old, snd_pcm_mmap_info_t *new)
-{
-	size_t k;
-	size_t mindist = ULONG_MAX;
-	int idx = -1;
-	for (k = 0; k < count; ++k) {
-		if (addr >= old[k].addr) {
-			size_t dist = addr - old[k].addr;
-			if (dist < mindist) {
-				mindist = dist;
-				idx = k;
-			}
-		}
-	}
-	assert(idx >= 0);
-	return new[idx].addr + mindist;
-}
-
-static int snd_pcm_shm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
-{
-	snd_pcm_shm_t *shm = pcm->private;
-	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
-	ctrl->cmd = SND_PCM_IOCTL_CHANNEL_SETUP;
-	ctrl->u.channel_setup = *setup;
-	err = snd_pcm_shm_action(pcm);
-	if (err < 0)
-		return err;
-	*setup = ctrl->u.channel_setup;
-	if (pcm->mmap_info) {
-		setup->running_area.addr = convert_addr(setup->running_area.addr, pcm->mmap_info_count, shm->slave_mmap_info, pcm->mmap_info);
-		setup->stopped_area.addr = convert_addr(setup->stopped_area.addr, pcm->mmap_info_count, shm->slave_mmap_info, pcm->mmap_info);
+	info->addr = 0;
+	switch (info->type) {
+	case SND_PCM_AREA_MMAP:
+		info->u.mmap.fd = fd;
+		break;
+	case SND_PCM_AREA_SHM:
+		break;
+	default:
+		assert(0);
+		break;
 	}
 	return err;
 }
@@ -356,86 +396,6 @@ static ssize_t snd_pcm_shm_rewind(snd_pcm_t *pcm, size_t frames)
 	return snd_pcm_shm_action(pcm);
 }
 
-static int snd_pcm_shm_mmap(snd_pcm_t *pcm)
-{
-	snd_pcm_shm_t *shm = pcm->private;
-	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	int count, k, err, fd;
-	ctrl->cmd = SND_PCM_IOCTL_MMAP;
-	count = snd_pcm_shm_action(pcm);
-	if (count < 0)
-		return count;
-	pcm->mmap_info_count = count;
-	pcm->mmap_info = malloc(count * sizeof(*pcm->mmap_info));
-	shm->slave_mmap_info = malloc(count * sizeof(*shm->slave_mmap_info));
-	for (k = 0; k < count; ++k) {
-		snd_pcm_mmap_info_t *i = &pcm->mmap_info[k];
-		void *ptr;
-		ctrl->cmd = SND_PCM_IOCTL_MMAP_INFO;
-		ctrl->u.mmap_info.index = k;
-		err = snd_pcm_shm_action_fd(pcm, &fd);
-		if (err < 0)
-			return err;
-		shm->slave_mmap_info[k] = ctrl->u.mmap_info;
-		*i = ctrl->u.mmap_info;
-		if (i->type == SND_PCM_MMAP_KERNEL) {
-			i->u.kernel.fd = fd;
-			ptr = mmap(NULL, i->size, PROT_WRITE | PROT_READ,
-				   MAP_FILE | MAP_SHARED, 
-				   fd, SND_PCM_MMAP_OFFSET_DATA);
-			close(fd);
-			if (ptr == MAP_FAILED || ptr == NULL) {
-				SYSERR("mmap failed");
-				free(pcm->mmap_info);
-				return -errno;
-			}
-		} else {
-			ptr = shmat(i->u.user.shmid, 0, 0);
-			if (ptr == (void*)-1) {
-				SYSERR("shmat failed");
-				free(pcm->mmap_info);
-				return -errno;
-			}
-		}
-		i->addr = ptr;
-	}
-	return 0;
-}
-
-static int snd_pcm_shm_munmap(snd_pcm_t *pcm)
-{
-	snd_pcm_shm_t *shm = pcm->private;
-	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	int err;
-	unsigned int k;
-	ctrl->cmd = SND_PCM_IOCTL_MUNMAP;
-	err = snd_pcm_shm_action(pcm);
-	if (err < 0)
-		return err;
-	for (k = 0; k < pcm->mmap_info_count; ++k) {
-		snd_pcm_mmap_info_t *i = &pcm->mmap_info[k];
-		if (i->type == SND_PCM_MMAP_KERNEL) {
-			err = munmap(i->addr, i->size);
-			if (err < 0) {
-				SYSERR("munmap failed");
-				return -errno;
-			}
-		} else {
-			err = shmdt(i->addr);
-			if (err < 0) {
-				SYSERR("shmdt failed");
-				return -errno;
-			}
-		}
-	}
-	pcm->mmap_info_count = 0;
-	free(pcm->mmap_info);
-	free(shm->slave_mmap_info);
-	pcm->mmap_info = 0;
-	shm->slave_mmap_info = 0;
-	return ctrl->result;
-}
-
 static ssize_t snd_pcm_shm_mmap_forward(snd_pcm_t *pcm, size_t size)
 {
 	snd_pcm_shm_t *shm = pcm->private;
@@ -483,7 +443,7 @@ static int snd_pcm_shm_close(snd_pcm_t *pcm)
 static void snd_pcm_shm_dump(snd_pcm_t *pcm, FILE *fp)
 {
 	fprintf(fp, "Shm PCM\n");
-	if (pcm->valid_setup) {
+	if (pcm->setup) {
 		fprintf(fp, "\nIts setup is:\n");
 		snd_pcm_dump_setup(pcm, fp);
 	}
@@ -492,12 +452,12 @@ static void snd_pcm_shm_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_shm_ops = {
 	close: snd_pcm_shm_close,
 	info: snd_pcm_shm_info,
-	params_info: snd_pcm_shm_params_info,
-	params: snd_pcm_shm_params,
-	setup: snd_pcm_shm_setup,
+	hw_info: snd_pcm_shm_hw_info,
+	hw_params: snd_pcm_shm_hw_params,
+	sw_params: snd_pcm_shm_sw_params,
+	dig_info: snd_pcm_shm_dig_info,
+	dig_params: snd_pcm_shm_dig_params,
 	channel_info: snd_pcm_shm_channel_info,
-	channel_params: snd_pcm_shm_channel_params,
-	channel_setup: snd_pcm_shm_channel_setup,
 	dump: snd_pcm_shm_dump,
 	nonblock: snd_pcm_shm_nonblock,
 	async: snd_pcm_shm_async,
@@ -656,7 +616,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, in
 	pcm->type = SND_PCM_TYPE_SHM;
 	pcm->stream = stream;
 	pcm->mode = mode;
-	pcm->mmap_auto = 1;
+	pcm->mmap_rw = 1;
 	pcm->ops = &snd_pcm_shm_ops;
 	pcm->op_arg = pcm;
 	pcm->fast_ops = &snd_pcm_shm_fast_ops;

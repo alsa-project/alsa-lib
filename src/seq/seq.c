@@ -1,6 +1,7 @@
 /*
  *  Sequencer Interface - main file
- *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *                        Abramo Bagnara <abramo@alsa-project.org>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -19,81 +20,114 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
+#include <sys/poll.h>
+#include <dlfcn.h>
+#include "seq_local.h"
 #include "asoundlib.h"
-#include "seq_priv.h"
 
-#define SND_FILE_SEQ		"/dev/snd/seq"
-#define SND_FILE_ALOADSEQ	"/dev/aloadSEQ"
-#define SND_SEQ_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
-#define SND_SEQ_OBUF_SIZE	(16*1024)	/* default size */
-#define SND_SEQ_IBUF_SIZE	500		/* in event_size aligned */
-#define DEFAULT_TMPBUF_SIZE	20
-
-/*
- * open a sequencer device so that it creates a user-client.
- */
-int snd_seq_open(snd_seq_t **handle, int mode)
+int snd_seq_open(snd_seq_t **seqp, char *name, 
+		 int streams, int mode)
 {
-	int fd, ver, client, flg;
-	char filename[32];
-	snd_seq_t *seq;
-
-	*handle = NULL;
-
-	sprintf(filename, SND_FILE_SEQ);
-	if ((fd = open(filename, mode)) < 0) {
-		close(open(SND_FILE_ALOADSEQ, O_RDWR));
-		if ((fd = open(filename, mode)) < 0)
-			return -errno;
+	char *str;
+	int err;
+	snd_config_t *seq_conf, *conf, *type_conf;
+	snd_config_iterator_t i;
+	char *lib = NULL, *open = NULL;
+	int (*open_func)(snd_seq_t **seqp, char *name, snd_config_t *conf, 
+			 int streams, int mode);
+	void *h;
+	assert(seqp && name);
+	err = snd_config_update();
+	if (err < 0)
+		return err;
+	err = snd_config_searchv(snd_config, &seq_conf, "seq", name, 0);
+	if (err < 0) {
+		if (strcmp(name, "hw") == 0)
+			return snd_seq_hw_open(seqp, name, streams, mode);
+		ERR("Unknown SEQ %s", name);
+		return -ENOENT;
 	}
-	if (ioctl(fd, SND_SEQ_IOCTL_PVERSION, &ver) < 0) {
-		close(fd);
-		return -errno;
+	if (snd_config_type(seq_conf) != SND_CONFIG_TYPE_COMPOUND) {
+		ERR("Invalid type for SEQ definition");
+		return -EINVAL;
 	}
-	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_SEQ_VERSION_MAX)) {
-		close(fd);
-		return -SND_ERROR_INCOMPATIBLE_VERSION;
+	err = snd_config_search(seq_conf, "streams", &conf);
+	if (err >= 0) {
+		err = snd_config_string_get(conf, &str);
+		if (err < 0) {
+			ERR("Invalid type for streams");
+			return err;
+		}
+		if (strcmp(str, "output") == 0) {
+			if (streams == SND_SEQ_OPEN_INPUT)
+				return -EINVAL;
+		} else if (strcmp(str, "input") == 0) {
+			if (streams == SND_SEQ_OPEN_OUTPUT)
+				return -EINVAL;
+		} else if (strcmp(str, "duplex") == 0) {
+			if (streams != SND_SEQ_OPEN_DUPLEX)
+				return -EINVAL;
+		} else {
+			ERR("Invalid value for streams");
+			return -EINVAL;
+		}
 	}
-	if (ioctl(fd, SND_SEQ_IOCTL_CLIENT_ID, &client) < 0) {
-		close(fd);
-		return -errno;
+	err = snd_config_search(seq_conf, "type", &conf);
+	if (err < 0) {
+		ERR("type is not defined");
+		return err;
 	}
-	seq = (snd_seq_t *) calloc(1, sizeof(snd_seq_t));
-	if (seq == NULL) {
-		close(fd);
-		return -ENOMEM;
+	err = snd_config_string_get(conf, &str);
+	if (err < 0) {
+		ERR("Invalid type for type");
+		return err;
 	}
-	seq->client = client;
-	seq->fd = fd;
-	flg = 3;
-	if (mode == SND_SEQ_OPEN_OUT || mode == SND_SEQ_OPEN)
-		seq->obuf = (char *) malloc(seq->obufsize = SND_SEQ_OBUF_SIZE);
-	else
-		flg &= ~1;
-	if (mode == SND_SEQ_OPEN_IN || mode == SND_SEQ_OPEN)
-		seq->ibuf = (snd_seq_event_t *) calloc(sizeof(snd_seq_event_t), seq->ibufsize = SND_SEQ_IBUF_SIZE);
-	else
-		flg &= ~2;
-	if ((!seq->obuf && (flg & 1)) || (!seq->ibuf && (flg & 2))) {
-		if (seq->obuf)
-			free(seq->obuf);
-		if (seq->ibuf)
-			free(seq->ibuf);
-		free(seq);
-		return -ENOMEM;
+	err = snd_config_searchv(snd_config, &type_conf, "seqtype", str, 0);
+	if (err < 0) {
+		ERR("Unknown SEQ type %s", str);
+		return err;
 	}
-	seq->tmpbuf = NULL;
-	seq->tmpbufsize = 0;
-	*handle = seq;
-	return 0;
+	snd_config_foreach(i, type_conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "lib") == 0) {
+			err = snd_config_string_get(n, &lib);
+			if (err < 0) {
+				ERR("Invalid type for lib");
+				return -EINVAL;
+			}
+			continue;
+		}
+		if (strcmp(n->id, "open") == 0) {
+			err = snd_config_string_get(n, &open);
+			if (err < 0) {
+				ERR("Invalid type for open");
+				return -EINVAL;
+			}
+			continue;
+			ERR("Unknown field: %s", n->id);
+			return -EINVAL;
+		}
+	}
+	if (!open) {
+		ERR("open is not defined");
+		return -EINVAL;
+	}
+	if (!lib)
+		lib = "libasound.so";
+	h = dlopen(lib, RTLD_NOW);
+	if (!h) {
+		ERR("Cannot open shared library %s", lib);
+		return -ENOENT;
+	}
+	open_func = dlsym(h, open);
+	dlclose(h);
+	if (!open_func) {
+		ERR("symbol %s is not defined inside %s", open, lib);
+		return -ENXIO;
+	}
+	return open_func(seqp, name, seq_conf, streams, mode);
 }
 
 /*
@@ -101,19 +135,21 @@ int snd_seq_open(snd_seq_t **handle, int mode)
  */
 int snd_seq_close(snd_seq_t *seq)
 {
-	int res;
-
-	if (!seq)
-		return -EINVAL;
-	res = close(seq->fd) < 0 ? -errno : 0;
+	int err;
+	assert(seq);
+	err = seq->ops->close(seq);
+	if (err < 0)
+		return err;
 	if (seq->obuf)
 		free(seq->obuf);
 	if (seq->ibuf)
 		free(seq->ibuf);
 	if (seq->tmpbuf)
 		free(seq->tmpbuf);
+	if (seq->name)
+		free(seq->name);
 	free(seq);
-	return res;
+	return 0;
 }
 
 /*
@@ -121,28 +157,24 @@ int snd_seq_close(snd_seq_t *seq)
  */
 int snd_seq_poll_descriptor(snd_seq_t *seq)
 {
-	if (!seq)
-		return -EINVAL;
-	return seq->fd;
+	assert(seq);
+	return seq->poll_fd;
 }
 
 /*
  * set blocking behavior
  */
-int snd_seq_block_mode(snd_seq_t *seq, int enable)
+int snd_seq_nonblock(snd_seq_t *seq, int nonblock)
 {
-	long flags;
-
-	if (!seq)
-		return -EINVAL;
-	if ((flags = fcntl(seq->fd, F_GETFL)) < 0)
-		return -errno;
-	if (enable)
-		flags &= ~O_NONBLOCK;
+	int err;
+	assert(seq);
+	err = seq->ops->nonblock(seq, nonblock);
+	if (err < 0)
+		return err;
+	if (nonblock)
+		seq->mode |= SND_SEQ_NONBLOCK;
 	else
-		flags |= O_NONBLOCK;
-	if (fcntl(seq->fd, F_SETFL, flags) < 0)
-		return -errno;
+		seq->mode &= ~SND_SEQ_NONBLOCK;
 	return 0;
 }
 
@@ -151,8 +183,7 @@ int snd_seq_block_mode(snd_seq_t *seq, int enable)
  */
 int snd_seq_client_id(snd_seq_t *seq)
 {
-	if (!seq)
-		return -EINVAL;
+	assert(seq);
 	return seq->client;
 }
 
@@ -161,8 +192,7 @@ int snd_seq_client_id(snd_seq_t *seq)
  */
 int snd_seq_output_buffer_size(snd_seq_t *seq)
 {
-	if (!seq)
-		return -EINVAL;
+	assert(seq);
 	if (!seq->obuf)
 		return 0;
 	return seq->obufsize;
@@ -173,8 +203,7 @@ int snd_seq_output_buffer_size(snd_seq_t *seq)
  */
 int snd_seq_input_buffer_size(snd_seq_t *seq)
 {
-	if (!seq)
-		return -EINVAL;
+	assert(seq);
 	if (!seq->ibuf)
 		return 0;
 	return seq->ibufsize * sizeof(snd_seq_event_t);
@@ -185,10 +214,8 @@ int snd_seq_input_buffer_size(snd_seq_t *seq)
  */
 int snd_seq_resize_output_buffer(snd_seq_t *seq, size_t size)
 {
-	if (!seq || !seq->obuf)
-		return -EINVAL;
-	if (size < sizeof(snd_seq_event_t))
-		return -EINVAL;
+	assert(seq && seq->obuf);
+	assert(size >= sizeof(snd_seq_event_t));
 	snd_seq_drop_output(seq);
 	if (size != seq->obufsize) {
 		char *newbuf;
@@ -207,10 +234,8 @@ int snd_seq_resize_output_buffer(snd_seq_t *seq, size_t size)
  */
 int snd_seq_resize_input_buffer(snd_seq_t *seq, size_t size)
 {
-	if (!seq || !seq->ibuf)
-		return -EINVAL;
-	if (size < sizeof(snd_seq_event_t))
-		return -EINVAL;
+	assert(seq && seq->ibuf);
+	assert(size >= sizeof(snd_seq_event_t));
 	snd_seq_drop_input(seq);
 	size = (size + sizeof(snd_seq_event_t) - 1) / sizeof(snd_seq_event_t);
 	if (size != seq->ibufsize) {
@@ -230,21 +255,8 @@ int snd_seq_resize_input_buffer(snd_seq_t *seq, size_t size)
  */
 int snd_seq_system_info(snd_seq_t *seq, snd_seq_system_info_t * info)
 {
-	if (!seq || !info)
-		return -EINVAL;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SYSTEM_INFO, info) < 0)
-		return -errno;
-	return 0;
-}
-
-/*
- * obtain the current client information
- */
-int snd_seq_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
-{
-	if (!seq || !info)
-		return -EINVAL;
-	return snd_seq_get_any_client_info(seq, seq->client, info);
+	assert(seq && info);
+	return seq->ops->system_info(seq, info);
 }
 
 /*
@@ -252,13 +264,18 @@ int snd_seq_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
  */
 int snd_seq_get_any_client_info(snd_seq_t *seq, int client, snd_seq_client_info_t * info)
 {
-	if (!seq || !info || client < 0)
-		return -EINVAL;
-	bzero(info, sizeof(snd_seq_client_info_t));
+	assert(seq && info && client >= 0);
+	memset(info, 0, sizeof(snd_seq_client_info_t));
 	info->client = client;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_CLIENT_INFO, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->get_client_info(seq, info);
+}
+
+/*
+ * obtain the current client information
+ */
+int snd_seq_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
+{
+	return snd_seq_get_any_client_info(seq, seq->client, info);
 }
 
 /*
@@ -266,13 +283,10 @@ int snd_seq_get_any_client_info(snd_seq_t *seq, int client, snd_seq_client_info_
  */
 int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
 {
-	if (!seq || !info)
-		return -EINVAL;
+	assert(seq && info);
 	info->client = seq->client;
 	info->type = USER_CLIENT;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_CLIENT_INFO, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->set_client_info(seq, info);
 }
 
 /*----------------------------------------------------------------*/
@@ -283,51 +297,37 @@ int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
 
 int snd_seq_create_port(snd_seq_t *seq, snd_seq_port_info_t * port)
 {
-	if (!seq || !port)
-		return -EINVAL;
+	assert(seq && port);
 	port->client = seq->client;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_CREATE_PORT, port) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->create_port(seq, port);
 }
 
 int snd_seq_delete_port(snd_seq_t *seq, snd_seq_port_info_t * port)
 {
-	if (!seq || !port)
-		return -EINVAL;
+	assert(seq && port);
 	port->client = seq->client;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_DELETE_PORT, port) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_seq_get_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
-{
-	if (!seq || !info || port < 0)
-		return -EINVAL;
-	return snd_seq_get_any_port_info(seq, seq->client, port, info);
+	return seq->ops->delete_port(seq, port);
 }
 
 int snd_seq_get_any_port_info(snd_seq_t *seq, int client, int port, snd_seq_port_info_t * info)
 {
-	if (!seq || !info || client < 0 || port < 0)
-		return -EINVAL;
-	bzero(info, sizeof(snd_seq_port_info_t));
+	assert(seq && info && client >= 0 && port >= 0);
+	memset(info, 0, sizeof(snd_seq_port_info_t));
 	info->client = client;
 	info->port = port;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_PORT_INFO, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->get_port_info(seq, info);
+}
+
+int snd_seq_get_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
+{
+	return snd_seq_get_any_port_info(seq, seq->client, port, info);
 }
 
 int snd_seq_set_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
 {
-	if (!seq || !info || port < 0)
-		return -EINVAL;
+	assert(seq && info && port >= 0);
 	info->port = port;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_PORT_INFO, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->set_port_info(seq, info);
 }
 
 /*----------------------------------------------------------------*/
@@ -338,38 +338,26 @@ int snd_seq_set_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
 
 int snd_seq_get_port_subscription(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
 {
-	if (!seq || !sub)
-		return -EINVAL;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_SUBSCRIPTION, sub) < 0)
-		return -errno;
-	return 0;
+	assert(seq && sub);
+	return seq->ops->get_port_subscription(seq, sub);
 }
 
 int snd_seq_subscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
 {
-	if (!seq || !sub)
-		return -EINVAL;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SUBSCRIBE_PORT, sub) < 0)
-		return -errno;
-	return 0;
+	assert(seq && sub);
+	return seq->ops->subscribe_port(seq, sub);
 }
 
 int snd_seq_unsubscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
 {
-	if (!seq || !sub)
-		return -EINVAL;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_UNSUBSCRIBE_PORT, sub) < 0)
-		return -errno;
-	return 0;
+	assert(seq && sub);
+	return seq->ops->unsubscribe_port(seq, sub);
 }
 
 int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subs_t * subs)
 {
-	if (!seq || !subs)
-		return -EINVAL;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_QUERY_SUBS, subs) < 0)
-		return -errno;
-	return 0;
+	assert(seq && subs);
+	return seq->ops->query_port_subscribers(seq, subs);
 }
 
 /*----------------------------------------------------------------*/
@@ -380,118 +368,88 @@ int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subs_t * subs)
 
 int snd_seq_get_queue_status(snd_seq_t *seq, int q, snd_seq_queue_status_t * status)
 {
-	if (!seq || !status)
-		return -EINVAL;
-	bzero(status, sizeof(snd_seq_queue_status_t));
+	assert(seq && status);
+	memset(status, 0, sizeof(snd_seq_queue_status_t));
 	status->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_STATUS, status) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->get_queue_status(seq, status);
 }
 
 int snd_seq_get_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo)
 {
-	if (!seq || !tempo)
-		return -EINVAL;
-	bzero(tempo, sizeof(snd_seq_queue_tempo_t));
+	assert(seq && tempo);
+	memset(tempo, 0, sizeof(snd_seq_queue_tempo_t));
 	tempo->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_TEMPO, tempo) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->get_queue_tempo(seq, tempo);
 }
 
 int snd_seq_set_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo)
 {
-	if (!seq || !tempo)
-		return -EINVAL;
+	assert(seq && tempo);
 	tempo->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_TEMPO, tempo) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->set_queue_tempo(seq, tempo);
 }
 
 int snd_seq_get_queue_owner(snd_seq_t *seq, int q, snd_seq_queue_owner_t * owner)
 {
-	if (!seq || !owner)
-		return -EINVAL;
-	bzero(owner, sizeof(snd_seq_queue_owner_t));
+	assert(seq && owner);
+	memset(owner, 0, sizeof(snd_seq_queue_owner_t));
 	owner->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_OWNER, owner) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->get_queue_owner(seq, owner);
 }
 
 int snd_seq_set_queue_owner(snd_seq_t *seq, int q, snd_seq_queue_owner_t * owner)
 {
-	if (!seq || !owner)
-		return -EINVAL;
+	assert(seq && owner);
 	owner->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_OWNER, owner) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->set_queue_owner(seq, owner);
 }
 
 int snd_seq_get_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer)
 {
-	if (!seq || !timer)
-		return -EINVAL;
-	bzero(timer, sizeof(snd_seq_queue_timer_t));
+	assert(seq && timer);
+	memset(timer, 0, sizeof(snd_seq_queue_timer_t));
 	timer->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_TIMER, timer) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->get_queue_timer(seq, timer);
 }
 
 int snd_seq_set_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer)
 {
-	if (!seq || !timer)
-		return -EINVAL;
+	assert(seq && timer);
 	timer->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_TIMER, timer) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->set_queue_timer(seq, timer);
 }
 
 int snd_seq_get_queue_client(snd_seq_t *seq, int q, snd_seq_queue_client_t * info)
 {
-	if (!seq || !info)
-		return -EINVAL;
-	bzero(info, sizeof(snd_seq_queue_client_t));
+	assert(seq && info);
+	memset(info, 0, sizeof(snd_seq_queue_client_t));
 	info->queue = q;
 	info->client = seq->client;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_CLIENT, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->get_queue_client(seq, info);
 }
 
 int snd_seq_set_queue_client(snd_seq_t *seq, int q, snd_seq_queue_client_t * info)
 {
-	if (!seq || !info)
-		return -EINVAL;
+	assert(seq && info);
 	info->queue = q;
 	info->client = seq->client;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_CLIENT, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->set_queue_client(seq, info);
 }
 
 int snd_seq_create_queue(snd_seq_t *seq, snd_seq_queue_info_t *info)
 {
-	if (!seq)
-		return -EINVAL;	
+	int err;
+	assert(seq && info);
 	info->owner = seq->client;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_CREATE_QUEUE, info) < 0)
-		return -errno;
+	err = seq->ops->create_queue(seq, info);
+	if (err < 0)
+		return err;
 	return info->queue;
 }
 
 int snd_seq_alloc_named_queue(snd_seq_t *seq, char *name)
 {
 	snd_seq_queue_info_t info;
-
-	if (!seq)
-		return -EINVAL;	
-
 	memset(&info, 0, sizeof(info));
 	info.locked = 1;
 	if (name)
@@ -508,10 +466,6 @@ int snd_seq_alloc_queue(snd_seq_t *seq)
 int snd_seq_alloc_sync_queue(snd_seq_t *seq, char *name)
 {
 	snd_seq_queue_info_t info;
-
-	if (!seq)
-		return -EINVAL;	
-
 	memset(&info, 0, sizeof(info));
 	info.locked = 1;
 	if (name)
@@ -524,47 +478,35 @@ int snd_seq_alloc_sync_queue(snd_seq_t *seq, char *name)
 int snd_seq_free_queue(snd_seq_t *seq, int q)
 {
 	snd_seq_queue_info_t info;
-
-	if (!seq)
-		return -EINVAL;	
-
+	assert(seq);
 	memset(&info, 0, sizeof(info));
 	info.queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_DELETE_QUEUE, &info) < 0)
-		return -errno;
-
-	return 0;
+	return seq->ops->delete_queue(seq, &info);
 }
 
 int snd_seq_get_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info)
 {
-	if (!seq || !info)
-		return -EINVAL;
+	assert(seq && info);
 	info->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_INFO, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->get_queue_info(seq, info);
 }
 
 int snd_seq_set_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info)
 {
-	if (!seq || !info)
-		return -EINVAL;
+	assert(seq && info);
 	info->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_INFO, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->set_queue_info(seq, info);
 }
 
 int snd_seq_get_named_queue(snd_seq_t *seq, char *name)
 {
+	int err;
 	snd_seq_queue_info_t info;
-
-	if (!seq)
-		return -EINVAL;
+	assert(seq && name);
 	strncpy(info.name, name, sizeof(info.name));
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_NAMED_QUEUE, &info) < 0)
-		return -errno;
+	err = seq->ops->get_named_queue(seq, &info);
+	if (err < 0)
+		return err;
 	return info.queue;
 }
 
@@ -687,9 +629,7 @@ int snd_seq_free_event(snd_seq_event_t *ev ATTRIBUTE_UNUSED)
 ssize_t snd_seq_event_length(snd_seq_event_t *ev)
 {
 	ssize_t len = sizeof(snd_seq_event_t);
-
-	if (!ev)
-		return -EINVAL;
+	assert(ev);
 	if (snd_seq_ev_is_variable(ev))
 		len += ev->data.ext.len;
 	return len;
@@ -726,9 +666,7 @@ int snd_seq_event_output(snd_seq_t *seq, snd_seq_event_t *ev)
 int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
 {
 	int len;
-
-	if (!seq || !ev)
-		return -EINVAL;
+	assert(seq && ev);
 	len = snd_seq_event_length(ev);
 	if (len < 0)
 		return -EINVAL;
@@ -773,7 +711,7 @@ static int alloc_tmpbuf(snd_seq_t *seq, size_t len)
  */
 int snd_seq_event_output_direct(snd_seq_t *seq, snd_seq_event_t *ev)
 {
-	ssize_t len, result;
+	ssize_t len;
 	void *buf;
 
 	len = snd_seq_event_length(ev);
@@ -789,9 +727,7 @@ int snd_seq_event_output_direct(snd_seq_t *seq, snd_seq_event_t *ev)
 		buf = seq->tmpbuf;
 	}
 
-	result = write(seq->fd, buf, len);
-
-	return (result < 0) ? -errno : (int)result;
+	return seq->ops->write(seq, buf, len);
 }
 
 /*
@@ -799,8 +735,7 @@ int snd_seq_event_output_direct(snd_seq_t *seq, snd_seq_event_t *ev)
  */
 int snd_seq_event_output_pending(snd_seq_t *seq)
 {
-	if (!seq)
-		return -EINVAL;
+	assert(seq);
 	return seq->obufused;
 }
 
@@ -809,14 +744,12 @@ int snd_seq_event_output_pending(snd_seq_t *seq)
  */
 int snd_seq_drain_output(snd_seq_t *seq)
 {
-	int result;
-
-	if (!seq)
-		return -EINVAL;
+	ssize_t result;
+	assert(seq);
 	while (seq->obufused > 0) {
-		result = write(seq->fd, seq->obuf, seq->obufused);
+		result = seq->ops->write(seq, seq->obuf, seq->obufused);
 		if (result < 0)
-			return -errno;
+			return -result;
 		if ((size_t)result < seq->obufused)
 			memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
 		seq->obufused -= result;
@@ -832,9 +765,7 @@ int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 {
 	size_t len, olen;
 	snd_seq_event_t ev;
-
-	if (!seq)
-		return -EINVAL;
+	assert(seq);
 	if (ev_res)
 		*ev_res = NULL;
 	if ((olen = seq->obufused) < sizeof(snd_seq_event_t))
@@ -865,9 +796,9 @@ int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 static ssize_t snd_seq_event_read_buffer(snd_seq_t *seq)
 {
 	ssize_t len;
-	len = read(seq->fd, seq->ibuf, seq->ibufsize * sizeof(snd_seq_event_t));
+	len = seq->ops->read(seq, seq->ibuf, seq->ibufsize * sizeof(snd_seq_event_t));
 	if (len < 0)
-		return -errno;
+		return len;
 	seq->ibuflen = len / sizeof(snd_seq_event_t);
 	seq->ibufptr = 0;
 	return seq->ibuflen;
@@ -901,11 +832,8 @@ static int snd_seq_event_retrieve_buffer(snd_seq_t *seq, snd_seq_event_t **retp)
 int snd_seq_event_input(snd_seq_t *seq, snd_seq_event_t **ev)
 {
 	int err;
-
+	assert(seq);
 	*ev = NULL;
-	if (!seq)
-		return -EINVAL;
-
 	if (seq->ibuflen <= 0) {
 		if ((err = snd_seq_event_read_buffer(seq)) < 0)
 			return err;
@@ -917,15 +845,18 @@ int snd_seq_event_input(snd_seq_t *seq, snd_seq_event_t **ev)
 /*
  * read input data from sequencer if available
  */
-static int snd_seq_event_input_feed(snd_seq_t *seq, struct timeval *timeout)
+static int snd_seq_event_input_feed(snd_seq_t *seq, int timeout)
 {
-	fd_set rfds;
-
-	FD_ZERO(&rfds);
-	FD_SET(seq->fd, &rfds);
-	if (select(seq->fd + 1, &rfds, NULL, NULL, timeout) < 0)
+	struct pollfd pfd;
+	int err;
+	pfd.fd = seq->poll_fd;
+	pfd.events = POLLIN;
+	err = poll(&pfd, 1, timeout);
+	if (err < 0) {
+		SYSERR("poll");
 		return -errno;
-	if (FD_ISSET(seq->fd, &rfds))
+	}
+	if (pfd.revents & POLLIN) 
 		return snd_seq_event_read_buffer(seq);
 	return seq->ibuflen;
 }
@@ -936,10 +867,7 @@ static int snd_seq_event_input_feed(snd_seq_t *seq, struct timeval *timeout)
 int snd_seq_event_input_pending(snd_seq_t *seq, int fetch_sequencer)
 {
 	if (seq->ibuflen == 0 && fetch_sequencer) {
-		struct timeval tv;
-		tv.tv_sec = 0;
-		tv.tv_usec = 0;
-		return snd_seq_event_input_feed(seq, &tv);
+		return snd_seq_event_input_feed(seq, 0);
 	}
 	return seq->ibuflen;
 }
@@ -955,8 +883,7 @@ int snd_seq_event_input_pending(snd_seq_t *seq, int fetch_sequencer)
  */
 int snd_seq_drop_output_buffer(snd_seq_t *seq)
 {
-	if (!seq)
-		return -EINVAL;
+	assert(seq);
 	seq->obufused = 0;
 	return 0;
 }
@@ -966,8 +893,7 @@ int snd_seq_drop_output_buffer(snd_seq_t *seq)
  */
 int snd_seq_drop_input_buffer(snd_seq_t *seq)
 {
-	if (!seq)
-		return -EINVAL;
+	assert(seq);
 	seq->ibufptr = 0;
 	seq->ibuflen = 0;
 	return 0;
@@ -979,10 +905,7 @@ int snd_seq_drop_input_buffer(snd_seq_t *seq)
 int snd_seq_drop_output(snd_seq_t *seq)
 {
 	snd_seq_remove_events_t rminfo;
-
-	if (!seq)
-		return -EINVAL;
-
+	assert(seq);
 	seq->obufused = 0; /* drain output buffer */
 
 	memset(&rminfo, 0, sizeof(rminfo));
@@ -997,9 +920,7 @@ int snd_seq_drop_output(snd_seq_t *seq)
 int snd_seq_drop_input(snd_seq_t *seq)
 {
 	snd_seq_remove_events_t rminfo;
-
-	if (!seq)
-		return -EINVAL;
+	assert(seq);
 
 	seq->ibufptr = 0;	/* drain input buffer */
 	seq->ibuflen = 0;
@@ -1131,10 +1052,7 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 		}
 	}
 
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_REMOVE_EVENTS, rmp) < 0)
-		return -errno;
-
-	return 0;
+	return seq->ops->remove_events(seq, rmp);
 }
 
 /*----------------------------------------------------------------*/
@@ -1145,22 +1063,16 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 
 int snd_seq_get_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
 {
-	if (!seq || !info)
-		return -EINVAL;
+	assert(seq && info);
 	info->client = seq->client;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_CLIENT_POOL, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->get_client_pool(seq, info);
 }
 
 int snd_seq_set_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
 {
-	if (!seq || !info)
-		return -EINVAL;
+	assert(seq && info);
 	info->client = seq->client;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_CLIENT_POOL, info) < 0)
-		return -errno;
-	return 0;
+	return seq->ops->set_client_pool(seq, info);
 }
 
 /*----------------------------------------------------------------*/
@@ -1171,20 +1083,14 @@ int snd_seq_set_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
 
 int snd_seq_query_next_client(snd_seq_t *seq, snd_seq_client_info_t *info)
 {
-	if (!seq || !info)
-		return -EINVAL;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_QUERY_NEXT_CLIENT, info) < 0)
-		return -errno;
-	return 0;
+	assert(seq && info);
+	return seq->ops->query_next_client(seq, info);
 }
 
 int snd_seq_query_next_port(snd_seq_t *seq, snd_seq_port_info_t *info)
 {
-	if (!seq || !info)
-		return -EINVAL;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_QUERY_NEXT_PORT, info) < 0)
-		return -errno;
-	return 0;
+	assert(seq && info);
+	return seq->ops->query_next_port(seq, info);
 }
 
 /*----------------------------------------------------------------*/

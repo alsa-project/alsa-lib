@@ -81,12 +81,8 @@ typedef union {
 typedef struct {
 	/* This field need to be the first */
 	snd_pcm_plugin_t plug;
-	int req_sformat, req_schannels;
 	int sformat;
-	int cformat;
 	int schannels;
-	int cchannels;
-	int cxfer_mode, cmmap_shape;
 	route_params_t params;
 } snd_pcm_route_t;
 
@@ -429,110 +425,91 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_route_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
+static int snd_pcm_route_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 {
 	snd_pcm_route_t *route = pcm->private;
-	unsigned int req_mask = info->req_mask;
-	unsigned int sfmt = info->req.format.sfmt;
-	unsigned int channels = info->req.format.channels;
+	unsigned int format_mask, access_mask, channels_min, channels_max;
 	int err;
-	if (req_mask & SND_PCM_PARAMS_SFMT &&
-	    !snd_pcm_format_linear(sfmt)) {
-		info->req.fail_mask = SND_PCM_PARAMS_SFMT;
-		info->req.fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
+	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
+			      SND_PCM_ACCBIT_RW_INTERLEAVED |
+			      SND_PCM_ACCBIT_MMAP_NONINTERLEAVED | 
+			      SND_PCM_ACCBIT_RW_NONINTERLEAVED);
+	access_mask = info->access_mask;
+	if (access_mask == 0)
 		return -EINVAL;
+	info->format_mask &= SND_PCM_FMTBIT_LINEAR;
+	format_mask = info->format_mask;
+	if (format_mask == 0)
+		return -EINVAL;
+	if (info->channels_min < 1)
+		info->channels_min = 1;
+	if (info->channels_max > 1024)
+		info->channels_max = 1024;
+	if (info->channels_max < info->channels_min)
+		return -EINVAL;
+	channels_min = info->channels_min;
+	channels_max = info->channels_max;
+	if (route->sformat >= 0)
+		info->format_mask = 1U << route->sformat;
+	if (route->schannels >= 0)
+		info->channels_min = info->channels_max = route->schannels;
+		
+	info->access_mask = SND_PCM_ACCBIT_MMAP;
+	err = snd_pcm_hw_info(route->plug.slave, info);
+	if (info->format_mask) 
+		info->format_mask = format_mask;
+	if (info->channels_min <= info->channels_max) {
+		info->channels_min = channels_min;
+		info->channels_max = channels_max;
 	}
-	if (route->req_sformat >= 0) {
-		info->req_mask |= SND_PCM_PARAMS_SFMT;
-		info->req.format.sfmt = route->req_sformat;
+	if (info->access_mask) {
+		route->plug.saccess_mask = info->access_mask;
+		info->access_mask = access_mask;
 	}
-	if (route->req_schannels >= 0) {
-		info->req_mask |= SND_PCM_PARAMS_CHANNELS;
-		info->req.format.channels = route->req_schannels;
-	}
-	info->req_mask &= ~(SND_PCM_PARAMS_MMAP_SHAPE | 
-			    SND_PCM_PARAMS_XFER_MODE);
-	err = snd_pcm_params_info(route->plug.slave, info);
-	info->req_mask = req_mask;
-	info->req.format.sfmt = sfmt;
-	info->req.format.channels = channels;
+	if (info->format_mask)
+		info->format_mask = format_mask;
 	if (err < 0)
 		return err;
-	if (req_mask & SND_PCM_PARAMS_SFMT)
-		info->formats = 1 << sfmt;
-	else
-		info->formats = SND_PCM_LINEAR_FORMATS;
-	if (req_mask & SND_PCM_PARAMS_CHANNELS) {
-		info->min_channels = channels;
-		info->max_channels = channels;
-	} else {
-		info->min_channels = 1;
-		info->max_channels = 1024;
-	}
-	info->flags &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
-	info->flags |= SND_PCM_INFO_INTERLEAVED | SND_PCM_INFO_NONINTERLEAVED;
-	return err;
+	info->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
+	snd_pcm_hw_info_complete(info);
+	return 0;
 }
 
-static int snd_pcm_route_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
+static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_route_t *route = pcm->private;
 	snd_pcm_t *slave = route->plug.slave;
+	unsigned int format, access, channels;
+	unsigned int src_format, dst_format;
 	int err;
-	if (!snd_pcm_format_linear(params->format.sfmt)) {
-		params->fail_mask = SND_PCM_PARAMS_SFMT;
-		params->fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
-		return -EINVAL;
-	}
-	route->cformat = params->format.sfmt;
-	route->cchannels = params->format.channels;
-	route->cxfer_mode = params->xfer_mode;
-	route->cmmap_shape = params->mmap_shape;
-	if (route->req_sformat >= 0)
-		params->format.sfmt = route->req_sformat;
-	if (route->req_schannels >= 0)
-		params->format.channels = route->req_schannels;
-	params->xfer_mode = SND_PCM_XFER_UNSPECIFIED;
-	params->mmap_shape = SND_PCM_MMAP_UNSPECIFIED;
-	err = snd_pcm_params_mmap(slave, params);
-	params->format.sfmt = route->cformat;
-	params->format.channels = route->cchannels;
-	params->xfer_mode = route->cxfer_mode;
-	params->mmap_shape = route->cmmap_shape;
-	return err;
-}
-
-static int snd_pcm_route_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
-{
-	snd_pcm_route_t *route = pcm->private;
-	int src_format, dst_format;
-	int err = snd_pcm_setup(route->plug.slave, setup);
+	format = params->format;
+	channels = params->channels;
+	access = params->access;
+	if (route->sformat >= 0)
+		params->format = route->sformat;
+	if (route->schannels >= 0)
+		params->channels = route->schannels;
+	if (route->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_INTERLEAVED)
+		params->access = SND_PCM_ACCESS_MMAP_INTERLEAVED;
+	else if (route->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_NONINTERLEAVED)
+		params->access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;
+	else
+		assert(0);
+	err = snd_pcm_hw_params(slave, params);
+	params->format = format;
+	params->channels = channels;
+	params->access = access;
 	if (err < 0)
 		return err;
-	if (route->req_sformat >= 0)
-		assert(route->req_sformat == setup->format.sfmt);
-	route->sformat = setup->format.sfmt;
-	route->schannels = setup->format.channels;
-	if (route->cxfer_mode == SND_PCM_XFER_UNSPECIFIED)
-		setup->xfer_mode = SND_PCM_XFER_NONINTERLEAVED;
-	else
-		setup->xfer_mode = route->cxfer_mode;
-	if (route->cmmap_shape == SND_PCM_MMAP_UNSPECIFIED)
-		setup->mmap_shape = SND_PCM_MMAP_NONINTERLEAVED;
-	else
-		setup->mmap_shape = route->cmmap_shape;
-	setup->format.sfmt = route->cformat;
-	setup->format.channels = route->cchannels;
-	setup->mmap_bytes = 0;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		src_format = route->cformat;
-		dst_format = route->sformat;
+		src_format = format;
+		dst_format = slave->format;
 	} else {
-		src_format = route->sformat;
-		dst_format = route->cformat;
+		src_format = slave->format;
+		dst_format = format;
 	}
-	route->params.get_idx = get_index(src_format, SND_PCM_SFMT_U16);
-	route->params.put_idx = put_index(SND_PCM_SFMT_U32, dst_format);
+	route->params.get_idx = get_index(src_format, SND_PCM_FORMAT_U16);
+	route->params.put_idx = put_index(SND_PCM_FORMAT_U32, dst_format);
 	route->params.conv_idx = conv_index(src_format, dst_format);
 	route->params.src_size = snd_pcm_format_width(src_format) / 8;
 	route->params.dst_sfmt = dst_format;
@@ -544,30 +521,6 @@ static int snd_pcm_route_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 	else
 		route->params.sum_idx = UINT32;
 #endif
-	return 0;
-}
-
-static int snd_pcm_route_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
-{
-#if 0
-	snd_pcm_plugin_t *plugin = pcm->private;
-	int err;
-	err = snd_pcm_channel_setup(plugin->slave, setup);
-	if (err < 0)
-		return err;
-#endif
-	if (!pcm->mmap_info)
-		return 0;
-	if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
-		setup->running_area.addr = pcm->mmap_info->addr;
-		setup->running_area.first = setup->channel * pcm->bits_per_sample;
-		setup->running_area.step = pcm->bits_per_frame;
-	} else {
-		setup->running_area.addr = pcm->mmap_info->addr + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
-		setup->running_area.first = 0;
-		setup->running_area.step = pcm->bits_per_sample;
-	}
-	setup->stopped_area = setup->running_area;
 	return 0;
 }
 
@@ -588,7 +541,7 @@ static ssize_t snd_pcm_route_write_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		route_transfer(areas, offset, 
 			       snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			       frames, route->schannels, &route->params);
+			       frames, slave->channels, &route->params);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
@@ -622,7 +575,7 @@ static ssize_t snd_pcm_route_read_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
 		route_transfer(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			       areas, offset, 
-			       frames, route->cchannels, &route->params);
+			       frames, pcm->channels, &route->params);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
@@ -643,11 +596,11 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, FILE *fp)
 {
 	snd_pcm_route_t *route = pcm->private;
 	unsigned int dst;
-	if (route->req_sformat < 0)
+	if (route->sformat < 0)
 		fprintf(fp, "Route conversion PCM\n");
 	else
 		fprintf(fp, "Route conversion PCM (sformat=%s)\n", 
-			snd_pcm_format_name(route->req_sformat));
+			snd_pcm_format_name(route->sformat));
 	fputs("Transformation table:\n", fp);
 	for (dst = 0; dst < route->params.ndsts; dst++) {
 		ttable_dst_t *d = &route->params.dsts[dst];
@@ -669,7 +622,7 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, FILE *fp)
 		}
 		putc('\n', fp);
 	}
-	if (pcm->valid_setup) {
+	if (pcm->setup) {
 		fprintf(fp, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, fp);
 	}
@@ -680,12 +633,12 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_route_ops = {
 	close: snd_pcm_route_close,
 	info: snd_pcm_plugin_info,
-	params_info: snd_pcm_route_params_info,
-	params: snd_pcm_route_params,
-	setup: snd_pcm_route_setup,
+	hw_info: snd_pcm_route_hw_info,
+	hw_params: snd_pcm_route_hw_params,
+	sw_params: snd_pcm_plugin_sw_params,
+	dig_info: snd_pcm_plugin_dig_info,
+	dig_params: snd_pcm_plugin_dig_params,
 	channel_info: snd_pcm_plugin_channel_info,
-	channel_params: snd_pcm_plugin_channel_params,
-	channel_setup: snd_pcm_route_channel_setup,
 	dump: snd_pcm_route_dump,
 	nonblock: snd_pcm_plugin_nonblock,
 	async: snd_pcm_plugin_async,
@@ -782,8 +735,8 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 	if (!route) {
 		return -ENOMEM;
 	}
-	route->req_sformat = sformat;
-	route->req_schannels = schannels;
+	route->sformat = sformat;
+	route->schannels = schannels;
 	route->plug.read = snd_pcm_route_read_areas;
 	route->plug.write = snd_pcm_route_write_areas;
 	route->plug.slave = slave;

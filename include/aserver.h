@@ -28,7 +28,6 @@
 #define SND_PCM_IOCTL_AVAIL_UPDATE	_IO ('A', 0xf8)
 #define SND_PCM_IOCTL_ASYNC		_IO ('A', 0xf9)
 #define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xfa)
-#define SND_PCM_IOCTL_MMAP_INFO		_IO ('A', 0xfb)
 #define SND_PCM_IOCTL_POLL_DESCRIPTOR	_IO ('A', 0xfc)
 #define SND_PCM_IOCTL_SET_AVAIL_MIN	_IO ('A', 0xfd)
 
@@ -42,11 +41,12 @@ typedef struct {
 			int sig;
 			pid_t pid;
 		} async;
-		snd_pcm_mmap_info_t mmap_info;
 		snd_pcm_info_t info;
-		snd_pcm_params_t params;
-		snd_pcm_params_info_t params_info;
-		snd_pcm_setup_t setup;
+		snd_pcm_hw_info_t hw_info;
+		snd_pcm_hw_params_t hw_params;
+		snd_pcm_sw_params_t sw_params;
+		snd_pcm_dig_params_t dig_params;
+		snd_pcm_dig_info_t dig_info;
 		snd_pcm_status_t status;
 		struct {
 			ssize_t frames;
@@ -55,8 +55,6 @@ typedef struct {
 			int enable;
 		} pause;
 		snd_pcm_channel_info_t channel_info;
-		snd_pcm_channel_params_t channel_params;
-		snd_pcm_channel_setup_t channel_setup;
 		struct {
 			ssize_t frames;
 		} rewind;

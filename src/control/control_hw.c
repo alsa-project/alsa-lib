@@ -140,7 +140,7 @@ static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 	return read(hw->fd, event, sizeof(*event));
 }
 
-struct snd_ctl_ops snd_ctl_hw_ops = {
+snd_ctl_ops_t snd_ctl_hw_ops = {
 	close: snd_ctl_hw_close,
 	poll_descriptor: snd_ctl_hw_poll_descriptor,
 	hw_info: snd_ctl_hw_hw_info,

@@ -47,7 +47,7 @@ int setparams(snd_pcm_t *phandle, snd_pcm_t *chandle, int *bufsize)
 	params.mode = SND_PCM_MODE_FRAME;
 #endif
 	params.format.interleave = 1;
-	params.format.sfmt = SND_PCM_SFMT_S16_LE;
+	params.format.sfmt = SND_PCM_FORMAT_S16_LE;
 	params.format.channels = 2;
 	params.format.rate = USED_RATE;
 	params.start_mode = SND_PCM_START_EXPLICIT;
@@ -216,7 +216,7 @@ int main(void)
 		frames_in = frames_out = 0;
 		if (setparams(phandle, chandle, &latency) < 0)
 			break;
-		if (snd_pcm_format_set_silence(SND_PCM_SFMT_S16_LE, buffer, latency*2) < 0) {
+		if (snd_pcm_format_set_silence(SND_PCM_FORMAT_S16_LE, buffer, latency*2) < 0) {
 			fprintf(stderr, "silence error\n");
 			break;
 		}

@@ -28,8 +28,6 @@ typedef struct {
 	snd_pcm_plugin_t plug;
 	int conv_idx;
 	int sformat;
-	int cformat;
-	int cxfer_mode, cmmap_shape;
 } snd_pcm_linear_t;
 
 static void linear_transfer(snd_pcm_channel_area_t *src_areas, size_t src_offset,
@@ -74,83 +72,65 @@ static void linear_transfer(snd_pcm_channel_area_t *src_areas, size_t src_offset
 	}
 }
 
-static int snd_pcm_linear_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
+static int snd_pcm_linear_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
 {
 	snd_pcm_linear_t *linear = pcm->private;
-	unsigned int req_mask = info->req_mask;
-	unsigned int sfmt = info->req.format.sfmt;
+	unsigned int format_mask, access_mask;
 	int err;
-	if (req_mask & SND_PCM_PARAMS_SFMT &&
-	    !snd_pcm_format_linear(sfmt)) {
-		info->req.fail_mask = SND_PCM_PARAMS_SFMT;
-		info->req.fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
+	info->access_mask &= (SND_PCM_ACCBIT_MMAP_INTERLEAVED | 
+			      SND_PCM_ACCBIT_RW_INTERLEAVED |
+			      SND_PCM_ACCBIT_MMAP_NONINTERLEAVED | 
+			      SND_PCM_ACCBIT_RW_NONINTERLEAVED);
+	access_mask = info->access_mask;
+	if (access_mask == 0)
 		return -EINVAL;
+	info->format_mask &= SND_PCM_FMTBIT_LINEAR;
+	format_mask = info->format_mask;
+	if (format_mask == 0)
+		return -EINVAL;
+
+	info->format_mask = 1U << linear->sformat;
+	info->access_mask = SND_PCM_ACCBIT_MMAP;
+	err = snd_pcm_hw_info(linear->plug.slave, info);
+	if (info->format_mask)
+		info->format_mask = format_mask;
+	if (info->access_mask) {
+		linear->plug.saccess_mask = info->access_mask;
+		info->access_mask = access_mask;
 	}
-	info->req_mask |= SND_PCM_PARAMS_SFMT;
-	info->req_mask &= ~(SND_PCM_PARAMS_MMAP_SHAPE | 
-			    SND_PCM_PARAMS_XFER_MODE);
-	info->req.format.sfmt = linear->sformat;
-	err = snd_pcm_params_info(linear->plug.slave, info);
-	info->req_mask = req_mask;
-	info->req.format.sfmt = sfmt;
 	if (err < 0)
 		return err;
-	if (req_mask & SND_PCM_PARAMS_SFMT)
-		info->formats = 1 << sfmt;
-	else
-		info->formats = SND_PCM_LINEAR_FORMATS;
-	info->flags &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
-	info->flags |= SND_PCM_INFO_INTERLEAVED | SND_PCM_INFO_NONINTERLEAVED;
-	return err;
+	info->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
+	snd_pcm_hw_info_complete(info);
+	return 0;
 }
 
-static int snd_pcm_linear_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
+static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_linear_t *linear = pcm->private;
 	snd_pcm_t *slave = linear->plug.slave;
+	unsigned int format, access;
 	int err;
-	if (!snd_pcm_format_linear(params->format.sfmt)) {
-		params->fail_mask = SND_PCM_PARAMS_SFMT;
-		params->fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
-		return -EINVAL;
-	}
-	linear->cformat = params->format.sfmt;
-	linear->cxfer_mode = params->xfer_mode;
-	linear->cmmap_shape = params->mmap_shape;
-	params->format.sfmt = linear->sformat;
-	params->xfer_mode = SND_PCM_XFER_UNSPECIFIED;
-	params->mmap_shape = SND_PCM_MMAP_UNSPECIFIED;
-	err = snd_pcm_params_mmap(slave, params);
-	params->format.sfmt = linear->cformat;
-	params->xfer_mode = linear->cxfer_mode;
-	params->mmap_shape = linear->cmmap_shape;
-	return err;
-}
-
-static int snd_pcm_linear_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
-{
-	snd_pcm_linear_t *linear = pcm->private;
-	int err = snd_pcm_setup(linear->plug.slave, setup);
+	format = params->format;
+	access = params->access;
+	params->format = linear->sformat;
+	if (linear->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_INTERLEAVED)
+		params->access = SND_PCM_ACCESS_MMAP_INTERLEAVED;
+	else if (linear->plug.saccess_mask & SND_PCM_ACCBIT_MMAP_NONINTERLEAVED)
+		params->access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;
+	else
+		assert(0);
+	err = snd_pcm_hw_params(slave, params);
+	params->format = format;
+	params->access = access;
 	if (err < 0)
 		return err;
-	assert(linear->sformat == setup->format.sfmt);
-	
-	if (linear->cxfer_mode == SND_PCM_XFER_UNSPECIFIED)
-		setup->xfer_mode = SND_PCM_XFER_NONINTERLEAVED;
-	else
-		setup->xfer_mode = linear->cxfer_mode;
-	if (linear->cmmap_shape == SND_PCM_MMAP_UNSPECIFIED)
-		setup->mmap_shape = SND_PCM_MMAP_NONINTERLEAVED;
-	else
-		setup->mmap_shape = linear->cmmap_shape;
-	setup->format.sfmt = linear->cformat;
-	setup->mmap_bytes = 0;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		linear->conv_idx = conv_index(linear->cformat,
+		linear->conv_idx = conv_index(format,
 					      linear->sformat);
 	else
 		linear->conv_idx = conv_index(linear->sformat,
-					      linear->cformat);
+					      format);
 	return 0;
 }
 
@@ -171,7 +151,7 @@ static ssize_t snd_pcm_linear_write_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		linear_transfer(areas, offset, 
 				snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-				frames, pcm->setup.format.channels, linear->conv_idx);
+				frames, pcm->channels, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
@@ -205,7 +185,7 @@ static ssize_t snd_pcm_linear_read_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
 		linear_transfer(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 				areas, offset, 
-				frames, pcm->setup.format.channels, linear->conv_idx);
+				frames, pcm->channels, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
@@ -227,7 +207,7 @@ static void snd_pcm_linear_dump(snd_pcm_t *pcm, FILE *fp)
 	snd_pcm_linear_t *linear = pcm->private;
 	fprintf(fp, "Linear conversion PCM (%s)\n", 
 		snd_pcm_format_name(linear->sformat));
-	if (pcm->valid_setup) {
+	if (pcm->setup) {
 		fprintf(fp, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, fp);
 	}
@@ -238,12 +218,12 @@ static void snd_pcm_linear_dump(snd_pcm_t *pcm, FILE *fp)
 snd_pcm_ops_t snd_pcm_linear_ops = {
 	close: snd_pcm_plugin_close,
 	info: snd_pcm_plugin_info,
-	params_info: snd_pcm_linear_params_info,
-	params: snd_pcm_linear_params,
-	setup: snd_pcm_linear_setup,
+	hw_info: snd_pcm_linear_hw_info,
+	hw_params: snd_pcm_linear_hw_params,
+	sw_params: snd_pcm_plugin_sw_params,
+	dig_info: snd_pcm_plugin_dig_info,
+	dig_params: snd_pcm_plugin_dig_params,
 	channel_info: snd_pcm_plugin_channel_info,
-	channel_params: snd_pcm_plugin_channel_params,
-	channel_setup: snd_pcm_plugin_channel_setup,
 	dump: snd_pcm_linear_dump,
 	nonblock: snd_pcm_plugin_nonblock,
 	async: snd_pcm_plugin_async,

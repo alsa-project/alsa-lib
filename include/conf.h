@@ -1,14 +1,14 @@
 
-typedef enum {
+typedef enum _snd_config_type {
         SND_CONFIG_TYPE_INTEGER,
         SND_CONFIG_TYPE_REAL,
         SND_CONFIG_TYPE_STRING,
 	SND_CONFIG_TYPE_COMPOUND,
 } snd_config_type_t;
 
-typedef struct snd_config snd_config_t;
+typedef struct _snd_config snd_config_t;
 
-struct snd_config {
+struct _snd_config {
 	char *id;
 	snd_config_type_t type;
 	union {

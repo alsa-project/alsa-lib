@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include "asoundlib.h"
 
@@ -42,3 +43,16 @@ const char *snd_strerror(int errnum)
 		 return "Unknown error";
 	return snd_error_codes[errnum];
 }
+
+void snd_lib_error(const char *file, int line, const char *function, int err, const char *fmt, ...)
+{
+	va_list arg;
+	va_start(arg, fmt);
+	fprintf(stderr, "ALSA lib %s:%i:(%s) ", file, line, function);
+	vfprintf(stderr, fmt, arg);
+	if (err)
+		fprintf(stderr, ": %s", snd_strerror(err));
+	putc('\n', stderr);
+	va_end(arg);
+}
+

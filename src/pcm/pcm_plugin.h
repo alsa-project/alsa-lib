@@ -24,18 +24,21 @@ typedef struct {
 	int close_slave;
 	snd_pcm_xfer_areas_func_t read;
 	snd_pcm_xfer_areas_func_t write;
-	size_t (*client_frames)(snd_pcm_t *pcm, size_t frames);
+	ssize_t (*client_frames)(snd_pcm_t *pcm, ssize_t frames);
 	int (*init)(snd_pcm_t *pcm);
+	int shmid;
 	size_t appl_ptr, hw_ptr;
+	unsigned int saccess_mask;
 } snd_pcm_plugin_t;	
 
 int snd_pcm_plugin_close(snd_pcm_t *pcm);
 int snd_pcm_plugin_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_plugin_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_info_t * info);
+int snd_pcm_plugin_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
+int snd_pcm_plugin_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t *info);
+int snd_pcm_plugin_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t *params);
 int snd_pcm_plugin_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info);
-int snd_pcm_plugin_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params);
-int snd_pcm_plugin_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup);
 int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status);
 int snd_pcm_plugin_state(snd_pcm_t *pcm);
 int snd_pcm_plugin_delay(snd_pcm_t *pcm, ssize_t *delayp);
@@ -58,22 +61,34 @@ int snd_pcm_plugin_munmap_status(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap_control(snd_pcm_t *pcm);
 int snd_pcm_plugin_munmap(snd_pcm_t *pcm);
 int snd_pcm_plugin_poll_descriptor(snd_pcm_t *pcm);
-int snd_pcm_plugin_channels_mask(snd_pcm_t *pcm, bitset_t *cmask);
 int get_index(int src_format, int dst_format);
 int put_index(int src_format, int dst_format);
 int conv_index(int src_format, int dst_format);
 
-#define SND_PCM_LINEAR_FORMATS (SND_PCM_FMT_S8 | SND_PCM_FMT_U8 | \
-				SND_PCM_FMT_S16_LE | SND_PCM_FMT_S16_BE | \
-				SND_PCM_FMT_U16_LE | SND_PCM_FMT_U16_BE | \
-				SND_PCM_FMT_S24_LE | SND_PCM_FMT_S24_BE | \
-				SND_PCM_FMT_U24_LE | SND_PCM_FMT_U24_BE | \
-				SND_PCM_FMT_S32_LE | SND_PCM_FMT_S32_BE | \
-				SND_PCM_FMT_U32_LE | SND_PCM_FMT_U32_BE)
+#define SND_PCM_FMTBIT_LINEAR (SND_PCM_FMTBIT_S8    |SND_PCM_FMTBIT_U8 | \
+				SND_PCM_FMTBIT_S16_LE|SND_PCM_FMTBIT_S16_BE | \
+				SND_PCM_FMTBIT_U16_LE|SND_PCM_FMTBIT_U16_BE | \
+				SND_PCM_FMTBIT_S24_LE|SND_PCM_FMTBIT_S24_BE | \
+				SND_PCM_FMTBIT_U24_LE|SND_PCM_FMTBIT_U24_BE | \
+				SND_PCM_FMTBIT_S32_LE|SND_PCM_FMTBIT_S32_BE | \
+				SND_PCM_FMTBIT_U32_LE|SND_PCM_FMTBIT_U32_BE)
 
 extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
-#define muldiv64(a,b,d) (((int64_t)(a) * (b) + (b) / 2) / (d))
+static inline ssize_t muldiv_down(ssize_t a, ssize_t b, ssize_t d)
+{
+	return (int64_t) (a * b) / d;
+}
+
+static inline ssize_t muldiv_up(ssize_t a, ssize_t b, ssize_t d)
+{
+	return (int64_t) (a * b + (d - 1)) / d;
+}
+
+static inline ssize_t muldiv_near(ssize_t a, ssize_t b, ssize_t d)
+{
+	return (int64_t) (a * b + (d / 2)) / d;
+}
 
 #define ROUTE_PLUGIN_FLOAT 1
 #define ROUTE_PLUGIN_RESOLUTION 16

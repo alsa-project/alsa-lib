@@ -39,21 +39,21 @@
 int snd_pcm_format_signed(int format)
 {
 	switch (format) {
-	case SND_PCM_SFMT_S8:
-	case SND_PCM_SFMT_S16_LE:
-	case SND_PCM_SFMT_S16_BE:
-	case SND_PCM_SFMT_S24_LE:
-	case SND_PCM_SFMT_S24_BE:
-	case SND_PCM_SFMT_S32_LE:
-	case SND_PCM_SFMT_S32_BE:
+	case SND_PCM_FORMAT_S8:
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_S16_BE:
+	case SND_PCM_FORMAT_S24_LE:
+	case SND_PCM_FORMAT_S24_BE:
+	case SND_PCM_FORMAT_S32_LE:
+	case SND_PCM_FORMAT_S32_BE:
 		return 1;
-	case SND_PCM_SFMT_U8:
-	case SND_PCM_SFMT_U16_LE:
-	case SND_PCM_SFMT_U16_BE:
-	case SND_PCM_SFMT_U24_LE:
-	case SND_PCM_SFMT_U24_BE:
-	case SND_PCM_SFMT_U32_LE:
-	case SND_PCM_SFMT_U32_BE:
+	case SND_PCM_FORMAT_U8:
+	case SND_PCM_FORMAT_U16_LE:
+	case SND_PCM_FORMAT_U16_BE:
+	case SND_PCM_FORMAT_U24_LE:
+	case SND_PCM_FORMAT_U24_BE:
+	case SND_PCM_FORMAT_U32_LE:
+	case SND_PCM_FORMAT_U32_BE:
 		return 0;
 	default:
 		return -EINVAL;
@@ -78,25 +78,25 @@ int snd_pcm_format_linear(int format)
 int snd_pcm_format_little_endian(int format)
 {
 	switch (format) {
-	case SND_PCM_SFMT_S16_LE:
-	case SND_PCM_SFMT_U16_LE:
-	case SND_PCM_SFMT_S24_LE:
-	case SND_PCM_SFMT_U24_LE:
-	case SND_PCM_SFMT_S32_LE:
-	case SND_PCM_SFMT_U32_LE:
-	case SND_PCM_SFMT_FLOAT_LE:
-	case SND_PCM_SFMT_FLOAT64_LE:
-	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_U16_LE:
+	case SND_PCM_FORMAT_S24_LE:
+	case SND_PCM_FORMAT_U24_LE:
+	case SND_PCM_FORMAT_S32_LE:
+	case SND_PCM_FORMAT_U32_LE:
+	case SND_PCM_FORMAT_FLOAT_LE:
+	case SND_PCM_FORMAT_FLOAT64_LE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_LE:
 		return 1;
-	case SND_PCM_SFMT_S16_BE:
-	case SND_PCM_SFMT_U16_BE:
-	case SND_PCM_SFMT_S24_BE:
-	case SND_PCM_SFMT_U24_BE:
-	case SND_PCM_SFMT_S32_BE:
-	case SND_PCM_SFMT_U32_BE:
-	case SND_PCM_SFMT_FLOAT_BE:
-	case SND_PCM_SFMT_FLOAT64_BE:
-	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
+	case SND_PCM_FORMAT_S16_BE:
+	case SND_PCM_FORMAT_U16_BE:
+	case SND_PCM_FORMAT_S24_BE:
+	case SND_PCM_FORMAT_U24_BE:
+	case SND_PCM_FORMAT_S32_BE:
+	case SND_PCM_FORMAT_U32_BE:
+	case SND_PCM_FORMAT_FLOAT_BE:
+	case SND_PCM_FORMAT_FLOAT64_BE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_BE:
 		return 0;
 	default:
 		return -EINVAL;
@@ -116,36 +116,36 @@ int snd_pcm_format_big_endian(int format)
 int snd_pcm_format_width(int format)
 {
 	switch (format) {
-	case SND_PCM_SFMT_S8:
-	case SND_PCM_SFMT_U8:
+	case SND_PCM_FORMAT_S8:
+	case SND_PCM_FORMAT_U8:
 		return 8;
-	case SND_PCM_SFMT_S16_LE:
-	case SND_PCM_SFMT_S16_BE:
-	case SND_PCM_SFMT_U16_LE:
-	case SND_PCM_SFMT_U16_BE:
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_S16_BE:
+	case SND_PCM_FORMAT_U16_LE:
+	case SND_PCM_FORMAT_U16_BE:
 		return 16;
-	case SND_PCM_SFMT_S24_LE:
-	case SND_PCM_SFMT_S24_BE:
-	case SND_PCM_SFMT_U24_LE:
-	case SND_PCM_SFMT_U24_BE:
+	case SND_PCM_FORMAT_S24_LE:
+	case SND_PCM_FORMAT_S24_BE:
+	case SND_PCM_FORMAT_U24_LE:
+	case SND_PCM_FORMAT_U24_BE:
 		return 24;
-	case SND_PCM_SFMT_S32_LE:
-	case SND_PCM_SFMT_S32_BE:
-	case SND_PCM_SFMT_U32_LE:
-	case SND_PCM_SFMT_U32_BE:
-	case SND_PCM_SFMT_FLOAT_LE:
-	case SND_PCM_SFMT_FLOAT_BE:
+	case SND_PCM_FORMAT_S32_LE:
+	case SND_PCM_FORMAT_S32_BE:
+	case SND_PCM_FORMAT_U32_LE:
+	case SND_PCM_FORMAT_U32_BE:
+	case SND_PCM_FORMAT_FLOAT_LE:
+	case SND_PCM_FORMAT_FLOAT_BE:
 		return 32;
-	case SND_PCM_SFMT_FLOAT64_LE:
-	case SND_PCM_SFMT_FLOAT64_BE:
+	case SND_PCM_FORMAT_FLOAT64_LE:
+	case SND_PCM_FORMAT_FLOAT64_BE:
 		return 64;
-	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
-	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_LE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_BE:
 		return 24;
-	case SND_PCM_SFMT_MU_LAW:
-	case SND_PCM_SFMT_A_LAW:
+	case SND_PCM_FORMAT_MU_LAW:
+	case SND_PCM_FORMAT_A_LAW:
 		return 8;
-	case SND_PCM_SFMT_IMA_ADPCM:
+	case SND_PCM_FORMAT_IMA_ADPCM:
 		return 4;
 	default:
 		return -EINVAL;
@@ -155,34 +155,34 @@ int snd_pcm_format_width(int format)
 int snd_pcm_format_physical_width(int format)
 {
 	switch (format) {
-	case SND_PCM_SFMT_S8:
-	case SND_PCM_SFMT_U8:
+	case SND_PCM_FORMAT_S8:
+	case SND_PCM_FORMAT_U8:
 		return 8;
-	case SND_PCM_SFMT_S16_LE:
-	case SND_PCM_SFMT_S16_BE:
-	case SND_PCM_SFMT_U16_LE:
-	case SND_PCM_SFMT_U16_BE:
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_S16_BE:
+	case SND_PCM_FORMAT_U16_LE:
+	case SND_PCM_FORMAT_U16_BE:
 		return 16;
-	case SND_PCM_SFMT_S24_LE:
-	case SND_PCM_SFMT_S24_BE:
-	case SND_PCM_SFMT_U24_LE:
-	case SND_PCM_SFMT_U24_BE:
-	case SND_PCM_SFMT_S32_LE:
-	case SND_PCM_SFMT_S32_BE:
-	case SND_PCM_SFMT_U32_LE:
-	case SND_PCM_SFMT_U32_BE:
-	case SND_PCM_SFMT_FLOAT_LE:
-	case SND_PCM_SFMT_FLOAT_BE:
-	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
-	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
+	case SND_PCM_FORMAT_S24_LE:
+	case SND_PCM_FORMAT_S24_BE:
+	case SND_PCM_FORMAT_U24_LE:
+	case SND_PCM_FORMAT_U24_BE:
+	case SND_PCM_FORMAT_S32_LE:
+	case SND_PCM_FORMAT_S32_BE:
+	case SND_PCM_FORMAT_U32_LE:
+	case SND_PCM_FORMAT_U32_BE:
+	case SND_PCM_FORMAT_FLOAT_LE:
+	case SND_PCM_FORMAT_FLOAT_BE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_LE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_BE:
 		return 32;
-	case SND_PCM_SFMT_FLOAT64_LE:
-	case SND_PCM_SFMT_FLOAT64_BE:
+	case SND_PCM_FORMAT_FLOAT64_LE:
+	case SND_PCM_FORMAT_FLOAT64_BE:
 		return 64;
-	case SND_PCM_SFMT_MU_LAW:
-	case SND_PCM_SFMT_A_LAW:
+	case SND_PCM_FORMAT_MU_LAW:
+	case SND_PCM_FORMAT_A_LAW:
 		return 8;
-	case SND_PCM_SFMT_IMA_ADPCM:
+	case SND_PCM_FORMAT_IMA_ADPCM:
 		return 4;
 	default:
 		return -EINVAL;
@@ -192,35 +192,35 @@ int snd_pcm_format_physical_width(int format)
 ssize_t snd_pcm_format_size(int format, size_t samples)
 {
 	switch (format) {
-	case SND_PCM_SFMT_S8:
-	case SND_PCM_SFMT_U8:
+	case SND_PCM_FORMAT_S8:
+	case SND_PCM_FORMAT_U8:
 		return samples;
-	case SND_PCM_SFMT_S16_LE:
-	case SND_PCM_SFMT_S16_BE:
-	case SND_PCM_SFMT_U16_LE:
-	case SND_PCM_SFMT_U16_BE:
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_S16_BE:
+	case SND_PCM_FORMAT_U16_LE:
+	case SND_PCM_FORMAT_U16_BE:
 		return samples * 2;
-	case SND_PCM_SFMT_S24_LE:
-	case SND_PCM_SFMT_S24_BE:
-	case SND_PCM_SFMT_U24_LE:
-	case SND_PCM_SFMT_U24_BE:
-	case SND_PCM_SFMT_S32_LE:
-	case SND_PCM_SFMT_S32_BE:
-	case SND_PCM_SFMT_U32_LE:
-	case SND_PCM_SFMT_U32_BE:
-	case SND_PCM_SFMT_FLOAT_LE:
-	case SND_PCM_SFMT_FLOAT_BE:
+	case SND_PCM_FORMAT_S24_LE:
+	case SND_PCM_FORMAT_S24_BE:
+	case SND_PCM_FORMAT_U24_LE:
+	case SND_PCM_FORMAT_U24_BE:
+	case SND_PCM_FORMAT_S32_LE:
+	case SND_PCM_FORMAT_S32_BE:
+	case SND_PCM_FORMAT_U32_LE:
+	case SND_PCM_FORMAT_U32_BE:
+	case SND_PCM_FORMAT_FLOAT_LE:
+	case SND_PCM_FORMAT_FLOAT_BE:
 		return samples * 4;
-	case SND_PCM_SFMT_FLOAT64_LE:
-	case SND_PCM_SFMT_FLOAT64_BE:
+	case SND_PCM_FORMAT_FLOAT64_LE:
+	case SND_PCM_FORMAT_FLOAT64_BE:
 		return samples * 8;
-	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
-	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_LE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_BE:
 		return samples * 4;
-	case SND_PCM_SFMT_MU_LAW:
-	case SND_PCM_SFMT_A_LAW:
+	case SND_PCM_FORMAT_MU_LAW:
+	case SND_PCM_FORMAT_A_LAW:
 		return samples;
-	case SND_PCM_SFMT_IMA_ADPCM:
+	case SND_PCM_FORMAT_IMA_ADPCM:
 		if (samples & 1)
 			return -EINVAL;
 		return samples / 2;
@@ -232,44 +232,44 @@ ssize_t snd_pcm_format_size(int format, size_t samples)
 u_int64_t snd_pcm_format_silence_64(int format)
 {
 	switch (format) {
-	case SND_PCM_SFMT_S8:
-	case SND_PCM_SFMT_S16_LE:
-	case SND_PCM_SFMT_S16_BE:
-	case SND_PCM_SFMT_S24_LE:
-	case SND_PCM_SFMT_S24_BE:
-	case SND_PCM_SFMT_S32_LE:
-	case SND_PCM_SFMT_S32_BE:
+	case SND_PCM_FORMAT_S8:
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_S16_BE:
+	case SND_PCM_FORMAT_S24_LE:
+	case SND_PCM_FORMAT_S24_BE:
+	case SND_PCM_FORMAT_S32_LE:
+	case SND_PCM_FORMAT_S32_BE:
 		return 0;
-	case SND_PCM_SFMT_U8:
+	case SND_PCM_FORMAT_U8:
 		return 0x8080808080808080ULL;
 #ifdef SND_LITTLE_ENDIAN
-	case SND_PCM_SFMT_U16_LE:
+	case SND_PCM_FORMAT_U16_LE:
 		return 0x8000800080008000ULL;
-	case SND_PCM_SFMT_U24_LE:
+	case SND_PCM_FORMAT_U24_LE:
 		return 0x0080000000800000ULL;
-	case SND_PCM_SFMT_U32_LE:
+	case SND_PCM_FORMAT_U32_LE:
 		return 0x8000000080000000ULL;
-	case SND_PCM_SFMT_U16_BE:
+	case SND_PCM_FORMAT_U16_BE:
 		return 0x0080008000800080ULL;
-	case SND_PCM_SFMT_U24_BE:
+	case SND_PCM_FORMAT_U24_BE:
 		return 0x0000800000008000ULL;
-	case SND_PCM_SFMT_U32_BE:
+	case SND_PCM_FORMAT_U32_BE:
 		return 0x0000008000000080ULL;
 #else
-	case SND_PCM_SFMT_U16_LE:
+	case SND_PCM_FORMAT_U16_LE:
 		return 0x0080008000800080ULL;
-	case SND_PCM_SFMT_U24_LE:
+	case SND_PCM_FORMAT_U24_LE:
 		return 0x0000800000008000ULL;
-	case SND_PCM_SFMT_U32_LE:
+	case SND_PCM_FORMAT_U32_LE:
 		return 0x0000008000000080ULL;
-	case SND_PCM_SFMT_U16_BE:
+	case SND_PCM_FORMAT_U16_BE:
 		return 0x8000800080008000ULL;
-	case SND_PCM_SFMT_U24_BE:
+	case SND_PCM_FORMAT_U24_BE:
 		return 0x0080000000800000ULL;
-	case SND_PCM_SFMT_U32_BE:
+	case SND_PCM_FORMAT_U32_BE:
 		return 0x8000000080000000ULL;
 #endif
-	case SND_PCM_SFMT_FLOAT_LE:
+	case SND_PCM_FORMAT_FLOAT_LE:
 	{
 		union {
 			float f;
@@ -282,7 +282,7 @@ u_int64_t snd_pcm_format_silence_64(int format)
 		return bswap_32(u.i);
 #endif
 	}
-	case SND_PCM_SFMT_FLOAT64_LE:
+	case SND_PCM_FORMAT_FLOAT64_LE:
 	{
 		union {
 			double f;
@@ -295,7 +295,7 @@ u_int64_t snd_pcm_format_silence_64(int format)
 		return bswap_64(u.i);
 #endif
 	}
-	case SND_PCM_SFMT_FLOAT_BE:		
+	case SND_PCM_FORMAT_FLOAT_BE:		
 	{
 		union {
 			float f;
@@ -308,7 +308,7 @@ u_int64_t snd_pcm_format_silence_64(int format)
 		return u.i;
 #endif
 	}
-	case SND_PCM_SFMT_FLOAT64_BE:
+	case SND_PCM_FORMAT_FLOAT64_BE:
 	{
 		union {
 			double f;
@@ -321,16 +321,16 @@ u_int64_t snd_pcm_format_silence_64(int format)
 		return u.i;
 #endif
 	}
-	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
-	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_LE:
+	case SND_PCM_FORMAT_IEC958_SUBFRAME_BE:
 		return 0;	
-	case SND_PCM_SFMT_MU_LAW:
+	case SND_PCM_FORMAT_MU_LAW:
 		return 0x7f7f7f7f7f7f7f7fULL;
-	case SND_PCM_SFMT_A_LAW:
+	case SND_PCM_FORMAT_A_LAW:
 		return 0x5555555555555555ULL;
-	case SND_PCM_SFMT_IMA_ADPCM:	/* special case */
-	case SND_PCM_SFMT_MPEG:
-	case SND_PCM_SFMT_GSM:
+	case SND_PCM_FORMAT_IMA_ADPCM:	/* special case */
+	case SND_PCM_FORMAT_MPEG:
+	case SND_PCM_FORMAT_GSM:
 		return 0;
 	}
 	return 0;
@@ -395,22 +395,22 @@ ssize_t snd_pcm_format_set_silence(int format, void *data, size_t samples)
 }
 
 static int linear_formats[4*2*2] = {
-	SND_PCM_SFMT_S8,
-	SND_PCM_SFMT_U8,
-	SND_PCM_SFMT_S8,
-	SND_PCM_SFMT_U8,
-	SND_PCM_SFMT_S16_LE,
-	SND_PCM_SFMT_S16_BE,
-	SND_PCM_SFMT_U16_LE,
-	SND_PCM_SFMT_U16_BE,
-	SND_PCM_SFMT_S24_LE,
-	SND_PCM_SFMT_S24_BE,
-	SND_PCM_SFMT_U24_LE,
-	SND_PCM_SFMT_U24_BE,
-	SND_PCM_SFMT_S32_LE,
-	SND_PCM_SFMT_S32_BE,
-	SND_PCM_SFMT_U32_LE,
-	SND_PCM_SFMT_U32_BE
+	SND_PCM_FORMAT_S8,
+	SND_PCM_FORMAT_U8,
+	SND_PCM_FORMAT_S8,
+	SND_PCM_FORMAT_U8,
+	SND_PCM_FORMAT_S16_LE,
+	SND_PCM_FORMAT_S16_BE,
+	SND_PCM_FORMAT_U16_LE,
+	SND_PCM_FORMAT_U16_BE,
+	SND_PCM_FORMAT_S24_LE,
+	SND_PCM_FORMAT_S24_BE,
+	SND_PCM_FORMAT_U24_LE,
+	SND_PCM_FORMAT_U24_BE,
+	SND_PCM_FORMAT_S32_LE,
+	SND_PCM_FORMAT_S32_BE,
+	SND_PCM_FORMAT_U32_LE,
+	SND_PCM_FORMAT_U32_BE
 };
 
 int snd_pcm_build_linear_format(int width, int unsignd, int big_endian)

@@ -5,20 +5,28 @@
  *                                                                          *
  ****************************************************************************/
 
-#define SND_SEQ_OPEN_OUT	(O_WRONLY)
-#define SND_SEQ_OPEN_IN		(O_RDONLY)
-#define SND_SEQ_OPEN		(O_RDWR)
+#define SND_SEQ_OPEN_OUTPUT	1
+#define SND_SEQ_OPEN_INPUT	2
+#define SND_SEQ_OPEN_DUPLEX	(SND_SEQ_OPEN_OUTPUT|SND_SEQ_OPEN_INPUT)
+
+#define SND_SEQ_NONBLOCK	1
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct snd_seq snd_seq_t;
+typedef enum _snd_seq_type {
+	SND_SEQ_TYPE_HW,
+	SND_SEQ_TYPE_SHM,
+	SND_SEQ_TYPE_INET,
+} snd_seq_type_t;
 
-int snd_seq_open(snd_seq_t **handle, int mode);
+typedef struct _snd_seq snd_seq_t;
+
+int snd_seq_open(snd_seq_t **handle, char *name, int streams, int mode);
 int snd_seq_close(snd_seq_t *handle);
 int snd_seq_poll_descriptor(snd_seq_t *handle);
-int snd_seq_block_mode(snd_seq_t *handle, int enable);
+int snd_seq_nonblock(snd_seq_t *handle, int nonblock);
 int snd_seq_client_id(snd_seq_t *handle);
 int snd_seq_output_buffer_size(snd_seq_t *handle);
 int snd_seq_input_buffer_size(snd_seq_t *handle);

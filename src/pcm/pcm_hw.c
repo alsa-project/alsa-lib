@@ -29,10 +29,16 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/shm.h>
+#include <asm/page.h>
 #include "pcm_local.h"
+#include "../control/control_local.h"
 
 #ifndef F_SETSIG
 #define F_SETSIG 10
+#endif
+
+#ifndef PAGE_ALIGN
+#define PAGE_ALIGN(addr)        (((addr)+PAGE_SIZE-1)&PAGE_MASK)
 #endif
 
 typedef struct {
@@ -40,6 +46,7 @@ typedef struct {
 	int card, device, subdevice;
 	volatile snd_pcm_mmap_status_t *mmap_status;
 	snd_pcm_mmap_control_t *mmap_control;
+	int shmid;
 } snd_pcm_hw_t;
 
 #define SND_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
@@ -102,7 +109,7 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return 0;
 }
 
-static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
+static int _snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
@@ -113,41 +120,57 @@ static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return 0;
 }
 
-static int snd_pcm_hw_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
+static int snd_pcm_hw_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_PARAMS_INFO, info) < 0) {
-		SYSERR("SND_PCM_IOCTL_PARAMS_INFO failed");
+	if (ioctl(fd, SND_PCM_IOCTL_HW_INFO, info) < 0) {
+		// SYSERR("SND_PCM_IOCTL_HW_INFO failed");
 		return -errno;
 	}
 	return 0;
 }
 
-static int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
+static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_PARAMS, params) < 0) {
-		SYSERR("SND_PCM_IOCTL_PARAMS failed");
+	if (ioctl(fd, SND_PCM_IOCTL_HW_PARAMS, params) < 0) {
+		SYSERR("SND_PCM_IOCTL_HW_PARAMS failed");
 		return -errno;
 	}
 	return 0;
 }
 
-static int snd_pcm_hw_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
+static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_SETUP, setup) < 0) {
-		SYSERR("SND_PCM_IOCTL_SETUP failed");
+	if (ioctl(fd, SND_PCM_IOCTL_SW_PARAMS, params) < 0) {
+		SYSERR("SND_PCM_IOCTL_SW_PARAMS failed");
 		return -errno;
 	}
-	if (setup->mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
-		if (setup->xfer_mode == SND_PCM_XFER_INTERLEAVED)
-			setup->mmap_shape = SND_PCM_MMAP_INTERLEAVED;
-		else
-			setup->mmap_shape = SND_PCM_MMAP_NONINTERLEAVED;
+	return 0;
+}
+
+static int snd_pcm_hw_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t * info)
+{
+	snd_pcm_hw_t *hw = pcm->private;
+	int fd = hw->fd;
+	if (ioctl(fd, SND_PCM_IOCTL_DIG_INFO, info) < 0) {
+		SYSERR("SND_PCM_IOCTL_DIG_INFO failed");
+		return -errno;
+	}
+	return 0;
+}
+
+static int snd_pcm_hw_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t * params)
+{
+	snd_pcm_hw_t *hw = pcm->private;
+	int fd = hw->fd;
+	if (ioctl(fd, SND_PCM_IOCTL_DIG_PARAMS, params) < 0) {
+		SYSERR("SND_PCM_IOCTL_DIG_PARAMS failed");
+		return -errno;
 	}
 	return 0;
 }
@@ -155,51 +178,24 @@ static int snd_pcm_hw_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	snd_pcm_hw_t *hw = pcm->private;
+	snd_pcm_hw_channel_info_t hw_info;
 	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, info) < 0) {
+	hw_info.channel = info->channel;
+	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, &hw_info) < 0) {
 		SYSERR("SND_PCM_IOCTL_CHANNEL_INFO failed");
 		return -errno;
 	}
-	return 0;
-}
-
-static int snd_pcm_hw_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
-{
-	snd_pcm_hw_t *hw = pcm->private;
-	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_PARAMS, params) < 0) {
-		SYSERR("SND_PCM_IOCTL_CHANNEL_PARAMS failed");
-		return -errno;
-	}
-	return 0;
-}
-
-static int snd_pcm_hw_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
-{
-	snd_pcm_hw_t *hw = pcm->private;
-	int fd = hw->fd;
-	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_SETUP, setup) < 0) {
-		SYSERR("SND_PCM_IOCTL_CHANNEL_SETUP failed");
-		return -errno;
-	}
-	if (!pcm->mmap_info)
+	info->channel = hw_info.channel;
+	if (pcm->info & SND_PCM_INFO_MMAP) {
+		info->addr = 0;
+		info->first = hw_info.first;
+		info->step = hw_info.step;
+		info->type = SND_PCM_AREA_MMAP;
+		info->u.mmap.fd = fd;
+		info->u.mmap.offset = hw_info.offset;
 		return 0;
-	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
-		if (pcm->setup.xfer_mode == SND_PCM_XFER_INTERLEAVED) {
-			setup->running_area.addr = pcm->mmap_info->addr;
-			setup->running_area.first = setup->channel * pcm->bits_per_sample;
-			setup->running_area.step = pcm->bits_per_frame;
-		} else {
-			setup->running_area.addr = pcm->mmap_info->addr + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
-			setup->running_area.first = 0;
-			setup->running_area.step = pcm->bits_per_sample;
-		}
-		setup->stopped_area = setup->running_area;
-	} else {
-		setup->running_area.addr = pcm->mmap_info->addr + (long)setup->running_area.addr;
-		setup->stopped_area.addr = setup->running_area.addr;
 	}
-	return 0;
+	return snd_pcm_channel_info_shm(pcm, info, hw->shmid);
 }
 
 static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
@@ -245,6 +241,8 @@ static int snd_pcm_hw_start(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
+	assert(pcm->stream != SND_PCM_STREAM_PLAYBACK ||
+	       snd_pcm_mmap_playback_hw_avail(pcm) > 0);
 	if (ioctl(fd, SND_PCM_IOCTL_START) < 0) {
 		SYSERR("SND_PCM_IOCTL_START failed");
 		return -errno;
@@ -288,7 +286,7 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 static ssize_t snd_pcm_hw_rewind(snd_pcm_t *pcm, size_t frames)
 {
 	ssize_t hw_avail;
-	if (pcm->setup.xrun_mode == SND_PCM_XRUN_ASAP) {
+	if (pcm->xrun_mode == SND_PCM_XRUN_ASAP) {
 		ssize_t d;
 		int err = snd_pcm_hw_delay(pcm, &d);
 		if (err < 0)
@@ -363,7 +361,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	void *ptr;
-	ptr = mmap(NULL, sizeof(snd_pcm_mmap_status_t), PROT_READ, MAP_FILE|MAP_SHARED, 
+	ptr = mmap(NULL, PAGE_ALIGN(sizeof(snd_pcm_mmap_status_t)), PROT_READ, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_STATUS);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("status mmap failed");
@@ -378,7 +376,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	void *ptr;
-	ptr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
+	ptr = mmap(NULL, PAGE_ALIGN(sizeof(snd_pcm_mmap_control_t)), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_CONTROL);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("control mmap failed");
@@ -386,31 +384,6 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 	}
 	hw->mmap_control = ptr;
 	pcm->appl_ptr = &hw->mmap_control->appl_ptr;
-	return 0;
-}
-
-static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
-{
-	snd_pcm_hw_t *hw = pcm->private;
-	snd_pcm_mmap_info_t *i = calloc(1, sizeof(*i));
-	int err;
-	if (!i)
-		return -ENOMEM;
-	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
-		err = snd_pcm_alloc_user_mmap(pcm, i);
-		if (err < 0) {
-			free(i);
-			return err;
-		}
-	} else {
-		err = snd_pcm_alloc_kernel_mmap(pcm, i, hw->fd);
-		if (err < 0) {
-			free(i);
-			return err;
-		}
-	}
-	pcm->mmap_info = i;
-	pcm->mmap_info_count = 1;
 	return 0;
 }
 
@@ -434,34 +407,50 @@ static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private;
+	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
+		size_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
+		int id = shmget(IPC_PRIVATE, size, 0666);
+		if (id < 0) {
+			SYSERR("shmget failed");
+			return -errno;
+		}
+		hw->shmid = id;
+	}
+	return 0;
+}
+
 static int snd_pcm_hw_munmap(snd_pcm_t *pcm)
 {
-	int err = snd_pcm_free_mmap(pcm, pcm->mmap_info);
-	if (err < 0)
-		return err;
-	pcm->mmap_info_count = 0;
-	free(pcm->mmap_info);
-	pcm->mmap_info = 0;
+	snd_pcm_hw_t *hw = pcm->private;
+	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
+		if (shmctl(hw->shmid, IPC_RMID, 0) < 0) {
+			SYSERR("shmctl IPC_RMID failed");
+			return -errno;
+		}
+	}
 	return 0;
 }
 
 static int snd_pcm_hw_close(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
-	int fd = hw->fd;
-	free(hw);
-	if (close(fd)) {
+	if (close(hw->fd)) {
 		SYSERR("close failed\n");
 		return -errno;
 	}
 	snd_pcm_hw_munmap_status(pcm);
 	snd_pcm_hw_munmap_control(pcm);
+	free(hw);
 	return 0;
 }
 
 static ssize_t snd_pcm_hw_mmap_forward(snd_pcm_t *pcm, size_t size)
 {
-	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED && pcm->stream == SND_PCM_STREAM_PLAYBACK)
+	if (!(pcm->info & SND_PCM_INFO_MMAP) && 
+	    pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		return snd_pcm_write_mmap(pcm, size);
 	snd_pcm_mmap_appl_forward(pcm, size);
 	return size;
@@ -471,8 +460,8 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 {
 	size_t avail;
 	ssize_t err;
-	if (pcm->setup.ready_mode == SND_PCM_READY_ASAP ||
-	    pcm->setup.xrun_mode == SND_PCM_XRUN_ASAP) {
+	if (pcm->ready_mode == SND_PCM_READY_ASAP ||
+	    pcm->xrun_mode == SND_PCM_XRUN_ASAP) {
 		ssize_t d;
 		int err = snd_pcm_hw_delay(pcm, &d);
 		if (err < 0)
@@ -482,7 +471,8 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 		avail = snd_pcm_mmap_playback_avail(pcm);
 	} else {
 		avail = snd_pcm_mmap_capture_avail(pcm);
-		if (avail > 0 && pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
+		if (avail > 0 && 
+		    !(pcm->info & SND_PCM_INFO_MMAP)) {
 			err = snd_pcm_read_mmap(pcm, avail);
 			if (err < 0)
 				return err;
@@ -490,7 +480,7 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 			return err;
 		}
 	}
-	if (avail > pcm->setup.buffer_size)
+	if (avail > pcm->buffer_size)
 		return -EPIPE;
 	return avail;
 }
@@ -510,7 +500,7 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, FILE *fp)
 	fprintf(fp, "Hardware PCM card %d '%s' device %d subdevice %d\n",
 		hw->card, name, hw->device, hw->subdevice);
 	free(name);
-	if (pcm->valid_setup) {
+	if (pcm->setup) {
 		fprintf(fp, "\nIts setup is:\n");
 		snd_pcm_dump_setup(pcm, fp);
 	}
@@ -518,13 +508,13 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, FILE *fp)
 
 snd_pcm_ops_t snd_pcm_hw_ops = {
 	close: snd_pcm_hw_close,
-	info: snd_pcm_hw_info,
-	params_info: snd_pcm_hw_params_info,
-	params: snd_pcm_hw_params,
-	setup: snd_pcm_hw_setup,
+	info: _snd_pcm_hw_info,
+	hw_info: snd_pcm_hw_hw_info,
+	hw_params: snd_pcm_hw_hw_params,
+	sw_params: snd_pcm_hw_sw_params,
+	dig_info: snd_pcm_hw_dig_info,
+	dig_params: snd_pcm_hw_dig_params,
 	channel_info: snd_pcm_hw_channel_info,
-	channel_params: snd_pcm_hw_channel_params,
-	channel_setup: snd_pcm_hw_channel_setup,
 	dump: snd_pcm_hw_dump,
 	nonblock: snd_pcm_hw_nonblock,
 	async: snd_pcm_hw_async,

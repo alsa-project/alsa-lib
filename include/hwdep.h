@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-typedef struct snd_hwdep snd_hwdep_t;
+typedef struct _snd_hwdep snd_hwdep_t;
 
 int snd_hwdep_open(snd_hwdep_t **handle, int card, int device, int mode);
 int snd_hwdep_close(snd_hwdep_t *handle);

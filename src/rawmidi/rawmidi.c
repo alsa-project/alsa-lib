@@ -1,7 +1,7 @@
 /*
  *  RawMIDI Interface - main file
- *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
- *
+ *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *                        Abramo Bagnara <abramo@alsa-project.org>
  *
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Library General Public License as
@@ -21,221 +21,214 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
+#include <dlfcn.h>
+#include "rawmidi_local.h"
 #include "asoundlib.h"
-
-#define SND_FILE_RAWMIDI	"/dev/snd/midiC%iD%i"
-#define SND_RAWMIDI_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
-
-struct snd_rawmidi {
-	int card;
-	int device;
-	int fd;
-	int mode;
-};
-
-int snd_rawmidi_open_subdevice(snd_rawmidi_t **handle, int card, int device, int subdevice, int mode)
-{
-	int fd, ver, ret;
-	int attempt = 0;
-	char filename[32];
-	snd_ctl_t *ctl;
-	snd_rawmidi_t *rmidi;
-	snd_rawmidi_info_t info;
-
-	*handle = NULL;
-	
-	if (card < 0 || card >= SND_CARDS)
-		return -EINVAL;
-
-	if ((ret = snd_ctl_hw_open(&ctl, NULL, card)) < 0)
-		return ret;
-	sprintf(filename, SND_FILE_RAWMIDI, card, device);
-
-      __again:
-      	if (attempt++ > 3) {
-      		snd_ctl_close(ctl);
-      		return -EBUSY;
-      	}
-      	ret = snd_ctl_rawmidi_prefer_subdevice(ctl, subdevice);
-	if (ret < 0) {
-		snd_ctl_close(ctl);
-		return ret;
-	}
-	if ((fd = open(filename, mode)) < 0) {
-		snd_card_load(card);
-		if ((fd = open(filename, mode)) < 0) {
-			snd_ctl_close(ctl);
-			return -errno;
-		}
-	}
-	if (ioctl(fd, SND_RAWMIDI_IOCTL_PVERSION, &ver) < 0) {
-		ret = -errno;
-		close(fd);
-		snd_ctl_close(ctl);
-		return ret;
-	}
-	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_RAWMIDI_VERSION_MAX)) {
-		close(fd);
-		snd_ctl_close(ctl);
-		return -SND_ERROR_INCOMPATIBLE_VERSION;
-	}
-	if (subdevice >= 0) {
-		memset(&info, 0, sizeof(info));
-		if (ioctl(fd, SND_RAWMIDI_IOCTL_INFO, &info) < 0) {
-			ret = -errno;
-			close(fd);
-			snd_ctl_close(ctl);
-			return ret;
-		}
-		if (info.subdevice != subdevice) {
-			close(fd);
-			goto __again;
-		}
-	}
-	rmidi = (snd_rawmidi_t *) calloc(1, sizeof(snd_rawmidi_t));
-	if (rmidi == NULL) {
-		close(fd);
-		snd_ctl_close(ctl);
-		return -ENOMEM;
-	}
-	rmidi->card = card;
-	rmidi->device = device;
-	rmidi->fd = fd;
-	rmidi->mode = mode;
-	*handle = rmidi;
-	return 0;
-}
-
-int snd_rawmidi_open(snd_rawmidi_t **handle, int card, int device, int mode)
-{
-	return snd_rawmidi_open_subdevice(handle, card, device, -1, mode);
-}
 
 int snd_rawmidi_close(snd_rawmidi_t *rmidi)
 {
-	int res;
-
-	if (!rmidi)
-		return -EINVAL;
-	res = close(rmidi->fd) < 0 ? -errno : 0;
+	int err;
+  	assert(rmidi);
+	if ((err = rmidi->ops->close(rmidi)) < 0)
+		return err;
+	if (rmidi->name)
+		free(rmidi->name);
 	free(rmidi);
-	return res;
+	return 0;
 }
 
 int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi)
 {
-	if (!rmidi)
-		return -EINVAL;
-	return rmidi->fd;
+	assert(rmidi);
+	return rmidi->poll_fd;
 }
 
-int snd_rawmidi_block_mode(snd_rawmidi_t *rmidi, int enable)
+int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 {
-	long flags;
-
-	if (!rmidi)
-		return -EINVAL;
-	if (rmidi->mode == SND_RAWMIDI_OPEN_OUTPUT_APPEND ||
-	    rmidi->mode == SND_RAWMIDI_OPEN_DUPLEX_APPEND)
-		return -EINVAL;
-	if ((flags = fcntl(rmidi->fd, F_GETFL)) < 0)
-		return -errno;
-	if (enable)
-		flags &= ~O_NONBLOCK;
+	int err;
+	assert(rmidi);
+	assert(!(rmidi->mode & SND_RAWMIDI_APPEND));
+	if ((err = rmidi->ops->nonblock(rmidi, nonblock)) < 0)
+		return err;
+	if (nonblock)
+		rmidi->mode |= SND_RAWMIDI_NONBLOCK;
 	else
-		flags |= O_NONBLOCK;
-	if (fcntl(rmidi->fd, F_SETFL, flags) < 0)
-		return -errno;
+		rmidi->mode &= ~SND_RAWMIDI_NONBLOCK;
 	return 0;
 }
 
 int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 {
-	if (!rmidi || !info)
-		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_INFO, info) < 0)
-		return -errno;
-	return 0;
+	assert(rmidi && info);
+	return rmidi->ops->info(rmidi, info);
 }
 
 int snd_rawmidi_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
 {
-	if (!rmidi || !params)
-		return -EINVAL;
-	if (params->stream < 0 || params->stream > 1)
-		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_PARAMS, params) < 0)
-		return -errno;
-	return 0;
+	assert(rmidi && params);
+	return rmidi->ops->params(rmidi, params);
 }
 
 int snd_rawmidi_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
-	if (!rmidi || !status)
-		return -EINVAL;
-	if (status->stream < 0 || status->stream > 1)
-		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_STATUS, status) < 0)
-		return -errno;
-	return 0;
+	assert(rmidi && status);
+	return rmidi->ops->status(rmidi, status);
+}
+
+int snd_rawmidi_drop(snd_rawmidi_t *rmidi, int str)
+{
+	assert(rmidi);
+	assert(str >= 0 && str <= 1);
+	assert(rmidi->streams & (1 << str));
+	return rmidi->ops->drop(rmidi, str);
 }
 
 int snd_rawmidi_output_drop(snd_rawmidi_t *rmidi)
 {
-	int str = SND_RAWMIDI_STREAM_OUTPUT;
-	if (!rmidi)
-		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_DROP, &str) < 0)
-		return -errno;
-	return 0;
+	return snd_rawmidi_drop(rmidi, SND_RAWMIDI_STREAM_OUTPUT);
 }
 
-int snd_rawmidi_stream_drain(snd_rawmidi_t *rmidi, int str)
+int snd_rawmidi_drain(snd_rawmidi_t *rmidi, int str)
 {
-	if (!rmidi)
-		return -EINVAL;
-	if (str < 0 || str > 1)
-		return -EINVAL;
-	if (ioctl(rmidi->fd, SND_RAWMIDI_IOCTL_DRAIN, &str) < 0)
-		return -errno;
-	return 0;
+	assert(rmidi);
+	assert(str >= 0 && str <= 1);
+	assert(rmidi->streams & (1 << str));
+	return rmidi->ops->drain(rmidi, str);
 }
 
 int snd_rawmidi_output_drain(snd_rawmidi_t *rmidi)
 {
-	return snd_rawmidi_stream_drain(rmidi, SND_RAWMIDI_STREAM_OUTPUT);
+	return snd_rawmidi_drain(rmidi, SND_RAWMIDI_STREAM_OUTPUT);
 }
 
 int snd_rawmidi_input_drain(snd_rawmidi_t *rmidi)
 {
-	return snd_rawmidi_stream_drain(rmidi, SND_RAWMIDI_STREAM_INPUT);
+	return snd_rawmidi_drain(rmidi, SND_RAWMIDI_STREAM_INPUT);
 }
 
 ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
 {
-	ssize_t result;
-
-	if (!rmidi || (!buffer && size > 0))
-		return -EINVAL;
-	result = write(rmidi->fd, buffer, size);
-	if (result < 0)
-		return -errno;
-	return result;
+	assert(rmidi && (buffer || size == 0));
+	return rmidi->ops->write(rmidi, buffer, size);
 }
 
 ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
 {
-	ssize_t result;
-
-	if (!rmidi || (!buffer && size > 0))
-		return -EINVAL;
-	result = read(rmidi->fd, buffer, size);
-	if (result < 0)
-		return -errno;
-	return result;
+	assert(rmidi && (buffer || size == 0));
+	return rmidi->ops->read(rmidi, buffer, size);
 }
+
+int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name, 
+		     int streams, int mode)
+{
+	char *str;
+	int err;
+	snd_config_t *rawmidi_conf, *conf, *type_conf;
+	snd_config_iterator_t i;
+	char *lib = NULL, *open = NULL;
+	int (*open_func)(snd_rawmidi_t **rawmidip, char *name, snd_config_t *conf, 
+			 int streams, int mode);
+	void *h;
+	assert(rawmidip && name);
+	err = snd_config_update();
+	if (err < 0)
+		return err;
+	err = snd_config_searchv(snd_config, &rawmidi_conf, "rawmidi", name, 0);
+	if (err < 0) {
+		int card, dev, subdev;
+		err = sscanf(name, "hw:%d,%d,%d", &card, &dev, &subdev);
+		if (err == 3)
+			return snd_rawmidi_hw_open(rawmidip, name, card, dev, subdev, streams, mode);
+		err = sscanf(name, "hw:%d,%d", &card, &dev);
+		if (err == 2)
+			return snd_rawmidi_hw_open(rawmidip, name, card, dev, -1, streams, mode);
+		ERR("Unknown RAWMIDI %s", name);
+		return -ENOENT;
+	}
+	if (snd_config_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
+		ERR("Invalid type for RAWMIDI definition");
+		return -EINVAL;
+	}
+	err = snd_config_search(rawmidi_conf, "streams", &conf);
+	if (err >= 0) {
+		err = snd_config_string_get(conf, &str);
+		if (err < 0) {
+			ERR("Invalid type for streams");
+			return err;
+		}
+		if (strcmp(str, "output") == 0) {
+			if (streams == SND_RAWMIDI_OPEN_INPUT)
+				return -EINVAL;
+		} else if (strcmp(str, "input") == 0) {
+			if (streams == SND_RAWMIDI_OPEN_OUTPUT)
+				return -EINVAL;
+		} else if (strcmp(str, "duplex") == 0) {
+			if (streams != SND_RAWMIDI_OPEN_DUPLEX)
+				return -EINVAL;
+		} else {
+			ERR("Invalid value for streams");
+			return -EINVAL;
+		}
+	}
+	err = snd_config_search(rawmidi_conf, "type", &conf);
+	if (err < 0) {
+		ERR("type is not defined");
+		return err;
+	}
+	err = snd_config_string_get(conf, &str);
+	if (err < 0) {
+		ERR("Invalid type for type");
+		return err;
+	}
+	err = snd_config_searchv(snd_config, &type_conf, "rawmiditype", str, 0);
+	if (err < 0) {
+		ERR("Unknown RAWMIDI type %s", str);
+		return err;
+	}
+	snd_config_foreach(i, type_conf) {
+		snd_config_t *n = snd_config_entry(i);
+		if (strcmp(n->id, "comment") == 0)
+			continue;
+		if (strcmp(n->id, "lib") == 0) {
+			err = snd_config_string_get(n, &lib);
+			if (err < 0) {
+				ERR("Invalid type for lib");
+				return -EINVAL;
+			}
+			continue;
+		}
+		if (strcmp(n->id, "open") == 0) {
+			err = snd_config_string_get(n, &open);
+			if (err < 0) {
+				ERR("Invalid type for open");
+				return -EINVAL;
+			}
+			continue;
+			ERR("Unknown field: %s", n->id);
+			return -EINVAL;
+		}
+	}
+	if (!open) {
+		ERR("open is not defined");
+		return -EINVAL;
+	}
+	if (!lib)
+		lib = "libasound.so";
+	h = dlopen(lib, RTLD_NOW);
+	if (!h) {
+		ERR("Cannot open shared library %s", lib);
+		return -ENOENT;
+	}
+	open_func = dlsym(h, open);
+	dlclose(h);
+	if (!open_func) {
+		ERR("symbol %s is not defined inside %s", open, lib);
+		return -ENXIO;
+	}
+	return open_func(rawmidip, name, rawmidi_conf, streams, mode);
+}
+

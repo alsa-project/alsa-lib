@@ -40,7 +40,7 @@ int snd_instr_simple_free(snd_instr_simple_t *simple);
 /* InterWave FFFF support */
 
 typedef void snd_instr_iwffff_t;
-typedef struct snd_iwffff_handle snd_iwffff_handle_t;
+typedef struct _snd_iwffff_handle snd_iwffff_handle_t;
 
 #ifdef __cplusplus
 extern "C" {

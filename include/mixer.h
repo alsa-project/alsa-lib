@@ -5,7 +5,7 @@
  *                                                                          *
  ****************************************************************************/
 
-typedef struct snd_mixer snd_mixer_t;
+typedef struct _snd_mixer snd_mixer_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,7 +23,7 @@ int snd_mixer_poll_descriptor(snd_mixer_t *handle);
  *  Simple (legacy) mixer API
  */
 
-typedef enum {
+typedef enum _snd_mixer_channel_id {
 	SND_MIXER_CHN_FRONT_LEFT = 0,
 	SND_MIXER_CHN_FRONT_RIGHT,
 	SND_MIXER_CHN_FRONT_CENTER,
@@ -51,12 +51,12 @@ typedef enum {
 #define SND_MIXER_SCTCAP_JOINTLY_CAPTURE (1<<5)
 #define SND_MIXER_SCTCAP_EXCL_CAPTURE   (1<<6)
 
-typedef struct snd_mixer_sid {
+typedef struct _snd_mixer_sid {
 	unsigned char name[60];
 	unsigned int index;
 } snd_mixer_sid_t;
 
-typedef struct snd_mixer_simple_control_list {
+typedef struct _snd_mixer_simple_control_list {
 	unsigned int controls_offset;	/* W: first control ID to get */
 	unsigned int controls_request;	/* W: count of control IDs to get */
 	unsigned int controls_count;	/* R: count of available (set) IDs */
@@ -65,7 +65,7 @@ typedef struct snd_mixer_simple_control_list {
         char reserved[50];
 } snd_mixer_simple_control_list_t;
 
-typedef struct snd_mixer_simple_control {
+typedef struct _snd_mixer_simple_control {
 	snd_mixer_sid_t sid;		/* WR: simple control identification */
 	unsigned int caps;		/* RO: capabilities */
 	unsigned int channels;		/* RO: bitmap of active channels */
@@ -88,7 +88,7 @@ typedef struct snd_mixer_simple_control {
 	} volume;                       /* RW */
 } snd_mixer_simple_control_t;
 
-typedef struct snd_mixer_simple_callbacks {
+typedef struct _snd_mixer_simple_callbacks {
 	void *private_data;	/* may be used by an application */
 	void (*rebuild) (snd_mixer_t *handle, void *private_data);
 	void (*value) (snd_mixer_t *handle, void *private_data, snd_mixer_sid_t *id);

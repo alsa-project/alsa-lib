@@ -31,7 +31,7 @@
 #define SND_FILE_HWDEP	"/dev/snd/hwC%iD%i"
 #define SND_HWDEP_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
 
-struct snd_hwdep {
+struct _snd_hwdep {
 	int card;
 	int device;
 	int fd;

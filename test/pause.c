@@ -39,7 +39,7 @@ int main(void)
 		fprintf(stderr, "open failed: %s\n", snd_strerror(err));
 		return 0;
 	}
-	format.sfmt = SND_PCM_SFMT_MU_LAW;
+	format.sfmt = SND_PCM_FORMAT_MU_LAW;
 	format.rate = 8000;
 	format.channels = 1;
 	if ((err = snd_pcm_playback_format(handle, &format)) < 0) {

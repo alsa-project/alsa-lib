@@ -5,14 +5,14 @@
  *                                                                          *
  ****************************************************************************/
 
-typedef struct snd_ctl snd_ctl_t;
+typedef struct _snd_ctl snd_ctl_t;
 
-typedef enum { SND_CTL_TYPE_HW,
+typedef enum _snd_ctl_type { SND_CTL_TYPE_HW,
 	       SND_CTL_TYPE_SHM,
 	       SND_CTL_TYPE_INET
  } snd_ctl_type_t;
 
-typedef struct snd_ctl_callbacks {
+typedef struct _snd_ctl_callbacks {
 	void *private_data;	/* may be used by an application */
 	void (*rebuild) (snd_ctl_t *handle, void *private_data);
 	void (*value) (snd_ctl_t *handle, void *private_data, snd_control_id_t * id);
@@ -40,8 +40,6 @@ int snd_defaults_pcm_device(void);
 int snd_defaults_rawmidi_card(void);
 int snd_defaults_rawmidi_device(void);
 
-int snd_ctl_hw_open(snd_ctl_t **handle, char *name, int card);
-int snd_ctl_shm_open(snd_ctl_t **handlep, char *name, char *socket, char *sname);
 snd_ctl_type_t snd_ctl_type(snd_ctl_t *handle);
 int snd_ctl_open(snd_ctl_t **handle, char *name);
 int snd_ctl_close(snd_ctl_t *handle);
@@ -82,10 +80,10 @@ struct list_head {
 	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
 
-typedef struct snd_hcontrol_list_stru snd_hcontrol_list_t;
-typedef struct snd_hcontrol_stru snd_hcontrol_t;
+typedef struct _snd_hcontrol_list snd_hcontrol_list_t;
+typedef struct _snd_hcontrol snd_hcontrol_t;
 
-struct snd_hcontrol_list_stru {
+struct _snd_hcontrol_list {
 	unsigned int controls_offset;	/* W: first control ID to get */
 	unsigned int controls_request;	/* W: count of control IDs to get */
 	unsigned int controls_count;	/* R: count of available (set) controls */
@@ -93,7 +91,7 @@ struct snd_hcontrol_list_stru {
 	snd_control_id_t *pids;		/* W: IDs */
 };
 
-struct snd_hcontrol_stru {
+struct _snd_hcontrol {
 	snd_control_id_t id; 	/* must be always on top */
 	struct list_head list;	/* links for list of all hcontrols */
 	int change: 1,		/* structure change */

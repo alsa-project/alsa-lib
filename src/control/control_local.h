@@ -23,7 +23,15 @@
 #include "asoundlib.h"
 #include "list.h"
 
-struct snd_ctl_ops {
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+#define ERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, __VA_ARGS__)
+#define SYSERR(...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, __VA_ARGS__)
+#else
+#define ERR(args...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, 0, ##args)
+#define SYSERR(args...) snd_lib_error(__FILE__, __LINE__, __FUNCTION__, errno, ##args)
+#endif
+
+typedef struct {
 	int (*close)(snd_ctl_t *handle);
 	int (*poll_descriptor)(snd_ctl_t *handle);
 	int (*hw_info)(snd_ctl_t *handle, snd_ctl_hw_info_t *info);
@@ -37,13 +45,13 @@ struct snd_ctl_ops {
 	int (*rawmidi_info)(snd_ctl_t *handle, snd_rawmidi_info_t * info);
 	int (*rawmidi_prefer_subdevice)(snd_ctl_t *handle, int subdev);
 	int (*read)(snd_ctl_t *handle, snd_ctl_event_t *event);
-};
+} snd_ctl_ops_t;
 
 
-struct snd_ctl {
+struct _snd_ctl {
 	char *name;
 	snd_ctl_type_t type;
-	struct snd_ctl_ops *ops;
+	snd_ctl_ops_t *ops;
 	void *private;
 	int hcount;
 	int herr;
@@ -56,3 +64,6 @@ struct snd_ctl {
 	snd_ctl_hcallback_add_t *callback_add;
 	void *callback_add_private_data;
 };
+
+int snd_ctl_hw_open(snd_ctl_t **handle, char *name, int card);
+int snd_ctl_shm_open(snd_ctl_t **handlep, char *name, char *socket, char *sname);

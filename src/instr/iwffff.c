@@ -171,7 +171,7 @@ struct envelope_record {
 #define copyright_header IW_ID_VALUE('C', 'P', 'R', 'T')
 #endif
 
-struct snd_iwffff_handle {
+struct _snd_iwffff_handle {
 	int rom;
 	unsigned char *fff_data;
 	size_t fff_size;

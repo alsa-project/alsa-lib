@@ -23,8 +23,8 @@
 #include "asoundlib.h"
 #include "list.h"
 
-typedef struct mixer_simple mixer_simple_t;
-typedef struct mixer_simple_hcontrol_private mixer_simple_hcontrol_private_t;
+typedef struct _mixer_simple mixer_simple_t;
+typedef struct _mixer_simple_hcontrol_private mixer_simple_hcontrol_private_t;
 
 typedef int (mixer_simple_get_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control);
 typedef int (mixer_simple_put_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control);
@@ -43,7 +43,7 @@ typedef int (mixer_simple_event_add_t) (snd_mixer_t *handle, snd_hcontrol_t *hco
 #define MIXER_PRESENT_CAPTURE_ROUTE	(1<<10)
 #define MIXER_PRESENT_CAPTURE_SOURCE	(1<<11)
 
-struct mixer_simple {
+struct _mixer_simple {
 	/* this may be moved to a private area */
 	unsigned int present;		/* present controls */
 	unsigned int global_values;
@@ -74,11 +74,11 @@ struct mixer_simple {
 	unsigned long private_value;
 };
 
-struct mixer_simple_hcontrol_private {
+struct _mixer_simple_hcontrol_private {
 	void *simples;			/* list of associated hcontrols */
 };
   
-struct snd_mixer {
+struct _snd_mixer {
 	snd_ctl_t *ctl_handle;
 	int simple_valid;
 	int simple_changes;		/* total number of changes */

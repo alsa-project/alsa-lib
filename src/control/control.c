@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -170,8 +171,16 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 		return err;
 	err = snd_config_searchv(snd_config, &ctl_conf, "ctl", name, 0);
 	if (err < 0) {
-		int cardno = snd_card_get_index(name);
-		return snd_ctl_hw_open(ctlp, name, cardno);
+		int card;
+		char socket[256], sname[256];
+		err = sscanf(name, "hw:%d", &card);
+		if (err == 1)
+			return snd_ctl_hw_open(ctlp, NULL, card);
+		err = sscanf(name, "shm:%256s,%256s", socket, sname);
+		if (err == 2)
+			return snd_ctl_shm_open(ctlp, NULL, socket, sname);
+		ERR("Unknown control %s", name);
+		return -ENOENT;
 	}
 	if (snd_config_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND)
 		return -EINVAL;
@@ -182,8 +191,6 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 	if (err < 0)
 		return err;
 	err = snd_config_searchv(snd_config, &type_conf, "ctltype", str, 0);
-	if (err < 0)
-		return err;
 	snd_config_foreach(i, type_conf) {
 		snd_config_t *n = snd_config_entry(i);
 		if (strcmp(n->id, "comment") == 0)
@@ -215,3 +222,4 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 		return -ENXIO;
 	return open_func(ctlp, name, ctl_conf);
 }
+

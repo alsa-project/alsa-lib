@@ -31,7 +31,7 @@
 #define SND_FILE_TIMER		"/dev/snd/timer"
 #define SND_TIMER_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
 
-struct snd_timer {
+struct _snd_timer {
 	int fd;
 };
 
@@ -132,18 +132,6 @@ int snd_timer_params(snd_timer_t *handle, snd_timer_params_t * params)
 	if (!tmr || !params)
 		return -EINVAL;
 	if (ioctl(tmr->fd, SND_TIMER_IOCTL_PARAMS, params) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_timer_setup(snd_timer_t *handle, snd_timer_setup_t * setup)
-{
-	snd_timer_t *tmr;
-
-	tmr = handle;
-	if (!tmr || !setup)
-		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_SETUP, setup) < 0)
 		return -errno;
 	return 0;
 }

@@ -52,53 +52,53 @@ void info_channel(snd_pcm_t *handle, int channel, char *id)
 		printf(" overrange");
 	printf("\n");
 	printf("  formats        :");
-	if (stream_info.formats & SND_PCM_FMT_MU_LAW)
+	if (stream_info.formats & SND_PCM_FMTBIT_MU_LAW)
 		printf(" mu-Law");
-	if (stream_info.formats & SND_PCM_FMT_A_LAW)
+	if (stream_info.formats & SND_PCM_FMTBIT_A_LAW)
 		printf(" a-Law");
-	if (stream_info.formats & SND_PCM_FMT_IMA_ADPCM)
+	if (stream_info.formats & SND_PCM_FMTBIT_IMA_ADPCM)
 		printf(" IMA-ADPCM");
-	if (stream_info.formats & SND_PCM_FMT_U8)
+	if (stream_info.formats & SND_PCM_FMTBIT_U8)
 		printf(" U8");
-	if (stream_info.formats & SND_PCM_FMT_S16_LE)
+	if (stream_info.formats & SND_PCM_FMTBIT_S16_LE)
 		printf(" S16-LE");
-	if (stream_info.formats & SND_PCM_FMT_S16_BE)
+	if (stream_info.formats & SND_PCM_FMTBIT_S16_BE)
 		printf(" S16-BE");
-	if (stream_info.formats & SND_PCM_FMT_S8)
+	if (stream_info.formats & SND_PCM_FMTBIT_S8)
 		printf(" S8");
-	if (stream_info.formats & SND_PCM_FMT_U16_LE)
+	if (stream_info.formats & SND_PCM_FMTBIT_U16_LE)
 		printf(" U16-LE");
-	if (stream_info.formats & SND_PCM_FMT_U16_BE)
+	if (stream_info.formats & SND_PCM_FMTBIT_U16_BE)
 		printf(" U16-BE");
-	if (stream_info.formats & SND_PCM_FMT_MPEG)
+	if (stream_info.formats & SND_PCM_FMTBIT_MPEG)
 		printf(" MPEG");
-	if (stream_info.formats & SND_PCM_FMT_GSM)
+	if (stream_info.formats & SND_PCM_FMTBIT_GSM)
 		printf(" GSM");
-	if (stream_info.formats & SND_PCM_FMT_S24_LE)
+	if (stream_info.formats & SND_PCM_FMTBIT_S24_LE)
 		printf(" S24-LE");
-	if (stream_info.formats & SND_PCM_FMT_S24_BE)
+	if (stream_info.formats & SND_PCM_FMTBIT_S24_BE)
 		printf(" S24-BE");
-	if (stream_info.formats & SND_PCM_FMT_U24_LE)
+	if (stream_info.formats & SND_PCM_FMTBIT_U24_LE)
 		printf(" U24-LE");
-	if (stream_info.formats & SND_PCM_FMT_U24_BE)
+	if (stream_info.formats & SND_PCM_FMTBIT_U24_BE)
 		printf(" U24-BE");
-	if (stream_info.formats & SND_PCM_FMT_S32_LE)
+	if (stream_info.formats & SND_PCM_FMTBIT_S32_LE)
 		printf(" S32-LE");
-	if (stream_info.formats & SND_PCM_FMT_S32_BE)
+	if (stream_info.formats & SND_PCM_FMTBIT_S32_BE)
 		printf(" S32-BE");
-	if (stream_info.formats & SND_PCM_FMT_U32_LE)
+	if (stream_info.formats & SND_PCM_FMTBIT_U32_LE)
 		printf(" U32-LE");
-	if (stream_info.formats & SND_PCM_FMT_U32_BE)
+	if (stream_info.formats & SND_PCM_FMTBIT_U32_BE)
 		printf(" U32-BE");
-	if (stream_info.formats & SND_PCM_FMT_FLOAT)
+	if (stream_info.formats & SND_PCM_FMTBIT_FLOAT)
 		printf(" Float");
-	if (stream_info.formats & SND_PCM_FMT_FLOAT64)
+	if (stream_info.formats & SND_PCM_FMTBIT_FLOAT64)
 		printf(" Float64");
-	if (stream_info.formats & SND_PCM_FMT_IEC958_SUBFRAME_LE)
+	if (stream_info.formats & SND_PCM_FMTBIT_IEC958_SUBFRAME_LE)
 		printf(" IEC958-LE");
-	if (stream_info.formats & SND_PCM_FMT_IEC958_SUBFRAME_BE)
+	if (stream_info.formats & SND_PCM_FMTBIT_IEC958_SUBFRAME_BE)
 		printf(" IEC958-BE");
-	if (stream_info.formats & SND_PCM_FMT_SPECIAL)
+	if (stream_info.formats & SND_PCM_FMTBIT_SPECIAL)
 		printf(" Special");
 	printf("\n");
 	printf("  rates          :");

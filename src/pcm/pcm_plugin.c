@@ -52,38 +52,28 @@ int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return snd_pcm_info(plugin->slave, info);
 }
 
-int snd_pcm_plugin_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
+int snd_pcm_plugin_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	return snd_pcm_channel_info(plugin->slave, info);
+	return snd_pcm_sw_params(plugin->slave, params);
 }
 
-int snd_pcm_plugin_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * params)
+int snd_pcm_plugin_dig_info(snd_pcm_t *pcm, snd_pcm_dig_info_t *info)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	return snd_pcm_channel_params(plugin->slave, params);
+	return snd_pcm_dig_info(plugin->slave, info);
 }
 
-int snd_pcm_plugin_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
+int snd_pcm_plugin_dig_params(snd_pcm_t *pcm, snd_pcm_dig_params_t *params)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	int err;
-	err = snd_pcm_channel_setup(plugin->slave, setup);
-	if (err < 0)
-		return err;
-	if (!pcm->mmap_info)
-		return 0;
-	if (pcm->setup.mmap_shape == SND_PCM_MMAP_INTERLEAVED) {
-		setup->running_area.addr = pcm->mmap_info->addr;
-		setup->running_area.first = setup->channel * pcm->bits_per_sample;
-		setup->running_area.step = pcm->bits_per_frame;
-	} else {
-		setup->running_area.addr = pcm->mmap_info->addr + setup->channel * pcm->setup.buffer_size * pcm->bits_per_sample / 8;
-		setup->running_area.first = 0;
-		setup->running_area.step = pcm->bits_per_sample;
-	}
-	setup->stopped_area = setup->running_area;
-	return 0;
+	return snd_pcm_dig_params(plugin->slave, params);
+}
+
+int snd_pcm_plugin_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
+{
+	snd_pcm_plugin_t *plugin = pcm->private;
+	return snd_pcm_channel_info_shm(pcm, info, plugin->shmid);
 }
 
 int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
@@ -185,7 +175,7 @@ ssize_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, size_t frames)
 ssize_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	snd_pcm_channel_area_t areas[pcm->setup.format.channels];
+	snd_pcm_channel_area_t areas[pcm->channels];
 	ssize_t frames;
 	snd_pcm_areas_from_buf(pcm, areas, (void*)buffer);
 	frames = snd_pcm_write_areas(pcm, areas, 0, size, plugin->write);
@@ -197,7 +187,7 @@ ssize_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
 ssize_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	snd_pcm_channel_area_t areas[pcm->setup.format.channels];
+	snd_pcm_channel_area_t areas[pcm->channels];
 	ssize_t frames;
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
 	frames = snd_pcm_write_areas(pcm, areas, 0, size, plugin->write);
@@ -209,7 +199,7 @@ ssize_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 ssize_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	snd_pcm_channel_area_t areas[pcm->setup.format.channels];
+	snd_pcm_channel_area_t areas[pcm->channels];
 	ssize_t frames;
 	snd_pcm_areas_from_buf(pcm, areas, buffer);
 	frames = snd_pcm_read_areas(pcm, areas, 0, size, plugin->read);
@@ -221,7 +211,7 @@ ssize_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 ssize_t snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
-	snd_pcm_channel_area_t areas[pcm->setup.format.channels];
+	snd_pcm_channel_area_t areas[pcm->channels];
 	ssize_t frames;
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
 	frames = snd_pcm_read_areas(pcm, areas, 0, size, plugin->read);
@@ -251,7 +241,7 @@ ssize_t snd_pcm_plugin_mmap_forward(snd_pcm_t *pcm, size_t client_size)
 		size_t slave_frames = slave_size - slave_xfer;
 		size_t client_frames = client_size - client_xfer;
 		size_t offset = snd_pcm_mmap_hw_offset(pcm);
-		size_t cont = pcm->setup.buffer_size - offset;
+		size_t cont = pcm->buffer_size - offset;
 		if (cont < client_frames)
 			client_frames = cont;
 		err = plugin->write(pcm, pcm->running_areas, offset,
@@ -279,17 +269,18 @@ ssize_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	if (slave_size <= 0)
 		return slave_size;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK ||
-	    !pcm->mmap_info)
+	    pcm->access == SND_PCM_ACCESS_RW_INTERLEAVED ||
+	    pcm->access == SND_PCM_ACCESS_RW_NONINTERLEAVED)
 		return plugin->client_frames ?
 			plugin->client_frames(pcm, slave_size) : slave_size;
 	client_xfer = snd_pcm_mmap_capture_avail(pcm);
-	client_size = pcm->setup.buffer_size;
+	client_size = pcm->buffer_size;
 	while (slave_xfer < (size_t)slave_size &&
 	       client_xfer < client_size) {
 		size_t slave_frames = slave_size - slave_xfer;
 		size_t client_frames = client_size - client_xfer;
 		size_t offset = snd_pcm_mmap_hw_offset(pcm);
-		size_t cont = pcm->setup.buffer_size - offset;
+		size_t cont = pcm->buffer_size - offset;
 		if (cont < client_frames)
 			client_frames = cont;
 		err = plugin->read(pcm, pcm->running_areas, offset,
@@ -313,38 +304,26 @@ int snd_pcm_plugin_set_avail_min(snd_pcm_t *pcm, size_t frames)
 
 int snd_pcm_plugin_mmap(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
-	snd_pcm_t *slave = plugin->slave;
-	snd_pcm_mmap_info_t *i;
-	int err = snd_pcm_mmap(slave);
-	if (err < 0)
-		return err;
-	i = calloc(1, sizeof(*i));
-	if (!i)
-		return -ENOMEM;
-	err = snd_pcm_alloc_user_mmap(pcm, i);
-	if (err < 0) {
-		free(i);
-		return err;
+	snd_pcm_plugin_t *plug = pcm->private;
+	if (!(pcm->info & SND_PCM_INFO_MMAP)) {
+		size_t size = snd_pcm_frames_to_bytes(pcm, pcm->buffer_size);
+		int id = shmget(IPC_PRIVATE, size, 0666);
+		if (id < 0) {
+			SYSERR("shmget failed");
+			return -errno;
+		}
+		plug->shmid = id;
 	}
-	pcm->mmap_info = i;
-	pcm->mmap_info_count = 1;
 	return 0;
 }
 
 int snd_pcm_plugin_munmap(snd_pcm_t *pcm)
 {
-	snd_pcm_plugin_t *plugin = pcm->private;
-	snd_pcm_t *slave = plugin->slave;
-	int err = snd_pcm_munmap(slave);
-	if (err < 0)
-		return err;
-	err = snd_pcm_free_mmap(pcm, pcm->mmap_info);
-	if (err < 0)
-		return err;
-	free(pcm->mmap_info);
-	pcm->mmap_info_count = 0;
-	pcm->mmap_info = 0;
+	snd_pcm_plugin_t *plug = pcm->private;
+	if (shmctl(plug->shmid, IPC_RMID, 0) < 0) {
+		SYSERR("shmctl IPC_RMID failed");
+			return -errno;
+	}
 	return 0;
 }
 

@@ -379,14 +379,20 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_INFO:
 		ctrl->result = snd_pcm_info(pcm, (snd_pcm_info_t *) &ctrl->u.info);
 		break;
-	case SND_PCM_IOCTL_PARAMS:
-		ctrl->result = snd_pcm_params(pcm, (snd_pcm_params_t *) &ctrl->u.params);
+	case SND_PCM_IOCTL_HW_INFO:
+		ctrl->result = snd_pcm_hw_info(pcm, (snd_pcm_hw_info_t *) &ctrl->u.hw_info);
 		break;
-	case SND_PCM_IOCTL_PARAMS_INFO:
-		ctrl->result = snd_pcm_params_info(pcm, (snd_pcm_params_info_t *) &ctrl->u.params_info);
+	case SND_PCM_IOCTL_HW_PARAMS:
+		ctrl->result = snd_pcm_hw_params(pcm, (snd_pcm_hw_params_t *) &ctrl->u.hw_params);
 		break;
-	case SND_PCM_IOCTL_SETUP:
-		ctrl->result = snd_pcm_setup(pcm, (snd_pcm_setup_t *) &ctrl->u.setup);
+	case SND_PCM_IOCTL_SW_PARAMS:
+		ctrl->result = snd_pcm_sw_params(pcm, (snd_pcm_sw_params_t *) &ctrl->u.sw_params);
+		break;
+	case SND_PCM_IOCTL_DIG_PARAMS:
+		ctrl->result = snd_pcm_dig_params(pcm, (snd_pcm_dig_params_t *) &ctrl->u.dig_params);
+		break;
+	case SND_PCM_IOCTL_DIG_INFO:
+		ctrl->result = snd_pcm_dig_info(pcm, (snd_pcm_dig_info_t *) &ctrl->u.dig_info);
 		break;
 	case SND_PCM_IOCTL_STATUS:
 		ctrl->result = snd_pcm_status(pcm, (snd_pcm_status_t *) &ctrl->u.status);
@@ -422,12 +428,9 @@ int pcm_shm_cmd(client_t *client)
 		break;
 	case SND_PCM_IOCTL_CHANNEL_INFO:
 		ctrl->result = snd_pcm_channel_info(pcm, (snd_pcm_channel_info_t *) &ctrl->u.channel_info);
-		break;
-	case SND_PCM_IOCTL_CHANNEL_PARAMS:
-		ctrl->result = snd_pcm_channel_params(pcm, (snd_pcm_channel_params_t *) &ctrl->u.channel_params);
-		break;
-	case SND_PCM_IOCTL_CHANNEL_SETUP:
-		ctrl->result = snd_pcm_channel_setup(pcm, (snd_pcm_channel_setup_t *) &ctrl->u.channel_setup);
+		if (ctrl->result >= 0 &&
+		    ctrl->u.channel_info.type == SND_PCM_AREA_MMAP)
+			return shm_ack_fd(client, ctrl->u.channel_info.u.mmap.fd);
 		break;
 	case SND_PCM_IOCTL_REWIND:
 		ctrl->result = snd_pcm_rewind(pcm, ctrl->u.rewind.frames);
@@ -444,27 +447,7 @@ int pcm_shm_cmd(client_t *client)
 		break;
 	case SND_PCM_IOCTL_MMAP:
 	{
-		err = snd_pcm_mmap(pcm);
-		if (err < 0)
-			ctrl->result = err;
-		else
-			ctrl->result = pcm->mmap_info_count;
-		break;
-	}
-	case SND_PCM_IOCTL_MMAP_INFO:
-	{
-		unsigned int index = ctrl->u.mmap_info.index;
-		snd_pcm_mmap_info_t *i = &pcm->mmap_info[index];
-		if (index >= pcm->mmap_info_count) {
-			ctrl->result = -EINVAL;
-			break;
-		}
-		ctrl->u.mmap_info = *i;
-		ctrl->u.mmap_info.index = index;
-		ctrl->result = 0;
-		if (i->type == SND_PCM_MMAP_USER)
-			break;
-		return shm_ack_fd(client, i->u.kernel.fd);
+		ctrl->result = snd_pcm_mmap(pcm);
 	}
 	case SND_PCM_IOCTL_MUNMAP:
 	{

@@ -28,7 +28,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "asoundlib.h"
-#include "seq_priv.h"
+#include "seq_local.h"
 
 /* direct passing (without queued) */
 void snd_seq_ev_set_direct(snd_seq_event_t *ev)
