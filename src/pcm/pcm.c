@@ -28,7 +28,7 @@
 #include <sys/ioctl.h>
 #include "asoundlib.h"
 
-#define SND_FILE_PCM		"/dev/snd/pcm%i%i"
+#define SND_FILE_PCM		"/dev/snd/pcmC%iD%i"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 1 )
 
 typedef struct {

@@ -28,7 +28,7 @@
 #include <sys/ioctl.h>
 #include "asoundlib.h"
 
-#define SND_FILE_RAWMIDI	"/dev/snd/midi%i%i"
+#define SND_FILE_RAWMIDI	"/dev/snd/midiC%iD%i"
 #define SND_RAWMIDI_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
 
 typedef struct {
