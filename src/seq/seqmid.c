@@ -33,18 +33,14 @@
 /* direct passing (without queued) */
 void snd_seq_ev_set_direct(snd_seq_event_t *ev)
 {
-	ev->flags &= ~SND_SEQ_DEST_MASK;
-	ev->flags |= SND_SEQ_DEST_DIRECT;
-	ev->queue = SND_SEQ_ADDRESS_UNKNOWN; /* XXX */
+	ev->queue = SND_SEQ_QUEUE_DIRECT;
 }
 
 /* queued on tick */
 void snd_seq_ev_schedule_tick(snd_seq_event_t *ev, int q, int relative,
 			      snd_seq_tick_time_t tick)
 {
-	ev->flags &= ~(SND_SEQ_DEST_MASK | SND_SEQ_TIME_STAMP_MASK |
-		       SND_SEQ_TIME_MODE_MASK);
-	ev->flags |= SND_SEQ_DEST_QUEUE;
+	ev->flags &= ~(SND_SEQ_TIME_STAMP_MASK | SND_SEQ_TIME_MODE_MASK);
 	ev->flags |= SND_SEQ_TIME_STAMP_TICK;
 	ev->flags |= relative ? SND_SEQ_TIME_MODE_REL : SND_SEQ_TIME_MODE_ABS;
 	ev->time.tick = tick;
@@ -55,9 +51,7 @@ void snd_seq_ev_schedule_tick(snd_seq_event_t *ev, int q, int relative,
 void snd_seq_ev_schedule_real(snd_seq_event_t *ev, int q, int relative,
 			      snd_seq_real_time_t *real)
 {
-	ev->flags &= ~(SND_SEQ_DEST_MASK | SND_SEQ_TIME_STAMP_MASK |
-		       SND_SEQ_TIME_MODE_MASK);
-	ev->flags |= SND_SEQ_DEST_QUEUE;
+	ev->flags &= ~( SND_SEQ_TIME_STAMP_MASK | SND_SEQ_TIME_MODE_MASK);
 	ev->flags |= SND_SEQ_TIME_STAMP_REAL;
 	ev->flags |= relative ? SND_SEQ_TIME_MODE_REL : SND_SEQ_TIME_MODE_ABS;
 	ev->time.real = *real;
