@@ -219,6 +219,17 @@ int snd_pcm_flush_record( void *handle )
   return 0;
 }
 
+int snd_pcm_playback_pause( void *handle, int enable )
+{
+  snd_pcm_t *pcm;
+  
+  pcm = (snd_pcm_t *)handle;
+  if ( !pcm ) return -EINVAL;
+  if ( ioctl( pcm -> fd, SND_PCM_IOCTL_PLAYBACK_PAUSE, &enable ) < 0 )
+    return -errno;
+  return 0;
+}
+
 int snd_pcm_playback_time( void *handle, int enable )
 {
   snd_pcm_t *pcm;

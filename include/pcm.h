@@ -29,6 +29,7 @@ int snd_pcm_record_status( void *handle, snd_pcm_record_status_t *status );
 int snd_pcm_drain_playback( void *handle );
 int snd_pcm_flush_playback( void *handle );
 int snd_pcm_flush_record( void *handle );
+int snd_pcm_playback_pause( void *handle, int enable );
 int snd_pcm_playback_time( void *handle, int enable );
 int snd_pcm_record_time( void *handle, int enable );
 ssize_t snd_pcm_write( void *handle, const void *buffer, size_t size );
