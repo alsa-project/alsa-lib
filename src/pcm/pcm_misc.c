@@ -19,24 +19,12 @@
  *
  */
   
-#ifdef __KERNEL__
-#include <sound/driver.h>
-#include <sound/pcm.h>
-#include <sound/pcm_plugin.h>
-#define bswap_16 swab16
-#define bswap_32 swab32
-#define bswap_64 swab64
-#define SND_PCM_FORMAT_UNKNOWN (-1)
-#define snd_enum_to_int(v) (v)
-#define snd_int_to_enum(v) (v)
-#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <byteswap.h>
 #include "pcm_local.h"
-#endif
 
 
 /**
