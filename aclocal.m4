@@ -70,19 +70,26 @@ AC_TRY_COMPILE([
 ], [
 void main(void)
 {
-#  if(SOUNDLIB_VERSION_MAJOR >= $alsa_min_major_version)
-#    if(SOUNDLIB_VERSION_MINOR >= $alsa_min_minor_version) 
-#      if(SOUNDLIB_VERSION_SUBMINOR >= $alsa_min_micro_version)
- 	exit(0);
-#      else
+#  if(SOUNDLIB_VERSION_MAJOR > $alsa_min_major_version)
+  exit(0);
+#  else
+#    if(SOUNDLIB_VERSION_MAJOR < $alsa_min_major_version)
+#       error not present
+#    endif
+
+#   if(SOUNDLIB_VERSION_MINOR > $alsa_min_minor_version)
+  exit(0);
+#   else
+#     if(SOUNDLIB_VERSION_MINOR < $alsa_min_minor_version)
+#          error not present
+#      endif
+
+#      if(SOUNDLIB_VERSION_SUBMINOR < $alsa_min_micro_version)
 #        error not present
 #      endif
-#    else
-#      error not present
 #    endif
-#  else
-#  error not present
 #  endif
+exit(0);
 }
 ],
   [AC_MSG_RESULT(found.)],
