@@ -133,6 +133,8 @@ static int get_compare_weight(const char *name, unsigned int idx)
 		"3D Control - Center",
 		"PCM",
 		"Surround",
+		"Center",
+		"LFE",
 		"Synth",
 		"FM",
 		"Wave",
