@@ -32,21 +32,20 @@
 #include "asoundlib.h"
 #include "control_local.h"
 
-static void snd_ctl_cfree1(snd_hcontrol_t *hcontrol);
+static void snd_ctl_hfree1(snd_hcontrol_t *hcontrol);
 
-int snd_ctl_cbuild(snd_ctl_t *handle, snd_ctl_csort_t *csort)
+int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t *hsort)
 {
 	snd_control_list_t list;
 	snd_hcontrol_t *hcontrol, *prev;
 	int err;
 	unsigned int idx;
 
-	printf("cbuild - start\n");
 	assert(handle != NULL);
-	if ((err = snd_ctl_cfree(handle)) < 0)
+	if ((err = snd_ctl_hfree(handle)) < 0)
 		return err;
-	if (csort == NULL)
-		csort = snd_ctl_csort;
+	if (hsort == NULL)
+		hsort = snd_ctl_hsort;
 	memset(&list, 0, sizeof(list));
 	do {
 		if (list.pids != NULL)
@@ -67,132 +66,171 @@ int snd_ctl_cbuild(snd_ctl_t *handle, snd_ctl_csort_t *csort)
 	} while (list.controls != list.controls_count);
 	for (idx = 0, prev = NULL; idx < list.controls_count; idx++) {
 		hcontrol = (snd_hcontrol_t *)calloc(1, sizeof(snd_hcontrol_t));
-		if (hcontrol == NULL) {
-			snd_ctl_cfree(handle);
+		if (hcontrol == NULL)
+			goto __nomem;
+		hcontrol->id = list.pids[idx];
+		hcontrol->handle = handle;
+		if (tsearch(hcontrol, &handle->hroot, (__compar_fn_t)hsort) == NULL) {
+		      __nomem:
+			if (handle->hroot != NULL) {
+				tdestroy(handle->hroot, (__free_fn_t)snd_ctl_hfree1);
+				handle->hroot = NULL;
+			}
+			handle->hroot = NULL;
+			if (hcontrol != NULL)
+				free(hcontrol);
 			free(list.pids);
 			return -ENOMEM;
 		}
-		hcontrol->id = list.pids[idx];
-		hcontrol->handle = handle;
-		if (tsearch(hcontrol, &handle->croot, (__compar_fn_t)csort) == NULL) {
-			tdestroy(&handle->croot, (__free_fn_t)snd_ctl_cfree1);
-			handle->croot = NULL;
-		}
-		handle->ccount++;
+		list_add_tail(&hcontrol->list, &handle->hlist);
+		handle->hcount++;
 	}
 	if (list.pids != NULL)
 		free(list.pids);
-	handle->csort = csort;
+	if ((err = snd_ctl_hresort(handle, hsort)) < 0) {
+		tdestroy(handle->hroot, (__free_fn_t)snd_ctl_hfree1);
+		handle->hroot = NULL;
+	}
 	return 0;
 }
 
-static void snd_ctl_cfree1(snd_hcontrol_t *hcontrol)
+static void snd_ctl_hfree1(snd_hcontrol_t *hcontrol)
 {
 	snd_ctl_t *handle;
 	
 	assert(hcontrol != NULL);
 	handle = hcontrol->handle;
 	assert(handle != NULL);
-	assert(handle->ccount > 0);
+	assert(handle->hcount > 0);
 	if (hcontrol->event_remove)
 		hcontrol->event_remove(handle, hcontrol);
 	if (hcontrol->private_free)
 		hcontrol->private_free(hcontrol->private_data);
+	list_del(&hcontrol->list);
 	free(hcontrol);
-	handle->ccount--;
+	handle->hcount--;
 }
 
-int snd_ctl_cfree(snd_ctl_t *handle)
+int snd_ctl_hfree(snd_ctl_t *handle)
 {
-	handle->csort = NULL;
-	handle->cerr = 0;
-	if (handle->croot != NULL) {
-		tdestroy(handle->croot, (__free_fn_t)snd_ctl_cfree1);
-		handle->croot = NULL;
+	handle->hsort = NULL;
+	handle->herr = 0;
+	if (handle->hroot != NULL) {
+		tdestroy(handle->hroot, (__free_fn_t)snd_ctl_hfree1);
+		handle->hroot = NULL;
 	}
-	assert(handle->ccount == 0);
+	assert(list_empty(&handle->hlist));
+	assert(handle->hcount == 0);
 	return 0;
 }
 
-int snd_ctl_csort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2)
+int snd_ctl_hsort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2)
 {
 	int res;
 
-	res = strcmp(c1->id.name, c2->id.name);
-	if (res == 0) {
-		if (c1->id.index < c2->id.index)
-			return -1;
-		if (c1->id.index > c2->id.index)
-			return 1;
-		return 0;
-	}
-	return res;
-}
-
-static void snd_ctl_cresort_action(snd_hcontrol_t *hcontrol, VISIT which, int level)
-{
-	snd_ctl_t *handle;
-
-	level = 0;			/* to keep GCC happy */
-	assert(hcontrol != NULL);
-	handle = hcontrol->handle;
-	assert(handle != NULL);
-	if (handle->cerr < 0)
-		return;
-	switch (which) {
-	case preorder: break;
-	case postorder: break;
-	case endorder:
-	case leaf:
-		if (tsearch(hcontrol, &handle->croot, (__compar_fn_t)handle->csort) == NULL)
-			handle->cerr = -ENOMEM;
-		break;
-	}
-}
-
-static void snd_ctl_cresort_free(snd_hcontrol_t *hcontrol)
-{
-	hcontrol = NULL;		/* to keep GCC happy */
-	/* nothing */
-}
-
-int snd_ctl_cresort(snd_ctl_t *handle, snd_ctl_csort_t *csort)
-{
-	int result;
-	snd_ctl_csort_t *csort_old;
-
-	assert(handle != NULL && csort != NULL);
-	if (handle->ccount == 0)
-		return 0;
-	if (handle->cerr < 0)
-		return handle->cerr;
-	assert(handle->croot_new == NULL);
-	csort_old = handle->csort;
-	handle->csort = csort;
-	twalk(handle->croot, (__action_fn_t)snd_ctl_cresort_action);
-	if (handle->cerr < 0) {
-		result = handle->cerr;
-		handle->cerr = 0;
-		handle->csort = csort_old;
-		tdestroy(handle->croot_new, (__free_fn_t)snd_ctl_cresort_free);
-		handle->croot_new = NULL;
-		return result;
-	}
-	tdestroy(handle->croot, (__free_fn_t)snd_ctl_cresort_free);
-	handle->croot = handle->croot_new;
-	handle->croot_new = NULL;
+	if (c1->id.iface < c2->id.iface)
+		return -1;
+	if (c1->id.iface > c2->id.iface)
+		return 1;
+	if ((res = strcmp(c1->id.name, c2->id.name)) != 0)
+		return res;
+	if (c1->id.index < c2->id.index)
+		return -1;
+	if (c1->id.index > c2->id.index)
+		return 1;
 	return 0;
 }
 
-snd_hcontrol_t *snd_ctl_cfind(snd_ctl_t *handle, snd_control_id_t *id)
+static void snd_ctl_hresort_free(snd_hcontrol_t *hcontrol ATTRIBUTE_UNUSED)
 {
-	assert(handle != NULL);
-	if (handle->croot == NULL)
-		return NULL;
-	return (snd_hcontrol_t *)tfind(id, &handle->croot, (__compar_fn_t)handle->csort);
+	/* nothing */
 }
 
-int snd_ctl_ccallback_rebuild(snd_ctl_t *handle, snd_ctl_ccallback_rebuild_t *callback, void *private_data)
+int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t *hsort)
+{
+	struct list_head *list;
+	snd_hcontrol_t *hcontrol;
+	snd_control_id_t *ids, *pids;
+	int idx;
+
+	assert(handle != NULL && hsort != NULL);
+	if (handle->hcount == 0)
+		return 0;
+	if (handle->herr < 0)
+		return handle->herr;
+	assert(handle->hroot_new == NULL);
+	ids = pids = (snd_control_id_t *)malloc(sizeof(snd_control_id_t) * handle->hcount);
+	if (ids == NULL)
+		return -ENOMEM;
+	/* first step - update search engine */
+	list_for_each(list, &handle->hlist) {
+		hcontrol = list_entry(list, snd_hcontrol_t, list);
+		*pids++ = hcontrol->id;
+		if (tsearch(hcontrol, &handle->hroot_new, (__compar_fn_t)hsort) == NULL) {
+			if (handle->hroot_new != NULL)
+				tdestroy(handle->hroot_new, (__free_fn_t)snd_ctl_hresort_free);
+			handle->hroot_new = NULL;
+			free(ids);
+			return -ENOMEM;
+		}
+	}
+	if (handle->hroot != NULL)
+		tdestroy(handle->hroot, (__free_fn_t)snd_ctl_hresort_free);
+	handle->hsort = hsort;
+	handle->hroot = handle->hroot_new;
+	handle->hroot_new = NULL;
+	/* second step - perform qsort and save results */
+	qsort(ids, handle->hcount, sizeof(snd_control_id_t), (int (*)(const void *, const void *))hsort);
+	INIT_LIST_HEAD(&handle->hlist);
+	for (idx = 0; idx < handle->hcount; idx++) {
+		hcontrol = snd_ctl_hfind(handle, ids + idx);
+		list_add_tail(&hcontrol->list, &handle->hlist);
+	}
+	free(ids);
+	return 0;
+}
+
+snd_hcontrol_t *snd_ctl_hfind(snd_ctl_t *handle, snd_control_id_t *id)
+{
+	void *res;
+
+	assert(handle != NULL);
+	if (handle->hroot == NULL)
+		return NULL;
+	res = tfind(id, &handle->hroot, (__compar_fn_t)handle->hsort);
+	return res == NULL ? NULL : *(snd_hcontrol_t **)res;
+}
+
+int snd_ctl_hlist(snd_ctl_t *handle, snd_hcontrol_list_t *hlist)
+{
+	struct list_head *list;
+	snd_hcontrol_t *hcontrol;
+	unsigned int idx;
+
+	assert(hlist != NULL);
+	if (hlist->controls_offset >= (unsigned int)handle->hcount)
+		return -EINVAL;
+	hlist->controls_count = 0;
+	hlist->controls = handle->hcount;
+	if (hlist->controls_request > 0) {
+		if (hlist->pids == NULL)
+			return -EINVAL;
+		idx = 0;
+		list_for_each(list, &handle->hlist) {
+			hcontrol = list_entry(list, snd_hcontrol_t, list);
+			if (idx >= hlist->controls_offset + hlist->controls_request)
+				break;
+			if (idx >= hlist->controls_offset) {
+				hlist->pids[idx] = hcontrol->id;
+				hlist->controls_count++;
+			}
+			idx++;
+		}
+	}
+	return 0;
+}
+
+int snd_ctl_hcallback_rebuild(snd_ctl_t *handle, snd_ctl_hcallback_rebuild_t *callback, void *private_data)
 {
 	assert(handle != NULL);
 	handle->callback_rebuild = callback;
@@ -200,7 +238,7 @@ int snd_ctl_ccallback_rebuild(snd_ctl_t *handle, snd_ctl_ccallback_rebuild_t *ca
 	return 0;
 }
 
-int snd_ctl_ccallback_add(snd_ctl_t *handle, snd_ctl_ccallback_add_t *callback, void *private_data)
+int snd_ctl_hcallback_add(snd_ctl_t *handle, snd_ctl_hcallback_add_t *callback, void *private_data)
 {
 	assert(handle != NULL);
 	handle->callback_add = callback;
@@ -208,110 +246,85 @@ int snd_ctl_ccallback_add(snd_ctl_t *handle, snd_ctl_ccallback_add_t *callback, 
 	return 0;
 }
 
-static void callback_rebuild(snd_ctl_t *handle, void *private_data)
+static void callback_rebuild(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED)
 {
-	private_data = NULL;	/* to keep GCC happy */
-	handle->cerr = snd_ctl_cbuild(handle, handle->csort);
-	if (handle->cerr >= 0 && handle->callback_rebuild)
+	handle->herr = snd_ctl_hbuild(handle, handle->hsort);
+	if (handle->herr >= 0 && handle->callback_rebuild)
 		handle->callback_rebuild(handle, handle->callback_rebuild_private_data);
 }
 
-static void callback_change(snd_ctl_t *handle, void *private_data, snd_control_id_t *id)
+static void callback_change(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_control_id_t *id)
 {
 	snd_hcontrol_t *hcontrol;
 
-	private_data = NULL;	/* to keep GCC happy */
-	if (handle->cerr < 0)
+	if (handle->herr < 0)
 		return;
-	hcontrol = snd_ctl_cfind(handle, id);
+	hcontrol = snd_ctl_hfind(handle, id);
 	if (hcontrol == NULL) {
-		handle->cerr = -ENOENT;
+		handle->herr = -ENOENT;
 		return;
 	}
 	hcontrol->change = 1;
 }
 
-static void callback_value(snd_ctl_t *handle, void *private_data, snd_control_id_t *id)
+static void callback_value(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_control_id_t *id)
 {
 	snd_hcontrol_t *hcontrol;
 
-	private_data = NULL;	/* to keep GCC happy */
-	if (handle->cerr < 0)
+	if (handle->herr < 0)
 		return;
-	hcontrol = snd_ctl_cfind(handle, id);
+	hcontrol = snd_ctl_hfind(handle, id);
 	if (hcontrol == NULL) {
-		handle->cerr = -ENOENT;
+		handle->herr = -ENOENT;
 		return;
 	}
 	hcontrol->value = 1;
 }
 
-static void callback_add(snd_ctl_t *handle, void *private_data, snd_control_id_t *id)
+static void callback_add(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_control_id_t *id)
 {
 	snd_hcontrol_t *hcontrol, *icontrol;
 
-	private_data = NULL;	/* to keep GCC happy */
-	if (handle->cerr < 0)
+	if (handle->herr < 0)
 		return;
 	hcontrol = (snd_hcontrol_t *)calloc(1, sizeof(snd_hcontrol_t));
 	if (hcontrol == NULL) {
-		handle->cerr = -ENOMEM;
+		handle->herr = -ENOMEM;
 		return;
 	}
 	hcontrol->id = *id;
 	hcontrol->handle = handle;
-	icontrol = tsearch(hcontrol, &handle->croot, (__compar_fn_t)handle->csort);
+	icontrol = tsearch(hcontrol, &handle->hroot, (__compar_fn_t)handle->hsort);
 	if (icontrol == NULL) {
 		free(hcontrol);
-		handle->cerr = -ENOMEM;
+		handle->herr = -ENOMEM;
 		return;
 	}
 	if (icontrol != hcontrol) {	/* double hit */
 		free(hcontrol);
 		return;
 	}
+	list_add_tail(&hcontrol->list, &handle->hlist);
 	if (handle->callback_add)
 		handle->callback_add(handle, handle->callback_add_private_data, hcontrol);
 }
 
-static void callback_remove(snd_ctl_t *handle, void *private_data, snd_control_id_t *id)
+static void callback_remove(snd_ctl_t *handle, void *private_data ATTRIBUTE_UNUSED, snd_control_id_t *id)
 {
 	snd_hcontrol_t *hcontrol;
 
-	private_data = NULL;	/* to keep GCC happy */
-	if (handle->cerr < 0)
+	if (handle->herr < 0)
 		return;
-	hcontrol = snd_ctl_cfind(handle, id);
+	hcontrol = snd_ctl_hfind(handle, id);
 	if (hcontrol == NULL) {
-		handle->cerr = -ENOENT;
+		handle->herr = -ENOENT;
 		return;
 	}
-	if (tdelete(hcontrol, &handle->croot, (__compar_fn_t)handle->csort) != NULL)
-		snd_ctl_cfree1(hcontrol);
+	if (tdelete(hcontrol, &handle->hroot, (__compar_fn_t)handle->hsort) != NULL)
+		snd_ctl_hfree1(hcontrol);
 }
 
-static void snd_ctl_cevent_walk1(snd_hcontrol_t *hcontrol, VISIT which, int level)
-{
-	level = 0;	/* to keep GCC happy */
-	assert(hcontrol != NULL);
-	switch (which) {
-	case preorder: break;
-	case postorder: break;
-	case endorder:
-	case leaf:
-		if (hcontrol->change && hcontrol->event_change) {
-			hcontrol->event_change(hcontrol->handle, hcontrol);
-			hcontrol->change = 0;
-		}
-		if (hcontrol->value && hcontrol->event_value) {
-			hcontrol->event_value(hcontrol->handle, hcontrol);
-			hcontrol->value = 0;
-		}			
-		break;
-	}
-}
-
-int snd_ctl_cevent(snd_ctl_t *handle)
+int snd_ctl_hevent(snd_ctl_t *handle)
 {
 	static snd_ctl_callbacks_t callbacks = {
 		rebuild: callback_rebuild,
@@ -322,15 +335,27 @@ int snd_ctl_cevent(snd_ctl_t *handle)
 		private_data: NULL,
 		reserved: { NULL, }
 	};
+	struct list_head *list;
+	snd_hcontrol_t *hcontrol;
 	int res;
 
 	assert(handle != NULL);
-	handle->cerr = 0;
+	handle->herr = 0;
 	res = snd_ctl_read(handle, &callbacks);
 	if (res < 0)
 		return res;
-	if (handle->cerr < 0)
-		return handle->cerr;
-	twalk(handle->croot, (__action_fn_t)snd_ctl_cevent_walk1);
+	if (handle->herr < 0)
+		return handle->herr;
+	list_for_each(list, &handle->hlist) {
+		hcontrol = list_entry(list, snd_hcontrol_t, list);
+		if (hcontrol->change && hcontrol->event_change) {
+			hcontrol->event_change(hcontrol->handle, hcontrol);
+			hcontrol->change = 0;
+		}
+		if (hcontrol->value && hcontrol->event_value) {
+			hcontrol->event_value(hcontrol->handle, hcontrol);
+			hcontrol->value = 0;
+		}			
+	}
 	return res;
 }

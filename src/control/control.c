@@ -64,6 +64,7 @@ int snd_ctl_open(snd_ctl_t **handle, int card)
 	}
 	ctl->card = card;
 	ctl->fd = fd;
+	INIT_LIST_HEAD(&ctl->hlist);
 	*handle = ctl;
 	return 0;
 }
@@ -101,7 +102,7 @@ int snd_ctl_clist(snd_ctl_t *handle, snd_control_list_t *list)
 
 int snd_ctl_cinfo(snd_ctl_t *handle, snd_control_info_t *info)
 {
-	assert(handle && info && info->id.name[0]);
+	assert(handle && info && (info->id.name[0] || info->id.numid));
 	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_INFO, info) < 0)
 		return -errno;
 	return 0;
@@ -109,7 +110,7 @@ int snd_ctl_cinfo(snd_ctl_t *handle, snd_control_info_t *info)
 
 int snd_ctl_cread(snd_ctl_t *handle, snd_control_t *control)
 {
-	assert(handle && control && control->id.name[0]);
+	assert(handle && control && (control->id.name[0] || control->id.numid));
 	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_READ, control) < 0)
 		return -errno;
 	return 0;
@@ -117,7 +118,7 @@ int snd_ctl_cread(snd_ctl_t *handle, snd_control_t *control)
 
 int snd_ctl_cwrite(snd_ctl_t *handle, snd_control_t *control)
 {
-	assert(handle && control && control->id.name[0]);
+	assert(handle && control && (control->id.name[0] || control->id.numid));
 	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_WRITE, control) < 0)
 		return -errno;
 	return 0;

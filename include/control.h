@@ -54,10 +54,25 @@ int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks);
  *  Highlevel API for controls
  */
 
+#define LIST_HEAD_IS_DEFINED
+struct list_head {
+        struct list_head *next, *prev;
+};        
+
+typedef struct snd_hcontrol_list_stru snd_hcontrol_list_t;
 typedef struct snd_hcontrol_stru snd_hcontrol_t;
+
+struct snd_hcontrol_list_stru {
+	unsigned int controls_offset;	/* W: first control ID to get */
+	unsigned int controls_request;	/* W: count of control IDs to get */
+	unsigned int controls_count;	/* R: count of available (set) controls */
+	unsigned int controls;		/* R: count of all available controls */
+	snd_control_id_t *pids;		/* W: IDs */
+};
 
 struct snd_hcontrol_stru {
 	snd_control_id_t id; 	/* must be always on top */
+	struct list_head list;	/* links for list of all hcontrols */
 	int change: 1,		/* structure change */
 	    value: 1;		/* value change */
 	/* event callbacks */
@@ -71,18 +86,19 @@ struct snd_hcontrol_stru {
 	snd_ctl_t *handle;	/* associated handle */
 };
 
-typedef int (snd_ctl_csort_t)(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2);
-typedef int (snd_ctl_ccallback_rebuild_t)(snd_ctl_t *handle, void *private_data);
-typedef int (snd_ctl_ccallback_add_t)(snd_ctl_t *handle, void *private_data, snd_hcontrol_t *hcontrol);
+typedef int (snd_ctl_hsort_t)(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2);
+typedef int (snd_ctl_hcallback_rebuild_t)(snd_ctl_t *handle, void *private_data);
+typedef int (snd_ctl_hcallback_add_t)(snd_ctl_t *handle, void *private_data, snd_hcontrol_t *hcontrol);
 
-int snd_ctl_cbuild(snd_ctl_t *handle, snd_ctl_csort_t *csort);
-int snd_ctl_cfree(snd_ctl_t *handle);
-snd_hcontrol_t *snd_ctl_cfind(snd_ctl_t *handle, snd_control_id_t *id);
-int snd_ctl_csort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2);
-int snd_ctl_cresort(snd_ctl_t *handle, snd_ctl_csort_t *csort);
-int snd_ctl_ccallback_rebuild(snd_ctl_t *handle, snd_ctl_ccallback_rebuild_t *callback, void *private_data);
-int snd_ctl_ccallback_add(snd_ctl_t *handle, snd_ctl_ccallback_add_t *callback, void *private_data);
-int snd_ctl_cevent(snd_ctl_t *handle);
+int snd_ctl_hbuild(snd_ctl_t *handle, snd_ctl_hsort_t *csort);
+int snd_ctl_hfree(snd_ctl_t *handle);
+snd_hcontrol_t *snd_ctl_hfind(snd_ctl_t *handle, snd_control_id_t *id);
+int snd_ctl_hlist(snd_ctl_t *handle, snd_hcontrol_list_t *hlist);
+int snd_ctl_hsort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2);
+int snd_ctl_hresort(snd_ctl_t *handle, snd_ctl_hsort_t *csort);
+int snd_ctl_hcallback_rebuild(snd_ctl_t *handle, snd_ctl_hcallback_rebuild_t *callback, void *private_data);
+int snd_ctl_hcallback_add(snd_ctl_t *handle, snd_ctl_hcallback_add_t *callback, void *private_data);
+int snd_ctl_hevent(snd_ctl_t *handle);
 
 #ifdef __cplusplus
 }

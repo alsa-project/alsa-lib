@@ -38,9 +38,8 @@ static int test_mixer_id(snd_mixer_t *handle, const char *name, int index)
 	id.iface = SND_CONTROL_IFACE_MIXER;
 	strcpy(id.name, name);
 	id.index = index;
-	printf("look\n");
-	hcontrol = snd_ctl_cfind(handle->ctl_handle, &id);
-	fprintf(stderr, "Looking for control: '%s', %i (0x%lx)\n", name, index, (long)hcontrol);
+	hcontrol = snd_ctl_hfind(handle->ctl_handle, &id);
+	// fprintf(stderr, "Looking for control: '%s', %i (0x%lx)\n", name, index, (long)hcontrol);
 	return hcontrol != NULL;
 }
 
@@ -339,19 +338,15 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 	memset(&gvolume_info, 0, sizeof(gvolume_info));
 	memset(&pvolume_info, 0, sizeof(pvolume_info));
 	memset(&cvolume_info, 0, sizeof(cvolume_info));
-	printf("b (1)\n");
-	do {
+	while (1) {
 		index++;
 		voices = 0;
 		present = caps = capture_item = 0;
 		min = max = 0;
 		sprintf(str, "%s Switch", sname);
-		printf("b (2)\n");
 		if (test_mixer_id(handle, str, index)) {
-			printf("b (3)\n");
 			if ((err = get_mixer_info(handle, str, index, &gswitch_info)) < 0)
 				return err;
-			printf("b (4)\n");
 			if (gswitch_info.type == SND_CONTROL_TYPE_BOOLEAN) {
 				if (voices < gswitch_info.values_count)
 					voices = gswitch_info.values_count;
@@ -359,7 +354,6 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 				present |= MIXER_PRESENT_GLOBAL_SWITCH;
 			}
 		}
-		printf("b (3)\n");
 		sprintf(str, "%s Volume", sname);
 		if (test_mixer_id(handle, str, index)) {
 			if ((err = get_mixer_info(handle, str, index, &gvolume_info)) < 0)
@@ -483,7 +477,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 					caps &= ~SND_MIXER_SCTCAP_JOINTLY_VOLUME;
 			}
 		}
-		printf("b (4)\n");
+		if (present == 0)
+			break;
 		simple = build_input_scontrol(handle, sname, index);
 		if (simple == NULL)
 			return -ENOMEM;
@@ -500,8 +495,8 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 		simple->voices = voices;
 		simple->min = min;
 		simple->max = max;
-		fprintf(stderr, "sname = '%s', index = %i, present = 0x%x, voices = %i\n", sname, index, present, voices);
-	} while (present != 0);
+		// fprintf(stderr, "sname = '%s', index = %i, present = 0x%x, voices = %i\n", sname, index, present, voices);
+	};
 	return 0;
 }
 
@@ -527,11 +522,9 @@ int snd_mixer_simple_build(snd_mixer_t *handle)
 	char **input = inputs;
 	int err;
 
-	printf("simple build - start\n");
-	if ((err = snd_ctl_cbuild(handle->ctl_handle, snd_ctl_csort)) < 0)
+	if ((err = snd_ctl_hbuild(handle->ctl_handle, snd_ctl_hsort)) < 0)
 		return err;
 	while (*input) {
-		printf("simple build - input '%s'\n", *input);
 		if ((err = build_input(handle, *input)) < 0) {
 			snd_mixer_simple_destroy(handle);
 			return err;
@@ -539,7 +532,6 @@ int snd_mixer_simple_build(snd_mixer_t *handle)
 		input++;
 	}
 	handle->simple_valid = 1;
-	printf("simple build - end\n");
 	return 0;
 }
 
@@ -548,6 +540,6 @@ int snd_mixer_simple_destroy(snd_mixer_t *handle)
 	while (handle->simple_first)
 		simple_remove(handle, handle->simple_first);
 	handle->simple_valid = 0;
-	snd_ctl_cfree(handle->ctl_handle);
+	snd_ctl_hfree(handle->ctl_handle);
 	return 0;
 }

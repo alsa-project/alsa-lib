@@ -19,16 +19,19 @@
  *
  */
 
+#include "list.h"
+
 struct snd_ctl {
 	int card;
 	int fd;
-	int ccount;
-	int cerr;
-	void *croot;		/* root of controls */
-	void *croot_new;	/* new croot */
-	snd_ctl_csort_t *csort;
-	snd_ctl_ccallback_rebuild_t *callback_rebuild;
+	int hcount;
+	int herr;
+	struct list_head hlist;	/* list of all controls */
+	void *hroot;		/* root of controls */
+	void *hroot_new;	/* new croot */
+	snd_ctl_hsort_t *hsort;
+	snd_ctl_hcallback_rebuild_t *callback_rebuild;
 	void *callback_rebuild_private_data;
-	snd_ctl_ccallback_add_t *callback_add;
+	snd_ctl_hcallback_add_t *callback_add;
 	void *callback_add_private_data;
 };

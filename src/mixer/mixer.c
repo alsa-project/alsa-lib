@@ -214,7 +214,7 @@ int snd_mixer_simple_read(snd_mixer_t *handle, snd_mixer_simple_callbacks_t *cal
 		snd_mixer_simple_build(handle);
 	handle->callbacks = callbacks;
 	handle->simple_changes = 0;
-	if ((err = snd_ctl_cevent(handle->ctl_handle)) <= 0) {
+	if ((err = snd_ctl_hevent(handle->ctl_handle)) <= 0) {
 		handle->callbacks = NULL;
 		return err;
 	}
