@@ -12,6 +12,7 @@ cfg_files = aliases.conf \
 	ICE1712.conf \
 	ICE1724.conf \
 	ICH.conf \
+	NFORCE.conf \
 	RME9636.conf \
 	RME9652.conf \
 	SI7018.conf \
