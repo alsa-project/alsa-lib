@@ -229,6 +229,10 @@ ssize_t snd_pcm_loopback_read(snd_pcm_loopback_t *lb, snd_pcm_loopback_callbacks
 					callbacks->position_change(callbacks->private_data, pos);
 			}
 			break;
+		case SND_PCM_LB_TYPE_SILENCE:
+			if (callbacks->silence)
+				callbacks->silence(callbacks->private_data, header.size);
+			break;
 		}
 	}
 	return result;

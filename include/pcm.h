@@ -167,7 +167,8 @@ typedef struct snd_pcm_loopback_callbacks {
 	void (*data) (void *private_data, char *buffer, size_t count);
 	void (*position_change) (void *private_data, unsigned int pos);
 	void (*format_change) (void *private_data, snd_pcm_format_t *format);
-	char *reserved[32];		/* reserved for the future use - must be NULL!!! */
+	void (*silence) (void *private_data, size_t count);
+	void *reserved[31];		/* reserved for the future use - must be NULL!!! */
 } snd_pcm_loopback_callbacks_t;
 
 int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int subdev, int mode);
