@@ -112,8 +112,27 @@ int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_hw_info_t *info)
 	return err;
 }
 
+void snd_pcm_hw_info_all(snd_pcm_hw_info_t *info)
+{
+	assert(info);
+	info->access_mask = ~0;
+	info->format_mask = ~0;
+	info->subformat_mask = ~0;
+	info->channels_min = 1;
+	info->channels_max = UINT_MAX;
+	info->rate_min = 1;
+	info->rate_max = UINT_MAX;
+	info->fragment_size_min = 1;
+	info->fragment_size_max = ULONG_MAX;
+	info->fragments_min = 1;
+	info->fragments_max = UINT_MAX;
+	info->buffer_size_min = 1;
+	info->buffer_size_max = ULONG_MAX;
+}
+
 void snd_pcm_hw_params_to_info(snd_pcm_hw_params_t *params, snd_pcm_hw_info_t *info)
 {
+	assert(info && params);
 	info->access_mask = 1U << params->access;
 	info->format_mask = 1U << params->format;
 	info->subformat_mask = 1U << params->subformat;
@@ -656,12 +675,13 @@ int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp)
 	return 0;
 }
 
-int snd_pcm_dump_hw_info(snd_pcm_hw_info_t *info,
-			 FILE *fp)
+int snd_pcm_dump_hw_info(snd_pcm_hw_info_t *info, FILE *fp)
 {
 	unsigned int k;
 	fputs("access:", fp);
-	if (info->access_mask) {
+	if (info->access_mask == ~0)
+		fputs(" ALL", fp);
+	else if (info->access_mask) {
 		for (k = 0; k <= SND_PCM_ACCESS_LAST; ++k)
 			if (info->access_mask & (1U << k)) {
 				putc(' ', fp);
@@ -672,7 +692,9 @@ int snd_pcm_dump_hw_info(snd_pcm_hw_info_t *info,
 	putc('\n', fp);
 
 	fputs("format:", fp);
-	if (info->format_mask) {
+	if (info->format_mask == ~0)
+		fputs(" ALL", fp);
+	else if (info->format_mask) {
 		for (k = 0; k <= SND_PCM_FORMAT_LAST; ++k)
 			if (info->format_mask & (1U << k)) {
 				putc(' ', fp);
@@ -683,7 +705,9 @@ int snd_pcm_dump_hw_info(snd_pcm_hw_info_t *info,
 	putc('\n', fp);
 	
 	fputs("subformat:", fp);
-	if (info->subformat_mask) {
+	if (info->subformat_mask == ~0)
+		fputs(" ALL", fp);
+	else if (info->subformat_mask) {
 		for (k = 0; k <= SND_PCM_SUBFORMAT_LAST; ++k)
 			if (info->subformat_mask & (1U << k)) {
 				putc(' ', fp);
@@ -694,7 +718,7 @@ int snd_pcm_dump_hw_info(snd_pcm_hw_info_t *info,
 	putc('\n', fp);
 
 	fputs("channels: ", fp);
-	if (info->channels_min == 0 && info->channels_max == UINT_MAX)
+	if (info->channels_min <= 1 && info->channels_max == UINT_MAX)
 		fputs("ALL", fp);
 	else if (info->channels_min > info->channels_max)
 		fputs("NONE", fp);
@@ -706,7 +730,7 @@ int snd_pcm_dump_hw_info(snd_pcm_hw_info_t *info,
 	putc('\n', fp);
 
 	fputs("rate: ", fp);
-	if (info->rate_min == 0 && info->rate_max == UINT_MAX)
+	if (info->rate_min <= 1 && info->rate_max == UINT_MAX)
 		fputs("ALL", fp);
 	else if (info->rate_min > info->rate_max)
 		fputs("NONE", fp);

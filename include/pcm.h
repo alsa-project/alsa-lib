@@ -91,6 +91,7 @@ ssize_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, size_t size);
 int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp);
 int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, FILE *fp);
 int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp);
+int snd_pcm_dump_hw_info(snd_pcm_hw_info_t *info, FILE *fp);
 int snd_pcm_dump_hw_params_fail(snd_pcm_hw_params_t *params, FILE *fp);
 int snd_pcm_dump_sw_params_fail(snd_pcm_sw_params_t *params, FILE *fp);
 int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp);
@@ -101,6 +102,7 @@ int snd_pcm_unlink(snd_pcm_t *pcm);
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 ssize_t snd_pcm_avail_update(snd_pcm_t *pcm);
 int snd_pcm_set_avail_min(snd_pcm_t *pcm, size_t size);
+void snd_pcm_hw_info_all(snd_pcm_hw_info_t *info);
 int snd_pcm_hw_params_rules(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			    unsigned int count, int *rules);
 int snd_pcm_hw_params_rulesv(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ...);
