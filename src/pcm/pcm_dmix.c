@@ -103,7 +103,7 @@ struct sembuf {
 
 static int semaphore_create_or_connect(snd_pcm_dmix_t *dmix)
 {
-	dmix->semid = semget(dmix->ipc_key, 1, O_CREAT | 0666);
+	dmix->semid = semget(dmix->ipc_key, 1, IPC_CREAT | 0666);
 	if (dmix->semid < 0)
 		return -errno;
 	return 0;
@@ -150,7 +150,7 @@ static int shm_create_or_connect(snd_pcm_dmix_t *dmix)
 	struct shmid_ds buf;
 	int ret = 0;
 	
-	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_dmix_share_t), O_CREAT | 0666);
+	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_dmix_share_t), IPC_CREAT | 0666);
 	if (dmix->shmid < 0)
 		return -errno;
 	dmix->shmptr = shmat(dmix->shmid, 0, 0);
@@ -166,7 +166,7 @@ static int shm_create_or_connect(snd_pcm_dmix_t *dmix)
 		memset(dmix->shmptr, 0, sizeof(snd_pcm_dmix_share_t));
 		ret = 1;
 	}
-	return 0;
+	return ret;
 }
 
 static int shm_discard(snd_pcm_dmix_t *dmix)
@@ -456,6 +456,7 @@ static int snd_pcm_dmix_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 static int snd_pcm_dmix_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
+	//snd_interval_refine_set(
 	return 0;
 }
 
@@ -679,7 +680,7 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 	snd_pcm_hw_params_t *hw_params;
 	snd_pcm_sw_params_t *sw_params;
 	int ret, buffer_is_not_initialized;
-	snd_pcm_uframes_t buffer_size;
+	snd_pcm_uframes_t boundary, buffer_size;
 
 	hw_params = &dmix->shmptr->hw_params;
 	sw_params = &dmix->shmptr->sw_params;
@@ -764,14 +765,19 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 		return ret;
 	}
 
+	ret = snd_pcm_sw_params_get_boundary(sw_params, &boundary);
+	if (ret < 0) {
+		SNDERR("unable to get boundary\n");
+		return ret;
+	}
+	ret = snd_pcm_sw_params_set_stop_threshold(spcm, sw_params, boundary);
+	if (ret < 0) {
+		SNDERR("unable to set stop threshold\n");
+		return ret;
+	}
 	ret = INTERNAL(snd_pcm_hw_params_get_buffer_size)(hw_params, &buffer_size);
 	if (ret < 0) {
 		SNDERR("unable to get buffer size\n");
-		return ret;
-	}
-	ret = snd_pcm_sw_params_set_stop_threshold(spcm, sw_params, buffer_size);
-	if (ret < 0) {
-		SNDERR("unable to set stop threshold\n");
 		return ret;
 	}
 	ret = snd_pcm_sw_params_set_silence_threshold(spcm, sw_params, buffer_size);
@@ -879,8 +885,10 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		goto _err;
 
 	ret = semaphore_create_or_connect(dmix);
-	if (ret < 0)
+	if (ret < 0) {
+		SNDERR("unable to create IPC semaphore\n");
 		goto _err;
+	}
 	
 	ret = semaphore_down(dmix);
 	if (ret < 0) {
@@ -889,8 +897,10 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	}
 		
 	first_instance = ret = shm_create_or_connect(dmix);
-	if (ret < 0)
+	if (ret < 0) {
+		SNDERR("unable to create IPC shm instance\n");
 		goto _err;
+	}
 		
 	pcm->ops = &snd_pcm_dmix_ops;
 	pcm->fast_ops = &snd_pcm_dmix_fast_ops;
@@ -898,8 +908,10 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 	if (first_instance) {
 		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
-		if (ret < 0)
+		if (ret < 0) {
+			SNDERR("unable to open slave\n");
 			goto _err;
+		}
 	
 		if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
 			SNDERR("dmix plugin can be only connected to hw plugin");
@@ -907,27 +919,37 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		}
 		
 		ret = snd_pcm_dmix_initialize_slave(dmix, spcm, params);
-		if (ret < 0)
+		if (ret < 0) {
+			SNDERR("unable to initialize slave\n");
 			goto _err;
+		}
 
 		dmix->spcm = spcm;
 		
 		ret = server_create(dmix);
-		if (ret < 0)
+		if (ret < 0) {
+			SNDERR("unable to create server\n");
 			goto _err;
+		}
 	} else {
 		ret = client_connect(dmix);
-		if (ret < 0)
+		if (ret < 0) {
+			SNDERR("unable to connect client\n");
 			return ret;
+		}
 			
 		ret = snd_pcm_hw_open_fd(&spcm, "dmix_client", dmix->hw_fd, 0);
-		if (ret < 0)
+		if (ret < 0) {
+			SNDERR("unable to open hardware\n");
 			goto _err;
+		}
 	}
 
 	ret = snd_pcm_dmix_initialize_poll_fd(dmix);
-	if (ret < 0)
+	if (ret < 0) {
+		SNDERR("unable to initialize poll_fd\n");
 		goto _err;
+	}
 		
 	pcm->poll_fd = dmix->poll_fd;
 		
@@ -1039,6 +1061,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 				return err;
 			}
 			ipc_key = key;
+			continue;
 		}
 		if (strcmp(id, "slave") == 0) {
 			slave = n;
