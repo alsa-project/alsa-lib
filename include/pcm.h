@@ -1241,6 +1241,14 @@ typedef enum _snd_spcm_xrun_type {
 	SND_SPCM_XRUN_STOP
 } snd_spcm_xrun_type_t;
 
+/** Simple PCM duplex type */
+typedef enum _snd_spcm_duplex_type {
+	/** liberal duplex - the buffer and period sizes might not match */
+	SND_SPCM_DUPLEX_LIBERAL = 0,
+	/** pedantic duplex - the buffer and period sizes MUST match */
+	SND_SPCM_DUPLEX_PEDANTIC
+} snd_spcm_duplex_type_t;
+
 int snd_spcm_init(snd_pcm_t *pcm,
 		  unsigned int rate,
 		  unsigned int channels,
@@ -1258,7 +1266,13 @@ int snd_spcm_init_duplex(snd_pcm_t *playback_pcm,
 			 snd_pcm_subformat_t subformat,
 			 snd_spcm_latency_t latency,
 			 snd_pcm_access_t access,
-			 snd_spcm_xrun_type_t xrun_type);
+			 snd_spcm_xrun_type_t xrun_type,
+			 snd_spcm_duplex_type_t duplex_type);
+
+int snd_spcm_init_get_params(snd_pcm_t *pcm,
+			     unsigned int *rate,
+			     snd_pcm_uframes_t *buffer_size,
+			     snd_pcm_uframes_t *period_size);
 
 /** \} */
 

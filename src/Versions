@@ -144,3 +144,11 @@ ALSA_0.9.8 {
     snd_ctl_elem_remove;
     snd_hctl_poll_descriptors_revents;
 } ALSA_0.9.7;
+
+ALSA_1.0.4 {
+  global:
+
+    snd_spcm_init;
+    snd_spcm_init_duplex;
+    snd_spcm_init_get_params;
+} ALSA_0.9.8;
