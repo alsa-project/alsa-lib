@@ -24,6 +24,7 @@
 
 enum snd_pcm_plug_route_policy {
 	PLUG_ROUTE_POLICY_NONE,
+	PLUG_ROUTE_POLICY_DEFAULT,
 	PLUG_ROUTE_POLICY_COPY,
 	PLUG_ROUTE_POLICY_SUM,
 	PLUG_ROUTE_POLICY_DUP,
@@ -234,6 +235,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 	snd_pcm_plug_t *plug = pcm->private_data;
 	unsigned int tt_ssize, tt_cused, tt_sused;
 	snd_pcm_route_ttable_entry_t *ttable;
+	enum snd_pcm_plug_route_policy rpolicy;
 	int err;
 	assert(snd_pcm_format_linear(slv->format));
 	if (clt->channels == slv->channels)
@@ -257,7 +259,13 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 		ttable = alloca(tt_cused * tt_sused * sizeof(*ttable));
 		for (k = 0; k < tt_cused * tt_sused; ++k)
 			ttable[k] = 0;
-		switch (plug->route_policy) {
+		rpolicy = plug->route_policy;
+		if (rpolicy == PLUG_ROUTE_POLICY_DEFAULT) {
+			rpolicy = PLUG_ROUTE_POLICY_COPY;
+			if (pcm->stream == SND_PCM_STREAM_CAPTURE && clt->channels == 1)
+				rpolicy = PLUG_ROUTE_POLICY_SUM;
+		}
+		switch (rpolicy) {
 		case PLUG_ROUTE_POLICY_SUM:
 		case PLUG_ROUTE_POLICY_DUP:
 			if (clt->channels > slv->channels) {
@@ -267,7 +275,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 			}
 			while (n-- > 0) {
 				snd_pcm_route_ttable_entry_t v = FULL;
-				if (plug->route_policy == PLUG_ROUTE_POLICY_SUM) {
+				if (rpolicy == PLUG_ROUTE_POLICY_SUM) {
 					if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
 					    clt->channels > slv->channels) {
 						int srcs = clt->channels / slv->channels;
@@ -781,7 +789,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_t *spcm;
 	snd_config_t *slave = NULL, *sconf;
 	snd_config_t *tt = NULL;
-	enum snd_pcm_plug_route_policy route_policy = PLUG_ROUTE_POLICY_SUM;
+	enum snd_pcm_plug_route_policy route_policy = PLUG_ROUTE_POLICY_DEFAULT;
 	snd_pcm_route_ttable_entry_t *ttable = NULL;
 	unsigned int cused, sused;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
@@ -810,7 +818,11 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
-			if (!strcmp(str, "sum"))
+			if (tt != NULL)
+				SNDERR("Table is defined, route policy is ignored");
+			if (!strcmp(str, "default"))
+				route_policy = PLUG_ROUTE_POLICY_DEFAULT;
+			else if (!strcmp(str, "sum"))
 				route_policy = PLUG_ROUTE_POLICY_SUM;
 			else if (!strcmp(str, "copy"))
 				route_policy = PLUG_ROUTE_POLICY_COPY;
