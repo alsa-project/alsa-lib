@@ -484,7 +484,7 @@ static int snd_pcm_surround_free(snd_pcm_surround_t *surr)
 		snd_pcm_close(surr->pcm[i]);
 		surr->pcm[i] = NULL;
 	}
-	if (surr->po->sclose)
+	if (surr->po && surr->po->sclose)
 		surr->po->sclose(surr);
 	if (surr->ctl)
 		snd_ctl_close(surr->ctl);
@@ -812,6 +812,7 @@ static surround_open_t open_table[] = {
 	{ type: SND_CARD_TYPE_ENS1370, flags: SURR_FLG_NO_6CH|SURR_FLG_NO_CTL_CLOSE|SURR_FLG_FD1, scount: count_generic, sopen: open_ens1370, sclose: close_ens1370 },
 	{ type: SND_CARD_TYPE_YMFPCI, flags: SURR_FLG_NO_6CH, scount: count_ymfpci, sopen: open_ymfpci, sclose: NULL },
 	{ type: SND_CARD_TYPE_TRID4DWAVENX, flags: SURR_FLG_NO_6CH|SURR_FLG_NO_CTL_CLOSE, scount: count_trid4nx, sopen: open_trid4nx, sclose: close_trid4nx },
+	{ type: SND_CARD_TYPE_INTEL8X0, flags: 0, scount: count_generic, sopen: open_fm801, sclose: NULL },
 	{ type: SND_CARD_TYPE_NONE, flags: 0, scount: NULL, sopen: NULL, sclose: NULL }
 };
 
