@@ -1,9 +1,11 @@
 #!/bin/bash
 
-aclocal
+aclocal $ACLOCAL_FLAGS
 automake --foreign
 autoconf
 export CFLAGS='-O2 -fomit-frame-pointer -Wall -pipe -g'
-./configure
+echo "CFLAGS=$CFLAGS"
+echo "./configure $@"
+./configure $@
 unset CFLAGS
 make
