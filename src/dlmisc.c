@@ -49,7 +49,7 @@ int snd_dlsym_verify(void *handle, const char *name, const char *version)
 	strcpy(vname + 1, name);
 	strcat(vname, version);
 	res = dlsym(handle, vname) == NULL ? -ENOENT : 0;
-	printf("dlsym verify: %i, vname = '%s'\n", res, vname);
+	// printf("dlsym verify: %i, vname = '%s'\n", res, vname);
 	if (res < 0)
 		SNDERR("unable to verify version for symbol %s", name);
 	return res;
