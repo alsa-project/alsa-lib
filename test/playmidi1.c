@@ -298,7 +298,7 @@ static void do_tempo(int us)
 	local_tempo = us;
 
 	set_timer_event_header(&ev, SND_SEQ_EVENT_TEMPO);
-	ev.data.control.value = us;
+	ev.data.queue.value = us;
 	if (!slave)
 		write_ev(&ev);
 }
