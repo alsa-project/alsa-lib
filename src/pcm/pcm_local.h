@@ -22,23 +22,23 @@
 #include <pthread.h>
 #include "asoundlib.h"
   
-
 struct snd_pcm_ops {
 	int (*stream_close)(snd_pcm_t *pcm, int stream);
 	int (*stream_nonblock)(snd_pcm_t *pcm, int stream, int nonblock);
-	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
+	int (*info)(snd_pcm_t *pcm, int stream, snd_pcm_info_t *info);
 	int (*stream_info)(snd_pcm_t *pcm, snd_pcm_stream_info_t *info);
 	int (*stream_params)(snd_pcm_t *pcm, snd_pcm_stream_params_t *params);
 	int (*stream_setup)(snd_pcm_t *pcm, snd_pcm_stream_setup_t *setup);
 	int (*channel_setup)(snd_pcm_t *pcm, int stream, snd_pcm_channel_setup_t *setup);
 	int (*stream_status)(snd_pcm_t *pcm, snd_pcm_stream_status_t *status);
 	int (*stream_prepare)(snd_pcm_t *pcm, int stream);
-	int (*stream_update)(snd_pcm_t *pcm, int stream);
 	int (*stream_go)(snd_pcm_t *pcm, int stream);
-	int (*sync_go)(snd_pcm_t *pcm, snd_pcm_sync_t *sync);
+	int (*sync_go)(snd_pcm_t *pcm, int stream, snd_pcm_sync_t *sync);
 	int (*stream_drain)(snd_pcm_t *pcm, int stream);
 	int (*stream_flush)(snd_pcm_t *pcm, int stream);
 	int (*stream_pause)(snd_pcm_t *pcm, int stream, int enable);
+	int (*stream_state)(snd_pcm_t *pcm, int stream);
+	ssize_t (*stream_byte_io)(snd_pcm_t *pcm, int stream, int update);
 	ssize_t (*stream_seek)(snd_pcm_t *pcm, int stream, off_t offset);
 	ssize_t (*write)(snd_pcm_t *pcm, const void *buffer, size_t size);
 	ssize_t (*writev)(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
@@ -52,33 +52,21 @@ struct snd_pcm_ops {
 	int (*channels_mask)(snd_pcm_t *pcm, int stream, bitset_t *client_vmask);
 };
 
-
-struct snd_pcm_plug_stream {
+typedef struct {
 	snd_pcm_plugin_t *first;
 	snd_pcm_plugin_t *last;
 	void *alloc_ptr[2];
 	size_t alloc_size[2];
 	int alloc_lock[2];
-};
+} snd_pcm_plug_stream_t;
 
-typedef struct snd_pcm_plug {
+typedef struct {
 	int close_slave;
 	snd_pcm_t *slave;
-	struct snd_pcm_plug_stream stream[2];
+	snd_pcm_plug_stream_t stream[2];
 } snd_pcm_plug_t;
 
-struct snd_pcm_hw_stream {
-	int fd;
-};
-
-typedef struct snd_pcm_hw {
-	int card;
-	int device;
-	int ver;
-	struct snd_pcm_hw_stream stream[2];
-} snd_pcm_hw_t;
-
-struct snd_pcm_stream {
+typedef struct {
 	int open;
 	int mode;
 	int valid_setup;
@@ -91,13 +79,13 @@ struct snd_pcm_stream {
 	size_t mmap_control_size;
 	char *mmap_data;
 	size_t mmap_data_size;
-};
+} snd_pcm_stream_t;
 
 struct snd_pcm {
 	snd_pcm_type_t type;
 	int mode;
 	struct snd_pcm_ops *ops;
-	struct snd_pcm_stream stream[2];
+	snd_pcm_stream_t stream[2];
 	int private[0];
 };
 
@@ -142,3 +130,22 @@ int conv_index(int src_format, int dst_format);
 #else
 #define pdprintf( args... ) { ; }
 #endif
+
+static inline ssize_t snd_pcm_mmap_playback_bytes_used(snd_pcm_stream_t *str)
+{
+	ssize_t bytes_used;
+	bytes_used = str->mmap_control->byte_data - str->mmap_control->byte_io;
+	if (bytes_used < (ssize_t)(str->setup.buffer_size - str->setup.byte_boundary))
+		bytes_used += str->setup.byte_boundary;
+	return bytes_used;
+}
+
+static inline size_t snd_pcm_mmap_capture_bytes_used(snd_pcm_stream_t *str)
+{
+	ssize_t bytes_used;
+	bytes_used = str->mmap_control->byte_io - str->mmap_control->byte_data;
+	if (bytes_used < 0)
+		bytes_used += str->setup.byte_boundary;
+	return bytes_used;
+}
+

@@ -50,7 +50,7 @@ static ssize_t mmap_src_channels(snd_pcm_plugin_t *plugin,
 	mmap_t *data;
         snd_pcm_plugin_channel_t *sv;
 	snd_pcm_channel_area_t *dv;
-	struct snd_pcm_stream *stream;
+	snd_pcm_stream_t *stream;
 	snd_pcm_stream_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
 	size_t pos;
@@ -119,7 +119,7 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 	unsigned int channel;
         snd_pcm_plugin_channel_t *dv;
 	snd_pcm_channel_area_t *sv;
-	struct snd_pcm_stream *stream;
+	snd_pcm_stream_t *stream;
 	snd_pcm_stream_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
 	size_t pos;
@@ -187,7 +187,7 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 	mmap_t *data;
 	snd_pcm_stream_setup_t *setup;
 	snd_pcm_mmap_control_t *ctrl;
-	struct snd_pcm_stream *stream;
+	snd_pcm_stream_t *stream;
 	int err;
 
 	if (plugin == NULL)

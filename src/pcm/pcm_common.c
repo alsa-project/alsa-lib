@@ -798,10 +798,10 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 }
 
 ssize_t snd_pcm_plug_client_channels_buf(snd_pcm_plugin_handle_t *handle,
-				       int stream,
-				       char *buf,
-				       size_t count,
-				       snd_pcm_plugin_channel_t **channels)
+					 int stream,
+					 char *buf,
+					 size_t count,
+					 snd_pcm_plugin_channel_t **channels)
 {
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_plugin_channel_t *v;
@@ -842,10 +842,10 @@ ssize_t snd_pcm_plug_client_channels_buf(snd_pcm_plugin_handle_t *handle,
 }
 
 ssize_t snd_pcm_plug_client_channels_iovec(snd_pcm_plugin_handle_t *handle,
-					 int stream,
-					 const struct iovec *vector,
-					 unsigned long count,
-					 snd_pcm_plugin_channel_t **channels)
+					   int stream,
+					   const struct iovec *vector,
+					   unsigned long count,
+					   snd_pcm_plugin_channel_t **channels)
 {
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_plugin_channel_t *v;
@@ -903,7 +903,7 @@ ssize_t snd_pcm_plug_client_channels_iovec(snd_pcm_plugin_handle_t *handle,
 }
 
 int snd_pcm_plug_playback_channels_mask(snd_pcm_plugin_handle_t *handle,
-				      bitset_t *client_vmask)
+					bitset_t *client_vmask)
 {
 #ifndef __KERNEL__
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &handle->private;
@@ -946,7 +946,7 @@ int snd_pcm_plug_playback_channels_mask(snd_pcm_plugin_handle_t *handle,
 }
 
 int snd_pcm_plug_capture_channels_mask(snd_pcm_plugin_handle_t *handle,
-				     bitset_t *client_vmask)
+				       bitset_t *client_vmask)
 {
 #ifndef __KERNEL__
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &handle->private;
@@ -985,7 +985,7 @@ int snd_pcm_plug_capture_channels_mask(snd_pcm_plugin_handle_t *handle,
 }
 
 static int snd_pcm_plug_playback_disable_useless_channels(snd_pcm_plugin_handle_t *handle,
-							snd_pcm_plugin_channel_t *src_channels)
+							  snd_pcm_plugin_channel_t *src_channels)
 {
 	snd_pcm_plugin_t *plugin = snd_pcm_plug_first(handle, SND_PCM_STREAM_PLAYBACK);
 	unsigned int nchannels = plugin->src_format.channels;
@@ -1010,8 +1010,8 @@ static int snd_pcm_plug_playback_disable_useless_channels(snd_pcm_plugin_handle_
 }
 
 static int snd_pcm_plug_capture_disable_useless_channels(snd_pcm_plugin_handle_t *handle,
-						       snd_pcm_plugin_channel_t *src_channels,
-						       snd_pcm_plugin_channel_t *client_channels)
+							 snd_pcm_plugin_channel_t *src_channels,
+							 snd_pcm_plugin_channel_t *client_channels)
 {
 #ifndef __KERNEL__
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) &handle->private;
@@ -1158,7 +1158,7 @@ ssize_t snd_pcm_plug_read_transfer(snd_pcm_plugin_handle_t *handle, snd_pcm_plug
 }
 
 int snd_pcm_area_silence(const snd_pcm_channel_area_t *dst_area, size_t dst_offset,
-			  size_t samples, int format)
+			 size_t samples, int format)
 {
 	/* FIXME: sub byte resolution and odd dst_offset */
 	char *dst;

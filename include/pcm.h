@@ -82,7 +82,7 @@ static inline void bitset_one(bitset_t *dst, unsigned int nbits)
 typedef struct snd_pcm snd_pcm_t;
 typedef struct snd_pcm_loopback snd_pcm_loopback_t;
 
-typedef enum { SND_PCM_TYPE_HW, SND_PCM_TYPE_PLUG } snd_pcm_type_t;
+typedef enum { SND_PCM_TYPE_HW, SND_PCM_TYPE_PLUG, SND_PCM_TYPE_MULTI } snd_pcm_type_t;
 
 int snd_pcm_open(snd_pcm_t **handle, int card, int device, int mode);
 int snd_pcm_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int mode);
@@ -98,7 +98,6 @@ int snd_pcm_stream_params(snd_pcm_t *handle, snd_pcm_stream_params_t *params);
 int snd_pcm_stream_setup(snd_pcm_t *handle, snd_pcm_stream_setup_t *setup);
 int snd_pcm_channel_setup(snd_pcm_t *handle, int stream, snd_pcm_channel_setup_t *setup);
 int snd_pcm_stream_status(snd_pcm_t *handle, snd_pcm_stream_status_t *status);
-int snd_pcm_stream_update(snd_pcm_t *handle, int stream);
 int snd_pcm_playback_prepare(snd_pcm_t *handle);
 int snd_pcm_capture_prepare(snd_pcm_t *handle);
 int snd_pcm_stream_prepare(snd_pcm_t *handle, int stream);
@@ -114,6 +113,8 @@ int snd_pcm_stream_flush(snd_pcm_t *handle, int stream);
 int snd_pcm_playback_pause(snd_pcm_t *handle, int enable);
 int snd_pcm_stream_pause(snd_pcm_t *handle, int stream, int enable);
 ssize_t snd_pcm_transfer_size(snd_pcm_t *handle, int stream);
+int snd_pcm_stream_state(snd_pcm_t *handle, int stream);
+ssize_t snd_pcm_stream_byte_io(snd_pcm_t *handle, int stream, int update);
 ssize_t snd_pcm_stream_seek(snd_pcm_t *pcm, int stream, off_t offset);
 ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size);
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size);

@@ -26,41 +26,23 @@
 #include <sys/uio.h>
 #include "pcm_local.h"
 
-static inline ssize_t snd_pcm_mmap_playback_bytes_used(struct snd_pcm_stream *str)
-{
-	ssize_t bytes_used;
-	bytes_used = str->mmap_control->byte_data - str->mmap_control->byte_io;
-	if (bytes_used < (ssize_t)(str->setup.buffer_size - str->setup.byte_boundary))
-		bytes_used += str->setup.byte_boundary;
-	return bytes_used;
-}
-
 static ssize_t snd_pcm_mmap_playback_frames_used(snd_pcm_t *pcm)
 {
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
+	snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
 	ssize_t bytes = snd_pcm_mmap_playback_bytes_used(str);
 	return bytes * 8 / str->bits_per_frame;
 }
 
-static inline size_t snd_pcm_mmap_capture_bytes_used(struct snd_pcm_stream *str)
-{
-	ssize_t bytes_used;
-	bytes_used = str->mmap_control->byte_io - str->mmap_control->byte_data;
-	if (bytes_used < 0)
-		bytes_used += str->setup.byte_boundary;
-	return bytes_used;
-}
-
 static size_t snd_pcm_mmap_capture_frames_used(snd_pcm_t *pcm)
 {
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
+	snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
 	size_t bytes = snd_pcm_mmap_capture_bytes_used(str);
 	return bytes * 8 / str->bits_per_frame;
 }
 
 int snd_pcm_mmap_frames_used(snd_pcm_t *pcm, int stream, ssize_t *frames)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
         if (!pcm)
                 return -EFAULT;
         if (stream < 0 || stream > 1)
@@ -75,33 +57,33 @@ int snd_pcm_mmap_frames_used(snd_pcm_t *pcm, int stream, ssize_t *frames)
 	return 0;
 }
 
-static inline size_t snd_pcm_mmap_playback_bytes_free(struct snd_pcm_stream *str)
+static inline size_t snd_pcm_mmap_playback_bytes_free(snd_pcm_stream_t *str)
 {
 	return str->setup.buffer_size - snd_pcm_mmap_playback_bytes_used(str);
 }
 
 static size_t snd_pcm_mmap_playback_frames_free(snd_pcm_t *pcm)
 {
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
+	snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
 	size_t bytes = snd_pcm_mmap_playback_bytes_free(str);
 	return bytes * 8 / str->bits_per_frame;
 }
 
-static inline ssize_t snd_pcm_mmap_capture_bytes_free(struct snd_pcm_stream *str)
+static inline ssize_t snd_pcm_mmap_capture_bytes_free(snd_pcm_stream_t *str)
 {
 	return str->setup.buffer_size - snd_pcm_mmap_capture_bytes_used(str);
 }
 
 static ssize_t snd_pcm_mmap_capture_frames_free(snd_pcm_t *pcm)
 {
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
+	snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
 	ssize_t bytes = snd_pcm_mmap_capture_bytes_free(str);
 	return bytes * 8 / str->bits_per_frame;
 }
 
 int snd_pcm_mmap_frames_free(snd_pcm_t *pcm, int stream, ssize_t *frames)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
         if (!pcm)
                 return -EFAULT;
         if (stream < 0 || stream > 1)
@@ -118,7 +100,7 @@ int snd_pcm_mmap_frames_free(snd_pcm_t *pcm, int stream, ssize_t *frames)
 
 static int snd_pcm_mmap_playback_ready(snd_pcm_t *pcm)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
 	if (str->mmap_control->status == SND_PCM_STATUS_XRUN)
 		return -EPIPE;
@@ -127,7 +109,7 @@ static int snd_pcm_mmap_playback_ready(snd_pcm_t *pcm)
 
 static int snd_pcm_mmap_capture_ready(snd_pcm_t *pcm)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	int ret = 0;
 	str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
 	if (str->mmap_control->status == SND_PCM_STATUS_XRUN) {
@@ -142,7 +124,7 @@ static int snd_pcm_mmap_capture_ready(snd_pcm_t *pcm)
 
 int snd_pcm_mmap_ready(snd_pcm_t *pcm, int stream)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	snd_pcm_mmap_control_t *ctrl;
         if (!pcm)
                 return -EFAULT;
@@ -163,7 +145,7 @@ int snd_pcm_mmap_ready(snd_pcm_t *pcm, int stream)
 
 static size_t snd_pcm_mmap_playback_bytes_xfer(snd_pcm_t *pcm, size_t bytes)
 {
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
+	snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
 	snd_pcm_mmap_control_t *ctrl = str->mmap_control;
 	size_t bytes_cont;
 	size_t byte_data = ctrl->byte_data;
@@ -179,7 +161,7 @@ static size_t snd_pcm_mmap_playback_bytes_xfer(snd_pcm_t *pcm, size_t bytes)
 
 static size_t snd_pcm_mmap_capture_bytes_xfer(snd_pcm_t *pcm, size_t bytes)
 {
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
+	snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
 	snd_pcm_mmap_control_t *ctrl = str->mmap_control;
 	size_t bytes_cont;
 	size_t byte_data = ctrl->byte_data;
@@ -195,7 +177,7 @@ static size_t snd_pcm_mmap_capture_bytes_xfer(snd_pcm_t *pcm, size_t bytes)
 
 static ssize_t snd_pcm_mmap_playback_frames_xfer(snd_pcm_t *pcm, size_t frames)
 {
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
+	snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
 	size_t bytes = frames * str->bits_per_frame / 8;
 	bytes = snd_pcm_mmap_playback_bytes_xfer(pcm, bytes);
 	return bytes * 8 / str->bits_per_frame;
@@ -203,7 +185,7 @@ static ssize_t snd_pcm_mmap_playback_frames_xfer(snd_pcm_t *pcm, size_t frames)
 
 static ssize_t snd_pcm_mmap_capture_frames_xfer(snd_pcm_t *pcm, size_t frames)
 {
-	struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
+	snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
 	size_t bytes = frames * str->bits_per_frame / 8;
 	bytes = snd_pcm_mmap_capture_bytes_xfer(pcm, bytes);
 	return bytes * 8 / str->bits_per_frame;
@@ -211,7 +193,7 @@ static ssize_t snd_pcm_mmap_capture_frames_xfer(snd_pcm_t *pcm, size_t frames)
 
 ssize_t snd_pcm_mmap_frames_xfer(snd_pcm_t *pcm, int stream, size_t frames)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
         if (!pcm)
                 return -EFAULT;
         if (stream < 0 || stream > 1)
@@ -227,7 +209,7 @@ ssize_t snd_pcm_mmap_frames_xfer(snd_pcm_t *pcm, int stream, size_t frames)
 
 ssize_t snd_pcm_mmap_frames_offset(snd_pcm_t *pcm, int stream)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	snd_pcm_mmap_control_t *ctrl;
         if (!pcm)
                 return -EFAULT;
@@ -244,7 +226,7 @@ ssize_t snd_pcm_mmap_frames_offset(snd_pcm_t *pcm, int stream)
 
 int snd_pcm_mmap_commit_frames(snd_pcm_t *pcm, int stream, int frames)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	snd_pcm_mmap_control_t *ctrl;
 	size_t byte_data, bytes;
         if (!pcm)
@@ -272,7 +254,7 @@ int snd_pcm_mmap_commit_frames(snd_pcm_t *pcm, int stream, int frames)
 
 ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels, size_t frames)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	snd_pcm_mmap_control_t *ctrl;
 	size_t offset = 0;
 	size_t result = 0;
@@ -288,7 +270,7 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channel
 	} else {
 		if (ctrl->status == SND_PCM_STATUS_RUNNING &&
 		    str->mode & SND_PCM_NONBLOCK)
-			snd_pcm_stream_update(pcm, SND_PCM_STREAM_PLAYBACK);
+			snd_pcm_stream_byte_io(pcm, SND_PCM_STREAM_PLAYBACK, 1);
 	}
 	while (frames > 0) {
 		ssize_t mmap_offset;
@@ -335,7 +317,7 @@ ssize_t snd_pcm_mmap_write_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channel
 
 ssize_t snd_pcm_mmap_write_frames(snd_pcm_t *pcm, const void *buffer, size_t frames)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	unsigned int nchannels;
 	if (!pcm)
 		return -EFAULT;
@@ -363,7 +345,7 @@ ssize_t snd_pcm_mmap_write_frames(snd_pcm_t *pcm, const void *buffer, size_t fra
 
 ssize_t snd_pcm_mmap_write(snd_pcm_t *pcm, const void *buffer, size_t bytes)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	unsigned int nchannels;
 	ssize_t frames;
 	if (!pcm)
@@ -387,7 +369,7 @@ ssize_t snd_pcm_mmap_write(snd_pcm_t *pcm, const void *buffer, size_t bytes)
 
 ssize_t snd_pcm_mmap_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long vcount)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	size_t result = 0;
 	unsigned int nchannels;
 	if (!pcm)
@@ -451,7 +433,7 @@ ssize_t snd_pcm_mmap_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned
 
 ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels, size_t frames)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	snd_pcm_mmap_control_t *ctrl;
 	size_t offset = 0;
 	size_t result = 0;
@@ -467,7 +449,7 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels
 	} else {
 		if (ctrl->status == SND_PCM_STATUS_RUNNING &&
 		    str->mode & SND_PCM_NONBLOCK)
-			snd_pcm_stream_update(pcm, SND_PCM_STREAM_CAPTURE);
+			snd_pcm_stream_byte_io(pcm, SND_PCM_STREAM_CAPTURE, 1);
 	}
 	if (ctrl->status == SND_PCM_STATUS_PREPARED &&
 	    str->setup.start_mode == SND_PCM_START_DATA) {
@@ -513,7 +495,7 @@ ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_channel_area_t *channels
 
 ssize_t snd_pcm_mmap_read_frames(snd_pcm_t *pcm, const void *buffer, size_t frames)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	unsigned int nchannels;
 	if (!pcm)
 		return -EFAULT;
@@ -541,7 +523,7 @@ ssize_t snd_pcm_mmap_read_frames(snd_pcm_t *pcm, const void *buffer, size_t fram
 
 ssize_t snd_pcm_mmap_read(snd_pcm_t *pcm, void *buffer, size_t bytes)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	unsigned int nchannels;
 	ssize_t frames;
 	if (!pcm)
@@ -565,7 +547,7 @@ ssize_t snd_pcm_mmap_read(snd_pcm_t *pcm, void *buffer, size_t bytes)
 
 ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long vcount)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	size_t result = 0;
 	unsigned int nchannels;
 	if (!pcm)
@@ -627,7 +609,7 @@ ssize_t snd_pcm_mmap_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned 
 	return result * str->bits_per_frame / 8;
 }
 
-static ssize_t mmap_playback_bytes_xfer(struct snd_pcm_stream *str)
+static ssize_t mmap_playback_bytes_xfer(snd_pcm_stream_t *str)
 {
 	snd_pcm_mmap_control_t *ctrl = str->mmap_control;
 	size_t bytes_cont;
@@ -640,7 +622,7 @@ static ssize_t mmap_playback_bytes_xfer(struct snd_pcm_stream *str)
 	return bytes;
 }
 
-static ssize_t mmap_capture_bytes_xfer(struct snd_pcm_stream *str)
+static ssize_t mmap_capture_bytes_xfer(snd_pcm_stream_t *str)
 {
 	snd_pcm_mmap_control_t *ctrl = str->mmap_control;
 	size_t bytes_cont;
@@ -655,7 +637,7 @@ static ssize_t mmap_capture_bytes_xfer(struct snd_pcm_stream *str)
 
 int snd_pcm_mmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	snd_pcm_stream_info_t info;
 	size_t csize;
 	int err;
@@ -683,7 +665,7 @@ int snd_pcm_mmap_control(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **co
 
 int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, int stream, snd_pcm_channel_area_t *areas)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	snd_pcm_channel_setup_t s;
 	snd_pcm_channel_area_t *a, *ap;
 	unsigned int channel;
@@ -713,7 +695,7 @@ int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, int stream, snd_pcm_channel_area_t *a
 
 int snd_pcm_mmap_data(snd_pcm_t *pcm, int stream, void **data)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	snd_pcm_stream_info_t info;
 	size_t bsize;
 	int err;
@@ -765,7 +747,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm, int stream, snd_pcm_mmap_control_t **control, v
 int snd_pcm_munmap_control(snd_pcm_t *pcm, int stream)
 {
 	int err;
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
@@ -785,7 +767,7 @@ int snd_pcm_munmap_control(snd_pcm_t *pcm, int stream)
 int snd_pcm_munmap_data(snd_pcm_t *pcm, int stream)
 {
 	int err;
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)

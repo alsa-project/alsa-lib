@@ -29,6 +29,17 @@
 #include <sys/mman.h>
 #include "pcm_local.h"
 
+typedef struct {
+	int fd;
+} snd_pcm_hw_stream_t;
+
+typedef struct snd_pcm_hw {
+	int card;
+	int device;
+	int ver;
+	snd_pcm_hw_stream_t stream[2];
+} snd_pcm_hw_t;
+
 #define SND_FILE_PCM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
 #define SND_FILE_PCM_CAPTURE		"/dev/snd/pcmC%iD%ic"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
@@ -71,17 +82,10 @@ static int snd_pcm_hw_stream_nonblock(snd_pcm_t *pcm, int stream, int nonblock)
 	return 0;
 }
 
-static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
+static int snd_pcm_hw_info(snd_pcm_t *pcm, int stream, snd_pcm_info_t * info)
 {
-	int fd, stream;
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	for (stream = 0; stream < 2; ++stream) {
-		fd = hw->stream[stream].fd;
-		if (fd >= 0)
-			break;
-	}
-	if (fd < 0)
-		return -EBADFD;
+	int fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_INFO, info) < 0)
 		return -errno;
 	return 0;
@@ -91,8 +95,6 @@ static int snd_pcm_hw_stream_info(snd_pcm_t *pcm, snd_pcm_stream_info_t * info)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
 	int fd = hw->stream[info->stream].fd;
-	if (fd < 0)
-		return -EINVAL;
 	if (ioctl(fd, SND_PCM_IOCTL_STREAM_INFO, info) < 0)
 		return -errno;
 	return 0;
@@ -134,13 +136,25 @@ static int snd_pcm_hw_stream_status(snd_pcm_t *pcm, snd_pcm_stream_status_t * st
 	return 0;
 }
 
-static int snd_pcm_hw_stream_update(snd_pcm_t *pcm, int stream)
+static ssize_t snd_pcm_hw_stream_state(snd_pcm_t *pcm, int stream)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
 	int fd = hw->stream[stream].fd;
-	if (ioctl(fd, SND_PCM_IOCTL_STREAM_UPDATE) < 0)
+	snd_pcm_stream_status_t status;
+	status.stream = stream;
+	if (ioctl(fd, SND_PCM_IOCTL_STREAM_STATUS, status) < 0)
 		return -errno;
-	return 0;
+	return status.status;
+}
+
+static ssize_t snd_pcm_hw_stream_byte_io(snd_pcm_t *pcm, int stream, int update UNUSED)
+{
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
+	int fd = hw->stream[stream].fd;
+	ssize_t pos = ioctl(fd, SND_PCM_IOCTL_STREAM_BYTE_IO);
+	if (pos < 0)
+		return -errno;
+	return pos;
 }
 
 static int snd_pcm_hw_stream_prepare(snd_pcm_t *pcm, int stream)
@@ -161,14 +175,10 @@ static int snd_pcm_hw_stream_go(snd_pcm_t *pcm, int stream)
 	return 0;
 }
 
-static int snd_pcm_hw_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
+static int snd_pcm_hw_sync_go(snd_pcm_t *pcm, int stream, snd_pcm_sync_t *sync)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) &pcm->private;
-	int fd;
-	if (pcm->stream[SND_PCM_STREAM_PLAYBACK].open)
-		fd = hw->stream[SND_PCM_STREAM_PLAYBACK].fd;
-	else
-		fd = hw->stream[SND_PCM_STREAM_CAPTURE].fd;
+	int fd = hw->stream[stream].fd;
 	if (ioctl(fd, SND_PCM_IOCTL_SYNC_GO, sync) < 0)
 		return -errno;
 	return 0;
@@ -331,7 +341,8 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	stream_setup: snd_pcm_hw_stream_setup,
 	channel_setup: snd_pcm_hw_channel_setup,
 	stream_status: snd_pcm_hw_stream_status,
-	stream_update: snd_pcm_hw_stream_update,
+	stream_byte_io: snd_pcm_hw_stream_byte_io,
+	stream_state: snd_pcm_hw_stream_state,
 	stream_prepare: snd_pcm_hw_stream_prepare,
 	stream_go: snd_pcm_hw_stream_go,
 	sync_go: snd_pcm_hw_sync_go,

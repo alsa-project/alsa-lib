@@ -40,12 +40,12 @@ int snd_pcm_abstract_open(snd_pcm_t **handle, int mode,
 	if (pcm == NULL)
 		return -ENOMEM;
 	if (mode & SND_PCM_OPEN_PLAYBACK) {
-		struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
+		snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_PLAYBACK];
 		str->open = 1;
 		str->mode = (mode & SND_PCM_NONBLOCK_PLAYBACK) ? SND_PCM_NONBLOCK : 0;
 	}
 	if (mode & SND_PCM_OPEN_CAPTURE) {
-		struct snd_pcm_stream *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
+		snd_pcm_stream_t *str = &pcm->stream[SND_PCM_STREAM_CAPTURE];
 		str->open = 1;
 		str->mode = (mode & SND_PCM_NONBLOCK_CAPTURE) ? SND_PCM_NONBLOCK : 0;
 	}
@@ -64,7 +64,7 @@ int snd_pcm_stream_close(snd_pcm_t *pcm, int stream)
 {
 	int ret = 0;
 	int err;
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
@@ -124,9 +124,14 @@ int snd_pcm_stream_nonblock(snd_pcm_t *pcm, int stream, int nonblock)
 
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
+	int stream;
 	if (!pcm || !info)
 		return -EFAULT;
-	return pcm->ops->info(pcm, info);
+	for (stream = 0; stream < 2; ++stream) {
+		if (pcm->stream[stream].open)
+			return pcm->ops->info(pcm, stream, info);
+	}
+	return -EBADFD;
 }
 
 int snd_pcm_stream_info(snd_pcm_t *pcm, snd_pcm_stream_info_t *info)
@@ -144,7 +149,7 @@ int snd_pcm_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t *params)
 {
 	int err;
 	snd_pcm_stream_setup_t setup;
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm || !params)
 		return -EFAULT;
 	if (params->stream < 0 || params->stream > 1)
@@ -164,7 +169,7 @@ int snd_pcm_stream_params(snd_pcm_t *pcm, snd_pcm_stream_params_t *params)
 int snd_pcm_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t *setup)
 {
 	int err;
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm || !setup)
 		return -EFAULT;
 	if (setup->stream < 0 || setup->stream > 1)
@@ -188,7 +193,7 @@ int snd_pcm_stream_setup(snd_pcm_t *pcm, snd_pcm_stream_setup_t *setup)
 
 const snd_pcm_stream_setup_t* snd_pcm_stream_cached_setup(snd_pcm_t *pcm, int stream)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm)
 		return 0;
 	if (stream < 0 || stream > 1)
@@ -201,7 +206,7 @@ const snd_pcm_stream_setup_t* snd_pcm_stream_cached_setup(snd_pcm_t *pcm, int st
 
 int snd_pcm_channel_setup(snd_pcm_t *pcm, int stream, snd_pcm_channel_setup_t *setup)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm || !setup)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
@@ -223,15 +228,34 @@ int snd_pcm_stream_status(snd_pcm_t *pcm, snd_pcm_stream_status_t *status)
 	return pcm->ops->stream_status(pcm, status);
 }
 
-int snd_pcm_stream_update(snd_pcm_t *pcm, int stream)
+int snd_pcm_stream_state(snd_pcm_t *pcm, int stream)
 {
+	snd_pcm_stream_t *str;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
 		return -EINVAL;
-	if (!pcm->stream[stream].open)
+	str = &pcm->stream[stream];
+	if (!str->open)
 		return -EBADFD;
-	return pcm->ops->stream_update(pcm, stream);
+	if (str->mmap_control)
+		return str->mmap_control->status;
+	return pcm->ops->stream_state(pcm, stream);
+}
+
+int snd_pcm_stream_byte_io(snd_pcm_t *pcm, int stream, int update)
+{
+	snd_pcm_stream_t *str;
+	if (!pcm)
+		return -EFAULT;
+	if (stream < 0 || stream > 1)
+		return -EINVAL;
+	str = &pcm->stream[stream];
+	if (!str->open)
+		return -EBADFD;
+	if (str->mmap_control && !update)
+		return str->mmap_control->byte_io;
+	return pcm->ops->stream_byte_io(pcm, stream, update);
 }
 
 int snd_pcm_stream_prepare(snd_pcm_t *pcm, int stream)
@@ -257,7 +281,7 @@ int snd_pcm_capture_prepare(snd_pcm_t *pcm)
 
 int snd_pcm_stream_go(snd_pcm_t *pcm, int stream)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
@@ -280,12 +304,14 @@ int snd_pcm_capture_go(snd_pcm_t *pcm)
 
 int snd_pcm_sync_go(snd_pcm_t *pcm, snd_pcm_sync_t *sync)
 {
+	int stream;
 	if (!pcm || !sync)
 		return -EFAULT;
-	if (!pcm->stream[SND_PCM_STREAM_PLAYBACK].open &&
-	    !pcm->stream[SND_PCM_STREAM_CAPTURE].open)
-		return -EBADFD;
-	return pcm->ops->sync_go(pcm, sync);
+	for (stream = 0; stream < 2; ++stream) {
+		if (pcm->stream[stream].open)
+			return pcm->ops->sync_go(pcm, stream, sync);
+	}
+	return -EBADFD;
 }
 
 int snd_pcm_stream_drain(snd_pcm_t *pcm, int stream)
@@ -349,7 +375,7 @@ int snd_pcm_playback_pause(snd_pcm_t *pcm, int enable)
 
 ssize_t snd_pcm_transfer_size(snd_pcm_t *pcm, int stream)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
@@ -366,7 +392,7 @@ ssize_t snd_pcm_transfer_size(snd_pcm_t *pcm, int stream)
 
 ssize_t snd_pcm_stream_seek(snd_pcm_t *pcm, int stream, off_t offset)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	size_t bytes_per_frame;
 	if (!pcm)
 		return -EFAULT;
@@ -377,10 +403,12 @@ ssize_t snd_pcm_stream_seek(snd_pcm_t *pcm, int stream, off_t offset)
 		return -EBADFD;
 	if (!str->valid_setup)
 		return -EBADFD;
-	bytes_per_frame = str->bits_per_frame / 8;
-	if (bytes_per_frame > 0)
-		offset -= offset % bytes_per_frame;
-	return pcm->ops->stream_seek(pcm, stream, offset);
+#if 0
+	/* TODO */
+	if (str->mmap_control) {
+	} else
+#endif
+		return pcm->ops->stream_seek(pcm, stream, offset);
 }
 
 ssize_t snd_pcm_write(snd_pcm_t *pcm, const void *buffer, size_t size)
@@ -455,7 +483,7 @@ int snd_pcm_channels_mask(snd_pcm_t *pcm, int stream, bitset_t *client_vmask)
 
 ssize_t snd_pcm_bytes_per_second(snd_pcm_t *pcm, int stream)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	if (!pcm)
 		return -EFAULT;
 	if (stream < 0 || stream > 1)
@@ -548,7 +576,7 @@ static assoc_t onoff[] = { {0, "OFF", NULL}, {1, "ON", NULL}, {-1, "ON", NULL}, 
 
 int snd_pcm_dump_setup(snd_pcm_t *pcm, int stream, FILE *fp)
 {
-	struct snd_pcm_stream *str;
+	snd_pcm_stream_t *str;
 	snd_pcm_stream_setup_t *setup;
 	if (!pcm)
 		return -EFAULT;
