@@ -102,6 +102,12 @@ int snd_pcm_generic_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
 	return snd_pcm_channel_info_shm(pcm, info, -1);
 }
+ 
+int snd_pcm_generic_channel_info_slave(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
+{
+	snd_pcm_generic_t *generic = pcm->private_data;
+	return snd_pcm_channel_info(generic->slave, info);
+}
 
 int snd_pcm_generic_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 { 
