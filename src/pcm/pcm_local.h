@@ -173,6 +173,10 @@ void snd_pcm_hw_params_to_info(snd_pcm_hw_params_t *params, snd_pcm_hw_info_t *i
 int snd_pcm_hw_info_to_params(snd_pcm_t *pcm, snd_pcm_hw_info_t *info, snd_pcm_hw_params_t *params);
 int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
+int snd_pcm_hw_info_par_nearest_next(const snd_pcm_hw_info_t *info,
+				     unsigned int param,
+				     unsigned int best, int value,
+				     snd_pcm_t *pcm);
 
 static inline size_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {
