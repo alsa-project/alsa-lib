@@ -467,7 +467,7 @@ int snd_pcm_plugin_params(snd_pcm_t *pcm, snd_pcm_channel_params_t *params)
 			dstparams->format.interleave = 1;
       	}
 
-	/* voices reduction  */
+	/* voices reduction */
 	if (srcparams.format.voices > dstparams->format.voices) {
 		tmpparams.format.voices = dstparams->format.voices;
 		err = snd_pcm_plugin_build_voices(&srcparams.format,
