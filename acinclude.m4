@@ -16,7 +16,7 @@ void main(void)
 #if !defined(SND_PROTOCOL_VERSION) || !defined(SND_PROTOCOL_UNCOMPATIBLE)
 #error not found
 #else
-#if !defined(SND_MIXER_IOCTL_CHANNEL_RREAD)
+#if !defined(SND_MIXER_IOCTL_CHANNEL_IREAD)
 #error wrong version
 #endif
   exit(0);

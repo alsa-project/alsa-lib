@@ -37,8 +37,8 @@ int snd_card_load(int card)
 	char control[32];
 	char aload[32];
 
-	sprintf (control, SND_FILE_CONTROL, card);
-	sprintf (aload, SND_FILE_LOAD, card);
+	sprintf(control, SND_FILE_CONTROL, card);
+	sprintf(aload, SND_FILE_LOAD, card);
 
 	if ((open_dev=open(control, O_RDONLY)) < 0) {
 		close(open(aload, O_RDONLY));
@@ -97,7 +97,7 @@ int snd_card_name(const char *string)
 	void *handle;
 	struct snd_ctl_hw_info info;
 
-	if (!string)
+	if (!string || *string == '\0')
 		return -EINVAL;
 	bitmask = snd_cards_mask();
 	if (!bitmask)
@@ -105,7 +105,6 @@ int snd_card_name(const char *string)
 	if ((isdigit(*string) && *(string + 1) == 0) ||
 	    (isdigit(*string) && isdigit(*(string + 1)) && *(string + 2) == 0)) {
 		sscanf(string, "%i", &card);
-		card--;
 		if (card < 0 || card > 31)
 			return -EINVAL;
 		if (card < 0 || !((1 << card) & bitmask))
