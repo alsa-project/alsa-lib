@@ -20,6 +20,8 @@
 
 #ifndef PIC
 
+#include "config.h"
+
 extern const char *_snd_module_pcm_adpcm;
 extern const char *_snd_module_pcm_alaw;
 extern const char *_snd_module_pcm_copy;
@@ -39,7 +41,9 @@ extern const char *_snd_module_pcm_shm;
 extern const char *_snd_module_pcm_lfloat;
 extern const char *_snd_module_pcm_ladspa;
 extern const char *_snd_module_pcm_dmix;
+#ifdef HAVE_JACK
 extern const char *_snd_module_pcm_jack;
+#endif
 
 static const char **snd_pcm_open_objects[] = {
 	&_snd_module_pcm_adpcm,
@@ -61,7 +65,9 @@ static const char **snd_pcm_open_objects[] = {
 	&_snd_module_pcm_lfloat,
 	&_snd_module_pcm_ladspa,
 	&_snd_module_pcm_dmix,
+#ifdef HAVE_JACK
 	&_snd_module_pcm_jack
+#endif
 };
 	
 void *snd_pcm_open_symbols(void)
