@@ -36,6 +36,8 @@ int snd_mixer_read(snd_mixer_t *handle, snd_mixer_callbacks_t * callbacks);
 void snd_mixer_set_bit(unsigned int *bitmap, int bit, int val);
 int snd_mixer_get_bit(unsigned int *bitmap, int bit);
 
+const char *snd_mixer_channel_name(int channel);
+
 int snd_mixer_element_has_info(snd_mixer_eid_t *eid);
 int snd_mixer_element_info_build(snd_mixer_t *handle, snd_mixer_element_info_t * info);
 int snd_mixer_element_info_free(snd_mixer_element_info_t * info);

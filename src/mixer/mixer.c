@@ -257,3 +257,19 @@ int snd_mixer_get_bit(unsigned int *bitmap, int bit)
 {
 	return (bitmap[bit >> 5] & (1 << (bit & 31))) ? 1 : 0;
 }
+
+const char *snd_mixer_channel_name(int channel)
+{
+	static char *array[6] = {
+		"Front-Left",
+		"Front-Right",
+		"Front-Center",
+		"Rear-Left",
+		"Rear-Right",
+		"Woofer"
+	};
+
+	if (channel < 0 || channel > 5)
+		return "?";
+	return array[channel];
+}
