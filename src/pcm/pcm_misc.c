@@ -228,6 +228,40 @@ const char *snd_pcm_get_format_name(int format)
 	return formats[format];
 }
 
+unsigned char snd_pcm_format_silence(int format)
+{
+	switch (format) {
+	case SND_PCM_SFMT_IMA_ADPCM:	/* special case */
+	case SND_PCM_SFMT_MPEG:
+	case SND_PCM_SFMT_GSM:
+	case SND_PCM_SFMT_MU_LAW:
+	case SND_PCM_SFMT_A_LAW:
+		return 0;
+	case SND_PCM_SFMT_U8:
+	case SND_PCM_SFMT_U16_LE:
+	case SND_PCM_SFMT_U16_BE:
+	case SND_PCM_SFMT_U24_LE:
+	case SND_PCM_SFMT_U24_BE:
+	case SND_PCM_SFMT_U32_LE:
+	case SND_PCM_SFMT_U32_BE:
+		return 0x80;
+	case SND_PCM_SFMT_S8:
+	case SND_PCM_SFMT_S16_LE:
+	case SND_PCM_SFMT_S16_BE:
+	case SND_PCM_SFMT_S24_LE:
+	case SND_PCM_SFMT_S24_BE:
+	case SND_PCM_SFMT_S32_LE:
+	case SND_PCM_SFMT_S32_BE:
+		return 0;
+	case SND_PCM_SFMT_FLOAT:
+	case SND_PCM_SFMT_FLOAT64:
+	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
+	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
+		return 0;	
+	}
+	return 0;
+}
+
 static int linear_formats[4*2*2] = {
 	SND_PCM_SFMT_S8,
 	SND_PCM_SFMT_U8,
