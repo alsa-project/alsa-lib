@@ -39,7 +39,7 @@
  * prototypes
  */
 static int snd_seq_free_event_static(snd_seq_event_t *ev);
-static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev);
+static int snd_seq_decode_event(char **buf, size_t *len, snd_seq_event_t *ev);
 
 
 /*
@@ -184,7 +184,7 @@ int snd_seq_input_buffer_size(snd_seq_t *seq)
 /*
  * resize output buffer
  */
-int snd_seq_resize_output_buffer(snd_seq_t *seq, int size)
+int snd_seq_resize_output_buffer(snd_seq_t *seq, size_t size)
 {
 	if (!seq || !seq->obuf)
 		return -EINVAL;
@@ -206,7 +206,7 @@ int snd_seq_resize_output_buffer(snd_seq_t *seq, int size)
 /*
  * resize input buffer
  */
-int snd_seq_resize_input_buffer(snd_seq_t *seq, int size)
+int snd_seq_resize_input_buffer(snd_seq_t *seq, size_t size)
 {
 	if (!seq || !seq->ibuf)
 		return -EINVAL;
@@ -608,17 +608,14 @@ int snd_seq_free_event(snd_seq_event_t *ev)
 /*
  * calculates the (encoded) byte-stream size of the event
  */
-int snd_seq_event_length(snd_seq_event_t *ev)
+ssize_t snd_seq_event_length(snd_seq_event_t *ev)
 {
-	int len = sizeof(snd_seq_event_t);
+	ssize_t len = sizeof(snd_seq_event_t);
 
 	if (!ev)
 		return -EINVAL;
-	if (snd_seq_ev_is_variable(ev)) {
-		if (ev->data.ext.len < 0)
-			return -EINVAL;
+	if (snd_seq_ev_is_variable(ev))
 		len += ev->data.ext.len;
-	}
 	return len;
 }
 
@@ -659,7 +656,7 @@ int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
 	len = snd_seq_event_length(ev);
 	if (len < 0)
 		return -EINVAL;
-	if ((seq->obufsize - seq->obufused) < len)
+	if ((seq->obufsize - seq->obufused) < (size_t) len)
 		return -EAGAIN;
 	memcpy(seq->obuf + seq->obufused, ev, sizeof(snd_seq_event_t));
 	seq->obufused += sizeof(snd_seq_event_t);
@@ -722,7 +719,7 @@ int snd_seq_flush_output(snd_seq_t *seq)
 		result = write(seq->fd, seq->obuf, seq->obufused);
 		if (result < 0)
 			return -errno;
-		if (result < seq->obufused)
+		if ((size_t)result < seq->obufused)
 			memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
 		seq->obufused -= result;
 	}
@@ -853,7 +850,7 @@ static int snd_seq_input_cell_available(snd_seq_t *seq)
 /*
  * decode from byte-stream to an event record
  */
-static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev)
+static int snd_seq_decode_event(char **buf, size_t *len, snd_seq_event_t *ev)
 {
 	if (!ev || !buf || !*buf || !len )
 		return -EINVAL;
@@ -1213,11 +1210,11 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 			 snd_seq_drain_output_buffer(seq);
 		} else {
 			char *ep;
-			int  len;
+			size_t len;
 			snd_seq_event_t *ev;
 
 			ep = seq->obuf;
-			while (ep - seq->obuf < seq->obufused) {
+			while (ep - seq->obuf < (ssize_t)seq->obufused) {
 
 				ev = (snd_seq_event_t *) ep;
 				len = snd_seq_event_length(ev);

@@ -43,7 +43,7 @@ static long simple_size(simple_instrument_t *instr)
 int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 				       const char *name,
 				       snd_seq_instr_put_t **__data,
-				       long *__size)
+				       size_t *__size)
 {
 	snd_seq_instr_put_t *put;
 	snd_seq_instr_data_t *data;
@@ -93,9 +93,9 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	return 0;
 }
 
-int snd_instr_simple_convert_from_stream(snd_seq_instr_get_t *__data,
-					 long size,
-					 snd_instr_simple_t **simple)
+int snd_instr_simple_convert_from_stream(snd_seq_instr_get_t *__data UNUSED,
+					 size_t size UNUSED,
+					 snd_instr_simple_t **simple UNUSED)
 {
 	/* TODO */
 	return -ENXIO;

@@ -38,7 +38,7 @@ const char *snd_strerror(int errnum)
 	if (errnum < SND_ERROR_BEGIN)
 		return (const char *) strerror(errnum);
 	errnum -= SND_ERROR_BEGIN;
-	if (errnum >= sizeof(snd_error_codes) / sizeof(const char *))
+	if ((unsigned int) errnum >= sizeof(snd_error_codes) / sizeof(const char *))
 		 return "Unknown error";
 	return snd_error_codes[errnum];
 }

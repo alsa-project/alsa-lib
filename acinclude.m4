@@ -16,7 +16,7 @@ void main(void)
 #if !defined(SND_PROTOCOL_VERSION) || !defined(SND_PROTOCOL_INCOMPATIBLE)
 #error not found
 #else
-#if !defined(SND_MIXER_IOCTL_ELEMENTS)
+#if !defined(SND_PCM_IOCTL_CHANNEL_UPDATE)
 #error wrong version
 #endif
   exit(0);
@@ -25,7 +25,7 @@ void main(void)
 ],
   AC_MSG_RESULT(present),
   [AC_MSG_RESULT(not found or wrong version);
-   AC_MSG_ERROR([Install alsa-driver v0.3.0pre5+ package first...])]
+   AC_MSG_ERROR([Install alsa-driver v0.6.0 package first...])]
 )
 CFLAGS="$OLD_CFLAGS"
 ])

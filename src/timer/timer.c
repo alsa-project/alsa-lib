@@ -202,7 +202,7 @@ ssize_t snd_timer_read(snd_timer_t *handle, void *buffer, size_t size)
 	ssize_t result;
 
 	tmr = handle;
-	if (!tmr || (!buffer && size > 0) || size < 0)
+	if (!tmr || (!buffer && size > 0))
 		return -EINVAL;
 	result = read(tmr->fd, buffer, size);
 	if (result < 0)

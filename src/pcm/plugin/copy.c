@@ -1,7 +1,6 @@
 /*
  *  Linear conversion Plug-In
- *  Copyright (c) 1999 by Jaroslav Kysela <perex@suse.cz>,
- *			  Abramo Bagnara <abramo@alsa-project.org>
+ *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -36,24 +35,20 @@
 #include "../pcm_local.h"
 #endif
 
-/*
- *  Basic linear conversion plugin
- */
- 
-typedef struct linear_private_data {
-	int conv;
-} linear_t;
+typedef struct copy_private_data {
+	int copy;
+} copy_t;
 
-static void convert(snd_pcm_plugin_t *plugin,
-		    const snd_pcm_plugin_voice_t *src_voices,
-		    snd_pcm_plugin_voice_t *dst_voices,
-		    size_t samples)
+static void copy(snd_pcm_plugin_t *plugin,
+		 const snd_pcm_plugin_voice_t *src_voices,
+		 snd_pcm_plugin_voice_t *dst_voices,
+		 size_t samples)
 {
-#define CONV_LABELS
+#define COPY_LABELS
 #include "plugin_ops.h"
-#undef CONV_LABELS
-	linear_t *data = (linear_t *)plugin->extra_data;
-	void *conv = conv_labels[data->conv];
+#undef COPY_LABELS
+	copy_t *data = (copy_t *)plugin->extra_data;
+	void *copy = copy_labels[data->copy];
 	int voice;
 	int nvoices = plugin->src_format.voices;
 	for (voice = 0; voice < nvoices; ++voice) {
@@ -74,10 +69,10 @@ static void convert(snd_pcm_plugin_t *plugin,
 		dst_step = dst_voices[voice].step / 8;
 		samples1 = samples;
 		while (samples1-- > 0) {
-			goto *conv;
-#define CONV_END after
+			goto *copy;
+#define COPY_END after
 #include "plugin_ops.h"
-#undef CONV_END
+#undef COPY_END
 		after:
 			src += src_step;
 			dst += dst_step;
@@ -85,17 +80,17 @@ static void convert(snd_pcm_plugin_t *plugin,
 	}
 }
 
-static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
-			       const snd_pcm_plugin_voice_t *src_voices,
-			       snd_pcm_plugin_voice_t *dst_voices,
-			       size_t samples)
+static ssize_t copy_transfer(snd_pcm_plugin_t *plugin,
+			     const snd_pcm_plugin_voice_t *src_voices,
+			     snd_pcm_plugin_voice_t *dst_voices,
+			     size_t samples)
 {
-	linear_t *data;
+	copy_t *data;
 	unsigned int voice;
 
 	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
 		return -EFAULT;
-	data = (linear_t *)plugin->extra_data;
+	data = (copy_t *)plugin->extra_data;
 	if (samples == 0)
 		return 0;
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
@@ -106,70 +101,56 @@ static ssize_t linear_transfer(snd_pcm_plugin_t *plugin,
 		    dst_voices[voice].step % 8 != 0)
 			return -EINVAL;
 	}
-	convert(plugin, src_voices, dst_voices, samples);
+	copy(plugin, src_voices, dst_voices, samples);
 	return samples;
 }
 
-int conv_index(int src_format, int dst_format)
+int copy_index(int format)
 {
-	int src_endian, dst_endian, sign, src_width, dst_width;
-
-	sign = (snd_pcm_format_signed(src_format) !=
-		snd_pcm_format_signed(dst_format));
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-	src_endian = snd_pcm_format_big_endian(src_format);
-	dst_endian = snd_pcm_format_big_endian(dst_format);
-#elif __BYTE_ORDER == __BIG_ENDIAN
-	src_endian = snd_pcm_format_little_endian(src_format);
-	dst_endian = snd_pcm_format_little_endian(dst_format);
-#else
-#error "Unsupported endian..."
-#endif
-
-	if (src_endian < 0)
-		src_endian = 0;
-	if (dst_endian < 0)
-		dst_endian = 0;
-
-	src_width = snd_pcm_format_width(src_format) / 8 - 1;
-	dst_width = snd_pcm_format_width(dst_format) / 8 - 1;
-
-	return src_width * 32 + src_endian * 16 + sign * 8 + dst_width * 2 + dst_endian;
+	int size = snd_pcm_format_physical_width(format);
+	switch (size) {
+	case 8:
+		return 0;
+	case 16:
+		return 1;
+	case 32:
+		return 2;
+	case 64:
+		return 3;
+	default:
+		return -EINVAL;
+	}
 }
-
-int snd_pcm_plugin_build_linear(snd_pcm_plugin_handle_t *handle,
-				int channel,
-				snd_pcm_format_t *src_format,
-				snd_pcm_format_t *dst_format,
-				snd_pcm_plugin_t **r_plugin)
+	
+int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
+			      int channel,
+			      snd_pcm_format_t *format,
+			      snd_pcm_plugin_t **r_plugin)
 {
 	int err;
-	struct linear_private_data *data;
+	struct copy_private_data *data;
 	snd_pcm_plugin_t *plugin;
+	int copy;
 
 	if (r_plugin == NULL)
 		return -EFAULT;
 	*r_plugin = NULL;
 
-	if (src_format->rate != dst_format->rate)
-		return -EINVAL;
-	if (src_format->voices != dst_format->voices)
-		return -EINVAL;
-	if (!(snd_pcm_format_linear(src_format->format) &&
-	      snd_pcm_format_linear(dst_format->format)))
+	copy = copy_index(format->format);
+	if (copy < 0)
 		return -EINVAL;
 
 	err = snd_pcm_plugin_build(handle, channel,
-				   "linear format conversion",
-				   src_format,
-				   dst_format,
-				   sizeof(linear_t),
+				   "copy",
+				   format,
+				   format,
+				   sizeof(copy_t),
 				   &plugin);
 	if (err < 0)
 		return err;
-	data = (linear_t *)plugin->extra_data;
-	data->conv = conv_index(src_format->format, dst_format->format);
-	plugin->transfer = linear_transfer;
+	data = (copy_t *)plugin->extra_data;
+	data->copy = copy;
+	plugin->transfer = copy_transfer;
 	*r_plugin = plugin;
 	return 0;
 }

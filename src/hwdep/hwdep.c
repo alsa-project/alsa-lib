@@ -132,7 +132,7 @@ ssize_t snd_hwdep_write(snd_hwdep_t *hwdep, const void *buffer, size_t size)
 {
 	ssize_t result;
 
-	if (!hwdep || (!buffer && size > 0) || size < 0)
+	if (!hwdep || (!buffer && size > 0))
 		return -EINVAL;
 	result = write(hwdep->fd, buffer, size);
 	if (result < 0)
@@ -144,7 +144,7 @@ ssize_t snd_hwdep_read(snd_hwdep_t *hwdep, void *buffer, size_t size)
 {
 	ssize_t result;
 
-	if (!hwdep || (!buffer && size > 0) || size < 0)
+	if (!hwdep || (!buffer && size > 0))
 		return -EINVAL;
 	result = read(hwdep->fd, buffer, size);
 	if (result < 0)

@@ -174,7 +174,7 @@ struct envelope_record {
 struct snd_iwffff_handle {
 	int rom;
 	unsigned char *fff_data;
-	unsigned int fff_size;
+	size_t fff_size;
 	char *fff_filename;
 	char *dat_filename;
 	unsigned int start_addr;
@@ -237,7 +237,7 @@ int snd_instr_iwffff_open(snd_iwffff_handle_t **handle, const char *name_fff, co
 		close(fd);
 		return -ENOMEM;
 	}
-	if (read(fd, iwf->fff_data, iwf->fff_size) != iwf->fff_size) {
+	if (read(fd, iwf->fff_data, iwf->fff_size) != (ssize_t) iwf->fff_size) {
 		free(iwf->fff_data);
 		free(iwf);
 		close(fd);
@@ -292,7 +292,7 @@ int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, 
 				close(fd);
 				return -ENOMEM;
 			}
-			if (read(fd, iwf->fff_data, ffff.length) != ffff.length) {
+			if (read(fd, iwf->fff_data, ffff.length) != (ssize_t) ffff.length) {
 				free(iwf->fff_data);
 				free(iwf);
 				close(fd);
@@ -386,7 +386,7 @@ int snd_instr_iwffff_free(snd_instr_iwffff_t *__instr)
 	return 0;
 }
 
-static char *look_for_id(snd_iwffff_handle_t *iwf, unsigned char *start,
+static char *look_for_id(snd_iwffff_handle_t *iwf UNUSED, unsigned char *start,
 			 unsigned char *end, ID id)
 {
 	if (!start)
@@ -485,7 +485,7 @@ static int load_iw_wave(snd_iwffff_handle_t *file,
 		close(fd);
 		return -ENOMEM;
 	}
-	if (read(fd, result, size) != size) {
+	if (read(fd, result, size) != (ssize_t) size) {
 		free(*result);
 		*result = NULL;
 		close(fd);
@@ -832,9 +832,9 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 	return 0;
 }
 
-int snd_instr_iwffff_convert_from_stream(snd_seq_instr_get_t *data,
-					 long size,
-					 snd_instr_iwffff_t **iwffff)
+int snd_instr_iwffff_convert_from_stream(snd_seq_instr_get_t *data UNUSED,
+					 size_t size UNUSED,
+					 snd_instr_iwffff_t **iwffff UNUSED)
 {
 	/* TODO */
 	return -ENXIO;

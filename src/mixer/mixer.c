@@ -32,7 +32,7 @@
 #include <search.h>
 
 #define SND_FILE_MIXER		"/dev/snd/mixerC%iD%i"
-#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 1)
+#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
 
 struct snd_mixer {
 	int card;
@@ -335,7 +335,7 @@ void snd_mixer_sort_gid(snd_mixer_gid_t *list, int count,
 /* Compare using name and index */
 int snd_mixer_compare_gid_name_index(const snd_mixer_gid_t *a,
 				     const snd_mixer_gid_t *b,
-				     void* ignored)
+				     void *ignored UNUSED)
 {
 	int r = strcmp(a->name, b->name);
 	if (r != 0)
@@ -426,7 +426,7 @@ void snd_mixer_sort_eid(snd_mixer_eid_t *list, int count,
 /* Compare using name and index */
 int snd_mixer_compare_eid_name_index(const snd_mixer_eid_t *a,
 				     const snd_mixer_eid_t *b,
-				     void* ignored)
+				     void *ignored UNUSED)
 {
 	int r = strcmp(a->name, b->name);
 	if (r != 0)

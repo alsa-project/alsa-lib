@@ -32,10 +32,10 @@ struct snd_seq {
 	int fd;
 	/* buffers */
 	char *obuf;		/* output buffer */
-	int obufsize;		/* output buffer size */
-	int obufused;		/* output buffer used size */
+	size_t obufsize;		/* output buffer size */
+	size_t obufused;		/* output buffer used size */
 	char *ibuf;		/* input buffer */
-	int ibufsize;		/* input buffer size */
+	size_t ibufsize;		/* input buffer size */
 	/* input queue */
 	int cells;
 	snd_seq_cell_t *head;

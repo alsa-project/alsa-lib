@@ -134,7 +134,7 @@ static int alaw2linear(unsigned char a_val)
 
 typedef void (*alaw_f)(snd_pcm_plugin_t *plugin,
 		       const snd_pcm_plugin_voice_t *src_voices,
-		       const snd_pcm_plugin_voice_t *dst_voices,
+		       snd_pcm_plugin_voice_t *dst_voices,
 		       size_t samples);
 
 typedef struct alaw_private_data {
@@ -144,7 +144,7 @@ typedef struct alaw_private_data {
 
 static void alaw_decode(snd_pcm_plugin_t *plugin,
 			const snd_pcm_plugin_voice_t *src_voices,
-			const snd_pcm_plugin_voice_t *dst_voices,
+			snd_pcm_plugin_voice_t *dst_voices,
 			size_t samples)
 {
 #define PUT16_LABELS
@@ -159,13 +159,13 @@ static void alaw_decode(snd_pcm_plugin_t *plugin,
 		char *dst;
 		int src_step, dst_step;
 		size_t samples1;
-		if (src_voices[voice].addr == NULL) {
-			if (dst_voices[voice].addr != NULL) {
-//				null_voice(&dst_voices[voice]);
-				zero_voice(plugin, &dst_voices[voice], samples);
-			}
+		if (!src_voices[voice].enabled) {
+			if (dst_voices[voice].wanted)
+				snd_pcm_plugin_silence_voice(plugin, &dst_voices[voice], samples);
+			dst_voices[voice].enabled = 0;
 			continue;
 		}
+		dst_voices[voice].enabled = 1;
 		src = src_voices[voice].addr + src_voices[voice].first / 8;
 		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
 		src_step = src_voices[voice].step / 8;
@@ -186,7 +186,7 @@ static void alaw_decode(snd_pcm_plugin_t *plugin,
 
 static void alaw_encode(snd_pcm_plugin_t *plugin,
 			const snd_pcm_plugin_voice_t *src_voices,
-			const snd_pcm_plugin_voice_t *dst_voices,
+			snd_pcm_plugin_voice_t *dst_voices,
 			size_t samples)
 {
 #define GET16_LABELS
@@ -202,13 +202,13 @@ static void alaw_encode(snd_pcm_plugin_t *plugin,
 		char *dst;
 		int src_step, dst_step;
 		size_t samples1;
-		if (src_voices[voice].addr == NULL) {
-			if (dst_voices[voice].addr != NULL) {
-//				null_voice(&dst_voices[voice]);
-				zero_voice(plugin, &dst_voices[voice], samples);
-			}
+		if (!src_voices[voice].enabled) {
+			if (dst_voices[voice].wanted)
+				snd_pcm_plugin_silence_voice(plugin, &dst_voices[voice], samples);
+			dst_voices[voice].enabled = 0;
 			continue;
 		}
+		dst_voices[voice].enabled = 1;
 		src = src_voices[voice].addr + src_voices[voice].first / 8;
 		dst = dst_voices[voice].addr + dst_voices[voice].first / 8;
 		src_step = src_voices[voice].step / 8;
@@ -229,22 +229,17 @@ static void alaw_encode(snd_pcm_plugin_t *plugin,
 
 static ssize_t alaw_transfer(snd_pcm_plugin_t *plugin,
 			     const snd_pcm_plugin_voice_t *src_voices,
-			     const snd_pcm_plugin_voice_t *dst_voices,
+			     snd_pcm_plugin_voice_t *dst_voices,
 			     size_t samples)
 {
 	alaw_t *data;
-	int voice;
+	unsigned int voice;
 
 	if (plugin == NULL || src_voices == NULL || dst_voices == NULL)
 		return -EFAULT;
-	if (samples < 0)
-		return -EINVAL;
 	if (samples == 0)
 		return 0;
 	for (voice = 0; voice < plugin->src_format.voices; voice++) {
-		if (src_voices[voice].addr != NULL && 
-		    dst_voices[voice].addr == NULL)
-			return -EFAULT;
 		if (src_voices[voice].first % 8 != 0 || 
 		    src_voices[voice].step % 8 != 0)
 			return -EINVAL;
@@ -258,10 +253,12 @@ static ssize_t alaw_transfer(snd_pcm_plugin_t *plugin,
 }
 
 int snd_pcm_plugin_build_alaw(snd_pcm_plugin_handle_t *handle,
+			      int channel,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin)
 {
+	int err;
 	alaw_t *data;
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_format_t *format;
@@ -289,13 +286,14 @@ int snd_pcm_plugin_build_alaw(snd_pcm_plugin_handle_t *handle,
 	if (!snd_pcm_format_linear(format->format))
 		return -EINVAL;
 
-	plugin = snd_pcm_plugin_build(handle,
-				      "A-Law<->linear conversion",
-				      src_format,
-				      dst_format,
-				      sizeof(alaw_t));
-	if (plugin == NULL)
-		return -ENOMEM;
+	err = snd_pcm_plugin_build(handle, channel,
+				   "A-Law<->linear conversion",
+				   src_format,
+				   dst_format,
+				   sizeof(alaw_t),
+				   &plugin);
+	if (err < 0)
+		return err;
 	data = (alaw_t*)plugin->extra_data;
 	data->func = func;
 	data->conv = getput_index(format->format);

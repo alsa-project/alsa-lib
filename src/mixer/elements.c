@@ -91,15 +91,6 @@ int snd_mixer_element_info_build(snd_mixer_t *handle, snd_mixer_element_info_t *
 		if ((err = snd_mixer_element_info(handle, element)) < 0)
 			return err;
 		break;
-	case SND_MIXER_ETYPE_SWITCH3:
-		element->data.switch3.voices_size = element->data.switch3.voices_over;
-		element->data.switch3.voices = element->data.switch3.voices_over = 0;
-		element->data.switch3.pvoices = (snd_mixer_voice_t *)malloc(element->data.switch3.voices_size * sizeof(snd_mixer_voice_t));
-		if (!element->data.switch3.pvoices)
-			return -ENOMEM;
-		if ((err = snd_mixer_element_info(handle, element)) < 0)
-			return err;
-		break;
 	case SND_MIXER_ETYPE_VOLUME1:
 		element->data.volume1.range_size = element->data.volume1.range_over;
 		element->data.volume1.range = element->data.volume1.range_over = 0;
@@ -175,9 +166,6 @@ int snd_mixer_element_info_free(snd_mixer_element_info_t *element)
 	case SND_MIXER_ETYPE_CAPTURE1:
 	case SND_MIXER_ETYPE_PLAYBACK1:
 		safe_free((void **)&element->data.pcm1.pdevices);
-		break;
-	case SND_MIXER_ETYPE_SWITCH3:
-		safe_free((void **)&element->data.switch3.pvoices);
 		break;
 	case SND_MIXER_ETYPE_VOLUME1:
 		safe_free((void **)&element->data.volume1.prange);

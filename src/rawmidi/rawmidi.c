@@ -190,7 +190,7 @@ ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size)
 {
 	ssize_t result;
 
-	if (!rmidi || (!buffer && size > 0) || size < 0)
+	if (!rmidi || (!buffer && size > 0))
 		return -EINVAL;
 	result = write(rmidi->fd, buffer, size);
 	if (result < 0)
@@ -202,7 +202,7 @@ ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
 {
 	ssize_t result;
 
-	if (!rmidi || (!buffer && size > 0) || size < 0)
+	if (!rmidi || (!buffer && size > 0))
 		return -EINVAL;
 	result = read(rmidi->fd, buffer, size);
 	if (result < 0)

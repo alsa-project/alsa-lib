@@ -21,11 +21,14 @@
   
 #ifdef __KERNEL__
 #include "../include/driver.h"
+#include "../include/pcm.h"
+#include "../include/pcm_plugin.h"
 #else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <byteswap.h>
 #include <errno.h>
 #include <endian.h>
 #include <byteswap.h>
@@ -187,10 +190,6 @@ int snd_pcm_format_physical_width(int format)
 
 ssize_t snd_pcm_format_size(int format, size_t samples)
 {
-	if (samples < 0)
-		return -EINVAL;
-	if (samples == 0)
-		return samples;
 	switch (format) {
 	case SND_PCM_SFMT_S8:
 	case SND_PCM_SFMT_U8:
@@ -229,6 +228,11 @@ ssize_t snd_pcm_format_size(int format, size_t samples)
 	}
 }
 
+ssize_t snd_pcm_format_bytes_per_second(snd_pcm_format_t *format)
+{
+	return snd_pcm_format_size(format->format, format->voices * format->rate);
+}
+
 const char *snd_pcm_get_format_name(int format)
 {
 	static char *formats[] = {
@@ -265,23 +269,9 @@ const char *snd_pcm_get_format_name(int format)
 	return formats[format];
 }
 
-unsigned char snd_pcm_format_silence(int format)
+u_int64_t snd_pcm_format_silence_64(int format)
 {
 	switch (format) {
-	case SND_PCM_SFMT_IMA_ADPCM:	/* special case */
-	case SND_PCM_SFMT_MPEG:
-	case SND_PCM_SFMT_GSM:
-	case SND_PCM_SFMT_MU_LAW:
-	case SND_PCM_SFMT_A_LAW:
-		return 0;
-	case SND_PCM_SFMT_U8:
-	case SND_PCM_SFMT_U16_LE:
-	case SND_PCM_SFMT_U16_BE:
-	case SND_PCM_SFMT_U24_LE:
-	case SND_PCM_SFMT_U24_BE:
-	case SND_PCM_SFMT_U32_LE:
-	case SND_PCM_SFMT_U32_BE:
-		return 0x80;
 	case SND_PCM_SFMT_S8:
 	case SND_PCM_SFMT_S16_LE:
 	case SND_PCM_SFMT_S16_BE:
@@ -290,13 +280,133 @@ unsigned char snd_pcm_format_silence(int format)
 	case SND_PCM_SFMT_S32_LE:
 	case SND_PCM_SFMT_S32_BE:
 		return 0;
-	case SND_PCM_SFMT_FLOAT:
-	case SND_PCM_SFMT_FLOAT64:
+	case SND_PCM_SFMT_U8:
+		return 0x8080808080808080UL;
+	case SND_PCM_SFMT_U16_LE:
+	case SND_PCM_SFMT_U24_LE:
+	case SND_PCM_SFMT_U32_LE:
+#if defined(LITTLE_ENDIAN)
+		return 0x8000800080008000UL;
+#elif defined(BIG_ENDIAN)
+		return 0x0080008000800080UL;
+#else
+#error "endian"
+#endif
+	case SND_PCM_SFMT_U16_BE:
+	case SND_PCM_SFMT_U24_BE:
+	case SND_PCM_SFMT_U32_BE:
+#if defined(LITTLE_ENDIAN)
+		return 0x0000008000000080UL;
+#elif defined(BIG_ENDIAN)
+		return 0x8000000080000000UL;
+#else
+#error "endian"
+#endif
+	case SND_PCM_SFMT_FLOAT_LE:		
+#if defined(LITTLE_ENDIAN)
+		return (float)0.0;
+#elif defined(BIG_ENDIAN)
+		return bswap_32((u_int32_t)((float)0.0));
+#else
+#error "endian"
+#endif
+	case SND_PCM_SFMT_FLOAT64_LE:
+#if defined(LITTLE_ENDIAN)
+		return (double)0.0;
+#elif defined(BIG_ENDIAN)
+		return bswap_64((u_int64_t)((double)0.0));
+#else
+#error "endian"
+#endif
+	case SND_PCM_SFMT_FLOAT_BE:		
+#if defined(LITTLE_ENDIAN)
+		return bswap_32((u_int32_t)((float)0.0));
+#elif defined(BIG_ENDIAN)
+		return (float)0.0;
+#else
+#error "endian"
+#endif
+	case SND_PCM_SFMT_FLOAT64_BE:
+#if defined(LITTLE_ENDIAN)
+		return bswap_64((u_int64_t)((double)0.0));
+#elif defined(BIG_ENDIAN)
+		return (double)0.0;
+#else
+#error "endian"
+#endif
 	case SND_PCM_SFMT_IEC958_SUBFRAME_LE:
 	case SND_PCM_SFMT_IEC958_SUBFRAME_BE:
 		return 0;	
+	case SND_PCM_SFMT_MU_LAW:
+		return 0x7f7f7f7f7f7f7f7fUL;
+	case SND_PCM_SFMT_A_LAW:
+		return 0x5555555555555555UL;
+	case SND_PCM_SFMT_IMA_ADPCM:	/* special case */
+	case SND_PCM_SFMT_MPEG:
+	case SND_PCM_SFMT_GSM:
+		return 0;
 	}
 	return 0;
+}
+
+u_int32_t snd_pcm_format_silence_32(int format)
+{
+	return (u_int32_t)snd_pcm_format_silence_64(format);
+}
+
+u_int16_t snd_pcm_format_silence_16(int format)
+{
+	return (u_int16_t)snd_pcm_format_silence_64(format);
+}
+
+u_int8_t snd_pcm_format_silence(int format)
+{
+	return (u_int8_t)snd_pcm_format_silence_64(format);
+}
+
+ssize_t snd_pcm_format_set_silence(int format, void *data, size_t count)
+{
+	size_t count1;
+	
+	if (count == 0)
+		return 0;
+	switch (snd_pcm_format_width(format)) {
+	case 4:
+	case 8: {
+		u_int8_t silence = snd_pcm_format_silence_64(format);
+		memset(data, silence, count);
+		break;
+	}
+	case 16: {
+		u_int16_t silence = snd_pcm_format_silence_64(format);
+		if (count % 2)
+			return -EINVAL;
+		count1 = count / 2;
+		while (count1-- > 0)
+			*((u_int16_t *)data)++ = silence;
+		break;
+	}
+	case 32: {
+		u_int32_t silence = snd_pcm_format_silence_64(format);
+		if (count % 4)
+			return -EINVAL;
+		count1 = count / 4;
+		while (count1-- > 0)
+			*((u_int32_t *)data)++ = silence;
+		break;
+	}
+	case 64: {
+		u_int64_t silence = snd_pcm_format_silence_64(format);
+		if (count % 8)
+			return -EINVAL;
+		count1 = count / 8;
+		while (count1-- > 0)
+			*((u_int64_t *)data)++ = silence;
+	}
+	default:
+		return -EINVAL;
+	}
+	return count;
 }
 
 static int linear_formats[4*2*2] = {

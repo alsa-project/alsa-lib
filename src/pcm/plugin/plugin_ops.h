@@ -23,241 +23,260 @@
 #define as_u8(ptr) (*(u_int8_t*)(ptr))
 #define as_u16(ptr) (*(u_int16_t*)(ptr))
 #define as_u32(ptr) (*(u_int32_t*)(ptr))
+#define as_u64(ptr) (*(u_int64_t*)(ptr))
 #define as_s8(ptr) (*(int8_t*)(ptr))
 #define as_s16(ptr) (*(int16_t*)(ptr))
 #define as_s32(ptr) (*(int32_t*)(ptr))
-
+#define as_s64(ptr) (*(int64_t*)(ptr))
 
 #ifdef COPY_LABELS
-/* src_wid src_endswap sign_toggle dst_wid dst_endswap */
-static void *copy_labels[4 * 2 * 2 * 4 * 2] = {
-	&&copy_xxx1_xxx1,	 /*  8h ->  8h */
-	&&copy_xxx1_xxx1,	 /*  8h ->  8s */
-	&&copy_xxx1_xx10,	 /*  8h -> 16h */
-	&&copy_xxx1_xx01,	 /*  8h -> 16s */
-	&&copy_xxx1_x100,	 /*  8h -> 24h */
-	&&copy_xxx1_001x,	 /*  8h -> 24s */
-	&&copy_xxx1_1000,	 /*  8h -> 32h */
-	&&copy_xxx1_0001,	 /*  8h -> 32s */
-	&&copy_xxx1_xxx9,	 /*  8h ^>  8h */
-	&&copy_xxx1_xxx9,	 /*  8h ^>  8s */
-	&&copy_xxx1_xx90,	 /*  8h ^> 16h */
-	&&copy_xxx1_xx09,	 /*  8h ^> 16s */
-	&&copy_xxx1_x900,	 /*  8h ^> 24h */
-	&&copy_xxx1_009x,	 /*  8h ^> 24s */
-	&&copy_xxx1_9000,	 /*  8h ^> 32h */
-	&&copy_xxx1_0009,	 /*  8h ^> 32s */
-	&&copy_xxx1_xxx1,	 /*  8s ->  8h */
-	&&copy_xxx1_xxx1,	 /*  8s ->  8s */
-	&&copy_xxx1_xx10,	 /*  8s -> 16h */
-	&&copy_xxx1_xx01,	 /*  8s -> 16s */
-	&&copy_xxx1_x100,	 /*  8s -> 24h */
-	&&copy_xxx1_001x,	 /*  8s -> 24s */
-	&&copy_xxx1_1000,	 /*  8s -> 32h */
-	&&copy_xxx1_0001,	 /*  8s -> 32s */
-	&&copy_xxx1_xxx9,	 /*  8s ^>  8h */
-	&&copy_xxx1_xxx9,	 /*  8s ^>  8s */
-	&&copy_xxx1_xx90,	 /*  8s ^> 16h */
-	&&copy_xxx1_xx09,	 /*  8s ^> 16s */
-	&&copy_xxx1_x900,	 /*  8s ^> 24h */
-	&&copy_xxx1_009x,	 /*  8s ^> 24s */
-	&&copy_xxx1_9000,	 /*  8s ^> 32h */
-	&&copy_xxx1_0009,	 /*  8s ^> 32s */
-	&&copy_xx12_xxx1,	 /* 16h ->  8h */
-	&&copy_xx12_xxx1,	 /* 16h ->  8s */
-	&&copy_xx12_xx12,	 /* 16h -> 16h */
-	&&copy_xx12_xx21,	 /* 16h -> 16s */
-	&&copy_xx12_x120,	 /* 16h -> 24h */
-	&&copy_xx12_021x,	 /* 16h -> 24s */
-	&&copy_xx12_1200,	 /* 16h -> 32h */
-	&&copy_xx12_0021,	 /* 16h -> 32s */
-	&&copy_xx12_xxx9,	 /* 16h ^>  8h */
-	&&copy_xx12_xxx9,	 /* 16h ^>  8s */
-	&&copy_xx12_xx92,	 /* 16h ^> 16h */
-	&&copy_xx12_xx29,	 /* 16h ^> 16s */
-	&&copy_xx12_x920,	 /* 16h ^> 24h */
-	&&copy_xx12_029x,	 /* 16h ^> 24s */
-	&&copy_xx12_9200,	 /* 16h ^> 32h */
-	&&copy_xx12_0029,	 /* 16h ^> 32s */
-	&&copy_xx12_xxx2,	 /* 16s ->  8h */
-	&&copy_xx12_xxx2,	 /* 16s ->  8s */
-	&&copy_xx12_xx21,	 /* 16s -> 16h */
-	&&copy_xx12_xx12,	 /* 16s -> 16s */
-	&&copy_xx12_x210,	 /* 16s -> 24h */
-	&&copy_xx12_012x,	 /* 16s -> 24s */
-	&&copy_xx12_2100,	 /* 16s -> 32h */
-	&&copy_xx12_0012,	 /* 16s -> 32s */
-	&&copy_xx12_xxxA,	 /* 16s ^>  8h */
-	&&copy_xx12_xxxA,	 /* 16s ^>  8s */
-	&&copy_xx12_xxA1,	 /* 16s ^> 16h */
-	&&copy_xx12_xx1A,	 /* 16s ^> 16s */
-	&&copy_xx12_xA10,	 /* 16s ^> 24h */
-	&&copy_xx12_01Ax,	 /* 16s ^> 24s */
-	&&copy_xx12_A100,	 /* 16s ^> 32h */
-	&&copy_xx12_001A,	 /* 16s ^> 32s */
-	&&copy_x123_xxx1,	 /* 24h ->  8h */
-	&&copy_x123_xxx1,	 /* 24h ->  8s */
-	&&copy_x123_xx12,	 /* 24h -> 16h */
-	&&copy_x123_xx21,	 /* 24h -> 16s */
-	&&copy_x123_x123,	 /* 24h -> 24h */
-	&&copy_x123_321x,	 /* 24h -> 24s */
-	&&copy_x123_1230,	 /* 24h -> 32h */
-	&&copy_x123_0321,	 /* 24h -> 32s */
-	&&copy_x123_xxx9,	 /* 24h ^>  8h */
-	&&copy_x123_xxx9,	 /* 24h ^>  8s */
-	&&copy_x123_xx92,	 /* 24h ^> 16h */
-	&&copy_x123_xx29,	 /* 24h ^> 16s */
-	&&copy_x123_x923,	 /* 24h ^> 24h */
-	&&copy_x123_329x,	 /* 24h ^> 24s */
-	&&copy_x123_9230,	 /* 24h ^> 32h */
-	&&copy_x123_0329,	 /* 24h ^> 32s */
-	&&copy_123x_xxx3,	 /* 24s ->  8h */
-	&&copy_123x_xxx3,	 /* 24s ->  8s */
-	&&copy_123x_xx32,	 /* 24s -> 16h */
-	&&copy_123x_xx23,	 /* 24s -> 16s */
-	&&copy_123x_x321,	 /* 24s -> 24h */
-	&&copy_123x_123x,	 /* 24s -> 24s */
-	&&copy_123x_3210,	 /* 24s -> 32h */
-	&&copy_123x_0123,	 /* 24s -> 32s */
-	&&copy_123x_xxxB,	 /* 24s ^>  8h */
-	&&copy_123x_xxxB,	 /* 24s ^>  8s */
-	&&copy_123x_xxB2,	 /* 24s ^> 16h */
-	&&copy_123x_xx2B,	 /* 24s ^> 16s */
-	&&copy_123x_xB21,	 /* 24s ^> 24h */
-	&&copy_123x_12Bx,	 /* 24s ^> 24s */
-	&&copy_123x_B210,	 /* 24s ^> 32h */
-	&&copy_123x_012B,	 /* 24s ^> 32s */
-	&&copy_1234_xxx1,	 /* 32h ->  8h */
-	&&copy_1234_xxx1,	 /* 32h ->  8s */
-	&&copy_1234_xx12,	 /* 32h -> 16h */
-	&&copy_1234_xx21,	 /* 32h -> 16s */
-	&&copy_1234_x123,	 /* 32h -> 24h */
-	&&copy_1234_321x,	 /* 32h -> 24s */
-	&&copy_1234_1234,	 /* 32h -> 32h */
-	&&copy_1234_4321,	 /* 32h -> 32s */
-	&&copy_1234_xxx9,	 /* 32h ^>  8h */
-	&&copy_1234_xxx9,	 /* 32h ^>  8s */
-	&&copy_1234_xx92,	 /* 32h ^> 16h */
-	&&copy_1234_xx29,	 /* 32h ^> 16s */
-	&&copy_1234_x923,	 /* 32h ^> 24h */
-	&&copy_1234_329x,	 /* 32h ^> 24s */
-	&&copy_1234_9234,	 /* 32h ^> 32h */
-	&&copy_1234_4329,	 /* 32h ^> 32s */
-	&&copy_1234_xxx4,	 /* 32s ->  8h */
-	&&copy_1234_xxx4,	 /* 32s ->  8s */
-	&&copy_1234_xx43,	 /* 32s -> 16h */
-	&&copy_1234_xx34,	 /* 32s -> 16s */
-	&&copy_1234_x432,	 /* 32s -> 24h */
-	&&copy_1234_234x,	 /* 32s -> 24s */
-	&&copy_1234_4321,	 /* 32s -> 32h */
-	&&copy_1234_1234,	 /* 32s -> 32s */
-	&&copy_1234_xxxC,	 /* 32s ^>  8h */
-	&&copy_1234_xxxC,	 /* 32s ^>  8s */
-	&&copy_1234_xxC3,	 /* 32s ^> 16h */
-	&&copy_1234_xx3C,	 /* 32s ^> 16s */
-	&&copy_1234_xC32,	 /* 32s ^> 24h */
-	&&copy_1234_23Cx,	 /* 32s ^> 24s */
-	&&copy_1234_C321,	 /* 32s ^> 32h */
-	&&copy_1234_123C,	 /* 32s ^> 32s */
+static void *copy_labels[4] = {
+	&&copy_8,
+	&&copy_16,
+	&&copy_32,
+	&&copy_64
 };
 #endif
 
 #ifdef COPY_END
 while(0) {
-copy_xxx1_xxx1: as_u8(dst) = as_u8(src); goto COPY_END;
-copy_xxx1_xx10: as_u16(dst) = (u_int16_t)as_u8(src) << 8; goto COPY_END;
-copy_xxx1_xx01: as_u16(dst) = (u_int16_t)as_u8(src); goto COPY_END;
-copy_xxx1_x100: as_u32(dst) = (u_int32_t)as_u8(src) << 16; goto COPY_END;
-copy_xxx1_001x: as_u32(dst) = (u_int32_t)as_u8(src) << 8; goto COPY_END;
-copy_xxx1_1000: as_u32(dst) = (u_int32_t)as_u8(src) << 24; goto COPY_END;
-copy_xxx1_0001: as_u32(dst) = (u_int32_t)as_u8(src); goto COPY_END;
-copy_xxx1_xxx9: as_u8(dst) = as_u8(src) ^ 0x80; goto COPY_END;
-copy_xxx1_xx90: as_u16(dst) = (u_int16_t)(as_u8(src) ^ 0x80) << 8; goto COPY_END;
-copy_xxx1_xx09: as_u16(dst) = (u_int16_t)(as_u8(src) ^ 0x80); goto COPY_END;
-copy_xxx1_x900: as_u32(dst) = (u_int32_t)(as_u8(src) ^ 0x80) << 16; goto COPY_END;
-copy_xxx1_009x: as_u32(dst) = (u_int32_t)(as_u8(src) ^ 0x80) << 8; goto COPY_END;
-copy_xxx1_9000: as_u32(dst) = (u_int32_t)(as_u8(src) ^ 0x80) << 24; goto COPY_END;
-copy_xxx1_0009: as_u32(dst) = (u_int32_t)(as_u8(src) ^ 0x80); goto COPY_END;
-copy_xx12_xxx1: as_u8(dst) = as_u16(src) >> 8; goto COPY_END;
-copy_xx12_xx12: as_u16(dst) = as_u16(src); goto COPY_END;
-copy_xx12_xx21: as_u16(dst) = bswap_16(as_u16(src)); goto COPY_END;
-copy_xx12_x120: as_u32(dst) = (u_int32_t)as_u16(src) << 8; goto COPY_END;
-copy_xx12_021x: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src)) << 8; goto COPY_END;
-copy_xx12_1200: as_u32(dst) = (u_int32_t)as_u16(src) << 16; goto COPY_END;
-copy_xx12_0021: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src)); goto COPY_END;
-copy_xx12_xxx9: as_u8(dst) = (as_u16(src) >> 8) ^ 0x80; goto COPY_END;
-copy_xx12_xx92: as_u16(dst) = as_u16(src) ^ 0x8000; goto COPY_END;
-copy_xx12_xx29: as_u16(dst) = bswap_16(as_u16(src)) ^ 0x80; goto COPY_END;
-copy_xx12_x920: as_u32(dst) = (u_int32_t)(as_u16(src) ^ 0x8000) << 8; goto COPY_END;
-copy_xx12_029x: as_u32(dst) = (u_int32_t)(bswap_16(as_u16(src)) ^ 0x80) << 8; goto COPY_END;
-copy_xx12_9200: as_u32(dst) = (u_int32_t)(as_u16(src) ^ 0x8000) << 16; goto COPY_END;
-copy_xx12_0029: as_u32(dst) = (u_int32_t)(bswap_16(as_u16(src)) ^ 0x80); goto COPY_END;
-copy_xx12_xxx2: as_u8(dst) = as_u16(src) & 0xff; goto COPY_END;
-copy_xx12_x210: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src)) << 8; goto COPY_END;
-copy_xx12_012x: as_u32(dst) = (u_int32_t)as_u16(src) << 8; goto COPY_END;
-copy_xx12_2100: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src)) << 16; goto COPY_END;
-copy_xx12_0012: as_u32(dst) = (u_int32_t)as_u16(src); goto COPY_END; 
-copy_xx12_xxxA: as_u8(dst) = (as_u16(src) ^ 0x80) & 0xff; goto COPY_END;
-copy_xx12_xxA1: as_u16(dst) = bswap_16(as_u16(src) ^ 0x80); goto COPY_END;
-copy_xx12_xx1A: as_u16(dst) = as_u16(src) ^ 0x80; goto COPY_END;
-copy_xx12_xA10: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src) ^ 0x80) << 8; goto COPY_END;
-copy_xx12_01Ax: as_u32(dst) = (u_int32_t)(as_u16(src) ^ 0x80) << 8; goto COPY_END;
-copy_xx12_A100: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src) ^ 0x80) << 16; goto COPY_END;
-copy_xx12_001A: as_u32(dst) = (u_int32_t)(as_u16(src) ^ 0x80); goto COPY_END;
-copy_x123_xxx1: as_u8(dst) = as_u32(src) >> 16; goto COPY_END;
-copy_x123_xx12: as_u16(dst) = as_u32(src) >> 8; goto COPY_END;
-copy_x123_xx21: as_u16(dst) = bswap_16(as_u32(src) >> 8); goto COPY_END;
-copy_x123_x123: as_u32(dst) = as_u32(src); goto COPY_END;
-copy_x123_321x: as_u32(dst) = bswap_32(as_u32(src)); goto COPY_END;
-copy_x123_1230: as_u32(dst) = as_u32(src) << 8; goto COPY_END;
-copy_x123_0321: as_u32(dst) = bswap_32(as_u32(src)) >> 8; goto COPY_END;
-copy_x123_xxx9: as_u8(dst) = (as_u32(src) >> 16) ^ 0x80; goto COPY_END;
-copy_x123_xx92: as_u16(dst) = (as_u32(src) >> 8) ^ 0x8000; goto COPY_END;
-copy_x123_xx29: as_u16(dst) = bswap_16(as_u32(src) >> 8) ^ 0x80; goto COPY_END;
-copy_x123_x923: as_u32(dst) = as_u32(src) ^ 0x800000; goto COPY_END;
-copy_x123_329x: as_u32(dst) = bswap_32(as_u32(src)) ^ 0x8000; goto COPY_END;
-copy_x123_9230: as_u32(dst) = (as_u32(src) ^ 0x800000) << 8; goto COPY_END;
-copy_x123_0329: as_u32(dst) = (bswap_32(as_u32(src)) >> 8) ^ 0x80; goto COPY_END;
-copy_123x_xxx3: as_u8(dst) = (as_u32(src) >> 8) & 0xff; goto COPY_END;
-copy_123x_xx32: as_u16(dst) = bswap_16(as_u32(src) >> 8); goto COPY_END;
-copy_123x_xx23: as_u16(dst) = (as_u32(src) >> 8) & 0xffff; goto COPY_END;
-copy_123x_x321: as_u32(dst) = bswap_32(as_u32(src)); goto COPY_END;
-copy_123x_123x: as_u32(dst) = as_u32(src); goto COPY_END;
-copy_123x_3210: as_u32(dst) = bswap_32(as_u32(src)) << 8; goto COPY_END;
-copy_123x_0123: as_u32(dst) = as_u32(src) >> 8; goto COPY_END;
-copy_123x_xxxB: as_u8(dst) = ((as_u32(src) >> 8) & 0xff) ^ 0x80; goto COPY_END;
-copy_123x_xxB2: as_u16(dst) = bswap_16((as_u32(src) >> 8) ^ 0x80); goto COPY_END;
-copy_123x_xx2B: as_u16(dst) = ((as_u32(src) >> 8) & 0xffff) ^ 0x80; goto COPY_END;
-copy_123x_xB21: as_u32(dst) = bswap_32(as_u32(src)) ^ 0x800000; goto COPY_END;
-copy_123x_12Bx: as_u32(dst) = as_u32(src) ^ 0x8000; goto COPY_END;
-copy_123x_B210: as_u32(dst) = bswap_32(as_u32(src) ^ 0x8000) << 8; goto COPY_END;
-copy_123x_012B: as_u32(dst) = (as_u32(src) >> 8) ^ 0x80; goto COPY_END;
-copy_1234_xxx1: as_u8(dst) = as_u32(src) >> 24; goto COPY_END;
-copy_1234_xx12: as_u16(dst) = as_u32(src) >> 16; goto COPY_END;
-copy_1234_xx21: as_u16(dst) = bswap_16(as_u32(src) >> 16); goto COPY_END;
-copy_1234_x123: as_u32(dst) = as_u32(src) >> 8; goto COPY_END;
-copy_1234_321x: as_u32(dst) = bswap_32(as_u32(src)) << 8; goto COPY_END;
-copy_1234_1234: as_u32(dst) = as_u32(src); goto COPY_END;
-copy_1234_4321: as_u32(dst) = bswap_32(as_u32(src)); goto COPY_END;
-copy_1234_xxx9: as_u8(dst) = (as_u32(src) >> 24) ^ 0x80; goto COPY_END;
-copy_1234_xx92: as_u16(dst) = (as_u32(src) >> 16) ^ 0x8000; goto COPY_END;
-copy_1234_xx29: as_u16(dst) = bswap_16(as_u32(src) >> 16) ^ 0x80; goto COPY_END;
-copy_1234_x923: as_u32(dst) = (as_u32(src) >> 8) ^ 0x800000; goto COPY_END;
-copy_1234_329x: as_u32(dst) = (bswap_32(as_u32(src)) ^ 0x80) << 8; goto COPY_END;
-copy_1234_9234: as_u32(dst) = as_u32(src) ^ 0x80000000; goto COPY_END;
-copy_1234_4329: as_u32(dst) = bswap_32(as_u32(src)) ^ 0x80; goto COPY_END;
-copy_1234_xxx4: as_u8(dst) = as_u32(src) & 0xff; goto COPY_END;
-copy_1234_xx43: as_u16(dst) = bswap_16(as_u32(src)); goto COPY_END;
-copy_1234_xx34: as_u16(dst) = as_u32(src) & 0xffff; goto COPY_END;
-copy_1234_x432: as_u32(dst) = bswap_32(as_u32(src)) >> 8; goto COPY_END;
-copy_1234_234x: as_u32(dst) = as_u32(src) << 8; goto COPY_END;
-copy_1234_xxxC: as_u8(dst) = (as_u32(src) & 0xff) ^ 0x80; goto COPY_END;
-copy_1234_xxC3: as_u16(dst) = bswap_16(as_u32(src) ^ 0x80); goto COPY_END;
-copy_1234_xx3C: as_u16(dst) = (as_u32(src) & 0xffff) ^ 0x80; goto COPY_END;
-copy_1234_xC32: as_u32(dst) = (bswap_32(as_u32(src)) >> 8) ^ 0x800000; goto COPY_END;
-copy_1234_23Cx: as_u32(dst) = (as_u32(src) ^ 0x80) << 8; goto COPY_END;
-copy_1234_C321: as_u32(dst) = bswap_32(as_u32(src) ^ 0x80); goto COPY_END;
-copy_1234_123C: as_u32(dst) = as_u32(src) ^ 0x80; goto COPY_END;
+copy_8: as_s8(dst) = as_s8(src); goto COPY_END;
+copy_16: as_s16(dst) = as_s16(src); goto COPY_END;
+copy_32: as_s32(dst) = as_s32(src); goto COPY_END;
+copy_64: as_s64(dst) = as_s64(src); goto COPY_END;
+}
+#endif
+
+#ifdef CONV_LABELS
+/* src_wid src_endswap sign_toggle dst_wid dst_endswap */
+static void *conv_labels[4 * 2 * 2 * 4 * 2] = {
+	&&conv_xxx1_xxx1,	 /*  8h ->  8h */
+	&&conv_xxx1_xxx1,	 /*  8h ->  8s */
+	&&conv_xxx1_xx10,	 /*  8h -> 16h */
+	&&conv_xxx1_xx01,	 /*  8h -> 16s */
+	&&conv_xxx1_x100,	 /*  8h -> 24h */
+	&&conv_xxx1_001x,	 /*  8h -> 24s */
+	&&conv_xxx1_1000,	 /*  8h -> 32h */
+	&&conv_xxx1_0001,	 /*  8h -> 32s */
+	&&conv_xxx1_xxx9,	 /*  8h ^>  8h */
+	&&conv_xxx1_xxx9,	 /*  8h ^>  8s */
+	&&conv_xxx1_xx90,	 /*  8h ^> 16h */
+	&&conv_xxx1_xx09,	 /*  8h ^> 16s */
+	&&conv_xxx1_x900,	 /*  8h ^> 24h */
+	&&conv_xxx1_009x,	 /*  8h ^> 24s */
+	&&conv_xxx1_9000,	 /*  8h ^> 32h */
+	&&conv_xxx1_0009,	 /*  8h ^> 32s */
+	&&conv_xxx1_xxx1,	 /*  8s ->  8h */
+	&&conv_xxx1_xxx1,	 /*  8s ->  8s */
+	&&conv_xxx1_xx10,	 /*  8s -> 16h */
+	&&conv_xxx1_xx01,	 /*  8s -> 16s */
+	&&conv_xxx1_x100,	 /*  8s -> 24h */
+	&&conv_xxx1_001x,	 /*  8s -> 24s */
+	&&conv_xxx1_1000,	 /*  8s -> 32h */
+	&&conv_xxx1_0001,	 /*  8s -> 32s */
+	&&conv_xxx1_xxx9,	 /*  8s ^>  8h */
+	&&conv_xxx1_xxx9,	 /*  8s ^>  8s */
+	&&conv_xxx1_xx90,	 /*  8s ^> 16h */
+	&&conv_xxx1_xx09,	 /*  8s ^> 16s */
+	&&conv_xxx1_x900,	 /*  8s ^> 24h */
+	&&conv_xxx1_009x,	 /*  8s ^> 24s */
+	&&conv_xxx1_9000,	 /*  8s ^> 32h */
+	&&conv_xxx1_0009,	 /*  8s ^> 32s */
+	&&conv_xx12_xxx1,	 /* 16h ->  8h */
+	&&conv_xx12_xxx1,	 /* 16h ->  8s */
+	&&conv_xx12_xx12,	 /* 16h -> 16h */
+	&&conv_xx12_xx21,	 /* 16h -> 16s */
+	&&conv_xx12_x120,	 /* 16h -> 24h */
+	&&conv_xx12_021x,	 /* 16h -> 24s */
+	&&conv_xx12_1200,	 /* 16h -> 32h */
+	&&conv_xx12_0021,	 /* 16h -> 32s */
+	&&conv_xx12_xxx9,	 /* 16h ^>  8h */
+	&&conv_xx12_xxx9,	 /* 16h ^>  8s */
+	&&conv_xx12_xx92,	 /* 16h ^> 16h */
+	&&conv_xx12_xx29,	 /* 16h ^> 16s */
+	&&conv_xx12_x920,	 /* 16h ^> 24h */
+	&&conv_xx12_029x,	 /* 16h ^> 24s */
+	&&conv_xx12_9200,	 /* 16h ^> 32h */
+	&&conv_xx12_0029,	 /* 16h ^> 32s */
+	&&conv_xx12_xxx2,	 /* 16s ->  8h */
+	&&conv_xx12_xxx2,	 /* 16s ->  8s */
+	&&conv_xx12_xx21,	 /* 16s -> 16h */
+	&&conv_xx12_xx12,	 /* 16s -> 16s */
+	&&conv_xx12_x210,	 /* 16s -> 24h */
+	&&conv_xx12_012x,	 /* 16s -> 24s */
+	&&conv_xx12_2100,	 /* 16s -> 32h */
+	&&conv_xx12_0012,	 /* 16s -> 32s */
+	&&conv_xx12_xxxA,	 /* 16s ^>  8h */
+	&&conv_xx12_xxxA,	 /* 16s ^>  8s */
+	&&conv_xx12_xxA1,	 /* 16s ^> 16h */
+	&&conv_xx12_xx1A,	 /* 16s ^> 16s */
+	&&conv_xx12_xA10,	 /* 16s ^> 24h */
+	&&conv_xx12_01Ax,	 /* 16s ^> 24s */
+	&&conv_xx12_A100,	 /* 16s ^> 32h */
+	&&conv_xx12_001A,	 /* 16s ^> 32s */
+	&&conv_x123_xxx1,	 /* 24h ->  8h */
+	&&conv_x123_xxx1,	 /* 24h ->  8s */
+	&&conv_x123_xx12,	 /* 24h -> 16h */
+	&&conv_x123_xx21,	 /* 24h -> 16s */
+	&&conv_x123_x123,	 /* 24h -> 24h */
+	&&conv_x123_321x,	 /* 24h -> 24s */
+	&&conv_x123_1230,	 /* 24h -> 32h */
+	&&conv_x123_0321,	 /* 24h -> 32s */
+	&&conv_x123_xxx9,	 /* 24h ^>  8h */
+	&&conv_x123_xxx9,	 /* 24h ^>  8s */
+	&&conv_x123_xx92,	 /* 24h ^> 16h */
+	&&conv_x123_xx29,	 /* 24h ^> 16s */
+	&&conv_x123_x923,	 /* 24h ^> 24h */
+	&&conv_x123_329x,	 /* 24h ^> 24s */
+	&&conv_x123_9230,	 /* 24h ^> 32h */
+	&&conv_x123_0329,	 /* 24h ^> 32s */
+	&&conv_123x_xxx3,	 /* 24s ->  8h */
+	&&conv_123x_xxx3,	 /* 24s ->  8s */
+	&&conv_123x_xx32,	 /* 24s -> 16h */
+	&&conv_123x_xx23,	 /* 24s -> 16s */
+	&&conv_123x_x321,	 /* 24s -> 24h */
+	&&conv_123x_123x,	 /* 24s -> 24s */
+	&&conv_123x_3210,	 /* 24s -> 32h */
+	&&conv_123x_0123,	 /* 24s -> 32s */
+	&&conv_123x_xxxB,	 /* 24s ^>  8h */
+	&&conv_123x_xxxB,	 /* 24s ^>  8s */
+	&&conv_123x_xxB2,	 /* 24s ^> 16h */
+	&&conv_123x_xx2B,	 /* 24s ^> 16s */
+	&&conv_123x_xB21,	 /* 24s ^> 24h */
+	&&conv_123x_12Bx,	 /* 24s ^> 24s */
+	&&conv_123x_B210,	 /* 24s ^> 32h */
+	&&conv_123x_012B,	 /* 24s ^> 32s */
+	&&conv_1234_xxx1,	 /* 32h ->  8h */
+	&&conv_1234_xxx1,	 /* 32h ->  8s */
+	&&conv_1234_xx12,	 /* 32h -> 16h */
+	&&conv_1234_xx21,	 /* 32h -> 16s */
+	&&conv_1234_x123,	 /* 32h -> 24h */
+	&&conv_1234_321x,	 /* 32h -> 24s */
+	&&conv_1234_1234,	 /* 32h -> 32h */
+	&&conv_1234_4321,	 /* 32h -> 32s */
+	&&conv_1234_xxx9,	 /* 32h ^>  8h */
+	&&conv_1234_xxx9,	 /* 32h ^>  8s */
+	&&conv_1234_xx92,	 /* 32h ^> 16h */
+	&&conv_1234_xx29,	 /* 32h ^> 16s */
+	&&conv_1234_x923,	 /* 32h ^> 24h */
+	&&conv_1234_329x,	 /* 32h ^> 24s */
+	&&conv_1234_9234,	 /* 32h ^> 32h */
+	&&conv_1234_4329,	 /* 32h ^> 32s */
+	&&conv_1234_xxx4,	 /* 32s ->  8h */
+	&&conv_1234_xxx4,	 /* 32s ->  8s */
+	&&conv_1234_xx43,	 /* 32s -> 16h */
+	&&conv_1234_xx34,	 /* 32s -> 16s */
+	&&conv_1234_x432,	 /* 32s -> 24h */
+	&&conv_1234_234x,	 /* 32s -> 24s */
+	&&conv_1234_4321,	 /* 32s -> 32h */
+	&&conv_1234_1234,	 /* 32s -> 32s */
+	&&conv_1234_xxxC,	 /* 32s ^>  8h */
+	&&conv_1234_xxxC,	 /* 32s ^>  8s */
+	&&conv_1234_xxC3,	 /* 32s ^> 16h */
+	&&conv_1234_xx3C,	 /* 32s ^> 16s */
+	&&conv_1234_xC32,	 /* 32s ^> 24h */
+	&&conv_1234_23Cx,	 /* 32s ^> 24s */
+	&&conv_1234_C321,	 /* 32s ^> 32h */
+	&&conv_1234_123C,	 /* 32s ^> 32s */
+};
+#endif
+
+#ifdef CONV_END
+while(0) {
+conv_xxx1_xxx1: as_u8(dst) = as_u8(src); goto CONV_END;
+conv_xxx1_xx10: as_u16(dst) = (u_int16_t)as_u8(src) << 8; goto CONV_END;
+conv_xxx1_xx01: as_u16(dst) = (u_int16_t)as_u8(src); goto CONV_END;
+conv_xxx1_x100: as_u32(dst) = (u_int32_t)as_u8(src) << 16; goto CONV_END;
+conv_xxx1_001x: as_u32(dst) = (u_int32_t)as_u8(src) << 8; goto CONV_END;
+conv_xxx1_1000: as_u32(dst) = (u_int32_t)as_u8(src) << 24; goto CONV_END;
+conv_xxx1_0001: as_u32(dst) = (u_int32_t)as_u8(src); goto CONV_END;
+conv_xxx1_xxx9: as_u8(dst) = as_u8(src) ^ 0x80; goto CONV_END;
+conv_xxx1_xx90: as_u16(dst) = (u_int16_t)(as_u8(src) ^ 0x80) << 8; goto CONV_END;
+conv_xxx1_xx09: as_u16(dst) = (u_int16_t)(as_u8(src) ^ 0x80); goto CONV_END;
+conv_xxx1_x900: as_u32(dst) = (u_int32_t)(as_u8(src) ^ 0x80) << 16; goto CONV_END;
+conv_xxx1_009x: as_u32(dst) = (u_int32_t)(as_u8(src) ^ 0x80) << 8; goto CONV_END;
+conv_xxx1_9000: as_u32(dst) = (u_int32_t)(as_u8(src) ^ 0x80) << 24; goto CONV_END;
+conv_xxx1_0009: as_u32(dst) = (u_int32_t)(as_u8(src) ^ 0x80); goto CONV_END;
+conv_xx12_xxx1: as_u8(dst) = as_u16(src) >> 8; goto CONV_END;
+conv_xx12_xx12: as_u16(dst) = as_u16(src); goto CONV_END;
+conv_xx12_xx21: as_u16(dst) = bswap_16(as_u16(src)); goto CONV_END;
+conv_xx12_x120: as_u32(dst) = (u_int32_t)as_u16(src) << 8; goto CONV_END;
+conv_xx12_021x: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src)) << 8; goto CONV_END;
+conv_xx12_1200: as_u32(dst) = (u_int32_t)as_u16(src) << 16; goto CONV_END;
+conv_xx12_0021: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src)); goto CONV_END;
+conv_xx12_xxx9: as_u8(dst) = (as_u16(src) >> 8) ^ 0x80; goto CONV_END;
+conv_xx12_xx92: as_u16(dst) = as_u16(src) ^ 0x8000; goto CONV_END;
+conv_xx12_xx29: as_u16(dst) = bswap_16(as_u16(src)) ^ 0x80; goto CONV_END;
+conv_xx12_x920: as_u32(dst) = (u_int32_t)(as_u16(src) ^ 0x8000) << 8; goto CONV_END;
+conv_xx12_029x: as_u32(dst) = (u_int32_t)(bswap_16(as_u16(src)) ^ 0x80) << 8; goto CONV_END;
+conv_xx12_9200: as_u32(dst) = (u_int32_t)(as_u16(src) ^ 0x8000) << 16; goto CONV_END;
+conv_xx12_0029: as_u32(dst) = (u_int32_t)(bswap_16(as_u16(src)) ^ 0x80); goto CONV_END;
+conv_xx12_xxx2: as_u8(dst) = as_u16(src) & 0xff; goto CONV_END;
+conv_xx12_x210: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src)) << 8; goto CONV_END;
+conv_xx12_012x: as_u32(dst) = (u_int32_t)as_u16(src) << 8; goto CONV_END;
+conv_xx12_2100: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src)) << 16; goto CONV_END;
+conv_xx12_0012: as_u32(dst) = (u_int32_t)as_u16(src); goto CONV_END; 
+conv_xx12_xxxA: as_u8(dst) = (as_u16(src) ^ 0x80) & 0xff; goto CONV_END;
+conv_xx12_xxA1: as_u16(dst) = bswap_16(as_u16(src) ^ 0x80); goto CONV_END;
+conv_xx12_xx1A: as_u16(dst) = as_u16(src) ^ 0x80; goto CONV_END;
+conv_xx12_xA10: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src) ^ 0x80) << 8; goto CONV_END;
+conv_xx12_01Ax: as_u32(dst) = (u_int32_t)(as_u16(src) ^ 0x80) << 8; goto CONV_END;
+conv_xx12_A100: as_u32(dst) = (u_int32_t)bswap_16(as_u16(src) ^ 0x80) << 16; goto CONV_END;
+conv_xx12_001A: as_u32(dst) = (u_int32_t)(as_u16(src) ^ 0x80); goto CONV_END;
+conv_x123_xxx1: as_u8(dst) = as_u32(src) >> 16; goto CONV_END;
+conv_x123_xx12: as_u16(dst) = as_u32(src) >> 8; goto CONV_END;
+conv_x123_xx21: as_u16(dst) = bswap_16(as_u32(src) >> 8); goto CONV_END;
+conv_x123_x123: as_u32(dst) = as_u32(src); goto CONV_END;
+conv_x123_321x: as_u32(dst) = bswap_32(as_u32(src)); goto CONV_END;
+conv_x123_1230: as_u32(dst) = as_u32(src) << 8; goto CONV_END;
+conv_x123_0321: as_u32(dst) = bswap_32(as_u32(src)) >> 8; goto CONV_END;
+conv_x123_xxx9: as_u8(dst) = (as_u32(src) >> 16) ^ 0x80; goto CONV_END;
+conv_x123_xx92: as_u16(dst) = (as_u32(src) >> 8) ^ 0x8000; goto CONV_END;
+conv_x123_xx29: as_u16(dst) = bswap_16(as_u32(src) >> 8) ^ 0x80; goto CONV_END;
+conv_x123_x923: as_u32(dst) = as_u32(src) ^ 0x800000; goto CONV_END;
+conv_x123_329x: as_u32(dst) = bswap_32(as_u32(src)) ^ 0x8000; goto CONV_END;
+conv_x123_9230: as_u32(dst) = (as_u32(src) ^ 0x800000) << 8; goto CONV_END;
+conv_x123_0329: as_u32(dst) = (bswap_32(as_u32(src)) >> 8) ^ 0x80; goto CONV_END;
+conv_123x_xxx3: as_u8(dst) = (as_u32(src) >> 8) & 0xff; goto CONV_END;
+conv_123x_xx32: as_u16(dst) = bswap_16(as_u32(src) >> 8); goto CONV_END;
+conv_123x_xx23: as_u16(dst) = (as_u32(src) >> 8) & 0xffff; goto CONV_END;
+conv_123x_x321: as_u32(dst) = bswap_32(as_u32(src)); goto CONV_END;
+conv_123x_123x: as_u32(dst) = as_u32(src); goto CONV_END;
+conv_123x_3210: as_u32(dst) = bswap_32(as_u32(src)) << 8; goto CONV_END;
+conv_123x_0123: as_u32(dst) = as_u32(src) >> 8; goto CONV_END;
+conv_123x_xxxB: as_u8(dst) = ((as_u32(src) >> 8) & 0xff) ^ 0x80; goto CONV_END;
+conv_123x_xxB2: as_u16(dst) = bswap_16((as_u32(src) >> 8) ^ 0x80); goto CONV_END;
+conv_123x_xx2B: as_u16(dst) = ((as_u32(src) >> 8) & 0xffff) ^ 0x80; goto CONV_END;
+conv_123x_xB21: as_u32(dst) = bswap_32(as_u32(src)) ^ 0x800000; goto CONV_END;
+conv_123x_12Bx: as_u32(dst) = as_u32(src) ^ 0x8000; goto CONV_END;
+conv_123x_B210: as_u32(dst) = bswap_32(as_u32(src) ^ 0x8000) << 8; goto CONV_END;
+conv_123x_012B: as_u32(dst) = (as_u32(src) >> 8) ^ 0x80; goto CONV_END;
+conv_1234_xxx1: as_u8(dst) = as_u32(src) >> 24; goto CONV_END;
+conv_1234_xx12: as_u16(dst) = as_u32(src) >> 16; goto CONV_END;
+conv_1234_xx21: as_u16(dst) = bswap_16(as_u32(src) >> 16); goto CONV_END;
+conv_1234_x123: as_u32(dst) = as_u32(src) >> 8; goto CONV_END;
+conv_1234_321x: as_u32(dst) = bswap_32(as_u32(src)) << 8; goto CONV_END;
+conv_1234_1234: as_u32(dst) = as_u32(src); goto CONV_END;
+conv_1234_4321: as_u32(dst) = bswap_32(as_u32(src)); goto CONV_END;
+conv_1234_xxx9: as_u8(dst) = (as_u32(src) >> 24) ^ 0x80; goto CONV_END;
+conv_1234_xx92: as_u16(dst) = (as_u32(src) >> 16) ^ 0x8000; goto CONV_END;
+conv_1234_xx29: as_u16(dst) = bswap_16(as_u32(src) >> 16) ^ 0x80; goto CONV_END;
+conv_1234_x923: as_u32(dst) = (as_u32(src) >> 8) ^ 0x800000; goto CONV_END;
+conv_1234_329x: as_u32(dst) = (bswap_32(as_u32(src)) ^ 0x80) << 8; goto CONV_END;
+conv_1234_9234: as_u32(dst) = as_u32(src) ^ 0x80000000; goto CONV_END;
+conv_1234_4329: as_u32(dst) = bswap_32(as_u32(src)) ^ 0x80; goto CONV_END;
+conv_1234_xxx4: as_u8(dst) = as_u32(src) & 0xff; goto CONV_END;
+conv_1234_xx43: as_u16(dst) = bswap_16(as_u32(src)); goto CONV_END;
+conv_1234_xx34: as_u16(dst) = as_u32(src) & 0xffff; goto CONV_END;
+conv_1234_x432: as_u32(dst) = bswap_32(as_u32(src)) >> 8; goto CONV_END;
+conv_1234_234x: as_u32(dst) = as_u32(src) << 8; goto CONV_END;
+conv_1234_xxxC: as_u8(dst) = (as_u32(src) & 0xff) ^ 0x80; goto CONV_END;
+conv_1234_xxC3: as_u16(dst) = bswap_16(as_u32(src) ^ 0x80); goto CONV_END;
+conv_1234_xx3C: as_u16(dst) = (as_u32(src) & 0xffff) ^ 0x80; goto CONV_END;
+conv_1234_xC32: as_u32(dst) = (bswap_32(as_u32(src)) >> 8) ^ 0x800000; goto CONV_END;
+conv_1234_23Cx: as_u32(dst) = (as_u32(src) ^ 0x80) << 8; goto CONV_END;
+conv_1234_C321: as_u32(dst) = bswap_32(as_u32(src) ^ 0x80); goto CONV_END;
+conv_1234_123C: as_u32(dst) = as_u32(src) ^ 0x80; goto CONV_END;
 }
 #endif
 
