@@ -127,14 +127,15 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 		src_frames1 = 0;
 		dst_frames1 = 0;
 		if (states->init) {
-			new_sample = initial_sample(src, getidx);
+			sample = initial_sample(src, getidx);
 			src_frames1++;
 			states->init = 0;
+			old_sample = new_sample = sample;
+			goto put_sample;
 		}
-		while (dst_frames1 < dst_frames) {
+		while (dst_frames1 < dst_frames && src_frames1 < src_frames) {
+			pos += DIV;
 			if (pos >= get_threshold) {
-				if (src_frames1 == src_frames)
-					break;
 				old_sample = new_sample;
 				pos -= get_threshold;
 				goto *get;
@@ -147,6 +148,7 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 				src_frames1++;
 			}
 			sample = (((int64_t)old_sample * (int64_t)(get_threshold - pos)) + ((int64_t)new_sample * pos)) / get_threshold;
+		put_sample:
 			goto *put;
 #define PUT16_END after_put
 #include "plugin_ops.h"
@@ -154,7 +156,6 @@ static snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_a
 		after_put:
 			dst += dst_step;
 			dst_frames1++;
-			pos += DIV;
 		}
 		states->old_sample = old_sample;
 		states->new_sample = new_sample;
