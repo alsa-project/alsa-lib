@@ -131,7 +131,7 @@ static int mygetc(void)
 }
 
 /* print out text */
-static void mytext(int type, int leng, char *msg)
+static void mytext(int type ATTRIBUTE_UNUSED, int leng, char *msg)
 {
 	char *p;
 	char *ep = msg + leng;
@@ -384,42 +384,15 @@ static snd_seq_event_t *wait_for_event(void)
 /* synchronize to the end of event */
 static void alsa_sync(void)
 {
-	int left;
-	snd_seq_event_t *input_event;
-	snd_seq_event_t ev;
-  
 	/* send echo event to self client. */
 	if (verbose >= VERB_MUCH)
-		printf("alsa_sync syncing... send ECHO(%d) event to myself. time=%f\n",
-		       SND_SEQ_EVENT_ECHO, (double) Mf_currtime+1);
-	snd_seq_ev_clear(&ev);
-	/* redirect to itself */
-	snd_seq_ev_set_dest(&ev, snd_seq_client_id(seq_handle), my_port);
-	snd_seq_ev_set_source(&ev, my_port);
-	set_event_time(&ev, Mf_currtime+1);
-	ev.type = SND_SEQ_EVENT_ECHO;
-	write_ev(&ev);
-  
+		printf("alsa_sync syncing...\n");
 	/* dump buffer */
-	left = snd_seq_drain_output(seq_handle);
-
-	/* wait for the timer start event */
-	for (;;) {
-		input_event = wait_for_event();
-		if (input_event) {
-			if (verbose >= VERB_MUCH)
-				printf("alsa_sync got event. type=%d, flags=%d\n",
-				       input_event->type, input_event->flags);
-			if (input_event->type == SND_SEQ_EVENT_ECHO &&
-			    input_event->source.client == snd_seq_client_id(seq_handle)) {
-				snd_seq_free_event(input_event);
-				break;
-			}
-			snd_seq_free_event(input_event);
-		}
-	}
+	snd_seq_drain_output(seq_handle);
+	snd_seq_sync_output_queue(seq_handle);
 	if (verbose >= VERB_MUCH)
 		printf("alsa_sync synced\n");
+	sleep(1); /* give a time for note releasing.. */
 }
 
 
@@ -462,28 +435,21 @@ static void usage(void)
 	fprintf(stderr, "  -b : play on non-blocking mode\n");
 }
 
-/* parse destination address (-a option) */
-void parse_address(char *arg, int *clientp, int *portp)
-{
-	char *next;
-
-	*clientp = atoi(arg);
-	if ((next = strchr(arg, ':')) != NULL)
-		*portp = atoi(next + 1);
-}
-
 int main(int argc, char *argv[])
 {
 	int tmp;
 	int c;
+	snd_seq_addr_t dest_addr;
+	const char *addr = NULL;
 
-	while ((c = getopt(argc, argv, "s:a:q:vrb")) != -1) {
+	while ((c = getopt(argc, argv, "s:a:p:q:vrb")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose++;
 			break;
 		case 'a':
-			parse_address(optarg, &dest_client, &dest_port);
+		case 'p':
+			addr = optarg;
 			break;
 		case 'q':
 			dest_queue = atoi(optarg);
@@ -520,9 +486,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* open sequencer device */
-	/* Here we open the device read/write mode. */
-	/* Because we write SND_SEQ_EVENT_ECHO to myself to sync. */
-	tmp = snd_seq_open(&seq_handle, "hw", SND_SEQ_OPEN_DUPLEX, 0);
+	/* Here we open the device read/write for slave mode. */
+	tmp = snd_seq_open(&seq_handle, "hw", slave ? SND_SEQ_OPEN_DUPLEX : SND_SEQ_OPEN_OUTPUT, 0);
 	if (tmp < 0) {
 		perror("open /dev/snd/seq");
 		exit(1);
@@ -537,7 +502,6 @@ int main(int argc, char *argv[])
 	/* set name */
 	/* set event filter to recieve only echo event */
 	/* if running in slave mode also listen for START event */
-	snd_seq_set_client_event_filter(seq_handle, SND_SEQ_EVENT_ECHO);
 	if (slave)
 		snd_seq_set_client_event_filter(seq_handle, SND_SEQ_EVENT_START);
 	snd_seq_set_client_name(seq_handle, "MIDI file player");
@@ -552,6 +516,13 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	
+	if (snd_seq_parse_address(seq_handle, &dest_addr, addr) < 0) {
+		perror("invalid destination address");
+		exit(1);
+	}
+	dest_client = dest_addr.client;
+	dest_port = dest_addr.port;
+
 	/* setup queue */
 	if (dest_queue >= 0) {
 		if (snd_seq_set_queue_usage(seq_handle, dest_queue, 1) < 0) {

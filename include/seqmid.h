@@ -269,6 +269,8 @@ int snd_seq_set_client_event_filter(snd_seq_t *seq, int event_type);
 int snd_seq_set_client_pool_output(snd_seq_t *seq, size_t size);
 int snd_seq_set_client_pool_output_room(snd_seq_t *seq, size_t size);
 int snd_seq_set_client_pool_input(snd_seq_t *seq, size_t size);
+/* sync output queue */
+int snd_seq_sync_output_queue(snd_seq_t *seq);
 
 /*
  * parse the given string and get the sequencer address

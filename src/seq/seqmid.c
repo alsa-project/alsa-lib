@@ -314,11 +314,46 @@ int snd_seq_reset_pool_input(snd_seq_t *seq)
 }
 
 /**
+ * \brief drain output queue
+ * \param seq sequencer handle
+ * \return 0 on success or negative error code
+ */
+int snd_seq_sync_output_queue(snd_seq_t *seq)
+{
+	int err;
+	snd_seq_client_pool_t info;
+	int saved_room;
+	struct pollfd pfd;
+
+	assert(seq);
+	/* reprogram the room size to full */
+	if ((err = snd_seq_get_client_pool(seq, &info)) < 0)
+		return err;
+	saved_room = info.output_room;
+	info.output_room = info.output_pool; /* wait until all gone */
+	if ((err = snd_seq_set_client_pool(seq, &info)) < 0)
+		return err;
+	/* wait until all events are purged */
+	pfd.fd = seq->poll_fd;
+	pfd.events = POLLOUT;
+	err = poll(&pfd, 1, -1);
+	/* restore the room size */ 
+	info.output_room = saved_room;
+	snd_seq_set_client_pool(seq, &info);
+	return err;
+}
+
+/**
  * \brief parse the given string and get the sequencer address
  * \param seq sequencer handle
  * \param addr the address pointer to be returned
  * \param arg the string to be parsed
  * \return 0 on success or negative error code
+ *
+ * This function parses the sequencer client and port numbers from the given string.
+ * The client and port tokes are separated by either colon or period, e.g. 128:1.
+ * When \a seq is not NULL, the function accepts also a client name not only
+ * digit numbers.
  */
 int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 {
@@ -326,7 +361,7 @@ int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 	int client, port;
 	int len;
 
-	assert(seq && addr && arg);
+	assert(addr && arg);
 
 	if ((p = strpbrk(arg, ":.")) != NULL) {
 		if ((port = atoi(p + 1)) < 0)
@@ -346,6 +381,8 @@ int snd_seq_parse_address(snd_seq_t *seq, snd_seq_addr_t *addr, const char *arg)
 		/* convert from the name */
 		snd_seq_client_info_t cinfo;
 
+		if (! seq)
+			return -EINVAL;
 		*p = 0;
 		if (len <= 0)
 			return -EINVAL;
