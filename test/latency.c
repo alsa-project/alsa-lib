@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sched.h>
 #include <errno.h>
+#include <getopt.h>
 #include "../include/asoundlib.h"
 #include <sys/time.h>
 
@@ -298,16 +299,100 @@ long writebuf(snd_pcm_t *handle, char *buf, long len, size_t *frames)
 	return 0;
 }
 
-int main(void)
+void help(void)
 {
+	int k;
+	printf("\
+Usage: latency [OPTION]... [FILE]...
+-h,--help      help
+-P,--pdevice   playback device
+-C,--cdevice   capture device
+-m,--min       minimum latency in frames
+-M,--max       maximum latency in frames
+-F,--frames    frames to transfer
+-f,--format    sample format
+-c,--channels  channels
+-r,--rate      rate
+");
+        printf("Recognized sample formats are:");
+        for (k = 0; k < SND_PCM_FORMAT_LAST; ++(unsigned long) k) {
+                const char *s = snd_pcm_format_name(k);
+                if (s)
+                        printf(" %s", s);
+        }
+        printf("\n");
+}
+
+int main(int argc, char *argv[])
+{
+	struct option long_option[] =
+	{
+		{"help", 0, NULL, 'h'},
+		{"pdevice", 1, NULL, 'P'},
+		{"cdevice", 1, NULL, 'C'},
+		{"min", 1, NULL, 'm'},
+		{"max", 1, NULL, 'M'},
+		{"frames", 1, NULL, 'F'},
+		{"format", 1, NULL, 'f'},
+		{"channels", 1, NULL, 'c'},
+		{"rate", 1, NULL, 'r'},
+		{NULL, 0, NULL, 0},
+	};
 	snd_pcm_t *phandle, *chandle;
 	char *buffer;
-	int err, latency;
+	int err, latency, morehelp;
 	int size, ok;
 	snd_timestamp_t p_tstamp, c_tstamp;
 	ssize_t r;
 	size_t frames_in, frames_out;
 
+	morehelp = 0;
+	while (1) {
+		int c;
+		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:", long_option, NULL)) < 0)
+			break;
+		switch (c) {
+		case 'h':
+			morehelp++;
+			break;
+		case 'P':
+			pdevice = strdup(optarg);
+			break;
+		case 'C':
+			cdevice = strdup(optarg);
+			break;
+		case 'm':
+			err = atoi(optarg);
+			latency_min = err >= 4 ? err : 4;
+			if (latency_max < latency_min)
+				latency_max = latency_min;
+			break;
+		case 'M':
+			err = atoi(optarg);
+			latency_max = latency_min > err ? latency_min : err;
+			break;
+		case 'F':
+			format = snd_pcm_format_value(optarg);
+			if (format == SND_PCM_FORMAT_UNKNOWN) {
+				printf("Unknown format, setting to default S16_LE\n");
+				format = SND_PCM_FORMAT_S16_LE;
+			}
+			break;
+		case 'c':
+			err = atoi(optarg);
+			channels = err >= 1 && err < 1024 ? err : 1;
+			break;
+		case 'r':
+			err = atoi(optarg);
+			rate = err >= 4000 && err < 200000 ? err : 44100;
+			break;
+		}
+	}
+
+	if (morehelp) {
+		help();
+		return 0;
+	}
 	err = snd_output_stdio_attach(&output, stdout, 0);
 	if (err < 0) {
 		printf("Output failed: %s\n", snd_strerror(err));
@@ -319,6 +404,12 @@ int main(void)
 	buffer = malloc((latency_max * snd_pcm_format_width(format) / 8) * 2);
 
 	setscheduler();
+
+	printf("Playback device is %s\n", pdevice);
+	printf("Capture device is %s\n", cdevice);
+	printf("Parameters are %iHz, %s, %i channels\n", rate, snd_pcm_format_name(format), channels);
+	printf("Loop limit is %li frames, minimum latency = %i, maximum latency = %i\n", loop_limit, latency_min, latency_max);
+
 	if ((err = snd_pcm_open(&phandle, pdevice, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return 0;
@@ -328,7 +419,6 @@ int main(void)
 		return 0;
 	}
 	  
-	printf("Loop limit is %li frames\n", loop_limit);
 	while (1) {
 		frames_in = frames_out = 0;
 		if (setparams(phandle, chandle, &latency) < 0)
