@@ -346,6 +346,8 @@ static int get_delimstring(char **string, int delim, input_t *input)
 			c = get_quotedchar(input);
 			if (c < 0)
 				return c;
+			if (c == '\n')
+				continue;
 			break;
 		default:
 			if (c == delim) {
