@@ -677,6 +677,7 @@ pcm.name {
 	type dsnoop		# Direct snoop
 	ipc_key INT		# unique IPC key
 	ipc_key_add_uid BOOL	# add current uid to unique IPC key
+	ipc_perm INT		# IPC permissions (octal, default 0600)
 	slave STR
 	# or
 	slave {			# Slave definition
@@ -697,6 +698,7 @@ pcm.name {
 	bindings {		# note: this is client independent!!!
 		N INT		# maps slave channel to client channel N
 	}
+	slowptr BOOL		# slow but more precise pointer updates
 }
 \endcode
 

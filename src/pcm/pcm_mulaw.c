@@ -488,6 +488,7 @@ pcm.name {
                 pcm STR         # Slave PCM name
                 # or
                 pcm { }         # Slave PCM definition
+                format STR      # Slave format
         }
 }
 \endcode

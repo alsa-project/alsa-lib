@@ -1515,6 +1515,11 @@ pcm.name {
         # or
         slave {                 # Slave definition
                 pcm STR         # Slave PCM name
+                [format STR]    # Slave format
+                [channels INT]  # Slave channels
+                [rate INT]      # Slave rate
+                [period_time INT] # Slave period time in us
+                [buffer_time INT] # Slave buffer time in us
         }
 	bindings {
 		N INT		# Slave channel INT for client channel N

@@ -1047,6 +1047,13 @@ pcm.name {
                 pcm STR         # Slave PCM name
                 # or
                 pcm { }         # Slave PCM definition
+                [format STR]    # Slave format
+                [channels INT]  # Slave channels
+        }
+        ttable {                # Transfer table (bi-dimensional compound of cchannels * schannels numbers)
+                CCHANNEL {
+                        SCHANNEL REAL   # route value (0.0 - 1.0)
+                }
         }
 }
 \endcode

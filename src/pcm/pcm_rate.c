@@ -1428,6 +1428,8 @@ pcm.name {
                 pcm STR         # Slave PCM name
                 # or
                 pcm { }         # Slave PCM definition
+                rate INT        # Slave rate
+                [format STR]    # Slave format
         }
 }
 \endcode

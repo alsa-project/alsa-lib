@@ -588,7 +588,7 @@ int snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfor
 
 \section pcm_plugins_adpcm Plugin: Ima-ADPCM
 
-This plugin converts Ima-ADPCM samples to linear or linear to Mu-Law samples
+This plugin converts Ima-ADPCM samples to linear or linear to Ima-ADPCM samples
 from master Ima-ADPCM conversion PCM to given slave PCM. The channel count,
 format and rate must match for both of them.
 
@@ -601,6 +601,7 @@ pcm.name {
                 pcm STR         # Slave PCM name
                 # or
                 pcm { }         # Slave PCM definition
+                format STR      # Slave format
         }
 }
 \endcode
