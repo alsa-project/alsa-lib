@@ -97,7 +97,6 @@ static int snd_pcm_multi_info(void *private, snd_pcm_info_t *info)
 	err = snd_pcm_info(handle_0, info);
 	if (err < 0)
 		return err;
-	info->mmap_size = 0;
 	info->buffer_size /= channels0;
 	info->min_fragment_size /= channels0;
 	info->max_fragment_size /= channels0;
@@ -239,6 +238,8 @@ static int snd_pcm_multi_setup(void *private, snd_pcm_setup_t *setup)
 			}
 		}
 	}
+	/* Loaded with a value != 0 if mmap is feasible */
+	setup->mmap_size = !multi->one_to_many;
 	return 0;
 }
 
@@ -429,19 +430,19 @@ ssize_t snd_pcm_multi_write(void *private, const void *buf, size_t count)
 ssize_t snd_pcm_multi_read(void *private, void *buf, size_t count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	return count;
+	return -ENOSYS;
 }
 
 ssize_t snd_pcm_multi_writev(void *private, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	return count;
+	return -ENOSYS;
 }
 
 ssize_t snd_pcm_multi_readv(void *private, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	return count;
+	return -ENOSYS;
 }
 
 static int snd_pcm_multi_mmap_status(void *private, snd_pcm_mmap_status_t **status)

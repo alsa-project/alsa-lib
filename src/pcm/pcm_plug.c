@@ -139,7 +139,6 @@ static int snd_pcm_plug_info(void *private, snd_pcm_info_t *info)
 		info->fifo_size = snd_pcm_plug_client_size(plug, info->fifo_size);
 		info->transfer_block_size = snd_pcm_plug_client_size(plug, info->transfer_block_size);
 	}
-	info->mmap_size = 0;
 	info->flags &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
 }
@@ -177,7 +176,7 @@ static int snd_pcm_plug_setup(void *private, snd_pcm_setup_t *setup)
 	setup->frames_align = snd_pcm_plug_client_size(plug, setup->frames_align);
 	setup->frames_xrun_max = snd_pcm_plug_client_size(plug, setup->frames_xrun_max);
 	setup->frames_fill_max = snd_pcm_plug_client_size(plug, setup->frames_fill_max);
-
+	setup->mmap_size = 0;
 	if (plug->handle->stream == SND_PCM_STREAM_PLAYBACK)
 		setup->format = plug->first->src_format;
 	else

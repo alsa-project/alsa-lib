@@ -65,7 +65,6 @@ struct snd_pcm {
 	snd_pcm_mmap_status_t *mmap_status;
 	snd_pcm_mmap_control_t *mmap_control;
 	char *mmap_data;
-	size_t mmap_data_size;
 	enum { _INTERLEAVED, _NONINTERLEAVED, _COMPLEX } mmap_type;
 	struct snd_pcm_ops *ops;
 	void *op_arg;
