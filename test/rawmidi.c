@@ -33,6 +33,7 @@ int main(int argc,char** argv)
 	int verbose = 0;
 	int card_in = -1,device_in = -1;
 	int card_out = -1,device_out = -1;
+	char iname[32], oname[32];
 	char* node_in = 0;
 	char* node_out = 0;
 	
@@ -89,6 +90,8 @@ int main(int argc,char** argv)
 			}			
 		}
 	}
+
+	sprintf(oname, "hw:%i,%i", card_out, device_out);
 	
 	if (verbose) {
 		fprintf(stderr,"Using: \n");
@@ -111,13 +114,14 @@ int main(int argc,char** argv)
 	}
 	
 	if (card_in!=-1) {
-		err = snd_rawmidi_open(&handle_in,card_in,device_in,O_RDONLY);		
+		sprintf(iname, "hw:%i,%i", card_in, device_in);
+		err = snd_rawmidi_open(&handle_in,iname,SND_RAWMIDI_OPEN_INPUT,0);		
 		if (err) {
 			fprintf(stderr,"snd_rawmidi_open %d %d failed: %d\n",card_in,device_in,err);
 		}
 	}
 	if (node_in && (!node_out || strcmp(node_out,node_in))) {
-		fd_in = open(node_in,O_RDONLY);		
+		fd_in = open(node_in,O_RDONLY);
 		if (fd_in<0) {
 			fprintf(stderr,"open %s for input failed\n",node_in);
 		}	
@@ -126,7 +130,8 @@ int main(int argc,char** argv)
 	signal(SIGINT,sighandler);
 
 	if (card_out!=-1) {
-		err = snd_rawmidi_open(&handle_out,card_out,device_out,O_WRONLY);		
+		sprintf(oname, "hw:%i,%i", card_out, device_out);
+		err = snd_rawmidi_open(&handle_out,oname,SND_RAWMIDI_OPEN_OUTPUT,0);
 		if (err) {
 			fprintf(stderr,"snd_rawmidi_open %d %d failed: %d\n",card_out,device_out,err);
 		}
@@ -181,7 +186,7 @@ int main(int argc,char** argv)
 			ch=0x90; snd_rawmidi_write(handle_out,&ch,1);
 			ch=60;   snd_rawmidi_write(handle_out,&ch,1);
 			ch=100;  snd_rawmidi_write(handle_out,&ch,1);
-			snd_rawmidi_output_drain(handle_in); 
+			snd_rawmidi_output_drain(handle_out);
 			sleep(1);
 			ch=0x90; snd_rawmidi_write(handle_out,&ch,1);
 			ch=60;   snd_rawmidi_write(handle_out,&ch,1);
@@ -235,12 +240,12 @@ int main(int argc,char** argv)
 	}
 	
 	if (handle_in) {
-		snd_rawmidi_output_drain(handle_in); 
+		snd_rawmidi_input_drain(handle_in); 
 		snd_rawmidi_close(handle_in);	
 	}
 	if (handle_out) {
-		snd_rawmidi_output_drain(handle_in); 
-		snd_rawmidi_close(handle_in);	
+		snd_rawmidi_output_drain(handle_out); 
+		snd_rawmidi_close(handle_out);	
 	}
 	if (fd_in!=-1) {
 		close(fd_in);
