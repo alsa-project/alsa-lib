@@ -27,7 +27,7 @@
 #include <asm/byteorder.h>
 #include <sound/ainstr_fm.h>
 
-int snd_instr_fm_free(snd_instr_simple_t *fm)
+int snd_instr_fm_free(snd_instr_fm_t *fm)
 {
 	if (fm == NULL)
 		return 0;
@@ -37,11 +37,10 @@ int snd_instr_fm_free(snd_instr_simple_t *fm)
 
 int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm,
 				   const char *name,
-				   snd_seq_instr_put_t **__data,
+				   snd_instr_header_t **__data,
 				   size_t *__size)
 {
-	snd_seq_instr_put_t *put;
-	snd_seq_instr_data_t *data;
+	snd_instr_header_t *put;
 	fm_instrument_t *instr;
 	fm_xinstrument_t *xinstr;
 	int idx;
@@ -51,18 +50,15 @@ int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm,
 	instr = (fm_instrument_t *)fm;
 	*__data = NULL;
 	*__size = 0;
-	put = (snd_seq_instr_put_t *)malloc(sizeof(*put) + sizeof(fm_xinstrument_t));
-	if (put == NULL)
+	if (snd_instr_header_malloc(&put, sizeof(fm_xinstrument_t)) < 0)
 		return -ENOMEM;
 	/* build header */
-	memset(put, 0, sizeof(*put));
-	data = &put->data;
 	if (name)
-		strncpy(data->name, name, sizeof(data->name)-1);
-	data->type = SND_SEQ_INSTR_ATYPE_DATA;
-	strcpy(data->data.format, SND_SEQ_INSTR_ID_OPL2_3);
+		snd_instr_header_set_name(put, name);
+	snd_instr_header_set_type(put, SND_SEQ_INSTR_ATYPE_DATA);
+	snd_instr_header_set_format(put, SND_SEQ_INSTR_ID_OPL2_3);
 	/* build data section */
-	xinstr = (fm_xinstrument_t *)(data + 1);
+	xinstr = (fm_xinstrument_t *)snd_instr_header_get_data(put);
 	xinstr->stype = FM_STRU_INSTR;
 	xinstr->share_id[0] = __cpu_to_le32(instr->share_id[0]);
 	xinstr->share_id[1] = __cpu_to_le32(instr->share_id[1]);
@@ -93,7 +89,7 @@ int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm,
 	return 0;
 }
 
-int snd_instr_fm_convert_from_stream(snd_seq_instr_get_t *__data ATTRIBUTE_UNUSED,
+int snd_instr_fm_convert_from_stream(snd_instr_header_t *__data ATTRIBUTE_UNUSED,
 				     size_t size ATTRIBUTE_UNUSED,
 				     snd_instr_fm_t **simple ATTRIBUTE_UNUSED)
 {

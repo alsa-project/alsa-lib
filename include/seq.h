@@ -1,386 +1,443 @@
-/****************************************************************************
- *                                                                          *
- *                                seq.h                                     *
- *                              Sequencer                                   *
- *                                                                          *
- ****************************************************************************/
-
-/**
- *  \defgroup Sequencer Sequencer Interface
- *  Sequencer Interface
- *  \{
- */
-
-typedef sndrv_seq_tick_time_t snd_seq_tick_time_t;
-typedef sndrv_seq_position_t snd_seq_position_t;
-typedef sndrv_seq_frequency_t snd_seq_frequency_t;
-typedef sndrv_seq_instr_cluster_t snd_seq_instr_cluster_t;
-typedef struct sndrv_seq_port_info snd_seq_port_info_t;
-typedef struct sndrv_seq_port_subscribe snd_seq_port_subscribe_t;
-typedef struct sndrv_seq_event snd_seq_event_t;
-typedef struct sndrv_seq_addr snd_seq_addr_t;
-typedef struct sndrv_seq_ev_volume snd_seq_ev_volume_t;
-typedef struct sndrv_seq_ev_loop snd_seq_ev_loop_t;
-typedef struct sndrv_seq_remove_events snd_seq_remove_events_t;
-typedef struct sndrv_seq_query_subs snd_seq_query_subs_t;
-typedef struct sndrv_seq_real_time snd_seq_real_time_t;
-typedef struct sndrv_seq_system_info snd_seq_system_info_t;
-typedef struct sndrv_seq_client_info snd_seq_client_info_t;
-typedef struct sndrv_seq_queue_info snd_seq_queue_info_t;
-typedef struct sndrv_seq_queue_status snd_seq_queue_status_t;
-typedef struct sndrv_seq_queue_tempo snd_seq_queue_tempo_t;
-typedef struct sndrv_seq_queue_owner snd_seq_queue_owner_t;
-typedef struct sndrv_seq_queue_timer snd_seq_queue_timer_t;
-typedef struct sndrv_seq_queue_client snd_seq_queue_client_t;
-typedef struct sndrv_seq_client_pool snd_seq_client_pool_t;
-typedef struct sndrv_seq_instr snd_seq_instr_t;
-typedef struct sndrv_seq_instr_data snd_seq_instr_data_t;
-typedef struct sndrv_seq_instr_free snd_seq_instr_free_t;
-typedef struct sndrv_seq_instr_put snd_seq_instr_put_t;
-typedef struct sndrv_seq_instr_get snd_seq_instr_get_t;
-typedef union sndrv_seq_timestamp snd_seq_timestamp_t;
-
-typedef enum sndrv_seq_client_type snd_seq_client_type_t;
-typedef enum sndrv_seq_stop_mode snd_seq_stop_mode_t;
-
-#define snd_seq_event_bounce_ext_data	sndrv_seq_event_bounce_ext_data 
-#define snd_seq_ev_is_result_type	sndrv_seq_ev_is_result_type     
-#define snd_seq_ev_is_channel_type	sndrv_seq_ev_is_channel_type    
-#define snd_seq_ev_is_note_type		sndrv_seq_ev_is_note_type       
-#define snd_seq_ev_is_control_type	sndrv_seq_ev_is_control_type    
-#define snd_seq_ev_is_queue_type	sndrv_seq_ev_is_queue_type      
-#define snd_seq_ev_is_message_type	sndrv_seq_ev_is_message_type    
-#define snd_seq_ev_is_sample_type	sndrv_seq_ev_is_sample_type     
-#define snd_seq_ev_is_user_type		sndrv_seq_ev_is_user_type       
-#define snd_seq_ev_is_fixed_type	sndrv_seq_ev_is_fixed_type      
-#define snd_seq_ev_is_instr_type	sndrv_seq_ev_is_instr_type      
-#define snd_seq_ev_is_variable_type	sndrv_seq_ev_is_variable_type   
-#define snd_seq_ev_is_varipc_type	sndrv_seq_ev_is_varipc_type     
-#define snd_seq_ev_is_reserved		sndrv_seq_ev_is_reserved        
-#define snd_seq_ev_is_direct		sndrv_seq_ev_is_direct          
-#define snd_seq_ev_is_prior		sndrv_seq_ev_is_prior           
-#define snd_seq_ev_length_type		sndrv_seq_ev_length_type        
-#define snd_seq_ev_is_fixed		sndrv_seq_ev_is_fixed           
-#define snd_seq_ev_is_variable		sndrv_seq_ev_is_variable        
-#define snd_seq_ev_is_varusr		sndrv_seq_ev_is_varusr          
-#define snd_seq_ev_is_varipc		sndrv_seq_ev_is_varipc          
-#define snd_seq_ev_timestamp_type	sndrv_seq_ev_timestamp_type     
-#define snd_seq_ev_is_tick		sndrv_seq_ev_is_tick            
-#define snd_seq_ev_is_real		sndrv_seq_ev_is_real            
-#define snd_seq_ev_timemode_type	sndrv_seq_ev_timemode_type      
-#define snd_seq_ev_is_abstime		sndrv_seq_ev_is_abstime         
-#define snd_seq_ev_is_reltime		sndrv_seq_ev_is_reltime         
-#define snd_seq_queue_sync_port		sndrv_seq_queue_sync_port       
-#define snd_seq_queue_owner		sndrv_seq_queue_owner           
-
-#ifdef SNDRV_SEQ_SYNC_SUPPORT
-#define SND_SEQ_SYNC_SUPPORT SNDRV_SEQ_SYNC_SUPPORT
-#endif
-
-#define SND_SEQ_EVENT_SYSTEM SNDRV_SEQ_EVENT_SYSTEM
-#define SND_SEQ_EVENT_RESULT SNDRV_SEQ_EVENT_RESULT
-#define SND_SEQ_EVENT_NOTE SNDRV_SEQ_EVENT_NOTE
-#define SND_SEQ_EVENT_NOTEON SNDRV_SEQ_EVENT_NOTEON
-#define SND_SEQ_EVENT_NOTEOFF SNDRV_SEQ_EVENT_NOTEOFF
-#define SND_SEQ_EVENT_KEYPRESS SNDRV_SEQ_EVENT_KEYPRESS
-#define SND_SEQ_EVENT_CONTROLLER SNDRV_SEQ_EVENT_CONTROLLER
-#define SND_SEQ_EVENT_PGMCHANGE SNDRV_SEQ_EVENT_PGMCHANGE
-#define SND_SEQ_EVENT_CHANPRESS SNDRV_SEQ_EVENT_CHANPRESS
-#define SND_SEQ_EVENT_PITCHBEND SNDRV_SEQ_EVENT_PITCHBEND
-#define SND_SEQ_EVENT_CONTROL14 SNDRV_SEQ_EVENT_CONTROL14
-#define SND_SEQ_EVENT_NONREGPARAM SNDRV_SEQ_EVENT_NONREGPARAM
-#define SND_SEQ_EVENT_REGPARAM SNDRV_SEQ_EVENT_REGPARAM
-#define SND_SEQ_EVENT_SONGPOS SNDRV_SEQ_EVENT_SONGPOS
-#define SND_SEQ_EVENT_SONGSEL SNDRV_SEQ_EVENT_SONGSEL
-#define SND_SEQ_EVENT_QFRAME SNDRV_SEQ_EVENT_QFRAME
-#define SND_SEQ_EVENT_TIMESIGN SNDRV_SEQ_EVENT_TIMESIGN
-#define SND_SEQ_EVENT_KEYSIGN SNDRV_SEQ_EVENT_KEYSIGN
-#define SND_SEQ_EVENT_START SNDRV_SEQ_EVENT_START
-#define SND_SEQ_EVENT_CONTINUE SNDRV_SEQ_EVENT_CONTINUE
-#define SND_SEQ_EVENT_STOP SNDRV_SEQ_EVENT_STOP
-#define SND_SEQ_EVENT_SETPOS_TICK SNDRV_SEQ_EVENT_SETPOS_TICK
-#define SND_SEQ_EVENT_SETPOS_TIME SNDRV_SEQ_EVENT_SETPOS_TIME
-#define SND_SEQ_EVENT_TEMPO SNDRV_SEQ_EVENT_TEMPO
-#define SND_SEQ_EVENT_CLOCK SNDRV_SEQ_EVENT_CLOCK
-#define SND_SEQ_EVENT_TICK SNDRV_SEQ_EVENT_TICK
-#define SND_SEQ_EVENT_SYNC SNDRV_SEQ_EVENT_SYNC
-#define SND_SEQ_EVENT_SYNC_POS SNDRV_SEQ_EVENT_SYNC_POS
-#define SND_SEQ_EVENT_TUNE_REQUEST SNDRV_SEQ_EVENT_TUNE_REQUEST
-#define SND_SEQ_EVENT_RESET SNDRV_SEQ_EVENT_RESET
-#define SND_SEQ_EVENT_SENSING SNDRV_SEQ_EVENT_SENSING
-#define SND_SEQ_EVENT_ECHO SNDRV_SEQ_EVENT_ECHO
-#define SND_SEQ_EVENT_OSS SNDRV_SEQ_EVENT_OSS
-#define SND_SEQ_EVENT_CLIENT_START SNDRV_SEQ_EVENT_CLIENT_START
-#define SND_SEQ_EVENT_CLIENT_EXIT SNDRV_SEQ_EVENT_CLIENT_EXIT
-#define SND_SEQ_EVENT_CLIENT_CHANGE SNDRV_SEQ_EVENT_CLIENT_CHANGE
-#define SND_SEQ_EVENT_PORT_START SNDRV_SEQ_EVENT_PORT_START
-#define SND_SEQ_EVENT_PORT_EXIT SNDRV_SEQ_EVENT_PORT_EXIT
-#define SND_SEQ_EVENT_PORT_CHANGE SNDRV_SEQ_EVENT_PORT_CHANGE
-#define SND_SEQ_EVENT_PORT_SUBSCRIBED SNDRV_SEQ_EVENT_PORT_SUBSCRIBED
-#define SND_SEQ_EVENT_PORT_USED SNDRV_SEQ_EVENT_PORT_USED
-#define SND_SEQ_EVENT_PORT_UNSUBSCRIBED SNDRV_SEQ_EVENT_PORT_UNSUBSCRIBED
-#define SND_SEQ_EVENT_PORT_UNUSED SNDRV_SEQ_EVENT_PORT_UNUSED
-#define SND_SEQ_EVENT_SAMPLE SNDRV_SEQ_EVENT_SAMPLE
-#define SND_SEQ_EVENT_SAMPLE_CLUSTER SNDRV_SEQ_EVENT_SAMPLE_CLUSTER
-#define SND_SEQ_EVENT_SAMPLE_START SNDRV_SEQ_EVENT_SAMPLE_START
-#define SND_SEQ_EVENT_SAMPLE_STOP SNDRV_SEQ_EVENT_SAMPLE_STOP
-#define SND_SEQ_EVENT_SAMPLE_FREQ SNDRV_SEQ_EVENT_SAMPLE_FREQ
-#define SND_SEQ_EVENT_SAMPLE_VOLUME SNDRV_SEQ_EVENT_SAMPLE_VOLUME
-#define SND_SEQ_EVENT_SAMPLE_LOOP SNDRV_SEQ_EVENT_SAMPLE_LOOP
-#define SND_SEQ_EVENT_SAMPLE_POSITION SNDRV_SEQ_EVENT_SAMPLE_POSITION
-#define SND_SEQ_EVENT_SAMPLE_PRIVATE1 SNDRV_SEQ_EVENT_SAMPLE_PRIVATE1
-#define SND_SEQ_EVENT_USR0 SNDRV_SEQ_EVENT_USR0
-#define SND_SEQ_EVENT_USR1 SNDRV_SEQ_EVENT_USR1
-#define SND_SEQ_EVENT_USR2 SNDRV_SEQ_EVENT_USR2
-#define SND_SEQ_EVENT_USR3 SNDRV_SEQ_EVENT_USR3
-#define SND_SEQ_EVENT_USR4 SNDRV_SEQ_EVENT_USR4
-#define SND_SEQ_EVENT_USR5 SNDRV_SEQ_EVENT_USR5
-#define SND_SEQ_EVENT_USR6 SNDRV_SEQ_EVENT_USR6
-#define SND_SEQ_EVENT_USR7 SNDRV_SEQ_EVENT_USR7
-#define SND_SEQ_EVENT_USR8 SNDRV_SEQ_EVENT_USR8
-#define SND_SEQ_EVENT_USR9 SNDRV_SEQ_EVENT_USR9
-#define SND_SEQ_EVENT_INSTR_BEGIN SNDRV_SEQ_EVENT_INSTR_BEGIN
-#define SND_SEQ_EVENT_INSTR_END SNDRV_SEQ_EVENT_INSTR_END
-#define SND_SEQ_EVENT_INSTR_INFO SNDRV_SEQ_EVENT_INSTR_INFO
-#define SND_SEQ_EVENT_INSTR_INFO_RESULT SNDRV_SEQ_EVENT_INSTR_INFO_RESULT
-#define SND_SEQ_EVENT_INSTR_FINFO SNDRV_SEQ_EVENT_INSTR_FINFO
-#define SND_SEQ_EVENT_INSTR_FINFO_RESULT SNDRV_SEQ_EVENT_INSTR_FINFO_RESULT
-#define SND_SEQ_EVENT_INSTR_RESET SNDRV_SEQ_EVENT_INSTR_RESET
-#define SND_SEQ_EVENT_INSTR_STATUS SNDRV_SEQ_EVENT_INSTR_STATUS
-#define SND_SEQ_EVENT_INSTR_STATUS_RESULT SNDRV_SEQ_EVENT_INSTR_STATUS_RESULT
-#define SND_SEQ_EVENT_INSTR_PUT SNDRV_SEQ_EVENT_INSTR_PUT
-#define SND_SEQ_EVENT_INSTR_GET SNDRV_SEQ_EVENT_INSTR_GET
-#define SND_SEQ_EVENT_INSTR_GET_RESULT SNDRV_SEQ_EVENT_INSTR_GET_RESULT
-#define SND_SEQ_EVENT_INSTR_FREE SNDRV_SEQ_EVENT_INSTR_FREE
-#define SND_SEQ_EVENT_INSTR_LIST SNDRV_SEQ_EVENT_INSTR_LIST
-#define SND_SEQ_EVENT_INSTR_LIST_RESULT SNDRV_SEQ_EVENT_INSTR_LIST_RESULT
-#define SND_SEQ_EVENT_INSTR_CLUSTER SNDRV_SEQ_EVENT_INSTR_CLUSTER
-#define SND_SEQ_EVENT_INSTR_CLUSTER_GET SNDRV_SEQ_EVENT_INSTR_CLUSTER_GET
-#define SND_SEQ_EVENT_INSTR_CLUSTER_RESULT SNDRV_SEQ_EVENT_INSTR_CLUSTER_RESULT
-#define SND_SEQ_EVENT_INSTR_CHANGE SNDRV_SEQ_EVENT_INSTR_CHANGE
-#define SND_SEQ_EVENT_LENGTH_VARIABLE SNDRV_SEQ_EVENT_LENGTH_VARIABLE
-#define SND_SEQ_EVENT_SYSEX SNDRV_SEQ_EVENT_SYSEX
-#define SND_SEQ_EVENT_BOUNCE SNDRV_SEQ_EVENT_BOUNCE
-#define SND_SEQ_EVENT_USR_VAR0 SNDRV_SEQ_EVENT_USR_VAR0
-#define SND_SEQ_EVENT_USR_VAR1 SNDRV_SEQ_EVENT_USR_VAR1
-#define SND_SEQ_EVENT_USR_VAR2 SNDRV_SEQ_EVENT_USR_VAR2
-#define SND_SEQ_EVENT_USR_VAR3 SNDRV_SEQ_EVENT_USR_VAR3
-#define SND_SEQ_EVENT_USR_VAR4 SNDRV_SEQ_EVENT_USR_VAR4
-#define SND_SEQ_EVENT_LENGTH_VARIPC SNDRV_SEQ_EVENT_LENGTH_VARIPC
-#define SND_SEQ_EVENT_IPCSHM SNDRV_SEQ_EVENT_IPCSHM
-#define SND_SEQ_EVENT_USR_VARIPC0 SNDRV_SEQ_EVENT_USR_VARIPC0
-#define SND_SEQ_EVENT_USR_VARIPC1 SNDRV_SEQ_EVENT_USR_VARIPC1
-#define SND_SEQ_EVENT_USR_VARIPC2 SNDRV_SEQ_EVENT_USR_VARIPC2
-#define SND_SEQ_EVENT_USR_VARIPC3 SNDRV_SEQ_EVENT_USR_VARIPC3
-#define SND_SEQ_EVENT_USR_VARIPC4 SNDRV_SEQ_EVENT_USR_VARIPC4
-#define SND_SEQ_EVENT_KERNEL_ERROR SNDRV_SEQ_EVENT_KERNEL_ERROR
-#define SND_SEQ_EVENT_KERNEL_QUOTE SNDRV_SEQ_EVENT_KERNEL_QUOTE
-#define SND_SEQ_EVENT_NONE SNDRV_SEQ_EVENT_NONE
-#define SND_SEQ_ADDRESS_UNKNOWN SNDRV_SEQ_ADDRESS_UNKNOWN
-#define SND_SEQ_ADDRESS_SUBSCRIBERS SNDRV_SEQ_ADDRESS_SUBSCRIBERS
-#define SND_SEQ_ADDRESS_BROADCAST SNDRV_SEQ_ADDRESS_BROADCAST
-#define SND_SEQ_QUEUE_DIRECT SNDRV_SEQ_QUEUE_DIRECT
-#define SND_SEQ_TIME_STAMP_TICK SNDRV_SEQ_TIME_STAMP_TICK
-#define SND_SEQ_TIME_STAMP_REAL SNDRV_SEQ_TIME_STAMP_REAL
-#define SND_SEQ_TIME_STAMP_MASK SNDRV_SEQ_TIME_STAMP_MASK
-#define SND_SEQ_TIME_MODE_ABS SNDRV_SEQ_TIME_MODE_ABS
-#define SND_SEQ_TIME_MODE_REL SNDRV_SEQ_TIME_MODE_REL
-#define SND_SEQ_TIME_MODE_MASK SNDRV_SEQ_TIME_MODE_MASK
-#define SND_SEQ_EVENT_LENGTH_FIXED SNDRV_SEQ_EVENT_LENGTH_FIXED
-#define SND_SEQ_EVENT_LENGTH_VARIABLE SNDRV_SEQ_EVENT_LENGTH_VARIABLE
-#define SND_SEQ_EVENT_LENGTH_VARUSR SNDRV_SEQ_EVENT_LENGTH_VARUSR
-#define SND_SEQ_EVENT_LENGTH_VARIPC SNDRV_SEQ_EVENT_LENGTH_VARIPC
-#define SND_SEQ_EVENT_LENGTH_MASK SNDRV_SEQ_EVENT_LENGTH_MASK
-#define SND_SEQ_PRIORITY_NORMAL SNDRV_SEQ_PRIORITY_NORMAL
-#define SND_SEQ_PRIORITY_HIGH SNDRV_SEQ_PRIORITY_HIGH
-#define SND_SEQ_PRIORITY_MASK SNDRV_SEQ_PRIORITY_MASK
-#define SND_SEQ_EVENT_NOTE SNDRV_SEQ_EVENT_NOTE
-#define SND_SEQ_EVENT_NOTE SNDRV_SEQ_EVENT_NOTE
-#define SND_SEQ_QUEUE_DIRECT SNDRV_SEQ_QUEUE_DIRECT
-#define SND_SEQ_PRIORITY_MASK SNDRV_SEQ_PRIORITY_MASK
-#define SND_SEQ_EVENT_LENGTH_MASK SNDRV_SEQ_EVENT_LENGTH_MASK
-#define SND_SEQ_EVENT_LENGTH_FIXED SNDRV_SEQ_EVENT_LENGTH_FIXED
-#define SND_SEQ_EVENT_LENGTH_VARIABLE SNDRV_SEQ_EVENT_LENGTH_VARIABLE
-#define SND_SEQ_EVENT_LENGTH_VARUSR SNDRV_SEQ_EVENT_LENGTH_VARUSR
-#define SND_SEQ_EVENT_LENGTH_VARIPC SNDRV_SEQ_EVENT_LENGTH_VARIPC
-#define SND_SEQ_TIME_STAMP_MASK SNDRV_SEQ_TIME_STAMP_MASK
-#define SND_SEQ_TIME_STAMP_TICK SNDRV_SEQ_TIME_STAMP_TICK
-#define SND_SEQ_TIME_STAMP_REAL SNDRV_SEQ_TIME_STAMP_REAL
-#define SND_SEQ_TIME_MODE_MASK SNDRV_SEQ_TIME_MODE_MASK
-#define SND_SEQ_TIME_MODE_ABS SNDRV_SEQ_TIME_MODE_ABS
-#define SND_SEQ_TIME_MODE_REL SNDRV_SEQ_TIME_MODE_REL
-#define SND_SEQ_CLIENT_SYSTEM SNDRV_SEQ_CLIENT_SYSTEM
-#define SND_SEQ_CLIENT_DUMMY SNDRV_SEQ_CLIENT_DUMMY
-#define SND_SEQ_CLIENT_OSS SNDRV_SEQ_CLIENT_OSS
-#define SND_SEQ_FILTER_BROADCAST SNDRV_SEQ_FILTER_BROADCAST
-#define SND_SEQ_FILTER_MULTICAST SNDRV_SEQ_FILTER_MULTICAST
-#define SND_SEQ_FILTER_BOUNCE SNDRV_SEQ_FILTER_BOUNCE
-#define SND_SEQ_FILTER_USE_EVENT SNDRV_SEQ_FILTER_USE_EVENT
-#define SND_SEQ_REMOVE_DEST SNDRV_SEQ_REMOVE_DEST
-#define SND_SEQ_REMOVE_DEST_CHANNEL SNDRV_SEQ_REMOVE_DEST_CHANNEL
-#define SND_SEQ_REMOVE_TIME_BEFORE SNDRV_SEQ_REMOVE_TIME_BEFORE
-#define SND_SEQ_REMOVE_TIME_AFTER SNDRV_SEQ_REMOVE_TIME_AFTER
-#define SND_SEQ_REMOVE_EVENT_TYPE SNDRV_SEQ_REMOVE_EVENT_TYPE
-#define SND_SEQ_REMOVE_IGNORE_OFF SNDRV_SEQ_REMOVE_IGNORE_OFF
-#define SND_SEQ_REMOVE_TAG_MATCH SNDRV_SEQ_REMOVE_TAG_MATCH
-#define SND_SEQ_PORT_SYSTEM_TIMER SNDRV_SEQ_PORT_SYSTEM_TIMER
-#define SND_SEQ_PORT_SYSTEM_ANNOUNCE SNDRV_SEQ_PORT_SYSTEM_ANNOUNCE
-#define SND_SEQ_PORT_CAP_READ SNDRV_SEQ_PORT_CAP_READ
-#define SND_SEQ_PORT_CAP_WRITE SNDRV_SEQ_PORT_CAP_WRITE
-#define SND_SEQ_PORT_CAP_SYNC_READ SNDRV_SEQ_PORT_CAP_SYNC_READ
-#define SND_SEQ_PORT_CAP_SYNC_WRITE SNDRV_SEQ_PORT_CAP_SYNC_WRITE
-#define SND_SEQ_PORT_CAP_DUPLEX SNDRV_SEQ_PORT_CAP_DUPLEX
-#define SND_SEQ_PORT_CAP_SUBS_READ SNDRV_SEQ_PORT_CAP_SUBS_READ
-#define SND_SEQ_PORT_CAP_SUBS_WRITE SNDRV_SEQ_PORT_CAP_SUBS_WRITE
-#define SND_SEQ_PORT_CAP_NO_EXPORT SNDRV_SEQ_PORT_CAP_NO_EXPORT
-#define SND_SEQ_PORT_TYPE_SPECIFIC SNDRV_SEQ_PORT_TYPE_SPECIFIC
-#define SND_SEQ_PORT_TYPE_MIDI_GENERIC SNDRV_SEQ_PORT_TYPE_MIDI_GENERIC
-#define SND_SEQ_PORT_TYPE_MIDI_GM SNDRV_SEQ_PORT_TYPE_MIDI_GM
-#define SND_SEQ_PORT_TYPE_MIDI_GS SNDRV_SEQ_PORT_TYPE_MIDI_GS
-#define SND_SEQ_PORT_TYPE_MIDI_XG SNDRV_SEQ_PORT_TYPE_MIDI_XG
-#define SND_SEQ_PORT_TYPE_MIDI_MT32 SNDRV_SEQ_PORT_TYPE_MIDI_MT32
-#define SND_SEQ_PORT_TYPE_SYNTH SNDRV_SEQ_PORT_TYPE_SYNTH
-#define SND_SEQ_PORT_TYPE_DIRECT_SAMPLE SNDRV_SEQ_PORT_TYPE_DIRECT_SAMPLE
-#define SND_SEQ_PORT_TYPE_SAMPLE SNDRV_SEQ_PORT_TYPE_SAMPLE
-#define SND_SEQ_PORT_TYPE_APPLICATION SNDRV_SEQ_PORT_TYPE_APPLICATION
-#define SND_SEQ_GROUP_SYSTEM SNDRV_SEQ_GROUP_SYSTEM
-#define SND_SEQ_GROUP_DEVICE SNDRV_SEQ_GROUP_DEVICE
-#define SND_SEQ_GROUP_APPLICATION SNDRV_SEQ_GROUP_APPLICATION
-#define SND_SEQ_PORT_FLG_GIVEN_PORT SNDRV_SEQ_PORT_FLG_GIVEN_PORT
-#define SND_SEQ_QUEUE_FLG_SYNC SNDRV_SEQ_QUEUE_FLG_SYNC
-#define SND_SEQ_QUEUE_FLG_SYNC_LOST SNDRV_SEQ_QUEUE_FLG_SYNC_LOST
-#define SND_SEQ_SYNC_TICK SNDRV_SEQ_SYNC_TICK
-#define SND_SEQ_SYNC_TIME SNDRV_SEQ_SYNC_TIME
-#define SND_SEQ_SYNC_MODE SNDRV_SEQ_SYNC_MODE
-#define SND_SEQ_SYNC_FMT_PRIVATE_CLOCK SNDRV_SEQ_SYNC_FMT_PRIVATE_CLOCK
-#define SND_SEQ_SYNC_FMT_PRIVATE_TIME SNDRV_SEQ_SYNC_FMT_PRIVATE_TIME
-#define SND_SEQ_SYNC_FMT_MIDI_CLOCK SNDRV_SEQ_SYNC_FMT_MIDI_CLOCK
-#define SND_SEQ_SYNC_FMT_MTC SNDRV_SEQ_SYNC_FMT_MTC
-#define SND_SEQ_SYNC_FMT_DTL SNDRV_SEQ_SYNC_FMT_DTL
-#define SND_SEQ_SYNC_FMT_SMPTE SNDRV_SEQ_SYNC_FMT_SMPTE
-#define SND_SEQ_SYNC_FMT_MIDI_TICK SNDRV_SEQ_SYNC_FMT_MIDI_TICK
-#define SND_SEQ_SYNC_FPS_24 SNDRV_SEQ_SYNC_FPS_24
-#define SND_SEQ_SYNC_FPS_25 SNDRV_SEQ_SYNC_FPS_25
-#define SND_SEQ_SYNC_FPS_30_DP SNDRV_SEQ_SYNC_FPS_30_DP
-#define SND_SEQ_SYNC_FPS_30_NDP SNDRV_SEQ_SYNC_FPS_30_NDP
-#define SND_SEQ_TIMER_ALSA SNDRV_SEQ_TIMER_ALSA
-#define SND_SEQ_TIMER_MIDI_CLOCK SNDRV_SEQ_TIMER_MIDI_CLOCK
-#define SND_SEQ_TIMER_MIDI_TICK SNDRV_SEQ_TIMER_MIDI_TICK
-#define SND_SEQ_QUERY_SUBS_READ SNDRV_SEQ_QUERY_SUBS_READ
-#define SND_SEQ_QUERY_SUBS_WRITE SNDRV_SEQ_QUERY_SUBS_WRITE
-#define SND_SEQ_INSTR_ATYPE_DATA SNDRV_SEQ_INSTR_ATYPE_DATA
-#define SND_SEQ_INSTR_ATYPE_ALIAS SNDRV_SEQ_INSTR_ATYPE_ALIAS
-#define SND_SEQ_INSTR_ID_DLS1 SNDRV_SEQ_INSTR_ID_DLS1
-#define SND_SEQ_INSTR_ID_DLS2 SNDRV_SEQ_INSTR_ID_DLS2
-#define SND_SEQ_INSTR_ID_SIMPLE SNDRV_SEQ_INSTR_ID_SIMPLE
-#define SND_SEQ_INSTR_ID_SOUNDFONT SNDRV_SEQ_INSTR_ID_SOUNDFONT
-#define SND_SEQ_INSTR_ID_GUS_PATCH SNDRV_SEQ_INSTR_ID_GUS_PATCH
-#define SND_SEQ_INSTR_ID_INTERWAVE SNDRV_SEQ_INSTR_ID_INTERWAVE
-#define SND_SEQ_INSTR_ID_OPL2_3 SNDRV_SEQ_INSTR_ID_OPL2_3
-#define SND_SEQ_INSTR_ID_OPL4 SNDRV_SEQ_INSTR_ID_OPL4
-#define SND_SEQ_INSTR_TYPE0_DLS1 SNDRV_SEQ_INSTR_TYPE0_DLS1
-#define SND_SEQ_INSTR_TYPE0_DLS2 SNDRV_SEQ_INSTR_TYPE0_DLS2
-#define SND_SEQ_INSTR_TYPE1_SIMPLE SNDRV_SEQ_INSTR_TYPE1_SIMPLE
-#define SND_SEQ_INSTR_TYPE1_SOUNDFONT SNDRV_SEQ_INSTR_TYPE1_SOUNDFONT
-#define SND_SEQ_INSTR_TYPE1_GUS_PATCH SNDRV_SEQ_INSTR_TYPE1_GUS_PATCH
-#define SND_SEQ_INSTR_TYPE1_INTERWAVE SNDRV_SEQ_INSTR_TYPE1_INTERWAVE
-#define SND_SEQ_INSTR_TYPE2_OPL2_3 SNDRV_SEQ_INSTR_TYPE2_OPL2_3
-#define SND_SEQ_INSTR_TYPE2_OPL4 SNDRV_SEQ_INSTR_TYPE2_OPL4
-#define SND_SEQ_INSTR_PUT_CMD_CREATE SNDRV_SEQ_INSTR_PUT_CMD_CREATE
-#define SND_SEQ_INSTR_PUT_CMD_REPLACE SNDRV_SEQ_INSTR_PUT_CMD_REPLACE
-#define SND_SEQ_INSTR_PUT_CMD_MODIFY SNDRV_SEQ_INSTR_PUT_CMD_MODIFY
-#define SND_SEQ_INSTR_PUT_CMD_ADD SNDRV_SEQ_INSTR_PUT_CMD_ADD
-#define SND_SEQ_INSTR_PUT_CMD_REMOVE SNDRV_SEQ_INSTR_PUT_CMD_REMOVE
-#define SND_SEQ_INSTR_GET_CMD_FULL SNDRV_SEQ_INSTR_GET_CMD_FULL
-#define SND_SEQ_INSTR_GET_CMD_PARTIAL SNDRV_SEQ_INSTR_GET_CMD_PARTIAL
-#define SND_SEQ_INSTR_QUERY_FOLLOW_ALIAS SNDRV_SEQ_INSTR_QUERY_FOLLOW_ALIAS
-#define SND_SEQ_INSTR_FREE_CMD_ALL SNDRV_SEQ_INSTR_FREE_CMD_ALL
-#define SND_SEQ_INSTR_FREE_CMD_PRIVATE SNDRV_SEQ_INSTR_FREE_CMD_PRIVATE
-#define SND_SEQ_INSTR_FREE_CMD_CLUSTER SNDRV_SEQ_INSTR_FREE_CMD_CLUSTER
-#define SND_SEQ_INSTR_FREE_CMD_SINGLE SNDRV_SEQ_INSTR_FREE_CMD_SINGLE
-
-
-#define SND_SEQ_OPEN_OUTPUT	1
-#define SND_SEQ_OPEN_INPUT	2
-#define SND_SEQ_OPEN_DUPLEX	(SND_SEQ_OPEN_OUTPUT|SND_SEQ_OPEN_INPUT)
-
-#define SND_SEQ_NONBLOCK	1
-
-typedef enum _snd_seq_type {
-	SND_SEQ_TYPE_HW,
-	SND_SEQ_TYPE_SHM,
-	SND_SEQ_TYPE_INET,
-} snd_seq_type_t;
-
-/* Sequencer handle */
-typedef struct _snd_seq snd_seq_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ *  \defgroup SeqGlobal Sequencer System
+ *  Global System Interface
+ *  \ingroup Sequencer
+ *  \{
+ */
+
+/** Sequencer handle */
+typedef struct _snd_seq snd_seq_t;
+
+/** \internal */
+#define SND_ALLOCA(type,ptr) \
+do {\
+	assert(ptr);\
+	*ptr = (type##_t *)alloca(type##_sizeof());\
+	memset(*ptr, 0, type##_sizeof());\
+} while (0)
+
+/**
+ * sequencer opening stream types
+ */
+#define SND_SEQ_OPEN_OUTPUT	1	/**< open for output (write) */
+#define SND_SEQ_OPEN_INPUT	2	/**< open for input (read) */
+#define SND_SEQ_OPEN_DUPLEX	(SND_SEQ_OPEN_OUTPUT|SND_SEQ_OPEN_INPUT)	/**< open for both input and output (read/write) */
+
+/**
+ * sequencer opening mode
+ */
+#define SND_SEQ_NONBLOCK	1	/**< non-blocking mode */
+
+typedef enum _snd_seq_type {
+	SND_SEQ_TYPE_HW,		/**< hardware */
+	SND_SEQ_TYPE_SHM,		/**< shared memory (NYI) */
+	SND_SEQ_TYPE_INET,		/**< network (NYI) */
+} snd_seq_type_t;
+
+/** special client (port) ids */
+#define SND_SEQ_ADDRESS_UNKNOWN		253	/**< unknown source */
+#define SND_SEQ_ADDRESS_SUBSCRIBERS	254	/**< send event to all subscribed ports */
+#define SND_SEQ_ADDRESS_BROADCAST	255	/**< send event to all queues/clients/ports/channels */
+
+/** known client numbers */
+#define SND_SEQ_CLIENT_SYSTEM		0	/**< system client */
+#define SND_SEQ_CLIENT_DUMMY		62	/**< dummy ports */
+#define SND_SEQ_CLIENT_OSS		63	/**< oss sequencer emulator */
+
+/*
+ */
 int snd_seq_open(snd_seq_t **handle, const char *name, int streams, int mode);
+const char *snd_seq_name(snd_seq_t *seq);
+snd_seq_type_t snd_seq_type(snd_seq_t *seq);
 int snd_seq_close(snd_seq_t *handle);
 int snd_seq_poll_descriptors_count(snd_seq_t *handle, short events);
 int snd_seq_poll_descriptors(snd_seq_t *handle, struct pollfd *pfds, unsigned int space, short events);
 int snd_seq_nonblock(snd_seq_t *handle, int nonblock);
 int snd_seq_client_id(snd_seq_t *handle);
-int snd_seq_output_buffer_size(snd_seq_t *handle);
-int snd_seq_input_buffer_size(snd_seq_t *handle);
-int snd_seq_resize_output_buffer(snd_seq_t *handle, size_t size);
-int snd_seq_resize_input_buffer(snd_seq_t *handle, size_t size);
+
+size_t snd_seq_get_output_buffer_size(snd_seq_t *handle);
+size_t snd_seq_get_input_buffer_size(snd_seq_t *handle);
+int snd_seq_set_output_buffer_size(snd_seq_t *handle, size_t size);
+int snd_seq_set_input_buffer_size(snd_seq_t *handle, size_t size);
+
+/** system information container */
+typedef struct _snd_seq_system_info snd_seq_system_info_t;
+
+size_t snd_seq_system_info_sizeof(void);
+/** allocate a system_info container in heap */
+#define snd_seq_system_info_alloca(ptr) \
+	SND_ALLOCA(snd_seq_system_info, ptr)
+int snd_seq_system_info_malloc(snd_seq_system_info_t **ptr);
+void snd_seq_system_info_free(snd_seq_system_info_t *ptr);
+void snd_seq_system_info_copy(snd_seq_system_info_t *dst, const snd_seq_system_info_t *src);
+
+int snd_seq_system_info_get_queues(const snd_seq_system_info_t *info);
+int snd_seq_system_info_get_clients(const snd_seq_system_info_t *info);
+int snd_seq_system_info_get_ports(const snd_seq_system_info_t *info);
+int snd_seq_system_info_get_channels(const snd_seq_system_info_t *info);
+
 int snd_seq_system_info(snd_seq_t *handle, snd_seq_system_info_t *info);
+
+/** \} */
+
+
+/**
+ *  \defgroup SeqClient Sequencer Client Interface
+ *  Sequencer Client Interface
+ *  \ingroup Sequencer
+ *  \{
+ */
+
+/** client information container */
+typedef struct _snd_seq_client_info snd_seq_client_info_t;
+
+/** client types */
+typedef enum snd_seq_client_type {
+	SND_SEQ_USER_CLIENT     = 1,	/**< user client */
+	SND_SEQ_KERNEL_CLIENT   = 2	/**< kernel client */
+} snd_seq_client_type_t;
+                        
+size_t snd_seq_client_info_sizeof(void);
+/** allocate a client_info container in heap */
+#define snd_seq_client_info_alloca(ptr) \
+	SND_ALLOCA(snd_seq_client_info, ptr)
+int snd_seq_client_info_malloc(snd_seq_client_info_t **ptr);
+void snd_seq_client_info_free(snd_seq_client_info_t *ptr);
+void snd_seq_client_info_copy(snd_seq_client_info_t *dst, const snd_seq_client_info_t *src);
+
+int snd_seq_client_info_get_client(const snd_seq_client_info_t *info);
+snd_seq_client_type_t snd_seq_client_info_get_type(const snd_seq_client_info_t *info);
+const char *snd_seq_client_info_get_name(snd_seq_client_info_t *info);
+int snd_seq_client_info_get_broadcast_filter(const snd_seq_client_info_t *info);
+int snd_seq_client_info_get_error_bounce(const snd_seq_client_info_t *info);
+const unsigned char *snd_seq_client_info_get_event_filter(const snd_seq_client_info_t *info);
+int snd_seq_client_info_get_num_ports(const snd_seq_client_info_t *info);
+int snd_seq_client_info_get_event_lost(const snd_seq_client_info_t *info);
+
+void snd_seq_client_info_set_client(snd_seq_client_info_t *info, int client);
+void snd_seq_client_info_set_name(snd_seq_client_info_t *info, const char *name);
+void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int bool);
+void snd_seq_client_info_set_error_bounce(snd_seq_client_info_t *info, int bool);
+void snd_seq_client_info_set_event_filter(snd_seq_client_info_t *info, unsigned char *filter);
+
 int snd_seq_get_client_info(snd_seq_t *handle, snd_seq_client_info_t *info);
 int snd_seq_get_any_client_info(snd_seq_t *handle, int client, snd_seq_client_info_t *info);
 int snd_seq_set_client_info(snd_seq_t *handle, snd_seq_client_info_t *info);
+int snd_seq_query_next_client(snd_seq_t *handle, snd_seq_client_info_t *info);
+
+/*
+ */
+
+/** client pool information container */
+typedef struct _snd_seq_client_pool snd_seq_client_pool_t;
+
+size_t snd_seq_client_pool_sizeof(void);
+/** allocate a client_pool container in heap */
+#define snd_seq_client_pool_alloca(ptr) \
+	SND_ALLOCA(snd_seq_client_pool, ptr)
+int snd_seq_client_pool_malloc(snd_seq_client_pool_t **ptr);
+void snd_seq_client_pool_free(snd_seq_client_pool_t *ptr);
+void snd_seq_client_pool_copy(snd_seq_client_pool_t *dst, const snd_seq_client_pool_t *src);
+
+int snd_seq_client_pool_get_client(const snd_seq_client_pool_t *info);
+size_t snd_seq_client_pool_get_output_pool(const snd_seq_client_pool_t *info);
+size_t snd_seq_client_pool_get_input_pool(const snd_seq_client_pool_t *info);
+size_t snd_seq_client_pool_get_output_room(const snd_seq_client_pool_t *info);
+size_t snd_seq_client_pool_get_output_free(const snd_seq_client_pool_t *info);
+size_t snd_seq_client_pool_get_input_free(const snd_seq_client_pool_t *info);
+void snd_seq_client_pool_set_output_pool(snd_seq_client_pool_t *info, size_t size);
+void snd_seq_client_pool_set_input_pool(snd_seq_client_pool_t *info, size_t size);
+void snd_seq_client_pool_set_output_room(snd_seq_client_pool_t *info, size_t size);
+
+int snd_seq_get_client_pool(snd_seq_t *handle, snd_seq_client_pool_t *info);
+int snd_seq_set_client_pool(snd_seq_t *handle, snd_seq_client_pool_t *info);
+
+
+/** \} */
+
+
+/**
+ *  \defgroup SeqPort Sequencer Port Interface
+ *  Sequencer Port Interface
+ *  \ingroup Sequencer
+ *  \{
+ */
+
+/** port information container */
+typedef struct _snd_seq_port_info snd_seq_port_info_t;
+
+/** known port numbers */
+#define SND_SEQ_PORT_SYSTEM_TIMER	0	/**< system timer port */
+#define SND_SEQ_PORT_SYSTEM_ANNOUNCE	1	/**< sysem announce port */
+
+/** port capabilities (32 bits) */
+#define SND_SEQ_PORT_CAP_READ		(1<<0)	/**< readable from this port */
+#define SND_SEQ_PORT_CAP_WRITE		(1<<1)	/**< writable to this port */
+
+#define SND_SEQ_PORT_CAP_SYNC_READ	(1<<2)	/**< allow read subscriptions */
+#define SND_SEQ_PORT_CAP_SYNC_WRITE	(1<<3)	/**< allow write subscriptions */
+
+#define SND_SEQ_PORT_CAP_DUPLEX		(1<<4)	/**< allow read/write duplex */
+
+#define SND_SEQ_PORT_CAP_SUBS_READ	(1<<5)	/**< allow read subscription */
+#define SND_SEQ_PORT_CAP_SUBS_WRITE	(1<<6)	/**< allow write subscription */
+#define SND_SEQ_PORT_CAP_NO_EXPORT	(1<<7)	/**< routing not allowed */
+
+/** port type */
+#define SND_SEQ_PORT_TYPE_SPECIFIC	(1<<0)	/**< hardware specific */
+#define SND_SEQ_PORT_TYPE_MIDI_GENERIC	(1<<1)	/**< generic MIDI device */
+#define SND_SEQ_PORT_TYPE_MIDI_GM	(1<<2)	/**< General MIDI compatible device */
+#define SND_SEQ_PORT_TYPE_MIDI_GS	(1<<3)	/**< GS compatible device */
+#define SND_SEQ_PORT_TYPE_MIDI_XG	(1<<4)	/**< XG compatible device */
+#define SND_SEQ_PORT_TYPE_MIDI_MT32	(1<<5)	/**< MT-32 compatible device */
+#define SND_SEQ_PORT_TYPE_SYNTH		(1<<10)	/**< Synth device */
+#define SND_SEQ_PORT_TYPE_DIRECT_SAMPLE (1<<11)	/**< Sampling device (support sample download) */
+#define SND_SEQ_PORT_TYPE_SAMPLE	(1<<12)	/**< Sampling device (sample can be downloaded at any time) */
+#define SND_SEQ_PORT_TYPE_APPLICATION	(1<<20)	/**< application (sequencer/editor) */
+
+
+size_t snd_seq_port_info_sizeof(void);
+/** allocate a port_info container in heap */
+#define snd_seq_port_info_alloca(ptr) \
+	SND_ALLOCA(snd_seq_port_info, ptr)
+int snd_seq_port_info_malloc(snd_seq_port_info_t **ptr);
+void snd_seq_port_info_free(snd_seq_port_info_t *ptr);
+void snd_seq_port_info_copy(snd_seq_port_info_t *dst, const snd_seq_port_info_t *src);
+
+int snd_seq_port_info_get_client(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_port(const snd_seq_port_info_t *info);
+const snd_seq_addr_t *snd_seq_port_info_get_addr(const snd_seq_port_info_t *info);
+const char *snd_seq_port_info_get_name(const snd_seq_port_info_t *info);
+unsigned int snd_seq_port_info_get_capability(const snd_seq_port_info_t *info);
+unsigned int snd_seq_port_info_get_type(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_midi_channels(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_midi_voices(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_synth_voices(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_read_use(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_write_use(const snd_seq_port_info_t *info);
+int snd_seq_port_info_get_port_specified(const snd_seq_port_info_t *info);
+
+void snd_seq_port_info_set_client(snd_seq_port_info_t *info, int client);
+void snd_seq_port_info_set_port(snd_seq_port_info_t *info, int port);
+void snd_seq_port_info_set_addr(snd_seq_port_info_t *info, const snd_seq_addr_t *addr);
+void snd_seq_port_info_set_name(snd_seq_port_info_t *info, const char *name);
+void snd_seq_port_info_set_capability(snd_seq_port_info_t *info, unsigned int capability);
+void snd_seq_port_info_set_type(snd_seq_port_info_t *info, unsigned int type);
+void snd_seq_port_info_set_midi_channels(snd_seq_port_info_t *info, int channels);
+void snd_seq_port_info_set_midi_voices(snd_seq_port_info_t *info, int voices);
+void snd_seq_port_info_set_synth_voices(snd_seq_port_info_t *info, int voices);
+void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int bool);
+
 int snd_seq_create_port(snd_seq_t *handle, snd_seq_port_info_t *info);
-int snd_seq_delete_port(snd_seq_t *handle, snd_seq_port_info_t *info);
+int snd_seq_delete_port(snd_seq_t *handle, int port);
 int snd_seq_get_port_info(snd_seq_t *handle, int port, snd_seq_port_info_t *info);
 int snd_seq_get_any_port_info(snd_seq_t *handle, int client, int port, snd_seq_port_info_t *info);
 int snd_seq_set_port_info(snd_seq_t *handle, int port, snd_seq_port_info_t *info);
+int snd_seq_query_next_port(snd_seq_t *handle, snd_seq_port_info_t *info);
+
+/** \} */
+
+
+/**
+ *  \defgroup SeqSubscribe Sequencer Port Subscription
+ *  Sequencer Port Subscription
+ *  \ingroup Sequencer
+ *  \{
+ */
+
+/** port subscription container */
+typedef struct _snd_seq_port_subscribe snd_seq_port_subscribe_t;
+
+size_t snd_seq_port_subscribe_sizeof(void);
+/** allocate a port_subscribe container in heap */
+#define snd_seq_port_subscribe_alloca(ptr) \
+	SND_ALLOCA(snd_seq_port_subscribe, ptr)
+int snd_seq_port_subscribe_malloc(snd_seq_port_subscribe_t **ptr);
+void snd_seq_port_subscribe_free(snd_seq_port_subscribe_t *ptr);
+void snd_seq_port_subscribe_copy(snd_seq_port_subscribe_t *dst, const snd_seq_port_subscribe_t *src);
+
+const snd_seq_addr_t *snd_seq_port_subscribe_get_sender(const snd_seq_port_subscribe_t *info);
+const snd_seq_addr_t *snd_seq_port_subscribe_get_dest(const snd_seq_port_subscribe_t *info);
+int snd_seq_port_subscribe_get_queue(const snd_seq_port_subscribe_t *info);
+int snd_seq_port_subscribe_get_exclusive(const snd_seq_port_subscribe_t *info);
+int snd_seq_port_subscribe_get_time_update(const snd_seq_port_subscribe_t *info);
+int snd_seq_port_subscribe_get_time_real(const snd_seq_port_subscribe_t *info);
+
+void snd_seq_port_subscribe_set_sender(snd_seq_port_subscribe_t *info, const snd_seq_addr_t *addr);
+void snd_seq_port_subscribe_set_dest(snd_seq_port_subscribe_t *info, const snd_seq_addr_t *addr);
+void snd_seq_port_subscribe_set_queue(snd_seq_port_subscribe_t *info, int q);
+void snd_seq_port_subscribe_set_exclusive(snd_seq_port_subscribe_t *info, int bool);
+void snd_seq_port_subscribe_set_time_update(snd_seq_port_subscribe_t *info, int bool);
+void snd_seq_port_subscribe_set_time_real(snd_seq_port_subscribe_t *info, int bool);
+
 int snd_seq_get_port_subscription(snd_seq_t *handle, snd_seq_port_subscribe_t *sub);
 int snd_seq_subscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t *sub);
 int snd_seq_unsubscribe_port(snd_seq_t *handle, snd_seq_port_subscribe_t *sub);
-int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subs_t * subs);
-int snd_seq_get_queue_status(snd_seq_t *handle, int q, snd_seq_queue_status_t *status);
-int snd_seq_get_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tempo);
-int snd_seq_set_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tempo);
-int snd_seq_get_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t *owner);
-int snd_seq_set_queue_owner(snd_seq_t *handle, int q, snd_seq_queue_owner_t *owner);
-int snd_seq_get_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t *timer);
-int snd_seq_set_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t *timer);
-int snd_seq_get_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t *queue);
-int snd_seq_set_queue_client(snd_seq_t *handle, int q, snd_seq_queue_client_t *queue);
+
+/*
+ */
+
+/** subscription query container */
+typedef struct _snd_seq_query_subscribe snd_seq_query_subscribe_t;
+
+/** type of query subscription */
+typedef enum {
+	SND_SEQ_QUERY_SUBS_READ,	/**< query read subscriptions */
+	SND_SEQ_QUERY_SUBS_WRITE	/**< query write subscriptions */
+} snd_seq_query_subs_type_t;
+
+size_t snd_seq_query_subscribe_sizeof(void);
+/** allocate a query_subscribe container in heap */
+#define snd_seq_query_subscribe_alloca(ptr) \
+	SND_ALLOCA(snd_seq_query_subscribe, ptr)
+int snd_seq_query_subscribe_malloc(snd_seq_query_subscribe_t **ptr);
+void snd_seq_query_subscribe_free(snd_seq_query_subscribe_t *ptr);
+void snd_seq_query_subscribe_copy(snd_seq_query_subscribe_t *dst, const snd_seq_query_subscribe_t *src);
+
+int snd_seq_query_subscribe_get_client(const snd_seq_query_subscribe_t *info);
+int snd_seq_query_subscribe_get_port(const snd_seq_query_subscribe_t *info);
+const snd_seq_addr_t *snd_seq_query_subscribe_get_root(const snd_seq_query_subscribe_t *info);
+snd_seq_query_subs_type_t snd_seq_query_subscribe_get_type(const snd_seq_query_subscribe_t *info);
+int snd_seq_query_subscribe_get_index(const snd_seq_query_subscribe_t *info);
+int snd_seq_query_subscribe_get_num_subs(const snd_seq_query_subscribe_t *info);
+const snd_seq_addr_t *snd_seq_query_subscribe_get_addr(const snd_seq_query_subscribe_t *info);
+int snd_seq_query_subscribe_get_queue(const snd_seq_query_subscribe_t *info);
+int snd_seq_query_subscribe_get_exclusive(const snd_seq_query_subscribe_t *info);
+int snd_seq_query_subscribe_get_time_update(const snd_seq_query_subscribe_t *info);
+int snd_seq_query_subscribe_get_time_real(const snd_seq_query_subscribe_t *info);
+
+void snd_seq_query_subscribe_set_client(snd_seq_query_subscribe_t *info, int client);
+void snd_seq_query_subscribe_set_port(snd_seq_query_subscribe_t *info, int port);
+void snd_seq_query_subscribe_set_root(snd_seq_query_subscribe_t *info, const snd_seq_addr_t *addr);
+void snd_seq_query_subscribe_set_type(snd_seq_query_subscribe_t *info, snd_seq_query_subs_type_t type);
+void snd_seq_query_subscribe_set_index(snd_seq_query_subscribe_t *info, int index);
+
+int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subscribe_t * subs);
+
+/** \} */
+
+
+/**
+ *  \defgroup SeqQueue Sequencer Queue Interface
+ *  Sequencer Queue Interface
+ *  \ingroup Sequencer
+ *  \{
+ */
+
+/** queue information container */
+typedef struct _snd_seq_queue_info snd_seq_queue_info_t;
+/** queue status container */
+typedef struct _snd_seq_queue_status snd_seq_queue_status_t;
+/** queue tempo container */
+typedef struct _snd_seq_queue_tempo snd_seq_queue_tempo_t;
+/** queue timer information container */
+typedef struct _snd_seq_queue_timer snd_seq_queue_timer_t;
+
+/** special queue ids */
+#define SND_SEQ_QUEUE_DIRECT		253	/**< direct dispatch */
+
+size_t snd_seq_queue_info_sizeof(void);
+/** allocate a queue_info container in heap */
+#define snd_seq_queue_info_alloca(ptr) \
+	SND_ALLOCA(snd_seq_queue_info, ptr)
+int snd_seq_queue_info_malloc(snd_seq_queue_info_t **ptr);
+void snd_seq_queue_info_free(snd_seq_queue_info_t *ptr);
+void snd_seq_queue_info_copy(snd_seq_queue_info_t *dst, const snd_seq_queue_info_t *src);
+
+int snd_seq_queue_info_get_queue(const snd_seq_queue_info_t *info);
+const char *snd_seq_queue_info_get_name(const snd_seq_queue_info_t *info);
+int snd_seq_queue_info_get_owner(const snd_seq_queue_info_t *info);
+int snd_seq_queue_info_get_locked(const snd_seq_queue_info_t *info);
+unsigned int snd_seq_queue_info_get_flags(const snd_seq_queue_info_t *info);
+
+void snd_seq_queue_info_set_name(snd_seq_queue_info_t *info, const char *name);
+void snd_seq_queue_info_set_owner(snd_seq_queue_info_t *info, int owner);
+void snd_seq_queue_info_set_locked(snd_seq_queue_info_t *info, int locked);
+void snd_seq_queue_info_set_flags(snd_seq_queue_info_t *info, unsigned int flags);
+
 int snd_seq_create_queue(snd_seq_t *seq, snd_seq_queue_info_t *info);
 int snd_seq_alloc_named_queue(snd_seq_t *seq, const char *name);
 int snd_seq_alloc_queue(snd_seq_t *handle);
-#ifdef SND_SEQ_SYNC_SUPPORT
-int snd_seq_alloc_sync_queue(snd_seq_t *seq, const char *name);
-#endif
 int snd_seq_free_queue(snd_seq_t *handle, int q);
 int snd_seq_get_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info);
 int snd_seq_set_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info);
-int snd_seq_get_named_queue(snd_seq_t *seq, const char *name);
-int snd_seq_get_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
-int snd_seq_set_client_pool(snd_seq_t *handle, snd_seq_client_pool_t * info);
-int snd_seq_query_next_client(snd_seq_t *handle, snd_seq_client_info_t * info);
-int snd_seq_query_next_port(snd_seq_t *handle, snd_seq_port_info_t * info);
-#ifdef SND_SEQ_SYNC_SUPPORT
-typedef struct sndrv_seq_queue_sync snd_seq_queue_sync_t;    
-int snd_seq_add_sync_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest, snd_seq_queue_sync_t *info);
-int snd_seq_remove_sync_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest);
-int snd_seq_add_sync_std_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest, int format, int time_format, unsigned char *opt_info);
-#define snd_seq_add_sync_master_clock(seq,q,dest) snd_seq_add_sync_std_master(seq, q, dest, SND_SEQ_SYNC_FMT_MIDI_CLOCK, 0, 0)
-#define snd_seq_add_sync_master_mtc(seq,q,dest,tfmt) snd_seq_add_sync_std_master(seq, q, dest, SND_SEQ_SYNC_FMT_MTC, tfmt, 0)
+int snd_seq_query_named_queue(snd_seq_t *seq, const char *name);
 
-int snd_seq_set_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src, snd_seq_queue_sync_t *info);
-int snd_seq_reset_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src);
-#endif
+int snd_seq_get_queue_usage(snd_seq_t *handle, int q);
+int snd_seq_set_queue_usage(snd_seq_t *handle, int q, int used);
 
-const char *snd_seq_name(snd_seq_t *seq);
-snd_seq_type_t snd_seq_type(snd_seq_t *seq);
+/*
+ */
+size_t snd_seq_queue_status_sizeof(void);
+/** allocate a queue_status container in heap */
+#define snd_seq_queue_status_alloca(ptr) \
+	SND_ALLOCA(snd_seq_queue_status, ptr)
+int snd_seq_queue_status_malloc(snd_seq_queue_status_t **ptr);
+void snd_seq_queue_status_free(snd_seq_queue_status_t *ptr);
+void snd_seq_queue_status_copy(snd_seq_queue_status_t *dst, const snd_seq_queue_status_t *src);
 
-/* event routines */
+int snd_seq_queue_status_get_queue(const snd_seq_queue_status_t *info);
+int snd_seq_queue_status_get_events(const snd_seq_queue_status_t *info);
+snd_seq_tick_time_t snd_seq_queue_status_get_tick_time(const snd_seq_queue_status_t *info);
+const snd_seq_real_time_t *snd_seq_queue_status_get_real_time(const snd_seq_queue_status_t *info);
+unsigned int snd_seq_queue_status_get_status(const snd_seq_queue_status_t *info);
+
+int snd_seq_get_queue_status(snd_seq_t *handle, int q, snd_seq_queue_status_t *status);
+
+/*
+ */
+size_t snd_seq_queue_tempo_sizeof(void);
+/** allocate a queue_tempo container in heap */
+#define snd_seq_queue_tempo_alloca(ptr) \
+	SND_ALLOCA(snd_seq_queue_tempo, ptr)
+int snd_seq_queue_tempo_malloc(snd_seq_queue_tempo_t **ptr);
+void snd_seq_queue_tempo_free(snd_seq_queue_tempo_t *ptr);
+void snd_seq_queue_tempo_copy(snd_seq_queue_tempo_t *dst, const snd_seq_queue_tempo_t *src);
+
+int snd_seq_queue_tempo_get_queue(const snd_seq_queue_tempo_t *info);
+unsigned int snd_seq_queue_tempo_get_tempo(const snd_seq_queue_tempo_t *info);
+int snd_seq_queue_tempo_get_ppq(const snd_seq_queue_tempo_t *info);
+void snd_seq_queue_tempo_set_tempo(snd_seq_queue_tempo_t *info, unsigned int tempo);
+void snd_seq_queue_tempo_set_ppq(snd_seq_queue_tempo_t *info, int ppq);
+
+int snd_seq_get_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tempo);
+int snd_seq_set_queue_tempo(snd_seq_t *handle, int q, snd_seq_queue_tempo_t *tempo);
+
+/*
+ */
+size_t snd_seq_queue_timer_sizeof(void);
+/** allocate a queue_timer container in heap */
+#define snd_seq_queue_timer_alloca(ptr) \
+	SND_ALLOCA(snd_seq_queue_timer, ptr)
+int snd_seq_queue_timer_malloc(snd_seq_queue_timer_t **ptr);
+void snd_seq_queue_timer_free(snd_seq_queue_timer_t *ptr);
+void snd_seq_queue_timer_copy(snd_seq_queue_timer_t *dst, const snd_seq_queue_timer_t *src);
+
+int snd_seq_queue_timer_get_queue(const snd_seq_queue_timer_t *info);
+int snd_seq_queue_timer_get_type(const snd_seq_queue_timer_t *info);
+const snd_timer_id_t *snd_seq_queue_timer_get_id(const snd_seq_queue_timer_t *info);
+unsigned int snd_seq_queue_timer_get_resolution(const snd_seq_queue_timer_t *info);
+
+void snd_seq_queue_timer_set_type(snd_seq_queue_timer_t *info, int type);
+void snd_seq_queue_timer_set_id(snd_seq_queue_timer_t *info, const snd_timer_id_t *id);
+void snd_seq_queue_timer_set_resolution(snd_seq_queue_timer_t *info, unsigned int resolution);
+
+int snd_seq_get_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t *timer);
+int snd_seq_set_queue_timer(snd_seq_t *handle, int q, snd_seq_queue_timer_t *timer);
+
+/** \} */
+
+/**
+ *  \defgroup SeqEvent Sequencer Event API
+ *  Sequencer Event API
+ *  \ingroup Sequencer
+ *  \{
+ */
+
 snd_seq_event_t *snd_seq_create_event(void);
 int snd_seq_free_event(snd_seq_event_t *ev);
 ssize_t snd_seq_event_length(snd_seq_event_t *ev);
@@ -396,15 +453,211 @@ int snd_seq_drop_output(snd_seq_t *handle);
 int snd_seq_drop_output_buffer(snd_seq_t *handle);
 int snd_seq_drop_input(snd_seq_t *handle);
 int snd_seq_drop_input_buffer(snd_seq_t *handle);
+
+/** event removal conditionals */
+typedef struct _snd_seq_remove_events snd_seq_remove_events_t;
+
+/** Remove conditional flags */
+#define SND_SEQ_REMOVE_INPUT		(1<<0)	/**< Flush input queues */
+#define SND_SEQ_REMOVE_OUTPUT		(1<<1)	/**< Flush output queues */
+#define SND_SEQ_REMOVE_DEST		(1<<2)	/**< Restrict by destination q:client:port */
+#define SND_SEQ_REMOVE_DEST_CHANNEL	(1<<3)	/**< Restrict by channel */
+#define SND_SEQ_REMOVE_TIME_BEFORE	(1<<4)	/**< Restrict to before time */
+#define SND_SEQ_REMOVE_TIME_AFTER	(1<<5)	/**< Restrict to time or after */
+#define SND_SEQ_REMOVE_TIME_TICK	(1<<6)	/**< Time is in ticks */
+#define SND_SEQ_REMOVE_EVENT_TYPE	(1<<7)	/**< Restrict to event type */
+#define SND_SEQ_REMOVE_IGNORE_OFF 	(1<<8)	/**< Do not flush off events */
+#define SND_SEQ_REMOVE_TAG_MATCH 	(1<<9)	/**< Restrict to events with given tag */
+
+size_t snd_seq_remove_events_sizeof(void);
+/** allocate a remove_events container in heap */
+#define snd_seq_remove_events_alloca(ptr) \
+	SND_ALLOCA(snd_seq_remove_events, ptr)
+int snd_seq_remove_events_malloc(snd_seq_remove_events_t **ptr);
+void snd_seq_remove_events_free(snd_seq_remove_events_t *ptr);
+void snd_seq_remove_events_copy(snd_seq_remove_events_t *dst, const snd_seq_remove_events_t *src);
+
+unsigned int snd_seq_remove_events_get_condition(const snd_seq_remove_events_t *info);
+int snd_seq_remove_events_get_queue(const snd_seq_remove_events_t *info);
+const snd_seq_timestamp_t *snd_seq_remove_events_get_time(const snd_seq_remove_events_t *info);
+const snd_seq_addr_t *snd_seq_remove_events_get_dest(const snd_seq_remove_events_t *info);
+int snd_seq_remove_events_get_channel(const snd_seq_remove_events_t *info);
+int snd_seq_remove_events_get_event_type(const snd_seq_remove_events_t *info);
+int snd_seq_remove_events_get_tag(const snd_seq_remove_events_t *info);
+
+void snd_seq_remove_events_set_condition(snd_seq_remove_events_t *info, unsigned int flags);
+void snd_seq_remove_events_set_queue(snd_seq_remove_events_t *info, int queue);
+void snd_seq_remove_events_set_time(snd_seq_remove_events_t *info, const snd_seq_timestamp_t *time);
+void snd_seq_remove_events_set_dest(snd_seq_remove_events_t *info, const snd_seq_addr_t *addr);
+void snd_seq_remove_events_set_channel(snd_seq_remove_events_t *info, int channel);
+void snd_seq_remove_events_set_event_type(snd_seq_remove_events_t *info, int type);
+void snd_seq_remove_events_set_tag(snd_seq_remove_events_t *info, int tag);
+
 int snd_seq_remove_events(snd_seq_t *handle, snd_seq_remove_events_t *info);
-/* misc */
+
+/** \} */
+
+/**
+ *  \defgroup SeqMisc Sequencer Miscellaneous
+ *  Sequencer Mescellaneous
+ *  \ingroup Sequencer
+ *  \{
+ */
+
 void snd_seq_set_bit(int nr, void *array);
 int snd_seq_change_bit(int nr, void *array);
 int snd_seq_get_bit(int nr, void *array);
 
-#ifdef __cplusplus
-}
-#endif
+/** \} */
+
+
+/**
+ *  \defgroup SeqEvType Sequencer Event Type Checks
+ *  Sequencer Event Type Checks
+ *  \ingroup Sequencer
+ *  \{
+ */
+
+/* event type macros */
+enum {
+	SND_SEQ_EVFLG_RESULT,
+	SND_SEQ_EVFLG_NOTE,
+	SND_SEQ_EVFLG_CONTROL,
+	SND_SEQ_EVFLG_QUEUE,
+	SND_SEQ_EVFLG_SYSTEM,
+	SND_SEQ_EVFLG_MESSAGE,
+	SND_SEQ_EVFLG_CONNECTION,
+	SND_SEQ_EVFLG_SAMPLE,
+	SND_SEQ_EVFLG_USERS,
+	SND_SEQ_EVFLG_INSTR,
+	SND_SEQ_EVFLG_QUOTE,
+	SND_SEQ_EVFLG_NONE,
+	SND_SEQ_EVFLG_RAW,
+	SND_SEQ_EVFLG_FIXED,
+	SND_SEQ_EVFLG_VARIABLE,
+	SND_SEQ_EVFLG_VARUSR,
+	SND_SEQ_EVFLG_IPC
+};
+
+enum {
+	SND_SEQ_EVFLG_NOTE_ONEARG,
+	SND_SEQ_EVFLG_NOTE_TWOARG
+};
+enum {
+	SND_SEQ_EVFLG_QUEUE_NOARG,
+	SND_SEQ_EVFLG_QUEUE_TICK,
+	SND_SEQ_EVFLG_QUEUE_TIME,
+	SND_SEQ_EVFLG_QUEUE_VALUE
+};
+
+/**
+ * Exported event type table
+ *
+ * This table is referred by snd_seq_ev_is_xxx.
+ */
+extern const unsigned int snd_seq_event_types[];
+
+#define _SND_SEQ_TYPE(x)	(1<<(x))	/* 24bit */
+#define _SND_SEQ_TYPE_OPT(x)	((x)<<24)	/* 8bit */
+
+#define snd_seq_type_check(ev,x)	(snd_seq_event_types[(ev)->type] & _SND_SEQ_TYPE(x))
+
+/** event type check: result events */
+#define snd_seq_ev_is_result_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_RESULT)
+/** event type check: note events */
+#define snd_seq_ev_is_note_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_NOTE)
+/** event type check: control events */
+#define snd_seq_ev_is_control_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_CONTROL)
+/** event type check: channel specific events */
+#define snd_seq_ev_is_channel_type(ev) \
+	(snd_seq_event_types[(ev)->type] & (_SND_SEQ_TYPE(SND_SEQ_EVFLG_NOTE) | _SND_SEQ_TYPE(SND_SEQ_EVFLG_CONTROL)))
+
+/** event type check: queue control events */
+#define snd_seq_ev_is_queue_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_QUEUE)
+/** event type check: system status messages */
+#define snd_seq_ev_is_message_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_MESSAGE)
+/** event type check: system status messages */
+#define snd_seq_ev_is_subscribe_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_CONNECTION)
+/** event type check: sample messages */
+#define snd_seq_ev_is_sample_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_SAMPLE)
+/** event type check: user-defined messages */
+#define snd_seq_ev_is_user_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_USERS)
+/** event type check: instrument layer events */
+#define snd_seq_ev_is_instr_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_INSTR)
+/** event type check: fixed length events */
+#define snd_seq_ev_is_fixed_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_FIXED)
+/** event type check: variable length events */
+#define snd_seq_ev_is_variable_type(ev)	\
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_VARIABLE)
+/** event type check: user pointer events */
+#define snd_seq_ev_is_varusr_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_VARUSR)
+/** event type check: ipc events */
+#define snd_seq_ev_is_varipc_type(ev) \
+	snd_seq_type_check(ev, SND_SEQ_EVFLG_IPC)
+/** event type check: reserved for kernel */
+#define snd_seq_ev_is_reserved(ev) \
+	(! snd_seq_event_types[(ev)->type])
+
+/**
+ * macros to check event flags
+ */
+/** prior events */
+#define snd_seq_ev_is_prior(ev)	\
+	(((ev)->flags & SND_SEQ_PRIORITY_MASK) == SND_SEQ_PRIORITY_HIGH)
+
+/** get the data length type */
+#define snd_seq_ev_length_type(ev) \
+	((ev)->flags & SND_SEQ_EVENT_LENGTH_MASK)
+/** fixed length events */
+#define snd_seq_ev_is_fixed(ev)	\
+	(snd_seq_ev_length_type(ev) == SND_SEQ_EVENT_LENGTH_FIXED)
+/** variable length events */
+#define snd_seq_ev_is_variable(ev) \
+	(snd_seq_ev_length_type(ev) == SND_SEQ_EVENT_LENGTH_VARIABLE)
+/** variable length on user-space */
+#define snd_seq_ev_is_varusr(ev) \
+	(snd_seq_ev_length_type(ev) == SND_SEQ_EVENT_LENGTH_VARUSR)
+/** variable length on IPC shm */
+#define snd_seq_ev_is_varipc(ev) \
+	(snd_seq_ev_length_type(ev) == SND_SEQ_EVENT_LENGTH_VARIPC)
+
+/** time-stamp type */
+#define snd_seq_ev_timestamp_type(ev) \
+	((ev)->flags & SND_SEQ_TIME_STAMP_MASK)
+/** event is in tick time */
+#define snd_seq_ev_is_tick(ev) \
+	(snd_seq_ev_timestamp_type(ev) == SND_SEQ_TIME_STAMP_TICK)
+/** event is in real-time */
+#define snd_seq_ev_is_real(ev) \
+	(snd_seq_ev_timestamp_type(ev) == SND_SEQ_TIME_STAMP_REAL)
+
+/** time-mode type */
+#define snd_seq_ev_timemode_type(ev) \
+	((ev)->flags & SND_SEQ_TIME_MODE_MASK)
+/** scheduled in absolute time */
+#define snd_seq_ev_is_abstime(ev) \
+	(snd_seq_ev_timemode_type(ev) == SND_SEQ_TIME_MODE_ABS)
+/** scheduled in relative time */
+#define snd_seq_ev_is_reltime(ev) \
+	(snd_seq_ev_timemode_type(ev) == SND_SEQ_TIME_MODE_REL)
+
+/** direct dispatched events */
+#define snd_seq_ev_is_direct(ev) \
+	((ev)->queue == SND_SEQ_QUEUE_DIRECT)
 
 /** \} */
 
+#ifdef __cplusplus
+}
+#endif

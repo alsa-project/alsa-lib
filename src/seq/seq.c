@@ -4,10 +4,6 @@
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Takashi Iwai <tiwai@suse.de>
  * \date 2000-2001
- *
- * THE SEQUENCER INTERFACE WILL BE CHANGED IN NEAR FUTURE.
- * This interface is still not compliant to alsa 1.0 encapsulation.
- * 
  */
 
 /* 
@@ -32,6 +28,13 @@
 #include <sys/poll.h>
 #include <dlfcn.h>
 #include "seq_local.h"
+
+/****************************************************************************
+ *                                                                          *
+ *                                seq.h                                     *
+ *                              Sequencer                                   *
+ *                                                                          *
+ ****************************************************************************/
 
 /**
  * \brief get identifier of sequencer handle
@@ -167,27 +170,24 @@ static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
  * kept and passed to most of the other sequencer functions.
  * \param name The sequencer's "name".  This is \em not a name you make
  * up for your own purposes; it has special significance to the ALSA
- * library.  So far only \c "hw" type is supported.
- * Just pass \c "hw" for this.
+ * library.  Usually you need to pass \c "default" here.
  * \param streams The read/write mode of the sequencer.  Can be one of
  * three values:
- * - \c SND_SEQ_OPEN_OUTPUT - open the sequencer for output only
- * - \c SND_SEQ_OPEN_INPUT - open the sequencer for input only
- * - \c SND_SEQ_OPEN_DUPLEX - open the sequencer for output and input
- * I suppose that you'd always want to use \c SND_SEQ_OPEN_DUPLEX here;
- * I can't think of a reason for using either of the other two.
+ * - #SND_SEQ_OPEN_OUTPUT - open the sequencer for output only
+ * - #SND_SEQ_OPEN_INPUT - open the sequencer for input only
+ * - #SND_SEQ_OPEN_DUPLEX - open the sequencer for output and input
  * \note Internally, these are translated to \c O_WRONLY, \c O_RDONLY and
  * \O_RDWR respectively and used as the second argument to the C library
  * open() call.
- * \param mode Optional modifier.  Can be either 0, or \c
- * SND_SEQ_NONBLOCK, which will make read/write operations
- * non-blocking.  This can also be set later using snd_seq_nonblock().
+ * \param mode Optional modifier.  Can be either 0, or
+ * #SND_SEQ_NONBLOCK, which will make read/write operations
+ * non-blocking.  This can also be set later using #snd_seq_nonblock().
  * \return 0 on success otherwise a negative error code
  *
  * Creates a new handle and opens a connection to the kernel
  * sequencer interface.
  * After a client is created successfully, an event
- * with \c SND_SEQ_EVENT_CLIENT_START is broadcasted to announce port.
+ * with #SND_SEQ_EVENT_CLIENT_START is broadcasted to announce port.
  */
 int snd_seq_open(snd_seq_t **seqp, const char *name, 
 		 int streams, int mode)
@@ -202,12 +202,12 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 
 /**
  * \brief Close the sequencer
- * \param handle Handle returned from snd_seq_open()
+ * \param handle Handle returned from #snd_seq_open()
  * \return 0 on success otherwise a negative error code
  *
  * Closes the sequencer client and releases its resources.
  * After a client is closed, an event with
- * \c SND_SEQ_EVENT_CLIENT_EXIT is broadcasted to announce port.
+ * #SND_SEQ_EVENT_CLIENT_EXIT is broadcasted to announce port.
  * The connection between other clients are disconnected.
  * Call this just before exiting your program.
  */
@@ -256,7 +256,7 @@ int snd_seq_poll_descriptors_count(snd_seq_t *seq, short events)
 }
 
 /**
- * \brief get poll descriptors
+ * \brief Get poll descriptors
  * \param seq sequencer handle
  * \param pfds array of poll descriptors
  * \param space space in the poll descriptor array
@@ -286,7 +286,7 @@ int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int s
 }
 
 /**
- * \brief set nonblock mode
+ * \brief Set nonblock mode
  * \param seq sequencer handle
  * \param nonblock 0 = block, 1 = nonblock mode
  * \return 0 on success otherwise a negative error code
@@ -294,7 +294,7 @@ int snd_seq_poll_descriptors(snd_seq_t *seq, struct pollfd *pfds, unsigned int s
  * Change the blocking mode of the given client.
  * In block mode, the client falls into sleep when it fills the
  * output memory pool with full events.  The client will be woken up
- *after a certain amount of free space becomes available.
+ * after a certain amount of free space becomes available.
  */
 int snd_seq_nonblock(snd_seq_t *seq, int nonblock)
 {
@@ -311,7 +311,7 @@ int snd_seq_nonblock(snd_seq_t *seq, int nonblock)
 }
 
 /**
- * \brief get the client id
+ * \brief Get the client id
  * \param seq sequencer handle
  * \return the client id
  *
@@ -327,7 +327,7 @@ int snd_seq_client_id(snd_seq_t *seq)
 }
 
 /**
- * \brief return the size of output buffer
+ * \brief Return the size of output buffer
  * \param seq sequencer handle
  * \return the size of output buffer in bytes
  *
@@ -335,7 +335,7 @@ int snd_seq_client_id(snd_seq_t *seq)
  * This buffer is used to store decoded byte-stream of output events
  * before transferring to sequencer.
  */
-int snd_seq_output_buffer_size(snd_seq_t *seq)
+size_t snd_seq_get_output_buffer_size(snd_seq_t *seq)
 {
 	assert(seq);
 	if (!seq->obuf)
@@ -344,14 +344,14 @@ int snd_seq_output_buffer_size(snd_seq_t *seq)
 }
 
 /**
- * \brief return the size of input buffer
+ * \brief Return the size of input buffer
  * \param seq sequencer handle
  * \return the size of input buffer in bytes
  *
  * Obtains the size of input buffer.
  * This buffer is used to read byte-stream of input events from sequencer.
  */
-int snd_seq_input_buffer_size(snd_seq_t *seq)
+size_t snd_seq_get_input_buffer_size(snd_seq_t *seq)
 {
 	assert(seq);
 	if (!seq->ibuf)
@@ -360,14 +360,14 @@ int snd_seq_input_buffer_size(snd_seq_t *seq)
 }
 
 /**
- * \brief change the size of output buffer
+ * \brief Change the size of output buffer
  * \param seq sequencer handle
  * \param size the size of output buffer to be changed in bytes
  * \return 0 on success otherwise a negative error code
  *
  * Changes the size of output buffer.
  */
-int snd_seq_resize_output_buffer(snd_seq_t *seq, size_t size)
+int snd_seq_set_output_buffer_size(snd_seq_t *seq, size_t size)
 {
 	assert(seq && seq->obuf);
 	assert(size >= sizeof(snd_seq_event_t));
@@ -385,14 +385,14 @@ int snd_seq_resize_output_buffer(snd_seq_t *seq, size_t size)
 }
 
 /**
- * \brief resize the input buffer
+ * \brief Resize the input buffer
  * \param seq sequencer handle
  * \param size the size of input buffer to be changed in bytes
  * \return 0 on success otherwise a negative error code
  *
  * Changes the size of input buffer.
  */
-int snd_seq_resize_input_buffer(snd_seq_t *seq, size_t size)
+int snd_seq_set_input_buffer_size(snd_seq_t *seq, size_t size)
 {
 	assert(seq && seq->ibuf);
 	assert(size >= sizeof(snd_seq_event_t));
@@ -410,6 +410,96 @@ int snd_seq_resize_input_buffer(snd_seq_t *seq, size_t size)
 	return 0;
 }
 
+
+/**
+ * \brief Get size of #snd_seq_system_info_t
+ * \return size in bytes
+ */
+size_t snd_seq_system_info_sizeof()
+{
+	return sizeof(snd_seq_system_info_t);
+}
+
+/**
+ * \brief Allocate an empty #snd_seq_system_info_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_system_info_malloc(snd_seq_system_info_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_system_info_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief Frees a previously allocated #snd_seq_system_info_t
+ * \param pointer to object to free
+ */
+void snd_seq_system_info_free(snd_seq_system_info_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief Copy one #snd_seq_system_info_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_system_info_copy(snd_seq_system_info_t *dst, const snd_seq_system_info_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get maximum number of queues
+ * \param info #snd_seq_system_info_t container
+ * \return maximum number of queues
+ */
+int snd_seq_system_info_get_queues(const snd_seq_system_info_t *info)
+{
+	assert(info);
+	return info->queues;
+}
+
+/**
+ * \brief Get maximum number of clients
+ * \param info #snd_seq_system_info_t container
+ * \return maximum number of clients
+ */
+int snd_seq_system_info_get_clients(const snd_seq_system_info_t *info)
+{
+	assert(info);
+	return info->clients;
+}
+
+/**
+ * \brief Get maximum number of ports
+ * \param info #snd_seq_system_info_t container
+ * \return maximum number of ports
+ */
+int snd_seq_system_info_get_ports(const snd_seq_system_info_t *info)
+{
+	assert(info);
+	return info->ports;
+}
+
+/**
+ * \brief Get maximum number of channels
+ * \param info #snd_seq_system_info_t container
+ * \return maximum number of channels
+ */
+int snd_seq_system_info_get_channels(const snd_seq_system_info_t *info)
+{
+	assert(info);
+	return info->channels;
+}
+
+
 /**
  * \brief obtain the sequencer system information
  * \param seq sequencer handle
@@ -426,6 +516,214 @@ int snd_seq_system_info(snd_seq_t *seq, snd_seq_system_info_t * info)
 	return seq->ops->system_info(seq, info);
 }
 
+
+/*----------------------------------------------------------------*/
+
+/**
+ * \brief get size of #snd_seq_client_info_t
+ * \return size in bytes
+ */
+size_t snd_seq_client_info_sizeof()
+{
+	return sizeof(snd_seq_client_info_t);
+}
+
+/**
+ * \brief allocate an empty #snd_seq_client_info_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_client_info_malloc(snd_seq_client_info_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_client_info_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_seq_client_info_t
+ * \param pointer to object to free
+ */
+void snd_seq_client_info_free(snd_seq_client_info_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_seq_client_info_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_client_info_copy(snd_seq_client_info_t *dst, const snd_seq_client_info_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get client id of a client_info container
+ * \param info client_info container
+ * \return client id
+ */
+int snd_seq_client_info_get_client(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return info->client;
+}
+
+/**
+ * \brief Get client type of a client_info container
+ * \param info client_info container
+ * \return client type
+ *
+ * The client type is either #SEQ_CLIENT_TYPE_KERNEL or #SEQ_CLIENT_TYPE_USER
+ * for kernel or user client respectively.
+ */
+snd_seq_client_type_t snd_seq_client_info_get_type(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return info->type;
+}
+
+/**
+ * \brief Get the name of a client_info container
+ * \param info client_info container
+ * \return name string
+ */
+const char *snd_seq_client_info_get_name(snd_seq_client_info_t *info)
+{
+	assert(info);
+	return info->name;
+}
+
+/**
+ * \brief Get the broadcast filter usage of a client_info container
+ * \param info client_info container
+ * \return 1 if broadcast is accepted
+ */
+int snd_seq_client_info_get_broadcast_filter(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return (info->filter & SNDRV_SEQ_FILTER_BROADCAST) ? 1 : 0;
+}
+
+/**
+ * \brief Get the error-bounce usage of a client_info container
+ * \param info client_info container
+ * \return 1 if error-bounce is enabled
+ */
+int snd_seq_client_info_get_error_bounce(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return (info->filter & SNDRV_SEQ_FILTER_BOUNCE) ? 1 : 0;
+}
+
+/**
+ * \brief Get the event filter bitmap of a client_info container
+ * \param info client_info container
+ * \return NULL if no event filter, or pointer to event filter bitmap
+ */
+const unsigned char *snd_seq_client_info_get_event_filter(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	if (info->filter & SNDRV_SEQ_FILTER_USE_EVENT)
+		return info->event_filter;
+	else
+		return NULL;
+}
+
+/**
+ * \brief Get the number of opened ports of a client_info container
+ * \param info client_info container
+ * \return number of opened ports
+ */
+int snd_seq_client_info_get_num_ports(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return info->num_ports;
+}
+
+/**
+ * \brief Get the number of lost events of a client_info container
+ * \param info client_info container
+ * \return number of lost events
+ */
+int snd_seq_client_info_get_event_lost(const snd_seq_client_info_t *info)
+{
+	assert(info);
+	return info->event_lost;
+}
+
+/**
+ * \brief Set the client id of a client_info container
+ * \param info client_info container
+ * \param client client id
+ */
+void snd_seq_client_info_set_client(snd_seq_client_info_t *info, int client)
+{
+	assert(info);
+	info->client = client;
+}
+
+/**
+ * \brief Set the name of a client_info container
+ * \param info client_info container
+ * \param name name string
+ */
+void snd_seq_client_info_set_name(snd_seq_client_info_t *info, const char *name)
+{
+	assert(info && name);
+	strncpy(info->name, name, sizeof(info->name));
+}
+
+/**
+ * \brief Set the broadcast filter usage of a client_info container
+ * \param info client_info container
+ * \param bool non-zero if broadcast is accepted
+ */
+void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int bool)
+{
+	assert(info);
+	if (bool)
+		info->filter |= SNDRV_SEQ_FILTER_BROADCAST;
+	else
+		info->filter &= ~SNDRV_SEQ_FILTER_BROADCAST;
+}
+
+/**
+ * \brief Set the error-bounce usage of a client_info container
+ * \param info client_info container
+ * \param bool non-zero if error is bounced
+ */
+void snd_seq_client_info_set_error_bounce(snd_seq_client_info_t *info, int bool)
+{
+	assert(info);
+	if (bool)
+		info->filter |= SNDRV_SEQ_FILTER_BOUNCE;
+	else
+		info->filter &= ~SNDRV_SEQ_FILTER_BOUNCE;
+}
+
+/**
+ * \brief Set the event filter bitmap of a client_info container
+ * \param info client_info container
+ * \param filter event filter bitmap
+ */
+void snd_seq_client_info_set_event_filter(snd_seq_client_info_t *info, unsigned char *filter)
+{
+	assert(info);
+	if (! filter)
+		info->filter &= ~SNDRV_SEQ_FILTER_USE_EVENT;
+	else {
+		info->filter |= SNDRV_SEQ_FILTER_USE_EVENT;
+		memcpy(info->event_filter, filter, sizeof(info->event_filter));
+	}
+}
+
+
 /**
  * \brief obtain the information of the given client
  * \param seq sequencer handle
@@ -437,7 +735,7 @@ int snd_seq_system_info(snd_seq_t *seq, snd_seq_system_info_t * info)
  * info argument.
  * The obtained information is written on info parameter.
  */
-int snd_seq_get_any_client_info(snd_seq_t *seq, int client, snd_seq_client_info_t * info)
+int snd_seq_get_any_client_info(snd_seq_t *seq, int client, snd_seq_client_info_t *info)
 {
 	assert(seq && info && client >= 0);
 	memset(info, 0, sizeof(snd_seq_client_info_t));
@@ -454,7 +752,7 @@ int snd_seq_get_any_client_info(snd_seq_t *seq, int client, snd_seq_client_info_
  * Obtains the information of the current client stored on info.
  * client and type fields are ignored.
  */
-int snd_seq_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
+int snd_seq_get_client_info(snd_seq_t *seq, snd_seq_client_info_t *info)
 {
 	return snd_seq_get_any_client_info(seq, seq->client, info);
 }
@@ -468,7 +766,7 @@ int snd_seq_get_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
  * Obtains the information of the current client stored on info.
  * client and type fields are ignored.
  */
-int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
+int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t *info)
 {
 	assert(seq && info);
 	info->client = seq->client;
@@ -476,7 +774,323 @@ int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
 	return seq->ops->set_client_info(seq, info);
 }
 
+/**
+ * \brief query the next matching client
+ * \param seq sequencer handle
+ * \param info query pattern and result
+ *
+ * Queries the next matching client with the given condition in
+ * info argument.
+ * The search begins at the client with an id one greater than
+ * client field in info.
+ * If name field in info is not empty, the client name is compared.
+ * If a matching client is found, its attributes are stored o
+ * info and returns zero.
+ * Otherwise returns a negative error code.
+ */
+int snd_seq_query_next_client(snd_seq_t *seq, snd_seq_client_info_t *info)
+{
+	assert(seq && info);
+	return seq->ops->query_next_client(seq, info);
+}
+
+
 /*----------------------------------------------------------------*/
+
+
+/*
+ * Port
+ */
+
+/**
+ * \brief get size of #snd_seq_port_info_t
+ * \return size in bytes
+ */
+size_t snd_seq_port_info_sizeof()
+{
+	return sizeof(snd_seq_port_info_t);
+}
+
+/**
+ * \brief allocate an empty #snd_seq_port_info_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_port_info_malloc(snd_seq_port_info_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_port_info_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_seq_port_info_t
+ * \param pointer to object to free
+ */
+void snd_seq_port_info_free(snd_seq_port_info_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_seq_port_info_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_port_info_copy(snd_seq_port_info_t *dst, const snd_seq_port_info_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get client id of a port_info container
+ * \param info port_info container
+ * \return client id
+ */
+int snd_seq_port_info_get_client(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->addr.client;
+}
+
+/**
+ * \brief Get port id of a port_info container
+ * \param info port_info container
+ * \return port id
+ */
+int snd_seq_port_info_get_port(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->addr.port;
+}
+
+/**
+ * \brief Get client/port address of a port_info container
+ * \param info port_info container
+ * \return client/port address pointer
+ */
+const snd_seq_addr_t *snd_seq_port_info_get_addr(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return &info->addr;
+}
+
+/**
+ * \brief Get the name of a port_info container
+ * \param info port_info container
+ * \return name string
+ */
+const char *snd_seq_port_info_get_name(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->name;
+}
+
+/**
+ * \brief Get the capability bits of a port_info container
+ * \param info port_info container
+ * \return capability bits
+ */
+unsigned int snd_seq_port_info_get_capability(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->capability;
+}
+
+/**
+ * \brief Get the type bits of a port_info container
+ * \param info port_info container
+ * \return port type bits
+ */
+unsigned int snd_seq_port_info_get_type(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->type;
+}
+
+/**
+ * \brief Get the number of read subscriptions of a port_info container
+ * \param info port_info container
+ * \return number of read subscriptions
+ */
+int snd_seq_port_info_get_read_use(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->read_use;
+}
+
+/**
+ * \brief Get the number of write subscriptions of a port_info container
+ * \param info port_info container
+ * \return number of write subscriptions
+ */
+int snd_seq_port_info_get_write_use(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->write_use;
+}
+
+/**
+ * \brief Get the midi channels of a port_info container
+ * \param info port_info container
+ * \return number of midi channels (default 0)
+ */
+int snd_seq_port_info_get_midi_channels(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->midi_channels;
+}
+
+/**
+ * \brief Get the midi voices of a port_info container
+ * \param info port_info container
+ * \return number of midi voices (default 0)
+ */
+int snd_seq_port_info_get_midi_voices(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->midi_voices;
+}
+
+/**
+ * \brief Get the synth voices of a port_info container
+ * \param info port_info container
+ * \return number of synth voices (default 0)
+ */
+int snd_seq_port_info_get_synth_voices(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return info->synth_voices;
+}
+
+/**
+ * \brief Get the port-specified mode of a port_info container
+ * \param info port_info container
+ * \return 1 if port id is specified at creation
+ */
+int snd_seq_port_info_get_port_specified(const snd_seq_port_info_t *info)
+{
+	assert(info);
+	return (info->flags & SNDRV_SEQ_PORT_FLG_GIVEN_PORT) ? 1 : 0;
+}
+
+/**
+ * \brief Set the client id of a port_info container
+ * \param info port_info container
+ * \param client client id
+ */
+void snd_seq_port_info_set_client(snd_seq_port_info_t *info, int client)
+{
+	assert(info);
+	info->addr.client = client;
+}
+
+/**
+ * \brief Set the port id of a port_info container
+ * \param info port_info container
+ * \param port port id
+ */
+void snd_seq_port_info_set_port(snd_seq_port_info_t *info, int port)
+{
+	assert(info);
+	info->addr.port = port;
+}
+
+/**
+ * \brief Set the client/port address of a port_info container
+ * \param info port_info container
+ * \param addr client/port address
+ */
+void snd_seq_port_info_set_addr(snd_seq_port_info_t *info, const snd_seq_addr_t *addr)
+{
+	assert(info);
+	info->addr = *addr;
+}
+
+/**
+ * \brief Set the name of a port_info container
+ * \param info port_info container
+ * \param name name string
+ */
+void snd_seq_port_info_set_name(snd_seq_port_info_t *info, const char *name)
+{
+	assert(info && name);
+	strncpy(info->name, name, sizeof(info->name));
+}
+
+/**
+ * \brief set the capability bits of a port_info container
+ * \param info port_info container
+ * \param capability capability bits
+ */
+void snd_seq_port_info_set_capability(snd_seq_port_info_t *info, unsigned int capability)
+{
+	assert(info);
+	info->capability = capability;
+}
+
+/**
+ * \brief Get the type bits of a port_info container
+ * \param info port_info container
+ * \return port type bits
+ */
+void snd_seq_port_info_set_type(snd_seq_port_info_t *info, unsigned int type)
+{
+	assert(info);
+	info->type = type;
+}
+
+/**
+ * \brief set the midi channels of a port_info container
+ * \param info port_info container
+ * \param channels midi channels (default 0)
+ */
+void snd_seq_port_info_set_midi_channels(snd_seq_port_info_t *info, int channels)
+{
+	assert(info);
+	info->midi_channels = channels;
+}
+
+/**
+ * \brief set the midi voices of a port_info container
+ * \param info port_info container
+ * \param voices midi voices (default 0)
+ */
+void snd_seq_port_info_set_midi_voices(snd_seq_port_info_t *info, int voices)
+{
+	assert(info);
+	info->midi_voices = voices;
+}
+
+/**
+ * \brief set the synth voices of a port_info container
+ * \param info port_info container
+ * \param voices synth voices (default 0)
+ */
+void snd_seq_port_info_set_synth_voices(snd_seq_port_info_t *info, int voices)
+{
+	assert(info);
+	info->synth_voices = voices;
+}
+
+/**
+ * \brief Set the port-specifiied mode of a port_info container
+ * \param info port_info container
+ * \param bool non-zero if specifying the port id at creation
+ */
+void snd_seq_port_info_set_port_specified(snd_seq_port_info_t *info, int bool)
+{
+	assert(info);
+	if (bool)
+		info->flags |= SNDRV_SEQ_PORT_FLG_GIVEN_PORT;
+	else
+		info->flags &= ~SNDRV_SEQ_PORT_FLG_GIVEN_PORT;
+}
+
 
 /**
  * \brief create a sequencer port on the current client
@@ -485,53 +1099,43 @@ int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t * info)
  * \return 0 on success otherwise a negative error code
  *
  * Creates a sequencer port on the current client.
- * The attributes of created port is specified in info argument.
+ * The attributes of created port is specified in \a info argument.
  *
- * The client field in info argument is overwritten with the current client id.
- * Behavior of port creation depends on a flag defined in
- * flags field. The flags field is a bit mask containing
- * miscellaneous conditions.
- * If \c SND_SEQ_PORT_FLG_GIVEN_PORT is included in flags field,
- * the port number in port field in info argument
- * is used as the id of created port.
- * Otherwise, the first empty port id is searched and used.
- * The obtained id index of the created port is stored on
- * port field in return.
+ * The client field in \a info argument is overwritten with the current client id.
+ * The port id to be created can be specified via #snd_seq_port_info_set_port_specified.
+ * You can get the created port id by reading the port pointer via #snd_seq_port_info_get_port.
  *
- * The capability and cap_group are bit-masks to specify the access
- * capability of the port from other clients and from the same group,
- * respectively.  The capability bit flags are defined as follows:
- * - \c SND_SEQ_PORT_CAP_READ Readable from this port
- * - \c SND_SEQ_PORT_CAP_WRITE Writable to this port.
- * - \c SND_SEQ_PORT_CAP_SYNC_READ For synchronization (not implemented)
- * - \c SND_SEQ_PORT_CAP_SYNC_WRITE For synchronization (not implemented)
- * - \c SND_SEQ_PORT_CAP_DUPLEX Read/write duplex access is supported
- * - \c SND_SEQ_PORT_SUBS_READ Read subscription is allowed
- * - \c SND_SEQ_PORT_SUBS_WRITE Write subscription is allowed
- * - \c SND_SEQ_PORT_SUBS_NO_EXPORT Subscription management from 3rd client is disallowed
+ * Each port has the capability bit-masks to specify the access capability
+ * of the port from other clients.
+ * The capability bit flags are defined as follows:
+ * - #SND_SEQ_PORT_CAP_READ Readable from this port
+ * - #SND_SEQ_PORT_CAP_WRITE Writable to this port.
+ * - #SND_SEQ_PORT_CAP_SYNC_READ For synchronization (not implemented)
+ * - #SND_SEQ_PORT_CAP_SYNC_WRITE For synchronization (not implemented)
+ * - #SND_SEQ_PORT_CAP_DUPLEX Read/write duplex access is supported
+ * - #SND_SEQ_PORT_CAP_SUBS_READ Read subscription is allowed
+ * - #SND_SEQ_PORT_CAP_SUBS_WRITE Write subscription is allowed
+ * - #SND_SEQ_PORT_CAP_SUBS_NO_EXPORT Subscription management from 3rd client is disallowed
  *
- * The type field is used to specify the type of the port.
- * It is a bitmask defined as follows:
- * - \c SND_SEQ_PORT_TYPE_SPECIFIC Hardware specific port
- * - \c SND_SEQ_PORT_TYPE_MIDI_GENERIC Generic MIDI device
- * - \c SND_SEQ_PORT_TYPE_MIDI_GM General MIDI compatible device
- * - \c SND_SEQ_PORT_TYPE_MIDI_GS GS compatible device
- * - \c SND_SEQ_PORT_TYPE_MIDI_XG XG compatible device
- * - \c SND_SEQ_PORT_TYPE_MIDI_MT32 MT-32 compatible device
- * - \c SND_SEQ_PORT_TYPE_SYNTH Synth device
- * - \c SND_SEQ_PORT_TYPE_DIRECT_SAMPLE Sampling device (supporting download)
- * - \c SND_SEQ_PORT_TYPE_SAMPLE Sampling device (sample can be downloaded at any time)
- * - \c SND_SEQ_PORT_TYPE_APPLICATION Application (suquencer/editor)
+ * Each port has also the type bitmasks defined as follows:
+ * - #SND_SEQ_PORT_TYPE_SPECIFIC Hardware specific port
+ * - #SND_SEQ_PORT_TYPE_MIDI_GENERIC Generic MIDI device
+ * - #SND_SEQ_PORT_TYPE_MIDI_GM General MIDI compatible device
+ * - #SND_SEQ_PORT_TYPE_MIDI_GS GS compatible device
+ * - #SND_SEQ_PORT_TYPE_MIDI_XG XG compatible device
+ * - #SND_SEQ_PORT_TYPE_MIDI_MT32 MT-32 compatible device
+ * - #SND_SEQ_PORT_TYPE_SYNTH Synth device
+ * - #SND_SEQ_PORT_TYPE_DIRECT_SAMPLE Sampling device (supporting download)
+ * - #SND_SEQ_PORT_TYPE_SAMPLE Sampling device (sample can be downloaded at any time)
+ * - #SND_SEQ_PORT_TYPE_APPLICATION Application (suquencer/editor)
  *
- * The midi_channels, midi_voices and synth_voices fields are number of channels and
- * voices of this port.  These values could be zero as default.
- * The read_use, write_use and kernel fields are at creation.
- * They should be zero-cleared.
+ * A port may contain speicific midi channels, midi voices and synth voices.
+ * These values could be zero as default.
  */
 int snd_seq_create_port(snd_seq_t *seq, snd_seq_port_info_t * port)
 {
 	assert(seq && port);
-	port->client = seq->client;
+	port->addr.client = seq->client;
 	return seq->ops->create_port(seq, port);
 }
 
@@ -542,14 +1146,15 @@ int snd_seq_create_port(snd_seq_t *seq, snd_seq_port_info_t * port)
  * \return 0 on success otherwise a negative error code
  *
  * Deletes the existing sequencer port on the current client.
- * The port id must be specified in port field in info argument.
- * The client field is ignored.
  */
-int snd_seq_delete_port(snd_seq_t *seq, snd_seq_port_info_t * port)
+int snd_seq_delete_port(snd_seq_t *seq, int port)
 {
-	assert(seq && port);
-	port->client = seq->client;
-	return seq->ops->delete_port(seq, port);
+	snd_seq_port_info_t pinfo;
+	assert(seq);
+	memset(&pinfo, 0, sizeof(pinfo));
+	pinfo.addr.client = seq->client;
+	pinfo.addr.port = port;
+	return seq->ops->delete_port(seq, &pinfo);
 }
 
 /**
@@ -564,8 +1169,8 @@ int snd_seq_get_any_port_info(snd_seq_t *seq, int client, int port, snd_seq_port
 {
 	assert(seq && info && client >= 0 && port >= 0);
 	memset(info, 0, sizeof(snd_seq_port_info_t));
-	info->client = client;
-	info->port = port;
+	info->addr.client = client;
+	info->addr.port = port;
 	return seq->ops->get_port_info(seq, info);
 }
 
@@ -591,15 +1196,225 @@ int snd_seq_get_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
 int snd_seq_set_port_info(snd_seq_t *seq, int port, snd_seq_port_info_t * info)
 {
 	assert(seq && info && port >= 0);
-	info->port = port;
+	info->addr.client = seq->client;
+	info->addr.port = port;
 	return seq->ops->set_port_info(seq, info);
 }
+
+/**
+ * \brief query the next matching port
+ * \param seq sequencer handle
+ * \param info query pattern and result
+
+ * Queries the next matching port on the client specified in
+ * \a info argument.
+ * The search begins at the next port specified in
+ * port field of \a info argument.
+ * For finding the first port at a certain client, give -1.
+ *
+ * If a matching port is found, its attributes are stored on
+ * \a info and function returns zero.
+ * Otherwise, a negative error code is returned.
+ */
+int snd_seq_query_next_port(snd_seq_t *seq, snd_seq_port_info_t *info)
+{
+	assert(seq && info);
+	return seq->ops->query_next_port(seq, info);
+}
+
 
 /*----------------------------------------------------------------*/
 
 /*
  * subscription
  */
+
+
+/**
+ * \brief get size of #snd_seq_port_subscribe_t
+ * \return size in bytes
+ */
+size_t snd_seq_port_subscribe_sizeof()
+{
+	return sizeof(snd_seq_port_subscribe_t);
+}
+
+/**
+ * \brief allocate an empty #snd_seq_port_subscribe_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_port_subscribe_malloc(snd_seq_port_subscribe_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_port_subscribe_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_seq_port_subscribe_t
+ * \param pointer to object to free
+ */
+void snd_seq_port_subscribe_free(snd_seq_port_subscribe_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_seq_port_subscribe_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_port_subscribe_copy(snd_seq_port_subscribe_t *dst, const snd_seq_port_subscribe_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get sender address of a port_subscribe container
+ * \param info port_subscribe container
+ * \param addr sender address
+ */
+const snd_seq_addr_t *snd_seq_port_subscribe_get_sender(const snd_seq_port_subscribe_t *info)
+{
+	assert(info);
+	return &info->sender;
+}
+
+/**
+ * \brief Get destination address of a port_subscribe container
+ * \param info port_subscribe container
+ * \param addr destination address
+ */
+const snd_seq_addr_t *snd_seq_port_subscribe_get_dest(const snd_seq_port_subscribe_t *info)
+{
+	assert(info);
+	return &info->dest;
+}
+
+/**
+ * \brief Get the queue id of a port_subscribe container
+ * \param info port_subscribe container
+ * \return queue id
+ */
+int snd_seq_port_subscribe_get_queue(const snd_seq_port_subscribe_t *info)
+{
+	assert(info);
+	return info->queue;
+}
+
+/**
+ * \brief Get the exclusive mode of a port_subscribe container
+ * \param info port_subscribe container
+ * \return 1 if exclusive mode
+ */
+int snd_seq_port_subscribe_get_exclusive(const snd_seq_port_subscribe_t *info)
+{
+	assert(info);
+	return (info->flags & SNDRV_SEQ_PORT_SUBS_EXCLUSIVE) ? 1 : 0;
+}
+
+/**
+ * \brief Get the time-update mode of a port_subscribe container
+ * \param info port_subscribe container
+ * \return 1 if update timestamp
+ */
+int snd_seq_port_subscribe_get_time_update(const snd_seq_port_subscribe_t *info)
+{
+	assert(info);
+	return (info->flags & SNDRV_SEQ_PORT_SUBS_TIMESTAMP) ? 1 : 0;
+}
+
+/**
+ * \brief Get the real-time update mode of a port_subscribe container
+ * \param info port_subscribe container
+ * \return 1 if real-time update mode
+ */
+int snd_seq_port_subscribe_get_time_real(const snd_seq_port_subscribe_t *info)
+{
+	assert(info);
+	return (info->flags & SNDRV_SEQ_PORT_SUBS_TIME_REAL) ? 1 : 0;
+}
+
+/**
+ * \brief Set sender address of a port_subscribe container
+ * \param info port_subscribe container
+ * \param addr sender address
+ */
+void snd_seq_port_subscribe_set_sender(snd_seq_port_subscribe_t *info, const snd_seq_addr_t *addr)
+{
+	assert(info);
+	memcpy(&info->sender, addr, sizeof(*addr));
+}
+      
+/**
+ * \brief Set destination address of a port_subscribe container
+ * \param info port_subscribe container
+ * \param addr destination address
+ */
+void snd_seq_port_subscribe_set_dest(snd_seq_port_subscribe_t *info, const snd_seq_addr_t *addr)
+{
+	assert(info);
+	memcpy(&info->dest, addr, sizeof(*addr));
+}
+
+/**
+ * \brief Set the queue id of a port_subscribe container
+ * \param info port_subscribe container
+ * \param q queue id
+ */
+void snd_seq_port_subscribe_set_queue(snd_seq_port_subscribe_t *info, int q)
+{
+	assert(info);
+	info->queue = q;
+}
+
+/**
+ * \brief Set the exclusive mode of a port_subscribe container
+ * \param info port_subscribe container
+ * \param bool non-zero to enable
+ */
+void snd_seq_port_subscribe_set_exclusive(snd_seq_port_subscribe_t *info, int bool)
+{
+	assert(info);
+	if (bool)
+		info->flags |= SNDRV_SEQ_PORT_SUBS_EXCLUSIVE;
+	else
+		info->flags &= ~SNDRV_SEQ_PORT_SUBS_EXCLUSIVE;
+}
+
+/**
+ * \brief Set the time-update mode of a port_subscribe container
+ * \param info port_subscribe container
+ * \param bool non-zero to enable
+ */
+void snd_seq_port_subscribe_set_time_update(snd_seq_port_subscribe_t *info, int bool)
+{
+	assert(info);
+	if (bool)
+		info->flags |= SNDRV_SEQ_PORT_SUBS_TIMESTAMP;
+	else
+		info->flags &= ~SNDRV_SEQ_PORT_SUBS_TIMESTAMP;
+}
+
+/**
+ * \brief Set the real-time mode of a port_subscribe container
+ * \param info port_subscribe container
+ * \param bool non-zero to enable
+ */
+void snd_seq_port_subscribe_set_time_real(snd_seq_port_subscribe_t *info, int bool)
+{
+	assert(info);
+	if (bool)
+		info->flags |= SNDRV_SEQ_PORT_SUBS_TIME_REAL;
+	else
+		info->flags &= ~SNDRV_SEQ_PORT_SUBS_TIME_REAL;
+}
+
 
 /**
  * \brief obtain subscription information
@@ -643,6 +1458,228 @@ int snd_seq_unsubscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
 	return seq->ops->unsubscribe_port(seq, sub);
 }
 
+
+/**
+ * \brief get size of #snd_seq_query_subscribe_t
+ * \return size in bytes
+ */
+size_t snd_seq_query_subscribe_sizeof()
+{
+	return sizeof(snd_seq_query_subscribe_t);
+}
+
+/**
+ * \brief allocate an empty #snd_seq_query_subscribe_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_query_subscribe_malloc(snd_seq_query_subscribe_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_query_subscribe_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_seq_query_subscribe_t
+ * \param pointer to object to free
+ */
+void snd_seq_query_subscribe_free(snd_seq_query_subscribe_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_seq_query_subscribe_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_query_subscribe_copy(snd_seq_query_subscribe_t *dst, const snd_seq_query_subscribe_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get the client id of a query_subscribe container
+ * \param info query_subscribe container
+ * \return client id
+ */
+int snd_seq_query_subscribe_get_client(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return info->root.client;
+}
+
+/**
+ * \brief Get the port id of a query_subscribe container
+ * \param info query_subscribe container
+ * \return port id
+ */
+int snd_seq_query_subscribe_get_port(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return info->root.port;
+}
+
+/**
+ * \brief Get the client/port address of a query_subscribe container
+ * \param info query_subscribe container
+ * \return client/port address pointer
+ */
+const snd_seq_addr_t *snd_seq_query_subscribe_get_root(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return &info->root;
+}
+
+/**
+ * \brief Get the query type of a query_subscribe container
+ * \param info query_subscribe container
+ * \return query type
+ */
+snd_seq_query_subs_type_t snd_seq_query_subscribe_get_type(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return info->type;
+}
+
+/**
+ * \brief Get the index of subscriber of a query_subscribe container
+ * \param info query_subscribe container
+ * \return subscriber's index
+ */
+int snd_seq_query_subscribe_get_index(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return info->index;
+}
+
+/**
+ * \brief Get the number of subscriptiosn of a query_subscribe container
+ * \param info query_subscribe container
+ * \return number of subscriptions
+ */
+int snd_seq_query_subscribe_get_num_subs(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return info->num_subs;
+}	
+
+/**
+ * \brief Get the address of subscriber of a query_subscribe container
+ * \param info query_subscribe container
+ * \return subscriber's address pointer
+ */
+const snd_seq_addr_t *snd_seq_query_subscribe_get_addr(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return &info->addr;
+}
+
+/**
+ * \brief Get the queue id of subscriber of a query_subscribe container
+ * \param info query_subscribe container
+ * \return subscriber's queue id
+ */
+int snd_seq_query_subscribe_get_queue(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return info->queue;
+}
+
+/**
+ * \brief Get the exclusive mode of a query_subscribe container
+ * \param info query_subscribe container
+ * \return 1 if exclusive mode
+ */
+int snd_seq_query_subscribe_get_exclusive(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return (info->flags & SNDRV_SEQ_PORT_SUBS_EXCLUSIVE) ? 1 : 0;
+}
+
+/**
+ * \brief Get the time-update mode of a query_subscribe container
+ * \param info query_subscribe container
+ * \return 1 if update timestamp
+ */
+int snd_seq_query_subscribe_get_time_update(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return (info->flags & SNDRV_SEQ_PORT_SUBS_TIMESTAMP) ? 1 : 0;
+}
+
+/**
+ * \brief Get the real-time update mode of a query_subscribe container
+ * \param info query_subscribe container
+ * \return 1 if real-time update mode
+ */
+int snd_seq_query_subscribe_get_time_real(const snd_seq_query_subscribe_t *info)
+{
+	assert(info);
+	return (info->flags & SNDRV_SEQ_PORT_SUBS_TIMESTAMP) ? 1 : 0;
+}
+
+/**
+ * \brief Set the client id of a query_subscribe container
+ * \param info query_subscribe container
+ * \param client client id
+ */
+void snd_seq_query_subscribe_set_client(snd_seq_query_subscribe_t *info, int client)
+{
+	assert(info);
+	info->root.client = client;
+}
+
+/**
+ * \brief Set the port id of a query_subscribe container
+ * \param info query_subscribe container
+ * \param port port id
+ */
+void snd_seq_query_subscribe_set_port(snd_seq_query_subscribe_t *info, int port)
+{
+	assert(info);
+	info->root.port = port;
+}
+
+/**
+ * \brief Set the client/port address of a query_subscribe container
+ * \param info query_subscribe container
+ * \param addr client/port address pointer
+ */
+void snd_seq_query_subscribe_set_root(snd_seq_query_subscribe_t *info, const snd_seq_addr_t *addr)
+{
+	assert(info);
+	info->root = *addr;
+}
+
+/**
+ * \brief Set the query type of a query_subscribe container
+ * \param info query_subscribe container
+ * \param type query type
+ */
+void snd_seq_query_subscribe_set_type(snd_seq_query_subscribe_t *info, snd_seq_query_subs_type_t type)
+{
+	assert(info);
+	info->type = type;
+}
+
+/**
+ * \brief Set the subscriber's index to be queried
+ * \param info query_subscribe container
+ * \param index index to be queried
+ */
+void snd_seq_query_subscribe_set_index(snd_seq_query_subscribe_t *info, int index)
+{
+	assert(info);
+	info->index = index;
+}
+
+
 /**
  * \brief query port subscriber list
  * \param seq sequencer handle
@@ -653,7 +1690,7 @@ int snd_seq_unsubscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t * sub)
  * The query information is specified in subs argument.
  *
  */
-int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subs_t * subs)
+int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subscribe_t * subs)
 {
 	assert(seq && subs);
 	return seq->ops->query_port_subscribers(seq, subs);
@@ -666,139 +1703,148 @@ int snd_seq_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subs_t * subs)
  */
 
 /**
- * \brief obtain the running state of the queue
- * \param seq sequencer handle
- * \param q queue id to query
- * \param status pointer to store the current status
- * \return 0 on success otherwise a negative error code
- *
- * Obtains the running state of the specified queue q.
+ * \brief get size of #snd_seq_queue_info_t
+ * \return size in bytes
  */
-int snd_seq_get_queue_status(snd_seq_t *seq, int q, snd_seq_queue_status_t * status)
+size_t snd_seq_queue_info_sizeof()
 {
-	assert(seq && status);
-	memset(status, 0, sizeof(snd_seq_queue_status_t));
-	status->queue = q;
-	return seq->ops->get_queue_status(seq, status);
+	return sizeof(snd_seq_queue_info_t);
 }
 
 /**
- * \brief obtain the current tempo of the queue
- * \param seq sequencer handle
- * \param q queue id to be queried
- * \param tempo pointer to store the current tempo
- * \return 0 on success otherwise a negative error code
+ * \brief allocate an empty #snd_seq_queue_info_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
  */
-int snd_seq_get_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo)
+int snd_seq_queue_info_malloc(snd_seq_queue_info_t **ptr)
 {
-	assert(seq && tempo);
-	memset(tempo, 0, sizeof(snd_seq_queue_tempo_t));
-	tempo->queue = q;
-	return seq->ops->get_queue_tempo(seq, tempo);
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_queue_info_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
 }
 
 /**
- * \brief set the tempo of the queue
- * \param seq sequencer handle
- * \param q queue id to change the tempo
- * \param tempo tempo information
- * \return 0 on success otherwise a negative error code
+ * \brief frees a previously allocated #snd_seq_queue_info_t
+ * \param pointer to object to free
  */
-int snd_seq_set_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo)
+void snd_seq_queue_info_free(snd_seq_queue_info_t *obj)
 {
-	assert(seq && tempo);
-	tempo->queue = q;
-	return seq->ops->set_queue_tempo(seq, tempo);
+	free(obj);
 }
 
 /**
- * \brief obtain the owner information of the queue
- * \param seq sequencer handle
- * \param q queue id to query
- * \param owner pointer to store the owner information
- * \return 0 on success otherwise a negative error code
+ * \brief copy one #snd_seq_queue_info_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
  */
-int snd_seq_get_queue_owner(snd_seq_t *seq, int q, snd_seq_queue_owner_t * owner)
+void snd_seq_queue_info_copy(snd_seq_queue_info_t *dst, const snd_seq_queue_info_t *src)
 {
-	assert(seq && owner);
-	memset(owner, 0, sizeof(snd_seq_queue_owner_t));
-	owner->queue = q;
-	return seq->ops->get_queue_owner(seq, owner);
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get the queue id of a queue_info container
+ * \param info queue_info container
+ * \return queue id
+ */
+int snd_seq_queue_info_get_queue(const snd_seq_queue_info_t *info)
+{
+	assert(info);
+	return info->queue;
 }
 
 /**
- * \biref set the owner information of the queue
- * \param seq sequencer handle
- * \param q queue id to change the ownership
- * \param owner owner information
- * \return 0 on success otherwise a negative error code
+ * \brief Get the name of a queue_info container
+ * \param info queue_info container
+ * \return name string
  */
-int snd_seq_set_queue_owner(snd_seq_t *seq, int q, snd_seq_queue_owner_t * owner)
+const char *snd_seq_queue_info_get_name(const snd_seq_queue_info_t *info)
 {
-	assert(seq && owner);
-	owner->queue = q;
-	return seq->ops->set_queue_owner(seq, owner);
+	assert(info);
+	return info->name;
 }
 
 /**
- * \brief obtain the queue timer information
- * \param seq sequencer handle
- * \param q queue id to query
- * \param timer pointer to store the timer information
- * \return 0 on success otherwise a negative error code
+ * \brief Get the owner client id of a queue_info container
+ * \param info queue_info container
+ * \return owner client id
  */
-int snd_seq_get_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer)
+int snd_seq_queue_info_get_owner(const snd_seq_queue_info_t *info)
 {
-	assert(seq && timer);
-	memset(timer, 0, sizeof(snd_seq_queue_timer_t));
-	timer->queue = q;
-	return seq->ops->get_queue_timer(seq, timer);
+	assert(info);
+	return info->owner;
 }
 
 /**
- * \brief set the queue timer information
- * \param seq sequencer handle
- * \param q queue id to change the timer
- * \param timer timer information
- * \return 0 on success otherwise a negative error code
+ * \brief Get the lock status of a queue_info container
+ * \param info queue_info container
+ * \return lock status --- non-zero = locked
  */
-int snd_seq_set_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer)
+int snd_seq_queue_info_get_locked(const snd_seq_queue_info_t *info)
 {
-	assert(seq && timer);
-	timer->queue = q;
-	return seq->ops->set_queue_timer(seq, timer);
+	assert(info);
+	return info->locked;
 }
 
 /**
- * \brief obtain queue access information
- * \param seq sequencer handle
- * \param q queue id to query
- * \param info pointer to store the queue access information
- * \return 0 on success otherwise a negative error code
+ * \brief Get the conditional bit flags of a queue_info container
+ * \param info queue_info container
+ * \return conditional bit flags
  */
-int snd_seq_get_queue_client(snd_seq_t *seq, int q, snd_seq_queue_client_t * info)
+unsigned int snd_seq_queue_info_get_flags(const snd_seq_queue_info_t *info)
 {
-	assert(seq && info);
-	memset(info, 0, sizeof(snd_seq_queue_client_t));
-	info->queue = q;
-	info->client = seq->client;
-	return seq->ops->get_queue_client(seq, info);
+	assert(info);
+	return info->flags;
 }
 
 /**
- * \brief set queue access information
- * \param seq sequencer handle
- * \param q queue id to change access information
- * \param info access information
- * \return 0 on success otherwise a negative error code
+ * \brief Set the name of a queue_info container
+ * \param info queue_info container
+ * \param name name string
  */
-int snd_seq_set_queue_client(snd_seq_t *seq, int q, snd_seq_queue_client_t * info)
+void snd_seq_queue_info_set_name(snd_seq_queue_info_t *info, const char *name)
 {
-	assert(seq && info);
-	info->queue = q;
-	info->client = seq->client;
-	return seq->ops->set_queue_client(seq, info);
+	assert(info && name);
+	strncpy(info->name, name, sizeof(info->name));
 }
+
+/**
+ * \brief Set the owner client id of a queue_info container
+ * \param info queue_info container
+ * \param owner client id
+ */
+void snd_seq_queue_info_set_owner(snd_seq_queue_info_t *info, int owner)
+{
+	assert(info);
+	info->owner = owner;
+}
+
+/**
+ * \brief Set the lock status of a queue_info container
+ * \param info queue_info container
+ * \param locked lock status
+ */
+void snd_seq_queue_info_set_locked(snd_seq_queue_info_t *info, int locked)
+{
+	assert(info);
+	info->locked = locked;
+}
+
+/**
+ * \brief Set the conditional bit flags of a queue_info container
+ * \param info queue_info container
+ * \param flags contidional bit flags
+ */
+void snd_seq_queue_info_set_flags(snd_seq_queue_info_t *info, unsigned int flags)
+{
+	assert(info);
+	info->flags = flags;
+}
+
 
 /**
  * \brief create a queue
@@ -842,25 +1888,6 @@ int snd_seq_alloc_queue(snd_seq_t *seq)
 {
 	return snd_seq_alloc_named_queue(seq, NULL);
 }
-
-#ifdef SND_SEQ_SYNC_SUPPORT
-/**
- * \brief allocate a synchronizable queue
- * \param seq sequencer handle
- * \param name the name of the new queue
- * \return the queue id (zero or positive) on success otherwise a negative error code
- */
-int snd_seq_alloc_sync_queue(snd_seq_t *seq, const char *name)
-{
-	snd_seq_queue_info_t info;
-	memset(&info, 0, sizeof(info));
-	info.locked = 1;
-	if (name)
-		strncpy(info.name, name, sizeof(info.name) - 1);
-	info.flags = SND_SEQ_QUEUE_FLG_SYNC;
-	return snd_seq_create_queue(seq, &info);
-}
-#endif
 
 /**
  * \breif delete the specified queue
@@ -906,12 +1933,14 @@ int snd_seq_set_queue_info(snd_seq_t *seq, int q, snd_seq_queue_info_t *info)
 }
 
 /**
- * \brief query the queue with the specified name
+ * \brief query the matching queue with the specified name
  * \param seq sequencer handle
- * \param name name to query
- * \return the queue id if found or a negative error code
+ * \param name the name string to query
+ * \return the queue id if found or negative error code
+ *
+ * Searches the matching queue with the specified name string.
  */
-int snd_seq_get_named_queue(snd_seq_t *seq, const char *name)
+int snd_seq_query_named_queue(snd_seq_t *seq, const char *name)
 {
 	int err;
 	snd_seq_queue_info_t info;
@@ -923,124 +1952,447 @@ int snd_seq_get_named_queue(snd_seq_t *seq, const char *name)
 	return info.queue;
 }
 
+/**
+ * \brief Get the queue usage flag to the client
+ * \param seq sequencer handle
+ * \param q queue id
+ * \param client client id
+ * \return 1 = client is allowed to access the queue, 0 = not allowed, 
+ *     otherwise a negative error code
+ */
+int snd_seq_get_queue_usage(snd_seq_t *seq, int q)
+{
+	struct sndrv_seq_queue_client info;
+	int err;
+	assert(seq);
+	memset(&info, 0, sizeof(info));
+	info.queue = q;
+	info.client = seq->client;
+	if ((err = seq->ops->get_queue_client(seq, &info)) < 0)
+		return err;
+	return info.used;
+}
+
+/*
+ * \brief Set the queue usage flag to the client
+ * \param seq sequencer handle
+ * \param q queue id
+ * \param client client id
+ * \param used non-zero if the client is allowed
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_seq_set_queue_usage(snd_seq_t *seq, int q, int used)
+{
+	struct sndrv_seq_queue_client info;
+	assert(seq);
+	memset(&info, 0, sizeof(info));
+	info.queue = q;
+	info.client = seq->client;
+	info.used = used ? 1 : 0;
+	return seq->ops->set_queue_client(seq, &info);
+}
+
+
+/**
+ * \brief get size of #snd_seq_queue_status_t
+ * \return size in bytes
+ */
+size_t snd_seq_queue_status_sizeof()
+{
+	return sizeof(snd_seq_queue_status_t);
+}
+
+/**
+ * \brief allocate an empty #snd_seq_queue_status_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_queue_status_malloc(snd_seq_queue_status_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_queue_status_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_seq_queue_status_t
+ * \param pointer to object to free
+ */
+void snd_seq_queue_status_free(snd_seq_queue_status_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_seq_queue_status_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_queue_status_copy(snd_seq_queue_status_t *dst, const snd_seq_queue_status_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get the queue id of a queue_status container
+ * \param info queue_status container
+ * \return queue id
+ */
+int snd_seq_queue_status_get_queue(const snd_seq_queue_status_t *info)
+{
+	assert(info);
+	return info->queue;
+}
+
+/**
+ * \brief Get the number of events of a queue_status container
+ * \param info queue_status container
+ * \return number of events
+ */
+int snd_seq_queue_status_get_events(const snd_seq_queue_status_t *info)
+{
+	assert(info);
+	return info->events;
+}
+
+/**
+ * \brief Get the tick time of a queue_status container
+ * \param info queue_status container
+ * \return tick time
+ */
+snd_seq_tick_time_t snd_seq_queue_status_get_tick_time(const snd_seq_queue_status_t *info)
+{
+	assert(info);
+	return info->tick;
+}
+
+/**
+ * \brief Get the real time of a queue_status container
+ * \param info queue_status container
+ * \param time real time
+ */
+const snd_seq_real_time_t *snd_seq_queue_status_get_real_time(const snd_seq_queue_status_t *info)
+{
+	assert(info);
+	return &info->time;
+}
+
+/**
+ * \brief Get the running status bits of a queue_status container
+ * \param info queue_status container
+ * \return running status bits
+ */
+unsigned int snd_seq_queue_status_get_status(const snd_seq_queue_status_t *info)
+{
+	assert(info);
+	return info->running;
+}
+
+
+/**
+ * \brief obtain the running state of the queue
+ * \param seq sequencer handle
+ * \param q queue id to query
+ * \param status pointer to store the current status
+ * \return 0 on success otherwise a negative error code
+ *
+ * Obtains the running state of the specified queue q.
+ */
+int snd_seq_get_queue_status(snd_seq_t *seq, int q, snd_seq_queue_status_t * status)
+{
+	assert(seq && status);
+	memset(status, 0, sizeof(snd_seq_queue_status_t));
+	status->queue = q;
+	return seq->ops->get_queue_status(seq, status);
+}
+
+
+/**
+ * \brief get size of #snd_seq_queue_tempo_t
+ * \return size in bytes
+ */
+size_t snd_seq_queue_tempo_sizeof()
+{
+	return sizeof(snd_seq_queue_tempo_t);
+}
+
+/**
+ * \brief allocate an empty #snd_seq_queue_tempo_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_queue_tempo_malloc(snd_seq_queue_tempo_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_queue_tempo_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_seq_queue_tempo_t
+ * \param pointer to object to free
+ */
+void snd_seq_queue_tempo_free(snd_seq_queue_tempo_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_seq_queue_tempo_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_queue_tempo_copy(snd_seq_queue_tempo_t *dst, const snd_seq_queue_tempo_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get the queue id of a queue_status container
+ * \param info queue_status container
+ * \return queue id
+ */
+int snd_seq_queue_tempo_get_queue(const snd_seq_queue_tempo_t *info)
+{
+	assert(info);
+	return info->queue;
+}
+
+/**
+ * \brief Get the tempo of a queue_status container
+ * \param info queue_status container
+ * \return tempo value
+ */
+unsigned int snd_seq_queue_tempo_get_tempo(const snd_seq_queue_tempo_t *info)
+{
+	assert(info);
+	return info->tempo;
+}
+
+/**
+ * \brief Get the ppq of a queue_status container
+ * \param info queue_status container
+ * \return ppq value
+ */
+int snd_seq_queue_tempo_get_ppq(const snd_seq_queue_tempo_t *info)
+{
+	assert(info);
+	return info->ppq;
+}
+
+/**
+ * \brief Set the tempo of a queue_status container
+ * \param info queue_status container
+ * \param tempo tempo value
+ */
+void snd_seq_queue_tempo_set_tempo(snd_seq_queue_tempo_t *info, unsigned int tempo)
+{
+	assert(info);
+	info->tempo = tempo;
+}
+
+/**
+ * \brief Set the ppq of a queue_status container
+ * \param info queue_status container
+ * \param ppq ppq value
+ */
+void snd_seq_queue_tempo_set_ppq(snd_seq_queue_tempo_t *info, int ppq)
+{
+	assert(info);
+	info->ppq = ppq;
+}
+
+
+/**
+ * \brief obtain the current tempo of the queue
+ * \param seq sequencer handle
+ * \param q queue id to be queried
+ * \param tempo pointer to store the current tempo
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_seq_get_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo)
+{
+	assert(seq && tempo);
+	memset(tempo, 0, sizeof(snd_seq_queue_tempo_t));
+	tempo->queue = q;
+	return seq->ops->get_queue_tempo(seq, tempo);
+}
+
+/**
+ * \brief set the tempo of the queue
+ * \param seq sequencer handle
+ * \param q queue id to change the tempo
+ * \param tempo tempo information
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_seq_set_queue_tempo(snd_seq_t *seq, int q, snd_seq_queue_tempo_t * tempo)
+{
+	assert(seq && tempo);
+	tempo->queue = q;
+	return seq->ops->set_queue_tempo(seq, tempo);
+}
+
+
 /*----------------------------------------------------------------*/
 
-#ifdef SND_SEQ_SYNC_SUPPORT
-/*
- * sync stuff
+/**
+ * \brief get size of #snd_seq_queue_timer_t
+ * \return size in bytes
  */
+size_t snd_seq_queue_timer_sizeof()
+{
+	return sizeof(snd_seq_queue_timer_t);
+}
 
 /**
- * \brief add sync master
+ * \brief allocate an empty #snd_seq_queue_timer_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_queue_timer_malloc(snd_seq_queue_timer_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_queue_timer_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_seq_queue_timer_t
+ * \param pointer to object to free
+ */
+void snd_seq_queue_timer_free(snd_seq_queue_timer_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_seq_queue_timer_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_queue_timer_copy(snd_seq_queue_timer_t *dst, const snd_seq_queue_timer_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get the queue id of a queue_timer container
+ * \param info queue_timer container
+ * \return queue id
+ */
+int snd_seq_queue_timer_get_queue(const snd_seq_queue_timer_t *info)
+{
+	assert(info);
+	return info->queue;
+}
+
+/**
+ * \brief Get the timer type of a queue_timer container
+ * \param info queue_timer container
+ * \return timer type
+ */
+int snd_seq_queue_timer_get_type(const snd_seq_queue_timer_t *info)
+{
+	assert(info);
+	return info->type;
+}
+
+/**
+ * \brief Get the timer id of a queue_timer container
+ * \param info queue_timer container
+ * \return timer id pointer
+ */
+const snd_timer_id_t *snd_seq_queue_timer_get_id(const snd_seq_queue_timer_t *info)
+{
+	assert(info);
+	return &info->u.alsa.id;
+}
+
+/**
+ * \brief Get the timer resolution of a queue_timer container
+ * \param info queue_timer container
+ * \return timer resolution
+ */
+unsigned int snd_seq_queue_timer_get_resolution(const snd_seq_queue_timer_t *info)
+{
+	assert(info);
+	return info->u.alsa.resolution;
+}
+
+/**
+ * \brief Set the timer type of a queue_timer container
+ * \param info queue_timer container
+ * \param type timer type
+ */
+void snd_seq_queue_timer_set_type(snd_seq_queue_timer_t *info, int type)
+{
+	assert(info);
+	info->type = type;
+}
+	
+/**
+ * \brief Set the timer id of a queue_timer container
+ * \param info queue_timer container
+ * \param id timer id pointer
+ */
+void snd_seq_queue_timer_set_id(snd_seq_queue_timer_t *info, const snd_timer_id_t *id)
+{
+	assert(info && id);
+	info->u.alsa.id = *id;
+}
+
+/**
+ * \brief Set the timer resolution of a queue_timer container
+ * \param info queue_timer container
+ * \param resolution timer resolution
+ */
+void snd_seq_queue_timer_set_resolution(snd_seq_queue_timer_t *info, unsigned int resolution)
+{
+	assert(info);
+	info->u.alsa.resolution = resolution;
+}
+
+
+/**
+ * \brief obtain the queue timer information
  * \param seq sequencer handle
- * \param queue queue id to change
- * \param dest destination of the sync slave
- * \param info sync information
+ * \param q queue id to query
+ * \param timer pointer to store the timer information
+ * \return 0 on success otherwise a negative error code
  */
-int snd_seq_add_sync_master(snd_seq_t *seq,
-			    int queue,
-			    snd_seq_addr_t *dest,
-			    snd_seq_queue_sync_t *info)
+int snd_seq_get_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer)
 {
-	snd_seq_port_subscribe_t subs;
-
-	memset(&subs, 0, sizeof(subs));
-	subs.convert_time = 1;
-	if (info->format & SND_SEQ_SYNC_TIME)
-		subs.realtime = 1;
-	subs.sync = 1;
-	subs.sender.client = SND_SEQ_CLIENT_SYSTEM;
-	subs.sender.port = snd_seq_queue_sync_port(queue);
-	subs.dest = *dest;
-	subs.queue = queue;
-	subs.opt.sync_info = *info;
-	return snd_seq_subscribe_port(seq, &subs);
+	assert(seq && timer);
+	memset(timer, 0, sizeof(snd_seq_queue_timer_t));
+	timer->queue = q;
+	return seq->ops->get_queue_timer(seq, timer);
 }
 
 /**
- * \brief add a standard sync master
+ * \brief set the queue timer information
  * \param seq sequencer handle
- * \param queue queue id
- * \param dest destination of the sync slave
- * \param format sync format
- * \param time_format time format
- * \param optinfo optional information
+ * \param q queue id to change the timer
+ * \param timer timer information
+ * \return 0 on success otherwise a negative error code
  */
-int snd_seq_add_sync_std_master(snd_seq_t *seq,
-				int queue,
-				snd_seq_addr_t *dest,
-				int format, int time_format,
-				unsigned char *optinfo)
+int snd_seq_set_queue_timer(snd_seq_t *seq, int q, snd_seq_queue_timer_t * timer)
 {
-	snd_seq_queue_sync_t sync_info;
-
-	memset(&sync_info, 0, sizeof(sync_info));
-	sync_info.format = format;
-	sync_info.time_format = time_format;
-	if (optinfo)
-		memcpy(sync_info.info, optinfo, sizeof(sync_info.info));
-
-	return snd_seq_add_sync_master(seq, queue, dest, &sync_info);
+	assert(seq && timer);
+	timer->queue = q;
+	return seq->ops->set_queue_timer(seq, timer);
 }
-
-/**
- * \brief remove the specified sync master
- */
-int snd_seq_remove_sync_master(snd_seq_t *seq, int queue, snd_seq_addr_t *dest)
-{
-	snd_seq_port_subscribe_t subs;
-
-	memset(&subs, 0, sizeof(subs));
-	subs.sync = 1;
-	subs.sender.client = SND_SEQ_CLIENT_SYSTEM;
-	subs.sender.port = snd_seq_queue_sync_port(queue);
-	subs.dest = *dest;
-	subs.queue = queue;
-	return snd_seq_unsubscribe_port(seq, &subs);
-}
-
-
-/**
- * \brief set the sync slave mode
- */
-int snd_seq_set_sync_slave(snd_seq_t *seq,
-			   int queue,
-			   snd_seq_addr_t *src,
-			   snd_seq_queue_sync_t *info)
-{
-	snd_seq_port_subscribe_t subs;
-
-	memset(&subs, 0, sizeof(subs));
-	subs.convert_time = 1;
-	if (info->format & SND_SEQ_SYNC_TIME)
-		subs.realtime = 1;
-	subs.sync = 1;
-	subs.sender = *src;
-	subs.dest.client = SND_SEQ_CLIENT_SYSTEM;
-	subs.dest.port = snd_seq_queue_sync_port(queue);
-	subs.queue = queue;
-	subs.opt.sync_info = *info;
-	return snd_seq_subscribe_port(seq, &subs);
-}
-
-/**
- * \brief reset the sync slave mode
- */
-int snd_seq_reset_sync_slave(snd_seq_t *seq, int queue, snd_seq_addr_t *src)
-{
-	snd_seq_port_subscribe_t subs;
-
-	memset(&subs, 0, sizeof(subs));
-	subs.sync = 1;
-	subs.sender = *src;
-	subs.dest.client = SND_SEQ_CLIENT_SYSTEM;
-	subs.dest.port = snd_seq_queue_sync_port(queue);
-	subs.queue = queue;
-	return snd_seq_unsubscribe_port(seq, &subs);
-}
-
-
-#endif
 
 /*----------------------------------------------------------------*/
 
@@ -1072,7 +2424,7 @@ ssize_t snd_seq_event_length(snd_seq_event_t *ev)
 {
 	ssize_t len = sizeof(snd_seq_event_t);
 	assert(ev);
-	if (snd_seq_ev_is_variable(ev))
+	if (sndrv_seq_ev_is_variable(ev))
 		len += ev->data.ext.len;
 	return len;
 }
@@ -1129,7 +2481,7 @@ int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
 		return -EAGAIN;
 	memcpy(seq->obuf + seq->obufused, ev, sizeof(snd_seq_event_t));
 	seq->obufused += sizeof(snd_seq_event_t);
-	if (snd_seq_ev_is_variable(ev)) {
+	if (sndrv_seq_ev_is_variable(ev)) {
 		memcpy(seq->obuf + seq->obufused, ev->data.ext.ptr, ev->data.ext.len);
 		seq->obufused += ev->data.ext.len;
 	}
@@ -1275,7 +2627,7 @@ static int snd_seq_event_retrieve_buffer(snd_seq_t *seq, snd_seq_event_t **retp)
 	*retp = ev = &seq->ibuf[seq->ibufptr];
 	seq->ibufptr++;
 	seq->ibuflen--;
-	if (! snd_seq_ev_is_variable(ev))
+	if (! sndrv_seq_ev_is_variable(ev))
 		return 1;
 	ncells = (ev->data.ext.len + sizeof(snd_seq_event_t) - 1) / sizeof(snd_seq_event_t);
 	if (seq->ibuflen < ncells) {
@@ -1417,7 +2769,7 @@ int snd_seq_drop_output(snd_seq_t *seq)
 	seq->obufused = 0; /* drain output buffer */
 
 	memset(&rminfo, 0, sizeof(rminfo));
-	rminfo.output = 1;
+	rminfo.remove_mode = SNDRV_SEQ_REMOVE_OUTPUT;
 
 	return snd_seq_remove_events(seq, &rminfo);
 }
@@ -1435,22 +2787,220 @@ int snd_seq_drop_input(snd_seq_t *seq)
 	seq->ibuflen = 0;
 
 	memset(&rminfo, 0, sizeof(rminfo));
-	rminfo.input = 1;
+	rminfo.remove_mode = SNDRV_SEQ_REMOVE_INPUT;
 
 	return snd_seq_remove_events(seq, &rminfo);
 }
 
+
+/**
+ * \brief get size of #snd_seq_remove_events_t
+ * \return size in bytes
+ */
+size_t snd_seq_remove_events_sizeof()
+{
+	return sizeof(snd_seq_remove_events_t);
+}
+
+/**
+ * \brief allocate an empty #snd_seq_remove_events_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_remove_events_malloc(snd_seq_remove_events_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_remove_events_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_seq_remove_events_t
+ * \param pointer to object to free
+ */
+void snd_seq_remove_events_free(snd_seq_remove_events_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_seq_remove_events_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_remove_events_copy(snd_seq_remove_events_t *dst, const snd_seq_remove_events_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get the removal condition bits
+ * \param info remove_events container
+ * \return removal condition bits
+ */
+unsigned int snd_seq_remove_events_get_condition(const snd_seq_remove_events_t *info)
+{
+	assert(info);
+	return info->remove_mode;
+}
+
+/**
+ * \brief Get the queue as removal condition
+ * \param info remove_events container
+ * \return queue id
+ */
+int snd_seq_remove_events_get_queue(const snd_seq_remove_events_t *info)
+{
+	assert(info);
+	return info->queue;
+}
+
+/**
+ * \brief Get the event timestamp as removal condition
+ * \param info remove_events container
+ * \return time stamp
+ */
+const snd_seq_timestamp_t *snd_seq_remove_events_get_time(const snd_seq_remove_events_t *info)
+{
+	assert(info);
+	return &info->time;
+}
+
+/**
+ * \brief Get the event destination address as removal condition
+ * \param info remove_events container
+ * \return destination address
+ */
+const snd_seq_addr_t *snd_seq_remove_events_get_dest(const snd_seq_remove_events_t *info)
+{
+	assert(info);
+	return &info->dest;
+}
+
+/**
+ * \brief Get the event channel as removal condition
+ * \param info remove_events container
+ * \return channel number
+ */
+int snd_seq_remove_events_get_channel(const snd_seq_remove_events_t *info)
+{
+	assert(info);
+	return info->channel;
+}
+
+/**
+ * \brief Get the event type as removal condition
+ * \param info remove_events container
+ * \return event type
+ */
+int snd_seq_remove_events_get_event_type(const snd_seq_remove_events_t *info)
+{
+	assert(info);
+	return info->type;
+}
+
+/**
+ * \brief Get the event tag id as removal condition
+ * \param info remove_events container
+ * \return tag id
+ */
+int snd_seq_remove_events_get_tag(const snd_seq_remove_events_t *info)
+{
+	assert(info);
+	return info->tag;
+}
+
+/**
+ * \brief Set the removal condition bits
+ * \param info remove_events container
+ * \param flags removal condition bits
+ */
+void snd_seq_remove_events_set_condition(snd_seq_remove_events_t *info, unsigned int flags)
+{
+	assert(info);
+	info->remove_mode = flags;
+}
+
+/**
+ * \brief Set the queue as removal condition
+ * \param info remove_events container
+ * \param queue queue id
+ */
+void snd_seq_remove_events_set_queue(snd_seq_remove_events_t *info, int queue)
+{
+	assert(info);
+	info->queue = queue;
+}
+
+/**
+ * \brief Set the timestamp as removal condition
+ * \param info remove_events container
+ * \param time timestamp pointer
+ */
+void snd_seq_remove_events_set_time(snd_seq_remove_events_t *info, const snd_seq_timestamp_t *time)
+{
+	assert(info);
+	info->time = *time;
+}
+
+/**
+ * \brief Set the destination address as removal condition
+ * \param info remove_events container
+ * \param addr destination address
+ */
+void snd_seq_remove_events_set_dest(snd_seq_remove_events_t *info, const snd_seq_addr_t *addr)
+{
+	assert(info);
+	info->dest = *addr;
+}
+
+/**
+ * \brief Set the channel as removal condition
+ * \param info remove_events container
+ * \param channel channel number
+ */
+void snd_seq_remove_events_set_channel(snd_seq_remove_events_t *info, int channel)
+{
+	assert(info);
+	info->channel = channel;
+}
+
+/**
+ * \brief Set the event type as removal condition
+ * \param info remove_events container
+ * \param type event type
+ */
+void snd_seq_remove_events_set_event_type(snd_seq_remove_events_t *info, int type)
+{
+	assert(info);
+	info->type = type;
+}
+
+/**
+ * \brief Set the event tag as removal condition
+ * \param info remove_events container
+ * \param tag tag id
+ */
+void snd_seq_remove_events_set_tag(snd_seq_remove_events_t *info, int tag)
+{
+	assert(info);
+	info->tag = tag;
+}
+
+
 /* compare timestamp between events */
 /* return 1 if a >= b; otherwise return 0 */
-static inline int snd_seq_compare_tick_time(snd_seq_tick_time_t *a,
-	snd_seq_tick_time_t *b)
+static inline int snd_seq_compare_tick_time(sndrv_seq_tick_time_t *a, sndrv_seq_tick_time_t *b)
 {
 	/* compare ticks */
 	return (*a >= *b);
 }
 
-static inline int snd_seq_compare_real_time(snd_seq_real_time_t *a,
-	snd_seq_real_time_t *b)
+static inline int snd_seq_compare_real_time(struct sndrv_seq_real_time *a, struct sndrv_seq_real_time *b)
 {
 	/* compare real time */
 	if (a->tv_sec > b->tv_sec)
@@ -1461,54 +3011,53 @@ static inline int snd_seq_compare_real_time(snd_seq_real_time_t *a,
 }
 
 /* Routine to match events to be removed */
-static int remove_match(snd_seq_remove_events_t *info,
-	snd_seq_event_t *ev)
+static int remove_match(snd_seq_remove_events_t *info, snd_seq_event_t *ev)
 {
 	int res;
 
-	if (info->remove_mode & SND_SEQ_REMOVE_DEST) {
+	if (info->remove_mode & SNDRV_SEQ_REMOVE_DEST) {
 		if (ev->dest.client != info->dest.client ||
 				ev->dest.port != info->dest.port)
 			return 0;
 	}
-	if (info->remove_mode & SND_SEQ_REMOVE_DEST_CHANNEL) {
-		if (! snd_seq_ev_is_channel_type(ev))
+	if (info->remove_mode & SNDRV_SEQ_REMOVE_DEST_CHANNEL) {
+		if (! sndrv_seq_ev_is_channel_type(ev))
 			return 0;
 		/* data.note.channel and data.control.channel are identical */
 		if (ev->data.note.channel != info->channel)
 			return 0;
 	}
-	if (info->remove_mode & SND_SEQ_REMOVE_TIME_AFTER) {
-		if (info->tick)
+	if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_AFTER) {
+		if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_TICK)
 			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
 		else
 			res = snd_seq_compare_real_time(&ev->time.time, &info->time.time);
 		if (!res)
 			return 0;
 	}
-	if (info->remove_mode & SND_SEQ_REMOVE_TIME_BEFORE) {
-		if (info->tick)
+	if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_BEFORE) {
+		if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_TICK)
 			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
 		else
 			res = snd_seq_compare_real_time(&ev->time.time, &info->time.time);
 		if (res)
 			return 0;
 	}
-	if (info->remove_mode & SND_SEQ_REMOVE_EVENT_TYPE) {
+	if (info->remove_mode & SNDRV_SEQ_REMOVE_EVENT_TYPE) {
 		if (ev->type != info->type)
 			return 0;
 	}
-	if (info->remove_mode & SND_SEQ_REMOVE_IGNORE_OFF) {
+	if (info->remove_mode & SNDRV_SEQ_REMOVE_IGNORE_OFF) {
 		/* Do not remove off events */
 		switch (ev->type) {
-		case SND_SEQ_EVENT_NOTEOFF:
-		/* case SND_SEQ_EVENT_SAMPLE_STOP: */
+		case SNDRV_SEQ_EVENT_NOTEOFF:
+		/* case SNDRV_SEQ_EVENT_SAMPLE_STOP: */
 			return 0;
 		default:
 			break;
 		}
 	}
-	if (info->remove_mode & SND_SEQ_REMOVE_TAG_MATCH) {
+	if (info->remove_mode & SNDRV_SEQ_REMOVE_TAG_MATCH) {
 		if (info->tag != ev->tag)
 			return 0;
 	}
@@ -1519,28 +3068,27 @@ static int remove_match(snd_seq_remove_events_t *info,
 /**
  * \brief remove events on input/output buffers
  * \param seq sequencer handle
+ * \param rmp remove event container
  *
  * Removes matching events with the given condition from input/output buffers.
  * The removal condition is specified in rmp argument.
  */
 int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 {
-	if (rmp->input) {
+	if (rmp->remove_mode & SNDRV_SEQ_REMOVE_INPUT) {
 		/*
 		 * First deal with any events that are still buffered
 		 * in the library.
 		 */
-		if (rmp->remove_mode == 0)
-			snd_seq_drop_input_buffer(seq);
-		/* other modes are not supported yet */
+		snd_seq_drop_input_buffer(seq);
 	}
 
-	if (rmp->output) {
+	if (rmp->remove_mode & SNDRV_SEQ_REMOVE_OUTPUT) {
 		/*
 		 * First deal with any events that are still buffered
 		 * in the library.
 		 */
-		 if (rmp->remove_mode == 0) {
+		 if (rmp->remove_mode & ~(SNDRV_SEQ_REMOVE_INPUT|SNDRV_SEQ_REMOVE_OUTPUT)) {
 			 /* The simple case - remove all */
 			 snd_seq_drop_output_buffer(seq);
 		} else {
@@ -1575,6 +3123,150 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
  */
 
 /**
+ * \brief get size of #snd_seq_client_pool_t
+ * \return size in bytes
+ */
+size_t snd_seq_client_pool_sizeof()
+{
+	return sizeof(snd_seq_client_pool_t);
+}
+
+/**
+ * \brief allocate an empty #snd_seq_client_pool_t using standard malloc
+ * \param ptr returned pointer
+ * \return 0 on success otherwise negative error code
+ */
+int snd_seq_client_pool_malloc(snd_seq_client_pool_t **ptr)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_seq_client_pool_t));
+	if (!*ptr)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_seq_client_pool_t
+ * \param pointer to object to free
+ */
+void snd_seq_client_pool_free(snd_seq_client_pool_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_seq_client_pool_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_seq_client_pool_copy(snd_seq_client_pool_t *dst, const snd_seq_client_pool_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+
+/**
+ * \brief Get the client id of a queue_info container
+ * \param info client_pool container
+ * \return client id
+ */
+int snd_seq_client_pool_get_client(const snd_seq_client_pool_t *info)
+{
+	assert(info);
+	return info->client;
+}
+
+/**
+ * \brief Get the output pool size of a queue_info container
+ * \param info client_pool container
+ * \return output pool size
+ */
+size_t snd_seq_client_pool_get_output_pool(const snd_seq_client_pool_t *info)
+{
+	assert(info);
+	return info->output_pool;
+}
+
+/**
+ * \brief Get the input pool size of a queue_info container
+ * \param info client_pool container
+ * \return input pool size
+ */
+size_t snd_seq_client_pool_get_input_pool(const snd_seq_client_pool_t *info)
+{
+	assert(info);
+	return info->input_pool;
+}
+
+/**
+ * \brief Get the output room size of a queue_info container
+ * \param info client_pool container
+ * \return output room size
+ */
+size_t snd_seq_client_pool_get_output_room(const snd_seq_client_pool_t *info)
+{
+	assert(info);
+	return info->output_room;
+}
+
+/**
+ * \brief Get the available size on output pool of a queue_info container
+ * \param info client_pool container
+ * \return available output size
+ */
+size_t snd_seq_client_pool_get_output_free(const snd_seq_client_pool_t *info)
+{
+	assert(info);
+	return info->output_free;
+}
+
+/**
+ * \brief Get the available size on input pool of a queue_info container
+ * \param info client_pool container
+ * \return available input size
+ */
+size_t snd_seq_client_pool_get_input_free(const snd_seq_client_pool_t *info)
+{
+	assert(info);
+	return info->input_free;
+}
+
+/**
+ * \brief Set the output pool size of a queue_info container
+ * \param info client_pool container
+ * \param size output pool size
+ */
+void snd_seq_client_pool_set_output_pool(snd_seq_client_pool_t *info, size_t size)
+{
+	assert(info);
+	info->output_pool = size;
+}
+
+/**
+ * \brief Set the input pool size of a queue_info container
+ * \param info client_pool container
+ * \param size input pool size
+ */
+void snd_seq_client_pool_set_input_pool(snd_seq_client_pool_t *info, size_t size)
+{
+	assert(info);
+	info->input_pool = size;
+}
+
+/**
+ * \brief Set the output room size of a queue_info container
+ * \param info client_pool container
+ * \param size output room size
+ */
+void snd_seq_client_pool_set_output_room(snd_seq_client_pool_t *info, size_t size)
+{
+	assert(info);
+	info->output_room = size;
+}
+
+
+/**
  * \brief obtain the pool information of the current client
  * \param seq sequencer handle
  * \param info information to be stored
@@ -1592,61 +3284,13 @@ int snd_seq_get_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
  * \param info information to update
  *
  * Sets the pool information of the current client.
- * The client field in info is replaced automatically with the current id.
+ * The client field in \a info is replaced automatically with the current id.
  */
 int snd_seq_set_client_pool(snd_seq_t *seq, snd_seq_client_pool_t *info)
 {
 	assert(seq && info);
 	info->client = seq->client;
 	return seq->ops->set_client_pool(seq, info);
-}
-
-/*----------------------------------------------------------------*/
-
-/*
- * query functions
- */
-
-/**
- * \brief query the next matching client
- * \param seq sequencer handle
- * \param info query pattern and result
- *
- * Queries the next matching client with the given condition in
- * info argument.
- * The search begins at the client with an id one greater than
- * client field in info.
- * If name field in info is not empty, the client name is compared.
- * If a matching client is found, its attributes are stored o
- * info and returns zero.
- * Otherwise returns a negative error code.
- */
-int snd_seq_query_next_client(snd_seq_t *seq, snd_seq_client_info_t *info)
-{
-	assert(seq && info);
-	return seq->ops->query_next_client(seq, info);
-}
-
-/**
- * \brief query the next matching port
- * \param seq sequencer handle
- * \param info query pattern and result
-
- * Queries the next matching port from the port
- * on the client given in info argument.
- * The search begins at the next port specified in
- * port field of info.
- * For finding the first port at a certain client, give -1 to
- * port field.
- * If name field is not empty, the name is checked.
- * If a matching port is found, its attributes are stored on
- * info and function returns zero.
- * Otherwise, a negative error code is returned.
- */
-int snd_seq_query_next_port(snd_seq_t *seq, snd_seq_port_info_t *info)
-{
-	assert(seq && info);
-	return seq->ops->query_next_port(seq, info);
 }
 
 /*----------------------------------------------------------------*/
@@ -1683,3 +3327,264 @@ int snd_seq_get_bit(int nr, void *array)
 	return ((((unsigned int *)array)[nr >> 5]) & (1UL << (nr & 31))) ? 1 : 0;
 }
 
+
+/**
+ * instrument layer
+ */
+
+/**
+ * \brief get size of #snd_instr_header_t
+ * \return size in bytes
+ */
+size_t snd_instr_header_sizeof(void)
+{
+	return sizeof(snd_instr_header_t);
+}
+
+/**
+ * \brief allocate an empty #snd_instr_header_t using standard malloc
+ * \param ptr returned pointer
+ * \param len additional data length
+ * \return 0 on success otherwise negative error code
+ */
+int snd_instr_header_malloc(snd_instr_header_t **ptr, size_t len)
+{
+	assert(ptr);
+	*ptr = calloc(1, sizeof(snd_instr_header_t) + len);
+	if (!*ptr)
+		return -ENOMEM;
+	(*ptr)->len = len;
+	return 0;
+}
+
+/**
+ * \brief frees a previously allocated #snd_instr_header_t
+ * \param pointer to object to free
+ */
+void snd_instr_header_free(snd_instr_header_t *obj)
+{
+	free(obj);
+}
+
+/**
+ * \brief copy one #snd_instr_header_t to another
+ * \param dst pointer to destination
+ * \param src pointer to source
+ */
+void snd_instr_header_copy(snd_instr_header_t *dst, const snd_instr_header_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief Get the instrument id of an instr_header container
+ * \param info instr_header container
+ * \return instrument id pointer
+ */
+const snd_seq_instr_t *snd_instr_header_get_id(const snd_instr_header_t *info)
+{
+	assert(info);
+	return &info->id.instr;
+}
+
+/**
+ * \brief Get the cluster id of an instr_header container
+ * \param info instr_header container
+ * \return cluster id
+ */
+snd_seq_instr_cluster_t snd_instr_header_get_cluster(const snd_instr_header_t *info)
+{
+	assert(info);
+	return info->id.cluster;
+}
+
+/**
+ * \brief Get the command of an instr_header container
+ * \param info instr_header container
+ * \return command type
+ */
+unsigned int snd_instr_header_get_cmd(const snd_instr_header_t *info)
+{
+	assert(info);
+	return info->cmd;
+}
+
+/**
+ * \brief Get the length of extra data of an instr_header container
+ * \param info instr_header container
+ * \return the length in bytes
+ */
+size_t snd_instr_header_get_len(const snd_instr_header_t *info)
+{
+	assert(info);
+	return info->len;
+}
+
+/**
+ * \brief Get the data name of an instr_header container
+ * \param info instr_header container
+ * \return the name string
+ */
+const char *snd_instr_header_get_name(const snd_instr_header_t *info)
+{
+	assert(info);
+	return info->data.name;
+}
+
+/**
+ * \brief Get the data type of an instr_header container
+ * \param info instr_header container
+ * \return the data type
+ */
+int snd_instr_header_get_type(const snd_instr_header_t *info)
+{
+	assert(info);
+	return info->data.type;
+}
+
+/**
+ * \brief Get the data format of an instr_header container
+ * \param info instr_header container
+ * \return the data format string
+ */
+const char *snd_instr_header_get_format(const snd_instr_header_t *info)
+{
+	assert(info);
+	return info->data.data.format;
+}
+
+/**
+ * \brief Get the data alias of an instr_header container
+ * \param info instr_header container
+ * \return the data alias id
+ */
+const snd_seq_instr_t *snd_instr_header_get_alias(const snd_instr_header_t *info)
+{
+	assert(info);
+	return &info->data.data.alias;
+}
+
+/**
+ * \brief Get the extra data pointer of an instr_header container
+ * \param info instr_header container
+ * \return the extra data pointer
+ */
+void *snd_instr_header_get_data(const snd_instr_header_t *info)
+{
+	assert(info);
+	return (void*)((char*)info + sizeof(*info));
+}
+
+/**
+ * \brief Get the flag to follow alias of an instr_header container
+ * \param info instr_header container
+ * \return 1 if follow alias
+ */
+int snd_instr_header_get_follow_alias(const snd_instr_header_t *info)
+{
+	assert(info);
+	return (info->flags & SNDRV_SEQ_INSTR_QUERY_FOLLOW_ALIAS) ? 1 : 0;
+}
+
+/**
+ * \brief Set the instrument id of an instr_header container
+ * \param info instr_header container
+ * \param id instrumen id pointer
+ */
+void snd_instr_header_set_id(snd_instr_header_t *info, const snd_seq_instr_t *id)
+{
+	assert(info && id);
+	info->id.instr = *id;
+}
+
+/**
+ * \brief Set the cluster id of an instr_header container
+ * \param info instr_header container
+ * \param cluster cluster id
+ */
+void snd_instr_header_set_cluster(snd_instr_header_t *info, snd_seq_instr_cluster_t cluster)
+{
+	assert(info);
+	info->id.cluster = cluster;
+}
+
+/**
+ * \brief Set the command of an instr_header container
+ * \param info instr_header container
+ * \param cmd command type
+ */
+void snd_instr_header_set_cmd(snd_instr_header_t *info, unsigned int cmd)
+{
+	assert(info);
+	info->cmd = cmd;
+}
+
+/**
+ * \brief Set the length of extra data of an instr_header container
+ * \param info instr_header container
+ * \param len size of extra data in bytes
+ */
+void snd_instr_header_set_len(snd_instr_header_t *info, size_t len)
+{
+	assert(info);
+	info->len = len;
+}
+
+/**
+ * \brief Set the data name of an instr_header container
+ * \param info instr_header container
+ * \param name the name string
+ */
+void snd_instr_header_set_name(snd_instr_header_t *info, const char *name)
+{
+	assert(info && name);
+	strncpy(info->data.name, name, sizeof(info->data.name));
+}
+
+/**
+ * \brief Set the data type of an instr_header container
+ * \param info instr_header container
+ * \param type the data type
+ */
+void snd_instr_header_set_type(snd_instr_header_t *info, int type)
+{
+	assert(info);
+	info->data.type = type;
+}
+
+/**
+ * \brief Set the data format of an instr_header container
+ * \param info instr_header container
+ * \param format the data format string
+ */
+void snd_instr_header_set_format(snd_instr_header_t *info, const char *format)
+{
+	assert(info && format);
+	strncpy(info->data.data.format, format, sizeof(info->data.data.format));
+}
+
+/**
+ * \brief Set the data alias id of an instr_header container
+ * \param info instr_header container
+ * \param instr alias instrument id
+ */
+void snd_instr_header_set_alias(snd_instr_header_t *info, const snd_seq_instr_t *instr)
+{
+	assert(info && instr);
+	info->data.data.alias = *instr;
+}
+
+/**
+ * \brief Set the flag to follow alias of an instr_header container
+ * \param info instr_header container
+ * \param bool 1 if follow alias
+ */
+void snd_instr_header_set_follow_alias(snd_instr_header_t *info, int bool)
+{
+	assert(info);
+	if (bool)
+		info->flags |= SNDRV_SEQ_INSTR_QUERY_FOLLOW_ALIAS;
+	else
+		info->flags &= ~SNDRV_SEQ_INSTR_QUERY_FOLLOW_ALIAS;
+}

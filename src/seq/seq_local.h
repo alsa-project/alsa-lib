@@ -32,6 +32,9 @@
 #define SND_SEQ_IBUF_SIZE	500		/* in event_size aligned */
 #define DEFAULT_TMPBUF_SIZE	20
 
+typedef struct sndrv_seq_queue_client snd_seq_queue_client_t;
+
+
 typedef struct {
 	int (*close)(snd_seq_t *seq);
 	int (*nonblock)(snd_seq_t *seq, int nonblock);
@@ -45,12 +48,10 @@ typedef struct {
 	int (*get_port_subscription)(snd_seq_t *seq, snd_seq_port_subscribe_t * sub);
 	int (*subscribe_port)(snd_seq_t *seq, snd_seq_port_subscribe_t * sub);
 	int (*unsubscribe_port)(snd_seq_t *seq, snd_seq_port_subscribe_t * sub);
-	int (*query_port_subscribers)(snd_seq_t *seq, snd_seq_query_subs_t * subs);
+	int (*query_port_subscribers)(snd_seq_t *seq, snd_seq_query_subscribe_t * subs);
 	int (*get_queue_status)(snd_seq_t *seq, snd_seq_queue_status_t * status);
 	int (*get_queue_tempo)(snd_seq_t *seq, snd_seq_queue_tempo_t * tempo);
 	int (*set_queue_tempo)(snd_seq_t *seq, snd_seq_queue_tempo_t * tempo);
-	int (*get_queue_owner)(snd_seq_t *seq, snd_seq_queue_owner_t * owner);
-	int (*set_queue_owner)(snd_seq_t *seq, snd_seq_queue_owner_t * owner);
 	int (*get_queue_timer)(snd_seq_t *seq, snd_seq_queue_timer_t * timer);
 	int (*set_queue_timer)(snd_seq_t *seq, snd_seq_queue_timer_t * timer);
 	int (*get_queue_client)(snd_seq_t *seq, snd_seq_queue_client_t * client);

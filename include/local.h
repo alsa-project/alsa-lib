@@ -46,6 +46,28 @@
 
 #define _snd_hwdep_info sndrv_hwdep_info
 
+#define _SND_SEQ_IN_LOCAL	1
+#define _snd_seq_queue_tempo sndrv_seq_queue_tempo
+#define _snd_seq_client_info sndrv_seq_client_info
+#define _snd_seq_port_info sndrv_seq_port_info
+#define _snd_seq_system_info sndrv_seq_system_info
+#define _snd_seq_queue_info sndrv_seq_queue_info
+#define _snd_seq_queue_status sndrv_seq_queue_status
+#define _snd_seq_queue_timer sndrv_seq_queue_timer
+#define _snd_seq_port_subscribe sndrv_seq_port_subscribe
+#define _snd_seq_query_subscribe sndrv_seq_query_subs
+#define _snd_seq_client_pool sndrv_seq_client_pool
+#define _snd_seq_remove_events sndrv_seq_remove_events
+#define _snd_instr_header sndrv_seq_instr_header
+
+typedef struct sndrv_seq_addr snd_seq_addr_t;
+#define snd_seq_tick_time_t sndrv_seq_tick_time_t
+typedef struct sndrv_seq_real_time snd_seq_real_time_t;
+typedef union sndrv_seq_timestamp snd_seq_timestamp_t;
+typedef struct sndrv_seq_instr snd_seq_instr_t;
+typedef struct sndrv_seq_event snd_seq_event_t;
+#define snd_seq_instr_cluster_t sndrv_seq_instr_cluster_t
+
 #include "asoundlib.h"
 #include "list.h"
 

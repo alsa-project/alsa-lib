@@ -174,7 +174,7 @@ static int snd_seq_hw_unsubscribe_port(snd_seq_t *seq, snd_seq_port_subscribe_t 
 	return 0;
 }
 
-static int snd_seq_hw_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subs_t * subs)
+static int snd_seq_hw_query_port_subscribers(snd_seq_t *seq, snd_seq_query_subscribe_t * subs)
 {
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_QUERY_SUBS, subs) < 0) {
@@ -209,26 +209,6 @@ static int snd_seq_hw_set_queue_tempo(snd_seq_t *seq, snd_seq_queue_tempo_t * te
 	snd_seq_hw_t *hw = seq->private_data;
 	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO, tempo) < 0) {
 		SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO failed");
-		return -errno;
-	}
-	return 0;
-}
-
-static int snd_seq_hw_get_queue_owner(snd_seq_t *seq, snd_seq_queue_owner_t * owner)
-{
-	snd_seq_hw_t *hw = seq->private_data;
-	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_GET_QUEUE_OWNER, owner) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_GET_QUEUE_OWNER failed");
-		return -errno;
-	}
-	return 0;
-}
-
-static int snd_seq_hw_set_queue_owner(snd_seq_t *seq, snd_seq_queue_owner_t * owner)
-{
-	snd_seq_hw_t *hw = seq->private_data;
-	if (ioctl(hw->fd, SNDRV_SEQ_IOCTL_SET_QUEUE_OWNER, owner) < 0) {
-		SYSERR("SNDRV_SEQ_IOCTL_SET_QUEUE_OWNER failed");
 		return -errno;
 	}
 	return 0;
@@ -409,8 +389,6 @@ snd_seq_ops_t snd_seq_hw_ops = {
 	get_queue_status: snd_seq_hw_get_queue_status,
 	get_queue_tempo: snd_seq_hw_get_queue_tempo,
 	set_queue_tempo: snd_seq_hw_set_queue_tempo,
-	get_queue_owner: snd_seq_hw_get_queue_owner,
-	set_queue_owner: snd_seq_hw_set_queue_owner,
 	get_queue_timer: snd_seq_hw_get_queue_timer,
 	set_queue_timer: snd_seq_hw_set_queue_timer,
 	get_queue_client: snd_seq_hw_get_queue_client,

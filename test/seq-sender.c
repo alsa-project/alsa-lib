@@ -1,57 +1,65 @@
 
-#ifdef USE_PCM
+#ifdef USE_PCM // XXX not yet
 /*
  *  PCM timer layer
  */
 
 int pcard = 0;
 int pdevice = 0;
-int pfragment_size = 4096;
+int period_size = 1024;
 
-void set_format(snd_pcm_t *phandle)
+void set_hwparams(snd_pcm_t *phandle)
 {
 	int err;
-	snd_pcm_format_t format;
+	snd_pcm_hw_params_t *params;
 
-	bzero(&format, sizeof(format));
-	format.sfmt = SND_PCM_FORMAT_S16_LE;
-	format.channels = 2;
-	format.rate = 44100;
-	if ((err = snd_pcm_playback_format(phandle, &format)) < 0) {
-		fprintf(stderr, "Playback format error: %s\n", snd_strerror(err));
+	err = snd_output_stdio_attach(&log, stderr, 0);
+	if (err < 0) {
+		fprintf(stderr, "cannot attach output stdio\n");
 		exit(0);
 	}
-}
 
-void set_fragment(snd_pcm_t *phandle)
-{
-	int err;
-	snd_pcm_playback_params_t pparams;
-
-	bzero(&pparams, sizeof(pparams));
-	pparams.fragment_size = pfragment_size;
-	pparams.fragments_max = -1;	/* maximum */
-	pparams.fragments_room = 1;
-	if ((err = snd_pcm_playback_params(phandle, &pparams)) < 0) {
-		fprintf(stderr, "Fragment setup error: %s\n", snd_strerror(err));
+	snd_pcm_hw_params_alloca(&params);
+	err = snd_pcm_hw_params_any(phandle, params);
+	if (err < 0) {
+		fprintf(stderr, "Broken configuration for this PCM: no configurations available\n");
 		exit(0);
 	}
-}
 
-void show_playback_status(snd_pcm_t *phandle)
-{
-	int err;
-	snd_pcm_playback_status_t pstatus;
-
-	if ((err = snd_pcm_playback_status(phandle, &pstatus)) < 0) {
-		fprintf(stderr, "Playback status error: %s\n", snd_strerror(err));
+	err = snd_pcm_hw_params_set_access(phandle, params,
+					   SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (err < 0) {
+		fprintf(stderr, "Access type not available\n");
 		exit(0);
 	}
-	printf("Playback status\n");
-	printf("    Real rate      : %u\n", pstatus.rate);
-	printf("    Fragments      : %i\n", pstatus.fragments);
-	printf("    Fragment size  : %i\n", pstatus.fragment_size);
+	err = snd_pcm_hw_params_set_format(phandle, params, SND_PCM_FORMAT_S16_LE);
+	if (err < 0) {
+		fprintf(stderr, "cannot set format\n");
+		exit(0);
+	}
+	err = snd_pcm_hw_params_set_channels(phandle, params, 2);
+	if (err < 0) {
+		fprintf(stderr, "cannot set channels 2\n");
+		exit(0);
+	}
+	err = snd_pcm_hw_params_set_rate_near(phandle, params, 44100, 0);
+	if (err < 0) {
+		fprintf(stderr, "cannot set rate\n");
+		exit(0);
+	}
+	err = snd_pcm_hw_params_set_period_size_near(phandle, params, period_size);
+	if (err < 0) {
+		fprintf(stderr, "cannot set period size\n");
+		exit(0);
+	}
+	err = snd_pcm_hw_params(phandle, params);
+	if (err < 0) {
+		fprintf(stderr, "Unable to install hw params:\n");
+		exit(0);
+	}
+	snd_pcm_hw_params_dump(params, log);
 }
+
 #endif
 /*
  *  Simple event sender
@@ -89,23 +97,15 @@ void event_sender_start_timer(snd_seq_t *handle, int client, int queue, snd_pcm_
 void event_sender_filter(snd_seq_t *handle)
 {
 	int err;
-	snd_seq_client_info_t info;
 
-	if ((err = snd_seq_get_client_info(handle, &info)) < 0) {
-		fprintf(stderr, "Unable to get client info: %s\n", snd_strerror(err));
-		return;
-	}
-	info.filter = SND_SEQ_FILTER_USE_EVENT;
-	memset(&info.event_filter, 0, sizeof(info.event_filter));
-	snd_seq_set_bit(SND_SEQ_EVENT_ECHO, info.event_filter);
-	if ((err = snd_seq_set_client_info(handle, &info)) < 0) {
+	if ((err = snd_seq_set_client_event_filter(handle, SND_SEQ_EVENT_ECHO)) < 0) {
 		fprintf(stderr, "Unable to set client info: %s\n", snd_strerror(err));
 		return;
 	}
 }
 
 void send_event(snd_seq_t *handle, int queue, int client, int port,
-                snd_seq_port_subscribe_t *sub, int *time)
+                snd_seq_addr_t *dest, int *time)
 {
 	int err;
 	snd_seq_event_t ev;
@@ -119,8 +119,7 @@ void send_event(snd_seq_t *handle, int queue, int client, int port,
 	ev.type = SND_SEQ_EVENT_ECHO;
 	if ((err = snd_seq_event_output(handle, &ev))<0)
 		fprintf(stderr, "Event output error: %s\n", snd_strerror(err));
-	ev.dest.client = sub->dest.client;
-	ev.dest.port = sub->dest.port;
+	ev.dest = *dest;
 	ev.type = SND_SEQ_EVENT_PGMCHANGE;
 	ev.data.control.channel = 0;
 	ev.data.control.value = 16;
@@ -141,10 +140,11 @@ void send_event(snd_seq_t *handle, int queue, int client, int port,
 void event_sender(snd_seq_t *handle, int argc, char *argv[])
 {
 	snd_seq_event_t *ev;
-	snd_seq_port_info_t port;
-	snd_seq_port_subscribe_t sub;
-	fd_set out, in;
-	int client, queue, max, err, v1, v2, time = 0, pcm_flag = 0;
+	snd_seq_port_info_t *pinfo;
+	snd_seq_port_subscribe_t *sub;
+	snd_seq_addr_t addr;
+	struct pollfd *pfds;
+	int client, port, queue, max, err, v1, v2, time = 0, pcm_flag = 0;
 	char *ptr;
 	snd_pcm_t *phandle = NULL;
 
@@ -164,20 +164,22 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 	}
 	printf("Queue ID = %i\n", queue);
 	event_sender_filter(handle);
-	if ((err = snd_seq_block_mode(handle, 0))<0)
+	if ((err = snd_seq_nonblock(handle, 1))<0)
 		fprintf(stderr, "Cannot set nonblock mode: %s\n", snd_strerror(err));
-	bzero(&port, sizeof(port));
-	port.capability = SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_READ;
-	strcpy(port.name, "Output");
-	if ((err = snd_seq_create_port(handle, &port)) < 0) {
+
+	snd_seq_port_info_alloca(&pinfo);
+	snd_seq_port_info_set_capability(pinfo, SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_READ);
+	snd_seq_port_info_set_name(pinfo, "Output");
+	if ((err = snd_seq_create_port(handle, pinfo)) < 0) {
 		fprintf(stderr, "Cannot create output port: %s\n", snd_strerror(err));
 		return;
 	}
+	port = snd_seq_port_info_get_port(pinfo);
 
-	bzero(&sub, sizeof(sub));
-	sub.sender.client = client;
-	sub.sender.port = port.port;
-	sub.exclusive = 0;
+	snd_seq_port_subscribe_alloca(&sub);
+	addr.client = client;
+	addr.port = port;
+	snd_seq_port_subscribe_set_sender(sub, &addr);
 
 	for (max = 0; max < argc; max++) {
 		ptr = argv[max];
@@ -191,26 +193,25 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 			fprintf(stderr, "Wrong argument '%s'...\n", argv[max]);
 			return;
 		}
-		sub.dest.client = v1;
-		sub.dest.port = v2;
-		if ((err = snd_seq_subscribe_port(handle, &sub))<0) {
+		addr.client = v1;
+		addr.port = v2;
+		snd_seq_port_subscribe_set_dest(sub, &addr);
+		if ((err = snd_seq_subscribe_port(handle, sub))<0) {
 			fprintf(stderr, "Cannot subscribe port %i from client %i: %s\n", v2, v1, snd_strerror(err));
 			return;
 		}
 	}
 
-	printf("Destination client = %i, port = %i\n", sub.dest.client, sub.dest.port);
+	printf("Destination client = %i, port = %i\n", addr.client, addr.port);
 
 #ifdef USE_PCM
 	if (pcm_flag) {
-		if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_PLAYBACK)) < 0) {
+		if ((err = snd_pcm_open(&phandle, "default", SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
 			fprintf(stderr, "Playback open error: %s\n", snd_strerror(err));
 			exit(0);
 		}
-		set_format(phandle);
-		set_fragment(phandle);	
-		show_playback_status(phandle);
-		pbuf = calloc(1, pfragment_size);
+		set_hwparams(phandle);
+		pbuf = calloc(1, period_size * 4);
 		if (pbuf == NULL) {
 			fprintf(stderr, "No enough memory...\n");
 			exit(0);
@@ -220,43 +221,46 @@ void event_sender(snd_seq_t *handle, int argc, char *argv[])
 	event_sender_start_timer(handle, client, queue, phandle);
 	
 	/* send the first event */
-	send_event(handle, queue, client, port.port, &sub, &time);
-
+	send_event(handle, queue, client, port, &addr, &time);
+#ifdef USE_PCM
+	if (phandle)
+		max += snd_pcm_poll_descriptors_count(phandle);
+#endif
+	pfds = alloca(sizeof(*pfds) * max);
 	while (1) {
-		FD_ZERO(&out);
-		FD_ZERO(&in);
-		max = snd_seq_poll_descriptor(handle);
-		FD_SET(snd_seq_poll_descriptor(handle), &in);
-		if (snd_seq_event_output_pending(handle)) {
-			FD_SET(snd_seq_poll_descriptor(handle), &out);
-		}
+		int nseqs = snd_seq_poll_descriptors_count(handle, POLLOUT|POLLIN);
+		if (snd_seq_event_output_pending(handle))
+			snd_seq_poll_descriptors(handle, pfds, nseqs, POLLOUT|POLLIN);
+		else
+			snd_seq_poll_descriptors(handle, pfds, nseqs, POLLIN);
+		max = nseqs;
 #ifdef USE_PCM
 		if (phandle) {
-			if (snd_pcm_poll_descriptor(phandle) > max)
-				max = snd_pcm_poll_descriptor(phandle);
-			FD_SET(snd_pcm_poll_descriptor(phandle), &out);
+			int pmax = snd_pcm_poll_descriptors_count(phandle);
+			snd_seq_poll_descriptors(phandle, pfds + max, pmax);
+			max += pmax;
 		}
 #endif
-		if (select(max + 1, &in, &out, NULL, NULL) < 0)
+		if (poll(pfds, max, -1) < 0)
 			break;
 #ifdef USE_PCM
-		if (phandle && FD_ISSET(snd_pcm_poll_descriptor(phandle), &out)) {
-			if (snd_pcm_writei(phandle, pbuf, pfragment_size) != pfragment_size) {
+		if (phandle && (pfds[nseqs].revents & POLLOUT)) {
+			if (snd_pcm_writei(phandle, pbuf, period_size) != period_size) {
 				fprintf(stderr, "Playback write error!!\n");
 				exit(0);
 			}
 		}
 #endif
-		if (FD_ISSET(snd_seq_poll_descriptor(handle), &out))
+		if (pfds[0].revents & POLLOUT)
 			snd_seq_drain_output(handle);
-		if (FD_ISSET(snd_seq_poll_descriptor(handle), &in)) {
+		if (pfds[0].revents & POLLIN) {
 			do {
 				if ((err = snd_seq_event_input(handle, &ev))<0)
 					break;
 				if (!ev)
 					continue;
 				if (ev->type == SND_SEQ_EVENT_ECHO)
-					send_event(handle, queue, client, port.port, &sub, &time);
+					send_event(handle, queue, client, port, &addr, &time);
 				decode_event(ev);
 				snd_seq_free_event(ev);
 			} while (err > 0);

@@ -50,11 +50,10 @@ static long simple_size(simple_instrument_t *instr)
 
 int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 				       const char *name,
-				       snd_seq_instr_put_t **__data,
+				       snd_instr_header_t **__data,
 				       size_t *__size)
 {
-	snd_seq_instr_put_t *put;
-	snd_seq_instr_data_t *data;
+	snd_instr_header_t *put;
 	int size;
 	char *ptr;
 	simple_instrument_t *instr;
@@ -66,18 +65,15 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	*__data = NULL;
 	*__size = 0;
 	size = simple_size(simple);
-	put = (snd_seq_instr_put_t *)malloc(sizeof(*put) + sizeof(simple_xinstrument_t) + size);
-	if (put == NULL)
+	if (snd_instr_header_malloc(&put, sizeof(simple_xinstrument_t) + size) < 0)
 		return -ENOMEM;
 	/* build header */
-	memset(put, 0, sizeof(*put));
-	data = &put->data;
 	if (name)
-		strncpy(data->name, name, sizeof(data->name)-1);
-	data->type = SND_SEQ_INSTR_ATYPE_DATA;
-	strcpy(data->data.format, SND_SEQ_INSTR_ID_SIMPLE);
+		snd_instr_header_set_name(put, name);
+	snd_instr_header_set_type(put, SND_SEQ_INSTR_ATYPE_DATA);
+	snd_instr_header_set_format(put, SND_SEQ_INSTR_ID_SIMPLE);
 	/* build data section */
-	xinstr = (simple_xinstrument_t *)(data + 1);
+	xinstr = (simple_xinstrument_t *)snd_instr_header_get_data(put);
 	xinstr->stype = SIMPLE_STRU_INSTR;
 	xinstr->share_id[0] = __cpu_to_le32(instr->share_id[0]);
 	xinstr->share_id[1] = __cpu_to_le32(instr->share_id[1]);
@@ -101,7 +97,7 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	return 0;
 }
 
-int snd_instr_simple_convert_from_stream(snd_seq_instr_get_t *__data ATTRIBUTE_UNUSED,
+int snd_instr_simple_convert_from_stream(snd_instr_header_t *__data ATTRIBUTE_UNUSED,
 					 size_t size ATTRIBUTE_UNUSED,
 					 snd_instr_simple_t **simple ATTRIBUTE_UNUSED)
 {

@@ -114,13 +114,11 @@ static void write_ev(snd_seq_event_t *ev)
 		return;
 	}
 	while ((rc = snd_seq_event_output(seq_handle, ev)) < 0) {
-		int seqfd;
-		fd_set fds;
-		seqfd = snd_seq_poll_descriptor(seq_handle);
-		FD_ZERO(&fds);
-		FD_SET(seqfd, &fds);
-		if ((rc = select(seqfd + 1, NULL, &fds, NULL, NULL)) < 0) {
-			printf("select error = %i (%s)\n", rc, snd_strerror(rc));
+		int npfds = snd_seq_poll_descriptors_count(seq_handle, POLLOUT);
+		struct pollfd *pfds = alloca(sizeof(*pfds) * npfds);
+		snd_seq_poll_descriptors(seq_handle, pfds, npfds, POLLOUT);
+		if ((rc = poll(pfds, npfds, -1)) < 0) {
+			printf("poll error = %i (%s)\n", rc, snd_strerror(errno));
 			exit(1);
 		}
 	}
@@ -147,7 +145,7 @@ static void mytext(int type, int leng, char *msg)
 
 static void do_header(int format, int ntracks, int division)
 {
-	snd_seq_queue_tempo_t	tempo;
+	snd_seq_queue_tempo_t *tempo;
 
 	if (verbose >= VERB_INFO)
 		printf("smf format %d, %d tracks, %d ppq\n", format, ntracks, division);
@@ -159,15 +157,16 @@ static void do_header(int format, int ntracks, int division)
 		exit(1);
 	}
 	/* set ppq */
+	snd_seq_queue_tempo_alloca(&tempo);
 	/* ppq must be set before starting timer */
-	if (snd_seq_get_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
+	if (snd_seq_get_queue_tempo(seq_handle, dest_queue, tempo) < 0) {
     		perror("get_queue_tempo");
     		exit(1);
 	}
-	if (tempo.ppq != ppq) {
-		slave_ppq = tempo.ppq;
-		tempo.ppq = ppq;
-		if (snd_seq_set_queue_tempo(seq_handle, dest_queue, &tempo) < 0) {
+	if (snd_seq_queue_tempo_get_ppq(tempo) != ppq) {
+		slave_ppq = snd_seq_queue_tempo_get_ppq(tempo);
+		snd_seq_queue_tempo_set_ppq(tempo, ppq);
+		if (snd_seq_set_queue_tempo(seq_handle, dest_queue, tempo) < 0) {
     			perror("set_queue_tempo");
     			if (!slave)
     				exit(1);
@@ -176,7 +175,7 @@ static void do_header(int format, int ntracks, int division)
 		} else
 			slave_ppq = ppq;
 		if (verbose >= VERB_INFO)
-			printf("ALSA Timer updated, PPQ = %d\n", tempo.ppq);
+			printf("ALSA Timer updated, PPQ = %d\n", snd_seq_queue_tempo_get_ppq(tempo));
 	}
 
 	/* start playing... */
@@ -364,13 +363,11 @@ static snd_seq_event_t *wait_for_event(void)
 		/* read event - using select syscall */
 		while ((left = snd_seq_event_input(seq_handle, &input_event)) >= 0 &&
 		       input_event == NULL) {
-			int seqfd;
-			fd_set fds;
-			seqfd = snd_seq_poll_descriptor(seq_handle);
-			FD_ZERO(&fds);
-			FD_SET(seqfd, &fds);
-			if ((left = select(seqfd + 1, &fds, NULL, NULL, NULL)) < 0) {
-				printf("select error = %i (%s)\n", left, snd_strerror(left));
+			int npfds = snd_seq_poll_descriptors_count(seq_handle, POLLIN);
+			struct pollfd *pfds = alloca(sizeof(*pfds) * npfds);
+			snd_seq_poll_descriptors(seq_handle, pfds, npfds, POLLIN);
+			if ((left = poll(pfds, npfds, -1)) < 0) {
+				printf("poll error = %i (%s)\n", errno, snd_strerror(errno));
 				exit(1);
 			}
 		}
@@ -525,13 +522,13 @@ int main(int argc, char *argv[])
 	/* open sequencer device */
 	/* Here we open the device read/write mode. */
 	/* Because we write SND_SEQ_EVENT_ECHO to myself to sync. */
-	tmp = snd_seq_open(&seq_handle, SND_SEQ_OPEN);
+	tmp = snd_seq_open(&seq_handle, "hw", SND_SEQ_OPEN_DUPLEX, 0);
 	if (tmp < 0) {
 		perror("open /dev/snd/seq");
 		exit(1);
 	}
 	
-	tmp = snd_seq_block_mode(seq_handle, use_blocking_mode);
+	tmp = snd_seq_nonblock(seq_handle, !use_blocking_mode);
 	if (tmp < 0) {
 		perror("block_mode");
 		exit(1);
@@ -557,7 +554,7 @@ int main(int argc, char *argv[])
 	
 	/* setup queue */
 	if (dest_queue >= 0) {
-		if (snd_seq_use_queue(seq_handle, dest_queue, 1) < 0) {
+		if (snd_seq_set_queue_usage(seq_handle, dest_queue, 1) < 0) {
 			perror("use queue");
 			exit(1);
 		}
@@ -580,7 +577,7 @@ int main(int argc, char *argv[])
 	if (slave) {	
 		tmp = snd_seq_connect_from(seq_handle, my_port,
 					   SND_SEQ_CLIENT_SYSTEM,
-					   snd_seq_queue_sync_port(dest_queue));
+					   dest_queue + 16 /*snd_seq_queue_sync_port(dest_queue)*/);
 		if (tmp < 0) {
 			perror("subscribe");
 			exit(1);

@@ -740,11 +740,10 @@ static int copy_env_to_stream(iwffff_xenv_t *xenv, iwffff_env_t *env, __u32 styp
 
 int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 				    const char *name,
-				    snd_seq_instr_put_t **__data,
+				    snd_instr_header_t **__data,
 				    long *__size)
 {
-	snd_seq_instr_put_t *put;
-	snd_seq_instr_data_t *data;
+	snd_instr_header_t *put;
 	int size;
 	char *ptr;
 	iwffff_instrument_t *instr;
@@ -759,19 +758,16 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 	instr = (iwffff_instrument_t *)iwffff;
 	*__data = NULL;
 	*__size = 0;
-	size = sizeof(*data) + iwffff_size(iwffff);
-	put = (snd_seq_instr_put_t *)malloc(sizeof(*put) + size);
-	if (put == NULL)
+	size = iwffff_size(iwffff);
+	if (snd_instr_header_malloc(&put, size) < 0)
 		return -ENOMEM;
 	/* build header */
-	memset(put, 0, sizeof(*put));
-	data = &put->data;
 	if (name)
-		strncpy(data->name, name, sizeof(data->name)-1);
-	data->type = SND_SEQ_INSTR_ATYPE_DATA;
-	strcpy(data->data.format, SND_SEQ_INSTR_ID_INTERWAVE);
+		snd_instr_header_set_name(put, name);
+	snd_instr_header_set_type(put, SND_SEQ_INSTR_ATYPE_DATA);
+	snd_instr_header_set_format(put, SND_SEQ_INSTR_ID_INTERWAVE);
 	/* build data section */
-	xinstr = (iwffff_xinstrument_t *)(data + 1);
+	xinstr = (iwffff_xinstrument_t *)snd_instr_header_get_data(put);
 	xinstr->stype = IWFFFF_STRU_INSTR;
 	xinstr->exclusion = __cpu_to_le16(instr->exclusion);
 	xinstr->layer_type = __cpu_to_le16(instr->layer_type);
@@ -827,11 +823,11 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 	}
 	/* write result */
 	*__data = put;
-	*__size = size;
+	*__size = sizeof(*put) + size;
 	return 0;
 }
 
-int snd_instr_iwffff_convert_from_stream(snd_seq_instr_get_t *data ATTRIBUTE_UNUSED,
+int snd_instr_iwffff_convert_from_stream(snd_instr_header_t *data ATTRIBUTE_UNUSED,
 					 size_t size ATTRIBUTE_UNUSED,
 					 snd_instr_iwffff_t **iwffff ATTRIBUTE_UNUSED)
 {

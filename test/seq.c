@@ -16,20 +16,19 @@
 #define HELPID_VERBOSE		1002
 #define HELPID_VERSION          1003
 
-snd_seq_system_info_t sysinfo;
+int max_clients;
+int max_ports;
+int max_queues;
 int debug = 0;
 int verbose = 0;
 
 void set_name(snd_seq_t *handle)
 {
 	int err;
-	snd_seq_client_info_t info;
+	char name[64];
 	
-	bzero(&info, sizeof(info));
-	info.client = snd_seq_client_id(handle);
-	info.type = USER_CLIENT;
-	snprintf(info.name, sizeof(info.name), "SeqUtil - %i", getpid());
-	if ((err = snd_seq_set_client_info(handle, &info)) < 0) {
+	sprintf(name, "SeqUtil - %i", getpid());
+	if ((err = snd_seq_set_client_name(handle, name)) < 0) {
 		fprintf(stderr, "Set client info error: %s\n", snd_strerror(err));
 		exit(0);
 	}
@@ -38,78 +37,88 @@ void set_name(snd_seq_t *handle)
 void system_info(snd_seq_t *handle)
 {
 	int err;
+	snd_seq_system_info_t *sysinfo;
 	
-	if ((err = snd_seq_system_info(handle, &sysinfo))<0) {
+	snd_seq_system_info_alloca(&sysinfo);
+	if ((err = snd_seq_system_info(handle, sysinfo))<0) {
 		fprintf(stderr, "System info error: %s\n", snd_strerror(err));
 		exit(0);
 	}
+	max_clients = snd_seq_system_info_get_clients(sysinfo);
+	max_ports = snd_seq_system_info_get_ports(sysinfo);
+	max_queues = snd_seq_system_info_get_ports(sysinfo);
 }
 
 void show_system_info(snd_seq_t *handle)
 {
 	printf("System info\n");
-	printf("  Max queues    : %i\n", sysinfo.queues);
-	printf("  Max clients   : %i\n", sysinfo.clients);
-	printf("  Max ports     : %i\n", sysinfo.ports);
+	printf("  Max queues    : %i\n", max_queues);
+	printf("  Max clients   : %i\n", max_clients);
+	printf("  Max ports     : %i\n", max_ports);
 }
 
 void show_queue_status(snd_seq_t *handle, int queue)
 {
 	int err, idx, min, max;
-	snd_seq_queue_status_t status;
-	
+	snd_seq_queue_status_t *status;
+
+	snd_seq_queue_status_alloca(&status);
 	min = queue < 0 ? 0 : queue;
-	max = queue < 0 ? sysinfo.queues : queue + 1;
+	max = queue < 0 ? max_queues : queue + 1;
 	for (idx = min; idx < max; idx++) {
-		if ((err = snd_seq_get_queue_status(handle, idx, &status))<0) {
+		if ((err = snd_seq_get_queue_status(handle, idx, status))<0) {
 			if (err == -ENOENT)
 				continue;
 			fprintf(stderr, "Client %i info error: %s\n", idx, snd_strerror(err));
 			exit(0);
 		}
-		printf("Queue %i info\n", status.queue);
-		printf("  Tick          : %u\n", status.tick); 
-		printf("  Realtime      : %li.%li\n", status.time.tv_sec, status.time.tv_nsec);
-		printf("  Flags         : 0x%x\n", status.flags);
+		printf("Queue %i info\n", snd_seq_queue_status_get_queue(status));
+		printf("  Tick          : %u\n", snd_seq_queue_status_get_tick_time(status)); 
+		printf("  Realtime      : %i.%i\n",
+		       snd_seq_queue_status_get_real_time(status)->tv_sec,
+		       snd_seq_queue_status_get_real_time(status)->tv_nsec);
+		printf("  Flags         : 0x%x\n", snd_seq_queue_status_get_status(status));
 	}
 }
 
 void show_port_info(snd_seq_t *handle, int client, int port)
 {
 	int err, idx, min, max;
-	snd_seq_port_info_t info;
+	snd_seq_port_info_t *info;
 
+	snd_seq_port_info_alloca(&info);
 	min = port < 0 ? 0 : port;
-	max = port < 0 ? sysinfo.ports : port + 1;
+	max = port < 0 ? max_ports : port + 1;
 	for (idx = min; idx < max; idx++) {
-		if ((err = snd_seq_get_any_port_info(handle, client, idx, &info))<0) {
+		if ((err = snd_seq_get_any_port_info(handle, client, idx, info))<0) {
 			if (err == -ENOENT)
 				continue;
 			fprintf(stderr, "Port %i/%i info error: %s\n", client, idx, snd_strerror(err));
 			exit(0);
 		}
 		printf("  Port %i info\n", idx);
-		printf("    Client        : %i\n", info.client);
-		printf("    Port          : %i\n", info.port);
-		printf("    Name          : %s\n", info.name);
-		printf("    Capability    : 0x%x\n", info.capability);
-		printf("    Type          : 0x%x\n", info.type);
-		printf("    Midi channels : %i\n", info.midi_channels);
-		printf("    Synth voices  : %i\n", info.synth_voices);
-		printf("    Output subs   : %i\n", info.write_use);
-		printf("    Input subs    : %i\n", info.read_use);
+		printf("    Client        : %i\n", snd_seq_port_info_get_client(info));
+		printf("    Port          : %i\n", snd_seq_port_info_get_port(info));
+		printf("    Name          : %s\n", snd_seq_port_info_get_name(info));
+		printf("    Capability    : 0x%x\n", snd_seq_port_info_get_capability(info));
+		printf("    Type          : 0x%x\n", snd_seq_port_info_get_type(info));
+		//printf("    Midi channels : %i\n", info.midi_channels);
+		//printf("    Synth voices  : %i\n", info.synth_voices);
+		printf("    Output subs   : %i\n", snd_seq_port_info_get_write_use(info));
+		printf("    Input subs    : %i\n", snd_seq_port_info_get_read_use(info));
 	}
 }
 
 void show_client_info(snd_seq_t *handle, int client)
 {
 	int err, idx, min, max;
-	snd_seq_client_info_t info;
+	snd_seq_client_info_t *info;
 
+	snd_seq_client_info_alloca(&info);
 	min = client < 0 ? 0 : client;
-	max = client < 0 ? sysinfo.clients : client + 1;
+	max = client < 0 ? max_clients : client + 1;
 	for (idx = min; idx < max; idx++) {
-		if ((err = snd_seq_get_any_client_info(handle, idx, &info))<0) {
+		if ((err = snd_seq_get_any_client_info(handle, idx, info))<0) {
 			if (err == -ENOENT)
 				continue;
 			fprintf(stderr, "Client %i info error: %s\n", idx, snd_strerror(err));
@@ -117,9 +126,9 @@ void show_client_info(snd_seq_t *handle, int client)
 		}
 		printf("Client %i info\n", idx);
 		if (verbose)
-			printf("  Client        : %i\n", info.client);
-		printf("  Type          : %s\n", info.type == KERNEL_CLIENT ? "kernel" : "user");
-		printf("  Name          : %s\n", info.name);
+			printf("  Client        : %i\n", snd_seq_client_info_get_client(info));
+		printf("  Type          : %s\n", snd_seq_client_info_get_type(info) == SND_SEQ_KERNEL_CLIENT ? "kernel" : "user");
+		printf("  Name          : %s\n", snd_seq_client_info_get_name(info));
 	}
 }
 
@@ -190,7 +199,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "seq: Specify command...\n");
 		return 0;
 	}
-	if ((err = snd_seq_open(&handle, SND_SEQ_OPEN))<0) {
+	if ((err = snd_seq_open(&handle, "hw", SND_SEQ_OPEN_DUPLEX, 0))<0) {
 		fprintf(stderr, "Open error: %s\n", snd_strerror(err));
 		exit(0);
 	}

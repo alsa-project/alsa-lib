@@ -72,31 +72,31 @@ static struct status_event_list_t {
 	event_decode_t decode;
 } status_event[] = {
 	/* 0x80 - 0xf0 */
-	{SND_SEQ_EVENT_NOTEOFF,		2, note_event, note_decode},
-	{SND_SEQ_EVENT_NOTEON,		2, note_event, note_decode},
-	{SND_SEQ_EVENT_KEYPRESS,	2, note_event, note_decode},
-	{SND_SEQ_EVENT_CONTROLLER,	2, two_param_ctrl_event, two_param_decode},
-	{SND_SEQ_EVENT_PGMCHANGE,	1, one_param_ctrl_event, one_param_decode},
-	{SND_SEQ_EVENT_CHANPRESS,	1, one_param_ctrl_event, one_param_decode},
-	{SND_SEQ_EVENT_PITCHBEND,	2, pitchbend_ctrl_event, pitchbend_decode},
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf0 */
+	{SNDRV_SEQ_EVENT_NOTEOFF,		2, note_event, note_decode},
+	{SNDRV_SEQ_EVENT_NOTEON,		2, note_event, note_decode},
+	{SNDRV_SEQ_EVENT_KEYPRESS,	2, note_event, note_decode},
+	{SNDRV_SEQ_EVENT_CONTROLLER,	2, two_param_ctrl_event, two_param_decode},
+	{SNDRV_SEQ_EVENT_PGMCHANGE,	1, one_param_ctrl_event, one_param_decode},
+	{SNDRV_SEQ_EVENT_CHANPRESS,	1, one_param_ctrl_event, one_param_decode},
+	{SNDRV_SEQ_EVENT_PITCHBEND,	2, pitchbend_ctrl_event, pitchbend_decode},
+	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf0 */
 	/* 0xf0 - 0xff */
-	{SND_SEQ_EVENT_SYSEX,		1, NULL, NULL}, /* sysex: 0xf0 */
-	{SND_SEQ_EVENT_QFRAME,		1, one_param_event, one_param_decode}, /* 0xf1 */
-	{SND_SEQ_EVENT_SONGPOS,		2, songpos_event, songpos_decode}, /* 0xf2 */
-	{SND_SEQ_EVENT_SONGSEL,		1, one_param_event, one_param_decode}, /* 0xf3 */
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf4 */
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf5 */
-	{SND_SEQ_EVENT_TUNE_REQUEST,	0, NULL, NULL},	/* 0xf6 */
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf7 */
-	{SND_SEQ_EVENT_CLOCK,		0, NULL, NULL}, /* 0xf8 */
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf9 */
-	{SND_SEQ_EVENT_START,		0, NULL, NULL}, /* 0xfa */
-	{SND_SEQ_EVENT_CONTINUE,	0, NULL, NULL}, /* 0xfb */
-	{SND_SEQ_EVENT_STOP, 		0, NULL, NULL}, /* 0xfc */
-	{SND_SEQ_EVENT_NONE, 		0, NULL, NULL}, /* 0xfd */
-	{SND_SEQ_EVENT_SENSING, 	0, NULL, NULL}, /* 0xfe */
-	{SND_SEQ_EVENT_RESET, 		0, NULL, NULL}, /* 0xff */
+	{SNDRV_SEQ_EVENT_SYSEX,		1, NULL, NULL}, /* sysex: 0xf0 */
+	{SNDRV_SEQ_EVENT_QFRAME,		1, one_param_event, one_param_decode}, /* 0xf1 */
+	{SNDRV_SEQ_EVENT_SONGPOS,		2, songpos_event, songpos_decode}, /* 0xf2 */
+	{SNDRV_SEQ_EVENT_SONGSEL,		1, one_param_event, one_param_decode}, /* 0xf3 */
+	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf4 */
+	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf5 */
+	{SNDRV_SEQ_EVENT_TUNE_REQUEST,	0, NULL, NULL},	/* 0xf6 */
+	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf7 */
+	{SNDRV_SEQ_EVENT_CLOCK,		0, NULL, NULL}, /* 0xf8 */
+	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf9 */
+	{SNDRV_SEQ_EVENT_START,		0, NULL, NULL}, /* 0xfa */
+	{SNDRV_SEQ_EVENT_CONTINUE,	0, NULL, NULL}, /* 0xfb */
+	{SNDRV_SEQ_EVENT_STOP, 		0, NULL, NULL}, /* 0xfc */
+	{SNDRV_SEQ_EVENT_NONE, 		0, NULL, NULL}, /* 0xfd */
+	{SNDRV_SEQ_EVENT_SENSING, 	0, NULL, NULL}, /* 0xfe */
+	{SNDRV_SEQ_EVENT_RESET, 		0, NULL, NULL}, /* 0xff */
 };
 
 static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int len, snd_seq_event_t *ev);
@@ -105,9 +105,9 @@ static struct extra_event_list_t {
 	int event;
 	int (*decode)(snd_midi_event_t *dev, unsigned char *buf, int len, snd_seq_event_t *ev);
 } extra_event[] = {
-	{SND_SEQ_EVENT_CONTROL14, extra_decode_ctrl14},
-	/*{SND_SEQ_EVENT_NONREGPARAM, extra_decode_nrpn},*/
-	/*{SND_SEQ_EVENT_REGPARAM, extra_decode_rpn},*/
+	{SNDRV_SEQ_EVENT_CONTROL14, extra_decode_ctrl14},
+	/*{SNDRV_SEQ_EVENT_NONREGPARAM, extra_decode_nrpn},*/
+	/*{SNDRV_SEQ_EVENT_REGPARAM, extra_decode_rpn},*/
 };
 
 #define numberof(ary)	(sizeof(ary)/sizeof(ary[0]))
@@ -201,7 +201,7 @@ long snd_midi_event_encode(snd_midi_event_t *dev, unsigned char *buf, long count
 	long result = 0;
 	int rc;
 
-	ev->type = SND_SEQ_EVENT_NONE;
+	ev->type = SNDRV_SEQ_EVENT_NONE;
 
 	while (count-- > 0) {
 		rc = snd_midi_event_encode_byte(dev, *buf++, ev);
@@ -230,8 +230,8 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 	if (c >= MIDI_CMD_COMMON_CLOCK) {
 		/* real-time event */
 		ev->type = status_event[ST_SPECIAL + c - 0xf0].event;
-		ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
-		ev->flags |= SND_SEQ_EVENT_LENGTH_FIXED;
+		ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
+		ev->flags |= SNDRV_SEQ_EVENT_LENGTH_FIXED;
 		return 1;
 	}
 
@@ -258,16 +258,16 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 	}
 	if (dev->qlen == 0) {
 		ev->type = status_event[dev->type].event;
-		ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
-		ev->flags |= SND_SEQ_EVENT_LENGTH_FIXED;
+		ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
+		ev->flags |= SNDRV_SEQ_EVENT_LENGTH_FIXED;
 		if (status_event[dev->type].encode) /* set data values */
 			status_event[dev->type].encode(dev, ev);
 		rc = 1;
 	} else 	if (dev->type == ST_SYSEX) {
 		if (c == MIDI_CMD_COMMON_SYSEX_END ||
 		    dev->read >= dev->bufsize) {
-			ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
-			ev->flags |= SND_SEQ_EVENT_LENGTH_VARIABLE;
+			ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
+			ev->flags |= SNDRV_SEQ_EVENT_LENGTH_VARIABLE;
 			ev->data.ext.len = dev->read;
 			ev->data.ext.ptr = dev->buf;
 			if (c != MIDI_CMD_COMMON_SYSEX_END)
@@ -333,7 +333,7 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 	long qlen;
 	unsigned int type;
 
-	if (ev->type == SND_SEQ_EVENT_NONE)
+	if (ev->type == SNDRV_SEQ_EVENT_NONE)
 		return -ENOENT;
 
 	for (type = 0; type < numberof(status_event); type++) {
@@ -358,9 +358,9 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 		qlen = ev->data.ext.len;
 		if (count < qlen)
 			return -ENOMEM;
-		switch (ev->flags & SND_SEQ_EVENT_LENGTH_MASK) {
-		case SND_SEQ_EVENT_LENGTH_FIXED:
-		case SND_SEQ_EVENT_LENGTH_VARIPC:
+		switch (ev->flags & SNDRV_SEQ_EVENT_LENGTH_MASK) {
+		case SNDRV_SEQ_EVENT_LENGTH_FIXED:
+		case SNDRV_SEQ_EVENT_LENGTH_VARIPC:
 			return -EINVAL;	/* invalid event */
 		}
 		memcpy(dev->buf, ev->data.ext.ptr, qlen);
