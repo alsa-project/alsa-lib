@@ -202,6 +202,8 @@ int snd_pcm_plugin_build_rate(int src_format, int src_rate, int src_voices,
 	if (plugin == NULL)
 		return -ENOMEM;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
+	data->src_voices = src_voices;
+	data->dst_voices = dst_voices;
 	data->src_rate = src_rate;
 	data->dst_rate = dst_rate;
 	data->pitch = ((src_rate << SHIFT) + (dst_rate >> 1)) / dst_rate;
