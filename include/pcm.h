@@ -114,6 +114,29 @@ int snd_pcm_hw_info_rulesv(snd_pcm_t *pcm,
 			   snd_pcm_hw_info_t *info,
 			   snd_pcm_hw_params_t *params, ...);
 
+typedef struct _snd_pcm_strategy snd_pcm_strategy_t;
+
+/* choices need to be sorted on ascending badness */
+typedef struct _snd_pcm_strategy_simple_choices_list {
+	unsigned long value;
+	unsigned int badness;
+} snd_pcm_strategy_simple_choices_list_t;
+
+int snd_pcm_hw_info_strategy(snd_pcm_t *pcm, snd_pcm_hw_info_t *info,
+			     const snd_pcm_strategy_t *strategy,
+			     unsigned int min_badness, unsigned int max_badness);
+
+int snd_pcm_strategy_free(snd_pcm_strategy_t *strategy);
+int snd_pcm_strategy_simple(snd_pcm_strategy_t **strategyp);
+int snd_pcm_strategy_simple_near(snd_pcm_strategy_t *strategy,
+				 unsigned int param,
+				 unsigned long best,
+				 unsigned int mul);
+int snd_pcm_strategy_simple_choices(snd_pcm_strategy_t *strategy,
+				    unsigned int param,
+				    unsigned int count,
+				    snd_pcm_strategy_simple_choices_list_t *choices);
+
 /* mmap */
 snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);
 snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm);
