@@ -9,3 +9,8 @@ all: libcontrol.la
 
 
 INCLUDES=-I$(top_srcdir)/include
+
+EXTRA_DIST = cards.conf
+
+alsadir = $(datadir)/alsa
+alsa_DATA = cards.conf
