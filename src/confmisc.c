@@ -974,8 +974,22 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		err = snd_config_get_id(src, &id);
 		if (err >= 0)
 			err = snd_config_set_id(*dst, id);
-	} else
-		SNDERR("Unable to find definition '%s'", name);
+	} else {
+		err = snd_config_search(src, "default", &n);
+		if (err < 0)
+			SNDERR("Unable to find definition '%s'", name);
+		else {
+			const char *id;
+			err = snd_config_evaluate(n, root, private_data, NULL);
+			if (err < 0)
+				return err;
+			if ((err = snd_config_copy(dst, n)) >= 0) {
+				if ((err = snd_config_get_id(src, &id)) < 0 ||
+				    (err = snd_config_set_id(*dst, id)) < 0)
+					snd_config_delete(*dst);
+			}
+		}
+	}
  _end:
 	return err;
 }
