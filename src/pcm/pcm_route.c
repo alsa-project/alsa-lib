@@ -617,7 +617,11 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 		while (1) {
 			snd_pcm_route_ttable_src_t *s = &d->srcs[src];
 			if (d->att)
+#if ROUTE_PLUGIN_FLOAT
 				snd_output_printf(out, "%d*%g", s->channel, s->as_float);
+#else
+				snd_output_printf(out, "%d*%g", s->channel, (double)s->as_int / (double)ROUTE_PLUGIN_RESOLUTION);
+#endif
 			else
 				snd_output_printf(out, "%d", s->channel);
 			src++;
@@ -768,10 +772,10 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 }
 
-int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
-			      unsigned int tt_csize, unsigned int tt_ssize,
-			      unsigned int *tt_cused, unsigned int *tt_sused,
-			      int schannels)
+static int snd_pcm_route_load_ttable(snd_config_t *tt, snd_pcm_route_ttable_entry_t *ttable,
+				     unsigned int tt_csize, unsigned int tt_ssize,
+				     unsigned int *tt_cused, unsigned int *tt_sused,
+				     int schannels)
 {
 	int cused = -1;
 	int sused = -1;

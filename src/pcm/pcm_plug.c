@@ -22,6 +22,13 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+enum snd_pcm_plug_route_policy {
+	PLUG_ROUTE_POLICY_NONE,
+	PLUG_ROUTE_POLICY_COPY,
+	PLUG_ROUTE_POLICY_SUM,
+	PLUG_ROUTE_POLICY_DUP,
+};
+
 typedef struct {
 	snd_pcm_t *req_slave;
 	int close_slave;
@@ -29,6 +36,7 @@ typedef struct {
 	snd_pcm_format_t sformat;
 	int schannels;
 	int srate;
+	enum snd_pcm_plug_route_policy route_policy;
 	snd_pcm_route_ttable_entry_t *ttable;
 	unsigned int tt_ssize, tt_cused, tt_sused;
 } snd_pcm_plug_t;
@@ -249,31 +257,50 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 		ttable = alloca(tt_cused * tt_sused * sizeof(*ttable));
 		for (k = 0; k < tt_cused * tt_sused; ++k)
 			ttable[k] = 0;
-		if (clt->channels > slv->channels) {
-			n = clt->channels;
-		} else {
-			n = slv->channels;
-		}
-		while (n-- > 0) {
-			snd_pcm_route_ttable_entry_t v = FULL;
-			if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
-			    clt->channels > slv->channels) {
-				int srcs = clt->channels / slv->channels;
-				if (s < clt->channels % slv->channels)
-					srcs++;
-				v /= srcs;
-			} else if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
-				   slv->channels > clt->channels) {
-				int srcs = slv->channels / clt->channels;
-				if (s < slv->channels % clt->channels)
-					srcs++;
-				v /= srcs;
+		switch (plug->route_policy) {
+		case PLUG_ROUTE_POLICY_SUM:
+		case PLUG_ROUTE_POLICY_DUP:
+			if (clt->channels > slv->channels) {
+				n = clt->channels;
+			} else {
+				n = slv->channels;
 			}
-			ttable[c * tt_ssize + s] = v;
-			if (++c == clt->channels)
-				c = 0;
-			if (++s == slv->channels)
-				s = 0;
+			while (n-- > 0) {
+				snd_pcm_route_ttable_entry_t v = FULL;
+				if (plug->route_policy == PLUG_ROUTE_POLICY_SUM) {
+					if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
+					    clt->channels > slv->channels) {
+						int srcs = clt->channels / slv->channels;
+						if (s < clt->channels % slv->channels)
+							srcs++;
+						v /= srcs;
+					} else if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
+						   slv->channels > clt->channels) {
+							int srcs = slv->channels / clt->channels;
+						if (s < slv->channels % clt->channels)
+							srcs++;
+						v /= srcs;
+					}
+				}
+				ttable[c * tt_ssize + s] = v;
+				if (++c == clt->channels)
+					c = 0;
+				if (++s == slv->channels)
+					s = 0;
+			}
+			break;
+		case PLUG_ROUTE_POLICY_COPY:
+			if (clt->channels < slv->channels) {
+				n = clt->channels;
+			} else {
+				n = slv->channels;
+			}
+			for (c = 0; (int)c < n; c++)
+				ttable[c * tt_ssize + c] = FULL;
+			break;
+		default:
+			SNDERR("Invalid route policy");
+			break;
 		}
 	}
 	err = snd_pcm_route_open(new, NULL, slv->format, (int) slv->channels, ttable, tt_ssize, tt_cused, tt_sused, plug->slave, plug->slave != plug->req_slave);
@@ -701,6 +728,7 @@ snd_pcm_ops_t snd_pcm_plug_ops = {
 int snd_pcm_plug_open(snd_pcm_t **pcmp,
 		      const char *name,
 		      snd_pcm_format_t sformat, int schannels, int srate,
+		      enum snd_pcm_plug_route_policy route_policy,
 		      snd_pcm_route_ttable_entry_t *ttable,
 		      unsigned int tt_ssize,
 		      unsigned int tt_cused, unsigned int tt_sused,
@@ -718,6 +746,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	plug->srate = srate;
 	plug->slave = plug->req_slave = slave;
 	plug->close_slave = close_slave;
+	plug->route_policy = route_policy;
 	plug->ttable = ttable;
 	plug->tt_ssize = tt_ssize;
 	plug->tt_cused = tt_cused;
@@ -751,6 +780,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_t *spcm;
 	snd_config_t *slave = NULL, *sconf;
 	snd_config_t *tt = NULL;
+	enum snd_pcm_plug_route_policy route_policy = PLUG_ROUTE_POLICY_SUM;
 	snd_pcm_route_ttable_entry_t *ttable = NULL;
 	unsigned int cused, sused;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
@@ -765,12 +795,26 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "ttable") == 0) {
+			route_policy = PLUG_ROUTE_POLICY_NONE;
 			if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
 			tt = n;
 			continue;
+		}
+		if (strcmp(id, "route_policy") == 0) {
+			const char *str;
+			if ((err = snd_config_get_string(n, &str)) < 0) {
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
+			}
+			if (!strcmp(str, "sum"))
+				route_policy = PLUG_ROUTE_POLICY_SUM;
+			else if (!strcmp(str, "copy"))
+				route_policy = PLUG_ROUTE_POLICY_COPY;
+			else if (!strcmp(str, "duplicate"))
+				route_policy = PLUG_ROUTE_POLICY_DUP;
 		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
@@ -800,7 +844,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 	err = snd_pcm_plug_open(pcmp, name, sformat, schannels, srate,
-				ttable, MAX_CHANNELS, cused, sused, spcm, 1);
+				route_policy, ttable, MAX_CHANNELS, cused, sused, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
