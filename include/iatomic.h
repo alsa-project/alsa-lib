@@ -891,8 +891,38 @@ __asm__ __volatile__(					\
 #endif /* __mips__ */
 
 #ifdef __arm__
-/* we'll need to duplicate this code, too.. */
-#include <asm/proc/system.h>
+
+/*
+ * FIXME: bellow code is valid only for SA11xx
+ */
+
+/*
+ * Save the current interrupt enable state & disable IRQs
+ */
+#define local_irq_save(x)					\
+	({							\
+		unsigned long temp;				\
+	__asm__ __volatile__(					\
+	"mrs	%0, cpsr		@ local_irq_save\n"	\
+"	orr	%1, %0, #128\n"					\
+"	msr	cpsr_c, %1"					\
+	: "=r" (x), "=r" (temp)					\
+	:							\
+	: "memory");						\
+	})
+
+/*
+ * restore saved IRQ & FIQ state
+ */
+#define local_irq_restore(x)					\
+	__asm__ __volatile__(					\
+	"msr	cpsr_c, %0		@ local_irq_restore\n"	\
+	:							\
+	: "r" (x)						\
+	: "memory")
+
+#define __save_flags_cli(x) local_irq_save(x)
+#define __restore_flags(x) local_irq_restore(x)
 
 typedef struct { volatile int counter; } atomic_t;
 
