@@ -104,9 +104,9 @@ int snd_pcm_format_big_endian(int format)
 	int val;
 
 	val = snd_pcm_format_little_endian(format);
-	if (val >= 0)
-		val ^= 1;
-	return val;
+	if (val < 0)
+		return val;
+	return !val;
 }
 
 int snd_pcm_format_width(int format)
@@ -226,4 +226,44 @@ const char *snd_pcm_get_format_name(int format)
 	if (format < 0 || format > SND_PCM_SFMT_GSM)
 		return "Unknown";
 	return formats[format];
+}
+
+static int linear_formats[4][2][2] = {
+	SND_PCM_SFMT_S8,
+	SND_PCM_SFMT_U8,
+	SND_PCM_SFMT_S8,
+	SND_PCM_SFMT_U8,
+	SND_PCM_SFMT_S16_LE,
+	SND_PCM_SFMT_S16_BE,
+	SND_PCM_SFMT_U16_LE,
+	SND_PCM_SFMT_U16_BE,
+	SND_PCM_SFMT_S24_LE,
+	SND_PCM_SFMT_S24_BE,
+	SND_PCM_SFMT_U24_LE,
+	SND_PCM_SFMT_U24_BE,
+	SND_PCM_SFMT_S32_LE,
+	SND_PCM_SFMT_S32_BE,
+	SND_PCM_SFMT_U32_LE,
+	SND_PCM_SFMT_U32_BE
+};
+
+int snd_pcm_build_linear_format(int width, int unsignd, int big_endian)
+{
+	switch (width) {
+	case 8:
+		width = 0;
+		break;
+	case 16:
+		width = 1;
+		break;
+	case 24:
+		width = 2;
+		break;
+	case 32:
+		width = 3;
+		break;
+	default:
+		return -1;
+	}
+	return linear_formats[width][!!unsignd][!!big_endian];
 }
