@@ -380,7 +380,7 @@ int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t
 		return -ENOMEM;
 	data = (struct linear_private_data *)snd_pcm_plugin_extra_data(plugin);
 	data->cmd = cmd;
-	if (endian1 == endian2) {
+	if (!endian1 && !endian2) {
 		data->endian = NONE;
 	} else if (endian1 && !endian2) {
 		data->endian = SOURCE;
