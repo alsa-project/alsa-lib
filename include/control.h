@@ -151,11 +151,11 @@ typedef enum _snd_ctl_event_type {
 /** ACPI/PCI Power State D2 */
 #define SNDRV_CTL_POWER_D2 	        0x0200
 /** ACPI/PCI Power State D3 */
-#define SNDRV_CTL_POWERDOWN_D3          0x0300
+#define SNDRV_CTL_POWER_D3         	 0x0300
 /** ACPI/PCI Power State D3hot */
-#define SNDRV_CTL_POWERDOWN_D3hot       (SNDRV_CTL_POWERDOWN_D3|0x0000)
+#define SNDRV_CTL_POWER_D3hot		(SNDRV_CTL_POWER_D3|0x0000)
 /** ACPI/PCI Power State D3cold */
-#define SNDRV_CTL_POWERDOWN_D3cold      (SNDRV_CTL_POWERDOWN_D3|0x0001)
+#define SNDRV_CTL_POWER_D3cold	      	(SNDRV_CTL_POWER_D3|0x0001)
 
 /** CTL type */
 typedef enum _snd_ctl_type {
