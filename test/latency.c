@@ -7,7 +7,7 @@
 static char *xitoa(int aaa)
 {
 	static char str[12];
-  
+
 	sprintf(str, "%i", aaa);
 	return str;
 }
@@ -29,7 +29,7 @@ void setformat(void *phandle, void *rhandle)
 {
 	int err;
 	snd_pcm_format_t format;
-  
+
 	bzero(&format, sizeof(format));
 	format.format = SND_PCM_SFMT_S16_LE;
 	format.channels = 2;
@@ -59,7 +59,7 @@ int setparams(void *phandle, void *rhandle, int *fragmentsize)
 	snd_pcm_record_info_t rinfo;
 	snd_pcm_playback_params_t pparams;
 	snd_pcm_record_params_t rparams;
-  
+
 	if ((err = snd_pcm_playback_info(phandle, &pinfo)) < 0) {
 		printf("Playback info error: %s\n", snd_strerror(err));
 		exit(0);
@@ -74,7 +74,8 @@ int setparams(void *phandle, void *rhandle, int *fragmentsize)
 		step = rinfo.min_fragment_size;
 	while (step < 4096 &&
 	       (step & pinfo.fragment_align) != 0 &&
-	       (step & rinfo.fragment_align) != 0) step++;
+	       (step & rinfo.fragment_align) != 0)
+		step++;
 	if (*fragmentsize) {
 		*fragmentsize += step;
 	} else {
@@ -113,7 +114,7 @@ int playbackunderrun(void *phandle)
 {
 	int err;
 	snd_pcm_playback_status_t pstatus;
-	
+
 	if ((err = snd_pcm_playback_status(phandle, &pstatus)) < 0) {
 		printf("Playback status error: %s\n", snd_strerror(err));
 		exit(0);
@@ -147,7 +148,7 @@ void setscheduler(void)
 {
 	struct sched_param sched_param;
 
-	if (sched_getparam(0, &sched_param)<0) {
+	if (sched_getparam(0, &sched_param) < 0) {
 		printf("Scheduler getparam failed...\n");
 		return;
 	}
@@ -165,7 +166,7 @@ long timediff(struct timeval t1, struct timeval t2)
 	signed long l;
 
 	t1.tv_sec -= t2.tv_sec;
-	l = (signed long)t1.tv_usec - (signed long)t2.tv_usec;
+	l = (signed long) t1.tv_usec - (signed long) t2.tv_usec;
 	if (l < 0) {
 		t1.tv_sec--;
 		l = -l;
@@ -184,19 +185,19 @@ void main(void)
 	int ridx, pidx, size, ok;
 	snd_pcm_playback_status_t pstatus;
 	snd_pcm_record_status_t rstatus;
-	
+
 	setscheduler();
 	if ((err = snd_pcm_open(&phandle, pcard, pdevice, SND_PCM_OPEN_PLAYBACK)) < 0) {
 		printf("Playback open error: %s\n", snd_strerror(err));
 		return;
 	}
 	if ((err = snd_pcm_open(&rhandle, rcard, rdevice, SND_PCM_OPEN_RECORD)) < 0) {
-		printf( "Record open error: %s\n", snd_strerror(err));
+		printf("Record open error: %s\n", snd_strerror(err));
 		return;
 	}
 	setformat(phandle, rhandle);
 	while (1) {
-		if (setparams(phandle, rhandle, &fragmentsize)<0)
+		if (setparams(phandle, rhandle, &fragmentsize) < 0)
 			break;
 		ok = 1;
 		ridx = pidx = size = 0;
@@ -217,7 +218,7 @@ void main(void)
 			playfragment(phandle, buffer, pidx++, fragmentsize);
 			size += fragmentsize;
 			pidx %= 2;
-			if (playbackunderrun(phandle)>0)
+			if (playbackunderrun(phandle) > 0)
 				ok = 0;
 		}
 		if ((err = snd_pcm_playback_status(phandle, &pstatus)) < 0) {
@@ -226,14 +227,14 @@ void main(void)
 		}
 		snd_pcm_flush_record(rhandle);
 		snd_pcm_flush_playback(phandle);
-		if (ok && !playbackunderrun(phandle)>0) {
+		if (ok && !playbackunderrun(phandle) > 0) {
 			printf("Playback OK!!!\n");
 			printf("Playback time = %li.%i, Record time = %li.%i, diff = %li\n",
-				pstatus.stime.tv_sec,
-				pstatus.stime.tv_usec,
-				rstatus.stime.tv_sec,
-				rstatus.stime.tv_usec,
-				timediff(pstatus.stime, rstatus.stime));
+			       pstatus.stime.tv_sec,
+			       pstatus.stime.tv_usec,
+			       rstatus.stime.tv_sec,
+			       rstatus.stime.tv_usec,
+			       timediff(pstatus.stime, rstatus.stime));
 			break;
 		}
 	}
