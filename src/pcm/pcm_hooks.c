@@ -437,7 +437,7 @@ int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 {
 	snd_config_iterator_t i, next;
 	int err;
-	snd_pcm_t *spcm;
+	snd_pcm_t *rpcm = NULL, *spcm;
 	snd_config_t *slave = NULL, *sconf;
 	snd_config_t *hooks = NULL;
 	snd_config_for_each(i, next, conf) {
@@ -471,7 +471,7 @@ int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_hooks_open(pcmp, name, spcm, 1);
+	err = snd_pcm_hooks_open(&rpcm, name, spcm, 1);
 	if (err < 0) {
 		snd_pcm_close(spcm);
 		return err;
@@ -486,16 +486,17 @@ int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 			if (err < 0) {
 				SNDERR("unknown pcm_hook %s", str);
 			} else {
-				err = snd_pcm_hook_add_conf(*pcmp, root, n);
+				err = snd_pcm_hook_add_conf(rpcm, root, n);
 				snd_config_delete(n);
 			}
 		} else
-			err = snd_pcm_hook_add_conf(*pcmp, root, n);
+			err = snd_pcm_hook_add_conf(rpcm, root, n);
 		if (err < 0) {
-			snd_pcm_close(*pcmp);
+			snd_pcm_close(rpcm);
 			return err;
 		}
 	}
+	*pcmp = rpcm;
 	return 0;
 }
 
