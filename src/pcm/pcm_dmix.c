@@ -49,6 +49,9 @@
 const char *_snd_module_pcm_dmix = "";
 #endif
 
+/* start is pending - this state happens when rate plugin does a delayed commit */
+#define STATE_RUN_PENDING	1024
+
 /*
  *
  */
@@ -300,8 +303,15 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 		break;
 	}
 	memset(status, 0, sizeof(*status));
-	state = snd_pcm_state(dmix->spcm);
-	status->state = state == SNDRV_PCM_STATE_RUNNING ? dmix->state : state;
+	if (dmix->state == STATE_RUN_PENDING)
+		status->state = SNDRV_PCM_STATE_RUNNING;
+	else {
+		state = snd_pcm_state(dmix->spcm);
+		if (state == SNDRV_PCM_STATE_RUNNING)
+			status->state = dmix->state;
+		else
+			status->state = state;
+	}
 	status->trigger_tstamp = dmix->trigger_tstamp;
 	status->tstamp = snd_pcm_hw_fast_tstamp(dmix->spcm);
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
@@ -322,6 +332,8 @@ static snd_pcm_state_t snd_pcm_dmix_state(snd_pcm_t *pcm)
 	default:
 		break;
 	}
+	if (dmix->state == STATE_RUN_PENDING)
+		return SNDRV_PCM_STATE_RUNNING;
 	return dmix->state;
 }
 
@@ -338,6 +350,7 @@ static int snd_pcm_dmix_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 			return err;
 	case SNDRV_PCM_STATE_PREPARED:
 	case SNDRV_PCM_STATE_SUSPENDED:
+	case STATE_RUN_PENDING:
 		*delayp = snd_pcm_mmap_playback_hw_avail(pcm);
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
@@ -359,6 +372,7 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 		return snd_pcm_dmix_sync_ptr(pcm);
 	case SNDRV_PCM_STATE_PREPARED:
 	case SNDRV_PCM_STATE_SUSPENDED:
+	case STATE_RUN_PENDING:
 		return 0;
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
@@ -399,18 +413,22 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 	
 	if (dmix->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
-	err = snd_timer_start(dmix->timer);
-	if (err < 0)
-		return err;
-	dmix->state = SND_PCM_STATE_RUNNING;
 	snd_pcm_hwsync(dmix->spcm);
 	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
 	avail = snd_pcm_mmap_playback_hw_avail(pcm);
-	if (avail < 0)
+	if (avail == 0)
+		dmix->state = STATE_RUN_PENDING;
+	else if (avail < 0)
 		return 0;
-	if (avail > (snd_pcm_sframes_t)pcm->buffer_size)
-		avail = pcm->buffer_size;
-	snd_pcm_dmix_sync_area(pcm, avail);
+	else {
+		if (avail > (snd_pcm_sframes_t)pcm->buffer_size)
+			avail = pcm->buffer_size;
+		err = snd_timer_start(dmix->timer);
+		if (err < 0)
+			return err;
+		dmix->state = SND_PCM_STATE_RUNNING;
+		snd_pcm_dmix_sync_area(pcm, avail);
+	}
 	gettimeofday(&tv, 0);
 	dmix->trigger_tstamp.tv_sec = tv.tv_sec;
 	dmix->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
@@ -457,15 +475,19 @@ static int snd_pcm_dmix_pause(snd_pcm_t *pcm, int enable)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
         if (enable) {
-		if (dmix->state != SND_PCM_STATE_RUNNING)
+		if (dmix->state == SND_PCM_STATE_RUNNING)
+			snd_timer_stop(dmix->timer);
+		else if (dmix->state != STATE_RUN_PENDING)
 			return -EBADFD;
 		dmix->state = SND_PCM_STATE_PAUSED;
-		snd_timer_stop(dmix->timer);
 	} else {
 		if (dmix->state != SND_PCM_STATE_PAUSED)
 			return -EBADFD;
-                dmix->state = SND_PCM_STATE_RUNNING;
-                snd_timer_start(dmix->timer);
+		if (snd_pcm_mmap_playback_hw_avail(pcm) > 0) {
+			dmix->state = SND_PCM_STATE_RUNNING;
+			snd_timer_start(dmix->timer);
+		} else
+			dmix->state = STATE_RUN_PENDING;
 	}
 	return 0;
 }
@@ -553,6 +575,12 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 		break;
 	}
 	snd_pcm_mmap_appl_forward(pcm, size);
+	if (dmix->state == STATE_RUN_PENDING) {
+		err = snd_timer_start(dmix->timer);
+		if (err < 0)
+			return err;
+		dmix->state = SND_PCM_STATE_RUNNING;
+	}
 	if (dmix->state == SND_PCM_STATE_RUNNING) {
 		err = snd_pcm_dmix_sync_ptr(pcm);
 		if (err < 0)
