@@ -1,5 +1,6 @@
 /**
  * \file seq/seq_midi_event.c
+ * \brief MIDI byte <-> sequencer event coder
  * \author Takashi Iwai <tiwai@suse.de>
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2000-2001

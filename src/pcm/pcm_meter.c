@@ -1,5 +1,6 @@
 /**
  * \file pcm/pcm_meter.c
+ * \brief Helper functions for #SND_PCM_TYPE_METER PCM scopes
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2001
  *

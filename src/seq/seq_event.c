@@ -1,5 +1,6 @@
 /**
  * \file seq/seq_event.c
+ * \brief Sequencer Event Types
  * \author Takashi Iwai <tiwai@suse.de>
  * \date 2001
  */

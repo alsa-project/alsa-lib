@@ -1,5 +1,6 @@
 /**
  * \file async.c
+ * \brief Async notification helpers
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2001
  */

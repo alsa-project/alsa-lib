@@ -1,10 +1,11 @@
 /**
  * \file control/cards.c
+ * \brief Basic Soundcard Operations
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 1998-2001
  */
 /*
- *  Control Interface - main file
+ *  Soundcard Operations - main file
  *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
  *
  *

@@ -1,5 +1,6 @@
 /**
  * \file src/instr/iwffff.c
+ * \brief InterWave FFFF Format Support
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 1999-2001
  */

@@ -1,5 +1,9 @@
 /**
  * \file error.c
+ * \brief Error code handling routines
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 1998-2001
+ *
  * Error code handling routines.
  */
 /*

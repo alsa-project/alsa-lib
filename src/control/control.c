@@ -1,5 +1,6 @@
 /**
  * \file control/control.c
+ * \brief CTL interface - primitive controls
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000
  *

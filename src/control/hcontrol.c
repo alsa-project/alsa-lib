@@ -1,5 +1,6 @@
 /**
  * \file control/hcontrol.c
+ * \brief HCTL Interface - High Level CTL
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000

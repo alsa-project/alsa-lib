@@ -1,5 +1,6 @@
 /**
  * \file input.c
+ * \brief Generic stdio-like input interface
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000
  *

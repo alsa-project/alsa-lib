@@ -1,5 +1,6 @@
 /**
  * \file pcm/pcm.c
+ * \brief PCM Interface
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000-2001

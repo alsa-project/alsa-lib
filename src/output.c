@@ -1,5 +1,6 @@
 /**
  * \file output.c
+ * \brief Generic stdio-like output interface
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000
  *

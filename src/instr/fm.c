@@ -1,5 +1,6 @@
 /**
  * \file src/instr/fm.c
+ * \brief FM (OPL2/3) Instrument Format Support
  * \author Uros Bizjak <uros@kss-loka.si>
  * \date 2000-2001
  */

@@ -1,5 +1,6 @@
 /**
  * \file control/setup.c
+ * \brief Routines to setup control primitives from configuration
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2001

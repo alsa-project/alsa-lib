@@ -1,3 +1,12 @@
+/**
+ * \file conf.c
+ * \brief Configuration helper functions
+ * \author Abramo Bagnara <abramo@alsa-project.org>
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 2000-2001
+ *
+ * Generic stdio-like input interface
+ */
 /*
  *  Configuration helper functions
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>,
@@ -474,7 +483,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 		free(s);
 		return 0;
 	}
-	if ((s[0] >= '0' && s[0] <= '9') || s[0] == '-') {
+	if (err == 0 && (s[0] >= '0' && s[0] <= '9') || s[0] == '-') {
 		long i;
 		errno = 0;
 		err = safe_strtol(s, &i);
@@ -948,8 +957,9 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 
 /**
  * \brief Substitute one node to another
- * \brief dst Destination node
- * \brief src Source node (invalid after call)
+ * \param dst Destination node
+ * \param src Source node (invalid after call)
+ * \return zero if success, otherwise a negative error code
  */
 int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 {
@@ -1457,6 +1467,8 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
  *  *** search macros ***
  */
 
+#ifndef DOC_HIDDEN
+
 #define SND_CONFIG_SEARCH(config, key, result, extra_code) \
 { \
 	snd_config_t *n; \
@@ -1573,6 +1585,7 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 	return 0; \
 }
 
+#endif /* DOC_HIDDEN */
 
 /**
  * \brief Search a node inside a config tree
@@ -1856,6 +1869,14 @@ static int snd_config_hooks(snd_config_t *config, void *private_data)
 	return err;
 }
 
+/**
+ * \brief Load configuration from specified files
+ * \param root Configuration root node
+ * \param config Configuration node
+ * \param dst Destination node
+ * \param private_data Private data
+ * \return zero if success, otherwise a negative error code
+ */
 int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data)
 {
 	snd_config_t *n, *res = NULL;
@@ -1978,8 +1999,18 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 	return err;
 }
 
+#ifndef DOC_HIDDEN
 int snd_determine_driver(int card, char **driver);
+#endif
 
+/**
+ * \brief Load configuration for all present cards
+ * \param root Configuration root node
+ * \param config Configuration node
+ * \param dst Destination node
+ * \param private_data Private data
+ * \return zero if success, otherwise a negative error code
+ */
 int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, void *private_data ATTRIBUTE_UNUSED)
 {
 	int card = -1, err;
@@ -2201,20 +2232,23 @@ snd_config_t *snd_config_iterator_entry(snd_config_iterator_t iterator)
 	return list_entry(iterator, snd_config_t, list);
 }
 
+#ifndef DOC_HIDDEN
 typedef enum _snd_config_walk_pass {
 	SND_CONFIG_WALK_PASS_PRE,
 	SND_CONFIG_WALK_PASS_POST,
 	SND_CONFIG_WALK_PASS_LEAF,
 } snd_config_walk_pass_t;
-
+#endif
 
 /* Return 1 if node needs to be attached to father */
 /* Return 2 if compound is replaced with standard node */
+#ifndef DOC_HIDDEN
 typedef int (*snd_config_walk_callback_t)(snd_config_t *src,
 					  snd_config_t *root,
 					  snd_config_t **dst,
 					  snd_config_walk_pass_t pass,
 					  void *private_data);
+#endif
 
 static int snd_config_walk(snd_config_t *src,
 			   snd_config_t *root,

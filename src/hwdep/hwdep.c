@@ -1,5 +1,6 @@
 /*
  * \file hwdep/hwdep.c
+ * \brief HwDep Interface (hardware dependent)
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 2000-2001
  *

@@ -1,5 +1,6 @@
 /**
  * \file mixer/mixer.c
+ * \brief Mixer Interface
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2001

@@ -1,10 +1,11 @@
 /*
  * \file mixer/simple.c
+ * \brief Mixer Simple Element Class Interface
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2001
  *
- * Mixer simple elements class interface.
+ * Mixer simple element class interface.
  */
 /*
  *  Mixer Interface - simple controls

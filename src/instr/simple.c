@@ -1,5 +1,6 @@
 /**
  * \file src/instr/simple.c
+ * \brief Simple Wave Format Support
  * \author Jaroslav Kysela <perex@suse.cz>
  * \date 1999-2001
  */
