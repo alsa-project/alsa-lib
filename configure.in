@@ -203,7 +203,7 @@ fi
 AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile
 	  include/sound/Makefile src/Makefile \
           src/control/Makefile src/mixer/Makefile src/ordinary_mixer/Makefile \
-	  src/pcm/Makefile src/pcm/ext/Makefile src/pcm/scopes/Makefile src/ordinary_pcm/Makefile \
+	  src/pcm/Makefile src/pcm/scopes/Makefile src/ordinary_pcm/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/instr/Makefile \
           src/compat/Makefile src/alisp/Makefile src/conf/Makefile \
