@@ -10,8 +10,8 @@ SND_LIB_MINOR=`echo $VERSION | cut -d . -f 2`
 AC_SUBST(SND_LIB_MINOR)
 SND_LIB_SUBMINOR=`echo $VERSION | cut -d . -f 3 | sed -e 's/^\([[^[:alpha:]]]*\)\(.*\)$/\1/g'`
 AC_SUBST(SND_LIB_SUBMINOR)
-SND_LIB_EXTRASTR=`echo $VERSION | cut -d . -f 3 | sed -e 's/^\([[^[:alpha:]]]*\)\([[[:alpha:]]]*\)\([[[:digit:]]]*\)$/\2/g'`
-SND_LIB_EXTRAVER=`echo $VERSION | cut -d . -f 3 | sed -e 's/^\([[^[:alpha:]]]*\)\([[[:alpha:]]]*\)\([[[:digit:]]]*\)$/\3/g'`
+SND_LIB_EXTRASTR=`echo $VERSION | cut -d . -f 3 | sed -e 's/^\([[^[:alpha:]]]*\)\([[[:alpha:]]]*\)\([[[:digit:]]]*\)\(.*\)$/\2/g'`
+SND_LIB_EXTRAVER=`echo $VERSION | cut -d . -f 3 | sed -e 's/^\([[^[:alpha:]]]*\)\([[[:alpha:]]]*\)\([[[:digit:]]]*\)\(.*\)$/\3/g'`
 case "$SND_LIB_EXTRASTR" in
   pre)   SND_LIB_EXTRAVER=`expr $SND_LIB_EXTRAVER + 00000` ;;
   alpha) SND_LIB_EXTRAVER=`expr $SND_LIB_EXTRAVER + 10000` ;;
