@@ -275,6 +275,21 @@ int snd_pcm_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * setup)
 	return 0;
 }
 
+int snd_pcm_voice_setup(snd_pcm_t *pcm, int channel, snd_pcm_voice_setup_t * setup)
+{
+	int fd;
+	if (!pcm || !setup)
+		return -EINVAL;
+	if (channel < 0 || channel > 1)
+		return -EINVAL;
+	fd = pcm->fd[channel];
+	if (fd < 0)
+		return -EINVAL;
+	if (ioctl(fd, SND_PCM_IOCTL_VOICE_SETUP, setup) < 0)
+		return -errno;
+	return 0;
+}
+
 int snd_pcm_channel_status(snd_pcm_t *pcm, snd_pcm_channel_status_t * status)
 {
 	int fd;
