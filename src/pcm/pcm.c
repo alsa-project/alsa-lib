@@ -659,7 +659,7 @@ int snd_pcm_close(snd_pcm_t *pcm)
 {
 	int err;
 	assert(pcm);
-	if (pcm->setup) {
+	if (pcm->setup && !pcm->donot_close) {
 		snd_pcm_drop(pcm);
 		err = snd_pcm_hw_free(pcm);
 		if (err < 0)
