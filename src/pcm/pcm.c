@@ -1522,7 +1522,7 @@ int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
  * \retval 0 Hardware doesn't support sample-resolution mmap
  * \retval 1 Hardware supports sample-resolution mmap
  */
-int snd_pcm_hw_params_is_mmap_sample_resolution(const snd_pcm_hw_params_t *params)
+int snd_pcm_hw_params_can_mmap_sample_resolution(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	return !!(params->info & SNDRV_PCM_INFO_MMAP_VALID);
@@ -1574,7 +1574,7 @@ int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
  * \retval 0 Hardware doesn't support overrange detection
  * \retval 1 Hardware supports overrange detection
  */
-int snd_pcm_hw_params_is_overrange(const snd_pcm_hw_params_t *params)
+int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	return !!(params->info & SNDRV_PCM_INFO_OVERRANGE);
@@ -1587,7 +1587,7 @@ int snd_pcm_hw_params_is_overrange(const snd_pcm_hw_params_t *params)
  * \retval 0 Hardware doesn't support pause
  * \retval 1 Hardware supports pause
  */
-int snd_pcm_hw_params_is_pause(const snd_pcm_hw_params_t *params)
+int snd_pcm_hw_params_can_pause(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	return !!(params->info & SNDRV_PCM_INFO_PAUSE);
@@ -1626,7 +1626,7 @@ int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params)
  * \retval 0 Hardware doesn't support synchronized start
  * \retval 1 Hardware supports synchronized start
  */
-int snd_pcm_hw_params_is_sync_start(const snd_pcm_hw_params_t *params)
+int snd_pcm_hw_params_can_sync_start(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
 	return !!(params->info & SNDRV_PCM_INFO_SYNC_START);
