@@ -2261,6 +2261,10 @@ int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
  * \return Boolean value
  * \retval 0 Hardware doesn't support sample-resolution mmap
  * \retval 1 Hardware supports sample-resolution mmap
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_can_mmap_sample_resolution(const snd_pcm_hw_params_t *params)
 {
@@ -2274,6 +2278,10 @@ int snd_pcm_hw_params_can_mmap_sample_resolution(const snd_pcm_hw_params_t *para
  * \return Boolean value
  * \retval 0 Hardware doesn't do double buffering for start/stop
  * \retval 1 Hardware does double buffering for start/stop
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_is_double(const snd_pcm_hw_params_t *params)
 {
@@ -2287,6 +2295,10 @@ int snd_pcm_hw_params_is_double(const snd_pcm_hw_params_t *params)
  * \return Boolean value
  * \retval 0 Hardware doesn't do double buffering for data transfers
  * \retval 1 Hardware does double buffering for data transfers
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_is_batch(const snd_pcm_hw_params_t *params)
 {
@@ -2300,6 +2312,10 @@ int snd_pcm_hw_params_is_batch(const snd_pcm_hw_params_t *params)
  * \return Boolean value
  * \retval 0 Hardware doesn't block transfers
  * \retval 1 Hardware does block transfers
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
 {
@@ -2313,6 +2329,10 @@ int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
  * \return Boolean value
  * \retval 0 Hardware doesn't support overrange detection
  * \retval 1 Hardware supports overrange detection
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params)
 {
@@ -2326,6 +2346,10 @@ int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params)
  * \return Boolean value
  * \retval 0 Hardware doesn't support pause
  * \retval 1 Hardware supports pause
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_can_pause(const snd_pcm_hw_params_t *params)
 {
@@ -2339,6 +2363,10 @@ int snd_pcm_hw_params_can_pause(const snd_pcm_hw_params_t *params)
  * \return Boolean value
  * \retval 0 Hardware doesn't support resume
  * \retval 1 Hardware supports resume
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_can_resume(const snd_pcm_hw_params_t *params)
 {
@@ -2352,6 +2380,10 @@ int snd_pcm_hw_params_can_resume(const snd_pcm_hw_params_t *params)
  * \return Boolean value
  * \retval 0 Hardware doesn't do half-duplex
  * \retval 1 Hardware does half-duplex
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_is_half_duplex(const snd_pcm_hw_params_t *params)
 {
@@ -2365,6 +2397,10 @@ int snd_pcm_hw_params_is_half_duplex(const snd_pcm_hw_params_t *params)
  * \return Boolean value
  * \retval 0 Hardware doesn't do joint-duplex
  * \retval 1 Hardware does joint-duplex
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params)
 {
@@ -2378,7 +2414,11 @@ int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params)
  * \return Boolean value
  * \retval 0 Hardware doesn't support synchronized start
  * \retval 1 Hardware supports synchronized start
- */
+ *
+ * The return value is always one when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
+
 int snd_pcm_hw_params_can_sync_start(const snd_pcm_hw_params_t *params)
 {
 	assert(params);
@@ -2391,6 +2431,10 @@ int snd_pcm_hw_params_can_sync_start(const snd_pcm_hw_params_t *params)
  * \param rate_num Pointer to returned rate numerator
  * \param rate_den Pointer to returned rate denominator
  * \return 0 otherwise a negative error code if the info is not available
+ *
+ * The return value is always -EINVAL when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
 				      unsigned int *rate_num, unsigned int *rate_den)
@@ -2406,6 +2450,10 @@ int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
  * \brief Get sample resolution info from a configuration space
  * \param params Configuration space
  * \return signification bits in sample otherwise a negative error code if the info is not available
+ *
+ * The return value is always -EINVAL when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
 {
@@ -2418,6 +2466,10 @@ int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
  * \brief Get hard are FIFO size info from a configuration space
  * \param params Configuration space
  * \return FIFO size in frames otherwise a negative error code if the info is not available
+ *
+ * The return value is always -EINVAL when given configuration is not exactly one.
+ * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * from the configuration space.
  */
 int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params)
 {
