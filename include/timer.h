@@ -29,27 +29,27 @@ typedef struct sndrv_timer_read snd_timer_read_t;
 
 /** timer master class */
 typedef enum _snd_timer_class {
-	SND_TIMER_CLASS_NONE = SNDRV_TIMER_CLASS_NONE,		/**< invalid */
-	SND_TIMER_CLASS_SLAVE = SNDRV_TIMER_CLASS_SLAVE,	/**< slave timer */
-	SND_TIMER_CLASS_GLOBAL = SNDRV_TIMER_CLASS_GLOBAL,	/**< global timer */
-	SND_TIMER_CLASS_CARD = SNDRV_TIMER_CLASS_CARD,		/**< card timer */
-	SND_TIMER_CLASS_PCM = SNDRV_TIMER_CLASS_PCM,		/**< PCM timer */
-	SND_TIMER_CLASS_LAST = SNDRV_TIMER_CLASS_LAST,		/**< last timer */
+	SND_TIMER_CLASS_NONE = -1,	/**< invalid */
+	SND_TIMER_CLASS_SLAVE = 0,	/**< slave timer */
+	SND_TIMER_CLASS_GLOBAL,		/**< global timer */
+	SND_TIMER_CLASS_CARD,		/**< card timer */
+	SND_TIMER_CLASS_PCM,		/**< PCM timer */
+	SND_TIMER_CLASS_LAST = SND_TIMER_CLASS_PCM,	/**< last timer */
 } snd_timer_class_t;
 
 /** timer slave class */
 typedef enum _snd_timer_slave_class {
-	SND_TIMER_SCLASS_NONE = SNDRV_TIMER_SCLASS_NONE,		/**< none */
-	SND_TIMER_SCLASS_APPLICATION = SNDRV_TIMER_SCLASS_APPLICATION,	/**< for internal use */
-	SND_TIMER_SCLASS_SEQUENCER = SNDRV_TIMER_SCLASS_SEQUENCER,	/**< sequencer timer */
-	SND_TIMER_SCLASS_OSS_SEQUENCER = SNDRV_TIMER_SCLASS_OSS_SEQUENCER, /**< OSS sequencer timer */
-	SND_TIMER_SCLASS_LAST = SNDRV_TIMER_SCLASS_LAST,		/**< last slave timer */
+	SND_TIMER_SCLASS_NONE = 0,		/**< none */
+	SND_TIMER_SCLASS_APPLICATION,		/**< for internal use */
+	SND_TIMER_SCLASS_SEQUENCER,		/**< sequencer timer */
+	SND_TIMER_SCLASS_OSS_SEQUENCER,		/**< OSS sequencer timer */
+	SND_TIMER_SCLASS_LAST = SND_TIMER_SCLASS_OSS_SEQUENCER,	/**< last slave timer */
 } snd_timer_slave_class_t;
 
 /** global timer - system */
-#define SND_TIMER_GLOBAL_SYSTEM SNDRV_TIMER_GLOBAL_SYSTEM
+#define SND_TIMER_GLOBAL_SYSTEM 0
 /** global timer - RTC */
-#define SND_TIMER_GLOBAL_RTC SNDRV_TIMER_GLOBAL_RTC
+#define SND_TIMER_GLOBAL_RTC 	1
 
 /** timer open mode flag - nonblock */
 #define SND_TIMER_OPEN_NONBLOCK		1
@@ -57,7 +57,7 @@ typedef enum _snd_timer_slave_class {
 /** timer handle type */
 typedef enum _snd_timer_type {
 	/** Kernel level HwDep */
-	SND_TIMER_TYPE_HW,
+	SND_TIMER_TYPE_HW = 0,
 	/** Shared memory client timer (not yet implemented) */
 	SND_TIMER_TYPE_SHM,
 	/** INET client timer (not yet implemented) */

@@ -28,7 +28,6 @@
 #ifndef __ASOUNDLIB_H
 #define __ASOUNDLIB_H
 
-#include <sound/asound.h>
 #include <sound/asoundef.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -36,6 +35,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <endian.h>
 #include <sys/poll.h>
 #include <errno.h>
 

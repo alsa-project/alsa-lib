@@ -38,58 +38,82 @@ typedef struct _snd_ctl_event snd_ctl_event_t;
 /** CTL element type */
 typedef enum _snd_ctl_elem_type {
 	/** Invalid type */
-	SND_CTL_ELEM_TYPE_NONE = SNDRV_CTL_ELEM_TYPE_NONE,
+	SND_CTL_ELEM_TYPE_NONE = 0,
 	/** Boolean contents */
-	SND_CTL_ELEM_TYPE_BOOLEAN = SNDRV_CTL_ELEM_TYPE_BOOLEAN,
+	SND_CTL_ELEM_TYPE_BOOLEAN,
 	/** Integer contents */
-	SND_CTL_ELEM_TYPE_INTEGER = SNDRV_CTL_ELEM_TYPE_INTEGER,
+	SND_CTL_ELEM_TYPE_INTEGER,
 	/** Enumerated contents */
-	SND_CTL_ELEM_TYPE_ENUMERATED = SNDRV_CTL_ELEM_TYPE_ENUMERATED,
+	SND_CTL_ELEM_TYPE_ENUMERATED,
 	/** Bytes contents */
-	SND_CTL_ELEM_TYPE_BYTES = SNDRV_CTL_ELEM_TYPE_BYTES,
+	SND_CTL_ELEM_TYPE_BYTES,
 	/** IEC958 (S/PDIF) setting content */
-	SND_CTL_ELEM_TYPE_IEC958 = SNDRV_CTL_ELEM_TYPE_IEC958,
-	SND_CTL_ELEM_TYPE_LAST = SNDRV_CTL_ELEM_TYPE_LAST,
+	SND_CTL_ELEM_TYPE_IEC958,
+	SND_CTL_ELEM_TYPE_LAST = SND_CTL_ELEM_TYPE_IEC958,
 } snd_ctl_elem_type_t;
 
 /** CTL related interface */
 typedef enum _snd_ctl_elem_iface {
 	/** Card level */
-	SND_CTL_ELEM_IFACE_CARD = SNDRV_CTL_ELEM_IFACE_CARD,
+	SND_CTL_ELEM_IFACE_CARD = 0,
 	/** Hardware dependent device */
-	SND_CTL_ELEM_IFACE_HWDEP = SNDRV_CTL_ELEM_IFACE_HWDEP,
+	SND_CTL_ELEM_IFACE_HWDEP,
 	/** Mixer */
-	SND_CTL_ELEM_IFACE_MIXER = SNDRV_CTL_ELEM_IFACE_MIXER,
+	SND_CTL_ELEM_IFACE_MIXER,
 	/** PCM */
-	SND_CTL_ELEM_IFACE_PCM = SNDRV_CTL_ELEM_IFACE_PCM,
+	SND_CTL_ELEM_IFACE_PCM,
 	/** RawMidi */
-	SND_CTL_ELEM_IFACE_RAWMIDI = SNDRV_CTL_ELEM_IFACE_RAWMIDI,
+	SND_CTL_ELEM_IFACE_RAWMIDI,
 	/** Timer */
-	SND_CTL_ELEM_IFACE_TIMER = SNDRV_CTL_ELEM_IFACE_TIMER,
+	SND_CTL_ELEM_IFACE_TIMER,
 	/** Sequencer */
-	SND_CTL_ELEM_IFACE_SEQUENCER = SNDRV_CTL_ELEM_IFACE_SEQUENCER,
-	SND_CTL_ELEM_IFACE_LAST = SNDRV_CTL_ELEM_IFACE_LAST,
+	SND_CTL_ELEM_IFACE_SEQUENCER,
+	SND_CTL_ELEM_IFACE_LAST = SND_CTL_ELEM_IFACE_SEQUENCER,
 } snd_ctl_elem_iface_t;
 
 /** Event class */
 typedef enum _snd_ctl_event_type {
 	/** Elements related event */
-	SND_CTL_EVENT_ELEM = SNDRV_CTL_EVENT_ELEM,
-	SND_CTL_EVENT_LAST = SNDRV_CTL_EVENT_LAST,
+	SND_CTL_EVENT_ELEM = 0,
+	SND_CTL_EVENT_LAST = SND_CTL_EVENT_ELEM,
 }snd_ctl_event_type_t;
 
 /** Element has been removed (Warning: test this first and if set don't
- * test the other masks) \hideinitializer */
-#define SND_CTL_EVENT_MASK_REMOVE SNDRV_CTL_EVENT_MASK_REMOVE
-/** Element has been added \hideinitializer */
-#define SND_CTL_EVENT_MASK_ADD SNDRV_CTL_EVENT_MASK_ADD
-/** Element info has been changed \hideinitializer */
-#define SND_CTL_EVENT_MASK_INFO SNDRV_CTL_EVENT_MASK_INFO
+  * test the other masks) \hideinitializer */
+#define SND_CTL_EVENT_MASK_REMOVE 	(~0U)
 /** Element value has been changed \hideinitializer */
-#define SND_CTL_EVENT_MASK_VALUE SNDRV_CTL_EVENT_MASK_VALUE
+#define SND_CTL_EVENT_MASK_VALUE	(1<<0)
+/** Element info has been changed \hideinitializer */
+#define SND_CTL_EVENT_MASK_INFO		(1<<1)
+/** Element has been added \hideinitializer */
+#define SND_CTL_EVENT_MASK_ADD		(1<<2)
 
+/** CTL name helper */
+#define SND_CTL_NAME_NONE				""
+/** CTL name helper */
+#define SND_CTL_NAME_PLAYBACK				"Playback "
+/** CTL name helper */
+#define SND_CTL_NAME_CAPTURE				"Capture "
+
+/** CTL name helper */
+#define SND_CTL_NAME_IEC958_NONE			""
+/** CTL name helper */
+#define SND_CTL_NAME_IEC958_SWITCH			"Switch"
+/** CTL name helper */
+#define SND_CTL_NAME_IEC958_VOLUME			"Volume"
+/** CTL name helper */
+#define SND_CTL_NAME_IEC958_DEFAULT			"Default"
+/** CTL name helper */
+#define SND_CTL_NAME_IEC958_MASK			"Mask"
+/** CTL name helper */
+#define SND_CTL_NAME_IEC958_CON_MASK			"Con Mask"
+/** CTL name helper */
+#define SND_CTL_NAME_IEC958_PRO_MASK			"Pro Mask"
+/** CTL name helper */
+#define SND_CTL_NAME_IEC958_PCM_STREAM			"PCM Stream"
 /** Element name for IEC958 (S/PDIF) */
-#define SND_CTL_NAME_IEC958 SNDRV_CTL_NAME_IEC958
+#define SND_CTL_NAME_IEC958(expl,direction,what)	"IEC958 " expl SND_CTL_NAME_##direction SND_CTL_NAME_IEC958_##what
+
 
 /** CTL type */
 typedef enum _snd_ctl_type {

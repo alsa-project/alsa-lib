@@ -210,10 +210,6 @@ enum snd_seq_event_type {
 };
 
 
-#ifdef _SND_SEQ_IN_LOCAL
-#include <sound/asequencer.h>
-#else
-
 /** Sequencer event address */
 typedef struct snd_seq_addr {
 	unsigned char client;	/**< Client id */
@@ -428,8 +424,6 @@ typedef struct snd_seq_event {
 		snd_seq_ev_sample_control_t sample;
 	} data;				/**< event data... */
 } snd_seq_event_t;
-
-#endif /* _SND_SEQ_IN_LOCAL */
 
 
 /** \} */

@@ -902,7 +902,7 @@ int snd_seq_port_info_get_port(const snd_seq_port_info_t *info)
 const snd_seq_addr_t *snd_seq_port_info_get_addr(const snd_seq_port_info_t *info)
 {
 	assert(info);
-	return &info->addr;
+	return (snd_seq_addr_t *)&info->addr;
 }
 
 /**
@@ -1034,7 +1034,7 @@ void snd_seq_port_info_set_port(snd_seq_port_info_t *info, int port)
 void snd_seq_port_info_set_addr(snd_seq_port_info_t *info, const snd_seq_addr_t *addr)
 {
 	assert(info);
-	info->addr = *addr;
+	info->addr = *(struct sndrv_seq_addr *)addr;
 }
 
 /**
@@ -1308,7 +1308,7 @@ void snd_seq_port_subscribe_copy(snd_seq_port_subscribe_t *dst, const snd_seq_po
 const snd_seq_addr_t *snd_seq_port_subscribe_get_sender(const snd_seq_port_subscribe_t *info)
 {
 	assert(info);
-	return &info->sender;
+	return (snd_seq_addr_t *)&info->sender;
 }
 
 /**
@@ -1319,7 +1319,7 @@ const snd_seq_addr_t *snd_seq_port_subscribe_get_sender(const snd_seq_port_subsc
 const snd_seq_addr_t *snd_seq_port_subscribe_get_dest(const snd_seq_port_subscribe_t *info)
 {
 	assert(info);
-	return &info->dest;
+	return (snd_seq_addr_t *)&info->dest;
 }
 
 /**
@@ -1559,7 +1559,7 @@ int snd_seq_query_subscribe_get_port(const snd_seq_query_subscribe_t *info)
 const snd_seq_addr_t *snd_seq_query_subscribe_get_root(const snd_seq_query_subscribe_t *info)
 {
 	assert(info);
-	return &info->root;
+	return (snd_seq_addr_t *)&info->root;
 }
 
 /**
@@ -1603,7 +1603,7 @@ int snd_seq_query_subscribe_get_num_subs(const snd_seq_query_subscribe_t *info)
 const snd_seq_addr_t *snd_seq_query_subscribe_get_addr(const snd_seq_query_subscribe_t *info)
 {
 	assert(info);
-	return &info->addr;
+	return (snd_seq_addr_t *)&info->addr;
 }
 
 /**
@@ -1680,7 +1680,7 @@ void snd_seq_query_subscribe_set_port(snd_seq_query_subscribe_t *info, int port)
 void snd_seq_query_subscribe_set_root(snd_seq_query_subscribe_t *info, const snd_seq_addr_t *addr)
 {
 	assert(info);
-	info->root = *addr;
+	info->root = *(struct sndrv_seq_addr *)addr;
 }
 
 /**
@@ -2104,7 +2104,7 @@ snd_seq_tick_time_t snd_seq_queue_status_get_tick_time(const snd_seq_queue_statu
 const snd_seq_real_time_t *snd_seq_queue_status_get_real_time(const snd_seq_queue_status_t *info)
 {
 	assert(info);
-	return &info->time;
+	return (snd_seq_real_time_t *)&info->time;
 }
 
 /**
@@ -2893,7 +2893,7 @@ int snd_seq_remove_events_get_queue(const snd_seq_remove_events_t *info)
 const snd_seq_timestamp_t *snd_seq_remove_events_get_time(const snd_seq_remove_events_t *info)
 {
 	assert(info);
-	return &info->time;
+	return (snd_seq_timestamp_t *)&info->time;
 }
 
 /**
@@ -2904,7 +2904,7 @@ const snd_seq_timestamp_t *snd_seq_remove_events_get_time(const snd_seq_remove_e
 const snd_seq_addr_t *snd_seq_remove_events_get_dest(const snd_seq_remove_events_t *info)
 {
 	assert(info);
-	return &info->dest;
+	return (snd_seq_addr_t *)&info->dest;
 }
 
 /**
@@ -2970,7 +2970,7 @@ void snd_seq_remove_events_set_queue(snd_seq_remove_events_t *info, int queue)
 void snd_seq_remove_events_set_time(snd_seq_remove_events_t *info, const snd_seq_timestamp_t *time)
 {
 	assert(info);
-	info->time = *time;
+	info->time = *(union sndrv_seq_timestamp *)time;
 }
 
 /**
@@ -2981,7 +2981,7 @@ void snd_seq_remove_events_set_time(snd_seq_remove_events_t *info, const snd_seq
 void snd_seq_remove_events_set_dest(snd_seq_remove_events_t *info, const snd_seq_addr_t *addr)
 {
 	assert(info);
-	info->dest = *addr;
+	info->dest = *(struct sndrv_seq_addr *)addr;
 }
 
 /**
@@ -3020,13 +3020,13 @@ void snd_seq_remove_events_set_tag(snd_seq_remove_events_t *info, int tag)
 
 /* compare timestamp between events */
 /* return 1 if a >= b; otherwise return 0 */
-static inline int snd_seq_compare_tick_time(sndrv_seq_tick_time_t *a, sndrv_seq_tick_time_t *b)
+static inline int snd_seq_compare_tick_time(snd_seq_tick_time_t *a, snd_seq_tick_time_t *b)
 {
 	/* compare ticks */
 	return (*a >= *b);
 }
 
-static inline int snd_seq_compare_real_time(struct sndrv_seq_real_time *a, struct sndrv_seq_real_time *b)
+static inline int snd_seq_compare_real_time(snd_seq_real_time_t *a, snd_seq_real_time_t *b)
 {
 	/* compare real time */
 	if (a->tv_sec > b->tv_sec)
@@ -3055,17 +3055,17 @@ static int remove_match(snd_seq_remove_events_t *info, snd_seq_event_t *ev)
 	}
 	if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_AFTER) {
 		if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_TICK)
-			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
+			res = snd_seq_compare_tick_time(&ev->time.tick, (snd_seq_tick_time_t *)&info->time.tick);
 		else
-			res = snd_seq_compare_real_time(&ev->time.time, &info->time.time);
+			res = snd_seq_compare_real_time(&ev->time.time, (snd_seq_real_time_t *)&info->time.time);
 		if (!res)
 			return 0;
 	}
 	if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_BEFORE) {
 		if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_TICK)
-			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
+			res = snd_seq_compare_tick_time(&ev->time.tick, (snd_seq_tick_time_t *)&info->time.tick);
 		else
-			res = snd_seq_compare_real_time(&ev->time.time, &info->time.time);
+			res = snd_seq_compare_real_time(&ev->time.time, (snd_seq_real_time_t *)&info->time.time);
 		if (res)
 			return 0;
 	}
@@ -3411,7 +3411,7 @@ void snd_instr_header_copy(snd_instr_header_t *dst, const snd_instr_header_t *sr
 const snd_seq_instr_t *snd_instr_header_get_id(const snd_instr_header_t *info)
 {
 	assert(info);
-	return &info->id.instr;
+	return (snd_seq_instr_t *)&info->id.instr;
 }
 
 /**
@@ -3488,7 +3488,7 @@ const char *snd_instr_header_get_format(const snd_instr_header_t *info)
 const snd_seq_instr_t *snd_instr_header_get_alias(const snd_instr_header_t *info)
 {
 	assert(info);
-	return &info->data.data.alias;
+	return (snd_seq_instr_t *)&info->data.data.alias;
 }
 
 /**
@@ -3521,7 +3521,7 @@ int snd_instr_header_get_follow_alias(const snd_instr_header_t *info)
 void snd_instr_header_set_id(snd_instr_header_t *info, const snd_seq_instr_t *id)
 {
 	assert(info && id);
-	info->id.instr = *id;
+	info->id.instr = *(struct sndrv_seq_instr *)id;
 }
 
 /**
@@ -3598,7 +3598,7 @@ void snd_instr_header_set_format(snd_instr_header_t *info, const char *format)
 void snd_instr_header_set_alias(snd_instr_header_t *info, const snd_seq_instr_t *instr)
 {
 	assert(info && instr);
-	info->data.data.alias = *instr;
+	info->data.data.alias = *(struct sndrv_seq_instr *)instr;
 }
 
 /**

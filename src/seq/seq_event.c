@@ -5,7 +5,7 @@
  * \date 2001
  */
 
-#include "../../include/asoundlib.h"
+#include "local.h"
 
 #ifndef DOC_HIDDEN
 #define FIXED_EV(x)	(_SND_SEQ_TYPE(SND_SEQ_EVFLG_FIXED) | _SND_SEQ_TYPE(x))

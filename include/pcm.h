@@ -32,47 +32,47 @@ typedef struct _snd_pcm_subformat_mask snd_pcm_subformat_mask_t;
 /** PCM class */
 typedef enum _snd_pcm_class {
 	/** standard device */
-	SND_PCM_CLASS_GENERIC = SNDRV_PCM_CLASS_GENERIC,
+	SND_PCM_CLASS_GENERIC = 0,
 	/** multichannel device */
-	SND_PCM_CLASS_MULTI = SNDRV_PCM_CLASS_MULTI,
+	SND_PCM_CLASS_MULTI,
 	/** software modem device */
-	SND_PCM_CLASS_MODEM = SNDRV_PCM_CLASS_MODEM,
+	SND_PCM_CLASS_MODEM,
 	/** digitizer device */
-	SND_PCM_CLASS_DIGITIZER = SNDRV_PCM_CLASS_DIGITIZER,
-	SND_PCM_CLASS_LAST = SNDRV_PCM_CLASS_LAST,
+	SND_PCM_CLASS_DIGITIZER,
+	SND_PCM_CLASS_LAST = SND_PCM_CLASS_DIGITIZER,
 } snd_pcm_class_t;
 
 /** PCM subclass */
 typedef enum _snd_pcm_subclass {
 	/** subdevices are mixed together */
-	SND_PCM_SUBCLASS_GENERIC_MIX = SNDRV_PCM_SUBCLASS_GENERIC_MIX,
+	SND_PCM_SUBCLASS_GENERIC_MIX = 0,
 	/** multichannel subdevices are mixed together */
-	SND_PCM_SUBCLASS_MULTI_MIX = SNDRV_PCM_SUBCLASS_MULTI_MIX,
-	SND_PCM_SUBCLASS_LAST = SNDRV_PCM_SUBCLASS_LAST,
+	SND_PCM_SUBCLASS_MULTI_MIX,
+	SND_PCM_SUBCLASS_LAST = SND_PCM_SUBCLASS_MULTI_MIX,
 } snd_pcm_subclass_t;
 
 /** PCM stream (direction) */
 typedef enum _snd_pcm_stream {
 	/** Playback stream */
-	SND_PCM_STREAM_PLAYBACK = SNDRV_PCM_STREAM_PLAYBACK,
+	SND_PCM_STREAM_PLAYBACK = 0,
 	/** Capture stream */
-	SND_PCM_STREAM_CAPTURE = SNDRV_PCM_STREAM_CAPTURE,
-	SND_PCM_STREAM_LAST = SNDRV_PCM_STREAM_LAST,
+	SND_PCM_STREAM_CAPTURE,
+	SND_PCM_STREAM_LAST = SND_PCM_STREAM_CAPTURE,
 } snd_pcm_stream_t;
 
 /** PCM access type */
 typedef enum _snd_pcm_access {
 	/** mmap access with simple interleaved channels */
-	SND_PCM_ACCESS_MMAP_INTERLEAVED = SNDRV_PCM_ACCESS_MMAP_INTERLEAVED,
+	SND_PCM_ACCESS_MMAP_INTERLEAVED = 0,
 	/** mmap access with simple non interleaved channels */
-	SND_PCM_ACCESS_MMAP_NONINTERLEAVED = SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED,
+	SND_PCM_ACCESS_MMAP_NONINTERLEAVED,
 	/** mmap access with complex placement */
-	SND_PCM_ACCESS_MMAP_COMPLEX = SNDRV_PCM_ACCESS_MMAP_COMPLEX,
+	SND_PCM_ACCESS_MMAP_COMPLEX,
 	/** snd_pcm_readi/snd_pcm_writei access */
-	SND_PCM_ACCESS_RW_INTERLEAVED = SNDRV_PCM_ACCESS_RW_INTERLEAVED,
+	SND_PCM_ACCESS_RW_INTERLEAVED,
 	/** snd_pcm_readn/snd_pcm_writen access */
-	SND_PCM_ACCESS_RW_NONINTERLEAVED = SNDRV_PCM_ACCESS_RW_NONINTERLEAVED,
-	SND_PCM_ACCESS_LAST = SNDRV_PCM_ACCESS_LAST,
+	SND_PCM_ACCESS_RW_NONINTERLEAVED,
+	SND_PCM_ACCESS_LAST = SND_PCM_ACCESS_RW_NONINTERLEAVED,
 } snd_pcm_access_t;
 
 /** PCM sample format */
@@ -80,129 +80,153 @@ typedef enum _snd_pcm_format {
 	/** Unknown */
 	SND_PCM_FORMAT_UNKNOWN = -1,
 	/** Signed 8 bit */
-	SND_PCM_FORMAT_S8 = SNDRV_PCM_FORMAT_S8,
+	SND_PCM_FORMAT_S8 = 0,
 	/** Unsigned 8 bit */
-	SND_PCM_FORMAT_U8 = SNDRV_PCM_FORMAT_U8,
+	SND_PCM_FORMAT_U8,
 	/** Signed 16 bit Little Endian */
-	SND_PCM_FORMAT_S16_LE = SNDRV_PCM_FORMAT_S16_LE,
+	SND_PCM_FORMAT_S16_LE,
 	/** Signed 16 bit Big Endian */
-	SND_PCM_FORMAT_S16_BE = SNDRV_PCM_FORMAT_S16_BE,
+	SND_PCM_FORMAT_S16_BE,
 	/** Unsigned 16 bit Little Endian */
-	SND_PCM_FORMAT_U16_LE = SNDRV_PCM_FORMAT_U16_LE,
+	SND_PCM_FORMAT_U16_LE,
 	/** Unsigned 16 bit Big Endian */
-	SND_PCM_FORMAT_U16_BE = SNDRV_PCM_FORMAT_U16_BE,
+	SND_PCM_FORMAT_U16_BE,
 	/** Signed 24 bit Little Endian */
-	SND_PCM_FORMAT_S24_LE = SNDRV_PCM_FORMAT_S24_LE,
+	SND_PCM_FORMAT_S24_LE,
 	/** Signed 24 bit Big Endian */
-	SND_PCM_FORMAT_S24_BE = SNDRV_PCM_FORMAT_S24_BE,
+	SND_PCM_FORMAT_S24_BE,
 	/** Unsigned 24 bit Little Endian */
-	SND_PCM_FORMAT_U24_LE = SNDRV_PCM_FORMAT_U24_LE,
+	SND_PCM_FORMAT_U24_LE,
 	/** Unsigned 24 bit Big Endian */
-	SND_PCM_FORMAT_U24_BE = SNDRV_PCM_FORMAT_U24_BE,
+	SND_PCM_FORMAT_U24_BE,
 	/** Signed 32 bit Little Endian */
-	SND_PCM_FORMAT_S32_LE = SNDRV_PCM_FORMAT_S32_LE,
+	SND_PCM_FORMAT_S32_LE,
 	/** Signed 32 bit Big Endian */
-	SND_PCM_FORMAT_S32_BE = SNDRV_PCM_FORMAT_S32_BE,
+	SND_PCM_FORMAT_S32_BE,
 	/** Unsigned 32 bit Little Endian */
-	SND_PCM_FORMAT_U32_LE = SNDRV_PCM_FORMAT_U32_LE,
+	SND_PCM_FORMAT_U32_LE,
 	/** Unsigned 32 bit Big Endian */
-	SND_PCM_FORMAT_U32_BE = SNDRV_PCM_FORMAT_U32_BE,
+	SND_PCM_FORMAT_U32_BE,
 	/** Float 32 bit Little Endian */
-	SND_PCM_FORMAT_FLOAT_LE = SNDRV_PCM_FORMAT_FLOAT_LE,
+	SND_PCM_FORMAT_FLOAT_LE,
 	/** Float 32 bit Big Endian */
-	SND_PCM_FORMAT_FLOAT_BE = SNDRV_PCM_FORMAT_FLOAT_BE,
+	SND_PCM_FORMAT_FLOAT_BE,
 	/** Float 64 bit Little Endian */
-	SND_PCM_FORMAT_FLOAT64_LE = SNDRV_PCM_FORMAT_FLOAT64_LE,
+	SND_PCM_FORMAT_FLOAT64_LE,
 	/** Float 64 bit Big Endian */
-	SND_PCM_FORMAT_FLOAT64_BE = SNDRV_PCM_FORMAT_FLOAT64_BE,
+	SND_PCM_FORMAT_FLOAT64_BE,
 	/** IEC-958 Little Endian */
-	SND_PCM_FORMAT_IEC958_SUBFRAME_LE = SNDRV_PCM_FORMAT_IEC958_SUBFRAME_LE,
+	SND_PCM_FORMAT_IEC958_SUBFRAME_LE,
 	/** IEC-958 Big Endian */
-	SND_PCM_FORMAT_IEC958_SUBFRAME_BE = SNDRV_PCM_FORMAT_IEC958_SUBFRAME_BE,
+	SND_PCM_FORMAT_IEC958_SUBFRAME_BE,
 	/** Mu-Law */
-	SND_PCM_FORMAT_MU_LAW = SNDRV_PCM_FORMAT_MU_LAW,
+	SND_PCM_FORMAT_MU_LAW,
 	/** A-Law */
-	SND_PCM_FORMAT_A_LAW = SNDRV_PCM_FORMAT_A_LAW,
+	SND_PCM_FORMAT_A_LAW,
 	/** Ima-ADPCM */
-	SND_PCM_FORMAT_IMA_ADPCM = SNDRV_PCM_FORMAT_IMA_ADPCM,
+	SND_PCM_FORMAT_IMA_ADPCM,
 	/** MPEG */
-	SND_PCM_FORMAT_MPEG = SNDRV_PCM_FORMAT_MPEG,
+	SND_PCM_FORMAT_MPEG,
 	/** GSM */
-	SND_PCM_FORMAT_GSM = SNDRV_PCM_FORMAT_GSM,
+	SND_PCM_FORMAT_GSM,
 	/** Special */
-	SND_PCM_FORMAT_SPECIAL = SNDRV_PCM_FORMAT_SPECIAL,
-	SND_PCM_FORMAT_LAST = SNDRV_PCM_FORMAT_LAST,
+	SND_PCM_FORMAT_SPECIAL = 31,
+	SND_PCM_FORMAT_LAST = SND_PCM_FORMAT_SPECIAL,
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 	/** Signed 16 bit CPU endian */
-	SND_PCM_FORMAT_S16 = SNDRV_PCM_FORMAT_S16,
+	SND_PCM_FORMAT_S16 = SND_PCM_FORMAT_S16_LE,
 	/** Unsigned 16 bit CPU endian */
-	SND_PCM_FORMAT_U16 = SNDRV_PCM_FORMAT_U16,
+	SND_PCM_FORMAT_U16 = SND_PCM_FORMAT_U16_LE,
 	/** Signed 24 bit CPU endian */
-	SND_PCM_FORMAT_S24 = SNDRV_PCM_FORMAT_S24,
+	SND_PCM_FORMAT_S24 = SND_PCM_FORMAT_S24_LE,
 	/** Unsigned 24 bit CPU endian */
-	SND_PCM_FORMAT_U24 = SNDRV_PCM_FORMAT_U24,
+	SND_PCM_FORMAT_U24 = SND_PCM_FORMAT_U24_LE,
 	/** Signed 32 bit CPU endian */
-	SND_PCM_FORMAT_S32 = SNDRV_PCM_FORMAT_S32,
+	SND_PCM_FORMAT_S32 = SND_PCM_FORMAT_S32_LE,
 	/** Unsigned 32 bit CPU endian */
-	SND_PCM_FORMAT_U32 = SNDRV_PCM_FORMAT_U32,
+	SND_PCM_FORMAT_U32 = SND_PCM_FORMAT_U32_LE,
 	/** Float 32 bit CPU endian */
-	SND_PCM_FORMAT_FLOAT = SNDRV_PCM_FORMAT_FLOAT,
+	SND_PCM_FORMAT_FLOAT = SND_PCM_FORMAT_FLOAT_LE,
 	/** Float 64 bit CPU endian */
-	SND_PCM_FORMAT_FLOAT64 = SNDRV_PCM_FORMAT_FLOAT64,
+	SND_PCM_FORMAT_FLOAT64 = SND_PCM_FORMAT_FLOAT64_LE,
 	/** IEC-958 CPU Endian */
-	SND_PCM_FORMAT_IEC958_SUBFRAME = SNDRV_PCM_FORMAT_IEC958_SUBFRAME,
+	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_LE,
+#elif __BYTE_ORDER == __BIG_ENDIAN
+	/** Signed 16 bit CPU endian */
+	SND_PCM_FORMAT_S16 = SND_PCM_FORMAT_S16_BE,
+	/** Unsigned 16 bit CPU endian */
+	SND_PCM_FORMAT_U16 = SND_PCM_FORMAT_U16_BE,
+	/** Signed 24 bit CPU endian */
+	SND_PCM_FORMAT_S24 = SND_PCM_FORMAT_S24_BE,
+	/** Unsigned 24 bit CPU endian */
+	SND_PCM_FORMAT_U24 = SND_PCM_FORMAT_U24_BE,
+	/** Signed 32 bit CPU endian */
+	SND_PCM_FORMAT_S32 = SND_PCM_FORMAT_S32_BE,
+	/** Unsigned 32 bit CPU endian */
+	SND_PCM_FORMAT_U32 = SND_PCM_FORMAT_U32_BE,
+	/** Float 32 bit CPU endian */
+	SND_PCM_FORMAT_FLOAT = SND_PCM_FORMAT_FLOAT_BE,
+	/** Float 64 bit CPU endian */
+	SND_PCM_FORMAT_FLOAT64 = SND_PCM_FORMAT_FLOAT64_BE,
+	/** IEC-958 CPU Endian */
+	SND_PCM_FORMAT_IEC958_SUBFRAME = SND_PCM_FORMAT_IEC958_SUBFRAME_BE,
+#else
+#error "Unknown endian"
+#endif
 } snd_pcm_format_t;
 
 /** PCM sample subformat */
 typedef enum _snd_pcm_subformat {
 	/** Standard */
-	SND_PCM_SUBFORMAT_STD = SNDRV_PCM_SUBFORMAT_STD,
-	SND_PCM_SUBFORMAT_LAST = SNDRV_PCM_SUBFORMAT_LAST,
+	SND_PCM_SUBFORMAT_STD = 0,
+	SND_PCM_SUBFORMAT_LAST = SND_PCM_SUBFORMAT_STD,
 } snd_pcm_subformat_t;
 
 /** PCM state */
 typedef enum _snd_pcm_state {
 	/** Open */
-	SND_PCM_STATE_OPEN = SNDRV_PCM_STATE_OPEN,
+	SND_PCM_STATE_OPEN = 0,
 	/** Setup installed */ 
-	SND_PCM_STATE_SETUP = SNDRV_PCM_STATE_SETUP,
+	SND_PCM_STATE_SETUP,
 	/** Ready to start */
-	SND_PCM_STATE_PREPARED = SNDRV_PCM_STATE_PREPARED,
+	SND_PCM_STATE_PREPARED,
 	/** Running */
-	SND_PCM_STATE_RUNNING = SNDRV_PCM_STATE_RUNNING,
+	SND_PCM_STATE_RUNNING,
 	/** Stopped: underrun (playback) or overrun (capture) detected */
-	SND_PCM_STATE_XRUN = SNDRV_PCM_STATE_XRUN,
+	SND_PCM_STATE_XRUN,
 	/** Draining: running (playback) or stopped (capture) */
-	SND_PCM_STATE_DRAINING = SNDRV_PCM_STATE_DRAINING,
+	SND_PCM_STATE_DRAINING,
 	/** Paused */
-	SND_PCM_STATE_PAUSED = SNDRV_PCM_STATE_PAUSED,
-	SND_PCM_STATE_LAST = SNDRV_PCM_STATE_LAST,
+	SND_PCM_STATE_PAUSED,
+	SND_PCM_STATE_LAST = SND_PCM_STATE_PAUSED,
 } snd_pcm_state_t;
 
 /** PCM start mode */
 typedef enum _snd_pcm_start {
 	/** Automatic start on data read/write */
-	SND_PCM_START_DATA,
+	SND_PCM_START_DATA = 0,
 	/** Explicit start */
 	SND_PCM_START_EXPLICIT,
-	SND_PCM_START_LAST,
+	SND_PCM_START_LAST = SND_PCM_START_EXPLICIT,
 } snd_pcm_start_t;
 
 /** PCM xrun mode */
 typedef enum _snd_pcm_xrun {
 	/** Xrun detection disabled */
-	SND_PCM_XRUN_NONE,
+	SND_PCM_XRUN_NONE = 0,
 	/** Stop on xrun detection */
 	SND_PCM_XRUN_STOP,
-	SND_PCM_XRUN_LAST,
+	SND_PCM_XRUN_LAST = SND_PCM_XRUN_STOP,
 } snd_pcm_xrun_t;
 
 /** PCM timestamp mode */
 typedef enum _snd_pcm_tstamp {
 	/** No timestamp */
-	SND_PCM_TSTAMP_NONE = SNDRV_PCM_TSTAMP_NONE,
+	SND_PCM_TSTAMP_NONE = 0,
 	/** Update mmap'ed timestamp */
-	SND_PCM_TSTAMP_MMAP = SNDRV_PCM_TSTAMP_MMAP,
-	SND_PCM_TSTAMP_LAST = SNDRV_PCM_TSTAMP_LAST,
+	SND_PCM_TSTAMP_MMAP,
+	SND_PCM_TSTAMP_LAST = SND_PCM_TSTAMP_MMAP,
 } snd_pcm_tstamp_t;
 
 /** Unsigned frames quantity */
@@ -223,7 +247,7 @@ typedef struct _snd_pcm snd_pcm_t;
 /** PCM type */
 enum _snd_pcm_type {
 	/** Kernel level PCM */
-	SND_PCM_TYPE_HW,
+	SND_PCM_TYPE_HW = 0,
 	/** Hooked PCM */
 	SND_PCM_TYPE_HOOKS,
 	/** One ore more linked PCM with exclusive access to selected
@@ -725,7 +749,7 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val);
 
 /** type of pcm hook */
 typedef enum _snd_pcm_hook_type {
-	SND_PCM_HOOK_TYPE_HW_PARAMS,
+	SND_PCM_HOOK_TYPE_HW_PARAMS = 0,
 	SND_PCM_HOOK_TYPE_HW_FREE,
 	SND_PCM_HOOK_TYPE_CLOSE,
 	SND_PCM_HOOK_TYPE_LAST = SND_PCM_HOOK_TYPE_CLOSE,

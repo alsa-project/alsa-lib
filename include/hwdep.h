@@ -19,14 +19,14 @@ typedef struct _snd_hwdep_info snd_hwdep_info_t;
 
 /** HwDep interface */
 typedef enum _snd_hwdep_iface {
-	SND_HWDEP_IFACE_OPL2 = SNDRV_HWDEP_IFACE_OPL2,		/**< OPL2 raw driver */
-	SND_HWDEP_IFACE_OPL3 = SNDRV_HWDEP_IFACE_OPL3,		/**< OPL3 raw driver */
-	SND_HWDEP_IFACE_OPL4 = SNDRV_HWDEP_IFACE_OPL4,		/**< OPL4 raw driver */
-	SND_HWDEP_IFACE_SB16CSP = SNDRV_HWDEP_IFACE_SB16CSP,	/**< SB16CSP driver */
-	SND_HWDEP_IFACE_EMU10K1 = SNDRV_HWDEP_IFACE_EMU10K1,	/**< EMU10K1 driver */
-	SND_HWDEP_IFACE_YSS225 = SNDRV_HWDEP_IFACE_YSS225,	/**< YSS225 driver */
-	SND_HWDEP_IFACE_ICS2115 = SNDRV_HWDEP_IFACE_ICS2115,	/**< ICS2115 driver */
-	SND_HWDEP_IFACE_LAST = SNDRV_HWDEP_IFACE_LAST,		/**< last know hwdep interface */
+	SND_HWDEP_IFACE_OPL2 = 0,	/**< OPL2 raw driver */
+	SND_HWDEP_IFACE_OPL3,		/**< OPL3 raw driver */
+	SND_HWDEP_IFACE_OPL4,		/**< OPL4 raw driver */
+	SND_HWDEP_IFACE_SB16CSP,	/**< SB16CSP driver */
+	SND_HWDEP_IFACE_EMU10K1,	/**< EMU10K1 driver */
+	SND_HWDEP_IFACE_YSS225,		/**< YSS225 driver */
+	SND_HWDEP_IFACE_ICS2115,	/**< ICS2115 driver */
+	SND_HWDEP_IFACE_LAST = SND_HWDEP_IFACE_ICS2115,  /**< last know hwdep interface */
 } snd_hwdep_iface_t;
 
 /** open for reading */

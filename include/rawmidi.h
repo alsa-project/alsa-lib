@@ -24,10 +24,10 @@ typedef struct _snd_rawmidi_status snd_rawmidi_status_t;
 /** RawMidi stream (direction) */
 typedef enum _snd_rawmidi_stream {
 	/** Output stream */
-	SND_RAWMIDI_STREAM_OUTPUT = SNDRV_RAWMIDI_STREAM_OUTPUT,
+	SND_RAWMIDI_STREAM_OUTPUT = 0,
 	/** Input stream */
-	SND_RAWMIDI_STREAM_INPUT = SNDRV_RAWMIDI_STREAM_INPUT,
-	SND_RAWMIDI_STREAM_LAST = SNDRV_RAWMIDI_STREAM_LAST,
+	SND_RAWMIDI_STREAM_INPUT,
+	SND_RAWMIDI_STREAM_LAST = SND_RAWMIDI_STREAM_INPUT,
 } snd_rawmidi_stream_t;
 
 /** Append \hideinitializer */

@@ -1,4 +1,4 @@
-check_PROGRAMS=control mixer switches pause pcm pcmtest latency seq \
+check_PROGRAMS=control mixer switches pause pcm latency seq \
 	       playmidi1 timer loopback rawmidi midiloop cardid
 
 control_LDADD=../src/libasound.la
@@ -6,7 +6,6 @@ mixer_LDADD=../src/libasound.la
 switches_LDADD=../src/libasound.la
 pause_LDADD=../src/libasound.la
 pcm_LDADD=../src/libasound.la
-pcmtest_LDADD=../src/libasound.la
 latency_LDADD=../src/libasound.la
 seq_LDADD=../src/libasound.la
 playmidi1_LDADD=../src/libasound.la

@@ -26,7 +26,7 @@ enum snd_pcm_plug_route_policy {
 	PLUG_ROUTE_POLICY_NONE,
 	PLUG_ROUTE_POLICY_DEFAULT,
 	PLUG_ROUTE_POLICY_COPY,
-	PLUG_ROUTE_POLICY_SUM,
+	PLUG_ROUTE_POLICY_AVERAGE,
 	PLUG_ROUTE_POLICY_DUP,
 };
 
@@ -263,10 +263,12 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 		if (rpolicy == PLUG_ROUTE_POLICY_DEFAULT) {
 			rpolicy = PLUG_ROUTE_POLICY_COPY;
 			if (pcm->stream == SND_PCM_STREAM_CAPTURE && clt->channels == 1)
-				rpolicy = PLUG_ROUTE_POLICY_SUM;
+				rpolicy = PLUG_ROUTE_POLICY_AVERAGE;
+			if (pcm->stream == SND_PCM_STREAM_PLAYBACK && slv->channels == 1)
+				rpolicy = PLUG_ROUTE_POLICY_AVERAGE;
 		}
 		switch (rpolicy) {
-		case PLUG_ROUTE_POLICY_SUM:
+		case PLUG_ROUTE_POLICY_AVERAGE:
 		case PLUG_ROUTE_POLICY_DUP:
 			if (clt->channels > slv->channels) {
 				n = clt->channels;
@@ -275,7 +277,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 			}
 			while (n-- > 0) {
 				snd_pcm_route_ttable_entry_t v = FULL;
-				if (rpolicy == PLUG_ROUTE_POLICY_SUM) {
+				if (rpolicy == PLUG_ROUTE_POLICY_AVERAGE) {
 					if (pcm->stream == SND_PCM_STREAM_PLAYBACK &&
 					    clt->channels > slv->channels) {
 						int srcs = clt->channels / slv->channels;
@@ -822,8 +824,8 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 				SNDERR("Table is defined, route policy is ignored");
 			if (!strcmp(str, "default"))
 				route_policy = PLUG_ROUTE_POLICY_DEFAULT;
-			else if (!strcmp(str, "sum"))
-				route_policy = PLUG_ROUTE_POLICY_SUM;
+			else if (!strcmp(str, "average"))
+				route_policy = PLUG_ROUTE_POLICY_AVERAGE;
 			else if (!strcmp(str, "copy"))
 				route_policy = PLUG_ROUTE_POLICY_COPY;
 			else if (!strcmp(str, "duplicate"))
