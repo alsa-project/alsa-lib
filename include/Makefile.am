@@ -8,7 +8,7 @@ alsainclude_HEADERS = asoundlib.h \
 		      seq_event.h seq.h seqmid.h seq_midi_event.h \
 		      conv.h instr.h
 
-noinst_HEADERS = sys.h search.h list.h aserver.h local.h config.h
+noinst_HEADERS = sys.h search.h list.h aserver.h local.h config.h iatomic.h
 
 EXTRA_CLEAN = stamp-vh
 
