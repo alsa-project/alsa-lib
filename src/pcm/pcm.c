@@ -1304,6 +1304,12 @@ snd_pcm_format_t snd_pcm_format_value(const char* name)
 			return format;
 		}
 	}
+	for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
+		if (snd_pcm_format_descriptions[format] &&
+		    strcasecmp(name, snd_pcm_format_descriptions[format]) == 0) {
+			return format;
+		}
+	}
 	return SND_PCM_FORMAT_UNKNOWN;
 }
 
@@ -5501,7 +5507,7 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 				}
 				f = snd_pcm_format_value(str);
 				if (f == SND_PCM_FORMAT_UNKNOWN) {
-					SNDERR("unknown format");
+					SNDERR("unknown format %s", str);
 					err = -EINVAL;
 					goto _err;
 				}
