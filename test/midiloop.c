@@ -66,13 +66,12 @@ int main(int argc, char** argv)
 	int i, j, k, opos, ipos, patsize;
 	int err;
 	int verbose = 0;
-	int card_in = -1, device_in = 0;
-	int card_out = -1, device_out = 0;	
 	snd_rawmidi_t *handle_in = NULL, *handle_out = NULL;
-	unsigned char ibuf[512], obuf[512], iname[32], oname[32];
+	unsigned char ibuf[512], obuf[512];
+	char *iname = "hw:0,0", *oname = "hw:0,0";
 	struct timeval start, end;
 	long long diff;
-	snd_rawmidi_status_t istat, ostat;
+	snd_rawmidi_status_t *istat, *ostat;
 	
 	if (argc == 1) {
 		usage();
@@ -89,58 +88,34 @@ int main(int argc, char** argv)
 					verbose = 1;
 					break;
 				case 'i':
-					card_in = atoi(argv[i+1]);
-					if (isdigit(argv[i+2][0])) {
-						device_in = atoi(argv[i+2]);
-					} else {
-						fprintf(stderr,"Error: -i with card_id, but missing device id\n");
-						exit(-1);
-					}
-					i+=2;
+					iname = argv[i+1];
 					break;
 				case 'o':
-					card_out = atoi(argv[i+1]);
-					if (isdigit(argv[i+2][0])) {
-						device_out = atoi(argv[i+2]);
-					}else{
-						fprintf(stderr,"Error: -i with card_id, but missing device id\n");
-						exit(EXIT_FAILURE);
-					}
+					oname = argv[i+1];
 					break;
 			}			
 		}
 	}
 
-	if (card_in == -1 && card_out == -1) {
-		fprintf(stderr, "specify at least one device\n");
-		exit(EXIT_FAILURE);
-	}
+	if (iname == NULL)
+		iname = oname;
+	if (oname == NULL)
+		oname = iname;
 
-	if (card_in == -1)
-		card_in = card_out;
-	if (card_out == -1)
-		card_out = card_in;
-
-	sprintf(iname, "hw:%i,%i", card_in, device_in);
-	sprintf(oname, "hw:%i,%i", card_out, device_out);
-	
 	if (verbose) {
 		fprintf(stderr, "Using: \n");
-		fprintf(stderr, "  Input: ");
-		fprintf(stderr, "card %d, device %d\n", card_in, device_in);
-		fprintf(stderr, "  Output: ");
-		fprintf(stderr, "card %d, device %d\n", card_out, device_out);
+		fprintf(stderr, "  Input: %s  Output: %s\n", iname, oname);
 	}
 	
-	err = snd_rawmidi_open(&handle_in, iname, SND_RAWMIDI_OPEN_INPUT, SND_RAWMIDI_NONBLOCK);
+	err = snd_rawmidi_open(&handle_in, NULL, iname, SND_RAWMIDI_NONBLOCK);
 	if (err) {
-		fprintf(stderr,"snd_rawmidi_open %d %d failed: %d\n",card_in,device_in,err);
+		fprintf(stderr,"snd_rawmidi_open %s failed: %d\n",iname,err);
 		exit(EXIT_FAILURE);
 	}
 
-	err = snd_rawmidi_open(&handle_out, oname, SND_RAWMIDI_OPEN_OUTPUT, 0);
+	err = snd_rawmidi_open(NULL, &handle_out, oname, 0);
 	if (err) {
-		fprintf(stderr,"snd_rawmidi_open %d %d failed: %d\n",card_out,device_out,err);
+		fprintf(stderr,"snd_rawmidi_open %s failed: %d\n",oname,err);
 		exit(EXIT_FAILURE);
 	}
 
@@ -181,20 +156,18 @@ int main(int argc, char** argv)
 
 	printf("End...\n");
 
-	bzero(&istat, sizeof(istat));
-	bzero(&ostat, sizeof(ostat));
-	istat.stream = SND_RAWMIDI_STREAM_INPUT;
-	ostat.stream = SND_RAWMIDI_STREAM_OUTPUT;
-	err = snd_rawmidi_status(handle_in, &istat);
+	snd_rawmidi_status_alloca(&istat);
+	snd_rawmidi_status_alloca(&ostat);
+	err = snd_rawmidi_status(handle_in, istat);
 	if (err < 0)
 		fprintf(stderr, "input stream status error: %d\n", err);
-	err = snd_rawmidi_status(handle_out, &ostat);
+	err = snd_rawmidi_status(handle_out, ostat);
 	if (err < 0)
 		fprintf(stderr, "output stream status error: %d\n", err);
-	printf("input.status.avail = %li\n", istat.avail);
-	printf("input.status.xruns = %li\n", istat.xruns);
-	printf("output.status.avail = %li\n", ostat.avail);
-	printf("output.status.xruns = %li\n", ostat.xruns);
+	printf("input.status.avail = %li\n", snd_rawmidi_status_get_avail(istat));
+	printf("input.status.xruns = %li\n", snd_rawmidi_status_get_xruns(istat));
+	printf("output.status.avail = %li\n", snd_rawmidi_status_get_avail(ostat));
+	printf("output.status.xruns = %li\n", snd_rawmidi_status_get_xruns(ostat));
 
 	diff = timediff(end, start);
 	printf("Time diff: %Liusec (%Li bytes/sec)\n", diff, ((long long)opos * 1000000) / diff);
@@ -203,9 +176,9 @@ int main(int argc, char** argv)
 		fprintf(stderr,"Closing\n");
 	}
 	
-	snd_rawmidi_input_drain(handle_in); 
+	snd_rawmidi_drain(handle_in); 
 	snd_rawmidi_close(handle_in);	
-	snd_rawmidi_output_drain(handle_out); 
+	snd_rawmidi_drain(handle_out); 
 	snd_rawmidi_close(handle_out);	
 
 	return 0;
