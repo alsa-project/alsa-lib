@@ -1044,7 +1044,9 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 \section pcm_plugins_dmix Plugin: dmix
 
-This plugin provides direct mixing of multiple streams.
+This plugin provides direct mixing of multiple streams. The resolution
+for 32-bit mixing is only 24-bit. The low significant byte is filled with
+zeros. The extra 8 bits are used for the saturation.
 
 \code
 pcm.name {
