@@ -146,7 +146,7 @@ int snd_pcm_plugin_build_voices(snd_pcm_format_t *src_format,
 int snd_pcm_plugin_build_volbal(snd_pcm_format_t *src_format,
 				snd_pcm_format_t *dst_format,
 				int *ttable,
-  				snd_pcm_plugin_t **r_plugin);
+				snd_pcm_plugin_t **r_plugin);
 
 /*
  *  Loopback interface

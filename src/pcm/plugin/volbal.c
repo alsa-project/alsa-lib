@@ -28,69 +28,13 @@
 #include <byteswap.h>
 #include "../pcm_local.h"
 
-
 #define VOLBAL_RESOLUTION 16
 
 struct volbal_private_data {
 	int src_voices;
-	int noop;
+	unsigned int noop:1;
 	int ttable[0];
 };
-
-static void volbal(int voices, int samples, int *ttable,
-		   signed short *src_ptr, signed short *dst_ptr)
-{
-	while (samples-- > 0) {
-		int dst_voice;
-		int *t = ttable;
-		for (dst_voice = 0; dst_voice < voices; ++dst_voice) {
-			int v = 0;
-			int src_voice;
-			signed short *s = src_ptr;
-			for (src_voice = 0; src_voice < voices; ++src_voice) {
-				v +=  *s++ * *t++ / VOLBAL_RESOLUTION;
-			}
-			*dst_ptr++ = v;
-			src_ptr += voices;
-		}
-	}
-}
-
-static ssize_t volbal_transfer(snd_pcm_plugin_t *plugin,
-			     char *src_ptr, size_t src_size,
-			     char *dst_ptr, size_t dst_size)
-{
-	struct volbal_private_data *data;
-	if (plugin == NULL || src_ptr == NULL || src_size < 0 ||
-	                      dst_ptr == NULL || dst_size < 0)
-		return -EINVAL;
-	if (src_size == 0)
-		return 0;
-	data = (struct volbal_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (data == NULL)
-		return -EINVAL;
-	if (data->noop)
-		return 0;
-
-	volbal(data->src_voices, src_size / 2 / data->src_voices, data->ttable,
-	       (signed short *)src_ptr, (signed short *)dst_ptr);
-	return src_size;
-}
-
-static ssize_t volbal_src_size(snd_pcm_plugin_t *plugin, size_t size)
-{
-	if (!plugin || size <= 0)
-		return -EINVAL;
-	return size;
-}
-
-static ssize_t volbal_dst_size(snd_pcm_plugin_t *plugin, size_t size)
-{
-	if (!plugin || size <= 0)
-		return -EINVAL;
-	return size;
-}
-
 
 static int volbal_load_ttable(struct volbal_private_data *data, 
 			      const int *src_ttable)
@@ -101,8 +45,8 @@ static int volbal_load_ttable(struct volbal_private_data *data,
 	data->noop = 1;
 	if (src_ttable == NULL)
 		return 0;
-	sptr = src_ttable;
 	dptr = data->ttable;
+	sptr = src_ttable;
 	for (dst_voice = 0; dst_voice < data->src_voices; ++dst_voice) {
 		int t = 0;
 		for (src_voice = 0; src_voice < data->src_voices; ++src_voice) {
@@ -125,6 +69,60 @@ static int volbal_load_ttable(struct volbal_private_data *data,
 	return 0;
 }
 
+static void volbal(int voices, int samples, int *ttable,
+		   signed short *src_ptr, signed short *dst_ptr)
+{
+	while (samples-- > 0) {
+		int dst_voice;
+		int *t = ttable;
+		for (dst_voice = 0; dst_voice < voices; ++dst_voice) {
+			int v = 0;
+			int src_voice;
+			signed short *s = src_ptr;
+			for (src_voice = 0; src_voice < voices; ++src_voice) {
+				v +=  (int) *s++ * *t++ / VOLBAL_RESOLUTION;
+			}
+			*dst_ptr++ = v;
+		}
+		src_ptr += voices;
+	}
+}
+
+static ssize_t volbal_transfer(snd_pcm_plugin_t *plugin,
+			     char *src_ptr, size_t src_size,
+			     char *dst_ptr, size_t dst_size)
+{
+	struct volbal_private_data *data;
+
+	if (plugin == NULL || src_ptr == NULL || src_size < 0 ||
+	                      dst_ptr == NULL || dst_size < 0)
+		return -EINVAL;
+	if (src_size == 0)
+		return 0;
+	data = (struct volbal_private_data *)snd_pcm_plugin_extra_data(plugin);
+	if (data->noop) {
+		memcpy(dst_ptr, src_ptr, src_size);
+		return src_size;
+	}
+
+	volbal(data->src_voices, src_size / 2 / data->src_voices, data->ttable,
+	       (signed short *)src_ptr, (signed short *)dst_ptr);
+	return src_size;
+}
+
+static ssize_t volbal_src_size(snd_pcm_plugin_t *plugin, size_t size)
+{
+	if (!plugin || size <= 0)
+		return -EINVAL;
+	return size;
+}
+
+static ssize_t volbal_dst_size(snd_pcm_plugin_t *plugin, size_t size)
+{
+	if (!plugin || size <= 0)
+		return -EINVAL;
+	return size;
+}
 
 int snd_pcm_plugin_build_volbal(snd_pcm_format_t *src_format,
 				snd_pcm_format_t *dst_format,
@@ -133,7 +131,7 @@ int snd_pcm_plugin_build_volbal(snd_pcm_format_t *src_format,
 {
 	struct volbal_private_data *data;
 	snd_pcm_plugin_t *plugin;
-	int res;
+	int err;
 
 	if (!r_plugin)
 		return -EINVAL;
@@ -159,10 +157,10 @@ int snd_pcm_plugin_build_volbal(snd_pcm_format_t *src_format,
 	if (plugin == NULL)
 		return -ENOMEM;
 	data = (struct volbal_private_data *)snd_pcm_plugin_extra_data(plugin);
-	data->src_voices = src_format->voices;
-	if ((res = volbal_load_ttable(data, ttable)) < 0)
-		return res;
 
+	data->src_voices = src_format->voices;
+	if ((err = volbal_load_ttable(data, ttable)) < 0)
+		return err;
 	plugin->transfer = volbal_transfer;
 	plugin->src_size = volbal_src_size;
 	plugin->dst_size = volbal_dst_size;

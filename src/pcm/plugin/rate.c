@@ -31,6 +31,7 @@
 #define SHIFT	11
 #define BITS	(1<<SHIFT)
 #define MASK	(BITS-1)
+#define MAX_VOICES 6
 
 /*
  *  Basic rate conversion plugin
@@ -43,98 +44,51 @@ struct rate_private_data {
 	int dst_rate;
 	unsigned int pitch;
 	unsigned int pos;
-	signed short last_L_S1, last_R_S1;
-	signed short last_L_S2, last_R_S2;
+	signed short last_S1[MAX_VOICES];
+	signed short last_S2[MAX_VOICES];
 	ssize_t old_src_size, old_dst_size;
 };
 
-static void mix_mono(struct rate_private_data *data,
-		     signed short *src_ptr, int src_size,
-		     signed short *dst_ptr, int dst_size)
-{
-	unsigned int pos;
-	signed int val;
-	signed int L_S1, L_S2;
-	
-	pos = data->pos;
-	L_S1 = data->last_L_S1;
-	L_S2 = data->last_L_S2;
-	if (pos >> SHIFT) {
-		src_ptr += ((pos >> SHIFT) - 1); pos &= MASK;
-		L_S1 = L_S2;
-		L_S2 = *src_ptr;
-	}
-	while (dst_size-- > 0) {
-		if (pos >> SHIFT) {
-			src_ptr += (pos >> SHIFT); pos &= MASK;
-			L_S1 = L_S2;
-			L_S2 = *src_ptr;
-		}
-		
-		val = L_S1 + ((L_S2 - L_S1) * (signed int)pos) / BITS;
-		if (val < -32768)
-			val = -32768;
-		else if (val > 32767)
-			val = 32767;
-		*dst_ptr++ = val;
-		
-		pos += data->pitch;
-	}
-	data->last_L_S1 = L_S1;
-	data->last_L_S2 = L_S2;
-	data->pos = pos;
-}
 
-static void mix_stereo(struct rate_private_data *data,
-		       signed short *src_ptr, int src_size,
-		       signed short *dst_ptr, int dst_size)
+static void mix(struct rate_private_data *data, int voices,
+		signed short *src_ptr, int src_size,
+		signed short *dst_ptr, int dst_size)
 {
 	unsigned int pos;
 	signed int val;
-	signed int L_S1, R_S1, L_S2, R_S2;
+	signed short *S1, *S2;
+	int voice;
 	
 	pos = data->pos;
-	L_S1 = data->last_L_S1;
-	R_S1 = data->last_R_S1;
-	L_S2 = data->last_L_S2;
-	R_S2 = data->last_R_S2;
+	S1 = data->last_S1;
+	S2 = data->last_S2;
 	if (pos >> SHIFT) {
-		src_ptr += ((pos >> SHIFT) - 1) * 2; pos &= MASK;
-		L_S1 = L_S2;
-		R_S1 = R_S2;
-		L_S2 = *src_ptr;
-		R_S2 = *(src_ptr + 1);
+		src_ptr += ((pos >> SHIFT) - 1) * voices; pos &= MASK;
+		for (voice = 0; voice < voices; ++voice) {
+			S1[voice] = S2[voice];
+			S2[voice] = src_ptr[voice];
+		}
 	}
 	while (dst_size-- > 0) {
 		if (pos >> SHIFT) {
-			src_ptr += (pos >> SHIFT) * 2; pos &= MASK;
-			L_S1 = L_S2;
-			R_S1 = R_S2;
-			L_S2 = *src_ptr;
-			R_S2 = *(src_ptr + 1);
+			src_ptr += (pos >> SHIFT) * voices; pos &= MASK;
+			for (voice = 0; voice < voices; ++voice) {
+				S1[voice] = S2[voice];
+				S2[voice] = src_ptr[voice];
+			}
 		}
 		
-		val = L_S1 + ((L_S2 - L_S1) * (signed int)pos) / BITS;
-		if (val < -32768)
-			val = -32768;
-		else if (val > 32767)
-			val = 32767;
-		*dst_ptr++ = val;
-		// printf("L_S1 = %i, L_S2 = %i, pos = %i, val = %i\n", L_S1, L_S2, pos, val);
-		
-		val = R_S1 + ((R_S2 - R_S1) * (signed int)pos) / BITS;
-		if (val < -32768)
-			val = -32768;
-		else if (val > 32767)
-			val = 32767;
-		*dst_ptr++ = val;
+		for (voice = 0; voice < voices; ++voice) {
+			val = S1[voice] + ((S2[voice] - S1[voice]) * (signed int)pos) / BITS;
+			if (val < -32768)
+				val = -32768;
+			else if (val > 32767)
+				val = 32767;
+			*dst_ptr++ = val;
+		}
 		
 		pos += data->pitch;
 	}
-	data->last_L_S1 = L_S1;
-	data->last_R_S1 = R_S1;
-	data->last_L_S2 = L_S2;
-	data->last_R_S2 = R_S2;
 	data->pos = pos;
 }
 
@@ -152,23 +106,16 @@ static ssize_t rate_transfer(snd_pcm_plugin_t *plugin,
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
 	if (data == NULL)
 		return -EINVAL;
-	if (data->src_voices == 1) {
-		mix_mono(data, (signed short *)src_ptr, src_size / 2,
-			       (signed short *)dst_ptr, dst_size / 2);
-		return (dst_size / 2) * 2;
-	} 
-	else if (data->src_voices == 2) {
-		mix_stereo(data, (signed short *)src_ptr, src_size / 4,
-				 (signed short *)dst_ptr, dst_size / 4);
-		return (dst_size / 4) * 4;
-	} else {
-		return -EINVAL;
-	}
+	mix(data, data->src_voices,
+	    (signed short *)src_ptr, src_size / (data->src_voices * 2),
+	    (signed short *)dst_ptr, dst_size / (data->dst_voices * 2));
+	return dst_size / (2 * data->src_voices) * (2 * data->src_voices);
 }
 
 static int rate_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
 {
 	struct rate_private_data *data;
+	int voice;
 
 	if (plugin == NULL)
 		return -EINVAL;
@@ -179,8 +126,9 @@ static int rate_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
 	case DRAIN:
 	case FLUSH:
 		data->pos = 0;
-		data->last_L_S1 = data->last_R_S1 = 0;
-		data->last_L_S2 = data->last_R_S2 = 0;
+		for (voice = 0; voice < data->src_voices; ++voice) {
+			data->last_S1[voice] = data->last_S2[voice] = 0;
+		}
 		break;
 	}
 	return 0;	/* silenty ignore other actions */
@@ -215,7 +163,7 @@ static ssize_t rate_dst_size(snd_pcm_plugin_t *plugin, size_t size)
 		return -EINVAL;
 	data = (struct rate_private_data *)snd_pcm_plugin_extra_data(plugin);
 	res = (((size << SHIFT) + (data->pitch / 2)) / data->pitch);
-	res = res / (data->src_voices*2) * (data->src_voices*2);
+	res = res / (data->dst_voices*2) * (data->dst_voices*2);
 	/* Why this? */
 	if (size < 128*1024) {
 		if (data->old_dst_size == size)
@@ -232,6 +180,7 @@ int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
 {
 	struct rate_private_data *data;
 	snd_pcm_plugin_t *plugin;
+	int voice;
 
 	if (!r_plugin)
 		return -EINVAL;
@@ -245,7 +194,7 @@ int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
 		return -EINVAL;
 	if (src_format->voices != dst_format->voices)
 		return -EINVAL;
-	if (dst_format->voices != 1 && dst_format->voices != 2)
+	if (dst_format->voices < 1 || dst_format->voices > MAX_VOICES)
 		return -EINVAL;
 
 	if (src_format->format != SND_PCM_SFMT_S16_LE ||
@@ -264,8 +213,9 @@ int snd_pcm_plugin_build_rate(snd_pcm_format_t *src_format,
 	data->dst_rate = dst_format->rate;
 	data->pitch = ((src_format->rate << SHIFT) + (dst_format->rate >> 1)) / dst_format->rate;
 	data->pos = 0;
-	data->last_L_S1 = data->last_R_S1 = 0;
-	data->last_L_S2 = data->last_R_S2 = 0;
+	for (voice = 0; voice < data->src_voices; ++voice) {
+		data->last_S1[voice] = data->last_S2[voice] = 0;
+	}
 	data->old_src_size = data->old_dst_size = 0;
 	plugin->transfer = rate_transfer;
 	plugin->src_size = rate_src_size;
