@@ -76,7 +76,9 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	int err = snd_pcm_status(plugin->slave, status);
 	if (err < 0)
 		return err;
-	status->avail = snd_pcm_avail_update(pcm);
+	status->avail = snd_pcm_mmap_avail(pcm);
+	if (plugin->client_frames)
+		status->avail_max = plugin->client_frames(pcm, status->avail_max);
 	return 0;
 }
 
