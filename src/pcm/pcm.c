@@ -488,7 +488,7 @@ int snd_pcm_voices_mask(snd_pcm_t *pcm, int channel, bitset_t *client_vmask)
 	return pcm->ops->voices_mask(pcm, channel, client_vmask);
 }
 
-int snd_pcm_bytes_per_second(snd_pcm_t *pcm, int channel)
+ssize_t snd_pcm_bytes_per_second(snd_pcm_t *pcm, int channel)
 {
 	struct snd_pcm_chan *chan;
 	if (!pcm)
