@@ -463,10 +463,13 @@ typedef struct {
 int safe_strtoll(const char *str, long long *val)
 {
 	long long v;
+	int endidx;
 	if (!*str)
 		return -EINVAL;
 	errno = 0;
-	if (sscanf(str, "%Ld", &v) != 1)
+	if (sscanf(str, "%Ld%n", &v, &endidx) < 1)
+		return -EINVAL;
+	if (str[endidx])
 		return -EINVAL;
 	*val = v;
 	return 0;
