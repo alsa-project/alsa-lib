@@ -116,11 +116,10 @@ static snd_pcm_format_t nonlinear_preferred_formats[] = {
 static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const snd_pcm_format_mask_t *format_mask)
 {
 	int w, u, e, wid, w1, dw;
-	snd_mask_t *lin = alloca(snd_mask_sizeof());
+	snd_pcm_format_mask_t lin = { SND_PCM_FMTBIT_LINEAR };
 	if (snd_pcm_format_mask_test(format_mask, format))
 		return format;
-	snd_mask_load(lin, SND_PCM_FMTBIT_LINEAR);
-	if (!snd_pcm_format_mask_test(lin, format)) {
+	if (!snd_pcm_format_mask_test(&lin, format)) {
 		unsigned int i;
 		switch (snd_enum_to_int(format)) {
 		case SND_PCM_FORMAT_MU_LAW:
@@ -137,8 +136,8 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 		}
 
 	}
-	snd_mask_intersect(lin, format_mask);
-	if (snd_mask_empty(lin)) {
+	snd_mask_intersect(&lin, format_mask);
+	if (snd_mask_empty(&lin)) {
 		unsigned int i;
 		for (i = 0; i < sizeof(nonlinear_preferred_formats) / sizeof(nonlinear_preferred_formats[0]); ++i) {
 			snd_pcm_format_t f = nonlinear_preferred_formats[i];
@@ -415,7 +414,7 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	unsigned int links = (SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
 	const snd_pcm_format_mask_t *format_mask, *sformat_mask;
-	snd_mask_t *sfmt_mask = alloca(snd_mask_sizeof());
+	snd_pcm_format_mask_t sfmt_mask;
 	int err;
 	snd_pcm_format_t format;
 	snd_interval_t t, buffer_size;
@@ -428,7 +427,7 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 						   SND_PCM_HW_PARAM_FORMAT);
 	sformat_mask = snd_pcm_hw_param_get_mask(sparams,
 						    SND_PCM_HW_PARAM_FORMAT);
-	snd_mask_none(sfmt_mask);
+	snd_mask_none(&sfmt_mask);
 	for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
 		snd_pcm_format_t f;
 		if (!snd_pcm_format_mask_test(format_mask, format))
@@ -440,21 +439,20 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 			if (f == SND_PCM_FORMAT_NONE)
 				continue;
 		}
-		snd_pcm_format_mask_set(sfmt_mask, f);
+		snd_pcm_format_mask_set(&sfmt_mask, f);
 	}
 
 	err = snd_pcm_hw_param_set_mask(slave, sparams, SND_CHANGE,
-					SND_PCM_HW_PARAM_FORMAT, sfmt_mask);
+					SND_PCM_HW_PARAM_FORMAT, &sfmt_mask);
 	assert(err >= 0);
 
 	if (snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_FORMAT, sparams) ||
 	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_CHANNELS, sparams) ||
 	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_RATE, sparams) ||
 	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_ACCESS, sparams)) {
-		snd_pcm_access_mask_t *access_mask = alloca(snd_pcm_access_mask_sizeof());
-		snd_mask_load(access_mask, SND_PCM_ACCBIT_MMAP);
+		snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_MMAP };
 		_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
-				       access_mask);
+					   &access_mask);
 	}
 	snd_interval_copy(&buffer_size, snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE));
 	snd_interval_unfloor(&buffer_size);
@@ -477,7 +475,7 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 	unsigned int links = (SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
 	const snd_pcm_format_mask_t *format_mask, *sformat_mask;
-	snd_mask_t *fmt_mask = alloca(snd_mask_sizeof());
+	snd_pcm_format_mask_t fmt_mask;
 	int err;
 	snd_pcm_format_t format;
 	snd_interval_t t;
@@ -489,7 +487,7 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 						   SND_PCM_HW_PARAM_FORMAT);
 	sformat_mask = snd_pcm_hw_param_get_mask(sparams,
 						    SND_PCM_HW_PARAM_FORMAT);
-	snd_mask_none(fmt_mask);
+	snd_mask_none(&fmt_mask);
 	for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
 		snd_pcm_format_t f;
 		if (!snd_pcm_format_mask_test(format_mask, format))
@@ -501,11 +499,11 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 			if (f == SND_PCM_FORMAT_NONE)
 				continue;
 		}
-		snd_pcm_format_mask_set(fmt_mask, format);
+		snd_pcm_format_mask_set(&fmt_mask, format);
 	}
 
 	err = _snd_pcm_hw_param_set_mask(params, 
-				     SND_PCM_HW_PARAM_FORMAT, fmt_mask);
+					 SND_PCM_HW_PARAM_FORMAT, &fmt_mask);
 	if (err < 0)
 		return err;
 

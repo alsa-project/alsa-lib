@@ -26,6 +26,7 @@
 #include <string.h>
 #include <errno.h>
 #include <dlfcn.h>
+#include <asm/page.h>
 #include "rawmidi_local.h"
 
 static inline int snd_rawmidi_stream_ok(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream)
@@ -85,10 +86,19 @@ int snd_rawmidi_params(snd_rawmidi_t *rmidi,
 		       snd_rawmidi_stream_t stream,
 		       snd_rawmidi_params_t * params)
 {
+	int err;
+	snd_rawmidi_str_t *pstr;
 	assert(snd_rawmidi_stream_ok(rmidi, stream));
 	assert(params);
 	params->stream = snd_enum_to_int(stream);
-	return rmidi->ops->params(rmidi, params);
+	err = rmidi->ops->params(rmidi, params);
+	if (err < 0)
+		return err;
+	pstr = &rmidi->stream[snd_enum_to_int(stream)];
+	pstr->buffer_size = params->buffer_size;
+	pstr->avail_min = params->avail_min;
+	pstr->no_active_sensing = params->no_active_sensing;
+	return 0;
 }
 
 int snd_rawmidi_status(snd_rawmidi_t *rmidi,
@@ -127,6 +137,28 @@ ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size)
 	return rmidi->ops->read(rmidi, buffer, size);
 }
 
+int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, snd_rawmidi_params_t *params)
+{
+	snd_rawmidi_str_t *pstr;
+	assert(snd_rawmidi_stream_ok(rmidi, SND_RAWMIDI_STREAM_OUTPUT));
+	assert(params);
+	pstr = &rmidi->stream[snd_enum_to_int(stream)];
+	params->buffer_size = pstr->buffer_size;
+	params->avail_min = pstr->avail_min;
+	params->no_active_sensing = pstr->no_active_sensing;
+	return 0;
+}
+
+int snd_rawmidi_params_default(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, snd_rawmidi_params_t *params)
+{
+	assert(snd_rawmidi_stream_ok(rmidi, SND_RAWMIDI_STREAM_OUTPUT));
+	assert(params);
+	params->buffer_size = PAGE_SIZE;
+	params->avail_min = 1;
+	params->no_active_sensing = 0;
+	return 0;
+}
+
 int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name, 
 		     int streams, int mode)
 {
@@ -134,6 +166,8 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 	int err;
 	snd_config_t *rawmidi_conf, *conf, *type_conf;
 	snd_config_iterator_t i;
+	snd_rawmidi_params_t params;
+	unsigned int stream;
 	char *lib = NULL, *open = NULL;
 	int (*open_func)(snd_rawmidi_t **rawmidip, char *name, snd_config_t *conf, 
 			 int streams, int mode);
@@ -234,6 +268,16 @@ int snd_rawmidi_open(snd_rawmidi_t **rawmidip, char *name,
 		ERR("symbol %s is not defined inside %s", open, lib);
 		return -ENXIO;
 	}
-	return open_func(rawmidip, name, rawmidi_conf, streams, mode);
+	err = open_func(rawmidip, name, rawmidi_conf, streams, mode);
+	if (err < 0)
+		return err;
+	for (stream = 0; stream < 2; stream++) {
+		if (!(streams & (1 << stream)))
+			continue;
+		snd_rawmidi_params_default(*rawmidip, snd_int_to_enum(stream), &params);
+		err = snd_rawmidi_params(*rawmidip, snd_int_to_enum(stream), &params);
+		assert(err >= 0);
+	}
+	return 0;
 }
 

@@ -438,16 +438,14 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 static int snd_pcm_route_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err;
-	snd_pcm_access_mask_t *access_mask = alloca(snd_pcm_access_mask_sizeof());
-	snd_pcm_format_mask_t *format_mask = alloca(snd_pcm_format_mask_sizeof());
-	snd_mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
-	snd_mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
+	snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_PLUGIN };
+	snd_pcm_format_mask_t format_mask = { SND_PCM_FMTBIT_LINEAR };
 	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_ACCESS,
-				     access_mask);
+					 &access_mask);
 	if (err < 0)
 		return err;
 	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_FORMAT,
-				     format_mask);
+					 &format_mask);
 	if (err < 0)
 		return err;
 	err = _snd_pcm_hw_params_set_subformat(params, SND_PCM_SUBFORMAT_STD);
@@ -463,11 +461,10 @@ static int snd_pcm_route_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd
 static int snd_pcm_route_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_route_t *route = pcm->private;
-	snd_pcm_access_mask_t *saccess_mask = alloca(snd_pcm_access_mask_sizeof());
-	snd_mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	snd_pcm_access_mask_t saccess_mask = { SND_PCM_ACCBIT_MMAP };
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
-				saccess_mask);
+				   &saccess_mask);
 	if (route->sformat != SND_PCM_FORMAT_NONE) {
 		_snd_pcm_hw_params_set_format(sparams, route->sformat);
 		_snd_pcm_hw_params_set_subformat(sparams, SND_PCM_SUBFORMAT_STD);

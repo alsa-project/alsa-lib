@@ -40,22 +40,19 @@ typedef enum _snd_rawmidi_type {
 extern "C" {
 #endif
 
-int snd_rawmidi_open(snd_rawmidi_t **handle, char *name, int streams, int mode);
-int snd_rawmidi_close(snd_rawmidi_t *handle);
-int snd_rawmidi_poll_descriptor(snd_rawmidi_t *handle, snd_rawmidi_stream_t stream);
-int snd_rawmidi_nonblock(snd_rawmidi_t *handle, snd_rawmidi_stream_t stream, int nonblock);
-int snd_rawmidi_info(snd_rawmidi_t *handle, snd_rawmidi_stream_t stream, snd_rawmidi_info_t * info);
-int snd_rawmidi_params(snd_rawmidi_t *handle, snd_rawmidi_stream_t stream, snd_rawmidi_params_t * params);
-int snd_rawmidi_status(snd_rawmidi_t *handle, snd_rawmidi_stream_t stream, snd_rawmidi_status_t * status);
-int snd_rawmidi_drain(snd_rawmidi_t *handle, snd_rawmidi_stream_t stream);
-int snd_rawmidi_drop(snd_rawmidi_t *handle, snd_rawmidi_stream_t stream);
-ssize_t snd_rawmidi_write(snd_rawmidi_t *handle, const void *buffer, size_t size);
-ssize_t snd_rawmidi_read(snd_rawmidi_t *handle, void *buffer, size_t size);
+int snd_rawmidi_open(snd_rawmidi_t **rmidi, char *name, int streams, int mode);
+int snd_rawmidi_close(snd_rawmidi_t *rmidi);
+int snd_rawmidi_poll_descriptor(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream);
+int snd_rawmidi_nonblock(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, int nonblock);
+int snd_rawmidi_info(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, snd_rawmidi_info_t * info);
+int snd_rawmidi_params(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, snd_rawmidi_params_t * params);
+int snd_rawmidi_status(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, snd_rawmidi_status_t * status);
+int snd_rawmidi_drain(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream);
+int snd_rawmidi_drop(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream);
+ssize_t snd_rawmidi_write(snd_rawmidi_t *rmidi, const void *buffer, size_t size);
+ssize_t snd_rawmidi_read(snd_rawmidi_t *rmidi, void *buffer, size_t size);
 
-int snd_rawmidi_params_current(snd_pcm_t *pcm, snd_rawmidi_params_t *params);
-int snd_rawmidi_params_dump(snd_rawmidi_params_t *params, snd_output_t *out);
-
-int snd_rawmidi_status_dump(snd_rawmidi_status_t *status, snd_output_t *out);
+int snd_rawmidi_params_current(snd_rawmidi_t *rmidi, snd_rawmidi_stream_t stream, snd_rawmidi_params_t *params);
 
 #ifdef __cplusplus
 }

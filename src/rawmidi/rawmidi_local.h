@@ -38,13 +38,21 @@ typedef struct {
 	ssize_t (*read)(snd_rawmidi_t *rawmidi, void *buffer, size_t size);
 } snd_rawmidi_ops_t;
 
+typedef struct _snd_rawmidi_str {
+	size_t buffer_size;
+	size_t avail_min;
+	unsigned int no_active_sensing: 1;
+} snd_rawmidi_str_t;
+
 struct _snd_rawmidi {
 	char *name;
 	snd_rawmidi_type_t type;
 	int streams;
 	int mode;
 	int poll_fd;
+	snd_rawmidi_str_t stream[2];
 	snd_rawmidi_ops_t *ops;
+  
 	void *private;
 };
 

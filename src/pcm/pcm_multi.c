@@ -96,12 +96,12 @@ static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 static int snd_pcm_multi_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	snd_pcm_access_mask_t *access_mask = alloca(snd_pcm_access_mask_sizeof());
+	snd_pcm_access_mask_t access_mask;
 	int err;
-	snd_pcm_access_mask_any(access_mask);
-	snd_pcm_access_mask_reset(access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+	snd_pcm_access_mask_any(&access_mask);
+	snd_pcm_access_mask_reset(&access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_ACCESS,
-				     access_mask);
+					 &access_mask);
 	if (err < 0)
 		return err;
 	err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_CHANNELS,
@@ -117,11 +117,10 @@ static int snd_pcm_multi_hw_refine_sprepare(snd_pcm_t *pcm, int slave_idx,
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	snd_pcm_multi_slave_t *slave = &multi->slaves[slave_idx];
-	snd_pcm_access_mask_t *saccess_mask = alloca(snd_pcm_access_mask_sizeof());
-	snd_mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
+	snd_pcm_access_mask_t saccess_mask = { SND_PCM_ACCBIT_MMAP };
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
-			       saccess_mask);
+				   &saccess_mask);
 	_snd_pcm_hw_param_set(sparams, SND_PCM_HW_PARAM_CHANNELS,
 			      slave->channels_count, 0);
 	return 0;
@@ -146,11 +145,11 @@ static int snd_pcm_multi_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 	if (!snd_pcm_access_mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
 	    !snd_pcm_access_mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED) &&
 	    !snd_pcm_access_mask_test(access_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED)) {
-		snd_pcm_access_mask_t *saccess_mask = alloca(snd_pcm_access_mask_sizeof());
-		snd_pcm_access_mask_any(saccess_mask);
-		snd_pcm_access_mask_reset(saccess_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+		snd_pcm_access_mask_t saccess_mask;
+		snd_pcm_access_mask_any(&saccess_mask);
+		snd_pcm_access_mask_reset(&saccess_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
 		err = _snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
-					     saccess_mask);
+						 &saccess_mask);
 		if (err < 0)
 			return err;
 	}
@@ -175,17 +174,17 @@ static int snd_pcm_multi_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	snd_pcm_access_mask_t *access_mask = alloca(snd_pcm_access_mask_sizeof());
+	snd_pcm_access_mask_t access_mask;
 	const snd_pcm_access_mask_t *saccess_mask = snd_pcm_hw_param_get_mask(sparams, SND_PCM_HW_PARAM_ACCESS);
-	snd_pcm_access_mask_any(access_mask);
-	snd_pcm_access_mask_reset(access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+	snd_pcm_access_mask_any(&access_mask);
+	snd_pcm_access_mask_reset(&access_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 	if (!snd_pcm_access_mask_test(saccess_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED))
-		snd_pcm_access_mask_reset(access_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+		snd_pcm_access_mask_reset(&access_mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
 	if (!snd_pcm_access_mask_test(saccess_mask, SND_PCM_ACCESS_MMAP_COMPLEX) &&
 	    !snd_pcm_access_mask_test(saccess_mask, SND_PCM_ACCESS_MMAP_INTERLEAVED))
-		snd_pcm_access_mask_reset(access_mask, SND_PCM_ACCESS_MMAP_COMPLEX);
+		snd_pcm_access_mask_reset(&access_mask, SND_PCM_ACCESS_MMAP_COMPLEX);
 	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_ACCESS,
-				     access_mask);
+					 &access_mask);
 	if (err < 0)
 		return err;
 	err = _snd_pcm_hw_params_refine(params, links, sparams);
