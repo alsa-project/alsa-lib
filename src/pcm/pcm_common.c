@@ -324,7 +324,7 @@ static int preferred_formats[] = {
 	SND_PCM_SFMT_U8
 };
 
-int snd_pcm_plug_slave_format(int format, snd_pcm_params_info_t *slave_info)
+int snd_pcm_plug_slave_fmt(int format, snd_pcm_params_info_t *slave_info)
 {
 	if ((snd_pcm_plug_formats(slave_info->formats) & (1 << format)) == 0)
 		return -EINVAL;
@@ -429,116 +429,113 @@ int snd_pcm_plug_slave_rate(unsigned int rate, snd_pcm_params_info_t *slave_info
 	return rate;
 }
 		   
-int snd_pcm_plug_slave_params(snd_pcm_params_t *params,
+int snd_pcm_plug_slave_format(snd_pcm_format_t *format,
 			      snd_pcm_info_t *slave_info,
 			      snd_pcm_params_info_t *slave_params_info,
-			      snd_pcm_params_t *slave_params)
+			      snd_pcm_format_t *slave_format)
 {
 	int slave_rate;
-	*slave_params = *params;
-	if ((slave_params_info->formats & (1 << params->format.format)) == 0) {
-		int slave_format = snd_pcm_plug_slave_format(params->format.format, slave_params_info);
-		if (slave_format < 0)
-			return slave_format;
-		slave_params->format.format = slave_format;
+	*slave_format = *format;
+	if ((slave_params_info->formats & (1 << format->format)) == 0) {
+		int slave_fmt = snd_pcm_plug_slave_fmt(format->format, slave_params_info);
+		if (slave_fmt < 0)
+			return slave_fmt;
+		slave_format->format = slave_fmt;
 	}
 
 	/* channels */
-      	if (params->format.channels < slave_params_info->min_channels)
-		slave_params->format.channels = slave_params_info->min_channels;
-	else if (params->format.channels > slave_params_info->max_channels)
-		slave_params->format.channels = slave_params_info->max_channels;
+      	if (format->channels < slave_params_info->min_channels)
+		slave_format->channels = slave_params_info->min_channels;
+	else if (format->channels > slave_params_info->max_channels)
+		slave_format->channels = slave_params_info->max_channels;
 
 	/* rate */
-	slave_rate = snd_pcm_plug_slave_rate(params->format.rate, slave_params_info);
+	slave_rate = snd_pcm_plug_slave_rate(format->rate, slave_params_info);
 	if (slave_rate < 0)
 		return slave_rate;
-	slave_params->format.rate = slave_rate;
+	slave_format->rate = slave_rate;
 		   
 	/* interleave */
 	if (!(slave_info->flags & SND_PCM_INFO_INTERLEAVE))
-		slave_params->format.interleave = 0;
+		slave_format->interleave = 0;
 	if (!(slave_info->flags & SND_PCM_INFO_NONINTERLEAVE))
-		slave_params->format.interleave = 1;
+		slave_format->interleave = 1;
 	return 0;
 }
 
-int snd_pcm_plug_format(snd_pcm_plug_t *plug, 
-			snd_pcm_params_t *params, 
-			snd_pcm_params_t *slave_params)
+int snd_pcm_plug_format_plugins(snd_pcm_plug_t *plug, 
+				snd_pcm_format_t *format, 
+				snd_pcm_format_t *slave_format)
 {
-	snd_pcm_params_t tmpparams;
-	snd_pcm_params_t dstparams;
-	snd_pcm_params_t *srcparams;
+	snd_pcm_format_t tmpformat;
+	snd_pcm_format_t dstformat;
+	snd_pcm_format_t *srcformat;
 	snd_pcm_plugin_t *plugin;
 	int err;
 	
 	switch (snd_pcm_plug_stream(plug)) {
 	case SND_PCM_STREAM_PLAYBACK:
-		dstparams = *slave_params;
-		srcparams = slave_params;
-		*srcparams = *params;
+		dstformat = *slave_format;
+		srcformat = slave_format;
+		*srcformat = *format;
 		break;
 	case SND_PCM_STREAM_CAPTURE:
-		dstparams = *params;
-		srcparams = params;
-		*srcparams = *slave_params;
+		dstformat = *format;
+		srcformat = format;
+		*srcformat = *slave_format;
 		break;
 	default:
 		assert(0);
 		return -EINVAL;
 	}
-	tmpparams = *srcparams;
+	tmpformat = *srcformat;
 		
-	pdprintf("srcparams: interleave=%i, format=%i, rate=%i, channels=%i\n", 
-		 srcparams->format.interleave,
-		 srcparams->format.format,
-		 srcparams->format.rate,
-		 srcparams->format.channels);
-	pdprintf("dstparams: interleave=%i, format=%i, rate=%i, channels=%i\n", 
-		 dstparams.format.interleave,
-		 dstparams.format.format,
-		 dstparams.format.rate,
-		 dstparams.format.channels);
+	pdprintf("srcformat: interleave=%i, format=%i, rate=%i, channels=%i\n", 
+		 srcformat->interleave,
+		 srcformat->format,
+		 srcformat->rate,
+		 srcformat->channels);
+	pdprintf("dstformat: interleave=%i, format=%i, rate=%i, channels=%i\n", 
+		 dstformat.interleave,
+		 dstformat.format,
+		 dstformat.rate,
+		 dstformat.channels);
 
-	if (srcparams->format.channels == 1)
-		srcparams->format.interleave = dstparams.format.interleave;
+	if (srcformat->channels == 1)
+		srcformat->interleave = dstformat.interleave;
 
 	/* Format change (linearization) */
-	if ((srcparams->format.format != dstparams.format.format ||
-	     srcparams->format.rate != dstparams.format.rate ||
-	     srcparams->format.channels != dstparams.format.channels) &&
-	    !snd_pcm_format_linear(srcparams->format.format)) {
-		if (snd_pcm_format_linear(dstparams.format.format))
-			tmpparams.format.format = dstparams.format.format;
+	if ((srcformat->format != dstformat.format ||
+	     srcformat->rate != dstformat.rate ||
+	     srcformat->channels != dstformat.channels) &&
+	    !snd_pcm_format_linear(srcformat->format)) {
+		if (snd_pcm_format_linear(dstformat.format))
+			tmpformat.format = dstformat.format;
 		else
-			tmpparams.format.format = SND_PCM_SFMT_S16;
-		tmpparams.format.interleave = dstparams.format.interleave;
-		switch (srcparams->format.format) {
+			tmpformat.format = SND_PCM_SFMT_S16;
+		tmpformat.interleave = dstformat.interleave;
+		switch (srcformat->format) {
 		case SND_PCM_SFMT_MU_LAW:
 			err = snd_pcm_plugin_build_mulaw(plug,
-							 &srcparams->format,
-							 &tmpparams.format,
+							 srcformat, &tmpformat,
 							 &plugin);
 			break;
 #ifndef __KERNEL__
 		case SND_PCM_SFMT_A_LAW:
 			err = snd_pcm_plugin_build_alaw(plug,
-							&srcparams->format,
-							&tmpparams.format,
+							srcformat, &tmpformat,
 							&plugin);
 			break;
 		case SND_PCM_SFMT_IMA_ADPCM:
 			err = snd_pcm_plugin_build_adpcm(plug,
-							 &srcparams->format,
-							 &tmpparams.format,
+							 srcformat, &tmpformat,
 							 &plugin);
 			break;
 #endif
 		default:
 			return -EINVAL;
 		}
-		pdprintf("params format change: src=%i, dst=%i returns %i\n", srcparams->format.format, tmpparams.format.format, err);
+		pdprintf("format format change: src=%i, dst=%i returns %i\n", srcformat->format, tmpformat.format, err);
 		if (err < 0)
 			return err;
 		err = snd_pcm_plugin_append(plugin);
@@ -546,13 +543,13 @@ int snd_pcm_plug_format(snd_pcm_plug_t *plug,
 			snd_pcm_plugin_free(plugin);
 			return err;
 		}
-		srcparams->format = tmpparams.format;
+		*srcformat = tmpformat;
 	}
 
 	/* channels reduction */
-	if (srcparams->format.channels > dstparams.format.channels) {
-		int sv = srcparams->format.channels;
-		int dv = dstparams.format.channels;
+	if (srcformat->channels > dstformat.channels) {
+		int sv = srcformat->channels;
+		int dv = dstformat.channels;
 		route_ttable_entry_t *ttable = calloc(1, dv*sv*sizeof(*ttable));
 #if 1
 		if (sv == 2 && dv == 1) {
@@ -565,18 +562,16 @@ int snd_pcm_plug_format(snd_pcm_plug_t *plug,
 			for (v = 0; v < dv; ++v)
 				ttable[v * sv + v] = FULL;
 		}
-		tmpparams.format.channels = dstparams.format.channels;
-		tmpparams.format.interleave = dstparams.format.interleave;
-		if (srcparams->format.rate == dstparams.format.rate &&
-		    snd_pcm_format_linear(dstparams.format.format))
-			tmpparams.format.format = dstparams.format.format;
+		tmpformat.channels = dstformat.channels;
+		tmpformat.interleave = dstformat.interleave;
+		if (srcformat->rate == dstformat.rate &&
+		    snd_pcm_format_linear(dstformat.format))
+			tmpformat.format = dstformat.format;
 		err = snd_pcm_plugin_build_route(plug,
-						 &srcparams->format,
-						 &tmpparams.format,
-						 ttable,
-						 &plugin);
+						 srcformat, &tmpformat,
+						 ttable, &plugin);
 		free(ttable);
-		pdprintf("params channels reduction: src=%i, dst=%i returns %i\n", srcparams->format.channels, tmpparams.format.channels, err);
+		pdprintf("format channels reduction: src=%i, dst=%i returns %i\n", srcformat->channels, tmpformat.channels, err);
 		if (err < 0) {
 			snd_pcm_plugin_free(plugin);
 			return err;
@@ -586,21 +581,20 @@ int snd_pcm_plug_format(snd_pcm_plug_t *plug,
 			snd_pcm_plugin_free(plugin);
 			return err;
 		}
-		srcparams->format = tmpparams.format;
+		*srcformat = tmpformat;
 	}
 
 	/* rate resampling */
-	if (srcparams->format.rate != dstparams.format.rate) {
-		tmpparams.format.rate = dstparams.format.rate;
-		tmpparams.format.interleave = dstparams.format.interleave;
-		if (srcparams->format.channels == dstparams.format.channels &&
-		    snd_pcm_format_linear(dstparams.format.format))
-			tmpparams.format.format = dstparams.format.format;
+	if (srcformat->rate != dstformat.rate) {
+		tmpformat.rate = dstformat.rate;
+		tmpformat.interleave = dstformat.interleave;
+		if (srcformat->channels == dstformat.channels &&
+		    snd_pcm_format_linear(dstformat.format))
+			tmpformat.format = dstformat.format;
         	err = snd_pcm_plugin_build_rate(plug,
-        					&srcparams->format,
-						&tmpparams.format,
+        					srcformat, &tmpformat,
 						&plugin);
-		pdprintf("params rate down resampling: src=%i, dst=%i returns %i\n", srcparams->format.rate, tmpparams.format.rate, err);
+		pdprintf("format rate down resampling: src=%i, dst=%i returns %i\n", srcformat->rate, tmpformat.rate, err);
 		if (err < 0) {
 			snd_pcm_plugin_free(plugin);
 			return err;
@@ -610,13 +604,13 @@ int snd_pcm_plug_format(snd_pcm_plug_t *plug,
 			snd_pcm_plugin_free(plugin);
 			return err;
 		}
-		srcparams->format = tmpparams.format;
+		*srcformat = tmpformat;
         }
 
 	/* channels extension  */
-	if (srcparams->format.channels < dstparams.format.channels) {
-		int sv = srcparams->format.channels;
-		int dv = dstparams.format.channels;
+	if (srcformat->channels < dstformat.channels) {
+		int sv = srcformat->channels;
+		int dv = dstformat.channels;
 		route_ttable_entry_t *ttable = calloc(1, dv * sv * sizeof(*ttable));
 #if 0
 		{
@@ -636,17 +630,15 @@ int snd_pcm_plug_format(snd_pcm_plug_t *plug,
 			}
 		}
 #endif
-		tmpparams.format.channels = dstparams.format.channels;
-		tmpparams.format.interleave = dstparams.format.interleave;
-		if (snd_pcm_format_linear(dstparams.format.format))
-			tmpparams.format.format = dstparams.format.format;
+		tmpformat.channels = dstformat.channels;
+		tmpformat.interleave = dstformat.interleave;
+		if (snd_pcm_format_linear(dstformat.format))
+			tmpformat.format = dstformat.format;
 		err = snd_pcm_plugin_build_route(plug,
-						 &srcparams->format,
-						 &tmpparams.format,
-						 ttable,
-						 &plugin);
+						 srcformat, &tmpformat,
+						 ttable, &plugin);
 		free(ttable);
-		pdprintf("params channels extension: src=%i, dst=%i returns %i\n", srcparams->format.channels, tmpparams.format.channels, err);
+		pdprintf("format channels extension: src=%i, dst=%i returns %i\n", srcformat->channels, tmpformat.channels, err);
 		if (err < 0) {
 			snd_pcm_plugin_free(plugin);
 			return err;
@@ -656,43 +648,39 @@ int snd_pcm_plug_format(snd_pcm_plug_t *plug,
 			snd_pcm_plugin_free(plugin);
 			return err;
 		}
-		srcparams->format = tmpparams.format;
+		*srcformat = tmpformat;
 	}
 
 	/* format change */
-	if (srcparams->format.format != dstparams.format.format) {
-		tmpparams.format.format = dstparams.format.format;
-		tmpparams.format.interleave = dstparams.format.interleave;
-		if (tmpparams.format.format == SND_PCM_SFMT_MU_LAW) {
+	if (srcformat->format != dstformat.format) {
+		tmpformat.format = dstformat.format;
+		tmpformat.interleave = dstformat.interleave;
+		if (tmpformat.format == SND_PCM_SFMT_MU_LAW) {
 			err = snd_pcm_plugin_build_mulaw(plug,
-							 &srcparams->format,
-							 &tmpparams.format,
+							 srcformat, &tmpformat,
 							 &plugin);
 		}
 #ifndef __KERNEL__
-		else if (tmpparams.format.format == SND_PCM_SFMT_A_LAW) {
+		else if (tmpformat.format == SND_PCM_SFMT_A_LAW) {
 			err = snd_pcm_plugin_build_alaw(plug,
-							&srcparams->format,
-							&tmpparams.format,
+							srcformat, &tmpformat,
 							&plugin);
 		}
-		else if (tmpparams.format.format == SND_PCM_SFMT_IMA_ADPCM) {
+		else if (tmpformat.format == SND_PCM_SFMT_IMA_ADPCM) {
 			err = snd_pcm_plugin_build_adpcm(plug,
-							 &srcparams->format,
-							 &tmpparams.format,
+							 srcformat, &tmpformat,
 							 &plugin);
 		}
 #endif
-		else if (snd_pcm_format_linear(srcparams->format.format) &&
-			 snd_pcm_format_linear(tmpparams.format.format)) {
+		else if (snd_pcm_format_linear(srcformat->format) &&
+			 snd_pcm_format_linear(tmpformat.format)) {
 			err = snd_pcm_plugin_build_linear(plug,
-							  &srcparams->format,
-							  &tmpparams.format,
+							  srcformat, &tmpformat,
 							  &plugin);
 		}
 		else
 			return -EINVAL;
-		pdprintf("params format change: src=%i, dst=%i returns %i\n", srcparams->format.format, tmpparams.format.format, err);
+		pdprintf("format format change: src=%i, dst=%i returns %i\n", srcformat->format, tmpformat.format, err);
 		if (err < 0)
 			return err;
 		err = snd_pcm_plugin_append(plugin);
@@ -700,17 +688,16 @@ int snd_pcm_plug_format(snd_pcm_plug_t *plug,
 			snd_pcm_plugin_free(plugin);
 			return err;
 		}
-		srcparams->format = tmpparams.format;
+		*srcformat = tmpformat;
 	}
 
 	/* interleave */
-	if (srcparams->format.interleave != dstparams.format.interleave) {
-		tmpparams.format.interleave = dstparams.format.interleave;
+	if (srcformat->interleave != dstformat.interleave) {
+		tmpformat.interleave = dstformat.interleave;
 		err = snd_pcm_plugin_build_copy(plug,
-						&srcparams->format,
-						&tmpparams.format,
+						srcformat, &tmpformat,
 						&plugin);
-		pdprintf("interleave change: src=%i, dst=%i returns %i\n", srcparams->format.interleave, tmpparams.format.interleave, err);
+		pdprintf("interleave change: src=%i, dst=%i returns %i\n", srcformat->interleave, tmpformat.interleave, err);
 		if (err < 0)
 			return err;
 		err = snd_pcm_plugin_append(plugin);
@@ -718,7 +705,7 @@ int snd_pcm_plug_format(snd_pcm_plug_t *plug,
 			snd_pcm_plugin_free(plugin);
 			return err;
 		}
-		srcparams->format = tmpparams.format;
+		*srcformat = tmpformat;
 	}
 
 	return 0;
