@@ -216,7 +216,7 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 	snd_config_t *n, *d;
 	snd_config_iterator_t i, next;
 	char *res, *def = NULL;
-	int idx = 0, err;
+	int idx = 0, err, hit;
 	
 	err = snd_config_search(src, "vars", &n);
 	if (err < 0) {
@@ -243,34 +243,36 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		SNDERR("error getting field default");
 		goto __error;
 	}
-      __retry:
-	snd_config_for_each(i, next, n) {
-		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id = snd_config_get_id(n);
-		const char *ptr, *env;
-		long i;
-		if (snd_config_get_type(n) != SND_CONFIG_TYPE_STRING) {
-			SNDERR("field %s is not a string", id);
-			err = -EINVAL;
-			goto __error;
-		}
-		err = safe_strtol(id, &i);
-		if (err < 0) {
-			SNDERR("id of field %s is not an integer", id);
-			err = -EINVAL;
-			goto __error;
-		}
-		if (i == idx) {
-			idx++;
-			snd_config_get_string(n, &ptr);
-			env = getenv(ptr);
-			if (env != NULL && *env != '\0') {
-				res = strdup(env);
-				goto __ok;
+	do {
+		hit = 0;
+		snd_config_for_each(i, next, n) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id = snd_config_get_id(n);
+			const char *ptr, *env;
+			long i;
+			if (snd_config_get_type(n) != SND_CONFIG_TYPE_STRING) {
+				SNDERR("field %s is not a string", id);
+				err = -EINVAL;
+				goto __error;
 			}
-			goto __retry;
+			err = safe_strtol(id, &i);
+			if (err < 0) {
+				SNDERR("id of field %s is not an integer", id);
+				err = -EINVAL;
+				goto __error;
+			}
+			if (i == idx) {
+				idx++;
+				snd_config_get_string(n, &ptr);
+				env = getenv(ptr);
+				if (env != NULL && *env != '\0') {
+					res = strdup(env);
+					goto __ok;
+				}
+				hit = 1;
+			}
 		}
-	}
+	} while (hit);
 	res = def;
 	def = NULL;
       __ok:
@@ -319,7 +321,7 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 	snd_config_t *n;
 	snd_config_iterator_t i, next;
 	char *res = NULL, *tmp;
-	int idx = 0, len = 0, len1, err;
+	int idx = 0, len = 0, len1, err, hit;
 	
 	err = snd_config_search(src, "strings", &n);
 	if (err < 0) {
@@ -331,38 +333,40 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 		SNDERR("error evaluating strings");
 		goto __error;
 	}
-      __retry:
-	snd_config_for_each(i, next, n) {
-		snd_config_t *n = snd_config_iterator_entry(i);
-		char *ptr;
-		const char *id = snd_config_get_id(n);
-		long i;
-		err = safe_strtol(id, &i);
-		if (err < 0) {
-			SNDERR("id of field %s is not an integer", id);
-			err = -EINVAL;
-			goto __error;
-		}
-		if (i == idx) {
-			idx++;
-			snd_config_get_ascii(n, &ptr);
-			len1 = strlen(ptr);
-			tmp = realloc(res, len + len1 + 1);
-			if (tmp == NULL) {
-				free(ptr);
-				if (res)
-					free(res);
-				err = -ENOMEM;
+	do {
+		hit = 0;
+		snd_config_for_each(i, next, n) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			char *ptr;
+			const char *id = snd_config_get_id(n);
+			long i;
+			err = safe_strtol(id, &i);
+			if (err < 0) {
+				SNDERR("id of field %s is not an integer", id);
+				err = -EINVAL;
 				goto __error;
 			}
-			memcpy(tmp + len, ptr, len1);
-			free(ptr);
-			len += len1;
-			tmp[len] = '\0';
-			res = tmp;
-			goto __retry;
+			if (i == idx) {
+				idx++;
+				snd_config_get_ascii(n, &ptr);
+					len1 = strlen(ptr);
+				tmp = realloc(res, len + len1 + 1);
+				if (tmp == NULL) {
+					free(ptr);
+					if (res)
+						free(res);
+					err = -ENOMEM;
+					goto __error;
+				}
+				memcpy(tmp + len, ptr, len1);
+				free(ptr);
+				len += len1;
+				tmp[len] = '\0';
+				res = tmp;
+				hit = 1;
+			}
 		}
-	}
+	} while (hit);
 	if (res == NULL) {
 		SNDERR("empty string is not accepted");
 		err = -EINVAL;
