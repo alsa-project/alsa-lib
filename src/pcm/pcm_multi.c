@@ -313,6 +313,42 @@ static int snd_pcm_multi_pause(void *private, int enable)
 	return snd_pcm_pause(multi->slaves[0].handle, enable);
 }
 
+static int snd_pcm_multi_channel_info(void *private, snd_pcm_channel_info_t *info)
+{
+	int err;
+	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
+	unsigned int channel = info->channel;
+	unsigned int i;
+	for (i = 0; i < multi->bindings_count; ++i) {
+		if (multi->bindings[i].client_channel == channel) {
+			info->channel = multi->bindings[i].slave_channel;
+			err = snd_pcm_channel_info(multi->slaves[multi->bindings[i].slave].handle, info);
+			info->channel = channel;
+			return err;
+		}
+	}
+	info->channel = channel;
+	return -EINVAL;
+}
+
+static int snd_pcm_multi_channel_params(void *private, snd_pcm_channel_params_t *params)
+{
+	int err;
+	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
+	unsigned int channel = params->channel;
+	unsigned int i;
+	for (i = 0; i < multi->bindings_count; ++i) {
+		if (multi->bindings[i].client_channel == channel) {
+			params->channel = multi->bindings[i].slave_channel;
+			err = snd_pcm_channel_params(multi->slaves[multi->bindings[i].slave].handle, params);
+			params->channel = channel;
+			return err;
+		}
+	}
+	params->channel = channel;
+	return -EINVAL;
+}
+
 static int snd_pcm_multi_channel_setup(void *private, snd_pcm_channel_setup_t *setup)
 {
 	int err;
@@ -699,6 +735,8 @@ struct snd_pcm_ops snd_pcm_multi_ops = {
 
 struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
 	nonblock: snd_pcm_multi_nonblock,
+	channel_info: snd_pcm_multi_channel_info,
+	channel_params: snd_pcm_multi_channel_params,
 	channel_setup: snd_pcm_multi_channel_setup,
 	status: snd_pcm_multi_status,
 	frame_io: snd_pcm_multi_frame_io,

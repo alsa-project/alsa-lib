@@ -377,10 +377,25 @@ static int snd_pcm_plug_pause(void *private, int enable)
 	return 0;
 }
 
+static int snd_pcm_plug_channel_info(void *private ATTRIBUTE_UNUSED, snd_pcm_channel_info_t *info ATTRIBUTE_UNUSED)
+{
+	/* FIXME: if route plugin is not inserted or its ttable is trivial
+	   this should be implemented */
+	return -ENOSYS;
+}
+
+static int snd_pcm_plug_channel_params(void *private ATTRIBUTE_UNUSED, snd_pcm_channel_params_t *params ATTRIBUTE_UNUSED)
+{
+	/* FIXME: if route plugin is not inserted or its ttable is trivial
+	   this should be implemented */
+	return -ENOSYS;
+}
+
 static int snd_pcm_plug_channel_setup(void *private ATTRIBUTE_UNUSED, snd_pcm_channel_setup_t *setup ATTRIBUTE_UNUSED)
 {
-	/* FIXME: non mmap setups */
-	return -ENXIO;
+	/* FIXME: if route plugin is not inserted or its ttable is trivial
+	   this should be implemented for non mmap setups */
+	return -ENOSYS;
 }
 
 static ssize_t snd_pcm_plug_frame_data(void *private, off_t offset)
@@ -642,6 +657,8 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 
 struct snd_pcm_fast_ops snd_pcm_plug_fast_ops = {
 	nonblock: snd_pcm_plug_nonblock,
+	channel_info: snd_pcm_plug_channel_info,
+	channel_params: snd_pcm_plug_channel_params,
 	channel_setup: snd_pcm_plug_channel_setup,
 	status: snd_pcm_plug_status,
 	frame_io: snd_pcm_plug_frame_io,

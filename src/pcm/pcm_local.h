@@ -34,6 +34,8 @@ struct snd_pcm_ops {
 struct snd_pcm_fast_ops {
 	int (*nonblock)(void *private, int nonblock);
 	int (*status)(void *private, snd_pcm_status_t *status);
+	int (*channel_info)(void *private, snd_pcm_channel_info_t *info);
+	int (*channel_params)(void *private, snd_pcm_channel_params_t *params);
 	int (*channel_setup)(void *private, snd_pcm_channel_setup_t *setup);
 	int (*prepare)(void *private);
 	int (*go)(void *private);

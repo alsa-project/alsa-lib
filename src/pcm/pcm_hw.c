@@ -103,6 +103,24 @@ static int snd_pcm_hw_setup(void *private, snd_pcm_setup_t * setup)
 	return 0;
 }
 
+static int snd_pcm_hw_channel_info(void *private, snd_pcm_channel_info_t * info)
+{
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	int fd = hw->fd;
+	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, info) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_pcm_hw_channel_params(void *private, snd_pcm_channel_params_t * params)
+{
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	int fd = hw->fd;
+	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_PARAMS, params) < 0)
+		return -errno;
+	return 0;
+}
+
 static int snd_pcm_hw_channel_setup(void *private, snd_pcm_channel_setup_t * setup)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
@@ -369,6 +387,8 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 
 struct snd_pcm_fast_ops snd_pcm_hw_fast_ops = {
 	nonblock: snd_pcm_hw_nonblock,
+	channel_info: snd_pcm_hw_channel_info,
+	channel_params: snd_pcm_hw_channel_params,
 	channel_setup: snd_pcm_hw_channel_setup,
 	status: snd_pcm_hw_status,
 	frame_io: snd_pcm_hw_frame_io,

@@ -107,6 +107,18 @@ int snd_pcm_setup(snd_pcm_t *handle, snd_pcm_setup_t *setup)
 	return 0;
 }
 
+int snd_pcm_channel_info(snd_pcm_t *handle, snd_pcm_channel_info_t *info)
+{
+	assert(handle && info);
+	return handle->fast_ops->channel_info(handle->fast_op_arg, info);
+}
+
+int snd_pcm_channel_params(snd_pcm_t *handle, snd_pcm_channel_params_t *params)
+{
+	assert(handle && params);
+	return handle->fast_ops->channel_params(handle->fast_op_arg, params);
+}
+
 int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup)
 {
 	assert(handle && setup);
@@ -160,52 +172,6 @@ int snd_pcm_go(snd_pcm_t *handle)
 	assert(handle);
 	return handle->fast_ops->go(handle->fast_op_arg);
 }
-
-#if 0
-int snd_pcm_synchro(snd_pcm_synchro_cmd_t cmd, 
-		    unsigned int reqs_count, snd_pcm_synchro_request_t *reqs,
-		    snd_pcm_synchro_mode_t mode)
-{
-	snd_pcm_sync_request_t *sync_reqs;
-	snd_pcm_sync_t sync;
-	unsigned int k;
-	int ret;
-	assert(reqs_count > 0 && reqs);
-	sync_reqs = __builtin_alloca(sizeof(*sync_reqs) * reqs_count);
-	switch (cmd) {
-	case SND_PCM_SYNCHRO_GO:
-		sync.cmd = SND_PCM_IOCTL_GO;
-		break;
-	default:
-		assert(0);
-		return -EINVAL;
-	}
-	sync.mode = mode;
-	sync.requests_count = reqs_count;
-	sync.requests = sync_reqs;
-	for (k = 0; k < reqs_count; ++k) {
-		switch (snd_pcm_type(reqs[k].handle)) {
-		case SND_PCM_TYPE_HW:
-		case SND_PCM_TYPE_PLUG:
-			sync_reqs[k].fd = snd_pcm_file_descriptor(reqs[k].handle);
-			break;
-		default:
-			/* Not yet implemented */
-			assert(0);
-			return -ENOSYS;
-		}
-	}
-	if (ioctl(sync_reqs[0].fd, SND_PCM_IOCTL_SYNC, &sync) < 0)
-		ret = -errno;
-	else
-		ret = 0;
-	for (k = 0; k < reqs_count; ++k) {
-		reqs[k].tstamp = sync_reqs[k].tstamp;
-		reqs[k].result = sync_reqs[k].result;
-	}
-	return ret;
-}
-#endif
 
 int snd_pcm_drain(snd_pcm_t *handle)
 {
