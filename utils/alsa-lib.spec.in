@@ -1,6 +1,5 @@
 %define ver      @SND_LIB_VERSION@
 %define rel      1
-%define prefix   /
 
 Summary: Advanced Linux Sound Architecture (ALSA) - Library
 Name: alsa-lib
@@ -9,9 +8,8 @@ Release: %rel
 Copyright: GPL
 Group: System/Libraries
 Source: ftp://ftp.alsa-project.org/pub/lib/alsa-lib-%{ver}.tar.bz2
-BuildRoot: /tmp/alsa-lib-%{ver}
+BuildRoot: /var/tmp/alsa-lib-%{ver}
 URL: http://www.alsa-project.org
-#Docdir: %{prefix}/usr/doc
 Requires: alsa-driver
 
 %description
@@ -20,11 +18,16 @@ Advanced Linux Sound Architecture (ALSA) - Library
 
 %changelog
 
+* Tue Nov 20 2001 Jaroslav Kysela <perex@suse.cz>
+
+- changed BuildRoot from /tmp to /var/tmp
+- use the standard RPM macros for prefix and paths
+- added DESTDIR for make install
+
 * Sun Nov 11 2001 Miroslav Benes <mbenes@tenez.cz>
 
 - dangerous command "rpm -rf $RPM_BUILD_ROOT" checks $RPM_BUILD_ROOT variable
 - unset key "Docdir" - on some new systems are documentation in /usr/share/doc
-
 
 * Mon May 28 1998 Helge Jensen <slog@slog.dk>
 
@@ -34,16 +37,19 @@ Advanced Linux Sound Architecture (ALSA) - Library
 %setup
 %build
 
-./configure --prefix=/usr
+./configure --prefix=%_prefix --mandir=%_mandir --datadir=%_datadir \
+	    --includedir=%_includedir --libdir=%_libdir
 make
 
 %install
 [ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
 
-mkdir -p $RPM_BUILD_ROOT/usr/include/alsa
-mkdir -p $RPM_BUILD_ROOT/usr/lib
+mkdir -p $RPM_BUILD_ROOT/%_includedir/alsa
+mkdir -p $RPM_BUILD_ROOT/%_datadir/alsa
+mkdir -p $RPM_BUILD_ROOT/%_datadir/aclocal
+mkdir -p $RPM_BUILD_ROOT/%_libdir
 
-make prefix="$RPM_BUILD_ROOT/usr" install
+make DESTDIR="$RPM_BUILD_ROOT" install
 
 %clean
 [ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
@@ -51,21 +57,10 @@ make prefix="$RPM_BUILD_ROOT/usr" install
 %files
 %defattr(-, root, root)
 
-%doc doc/*.html
-%doc doc/*.sgml
 %doc doc/*.txt
 
-%{prefix}/usr/include/alsa/*.h
-%{prefix}/usr/lib/lib*
-%{prefix}/usr/share/aclocal/alsa.m4
-%{prefix}/usr/share/alsa/*
-
-
-
-
-
-
-
-
-
-
+%_includedir/alsa/*.h
+%_libdir/lib*
+%_datadir/aclocal/alsa.m4
+%_datadir/alsa/*
+%_prefix/bin/aserver
