@@ -105,23 +105,6 @@ static int snd_pcm_null_hwsync(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static int snd_pcm_null_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
-{
-	switch (snd_pcm_state(pcm)) {
-	case SND_PCM_STATE_RUNNING:
-	case SND_PCM_STATE_DRAINING:
-	case SND_PCM_STATE_PREPARED:
-	case SND_PCM_STATE_PAUSED:
-	case SND_PCM_STATE_SUSPENDED:
-		*hwptr = *pcm->hw.ptr;
-		return 0;
-	case SND_PCM_STATE_XRUN:
-		return -EPIPE;
-	default:
-		return -EBADFD;
-	}
-}
-
 static int snd_pcm_null_delay(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sframes_t *delayp)
 {
 	*delayp = 0;
@@ -196,6 +179,21 @@ static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 		/* Fall through */
 	case SND_PCM_STATE_PREPARED:
 		snd_pcm_mmap_appl_backward(pcm, frames);
+		return frames;
+	default:
+		return -EBADFD;
+	}
+}
+
+static snd_pcm_sframes_t snd_pcm_null_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_null_t *null = pcm->private_data;
+	switch (null->state) {
+	case SND_PCM_STATE_RUNNING:
+		snd_pcm_mmap_hw_forward(pcm, frames);
+		/* Fall through */
+	case SND_PCM_STATE_PREPARED:
+		snd_pcm_mmap_appl_forward(pcm, frames);
 		return frames;
 	default:
 		return -EBADFD;
@@ -329,7 +327,6 @@ static snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	status: snd_pcm_null_status,
 	state: snd_pcm_null_state,
 	hwsync: snd_pcm_null_hwsync,
-	hwptr: snd_pcm_null_hwptr,
 	delay: snd_pcm_null_delay,
 	prepare: snd_pcm_null_prepare,
 	reset: snd_pcm_null_reset,
@@ -338,6 +335,7 @@ static snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	drain: snd_pcm_null_drain,
 	pause: snd_pcm_null_pause,
 	rewind: snd_pcm_null_rewind,
+	forward: snd_pcm_null_forward,
 	resume: snd_pcm_null_resume,
 	writei: snd_pcm_null_writei,
 	writen: snd_pcm_null_writen,

@@ -400,6 +400,12 @@ only when the stream is in the running or draining (playback only) state.
 Note that this function does not update the current r/w pointer for applications,
 so the function \link ::snd_pcm_avail_update \endlink must be called afterwards
 before any read/write begin+commit operations.
+<p>
+To determine the processed frames by hardware, the function \link ::snd_pcm_hwdiff \endlink
+might be used. Note that this function returns cached value which is synchronized with
+hardware using the \link ::snd_pcm_hwsync \endlink function. The application may
+manage the right r/w pointer via \link ::snd_pcm_rewind \endlink and
+\link ::snd_pcm_forward \endlink functions.
 
 \section pcm_action Managing the stream state
 
@@ -869,28 +875,42 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
 }
 
 /**
- * \brief Return hardware pointer
+ * \brief Return count of processed frames by hardware from last call
  * \param pcm PCM handle
+ * \param diff Difference between last position and current
+ * \param old_pos Old position on entry, actual position on exit
  * \return 0 on success otherwise a negative error code
  *
- * The hardware pointer is in range 0 ... (boundary - 1). It contains
+ * The old_ptr parameter is in range 0 ... (boundary - 1). It contains
  * count_of_ring_buffer_crosses * buffer_size + offset in the ring buffer.
+ * Using this value is not intented 
  *
- * Note this function does not return the real hardware pointer.
+ * Note this function does not obtain the real position from hardware.
  * The function \link ::snd_pcm_hwsync \endlink have to be called
  * before to obtain the real hardware position.
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hwptr)(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+int INTERNAL(snd_pcm_hwdiff)(snd_pcm_t *pcm, snd_pcm_uframes_t *diff, snd_pcm_uframes_t *old_pos)
 #else
-int snd_pcm_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
+int snd_pcm_hwdiff(snd_pcm_t *pcm, snd_pcm_uframes_t *diff, snd_pcm_uframes_t *old_pos)
 #endif
 {
-	assert(pcm);
+	snd_pcm_uframes_t d, hw_ptr;
+
+	assert(pcm && diff && old_pos);
 	assert(pcm->setup);
-	return pcm->fast_ops->hwptr(pcm->fast_op_arg, hwptr);
+	assert(*old_pos < pcm->boundary);
+	hw_ptr = *pcm->hw.ptr;
+	if (hw_ptr < *old_pos) {
+		d = (pcm->boundary - *old_pos) + hw_ptr;
+	} else {
+		d = hw_ptr - *old_pos;
+	}
+	*diff = d;
+	*old_pos = hw_ptr;
+	return 0;
 }
-default_symbol_version(__snd_pcm_hwptr, snd_pcm_hwptr, ALSA_0.9.0rc8);
+default_symbol_version(__snd_pcm_hwdiff, snd_pcm_hwdiff, ALSA_0.9.0rc8);
 
 /**
  * \brief Obtain delay for a running PCM handle
@@ -1028,6 +1048,25 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	assert(frames > 0);
 	return pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
 }
+
+/**
+ * \brief Move application frame position forward
+ * \param pcm PCM handle
+ * \param frames wanted skip in frames
+ * \return a positive number for actual skip otherwise a negative error code
+ */
+#ifndef DOXYGEN
+snd_pcm_sframes_t INTERNAL(snd_pcm_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+#else
+snd_pcm_sframes_t snd_pcm_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+#endif
+{
+	assert(pcm);
+	assert(pcm->setup);
+	assert(frames > 0);
+	return pcm->fast_ops->forward(pcm->fast_op_arg, frames);
+}
+default_symbol_version(__snd_pcm_forward, snd_pcm_forward, ALSA_0.9.0rc8);
 
 /**
  * \brief Write interleaved frames to a PCM
@@ -5816,7 +5855,7 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
  * \brief Application request to access a portion of direct (mmap) area
  * \param pcm PCM handle 
  * \param areas Returned mmap channel areas
- * \param offset mmap area offset in area steps (== frames) (wanted on entry (see note), returned on exit)
+ * \param offset Returned mmap area offset in area steps (== frames)
  * \param frames mmap area portion size in frames (wanted on entry, contiguous available on exit)
  * \return 0 on success otherwise a negative error code
  *
@@ -5829,10 +5868,6 @@ void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
  *
  * See the snd_pcm_mmap_commit() function to finish the frame processing in
  * the direct areas.
- *
- * Note: The offset value is always overriden when stop_threshold < boundary.
- *       Otherwise, the application must specify it's own offset value.
- * 
  */
 int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		       const snd_pcm_channel_area_t **areas,
@@ -5844,16 +5879,10 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 	snd_pcm_uframes_t avail;
 	assert(pcm && areas && offset && frames);
 	*areas = snd_pcm_mmap_areas(pcm);
-	if (pcm->stop_threshold < pcm->boundary) {
-		*offset = *pcm->appl.ptr % pcm->buffer_size;
-		avail = snd_pcm_mmap_avail(pcm);
-		if (avail > pcm->buffer_size)
-			avail = pcm->buffer_size;
-	} else {
-		if (*offset >= pcm->buffer_size)
-			return -EINVAL;
+	*offset = *pcm->appl.ptr % pcm->buffer_size;
+	avail = snd_pcm_mmap_avail(pcm);
+	if (avail > pcm->buffer_size)
 		avail = pcm->buffer_size;
-	}
 	cont = pcm->buffer_size - *offset;
 	f = *frames;
 	if (f > avail)

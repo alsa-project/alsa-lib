@@ -325,12 +325,6 @@ static int snd_pcm_meter_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_hwsync(meter->slave);
 }
 
-static int snd_pcm_meter_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return INTERNAL(snd_pcm_hwptr)(meter->slave, hwptr);
-}
-
 static int snd_pcm_meter_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
@@ -397,6 +391,15 @@ static snd_pcm_sframes_t snd_pcm_meter_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	snd_pcm_sframes_t err = snd_pcm_rewind(meter->slave, frames);
+	if (err > 0 && pcm->stream == SND_PCM_STREAM_PLAYBACK)
+		meter->rptr = *pcm->appl.ptr;
+	return err;
+}
+
+static snd_pcm_sframes_t snd_pcm_meter_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_meter_t *meter = pcm->private_data;
+	snd_pcm_sframes_t err = snd_pcm_forward(meter->slave, frames);
 	if (err > 0 && pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		meter->rptr = *pcm->appl.ptr;
 	return err;
@@ -614,6 +617,7 @@ static snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	drain: snd_pcm_meter_drain,
 	pause: snd_pcm_meter_pause,
 	rewind: snd_pcm_meter_rewind,
+	forward: snd_pcm_meter_forward,
 	resume: snd_pcm_meter_resume,
 	writei: snd_pcm_mmap_writei,
 	writen: snd_pcm_mmap_writen,

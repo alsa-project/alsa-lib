@@ -147,10 +147,10 @@ typedef struct {
 	int (*pause)(snd_pcm_t *pcm, int enable);
 	snd_pcm_state_t (*state)(snd_pcm_t *pcm);
 	int (*hwsync)(snd_pcm_t *pcm);
-	int (*hwptr)(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr);
 	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 	int (*resume)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+	snd_pcm_sframes_t (*forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
 	snd_pcm_sframes_t (*writen)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 	snd_pcm_sframes_t (*readi)(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
@@ -550,7 +550,8 @@ int snd_pcm_hw_param_get_max(const snd_pcm_hw_params_t *params,
 			     unsigned int *val, int *dir);
 
 #ifdef INTERNAL
-int INTERNAL(snd_pcm_hwptr)(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr);
+int INTERNAL(snd_pcm_hwdiff)(snd_pcm_t *pcm, snd_pcm_uframes_t *diff, snd_pcm_uframes_t *old_pos);
+snd_pcm_sframes_t INTERNAL(snd_pcm_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 
 int INTERNAL(snd_pcm_hw_params_get_access)(const snd_pcm_hw_params_t *params, snd_pcm_access_t *access);
 int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t access);

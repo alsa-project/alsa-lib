@@ -185,24 +185,6 @@ static int snd_pcm_jack_hwsync(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static int snd_pcm_jack_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
-{
-#ifdef PCM_JACK_DEBUG
-	printf("snd_pcm_jack_hwptr\n"); fflush(stdout);
-#endif
-	switch (snd_pcm_state(pcm)) {
-	case SND_PCM_STATE_RUNNING:
-	case SND_PCM_STATE_DRAINING:
-	case SND_PCM_STATE_PREPARED:
-	case SND_PCM_STATE_PAUSED:
-	case SND_PCM_STATE_SUSPENDED:
-		*hwptr = *pcm->hw.ptr;
-		return 0;
-	default:
-		return -EBADFD;
-	}
-}
-
 static int snd_pcm_jack_delay(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sframes_t *delayp)
 {
 #ifdef PCM_JACK_DEBUG
@@ -460,6 +442,22 @@ static snd_pcm_sframes_t snd_pcm_jack_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 	return frames;
 }
 
+static snd_pcm_sframes_t snd_pcm_jack_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_sframes_t avail;
+
+#ifdef PCM_JACK_DEBUG
+	printf("snd_pcm_jack_forward\n"); fflush(stdout);
+#endif
+	avail = snd_pcm_mmap_avail(pcm);
+	if (avail < 0)
+		return 0;
+	if (frames > (snd_pcm_uframes_t) avail)
+		frames = (snd_pcm_uframes_t) avail;
+	snd_pcm_mmap_appl_forward(pcm, frames);
+	return frames;
+}
+
 static int snd_pcm_jack_resume(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -611,7 +609,6 @@ static snd_pcm_fast_ops_t snd_pcm_jack_fast_ops = {
 	status: snd_pcm_jack_status,
 	state: snd_pcm_jack_state,
 	hwsync: snd_pcm_jack_hwsync,
-	hwptr: snd_pcm_jack_hwptr,
 	delay: snd_pcm_jack_delay,
 	prepare: snd_pcm_jack_prepare,
 	reset: snd_pcm_jack_reset,
@@ -620,6 +617,7 @@ static snd_pcm_fast_ops_t snd_pcm_jack_fast_ops = {
 	drain: snd_pcm_jack_drain,
 	pause: snd_pcm_jack_pause,
 	rewind: snd_pcm_jack_rewind,
+	forward: snd_pcm_jack_forward,
 	resume: snd_pcm_jack_resume,
 	writei: snd_pcm_mmap_writei,
 	writen: snd_pcm_mmap_writen,

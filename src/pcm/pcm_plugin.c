@@ -199,12 +199,6 @@ int snd_pcm_plugin_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_hwsync(plugin->slave);
 }
 
-int snd_pcm_plugin_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
-{
-	snd_pcm_plugin_t *plugin = pcm->private_data;
-	return INTERNAL(snd_pcm_hwptr)(plugin->slave, hwptr);
-}
-
 int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
@@ -288,34 +282,56 @@ snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t n = snd_pcm_mmap_hw_avail(pcm);
-	assert(n >= 0);
-	if (n > 0) {
-		if ((snd_pcm_uframes_t)n > frames)
-			n = frames;
-		frames -= n;
+	snd_pcm_sframes_t sframes;
+
+	if ((snd_pcm_uframes_t)n > frames)
+		frames = n;
+	if (frames == 0)
+		return 0;
+	
+	/* FIXME: rate plugin */
+	if (plugin->slave_frames)
+		sframes = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
+	else
+		sframes = frames;
+	snd_atomic_write_begin(&plugin->watom);
+	sframes = snd_pcm_rewind(plugin->slave, sframes);
+	if (sframes < 0) {
+		snd_atomic_write_end(&plugin->watom);
+		return sframes;
 	}
-	if (frames > 0) {
-		snd_pcm_sframes_t err;
-		/* FIXME: rate plugin */
-		if (plugin->slave_frames)
-			frames = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
-		snd_atomic_write_begin(&plugin->watom);
-		err = snd_pcm_rewind(plugin->slave, frames);
-		if (err < 0) {
-			if (n <= 0) {
-				snd_atomic_write_end(&plugin->watom);
-				return err;
-			}
-			goto _end;
-		}
-		if (plugin->client_frames)
-			err = plugin->client_frames(pcm, err);
-		snd_pcm_mmap_hw_backward(pcm, (snd_pcm_uframes_t) err);
-		n += err;
-	} else
-		snd_atomic_write_begin(&plugin->watom);
- _end:
-	snd_pcm_mmap_appl_backward(pcm, (snd_pcm_uframes_t) n);
+	if (plugin->client_frames)
+		frames = plugin->client_frames(pcm, sframes);
+	snd_pcm_mmap_appl_backward(pcm, (snd_pcm_uframes_t) frames);
+	snd_atomic_write_end(&plugin->watom);
+	return n;
+}
+
+snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_plugin_t *plugin = pcm->private_data;
+	snd_pcm_sframes_t n = snd_pcm_mmap_avail(pcm);
+	snd_pcm_uframes_t sframes;
+
+	if ((snd_pcm_uframes_t)n > frames)
+		frames = n;
+	if (frames == 0)
+		return 0;
+	
+	/* FIXME: rate plugin */
+	if (plugin->slave_frames)
+		sframes = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
+	else
+		sframes = frames;
+	snd_atomic_write_begin(&plugin->watom);
+	sframes = snd_pcm_forward(plugin->slave, (snd_pcm_uframes_t) sframes);
+	if (sframes < 0) {
+		snd_atomic_write_end(&plugin->watom);
+		return sframes;
+	}
+	if (plugin->client_frames)
+		frames = plugin->client_frames(pcm, sframes);
+	snd_pcm_mmap_appl_forward(pcm, (snd_pcm_uframes_t) frames);
 	snd_atomic_write_end(&plugin->watom);
 	return n;
 }
@@ -632,7 +648,6 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	status: snd_pcm_plugin_status,
 	state: snd_pcm_plugin_state,
 	hwsync: snd_pcm_plugin_hwsync,
-	hwptr: snd_pcm_plugin_hwptr,
 	delay: snd_pcm_plugin_delay,
 	prepare: snd_pcm_plugin_prepare,
 	reset: snd_pcm_plugin_reset,
@@ -641,6 +656,7 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	drain: snd_pcm_plugin_drain,
 	pause: snd_pcm_plugin_pause,
 	rewind: snd_pcm_plugin_rewind,
+	forward: snd_pcm_plugin_forward,
 	resume: snd_pcm_plugin_resume,
 	writei: snd_pcm_plugin_writei,
 	writen: snd_pcm_plugin_writen,

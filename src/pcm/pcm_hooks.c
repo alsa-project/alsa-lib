@@ -122,12 +122,6 @@ static int snd_pcm_hooks_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_hwsync(h->slave);
 }
 
-static int snd_pcm_hooks_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
-{
-	snd_pcm_hooks_t *h = pcm->private_data;
-	return INTERNAL(snd_pcm_hwptr)(h->slave, hwptr);
-}
-
 static int snd_pcm_hooks_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
@@ -174,6 +168,12 @@ static snd_pcm_sframes_t snd_pcm_hooks_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
 	return snd_pcm_rewind(h->slave, frames);
+}
+
+static snd_pcm_sframes_t snd_pcm_hooks_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_hooks_t *h = pcm->private_data;
+	return snd_pcm_forward(h->slave, frames);
 }
 
 static int snd_pcm_hooks_resume(snd_pcm_t *pcm)
@@ -305,7 +305,6 @@ static snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	status: snd_pcm_hooks_status,
 	state: snd_pcm_hooks_state,
 	hwsync: snd_pcm_hooks_hwsync,
-	hwptr: snd_pcm_hooks_hwptr,
 	delay: snd_pcm_hooks_delay,
 	prepare: snd_pcm_hooks_prepare,
 	reset: snd_pcm_hooks_reset,
@@ -314,6 +313,7 @@ static snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	drain: snd_pcm_hooks_drain,
 	pause: snd_pcm_hooks_pause,
 	rewind: snd_pcm_hooks_rewind,
+	forward: snd_pcm_hooks_forward,
 	resume: snd_pcm_hooks_resume,
 	writei: snd_pcm_hooks_writei,
 	writen: snd_pcm_hooks_writen,

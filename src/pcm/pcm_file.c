@@ -168,12 +168,6 @@ static int snd_pcm_file_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_hwsync(file->slave);
 }
 
-static int snd_pcm_file_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
-{
-	snd_pcm_file_t *file = pcm->private_data;
-	return INTERNAL(snd_pcm_hwptr)(file->slave, hwptr);
-}
-
 static int snd_pcm_file_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -236,15 +230,33 @@ static int snd_pcm_file_pause(snd_pcm_t *pcm, int enable)
 static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	snd_pcm_sframes_t err = snd_pcm_rewind(file->slave, frames);
+	snd_pcm_sframes_t err;
+	snd_pcm_uframes_t n;
+	
+	n = snd_pcm_frames_to_bytes(pcm, frames);
+	if (n > file->wbuf_used_bytes)
+		frames = snd_pcm_bytes_to_frames(pcm, file->wbuf_used_bytes);
+	err = snd_pcm_rewind(file->slave, frames);
 	if (err > 0) {
-		snd_pcm_uframes_t n = snd_pcm_frames_to_bytes(pcm, frames);
-		snd_pcm_sframes_t ptr;
-		assert(n >= file->wbuf_used_bytes);
-		ptr = file->appl_ptr - err;
-		if (ptr < 0)
-			ptr += file->wbuf_size;
+		n = snd_pcm_frames_to_bytes(pcm, err);
 		file->wbuf_used_bytes -= n;
+	}
+	return err;
+}
+
+static snd_pcm_sframes_t snd_pcm_file_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_sframes_t err;
+	snd_pcm_uframes_t n;
+	
+	n = snd_pcm_frames_to_bytes(pcm, frames);
+	if (file->wbuf_used_bytes + n > file->wbuf_size_bytes)
+		frames = snd_pcm_bytes_to_frames(pcm, file->wbuf_size_bytes - file->wbuf_used_bytes);
+	err = snd_pcm_forward(file->slave, frames);
+	if (err > 0) {
+		snd_pcm_uframes_t n = snd_pcm_frames_to_bytes(pcm, err);
+		file->wbuf_used_bytes += n;
 	}
 	return err;
 }
@@ -372,9 +384,6 @@ static int snd_pcm_file_hw_free(snd_pcm_t *pcm)
 static int snd_pcm_file_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	/* we don't support mode without xrun detection */
-	if (params->stop_threshold >= params->boundary)
-		return -EINVAL;
 	return snd_pcm_sw_params(file->slave, params);
 }
 
@@ -422,7 +431,6 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	status: snd_pcm_file_status,
 	state: snd_pcm_file_state,
 	hwsync: snd_pcm_file_hwsync,
-	hwptr: snd_pcm_file_hwptr,
 	delay: snd_pcm_file_delay,
 	prepare: snd_pcm_file_prepare,
 	reset: snd_pcm_file_reset,
@@ -431,6 +439,7 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	drain: snd_pcm_file_drain,
 	pause: snd_pcm_file_pause,
 	rewind: snd_pcm_file_rewind,
+	forward: snd_pcm_file_forward,
 	resume: snd_pcm_file_resume,
 	writei: snd_pcm_file_writei,
 	writen: snd_pcm_file_writen,

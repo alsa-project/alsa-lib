@@ -989,25 +989,6 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 	}
 }
 
-static int snd_pcm_dmix_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
-{
-	snd_pcm_dmix_t *dmix = pcm->private_data;
-
-	switch(dmix->state) {
-	case SNDRV_PCM_STATE_DRAINING:
-	case SNDRV_PCM_STATE_RUNNING:
-	case SNDRV_PCM_STATE_PREPARED:
-	case SNDRV_PCM_STATE_PAUSED:
-	case SNDRV_PCM_STATE_SUSPENDED:
-		*hwptr = *pcm->hw.ptr;
-		return 0;
-	case SNDRV_PCM_STATE_XRUN:
-		return -EPIPE;
-	default:
-		return -EBADFD;
-	}
-}
-
 static int snd_pcm_dmix_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
@@ -1105,6 +1086,19 @@ static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 {
 	/* FIXME: substract samples from the mix ring buffer, too? */
 	snd_pcm_mmap_appl_backward(pcm, frames);
+	return frames;
+}
+
+static snd_pcm_sframes_t snd_pcm_dmix_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_sframes_t avail;
+
+	avail = snd_pcm_mmap_avail(pcm);
+	if (avail < 0)
+		return 0;
+	if (frames > avail)
+		frames = avail;
+	snd_pcm_mmap_appl_forward(pcm, frames);
 	return frames;
 }
 
@@ -1224,7 +1218,6 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
 	status: snd_pcm_dmix_status,
 	state: snd_pcm_dmix_state,
 	hwsync: snd_pcm_dmix_hwsync,
-	hwptr: snd_pcm_dmix_hwptr,
 	delay: snd_pcm_dmix_delay,
 	prepare: snd_pcm_dmix_prepare,
 	reset: snd_pcm_dmix_reset,
@@ -1233,6 +1226,7 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
 	drain: snd_pcm_dmix_drain,
 	pause: snd_pcm_dmix_pause,
 	rewind: snd_pcm_dmix_rewind,
+	forward: snd_pcm_dmix_forward,
 	resume: snd_pcm_dmix_resume,
 	writei: snd_pcm_mmap_writei,
 	writen: snd_pcm_mmap_writen,

@@ -471,9 +471,6 @@ static int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_HWSYNC:
 		ctrl->result = snd_pcm_hwsync(pcm);
 		break;
-	case SND_PCM_IOCTL_HWPTR:
-		ctrl->result = snd_pcm_hwptr(pcm, (snd_pcm_uframes_t *) &ctrl->u.hwptr.frames);
-		break;
 	case SNDRV_PCM_IOCTL_DELAY:
 		ctrl->result = snd_pcm_delay(pcm, (snd_pcm_sframes_t *) &ctrl->u.delay.frames);
 		break;
@@ -506,6 +503,9 @@ static int pcm_shm_cmd(client_t *client)
 		break;
 	case SNDRV_PCM_IOCTL_REWIND:
 		ctrl->result = snd_pcm_rewind(pcm, ctrl->u.rewind.frames);
+		break;
+	case SND_PCM_IOCTL_FORWARD:
+		ctrl->result = snd_pcm_forward(pcm, ctrl->u.forward.frames);
 		break;
 	case SNDRV_PCM_IOCTL_LINK:
 	{

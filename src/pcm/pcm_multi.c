@@ -358,13 +358,6 @@ static int snd_pcm_multi_hwsync(snd_pcm_t *pcm)
 	return snd_pcm_hwsync(slave);
 }
 
-static int snd_pcm_multi_hwptr(snd_pcm_t *pcm, snd_pcm_uframes_t *hwptr)
-{
-	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
-	return INTERNAL(snd_pcm_hwptr)(slave, hwptr);
-}
-
 static int snd_pcm_multi_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -512,7 +505,37 @@ static snd_pcm_sframes_t snd_pcm_multi_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 		snd_pcm_uframes_t f = pos[i] - frames;
 		snd_pcm_sframes_t result;
 		if (f > 0) {
-			result = snd_pcm_mmap_commit(slave_i, snd_pcm_mmap_offset(slave_i), f);
+			result = snd_pcm_forward(slave_i, f);
+			if (result < 0)
+				return result;
+			if ((snd_pcm_uframes_t)result != f)
+				return -EIO;
+		}
+	}
+	return frames;
+}
+
+static snd_pcm_sframes_t snd_pcm_multi_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	unsigned int i;
+	snd_pcm_uframes_t pos[multi->slaves_count];
+	memset(pos, 0, sizeof(pos));
+	for (i = 0; i < multi->slaves_count; ++i) {
+		snd_pcm_t *slave_i = multi->slaves[i].pcm;
+		snd_pcm_sframes_t f = snd_pcm_forward(slave_i, frames);
+		if (f < 0)
+			return f;
+		pos[i] = f;
+		frames = f;
+	}
+	/* Realign the pointers */
+	for (i = 0; i < multi->slaves_count; ++i) {
+		snd_pcm_t *slave_i = multi->slaves[i].pcm;
+		snd_pcm_uframes_t f = pos[i] - frames;
+		snd_pcm_sframes_t result;
+		if (f > 0) {
+			result = snd_pcm_rewind(slave_i, f);
 			if (result < 0)
 				return result;
 			if ((snd_pcm_uframes_t)result != f)
@@ -609,7 +632,6 @@ static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	status: snd_pcm_multi_status,
 	state: snd_pcm_multi_state,
 	hwsync: snd_pcm_multi_hwsync,
-	hwptr: snd_pcm_multi_hwptr,
 	delay: snd_pcm_multi_delay,
 	prepare: snd_pcm_multi_prepare,
 	reset: snd_pcm_multi_reset,
@@ -622,6 +644,7 @@ static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	readi: snd_pcm_mmap_readi,
 	readn: snd_pcm_mmap_readn,
 	rewind: snd_pcm_multi_rewind,
+	forward: snd_pcm_multi_forward,
 	resume: snd_pcm_multi_resume,
 	avail_update: snd_pcm_multi_avail_update,
 	mmap_commit: snd_pcm_multi_mmap_commit,
