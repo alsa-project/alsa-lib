@@ -1,6 +1,6 @@
 .TH MIDIFILE 3
 .SH NAME
-mfread,mfwrite - read and write a standard MIDI file
+mfread,mfwrite \- read and write a standard MIDI file
 .SH SYNOPSIS
 \fC#include "mfread.h"
 
@@ -87,7 +87,7 @@ from within \fCmfread\fR during the process of parsing the MIDI file.
 Before calling \fCmfread\fR, the only
 requirement is that you assign a value
 to \fCMf_getc\fR - a pointer to a function that will return
-characters from the MIDI file, using -1 to indicate EOF.
+characters from the MIDI file, using \-1 to indicate EOF.
 All the rest of the function
 pointers are initialized to NULL, and the default action for each
 is to do nothing.  The following is a complete program using \fCmfread\fR
@@ -269,9 +269,9 @@ bits 14 through 0 represent the number of delta-time "ticks"
 which make up a quarter note.  If bit 15 of division is a one,
 delta-times in a file correspond to subdivisions of a second
 similar to SMPTE and MIDI time code. In this format bits
-14 through 8 contain one of four values - 24, -25, -29, or -30,
+14 through 8 contain one of four values \-24, \-25, \-29, or \-30,
 corresponding to the four standard SMPTE and MIDI time code
-frame per second formats, where -29 represents 30 drop frame.
+frame per second formats, where \-29 represents 30 drop frame.
 The second byte consisting of bits 7 through 0 corresponds
 the the resolution within a frame.  Refer the Standard MIDI Files 
 1.0 spec for more details.
@@ -305,9 +305,9 @@ int track;
        data[0] = i; /* note number */
        data[1] = 64; /* velocity */
        if(!mf_write_midi_event(480,note_on,1,data,2)) 
-	   return(-1);
+	   return(\-1);
        if(!mf_write_midi_event(480,note_off,1,data,2)) 
-           return(-1);
+           return(\-1);
     }
 
     return(1);
