@@ -386,8 +386,8 @@ static void route_transfer(const snd_pcm_channel_area_t *src_areas,
 			   size_t src_offset,
 			   const snd_pcm_channel_area_t *dst_areas,
 			   size_t dst_offset,
-			   size_t frames,
 			   size_t dst_channels,
+			   size_t frames,
 			   route_params_t *params)
 {
 	size_t dst_channel;
@@ -530,7 +530,7 @@ static ssize_t snd_pcm_route_write_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		route_transfer(areas, offset, 
 			       snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			       frames, slave->channels, &route->params);
+			       slave->channels, frames, &route->params);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
@@ -564,7 +564,7 @@ static ssize_t snd_pcm_route_read_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
 		route_transfer(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			       areas, offset, 
-			       frames, pcm->channels, &route->params);
+			       pcm->channels, frames, &route->params);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;

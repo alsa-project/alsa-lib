@@ -60,7 +60,7 @@ typedef void (*adpcm_f)(const snd_pcm_channel_area_t *src_areas,
 			size_t src_offset,
 			const snd_pcm_channel_area_t *dst_areas,
 			size_t dst_offset,
-			size_t frames, size_t channels, int getputidx,
+			size_t channels, size_t frames, int getputidx,
 			adpcm_state_t *states);
 
 typedef struct {
@@ -199,7 +199,7 @@ static void adpcm_decode(const snd_pcm_channel_area_t *src_areas,
 			 size_t src_offset,
 			 const snd_pcm_channel_area_t *dst_areas,
 			 size_t dst_offset,
-			 size_t frames, size_t channels, int putidx,
+			 size_t channels, size_t frames, int putidx,
 			 adpcm_state_t *states)
 {
 #define PUT16_LABELS
@@ -260,7 +260,7 @@ static void adpcm_encode(const snd_pcm_channel_area_t *src_areas,
 			 size_t src_offset,
 			 const snd_pcm_channel_area_t *dst_areas,
 			 size_t dst_offset,
-			 size_t frames, size_t channels, int getidx,
+			 size_t channels, size_t frames, int getidx,
 			 adpcm_state_t *states)
 {
 #define GET16_LABELS
@@ -426,7 +426,7 @@ static ssize_t snd_pcm_adpcm_write_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		adpcm->func(areas, offset, 
 			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			    frames, pcm->channels,
+			    pcm->channels, frames,
 			    adpcm->getput_idx, adpcm->states);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
@@ -461,7 +461,7 @@ static ssize_t snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
 		adpcm->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			    areas, offset, 
-			    frames, pcm->channels,
+			    pcm->channels, frames,
 			    adpcm->getput_idx, adpcm->states);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)

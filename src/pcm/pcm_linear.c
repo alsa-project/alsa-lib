@@ -32,7 +32,7 @@ typedef struct {
 
 static void linear_transfer(const snd_pcm_channel_area_t *src_areas, size_t src_offset,
 			    const snd_pcm_channel_area_t *dst_areas, size_t dst_offset,
-			    size_t frames, size_t channels, int convidx)
+			    size_t channels, size_t frames, int convidx)
 {
 #define CONV_LABELS
 #include "plugin_ops.h"
@@ -141,7 +141,7 @@ static ssize_t snd_pcm_linear_write_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		linear_transfer(areas, offset, 
 				snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-				frames, pcm->channels, linear->conv_idx);
+				pcm->channels, frames, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;
@@ -175,7 +175,7 @@ static ssize_t snd_pcm_linear_read_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
 		linear_transfer(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 				areas, offset, 
-				frames, pcm->channels, linear->conv_idx);
+				pcm->channels, frames, linear->conv_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
 			break;

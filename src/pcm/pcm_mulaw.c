@@ -27,7 +27,7 @@ typedef void (*mulaw_f)(const snd_pcm_channel_area_t *src_areas,
 			size_t src_offset,
 			const snd_pcm_channel_area_t *dst_areas,
 			size_t dst_offset,
-			size_t frames, size_t channels, int getputidx);
+			size_t channels, size_t frames, int getputidx);
 
 typedef struct {
 	/* This field need to be the first */
@@ -141,7 +141,7 @@ static void mulaw_decode(const snd_pcm_channel_area_t *src_areas,
 			 size_t src_offset,
 			 const snd_pcm_channel_area_t *dst_areas,
 			 size_t dst_offset,
-			 size_t frames, size_t channels, int putidx)
+			 size_t channels, size_t frames, int putidx)
 {
 #define PUT16_LABELS
 #include "plugin_ops.h"
@@ -186,7 +186,7 @@ static void mulaw_encode(const snd_pcm_channel_area_t *src_areas,
 			 size_t src_offset,
 			 const snd_pcm_channel_area_t *dst_areas,
 			 size_t dst_offset,
-			 size_t frames, size_t channels, int getidx)
+			 size_t channels, size_t frames, int getidx)
 {
 #define GET16_LABELS
 #include "plugin_ops.h"
@@ -311,7 +311,7 @@ static ssize_t snd_pcm_mulaw_write_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_playback_xfer(slave, size - xfer);
 		mulaw->func(areas, offset, 
 			    snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
-			    frames, pcm->channels,
+			    pcm->channels, frames,
 			    mulaw->getput_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
@@ -346,7 +346,7 @@ static ssize_t snd_pcm_mulaw_read_areas(snd_pcm_t *pcm,
 		size_t frames = snd_pcm_mmap_capture_xfer(slave, size - xfer);
 		mulaw->func(snd_pcm_mmap_areas(slave), snd_pcm_mmap_offset(slave),
 			    areas, offset, 
-			    frames, pcm->channels,
+			    pcm->channels, frames,
 			    mulaw->getput_idx);
 		err = snd_pcm_mmap_forward(slave, frames);
 		if (err < 0)
