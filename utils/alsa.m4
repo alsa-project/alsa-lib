@@ -125,8 +125,9 @@ AC_CHECK_LIB([asound], [snd_defaults_card],,
 
 if test "x$alsa_found" = "xyes" ; then
    ifelse([$2], , :, [$2])
-   LIBS=`echo $LIBS | sed 's/^-lasound //'`
+   LIBS=`echo $LIBS | sed 's/-lasound//g'`
    LIBS=`echo $LIBS | sed 's/  //'`
+   LIBS="-lasound $LIBS"
 fi
 if test "x$alsa_found" = "xno" ; then
    ifelse([$3], , :, [$3])
