@@ -1030,7 +1030,7 @@ snd_pcm_uframes_t snd_pcm_status_get_overrange(const snd_pcm_status_t *obj);
  * \{
  */
 
-const char *snd_pcm_type_name(snd_pcm_state_t state);
+const char *snd_pcm_type_name(snd_pcm_type_t type);
 const char *snd_pcm_stream_name(const snd_pcm_stream_t stream);
 const char *snd_pcm_access_name(const snd_pcm_access_t _access);
 const char *snd_pcm_format_name(const snd_pcm_format_t format);
