@@ -2,12 +2,18 @@ SUBDIRS=control mixer pcm rawmidi timer hwdep seq instr compat conf
 EXTRA_DIST=Versions
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
+if HAVE_JACK
+JACK_LIB = -ljack
+else
+JACK_LIB =
+endif
+
 lib_LTLIBRARIES = libasound.la
 libasound_la_SOURCES = conf.c confmisc.c input.c output.c async.c error.c dlmisc.c
 libasound_la_LIBADD = control/libcontrol.la mixer/libmixer.la pcm/libpcm.la \
                       rawmidi/librawmidi.la timer/libtimer.la \
 		      hwdep/libhwdep.la seq/libseq.la instr/libinstr.la \
-		      compat/libcompat.la -lm -ldl -lpthread
+		      compat/libcompat.la -lm -ldl -lpthread $(JACK_LIB)
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
 LDFLAGS = -Wl,--version-script=Versions

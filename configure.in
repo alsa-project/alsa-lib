@@ -118,6 +118,19 @@ else
   AC_MSG_RESULT(no)
 fi
 
+dnl Check for jack...
+AC_MSG_CHECKING(for jack)
+AC_ARG_WITH(jack,
+  [  --with-jack             do you have installed Jack Audio Connection Kit (optional)],
+  [  AC_DEFINE(HAVE_JACK, "1", [enabled])
+     jack=yes ],)
+if test "$jack" = "yes" ; then
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(no)
+fi
+AM_CONDITIONAL(HAVE_JACK, test x$jack = xyes)
+
 dnl Check for architecture
 AC_MSG_CHECKING(for architecture)
 case "$target" in

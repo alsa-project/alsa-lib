@@ -627,9 +627,9 @@ static int snd_pcm_plug_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 static int snd_pcm_plug_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
-	_snd_pcm_hw_params_any(sparams);
 	int err;
 	
+	_snd_pcm_hw_params_any(sparams);
 	if (plug->sformat >= 0) {
 		_snd_pcm_hw_params_set_format(sparams, plug->sformat);
 		_snd_pcm_hw_params_set_subformat(sparams, SND_PCM_SUBFORMAT_STD);

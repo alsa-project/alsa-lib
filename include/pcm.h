@@ -347,7 +347,9 @@ enum _snd_pcm_type {
 	/** LADSPA integration plugin */
 	SND_PCM_TYPE_LADSPA,
 	/** Direct Mixing plugin */
-	SND_PCM_TYPE_DMIX
+	SND_PCM_TYPE_DMIX,
+	/** Jack Audio Connection Kit plugin */
+	SND_PCM_TYPE_JACK,
 };
 
 /** PCM type */

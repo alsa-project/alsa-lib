@@ -1,8 +1,13 @@
+if HAVE_JACK
+JACK_LIB = -ljack
+else
+JACK_LIB =
+endif
 
 bin_PROGRAMS = aserver
 aserver_SOURCES = aserver.c
 # aserver_LDADD = -lasound
-aserver_LDADD = ../src/libasound.la
+aserver_LDADD = ../src/libasound.la $(JACK_LIB)
 
 all: aserver
 
