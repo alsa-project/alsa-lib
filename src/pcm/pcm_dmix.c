@@ -134,6 +134,8 @@ typedef struct {
 	int interleaved; /* we have interleaved buffer */
 	mix_areas1_t *mix_areas1;
 	mix_areas2_t *mix_areas2;
+	unsigned int channels;	/* client's channels */
+	unsigned int *bindings;
 } snd_pcm_dmix_t;
 
 /*
@@ -552,7 +554,7 @@ static int check_interleave(snd_pcm_dmix_t *dmix, snd_pcm_t *pcm)
 	const snd_pcm_channel_area_t *dst_areas;
 	const snd_pcm_channel_area_t *src_areas;
 
-	channels = dmix->shmptr->s.channels;
+	channels = dmix->channels;
 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
 	src_areas = snd_pcm_mmap_areas(pcm);
 	for (chn = 1; chn < channels; chn++) {
@@ -566,6 +568,10 @@ static int check_interleave(snd_pcm_dmix_t *dmix, snd_pcm_t *pcm)
 		}
 	}
 	for (chn = 0; chn < channels; chn++) {
+		if (dmix->bindings && dmix->bindings[chn] != chn) {
+			interleaved = 0;
+			break;
+		}
 		if (dst_areas[chn].first != sizeof(signed short) * chn * 8 ||
 		    dst_areas[chn].step != channels * sizeof(signed short) * 8) {
 			interleaved = 0;
@@ -718,9 +724,9 @@ static void mix_areas(snd_pcm_dmix_t *dmix,
 {
 	volatile signed int *sum;
 	unsigned int src_step, dst_step;
-	unsigned int chn, channels;
+	unsigned int chn, dchn, channels;
 	
-	channels = dmix->shmptr->s.channels;
+	channels = dmix->channels;
 	if (dmix->shmptr->s.format == SND_PCM_FORMAT_S16) {
 		signed short *src;
 		volatile signed short *dst;
@@ -739,10 +745,13 @@ static void mix_areas(snd_pcm_dmix_t *dmix,
 			return;
 		}
 		for (chn = 0; chn < channels; chn++) {
+			dchn = dmix->bindings ? dmix->bindings[chn] : chn;
+			if (dchn >= dmix->shmptr->s.channels)
+				continue;
 			src_step = src_areas[chn].step / 8;
-			dst_step = dst_areas[chn].step / 8;
+			dst_step = dst_areas[dchn].step / 8;
 			src = (signed short *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
-			dst = (signed short *)(((char *)dst_areas[chn].addr + dst_areas[chn].first / 8) + (dst_ofs * dst_step));
+			dst = (signed short *)(((char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + (dst_ofs * dst_step));
 			sum = dmix->sum_buffer + channels * dst_ofs + chn;
 			dmix->mix_areas1(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
 		}
@@ -764,10 +773,13 @@ static void mix_areas(snd_pcm_dmix_t *dmix,
 			return;
 		}
 		for (chn = 0; chn < channels; chn++) {
+			dchn = dmix->bindings ? dmix->bindings[chn] : chn;
+			if (dchn >= dmix->shmptr->s.channels)
+				continue;
 			src_step = src_areas[chn].step / 8;
-			dst_step = dst_areas[chn].step / 8;
+			dst_step = dst_areas[dchn].step / 8;
 			src = (signed int *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
-			dst = (signed int *)(((char *)dst_areas[chn].addr + dst_areas[chn].first / 8) + (dst_ofs * dst_step));
+			dst = (signed int *)(((char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + (dst_ofs * dst_step));
 			sum = dmix->sum_buffer + channels * dst_ofs + chn;
 			dmix->mix_areas2(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
 		}
@@ -942,7 +954,7 @@ static int snd_pcm_dmix_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_output_puts(log, "DMIX REFINE (begin):\n");
 	snd_pcm_hw_params_dump(params, log);
 #endif
-
+\
 	if (params->rmask & (1<<SND_PCM_HW_PARAM_ACCESS)) {
 		if (snd_mask_empty(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS))) {
 			SNDERR("dmix access mask empty?");
@@ -961,9 +973,15 @@ static int snd_pcm_dmix_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			params->cmask |= 1<<SND_PCM_HW_PARAM_FORMAT;
 	}
 	//snd_mask_none(hw_param_mask(params, SND_PCM_HW_PARAM_SUBFORMAT));
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_CHANNELS, hw_params);
-	if (err < 0)
-		return err;
+	if (params->rmask & (1<<SND_PCM_HW_PARAM_CHANNELS)) {
+		if (snd_interval_empty(hw_param_interval(params, SND_PCM_HW_PARAM_CHANNELS))) {
+			SNDERR("dmix channels mask empty?");
+			return -EINVAL;
+		}
+		err = snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_CHANNELS), dmix->channels);
+		if (err < 0)
+			return err;
+	}
 	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_RATE, hw_params);
 	if (err < 0)
 		return err;
@@ -1237,6 +1255,8 @@ static int snd_pcm_dmix_close(snd_pcm_t *pcm)
  	} else {
 		semaphore_up(dmix, DMIX_IPC_SEM_CLIENT);
 	}
+	if (dmix->bindings)
+		free(dmix->bindings);
 	pcm->private_data = NULL;
 	free(dmix);
 	return 0;
@@ -1568,6 +1588,74 @@ static int snd_pcm_dmix_initialize_poll_fd(snd_pcm_dmix_t *dmix)
 	return 0;
 }
 
+/*
+ * parse the channel map
+ * id == client channel
+ * value == slave's channel
+ */
+static int parse_bindings(snd_pcm_dmix_t *dmix, snd_config_t *cfg)
+{
+	snd_config_iterator_t i, next;
+	unsigned int chn, chn1, count = 0;
+	int err;
+
+	dmix->channels = UINT_MAX;
+	if (cfg == NULL)
+		return 0;
+	if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("invalid type for bindings");
+		return -EINVAL;
+	}
+	snd_config_for_each(i, next, cfg) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		long cchannel;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		err = safe_strtol(id, &cchannel);
+		if (err < 0 || cchannel < 0) {
+			SNDERR("invalid client channel in binding: %s\n", id);
+			return -EINVAL;
+		}
+		if ((unsigned)cchannel > count)
+			count = cchannel + 1;
+	}
+	if (count == 0)
+		return 0;
+	if (count > 1024) {
+		SNDERR("client channel out of range");
+		return -EINVAL;
+	}
+	dmix->bindings = malloc(count * sizeof(unsigned int));
+	for (chn = 0; chn < count; chn++)
+		dmix->bindings[chn] = UINT_MAX;		/* don't route */
+	snd_config_for_each(i, next, cfg) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		long cchannel, schannel;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		safe_strtol(id, &cchannel);
+		if (snd_config_get_integer(n, &schannel) < 0) {
+			SNDERR("unable to get slave channel (should be integer type) in binding: %s\n", id);
+			return -EINVAL;
+		}
+		dmix->bindings[cchannel] = schannel;
+	}
+	for (chn = 0; chn < count; chn++) {
+		for (chn1 = 0; chn1 < count; chn1++) {
+			if (chn == chn1)
+				continue;
+			if (dmix->bindings[chn] == dmix->bindings[chn1]) {
+				SNDERR("unable to route channels %d,%d to same destination %d", chn, chn1, dmix->bindings[chn]);
+				return -EINVAL;
+			}
+		}
+	}
+	dmix->channels = count;
+	return 0;
+}
+
 /**
  * \brief Creates a new dmix PCM
  * \param pcmp Returns created PCM handle
@@ -1585,6 +1673,7 @@ static int snd_pcm_dmix_initialize_poll_fd(snd_pcm_dmix_t *dmix)
  */
 int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		      key_t ipc_key, struct slave_params *params,
+		      snd_config_t *bindings,
 		      snd_config_t *root, snd_config_t *sconf,
 		      snd_pcm_stream_t stream, int mode)
 {
@@ -1604,6 +1693,11 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		ret = -ENOMEM;
 		goto _err;
 	}
+	
+	ret = parse_bindings(dmix, bindings);
+	if (ret < 0)
+		goto _err;
+	
 	dmix->ipc_key = ipc_key;
 	dmix->semid = -1;
 	dmix->shmid = -1;
@@ -1710,33 +1804,39 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	pcm->mmap_rw = 1;
 	snd_pcm_set_hw_ptr(pcm, &dmix->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &dmix->appl_ptr, -1, 0);
-
+	
+	if (dmix->channels == UINT_MAX)
+		dmix->channels = dmix->shmptr->s.channels;
+	
 	semaphore_up(dmix, DMIX_IPC_SEM_CLIENT);
 
 	*pcmp = pcm;
 	return 0;
 	
  _err:
- 	if (dmix->timer)
- 		snd_timer_close(dmix->timer);
- 	if (dmix->server)
- 		server_discard(dmix);
- 	if (dmix->client)
- 		client_discard(dmix);
- 	if (spcm)
- 		snd_pcm_close(spcm);
- 	if (dmix->shmid_sum >= 0)
- 		shm_sum_discard(dmix);
- 	if (dmix->shmid >= 0) {
- 		if (shm_discard(dmix) > 0) {
-		 	if (dmix->semid >= 0) {
- 				if (semaphore_discard(dmix) < 0)
- 					semaphore_up(dmix, DMIX_IPC_SEM_CLIENT);
+	if (dmix) {
+	 	if (dmix->timer)
+ 			snd_timer_close(dmix->timer);
+ 		if (dmix->server)
+ 			server_discard(dmix);
+ 		if (dmix->client)
+ 			client_discard(dmix);
+ 		if (spcm)
+ 			snd_pcm_close(spcm);
+	 	if (dmix->shmid_sum >= 0)
+ 			shm_sum_discard(dmix);
+ 		if (dmix->shmid >= 0) {
+ 			if (shm_discard(dmix) > 0) {
+			 	if (dmix->semid >= 0) {
+ 					if (semaphore_discard(dmix) < 0)
+ 						semaphore_up(dmix, DMIX_IPC_SEM_CLIENT);
+ 				}
  			}
  		}
- 	}
-	if (dmix)
+ 		if (dmix->bindings)
+ 			free(dmix->bindings);
 		free(dmix);
+	}
 	if (pcm)
 		snd_pcm_free(pcm);
 	return ret;
@@ -1770,6 +1870,9 @@ pcm.name {
 		buffer_size INT # in bytes
 		periods INT	# when buffer_size or buffer_time is not specified
 	}
+	bindings {		# note: this is client independent!!!
+		N INT		# maps slave channel to client channel N
+	}
 }
 \endcode
 
@@ -1799,7 +1902,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
-	snd_config_t *slave = NULL, *sconf;
+	snd_config_t *slave = NULL, *bindings = NULL, *sconf;
 	struct slave_params params;
 	int bsize, psize, ipc_key_add_uid = 0;
 	key_t ipc_key = 0;
@@ -1839,6 +1942,10 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		}
 		if (strcmp(id, "slave") == 0) {
 			slave = n;
+			continue;
+		}
+		if (strcmp(id, "bindings") == 0) {
+			bindings = n;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
@@ -1884,7 +1991,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 	params.period_size = psize;
 	params.buffer_size = bsize;
-	err = snd_pcm_dmix_open(pcmp, name, ipc_key, &params, root, sconf, stream, mode);
+	err = snd_pcm_dmix_open(pcmp, name, ipc_key, &params, bindings, root, sconf, stream, mode);
 	if (err < 0)
 		snd_config_delete(sconf);
 	return err;
