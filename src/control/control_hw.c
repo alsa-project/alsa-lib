@@ -124,9 +124,10 @@ static int snd_ctl_hw_subscribe_events(snd_ctl_t *handle, int subscribe)
 static int snd_ctl_hw_card_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private_data;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CARD_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CARD_INFO, info) < 0) {
 		SYSERR("SNDRV_CTL_IOCTL_CARD_INFO failed");
 		return -errno;
+	}
 	return 0;
 }
 
