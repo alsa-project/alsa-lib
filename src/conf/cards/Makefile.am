@@ -13,6 +13,7 @@ cfg_files = aliases.conf \
 	CMI8738-MC6.conf \
 	CS46xx.conf \
 	EMU10K1.conf \
+	EMU10K1X.conf \
 	ENS1370.conf \
 	ENS1371.conf \
 	FM801.conf \
