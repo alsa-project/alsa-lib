@@ -341,7 +341,7 @@ static int snd_pcm_rate_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 	slave_params.xfer_align = muldiv64(params->xfer_align, srate, crate);
 	/* FIXME: boundary? */
 	slave_params.xfer_mode = SND_PCM_XFER_UNSPECIFIED;
-	slave_params.mmap_shape = SND_PCM_MMAP_UNSPECIFIED;;
+	slave_params.mmap_shape = SND_PCM_MMAP_UNSPECIFIED;
 	err = snd_pcm_params_mmap(slave, &slave_params);
 	params->fail_mask = slave_params.fail_mask;
 	params->fail_reason = slave_params.fail_reason;

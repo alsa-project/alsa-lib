@@ -382,7 +382,7 @@ static int snd_pcm_adpcm_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 	adpcm->cmmap_shape = params->mmap_shape;
 	params->format.sfmt = adpcm->sformat;
 	params->xfer_mode = SND_PCM_XFER_UNSPECIFIED;
-	params->mmap_shape = SND_PCM_MMAP_UNSPECIFIED;;
+	params->mmap_shape = SND_PCM_MMAP_UNSPECIFIED;
 	err = snd_pcm_params_mmap(slave, params);
 	params->format.sfmt = adpcm->cformat;
 	params->xfer_mode = adpcm->cxfer_mode;
