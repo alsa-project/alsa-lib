@@ -57,9 +57,7 @@ static ssize_t stream_transfer(snd_pcm_plugin_t *plugin,
 		if ((result = snd_pcm_plugin_src_samples_to_size(plugin, samples)) < 0)
 			return result;
 		if (plugin->src_format.interleave) {
-			vec->iov_base = src_voices->addr;
-			vec->iov_len = result;
-			count = 1;
+			result = snd_pcm_write(plugin->handle, src_voices->addr, result);
 		} else {
 			count = plugin->src_format.voices;
 			result /= count;
@@ -67,8 +65,8 @@ static ssize_t stream_transfer(snd_pcm_plugin_t *plugin,
 				vec[voice].iov_base = src_voices[voice].addr;
 				vec[voice].iov_len = result;
 			}
+			result = snd_pcm_writev(plugin->handle, vec, count);
 		}
-		result = snd_pcm_writev(plugin->handle, vec, count);
 		if (result < 0)
 			return result;
 		return snd_pcm_plugin_src_size_to_samples(plugin, result);
@@ -78,9 +76,8 @@ static ssize_t stream_transfer(snd_pcm_plugin_t *plugin,
 		if ((result = snd_pcm_plugin_dst_samples_to_size(plugin, samples)) < 0)
 			return result;
 		if (plugin->dst_format.interleave) {
-			vec->iov_base = dst_voices->addr;
-			vec->iov_len = result;
-			count = 1;
+			result = snd_pcm_read(plugin->handle, dst_voices->addr, result);
+			
 		} else {
 			count = plugin->dst_format.voices;
 			result /= count;
@@ -88,8 +85,8 @@ static ssize_t stream_transfer(snd_pcm_plugin_t *plugin,
 				vec[voice].iov_base = dst_voices[voice].addr;
 				vec[voice].iov_len = result;
 			}
+			result = snd_pcm_readv(plugin->handle, vec, count);
 		}
-		result = snd_pcm_readv(plugin->handle, vec, count);
 		return snd_pcm_plugin_dst_size_to_samples(plugin, result);
 	} else {
 		return -EINVAL;
