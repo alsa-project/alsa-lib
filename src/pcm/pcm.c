@@ -381,6 +381,14 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
  * \param size frames to be written
  * \return a positive number of frames actually written otherwise a
  * negative error code
+ * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
+ * \retval -EPIPE an underrun occured
+ *
+ * If the blocking behaviour is selected, then routine waits until
+ * all requested bytes are played or put to the playback ring buffer.
+ * The count of bytes can be less only if a signal or underrun occured.
+ *
+ * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */ 
 snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
@@ -398,6 +406,14 @@ snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_ufr
  * \param size frames to be written
  * \return a positive number of frames actually written otherwise a
  * negative error code
+ * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
+ * \retval -EPIPE an underrun occured
+ *
+ * If the blocking behaviour is selected, then routine waits until
+ * all requested bytes are played or put to the playback ring buffer.
+ * The count of bytes can be less only if a signal or underrun occured.
+ *
+ * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */ 
 snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
@@ -415,6 +431,14 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
  * \param size frames to be written
  * \return a positive number of frames actually read otherwise a
  * negative error code
+ * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
+ * \retval -EPIPE an overrun occured
+ *
+ * If the blocking behaviour was selected, then routine waits until
+ * all requested bytes are filled. The count of bytes can be less only
+ * if a signal or underrun occured.
+ *
+ * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */ 
 snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
@@ -432,6 +456,14 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
  * \param size frames to be written
  * \return a positive number of frames actually read otherwise a
  * negative error code
+ * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
+ * \retval -EPIPE an overrun occured
+ *
+ * If the blocking behaviour was selected, then routine waits until
+ * all requested bytes are filled. The count of bytes can be less only
+ * if a signal or underrun occured.
+ *
+ * If the non-blocking behaviour is selected, then routine doesn't wait at all.
  */ 
 snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
