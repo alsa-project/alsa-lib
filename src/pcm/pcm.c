@@ -5955,8 +5955,12 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 	snd_pcm_uframes_t cont;
 	snd_pcm_uframes_t f;
 	snd_pcm_uframes_t avail;
+	const snd_pcm_channel_area_t *xareas;
 	assert(pcm && areas && offset && frames);
-	*areas = snd_pcm_mmap_areas(pcm);
+	xareas = snd_pcm_mmap_areas(pcm);
+	if (xareas == NULL)
+		return -EBADFD;
+	*areas = xareas;
 	*offset = *pcm->appl.ptr % pcm->buffer_size;
 	avail = snd_pcm_mmap_avail(pcm);
 	if (avail > pcm->buffer_size)
