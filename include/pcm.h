@@ -354,6 +354,8 @@ enum _snd_pcm_type {
 	SND_PCM_TYPE_DSNOOP,
 	/** Direct Sharing plugin */
 	SND_PCM_TYPE_DSHARE,
+	/** IEC958 subframe plugin */
+	SND_PCM_TYPE_IEC958,
 	SND_PCM_TYPE_LAST = SND_PCM_TYPE_DSNOOP
 };
 
