@@ -125,6 +125,7 @@ int snd_pcm_plugin_build_mmap(snd_pcm_t *handle, int channel, snd_pcm_plugin_t *
 int snd_pcm_plugin_build_interleave(int src_interleave, int dst_interleave, int format, snd_pcm_plugin_t **r_plugin);
 int snd_pcm_plugin_build_linear(int src_format, int dst_format, snd_pcm_plugin_t **r_plugin);
 int snd_pcm_plugin_build_mulaw(int src_format, int dst_format, snd_pcm_plugin_t **r_plugin);
+int snd_pcm_plugin_build_alaw(int src_format, int dst_format, snd_pcm_plugin_t **r_plugin);
 int snd_pcm_plugin_build_rate(int src_format, int src_rate, int src_voices,
 			      int dst_format, int dst_rate, int dst_voices,
 			      snd_pcm_plugin_t **r_plugin);
