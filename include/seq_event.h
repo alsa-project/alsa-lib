@@ -209,7 +209,9 @@ enum snd_seq_event_type {
 };
 
 
-#ifndef _SND_SEQ_IN_LOCAL
+#ifdef _SND_SEQ_IN_LOCAL
+#include <sound/asequencer.h>
+#else
 
 /** Sequencer event address */
 typedef struct snd_seq_addr {

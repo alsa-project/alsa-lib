@@ -29,7 +29,6 @@
 
 #include <sound/asound.h>
 #include <sound/asoundef.h>
-#include <sound/asequencer.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
