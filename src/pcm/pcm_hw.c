@@ -39,6 +39,9 @@
 #include "pcm_local.h"
 #include "../control/control_local.h"
 
+//#define DEBUG_RW		/* use to debug readi/writei/readn/writen */
+//#define DEBUG_MMAP		/* debug mmap_commit */
+
 #ifndef PIC
 /* entry for static linking */
 const char *_snd_module_pcm_hw = "";
@@ -446,13 +449,16 @@ static int snd_pcm_hw_resume(snd_pcm_t *pcm)
 
 static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
-	snd_pcm_sframes_t result;
+	int result;
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xferi xferi;
 	xferi.buf = (char*) buffer;
 	xferi.frames = size;
 	result = ioctl(fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &xferi);
+#ifdef DEBUG_RW
+	fprintf(stderr, "hw_writei: frames = %li, result = %i, result = %li\n", size, result, xferi.result);
+#endif
 	if (result < 0)
 		return -errno;
 	return xferi.result;
@@ -460,13 +466,16 @@ static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, s
 
 static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
-	snd_pcm_sframes_t result;
+	int result;
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xfern xfern;
 	xfern.bufs = bufs;
 	xfern.frames = size;
 	result = ioctl(fd, SNDRV_PCM_IOCTL_WRITEN_FRAMES, &xfern);
+#ifdef DEBUG_RW
+	fprintf(stderr, "hw_writen: frames = %li, result = %i, result = %li\n", size, result, xfern.result);
+#endif
 	if (result < 0)
 		return -errno;
 	return xfern.result;
@@ -474,13 +483,16 @@ static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_
 
 static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
-	snd_pcm_sframes_t result;
+	int result;
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xferi xferi;
 	xferi.buf = buffer;
 	xferi.frames = size;
 	result = ioctl(fd, SNDRV_PCM_IOCTL_READI_FRAMES, &xferi);
+#ifdef DEBUG_RW
+	fprintf(stderr, "hw_readi: frames = %li, result = %i, result = %li\n", size, result, xferi.result);
+#endif
 	if (result < 0)
 		return -errno;
 	UPDATE_SHADOW_PTR(hw);
@@ -489,13 +501,16 @@ static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_
 
 static snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
-	snd_pcm_sframes_t result;
+	int result;
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd;
 	struct sndrv_xfern xfern;
 	xfern.bufs = bufs;
 	xfern.frames = size;
 	result = ioctl(fd, SNDRV_PCM_IOCTL_READN_FRAMES, &xfern);
+#ifdef DEBUG_RW
+	fprintf(stderr, "hw_readn: frames = %li, result = %i, result = %li\n", size, result, xfern.result);
+#endif
 	if (result < 0)
 		return -errno;
 	UPDATE_SHADOW_PTR(hw);
@@ -619,6 +634,9 @@ static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
 		}
 	}
 	snd_pcm_mmap_appl_forward(pcm, size);
+#ifdef DEBUG_MMAP
+	fprintf(stderr, "appl_forward: hw_ptr = %li, appl_ptr = %li, size = %li\n", *pcm->hw_ptr, *pcm->appl_ptr, size);
+#endif
 	return size;
 }
 
