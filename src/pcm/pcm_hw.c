@@ -576,6 +576,16 @@ int snd_pcm_hw_open_device(snd_pcm_t **handlep, int card, int device, int stream
 	return snd_pcm_hw_open_subdevice(handlep, card, device, -1, stream, mode);
 }
 
+int snd_pcm_hw_open(snd_pcm_t **handlep, char *name, int card, int device, int subdevice, int stream, int mode)
+{
+	int err = snd_pcm_hw_open_subdevice(handlep, card, device, subdevice, stream, mode);
+	if (err < 0)
+		return err;
+	if (name)
+		(*handlep)->name = strdup(name);
+	return 0;
+}
+
 int _snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		     int stream, int mode)
 {
@@ -619,6 +629,6 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	}
 	if (card < 0)
 		return -EINVAL;
-	return snd_pcm_hw_open_subdevice(pcmp, card, device, subdevice, stream, mode);
+	return snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream, mode);
 }
 				

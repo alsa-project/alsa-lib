@@ -775,7 +775,7 @@ int route_load_ttable(route_params_t *params, int stream,
 }
 
 
-int snd_pcm_route_open(snd_pcm_t **handlep,
+int snd_pcm_route_open(snd_pcm_t **handlep, char *name,
 		       int sformat, unsigned int schannels,
 		       ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
@@ -804,6 +804,8 @@ int snd_pcm_route_open(snd_pcm_t **handlep,
 		free(route);
 		return -ENOMEM;
 	}
+	if (name)
+		handle->name = strdup(name);
 	handle->type = SND_PCM_TYPE_ROUTE;
 	handle->stream = slave->stream;
 	handle->ops = &snd_pcm_route_ops;
@@ -952,7 +954,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 	free(sname);
 	if (err < 0)
 		return err;
-	err = snd_pcm_route_open(pcmp, sformat, schannels,
+	err = snd_pcm_route_open(pcmp, name, sformat, schannels,
 				 ttable, MAX_CHANNELS,
 				 cused, sused,
 				 spcm, 1);

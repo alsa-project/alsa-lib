@@ -66,6 +66,7 @@ struct snd_pcm_fast_ops {
 };
 
 struct snd_pcm {
+	char *name;
 	snd_pcm_type_t type;
 	int stream;
 	int mode;
@@ -143,7 +144,6 @@ static inline size_t snd_pcm_mmap_avail(snd_pcm_t *pcm)
 		return snd_pcm_mmap_playback_avail(pcm);
 	else
 		return snd_pcm_mmap_capture_avail(pcm);
-	return 0;
 }
 
 static inline ssize_t snd_pcm_mmap_playback_hw_avail(snd_pcm_t *pcm)
@@ -170,7 +170,6 @@ static inline ssize_t snd_pcm_mmap_hw_avail(snd_pcm_t *pcm)
 		return snd_pcm_mmap_playback_hw_avail(pcm);
 	else
 		return snd_pcm_mmap_capture_hw_avail(pcm);
-	return 0;
 }
 
 #define snd_pcm_mmap_playback_delay snd_pcm_mmap_playback_hw_avail
@@ -182,7 +181,6 @@ static inline ssize_t snd_pcm_mmap_delay(snd_pcm_t *pcm)
 		return snd_pcm_mmap_playback_delay(pcm);
 	else
 		return snd_pcm_mmap_capture_delay(pcm);
-	return 0;
 }
 
 static inline void *snd_pcm_channel_area_addr(snd_pcm_channel_area_t *area, size_t offset)

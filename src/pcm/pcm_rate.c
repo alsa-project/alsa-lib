@@ -584,7 +584,7 @@ struct snd_pcm_ops snd_pcm_rate_ops = {
 	munmap_data: snd_pcm_plugin_munmap_data,
 };
 
-int snd_pcm_rate_open(snd_pcm_t **handlep, int sformat, int srate, snd_pcm_t *slave, int close_slave)
+int snd_pcm_rate_open(snd_pcm_t **handlep, char *name, int sformat, int srate, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *handle;
 	snd_pcm_rate_t *rate;
@@ -610,6 +610,8 @@ int snd_pcm_rate_open(snd_pcm_t **handlep, int sformat, int srate, snd_pcm_t *sl
 		free(rate);
 		return -ENOMEM;
 	}
+	if (name)
+		handle->name = strdup(name);
 	handle->type = SND_PCM_TYPE_RATE;
 	handle->stream = slave->stream;
 	handle->ops = &snd_pcm_rate_ops;
@@ -682,7 +684,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, char *name,
 	free(sname);
 	if (err < 0)
 		return err;
-	err = snd_pcm_rate_open(pcmp, sformat, srate, spcm, 1);
+	err = snd_pcm_rate_open(pcmp, name, sformat, srate, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;

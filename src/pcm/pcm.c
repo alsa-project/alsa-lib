@@ -73,6 +73,8 @@ int snd_pcm_close(snd_pcm_t *pcm)
 	if ((err = pcm->ops->close(pcm->op_arg)) < 0)
 		ret = err;
 	pcm->valid_setup = 0;
+	if (pcm->name)
+		free(pcm->name);
 	free(pcm);
 	return ret;
 }	

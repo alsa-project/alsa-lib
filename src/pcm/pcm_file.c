@@ -370,7 +370,7 @@ struct snd_pcm_fast_ops snd_pcm_file_fast_ops = {
 	mmap_forward: snd_pcm_file_mmap_forward,
 };
 
-int snd_pcm_file_open(snd_pcm_t **handlep, char *fname, int fd, snd_pcm_t *slave, int close_slave)
+int snd_pcm_file_open(snd_pcm_t **handlep, char *name, char *fname, int fd, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *handle;
 	snd_pcm_file_t *file;
@@ -395,6 +395,8 @@ int snd_pcm_file_open(snd_pcm_t **handlep, char *fname, int fd, snd_pcm_t *slave
 		free(file);
 		return -ENOMEM;
 	}
+	if (name)
+		handle->name = strdup(name);
 	handle->type = SND_PCM_TYPE_FILE;
 	handle->stream = slave->stream;
 	handle->ops = &snd_pcm_file_ops;
@@ -463,7 +465,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, char *name,
 	free(sname);
 	if (err < 0)
 		return err;
-	err = snd_pcm_file_open(pcmp, fname, fd, spcm, 1);
+	err = snd_pcm_file_open(pcmp, name, fname, fd, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;

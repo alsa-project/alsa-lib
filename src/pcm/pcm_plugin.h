@@ -87,19 +87,19 @@ typedef int ttable_entry_t;
 #define FULL ROUTE_PLUGIN_RESOLUTION
 #endif
 
-int snd_pcm_linear_open(snd_pcm_t **handlep, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_mulaw_open(snd_pcm_t **handlep, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_alaw_open(snd_pcm_t **handlep, int sformat, snd_pcm_t *slave, int close_slave);
-int snd_pcm_adpcm_open(snd_pcm_t **handlep, int sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_linear_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_mulaw_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_alaw_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave);
+int snd_pcm_adpcm_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave);
 int snd_pcm_route_load_ttable(snd_config_t *tt, ttable_entry_t *ttable,
 			      unsigned int tt_csize, unsigned int tt_ssize,
 			      unsigned int *tt_cused, unsigned int *tt_sused,
 			      int schannels);
-int snd_pcm_route_open(snd_pcm_t **handlep,
+int snd_pcm_route_open(snd_pcm_t **handlep, char *name,
 		       int sformat, unsigned int schannels,
 		       ttable_entry_t *ttable,
 		       unsigned int tt_ssize,
 		       unsigned int tt_cused, unsigned int tt_sused,
 		       snd_pcm_t *slave, int close_slave);
-int snd_pcm_rate_open(snd_pcm_t **handlep, int sformat, int srate, snd_pcm_t *slave, int close_slave);
+int snd_pcm_rate_open(snd_pcm_t **handlep, char *name, int sformat, int srate, snd_pcm_t *slave, int close_slave);
 

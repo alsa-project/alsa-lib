@@ -420,7 +420,7 @@ struct snd_pcm_ops snd_pcm_alaw_ops = {
 	munmap_data: snd_pcm_plugin_munmap_data,
 };
 
-int snd_pcm_alaw_open(snd_pcm_t **handlep, int sformat, snd_pcm_t *slave, int close_slave)
+int snd_pcm_alaw_open(snd_pcm_t **handlep, char *name, int sformat, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *handle;
 	snd_pcm_alaw_t *alaw;
@@ -444,6 +444,8 @@ int snd_pcm_alaw_open(snd_pcm_t **handlep, int sformat, snd_pcm_t *slave, int cl
 		free(alaw);
 		return -ENOMEM;
 	}
+	if (name)
+		handle->name = strdup(name);
 	handle->type = SND_PCM_TYPE_ALAW;
 	handle->stream = slave->stream;
 	handle->ops = &snd_pcm_alaw_ops;
@@ -510,7 +512,7 @@ int _snd_pcm_alaw_open(snd_pcm_t **pcmp, char *name,
 	free(sname);
 	if (err < 0)
 		return err;
-	err = snd_pcm_alaw_open(pcmp, sformat, spcm, 1);
+	err = snd_pcm_alaw_open(pcmp, name, sformat, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;

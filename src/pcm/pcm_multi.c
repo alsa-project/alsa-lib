@@ -49,17 +49,17 @@ typedef struct {
 static int snd_pcm_multi_close(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private;
-	unsigned int i;
+	size_t i;
 	int ret = 0;
 	for (i = 0; i < multi->slaves_count; ++i) {
 		int err;
 		snd_pcm_multi_slave_t *slave = &multi->slaves[i];
-		if (slave->close_slave) {
+		if (slave->close_slave)
 			err = snd_pcm_close(slave->pcm);
-			if (err < 0)
-				ret = err;
-		} else
-			snd_pcm_unlink(slave->pcm);
+		else
+			err = snd_pcm_unlink(slave->pcm);
+		if (err < 0)
+			ret = err;
 	}
 	free(multi->slaves);
 	free(multi->channels);
@@ -532,11 +532,12 @@ struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
 	mmap_forward: snd_pcm_multi_mmap_forward,
 };
 
-int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
-			 snd_pcm_t **slaves_handle, size_t *schannels_count,
-			 size_t channels_count,
-			 int *sidxs, unsigned int *schannels,
-			 int close_slaves)
+int snd_pcm_multi_open(snd_pcm_t **handlep, char *name,
+		       size_t slaves_count,
+		       snd_pcm_t **slaves_handle, size_t *schannels_count,
+		       size_t channels_count,
+		       int *sidxs, unsigned int *schannels,
+		       int close_slaves)
 {
 	snd_pcm_t *handle;
 	snd_pcm_multi_t *multi;
@@ -587,6 +588,8 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 		free(multi);
 		return -ENOMEM;
 	}
+	if (name)
+		handle->name = strdup(name);
 	handle->type = SND_PCM_TYPE_MULTI;
 	handle->stream = stream;
 	handle->mode = multi->slaves[0].pcm->mode;
@@ -761,11 +764,11 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 		if (err < 0)
 			goto _free;
 	}
-	err = snd_pcm_multi_create(pcmp, slaves_count, slaves_pcm,
-				   slaves_channels,
-				   channels_count,
-				   channels_sidx, channels_schannel,
-				   1);
+	err = snd_pcm_multi_open(pcmp, name, slaves_count, slaves_pcm,
+				 slaves_channels,
+				 channels_count,
+				 channels_sidx, channels_schannel,
+				 1);
 _free:
 	if (err < 0) {
 		for (idx = 0; idx < slaves_count; ++idx) {
