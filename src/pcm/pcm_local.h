@@ -265,6 +265,22 @@ int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
 int _snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 
+/* handle special error cases */
+static inline int snd_pcm_check_error(snd_pcm_t *pcm, int err)
+{
+	if (err == -EINTR) {
+		switch (snd_pcm_state(pcm)) {
+		case SND_PCM_STATE_XRUN:
+			return -EPIPE;
+		case SND_PCM_STATE_SUSPENDED:
+			return -ESTRPIPE;
+		case SND_PCM_STATE_DISCONNECTED:
+			return -ENOTTY;
+		}
+	}
+	return err;
+}
+
 static inline snd_pcm_uframes_t snd_pcm_mmap_playback_avail(snd_pcm_t *pcm)
 {
 	snd_pcm_sframes_t avail;

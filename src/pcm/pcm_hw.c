@@ -612,7 +612,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, s
 	fprintf(stderr, "hw_writei: frames = %li, result = %i, result = %li\n", size, result, xferi.result);
 #endif
 	if (result < 0)
-		return err;
+		return snd_pcm_check_error(pcm, err);
 	return xferi.result;
 }
 
@@ -630,7 +630,7 @@ static snd_pcm_sframes_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_
 	fprintf(stderr, "hw_writen: frames = %li, result = %i, result = %li\n", size, result, xfern.result);
 #endif
 	if (result < 0)
-		return err;
+		return snd_pcm_check_error(pcm, err);
 	return xfern.result;
 }
 
@@ -648,7 +648,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_
 	fprintf(stderr, "hw_readi: frames = %li, result = %i, result = %li\n", size, result, xferi.result);
 #endif
 	if (result < 0)
-		return err;
+		return snd_pcm_check_error(pcm, err);
 	UPDATE_SHADOW_PTR(hw);
 	return xferi.result;
 }
@@ -667,7 +667,7 @@ static snd_pcm_sframes_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_u
 	fprintf(stderr, "hw_readn: frames = %li, result = %i, result = %li\n", size, result, xfern.result);
 #endif
 	if (result < 0)
-		return err;
+		return snd_pcm_check_error(pcm, err);
 	UPDATE_SHADOW_PTR(hw);
 	return xfern.result;
 }
