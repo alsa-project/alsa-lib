@@ -59,8 +59,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_alias = @host_alias@
 host_triplet = @host@
-ALSA_CFLAGS = @ALSA_CFLAGS@
-ALSA_LIBS = @ALSA_LIBS@
 CC = @CC@
 LD = @LD@
 LIBTOOL = @LIBTOOL@
@@ -79,8 +77,8 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ./include/config.h
 CONFIG_CLEAN_FILES = 
 DIST_COMMON =  COPYING ChangeLog Makefile.am Makefile.in acinclude.m4 \
-aclocal.m4 config.guess config.sub configure.in install-sh ltconfig \
-ltmain.sh missing mkinstalldirs
+aclocal.m4 config.guess config.sub configure configure.in install-sh \
+ltconfig ltmain.sh missing mkinstalldirs
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)

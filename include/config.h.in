@@ -22,8 +22,5 @@
 /* Package version */
 #undef VERSION
 
-/* Sound library version string */
-#undef SND_LIB_VERSION
-
 /* Define if you have the <linux/asound.h> header file.  */
 #undef HAVE_LINUX_ASOUND_H
