@@ -1549,15 +1549,19 @@ static int snd_config_load1(snd_config_t *config, snd_input_t *in, int override)
 		switch (err) {
 		case LOCAL_UNTERMINATED_STRING:
 			str = "Unterminated string";
+			err = -EINVAL;
 			break;
 		case LOCAL_UNTERMINATED_QUOTE:
 			str = "Unterminated quote";
+			err = -EINVAL;
 			break;
 		case LOCAL_UNEXPECTED_CHAR:
 			str = "Unexpected char";
+			err = -EINVAL;
 			break;
 		case LOCAL_UNEXPECTED_EOF:
 			str = "Unexpected end of file";
+			err = -EINVAL;
 			break;
 		default:
 			str = strerror(-err);
