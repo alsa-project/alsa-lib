@@ -65,6 +65,15 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_HW_PARAM_LAST_INTERVAL SNDRV_PCM_HW_PARAM_LAST_INTERVAL
 #define SND_PCM_HW_PARAM_FIRST_INTERVAL SNDRV_PCM_HW_PARAM_FIRST_INTERVAL
 
+/** Surround type */
+typedef enum _snd_pcm_surround_type {
+	/** 4.0 speakers */
+	SND_PCM_SURROUND_40 = 0,
+	/** 5.1 speakers */
+	SND_PCM_SURROUND_51 = 1,
+	SND_PCM_SURROUND_LAST = SND_PCM_SURROUND_51
+} snd_pcm_surround_type_t;
+
 typedef struct _snd_pcm_channel_info {
 	unsigned int channel;
 	void *addr;			/* base address of channel samples */
@@ -562,5 +571,4 @@ int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
 	 (1U << SND_PCM_FORMAT_S32_BE) | \
 	 (1U << SND_PCM_FORMAT_U32_LE) | \
 	 (1U << SND_PCM_FORMAT_U32_BE))
-
 

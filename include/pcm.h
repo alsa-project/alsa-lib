@@ -202,15 +202,6 @@ typedef enum _snd_pcm_tstamp {
 	SND_PCM_TSTAMP_LAST = SNDRV_PCM_TSTAMP_LAST,
 } snd_pcm_tstamp_t;
 
-/** Surround type */
-typedef enum _snd_pcm_surround_type {
-	/** 4.0 speakers */
-	SND_PCM_SURROUND_40 = 0,
-	/** 5.1 speakers */
-	SND_PCM_SURROUND_51 = 1,
-	SND_PCM_SURROUND_LAST = SND_PCM_SURROUND_51
-} snd_pcm_surround_type_t;
-
 /** Unsigned frames quantity */
 typedef sndrv_pcm_uframes_t snd_pcm_uframes_t;
 /** Signed frames quantity */
