@@ -138,7 +138,6 @@ void info_channel(snd_pcm_t *handle, int channel, char *id)
 	printf("  max_frag_size  : %i\n", stream_info.max_fragment_size);
 	printf("  fragment_align : %i\n", stream_info.fragment_align);
 	printf("  fifo_size      : %i\n", stream_info.fifo_size);
-	printf("  TBS            : %i\n", stream_info.transfer_block_size);
 	printf("  mmap_size      : %li\n", stream_info.mmap_size);
 	printf("  mixer_device   : %i\n", stream_info.mixer_device);
 	printf("  mixer_eid      : '%s',%i,%i\n", stream_info.mixer_eid.name, stream_info.mixer_eid.index, stream_info.mixer_eid.type);
