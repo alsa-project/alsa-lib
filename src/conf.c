@@ -2788,8 +2788,11 @@ int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t 
 				char *name;
 				if ((err = snd_config_get_ascii(n, &name)) < 0)
 					goto _err;
-				if ((err = snd_user_file(name, &fi[idx].name)) < 0)
+				if ((err = snd_user_file(name, &fi[idx].name)) < 0) {
+					SNDERR("\"%s\" is not a word", name);
+					free(name);
 					goto _err;
+				}
 				free(name);
 				idx++;
 				hit = 1;
