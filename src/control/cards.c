@@ -97,7 +97,7 @@ int snd_card_next(int *rcard)
  * \return zero if success, otherwise a negative error code
  *
  * The accepted format is an integer value in ASCII representation
- * or the card identifier (snd_id parameter for sound-card drivers).
+ * or the card identifier (the id parameter for sound-card drivers).
  */
 int snd_card_get_index(const char *string)
 {
