@@ -732,15 +732,15 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 		open_name = buf;
 		snprintf(buf, sizeof(buf), "_snd_pcm_scope_%s_open", str);
 	}
-	h = dlopen(lib, RTLD_NOW);
-	open_func = h ? dlsym(h, open_name) : NULL;
+	h = snd_dlopen(lib, RTLD_NOW);
+	open_func = h ? snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION)) : NULL;
 	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		err = -ENOENT;
 	} else if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
-		dlclose(h);
+		snd_dlclose(h);
 		err = -ENXIO;
 	}
        _err:
