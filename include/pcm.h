@@ -76,11 +76,11 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
 snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 
-int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp);
-int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, FILE *fp);
-int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp);
-int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp);
-int snd_pcm_status_dump(snd_pcm_status_t *status, FILE *fp);
+int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out);
+int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out);
+int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out);
+int snd_pcm_dump(snd_pcm_t *pcm, snd_output_t *out);
+int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out);
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_unlink(snd_pcm_t *pcm);
 
@@ -158,7 +158,7 @@ int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
 					  snd_pcm_hw_params_t *fail,
 					  snd_pcm_hw_params_t *success,
 					  unsigned int depth,
-					  FILE *fp);
+					  snd_output_t *out);
 
 int snd_pcm_hw_params_info_rate(const snd_pcm_hw_params_t *params,
 				unsigned int *rate_num,
@@ -167,7 +167,7 @@ int snd_pcm_hw_params_info_msbits(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_info_flags(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_info_fifo_size(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_info_dig_groups(const snd_pcm_hw_params_t *params);
-int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, FILE *fp);
+int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out);
 
 typedef struct _snd_pcm_hw_strategy snd_pcm_hw_strategy_t;
 
@@ -212,7 +212,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
 int snd_pcm_sw_param_set(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_sw_param_t var, unsigned int val);
 int snd_pcm_sw_param_near(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_sw_param_t var, unsigned int val);
 int snd_pcm_sw_param_value(snd_pcm_sw_params_t *params, snd_pcm_sw_param_t var);
-int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, FILE *fp);
+int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out);
 
 /* mmap */
 const snd_pcm_channel_area_t *snd_pcm_mmap_areas(snd_pcm_t *pcm);

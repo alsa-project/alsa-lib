@@ -49,7 +49,7 @@ void interval_muldivk(const interval_t *a, const interval_t *b,
 		      unsigned int k, interval_t *c);
 void interval_mulkdiv(const interval_t *a, unsigned int k,
 		      const interval_t *b, interval_t *c);
-void interval_print(const interval_t *i, FILE *fp);
+void interval_print(const interval_t *i, snd_output_t *out);
 int interval_refine_min(interval_t *i, unsigned int min, int openmin);
 int interval_refine_max(interval_t *i, unsigned int max, int openmax);
 int interval_refine(interval_t *i, const interval_t *v);

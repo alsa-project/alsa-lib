@@ -357,19 +357,19 @@ static int snd_pcm_file_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static void snd_pcm_file_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_file_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_file_t *file = pcm->private;
 	if (file->fname)
-		fprintf(fp, "File PCM (file=%s)\n", file->fname);
+		snd_output_printf(out, "File PCM (file=%s)\n", file->fname);
 	else
-		fprintf(fp, "File PCM (fd=%d)\n", file->fd);
+		snd_output_printf(out, "File PCM (fd=%d)\n", file->fd);
 	if (pcm->setup) {
-		fprintf(fp, "Its setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "Its setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
-	fprintf(fp, "Slave: ");
-	snd_pcm_dump(file->slave, fp);
+	snd_output_printf(out, "Slave: ");
+	snd_pcm_dump(file->slave, out);
 }
 
 snd_pcm_ops_t snd_pcm_file_ops = {

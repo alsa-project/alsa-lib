@@ -365,19 +365,7 @@ static int snd_pcm_plug_hw_refine1(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 static int snd_pcm_plug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_hw_params_t sparams;
-	int err;
-#if 0
-	fprintf(stderr, "Enter: client =\n");
-	snd_pcm_hw_params_dump(params, stderr);
-#endif
-	err = snd_pcm_plug_hw_refine1(pcm, params, &sparams);
-#if 0
-	fprintf(stderr, "Exit: client =\n");
-	snd_pcm_hw_params_dump(params, stderr);
-	fprintf(stderr, "Exit: slave =\n");
-	snd_pcm_hw_params_dump(&sparams, stderr);
-#endif
-	return err;
+	return snd_pcm_plug_hw_refine1(pcm, params, &sparams);
 }
 
 static void snd_pcm_plug_clear(snd_pcm_t *pcm)
@@ -670,11 +658,11 @@ static int snd_pcm_plug_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static void snd_pcm_plug_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_plug_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_plug_t *plug = pcm->private;
-	fprintf(fp, "Plug PCM: ");
-	snd_pcm_dump(plug->slave, fp);
+	snd_output_printf(out, "Plug PCM: ");
+	snd_pcm_dump(plug->slave, out);
 }
 
 snd_pcm_ops_t snd_pcm_plug_ops = {

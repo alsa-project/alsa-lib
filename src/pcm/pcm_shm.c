@@ -91,7 +91,7 @@ static int snd_pcm_shm_action(snd_pcm_t *pcm)
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
-		fprintf(stderr, "Server has not done the cmd\n");
+		ERR("Server has not done the cmd");
 		return -EBADFD;
 	}
 	return ctrl->result;
@@ -110,7 +110,7 @@ static int snd_pcm_shm_action_fd(snd_pcm_t *pcm, int *fd)
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
-		fprintf(stderr, "Server has not done the cmd\n");
+		ERR("Server has not done the cmd");
 		return -EBADFD;
 	}
 	return ctrl->result;
@@ -463,12 +463,12 @@ static int snd_pcm_shm_close(snd_pcm_t *pcm)
 	return result;
 }
 
-static void snd_pcm_shm_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_shm_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	fprintf(fp, "Shm PCM\n");
+	snd_output_printf(out, "Shm PCM\n");
 	if (pcm->setup) {
-		fprintf(fp, "\nIts setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "\nIts setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
 }
 

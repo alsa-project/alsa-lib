@@ -26,7 +26,7 @@
 #include <limits.h>
 #include <errno.h>
 #include <assert.h>
-#include <linux/asound.h>
+#include "asoundlib.h"
 #include "interval.h"
 
 static inline void div64_32(u_int64_t *n, u_int32_t div, u_int32_t *rem)
@@ -352,18 +352,18 @@ void interval_mulkdiv(const interval_t *a, unsigned int k,
 	c->integer = 0;
 }
 
-void interval_print(const interval_t *i, FILE *fp)
+void interval_print(const interval_t *i, snd_output_t *out)
 {
 	if (interval_empty(i))
-		fprintf(fp, "NONE");
+		snd_output_printf(out, "NONE");
 	else if (i->min == 0 && i->openmin == 0 && 
 		 i->max == UINT_MAX && i->openmax == 0)
-		fprintf(fp, "ALL");
+		snd_output_printf(out, "ALL");
 	else if (interval_single(i))
-		fprintf(fp, "%u", interval_value(i));
+		snd_output_printf(out, "%u", interval_value(i));
 	else
-		fprintf(fp, "%c%u %u%c",
-			i->openmin ? '(' : '[',
-			i->min, i->max,
-			i->openmax ? ')' : ']');
+		snd_output_printf(out, "%c%u %u%c",
+				i->openmin ? '(' : '[',
+				i->min, i->max,
+				i->openmax ? ')' : ']');
 }

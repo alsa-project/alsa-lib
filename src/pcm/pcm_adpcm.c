@@ -530,17 +530,17 @@ static snd_pcm_sframes_t snd_pcm_adpcm_read_areas(snd_pcm_t *pcm,
 	return err;
 }
 
-static void snd_pcm_adpcm_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_adpcm_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_adpcm_t *adpcm = pcm->private;
-	fprintf(fp, "Ima-ADPCM conversion PCM (%s)\n", 
+	snd_output_printf(out, "Ima-ADPCM conversion PCM (%s)\n", 
 		snd_pcm_format_name(adpcm->sformat));
 	if (pcm->setup) {
-		fprintf(fp, "Its setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "Its setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
-	fprintf(fp, "Slave: ");
-	snd_pcm_dump(adpcm->plug.slave, fp);
+	snd_output_printf(out, "Slave: ");
+	snd_pcm_dump(adpcm->plug.slave, out);
 }
 
 snd_pcm_ops_t snd_pcm_adpcm_ops = {

@@ -24,10 +24,20 @@ struct _snd_config {
 	snd_config_t *father;
 };
 
+static inline snd_config_type_t snd_config_type(snd_config_t *config)
+{
+	return config->type;
+}
+
+static inline char *snd_config_id(snd_config_t *config)
+{
+	return config->id;
+}
+
 int snd_config_top(snd_config_t **config);
 
-int snd_config_load(snd_config_t *config, FILE *fp);
-int snd_config_save(snd_config_t *config, FILE *fp);
+int snd_config_load(snd_config_t *config, snd_input_t *in);
+int snd_config_save(snd_config_t *config, snd_output_t *out);
 
 int snd_config_search(snd_config_t *config, char *key, snd_config_t **result);
 int snd_config_searchv(snd_config_t *config, 
@@ -62,15 +72,8 @@ typedef struct list_head *snd_config_iterator_t;
 
 #define snd_config_entry(iterator) list_entry(iterator, snd_config_t, list)
 
-static inline snd_config_type_t snd_config_type(snd_config_t *config)
-{
-	return config->type;
-}
-
-static inline char *snd_config_id(snd_config_t *config)
-{
-	return config->id;
-}
+snd_config_type_t snd_config_type(snd_config_t *config);
+char *snd_config_id(snd_config_t *config);
 
 extern snd_config_t *snd_config;
 int snd_config_update();

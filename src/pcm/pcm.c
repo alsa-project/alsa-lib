@@ -501,70 +501,70 @@ const char *snd_pcm_state_name(snd_pcm_state_t state)
 	return snd_pcm_state_names[state];
 }
 
-int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp)
+int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
 {
 	assert(pcm);
-	assert(fp);
+	assert(out);
 	assert(pcm->setup);
-        fprintf(fp, "stream       : %s\n", snd_pcm_stream_name(pcm->stream));
-	fprintf(fp, "access       : %s\n", snd_pcm_access_name(pcm->access));
-	fprintf(fp, "format       : %s\n", snd_pcm_format_name(pcm->format));
-	fprintf(fp, "subformat    : %s\n", snd_pcm_subformat_name(pcm->subformat));
-	fprintf(fp, "channels     : %u\n", pcm->channels);
-	fprintf(fp, "rate         : %u\n", pcm->rate);
-	fprintf(fp, "exact rate   : %g (%u/%u)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
-	fprintf(fp, "msbits       : %u\n", pcm->msbits);
-	fprintf(fp, "buffer_size  : %lu\n", pcm->buffer_size);
-	fprintf(fp, "period_size  : %lu\n", pcm->period_size);
-	fprintf(fp, "period_time  : %u\n", pcm->period_time);
-	fprintf(fp, "tick_time    : %u\n", pcm->tick_time);
+        snd_output_printf(out, "stream       : %s\n", snd_pcm_stream_name(pcm->stream));
+	snd_output_printf(out, "access       : %s\n", snd_pcm_access_name(pcm->access));
+	snd_output_printf(out, "format       : %s\n", snd_pcm_format_name(pcm->format));
+	snd_output_printf(out, "subformat    : %s\n", snd_pcm_subformat_name(pcm->subformat));
+	snd_output_printf(out, "channels     : %u\n", pcm->channels);
+	snd_output_printf(out, "rate         : %u\n", pcm->rate);
+	snd_output_printf(out, "exact rate   : %g (%u/%u)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
+	snd_output_printf(out, "msbits       : %u\n", pcm->msbits);
+	snd_output_printf(out, "buffer_size  : %lu\n", pcm->buffer_size);
+	snd_output_printf(out, "period_size  : %lu\n", pcm->period_size);
+	snd_output_printf(out, "period_time  : %u\n", pcm->period_time);
+	snd_output_printf(out, "tick_time    : %u\n", pcm->tick_time);
 	return 0;
 }
 
-int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, FILE *fp)
+int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 {
 	assert(pcm);
-	assert(fp);
+	assert(out);
 	assert(pcm->setup);
-	fprintf(fp, "start_mode   : %s\n", snd_pcm_start_mode_name(pcm->start_mode));
-	fprintf(fp, "xrun_mode    : %s\n", snd_pcm_xrun_mode_name(pcm->xrun_mode));
-	fprintf(fp, "tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
-	fprintf(fp, "period_step  : %ld\n", (long)pcm->period_step);
-	fprintf(fp, "sleep_min    : %ld\n", (long)pcm->sleep_min);
-	fprintf(fp, "avail_min    : %ld\n", (long)pcm->avail_min);
-	fprintf(fp, "xfer_align   : %ld\n", (long)pcm->xfer_align);
-	fprintf(fp, "silence_threshold: %ld\n", (long)pcm->silence_threshold);
-	fprintf(fp, "silence_size : %ld\n", (long)pcm->silence_size);
-	fprintf(fp, "boundary     : %ld\n", (long)pcm->boundary);
+	snd_output_printf(out, "start_mode   : %s\n", snd_pcm_start_mode_name(pcm->start_mode));
+	snd_output_printf(out, "xrun_mode    : %s\n", snd_pcm_xrun_mode_name(pcm->xrun_mode));
+	snd_output_printf(out, "tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
+	snd_output_printf(out, "period_step  : %ld\n", (long)pcm->period_step);
+	snd_output_printf(out, "sleep_min    : %ld\n", (long)pcm->sleep_min);
+	snd_output_printf(out, "avail_min    : %ld\n", (long)pcm->avail_min);
+	snd_output_printf(out, "xfer_align   : %ld\n", (long)pcm->xfer_align);
+	snd_output_printf(out, "silence_threshold: %ld\n", (long)pcm->silence_threshold);
+	snd_output_printf(out, "silence_size : %ld\n", (long)pcm->silence_size);
+	snd_output_printf(out, "boundary     : %ld\n", (long)pcm->boundary);
 	return 0;
 }
 
-int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp)
+int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out)
 {
-	snd_pcm_dump_hw_setup(pcm, fp);
-	snd_pcm_dump_sw_setup(pcm, fp);
+	snd_pcm_dump_hw_setup(pcm, out);
+	snd_pcm_dump_sw_setup(pcm, out);
 	return 0;
 }
 
-int snd_pcm_status_dump(snd_pcm_status_t *status, FILE *fp)
+int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
 {
 	assert(status);
-	fprintf(fp, "state       : %s\n", snd_pcm_state_name(status->state));
-	fprintf(fp, "trigger_time: %ld.%06ld\n",
+	snd_output_printf(out, "state       : %s\n", snd_pcm_state_name(status->state));
+	snd_output_printf(out, "trigger_time: %ld.%06ld\n",
 		status->trigger_time.tv_sec, status->trigger_time.tv_usec);
-	fprintf(fp, "tstamp      : %ld.%06ld\n",
+	snd_output_printf(out, "tstamp      : %ld.%06ld\n",
 		status->tstamp.tv_sec, status->tstamp.tv_usec);
-	fprintf(fp, "delay       : %ld\n", (long)status->delay);
-	fprintf(fp, "avail       : %ld\n", (long)status->avail);
-	fprintf(fp, "avail_max   : %ld\n", (long)status->avail_max);
+	snd_output_printf(out, "delay       : %ld\n", (long)status->delay);
+	snd_output_printf(out, "avail       : %ld\n", (long)status->avail);
+	snd_output_printf(out, "avail_max   : %ld\n", (long)status->avail_max);
 	return 0;
 }
 
-int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp)
+int snd_pcm_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	assert(pcm);
-	assert(fp);
-	pcm->ops->dump(pcm->op_arg, fp);
+	assert(out);
+	pcm->ops->dump(pcm->op_arg, out);
 	return 0;
 }
 

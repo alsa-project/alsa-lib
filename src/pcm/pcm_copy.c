@@ -155,16 +155,16 @@ static snd_pcm_sframes_t snd_pcm_copy_read_areas(snd_pcm_t *pcm,
 	return err;
 }
 
-static void snd_pcm_copy_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_copy_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_copy_t *copy = pcm->private;
-	fprintf(fp, "Copy conversion PCM\n");
+	snd_output_printf(out, "Copy conversion PCM\n");
 	if (pcm->setup) {
-		fprintf(fp, "Its setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "Its setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
-	fprintf(fp, "Slave: ");
-	snd_pcm_dump(copy->plug.slave, fp);
+	snd_output_printf(out, "Slave: ");
+	snd_pcm_dump(copy->plug.slave, out);
 }
 
 snd_pcm_ops_t snd_pcm_copy_ops = {

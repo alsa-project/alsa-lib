@@ -383,26 +383,26 @@ int snd_pcm_multi_poll_descriptor(snd_pcm_t *pcm)
 	return snd_pcm_poll_descriptor(slave);
 }
 
-static void snd_pcm_multi_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_multi_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int k;
-	fprintf(fp, "Multi PCM\n");
-	fprintf(fp, "\nChannel bindings:\n");
+	snd_output_printf(out, "Multi PCM\n");
+	snd_output_printf(out, "\nChannel bindings:\n");
 	for (k = 0; k < multi->channels_count; ++k) {
 		snd_pcm_multi_channel_t *c = &multi->channels[k];
 		if (c->slave_idx < 0)
 			continue;
-		fprintf(fp, "%d: slave %d, channel %d\n", 
+		snd_output_printf(out, "%d: slave %d, channel %d\n", 
 			k, c->slave_idx, c->slave_channel);
 	}
 	if (pcm->setup) {
-		fprintf(fp, "\nIts setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "\nIts setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
 	for (k = 0; k < multi->slaves_count; ++k) {
-		fprintf(fp, "\nSlave #%d: ", k);
-		snd_pcm_dump(multi->slaves[k].pcm, fp);
+		snd_output_printf(out, "\nSlave #%d: ", k);
+		snd_pcm_dump(multi->slaves[k].pcm, out);
 	}
 }
 

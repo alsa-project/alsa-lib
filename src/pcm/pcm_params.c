@@ -1117,7 +1117,7 @@ void snd_pcm_hw_param_copy(snd_pcm_hw_params_t *params, snd_pcm_hw_param_t var,
 }
 
 void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
-			   snd_pcm_hw_param_t var, FILE *fp)
+			   snd_pcm_hw_param_t var, snd_output_t *out)
 {
 	static const char *(*funcs[])(unsigned int k) = {
 		[SND_PCM_HW_PARAM_ACCESS] = snd_pcm_access_name,
@@ -1127,9 +1127,9 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 	if (hw_is_mask(var)) {
 		const mask_t *mask = hw_param_mask_c(params, var);
 		if (mask_empty(mask))
-			fputs(" NONE", fp);
+			snd_output_puts(out, " NONE");
 		else if (mask_full(mask))
-			fputs(" ALL", fp);
+			snd_output_puts(out, " ALL");
 		else {
 			unsigned int k;
 			const char *(*f)(unsigned int k);
@@ -1138,27 +1138,27 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 			assert(f);
 			for (k = 0; k <= MASK_MAX; ++k) {
 				if (mask_test(mask, k)) {
-					putc(' ', fp);
-					fputs(f(k), fp);
+					snd_output_putc(out, ' ');
+					snd_output_puts(out, f(k));
 				}
 			}
 		}
 		return;
 	}
 	if (hw_is_interval(var)) {
-		interval_print(hw_param_interval_c(params, var), fp);
+		interval_print(hw_param_interval_c(params, var), out);
 		return;
 	}
 	assert(0);
 }
 
-int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, FILE *fp)
+int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
 {
 	unsigned int k;
 	for (k = 0; k <= SND_PCM_HW_PARAM_LAST; k++) {
-		fprintf(fp, "%s: ", snd_pcm_hw_param_name(k));
-		snd_pcm_hw_param_dump(params, k, fp);
-		putc('\n', fp);
+		snd_output_printf(out, "%s: ", snd_pcm_hw_param_name(k));
+		snd_pcm_hw_param_dump(params, k, out);
+		snd_output_putc(out, '\n');
 	}
 	return 0;
 }
@@ -1466,7 +1466,7 @@ int snd_pcm_hw_params_try_explain_failure1(snd_pcm_t *pcm,
 					   snd_pcm_hw_params_t *fail,
 					   snd_pcm_hw_params_t *success,
 					   unsigned int depth,
-					   FILE *fp)
+					   snd_output_t *out)
 {
 	snd_pcm_hw_param_t var;
 	snd_pcm_hw_params_t i;
@@ -1478,11 +1478,11 @@ int snd_pcm_hw_params_try_explain_failure1(snd_pcm_t *pcm,
 		snd_pcm_hw_param_copy(&i, var, fail);
 		err = snd_pcm_hw_refine(pcm, &i);
 		if (err == 0 && 
-		    snd_pcm_hw_params_try_explain_failure1(pcm, fail, &i, depth - 1, fp) < 0)
+		    snd_pcm_hw_params_try_explain_failure1(pcm, fail, &i, depth - 1, out) < 0)
 			continue;
-		fprintf(fp, "%s: ", snd_pcm_hw_param_name(var));
-		snd_pcm_hw_param_dump(fail, var, fp);
-		putc('\n', fp);
+		snd_output_printf(out, "%s: ", snd_pcm_hw_param_name(var));
+		snd_pcm_hw_param_dump(fail, var, out);
+		snd_output_putc(out, '\n');
 		return 0;
 	}
 	return -ENOENT;
@@ -1492,7 +1492,7 @@ int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
 					  snd_pcm_hw_params_t *fail,
 					  snd_pcm_hw_params_t *success,
 					  unsigned int depth,
-					  FILE *fp)
+					  snd_output_t *out)
 {
 	snd_pcm_hw_params_t i, any;
 	int err;
@@ -1502,7 +1502,7 @@ int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
 	for (var = 0; var <= SND_PCM_HW_PARAM_LAST; var++) {
 		if (!snd_pcm_hw_param_empty(fail, var))
 			continue;
-		fprintf(fp, "%s is empty\n", snd_pcm_hw_param_name(var));
+		snd_output_printf(out, "%s is empty\n", snd_pcm_hw_param_name(var));
 		done = 1;
 	}
 	if (done)
@@ -1510,14 +1510,14 @@ int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
 	i = *fail;
 	err = snd_pcm_hw_refine(pcm, &i);
 	if (err == 0) {
-		fprintf(fp, "Configuration is virtually correct\n");
+		snd_output_printf(out, "Configuration is virtually correct\n");
 		return 0;
 	}
 	if (!success) {
 		snd_pcm_hw_params_any(pcm, &any);
 		success = &any;
 	}
-	return snd_pcm_hw_params_try_explain_failure1(pcm, fail, success, depth, fp);
+	return snd_pcm_hw_params_try_explain_failure1(pcm, fail, success, depth, out);
 }
 
 typedef struct _snd_pcm_hw_rule snd_pcm_hw_rule_t;
@@ -2151,48 +2151,48 @@ int snd_pcm_sw_param_near(snd_pcm_t *pcm, snd_pcm_sw_params_t *params,
 }
 
 void snd_pcm_sw_param_dump(const snd_pcm_sw_params_t *params,
-			   snd_pcm_sw_param_t var, FILE *fp)
+			   snd_pcm_sw_param_t var, snd_output_t *out)
 {
 	switch (var) {
 	case SND_PCM_SW_PARAM_START_MODE:
-		fputs(snd_pcm_start_mode_name(params->start_mode), fp);
+		snd_output_puts(out, snd_pcm_start_mode_name(params->start_mode));
 		break;
 	case SND_PCM_SW_PARAM_XRUN_MODE:
-		fputs(snd_pcm_xrun_mode_name(params->xrun_mode), fp);
+		snd_output_puts(out, snd_pcm_xrun_mode_name(params->xrun_mode));
 		break;
 	case SND_PCM_SW_PARAM_TSTAMP_MODE:
-		fputs(snd_pcm_tstamp_mode_name(params->tstamp_mode), fp);
+		snd_output_puts(out, snd_pcm_tstamp_mode_name(params->tstamp_mode));
 		break;
 	case SND_PCM_SW_PARAM_PERIOD_STEP:
-		fprintf(fp, "%d", params->period_step);
+		snd_output_printf(out, "%d", params->period_step);
 		break;
 	case SND_PCM_SW_PARAM_SLEEP_MIN:
-		fprintf(fp, "%d", params->sleep_min);
+		snd_output_printf(out, "%d", params->sleep_min);
 		break;
 	case SND_PCM_SW_PARAM_AVAIL_MIN:
-		fprintf(fp, "%ld", (long) params->avail_min);
+		snd_output_printf(out, "%ld", (long) params->avail_min);
 		break;
 	case SND_PCM_SW_PARAM_XFER_ALIGN:
-		fprintf(fp, "%ld", (long) params->xfer_align);
+		snd_output_printf(out, "%ld", (long) params->xfer_align);
 		break;
 	case SND_PCM_SW_PARAM_SILENCE_THRESHOLD:
-		fprintf(fp, "%ld", (long) params->silence_threshold);
+		snd_output_printf(out, "%ld", (long) params->silence_threshold);
 		break;
 	case SND_PCM_SW_PARAM_SILENCE_SIZE:
-		fprintf(fp, "%ld", (long) params->silence_size);
+		snd_output_printf(out, "%ld", (long) params->silence_size);
 		break;
 	default:
 		assert(0);
 	}
 }
 
-int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, FILE *fp)
+int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out)
 {
 	unsigned int k;
 	for (k = 0; k <= SND_PCM_SW_PARAM_LAST; k++) {
-		fprintf(fp, "%s: ", snd_pcm_sw_param_name(k));
-		snd_pcm_sw_param_dump(params, k, fp);
-		putc('\n', fp);
+		snd_output_printf(out, "%s: ", snd_pcm_sw_param_name(k));
+		snd_pcm_sw_param_dump(params, k, out);
+		snd_output_putc(out, '\n');
 	}
 	return 0;
 }

@@ -57,7 +57,7 @@ static int snd_ctl_shm_action(snd_ctl_t *ctl)
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
-		fprintf(stderr, "Server has not done the cmd\n");
+		ERR("Server has not done the cmd");
 		return -EBADFD;
 	}
 	return ctrl->result;
@@ -76,7 +76,7 @@ static int snd_ctl_shm_action_fd(snd_ctl_t *ctl, int *fd)
 	if (err != 1)
 		return -EBADFD;
 	if (ctrl->cmd) {
-		fprintf(stderr, "Server has not done the cmd\n");
+		ERR("Server has not done the cmd");
 		return -EBADFD;
 	}
 	return ctrl->result;

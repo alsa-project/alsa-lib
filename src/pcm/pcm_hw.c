@@ -488,17 +488,17 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 	return avail;
 }
 
-static void snd_pcm_hw_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	char *name = "Unknown";
 	snd_card_get_name(hw->card, &name);
-	fprintf(fp, "Hardware PCM card %d '%s' device %d subdevice %d\n",
+	snd_output_printf(out, "Hardware PCM card %d '%s' device %d subdevice %d\n",
 		hw->card, name, hw->device, hw->subdevice);
 	free(name);
 	if (pcm->setup) {
-		fprintf(fp, "\nIts setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "\nIts setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
 }
 

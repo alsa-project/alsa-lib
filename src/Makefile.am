@@ -1,12 +1,12 @@
-SUBDIRS=control mixer pcm rawmidi timer hwdep seq instr compat conf
+SUBDIRS=control mixer pcm rawmidi timer hwdep seq instr compat
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
 lib_LTLIBRARIES = libasound.la
-libasound_la_SOURCES = error.c
+libasound_la_SOURCES = conf.c input.c output.c error.c 
 libasound_la_LIBADD = control/libcontrol.la mixer/libmixer.la pcm/libpcm.la \
                       rawmidi/librawmidi.la timer/libtimer.la \
 		      hwdep/libhwdep.la seq/libseq.la instr/libinstr.la \
-		      compat/libcompat.la conf/libconf.la -lm -ldl -lpthread
+		      compat/libcompat.la -lm -ldl -lpthread
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
 
@@ -36,8 +36,5 @@ instr/libinstr.la:
 
 compat/libcompat.la:
 	$(MAKE) -C compat libcompat.la
-
-conf/libconf.la:
-	$(MAKE) -C conf libconf.la
 
 INCLUDES=-I$(top_srcdir)/include

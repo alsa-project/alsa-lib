@@ -531,22 +531,22 @@ snd_pcm_sframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_sframes_t fr
 		return muldiv_down(frames, DIV, rate->pitch);
 }
 
-static void snd_pcm_rate_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_rate_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_rate_t *rate = pcm->private;
 	if (rate->sformat < 0)
-		fprintf(fp, "Rate conversion PCM (%d)\n", 
+		snd_output_printf(out, "Rate conversion PCM (%d)\n", 
 			rate->srate);
 	else
-		fprintf(fp, "Rate conversion PCM (%d, sformat=%s)\n", 
+		snd_output_printf(out, "Rate conversion PCM (%d, sformat=%s)\n", 
 			rate->srate,
 			snd_pcm_format_name(rate->sformat));
 	if (pcm->setup) {
-		fprintf(fp, "Its setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "Its setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
-	fprintf(fp, "Slave: ");
-	snd_pcm_dump(rate->plug.slave, fp);
+	snd_output_printf(out, "Slave: ");
+	snd_pcm_dump(rate->plug.slave, out);
 }
 
 snd_pcm_ops_t snd_pcm_rate_ops = {

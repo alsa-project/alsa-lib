@@ -415,17 +415,17 @@ static snd_pcm_sframes_t snd_pcm_mulaw_read_areas(snd_pcm_t *pcm,
 	return err;
 }
 
-static void snd_pcm_mulaw_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_mulaw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_mulaw_t *mulaw = pcm->private;
-	fprintf(fp, "Mu-Law conversion PCM (%s)\n", 
+	snd_output_printf(out, "Mu-Law conversion PCM (%s)\n", 
 		snd_pcm_format_name(mulaw->sformat));
 	if (pcm->setup) {
-		fprintf(fp, "Its setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "Its setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
-	fprintf(fp, "Slave: ");
-	snd_pcm_dump(mulaw->plug.slave, fp);
+	snd_output_printf(out, "Slave: ");
+	snd_pcm_dump(mulaw->plug.slave, out);
 }
 
 snd_pcm_ops_t snd_pcm_mulaw_ops = {

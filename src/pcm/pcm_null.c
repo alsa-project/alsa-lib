@@ -271,12 +271,12 @@ static int snd_pcm_null_munmap(snd_pcm_t *pcm)
 	return 0;
 }
 
-static void snd_pcm_null_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_null_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
-	fprintf(fp, "Null PCM\n");
+	snd_output_printf(out, "Null PCM\n");
 	if (pcm->setup) {
-		fprintf(fp, "Its setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "Its setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
 }
 

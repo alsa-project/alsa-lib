@@ -1071,21 +1071,21 @@ static int snd_pcm_share_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static void snd_pcm_share_dump(snd_pcm_t *pcm, FILE *fp)
+static void snd_pcm_share_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_share_t *share = pcm->private;
 	snd_pcm_share_slave_t *slave = share->slave;
 	unsigned int k;
-	fprintf(fp, "Share PCM\n");
-	fprintf(fp, "\nChannel bindings:\n");
+	snd_output_printf(out, "Share PCM\n");
+	snd_output_printf(out, "\nChannel bindings:\n");
 	for (k = 0; k < share->channels_count; ++k)
-		fprintf(fp, "%d: %d\n", k, share->slave_channels[k]);
+		snd_output_printf(out, "%d: %d\n", k, share->slave_channels[k]);
 	if (pcm->setup) {
-		fprintf(fp, "\nIts setup is:\n");
-		snd_pcm_dump_setup(pcm, fp);
+		snd_output_printf(out, "\nIts setup is:\n");
+		snd_pcm_dump_setup(pcm, out);
 	}
-	fprintf(fp, "Slave: ");
-	snd_pcm_dump(slave->pcm, fp);
+	snd_output_printf(out, "Slave: ");
+	snd_pcm_dump(slave->pcm, out);
 }
 
 snd_pcm_ops_t snd_pcm_share_ops = {
