@@ -53,7 +53,7 @@ static void snd_async_handler(int signo ATTRIBUTE_UNUSED, siginfo_t *siginfo, vo
 {
 	int fd;
 	struct list_head *i;
-	assert(siginfo->si_code = SI_SIGIO);
+	assert(siginfo->si_code == SI_SIGIO);
 	fd = siginfo->si_fd;
 	list_for_each(i, &snd_async_handlers) {
 		snd_async_handler_t *h = list_entry(i, snd_async_handler_t, glist);

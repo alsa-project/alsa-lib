@@ -638,10 +638,10 @@ static int load_iw_patch(snd_iwffff_handle_t *iwf, iwffff_instrument_t *instr,
 				gwave->format |= IWFFFF_WAVE_ROM;
 				gwave->address.memory = snd_LE_to_host_32(*(((unsigned int *)wave) + 8/4));
 			} else {
-				gwave->share_id[1] = iwf->share_id1;
-				gwave->share_id[2] = iwf->share_id2;
-				gwave->share_id[3] = iwf->share_id3;
-				gwave->share_id[4] = snd_LE_to_host_32(*(((unsigned int *)wave) + 8/4));
+				gwave->share_id[0] = iwf->share_id1;
+				gwave->share_id[1] = iwf->share_id2;
+				gwave->share_id[2] = iwf->share_id3;
+				gwave->share_id[3] = snd_LE_to_host_32(*(((unsigned int *)wave) + 8/4));
 				result = load_iw_wave(iwf, gwave->share_id[2], gwave->size, &gwave->address.ptr);
 				if (result < 0) {
 					free_wave(gwave);
@@ -874,10 +874,10 @@ int snd_instr_iwffff_convert_to_stream(snd_instr_iwffff_t *iwffff,
 			xwave = (iwffff_xwave_t *)ptr;
 			ptr += sizeof(*xwave);
 			xwave->stype = IWFFFF_STRU_WAVE;
+			xwave->share_id[0] = __cpu_to_le32(wave->share_id[0]);
 			xwave->share_id[1] = __cpu_to_le32(wave->share_id[1]);
 			xwave->share_id[2] = __cpu_to_le32(wave->share_id[2]);
 			xwave->share_id[3] = __cpu_to_le32(wave->share_id[3]);
-			xwave->share_id[4] = __cpu_to_le32(wave->share_id[4]);
 			xwave->format = __cpu_to_le32(wave->format);
 			xwave->size = __cpu_to_le32(wave->size);
 			xwave->start = __cpu_to_le32(wave->start);

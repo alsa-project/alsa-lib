@@ -536,7 +536,7 @@ int snd_async_add_ctl_handler(snd_async_handler_t **handler, snd_ctl_t *ctl,
  */
 snd_ctl_t *snd_async_handler_get_ctl(snd_async_handler_t *handler)
 {
-	assert(handler->type = SND_ASYNC_HANDLER_CTL);
+	assert(handler->type == SND_ASYNC_HANDLER_CTL);
 	return handler->u.ctl;
 }
 
