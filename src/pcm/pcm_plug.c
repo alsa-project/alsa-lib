@@ -470,7 +470,7 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	}
 	nformats = snd_pcm_plug_format_choices(pcm->stream, formats,
 					       params->format, 
-					       sinfo.access_mask);
+					       sinfo.format_mask);
 	err = snd_pcm_strategy_simple_choices(strategy, 2, SND_PCM_HW_PARAM_FORMAT,
 					      nformats, formats);
 	if (err < 0) {

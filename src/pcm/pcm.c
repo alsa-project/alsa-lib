@@ -1913,6 +1913,7 @@ void snd_pcm_hw_info_par_dump(snd_pcm_hw_info_t *info, unsigned int param, FILE 
 		unsigned long min, max;
 		snd_pcm_hw_info_par_get_minmax(info, param, &min, &max);
 		printf("%ld - %ld", min, max);
+		break;
 	}
 	default:
 		assert(0);
