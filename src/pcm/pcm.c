@@ -199,36 +199,6 @@ snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t s
 	return _snd_pcm_readn(pcm, bufs, size);
 }
 
-snd_pcm_sframes_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count)
-{
-	void **bufs;
-	int k;
-	assert(pcm);
-	assert(pcm->setup);
-	assert((int)pcm->channels == count);
-	bufs = alloca(sizeof(*bufs) * count);
-	for (k = 0; k < count; ++k) {
-		bufs[k] = vector[k].iov_base;
-		assert(vector[k].iov_len == vector[0].iov_len);
-	}
-	return snd_pcm_writen(pcm, bufs, vector[0].iov_len);
-}
-
-snd_pcm_sframes_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count)
-{
-	void **bufs;
-	int k;
-	assert(pcm);
-	assert(pcm->setup);
-	assert((int)pcm->channels == count);
-	bufs = alloca(sizeof(*bufs) * count);
-	for (k = 0; k < count; ++k) {
-		bufs[k] = vector[k].iov_base;
-		assert(vector[k].iov_len == vector[0].iov_len);
-	}
-	return snd_pcm_readn(pcm, bufs, vector[0].iov_len);
-}
-
 /* FIXME */
 #define snd_pcm_link_descriptor snd_pcm_poll_descriptor
 

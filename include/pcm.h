@@ -189,13 +189,6 @@ extern "C" {
 int snd_pcm_open(snd_pcm_t **pcm, char *name, 
 		 int stream, int mode);
 
-/* Obsolete functions */
-#define snd_pcm_write snd_pcm_writei
-#define snd_pcm_read snd_pcm_readi
-snd_pcm_sframes_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, int count);
-snd_pcm_sframes_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, int count);
-
-
 snd_pcm_type_t snd_pcm_type(snd_pcm_t *pcm);
 int snd_pcm_close(snd_pcm_t *pcm);
 int snd_pcm_poll_descriptor(snd_pcm_t *pcm);
