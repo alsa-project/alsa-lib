@@ -1,3 +1,4 @@
+M mmap plug and blocking mode problem
 M plug sync and pos problems
 M Loopback implementation?
 L add hsearch_r code from glibc (for compatibility with older distributions)
