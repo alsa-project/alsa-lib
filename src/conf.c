@@ -813,6 +813,7 @@ static int get_string(char **string, int id, input_t *input)
 	case '}':
 	case '[':
 	case ']':
+	case '\\':
 		return LOCAL_UNEXPECTED_CHAR;
 	case '\'':
 	case '"':
