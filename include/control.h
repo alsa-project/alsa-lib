@@ -120,6 +120,8 @@ typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
 #define SND_CTL_EVENT_MASK_VALUE SNDRV_CTL_EVENT_MASK_VALUE
 #define SND_CTL_EVENT_MASK_REMOVE SNDRV_CTL_EVENT_MASK_REMOVE
 
+#define SND_CTL_NAME_IEC958 SNDRV_CTL_NAME_IEC958
+
 enum _snd_ctl_type {
 	SND_CTL_TYPE_HW,
 	SND_CTL_TYPE_SHM,
