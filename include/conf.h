@@ -112,6 +112,7 @@ int snd_config_set_pointer(snd_config_t *config, const void *ptr);
 int snd_config_get_id(snd_config_t *config, const char **value);
 int snd_config_get_integer(snd_config_t *config, long *value);
 int snd_config_get_real(snd_config_t *config, double *value);
+int snd_config_get_ireal(snd_config_t *config, double *value);
 int snd_config_get_string(snd_config_t *config, const char **value);
 int snd_config_get_ascii(snd_config_t *config, char **value);
 int snd_config_get_pointer(snd_config_t *config, const void **value);

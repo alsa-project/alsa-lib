@@ -1809,6 +1809,27 @@ int snd_config_get_real(snd_config_t *config, double *ptr)
 }
 
 /**
+ * \brief Get the value of a real or integer config node
+ * \param config Config node handle
+ * \param ptr Returned value pointer
+ * \return 0 on success otherwise a negative error code
+ *
+ * Note: If the config type is integer, it is converted
+ * to the double type on the fly.
+ */
+int snd_config_get_ireal(snd_config_t *config, double *ptr)
+{
+	assert(config && ptr);
+	if (config->type == SND_CONFIG_TYPE_REAL)
+		*ptr = config->u.real;
+	else if (config->type == SND_CONFIG_TYPE_INTEGER)
+		*ptr = config->u.integer;
+	else
+		return -EINVAL;
+	return 0;
+}
+
+/**
  * \brief Get the value of a string config node
  * \param config Config node handle
  * \param ptr Returned value pointer
