@@ -163,11 +163,11 @@ static void mulaw_decode(snd_pcm_plugin_t *plugin,
 			snd_pcm_plugin_voice_t *dst_voices,
 			size_t samples)
 {
-#define PUT16_LABELS
+#define PUT_S16_LABELS
 #include "plugin_ops.h"
-#undef PUT16_LABELS
+#undef PUT_S16_LABELS
 	mulaw_t *data = (mulaw_t *)plugin->extra_data;
-	void *put = put16_labels[data->conv];
+	void *put = put_s16_labels[data->conv];
 	int voice;
 	int nvoices = plugin->src_format.voices;
 	for (voice = 0; voice < nvoices; ++voice) {
@@ -190,9 +190,9 @@ static void mulaw_decode(snd_pcm_plugin_t *plugin,
 		while (samples1-- > 0) {
 			signed short sample = ulaw2linear(*src);
 			goto *put;
-#define PUT16_END after
+#define PUT_S16_END after
 #include "plugin_ops.h"
-#undef PUT16_END
+#undef PUT_S16_END
 		after:
 			src += src_step;
 			dst += dst_step;
@@ -205,11 +205,11 @@ static void mulaw_encode(snd_pcm_plugin_t *plugin,
 			snd_pcm_plugin_voice_t *dst_voices,
 			size_t samples)
 {
-#define GET16_LABELS
+#define GET_S16_LABELS
 #include "plugin_ops.h"
-#undef GET16_LABELS
+#undef GET_S16_LABELS
 	mulaw_t *data = (mulaw_t *)plugin->extra_data;
-	void *get = get16_labels[data->conv];
+	void *get = get_s16_labels[data->conv];
 	int voice;
 	int nvoices = plugin->src_format.voices;
 	signed short sample = 0;
@@ -232,9 +232,9 @@ static void mulaw_encode(snd_pcm_plugin_t *plugin,
 		samples1 = samples;
 		while (samples1-- > 0) {
 			goto *get;
-#define GET16_END after
+#define GET_S16_END after
 #include "plugin_ops.h"
-#undef GET16_END
+#undef GET_S16_END
 		after:
 			*dst = linear2ulaw(sample);
 			src += src_step;

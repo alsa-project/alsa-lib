@@ -303,6 +303,18 @@ int snd_pcm_plugin_build_mmap(snd_pcm_plugin_handle_t *handle,
 			      snd_pcm_t *slave,
 			      snd_pcm_format_t *format,
 			      snd_pcm_plugin_t **r_plugin);
+
+#define ROUTE_PLUGIN_USE_FLOAT 1
+#if ROUTE_PLUGIN_USE_FLOAT
+#define FULL 1.0 
+#define HALF 0.5
+typedef float route_ttable_entry_t;
+#else
+#define FULL ROUTE_PLUGIN_RESOLUTION
+#define HALF ROUTE_PLUGIN_RESOLUTION / 2
+typedef int route_ttable_entry_t;
+#endif
+
 /* conversion plugins */
 int snd_pcm_plugin_build_interleave(snd_pcm_plugin_handle_t *handle,
 				    int channel,
@@ -338,7 +350,7 @@ int snd_pcm_plugin_build_route(snd_pcm_plugin_handle_t *handle,
 			       int channel,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
-			       float *ttable,
+			       route_ttable_entry_t *ttable,
 			       snd_pcm_plugin_t **r_plugin);
 int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
 			      int channel,

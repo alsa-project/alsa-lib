@@ -526,16 +526,6 @@ int snd_pcm_plug_slave_params(snd_pcm_channel_params_t *params,
 	return 0;
 }
 
-#ifdef __KERNEL__
-#define FULL ROUTE_PLUGIN_RESOLUTION
-#define HALF ROUTE_PLUGIN_RESOLUTION / 2
-typedef int ttable_entry_t;
-#else
-#define FULL 1.0
-#define HALF 0.5
-typedef float ttable_entry_t;
-#endif
-
 int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle, 
 			snd_pcm_channel_params_t *params, 
 			snd_pcm_channel_params_t *slave_params)
@@ -628,7 +618,7 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 	if (srcparams->format.voices > dstparams.format.voices) {
 		int sv = srcparams->format.voices;
 		int dv = dstparams.format.voices;
-		ttable_entry_t *ttable = calloc(1, dv*sv*sizeof(*ttable));
+		route_ttable_entry_t *ttable = calloc(1, dv*sv*sizeof(*ttable));
 #if 1
 		if (sv == 2 && dv == 1) {
 			ttable[0] = HALF;
@@ -694,7 +684,7 @@ int snd_pcm_plug_format(snd_pcm_plugin_handle_t *handle,
 	if (srcparams->format.voices < dstparams.format.voices) {
 		int sv = srcparams->format.voices;
 		int dv = dstparams.format.voices;
-		ttable_entry_t *ttable = calloc(1, dv * sv * sizeof(*ttable));
+		route_ttable_entry_t *ttable = calloc(1, dv * sv * sizeof(*ttable));
 #if 0
 		{
 			int v;

@@ -215,11 +215,11 @@ static void adpcm_decode(snd_pcm_plugin_t *plugin,
 			 snd_pcm_plugin_voice_t *dst_voices,
 			 size_t samples)
 {
-#define PUT16_LABELS
+#define PUT_S16_LABELS
 #include "plugin_ops.h"
-#undef PUT16_LABELS
+#undef PUT_S16_LABELS
 	adpcm_t *data = (adpcm_t *)plugin->extra_data;
-	void *put = put16_labels[data->conv];
+	void *put = put_s16_labels[data->conv];
 	int voice;
 	int nvoices = plugin->src_format.voices;
 	for (voice = 0; voice < nvoices; ++voice) {
@@ -253,9 +253,9 @@ static void adpcm_decode(snd_pcm_plugin_t *plugin,
 				v = (*src >> 4) & 0x0f;
 			sample = adpcm_decoder(v, state);
 			goto *put;
-#define PUT16_END after
+#define PUT_S16_END after
 #include "plugin_ops.h"
-#undef PUT16_END
+#undef PUT_S16_END
 		after:
 			src += src_step;
 			srcbit += srcbit_step;
@@ -273,11 +273,11 @@ static void adpcm_encode(snd_pcm_plugin_t *plugin,
 			snd_pcm_plugin_voice_t *dst_voices,
 			size_t samples)
 {
-#define GET16_LABELS
+#define GET_S16_LABELS
 #include "plugin_ops.h"
-#undef GET16_LABELS
+#undef GET_S16_LABELS
 	adpcm_t *data = (adpcm_t *)plugin->extra_data;
-	void *get = get16_labels[data->conv];
+	void *get = get_s16_labels[data->conv];
 	int voice;
 	int nvoices = plugin->src_format.voices;
 	signed short sample = 0;
@@ -306,9 +306,9 @@ static void adpcm_encode(snd_pcm_plugin_t *plugin,
 		while (samples1-- > 0) {
 			int v;
 			goto *get;
-#define GET16_END after
+#define GET_S16_END after
 #include "plugin_ops.h"
-#undef GET16_END
+#undef GET_S16_END
 		after:
 			v = adpcm_encoder(sample, state);
 			if (dstbit)

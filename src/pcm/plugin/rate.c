@@ -87,18 +87,18 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 	rate_t *data = (rate_t *)plugin->extra_data;
 	rate_voice_t *rvoices = data->voices;
 
-#define GET16_LABELS
-#define PUT16_LABELS
+#define GET_S16_LABELS
+#define PUT_S16_LABELS
 #include "plugin_ops.h"
-#undef GET16_LABELS
-#undef PUT16_LABELS
-	void *get = get16_labels[data->get];
-	void *put = put16_labels[data->put];
-	void *get16_end = 0;
+#undef GET_S16_LABELS
+#undef PUT_S16_LABELS
+	void *get = get_s16_labels[data->get];
+	void *put = put_s16_labels[data->put];
+	void *get_s16_end = 0;
 	signed short sample = 0;
-#define GET16_END *get16_end
+#define GET_S16_END *get_s16_end
 #include "plugin_ops.h"
-#undef GET16_END
+#undef GET_S16_END
 	
 	for (voice = 0; voice < plugin->src_format.voices; voice++, rvoices++) {
 		pos = data->pos;
@@ -118,7 +118,7 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 		src_samples1 = src_samples;
 		dst_samples1 = dst_samples;
 		if (pos & ~MASK) {
-			get16_end = &&after_get1;
+			get_s16_end = &&after_get1;
 			goto *get;
 		after_get1:
 			pos &= MASK;
@@ -132,7 +132,7 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 				pos &= MASK;
 				S1 = S2;
 				if (src_samples1-- > 0) {
-					get16_end = &&after_get2;
+					get_s16_end = &&after_get2;
 					goto *get;
 				after_get2:
 					S2 = sample;
@@ -146,9 +146,9 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 				val = 32767;
 			sample = val;
 			goto *put;
-#define PUT16_END after_put
+#define PUT_S16_END after_put
 #include "plugin_ops.h"
-#undef PUT16_END
+#undef PUT_S16_END
 		after_put:
 			dst += dst_step;
 			pos += data->pitch;
@@ -175,13 +175,13 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 	rate_t *data = (rate_t *)plugin->extra_data;
 	rate_voice_t *rvoices = data->voices;
 	
-#define GET16_LABELS
-#define PUT16_LABELS
+#define GET_S16_LABELS
+#define PUT_S16_LABELS
 #include "plugin_ops.h"
-#undef GET16_LABELS
-#undef PUT16_LABELS
-	void *get = get16_labels[data->get];
-	void *put = put16_labels[data->put];
+#undef GET_S16_LABELS
+#undef PUT_S16_LABELS
+	void *get = get_s16_labels[data->get];
+	void *put = put_s16_labels[data->put];
 	signed short sample = 0;
 
 	for (voice = 0; voice < plugin->src_format.voices; ++voice) {
@@ -205,9 +205,9 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 			S1 = S2;
 			if (src_samples1-- > 0) {
 				goto *get;
-#define GET16_END after_get
+#define GET_S16_END after_get
 #include "plugin_ops.h"
-#undef GET16_END
+#undef GET_S16_END
 			after_get:
 				S2 = sample;
 				src += src_step;
@@ -221,9 +221,9 @@ static void resample_shrink(snd_pcm_plugin_t *plugin,
 					val = 32767;
 				sample = val;
 				goto *put;
-#define PUT16_END after_put
+#define PUT_S16_END after_put
 #include "plugin_ops.h"
-#undef PUT16_END
+#undef PUT_S16_END
 			after_put:
 				dst += dst_step;
 				dst_samples1--;
