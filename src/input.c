@@ -51,9 +51,9 @@ struct _snd_input {
 #endif
 
 /**
- * \brief close input handle
- * \param input Input handle
- * \return 0 on success otherwise a negative error code
+ * \brief Closes an input handle.
+ * \param input The input handle to be closed.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_input_close(snd_input_t *input)
 {
@@ -63,11 +63,13 @@ int snd_input_close(snd_input_t *input)
 }
 
 /**
- * \brief fscanf(3) like on an input handle
- * \param input Input handle
- * \param format fscanf format
- * \param ... other fscanf arguments
- * \return number of input items assigned otherwise a negative error code
+ * \brief Reads formatted input (like \c fscanf(3)) from an input handle.
+ * \param input The input handle.
+ * \param format Format string in \c fscanf format.
+ * \param ... Other \c fscanf arguments.
+ * \return The number of input items assigned, or \c EOF.
+ *
+ * \bug Reading from a memory buffer doesn't work.
  */
 int snd_input_scanf(snd_input_t *input, const char *format, ...)
 {
@@ -80,11 +82,14 @@ int snd_input_scanf(snd_input_t *input, const char *format, ...)
 }
 
 /**
- * \brief fgets(3) like on an input handle
- * \param input Input handle
- * \param str Destination buffer pointer
- * \param size Buffer size
- * \return Pointer to buffer or NULL on error
+ * \brief Reads a line from an input handle (like \c fgets(3)).
+ * \param input The input handle.
+ * \param str Address of the destination buffer.
+ * \param size The size of the destination buffer.
+ * \return Pointer to the buffer if successful, otherwise \c NULL.
+ *
+ * Like \c fgets, the returned string is zero-terminated, and contains
+ * the new-line character \c '\n' if the line fits into the buffer.
  */
 char *snd_input_gets(snd_input_t *input, char *str, size_t size)
 {
@@ -92,9 +97,9 @@ char *snd_input_gets(snd_input_t *input, char *str, size_t size)
 }
 			
 /**
- * \brief fgetc(3) like on an input handle
- * \param input Input handle
- * \return character read or EOF on end of file or error
+ * \brief Reads a character from an input handle (like \c fgetc(3)).
+ * \param input The input handle.
+ * \return The character read, or \c EOF on end of file or error.
  */
 int snd_input_getc(snd_input_t *input)
 {
@@ -102,10 +107,10 @@ int snd_input_getc(snd_input_t *input)
 }
 
 /**
- * \brief ungetc(3) like on an input handle
- * \param input Input handle
- * \param c Char to push back
- * \return character pushed back or EOF on error
+ * \brief Puts the last character read back to an input handle (like \c ungetc(3)).
+ * \param input The input handle.
+ * \param c The character to push back.
+ * \return The character pushed back, or \c EOF on error.
  */
 int snd_input_ungetc(snd_input_t *input, int c)
 {
@@ -162,11 +167,14 @@ static snd_input_ops_t snd_input_stdio_ops = {
 #endif
 
 /**
- * \brief Create a new input using an existing stdio FILE pointer
- * \param inputp Pointer to returned input handle
- * \param fp FILE pointer
- * \param close Close flag (1 if FILE is fclose'd when input handle is closed)
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a new input object using an existing stdio \c FILE pointer.
+ * \param inputp The function puts the pointer to the new input object
+ *               at the address specified by \p inputp.
+ * \param fp The \c FILE pointer to read from.
+ *           Reading begins at the current file position.
+ * \param close Close flag. Set this to 1 if #snd_input_close should close
+ *              \p fp by calling \c fclose.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int _close)
 {
@@ -191,11 +199,12 @@ int snd_input_stdio_attach(snd_input_t **inputp, FILE *fp, int _close)
 }
 	
 /**
- * \brief Open a new input from a file
- * \param inputp Pointer to returned input handle
- * \param file File name
- * \param mode fopen(3) open mode
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a new input object reading from a file.
+ * \param inputp The functions puts the pointer to the new input object
+ *               at the address specified by \p inputp.
+ * \param file The name of the file to read from.
+ * \param mode The open mode, like \c fopen(3).
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_input_stdio_open(snd_input_t **inputp, const char *file, const char *mode)
 {
@@ -284,11 +293,15 @@ static snd_input_ops_t snd_input_buffer_ops = {
 #endif
 
 /**
- * \brief Open a new input from a memory buffer
- * \param inputp Pointer to returned input handle
- * \param buf Buffer pointer
- * \param size Buffer size
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a new input object from a memory buffer.
+ * \param inputp The function puts the pointer to the new input object
+ *               at the address specified by \p inputp.
+ * \param buf Address of the input buffer.
+ * \param size Size of the input buffer.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This functions creates a copy of the input buffer, so the application is
+ * not required to preserve the buffer after this function has been called.
  */
 int snd_input_buffer_open(snd_input_t **inputp, const char *buf, ssize_t size)
 {

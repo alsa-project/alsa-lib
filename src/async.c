@@ -63,17 +63,33 @@ static void snd_async_handler(int signo ATTRIBUTE_UNUSED, siginfo_t *siginfo, vo
 }
 
 /**
- * \brief Add async handler
- * \param handler Result - async handler
- * \param fd - File descriptor
- * \param callback - Async callback
- * \param private_data - Private data for async callback
- * \result zero if success, otherwise a negative error code
+ * \brief Registers an async handler.
+ * \param handler The function puts the pointer to the new async handler
+ *                object at the address specified by \p handler.
+ * \param fd The file descriptor to be associated with the callback.
+ * \param callback The async callback function.
+ * \param private_data Private data for the async callback function.
+ * \result Zero if successful, otherwise a negative error code.
  *
- * The function create the async handler. The ALSA extension
- * for the standard SIGIO signal contains the multiplexer
- * for multiple asynchronous notifiers using one sigaction
- * callback.
+ * This function associates the callback function with the given file,
+ * and saves this association in a \c snd_async_handler_t object.
+ *
+ * Whenever the \c SIGIO signal is raised for the file \p fd, the callback
+ * function will be called with its parameter pointing to the async handler
+ * object returned by this function.
+ *
+ * The ALSA \c sigaction handler for the \c SIGIO signal automatically
+ * multiplexes the notifications to the registered async callbacks.
+ * However, the application is responsible for instructing the device driver
+ * to generate the \c SIGIO signal.
+ *
+ * The \c SIGIO signal may have been replaced with another signal,
+ * see #snd_async_handler_get_signo.
+ *
+ * When the async handler isn't needed anymore, you must delete it with
+ * #snd_async_del_handler.
+ *
+ * \see snd_async_add_pcm_handler, snd_async_add_ctl_handler
  */
 int snd_async_add_handler(snd_async_handler_t **handler, int fd, 
 			  snd_async_callback_t callback, void *private_data)
@@ -108,9 +124,9 @@ int snd_async_add_handler(snd_async_handler_t **handler, int fd,
 }
 
 /**
- * \brief Delete async handler
- * \param handler Async handler to delete
- * \result zero if success, otherwise a negative error code
+ * \brief Deletes an async handler.
+ * \param handler Handle of the async handler to delete.
+ * \result Zero if successful, otherwise a negative error code.
  */
 int snd_async_del_handler(snd_async_handler_t *handler)
 {
@@ -150,9 +166,13 @@ int snd_async_del_handler(snd_async_handler_t *handler)
 }
 
 /**
- * \brief Get signal number assigned to async handler
- * \param handler Async handler
- * \result signal number if success, otherwise a negative error code
+ * \brief Returns the signal number assigned to an async handler.
+ * \param handler Handle to an async handler.
+ * \result The signal number if successful, otherwise a negative error code.
+ *
+ * The signal number for async handlers usually is \c SIGIO,
+ * but wizards can redefine it to a realtime signal
+ * when compiling the ALSA library.
  */
 int snd_async_handler_get_signo(snd_async_handler_t *handler)
 {
@@ -161,9 +181,9 @@ int snd_async_handler_get_signo(snd_async_handler_t *handler)
 }
 
 /**
- * \brief Get file descriptor assigned to async handler
- * \param handler Async handler
- * \result file descriptor if success, otherwise a negative error code
+ * \brief Returns the file descriptor assigned to an async handler.
+ * \param handler Handle to an async handler.
+ * \result The file descriptor if successful, otherwise a negative error code.
  */
 int snd_async_handler_get_fd(snd_async_handler_t *handler)
 {
@@ -172,9 +192,9 @@ int snd_async_handler_get_fd(snd_async_handler_t *handler)
 }
 
 /**
- * \brief Get private data assigned to async handler
- * \param handler Async handler
- * \result private data if success, otherwise a negative error code
+ * \brief Returns the private data assigned to an async handler.
+ * \param handler Handle to an async handler.
+ * \result The \c private_data value registered with the async handler.
  */
 void *snd_async_handler_get_callback_private(snd_async_handler_t *handler)
 {

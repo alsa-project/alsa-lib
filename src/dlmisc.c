@@ -37,13 +37,13 @@ struct snd_dlsym_link *snd_dlsym_start = NULL;
 #endif
 
 /**
- * \brief Open the dynamic library, with ALSA extension
- * \param name name, similar to dlopen
- * \param mode mode, similar to dlopen
- * \return pointer to handle
+ * \brief Opens a dynamic library - ALSA wrapper for \c dlopen.
+ * \param name name of the library, similar to \c dlopen.
+ * \param mode mode flags, similar to \c dlopen.
+ * \return Library handle if successful, otherwise \c NULL.
  *
- * The extension is a special code for the static build of
- * the alsa-lib library.
+ * This function can emulate dynamic linking for the static build of
+ * the alsa-lib library. In that case, \p name is set to \c NULL.
  */
 void *snd_dlopen(const char *name, int mode)
 {
@@ -55,11 +55,11 @@ void *snd_dlopen(const char *name, int mode)
 }
 
 /**
- * \brief Close the dynamic library, with ALSA extension
- * \param handle handle, similar to dlclose
- * \return zero if success, otherwise an error code
+ * \brief Closes a dynamic library - ALSA wrapper for \c dlclose.
+ * \param handle Library handle, similar to \c dlclose.
+ * \return Zero if successful, otherwise an error code.
  *
- * The extension is a special code for the static build of
+ * This function can emulate dynamic linking for the static build of
  * the alsa-lib library.
  */
 int snd_dlclose(void *handle)
@@ -72,11 +72,14 @@ int snd_dlclose(void *handle)
 }
 
 /**
- * \brief Verify dynamically loaded symbol
- * \param handle dlopen handle
- * \param name name of symbol
- * \param version version of symbol
- * \return zero is success, otherwise a negative error code
+ * \brief Verifies a dynamically loaded symbol.
+ * \param handle Library handle, similar to \c dlsym.
+ * \param name Symbol name.
+ * \param version Version of the symbol.
+ * \return Zero is successful, otherwise a negative error code.
+ *
+ * This function checks that the symbol with the version appended to its name
+ * does exist in the library.
  */
 static int snd_dlsym_verify(void *handle, const char *name, const char *version)
 {
@@ -99,14 +102,17 @@ static int snd_dlsym_verify(void *handle, const char *name, const char *version)
 }
 
 /**
- * \brief Resolve the symbol, with ALSA extension
- * \param handle handle, similar to dlsym
- * \param name symbol name
- * \param version symbol version
+ * \brief Resolves a symbol from a dynamic library - ALSA wrapper for \c dlsym.
+ * \param handle Library handle, similar to \c dlsym.
+ * \param name Symbol name.
+ * \param version Version of the symbol.
  *
- * This special version of dlsym function checks also
- * the version of symbol. The version of a symbol should
- * be defined using #SND_DLSYM_BUILD_VERSION macro.
+ * This function can emulate dynamic linking for the static build of
+ * the alsa-lib library.
+ *
+ * This special version of the \c dlsym function checks also the version
+ * of the symbol. A versioned symbol should be defined using the
+ * #SND_DLSYM_BUILD_VERSION macro.
  */
 void *snd_dlsym(void *handle, const char *name, const char *version)
 {

@@ -35,6 +35,9 @@ extern "C" {
 /**
  *  \defgroup Global Global defines and functions
  *  Global defines and functions.
+ *  \par
+ *  The ALSA library implementation uses these macros and functions.
+ *  Most applications probably do not need them.
  *  \{
  */
 
@@ -45,9 +48,12 @@ extern "C" {
 
 #ifdef PIC /* dynamic build */
 
-/** helper macro for SND_DLSYM_BUILD_VERSION \hideinitializer */
+/** \hideinitializer \brief Helper macro for #SND_DLSYM_BUILD_VERSION. */
 #define __SND_DLSYM_VERSION(name, version) _ ## name ## version
-/** build version for versioned dynamic symbol \hideinitializer */
+/**
+ * \hideinitializer
+ * \brief Appends the build version to the name of a versioned dynamic symbol.
+ */
 #define SND_DLSYM_BUILD_VERSION(name, version) char __SND_DLSYM_VERSION(name, version);
 
 #else /* static build */
@@ -60,9 +66,12 @@ struct snd_dlsym_link {
 
 extern struct snd_dlsym_link *snd_dlsym_start;
 
-/** helper macro for SND_DLSYM_BUILD_VERSION \hideinitializer */
+/** \hideinitializer \brief Helper macro for #SND_DLSYM_BUILD_VERSION. */
 #define __SND_DLSYM_VERSION(prefix, name, version) _ ## prefix ## name ## version
-/** build version for versioned dynamic symbol \hideinitializer */
+/**
+ * \hideinitializer
+ * \brief Appends the build version to the name of a versioned dynamic symbol.
+ */
 #define SND_DLSYM_BUILD_VERSION(name, version) \
   static struct snd_dlsym_link __SND_DLSYM_VERSION(snd_dlsym_, name, version); \
   void __SND_DLSYM_VERSION(snd_dlsym_constructor_, name, version) (void) __attribute__ ((constructor)); \
@@ -75,7 +84,7 @@ extern struct snd_dlsym_link *snd_dlsym_start;
 
 #endif
 
-/** get version of dynamic symbol as string */
+/** \brief Returns the version of a dynamic symbol as a string. */
 #define SND_DLSYM_VERSION(version) __STRING(version)
 
 void *snd_dlopen(const char *file, int mode);
@@ -83,10 +92,19 @@ void *snd_dlsym(void *handle, const char *name, const char *version);
 int snd_dlclose(void *handle);
 
 
-/** Async notification client handler */
+/**
+ * \brief Internal structure for an async notification client handler.
+ *
+ * The ALSA library uses a pointer to this structure as a handle to an async
+ * notification object. Applications don't access its contents directly.
+ */
 typedef struct _snd_async_handler snd_async_handler_t;
 
-/** Async notification callback */
+/**
+ * \brief Async notification callback.
+ *
+ * See the #snd_async_add_handler function for details.
+ */
 typedef void (*snd_async_callback_t)(snd_async_handler_t *handler);
 
 int snd_async_add_handler(snd_async_handler_t **handler, int fd, 

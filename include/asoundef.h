@@ -7,8 +7,8 @@
  * \date 1998-2001
  *
  * Definitions of constants for the ALSA driver
- *
- *
+ */
+/*
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as
  *   published by the Free Software Foundation; either version 2.1 of
@@ -33,8 +33,8 @@ extern "C" {
 #endif
 
 /**
- * \defgroup Digital_Audio_Interface Constants For Digital Audio Interface
- * AES/IEC958 channel status bits
+ * \defgroup Digital_Audio_Interface Constants for Digital Audio Interfaces
+ * AES/IEC958 channel status bits.
  * \{
  */
 
@@ -42,7 +42,7 @@ extern "C" {
 #define IEC958_AES0_NONAUDIO		(1<<1)	/**< 0 = audio, 1 = non-audio */
 #define IEC958_AES0_PRO_EMPHASIS	(7<<2)	/**< mask - emphasis */
 #define IEC958_AES0_PRO_EMPHASIS_NOTID	(0<<2)	/**< emphasis not indicated */
-#define IEC958_AES0_PRO_EMPHASIS_NONE	(1<<2)	/**< none emphasis */
+#define IEC958_AES0_PRO_EMPHASIS_NONE	(1<<2)	/**< no emphasis */
 #define IEC958_AES0_PRO_EMPHASIS_5015	(3<<2)	/**< 50/15us emphasis */
 #define IEC958_AES0_PRO_EMPHASIS_CCITT	(7<<2)	/**< CCITT J.17 emphasis */
 #define IEC958_AES0_PRO_FREQ_UNLOCKED	(1<<5)	/**< source sample frequency: 0 = locked, 1 = unlocked */
@@ -53,18 +53,18 @@ extern "C" {
 #define IEC958_AES0_PRO_FS_32000	(3<<6)	/**< 32kHz */
 #define IEC958_AES0_CON_NOT_COPYRIGHT	(1<<2)	/**< 0 = copyright, 1 = not copyright */
 #define IEC958_AES0_CON_EMPHASIS	(7<<3)	/**< mask - emphasis */
-#define IEC958_AES0_CON_EMPHASIS_NONE	(0<<3)	/**< none emphasis */
+#define IEC958_AES0_CON_EMPHASIS_NONE	(0<<3)	/**< no emphasis */
 #define IEC958_AES0_CON_EMPHASIS_5015	(1<<3)	/**< 50/15us emphasis */
 #define IEC958_AES0_CON_MODE		(3<<6)	/**< mask - mode */
 #define IEC958_AES1_PRO_MODE		(15<<0)	/**< mask - channel mode */
-#define IEC958_AES1_PRO_MODE_NOTID	(0<<0)	/**< not indicated */
+#define IEC958_AES1_PRO_MODE_NOTID	(0<<0)	/**< mode not indicated */
 #define IEC958_AES1_PRO_MODE_STEREOPHONIC (2<<0) /**< stereophonic - ch A is left */
 #define IEC958_AES1_PRO_MODE_SINGLE	(4<<0)	/**< single channel */
 #define IEC958_AES1_PRO_MODE_TWO	(8<<0)	/**< two channels */
 #define IEC958_AES1_PRO_MODE_PRIMARY	(12<<0)	/**< primary/secondary */
 #define IEC958_AES1_PRO_MODE_BYTE3	(15<<0)	/**< vector to byte 3 */
 #define IEC958_AES1_PRO_USERBITS	(15<<4)	/**< mask - user bits */
-#define IEC958_AES1_PRO_USERBITS_NOTID	(0<<4)	/**< not indicated */
+#define IEC958_AES1_PRO_USERBITS_NOTID	(0<<4)	/**< user bits not indicated */
 #define IEC958_AES1_PRO_USERBITS_192	(8<<4)	/**< 192-bit structure */
 #define IEC958_AES1_PRO_USERBITS_UDEF	(12<<4)	/**< user defined application */
 #define IEC958_AES1_CON_CATEGORY	0x7f	/**< consumer category */
@@ -104,15 +104,15 @@ extern "C" {
 #define IEC958_AES2_PRO_SBITS_24	(4<<0)	/**< 24-bit - main audio */
 #define IEC958_AES2_PRO_SBITS_UDEF	(6<<0)	/**< user defined application */
 #define IEC958_AES2_PRO_WORDLEN		(7<<3)	/**< mask - source word length */
-#define IEC958_AES2_PRO_WORDLEN_NOTID	(0<<3)	/**< not indicated */
+#define IEC958_AES2_PRO_WORDLEN_NOTID	(0<<3)	/**< source word length not indicated */
 #define IEC958_AES2_PRO_WORDLEN_22_18	(2<<3)	/**< 22-bit or 18-bit */
 #define IEC958_AES2_PRO_WORDLEN_23_19	(4<<3)	/**< 23-bit or 19-bit */
 #define IEC958_AES2_PRO_WORDLEN_24_20	(5<<3)	/**< 24-bit or 20-bit */
 #define IEC958_AES2_PRO_WORDLEN_20_16	(6<<3)	/**< 20-bit or 16-bit */
 #define IEC958_AES2_CON_SOURCE		(15<<0)	/**< mask - source number */
-#define IEC958_AES2_CON_SOURCE_UNSPEC	(0<<0)	/**< unspecified */
+#define IEC958_AES2_CON_SOURCE_UNSPEC	(0<<0)	/**< source number unspecified */
 #define IEC958_AES2_CON_CHANNEL		(15<<4)	/**< mask - channel number */
-#define IEC958_AES2_CON_CHANNEL_UNSPEC	(0<<4)	/**< unspecified */
+#define IEC958_AES2_CON_CHANNEL_UNSPEC	(0<<4)	/**< channel number unspecified */
 #define IEC958_AES3_CON_FS		(15<<0)	/**< mask - sample frequency */
 #define IEC958_AES3_CON_FS_44100	(0<<0)	/**< 44.1kHz */
 #define IEC958_AES3_CON_FS_48000	(2<<0)	/**< 48kHz */
@@ -125,32 +125,32 @@ extern "C" {
 /** \} */
 
 /**
- * \defgroup MIDI_Interface Constants For MIDI v1.0 Interface
- * Constants for MIDI v1.0 interface
+ * \defgroup MIDI_Interface Constants for MIDI v1.0
+ * Constants for MIDI v1.0.
  * \{
  */
 
-#define MIDI_CHANNELS			16	/**< number of channels */
-#define MIDI_GM_DRUM_CHANNEL		(10-1)	/**< channel number for GM drum */
+#define MIDI_CHANNELS			16	/**< Number of channels per port/cable. */
+#define MIDI_GM_DRUM_CHANNEL		(10-1)	/**< Channel number for GM drums. */
 
 /**
  * \defgroup MIDI_Commands MIDI Commands
- * MIDI Commands
+ * MIDI command codes.
  * \{
  */
 
-#define MIDI_CMD_NOTE_OFF		0x80	/**< note-off */
-#define MIDI_CMD_NOTE_ON		0x90	/**< note-on */
-#define MIDI_CMD_NOTE_PRESSURE		0xa0	/**< key-pressure */
-#define MIDI_CMD_CONTROL		0xb0	/**< MIDI control */
+#define MIDI_CMD_NOTE_OFF		0x80	/**< note off */
+#define MIDI_CMD_NOTE_ON		0x90	/**< note on */
+#define MIDI_CMD_NOTE_PRESSURE		0xa0	/**< key pressure */
+#define MIDI_CMD_CONTROL		0xb0	/**< control change */
 #define MIDI_CMD_PGM_CHANGE		0xc0	/**< program change */
-#define MIDI_CMD_CHANNEL_PRESSURE	0xd0	/**< channel-pressure */
-#define MIDI_CMD_BENDER			0xe0	/**< pitch-bender */
+#define MIDI_CMD_CHANNEL_PRESSURE	0xd0	/**< channel pressure */
+#define MIDI_CMD_BENDER			0xe0	/**< pitch bender */
 
 #define MIDI_CMD_COMMON_SYSEX		0xf0	/**< sysex (system exclusive) begin */
 #define MIDI_CMD_COMMON_MTC_QUARTER	0xf1	/**< MTC quarter frame */
 #define MIDI_CMD_COMMON_SONG_POS	0xf2	/**< song position */
-#define MIDI_CMD_COMMON_SONG_SELECT	0xf3	/**< song selection */
+#define MIDI_CMD_COMMON_SONG_SELECT	0xf3	/**< song select */
 #define MIDI_CMD_COMMON_TUNE_REQUEST	0xf6	/**< tune request */
 #define MIDI_CMD_COMMON_SYSEX_END	0xf7	/**< end of sysex */
 #define MIDI_CMD_COMMON_CLOCK		0xf8	/**< clock */
@@ -158,25 +158,25 @@ extern "C" {
 #define MIDI_CMD_COMMON_CONTINUE	0xfb	/**< continue */
 #define MIDI_CMD_COMMON_STOP		0xfc	/**< stop */
 #define MIDI_CMD_COMMON_SENSING		0xfe	/**< active sensing */
-#define MIDI_CMD_COMMON_RESET		0xff	/**< MIDI reset */
+#define MIDI_CMD_COMMON_RESET		0xff	/**< reset */
 
 /** \} */
 
 /**
  * \defgroup MIDI_Controllers MIDI Controllers
- * MIDI Controllers
+ * MIDI controller numbers.
  * \{
  */
 
 #define MIDI_CTL_MSB_BANK		0x00	/**< Bank selection */
-#define MIDI_CTL_MSB_MODWHEEL         	0x01	/**< Modwheel */
+#define MIDI_CTL_MSB_MODWHEEL         	0x01	/**< Modulation */
 #define MIDI_CTL_MSB_BREATH           	0x02	/**< Breath */
 #define MIDI_CTL_MSB_FOOT             	0x04	/**< Foot */
 #define MIDI_CTL_MSB_PORTAMENTO_TIME 	0x05	/**< Portamento time */
 #define MIDI_CTL_MSB_DATA_ENTRY		0x06	/**< Data entry */
 #define MIDI_CTL_MSB_MAIN_VOLUME      	0x07	/**< Main volume */
 #define MIDI_CTL_MSB_BALANCE          	0x08	/**< Balance */
-#define MIDI_CTL_MSB_PAN              	0x0a	/**< Pan */
+#define MIDI_CTL_MSB_PAN              	0x0a	/**< Panpot */
 #define MIDI_CTL_MSB_EXPRESSION       	0x0b	/**< Expression */
 #define MIDI_CTL_MSB_EFFECT1		0x0c	/**< Effect1 */
 #define MIDI_CTL_MSB_EFFECT2		0x0d	/**< Effect2 */
@@ -185,14 +185,14 @@ extern "C" {
 #define MIDI_CTL_MSB_GENERAL_PURPOSE3 	0x12	/**< General purpose 3 */
 #define MIDI_CTL_MSB_GENERAL_PURPOSE4 	0x13	/**< General purpose 4 */
 #define MIDI_CTL_LSB_BANK		0x20	/**< Bank selection */
-#define MIDI_CTL_LSB_MODWHEEL        	0x21	/**< Modwheel */
+#define MIDI_CTL_LSB_MODWHEEL        	0x21	/**< Modulation */
 #define MIDI_CTL_LSB_BREATH           	0x22	/**< Breath */
 #define MIDI_CTL_LSB_FOOT             	0x24	/**< Foot */
 #define MIDI_CTL_LSB_PORTAMENTO_TIME 	0x25	/**< Portamento time */
 #define MIDI_CTL_LSB_DATA_ENTRY		0x26	/**< Data entry */
 #define MIDI_CTL_LSB_MAIN_VOLUME      	0x27	/**< Main volume */
 #define MIDI_CTL_LSB_BALANCE          	0x28	/**< Balance */
-#define MIDI_CTL_LSB_PAN              	0x2a	/**< Pan */
+#define MIDI_CTL_LSB_PAN              	0x2a	/**< Panpot */
 #define MIDI_CTL_LSB_EXPRESSION       	0x2b	/**< Expression */
 #define MIDI_CTL_LSB_EFFECT1		0x2c	/**< Effect1 */
 #define MIDI_CTL_LSB_EFFECT2		0x2d	/**< Effect2 */
@@ -200,9 +200,9 @@ extern "C" {
 #define MIDI_CTL_LSB_GENERAL_PURPOSE2 	0x31	/**< General purpose 2 */
 #define MIDI_CTL_LSB_GENERAL_PURPOSE3 	0x32	/**< General purpose 3 */
 #define MIDI_CTL_LSB_GENERAL_PURPOSE4 	0x33	/**< General purpose 4 */
-#define MIDI_CTL_SUSTAIN              	0x40	/**< Sustain */
+#define MIDI_CTL_SUSTAIN              	0x40	/**< Sustain pedal */
 #define MIDI_CTL_PORTAMENTO           	0x41	/**< Portamento */
-#define MIDI_CTL_SUSTENUTO            	0x42	/**< Sustenuto */
+#define MIDI_CTL_SUSTENUTO            	0x42	/**< Sostenuto */
 #define MIDI_CTL_SOFT_PEDAL           	0x43	/**< Soft pedal */
 #define MIDI_CTL_LEGATO_FOOTSWITCH	0x44	/**< Legato foot switch */
 #define MIDI_CTL_HOLD2                	0x45	/**< Hold2 */

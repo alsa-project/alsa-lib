@@ -34,13 +34,13 @@
 
 /*! \page conf Configuration files
 
-<P>Configuration files are using a simple format allowing the modern
+<P>Configuration files use a simple format allowing modern
 data description like nesting and array assignments.</P>
 
 \section conf_whitespace Whitespace
 
 Whitespace is the collective name given to spaces (blanks), horizontal and
-vertical tabs, newline characters, and comments. Whitespace can serve to
+vertical tabs, newline characters, and comments. Whitespace can
 indicate where configuration tokens start and end, but beyond this function,
 any surplus whitespace is discarded. For example, the two sequences
 
@@ -65,7 +65,7 @@ b
 \endcode
 
 The ASCII characters representing whitespace can occur within literal
-strings, int which case they are protected from the normal parsing process
+strings, in which case they are protected from the normal parsing process
 (they remain as part of the string). For example:
 
 \code
@@ -75,12 +75,11 @@ strings, int which case they are protected from the normal parsing process
 parses to two tokens, including the single literal-string token "John
 Smith".
 
-\section conf_linesplicing Line splicing with \
+\section conf_linesplicing Line continuation with \
 
-A special case occurs, if the final newline character encountered is
-preceded by a backslash (\) in the string value definition. The backslash
-and new line are both discarded, allowing two physical lines of text to be
-treated as one unit.
+A special case occurs if a newline character in a string is preceded
+by a backslash (\). The backslash and the new line are both discarded,
+allowing two physical lines of text to be treated as one unit.
 
 \code
 "John \
@@ -91,17 +90,17 @@ is parsed as "John Smith".
 
 \section conf_comments Comments
 
-A single-line comments are defined using character #. The comment can start
-in any position, and extends until the next new line.
+A single-line comment begins with the character #. The comment can start
+at any position, and extends to the end of the line.
 
 \code
   a 1  # this is a comment
 \endcode
 
-\section conf_include Include another configuration file
+\section conf_include Including configuration files
 
-A new configuration file can be included using <filename> syntax. The global
-configuration directory can be referenced using <confdir:filename> syntax.
+To include another configuration file, write the file name in angle brackets.
+The prefix \c confdir: will reference the global configuration directory.
 
 \code
 </etc/alsa1.conf>
@@ -118,7 +117,7 @@ The configuration punctuators (also known as separators) are:
 
 \subsection conf_braces Braces
 
-Open and close braces { } indicate the start and end of a compound
+Opening and closing braces { } indicate the start and end of a compound
 statement:
 
 \code
@@ -129,8 +128,8 @@ a {
 
 \subsection conf_brackets Brackets
 
-Open and close brackets indicate single array definition. The identifiers
-are automatically generated starting with zero.
+Opening and closing brackets indicate a single array definition. The
+identifiers are automatically generated starting with zero.
 
 \code
 a [
@@ -139,7 +138,7 @@ a [
 ]
 \endcode
 
-Above code is equal to
+The above code is equal to
 
 \code
 a.0 "first"
@@ -148,9 +147,9 @@ a.1 "second"
 
 \subsection conf_comma_semicolon Comma and semicolon
 
-The comma (,) or semicolon (;) can separate the value assignments. It is not
-strictly required to use these separators, because any whitespace supplies
-them.
+The comma (,) or semicolon (;) can separate value assignments. It is not
+strictly required to use these separators because whitespace suffices to
+separate tokens.
 
 \code
 a 1;
@@ -159,7 +158,7 @@ b 1,
 
 \subsection conf_equal Equal sign
 
-The equal sign (=) separates can separate variable declarations from
+The equal sign (=) can separate variable declarations from
 initialization lists:
 
 \code
@@ -167,16 +166,17 @@ a=1
 b=2
 \endcode
 
-Using the equal signs is not required, because any whitespace supplies
-them.
+Using equal signs is not required because whitespace suffices to separate
+tokens.
 
-\section conf_assigns Assigns
+\section conf_assigns Assignments
 
 The configuration file defines id (key) and value pairs. The id (key) can be
-composed from any ASCII digits or chars from a to z or A to Z, including
-char _. The value can be either a string, integer or real number.
+composed from ASCII digits, characters from a to z and A to Z, and the
+underscore (_). The value can be either a string, an integer, a real number,
+or a compound statement.
 
-\subsection conf_single Single assign
+\subsection conf_single Single assignments
 
 \code
 a 1	# is equal to
@@ -185,7 +185,7 @@ a=1;	# is equal to
 a 1,
 \endcode
 
-\subsection conf_compound Compound assign (definition using braces)
+\subsection conf_compound Compound assignments (definitions using braces)
 
 \code
 a {
@@ -196,14 +196,14 @@ a={
 }
 \endcode
 
-\section conf_compound1 Compound assign (one key definition)
+\section conf_compound1 Compound assignments (one key definitions)
 
 \code
 a.b 1
 a.b=1
 \endcode
 
-\subsection conf_array Array assign (definition using brackets)
+\subsection conf_array Array assignments (definitions using brackets)
 
 \code
 a [
@@ -212,31 +212,31 @@ a [
 ]
 \endcode
 
-\subsection conf_array1 Array assign (one key definition)
+\subsection conf_array1 Array assignments (one key definitions)
 
 \code
 a.0 "first"
 a.1 "second"
 \endcode
 
-\section conf_mode Parsed node operation mode
+\section conf_mode Operation modes for parsing nodes
 
-By default, the node operation node is 'merge+create'. It means, if
+By default, the node operation mode is 'merge+create', i.e., if
 a configuration node is not present a new one is created, otherwise
 the latest assignment is merged (if possible - type checking). The
-'merge+create' operation mode is specified with a prefix char plus (+).
+'merge+create' operation mode is specified with the prefix character plus (+).
 
-The operation mode 'merge' merges the node with old one (which must
-exists). Type checking is done, so string cannot be assigned to integer
-and so on. This mode is specified with a prefix char minus (-).
+The operation mode 'merge' merges the node with the old one (which must
+exist). Type checking is done, so strings cannot be assigned to integers
+and so on. This mode is specified with the prefix character minus (-).
 
 The operation mode 'do not override' ignores a new configuration node
-if a configuration node with same name exists. This mode is specified with
-a prefix char note of interrogation (?).
+if a configuration node with the same name exists. This mode is specified with
+the prefix character question mark (?).
 
 The operation mode 'override' always overrides the old configuration node
-with new contents. This mode is specified with a prefix char note of
-exclamation (!).
+with new contents. This mode is specified with the prefix character
+exclamation mark (!).
 
 \code
 defaults.pcm.!device 1
@@ -250,26 +250,26 @@ defaults.pcm.!device 1
 # Include a new configuration file
 <filename>
 
-# Simple assign
+# Simple assignment
 name [=] value [,|;]
 
-# Compound assign (first style)
+# Compound assignment (first style)
 name [=] {
         name1 [=] value [,|;]
         ...
 }
 
-# Compound assign (second style)
+# Compound assignment (second style)
 name.name1 [=] value [,|;]
 
-# Array assign (first style)
+# Array assignment (first style)
 name [
         value0 [,|;]
         value1 [,|;]
         ...
 ]
 
-# Array assign (second style)
+# Array assignment (second style)
 name.0 [=] value0 [,|;]
 name.1 [=] value1 [,|;]
 \endcode
@@ -282,26 +282,26 @@ name.1 [=] value1 [,|;]
 
 */
 
-/*! \page confarg Configuration - runtime arguments
+/*! \page confarg Runtime arguments in configuration files
 
 <P>The ALSA library can accept runtime arguments for some configuration
-blocks. This extension is on top of the basic syntax of the configuration
-files.<P>
+blocks. This extension is built on top of the basic configuration file
+syntax.<P>
 
 \section confarg_define Defining arguments
 
-Arguments are specified by id (key) @args and array values containing
-the string names of arguments:
+Arguments are defined using the id (key) \c @args and array values containing
+the string names of the arguments:
 
 \code
 @args [ CARD ]	# or
 @args.0 CARD
 \endcode
 
-\section confarg_type Defining argument type and default value
+\section confarg_type Defining argument types and default values
 
-Arguments type is specified by id (key) @args and argument name. The type
-and default value is specified in the compound:
+An argument's type is specified with the id (key) \c @args and the argument
+name. The type and the default value are specified in the compound block:
 
 \code
 @args.CARD {
@@ -310,9 +310,9 @@ and default value is specified in the compound:
 }
 \endcode
 
-\section confarg_refer Referring argument
+\section confarg_refer Referring to arguments
 
-Arguments are referred by dollar-sign ($) and name of argument:
+Arguments are referred to with a dollar-sign ($) and the name of the argument:
 
 \code
   card $CARD
@@ -320,8 +320,9 @@ Arguments are referred by dollar-sign ($) and name of argument:
 
 \section confarg_usage Usage
 
-Arguments are replaced with real values when the key contains part after
-colon (:). For example, all these names for PCM interface gives same result:
+To use a block with arguments, write the argument values after the key,
+separated with a colon (:). For example, all these names for PCM interfaces
+give the same result:
 
 \code
 hw:0,1
@@ -331,9 +332,9 @@ plug:"hw:0,1"
 plug:{SLAVE="hw:{CARD 0 DEV 1}"}
 \endcode
 
-As you see, the argument can be specified by order or by name. Note that
-arguments closed into braces are parsed in same way like configuration files,
-but with the override method by default.
+As you see, arguments can be specified in their proper order or by name.
+Note that arguments enclosed in braces are parsed in the same way as in
+configuration files, but using the override method by default.
 
 \section confarg_example Example
 
@@ -356,17 +357,17 @@ pcm.demo {
 
 */
 
-/*! \page conffunc Configuration - runtime functions
+/*! \page conffunc Runtime functions in configuration files
 
-<P>The ALSA library accepts the runtime modification of configuration.
-The several build-in functions are available.</P>
+<P>The ALSA library can modify the configuration at runtime.
+Several built-in functions are available.</P>
 
-<P>The function is referred using id @func and function name. All other
+<P>A function is defined with the id \c @func and the function name. All other
 values in the current compound are used as configuration for the function.
-If compound func.<function_name> is defined in the root leafs, then library
-and function from this compound configuration is used, otherwise the prefix
-'snd_func_' is added to string and the code from the ALSA library is used.
-The definition of function looks like:</P> 
+If the compound func.<function_name> is defined in the root node, then the
+library and function from this compound configuration are used, otherwise
+'snd_func_' is prefixed to the string and code from the ALSA library is used.
+The definition of a function looks like:</P> 
 
 \code
 func.remove_first_char {
@@ -377,13 +378,14 @@ func.remove_first_char {
 
 */
 
-/*! \page confhooks Configuration - hooks
+/*! \page confhooks Hooks in configuration files
 
-<P>The hook extension in the ALSA library allows expanding of configuration
-nodes at run-time lookup. The presence of a hook is determined with a @hooks
-compound node.</P>
+<P>The hook extension in the ALSA library allows expansion of configuration
+nodes at run-time. The existence of a hook is determined by the
+presence of a @hooks compound node.</P>
 
-<P>The example definition a hook which loads two configuration files at beginning:</P>
+<P>This example defines a hook which loads two configuration files at the
+beginning:</P>
 
 \code
 @hooks [
@@ -401,12 +403,12 @@ compound node.</P>
 \section confhooks_ref Function reference
 
 <UL>
-  <LI>The function load - snd_config_hook_load() - loads and parses the given
-      configuration files.
-  <LI>The function load_for_all_cards - snd_config_hook_load_for_all_cards() -
-      loads and parses the given configuration files for all installed sound-cards.
-      The driver name (type of sound-card) is passed in the private configuration
-      node.
+  <LI>The function load - \c snd_config_hook_load() - loads and parses the
+      given configuration files.
+  <LI>The function load_for_all_cards - \c snd_config_hook_load_for_all_cards() -
+      loads and parses the given configuration files for each installed sound
+      card. The driver name (the type of the sound card) is passed in the
+      private configuration node.
 </UL>
 
 */
@@ -460,7 +462,7 @@ typedef struct {
 	int ch;
 } input_t;
 
-int safe_strtoll(const char *str, long long *val)
+static int safe_strtoll(const char *str, long long *val)
 {
 	long long v;
 	int endidx;
@@ -1389,17 +1391,19 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 
 
 /**
- * \brief Substitute one node to another
- * \param dst Destination node
- * \param src Source node (invalid after call)
- * \return zero if success, otherwise a negative error code
+ * \brief Substitutes one configuration node to another.
+ * \param dst Handle to the destination node.
+ * \param src Handle to the source node. Must not be the same as \p dst.
+ * \return Zero if successful, otherwise a negative error code.
  *
  * If both nodes are compounds, the source compound node members are
  * appended to the destination compound node.
  *
  * If the destination node is a compound and the source node is
  * an ordinary type, the compound members are deleted (including
- * contents).
+ * their contents).
+ *
+ * A successful call to this function invalidates the source node.
  */
 int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 {
@@ -1429,9 +1433,11 @@ int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 }
 
 /**
- * \brief Return type of a config node from an ASCII string
- * \param config Config node handle
- * \return node type
+ * \brief Converts an ASCII string to a configuration node type.
+ * \param ascii A string containing a configuration node type.
+ * \param type The function puts the node type at the address specified
+ *             by \p type.
+ * \return Zero if successgul, otherwise a negative error code.
  */
 int snd_config_get_type_ascii(const char *ascii, snd_config_type_t *type)
 {
@@ -1460,9 +1466,9 @@ int snd_config_get_type_ascii(const char *ascii, snd_config_type_t *type)
 }
 
 /**
- * \brief Return type of a config node
- * \param config Config node handle
- * \return node type
+ * \brief Returns the type of a configuration node.
+ * \param config Handle to the configuration node.
+ * \return The node's type.
  */
 snd_config_type_t snd_config_get_type(const snd_config_t *config)
 {
@@ -1470,10 +1476,14 @@ snd_config_type_t snd_config_get_type(const snd_config_t *config)
 }
 
 /**
- * \brief Return id of a config node
- * \param config Config node handle
- * \param value The result id
- * \return 0 on success otherwise a negative error code
+ * \brief Returns the id of a configuration node.
+ * \param config Handle to the configuration node.
+ * \param id The function puts the pointer to the id string at the address
+ *           specified by \p id.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The returned string is owned by the configuration node; the application
+ * must not modify or delete it.
  */
 int snd_config_get_id(const snd_config_t *config, const char **id)
 {
@@ -1483,10 +1493,11 @@ int snd_config_get_id(const snd_config_t *config, const char **id)
 }
 
 /**
- * \brief Set id of a config node
- * \param config Config node handle
- * \return id Node id
- * \return 0 on success otherwise a negative error code
+ * \brief Sets the id of a configuration node.
+ * \param config Handle to the configuration node.
+ * \param id The new node id.
+ * \return Zero if successful, otherwise a negative error code.
+ * \bug \p id must not be a pointer to the node's current id.
  */
 int snd_config_set_id(snd_config_t *config, const char *id)
 {
@@ -1500,9 +1511,12 @@ int snd_config_set_id(snd_config_t *config, const char *id)
 }
 
 /**
- * \brief Build a top level config node
- * \param config Returned config node handle pointer
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a top level configuration node.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The returned node is a compound node.
  */
 int snd_config_top(snd_config_t **config)
 {
@@ -1568,10 +1582,10 @@ static int snd_config_load1(snd_config_t *config, snd_input_t *in, int override)
 }
 
 /**
- * \brief Load a config tree
- * \param config Config top node handle
- * \param in Input handle
- * \return 0 on success otherwise a negative error code
+ * \brief Loads a configuration tree.
+ * \param config Handle to a top level configuration node.
+ * \param in Input handle to read the configuration from.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_load(snd_config_t *config, snd_input_t *in)
 {
@@ -1579,10 +1593,10 @@ int snd_config_load(snd_config_t *config, snd_input_t *in)
 }
 
 /**
- * \brief Load a config tree and override existing configuration nodes
- * \param config Config top node handle
- * \param in Input handle
- * \return 0 on success otherwise a negative error code
+ * \brief Loads a configuration tree and overrides existing configuration nodes.
+ * \param config Handle to a top level configuration node.
+ * \param in Input handle to read the configuration from.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_load_override(snd_config_t *config, snd_input_t *in)
 {
@@ -1590,10 +1604,10 @@ int snd_config_load_override(snd_config_t *config, snd_input_t *in)
 }
 
 /**
- * \brief Add a leaf to a config compound node
- * \param father Config compound node handle
- * \param leaf Leaf config node handle
- * \return 0 on success otherwise a negative error code
+ * \brief Adds a child to a compound configuration node.
+ * \param father Handle to the compound configuration node.
+ * \param leaf Handle to the configuration node to be added to \p father.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 {
@@ -1610,9 +1624,11 @@ int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 }
 
 /**
- * \brief Remove a leaf config node from tree
- * \param config Config node handle
- * \return 0 on success otherwise a negative error code
+ * \brief Removes a configuration node from its tree.
+ * \param config Handle to the configuration node to be removed.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This functions does \e not delete the removed node.
  */
 int snd_config_remove(snd_config_t *config)
 {
@@ -1624,9 +1640,13 @@ int snd_config_remove(snd_config_t *config)
 }
 
 /**
- * \brief Remove a leaf config node (freeing all the related resources)
- * \param config Config node handle
- * \return 0 on success otherwise a negative error code
+ * \brief Deletes a configuration node (freeing all its related resources).
+ * \param config Handle to the configuration node to be deleted.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * If the node is a child node, it is removed from the tree before being
+ * deleted. If the node is a compound node, all children are deleted
+ * recursively.
  */
 int snd_config_delete(snd_config_t *config)
 {
@@ -1663,9 +1683,11 @@ int snd_config_delete(snd_config_t *config)
 }
 
 /**
- * \brief Remove a compound config node members (freeing all the related resources)
- * \param config Compound config node handle
- * \return 0 on success otherwise a negative error code
+ * \brief Deletes the children of a compound configuration node (freeing all its related resources)
+ * \param config Handle to the compound configuration node.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * Any compound nodes among the children of \p config are deleted recursively.
  */
 int snd_config_delete_compound_members(const snd_config_t *config)
 {
@@ -1688,11 +1710,12 @@ int snd_config_delete_compound_members(const snd_config_t *config)
 }
 
 /**
- * \brief Build a config node
- * \param config Returned config node handle pointer
- * \param id Node id
- * \param type Node type
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a configuration node.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \param type The type of the new node.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_make(snd_config_t **config, const char *id,
 		    snd_config_type_t type)
@@ -1709,10 +1732,13 @@ int snd_config_make(snd_config_t **config, const char *id,
 }
 
 /**
- * \brief Build an integer config node
- * \param config Returned config node handle pointer
- * \param id Node id
- * \return 0 on success otherwise a negative error code
+ * \brief Creates an integer configuration node.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The value of the new node is 0.
  */
 int snd_config_make_integer(snd_config_t **config, const char *id)
 {
@@ -1720,10 +1746,13 @@ int snd_config_make_integer(snd_config_t **config, const char *id)
 }
 
 /**
- * \brief Build an integer64 config node
- * \param config Returned config node handle pointer
- * \param id Node id
- * \return 0 on success otherwise a negative error code
+ * \brief Creates an integer64 configuration node.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The value of the new node is 0.
  */
 int snd_config_make_integer64(snd_config_t **config, const char *id)
 {
@@ -1731,10 +1760,13 @@ int snd_config_make_integer64(snd_config_t **config, const char *id)
 }
 
 /**
- * \brief Build a real config node
- * \param config Returned config node handle pointer
- * \param id Node id
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a real configuration node.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The value of the new node is 0.0.
  */
 int snd_config_make_real(snd_config_t **config, const char *id)
 {
@@ -1742,10 +1774,13 @@ int snd_config_make_real(snd_config_t **config, const char *id)
 }
 
 /**
- * \brief Build a string config node
- * \param config Returned config node handle pointer
- * \param id Node id
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a string configuration node.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The value of the new node is \c NULL.
  */
 int snd_config_make_string(snd_config_t **config, const char *id)
 {
@@ -1753,10 +1788,13 @@ int snd_config_make_string(snd_config_t **config, const char *id)
 }
 
 /**
- * \brief Build a pointer config node
- * \param config Returned config node handle pointer
- * \param id Node id
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a pointer configuration node.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The value of the new node is \c NULL.
  */
 int snd_config_make_pointer(snd_config_t **config, const char *id)
 {
@@ -1764,11 +1802,13 @@ int snd_config_make_pointer(snd_config_t **config, const char *id)
 }
 
 /**
- * \brief Build an empty compound config node
- * \param config Returned config node handle pointer
- * \param id Node id
- * \param join Join flag (checked in snd_config_save to change look)
- * \return 0 on success otherwise a negative error code
+ * \brief Creates an empty compound configuration node.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \param join Join flag.
+ *             This is checked in #snd_config_save to change look. (Huh?)
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_make_compound(snd_config_t **config, const char *id,
 			     int join)
@@ -1782,11 +1822,12 @@ int snd_config_make_compound(snd_config_t **config, const char *id,
 }
 
 /**
- * \brief Build an integer config node and use given initial value
- * \param config Returned config node handle pointer
- * \param id Node id
- * \param value Initial value
- * \return 0 on success otherwise a negative error code
+ * \brief Creates an integer configuration node with the given initial value.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \param value The initial value of the new node.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_imake_integer(snd_config_t **config, const char *id, const long value)
 {
@@ -1800,11 +1841,12 @@ int snd_config_imake_integer(snd_config_t **config, const char *id, const long v
 }
 
 /**
- * \brief Build an integer64 config node and use given initial value
- * \param config Returned config node handle pointer
- * \param id Node id
- * \param value Initial value
- * \return 0 on success otherwise a negative error code
+ * \brief Creates an integer configuration node with the given initial value.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \param value The initial value of the new node.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_imake_integer64(snd_config_t **config, const char *id, const long long value)
 {
@@ -1818,11 +1860,12 @@ int snd_config_imake_integer64(snd_config_t **config, const char *id, const long
 }
 
 /**
- * \brief Build a real config node and use given initial value
- * \param config Returned config node handle pointer
- * \param id Node id
- * \param value Initial value
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a real configuration node with the given initial value.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \param value The initial value of the new node.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_imake_real(snd_config_t **config, const char *id, const double value)
 {
@@ -1836,11 +1879,14 @@ int snd_config_imake_real(snd_config_t **config, const char *id, const double va
 }
 
 /**
- * \brief Build a string config node and use given initial value
- * \param config Returned config node handle pointer
- * \param id Node id
- * \param value Initial value
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a string configuration node with the given initial value.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \param value The initial value of the new node. May be \c NULL.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This function creates the new node with its own copy of the passed string.
  */
 int snd_config_imake_string(snd_config_t **config, const char *id, const char *value)
 {
@@ -1864,11 +1910,12 @@ int snd_config_imake_string(snd_config_t **config, const char *id, const char *v
 }
 
 /**
- * \brief Build a pointer config node and use given initial value
- * \param config Returned config node handle pointer
- * \param id Node id
- * \param value Initial value
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a pointer configuration node with the given initial value.
+ * \param config The function puts the handle to the new node at the address
+ *               specified by \p config.
+ * \param id The id of the new node.
+ * \param value The initial value of the new node. May be \c NULL.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_imake_pointer(snd_config_t **config, const char *id, const void *value)
 {
@@ -1882,10 +1929,10 @@ int snd_config_imake_pointer(snd_config_t **config, const char *id, const void *
 }
 
 /**
- * \brief Change the value of an integer config node
- * \param config Config node handle
- * \param value Value
- * \return 0 on success otherwise a negative error code
+ * \brief Changes the value of an integer configuration node.
+ * \param config Handle to the configuration node.
+ * \param value The new value for the node.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_set_integer(snd_config_t *config, long value)
 {
@@ -1897,10 +1944,10 @@ int snd_config_set_integer(snd_config_t *config, long value)
 }
 
 /**
- * \brief Change the value of an integer64 config node
- * \param config Config node handle
- * \param value Value
- * \return 0 on success otherwise a negative error code
+ * \brief Changes the value of an integer64 configuration node.
+ * \param config Handle to the configuration node.
+ * \param value The new value for the node.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_set_integer64(snd_config_t *config, long long value)
 {
@@ -1912,10 +1959,10 @@ int snd_config_set_integer64(snd_config_t *config, long long value)
 }
 
 /**
- * \brief Change the value of a real config node
- * \param config Config node handle
- * \param value Value
- * \return 0 on success otherwise a negative error code
+ * \brief Changes the value of a real configuration node.
+ * \param config Handle to the configuration node.
+ * \param value The new value for the node.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_set_real(snd_config_t *config, double value)
 {
@@ -1927,10 +1974,15 @@ int snd_config_set_real(snd_config_t *config, double value)
 }
 
 /**
- * \brief Change the value of a string config node
- * \param config Config node handle
- * \param value Value
- * \return 0 on success otherwise a negative error code
+ * \brief Changes the value of a string configuration node.
+ * \param config Handle to the configuration node.
+ * \param value The new value for the node. May be \c NULL.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This function deletes the old string in the node and stores a copy of
+ * the passed string in the node.
+ *
+ * \bug \p value must not be a pointer to the node's current value.
  */
 int snd_config_set_string(snd_config_t *config, const char *value)
 {
@@ -1950,10 +2002,12 @@ int snd_config_set_string(snd_config_t *config, const char *value)
 }
 
 /**
- * \brief Change the value of a pointer config node
- * \param config Config node handle
- * \param ptr Value
- * \return 0 on success otherwise a negative error code
+ * \brief Changes the value of a pointer configuration node.
+ * \param config Handle to the configuration node.
+ * \param value The new value for the node. May be \c NULL.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This function does not free the old pointer in the node.
  */
 int snd_config_set_pointer(snd_config_t *config, const void *value)
 {
@@ -1965,10 +2019,15 @@ int snd_config_set_pointer(snd_config_t *config, const void *value)
 }
 
 /**
- * \brief Change the value of a config node
- * \param config Config node handle
- * \param ascii Value in ASCII form
- * \return 0 on success otherwise a negative error code
+ * \brief Changes the value of a configuration node.
+ * \param config Handle to the configuration node.
+ * \param ascii The new value for the node as an ASCII string. \p ascii must
+ *              not be \c NULL, not even for a string node.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The node must have a simple type, and the new value must have the same type.
+ *
+ * \bug For string nodes, changing the length of the string doesn't work.
  */
 int snd_config_set_ascii(snd_config_t *config, const char *ascii)
 {
@@ -2016,10 +2075,11 @@ int snd_config_set_ascii(snd_config_t *config, const char *ascii)
 }
 
 /**
- * \brief Get the value of an integer config node
- * \param config Config node handle
- * \param ptr Returned value pointer
- * \return 0 on success otherwise a negative error code
+ * \brief Returns the value of an integer configuration node.
+ * \param config Handle to the configuration node.
+ * \param ptr The function puts the node's value at the address specified
+ *            by \p ptr.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_get_integer(const snd_config_t *config, long *ptr)
 {
@@ -2031,10 +2091,11 @@ int snd_config_get_integer(const snd_config_t *config, long *ptr)
 }
 
 /**
- * \brief Get the value of an integer64 config node
- * \param config Config node handle
- * \param ptr Returned value pointer
- * \return 0 on success otherwise a negative error code
+ * \brief Returns the value of an integer64 configuration node.
+ * \param config Handle to the configuration node.
+ * \param ptr The function puts the node's value at the address specified
+ *            by \p ptr.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_get_integer64(const snd_config_t *config, long long *ptr)
 {
@@ -2046,10 +2107,11 @@ int snd_config_get_integer64(const snd_config_t *config, long long *ptr)
 }
 
 /**
- * \brief Get the value of a real config node
- * \param config Config node handle
- * \param ptr Returned value pointer
- * \return 0 on success otherwise a negative error code
+ * \brief Returns the value of a real configuration node.
+ * \param config Handle to the configuration node.
+ * \param ptr The function puts the node's value at the address specified
+ *            by \p ptr.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_get_real(const snd_config_t *config, double *ptr)
 {
@@ -2061,13 +2123,14 @@ int snd_config_get_real(const snd_config_t *config, double *ptr)
 }
 
 /**
- * \brief Get the value of a real or integer config node
- * \param config Config node handle
- * \param ptr Returned value pointer
- * \return 0 on success otherwise a negative error code
+ * \brief Returns the value of a real or integer configuration node.
+ * \param config Handle to the configuration node.
+ * \param ptr The function puts the node's value at the address specified
+ *            by \p ptr.
+ * \return Zero if successful, otherwise a negative error code.
  *
- * Note: If the config type is integer/integer64, it is converted
- * to the double type on the fly.
+ * If the node's type is integer or integer64, the value is converted
+ * to the \c double type on the fly.
  */
 int snd_config_get_ireal(const snd_config_t *config, double *ptr)
 {
@@ -2084,10 +2147,14 @@ int snd_config_get_ireal(const snd_config_t *config, double *ptr)
 }
 
 /**
- * \brief Get the value of a string config node
- * \param config Config node handle
- * \param ptr Returned value pointer
- * \return 0 on success otherwise a negative error code
+ * \brief Returns the value of a string configuration node.
+ * \param config Handle to the configuration node.
+ * \param ptr The function puts the node's value at the address specified
+ *            by \p ptr.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * The returned string is owned by the configuration node; the application
+ * must not modify or delete it.
  */
 int snd_config_get_string(const snd_config_t *config, const char **ptr)
 {
@@ -2099,10 +2166,11 @@ int snd_config_get_string(const snd_config_t *config, const char **ptr)
 }
 
 /**
- * \brief Get the value of a pointer config node
- * \param config Config node handle
- * \param ptr Returned value pointer
- * \return 0 on success otherwise a negative error code
+ * \brief Returns the value of a pointer configuration node.
+ * \param config Handle to the configuration node.
+ * \param ptr The function puts the node's value at the address specified
+ *            by \p ptr.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_get_pointer(const snd_config_t *config, const void **ptr)
 {
@@ -2114,10 +2182,14 @@ int snd_config_get_pointer(const snd_config_t *config, const void **ptr)
 }
 
 /**
- * \brief Get the value in ASCII form
- * \param config Config node handle
- * \param ascii Returned dynamically allocated ASCII string
- * \return 0 on success otherwise a negative error code
+ * \brief Returns the value of a configuration node as a string.
+ * \param config Handle to the configuration node.
+ * \param ascii The function puts the pointer to the returned string at the
+ *              address specified by \p ascii.
+ * \return Zero if successful, otherwise a negative error code.
+ *
+ * This function dynamically allocates the returned string. The application
+ * is responsible for deleting it with \c free() when it is no longer used.
  */
 int snd_config_get_ascii(const snd_config_t *config, char **ascii)
 {
@@ -2185,10 +2257,10 @@ int snd_config_get_ascii(const snd_config_t *config, char **ascii)
 }
 
 /**
- * \brief Compare the config node id and given ASCII id
- * \param config Config node handle
- * \param id ASCII id
- * \return the same value as result of the strcmp function
+ * \brief Compares the id of a configuration node to a given string.
+ * \param config Handle to the configuration node.
+ * \param id ASCII id.
+ * \return The same value as the result of the \c strcmp function.
  */
 int snd_config_test_id(const snd_config_t *config, const char *id)
 {
@@ -2197,10 +2269,10 @@ int snd_config_test_id(const snd_config_t *config, const char *id)
 }
 
 /**
- * \brief Dump a config tree contents
- * \param config Config node handle
- * \param out Output handle
- * \return 0 on success otherwise a negative error code
+ * \brief Dumps the contents of a configuration node or tree.
+ * \param config Handle to the (root) configuration node.
+ * \param out Output handle.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_save(snd_config_t *config, snd_output_t *out)
 {
@@ -2336,11 +2408,12 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 #endif /* DOC_HIDDEN */
 
 /**
- * \brief Search a node inside a config tree
- * \param config Config node handle
- * \param key Dot separated search key
- * \param result Pointer to found node
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a node in a configuration tree.
+ * \param config Handle to the root of the configuration (sub)tree to search.
+ * \param key Search key: one or more node keys, separated with dots.
+ * \param result The function puts the handle to the node found at the address
+ *               specified by \p result.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_search(snd_config_t *config, const char *key, snd_config_t **result)
 {
@@ -2348,11 +2421,14 @@ int snd_config_search(snd_config_t *config, const char *key, snd_config_t **resu
 }
 
 /**
- * \brief Search a node inside a config tree and expand aliases, excluding the top one
- * \param config Config node handle
- * \param key Dot separated search key
- * \param result Pointer to found node
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a node in a configuration tree, expanding aliases.
+ * \param root Handle to the root configuration node containing alias
+ *             definitions.
+ * \param config Handle to the root of the configuration (sub)tree to search.
+ * \param key Search key: one or more node keys, separated with dots.
+ * \param result The function puts the handle to the node found at the address
+ *               specified by \p result.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_searcha(snd_config_t *root, snd_config_t *config, const char *key, snd_config_t **result)
 {
@@ -2360,11 +2436,12 @@ int snd_config_searcha(snd_config_t *root, snd_config_t *config, const char *key
 }
 
 /**
- * \brief Search a node inside a config tree
- * \param config Config node handle
- * \param result Pointer to found node
- * \param ... one or more concatenated dot separated search key
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a node in a configuration tree.
+ * \param config Handle to the root of the configuration (sub)tree to search.
+ * \param result The function puts the handle to the node found at the address
+ *               specified by \p result.
+ * \param ... One or more concatenated dot separated search keys, terminated with \c NULL.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_searchv(snd_config_t *config, snd_config_t **result, ...)
 {
@@ -2372,11 +2449,14 @@ int snd_config_searchv(snd_config_t *config, snd_config_t **result, ...)
 }
 
 /**
- * \brief Search a node inside a config tree and expand aliases, excluding the top one
- * \param config Config node handle
- * \param result Pointer to found node
- * \param ... one or more concatenated dot separated search key
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a node in a configuration tree, expanding aliases.
+ * \param root Handle to the root configuration node containing alias
+ *             definitions.
+ * \param config Handle to the root of the configuration (sub)tree to search.
+ * \param result The function puts the handle to the node found at the address
+ *               specified by \p result.
+ * \param ... One or more concatenated dot separated search keys, terminated with \c NULL.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_searchva(snd_config_t *root, snd_config_t *config, snd_config_t **result, ...)
 {
@@ -2384,15 +2464,16 @@ int snd_config_searchva(snd_config_t *root, snd_config_t *config, snd_config_t *
 }
 
 /**
- * \brief Search a node inside a config tree using alias
- * \param config Config node handle
- * \param base Key base (or NULL)
- * \param key Key suffix
- * \param result Pointer to found node
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a node in a configuration tree, using an alias.
+ * \param config Handle to the root of the configuration (sub)tree to search.
+ * \param base Search key base, or \c NULL.
+ * \param key Search key suffix.
+ * \param result The function puts the handle to the node found at the address
+ *               specified by \p result.
+ * \return Zero if successful, otherwise a negative error code.
  *
- * First key is tried and if nothing is found is tried base.key.
- * If the value found is a string this is recursively tried in the
+ * First \c key is tried, then, if nothing is found, \c base.key is tried.
+ * If the value found is a string, this is recursively tried in the
  * same way.
  */
 int snd_config_search_alias(snd_config_t *config,
@@ -2404,11 +2485,12 @@ int snd_config_search_alias(snd_config_t *config,
 }
 
 /**
- * \brief Search a node inside a config tree and expand hooks
- * \param config Config node handle
- * \param key Dot separated search key
- * \param result Pointer to found node
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a node in a configuration tree and expands hooks.
+ * \param config Handle to the root of the configuration (sub)tree to search.
+ * \param key Search key: one or more node keys, separated with dots.
+ * \param result The function puts the handle to the node found at the address
+ *               specified by \p result.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_search_hooks(snd_config_t *config, const char *key, snd_config_t **result)
 {
@@ -2421,11 +2503,14 @@ int snd_config_search_hooks(snd_config_t *config, const char *key, snd_config_t 
 }
 
 /**
- * \brief Search a node inside a config tree and expand aliases and hooks
- * \param config Config node handle
- * \param key Dot separated search key
- * \param result Pointer to found node
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a node in a configuration tree, expanding aliases and hooks.
+ * \param root Handle to the root configuration node containing alias
+ *             definitions.
+ * \param config Handle to the root of the configuration (sub)tree to search.
+ * \param key Search key: one or more node keys, separated with dots.
+ * \param result The function puts the handle to the node found at the address
+ *               specified by \p result.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_searcha_hooks(snd_config_t *root, snd_config_t *config, const char *key, snd_config_t **result)
 {
@@ -2439,11 +2524,14 @@ int snd_config_searcha_hooks(snd_config_t *root, snd_config_t *config, const cha
 }
 
 /**
- * \brief Search a node inside a config tree and expand hooks and aliases
- * \param config Config node handle
- * \param result Pointer to found node
- * \param ... one or more concatenated dot separated search key
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a node in a configuration tree, expanding aliases and hooks.
+ * \param root Handle to the root configuration node containing alias
+ *             definitions.
+ * \param config Handle to the root of the configuration (sub)tree to search.
+ * \param result The function puts the handle to the node found at the address
+ *               specified by \p result.
+ * \param ... One or more concatenated dot separated search keys, terminated with \c NULL.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_searchva_hooks(snd_config_t *root, snd_config_t *config,
 			      snd_config_t **result, ...)
@@ -2452,15 +2540,16 @@ int snd_config_searchva_hooks(snd_config_t *root, snd_config_t *config,
 }
 
 /**
- * \brief Search a node inside a config tree using alias and expand hooks
- * \param config Config node handle
- * \param base Key base (or NULL)
- * \param key Key suffix
- * \param result Pointer to found node
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a node in a configuration tree, using an alias and expanding hooks.
+ * \param config Handle to the root of the configuration (sub)tree to search.
+ * \param base Search key base, or \c NULL.
+ * \param key Search key suffix.
+ * \param result The function puts the handle to the node found at the address
+ *               specified by \p result.
+ * \return Zero if successful, otherwise a negative error code.
  *
- * First key is tried and if nothing is found is tried base.key.
- * If the value found is a string this is recursively tried in the
+ * First \c key is tried, then, if nothing is found, \c base.key is tried.
+ * If the value found is a string, this is recursively tried in the
  * same way.
  */
 int snd_config_search_alias_hooks(snd_config_t *config,
@@ -2472,14 +2561,16 @@ int snd_config_search_alias_hooks(snd_config_t *config,
 				snd_config_searchva_hooks);
 }
 
-/** Environment variable containing files list for #snd_config_update */
+/** The name of the environment variable containing the files list for #snd_config_update. */
 #define ALSA_CONFIG_PATH_VAR "ALSA_CONFIG_PATH"
 
-/** Default files used by #snd_config_update */
+/** The name of the default files used by #snd_config_update. */
 #define ALSA_CONFIG_PATH_DEFAULT DATADIR "/alsa/alsa.conf"
 
-/** \ingroup Config
-  * Config top node (global configuration) */
+/**
+ * \ingroup Config
+ * Configuration top level node (the global configuration).
+ */
 snd_config_t *snd_config = NULL;
 
 struct finfo {
@@ -2621,12 +2712,13 @@ static int snd_config_hooks(snd_config_t *config, snd_config_t *private_data)
 }
 
 /**
- * \brief Load configuration from specified files
- * \param root Configuration root node
- * \param config Configuration node
- * \param dst Destination node
- * \param private_data Private data
- * \return zero if success, otherwise a negative error code
+ * \brief Loads and parses the given configurations files.
+ * \param root Handle to the root configuration node.
+ * \param config Handle to the configuration node for this hook.
+ * \param dst The function puts the handle to the configuration node loaded
+ *            from the file(s) at the address specified by \p dst.
+ * \param private_data Handle to the private data configuration node.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_hook_load(snd_config_t *root, snd_config_t *config, snd_config_t **dst, snd_config_t *private_data)
 {
@@ -2752,12 +2844,13 @@ int snd_determine_driver(int card, char **driver);
 #endif
 
 /**
- * \brief Load configuration for all present cards
- * \param root Configuration root node
- * \param config Configuration node
- * \param dst Destination node
- * \param private_data Private data
- * \return zero if success, otherwise a negative error code
+ * \brief Loads and parses the given configurations files for each installed sound card.
+ * \param root Handle to the root configuration node.
+ * \param config Handle to the configuration node for this hook.
+ * \param dst The function puts the handle to the configuration node loaded
+ *            from the file(s) at the address specified by \p dst.
+ * \param private_data Handle to the private data configuration node.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config, snd_config_t **dst, snd_config_t *private_data ATTRIBUTE_UNUSED)
 {
@@ -2809,19 +2902,21 @@ SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VER
 #endif
 
 /** 
- * \brief Update #snd_config rereading (if needed) configuration files.
- * \param top Top node
- * \param update Private update information
- * \param cfgs Configuration files in list delimited with ':', if NULL -> default global 
- *             configuration file is used - "/usr/share/alsa/alsa.conf".
- * \return non-negative value on success, otherwise a negative error code
- * \retval 0 no action is needed
- * \retval 1 tree has been rebuild
+ * \brief Updates a configuration tree by rereading the configuration files (if needed).
+ * \param top Address of the handle to the top level node.
+ * \param update Address of a pointer to private update information.
+ * \param cfgs A list of configuration file names, delimited with ':'.
+ *             If \p cfgs is set to \c NULL, the default global configuration
+ *             file is used ("/usr/share/alsa/alsa.conf").
+ * \return A non-negative value if successful, otherwise a negative error code.
+ * \retval 0 No action is needed.
+ * \retval 1 The configuration tree has been rebuilt.
  *
- * The global configuration files are specified in environment variable ALSA_CONFIG_PATH.
+ * The global configuration files are specified in the environment variable
+ * \c ALSA_CONFIG_PATH.
  *
- * Warning: If config tree is reread all the string pointer and config 
- * node handle previously obtained from this tree become invalid.
+ * \warning If the configuration tree is reread, all string pointers and
+ * configuration node handles previously obtained from this tree become invalid.
  */
 int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, const char *cfgs)
 {
@@ -2979,16 +3074,17 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 static pthread_mutex_t snd_config_update_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /** 
- * \brief Update #snd_config rereading (if needed) global configuration files.
- * \return non-negative value on success, otherwise a negative error code
- * \retval 0 no action is needed
- * \retval 1 tree has been rebuild
+ * \brief Updates #snd_config by rereading the global configuration files (if needed).
+ * \return A non-negative value if successful, otherwise a negative error code.
+ * \retval 0 No action is needed.
+ * \retval 1 The configuration tree has been rebuilt.
  *
- * The global configuration files are specified in environment variable ALSA_CONFIG_PATH.
- * If it is not set the default value is "/usr/share/alsa/alsa.conf".
+ * The global configuration files are specified in the environment variable
+ * \c ALSA_CONFIG_PATH. If this is not set, the default value is
+ * "/usr/share/alsa/alsa.conf".
  *
- * Warning: If config tree is reread all the string pointer and config 
- * node handle previously obtained from this tree become invalid.
+ * \warning If the configuration tree is reread, all string pointers and
+ * configuration node handles previously obtained from this tree become invalid.
  */
 int snd_config_update(void)
 {
@@ -3001,9 +3097,9 @@ int snd_config_update(void)
 }
 
 /** 
- * \brief Free private update structure
- * \param update private update structure to free
- * \return non-negative value on success, otherwise a negative error code
+ * \brief Frees a private update structure.
+ * \param update The private update structure to free.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_update_free(snd_config_update_t *update)
 {
@@ -3020,8 +3116,8 @@ int snd_config_update_free(snd_config_update_t *update)
 }
 
 /** 
- * \brief Free global configuration in snd_config
- * \return non-negative value on success, otherwise a negative error code
+ * \brief Frees the global configuration tree in #snd_config.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_config_update_free_global(void)
 {
@@ -3037,9 +3133,9 @@ int snd_config_update_free_global(void)
 }
 
 /**
- * \brief Return an iterator pointing to first leaf of a compound config node
- * \param node Config node handle
- * \return iterator value for first leaf
+ * \brief Returns an iterator pointing to the first child of a compound configuration node.
+ * \param node Handle to the compound configuration node.
+ * \return An iterator pointing to the first child.
  */
 snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node)
 {
@@ -3048,9 +3144,12 @@ snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node)
 }
 
 /**
- * \brief Return an iterator pointing to next leaf
- * \param iterator Config node iterator
- * \return iterator value for next leaf
+ * \brief Returns an iterator pointing to the next sibling.
+ * \param iterator An iterator pointing to a child configuration node.
+ * \return An iterator pointing to the next sibling of \p iterator.
+ *         If \p iterator is the last sibling, the returned value is the same
+ *         as the result of calling #snd_config_iterator_end on the father
+ *         of the nodes.
  */
 snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t iterator)
 {
@@ -3058,9 +3157,9 @@ snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t itera
 }
 
 /**
- * \brief Return an iterator pointing past the last leaf of a compound config node
- * \param node Config node handle
- * \return iterator value for end
+ * \brief Returns an iterator pointing past the last child of a compound configuration node.
+ * \param node Handle to the compound configuration node.
+ * \return An iterator pointing past the last child of \p node.
  */
 snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node)
 {
@@ -3069,9 +3168,9 @@ snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node)
 }
 
 /**
- * \brief Return the node handle pointed by iterator
- * \param iterator Config node iterator
- * \return config node handle
+ * \brief Returns the configuration node handle pointed to by an iterator.
+ * \param iterator A configuration node iterator.
+ * \return The configuration node handle pointed to by \p iterator.
  */
 snd_config_t *snd_config_iterator_entry(const snd_config_iterator_t iterator)
 {
@@ -3203,9 +3302,11 @@ static int _snd_config_copy(snd_config_t *src,
 }
 
 /**
- * \brief Return the copy of configuration
- * \param dst Destination configuration handle
- * \return src Source configuration handle
+ * \brief Creates a copy of a configuration node.
+ * \param dst The function puts the handle to the new configuration node
+ *            at the address specified by \p dst.
+ * \param src Handle to the source configuration node.
+ * \return A non-negative value if successful, otherwise a negative error code.
  */
 int snd_config_copy(snd_config_t **dst,
 		    snd_config_t *src)
@@ -3402,12 +3503,15 @@ static int _snd_config_evaluate(snd_config_t *src,
 }
 
 /**
- * \brief Evaluate a config node in runtime
- * \param config source configuration node
- * \param root root of the source configuration
- * \param private_data private data for runtime evaluation
- * \param result result configuration node
- * \return zero if success, otherwise a negative error code
+ * \brief Evaluates a configuration node at runtime.
+ * \param config Handle to the source configuration node.
+ * \param root Handle to the root of the source configuration.
+ * \param private_data Handle to the private data node for runtime evaluation.
+ * \param result The function puts the handle to the result node at the
+ *               address specified by \p result. \p result is \c NULL for
+ *               in-place evaluation.
+ * \return A non-negative value if successful, otherwise a negative error code.
+ * \note Only in-place evaluation is currently implemented.
  */
 int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
 		        snd_config_t *private_data, snd_config_t **result)
@@ -3801,13 +3905,14 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 }
 
 /**
- * \brief Expand a node applying arguments and functions
- * \param config Config node handle
- * \param root Root config node handle
- * \param args Arguments string (optional)
- * \param private_data Private data for functions
- * \param result Pointer to found node
- * \return 0 on success otherwise a negative error code
+ * \brief Expands a configuration node applying arguments and functions.
+ * \param config Handle to the configuration node.
+ * \param root Handle to the root configuration node.
+ * \param args Arguments string (optional).
+ * \param private_data Handle to the private data node for functions.
+ * \param result The function puts the handle to the result configuration node
+ *               at the address specified by \p result.
+ * \return A non-negative value if successful, otherwise a negative error code.
  */
 int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args,
 		      snd_config_t *private_data, snd_config_t **result)
@@ -3859,16 +3964,20 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
 }
 	
 /**
- * \brief Search a definition inside a config tree using alias and expand hooks and arguments
- * \param config Config node handle
- * \param base Implicit key base (or NULL - none)
- * \param key Key suffix
- * \param result Pointer to expanded found node
- * \return 0 on success otherwise a negative error code
+ * \brief Searches for a definition in a configuration tree, using aliases and expanding hooks and arguments.
+ * \param config Handle to the configuration (sub)tree to search.
+ * \param base Implicit key base, or \c NULL for none.
+ * \param key Key suffix.
+ * \param result The function puts the handle to the expanded found node at
+ *               the address specified by \p result.
+ * \return Zero if successful, otherwise a negative error code.
  *
- * First key is tried and if nothing is found is tried base.key.
- * If the value found is a string this is recursively tried in the
+ * First the key is tried, then, if nothing is found, base.key is tried.
+ * If the value found is a string, this is recursively tried in the
  * same way.
+ *
+ * If \p key contains a dot (.), the implicit base is ignored and the key
+ * starts from the root given by \p config.
  */
 int snd_config_search_definition(snd_config_t *config,
 				 const char *base, const char *name,

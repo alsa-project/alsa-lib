@@ -37,30 +37,30 @@
 \section conffunc_ref Function reference
 
 <UL>
-  <LI>The getenv function - snd_func_getenv() - allows to obtain
-      an environment value. The result is string.
-  <LI>The igetenv function - snd_func_igetenv() - allows to obtain
-      an environment value. The result is integer.
+  <LI>The getenv function - snd_func_getenv() - obtains
+      an environment value. The result is a string.
+  <LI>The igetenv function - snd_func_igetenv() - obtains
+      an environment value. The result is an integer.
   <LI>The concat function - snd_func_concat() - merges all specified
-      strings. The result is string.
+      strings. The result is a string.
   <LI>The datadir function - snd_func_datadir() - returns the
-      data directory. The result is string.
+      ALSA data directory. The result is a string.
   <LI>The refer function - snd_func_refer() - copies the referred
-      configuration. The result is same as the referred node.
+      configuration. The result has the same type as the referred node.
   <LI>The card_driver function - snd_func_card_driver() - returns
-      the driver identification. The result is string.
+      a driver identification. The result is a string.
   <LI>The card_id function - snd_func_card_id() - returns
-      the card identification. The result is string.
+      a card identification. The result is a string.
   <LI>The pcm_id function - snd_func_pcm_id() - returns
-      the pcm identification. The result is string.
-  <LI>The private_string - snd_func_private_string() - returns
-      string using private_data node.
-  <LI>The private_card_driver - snd_func_private_card_driver() -
-      returns the driver identification using private_data node.
-      The result is string.
-  <LI>The private_pcm_subdevice - snd_func_private_pcm_subdevice() -
-      returns the PCM subdevice number using the private_data node.
-      The result is string.
+      a pcm identification. The result is a string.
+  <LI>The private_string function - snd_func_private_string() - returns the
+      string from the private_data node.
+  <LI>The private_card_driver function - snd_func_private_card_driver() -
+      returns the driver identification from the private_data node.
+      The result is a string.
+  <LI>The private_pcm_subdevice function - snd_func_private_pcm_subdevice() -
+      returns the PCM subdevice number from the private_data node.
+      The result is a string.
 </UL>
 
 */
@@ -73,9 +73,9 @@
 #include "local.h"
 
 /**
- * \brief Get the boolean value from given ASCII string
- * \param ascii The ASCII string to be parsed
- * \return a positive value when success otherwise a negative error number
+ * \brief Gets the boolean value from the given ASCII string.
+ * \param ascii The string to be parsed.
+ * \return 0 or 1 if successful, otherwise a negative error code.
  */
 int snd_config_get_bool_ascii(const char *ascii)
 {
@@ -101,9 +101,9 @@ int snd_config_get_bool_ascii(const char *ascii)
 }
 
 /**
- * \brief Get the boolean value
- * \param conf The configuration node to be parsed
- * \return a positive value when success otherwise a negative error number
+ * \brief Gets the boolean value from a configuration node.
+ * \param conf Handle to the configuration node to be parsed.
+ * \return 0 or 1 if successful, otherwise a negative error code.
  */
 int snd_config_get_bool(const snd_config_t *conf)
 {
@@ -135,9 +135,9 @@ int snd_config_get_bool(const snd_config_t *conf)
 }
 
 /**
- * \brief Get the control interface index from given ASCII string
- * \param ascii The ASCII string to be parsed
- * \return a positive value when success otherwise a negative error number
+ * \brief Gets the control interface index from the given ASCII string.
+ * \param ascii The string to be parsed.
+ * \return The control interface index if successful, otherwise a negative error code.
  */ 
 int snd_config_get_ctl_iface_ascii(const char *ascii)
 {
@@ -158,9 +158,9 @@ int snd_config_get_ctl_iface_ascii(const char *ascii)
 }
 
 /**
- * \brief Get the control interface index
- * \param conf The configuration node to be parsed
- * \return a positive value when success otherwise a negative error number
+ * \brief Gets the control interface index from a configuration node.
+ * \param conf Handle to the configuration node to be parsed.
+ * \return The control interface index if successful, otherwise a negative error code.
  */ 
 int snd_config_get_ctl_iface(const snd_config_t *conf)
 {
@@ -196,12 +196,14 @@ int snd_config_get_ctl_iface(const snd_config_t *conf)
  */
 
 /**
- * \brief Get environment value
- * \param dst The destination node (result type is string)
- * \param root The root source node
- * \param src The source node, with vars and default definition
- * \param private_data The private_data node
- * \return a positive value when success otherwise a negative error number
+ * \brief Returns an environment value.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node, with definitions for \c vars and
+ *            \c default.
+ * \param private_data Handle to the \c private_data node.
+ * \return Zero if successful, otherwise a negative error code.
  *
  * Example:
 \code
@@ -297,17 +299,19 @@ SND_DLSYM_BUILD_VERSION(snd_func_getenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 
 /**
- * \brief Get integer environment value
- * \param dst The destination node (result type is integer)
- * \param root The root source node
- * \param src The source node, with vars and default definition
- * \param private_data The private_data node
- * \return a positive value when success otherwise a negative error number
+ * \brief Returns an integer environment value.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type integer) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node, with definitions for \c vars and
+ *            \c default.
+ * \param private_data Handle to the \c private_data node.
+ * \return Zero if successful, otherwise a negative error code.
  *
  * Example:
 \code
 	{
-		@func getenv
+		@func igetenv
 		vars [ MY_DEVICE DEVICE D ]
 		default 0
 	}
@@ -348,19 +352,19 @@ SND_DLSYM_BUILD_VERSION(snd_func_igetenv, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 		
 /**
- * \brief Merge given strings
- * \param dst The destination node (result type is string)
- * \param root The root source node
- * \param src The source node, with strings definition
- * \param private_data The private_data node
- * \return a positive value when success otherwise a negative error number
+ * \brief Merges the given strings.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node, with a definition for \c strings.
+ * \param private_data Handle to the \c private_data node.
+ * \return A non-negative value if successful, otherwise a negative error code.
  *
- * Example (result is string "a1b2c3" ]:
+ * Example (result is "a1b2c3"):
 \code
 	{
 		@func concat
 		strings [ "a1" "b2" "c3" ]
-		default 0
 	}
 \endcode
  */ 
@@ -436,14 +440,15 @@ SND_DLSYM_BUILD_VERSION(snd_func_concat, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 
 /**
- * \brief Get data directory
- * \param dst The destination node (result type is string)
- * \param root The root source node
- * \param src The source node
- * \param private_data The private_data node (unused)
- * \return a positive value when success otherwise a negative error number
+ * \brief Returns the ALSA data directory.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node.
+ * \param private_data Handle to the \c private_data node. Not used.
+ * \return A non-negative value if successful, otherwise a negative error code.
  *
- * Example (result is "/usr/share/alsa" using default paths):
+ * Example (result is "/usr/share/alsa" using the default paths):
 \code
 	{
 		@func datadir
@@ -488,12 +493,14 @@ static int string_from_integer(char **dst, long v)
 #endif
 
 /**
- * \brief Get string from private_data
- * \param dst The destination node (result type is string)
- * \param root The root source node
- * \param src The source node
- * \param private_data The private_data node (type string, id == "string")
- * \return a positive value when success otherwise a negative error number
+ * \brief Returns the string from \c private_data.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node.
+ * \param private_data Handle to the \c private_data node (type string,
+ *                     id "string").
+ * \return A non-negative value if successful, otherwise a negative error code.
  *
  * Example:
 \code
@@ -564,12 +571,14 @@ int snd_determine_driver(int card, char **driver)
 #endif
 
 /**
- * \brief Get driver identification using private_data
- * \param dst The destination node (result type is string)
- * \param root The root source node
- * \param src The source node
- * \param private_data The private_data node (type = integer, id = "card")
- * \return a positive value when success otherwise a negative error number
+ * \brief Returns the driver identification from \c private_data.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node.
+ * \param private_data Handle to the \c private_data node (type integer,
+ *                     id "card").
+ * \return A non-negative value if successful, otherwise a negative error code.
  *
  * Example:
 \code
@@ -609,12 +618,13 @@ SND_DLSYM_BUILD_VERSION(snd_func_private_card_driver, SND_CONFIG_DLSYM_VERSION_E
 #endif
 
 /**
- * \brief Get driver identification
- * \param dst The destination node (result type is string)
- * \param root The root source node
- * \param src The source node
- * \param private_data The private_data node
- * \return a positive value when success otherwise a negative error number
+ * \brief Returns the driver identification for a card.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node, with a \c card definition.
+ * \param private_data Handle to the \c private_data node.
+ * \return A non-negative value if successful, otherwise a negative error code.
  *
  * Example:
 \code
@@ -666,12 +676,13 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_driver, SND_CONFIG_DLSYM_VERSION_EVALUATE)
 #endif
 
 /**
- * \brief Get card identification
- * \param dst The destination node (result type is string)
- * \param root The root source node
- * \param src The source node
- * \param private_data The private_data node
- * \return a positive value when success otherwise a negative error number
+ * \brief Returns the identification of a card.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node, with a \c card definition.
+ * \param private_data Handle to the \c private_data node.
+ * \return A non-negative value if successful, otherwise a negative error code.
  *
  * Example:
 \code
@@ -737,12 +748,14 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 
 /**
- * \brief Get pcm identification
- * \param dst The destination node (result type is string)
- * \param root The root source node
- * \param src The source node
- * \param private_data The private_data node
- * \return a positive value when success otherwise a negative error number
+ * \brief Returns the pcm identification of a device.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node, with definitions for \c card,
+ *            \c device and (optionally) \c subdevice.
+ * \param private_data Handle to the \c private_data node.
+ * \return A non-negative value if successful, otherwise a negative error code.
  *
  * Example:
 \code
@@ -831,12 +844,14 @@ SND_DLSYM_BUILD_VERSION(snd_func_pcm_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 
 /**
- * \brief Get pcm subdevice using private_data
- * \param dst The destination node (result type is integer)
- * \param root The root source node
- * \param src The source node
- * \param private_data The private_data node (type = pointer, id = "pcm_handle")
- * \return a positive value when success otherwise a negative error number
+ * \brief Returns the PCM subdevice from \c private_data.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type integer) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node.
+ * \param private_data Handle to the \c private_data node (type pointer,
+ *                     id "pcm_handle").
+ * \return A non-negative value if successful, otherwise a negative error code.
  *
  * Example:
 \code
@@ -881,12 +896,16 @@ SND_DLSYM_BUILD_VERSION(snd_func_private_pcm_subdevice, SND_CONFIG_DLSYM_VERSION
 #endif
 
 /**
- * \brief Copy the referred configuration node
- * \param dst The destination node (result type is same as referred node)
- * \param root The root source node (can be modified!!!)
- * \param src The source node
- * \param private_data The private_data node
- * \return a positive value when success otherwise a negative error number
+ * \brief Copies the specified configuration node.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with the same type as the specified node) at the address
+ *            specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node, with definitions for \c name and
+ *            (optionally) \c file.
+ * \param private_data Handle to the \c private_data node.
+ * \return A non-negative value if successful, otherwise a negative error code.
+ * \note The root source node can be modified!
  *
  * Example:
 \code

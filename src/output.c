@@ -50,9 +50,9 @@ struct _snd_output {
 #endif
 
 /**
- * \brief close output handle
- * \param output Output handle
- * \return 0 on success otherwise a negative error code
+ * \brief Closes an output handle.
+ * \param output The output handle to be closed.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_output_close(snd_output_t *output)
 {
@@ -62,11 +62,11 @@ int snd_output_close(snd_output_t *output)
 }
 
 /**
- * \brief fprintf(3) like on an output handle
- * \param output Output handle
- * \param format fprintf format
- * \param ... other fprintf arguments
- * \return number of characters written otherwise a negative error code
+ * \brief Writes formatted output (like \c fprintf(3)) to an output handle.
+ * \param output The output handle.
+ * \param format Format string in \c fprintf format.
+ * \param ... Other \c fprintf arguments.
+ * \return The number of characters written, or a negative error code.
  */
 int snd_output_printf(snd_output_t *output, const char *format, ...)
 {
@@ -79,10 +79,10 @@ int snd_output_printf(snd_output_t *output, const char *format, ...)
 }
 
 /**
- * \brief fputs(3) like on an output handle
- * \param output Output handle
- * \param str Buffer pointer 
- * \return 0 on success otherwise a negative error code
+ * \brief Writes a string to an output handle (like \c fputs(3)).
+ * \param output The output handle.
+ * \param str Pointer to the string.
+ * \return Zero if successful, otherwise a negative error code or \c EOF.
  */
 int snd_output_puts(snd_output_t *output, const char *str)
 {
@@ -90,10 +90,10 @@ int snd_output_puts(snd_output_t *output, const char *str)
 }
 			
 /**
- * \brief fputs(3) like on an output handle
- * \param output Output handle
- * \param str Source buffer pointer
- * \return 0 on success otherwise a negative error code
+ * \brief Writes a character to an output handle (like \c putc(3)).
+ * \param output The output handle.
+ * \param c The character.
+ * \return Zero if successful, otherwise a negative error code or \c EOF.
  */
 int snd_output_putc(snd_output_t *output, int c)
 {
@@ -101,9 +101,13 @@ int snd_output_putc(snd_output_t *output, int c)
 }
 
 /**
- * \brief fflush(3) like on an output handle
- * \param output Output handle
- * \return 0 on success otherwise a negative error code
+ * \brief Flushes an output handle (like fflush(3)).
+ * \param output The output handle.
+ * \return Zero if successful, otherwise \c EOF.
+ *
+ * If the underlying destination is a stdio stream, this function calls
+ * \c fflush. If the underlying destination is a memory buffer, the write
+ * position is reset to the beginning of the buffer. \c =:-o
  */
 int snd_output_flush(snd_output_t *output)
 {
@@ -160,11 +164,14 @@ static snd_output_ops_t snd_output_stdio_ops = {
 #endif
 
 /**
- * \brief Create a new output using an existing stdio FILE pointer
- * \param outputp Pointer to returned output handle
- * \param fp FILE pointer
- * \param close Close flag (1 if FILE is fclose'd when output handle is closed)
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a new output object using an existing stdio \c FILE pointer.
+ * \param outputp The function puts the pointer to the new output object
+ *                at the address specified by \p outputp.
+ * \param fp The \c FILE pointer to write to. Characters are written
+ *           to the file starting at the current file position.
+ * \param close Close flag. Set this to 1 if #snd_output_close should close
+ *              \p fp by calling \c fclose.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int _close)
 {
@@ -189,11 +196,12 @@ int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int _close)
 }
 	
 /**
- * \brief Open a new output to a file
- * \param outputp Pointer to returned output handle
- * \param file File name
- * \param mode fopen(3) open mode
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a new output object writing to a file.
+ * \param outputp The function puts the pointer to the new output object
+ *                at the address specified by \p outputp.
+ * \param file The name of the file to open.
+ * \param mode The open mode, like \c fopen(3).
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_output_stdio_open(snd_output_t **outputp, const char *file, const char *mode)
 {
@@ -307,10 +315,14 @@ static snd_output_ops_t snd_output_buffer_ops = {
 #endif
 
 /**
- * \brief Return buffer info for a #SND_OUTPUT_TYPE_BUFFER output handle
- * \param output Output handle
- * \param buf Pointer to returned buffer
- * \return size of data in buffer
+ * \brief Returns the address of the buffer of a #SND_OUTPUT_TYPE_BUFFER output handle.
+ * \param output The output handle.
+ * \param buf The functions puts the current address of the buffer at the
+ *            address specified by \p buf.
+ * \return The current size of valid data in the buffer.
+ *
+ * The address of the buffer may become invalid when output functions or
+ * #snd_output_close are called.
  */
 size_t snd_output_buffer_string(snd_output_t *output, char **buf)
 {
@@ -320,9 +332,10 @@ size_t snd_output_buffer_string(snd_output_t *output, char **buf)
 }
 
 /**
- * \brief Open a new output to an auto extended  memory buffer
- * \param outputp Pointer to returned output handle
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a new output object with an auto-extending memory buffer.
+ * \param outputp The function puts the pointer to the new output object
+ *                at the address specified by \p outputp.
+ * \return Zero if successful, otherwise a negative error code.
  */
 int snd_output_buffer_open(snd_output_t **outputp)
 {

@@ -7,8 +7,8 @@
  * \date 1998-2001
  *
  * Application interface library for the ALSA driver
- *
- *
+ */
+/*
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as
  *   published by the Free Software Foundation; either version 2.1 of
@@ -34,36 +34,52 @@ extern "C" {
 
 /**
  *  \defgroup Config Configuration Interface
- *  Configuration Interface
+ *  The configuration functions and types allow you to read, enumerate,
+ *  modify and write the contents of ALSA configuration files.
  *  \{
  */
 
-/** dlsym version for config evaluate callback */
+/** \brief \c dlsym version for the config evaluate callback. */
 #define SND_CONFIG_DLSYM_VERSION_EVALUATE	_dlsym_config_evaluate_001
-/** dlsym version for config hook callback */
+/** \brief \c dlsym version for the config hook callback. */
 #define SND_CONFIG_DLSYM_VERSION_HOOK		_dlsym_config_hook_001
 
-/** Config node type */
+/** Configuration node type. */
 typedef enum _snd_config_type {
-	/** Integer number */
+	/** Integer number. */
         SND_CONFIG_TYPE_INTEGER,
-	/** 64 bit Integer number */
+	/** 64 bit Integer number. */
         SND_CONFIG_TYPE_INTEGER64,
-	/** Real number */
+	/** Real number. */
         SND_CONFIG_TYPE_REAL,
-	/** Character string */
+	/** Character string. */
         SND_CONFIG_TYPE_STRING,
-        /** Pointer - runtime only - cannot be saved */
+        /** Pointer (runtime only, cannot be saved). */
         SND_CONFIG_TYPE_POINTER,
-	/** Compound */
+	/** Compound node. */
 	SND_CONFIG_TYPE_COMPOUND = 1024
 } snd_config_type_t;
 
-/** Config node handle */
+/**
+ * \brief Internal structure for a configuration node object.
+ *
+ * The ALSA library uses a pointer to this structure as a handle to a
+ * configuration node. Applications don't access its contents directly.
+ */
 typedef struct _snd_config snd_config_t;
-/** Config compound iterator */
+/**
+ * \brief Type for a configuration compound iterator.
+ *
+ * The ALSA library uses this pointer type as a handle to a configuration
+ * compound iterator. Applications don't directly access the contents of
+ * the structure pointed to by this type.
+ */
 typedef struct _snd_config_iterator *snd_config_iterator_t;
-/** Config private update structure */
+/**
+ * \brief Internal structure for a configuration private update object.
+ *
+ * The ALSA library uses this structure to save private update information.
+ */
 typedef struct _snd_config_update snd_config_update_t;
 
 extern snd_config_t *snd_config;
@@ -136,12 +152,13 @@ snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t itera
 snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node);
 snd_config_t *snd_config_iterator_entry(const snd_config_iterator_t iterator);
 
-/** Helper for compound config node leaves traversal
- * \param pos Current node iterator
- * \param next Next node iterator
- * \param node Compound config node
+/**
+ * \brief Helper macro to iterate over the children of a compound node.
+ * \param pos Iterator variable for the current node.
+ * \param next Iterator variable for the next node.
+ * \param node Handle to the compound configuration node to iterate over.
  *
- * This macro is designed to permit the removal of current node.
+ * This macro is designed to permit the removal of the current node.
  */
 #define snd_config_for_each(pos, next, node) \
 	for (pos = snd_config_iterator_first(node), next = snd_config_iterator_next(pos); pos != snd_config_iterator_end(node); pos = next, next = snd_config_iterator_next(pos))

@@ -7,8 +7,8 @@
  * \date 1998-2001
  *
  * Application interface library for the ALSA driver
- *
- *
+ */
+/*
  *   This library is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU Lesser General Public License as
  *   published by the Free Software Foundation; either version 2.1 of
@@ -34,18 +34,30 @@ extern "C" {
 
 /**
  *  \defgroup Output Output Interface
- *  Output Interface
+ *
+ *  The output functions present an interface similar to the stdio functions
+ *  on top of different underlying output destinations.
+ *
+ *  Many PCM debugging functions (\c snd_pcm_xxx_dump_xxx) use such an output
+ *  handle to be able to write not only to the screen but also to other
+ *  destinations, e.g. to files or to memory buffers.
+ *
  *  \{
  */
 
-/** Output handle */
+/**
+ * \brief Internal structure for an output object.
+ *
+ * The ALSA library uses a pointer to this structure as a handle to an
+ * output object. Applications don't access its contents directly.
+ */
 typedef struct _snd_output snd_output_t;
 
-/** Output type */
+/** Output type. */
 typedef enum _snd_output_type {
-	/** Output to a stdio stream */
+	/** Output to a stdio stream. */
 	SND_OUTPUT_STDIO,
-	/** Output to a memory buffer */
+	/** Output to a memory buffer. */
 	SND_OUTPUT_BUFFER
 } snd_output_type_t;
 
@@ -54,7 +66,11 @@ int snd_output_stdio_attach(snd_output_t **outputp, FILE *fp, int _close);
 int snd_output_buffer_open(snd_output_t **outputp);
 size_t snd_output_buffer_string(snd_output_t *output, char **buf);
 int snd_output_close(snd_output_t *output);
-int snd_output_printf(snd_output_t *output, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
+int snd_output_printf(snd_output_t *output, const char *format, ...)
+#ifndef DOC_HIDDEN
+	__attribute__ ((format (printf, 2, 3)))
+#endif
+	;
 int snd_output_puts(snd_output_t *output, const char *str);
 int snd_output_putc(snd_output_t *output, int c);
 int snd_output_flush(snd_output_t *output);

@@ -43,10 +43,10 @@ static const char *snd_error_codes[] =
 };
 
 /**
- * \brief Get the error string.
- * \param errnum The error code number.
- *
- * Returns the ASCII description of the given numeric error code.
+ * \brief Returns the message for an error code.
+ * \param errnum The error code number, which must be a system error code
+ *               or an ALSA error code.
+ * \return The ASCII description of the given numeric error code.
  */
 const char *snd_strerror(int errnum)
 {
@@ -65,11 +65,11 @@ const char *snd_strerror(int errnum)
  * \param file The filename where the error was hit.
  * \param line The line number.
  * \param function The function name.
- * \param err The error number.
+ * \param err The error code.
  * \param fmt The message (including the format characters).
  * \param ... Optional arguments.
  *
- * Prints the error message including location to stderr.
+ * Prints the error message including location to \c stderr.
  */
 static void snd_lib_error_default(const char *file, int line, const char *function, int err, const char *fmt, ...)
 {
@@ -86,17 +86,18 @@ static void snd_lib_error_default(const char *file, int line, const char *functi
 /**
  * \ingroup Error
  * Pointer to the error handler function.
+ * For internal use only.
  */
-snd_lib_error_handler_t *snd_lib_error = snd_lib_error_default;
+snd_lib_error_handler_t snd_lib_error = snd_lib_error_default;
 
 /**
- * \brief Set the error handler.
+ * \brief Sets the error handler.
  * \param handler The pointer to the new error handler function.
  *
- * This function sets a new error handler or the default one (if the NULL
- * parameter is given) which prints the error messages to stderr.
+ * This function sets a new error handler, or (if \c handler is \c NULL)
+ * the default one which prints the error messages to \c stderr.
  */
-int snd_lib_error_set_handler(snd_lib_error_handler_t *handler)
+int snd_lib_error_set_handler(snd_lib_error_handler_t handler)
 {
 	snd_lib_error = handler == NULL ? snd_lib_error_default : handler;
 	return 0;
