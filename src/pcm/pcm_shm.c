@@ -71,7 +71,7 @@ int receive_fd(int socket, void *data, size_t len, int *fd)
 
     ret = recvmsg(socket, &msghdr, 0);
     if (ret < 0) {
-	    ERR("recvmsg failed");
+	    SYSERR("recvmsg failed");
 	    return -errno;
     }
     *fd = *fds;
@@ -385,14 +385,14 @@ static int snd_pcm_shm_mmap(snd_pcm_t *pcm)
 				   fd, SND_PCM_MMAP_OFFSET_DATA);
 			close(fd);
 			if (ptr == MAP_FAILED || ptr == NULL) {
-				ERR("mmap failed");
+				SYSERR("mmap failed");
 				free(pcm->mmap_info);
 				return -errno;
 			}
 		} else {
 			ptr = shmat(i->u.user.shmid, 0, 0);
 			if (ptr == (void*)-1) {
-				ERR("shmat failed");
+				SYSERR("shmat failed");
 				free(pcm->mmap_info);
 				return -errno;
 			}
@@ -417,12 +417,12 @@ static int snd_pcm_shm_munmap(snd_pcm_t *pcm)
 		if (i->type == SND_PCM_MMAP_KERNEL) {
 			err = munmap(i->addr, i->size);
 			if (err < 0)
-				ERR("munmap failed");
+				SYSERR("munmap failed");
 			return -errno;
 		} else {
 			err = shmdt(i->addr);
 			if (err < 0)
-				ERR("shmdt failed");
+				SYSERR("shmdt failed");
 			return -errno;
 		}
 	}
@@ -531,7 +531,7 @@ static int make_local_socket(const char *filename)
 
 	sock = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (sock < 0) {
-		ERR("socket failed");
+		SYSERR("socket failed");
 		return -errno;
 	}
 	
@@ -539,7 +539,7 @@ static int make_local_socket(const char *filename)
 	memcpy(addr->sun_path, filename, l);
 
 	if (connect(sock, (struct sockaddr *) addr, size) < 0) {
-		ERR("connect failed");
+		SYSERR("connect failed");
 		return -errno;
 	}
 	return sock;
@@ -556,7 +556,7 @@ static int make_inet_socket(const char *host, int port)
 
 	sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
-		ERR("socket failed");
+		SYSERR("socket failed");
 		return -errno;
 	}
 	
@@ -565,7 +565,7 @@ static int make_inet_socket(const char *host, int port)
 	memcpy(&addr.sin_addr, h->h_addr_list[0], sizeof(struct in_addr));
 
 	if (connect(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-		ERR("connect failed");
+		SYSERR("connect failed");
 		return -errno;
 	}
 	return sock;
@@ -604,7 +604,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, in
 	req->namelen = snamelen;
 	err = write(sock, req, reqlen);
 	if (err < 0) {
-		ERR("write error");
+		SYSERR("write error");
 		result = -errno;
 		goto _err;
 	}
@@ -615,7 +615,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, in
 	}
 	err = read(sock, &ans, sizeof(ans));
 	if (err < 0) {
-		ERR("read error");
+		SYSERR("read error");
 		result = -errno;
 		goto _err;
 	}
@@ -630,7 +630,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, char *name, char *socket, char *sname, in
 
 	ctrl = shmat(ans.cookie, 0, 0);
 	if (!ctrl) {
-		ERR("shmat error");
+		SYSERR("shmat error");
 		result = -errno;
 		goto _err;
 	}
@@ -691,7 +691,7 @@ int is_local(struct hostent *hent)
 	
 	s = socket(PF_INET, SOCK_STREAM, 0);
 	if (s < 0) {
-		ERR("socket failed");
+		SYSERR("socket failed");
 		return -errno;
 	}
 	
@@ -700,7 +700,7 @@ int is_local(struct hostent *hent)
 	while (1) {
 		err = ioctl(s, SIOCGIFCONF, &conf);
 		if (err < 0) {
-			ERR("SIOCGIFCONF failed");
+			SYSERR("SIOCGIFCONF failed");
 			return -errno;
 		}
 		if ((size_t)conf.ifc_len < numreqs * sizeof(struct ifreq))

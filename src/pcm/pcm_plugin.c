@@ -19,9 +19,10 @@
  *
  */
   
+#include <sys/shm.h>
+#include <limits.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
-#include <limits.h>
 
 int snd_pcm_plugin_close(snd_pcm_t *pcm)
 {
@@ -307,21 +308,29 @@ int snd_pcm_plugin_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;
 	snd_pcm_t *slave = plugin->slave;
+	snd_pcm_mmap_info_t *i;
 	int err = snd_pcm_mmap(slave);
 	if (err < 0)
 		return err;
-	pcm->mmap_info = calloc(1, sizeof(*pcm->mmap_info));
-	if (!pcm->mmap_info)
+	i = calloc(1, sizeof(*i));
+	if (!i)
 		return -ENOMEM;
-	pcm->mmap_info_count = 1;
-	pcm->mmap_info->type = SND_PCM_MMAP_USER;
-	pcm->mmap_info->size = pcm->setup.buffer_size;
-	pcm->mmap_info->addr = valloc(snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size));
-	if (!pcm->mmap_info->addr) {
-		free(pcm->mmap_info);
-		pcm->mmap_info = 0;
-		return -ENOMEM;
+	i->type = SND_PCM_MMAP_USER;
+	i->size = snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size);
+	i->u.user.shmid = shmget(IPC_PRIVATE, i->size, 0666);
+	if (i->u.user.shmid < 0) {
+		SYSERR("shmget failed");
+		free(i);
+		return -errno;
 	}
+	i->addr = shmat(i->u.user.shmid, 0, 0);
+	if (i->addr == (void*) -1) {
+		SYSERR("shmat failed");
+		free(i);
+		return -errno;
+	}
+	pcm->mmap_info = i;
+	pcm->mmap_info_count = 1;
 	return 0;
 }
 
@@ -332,7 +341,14 @@ int snd_pcm_plugin_munmap(snd_pcm_t *pcm)
 	int err = snd_pcm_munmap(slave);
 	if (err < 0)
 		return err;
-	free(pcm->mmap_info->addr);
+	if (shmdt(pcm->mmap_info->addr) < 0) {
+		SYSERR("shmdt failed");
+		return -errno;
+	}
+	if (shmctl(pcm->mmap_info->u.user.shmid, IPC_RMID, 0) < 0) {
+		SYSERR("shmctl IPC_RMID failed");
+		return -errno;
+	}
 	free(pcm->mmap_info);
 	pcm->mmap_info_count = 0;
 	pcm->mmap_info = 0;

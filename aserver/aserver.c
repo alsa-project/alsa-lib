@@ -53,7 +53,7 @@ char *command;
 } while (0)
 #endif	
 
-#define SYSERR(string) ERROR(string ": %s", strerror(errno))
+#define SYSERROR(string) ERROR(string ": %s", strerror(errno))
 
 int make_local_socket(const char *filename)
 {
@@ -65,7 +65,7 @@ int make_local_socket(const char *filename)
 	sock = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (sock < 0) {
 		int result = -errno;
-		SYSERR("socket");
+		SYSERROR("socket failed");
 		return result;
 	}
 	
@@ -76,7 +76,7 @@ int make_local_socket(const char *filename)
 
 	if (bind(sock, (struct sockaddr *) addr, size) < 0) {
 		int result = -errno;
-		SYSERR("bind");
+		SYSERROR("bind failed");
 		return result;
 	}
 
@@ -91,7 +91,7 @@ int make_inet_socket(int port)
 	sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
 		int result = -errno;
-		SYSERR("socket");
+		SYSERROR("socket failed");
 		return result;
 	}
 	
@@ -101,7 +101,7 @@ int make_inet_socket(int port)
 
 	if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
 		int result = -errno;
-		SYSERR("bind");
+		SYSERROR("bind failed");
 		return result;
 	}
 
@@ -135,7 +135,7 @@ int send_fd(int socket, void *data, size_t len, int fd)
 
     ret = sendmsg(socket, &msghdr, 0 );
     if (ret < 0) {
-	    SYSERR("sendmsg");
+	    SYSERROR("sendmsg failed");
 	    return -errno;
     }
     return ret;
@@ -253,13 +253,13 @@ int pcm_handler(waiter_t *waiter, unsigned short events)
 	if (events & POLLIN) {
 		n = write(client->poll_fd, buf, 1);
 		if (n != 1) {
-			SYSERR("write");
+			SYSERROR("write failed");
 			return -errno;
 		}
 	} else if (events & POLLOUT) {
 		n = read(client->poll_fd, buf, 1);
 		if (n != 1) {
-			SYSERR("read");
+			SYSERROR("read failed");
 			return -errno;
 		}
 	}
@@ -283,7 +283,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 	shmid = shmget(IPC_PRIVATE, PCM_SHM_SIZE, 0666);
 	if (shmid < 0) {
 		result = -errno;
-		SYSERR("shmget");
+		SYSERROR("shmget failed");
 		goto _err;
 	}
 	client->transport.shm.ctrl_id = shmid;
@@ -291,7 +291,7 @@ int pcm_shm_open(client_t *client, int *cookie)
 	if (client->transport.shm.ctrl == (void*) -1) {
 		result = -errno;
 		shmctl(shmid, IPC_RMID, 0);
-		SYSERR("shmat");
+		SYSERROR("shmat failed");
 		goto _err;
 	}
 	*cookie = shmid;
@@ -314,14 +314,14 @@ int pcm_shm_close(client_t *client)
 	err = snd_pcm_close(client->device.pcm.handle);
 	ctrl->result = err;
 	if (err < 0) 
-		SYSERR("snd_pcm_close");
+		ERROR("snd_pcm_close");
 	if (client->transport.shm.ctrl) {
 		err = shmdt((void *)client->transport.shm.ctrl);
 		if (err < 0)
-			SYSERR("shmdt");
+			SYSERROR("shmdt failed");
 		err = shmctl(client->transport.shm.ctrl_id, IPC_RMID, 0);
 		if (err < 0)
-			SYSERR("shmctl");
+			SYSERROR("shmctl IPC_RMID failed");
 		client->transport.shm.ctrl = 0;
 	}
 	client->open = 0;
@@ -452,26 +452,11 @@ int pcm_shm_cmd(client_t *client)
 	}
 	case SND_PCM_IOCTL_MMAP_INFO:
 	{
-		snd_pcm_mmap_info_t *i;
 		unsigned int index = ctrl->u.mmap_info.index;
+		snd_pcm_mmap_info_t *i = &pcm->mmap_info[index];
 		if (index >= pcm->mmap_info_count) {
 			ctrl->result = -EINVAL;
 			break;
-		}
-		i = &pcm->mmap_info[index];
-		if (i->type == SND_PCM_MMAP_USER) {
-			void *ptr;
-			int shmid = shmget(IPC_PRIVATE, i->size, 0666);
-			if (shmid < 0) {
-				SYSERR("shmget");
-				return -EINVAL;
-			}
-			ptr = shmat(shmid, i->addr, 0);
-			if (ptr != i->addr) {
-				SYSERR("shmat");
-				return -EINVAL;
-			}
-			i->u.user.shmid = shmid;
 		}
 		ctrl->u.mmap_info = *i;
 		ctrl->u.mmap_info.index = index;
@@ -526,7 +511,7 @@ int ctl_handler(waiter_t *waiter, unsigned short events)
 	if (events & POLLIN) {
 		n = write(client->poll_fd, buf, 1);
 		if (n != 1) {
-			SYSERR("write");
+			SYSERROR("write failed");
 			return -errno;
 		}
 	}
@@ -550,7 +535,7 @@ int ctl_shm_open(client_t *client, int *cookie)
 	shmid = shmget(IPC_PRIVATE, CTL_SHM_SIZE, 0666);
 	if (shmid < 0) {
 		result = -errno;
-		SYSERR("shmget");
+		SYSERROR("shmget failed");
 		goto _err;
 	}
 	client->transport.shm.ctrl_id = shmid;
@@ -558,7 +543,7 @@ int ctl_shm_open(client_t *client, int *cookie)
 	if (!client->transport.shm.ctrl) {
 		result = -errno;
 		shmctl(shmid, IPC_RMID, 0);
-		SYSERR("shmat");
+		SYSERROR("shmat failed");
 		goto _err;
 	}
 	*cookie = shmid;
@@ -583,14 +568,14 @@ int ctl_shm_close(client_t *client)
 	err = snd_ctl_close(client->device.control.handle);
 	ctrl->result = err;
 	if (err < 0) 
-		SYSERR("snd_ctl_close");
+		ERROR("snd_ctl_close");
 	if (client->transport.shm.ctrl) {
 		err = shmdt((void *)client->transport.shm.ctrl);
 		if (err < 0)
-			SYSERR("shmdt");
+			SYSERROR("shmdt failed");
 		err = shmctl(client->transport.shm.ctrl_id, IPC_RMID, 0);
 		if (err < 0)
-			SYSERR("shmctl");
+			SYSERROR("shmctl failed");
 		client->transport.shm.ctrl = 0;
 	}
 	client->open = 0;
@@ -679,7 +664,7 @@ int snd_client_open(client_t *client)
 	memset(&ans, 0, sizeof(ans));
 	err = read(client->ctrl_fd, &req, sizeof(req));
 	if (err < 0) {
-		SYSERR("read");
+		SYSERROR("read failed");
 		exit(1);
 	}
 	if (err != sizeof(req)) {
@@ -689,7 +674,7 @@ int snd_client_open(client_t *client)
 	name = alloca(req.namelen);
 	err = read(client->ctrl_fd, name, req.namelen);
 	if (err < 0) {
-		SYSERR("read");
+		SYSERROR("read failed");
 		exit(1);
 	}
 	if (err != req.namelen) {
@@ -738,7 +723,7 @@ int snd_client_open(client_t *client)
  _answer:
 	err = write(client->ctrl_fd, &ans, sizeof(ans));
 	if (err != sizeof(ans)) {
-		SYSERR("write");
+		SYSERROR("write failed");
 		exit(1);
 	}
 	return 0;
@@ -834,7 +819,7 @@ int local_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 	sock = accept(waiter->fd, 0, 0);
 	if (sock < 0) {
 		int result = -errno;
-		SYSERR("accept");
+		SYSERROR("accept failed");
 		return result;
 	} else {
 		client_t *client = calloc(1, sizeof(*client));
@@ -853,7 +838,7 @@ int inet_handler(waiter_t *waiter, unsigned short events ATTRIBUTE_UNUSED)
 	sock = accept(waiter->fd, 0, 0);
 	if (sock < 0) {
 		int result = -errno;
-		SYSERR("accept");
+		SYSERROR("accept failed");
 		return result;
 	} else {
 		inet_pending_t *pending = calloc(1, sizeof(*pending));
@@ -878,12 +863,12 @@ int server(char *sockname, int port)
 			return sock;
 		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
 			int result = -errno;
-			SYSERR("fcntl");
+			SYSERROR("fcntl O_NONBLOCK failed");
 			return result;
 		}
 		if (listen(sock, 4) < 0) {
 			int result = -errno;
-			SYSERR("listen");
+			SYSERROR("listen failed");
 			return result;
 		}
 		add_waiter(sock, POLLIN, local_handler, NULL);
@@ -894,12 +879,12 @@ int server(char *sockname, int port)
 			return sock;
 		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
 			int result = -errno;
-			SYSERR("fcntl");
+			SYSERROR("fcntl failed");
 			return result;
 		}
 		if (listen(sock, 4) < 0) {
 			int result = -errno;
-			SYSERR("listen");
+			SYSERROR("listen failed");
 			return result;
 		}
 		add_waiter(sock, POLLIN, inet_handler, NULL);
@@ -912,7 +897,7 @@ int server(char *sockname, int port)
 			err = poll(pollfds, pollfds_count, -1);
 		} while (err == 0);
 		if (err < 0) {
-			SYSERR("poll");
+			SYSERROR("poll failed");
 			continue;
 		}
 
@@ -926,7 +911,7 @@ int server(char *sockname, int port)
 					continue;
 				err = w->handler(w, pfd->revents);
 				if (err < 0)
-					SYSERR("handler");
+					ERROR("waiter handler failed");
 			}
 		}
 	}

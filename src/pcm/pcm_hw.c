@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/shm.h>
 #include "pcm_local.h"
 
 #ifndef F_SETSIG
@@ -52,7 +53,7 @@ static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 	int fd = hw->fd;
 
 	if ((flags = fcntl(fd, F_GETFL)) < 0) {
-		ERR("F_GETFL failed");
+		SYSERR("F_GETFL failed");
 		return -errno;
 	}
 	if (nonblock)
@@ -60,7 +61,7 @@ static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
 	else
 		flags &= ~O_NONBLOCK;
 	if (fcntl(fd, F_SETFL, flags) < 0) {
-		ERR("F_SETFL for O_NONBLOCK failed");
+		SYSERR("F_SETFL for O_NONBLOCK failed");
 		return -errno;
 	}
 	return 0;
@@ -73,7 +74,7 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	int fd = hw->fd;
 
 	if ((flags = fcntl(fd, F_GETFL)) < 0) {
-		ERR("F_GETFL failed");
+		SYSERR("F_GETFL failed");
 		return -errno;
 	}
 	if (sig >= 0)
@@ -81,7 +82,7 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	else
 		flags &= ~O_ASYNC;
 	if (fcntl(fd, F_SETFL, flags) < 0) {
-		ERR("F_SETFL for O_ASYNC failed");
+		SYSERR("F_SETFL for O_ASYNC failed");
 		return -errno;
 	}
 	if (sig < 0)
@@ -89,13 +90,13 @@ static int snd_pcm_hw_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	if (sig == 0)
 		sig = SIGIO;
 	if (fcntl(fd, F_SETSIG, sig) < 0) {
-		ERR("F_SETSIG failed");
+		SYSERR("F_SETSIG failed");
 		return -errno;
 	}
 	if (pid == 0)
 		pid = getpid();
 	if (fcntl(fd, F_SETOWN, pid) < 0) {
-		ERR("F_SETOWN failed");
+		SYSERR("F_SETOWN failed");
 		return -errno;
 	}
 	return 0;
@@ -106,7 +107,7 @@ static int snd_pcm_hw_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_INFO, info) < 0) {
-		ERR("SND_PCM_IOCTL_INFO failed");
+		SYSERR("SND_PCM_IOCTL_INFO failed");
 		return -errno;
 	}
 	return 0;
@@ -117,7 +118,7 @@ static int snd_pcm_hw_params_info(snd_pcm_t *pcm, snd_pcm_params_info_t * info)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_PARAMS_INFO, info) < 0) {
-		ERR("SND_PCM_IOCTL_PARAMS_INFO failed");
+		SYSERR("SND_PCM_IOCTL_PARAMS_INFO failed");
 		return -errno;
 	}
 	return 0;
@@ -128,7 +129,7 @@ static int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_params_t * params)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_PARAMS, params) < 0) {
-		ERR("SND_PCM_IOCTL_PARAMS failed");
+		SYSERR("SND_PCM_IOCTL_PARAMS failed");
 		return -errno;
 	}
 	return 0;
@@ -139,7 +140,7 @@ static int snd_pcm_hw_setup(snd_pcm_t *pcm, snd_pcm_setup_t * setup)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_SETUP, setup) < 0) {
-		ERR("SND_PCM_IOCTL_SETUP failed");
+		SYSERR("SND_PCM_IOCTL_SETUP failed");
 		return -errno;
 	}
 	if (setup->mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
@@ -156,7 +157,7 @@ static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_INFO, info) < 0) {
-		ERR("SND_PCM_IOCTL_CHANNEL_INFO failed");
+		SYSERR("SND_PCM_IOCTL_CHANNEL_INFO failed");
 		return -errno;
 	}
 	return 0;
@@ -167,7 +168,7 @@ static int snd_pcm_hw_channel_params(snd_pcm_t *pcm, snd_pcm_channel_params_t * 
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_PARAMS, params) < 0) {
-		ERR("SND_PCM_IOCTL_CHANNEL_PARAMS failed");
+		SYSERR("SND_PCM_IOCTL_CHANNEL_PARAMS failed");
 		return -errno;
 	}
 	return 0;
@@ -178,7 +179,7 @@ static int snd_pcm_hw_channel_setup(snd_pcm_t *pcm, snd_pcm_channel_setup_t * se
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_CHANNEL_SETUP, setup) < 0) {
-		ERR("SND_PCM_IOCTL_CHANNEL_SETUP failed");
+		SYSERR("SND_PCM_IOCTL_CHANNEL_SETUP failed");
 		return -errno;
 	}
 	if (!pcm->mmap_info)
@@ -206,7 +207,7 @@ static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_STATUS, status) < 0) {
-		ERR("SND_PCM_IOCTL_STATUS failed");
+		SYSERR("SND_PCM_IOCTL_STATUS failed");
 		return -errno;
 	}
 	return 0;
@@ -223,7 +224,7 @@ static int snd_pcm_hw_delay(snd_pcm_t *pcm, ssize_t *delayp)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_DELAY, delayp) < 0) {
-		ERR("SND_PCM_IOCTL_DELAY failed");
+		SYSERR("SND_PCM_IOCTL_DELAY failed");
 		return -errno;
 	}
 	return 0;
@@ -234,7 +235,7 @@ static int snd_pcm_hw_prepare(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_PREPARE) < 0) {
-		ERR("SND_PCM_IOCTL_PREPARE failed");
+		SYSERR("SND_PCM_IOCTL_PREPARE failed");
 		return -errno;
 	}
 	return 0;
@@ -245,7 +246,7 @@ static int snd_pcm_hw_start(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_START) < 0) {
-		ERR("SND_PCM_IOCTL_START failed");
+		SYSERR("SND_PCM_IOCTL_START failed");
 		return -errno;
 	}
 	return 0;
@@ -256,7 +257,7 @@ static int snd_pcm_hw_drop(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_DROP) < 0) {
-		ERR("SND_PCM_IOCTL_DROP failed");
+		SYSERR("SND_PCM_IOCTL_DROP failed");
 		return -errno;
 	}
 	return 0;
@@ -267,7 +268,7 @@ static int snd_pcm_hw_drain(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_DRAIN) < 0) {
-		ERR("SND_PCM_IOCTL_DRAIN failed");
+//		SYSERR("SND_PCM_IOCTL_DRAIN failed");
 		return -errno;
 	}
 	return 0;
@@ -278,7 +279,7 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
 	if (ioctl(fd, SND_PCM_IOCTL_PAUSE, enable) < 0) {
-		ERR("SND_PCM_IOCTL_PAUSE failed");
+		SYSERR("SND_PCM_IOCTL_PAUSE failed");
 		return -errno;
 	}
 	return 0;
@@ -365,7 +366,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 	ptr = mmap(NULL, sizeof(snd_pcm_mmap_status_t), PROT_READ, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_STATUS);
 	if (ptr == MAP_FAILED || ptr == NULL) {
-		ERR("status mmap failed");
+		SYSERR("status mmap failed");
 		return -errno;
 	}
 	hw->mmap_status = ptr;
@@ -380,7 +381,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 	ptr = mmap(NULL, sizeof(snd_pcm_mmap_control_t), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_CONTROL);
 	if (ptr == MAP_FAILED || ptr == NULL) {
-		ERR("control mmap failed");
+		SYSERR("control mmap failed");
 		return -errno;
 	}
 	hw->mmap_control = ptr;
@@ -391,35 +392,41 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
-	pcm->mmap_info = calloc(1, sizeof(*pcm->mmap_info));
-	if (!pcm->mmap_info)
+	snd_pcm_mmap_info_t *i = calloc(1, sizeof(*i));
+	if (!i)
 		return -ENOMEM;
-	pcm->mmap_info_count = 1;
 	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
-		pcm->mmap_info->type = SND_PCM_MMAP_USER;
-		pcm->mmap_info->size = snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size);
-		pcm->mmap_info->addr = valloc(pcm->mmap_info->size);
-		if (!pcm->mmap_info->addr) {
-			free(pcm->mmap_info);
-			pcm->mmap_info = 0;
-			return -ENOMEM;
+		i->type = SND_PCM_MMAP_USER;
+		i->size = snd_pcm_frames_to_bytes(pcm, pcm->setup.buffer_size);
+		i->u.user.shmid = shmget(IPC_PRIVATE, i->size, 0666);
+		if (i->u.user.shmid < 0) {
+			SYSERR("shmget failed");
+			free(i);
+			return -errno;
+		}
+		i->addr = shmat(i->u.user.shmid, 0, 0);
+		if (i->addr == (void*) -1) {
+			SYSERR("shmat failed");
+			free(i);
+			return -errno;
 		}
 	} else {
-		pcm->mmap_info->type = SND_PCM_MMAP_KERNEL;
-		pcm->mmap_info->size = pcm->setup.mmap_bytes;
-		pcm->mmap_info->addr = mmap(NULL, pcm->setup.mmap_bytes,
+		i->type = SND_PCM_MMAP_KERNEL;
+		i->size = pcm->setup.mmap_bytes;
+		i->addr = mmap(NULL, pcm->setup.mmap_bytes,
 					    PROT_WRITE | PROT_READ,
 					    MAP_FILE|MAP_SHARED, 
 					    hw->fd, SND_PCM_MMAP_OFFSET_DATA);
-		if (pcm->mmap_info->addr == MAP_FAILED ||
-		    pcm->mmap_info->addr == NULL) {
-			ERR("data mmap failed");
-			free(pcm->mmap_info);
-			pcm->mmap_info = 0;
+		if (i->addr == MAP_FAILED ||
+		    i->addr == NULL) {
+			SYSERR("data mmap failed");
+			free(i);
 			return -errno;
 		}
-		pcm->mmap_info->u.kernel.fd = hw->fd;
+		i->u.kernel.fd = hw->fd;
 	}
+	pcm->mmap_info = i;
+	pcm->mmap_info_count = 1;
 	return 0;
 }
 
@@ -427,7 +434,7 @@ static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	if (munmap((void*)hw->mmap_status, sizeof(*hw->mmap_status)) < 0) {
-		ERR("status munmap failed");
+		SYSERR("status munmap failed");
 		return -errno;
 	}
 	return 0;
@@ -437,7 +444,7 @@ static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	if (munmap(hw->mmap_control, sizeof(*hw->mmap_control)) < 0) {
-		ERR("control munmap failed");
+		SYSERR("control munmap failed");
 		return -errno;
 	}
 	return 0;
@@ -445,13 +452,21 @@ static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 
 static int snd_pcm_hw_munmap(snd_pcm_t *pcm)
 {
-	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED)
-		free(pcm->mmap_info->addr);
-	else
-		if (munmap(pcm->mmap_info->addr, pcm->mmap_info->size) < 0) {
-			ERR("data munmap failed");
+	if (pcm->setup.mmap_shape == SND_PCM_MMAP_UNSPECIFIED) {
+		if (shmdt(pcm->mmap_info->addr) < 0) {
+			SYSERR("shmdt failed");
 			return -errno;
 		}
+		if (shmctl(pcm->mmap_info->u.user.shmid, IPC_RMID, 0) < 0) {
+			SYSERR("shmctl IPC_RMID failed");
+			return -errno;
+		}
+	} else {
+		if (munmap(pcm->mmap_info->addr, pcm->mmap_info->size) < 0) {
+			SYSERR("data munmap failed");
+			return -errno;
+		}
+	}
 	pcm->mmap_info_count = 0;
 	free(pcm->mmap_info);
 	pcm->mmap_info = 0;
@@ -464,7 +479,7 @@ static int snd_pcm_hw_close(snd_pcm_t *pcm)
 	int fd = hw->fd;
 	free(hw);
 	if (close(fd)) {
-		ERR("close failed\n");
+		SYSERR("close failed\n");
 		return -errno;
 	}
 	snd_pcm_hw_munmap_status(pcm);
@@ -608,6 +623,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 	if ((fd = open(filename, fmode)) < 0)
 		return -errno;
 	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
+		SYSERR("SND_PCM_IOCTL_PVERSION failed");
 		ret = -errno;
 		goto _err;
 	}
@@ -618,6 +634,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 	if (subdevice >= 0) {
 		memset(&info, 0, sizeof(info));
 		if (ioctl(fd, SND_PCM_IOCTL_INFO, &info) < 0) {
+			SYSERR("SND_PCM_IOCTL_INFO failed");
 			ret = -errno;
 			goto _err;
 		}

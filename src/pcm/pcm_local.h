@@ -27,9 +27,11 @@
 #include "asoundlib.h"
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-#define ERR(...) snd_pcm_error(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define ERR(...) snd_pcm_error(__FILE__, __LINE__, __FUNCTION__, 0, __VA_ARGS__)
+#define SYSERR(...) snd_pcm_error(__FILE__, __LINE__, __FUNCTION__, errno, __VA_ARGS__)
 #else
-#define ERR(args...) snd_pcm_error(__FILE__, __LINE__, __FUNCTION__, ##args)
+#define ERR(args...) snd_pcm_error(__FILE__, __LINE__, __FUNCTION__, 0, ##args)
+#define SYSERR(args...) snd_pcm_error(__FILE__, __LINE__, __FUNCTION__, errno, ##args)
 #endif
 
 typedef struct {

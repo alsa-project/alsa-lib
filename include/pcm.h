@@ -119,7 +119,7 @@ typedef enum {
 	SND_PCM_TYPE_LBSERVER,
 } snd_pcm_type_t;
 
-extern void snd_pcm_error(const char *file, int line, const char *function, const char *fmt, ...)  __attribute__ ((weak, format (printf, 4, 5)));
+extern void snd_pcm_error(const char *file, int line, const char *function, int err, const char *fmt, ...)  __attribute__ ((weak, format (printf, 5, 6)));
 
 int snd_pcm_open(snd_pcm_t **pcm, char *name, 
 		 int stream, int mode);

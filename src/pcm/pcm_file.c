@@ -347,8 +347,10 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, char *name, char *fname, int fd, snd_pcm
 	assert(pcmp && slave);
 	if (fname) {
 		fd = open(fname, O_WRONLY|O_CREAT, 0666);
-		if (fd < 0)
+		if (fd < 0) {
+			SYSERR("open %s failed", fname);
 			return -errno;
+		}
 	}
 	file = calloc(1, sizeof(snd_pcm_file_t));
 	if (!file) {
