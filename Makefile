@@ -48,7 +48,3 @@ pack: clean
 	rm -f config.cache config.log config.status Makefile.conf
 	chown -R root.root ../alsa-lib
 	tar cvz -C .. -f ../alsa-lib-$(SND_LIB_VERSION).tar.gz alsa-lib
-
-publish: pack
-	cat ../alsa-lib-$(SND_LIB_VERSION).tar.gz | \
-          ssh -l root zarquon.jcu.cz /home/alsa/publishlib alsa-lib-$(SND_LIB_VERSION).tar.gz
