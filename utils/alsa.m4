@@ -2,17 +2,17 @@ dnl Configure Paths for Alsa
 dnl Some modifications by Richard Boulton <richard-alsa@tartarus.org>
 dnl Christopher Lansdown <lansdoct@cs.alfred.edu>
 dnl Jaroslav Kysela <perex@suse.cz>
-dnl Last modification: $Id: alsa.m4,v 1.22 2002/05/27 11:14:20 tiwai Exp $
+dnl Last modification: $Id: alsa.m4,v 1.23 2004/01/16 18:14:22 tiwai Exp $
 dnl AM_PATH_ALSA([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for libasound, and define ALSA_CFLAGS and ALSA_LIBS as appropriate.
 dnl enables arguments --with-alsa-prefix=
 dnl                   --with-alsa-enc-prefix=
-dnl                   --disable-alsatest  (this has no effect, as yet)
+dnl                   --disable-alsatest
 dnl
 dnl For backwards compatibility, if ACTION_IF_NOT_FOUND is not specified,
 dnl and the alsa libraries are not found, a fatal AC_MSG_ERROR() will result.
 dnl
-AC_DEFUN(AM_PATH_ALSA,
+AC_DEFUN([AM_PATH_ALSA],
 [dnl Save the original CFLAGS, LDFLAGS, and LIBS
 alsa_save_CFLAGS="$CFLAGS"
 alsa_save_LDFLAGS="$LDFLAGS"
@@ -33,7 +33,7 @@ AC_ARG_WITH(alsa-inc-prefix,
 dnl FIXME: this is not yet implemented
 AC_ARG_ENABLE(alsatest,
 [  --disable-alsatest      Do not try to compile and run a test Alsa program],
-[enable_alsatest=no],
+[enable_alsatest="$enableval"],
 [enable_alsatest=yes])
 
 dnl Add any special include directories
@@ -116,10 +116,12 @@ exit(0);
 AC_LANG_RESTORE
 
 dnl Now that we know that we have the right version, let's see if we have the library and not just the headers.
+if test "x$enable_alsatest" = "xyes"; then
 AC_CHECK_LIB([asound], [snd_ctl_open],,
 	[ifelse([$3], , [AC_MSG_ERROR(No linkable libasound was found.)])
 	 alsa_found=no]
 )
+fi
 
 if test "x$alsa_found" = "xyes" ; then
    ifelse([$2], , :, [$2])
