@@ -166,7 +166,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **handlep, char *name, int card, int devic
 
 	*handlep = NULL;
 	
-	assert(card >= 0 && card < SND_CARDS);
+	assert(card >= 0 && card < 32);
 
 	if ((ret = snd_ctl_hw_open(&ctl, NULL, card)) < 0)
 		return ret;

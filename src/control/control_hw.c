@@ -192,7 +192,7 @@ int snd_ctl_hw_open(snd_ctl_t **handle, char *name, int card)
 
 	*handle = NULL;	
 
-	assert(card >= 0 && card < SND_CARDS);
+	assert(card >= 0 && card < 32);
 	sprintf(filename, SND_FILE_CONTROL, card);
 	if ((fd = open(filename, O_RDWR)) < 0) {
 		snd_card_load(card);
