@@ -27,8 +27,14 @@
 #ifndef __ALSA_MIXER_SIMPLE_H
 #define __ALSA_MIXER_SIMPLE_H
 
+#include <alsa/asoundlib.h>
+
 /** Simple Mixer latency type */
 enum snds_mixer_io_type {
+
+	/*
+	 *  playback section
+	 */
 
 	/** master volume - left (0-1000) */
 	SNDS_MIO_MASTER_LVOL = 0,
@@ -66,6 +72,9 @@ enum snds_mixer_io_type {
 	/** CD volume - right mute (0 = off, 1 = on) */
 	SNDS_MIO_AUX_RMUTE,
 
+	/*
+	 *  capture section
+	 */
 
 	/** capture gain - left (0-1000) */
 	SNDS_MIO_CGAIN_LVOL = 0x1000,
@@ -85,6 +94,8 @@ enum snds_mixer_io_type {
 	SNDS_MIO_CSOURCE_MIX
 };
 
+typedef struct snds_mixer snds_mixer_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -95,14 +106,13 @@ extern "C" {
  *  \{
  */
 
-int snds_mixer_open(snds_mixer_t **pcm, const char *playback_name, const char *capture_name);
-int snds_mixer_open_lconf(snds_mixer_t **pcm, const char *plaback_name, const char *capture_name, snd_config_t *lconf);
-int snds_mixer_close(snds_mixer_t *pcm);
-int snds_mixer_poll_descriptors_count(snds_mixer_t *pcm);
-int snds_mixer_poll_descriptors(snds_mixer_t *pcm, struct pollfd *pfds, unsigned int space);
-int snds_mixer_poll_descriptors_revents(snds_mixer_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
-int snds_mixer_io_get(snds_mixer_t *pcm, enum snds_mixer_io_type type, int *val);
-int snds_mixer_io_set(snds_mixer_t *pcm, enum snds_mixer_io_type type, int val);
+int snds_mixer_open(snds_mixer_t **pmixer, const char *playback_name, const char *capture_name, snd_config_t *lconf);
+int snds_mixer_close(snds_mixer_t *mixer);
+int snds_mixer_poll_descriptors_count(snds_mixer_t *mixer);
+int snds_mixer_poll_descriptors(snds_mixer_t *mixer, struct pollfd *pfds, unsigned int space);
+int snds_mixer_poll_descriptors_revents(snds_mixer_t *mixer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
+int snds_mixer_io_get(snds_mixer_t *mixer, enum snds_mixer_io_type type, int *val);
+int snds_mixer_io_set(snds_mixer_t *mixer, enum snds_mixer_io_type type, int val);
 int snds_mixer_io_change(snds_mixer_t *mixer, enum snds_mixer_io_type *changed, int changed_array_size);
 
 /** \} */

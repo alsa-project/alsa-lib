@@ -4,7 +4,7 @@
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Takashi Iwai <tiwai@suse.de>
- * \date 1998-2001
+ * \date 1998-2003
  *
  * Application interface library for the ALSA driver
  *

@@ -161,8 +161,8 @@ esac
 
 AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile
 	  include/sound/Makefile src/Makefile \
-          src/control/Makefile src/mixer/Makefile
-	  src/pcm/Makefile src/pcm/ext/Makefile src/pcm/scopes/Makefile \
+          src/control/Makefile src/mixer/Makefile src/simple_mixer/Makefile \
+	  src/pcm/Makefile src/pcm/ext/Makefile src/pcm/scopes/Makefile src/simple_pcm/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/instr/Makefile \
           src/compat/Makefile src/conf/Makefile \

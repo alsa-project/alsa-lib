@@ -27,7 +27,7 @@
 #ifndef __ALSA_PCM_SIMPLE_H
 #define __ALSA_PCM_SIMPLE_H
 
-#include <alsa/pcm.h>
+#include <alsa/asoundlib.h>
 
 /** Simple PCM latency type */
 enum snds_pcm_latency_type {
@@ -58,6 +58,8 @@ enum snds_pcm_xrun_type {
 	SNDS_PCM_XRUN_STOP
 };
 
+typedef struct snds_pcm snds_pcm_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -77,7 +79,7 @@ int snds_pcm_start(snds_pcm_t *pcm);
 int snds_pcm_drop(snds_pcm_t *pcm);
 int snds_pcm_drain(snds_pcm_t *pcm);
 int snds_pcm_delay(snds_pcm_t *pcm, snd_pcm_sframes_t *delayp);
-int snds_pcm_resume(snd_pcm_t *pcm);
+int snds_pcm_resume(snds_pcm_t *pcm);
 int snds_pcm_wait(snds_pcm_t *pcm, int timeout);
 snd_pcm_t *snds_pcm_raw_playback(snds_pcm_t *pcm);
 snd_pcm_t *snds_pcm_raw_capture(snds_pcm_t *pcm);
