@@ -498,7 +498,7 @@ static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 	
 	memset(&slave_info, 0, sizeof(slave_info));
 	err = snd_pcm_params_info(slave, &slave_info);
-	assert(err > 0);
+	assert(err >= 0);
 	if (err < 0)
 		return err;
 
@@ -517,7 +517,7 @@ static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 	}
 	slave_info.req_mask |= SND_PCM_PARAMS_SFMT;
 	err = snd_pcm_params_info(slave, &slave_info);
-	assert(err > 0);
+	assert(err >= 0);
 	if (err < 0)
 		return err;
 
@@ -527,7 +527,7 @@ static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 		slave_format->channels = slave_info.max_channels;
 	slave_info.req_mask |= SND_PCM_PARAMS_CHANNELS;
 	err = snd_pcm_params_info(slave, &slave_info);
-	assert(err > 0);
+	assert(err >= 0);
 	if (err < 0)
 		return err;
 
@@ -541,7 +541,7 @@ static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 	slave_format->rate = srate;
 	slave_info.req_mask |= SND_PCM_PARAMS_RATE;
 	err = snd_pcm_params_info(slave, &slave_info);
-	assert(err > 0);
+	assert(err >= 0);
 	if (err < 0)
 		return err;
 
