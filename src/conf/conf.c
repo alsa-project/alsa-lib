@@ -24,6 +24,7 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 #include "asoundlib.h"
+#include "local.h"
 #include "list.h"
 
 #define SYS_ASOUNDRC "/etc/asound.conf"
@@ -105,8 +106,10 @@ static int get_char_skip_comments(input_t *input)
 			if (err < 0)
 				return err;
 			fp = fopen(file, "r");
-			if (!fp)
+			if (!fp) {
+				SYSERR("fopen %s", file);
 				return -errno;
+			}
 			fd = malloc(sizeof(*fd));
 			fd->name = file;
 			fd->fp = fp;
@@ -253,12 +256,12 @@ static int get_delimstring(char **string, int delim, input_t *input)
 		switch (c) {
 		case EOF:
 			input->error = UNTERMINATED_STRING;
-			return -1;
+			return -EINVAL;
 		case '\\':
 			c = get_quotedchar(input);
 			if (c < 0) {
 				input->error = UNTERMINATED_QUOTE;
-				return -1;
+				return -EINVAL;
 			}
 			break;
 		default:
@@ -292,7 +295,7 @@ static int get_string(char **string, int id, input_t *input)
 	switch (c) {
 	case EOF:
 		input->error = UNEXPECTED_EOF;
-		return -1;
+		return -EINVAL;
 	case '=':
 #if 0
 	  	/* I'm not sure to want unnamed fields */
@@ -305,7 +308,7 @@ static int get_string(char **string, int id, input_t *input)
 	case ',':
 	case ';':
 		input->error = UNEXPECTED_CHAR;
-		return -1;
+		return -EINVAL;
 	case '\'':
 	case '"':
 		err = get_delimstring(string, c, input);
@@ -411,8 +414,10 @@ static int parse_def(snd_config_t *father, input_t *input)
 			break;
 		if (_snd_config_search(father, id, -1, &n) == 0) {
 			if (mode != REMOVE) {
-				if (n->type != SND_CONFIG_TYPE_COMPOUND)
+				if (n->type != SND_CONFIG_TYPE_COMPOUND) {
+					ERR("%s is not a compound", id);
 					return -EINVAL;
+				}
 				n->u.compound.join = 1;
 				father = n;
 				free(id);
@@ -421,6 +426,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 			snd_config_delete(n);
 		}
 		if (mode == NOCREATE) {
+			ERR("%s does not exists", id);
 			free(id);
 			return -ENOENT;
 		}
@@ -442,6 +448,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 	} else {
 		n = NULL;
 		if (mode == NOCREATE) {
+			ERR("%s does not exists", id);
 			free(id);
 			return -ENOENT;
 		}
@@ -450,8 +457,10 @@ static int parse_def(snd_config_t *father, input_t *input)
 	case '{':
 	{
 		if (n) {
-			if (n->type != SND_CONFIG_TYPE_COMPOUND)
+			if (n->type != SND_CONFIG_TYPE_COMPOUND) {
+				ERR("%s is not a compound", id);
 				return -EINVAL;
+			}
 		} else {
 			err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_COMPOUND, father);
 			if (err < 0)
@@ -465,8 +474,8 @@ static int parse_def(snd_config_t *father, input_t *input)
 		c = get_nonwhite(input);
 		if (c != '}') {
 			snd_config_delete(n);
-			input->error = UNEXPECTED_CHAR;
-			return -1;
+			input->error = (c == EOF ? UNEXPECTED_EOF : UNEXPECTED_CHAR);
+			return -EINVAL;
 		}
 		break;
 	}
@@ -489,8 +498,10 @@ static int parse_def(snd_config_t *father, input_t *input)
 				if (errno == 0) {
 					free(s);
 					if (n) {
-						if (n->type != SND_CONFIG_TYPE_REAL)
+						if (n->type != SND_CONFIG_TYPE_REAL) {
+							ERR("%s is not a real", id);
 							return -EINVAL;
+						}
 					} else {
 						err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_REAL, father);
 						if (err < 0)
@@ -502,8 +513,10 @@ static int parse_def(snd_config_t *father, input_t *input)
 			} else if (*ptr == '\0') {
 				free(s);
 				if (n) {
-					if (n->type != SND_CONFIG_TYPE_INTEGER)
+					if (n->type != SND_CONFIG_TYPE_INTEGER) {
+						ERR("%s is not an integer", id);
 						return -EINVAL;
+					}
 				} else {
 					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER, father);
 					if (err < 0)
@@ -515,6 +528,7 @@ static int parse_def(snd_config_t *father, input_t *input)
 		}
 		if (n) {
 			if (n->type != SND_CONFIG_TYPE_STRING) {
+				ERR("%s is not a string", id);
 				free(s);
 				return -EINVAL;
 			}
@@ -576,16 +590,51 @@ int snd_config_load(snd_config_t *config, FILE *fp)
 	fd->next = NULL;
 	input.current = fd;
 	input.unget = 0;
+	input.error = 0;
 	err = parse_defs(config, &input);
+	fd = input.current;
 	if (err < 0) {
+		if (input.error < 0) {
+			char *str;
+			switch (input.error) {
+			case UNTERMINATED_STRING:
+				str = "Unterminated string";
+				break;
+			case UNTERMINATED_QUOTE:
+				str = "Unterminated quote";
+				break;
+			case UNEXPECTED_CHAR:
+				str = "Unexpected char";
+				break;
+			case UNEXPECTED_EOF:
+				str = "Unexpected end of file";
+				break;
+			default:
+				assert(0);
+				break;
+			}
+			ERR("%s:%d:%d:%s", fd->name ? fd->name : "",
+			    fd->line, fd->column, str);
+		}
 		snd_config_delete(config);
-		return err;
+		goto _end;
 	}
 	if (get_char(&input) != EOF) {
+		ERR("%s:%d:%d:Unexpected }", fd->name ? fd->name : "",
+		    fd->line, fd->column);
 		snd_config_delete(config);
-		return -1;
+		err = -EINVAL;
+		goto _end;
 	}
-	return 0;
+ _end:
+	while (fd->next) {
+		fclose(fd->fp);
+		free(fd->name);
+		free(fd);
+		fd = fd->next;
+	}
+	free(fd);
+	return err;
 }
 
 int snd_config_add(snd_config_t *father, snd_config_t *leaf)
