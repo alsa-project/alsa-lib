@@ -1,6 +1,7 @@
 EXTRA_LTLIBRARIES=libtimer.la
 
 libtimer_la_SOURCES = timer.c timer_hw.c timer_query.c timer_query_hw.c
+noinst_HEADERS = timer_local.h
 all: libtimer.la
 
 
