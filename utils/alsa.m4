@@ -52,9 +52,10 @@ if test "$alsa_prefix" != "" ; then
 fi
 
 dnl add the alsa library
-ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl"
+ALSA_LIBS="$ALSA_LIBS -lasound -lm -ldl -lpthread"
 LIBS=`echo $LIBS | sed 's/-lm//'`
 LIBS=`echo $LIBS | sed 's/-ldl//'`
+LIBS=`echo $LIBS | sed 's/-lpthread//'`
 LIBS=`echo $LIBS | sed 's/  //'`
 LIBS="$ALSA_LIBS $LIBS"
 AC_MSG_RESULT($ALSA_LIBS)
