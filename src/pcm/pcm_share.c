@@ -469,7 +469,7 @@ static int snd_pcm_share_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 				    share->channels_count, 0);
 	if (err < 0)
 		return err;
-	if (slave->format != SND_PCM_FORMAT_NONE) {
+	if (slave->format != SND_PCM_FORMAT_UNKNOWN) {
 		err = _snd_pcm_hw_params_set_format(params, slave->format);
 		if (err < 0)
 			return err;
@@ -1371,7 +1371,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 	unsigned int channels_count = 0;
 	long schannels_count = -1;
 	unsigned int schannel_max = 0;
-	snd_pcm_format_t sformat = SND_PCM_FORMAT_NONE;
+	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	long srate = -1;
 	
 	snd_config_foreach(i, conf) {
@@ -1398,7 +1398,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, char *name, snd_config_t *conf,
 				return -EINVAL;
 			}
 			sformat = snd_pcm_format_value(f);
-			if (sformat == SND_PCM_FORMAT_NONE) {
+			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
 				ERR("Unknown format %s", f);
 				return -EINVAL;
 			}

@@ -1,10 +1,19 @@
 
 typedef struct _snd_input snd_input_t;
 
-typedef enum _snd_input_type {
+enum _snd_input_type {
 	SND_INPUT_STDIO,
 	SND_INPUT_BUFFER,
-} snd_input_type_t;
+};
+
+#ifdef SND_ENUM_TYPECHECK
+typedef struct __snd_input_type *snd_input_type_t;
+#else
+typedef enum _snd_input_type snd_input_type_t;
+#endif
+
+#define SND_INPUT_STDIO ((snd_input_type_t) SND_INPUT_STDIO)
+#define SND_INPUT_BUFFER ((snd_input_type_t) SND_INPUT_BUFFER)
 
 #ifdef __cplusplus
 extern "C" {

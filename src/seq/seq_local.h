@@ -73,7 +73,7 @@ typedef struct {
 
 struct _snd_seq {
 	char *name;
-	int type;
+	snd_seq_type_t type;
 	int streams;
 	int mode;
 	int poll_fd;

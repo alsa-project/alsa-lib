@@ -258,7 +258,7 @@ static int snd_pcm_rate_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 				   &saccess_mask);
-	if (rate->sformat != SND_PCM_FORMAT_NONE) {
+	if (rate->sformat != SND_PCM_FORMAT_UNKNOWN) {
 		_snd_pcm_hw_params_set_format(sparams, rate->sformat);
 		_snd_pcm_hw_params_set_subformat(sparams, SND_PCM_SUBFORMAT_STD);
 	}
@@ -277,7 +277,7 @@ static int snd_pcm_rate_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
 			      SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	if (rate->sformat == SND_PCM_FORMAT_NONE)
+	if (rate->sformat == SND_PCM_FORMAT_UNKNOWN)
 		links |= (SND_PCM_HW_PARBIT_FORMAT |
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS |
@@ -307,7 +307,7 @@ static int snd_pcm_rate_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
 			      SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	if (rate->sformat == SND_PCM_FORMAT_NONE)
+	if (rate->sformat == SND_PCM_FORMAT_UNKNOWN)
 		links |= (SND_PCM_HW_PARBIT_FORMAT |
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS |
@@ -542,7 +542,7 @@ snd_pcm_sframes_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, snd_pcm_sframes_t fr
 static void snd_pcm_rate_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_rate_t *rate = pcm->private;
-	if (rate->sformat == SND_PCM_FORMAT_NONE)
+	if (rate->sformat == SND_PCM_FORMAT_UNKNOWN)
 		snd_output_printf(out, "Rate conversion PCM (%d)\n", 
 			rate->srate);
 	else
@@ -577,7 +577,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, snd_pcm_format_t sformat, in
 	snd_pcm_t *pcm;
 	snd_pcm_rate_t *rate;
 	assert(pcmp && slave);
-	if (sformat != SND_PCM_FORMAT_NONE &&
+	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 	    snd_pcm_format_linear(sformat) != 1)
 		return -EINVAL;
 	rate = calloc(1, sizeof(snd_pcm_rate_t));
@@ -625,7 +625,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, char *name,
 	char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	snd_pcm_format_t sformat = SND_PCM_FORMAT_NONE;
+	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	long srate = -1;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);
@@ -651,7 +651,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, char *name,
 				return -EINVAL;
 			}
 			sformat = snd_pcm_format_value(f);
-			if (sformat == SND_PCM_FORMAT_NONE) {
+			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
 				ERR("Unknown sformat");
 				return -EINVAL;
 			}

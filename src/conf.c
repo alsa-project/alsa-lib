@@ -651,7 +651,7 @@ int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 int snd_config_delete(snd_config_t *config)
 {
 	assert(config);
-	switch (config->type) {
+	switch (snd_enum_to_int(config->type)) {
 	case SND_CONFIG_TYPE_COMPOUND:
 	{
 		int err;
@@ -755,7 +755,7 @@ int snd_config_set(snd_config_t *config, ...)
 	va_list arg;
 	va_start(arg, config);
 	assert(config);
-	switch (config->type) {
+	switch (snd_enum_to_int(config->type)) {
 	case SND_CONFIG_TYPE_INTEGER:
 		config->u.integer = va_arg(arg, long);
 		break;
@@ -803,7 +803,7 @@ int snd_config_string_get(snd_config_t *config, char **ptr)
 int snd_config_get(snd_config_t *config, void *ptr)
 {
 	assert(config && ptr);
-	switch (config->type) {
+	switch (snd_enum_to_int(config->type)) {
 	case SND_CONFIG_TYPE_INTEGER:
 		* (long*) ptr = config->u.integer;
 		break;
@@ -908,7 +908,7 @@ static int _snd_config_save_leaf(snd_config_t *n, snd_output_t *out,
 {
 	int err;
 	unsigned int k;
-	switch (n->type) {
+	switch (snd_enum_to_int(n->type)) {
 	case SND_CONFIG_TYPE_INTEGER:
 		snd_output_printf(out, "%ld", n->u.integer);
 		break;

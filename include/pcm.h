@@ -13,18 +13,17 @@ typedef struct _snd_pcm_access_mask snd_pcm_access_mask_t;
 typedef struct _snd_pcm_format_mask snd_pcm_format_mask_t;
 typedef struct _snd_pcm_subformat_mask snd_pcm_subformat_mask_t;
 
-/* sndrv aliasing */
 #ifdef SND_ENUM_TYPECHECK
-typedef struct _snd_pcm_class *snd_pcm_class_t;
-typedef struct _snd_pcm_subclass *snd_pcm_subclass_t;
-typedef struct _snd_pcm_stream *snd_pcm_stream_t;
-typedef struct _snd_pcm_access *snd_pcm_access_t;
-typedef struct _snd_pcm_format *snd_pcm_format_t;
-typedef struct _snd_pcm_subformat *snd_pcm_subformat_t;
-typedef struct _snd_pcm_state *snd_pcm_state_t;
-typedef struct _snd_pcm_start *snd_pcm_start_t;
-typedef struct _snd_pcm_xrun *snd_pcm_xrun_t;
-typedef struct _snd_pcm_tstamp *snd_pcm_tstamp_t;
+typedef struct __snd_pcm_class *snd_pcm_class_t;
+typedef struct __snd_pcm_subclass *snd_pcm_subclass_t;
+typedef struct __snd_pcm_stream *snd_pcm_stream_t;
+typedef struct __snd_pcm_access *snd_pcm_access_t;
+typedef struct __snd_pcm_format *snd_pcm_format_t;
+typedef struct __snd_pcm_subformat *snd_pcm_subformat_t;
+typedef struct __snd_pcm_state *snd_pcm_state_t;
+typedef struct __snd_pcm_start *snd_pcm_start_t;
+typedef struct __snd_pcm_xrun *snd_pcm_xrun_t;
+typedef struct __snd_pcm_tstamp *snd_pcm_tstamp_t;
 #else
 typedef enum sndrv_pcm_class snd_pcm_class_t;
 typedef enum sndrv_pcm_subclass snd_pcm_subclass_t;
@@ -53,7 +52,7 @@ typedef enum sndrv_pcm_tstamp snd_pcm_tstamp_t;
 #define SND_PCM_ACCESS_RW_INTERLEAVED ((snd_pcm_access_t) SNDRV_PCM_ACCESS_RW_INTERLEAVED)
 #define SND_PCM_ACCESS_RW_NONINTERLEAVED ((snd_pcm_access_t) SNDRV_PCM_ACCESS_RW_NONINTERLEAVED)
 #define SND_PCM_ACCESS_LAST ((snd_pcm_access_t) SNDRV_PCM_ACCESS_LAST)
-#define SND_PCM_FORMAT_NONE ((snd_pcm_format_t) -1)
+#define SND_PCM_FORMAT_UNKNOWN ((snd_pcm_format_t) -1)
 #define SND_PCM_FORMAT_S8 ((snd_pcm_format_t) SNDRV_PCM_FORMAT_S8)
 #define SND_PCM_FORMAT_U8 ((snd_pcm_format_t) SNDRV_PCM_FORMAT_U8)
 #define SND_PCM_FORMAT_S16_LE ((snd_pcm_format_t) SNDRV_PCM_FORMAT_S16_LE)
@@ -145,7 +144,7 @@ typedef struct timeval snd_timestamp_t;
 
 typedef struct _snd_pcm snd_pcm_t;
 
-typedef enum _snd_pcm_type {
+enum _snd_pcm_type {
 	SND_PCM_TYPE_HW,
 	SND_PCM_TYPE_MULTI,
 	SND_PCM_TYPE_FILE,
@@ -164,7 +163,32 @@ typedef enum _snd_pcm_type {
 	SND_PCM_TYPE_MIX,
 	SND_PCM_TYPE_DROUTE,
 	SND_PCM_TYPE_LBSERVER,
-} snd_pcm_type_t;
+};
+
+#ifdef SND_ENUM_TYPECHECK
+typedef struct __snd_pcm_type *snd_pcm_type_t;
+#else
+typedef enum _snd_pcm_type snd_pcm_type_t;
+#endif
+
+#define	SND_PCM_TYPE_HW ((snd_pcm_type_t) SND_PCM_TYPE_HW)
+#define	SND_PCM_TYPE_MULTI ((snd_pcm_type_t) SND_PCM_TYPE_MULTI)
+#define	SND_PCM_TYPE_FILE ((snd_pcm_type_t) SND_PCM_TYPE_FILE)
+#define	SND_PCM_TYPE_NULL ((snd_pcm_type_t) SND_PCM_TYPE_NULL)
+#define	SND_PCM_TYPE_SHM ((snd_pcm_type_t) SND_PCM_TYPE_SHM)
+#define	SND_PCM_TYPE_INET ((snd_pcm_type_t) SND_PCM_TYPE_INET)
+#define	SND_PCM_TYPE_COPY ((snd_pcm_type_t) SND_PCM_TYPE_COPY)
+#define	SND_PCM_TYPE_LINEAR ((snd_pcm_type_t) SND_PCM_TYPE_LINEAR)
+#define	SND_PCM_TYPE_ALAW ((snd_pcm_type_t) SND_PCM_TYPE_ALAW)
+#define	SND_PCM_TYPE_MULAW ((snd_pcm_type_t) SND_PCM_TYPE_MULAW)
+#define	SND_PCM_TYPE_ADPCM ((snd_pcm_type_t) SND_PCM_TYPE_ADPCM)
+#define	SND_PCM_TYPE_RATE ((snd_pcm_type_t) SND_PCM_TYPE_RATE)
+#define	SND_PCM_TYPE_ROUTE ((snd_pcm_type_t) SND_PCM_TYPE_ROUTE)
+#define	SND_PCM_TYPE_PLUG ((snd_pcm_type_t) SND_PCM_TYPE_PLUG)
+#define	SND_PCM_TYPE_SHARE ((snd_pcm_type_t) SND_PCM_TYPE_SHARE)
+#define	SND_PCM_TYPE_MIX ((snd_pcm_type_t) SND_PCM_TYPE_MIX)
+#define	SND_PCM_TYPE_DROUTE ((snd_pcm_type_t) SND_PCM_TYPE_DROUTE)
+#define	SND_PCM_TYPE_LBSERVER ((snd_pcm_type_t) SND_PCM_TYPE_LBSERVER)
 
 typedef struct _snd_pcm_channel_area {
 	void *addr;			/* base address of channel samples */

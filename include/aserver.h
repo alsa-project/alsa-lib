@@ -20,6 +20,20 @@
   
 #include "../src/pcm/pcm_local.h"
 
+typedef enum _snd_dev_type {
+	SND_DEV_TYPE_PCM,
+	SND_DEV_TYPE_CONTROL,
+	SND_DEV_TYPE_RAWMIDI,
+	SND_DEV_TYPE_TIMER,
+	SND_DEV_TYPE_HWDEP,
+	SND_DEV_TYPE_SEQ,
+} snd_dev_type_t;
+
+typedef enum _snd_transport_type {
+	SND_TRANSPORT_TYPE_SHM,
+	SND_TRANSPORT_TYPE_TCP,
+} snd_transport_type_t;
+
 #define SND_PCM_IOCTL_STATE		_IO ('A', 0xf1)
 #define SND_PCM_IOCTL_MMAP		_IO ('A', 0xf2)
 #define SND_PCM_IOCTL_MUNMAP		_IO ('A', 0xf3)

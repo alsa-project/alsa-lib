@@ -5,27 +5,34 @@
  *                                                                          *
  ****************************************************************************/
 
-/* sndrv aliasing */
-typedef enum sndrv_timer_type snd_timer_type_t;
-typedef enum sndrv_timer_slave_type snd_timer_slave_type_t;
-typedef enum sndrv_timer_global snd_timer_global_t;
 typedef struct sndrv_timer_id snd_timer_id_t;
 typedef struct sndrv_timer_select snd_timer_select_t;
 typedef struct sndrv_timer_info snd_timer_info_t;
 typedef struct sndrv_timer_params snd_timer_params_t;
 typedef struct sndrv_timer_status snd_timer_status_t;
 typedef struct sndrv_timer_read snd_timer_read_t;
-#define SND_TIMER_TYPE_NONE SNDRV_TIMER_TYPE_NONE
-#define SND_TIMER_TYPE_SLAVE SNDRV_TIMER_TYPE_SLAVE
-#define SND_TIMER_TYPE_GLOBAL SNDRV_TIMER_TYPE_GLOBAL
-#define SND_TIMER_TYPE_CARD SNDRV_TIMER_TYPE_CARD
-#define SND_TIMER_TYPE_PCM SNDRV_TIMER_TYPE_PCM
-#define SND_TIMER_STYPE_NONE SNDRV_TIMER_STYPE_NONE
-#define SND_TIMER_STYPE_APPLICATION SNDRV_TIMER_STYPE_APPLICATION
-#define SND_TIMER_STYPE_SEQUENCER SNDRV_TIMER_STYPE_SEQUENCER
-#define SND_TIMER_STYPE_OSS_SEQUENCER SNDRV_TIMER_STYPE_OSS_SEQUENCER
+
+#ifdef SND_ENUM_TYPECHECK
+typedef struct __snd_timer_type *snd_timer_type_t;
+typedef struct __snd_timer_slave_type *snd_timer_slave_type_t;
+#else
+typedef enum sndrv_timer_type snd_timer_type_t;
+typedef enum sndrv_timer_slave_type snd_timer_slave_type_t;
+#endif
+
+#define SND_TIMER_TYPE_NONE ((snd_timer_type_t) SNDRV_TIMER_TYPE_NONE)
+#define SND_TIMER_TYPE_SLAVE ((snd_timer_type_t) SNDRV_TIMER_TYPE_SLAVE)
+#define SND_TIMER_TYPE_GLOBAL ((snd_timer_type_t) SNDRV_TIMER_TYPE_GLOBAL)
+#define SND_TIMER_TYPE_CARD ((snd_timer_type_t) SNDRV_TIMER_TYPE_CARD)
+#define SND_TIMER_TYPE_PCM ((snd_timer_type_t) SNDRV_TIMER_TYPE_PCM)
+#define SND_TIMER_STYPE_NONE ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_NONE
+#define SND_TIMER_STYPE_APPLICATION ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_APPLICATION
+#define SND_TIMER_STYPE_SEQUENCER ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_SEQUENCER
+#define SND_TIMER_STYPE_OSS_SEQUENCER ((snd_timer_slave_type_t) SNDRV_TIMER_STYPE_OSS_SEQUENCER
+
 #define SND_TIMER_GLOBAL_SYSTEM SNDRV_TIMER_GLOBAL_SYSTEM
 #define SND_TIMER_GLOBAL_RTC SNDRV_TIMER_GLOBAL_RTC
+
 #define SND_TIMER_FLG_SLAVE SNDRV_TIMER_FLG_SLAVE
 #define SND_TIMER_PARBIT_FLAGS SNDRV_TIMER_PARBIT_FLAGS
 #define SND_TIMER_PARBIT_TICKS SNDRV_TIMER_PARBIT_TICKS

@@ -371,7 +371,7 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, char *name,
 	char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	snd_pcm_format_t sformat = SND_PCM_FORMAT_NONE;
+	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);
 		if (strcmp(n->id, "comment") == 0)
@@ -396,7 +396,7 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, char *name,
 				return -EINVAL;
 			}
 			sformat = snd_pcm_format_value(f);
-			if (sformat == SND_PCM_FORMAT_NONE) {
+			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
 				ERR("Unknown sformat %s", f);
 				return err;
 			}
@@ -413,7 +413,7 @@ int _snd_pcm_linear_open(snd_pcm_t **pcmp, char *name,
 		ERR("sname is not defined");
 		return -EINVAL;
 	}
-	if (sformat == SND_PCM_FORMAT_NONE) {
+	if (sformat == SND_PCM_FORMAT_UNKNOWN) {
 		ERR("sformat is not defined");
 		return -EINVAL;
 	}

@@ -24,7 +24,8 @@ int snd_mixer_poll_descriptor(snd_mixer_t *handle);
  *  Simple (legacy) mixer API
  */
 
-typedef enum _snd_mixer_channel_id {
+enum _snd_mixer_channel_id {
+	SND_MIXER_CHN_UNKNOWN = -1,
 	SND_MIXER_CHN_FRONT_LEFT = 0,
 	SND_MIXER_CHN_FRONT_RIGHT,
 	SND_MIXER_CHN_FRONT_CENTER,
@@ -33,15 +34,31 @@ typedef enum _snd_mixer_channel_id {
 	SND_MIXER_CHN_WOOFER,
 	SND_MIXER_CHN_LAST = 31,
 	SND_MIXER_CHN_MONO = SND_MIXER_CHN_FRONT_LEFT
-} snd_mixer_channel_id_t;
+};
 
-#define SND_MIXER_CHN_MASK_MONO		(1<<SND_MIXER_CHN_MONO)
-#define SND_MIXER_CHN_MASK_FRONT_LEFT	(1<<SND_MIXER_CHN_FRONT_LEFT)
-#define SND_MIXER_CHN_MASK_FRONT_RIGHT	(1<<SND_MIXER_CHN_FRONT_RIGHT)
-#define SND_MIXER_CHN_MASK_FRONT_CENTER	(1<<SND_MIXER_CHN_FRONT_CENTER)
-#define SND_MIXER_CHN_MASK_REAR_LEFT	(1<<SND_MIXER_CHN_REAR_LEFT)
-#define SND_MIXER_CHN_MASK_REAR_RIGHT	(1<<SND_MIXER_CHN_REAR_RIGHT)
-#define SND_MIXER_CHN_MASK_WOOFER	(1<<SND_MIXER_CHN_WOOFER)
+#ifdef SND_ENUM_TYPECHECK
+typedef struct __snd_mixer_channel_id *snd_mixer_channel_id_t;
+#else
+typedef enum _snd_mixer_channel_id snd_mixer_channel_id_t;
+#endif
+
+#define SND_MIXER_CHN_UNKNOWN ((snd_mixer_channel_id_t) SND_MIXER_CHN_UNKNOWN)
+#define SND_MIXER_CHN_FRONT_LEFT ((snd_mixer_channel_id_t) SND_MIXER_CHN_FRONT_LEFT)
+#define SND_MIXER_CHN_FRONT_RIGHT ((snd_mixer_channel_id_t) SND_MIXER_CHN_FRONT_RIGHT)
+#define SND_MIXER_CHN_FRONT_CENTER ((snd_mixer_channel_id_t) SND_MIXER_CHN_FRONT_CENTER)
+#define SND_MIXER_CHN_REAR_LEFT ((snd_mixer_channel_id_t) SND_MIXER_CHN_REAR_LEFT)
+#define SND_MIXER_CHN_REAR_RIGHT ((snd_mixer_channel_id_t) SND_MIXER_CHN_REAR_RIGHT)
+#define SND_MIXER_CHN_WOOFER ((snd_mixer_channel_id_t) SND_MIXER_CHN_WOOFER)
+#define SND_MIXER_CHN_LAST ((snd_mixer_channel_id_t) SND_MIXER_CHN_LAST)
+#define SND_MIXER_CHN_MONO ((snd_mixer_channel_id_t) SND_MIXER_CHN_MONO)
+
+#define SND_MIXER_CHN_MASK_MONO		(1<<snd_enum_to_int(SND_MIXER_CHN_MONO))
+#define SND_MIXER_CHN_MASK_FRONT_LEFT	(1<<snd_enum_to_int(SND_MIXER_CHN_FRONT_LEFT))
+#define SND_MIXER_CHN_MASK_FRONT_RIGHT	(1<<snd_enum_to_int(SND_MIXER_CHN_FRONT_RIGHT))
+#define SND_MIXER_CHN_MASK_FRONT_CENTER	(1<<snd_enum_to_int(SND_MIXER_CHN_FRONT_CENTER))
+#define SND_MIXER_CHN_MASK_REAR_LEFT	(1<<snd_enum_to_int(SND_MIXER_CHN_REAR_LEFT))
+#define SND_MIXER_CHN_MASK_REAR_RIGHT	(1<<snd_enum_to_int(SND_MIXER_CHN_REAR_RIGHT))
+#define SND_MIXER_CHN_MASK_WOOFER	(1<<snd_enum_to_int(SND_MIXER_CHN_WOOFER))
 #define SND_MIXER_CHN_MASK_STEREO	(SND_MIXER_CHN_MASK_FRONT_LEFT|SND_MIXER_CHN_MASK_FRONT_RIGHT)
 
 #define SND_MIXER_SCTCAP_VOLUME         (1<<0)
@@ -103,7 +120,7 @@ typedef struct _snd_mixer_simple_callbacks {
 extern "C" {
 #endif
 
-const char *snd_mixer_simple_channel_name(int channel);
+const char *snd_mixer_simple_channel_name(snd_mixer_channel_id_t channel);
 int snd_mixer_simple_control_list(snd_mixer_t *handle, snd_mixer_simple_control_list_t *list);
 int snd_mixer_simple_control_read(snd_mixer_t *handle, snd_mixer_simple_control_t *simple);
 int snd_mixer_simple_control_write(snd_mixer_t *handle, snd_mixer_simple_control_t *simple);

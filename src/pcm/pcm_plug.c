@@ -132,7 +132,7 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 			}
 			/* Fall through */
 		default:
-			return SND_PCM_FORMAT_NONE;
+			return SND_PCM_FORMAT_UNKNOWN;
 		}
 
 	}
@@ -144,7 +144,7 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 			if (snd_pcm_format_mask_test(format_mask, f))
 				return f;
 		}
-		return SND_PCM_FORMAT_NONE;
+		return SND_PCM_FORMAT_UNKNOWN;
 	}
 	w = snd_pcm_format_width(format);
 	u = snd_pcm_format_unsigned(format);
@@ -158,7 +158,7 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 			for (sgn = 0; sgn < 2; ++sgn) {
 				snd_pcm_format_t f;
 				f = snd_pcm_build_linear_format(w1, u1, e1);
-				assert(f != SND_PCM_FORMAT_NONE);
+				assert(f != SND_PCM_FORMAT_UNKNOWN);
 				if (snd_pcm_format_mask_test(format_mask, f))
 					return f;
 				u1 = !u1;
@@ -172,7 +172,7 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 			dw = -8;
 		}
 	}
-	return SND_PCM_FORMAT_NONE;
+	return SND_PCM_FORMAT_UNKNOWN;
 }
 
 #define SND_PCM_FMTBIT_PLUG (SND_PCM_FMTBIT_LINEAR | \
@@ -401,9 +401,8 @@ static int snd_pcm_plug_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 
 static int snd_pcm_plug_hw_refine_sprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *sparams)
 {
-	snd_pcm_plug_t *plug = pcm->private;
-	snd_pcm_t *slave = plug->req_slave;
-	return snd_pcm_hw_params_any(slave, sparams);
+	_snd_pcm_hw_params_any(sparams);
+	return 0;
 }
 
 static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
@@ -436,7 +435,7 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 			f = format;
 		else {
 			f = snd_pcm_plug_slave_format(format, sformat_mask);
-			if (f == SND_PCM_FORMAT_NONE)
+			if (f == SND_PCM_FORMAT_UNKNOWN)
 				continue;
 		}
 		snd_pcm_format_mask_set(&sfmt_mask, f);
@@ -496,7 +495,7 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 			f = format;
 		else {
 			f = snd_pcm_plug_slave_format(format, sformat_mask);
-			if (f == SND_PCM_FORMAT_NONE)
+			if (f == SND_PCM_FORMAT_UNKNOWN)
 				continue;
 		}
 		snd_pcm_format_mask_set(&fmt_mask, format);

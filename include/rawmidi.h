@@ -9,15 +9,15 @@ typedef struct _snd_rawmidi_info snd_rawmidi_info_t;
 typedef struct _snd_rawmidi_params snd_rawmidi_params_t;
 typedef struct _snd_rawmidi_status snd_rawmidi_status_t;
 
-/* sndrv aliasing */
 #ifdef SND_ENUM_TYPECHECK
-typedef struct _snd_rawmidi_stream *snd_rawmidi_stream_t;
+typedef struct __snd_rawmidi_stream *snd_rawmidi_stream_t;
 #else
 typedef enum sndrv_rawmidi_stream snd_rawmidi_stream_t;
 #endif
 
 #define SND_RAWMIDI_STREAM_OUTPUT ((snd_rawmidi_stream_t) SNDRV_RAWMIDI_STREAM_OUTPUT)
 #define SND_RAWMIDI_STREAM_INPUT ((snd_rawmidi_stream_t) SNDRV_RAWMIDI_STREAM_INPUT)
+
 #define SND_RAWMIDI_INFO_OUTPUT SNDRV_RAWMIDI_INFO_OUTPUT
 #define SND_RAWMIDI_INFO_INPUT SNDRV_RAWMIDI_INFO_INPUT
 #define SND_RAWMIDI_INFO_DUPLEX SNDRV_RAWMIDI_INFO_DUPLEX
@@ -30,11 +30,21 @@ typedef enum sndrv_rawmidi_stream snd_rawmidi_stream_t;
 
 typedef struct _snd_rawmidi snd_rawmidi_t;
 
-typedef enum _snd_rawmidi_type {
+enum _snd_rawmidi_type {
 	SND_RAWMIDI_TYPE_HW,
 	SND_RAWMIDI_TYPE_SHM,
 	SND_RAWMIDI_TYPE_INET,
-} snd_rawmidi_type_t;
+};
+
+#ifdef SND_ENUM_TYPECHECK
+typedef struct __snd_rawmidi_type *snd_rawmidi_type_t;
+#else
+typedef enum _snd_rawmidi_type snd_rawmidi_type_t;
+#endif
+
+#define	SND_RAWMIDI_TYPE_HW ((snd_rawmidi_type_t) SND_RAWMIDI_TYPE_HW)
+#define	SND_RAWMIDI_TYPE_SHM ((snd_rawmidi_type_t) SND_RAWMIDI_TYPE_SHM)
+#define	SND_RAWMIDI_TYPE_INET ((snd_rawmidi_type_t) SND_RAWMIDI_TYPE_INET)
 
 #ifdef __cplusplus
 extern "C" {

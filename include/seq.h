@@ -5,13 +5,10 @@
  *                                                                          *
  ****************************************************************************/
 
-/* sndrv aliasing */
 typedef sndrv_seq_tick_time_t snd_seq_tick_time_t;
 typedef sndrv_seq_position_t snd_seq_position_t;
 typedef sndrv_seq_frequency_t snd_seq_frequency_t;
 typedef sndrv_seq_instr_cluster_t snd_seq_instr_cluster_t;
-typedef enum sndrv_seq_client_type snd_seq_client_type_t;
-typedef enum sndrv_seq_stop_mode snd_seq_stop_mode_t;
 typedef struct sndrv_seq_port_info snd_seq_port_info_t;
 typedef struct sndrv_seq_port_subscribe snd_seq_port_subscribe_t;
 typedef struct sndrv_seq_event snd_seq_event_t;
@@ -36,6 +33,9 @@ typedef struct sndrv_seq_instr_free snd_seq_instr_free_t;
 typedef struct sndrv_seq_instr_put snd_seq_instr_put_t;
 typedef struct sndrv_seq_instr_get snd_seq_instr_get_t;
 typedef union sndrv_seq_timestamp snd_seq_timestamp_t;
+
+typedef enum sndrv_seq_client_type snd_seq_client_type_t;
+typedef enum sndrv_seq_stop_mode snd_seq_stop_mode_t;
 
 #define snd_seq_event_bounce_ext_data	sndrv_seq_event_bounce_ext_data 
 #define snd_seq_ev_is_result_type	sndrv_seq_ev_is_result_type     
@@ -300,11 +300,21 @@ typedef union sndrv_seq_timestamp snd_seq_timestamp_t;
 
 #define SND_SEQ_NONBLOCK	1
 
-typedef enum _snd_seq_type {
+enum _snd_seq_type {
 	SND_SEQ_TYPE_HW,
 	SND_SEQ_TYPE_SHM,
 	SND_SEQ_TYPE_INET,
-} snd_seq_type_t;
+};
+
+#ifdef SND_ENUM_TYPECHECK
+typedef struct __snd_seq_type *snd_seq_type_t;
+#else
+typedef enum _snd_seq_type snd_seq_type_t;
+#endif
+
+#define	SND_SEQ_TYPE_HW ((snd_seq_type_t) SND_SEQ_TYPE_HW)
+#define	SND_SEQ_TYPE_SHM ((snd_seq_type_t) SND_SEQ_TYPE_SHM)
+#define	SND_SEQ_TYPE_INET ((snd_seq_type_t) SND_SEQ_TYPE_INET)
 
 typedef struct _snd_seq snd_seq_t;
 

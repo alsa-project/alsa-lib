@@ -26,7 +26,7 @@
 #define bswap_16 swab16
 #define bswap_32 swab32
 #define bswap_64 swab64
-#define SND_PCM_FORMAT_NONE (-1)
+#define SND_PCM_FORMAT_UNKNOWN (-1)
 #define snd_enum_to_int(v) (v)
 #define snd_int_to_enum(v) (v)
 #else
@@ -442,7 +442,7 @@ snd_pcm_format_t snd_pcm_build_linear_format(int width, int unsignd, int big_end
 		width = 3;
 		break;
 	default:
-		return SND_PCM_FORMAT_NONE;
+		return SND_PCM_FORMAT_UNKNOWN;
 	}
 	return snd_int_to_enum(((int(*)[2][2])linear_formats)[width][!!unsignd][!!big_endian]);
 }

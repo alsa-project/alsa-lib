@@ -29,6 +29,8 @@
 #define _snd_rawmidi_params sndrv_rawmidi_params
 #define _snd_rawmidi_status sndrv_rawmidi_status
 
+#define _snd_hwdep_info sndrv_hwdep_info
+
 #include "asoundlib.h"
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)

@@ -1,10 +1,21 @@
 
-typedef enum _snd_config_type {
+enum _snd_config_type {
         SND_CONFIG_TYPE_INTEGER,
         SND_CONFIG_TYPE_REAL,
         SND_CONFIG_TYPE_STRING,
 	SND_CONFIG_TYPE_COMPOUND,
-} snd_config_type_t;
+};
+
+#ifdef SND_ENUM_TYPECHECK
+typedef struct __snd_config_type *snd_config_type_t;
+#else
+typedef enum _snd_config_type snd_config_type_t;
+#endif
+
+#define SND_CONFIG_TYPE_INTEGER ((snd_config_type_t) SND_CONFIG_TYPE_INTEGER)
+#define SND_CONFIG_TYPE_REAL ((snd_config_type_t) SND_CONFIG_TYPE_REAL)
+#define SND_CONFIG_TYPE_STRING ((snd_config_type_t) SND_CONFIG_TYPE_STRING)
+#define SND_CONFIG_TYPE_COMPOUND ((snd_config_type_t) SND_CONFIG_TYPE_COMPOUND)
 
 typedef struct _snd_config snd_config_t;
 

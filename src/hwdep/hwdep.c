@@ -110,7 +110,7 @@ int snd_hwdep_block_mode(snd_hwdep_t *hwdep, int enable)
 	return 0;
 }
 
-int snd_hwdep_info(snd_hwdep_t *hwdep, snd_hwdep_info_t * info)
+int snd_hwdep_info(snd_hwdep_t *hwdep, snd_hwdep_info_t *info)
 {
 	if (!hwdep || !info)
 		return -EINVAL;

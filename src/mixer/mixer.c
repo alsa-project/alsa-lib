@@ -83,20 +83,22 @@ int snd_mixer_poll_descriptor(snd_mixer_t *handle)
 	return snd_ctl_poll_descriptor(handle->ctl_handle);
 }
 
-const char *snd_mixer_simple_channel_name(int channel)
+const char *snd_mixer_simple_channel_name(snd_mixer_channel_id_t channel)
 {
-	static char *array[6] = {
-		"Front-Left",
-		"Front-Right",
-		"Front-Center",
-		"Rear-Left",
-		"Rear-Right",
-		"Woofer"
+	static char *array[snd_enum_to_int(SND_MIXER_CHN_LAST) + 1] = {
+		[SND_MIXER_CHN_FRONT_LEFT] = "Front Left",
+		[SND_MIXER_CHN_FRONT_RIGHT] = "Front Right",
+		[SND_MIXER_CHN_FRONT_CENTER] = "Front Center",
+		[SND_MIXER_CHN_REAR_LEFT] = "Rear Left",
+		[SND_MIXER_CHN_REAR_RIGHT] = "Rear Right",
+		[SND_MIXER_CHN_WOOFER] = "Woofer"
 	};
-
-	if (channel < 0 || channel > 5)
+	char *p;
+	assert(channel <= SND_MIXER_CHN_LAST);
+	p = array[snd_enum_to_int(channel)];
+	if (!p)
 		return "?";
-	return array[channel];
+	return p;
 }
 
 int snd_mixer_simple_control_list(snd_mixer_t *handle, snd_mixer_simple_control_list_t *list)

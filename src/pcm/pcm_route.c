@@ -465,7 +465,7 @@ static int snd_pcm_route_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t 
 	_snd_pcm_hw_params_any(sparams);
 	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
 				   &saccess_mask);
-	if (route->sformat != SND_PCM_FORMAT_NONE) {
+	if (route->sformat != SND_PCM_FORMAT_UNKNOWN) {
 		_snd_pcm_hw_params_set_format(sparams, route->sformat);
 		_snd_pcm_hw_params_set_subformat(sparams, SND_PCM_SUBFORMAT_STD);
 	}
@@ -488,7 +488,7 @@ static int snd_pcm_route_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	if (route->sformat == SND_PCM_FORMAT_NONE)
+	if (route->sformat == SND_PCM_FORMAT_UNKNOWN)
 		links |= (SND_PCM_HW_PARBIT_FORMAT | 
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
@@ -512,7 +512,7 @@ static int snd_pcm_route_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
 			      SND_PCM_HW_PARBIT_TICK_TIME);
-	if (route->sformat == SND_PCM_FORMAT_NONE)
+	if (route->sformat == SND_PCM_FORMAT_UNKNOWN)
 		links |= (SND_PCM_HW_PARBIT_FORMAT | 
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS);
@@ -642,7 +642,7 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_route_t *route = pcm->private;
 	unsigned int dst;
-	if (route->sformat == SND_PCM_FORMAT_NONE)
+	if (route->sformat == SND_PCM_FORMAT_UNKNOWN)
 		snd_output_printf(out, "Route conversion PCM\n");
 	else
 		snd_output_printf(out, "Route conversion PCM (sformat=%s)\n", 
@@ -774,7 +774,7 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 	snd_pcm_route_t *route;
 	int err;
 	assert(pcmp && slave && ttable);
-	if (sformat != SND_PCM_FORMAT_NONE && 
+	if (sformat != SND_PCM_FORMAT_UNKNOWN && 
 	    snd_pcm_format_linear(sformat) != 1)
 		return -EINVAL;
 	route = calloc(1, sizeof(snd_pcm_route_t));
@@ -886,7 +886,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 	char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	snd_pcm_format_t sformat = SND_PCM_FORMAT_NONE;
+	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	long schannels = -1;
 	snd_config_t *tt = NULL;
 	snd_pcm_route_ttable_entry_t ttable[MAX_CHANNELS*MAX_CHANNELS];
@@ -915,7 +915,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, char *name,
 				return -EINVAL;
 			}
 			sformat = snd_pcm_format_value(f);
-			if (sformat == SND_PCM_FORMAT_NONE) {
+			if (sformat == SND_PCM_FORMAT_UNKNOWN) {
 				ERR("Unknown sformat");
 				return -EINVAL;
 			}

@@ -218,14 +218,7 @@ int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 int snd_pcm_unlink(snd_pcm_t *pcm)
 {
 	int fd;
-	switch (pcm->type) {
-	case SND_PCM_TYPE_HW:
-	case SND_PCM_TYPE_MULTI:
-		fd = snd_pcm_poll_descriptor(pcm);
-		break;
-	default:
-		return -ENOSYS;
-	}
+	fd = snd_pcm_link_descriptor(pcm);
 	if (ioctl(fd, SNDRV_PCM_IOCTL_UNLINK) < 0) {
 		SYSERR("SNDRV_PCM_IOCTL_UNLINK failed");
 		return -errno;
@@ -409,7 +402,7 @@ snd_pcm_format_t snd_pcm_format_value(const char* name)
 			return format;
 		}
 	}
-	return SND_PCM_FORMAT_NONE;
+	return SND_PCM_FORMAT_UNKNOWN;
 }
 
 const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat)
