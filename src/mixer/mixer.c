@@ -200,6 +200,7 @@ int snd_mixer_detach(snd_mixer_t *mixer, const char *name)
 int snd_mixer_throw_event(snd_mixer_t *mixer, snd_ctl_event_type_t event,
 			  snd_mixer_elem_t *elem)
 {
+	mixer->events++;
 	if (mixer->callback)
 		return mixer->callback(mixer, event, elem);
 	return 0;
@@ -208,6 +209,7 @@ int snd_mixer_throw_event(snd_mixer_t *mixer, snd_ctl_event_type_t event,
 int snd_mixer_elem_throw_event(snd_mixer_elem_t *elem,
 			       snd_ctl_event_type_t event)
 {
+	elem->class->mixer->events++;
 	if (elem->callback)
 		return elem->callback(elem, event);
 	return 0;
@@ -379,6 +381,7 @@ int snd_mixer_handle_events(snd_mixer_t *mixer)
 {
 	struct list_head *pos, *next;
 	assert(mixer);
+	mixer->events = 0;
 	list_for_each(pos, next, &mixer->slaves) {
 		int err;
 		snd_mixer_slave_t *s;
@@ -387,6 +390,6 @@ int snd_mixer_handle_events(snd_mixer_t *mixer)
 		if (err < 0)
 			return err;
 	}
-	return 0;
+	return mixer->events;
 }
 

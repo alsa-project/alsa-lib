@@ -491,17 +491,20 @@ int snd_hctl_handle_events(snd_hctl_t *hctl)
 {
 	snd_ctl_event_t event;
 	int res;
+	unsigned int count = 0;
 	
 	assert(hctl);
 	assert(hctl->ctl);
-	while ((res = snd_ctl_read(hctl->ctl, &event)) != 0) {
+	while ((res = snd_ctl_read(hctl->ctl, &event)) != 0 &&
+	       res != -EAGAIN) {
 		if (res < 0)
 			return res;
 		res = snd_hctl_handle_event(hctl, &event);
 		if (res < 0)
 			return res;
+		count++;
 	}
-	return 0;
+	return count;
 }
 
 int snd_hctl_elem_info(snd_hctl_elem_t *elem, snd_ctl_elem_info_t *info)

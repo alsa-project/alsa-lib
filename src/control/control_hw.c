@@ -220,7 +220,7 @@ static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 	snd_ctl_hw_t *hw = handle->private_data;
 	ssize_t res = read(hw->fd, event, sizeof(*event));
 	if (res <= 0)
-		return res;
+		return -errno;
 	assert(res == sizeof(*event));
 	return 1;
 }

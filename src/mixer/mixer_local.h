@@ -65,8 +65,8 @@ struct _snd_mixer {
 	struct list_head slaves;	/* list of all slaves */
 	struct list_head classes;	/* list of all elem classes */
 	struct list_head elems;		/* list of all elems */
-	
 	unsigned int count;
+	unsigned int events;
 	snd_mixer_callback_t callback;
 	void *callback_private;
 };
