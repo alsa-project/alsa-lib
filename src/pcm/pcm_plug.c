@@ -544,11 +544,15 @@ static int snd_pcm_plug_params(snd_pcm_t *pcm, snd_pcm_params_t *params)
 	err = snd_pcm_plug_insert_plugins(pcm, format, slave_format);
 	if (err < 0)
 		return err;
-	slave = plug->slave;
 
-	err = snd_pcm_params(slave, params);
+	err = snd_pcm_params(plug->slave, params);
 	if (err < 0)
 		snd_pcm_plug_clear(pcm);
+
+	assert(plug->req_slave->setup.format.sfmt == slave_format->sfmt);
+	assert(plug->req_slave->setup.format.channels == slave_format->channels);
+	assert(plug->req_slave->setup.format.rate == slave_format->rate);
+
 	return err;
 }
 
