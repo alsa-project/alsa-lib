@@ -170,3 +170,14 @@ ALSA_1.0.8 {
     snd_ctl_elem_add_iec958;
     snd_ctl_elem_remove;
 } ALSA_1.0.5;
+
+ALSA_1.0.9 {
+  global:
+
+    snd_pcm_ioplug_create;
+    snd_pcm_ioplug_delete;
+    snd_pcm_ioplug_reinit_status;
+    snd_pcm_ioplug_params_reset;
+    snd_pcm_ioplug_set_param_minmax;
+    snd_pcm_ioplug_set_param_list;
+} ALSA_1.0.5;

@@ -11,7 +11,8 @@ libpcm_la_SOURCES = atomic.c mask.c interval.c \
 	            pcm_shm.c pcm_file.c pcm_null.c pcm_share.c \
 		    pcm_meter.c pcm_hooks.c pcm_lfloat.c pcm_ladspa.c \
 		    pcm_direct.c pcm_dmix.c pcm_dsnoop.c pcm_dshare.c \
-		    pcm_asym.c pcm_iec958.c pcm_softvol.c pcm_symbols.c
+		    pcm_asym.c pcm_iec958.c pcm_softvol.c pcm_symbols.c \
+		    pcm_ioplug.c
 
 EXTRA_SOURCES = pcm_dmix_i386.c pcm_dmix_x86_64.c pcm_dmix_generic.c
 

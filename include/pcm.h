@@ -358,7 +358,9 @@ enum _snd_pcm_type {
 	SND_PCM_TYPE_IEC958,
 	/** Soft volume plugin */
 	SND_PCM_TYPE_SOFTVOL,
-	SND_PCM_TYPE_LAST = SND_PCM_TYPE_SOFTVOL
+	/** External I/O plugin */
+	SND_PCM_TYPE_IOPLUG,
+	SND_PCM_TYPE_LAST = SND_PCM_TYPE_IOPLUG
 };
 
 /** PCM type */
