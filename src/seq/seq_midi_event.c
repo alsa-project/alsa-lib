@@ -139,7 +139,7 @@ int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 	snd_midi_event_t *dev;
 
 	*rdev = NULL;
-	dev = (snd_midi_event_t *)malloc(sizeof(snd_midi_event_t));
+	dev = (snd_midi_event_t *)calloc(1, sizeof(snd_midi_event_t));
 	if (dev == NULL)
 		return -ENOMEM;
 	if (bufsize > 0) {
@@ -150,6 +150,7 @@ int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 		}
 	}
 	dev->bufsize = bufsize;
+	dev->lastcmd = 0xff;
 	*rdev = dev;
 	return 0;
 }
