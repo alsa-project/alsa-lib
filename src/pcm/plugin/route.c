@@ -534,8 +534,7 @@ int getput_index(int format)
 	return width * 4 + endian * 2 + sign;
 }
 
-int snd_pcm_plugin_build_route(snd_pcm_plugin_handle_t *handle,
-			       int stream,
+int snd_pcm_plugin_build_route(snd_pcm_plug_t *plug,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
 			       route_ttable_entry_t *ttable,
@@ -551,10 +550,8 @@ int snd_pcm_plugin_build_route(snd_pcm_plugin_handle_t *handle,
 	assert(snd_pcm_format_linear(src_format->format) &&
 	       snd_pcm_format_linear(dst_format->format));
 
-	err = snd_pcm_plugin_build(handle, stream,
-				   "attenuated route conversion",
-				   src_format,
-				   dst_format,
+	err = snd_pcm_plugin_build(plug, "attenuated route conversion",
+				   src_format, dst_format,
 				   sizeof(route_t) + sizeof(data->ttable[0]) * dst_format->channels,
 				   &plugin);
 	if (err < 0)

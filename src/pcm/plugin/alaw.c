@@ -248,8 +248,7 @@ static ssize_t alaw_transfer(snd_pcm_plugin_t *plugin,
         return frames;
 }
 
-int snd_pcm_plugin_build_alaw(snd_pcm_plugin_handle_t *handle,
-			      int stream,
+int snd_pcm_plugin_build_alaw(snd_pcm_plug_t *plug,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin)
@@ -278,12 +277,9 @@ int snd_pcm_plugin_build_alaw(snd_pcm_plugin_handle_t *handle,
 		assert(0);
 	assert(snd_pcm_format_linear(format->format));
 
-	err = snd_pcm_plugin_build(handle, stream,
-				   "A-Law<->linear conversion",
-				   src_format,
-				   dst_format,
-				   sizeof(alaw_t),
-				   &plugin);
+	err = snd_pcm_plugin_build(plug, "A-Law<->linear conversion",
+				   src_format, dst_format,
+				   sizeof(alaw_t), &plugin);
 	if (err < 0)
 		return err;
 	data = (alaw_t*)plugin->extra_data;

@@ -131,8 +131,7 @@ int conv_index(int src_format, int dst_format)
 	return src_width * 32 + src_endian * 16 + sign * 8 + dst_width * 2 + dst_endian;
 }
 
-int snd_pcm_plugin_build_linear(snd_pcm_plugin_handle_t *handle,
-				int stream,
+int snd_pcm_plugin_build_linear(snd_pcm_plug_t *plug,
 				snd_pcm_format_t *src_format,
 				snd_pcm_format_t *dst_format,
 				snd_pcm_plugin_t **r_plugin)
@@ -149,12 +148,9 @@ int snd_pcm_plugin_build_linear(snd_pcm_plugin_handle_t *handle,
 	assert(snd_pcm_format_linear(src_format->format) &&
 	       snd_pcm_format_linear(dst_format->format));
 
-	err = snd_pcm_plugin_build(handle, stream,
-				   "linear format conversion",
-				   src_format,
-				   dst_format,
-				   sizeof(linear_t),
-				   &plugin);
+	err = snd_pcm_plugin_build(plug, "linear format conversion",
+				   src_format, dst_format,
+				   sizeof(linear_t), &plugin);
 	if (err < 0)
 		return err;
 	data = (linear_t *)plugin->extra_data;

@@ -372,8 +372,7 @@ static int adpcm_action(snd_pcm_plugin_t * plugin,
 	return 0;	/* silenty ignore other actions */
 }
 
-int snd_pcm_plugin_build_adpcm(snd_pcm_plugin_handle_t *handle,
-			       int stream,
+int snd_pcm_plugin_build_adpcm(snd_pcm_plug_t *plug,
 			       snd_pcm_format_t *src_format,
 			       snd_pcm_format_t *dst_format,
 			       snd_pcm_plugin_t **r_plugin)
@@ -402,10 +401,8 @@ int snd_pcm_plugin_build_adpcm(snd_pcm_plugin_handle_t *handle,
 		assert(0);
 	assert(snd_pcm_format_linear(format->format));
 
-	err = snd_pcm_plugin_build(handle, stream,
-				   "Ima-ADPCM<->linear conversion",
-				   src_format,
-				   dst_format,
+	err = snd_pcm_plugin_build(plug, "Ima-ADPCM<->linear conversion",
+				   src_format, dst_format,
 				   sizeof(adpcm_t) + src_format->channels * sizeof(adpcm_channel_t),
 				   &plugin);
 	if (err < 0)

@@ -65,8 +65,7 @@ static ssize_t copy_transfer(snd_pcm_plugin_t *plugin,
 	return frames;
 }
 
-int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
-			      int stream,
+int snd_pcm_plugin_build_copy(snd_pcm_plug_t *plug,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin)
@@ -85,12 +84,8 @@ int snd_pcm_plugin_build_copy(snd_pcm_plugin_handle_t *handle,
 	width = snd_pcm_format_physical_width(src_format->format);
 	assert(width > 0);
 
-	err = snd_pcm_plugin_build(handle, stream,
-				   "copy",
-				   src_format,
-				   dst_format,
-				   0,
-				   &plugin);
+	err = snd_pcm_plugin_build(plug, "copy", src_format, dst_format,
+				   0, &plugin);
 	if (err < 0)
 		return err;
 	plugin->transfer = copy_transfer;

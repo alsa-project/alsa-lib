@@ -23,10 +23,10 @@
 #include "../../include/driver.h"
 #include "../../include/pcm.h"
 #include "../../include/pcm_plugin.h"
-#define snd_pcm_write(handle,buf,count) snd_pcm_oss_write3(handle,buf,count,1)
-#define snd_pcm_writev(handle,vec,count) snd_pcm_oss_writev3(handle,vec,count,1)
-#define snd_pcm_read(handle,buf,count) snd_pcm_oss_read3(handle,buf,count,1)
-#define snd_pcm_readv(handle,vec,count) snd_pcm_oss_readv3(handle,vec,count,1)
+#define pcm_write(plug,buf,count) snd_pcm_oss_write3(plug,buf,count,1)
+#define pcm_writev(plug,vec,count) snd_pcm_oss_writev3(plug,vec,count,1)
+#define pcm_read(plug,buf,count) snd_pcm_oss_read3(plug,buf,count,1)
+#define pcm_readv(plug,vec,count) snd_pcm_oss_readv3(plug,vec,count,1)
 #else
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,65 +35,67 @@
 #include <errno.h>
 #include <sys/uio.h>
 #include "../pcm_local.h"
+#define pcm_write(plug,buf,count) snd_pcm_write(plug->slave,buf,count)
+#define pcm_writev(plug,vec,count) snd_pcm_writev(plug->slave,vec,count)
+#define pcm_read(plug,buf,count) snd_pcm_read(plug->slave,buf,count)
+#define pcm_readv(plug,vec,count) snd_pcm_readv(plug->slave,vec,count)
 #endif
 
 /*
  *  Basic io plugin
  */
  
-typedef struct io_private_data {
-	snd_pcm_plugin_handle_t *slave;
-} io_t;
-
-static ssize_t io_transfer(snd_pcm_plugin_t *plugin,
-			      const snd_pcm_plugin_channel_t *src_channels,
-			      snd_pcm_plugin_channel_t *dst_channels,
-			      size_t frames)
+static ssize_t io_playback_transfer(snd_pcm_plugin_t *plugin,
+				    const snd_pcm_plugin_channel_t *src_channels,
+				    snd_pcm_plugin_channel_t *dst_channels UNUSED,
+				    size_t frames)
 {
-	io_t *data;
 	struct iovec *vec;
 	int count, channel;
 
 	assert(plugin);
-	data = (io_t *)plugin->extra_data;
-	assert(data);
-	vec = (struct iovec *)((char *)data + sizeof(*data));
-	if (plugin->stream == SND_PCM_STREAM_PLAYBACK) {
-		assert(src_channels);
-		count = plugin->src_format.channels;
-		if (plugin->src_format.interleave) {
-			return snd_pcm_write(data->slave, src_channels->area.addr, frames);
-		} else {
-			for (channel = 0; channel < count; channel++) {
-				if (src_channels[channel].enabled)
-					vec[channel].iov_base = src_channels[channel].area.addr;
-				else
-					vec[channel].iov_base = 0;
-				vec[channel].iov_len = frames;
-			}
-			return snd_pcm_writev(data->slave, vec, count);
-		}
-	} else if (plugin->stream == SND_PCM_STREAM_CAPTURE) {
-		assert(dst_channels);
-		count = plugin->dst_format.channels;
-		if (plugin->dst_format.interleave) {
-			for (channel = 0; channel < count; channel++) {
-				dst_channels[channel].enabled = src_channels[channel].enabled;
-			}
-			return snd_pcm_read(data->slave, dst_channels->area.addr, frames);
-		} else {
-			for (channel = 0; channel < count; channel++) {
-				dst_channels[channel].enabled = src_channels[channel].enabled;
-				if (dst_channels[channel].enabled)
-					vec[channel].iov_base = dst_channels[channel].area.addr;
-				else
-					vec[channel].iov_base = 0;
-				vec[channel].iov_len = frames;
-			}
-			return snd_pcm_readv(data->slave, vec, count);
-		}
+	vec = (struct iovec *)plugin->extra_data;
+	assert(vec);
+	assert(src_channels);
+	count = plugin->src_format.channels;
+	if (plugin->src_format.interleave) {
+		return pcm_write(plugin->plug, src_channels->area.addr, frames);
 	} else {
-		assert(0);
+		for (channel = 0; channel < count; channel++) {
+			if (src_channels[channel].enabled)
+				vec[channel].iov_base = src_channels[channel].area.addr;
+			else
+				vec[channel].iov_base = 0;
+			vec[channel].iov_len = frames;
+		}
+		return pcm_writev(plugin->plug, vec, count);
+	}
+}
+ 
+static ssize_t io_capture_transfer(snd_pcm_plugin_t *plugin,
+				   const snd_pcm_plugin_channel_t *src_channels UNUSED,
+				   snd_pcm_plugin_channel_t *dst_channels,
+				   size_t frames)
+{
+	struct iovec *vec;
+	int count, channel;
+
+	assert(plugin);
+	vec = (struct iovec *)plugin->extra_data;
+	assert(vec);
+	assert(dst_channels);
+	count = plugin->dst_format.channels;
+	if (plugin->dst_format.interleave) {
+		return pcm_read(plugin->plug, dst_channels->area.addr, frames);
+	} else {
+		for (channel = 0; channel < count; channel++) {
+			if (dst_channels[channel].enabled)
+				vec[channel].iov_base = dst_channels[channel].area.addr;
+			else
+				vec[channel].iov_base = 0;
+			vec[channel].iov_len = frames;
+		}
+		return pcm_readv(plugin->plug, vec, count);
 	}
 	return 0;
 }
@@ -109,36 +111,37 @@ static ssize_t io_src_channels(snd_pcm_plugin_t *plugin,
 	if (err < 0)
 		return err;
 	*channels = v;
-	for (channel = 0; channel < plugin->src_format.channels; ++channel, ++v)
-		v->wanted = 1;
+	if (plugin->src_format.interleave) {
+		for (channel = 0; channel < plugin->src_format.channels; ++channel, ++v)
+			v->wanted = 1;
+	}
 	return frames;
 }
 
-int snd_pcm_plugin_build_io(snd_pcm_plugin_handle_t *pcm,
-			       int stream,
-			       snd_pcm_plugin_handle_t *slave,
-			       snd_pcm_format_t *format,
-			       snd_pcm_plugin_t **r_plugin)
+int snd_pcm_plugin_build_io(snd_pcm_plug_t *plug,
+			    snd_pcm_format_t *format,
+			    snd_pcm_plugin_t **r_plugin)
 {
 	int err;
-	io_t *data;
 	snd_pcm_plugin_t *plugin;
 
 	assert(r_plugin);
 	*r_plugin = NULL;
-	assert(pcm && format);
-	err = snd_pcm_plugin_build(pcm, stream,
-				   "I/O io",
+	assert(plug && format);
+	err = snd_pcm_plugin_build(plug, "I/O io",
 				   format, format,
-				   sizeof(io_t) + sizeof(struct iovec) * format->channels,
+				   sizeof(struct iovec) * format->channels,
 				   &plugin);
 	if (err < 0)
 		return err;
-	data = (io_t *)plugin->extra_data;
-	data->slave = slave;
-	plugin->transfer = io_transfer;
-	if (format->interleave && stream == SND_PCM_STREAM_PLAYBACK)
-		plugin->client_channels = io_src_channels;
+	if (snd_pcm_plug_stream(plug) == SND_PCM_STREAM_PLAYBACK) {
+		plugin->transfer = io_playback_transfer;
+		if (format->interleave)
+			plugin->client_channels = io_src_channels;
+	} else {
+		plugin->transfer = io_capture_transfer;
+	}
+
 	*r_plugin = plugin;
 	return 0;
 }

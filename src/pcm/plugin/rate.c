@@ -343,8 +343,7 @@ static int rate_action(snd_pcm_plugin_t *plugin,
 	return 0;	/* silenty ignore other actions */
 }
 
-int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
-			      int stream,
+int snd_pcm_plugin_build_rate(snd_pcm_plug_t *plug,
 			      snd_pcm_format_t *src_format,
 			      snd_pcm_format_t *dst_format,
 			      snd_pcm_plugin_t **r_plugin)
@@ -362,10 +361,8 @@ int snd_pcm_plugin_build_rate(snd_pcm_plugin_handle_t *handle,
 	assert(snd_pcm_format_linear(dst_format->format) > 0);
 	assert(src_format->rate != dst_format->rate);
 
-	err = snd_pcm_plugin_build(handle, stream,
-				   "rate conversion",
-				   src_format,
-				   dst_format,
+	err = snd_pcm_plugin_build(plug, "rate conversion",
+				   src_format, dst_format,
 				   sizeof(rate_t) + src_format->channels * sizeof(rate_channel_t),
 				   &plugin);
 	if (err < 0)
