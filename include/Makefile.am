@@ -42,8 +42,9 @@ stamp-vh: $(top_builddir)/configure.in
 
 INCLUDES=-I$(top_srcdir)/include
 
-install-exec-hook:
-	rm -f $(alsaincludedir)/asoundef.h
-	(cd $(DESTDIR)$(alsaincludedir) && $(LN_S) -f ../sound/asoundef.h asoundef.h)
+install-data-hook:
+	rm -f $(DESTDIR)$(alsaincludedir)/asoundef.h
+	$(LN_S) -f ../sound/asoundef.h $(DESTDIR)$(alsaincludedir)/asoundef.h
 	# should be removed in future
+	test -d $(DESTDIR)$(sysincludedir) || mkdir -p $(DESTDIR)$(sysincludedir)
 	$(INSTALL_DATA) sys.h $(DESTDIR)$(sysincludedir)/asoundlib.h
