@@ -6173,8 +6173,14 @@ void snd_pcm_unlink_appl_ptr(snd_pcm_t *pcm, snd_pcm_t *slave)
   symbol_version(__old_##name, name, what);
 #endif
 
-#define __OLD_GET(name, val_type, ret_type) \
-ret_type __old_##name(const snd_pcm_hw_params_t *params) \
+#else
+
+#define OBSOLETE1(name, what, new)  /**/
+
+#endif /* USE_VERSIONED_SYMBOLS */
+
+#define __P_OLD_GET(pfx, name, val_type, ret_type) \
+ret_type pfx##name(const snd_pcm_hw_params_t *params) \
 { \
 	val_type val; \
 	if (INTERNAL(name)(params, &val) < 0) \
@@ -6182,14 +6188,22 @@ ret_type __old_##name(const snd_pcm_hw_params_t *params) \
 	return (ret_type)val; \
 }
 
-#define __OLD_GET1(name, val_type, ret_type) \
-ret_type __old_##name(const snd_pcm_hw_params_t *params, int *dir) \
+#define __P_OLD_GET1(pfx, name, val_type, ret_type) \
+ret_type pfx##name(const snd_pcm_hw_params_t *params, int *dir) \
 { \
 	val_type val; \
 	if (INTERNAL(name)(params, &val, dir) < 0) \
 		return 0; \
 	return (ret_type)val; \
 }
+
+#ifdef USE_VERSIONED_SYMBOLS
+#define __OLD_GET(name, val_type, ret_type) __P_OLD_GET(__old_, name, val_type, ret_type)
+#define __OLD_GET1(name, val_type, ret_type) __P_OLD_GET1(__old_, name, val_type, ret_type)
+#else
+#define __OLD_GET(name, val_type, ret_type) __P_OLD_GET(, name, val_type, ret_type)
+#define __OLD_GET1(name, val_type, ret_type) __P_OLD_GET1(, name, val_type, ret_type)
+#endif
 
 __OLD_GET(snd_pcm_hw_params_get_access, snd_pcm_access_t, int);
 __OLD_GET(snd_pcm_hw_params_get_format, snd_pcm_format_t, int);
@@ -6221,21 +6235,29 @@ __OLD_GET1(snd_pcm_hw_params_get_buffer_time_max, unsigned int, unsigned int);
 __OLD_GET(snd_pcm_hw_params_get_buffer_size_max, snd_pcm_uframes_t, snd_pcm_uframes_t);
 __OLD_GET1(snd_pcm_hw_params_get_tick_time_max, unsigned int, unsigned int);
 
-#define __OLD_NEAR(name, ret_type) \
-ret_type __old_##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val) \
+#define __P_OLD_NEAR(pfx, name, ret_type) \
+ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val) \
 { \
 	if (INTERNAL(name)(pcm, params, &val) < 0) \
 		return 0; \
 	return (ret_type)val; \
 }
 
-#define __OLD_NEAR1(name, ret_type) \
-ret_type __old_##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val, int *dir) \
+#define __P_OLD_NEAR1(pfx, name, ret_type) \
+ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, ret_type val, int *dir) \
 { \
 	if (INTERNAL(name)(pcm, params, &val, dir) < 0) \
 		return 0; \
 	return (ret_type)val; \
 }
+
+#ifdef USE_VERSIONED_SYMBOLS
+#define __OLD_NEAR(name, ret_type) __P_OLD_NEAR(__old_, name, ret_type)
+#define __OLD_NEAR1(name, ret_type) __P_OLD_NEAR1(__old_, name, ret_type)
+#else
+#define __OLD_NEAR(name, ret_type) __P_OLD_NEAR(, name, ret_type)
+#define __OLD_NEAR1(name, ret_type) __P_OLD_NEAR1(, name, ret_type)
+#endif
 
 __OLD_NEAR(snd_pcm_hw_params_set_channels_near, unsigned int);
 __OLD_NEAR1(snd_pcm_hw_params_set_rate_near, unsigned int);
@@ -6246,8 +6268,8 @@ __OLD_NEAR1(snd_pcm_hw_params_set_buffer_time_near, unsigned int);
 __OLD_NEAR(snd_pcm_hw_params_set_buffer_size_near, snd_pcm_uframes_t);
 __OLD_NEAR1(snd_pcm_hw_params_set_tick_time_near, unsigned int);
 
-#define __OLD_SET_FL(name, ret_type) \
-ret_type __old_##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params) \
+#define __P_OLD_SET_FL(pfx, name, ret_type) \
+ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params) \
 { \
 	ret_type val; \
 	if (INTERNAL(name)(pcm, params, &val) < 0) \
@@ -6255,14 +6277,22 @@ ret_type __old_##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params) \
 	return (ret_type)val; \
 }
 
-#define __OLD_SET_FL1(name, ret_type) \
-ret_type __old_##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir) \
+#define __P_OLD_SET_FL1(pfx, name, ret_type) \
+ret_type pfx##name(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, int *dir) \
 { \
 	ret_type val; \
 	if (INTERNAL(name)(pcm, params, &val, dir) < 0) \
 		return 0; \
 	return (ret_type)val; \
 }
+
+#ifdef USE_VERSIONED_SYMBOLS
+#define __OLD_SET_FL(name, ret_type) __P_OLD_SET_FL(__old_, name, ret_type)
+#define __OLD_SET_FL1(name, ret_type) __P_OLD_SET_FL1(__old_, name, ret_type)
+#else
+#define __OLD_SET_FL(name, ret_type) __P_OLD_SET_FL(, name, ret_type)
+#define __OLD_SET_FL1(name, ret_type) __P_OLD_SET_FL1(, name, ret_type)
+#endif
 
 __OLD_SET_FL(snd_pcm_hw_params_set_access_first, snd_pcm_access_t);
 __OLD_SET_FL(snd_pcm_hw_params_set_format_first, snd_pcm_format_t);
@@ -6355,7 +6385,5 @@ OBSOLETE1(snd_pcm_hw_params_get_tick_time_max, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_hw_params_set_tick_time_near, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_hw_params_set_tick_time_first, ALSA_0.9, ALSA_0.9.0rc4);
 OBSOLETE1(snd_pcm_hw_params_set_tick_time_last, ALSA_0.9, ALSA_0.9.0rc4);
-
-#endif /* USE_VERSIONED_SYMBOLS */
 
 #endif /* DOC_HIDDEN */

@@ -26,12 +26,8 @@
 #define USE_VERSIONED_SYMBOLS
 #endif
 
-#ifdef USE_VERSIONED_SYMBOLS
 #define INTERNAL_CONCAT2_2(Pre, Post) Pre##Post
 #define INTERNAL(Name) INTERNAL_CONCAT2_2(__, Name)
-#else
-#define INTERNAL(Name) Name
-#endif
 
 #define symbol_version(real, name, version) \
 	__asm__ (".symver " #real "," #name "@" #version)
