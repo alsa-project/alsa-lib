@@ -152,6 +152,17 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private;
 	int fd = hw->fd;
+	if (params->start_mode == pcm->start_mode &&
+	    params->ready_mode == pcm->ready_mode &&
+	    params->xrun_mode == pcm->xrun_mode &&
+	    params->silence_mode == pcm->silence_mode &&
+	    params->tstamp_mode == pcm->tstamp_mode &&
+	    params->xfer_align == pcm->xfer_align &&
+	    params->silence_threshold == pcm->silence_threshold &&
+	    params->silence_size == pcm->silence_size) {
+		hw->mmap_control->avail_min = params->avail_min;
+		return 0;
+	}
 	if (ioctl(fd, SND_PCM_IOCTL_SW_PARAMS, params) < 0) {
 		SYSERR("SND_PCM_IOCTL_SW_PARAMS failed");
 		return -errno;
@@ -482,13 +493,6 @@ static ssize_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 	return avail;
 }
 
-static int snd_pcm_hw_set_avail_min(snd_pcm_t *pcm, size_t frames)
-{
-	snd_pcm_hw_t *hw = pcm->private;
-	hw->mmap_control->avail_min = frames;
-	return 0;
-}
-
 static void snd_pcm_hw_dump(snd_pcm_t *pcm, FILE *fp)
 {
 	snd_pcm_hw_t *hw = pcm->private;
@@ -535,7 +539,6 @@ snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	readn: snd_pcm_hw_readn,
 	avail_update: snd_pcm_hw_avail_update,
 	mmap_forward: snd_pcm_hw_mmap_forward,
-	set_avail_min: snd_pcm_hw_set_avail_min,
 };
 
 int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdevice, int stream, int mode)

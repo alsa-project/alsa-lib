@@ -86,7 +86,6 @@ typedef struct {
 	ssize_t (*readn)(snd_pcm_t *pcm, void **bufs, size_t size);
 	ssize_t (*avail_update)(snd_pcm_t *pcm);
 	ssize_t (*mmap_forward)(snd_pcm_t *pcm, size_t size);
-	int (*set_avail_min)(snd_pcm_t *pcm, size_t frames);
 } snd_pcm_fast_ops_t;
 
 struct _snd_pcm {
@@ -104,12 +103,15 @@ struct _snd_pcm {
 	size_t fragment_size;		/* fragment size */
 	unsigned int fragments;		/* fragments */
 	unsigned int start_mode;	/* start mode */
-	unsigned int ready_mode;	/* ready detection mode */
 	unsigned int xrun_mode;		/* xrun detection mode */
+	unsigned int ready_mode;	/* ready detection mode */
+	unsigned int tstamp_mode;	/* timestamp mode */
 	size_t avail_min;		/* min avail frames for wakeup */
-	size_t xfer_min;		/* xfer min size */
+	unsigned int silence_mode;	/* Silence filling mode */
+	size_t silence_threshold;	/* Silence filling happens when
+					   noise is nearest than this */
+	size_t silence_size;		/* Silence filling size */
 	size_t xfer_align;		/* xfer size need to be a multiple */
-	unsigned int time: 1;		/* timestamp switch */
 	size_t boundary;		/* pointers wrap point */
 	unsigned int info;		/* Info for returned setup */
 	unsigned int msbits;		/* used most significant bits */
@@ -120,6 +122,7 @@ struct _snd_pcm {
 	size_t bits_per_sample;
 	size_t bits_per_frame;
 	size_t *appl_ptr;
+	size_t min_align;
 	volatile size_t *hw_ptr;
 	int mmap_rw;
 	snd_pcm_channel_info_t *mmap_channels;
@@ -168,7 +171,6 @@ ssize_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_t *areas,
 			    snd_pcm_xfer_areas_func_t func);
 ssize_t snd_pcm_read_mmap(snd_pcm_t *pcm, size_t size);
 ssize_t snd_pcm_write_mmap(snd_pcm_t *pcm, size_t size);
-int snd_pcm_hw_info_complete(snd_pcm_hw_params_t *info);
 int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
 
@@ -313,17 +315,17 @@ static inline int muldiv_near(int a, int b, int c)
 
 int _snd_pcm_hw_refine(snd_pcm_hw_params_t *params);
 void _snd_pcm_hw_params_any(snd_pcm_hw_params_t *params);
-int _snd_pcm_hw_params_mask(snd_pcm_hw_params_t *params, int hw,
+int _snd_pcm_hw_param_mask(snd_pcm_hw_params_t *params, int hw,
 			    unsigned int var, const mask_t *mask);
-int _snd_pcm_hw_params_first(snd_pcm_hw_params_t *params, int hw,
+int _snd_pcm_hw_param_first(snd_pcm_hw_params_t *params, int hw,
 			     unsigned int var);
-int _snd_pcm_hw_params_last(snd_pcm_hw_params_t *params, int hw,
+int _snd_pcm_hw_param_last(snd_pcm_hw_params_t *params, int hw,
 			    unsigned int var);
-int _snd_pcm_hw_params_set(snd_pcm_hw_params_t *params, int hw,
+int _snd_pcm_hw_param_set(snd_pcm_hw_params_t *params, int hw,
 			   unsigned int var, unsigned int val);
-int _snd_pcm_hw_params_min(snd_pcm_hw_params_t *params, int hw,
+int _snd_pcm_hw_param_min(snd_pcm_hw_params_t *params, int hw,
 			   unsigned int var, unsigned int val);
-int _snd_pcm_hw_params_max(snd_pcm_hw_params_t *params, int hw,
+int _snd_pcm_hw_param_max(snd_pcm_hw_params_t *params, int hw,
 			   unsigned int var, unsigned int val);
 int snd_pcm_hw_refine2(snd_pcm_hw_params_t *params,
 		       snd_pcm_hw_params_t *sparams,

@@ -21,10 +21,9 @@
   
 #include <stdio.h>
 
-#ifdef INTERVAL_C
+#ifdef INTERVAL_INLINE
 #include "interval_inline.h"
-#endif
-
+#else
 void interval_all(interval_t *i);
 void interval_setreal(interval_t *i);
 int interval_empty(const interval_t *i);
@@ -33,18 +32,22 @@ int interval_value(const interval_t *i);
 int interval_min(const interval_t *i);
 int interval_max(const interval_t *i);
 int interval_test(const interval_t *i, unsigned int val);
-int interval_refine_min(interval_t *i, unsigned int min);
-int interval_refine_max(interval_t *i, unsigned int max);
-int interval_refine(interval_t *i, const interval_t *v);
-int interval_refine_first(interval_t *i);
-int interval_refine_last(interval_t *i);
-int interval_refine_set(interval_t *i, unsigned int val);
+void interval_copy(interval_t *dst, const interval_t *src);
+int interval_eq(const interval_t *i1, const interval_t *i2);
+#endif
+
+int interval_add(interval_t *a, const interval_t *b, const interval_t *c);
+int interval_sub(interval_t *a, const interval_t *b, const interval_t *c);
 int interval_mul(interval_t *a, const interval_t *b, const interval_t *c);
 int interval_div(interval_t *a, const interval_t *b, const interval_t *c);
 int interval_muldivk(interval_t *a, unsigned int k,
 		     const interval_t *b, const interval_t *c);
 int interval_mulkdiv(interval_t *a, unsigned int k,
 		     const interval_t *b, const interval_t *c);
-void interval_copy(interval_t *dst, const interval_t *src);
 void interval_print(const interval_t *i, FILE *fp);
-int interval_eq(const interval_t *i1, const interval_t *i2);
+int interval_refine_min(interval_t *i, unsigned int min);
+int interval_refine_max(interval_t *i, unsigned int max);
+int interval_refine(interval_t *i, const interval_t *v);
+int interval_refine_first(interval_t *i);
+int interval_refine_last(interval_t *i);
+int interval_refine_set(interval_t *i, unsigned int val);

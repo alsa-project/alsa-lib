@@ -27,14 +27,14 @@
 
 #define MASK_MAX 32
 
-#ifdef MASK_C
+#ifdef MASK_INLINE
 #include "mask_inline.h"
-#endif
-
+#else
 void mask_none(mask_t *mask);
 void mask_all(mask_t *mask);
 void mask_load(mask_t *mask, unsigned int msk);
 int mask_empty(const mask_t *mask);
+int mask_full(const mask_t *mask);
 void mask_set(mask_t *mask, unsigned int val);
 void mask_reset(mask_t *mask, unsigned int val);
 void mask_copy(mask_t *mask, const mask_t *v);
@@ -55,3 +55,4 @@ int mask_refine_min(mask_t *mask, unsigned int val);
 int mask_refine_max(mask_t *mask, unsigned int val);
 int mask_refine_set(mask_t *mask, unsigned int val);
 int mask_value(const mask_t *mask);
+#endif

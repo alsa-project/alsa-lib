@@ -166,7 +166,11 @@ ssize_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, size_t frames)
 		frames -= n;
 	}
 	if (frames > 0) {
-		ssize_t err = snd_pcm_rewind(plugin->slave, frames);
+		ssize_t err;
+		/* FIXME: rate plugin */
+		if (plugin->slave_frames)
+			frames = plugin->slave_frames(pcm, frames);
+		err = snd_pcm_rewind(plugin->slave, frames);
 		if (err < 0) {
 			if (n <= 0)
 				return err;
@@ -305,13 +309,6 @@ ssize_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	return err;
 }
 
-int snd_pcm_plugin_set_avail_min(snd_pcm_t *pcm, size_t frames)
-{
-	snd_pcm_plugin_t *plugin = pcm->private;
-	snd_pcm_t *slave = plugin->slave;
-	return snd_pcm_set_avail_min(slave, frames);
-}
-
 int snd_pcm_plugin_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plug = pcm->private;
@@ -415,6 +412,5 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	readn: snd_pcm_plugin_readn,
 	avail_update: snd_pcm_plugin_avail_update,
 	mmap_forward: snd_pcm_plugin_mmap_forward,
-	set_avail_min: snd_pcm_plugin_set_avail_min,
 };
 

@@ -19,10 +19,17 @@
  *
  */
   
+#include <sys/types.h>
+#include <assert.h>
+
 #ifdef MASK_C
 #define INLINE inline
 #else
-#define INLINE static inline
+#define INLINE extern inline
+#endif
+
+#ifndef MASK_MASK
+#define MASK_MAX 32
 #endif
 
 struct _mask {
@@ -88,6 +95,11 @@ INLINE void mask_load(mask_t *mask, unsigned int msk)
 INLINE int mask_empty(const mask_t *mask)
 {
 	return mask_bits(mask) == 0;
+}
+
+INLINE int mask_full(const mask_t *mask)
+{
+	return mask_bits(mask) == ~0U;
 }
 
 INLINE unsigned int mask_count(const mask_t *mask)

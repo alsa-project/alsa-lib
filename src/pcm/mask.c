@@ -20,6 +20,7 @@
  */
   
 #define MASK_C
+#define MASK_INLINE
 
 #include <sys/types.h>
 #include <limits.h>

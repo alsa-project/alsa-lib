@@ -22,7 +22,7 @@
 #ifdef INTERVAL_C
 #define INLINE inline
 #else
-#define INLINE static inline
+#define INLINE extern inline
 #endif
 
 INLINE void interval_all(interval_t *i)

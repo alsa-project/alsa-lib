@@ -171,14 +171,14 @@ static int _snd_pcm_shm_hw_refine(snd_pcm_t *pcm,
 static int snd_pcm_shm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_hw_params_t sparams;
-	const mask_t *access_mask = snd_pcm_hw_params_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 	if (!mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
 	    !mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
 		mask_intersect(saccess_mask, access_mask);
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
 	return snd_pcm_hw_refine2(params, &sparams,
 				  _snd_pcm_shm_hw_refine, pcm,
@@ -201,14 +201,14 @@ static int _snd_pcm_shm_hw_params(snd_pcm_t *pcm,
 static int snd_pcm_shm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_hw_params_t sparams;
-	const mask_t *access_mask = snd_pcm_hw_params_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 	if (!mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
 	    !mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
 		mask_intersect(saccess_mask, access_mask);
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
 	return snd_pcm_hw_params2(params, &sparams,
 				  _snd_pcm_shm_hw_params, pcm,
@@ -408,15 +408,6 @@ static ssize_t snd_pcm_shm_mmap_forward(snd_pcm_t *pcm, size_t size)
 	return snd_pcm_shm_action(pcm);
 }
 
-static int snd_pcm_shm_set_avail_min(snd_pcm_t *pcm, size_t frames)
-{
-	snd_pcm_shm_t *shm = pcm->private;
-	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
-	ctrl->cmd = SND_PCM_IOCTL_SET_AVAIL_MIN;
-	ctrl->u.set_avail_min.frames = frames;
-	return snd_pcm_shm_action(pcm);
-}
-
 static int snd_pcm_shm_poll_descriptor(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private;
@@ -484,7 +475,6 @@ snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	readn: snd_pcm_mmap_readn,
 	avail_update: snd_pcm_shm_avail_update,
 	mmap_forward: snd_pcm_shm_mmap_forward,
-	set_avail_min: snd_pcm_shm_set_avail_min,
 };
 
 static int make_local_socket(const char *filename)

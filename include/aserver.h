@@ -30,7 +30,6 @@
 #define SND_PCM_IOCTL_ASYNC		_IO ('A', 0xf6)
 #define SND_PCM_IOCTL_CLOSE		_IO ('A', 0xf7)
 #define SND_PCM_IOCTL_POLL_DESCRIPTOR	_IO ('A', 0xf8)
-#define SND_PCM_IOCTL_SET_AVAIL_MIN	_IO ('A', 0xf9)
 
 typedef struct {
 	long result;
@@ -46,6 +45,7 @@ typedef struct {
 		snd_pcm_hw_params_t hw_refine;
 		snd_pcm_hw_params_t hw_params;
 		snd_pcm_sw_params_t sw_params;
+		snd_pcm_sw_params_t sw_refine;
 		snd_pcm_status_t status;
 		struct {
 			ssize_t frames;
@@ -63,9 +63,6 @@ typedef struct {
 		struct {
 			ssize_t frames;
 		} mmap_forward;
-		struct {
-			ssize_t frames;
-		} set_avail_min;
 	} u;
 	char data[0];
 } snd_pcm_shm_ctrl_t;

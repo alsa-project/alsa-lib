@@ -94,24 +94,6 @@ int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 	return pcm->ops->info(pcm->op_arg, info);
 }
 
-int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
-{
-	int err;
-	assert(pcm && params);
-	assert(pcm->setup);
-	if ((err = pcm->ops->sw_params(pcm->op_arg, params)) < 0)
-		return err;
-	pcm->start_mode = params->start_mode;
-	pcm->ready_mode = params->ready_mode;
-	pcm->xrun_mode = params->xrun_mode;
-	pcm->avail_min = params->avail_min;
-	pcm->xfer_min = params->xfer_min;
-	pcm->xfer_align = params->xfer_align;
-	pcm->time = params->time;
-	pcm->boundary = params->boundary;
-	return 0;
-}
-
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 {
 	assert(pcm && status);
@@ -180,19 +162,6 @@ ssize_t snd_pcm_rewind(snd_pcm_t *pcm, size_t frames)
 	assert(pcm->setup);
 	assert(frames > 0);
 	return pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
-}
-
-int snd_pcm_set_avail_min(snd_pcm_t *pcm, size_t frames)
-{
-	int err;
-	assert(pcm);
-	assert(pcm->setup);
-	assert(frames > 0);
-	err = pcm->fast_ops->set_avail_min(pcm->fast_op_arg, frames);
-	if (err < 0)
-		return err;
-	pcm->avail_min = frames;
-	return 0;
 }
 
 ssize_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, size_t size)
@@ -311,6 +280,8 @@ int snd_pcm_poll_descriptor(snd_pcm_t *pcm)
 #define STREAM(v) [SND_PCM_STREAM_##v] = #v
 #define READY(v) [SND_PCM_READY_##v] = #v
 #define XRUN(v) [SND_PCM_XRUN_##v] = #v
+#define SILENCE(v) [SND_PCM_SILENCE_##v] = #v
+#define TSTAMP(v) [SND_PCM_TSTAMP_##v] = #v
 #define ACCESS(v) [SND_PCM_ACCESS_##v] = #v
 #define START(v) [SND_PCM_START_##v] = #v
 #define HW_PARAM(v) [SND_PCM_HW_PARAM_##v] = #v
@@ -355,11 +326,13 @@ char *snd_pcm_hw_param_names[] = {
 char *snd_pcm_sw_param_names[] = {
 	SW_PARAM(START_MODE),
 	SW_PARAM(READY_MODE),
-	SW_PARAM(AVAIL_MIN),
-	SW_PARAM(XFER_MIN),
-	SW_PARAM(XFER_ALIGN),
 	SW_PARAM(XRUN_MODE),
-	SW_PARAM(TIME),
+	SW_PARAM(SILENCE_MODE),
+	SW_PARAM(TSTAMP_MODE),
+	SW_PARAM(AVAIL_MIN),
+	SW_PARAM(XFER_ALIGN),
+	SW_PARAM(SILENCE_THRESHOLD),
+	SW_PARAM(SILENCE_SIZE),
 };
 
 char *snd_pcm_access_names[] = {
@@ -447,125 +420,25 @@ char *snd_pcm_ready_mode_names[] = {
 };
 
 char *snd_pcm_xrun_mode_names[] = {
-	XRUN(ASAP),
 	XRUN(FRAGMENT),
+	XRUN(ASAP),
 	XRUN(NONE),
 };
 
-static char *onoff[] = {
-	[0] = "OFF",
-	[1] = "ON",
+char *snd_pcm_silence_mode_names[] = {
+	SILENCE(FRAGMENT),
+	SILENCE(ASAP),
 };
 
-#define assoc(value, names) ({ \
-	unsigned int __v = value; \
-	assert(__v < sizeof(names) / sizeof(names[0])); \
-	names[__v]; \
-})
+char *snd_pcm_tstamp_mode_names[] = {
+	TSTAMP(NONE),
+	TSTAMP(MMAP),
+};
 
-
-int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp)
+const char *snd_pcm_stream_name(unsigned int stream)
 {
-	assert(pcm);
-	assert(fp);
-	assert(pcm->setup);
-        fprintf(fp, "stream       : %s\n", assoc(pcm->stream, snd_pcm_stream_names));
-	fprintf(fp, "access       : %s\n", assoc(pcm->access, snd_pcm_access_names));
-	fprintf(fp, "format       : %s\n", assoc(pcm->format, snd_pcm_format_names));
-	fprintf(fp, "subformat    : %s\n", assoc(pcm->subformat, snd_pcm_subformat_names));
-	fprintf(fp, "channels     : %u\n", pcm->channels);
-	fprintf(fp, "rate         : %u\n", pcm->rate);
-	fprintf(fp, "exact rate   : %g (%u/%u)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
-	fprintf(fp, "msbits       : %u\n", pcm->msbits);
-	fprintf(fp, "fragment_size: %lu\n", (long)pcm->fragment_size);
-	fprintf(fp, "fragments    : %u\n", pcm->fragments);
-	return 0;
-}
-
-int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, FILE *fp)
-{
-	assert(pcm);
-	assert(fp);
-	assert(pcm->setup);
-	fprintf(fp, "start_mode   : %s\n", assoc(pcm->start_mode, snd_pcm_start_mode_names));
-	fprintf(fp, "ready_mode   : %s\n", assoc(pcm->ready_mode, snd_pcm_ready_mode_names));
-	fprintf(fp, "xrun_mode    : %s\n", assoc(pcm->xrun_mode, snd_pcm_xrun_mode_names));
-	fprintf(fp, "avail_min    : %ld\n", (long)pcm->avail_min);
-	fprintf(fp, "xfer_min     : %ld\n", (long)pcm->xfer_min);
-	fprintf(fp, "xfer_align   : %ld\n", (long)pcm->xfer_align);
-	fprintf(fp, "time         : %s\n", assoc(pcm->time, onoff));
-	fprintf(fp, "boundary     : %ld\n", (long)pcm->boundary);
-	return 0;
-}
-
-int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp)
-{
-	snd_pcm_dump_hw_setup(pcm, fp);
-	snd_pcm_dump_sw_setup(pcm, fp);
-	return 0;
-}
-
-int snd_pcm_dump_sw_params_fail(snd_pcm_sw_params_t *params, FILE *fp)
-{
-	int k;
-	if (params->fail_mask == 0) {
-		fprintf(fp, "unknown sw_params failure reason\n");
-		return 0;
-	}
-	fprintf(fp, "sw_params failed on the following field value(s):\n");
-	for (k = 0; k <= SND_PCM_SW_PARAM_LAST; ++k) {
-		if (!(params->fail_mask & (1U << k)))
-			continue;
-		switch (k) {
-		case SND_PCM_SW_PARAM_START_MODE:
-			fprintf(fp, "start_mode: %s\n", assoc(params->start_mode, snd_pcm_start_mode_names));
-			break;
-		case SND_PCM_SW_PARAM_READY_MODE:
-			fprintf(fp, "ready_mode: %s\n", assoc(params->ready_mode, snd_pcm_ready_mode_names));
-			break;
-		case SND_PCM_SW_PARAM_XRUN_MODE:
-			fprintf(fp, "xrun_mode: %s\n", assoc(params->xrun_mode, snd_pcm_xrun_mode_names));
-			break;
-		case SND_PCM_SW_PARAM_AVAIL_MIN:
-			fprintf(fp, "avail_min: %ld\n", (long)params->avail_min);
-			break;
-		case SND_PCM_SW_PARAM_XFER_MIN:
-			fprintf(fp, "xfer_min: %ld\n", (long)params->xfer_min);
-			break;
-		case SND_PCM_SW_PARAM_XFER_ALIGN:
-			fprintf(fp, "xfer_align: %ld\n", (long)params->xfer_align);
-			break;
-		case SND_PCM_SW_PARAM_TIME:
-			fprintf(fp, "time: %d\n", params->time);
-			break;
-		default:
-			assert(0);
-			break;
-		}
-	}
-	return 0;
-}
-
-int snd_pcm_dump_status(snd_pcm_status_t *status, FILE *fp)
-{
-	assert(status);
-	fprintf(fp, "state       : %s\n", assoc(status->state, snd_pcm_state_names));
-	fprintf(fp, "trigger_time: %ld.%06ld\n",
-		status->trigger_time.tv_sec, status->trigger_time.tv_usec);
-	fprintf(fp, "tstamp      : %ld.%06ld\n",
-		status->tstamp.tv_sec, status->tstamp.tv_usec);
-	fprintf(fp, "delay       : %ld\n", (long)status->delay);
-	fprintf(fp, "avail       : %ld\n", (long)status->avail);
-	fprintf(fp, "avail_max   : %ld\n", (long)status->avail_max);
-	return 0;
-}
-
-int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp)
-{
-	assert(pcm);
-	assert(fp);
-	pcm->ops->dump(pcm->op_arg, fp);
-	return 0;
+	assert(stream <= SND_PCM_STREAM_LAST);
+	return snd_pcm_stream_names[stream];
 }
 
 const char *snd_pcm_access_name(unsigned int access)
@@ -606,6 +479,113 @@ const char *snd_pcm_hw_param_name(unsigned int param)
 {
 	assert(param <= SND_PCM_HW_PARAM_LAST);
 	return snd_pcm_hw_param_names[param];
+}
+
+const char *snd_pcm_sw_param_name(unsigned int param)
+{
+	assert(param <= SND_PCM_SW_PARAM_LAST);
+	return snd_pcm_sw_param_names[param];
+}
+
+const char *snd_pcm_start_mode_name(unsigned int mode)
+{
+	assert(mode <= SND_PCM_START_LAST);
+	return snd_pcm_start_mode_names[mode];
+}
+
+const char *snd_pcm_ready_mode_name(unsigned int mode)
+{
+	assert(mode <= SND_PCM_READY_LAST);
+	return snd_pcm_ready_mode_names[mode];
+}
+
+const char *snd_pcm_xrun_mode_name(unsigned int mode)
+{
+	assert(mode <= SND_PCM_XRUN_LAST);
+	return snd_pcm_xrun_mode_names[mode];
+}
+
+const char *snd_pcm_silence_mode_name(unsigned int mode)
+{
+	assert(mode <= SND_PCM_SILENCE_LAST);
+	return snd_pcm_silence_mode_names[mode];
+}
+
+const char *snd_pcm_tstamp_mode_name(unsigned int mode)
+{
+	assert(mode <= SND_PCM_TSTAMP_LAST);
+	return snd_pcm_tstamp_mode_names[mode];
+}
+
+const char *snd_pcm_state_name(unsigned int state)
+{
+	assert(state <= SND_PCM_STATE_LAST);
+	return snd_pcm_state_names[state];
+}
+
+int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, FILE *fp)
+{
+	assert(pcm);
+	assert(fp);
+	assert(pcm->setup);
+        fprintf(fp, "stream       : %s\n", snd_pcm_stream_name(pcm->stream));
+	fprintf(fp, "access       : %s\n", snd_pcm_access_name(pcm->access));
+	fprintf(fp, "format       : %s\n", snd_pcm_format_name(pcm->format));
+	fprintf(fp, "subformat    : %s\n", snd_pcm_subformat_name(pcm->subformat));
+	fprintf(fp, "channels     : %u\n", pcm->channels);
+	fprintf(fp, "rate         : %u\n", pcm->rate);
+	fprintf(fp, "exact rate   : %g (%u/%u)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
+	fprintf(fp, "msbits       : %u\n", pcm->msbits);
+	fprintf(fp, "fragment_size: %lu\n", (long)pcm->fragment_size);
+	fprintf(fp, "fragments    : %u\n", pcm->fragments);
+	return 0;
+}
+
+int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, FILE *fp)
+{
+	assert(pcm);
+	assert(fp);
+	assert(pcm->setup);
+	fprintf(fp, "start_mode   : %s\n", snd_pcm_start_mode_name(pcm->start_mode));
+	fprintf(fp, "xrun_mode    : %s\n", snd_pcm_xrun_mode_name(pcm->xrun_mode));
+	fprintf(fp, "ready_mode   : %s\n", snd_pcm_ready_mode_name(pcm->ready_mode));
+	fprintf(fp, "silence_mode : %s\n", snd_pcm_silence_mode_name(pcm->silence_mode));
+	fprintf(fp, "tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
+	fprintf(fp, "avail_min    : %ld\n", (long)pcm->avail_min);
+	fprintf(fp, "xfer_align   : %ld\n", (long)pcm->xfer_align);
+	fprintf(fp, "silence_threshold: %ld\n", (long)pcm->silence_threshold);
+	fprintf(fp, "silence_size : %ld\n", (long)pcm->silence_size);
+	fprintf(fp, "boundary     : %ld\n", (long)pcm->boundary);
+	return 0;
+}
+
+int snd_pcm_dump_setup(snd_pcm_t *pcm, FILE *fp)
+{
+	snd_pcm_dump_hw_setup(pcm, fp);
+	snd_pcm_dump_sw_setup(pcm, fp);
+	return 0;
+}
+
+int snd_pcm_status_dump(snd_pcm_status_t *status, FILE *fp)
+{
+	assert(status);
+	fprintf(fp, "state       : %s\n", snd_pcm_state_name(status->state));
+	fprintf(fp, "trigger_time: %ld.%06ld\n",
+		status->trigger_time.tv_sec, status->trigger_time.tv_usec);
+	fprintf(fp, "tstamp      : %ld.%06ld\n",
+		status->tstamp.tv_sec, status->tstamp.tv_usec);
+	fprintf(fp, "delay       : %ld\n", (long)status->delay);
+	fprintf(fp, "avail       : %ld\n", (long)status->avail);
+	fprintf(fp, "avail_max   : %ld\n", (long)status->avail_max);
+	return 0;
+}
+
+int snd_pcm_dump(snd_pcm_t *pcm, FILE *fp)
+{
+	assert(pcm);
+	assert(fp);
+	pcm->ops->dump(pcm->op_arg, fp);
+	return 0;
 }
 
 ssize_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes)

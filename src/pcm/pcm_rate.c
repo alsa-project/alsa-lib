@@ -249,37 +249,37 @@ static int snd_pcm_rate_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
 	mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
-	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
+	err = _snd_pcm_hw_param_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
 				      access_mask);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_FORMAT,
+	err = _snd_pcm_hw_param_mask(params, 1, SND_PCM_HW_PARAM_FORMAT,
 				      format_mask);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_params_min(params, 1,
+	err = _snd_pcm_hw_param_min(params, 1,
 				     SND_PCM_HW_PARAM_RATE, RATE_MIN);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_params_max(params, 1,
+	err = _snd_pcm_hw_param_max(params, 1,
 				     SND_PCM_HW_PARAM_RATE, RATE_MAX);
 	if (err < 0)
 		return err;
 
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
 	if (rate->sformat >= 0) {
-		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+		_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
 				       rate->sformat);
-		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+		_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
 				       SND_PCM_SUBFORMAT_STD);
 	} else
 		links |= (SND_PCM_HW_PARBIT_FORMAT |
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS |
 			  SND_PCM_HW_PARBIT_FRAME_BITS);
-	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_RATE,
+	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_RATE,
 			       rate->srate);
 		
 	err = snd_pcm_hw_refine2(params, &sparams,
@@ -306,19 +306,19 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
 	if (rate->sformat >= 0) {
-		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+		_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
 				       rate->sformat);
-		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+		_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
 				       SND_PCM_SUBFORMAT_STD);
 	} else
 		links |= (SND_PCM_HW_PARBIT_FORMAT |
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS |
 			  SND_PCM_HW_PARBIT_FRAME_BITS);
-	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_RATE,
+	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_RATE,
 			       rate->srate);
 		
 	err = snd_pcm_hw_params2(params, &sparams,
@@ -327,15 +327,15 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		return err;
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		src_format = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT);
+		src_format = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT);
 		dst_format = slave->format;
-		src_rate = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_RATE);
+		src_rate = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_RATE);
 		dst_rate = slave->rate;
 	} else {
 		src_format = slave->format;
-		dst_format = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT);
+		dst_format = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT);
 		src_rate = slave->rate;
-		dst_rate = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_RATE);
+		dst_rate = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_RATE);
 	}
 	rate->get_idx = get_index(src_format, SND_PCM_FORMAT_S16);
 	rate->put_idx = put_index(SND_PCM_FORMAT_S16, dst_format);
@@ -349,7 +349,7 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	rate->pitch = (((u_int64_t)dst_rate * DIV) + src_rate / 2) / src_rate;
 	if (rate->states)
 		free(rate->states);
-	rate->states = malloc(snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_CHANNELS) * sizeof(*rate->states));
+	rate->states = malloc(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_CHANNELS) * sizeof(*rate->states));
 	return 0;
 }
 
@@ -357,18 +357,21 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_rate_t *rate = pcm->private;
 	snd_pcm_t *slave = rate->plug.slave;
-	size_t avail_min, xfer_min, xfer_align;
+	size_t avail_min, xfer_align, silence_threshold, silence_size;
 	int err;
 	avail_min = params->avail_min;
-	xfer_min = params->xfer_min;
 	xfer_align = params->xfer_align;
+	silence_threshold = params->silence_threshold;
+	silence_size = params->silence_size;
 	params->avail_min = muldiv_near(params->avail_min, slave->rate, pcm->rate);
-	params->xfer_min = muldiv_near(params->xfer_min, slave->rate, pcm->rate);
 	params->xfer_align = muldiv_near(params->xfer_align, slave->rate, pcm->rate);
+	params->silence_threshold = muldiv_near(params->silence_threshold, slave->rate, pcm->rate);
+	params->silence_size = muldiv_near(params->silence_size, slave->rate, pcm->rate);
 	err = snd_pcm_sw_params(slave, params);
 	params->avail_min = avail_min;
-	params->xfer_min = xfer_min;
 	params->xfer_align = xfer_align;
+	params->silence_threshold = silence_threshold;
+	params->silence_size = silence_size;
 	params->boundary = LONG_MAX - pcm->buffer_size * 2 - LONG_MAX % pcm->buffer_size;
 	return err;
 }
@@ -502,6 +505,16 @@ ssize_t snd_pcm_rate_client_frames(snd_pcm_t *pcm, ssize_t frames)
 		return muldiv_down(frames, rate->pitch, DIV);
 }
 
+ssize_t snd_pcm_rate_slave_frames(snd_pcm_t *pcm, ssize_t frames)
+{
+	snd_pcm_rate_t *rate = pcm->private;
+	/* Round toward zero */
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
+		return muldiv_down(frames, rate->pitch, DIV);
+	else
+		return muldiv_down(frames, DIV, rate->pitch);
+}
+
 static void snd_pcm_rate_dump(snd_pcm_t *pcm, FILE *fp)
 {
 	snd_pcm_rate_t *rate = pcm->private;
@@ -551,6 +564,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, char *name, int sformat, int srate, snd_
 	rate->plug.read = snd_pcm_rate_read_areas;
 	rate->plug.write = snd_pcm_rate_write_areas;
 	rate->plug.client_frames = snd_pcm_rate_client_frames;
+	rate->plug.slave_frames = snd_pcm_rate_slave_frames;
 	rate->plug.init = snd_pcm_rate_init;
 	rate->plug.slave = slave;
 	rate->plug.close_slave = close_slave;

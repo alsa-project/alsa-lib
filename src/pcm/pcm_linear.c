@@ -84,25 +84,25 @@ static int snd_pcm_linear_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	mask_load(access_mask, SND_PCM_ACCBIT_PLUGIN);
 	mask_load(format_mask, SND_PCM_FMTBIT_LINEAR);
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
-	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
+	err = _snd_pcm_hw_param_mask(params, 1, SND_PCM_HW_PARAM_ACCESS,
 				      access_mask);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_FORMAT,
+	err = _snd_pcm_hw_param_mask(params, 1, SND_PCM_HW_PARAM_FORMAT,
 				      format_mask);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_params_set(params, 1, SND_PCM_HW_PARAM_SUBFORMAT,
+	err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_SUBFORMAT,
 				     SND_PCM_SUBFORMAT_STD);
 	if (err < 0)
 		return err;
 
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
-	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
 			       linear->sformat);
-	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
 			       SND_PCM_SUBFORMAT_STD);
 	err = snd_pcm_hw_refine2(params, &sparams,
 				 snd_pcm_hw_refine, slave,
@@ -129,11 +129,11 @@ static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	mask_load(saccess_mask, SND_PCM_ACCBIT_MMAP);
 
 	_snd_pcm_hw_params_any(&sparams);
-	_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+	_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
 				saccess_mask);
-	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_FORMAT,
 			       linear->sformat);
-	_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
+	_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_SUBFORMAT,
 			       SND_PCM_SUBFORMAT_STD);
 	err = snd_pcm_hw_params2(params, &sparams,
 				 snd_pcm_hw_params, slave,
@@ -148,11 +148,11 @@ static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		return err;
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-		linear->conv_idx = conv_index(snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT),
+		linear->conv_idx = conv_index(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT),
 					      linear->sformat);
 	else
 		linear->conv_idx = conv_index(linear->sformat,
-					      snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT));
+					      snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT));
 	return 0;
 }
 

@@ -20,6 +20,7 @@
  */
   
 #define INTERVAL_C
+#define INTERVAL_INLINE
 
 #include <sys/types.h>
 #include <limits.h>
@@ -213,6 +214,30 @@ int interval_refine_set(interval_t *i, unsigned int val)
 	t.max = add(val, 1);
 	t.openmax = 1;
 	return interval_refine(i, &t);
+}
+
+/* a <- b + c */
+int interval_add(interval_t *a, const interval_t *b, const interval_t *c)
+{
+	interval_t t;
+	assert(!a->empty && !b->empty && !c->empty);
+	t.min = add(b->min, c->min);
+	t.openmin = (b->openmin || c->openmin);
+	t.max = add(b->max,  c->max);
+	t.openmax = (b->openmax || c->openmax);
+	return interval_refine(a, &t);
+}
+
+/* a <- b - c */
+int interval_sub(interval_t *a, const interval_t *b, const interval_t *c)
+{
+	interval_t t;
+	assert(!a->empty && !b->empty && !c->empty);
+	t.min = sub(b->min, c->max);
+	t.openmin = (b->openmin || c->openmax);
+	t.max = add(b->max,  c->min);
+	t.openmax = (b->openmax || c->openmin);
+	return interval_refine(a, &t);
 }
 
 /* a <- b * c */

@@ -229,17 +229,11 @@ static ssize_t snd_pcm_null_avail_update(snd_pcm_t *pcm)
 	return pcm->buffer_size;
 }
 
-static int snd_pcm_null_set_avail_min(snd_pcm_t *pcm, size_t frames)
-{
-	pcm->avail_min = frames;
-	return 0;
-}
-
 static int snd_pcm_null_hw_refine(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
-	_snd_pcm_hw_refine(params);
+	int err = _snd_pcm_hw_refine(params);
 	params->fifo_size = 0;
-	return 0;
+	return err;
 }
 
 static int snd_pcm_null_hw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t * params ATTRIBUTE_UNUSED)
@@ -247,20 +241,8 @@ static int snd_pcm_null_hw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_pa
 	return 0;
 }
 
-static int snd_pcm_null_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t * params)
+static int snd_pcm_null_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t * params ATTRIBUTE_UNUSED)
 {
-	if (params->start_mode > SND_PCM_START_LAST) {
-		params->fail_mask = 1 << SND_PCM_SW_PARAM_START_MODE;
-		return -EINVAL;
-	}
-	if (params->ready_mode > SND_PCM_READY_LAST) {
-		params->fail_mask = 1 << SND_PCM_SW_PARAM_READY_MODE;
-		return -EINVAL;
-	}
-	if (params->xrun_mode > SND_PCM_XRUN_LAST) {
-		params->fail_mask = 1 << SND_PCM_SW_PARAM_XRUN_MODE;
-		return -EINVAL;
-	}
 	return 0;
 }
 
@@ -330,7 +312,6 @@ snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	readn: snd_pcm_null_readn,
 	avail_update: snd_pcm_null_avail_update,
 	mmap_forward: snd_pcm_null_mmap_forward,
-	set_avail_min: snd_pcm_null_set_avail_min,
 };
 
 int snd_pcm_null_open(snd_pcm_t **pcmp, char *name, int stream, int mode)

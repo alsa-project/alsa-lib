@@ -214,13 +214,13 @@ static int snd_pcm_plug_hw_refine1(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	mask_load(mmap_mask, SND_PCM_ACCBIT_MMAP);
 	mask_load(fmtplug_mask, SND_PCM_FMTBIT_PLUG);
 	
-	err = _snd_pcm_hw_params_min(params, 1, SND_PCM_HW_PARAM_CHANNELS, 1);
+	err = _snd_pcm_hw_param_min(params, 1, SND_PCM_HW_PARAM_CHANNELS, 1);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_params_min(params, 1, SND_PCM_HW_PARAM_RATE, RATE_MIN);
+	err = _snd_pcm_hw_param_min(params, 1, SND_PCM_HW_PARAM_RATE, RATE_MIN);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_params_max(params, 1, SND_PCM_HW_PARAM_RATE, RATE_MAX);
+	err = _snd_pcm_hw_param_max(params, 1, SND_PCM_HW_PARAM_RATE, RATE_MAX);
 	if (err < 0)
 		return err;
 
@@ -230,41 +230,41 @@ static int snd_pcm_plug_hw_refine1(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	if (err < 0)
 		return err;
 	
-	rate_min = snd_pcm_hw_params_value_min(params, SND_PCM_HW_PARAM_RATE);
-	rate_max = snd_pcm_hw_params_value_max(params, SND_PCM_HW_PARAM_RATE);
+	rate_min = snd_pcm_hw_param_value_min(params, SND_PCM_HW_PARAM_RATE);
+	rate_max = snd_pcm_hw_param_value_max(params, SND_PCM_HW_PARAM_RATE);
 	tmp = *sparams;
-	srate_min = snd_pcm_hw_params_near(slave, &tmp,
+	srate_min = snd_pcm_hw_param_near(slave, &tmp,
 					   SND_PCM_HW_PARAM_RATE, rate_min);
 	if (srate_min < rate_max) {
 		tmp = *sparams;
-		srate_max = snd_pcm_hw_params_near(slave, &tmp,
+		srate_max = snd_pcm_hw_param_near(slave, &tmp,
 						   SND_PCM_HW_PARAM_RATE, rate_max);
 	} else 
 		srate_max = srate_min;
-	err = snd_pcm_hw_params_minmax(slave, sparams,
+	err = snd_pcm_hw_param_minmax(slave, sparams,
 				       SND_PCM_HW_PARAM_RATE,
 				       srate_min, srate_max);
 	assert(err >= 0);
 
-	channels_min = snd_pcm_hw_params_value_min(params, SND_PCM_HW_PARAM_CHANNELS);
-	channels_max = snd_pcm_hw_params_value_max(params, SND_PCM_HW_PARAM_CHANNELS);
+	channels_min = snd_pcm_hw_param_value_min(params, SND_PCM_HW_PARAM_CHANNELS);
+	channels_max = snd_pcm_hw_param_value_max(params, SND_PCM_HW_PARAM_CHANNELS);
 	tmp = *sparams;
-	schannels_min = snd_pcm_hw_params_near(slave, &tmp,
+	schannels_min = snd_pcm_hw_param_near(slave, &tmp,
 					       SND_PCM_HW_PARAM_CHANNELS, channels_min);
 	if (schannels_min < channels_max) {
 		tmp = *sparams;
-		schannels_max = snd_pcm_hw_params_near(slave, &tmp,
+		schannels_max = snd_pcm_hw_param_near(slave, &tmp,
 						       SND_PCM_HW_PARAM_CHANNELS, channels_max);
 	} else 
 		schannels_max = schannels_min;
-	err = snd_pcm_hw_params_minmax(slave, sparams,
+	err = snd_pcm_hw_param_minmax(slave, sparams,
 				       SND_PCM_HW_PARAM_CHANNELS,
 				       schannels_min, schannels_max);
 	assert(err >= 0);
 
-	format_mask = snd_pcm_hw_params_value_mask(params,
+	format_mask = snd_pcm_hw_param_value_mask(params,
 						   SND_PCM_HW_PARAM_FORMAT);
-	sformat_mask = snd_pcm_hw_params_value_mask(sparams,
+	sformat_mask = snd_pcm_hw_param_value_mask(sparams,
 						    SND_PCM_HW_PARAM_FORMAT);
 	mask_none(tmp_mask);
 	for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
@@ -279,7 +279,7 @@ static int snd_pcm_plug_hw_refine1(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 				mask_t *m = alloca(mask_sizeof());
 				mask_all(m);
 				mask_reset(m, format);
-				err = _snd_pcm_hw_params_mask(params, 1, SND_PCM_HW_PARAM_FORMAT, m);
+				err = _snd_pcm_hw_param_mask(params, 1, SND_PCM_HW_PARAM_FORMAT, m);
 				if (err < 0)
 					return err;
 				continue;
@@ -288,10 +288,10 @@ static int snd_pcm_plug_hw_refine1(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		mask_set(tmp_mask, f);
 	}
 
-	err = _snd_pcm_hw_params_mask(sparams, 0, 
+	err = _snd_pcm_hw_param_mask(sparams, 0, 
 				      SND_PCM_HW_PARAM_FORMAT, tmp_mask);
 	assert(err >= 0);
-	sformat_mask = snd_pcm_hw_params_value_mask(sparams,
+	sformat_mask = snd_pcm_hw_param_value_mask(sparams,
 						    SND_PCM_HW_PARAM_FORMAT);
 
 	same_rate = (rate_min == rate_max && 
@@ -321,30 +321,30 @@ static int snd_pcm_plug_hw_refine1(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	}
 
 	if (same_rate && same_channels && same_format) {
-		const mask_t *access_mask = snd_pcm_hw_params_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
-		mask_copy(tmp_mask, snd_pcm_hw_params_value_mask(sparams, SND_PCM_HW_PARAM_ACCESS));
+		const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
+		mask_copy(tmp_mask, snd_pcm_hw_param_value_mask(sparams, SND_PCM_HW_PARAM_ACCESS));
 		mask_intersect(tmp_mask, access_mask);
 		if (!mask_empty(tmp_mask))
-			_snd_pcm_hw_params_mask(sparams, 0,
+			_snd_pcm_hw_param_mask(sparams, 0,
 						SND_PCM_HW_PARAM_ACCESS,
 						access_mask);
 		else
-		  _snd_pcm_hw_params_mask(sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+		  _snd_pcm_hw_param_mask(sparams, 0, SND_PCM_HW_PARAM_ACCESS,
 					  mmap_mask);
 	} else {
-		err = _snd_pcm_hw_params_mask(params, 1,
+		err = _snd_pcm_hw_param_mask(params, 1,
 					      SND_PCM_HW_PARAM_ACCESS,
 					      accplug_mask);
 		if (err < 0)
 			return err;
-		err = _snd_pcm_hw_params_mask(params, 1,
+		err = _snd_pcm_hw_param_mask(params, 1,
 					      SND_PCM_HW_PARAM_FORMAT,
 					      fmtplug_mask);
 		if (err < 0)
 			return err;
-		_snd_pcm_hw_params_mask(sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+		_snd_pcm_hw_param_mask(sparams, 0, SND_PCM_HW_PARAM_ACCESS,
 					mmap_mask);
-		_snd_pcm_hw_params_mask(sparams, 0, SND_PCM_HW_PARAM_FORMAT,
+		_snd_pcm_hw_param_mask(sparams, 0, SND_PCM_HW_PARAM_FORMAT,
 					fmtplug_mask);
 	}
 	err = snd_pcm_hw_refine2(params, sparams,
@@ -584,15 +584,15 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	int err = snd_pcm_plug_hw_refine1(pcm, params, &sparams);
 	assert(err >= 0);
 
-	clt_params.access = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_ACCESS);
-	clt_params.format = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_FORMAT);
-	clt_params.channels = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_CHANNELS);
-	clt_params.rate = snd_pcm_hw_params_value(params, SND_PCM_HW_PARAM_RATE);
+	clt_params.access = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_ACCESS);
+	clt_params.format = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FORMAT);
+	clt_params.channels = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_CHANNELS);
+	clt_params.rate = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_RATE);
 
-	slv_params.access = snd_pcm_hw_params_first(slave, &sparams, SND_PCM_HW_PARAM_ACCESS);
-	slv_params.format = snd_pcm_hw_params_value(&sparams, SND_PCM_HW_PARAM_FORMAT);
-	slv_params.channels = snd_pcm_hw_params_value(&sparams, SND_PCM_HW_PARAM_CHANNELS);
-	slv_params.rate = snd_pcm_hw_params_value(&sparams, SND_PCM_HW_PARAM_RATE);
+	slv_params.access = snd_pcm_hw_param_first(slave, &sparams, SND_PCM_HW_PARAM_ACCESS);
+	slv_params.format = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_FORMAT);
+	slv_params.channels = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_CHANNELS);
+	slv_params.rate = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_RATE);
 
 	snd_pcm_plug_clear(pcm);
 	err = snd_pcm_plug_insert_plugins(pcm, &clt_params, &slv_params);
@@ -612,18 +612,21 @@ static int snd_pcm_plug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_plug_t *plug = pcm->private;
 	snd_pcm_t *slave = plug->req_slave;
-	size_t avail_min, xfer_min, xfer_align;
+	size_t avail_min, xfer_align, silence_threshold, silence_size;
 	int err;
 	avail_min = params->avail_min;
-	xfer_min = params->xfer_min;
 	xfer_align = params->xfer_align;
+	silence_threshold = params->silence_threshold;
+	silence_size = params->silence_size;
 	params->avail_min = muldiv_near(params->avail_min, slave->rate, pcm->rate);
-	params->xfer_min = muldiv_near(params->xfer_min, slave->rate, pcm->rate);
 	params->xfer_align = muldiv_near(params->xfer_align, slave->rate, pcm->rate);
+	params->silence_threshold = muldiv_near(params->silence_threshold, slave->rate, pcm->rate);
+	params->silence_size = muldiv_near(params->silence_size, slave->rate, pcm->rate);
 	err = snd_pcm_sw_params(slave, params);
 	params->avail_min = avail_min;
-	params->xfer_min = xfer_min;
 	params->xfer_align = xfer_align;
+	params->silence_threshold = silence_threshold;
+	params->silence_size = silence_size;
 	params->boundary = LONG_MAX - pcm->buffer_size * 2 - LONG_MAX % pcm->buffer_size;
 	return err;
 }

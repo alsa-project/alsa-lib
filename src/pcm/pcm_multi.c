@@ -103,7 +103,7 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_hw_params_t sparams;
 	int changed = 0;
 	int err;
-	const mask_t *access_mask = snd_pcm_hw_params_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	if (mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) ||
 	    mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
@@ -122,7 +122,7 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		}
 	}
 		
-	err = _snd_pcm_hw_params_set(params, 1, SND_PCM_HW_PARAM_CHANNELS,
+	err = _snd_pcm_hw_param_set(params, 1, SND_PCM_HW_PARAM_CHANNELS,
 				     multi->channels_count);
 	if (err < 0)
 		return err;
@@ -131,10 +131,10 @@ static int snd_pcm_multi_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		for (k = 0; k < multi->slaves_count; ++k) {
 			snd_pcm_t *slave = multi->slaves[k].pcm;
 			_snd_pcm_hw_params_any(&sparams);
-			_snd_pcm_hw_params_mask(&sparams, 0,
+			_snd_pcm_hw_param_mask(&sparams, 0,
 						SND_PCM_HW_PARAM_ACCESS,
 						saccess_mask);
-			_snd_pcm_hw_params_set(&sparams, 0,
+			_snd_pcm_hw_param_set(&sparams, 0,
 					       SND_PCM_HW_PARAM_CHANNELS,
 					       multi->slaves[k].channels_count);
 			err = snd_pcm_hw_refine2(params, &sparams,
@@ -161,7 +161,7 @@ static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_pcm_multi_t *multi = pcm->private;
 	unsigned int k;
 	int err;
-	const mask_t *access_mask = snd_pcm_hw_params_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	const mask_t *access_mask = snd_pcm_hw_param_value_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	mask_t *saccess_mask = alloca(mask_sizeof());
 	if (mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) ||
 	    mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
@@ -183,9 +183,9 @@ static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		snd_pcm_t *slave = multi->slaves[k].pcm;
 		snd_pcm_hw_params_t sparams;
 		_snd_pcm_hw_params_any(&sparams);
-		_snd_pcm_hw_params_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
+		_snd_pcm_hw_param_mask(&sparams, 0, SND_PCM_HW_PARAM_ACCESS,
 					saccess_mask);
-		_snd_pcm_hw_params_set(&sparams, 0, SND_PCM_HW_PARAM_CHANNELS,
+		_snd_pcm_hw_param_set(&sparams, 0, SND_PCM_HW_PARAM_CHANNELS,
 				       multi->slaves[k].channels_count);
 		err = snd_pcm_hw_params2(params, &sparams,
 					 snd_pcm_hw_params, slave,
@@ -347,12 +347,6 @@ static ssize_t snd_pcm_multi_mmap_forward(snd_pcm_t *pcm, size_t size)
 	return size;
 }
 
-static int snd_pcm_multi_set_avail_min(snd_pcm_t *pcm, size_t frames)
-{
-	snd_pcm_multi_t *multi = pcm->private;
-	return snd_pcm_set_avail_min(multi->slaves[0].pcm, frames);
-}
-
 static int snd_pcm_multi_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -425,7 +419,6 @@ snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	rewind: snd_pcm_multi_rewind,
 	avail_update: snd_pcm_multi_avail_update,
 	mmap_forward: snd_pcm_multi_mmap_forward,
-	set_avail_min: snd_pcm_multi_set_avail_min,
 };
 
 int snd_pcm_multi_open(snd_pcm_t **pcmp, char *name,
