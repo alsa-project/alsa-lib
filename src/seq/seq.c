@@ -30,7 +30,753 @@
 
 /*! \page seq Sequencer interface
 
-<P>Description...
+\section seq_general Genral
+
+The ALSA sequencer interface is designed to deliver the MIDI-like
+events between clients/ports.
+A typical usage is the MIDI patch-bay.  A MIDI application can be
+connected arbitrarily from/to the other MIDI clients.
+The routing between clients can be changed dynamically, so the
+application can handle incoming or outgoing MIDI events regardless of
+the devices or the application connections.
+
+The sequencer core stuff only takes care of two things:
+scheduling events and dispatching them to the destination at the
+right time.  All processing of MIDI events has to be done within the clients.
+The event can be dispatched immediately without queueing, too.
+The event scheduling can be done either on a MIDI tempo queue or
+on a wallclock-time queue.
+
+\section seq_client Client and Port
+
+A <i>client</i> is created at each time #snd_seq_open() is called.
+Later on, the attributes of client such as its name string can be changed
+via #snd_seq_set_client_info().  There are helper functions for ease of use,
+e.g. #snd_seq_set_client_name() and #snd_seq_set_client_event_filter().
+A typical code would be like below:
+\code
+// create a new client
+snd_seq_t *open_client()
+{
+        snd_seq_t *handle;
+        int err;
+        err = snd_seq_open(&handle, "default", SND_SEQ_OPEN_INPUT, 0);
+        if (err < 0)
+                return NULL;
+        snd_seq_set_client_name(handle, "My Client");
+	return handle;
+}
+\endcode
+
+You'll need to know the id number of the client eventually, for example,
+when accessing to a certain port (see the section \ref seq_subs).
+The client id can be obtained by #snd_seq_client_id() function.
+
+A client can have one or more <i>ports</i> to communicate between other
+clients.  A port is corresponding to the MIDI port in the case of MIDI device,
+but in general it is nothing but the access point between other clients.
+Each port may have capability flags, which specify the read/write
+accessbility and subscription permissions of the port.
+For creation of a port, call #snd_seq_create_port() \endlink
+with the appropirate port attribute specified in #snd_seq_port_info_t
+reocrd.
+
+For creating a port for the normal use, there is a helper function
+#snd_seq_create_simple_port().  An example with this function is like below.
+\code
+// create a new port; return the port id
+// port will be writable and accept the write-subscription.
+int my_new_port(snd_seq_t *handle)
+{
+	return snd_seq_create_simple_port(handle, "my port",
+			SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
+			SND_SEQ_PORT_TYPE_MIDI_GENERIC);
+}
+\endcode
+
+\section seq_memory Memory Pool
+
+Each client owns memory pools on kernel space
+for each input and output events.
+Here, input and output mean
+input (read) from other clients and output (write) to others, respectively.
+Since memory pool of each client is independent from others,
+it avoids such a situation that a client eats the whole events pool
+and interfere other clients' responce.
+
+The all scheduled output events or input events from dispatcher are stored
+on these pools until delivered to other clients or extracted to user space.
+The size of input/output pools can be changed independently.
+The output pool has also a room size, which is used to wake up the
+thread when it falls into sleep in blocking write mode.
+
+Note that ports on the same client share the same memory pool.
+If a port fills the memory pool, another can't use it any more.
+For avoiding this, multiple clients can be used.
+
+For chancing the pool size and the condition, access to #snd_seq_client_pool_t
+record.  There are helper functions, #snd_seq_set_client_pool_output(),
+#snd_seq_set_client_pool_output_room() and #snd_seq_set_client_pool_input(),
+for setting the total output-pool size, the output-room size and the input-pool
+size, respectively.
+
+\section seq_subs Subscription
+
+One of the new features in ALSA sequencer system is <i>subscription</i> of ports.
+In general, subscription is a connection between two sequencer ports.
+Even though an event can be delivered to a port without subscription
+using an explicit destination address,
+the subscription mechanism provides us more abstraction.
+
+Suppose a MIDI input device which sends events from a keyboard.
+The port associated with this device has READ capability - which means
+this port is readable from other ports.
+If a user program wants to capture events from keyboard and store them
+as MIDI stream, this program must subscribe itself to the MIDI port
+for read.
+Then, a connection from MIDI input port to this program is established.
+From this time, events from keyboard are automatically sent to this program.
+Timestamps will be updated according to the subscribed queue.
+\code
+        MIDI input port (keyboard)
+            |
+            V
+        ALSA sequencer - update timestamp
+            |
+            V
+        application port
+\endcode
+
+There is another subscription type for opposite direction:
+Suppose a MIDI sequencer program which sends events to a MIDI output device.
+In ALSA system, MIDI device is not opened until the associated MIDI port
+is accessed.  Thus, in order to activate MIDI device, we have to subscribe
+to MIDI port for write.
+After this connection is established, events will be properly sent
+to MIDI output device.
+\code
+        application port
+            |
+            V
+        ALSA sequencer - events are scheduled
+            |
+            V
+        MIDI output port (WaveTable etc.)
+\endcode
+
+From the viewpoint of subscription, the examples above are special cases.
+Basically, subscription means the connection between two arbitrary ports.
+For example, imagine a filter application which modifies
+the MIDI events like program, velocity or chorus effects.
+This application can accept arbitrary MIDI input
+and send to arbitrary port, just like a Unix pipe application using
+stdin and stdout files.
+We can even connect several filter applictions which work individually
+in order to process the MIDI events.
+Subscription can be used for this purpose.
+The connection between ports can be done also by the "third" client.
+Thus, filter applications have to manage
+only input and output events regardless of receiver/sender addresses.
+\code
+        sequencer port #1
+            |
+            V
+        ALSA sequencer (scheduled or real-time)
+            |
+            V
+        sequencer port #2
+\endcode
+
+For the detail about subscription, see the section \ref seq_subs_more.
+
+\section seq_events Sequencer Events
+
+Messaging between clients is performed by sending events from one client to
+another. These events contain high-level MIDI oriented messages or sequencer
+specific messages.
+
+All the sequencer events are stored in a sequencer event record,
+#snd_seq_event_t type.
+Application can send and receive these event records to/from other
+clients via sequencer.
+An event has several stroage types according to its usage.
+For example, a SYSEX message is stored on the variable length event,
+and a large synth sample data is delivered using a user-space data pointer.
+
+
+\subsection seq_ev_struct Structure of an event
+
+An event consists of the following items:
+<ul>
+<li>The type of the event
+<li>Event flags.  It describes various conditions:
+  <ul>
+  <li>time stamp; "real time" / "song ticks"
+  <li>time mode; "absolute" / "relative to current time"
+  </ul>
+<li>Timestamp of the event.
+<li>Scheduling queue id.
+<li>Source address of the event, given by the combination
+  of client id and port id numbers.
+<li>Destination address of the event.
+<li>The actual event data. (up to 12 bytes)
+</ul>
+
+The actual record is shown in #snd_seq_event_t.
+The type field contains the type of the event
+(1 byte).
+The flags field consists of bit flags which
+describe several conditions of the event (1 byte).
+It includes the time-stamp mode, data storage type, and scheduling prority.
+The tag field is an arbitrary tag.
+This tag can used for removing a distinct event from the event queue
+via #snd_seq_remove_events().
+The queue field is the queue id for scheduling.
+The source and dest fields are source and destination addresses.
+The data field is a union of event data.
+
+\subsction seq_ev_queue Scheduling queue
+
+An event can be delivered either on scheduled or direct dispatch mode.
+On the scheduling mode, an event is once stored on the priority queue
+and delivered later (or even immediately) to the destination,
+whereas on the direct disatch mode, an event is passed to the destination
+without any queue.
+
+For a scheduled delivery, a queue to process the event must exist.
+Usually, a client creates its own queue by
+#snd_seq_alloc_queue() function.
+Alternatively, a queue may be shared among several clients.
+For scheduling an event on the specified queue,
+a client needs to fill queue field
+with the preferred queue id.
+
+Meanwhile, for dispatching an event directly, just
+use #SND_SEQ_QUEUE_DIRECT as the target queue id.
+A macro #snd_seq_ev_set_direct() is provided for ease
+and compatibility.
+
+Note that scheduling at the current or earlier time is different
+from the direct dispatch mode even though the event is delivered immediately.
+On the former scheme, an event is once stored on priority queue, then
+delivered actually.  Thus, it acquires a space from memory pool.
+On the other hand, the latter is passed without using memory pool.
+Although the direct dispatched event needs less memory, it means also
+that the event cannot be resent if the destination is unable to receive it
+momentarily.
+
+\subsection seq_ev_time Time stamp
+
+The timestamp of the event can either specified in
+<i>real time</i> or in <i>song ticks</i>.
+The former means the wallclock time while the latter corresponds to
+the MIDI ticks.
+Which format is used is determined by the event flags.
+
+The resolution of real-time value is in nano second.
+Since 64 bit length is required for the actual time calculation,
+it is represented by
+a structure of pair of second and nano second
+defined as #snd_seq_real_time_t type.
+The song tick is defined simply as a 32 bit integer,
+defined as #snd_seq_tick_time_t type.
+The time stored in an event record is a union of these two different
+time values.
+
+Note that the time format used for real time events is very similar to
+timeval struct used for unix system time.
+The absurd resolution of the timestamps allows us to perform very accurate
+conversions between songposition and real time. Round-off errors can be
+neglected.
+
+If a timestamp with a
+<i>relative</i> timestamp is delivered to ALSA, the
+specified timestamp will be used as an offset to the current time of the
+queue the event is sent into.
+An <i>absolute</i> timestamp is on the contrary the time
+counted from the moment when the queue started.
+
+An client that relies on these relative timestamps is the MIDI input port.
+As each sequencer queue has it's own clock the only way to deliver events at
+the right time is by using the relative timestamp format. When the event
+arrives at the queue it is normalised to absolute format.
+
+The timestamp format is specified in the flag bitfield masked by
+#SND_SEQ_TIME_STAMP_MASK.
+To schedule the event in a real-time queue or in a tick queue,
+macros #snd_seq_ev_schedule_real() and
+#snd_seq_ev_schedule_tick() are provided, respectively.
+
+\subsection seq_ev_addr Source and destination addresses
+
+To identify the source and destination of an event, the addressing field
+contains a combination of client id and port id numbers, defined as
+#snd_seq_addr_t type.
+When an event is passed to sequencer from a client, sequencer fills
+source.client field
+with the sender's id automatically.
+It is the responsibility of sender client to 
+fill the port id of source.port and
+both client and port of dest field.
+
+If an existing address is set to the destination,
+the event is simplly delivered to it.
+When #SND_SEQ_ADDRESS_SUBSCRIBERS is set to the destination client id,
+the event is delivered to all the clients connected to the source port.
+
+
+A sequencer core has two pre-defined system ports on the system client
+#SND_SEQ_CLIENT_SYSTEM: #SND_SEQ_PORT_SYSTEM_TIMER and #SND_SEQ_PORT_SYSTEM_ANNOUNCE.
+The #SND_SEQ_PORT_SYSTEM_TIMER is the system timer port,
+and #SND_SEQ_PORT_SYSTEM_ANNOUNCE is the system
+announce port.
+In order to control a queue from a client, client should send a
+queue-control event
+like start, stop and continue queue, change tempo, etc.
+to the system timer port.
+Then the sequencer system handles the queue according to the received event.
+This port supports subscription. The received timer events are 
+broadcasted to all subscribed clients.
+
+The latter port does not receive messages but supports subscription.
+When each client or port is attached, detached or modified,
+an announcement is sent to subscribers from this port.
+
+\subsection seq_ev_data Data storage type
+
+Some events like SYSEX message, however, need larger data space
+than the standard data.
+For such events, ALSA sequencer provides seveal different data storage types.
+The data type is specified in the flag bits masked by #SND_SEQ_EVENT_LENGTH_MASK.
+The following data types are available:
+
+\par Fixed size data
+Normal events stores their parameters on
+data field (12 byte).
+The flag-bit type is  #SND_SEQ_EVENT_LENGTH_FIXED.
+A macro #snd_seq_ev_set_fixed() is provided to set this type.
+
+\par Variable length data
+SYSEX or a returned error use this type.
+The actual data is stored on an extra allocated space.
+On sequecer kernel, the whole extra-data is duplicated, so that the event
+can be scheduled on queue.
+The data contains only the length and the
+pointer of extra-data.
+The flag-bit type is  #SND_SEQ_EVENT_LENGTH_VARIABLE.
+A macro #snd_seq_ev_set_variable() is provided to set this type.
+
+\par User-space data
+This type refers also an extra data space like variable length data,
+but the extra-data is not duplicated but
+but referred as a user-space data on kernel,
+so that it reduces the time and resource for transferring
+large bulk of data like synth sample wave.
+This data type, however, can be used only for direct dispatch mode,
+and supposed to be used only for a special purpose like a bulk data
+transfer.
+The data length and pointer are stored also in
+data.ext field as well as variable length data.
+The flag-bit type is  #SND_SEQ_EVENT_LENGTH_VARUSR.
+A macro #snd_seq_ev_set_varusr() is provided to set this type.
+
+\subsection seq_ev_sched Scheduling priority
+
+There are two priorities for scheduling:
+\par Normal priority
+If an event with the same scheduling time is already present on the queue,
+the new event is appended to the older.
+\par High priority
+If an event with the same scheduling time is already present on the queue,
+the new event is inserted before others.
+
+The scheduling priority is set in the flag bitfeld masked by #SND_SEQ_PRIORITY_MASK.
+A macro #snd_seq_ev_set_priority() is provided to set the mode type.
+
+\section seq_queue Event Queues
+\subsection seq_ev_control Creation of a queue
+
+Creating a queue is done usually by calling #snd_seq_alloc_queue.
+You can create a queue with a certain name by #snd_seq_alloc_named_queue(), too.
+\code
+// create a queue and return its id
+int my_queue(snd_seq_t *handle)
+{
+	return snd_seq_alloc_named_queue(handle, "my queue");
+}
+\endcode
+These functions are the wrapper to the function #snd_seq_create_queue().
+For releasing the allocated queue, call #snd_seq_free_queue() with the
+obtained queue id.
+
+Once when a queue is created, the two queues are associated to that
+queue record in fact: one is the realtime queue and another is the
+tick queue.  These two queues are bound together to work
+synchronously.  Hence, when you schedule an event, you have to choose
+which queue type is used as described in the section \ref
+seq_ev_time.
+
+\subsection seq_ev_tempo Setting queue tempo
+
+The tempo (or the speed) of the scheduling queue is variable.
+In the case of <i>tick</i> queue, the tempo is controlled
+in the manner of MIDI.  There are two parameters to define the
+actual tempo, PPQ (pulse per quarter note) and MIDI tempo.
+The former defines the base resolution of the ticks, while
+the latter defines the beat tempo in microseconds.
+As default, 96 PPQ and 120 BPM are used, respectively.
+That is, the tempo is set to 500000 (= 60 * 1000000 / 120).
+Note that PPQ cannot be changed while the queue is running.
+It must be set before the queue is started.
+
+On the other hand, in the case of <i>realtime</i> queue, the
+time resolution is fixed to nanosecononds.  There is, however,
+a parameter to change the speed of this queue, called <i>skew</i>.
+You can make the queue faster or slower by setting the skew value
+bigger or smaller.  In the API, the skew is defined by two values,
+the skew base and the skew value.  The actual skew is the fraction
+of them, <i>value/base</i>.  As default, the skew base is set to 16bit
+(0x10000) and the skew value is the identical, so that the queue is
+processed as well as in the real world.
+
+When the tempo of realtime queue is changed, the tempo of
+the associated tick queue is changed together, too.
+That's the reason why two queues are created always.
+This feature can be used to synchronize the event queue with
+the external synchronization source like SMPTE.  In such a case,
+the realtime queue is skewed to match with the external source,
+so that both the realtime timestamp and the MIDI timestamp are
+synchronized.
+
+For setting these tempo parameters, use #snd_seq_queue_tempo_t record.
+For example, to set the tempo of the queue <code>q</code> to
+48 PPQ, 60 BPM,
+\code
+void set_tempo(snd_seq_t *handle)
+{
+        snd_seq_queue_tempo_t *tempo;
+        snd_seq_queue_tempo_alloca(&tempo);
+        snd_seq_queue_tempo_set_tempo(tempo, 1000000); // 60 BPM
+        snd_seq_queue_tempo_set_ppq(tempo, 48); // 48 PPQ
+        snd_seq_set_queue_tempo(handle, tempo);
+}
+\endcode
+
+For changing the (running) queue's tempo on the fly, you can either
+set the tempo via #snd_seq_queue_tempo() or send a MIDI tempo event
+to the system timer port.  For example,
+\code
+int change_tempo(snd_seq_t *handle, int q, unsigned int tempo)
+{
+	snd_seq_event_t ev;
+	snd_seq_ev_clear(&ev);
+	ev.dest.client = SND_SEQ_CLIENT_SYSTEM;
+	ev.dest.port = SND_SEQ_PORT_SYSTEM_TIMER;
+	ev.source.client = my_client_id;
+	ev.source.port = my_port_id;
+	ev.queue = SND_SEQ_QUEUE_DIRECT; // no scheduling
+	ev.data.queue.queue = q;	// affected queue id
+	ev.data.queue.value = tempo;	// new tempo in microsec.
+	return snd_seq_event_output(handle, &ev);
+}
+\endcode
+There is a helper function to do this easily,
+#snd_seq_change_queue_tempo().
+Set NULL to the last argument, if you don't need any
+special settings.
+
+In the above example, the tempo is changed immediately after
+the buffer is flushed by #snd_seq_drain_output() call.
+You can schedule the event in a certain queue so that the tempo
+change happes at the scheduled time, too.
+
+\subsection seq_ev_start Starting and stopping a queue
+
+To start, stop, or continue a queue, you need to send a queue-control
+event to the system timer port as well.  There are helper functions,
+#snd_seq_start_queue(), #snd_seq_stop_queue() and
+#snd_seq_continue_queue().
+Note that if the last argument of these functions is NULL, the
+event is sent (i.e. operated) immediately after the buffer flush.
+If you want to schedule the event at the certain time, set up
+the event record and provide the pointer of that event record as the
+argument.
+
+Only calling these functions doesn't deliver the event to the
+sequencer core but only put to the output buffer.  You'll need to
+call #snd_seq_drain_output() eventually.
+
+
+\section seq_subs_more More inside the subscription
+
+\subsection seq_subs_perm Permissions
+
+Each ALSA port can have capability flags.
+The most basic capability flags are
+#SND_SEQ_PORT_CAP_READ and #SND_SEQ_PORT_CAP_WRITE.
+The former means that the port allows to send events to other ports,
+whereas the latter capability menas
+that the port allows to receive events from other ports.
+You may have noticed that meanings of \c READ and \c WRITE
+are permissions of the port from the viewpoint of other ports.
+
+For allowing subscription from/to other clients, another capability
+flags must be set together with read/write capabilities above.
+For allowing read and write subscriptions,
+#SND_SEQ_PORT_CAP_SUBS_READ and
+#SND_SEQ_PORT_CAP_SUBS_WRITE are used,
+respectively.
+For example, the port with MIDI input device always has
+#SND_SEQ_PORT_CAP_SUBS_READ capability,
+and the port with MIDI output device always has
+#SND_SEQ_PORT_CAP_SUBS_WRITE capability together with
+#SND_SEQ_PORT_CAP_READ and #SND_SEQ_PORT_CAP_WRITE capabilities,
+respectively.
+Obviously, these flags have no influence
+if \c READ or \c WRITE> capability is not set.
+
+Note that these flags are not necessary if the client subscribes itself
+to the spcified port.
+For example, when a port makes READ subscription
+to MIDI input port, this port must have #SND_SEQ_PORT_CAP_WRITE capability,
+but no #SND_SEQ_PORT_CAP_SUBS_WRITE capability is required.
+Only MIDI input port must have #SND_SEQ_PORT_SUBS_READ capability.
+
+As default, the connection of ports via the third client is always allowed
+if proper read and write (subscription) capabilities are set both to the
+source and destination ports.
+For prohibiting this behavior, set a capability
+#SND_SEQ_PORT_CAP_NO_EXPORT to the port.
+If this flag is set, subscription must be done by sender or receiver
+client itself.
+It is useful to avoid unexpected disconnection.
+The ports which won't accept subscription should have this capability
+for better security.
+
+\subsection seq_subs_handle Subscription handlers
+
+In ALSA library, subscription is done via
+#snd_seq_subscribe_port() function.
+It takes the argument of #snd_seq_port_subscribe_t record pointer.
+Suppose that you have a client which will receive data from
+a MIDI input device.  The source and destination addresses
+are like the below;
+\code
+snd_seq_addr_t sender, dest;
+sender.client = MIDI_input_client;
+sender.port = MIDI_input_port;
+dest.client = my_client;
+dest.port = my_port;
+\endcode
+To set these values as the connection call like this.
+\code
+snd_seq_port_subscribe_t *subs;
+snd_seq_port_subscribe_alloca(&subs);
+snd_seq_port_subscribe_set_sender(subs, &sender);
+snd_seq_port_subscribe_set_dest(subs, &dest);
+snd_seq_subscribe_port(handle, subs);
+\endcode
+
+When the connection should be exclusively done only between
+a certain pair, set <i>exclusive</i> attribute to the subscription
+record before calling #snd_seq_port_subscribe.
+\code
+snd_seq_port_subscribe_set_exclusive(subs, 1);
+\endcode
+The succeeding subscriptions will be refused.
+
+The timestamp can be updated independently on each connection.
+When set up, the timestamp of incoming queue to the destination port
+is updated automatically to the time of the specified queue.
+\code
+snd_seq_port_subscribe_set_time_update(subs, 1);
+snd_seq_port_subscribe_set_queue(subs, q);
+\endcode
+For getting the wallclock time (sec/nsec pair), set <i>real</i> attribute:
+\code
+snd_seq_port_subscribe_set_time_real(subs, 1);
+\endcode
+Otherwise, the timestamp is stored in tick unit.
+This feature is useful when receiving events from MIDI input device.
+The event time is automatically set in the event record.
+
+Note that an outsider client may connect other ports.
+In this case, however, the subscription may be refused
+if #SND_SEQ_PORT_CAP_NO_EXPORT capability is set in either sender or receiver port.
+
+\section seq_subs_ex Examples of subscription
+
+\subsection seq_subs_ex_capt Capture from keyboard
+
+Assume MIDI input port = 64:0, application port = 128:0, and
+queue for timestamp = 1 with real-time stamp.
+The application port must have capabilty #SND_SEQ_PORT_CAP_WRITE.
+\code
+void capture_keyboard(snd_seq_t *seq)
+{
+        snd_seq_addr_t sender, dest;
+        snd_seq_port_subscribe_t *subs;
+        sender.client = 64;
+        sender.port = 0;
+        dest.client = 128;
+        dest.port = 0;
+        snd_seq_port_subscribe_alloca(&subs);
+        snd_seq_port_subscribe_set_sender(subs, &sender);
+        snd_seq_port_subscribe_set_dest(subs, &dest);
+        snd_seq_port_subscribe_set_queue(subs, 1);
+        snd_seq_port_subscribe_set_time_update(subs, 1);
+        snd_seq_port_subscribe_set_time_real(subs, 1);
+        snd_seq_subscribe_port(seq, subs);
+}
+\endcode
+
+\subsection seq_subs_ex_out Output to MIDI device
+
+Assume MIDI output port = 65:1 and application port = 128:0.
+The application port must have capabilty #SND_SEQ_PORT_CAP_READ.
+\code
+void subscribe_output(snd_seq_t *seq)
+{
+        snd_seq_addr_t sender, dest;
+        snd_seq_port_subscribe_t *subs;
+        sender.client = 128;
+        sender.port = 0;
+        dest.client = 65;
+        dest.port = 1;
+        snd_seq_port_subscribe_alloca(&subs);
+        snd_seq_port_subscribe_set_sender(subs, &sender);
+        snd_seq_port_subscribe_set_dest(subs, &dest);
+        snd_seq_subscribe_port(seq, subs);
+}
+\endcode
+This example can be simplified by using #snd_seq_connect_to() function.
+\code
+void subscribe_output(snd_seq_t *seq)
+{
+        snd_seq_connect_to(seq, 0, 65, 1);
+}
+\endcode
+
+\subsection seq_subs_ex_arbit Arbitrary connection
+
+Assume connection from application 128:0 to 129:0,
+and that subscription is done by the third application (130:0).
+The sender must have capabilities both
+#SND_SEQ_PORT_CAP_READ and
+#SND_SEQ_PORT_SUBS_READ,
+and the receiver
+#SND_SEQ_PORT_CAP_WRITE and
+#SND_SEQ_PORT_CAP_SUBS_WRITE, respectively.
+\code
+// ..in the third application (130:0) ..
+void coupling(snd_seq_t *seq)
+{
+        snd_seq_addr_t sender, dest;
+        snd_seq_port_subscribe_t *subs;
+        sender.client = 128;
+        sender.port = 0;
+        dest.client = 129;
+        dest.port = 0;
+        snd_seq_port_subscribe_alloca(&subs);
+        snd_seq_port_subscribe_set_sender(subs, &sender);
+        snd_seq_port_subscribe_set_dest(subs, &dest);
+        snd_seq_subscribe_port(seq, subs);
+}
+\endcode
+
+\section seq_ex_event Event Processing
+
+\subsection seq_ex_address Addressing
+
+Now, two ports are connected by subscription.  Then how to send events?
+
+The subscribed port doesn't have to know the exact sender address.
+Instead, there is a special address for subscribers,
+#SND_SEQ_ADDRESS_SUBSCRIBERS.
+The sender must set this value as the destination client.
+Destination port is ignored.
+
+The other values in source and destination addresses are identical with
+the normal event record.
+If the event is scheduled, proper queue and timestamp values must be set.
+
+There is a convenient function to set the address in an event record.
+In order to set destination as subscribers, use
+#snd_seq_ev_set_subs().
+
+\subsection Scheduled Delivery
+
+If we send an event at the scheduled time <code>t</code> (tick)
+on the queue <code>Q</code>,
+the sender must set both schedule queue and time in the
+event record.
+The program appears like this:
+\code
+void schedule_event(snd_seq_t *seq)
+{
+        snd_seq_event_t ev;
+
+        snd_seq_ev_clear(&ev);
+        snd_seq_ev_set_source(&ev, my_port);
+        snd_seq_ev_set_subs(&ev);
+        snd_seq_ev_schedule_tick(&ev, Q, 0, t);
+        ... // set event type, data, so on..
+
+        snd_seq_event_output(seq, &ev);
+        ...
+        snd_seq_drain_output(seq);  // if necessary
+}
+\endcode
+Of course, you can use realtime stamp, too.
+
+\subsection seq_ex_direct Direct Delivery
+
+If the event is sent immediately without enqueued, the sender doesn't take
+care of queue and timestamp.
+As well as the case above, there is a function to set the direct delivery,
+#snd_seq_ev_set_direct().
+The program can be more simplified as follows:
+\code
+void direct_delivery(snd_seq_t *seq)
+{
+        snd_seq_event_t ev;
+
+        snd_seq_ev_clear(&ev);
+        snd_seq_ev_set_source(&ev, port);
+        snd_seq_ev_set_subs(&ev);
+        snd_seq_ev_set_direct(&ev);
+        ... // set event type, data, so on..
+
+        snd_seq_event_output(seq, &ev);
+        snd_seq_drain_output(seq);
+}
+\endcode
+You should flush event soon after output event.
+Otherwise, the event is enqueued on output queue of ALSA library
+(not in the kernel!), and will be never processed until
+this queue becomes full.
+
+\subsection seq_ex_filter Filter Application
+
+A typical filter program, which receives an event and sends it immediately
+after some modification, will appear as following:
+\code
+void event_filter(snd_seq_t *seq, snd_seq_event_t *ev)
+{
+        snd_seq_event_t *ev;
+
+        while (snd_seq_event_input(seq, &ev) >= 0) {
+                //.. modify input event ..
+
+                snd_seq_ev_set_source(ev, my_port);
+                snd_seq_ev_set_subs(ev);
+                snd_seq_ev_set_direct(ev);
+                snd_seq_event_output(seq, &ev);
+                snd_seq_drain_output(seq);
+                snd_seq_free_event(ev);
+        }
+}
+\endcode
 
 */
 
@@ -201,7 +947,7 @@ static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
  * - #SND_SEQ_OPEN_INPUT - open the sequencer for input only
  * - #SND_SEQ_OPEN_DUPLEX - open the sequencer for output and input
  * \note Internally, these are translated to \c O_WRONLY, \c O_RDONLY and
- * \O_RDWR respectively and used as the second argument to the C library
+ * \c O_RDWR respectively and used as the second argument to the C library
  * open() call.
  * \param mode Optional modifier.  Can be either 0, or
  * #SND_SEQ_NONBLOCK, which will make read/write operations
