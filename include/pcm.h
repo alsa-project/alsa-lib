@@ -171,6 +171,7 @@ enum _snd_pcm_type {
 	SND_PCM_TYPE_ROUTE,
 	SND_PCM_TYPE_PLUG,
 	SND_PCM_TYPE_SHARE,
+	SND_PCM_TYPE_METER,
 	SND_PCM_TYPE_MIX,
 	SND_PCM_TYPE_DROUTE,
 	SND_PCM_TYPE_LBSERVER,
@@ -197,6 +198,7 @@ typedef enum _snd_pcm_type snd_pcm_type_t;
 #define	SND_PCM_TYPE_ROUTE ((snd_pcm_type_t) SND_PCM_TYPE_ROUTE)
 #define	SND_PCM_TYPE_PLUG ((snd_pcm_type_t) SND_PCM_TYPE_PLUG)
 #define	SND_PCM_TYPE_SHARE ((snd_pcm_type_t) SND_PCM_TYPE_SHARE)
+#define	SND_PCM_TYPE_METER ((snd_pcm_type_t) SND_PCM_TYPE_METER)
 #define	SND_PCM_TYPE_MIX ((snd_pcm_type_t) SND_PCM_TYPE_MIX)
 #define	SND_PCM_TYPE_DROUTE ((snd_pcm_type_t) SND_PCM_TYPE_DROUTE)
 #define	SND_PCM_TYPE_LBSERVER ((snd_pcm_type_t) SND_PCM_TYPE_LBSERVER)
