@@ -4,7 +4,7 @@ DIST_SUBDIRS =
 EXTRA_LTLIBRARIES = libordinarypcm.la
 
 libordinarypcm_la_SOURCES = ordinary_pcm.c
-noinst_HEADERS =
+#noinst_HEADERS =
 
 alsadir = $(datadir)/alsa
 
