@@ -538,7 +538,7 @@ enum {
  *  Timer section - /dev/snd/timer
  */
 
-#define SNDRV_TIMER_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 1)
+#define SNDRV_TIMER_VERSION		SNDRV_PROTOCOL_VERSION(2, 0, 2)
 
 enum sndrv_timer_class {
 	SNDRV_TIMER_CLASS_NONE = -1,
@@ -619,6 +619,7 @@ struct sndrv_timer_info {
 
 #define SNDRV_TIMER_PSFLG_AUTO		(1<<0)	/* auto start, otherwise one-shot */
 #define SNDRV_TIMER_PSFLG_EXCLUSIVE	(1<<1)	/* exclusive use, precise start/stop/pause/continue */
+#define SNDRV_TIMER_PSFLG_EARLY_EVENT	(1<<2)	/* write early event to the poll queue */
 
 struct sndrv_timer_params {
 	unsigned int flags;		/* flags - SNDRV_MIXER_PSFLG_* */
@@ -667,6 +668,7 @@ enum sndrv_timer_event {
 	SNDRV_TIMER_EVENT_STOP,			/* val = 0 */
 	SNDRV_TIMER_EVENT_CONTINUE,		/* val = resolution in ns */
 	SNDRV_TIMER_EVENT_PAUSE,		/* val = 0 */
+	SNDRV_TIMER_EVENT_EARLY,		/* val = 0, early event */
 	/* master timer events for slave timer instances */
 	SNDRV_TIMER_EVENT_MSTART = SNDRV_TIMER_EVENT_START + 10,
 	SNDRV_TIMER_EVENT_MSTOP = SNDRV_TIMER_EVENT_STOP + 10,

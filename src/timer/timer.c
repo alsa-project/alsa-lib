@@ -545,13 +545,14 @@ void snd_timer_params_copy(snd_timer_params_t *dst, const snd_timer_params_t *sr
  * \brief set timer auto start
  * \param params pointer to #snd_timer_params_t structure
  */
-void snd_timer_params_set_auto_start(snd_timer_params_t * params, int auto_start)
+int snd_timer_params_set_auto_start(snd_timer_params_t * params, int auto_start)
 {
 	assert(params);
 	if (auto_start)
 		params->flags |= SNDRV_TIMER_PSFLG_AUTO;
 	else
 		params->flags &= ~SNDRV_TIMER_PSFLG_AUTO;
+	return 0;
 }
 
 /**
@@ -570,9 +571,9 @@ int snd_timer_params_get_auto_start(snd_timer_params_t * params)
  * \param params pointer to #snd_timer_params_t structure
  */
 #ifndef DOXYGEN
-void INTERNAL(snd_timer_params_set_exclusive)(snd_timer_params_t * params, int exclusive)
+int INTERNAL(snd_timer_params_set_exclusive)(snd_timer_params_t * params, int exclusive)
 #else
-void snd_timer_params_set_exclusive(snd_timer_params_t * params, int exclusive)
+int snd_timer_params_set_exclusive(snd_timer_params_t * params, int exclusive)
 #endif
 {
 	assert(params);
@@ -580,6 +581,7 @@ void snd_timer_params_set_exclusive(snd_timer_params_t * params, int exclusive)
 		params->flags |= SNDRV_TIMER_PSFLG_EXCLUSIVE;
 	else
 		params->flags &= ~SNDRV_TIMER_PSFLG_EXCLUSIVE;
+	return 0;
 }
 use_default_symbol_version(__snd_timer_params_set_exclusive, snd_timer_params_set_exclusive, ALSA_0.9.0);
 
@@ -598,6 +600,31 @@ int snd_timer_params_get_exclusive(snd_timer_params_t * params)
 	return params->flags & SNDRV_TIMER_PSFLG_EXCLUSIVE ? 1 : 0;
 }
 use_default_symbol_version(__snd_timer_params_get_exclusive, snd_timer_params_get_exclusive, ALSA_0.9.0);
+
+/**
+ * \brief set timer early event
+ * \param params pointer to #snd_timer_params_t structure
+ */
+int snd_timer_params_set_early_event(snd_timer_params_t * params, int early_event)
+{
+	assert(params);
+	if (early_event)
+		params->flags |= SNDRV_TIMER_PSFLG_EARLY_EVENT;
+	else
+		params->flags &= ~SNDRV_TIMER_PSFLG_EARLY_EVENT;
+	return 0;
+}
+
+/**
+ * \brief determine if timer has early event flag
+ * \param params pointer to #snd_timer_params_t structure
+ * \return nonzero if timer has early event flag set
+ */
+int snd_timer_params_get_early_event(snd_timer_params_t * params)
+{
+	assert(params);
+	return params->flags & SNDRV_TIMER_PSFLG_EARLY_EVENT ? 1 : 0;
+}
 
 /**
  * \brief set timer ticks

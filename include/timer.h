@@ -84,6 +84,7 @@ typedef enum _snd_timer_event {
 	SND_TIMER_EVENT_STOP,		/* val = 0 */
 	SND_TIMER_EVENT_CONTINUE,	/* val = resolution in ns */
 	SND_TIMER_EVENT_PAUSE,		/* val = 0 */
+	SND_TIMER_EVENT_EARLY,		/* val = 0 */
 	/* master timer events for slave timer instances */
 	SND_TIMER_EVENT_MSTART = SND_TIMER_EVENT_START + 10,
 	SND_TIMER_EVENT_MSTOP = SND_TIMER_EVENT_STOP + 10,
@@ -190,10 +191,12 @@ int snd_timer_params_malloc(snd_timer_params_t **ptr);
 void snd_timer_params_free(snd_timer_params_t *obj);
 void snd_timer_params_copy(snd_timer_params_t *dst, const snd_timer_params_t *src);
 
-void snd_timer_params_set_auto_start(snd_timer_params_t * params, int auto_start);
+int snd_timer_params_set_auto_start(snd_timer_params_t * params, int auto_start);
 int snd_timer_params_get_auto_start(snd_timer_params_t * params);
-void snd_timer_params_set_exclusive(snd_timer_params_t * params, int exclusive);
+int snd_timer_params_set_exclusive(snd_timer_params_t * params, int exclusive);
 int snd_timer_params_get_exclusive(snd_timer_params_t * params);
+int snd_timer_params_set_early_event(snd_timer_params_t * params, int early_event);
+int snd_timer_params_get_early_event(snd_timer_params_t * params);
 void snd_timer_params_set_ticks(snd_timer_params_t * params, long ticks);
 long snd_timer_params_get_ticks(snd_timer_params_t * params);
 void snd_timer_params_set_queue_size(snd_timer_params_t * params, long queue_size);

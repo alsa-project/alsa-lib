@@ -152,3 +152,10 @@ ALSA_1.0.4 {
     snd_spcm_init_duplex;
     snd_spcm_init_get_params;
 } ALSA_0.9.8;
+
+ALSA_1.0.5 {
+  global:
+
+    snd_timer_params_set_early_event;
+    snd_timer_params_get_early_event;
+} ALSA_1.0.4;

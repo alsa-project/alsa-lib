@@ -846,6 +846,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 		return ret;
 	}
 	snd_timer_params_set_auto_start(params, 1);
+	snd_timer_params_set_early_event(params, 1);
 	snd_timer_params_set_ticks(params, 1);
 	ret = snd_timer_params(dmix->timer, params);
 	if (ret < 0) {
