@@ -313,7 +313,12 @@ int snd_pcm_direct_server_create(snd_pcm_direct_t *dmix)
 		close(dmix->server_fd);
 		return ret;
 	} else if (ret == 0) {
-		server_job(dmix);
+		ret = fork();
+		if (ret == 0)
+			server_job(dmix);
+		exit(EXIT_SUCCESS);
+	} else {
+		waitpid(ret, NULL, 0);
 	}
 	dmix->server_pid = ret;
 	dmix->server = 1;
