@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #define rdtscll(val) \
@@ -309,11 +309,15 @@ void mix_areas2(unsigned int size,
 
 int main(int argc, char **argv)
 {
-	int size = atoi(argv[1]);
-	int n = atoi(argv[2]);
-	int max = atoi(argv[3]);
+	int size = 2048, n = 4, max = 0x7fff;
 	int i;
 	unsigned long long begin, end;
+
+	if (argc == 4) {
+		size = atoi(argv[1]);
+		n = atoi(argv[2]);
+		max = atoi(argv[3]);
+	}
 	s16 *dst = malloc(sizeof(*dst) * size);
 	s32 *sum = calloc(size, sizeof(*sum));
 	s16 **srcs = malloc(sizeof(*srcs) * n);
@@ -349,4 +353,5 @@ int main(int argc, char **argv)
 	}
 	rdtscll(end);
 	printf("mix_areas2    : %lld\n", end - begin);
+	return 0;
 }
