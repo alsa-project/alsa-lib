@@ -168,3 +168,16 @@ pcm.ice1712_spdif {
 	ttable.1.9 1
 	sname ice1712
 }
+
+Special PCM names:
+hw:#card,#dev,#subdev
+hw:#card,#dev
+plug:#card,#dev,#subdev
+plug:#card,#dev
+plug:sname
+shm:socket,sname
+file:fname,fmt,sname
+file:fname,fmt
+file:fname
+null
+
