@@ -91,7 +91,7 @@ static unsigned char s16_to_ulaw(int pcm_val)	/* 2's complement (16-bit range) *
 	unsigned char uval;
 
 	if (pcm_val < 0) {
-		pcm_val = -pcm_val + 0x84;
+		pcm_val = 0x84 - pcm_val;
 		mask = 0x7f;
 	} else {
 		pcm_val += 0x84;
