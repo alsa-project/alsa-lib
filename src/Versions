@@ -156,6 +156,7 @@ ALSA_1.0.4 {
 ALSA_1.0.5 {
   global:
 
+    snd_asoundlib_version;
     snd_timer_params_set_early_event;
     snd_timer_params_get_early_event;
 } ALSA_1.0.4;

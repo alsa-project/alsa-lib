@@ -102,3 +102,12 @@ int snd_lib_error_set_handler(snd_lib_error_handler_t handler)
 	snd_lib_error = handler == NULL ? snd_lib_error_default : handler;
 	return 0;
 }
+
+/**
+ * \brief Returns the ALSA sound library version in ASCII format
+ * \return The ASCII description of the used ALSA sound library.
+ */
+const char *snd_asoundlib_version(void)
+{
+	return SND_LIB_VERSION_STR;
+}

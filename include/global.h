@@ -41,6 +41,8 @@ extern "C" {
  *  \{
  */
 
+const char *snd_asoundlib_version(void);
+
 #ifndef ATTRIBUTE_UNUSED
 /** do not print warning (gcc) when function parameter is not used */
 #define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
