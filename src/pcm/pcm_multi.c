@@ -299,6 +299,7 @@ static int snd_pcm_multi_hw_free(snd_pcm_t *pcm)
 			err = e;
 		if (!multi->slaves[i].linked)
 			continue;
+		multi->slaves[i].linked = 0;
 		e = snd_pcm_unlink(slave);
 		if (e < 0)
 			err = e;
