@@ -64,6 +64,8 @@ typedef struct {
 		unsigned int sample_bits;
 		unsigned int rate;
 		snd_pcm_format_t format;
+		unsigned int info;
+		unsigned int msbits;
 	} s;
 	union {
 		struct {
@@ -128,6 +130,17 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm);
 int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg);
+int snd_pcm_direct_nonblock(snd_pcm_t *pcm, int nonblock);
+int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid);
+int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
+int snd_pcm_direct_info(snd_pcm_t *pcm, snd_pcm_info_t * info);
+int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
+int snd_pcm_direct_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params);
+int snd_pcm_direct_hw_free(snd_pcm_t *pcm);
+int snd_pcm_direct_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params);
+int snd_pcm_direct_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info);
+int snd_pcm_direct_mmap(snd_pcm_t *pcm);
+int snd_pcm_direct_munmap(snd_pcm_t *pcm);
 
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm);

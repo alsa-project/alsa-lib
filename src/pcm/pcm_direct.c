@@ -375,6 +375,199 @@ int snd_pcm_direct_client_discard(snd_pcm_direct_t *dmix)
 }
 
 /*
+ *  plugin helpers
+ */
+
+int snd_pcm_direct_nonblock(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int nonblock ATTRIBUTE_UNUSED)
+{
+	/* value is cached for us in pcm->mode (SND_PCM_NONBLOCK flag) */
+	return 0;
+}
+
+int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid)
+{
+	snd_pcm_direct_t *dmix = pcm->private_data;
+	return snd_timer_async(dmix->timer, sig, pid);
+}
+
+int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	snd_pcm_direct_t *dmix = pcm->private_data;
+	unsigned short events;
+	static snd_timer_read_t rbuf[5];	/* can be overwriten by multiple plugins, we don't need the value */
+
+	assert(pfds && nfds == 1 && revents);
+	events = pfds[0].revents;
+	if (events & POLLIN) {
+		events |= POLLOUT;
+		events &= ~POLLIN;
+		/* empty the timer read queue */
+		while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf)) ;
+	}
+	*revents = events;
+	return 0;
+}
+
+int snd_pcm_direct_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
+{
+	// snd_pcm_direct_t *dmix = pcm->private_data;
+
+	memset(info, 0, sizeof(*info));
+	info->stream = pcm->stream;
+	info->card = -1;
+	/* FIXME: fill this with something more useful: we know the hardware name */
+	if (pcm->name) {
+		strncpy(info->id, pcm->name, sizeof(info->id));
+		strncpy(info->name, pcm->name, sizeof(info->name));
+		strncpy(info->subname, pcm->name, sizeof(info->subname));
+	}
+	info->subdevices_count = 1;
+	return 0;
+}
+
+static inline snd_mask_t *hw_param_mask(snd_pcm_hw_params_t *params,
+					snd_pcm_hw_param_t var)
+{
+	return &params->masks[var - SND_PCM_HW_PARAM_FIRST_MASK];
+}
+
+static inline snd_interval_t *hw_param_interval(snd_pcm_hw_params_t *params,
+						snd_pcm_hw_param_t var)
+{
+	return &params->intervals[var - SND_PCM_HW_PARAM_FIRST_INTERVAL];
+}
+
+static int hw_param_interval_refine_one(snd_pcm_hw_params_t *params,
+					snd_pcm_hw_param_t var,
+					snd_pcm_hw_params_t *src)
+{
+	snd_interval_t *i;
+
+	if (!(params->rmask & (1<<var)))	/* nothing to do? */
+		return 0;
+	i = hw_param_interval(params, var);
+	if (snd_interval_empty(i)) {
+		SNDERR("dshare interval %i empty?", (int)var);
+		return -EINVAL;
+	}
+	if (snd_interval_refine(i, hw_param_interval(src, var)))
+		params->cmask |= 1<<var;
+	return 0;
+}
+
+#undef REFINE_DEBUG
+
+int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
+{
+	snd_pcm_direct_t *dshare = pcm->private_data;
+	snd_pcm_hw_params_t *hw_params = &dshare->shmptr->hw_params;
+	static snd_mask_t access = { .bits = { 
+					(1<<SNDRV_PCM_ACCESS_MMAP_INTERLEAVED) |
+					(1<<SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED) |
+					(1<<SNDRV_PCM_ACCESS_RW_INTERLEAVED) |
+					(1<<SNDRV_PCM_ACCESS_RW_NONINTERLEAVED),
+					0, 0, 0 } };
+	int err;
+
+#ifdef REFINE_DEBUG
+	snd_output_t *log;
+	snd_output_stdio_attach(&log, stderr, 0);
+	snd_output_puts(log, "DMIX REFINE (begin):\n");
+	snd_pcm_hw_params_dump(params, log);
+#endif
+	if (params->rmask & (1<<SND_PCM_HW_PARAM_ACCESS)) {
+		if (snd_mask_empty(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS))) {
+			SNDERR("dshare access mask empty?");
+			return -EINVAL;
+		}
+		if (snd_mask_refine(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS), &access))
+			params->cmask |= 1<<SND_PCM_HW_PARAM_ACCESS;
+	}
+	if (params->rmask & (1<<SND_PCM_HW_PARAM_FORMAT)) {
+		if (snd_mask_empty(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT))) {
+			SNDERR("dshare format mask empty?");
+			return -EINVAL;
+		}
+		if (snd_mask_refine_set(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT),
+				        snd_mask_value(hw_param_mask(hw_params, SND_PCM_HW_PARAM_FORMAT))))
+			params->cmask |= 1<<SND_PCM_HW_PARAM_FORMAT;
+	}
+	//snd_mask_none(hw_param_mask(params, SND_PCM_HW_PARAM_SUBFORMAT));
+	if (params->rmask & (1<<SND_PCM_HW_PARAM_CHANNELS)) {
+		if (snd_interval_empty(hw_param_interval(params, SND_PCM_HW_PARAM_CHANNELS))) {
+			SNDERR("dshare channels mask empty?");
+			return -EINVAL;
+		}
+		err = snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_CHANNELS), dshare->channels);
+		if (err < 0)
+			return err;
+	}
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_RATE, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_SIZE, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_TIME, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_SIZE, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_TIME, hw_params);
+	if (err < 0)
+		return err;
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIODS, hw_params);
+	if (err < 0)
+		return err;
+#ifdef REFINE_DEBUG
+	snd_output_puts(log, "DMIX REFINE (end):\n");
+	snd_pcm_hw_params_dump(params, log);
+	snd_output_close(log);
+#endif
+	return 0;
+}
+
+int snd_pcm_direct_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
+{
+	snd_pcm_direct_t *dmix = pcm->private_data;
+
+	params->info = dmix->shmptr->s.info;
+	params->rate_num = dmix->shmptr->s.rate;
+	params->rate_den = 1;
+	params->fifo_size = 0;
+	params->msbits = dmix->shmptr->s.msbits;
+	return 0;
+}
+
+int snd_pcm_direct_hw_free(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	/* values are cached in the pcm structure */
+	return 0;
+}
+
+int snd_pcm_direct_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t * params ATTRIBUTE_UNUSED)
+{
+	/* values are cached in the pcm structure */
+	return 0;
+}
+
+int snd_pcm_direct_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
+{
+        return snd_pcm_channel_info_shm(pcm, info, -1);
+}
+
+int snd_pcm_direct_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+        
+int snd_pcm_direct_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+
+/*
  * this function initializes hardware and starts playback operation with
  * no stop threshold (it operates all time without xrun checking)
  * also, the driver silences the unused ring buffer areas for us
@@ -578,6 +771,8 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	dmix->shmptr->s.rate = spcm->rate;
 	dmix->shmptr->s.format = spcm->format;
 	dmix->shmptr->s.boundary = spcm->boundary;
+	dmix->shmptr->s.info = spcm->info;
+	dmix->shmptr->s.msbits = spcm->msbits;
 
 	spcm->donot_close = 1;
 	return 0;
