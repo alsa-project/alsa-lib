@@ -52,7 +52,7 @@ Features
 - Made SPEC file
 
 %prep
-%setup -n alsa-lib
+%setup
 %build
 
 ./configure --prefix=/usr
@@ -76,3 +76,4 @@ rm -rf $RPM_BUILD_ROOT
 
 %{prefix}/usr/include/sys/soundlib.h
 %{prefix}/usr/lib/lib*
+${prefix}/usr/share/aclocal/alsa.m4
