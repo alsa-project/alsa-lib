@@ -185,9 +185,9 @@ static snd_pcm_sframes_t snd_pcm_hooks_readn(snd_pcm_t *pcm, void **bufs, snd_pc
 	return snd_pcm_readn(h->slave, bufs, size);
 }
 
-static snd_pcm_sframes_t snd_pcm_hooks_mmap_commit(snd_pcm_t *pcm,
-						   snd_pcm_uframes_t offset,
-						   snd_pcm_uframes_t size)
+static int snd_pcm_hooks_mmap_commit(snd_pcm_t *pcm,
+				     snd_pcm_uframes_t offset,
+				     snd_pcm_uframes_t size)
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
 	return snd_pcm_mmap_commit(h->slave, offset, size);

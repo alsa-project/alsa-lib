@@ -446,9 +446,9 @@ static int snd_pcm_shm_resume(snd_pcm_t *pcm)
 	return snd_pcm_shm_action(pcm);
 }
 
-static snd_pcm_sframes_t snd_pcm_shm_mmap_commit(snd_pcm_t *pcm,
-						 snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
-						 snd_pcm_uframes_t size)
+static int snd_pcm_shm_mmap_commit(snd_pcm_t *pcm,
+				   snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+				   snd_pcm_uframes_t size)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;

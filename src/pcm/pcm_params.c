@@ -1821,7 +1821,7 @@ static snd_interval_t refine_intervals[SND_PCM_HW_PARAM_LAST_INTERVAL - SND_PCM_
 	},
 };
 
-#undef RULES_DEBUG
+#define RULES_DEBUG
 
 int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
@@ -1995,7 +1995,7 @@ int snd_pcm_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		}
 		if (err < 0) {
 #ifdef RULES_DEBUG
-			snd_output_printf(log, "cchange '%s', schange < 0\n", pcm->name);
+			snd_output_printf(log, "cchange '%s', (schange || srefine) < 0\n", pcm->name);
 			snd_pcm_hw_params_dump(params, log);
 #endif
 			cchange(pcm, params, &sparams);

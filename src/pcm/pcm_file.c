@@ -279,9 +279,9 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 	return n;
 }
 
-static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
-						  snd_pcm_uframes_t offset,
-						  snd_pcm_uframes_t size)
+static int snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
+				    snd_pcm_uframes_t offset,
+				    snd_pcm_uframes_t size)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_uframes_t ofs;
