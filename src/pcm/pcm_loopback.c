@@ -58,9 +58,9 @@ int snd_pcm_loopback_open(snd_pcm_loopback_t **handle, int card, int device, int
 		close(fd);
 		return -errno;
 	}
-	if (SND_PROTOCOL_UNCOMPATIBLE(ver, SND_PCM_LB_VERSION_MAX)) {
+	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_PCM_LB_VERSION_MAX)) {
 		close(fd);
-		return -SND_ERROR_UNCOMPATIBLE_VERSION;
+		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
 	lb = (snd_pcm_loopback_t *) calloc(1, sizeof(snd_pcm_loopback_t));
 	if (lb == NULL) {

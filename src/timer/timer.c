@@ -51,9 +51,9 @@ int snd_timer_open(snd_timer_t **handle)
 		close(fd);
 		return -errno;
 	}
-	if (SND_PROTOCOL_UNCOMPATIBLE(ver, SND_TIMER_VERSION_MAX)) {
+	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_TIMER_VERSION_MAX)) {
 		close(fd);
-		return -SND_ERROR_UNCOMPATIBLE_VERSION;
+		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
 	tmr = (snd_timer_t *) calloc(1, sizeof(snd_timer_t));
 	if (tmr == NULL) {

@@ -57,9 +57,9 @@ int snd_mixer_open(snd_mixer_t **handle, int card, int device)
 		close(fd);
 		return -errno;
 	}
-	if (SND_PROTOCOL_UNCOMPATIBLE(ver, SND_MIXER_VERSION_MAX)) {
+	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_MIXER_VERSION_MAX)) {
 		close(fd);
-		return -SND_ERROR_UNCOMPATIBLE_VERSION;
+		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
 	mixer = (snd_mixer_t *) calloc(1, sizeof(snd_mixer_t));
 	if (mixer == NULL) {

@@ -72,9 +72,9 @@ int snd_seq_open(snd_seq_t **handle, int mode)
 		close(fd);
 		return -errno;
 	}
-	if (SND_PROTOCOL_UNCOMPATIBLE(ver, SND_SEQ_VERSION_MAX)) {
+	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_SEQ_VERSION_MAX)) {
 		close(fd);
-		return -SND_ERROR_UNCOMPATIBLE_VERSION;
+		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	}
 	if (ioctl(fd, SND_SEQ_IOCTL_CLIENT_ID, &client) < 0) {
 		close(fd);
