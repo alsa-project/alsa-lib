@@ -1214,6 +1214,55 @@ int16_t *snd_pcm_scope_s16_get_channel_buffer(snd_pcm_scope_t *scope,
 /** \} */
 
 /**
+ * \defgroup PCM_Simple Simple setup functions
+ * \ingroup PCM
+ * See the \ref pcm page for more details.
+ * \{
+ */
+
+/** Simple PCM latency type */
+typedef enum _snd_spcm_latency {
+	/** standard latency - for standard playback or capture
+            (estimated latency in one direction 350ms) */
+	SND_SPCM_LATENCY_STANDARD = 0,
+	/** medium latency - software phones etc.
+	    (estimated latency in one direction maximally 25ms */
+	SND_SPCM_LATENCY_MEDIUM,
+	/** realtime latency - realtime applications (effect processors etc.)
+	    (estimated latency in one direction 5ms and better) */
+	SND_SPCM_LATENCY_REALTIME
+} snd_spcm_latency_t;
+
+/** Simple PCM xrun type */
+typedef enum _snd_spcm_xrun_type {
+	/** driver / library will ignore all xruns, the stream runs forever */
+	SND_SPCM_XRUN_IGNORE = 0,
+	/** driver / library stops the stream when an xrun occurs */
+	SND_SPCM_XRUN_STOP
+} snd_spcm_xrun_type_t;
+
+int snd_spcm_init(snd_pcm_t *pcm,
+		  unsigned int rate,
+		  unsigned int channels,
+		  snd_pcm_format_t format,
+		  snd_pcm_subformat_t subformat,
+		  snd_spcm_latency_t latency,
+		  snd_pcm_access_t access,
+		  snd_spcm_xrun_type_t xrun_type);
+
+int snd_spcm_init_duplex(snd_pcm_t *playback_pcm,
+			 snd_pcm_t *capture_pcm,
+			 unsigned int rate,
+			 unsigned int channels,
+			 snd_pcm_format_t format,
+			 snd_pcm_subformat_t subformat,
+			 snd_spcm_latency_t latency,
+			 snd_pcm_access_t access,
+			 snd_spcm_xrun_type_t xrun_type);
+
+/** \} */
+
+/**
  * \defgroup PCM_Deprecated Deprecated Functions
  * \ingroup PCM
  * See the \ref pcm page for more details.
