@@ -29,11 +29,18 @@ int snd_seq_get_any_port_info(void *handle, int client, int port, snd_seq_port_i
 int snd_seq_set_port_info(void *handle, int port, snd_seq_port_info_t *info);
 int snd_seq_subscribe_port(void *handle, snd_seq_port_subscribe_t *sub);
 int snd_seq_unsubscribe_port(void *handle, snd_seq_port_subscribe_t *sub);
-int snd_seq_get_queue_info(void *handle, int q, snd_seq_queue_info_t *queue);
-int snd_seq_set_queue_info(void *handle, int q, snd_seq_queue_info_t *queue);
+int snd_seq_get_queue_status(void *handle, int q, snd_seq_queue_status_t *status);
+int snd_seq_get_queue_tempo(void *handle, int q, snd_seq_queue_tempo_t *tempo);
+int snd_seq_set_queue_tempo(void *handle, int q, snd_seq_queue_tempo_t *tempo);
+int snd_seq_get_queue_owner(void *handle, int q, snd_seq_queue_owner_t *owner);
+int snd_seq_set_queue_owner(void *handle, int q, snd_seq_queue_owner_t *owner);
+int snd_seq_get_queue_timer(void *handle, int q, snd_seq_queue_timer_t *timer);
+int snd_seq_set_queue_timer(void *handle, int q, snd_seq_queue_timer_t *timer);
+int snd_seq_get_queue_sync(void *handle, int q, snd_seq_queue_sync_t *sync);
+int snd_seq_set_queue_sync(void *handle, int q, snd_seq_queue_sync_t *sync);
 int snd_seq_get_queue_client(void *handle, int q, snd_seq_queue_client_t *queue);
 int snd_seq_set_queue_client(void *handle, int q, snd_seq_queue_client_t *queue);
-int snd_seq_alloc_queue(void *handle, snd_seq_queue_info_t *queue);
+int snd_seq_alloc_queue(void *handle);
 int snd_seq_free_queue(void *handle, int q);
 /* event routines */
 snd_seq_event_t *snd_seq_create_event(void);

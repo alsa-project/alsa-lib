@@ -296,29 +296,124 @@ int snd_seq_unsubscribe_port(void *handle, snd_seq_port_subscribe_t * sub)
 	return 0;
 }
 
-int snd_seq_get_queue_info(void *handle, int q, snd_seq_queue_info_t * info)
+int snd_seq_get_queue_status(void *handle, int q, snd_seq_queue_status_t * status)
 {
 	snd_seq_t *seq;
 
 	seq = (snd_seq_t *) handle;
-	if (!seq || !info)
+	if (!seq || !status)
 		return -EINVAL;
-	bzero(info, sizeof(snd_seq_queue_info_t));
-	info->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_INFO, info) < 0)
+	bzero(status, sizeof(snd_seq_queue_status_t));
+	status->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_STATUS, status) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_seq_set_queue_info(void *handle, int q, snd_seq_queue_info_t * info)
+int snd_seq_get_queue_tempo(void *handle, int q, snd_seq_queue_tempo_t * tempo)
 {
 	snd_seq_t *seq;
 
 	seq = (snd_seq_t *) handle;
-	if (!seq || !info)
+	if (!seq || !tempo)
 		return -EINVAL;
-	info->queue = q;
-	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_INFO, info) < 0)
+	bzero(tempo, sizeof(snd_seq_queue_tempo_t));
+	tempo->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_TEMPO, tempo) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_set_queue_tempo(void *handle, int q, snd_seq_queue_tempo_t * tempo)
+{
+	snd_seq_t *seq;
+
+	seq = (snd_seq_t *) handle;
+	if (!seq || !tempo)
+		return -EINVAL;
+	tempo->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_TEMPO, tempo) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_get_queue_owner(void *handle, int q, snd_seq_queue_owner_t * owner)
+{
+	snd_seq_t *seq;
+
+	seq = (snd_seq_t *) handle;
+	if (!seq || !owner)
+		return -EINVAL;
+	bzero(owner, sizeof(snd_seq_queue_owner_t));
+	owner->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_OWNER, owner) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_set_queue_owner(void *handle, int q, snd_seq_queue_owner_t * owner)
+{
+	snd_seq_t *seq;
+
+	seq = (snd_seq_t *) handle;
+	if (!seq || !owner)
+		return -EINVAL;
+	owner->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_OWNER, owner) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_get_queue_timer(void *handle, int q, snd_seq_queue_timer_t * timer)
+{
+	snd_seq_t *seq;
+
+	seq = (snd_seq_t *) handle;
+	if (!seq || !timer)
+		return -EINVAL;
+	bzero(timer, sizeof(snd_seq_queue_timer_t));
+	timer->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_TIMER, timer) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_set_queue_timer(void *handle, int q, snd_seq_queue_timer_t * timer)
+{
+	snd_seq_t *seq;
+
+	seq = (snd_seq_t *) handle;
+	if (!seq || !timer)
+		return -EINVAL;
+	timer->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_TIMER, timer) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_get_queue_sync(void *handle, int q, snd_seq_queue_sync_t * sync)
+{
+	snd_seq_t *seq;
+
+	seq = (snd_seq_t *) handle;
+	if (!seq || !sync)
+		return -EINVAL;
+	bzero(sync, sizeof(snd_seq_queue_sync_t));
+	sync->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_GET_QUEUE_SYNC, sync) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_seq_set_queue_sync(void *handle, int q, snd_seq_queue_sync_t * sync)
+{
+	snd_seq_t *seq;
+
+	seq = (snd_seq_t *) handle;
+	if (!seq || !sync)
+		return -EINVAL;
+	sync->queue = q;
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_SET_QUEUE_SYNC, sync) < 0)
 		return -errno;
 	return 0;
 }
@@ -352,11 +447,11 @@ int snd_seq_set_queue_client(void *handle, int q, snd_seq_queue_client_t * info)
 	return 0;
 }
 
-int snd_seq_alloc_queue(void *handle, snd_seq_queue_info_t *info)
+int snd_seq_alloc_queue(void *handle)
 {
 	int i, err;
 	snd_seq_system_info_t sysinfo;
-	snd_seq_queue_info_t inf;
+	snd_seq_queue_owner_t owner;
 	snd_seq_t *seq;
 
 	seq = (snd_seq_t *) handle;
@@ -365,16 +460,14 @@ int snd_seq_alloc_queue(void *handle, snd_seq_queue_info_t *info)
 	if ((err = snd_seq_system_info(handle, &sysinfo))<0)
 		return err;
 	for (i = 0; i < sysinfo.queues; i++) {
-		if ((err = snd_seq_get_queue_info(handle, i, &inf))<0)
+		if ((err = snd_seq_get_queue_owner(handle, i, &owner))<0)
 			continue;
-		if (inf.locked)
+		if (owner.locked)
 			continue;
-		inf.locked = 1;
-		inf.owner = seq->client;
-		if ((err = snd_seq_set_queue_info(handle, i, &inf))<0)
+		owner.locked = 1;
+		owner.owner = seq->client;
+		if ((err = snd_seq_set_queue_owner(handle, i, &owner))<0)
 			continue;
-		if (info)
-			memcpy(info, &inf, sizeof(snd_seq_queue_info_t));
 		return i;
 	}
 	return -EBUSY;
@@ -384,17 +477,17 @@ int snd_seq_free_queue(void *handle, int q)
 {
 	int err;
 	snd_seq_t *seq;
-	snd_seq_queue_info_t inf;
+	snd_seq_queue_owner_t owner;
 
 	seq = (snd_seq_t *) handle;
 	if (!seq)
 		return -EINVAL;	
-	if ((err = snd_seq_get_queue_info(handle, q, &inf))<0)
+	if ((err = snd_seq_get_queue_owner(handle, q, &owner))<0)
 		return err;
-	if (inf.locked && inf.owner == seq->client) {
-		inf.locked = 0;
-		inf.owner = -1;
-		if ((err = snd_seq_set_queue_info(handle, q, &inf))<0)
+	if (owner.locked && owner.owner == seq->client) {
+		owner.locked = 0;
+		owner.owner = -1;
+		if ((err = snd_seq_set_queue_owner(handle, q, &owner))<0)
 			return err;
 	}
 	return 0;

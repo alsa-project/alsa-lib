@@ -87,7 +87,7 @@ void event_sender(void *handle, int argc, char *argv[])
 		return;
 	}
 	printf("Client ID = %i\n", client);
-	if ((queue = snd_seq_alloc_queue(handle, NULL))<0) {
+	if ((queue = snd_seq_alloc_queue(handle))<0) {
 		fprintf(stderr, "Cannot allocate queue: %s\n", snd_strerror(queue));
 		return;
 	}

@@ -16,11 +16,15 @@
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 #undef WORDS_BIGENDIAN
 
-/* Package name */
-#undef PACKAGE
-
 /* Package version */
 #undef VERSION
 
 /* Define if you have the <linux/asound.h> header file.  */
 #undef HAVE_LINUX_ASOUND_H
+
+/* Name of package */
+#undef PACKAGE
+
+/* Version number of package */
+#undef VERSION
+

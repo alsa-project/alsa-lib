@@ -51,29 +51,24 @@ void show_system_info(void *handle)
 	printf("  Max ports     : %i\n", sysinfo.ports);
 }
 
-void show_queue_info(void *handle, int queue)
+void show_queue_status(void *handle, int queue)
 {
 	int err, idx, min, max;
-	snd_seq_queue_info_t info;
+	snd_seq_queue_status_t status;
 	
 	min = queue < 0 ? 0 : queue;
 	max = queue < 0 ? sysinfo.queues : queue + 1;
 	for (idx = min; idx < max; idx++) {
-		if ((err = snd_seq_get_queue_info(handle, idx, &info))<0) {
+		if ((err = snd_seq_get_queue_status(handle, idx, &status))<0) {
 			if (err == -ENOENT)
 				continue;
 			fprintf(stderr, "Client %i info error: %s\n", idx, snd_strerror(err));
 			exit(0);
 		}
-		printf("Queue %i info\n", info.queue);
-		printf("  Tick          : %u\n", info.tick); 
-		printf("  Realtime      : %i.%i\n", info.time.tv_sec, info.time.tv_nsec);
-		printf("  Running       : %i\n", info.running);
-		printf("  Tempo         : %i\n", info.tempo);
-		printf("  PPQ           : %i\n", info.ppq);
-		printf("  Flags         : 0x%x\n", info.flags);
-		printf("  Owner         : %i\n", info.owner);
-		printf("  Locked        : %i\n", info.locked);
+		printf("Queue %i info\n", status.queue);
+		printf("  Tick          : %u\n", status.tick); 
+		printf("  Realtime      : %li.%li\n", status.time.tv_sec, status.time.tv_nsec);
+		printf("  Flags         : 0x%x\n", status.flags);
 	}
 }
 
@@ -99,8 +94,8 @@ void show_port_info(void *handle, int client, int port)
 		printf("    Type          : 0x%x\n", info.type);
 		printf("    Midi channels : %i\n", info.midi_channels);
 		printf("    Synth voices  : %i\n", info.synth_voices);
-		printf("    Subscribers   : %i\n", info.subscribers);
-		printf("    Use           : %i\n", info.use);
+		printf("    Output subs   : %i\n", info.out_use);
+		printf("    Input subs    : %i\n", info.in_use);
 	}
 }
 
@@ -200,7 +195,7 @@ int main(int argc, char *argv[])
 		show_system_info(handle);
 	} else if (!strcmp(argv[optind], "queue")) {
 		arg = argc - optind > 1 ? atoi(argv[optind + 1]) : -1;
-		show_queue_info(handle, arg);
+		show_queue_status(handle, arg);
 	} else if (!strcmp(argv[optind], "client")) {
 		arg = argc - optind > 1 ? atoi(argv[optind + 1]) : -1;
 		show_client_info(handle, arg);
