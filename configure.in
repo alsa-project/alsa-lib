@@ -30,6 +30,22 @@ if test "$kerneldir" != "" -a -d $kerneldir/include ; then
 fi
 AC_MSG_RESULT($ALSA_CFLAGS)
 
+dnl Check for asound.h localtion
+ASOUND_PATH=""
+if test x"$kerneldir" != x""; then
+  if test -f $kerneldir/include/sound/asound.h; then
+    ASOUND_PATH=$kerneldir/include/sound
+  fi
+fi
+if test x$asound_loc = x ; then
+  if test -f /usr/include/sound/asound.h; then
+    ASOUND_PATH=/usr/include/sound
+  else
+    ASOUND_PATH=../../alsa-driver/include
+  fi
+fi
+AC_SUBST(ASOUND_PATH)
+    
 dnl Checks for header files.
 AC_HEADER_STDC
 AM_CONFIG_HEADER(include/config.h)
@@ -65,4 +81,4 @@ AC_OUTPUT(Makefile doc/Makefile include/Makefile src/Makefile \
           src/compat/Makefile src/conf/Makefile \
 	  src/conf/cards/Makefile src/conf/pcm/Makefile \
 	  aserver/Makefile test/Makefile utils/Makefile \
-          utils/alsa-lib.spec)
+          utils/alsa-lib.spec doc/doxygen.cfg)
