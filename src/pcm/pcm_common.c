@@ -324,84 +324,137 @@ static int preferred_formats[] = {
 	SND_PCM_SFMT_U8
 };
 
-int snd_pcm_plug_slave_params(snd_pcm_params_t *params,
-			      snd_pcm_info_t *slave_info,
-			      snd_pcm_params_t *slave_params)
+int snd_pcm_plug_slave_format(int format, snd_pcm_params_info_t *slave_info)
 {
-	*slave_params = *params;
-	if ((slave_info->formats & (1 << params->format.format)) == 0) {
-		int format = params->format.format;
-		if ((snd_pcm_plug_formats(slave_info->formats) & (1 << format)) == 0)
-			return -EINVAL;
-		if (snd_pcm_format_linear(format)) {
-			int width = snd_pcm_format_width(format);
-			int unsignd = snd_pcm_format_unsigned(format);
-			int big = snd_pcm_format_big_endian(format);
-			int format1;
-			int wid, width1=width;
-			int dwidth1 = 8;
-			for (wid = 0; wid < 4; ++wid) {
-				int end, big1 = big;
-				for (end = 0; end < 2; ++end) {
-					int sgn, unsignd1 = unsignd;
-					for (sgn = 0; sgn < 2; ++sgn) {
-						format1 = snd_pcm_build_linear_format(width1, unsignd1, big1);
-						if (format1 >= 0 &&
-						    slave_info->formats & (1 << format1))
-							goto _found;
-						unsignd1 = !unsignd1;
-					}
-					big1 = !big1;
+	if ((snd_pcm_plug_formats(slave_info->formats) & (1 << format)) == 0)
+		return -EINVAL;
+	if (snd_pcm_format_linear(format)) {
+		int width = snd_pcm_format_width(format);
+		int unsignd = snd_pcm_format_unsigned(format);
+		int big = snd_pcm_format_big_endian(format);
+		int format1;
+		int wid, width1=width;
+		int dwidth1 = 8;
+		for (wid = 0; wid < 4; ++wid) {
+			int end, big1 = big;
+			for (end = 0; end < 2; ++end) {
+				int sgn, unsignd1 = unsignd;
+				for (sgn = 0; sgn < 2; ++sgn) {
+					format1 = snd_pcm_build_linear_format(width1, unsignd1, big1);
+					if (format1 >= 0 &&
+					    slave_info->formats & (1 << format1))
+						goto _found;
+					unsignd1 = !unsignd1;
 				}
-				if (width1 == 32) {
-					dwidth1 = -dwidth1;
-					width1 = width;
-				}
-				width1 += dwidth1;
+				big1 = !big1;
 			}
-			return -EINVAL;
-		_found:
-			slave_params->format.format = format1;
-		} else {
-			unsigned int i;
-			switch (format) {
-			case SND_PCM_SFMT_MU_LAW:
+			if (width1 == 32) {
+				dwidth1 = -dwidth1;
+				width1 = width;
+			}
+			width1 += dwidth1;
+		}
+		return -EINVAL;
+	_found:
+		return format1;
+	} else {
+		unsigned int i;
+		switch (format) {
+		case SND_PCM_SFMT_MU_LAW:
 #ifndef __KERNEL__
-			case SND_PCM_SFMT_A_LAW:
-			case SND_PCM_SFMT_IMA_ADPCM:
+		case SND_PCM_SFMT_A_LAW:
+		case SND_PCM_SFMT_IMA_ADPCM:
 #endif
-				for (i = 0; i < sizeof(preferred_formats) / sizeof(preferred_formats[0]); ++i) {
-					int format1 = preferred_formats[i];
-					if (slave_info->formats & (1 << format1)) {
-						slave_params->format.format = format1;
-						break;
-					}
-				}
-				if (i == sizeof(preferred_formats)/sizeof(preferred_formats[0]))
-					return -EINVAL;
+			for (i = 0; i < sizeof(preferred_formats) / sizeof(preferred_formats[0]); ++i) {
+				int format1 = preferred_formats[i];
+				if (slave_info->formats & (1 << format1))
+					return format1;
+			}
+		default:
+			return -EINVAL;
+		}
+	}
+}
+
+struct {
+	unsigned int rate;
+	unsigned int flag;
+} snd_pcm_rates[] = {
+	{ 8000, SND_PCM_RATE_8000 },
+	{ 11025, SND_PCM_RATE_11025 },
+	{ 16000, SND_PCM_RATE_16000 },
+	{ 22050, SND_PCM_RATE_22050 },
+	{ 32000, SND_PCM_RATE_32000 },
+	{ 44100, SND_PCM_RATE_44100 },
+	{ 48000, SND_PCM_RATE_48000 },
+	{ 88200, SND_PCM_RATE_88200 },
+	{ 96000, SND_PCM_RATE_96000 },
+	{ 176400, SND_PCM_RATE_176400 },
+	{ 192000, SND_PCM_RATE_192000 }
+};
+
+int snd_pcm_plug_slave_rate(unsigned int rate, snd_pcm_params_info_t *slave_info)
+{
+        if (rate <= slave_info->min_rate)
+		return slave_info->min_rate;
+	else if (rate >= slave_info->max_rate)
+		return slave_info->max_rate;
+	else if (!(slave_info->rates & (SND_PCM_RATE_CONTINUOUS |
+					       SND_PCM_RATE_KNOT))) {
+		unsigned int k;
+		unsigned int rate1 = 0, rate2 = 0;
+		int delta1, delta2;
+		for (k = 0; k < sizeof(snd_pcm_rates) / 
+			     sizeof(snd_pcm_rates[0]); ++k) {
+			if (!(snd_pcm_rates[k].flag & slave_info->rates))
+				continue;
+			if (snd_pcm_rates[k].rate < rate) {
+				rate1 = snd_pcm_rates[k].rate;
+			} else if (snd_pcm_rates[k].rate > rate) {
+				rate2 = snd_pcm_rates[k].rate;
 				break;
-			default:
-				return -EINVAL;
 			}
 		}
+		if (rate1 == 0)
+			return rate2;
+		if (rate2 == 0)
+			return rate1;
+		delta1 = rate - rate1;
+		delta2 = rate2 - rate;
+		if (delta1 < delta2)
+			return rate1;
+		else
+			return rate2;
+	}
+	return rate;
+}
+		   
+int snd_pcm_plug_slave_params(snd_pcm_params_t *params,
+			      snd_pcm_info_t *slave_info,
+			      snd_pcm_params_info_t *slave_params_info,
+			      snd_pcm_params_t *slave_params)
+{
+	int slave_rate;
+	*slave_params = *params;
+	if ((slave_params_info->formats & (1 << params->format.format)) == 0) {
+		int slave_format = snd_pcm_plug_slave_format(params->format.format, slave_params_info);
+		if (slave_format < 0)
+			return slave_format;
+		slave_params->format.format = slave_format;
 	}
 
 	/* channels */
-      	if (params->format.channels < slave_info->min_channels ||
-      	    params->format.channels > slave_info->max_channels) {
-		unsigned int dst_channels = params->format.channels < slave_info->min_channels ?
-				 slave_info->min_channels : slave_info->max_channels;
-		slave_params->format.channels = dst_channels;
-	}
+      	if (params->format.channels < slave_params_info->min_channels)
+		slave_params->format.channels = slave_params_info->min_channels;
+	else if (params->format.channels > slave_params_info->max_channels)
+		slave_params->format.channels = slave_params_info->max_channels;
 
 	/* rate */
-        if (params->format.rate < slave_info->min_rate ||
-            params->format.rate > slave_info->max_rate) {
-        	unsigned int dst_rate = params->format.rate < slave_info->min_rate ?
-        		       slave_info->min_rate : slave_info->max_rate;
-		slave_params->format.rate = dst_rate;
-	}
-
+	slave_rate = snd_pcm_plug_slave_rate(params->format.rate, slave_params_info);
+	if (slave_rate < 0)
+		return slave_rate;
+	slave_params->format.rate = slave_rate;
+		   
 	/* interleave */
 	if (!(slave_info->flags & SND_PCM_INFO_INTERLEAVE))
 		slave_params->format.interleave = 0;

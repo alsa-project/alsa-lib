@@ -516,9 +516,9 @@ int snd_pcm_mmap_data(snd_pcm_t *handle, void **data)
 		return 0;
 	}
 
-	if (handle->setup.mmap_size == 0)
+	if (handle->setup.mmap_bytes == 0)
 		return -ENXIO;
-	if ((err = handle->ops->mmap_data(handle->op_arg, (void**)&handle->mmap_data, handle->setup.mmap_size)) < 0)
+	if ((err = handle->ops->mmap_data(handle->op_arg, (void**)&handle->mmap_data, handle->setup.mmap_bytes)) < 0)
 		return err;
 	if (data) 
 		*data = handle->mmap_data;
@@ -575,7 +575,7 @@ int snd_pcm_munmap_data(snd_pcm_t *handle)
 	int err;
 	assert(handle);
 	assert(handle->mmap_data);
-	if ((err = handle->ops->munmap_data(handle->op_arg, handle->mmap_data, handle->setup.mmap_size)) < 0)
+	if ((err = handle->ops->munmap_data(handle->op_arg, handle->mmap_data, handle->setup.mmap_bytes)) < 0)
 		return err;
 	free(handle->channels);
 	handle->channels = 0;

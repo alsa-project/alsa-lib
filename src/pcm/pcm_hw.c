@@ -75,6 +75,15 @@ static int snd_pcm_hw_info(void *private, snd_pcm_info_t * info)
 	return 0;
 }
 
+static int snd_pcm_hw_params_info(void *private, snd_pcm_params_info_t * info)
+{
+	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
+	int fd = hw->fd;
+	if (ioctl(fd, SND_PCM_IOCTL_PARAMS_INFO, info) < 0)
+		return -errno;
+	return 0;
+}
+
 static int snd_pcm_hw_params(void *private, snd_pcm_params_t * params)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
@@ -330,6 +339,7 @@ struct snd_pcm_ops snd_pcm_hw_ops = {
 	close: snd_pcm_hw_close,
 	nonblock: snd_pcm_hw_nonblock,
 	info: snd_pcm_hw_info,
+	params_info: snd_pcm_hw_params_info,
 	params: snd_pcm_hw_params,
 	setup: snd_pcm_hw_setup,
 	channel_setup: snd_pcm_hw_channel_setup,

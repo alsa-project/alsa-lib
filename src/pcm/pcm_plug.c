@@ -123,23 +123,95 @@ static int snd_pcm_plug_info(void *private, snd_pcm_info_t *info)
 	
 	if ((err = snd_pcm_info(plug->slave, info)) < 0)
 		return err;
-	info->formats = snd_pcm_plug_formats(info->formats);
-	info->min_rate = 4000;
-	info->max_rate = 192000;
-	info->min_channels = 1;
-	info->max_channels = 32;
-	info->rates = SND_PCM_RATE_CONTINUOUS | SND_PCM_RATE_8000_192000;
-	info->flags |= SND_PCM_INFO_INTERLEAVE | SND_PCM_INFO_NONINTERLEAVE;
-
-	if (plug->slave->valid_setup) {
-		info->buffer_size = snd_pcm_plug_client_size(plug, info->buffer_size);
-		info->min_fragment_size = snd_pcm_plug_client_size(plug, info->min_fragment_size);
-		info->max_fragment_size = snd_pcm_plug_client_size(plug, info->max_fragment_size);
-		info->fragment_align = snd_pcm_plug_client_size(plug, info->fragment_align);
-		info->fifo_size = snd_pcm_plug_client_size(plug, info->fifo_size);
-		info->transfer_block_size = snd_pcm_plug_client_size(plug, info->transfer_block_size);
-	}
 	info->flags &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
+	info->flags |= SND_PCM_INFO_INTERLEAVE | SND_PCM_INFO_NONINTERLEAVE;
+	return 0;
+}
+
+static int snd_pcm_plug_params_info(void *private, snd_pcm_params_info_t *info)
+{
+	int err;
+	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
+	snd_pcm_params_info_t slave_info;
+	int rate;
+	int slave_format, slave_rate;
+	unsigned int slave_channels;
+
+	memset(&info->formats, 0, (char*)(info + 1) - (char*) &info->formats);
+	info->req.fail_reason = 0;
+	info->req.fail_mask = 0;
+
+	if (info->req_mask & SND_PCM_PARAMS_RATE) {
+		info->min_rate = info->req.format.rate;
+		info->max_rate = info->req.format.rate;
+	} else {
+		info->min_rate = 4000;
+		info->max_rate = 192000;
+	}
+	/* ??? */
+	info->rates = SND_PCM_RATE_CONTINUOUS | SND_PCM_RATE_8000_192000;
+	if (info->req_mask & SND_PCM_PARAMS_CHANNELS) {
+		info->min_channels = info->req.format.channels;
+		info->max_channels = info->req.format.channels;
+	} else {
+		info->min_channels = 1;
+		info->max_channels = 32;
+	}
+
+	memset(&slave_info, 0, sizeof(slave_info));
+	if ((err = snd_pcm_params_info(plug->slave, &slave_info)) < 0)
+		return err;
+
+	if (info->req_mask & SND_PCM_PARAMS_FORMAT) 
+		info->formats = 1 << info->req.format.format;
+	else
+		info->formats = snd_pcm_plug_formats(slave_info.formats);
+
+	info->min_fragments = slave_info.min_fragments;
+	info->max_fragments = slave_info.max_fragments;
+	
+	if (!(info->req_mask & SND_PCM_PARAMS_FORMAT))
+		return 0;
+	slave_format = snd_pcm_plug_slave_format(info->req.format.format, &slave_info);
+	if (slave_format < 0) {
+		info->req.fail_mask = SND_PCM_PARAMS_FORMAT;
+		info->req.fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
+		return -EINVAL;
+	}
+
+	if (!(info->req_mask & SND_PCM_PARAMS_RATE))
+		return 0;
+	slave_rate = snd_pcm_plug_slave_rate(info->req.format.rate, &slave_info);
+	if (slave_rate < 0) {
+		info->req.fail_mask = SND_PCM_PARAMS_RATE;
+		info->req.fail_reason = SND_PCM_PARAMS_FAIL_INVAL;
+		return -EINVAL;
+	}
+
+	if (!(info->req_mask & SND_PCM_PARAMS_CHANNELS))
+		return 0;
+	slave_channels = info->req.format.rate;
+	if (slave_channels < info->min_channels)
+		slave_channels = info->min_channels;
+	else if (slave_channels > info->max_channels)
+		slave_channels = info->max_channels;
+
+	slave_info.req_mask = (SND_PCM_PARAMS_FORMAT |
+			       SND_PCM_PARAMS_CHANNELS |
+			       SND_PCM_PARAMS_RATE);
+	slave_info.req.format.format = info->req.format.format;
+	slave_info.req.format.channels = info->req.format.channels;
+	slave_info.req.format.rate = info->req.format.rate;
+	if ((err = snd_pcm_params_info(plug->slave, &slave_info)) < 0) {
+		info->req.fail_mask = slave_info.req.fail_mask;
+		info->req.fail_reason = slave_info.req.fail_reason;
+		return err;
+	}
+	rate = info->req.format.rate;
+	info->buffer_size = slave_info.buffer_size * rate / slave_rate;
+	info->min_fragment_size = slave_info.min_fragment_size * rate / slave_rate;
+	info->max_fragment_size = slave_info.max_fragment_size * rate / slave_rate;
+	info->fragment_align = slave_info.fragment_align * rate / slave_rate;
 	return 0;
 }
 
@@ -176,7 +248,7 @@ static int snd_pcm_plug_setup(void *private, snd_pcm_setup_t *setup)
 	setup->frames_align = snd_pcm_plug_client_size(plug, setup->frames_align);
 	setup->frames_xrun_max = snd_pcm_plug_client_size(plug, setup->frames_xrun_max);
 	setup->frames_fill_max = snd_pcm_plug_client_size(plug, setup->frames_fill_max);
-	setup->mmap_size = 0;
+	setup->mmap_bytes = 0;
 	if (plug->handle->stream == SND_PCM_STREAM_PLAYBACK)
 		setup->format = plug->first->src_format;
 	else
@@ -510,6 +582,7 @@ struct snd_pcm_ops snd_pcm_plug_ops = {
 	close: snd_pcm_plug_close,
 	nonblock: snd_pcm_plug_nonblock,
 	info: snd_pcm_plug_info,
+	params_info: snd_pcm_plug_params_info,
 	params: snd_pcm_plug_params,
 	setup: snd_pcm_plug_setup,
 	channel_setup: snd_pcm_plug_channel_setup,
@@ -541,6 +614,7 @@ static int snd_pcm_plug_params(void *private, snd_pcm_params_t *params)
 {
 	snd_pcm_params_t slave_params, params1;
 	snd_pcm_info_t slave_info;
+	snd_pcm_params_info_t slave_params_info;
 	snd_pcm_plugin_t *plugin;
 	snd_pcm_plug_t *plug;
 	int err;
@@ -552,13 +626,17 @@ static int snd_pcm_plug_params(void *private, snd_pcm_params_t *params)
          */
 
 	memset(&slave_info, 0, sizeof(slave_info));
-	slave_info.stream = plug->slave->stream;
 	if ((err = snd_pcm_info(plug->slave, &slave_info)) < 0) {
 		snd_pcm_plug_clear(plug);
 		return err;
 	}
+	memset(&slave_params_info, 0, sizeof(slave_params_info));
+	if ((err = snd_pcm_params_info(plug->slave, &slave_params_info)) < 0) {
+		snd_pcm_plug_clear(plug);
+		return err;
+	}
 
-	if ((err = snd_pcm_plug_slave_params(params, &slave_info, &slave_params)) < 0)
+	if ((err = snd_pcm_plug_slave_params(params, &slave_info, &slave_params_info, &slave_params)) < 0)
 		return err;
 
 
@@ -577,6 +655,7 @@ static int snd_pcm_plug_params(void *private, snd_pcm_params_t *params)
 		plug->handle->ops->params = snd_pcm_plug_params;
 		plug->handle->ops->setup = snd_pcm_plug_setup;
 		plug->handle->ops->info = snd_pcm_plug_info;
+		plug->handle->ops->params_info = snd_pcm_plug_params_info;
 		plug->handle->op_arg = plug->slave->op_arg;
 		return 0;
 	} else {
@@ -625,8 +704,11 @@ static int snd_pcm_plug_params(void *private, snd_pcm_params_t *params)
 
 	pdprintf("params requested params: format = %i, rate = %i, channels = %i\n", slave_params.format.format, slave_params.format.rate, slave_params.format.channels);
 	err = snd_pcm_params(plug->slave, &slave_params);
-	if (err < 0)
+	if (err < 0) {
+		params->fail_mask = slave_params.fail_mask;
+		params->fail_reason = slave_params.fail_reason;
 		return err;
+	}
 
 	err = snd_pcm_plug_action(plug, INIT, 0);
 	if (err < 0)
@@ -656,6 +738,7 @@ int snd_pcm_plug_create(snd_pcm_t **handlep, snd_pcm_t *slave, int close_slave)
 	handle->ops->params = snd_pcm_plug_params;
 	handle->ops->setup = snd_pcm_plug_setup;
 	handle->ops->info = snd_pcm_plug_info;
+	handle->ops->params_info = snd_pcm_plug_params_info;
 	handle->op_arg = slave->op_arg;
 	handle->mode = slave->mode;
 	handle->private = plug;

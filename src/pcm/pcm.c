@@ -84,6 +84,14 @@ int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t *info)
 	return handle->ops->info(handle->private, info);
 }
 
+int snd_pcm_params_info(snd_pcm_t *handle, snd_pcm_params_info_t *info)
+{
+	assert(handle && info);
+	/* Here we pass private and not op_arg.
+	   FIXME: find a better solution */
+	return handle->ops->params_info(handle->private, info);
+}
+
 int snd_pcm_setup(snd_pcm_t *handle, snd_pcm_setup_t *setup)
 {
 	int err;

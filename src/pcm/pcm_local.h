@@ -26,6 +26,7 @@ struct snd_pcm_ops {
 	int (*close)(void *private);
 	int (*nonblock)(void *private, int nonblock);
 	int (*info)(void *private, snd_pcm_info_t *info);
+	int (*params_info)(void *private, snd_pcm_params_info_t *info);
 	int (*params)(void *private, snd_pcm_params_t *params);
 	int (*setup)(void *private, snd_pcm_setup_t *setup);
 	int (*channel_setup)(void *private, snd_pcm_channel_setup_t *setup);
@@ -82,8 +83,11 @@ typedef struct snd_pcm_plug {
 } snd_pcm_plug_t;
 
 unsigned int snd_pcm_plug_formats(unsigned int formats);
+int snd_pcm_plug_slave_format(int format, snd_pcm_params_info_t *slave_info);
+int snd_pcm_plug_slave_rate(unsigned int rate, snd_pcm_params_info_t *slave_info);
 int snd_pcm_plug_slave_params(snd_pcm_params_t *params,
 			      snd_pcm_info_t *slave_info,
+			      snd_pcm_params_info_t *slave_params_info,
 			      snd_pcm_params_t *slave_params);
 int snd_pcm_plug_format(snd_pcm_plug_t *plug,
 			snd_pcm_params_t *params,

@@ -90,29 +90,40 @@ static int snd_pcm_multi_nonblock(void *private, int nonblock)
 static int snd_pcm_multi_info(void *private, snd_pcm_info_t *info)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
-	unsigned int i, channels;
+	unsigned int i;
 	int err;
 	snd_pcm_t *handle_0 = multi->slaves[0].handle;
-	unsigned int channels0 = multi->slaves[0].channels_total;
 	err = snd_pcm_info(handle_0, info);
 	if (err < 0)
 		return err;
-	info->buffer_size /= channels0;
-	info->min_fragment_size /= channels0;
-	info->max_fragment_size /= channels0;
-	info->fragment_align /= channels0;
 	for (i = 1; i < multi->slaves_count; ++i) {
 		snd_pcm_t *handle_i = multi->slaves[i].handle;
 		snd_pcm_info_t info_i;
 		err = snd_pcm_info(handle_i, &info_i);
 		if (err < 0)
 			return err;
-		channels0 = multi->slaves[i].channels_total;
-		info_i.buffer_size /= channels0;
-		info_i.min_fragment_size /= channels0;
-		info_i.max_fragment_size /= channels0;
-		info_i.fragment_align /= channels0;
 		info->flags &= info_i.flags;
+	}
+	if (multi->one_to_many)
+		info->flags &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
+	return 0;
+}
+
+static int snd_pcm_multi_params_info(void *private, snd_pcm_params_info_t *info)
+{
+	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
+	unsigned int i;
+	int err;
+	snd_pcm_t *handle_0 = multi->slaves[0].handle;
+	err = snd_pcm_params_info(handle_0, info);
+	if (err < 0)
+		return err;
+	for (i = 1; i < multi->slaves_count; ++i) {
+		snd_pcm_t *handle_i = multi->slaves[i].handle;
+		snd_pcm_params_info_t info_i;
+		err = snd_pcm_params_info(handle_i, &info_i);
+		if (err < 0)
+			return err;
 		info->formats &= info_i.formats;
 		info->rates &= info_i.rates;
 		if (info_i.min_rate > info->min_rate)
@@ -130,15 +141,6 @@ static int snd_pcm_multi_info(void *private, snd_pcm_info_t *info)
 		if (info_i.max_fragments < info->max_fragments)
 			info->max_fragments = info_i.max_fragments;
 	}
-	channels = multi->channels_count;
-	info->buffer_size *= channels;
-	info->min_fragment_size *= channels;
-	info->max_fragment_size *= channels;
-	info->fragment_align *= channels;
-	info->min_channels = multi->channels_count;
-	info->max_channels = multi->channels_count;
-	if (multi->one_to_many)
-		info->flags &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
 }
 
@@ -239,7 +241,7 @@ static int snd_pcm_multi_setup(void *private, snd_pcm_setup_t *setup)
 		}
 	}
 	/* Loaded with a value != 0 if mmap is feasible */
-	setup->mmap_size = !multi->one_to_many;
+	setup->mmap_bytes = !multi->one_to_many;
 	return 0;
 }
 
@@ -592,6 +594,7 @@ struct snd_pcm_ops snd_pcm_multi_ops = {
 	close: snd_pcm_multi_close,
 	nonblock: snd_pcm_multi_nonblock,
 	info: snd_pcm_multi_info,
+	params_info: snd_pcm_multi_params_info,
 	params: snd_pcm_multi_params,
 	setup: snd_pcm_multi_setup,
 	channel_setup: snd_pcm_multi_channel_setup,

@@ -108,6 +108,7 @@ int snd_pcm_close(snd_pcm_t *handle);
 int snd_pcm_file_descriptor(snd_pcm_t *handle);
 int snd_pcm_nonblock(snd_pcm_t *handle, int nonblock);
 int snd_pcm_info(snd_pcm_t *handle, snd_pcm_info_t *info);
+int snd_pcm_params_info(snd_pcm_t *handle, snd_pcm_params_info_t *info);
 int snd_pcm_params(snd_pcm_t *handle, snd_pcm_params_t *params);
 int snd_pcm_setup(snd_pcm_t *handle, snd_pcm_setup_t *setup);
 int snd_pcm_channel_setup(snd_pcm_t *handle, snd_pcm_channel_setup_t *setup);
