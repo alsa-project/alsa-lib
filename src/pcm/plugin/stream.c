@@ -55,21 +55,6 @@ static ssize_t stream_transfer(snd_pcm_plugin_t *plugin,
 	}
 }
  
-static int stream_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
-{
-	struct stream_private_data *data;
-
-	if (plugin == NULL)
-		return -EINVAL;
-	data = (struct stream_private_data *)snd_pcm_plugin_extra_data(plugin);
-	if (action == DRAIN && data->channel == SND_PCM_CHANNEL_PLAYBACK) {
-		return snd_pcm_drain_playback(data->pcm);
-	} else if (action == FLUSH) {
-		return snd_pcm_flush_channel(data->pcm, data->channel);
-	}
-	return 0;	/* silenty ignore other actions */
-}
- 
 int snd_pcm_plugin_build_stream(snd_pcm_t *pcm, int channel, snd_pcm_plugin_t **r_plugin)
 {
 	struct stream_private_data *data;
@@ -90,7 +75,6 @@ int snd_pcm_plugin_build_stream(snd_pcm_t *pcm, int channel, snd_pcm_plugin_t **
 	data->pcm = pcm;
 	data->channel = channel;
 	plugin->transfer = stream_transfer;
-	plugin->action = stream_action;
 	*r_plugin = plugin;
 	return 0;
 }

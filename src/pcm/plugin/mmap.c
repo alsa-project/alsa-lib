@@ -208,7 +208,6 @@ static ssize_t mmap_transfer(snd_pcm_plugin_t *plugin,
 static int mmap_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
 {
 	struct mmap_private_data *data;
-	int res;
 
 	if (plugin == NULL)
 		return -EINVAL;
@@ -217,14 +216,12 @@ static int mmap_action(snd_pcm_plugin_t *plugin, snd_pcm_plugin_action_t action)
 		if (data->control)
 			snd_pcm_munmap(data->pcm, data->channel);
 		return snd_pcm_mmap(data->pcm, data->channel, &data->control, (void **)&data->buffer);
+	} else if (action == PREPARE) {
+		data->frag = 0;
 	} else if (action == DRAIN && data->channel == SND_PCM_CHANNEL_PLAYBACK) {
-		res = snd_pcm_drain_playback(data->pcm);
 		data->frag = 0;
-		return res;
 	} else if (action == FLUSH) {
-		res = snd_pcm_flush_channel(data->pcm, data->channel);
 		data->frag = 0;
-		return res;
 	}
 	return 0;	/* silenty ignore other actions */
 }

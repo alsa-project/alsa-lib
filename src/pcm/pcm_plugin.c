@@ -504,6 +504,15 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_channel_status_t *status)
 	return 0;	
 }
 
+int snd_pcm_plugin_prepare(snd_pcm_t *pcm, int channel)
+{
+	int err;
+
+	if ((err = snd_pcm_plugin_action(pcm, channel, PREPARE))<0)
+		return err;
+	return snd_pcm_channel_prepare(pcm, channel);
+}
+
 int snd_pcm_plugin_drain_playback(snd_pcm_t *pcm)
 {
 	int err;
