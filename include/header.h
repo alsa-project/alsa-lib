@@ -25,6 +25,7 @@
 #include <linux/asound.h>
 #include <linux/asequencer.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 

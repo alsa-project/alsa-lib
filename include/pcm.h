@@ -118,6 +118,11 @@ ssize_t snd_pcm_write(snd_pcm_t *handle, const void *buffer, size_t size);
 ssize_t snd_pcm_read(snd_pcm_t *handle, void *buffer, size_t size);
 ssize_t snd_pcm_writev(snd_pcm_t *pcm, const struct iovec *vector, unsigned long  count);
 ssize_t snd_pcm_readv(snd_pcm_t *pcm, const struct iovec *vector, unsigned long count);
+const char *snd_pcm_get_format_name(int format);
+const char *snd_pcm_get_format_description(int format);
+int snd_pcm_get_format_value(const char* name);
+int snd_pcm_dump_setup(snd_pcm_t *pcm, int channel, FILE *fp);
+
 int snd_pcm_mmap(snd_pcm_t *handle, int channel, snd_pcm_mmap_control_t **control, void **buffer);
 int snd_pcm_munmap(snd_pcm_t *handle, int channel);
 int snd_pcm_mmap_control(snd_pcm_t *handle, int channel, snd_pcm_mmap_control_t **control);
@@ -140,7 +145,6 @@ ssize_t snd_pcm_mmap_write_frames(snd_pcm_t *pcm, const void *buffer, size_t fra
 ssize_t snd_pcm_mmap_read_areas(snd_pcm_t *pcm, snd_pcm_voice_area_t *voices, size_t frames);
 ssize_t snd_pcm_mmap_read_frames(snd_pcm_t *pcm, const void *buffer, size_t frames);
 int snd_pcm_mmap_get_areas(snd_pcm_t *pcm, int channel, snd_pcm_voice_area_t *areas);
-
 
 ssize_t snd_pcm_bytes_per_second(snd_pcm_t *pcm, int channel);
 
@@ -172,7 +176,6 @@ u_int16_t snd_pcm_format_silence_16(int format);
 u_int32_t snd_pcm_format_silence_32(int format);
 u_int64_t snd_pcm_format_silence_64(int format);
 ssize_t snd_pcm_format_set_silence(int format, void *buf, size_t count);
-const char *snd_pcm_get_format_name(int format);
 
 #ifdef __cplusplus
 }

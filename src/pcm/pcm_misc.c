@@ -233,42 +233,6 @@ ssize_t snd_pcm_format_bytes_per_second(snd_pcm_format_t *format)
 	return snd_pcm_format_size(format->format, format->voices * format->rate);
 }
 
-const char *snd_pcm_get_format_name(int format)
-{
-	static char *formats[] = {
-		"Signed 8-bit",
-		"Unsigned 8-bit",
-		"Signed 16-bit Little Endian",
-		"Signed 16-bit Big Endian",
-		"Unsigned 16-bit Little Endian",
-		"Unsigned 16-bit Big Endian",
-		"Signed 24-bit Little Endian",
-		"Signed 24-bit Big Endian",
-		"Unsigned 24-bit Little Endian",
-		"Unsigned 24-bit Big Endian",
-		"Signed 32-bit Little Endian",
-		"Signed 32-bit Big Endian",
-		"Unsigned 32-bit Little Endian",
-		"Unsigned 32-bit Big Endian",
-		"Float Little Endian",
-		"Float Big Endian",
-		"Float64 Little Endian",
-		"Float64 Big Endian",
-		"IEC-958 Little Endian",
-		"IEC-958 Big Endian",
-		"Mu-Law",
-		"A-Law",
-		"Ima-ADPCM",
-		"MPEG",
-		"GSM"
-	};
-	if (format == SND_PCM_SFMT_SPECIAL)
-		return "Special";
-	if (format < 0 || format > SND_PCM_SFMT_GSM)
-		return "Unknown";
-	return formats[format];
-}
-
 u_int64_t snd_pcm_format_silence_64(int format)
 {
 	switch (format) {

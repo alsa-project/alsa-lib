@@ -501,3 +501,143 @@ ssize_t snd_pcm_bytes_per_second(snd_pcm_t *pcm, int channel)
 	return snd_pcm_format_bytes_per_second(&chan->setup.format);
 }
 
+typedef struct {
+	int value;
+	const char* name;
+	const char* desc;
+} assoc_t;
+
+static assoc_t *assoc_value(int value, assoc_t *alist)
+{
+	while (alist->desc) {
+		if (value == alist->value)
+			return alist;
+		alist++;
+	}
+	return 0;
+}
+
+static assoc_t *assoc_name(const char *name, assoc_t *alist)
+{
+	while (alist->name) {
+		if (strcasecmp(name, alist->name) == 0)
+			return alist;
+		alist++;
+	}
+	return 0;
+}
+
+static const char *assoc(int value, assoc_t *alist)
+{
+	assoc_t *a;
+	a = assoc_value(value, alist);
+	if (a)
+		return a->name;
+	return "UNKNOWN";
+}
+
+#define CHN(v) { SND_PCM_CHANNEL_##v, #v, #v }
+#define MODE(v) { SND_PCM_MODE_##v, #v, #v }
+#define FMT(v, d) { SND_PCM_SFMT_##v, #v, d }
+#define XRUN(v) { SND_PCM_XRUN_##v, #v, #v }
+#define START(v) { SND_PCM_START_##v, #v, #v }
+#define FILL(v) { SND_PCM_FILL_##v, #v, #v }
+#define END { 0, NULL, NULL }
+
+static assoc_t chns[] = { CHN(PLAYBACK), CHN(CAPTURE), END };
+static assoc_t modes[] = { MODE(STREAM), MODE(BLOCK), END };
+static assoc_t fmts[] = {
+	FMT(S8, "Signed 8-bit"), 
+	FMT(U8, "Unsigned 8-bit"),
+	FMT(S16_LE, "Signed 16-bit Little Endian"),
+	FMT(S16_BE, "Signed 16-bit Big Endian"),
+	FMT(U16_LE, "Unsigned 16-bit Little Endian"),
+	FMT(U16_BE, "Unsigned 16-bit Big Endian"),
+	FMT(S24_LE, "Signed 24-bit Little Endian"),
+	FMT(S24_BE, "Signed 24-bit Big Endian"),
+	FMT(U24_LE, "Unsigned 24-bit Little Endian"),
+	FMT(U24_BE, "Unsigned 24-bit Big Endian"),
+	FMT(S32_LE, "Signed 32-bit Little Endian"),
+	FMT(S32_BE, "Signed 32-bit Big Endian"),
+	FMT(U32_LE, "Unsigned 32-bit Little Endian"),
+	FMT(U32_BE, "Unsigned 32-bit Big Endian"),
+	FMT(FLOAT_LE, "Float Little Endian"),
+	FMT(FLOAT_BE, "Float Big Endian"),
+	FMT(FLOAT64_LE, "Float64 Little Endian"),
+	FMT(FLOAT64_BE, "Float64 Big Endian"),
+	FMT(IEC958_SUBFRAME_LE, "IEC-958 Little Endian"),
+	FMT(IEC958_SUBFRAME_BE, "IEC-958 Big Endian"),
+	FMT(MU_LAW, "Mu-Law"),
+	FMT(A_LAW, "A-Law"),
+	FMT(IMA_ADPCM, "Ima-ADPCM"),
+	FMT(MPEG, "MPEG"),
+	FMT(GSM, "GSM"),
+	FMT(SPECIAL, "Special"),
+	END 
+};
+
+static assoc_t starts[] = { START(GO), START(DATA), START(FULL), END };
+static assoc_t xruns[] = { XRUN(FLUSH), XRUN(DRAIN), END };
+static assoc_t fills[] = { FILL(NONE), FILL(SILENCE_WHOLE), FILL(SILENCE), END };
+static assoc_t onoff[] = { {0, "OFF"}, {1, "ON"}, {-1, "ON"}, END };
+
+int snd_pcm_dump_setup(snd_pcm_t *pcm, int channel, FILE *fp)
+{
+	struct snd_pcm_chan *chan;
+	snd_pcm_channel_setup_t *setup;
+	if (!pcm)
+		return -EFAULT;
+	if (channel < 0 || channel > 1)
+		return -EINVAL;
+	chan = &pcm->chan[channel];
+	if (!chan->open || !chan->valid_setup)
+		return -EBADFD;
+	setup = &chan->setup;
+	fprintf(fp, "channel: %s\n", assoc(setup->channel, chns));
+	fprintf(fp, "mode: %s\n", assoc(setup->mode, modes));
+	fprintf(fp, "format: %s\n", assoc(setup->format.format, fmts));
+	fprintf(fp, "voices: %d\n", setup->format.voices);
+	fprintf(fp, "rate: %d\n", setup->format.rate);
+	// digital
+	fprintf(fp, "start_mode: %s\n", assoc(setup->start_mode, starts));
+	fprintf(fp, "xrun_mode: %s\n", assoc(setup->xrun_mode, xruns));
+	fprintf(fp, "time: %s\n", assoc(setup->time, onoff));
+	// ust_time
+	// sync
+	fprintf(fp, "buffer_size: %d\n", setup->buffer_size);
+	fprintf(fp, "frag_size: %d\n", setup->frag_size);
+	fprintf(fp, "frags: %d\n", setup->frags);
+	fprintf(fp, "byte_boundary: %d\n", setup->byte_boundary);
+	fprintf(fp, "msbits_per_sample: %d\n", setup->msbits_per_sample);
+	fprintf(fp, "bytes_min: %d\n", setup->bytes_min);
+	fprintf(fp, "bytes_align: %d\n", setup->bytes_align);
+	fprintf(fp, "bytes_xrun_max: %d\n", setup->bytes_xrun_max);
+	fprintf(fp, "fill_mode: %s\n", assoc(setup->fill_mode, fills));
+	fprintf(fp, "bytes_fill_max: %d\n", setup->bytes_fill_max);
+	return 0;
+}
+
+const char *snd_pcm_get_format_name(int format)
+{
+	assoc_t *a = assoc_value(format, fmts);
+	if (a)
+		return a->name;
+	return 0;
+}
+
+const char *snd_pcm_get_format_description(int format)
+{
+	assoc_t *a = assoc_value(format, fmts);
+	if (a)
+		return a->desc;
+	return "Unknown";
+}
+
+int snd_pcm_get_format_value(const char* name)
+{
+	assoc_t *a = assoc_name(name, fmts);
+	if (a)
+		return a->value;
+	return -1;
+}
+
