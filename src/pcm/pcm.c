@@ -1044,6 +1044,7 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
  * \param pcm PCM handle
  * \param frames wanted skip in frames
  * \return a positive number for actual skip otherwise a negative error code
+ * \retval 0 means no action
  */
 #ifndef DOXYGEN
 snd_pcm_sframes_t INTERNAL(snd_pcm_forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames)

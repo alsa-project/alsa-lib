@@ -874,7 +874,7 @@ int _snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	params.format = SND_PCM_FORMAT_S16;
 	params.rate = 48000;
 	params.channels = 2;
-	params.period_time = 125000;	/* 0.125 seconds */
+	params.period_time = -1;
 	params.buffer_time = -1;
 	bsize = psize = -1;
 	params.periods = 3;
@@ -889,6 +889,10 @@ int _snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 				 SND_PCM_HW_PARAM_PERIODS, 0, &params.periods);
 	if (err < 0)
 		return err;
+
+	/* set a reasonable default */
+	if (psize == -1 && params.period_time == -1)
+		params.period_time = 125000;	/* 0.125 seconds */
 
 	params.period_size = psize;
 	params.buffer_size = bsize;
