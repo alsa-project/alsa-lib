@@ -635,7 +635,7 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 			return err;
 		}
 	}
-	if (avail > pcm->buffer_size)
+	if (avail >= pcm->stop_threshold)
 		return -EPIPE;
 	return avail;
 }
