@@ -113,8 +113,8 @@ struct _snd_pcm {
 	unsigned int rate_den;		/* rate denominator */
 	snd_pcm_uframes_t fifo_size;	/* chip FIFO size in frames */
 	snd_pcm_uframes_t buffer_size;
-	unsigned int bits_per_sample;
-	unsigned int bits_per_frame;
+	unsigned int sample_bits;
+	unsigned int frame_bits;
 	snd_pcm_uframes_t *appl_ptr;
 	snd_pcm_uframes_t min_align;
 	volatile snd_pcm_uframes_t *hw_ptr;

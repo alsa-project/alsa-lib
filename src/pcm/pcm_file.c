@@ -335,8 +335,8 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	for (channel = 0; channel < slave->channels; ++channel) {
 		snd_pcm_channel_area_t *a = &file->wbuf_areas[channel];
 		a->addr = file->wbuf;
-		a->first = slave->bits_per_sample * channel;
-		a->step = slave->bits_per_frame;
+		a->first = slave->sample_bits * channel;
+		a->step = slave->frame_bits;
 	}
 	return 0;
 }

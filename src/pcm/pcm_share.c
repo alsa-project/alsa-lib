@@ -584,8 +584,6 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 				      share->channels_count, 0);
 		err = snd_pcm_hw_params_refine(&sparams, links, params);
 		assert(err >= 0);
-		err = _snd_pcm_hw_refine(&sparams);
-		assert(err >= 0);
 		err = snd_pcm_hw_params(slave->pcm, &sparams);
 		params->cmask = 0;
 		sparams.cmask = ~0U;

@@ -499,7 +499,8 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	snd_pcm_t *slave = route->plug.slave;
 	int err;
 	snd_pcm_hw_params_t sparams;
-	unsigned int links = (SND_PCM_HW_PARBIT_PERIODS |
+	unsigned int links = (SND_PCM_HW_PARBIT_RATE |
+			      SND_PCM_HW_PARBIT_PERIODS |
 			      SND_PCM_HW_PARBIT_PERIOD_SIZE |
 			      SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
@@ -533,8 +534,6 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	}
 
 	err = snd_pcm_hw_params_refine(&sparams, links, params);
-	assert(err >= 0);
-	err = _snd_pcm_hw_refine(&sparams);
 	assert(err >= 0);
 	err = snd_pcm_hw_params(slave, &sparams);
 	params->cmask = 0;

@@ -235,13 +235,12 @@ static int snd_pcm_shm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 				saccess_mask);
 	err = snd_pcm_hw_params_refine(&sparams, links, params);
 	assert(err >= 0);
-	err = _snd_pcm_hw_refine(&sparams);
-	assert(err >= 0);
 	err = _snd_pcm_shm_hw_params(pcm, &sparams);
-	if (err < 0) {
-		snd_pcm_hw_params_refine(params, links, &sparams);
+	params->cmask = 0;
+	sparams.cmask = ~0U;
+	snd_pcm_hw_params_refine(params, links, &sparams);
+	if (err < 0)
 		return err;
-	}
 	return 0;
 }
 

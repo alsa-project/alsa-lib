@@ -2244,9 +2244,9 @@ int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	pcm->period_size = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_PERIOD_SIZE, 0);
 	pcm->buffer_size = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_BUFFER_SIZE, 0);
 	pcm->tick_time = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_TICK_TIME, 0);
-	pcm->bits_per_sample = snd_pcm_format_physical_width(pcm->format);
-	pcm->bits_per_frame = pcm->bits_per_sample * pcm->channels;
-	fb = pcm->bits_per_frame;
+	pcm->sample_bits = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_SAMPLE_BITS, 0);
+	pcm->frame_bits = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_FRAME_BITS, 0);
+	fb = pcm->frame_bits;
 	min_align = 1;
 	while (fb % 8) {
 		fb *= 2;

@@ -230,13 +230,13 @@ int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info,
 	switch (pcm->access) {
 	case SND_PCM_ACCESS_MMAP_INTERLEAVED:
 	case SND_PCM_ACCESS_RW_INTERLEAVED:
-		info->first = info->channel * pcm->bits_per_sample;
-		info->step = pcm->bits_per_frame;
+		info->first = info->channel * pcm->sample_bits;
+		info->step = pcm->frame_bits;
 		break;
 	case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
 	case SND_PCM_ACCESS_RW_NONINTERLEAVED:
 		info->first = 0;
-		info->step = pcm->bits_per_sample;
+		info->step = pcm->sample_bits;
 		break;
 	default:
 		assert(0);
@@ -281,7 +281,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 		unsigned int c1;
 		if (!i->addr) {
 			char *ptr;
-			size_t size = i->first + i->step * (pcm->buffer_size - 1) + pcm->bits_per_sample;
+			size_t size = i->first + i->step * (pcm->buffer_size - 1) + pcm->sample_bits;
 			for (c1 = c + 1; c1 < pcm->channels; ++c1) {
 				snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
 				size_t s;
@@ -300,7 +300,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 				default:
 					assert(0);
 				}
-				s = i1->first + i1->step * (pcm->buffer_size - 1) + pcm->bits_per_sample;
+				s = i1->first + i1->step * (pcm->buffer_size - 1) + pcm->sample_bits;
 				if (s > size)
 					size = s;
 			}

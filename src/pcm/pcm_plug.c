@@ -312,12 +312,15 @@ static int snd_pcm_plug_hw_link(snd_pcm_hw_params_t *params,
 	if (format_never || channels_never || rate_never) {
 		mask_t *mmap_mask = alloca(mask_sizeof());
 		mask_load(mmap_mask, SND_PCM_ACCBIT_MMAP);
-		_snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
-				       mmap_mask);
+		err = _snd_pcm_hw_param_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
+					     mmap_mask);
+		assert(err >= 0);
 	} else
 		mask_union(access_mask, snd_pcm_hw_param_value_mask(sparams, SND_PCM_HW_PARAM_ACCESS));
-	_snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
-			       access_mask);
+	err = _snd_pcm_hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS,
+				     access_mask);
+	if (err < 0)
+		return err;
 	sparams->cmask |= scmask;
 	return snd_pcm_generic_hw_link(params, sparams, slave, links);
 }
@@ -391,8 +394,8 @@ static void snd_pcm_plug_clear(snd_pcm_t *pcm)
 }
 
 typedef struct {
-	unsigned int access;
-	unsigned int format;
+	snd_pcm_access_t access;
+	snd_pcm_format_t format;
 	unsigned int channels;
 	unsigned int rate;
 } snd_pcm_plug_params_t;
@@ -603,18 +606,21 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	clt_params.channels = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_CHANNELS, 0);
 	clt_params.rate = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_RATE, 0);
 
-	if (snd_pcm_hw_param_test(params, SND_PCM_HW_PARAM_ACCESS, clt_params.access))
-		slv_params.access = clt_params.access;
-	else
-		slv_params.access = snd_pcm_hw_param_first(slave, &sparams, SND_PCM_HW_PARAM_ACCESS, 0);
 	slv_params.format = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_FORMAT, 0);
 	slv_params.channels = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_CHANNELS, 0);
 	slv_params.rate = snd_pcm_hw_param_value(&sparams, SND_PCM_HW_PARAM_RATE, 0);
-
 	snd_pcm_plug_clear(pcm);
-	err = snd_pcm_plug_insert_plugins(pcm, &clt_params, &slv_params);
-	if (err < 0)
-		return err;
+	if (clt_params.format == slv_params.format &&
+	    clt_params.channels == slv_params.channels &&
+	    clt_params.rate == slv_params.rate &&
+	    snd_pcm_hw_param_test(params, SND_PCM_HW_PARAM_ACCESS, clt_params.access))
+		slv_params.access = clt_params.access;
+	else {
+		slv_params.access = snd_pcm_hw_param_first(slave, &sparams, SND_PCM_HW_PARAM_ACCESS, 0);
+		err = snd_pcm_plug_insert_plugins(pcm, &clt_params, &slv_params);
+		if (err < 0)
+			return err;
+	}
 	err = snd_pcm_hw_params(plug->slave, params);
 	if (err < 0) {
 		snd_pcm_plug_clear(pcm);

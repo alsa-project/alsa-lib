@@ -572,28 +572,28 @@ snd_pcm_sframes_t snd_pcm_bytes_to_frames(snd_pcm_t *pcm, ssize_t bytes)
 {
 	assert(pcm);
 	assert(pcm->setup);
-	return bytes * 8 / pcm->bits_per_frame;
+	return bytes * 8 / pcm->frame_bits;
 }
 
 ssize_t snd_pcm_frames_to_bytes(snd_pcm_t *pcm, snd_pcm_sframes_t frames)
 {
 	assert(pcm);
 	assert(pcm->setup);
-	return frames * pcm->bits_per_frame / 8;
+	return frames * pcm->frame_bits / 8;
 }
 
 int snd_pcm_bytes_to_samples(snd_pcm_t *pcm, ssize_t bytes)
 {
 	assert(pcm);
 	assert(pcm->setup);
-	return bytes * 8 / pcm->bits_per_sample;
+	return bytes * 8 / pcm->sample_bits;
 }
 
 ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
 {
 	assert(pcm);
 	assert(pcm->setup);
-	return samples * pcm->bits_per_sample / 8;
+	return samples * pcm->sample_bits / 8;
 }
 
 int snd_pcm_open(snd_pcm_t **pcmp, char *name, 
@@ -739,8 +739,8 @@ void snd_pcm_areas_from_buf(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 	unsigned int channels = pcm->channels;
 	for (channel = 0; channel < channels; ++channel, ++areas) {
 		areas->addr = buf;
-		areas->first = channel * pcm->bits_per_sample;
-		areas->step = pcm->bits_per_frame;
+		areas->first = channel * pcm->sample_bits;
+		areas->step = pcm->frame_bits;
 	}
 }
 
@@ -752,7 +752,7 @@ void snd_pcm_areas_from_bufs(snd_pcm_t *pcm, snd_pcm_channel_area_t *areas,
 	for (channel = 0; channel < channels; ++channel, ++areas, ++bufs) {
 		areas->addr = *bufs;
 		areas->first = 0;
-		areas->step = pcm->bits_per_sample;
+		areas->step = pcm->sample_bits;
 	}
 }
 
