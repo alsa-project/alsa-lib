@@ -66,7 +66,9 @@ int snd_seq_event_input_selective(snd_seq_t *seq, snd_seq_event_t **ev, int type
 int snd_seq_flush_output(snd_seq_t *handle);
 int snd_seq_extract_output(snd_seq_t *handle, snd_seq_event_t **ev);
 int snd_seq_drain_output(snd_seq_t *handle);
+int snd_seq_drain_output_buffer(snd_seq_t *handle);
 int snd_seq_drain_input(snd_seq_t *handle);
+int snd_seq_drain_input_buffer(snd_seq_t *handle);
 int snd_seq_remove_events(snd_seq_t *handle, snd_seq_remove_events_t *info);
 /* misc */
 void snd_seq_set_bit(int nr, void *array);

@@ -455,11 +455,9 @@ static int snd_seq_free_event_static(snd_seq_event_t *ev)
 {
 	if (!ev)
 		return -EINVAL;
-	switch (ev->flags & SND_SEQ_EVENT_LENGTH_MASK) {
-	case SND_SEQ_EVENT_LENGTH_VARIABLE:
+	if (snd_seq_ev_is_variable(ev)) {
 		if (ev->data.ext.ptr)
 			free(ev->data.ext.ptr);
-		break;
 	}
 	return 0;
 }
@@ -480,33 +478,37 @@ int snd_seq_event_length(snd_seq_event_t *ev)
 
 	if (!ev)
 		return -EINVAL;
-	switch (ev->flags & SND_SEQ_EVENT_LENGTH_MASK) {
-	case SND_SEQ_EVENT_LENGTH_VARIABLE:
+	if (snd_seq_ev_is_variable(ev)) {
+		if (ev->data.ext.len < 0)
+			return -EINVAL;
 		len += ev->data.ext.len;
-		break;
 	}
 	return len;
 }
 
 int snd_seq_event_output(snd_seq_t *seq, snd_seq_event_t *ev)
 {
-	int len;
+	int len, err;
 
 	if (!seq || !ev)
 		return -EINVAL;
 	len = snd_seq_event_length(ev);
+	if (len < 0)
+		return -EINVAL;
 	if ((seq->obufsize - seq->obufused) < len) {
-		snd_seq_flush_output(seq);
+		err = snd_seq_flush_output(seq);
+		if (err < 0)
+			return err;
 		if ((seq->obufsize - seq->obufused) < len)
 			return -ENOMEM;
 	}
 	memcpy(seq->obuf + seq->obufused, ev, sizeof(snd_seq_event_t));
 	seq->obufused += sizeof(snd_seq_event_t);
-	switch (ev->flags & SND_SEQ_EVENT_LENGTH_MASK) {
-	case SND_SEQ_EVENT_LENGTH_VARIABLE:
+	if (snd_seq_ev_is_variable(ev)) {
+		if (ev->data.ext.len < 0)
+			return -EINVAL;
 		memcpy(seq->obuf + seq->obufused, ev->data.ext.ptr, ev->data.ext.len);
 		seq->obufused += ev->data.ext.len;
-		break;
 	}
 	return seq->obufused;
 }
@@ -568,7 +570,7 @@ static int snd_seq_input_cell_available(snd_seq_t *seq)
 {
 	if (!seq)
 		return -EINVAL;
-	return seq->cells > 0;
+	return seq->cells;
 }
 
 static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev)
@@ -582,8 +584,7 @@ static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev)
 	memcpy(ev, *buf, sizeof(snd_seq_event_t));
 	*buf += sizeof(snd_seq_event_t);
 	*len -= sizeof(snd_seq_event_t);
-	switch (ev->flags & SND_SEQ_EVENT_LENGTH_MASK) {
-	case SND_SEQ_EVENT_LENGTH_VARIABLE:
+	if (snd_seq_ev_is_variable(ev)) {
 		if (*len < ev->data.ext.len) {
 			*len = 0;
 			ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK; /* clear flag */
@@ -601,7 +602,6 @@ static int snd_seq_decode_event(char **buf, int *len, snd_seq_event_t *ev)
 			*buf += ev->data.ext.len;
 			*len -= ev->data.ext.len;
 		}
-		break;
 	}
 	return 0;
 }
@@ -784,7 +784,7 @@ int snd_seq_flush_output(snd_seq_t *seq)
 	while (seq->obufused > 0) {
 		result = write(seq->fd, seq->obuf, seq->obufused);
 		if (result < 0)
-			return -errno;
+			return result;
 		if (result < seq->obufused)
 			memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
 		seq->obufused -= result;
@@ -795,17 +795,22 @@ int snd_seq_flush_output(snd_seq_t *seq)
 
 /*
  * extract the first event in output buffer
+ * if ev_res is NULL, just remove the event.
  */
 int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 {
-	char *buf;
 	int len, olen, err;
+	snd_seq_event_t *ev;
 
-	if (!seq || !ev_res)
+	if (!seq)
 		return -EINVAL;
-	*ev_res = NULL;
-	if ((olen = seq->obufused) > 0) {
-		snd_seq_event_t *ev;
+	if (ev_res)
+		*ev_res = NULL;
+	if ((olen = seq->obufused) <= 0)
+		return -ENOENT;
+	if (ev_res) {
+		/* extract the event */
+		char *buf;
 		ev = snd_seq_create_event();
 		if (ev == NULL)
 			return -ENOMEM;
@@ -816,17 +821,43 @@ int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 			snd_seq_free_event(ev);
 			return err;
 		}
-		if (len > 0)
-			memmove(seq->obuf, seq->obuf + (olen - len), len);
-		seq->obufused = len;
 		*ev_res = ev;
+	} else {
+		/* remove the event */
+		ev = (snd_seq_event_t*)seq->obuf;
+		len = olen - snd_seq_event_length(ev);
 	}
+	if (len > 0)
+		memmove(seq->obuf, seq->obuf + (olen - len), len);
+	seq->obufused = len;
 	return 0;
 }
 
 
 /*
- * clear output buffer and remove events in sequencer queue
+ * clear output buffer
+ */
+int snd_seq_drain_output_buffer(snd_seq_t *seq)
+{
+	if (!seq)
+		return -EINVAL;
+	seq->obufused = 0;
+}
+
+/*
+ * clear input buffer
+ */
+int snd_seq_drain_input_buffer(snd_seq_t *seq)
+{
+	if (!seq)
+		return -EINVAL;
+	while (snd_seq_input_cell_available(seq) > 0)
+		snd_seq_free_cell(snd_seq_input_cell_out(seq));
+	return 0;
+}
+
+/*
+ * clear output buffer and and remove events in sequencer queue
  */
 int snd_seq_drain_output(snd_seq_t *seq)
 {
@@ -838,8 +869,23 @@ int snd_seq_drain_output(snd_seq_t *seq)
 	memset(&rminfo, 0, sizeof(rminfo));
 	rminfo.output = 1;
 
-	snd_seq_remove_events(seq, &rminfo);
-	return 0;
+	return snd_seq_remove_events(seq, &rminfo);
+}
+
+/*
+ * clear input buffer and and remove events in sequencer queue
+ */
+int snd_seq_drain_input(snd_seq_t *seq)
+{
+	snd_seq_remove_events_t rminfo;
+
+	if (!seq)
+		return -EINVAL;
+
+	memset(&rminfo, 0, sizeof(rminfo));
+	rminfo.input = 1;
+
+	return snd_seq_remove_events(seq, &rminfo);
 }
 
 /* compare timestamp between events */
@@ -928,7 +974,9 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 		 * First deal with any events that are still buffered
 		 * in the library.
 		 */
-		/* Input not implemented */
+		if (rmp->remove_mode == 0)
+			snd_seq_drain_input_buffer(seq);
+		/* other modes are not supported yet */
 	}
 
 	if (rmp->output) {
@@ -937,8 +985,8 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 		 * in the library.
 		 */
 		 if (rmp->remove_mode == 0) {
-			/* The simple case - remove all */
-			seq->obufused = 0;
+			 /* The simple case - remove all */
+			 snd_seq_drain_output_buffer(seq);
 		} else {
 			char *ep;
 			int  len;
@@ -964,14 +1012,6 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_REMOVE_EVENTS, rmp) < 0)
 		return -errno;
 
-	return 0;
-}
-int snd_seq_drain_input(snd_seq_t *seq)
-{
-	if (!seq)
-		return -EINVAL;
-	while (snd_seq_input_cell_available(seq))
-		snd_seq_free_cell(snd_seq_input_cell_out(seq));
 	return 0;
 }
 
