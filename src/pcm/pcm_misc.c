@@ -295,7 +295,7 @@ u_int64_t snd_pcm_format_silence_64(int format)
 	case SND_PCM_SFMT_FLOAT_BE:		
 	{
 		union {
-			double f;
+			float f;
 			u_int32_t i;
 		} u;
 		u.f = 0.0;
