@@ -151,10 +151,10 @@ int main(int argc, char **argv)
 	}
 	
 	if (command == LIST_INPUT) {
-		list_ports(fd, group, SND_SEQ_PORT_CAP_IN|SND_SEQ_PORT_CAP_SUBS_IN);
+		list_ports(fd, group, SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ);
 		return 0;
 	} else if (command == LIST_OUTPUT) {
-		list_ports(fd, group, SND_SEQ_PORT_CAP_OUT|SND_SEQ_PORT_CAP_SUBS_OUT);
+		list_ports(fd, group, SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE);
 		return 0;
 	}
 
@@ -180,6 +180,7 @@ int main(int argc, char **argv)
 	}
 
 	/* set subscription */
+	memset(&subs, 0, sizeof(subs));
 	parse_address(&subs.sender, argv[optind]);
 	parse_address(&subs.dest, argv[optind + 1]);
 	subs.sender.queue = subs.dest.queue = queue;
