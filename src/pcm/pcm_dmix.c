@@ -571,240 +571,49 @@ static int check_interleave(snd_pcm_dmix_t *dmix)
 
 #define ADD_AND_SATURATE
 
-/*
- *  for plain i386
- */
-static void mix_areas1(unsigned int size,
-		       volatile signed short *dst, signed short *src,
-		       volatile signed int *sum, unsigned int dst_step,
-		       unsigned int src_step, unsigned int sum_step)
-{
-	/*
-	 *  ESI - src
-	 *  EDI - dst
-	 *  EBX - sum
-	 *  ECX - old sample
-	 *  EAX - sample / temporary
-	 *  EDX - size
-	 */
-	__asm__ __volatile__ (
-		"\n"
+#define MIX_AREAS1 mix_areas1
+#define MIX_AREAS1_MMX mix_areas1_mmx
+#define LOCK_PREFIX ""
+#include "pcm_dmix_i386.h"
+#undef MIX_AREAS1
+#undef MIX_AREAS1_MMX
+#undef LOCK_PREFIX
 
-		/*
-		 *  initialization, load EDX, ESI, EDI, EBX registers
-		 */
-		"\tmovl %0, %%edx\n"
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
-
-		/*
-		 * while (size-- > 0) {
-		 */
-		"\tcmp $0, %%edx\n"
-		"jz 6f\n"
-
-		"\t.p2align 4,,15\n"
-
-		"1:"
-
-		/*
-		 *   sample = *src;
-		 *   if (cmpxchg(*dst, 0, 1) == 0)
-		 *     sample -= *sum;
-		 *   xadd(*sum, sample);
-		 */
-		"\tmovw $0, %%ax\n"
-		"\tmovw $1, %%cx\n"
-		"\tlock; cmpxchgw %%cx, (%%edi)\n"
-		"\tmovswl (%%esi), %%ecx\n"
-		"\tjnz 2f\n"
-		"\tsubl (%%ebx), %%ecx\n"
-		"2:"
-		"\tlock; addl %%ecx, (%%ebx)\n"
-
-		/*
-		 *   do {
-		 *     sample = old_sample = *sum;
-		 *     saturate(v);
-		 *     *dst = sample;
-		 *   } while (v != *sum);
-		 */
-
-		"3:"
-		"\tmovl (%%ebx), %%ecx\n"
-		"\tcmpl $0x7fff,%%ecx\n"
-		"\tjg 4f\n"
-		"\tcmpl $-0x8000,%%ecx\n"
-		"\tjl 5f\n"
-		"\tmovw %%cx, (%%edi)\n"
-		"\tcmpl %%ecx, (%%ebx)\n"
-		"\tjnz 3b\n"
-
-		/*
-		 * while (size-- > 0)
-		 */
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %%edx\n"
-		"\tjnz 1b\n"
-		"\tjmp 6f\n"
-
-		/*
-		 *  sample > 0x7fff
-		 */
-
-		"\t.p2align 4,,15\n"
-
-		"4:"
-		"\tmovw $0x7fff, %%ax\n"
-		"\tmovw %%ax, (%%edi)\n"
-		"\tcmpl %%ecx,(%%ebx)\n"
-		"\tjnz 3b\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %%edx\n"
-		"\tjnz 1b\n"
-		"\tjmp 6f\n"
-
-		/*
-		 *  sample < -0x8000
-		 */
-
-		"\t.p2align 4,,15\n"
-
-		"5:"
-		"\tmovw $-0x8000, %%ax\n"
-		"\tmovw %%ax, (%%edi)\n"
-		"\tcmpl %%ecx, (%%ebx)\n"
-		"\tjnz 3b\n"
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %%edx\n"
-		"\tjnz 1b\n"
-		// "\tjmp 6f\n"
-		
-		"6:"
-
-		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
-		: "esi", "edi", "edx", "ecx", "ebx", "eax"
-	);
-}
-
-/*
- *  MMX optimized
- */
-static void mix_areas1_mmx(unsigned int size,
-			   volatile signed short *dst, signed short *src,
-			   volatile signed int *sum, unsigned int dst_step,
-			   unsigned int src_step, unsigned int sum_step)
-{
-	/*
-	 *  ESI - src
-	 *  EDI - dst
-	 *  EBX - sum
-	 *  ECX - old sample
-	 *  EAX - sample / temporary
-	 *  EDX - size
-	 */
-	__asm__ __volatile__ (
-		"\n"
-
-		/*
-		 *  initialization, load EDX, ESI, EDI, EBX registers
-		 */
-		"\tmovl %0, %%edx\n"
-		"\tmovl %1, %%edi\n"
-		"\tmovl %2, %%esi\n"
-		"\tmovl %3, %%ebx\n"
-
-		/*
-		 * while (size-- > 0) {
-		 */
-		"\tcmp $0, %%edx\n"
-		"jz 6f\n"
-
-		"\t.p2align 4,,15\n"
-
-		"1:"
-
-		/*
-		 *   sample = *src;
-		 *   if (cmpxchg(*dst, 0, 1) == 0)
-		 *     sample -= *sum;
-		 *   xadd(*sum, sample);
-		 */
-		"\tmovw $0, %%ax\n"
-		"\tmovw $1, %%cx\n"
-		"\tlock; cmpxchgw %%cx, (%%edi)\n"
-		"\tmovswl (%%esi), %%ecx\n"
-		"\tjnz 2f\n"
-		"\tsubl (%%ebx), %%ecx\n"
-		"2:"
-		"\tlock; addl %%ecx, (%%ebx)\n"
-
-		/*
-		 *   do {
-		 *     sample = old_sample = *sum;
-		 *     saturate(v);
-		 *     *dst = sample;
-		 *   } while (v != *sum);
-		 */
-
-		"3:"
-		"\tmovl (%%ebx), %%ecx\n"
-		"\tmovd %%ecx, %%mm0\n"
-		"\tpackssdw %%mm1, %%mm0\n"
-		"\tmovd %%mm0, %%eax\n"
-		"\tmovw %%ax, (%%edi)\n"
-		"\tcmpl %%ecx, (%%ebx)\n"
-		"\tjnz 3b\n"
-
-		/*
-		 * while (size-- > 0)
-		 */
-		"\tadd %4, %%edi\n"
-		"\tadd %5, %%esi\n"
-		"\tadd %6, %%ebx\n"
-		"\tdecl %%edx\n"
-		"\tjnz 1b\n"
-		"\tjmp 6f\n"
-
-		"6:"
-		
-		"\temms\n"
-
-		: /* no output regs */
-		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
-		: "esi", "edi", "edx", "ecx", "ebx", "eax"
-	);
-}
+#define MIX_AREAS1 mix_areas1_smp
+#define MIX_AREAS1_MMX mix_areas1_smp_mmx
+#define LOCK_PREFIX "lock ; "
+#include "pcm_dmix_i386.h"
+#undef MIX_AREAS1
+#undef MIX_AREAS1_MMX
+#undef LOCK_PREFIX
  
 static void mix_select_callbacks(snd_pcm_dmix_t *dmix)
 {
 	FILE *in;
 	char line[255];
+	int smp = 0, mmx = 0;
 	
 	/* safe settings for all i386 CPUs */
-	dmix->mix_areas1 = mix_areas1;
+	dmix->mix_areas1 = mix_areas1_smp;
 	/* try to determine, if we have a MMX capable CPU */
 	in = fopen("/proc/cpuinfo", "r");
 	if (in == NULL)
 		return;
 	while (!feof(in)) {
 		fgets(line, sizeof(line), in);
-		if (!strncmp(line, "flags", 5)) {
-			fclose(in);
-			if (strstr(line, " mmx")) {
-				// printf("Selecting MMX mix_areas1\n");
-				dmix->mix_areas1 = mix_areas1_mmx;
-			}
-			return;
+		if (!strncmp(line, "processor", 9))
+			smp++;
+		else if (!strncmp(line, "flags", 5)) {
+			if (strstr(line, " mmx"))
+				mmx = 1;
 		}
+	}
+	fclose(in);
+	printf("MMX: %i, SMP: %i\n", mmx, smp);
+	if (mmx) {
+		dmix->mix_areas1 = smp > 1 ? mix_areas1_smp_mmx : mix_areas1_mmx;
+	} else {
+		dmix->mix_areas1 = smp > 1 ? mix_areas1_smp : mix_areas1;
 	}
 }
 #endif
