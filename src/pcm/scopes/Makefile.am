@@ -1,5 +1,5 @@
 
-CFLAGS = -g -O2 -W -Wall
+AM_CFLAGS = -g -O2 -W -Wall
 
 pkglib_LTLIBRARIES = liblevel.la
 

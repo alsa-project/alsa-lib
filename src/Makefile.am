@@ -18,7 +18,7 @@ libasound_la_LIBADD = control/libcontrol.la \
 		      compat/libcompat.la alisp/libalisp.la -lm -ldl -lpthread
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
-LDFLAGS = $(VSYMS)
+AM_LDFLAGS = $(VSYMS)
 
 control/libcontrol.la:
 	$(MAKE) -C control libcontrol.la

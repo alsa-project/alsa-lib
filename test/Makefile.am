@@ -16,6 +16,6 @@ queue_timer_LDADD=../src/libasound.la
 code_CFLAGS=-Wall -pipe -g -O2
 
 INCLUDES=-I$(top_srcdir)/include
-CFLAGS=-static -Wall -pipe -g
+AM_CFLAGS=-static -Wall -pipe -g
 
 EXTRA_DIST=seq-decoder.c seq-sender.c midifile.h midifile.c midifile.3
