@@ -99,7 +99,7 @@ static void resample_expand(snd_pcm_plugin_t *plugin,
 #include "plugin_ops.h"
 #undef GET_S16_END
 	
-	for (channel = 0; channel < plugin->src_format.channels; channel++, rchannels++) {
+	for (channel = 0; channel < plugin->src_format.channels; channel++) {
 		pos = data->pos;
 		S1 = rchannels->last_S1;
 		S2 = rchannels->last_S2;
