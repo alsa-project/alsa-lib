@@ -24,14 +24,25 @@
 #include <sys/poll.h>
 #include <sys/mman.h>
 #include <sys/shm.h>
-#include <asm/page.h>
 #include "pcm_local.h"
 
+size_t page_size(void)
+{
+	long s = sysconf(_SC_PAGE_SIZE);
+	assert(s > 0);
+	return s;
+}
 
-#ifndef PAGE_ALIGN
-#define PAGE_ALIGN(addr)        (((addr)+PAGE_SIZE-1)&PAGE_MASK)
-#endif
-
+size_t page_align(size_t size)
+{
+	size_t r;
+	long psz = sysconf(_SC_PAGE_SIZE);
+	assert(psz > 0);
+	r = size % psz;
+	if (r)
+		return size + psz - r;
+	return size;
+}
 
 const snd_pcm_channel_area_t *snd_pcm_mmap_running_areas(snd_pcm_t *pcm)
 {
@@ -304,7 +315,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 					size = s;
 			}
 			size = (size + 7) / 8;
-			size = PAGE_ALIGN(size);
+			size = page_align(size);
 			switch (i->type) {
 			case SND_PCM_AREA_MMAP:
 				ptr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, i->u.mmap.fd, i->u.mmap.offset);
@@ -384,7 +395,7 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 				size = s;
 		}
 		size = (size + 7) / 8;
-		size = PAGE_ALIGN(size);
+		size = page_align(size);
 		switch (i->type) {
 		case SND_PCM_AREA_MMAP:
 #if 0

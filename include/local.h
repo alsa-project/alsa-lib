@@ -68,4 +68,7 @@ typedef enum _snd_set_mode snd_set_mode_t;
 #define SND_TRY ((snd_set_mode_t) SND_TRY)
 #define SND_TEST ((snd_set_mode_t) SND_TEST)
 
+size_t page_align(size_t size);
+size_t page_size(void);
+
 #endif

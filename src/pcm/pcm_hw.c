@@ -28,16 +28,11 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/shm.h>
-#include <asm/page.h>
 #include "pcm_local.h"
 #include "../control/control_local.h"
 
 #ifndef F_SETSIG
 #define F_SETSIG 10
-#endif
-
-#ifndef PAGE_ALIGN
-#define PAGE_ALIGN(addr)        (((addr)+PAGE_SIZE-1)&PAGE_MASK)
 #endif
 
 typedef struct {
@@ -366,7 +361,7 @@ static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	void *ptr;
-	ptr = mmap(NULL, PAGE_ALIGN(sizeof(struct sndrv_pcm_mmap_status)), PROT_READ, MAP_FILE|MAP_SHARED, 
+	ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_status)), PROT_READ, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_STATUS);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("status mmap failed");
@@ -381,7 +376,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	void *ptr;
-	ptr = mmap(NULL, PAGE_ALIGN(sizeof(struct sndrv_pcm_mmap_control)), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
+	ptr = mmap(NULL, page_align(sizeof(struct sndrv_pcm_mmap_control)), PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, 
 		   hw->fd, SND_PCM_MMAP_OFFSET_CONTROL);
 	if (ptr == MAP_FAILED || ptr == NULL) {
 		SYSERR("control mmap failed");
@@ -395,7 +390,7 @@ static int snd_pcm_hw_mmap_control(snd_pcm_t *pcm)
 static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	if (munmap((void*)hw->mmap_status, PAGE_ALIGN(sizeof(*hw->mmap_status))) < 0) {
+	if (munmap((void*)hw->mmap_status, page_align(sizeof(*hw->mmap_status))) < 0) {
 		SYSERR("status munmap failed");
 		return -errno;
 	}
@@ -405,7 +400,7 @@ static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	if (munmap(hw->mmap_control, PAGE_ALIGN(sizeof(*hw->mmap_control))) < 0) {
+	if (munmap(hw->mmap_control, page_align(sizeof(*hw->mmap_control))) < 0) {
 		SYSERR("control munmap failed");
 		return -errno;
 	}

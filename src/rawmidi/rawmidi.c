@@ -25,7 +25,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <dlfcn.h>
-#include <asm/page.h>
 #include "rawmidi_local.h"
 
 const char *snd_rawmidi_name(snd_rawmidi_t *rawmidi)
@@ -160,7 +159,7 @@ int snd_rawmidi_params_default(snd_rawmidi_t *rmidi, snd_rawmidi_params_t *param
 {
 	assert(rmidi);
 	assert(params);
-	params->buffer_size = PAGE_SIZE;
+	params->buffer_size = page_size();
 	params->avail_min = 1;
 	params->no_active_sensing = 0;
 	return 0;
