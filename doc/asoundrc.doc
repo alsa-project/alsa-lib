@@ -1,0 +1,141 @@
+
+PCM common fields:
+type		PCM type
+[comment]	Saved comments
+[stream]	capture or playback (default both)
+
+PCM types:
+
+- hw 		Kernel PCM
+Fields:
+card		Card name or number
+[device]	Device number (default 0)	
+[subdevice]	Subdevice number, -1 first available (default -1)
+
+- plug		Format adjusted PCM
+Fields:
+sname		Slave PCM name
+ttable	 	Transfer table (bidimensional compound of 
+	        cchannels * schannels numbers)
+  .C
+    .S		route value
+
+- linear	Linear format conversion PCM
+- adpcm		IMA-ADPCM format conversion PCM
+- alaw		A-Law format conversion PCM
+- mulaw		Mu-Law format conversion PCM
+Fields:
+sformat		Slave format
+sname		Slave PCM name
+
+- rate		Rate conversion PCM
+Fields:
+[sformat]	Slave format (default client format)
+srate		Slave rate
+sname		Slave PCM name
+
+- route		Attenuated static route PCM
+Fields:
+[sformat]	Slave format (default client format)
+[schannels]	Slave channels (default client channels)
+sname 		Slave PCM name
+ttable	 	Transfer table (bidimensional compound of 
+	        cchannels * schannels numbers)
+  .C
+    .S		route value
+
+- multi		Linked PCMs (exclusive access to selected channels)
+Fields:
+slave		Slaves definitions
+  .N		Slave definition
+    .name	Slave PCM name
+    .channels	Slave channels
+binding		Bindings table
+  .N		Binding for client channel N
+    .sidx	Slave key for slave definition
+    .schannel	Slave channel
+
+- file		File plugin
+Fields:
+sname		Slave PCM name
+file		File name (or fd)
+[format]	File format (NYI)
+
+
+- null		Null endpoint plugin (NYI)
+Fields:
+time		Time related or not
+
+- shm		Shared memory client PCM
+Fields:
+server		Server name
+sname		Slave PCM name on server
+
+- share		Share PCM
+Fields:
+sname		Slave name
+[schannels]	Slave channels 
+binding		Bindings table
+  .N		Slave channel for client channel N
+
+- mix		Mix PCM (NYI)
+Fields:
+sname		Server name
+binding		Bindings table
+  .N		Binding for client channel N
+    .schannel	Slave channel
+
+- droute	Attenuated dynamic route PCM (NYI)
+Fields:
+[sformat]	Slave format (default client format)
+[schannels]	Slave channels (default client channels)
+sname 		Slave PCM name
+binding		Bindings table
+  .N		Binding entry
+    .cchannel   Client channels
+      .C	Client channel
+    .schannel   Slave channels
+      .S	Slave channel
+    .control	Control name of C * S values or C values (only if C == S)
+
+- lbserver	Loopback server (NYI)
+Fields:
+name		Loopback PCM ID (useful for multiple loopback served by the
+		same server)
+[socket]	PF_LOCAL socket name to listen
+[port]		PF_INET port number to listen
+sname		Slave name
+
+
+CTL common fields:
+type		CTL type
+[comment]	Saved comments
+
+- hw 		Kernel CTL
+Fields:
+card		Card name or number
+
+- shm		Shared memory client CTL
+Fields:
+server		Server name
+sname		Slave CTL name on server
+
+Other related definitions:
+
+- pcmtype	PCM type
+Fields:
+[lib]		Library file
+open		Open function
+
+- ctltype	Control type
+Fields:
+[lib]		Library file
+open		Open function
+
+- server	Server
+Fields:
+host		host where the server is located (if map to local address 
+		server is local, and then it may be started automatically)
+[socket]	PF_LOCAL socket name to listen/connect
+[port]		PF_INET port number to listen/connect
+
