@@ -15,15 +15,15 @@ typedef struct sndrv_control snd_control_t;
 typedef struct sndrv_ctl_event snd_ctl_event_t;
 
 #ifdef SND_ENUM_TYPECHECK
-typedef enum sndrv_card_type snd_card_type;
-typedef enum sndrv_control_type snd_control_type_t;
-typedef enum sndrv_control_iface snd_control_iface_t;
-typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
-#else
 typedef struct __snd_card_type *snd_card_type;
 typedef struct __snd_control_type *snd_control_type_t;
 typedef struct __snd_control_iface *snd_control_iface_t;
 typedef struct __snd_ctl_event_type *snd_ctl_event_type_t;
+#else
+typedef enum sndrv_card_type snd_card_type;
+typedef enum sndrv_control_type snd_control_type_t;
+typedef enum sndrv_control_iface snd_control_iface_t;
+typedef enum sndrv_ctl_event_type snd_ctl_event_type_t;
 #endif
 
 #define SND_CARD_TYPE_GUS_CLASSIC ((snd_card_type_t) SNDRV_CARD_TYPE_GUS_CLASSIC)
