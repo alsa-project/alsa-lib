@@ -2585,7 +2585,7 @@ int snd_seq_drain_output(snd_seq_t *seq)
 	while (seq->obufused > 0) {
 		result = seq->ops->write(seq, seq->obuf, seq->obufused);
 		if (result < 0)
-			return -result;
+			return result;
 		if ((size_t)result < seq->obufused)
 			memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
 		seq->obufused -= result;
