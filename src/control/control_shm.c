@@ -106,7 +106,7 @@ static int snd_ctl_shm_poll_descriptor(snd_ctl_t *ctl)
 	return fd;
 }
 
-static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_info_t *info)
+static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
@@ -120,18 +120,18 @@ static int snd_ctl_shm_hw_info(snd_ctl_t *ctl, snd_ctl_info_t *info)
 	return err;
 }
 
-static int snd_ctl_shm_clist(snd_ctl_t *ctl, snd_control_list_t *list)
+static int snd_ctl_shm_clist(snd_ctl_t *ctl, snd_ctl_element_list_t *list)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	size_t maxsize = CTL_SHM_DATA_MAXLEN;
 	size_t bytes = list->space * sizeof(*list->pids);
 	int err;
-	snd_control_id_t *pids = list->pids;
+	snd_ctl_element_id_t *pids = list->pids;
 	if (bytes > maxsize)
 		return -EINVAL;
 	ctrl->u.clist = *list;
-	ctrl->cmd = SNDRV_CTL_IOCTL_CONTROL_LIST;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEMENT_LIST;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -142,13 +142,13 @@ static int snd_ctl_shm_clist(snd_ctl_t *ctl, snd_control_list_t *list)
 	return err;
 }
 
-static int snd_ctl_shm_cinfo(snd_ctl_t *ctl, snd_control_info_t *info)
+static int snd_ctl_shm_cinfo(snd_ctl_t *ctl, snd_ctl_element_info_t *info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.cinfo = *info;
-	ctrl->cmd = SNDRV_CTL_IOCTL_CONTROL_INFO;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEMENT_INFO;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -156,13 +156,13 @@ static int snd_ctl_shm_cinfo(snd_ctl_t *ctl, snd_control_info_t *info)
 	return err;
 }
 
-static int snd_ctl_shm_cread(snd_ctl_t *ctl, snd_control_t *control)
+static int snd_ctl_shm_cread(snd_ctl_t *ctl, snd_ctl_element_t *control)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.cread = *control;
-	ctrl->cmd = SNDRV_CTL_IOCTL_CONTROL_READ;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEMENT_READ;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
@@ -170,13 +170,13 @@ static int snd_ctl_shm_cread(snd_ctl_t *ctl, snd_control_t *control)
 	return err;
 }
 
-static int snd_ctl_shm_cwrite(snd_ctl_t *ctl, snd_control_t *control)
+static int snd_ctl_shm_cwrite(snd_ctl_t *ctl, snd_ctl_element_t *control)
 {
 	snd_ctl_shm_t *shm = ctl->private;
 	volatile snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
 	int err;
 	ctrl->u.cwrite = *control;
-	ctrl->cmd = SNDRV_CTL_IOCTL_CONTROL_WRITE;
+	ctrl->cmd = SNDRV_CTL_IOCTL_ELEMENT_WRITE;
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;

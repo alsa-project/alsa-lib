@@ -89,11 +89,11 @@ typedef struct {
 	int cmd;
 	union {
 		int device;
-		snd_ctl_info_t hw_info;
-		snd_control_list_t clist;
-		snd_control_info_t cinfo;
-		snd_control_t cread;
-		snd_control_t cwrite;
+		snd_ctl_card_info_t hw_info;
+		snd_ctl_element_list_t clist;
+		snd_ctl_element_info_t cinfo;
+		snd_ctl_element_t cread;
+		snd_ctl_element_t cwrite;
 		snd_hwdep_info_t hwdep_info;
 		snd_pcm_info_t pcm_info;
 		int pcm_prefer_subdevice;

@@ -28,7 +28,7 @@
 #include "mixer_local.h"
 
 static void snd_mixer_simple_read_rebuild(snd_ctl_t *ctl_handle, void *private_data);
-static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle, void *private_data, snd_hcontrol_t *hcontrol);
+static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle, void *private_data, snd_hctl_element_t *helem);
 
 int snd_mixer_open(snd_mixer_t **r_handle, char *name)
 {
@@ -100,7 +100,7 @@ const char *snd_mixer_simple_channel_name(snd_mixer_channel_id_t channel)
 	return p;
 }
 
-int snd_mixer_simple_control_list(snd_mixer_t *handle, snd_mixer_simple_control_list_t *list)
+int snd_mixer_simple_element_list(snd_mixer_t *handle, snd_mixer_simple_element_list_t *list)
 {
 	struct list_head *lh;
 	mixer_simple_t *s;
@@ -145,7 +145,7 @@ static mixer_simple_t *look_for_simple(snd_mixer_t *handle, snd_mixer_sid_t *sid
 	return NULL;
 }
 
-int snd_mixer_simple_control_read(snd_mixer_t *handle, snd_mixer_simple_control_t *control)
+int snd_mixer_simple_element_read(snd_mixer_t *handle, snd_mixer_simple_element_t *control)
 {
 	mixer_simple_t *s;
 
@@ -161,7 +161,7 @@ int snd_mixer_simple_control_read(snd_mixer_t *handle, snd_mixer_simple_control_
 	return s->get(handle, s, control);
 }
 
-int snd_mixer_simple_control_write(snd_mixer_t *handle, snd_mixer_simple_control_t *control)
+int snd_mixer_simple_element_write(snd_mixer_t *handle, snd_mixer_simple_element_t *control)
 {
 	mixer_simple_t *s;
 
@@ -186,7 +186,7 @@ static void snd_mixer_simple_read_rebuild(snd_ctl_t *ctl_handle, void *private_d
 	handle->simple_changes++;
 }
 
-static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle ATTRIBUTE_UNUSED, void *private_data, snd_hcontrol_t *hcontrol)
+static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle ATTRIBUTE_UNUSED, void *private_data, snd_hctl_element_t *helem)
 {
 	snd_mixer_t *handle = (snd_mixer_t *)private_data;
 	mixer_simple_t *s;
@@ -195,7 +195,7 @@ static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle ATTRIBUTE_UNUSED, vo
 	list_for_each(list, &handle->simples) {
 		s = list_entry(list, mixer_simple_t, list);
 		if (s->event_add)
-			s->event_add(handle, hcontrol);
+			s->event_add(handle, helem);
 	}
 }
 

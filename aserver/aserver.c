@@ -572,27 +572,27 @@ int ctl_shm_cmd(client_t *client)
 	ctl = client->device.control.handle;
 	switch (cmd) {
 	case SNDRV_CTL_IOCTL_INFO:
-		ctrl->result = snd_ctl_info(ctl, &ctrl->u.hw_info);
+		ctrl->result = snd_ctl_card_info(ctl, &ctrl->u.hw_info);
 		break;
-	case SNDRV_CTL_IOCTL_CONTROL_LIST:
+	case SNDRV_CTL_IOCTL_ELEMENT_LIST:
 	{
 		size_t maxsize = CTL_SHM_DATA_MAXLEN;
 		if (ctrl->u.clist.space * sizeof(*ctrl->u.clist.pids) > maxsize) {
 			ctrl->result = -EFAULT;
 			break;
 		}
-		ctrl->u.clist.pids = (snd_control_id_t*) ctrl->data;
+		ctrl->u.clist.pids = (snd_ctl_element_id_t*) ctrl->data;
 		ctrl->result = snd_ctl_clist(ctl, &ctrl->u.clist);
 		break;
 	}
-	case SNDRV_CTL_IOCTL_CONTROL_INFO:
-		ctrl->result = snd_ctl_cinfo(ctl, &ctrl->u.cinfo);
+	case SNDRV_CTL_IOCTL_ELEMENT_INFO:
+		ctrl->result = snd_ctl_element_info(ctl, &ctrl->u.cinfo);
 		break;
-	case SNDRV_CTL_IOCTL_CONTROL_READ:
-		ctrl->result = snd_ctl_cread(ctl, &ctrl->u.cread);
+	case SNDRV_CTL_IOCTL_ELEMENT_READ:
+		ctrl->result = snd_ctl_element_read(ctl, &ctrl->u.cread);
 		break;
-	case SNDRV_CTL_IOCTL_CONTROL_WRITE:
-		ctrl->result = snd_ctl_cwrite(ctl, &ctrl->u.cwrite);
+	case SNDRV_CTL_IOCTL_ELEMENT_WRITE:
+		ctrl->result = snd_ctl_element_write(ctl, &ctrl->u.cwrite);
 		break;
 	case SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE:
 		ctrl->result = snd_ctl_hwdep_next_device(ctl, &ctrl->u.device);

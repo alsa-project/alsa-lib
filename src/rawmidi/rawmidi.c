@@ -144,7 +144,6 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	snd_config_t *rawmidi_conf, *conf, *type_conf;
 	snd_config_iterator_t i;
 	snd_rawmidi_params_t params;
-	unsigned int stream;
 	const char *lib = NULL, *open = NULL;
 	int (*open_func)(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			 char *name, snd_config_t *conf, int mode);

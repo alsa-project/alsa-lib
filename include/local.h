@@ -28,11 +28,11 @@
 #define _snd_pcm_sw_params sndrv_pcm_sw_params
 #define _snd_pcm_status sndrv_pcm_status
 
-#define _snd_ctl_info sndrv_ctl_info
-#define _snd_control_id sndrv_control_id
-#define _snd_control_list sndrv_control_list
-#define _snd_control_info sndrv_control_info
-#define _snd_control sndrv_control
+#define _snd_ctl_card_info sndrv_ctl_card_info
+#define _snd_ctl_element_id sndrv_ctl_element_id
+#define _snd_ctl_element_list sndrv_ctl_element_list
+#define _snd_ctl_element_info sndrv_ctl_element_info
+#define _snd_ctl_element sndrv_ctl_element
 #define _snd_ctl_event sndrv_ctl_event
 
 #define _snd_rawmidi_info sndrv_rawmidi_info

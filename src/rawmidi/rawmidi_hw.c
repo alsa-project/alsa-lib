@@ -171,8 +171,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	snd_rawmidi_t *rmidi;
 	snd_rawmidi_hw_t *hw = NULL;
 	snd_rawmidi_info_t info;
-	int fmode, str;
-	int c;
+	int fmode;
 
 	if (inputp)
 		*inputp = NULL;

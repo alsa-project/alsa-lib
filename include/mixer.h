@@ -74,16 +74,16 @@ typedef struct _snd_mixer_sid {
 	unsigned int index;
 } snd_mixer_sid_t;
 
-typedef struct _snd_mixer_simple_control_list {
+typedef struct _snd_mixer_simple_element_list {
 	unsigned int controls_offset;	/* W: first control ID to get */
 	unsigned int controls_request;	/* W: count of control IDs to get */
 	unsigned int controls_count;	/* R: count of available (set) IDs */
 	unsigned int controls;		/* R: count of all available controls */
 	snd_mixer_sid_t *pids;		/* W: IDs */
         char reserved[50];
-} snd_mixer_simple_control_list_t;
+} snd_mixer_simple_element_list_t;
 
-typedef struct _snd_mixer_simple_control {
+typedef struct _snd_mixer_simple_element {
 	snd_mixer_sid_t sid;		/* WR: simple control identification */
 	unsigned int caps;		/* RO: capabilities */
 	unsigned int channels;		/* RO: bitmap of active channels */
@@ -104,7 +104,7 @@ typedef struct _snd_mixer_simple_control {
 		} names;
 		long values[32];
 	} volume;                       /* RW */
-} snd_mixer_simple_control_t;
+} snd_mixer_simple_element_t;
 
 typedef struct _snd_mixer_simple_callbacks {
 	void *private_data;	/* may be used by an application */
@@ -121,9 +121,9 @@ extern "C" {
 #endif
 
 const char *snd_mixer_simple_channel_name(snd_mixer_channel_id_t channel);
-int snd_mixer_simple_control_list(snd_mixer_t *handle, snd_mixer_simple_control_list_t *list);
-int snd_mixer_simple_control_read(snd_mixer_t *handle, snd_mixer_simple_control_t *simple);
-int snd_mixer_simple_control_write(snd_mixer_t *handle, snd_mixer_simple_control_t *simple);
+int snd_mixer_simple_element_list(snd_mixer_t *handle, snd_mixer_simple_element_list_t *list);
+int snd_mixer_simple_element_read(snd_mixer_t *handle, snd_mixer_simple_element_t *simple);
+int snd_mixer_simple_element_write(snd_mixer_t *handle, snd_mixer_simple_element_t *simple);
 int snd_mixer_simple_read(snd_mixer_t *handle, snd_mixer_simple_callbacks_t *callbacks);
 
 #ifdef __cplusplus

@@ -32,7 +32,7 @@ int main(void)
 {
 	int idx, idx1, cards, err;
 	snd_ctl_t *handle;
-	snd_ctl_info_t info;
+	snd_ctl_card_info_t info;
 
 	cards = snd_cards();
 	printf("Detected %i soundcard%s...\n", cards, cards > 1 ? "s" : "");
@@ -45,7 +45,7 @@ int main(void)
 			printf("Open error: %s\n", snd_strerror(err));
 			continue;
 		}
-		if ((err = snd_ctl_info(handle, &info)) < 0) {
+		if ((err = snd_ctl_card_info(handle, &info)) < 0) {
 			printf("HW info error: %s\n", snd_strerror(err));
 			continue;
 		}

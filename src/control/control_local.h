@@ -25,11 +25,11 @@
 typedef struct _snd_ctl_ops {
 	int (*close)(snd_ctl_t *handle);
 	int (*poll_descriptor)(snd_ctl_t *handle);
-	int (*hw_info)(snd_ctl_t *handle, snd_ctl_info_t *info);
-	int (*clist)(snd_ctl_t *handle, snd_control_list_t *list);
-	int (*cinfo)(snd_ctl_t *handle, snd_control_info_t *info);
-	int (*cread)(snd_ctl_t *handle, snd_control_t *control);
-	int (*cwrite)(snd_ctl_t *handle, snd_control_t *control);
+	int (*hw_info)(snd_ctl_t *handle, snd_ctl_card_info_t *info);
+	int (*clist)(snd_ctl_t *handle, snd_ctl_element_list_t *list);
+	int (*cinfo)(snd_ctl_t *handle, snd_ctl_element_info_t *info);
+	int (*cread)(snd_ctl_t *handle, snd_ctl_element_t *control);
+	int (*cwrite)(snd_ctl_t *handle, snd_ctl_element_t *control);
 	int (*hwdep_next_device)(snd_ctl_t *handle, int *device);
 	int (*hwdep_info)(snd_ctl_t *handle, snd_hwdep_info_t * info);
 	int (*pcm_next_device)(snd_ctl_t *handle, int *device);
@@ -62,33 +62,33 @@ struct _snd_ctl {
 struct _snd_ctl_callbacks {
 	void *private_data;	/* may be used by an application */
 	void (*rebuild) (snd_ctl_t *handle, void *private_data);
-	void (*value) (snd_ctl_t *handle, void *private_data, snd_control_id_t * id);
-	void (*change) (snd_ctl_t *handle, void *private_data, snd_control_id_t * id);
-	void (*add) (snd_ctl_t *handle, void *private_data, snd_control_id_t * id);
-	void (*remove) (snd_ctl_t *handle, void *private_data, snd_control_id_t * id);
+	void (*value) (snd_ctl_t *handle, void *private_data, snd_ctl_element_id_t * id);
+	void (*change) (snd_ctl_t *handle, void *private_data, snd_ctl_element_id_t * id);
+	void (*add) (snd_ctl_t *handle, void *private_data, snd_ctl_element_id_t * id);
+	void (*remove) (snd_ctl_t *handle, void *private_data, snd_ctl_element_id_t * id);
 	void *reserved[58];	/* reserved for the future use - must be NULL!!! */
 };
 
-struct _snd_hcontrol_list {
+struct _snd_hctl_element_list {
 	unsigned int offset;	/* W: first control ID to get */
 	unsigned int space;	/* W: count of control IDs to get */
 	unsigned int used;	/* R: count of available (set) controls */
 	unsigned int count;	/* R: count of all available controls */
-	snd_control_id_t *pids;		/* W: IDs */
+	snd_ctl_element_id_t *pids;		/* W: IDs */
 };
 
-struct _snd_hcontrol {
-	snd_control_id_t id; 	/* must be always on top */
-	struct list_head list;	/* links for list of all hcontrols */
+struct _snd_hctl_element {
+	snd_ctl_element_id_t id; 	/* must be always on top */
+	struct list_head list;	/* links for list of all helems */
 	int change: 1,		/* structure change */
 	    value: 1;		/* value change */
 	/* event callbacks */
-	snd_hcontrol_callback_t callback_change;
-	snd_hcontrol_callback_t callback_value;
-	snd_hcontrol_callback_t callback_remove;
+	snd_hctl_element_callback_t callback_change;
+	snd_hctl_element_callback_t callback_value;
+	snd_hctl_element_callback_t callback_remove;
 	/* private data */
 	void *private_data;
-	snd_hcontrol_private_free_t private_free;
+	snd_hctl_element_private_free_t private_free;
 	/* links */
 	snd_ctl_t *handle;	/* associated handle */
 };

@@ -1,5 +1,5 @@
 /*
- *  Control Interface - highlevel API - hcontrol bag operations
+ *  Control Interface - highlevel API - helem bag operations
  *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
  *
  *
@@ -36,43 +36,43 @@ int snd_ctl_hbag_create(void **bag)
 	return 0;
 }
 
-static void snd_ctl_hbag_free_private(snd_hcontrol_t *hcontrol ATTRIBUTE_UNUSED)
+static void snd_ctl_hbag_free_private(snd_hctl_element_t *helem ATTRIBUTE_UNUSED)
 {
 	/* nothing */
 }
 
-int snd_ctl_hbag_destroy(void **bag, void (*hcontrol_free)(snd_hcontrol_t *hcontrol))
+int snd_ctl_hbag_destroy(void **bag, void (*hctl_element_free)(snd_hctl_element_t *helem))
 {
 	assert(bag != NULL);
-	if (hcontrol_free == NULL)
-		hcontrol_free = snd_ctl_hbag_free_private;
-	tdestroy(*bag, (__free_fn_t)hcontrol_free);
+	if (hctl_element_free == NULL)
+		hctl_element_free = snd_ctl_hbag_free_private;
+	tdestroy(*bag, (__free_fn_t)hctl_element_free);
 	*bag = NULL;
 	return 0;
 }
 
-int snd_ctl_hbag_add(void **bag, snd_hcontrol_t *hcontrol)
+int snd_ctl_hbag_add(void **bag, snd_hctl_element_t *helem)
 {
 	void *res;
 
-	assert(bag != NULL && hcontrol != NULL);
-	res = tsearch(hcontrol, bag, (__compar_fn_t)snd_ctl_hsort);
+	assert(bag != NULL && helem != NULL);
+	res = tsearch(helem, bag, (__compar_fn_t)snd_ctl_hsort);
 	if (res == NULL)
 		return -ENOMEM;
-	if ((snd_hcontrol_t *)res == hcontrol)
+	if ((snd_hctl_element_t *)res == helem)
 		return -EALREADY;
 	return 0;
 }
 
-int snd_ctl_hbag_del(void **bag, snd_hcontrol_t *hcontrol)
+int snd_ctl_hbag_del(void **bag, snd_hctl_element_t *helem)
 {
-	assert(bag != NULL && hcontrol != NULL);
-	if (tdelete(hcontrol, bag, (__compar_fn_t)snd_ctl_hsort) == NULL)
+	assert(bag != NULL && helem != NULL);
+	if (tdelete(helem, bag, (__compar_fn_t)snd_ctl_hsort) == NULL)
 		return -ENOENT;
 	return 0;
 }
 
-snd_hcontrol_t *snd_ctl_hbag_find(void **bag, snd_control_id_t *id)
+snd_hctl_element_t *snd_ctl_hbag_find(void **bag, snd_ctl_element_id_t *id)
 {
 	void *res;
 
@@ -80,5 +80,5 @@ snd_hcontrol_t *snd_ctl_hbag_find(void **bag, snd_control_id_t *id)
 	if (*bag == NULL)
 		return NULL;
 	res = tfind(id, bag, (__compar_fn_t)snd_ctl_hsort);
-	return res == NULL ? NULL : *(snd_hcontrol_t **)res;
+	return res == NULL ? NULL : *(snd_hctl_element_t **)res;
 }

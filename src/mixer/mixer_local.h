@@ -23,11 +23,11 @@
 #include "list.h"
 
 typedef struct _mixer_simple mixer_simple_t;
-typedef struct _mixer_simple_hcontrol_private mixer_simple_hcontrol_private_t;
+typedef struct _mixer_simple_hctl_element_private mixer_simple_hctl_element_private_t;
 
-typedef int (mixer_simple_get_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control);
-typedef int (mixer_simple_put_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control);
-typedef int (mixer_simple_event_add_t) (snd_mixer_t *handle, snd_hcontrol_t *hcontrol);
+typedef int (mixer_simple_get_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_element_t *control);
+typedef int (mixer_simple_put_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_element_t *control);
+typedef int (mixer_simple_event_add_t) (snd_mixer_t *handle, snd_hctl_element_t *helem);
 
 #define MIXER_PRESENT_SINGLE_SWITCH	(1<<0)
 #define MIXER_PRESENT_SINGLE_VOLUME	(1<<1)
@@ -69,12 +69,12 @@ struct _mixer_simple {
 	mixer_simple_put_t *put;
 	mixer_simple_event_add_t *event_add;
 	struct list_head list;
-	void *hcontrols;		/* bag of associated hcontrols */
+	void *helems;		/* bag of associated helems */
 	unsigned long private_value;
 };
 
-struct _mixer_simple_hcontrol_private {
-	void *simples;			/* list of associated hcontrols */
+struct _mixer_simple_hctl_element_private {
+	void *simples;			/* list of associated helems */
 };
   
 struct _snd_mixer {

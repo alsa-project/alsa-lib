@@ -48,31 +48,31 @@ int snd_ctl_poll_descriptor(snd_ctl_t *ctl)
 	return ctl->ops->poll_descriptor(ctl);
 }
 
-int snd_ctl_info(snd_ctl_t *ctl, snd_ctl_info_t *info)
+int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info)
 {
 	assert(ctl && info);
 	return ctl->ops->hw_info(ctl, info);
 }
 
-int snd_ctl_clist(snd_ctl_t *ctl, snd_control_list_t *list)
+int snd_ctl_clist(snd_ctl_t *ctl, snd_ctl_element_list_t *list)
 {
 	assert(ctl && list);
 	return ctl->ops->clist(ctl, list);
 }
 
-int snd_ctl_cinfo(snd_ctl_t *ctl, snd_control_info_t *info)
+int snd_ctl_element_info(snd_ctl_t *ctl, snd_ctl_element_info_t *info)
 {
 	assert(ctl && info && (info->id.name[0] || info->id.numid));
 	return ctl->ops->cinfo(ctl, info);
 }
 
-int snd_ctl_cread(snd_ctl_t *ctl, snd_control_t *control)
+int snd_ctl_element_read(snd_ctl_t *ctl, snd_ctl_element_t *control)
 {
 	assert(ctl && control && (control->id.name[0] || control->id.numid));
 	return ctl->ops->cread(ctl, control);
 }
 
-int snd_ctl_cwrite(snd_ctl_t *ctl, snd_control_t *control)
+int snd_ctl_element_write(snd_ctl_t *ctl, snd_ctl_element_t *control)
 {
 	assert(ctl && control && (control->id.name[0] || control->id.numid));
 	return ctl->ops->cwrite(ctl, control);
@@ -239,18 +239,18 @@ int snd_ctl_open(snd_ctl_t **ctlp, char *name)
 	return open_func(ctlp, name, ctl_conf);
 }
 
-void snd_control_set_bytes(snd_control_t *obj, void *data, size_t size)
+void snd_ctl_element_set_bytes(snd_ctl_element_t *obj, void *data, size_t size)
 {
 	assert(obj);
 	assert(size <= sizeof(obj->value.bytes.data));
 	memcpy(obj->value.bytes.data, data, size);
 }
 
-#define TYPE(v) [SND_CONTROL_TYPE_##v] = #v
-#define IFACE(v) [SND_CONTROL_IFACE_##v] = #v
+#define TYPE(v) [SND_CTL_ELEMENT_TYPE_##v] = #v
+#define IFACE(v) [SND_CTL_ELEMENT_IFACE_##v] = #v
 #define EVENT(v) [SND_CTL_EVENT_##v] = #v
 
-const char *snd_control_type_names[] = {
+const char *snd_ctl_element_type_names[] = {
 	TYPE(NONE),
 	TYPE(BOOLEAN),
 	TYPE(INTEGER),
@@ -259,7 +259,7 @@ const char *snd_control_type_names[] = {
 	TYPE(IEC958),
 };
 
-const char *snd_control_iface_names[] = {
+const char *snd_ctl_element_iface_names[] = {
 	IFACE(CARD),
 	IFACE(HWDEP),
 	IFACE(MIXER),
@@ -277,16 +277,16 @@ const char *snd_ctl_event_type_names[] = {
 	EVENT(REMOVE),
 };
 
-const char *snd_control_type_name(snd_control_type_t type)
+const char *snd_ctl_element_type_name(snd_ctl_element_type_t type)
 {
-	assert(type <= SND_CONTROL_TYPE_LAST);
-	return snd_control_type_names[snd_enum_to_int(type)];
+	assert(type <= SND_CTL_ELEMENT_TYPE_LAST);
+	return snd_ctl_element_type_names[snd_enum_to_int(type)];
 }
 
-const char *snd_control_iface_name(snd_control_iface_t iface)
+const char *snd_ctl_element_iface_name(snd_ctl_element_iface_t iface)
 {
-	assert(iface <= SND_CONTROL_IFACE_LAST);
-	return snd_control_iface_names[snd_enum_to_int(iface)];
+	assert(iface <= SND_CTL_ELEMENT_IFACE_LAST);
+	return snd_ctl_element_iface_names[snd_enum_to_int(iface)];
 }
 
 const char *snd_ctl_event_type_name(snd_ctl_event_type_t type)
@@ -295,7 +295,7 @@ const char *snd_ctl_event_type_name(snd_ctl_event_type_t type)
 	return snd_ctl_event_type_names[snd_enum_to_int(type)];
 }
 
-int snd_control_list_alloc_space(snd_control_list_t *obj, unsigned int entries)
+int snd_ctl_element_list_alloc_space(snd_ctl_element_list_t *obj, unsigned int entries)
 {
 	obj->pids = calloc(entries, sizeof(*obj->pids));
 	if (!obj->pids) {
@@ -306,7 +306,7 @@ int snd_control_list_alloc_space(snd_control_list_t *obj, unsigned int entries)
 	return 0;
 }  
 
-void snd_control_list_free_space(snd_control_list_t *obj)
+void snd_ctl_element_list_free_space(snd_ctl_element_list_t *obj)
 {
 	free(obj->pids);
 	obj->pids = NULL;

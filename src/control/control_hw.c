@@ -51,7 +51,7 @@ static int snd_ctl_hw_poll_descriptor(snd_ctl_t *handle)
 	return hw->fd;
 }
 
-static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_info_t *info)
+static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private;
 	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_INFO, info) < 0)
@@ -59,34 +59,34 @@ static int snd_ctl_hw_hw_info(snd_ctl_t *handle, snd_ctl_info_t *info)
 	return 0;
 }
 
-static int snd_ctl_hw_clist(snd_ctl_t *handle, snd_control_list_t *list)
+static int snd_ctl_hw_clist(snd_ctl_t *handle, snd_ctl_element_list_t *list)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CONTROL_LIST, list) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEMENT_LIST, list) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_ctl_hw_cinfo(snd_ctl_t *handle, snd_control_info_t *info)
+static int snd_ctl_hw_cinfo(snd_ctl_t *handle, snd_ctl_element_info_t *info)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CONTROL_INFO, info) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEMENT_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_ctl_hw_cread(snd_ctl_t *handle, snd_control_t *control)
+static int snd_ctl_hw_cread(snd_ctl_t *handle, snd_ctl_element_t *control)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CONTROL_READ, control) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEMENT_READ, control) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_ctl_hw_cwrite(snd_ctl_t *handle, snd_control_t *control)
+static int snd_ctl_hw_cwrite(snd_ctl_t *handle, snd_ctl_element_t *control)
 {
 	snd_ctl_hw_t *hw = handle->private;
-	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_CONTROL_WRITE, control) < 0)
+	if (ioctl(hw->fd, SNDRV_CTL_IOCTL_ELEMENT_WRITE, control) < 0)
 		return -errno;
 	return 0;
 }
