@@ -4,6 +4,8 @@ source=.
 version=`cat $source/../version`
 package=$source/../../alsa-lib-$version.tar.bz2
 packagedir=/usr/src/redhat
+xrpmbuild=rpm
+rpmbuild --usage 2> /dev/null > /dev/null && xrpmbuild=rpmbuild
 
 if [ -d /usr/src/packages ]; then
   packagedir=/usr/src/packages
@@ -40,6 +42,5 @@ fi
 
 cp -fv $source/alsa-lib.spec ${packagedir}/SPECS
 cd ${packagedir}/SPECS
-rpm -ba alsa-lib.spec
+$xrpmbuild -ba alsa-lib.spec
 cd ${packagedir}
-
