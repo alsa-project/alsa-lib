@@ -60,7 +60,7 @@ static int approx_lt(unsigned int a, int adir,
 	return a < b || (a == b && adir < bdir);
 }
 
-/* Return 1 if max is nearer to best than min */
+/* Return 1 if min is nearer to best than max */
 static int approx_nearer(int min, int mindir,
 			 int best, int bestdir,
 			 int max, int maxdir)
@@ -69,7 +69,7 @@ static int approx_nearer(int min, int mindir,
 	int dmax, dmaxdir;
 	approx_sub(best, bestdir, min, mindir, &dmin, &dmindir);
 	approx_sub(max, maxdir, best, bestdir, &dmax, &dmaxdir);
-	return approx_lt(dmax, dmaxdir, dmin, dmindir);
+	return approx_lt(dmin, dmindir, dmax, dmaxdir);
 }
 
 static inline int hw_is_mask(int var)
@@ -765,7 +765,7 @@ int snd_pcm_hw_param_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 		snd_pcm_hw_params_t params1;
 		if (max < 0)
 			goto _end;
-		if ((unsigned int)min = saved_min && mindir == valdir)
+		if ((unsigned int)min == saved_min && mindir == valdir)
 			goto _end;
 		params1 = save;
 		max = snd_pcm_hw_param_max(pcm, &params1, var, max, &maxdir);
@@ -1665,7 +1665,8 @@ static snd_pcm_hw_rule_t refine_rules[] = {
 	{
 		var: SND_PCM_HW_PARAM_SAMPLE_BITS, 
 		func: snd_pcm_hw_rule_sample_bits,
-		deps: { SND_PCM_HW_PARAM_FORMAT, -1 },
+		deps: { SND_PCM_HW_PARAM_FORMAT, 
+			SND_PCM_HW_PARAM_SAMPLE_BITS, -1 },
 		private: 0,
 	},
 	{
