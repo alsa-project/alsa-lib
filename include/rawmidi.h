@@ -57,12 +57,12 @@ typedef enum _snd_rawmidi_stream {
 	SND_RAWMIDI_STREAM_LAST = SND_RAWMIDI_STREAM_INPUT,
 } snd_rawmidi_stream_t;
 
-/** Append \hideinitializer */
-#define SND_RAWMIDI_APPEND	1
-/** Non blocking mode \hideinitializer */
-#define SND_RAWMIDI_NONBLOCK	2
-/** Write sync mode \hideinitializer */
-#define SND_RAWMIDI_SYNC	4
+/** Append (flag to open mode) \hideinitializer */
+#define SND_RAWMIDI_APPEND	0x0001
+/** Non blocking mode (flag to open mode) \hideinitializer */
+#define SND_RAWMIDI_NONBLOCK	0x0002
+/** Write sync mode (Flag to open mode) \hideinitializer */
+#define SND_RAWMIDI_SYNC	0x0004
 
 /** RawMidi handle */
 typedef struct _snd_rawmidi snd_rawmidi_t;

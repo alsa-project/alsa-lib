@@ -62,7 +62,7 @@ typedef enum _snd_hwdep_iface {
 #define SND_HWDEP_OPEN_WRITE		(O_WRONLY)
 /** open for reading and writing */
 #define SND_HWDEP_OPEN_DUPLEX		(O_RDWR)
-/** flag: open in nonblock mode */
+/** open mode flag: open in nonblock mode */
 #define SND_HWDEP_OPEN_NONBLOCK		(O_NONBLOCK)
 
 /** HwDep handle type */

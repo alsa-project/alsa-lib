@@ -267,9 +267,9 @@ typedef long snd_pcm_sframes_t;
 /** Timestamp */
 typedef struct timeval snd_timestamp_t;
 
-/** Non blocking mode \hideinitializer */
+/** Non blocking mode (flag for open mode) \hideinitializer */
 #define SND_PCM_NONBLOCK		0x0001
-/** Async notification \hideinitializer */
+/** Async notification (flag for open mode) \hideinitializer */
 #define SND_PCM_ASYNC			0x0002
 
 /** PCM handle */

@@ -62,7 +62,7 @@ do {\
 /**
  * sequencer opening mode
  */
-#define SND_SEQ_NONBLOCK	1	/**< non-blocking mode */
+#define SND_SEQ_NONBLOCK	0x0001	/**< non-blocking mode (flag to open mode) */
 
 /** sequencer handle type */
 typedef enum _snd_seq_type {

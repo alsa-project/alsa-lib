@@ -171,10 +171,10 @@ typedef enum _snd_ctl_type {
 	SND_CTL_TYPE_INET
 } snd_ctl_type_t;
 
-/** Non blocking mode \hideinitializer */
+/** Non blocking mode (flag for open mode) \hideinitializer */
 #define SND_CTL_NONBLOCK		0x0001
 
-/** Async notification \hideinitializer */
+/** Async notification (flag for open mode) \hideinitializer */
 #define SND_CTL_ASYNC			0x0002
 
 /** CTL handle */
