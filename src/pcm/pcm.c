@@ -159,6 +159,23 @@ int snd_pcm_file_descriptor(snd_pcm_t *pcm)
 	return pcm->fd;
 }
 
+int snd_pcm_nonblock_mode(snd_pcm_t *pcm, int nonblock)
+{
+	long flags;
+
+	if (!pcm)
+		return -EINVAL;
+	if ((flags = fcntl(pcm->fd, F_GETFL)) < 0)
+		return -errno;
+	if (nonblock)
+		flags |= O_NONBLOCK;
+	else
+		flags &= ~O_NONBLOCK;
+	if (fcntl(pcm->fd, F_SETFL, flags) < 0)
+		return -errno;
+	return 0;
+}
+
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
 	if (!pcm || !info)
