@@ -1,6 +1,7 @@
 alsadir = $(datadir)/alsa/cards
 cfg_files = aliases.conf \
 	Audigy.conf \
+	Audigy2.conf \
 	CMI8338.conf \
 	CMI8738-MC6.conf \
 	CS46xx.conf \
