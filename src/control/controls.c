@@ -124,16 +124,103 @@ int snd_ctl_hfree(snd_ctl_t *handle)
 	return 0;
 }
 
-int snd_ctl_hsort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2)
+#define NOT_FOUND 1000000000
+
+static int snd_ctl_hsort_mixer_priority_lookup(char **name, char * const *names, int coef)
 {
 	int res;
+
+	for (res = 0; *names; names++, res += coef) {
+		if (!strncmp(*name, *names, strlen(*names))) {
+			*name += strlen(*names);
+			if (**name == ' ')
+				*name++;
+			return res;
+		}
+	}
+	return NOT_FOUND;
+}
+
+static int snd_ctl_hsort_mixer_priority(const char *name)
+{
+	static char *names[] = {
+		"Master",
+		"Master Digital",
+		"Master Mono",
+		"Hardware Master",
+		"Headphone",
+		"Tone Control",
+		"3D Control",
+		"PCM",
+		"PCM Front",
+		"PCM Rear",
+		"PCM Pan",
+		"Wave",
+		"Music",
+		"Line",
+		"CD",
+		"Mic",
+		"Phone",
+		"Video",
+		"PC Speaker",
+		"Aux",
+		"ADC",
+		"Capture Source",
+		"Capture",
+		"Playback",
+		"Loopback",
+		"Analog Loopback",
+		"Digital Loopback",
+		"S/PDIF Input",
+		"S/PDIF Output",
+		NULL
+	};
+	static char *names1[] = {
+		"Switch",
+		"Volume",
+		"Playback",
+		"Capture",
+		"Bypass",
+		NULL
+	};
+	static char *names2[] = {
+		"Switch",
+		"Volume",
+		"Bypass",
+		NULL
+	};
+	char **ptr, *s;
+	int res, res1;
+	
+	if ((res = snd_ctl_hsort_mixer_priority_lookup((char **)&name, names, 1000000)) == NOT_FOUND)
+		return NOT_FOUND;
+	if ((res1 = snd_ctl_hsort_mixer_priority_lookup((char **)&name, names1, 1000)) == NOT_FOUND)
+		return res;
+	res += res1;
+	if ((res1 = snd_ctl_hsort_mixer_priority_lookup((char **)&name, names2, 1)) == NOT_FOUND)
+		return res;
+	return res + res1;
+}
+
+int snd_ctl_hsort(const snd_hcontrol_t *c1, const snd_hcontrol_t *c2)
+{
+	int res, p1, p2;
 
 	if (c1->id.iface < c2->id.iface)
 		return -1;
 	if (c1->id.iface > c2->id.iface)
 		return 1;
-	if ((res = strcmp(c1->id.name, c2->id.name)) != 0)
+	if ((res = strcmp(c1->id.name, c2->id.name)) != 0) {
+		if (c1->id.iface != SND_CONTROL_IFACE_MIXER)
+			return res;
+		p1 = snd_ctl_hsort_mixer_priority(c1->id.name);
+		p2 = snd_ctl_hsort_mixer_priority(c2->id.name);
+		if (p1 < p2)
+			return -1;
+		if (p1 > p2)
+			return 1;
 		return res;
+	}
 	if (c1->id.index < c2->id.index)
 		return -1;
 	if (c1->id.index > c2->id.index)

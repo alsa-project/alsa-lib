@@ -113,6 +113,12 @@ int snd_ctl_hcallback_rebuild(snd_ctl_t *handle, snd_ctl_hcallback_rebuild_t *ca
 int snd_ctl_hcallback_add(snd_ctl_t *handle, snd_ctl_hcallback_add_t *callback, void *private_data);
 int snd_ctl_hevent(snd_ctl_t *handle);
 
+int snd_ctl_hbag_create(void **bag);
+int snd_ctl_hbag_destroy(void **bag, void (*hcontrol_free)(snd_hcontrol_t *hcontrol));
+int snd_ctl_hbag_add(void **bag, snd_hcontrol_t *hcontrol);
+int snd_ctl_hbag_del(void **bag, snd_hcontrol_t *hcontrol);
+snd_hcontrol_t *snd_ctl_hbag_find(void **bag, snd_control_id_t *id);
+
 #ifdef __cplusplus
 }
 #endif

@@ -21,12 +21,14 @@
 
 #include <assert.h>
 #include "asoundlib.h"
+#include "list.h"
 
 typedef struct mixer_simple mixer_simple_t;
+typedef struct mixer_simple_hcontrol_private mixer_simple_hcontrol_private_t;
 
 typedef int (mixer_simple_get_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control);
 typedef int (mixer_simple_put_t) (snd_mixer_t *handle, mixer_simple_t *simple, snd_mixer_simple_control_t *control);
-typedef int (mixer_simple_event_t) (snd_mixer_t *handle, snd_ctl_event_type_t etype, snd_control_id_t *id);
+typedef int (mixer_simple_event_add_t) (snd_mixer_t *handle, snd_hcontrol_t *hcontrol);
 
 #define MIXER_PRESENT_GLOBAL_SWITCH	(1<<0)
 #define MIXER_PRESENT_GLOBAL_VOLUME	(1<<1)
@@ -57,19 +59,22 @@ struct mixer_simple {
 	snd_mixer_sid_t sid;
 	mixer_simple_get_t *get;
 	mixer_simple_put_t *put;
-	mixer_simple_event_t *event;
-	mixer_simple_t *prev;
-	mixer_simple_t *next;
+	mixer_simple_event_add_t *event_add;
+	struct list_head list;
+	void *hcontrols;		/* bag of associated hcontrols */
 	unsigned long private_value;
+};
+
+struct mixer_simple_hcontrol_private {
+	void *simples;			/* list of associated hcontrols */
 };
   
 struct snd_mixer {
 	snd_ctl_t *ctl_handle;
 	int simple_valid;
-	int simple_count;
 	int simple_changes;		/* total number of changes */
-	mixer_simple_t *simple_first;
-	mixer_simple_t *simple_last;
+	int simple_count;
+	struct list_head simples;	/* list of all simple controls */
 	snd_mixer_simple_callbacks_t *callbacks;
 };
 
