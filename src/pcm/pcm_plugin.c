@@ -195,7 +195,7 @@ ssize_t snd_pcm_plugin_hardware_size(snd_pcm_t *pcm, int channel, size_t trf_siz
 			plugin = plugin_next;
 		}
 	} else if (channel == SND_PCM_CHANNEL_CAPTURE) {
-		plugin = snd_pcm_plugin_first(pcm, channel);
+		plugin = snd_pcm_plugin_last(pcm, channel);
 		while (plugin) {
 			plugin_prev = plugin->prev;
 			if (plugin->src_size)
@@ -671,7 +671,7 @@ ssize_t snd_pcm_plugin_write(snd_pcm_t *pcm, const void *buffer, size_t count)
 		src_ptr = dst_ptr;
 		src_ptr1 = dst_ptr1;
 		dst_ptr1 = NULL;
-		src_size = size;
+		src_size = dst_size = size;
 	}
 	result = snd_pcm_plugin_transfer_size(pcm, SND_PCM_CHANNEL_PLAYBACK, size);
       __free:
@@ -736,7 +736,7 @@ ssize_t snd_pcm_plugin_read(snd_pcm_t *pcm, void *buffer, size_t count)
 		src_ptr = dst_ptr;
 		src_ptr1 = dst_ptr1;
 		dst_ptr1 = NULL;
-		src_size = size;
+		src_size = dst_size = size;
 	}
 	result = size;
       __free:
