@@ -72,11 +72,6 @@ int snd_defaults_mixer_card(void)
 	return snd_defaults_card();
 }
 
-int snd_defaults_mixer_device(void)
-{
-	return defaults_device("ALSA_MIXER_DEVICE");
-}
-
 int snd_defaults_pcm_card(void)
 {
 	int result;

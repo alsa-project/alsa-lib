@@ -5,58 +5,108 @@
  *                                                                          *
  ****************************************************************************/
 
-typedef struct snd_mixer_callbacks {
-	void *private_data;	/* should be used with an application */
-	void (*rebuild) (void *private_data);
-	void (*element) (void *private_data, int cmd, snd_mixer_eid_t *eid);
-	void (*group) (void *private_data, int cmd, snd_mixer_gid_t *gid);
-	void *reserved[28];	/* reserved for the future use - must be NULL!!! */
-} snd_mixer_callbacks_t;
-
-typedef struct {
-	char *name;
-	int weight;
-} snd_mixer_weight_entry_t;
+typedef struct snd_mixer snd_mixer_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct snd_mixer snd_mixer_t;
-
-int snd_mixer_open(snd_mixer_t **handle, int card, int device);
+int snd_mixer_open(snd_mixer_t **handle, int card);
 int snd_mixer_close(snd_mixer_t *handle);
 int snd_mixer_file_descriptor(snd_mixer_t *handle);
-int snd_mixer_info(snd_mixer_t *handle, snd_mixer_info_t * info);
-int snd_mixer_elements(snd_mixer_t *handle, snd_mixer_elements_t * elements);
-int snd_mixer_routes(snd_mixer_t *handle, snd_mixer_routes_t * routes);
-int snd_mixer_groups(snd_mixer_t *handle, snd_mixer_groups_t * groups);
-int snd_mixer_group_read(snd_mixer_t *handle, snd_mixer_group_t * group);
-int snd_mixer_group_write(snd_mixer_t *handle, snd_mixer_group_t * group);
-int snd_mixer_element_info(snd_mixer_t *handle, snd_mixer_element_info_t * info);
-int snd_mixer_element_read(snd_mixer_t *handle, snd_mixer_element_t * element);
-int snd_mixer_element_write(snd_mixer_t *handle, snd_mixer_element_t * element);
-int snd_mixer_get_filter(snd_mixer_t *handle, snd_mixer_filter_t * filter);
-int snd_mixer_put_filter(snd_mixer_t *handle, snd_mixer_filter_t * filter);
-int snd_mixer_read(snd_mixer_t *handle, snd_mixer_callbacks_t * callbacks);
 
-void snd_mixer_set_bit(unsigned int *bitmap, int bit, int val);
-int snd_mixer_get_bit(unsigned int *bitmap, int bit);
+#ifdef __cplusplus
+}
+#endif
 
-const char *snd_mixer_channel_name(int channel);
+/*
+ *  Simple (legacy) mixer API
+ */
 
-int snd_mixer_element_has_info(snd_mixer_eid_t *eid);
-int snd_mixer_element_info_build(snd_mixer_t *handle, snd_mixer_element_info_t * info);
-int snd_mixer_element_info_free(snd_mixer_element_info_t * info);
-int snd_mixer_element_has_control(snd_mixer_eid_t *eid);
-int snd_mixer_element_build(snd_mixer_t *handle, snd_mixer_element_t * element);
-int snd_mixer_element_free(snd_mixer_element_t * element);
+typedef enum {
+	SND_MIXER_CHN_FRONT_LEFT = 0,
+	SND_MIXER_CHN_FRONT_RIGHT,
+	SND_MIXER_CHN_FRONT_CENTER,
+	SND_MIXER_CHN_REAR_LEFT,
+	SND_MIXER_CHN_REAR_RIGHT,
+	SND_MIXER_CHN_WOOFER,
+	SND_MIXER_CHN_LAST = 31,
+	SND_MIXER_CHN_MONO = SND_MIXER_CHN_FRONT_LEFT
+} snd_mixer_channel_id_t;
 
-void snd_mixer_sort_eid_name_index(snd_mixer_eid_t *list, int count);
-void snd_mixer_sort_eid_table(snd_mixer_eid_t *list, int count, snd_mixer_weight_entry_t *table);
-void snd_mixer_sort_gid_name_index(snd_mixer_gid_t *list, int count);
-void snd_mixer_sort_gid_table(snd_mixer_gid_t *list, int count, snd_mixer_weight_entry_t *table);
-extern snd_mixer_weight_entry_t *snd_mixer_default_weights;
+#define SND_MIXER_CHN_MASK_MONO		(1<<SND_MIXER_CHN_MONO)
+#define SND_MIXER_CHN_MASK_FRONT_LEFT	(1<<SND_MIXER_CHN_FRONT_LEFT)
+#define SND_MIXER_CHN_MASK_FRONT_RIGHT	(1<<SND_MIXER_CHN_FRONT_RIGHT)
+#define SND_MIXER_CHN_MASK_FRONT_CENTER	(1<<SND_MIXER_CHN_FRONT_CENTER)
+#define SND_MIXER_CHN_MASK_REAR_LEFT	(1<<SND_MIXER_CHN_REAR_LEFT)
+#define SND_MIXER_CHN_MASK_REAR_RIGHT	(1<<SND_MIXER_CHN_REAR_RIGHT)
+#define SND_MIXER_CHN_MASK_WOOFER	(1<<SND_MIXER_CHN_WOOFER)
+#define SND_MIXER_CHN_MASK_STEREO	(SND_MIXER_CHN_MASK_FRONT_LEFT|SND_MIXER_CHN_MASK_FRONT_RIGHT)
+
+#define SND_MIXER_SCTCAP_VOLUME         (1<<0)
+#define SND_MIXER_SCTCAP_JOINTLY_VOLUME (1<<1)
+#define SND_MIXER_SCTCAP_MUTE           (1<<2)
+#define SND_MIXER_SCTCAP_JOINTLY_MUTE   (1<<3)
+#define SND_MIXER_SCTCAP_CAPTURE        (1<<4)
+#define SND_MIXER_SCTCAP_JOINTLY_CAPTURE (1<<5)
+#define SND_MIXER_SCTCAP_EXCL_CAPTURE   (1<<6)
+
+typedef struct snd_mixer_sid {
+	unsigned char name[60];
+	unsigned int index;
+} snd_mixer_sid_t;
+
+typedef struct snd_mixer_simple_control_list {
+	unsigned int controls_offset;	/* W: first control ID to get */
+	unsigned int controls_request;	/* W: count of control IDs to get */
+	unsigned int controls_count;	/* R: count of available (set) IDs */
+	unsigned int controls;		/* R: count of all available controls */
+	snd_mixer_sid_t *pids;		/* W: IDs */
+        char reserved[50];
+} snd_mixer_simple_control_list_t;
+
+typedef struct snd_mixer_simple_control {
+	snd_mixer_sid_t sid;		/* WR: simple control identification */
+	unsigned int caps;		/* RO: capabilities */
+	unsigned int channels;		/* RO: bitmap of active channels */
+	unsigned int mute;		/* RW: bitmap of muted channels */
+	unsigned int capture;		/* RW: bitmap of capture channels */
+	int capture_group;		/* RO: capture group (for exclusive capture) */
+	long min;			/* RO: minimum value */
+	long max;			/* RO: maximum value */
+	char reserved[32];
+	union {
+		struct {
+			long front_left;	/* front left value */
+			long front_right;	/* front right value */
+			long front_center;	/* front center */
+			long rear_left;		/* left rear */
+			long rear_right;	/* right rear */
+			long woofer;		/* woofer */
+		} names;
+		long values[32];
+	} volume;                       /* RW */
+} snd_mixer_simple_control_t;
+
+typedef struct snd_mixer_simple_callbacks {
+	void *private_data;	/* may be used by an application */
+	void (*rebuild) (snd_mixer_t *handle, void *private_data);
+	void (*value) (snd_mixer_t *handle, void *private_data, snd_mixer_sid_t *id);
+	void (*change) (snd_mixer_t *handle, void *private_data, snd_mixer_sid_t *id);
+	void (*add) (snd_mixer_t *handle, void *private_data, snd_mixer_sid_t *id);
+	void (*remove) (snd_mixer_t *handle, void *private_data, snd_mixer_sid_t *id);
+	void *reserved[58];	/* reserved for future use - must be NULL!!! */
+} snd_mixer_simple_callbacks_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+const char *snd_mixer_simple_channel_name(int channel);
+int snd_mixer_simple_control_list(snd_mixer_t *handle, snd_mixer_simple_control_list_t *list);
+int snd_mixer_simple_control_read(snd_mixer_t *handle, snd_mixer_simple_control_t *simple);
+int snd_mixer_simple_control_write(snd_mixer_t *handle, snd_mixer_simple_control_t *simple);
+int snd_mixer_simple_read(snd_mixer_t *handle, snd_mixer_simple_callbacks_t *callbacks);
 
 #ifdef __cplusplus
 }

@@ -30,7 +30,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(1, 0, 0)
+#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
 
 struct snd_ctl {
 	int card;
@@ -95,26 +95,34 @@ int snd_ctl_hw_info(snd_ctl_t *handle, struct snd_ctl_hw_info *info)
 	return 0;
 }
 
-int snd_ctl_switch_list(snd_ctl_t *handle, snd_switch_list_t *list)
+int snd_ctl_clist(snd_ctl_t *handle, snd_control_list_t *list)
 {
 	assert(handle && list);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_SWITCH_LIST, list) < 0)
+	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_LIST, list) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_switch_read(snd_ctl_t *handle, snd_switch_t *sw)
+int snd_ctl_cinfo(snd_ctl_t *handle, snd_control_info_t *info)
 {
-	assert(handle && sw && sw->name[0]);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_SWITCH_READ, sw) < 0)
+	assert(handle && info && info->id.name[0]);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_INFO, info) < 0)
 		return -errno;
 	return 0;
 }
 
-int snd_ctl_switch_write(snd_ctl_t *handle, snd_switch_t *sw)
+int snd_ctl_cread(snd_ctl_t *handle, snd_control_t *control)
 {
-	assert(handle && sw && sw->name[0]);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_SWITCH_WRITE, sw) < 0)
+	assert(handle && control && control->id.name[0]);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_READ, control) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_ctl_cwrite(snd_ctl_t *handle, snd_control_t *control)
+{
+	assert(handle && control && control->id.name[0]);
+	if (ioctl(handle->fd, SND_CTL_IOCTL_CONTROL_WRITE, control) < 0)
 		return -errno;
 	return 0;
 }
@@ -143,14 +151,6 @@ int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev)
 	return 0;
 }
 
-int snd_ctl_mixer_info(snd_ctl_t *handle, snd_mixer_info_t * info)
-{
-	assert(handle && info);
-	if (ioctl(handle->fd, SND_CTL_IOCTL_MIXER_INFO, info) < 0)
-		return -errno;
-	return 0;
-}
-
 int snd_ctl_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info)
 {
 	assert(handle && info);
@@ -162,7 +162,8 @@ int snd_ctl_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info)
 int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
 {
 	int result, count;
-	snd_ctl_read_t r;
+	snd_ctl_event_t r;
+
 	assert(handle);
 	count = 0;
 	while ((result = read(handle->fd, &r, sizeof(r))) > 0) {
@@ -170,21 +171,26 @@ int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks)
 			return -EIO;
 		if (!callbacks)
 			continue;
-		switch (r.cmd) {
-		case SND_CTL_READ_REBUILD:
+		switch (r.type) {
+		case SND_CTL_EVENT_REBUILD:
 			if (callbacks->rebuild)
-				callbacks->rebuild(callbacks->private_data);
+				callbacks->rebuild(handle, callbacks->private_data);
 			break;
-		case SND_CTL_READ_SWITCH_VALUE:
-		case SND_CTL_READ_SWITCH_CHANGE:
-		case SND_CTL_READ_SWITCH_ADD:
-		case SND_CTL_READ_SWITCH_REMOVE:
-			if (callbacks->xswitch)
-				callbacks->xswitch(callbacks->private_data,
-						   r.cmd, r.data.sw.iface,
-						   r.data.sw.device,
-						   r.data.sw.stream,
-						   &r.data.sw.switem);
+		case SND_CTL_EVENT_VALUE:
+			if (callbacks->value)
+				callbacks->value(handle, callbacks->private_data, &r.data.id);
+			break;
+		case SND_CTL_EVENT_CHANGE:
+			if (callbacks->change)
+				callbacks->change(handle, callbacks->private_data, &r.data.id);
+			break;
+		case SND_CTL_EVENT_ADD:
+			if (callbacks->add)
+				callbacks->add(handle, callbacks->private_data, &r.data.id);
+			break;
+		case SND_CTL_EVENT_REMOVE:
+			if (callbacks->remove)
+				callbacks->remove(handle, callbacks->private_data, &r.data.id);
 			break;
 		}
 		count++;

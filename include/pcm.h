@@ -290,6 +290,11 @@ struct snd_stru_pcm_plugin {
 int snd_pcm_plug_create(snd_pcm_t **handle, snd_pcm_t *slave, int close_slave);
 int snd_pcm_plug_open_subdevice(snd_pcm_t **handle, int card, int device, int subdevice, int stream, int mode);
 int snd_pcm_plug_open(snd_pcm_t **handle, int card, int device, int stream, int mode);
+int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
+			 snd_pcm_t **slaves_handle, size_t *slaves_channels_count,
+			 size_t binds_count,  unsigned int *binds_client_channel,
+			 unsigned int *binds_slave, unsigned int *binds_slave_channel,
+			 int close_slaves);
 
 int snd_pcm_plugin_free(snd_pcm_plugin_t *plugin);
 int snd_pcm_plugin_insert(snd_pcm_plugin_t *plugin);

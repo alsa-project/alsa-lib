@@ -1,6 +1,6 @@
 EXTRA_LTLIBRARIES=libmixer.la
 
-libmixer_la_SOURCES = mixer.c elements.c
+libmixer_la_SOURCES = mixer.c simple.c
 
 all: libmixer.la
 

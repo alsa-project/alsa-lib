@@ -28,8 +28,8 @@
 #include "../../include/pcm.h"
 #define snd_pcm_plug_first(plug) ((plug)->runtime->oss.plugin_first)
 #define snd_pcm_plug_last(plug) ((plug)->runtime->oss.plugin_last)
-#define vmalloc snd_vmalloc
-#define vfree snd_vfree
+#define __vmalloc snd_vmalloc
+#define __vfree snd_vfree
 #else
 #include <malloc.h>
 #include <errno.h>
@@ -39,8 +39,8 @@
 #include "pcm_local.h"
 #define snd_pcm_plug_first(plug) ((plug)->first)
 #define snd_pcm_plug_last(plug) ((plug)->last)
-#define vmalloc malloc
-#define vfree free
+#define __vmalloc malloc
+#define __vfree free
 #endif
 
 static int snd_pcm_plugin_src_channels_mask(snd_pcm_plugin_t *plugin,
@@ -81,8 +81,8 @@ static int snd_pcm_plugin_alloc(snd_pcm_plugin_t *plugin, size_t frames)
 	size /= 8;
 	if (plugin->buf_frames < frames) {
 		if (plugin->buf)
-			vfree(plugin->buf);
-		plugin->buf = vmalloc(size);
+			__vfree(plugin->buf);
+		plugin->buf = __vmalloc(size);
 		plugin->buf_frames = frames;
 	}
 	if (!plugin->buf)
@@ -215,7 +215,7 @@ int snd_pcm_plugin_free(snd_pcm_plugin_t *plugin)
 		free(plugin->name);
 	free(plugin->buf_channels);
 	if (plugin->buf)
-		vfree(plugin->buf);
+		__vfree(plugin->buf);
 	free(plugin->src_vmask);
 	free(plugin->dst_vmask);
 	free(plugin);
