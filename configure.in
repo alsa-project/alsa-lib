@@ -39,51 +39,9 @@ AC_DISABLE_STATIC
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
-dnl kernel header files
-AC_MSG_CHECKING(for kernel header files)
-AC_ARG_WITH(kernel,
-  [  --with-kernel=ver       specify kernel version (for example 2.5.5-pre1)],
-  [kerneldir="$withval"], [kerneldir=""])
-if test "$kerneldir" != "" -a -r "/lib/modules/$kerneldir/build/include/sound"; then
-  kerneldir="/lib/modules/$kerneldir/build/include"
-  AC_MSG_RESULT($kerneldir)
-else
-  if test -z "$kerneldir"; then
-    AC_MSG_RESULT("not specified")
-  else
-    AC_MSG_RESULT("directory /lib/modules/$kerneldir/build/include/sound not found")
-  fi
-  kerneldir=""
-fi
-
-dnl path for sound/asound.h
-AC_MSG_CHECKING(for directory with ALSA kernel headers)
-AC_ARG_WITH(soundbase,
-  [  --with-soundbase=dir    specify base directory with kernel sound headers (optional)],
-  [soundbasedir="$withval"], [soundbasedir="$kerneldir"])
-if test "$soundbasedir" != "" -a -r "$soundbasedir/sound" ; then
-  ALSA_CFLAGS="$ALSA_CFLAGS -I$soundbasedir"
-  CFLAGS="$CFLAGS -I$soundbasedir"
-  AC_MSG_RESULT($ALSA_CFLAGS)
-else
-  if test "x$prefix" != xNONE; then
-    aprefix=$prefix
-  else
-    aprefix=$ac_default_prefix
-  fi
-  if test -z "$soundbasedir" -a x"$aprefix" != x/usr -a -r "$aprefix/include/sound"; then
-    ALSA_CFLAGS="$ALSA_CFLAGS -I$aprefix/include"
-    CFLAGS="$CFLAGS -I$aprefix/include"
-    AC_MSG_RESULT($ALSA_CFLAGS)
-  else
-    AC_MSG_RESULT("not specified - using C compilator defaults")
-  fi
-fi
-
 dnl Checks for header files.
 AC_HEADER_STDC
 AM_CONFIG_HEADER(include/config.h)
-AC_CHECK_HEADERS(sound/asound.h)
 
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -96,7 +54,6 @@ AC_PROG_GCC_TRADITIONAL
 AC_CHECK_FUNC([hsearch_r], [HAVE_HSEARCH_R=yes])
 AM_CONDITIONAL(ALSA_HSEARCH_R, [test "x$HAVE_HSEARCH_R" != xyes])
 
-ALSA_CHECK_DRIVER
 SAVE_LIBRARY_VERSION
 AC_SUBST(LIBTOOL_VERSION_INFO)
 

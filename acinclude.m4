@@ -1,28 +1,3 @@
-dnl Check for ALSA driver package.
-AC_DEFUN(ALSA_CHECK_DRIVER, [
-AC_MSG_CHECKING(for alsa-driver package)
-
-AC_TRY_COMPILE([
-#include <sound/asound.h>
-],[
-void main(void)
-{
-#if !defined(SNDRV_PROTOCOL_VERSION) || !defined(SNDRV_PROTOCOL_INCOMPATIBLE)
-#error not found
-#else
-#if !defined(SNDRV_PCM_IOCTL_REWIND)
-#error wrong version
-#endif
-  exit(0);
-#endif
-}
-],
-  AC_MSG_RESULT(present),
-  [AC_MSG_RESULT(not found or wrong version);
-   AC_MSG_ERROR([Install alsa-driver v0.9.0 package first...])]
-)
-])
-
 AC_DEFUN(SAVE_LIBRARY_VERSION, [
 AC_MSG_CHECKING(for library version)
 SND_LIB_VERSION=$VERSION
