@@ -42,11 +42,8 @@ int snd_timer_open(snd_timer_t **handle)
 
 	*handle = NULL;
 	
-	if ((fd = open(SND_FILE_TIMER, O_RDONLY)) < 0) {
-		snd_cards_mask();
-		if ((fd = open(SND_FILE_TIMER, O_RDONLY)) < 0)
-			return -errno;
-	}
+	if ((fd = open(SND_FILE_TIMER, O_RDONLY)) < 0)
+		return -errno;
 	if (ioctl(fd, SND_TIMER_IOCTL_PVERSION, &ver) < 0) {
 		close(fd);
 		return -errno;
@@ -88,14 +85,14 @@ int snd_timer_poll_descriptor(snd_timer_t *handle)
 	return tmr->fd;
 }
 
-int snd_timer_general_info(snd_timer_t *handle, snd_timer_general_info_t * info)
+int snd_timer_next_device(snd_timer_t *handle, snd_timer_id_t * tid)
 {
 	snd_timer_t *tmr;
 
 	tmr = handle;
-	if (!tmr || !info)
+	if (!tmr || !tid)
 		return -EINVAL;
-	if (ioctl(tmr->fd, SND_TIMER_IOCTL_GINFO, info) < 0)
+	if (ioctl(tmr->fd, SND_TIMER_IOCTL_NEXT_DEVICE, tid) < 0)
 		return -errno;
 	return 0;
 }

@@ -603,14 +603,23 @@ int ctl_shm_cmd(client_t *client)
 	case SND_CTL_IOCTL_CONTROL_WRITE:
 		ctrl->result = snd_ctl_cwrite(ctl, &ctrl->u.cwrite);
 		break;
+	case SND_CTL_IOCTL_HWDEP_NEXT_DEVICE:
+		ctrl->result = snd_ctl_hwdep_next_device(ctl, &ctrl->u.device);
+		break;
 	case SND_CTL_IOCTL_HWDEP_INFO:
 		ctrl->result = snd_ctl_hwdep_info(ctl, &ctrl->u.hwdep_info);
+		break;
+	case SND_CTL_IOCTL_PCM_NEXT_DEVICE:
+		ctrl->result = snd_ctl_pcm_next_device(ctl, &ctrl->u.device);
 		break;
 	case SND_CTL_IOCTL_PCM_INFO:
 		ctrl->result = snd_ctl_pcm_info(ctl, &ctrl->u.pcm_info);
 		break;
 	case SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE:
 		ctrl->result = snd_ctl_pcm_prefer_subdevice(ctl, ctrl->u.pcm_prefer_subdevice);
+		break;
+	case SND_CTL_IOCTL_RAWMIDI_NEXT_DEVICE:
+		ctrl->result = snd_ctl_rawmidi_next_device(ctl, &ctrl->u.device);
 		break;
 	case SND_CTL_IOCTL_RAWMIDI_INFO:
 		ctrl->result = snd_ctl_rawmidi_info(ctl, &ctrl->u.rawmidi_info);

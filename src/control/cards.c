@@ -52,39 +52,22 @@ int snd_card_load(int card)
 	return open_dev;
 }
 
-int snd_cards(void)
+int snd_card_next(int *rcard)
 {
-	int idx, count;
-	unsigned int mask;
-
-	mask = snd_cards_mask();
-	for (idx = 0, count = 0; idx < SND_CARDS; idx++) {
-		if (mask & (1 << idx))
-			count++;
+	int card;
+	
+	if (rcard == NULL)
+		return -EINVAL;
+	card = *rcard;
+	card = card < 0 ? 0 : card + 1;
+	for (; card < 32; card++) {
+		if (!snd_card_load(card)) {
+			*rcard = card;
+			return 0;
+		}
 	}
-	return count;
-}
-
-/*
- *  this routine uses very ugly method...
- *    need to do... (use only stat on /proc/asound?)
- *    now is information cached over static variable
- */
-
-unsigned int snd_cards_mask(void)
-{
-	int idx;
-	unsigned int mask;
-	static unsigned int save_mask = 0;
-
-	if (save_mask)
-		return save_mask;
-	for (idx = 0, mask = 0; idx < SND_CARDS; idx++) {
-	        if (snd_card_load(idx) >= 0)
-			mask |= 1 << idx;
-	}
-	save_mask = mask;
-	return mask;
+	*rcard = -1;
+	return 0;
 }
 
 int snd_card_get_index(const char *string)

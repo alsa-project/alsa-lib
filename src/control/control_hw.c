@@ -94,10 +94,26 @@ static int snd_ctl_hw_cwrite(snd_ctl_t *handle, snd_control_t *control)
 	return 0;
 }
 
+static int snd_ctl_hw_hwdep_next_device(snd_ctl_t *handle, int * device)
+{
+	snd_ctl_hw_t *hw = handle->private;
+	if (ioctl(hw->fd, SND_CTL_IOCTL_HWDEP_NEXT_DEVICE, device) < 0)
+		return -errno;
+	return 0;
+}
+
 static int snd_ctl_hw_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info)
 {
 	snd_ctl_hw_t *hw = handle->private;
 	if (ioctl(hw->fd, SND_CTL_IOCTL_HWDEP_INFO, info) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_ctl_hw_pcm_next_device(snd_ctl_t *handle, int * device)
+{
+	snd_ctl_hw_t *hw = handle->private;
+	if (ioctl(hw->fd, SND_CTL_IOCTL_PCM_NEXT_DEVICE, device) < 0)
 		return -errno;
 	return 0;
 }
@@ -114,6 +130,14 @@ static int snd_ctl_hw_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev)
 {
 	snd_ctl_hw_t *hw = handle->private;
 	if (ioctl(hw->fd, SND_CTL_IOCTL_PCM_PREFER_SUBDEVICE, &subdev) < 0)
+		return -errno;
+	return 0;
+}
+
+static int snd_ctl_hw_rawmidi_next_device(snd_ctl_t *handle, int * device)
+{
+	snd_ctl_hw_t *hw = handle->private;
+	if (ioctl(hw->fd, SND_CTL_IOCTL_RAWMIDI_NEXT_DEVICE, device) < 0)
 		return -errno;
 	return 0;
 }
@@ -148,9 +172,12 @@ snd_ctl_ops_t snd_ctl_hw_ops = {
 	cinfo: snd_ctl_hw_cinfo,
 	cread: snd_ctl_hw_cread,
 	cwrite: snd_ctl_hw_cwrite,
+	hwdep_next_device: snd_ctl_hw_hwdep_next_device,
 	hwdep_info: snd_ctl_hw_hwdep_info,
+	pcm_next_device: snd_ctl_hw_pcm_next_device,
 	pcm_info: snd_ctl_hw_pcm_info,
 	pcm_prefer_subdevice: snd_ctl_hw_pcm_prefer_subdevice,
+	rawmidi_next_device: snd_ctl_hw_rawmidi_next_device,
 	rawmidi_info: snd_ctl_hw_rawmidi_info,
 	rawmidi_prefer_subdevice: snd_ctl_hw_rawmidi_prefer_subdevice,
 	read: snd_ctl_hw_read,

@@ -51,16 +51,14 @@ static int defaults_device(const char *env)
 int snd_defaults_card(void)
 {
 	int result;
-	unsigned int mask;
 
 	result = defaults_card("ALSA_CARD");
 	if (result >= 0)
 		return result;
-	mask = snd_cards_mask();
-	for (result = 0; result < 31; result++)
-		if (mask & (1 << result))
-			return result;
-	return -ENOENT;
+	result = -1;
+	if (snd_card_next(&result))
+		return -ENOENT;
+	return result;
 }
 
 int snd_defaults_mixer_card(void)
@@ -85,7 +83,22 @@ int snd_defaults_pcm_card(void)
 
 int snd_defaults_pcm_device(void)
 {
-	return defaults_device("ALSA_PCM_DEVICE");
+	snd_ctl_t *handle;
+	char id[16];
+	int result;
+
+	result = defaults_device("ALSA_PCM_DEVICE");
+	if (result >= 0)
+		return result;
+	sprintf(id, "hw:%i", snd_defaults_pcm_card());
+	if (snd_ctl_open(&handle, id) < 0)
+		return -ENOENT;
+	result = -1;
+	if (snd_ctl_pcm_next_device(handle, &result) < 0) {
+		snd_ctl_close(handle);
+		return -ENOENT;
+	}
+	return result;
 }
 
 int snd_defaults_rawmidi_card(void)
@@ -100,5 +113,20 @@ int snd_defaults_rawmidi_card(void)
 
 int snd_defaults_rawmidi_device(void)
 {
-	return defaults_device("ALSA_RAWMIDI_DEVICE");
+	snd_ctl_t *handle;
+	char id[16];
+	int result;
+
+	result = defaults_device("ALSA_RAWMIDI_DEVICE");
+	if (result >= 0)
+		return result;
+	sprintf(id, "hw:%i", snd_defaults_rawmidi_card());
+	if (snd_ctl_open(&handle, id) < 0)
+		return -ENOENT;
+	result = -1;
+	if (snd_ctl_rawmidi_next_device(handle, &result) < 0) {
+		snd_ctl_close(handle);
+		return -ENOENT;
+	}
+	return result;
 }

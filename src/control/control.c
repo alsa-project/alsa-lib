@@ -81,10 +81,22 @@ int snd_ctl_cwrite(snd_ctl_t *ctl, snd_control_t *control)
 	return ctl->ops->cwrite(ctl, control);
 }
 
+int snd_ctl_hwdep_next_device(snd_ctl_t *ctl, int * device)
+{
+	assert(ctl && device);
+	return ctl->ops->hwdep_next_device(ctl, device);
+}
+
 int snd_ctl_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info)
 {
 	assert(ctl && info);
 	return ctl->ops->hwdep_info(ctl, info);
+}
+
+int snd_ctl_pcm_next_device(snd_ctl_t *ctl, int * device)
+{
+	assert(ctl && device);
+	return ctl->ops->pcm_next_device(ctl, device);
 }
 
 int snd_ctl_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t * info)
@@ -97,6 +109,12 @@ int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 {
 	assert(ctl);
 	return ctl->ops->pcm_prefer_subdevice(ctl, subdev);
+}
+
+int snd_ctl_rawmidi_next_device(snd_ctl_t *ctl, int * device)
+{
+	assert(ctl && device);
+	return ctl->ops->rawmidi_next_device(ctl, device);
 }
 
 int snd_ctl_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info)

@@ -184,6 +184,20 @@ static int snd_ctl_shm_cwrite(snd_ctl_t *ctl, snd_control_t *control)
 	return err;
 }
 
+static int snd_ctl_shm_hwdep_next_device(snd_ctl_t *ctl, int * device)
+{
+	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->u.device = *device;
+	ctrl->cmd = SND_CTL_IOCTL_HWDEP_NEXT_DEVICE;
+	err = snd_ctl_shm_action(ctl);
+	if (err < 0)
+		return err;
+	*device = ctrl->u.device;
+	return err;
+}
+
 static int snd_ctl_shm_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info)
 {
 	snd_ctl_shm_t *shm = ctl->private;
@@ -195,6 +209,20 @@ static int snd_ctl_shm_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info)
 	if (err < 0)
 		return err;
 	*info = ctrl->u.hwdep_info;
+	return err;
+}
+
+static int snd_ctl_shm_pcm_next_device(snd_ctl_t *ctl, int * device)
+{
+	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->u.device = *device;
+	ctrl->cmd = SND_CTL_IOCTL_PCM_NEXT_DEVICE;
+	err = snd_ctl_shm_action(ctl);
+	if (err < 0)
+		return err;
+	*device = ctrl->u.device;
 	return err;
 }
 
@@ -222,6 +250,20 @@ static int snd_ctl_shm_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev)
 	err = snd_ctl_shm_action(ctl);
 	if (err < 0)
 		return err;
+	return err;
+}
+
+static int snd_ctl_shm_rawmidi_next_device(snd_ctl_t *ctl, int * device)
+{
+	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->u.device = *device;
+	ctrl->cmd = SND_CTL_IOCTL_RAWMIDI_NEXT_DEVICE;
+	err = snd_ctl_shm_action(ctl);
+	if (err < 0)
+		return err;
+	*device = ctrl->u.device;
 	return err;
 }
 
@@ -274,9 +316,12 @@ snd_ctl_ops_t snd_ctl_shm_ops = {
 	cinfo: snd_ctl_shm_cinfo,
 	cread: snd_ctl_shm_cread,
 	cwrite: snd_ctl_shm_cwrite,
+	hwdep_next_device: snd_ctl_shm_hwdep_next_device,
 	hwdep_info: snd_ctl_shm_hwdep_info,
+	pcm_next_device: snd_ctl_shm_pcm_next_device,
 	pcm_info: snd_ctl_shm_pcm_info,
 	pcm_prefer_subdevice: snd_ctl_shm_pcm_prefer_subdevice,
+	rawmidi_next_device: snd_ctl_shm_rawmidi_next_device,
 	rawmidi_info: snd_ctl_shm_rawmidi_info,
 	rawmidi_prefer_subdevice: snd_ctl_shm_rawmidi_prefer_subdevice,
 	read: snd_ctl_shm_read,

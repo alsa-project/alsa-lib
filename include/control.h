@@ -27,8 +27,7 @@ extern "C" {
 #endif
 
 int snd_card_load(int card);
-int snd_cards(void);
-unsigned int snd_cards_mask(void);
+int snd_card_next(int *card);
 int snd_card_get_index(const char *name);
 int snd_card_get_name(int card, char **name);
 int snd_card_get_longname(int card, char **name);
@@ -49,9 +48,12 @@ int snd_ctl_clist(snd_ctl_t *handle, snd_control_list_t * list);
 int snd_ctl_cinfo(snd_ctl_t *handle, snd_control_info_t * sw);
 int snd_ctl_cread(snd_ctl_t *handle, snd_control_t * control);
 int snd_ctl_cwrite(snd_ctl_t *handle, snd_control_t * control);
+int snd_ctl_hwdep_next_device(snd_ctl_t *handle, int * device);
 int snd_ctl_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info);
+int snd_ctl_pcm_next_device(snd_ctl_t *handle, int *device);
 int snd_ctl_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info);
 int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev);
+int snd_ctl_rawmidi_next_device(snd_ctl_t *handle, int * device);
 int snd_ctl_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info);
 int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev);
 

@@ -39,9 +39,12 @@ typedef struct {
 	int (*cinfo)(snd_ctl_t *handle, snd_control_info_t *info);
 	int (*cread)(snd_ctl_t *handle, snd_control_t *control);
 	int (*cwrite)(snd_ctl_t *handle, snd_control_t *control);
+	int (*hwdep_next_device)(snd_ctl_t *handle, int *device);
 	int (*hwdep_info)(snd_ctl_t *handle, snd_hwdep_info_t * info);
+	int (*pcm_next_device)(snd_ctl_t *handle, int *device);
 	int (*pcm_info)(snd_ctl_t *handle, snd_pcm_info_t * info);
 	int (*pcm_prefer_subdevice)(snd_ctl_t *handle, int subdev);
+	int (*rawmidi_next_device)(snd_ctl_t *handle, int *device);
 	int (*rawmidi_info)(snd_ctl_t *handle, snd_rawmidi_info_t * info);
 	int (*rawmidi_prefer_subdevice)(snd_ctl_t *handle, int subdev);
 	int (*read)(snd_ctl_t *handle, snd_ctl_event_t *event);
