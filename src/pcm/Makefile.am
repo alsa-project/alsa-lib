@@ -12,7 +12,6 @@ noinst_HEADERS = atomic.h pcm_local.h pcm_plugin.h mask.h mask_inline.h \
 	         interval.h interval_inline.h plugin_ops.h
 
 alsadir = $(datadir)/alsa
-alsa_DATA = surround.conf
 
 all: libpcm.la
 
