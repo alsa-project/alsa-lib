@@ -65,7 +65,10 @@ static int snd_pcm_plug_close(snd_pcm_t *pcm)
 	int err, result = 0;
 	if (plug->ttable)
 		free(plug->ttable);
-	assert(plug->slave == plug->req_slave);
+	if (plug->slave != plug->req_slave) {
+		SNDERR("plug slaves mismatch");
+		return -EINVAL;
+	}
 	if (plug->close_slave) {
 		err = snd_pcm_close(plug->req_slave);
 		if (err < 0)
