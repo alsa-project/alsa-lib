@@ -826,7 +826,6 @@ int snd_seq_query_next_client(snd_seq_t *seq, snd_seq_client_info_t *info)
 {
 	if (!seq || !info)
 		return -EINVAL;
-	info->client = seq->client;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_QUERY_NEXT_CLIENT, info) < 0)
 		return -errno;
 	return 0;
@@ -836,7 +835,6 @@ int snd_seq_query_next_port(snd_seq_t *seq, snd_seq_port_info_t *info)
 {
 	if (!seq || !info)
 		return -EINVAL;
-	info->client = seq->client;
 	if (ioctl(seq->fd, SND_SEQ_IOCTL_QUERY_NEXT_PORT, info) < 0)
 		return -errno;
 	return 0;

@@ -1,6 +1,6 @@
 /*
  * connect / disconnect two subscriber ports
- *   ver.0.1.1
+ *   ver.0.1.2
  *
  * Copyright (C) 1999 Takashi Iwai
  * 
@@ -96,10 +96,8 @@ static void list_subscribers(snd_seq_t *seq, int client, int port)
 	memset(&subs, 0, sizeof(subs));
 	subs.client = client;
 	subs.port = port;
-	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_READ, "Read Subscribers");
-	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_WRITE, "Write Subscribers");
-	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_READ_TRACK, "Read Tracking");
-	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_WRITE_TRACK, "Write Tracking");
+	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_READ, "Connecting To");
+	list_each_subs(seq, &subs, SND_SEQ_QUERY_SUBS_WRITE, "Connected From");
 }
 
 /*
@@ -231,6 +229,7 @@ int main(int argc, char **argv)
 	parse_address(&subs.dest, argv[optind + 1]);
 	subs.sender.queue = subs.dest.queue = queue;
 	subs.exclusive = 0;
+	subs.convert_time = 0;
 	subs.realtime = 0;
 
 	if (command == UNSUBSCRIBE) {
@@ -245,7 +244,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	} else {
-		if (snd_seq_get_port_subscription(seq, &subs) < 0) {
+		if (snd_seq_get_port_subscription(seq, &subs) == 0) {
 			snd_seq_close(seq);
 			fprintf(stderr, "Connection is already subscribed\n");
 			return 1;
