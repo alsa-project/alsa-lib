@@ -23,19 +23,22 @@ AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
 dnl path for sound/asound.h
+AC_MSG_CHECKING(for directory with ALSA kernel headers)
 AC_ARG_WITH(soundbase,
   [  --with-soundbase=dir    give the base directory with sound headers (optional)],
   [soundbasedir="$withval"], [soundbasedir=""])
 if test "$soundbasedir" != "" -a -r "$soundbasedir/sound" ; then
   ALSA_CFLAGS="$ALSA_CFLAGS -I$soundbasedir"
   CFLAGS="$CFLAGS -I$soundbasedir"
+  AC_MSG_RESULT($ALSA_CFLAGS)
+else
+  AC_MSG_RESULT("not specified - using C compilator defaults")
 fi
-AC_MSG_RESULT($ALSA_CFLAGS)
 
 dnl Checks for header files.
 AC_HEADER_STDC
 AM_CONFIG_HEADER(include/config.h)
-# AC_CHECK_HEADERS(${soundbasedir}sound/asound.h)
+AC_CHECK_HEADERS(sound/asound.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
