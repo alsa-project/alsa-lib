@@ -218,8 +218,7 @@ int snd_pcm_scope_level_open(snd_pcm_t *pcm, const char *name,
 }
 
 int _snd_pcm_scope_level_open(snd_pcm_t *pcm, const char *name,
-			      snd_config_t *root, snd_config_t *conf,
-			      snd_pcm_stream_t stream, int mode)
+			      snd_config_t *root, snd_config_t *conf)
 {
 	snd_config_iterator_t i, next;
 	snd_pcm_scope_t *scope;
