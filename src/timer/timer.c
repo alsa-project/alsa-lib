@@ -148,6 +148,42 @@ int snd_timer_status(void *handle, snd_timer_status_t * status)
 	return 0;
 }
 
+int snd_timer_start(void *handle)
+{
+	snd_timer_t *tmr;
+
+	tmr = (snd_timer_t *) handle;
+	if (!tmr)
+		return -EINVAL;
+	if (ioctl(tmr->fd, SND_TIMER_IOCTL_START) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_timer_stop(void *handle)
+{
+	snd_timer_t *tmr;
+
+	tmr = (snd_timer_t *) handle;
+	if (!tmr)
+		return -EINVAL;
+	if (ioctl(tmr->fd, SND_TIMER_IOCTL_STOP) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_timer_continue(void *handle)
+{
+	snd_timer_t *tmr;
+
+	tmr = (snd_timer_t *) handle;
+	if (!tmr)
+		return -EINVAL;
+	if (ioctl(tmr->fd, SND_TIMER_IOCTL_CONTINUE) < 0)
+		return -errno;
+	return 0;
+}
+
 ssize_t snd_timer_read(void *handle, void *buffer, size_t size)
 {
 	snd_timer_t *tmr;
