@@ -1,3 +1,7 @@
+0.1.0 -> 0.1.1
+
+* added more switch functions to control interface
+
 0.0.9 -> 0.1.0
 
 * renamed soundlib.h to asoundlib.h
