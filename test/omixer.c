@@ -11,11 +11,11 @@
 static void help(void)
 {
 	printf(
-"Usage: omixer [OPTION]...\n"
+"Usage: omixer [OPTION]...\n\n"
 "-h,--help      help\n"
 "-P,--pname     playback PCM device\n"
 "-C,--cname     capture PCM device\n"
-"\n");
+);
 }
 
 int main(int argc, char *argv[])

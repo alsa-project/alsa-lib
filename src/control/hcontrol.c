@@ -184,6 +184,20 @@ int snd_hctl_poll_descriptors(snd_hctl_t *hctl, struct pollfd *pfds, unsigned in
 	return snd_ctl_poll_descriptors(hctl->ctl, pfds, space);
 }
 
+/**
+ * \brief get returned events from poll descriptors
+ * \param ctl HCTL handle
+ * \param pfds array of poll descriptors
+ * \param nfds count of poll descriptors
+ * \param revents returned events
+ * \return zero if success, otherwise a negative error code
+ */
+int snd_hctl_poll_descriptors_revents(snd_hctl_t *hctl, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	assert(hctl);
+	return snd_ctl_poll_descriptors_revents(hctl->ctl, pfds, nfds, revents);
+}
+
 static int snd_hctl_throw_event(snd_hctl_t *hctl, unsigned int mask,
 			 snd_hctl_elem_t *elem)
 {

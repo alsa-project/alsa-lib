@@ -135,3 +135,9 @@ ALSA_0.9.7 {
     sndo_*;
     alsa_lisp_*;
 } ALSA_0.9.6;
+
+ALSA_0.9.8 {
+  global:
+
+    snd_hctl_poll_descriptors_revents;
+} ALSA_0.9.7;

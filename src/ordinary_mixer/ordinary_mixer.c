@@ -206,8 +206,27 @@ int sndo_mixer_poll_descriptors_count(sndo_mixer_t *mixer)
  */     
 int sndo_mixer_poll_descriptors(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int space)
 {
-	//return snd_mixer_poll_descriptors(mixer->mixer, pfds, space);
-	return -ENODEV;
+	int err, idx, res;
+
+	if (mixer->hctl_count > 0) {
+		for (idx = res = 0; idx < mixer->hctl_count && space > 0; idx++) {
+			err = snd_hctl_poll_descriptors(mixer->hctl[idx], pfds, space);
+			if (err < 0)
+				return err;
+			res += err;
+			space -= err;
+		}
+		return res;
+	} else {
+		struct alisp_seq_iterator *result;
+		long val;
+		err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_poll_descriptors", "%i", space);
+		if (err < 0)
+			return err;
+		assert(0);	/* FIXME: pass pfds to application */
+		err = alsa_lisp_seq_integer(result, &val);
+		return err < 0 ? err : val;
+	}
 }
 
 /**
@@ -220,8 +239,120 @@ int sndo_mixer_poll_descriptors(sndo_mixer_t *mixer, struct pollfd *pfds, unsign
  */ 
 int sndo_mixer_poll_descriptors_revents(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
-	//return snd_mixer_poll_descriptors_revents(mixer->mixer, pfds, nfds, revents);
-	return -ENODEV;
+	int err, idx, count, res;
+
+	if (mixer->hctl_count > 0) {
+		for (idx = res = 0; idx < mixer->hctl_count && nfds > 0; idx++) {
+			err = snd_hctl_poll_descriptors_count(mixer->hctl[idx]);
+			if (err < 0)
+				return err;
+			count = err;
+			if (nfds < (unsigned int)err)
+				return -EINVAL;
+			err = snd_hctl_poll_descriptors_revents(mixer->hctl[idx], pfds, count, revents);
+			if (err < 0)
+				return err;
+			if (err != count)
+				return -EINVAL;
+			pfds += count;
+			nfds -= err;
+			revents += count;
+			res += count;
+		}
+		return res;
+	} else {
+		struct alisp_seq_iterator *result;
+		long val, tmp;
+		
+		assert(0);	/* FIXME: pass pfds to alisp too */
+		err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_poll_descriptors_revents", "%i", nfds);
+		if (err < 0)
+			return err;
+		err = alsa_lisp_seq_integer(result, &val);
+		if (err >= 0 && alsa_lisp_seq_count(result) > 1) {
+			alsa_lisp_seq_next(&result);
+			err = alsa_lisp_seq_integer(result, &tmp);
+			*revents = tmp;
+		} else {
+			*revents = 0;
+		}
+		return err < 0 ? err : val;
+	}
+}
+
+#define IOLINES 6
+
+static const char *name_table1[] = {
+	"Master",
+	"PCM",
+	"Line",
+	"Mic"
+	"CD",
+	"AUX"
+};
+
+#define SPEAKERS 14
+
+static const char *name_table2[] = {
+	"Front Left",
+	"Front Center Left",
+	"Front Center",
+	"Front Center Right",
+	"Front Right",
+	"Front Side Left",
+	"Front Side Right",
+	"Rear Side Left",
+	"Rear Side Right",
+	"Rear Left",
+	"Rear Center",
+	"Rear Right",
+	"LFE (Subwoofer)",
+	"Overhead"
+};
+
+#define CSOURCES 5
+
+static const char *name_table3[] = {
+	"Mic",
+	"Line",
+	"CD",
+	"AUX",
+	"Mix",
+};
+
+static int compose_string(char **result, const char *s1, const char *s2, const char *s3, const char *s4)
+{
+	int len = strlen(s1) + strlen(s2) + strlen(s3) + strlen(s4);
+	*result = malloc(len + 1);
+	if (*result == NULL)
+		return -ENOMEM;
+	strcpy(*result, s1);
+	strcat(*result, s2);
+	strcat(*result, s3);
+	strcat(*result, s4);
+	return 0;
+}
+
+/**
+ * \brief get ordinary mixer io control value
+ * \param mixer ordinary mixer handle
+ * \param type io type
+ * \param val returned value
+ * \return zero if success, otherwise a negative error code
+ */ 
+int sndo_mixer_io_get_name(enum sndo_mixer_io_type type, char **name)
+{
+	if (type < IOLINES * 0x40) {
+		int tmp = type / 0x40;
+		type %= 0x40;
+		if (type < SPEAKERS)
+			return compose_string(name, name_table1[tmp], " ", name_table2[type], " Volume");
+	} else if (type >= SNDO_MIO_CGAIN_FL && type < SNDO_MIO_CGAIN_FL + SPEAKERS) {
+		return compose_string(name, "Capture Gain ", name_table2[type - SNDO_MIO_CGAIN_FL], "", "");
+	} else if (type >= SNDO_MIO_CSOURCE_MIC && type < SNDO_MIO_CSOURCE_MIC + CSOURCES) {
+		return compose_string(name, "Capture Source ", name_table3[type - SNDO_MIO_CSOURCE_MIC], "", "");
+	}
+	return -ENOENT;
 }
 
 /**
@@ -233,7 +364,18 @@ int sndo_mixer_poll_descriptors_revents(sndo_mixer_t *mixer, struct pollfd *pfds
  */ 
 int sndo_mixer_io_get(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val)
 {
-	return -ENODEV;
+	struct alisp_seq_iterator *result;
+	long val1;
+	int err;
+
+	err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_io_set", "%i", type);
+	if (err < 0)
+		return err;
+	err = alsa_lisp_seq_integer(result, &val1);
+	if (err < 0)
+		return err;
+	*val = val1;
+	return 0;
 }
 
 /**
@@ -243,9 +385,118 @@ int sndo_mixer_io_get(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *va
  * \param val desired value
  * \return zero if success, otherwise a negative error code
  */ 
-int sndo_mixer_io_set(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int val)
+int sndo_mixer_io_set(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val)
 {
-	return -ENODEV;
+	struct alisp_seq_iterator *result;
+	long val1;
+	int err;
+
+	err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_io_set", "%i%i", type, *val);
+	if (err < 0)
+		return err;
+	err = alsa_lisp_seq_integer(result, &val1);
+	if (err < 0)
+		return err;
+	*val = val1;
+	return 0;
+}
+
+/**
+ * \brief try to set ordinary mixer io control value
+ * \param mixer ordinary mixer handle
+ * \param type io type
+ * \param val desired value
+ * \return zero if success, otherwise a negative error code
+ *
+ * This function does not update the value.
+ * It only returns the real value which will be set.
+ */ 
+int sndo_mixer_io_try_set(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val)
+{
+	struct alisp_seq_iterator *result;
+	long val1;
+	int err;
+
+	err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_io_try_set", "%i%i", type, *val);
+	if (err < 0)
+		return err;
+	err = alsa_lisp_seq_integer(result, &val1);
+	if (err < 0)
+		return err;
+	*val = val1;
+	return 0;
+}
+
+/**
+ * \brief get ordinary mixer io control value in dB (decibel units)
+ * \param mixer ordinary mixer handle
+ * \param type io type
+ * \param val returned value in dB
+ * \return zero if success, otherwise a negative error code
+ */ 
+int sndo_mixer_io_get_dB(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val)
+{
+	struct alisp_seq_iterator *result;
+	long val1;
+	int err;
+
+	err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_io_set_dB", "%i", type);
+	if (err < 0)
+		return err;
+	err = alsa_lisp_seq_integer(result, &val1);
+	if (err < 0)
+		return err;
+	*val = val1;
+	return 0;
+}
+
+/**
+ * \brief set ordinary mixer io control value in dB (decibel units)
+ * \param mixer ordinary mixer handle
+ * \param type io type
+ * \param val desired value in dB
+ * \return zero if success, otherwise a negative error code
+ */ 
+int sndo_mixer_io_set_dB(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val)
+{
+	struct alisp_seq_iterator *result;
+	long val1;
+	int err;
+
+	err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_io_set", "%i%i", type, *val);
+	if (err < 0)
+		return err;
+	err = alsa_lisp_seq_integer(result, &val1);
+	if (err < 0)
+		return err;
+	*val = val1;
+	return 0;
+}
+
+/**
+ * \brief try to set ordinary mixer io control value in dB (decibel units)
+ * \param mixer ordinary mixer handle
+ * \param type io type
+ * \param val desired and returned value in dB
+ * \return zero if success, otherwise a negative error code
+ *
+ * This function does not update the value.
+ * It only returns the real value which will be set.
+ */ 
+int sndo_mixer_io_try_set_dB(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val)
+{
+	struct alisp_seq_iterator *result;
+	long val1;
+	int err;
+
+	err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_io_try_set", "%i%i", type, *val);
+	if (err < 0)
+		return err;
+	err = alsa_lisp_seq_integer(result, &val1);
+	if (err < 0)
+		return err;
+	*val = val1;
+	return 0;
 }
 
 /**
@@ -257,5 +508,25 @@ int sndo_mixer_io_set(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int val
  */ 
 int sndo_mixer_io_change(sndo_mixer_t *mixer, enum sndo_mixer_io_type *changed, int changed_array_size)
 {
-	return -ENODEV;
+	struct alisp_seq_iterator *result;
+	long val1;
+	int err;
+
+	err = alsa_lisp_function(mixer->alisp, &result, "sndo_mixer_io_change", "%i", changed_array_size);
+	if (err < 0)
+		return err;
+	err = alsa_lisp_seq_integer(result, &val1);
+	if (err < 0)
+		return err;
+	if (val1 < 0)
+		return val1;
+	while (changed_array_size-- > 0) {
+		*changed = val1;
+		if (!alsa_lisp_seq_next(&result))
+			break;
+		err = alsa_lisp_seq_integer(result, &val1);
+		if (err < 0)
+			return err;
+	}
+	return 0;
 }

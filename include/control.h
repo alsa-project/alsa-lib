@@ -455,6 +455,7 @@ int snd_hctl_close(snd_hctl_t *hctl);
 int snd_hctl_nonblock(snd_hctl_t *hctl, int nonblock);
 int snd_hctl_poll_descriptors_count(snd_hctl_t *hctl);
 int snd_hctl_poll_descriptors(snd_hctl_t *hctl, struct pollfd *pfds, unsigned int space);
+int snd_hctl_poll_descriptors_revents(snd_hctl_t *ctl, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 unsigned int snd_hctl_get_count(snd_hctl_t *hctl);
 int snd_hctl_set_compare(snd_hctl_t *hctl, snd_hctl_compare_t hsort);
 snd_hctl_elem_t *snd_hctl_first_elem(snd_hctl_t *hctl);

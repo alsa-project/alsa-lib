@@ -188,11 +188,6 @@ static struct alisp_object * add_cons2(struct alisp_instance * instance, struct 
 	return lexpr;
 }
 
-static inline struct alisp_object * new_result(struct alisp_instance * instance, int err)
-{
-	return new_integer(instance, err);
-}
-
 static struct alisp_object * new_result1(struct alisp_instance * instance, int err, const char *ptr_id, void *ptr)
 {
 	struct alisp_object * lexpr, * p1;
@@ -254,6 +249,7 @@ static struct alisp_object * new_result3(struct alisp_instance * instance, int e
 typedef int (*snd_int_pp_strp_int_t)(void **rctl, const char *name, int mode);
 typedef int (*snd_int_pp_p_t)(void **rctl, void *handle);
 typedef int (*snd_int_p_t)(void *rctl);
+typedef char * (*snd_str_p_t)(void *rctl);
 typedef int (*snd_int_intp_t)(int *val);
 typedef int (*snd_int_str_t)(const char *str);
 typedef int (*snd_int_int_strp_t)(int val, char **str);
@@ -328,7 +324,18 @@ static struct alisp_object * FA_int_p(struct alisp_instance * instance, struct a
 	handle = (void *)get_ptr(args, item->prefix);
 	if (handle == NULL)
 		return &alsa_lisp_nil;
-	return new_result(instance, ((snd_int_p_t)item->xfunc)(handle));
+	return new_integer(instance, ((snd_int_p_t)item->xfunc)(handle));
+}
+
+static struct alisp_object * FA_str_p(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
+{
+	void *handle;
+
+	args = eval(instance, car(args));
+	handle = (void *)get_ptr(args, item->prefix);
+	if (handle == NULL)
+		return &alsa_lisp_nil;
+	return new_string(instance, ((snd_str_p_t)item->xfunc)(handle));
 }
 
 static struct alisp_object * FA_int_intp(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
@@ -351,7 +358,7 @@ static struct alisp_object * FA_int_str(struct alisp_instance * instance, struct
 	if (args->type != ALISP_OBJ_STRING && args->type != ALISP_OBJ_IDENTIFIER)
 		return &alsa_lisp_nil;
 	err = ((snd_int_str_t)item->xfunc)(args->value.s);
-	return new_result(instance, err);
+	return new_integer(instance, err);
 }
 
 static struct alisp_object * FA_int_int_strp(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
@@ -606,7 +613,7 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 	snd_ctl_elem_value_alloca(&value);
 	err = snd_hctl_elem_info(handle, info);
 	if (err < 0)
-		return new_result(instance, err);
+		return new_integer(instance, err);
 	type = snd_ctl_elem_info_get_type(info);
 	count = snd_ctl_elem_info_get_count(info);
 	if (type == SND_CTL_ELEM_TYPE_IEC958) {
@@ -641,7 +648,7 @@ static struct alisp_object * FA_hctl_elem_write(struct alisp_instance * instance
 		p1 = cdr(p1);
 	} while (p1 != &alsa_lisp_nil);
 	err = snd_hctl_elem_write(handle, value);
-	return new_result(instance, err);
+	return new_integer(instance, err);
 }
 
 static struct alisp_object * FA_pcm_info(struct alisp_instance * instance, struct acall_table * item, struct alisp_object * args)
@@ -701,6 +708,7 @@ static struct acall_table acall_table[] = {
 	{ "hctl_open", &FA_int_pp_strp_int, (void *)&snd_hctl_open, "hctl" },
 	{ "hctl_open_ctl", &FA_int_pp_p, (void *)&snd_hctl_open_ctl, "hctl" },
 	{ "pcm_info", &FA_pcm_info, NULL, "pcm" },
+	{ "pcm_name", &FA_str_p, (void *)&snd_pcm_name, "pcm" },
 };
 
 static int acall_compar(const void *p1, const void *p2)

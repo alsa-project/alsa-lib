@@ -29,6 +29,25 @@
 
 #include <alsa/asoundlib.h>
 
+/*
+ * Abbreviations:
+ *
+ * FLVOL    - Front Left Volume (0-1000)
+ * FCLVOL   - Front Center Left Volume (0-1000)
+ * FCVOL    - Front Center Volume (0-1000)
+ * FCRVOL   - Front Center Right Volume (0-1000)
+ * FRVOL    - Front Right Volume (0-1000)
+ * FSLVOL   - Front Side Left Volume (0-1000)
+ * FSRVOL   - Front Side Right Volume (0-1000)
+ * RSLVOL   - Rear Side Left Volume (0-1000)
+ * RSRVOL   - Rear Side Right Volume (0-1000)
+ * RLVOL    - Rear Left Volume (0-1000)
+ * RCVOL    - Rear Center Volume (0-1000)
+ * RRVOL    - Rear Right Volume (0-1000)
+ * LFEVOL   - Low Frequency Effects (Subwoofer) Volume (0-1000)
+ * OVRVOL   - Overhead Volume (0-1000)
+ */
+
 /** Ordinary Mixer I/O type */
 enum sndo_mixer_io_type {
 
@@ -36,158 +55,131 @@ enum sndo_mixer_io_type {
 	 *  playback section
 	 */
 
-	/** Master volume - left (0-1000) */
-	SNDO_MIO_MASTER_LVOL = 0,
-	/** Master volume - right (0-1000) */
-	SNDO_MIO_MASTER_RVOL,
-	/** Master volume - left surround (0-1000) */
-	SNDO_MIO_MASTER_LSVOL = 0,
-	/** Master volume - right surround (0-1000) */
-	SNDO_MIO_MASTER_RSVOL,
-	/** Master volume - center (0-1000) */
-	SNDO_MIO_MASTER_CVOL = 0,
-	/** Master volume - LFE (0-1000) */
+	/* Master */
+	SNDO_MIO_MASTER_FLVOL = 0 * 0x40,
+	SNDO_MIO_MASTER_FCLVOL,
+	SNDO_MIO_MASTER_FCVOL,
+	SNDO_MIO_MASTER_FCRVOL,
+	SNDO_MIO_MASTER_FRVOL,
+	SNDO_MIO_MASTER_FSLVOL,
+	SNDO_MIO_MASTER_FSRVOL,
+	SNDO_MIO_MASTER_RSLVOL,
+	SNDO_MIO_MASTER_RSRVOL,
+	SNDO_MIO_MASTER_RLVOL,
+	SNDO_MIO_MASTER_RCVOL,
+	SNDO_MIO_MASTER_RRVOL,
 	SNDO_MIO_MASTER_LFEVOL,
-	/** Master volume - left mute (0 = off, 1 = on) */
-	SNDO_MIO_MASTER_LMUTE,
-	/** Master volume - right mute (0 = off, 1 = on) */
-	SNDO_MIO_MASTER_RMUTE,
-	/** Master volume - left surround mute (0 = off, 1 = on) */
-	SNDO_MIO_MASTER_LSMUTE,
-	/** Master volume - right surround mute (0 = off, 1 = on) */
-	SNDO_MIO_MASTER_RSMUTE,
-	/** Master volume - center mute (0 = off, 1 = on) */
-	SNDO_MIO_MASTER_CMUTE,
-	/** Master volume - LFE mute (0 = off, 1 = on) */
-	SNDO_MIO_MASTER_LFEMUTE,
+	SNDO_MIO_MASTER_OVRVOL,
 
-	/** PCM volume - left (0-1000) */
-	SNDO_MIO_PCM_LVOL = 0,
-	/** PCM volume - right (0-1000) */
-	SNDO_MIO_PCM_RVOL,
-	/** PCM volume - left surround (0-1000) */
-	SNDO_MIO_PCM_LSVOL = 0,
-	/** PCM volume - right surround (0-1000) */
-	SNDO_MIO_PCM_RSVOL,
-	/** PCM volume - center (0-1000) */
-	SNDO_MIO_PCM_CVOL = 0,
-	/** PCM volume - LFE (0-1000) */
+	/* PCM */
+	SNDO_MIO_PCM_FLVOL = 1 * 0x40,
+	SNDO_MIO_PCM_FCLVOL,
+	SNDO_MIO_PCM_FCVOL,
+	SNDO_MIO_PCM_FCRVOL,
+	SNDO_MIO_PCM_FRVOL,
+	SNDO_MIO_PCM_FSLVOL,
+	SNDO_MIO_PCM_FSRVOL,
+	SNDO_MIO_PCM_RSLVOL,
+	SNDO_MIO_PCM_RSRVOL,
+	SNDO_MIO_PCM_RLVOL,
+	SNDO_MIO_PCM_RCVOL,
+	SNDO_MIO_PCM_RRVOL,
 	SNDO_MIO_PCM_LFEVOL,
-	/** PCM volume - left mute (0 = off, 1 = on) */
-	SNDO_MIO_PCM_LMUTE,
-	/** PCM volume - right mute (0 = off, 1 = on) */
-	SNDO_MIO_PCM_RMUTE,
-	/** PCM volume - left surround mute (0 = off, 1 = on) */
-	SNDO_MIO_PCM_LSMUTE,
-	/** PCM volume - right surround mute (0 = off, 1 = on) */
-	SNDO_MIO_PCM_RSMUTE,
-	/** PCM volume - center mute (0 = off, 1 = on) */
-	SNDO_MIO_PCM_CMUTE,
-	/** PCM volume - LFE mute (0 = off, 1 = on) */
-	SNDO_MIO_PCM_LFEMUTE,
+	SNDO_MIO_PCM_OVRVOL,
 
-	/** LINE volume - left (0-1000) */
-	SNDO_MIO_LINE_LVOL = 0,
-	/** LINE volume - right (0-1000) */
-	SNDO_MIO_LINE_RVOL,
-	/** LINE volume - left surround (0-1000) */
-	SNDO_MIO_LINE_LSVOL = 0,
-	/** LINE volume - right surround (0-1000) */
-	SNDO_MIO_LINE_RSVOL,
-	/** LINE volume - center (0-1000) */
-	SNDO_MIO_LINE_CVOL = 0,
-	/** LINE volume - LFE (0-1000) */
+	/* LINE */
+	SNDO_MIO_LINE_FLVOL = 2 * 0x40,
+	SNDO_MIO_LINE_FCLVOL,
+	SNDO_MIO_LINE_FCVOL,
+	SNDO_MIO_LINE_FCRVOL,
+	SNDO_MIO_LINE_FRVOL,
+	SNDO_MIO_LINE_FSLVOL,
+	SNDO_MIO_LINE_FSRVOL,
+	SNDO_MIO_LINE_RSLVOL,
+	SNDO_MIO_LINE_RSRVOL,
+	SNDO_MIO_LINE_RLVOL,
+	SNDO_MIO_LINE_RCVOL,
+	SNDO_MIO_LINE_RRVOL,
 	SNDO_MIO_LINE_LFEVOL,
-	/** LINE volume - left mute (0 = off, 1 = on) */
-	SNDO_MIO_LINE_LMUTE,
-	/** LINE volume - right mute (0 = off, 1 = on) */
-	SNDO_MIO_LINE_RMUTE,
-	/** LINE volume - left surround mute (0 = off, 1 = on) */
-	SNDO_MIO_LINE_LSMUTE,
-	/** LINE volume - right surround mute (0 = off, 1 = on) */
-	SNDO_MIO_LINE_RSMUTE,
-	/** LINE volume - center mute (0 = off, 1 = on) */
-	SNDO_MIO_LINE_CMUTE,
-	/** LINE volume - LFE mute (0 = off, 1 = on) */
-	SNDO_MIO_LINE_LFEMUTE,
+	SNDO_MIO_LINE_OVRVOL,
 
-	/** MIC volume - left (0-1000) */
-	SNDO_MIO_MIC_LVOL = 0,
-	/** MIC volume - right (0-1000) */
-	SNDO_MIO_MIC_RVOL,
-	/** MIC volume - left surround (0-1000) */
-	SNDO_MIO_MIC_LSVOL = 0,
-	/** MIC volume - right surround (0-1000) */
-	SNDO_MIO_MIC_RSVOL,
-	/** MIC volume - center (0-1000) */
-	SNDO_MIO_MIC_CVOL = 0,
-	/** MIC volume - LFE (0-1000) */
+	/* MIC */
+	SNDO_MIO_MIC_FLVOL = 3 * 0x40,
+	SNDO_MIO_MIC_FCLVOL,
+	SNDO_MIO_MIC_FCVOL,
+	SNDO_MIO_MIC_FCRVOL,
+	SNDO_MIO_MIC_FRVOL,
+	SNDO_MIO_MIC_FSLVOL,
+	SNDO_MIO_MIC_FSRVOL,
+	SNDO_MIO_MIC_RSLVOL,
+	SNDO_MIO_MIC_RSRVOL,
+	SNDO_MIO_MIC_RLVOL,
+	SNDO_MIO_MIC_RCVOL,
+	SNDO_MIO_MIC_RRVOL,
 	SNDO_MIO_MIC_LFEVOL,
-	/** MIC volume - left mute (0 = off, 1 = on) */
-	SNDO_MIO_MIC_LMUTE,
-	/** MIC volume - right mute (0 = off, 1 = on) */
-	SNDO_MIO_MIC_RMUTE,
-	/** MIC volume - left surround mute (0 = off, 1 = on) */
-	SNDO_MIO_MIC_LSMUTE,
-	/** MIC volume - right surround mute (0 = off, 1 = on) */
-	SNDO_MIO_MIC_RSMUTE,
-	/** MIC volume - center mute (0 = off, 1 = on) */
-	SNDO_MIO_MIC_CMUTE,
-	/** MIC volume - LFE mute (0 = off, 1 = on) */
-	SNDO_MIO_MIC_LFEMUTE,
+	SNDO_MIO_MIC_OVRVOL,
 
-	/** CD volume - left (0-1000) */
-	SNDO_MIO_CD_LVOL = 0,
-	/** CD volume - right (0-1000) */
-	SNDO_MIO_CD_RVOL,
-	/** CD volume - left surround (0-1000) */
-	SNDO_MIO_CD_LSVOL = 0,
-	/** CD volume - right surround (0-1000) */
-	SNDO_MIO_CD_RSVOL,
-	/** CD volume - center (0-1000) */
-	SNDO_MIO_CD_CVOL = 0,
-	/** CD volume - LFE (0-1000) */
+	/* CD */
+	SNDO_MIO_CD_FLVOL = 4 * 0x40,
+	SNDO_MIO_CD_FCLVOL,
+	SNDO_MIO_CD_FCVOL,
+	SNDO_MIO_CD_FCRVOL,
+	SNDO_MIO_CD_FRVOL,
+	SNDO_MIO_CD_FSLVOL,
+	SNDO_MIO_CD_FSRVOL,
+	SNDO_MIO_CD_RSLVOL,
+	SNDO_MIO_CD_RSRVOL,
+	SNDO_MIO_CD_RLVOL,
+	SNDO_MIO_CD_RCVOL,
+	SNDO_MIO_CD_RRVOL,
 	SNDO_MIO_CD_LFEVOL,
-	/** CD volume - left mute (0 = off, 1 = on) */
-	SNDO_MIO_CD_LMUTE,
-	/** CD volume - right mute (0 = off, 1 = on) */
-	SNDO_MIO_CD_RMUTE,
-	/** CD volume - left surround mute (0 = off, 1 = on) */
-	SNDO_MIO_CD_LSMUTE,
-	/** CD volume - right surround mute (0 = off, 1 = on) */
-	SNDO_MIO_CD_RSMUTE,
-	/** CD volume - center mute (0 = off, 1 = on) */
-	SNDO_MIO_CD_CMUTE,
-	/** CD volume - LFE mute (0 = off, 1 = on) */
-	SNDO_MIO_CD_LFEMUTE,
+	SNDO_MIO_CD_OVRVOL,
+
+	/* AUX */
+	SNDO_MIO_AUX_FLVOL = 5 * 0x40,
+	SNDO_MIO_AUX_FCLVOL,
+	SNDO_MIO_AUX_FCVOL,
+	SNDO_MIO_AUX_FCRVOL,
+	SNDO_MIO_AUX_FRVOL,
+	SNDO_MIO_AUX_FSLVOL,
+	SNDO_MIO_AUX_FSRVOL,
+	SNDO_MIO_AUX_RSLVOL,
+	SNDO_MIO_AUX_RSRVOL,
+	SNDO_MIO_AUX_RLVOL,
+	SNDO_MIO_AUX_RCVOL,
+	SNDO_MIO_AUX_RRVOL,
+	SNDO_MIO_AUX_LFEVOL,
+	SNDO_MIO_AUX_OVRVOL,
 
 	/*
 	 *  capture section
 	 */
 
-	/** capture gain - left (0-1000) */
-	SNDO_MIO_CGAIN_LVOL = 0x1000,
-	/** capture gain - right (0-1000) */
-	SNDO_MIO_CGAIN_RVOL,
-	/** capture gain - left surround (0-1000) */
-	SNDO_MIO_CGAIN_LSVOL,
-	/** capture gain - right surround (0-1000) */
-	SNDO_MIO_CGAIN_RSVOL,
-	/** capture gain - center (0-1000) */
-	SNDO_MIO_CGAIN_CVOL,
-	/** capture gain - LFE (0-1000) */
-	SNDO_MIO_CGAIN_LFEVOL,
+	/* capture gain */
+	SNDO_MIO_CGAIN_FL = 0x8000,
+	SNDO_MIO_CGAIN_FCL,
+	SNDO_MIO_CGAIN_FC,
+	SNDO_MIO_CGAIN_FCR,
+	SNDO_MIO_CGAIN_FR,
+	SNDO_MIO_CGAIN_FSL,
+	SNDO_MIO_CGAIN_FSR,
+	SNDO_MIO_CGAIN_RSL,
+	SNDO_MIO_CGAIN_RSR,
+	SNDO_MIO_CGAIN_RL,
+	SNDO_MIO_CGAIN_RC,
+	SNDO_MIO_CGAIN_RR,
+	SNDO_MIO_CGAIN_LFE,
+	SNDO_MIO_CGAIN_OVR,
 
-	/** capture source - MIC exclusive switch (0 = off, 1 = on) */
-	SNDO_MIO_CSOURCE_MIC = 0x1100,
-	/** capture source - LINE exclusive switch (0 = off, 1 = on) */
+	/* capture source (0 = off, 1 = on) */
+	SNDO_MIO_CSOURCE_MIC = 0x8100,
 	SNDO_MIO_CSOURCE_LINE,
-	/** capture source - CD exclusive switch (0 = off, 1 = on) */
 	SNDO_MIO_CSOURCE_CD,
-	/** capture source - AUX exclusive switch (0 = off, 1 = on) */
 	SNDO_MIO_CSOURCE_AUX,
-	/** capture source - MIX exclusive switch (0 = off, 1 = on) */
-	SNDO_MIO_CSOURCE_MIX
+	SNDO_MIO_CSOURCE_MIX,
+
+	/* misc */
+	SNDO_MIO_STEREO = 0x8200,	/* (0 = off, 1 = on) standard stereo source, might be converted to use all outputs */
 };
 
 typedef struct sndo_mixer sndo_mixer_t;
@@ -208,8 +200,13 @@ int sndo_mixer_close(sndo_mixer_t *mixer);
 int sndo_mixer_poll_descriptors_count(sndo_mixer_t *mixer);
 int sndo_mixer_poll_descriptors(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int space);
 int sndo_mixer_poll_descriptors_revents(sndo_mixer_t *mixer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
+int sndo_mixer_io_get_name(enum sndo_mixer_io_type type, char **name);
 int sndo_mixer_io_get(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val);
-int sndo_mixer_io_set(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int val);
+int sndo_mixer_io_set(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val);
+int sndo_mixer_io_try_set(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val);
+int sndo_mixer_io_get_dB(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val);
+int sndo_mixer_io_set_dB(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val);
+int sndo_mixer_io_try_set_dB(sndo_mixer_t *mixer, enum sndo_mixer_io_type type, int *val);
 int sndo_mixer_io_change(sndo_mixer_t *mixer, enum sndo_mixer_io_type *changed, int changed_array_size);
 
 /** \} */
