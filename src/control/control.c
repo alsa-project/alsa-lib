@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
+#define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
 
 struct snd_ctl {
 	int card;
@@ -139,6 +139,20 @@ int snd_ctl_switch_write(snd_ctl_t *handle, snd_switch_t *sw)
 	if (!ctl || !sw || sw->name[0] == '\0')
 		return -EINVAL;
 	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCH_WRITE, sw) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_ctl_hwdep_info(snd_ctl_t *handle, int dev, snd_hwdep_info_t * info)
+{
+	snd_ctl_t *ctl;
+
+	ctl = handle;
+	if (!ctl || !info || dev < 0)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_HWDEP_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_HWDEP_INFO, info) < 0)
 		return -errno;
 	return 0;
 }

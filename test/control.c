@@ -47,6 +47,8 @@ int main(void)
 			printf("  flags - 0x%x\n", pcminfo.flags);
 			printf("  id - '%s'\n", pcminfo.id);
 			printf("  name - '%s'\n", pcminfo.name);
+			printf("  playback - %i\n", pcminfo.playback);
+			printf("  capture - %i\n", pcminfo.capture);
 		}
 		for (idx1 = 0; idx1 < info.mixerdevs; idx1++) {
 			printf("MIXER info, device #%i:\n", idx1);

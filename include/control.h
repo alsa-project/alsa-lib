@@ -38,6 +38,7 @@ int snd_ctl_hw_info(snd_ctl_t *handle, struct snd_ctl_hw_info *info);
 int snd_ctl_switch_list(snd_ctl_t *handle, snd_switch_list_t * list);
 int snd_ctl_switch_read(snd_ctl_t *handle, snd_switch_t * sw);
 int snd_ctl_switch_write(snd_ctl_t *handle, snd_switch_t * sw);
+int snd_ctl_hwdep_info(snd_ctl_t *handle, int dev, snd_hwdep_info_t * info);
 int snd_ctl_pcm_info(snd_ctl_t *handle, int dev, snd_pcm_info_t * info);
 int snd_ctl_pcm_playback_info(snd_ctl_t *handle, int dev, snd_pcm_playback_info_t * info);
 int snd_ctl_pcm_capture_info(snd_ctl_t *handle, int dev, snd_pcm_capture_info_t * info);
