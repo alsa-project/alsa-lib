@@ -104,8 +104,8 @@ implementation can be found in the \ref alsa_pcm_rw section.
 The poll or select functions (see 'man 2 poll' or 'man 2 select' for further
 details) allows to receive requests/events from the device while
 an application is waiting on events from other sources (like keyboard, screen,
-network etc.), too. The select function is old and deprecated in modern
-applications, so the ALSA library does not support it. The implemented
+network etc.), too. \ref snd_pcm_poll_descriptors can be used to get a file
+descriptor to poll or select on. The implemented
 transfer routines can be found in the \ref alsa_transfers section.
 
 \subsection pcm_transfer_async Asynchronous notification
@@ -5157,6 +5157,15 @@ int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params, unsigned 
  * \param params Software configuration container
  * \param val Minimum avail frames to consider PCM ready
  * \return 0 otherwise a negative error code
+ *
+ * Note: This is similar to setting an OSS wakeup point.  The valid
+ * values for 'val' are determined by the specific hardware.  Most PC
+ * sound cards can only accept power of 2 frame counts (i.e. 512,
+ * 1024, 2048).  You cannot use this as a high resolution timer - it
+ * is limited to how often the sound card hardware raises an
+ * interrupt. Note that you can greatly improve the reponses using
+ * \ref snd_pcm_sw_params_set_sleep_min where another timing source
+ * is used.
  */
 #ifndef DOXYGEN
 int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
