@@ -2000,6 +2000,7 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
  * \param pcm PCM handle
  * \param timeout maximum time in milliseconds to wait
  * \return a positive value on success otherwise a negative error code
+ *         (-EPIPE for the xrun and -ESTRPIPE for the suspended status) 
  * \retval 0 timeout occurred
  * \retval 1 PCM stream is ready for I/O
  */
@@ -2016,8 +2017,17 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 	err = snd_pcm_poll_descriptors_revents(pcm, &pfd, 1, &revents);
 	if (err < 0)
 		return err;
-	if (revents & (POLLERR | POLLNVAL))
-		return -EIO;
+	if (revents & (POLLERR | POLLNVAL)) {
+		/* check more precisely */
+		switch (snd_pcm_state(pcm)) {
+		case SND_PCM_STATE_XRUN:
+			return -EPIPE;
+		case SND_PCM_STATE_SUSPENDED:
+			return -ESTRPIPE;
+		default:
+			return -EIO;
+		}
+	}
 	return err > 0 ? 1 : 0;
 }
 
@@ -6110,15 +6120,8 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 			}
 
 			err = snd_pcm_wait(pcm, -1);
-			state = snd_pcm_state(pcm);
-			if (err < 0) {
-				/* check more precisely */
-				if (state == SND_PCM_STATE_XRUN)
-					err = -EPIPE;
-				else if (state == SND_PCM_STATE_SUSPENDED)
-					err = -ESTRPIPE;
+			if (err < 0)
 				break;
-			}
 			goto _again;
 			
 		}
@@ -6187,15 +6190,8 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			}
 
 			err = snd_pcm_wait(pcm, -1);
-			state = snd_pcm_state(pcm);
-			if (err < 0) {
-				/* check more precisely */
-				if (state == SND_PCM_STATE_XRUN)
-					err = -EPIPE;
-				else if (state == SND_PCM_STATE_SUSPENDED)
-					err = -ESTRPIPE;
+			if (err < 0)
 				break;
-			}
 			goto _again;
 			
 		}
