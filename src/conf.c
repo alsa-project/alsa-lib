@@ -420,6 +420,7 @@ beginning:</P>
 #include <limits.h>
 #include <sys/stat.h>
 #include <pthread.h>
+#include <locale.h>
 #include "local.h"
 
 #ifndef DOC_HIDDEN
@@ -497,12 +498,19 @@ static int safe_strtod(const char *str, double *val)
 {
 	char *end;
 	double v;
+	char *saved_locale;
+	int err;
+
 	if (!*str)
 		return -EINVAL;
+	saved_locale = setlocale(LC_NUMERIC, NULL);
+	setlocale(LC_NUMERIC, "C");
 	errno = 0;
 	v = strtod(str, &end);
-	if (errno)
-		return -errno;
+	err = -errno;
+	setlocale(LC_NUMERIC, saved_locale);
+	if (err)
+		return err;
 	if (*end)
 		return -EINVAL;
 	*val = v;
