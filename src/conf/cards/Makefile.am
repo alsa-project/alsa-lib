@@ -24,6 +24,7 @@ cfg_files = aliases.conf \
 	ICE1712.conf \
 	ICE1724.conf \
 	ICH.conf \
+	ICH4.conf \
 	ICH-MODEM.conf \
 	NFORCE.conf \
 	RME9636.conf \
