@@ -96,11 +96,11 @@ int snd_config_string_replace(const char *src, char idchr,
 			      snd_config_string_replace_callback_t *callback,
 			      void *private_data,
 			      char **dst);
-int snd_config_redirect_load(snd_config_t *root,
-			     snd_config_t *config,
-			     char **name,
-			     snd_config_t **dst_config,
-			     int *dst_dynamic);
+int snd_config_refer_load(snd_config_t *root,
+			  snd_config_t *config,
+			  char **name,
+			  snd_config_t **dst_config,
+			  int *dst_dynamic);
 
 #ifdef __cplusplus
 }

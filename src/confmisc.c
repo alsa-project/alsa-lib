@@ -215,11 +215,11 @@ int snd_config_string_replace(const char *src, char idchr,
  * \param dst_config new configuration block
  * \param dst_dynamic new configuration block is dynamically allocated
  */
-int snd_config_redirect_load(snd_config_t *root,
-			     snd_config_t *config,
-			     char **name,
-			     snd_config_t **dst_config,
-			     int *dst_dynamic)
+int snd_config_refer_load(snd_config_t *root,
+			  snd_config_t *config,
+			  char **name,
+			  snd_config_t **dst_config,
+			  int *dst_dynamic)
 {
 	int err, dynamic;
 	snd_config_t *result, *c;
@@ -303,12 +303,11 @@ int snd_config_redirect_load(snd_config_t *root,
  *  Helper functions for the configuration file
  */
 
-int snd_func_getenv(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_getenv(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
 {
 	snd_config_t *n, *d, *e;
 	snd_config_iterator_t i, next;
-	const char *res;
-	char *def = NULL;
+	char *res, *def = NULL;
 	int idx = 0, err;
 	
 	err = snd_config_expand(src, NULL, NULL, &e);
@@ -361,7 +360,12 @@ int snd_func_getenv(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_
 	def = NULL;
       __ok:
 	err = res == NULL ? -ENOMEM : 0;
-	*dst = (char *)res;
+	if (err >= 0) {
+		err = snd_config_make_string(dst, snd_config_get_id(src));
+		if (err >= 0)
+			snd_config_set_string(*dst, res);
+		free(res);
+	}
       __error:
       	if (def)
       		free(def);
@@ -369,7 +373,7 @@ int snd_func_getenv(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_
 	return err;
 }
 
-int snd_func_concat(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_concat(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
 {
 	snd_config_t *n, *e;
 	snd_config_iterator_t i, next;
@@ -421,19 +425,20 @@ int snd_func_concat(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_
 		err = -EINVAL;
 		goto __error;
 	}
-	err = 0;
-	*dst = res;
+	err = snd_config_make_string(dst, snd_config_get_id(src));
+	if (err >= 0)
+		snd_config_set_string(*dst, res);
+	free(res);
       __error:
 	snd_config_delete(e);
 	return err;
 }
 
-int snd_func_datadir(char **dst, snd_config_t *src ATTRIBUTE_UNUSED, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_datadir(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
 {
-	char *res = strdup(DATADIR "/alsa");
-	if (res == NULL)
-		return -ENOMEM;
-	*dst = res;
+	int err = snd_config_make_string(dst, snd_config_get_id(src));
+	if (err >= 0)
+		err = snd_config_set_string(*dst, DATADIR "/alsa");
 	return 0;
 }
 
@@ -459,7 +464,7 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
-int snd_func_card_strtype(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_card_strtype(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
 {
 	snd_config_t *n, *e;
 	char *res = NULL;
@@ -497,7 +502,10 @@ int snd_func_card_strtype(char **dst, snd_config_t *src, void *private_data ATTR
 		SNDERR("snd_card_type_enum_to_string failed for %i", (int)snd_ctl_card_info_get_type(info));
 		goto __error;
 	}
-	*dst = res;
+	err = snd_config_make_string(dst, snd_config_get_id(src));
+	if (err >= 0)
+		err = snd_config_set_string(*dst, res);
+	free(res);
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
@@ -505,7 +513,7 @@ int snd_func_card_strtype(char **dst, snd_config_t *src, void *private_data ATTR
 	return err;
 }
 
-int snd_func_card_id(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_card_id(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
 {
 	snd_config_t *n, *e;
 	char *res = NULL;
@@ -543,7 +551,10 @@ int snd_func_card_id(char **dst, snd_config_t *src, void *private_data ATTRIBUTE
 		err = -ENOMEM;
 		goto __error;
 	}
-	*dst = res;
+	err = snd_config_make_string(dst, snd_config_get_id(src));
+	if (err >= 0)
+		err = snd_config_set_string(*dst, res);
+	free(res);
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
@@ -551,7 +562,7 @@ int snd_func_card_id(char **dst, snd_config_t *src, void *private_data ATTRIBUTE
 	return err;
 }
 
-int snd_func_pcm_id(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
 {
 	snd_config_t *n, *e;
 	char *res = NULL;
@@ -608,7 +619,10 @@ int snd_func_pcm_id(char **dst, snd_config_t *src, void *private_data ATTRIBUTE_
 		err = -ENOMEM;
 		goto __error;
 	}
-	*dst = res;
+	err = snd_config_make_string(dst, snd_config_get_id(src));
+	if (err >= 0)
+		err = snd_config_set_string(*dst, res);
+	free(res);
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);

@@ -156,32 +156,50 @@ int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 }
 
 int snd_rawmidi_open_noupdate(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-			      const char *name, int mode)
+			      snd_config_t *root, const char *name, int mode)
 {
 	int err;
 	snd_config_t *rawmidi_conf;
+	char *base, *key;
 	const char *args = strchr(name, ':');
-	char *base;
+
 	if (args) {
 		args++;
 		base = alloca(args - name);
 		memcpy(base, name, args - name - 1);
-		base[args - name - 1] = 0;
-	} else
-		base = (char *) name;
-	err = snd_config_search_alias(snd_config, "rawmidi", base, &rawmidi_conf);
+		base[args - name - 1] = '\0';
+		key = strchr(base, '.');
+		if (key)
+			*key++ = '\0';
+	} else {
+		key = strchr(name, '.');
+		if (key) {
+			key++;
+			base = alloca(key - name);
+			memcpy(base, name, key - name - 1);
+			base[key - name - 1] = '\0';
+		} else
+			base = (char *) name;
+	}
+	if (key == NULL) {
+		key = base;
+		base = NULL;
+	}
+	err = snd_config_search_alias(root, base, key, &rawmidi_conf);
 	if (err < 0) {
-		SNDERR("Unknown RAWMIDI %s", name);
-		return err;
-	}
-	if (args) {
-		err = snd_config_expand(rawmidi_conf, args, NULL, &rawmidi_conf);
-		if (err < 0)
+		(void)(base == NULL && (err = snd_config_search_alias(root, "rawmidi", key, &rawmidi_conf)));
+		if (err < 0) {
+			SNDERR("Unknown RawMidi %s", name);
 			return err;
+		}
 	}
+	err = snd_config_expand(rawmidi_conf, args, NULL, &rawmidi_conf);
+	if (err < 0) {
+		SNDERR("Could not expand configuration for %s: %s", name, snd_strerror(err));
+		return err;
+        }
 	err = snd_rawmidi_open_conf(inputp, outputp, name, rawmidi_conf, mode);
-	if (args)
-		snd_config_delete(rawmidi_conf);
+	snd_config_delete(rawmidi_conf);
 	return err;
 }
 
@@ -204,7 +222,7 @@ int snd_rawmidi_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	err = snd_config_update();
 	if (err < 0)
 		return err;
-	return snd_rawmidi_open_noupdate(inputp, outputp, name, mode);
+	return snd_rawmidi_open_noupdate(inputp, outputp, snd_config, name, mode);
 }
 
 /**

@@ -1443,8 +1443,9 @@ int snd_config_searchv(snd_config_t *config,
  * \param result Pointer to found node
  * \return 0 on success otherwise a negative error code
  *
- * If base.key is found and it's a string the value found is recursively
- * tried instead of suffix.
+ * First key is tried and if nothing is found is tried base.key.
+ * If the value found is a string this is recursively tried in the
+ * same way.
  */
 int snd_config_search_alias(snd_config_t *config,
 			    const char *base, const char *key,
@@ -1454,19 +1455,20 @@ int snd_config_search_alias(snd_config_t *config,
 	int err;
 	assert(config && key);
 	if (base) {
-		err = snd_config_searchv(config, &res, base, key, 0);
-		if (err < 0)
-			return err;
-		while (snd_config_get_string(res, &key) >= 0 &&
-		       snd_config_searchv(config, &res, base, key, 0) >= 0)
-			;
+		err = snd_config_searchv(config, &res, base, key, NULL);
 	} else {
 		err = snd_config_search(config, key, &res);
+	}
+	if (err < 0)
+		return err;
+	while (snd_config_get_string(res, &base) >= 0) {
+		err = snd_config_search(config, base, &res);
+		if (err >= 0) {
+			if (snd_config_get_string(res, &key) >= 0)
+				err = snd_config_search(res, key, &res);
+		}
 		if (err < 0)
-			return err;
-		while (snd_config_get_string(res, &key) >= 0 &&
-		       snd_config_search(config, key, &res) >= 0)
-			;
+			break;
 	}
 	if (result)
 		*result = res;
@@ -1926,11 +1928,11 @@ static int evaluate_node(snd_config_t *father, snd_config_t *src,
 	}
 
 	{
-		char buf[64], *ptr;
+		char buf[64];
 		snd_config_type_t t;
 		snd_config_t *dst = NULL;
 		char *evaluate_name = NULL;
-		int (*evaluate_func)(char **dst, snd_config_t *src, void *private_data);
+		int (*evaluate_func)(snd_config_t **dst, snd_config_t *src, void *private_data);
 		void *h;
 	
 		if (evaluate_name == NULL) {
@@ -1942,64 +1944,82 @@ static int evaluate_node(snd_config_t *father, snd_config_t *src,
 		h = dlopen(lib, RTLD_NOW);
 		if (!h) {
 			SNDERR("Cannot open shared library %s", lib);
-			return -ENOENT;
+			err = -ENOENT;
+			goto __error;
 		}
 		evaluate_func = dlsym(h, evaluate_name);
 		if (!evaluate_func) {
 			dlclose(h);
 			SNDERR("symbol %s is not defined inside %s", evaluate_name, lib ? lib : ALSA_LIB);
-			return -ENXIO;
+			err = -ENXIO;
+			goto __error;
 		}
-		err = evaluate_func(&ptr, src, private_data);
+		err = evaluate_func(&dst, src, private_data);
 		dlclose(h);
 		if (err < 0) {
 			SNDERR("function %s returned error: %s", evaluate_name, snd_strerror(err));
-			return err;
+			goto __error;
 		}
 		if (type == NULL) {
 			t = SND_CONFIG_TYPE_STRING;
 		} else {
 			err = snd_config_get_type_ascii(type, &t);
-			if (err < 0 || t == SND_CONFIG_TYPE_COMPOUND) {
+			if (err < 0) {
+				err = -EINVAL;
+			      __err:
+				snd_config_delete(dst);
+				goto __error;
+			}
+		}
+		if (t != snd_config_get_type(dst)) {
+			char *ptr;
+			snd_config_t *n;
+			if (t == SND_CONFIG_TYPE_COMPOUND) {
+				SNDERR("conversion to compound is not supported for field %s", snd_config_get_id(src));
+				err = -EINVAL;
+				goto __err;
+			}
+			err = snd_config_make(&n, snd_config_get_id(dst), t);
+			if (err < 0)
+				goto __err;
+			err = snd_config_get_ascii(dst, &ptr);
+			if (err < 0) {
+			      __err1:
+				snd_config_delete(n);
+				goto __err;
+			}
+			switch (t) {
+			case SND_CONFIG_TYPE_STRING:
+				n->u.string = ptr;
+				ptr = NULL;
+				err = 0;
+				break;
+			case SND_CONFIG_TYPE_INTEGER:
+				{
+					long v;
+					err = safe_strtol(ptr, &v);
+					if (err >= 0)
+						snd_config_set_integer(dst, v);
+				}
+				break;
+			case SND_CONFIG_TYPE_REAL:
+				{
+					double r;
+					err = safe_strtod(ptr, &r);
+					if (err >= 0)
+						snd_config_set_real(dst, r);
+				}
+				break;
+			default:
+				err = -EINVAL;
+			}
+			if (ptr)
 				free(ptr);
-				return -EINVAL;
-			}
+			if (err < 0)
+				goto __err1;
+			snd_config_delete(dst);
+			dst = n;
 		}
-		err = snd_config_make(&dst, snd_config_get_id(src), t);
-		if (err < 0) {
-			free(ptr);
-			return err;
-		}
-		switch (t) {
-		case SND_CONFIG_TYPE_INTEGER:
-			{
-				long v;
-				err = safe_strtol(ptr, &v);
-				if (err < 0) {
-					free(ptr);
-					snd_config_delete(dst);
-					return err;
-				}
-				snd_config_set_integer(dst, v);
-			}
-			break;
-		case SND_CONFIG_TYPE_REAL:
-			{
-				double r;
-				err = safe_strtod(ptr, &r);
-				if (err < 0) {
-					free(ptr);
-					snd_config_delete(dst);
-					return err;
-				}
-				snd_config_set_real(dst, r);
-			}
-			break;
-		default:
-			snd_config_set_string(dst, ptr);
-			break;
-		}
-		free(ptr);
 		*_dst = dst;
 	}
 	
@@ -2019,6 +2039,8 @@ int snd_config_evaluate(snd_config_t *conf, void *private_data)
 	snd_config_iterator_t i, next;
 
 	assert(conf);
+	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND)
+		return 0;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (snd_config_get_type(n) == SND_CONFIG_TYPE_COMPOUND) {

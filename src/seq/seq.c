@@ -141,33 +141,51 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 	return open_func(seqp, name, seq_conf, streams, mode);
 }
 
-static int snd_seq_open_noupdate(snd_seq_t **seqp, const char *name, 
-				 int streams, int mode)
+static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
+				 const char *name, int streams, int mode)
 {
 	int err;
 	snd_config_t *seq_conf;
+	char *base, *key;
 	const char *args = strchr(name, ':');
-	char *base;
+
 	if (args) {
 		args++;
 		base = alloca(args - name);
 		memcpy(base, name, args - name - 1);
-		base[args - name - 1] = 0;
-	} else
-		base = (char *) name;
-	err = snd_config_search_alias(snd_config, "seq", base, &seq_conf);
+		base[args - name - 1] = '\0';
+		key = strchr(base, '.');
+		if (key)
+			*key++ = '\0';
+	} else {
+		key = strchr(name, '.');
+		if (key) {
+			key++;
+			base = alloca(key - name);
+			memcpy(base, name, key - name - 1);
+			base[key - name - 1] = '\0';
+		} else
+			base = (char *) name;
+	}
+	if (key == NULL) {
+		key = base;
+		base = NULL;
+	}
+	err = snd_config_search_alias(root, base, key, &seq_conf);
 	if (err < 0) {
-		SNDERR("Unknown SEQ %s", name);
+		(void)(base == NULL && (err = snd_config_search_alias(root, "seq", key, &seq_conf)));
+		if (err < 0) {
+			SNDERR("Unknown PCM %s", name);
+			return err;
+		}
+	}
+	err = snd_config_expand(seq_conf, args, NULL, &seq_conf);
+	if (err < 0) {
+		SNDERR("Could not expand configuration for %s: %s", name, snd_strerror(err));
 		return err;
 	}
-	if (args) {
-		err = snd_config_expand(seq_conf, args, NULL, &seq_conf);
-		if (err < 0)
-			return err;
-	}
 	err = snd_seq_open_conf(seqp, name, seq_conf, streams, mode);
-	if (args)
-		snd_config_delete(seq_conf);
+	snd_config_delete(seq_conf);
 	return err;
 }
 
@@ -209,7 +227,7 @@ int snd_seq_open(snd_seq_t **seqp, const char *name,
 	err = snd_config_update();
 	if (err < 0)
 		return err;
-	return snd_seq_open_noupdate(seqp, name, streams, mode);
+	return snd_seq_open_noupdate(seqp, snd_config, name, streams, mode);
 }
 
 /**

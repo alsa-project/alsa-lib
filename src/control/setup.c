@@ -437,7 +437,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *conf,
 {
 	snd_config_iterator_t i, next;
 	char *tmp;
-	int iface = SND_CTL_ELEM_IFACE_PCM;
+	int iface = SND_CTL_ELEM_IFACE_MIXER;
 	char *name = NULL;
 	long index = 0;
 	long device = -1;
@@ -452,7 +452,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *conf,
 		const char *id = snd_config_get_id(n);
 		if (strcmp(id, "comment") == 0)
 			continue;
-		if (strcmp(id, "iface") == 0) {
+		if (strcmp(id, "iface") == 0 || strcmp(id, "interface") == 0) {
 			if ((err = config_replace(n, callback, private_data, &tmp)) < 0)
 				goto _err;
 			if ((err = snd_config_get_ctl_iface_ascii(tmp)) < 0) {
@@ -471,6 +471,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *conf,
 		if (strcmp(id, "index") == 0) {
 			if ((err = config_replace_integer(n, callback, private_data, &index)) < 0)
 				goto _err;
+			continue;
 		}
 		if (strcmp(id, "device") == 0) {
 			if ((err = config_replace_integer(n, callback, private_data, &device)) < 0)
@@ -544,7 +545,7 @@ static int add_elem(snd_sctl_t *h, snd_config_t *conf,
 	snd_ctl_elem_info_set_id(elem->info, elem->id);
 	err = snd_ctl_elem_info(h->ctl, elem->info);
 	if (err < 0) {
-		SNDERR("Cannot obtain info for CTL elem");
+		SNDERR("Cannot obtain info for CTL elem (%s,'%s',%li,%li,%li): %s", snd_ctl_elem_iface_name(iface), name, index, device, subdevice, snd_strerror(err));
 		goto _err;
 	}
 	snd_ctl_elem_value_set_id(elem->val, elem->id);
@@ -597,6 +598,7 @@ int snd_sctl_build(snd_sctl_t **sctl, snd_ctl_t *handle, snd_config_t *conf,
 	int err;
 
 	assert(sctl);
+	assert(handle);
 	assert(conf);
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND)
 		return -EINVAL;
