@@ -330,7 +330,7 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 	return 0;
 }
 
-int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *conf)
+int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf)
 {
 	snd_config_iterator_t i, next;
 	long card = -1;

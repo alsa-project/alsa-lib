@@ -61,7 +61,7 @@ snd_seq_type_t snd_seq_type(snd_seq_t *seq)
 }
 
 static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
-			     snd_config_t *seq_conf,
+			     snd_config_t *seq_root, snd_config_t *seq_conf,
 			     int streams, int mode)
 {
 	const char *str;
@@ -70,8 +70,9 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
-	int (*open_func)(snd_seq_t **, const char *, snd_config_t *, 
-			 int, int);
+	int (*open_func)(snd_seq_t **, const char *,
+			 snd_config_t *, snd_config_t *, 
+			 int, int) = NULL;
 	void *h;
 	if (snd_config_get_type(seq_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
@@ -90,7 +91,7 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
-	err = snd_config_search_definition(snd_config, "seq_type", str, &type_conf);
+	err = snd_config_search_definition(seq_root, "seq_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
 			SNDERR("Invalid type for SEQ type %s definition", str);
@@ -118,9 +119,6 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
-		_err:
-			snd_config_delete(type_conf);
-			return -EINVAL;
 		}
 	}
 	if (!open_name) {
@@ -130,20 +128,20 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 	if (!lib)
 		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
-	if (h)
-		open_func = dlsym(h, open_name);
-	if (type_conf)
-		snd_config_delete(type_conf);
+	open_func = h ? dlsym(h, open_name) : NULL;
+	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
-		return -ENOENT;
-	}
-	if (!open_func) {
+		err = -ENOENT;
+	} else if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
-		return -ENXIO;
+		err = -ENXIO;
 	}
-	return open_func(seqp, name, seq_conf, streams, mode);
+       _err:
+	if (type_conf)
+		snd_config_delete(type_conf);
+	return err >= 0 ? open_func(seqp, name, seq_root, seq_conf, streams, mode) : err;
 }
 
 static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
@@ -156,7 +154,7 @@ static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
 		SNDERR("Unknown SEQ %s", name);
 		return err;
 	}
-	err = snd_seq_open_conf(seqp, name, seq_conf, streams, mode);
+	err = snd_seq_open_conf(seqp, name, root, seq_conf, streams, mode);
 	snd_config_delete(seq_conf);
 	return err;
 }

@@ -720,7 +720,7 @@ int is_local(struct hostent *hent)
 }
 
 int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
-		      snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf,
+		      snd_config_t *root, snd_config_t *conf,
 		      snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
@@ -765,7 +765,7 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("server is not defined");
 		return -EINVAL;
 	}
-	err = snd_config_search_definition(snd_config, "server", server, &sconfig);
+	err = snd_config_search_definition(root, "server", server, &sconfig);
 	if (err < 0) {
 		SNDERR("Unknown server %s", server);
 		return -EINVAL;
@@ -804,9 +804,9 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
-	_err:
-		snd_config_delete(sconfig);
-		return -EINVAL;
+	       _err:
+		err = -EINVAL;
+		goto __error;
 	}
 
 	if (!host) {
@@ -825,9 +825,10 @@ int _snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 	local = is_local(h);
 	if (!local) {
 		SNDERR("%s is not the local host", host);
-		return -EINVAL;
+		goto _err;
 	}
 	err = snd_pcm_shm_open(pcmp, name, sockname, pcm_name, stream, mode);
+      __error:
 	snd_config_delete(sconfig);
 	return err;
 }

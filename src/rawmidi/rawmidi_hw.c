@@ -303,7 +303,8 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 }
 
 int _snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-			 char *name, snd_config_t *conf, int mode)
+			 char *name, snd_config_t *root ATTRIBUTE_UNUSED,
+			 snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i, next;
 	long card = -1, device = 0, subdevice = -1;

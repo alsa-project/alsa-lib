@@ -1667,11 +1667,13 @@ typedef enum _snd_config_walk_pass {
 /* Return 1 if node needs to be attached to father */
 /* Return 2 if compound is replaced with standard node */
 typedef int (*snd_config_walk_callback_t)(snd_config_t *src,
+					  snd_config_t *root,
 					  snd_config_t **dst,
 					  snd_config_walk_pass_t pass,
 					  void *private_data);
 
 static int snd_config_walk(snd_config_t *src,
+			   snd_config_t *root,
 			   snd_config_t **dst, 
 			   snd_config_walk_callback_t callback,
 			   void *private_data)
@@ -1680,14 +1682,14 @@ static int snd_config_walk(snd_config_t *src,
 	snd_config_iterator_t i, next;
 	switch (snd_config_get_type(src)) {
 	case SND_CONFIG_TYPE_COMPOUND:
-		err = callback(src, dst, SND_CONFIG_WALK_PASS_PRE, private_data);
+		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_PRE, private_data);
 		if (err <= 0)
 			return err;
 		snd_config_for_each(i, next, src) {
 			snd_config_t *s = snd_config_iterator_entry(i);
 			snd_config_t *d = NULL;
 
-			err = snd_config_walk(s, (dst && *dst) ? &d : NULL,
+			err = snd_config_walk(s, root, (dst && *dst) ? &d : NULL,
 					      callback, private_data);
 			if (err < 0)
 				goto _error;
@@ -1697,7 +1699,7 @@ static int snd_config_walk(snd_config_t *src,
 					goto _error;
 			}
 		}
-		err = callback(src, dst, SND_CONFIG_WALK_PASS_POST, private_data);
+		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_POST, private_data);
 		if (err <= 0) {
 		_error:
 			if (dst && *dst)
@@ -1705,13 +1707,14 @@ static int snd_config_walk(snd_config_t *src,
 		}
 		break;
 	default:
-		err = callback(src, dst, SND_CONFIG_WALK_PASS_LEAF, private_data);
+		err = callback(src, root, dst, SND_CONFIG_WALK_PASS_LEAF, private_data);
 		break;
 	}
 	return err;
 }
 
 static int _snd_config_copy(snd_config_t *src,
+			    snd_config_t *root ATTRIBUTE_UNUSED,
 			    snd_config_t **dst,
 			    snd_config_walk_pass_t pass,
 			    void *private_data ATTRIBUTE_UNUSED)
@@ -1774,10 +1777,11 @@ static int _snd_config_copy(snd_config_t *src,
 int snd_config_copy(snd_config_t **dst,
 		    snd_config_t *src)
 {
-	return snd_config_walk(src, dst, _snd_config_copy, NULL);
+	return snd_config_walk(src, NULL, dst, _snd_config_copy, NULL);
 }
 
 static int _snd_config_expand(snd_config_t *src,
+			      snd_config_t *root ATTRIBUTE_UNUSED,
 			      snd_config_t **dst,
 			      snd_config_walk_pass_t pass,
 			      void *private_data)
@@ -1880,19 +1884,20 @@ void snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 }
 
 static int _snd_config_evaluate(snd_config_t *src,
+				snd_config_t *root,
 				snd_config_t **dst ATTRIBUTE_UNUSED,
 				snd_config_walk_pass_t pass,
 				void *private_data)
 {
 	int err;
 	if (pass == SND_CONFIG_WALK_PASS_PRE) {
-		char buf[256];
+		char *buf = NULL;
 		const char *lib = NULL, *func_name = NULL;
 		const char *str;
-		int (*func)(snd_config_t **dst, snd_config_t *src,
-			    void *private_data);
-		void *h;
-		snd_config_t *c, *eval, *func_conf = NULL;
+		int (*func)(snd_config_t **dst, snd_config_t *root,
+			    snd_config_t *src, void *private_data) = NULL;
+		void *h = NULL;
+		snd_config_t *c, *func_conf = NULL;
 		err = snd_config_search(src, "@func", &c);
 		if (err < 0)
 			return 1;
@@ -1901,7 +1906,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 			SNDERR("Invalid type for @func");
 			return err;
 		}
-		err = snd_config_search_definition(snd_config, "func", str, &func_conf);
+		err = snd_config_search_definition(root, "func", str, &func_conf);
 		if (err >= 0) {
 			snd_config_iterator_t i, next;
 			if (snd_config_get_type(func_conf) != SND_CONFIG_TYPE_COMPOUND) {
@@ -1930,53 +1935,58 @@ static int _snd_config_evaluate(snd_config_t *src,
 					continue;
 				}
 				SNDERR("Unknown field %s", id);
-			_err:
-				snd_config_delete(func_conf);
-				return -EINVAL;
 			}
 		}
 		if (!func_name) {
+			int len = 9 + strlen(str) + 1;
+			buf = malloc(len);
+			snprintf(buf, len, "snd_func_%s", str);
+			buf[len-1] = '\0';
 			func_name = buf;
-			snprintf(buf, sizeof(buf), "snd_func_%s", str);
 		}
 		if (!lib)
 			lib = ALSA_LIB;
 		h = dlopen(lib, RTLD_NOW);
-		if (h)
-			func = dlsym(h, func_name);
-		if (func_conf)
-			snd_config_delete(func_conf);
+		func = h ? dlsym(h, func_name) : NULL;
+		err = 0;
 		if (!h) {
 			SNDERR("Cannot open shared library %s", lib);
 			return -ENOENT;
-		}
-		if (!func) {
+		} else if (!func) {
 			SNDERR("symbol %s is not defined inside %s", func_name, lib);
 			dlclose(h);
 			return -ENXIO;
 		}
-		err = func(&eval, src, private_data);
-		dlclose(h);
-		if (err < 0) {
-			SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
+	       _err:
+		if (func_conf)
+			snd_config_delete(func_conf);
+		if (err >= 0) {
+			snd_config_t *eval;
+			err = func(&eval, root, src, private_data);
+			if (err < 0)
+				SNDERR("function %s returned error: %s", func_name, snd_strerror(err));
+			dlclose(h);
+			if (err >= 0 && eval) {
+				snd_config_substitute(src, eval);
+				free(eval);
+			}
+		}
+		if (buf)
+			free(buf);
+		if (err < 0)
 			return err;
-		}
-		if (eval) {
-			snd_config_substitute(src, eval);
-			free(eval);
-		}
 		return 0;
 	}
 	return 1;
 }
 
 
-int snd_config_evaluate(snd_config_t *config, void *private_data,
-			snd_config_t **result)
+int snd_config_evaluate(snd_config_t *config, snd_config_t *root,
+		        void *private_data, snd_config_t **result)
 {
 	/* FIXME: Only in place evaluation is currently implemented */
 	assert(result == NULL);
-	return snd_config_walk(config, result, _snd_config_evaluate, private_data);
+	return snd_config_walk(config, root, result, _snd_config_evaluate, private_data);
 }
 
 static int load_defaults(snd_config_t *subs, snd_config_t *defs)
@@ -2351,12 +2361,13 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 /**
  * \brief Expand a node applying arguments and functions
  * \param config Config node handle
+ * \param root Root config node handle
  * \param args Arguments string (optional)
  * \param private_data Private data for functions
  * \param result Pointer to found node
  * \return 0 on success otherwise a negative error code
  */
-int snd_config_expand(snd_config_t *config, const char *args,
+int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args,
 		      void *private_data, snd_config_t **result)
 {
 	int err;
@@ -2380,18 +2391,18 @@ int snd_config_expand(snd_config_t *config, const char *args,
 			SNDERR("Parse arguments error: %s", snd_strerror(err));
 			goto _end;
 		}
-		err = snd_config_evaluate(subs, private_data, NULL);
+		err = snd_config_evaluate(subs, root, private_data, NULL);
 		if (err < 0) {
 			SNDERR("Args evaluate error: %s", snd_strerror(err));
 			goto _end;
 		}
-		err = snd_config_walk(config, &res, _snd_config_expand, subs);
+		err = snd_config_walk(config, root, &res, _snd_config_expand, subs);
 		if (err < 0) {
 			SNDERR("Expand error (walk): %s", snd_strerror(err));
 			goto _end;
 		}
 	}
-	err = snd_config_evaluate(res, private_data, NULL);
+	err = snd_config_evaluate(res, root, private_data, NULL);
 	if (err < 0) {
 		SNDERR("Evaluate error: %s", snd_strerror(err));
 		snd_config_delete(res);
@@ -2436,7 +2447,7 @@ int snd_config_search_definition(snd_config_t *config,
 	err = snd_config_search_alias(config, base, key, &conf);
 	if (err < 0)
 		return err;
-	return snd_config_expand(conf, args, NULL, result);
+	return snd_config_expand(conf, config, args, NULL, result);
 }
 
 

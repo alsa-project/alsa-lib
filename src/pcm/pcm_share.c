@@ -1426,6 +1426,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 	/* FIXME: nothing strictly forces to have named definition */
 	err = snd_config_get_string(sconf, &sname);
 	if (err < 0) {
+		snd_config_delete(sconf);
 		SNDERR("slave.pcm is not a string");
 		return err;
 	}
@@ -1440,6 +1441,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		const char *id = snd_config_get_id(n);
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
+			snd_config_delete(sconf);
 			SNDERR("Invalid client channel in binding: %s", id);
 			return -EINVAL;
 		}
@@ -1447,6 +1449,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 			channels = cchannel + 1;
 	}
 	if (channels == 0) {
+		snd_config_delete(sconf);
 		SNDERR("No bindings defined");
 		return -EINVAL;
 	}
@@ -1459,8 +1462,10 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		long schannel = -1;
 		cchannel = atoi(id);
 		err = snd_config_get_integer(n, &schannel);
-		if (err < 0)
+		if (err < 0) {
+			snd_config_delete(sconf);
 			goto _free;
+		}
 		assert(schannel >= 0);
 		assert(schannels <= 0 || schannel < schannels);
 		channels_map[cchannel] = schannel;
@@ -1473,6 +1478,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 				 (unsigned int) schannels,
 				 speriod_time, sbuffer_time,
 				 channels, channels_map, stream, mode);
+	snd_config_delete(sconf);
 _free:
 	free(channels_map);
 	return err;

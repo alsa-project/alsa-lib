@@ -752,11 +752,14 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		ttable = malloc(MAX_CHANNELS * MAX_CHANNELS * sizeof(*ttable));
 		err = snd_pcm_route_load_ttable(tt, ttable, MAX_CHANNELS, MAX_CHANNELS,
 						&cused, &sused, -1);
-		if (err < 0)
+		if (err < 0) {
+			snd_config_delete(sconf);
 			return err;
+		}
 	}
 		
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
 	err = snd_pcm_plug_open(pcmp, name, ttable, MAX_CHANNELS, cused, sused, spcm, 1);

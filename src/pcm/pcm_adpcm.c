@@ -578,10 +578,12 @@ int _snd_pcm_adpcm_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	if (snd_pcm_format_linear(sformat) != 1 &&
 	    sformat != SND_PCM_FORMAT_IMA_ADPCM) {
+	    	snd_config_delete(sconf);
 		SNDERR("invalid slave format");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
 	err = snd_pcm_adpcm_open(pcmp, name, sformat, spcm, 1);

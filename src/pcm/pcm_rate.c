@@ -567,10 +567,12 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
 	    snd_pcm_format_linear(sformat) != 1) {
+	    	snd_config_delete(sconf);
 		SNDERR("slave format is not linear");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
 	err = snd_pcm_rate_open(pcmp, name, 

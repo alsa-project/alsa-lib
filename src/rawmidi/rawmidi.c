@@ -61,8 +61,8 @@ static int snd_rawmidi_params_default(snd_rawmidi_t *rawmidi, snd_rawmidi_params
 }
 
 int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-			  const char *name, snd_config_t *rawmidi_conf,
-			  int mode)
+			  const char *name, snd_config_t *rawmidi_root,
+			  snd_config_t *rawmidi_conf, int mode)
 {
 	const char *str;
 	char buf[256];
@@ -72,7 +72,7 @@ int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	snd_rawmidi_params_t params;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_rawmidi_t **, snd_rawmidi_t **,
-			 const char *, snd_config_t *, int);
+			 const char *, snd_config_t *, snd_config_t *, int) = NULL;
 	void *h;
 	if (snd_config_get_type(rawmidi_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
@@ -91,7 +91,7 @@ int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
-	err = snd_config_search_definition(snd_config, "rawmidi_type", str, &type_conf);
+	err = snd_config_search_definition(rawmidi_root, "rawmidi_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
 			SNDERR("Invalid type for RAWMIDI type %s definition", str);
@@ -119,9 +119,8 @@ int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
-		_err:
-			snd_config_delete(type_conf);
-			return -EINVAL;
+			err = -EINVAL;
+			goto _err;
 		}
 	}
 	if (!open_name) {
@@ -131,20 +130,20 @@ int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	if (!lib)
 		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
-	if (h)
-		open_func = dlsym(h, open_name);
-	if (type_conf)
-		snd_config_delete(type_conf);
+	open_func = h ? dlsym(h, open_name) : NULL;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
-		return -ENOENT;
-	}
-	if (!open_func) {
+		err = -ENOENT;
+	} else if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
-		return -ENXIO;
+		err = -ENXIO;
 	}
-	err = open_func(inputp, outputp, name, rawmidi_conf, mode);
+       _err:
+	if (type_conf)
+		snd_config_delete(type_conf);
+	if (err >= 0)
+		err = open_func(inputp, outputp, name, rawmidi_root, rawmidi_conf, mode);
 	if (err < 0)
 		return err;
 	if (inputp) {
@@ -170,7 +169,7 @@ int snd_rawmidi_open_noupdate(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		SNDERR("Unknown RawMidi %s", name);
 		return err;
 	}
-	err = snd_rawmidi_open_conf(inputp, outputp, name, rawmidi_conf, mode);
+	err = snd_rawmidi_open_conf(inputp, outputp, name, root, rawmidi_conf, mode);
 	snd_config_delete(rawmidi_conf);
 	return err;
 }

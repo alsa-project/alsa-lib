@@ -505,10 +505,12 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 	if (!fname && fd < 0) {
+		snd_config_delete(sconf);
 		SNDERR("file is not defined");
 		return -EINVAL;
 	}
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
 	err = snd_pcm_file_open(pcmp, name, fname, fd, format, spcm, 1);

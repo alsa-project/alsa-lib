@@ -211,7 +211,7 @@ int snd_config_string_replace(const char *src, char idchr,
  *  Helper functions for the configuration file
  */
 
-int snd_func_getenv(snd_config_t **dst, snd_config_t *src, void *private_data)
+int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n, *d;
 	snd_config_iterator_t i, next;
@@ -223,7 +223,7 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *src, void *private_data)
 		SNDERR("field envname not found");
 		goto __error;
 	}
-	err = snd_config_evaluate(n, private_data, NULL);
+	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
 		SNDERR("error evaluating envname");
 		goto __error;
@@ -233,7 +233,7 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *src, void *private_data)
 		SNDERR("field default not found");
 		goto __error;
 	}
-	err = snd_config_evaluate(d, private_data, NULL);
+	err = snd_config_evaluate(d, root, private_data, NULL);
 	if (err < 0) {
 		SNDERR("error evaluating default");
 		goto __error;
@@ -287,13 +287,13 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *src, void *private_data)
 	return err;
 }
 
-int snd_func_igetenv(snd_config_t **dst, snd_config_t *src, void *private_data)
+int snd_func_igetenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *d;
 	const char *str;
 	int err;
 	long v;
-	err = snd_func_getenv(&d, src, private_data);
+	err = snd_func_getenv(&d, root, src, private_data);
 	if (err < 0)
 		return err;
 	err = snd_config_get_string(d, &str);
@@ -314,7 +314,7 @@ int snd_func_igetenv(snd_config_t **dst, snd_config_t *src, void *private_data)
 	
 	
 
-int snd_func_concat(snd_config_t **dst, snd_config_t *src, void *private_data)
+int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
 	snd_config_iterator_t i, next;
@@ -326,7 +326,7 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *src, void *private_data)
 		SNDERR("field strings not found");
 		goto __error;
 	}
-	err = snd_config_evaluate(n, private_data, NULL);
+	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
 		SNDERR("error evaluating strings");
 		goto __error;
@@ -376,7 +376,8 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *src, void *private_data)
 	return err;
 }
 
-int snd_func_datadir(snd_config_t **dst, snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
+int snd_func_datadir(snd_config_t **dst, snd_config_t *root ATTRIBUTE_UNUSED,
+		     snd_config_t *src, void *private_data ATTRIBUTE_UNUSED)
 {
 	int err = snd_config_make_string(dst, snd_config_get_id(src));
 	if (err >= 0)
@@ -406,7 +407,7 @@ static int string_from_integer(char **dst, long v)
 }
 #endif
 
-int snd_func_card_strtype(snd_config_t **dst, snd_config_t *src, void *private_data)
+int snd_func_card_strtype(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
 	char *res = NULL;
@@ -420,7 +421,7 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *src, void *private_d
 		SNDERR("field card not found");
 		goto __error;
 	}
-	err = snd_config_evaluate(n, private_data, NULL);
+	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
 		SNDERR("error evaluating card");
 		goto __error;
@@ -456,7 +457,7 @@ int snd_func_card_strtype(snd_config_t **dst, snd_config_t *src, void *private_d
 	return err;
 }
 
-int snd_func_card_id(snd_config_t **dst, snd_config_t *src, void *private_data)
+int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
 	char *res = NULL;
@@ -470,7 +471,7 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *src, void *private_data)
 		SNDERR("field card not found");
 		goto __error;
 	}
-	err = snd_config_evaluate(n, private_data, NULL);
+	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
 		SNDERR("error evaluating card");
 		goto __error;
@@ -506,7 +507,7 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *src, void *private_data)
 	return err;
 }
 
-int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data)
+int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
 	char *res = NULL;
@@ -520,7 +521,7 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data)
 		SNDERR("field card not found");
 		goto __error;
 	}
-	err = snd_config_evaluate(n, private_data, NULL);
+	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
 		SNDERR("error evaluating card");
 		goto __error;
@@ -535,7 +536,7 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data)
 		SNDERR("field device not found");
 		goto __error;
 	}
-	err = snd_config_evaluate(n, private_data, NULL);
+	err = snd_config_evaluate(n, root, private_data, NULL);
 	if (err < 0) {
 		SNDERR("error evaluating device");
 		goto __error;
@@ -546,7 +547,7 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data)
 		goto __error;
 	}
 	if (snd_config_search(src, "subdevice", &n) >= 0) {
-		err = snd_config_evaluate(n, private_data, NULL);
+		err = snd_config_evaluate(n, root, private_data, NULL);
 		if (err < 0) {
 			SNDERR("error evaluating subdevice");
 			goto __error;
@@ -585,16 +586,16 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *src, void *private_data)
 	return err;
 }
 
-int snd_func_refer(snd_config_t **dst, snd_config_t *src, void *private_data)
+int snd_func_refer(snd_config_t **dst, snd_config_t *_root, snd_config_t *src, void *private_data)
 {
 	snd_config_t *n;
-	snd_config_t *root = NULL;
+	snd_config_t *root;
 	const char *file = NULL, *name = NULL;
 	int err;
 	
 	err = snd_config_search(src, "file", &n);
 	if (err >= 0) {
-		err = snd_config_evaluate(n, private_data, NULL);
+		err = snd_config_evaluate(n, _root, private_data, NULL);
 		if (err < 0) {
 			SNDERR("error evaluating file");
 			goto _end;
@@ -607,7 +608,7 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *src, void *private_data)
 	}
 	err = snd_config_search(src, "name", &n);
 	if (err >= 0) {
-		err = snd_config_evaluate(n, private_data, NULL);
+		err = snd_config_evaluate(n, _root, private_data, NULL);
 		if (err < 0) {
 			SNDERR("error evaluating name");
 			goto _end;
@@ -624,7 +625,7 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *src, void *private_data)
 		goto _end;
 	}
 	if (!file)
-		root = snd_config;
+		root = _root;
 	else {
 		snd_input_t *input;
 		err = snd_config_top(&root);
@@ -642,17 +643,18 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *src, void *private_data)
 		}
 	}
 	if (!name) {
-		if (root == snd_config)
-			snd_config_copy(dst, root);
-		else
+		if (root == _root)
+			err = snd_config_copy(dst, root);
+		else {
 			*dst = root;
-		err = 0;
+			err = 0;
+		}
 	} else
-		err = snd_config_search_definition(root, 0, name, dst);
+		err = snd_config_search_definition(root, NULL, name, dst);
 	if (err >= 0)
 		err = snd_config_set_id(*dst, snd_config_get_id(src));
  _end:
-	if (root && root != snd_config)
+	if (root && root != _root)
 		snd_config_delete(root);
 	return err;
 }

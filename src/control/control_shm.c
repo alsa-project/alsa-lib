@@ -524,7 +524,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 	return result;
 }
 
-int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int mode)
+int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *root, snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i, next;
 	const char *server = NULL;
@@ -570,13 +570,15 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 		SNDERR("server is not defined");
 		return -EINVAL;
 	}
-	err = snd_config_search_definition(snd_config, "server", server, &sconfig);
+	err = snd_config_search_definition(root, "server", server, &sconfig);
 	if (err < 0) {
 		SNDERR("Unknown server %s", server);
-		return -EINVAL;
+		err = -EINVAL;
+		goto _err;
 	}
 	if (snd_config_get_type(sconfig) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid type for server %s definition", server);
+		err = -EINVAL;
 		goto _err;
 	}
 	snd_config_for_each(i, next, conf) {
@@ -609,9 +611,8 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
-	_err:
-		snd_config_delete(sconfig);
-		return -EINVAL;
+		err = -EINVAL;
+		goto _err;
 	}
 
 	if (!host) {
@@ -633,7 +634,7 @@ int _snd_ctl_shm_open(snd_ctl_t **handlep, char *name, snd_config_t *conf, int m
 		goto _err;
 	}
 	err = snd_ctl_shm_open(handlep, name, sockname, ctl_name, mode);
+       _err:
 	snd_config_delete(sconfig);
 	return err;
 }
-				

@@ -819,6 +819,8 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 		err = snd_pcm_open_slave(&slaves_pcm[idx], root, slaves_conf[idx], stream, mode);
 		if (err < 0)
 			goto _free;
+		snd_config_delete(slaves_conf[idx]);
+		slaves_conf[idx] = NULL;
 	}
 	err = snd_pcm_multi_open(pcmp, name, slaves_count, master_slave,
 				 slaves_pcm, slaves_channels,
@@ -832,8 +834,13 @@ _free:
 				snd_pcm_close(slaves_pcm[idx]);
 		}
 	}
-	if (slaves_conf)
+	if (slaves_conf) {
+		for (idx = 0; idx < slaves_count; ++idx) {
+			if (slaves_conf[idx])
+				snd_config_delete(slaves_conf[idx]);
+		}
 		free(slaves_conf);
+	}
 	if (slaves_pcm)
 		free(slaves_pcm);
 	if (slaves_channels)

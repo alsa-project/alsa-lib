@@ -381,7 +381,7 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 }
 
 int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
-		      snd_config_t *ctl_conf, int mode)
+		      snd_config_t *ctl_root, snd_config_t *ctl_conf, int mode)
 {
 	const char *str;
 	char buf[256];
@@ -389,7 +389,7 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
-	int (*open_func)(snd_ctl_t **, const char *, snd_config_t *, int);
+	int (*open_func)(snd_ctl_t **, const char *, snd_config_t *, snd_config_t *, int) = NULL;
 	void *h;
 	if (snd_config_get_type(ctl_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
@@ -408,7 +408,7 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 		SNDERR("Invalid type for %s", snd_config_get_id(conf));
 		return err;
 	}
-	err = snd_config_search_definition(snd_config, "ctl_type", str, &type_conf);
+	err = snd_config_search_definition(ctl_root, "ctl_type", str, &type_conf);
 	if (err >= 0) {
 		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
 			SNDERR("Invalid type for CTL type %s definition", str);
@@ -436,9 +436,8 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 				continue;
 			}
 			SNDERR("Unknown field %s", id);
-		_err:
-			snd_config_delete(type_conf);
-			return -EINVAL;
+			err = -EINVAL;
+			goto _err;
 		}
 	}
 	if (!open_name) {
@@ -448,20 +447,20 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 	if (!lib)
 		lib = ALSA_LIB;
 	h = dlopen(lib, RTLD_NOW);
-	if (h)
-		open_func = dlsym(h, open_name);
-	if (type_conf)
-		snd_config_delete(type_conf);
+	open_func = h ? dlsym(h, open_name) : NULL;
+	err = 0;
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
-		return -ENOENT;
-	}
-	if (!open_func) {
+		err = -ENOENT;
+	} if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		dlclose(h);
-		return -ENXIO;
+		err = -ENXIO;
 	}
-	return open_func(ctlp, name, ctl_conf, mode);
+       _err:
+	if (type_conf)
+		snd_config_delete(type_conf);
+	return err >= 0 ? open_func(ctlp, name, ctl_root, ctl_conf, mode) : err;
 }
 
 int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root, const char *name, int mode)
@@ -473,7 +472,7 @@ int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root, const char *name
 		SNDERR("Invalid CTL %s", name);
 		return err;
 	}
-	err = snd_ctl_open_conf(ctlp, name, ctl_conf, mode);
+	err = snd_ctl_open_conf(ctlp, name, root, ctl_conf, mode);
 	snd_config_delete(ctl_conf);
 	return err;
 }
