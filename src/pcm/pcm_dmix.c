@@ -453,10 +453,47 @@ static int snd_pcm_dmix_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return 0;
 }
 
+static inline snd_mask_t *hw_param_mask(snd_pcm_hw_params_t *params,
+					snd_pcm_hw_param_t var)
+{
+	return &params->masks[var - SND_PCM_HW_PARAM_FIRST_MASK];
+}
+
+static inline snd_interval_t *hw_param_interval(snd_pcm_hw_params_t *params,
+						snd_pcm_hw_param_t var)
+{
+	return &params->intervals[var - SND_PCM_HW_PARAM_FIRST_INTERVAL];
+}
+
 static int snd_pcm_dmix_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_dmix_t *dmix = pcm->private_data;
-	//snd_interval_refine_set(
+	snd_pcm_hw_params_t *hw_params = &dmix->shmptr->hw_params;
+	static snd_mask_t access = { .bits = { 
+					(1<<SNDRV_PCM_ACCESS_MMAP_INTERLEAVED) |
+					(1<<SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED) |
+					(1<<SNDRV_PCM_ACCESS_RW_INTERLEAVED) |
+					(1<<SNDRV_PCM_ACCESS_RW_NONINTERLEAVED),
+					0, 0, 0 } };
+
+	snd_mask_refine(hw_param_mask(params, SND_PCM_HW_PARAM_ACCESS), &access);
+	snd_mask_refine_set(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT),
+			    snd_mask_value(hw_param_mask(hw_params, SND_PCM_HW_PARAM_FORMAT)));
+	//snd_mask_none(hw_param_mask(params, SND_PCM_HW_PARAM_SUBFORMAT));
+	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_CHANNELS),
+				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_CHANNELS)));
+	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_RATE),
+				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_RATE)));
+	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE),
+				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_BUFFER_SIZE)));
+	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_BUFFER_TIME),
+				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_BUFFER_TIME)));
+	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_PERIOD_SIZE),
+				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_PERIOD_SIZE)));
+	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_PERIOD_TIME),
+				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_PERIOD_TIME)));
+	snd_interval_refine_set(hw_param_interval(params, SND_PCM_HW_PARAM_PERIODS),
+				snd_interval_value(hw_param_interval(hw_params, SND_PCM_HW_PARAM_PERIODS)));
 	return 0;
 }
 

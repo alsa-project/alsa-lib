@@ -790,6 +790,7 @@ size_t snd_pcm_sw_params_sizeof(void);
 int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **ptr);
 void snd_pcm_sw_params_free(snd_pcm_sw_params_t *obj);
 void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t *src);
+int snd_pcm_sw_params_get_boundary(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val);
 
 #ifndef ALSA_LIBRARY_BUILD
 #ifdef ALSA_PCM_NEW_SW_PARAMS_API
