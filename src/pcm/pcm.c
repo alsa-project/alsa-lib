@@ -121,94 +121,93 @@ this extension. The implemented transfer routines can be found in the
 
 The ALSA PCM API uses a different behaviour when the device is opened
 with blocked or non-blocked mode. The mode can be specified with
-\a mode argument in \link ::snd_pcm_open() \endlink function.
-The blocked mode is the default (without \link ::SND_PCM_NONBLOCK \endlink mode).
+\a mode argument in #snd_pcm_open() function.
+The blocked mode is the default (without #SND_PCM_NONBLOCK mode).
 In this mode, the behaviour is that if the resources have already used
 with another application, then it blocks the caller, until resources are
-free. The non-blocked behaviour (with \link ::SND_PCM_NONBLOCK \endlink)
+free. The non-blocked behaviour (with #SND_PCM_NONBLOCK)
 doesn't block the caller in any way and returns -EBUSY error when the
 resources are not available. Note that the mode also determines the
 behaviour of standard I/O calls, returning -EAGAIN when non-blocked mode is
 used and the ring buffer is full (playback) or empty (capture).
 The operation mode for I/O calls can be changed later with
-the \link snd_pcm_nonblock() \endlink function.
+the #snd_pcm_nonblock() function.
 
 \section pcm_async Asynchronous mode
 
 There is also possibility to receive asynchronous notification after
-specified time periods. You may see the \link ::SND_PCM_ASYNC \endlink
-mode for \link ::snd_pcm_open() \endlink function and
-\link ::snd_async_add_pcm_handler() \endlink function for further details.
+specified time periods. You may see the #SND_PCM_ASYNC
+mode for #snd_pcm_open() function and
+#snd_async_add_pcm_handler() function for further details.
 
 \section pcm_handshake Handshake between application and library
 
 The ALSA PCM API design uses the states to determine the communication
 phase between application and library. The actual state can be determined
-using \link ::snd_pcm_state() \endlink call. There are these states:
+using #snd_pcm_state() call. There are these states:
 
 \par SND_PCM_STATE_OPEN
-The PCM device is in the open state. After the \link ::snd_pcm_open() \endlink open call,
-the device is in this state. Also, when \link ::snd_pcm_hw_params() \endlink call fails,
+The PCM device is in the open state. After the #snd_pcm_open() open call,
+the device is in this state. Also, when #snd_pcm_hw_params() call fails,
 then this state is entered to force application calling 
-\link ::snd_pcm_hw_params() \endlink function to set right communication
+#snd_pcm_hw_params() function to set right communication
 parameters.
 
 \par SND_PCM_STATE_SETUP
 The PCM device has accepted communication parameters and it is waiting
-for \link ::snd_pcm_prepare() \endlink call to prepare the hardware for
+for #snd_pcm_prepare() call to prepare the hardware for
 selected operation (playback or capture).
 
 \par SND_PCM_STATE_PREPARE
 The PCM device is prepared for operation. Application can use
-\link ::snd_pcm_start() \endlink call, write or read data to start
+#snd_pcm_start() call, write or read data to start
 the operation.
 
 \par SND_PCM_STATE_RUNNING
 The PCM device is running. It processes the samples. The stream can
-be stopped using the \link ::snd_pcm_drop() \endlink or
-\link ::snd_pcm_drain \endlink calls.
+be stopped using the #snd_pcm_drop() or
+#snd_pcm_drain calls.
 
 \par SND_PCM_STATE_XRUN
 The PCM device reached overrun (capture) or underrun (playback).
 You can use the -EPIPE return code from I/O functions
-(\link ::snd_pcm_writei() \endlink, \link ::snd_pcm_writen() \endlink,
- \link ::snd_pcm_readi() \endlink, \link ::snd_pcm_readi() \endlink)
+(#snd_pcm_writei(), #snd_pcm_writen(), #snd_pcm_readi(), #snd_pcm_readi())
 to determine this state without checking
-the actual state via \link ::snd_pcm_state() \endlink call. You can recover from
-this state with \link ::snd_pcm_prepare() \endlink,
-\link ::snd_pcm_drop() \endlink or \link ::snd_pcm_drain() \endlink calls.
+the actual state via #snd_pcm_state() call. You can recover from
+this state with #snd_pcm_prepare(),
+#snd_pcm_drop() or #snd_pcm_drain() calls.
 
 \par SND_PCM_STATE_DRAINING
 The device is in this state when application using the capture mode
-called \link ::snd_pcm_drain() \endlink function. Until all data are
+called #snd_pcm_drain() function. Until all data are
 read from the internal ring buffer using I/O routines
-(\link ::snd_pcm_readi() \endlink, \link ::snd_pcm_readn() \endlink),
+(#snd_pcm_readi(), #snd_pcm_readn()),
 then the device stays in this state.
 
 \par SND_PCM_STATE_PAUSED
 The device is in this state when application called
-the \link ::snd_pcm_pause() \endlink function until the pause is released.
+the #snd_pcm_pause() function until the pause is released.
 Not all hardware supports this feature. Application should check the
-capability with the \link ::snd_pcm_hw_params_can_pause() \endlink.
+capability with the #snd_pcm_hw_params_can_pause().
 
 \par SND_PCM_STATE_SUSPENDED
 The device is in the suspend state provoked with the power management
-system. The stream can be resumed using \link ::snd_pcm_resume() \endlink
+system. The stream can be resumed using #snd_pcm_resume()
 call, but not all hardware supports this feature. Application should check
-the capability with the \link ::snd_pcm_hw_params_can_resume() \endlink.
-In other case, the calls \link ::snd_pcm_prepare() \endlink,
-\link ::snd_pcm_drop() \endlink, \link ::snd_pcm_drain() \endlink can be used
+the capability with the #snd_pcm_hw_params_can_resume().
+In other case, the calls #snd_pcm_prepare(),
+#snd_pcm_drop(), #snd_pcm_drain() can be used
 to leave this state.
 
 \section pcm_formats PCM formats
 
-The full list of formats present the \link ::snd_pcm_format_t \endlink type.
+The full list of formats present the #snd_pcm_format_t type.
 The 24-bit linear samples uses 32-bit physical space, but the sample is
 stored in low three bits. Some hardware does not support processing of full
 range, thus you may get the significant bits for linear samples via
-\link ::snd_pcm_hw_params_get_sbits \endlink function. The example: ICE1712
+#snd_pcm_hw_params_get_sbits() function. The example: ICE1712
 chips support 32-bit sample processing, but low byte is ignored (playback)
-or zero (capture). The function \link ::snd_pcm_hw_params_get_sbits() \endlink
+or zero (capture). The function snd_pcm_hw_params_get_sbits()
 returns 24 in the case.
 
 \section alsa_transfers ALSA transfers
@@ -218,7 +217,7 @@ is the standard read / write one. The second method, uses the direct audio
 buffer to communicate with the device while ALSA library manages this space
 itself. You can find examples of all communication schemes for playback
 in \ref example_test_pcm "Sine-wave generator example". To complete the
-list, we should note that \link ::snd_pcm_wait \endlink function contains
+list, we should note that #snd_pcm_wait() function contains
 embedded poll waiting implementation.
 
 \subsection alsa_pcm_rw Read / Write transfer
@@ -227,10 +226,9 @@ There are two versions of read / write routines. The first expects the
 interleaved samples at input (#SND_PCM_ACCESS_RW_INTERLEAVED access method),
 and the second one expects non-interleaved (samples in separated buffers -
 #SND_PCM_ACCESS_RW_NONINTERLEAVED access method) at input. There are these
-functions for interleaved transfers: \link ::snd_pcm_writei \endlink,
-\link ::snd_pcm_readi \endlink. For non-interleaved transfers, there are
-these functions: \link ::snd_pcm_writen \endlink and \link ::snd_pcm_readn
-\endlink.
+functions for interleaved transfers: #snd_pcm_writei()
+#snd_pcm_readi(). For non-interleaved transfers, there are
+these functions: #snd_pcm_writen(0 and #snd_pcm_readn().
 
 \subsection alsa_mmap_rw Direct Read / Write transfer (via mmap'ed areas)
 
@@ -239,26 +237,24 @@ Access #SND_PCM_ACCESS_MMAP_INTERLEAVED has interleaved samples. Access
 #SND_PCM_ACCESS_MMAP_NONINTERLEAVED expects continous sample areas for
 one channel. Access #SND_PCM_ACCESS_MMAP_COMPLEX does not fit to interleaved
 and non-interleaved ring buffer organization.
-\par
 
 There are two functions for this kind of transfer. Application can get an
-access to memory areas via \link ::snd_pcm_mmap_begin \endlink function.
+access to memory areas via #snd_pcm_mmap_begin() function.
 This function returns the areas (single area is equal to a channel)
 containing the direct pointers to memory and sample position description
-in \link ::snd_pcm_channel_area_t \endlink structure. After application
+in #snd_pcm_channel_area_t structure. After application
 transfers the data in the memory areas, then it must be acknowledged
-the end of transfer via \link ::snd_pcm_mmap_commit() \endlink function
+the end of transfer via #snd_pcm_mmap_commit() function
 to allow the ALSA library update the pointers to ring buffer. This kind of
 communication is also called "zero-copy", because the device does not require
 to copy the samples from application to another place in system memory.
-\par
 
 If you like to use the compatibility functions in mmap mode, there are
 read / write routines equaling to standard read / write transfers. Using
 these functions discards the benefits of direct access to memory region.
-See the \link ::snd_pcm_mmap_readi() \endlink,
-\link ::snd_pcm_writei() \endlink, \link ::snd_pcm_readn() \endlink
-and \link ::snd_pcm_writen() \endlink functions.
+See the #snd_pcm_mmap_readi(),
+#snd_pcm_writei(), #snd_pcm_readn()
+and #snd_pcm_writen() functions.
 
 \section pcm_params Managing parameters
 
@@ -274,7 +270,7 @@ the running state as well.
 \subsection pcm_hw_params Hardware related parameters
 
 The ALSA PCM devices use the parameter refining system for hardware
-parameters - \link ::snd_pcm_hw_params_t \endlink. It means, that
+parameters - #snd_pcm_hw_params_t. It means, that
 application choose the full-range of configurations at first and then
 application sets single parameters until all parameters are elementary
 (definite).
@@ -282,28 +278,28 @@ application sets single parameters until all parameters are elementary
 \par Access modes
 
 ALSA knows about five access modes. The first three can be used for direct
-communication. The access mode \link ::SND_PCM_ACCESS_MMAP_INTERLEAVED \endlink
+communication. The access mode #SND_PCM_ACCESS_MMAP_INTERLEAVED
 determines the direct memory area and interleaved sample organization.
 Interleaved organization means, that samples from channels are mixed together.
-The access mode \link ::SND_PCM_ACCESS_MMAP_NONINTERLEAVED \endlink
+The access mode #SND_PCM_ACCESS_MMAP_NONINTERLEAVED
 determines the direct memory area and non-interleaved sample organization.
 Each channel has a separate buffer in the case. The complex direct memory
-organization represents the \link ::SND_PCM_ACCESS_MMAP_COMPLEX \endlink
+organization represents the #SND_PCM_ACCESS_MMAP_COMPLEX
 access mode. The sample organization does not fit the interleaved or
 non-interleaved access modes in the case. The last two access modes
 describes the read / write access methods.
-The \link ::SND_PCM_ACCESS_RW_INTERLEAVED \endlink access represents the read /
-write interleaved access and the \link ::SND_PCM_ACCESS_RW_NONINTERLEAVED \endlink
+The #SND_PCM_ACCESS_RW_INTERLEAVED access represents the read /
+write interleaved access and the #SND_PCM_ACCESS_RW_NONINTERLEAVED
 represents the non-interleaved access.
 
 \par Formats
 
-The full list of formats is available in \link ::snd_pcm_format_t \endlink
+The full list of formats is available in #snd_pcm_format_t
 enumeration.
 
 \subsection pcm_sw_params Software related parameters
 
-These parameters - \link ::snd_pcm_sw_params_t \endlink can be modified at
+These parameters - #snd_pcm_sw_params_t can be modified at
 any time including the running state.
 
 \par Minimum available count of samples
@@ -314,7 +310,7 @@ is equal or greater than this value, then application will be activated.
 \par Timestamp mode
 
 The timestamp mode specifies, if timestamps are activated. Currently, only
-\link ::SND_PCM_TSTAMP_NONE \endlink and \link ::SND_PCM_TSTAMP_MMAP
+#SND_PCM_TSTAMP_NONE and #SND_PCM_TSTAMP_MMAP
 \endlink modes are known. The mmap mode means that timestamp is taken
 on every period time boundary.
 
@@ -322,7 +318,7 @@ on every period time boundary.
 
 This parameters means the minimum of ticks to sleep using a standalone
 timer (usually the system timer). The tick resolution can be obtained
-via the function \link ::snd_pcm_hw_params_get_tick_time \endlink. This
+via the function #snd_pcm_hw_params_get_tick_time(). This
 function can be used to fine-tune the transfer acknowledge process. It could
 be useful especially when some hardware does not support small transfer
 periods.
@@ -339,7 +335,7 @@ stream. For playback, if samples in ring buffer is equal or greater than
 the start threshold parameters and the stream is not running, the stream will
 be started automatically from the device. For capture, if the application wants
 to read count of samples equal or greater then the stream will be started.
-If you want to use explicit start (\link ::snd_pcm_start \endlink), you can
+If you want to use explicit start (#snd_pcm_start), you can
 set this value greater than ring buffer size (in samples), but use the
 constant MAXINT is not a bad idea.
 
@@ -356,49 +352,49 @@ The silence threshold specifies count of samples filled with silence
 ahead of the current application pointer for playback. It is usable
 for applications when an overrun is possible (like tasks depending on
 network I/O etc.). If application wants to manage the ahead samples itself,
-the \link ::snd_pcm_rewind() \endlink function allows to forget the last
+the #snd_pcm_rewind() function allows to forget the last
 samples in the stream.
 
 \section pcm_status Obtaining stream status
 
-The stream status is stored in \link ::snd_pcm_status_t \endlink structure.
+The stream status is stored in #snd_pcm_status_t structure.
 These parameters can be obtained: the current stream state -
-\link ::snd_pcm_status_get_state \endlink, timestamp of trigger -
-\link ::snd_pcm_status_get_trigger_tstamp \endlink, timestamp of last
-update \link ::snd_pcm_status_get_tstamp \endlink, delay in samples -
-\link ::snd_pcm_status_get_delay \endlink, available count in samples -
-\link ::snd_pcm_status_get_avail \endlink, maximum available samples -
-\link ::snd_pcm_status_get_avail_max \endlink, ADC over-range count in
-samples - \link ::snd_pcm_status_get_overrange \endlink. The last two
+#snd_pcm_status_get_state(), timestamp of trigger -
+#snd_pcm_status_get_trigger_tstamp(), timestamp of last
+update #snd_pcm_status_get_tstamp(), delay in samples -
+#snd_pcm_status_get_delay(), available count in samples -
+#snd_pcm_status_get_avail(), maximum available samples -
+#snd_pcm_status_get_avail_max(), ADC over-range count in
+samples - #snd_pcm_status_get_overrange(). The last two
 parameters - avail_max and overrange are reset to zero after the status
 call.
 
 \subsection pcm_status_fast Obtaining stream state fast and update r/w pointer
 
-The function \link ::snd_pcm_avail_update \endlink updates the current
+The function #snd_pcm_avail_update() updates the current
 available count of samples for writing (playback) or filled samples for
 reading (capture). This call is mandatory for updating actual r/w pointer.
 Using standalone, it is a light method to obtain current stream position,
 because it does not require the user <-> kernel context switch, but the value
 is less accurate, because ring buffer pointers are updated in kernel drivers
 only when an interrupt occurs. If you want to get accurate stream state,
-use functions \link ::snd_pcm_hwsync \endlink or \link ::snd_pcm_delay \endlink.
+use functions #snd_pcm_hwsync() or #snd_pcm_delay().
 Note that both of these functions do not update the current r/w pointer
-for applications, so the function \link ::snd_pcm_avail_update \endlink must
+for applications, so the function #snd_pcm_avail_update() must
 be called afterwards before any read/write begin+commit operations.
 <p>
-The function \link ::snd_pcm_hwsync \endlink reads the current hardware pointer
+The function #snd_pcm_hwsync() reads the current hardware pointer
 in the ring buffer from hardware. Note that this function does not update the current
-r/w pointer for applications, so the function \link ::snd_pcm_avail_update \endlink
+r/w pointer for applications, so the function #snd_pcm_avail_update()
 must be called afterwards before any read/write/begin+commit operations.
 <p>
-The function \link ::snd_pcm_delay \endlink returns the delay in samples.
+The function #snd_pcm_delay() returns the delay in samples.
 For playback, it means count of samples in the ring buffer before
 the next sample will be sent to DAC. For capture, it means count of samples
 in the ring buffer before the next sample will be captured from ADC. It works
 only when the stream is in the running or draining (playback only) state.
 Note that this function does not update the current r/w pointer for applications,
-so the function \link ::snd_pcm_avail_update \endlink must be called afterwards
+so the function #snd_pcm_avail_update() must be called afterwards
 before any read/write begin+commit operations.
 
 \section pcm_action Managing the stream state
@@ -406,44 +402,46 @@ before any read/write begin+commit operations.
 These functions directly and indirectly affecting the stream state:
 
 \par snd_pcm_hw_params
-The \link ::snd_pcm_hw_params \endlink function brings the stream state
-to \link ::SND_PCM_STATE_SETUP \endlink
-if successfully finishes, otherwise the state \link ::SND_PCM_STATE_OPEN
+The #snd_pcm_hw_params() function brings the stream state
+to #SND_PCM_STATE_SETUP
+if successfully finishes, otherwise the state #SND_PCM_STATE_OPEN
 \endlink is entered.
+When it is brought to SETUP state, this function automatically
+calls #snd_pcm_prepar() function to bring to the PREPARE state
+as below.
 
 \par snd_pcm_prepare
-The \link ::snd_pcm_prepare \endlink function enters the
-\link ::SND_PCM_STATE_PREPARED \endlink after a successful finish.
+The #snd_pcm_prepare() function enters from #SND_PCM_STATE_SETUP
+to the #SND_PCM_STATE_PREPARED after a successful finish.
 
 \par snd_pcm_start
-The \link ::snd_pcm_start \endlink function enters
-the \link ::SND_PCM_STATE_RUNNING \endlink after a successful finish.
+The #snd_pcm_start() function enters
+the #SND_PCM_STATE_RUNNING after a successful finish.
 
 \par snd_pcm_drop
-The \link ::snd_pcm_drop \endlink function enters the
-\link ::SND_PCM_STATE_SETUP \endlink state.
+The #snd_pcm_drop() function enters the
+#SND_PCM_STATE_SETUP state.
 
 \par snd_pcm_drain
-The \link ::snd_pcm_drain \endlink function enters the
-\link ::SND_PCM_STATE_DRAINING \endlink, if
+The #snd_pcm_drain() function enters the
+#SND_PCM_STATE_DRAINING, if
 the capture device has some samples in the ring buffer otherwise
-\link ::SND_PCM_STATE_SETUP \endlink state is entered.
+#SND_PCM_STATE_SETUP state is entered.
 
 \par snd_pcm_pause
-The \link ::snd_pcm_pause \endlink function enters the
-\link ::SND_PCM_STATE_PAUSED \endlink or
-\link ::SND_PCM_STATE_RUNNING \endlink.
+The #snd_pcm_pause() function enters the
+#SND_PCM_STATE_PAUSED or #SND_PCM_STATE_RUNNING.
 
 \par snd_pcm_writei, snd_pcm_writen
-The \link ::snd_pcm_writei \endlink and \link ::snd_pcm_writen \endlink
+The #snd_pcm_writei() and #snd_pcm_writen()
 functions can conditionally start the stream -
-\link ::SND_PCM_STATE_RUNNING \endlink. They depend on the start threshold
+#SND_PCM_STATE_RUNNING. They depend on the start threshold
 software parameter.
 
 \par snd_pcm_readi, snd_pcm_readn
-The \link ::snd_pcm_readi \endlink and \link ::snd_pcm_readn \endlink
+The #snd_pcm_readi() and #snd_pcm_readn()
 functions can conditionally start the stream -
-\link ::SND_PCM_STATE_RUNNING \endlink. They depend on the start threshold
+#SND_PCM_STATE_RUNNING. They depend on the start threshold
 software parameter.
 
 \section pcm_sync Streams synchronization
@@ -451,17 +449,17 @@ software parameter.
 There are two functions allowing link multiple streams together. In the
 case, the linking means that all operations are synchronized. Because the
 drivers cannot guarantee the synchronization (sample resolution) on hardware
-lacking this feature, the \link ::snd_pcm_info_get_sync \endlink function
-returns synchronization ID - \link ::snd_pcm_sync_id_t \endlink, which is equal
-for hardware synchronized streams. When the \link ::snd_pcm_link \endlink
+lacking this feature, the #snd_pcm_info_get_sync() function
+returns synchronization ID - #snd_pcm_sync_id_t, which is equal
+for hardware synchronized streams. When the #snd_pcm_link()
 function is called, all operations managing the stream state for these two
-streams are joined. The opposite function is \link ::snd_pcm_unlink \endlink.
+streams are joined. The opposite function is #snd_pcm_unlink().
 
 \section pcm_dev_names PCM naming conventions
 
 The ALSA library uses a generic string representation for names of devices.
 The devices might be virtual, physical or a mix of both. The generic string
-is passed to \link ::snd_pcm_open() \endlink or \link ::snd_pcm_open_lconf() \endlink.
+is passed to #snd_pcm_open() or #snd_pcm_open_lconf().
 It contains two parts: device name and arguments. Devices and arguments are described
 in configuration files. The usual place for default definitions is at /usr/share/alsa/alsa.conf.
 For detailed descriptions about integrated PCM plugins look to \ref pcm_plugins.
@@ -860,7 +858,7 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
  * \return 0 on success otherwise a negative error code
  *
  * Note this function does not update the actual r/w pointer
- * for applications. The function \link ::snd_pcm_avail_update \endlink
+ * for applications. The function #snd_pcm_avail_update()
  * have to be called before any read/write/begin+commit operation.
  */
 int snd_pcm_hwsync(snd_pcm_t *pcm)
@@ -883,7 +881,7 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
  * capture overrun.
  *
  * Note this function does not update the actual r/w pointer
- * for applications. The function \link ::snd_pcm_avail_update \endlink
+ * for applications. The function #snd_pcm_avail_update()
  * have to be called before any read/write/begin+commit operation.
  */
 int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
@@ -2399,7 +2397,7 @@ int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
  * \retval 1 Hardware supports sample-resolution mmap
  *
  * The return value is always one when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_can_mmap_sample_resolution(const snd_pcm_hw_params_t *params)
@@ -2416,7 +2414,7 @@ int snd_pcm_hw_params_can_mmap_sample_resolution(const snd_pcm_hw_params_t *para
  * \retval 1 Hardware does double buffering for start/stop
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_is_double(const snd_pcm_hw_params_t *params)
@@ -2433,7 +2431,7 @@ int snd_pcm_hw_params_is_double(const snd_pcm_hw_params_t *params)
  * \retval 1 Hardware does double buffering for data transfers
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_is_batch(const snd_pcm_hw_params_t *params)
@@ -2450,7 +2448,7 @@ int snd_pcm_hw_params_is_batch(const snd_pcm_hw_params_t *params)
  * \retval 1 Hardware does block transfers
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
@@ -2467,7 +2465,7 @@ int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
  * \retval 1 Hardware supports overrange detection
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params)
@@ -2484,7 +2482,7 @@ int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params)
  * \retval 1 Hardware supports pause
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_can_pause(const snd_pcm_hw_params_t *params)
@@ -2501,7 +2499,7 @@ int snd_pcm_hw_params_can_pause(const snd_pcm_hw_params_t *params)
  * \retval 1 Hardware supports resume
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_can_resume(const snd_pcm_hw_params_t *params)
@@ -2518,7 +2516,7 @@ int snd_pcm_hw_params_can_resume(const snd_pcm_hw_params_t *params)
  * \retval 1 Hardware does half-duplex
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_is_half_duplex(const snd_pcm_hw_params_t *params)
@@ -2535,7 +2533,7 @@ int snd_pcm_hw_params_is_half_duplex(const snd_pcm_hw_params_t *params)
  * \retval 1 Hardware does joint-duplex
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params)
@@ -2552,7 +2550,7 @@ int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params)
  * \retval 1 Hardware supports synchronized start
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_can_sync_start(const snd_pcm_hw_params_t *params)
@@ -2569,7 +2567,7 @@ int snd_pcm_hw_params_can_sync_start(const snd_pcm_hw_params_t *params)
  * \return 0 otherwise a negative error code if the info is not available
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
@@ -2587,7 +2585,7 @@ int snd_pcm_hw_params_get_rate_numden(const snd_pcm_hw_params_t *params,
  * \return signification bits in sample otherwise a negative error code if the info is not available
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
@@ -2602,7 +2600,7 @@ int snd_pcm_hw_params_get_sbits(const snd_pcm_hw_params_t *params)
  * \return FIFO size in frames otherwise a negative error code if the info is not available
  *
  * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, \link ::snd_pcm_hw_params \endlink function chooses one configuration
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
  * from the configuration space.
  */
 int snd_pcm_hw_params_get_fifo_size(const snd_pcm_hw_params_t *params)
