@@ -807,7 +807,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	dmix->shmptr->s.rate = spcm->rate;
 	dmix->shmptr->s.format = spcm->format;
 	dmix->shmptr->s.boundary = spcm->boundary;
-	dmix->shmptr->s.info = spcm->info;
+	dmix->shmptr->s.info = spcm->info & ~(SND_PCM_INFO_PAUSE|SND_PCM_INFO_RESUME);
 	dmix->shmptr->s.msbits = spcm->msbits;
 
 	spcm->donot_close = 1;
