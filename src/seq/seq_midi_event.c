@@ -56,7 +56,7 @@ struct snd_midi_event {
 
 /* status event types */
 typedef void (*event_encode_t)(snd_midi_event_t *dev, snd_seq_event_t *ev);
-typedef void (*event_decode_t)(snd_seq_event_t *ev, unsigned char *buf);
+typedef void (*event_decode_t)(const snd_seq_event_t *ev, unsigned char *buf);
 
 #endif /* DOC_HIDDEN */
 
@@ -69,11 +69,11 @@ static void pitchbend_ctrl_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void two_param_ctrl_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void one_param_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
 static void songpos_event(snd_midi_event_t *dev, snd_seq_event_t *ev);
-static void note_decode(snd_seq_event_t *ev, unsigned char *buf);
-static void one_param_decode(snd_seq_event_t *ev, unsigned char *buf);
-static void pitchbend_decode(snd_seq_event_t *ev, unsigned char *buf);
-static void two_param_decode(snd_seq_event_t *ev, unsigned char *buf);
-static void songpos_decode(snd_seq_event_t *ev, unsigned char *buf);
+static void note_decode(const snd_seq_event_t *ev, unsigned char *buf);
+static void one_param_decode(const snd_seq_event_t *ev, unsigned char *buf);
+static void pitchbend_decode(const snd_seq_event_t *ev, unsigned char *buf);
+static void two_param_decode(const snd_seq_event_t *ev, unsigned char *buf);
+static void songpos_decode(const snd_seq_event_t *ev, unsigned char *buf);
 
 /*
  * event list
@@ -112,12 +112,12 @@ static struct status_event_list_t {
 	{SND_SEQ_EVENT_RESET, 		0, NULL, NULL}, /* 0xff */
 };
 
-static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int len, snd_seq_event_t *ev);
-static int extra_decode_xrpn(snd_midi_event_t *dev, unsigned char *buf, int count, snd_seq_event_t *ev);
+static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int len, const snd_seq_event_t *ev);
+static int extra_decode_xrpn(snd_midi_event_t *dev, unsigned char *buf, int count, const snd_seq_event_t *ev);
 
 static struct extra_event_list_t {
 	int event;
-	int (*decode)(snd_midi_event_t *dev, unsigned char *buf, int len, snd_seq_event_t *ev);
+	int (*decode)(snd_midi_event_t *dev, unsigned char *buf, int len, const snd_seq_event_t *ev);
 } extra_event[] = {
 	{SND_SEQ_EVENT_CONTROL14, extra_decode_ctrl14},
 	{SND_SEQ_EVENT_NONREGPARAM, extra_decode_xrpn},
@@ -471,20 +471,20 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 
 
 /* decode note event */
-static void note_decode(snd_seq_event_t *ev, unsigned char *buf)
+static void note_decode(const snd_seq_event_t *ev, unsigned char *buf)
 {
 	buf[0] = ev->data.note.note & 0x7f;
 	buf[1] = ev->data.note.velocity & 0x7f;
 }
 
 /* decode one parameter controls */
-static void one_param_decode(snd_seq_event_t *ev, unsigned char *buf)
+static void one_param_decode(const snd_seq_event_t *ev, unsigned char *buf)
 {
 	buf[0] = ev->data.control.value & 0x7f;
 }
 
 /* decode pitch wheel change */
-static void pitchbend_decode(snd_seq_event_t *ev, unsigned char *buf)
+static void pitchbend_decode(const snd_seq_event_t *ev, unsigned char *buf)
 {
 	int value = ev->data.control.value + 8192;
 	buf[0] = value & 0x7f;
@@ -492,21 +492,21 @@ static void pitchbend_decode(snd_seq_event_t *ev, unsigned char *buf)
 }
 
 /* decode midi control change */
-static void two_param_decode(snd_seq_event_t *ev, unsigned char *buf)
+static void two_param_decode(const snd_seq_event_t *ev, unsigned char *buf)
 {
 	buf[0] = ev->data.control.param & 0x7f;
 	buf[1] = ev->data.control.value & 0x7f;
 }
 
 /* decode song position */
-static void songpos_decode(snd_seq_event_t *ev, unsigned char *buf)
+static void songpos_decode(const snd_seq_event_t *ev, unsigned char *buf)
 {
 	buf[0] = ev->data.control.value & 0x7f;
 	buf[1] = (ev->data.control.value >> 7) & 0x7f;
 }
 
 /* decode 14bit control */
-static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int count, snd_seq_event_t *ev)
+static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int count, const snd_seq_event_t *ev)
 {
 	unsigned char cmd;
 	int idx = 0;
@@ -543,7 +543,7 @@ static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int co
 }
 
 /* decode reg/nonreg param */
-static int extra_decode_xrpn(snd_midi_event_t *dev, unsigned char *buf, int count, snd_seq_event_t *ev)
+static int extra_decode_xrpn(snd_midi_event_t *dev, unsigned char *buf, int count, const snd_seq_event_t *ev)
 {
 	unsigned char cmd;
 	char *cbytes;
