@@ -629,13 +629,13 @@ const char *snd_pcm_info_subdevice_name(snd_pcm_info_t *info)
 snd_pcm_class_t snd_pcm_info_device_class(snd_pcm_info_t *info)
 {
 	assert(info);
-	return info->class;
+	return info->dev_class;
 }
 
 snd_pcm_subclass_t snd_pcm_info_device_subclass(snd_pcm_info_t *info)
 {
 	assert(info);
-	return info->subclass;
+	return info->dev_subclass;
 }
 
 unsigned int snd_pcm_info_subdevices_count(snd_pcm_info_t *info)
