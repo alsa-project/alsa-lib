@@ -843,10 +843,9 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
-	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	snd_config_t *slave = NULL;
+	snd_config_t *slave = NULL, *sconf;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int schannels = -1;
 	snd_config_t *tt = NULL;
@@ -882,7 +881,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("ttable is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(slave, &sname, 2,
+	err = snd_pcm_slave_conf(slave, &sconf, 2,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels);
 	if (err < 0)
@@ -898,12 +897,7 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 
-	/* This is needed cause snd_config_update may destroy config */
-	sname = strdup(sname);
-	if (!sname)
-		return  -ENOMEM;
-	err = snd_pcm_open(&spcm, sname, stream, mode);
-	free((void *) sname);
+	err = snd_pcm_open_slave(&spcm, sconf, stream, mode);
 	if (err < 0)
 		return err;
 	err = snd_pcm_route_open(pcmp, name, sformat, schannels,

@@ -457,10 +457,9 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
-	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	snd_config_t *slave = NULL;
+	snd_config_t *slave = NULL, *sconf;
 	const char *fname = NULL;
 	const char *format = NULL;
 	long fd = -1;
@@ -501,19 +500,14 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(slave, &sname, 0);
+	err = snd_pcm_slave_conf(slave, &sconf, 0);
 	if (err < 0)
 		return err;
 	if (!fname && fd < 0) {
 		SNDERR("file is not defined");
 		return -EINVAL;
 	}
-	/* This is needed cause snd_config_update may destroy config */
-	sname = strdup(sname);
-	if (!sname)
-		return  -ENOMEM;
-	err = snd_pcm_open(&spcm, sname, stream, mode);
-	free((void *) sname);
+	err = snd_pcm_open_slave(&spcm, sconf, stream, mode);
 	if (err < 0)
 		return err;
 	err = snd_pcm_file_open(pcmp, name, fname, fd, format, spcm, 1);

@@ -909,31 +909,93 @@ ssize_t snd_pcm_samples_to_bytes(snd_pcm_t *pcm, int samples)
 	return samples * pcm->sample_bits / 8;
 }
 
-/**
- * \brief Opens a PCM
- * \param pcmp Returned PCM handle
- * \param name ASCII identifier of the PCM handle
- * \param stream Wanted stream
- * \param mode Open mode (see #SND_PCM_NONBLOCK, #SND_PCM_ASYNC)
- * \return 0 on success otherwise a negative error code
- */
-int snd_pcm_open(snd_pcm_t **pcmp, const char *name, 
-		 snd_pcm_stream_t stream, int mode)
+static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
+			     snd_config_t *pcm_conf,
+			     snd_pcm_stream_t stream, int mode)
 {
 	const char *str;
 	char buf[256];
 	int err;
-	snd_config_t *pcm_conf, *conf, *type_conf = NULL;
+	snd_config_t *conf, *type_conf = NULL;
 	snd_config_iterator_t i, next;
 	const char *lib = NULL, *open_name = NULL;
 	int (*open_func)(snd_pcm_t **, const char *, snd_config_t *, 
 			 snd_pcm_stream_t, int);
 	void *h;
-	const char *name1;
-	assert(pcmp && name);
-	err = snd_config_update();
-	if (err < 0)
+	if (snd_config_get_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND) {
+		if (name)
+			SNDERR("Invalid type for PCM %s definition", name);
+		else
+			SNDERR("Invalid type for PCM definition");
+		return -EINVAL;
+	}
+	err = snd_config_search(pcm_conf, "type", &conf);
+	if (err < 0) {
+		SNDERR("type is not defined");
 		return err;
+	}
+	err = snd_config_get_string(conf, &str);
+	if (err < 0) {
+		SNDERR("Invalid type for %s", snd_config_get_id(conf));
+		return err;
+	}
+	err = snd_config_search_alias(snd_config, "pcm_type", str, &type_conf);
+	if (err >= 0) {
+		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
+			SNDERR("Invalid type for PCM type %s definition", str);
+			return -EINVAL;
+		}
+		snd_config_for_each(i, next, type_conf) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id = snd_config_get_id(n);
+			if (strcmp(id, "comment") == 0)
+				continue;
+			if (strcmp(id, "lib") == 0) {
+				err = snd_config_get_string(n, &lib);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					return -EINVAL;
+				}
+				continue;
+			}
+			if (strcmp(id, "open") == 0) {
+				err = snd_config_get_string(n, &open_name);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					return -EINVAL;
+				}
+				continue;
+			}
+			SNDERR("Unknown field %s", id);
+			return -EINVAL;
+		}
+	}
+	if (!open_name) {
+		open_name = buf;
+		snprintf(buf, sizeof(buf), "_snd_pcm_%s_open", str);
+	}
+	if (!lib)
+		lib = "libasound.so";
+	h = dlopen(lib, RTLD_NOW);
+	if (!h) {
+		SNDERR("Cannot open shared library %s", lib);
+		return -ENOENT;
+	}
+	open_func = dlsym(h, open_name);
+	if (!open_func) {
+		SNDERR("symbol %s is not defined inside %s", open_name, lib);
+		dlclose(h);
+		return -ENXIO;
+	}
+	return open_func(pcmp, name, pcm_conf, stream, mode);
+}
+
+static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, const char *name, 
+				 snd_pcm_stream_t stream, int mode)
+{
+	int err;
+	snd_config_t *pcm_conf;
+	const char *name1;
 
 	err = snd_config_search_alias(snd_config, "pcm", name, &pcm_conf);
 	name1 = name;
@@ -1005,69 +1067,37 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Unknown PCM %s", name1);
 		return -ENOENT;
 	}
-	if (snd_config_get_type(pcm_conf) != SND_CONFIG_TYPE_COMPOUND) {
-		SNDERR("Invalid type for PCM %s definition", name1);
-		return -EINVAL;
-	}
-	err = snd_config_search(pcm_conf, "type", &conf);
-	if (err < 0) {
-		SNDERR("type is not defined");
+	return snd_pcm_open_conf(pcmp, name, pcm_conf, stream, mode);
+}
+
+#ifndef DOC_HIDDEN
+int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *conf,
+		       snd_pcm_stream_t stream, int mode)
+{
+	const char *str;
+	if (snd_config_get_string(conf, &str) >= 0)
+		return snd_pcm_open_noupdate(pcmp, str, stream, mode);
+	return snd_pcm_open_conf(pcmp, NULL, conf, stream, mode);
+}
+#endif
+
+/**
+ * \brief Opens a PCM
+ * \param pcmp Returned PCM handle
+ * \param name ASCII identifier of the PCM handle
+ * \param stream Wanted stream
+ * \param mode Open mode (see #SND_PCM_NONBLOCK, #SND_PCM_ASYNC)
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_pcm_open(snd_pcm_t **pcmp, const char *name, 
+		 snd_pcm_stream_t stream, int mode)
+{
+	int err;
+	assert(pcmp && name);
+	err = snd_config_update();
+	if (err < 0)
 		return err;
-	}
-	err = snd_config_get_string(conf, &str);
-	if (err < 0) {
-		SNDERR("Invalid type for %s", snd_config_get_id(conf));
-		return err;
-	}
-	err = snd_config_search_alias(snd_config, "pcm_type", str, &type_conf);
-	if (err >= 0) {
-		if (snd_config_get_type(type_conf) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("Invalid type for PCM type %s definition", str);
-			return -EINVAL;
-		}
-		snd_config_for_each(i, next, type_conf) {
-			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id = snd_config_get_id(n);
-			if (strcmp(id, "comment") == 0)
-				continue;
-			if (strcmp(id, "lib") == 0) {
-				err = snd_config_get_string(n, &lib);
-				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
-				}
-				continue;
-			}
-			if (strcmp(id, "open") == 0) {
-				err = snd_config_get_string(n, &open_name);
-				if (err < 0) {
-					SNDERR("Invalid type for %s", id);
-					return -EINVAL;
-				}
-				continue;
-			}
-			SNDERR("Unknown field %s", id);
-			return -EINVAL;
-		}
-	}
-	if (!open_name) {
-		open_name = buf;
-		snprintf(buf, sizeof(buf), "_snd_pcm_%s_open", str);
-	}
-	if (!lib)
-		lib = "libasound.so";
-	h = dlopen(lib, RTLD_NOW);
-	if (!h) {
-		SNDERR("Cannot open shared library %s", lib);
-		return -ENOENT;
-	}
-	open_func = dlsym(h, open_name);
-	if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open_name, lib);
-		dlclose(h);
-		return -ENXIO;
-	}
-	return open_func(pcmp, name, pcm_conf, stream, mode);
+	return snd_pcm_open_noupdate(pcmp, name, stream, mode);
 }
 
 /**
@@ -4281,7 +4311,7 @@ static const char *names[SND_PCM_HW_PARAM_LAST + 1] = {
 	[SND_PCM_HW_PARAM_BUFFER_TIME] = "buffer_time"
 };
 
-int snd_pcm_slave_conf(snd_config_t *conf, const char **namep, 
+int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf, 
 		       unsigned int count, ...)
 {
 	snd_config_iterator_t i, next;
@@ -4317,17 +4347,7 @@ int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
 		if (strcmp(id, "comment") == 0)
 			continue;
 		if (strcmp(id, "pcm") == 0) {
-			if (pcm_valid) {
-			_duplicated:
-				SNDERR("duplicated %s", id);
-				return -EINVAL;
-			}
-			err = snd_config_get_string(n, namep);
-			if (err < 0) {
-			_invalid:
-				SNDERR("invalid type for %s", id);
-				return err;
-			}
+			*pcm_conf = n;
 			pcm_valid = 1;
 			continue;
 		}
@@ -4338,15 +4358,16 @@ int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
 			assert(names[idx]);
 			if (strcmp(id, names[idx]) != 0)
 				continue;
-			if (fields[k].valid)
-				goto _duplicated;
 			switch (idx) {
 			case SND_PCM_HW_PARAM_FORMAT:
 			{
 				snd_pcm_format_t f;
 				err = snd_config_get_string(n, &str);
-				if (err < 0)
-					goto _invalid;
+				if (err < 0) {
+				_invalid:
+					SNDERR("invalid type for %s", id);
+					return err;
+				}
 				f = snd_pcm_format_value(str);
 				if (f == SND_PCM_FORMAT_UNKNOWN) {
 					SNDERR("unknown format");
@@ -4368,6 +4389,10 @@ int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
 		if (k < count)
 			continue;
 		SNDERR("Unknown field %s", id);
+		return -EINVAL;
+	}
+	if (!pcm_valid) {
+		SNDERR("missing field pcm");
 		return -EINVAL;
 	}
 	for (k = 0; k < count; ++k) {

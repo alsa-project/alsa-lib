@@ -715,10 +715,9 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
-	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	snd_config_t *slave = NULL;
+	snd_config_t *slave = NULL, *sconf;
 	snd_config_t *tt = NULL;
 	snd_pcm_route_ttable_entry_t *ttable = NULL;
 	unsigned int cused, sused;
@@ -748,7 +747,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(slave, &sname, 0);
+	err = snd_pcm_slave_conf(slave, &sconf, 0);
 	if (err < 0)
 		return err;
 	if (tt) {
@@ -759,12 +758,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 			return err;
 	}
 		
-	/* This is needed cause snd_config_update may destroy config */
-	sname = strdup(sname);
-	if (!sname)
-		return  -ENOMEM;
-	err = snd_pcm_open(&spcm, sname, stream, mode);
-	free((void *) sname);
+	err = snd_pcm_open_slave(&spcm, sconf, stream, mode);
 	if (err < 0)
 		return err;
 	err = snd_pcm_plug_open(pcmp, name, ttable, MAX_CHANNELS, cused, sused, spcm, 1);

@@ -655,7 +655,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	int err;
 	unsigned int idx;
 	const char **slaves_id = NULL;
-	char **slaves_name = NULL;
+	snd_config_t **slaves_conf = NULL;
 	snd_pcm_t **slaves_pcm = NULL;
 	unsigned int *slaves_channels = NULL;
 	int *channels_sidx = NULL;
@@ -718,7 +718,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		return -EINVAL;
 	}
 	slaves_id = calloc(slaves_count, sizeof(*slaves_id));
-	slaves_name = calloc(slaves_count, sizeof(*slaves_name));
+	slaves_conf = calloc(slaves_count, sizeof(*slaves_conf));
 	slaves_pcm = calloc(slaves_count, sizeof(*slaves_pcm));
 	slaves_channels = calloc(slaves_count, sizeof(*slaves_channels));
 	channels_sidx = calloc(channels_count, sizeof(*channels_sidx));
@@ -729,14 +729,12 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	idx = 0;
 	snd_config_for_each(i, inext, slaves) {
 		snd_config_t *m = snd_config_iterator_entry(i);
-		const char *n;
 		int channels;
 		slaves_id[idx] = snd_config_get_id(m);
-		err = snd_pcm_slave_conf(m, &n, 1,
+		err = snd_pcm_slave_conf(m, &slaves_conf[idx], 1,
 					 SND_PCM_HW_PARAM_CHANNELS, 1, &channels);
 		if (err < 0)
 			goto _free;
-		slaves_name[idx] = strdup(n);
 		slaves_channels[idx] = channels;
 		++idx;
 	}
@@ -807,7 +805,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	}
 	
 	for (idx = 0; idx < slaves_count; ++idx) {
-		err = snd_pcm_open(&slaves_pcm[idx], slaves_name[idx], stream, mode);
+		err = snd_pcm_open_slave(&slaves_pcm[idx], slaves_conf[idx], stream, mode);
 		if (err < 0)
 			goto _free;
 	}
@@ -821,12 +819,10 @@ _free:
 		for (idx = 0; idx < slaves_count; ++idx) {
 			if (slaves_pcm[idx])
 				snd_pcm_close(slaves_pcm[idx]);
-			if (slaves_name[idx])
-				free(slaves_name[idx]);
 		}
 	}
-	if (slaves_name)
-		free(slaves_name);
+	if (slaves_conf)
+		free(slaves_conf);
 	if (slaves_pcm)
 		free(slaves_pcm);
 	if (slaves_channels)

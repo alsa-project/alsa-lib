@@ -21,6 +21,8 @@ pcm_scope_type.NAME {
 # Slave PCM definition
 pcm_slave.NAME {
   pcm STR		# PCM name
+  # or
+  pcm { }		# PCM definition
   format STR		# Format
   channels INT		# Channels
   rate INT		# Rate
@@ -46,6 +48,8 @@ pcm.NAME {
   # or
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
   }
   ttable {	 	# Transfer table (bidimensional compound of 
 	        	# cchannels * schannels numbers)
@@ -63,6 +67,8 @@ pcm.NAME {
   # or
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
     format STR		# Slave format
   }
 
@@ -72,6 +78,8 @@ pcm.NAME {
   # or
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
     [format STR]	# Slave format (default client format)
     rate INT		# Slave rate
   }
@@ -82,6 +90,8 @@ pcm.NAME {
   # or
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
     [format STR]	# Slave format (default client format)
     [channels INT]	# Slave channels (default client channels)
   }
@@ -99,6 +109,8 @@ pcm.NAME {
     # or
     N {			# Slave definition for slave N
       pcm STR		# Slave PCM name
+    # or
+      pcm { }		# Slave PCM definition
       channels INT	# Slave channels
     }
   }
@@ -115,6 +127,8 @@ pcm.NAME {
   # or
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
   }
   file STR		# File name
   # or
@@ -127,6 +141,8 @@ pcm.NAME {
   # or
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
   }
   [frequency INT]	# Updates per second
   scopes {		# Scopes
@@ -142,6 +158,8 @@ pcm.NAME {
   # or
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
     [format STR]	# Slave format (default client format)
     [channels INT]	# Slave channels (default client channels)
   }
@@ -165,6 +183,8 @@ pcm.NAME {
   # or
   slave {		# Slave definition or name
     pcm STR		# Slave PCM name
+    # or
+    pcm { }		# Slave PCM definition
   }
 
 

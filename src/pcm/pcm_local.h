@@ -527,8 +527,11 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int orde
 				       snd_pcm_hw_strategy_simple_choices_list_t *choices);
 #endif
 
-int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
+int snd_pcm_slave_conf(snd_config_t *conf, snd_config_t **pcm_conf,
 		       unsigned int count, ...);
+
+int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *conf,
+		       snd_pcm_stream_t stream, int mode);
 
 #define SND_PCM_HW_PARBIT_ACCESS	(1U << SND_PCM_HW_PARAM_ACCESS)
 #define SND_PCM_HW_PARBIT_FORMAT	(1U << SND_PCM_HW_PARAM_FORMAT)

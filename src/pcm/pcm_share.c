@@ -1371,10 +1371,11 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
-	const char *sname = NULL;
+	const char *slave_name = NULL;
+	const char *sname;
 	snd_config_t *bindings = NULL;
 	int err;
-	snd_config_t *slave = NULL;
+	snd_config_t *slave = NULL, *sconf;
 	unsigned int *channels_map;
 	unsigned int channels = 0;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
@@ -1391,7 +1392,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		if (strcmp(id, "type") == 0)
 			continue;
 		if (strcmp(id, "slave") == 0) {
-			err = snd_config_get_string(n, &sname);
+			err = snd_config_get_string(n, &slave_name);
 			if (err < 0) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
@@ -1414,7 +1415,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(slave, &sname, 5,
+	err = snd_pcm_slave_conf(slave, &sconf, 5,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &schannels,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
 				 SND_PCM_HW_PARAM_RATE, 0, &srate,
@@ -1422,6 +1423,14 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 				 SND_PCM_HW_PARAM_BUFFER_TIME, 0, &sbuffer_time);
 	if (err < 0)
 		return err;
+
+	/* FIXME: nothing strictly forces to have named definition */
+	err = snd_config_get_string(sconf, &sname);
+	if (err < 0) {
+		SNDERR("slave.pcm is not a string");
+		return err;
+	}
+
 	if (!bindings) {
 		SNDERR("bindings is not defined");
 		return -EINVAL;
@@ -1463,10 +1472,10 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, snd_config_t *conf,
 	}
 	if (schannels <= 0)
 		schannels = schannel_max + 1;
-	    err = snd_pcm_share_open(pcmp, name, sname, sformat, srate, 
-				     (unsigned int) schannels,
-				     speriod_time, sbuffer_time,
-				     channels, channels_map, stream, mode);
+	err = snd_pcm_share_open(pcmp, name, sname, sformat, srate, 
+				 (unsigned int) schannels,
+				 speriod_time, sbuffer_time,
+				 channels, channels_map, stream, mode);
 _free:
 	free(channels_map);
 	return err;

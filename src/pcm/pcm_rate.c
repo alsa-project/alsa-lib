@@ -539,10 +539,9 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 			 snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
-	const char *sname = NULL;
 	int err;
 	snd_pcm_t *spcm;
-	snd_config_t *slave = NULL;
+	snd_config_t *slave = NULL, *sconf;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int srate = -1;
 	snd_config_for_each(i, next, conf) {
@@ -563,7 +562,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(slave, &sname, 2,
+	err = snd_pcm_slave_conf(slave, &sconf, 2,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat,
 				 SND_PCM_HW_PARAM_RATE, 1, &srate);
 	if (err < 0)
@@ -573,12 +572,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave format is not linear");
 		return -EINVAL;
 	}
-	/* This is needed cause snd_config_update may destroy config */
-	sname = strdup(sname);
-	if (!sname)
-		return  -ENOMEM;
-	err = snd_pcm_open(&spcm, sname, stream, mode);
-	free((void *) sname);
+	err = snd_pcm_open_slave(&spcm, sconf, stream, mode);
 	if (err < 0)
 		return err;
 	err = snd_pcm_rate_open(pcmp, name, 
