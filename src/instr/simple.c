@@ -68,6 +68,7 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	xinstr->share_id[1] = snd_htoi_32(instr->share_id[1]);
 	xinstr->share_id[2] = snd_htoi_32(instr->share_id[2]);
 	xinstr->share_id[3] = snd_htoi_32(instr->share_id[3]);
+	xinstr->format = snd_htoi_32(instr->format);
 	xinstr->size = snd_htoi_32(instr->size);
 	xinstr->start = snd_htoi_32(instr->start);
 	xinstr->loop_start = snd_htoi_32(instr->loop_start);
