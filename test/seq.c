@@ -26,6 +26,8 @@ void set_name(void *handle)
 	snd_seq_client_info_t info;
 	
 	bzero(&info, sizeof(info));
+	info.client = snd_seq_client_id(handle);
+	info.type = USER_CLIENT;
 	snprintf(info.name, sizeof(info.name), "SeqUtil - %i", getpid());
 	if ((err = snd_seq_set_client_info(handle, &info)) < 0) {
 		fprintf(stderr, "Set client info error: %s\n", snd_strerror(err));
