@@ -1,0 +1,221 @@
+/*! \page conf Configuration files
+
+<P>Configuration files are using a simple format allowing the modern
+data description like nesting and array assignments.</P>
+
+\section conf_whitespace Whitespace
+
+Whitespace is the collective name given to spaces (blanks), horizontal and
+vertical tabs, newline characters, and comments. Whitespace can serve to
+indicate where configuration tokens start and end, but beyond this function,
+any surplus whitespace is discarded. For example, the two sequences
+
+\code
+  a 1 b 2
+\endcode
+
+and
+
+\code
+  a 1 
+     b 2
+\endcode
+
+are lexically equivalent and parse identically to give the four tokens:
+
+\code
+a
+1
+b
+2
+\endcode
+
+The ASCII characters representing whitespace can occur within literal
+strings, int which case they are protected from the normal parsing process
+(tey remain as part of the string). For example:
+
+\code
+  name "John Smith"
+\endcode
+
+parses to two tokens, including the single literal-string token "John
+Smith".
+
+\section conf_linesplicing Line splicing with \\
+
+A special case occurs, if the final newline character encountered is
+preceded by a backslash (\) in the string value definition. The backslash
+and new line are both discarded, allowing two physical lines of text to be
+treated as one unit.
+
+\code
+"John \\
+Smith"
+\endcode
+
+is parsed as "John Smith".
+
+\section conf_comments Comments
+
+A single-line comments are defined using character #. The comment can start
+in any position, and extends until the next new line.
+
+\code
+  a 1  # this is a comment
+\endcode
+
+\section conf_include Include another configuration file
+
+A new configuration file can be included using <filename> syntax. The global
+configuration directory can be referenced using <confdir:filename> syntax.
+
+\code
+</etc/alsa1.conf>
+<confdir:pcm/surround.conf>
+\endcode
+
+\section conf_punctuators Punctuators
+
+The configuration punctuators (also known as separators) are:
+
+\code
+  {} [] , ; = . ' " new-line form-feed carriage-return whitespace
+\endcode
+
+\subsection conf_braces Braces
+
+Open and close braces { } indicate the start and end of a compound
+statement:
+
+\code
+a {
+  b 1
+}
+\endcode
+
+\subsection conf_brackets Brackets
+
+Open and close brackets indicate single array definition. The identificators
+are automatically generated starting with zero.
+
+\code
+a [
+  "first"
+  "second"
+]
+\endcode
+
+Above code is equal to
+
+\code
+a.0 "first"
+a.1 "second"
+\endcode
+
+\subsection conf_comma_semicolon Comma and semicolon
+
+The comma (,) or semicolon (;) can separate the value assignments. It is not
+strictly required to use these separators, because any whitespace supplies
+them.
+
+\code
+a 1;
+b 1,
+\endcode
+
+\subsection conf_equal Equal sign
+
+The equal sign (=) separates can separate variable declarations from
+initialization lists:
+
+\code
+a=1
+b=2
+\endcode
+
+Using the equal signs is not required, because any whitespace supplies
+them.
+
+\section conf_assigns Assigns
+
+The configuration file defines id (key) and value pairs. The id (key) can be
+composed from any ASCII digits or chars from a to z or A to Z, including
+char _. The value can be either a string, integer or real number.
+
+\subsection conf_single Single assign
+
+\code
+a 1	# is equal to
+a=1	# is equal to
+a=1;	# is equal to
+a 1,
+\endcode
+
+\subsection conf_compound Compound assign (definition using braces)
+
+\code
+a {
+  b = 1
+}
+a={
+  b 1,
+}
+\endcode
+
+\section conf_compound1 Compound assign (one key definition)
+
+\code
+a.b 1
+a.b=1
+\endcode
+
+\subsection conf_array Array assign (definition using brackets)
+
+\code
+a [
+  "first"
+  "second"
+]
+\endcode
+
+\subsection conf_array1 Array assign (one key definition)
+
+\code
+a.0 "first"
+a.1 "second"
+\endcode
+
+\section conf_summary Summary
+
+\code
+# Configuration file syntax
+
+# Include a new configuration file
+<filename>
+
+# Simple assign
+name [=] value [,|;]
+
+# Compound assign (first style)
+name [=] {
+        name1 [=] value [,|;]
+        ...
+}
+
+# Compound assign (second style)
+name.name1 [=] value [,|;]
+
+# Array assign (first style)
+name [
+        value0 [,|;]
+        value1 [,|;]
+        ...
+]
+
+# Array assign (second style)
+name.0 [=] value0 [,|;]
+name.1 [=] value1 [,|;]
+\endcode
+
+
+*/
