@@ -138,15 +138,6 @@ void snd_pcm_alaw_decode(const snd_pcm_channel_area_t *dst_areas,
 		snd_pcm_uframes_t frames1;
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
-#if 0
-		if (!src_area->enabled) {
-			if (dst_area->wanted)
-				snd_pcm_area_silence(&dst_areas[channel], dst_offset, frames, dst_sfmt);
-			dst_area->enabled = 0;
-			continue;
-		}
-		dst_area->enabled = 1;
-#endif
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area);
@@ -184,15 +175,6 @@ void snd_pcm_alaw_encode(const snd_pcm_channel_area_t *dst_areas,
 		snd_pcm_uframes_t frames1;
 		const snd_pcm_channel_area_t *src_area = &src_areas[channel];
 		const snd_pcm_channel_area_t *dst_area = &dst_areas[channel];
-#if 0
-		if (!src_area->enabled) {
-			if (dst_area->wanted)
-				snd_pcm_area_silence(&dst_area->area, 0, frames, dst_sfmt);
-			dst_area->enabled = 0;
-			continue;
-		}
-		dst_area->enabled = 1;
-#endif
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area);

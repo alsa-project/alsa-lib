@@ -95,13 +95,7 @@ void snd_pcm_route_convert1_zero(const snd_pcm_channel_area_t *dst_area,
 				 const snd_pcm_route_ttable_dst_t* ttable ATTRIBUTE_UNUSED,
 				 const snd_pcm_route_params_t *params)
 {
-#if 0
-	if (dst_area->wanted)
-		snd_pcm_area_silence(dst_area, dst_offset, frames, params->dst_sfmt);
-	dsts_area->enabled = 0;
-#else
 	snd_pcm_area_silence(dst_area, dst_offset, frames, params->dst_sfmt);
-#endif
 }
 
 void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *dst_area,
@@ -133,9 +127,6 @@ void snd_pcm_route_convert1_one(const snd_pcm_channel_area_t *dst_area,
 		return;
 	}
 	
-#if 0
-	dst_area->enabled = 1;
-#endif
 	conv = conv_labels[params->conv_idx];
 	src = snd_pcm_channel_area_addr(src_area, src_offset);
 	dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
@@ -216,10 +207,6 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 	int srcidx, srcidx1 = 0;
 	for (srcidx = 0; srcidx < nsrcs; ++srcidx) {
 		const snd_pcm_channel_area_t *src_area = &src_areas[ttable->srcs[srcidx].channel];
-#if 0
-		if (!src_area->enabled)
-			continue;
-#endif
 		srcs[srcidx1] = snd_pcm_channel_area_addr(src_area, src_offset);
 		src_steps[srcidx1] = snd_pcm_channel_area_step(src_area);
 		src_tt[srcidx1] = ttable->srcs[srcidx];
@@ -238,9 +225,6 @@ void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 		return;
 	}
 
-#if 0
-	dst_area->enabled = 1;
-#endif
 	zero = zero_labels[params->sum_idx];
 	get = get_labels[params->get_idx];
 	add = add_labels[params->sum_idx * 2 + ttable->att];

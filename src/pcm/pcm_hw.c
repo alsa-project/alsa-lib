@@ -460,15 +460,6 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_uframes_t avail;
 	snd_pcm_sframes_t err;
-#if 0
-	if (pcm->ready_mode == SND_PCM_READY_ASAP ||
-	    pcm->xrun_mode == SND_PCM_XRUN_ASAP) {
-		snd_pcm_sframes_t d;
-		int err = snd_pcm_hw_delay(pcm, &d);
-		if (err < 0)
-			return err;
-	}
-#endif
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		avail = snd_pcm_mmap_playback_avail(pcm);
 	} else {

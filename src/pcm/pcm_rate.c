@@ -88,15 +88,6 @@ snd_pcm_uframes_t snd_pcm_rate_expand(const snd_pcm_channel_area_t *dst_areas,
 		int src_step, dst_step;
 		int16_t old_sample = states->sample;
 		unsigned int pos = states->pos;
-#if 0
-		if (!src_area->enabled) {
-			if (dst_area->wanted)
-				snd_pcm_area_silence(&dst_area->area, 0, dst_frames, plugin->dst_format);
-			dst_area->enabled = 0;
-			continue;
-		}
-		dst_area->enabled = 1;
-#endif
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area);
@@ -173,15 +164,6 @@ snd_pcm_uframes_t snd_pcm_rate_shrink(const snd_pcm_channel_area_t *dst_areas,
 		int src_step, dst_step;
 		sum = states->sum;
 		pos = states->pos;
-#if 0
-		if (!src_area->enabled) {
-			if (dst_area->wanted)
-				snd_pcm_area_silence(&dst_area->area, 0, dst_frames, plugin->dst_format);
-			dst_area->enabled = 0;
-			continue;
-		}
-		dst_area->enabled = 1;
-#endif
 		src = snd_pcm_channel_area_addr(src_area, src_offset);
 		dst = snd_pcm_channel_area_addr(dst_area, dst_offset);
 		src_step = snd_pcm_channel_area_step(src_area);
