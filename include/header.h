@@ -22,7 +22,7 @@
 #ifndef __SOUNDLIB_H
 #define __SOUNDLIB_H
 
-#include <linux/sound.h>
+#include <linux/asound.h>
 #include <unistd.h>
 #include <fcntl.h>
 

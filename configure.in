@@ -12,7 +12,7 @@ AC_PROG_LN_S
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CONFIG_HEADER(include/config.h)
-AC_CHECK_HEADERS(linux/sound.h)
+AC_CHECK_HEADERS(linux/asound.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -32,7 +32,7 @@ CFLAGS="-I$myprefix/include"
 #echo "CFLAGS=$CFLAGS"
 AC_MSG_CHECKING(for alsa-driver package)
 AC_TRY_RUN([
-#include <linux/sound.h>
+#include <linux/asound.h>
 void main(void)
 {
 #if !defined( SND_PROTOCOL_VERSION ) || !defined( SND_PROTOCOL_UNCOMPATIBLE )

@@ -26,7 +26,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "soundlib.h"
+#include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/sndcontrol%i"
 

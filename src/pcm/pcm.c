@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "soundlib.h"
+#include "asoundlib.h"
 
 #define SND_FILE_PCM		"/dev/snd/pcm%i%i"
 #define SND_PCM_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )

@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "soundlib.h"
+#include "asoundlib.h"
 
 static const char *snd_error_codes[] = {
   "Sound protocol isn't compatible"

@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "soundlib.h"
+#include "asoundlib.h"
 
 #define SND_FILE_MIXER		"/dev/snd/mixer%i%i"
 #define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 1 )

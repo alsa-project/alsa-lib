@@ -5,10 +5,10 @@
 
 include ../Makefile.conf
 
-TARGET=../lib/libsound.a
-STARGET=../lib/libsound.so
-STARGETX=../lib/libsound.so.$(SND_LIB_VERSION)
-STARGETO=../lib/libsound.so.$(SND_LIB_MAJOR)
+TARGET=../lib/libasound.a
+STARGET=../lib/libasound.so
+STARGETX=../lib/libasound.so.$(SND_LIB_VERSION)
+STARGETO=../lib/libasound.so.$(SND_LIB_MAJOR)
 TARGETS=$(TARGET) $(STARGET)
 
 STATIC_LIBS=	control/libcontrol.a \
@@ -34,14 +34,14 @@ SOBJECTS=error.So
 all: $(TARGETS)
 
 $(TARGET): .depend $(OBJECTS) $(STATIC_LIBS)
-	rm -f ../lib/libsound.a
+	rm -f ../lib/libasound.a
 	$(LINKER) -r -o $(TARGET) $(STATIC_LIBS) $(OBJECTS)
 
 $(STARGET): .depend $(SOBJECTS) $(DYNAMIC_LIBS)
-	rm -f ../lib/libsound*.so*
-	$(CC) -shared -Wl,-soname,libsound.so.$(SND_LIB_MAJOR) $(DYNAMIC_LIBS) $(SOBJECTS) -o $(STARGETX)
-	ln -s libsound.so.$(SND_LIB_VERSION) $(STARGET)
-	ln -s libsound.so.$(SND_LIB_VERSION) $(STARGETO)
+	rm -f ../lib/libasound*.so*
+	$(CC) -shared -Wl,-soname,libasound.so.$(SND_LIB_MAJOR) $(DYNAMIC_LIBS) $(SOBJECTS) -o $(STARGETX)
+	ln -s libasound.so.$(SND_LIB_VERSION) $(STARGET)
+	ln -s libasound.so.$(SND_LIB_VERSION) $(STARGETO)
 
 control/libcontrol.a:
 	$(MAKE) -C control
@@ -69,7 +69,7 @@ clean:
 	$(MAKE) -C mixer clean
 	$(MAKE) -C rawmidi clean
 	rm -f core .depend *.o *.So *.orig *~
-	rm -f ../lib/libsound.*
+	rm -f ../lib/libasound.*
 
 .depend:
 	$(CPP) $(COPTS) $(INCLUDE) -M *.c > .depend

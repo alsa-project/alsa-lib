@@ -394,7 +394,7 @@ should not be equal to <I>count</I>.</P>
 of <I>snd_pcm_playback_status</I>.</P>
 <DT><B>time</B><DD><P>Delay till played of the first sample from next write. This value should
 be used for time synchronization. Returned value is in the same format as 
-returned from the standard C function <I>gettimeofday( &amp;time, NULL )</I>.
+returned from the standard C function <I>gettimeofday( &time, NULL )</I>.
 This variable contains right value only if playback time mode is enabled
 (look to <I>snd_pcm_playback_time</I> function).</P>
 <DT><B>stime</B><DD><P>Time when playback was started.
@@ -434,7 +434,7 @@ should not be equal to <I>count</I>.</P>
 to <I>snd_pcm_record_status</I>.</P>
 <DT><B>time</B><DD><P>Lag since the next sample read was recorded. This value should be used for time
 synchronization. Returned value is in the same format as returned by the
-from standard C function <I>gettimeofday( &amp;time, NULL )</I>. This
+from standard C function <I>gettimeofday( &time, NULL )</I>. This
 variable contains right value only if record time mode is enabled (look to
 <I>snd_pcm_record_time</I> function).</P>
 <DT><B>stime</B><DD><P>Time when record was started. This variable contains right value only if
@@ -503,19 +503,19 @@ char *buffer;
 
 buffer = (char *)malloc( 512 * 1024 );
 if ( !buffer ) return;
-if ( (err = snd_pcm_open( &amp;handle, card, device, SND_PCM_OPEN_PLAYBACK )) &lt; 0 ) {
+if ( (err = snd_pcm_open( &handle, card, device, SND_PCM_OPEN_PLAYBACK )) &lt; 0 ) {
   fprintf( stderr, &quot;open failed: %s\n&quot;, snd_strerror( err ) );
   return;
 }
 format.format = SND_PCM_SFMT_MU_LAW;
 format.rate = 8000;
-format.voices = 1;
-if ( (err = snd_pcm_playback_format( handle, &amp;format )) &lt; 0 ) {
+format.channels = 1;
+if ( (err = snd_pcm_playback_format( handle, &format )) &lt; 0 ) {
   fprintf( stderr, &quot;format setup failed: %s\n&quot;, snd_strerror( err ) );
   snd_pcm_close( handle );
   return;
 }
-fd = open( &quot;/tmp/test.au&quot; );
+fd = open( &quot;/tmp/test.au&quot;, O_RDONLY );
 if ( fd &lt; 0 ) {
   perror( &quot;open file&quot; );
   snd_pcm_close( handle );
@@ -534,7 +534,7 @@ if ( !memcmp( buffer, &quot;.snd&quot;, 4 ) ) {
   if ( idx &gt; 128 ) idx = 128;
   if ( idx &gt; count ) idx = count;
 }
-size = snd_pcm_write( handle, &amp;buffer[ idx ], count - idx );
+size = snd_pcm_write( handle, &buffer[ idx ], count - idx );
 printf( &quot;Bytes written %i from %i...\n&quot;, size, count - idx );
 snd_pcm_close( handle );
 free( buffer );

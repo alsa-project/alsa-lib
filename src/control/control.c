@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "soundlib.h"
+#include "asoundlib.h"
 
 #define SND_FILE_CONTROL	"/dev/snd/control%i"
 #define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )

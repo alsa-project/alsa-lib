@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "../include/soundlib.h"
+#include "../include/asoundlib.h"
 
 const char *get_type( unsigned int type )
 {

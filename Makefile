@@ -13,26 +13,26 @@ dummy:
 endif
 
 
-all: include/soundlib.h
+all: include/asoundlib.h
 	$(MAKE) -C src
 	$(MAKE) -C doc
 	@echo
 	@echo "ALSA library were sucessfully compiled."
 	@echo
 
-include/soundlib.h:	include/header.h include/version.h include/error.h include/footer.h \
+include/asoundlib.h:	include/header.h include/version.h include/error.h include/footer.h \
 			include/control.h include/mixer.h include/pcm.h include/rawmidi.h
 	cat include/header.h include/version.h include/error.h \
 	    include/control.h include/mixer.h \
 	    include/pcm.h include/rawmidi.h \
-	    include/footer.h > include/soundlib.h
+	    include/footer.h > include/asoundlib.h
 
 install: all
-	$(INSTALL) -m 644 -o root -g root include/soundlib.h ${includedir}/sys
-	$(INSTALL) -m 644 -o root -g root lib/libsound.a ${libdir}
-	$(LN_S) -f libsound.so.${SND_LIB_VERSION} ${libdir}/libsound.so
-	$(LN_S) -f libsound.so.${SND_LIB_VERSION} ${libdir}/libsound.so.${SND_LIB_MAJOR}
-	$(INSTALL) -m 644 -o root -g root lib/libsound.so.${SND_LIB_VERSION} ${libdir}
+	$(INSTALL) -m 644 -o root -g root include/asoundlib.h ${includedir}/sys
+	$(INSTALL) -m 644 -o root -g root lib/libasound.a ${libdir}
+	$(LN_S) -f libasound.so.${SND_LIB_VERSION} ${libdir}/libasound.so
+	$(LN_S) -f libasound.so.${SND_LIB_VERSION} ${libdir}/libasound.so.${SND_LIB_MAJOR}
+	$(INSTALL) -m 644 -o root -g root lib/libasound.so.${SND_LIB_VERSION} ${libdir}
 	/sbin/ldconfig
 
 clean:
@@ -46,7 +46,7 @@ clean:
 
 cvsclean: clean
 	rm -f configure config.cache config.log config.status Makefile.conf \
-              utils/alsa-lib.spec include/config.h include/soundlib.h include/version.h
+              utils/alsa-lib.spec include/config.h include/asoundlib.h include/version.h
 
 pack: cvsclean
 	chown -R root.root ../alsa-lib

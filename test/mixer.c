@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "../include/soundlib.h"
+#include "../include/asoundlib.h"
 
 static void mixer_test( int card, int device )
 {

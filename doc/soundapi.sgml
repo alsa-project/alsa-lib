@@ -35,9 +35,9 @@ may be placed in the library code instead of the kernel driver.
 For a complete list of all variables and functions in the API you should look
 at the following header files:
 <enum>
-  <item>/usr/include/sys/soundlib.h
-  <item>/usr/include/linux/sound.h
-  <item>/usr/include/linux/sounddetect.h
+  <item>/usr/include/sys/asoundlib.h
+  <item>/usr/include/linux/asound.h
+  <item>/usr/include/linux/asoundid.h
 </enum>
 
 <sect>Error Codes
@@ -922,13 +922,13 @@ if ( (err = snd_pcm_open( &ero;handle, card, device, SND_PCM_OPEN_PLAYBACK )) < 
 }
 format.format = SND_PCM_SFMT_MU_LAW;
 format.rate = 8000;
-format.voices = 1;
+format.channels = 1;
 if ( (err = snd_pcm_playback_format( handle, &ero;format )) < 0 ) {
   fprintf( stderr, "format setup failed: %s\n", snd_strerror( err ) );
   snd_pcm_close( handle );
   return;
 }
-fd = open( "/tmp/test.au" );
+fd = open( "/tmp/test.au", O_RDONLY );
 if ( fd < 0 ) {
   perror( "open file" );
   snd_pcm_close( handle );

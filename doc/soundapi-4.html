@@ -228,11 +228,11 @@ void *handle;
 snd_mixer_info_t info;
 snd_mixer_channel_t channel;
 
-if ( (err = snd_mixer_open( &amp;handle, card, device )) &lt; 0 ) {
+if ( (err = snd_mixer_open( &handle, card, device )) &lt; 0 ) {
   fprintf( stderr, &quot;open failed: %s\n&quot;, snd_strerror( err ) );
   return;
 }
-if ( (err = snd_mixer_info( handle, &amp;info )) &lt; 0 ) {
+if ( (err = snd_mixer_info( handle, &info )) &lt; 0 ) {
   fprintf( stderr, &quot;info failed: %s\n&quot;, snd_strerror( err ) );
   snd_mixer_close( handle );
   return;
@@ -241,13 +241,13 @@ printf( &quot;Installed MIXER channels for card #i and device %i: %i\n&quot;,
                                         card + 1, device, info.channels );
 master = snd_mixer_channel( handle, SND_MIXER_ID_MASTER );
 if ( master &gt;= 0 ) {
-  if ( (err = snd_mixer_read( handle, master, &amp;channel )) &lt; 0 ) {
+  if ( (err = snd_mixer_read( handle, master, &channel )) &lt; 0 ) {
     fprintf( stderr, &quot;master read failed: %s\n&quot;, snd_strerror( err ) );
     snd_mixer_close( handle );
     return;
   }
   channel -&gt; left = channel -&gt; right = 50;
-  if ( (err = snd_mixer_write( handle, master, &amp;channel )) &lt; 0 ) {
+  if ( (err = snd_mixer_write( handle, master, &channel )) &lt; 0 ) {
     fprintf( stderr, &quot;master write failed: %s\n&quot;, snd_strerror( err ) );
     snd_mixer_close( handle );
     return;
