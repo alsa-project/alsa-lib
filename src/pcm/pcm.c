@@ -284,7 +284,7 @@ int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
  * \brief Resume from suspend, no samples are lost
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
- * \retval -EBUSY resume can't be proceed immediately (audio hardware is probably still suspended)
+ * \retval -EAGAIN resume can't be proceed immediately (audio hardware is probably still suspended)
  * \retval -ENOSYS hardware doesn't support this feature
  *
  * This function can be used when the stream is in the suspend state
