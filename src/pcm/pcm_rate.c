@@ -944,13 +944,13 @@ static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t app
 			return 0;
 		}
 	} else {
-		snd_pcm_areas_copy(rate->pareas, cont,
-				   areas, 0,
-				   pcm->channels, pcm->period_size - cont,
-				   pcm->format);
 		snd_pcm_areas_copy(rate->pareas, 0,
 				   areas, appl_offset,
 				   pcm->channels, cont,
+				   pcm->format);
+		snd_pcm_areas_copy(rate->pareas, cont,
+				   areas, 0,
+				   pcm->channels, pcm->period_size - cont,
 				   pcm->format);
 
 		snd_pcm_rate_write_areas1(pcm, rate->pareas, 0, rate->sareas, 0);
@@ -1060,6 +1060,9 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 		}
 		xfer = cont;
 
+		if (xfer == rate->slave->period_size)
+			goto __transfer;
+
 		/* grab second fragment */
 		cont = rate->slave->period_size - cont;
 		slave_frames = cont;
@@ -1081,6 +1084,7 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 			return 0;
 		}
 
+	      __transfer:
 		cont = pcm->buffer_size - hw_offset;
 		if (cont >= pcm->period_size) {
 			snd_pcm_rate_read_areas1(pcm, areas, hw_offset,
@@ -1148,6 +1152,8 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 		snd_atomic_write_begin(&rate->watom);
 		snd_pcm_mmap_appl_forward(pcm, xfer);
 		snd_atomic_write_end(&rate->watom);
+		appl_offset += pcm->period_size;
+		appl_offset %= pcm->buffer_size;
 	}
 	while ((snd_pcm_uframes_t)size >= pcm->period_size &&
 	       (snd_pcm_uframes_t)slave_size >= rate->slave->period_size) {
@@ -1159,6 +1165,8 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 		xfer += pcm->period_size;
 		size -= pcm->period_size;
 		slave_size -= rate->slave->period_size;
+		appl_offset += pcm->period_size;
+		appl_offset %= pcm->buffer_size;
 		snd_atomic_write_begin(&rate->watom);
 		snd_pcm_mmap_appl_forward(pcm, pcm->period_size);
 		snd_atomic_write_end(&rate->watom);
@@ -1202,6 +1210,8 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
 		xfer += pcm->period_size;
 		size -= pcm->period_size;
 		slave_size -= rate->slave->period_size;
+		hw_offset += pcm->period_size;
+		hw_offset %= pcm->buffer_size;
 		snd_pcm_mmap_hw_forward(pcm, pcm->period_size);
 	}
 	return (snd_pcm_sframes_t)xfer;
