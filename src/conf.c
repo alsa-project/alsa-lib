@@ -483,7 +483,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 		free(s);
 		return 0;
 	}
-	if (err == 0 && (s[0] >= '0' && s[0] <= '9') || s[0] == '-') {
+	if (err == 0 && ((s[0] >= '0' && s[0] <= '9') || s[0] == '-')) {
 		long i;
 		errno = 0;
 		err = safe_strtol(s, &i);
