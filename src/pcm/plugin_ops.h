@@ -494,6 +494,47 @@ getu_1234_C321: sample = bswap_32(as_u32c(src) ^ 0x80); goto GETU_END;
 }
 #endif
 
+#ifdef GETS_LABELS
+/* width endswap sign_toggle */
+static void *gets_labels[4 * 2 * 2] = {
+	&&gets_1_1,		/*  8h ->  8h */
+	&&gets_1_9,		/*  8h ^>  8h */
+	&&gets_1_1,		/*  8s ->  8h */
+	&&gets_1_9,		/*  8s ^>  8h */
+	&&gets_12_12,		/* 16h -> 16h */
+	&&gets_12_92,		/* 16h ^> 16h */
+	&&gets_12_21,		/* 16s -> 16h */
+	&&gets_12_A1,		/* 16s ^> 16h */
+	&&gets_0123_0123,	/* 24h -> 24h */
+	&&gets_0123_0923,	/* 24h ^> 24h */
+	&&gets_1230_0321,	/* 24s -> 24h */
+	&&gets_1230_0B21,	/* 24s ^> 24h */
+	&&gets_1234_1234,	/* 32h -> 32h */
+	&&gets_1234_9234,	/* 32h ^> 32h */
+	&&gets_1234_4321,	/* 32s -> 32h */
+	&&gets_1234_C321,	/* 32s ^> 32h */
+};
+#endif
+
+#ifdef GETS_END
+while (0) {
+gets_1_1: sample = as_s8c(src); goto GETS_END;
+gets_1_9: sample = as_s8c(src) ^ 0x80; goto GETS_END;
+gets_12_12: sample = as_s16c(src); goto GETS_END;
+gets_12_92: sample = as_s16c(src) ^ 0x8000; goto GETS_END;
+gets_12_21: sample = bswap_16(as_s16c(src)); goto GETS_END;
+gets_12_A1: sample = (int16_t)bswap_16(as_s16c(src) ^ 0x80); goto GETS_END;
+gets_0123_0123: sample = as_s32c(src); goto GETS_END;
+gets_0123_0923: sample = (as_s32c(src) ^ 0x800000); goto GETS_END;
+gets_1230_0321: sample = (int32_t)bswap_32(as_s32c(src)); goto GETS_END;
+gets_1230_0B21: sample = (int32_t)bswap_32(as_s32c(src) ^ 0x8000); goto GETS_END;
+gets_1234_1234: sample = as_s32c(src); goto GETS_END;
+gets_1234_9234: sample = as_s32c(src) ^ 0x80000000; goto GETS_END;
+gets_1234_4321: sample = (int32_t)bswap_32(as_s32c(src)); goto GETS_END;
+gets_1234_C321: sample = (int32_t)bswap_32(as_s32c(src) ^ 0x80); goto GETS_END;
+}
+#endif
+
 #ifdef PUT_LABELS
 /* width endswap sign_toggle */
 static void *put_labels[4 * 2 * 2] = {
@@ -533,430 +574,6 @@ put_1234_4321: as_s32(dst) = bswap_32(sample); goto PUT_END;
 put_1234_4329: as_u32(dst) = bswap_32(sample) ^ 0x80; goto PUT_END;
 #endif
 
-#ifdef GETS_LABELS
-static inline int32_t _gets(const void *src, 
-			    int src_sign, int src_wid, int src_end,
-			    int dst_wid)
-{
-	int32_t s;
-	switch (src_wid) {
-	case 8:
-		s = *(u_int8_t*)src;
-		break;
-	case 16:
-		s = *(u_int16_t*)src;
-		if (src_end)
-			s = bswap_16(s);
-		break;
-	case 24:
-	case 32:
-		s = *(u_int32_t*)src;
-		if (src_end)
-			s = bswap_32(s);
-		break;
-	default:
-		assert(0);
-		return 0;
-	}
-	if (!src_sign)
-		s -= 1U << (src_wid - 1);
-	if (src_wid < dst_wid)
-		return s * (1 << (dst_wid - src_wid));
-	else if (src_wid > dst_wid)
-		return s / (1 << (src_wid - dst_wid)); 
-	return s;
-}
-
-/* src_sign src_wid src_end dst_wid */
-static void *gets_labels[2 * 4 * 2 * 4] = {
-	&&gets_u8_8,	/*  u8h -> s8 */
-	&&gets_u8_16,	/*  u8h -> s16 */
-	&&gets_u8_24,	/*  u8h -> s24 */
-	&&gets_u8_32,	/*  u8h -> s32 */
-	&&gets_u8_8,	/*  u8s -> s8 */
-	&&gets_u8_16,	/*  u8s -> s16 */
-	&&gets_u8_24,	/*  u8s -> s24 */
-	&&gets_u8_32,	/*  u8s -> s32 */
-	&&gets_u16h_8,	/* u16h -> s8 */
-	&&gets_u16h_16,	/* u16h -> s16 */
-	&&gets_u16h_24,	/* u16h -> s24 */
-	&&gets_u16h_32,	/* u16h -> s32 */
-	&&gets_u16s_8,	/* u16s -> s8 */
-	&&gets_u16s_16,	/* u16s -> s16 */
-	&&gets_u16s_24,	/* u16s -> s24 */
-	&&gets_u16s_32,	/* u16s -> s32 */
-	&&gets_u24h_8,	/* u24h -> s8 */
-	&&gets_u24h_16,	/* u24h -> s16 */
-	&&gets_u24h_24,	/* u24h -> s24 */
-	&&gets_u24h_32,	/* u24h -> s32 */
-	&&gets_u24s_8,	/* u24s -> s8 */
-	&&gets_u24s_16,	/* u24s -> s16 */
-	&&gets_u24s_24,	/* u24s -> s24 */
-	&&gets_u24s_32,	/* u24s -> s32 */
-	&&gets_u32h_8,	/* u32h -> s8 */
-	&&gets_u32h_16,	/* u32h -> s16 */
-	&&gets_u32h_24,	/* u32h -> s24 */
-	&&gets_u32h_32,	/* u32h -> s32 */
-	&&gets_u32s_8,	/* u32s -> s8 */
-	&&gets_u32s_16,	/* u32s -> s16 */
-	&&gets_u32s_24,	/* u32s -> s24 */
-	&&gets_u32s_32,	/* u32s -> s32 */
-	&&gets_s8_8,	/*  s8h -> s8 */
-	&&gets_s8_16,	/*  s8h -> s16 */
-	&&gets_s8_24,	/*  s8h -> s24 */
-	&&gets_s8_32,	/*  s8h -> s32 */
-	&&gets_s8_8,	/*  s8s -> s8 */
-	&&gets_s8_16,	/*  s8s -> s16 */
-	&&gets_s8_24,	/*  s8s -> s24 */
-	&&gets_s8_32,	/*  s8s -> s32 */
-	&&gets_s16h_8,	/* s16h -> s8 */
-	&&gets_s16h_16,	/* s16h -> s16 */
-	&&gets_s16h_24,	/* s16h -> s24 */
-	&&gets_s16h_32,	/* s16h -> s32 */
-	&&gets_s16s_8,	/* s16s -> s8 */
-	&&gets_s16s_16,	/* s16s -> s16 */
-	&&gets_s16s_24,	/* s16s -> s24 */
-	&&gets_s16s_32,	/* s16s -> s32 */
-	&&gets_s24h_8,	/* s24h -> s8 */
-	&&gets_s24h_16,	/* s24h -> s16 */
-	&&gets_s24h_24,	/* s24h -> s24 */
-	&&gets_s24h_32,	/* s24h -> s32 */
-	&&gets_s24s_8,	/* s24s -> s8 */
-	&&gets_s24s_16,	/* s24s -> s16 */
-	&&gets_s24s_24,	/* s24s -> s24 */
-	&&gets_s24s_32,	/* s24s -> s32 */
-	&&gets_s32h_8,	/* s32h -> s8 */
-	&&gets_s32h_16,	/* s32h -> s16 */
-	&&gets_s32h_24,	/* s32h -> s24 */
-	&&gets_s32h_32,	/* s32h -> s32 */
-	&&gets_s32s_8,	/* s32s -> s8 */
-	&&gets_s32s_16,	/* s32s -> s16 */
-	&&gets_s32s_24,	/* s32s -> s24 */
-	&&gets_s32s_32,	/* s32s -> s32 */
-};
-#endif
-
-#ifdef GETS_END
-gets_u8_8:    sample = _gets(src, 0,  8, 0,  8); goto GETS_END;
-gets_u8_16:   sample = _gets(src, 0,  8, 0, 16); goto GETS_END;
-gets_u8_24:   sample = _gets(src, 0,  8, 0, 24); goto GETS_END;
-gets_u8_32:   sample = _gets(src, 0,  8, 0, 32); goto GETS_END;
-gets_u16h_8:  sample = _gets(src, 0, 16, 0,  8); goto GETS_END;
-gets_u16h_16: sample = _gets(src, 0, 16, 0, 16); goto GETS_END;
-gets_u16h_24: sample = _gets(src, 0, 16, 0, 24); goto GETS_END;
-gets_u16h_32: sample = _gets(src, 0, 16, 0, 32); goto GETS_END;
-gets_u16s_8:  sample = _gets(src, 0, 16, 1,  8); goto GETS_END;
-gets_u16s_16: sample = _gets(src, 0, 16, 1, 16); goto GETS_END;
-gets_u16s_24: sample = _gets(src, 0, 16, 1, 24); goto GETS_END;
-gets_u16s_32: sample = _gets(src, 0, 16, 1, 32); goto GETS_END;
-gets_u24h_8:  sample = _gets(src, 0, 24, 0,  8); goto GETS_END;
-gets_u24h_16: sample = _gets(src, 0, 24, 0, 16); goto GETS_END;
-gets_u24h_24: sample = _gets(src, 0, 24, 0, 24); goto GETS_END;
-gets_u24h_32: sample = _gets(src, 0, 24, 0, 32); goto GETS_END;
-gets_u24s_8:  sample = _gets(src, 0, 24, 1,  8); goto GETS_END;
-gets_u24s_16: sample = _gets(src, 0, 24, 1, 16); goto GETS_END;
-gets_u24s_24: sample = _gets(src, 0, 24, 1, 24); goto GETS_END;
-gets_u24s_32: sample = _gets(src, 0, 24, 1, 32); goto GETS_END;
-gets_u32h_8:  sample = _gets(src, 0, 32, 0,  8); goto GETS_END;
-gets_u32h_16: sample = _gets(src, 0, 32, 0, 16); goto GETS_END;
-gets_u32h_24: sample = _gets(src, 0, 32, 0, 24); goto GETS_END;
-gets_u32h_32: sample = _gets(src, 0, 32, 0, 32); goto GETS_END;
-gets_u32s_8:  sample = _gets(src, 0, 32, 1,  8); goto GETS_END;
-gets_u32s_16: sample = _gets(src, 0, 32, 1, 16); goto GETS_END;
-gets_u32s_24: sample = _gets(src, 0, 32, 1, 24); goto GETS_END;
-gets_u32s_32: sample = _gets(src, 0, 32, 1, 32); goto GETS_END;
-gets_s8_8:    sample = _gets(src, 1,  8, 0,  8); goto GETS_END;
-gets_s8_16:   sample = _gets(src, 1,  8, 0, 16); goto GETS_END;
-gets_s8_24:   sample = _gets(src, 1,  8, 0, 24); goto GETS_END;
-gets_s8_32:   sample = _gets(src, 1,  8, 0, 32); goto GETS_END;
-gets_s16h_8:  sample = _gets(src, 1, 16, 0,  8); goto GETS_END;
-gets_s16h_16: sample = _gets(src, 1, 16, 0, 16); goto GETS_END;
-gets_s16h_24: sample = _gets(src, 1, 16, 0, 24); goto GETS_END;
-gets_s16h_32: sample = _gets(src, 1, 16, 0, 32); goto GETS_END;
-gets_s16s_8:  sample = _gets(src, 1, 16, 1,  8); goto GETS_END;
-gets_s16s_16: sample = _gets(src, 1, 16, 1, 16); goto GETS_END;
-gets_s16s_24: sample = _gets(src, 1, 16, 1, 24); goto GETS_END;
-gets_s16s_32: sample = _gets(src, 1, 16, 1, 32); goto GETS_END;
-gets_s24h_8:  sample = _gets(src, 1, 24, 0,  8); goto GETS_END;
-gets_s24h_16: sample = _gets(src, 1, 24, 0, 16); goto GETS_END;
-gets_s24h_24: sample = _gets(src, 1, 24, 0, 24); goto GETS_END;
-gets_s24h_32: sample = _gets(src, 1, 24, 0, 32); goto GETS_END;
-gets_s24s_8:  sample = _gets(src, 1, 24, 1,  8); goto GETS_END;
-gets_s24s_16: sample = _gets(src, 1, 24, 1, 16); goto GETS_END;
-gets_s24s_24: sample = _gets(src, 1, 24, 1, 24); goto GETS_END;
-gets_s24s_32: sample = _gets(src, 1, 24, 1, 32); goto GETS_END;
-gets_s32h_8:  sample = _gets(src, 1, 32, 0,  8); goto GETS_END;
-gets_s32h_16: sample = _gets(src, 1, 32, 0, 16); goto GETS_END;
-gets_s32h_24: sample = _gets(src, 1, 32, 0, 24); goto GETS_END;
-gets_s32h_32: sample = _gets(src, 1, 32, 0, 32); goto GETS_END;
-gets_s32s_8:  sample = _gets(src, 1, 32, 1,  8); goto GETS_END;
-gets_s32s_16: sample = _gets(src, 1, 32, 1, 16); goto GETS_END;
-gets_s32s_24: sample = _gets(src, 1, 32, 1, 24); goto GETS_END;
-gets_s32s_32: sample = _gets(src, 1, 32, 1, 32); goto GETS_END;
-#endif
-
-#ifdef NORMS_LABELS
-static inline void _norms(const void *src, void *dst,
-			  int src_wid,
-			  int dst_sign, int dst_wid, int dst_end)
-{
-	int32_t s;
-	switch (src_wid) {
-	case 8:
-		s = *(int8_t*)src;
-		if (s >= 0x7f)
-			goto _min;
-		else if (s <= -0x80)
-			goto _max;
-		break;
-	case 16:
-		s = *(int16_t*)src;
-		if (s >= 0x7fff)
-			goto _min;
-		else if (s <= -0x8000)
-			goto _max;
-		break;
-	case 24:
-		s = *(int32_t*)src;
-		if (s >= 0x7fffff)
-			goto _min;
-		else if (s <= -0x800000)
-			goto _max;
-		break;
-	case 32:
-	{
-		int64_t s64;
-		s64 = *(int64_t*)src;
-		if (s64 >= 0x7fffffff)
-			goto _min;
-		else if (s64 <= -0x80000000)
-			goto _max;
-		s = s64;
-		break;
-	}
-	default:
-		assert(0);
-		return;
-	}
-	if (src_wid < dst_wid) {
-		unsigned int bits = dst_wid - src_wid;
-		s *= 1 << bits;
-	} else if (src_wid > dst_wid) {
-		unsigned int bits = src_wid - dst_wid;
-		s = (s + (1 << (bits - 1)))/ (1 << bits);
-	}
-	if (!dst_sign)
-		s += (1U << (dst_wid - 1));
-	switch (dst_wid) {
-	case 8:
-		*(u_int8_t*)dst = s;
-		break;
-	case 16:
-		if (dst_end)
-			s = bswap_16(s);
-		*(u_int16_t*)dst = s;
-		break;
-	case 24:
-	case 32:
-		if (dst_end)
-			s = bswap_32(s);
-		*(u_int32_t*)dst = s;
-		break;
-	}
-	return;
-
- _min:
-	switch (dst_wid) {
-	case 8:
-		if (dst_sign)
-			*(u_int8_t*)dst = 0x80;
-		else
-			*(u_int8_t*)dst = 0;
-		break;
-	case 16:
-		if (dst_sign)
-			*(u_int16_t*)dst = dst_end ? 0x0080 : 0x8000;
-		else
-			*(u_int16_t*)dst = 0;
-		break;
-	case 24:
-		if (dst_sign)
-			*(u_int32_t*)dst = dst_end ? 0x00008000 : 0x00800000;
-		else
-			*(u_int32_t*)dst = 0;
-		break;
-	case 32:
-		if (dst_sign)
-			*(u_int32_t*)dst = dst_end ? 0x00000080 : 0x80000000;
-		else
-			*(u_int32_t*)dst = 0;
-		break;
-	default:
-		assert(0);
-		break;
-	}
-	return;
-
- _max:
-	switch (dst_wid) {
-	case 8:
-		if (dst_sign)
-			*(u_int8_t*)dst = 0x7f;
-		else
-			*(u_int8_t*)dst = 0xff;
-		break;
-	case 16:
-		if (dst_sign)
-			*(u_int16_t*)dst = dst_end ? 0xff7f : 0x7fff;
-		else
-			*(u_int16_t*)dst = 0;
-		break;
-	case 24:
-		if (dst_sign)
-			*(u_int32_t*)dst = dst_end ? 0xffff7f00 : 0x007fffff;
-		else
-			*(u_int32_t*)dst = 0;
-		break;
-	case 32:
-		if (dst_sign)
-			*(u_int32_t*)dst = dst_end ? 0xffffff7f : 0x7fffffff;
-		else
-			*(u_int32_t*)dst = 0;
-		break;
-	default:
-		assert(0);
-		break;
-	}
-	return;
-}
-
-/* src_wid dst_sign dst_wid dst_end */
-static void *norms_labels[4 * 2 * 4 * 2] = {
-	&&norms_8_u8,	        /*  s8 -> u8 */
-	&&norms_8_u8,	        /*  s8 -> u8 */
-	&&norms_8_u16h,	        /*  s8 -> u16h */
-	&&norms_8_u16s,	        /*  s8 -> u16s */
-	&&norms_8_u24h,	        /*  s8 -> u24h */
-	&&norms_8_u24s,	        /*  s8 -> u24s */
-	&&norms_8_u32h,	        /*  s8 -> u32h */
-	&&norms_8_u32s,	        /*  s8 -> u32s */
-	&&norms_8_s8,	        /*  s8 -> s8 */
-	&&norms_8_s8,	        /*  s8 -> s8 */
-	&&norms_8_s16h,	        /*  s8 -> s16h */
-	&&norms_8_s16s,	        /*  s8 -> s16s */
-	&&norms_8_s24h,	        /*  s8 -> s24h */
-	&&norms_8_s24s,	        /*  s8 -> s24s */
-	&&norms_8_s32h,	        /*  s8 -> s32h */
-	&&norms_8_s32s,	        /*  s8 -> s32s */
-	&&norms_16_u8,	        /* s16 -> u8 */
-	&&norms_16_u8,	        /* s16 -> u8 */
-	&&norms_16_u16h,	/* s16 -> u16h */
-	&&norms_16_u16s,	/* s16 -> u16s */
-	&&norms_16_u24h,	/* s16 -> u24h */
-	&&norms_16_u24s,	/* s16 -> u24s */
-	&&norms_16_u32h,	/* s16 -> u32h */
-	&&norms_16_u32s,	/* s16 -> u32s */
-	&&norms_16_s8,		/* s16 -> s8 h*/
-	&&norms_16_s8,		/* s16 -> s8 */
-	&&norms_16_s16h,	/* s16 -> s16h */
-	&&norms_16_s16s,	/* s16 -> s16s */
-	&&norms_16_s24h,	/* s16 -> s24h */
-	&&norms_16_s24s,	/* s16 -> s24s */
-	&&norms_16_s32h,	/* s16 -> s32h */
-	&&norms_16_s32s,	/* s16 -> s32s */
-	&&norms_24_u8,		/* s24 -> u8 */
-	&&norms_24_u8,		/* s24 -> u8 */
-	&&norms_24_u16h,	/* s24 -> u16h */
-	&&norms_24_u16s,	/* s24 -> u16s */
-	&&norms_24_u24h,	/* s24 -> u24h */
-	&&norms_24_u24s,	/* s24 -> u24s */
-	&&norms_24_u32h,	/* s24 -> u32h */
-	&&norms_24_u32s,	/* s24 -> u32s */
-	&&norms_24_s8,		/* s24 -> s8 */
-	&&norms_24_s8,		/* s24 -> s8 */
-	&&norms_24_s16h,	/* s24 -> s16h */
-	&&norms_24_s16s,	/* s24 -> s16s */
-	&&norms_24_s24h,	/* s24 -> s24h */
-	&&norms_24_s24s,	/* s24 -> s24s */
-	&&norms_24_s32h,	/* s24 -> s32h */
-	&&norms_24_s32s,	/* s24 -> s32s */
-	&&norms_32_u8,		/* s32 -> u8 */
-	&&norms_32_u8,		/* s32 -> u8 */
-	&&norms_32_u16h,	/* s32 -> u16h */
-	&&norms_32_u16s,	/* s32 -> u16s */
-	&&norms_32_u24h,	/* s32 -> u24h */
-	&&norms_32_u24s,	/* s32 -> u24s */
-	&&norms_32_u32h,	/* s32 -> u32h */
-	&&norms_32_u32s,	/* s32 -> u32s */
-	&&norms_32_s8,		/* s32 -> s8 */
-	&&norms_32_s8,		/* s32 -> s8 */
-	&&norms_32_s16h,	/* s32 -> s16h */
-	&&norms_32_s16s,	/* s32 -> s16s */
-	&&norms_32_s24h,	/* s32 -> s24h */
-	&&norms_32_s24s,	/* s32 -> s24s */
-	&&norms_32_s32h,	/* s32 -> s32h */
-	&&norms_32_s32s,	/* s32 -> s32s */
-};
-#endif
-
-#ifdef NORMS_END
-norms_8_u8:	_norms(src, dst,  8, 0,  8, 0); goto NORMS_END;
-norms_8_u16h:	_norms(src, dst,  8, 0,  16, 0); goto NORMS_END;
-norms_8_u16s:	_norms(src, dst,  8, 0,  16, 1); goto NORMS_END;
-norms_8_u24h:	_norms(src, dst,  8, 0,  24, 0); goto NORMS_END;
-norms_8_u24s:	_norms(src, dst,  8, 0,  24, 1); goto NORMS_END;
-norms_8_u32h:	_norms(src, dst,  8, 0,  32, 0); goto NORMS_END;
-norms_8_u32s:	_norms(src, dst,  8, 0,  32, 1); goto NORMS_END;
-norms_8_s8:	_norms(src, dst,  8, 1,  8, 0); goto NORMS_END;
-norms_8_s16h:	_norms(src, dst,  8, 1,  16, 0); goto NORMS_END;
-norms_8_s16s:	_norms(src, dst,  8, 1,  16, 1); goto NORMS_END;
-norms_8_s24h:	_norms(src, dst,  8, 1,  24, 0); goto NORMS_END;
-norms_8_s24s:	_norms(src, dst,  8, 1,  24, 1); goto NORMS_END;
-norms_8_s32h:	_norms(src, dst,  8, 1,  32, 0); goto NORMS_END;
-norms_8_s32s:	_norms(src, dst,  8, 1,  32, 1); goto NORMS_END;
-norms_16_u8:	_norms(src, dst, 16, 0,  8, 0); goto NORMS_END;
-norms_16_u16h:	_norms(src, dst, 16, 0,  16, 0); goto NORMS_END;
-norms_16_u16s:	_norms(src, dst, 16, 0,  16, 1); goto NORMS_END;
-norms_16_u24h:	_norms(src, dst, 16, 0,  24, 0); goto NORMS_END;
-norms_16_u24s:	_norms(src, dst, 16, 0,  24, 1); goto NORMS_END;
-norms_16_u32h:	_norms(src, dst, 16, 0,  32, 0); goto NORMS_END;
-norms_16_u32s:	_norms(src, dst, 16, 0,  32, 1); goto NORMS_END;
-norms_16_s8:	_norms(src, dst, 16, 1,  8, 0); goto NORMS_END;
-norms_16_s16h:	_norms(src, dst, 16, 1,  16, 0); goto NORMS_END;
-norms_16_s16s:	_norms(src, dst, 16, 1,  16, 1); goto NORMS_END;
-norms_16_s24h:	_norms(src, dst, 16, 1,  24, 0); goto NORMS_END;
-norms_16_s24s:	_norms(src, dst, 16, 1,  24, 1); goto NORMS_END;
-norms_16_s32h:	_norms(src, dst, 16, 1,  32, 0); goto NORMS_END;
-norms_16_s32s:	_norms(src, dst, 16, 1,  32, 1); goto NORMS_END;
-norms_24_u8:	_norms(src, dst, 24, 0,  8, 0); goto NORMS_END;
-norms_24_u16h:	_norms(src, dst, 24, 0,  16, 0); goto NORMS_END;
-norms_24_u16s:	_norms(src, dst, 24, 0,  16, 1); goto NORMS_END;
-norms_24_u24h:	_norms(src, dst, 24, 0,  24, 0); goto NORMS_END;
-norms_24_u24s:	_norms(src, dst, 24, 0,  24, 1); goto NORMS_END;
-norms_24_u32h:	_norms(src, dst, 24, 0,  32, 0); goto NORMS_END;
-norms_24_u32s:	_norms(src, dst, 24, 0,  32, 1); goto NORMS_END;
-norms_24_s8:	_norms(src, dst, 24, 1,  8, 0); goto NORMS_END;
-norms_24_s16h:	_norms(src, dst, 24, 1,  16, 0); goto NORMS_END;
-norms_24_s16s:	_norms(src, dst, 24, 1,  16, 1); goto NORMS_END;
-norms_24_s24h:	_norms(src, dst, 24, 1,  24, 0); goto NORMS_END;
-norms_24_s24s:	_norms(src, dst, 24, 1,  24, 1); goto NORMS_END;
-norms_24_s32h:	_norms(src, dst, 24, 1,  32, 0); goto NORMS_END;
-norms_24_s32s:	_norms(src, dst, 24, 1,  32, 1); goto NORMS_END;
-norms_32_u8:	_norms(src, dst, 32, 0,  8, 0); goto NORMS_END;
-norms_32_u16h:	_norms(src, dst, 32, 0,  16, 0); goto NORMS_END;
-norms_32_u16s:	_norms(src, dst, 32, 0,  16, 1); goto NORMS_END;
-norms_32_u24h:	_norms(src, dst, 32, 0,  24, 0); goto NORMS_END;
-norms_32_u24s:	_norms(src, dst, 32, 0,  24, 1); goto NORMS_END;
-norms_32_u32h:	_norms(src, dst, 32, 0,  32, 0); goto NORMS_END;
-norms_32_u32s:	_norms(src, dst, 32, 0,  32, 1); goto NORMS_END;
-norms_32_s8:	_norms(src, dst, 32, 1,  8, 0); goto NORMS_END;
-norms_32_s16h:	_norms(src, dst, 32, 1,  16, 0); goto NORMS_END;
-norms_32_s16s:	_norms(src, dst, 32, 1,  16, 1); goto NORMS_END;
-norms_32_s24h:	_norms(src, dst, 32, 1,  24, 0); goto NORMS_END;
-norms_32_s24s:	_norms(src, dst, 32, 1,  24, 1); goto NORMS_END;
-norms_32_s32h:	_norms(src, dst, 32, 1,  32, 0); goto NORMS_END;
-norms_32_s32s:	_norms(src, dst, 32, 1,  32, 1); goto NORMS_END;
-#endif
 
 #undef as_u8
 #undef as_u16
