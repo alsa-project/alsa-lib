@@ -1435,27 +1435,6 @@ int snd_pcm_hw_info_complete(snd_pcm_hw_info_t *info)
 	return 0;
 }
 
-struct {
-	unsigned int rate;
-	unsigned int flag;
-} snd_pcm_rates[] = {
-	{ 5512, SND_PCM_RATE_5512 },
-	{ 8000, SND_PCM_RATE_8000 },
-	{ 11025, SND_PCM_RATE_11025 },
-	{ 16000, SND_PCM_RATE_16000 },
-	{ 22050, SND_PCM_RATE_22050 },
-	{ 32000, SND_PCM_RATE_32000 },
-	{ 44100, SND_PCM_RATE_44100 },
-	{ 48000, SND_PCM_RATE_48000 },
-	{ 64000, SND_PCM_RATE_64000 },
-	{ 88200, SND_PCM_RATE_88200 },
-	{ 96000, SND_PCM_RATE_96000 },
-	{ 176400, SND_PCM_RATE_176400 },
-	{ 192000, SND_PCM_RATE_192000 }
-};
-
-#define SND_PCM_RATES (sizeof(snd_pcm_rates) / sizeof(snd_pcm_rates[0]))
-
 int snd_pcm_hw_params_info(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 			   snd_pcm_hw_info_t *info)
 {
