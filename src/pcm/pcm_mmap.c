@@ -261,8 +261,7 @@ int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 	return pcm->ops->channel_info(pcm, info);
 }
 
-int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info,
-			     int shmid)
+int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid)
 {
 	switch (pcm->access) {
 	case SND_PCM_ACCESS_MMAP_INTERLEAVED:
@@ -282,7 +281,7 @@ int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info,
 	info->addr = 0;
 	info->type = SND_PCM_AREA_SHM;
 	info->u.shm.shmid = shmid;
-	info->u.shm.remove = 0;
+	info->u.shm.area = NULL;
 	return 0;
 }	
 
@@ -362,7 +361,16 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 						return -errno;
 					}
 					i->u.shm.shmid = id;
-					i->u.shm.remove = 1;
+					ptr = shmat(i->u.shm.shmid, 0, 0);
+					if (ptr == (void *) -1) {
+						SYSERR("shmat failed");
+						return -errno;
+					}
+					i->u.shm.area = snd_shm_area_create(id, ptr);
+					if (i->u.shm.area == NULL) {
+						SYSERR("snd_shm_area_create failed");
+						return -ENOMEM;
+					}
 					if (pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
 					    pcm->access == SND_PCM_ACCESS_RW_INTERLEAVED) {
 					    	unsigned int c1;
@@ -370,15 +378,16 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 							snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
 							if (i1->u.shm.shmid < 0) {
 								i1->u.shm.shmid = id;
-								i1->u.shm.remove = 1;
+								i1->u.shm.area = snd_shm_area_share(i->u.shm.area);
 							}
 						}
 					}
-				}
-				ptr = shmat(i->u.shm.shmid, 0, 0);
-				if (ptr == (void*) -1) {
-					SYSERR("shmat failed");
-					return -errno;
+				} else {
+					ptr = shmat(i->u.shm.shmid, 0, 0);
+					if (ptr == (void*) -1) {
+						SYSERR("shmat failed");
+						return -errno;
+					}
 				}
 				i->addr = ptr;
 				break;
@@ -446,18 +455,15 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 			errno = 0;
 			break;
 		case SND_PCM_AREA_SHM:
-			err = shmdt(i->addr);
-			if (err < 0) {
-				SYSERR("shmdt failed");
-				return -errno;
-			}
-			if (i->u.shm.remove) {
-				if (shmctl(i->u.shm.shmid, IPC_RMID, 0) < 0) {
-					SYSERR("shmctl IPC_RMID failed");
+			if (i->u.shm.area) {
+				snd_shm_area_destroy(i->u.shm.area);
+				i->u.shm.area = NULL;
+			} else {
+				err = shmdt(i->addr);
+				if (err < 0) {
+					SYSERR("shmdt failed");
 					return -errno;
 				}
-				i->u.shm.shmid = -1;
-				i->u.shm.remove = 0;
 			}
 			break;
 		default:

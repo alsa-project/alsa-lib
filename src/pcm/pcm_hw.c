@@ -95,7 +95,6 @@ typedef struct {
 	    avail_update_flag: 1,
 	    mmap_shm: 1;
 	snd_pcm_uframes_t appl_ptr;
-	int shmid;
 } snd_pcm_hw_t;
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
@@ -395,7 +394,7 @@ static int snd_pcm_hw_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info
 		info->u.mmap.offset = i.offset;
 		return 0;
 	}
-	return snd_pcm_channel_info_shm(pcm, info, hw->shmid);
+	return snd_pcm_channel_info_shm(pcm, info, -1);
 }
 
 static int snd_pcm_hw_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
@@ -733,35 +732,13 @@ static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_hw_mmap(snd_pcm_t *pcm)
+static int snd_pcm_hw_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_hw_t *hw = pcm->private_data;
-	int err;
-	if (hw->mmap_shm) {
-		snd_pcm_uframes_t size = snd_pcm_frames_to_bytes(pcm, (snd_pcm_sframes_t) pcm->buffer_size);
-		int id = shmget(IPC_PRIVATE, size, 0666);
-		hw->mmap_shm = 1;
-		if (id < 0) {
-			err = -errno;
-			SYSERR("shmget failed");
-			return err;
-		}
-		hw->shmid = id;
-	}
 	return 0;
 }
 
-static int snd_pcm_hw_munmap(snd_pcm_t *pcm)
+static int snd_pcm_hw_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
-	snd_pcm_hw_t *hw = pcm->private_data;
-	int err;
-	if (hw->mmap_shm) {
-		if (shmctl(hw->shmid, IPC_RMID, 0) < 0) {
-			err = -errno;
-			SYSERR("shmctl IPC_RMID failed");
-			return err;
-		}
-	}
 	return 0;
 }
 

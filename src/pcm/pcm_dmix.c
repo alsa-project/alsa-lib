@@ -96,6 +96,13 @@ static int shm_sum_discard(snd_pcm_direct_t *dmix)
 	return ret;
 }
 
+static void dmix_server_free(snd_pcm_direct_t *dmix)
+{
+	/* remove the memory region */
+	shm_sum_create_or_connect(dmix);
+	shm_sum_discard(dmix);
+}
+
 /*
  *  the main function of this plugin: mixing
  *  FIXME: optimize it for different architectures
@@ -954,6 +961,8 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		}
 
 		dmix->spcm = spcm;
+
+		dmix->server_free = dmix_server_free;
 		
 		ret = snd_pcm_direct_server_create(dmix);
 		if (ret < 0) {
@@ -992,7 +1001,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 	ret = shm_sum_create_or_connect(dmix);
 	if (ret < 0) {
-		SNDERR("unabel to initialize sum ring buffer");
+		SNDERR("unable to initialize sum ring buffer");
 		goto _err;
 	}
 
@@ -1177,20 +1186,22 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	params.buffer_time = -1;
 	bsize = psize = -1;
 	params.periods = 3;
+
 	err = snd_pcm_slave_conf(root, slave, &sconf, 8,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &params.format,
 				 SND_PCM_HW_PARAM_RATE, 0, &params.rate,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &params.channels,
 				 SND_PCM_HW_PARAM_PERIOD_TIME, 0, &params.period_time,
 				 SND_PCM_HW_PARAM_BUFFER_TIME, 0, &params.buffer_time,
-				 SND_PCM_HW_PARAM_PERIOD_SIZE, 0, &bsize,
-				 SND_PCM_HW_PARAM_BUFFER_SIZE, 0, &psize,
+				 SND_PCM_HW_PARAM_PERIOD_SIZE, 0, &psize,
+				 SND_PCM_HW_PARAM_BUFFER_SIZE, 0, &bsize,
 				 SND_PCM_HW_PARAM_PERIODS, 0, &params.periods);
 	if (err < 0)
 		return err;
 
 	params.period_size = psize;
 	params.buffer_size = bsize;
+
 	err = snd_pcm_dmix_open(pcmp, name, ipc_key, &params, bindings, root, sconf, stream, mode);
 	if (err < 0)
 		snd_config_delete(sconf);

@@ -72,7 +72,9 @@ typedef struct {
 	} u;
 } snd_pcm_direct_share_t;
 
-typedef struct {
+typedef struct snd_pcm_direct snd_pcm_direct_t;
+
+struct snd_pcm_direct {
 	snd_pcm_type_t type;		/* type (dmix, dsnoop, dshare) */
 	key_t ipc_key;			/* IPC key for semaphore and memory */
 	int semid;			/* IPC global semaphore identification */
@@ -109,7 +111,8 @@ typedef struct {
 			unsigned long long chn_mask;
 		} dshare;
 	} u;
-} snd_pcm_direct_t;
+	void (*server_free)(snd_pcm_direct_t *direct);
+};
 
 int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_semaphore_discard(snd_pcm_direct_t *dmix);

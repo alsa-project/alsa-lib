@@ -110,8 +110,8 @@ typedef struct _snd_pcm_channel_info {
 	enum { SND_PCM_AREA_SHM, SND_PCM_AREA_MMAP } type;
 	union {
 		struct {
+			struct snd_shm_area *area;
 			int shmid;
-			int remove;
 		} shm;
 		struct {
 			int fd;

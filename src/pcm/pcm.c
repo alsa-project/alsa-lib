@@ -6246,7 +6246,10 @@ static const char *names[SND_PCM_HW_PARAM_LAST_INTERVAL + 1] = {
 	[SND_PCM_HW_PARAM_CHANNELS] = "channels",
 	[SND_PCM_HW_PARAM_RATE] = "rate",
 	[SND_PCM_HW_PARAM_PERIOD_TIME] = "period_time",
-	[SND_PCM_HW_PARAM_BUFFER_TIME] = "buffer_time"
+	[SND_PCM_HW_PARAM_PERIOD_SIZE] = "period_size",
+	[SND_PCM_HW_PARAM_BUFFER_TIME] = "buffer_time",
+	[SND_PCM_HW_PARAM_BUFFER_SIZE] = "buffer_size",
+	[SND_PCM_HW_PARAM_PERIODS] = "periods"
 };
 
 int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
