@@ -137,6 +137,30 @@ static struct alisp_object * add_cons(struct alisp_instance * instance, struct a
 	return lexpr;
 }
 
+static struct alisp_object * add_cons1(struct alisp_instance * instance, struct alisp_object *lexpr, int cdr, int id, struct alisp_object *obj)
+{
+	struct alisp_object * p1;
+
+	if (lexpr == NULL || obj == NULL)
+		return NULL;
+	if (cdr) {
+		p1 = lexpr->value.c.cdr = new_object(instance, ALISP_OBJ_CONS);
+	} else {
+		p1 = lexpr->value.c.car = new_object(instance, ALISP_OBJ_CONS);
+	}
+	lexpr = p1;
+	if (p1 == NULL)
+		return NULL;
+	p1->value.c.car = new_object(instance, ALISP_OBJ_CONS);
+	if ((p1 = p1->value.c.car) == NULL)
+		return NULL;
+	p1->value.c.car = new_integer(instance, id);
+	if (p1->value.c.car == NULL)
+		return NULL;
+	p1->value.c.cdr = obj;
+	return lexpr;
+}
+
 static inline struct alisp_object * new_result(struct alisp_instance * instance, int err)
 {
 	return new_integer(instance, err);
@@ -361,7 +385,7 @@ static struct alisp_object * FA_card_info(struct alisp_instance * instance, stru
 static struct alisp_object * create_ctl_elem_id(struct alisp_instance * instance, snd_ctl_elem_id_t * id, struct alisp_object * cons)
 {
 	cons = add_cons(instance, cons, 0, "numid", new_integer(instance, snd_ctl_elem_id_get_numid(id)));
-	cons = add_cons(instance, cons, 1, "iface", new_string(instance, snd_ctl_elem_iface_name(snd_ctl_elem_id_get_numid(id))));
+	cons = add_cons(instance, cons, 1, "iface", new_string(instance, snd_ctl_elem_iface_name(snd_ctl_elem_id_get_interface(id))));
 	cons = add_cons(instance, cons, 1, "dev", new_integer(instance, snd_ctl_elem_id_get_device(id)));
 	cons = add_cons(instance, cons, 1, "subdev", new_integer(instance, snd_ctl_elem_id_get_subdevice(id)));
 	cons = add_cons(instance, cons, 1, "name", new_string(instance, snd_ctl_elem_id_get_name(id)));
@@ -402,8 +426,21 @@ static struct alisp_object * FA_hctl_elem_info(struct alisp_instance * instance,
 	p1 = add_cons(instance, p1, 1, "isowner", new_integer(instance, snd_ctl_elem_info_is_owner(info)));
 	p1 = add_cons(instance, p1, 1, "owner", new_integer(instance, snd_ctl_elem_info_get_owner(info)));
 	p1 = add_cons(instance, p1, 1, "count", new_integer(instance, snd_ctl_elem_info_get_count(info)));
-	if (type == SND_CTL_ELEM_TYPE_ENUMERATED)
-		p1 = add_cons(instance, p1, 1, "items", new_integer(instance, snd_ctl_elem_info_get_items(info)));
+	if (type == SND_CTL_ELEM_TYPE_ENUMERATED) {
+		unsigned int items, item;
+		items = snd_ctl_elem_info_get_items(info);
+		p1 = add_cons(instance, p1, 1, "items", new_integer(instance, items));
+		p1 = add_cons(instance, p1, 1, "inames", p2 = new_object(instance, ALISP_OBJ_CONS));
+		for (item = 0; item < items; item++) {
+			snd_ctl_elem_info_set_item(info, item);
+			err = snd_hctl_elem_info(handle, info);
+			if (err < 0) {
+				p2 = add_cons1(instance, p2, item > 0, item, &alsa_lisp_nil);
+			} else {
+				p2 = add_cons1(instance, p2, item > 0, item, new_string(instance, snd_ctl_elem_info_get_item_name(info)));
+			}
+		}
+	}
 	if (p1 == NULL)
 		return NULL;
 	return lexpr;

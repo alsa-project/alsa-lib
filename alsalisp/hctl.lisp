@@ -49,7 +49,14 @@
 	(princ "last     : " (acall 'hctl_last_elem hctl) "\n")
 	(princ "next (first): " (acall 'hctl_elem_next (acall 'hctl_first_elem hctl)) "\n")
 	(princ "prev (last) : " (acall 'hctl_elem_prev (acall 'hctl_last_elem hctl)) "\n")
-	(princ "first info  : " (acall 'hctl_elem_info (acall 'hctl_first_elem hctl)) "\n")
+	(setq elem (acall 'hctl_first_elem hctl))
+	(while elem
+	  (progn
+	    (setq info (acall 'hctl_elem_info elem))
+	    (princ info "\n")
+	    (setq elem (acall 'hctl_elem_next elem))
+	  )
+        )
         (setq hctl (acall 'hctl_close hctl))
         (if (= hctl 0)
           (princ "hctl close success\n")
@@ -66,3 +73,5 @@
     (princ "ctl open failed: " ctl "\n")
   )
 )
+
+(&stat-memory)

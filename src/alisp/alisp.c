@@ -683,6 +683,7 @@ static const char *obj_type_str(struct alisp_object * p)
 	case ALISP_OBJ_FLOAT: return "float";
 	case ALISP_OBJ_IDENTIFIER: return "identifier";
 	case ALISP_OBJ_STRING: return "string";
+	case ALISP_OBJ_POINTER: return "pointer";
 	case ALISP_OBJ_CONS: return "cons";
 	default: assert(0);
 	}
@@ -777,10 +778,14 @@ static void do_garbage_collect(struct alisp_instance *instance)
 			lisp_debug(instance, "** collecting cons %p", p);
 			free_object(p);
 
-			p->next = instance->free_objs_list;
-			instance->free_objs_list = p;
+			if (instance->free_objs < 1000) {
+				p->next = instance->free_objs_list;
+				instance->free_objs_list = p;
+				++instance->free_objs;
+			} else {
+				free(p);
+			}
 
-			++instance->free_objs;
 			--instance->used_objs;
 		} else {
 			/* The object is referenced somewhere. */
@@ -1884,6 +1889,17 @@ static struct alisp_object * F_dump_memory(struct alisp_instance *instance, stru
 	return &alsa_lisp_nil;
 }
 
+static struct alisp_object * F_stat_memory(struct alisp_instance *instance, struct alisp_object * args ATTRIBUTE_UNUSED)
+{
+	snd_output_printf(instance->out, "*** Memory stats\n");
+	snd_output_printf(instance->out, "  used_objs = %i, free_objs = %i, obj_size = %i (total = %i)\n",
+		instance->used_objs,
+		instance->free_objs,
+		sizeof(struct alisp_object),
+		(instance->used_objs + instance->free_objs) * sizeof(struct alisp_object));
+	return &alsa_lisp_nil;
+}
+
 static struct alisp_object * F_dump_objects(struct alisp_instance *instance, struct alisp_object * args)
 {
 	struct alisp_object * p = car(args);
@@ -1909,6 +1925,7 @@ static struct intrinsic intrinsics[] = {
 	{ "%", F_mod },
 	{ "&dump-memory", F_dump_memory },
 	{ "&dump-objects", F_dump_objects },
+	{ "&stat-memory", F_stat_memory },
 	{ "*", F_mul },
 	{ "+", F_add },
 	{ "-", F_sub },
