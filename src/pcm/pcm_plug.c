@@ -124,7 +124,7 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 		return format;
 	if (!snd_pcm_format_mask_test(&lin, format)) {
 		unsigned int i;
-		switch (snd_enum_to_int(format)) {
+		switch (format) {
 		case SND_PCM_FORMAT_MU_LAW:
 		case SND_PCM_FORMAT_A_LAW:
 		case SND_PCM_FORMAT_IMA_ADPCM:
@@ -179,9 +179,9 @@ static snd_pcm_format_t snd_pcm_plug_slave_format(snd_pcm_format_t format, const
 }
 
 #define SND_PCM_FMTBIT_PLUG (SND_PCM_FMTBIT_LINEAR | \
-			     (1 << snd_enum_to_int(SND_PCM_FORMAT_MU_LAW)) | \
-			     (1 << snd_enum_to_int(SND_PCM_FORMAT_A_LAW)) | \
-			     (1 << snd_enum_to_int(SND_PCM_FORMAT_IMA_ADPCM)))
+			     (1 << SND_PCM_FORMAT_MU_LAW) | \
+			     (1 << SND_PCM_FORMAT_A_LAW) | \
+			     (1 << SND_PCM_FORMAT_IMA_ADPCM))
 
 
 static void snd_pcm_plug_clear(snd_pcm_t *pcm)
@@ -299,7 +299,7 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 		    clt->channels != slv->channels)
 			return 0;
 		cfmt = clt->format;
-		switch (snd_enum_to_int(clt->format)) {
+		switch (clt->format) {
 		case SND_PCM_FORMAT_MU_LAW:
 			f = snd_pcm_mulaw_open;
 			break;
@@ -320,7 +320,7 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 		    clt->rate == slv->rate &&
 		    clt->channels == clt->channels)
 			return 0;
-		switch (snd_enum_to_int(slv->format)) {
+		switch (slv->format) {
 		case SND_PCM_FORMAT_MU_LAW:
 			f = snd_pcm_mulaw_open;
 			break;
@@ -455,7 +455,7 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		sformat_mask = snd_pcm_hw_param_get_mask(sparams,
 							 SND_PCM_HW_PARAM_FORMAT);
 		snd_mask_none(&sfmt_mask);
-		for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
+		for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 			snd_pcm_format_t f;
 			if (!snd_pcm_format_mask_test(format_mask, format))
 				continue;
@@ -530,7 +530,7 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 		sformat_mask = snd_pcm_hw_param_get_mask(sparams,
 							 SND_PCM_HW_PARAM_FORMAT);
 		snd_mask_none(&fmt_mask);
-		for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
+		for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
 			snd_pcm_format_t f;
 			if (!snd_pcm_format_mask_test(format_mask, format))
 				continue;

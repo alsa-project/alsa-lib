@@ -60,9 +60,9 @@ static int snd_rawmidi_params_default(snd_rawmidi_t *rawmidi, snd_rawmidi_params
 	return 0;
 }
 
-int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-			  const char *name, snd_config_t *rawmidi_root,
-			  snd_config_t *rawmidi_conf, int mode)
+static int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+				 const char *name, snd_config_t *rawmidi_root,
+				 snd_config_t *rawmidi_conf, int mode)
 {
 	const char *str;
 	char buf[256];
@@ -159,8 +159,8 @@ int snd_rawmidi_open_conf(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 	return 0;
 }
 
-int snd_rawmidi_open_noupdate(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
-			      snd_config_t *root, const char *name, int mode)
+static int snd_rawmidi_open_noupdate(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
+				     snd_config_t *root, const char *name, int mode)
 {
 	int err;
 	snd_config_t *rawmidi_conf;
@@ -385,7 +385,7 @@ unsigned int snd_rawmidi_info_get_subdevice(const snd_rawmidi_info_t *info)
 snd_rawmidi_stream_t snd_rawmidi_info_get_stream(const snd_rawmidi_info_t *info)
 {
 	assert(info);
-	return snd_int_to_enum(info->stream);
+	return info->stream;
 }
 
 /**
@@ -495,7 +495,7 @@ void snd_rawmidi_info_set_subdevice(snd_rawmidi_info_t *info, unsigned int val)
 void snd_rawmidi_info_set_stream(snd_rawmidi_info_t *info, snd_rawmidi_stream_t val)
 {
 	assert(info);
-	info->stream = snd_enum_to_int(val);
+	info->stream = val;
 }
 
 /**

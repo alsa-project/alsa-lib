@@ -25,7 +25,7 @@ do {\
 	assert(ptr);\
 	*ptr = (snd_instr_header_t *)alloca(snd_instr_header_sizeof());\
 	memset(*ptr, 0, snd_instr_header_sizeof());\
-} while (0)
+} while (0) /**< allocate instrument header on stack */
 int snd_instr_header_malloc(snd_instr_header_t **ptr, size_t len);
 void snd_instr_header_free(snd_instr_header_t *ptr);
 void snd_instr_header_copy(snd_instr_header_t *dst, const snd_instr_header_t *src);
@@ -61,45 +61,45 @@ void snd_instr_header_set_follow_alias(snd_instr_header_t *info, int val);
  */
 
 /** instrument types */
-#define SND_SEQ_INSTR_ATYPE_DATA	0	/**< instrument data */
-#define SND_SEQ_INSTR_ATYPE_ALIAS	1	/**< instrument alias */
+#define SND_SEQ_INSTR_ATYPE_DATA	SNDRV_SEQ_INSTR_ATYPE_DATA	/**< instrument data */
+#define SND_SEQ_INSTR_ATYPE_ALIAS	SNDRV_SEQ_INSTR_ATYPE_ALIAS	/**< instrument alias */
 
 /** instrument ASCII identifiers */
-#define SND_SEQ_INSTR_ID_DLS1		"DLS1"		/**< DLS1 */
-#define SND_SEQ_INSTR_ID_DLS2		"DLS2"		/**< DLS2 */
-#define SND_SEQ_INSTR_ID_SIMPLE		"Simple Wave"	/**< Simple Wave */
-#define SND_SEQ_INSTR_ID_SOUNDFONT	"SoundFont"	/**< SoundFont */
-#define SND_SEQ_INSTR_ID_GUS_PATCH	"GUS Patch"	/**< Gravis Patch */
-#define SND_SEQ_INSTR_ID_INTERWAVE	"InterWave FFFF"	/**< InterWave FFFF */
-#define SND_SEQ_INSTR_ID_OPL2_3		"OPL2/3 FM"	/**< OPL2/3 FM */
-#define SND_SEQ_INSTR_ID_OPL4		"OPL4"		/**< OPL4 */
+#define SND_SEQ_INSTR_ID_DLS1		SNDRV_SEQ_INSTR_ID_DLS1		/**< DLS1 */
+#define SND_SEQ_INSTR_ID_DLS2		SNDRV_SEQ_INSTR_ID_DLS2		/**< DLS2 */
+#define SND_SEQ_INSTR_ID_SIMPLE		SNDRV_SEQ_INSTR_ID_SIMPLE	/**< Simple Wave */
+#define SND_SEQ_INSTR_ID_SOUNDFONT	SNDRV_SEQ_INSTR_ID_SOUNDFONT	/**< SoundFont */
+#define SND_SEQ_INSTR_ID_GUS_PATCH	SNDRV_SEQ_INSTR_ID_GUS_PATCH	/**< Gravis Patch */
+#define SND_SEQ_INSTR_ID_INTERWAVE	SNDRV_SEQ_INSTR_ID_INTERWAVE	/**< InterWave FFFF */
+#define SND_SEQ_INSTR_ID_OPL2_3		SNDRV_SEQ_INSTR_ID_OPL2_3	/**< OPL2/3 FM */
+#define SND_SEQ_INSTR_ID_OPL4		SNDRV_SEQ_INSTR_ID_OPL4		/**< OPL4 */
 
 /** instrument types */
-#define SND_SEQ_INSTR_TYPE0_DLS1	(1<<0)	/**< MIDI DLS v1 */
-#define SND_SEQ_INSTR_TYPE0_DLS2	(1<<1)	/**< MIDI DLS v2 */
-#define SND_SEQ_INSTR_TYPE1_SIMPLE	(1<<0)	/**< Simple Wave */
-#define SND_SEQ_INSTR_TYPE1_SOUNDFONT	(1<<1)	/**< EMU SoundFont */
-#define SND_SEQ_INSTR_TYPE1_GUS_PATCH	(1<<2)	/**< Gravis UltraSound Patch */
-#define SND_SEQ_INSTR_TYPE1_INTERWAVE	(1<<3)	/**< InterWave FFFF */
-#define SND_SEQ_INSTR_TYPE2_OPL2_3	(1<<0)	/**< Yamaha OPL2/3 FM */
-#define SND_SEQ_INSTR_TYPE2_OPL4	(1<<1)	/**< Yamaha OPL4 */
+#define SND_SEQ_INSTR_TYPE0_DLS1	SNDRV_SEQ_INSTR_TYPE0_DLS1	/**< MIDI DLS v1 */
+#define SND_SEQ_INSTR_TYPE0_DLS2	SNDRV_SEQ_INSTR_TYPE0_DLS2	/**< MIDI DLS v2 */
+#define SND_SEQ_INSTR_TYPE1_SIMPLE	SNDRV_SEQ_INSTR_TYPE1_SIMPLE	/**< Simple Wave */
+#define SND_SEQ_INSTR_TYPE1_SOUNDFONT	SNDRV_SEQ_INSTR_TYPE1_SOUNDFONT	/**< EMU SoundFont */
+#define SND_SEQ_INSTR_TYPE1_GUS_PATCH	SNDRV_SEQ_INSTR_TYPE1_GUS_PATCH	/**< Gravis UltraSound Patch */
+#define SND_SEQ_INSTR_TYPE1_INTERWAVE	SNDRV_SEQ_INSTR_TYPE1_INTERWAVE	/**< InterWave FFFF */
+#define SND_SEQ_INSTR_TYPE2_OPL2_3	SNDRV_SEQ_INSTR_TYPE2_OPL2_3	/**< Yamaha OPL2/3 FM */
+#define SND_SEQ_INSTR_TYPE2_OPL4	SNDRV_SEQ_INSTR_TYPE2_OPL4	/**< Yamaha OPL4 */
 
 /** put commands */
-#define SND_SEQ_INSTR_PUT_CMD_CREATE	0	/**< create a new layer */
-#define SND_SEQ_INSTR_PUT_CMD_REPLACE	1	/**< replace the old layer with new one */
-#define SND_SEQ_INSTR_PUT_CMD_MODIFY	2	/**< modify the existing layer */
-#define SND_SEQ_INSTR_PUT_CMD_ADD	3	/**< add one to the existing layer */
-#define SND_SEQ_INSTR_PUT_CMD_REMOVE	4	/**< remove the layer */
+#define SND_SEQ_INSTR_PUT_CMD_CREATE	SNDRV_SEQ_INSTR_PUT_CMD_CREATE	/**< create a new layer */
+#define SND_SEQ_INSTR_PUT_CMD_REPLACE	SNDRV_SEQ_INSTR_PUT_CMD_REPLACE	/**< replace the old layer with new one */
+#define SND_SEQ_INSTR_PUT_CMD_MODIFY	SNDRV_SEQ_INSTR_PUT_CMD_MODIFY	/**< modify the existing layer */
+#define SND_SEQ_INSTR_PUT_CMD_ADD	SNDRV_SEQ_INSTR_PUT_CMD_ADD	/**< add one to the existing layer */
+#define SND_SEQ_INSTR_PUT_CMD_REMOVE	SNDRV_SEQ_INSTR_PUT_CMD_REMOVE	/**< remove the layer */
 
 /** get commands */
-#define SND_SEQ_INSTR_GET_CMD_FULL	0	/**< get the full data stream */
-#define SND_SEQ_INSTR_GET_CMD_PARTIAL	1	/**< get the partial data stream */
+#define SND_SEQ_INSTR_GET_CMD_FULL	SNDRV_SEQ_INSTR_GET_CMD_FULL	/**< get the full data stream */
+#define SND_SEQ_INSTR_GET_CMD_PARTIAL	SNDRV_SEQ_INSTR_GET_CMD_PARTIAL	/**< get the partial data stream */
 
 /** free commands */
-#define SND_SEQ_INSTR_FREE_CMD_ALL		0	/**< remove all matching instruments */
-#define SND_SEQ_INSTR_FREE_CMD_PRIVATE		1	/**< remove only private instruments */
-#define SND_SEQ_INSTR_FREE_CMD_CLUSTER		2	/**< remove only cluster instruments */
-#define SND_SEQ_INSTR_FREE_CMD_SINGLE		3	/**< remove single instrument */
+#define SND_SEQ_INSTR_FREE_CMD_ALL	SNDRV_SEQ_INSTR_FREE_CMD_ALL	/**< remove all matching instruments */
+#define SND_SEQ_INSTR_FREE_CMD_PRIVATE	SNDRV_SEQ_INSTR_FREE_CMD_PRIVATE /**< remove only private instruments */
+#define SND_SEQ_INSTR_FREE_CMD_CLUSTER	SNDRV_SEQ_INSTR_FREE_CMD_CLUSTER /**< remove only cluster instruments */
+#define SND_SEQ_INSTR_FREE_CMD_SINGLE	SNDRV_SEQ_INSTR_FREE_CMD_SINGLE	/**< remove single instrument */
 
 
 /**

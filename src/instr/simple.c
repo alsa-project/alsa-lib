@@ -1,3 +1,8 @@
+/**
+ * \file src/instr/simple.c
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 1999-2001
+ */
 /*
  *  Simple Wave Format Support
  *  Copyright (c) 1999 by Jaroslav Kysela <perex@suse.cz>
@@ -28,6 +33,11 @@
 #include <asm/byteorder.h>
 #include <sound/ainstr_simple.h>
 
+/**
+ * \brief Free simple instrument
+ * \param simple Simple instrument handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_simple_free(snd_instr_simple_t *simple)
 {
 	if (simple == NULL)
@@ -48,6 +58,14 @@ static long simple_size(simple_instrument_t *instr)
 	return size;
 }
 
+/**
+ * \brief Convert the simple instrument to byte stream
+ * \param simple Simple instrument handle
+ * \param name Simple instrument name
+ * \param __data Result - allocated byte stream
+ * \param __size Result - size of allocated byte stream
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 				       const char *name,
 				       snd_instr_header_t **__data,
@@ -97,6 +115,13 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	return 0;
 }
 
+/**
+ * \brief Convert the byte stream to simple instrument
+ * \param __data byte stream
+ * \param size size of byte stream
+ * \param simple Result - simple instrument handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_simple_convert_from_stream(snd_instr_header_t *__data ATTRIBUTE_UNUSED,
 					 size_t size ATTRIBUTE_UNUSED,
 					 snd_instr_simple_t **simple ATTRIBUTE_UNUSED)

@@ -1131,7 +1131,7 @@ static int _snd_mixer_selem_set_switch_all(snd_mixer_elem_t *elem, int dir, int 
  */
 const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
 {
-	static const char *array[snd_enum_to_int(SND_MIXER_SCHN_LAST) + 1] = {
+	static const char *array[SND_MIXER_SCHN_LAST + 1] = {
 		[SND_MIXER_SCHN_FRONT_LEFT] = "Front Left",
 		[SND_MIXER_SCHN_FRONT_RIGHT] = "Front Right",
 		[SND_MIXER_SCHN_FRONT_CENTER] = "Front Center",
@@ -1141,7 +1141,7 @@ const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
 	};
 	const char *p;
 	assert(channel <= SND_MIXER_SCHN_LAST);
-	p = array[snd_enum_to_int(channel)];
+	p = array[channel];
 	if (!p)
 		return "?";
 	return p;

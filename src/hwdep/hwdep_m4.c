@@ -73,7 +73,7 @@ const char *snd_hwdep_info_get_name(const snd_hwdep_info_t *obj)
 snd_hwdep_iface_t snd_hwdep_info_get_iface(const snd_hwdep_info_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->iface);
+	return obj->iface;
 }
 
 void snd_hwdep_info_set_device(snd_hwdep_info_t *obj, unsigned int val)

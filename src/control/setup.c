@@ -196,7 +196,7 @@ static int snd_config_get_ctl_elem_enumerated(snd_config_t *n, snd_ctl_t *ctl,
 	const char *str;
 	long val;
 	unsigned int idx, items;
-	switch (snd_enum_to_int(snd_config_get_type(n))) {
+	switch (snd_config_get_type(n)) {
 	case SND_CONFIG_TYPE_INTEGER:
 		snd_config_get_integer(n, &val);
 		return val;
@@ -239,7 +239,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 	count = snd_ctl_elem_info_get_count(info);
 	type = snd_ctl_elem_info_get_type(info);
 	if (count == 1) {
-		switch (snd_enum_to_int(type)) {
+		switch (type) {
 		case SND_CTL_ELEM_TYPE_BOOLEAN:
 			v = snd_config_get_bool(conf);
 			if (v >= 0) {
@@ -271,11 +271,11 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 		case SND_CTL_ELEM_TYPE_IEC958:
 			break;
 		default:
-			SNDERR("Unknow control type: %d", snd_enum_to_int(type));
+			SNDERR("Unknow control type: %d", type);
 			return -EINVAL;
 		}
 	}
-	switch (snd_enum_to_int(type)) {
+	switch (type) {
 	case SND_CTL_ELEM_TYPE_IEC958:
 		count = sizeof(snd_aes_iec958_t);
 		/* Fall through */
@@ -329,7 +329,7 @@ static int snd_config_get_ctl_elem_value(snd_config_t *conf,
 			SNDERR("bad value index");
 			return -EINVAL;
 		}
-		switch (snd_enum_to_int(type)) {
+		switch (type) {
 		case SND_CTL_ELEM_TYPE_BOOLEAN:
 			v = snd_config_get_bool(n);
 			if (v < 0)

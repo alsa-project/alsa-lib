@@ -341,7 +341,7 @@ static snd_pcm_state_t snd_pcm_shm_state(snd_pcm_t *pcm)
 	snd_pcm_shm_t *shm = pcm->private_data;
 	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
 	ctrl->cmd = SND_PCM_IOCTL_STATE;
-	return snd_int_to_enum(snd_pcm_shm_action(pcm));
+	return snd_pcm_shm_action(pcm);
 }
 
 static int snd_pcm_shm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
@@ -591,7 +591,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name, const char *sockname, c
 	memcpy(req->name, sname, snamelen);
 	req->dev_type = SND_DEV_TYPE_PCM;
 	req->transport_type = SND_TRANSPORT_TYPE_SHM;
-	req->stream = snd_enum_to_int(stream);
+	req->stream = stream;
 	req->mode = mode;
 	req->namelen = snamelen;
 	err = write(sock, req, reqlen);

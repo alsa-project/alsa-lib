@@ -1,3 +1,8 @@
+/**
+ * \file src/instr/iwffff.c
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 1999-2001
+ */
 /*
  *  InterWave FFFF Format Support
  *  Copyright (c) 1999 by Jaroslav Kysela <perex@suse.cz>
@@ -30,6 +35,8 @@
 /*
  *  defines
  */
+
+#ifndef DOC_HIDDEN
 
 #define IW_RAM_FILE		"/proc/asound/%i/gus-ram-%i"
 #define IW_ROM_FILE		"/proc/asound/%i/gus-rom-%i"
@@ -182,6 +189,8 @@ struct _snd_iwffff_handle {
 	unsigned int share_id3;
 };
 
+#endif /* DOC_HIDDEN */
+
 /*
  *  local functions
  */
@@ -201,6 +210,13 @@ static int iwffff_get_rom_header(int card, int bank, iwffff_rom_header_t *header
 	return fd;
 }
 
+/**
+ * \brief Open IWFFFF files
+ * \param handle IWFFFF handle
+ * \param name_fff filename of an FFF (header) file
+ * \param name_dat filename of an DAT (data) file
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_iwffff_open(snd_iwffff_handle_t **handle, const char *name_fff, const char *name_dat)
 {
 	snd_iwffff_handle_t *iwf;
@@ -253,6 +269,14 @@ int snd_instr_iwffff_open(snd_iwffff_handle_t **handle, const char *name_fff, co
 	return 0;
 }
 
+/**
+ * \brief Open IWFFFF ROM
+ * \param handle IWFFFF handle
+ * \param card card number
+ * \param bank ROM bank number (0-3)
+ * \param file ROM file number
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, int file)
 {
 	unsigned int next_ffff;
@@ -265,7 +289,7 @@ int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, 
  		return -EINVAL;
 	*handle = NULL;
 	idx = 0;
-	if (bank > 4 || file > 255)
+	if (bank > 3 || file > 255)
 		return -1; 
 	fd = iwffff_get_rom_header(card, bank, &header);
 	if (fd < 0)
@@ -310,17 +334,36 @@ int snd_instr_iwffff_open_rom(snd_iwffff_handle_t **handle, int card, int bank, 
 	return -ENOENT;
 }
 
-int snd_instr_iwffff_close(snd_iwffff_handle_t *iwf)
+/**
+ * \brief Open IWFFFF ROM file
+ * \param handle IWFFFF handle
+ * \param name IWFFFF ROM filename
+ * \param bank ROM bank number (0-3)
+ * \param file ROM file number
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_instr_iwffff_open_rom_file(snd_iwffff_handle_t **handle ATTRIBUTE_UNUSED, const char *name ATTRIBUTE_UNUSED, int bank ATTRIBUTE_UNUSED, int file ATTRIBUTE_UNUSED)
 {
-	if (iwf == NULL)
+	/* TODO */
+	return -ENXIO;
+}
+
+/**
+ * \brief Close and free IWFFFF handle
+ * \param handle IWFFFF handle
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_instr_iwffff_close(snd_iwffff_handle_t *handle)
+{
+	if (handle == NULL)
 		return -EINVAL;
-	if (iwf->dat_filename)
-		free(iwf->dat_filename);
-	if (iwf->fff_filename)
-		free(iwf->fff_filename);
-	if (iwf->fff_data)
-		free(iwf->fff_data);
-	free(iwf);
+	if (handle->dat_filename)
+		free(handle->dat_filename);
+	if (handle->fff_filename)
+		free(handle->fff_filename);
+	if (handle->fff_data)
+		free(handle->fff_data);
+	free(handle);
 	return 0;
 }
 
@@ -368,6 +411,11 @@ static void free_layer(iwffff_layer_t *layer)
 	free(layer);
 }
 
+/**
+ * \brief Free IWFFFF instrument
+ * \param __instr IWFFFF instrument handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_iwffff_free(snd_instr_iwffff_t *__instr)
 {
 	iwffff_instrument_t *instr = (iwffff_instrument_t *)__instr; 
@@ -401,7 +449,7 @@ static char *look_for_id(snd_iwffff_handle_t *iwf ATTRIBUTE_UNUSED, unsigned cha
 static void copy_modulation(iwffff_lfo_t *glfo, unsigned char *buffer)
 {
 	glfo->freq  = snd_LE_to_host_16(*(((unsigned short *)buffer) + 0/2));
-	glfo->depth = snd_LE_to_host_16(*(((unsigned short *)buffer) + 2/1));
+	glfo->depth = snd_LE_to_host_16(*(((unsigned short *)buffer) + 2/2));
 	glfo->sweep = snd_LE_to_host_16(*(((unsigned short *)buffer) + 4/2));
 	glfo->shape = buffer[6];
 	glfo->delay = buffer[7];
@@ -607,6 +655,14 @@ static int load_iw_patch(snd_iwffff_handle_t *iwf, iwffff_instrument_t *instr,
 	return 0;
 }
 
+/**
+ * \brief Load IWFFFF instrument
+ * \param iwf IWFFFF handle
+ * \param bank program bank number
+ * \param prg program number
+ * \param __iwffff allocated IWFFFF instrument
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_iwffff_load(snd_iwffff_handle_t *iwf, int bank, int prg, snd_instr_iwffff_t **__iwffff)
 {
 	unsigned char *ptr, *end;
@@ -738,10 +794,18 @@ static int copy_env_to_stream(iwffff_xenv_t *xenv, iwffff_env_t *env, __u32 styp
 	return size;
 }
 
-int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
-				    const char *name,
-				    snd_instr_header_t **__data,
-				    long *__size)
+/**
+ * \brief Convert the IWFFFF instrument to byte stream
+ * \param iwffff IWFFFF instrument handle
+ * \param name instrument name
+ * \param __data Result - allocated byte stream
+ * \param __size Result - size of allocated byte stream
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_instr_iwffff_convert_to_stream(snd_instr_iwffff_t *iwffff,
+				       const char *name,
+				       snd_instr_header_t **__data,
+				       size_t *__size)
 {
 	snd_instr_header_t *put;
 	int size;
@@ -827,6 +891,13 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 	return 0;
 }
 
+/**
+ * \brief Convert the byte stream to IWFFFF instrument
+ * \param data Input - byte stream
+ * \param size Input - size of byte stream
+ * \param iwffff Result - allocated IWFFFF instrument handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_iwffff_convert_from_stream(snd_instr_header_t *data ATTRIBUTE_UNUSED,
 					 size_t size ATTRIBUTE_UNUSED,
 					 snd_instr_iwffff_t **iwffff ATTRIBUTE_UNUSED)

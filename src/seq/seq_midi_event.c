@@ -1,3 +1,10 @@
+/**
+ * \file seq/seq_midi_event.c
+ * \author Takashi Iwai <tiwai@suse.de>
+ * \author Jaroslav Kysela <perex@suse.cz>
+ * \date 2000-2001
+ */
+
 /*
  *  MIDI byte <-> sequencer event coder
  *
@@ -22,6 +29,7 @@
 #include <malloc.h>
 #include "local.h"
 
+#ifndef DOC_HIDDEN
 
 /* midi status */
 struct snd_midi_event {
@@ -46,6 +54,8 @@ struct snd_midi_event {
 /* status event types */
 typedef void (*event_encode_t)(snd_midi_event_t *dev, snd_seq_event_t *ev);
 typedef void (*event_decode_t)(snd_seq_event_t *ev, unsigned char *buf);
+
+#endif /* DOC_HIDDEN */
 
 /*
  * prototypes
@@ -72,31 +82,31 @@ static struct status_event_list_t {
 	event_decode_t decode;
 } status_event[] = {
 	/* 0x80 - 0xf0 */
-	{SNDRV_SEQ_EVENT_NOTEOFF,		2, note_event, note_decode},
-	{SNDRV_SEQ_EVENT_NOTEON,		2, note_event, note_decode},
-	{SNDRV_SEQ_EVENT_KEYPRESS,	2, note_event, note_decode},
-	{SNDRV_SEQ_EVENT_CONTROLLER,	2, two_param_ctrl_event, two_param_decode},
-	{SNDRV_SEQ_EVENT_PGMCHANGE,	1, one_param_ctrl_event, one_param_decode},
-	{SNDRV_SEQ_EVENT_CHANPRESS,	1, one_param_ctrl_event, one_param_decode},
-	{SNDRV_SEQ_EVENT_PITCHBEND,	2, pitchbend_ctrl_event, pitchbend_decode},
-	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf0 */
+	{SND_SEQ_EVENT_NOTEOFF,		2, note_event, note_decode},
+	{SND_SEQ_EVENT_NOTEON,		2, note_event, note_decode},
+	{SND_SEQ_EVENT_KEYPRESS,	2, note_event, note_decode},
+	{SND_SEQ_EVENT_CONTROLLER,	2, two_param_ctrl_event, two_param_decode},
+	{SND_SEQ_EVENT_PGMCHANGE,	1, one_param_ctrl_event, one_param_decode},
+	{SND_SEQ_EVENT_CHANPRESS,	1, one_param_ctrl_event, one_param_decode},
+	{SND_SEQ_EVENT_PITCHBEND,	2, pitchbend_ctrl_event, pitchbend_decode},
+	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf0 */
 	/* 0xf0 - 0xff */
-	{SNDRV_SEQ_EVENT_SYSEX,		1, NULL, NULL}, /* sysex: 0xf0 */
-	{SNDRV_SEQ_EVENT_QFRAME,		1, one_param_event, one_param_decode}, /* 0xf1 */
-	{SNDRV_SEQ_EVENT_SONGPOS,		2, songpos_event, songpos_decode}, /* 0xf2 */
-	{SNDRV_SEQ_EVENT_SONGSEL,		1, one_param_event, one_param_decode}, /* 0xf3 */
-	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf4 */
-	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf5 */
-	{SNDRV_SEQ_EVENT_TUNE_REQUEST,	0, NULL, NULL},	/* 0xf6 */
-	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf7 */
-	{SNDRV_SEQ_EVENT_CLOCK,		0, NULL, NULL}, /* 0xf8 */
-	{SNDRV_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf9 */
-	{SNDRV_SEQ_EVENT_START,		0, NULL, NULL}, /* 0xfa */
-	{SNDRV_SEQ_EVENT_CONTINUE,	0, NULL, NULL}, /* 0xfb */
-	{SNDRV_SEQ_EVENT_STOP, 		0, NULL, NULL}, /* 0xfc */
-	{SNDRV_SEQ_EVENT_NONE, 		0, NULL, NULL}, /* 0xfd */
-	{SNDRV_SEQ_EVENT_SENSING, 	0, NULL, NULL}, /* 0xfe */
-	{SNDRV_SEQ_EVENT_RESET, 		0, NULL, NULL}, /* 0xff */
+	{SND_SEQ_EVENT_SYSEX,		1, NULL, NULL}, /* sysex: 0xf0 */
+	{SND_SEQ_EVENT_QFRAME,		1, one_param_event, one_param_decode}, /* 0xf1 */
+	{SND_SEQ_EVENT_SONGPOS,		2, songpos_event, songpos_decode}, /* 0xf2 */
+	{SND_SEQ_EVENT_SONGSEL,		1, one_param_event, one_param_decode}, /* 0xf3 */
+	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf4 */
+	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf5 */
+	{SND_SEQ_EVENT_TUNE_REQUEST,	0, NULL, NULL},	/* 0xf6 */
+	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf7 */
+	{SND_SEQ_EVENT_CLOCK,		0, NULL, NULL}, /* 0xf8 */
+	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf9 */
+	{SND_SEQ_EVENT_START,		0, NULL, NULL}, /* 0xfa */
+	{SND_SEQ_EVENT_CONTINUE,	0, NULL, NULL}, /* 0xfb */
+	{SND_SEQ_EVENT_STOP, 		0, NULL, NULL}, /* 0xfc */
+	{SND_SEQ_EVENT_NONE, 		0, NULL, NULL}, /* 0xfd */
+	{SND_SEQ_EVENT_SENSING, 	0, NULL, NULL}, /* 0xfe */
+	{SND_SEQ_EVENT_RESET, 		0, NULL, NULL}, /* 0xff */
 };
 
 static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int len, snd_seq_event_t *ev);
@@ -105,17 +115,21 @@ static struct extra_event_list_t {
 	int event;
 	int (*decode)(snd_midi_event_t *dev, unsigned char *buf, int len, snd_seq_event_t *ev);
 } extra_event[] = {
-	{SNDRV_SEQ_EVENT_CONTROL14, extra_decode_ctrl14},
-	/*{SNDRV_SEQ_EVENT_NONREGPARAM, extra_decode_nrpn},*/
-	/*{SNDRV_SEQ_EVENT_REGPARAM, extra_decode_rpn},*/
+	{SND_SEQ_EVENT_CONTROL14, extra_decode_ctrl14},
+	/*{SND_SEQ_EVENT_NONREGPARAM, extra_decode_nrpn},*/
+	/*{SND_SEQ_EVENT_REGPARAM, extra_decode_rpn},*/
 };
 
 #define numberof(ary)	(sizeof(ary)/sizeof(ary[0]))
 
-/*
- *  new/delete record
+/**
+ * \brief Initialize MIDI event parser
+ * \param bufsize buffer size for MIDI message
+ * \param rdev allocated MIDI event parser
+ * \return 0 on success otherwise a negative error code
+ *
+ * Allocates and initializes MIDI event parser.
  */
-
 int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 {
 	snd_midi_event_t *dev;
@@ -136,6 +150,13 @@ int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 	return 0;
 }
 
+/**
+ * \brief Free MIDI event parser
+ * \param rdev MIDI event parser
+ * \return 0 on success otherwise a negative error code
+ *
+ * Frees MIDI event parser.
+ */
 void snd_midi_event_free(snd_midi_event_t *dev)
 {
 	if (dev != NULL) {
@@ -155,24 +176,50 @@ inline static void reset_encode(snd_midi_event_t *dev)
 	dev->type = 0;
 }
 
+/**
+ * \brief Reset MIDI encode parser
+ * \param dev MIDI event parser
+ * \return 0 on success otherwise a negative error code
+ *
+ * Resets MIDI encode parser
+ */
 void snd_midi_event_reset_encode(snd_midi_event_t *dev)
 {
 	reset_encode(dev);
 }
 
+/**
+ * \brief Reset MIDI decode parser
+ * \param dev MIDI event parser
+ * \return 0 on success otherwise a negative error code
+ *
+ * Resets MIDI decode parser
+ */
 void snd_midi_event_reset_decode(snd_midi_event_t *dev)
 {
 	dev->lastcmd = 0xff;
 }
 
+/**
+ * \brief Initializes MIDI parsers
+ * \param dev MIDI event parser
+ * \return 0 on success otherwise a negative error code
+ *
+ * Initializes MIDI parsers (both encode and decode)
+ */
 void snd_midi_event_init(snd_midi_event_t *dev)
 {
 	snd_midi_event_reset_encode(dev);
 	snd_midi_event_reset_decode(dev);
 }
 
-/*
- * resize buffer
+/**
+ * \brief Resize MIDI message (event) buffer
+ * \param dev MIDI event parser
+ * \param bufsize new requested buffer size
+ * \return 0 on success otherwise a negative error code
+ *
+ * Resizes MIDI message (event) buffer.
  */
 int snd_midi_event_resize_buffer(snd_midi_event_t *dev, size_t bufsize)
 {
@@ -192,16 +239,24 @@ int snd_midi_event_resize_buffer(snd_midi_event_t *dev, size_t bufsize)
 	return 0;
 }
 
-/*
- *  read bytes and encode to sequencer event if finished
- *  return the size of encoded bytes
+/**
+ * \brief Read bytes and encode to sequencer event if finished
+ * \param dev MIDI event parser
+ * \param buf MIDI byte stream
+ * \param count count of bytes of MIDI byte stream to encode
+ * \param ev Result - sequencer event
+ * \return count of encoded bytes otherwise a negative error code
+ *
+ * Read bytes and encode to sequencer event if finished.
+ * If complete sequencer event is available, ev->type is not
+ * equal to #SND_SEQ_EVENT_NONE.
  */
 long snd_midi_event_encode(snd_midi_event_t *dev, unsigned char *buf, long count, snd_seq_event_t *ev)
 {
 	long result = 0;
 	int rc;
 
-	ev->type = SNDRV_SEQ_EVENT_NONE;
+	ev->type = SND_SEQ_EVENT_NONE;
 
 	while (count-- > 0) {
 		rc = snd_midi_event_encode_byte(dev, *buf++, ev);
@@ -215,11 +270,14 @@ long snd_midi_event_encode(snd_midi_event_t *dev, unsigned char *buf, long count
 	return result;
 }
 
-/*
- *  read one byte and encode to sequencer event:
- *  return 1 if MIDI bytes are encoded to an event
- *         0 data is not finished
- *         negative for error
+/**
+ * \brief Read one byte and encode to sequencer event if finished
+ * \param dev MIDI event parser
+ * \param c a byte of MIDI stream
+ * \param ev Result - sequencer event
+ * \return 1 - sequencer event is completed, 0 - next byte is required for completion, otherwise a negative error code
+ *
+ * Read byte and encode to sequencer event if finished.
  */
 int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev)
 {
@@ -323,9 +381,15 @@ static void songpos_event(snd_midi_event_t *dev, snd_seq_event_t *ev)
 	ev->data.control.value = (int)dev->buf[2] * 128 + (int)dev->buf[1];
 }
 
-/*
- * decode from a sequencer event to midi bytes
- * return the size of decoded midi events
+/**
+ * \brief Decode sequencer event to MIDI byte stream
+ * \param dev MIDI event parser
+ * \param buf Result - MIDI byte stream
+ * \param count Available bytes in MIDI byte stream
+ * \param ev Event to decode
+ * \return count of decoded bytes otherwise a negative error code
+ *
+ * Decode sequencer event to MIDI byte stream.
  */
 long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count, snd_seq_event_t *ev)
 {

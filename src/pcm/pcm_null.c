@@ -55,7 +55,7 @@ static int snd_pcm_null_async(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int sig ATTRIBUTE
 static int snd_pcm_null_info(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_info_t * info)
 {
 	memset(info, 0, sizeof(*info));
-	info->stream = snd_enum_to_int(pcm->stream);
+	info->stream = pcm->stream;
 	info->card = -1;
 	strncpy(info->id, pcm->name, sizeof(info->id));
 	strncpy(info->name, pcm->name, sizeof(info->name));
@@ -74,7 +74,7 @@ static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_null_t *null = pcm->private_data;
 	memset(status, 0, sizeof(*status));
-	status->state = snd_enum_to_int(null->state);
+	status->state = null->state;
 	status->trigger_tstamp = null->trigger_tstamp;
 	gettimeofday(&status->tstamp, 0);
 	status->avail = pcm->buffer_size;
@@ -154,7 +154,7 @@ static int snd_pcm_null_pause(snd_pcm_t *pcm, int enable)
 static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_null_t *null = pcm->private_data;
-	switch (snd_enum_to_int(null->state)) {
+	switch (null->state) {
 	case SND_PCM_STATE_RUNNING:
 		snd_pcm_mmap_hw_backward(pcm, frames);
 		/* Fall through */
@@ -169,7 +169,7 @@ static snd_pcm_sframes_t snd_pcm_null_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 static snd_pcm_sframes_t snd_pcm_null_fwd(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 {
 	snd_pcm_null_t *null = pcm->private_data;
-	switch (snd_enum_to_int(null->state)) {
+	switch (null->state) {
 	case SND_PCM_STATE_RUNNING:
 		snd_pcm_mmap_hw_forward(pcm, size);
 		/* Fall through */

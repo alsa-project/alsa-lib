@@ -4,8 +4,8 @@
  *  \{
  */
 
-#define SND_ERROR_BEGIN				500000
-#define SND_ERROR_INCOMPATIBLE_VERSION		(SND_ERROR_BEGIN+0)
+#define SND_ERROR_BEGIN				500000			/**< begin boundary of sound error codes */
+#define SND_ERROR_INCOMPATIBLE_VERSION		(SND_ERROR_BEGIN+0)	/**< protocol is not compatible */
 
 #ifdef __cplusplus
 extern "C" {

@@ -166,7 +166,7 @@ int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info,
 			     int shmid)
 {
-	switch (snd_enum_to_int(pcm->access)) {
+	switch (pcm->access) {
 	case SND_PCM_ACCESS_MMAP_INTERLEAVED:
 	case SND_PCM_ACCESS_RW_INTERLEAVED:
 		info->first = info->channel * pcm->sample_bits;
@@ -367,7 +367,7 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		snd_pcm_uframes_t cont = pcm->buffer_size - offset;
 		if (cont < frames)
 			frames = cont;
-		switch (snd_enum_to_int(pcm->access)) {
+		switch (pcm->access) {
 		case SND_PCM_ACCESS_MMAP_INTERLEAVED:
 		{
 			const snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);
@@ -413,7 +413,7 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		snd_pcm_uframes_t cont = pcm->buffer_size - offset;
 		if (cont < frames)
 			frames = cont;
-		switch (snd_enum_to_int(pcm->access)) {
+		switch (pcm->access) {
 		case SND_PCM_ACCESS_MMAP_INTERLEAVED:
 		{
 			const snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);

@@ -874,7 +874,7 @@ static int _snd_config_save_leaf(snd_config_t *n, snd_output_t *out,
 {
 	int err;
 	unsigned int k;
-	switch (snd_enum_to_int(n->type)) {
+	switch (n->type) {
 	case SND_CONFIG_TYPE_INTEGER:
 		snd_output_printf(out, "%ld", n->u.integer);
 		break;
@@ -1149,7 +1149,7 @@ int snd_config_remove(snd_config_t *config)
 int snd_config_delete(snd_config_t *config)
 {
 	assert(config);
-	switch (snd_enum_to_int(config->type)) {
+	switch (config->type) {
 	case SND_CONFIG_TYPE_COMPOUND:
 	{
 		int err;
@@ -1309,7 +1309,7 @@ int snd_config_set_string(snd_config_t *config, const char *value)
 int snd_config_set_ascii(snd_config_t *config, const char *ascii)
 {
 	assert(config && ascii);
-	switch (snd_enum_to_int(config->type)) {
+	switch (config->type) {
 	case SND_CONFIG_TYPE_INTEGER:
 		{
 			long i;
@@ -1396,7 +1396,7 @@ int snd_config_get_string(snd_config_t *config, const char **ptr)
 int snd_config_get_ascii(snd_config_t *config, char **ascii)
 {
 	assert(config && ascii);
-	switch (snd_enum_to_int(config->type)) {
+	switch (config->type) {
 	case SND_CONFIG_TYPE_INTEGER:
 		{
 			char res[12];

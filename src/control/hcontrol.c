@@ -35,10 +35,14 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#ifndef DOC_HIDDEN
 #define __USE_GNU
+#endif
 #include "control_local.h"
 
+#ifndef DOC_HIDDEN
 #define NOT_FOUND 1000000000
+#endif
 
 static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 				    const snd_hctl_elem_t *c2);
@@ -776,7 +780,7 @@ unsigned int snd_hctl_elem_get_numid(const snd_hctl_elem_t *obj)
 snd_ctl_elem_iface_t snd_hctl_elem_get_interface(const snd_hctl_elem_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->id.iface);
+	return obj->id.iface;
 }
 
 /**

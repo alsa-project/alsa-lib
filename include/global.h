@@ -12,10 +12,6 @@
 #define SND_BIG_ENDIAN SNDRV_BIG_ENDIAN
 #endif
 
-#define snd_enum_to_int(v) (v)
-#define snd_int_to_enum(v) (v)
-#define snd_enum_incr(v) (++(v))
-
 /** \} */
 
 /** Async notification client handler */

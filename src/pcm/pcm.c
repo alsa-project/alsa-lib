@@ -636,7 +636,7 @@ static const char *snd_pcm_tstamp_mode_names[] = {
 const char *snd_pcm_stream_name(snd_pcm_stream_t stream)
 {
 	assert(stream <= SND_PCM_STREAM_LAST);
-	return snd_pcm_stream_names[snd_enum_to_int(stream)];
+	return snd_pcm_stream_names[stream];
 }
 
 /**
@@ -647,7 +647,7 @@ const char *snd_pcm_stream_name(snd_pcm_stream_t stream)
 const char *snd_pcm_access_name(snd_pcm_access_t acc)
 {
 	assert(acc <= SND_PCM_ACCESS_LAST);
-	return snd_pcm_access_names[snd_enum_to_int(acc)];
+	return snd_pcm_access_names[acc];
 }
 
 /**
@@ -658,7 +658,7 @@ const char *snd_pcm_access_name(snd_pcm_access_t acc)
 const char *snd_pcm_format_name(snd_pcm_format_t format)
 {
 	assert(format <= SND_PCM_FORMAT_LAST);
-	return snd_pcm_format_names[snd_enum_to_int(format)];
+	return snd_pcm_format_names[format];
 }
 
 /**
@@ -669,7 +669,7 @@ const char *snd_pcm_format_name(snd_pcm_format_t format)
 const char *snd_pcm_format_description(snd_pcm_format_t format)
 {
 	assert(format <= SND_PCM_FORMAT_LAST);
-	return snd_pcm_format_descriptions[snd_enum_to_int(format)];
+	return snd_pcm_format_descriptions[format];
 }
 
 /**
@@ -680,9 +680,9 @@ const char *snd_pcm_format_description(snd_pcm_format_t format)
 snd_pcm_format_t snd_pcm_format_value(const char* name)
 {
 	snd_pcm_format_t format;
-	for (format = 0; format <= SND_PCM_FORMAT_LAST; snd_enum_incr(format)) {
-		if (snd_pcm_format_names[snd_enum_to_int(format)] &&
-		    strcasecmp(name, snd_pcm_format_names[snd_enum_to_int(format)]) == 0) {
+	for (format = 0; format <= SND_PCM_FORMAT_LAST; format++) {
+		if (snd_pcm_format_names[format] &&
+		    strcasecmp(name, snd_pcm_format_names[format]) == 0) {
 			return format;
 		}
 	}
@@ -697,7 +697,7 @@ snd_pcm_format_t snd_pcm_format_value(const char* name)
 const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat)
 {
 	assert(subformat <= SND_PCM_SUBFORMAT_LAST);
-	return snd_pcm_subformat_names[snd_enum_to_int(subformat)];
+	return snd_pcm_subformat_names[subformat];
 }
 
 /**
@@ -708,7 +708,7 @@ const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat)
 const char *snd_pcm_subformat_description(snd_pcm_subformat_t subformat)
 {
 	assert(subformat <= SND_PCM_SUBFORMAT_LAST);
-	return snd_pcm_subformat_descriptions[snd_enum_to_int(subformat)];
+	return snd_pcm_subformat_descriptions[subformat];
 }
 
 /**
@@ -719,10 +719,12 @@ const char *snd_pcm_subformat_description(snd_pcm_subformat_t subformat)
 const char *snd_pcm_start_mode_name(snd_pcm_start_t mode)
 {
 	assert(mode <= SND_PCM_START_LAST);
-	return snd_pcm_start_mode_names[snd_enum_to_int(mode)];
+	return snd_pcm_start_mode_names[mode];
 }
 
+#ifndef DOC_HIDDEN
 link_warning(snd_pcm_start_mode_name, "Warning: start_mode is deprecated, consider to use start_threshold");
+#endif
 
 /**
  * \brief (DEPRECATED) get name of PCM xrun mode setting
@@ -732,10 +734,12 @@ link_warning(snd_pcm_start_mode_name, "Warning: start_mode is deprecated, consid
 const char *snd_pcm_xrun_mode_name(snd_pcm_xrun_t mode)
 {
 	assert(mode <= SND_PCM_XRUN_LAST);
-	return snd_pcm_xrun_mode_names[snd_enum_to_int(mode)];
+	return snd_pcm_xrun_mode_names[mode];
 }
 
+#ifndef DOC_HIDDEN
 link_warning(snd_pcm_xrun_mode_name, "Warning: xrun_mode is deprecated, consider to use stop_threshold");
+#endif
 
 /**
  * \brief get name of PCM tstamp mode setting
@@ -745,7 +749,7 @@ link_warning(snd_pcm_xrun_mode_name, "Warning: xrun_mode is deprecated, consider
 const char *snd_pcm_tstamp_mode_name(snd_pcm_tstamp_t mode)
 {
 	assert(mode <= SND_PCM_TSTAMP_LAST);
-	return snd_pcm_tstamp_mode_names[snd_enum_to_int(mode)];
+	return snd_pcm_tstamp_mode_names[mode];
 }
 
 /**
@@ -756,7 +760,7 @@ const char *snd_pcm_tstamp_mode_name(snd_pcm_tstamp_t mode)
 const char *snd_pcm_state_name(snd_pcm_state_t state)
 {
 	assert(state <= SND_PCM_STATE_LAST);
-	return snd_pcm_state_names[snd_enum_to_int(state)];
+	return snd_pcm_state_names[state];
 }
 
 /**
@@ -1867,7 +1871,7 @@ int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params)
  */
 int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t val)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_ACCESS, snd_enum_to_int(val), 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_ACCESS, val, 0);
 }
 
 /**
@@ -1879,7 +1883,7 @@ int snd_pcm_hw_params_test_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, s
  */
 int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t val)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_ACCESS, snd_enum_to_int(val), 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_ACCESS, val, 0);
 }
 
 /**
@@ -1890,7 +1894,7 @@ int snd_pcm_hw_params_set_access(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, sn
  */
 snd_pcm_access_t snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_int_to_enum(snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL));
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL);
 }
 
 /**
@@ -1901,7 +1905,7 @@ snd_pcm_access_t snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_p
  */
 snd_pcm_access_t snd_pcm_hw_params_set_access_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_int_to_enum(snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL));
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_ACCESS, NULL);
 }
 
 /**
@@ -1969,7 +1973,7 @@ int snd_pcm_hw_params_set_format(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, sn
  */
 snd_pcm_format_t snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_int_to_enum(snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL));
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL);
 }
 
 /**
@@ -1980,7 +1984,7 @@ snd_pcm_format_t snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_p
  */
 snd_pcm_format_t snd_pcm_hw_params_set_format_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_int_to_enum(snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL));
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_FORMAT, NULL);
 }
 
 /**
@@ -2015,7 +2019,7 @@ void snd_pcm_hw_params_get_format_mask(snd_pcm_hw_params_t *params, snd_pcm_form
  */
 int snd_pcm_hw_params_test_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t val)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_SUBFORMAT, snd_enum_to_int(val), 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_SUBFORMAT, val, 0);
 }
 
 /**
@@ -2037,7 +2041,7 @@ int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params)
  */
 int snd_pcm_hw_params_set_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_subformat_t val)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_SUBFORMAT, snd_enum_to_int(val), 0);
+	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_SUBFORMAT, val, 0);
 }
 
 /**
@@ -2048,7 +2052,7 @@ int snd_pcm_hw_params_set_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  */
 snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_int_to_enum(snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL));
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL);
 }
 
 /**
@@ -2059,7 +2063,7 @@ snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_first(snd_pcm_t *pcm, snd_pc
  */
 snd_pcm_subformat_t snd_pcm_hw_params_set_subformat_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_int_to_enum(snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL));
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_SUBFORMAT, NULL);
 }
 
 /**
@@ -3368,7 +3372,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	assert(pcm && params);
 	assert(pcm->setup);
-	params->tstamp_mode = snd_enum_to_int(pcm->tstamp_mode);
+	params->tstamp_mode = pcm->tstamp_mode;
 	params->period_step = pcm->period_step;
 	params->sleep_min = pcm->sleep_min;
 	params->avail_min = pcm->avail_min;
@@ -3537,7 +3541,7 @@ int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_s
 {
 	assert(pcm && params);
 	assert(val <= SND_PCM_TSTAMP_LAST);
-	params->tstamp_mode = snd_enum_to_int(val);
+	params->tstamp_mode = val;
 	return 0;
 }
 
@@ -3549,7 +3553,7 @@ int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_s
 snd_pcm_tstamp_t snd_pcm_sw_params_get_tstamp_mode(const snd_pcm_sw_params_t *params)
 {
 	assert(params);
-	return snd_int_to_enum(params->tstamp_mode);
+	return params->tstamp_mode;
 }
 
 
@@ -3829,7 +3833,7 @@ void snd_pcm_status_copy(snd_pcm_status_t *dst, const snd_pcm_status_t *src)
 snd_pcm_state_t snd_pcm_status_get_state(const snd_pcm_status_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->state);
+	return obj->state;
 }
 
 /** 
@@ -3961,7 +3965,7 @@ unsigned int snd_pcm_info_get_subdevice(const snd_pcm_info_t *obj)
 snd_pcm_stream_t snd_pcm_info_get_stream(const snd_pcm_info_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->stream);
+	return obj->stream;
 }
 
 /**
@@ -4016,7 +4020,7 @@ const char *snd_pcm_info_get_subdevice_name(const snd_pcm_info_t *obj)
 snd_pcm_class_t snd_pcm_info_get_class(const snd_pcm_info_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->dev_class);
+	return obj->dev_class;
 }
 
 /**
@@ -4027,7 +4031,7 @@ snd_pcm_class_t snd_pcm_info_get_class(const snd_pcm_info_t *obj)
 snd_pcm_subclass_t snd_pcm_info_get_subclass(const snd_pcm_info_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->dev_subclass);
+	return obj->dev_subclass;
 }
 
 /**
@@ -4082,7 +4086,7 @@ void snd_pcm_info_set_subdevice(snd_pcm_info_t *obj, unsigned int val)
 void snd_pcm_info_set_stream(snd_pcm_info_t *obj, snd_pcm_stream_t val)
 {
 	assert(obj);
-	obj->stream = snd_enum_to_int(val);
+	obj->stream = val;
 }
 
 /**
@@ -4183,7 +4187,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 	if (size > pcm->xfer_align)
 		size -= size % pcm->xfer_align;
 
-	switch (snd_enum_to_int(state)) {
+	switch (state) {
 	case SND_PCM_STATE_PREPARED:
 		if (size >= pcm->start_threshold) {
 			err = snd_pcm_start(pcm);
@@ -4267,7 +4271,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 	if (size > pcm->xfer_align)
 		size -= size % pcm->xfer_align;
 
-	switch (snd_enum_to_int(state)) {
+	switch (state) {
 	case SND_PCM_STATE_PREPARED:
 	case SND_PCM_STATE_RUNNING:
 		break;

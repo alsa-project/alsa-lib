@@ -1,3 +1,8 @@
+/**
+ * \file src/instr/fm.c
+ * \author Uros Bizjak <uros@kss-loka.si>
+ * \date 2000-2001
+ */
 /*
  *  FM (OPL2/3) Instrument Format Support
  *  Copyright (c) 2000 Uros Bizjak <uros@kss-loka.si>
@@ -27,6 +32,11 @@
 #include <asm/byteorder.h>
 #include <sound/ainstr_fm.h>
 
+/**
+ * \brief Free the FM instrument handle
+ * \param fm FM instrument handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_fm_free(snd_instr_fm_t *fm)
 {
 	if (fm == NULL)
@@ -35,6 +45,14 @@ int snd_instr_fm_free(snd_instr_fm_t *fm)
 	return 0;
 }
 
+/**
+ * \brief Convert the FM instrument to byte stream
+ * \param fm FM instrument handle
+ * \param name FM instrument name
+ * \param __data Result - allocated byte stream
+ * \param __size Result - size of allocated byte stream
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm,
 				   const char *name,
 				   snd_instr_header_t **__data,
@@ -89,6 +107,13 @@ int snd_instr_fm_convert_to_stream(snd_instr_fm_t *fm,
 	return 0;
 }
 
+/**
+ * \brief Convert the byte stream to FM instrument
+ * \param __data Input - byte stream containing FM instrument definition
+ * \param size Input - size of byte stream
+ * \param simple Result - allocated FM instrument handle
+ * \return 0 on success otherwise a negative error code
+ */
 int snd_instr_fm_convert_from_stream(snd_instr_header_t *__data ATTRIBUTE_UNUSED,
 				     size_t size ATTRIBUTE_UNUSED,
 				     snd_instr_fm_t **simple ATTRIBUTE_UNUSED)

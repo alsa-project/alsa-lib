@@ -545,7 +545,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name, int card, int device, in
 	if ((ret = snd_ctl_hw_open(&ctl, NULL, card, 0)) < 0)
 		return ret;
 
-	switch (snd_enum_to_int(stream)) {
+	switch (stream) {
 	case SND_PCM_STREAM_PLAYBACK:
 		filefmt = SNDRV_FILE_PCM_STREAM_PLAYBACK;
 		break;

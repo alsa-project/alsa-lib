@@ -84,6 +84,7 @@ typedef enum _snd_ctl_event_type {
 /** Element value has been changed \hideinitializer */
 #define SND_CTL_EVENT_MASK_VALUE SNDRV_CTL_EVENT_MASK_VALUE
 
+/** Element name for IEC958 (S/PDIF) */
 #define SND_CTL_NAME_IEC958 SNDRV_CTL_NAME_IEC958
 
 /** CTL type */

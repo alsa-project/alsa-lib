@@ -136,7 +136,7 @@ static snd_pcm_uframes_t _snd_pcm_share_slave_forward(snd_pcm_share_slave_t *sla
 	list_for_each(i, &slave->clients) {
 		snd_pcm_share_t *share = list_entry(i, snd_pcm_share_t, list);
 		snd_pcm_t *pcm = share->pcm;
-		switch (snd_enum_to_int(share->state)) {
+		switch (share->state) {
 		case SND_PCM_STATE_RUNNING:
 			break;
 		case SND_PCM_STATE_DRAINING:
@@ -193,7 +193,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 	snd_pcm_uframes_t missing = INT_MAX;
 	snd_pcm_sframes_t ready_missing;
 	//	printf("state=%d hw_ptr=%d appl_ptr=%d slave appl_ptr=%d safety=%d silence=%d\n", share->state, slave->hw_ptr, share->appl_ptr, *slave->pcm->appl_ptr, slave->safety_threshold, slave->silence_frames);
-	switch (snd_enum_to_int(share->state)) {
+	switch (share->state) {
 	case SND_PCM_STATE_RUNNING:
 		break;
 	case SND_PCM_STATE_DRAINING:
@@ -232,7 +232,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 				missing = safety_missing;
 		}
 	}
-	switch (snd_enum_to_int(share->state)) {
+	switch (share->state) {
 	case SND_PCM_STATE_DRAINING:
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 			if (hw_avail <= 0) {
@@ -683,7 +683,7 @@ static int snd_pcm_share_status(snd_pcm_t *pcm, snd_pcm_status_t *status)
 		goto _end;
  _notrunning:
 	status->delay = sd + d;
-	status->state = snd_enum_to_int(share->state);
+	status->state = share->state;
 	status->trigger_tstamp = share->trigger_tstamp;
  _end:
 	Pthread_mutex_unlock(&slave->mutex);
@@ -702,7 +702,7 @@ static int _snd_pcm_share_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	snd_pcm_sframes_t sd;
-	switch (snd_enum_to_int(share->state)) {
+	switch (share->state) {
 	case SND_PCM_STATE_XRUN:
 		return -EPIPE;
 	case SND_PCM_STATE_RUNNING:
@@ -919,7 +919,7 @@ static snd_pcm_sframes_t _snd_pcm_share_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_sframes_t n;
-	switch (snd_enum_to_int(share->state)) {
+	switch (share->state) {
 	case SND_PCM_STATE_RUNNING:
 		break;
 	case SND_PCM_STATE_PREPARED:
@@ -1007,7 +1007,7 @@ static int snd_pcm_share_drain(snd_pcm_t *pcm)
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	Pthread_mutex_lock(&slave->mutex);
-	switch (snd_enum_to_int(share->state)) {
+	switch (share->state) {
 	case SND_PCM_STATE_OPEN:
 		err = -EBADFD;
 		goto _end;
@@ -1020,7 +1020,7 @@ static int snd_pcm_share_drain(snd_pcm_t *pcm)
 		break;
 	}
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		switch (snd_enum_to_int(share->state)) {
+		switch (share->state) {
 		case SND_PCM_STATE_XRUN:
 			share->state = SND_PCM_STATE_SETUP;
 			goto _end;
@@ -1037,7 +1037,7 @@ static int snd_pcm_share_drain(snd_pcm_t *pcm)
 			break;
 		}
 	} else {
-		switch (snd_enum_to_int(share->state)) {
+		switch (share->state) {
 		case SND_PCM_STATE_RUNNING:
 			_snd_pcm_share_stop(pcm, SND_PCM_STATE_DRAINING);
 			_snd_pcm_share_update(pcm);
@@ -1065,7 +1065,7 @@ static int snd_pcm_share_drop(snd_pcm_t *pcm)
 	snd_pcm_share_slave_t *slave = share->slave;
 	int err = 0;
 	Pthread_mutex_lock(&slave->mutex);
-	switch (snd_enum_to_int(share->state)) {
+	switch (share->state) {
 	case SND_PCM_STATE_OPEN:
 		err = -EBADFD;
 		goto _end;

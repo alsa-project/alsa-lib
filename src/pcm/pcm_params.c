@@ -232,7 +232,7 @@ int snd_pcm_hw_param_set_integer(snd_pcm_t *pcm,
 {
 	snd_pcm_hw_params_t save;
 	int err;
-	switch (snd_enum_to_int(mode)) {
+	switch (mode) {
 	case SND_CHANGE:
 		break;
 	case SND_TRY:
@@ -373,7 +373,7 @@ int snd_pcm_hw_param_set_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 {
 	snd_pcm_hw_params_t save;
 	int err;
-	switch (snd_enum_to_int(mode)) {
+	switch (mode) {
 	case SND_CHANGE:
 		break;
 	case SND_TRY:
@@ -445,7 +445,7 @@ int snd_pcm_hw_param_set_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 {
 	snd_pcm_hw_params_t save;
 	int err;
-	switch (snd_enum_to_int(mode)) {
+	switch (mode) {
 	case SND_CHANGE:
 		break;
 	case SND_TRY:
@@ -553,7 +553,7 @@ int snd_pcm_hw_param_set_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 {
 	snd_pcm_hw_params_t save;
 	int err;
-	switch (snd_enum_to_int(mode)) {
+	switch (mode) {
 	case SND_CHANGE:
 		break;
 	case SND_TRY:
@@ -645,7 +645,7 @@ int snd_pcm_hw_param_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 {
 	snd_pcm_hw_params_t save;
 	int err;
-	switch (snd_enum_to_int(mode)) {
+	switch (mode) {
 	case SND_CHANGE:
 		break;
 	case SND_TRY:
@@ -700,7 +700,7 @@ int snd_pcm_hw_param_set_mask(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 {
 	snd_pcm_hw_params_t save;
 	int err;
-	switch (snd_enum_to_int(mode)) {
+	switch (mode) {
 	case SND_CHANGE:
 		break;
 	case SND_TRY:
@@ -1049,13 +1049,13 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 					const char *s;
 					switch (var) {
 					case SND_PCM_HW_PARAM_ACCESS:
-						s = snd_pcm_access_name(snd_int_to_enum(k));
+						s = snd_pcm_access_name(k);
 						break;
 					case SND_PCM_HW_PARAM_FORMAT:
-						s = snd_pcm_format_name(snd_int_to_enum(k));
+						s = snd_pcm_format_name(k);
 						break;
 					case SND_PCM_HW_PARAM_SUBFORMAT:
-						s = snd_pcm_subformat_name(snd_int_to_enum(k));
+						s = snd_pcm_subformat_name(k);
 						break;
 					default:
 						assert(0);
@@ -1100,7 +1100,7 @@ const char *snd_pcm_hw_param_names[] = {
 const char *snd_pcm_hw_param_name(snd_pcm_hw_param_t param)
 {
 	assert(param <= SND_PCM_HW_PARAM_LAST);
-	return snd_pcm_hw_param_names[snd_enum_to_int(param)];
+	return snd_pcm_hw_param_names[param];
 }
 
 #if 0
@@ -1561,7 +1561,7 @@ static int snd_pcm_hw_rule_format(snd_pcm_hw_params_t *params,
 	snd_pcm_format_t k;
 	snd_mask_t *mask = hw_param_mask(params, rule->var);
 	snd_interval_t *i = hw_param_interval(params, rule->deps[0]);
-	for (k = 0; k <= SND_PCM_FORMAT_LAST; snd_enum_incr(k)) {
+	for (k = 0; k <= SND_PCM_FORMAT_LAST; k++) {
 		int bits;
 		if (!snd_pcm_format_mask_test(mask, k))
 			continue;
@@ -1589,7 +1589,7 @@ static int snd_pcm_hw_rule_sample_bits(snd_pcm_hw_params_t *params,
 	int c, changed = 0;
 	min = UINT_MAX;
 	max = 0;
-	for (k = 0; k <= SND_PCM_FORMAT_LAST; snd_enum_incr(k)) {
+	for (k = 0; k <= SND_PCM_FORMAT_LAST; k++) {
 		int bits;
 		if (!snd_pcm_format_mask_test(mask, k))
 			continue;
@@ -2022,7 +2022,7 @@ static int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 {
 	assert(pcm && params);
 	assert(pcm->setup);
-	params->tstamp_mode = snd_enum_to_int(SND_PCM_TSTAMP_NONE);
+	params->tstamp_mode = SND_PCM_TSTAMP_NONE;
 	params->period_step = 1;
 	params->sleep_min = 0;
 	params->avail_min = pcm->period_size;

@@ -75,7 +75,7 @@ static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)
 static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
-	info->stream = snd_enum_to_int(rmidi->stream);
+	info->stream = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_INFO, info) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_INFO failed");
 		return -errno;
@@ -86,7 +86,7 @@ static int snd_rawmidi_hw_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * info)
 static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * params)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
-	params->stream = snd_enum_to_int(rmidi->stream);
+	params->stream = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_PARAMS, params) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_PARAMS failed");
 		return -errno;
@@ -97,7 +97,7 @@ static int snd_rawmidi_hw_params(snd_rawmidi_t *rmidi, snd_rawmidi_params_t * pa
 static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * status)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
-	status->stream = snd_enum_to_int(rmidi->stream);
+	status->stream = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_STATUS, status) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_STATUS failed");
 		return -errno;
@@ -108,7 +108,7 @@ static int snd_rawmidi_hw_status(snd_rawmidi_t *rmidi, snd_rawmidi_status_t * st
 static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
-	int str = snd_enum_to_int(rmidi->stream);
+	int str = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DROP, &str) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_DROP failed");
 		return -errno;
@@ -119,7 +119,7 @@ static int snd_rawmidi_hw_drop(snd_rawmidi_t *rmidi)
 static int snd_rawmidi_hw_drain(snd_rawmidi_t *rmidi)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
-	int str = snd_enum_to_int(rmidi->stream);
+	int str = rmidi->stream;
 	if (ioctl(hw->fd, SNDRV_RAWMIDI_IOCTL_DRAIN, &str) < 0) {
 		SYSERR("SNDRV_RAWMIDI_IOCTL_DRAIN failed");
 		return -errno;

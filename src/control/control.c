@@ -437,8 +437,8 @@ snd_ctl_t *snd_async_handler_get_ctl(snd_async_handler_t *handler)
 	return handler->u.ctl;
 }
 
-int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
-		      snd_config_t *ctl_root, snd_config_t *ctl_conf, int mode)
+static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
+			     snd_config_t *ctl_root, snd_config_t *ctl_conf, int mode)
 {
 	const char *str;
 	char buf[256];
@@ -520,7 +520,7 @@ int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 	return err >= 0 ? open_func(ctlp, name, ctl_root, ctl_conf, mode) : err;
 }
 
-int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root, const char *name, int mode)
+static int snd_ctl_open_noupdate(snd_ctl_t **ctlp, snd_config_t *root, const char *name, int mode)
 {
 	int err;
 	snd_config_t *ctl_conf;
@@ -604,7 +604,7 @@ static const char *snd_ctl_event_type_names[] = {
 const char *snd_ctl_elem_type_name(snd_ctl_elem_type_t type)
 {
 	assert(type <= SND_CTL_ELEM_TYPE_LAST);
-	return snd_ctl_elem_type_names[snd_enum_to_int(type)];
+	return snd_ctl_elem_type_names[type];
 }
 
 /**
@@ -615,7 +615,7 @@ const char *snd_ctl_elem_type_name(snd_ctl_elem_type_t type)
 const char *snd_ctl_elem_iface_name(snd_ctl_elem_iface_t iface)
 {
 	assert(iface <= SND_CTL_ELEM_IFACE_LAST);
-	return snd_ctl_elem_iface_names[snd_enum_to_int(iface)];
+	return snd_ctl_elem_iface_names[iface];
 }
 
 /**
@@ -626,7 +626,7 @@ const char *snd_ctl_elem_iface_name(snd_ctl_elem_iface_t iface)
 const char *snd_ctl_event_type_name(snd_ctl_event_type_t type)
 {
 	assert(type <= SND_CTL_EVENT_LAST);
-	return snd_ctl_event_type_names[snd_enum_to_int(type)];
+	return snd_ctl_event_type_names[type];
 }
 
 /**
@@ -703,7 +703,7 @@ snd_ctl_elem_iface_t snd_ctl_event_elem_get_interface(const snd_ctl_event_t *obj
 {
 	assert(obj);
 	assert(obj->type == SND_CTL_EVENT_ELEM);
-	return snd_int_to_enum(obj->data.elem.id.iface);
+	return obj->data.elem.id.iface;
 }
 
 /**
@@ -833,7 +833,7 @@ unsigned int snd_ctl_elem_id_get_numid(const snd_ctl_elem_id_t *obj)
 snd_ctl_elem_iface_t snd_ctl_elem_id_get_interface(const snd_ctl_elem_id_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->iface);
+	return obj->iface;
 }
 
 /**
@@ -899,7 +899,7 @@ void snd_ctl_elem_id_set_numid(snd_ctl_elem_id_t *obj, unsigned int val)
 void snd_ctl_elem_id_set_interface(snd_ctl_elem_id_t *obj, snd_ctl_elem_iface_t val)
 {
 	assert(obj);
-	obj->iface = snd_enum_to_int(val);
+	obj->iface = val;
 }
 
 /**
@@ -1135,7 +1135,7 @@ void snd_ctl_event_copy(snd_ctl_event_t *dst, const snd_ctl_event_t *src)
 snd_ctl_event_type_t snd_ctl_event_get_type(const snd_ctl_event_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->type);
+	return obj->type;
 }
 
 /**
@@ -1259,7 +1259,7 @@ snd_ctl_elem_iface_t snd_ctl_elem_list_get_interface(const snd_ctl_elem_list_t *
 {
 	assert(obj);
 	assert(idx < obj->used);
-	return snd_int_to_enum(obj->pids[idx].iface);
+	return obj->pids[idx].iface;
 }
 
 /**
@@ -1374,7 +1374,7 @@ void snd_ctl_elem_info_copy(snd_ctl_elem_info_t *dst, const snd_ctl_elem_info_t 
 snd_ctl_elem_type_t snd_ctl_elem_info_get_type(const snd_ctl_elem_info_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->type);
+	return obj->type;
 }
 
 /**
@@ -1577,7 +1577,7 @@ unsigned int snd_ctl_elem_info_get_numid(const snd_ctl_elem_info_t *obj)
 snd_ctl_elem_iface_t snd_ctl_elem_info_get_interface(const snd_ctl_elem_info_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->id.iface);
+	return obj->id.iface;
 }
 
 /**
@@ -1654,7 +1654,7 @@ void snd_ctl_elem_info_set_numid(snd_ctl_elem_info_t *obj, unsigned int val)
 void snd_ctl_elem_info_set_interface(snd_ctl_elem_info_t *obj, snd_ctl_elem_iface_t val)
 {
 	assert(obj);
-	obj->id.iface = snd_enum_to_int(val);
+	obj->id.iface = val;
 }
 
 /**
@@ -1783,7 +1783,7 @@ unsigned int snd_ctl_elem_value_get_numid(const snd_ctl_elem_value_t *obj)
 snd_ctl_elem_iface_t snd_ctl_elem_value_get_interface(const snd_ctl_elem_value_t *obj)
 {
 	assert(obj);
-	return snd_int_to_enum(obj->id.iface);
+	return obj->id.iface;
 }
 
 /**
@@ -1860,7 +1860,7 @@ void snd_ctl_elem_value_set_numid(snd_ctl_elem_value_t *obj, unsigned int val)
 void snd_ctl_elem_value_set_interface(snd_ctl_elem_value_t *obj, snd_ctl_elem_iface_t val)
 {
 	assert(obj);
-	obj->id.iface = snd_enum_to_int(val);
+	obj->id.iface = val;
 }
 
 /**
