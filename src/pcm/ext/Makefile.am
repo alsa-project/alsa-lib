@@ -20,6 +20,8 @@ all: help
 
 all-am: help
 
+all-redirect: help
+
 install-am: help
 
 hand-install: install-exec-am
