@@ -220,7 +220,7 @@ extern "C" {
 #define MIDI_CTL_GENERAL_PURPOSE6     	0x51	/**< General purpose 6 */
 #define MIDI_CTL_GENERAL_PURPOSE7     	0x52	/**< General purpose 7 */
 #define MIDI_CTL_GENERAL_PURPOSE8     	0x53	/**< General purpose 8 */
-#define MIDI_CTL_PORNAMENTO_CONTROL	0x54	/**< Pornamento control */
+#define MIDI_CTL_PORTAMENTO_CONTROL	0x54	/**< Portamento control */
 #define MIDI_CTL_E1_REVERB_DEPTH	0x5b	/**< E1 Reverb Depth */
 #define MIDI_CTL_E2_TREMOLO_DEPTH	0x5c	/**< E2 Tremolo Depth */
 #define MIDI_CTL_E3_CHORUS_DEPTH	0x5d	/**< E3 Chorus Depth */
