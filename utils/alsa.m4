@@ -2,7 +2,7 @@ dnl Configure Paths for Alsa
 dnl Some modifications by Richard Boulton <richard-alsa@tartarus.org>
 dnl Christopher Lansdown <lansdoct@cs.alfred.edu>
 dnl Jaroslav Kysela <perex@suse.cz>
-dnl Last modification: $Id: alsa.m4,v 1.19 2001/12/19 07:28:40 perex Exp $
+dnl Last modification: $Id: alsa.m4,v 1.20 2002/04/04 07:07:13 perex Exp $
 dnl AM_PATH_ALSA([MINIMUM-VERSION [, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for libasound, and define ALSA_CFLAGS and ALSA_LIBS as appropriate.
 dnl enables arguments --with-alsa-prefix=
@@ -73,7 +73,7 @@ no_alsa=""
 
 AC_LANG_SAVE
 AC_LANG_C
-AC_TRY_COMPILE([
+AC_TRY_RUN([
 #include <alsa/asoundlib.h>
 ], [
 void main(void)
