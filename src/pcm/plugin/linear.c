@@ -163,7 +163,7 @@ CONV_FUNC(32_sign_end, long, long, bswap_32(src) ^ 0x80)
 CONV_FUNC(32_end_sign_end, long, long, src ^ 0x80)
 
 /* src_wid dst_wid src_endswap, dst_endswap, sign_swap */
-conv_f convert_functions[4][4][2][2][2] = {
+conv_f convert_functions[4 * 4 * 2 * 2 * 2] = {
 	NULL,			/* 8->8: Nothing to do */
 	conv_8_sign,		/* 8->8 sign: conv_8_sign */
 	NULL,			/* 8->8 dst_end: Nothing to do */
@@ -426,7 +426,7 @@ int snd_pcm_plugin_build_linear(snd_pcm_format_t *src_format,
 	if (dst_endian < 0)
 		dst_endian = 0;
 
-	func = convert_functions[src_width][dst_width][src_endian][dst_endian][sign];
+	func = ((conv_f(*)[4][2][2][2])convert_functions)[src_width][dst_width][src_endian][dst_endian][sign];
 
 	if (func == NULL)
 		return -EINVAL;
