@@ -90,6 +90,10 @@ typedef struct {
 	struct {
 		snd_pcm_uframes_t buffer_size;
 		snd_pcm_uframes_t boundary;
+		snd_pcm_uframes_t channels;
+		unsigned int sample_bits;
+		unsigned int rate;
+		snd_pcm_format_t format;
 	} s;
 } snd_pcm_dmix_share_t;
 
@@ -310,7 +314,7 @@ static void server_job(snd_pcm_dmix_t *dmix)
 	int ret, sck, i;
 	int max = 128, current = 0;
 	struct pollfd pfds[max + 1];
-	
+
 	/* close all files to free resources */
 	i = sysconf(_SC_OPEN_MAX);
 	while (--i >= 3) {
@@ -320,7 +324,7 @@ static void server_job(snd_pcm_dmix_t *dmix)
 	
 	/* detach from parent */
 	setsid();
-	
+
 	pfds[0].fd = dmix->server_fd;
 	pfds[0].events = POLLIN | POLLERR | POLLHUP;
 
@@ -347,20 +351,23 @@ static void server_job(snd_pcm_dmix_t *dmix)
 			ret--;
 			sck = accept(dmix->server_fd, 0, 0);
 			if (sck >= 0) {
+				server_printf("DMIX SERVER: new connection %i\n", sck);
 				if (current == max) {
 					close(sck);
 				} else {
 					unsigned char buf = 'A';
-					pfds[current].fd = sck;
-					pfds[current].events = POLLIN | POLLERR | POLLHUP;
+					pfds[current+1].fd = sck;
+					pfds[current+1].events = POLLIN | POLLERR | POLLHUP;
 					send_fd(sck, &buf, 1, dmix->hw_fd);
+					server_printf("DMIX SERVER: fd sent ok\n");
 					current++;
 				}
 			}
 		}
-		for (i = 0; i < max && ret > 0; i++) {
+		for (i = 0; i < current && ret > 0; i++) {
 			struct pollfd *pfd = &pfds[i+1];
 			unsigned char cmd;
+			server_printf("client %i revents = 0x%x\n", pfd->fd, pfd->revents);
 			if (pfd->revents & (POLLERR | POLLHUP)) {
 				ret--;
 				close(pfd->fd);
@@ -373,7 +380,7 @@ static void server_job(snd_pcm_dmix_t *dmix)
 			if (read(pfd->fd, &cmd, 1) == 1)
 				cmd = 0 /*process command */;
 		}
-		for (i = 0; i < max && ret > 0; i++) {
+		for (i = 0; i < current; i++) {
 			if (pfds[i+1].fd < 0) {
 				if (i + 1 != max)
 					memcpy(&pfds[i+1], &pfds[i+2], sizeof(struct pollfd) * (max - i - 1));
@@ -571,6 +578,7 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	if (pcm->stop_threshold >= pcm->boundary)	/* don't care */
 		return 0;
 	if ((avail = snd_pcm_mmap_playback_avail(pcm)) >= pcm->stop_threshold) {
+		gettimeofday(&dmix->trigger_tstamp, 0);
 		dmix->state = SND_PCM_STATE_XRUN;
 		dmix->avail_max = avail;
 		printf("XRUN?\n");
@@ -852,6 +860,7 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 	if (avail > (snd_pcm_sframes_t)pcm->buffer_size)
 		avail = pcm->buffer_size;
 	snd_pcm_dmix_sync_area(pcm, avail);
+	gettimeofday(&dmix->trigger_tstamp, 0);
 	return 0;
 }
 
@@ -1169,7 +1178,13 @@ static int snd_pcm_dmix_initialize_slave(snd_pcm_dmix_t *dmix, snd_pcm_t *spcm, 
 	
 	dmix->shmptr->s.boundary = spcm->boundary;
 	dmix->shmptr->s.buffer_size = spcm->buffer_size;
+	dmix->shmptr->s.sample_bits = spcm->sample_bits;
+	dmix->shmptr->s.channels = spcm->channels;
+	dmix->shmptr->s.rate = spcm->rate;
+	dmix->shmptr->s.format = spcm->format;
+	dmix->shmptr->s.boundary = spcm->boundary;
 
+	spcm->donot_close = 1;
 	return 0;
 }
 
@@ -1326,6 +1341,18 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 			goto _err;
 		}
 		
+		spcm->donot_close = 1;
+		spcm->setup = 1;
+		spcm->buffer_size = dmix->shmptr->s.buffer_size;
+		spcm->sample_bits = dmix->shmptr->s.sample_bits;
+		spcm->channels = dmix->shmptr->s.channels;
+		spcm->format = dmix->shmptr->s.format;
+		spcm->boundary = dmix->shmptr->s.boundary;
+		ret = snd_pcm_mmap(spcm);
+		if (ret < 0) {
+			SNDERR("unable to mmap channels\n");
+			goto _err;
+		}
 		dmix->spcm = spcm;
 	}
 
