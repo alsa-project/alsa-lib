@@ -310,6 +310,7 @@ static int snd_pcm_linear_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_linear_t *linear = pcm->private_data;
+	snd_pcm_format_t format;
 	int err = snd_pcm_hw_params_slave(pcm, params,
 					  snd_pcm_linear_hw_refine_cchange,
 					  snd_pcm_linear_hw_refine_sprepare,
@@ -317,23 +318,26 @@ static int snd_pcm_linear_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					  snd_pcm_plugin_hw_params_slave);
 	if (err < 0)
 		return err;
-	linear->use_getput = (snd_pcm_format_physical_width(snd_pcm_hw_params_get_format(params)) == 24 ||
+	err = snd_pcm_hw_params_get_format(params, &format);
+	if (err < 0)
+		return err;
+	linear->use_getput = (snd_pcm_format_physical_width(format) == 24 ||
 			      snd_pcm_format_physical_width(linear->sformat) == 24);
 	if (linear->use_getput) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-			linear->get_idx = snd_pcm_linear_get32_index(snd_pcm_hw_params_get_format(params), SND_PCM_FORMAT_S32);
+			linear->get_idx = snd_pcm_linear_get32_index(format, SND_PCM_FORMAT_S32);
 			linear->put_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, linear->sformat);
 		} else {
 			linear->get_idx = snd_pcm_linear_get32_index(linear->sformat, SND_PCM_FORMAT_S32);
-			linear->put_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, snd_pcm_hw_params_get_format(params));
+			linear->put_idx = snd_pcm_linear_put32_index(SND_PCM_FORMAT_S32, format);
 		}
 	} else {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
-			linear->conv_idx = snd_pcm_linear_convert_index(snd_pcm_hw_params_get_format(params),
+			linear->conv_idx = snd_pcm_linear_convert_index(format,
 									linear->sformat);
 		else
 			linear->conv_idx = snd_pcm_linear_convert_index(linear->sformat,
-									snd_pcm_hw_params_get_format(params));
+									format);
 	}
 	return 0;
 }

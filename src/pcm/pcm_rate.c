@@ -375,16 +375,18 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		return err;
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		src_format = snd_pcm_hw_params_get_format(params);
+		err = snd_pcm_hw_params_get_format(params, &src_format);
 		dst_format = slave->format;
 		src_rate = snd_pcm_hw_params_get_rate(params, 0);
 		dst_rate = slave->rate;
 	} else {
 		src_format = slave->format;
-		dst_format = snd_pcm_hw_params_get_format(params);
+		err = snd_pcm_hw_params_get_format(params, &dst_format);
 		src_rate = slave->rate;
 		dst_rate = snd_pcm_hw_params_get_rate(params, 0);
 	}
+	if (err < 0)
+		return err;
 	rate->get_idx = snd_pcm_linear_get_index(src_format, SND_PCM_FORMAT_S16);
 	rate->put_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, dst_format);
 	if (src_rate < dst_rate) {

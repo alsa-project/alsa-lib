@@ -612,12 +612,14 @@ static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		return err;
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
-		src_format = snd_pcm_hw_params_get_format(params);
+		err = snd_pcm_hw_params_get_format(params, &src_format);
 		dst_format = slave->format;
 	} else {
 		src_format = slave->format;
-		dst_format = snd_pcm_hw_params_get_format(params);
+		err = snd_pcm_hw_params_get_format(params, &dst_format);
 	}
+	if (err < 0)
+		return err;
 	route->params.use_getput = snd_pcm_format_physical_width(src_format) == 24 ||
 		snd_pcm_format_physical_width(dst_format) == 24;
 	route->params.get_idx = snd_pcm_linear_get_index(src_format, SND_PCM_FORMAT_S16);

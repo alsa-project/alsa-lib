@@ -303,6 +303,7 @@ static int snd_pcm_alaw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 static int snd_pcm_alaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_alaw_t *alaw = pcm->private_data;
+	snd_pcm_format_t format;
 	int err = snd_pcm_hw_params_slave(pcm, params,
 					  snd_pcm_alaw_hw_refine_cchange,
 					  snd_pcm_alaw_hw_refine_sprepare,
@@ -311,9 +312,13 @@ static int snd_pcm_alaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	if (err < 0)
 		return err;
 
+	err = snd_pcm_hw_params_get_format(params, &format);
+	if (err < 0)
+		return err;
+		
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (alaw->sformat == SND_PCM_FORMAT_A_LAW) {
-			alaw->getput_idx = snd_pcm_linear_get_index(snd_pcm_hw_params_get_format(params), SND_PCM_FORMAT_S16);
+			alaw->getput_idx = snd_pcm_linear_get_index(format, SND_PCM_FORMAT_S16);
 			alaw->func = snd_pcm_alaw_encode;
 		} else {
 			alaw->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, alaw->sformat);
@@ -321,7 +326,7 @@ static int snd_pcm_alaw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		}
 	} else {
 		if (alaw->sformat == SND_PCM_FORMAT_A_LAW) {
-			alaw->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_params_get_format(params));
+			alaw->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, format);
 			alaw->func = snd_pcm_alaw_decode;
 		} else {
 			alaw->getput_idx = snd_pcm_linear_get_index(alaw->sformat, SND_PCM_FORMAT_S16);

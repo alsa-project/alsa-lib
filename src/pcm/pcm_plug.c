@@ -859,12 +859,12 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	err = snd_pcm_hw_refine_soft(slave, &sparams);
 	assert(err >= 0);
 
-	clt_params.access = snd_pcm_hw_params_get_access(params);
-	clt_params.format = snd_pcm_hw_params_get_format(params);
+	snd_pcm_hw_params_get_access(params, &clt_params.access);
+	snd_pcm_hw_params_get_format(params, &clt_params.format);
 	clt_params.channels = snd_pcm_hw_params_get_channels(params);
 	clt_params.rate = snd_pcm_hw_params_get_rate(params, 0);
 
-	slv_params.format = snd_pcm_hw_params_get_format(&sparams);
+	snd_pcm_hw_params_get_format(&sparams, &slv_params.format);
 	slv_params.channels = snd_pcm_hw_params_get_channels(&sparams);
 	slv_params.rate = snd_pcm_hw_params_get_rate(&sparams, 0);
 	snd_pcm_plug_clear(pcm);

@@ -2719,11 +2719,19 @@ void snd_pcm_hw_params_copy(snd_pcm_hw_params_t *dst, const snd_pcm_hw_params_t 
 /**
  * \brief Extract access type from a configuration space
  * \param params Configuration space
+ * \param val Returned value
  * \return access type otherwise a negative error code if not exactly one is present
  */
-int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params)
+int snd_pcm_hw_params_get_access(const snd_pcm_hw_params_t *params, snd_pcm_access_t *val)
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_ACCESS, NULL);
+	int err;
+	
+	assert(val);
+	err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_ACCESS, NULL);
+	if (err < 0)
+		return err;
+	*val = err;
+	return 0;
 }
 
 /**
@@ -2806,11 +2814,19 @@ void snd_pcm_hw_params_get_access_mask(snd_pcm_hw_params_t *params, snd_pcm_acce
 /**
  * \brief Extract format from a configuration space
  * \param params Configuration space
+ * \param val returned format
  * \return format otherwise a negative error code if not exactly one is present
  */
-int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params)
+int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params, snd_pcm_format_t *val)
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, NULL);
+	int err;
+	
+	assert(val);
+	err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, NULL);
+	if (err < 0)
+		return err;
+	*val = err;
+	return 0;
 }
 
 /**
@@ -2905,11 +2921,19 @@ int snd_pcm_hw_params_test_subformat(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
 /**
  * \brief Extract subformat from a configuration space
  * \param params Configuration space
+ * \param val Returned subformat
  * \return subformat otherwise a negative error code if not exactly one is present
  */
-int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params)
+int snd_pcm_hw_params_get_subformat(const snd_pcm_hw_params_t *params, snd_pcm_subformat_t *val)
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_SUBFORMAT, NULL);
+	int err;
+	
+	assert(val);
+	err = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_SUBFORMAT, NULL);
+	if (err < 0)
+		return err;
+	*val = (snd_pcm_subformat_t)err;
+	return 0;
 }
 
 /**
@@ -4344,6 +4368,31 @@ unsigned int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_par
 	if (snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, dir, &res) < 0)
 		return 0;
 	return res;
+}
+
+/**
+ * \brief Get the minimum transfer align value in samples
+ * \param params Configuration space
+ * \return minimum align value otherwise a negative error code if not exactly one is present
+ */
+snd_pcm_sframes_t snd_pcm_hw_params_get_min_align(const snd_pcm_hw_params_t *params)
+{
+	int format, channels, fb, min_align;
+
+	format = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, NULL);
+	if (format < 0)
+		return format;
+	channels = snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_CHANNELS, NULL);
+	if (channels < 0)
+		return channels;
+	// compute frame bits
+	fb = snd_pcm_format_physical_width(format) * channels;
+        min_align = 1;
+	while (fb % 8) {
+		fb *= 2;
+                min_align *= 2;
+	}
+	return min_align;
 }
 
 /**

@@ -263,13 +263,16 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	if (hw->mmap_emulation) {
 		snd_pcm_hw_params_t old = *params;
 		if (hw_params_call(hw, params) < 0) {
+			snd_pcm_access_t access;
 			snd_pcm_access_mask_t oldmask;
 			const snd_mask_t *pmask;
 
 			*params = old;
 			pmask = snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
 			oldmask = *(snd_pcm_access_mask_t *)pmask;
-			switch (snd_pcm_hw_params_get_access(params)) {
+			if (snd_pcm_hw_params_get_access(params, &access) < 0)
+				goto _err;
+			switch (access) {
 			case SND_PCM_ACCESS_MMAP_INTERLEAVED:
 				snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 				snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask, SND_PCM_ACCESS_RW_INTERLEAVED);

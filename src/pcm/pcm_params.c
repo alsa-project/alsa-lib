@@ -2179,9 +2179,9 @@ int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		return err;
 
 	pcm->setup = 1;
-	pcm->access = snd_pcm_hw_params_get_access(params);
-	pcm->format = snd_pcm_hw_params_get_format(params);
-	pcm->subformat = snd_pcm_hw_params_get_subformat(params);
+	snd_pcm_hw_params_get_access(params, &pcm->access);
+	snd_pcm_hw_params_get_format(params, &pcm->format);
+	snd_pcm_hw_params_get_subformat(params, &pcm->subformat);
 	pcm->channels = snd_pcm_hw_params_get_channels(params);
 	pcm->rate = snd_pcm_hw_params_get_rate(params, 0);
 	pcm->period_time = snd_pcm_hw_params_get_period_time(params, 0);

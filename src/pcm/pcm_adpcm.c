@@ -407,6 +407,7 @@ static int snd_pcm_adpcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_adpcm_t *adpcm = pcm->private_data;
+	snd_pcm_format_t format;
 	int err = snd_pcm_hw_params_slave(pcm, params,
 					  snd_pcm_adpcm_hw_refine_cchange,
 					  snd_pcm_adpcm_hw_refine_sprepare,
@@ -415,10 +416,13 @@ static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	if (err < 0)
 		return err;
 
+	err = snd_pcm_hw_params_get_format(params, &format);
+	if (err < 0)
+		return err;
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		if (adpcm->sformat == SND_PCM_FORMAT_IMA_ADPCM) {
-			adpcm->getput_idx = snd_pcm_linear_get_index(snd_pcm_hw_params_get_format(params), SND_PCM_FORMAT_S16);
+			adpcm->getput_idx = snd_pcm_linear_get_index(format, SND_PCM_FORMAT_S16);
 			adpcm->func = snd_pcm_adpcm_encode;
 		} else {
 			adpcm->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, adpcm->sformat);
@@ -426,7 +430,7 @@ static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		}
 	} else {
 		if (adpcm->sformat == SND_PCM_FORMAT_IMA_ADPCM) {
-			adpcm->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, snd_pcm_hw_params_get_format(params));
+			adpcm->getput_idx = snd_pcm_linear_put_index(SND_PCM_FORMAT_S16, format);
 			adpcm->func = snd_pcm_adpcm_decode;
 		} else {
 			adpcm->getput_idx = snd_pcm_linear_get_index(adpcm->sformat, SND_PCM_FORMAT_S16);
