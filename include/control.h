@@ -503,7 +503,11 @@ int snd_ctl_elem_info_is_inactive(const snd_ctl_elem_info_t *obj);
 
 int snd_ctl_elem_info_is_locked(const snd_ctl_elem_info_t *obj);
 
+int snd_ctl_elem_info_is_owner(const snd_ctl_elem_info_t *obj);
+
 int snd_ctl_elem_info_is_indirect(const snd_ctl_elem_info_t *obj);
+
+pid_t snd_ctl_elem_info_get_owner(const snd_ctl_elem_info_t *obj);
 
 unsigned int snd_ctl_elem_info_get_count(const snd_ctl_elem_info_t *obj);
 

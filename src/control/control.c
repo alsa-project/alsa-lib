@@ -1324,7 +1324,7 @@ int snd_ctl_elem_info_is_inactive(const snd_ctl_elem_info_t *obj)
 }
 
 /**
- * \brief Get info about status from a CTL element id/info
+ * \brief Get info whether an element is locked
  * \param obj CTL element id/info
  * \return 0 if element value is currently changeable, 1 if it's locked by another application
  */
@@ -1332,6 +1332,17 @@ int snd_ctl_elem_info_is_locked(const snd_ctl_elem_info_t *obj)
 {
 	assert(obj);
 	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_LOCK);
+}
+
+/**
+ * \brief Get info if I own an element
+ * \param obj CTL element id/info
+ * \return 0 if element value is currently changeable, 1 if it's locked by another application
+ */
+int snd_ctl_elem_info_is_owner(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_OWNER);
 }
 
 /**
@@ -1343,6 +1354,17 @@ int snd_ctl_elem_info_is_indirect(const snd_ctl_elem_info_t *obj)
 {
 	assert(obj);
 	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_INDIRECT);
+}
+
+/**
+ * \brief Get owner of a locked element
+ * \param obj CTL element id/info
+ * \return value entries count
+ */
+pid_t snd_ctl_elem_info_get_owner(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return obj->owner;
 }
 
 /**
