@@ -552,9 +552,9 @@ static int _snd_pcm_open_plug(snd_pcm_t **handlep, snd_config_t *conf,
 			      int stream, int mode)
 {
 	snd_config_iterator_t i;
-	long card = -1, device = -1, subdevice = -1;
-	char *str;
+	char *slave = NULL;
 	int err;
+	snd_pcm_t *slave_handle;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);
 		if (strcmp(n->id, "comment") == 0)
@@ -563,43 +563,47 @@ static int _snd_pcm_open_plug(snd_pcm_t **handlep, snd_config_t *conf,
 			continue;
 		if (strcmp(n->id, "stream") == 0)
 			continue;
-		if (strcmp(n->id, "card") == 0) {
-			err = snd_config_integer_get(n, &card);
-			if (err < 0) {
-				err = snd_config_string_get(n, &str);
-				if (err < 0)
-					return -EINVAL;
-				card = snd_card_get_index(str);
-				if (card < 0)
-					return card;
-			}
-			continue;
-		}
-		if (strcmp(n->id, "device") == 0) {
-			err = snd_config_integer_get(n, &device);
+		if (strcmp(n->id, "slave") == 0) {
+			err = snd_config_string_get(n, &slave);
 			if (err < 0)
-				return err;
-			continue;
-		}
-		if (strcmp(n->id, "subdevice") == 0) {
-			err = snd_config_integer_get(n, &subdevice);
-			if (err < 0)
-				return err;
+				return -EINVAL;
 			continue;
 		}
 		return -EINVAL;
 	}
-	if (card < 0 || device < 0)
+	if (!slave)
 		return -EINVAL;
-	return snd_pcm_plug_open_subdevice(handlep, card, device, subdevice, stream, mode);
+	/* This is needed cause snd_config_update may destroy config */
+	slave = strdup(slave);
+	if (!slave)
+		return  -ENOMEM;
+	err = snd_pcm_open(&slave_handle, slave, stream, mode);
+	free(slave);
+	if (err < 0)
+		return err;
+	err = snd_pcm_plug_create(handlep, slave_handle, 1);
+	if (err < 0)
+		snd_pcm_close(slave_handle);
+	return err;
 }
 				
-static int _snd_pcm_open_multi(snd_pcm_t **handle, snd_config_t *conf, 
+static int _snd_pcm_open_multi(snd_pcm_t **handlep, snd_config_t *conf, 
 			      int stream, int mode)
 {
-	snd_config_iterator_t i;
-	char *str;
+	snd_config_iterator_t i, j;
+	snd_config_t *slave = NULL;
+	snd_config_t *binding = NULL;
 	int err;
+	unsigned int idx;
+	char **slaves_id = NULL;
+	char **slaves_name = NULL;
+	snd_pcm_t **slaves_handle = NULL;
+	size_t *slaves_channels = NULL;
+	unsigned int *bindings_cchannel = NULL;
+	unsigned int *bindings_slave = NULL;
+	unsigned int *bindings_schannel = NULL;
+	size_t slaves_count = 0;
+	size_t bindings_count = 0;
 	snd_config_foreach(i, conf) {
 		snd_config_t *n = snd_config_entry(i);
 		if (strcmp(n->id, "comment") == 0)
@@ -611,18 +615,159 @@ static int _snd_pcm_open_multi(snd_pcm_t **handle, snd_config_t *conf,
 		if (strcmp(n->id, "slave") == 0) {
 			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
 				return -EINVAL;
-			/* Not yet implemented */
+			slave = n;
 			continue;
 		}
 		if (strcmp(n->id, "binding") == 0) {
 			if (snd_config_type(n) != SND_CONFIG_TYPE_COMPOUND)
 				return -EINVAL;
-			/* Not yet implemented */
+			binding = n;
 			continue;
 		}
 		return -EINVAL;
 	}
-	return -ENOSYS;
+	if (!slave || !binding)
+		return -EINVAL;
+	snd_config_foreach(i, slave) {
+		++slaves_count;
+	}
+	snd_config_foreach(i, binding) {
+		++bindings_count;
+	}
+	slaves_id = calloc(slaves_count, sizeof(*slaves_id));
+	slaves_name = calloc(slaves_count, sizeof(*slaves_name));
+	slaves_handle = calloc(slaves_count, sizeof(*slaves_handle));
+	slaves_channels = calloc(slaves_count, sizeof(*slaves_channels));
+	bindings_cchannel = calloc(bindings_count, sizeof(*bindings_cchannel));
+	bindings_slave = calloc(bindings_count, sizeof(*bindings_slave));
+	bindings_schannel = calloc(bindings_count, sizeof(*bindings_schannel));
+	idx = 0;
+	snd_config_foreach(i, slave) {
+		snd_config_t *m = snd_config_entry(i);
+		char *pcm = NULL;
+		long channels = -1;
+		slaves_id[idx] = snd_config_id(m);
+		snd_config_foreach(j, m) {
+			snd_config_t *n = snd_config_entry(j);
+			if (strcmp(n->id, "comment") == 0)
+				continue;
+			if (strcmp(n->id, "pcm") == 0) {
+				err = snd_config_string_get(n, &pcm);
+				if (err < 0)
+					goto _free;
+				continue;
+			}
+			if (strcmp(n->id, "channels") == 0) {
+				err = snd_config_integer_get(n, &channels);
+				if (err < 0)
+					goto _free;
+				continue;
+			}
+			err = -EINVAL;
+			goto _free;
+		}
+		if (!pcm || channels < 0) {
+			err = -EINVAL;
+			goto _free;
+		}
+		slaves_name[idx] = strdup(pcm);
+		slaves_channels[idx] = channels;
+		++idx;
+	}
+
+	idx = 0;
+	snd_config_foreach(i, binding) {
+		snd_config_t *m = snd_config_entry(i);
+		long cchannel = -1, schannel = -1;
+		int slave = -1;
+		long val;
+		char *str;
+		snd_config_foreach(j, m) {
+			snd_config_t *n = snd_config_entry(j);
+			if (strcmp(n->id, "comment") == 0)
+				continue;
+			if (strcmp(n->id, "client_channel") == 0) {
+				err = snd_config_integer_get(n, &cchannel);
+				if (err < 0)
+					goto _free;
+				continue;
+			}
+			if (strcmp(n->id, "slave") == 0) {
+				char buf[32];
+				unsigned int k;
+				err = snd_config_string_get(n, &str);
+				if (err < 0) {
+					err = snd_config_integer_get(n, &val);
+					if (err < 0)
+						goto _free;
+					sprintf(buf, "%ld", val);
+					str = buf;
+				}
+				for (k = 0; k < slaves_count; ++k) {
+					if (strcmp(slaves_id[k], str) == 0)
+						slave = k;
+				}
+				continue;
+			}
+			if (strcmp(n->id, "slave_channel") == 0) {
+				err = snd_config_integer_get(n, &schannel);
+				if (err < 0)
+					goto _free;
+				continue;
+			}
+			err = -EINVAL;
+			goto _free;
+		}
+		if (cchannel < 0 || slave < 0 || schannel < 0) {
+			err = -EINVAL;
+			goto _free;
+		}
+		if ((size_t)slave >= slaves_count) {
+			err = -EINVAL;
+			goto _free;
+		}
+		if ((unsigned int) schannel >= slaves_channels[slave]) {
+			err = -EINVAL;
+			goto _free;
+		}
+		bindings_cchannel[idx] = cchannel;
+		bindings_slave[idx] = slave;
+		bindings_schannel[idx] = schannel;
+		++idx;
+	}
+	
+	for (idx = 0; idx < slaves_count; ++idx) {
+		err = snd_pcm_open(&slaves_handle[idx], slaves_name[idx], stream, mode);
+		if (err < 0)
+			goto _free;
+	}
+	err = snd_pcm_multi_create(handlep, slaves_count, slaves_handle,
+				   slaves_channels,
+				   bindings_count, bindings_cchannel,
+				   bindings_slave, bindings_schannel,
+				   1);
+_free:
+	if (err < 0) {
+		for (idx = 0; idx < slaves_count; ++idx) {
+			if (slaves_handle[idx])
+				snd_pcm_close(slaves_handle[idx]);
+			if (slaves_name[idx])
+				free(slaves_name[idx]);
+		}
+	}
+	if (slaves_name)
+		free(slaves_name);
+	if (slaves_handle)
+		free(slaves_handle);
+	if (slaves_channels)
+		free(slaves_channels);
+	if (bindings_cchannel)
+		free(bindings_cchannel);
+	if (bindings_slave)
+		free(bindings_slave);
+	if (bindings_schannel)
+		free(bindings_schannel);
+	return err;
 }
 
 int snd_pcm_open(snd_pcm_t **handlep, char *name, 

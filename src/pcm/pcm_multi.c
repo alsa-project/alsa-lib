@@ -47,8 +47,8 @@ typedef struct {
 	snd_pcm_t *handle;
 	size_t slaves_count;
 	snd_pcm_multi_slave_t *slaves;
-	size_t binds_count;
-	snd_pcm_multi_bind_t *binds;
+	size_t bindings_count;
+	snd_pcm_multi_bind_t *bindings;
 	size_t channels_count;
 	size_t frames_alloc;
 	int interleave;
@@ -77,7 +77,7 @@ static int snd_pcm_multi_close(void *private)
 			free(slave->iovec);
 	}
 	free(multi->slaves);
-	free(multi->binds);
+	free(multi->bindings);
 	free(private);
 	return ret;
 }
@@ -319,10 +319,10 @@ static int snd_pcm_multi_channel_setup(void *private, snd_pcm_channel_setup_t *s
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	unsigned int channel = setup->channel;
 	unsigned int i;
-	for (i = 0; i < multi->binds_count; ++i) {
-		if (multi->binds[i].client_channel == channel) {
-			setup->channel = multi->binds[i].slave_channel;
-			err = snd_pcm_channel_setup(multi->slaves[multi->binds[i].slave].handle, setup);
+	for (i = 0; i < multi->bindings_count; ++i) {
+		if (multi->bindings[i].client_channel == channel) {
+			setup->channel = multi->bindings[i].slave_channel;
+			err = snd_pcm_channel_setup(multi->slaves[multi->bindings[i].slave].handle, setup);
 			setup->channel = channel;
 			return err;
 		}
@@ -367,8 +367,8 @@ static int snd_pcm_multi_write_copy(snd_pcm_multi_t *multi, const void *buf,
 	snd_pcm_t *handle = multi->handle;
 	area.addr = (void *) buf + offset * handle->bits_per_frame;
 	area.step = handle->bits_per_frame;
-	for (i = 0; i < multi->binds_count; ++i) {
-		snd_pcm_multi_bind_t *bind = &multi->binds[i];
+	for (i = 0; i < multi->bindings_count; ++i) {
+		snd_pcm_multi_bind_t *bind = &multi->bindings[i];
 		snd_pcm_multi_slave_t *slave = &multi->slaves[bind->slave];
 		int err;
 		assert(slave->buf);
@@ -392,8 +392,8 @@ static int snd_pcm_multi_writev_copy(snd_pcm_multi_t *multi, const struct iovec 
 	snd_pcm_t *handle = multi->handle;
 	area.first = 0;
 	area.step = handle->bits_per_sample;
-	for (i = 0; i < multi->binds_count; ++i) {
-		snd_pcm_multi_bind_t *bind = &multi->binds[i];
+	for (i = 0; i < multi->bindings_count; ++i) {
+		snd_pcm_multi_bind_t *bind = &multi->bindings[i];
 		snd_pcm_multi_slave_t *slave = &multi->slaves[bind->slave];
 		int err;
 		area.addr = vec[bind->client_channel].iov_base + 
@@ -633,8 +633,8 @@ static int snd_pcm_multi_channels_mask(void *private, bitset_t *client_vmask)
 	int err;
 	for (i = 0; i < multi->slaves_count; ++i)
 		vmasks[i] = bitset_alloc(multi->slaves[i].channels_total);
-	for (i = 0; i < multi->binds_count; ++i) {
-		snd_pcm_multi_bind_t *b = &multi->binds[i];
+	for (i = 0; i < multi->bindings_count; ++i) {
+		snd_pcm_multi_bind_t *b = &multi->bindings[i];
 		if (bitset_get(client_vmask, b->client_channel))
 			bitset_set(vmasks[b->slave], b->slave_channel);
 	}
@@ -648,8 +648,8 @@ static int snd_pcm_multi_channels_mask(void *private, bitset_t *client_vmask)
 		}
 	}
 	bitset_zero(client_vmask, multi->handle->setup.format.channels);
-	for (i = 0; i < multi->binds_count; ++i) {
-		snd_pcm_multi_bind_t *b = &multi->binds[i];
+	for (i = 0; i < multi->bindings_count; ++i) {
+		snd_pcm_multi_bind_t *b = &multi->bindings[i];
 		if (bitset_get(vmasks[b->slave], b->slave_channel))
 			bitset_set(client_vmask, b->client_channel);
 	}
@@ -680,11 +680,11 @@ static void snd_pcm_multi_dump(void *private, FILE *fp)
 		snd_pcm_dump(multi->slaves[k].handle, fp);
 	}
 	fprintf(fp, "\nBindings:\n");
-	for (k = 0; k < multi->binds_count; ++k) {
+	for (k = 0; k < multi->bindings_count; ++k) {
 		fprintf(fp, "Channel #%d: slave %d[%d]\n", 
-			multi->binds[k].client_channel,
-			multi->binds[k].slave,
-			multi->binds[k].slave_channel);
+			multi->bindings[k].client_channel,
+			multi->bindings[k].slave,
+			multi->bindings[k].slave_channel);
 	}
 }
 
@@ -724,9 +724,9 @@ struct snd_pcm_fast_ops snd_pcm_multi_fast_ops = {
 };
 
 int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
-			 snd_pcm_t **slaves_handle, size_t *slaves_channels_count,
-			 size_t binds_count,  unsigned int *binds_client_channel,
-			 unsigned int *binds_slave, unsigned int *binds_slave_channel,
+			 snd_pcm_t **slaves_handle, size_t *schannels_count,
+			 size_t bindings_count,  unsigned int *bindings_cchannel,
+			 unsigned int *bindings_slave, unsigned int *bindings_schannel,
 			 int close_slaves)
 {
 	snd_pcm_t *handle;
@@ -738,8 +738,8 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 	char slave_map[32][32] = { { 0 } };
 
 	assert(handlep);
-	assert(slaves_count > 0 && slaves_handle && slaves_channels_count);
-	assert(binds_count > 0 && binds_slave && binds_client_channel && binds_slave_channel);
+	assert(slaves_count > 0 && slaves_handle && schannels_count);
+	assert(bindings_count > 0 && bindings_slave && bindings_cchannel && bindings_schannel);
 
 	handle = calloc(1, sizeof(snd_pcm_t));
 	if (!handle)
@@ -755,36 +755,36 @@ int snd_pcm_multi_create(snd_pcm_t **handlep, size_t slaves_count,
 	multi->handle = handle;
 	multi->slaves_count = slaves_count;
 	multi->slaves = calloc(slaves_count, sizeof(*multi->slaves));
-	multi->binds_count = binds_count;
-	multi->binds = calloc(binds_count, sizeof(*multi->binds));
+	multi->bindings_count = bindings_count;
+	multi->bindings = calloc(bindings_count, sizeof(*multi->bindings));
 	for (i = 0; i < slaves_count; ++i) {
 		snd_pcm_multi_slave_t *slave = &multi->slaves[i];
 		assert(slaves_handle[i]->stream == stream);
 		slave->handle = slaves_handle[i];
-		slave->channels_total = slaves_channels_count[i];
+		slave->channels_total = schannels_count[i];
 		slave->close_slave = close_slaves;
 		if (i != 0)
 			snd_pcm_link(slaves_handle[i-1], slaves_handle[i]);
 	}
-	for (i = 0; i < binds_count; ++i) {
-		snd_pcm_multi_bind_t *bind = &multi->binds[i];
-		assert(binds_slave[i] < slaves_count);
-		assert(binds_slave_channel[i] < slaves_channels_count[binds_slave[i]]);
-		bind->client_channel = binds_client_channel[i];
-		bind->slave = binds_slave[i];
-		bind->slave_channel = binds_slave_channel[i];
-		if (slave_map[binds_slave[i]][binds_slave_channel[i]]) {
+	for (i = 0; i < bindings_count; ++i) {
+		snd_pcm_multi_bind_t *bind = &multi->bindings[i];
+		assert(bindings_slave[i] < slaves_count);
+		assert(bindings_schannel[i] < schannels_count[bindings_slave[i]]);
+		bind->client_channel = bindings_cchannel[i];
+		bind->slave = bindings_slave[i];
+		bind->slave_channel = bindings_schannel[i];
+		if (slave_map[bindings_slave[i]][bindings_schannel[i]]) {
 			assert(stream == SND_PCM_STREAM_CAPTURE);
 			multi->one_to_many = 1;
 		}
-		slave_map[binds_slave[i]][binds_slave_channel[i]] = 1;
-		if (client_map[binds_client_channel[i]]) {
+		slave_map[bindings_slave[i]][bindings_schannel[i]] = 1;
+		if (client_map[bindings_cchannel[i]]) {
 			assert(stream == SND_PCM_STREAM_PLAYBACK);
 			multi->one_to_many = 1;
 		}
-		client_map[binds_client_channel[i]] = 1;
-		if (binds_client_channel[i] >= channels)
-			channels = binds_client_channel[i] + 1;
+		client_map[bindings_cchannel[i]] = 1;
+		if (bindings_cchannel[i] >= channels)
+			channels = bindings_cchannel[i] + 1;
 	}
 	multi->channels_count = channels;
 
