@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-const char *snd_strerror( int errnum );
+const char *snd_strerror(int errnum);
 
 #ifdef __cplusplus
 }

@@ -84,9 +84,9 @@ typedef union {
 
 
 static void route_to_channel_from_zero(snd_pcm_plugin_t *plugin,
-				     const snd_pcm_plugin_channel_t *src_channels UNUSED,
+				     const snd_pcm_plugin_channel_t *src_channels ATTRIBUTE_UNUSED,
 				     snd_pcm_plugin_channel_t *dst_channel,
-				     ttable_dst_t* ttable UNUSED, size_t frames)
+				     ttable_dst_t* ttable ATTRIBUTE_UNUSED, size_t frames)
 {
 	if (dst_channel->wanted)
 		snd_pcm_area_silence(&dst_channel->area, 0, frames, plugin->dst_format.format);
@@ -410,7 +410,7 @@ int route_dst_channels_mask(snd_pcm_plugin_t *plugin,
 	return 0;
 }
 
-static void route_free(snd_pcm_plugin_t *plugin, void* private_data UNUSED)
+static void route_free(snd_pcm_plugin_t *plugin, void* private_data ATTRIBUTE_UNUSED)
 {
 	route_t *data = (route_t *)plugin->extra_data;
 	unsigned int dst_channel;

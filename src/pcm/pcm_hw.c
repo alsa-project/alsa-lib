@@ -131,7 +131,7 @@ static int snd_pcm_hw_state(void *private)
 	return status.state;
 }
 
-static ssize_t snd_pcm_hw_frame_io(void *private, int update UNUSED)
+static ssize_t snd_pcm_hw_frame_io(void *private, int update ATTRIBUTE_UNUSED)
 {
 	snd_pcm_hw_t *hw = (snd_pcm_hw_t*) private;
 	int fd = hw->fd;
@@ -310,21 +310,21 @@ static int snd_pcm_hw_mmap_data(void *private, void **buffer, size_t bsize)
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_status(void *private UNUSED, snd_pcm_mmap_status_t *status)
+static int snd_pcm_hw_munmap_status(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_status_t *status)
 {
 	if (munmap(status, sizeof(*status)) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_control(void *private UNUSED, snd_pcm_mmap_control_t *control)
+static int snd_pcm_hw_munmap_control(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_control_t *control)
 {
 	if (munmap(control, sizeof(*control)) < 0)
 		return -errno;
 	return 0;
 }
 
-static int snd_pcm_hw_munmap_data(void *private UNUSED, void *buffer, size_t bsize)
+static int snd_pcm_hw_munmap_data(void *private ATTRIBUTE_UNUSED, void *buffer, size_t bsize)
 {
 	if (munmap(buffer, bsize) < 0)
 		return -errno;
@@ -337,8 +337,8 @@ static int snd_pcm_hw_file_descriptor(void *private)
 	return hw->fd;
 }
 
-static int snd_pcm_hw_channels_mask(void *private UNUSED,
-				    bitset_t *client_vmask UNUSED)
+static int snd_pcm_hw_channels_mask(void *private ATTRIBUTE_UNUSED,
+				    bitset_t *client_vmask ATTRIBUTE_UNUSED)
 {
 	return 0;
 }

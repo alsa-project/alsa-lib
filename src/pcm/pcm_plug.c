@@ -377,7 +377,7 @@ static int snd_pcm_plug_pause(void *private, int enable)
 	return 0;
 }
 
-static int snd_pcm_plug_channel_setup(void *private UNUSED, snd_pcm_channel_setup_t *setup UNUSED)
+static int snd_pcm_plug_channel_setup(void *private ATTRIBUTE_UNUSED, snd_pcm_channel_setup_t *setup ATTRIBUTE_UNUSED)
 {
 	/* FIXME: non mmap setups */
 	return -ENXIO;
@@ -403,7 +403,7 @@ static ssize_t snd_pcm_plug_frame_data(void *private, off_t offset)
 	return snd_pcm_plug_client_size(plug, ret);
 }
   
-ssize_t snd_pcm_plug_writev(void *private, snd_timestamp_t *tstamp UNUSED, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_plug_writev(void *private, snd_timestamp_t *tstamp ATTRIBUTE_UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
@@ -447,7 +447,7 @@ ssize_t snd_pcm_plug_writev(void *private, snd_timestamp_t *tstamp UNUSED, const
 	return result;
 }
 
-ssize_t snd_pcm_plug_readv(void *private, snd_timestamp_t *tstamp UNUSED, const struct iovec *vector, unsigned long count)
+ssize_t snd_pcm_plug_readv(void *private, snd_timestamp_t *tstamp ATTRIBUTE_UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
@@ -491,7 +491,7 @@ ssize_t snd_pcm_plug_readv(void *private, snd_timestamp_t *tstamp UNUSED, const 
 	return result;
 }
 
-ssize_t snd_pcm_plug_write(void *private, snd_timestamp_t *tstamp UNUSED, const void *buf, size_t count)
+ssize_t snd_pcm_plug_write(void *private, snd_timestamp_t *tstamp ATTRIBUTE_UNUSED, const void *buf, size_t count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
@@ -525,7 +525,7 @@ ssize_t snd_pcm_plug_write(void *private, snd_timestamp_t *tstamp UNUSED, const 
 	return size;
 }
 
-ssize_t snd_pcm_plug_read(void *private, snd_timestamp_t *tstamp UNUSED, void *buf, size_t count)
+ssize_t snd_pcm_plug_read(void *private, snd_timestamp_t *tstamp ATTRIBUTE_UNUSED, void *buf, size_t count)
 {
 	snd_pcm_plug_t *plug = (snd_pcm_plug_t*) private;
 	snd_pcm_t *handle = plug->handle;
@@ -559,32 +559,32 @@ ssize_t snd_pcm_plug_read(void *private, snd_timestamp_t *tstamp UNUSED, void *b
 	return size;
 }
 
-static int snd_pcm_plug_mmap_status(void *private UNUSED, snd_pcm_mmap_status_t **status UNUSED)
+static int snd_pcm_plug_mmap_status(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_status_t **status ATTRIBUTE_UNUSED)
 {
 	return -EBADFD;
 }
 
-static int snd_pcm_plug_mmap_control(void *private UNUSED, snd_pcm_mmap_control_t **control UNUSED)
+static int snd_pcm_plug_mmap_control(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_control_t **control ATTRIBUTE_UNUSED)
 {
 	return -EBADFD;
 }
 
-static int snd_pcm_plug_mmap_data(void *private UNUSED, void **buffer UNUSED, size_t bsize UNUSED)
+static int snd_pcm_plug_mmap_data(void *private ATTRIBUTE_UNUSED, void **buffer ATTRIBUTE_UNUSED, size_t bsize ATTRIBUTE_UNUSED)
 {
 	return -EBADFD;
 }
 
-static int snd_pcm_plug_munmap_status(void *private UNUSED, snd_pcm_mmap_status_t *status UNUSED)
+static int snd_pcm_plug_munmap_status(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_status_t *status ATTRIBUTE_UNUSED)
 {
 	return -EBADFD;
 }
 		
-static int snd_pcm_plug_munmap_control(void *private UNUSED, snd_pcm_mmap_control_t *control UNUSED)
+static int snd_pcm_plug_munmap_control(void *private ATTRIBUTE_UNUSED, snd_pcm_mmap_control_t *control ATTRIBUTE_UNUSED)
 {
 	return -EBADFD;
 }
 		
-static int snd_pcm_plug_munmap_data(void *private UNUSED, void *buffer UNUSED, size_t size UNUSED)
+static int snd_pcm_plug_munmap_data(void *private ATTRIBUTE_UNUSED, void *buffer ATTRIBUTE_UNUSED, size_t size ATTRIBUTE_UNUSED)
 {
 	return -EBADFD;
 }

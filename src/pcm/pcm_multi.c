@@ -431,7 +431,7 @@ static ssize_t snd_pcm_multi_write_io(snd_pcm_multi_t *multi, size_t count)
 	return frames;
 }
 
-static ssize_t snd_pcm_multi_write(void *private, snd_timestamp_t *timestamp UNUSED, const void *buf, size_t count)
+static ssize_t snd_pcm_multi_write(void *private, snd_timestamp_t *timestamp ATTRIBUTE_UNUSED, const void *buf, size_t count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	size_t result = 0;
@@ -482,7 +482,7 @@ static ssize_t snd_pcm_multi_writev1(snd_pcm_multi_t *multi, const struct iovec 
 	return result;
 }
 
-static ssize_t snd_pcm_multi_writev(void *private, snd_timestamp_t *timestamp UNUSED, const struct iovec *vector, unsigned long count)
+static ssize_t snd_pcm_multi_writev(void *private, snd_timestamp_t *timestamp ATTRIBUTE_UNUSED, const struct iovec *vector, unsigned long count)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	snd_pcm_t *handle = multi->handle;
@@ -510,15 +510,15 @@ static ssize_t snd_pcm_multi_writev(void *private, snd_timestamp_t *timestamp UN
 	return result;
 }
 
-static ssize_t snd_pcm_multi_read(void *private, snd_timestamp_t *timestamp UNUSED, void *buf, size_t count)
+static ssize_t snd_pcm_multi_read(void *private ATTRIBUTE_UNUSED, snd_timestamp_t *timestamp ATTRIBUTE_UNUSED, void *buf ATTRIBUTE_UNUSED, size_t count ATTRIBUTE_UNUSED)
 {
-	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
+	// snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	return -ENOSYS;
 }
 
-static ssize_t snd_pcm_multi_readv(void *private, snd_timestamp_t *timestamp UNUSED, const struct iovec *vector, unsigned long count)
+static ssize_t snd_pcm_multi_readv(void *private ATTRIBUTE_UNUSED, snd_timestamp_t *timestamp ATTRIBUTE_UNUSED, const struct iovec *vector ATTRIBUTE_UNUSED, unsigned long count ATTRIBUTE_UNUSED)
 {
-	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
+	// snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	return -ENOSYS;
 }
 
@@ -558,7 +558,7 @@ static int snd_pcm_multi_mmap_control(void *private, snd_pcm_mmap_control_t **co
 	return 0;
 }
 
-static int snd_pcm_multi_mmap_data(void *private, void **buffer, size_t bsize UNUSED)
+static int snd_pcm_multi_mmap_data(void *private, void **buffer, size_t bsize ATTRIBUTE_UNUSED)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	unsigned int i;
@@ -583,7 +583,7 @@ static int snd_pcm_multi_mmap_data(void *private, void **buffer, size_t bsize UN
 	return 0;
 }
 
-static int snd_pcm_multi_munmap_status(void *private, snd_pcm_mmap_status_t *status UNUSED)
+static int snd_pcm_multi_munmap_status(void *private, snd_pcm_mmap_status_t *status ATTRIBUTE_UNUSED)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	unsigned int i;
@@ -597,7 +597,7 @@ static int snd_pcm_multi_munmap_status(void *private, snd_pcm_mmap_status_t *sta
 	return ret;
 }
 		
-static int snd_pcm_multi_munmap_control(void *private, snd_pcm_mmap_control_t *control UNUSED)
+static int snd_pcm_multi_munmap_control(void *private, snd_pcm_mmap_control_t *control ATTRIBUTE_UNUSED)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	unsigned int i;
@@ -611,7 +611,7 @@ static int snd_pcm_multi_munmap_control(void *private, snd_pcm_mmap_control_t *c
 	return ret;
 }
 		
-static int snd_pcm_multi_munmap_data(void *private, void *buffer UNUSED, size_t size UNUSED)
+static int snd_pcm_multi_munmap_data(void *private, void *buffer ATTRIBUTE_UNUSED, size_t size ATTRIBUTE_UNUSED)
 {
 	snd_pcm_multi_t *multi = (snd_pcm_multi_t*) private;
 	unsigned int i;

@@ -386,7 +386,7 @@ int snd_instr_iwffff_free(snd_instr_iwffff_t *__instr)
 	return 0;
 }
 
-static char *look_for_id(snd_iwffff_handle_t *iwf UNUSED, unsigned char *start,
+static char *look_for_id(snd_iwffff_handle_t *iwf ATTRIBUTE_UNUSED, unsigned char *start,
 			 unsigned char *end, ID id)
 {
 	if (!start)
@@ -832,9 +832,9 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 	return 0;
 }
 
-int snd_instr_iwffff_convert_from_stream(snd_seq_instr_get_t *data UNUSED,
-					 size_t size UNUSED,
-					 snd_instr_iwffff_t **iwffff UNUSED)
+int snd_instr_iwffff_convert_from_stream(snd_seq_instr_get_t *data ATTRIBUTE_UNUSED,
+					 size_t size ATTRIBUTE_UNUSED,
+					 snd_instr_iwffff_t **iwffff ATTRIBUTE_UNUSED)
 {
 	/* TODO */
 	return -ENXIO;

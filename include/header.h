@@ -29,3 +29,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
+#ifndef ATTRIBUTE_UNUSED
+#define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
+#endif
+

@@ -47,7 +47,7 @@
  
 static ssize_t io_playback_transfer(snd_pcm_plugin_t *plugin,
 				    const snd_pcm_plugin_channel_t *src_channels,
-				    snd_pcm_plugin_channel_t *dst_channels UNUSED,
+				    snd_pcm_plugin_channel_t *dst_channels ATTRIBUTE_UNUSED,
 				    size_t frames)
 {
 	struct iovec *vec;
@@ -73,7 +73,7 @@ static ssize_t io_playback_transfer(snd_pcm_plugin_t *plugin,
 }
  
 static ssize_t io_capture_transfer(snd_pcm_plugin_t *plugin,
-				   const snd_pcm_plugin_channel_t *src_channels UNUSED,
+				   const snd_pcm_plugin_channel_t *src_channels ATTRIBUTE_UNUSED,
 				   snd_pcm_plugin_channel_t *dst_channels,
 				   size_t frames)
 {

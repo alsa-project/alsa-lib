@@ -167,7 +167,7 @@ static ssize_t mmap_dst_channels(snd_pcm_plugin_t *plugin,
 
 static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 				      const snd_pcm_plugin_channel_t *src_channels,
-				      snd_pcm_plugin_channel_t *dst_channels UNUSED,
+				      snd_pcm_plugin_channel_t *dst_channels ATTRIBUTE_UNUSED,
 				      size_t frames)
 {
 	mmap_t *data;
@@ -203,8 +203,8 @@ static ssize_t mmap_playback_transfer(snd_pcm_plugin_t *plugin,
 }
  
 static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
-				     const snd_pcm_plugin_channel_t *src_channels UNUSED,
-				     snd_pcm_plugin_channel_t *dst_channels UNUSED,
+				     const snd_pcm_plugin_channel_t *src_channels ATTRIBUTE_UNUSED,
+				     snd_pcm_plugin_channel_t *dst_channels ATTRIBUTE_UNUSED,
 				     size_t frames)
 {
 	mmap_t *data;
@@ -225,7 +225,7 @@ static ssize_t mmap_capture_transfer(snd_pcm_plugin_t *plugin,
  
 static int mmap_action(snd_pcm_plugin_t *plugin,
 		       snd_pcm_plugin_action_t action,
-		       unsigned long udata UNUSED)
+		       unsigned long udata ATTRIBUTE_UNUSED)
 {
 	struct mmap_private_data *data;
 	snd_pcm_t *stream;
@@ -258,7 +258,7 @@ static int mmap_action(snd_pcm_plugin_t *plugin,
 	return 0;	/* silenty ignore other actions */
 }
 
-static void mmap_free(snd_pcm_plugin_t *plugin, void *private_data UNUSED)
+static void mmap_free(snd_pcm_plugin_t *plugin, void *private_data ATTRIBUTE_UNUSED)
 {
 	struct mmap_private_data *data;
 

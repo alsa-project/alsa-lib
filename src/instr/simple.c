@@ -94,9 +94,9 @@ int snd_instr_simple_convert_to_stream(snd_instr_simple_t *simple,
 	return 0;
 }
 
-int snd_instr_simple_convert_from_stream(snd_seq_instr_get_t *__data UNUSED,
-					 size_t size UNUSED,
-					 snd_instr_simple_t **simple UNUSED)
+int snd_instr_simple_convert_from_stream(snd_seq_instr_get_t *__data ATTRIBUTE_UNUSED,
+					 size_t size ATTRIBUTE_UNUSED,
+					 snd_instr_simple_t **simple ATTRIBUTE_UNUSED)
 {
 	/* TODO */
 	return -ENXIO;
