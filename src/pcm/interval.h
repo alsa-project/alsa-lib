@@ -34,7 +34,8 @@ int interval_min(const interval_t *i);
 int interval_max(const interval_t *i);
 int interval_test(const interval_t *i, unsigned int val);
 void interval_copy(interval_t *dst, const interval_t *src);
-void interval_round(interval_t *i);
+void interval_floor(interval_t *i);
+void interval_unfloor(interval_t *i);
 int interval_always_eq(const interval_t *i1, const interval_t *i2);
 int interval_never_eq(const interval_t *i1, const interval_t *i2);
 #endif

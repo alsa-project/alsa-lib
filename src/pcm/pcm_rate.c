@@ -276,8 +276,7 @@ static int snd_pcm_rate_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 					  snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_rate_t *rate = pcm->private;
-	interval_t t;
-	const interval_t *buffer_size;
+	interval_t t, buffer_size;
 	const interval_t *srate, *crate;
 	int err;
 	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
@@ -288,11 +287,11 @@ static int snd_pcm_rate_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 			  SND_PCM_HW_PARBIT_SUBFORMAT |
 			  SND_PCM_HW_PARBIT_SAMPLE_BITS |
 			  SND_PCM_HW_PARBIT_FRAME_BITS);
-	buffer_size = snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE);
+	interval_copy(&buffer_size, snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE));
+	interval_unfloor(&buffer_size);
 	crate = snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_RATE);
 	srate = snd_pcm_hw_param_value_interval(sparams, SND_PCM_HW_PARAM_RATE);
-	interval_muldiv(buffer_size, srate, crate, &t);
-	interval_round(&t);
+	interval_muldiv(&buffer_size, srate, crate, &t);
 	err = _snd_pcm_hw_param_refine_interval(sparams, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
 	if (err < 0)
 		return err;
@@ -322,7 +321,7 @@ static int snd_pcm_rate_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	crate = snd_pcm_hw_param_value_interval(params, SND_PCM_HW_PARAM_RATE);
 	srate = snd_pcm_hw_param_value_interval(sparams, SND_PCM_HW_PARAM_RATE);
 	interval_muldiv(sbuffer_size, crate, srate, &t);
-	interval_round(&t);
+	interval_floor(&t);
 	err = _snd_pcm_hw_param_refine_interval(params, SND_PCM_HW_PARAM_BUFFER_SIZE, &t);
 	if (err < 0)
 		return err;

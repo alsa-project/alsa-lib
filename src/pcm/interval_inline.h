@@ -97,14 +97,31 @@ INLINE int interval_setinteger(interval_t *i)
 	return 1;
 }
 
-INLINE void interval_round(interval_t *i)
+INLINE void interval_floor(interval_t *i)
 {
 	if (i->integer || interval_empty(i))
 		return;
 	i->openmin = 0;
-	i->openmax = 0;
+	if (i->openmax) {
+		i->max--;
+		i->openmax = 0;
+	}
 	i->integer = 1;
 }
+
+INLINE void interval_unfloor(interval_t *i)
+{
+	if (interval_empty(i))
+		return;
+	if (i->max == UINT_MAX)
+		return;
+	if (i->openmax)
+		return;
+	i->max++;
+	i->openmax = 1;
+	i->integer = 0;
+}
+
 
 INLINE int interval_always_eq(const interval_t *i1, const interval_t *i2)
 {
