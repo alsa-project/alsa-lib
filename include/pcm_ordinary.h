@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef __ALSA_PCM_SIMPLE_H
-#define __ALSA_PCM_SIMPLE_H
+#ifndef __ALSA_PCM_ORDINARY_H
+#define __ALSA_PCM_ORDINARY_H
 
 #include <alsa/asoundlib.h>
 
@@ -35,7 +35,7 @@ enum sndo_pcm_latency_type {
 	    (estimated latency in one direction 350ms) (default) */
 	SNDO_PCM_LATENCY_NORMAL = 0,
 	/** medium latency - software phones etc.
-	    (estimated latency in one direction 50ms) */
+	    (estimated latency in one direction maximally 50ms) */
 	SNDO_PCM_LATENCY_MEDIUM,
 	/** realtime latency - realtime applications (effect processors etc.)
 	    (estimated latency in one direction 5ms) */
@@ -60,6 +60,8 @@ enum sndo_pcm_xrun_type {
 
 typedef struct sndo_pcm sndo_pcm_t;
 
+typedef int (sndo_pcm_engine_callback_t)(sndo_pcm_t *pcm);
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -70,15 +72,15 @@ extern "C" {
  *  \{
  */
 
-int sndo_pcm_open(sndo_pcm_t **pcm, const char *playback_name, const char *capture_name, snd_config_t *lconf);
+int sndo_pcm_open(sndo_pcm_t **pcm, const char *playback_name, const char *capture_name, struct alisp_cfg *lconf);
 int sndo_pcm_close(sndo_pcm_t *pcm);
 int sndo_pcm_poll_descriptors_count(sndo_pcm_t *pcm);
 int sndo_pcm_poll_descriptors(sndo_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
-int sndo_pcm_poll_descriptors_revents(sndo_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int sndo_pcm_start(sndo_pcm_t *pcm);
 int sndo_pcm_drop(sndo_pcm_t *pcm);
 int sndo_pcm_drain(sndo_pcm_t *pcm);
 int sndo_pcm_delay(sndo_pcm_t *pcm, snd_pcm_sframes_t *delayp);
+int sndo_pcm_transfer_block(sndo_pcm_t *pcm, snd_pcm_uframes_t *tblock);
 int sndo_pcm_resume(sndo_pcm_t *pcm);
 int sndo_pcm_wait(sndo_pcm_t *pcm, int timeout);
 snd_pcm_t *sndo_pcm_raw_playback(sndo_pcm_t *pcm);
@@ -121,8 +123,23 @@ snd_pcm_sframes_t sndo_pcm_cio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames);
 
 /** \} */
 
+/**
+ * \defgroup PCM_ordinary_engine Callback like engine
+ * \ingroup PCM_ordinary
+ * See the \ref pcm_ordinary page for more details.
+ * \{
+ */
+
+int sndo_pcm_set_private_data(sndo_pcm_t *pcm, void *private_data);
+int sndo_pcm_get_private_data(sndo_pcm_t *pcm, void **private_data);
+int sndo_pcm_engine(sndo_pcm_t *pcm,
+		    sndo_pcm_engine_callback_t *playback,
+		    sndo_pcm_engine_callback_t *capture);
+
+/** \} */
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __ALSA_PCM_SIMPLE_H */
+#endif /* __ALSA_PCM_ORDINARY_H */

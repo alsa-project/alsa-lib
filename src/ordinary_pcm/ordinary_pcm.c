@@ -3,7 +3,7 @@
  * \ingroup PCM_ordinary
  * \brief Ordinary PCM interface
  * \author Jaroslav Kysela <perex@suse.cz>
- * \date 2003
+ * \date 2003,2004
  *
  * Ordinary PCM interface is a high level abtraction for
  * digital audio streaming.
@@ -56,6 +56,7 @@ Write something here
 #include <sys/mman.h>
 #include <limits.h>
 #include "asoundlib.h"
+#include "alisp.h"
 #include "pcm_ordinary.h"
 
 struct sndo_pcm {
@@ -70,6 +71,12 @@ struct sndo_pcm {
 	unsigned int samplebytes;
 	snd_pcm_uframes_t p_offset;
 	snd_pcm_uframes_t c_offset;
+	snd_pcm_uframes_t p_period_size;
+	snd_pcm_uframes_t c_period_size;
+	snd_pcm_uframes_t transfer_block;
+	snd_pcm_uframes_t ring_size;
+	enum sndo_pcm_latency_type latency;
+	enum sndo_pcm_xrun_type xrun;
 	int setting_up;
 	int initialized;
 };
@@ -95,7 +102,7 @@ static inline int sndo_pcm_check_setup(sndo_pcm_t *pcm)
 int sndo_pcm_open(sndo_pcm_t **ppcm,
 		  const char *playback_name,
 		  const char *capture_name,
-		  snd_config_t *lconf)
+		  struct alisp_cfg *lconf)
 {
 	int err = 0;
 	sndo_pcm_t *pcm;
@@ -122,12 +129,12 @@ int sndo_pcm_open(sndo_pcm_t **ppcm,
 		goto __end;
 	if (lconf) {
 		if (playback_name) {
-			err = snd_pcm_open_lconf(&pcm->playback, playback_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK, lconf);
+			err = snd_pcm_open_lconf(&pcm->playback, playback_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK, NULL);
 			if (err < 0)
 				goto __end;
 		}
 		if (capture_name) {
-			err = snd_pcm_open_lconf(&pcm->capture, playback_name, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK, lconf);
+			err = snd_pcm_open_lconf(&pcm->capture, playback_name, SND_PCM_STREAM_CAPTURE, SND_PCM_NONBLOCK, NULL);
 			if (err < 0)
 				goto __end;
 		}
@@ -149,8 +156,6 @@ int sndo_pcm_open(sndo_pcm_t **ppcm,
 			goto __end;
 		pcm->master = pcm->playback;
 	}
-	if (sndo_pcm_param_reset(pcm) >= 0)
-		*ppcm = pcm;
       __end:
 	if (err < 0)
 		sndo_pcm_close(pcm);
@@ -262,6 +267,11 @@ int sndo_pcm_poll_descriptors_revents(sndo_pcm_t *pcm, struct pollfd *pfds, unsi
  */
 int sndo_pcm_start(sndo_pcm_t *pcm)
 {
+	int err;
+
+	err = sndo_pcm_check_setup(pcm);
+	if (err < 0)
+		return err;
 	/* the streams are linked, so use only one stream */
 	return snd_pcm_start(pcm->master);
 }
@@ -307,11 +317,14 @@ int sndo_pcm_drain(sndo_pcm_t *pcm)
  */
 int sndo_pcm_delay(sndo_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
-	int err = 0;
+	int err;
 	snd_pcm_sframes_t pdelay, cdelay;
 
 	assert(pcm);
 	assert(delayp);
+	err = sndo_pcm_check_setup(pcm);
+	if (err < 0)
+		return err;
 	if (pcm->playback)
 		err = snd_pcm_avail_update(pcm->playback);
 	if (err >= 0 && pcm->capture)
@@ -324,6 +337,27 @@ int sndo_pcm_delay(sndo_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 		pdelay = cdelay;
 	*delayp = pdelay;
 	return err;
+}
+
+/**
+ * \brief Obtain transfer block size (aka period size)
+ * \param pcm ordinary PCM handle
+ * \param tblock Returned transfer block size in frames
+ * \return 0 on success otherwise a negative error code
+ *
+ * All read/write operations must use this transfer block.
+ */
+int sndo_pcm_transfer_block(sndo_pcm_t *pcm, snd_pcm_uframes_t *tblock)
+{
+	int err;
+
+	assert(pcm);
+	assert(tblock);
+	err = sndo_pcm_check_setup(pcm);
+	if (err < 0)
+		return err;
+	*tblock = pcm->transfer_block;
+	return 0;
 }
 
 /**
@@ -412,7 +446,11 @@ snd_pcm_t *sndo_pcm_raw_capture(sndo_pcm_t *pcm)
 int sndo_pcm_param_reset(sndo_pcm_t *pcm)
 {
 	int err;
-	
+
+	err = sndo_pcm_drain(pcm);
+	if (err < 0)
+		return err;
+	pcm->initialized = 0;
 	if (pcm->playback) {
 		err = snd_pcm_hw_params_any(pcm->playback, pcm->p_hw_params);
 		if (err < 0)
@@ -577,6 +615,9 @@ int sndo_pcm_param_format(sndo_pcm_t *pcm, snd_pcm_format_t format, snd_pcm_subf
  * \param latency requested latency
  * \param used_latency returned real latency in frames
  * \return 0 on success otherwise a negative error code
+ *
+ * Note that the result value is only approximate and for one direction.
+ * For example, hardware FIFOs are not counted etc.
  */
 int sndo_pcm_param_latency(sndo_pcm_t *pcm, enum sndo_pcm_latency_type latency, snd_pcm_uframes_t *used_latency)
 {
@@ -585,7 +626,13 @@ int sndo_pcm_param_latency(sndo_pcm_t *pcm, enum sndo_pcm_latency_type latency, 
 	err = sndo_pcm_setup(pcm);
 	if (err < 0)
 		return err;
-	return -EIO;
+	pcm->latency = latency;
+	err = sndo_pcm_check_setup(pcm);
+	if (err < 0)
+		return err;
+	if (used_latency)
+		*used_latency = pcm->ring_size;
+	return 0;
 }
 
 /**
@@ -601,7 +648,8 @@ int sndo_pcm_param_xrun(sndo_pcm_t *pcm, enum sndo_pcm_xrun_type xrun)
 	err = sndo_pcm_setup(pcm);
 	if (err < 0)
 		return err;
-	return -EIO;
+	pcm->xrun = xrun;
+	return 0;
 }
 
 /**
@@ -622,7 +670,12 @@ int sndo_pcm_pio_ibegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *
 	err = snd_pcm_mmap_begin(pcm->playback, &areas, &pcm->p_offset, frames);
 	if (err < 0)
 		return err;
-	*ring_buffer = (char *)areas->addr + (areas->first / 8) + pcm->p_offset * pcm->samplebytes;
+	if (*frames < pcm->transfer_block) {
+		frames = 0;
+	} else {
+		*frames -= *frames % pcm->transfer_block;
+		*ring_buffer = (char *)areas->addr + (areas->first / 8) + pcm->p_offset * pcm->samplebytes;
+	}
 	return 0;
 }
 
@@ -634,6 +687,10 @@ int sndo_pcm_pio_ibegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *
  */
 snd_pcm_sframes_t sndo_pcm_pio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
+	if (frames <= 0)
+		return -EINVAL;
+	if (frames % pcm->transfer_block)
+		return -EINVAL;
 	return snd_pcm_mmap_commit(pcm->playback, pcm->p_offset, frames);
 }
 
@@ -656,8 +713,13 @@ int sndo_pcm_pio_nbegin(sndo_pcm_t *pcm, void ***ring_buffer, snd_pcm_uframes_t 
 	err = snd_pcm_mmap_begin(pcm->playback, &areas, &pcm->p_offset, frames);
 	if (err < 0)
 		return err;
-	for (ch = 0; ch < pcm->channels; ch++)
-		ring_buffer[ch] = areas->addr + (areas->first / 8) + pcm->p_offset * pcm->samplebytes;
+	if (*frames < pcm->transfer_block) {
+		frames = 0;
+	} else {
+		*frames -= *frames % pcm->transfer_block;
+		for (ch = 0; ch < pcm->channels; ch++)
+			ring_buffer[ch] = areas->addr + (areas->first / 8) + pcm->p_offset * pcm->samplebytes;
+	}
 	return 0;
 }
 
@@ -669,6 +731,10 @@ int sndo_pcm_pio_nbegin(sndo_pcm_t *pcm, void ***ring_buffer, snd_pcm_uframes_t 
  */
 snd_pcm_sframes_t sndo_pcm_pio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
+	if (frames <= 0)
+		return -EINVAL;
+	if (frames % pcm->transfer_block)
+		return -EINVAL;
 	return snd_pcm_mmap_commit(pcm->playback, pcm->p_offset, frames);
 }
 
@@ -690,7 +756,12 @@ int sndo_pcm_cio_ibegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *
 	err = snd_pcm_mmap_begin(pcm->capture, &areas, &pcm->c_offset, frames);
 	if (err < 0)
 		return err;
-	*ring_buffer = (char *)areas->addr + (areas->first / 8) + pcm->c_offset * pcm->samplebytes;
+	if (*frames < pcm->transfer_block) {
+		frames = 0;
+	} else {
+		*frames -= *frames % pcm->transfer_block;
+		*ring_buffer = (char *)areas->addr + (areas->first / 8) + pcm->c_offset * pcm->samplebytes;
+	}
 	return 0;
 }
 
@@ -702,6 +773,10 @@ int sndo_pcm_cio_ibegin(sndo_pcm_t *pcm, void **ring_buffer, snd_pcm_uframes_t *
  */
 snd_pcm_sframes_t sndo_pcm_cio_iend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
+	if (frames <= 0)
+		return -EINVAL;
+	if (frames % pcm->transfer_block)
+		return -EINVAL;
 	return snd_pcm_mmap_commit(pcm->capture, pcm->p_offset, frames);
 }
 
@@ -724,8 +799,13 @@ int sndo_pcm_cio_nbegin(sndo_pcm_t *pcm, void ***ring_buffer, snd_pcm_uframes_t 
 	err = snd_pcm_mmap_begin(pcm->capture, &areas, &pcm->c_offset, frames);
 	if (err < 0)
 		return err;
-	for (ch = 0; ch < pcm->channels; ch++)
-		ring_buffer[ch] = areas->addr + (areas->first / 8) + pcm->c_offset * pcm->samplebytes;
+	if (*frames < pcm->transfer_block) {
+		frames = 0;
+	} else {
+		*frames -= *frames % pcm->transfer_block;
+		for (ch = 0; ch < pcm->channels; ch++)
+			ring_buffer[ch] = areas->addr + (areas->first / 8) + pcm->c_offset * pcm->samplebytes;
+	}
 	return 0;
 }
 
@@ -737,6 +817,10 @@ int sndo_pcm_cio_nbegin(sndo_pcm_t *pcm, void ***ring_buffer, snd_pcm_uframes_t 
  */
 snd_pcm_sframes_t sndo_pcm_cio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
+	if (frames <= 0)
+		return -EINVAL;
+	if (frames % pcm->transfer_block)
+		return -EINVAL;
 	return snd_pcm_mmap_commit(pcm->capture, pcm->c_offset, frames);
 }
 
@@ -746,8 +830,11 @@ snd_pcm_sframes_t sndo_pcm_cio_nend(sndo_pcm_t *pcm, snd_pcm_uframes_t frames)
  
 static int sndo_pcm_setup(sndo_pcm_t *pcm)
 {
-	if (pcm->initialized)
-		return 0;
+	int err;
+
+	err = sndo_pcm_drain(pcm);
+	if (err < 0)
+		return err;
 	if (!pcm->setting_up) {
 		int err = sndo_pcm_param_reset(pcm);
 		if (err < 0)
@@ -761,19 +848,56 @@ static int sndo_pcm_initialize(sndo_pcm_t *pcm)
 {
 	int err;
 	snd_pcm_uframes_t boundary;
-	snd_pcm_uframes_t avail_min = 1; /* FIXME */
+	snd_pcm_uframes_t p_period_size = ~0UL, c_period_size = ~0UL;
+	snd_pcm_uframes_t p_buffer_size = ~0UL, c_buffer_size = ~0UL;
 
+	if (pcm->playback) {
+		err = snd_pcm_hw_params(pcm->playback, pcm->p_hw_params);
+		if (err < 0)
+			return err;
+		err = snd_pcm_hw_params_get_period_size(pcm->p_hw_params, &p_period_size, NULL);
+		if (err < 0)
+			return err;
+		err = snd_pcm_hw_params_get_buffer_size(pcm->p_hw_params, &p_buffer_size);
+		if (err < 0)
+			return err;
+	}
+	if (pcm->capture) {
+		err = snd_pcm_hw_params(pcm->capture, pcm->c_hw_params);
+		if (err < 0)
+			return err;
+		err = snd_pcm_hw_params_get_period_size(pcm->c_hw_params, &c_period_size, NULL);
+		if (err < 0)
+			return err;
+		err = snd_pcm_hw_params_get_buffer_size(pcm->c_hw_params, &c_buffer_size);
+		if (err < 0)
+			return err;
+	}
+	if (p_period_size < c_period_size)
+		pcm->transfer_block = p_period_size;
+	else
+		pcm->transfer_block = c_period_size;
+	if (p_buffer_size < c_buffer_size)
+		pcm->ring_size = p_buffer_size;
+	else
+		pcm->ring_size = c_buffer_size;
 	if (pcm->playback) {
 		err = snd_pcm_sw_params_get_boundary(pcm->p_sw_params, &boundary);
 		if (err < 0)
 			return err;
-		err = snd_pcm_sw_params_set_start_threshold(pcm->capture, pcm->p_sw_params, boundary);
+		err = snd_pcm_sw_params_set_start_threshold(pcm->playback, pcm->p_sw_params, boundary);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params_set_stop_threshold(pcm->playback, pcm->p_sw_params, pcm->xrun == SNDO_PCM_XRUN_IGNORE ? boundary : pcm->ring_size);
 		if (err < 0)
 			return err;
 		err = snd_pcm_sw_params_set_xfer_align(pcm->playback, pcm->p_sw_params, 1);
 		if (err < 0)
 			return err;
-		err = snd_pcm_sw_params_set_avail_min(pcm->playback, pcm->p_sw_params, avail_min);
+		err = snd_pcm_sw_params_set_avail_min(pcm->playback, pcm->p_sw_params, pcm->transfer_block);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params(pcm->playback, pcm->p_sw_params);
 		if (err < 0)
 			return err;
 	}
@@ -784,10 +908,16 @@ static int sndo_pcm_initialize(sndo_pcm_t *pcm)
 		err = snd_pcm_sw_params_set_start_threshold(pcm->capture, pcm->c_sw_params, boundary);
 		if (err < 0)
 			return err;
+		err = snd_pcm_sw_params_set_stop_threshold(pcm->capture, pcm->c_sw_params, pcm->xrun == SNDO_PCM_XRUN_IGNORE ? boundary : pcm->ring_size);
+		if (err < 0)
+			return err;
 		err = snd_pcm_sw_params_set_xfer_align(pcm->capture, pcm->c_sw_params, 1);
 		if (err < 0)
 			return err;
-		err = snd_pcm_sw_params_set_avail_min(pcm->capture, pcm->c_sw_params, avail_min);
+		err = snd_pcm_sw_params_set_avail_min(pcm->capture, pcm->c_sw_params, pcm->transfer_block);
+		if (err < 0)
+			return err;
+		err = snd_pcm_sw_params(pcm->capture, pcm->c_sw_params);
 		if (err < 0)
 			return err;
 	}
