@@ -432,7 +432,7 @@ pcm.name {
  *          changed in future.
  */
 int _snd_pcm_null_open(snd_pcm_t **pcmp, const char *name,
-		       snd_config_t *root, snd_config_t *conf, 
+		       snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf, 
 		       snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
