@@ -210,7 +210,7 @@ static snd_pcm_uframes_t _snd_pcm_share_missing(snd_pcm_t *pcm)
 	share->hw_ptr = slave->hw_ptr;
 	avail = snd_pcm_mmap_avail(pcm);
 	if (avail >= pcm->stop_threshold) {
-		_snd_pcm_share_stop(pcm, SND_PCM_STATE_XRUN);
+		_snd_pcm_share_stop(pcm, share->state == SND_PCM_STATE_DRAINING ? SND_PCM_STATE_SETUP : SND_PCM_STATE_XRUN);
 		goto update_poll;
 	}
 	hw_avail = buffer_size - avail;
