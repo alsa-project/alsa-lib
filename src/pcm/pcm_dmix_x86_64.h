@@ -46,6 +46,7 @@ static void MIX_AREAS1(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
+		"\tpush %%rbx\n"
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -110,6 +111,7 @@ static void MIX_AREAS1(unsigned int size,
 		"6:"
 		
 		"\temms\n"
+		"\tpop %%rbx\n"
 
 		: /* no output regs */
 		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
@@ -136,6 +138,7 @@ static void MIX_AREAS2(unsigned int size,
 	__asm__ __volatile__ (
 		"\n"
 
+		"\tpush %%rbx\n"
 		/*
 		 *  initialization, load ESI, EDI, EBX registers
 		 */
@@ -220,6 +223,8 @@ static void MIX_AREAS2(unsigned int size,
 		// "\tjmp 6f\n"
 		
 		"6:"
+		"\tpop %%rbx\n"
+
 		: /* no output regs */
 		: "m" (size), "m" (dst), "m" (src), "m" (sum), "m" (dst_step), "m" (src_step), "m" (sum_step)
 		: "rsi", "rdi", "edx", "ecx", "rbx", "eax"
