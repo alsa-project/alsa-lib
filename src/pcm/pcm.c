@@ -878,7 +878,7 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
  *
  * Note this function does not update the actual r/w pointer
  * for applications. The function #snd_pcm_avail_update()
- * have to be called before any read/write/begin+commit operation.
+ * have to be called before any mmap begin+commit operation.
  */
 int snd_pcm_hwsync(snd_pcm_t *pcm)
 {
@@ -901,7 +901,7 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
  *
  * Note this function does not update the actual r/w pointer
  * for applications. The function #snd_pcm_avail_update()
- * have to be called before any read/write/begin+commit operation.
+ * have to be called before any begin+commit operation.
  */
 int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
@@ -2088,6 +2088,9 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
  *
  * On capture does all the actions needed to transport to application
  * level all the ready frames across underlying layers.
+ *
+ * Using of this function is useless for the standard read/write
+ * operations. Use it only for mmap access. See to #snd_pcm_delay.
  */
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 {
