@@ -66,8 +66,7 @@ typedef void (*rate_f)(const snd_pcm_channel_area_t *dst_areas,
 		       snd_pcm_rate_t *rate);
 
 struct _snd_pcm_rate {
-	snd_pcm_t *slave;
-	int close_slave;
+	snd_pcm_generic_t gen;
 	snd_atomic_write_t watom;
 	snd_pcm_uframes_t appl_ptr, hw_ptr;
 	snd_pcm_uframes_t orig_avail_min;
@@ -497,18 +496,6 @@ static int snd_pcm_rate_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	return 0;
 }
 
-static int snd_pcm_rate_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_hw_refine(rate->slave, params);
-}
-
-static int snd_pcm_rate_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return _snd_pcm_hw_params(rate->slave, params);
-}
-
 static int snd_pcm_rate_hw_refine(snd_pcm_t *pcm, 
 				  snd_pcm_hw_params_t *params)
 {
@@ -517,13 +504,13 @@ static int snd_pcm_rate_hw_refine(snd_pcm_t *pcm,
 				       snd_pcm_rate_hw_refine_cchange,
 				       snd_pcm_rate_hw_refine_sprepare,
 				       snd_pcm_rate_hw_refine_schange,
-				       snd_pcm_rate_hw_refine_slave);
+				       snd_pcm_generic_hw_refine);
 }
 
 static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_t *slave = rate->slave;
+	snd_pcm_t *slave = rate->gen.slave;
 	snd_pcm_format_t src_format, dst_format, pformat, sformat;
 	unsigned int src_rate, dst_rate, channels, pwidth, swidth, chn;
 	snd_pcm_uframes_t period_size, buffer_size;
@@ -531,7 +518,7 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 					  snd_pcm_rate_hw_refine_cchange,
 					  snd_pcm_rate_hw_refine_sprepare,
 					  snd_pcm_rate_hw_refine_schange,
-					  snd_pcm_rate_hw_params_slave);
+					  snd_pcm_generic_hw_params);
 	if (err < 0)
 		return err;
 
@@ -620,13 +607,13 @@ static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 		rate->pareas = NULL;
 		rate->sareas = NULL;
 	}
-	return snd_pcm_hw_free(rate->slave);
+	return snd_pcm_hw_free(rate->gen.slave);
 }
 
 static void recalc(snd_pcm_t *pcm, snd_pcm_uframes_t *val)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_t *slave = rate->slave;
+	snd_pcm_t *slave = rate->gen.slave;
 	unsigned long div;
 
 	if (*val == pcm->buffer_size) {
@@ -643,7 +630,7 @@ static void recalc(snd_pcm_t *pcm, snd_pcm_uframes_t *val)
 static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_t *slave = rate->slave;
+	snd_pcm_t *slave = rate->gen.slave;
 	snd_pcm_sw_params_t *sparams;
 	snd_pcm_uframes_t boundary1, boundary2;
 
@@ -771,7 +758,7 @@ snd_pcm_rate_write_areas1(snd_pcm_t *pcm,
 			 snd_pcm_uframes_t slave_offset)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	rate->func(slave_areas, slave_offset, rate->slave->period_size,
+	rate->func(slave_areas, slave_offset, rate->gen.slave->period_size,
 		   areas, offset, pcm->period_size,
 		   pcm->channels, rate);
 	return 0;
@@ -786,7 +773,7 @@ snd_pcm_rate_read_areas1(snd_pcm_t *pcm,
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	rate->func(areas, offset, pcm->period_size,
-		   slave_areas, slave_offset, rate->slave->period_size,
+		   slave_areas, slave_offset, rate->gen.slave->period_size,
 		   pcm->channels, rate);
 	return 0;
 }
@@ -796,7 +783,7 @@ static inline snd_pcm_sframes_t snd_pcm_rate_move_applptr(snd_pcm_t *pcm, snd_pc
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_uframes_t orig_appl_ptr, appl_ptr = rate->appl_ptr, slave_appl_ptr;
 	snd_pcm_sframes_t diff, ndiff;
-	snd_pcm_t *slave = rate->slave;
+	snd_pcm_t *slave = rate->gen.slave;
 
 	orig_appl_ptr = rate->appl_ptr;
 	if (frames > 0)
@@ -804,7 +791,7 @@ static inline snd_pcm_sframes_t snd_pcm_rate_move_applptr(snd_pcm_t *pcm, snd_pc
 	else
 		snd_pcm_mmap_appl_backward(pcm, -frames);
 	slave_appl_ptr =
-		(appl_ptr / pcm->period_size) * rate->slave->period_size;
+		(appl_ptr / pcm->period_size) * rate->gen.slave->period_size;
 	diff = slave_appl_ptr - *slave->appl.ptr;
 	if (diff < -(snd_pcm_sframes_t)(slave->boundary / 2)) {
 		diff = (slave->boundary - *slave->appl.ptr) + slave_appl_ptr;
@@ -814,16 +801,16 @@ static inline snd_pcm_sframes_t snd_pcm_rate_move_applptr(snd_pcm_t *pcm, snd_pc
 	if (diff == 0)
 		return frames;
 	if (diff > 0) {
-		ndiff = snd_pcm_forward(rate->slave, diff);
+		ndiff = snd_pcm_forward(rate->gen.slave, diff);
 	} else {
-		ndiff = snd_pcm_rewind(rate->slave, diff);
+		ndiff = snd_pcm_rewind(rate->gen.slave, diff);
 	}
 	if (ndiff < 0)
 		return diff;
 	slave_appl_ptr = *slave->appl.ptr;
 	rate->appl_ptr =
-		(slave_appl_ptr / rate->slave->period_size) * pcm->period_size +
-		snd_pcm_rate_client_frames(pcm, slave_appl_ptr % rate->slave->period_size) +
+		(slave_appl_ptr / rate->gen.slave->period_size) * pcm->period_size +
+		snd_pcm_rate_client_frames(pcm, slave_appl_ptr % rate->gen.slave->period_size) +
 		orig_appl_ptr % pcm->period_size;
 	diff = orig_appl_ptr - rate->appl_ptr;
 	if (diff < -(snd_pcm_sframes_t)(slave->boundary / 2)) {
@@ -839,64 +826,19 @@ static inline snd_pcm_sframes_t snd_pcm_rate_move_applptr(snd_pcm_t *pcm, snd_pc
 static inline void snd_pcm_rate_sync_hwptr(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_uframes_t slave_hw_ptr = *rate->slave->hw.ptr;
+	snd_pcm_uframes_t slave_hw_ptr = *rate->gen.slave->hw.ptr;
 
 	if (pcm->stream != SND_PCM_STREAM_PLAYBACK)
 		return;
 	rate->hw_ptr =
-		(slave_hw_ptr / rate->slave->period_size) * pcm->period_size +
-		snd_pcm_rate_client_frames(pcm, slave_hw_ptr % rate->slave->period_size);
-}
-
-static int snd_pcm_rate_close(snd_pcm_t *pcm)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	int err = 0;
-	if (rate->close_slave)
-		err = snd_pcm_close(rate->slave);
-	free(rate);
-	return 0;
-}
-
-static int snd_pcm_rate_nonblock(snd_pcm_t *pcm, int nonblock)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_nonblock(rate->slave, nonblock);
-}
-
-static int snd_pcm_rate_async(snd_pcm_t *pcm, int sig, pid_t pid)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_async(rate->slave, sig, pid);
-}
-
-static int snd_pcm_rate_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_poll_descriptors_revents(rate->slave, pfds, nfds, revents);
-}
-
-static int snd_pcm_rate_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_info(rate->slave, info);
-}
-
-static int snd_pcm_rate_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
-{
-	return snd_pcm_channel_info_shm(pcm, info, -1);
-}
-
-static snd_pcm_state_t snd_pcm_rate_state(snd_pcm_t *pcm)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_state(rate->slave);
+		(slave_hw_ptr / rate->gen.slave->period_size) * pcm->period_size +
+		snd_pcm_rate_client_frames(pcm, slave_hw_ptr % rate->gen.slave->period_size);
 }
 
 static int snd_pcm_rate_hwsync(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	int err = snd_pcm_hwsync(rate->slave);
+	int err = snd_pcm_hwsync(rate->gen.slave);
 	if (err < 0)
 		return err;
 	snd_atomic_write_begin(&rate->watom);
@@ -921,7 +863,7 @@ static int snd_pcm_rate_prepare(snd_pcm_t *pcm)
 	int err;
 
 	snd_atomic_write_begin(&rate->watom);
-	err = snd_pcm_prepare(rate->slave);
+	err = snd_pcm_prepare(rate->gen.slave);
 	if (err < 0) {
 		snd_atomic_write_end(&rate->watom);
 		return err;
@@ -940,7 +882,7 @@ static int snd_pcm_rate_reset(snd_pcm_t *pcm)
 	snd_pcm_rate_t *rate = pcm->private_data;
 	int err;
 	snd_atomic_write_begin(&rate->watom);
-	err = snd_pcm_reset(rate->slave);
+	err = snd_pcm_reset(rate->gen.slave);
 	if (err < 0) {
 		snd_atomic_write_end(&rate->watom);
 		return err;
@@ -952,30 +894,6 @@ static int snd_pcm_rate_reset(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 	return 0;
-}
-
-static int snd_pcm_rate_start(snd_pcm_t *pcm)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_start(rate->slave);
-}
-
-static int snd_pcm_rate_drop(snd_pcm_t *pcm)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_drop(rate->slave);
-}
-
-static int snd_pcm_rate_drain(snd_pcm_t *pcm)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_drain(rate->slave);
-}
-
-static int snd_pcm_rate_pause(snd_pcm_t *pcm, int enable)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_pause(rate->slave, enable);
 }
 
 static snd_pcm_sframes_t snd_pcm_rate_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -1010,31 +928,25 @@ static snd_pcm_sframes_t snd_pcm_rate_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	return n;
 }
 
-static int snd_pcm_rate_resume(snd_pcm_t *pcm)
-{
-	snd_pcm_rate_t *rate = pcm->private_data;
-	return snd_pcm_resume(rate->slave);
-}
-
 static int snd_pcm_rate_poll_ask(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_uframes_t avail_min;
 	int err;
 
-	if (rate->slave->fast_ops->poll_ask) {
-		err = rate->slave->fast_ops->poll_ask(rate->slave->fast_op_arg);
+	if (rate->gen.slave->fast_ops->poll_ask) {
+		err = rate->gen.slave->fast_ops->poll_ask(rate->gen.slave->fast_op_arg);
 		if (err < 0)
 			return err;
 	}
 	avail_min = rate->appl_ptr % pcm->period_size;
 	if (avail_min > 0) {
 		recalc(pcm, &avail_min);
-		if (avail_min < rate->slave->buffer_size &&
-		    avail_min != rate->slave->period_size)
+		if (avail_min < rate->gen.slave->buffer_size &&
+		    avail_min != rate->gen.slave->period_size)
 			avail_min++;	/* 1st small little rounding correction */
-		if (avail_min < rate->slave->buffer_size &&
-		    avail_min != rate->slave->period_size)
+		if (avail_min < rate->gen.slave->buffer_size &&
+		    avail_min != rate->gen.slave->period_size)
 			avail_min++;	/* 2nd small little rounding correction */
 		avail_min += rate->orig_avail_min;
 	} else {
@@ -1043,7 +955,7 @@ static int snd_pcm_rate_poll_ask(snd_pcm_t *pcm)
 	if (rate->sw_params.avail_min == avail_min)
 		return 0;
 	rate->sw_params.avail_min = avail_min;
-	return snd_pcm_sw_params(rate->slave, &rate->sw_params);
+	return snd_pcm_sw_params(rate->gen.slave, &rate->sw_params);
 }
 
 static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t appl_offset)
@@ -1058,20 +970,20 @@ static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t app
 
 	areas = snd_pcm_mmap_areas(pcm);
 	if (cont >= pcm->period_size) {
-		result = snd_pcm_mmap_begin(rate->slave, &slave_areas, &slave_offset, &slave_frames);
+		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
-		if (slave_frames < rate->slave->period_size) {
+		if (slave_frames < rate->gen.slave->period_size) {
 			snd_pcm_rate_write_areas1(pcm, areas, appl_offset, rate->sareas, 0);
 			goto __partial;
 		}
 		snd_pcm_rate_write_areas1(pcm, areas, appl_offset,
 					  slave_areas, slave_offset);
-		result = snd_pcm_mmap_commit(rate->slave, slave_offset, rate->slave->period_size);
-		if (result < (snd_pcm_sframes_t)rate->slave->period_size) {
+		result = snd_pcm_mmap_commit(rate->gen.slave, slave_offset, rate->gen.slave->period_size);
+		if (result < (snd_pcm_sframes_t)rate->gen.slave->period_size) {
 			if (result < 0)
 				return result;
-			result = snd_pcm_rewind(rate->slave, result);
+			result = snd_pcm_rewind(rate->gen.slave, result);
 			if (result < 0)
 				return result;
 			return 0;
@@ -1089,36 +1001,36 @@ static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t app
 		snd_pcm_rate_write_areas1(pcm, rate->pareas, 0, rate->sareas, 0);
 
 		/* ok, commit first fragment */
-		result = snd_pcm_mmap_begin(rate->slave, &slave_areas, &slave_offset, &slave_frames);
+		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
 	      __partial:
 		xfer = 0;
-		cont = rate->slave->buffer_size - slave_offset;
-		if (cont > rate->slave->period_size)
-			cont = rate->slave->period_size;
+		cont = rate->gen.slave->buffer_size - slave_offset;
+		if (cont > rate->gen.slave->period_size)
+			cont = rate->gen.slave->period_size;
 		snd_pcm_areas_copy(slave_areas, slave_offset,
 				   rate->sareas, 0,
 				   pcm->channels, cont,
-				   rate->slave->format);
-		result = snd_pcm_mmap_commit(rate->slave, slave_offset, cont);
+				   rate->gen.slave->format);
+		result = snd_pcm_mmap_commit(rate->gen.slave, slave_offset, cont);
 		if (result < (snd_pcm_sframes_t)cont) {
 			if (result < 0)
 				return result;
-			result = snd_pcm_rewind(rate->slave, result);
+			result = snd_pcm_rewind(rate->gen.slave, result);
 			if (result < 0)
 				return result;
 			return 0;
 		}
 		xfer = cont;
 
-		if (xfer == rate->slave->period_size)
+		if (xfer == rate->gen.slave->period_size)
 			return 1;
 		
 		/* commit second fragment */
-		cont = rate->slave->period_size - cont;
+		cont = rate->gen.slave->period_size - cont;
 		slave_frames = cont;
-		result = snd_pcm_mmap_begin(rate->slave, &slave_areas, &slave_offset, &slave_frames);
+		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
 		if (slave_offset) {
@@ -1128,12 +1040,12 @@ static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t app
 		snd_pcm_areas_copy(slave_areas, slave_offset,
 				   rate->sareas, xfer,
 				   pcm->channels, cont,
-				   rate->slave->format);
-		result = snd_pcm_mmap_commit(rate->slave, slave_offset, cont);
+				   rate->gen.slave->format);
+		result = snd_pcm_mmap_commit(rate->gen.slave, slave_offset, cont);
 		if (result < (snd_pcm_sframes_t)cont) {
 			if (result < 0)
 				return result;
-			result = snd_pcm_rewind(rate->slave, result + xfer);
+			result = snd_pcm_rewind(rate->gen.slave, result + xfer);
 			if (result < 0)
 				return result;
 			return 0;
@@ -1154,54 +1066,54 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 
 	areas = snd_pcm_mmap_areas(pcm);
 	if (cont >= pcm->period_size) {
-		result = snd_pcm_mmap_begin(rate->slave, &slave_areas, &slave_offset, &slave_frames);
+		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
-		if (slave_frames < rate->slave->period_size)
+		if (slave_frames < rate->gen.slave->period_size)
 			goto __partial;
 		snd_pcm_rate_read_areas1(pcm, areas, hw_offset,
 					 slave_areas, slave_offset);
-		result = snd_pcm_mmap_commit(rate->slave, slave_offset, rate->slave->period_size);
-		if (result < (snd_pcm_sframes_t)rate->slave->period_size) {
+		result = snd_pcm_mmap_commit(rate->gen.slave, slave_offset, rate->gen.slave->period_size);
+		if (result < (snd_pcm_sframes_t)rate->gen.slave->period_size) {
 			if (result < 0)
 				return result;
-			result = snd_pcm_rewind(rate->slave, result);
+			result = snd_pcm_rewind(rate->gen.slave, result);
 			if (result < 0)
 				return result;
 			return 0;
 		}
 	} else {
 		/* ok, grab first fragment */
-		result = snd_pcm_mmap_begin(rate->slave, &slave_areas, &slave_offset, &slave_frames);
+		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
 	      __partial:
 		xfer = 0;
-		cont = rate->slave->buffer_size - slave_offset;
-		if (cont > rate->slave->period_size)
-			cont = rate->slave->period_size;
+		cont = rate->gen.slave->buffer_size - slave_offset;
+		if (cont > rate->gen.slave->period_size)
+			cont = rate->gen.slave->period_size;
 		snd_pcm_areas_copy(rate->sareas, 0,
 				   slave_areas, slave_offset,
 				   pcm->channels, cont,
-				   rate->slave->format);
-		result = snd_pcm_mmap_commit(rate->slave, slave_offset, cont);
+				   rate->gen.slave->format);
+		result = snd_pcm_mmap_commit(rate->gen.slave, slave_offset, cont);
 		if (result < (snd_pcm_sframes_t)cont) {
 			if (result < 0)
 				return result;
-			result = snd_pcm_rewind(rate->slave, result);
+			result = snd_pcm_rewind(rate->gen.slave, result);
 			if (result < 0)
 				return result;
 			return 0;
 		}
 		xfer = cont;
 
-		if (xfer == rate->slave->period_size)
+		if (xfer == rate->gen.slave->period_size)
 			goto __transfer;
 
 		/* grab second fragment */
-		cont = rate->slave->period_size - cont;
+		cont = rate->gen.slave->period_size - cont;
 		slave_frames = cont;
-		result = snd_pcm_mmap_begin(rate->slave, &slave_areas, &slave_offset, &slave_frames);
+		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
 		if (slave_offset) {
@@ -1211,12 +1123,12 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 		snd_pcm_areas_copy(rate->sareas, xfer,
 		                   slave_areas, slave_offset,
 				   pcm->channels, cont,
-				   rate->slave->format);
-		result = snd_pcm_mmap_commit(rate->slave, slave_offset, cont);
+				   rate->gen.slave->format);
+		result = snd_pcm_mmap_commit(rate->gen.slave, slave_offset, cont);
 		if (result < (snd_pcm_sframes_t)cont) {
 			if (result < 0)
 				return result;
-			result = snd_pcm_rewind(rate->slave, result + xfer);
+			result = snd_pcm_rewind(rate->gen.slave, result + xfer);
 			if (result < 0)
 				return result;
 			return 0;
@@ -1249,7 +1161,7 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 						  snd_pcm_uframes_t size)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_t *slave = rate->slave;
+	snd_pcm_t *slave = rate->gen.slave;
 	snd_pcm_uframes_t appl_offset, xfer;
 	snd_pcm_sframes_t slave_size;
 	int err;
@@ -1269,7 +1181,7 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 	appl_offset = (rate->appl_ptr - xfer) % pcm->buffer_size;
 	xfer = pcm->period_size - xfer;
 	if (xfer >= size) {
-		if (xfer == size && (snd_pcm_uframes_t)slave_size >= rate->slave->period_size) {
+		if (xfer == size && (snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
 			err = snd_pcm_rate_commit_next_period(pcm, appl_offset);
 			if (err < 0)
 				return err;
@@ -1281,7 +1193,7 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 		snd_atomic_write_end(&rate->watom);
 		return size;
 	} else {
-		if ((snd_pcm_uframes_t)slave_size >= rate->slave->period_size) {
+		if ((snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
 			err = snd_pcm_rate_commit_next_period(pcm, appl_offset);
 			if (err < 0)
 				return err;
@@ -1294,10 +1206,10 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 		appl_offset += pcm->period_size;
 		appl_offset %= pcm->buffer_size;
 		size -= xfer;
-		slave_size -= rate->slave->period_size;
+		slave_size -= rate->gen.slave->period_size;
 	}
 	while ((snd_pcm_uframes_t)size >= pcm->period_size &&
-	       (snd_pcm_uframes_t)slave_size >= rate->slave->period_size) {
+	       (snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
 		err = snd_pcm_rate_commit_next_period(pcm, appl_offset);
 		if (err == 0)
 			return xfer;
@@ -1305,7 +1217,7 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 			return xfer > 0 ? (snd_pcm_sframes_t)xfer : err;
 		xfer += pcm->period_size;
 		size -= pcm->period_size;
-		slave_size -= rate->slave->period_size;
+		slave_size -= rate->gen.slave->period_size;
 		appl_offset += pcm->period_size;
 		appl_offset %= pcm->buffer_size;
 		snd_atomic_write_begin(&rate->watom);
@@ -1325,7 +1237,7 @@ static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_t *slave = rate->slave;
+	snd_pcm_t *slave = rate->gen.slave;
 	snd_pcm_uframes_t slave_size;
 
 	slave_size = snd_pcm_avail_update(slave);
@@ -1342,7 +1254,7 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
 	size = pcm->buffer_size - xfer;
 	hw_offset = snd_pcm_mmap_hw_offset(pcm);
 	while (size >= pcm->period_size &&
-	       slave_size >= rate->slave->period_size) {
+	       slave_size >= rate->gen.slave->period_size) {
 		int err = snd_pcm_rate_grab_next_period(pcm, hw_offset);
 		if (err < 0)
 			return err;
@@ -1350,23 +1262,13 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
 			return (snd_pcm_sframes_t)xfer;
 		xfer += pcm->period_size;
 		size -= pcm->period_size;
-		slave_size -= rate->slave->period_size;
+		slave_size -= rate->gen.slave->period_size;
 		hw_offset += pcm->period_size;
 		hw_offset %= pcm->buffer_size;
 		snd_pcm_mmap_hw_forward(pcm, pcm->period_size);
 	}
 	return (snd_pcm_sframes_t)xfer;
  }
-}
-
-static int snd_pcm_rate_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	return 0;
-}
-
-static int snd_pcm_rate_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	return 0;
 }
 
 static int snd_pcm_rate_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
@@ -1377,7 +1279,7 @@ static int snd_pcm_rate_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	snd_atomic_read_init(&ratom, &rate->watom);
  _again:
 	snd_atomic_read_begin(&ratom);
-	err = snd_pcm_status(rate->slave, status);
+	err = snd_pcm_status(rate->gen.slave, status);
 	if (err < 0) {
 		snd_atomic_read_ok(&ratom);
 		return err;
@@ -1415,23 +1317,23 @@ static void snd_pcm_rate_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_pcm_dump_setup(pcm, out);
 	}
 	snd_output_printf(out, "Slave: ");
-	snd_pcm_dump(rate->slave, out);
+	snd_pcm_dump(rate->gen.slave, out);
 }
 
 static snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.status = snd_pcm_rate_status,
-	.state = snd_pcm_rate_state,
+	.state = snd_pcm_generic_state,
 	.hwsync = snd_pcm_rate_hwsync,
 	.delay = snd_pcm_rate_delay,
 	.prepare = snd_pcm_rate_prepare,
 	.reset = snd_pcm_rate_reset,
-	.start = snd_pcm_rate_start,
-	.drop = snd_pcm_rate_drop,
-	.drain = snd_pcm_rate_drain,
-	.pause = snd_pcm_rate_pause,
+	.start = snd_pcm_generic_start,
+	.drop = snd_pcm_generic_drop,
+	.drain = snd_pcm_generic_drain,
+	.pause = snd_pcm_generic_pause,
 	.rewind = snd_pcm_rate_rewind,
 	.forward = snd_pcm_rate_forward,
-	.resume = snd_pcm_rate_resume,
+	.resume = snd_pcm_generic_resume,
 	.poll_ask = snd_pcm_rate_poll_ask,
 	.writei = snd_pcm_mmap_writei,
 	.writen = snd_pcm_mmap_writen,
@@ -1442,19 +1344,19 @@ static snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 };
 
 static snd_pcm_ops_t snd_pcm_rate_ops = {
-	.close = snd_pcm_rate_close,
-	.info = snd_pcm_rate_info,
+	.close = snd_pcm_generic_close,
+	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_rate_hw_refine,
 	.hw_params = snd_pcm_rate_hw_params,
 	.hw_free = snd_pcm_rate_hw_free,
 	.sw_params = snd_pcm_rate_sw_params,
-	.channel_info = snd_pcm_rate_channel_info,
+	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_rate_dump,
-	.nonblock = snd_pcm_rate_nonblock,
-	.async = snd_pcm_rate_async,
-	.poll_revents = snd_pcm_rate_poll_revents,
-	.mmap = snd_pcm_rate_mmap,
-	.munmap = snd_pcm_rate_munmap,
+	.nonblock = snd_pcm_generic_nonblock,
+	.async = snd_pcm_generic_async,
+	.poll_revents = snd_pcm_generic_poll_revents,
+	.mmap = snd_pcm_generic_mmap,
+	.munmap = snd_pcm_generic_munmap,
 };
 
 
@@ -1484,8 +1386,8 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	if (!rate) {
 		return -ENOMEM;
 	}
-	rate->slave = slave;
-	rate->close_slave = close_slave;
+	rate->gen.slave = slave;
+	rate->gen.close_slave = close_slave;
 	rate->type = RATE_TYPE_LINEAR;
 	rate->srate = srate;
 	rate->sformat = sformat;

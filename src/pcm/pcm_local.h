@@ -152,6 +152,9 @@ typedef struct {
 	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 	int (*resume)(snd_pcm_t *pcm);
 	int (*poll_ask)(snd_pcm_t *pcm);
+	int (*link_fd)(snd_pcm_t *pcm);
+	int (*link)(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
+	int (*unlink)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 	snd_pcm_sframes_t (*forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
@@ -218,10 +221,6 @@ struct _snd_pcm {
 	struct list_head async_handlers;
 };
 
-/* FIXME */
-#define _snd_pcm_link_descriptor _snd_pcm_poll_descriptor
-#define _snd_pcm_async_descriptor _snd_pcm_poll_descriptor
-
 int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 		snd_pcm_stream_t stream, int mode);
 int snd_pcm_free(snd_pcm_t *pcm);
@@ -266,6 +265,8 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
 int _snd_pcm_poll_descriptor(snd_pcm_t *pcm);
+int _snd_pcm_link_descriptor(snd_pcm_t *pcm);
+#define _snd_pcm_async_descriptor _snd_pcm_poll_descriptor /* FIXME */
 
 /* handle special error cases */
 static inline int snd_pcm_check_error(snd_pcm_t *pcm, int err)
@@ -820,4 +821,3 @@ typedef union snd_tmp_double {
 	double d;
 	int64_t l;
 } snd_tmp_double_t;
-

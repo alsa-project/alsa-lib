@@ -305,7 +305,7 @@ static int snd_pcm_iec958_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 				       snd_pcm_iec958_hw_refine_cchange,
 				       snd_pcm_iec958_hw_refine_sprepare,
 				       snd_pcm_iec958_hw_refine_schange,
-				       snd_pcm_plugin_hw_refine_slave);
+				       snd_pcm_generic_hw_refine);
 }
 
 static int snd_pcm_iec958_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
@@ -316,7 +316,7 @@ static int snd_pcm_iec958_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params
 					  snd_pcm_iec958_hw_refine_cchange,
 					  snd_pcm_iec958_hw_refine_sprepare,
 					  snd_pcm_iec958_hw_refine_schange,
-					  snd_pcm_plugin_hw_params_slave);
+					  snd_pcm_generic_hw_params);
 	if (err < 0)
 		return err;
 
@@ -409,23 +409,23 @@ static void snd_pcm_iec958_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_pcm_dump_setup(pcm, out);
 	}
 	snd_output_printf(out, "Slave: ");
-	snd_pcm_dump(iec->plug.slave, out);
+	snd_pcm_dump(iec->plug.gen.slave, out);
 }
 
 static snd_pcm_ops_t snd_pcm_iec958_ops = {
-	.close = snd_pcm_plugin_close,
-	.info = snd_pcm_plugin_info,
+	.close = snd_pcm_generic_close,
+	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_iec958_hw_refine,
 	.hw_params = snd_pcm_iec958_hw_params,
-	.hw_free = snd_pcm_plugin_hw_free,
-	.sw_params = snd_pcm_plugin_sw_params,
-	.channel_info = snd_pcm_plugin_channel_info,
+	.hw_free = snd_pcm_generic_hw_free,
+	.sw_params = snd_pcm_generic_sw_params,
+	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_iec958_dump,
-	.nonblock = snd_pcm_plugin_nonblock,
-	.async = snd_pcm_plugin_async,
-	.poll_revents = snd_pcm_plugin_poll_revents,
-	.mmap = snd_pcm_plugin_mmap,
-	.munmap = snd_pcm_plugin_munmap,
+	.nonblock = snd_pcm_generic_nonblock,
+	.async = snd_pcm_generic_async,
+	.poll_revents = snd_pcm_generic_poll_revents,
+	.mmap = snd_pcm_generic_mmap,
+	.munmap = snd_pcm_generic_munmap,
 };
 
 /**
@@ -471,8 +471,8 @@ int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	iec->plug.init = snd_pcm_iec958_init;
 	iec->plug.undo_read = snd_pcm_plugin_undo_read_generic;
 	iec->plug.undo_write = snd_pcm_plugin_undo_write_generic;
-	iec->plug.slave = slave;
-	iec->plug.close_slave = close_slave;
+	iec->plug.gen.slave = slave;
+	iec->plug.gen.close_slave = close_slave;
 
 	if (status_bits)
 		memcpy(iec->status, status_bits, sizeof(iec->status));

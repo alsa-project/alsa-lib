@@ -45,9 +45,8 @@ enum snd_pcm_plug_route_policy {
 };
 
 typedef struct {
+	snd_pcm_generic_t gen;
 	snd_pcm_t *req_slave;
-	int close_slave;
-	snd_pcm_t *slave;
 	snd_pcm_format_t sformat;
 	int schannels;
 	int srate;
@@ -65,11 +64,11 @@ static int snd_pcm_plug_close(snd_pcm_t *pcm)
 	int err, result = 0;
 	if (plug->ttable)
 		free(plug->ttable);
-	if (plug->slave != plug->req_slave) {
+	if (plug->gen.slave != plug->req_slave) {
 		SNDERR("plug slaves mismatch");
 		return -EINVAL;
 	}
-	if (plug->close_slave) {
+	if (plug->gen.close_slave) {
 		snd_pcm_unlink_hw_ptr(pcm, plug->req_slave);
 		snd_pcm_unlink_appl_ptr(pcm, plug->req_slave);
 		err = snd_pcm_close(plug->req_slave);
@@ -78,24 +77,6 @@ static int snd_pcm_plug_close(snd_pcm_t *pcm)
 	}
 	free(plug);
 	return result;
-}
-
-static int snd_pcm_plug_nonblock(snd_pcm_t *pcm, int nonblock)
-{
-	snd_pcm_plug_t *plug = pcm->private_data;
-	return snd_pcm_nonblock(plug->slave, nonblock);
-}
-
-static int snd_pcm_plug_async(snd_pcm_t *pcm, int sig, pid_t pid)
-{
-	snd_pcm_plug_t *plug = pcm->private_data;
-	return snd_pcm_async(plug->slave, sig, pid);
-}
-
-static int snd_pcm_plug_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
-{
-	snd_pcm_plug_t *plug = pcm->private_data;
-	return snd_pcm_poll_descriptors_revents(plug->slave, pfds, nfds, revents);
 }
 
 static int snd_pcm_plug_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
@@ -320,11 +301,11 @@ static void snd_pcm_plug_clear(snd_pcm_t *pcm)
 	snd_pcm_plug_t *plug = pcm->private_data;
 	snd_pcm_t *slave = plug->req_slave;
 	/* Clear old plugins */
-	if (plug->slave != slave) {
-		snd_pcm_unlink_hw_ptr(pcm, plug->slave);
-		snd_pcm_unlink_appl_ptr(pcm, plug->slave);
-		snd_pcm_close(plug->slave);
-		plug->slave = slave;
+	if (plug->gen.slave != slave) {
+		snd_pcm_unlink_hw_ptr(pcm, plug->gen.slave);
+		snd_pcm_unlink_appl_ptr(pcm, plug->gen.slave);
+		snd_pcm_close(plug->gen.slave);
+		plug->gen.slave = slave;
 		pcm->fast_ops = slave->fast_ops;
 		pcm->fast_op_arg = slave->fast_op_arg;
 	}
@@ -344,7 +325,7 @@ static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plu
 	assert(snd_pcm_format_linear(slv->format));
 	if (clt->rate == slv->rate)
 		return 0;
-	err = snd_pcm_rate_open(new, NULL, slv->format, slv->rate, plug->slave, plug->slave != plug->req_slave);
+	err = snd_pcm_rate_open(new, NULL, slv->format, slv->rate, plug->gen.slave, plug->gen.slave != plug->req_slave);
 	if (err < 0)
 		return err;
 	slv->access = clt->access;
@@ -445,7 +426,7 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 			break;
 		}
 	}
-	err = snd_pcm_route_open(new, NULL, slv->format, (int) slv->channels, ttable, tt_ssize, tt_cused, tt_sused, plug->slave, plug->slave != plug->req_slave);
+	err = snd_pcm_route_open(new, NULL, slv->format, (int) slv->channels, ttable, tt_ssize, tt_cused, tt_sused, plug->gen.slave, plug->gen.slave != plug->req_slave);
 	if (err < 0)
 		return err;
 	slv->channels = clt->channels;
@@ -525,7 +506,7 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 		else
 			cfmt = SND_PCM_FORMAT_S16;
 	}
-	err = f(new, NULL, slv->format, plug->slave, plug->slave != plug->req_slave);
+	err = f(new, NULL, slv->format, plug->gen.slave, plug->gen.slave != plug->req_slave);
 	if (err < 0)
 		return err;
 	slv->format = cfmt;
@@ -539,7 +520,7 @@ static int snd_pcm_plug_change_access(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 	int err;
 	if (clt->access == slv->access)
 		return 0;
-	err = snd_pcm_copy_open(new, NULL, plug->slave, plug->slave != plug->req_slave);
+	err = snd_pcm_copy_open(new, NULL, plug->gen.slave, plug->gen.slave != plug->req_slave);
 	if (err < 0)
 		return err;
 	slv->access = clt->access;
@@ -575,7 +556,7 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 			return err;
 		}
 		if (err) {
-			plug->slave = new;
+			plug->gen.slave = new;
 			pcm->fast_ops = new->fast_ops;
 			pcm->fast_op_arg = new->fast_op_arg;
 		}
@@ -593,7 +574,7 @@ static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 		}
 		assert(err);
 		assert(plug->ttable_ok);
-		plug->slave = new;
+		plug->gen.slave = new;
 		pcm->fast_ops = new->fast_ops;
 		pcm->fast_op_arg = new->fast_op_arg;
 	}
@@ -908,7 +889,7 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err < 0)
 			return err;
 	}
-	slave = plug->slave;
+	slave = plug->gen.slave;
 	err = _snd_pcm_hw_params(slave, params);
 	if (err < 0) {
 		snd_pcm_plug_clear(pcm);
@@ -924,30 +905,18 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 static int snd_pcm_plug_hw_free(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
-	snd_pcm_t *slave = plug->slave;
+	snd_pcm_t *slave = plug->gen.slave;
 	int err = snd_pcm_hw_free(slave);
 	snd_pcm_plug_clear(pcm);
 	return err;
 }
 
-static int snd_pcm_plug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
-{
-	snd_pcm_plug_t *plug = pcm->private_data;
-	return snd_pcm_sw_params(plug->slave, params);
-}
-
-static int snd_pcm_plug_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
-{
-	snd_pcm_plug_t *plug = pcm->private_data;
-	return snd_pcm_channel_info(plug->slave, info);
-}
-
 static int snd_pcm_plug_mmap(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
-	pcm->mmap_channels = plug->slave->mmap_channels;
-	pcm->running_areas = plug->slave->running_areas;
-	pcm->stopped_areas = plug->slave->stopped_areas;
+	pcm->mmap_channels = plug->gen.slave->mmap_channels;
+	pcm->running_areas = plug->gen.slave->running_areas;
+	pcm->stopped_areas = plug->gen.slave->stopped_areas;
 	pcm->mmap_shadow = 1;
 	return 0;
 }
@@ -966,7 +935,7 @@ static void snd_pcm_plug_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
 	snd_output_printf(out, "Plug PCM: ");
-	snd_pcm_dump(plug->slave, out);
+	snd_pcm_dump(plug->gen.slave, out);
 }
 
 static snd_pcm_ops_t snd_pcm_plug_ops = {
@@ -975,12 +944,12 @@ static snd_pcm_ops_t snd_pcm_plug_ops = {
 	.hw_refine = snd_pcm_plug_hw_refine,
 	.hw_params = snd_pcm_plug_hw_params,
 	.hw_free = snd_pcm_plug_hw_free,
-	.sw_params = snd_pcm_plug_sw_params,
-	.channel_info = snd_pcm_plug_channel_info,
+	.sw_params = snd_pcm_generic_sw_params,
+	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_plug_dump,
-	.nonblock = snd_pcm_plug_nonblock,
-	.async = snd_pcm_plug_async,
-	.poll_revents = snd_pcm_plug_poll_revents,
+	.nonblock = snd_pcm_generic_nonblock,
+	.async = snd_pcm_generic_async,
+	.poll_revents = snd_pcm_generic_poll_revents,
 	.mmap = snd_pcm_plug_mmap,
 	.munmap = snd_pcm_plug_munmap,
 };
@@ -1017,8 +986,8 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	plug->sformat = sformat;
 	plug->schannels = schannels;
 	plug->srate = srate;
-	plug->slave = plug->req_slave = slave;
-	plug->close_slave = close_slave;
+	plug->gen.slave = plug->req_slave = slave;
+	plug->gen.close_slave = close_slave;
 	plug->route_policy = route_policy;
 	plug->ttable = ttable;
 	plug->tt_ssize = tt_ssize;

@@ -1239,15 +1239,11 @@ snd_pcm_sframes_t snd_pcm_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t s
  */ 
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
-	int fd1 = _snd_pcm_link_descriptor(pcm1);
-	int fd2 = _snd_pcm_link_descriptor(pcm2);
-	if (fd1 < 0 || fd2 < 0)
-		return -ENOSYS;
-	if (ioctl(fd1, SNDRV_PCM_IOCTL_LINK, fd2) < 0) {
-		SYSMSG("SNDRV_PCM_IOCTL_LINK failed");
-		return -errno;
-	}
-	return 0;
+	assert(pcm1);
+	assert(pcm2);
+	if (pcm1->fast_ops->link)
+		return pcm1->fast_ops->link(pcm1, pcm2);
+	return -ENOSYS;
 }
 
 /**
@@ -1257,13 +1253,10 @@ int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
  */
 int snd_pcm_unlink(snd_pcm_t *pcm)
 {
-	int fd;
-	fd = _snd_pcm_link_descriptor(pcm);
-	if (ioctl(fd, SNDRV_PCM_IOCTL_UNLINK) < 0) {
-		SYSMSG("SNDRV_PCM_IOCTL_UNLINK failed");
-		return -errno;
-	}
-	return 0;
+	assert(pcm);
+	if (pcm->fast_ops->unlink)
+		return pcm->fast_ops->unlink(pcm);
+	return -ENOSYS;
 }
 
 /**
@@ -6146,6 +6139,14 @@ snd_pcm_sframes_t snd_pcm_mmap_commit(snd_pcm_t *pcm,
 }
 
 #ifndef DOC_HIDDEN
+
+int _snd_pcm_link_descriptor(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	if (pcm->fast_ops->link_fd)
+		return pcm->fast_ops->link_fd(pcm);
+	return -ENOSYS;
+}
 
 int _snd_pcm_poll_descriptor(snd_pcm_t *pcm)
 {

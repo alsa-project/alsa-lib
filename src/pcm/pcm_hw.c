@@ -656,6 +656,38 @@ static int snd_pcm_hw_resume(snd_pcm_t *pcm)
 	return 0;
 }
 
+static int snd_pcm_hw_link_fd(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+
+	return hw->fd;
+}
+
+static int snd_pcm_hw_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
+{
+	snd_pcm_hw_t *hw = pcm1->private_data;
+	int fd2 = _snd_pcm_link_descriptor(pcm2);
+
+	if (fd2 < 0)
+		return -ENOSYS;
+	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_LINK, fd2) < 0) {
+		SYSMSG("SNDRV_PCM_IOCTL_LINK failed");
+		return -errno;
+	}
+	return 0;
+}
+
+static int snd_pcm_hw_unlink(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+
+	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_UNLINK) < 0) {
+		SYSMSG("SNDRV_PCM_IOCTL_UNLINK failed");
+		return -errno;
+	}
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	int err;
@@ -970,6 +1002,9 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.forward = snd_pcm_hw_forward,
 	.resume = snd_pcm_hw_resume,
 	.poll_ask = NULL,
+	.link_fd = snd_pcm_hw_link_fd,
+	.link = snd_pcm_hw_link,
+	.unlink = snd_pcm_hw_unlink,
 	.writei = snd_pcm_hw_writei,
 	.writen = snd_pcm_hw_writen,
 	.readi = snd_pcm_hw_readi,

@@ -507,10 +507,8 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 {
 	snd_pcm_route_t *route = pcm->private_data;
 	snd_pcm_route_params_t *params = &route->params;
-	int err = 0;
 	unsigned int dst_channel;
-	if (route->plug.close_slave)
-		err = snd_pcm_close(route->plug.slave);
+
 	if (params->dsts) {
 		for (dst_channel = 0; dst_channel < params->ndsts; ++dst_channel) {
 			if (params->dsts[dst_channel].srcs != NULL)
@@ -518,8 +516,7 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 		}
 		free(params->dsts);
 	}
-	free(route);
-	return 0;
+	return snd_pcm_generic_close(pcm);
 }
 
 static int snd_pcm_route_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
@@ -618,19 +615,19 @@ static int snd_pcm_route_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 				       snd_pcm_route_hw_refine_cchange,
 				       snd_pcm_route_hw_refine_sprepare,
 				       snd_pcm_route_hw_refine_schange,
-				       snd_pcm_plugin_hw_refine_slave);
+				       snd_pcm_generic_hw_refine);
 }
 
 static int snd_pcm_route_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_route_t *route = pcm->private_data;
-	snd_pcm_t *slave = route->plug.slave;
+	snd_pcm_t *slave = route->plug.gen.slave;
 	snd_pcm_format_t src_format, dst_format;
 	int err = snd_pcm_hw_params_slave(pcm, params,
 					  snd_pcm_route_hw_refine_cchange,
 					  snd_pcm_route_hw_refine_sprepare,
 					  snd_pcm_route_hw_refine_schange,
-					  snd_pcm_plugin_hw_params_slave);
+					  snd_pcm_generic_hw_params);
 	if (err < 0)
 		return err;
 
@@ -671,7 +668,7 @@ snd_pcm_route_write_areas(snd_pcm_t *pcm,
 			  snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_route_t *route = pcm->private_data;
-	snd_pcm_t *slave = route->plug.slave;
+	snd_pcm_t *slave = route->plug.gen.slave;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
 	snd_pcm_route_convert(slave_areas, slave_offset,
@@ -693,7 +690,7 @@ snd_pcm_route_read_areas(snd_pcm_t *pcm,
 			 snd_pcm_uframes_t *slave_sizep)
 {
 	snd_pcm_route_t *route = pcm->private_data;
-	snd_pcm_t *slave = route->plug.slave;
+	snd_pcm_t *slave = route->plug.gen.slave;
 	if (size > *slave_sizep)
 		size = *slave_sizep;
 	snd_pcm_route_convert(areas, offset, 
@@ -746,23 +743,23 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_pcm_dump_setup(pcm, out);
 	}
 	snd_output_printf(out, "Slave: ");
-	snd_pcm_dump(route->plug.slave, out);
+	snd_pcm_dump(route->plug.gen.slave, out);
 }
 
 static snd_pcm_ops_t snd_pcm_route_ops = {
 	.close = snd_pcm_route_close,
-	.info = snd_pcm_plugin_info,
+	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_route_hw_refine,
 	.hw_params = snd_pcm_route_hw_params,
-	.hw_free = snd_pcm_plugin_hw_free,
-	.sw_params = snd_pcm_plugin_sw_params,
-	.channel_info = snd_pcm_plugin_channel_info,
+	.hw_free = snd_pcm_generic_hw_free,
+	.sw_params = snd_pcm_generic_sw_params,
+	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_route_dump,
-	.nonblock = snd_pcm_plugin_nonblock,
-	.async = snd_pcm_plugin_async,
-	.poll_revents = snd_pcm_plugin_poll_revents,
-	.mmap = snd_pcm_plugin_mmap,
-	.munmap = snd_pcm_plugin_munmap,
+	.nonblock = snd_pcm_generic_nonblock,
+	.async = snd_pcm_generic_async,
+	.poll_revents = snd_pcm_generic_poll_revents,
+	.mmap = snd_pcm_generic_mmap,
+	.munmap = snd_pcm_generic_munmap,
 };
 
 static int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t stream,
@@ -876,8 +873,8 @@ int snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
 	route->plug.write = snd_pcm_route_write_areas;
 	route->plug.undo_read = snd_pcm_plugin_undo_read_generic;
 	route->plug.undo_write = snd_pcm_plugin_undo_write_generic;
-	route->plug.slave = slave;
-	route->plug.close_slave = close_slave;
+	route->plug.gen.slave = slave;
+	route->plug.gen.close_slave = close_slave;
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_ROUTE, name, slave->stream, slave->mode);
 	if (err < 0) {

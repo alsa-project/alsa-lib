@@ -5,7 +5,7 @@ EXTRA_LTLIBRARIES = libpcm.la
 
 libpcm_la_SOURCES = atomic.c mask.c interval.c \
 		    pcm.c pcm_params.c pcm_simple.c \
-		    pcm_hw.c pcm_plugin.c pcm_copy.c pcm_linear.c \
+		    pcm_hw.c pcm_generic.c pcm_plugin.c pcm_copy.c pcm_linear.c \
 		    pcm_route.c pcm_mulaw.c pcm_alaw.c pcm_adpcm.c \
 		    pcm_rate.c pcm_plug.c pcm_misc.c pcm_mmap.c pcm_multi.c \
 	            pcm_shm.c pcm_file.c pcm_null.c pcm_share.c \

@@ -269,8 +269,8 @@ static void get_current_volume(snd_pcm_softvol_t *svol)
 
 static void softvol_free(snd_pcm_softvol_t *svol)
 {
-	if (svol->plug.close_slave)
-		snd_pcm_close(svol->plug.slave);
+	if (svol->plug.gen.close_slave)
+		snd_pcm_close(svol->plug.gen.slave);
 	if (svol->ctl)
 		snd_ctl_close(svol->ctl);
 	if (svol->dB_value && svol->dB_value != preset_dB_value)
@@ -378,18 +378,18 @@ static int snd_pcm_softvol_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
 				       snd_pcm_softvol_hw_refine_cchange,
 				       snd_pcm_softvol_hw_refine_sprepare,
 				       snd_pcm_softvol_hw_refine_schange,
-				       snd_pcm_plugin_hw_refine_slave);
+				       snd_pcm_generic_hw_refine);
 }
 
 static int snd_pcm_softvol_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_softvol_t *svol = pcm->private_data;
-	snd_pcm_t *slave = svol->plug.slave;
+	snd_pcm_t *slave = svol->plug.gen.slave;
 	int err = snd_pcm_hw_params_slave(pcm, params,
 					  snd_pcm_softvol_hw_refine_cchange,
 					  snd_pcm_softvol_hw_refine_sprepare,
 					  snd_pcm_softvol_hw_refine_schange,
-					  snd_pcm_plugin_hw_params_slave);
+					  snd_pcm_generic_hw_params);
 	if (err < 0)
 		return err;
 	if (slave->format != SND_PCM_FORMAT_S16 &&
@@ -459,7 +459,7 @@ static void snd_pcm_softvol_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_pcm_dump_setup(pcm, out);
 	}
 	snd_output_printf(out, "Slave: ");
-	snd_pcm_dump(svol->plug.slave, out);
+	snd_pcm_dump(svol->plug.gen.slave, out);
 }
 
 static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo, int count)
@@ -573,18 +573,18 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 
 static snd_pcm_ops_t snd_pcm_softvol_ops = {
 	.close = snd_pcm_softvol_close,
-	.info = snd_pcm_plugin_info,
+	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_softvol_hw_refine,
 	.hw_params = snd_pcm_softvol_hw_params,
-	.hw_free = snd_pcm_plugin_hw_free,
-	.sw_params = snd_pcm_plugin_sw_params,
-	.channel_info = snd_pcm_plugin_channel_info,
+	.hw_free = snd_pcm_generic_hw_free,
+	.sw_params = snd_pcm_generic_sw_params,
+	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_softvol_dump,
-	.nonblock = snd_pcm_plugin_nonblock,
-	.async = snd_pcm_plugin_async,
-	.poll_revents = snd_pcm_plugin_poll_revents,
-	.mmap = snd_pcm_plugin_mmap,
-	.munmap = snd_pcm_plugin_munmap,
+	.nonblock = snd_pcm_generic_nonblock,
+	.async = snd_pcm_generic_async,
+	.poll_revents = snd_pcm_generic_poll_revents,
+	.mmap = snd_pcm_generic_mmap,
+	.munmap = snd_pcm_generic_munmap,
 };
 
 /**
@@ -640,8 +640,8 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	svol->plug.write = snd_pcm_softvol_write_areas;
 	svol->plug.undo_read = snd_pcm_plugin_undo_read_generic;
 	svol->plug.undo_write = snd_pcm_plugin_undo_write_generic;
-	svol->plug.slave = slave;
-	svol->plug.close_slave = close_slave;
+	svol->plug.gen.slave = slave;
+	svol->plug.gen.close_slave = close_slave;
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_SOFTVOL, name, slave->stream, slave->mode);
 	if (err < 0) {
