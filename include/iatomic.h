@@ -947,6 +947,8 @@ __asm__ __volatile__(					\
 #endif /* __mips__ */
 
 #ifdef __arm__
+/* we'll need to duplicate this code, too.. */
+#include <asm/proc/system.h>
 
 typedef struct { volatile int counter; } atomic_t;
 
