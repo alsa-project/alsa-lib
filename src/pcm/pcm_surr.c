@@ -69,6 +69,9 @@ struct _snd_pcm_surround {
 			snd_ctl_elem_value_t *sw4ch;
 			snd_ctl_elem_value_t *sw_pcm;
 		} ens1370;
+		struct {
+			snd_ctl_elem_value_t *rear_path;
+		} trid4nx;
 	} s;
 };
 
@@ -667,6 +670,140 @@ static int open_ymfpci(snd_pcm_surround_t *surr,
 	return 0;
 }
 
+static int count_trid4nx(snd_ctl_t *ctl ATTRIBUTE_UNUSED,
+			 snd_ctl_card_info_t *info ATTRIBUTE_UNUSED,
+			 snd_pcm_surround_type_t type ATTRIBUTE_UNUSED)
+{
+	/* this card supports multiopen also for 4CH !!! */
+	return 32 / 2 / 2;	/* 32 voices / 2 (stereo) / 2 (count of streams) */
+}
+
+static int open_trid4nx(snd_pcm_surround_t *surr,
+		        snd_ctl_card_info_t *info,
+		        snd_pcm_surround_type_t type,
+		        snd_pcm_stream_t stream, int mode)
+{
+	int err, subdevice;
+	snd_pcm_info_t *pcm_info;
+	snd_ctl_elem_id_t *id;
+	snd_ctl_elem_value_t *val, *value;
+
+	if ((err = snd_pcm_surround_three_streams(surr, type,
+						  snd_ctl_card_info_get_card(info),
+						  0, 0, 0, 0, -1, -1,
+						  stream, mode)) < 0)
+		return err;
+
+	snd_pcm_info_alloca(&pcm_info);
+	if ((err = snd_pcm_info(surr->pcm[1], pcm_info)) < 0)
+		return err;
+	subdevice = snd_pcm_info_get_subdevice(pcm_info);
+
+	snd_ctl_elem_id_alloca(&id);
+	snd_ctl_elem_value_alloca(&val);
+
+	/* OK, Enable Rear Path */
+	snd_ctl_elem_id_set_interface(id, SNDRV_CTL_ELEM_IFACE_MIXER);
+	snd_ctl_elem_id_set_name(id, "Rear Path");
+	snd_ctl_elem_id_set_index(id, subdevice);
+	if ((err = snd_ctl_elem_lock(surr->ctl, id)) < 0)
+		return err;
+	snd_ctl_elem_value_malloc(&value);
+	snd_ctl_elem_value_set_id(value, id);
+	if ((err = snd_ctl_elem_read(surr->ctl, value)) < 0) {
+		free(value);
+		return err;
+	}
+	surr->s.trid4nx.rear_path = value;
+	snd_ctl_elem_value_copy(val, value);
+	snd_ctl_elem_value_set_boolean(val, 0, 1);
+	if ((err = snd_ctl_elem_write(surr->ctl, val)) < 0)
+		return err;
+
+	/* set Front Volume to mute */
+	snd_ctl_elem_id_set_interface(id, SNDRV_CTL_ELEM_IFACE_MIXER);
+	snd_ctl_elem_id_set_name(id, "PCM Front Playback Volume");
+	snd_ctl_elem_id_set_index(id, subdevice);
+	if ((err = snd_ctl_elem_lock(surr->ctl, id)) < 0)
+		return err;
+	snd_ctl_elem_value_malloc(&value);
+	snd_ctl_elem_value_set_id(value, id);
+	if ((err = snd_ctl_elem_read(surr->ctl, value)) < 0) {
+		free(value);
+		return err;
+	}
+	snd_ctl_elem_value_copy(val, value);
+	snd_ctl_elem_value_set_integer(val, 0, 0);
+	snd_ctl_elem_value_set_integer(val, 1, 0);
+	if ((err = snd_ctl_elem_write(surr->ctl, val)) < 0)
+		return err;
+
+	/* set Reverb (Rear) Volume */
+	snd_ctl_elem_id_set_interface(id, SNDRV_CTL_ELEM_IFACE_MIXER);
+	snd_ctl_elem_id_set_name(id, "PCM Reverb Playback Volume");
+	snd_ctl_elem_id_set_index(id, subdevice);
+	if ((err = snd_ctl_elem_lock(surr->ctl, id)) < 0)
+		return err;
+	snd_ctl_elem_value_malloc(&value);
+	snd_ctl_elem_value_set_id(value, id);
+	if ((err = snd_ctl_elem_read(surr->ctl, value)) < 0) {
+		free(value);
+		return err;
+	}
+	snd_ctl_elem_value_copy(val, value);
+	snd_ctl_elem_value_set_integer(val, 0, 127);
+	snd_ctl_elem_value_set_integer(val, 1, 127);
+	if ((err = snd_ctl_elem_write(surr->ctl, val)) < 0)
+		return err;
+
+	/* set Chorus Volume to mute */
+	snd_ctl_elem_id_set_interface(id, SNDRV_CTL_ELEM_IFACE_MIXER);
+	snd_ctl_elem_id_set_name(id, "PCM Chorus Playback Volume");
+	snd_ctl_elem_id_set_index(id, subdevice);
+	if ((err = snd_ctl_elem_lock(surr->ctl, id)) < 0)
+		return err;
+	snd_ctl_elem_value_malloc(&value);
+	snd_ctl_elem_value_set_id(value, id);
+	if ((err = snd_ctl_elem_read(surr->ctl, value)) < 0) {
+		free(value);
+		return err;
+	}
+	snd_ctl_elem_value_copy(val, value);
+	snd_ctl_elem_value_set_integer(val, 0, 0);
+	snd_ctl_elem_value_set_integer(val, 1, 0);
+	if ((err = snd_ctl_elem_write(surr->ctl, val)) < 0)
+		return err;
+
+	/* set Pan Control to middle */
+	snd_ctl_elem_id_set_interface(id, SNDRV_CTL_ELEM_IFACE_MIXER);
+	snd_ctl_elem_id_set_name(id, "PCM Pan Playback Control");
+	snd_ctl_elem_id_set_index(id, subdevice);
+	if ((err = snd_ctl_elem_lock(surr->ctl, id)) < 0)
+		return err;
+	snd_ctl_elem_value_malloc(&value);
+	snd_ctl_elem_value_set_id(value, id);
+	if ((err = snd_ctl_elem_read(surr->ctl, value)) < 0) {
+		free(value);
+		return err;
+	}
+	snd_ctl_elem_value_copy(val, value);
+	snd_ctl_elem_value_set_integer(val, 0, 0);
+	snd_ctl_elem_value_set_integer(val, 1, 0);
+	if ((err = snd_ctl_elem_write(surr->ctl, val)) < 0)
+		return err;
+
+	return 0;
+}		       
+
+static void close_trid4nx(snd_pcm_surround_t *surr)
+{
+	if (surr->s.trid4nx.rear_path) {
+		snd_ctl_elem_write(surr->ctl, surr->s.trid4nx.rear_path);
+		free(surr->s.trid4nx.rear_path);
+	}
+}
+
+
 #define SND_CARD_TYPE_NONE	SNDRV_CARD_TYPE_SB_10	/* this card definitely doesn't support surround */
 
 static surround_open_t open_table[] = {
@@ -674,6 +811,7 @@ static surround_open_t open_table[] = {
 	{ type: SND_CARD_TYPE_FM801, flags: 0, scount: count_generic, sopen: open_fm801, sclose: NULL },
 	{ type: SND_CARD_TYPE_ENS1370, flags: SURR_FLG_NO_6CH|SURR_FLG_NO_CTL_CLOSE|SURR_FLG_FD1, scount: count_generic, sopen: open_ens1370, sclose: close_ens1370 },
 	{ type: SND_CARD_TYPE_YMFPCI, flags: SURR_FLG_NO_6CH, scount: count_ymfpci, sopen: open_ymfpci, sclose: NULL },
+	{ type: SND_CARD_TYPE_TRID4DWAVENX, flags: SURR_FLG_NO_6CH|SURR_FLG_NO_CTL_CLOSE, scount: count_trid4nx, sopen: open_trid4nx, sclose: close_trid4nx },
 	{ type: SND_CARD_TYPE_NONE, flags: 0, scount: NULL, sopen: NULL, sclose: NULL }
 };
 
