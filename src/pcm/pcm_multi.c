@@ -893,7 +893,7 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "master") == 0) {
-			if (snd_config_get_integer(n, &((long)master_slave)) < 0) {
+			if (snd_config_get_integer(n, &master_slave) < 0) {
 				SNDERR("Invalid type for %s", id);
 				return -EINVAL;
 			}
