@@ -280,6 +280,7 @@ static void server_job(snd_pcm_direct_t *dmix)
 	close(dmix->hw_fd);
 	if (dmix->server_free)
 		dmix->server_free(dmix);
+	unlink(dmix->shmptr->socket_name);
 	snd_pcm_direct_shm_discard(dmix);
 	snd_pcm_direct_semaphore_discard(dmix);
 	server_printf("DIRECT SERVER EXIT\n");

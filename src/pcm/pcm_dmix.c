@@ -893,6 +893,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_t *pcm = NULL, *spcm = NULL;
 	snd_pcm_direct_t *dmix = NULL;
 	int ret, first_instance;
+	int fail_sem_loop = 10;
 
 	assert(pcmp);
 
@@ -919,16 +920,21 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	if (ret < 0)
 		goto _err;
 
-	ret = snd_pcm_direct_semaphore_create_or_connect(dmix);
-	if (ret < 0) {
-		SNDERR("unable to create IPC semaphore");
-		goto _err;
-	}
 	
-	ret = snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
-	if (ret < 0) {
-		snd_pcm_direct_semaphore_discard(dmix);
-		goto _err;
+	while (1) {
+		ret = snd_pcm_direct_semaphore_create_or_connect(dmix);
+		if (ret < 0) {
+			SNDERR("unable to create IPC semaphore");
+			goto _err;
+		}
+		ret = snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
+		if (ret < 0) {
+			snd_pcm_direct_semaphore_discard(dmix);
+			if (--fail_sem_loop <= 0)
+				goto _err;
+			continue;
+		}
+		break;
 	}
 		
 	first_instance = ret = snd_pcm_direct_shm_create_or_connect(dmix);

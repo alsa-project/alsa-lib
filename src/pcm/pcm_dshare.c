@@ -684,6 +684,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_direct_t *dshare = NULL;
 	int ret, first_instance;
 	unsigned int chn;
+	int fail_sem_loop = 10;
 
 	assert(pcmp);
 
@@ -716,16 +717,21 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	if (ret < 0)
 		goto _err;
 
-	ret = snd_pcm_direct_semaphore_create_or_connect(dshare);
-	if (ret < 0) {
-		SNDERR("unable to create IPC semaphore");
-		goto _err;
-	}
+	while (1) {
+		ret = snd_pcm_direct_semaphore_create_or_connect(dshare);
+		if (ret < 0) {
+			SNDERR("unable to create IPC semaphore");
+			goto _err;
+		}
 	
-	ret = snd_pcm_direct_semaphore_down(dshare, DIRECT_IPC_SEM_CLIENT);
-	if (ret < 0) {
-		snd_pcm_direct_semaphore_discard(dshare);
-		goto _err;
+		ret = snd_pcm_direct_semaphore_down(dshare, DIRECT_IPC_SEM_CLIENT);
+		if (ret < 0) {
+			snd_pcm_direct_semaphore_discard(dshare);
+			if (--fail_sem_loop <= 0)
+				goto _err;
+			continue;
+		}
+		break;
 	}
 
 	first_instance = ret = snd_pcm_direct_shm_create_or_connect(dshare);
