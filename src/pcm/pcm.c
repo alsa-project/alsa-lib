@@ -4215,7 +4215,7 @@ int snd_pcm_slave_conf(snd_config_t *conf, const char **namep,
 	if (snd_config_get_string(conf, &str) >= 0) {
 		err = snd_config_search_alias(snd_config, "pcm_slave", str, &conf);
 		if (err < 0) {
-			SNDERR("unkown pcm_slave %s", str);
+			SNDERR("unknown pcm_slave %s", str);
 			return err;
 		}
 	}
