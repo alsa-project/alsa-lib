@@ -410,7 +410,7 @@ to #SND_PCM_STATE_SETUP
 if successfully finishes, otherwise the state #SND_PCM_STATE_OPEN
 is entered.
 When it is brought to SETUP state, this function automatically
-calls #snd_pcm_prepar() function to bring to the PREPARE state
+calls #snd_pcm_prepare() function to bring to the PREPARE state
 as below.
 
 \par snd_pcm_prepare
