@@ -827,13 +827,18 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 
 	memset(&info, 0, sizeof(info));
 	if (ioctl(fd, SNDRV_PCM_IOCTL_INFO, &info) < 0) {
+		ret = -errno;
 		SYSERR("SNDRV_PCM_IOCTL_INFO failed");
-		return -errno;
+		close(fd);
+		return ret;
 
 	}
 
-	if (fcntl(fd, F_GETFL, &fmode) < 0)
-		return -errno;
+	if (fcntl(fd, F_GETFL, &fmode) < 0) {
+		ret = -errno;
+		close(fd);
+		return ret;
+	}
 	mode = 0;
 	if (fmode & O_NONBLOCK)
 		mode |= SND_PCM_NONBLOCK;
@@ -841,21 +846,26 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 		mode |= SND_PCM_ASYNC;
 
 	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-		SYSERR("fcntl FD_CLOEXEC failed");
 		ret = -errno;
-		goto _err;
+		SYSERR("fcntl FD_CLOEXEC failed");
+		close(fd);
+		return ret;
 	}
 
 	if (ioctl(fd, SNDRV_PCM_IOCTL_PVERSION, &ver) < 0) {
+		ret = -errno;
 		SYSERR("SNDRV_PCM_IOCTL_PVERSION failed");
-		return -errno;
+		close(fd);
+		return ret;
 	}
 	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_PCM_VERSION_MAX))
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 	
 	hw = calloc(1, sizeof(snd_pcm_hw_t));
-	if (!hw)
+	if (!hw) {
+		close(fd);
 		return -ENOMEM;
+	}
 
 	hw->version = ver;
 	hw->card = info.card;
@@ -865,8 +875,11 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	hw->mmap_emulation = mmap_emulation;
 
 	ret = snd_pcm_new(&pcm, SND_PCM_TYPE_HW, name, info.stream, mode);
-	if (ret < 0)
-		goto _err;
+	if (ret < 0) {
+		free(hw);
+		close(fd);
+		return ret;
+	}
 
 	pcm->ops = &snd_pcm_hw_ops;
 	pcm->fast_ops = &snd_pcm_hw_fast_ops;
@@ -886,13 +899,6 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 		return ret;
 	}
 	return 0;
-	
- _err:
-	if (hw)
-		free(hw);
-	if (pcm)
-		snd_pcm_close(pcm);
-	return ret;
 }
 
 /**
@@ -970,10 +976,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		}
 	}
 	snd_ctl_close(ctl);
-	ret = snd_pcm_hw_open_fd(pcmp, name, fd, mmap_emulation);
-	if (ret < 0)
-		close(fd);
-	return ret;
+	return snd_pcm_hw_open_fd(pcmp, name, fd, mmap_emulation);
 	
        _err:
 	snd_ctl_close(ctl);
