@@ -284,6 +284,13 @@ int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
  * \brief Resume from suspend, no samples are lost
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
+ * \retval -EBUSY resume can't be proceed immediately (audio hardware is probably still suspended)
+ * \retval -ENOSYS hardware doesn't support this feature
+ *
+ * This function can be used when the stream is in the suspend state
+ * to do the fine resume from this state. Not all hardware supports
+ * this feature, when an -ENOSYS error is returned, use the snd_pcm_prepare
+ * function to recovery.
  */
 int snd_pcm_resume(snd_pcm_t *pcm)
 {
@@ -346,6 +353,7 @@ int snd_pcm_drop(snd_pcm_t *pcm)
  * \brief Stop a PCM preserving pending frames
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
+ * \retval -ESTRPIPE a suspend event occured
  *
  * For playback wait for all pending frames to be played and then stop
  * the PCM.
@@ -395,6 +403,7 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
  * \retval -EPIPE an underrun occured
+ * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour is selected, then routine waits until
  * all requested bytes are played or put to the playback ring buffer.
@@ -420,6 +429,7 @@ snd_pcm_sframes_t snd_pcm_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_ufr
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
  * \retval -EPIPE an underrun occured
+ * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour is selected, then routine waits until
  * all requested bytes are played or put to the playback ring buffer.
@@ -445,6 +455,7 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
  * \retval -EPIPE an overrun occured
+ * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour was selected, then routine waits until
  * all requested bytes are filled. The count of bytes can be less only
@@ -470,6 +481,7 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
  * \retval -EPIPE an overrun occured
+ * \retval -ESTRPIPE a suspend event occured (stream is suspended and waiting for an application recovery)
  *
  * If the blocking behaviour was selected, then routine waits until
  * all requested bytes are filled. The count of bytes can be less only
