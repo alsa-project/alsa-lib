@@ -29,7 +29,7 @@
 #include "asoundlib.h"
 
 #define SND_FILE_MIXER		"/dev/snd/mixerC%iD%i"
-#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(2, 0, 0)
+#define SND_MIXER_VERSION_MAX	SND_PROTOCOL_VERSION(2, 1, 0)
 
 struct snd_mixer {
 	int card;
@@ -168,7 +168,6 @@ int snd_mixer_element_info(snd_mixer_t *handle, snd_mixer_element_info_t * info)
 	return 0;
 }
 
-
 int snd_mixer_element_read(snd_mixer_t *handle, snd_mixer_element_t * element)
 {
 	snd_mixer_t *mixer;
@@ -189,6 +188,30 @@ int snd_mixer_element_write(snd_mixer_t *handle, snd_mixer_element_t * element)
 	if (!mixer)
 		return -EINVAL;
 	if (ioctl(mixer->fd, SND_MIXER_IOCTL_ELEMENT_WRITE, element) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_mixer_channel_read(snd_mixer_t *handle, snd_mixer_channels_t * channels)
+{
+	snd_mixer_t *mixer;
+
+	mixer = handle;
+	if (!mixer)
+		return -EINVAL;
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_READ, channels) < 0)
+		return -errno;
+	return 0;
+}
+
+int snd_mixer_channel_write(snd_mixer_t *handle, snd_mixer_channels_t * channels)
+{
+	snd_mixer_t *mixer;
+
+	mixer = handle;
+	if (!mixer)
+		return -EINVAL;
+	if (ioctl(mixer->fd, SND_MIXER_IOCTL_CHANNEL_WRITE, channels) < 0)
 		return -errno;
 	return 0;
 }
