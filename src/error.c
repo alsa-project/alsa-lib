@@ -26,17 +26,19 @@
 #include <string.h>
 #include "asoundlib.h"
 
-static const char *snd_error_codes[] = {
-  "Sound protocol isn't compatible"
+static const char *snd_error_codes[] =
+{
+	"Sound protocol isn't compatible"
 };
 
-const char *snd_strerror( int errnum )
+const char *snd_strerror(int errnum)
 {
-  if ( errnum < 0 ) errnum = -errnum;
-  if ( errnum < SND_ERROR_BEGIN ) 
-    return (const char *)strerror( errnum );
-  errnum -= SND_ERROR_BEGIN;
-  if ( errnum >= sizeof( snd_error_codes ) / sizeof( const char * ) )
-    return "Unknown error";
-  return snd_error_codes[ errnum ];
+	if (errnum < 0)
+		errnum = -errnum;
+	if (errnum < SND_ERROR_BEGIN)
+		return (const char *) strerror(errnum);
+	errnum -= SND_ERROR_BEGIN;
+	if (errnum >= sizeof(snd_error_codes) / sizeof(const char *))
+		 return "Unknown error";
+	return snd_error_codes[errnum];
 }

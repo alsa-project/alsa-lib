@@ -30,532 +30,568 @@
 
 #define SND_FILE_CONTROL	"/dev/snd/control%i"
 #define SND_CTL_VERSION_MAX	SND_PROTOCOL_VERSION( 1, 0, 0 )
- 
+
 typedef struct {
-  int card;
-  int fd;
+	int card;
+	int fd;
 } snd_ctl_t;
- 
-int snd_ctl_open( void **handle, int card )
-{
-  int fd, ver;
-  char filename[32];
-  snd_ctl_t *ctl;
 
-  *handle = NULL;
-  if ( card < 0 || card >= SND_CARDS ) return -EINVAL;
-  sprintf( filename, SND_FILE_CONTROL, card );
-  if ( (fd = open( filename, O_RDWR )) < 0 ) return -errno;
-  if ( ioctl( fd, SND_CTL_IOCTL_PVERSION, &ver ) < 0 ) {
-    close( fd );
-    return -errno;
-  }
-  if ( SND_PROTOCOL_UNCOMPATIBLE( ver, SND_CTL_VERSION_MAX ) ) {
-    close( fd );
-    return -SND_ERROR_UNCOMPATIBLE_VERSION;
-  }
-  ctl = (snd_ctl_t *)calloc( 1, sizeof( snd_ctl_t ) );
-  if ( ctl == NULL ) {
-    close( fd );
-    return -ENOMEM;
-  }
-  ctl -> card = card;
-  ctl -> fd = fd;
-  *handle = ctl;
-  return 0;
+int snd_ctl_open(void **handle, int card)
+{
+	int fd, ver;
+	char filename[32];
+	snd_ctl_t *ctl;
+
+	*handle = NULL;
+	if (card < 0 || card >= SND_CARDS)
+		return -EINVAL;
+	sprintf(filename, SND_FILE_CONTROL, card);
+	if ((fd = open(filename, O_RDWR)) < 0)
+		return -errno;
+	if (ioctl(fd, SND_CTL_IOCTL_PVERSION, &ver) < 0) {
+		close(fd);
+		return -errno;
+	}
+	if (SND_PROTOCOL_UNCOMPATIBLE(ver, SND_CTL_VERSION_MAX)) {
+		close(fd);
+		return -SND_ERROR_UNCOMPATIBLE_VERSION;
+	}
+	ctl = (snd_ctl_t *) calloc(1, sizeof(snd_ctl_t));
+	if (ctl == NULL) {
+		close(fd);
+		return -ENOMEM;
+	}
+	ctl->card = card;
+	ctl->fd = fd;
+	*handle = ctl;
+	return 0;
 }
 
-int snd_ctl_close( void *handle )
+int snd_ctl_close(void *handle)
 {
-  snd_ctl_t *ctl;
-  int res;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  res = close( ctl -> fd ) < 0 ? -errno : 0;
-  free( ctl );
-  return res;
+	snd_ctl_t *ctl;
+	int res;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	res = close(ctl->fd) < 0 ? -errno : 0;
+	free(ctl);
+	return res;
 }
 
-int snd_ctl_file_descriptor( void *handle )
+int snd_ctl_file_descriptor(void *handle)
 {
-  snd_ctl_t *ctl;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  return ctl -> fd;
+	snd_ctl_t *ctl;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	return ctl->fd;
 }
 
-int snd_ctl_hw_info( void *handle, struct snd_ctl_hw_info *info )
+int snd_ctl_hw_info(void *handle, struct snd_ctl_hw_info *info)
 {
-  snd_ctl_t *ctl;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_HW_INFO, info ) < 0 )
-    return -errno;
-  return 0;
+	snd_ctl_t *ctl;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_HW_INFO, info) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_switches( void *handle )
+int snd_ctl_switches(void *handle)
 {
-  snd_ctl_t *ctl;
-  int result;
+	snd_ctl_t *ctl;
+	int result;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_SWITCHES, &result ) < 0 )
-    return -errno;
-  return result;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCHES, &result) < 0)
+		return -errno;
+	return result;
 }
 
-int snd_ctl_switch( void *handle, const char *switch_id )
+int snd_ctl_switch(void *handle, const char *switch_id)
 {
-  snd_ctl_t *ctl;
-  struct snd_ctl_switch uswitch;
-  int idx, switches, err;
+	snd_ctl_t *ctl;
+	struct snd_ctl_switch uswitch;
+	int idx, switches, err;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  /* bellow implementation isn't optimized for speed */
-  /* info about switches should be cached in the snd_ctl_t structure */
-  if ( (switches = snd_ctl_switches( handle )) < 0 )
-    return switches;
-  for ( idx = 0; idx < switches; idx++ ) {
-    if ( (err = snd_ctl_switch_read( handle, idx, &uswitch )) < 0 )
-      return err;
-    if ( !strncmp( switch_id, uswitch.name, sizeof( uswitch.name ) ) )
-      return idx;
-  }
-  return -EINVAL;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	/* bellow implementation isn't optimized for speed */
+	/* info about switches should be cached in the snd_ctl_t structure */
+	if ((switches = snd_ctl_switches(handle)) < 0)
+		return switches;
+	for (idx = 0; idx < switches; idx++) {
+		if ((err = snd_ctl_switch_read(handle, idx, &uswitch)) < 0)
+			return err;
+		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
+			return idx;
+	}
+	return -EINVAL;
 }
 
-int snd_ctl_switch_read( void *handle, int switchn, struct snd_ctl_switch *data )
+int snd_ctl_switch_read(void *handle, int switchn, struct snd_ctl_switch *data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_SWITCH_READ, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCH_READ, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_switch_write( void *handle, int switchn, struct snd_ctl_switch *data )
+int snd_ctl_switch_write(void *handle, int switchn, struct snd_ctl_switch *data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_SWITCH_WRITE, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_SWITCH_WRITE, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_pcm_info( void *handle, int dev, snd_pcm_info_t *info )
+int snd_ctl_pcm_info(void *handle, int dev, snd_pcm_info_t * info)
 {
-  snd_ctl_t *ctl;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_INFO, info ) < 0 )
-    return -errno;
-  return 0;
+	snd_ctl_t *ctl;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_INFO, info) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_pcm_playback_info( void *handle, int dev, snd_pcm_playback_info_t *info )
+int snd_ctl_pcm_playback_info(void *handle, int dev, snd_pcm_playback_info_t * info)
 {
-  snd_ctl_t *ctl;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_PLAYBACK_INFO, info ) < 0 )
-    return -errno;
-  return 0;
+	snd_ctl_t *ctl;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PLAYBACK_INFO, info) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_pcm_record_info( void *handle, int dev, snd_pcm_record_info_t *info )
+int snd_ctl_pcm_record_info(void *handle, int dev, snd_pcm_record_info_t * info)
 {
-  snd_ctl_t *ctl;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_RECORD_INFO, info ) < 0 )
-    return -errno;
-  return 0;
+	snd_ctl_t *ctl;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_RECORD_INFO, info) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_pcm_playback_switches( void *handle, int dev )
+int snd_ctl_pcm_playback_switches(void *handle, int dev)
 {
-  snd_ctl_t *ctl;
-  int result;
+	snd_ctl_t *ctl;
+	int result;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_PSWITCHES, &result ) < 0 )
-    return -errno;
-  return result;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PSWITCHES, &result) < 0)
+		return -errno;
+	return result;
 }
 
-int snd_ctl_pcm_playback_switch( void *handle, int dev, const char *switch_id )
+int snd_ctl_pcm_playback_switch(void *handle, int dev, const char *switch_id)
 {
-  snd_ctl_t *ctl;
-  snd_pcm_switch_t uswitch;
-  int idx, switches, err;
+	snd_ctl_t *ctl;
+	snd_pcm_switch_t uswitch;
+	int idx, switches, err;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  /* bellow implementation isn't optimized for speed */
-  /* info about switches should be cached in the snd_ctl_t structure */
-  if ( (switches = snd_ctl_pcm_playback_switches( handle, dev )) < 0 )
-    return switches;
-  for ( idx = 0; idx < switches; idx++ ) {
-    if ( (err = snd_ctl_pcm_playback_switch_read( handle, dev, idx, &uswitch )) < 0 )
-      return err;
-    if ( !strncmp( switch_id, uswitch.name, sizeof( uswitch.name ) ) )
-      return idx;
-  }
-  return -EINVAL;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	/* bellow implementation isn't optimized for speed */
+	/* info about switches should be cached in the snd_ctl_t structure */
+	if ((switches = snd_ctl_pcm_playback_switches(handle, dev)) < 0)
+		return switches;
+	for (idx = 0; idx < switches; idx++) {
+		if ((err = snd_ctl_pcm_playback_switch_read(handle, dev, idx, &uswitch)) < 0)
+			return err;
+		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
+			return idx;
+	}
+	return -EINVAL;
 }
 
-int snd_ctl_pcm_playback_switch_read( void *handle, int dev, int switchn, snd_pcm_switch_t *data )
+int snd_ctl_pcm_playback_switch_read(void *handle, int dev, int switchn, snd_pcm_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_PSWITCH_READ, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PSWITCH_READ, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_pcm_playback_switch_write( void *handle, int dev, int switchn, snd_pcm_switch_t *data )
+int snd_ctl_pcm_playback_switch_write(void *handle, int dev, int switchn, snd_pcm_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_PSWITCH_WRITE, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_PSWITCH_WRITE, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_pcm_record_switches( void *handle, int dev )
+int snd_ctl_pcm_record_switches(void *handle, int dev)
 {
-  snd_ctl_t *ctl;
-  int result;
+	snd_ctl_t *ctl;
+	int result;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_RSWITCHES, &result ) < 0 )
-    return -errno;
-  return result;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_RSWITCHES, &result) < 0)
+		return -errno;
+	return result;
 }
 
-int snd_ctl_pcm_record_switch( void *handle, int dev, const char *switch_id )
+int snd_ctl_pcm_record_switch(void *handle, int dev, const char *switch_id)
 {
-  snd_ctl_t *ctl;
-  snd_pcm_switch_t uswitch;
-  int idx, switches, err;
+	snd_ctl_t *ctl;
+	snd_pcm_switch_t uswitch;
+	int idx, switches, err;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  /* bellow implementation isn't optimized for speed */
-  /* info about switches should be cached in the snd_ctl_t structure */
-  if ( (switches = snd_ctl_pcm_record_switches( handle, dev )) < 0 )
-    return switches;
-  for ( idx = 0; idx < switches; idx++ ) {
-    if ( (err = snd_ctl_pcm_record_switch_read( handle, dev, idx, &uswitch )) < 0 )
-      return err;
-    if ( !strncmp( switch_id, uswitch.name, sizeof( uswitch.name ) ) )
-      return idx;
-  }
-  return -EINVAL;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	/* bellow implementation isn't optimized for speed */
+	/* info about switches should be cached in the snd_ctl_t structure */
+	if ((switches = snd_ctl_pcm_record_switches(handle, dev)) < 0)
+		return switches;
+	for (idx = 0; idx < switches; idx++) {
+		if ((err = snd_ctl_pcm_record_switch_read(handle, dev, idx, &uswitch)) < 0)
+			return err;
+		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
+			return idx;
+	}
+	return -EINVAL;
 }
 
-int snd_ctl_pcm_record_switch_read( void *handle, int dev, int switchn, snd_pcm_switch_t *data )
+int snd_ctl_pcm_record_switch_read(void *handle, int dev, int switchn, snd_pcm_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_RSWITCH_READ, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_RSWITCH_READ, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_pcm_record_switch_write( void *handle, int dev, int switchn, snd_pcm_switch_t *data )
+int snd_ctl_pcm_record_switch_write(void *handle, int dev, int switchn, snd_pcm_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_PCM_RSWITCH_WRITE, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_PCM_RSWITCH_WRITE, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_mixer_info( void *handle, int dev, snd_mixer_info_t *info )
+int snd_ctl_mixer_info(void *handle, int dev, snd_mixer_info_t * info)
 {
-  snd_ctl_t *ctl;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_MIXER_INFO, info ) < 0 )
-    return -errno;
-  return 0;
+	snd_ctl_t *ctl;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_INFO, info) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_mixer_switches( void *handle, int dev )
+int snd_ctl_mixer_switches(void *handle, int dev)
 {
-  snd_ctl_t *ctl;
-  int result;
+	snd_ctl_t *ctl;
+	int result;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_MIXER_SWITCHES, &result ) < 0 )
-    return -errno;
-  return result;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_SWITCHES, &result) < 0)
+		return -errno;
+	return result;
 }
 
-int snd_ctl_mixer_switch( void *handle, int dev, const char *switch_id )
+int snd_ctl_mixer_switch(void *handle, int dev, const char *switch_id)
 {
-  snd_ctl_t *ctl;
-  snd_mixer_switch_t uswitch;
-  int idx, switches, err;
+	snd_ctl_t *ctl;
+	snd_mixer_switch_t uswitch;
+	int idx, switches, err;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  /* bellow implementation isn't optimized for speed */
-  /* info about switches should be cached in the snd_ctl_t structure */
-  if ( (switches = snd_ctl_mixer_switches( handle, dev )) < 0 )
-    return switches;
-  for ( idx = 0; idx < switches; idx++ ) {
-    if ( (err = snd_ctl_mixer_switch_read( handle, dev, idx, &uswitch )) < 0 )
-      return err;
-    if ( !strncmp( switch_id, uswitch.name, sizeof( uswitch.name ) ) )
-      return idx;
-  }
-  return -EINVAL;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	/* bellow implementation isn't optimized for speed */
+	/* info about switches should be cached in the snd_ctl_t structure */
+	if ((switches = snd_ctl_mixer_switches(handle, dev)) < 0)
+		return switches;
+	for (idx = 0; idx < switches; idx++) {
+		if ((err = snd_ctl_mixer_switch_read(handle, dev, idx, &uswitch)) < 0)
+			return err;
+		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
+			return idx;
+	}
+	return -EINVAL;
 }
 
-int snd_ctl_mixer_switch_read( void *handle, int dev, int switchn, snd_mixer_switch_t *data )
+int snd_ctl_mixer_switch_read(void *handle, int dev, int switchn, snd_mixer_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_MIXER_SWITCH_READ, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_SWITCH_READ, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_mixer_switch_write( void *handle, int dev, int switchn, snd_mixer_switch_t *data )
+int snd_ctl_mixer_switch_write(void *handle, int dev, int switchn, snd_mixer_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_MIXER_SWITCH_WRITE, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_MIXER_SWITCH_WRITE, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_rawmidi_info( void *handle, int dev, snd_rawmidi_info_t *info )
+int snd_ctl_rawmidi_info(void *handle, int dev, snd_rawmidi_info_t * info)
 {
-  snd_ctl_t *ctl;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_INFO, info ) < 0 )
-    return -errno;
-  return 0;
+	snd_ctl_t *ctl;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_INFO, info) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_rawmidi_output_info( void *handle, int dev, snd_rawmidi_output_info_t *info )
+int snd_ctl_rawmidi_output_info(void *handle, int dev, snd_rawmidi_output_info_t * info)
 {
-  snd_ctl_t *ctl;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_OUTPUT_INFO, info ) < 0 )
-    return -errno;
-  return 0;
+	snd_ctl_t *ctl;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_OUTPUT_INFO, info) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_rawmidi_input_info( void *handle, int dev, snd_rawmidi_input_info_t *info )
+int snd_ctl_rawmidi_input_info(void *handle, int dev, snd_rawmidi_input_info_t * info)
 {
-  snd_ctl_t *ctl;
-  
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_INPUT_INFO, info ) < 0 )
-    return -errno;
-  return 0;
+	snd_ctl_t *ctl;
+
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_INPUT_INFO, info) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_rawmidi_output_switches( void *handle, int dev )
+int snd_ctl_rawmidi_output_switches(void *handle, int dev)
 {
-  snd_ctl_t *ctl;
-  int result;
+	snd_ctl_t *ctl;
+	int result;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_OSWITCHES, &result ) < 0 )
-    return -errno;
-  return result;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_OSWITCHES, &result) < 0)
+		return -errno;
+	return result;
 }
 
-int snd_ctl_rawmidi_output_switch( void *handle, int dev, const char *switch_id )
+int snd_ctl_rawmidi_output_switch(void *handle, int dev, const char *switch_id)
 {
-  snd_ctl_t *ctl;
-  snd_rawmidi_switch_t uswitch;
-  int idx, switches, err;
+	snd_ctl_t *ctl;
+	snd_rawmidi_switch_t uswitch;
+	int idx, switches, err;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  /* bellow implementation isn't optimized for speed */
-  /* info about switches should be cached in the snd_ctl_t structure */
-  if ( (switches = snd_ctl_rawmidi_output_switches( handle, dev )) < 0 )
-    return switches;
-  for ( idx = 0; idx < switches; idx++ ) {
-    if ( (err = snd_ctl_rawmidi_output_switch_read( handle, dev, idx, &uswitch )) < 0 )
-      return err;
-    if ( !strncmp( switch_id, uswitch.name, sizeof( uswitch.name ) ) )
-      return idx;
-  }
-  return -EINVAL;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	/* bellow implementation isn't optimized for speed */
+	/* info about switches should be cached in the snd_ctl_t structure */
+	if ((switches = snd_ctl_rawmidi_output_switches(handle, dev)) < 0)
+		return switches;
+	for (idx = 0; idx < switches; idx++) {
+		if ((err = snd_ctl_rawmidi_output_switch_read(handle, dev, idx, &uswitch)) < 0)
+			return err;
+		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
+			return idx;
+	}
+	return -EINVAL;
 }
 
-int snd_ctl_rawmidi_output_switch_read( void *handle, int dev, int switchn, snd_rawmidi_switch_t *data )
+int snd_ctl_rawmidi_output_switch_read(void *handle, int dev, int switchn, snd_rawmidi_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_OSWITCH_READ, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_OSWITCH_READ, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_rawmidi_output_switch_write( void *handle, int dev, int switchn, snd_rawmidi_switch_t *data )
+int snd_ctl_rawmidi_output_switch_write(void *handle, int dev, int switchn, snd_rawmidi_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_OSWITCH_WRITE, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_OSWITCH_WRITE, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_rawmidi_input_switches( void *handle, int dev )
+int snd_ctl_rawmidi_input_switches(void *handle, int dev)
 {
-  snd_ctl_t *ctl;
-  int result;
+	snd_ctl_t *ctl;
+	int result;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_ISWITCHES, &result ) < 0 )
-    return -errno;
-  return result;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_ISWITCHES, &result) < 0)
+		return -errno;
+	return result;
 }
 
-int snd_ctl_rawmidi_input_switch( void *handle, int dev, const char *switch_id )
+int snd_ctl_rawmidi_input_switch(void *handle, int dev, const char *switch_id)
 {
-  snd_ctl_t *ctl;
-  snd_rawmidi_switch_t uswitch;
-  int idx, switches, err;
+	snd_ctl_t *ctl;
+	snd_rawmidi_switch_t uswitch;
+	int idx, switches, err;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  /* bellow implementation isn't optimized for speed */
-  /* info about switches should be cached in the snd_ctl_t structure */
-  if ( (switches = snd_ctl_rawmidi_input_switches( handle, dev )) < 0 )
-    return switches;
-  for ( idx = 0; idx < switches; idx++ ) {
-    if ( (err = snd_ctl_rawmidi_input_switch_read( handle, dev, idx, &uswitch )) < 0 )
-      return err;
-    if ( !strncmp( switch_id, uswitch.name, sizeof( uswitch.name ) ) )
-      return idx;
-  }
-  return -EINVAL;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	/* bellow implementation isn't optimized for speed */
+	/* info about switches should be cached in the snd_ctl_t structure */
+	if ((switches = snd_ctl_rawmidi_input_switches(handle, dev)) < 0)
+		return switches;
+	for (idx = 0; idx < switches; idx++) {
+		if ((err = snd_ctl_rawmidi_input_switch_read(handle, dev, idx, &uswitch)) < 0)
+			return err;
+		if (!strncmp(switch_id, uswitch.name, sizeof(uswitch.name)))
+			return idx;
+	}
+	return -EINVAL;
 }
 
-int snd_ctl_rawmidi_input_switch_read( void *handle, int dev, int switchn, snd_rawmidi_switch_t *data )
+int snd_ctl_rawmidi_input_switch_read(void *handle, int dev, int switchn, snd_rawmidi_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_ISWITCH_READ, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_ISWITCH_READ, data) < 0)
+		return -errno;
+	return 0;
 }
 
-int snd_ctl_rawmidi_input_switch_write( void *handle, int dev, int switchn, snd_rawmidi_switch_t *data )
+int snd_ctl_rawmidi_input_switch_write(void *handle, int dev, int switchn, snd_rawmidi_switch_t * data)
 {
-  snd_ctl_t *ctl;
+	snd_ctl_t *ctl;
 
-  ctl = (snd_ctl_t *)handle;
-  if ( !ctl ) return -EINVAL;
-  data -> switchn = switchn;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev ) < 0 )
-    return -errno;
-  if ( ioctl( ctl -> fd, SND_CTL_IOCTL_RAWMIDI_ISWITCH_WRITE, data ) < 0 )
-    return -errno;
-  return 0;
+	ctl = (snd_ctl_t *) handle;
+	if (!ctl)
+		return -EINVAL;
+	data->switchn = switchn;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_DEVICE, &dev) < 0)
+		return -errno;
+	if (ioctl(ctl->fd, SND_CTL_IOCTL_RAWMIDI_ISWITCH_WRITE, data) < 0)
+		return -errno;
+	return 0;
 }
