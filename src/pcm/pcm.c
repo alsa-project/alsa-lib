@@ -593,6 +593,7 @@ static const char *snd_pcm_state_names[] = {
 	STATE(RUNNING),
 	STATE(XRUN),
 	STATE(PAUSED),
+	STATE(SUSPENDED),
 };
 
 static const char *snd_pcm_access_names[] = {
