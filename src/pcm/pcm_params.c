@@ -1048,7 +1048,7 @@ int _snd_pcm_hw_param_refine(snd_pcm_hw_params_t *params,
 		const snd_interval_t *s = hw_param_interval_c(src, var);
 		changed = snd_interval_refine(d, s);
 	} else
-		assert(0);
+		return 0; /* NOP / reserved */
 	if (changed) {
 		params->cmask |= 1 << var;
 		params->rmask |= 1 << var;
