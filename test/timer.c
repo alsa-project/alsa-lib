@@ -47,7 +47,7 @@ void read_loop(void *handle, int master_ticks, int timeout)
 			exit(EXIT_FAILURE);
 		}
 		while (snd_timer_read(handle, &tr, sizeof(tr)) == sizeof(tr)) {
-			printf("TIMER: resolution = %u, ticks = %u\n",
+			printf("TIMER: resolution = %uns, ticks = %u\n",
 				tr.resolution, tr.ticks);
 		}
 	}
