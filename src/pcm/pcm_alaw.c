@@ -422,6 +422,7 @@ snd_pcm_ops_t snd_pcm_alaw_ops = {
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_alaw_hw_refine,
 	hw_params: snd_pcm_alaw_hw_params,
+	hw_free: snd_pcm_plugin_hw_free,
 	sw_params: snd_pcm_plugin_sw_params,
 	channel_info: snd_pcm_plugin_channel_info,
 	dump: snd_pcm_alaw_dump,

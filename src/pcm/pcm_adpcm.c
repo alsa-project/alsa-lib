@@ -317,18 +317,6 @@ static void adpcm_encode(const snd_pcm_channel_area_t *src_areas,
 	}
 }
 
-static int snd_pcm_adpcm_close(snd_pcm_t *pcm)
-{
-	snd_pcm_adpcm_t *adpcm = pcm->private;
-	int err = 0;
-	if (adpcm->plug.close_slave)
-		err = snd_pcm_close(adpcm->plug.slave);
-	if (adpcm->states)
-		free(adpcm->states);
-	free(adpcm);
-	return 0;
-}
-
 static int snd_pcm_adpcm_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_adpcm_t *adpcm = pcm->private;
@@ -449,10 +437,19 @@ static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 			adpcm->func = adpcm_encode;
 		}
 	}
-	if (adpcm->states)
-		free(adpcm->states);
+	assert(!adpcm->states);
 	adpcm->states = malloc(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_CHANNELS, 0) * sizeof(*adpcm->states));
 	return 0;
+}
+
+static int snd_pcm_adpcm_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_adpcm_t *adpcm = pcm->private;
+	if (adpcm->states) {
+		free(adpcm->states);
+		adpcm->states = 0;
+	}
+	return snd_pcm_hw_free(adpcm->plug.slave);
 }
 
 static int snd_pcm_adpcm_init(snd_pcm_t *pcm)
@@ -550,11 +547,12 @@ static void snd_pcm_adpcm_dump(snd_pcm_t *pcm, snd_output_t *out)
 }
 
 snd_pcm_ops_t snd_pcm_adpcm_ops = {
-	close: snd_pcm_adpcm_close,
+	close: snd_pcm_plugin_close,
 	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_adpcm_hw_refine,
 	hw_params: snd_pcm_adpcm_hw_params,
+	hw_free: snd_pcm_adpcm_hw_free,
 	sw_params: snd_pcm_plugin_sw_params,
 	channel_info: snd_pcm_plugin_channel_info,
 	dump: snd_pcm_adpcm_dump,

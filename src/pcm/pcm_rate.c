@@ -222,18 +222,6 @@ static snd_pcm_uframes_t resample_shrink(const snd_pcm_channel_area_t *src_areas
 	return src_frames1;
 }
 
-static int snd_pcm_rate_close(snd_pcm_t *pcm)
-{
-	snd_pcm_rate_t *rate = pcm->private;
-	int err = 0;
-	if (rate->plug.close_slave)
-		err = snd_pcm_close(rate->plug.slave);
-	if (rate->states)
-		free(rate->states);
-	free(rate);
-	return 0;
-}
-
 static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err;
@@ -390,10 +378,19 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		/* pitch is get_increment */
 	}
 	rate->pitch = (((u_int64_t)dst_rate * DIV) + src_rate / 2) / src_rate;
-	if (rate->states)
-		free(rate->states);
+	assert(!rate->states);
 	rate->states = malloc(snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_CHANNELS, 0) * sizeof(*rate->states));
 	return 0;
+}
+
+static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_rate_t *rate = pcm->private;
+	if (rate->states) {
+		free(rate->states);
+		rate->states = 0;
+	}
+	return snd_pcm_hw_free(rate->plug.slave);
 }
 
 static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
@@ -577,11 +574,12 @@ static void snd_pcm_rate_dump(snd_pcm_t *pcm, snd_output_t *out)
 }
 
 snd_pcm_ops_t snd_pcm_rate_ops = {
-	close: snd_pcm_rate_close,
+	close: snd_pcm_plugin_close,
 	card: snd_pcm_plugin_card,
 	info: snd_pcm_plugin_info,
 	hw_refine: snd_pcm_rate_hw_refine,
 	hw_params: snd_pcm_rate_hw_params,
+	hw_free: snd_pcm_rate_hw_free,
 	sw_params: snd_pcm_rate_sw_params,
 	channel_info: snd_pcm_plugin_channel_info,
 	dump: snd_pcm_rate_dump,

@@ -55,9 +55,8 @@ int snd_pcm_close(snd_pcm_t *pcm)
 			snd_pcm_drop(pcm);
 		else
 			snd_pcm_drain(pcm);
-	}
-	if (pcm->mmap_channels) {
-		if ((err = snd_pcm_munmap(pcm)) < 0)
+		err = snd_pcm_hw_free(pcm);
+		if (err < 0)
 			ret = err;
 	}
 	if ((err = pcm->ops->close(pcm->op_arg)) < 0)

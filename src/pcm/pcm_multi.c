@@ -286,6 +286,20 @@ static int snd_pcm_multi_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	return 0;
 }
 
+static int snd_pcm_multi_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private;
+	unsigned int i;
+	int err = 0;
+	for (i = 0; i < multi->slaves_count; ++i) {
+		snd_pcm_t *slave = multi->slaves[i].pcm;
+		int e = snd_pcm_hw_free(slave);
+		if (e < 0)
+			err = e;
+	}
+	return err;
+}
+
 static int snd_pcm_multi_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	snd_pcm_multi_t *multi = pcm->private;
@@ -468,6 +482,7 @@ snd_pcm_ops_t snd_pcm_multi_ops = {
 	info: snd_pcm_multi_info,
 	hw_refine: snd_pcm_multi_hw_refine,
 	hw_params: snd_pcm_multi_hw_params,
+	hw_free: snd_pcm_multi_hw_free,
 	sw_params: snd_pcm_multi_sw_params,
 	channel_info: snd_pcm_multi_channel_info,
 	dump: snd_pcm_multi_dump,

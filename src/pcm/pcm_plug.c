@@ -37,11 +37,7 @@ static int snd_pcm_plug_close(snd_pcm_t *pcm)
 	int err, result = 0;
 	if (plug->ttable)
 		free(plug->ttable);
-	if (plug->slave != plug->req_slave) {
-		err = snd_pcm_close(plug->slave);
-		if (err < 0)
-			result = err;
-	}
+	assert(plug->slave == plug->req_slave);
 	if (plug->close_slave) {
 		err = snd_pcm_close(plug->req_slave);
 		if (err < 0)
@@ -587,6 +583,15 @@ static int snd_pcm_plug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	return 0;
 }
 
+static int snd_pcm_plug_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_plug_t *plug = pcm->private;
+	snd_pcm_t *slave = plug->slave;
+	int err = snd_pcm_hw_free(slave);
+	snd_pcm_plug_clear(pcm);
+	return err;
+}
+
 static int snd_pcm_plug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_plug_t *plug = pcm->private;
@@ -639,6 +644,7 @@ snd_pcm_ops_t snd_pcm_plug_ops = {
 	info: snd_pcm_plug_info,
 	hw_refine: snd_pcm_plug_hw_refine,
 	hw_params: snd_pcm_plug_hw_params,
+	hw_free: snd_pcm_plug_hw_free,
 	sw_params: snd_pcm_plug_sw_params,
 	channel_info: snd_pcm_plug_channel_info,
 	dump: snd_pcm_plug_dump,

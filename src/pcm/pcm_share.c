@@ -649,6 +649,20 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	return err;
 }
 
+static int snd_pcm_share_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_share_t *share = pcm->private;
+	snd_pcm_share_slave_t *slave = share->slave;
+	int err = 0;
+	Pthread_mutex_lock(&slave->mutex);
+	slave->setup_count--;
+	if (slave->setup_count == 0)
+		err = snd_pcm_hw_free(slave->pcm);
+	share->state = SND_PCM_STATE_OPEN;
+	Pthread_mutex_unlock(&slave->mutex);
+	return err;
+}
+
 static int snd_pcm_share_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -1078,8 +1092,6 @@ static int snd_pcm_share_close(snd_pcm_t *pcm)
 	int err = 0;
 	Pthread_mutex_lock(&slaves_mutex);
 	Pthread_mutex_lock(&slave->mutex);
-	if (pcm->setup)
-		slave->setup_count--;
 	slave->open_count--;
 	if (slave->open_count == 0) {
 		err = snd_pcm_close(slave->pcm);
@@ -1137,6 +1149,7 @@ snd_pcm_ops_t snd_pcm_share_ops = {
 	info: snd_pcm_share_info,
 	hw_refine: snd_pcm_share_hw_refine,
 	hw_params: snd_pcm_share_hw_params,
+	hw_free: snd_pcm_share_hw_free,
 	sw_params: snd_pcm_share_sw_params,
 	channel_info: snd_pcm_share_channel_info,
 	dump: snd_pcm_share_dump,

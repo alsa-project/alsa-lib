@@ -60,6 +60,7 @@ int snd_pcm_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_info(snd_pcm_t *pcm, snd_pcm_info_t *info);
 int snd_pcm_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
+int snd_pcm_hw_free(snd_pcm_t *pcm);
 int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
 int snd_pcm_status(snd_pcm_t *pcm, snd_pcm_status_t *status);
 int snd_pcm_prepare(snd_pcm_t *pcm);

@@ -388,6 +388,9 @@ int pcm_shm_cmd(client_t *client)
 	case SND_PCM_IOCTL_HW_PARAMS:
 		ctrl->result = snd_pcm_hw_params(pcm, (snd_pcm_hw_params_t *) &ctrl->u.hw_params);
 		break;
+	case SND_PCM_IOCTL_HW_FREE:
+		ctrl->result = snd_pcm_hw_free(pcm);
+		break;
 	case SND_PCM_IOCTL_SW_PARAMS:
 		ctrl->result = snd_pcm_sw_params(pcm, (snd_pcm_sw_params_t *) &ctrl->u.sw_params);
 		break;

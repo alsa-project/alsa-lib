@@ -58,6 +58,12 @@ int snd_pcm_plugin_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return snd_pcm_info(plugin->slave, info);
 }
 
+int snd_pcm_plugin_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_plugin_t *plugin = pcm->private;
+	return snd_pcm_hw_free(plugin->slave);
+}
+
 int snd_pcm_plugin_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 {
 	snd_pcm_plugin_t *plugin = pcm->private;

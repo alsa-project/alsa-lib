@@ -241,6 +241,11 @@ static int snd_pcm_null_hw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_pa
 	return 0;
 }
 
+static int snd_pcm_null_hw_free(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 0;
+}
+
 static int snd_pcm_null_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t * params ATTRIBUTE_UNUSED)
 {
 	return 0;
@@ -286,6 +291,7 @@ snd_pcm_ops_t snd_pcm_null_ops = {
 	info: snd_pcm_null_info,
 	hw_refine: snd_pcm_null_hw_refine,
 	hw_params: snd_pcm_null_hw_params,
+	hw_free: snd_pcm_null_hw_free,
 	sw_params: snd_pcm_null_sw_params,
 	channel_info: snd_pcm_null_channel_info,
 	dump: snd_pcm_null_dump,

@@ -148,6 +148,17 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	return 0;
 }
 
+static int snd_pcm_hw_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private;
+	int fd = hw->fd;
+	if (ioctl(fd, SND_PCM_IOCTL_HW_FREE) < 0) {
+		SYSERR("SND_PCM_IOCTL_HW_FREE failed");
+		return -errno;
+	}
+	return 0;
+}
+
 static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private;
@@ -508,6 +519,7 @@ snd_pcm_ops_t snd_pcm_hw_ops = {
 	info: snd_pcm_hw_info,
 	hw_refine: snd_pcm_hw_hw_refine,
 	hw_params: snd_pcm_hw_hw_params,
+	hw_free: snd_pcm_hw_hw_free,
 	sw_params: snd_pcm_hw_sw_params,
 	channel_info: snd_pcm_hw_channel_info,
 	dump: snd_pcm_hw_dump,

@@ -105,12 +105,6 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 		free(file->fname);
 		close(file->fd);
 	}
-	if (file->wbuf) {
-		free(file->wbuf);
-		free(file->wbuf_areas);
-		file->wbuf = 0;
-		file->wbuf_areas = 0;
-	}
 	free(file);
 	return 0;
 }
@@ -322,13 +316,10 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	int err = snd_pcm_hw_params(slave, params);
 	if (err < 0)
 		return err;
-	if (file->wbuf) {
-		free(file->wbuf);
-		free(file->wbuf_areas);
-	}
 	file->buffer_bytes = snd_pcm_frames_to_bytes(slave, slave->buffer_size);
 	file->wbuf_size = slave->buffer_size * 2;
 	file->wbuf_size_bytes = snd_pcm_frames_to_bytes(slave, file->wbuf_size);
+	assert(!file->wbuf);
 	file->wbuf = malloc(file->wbuf_size_bytes);
 	file->wbuf_areas = malloc(sizeof(*file->wbuf_areas) * slave->channels);
 	file->appl_ptr = file->file_ptr_bytes = 0;
@@ -339,6 +330,18 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		a->step = slave->frame_bits;
 	}
 	return 0;
+}
+
+static int snd_pcm_file_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private;
+	if (file->wbuf) {
+		free(file->wbuf);
+		free(file->wbuf_areas);
+		file->wbuf = 0;
+		file->wbuf_areas = 0;
+	}
+	return snd_pcm_hw_free(file->slave);
 }
 
 static int snd_pcm_file_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
@@ -378,6 +381,7 @@ snd_pcm_ops_t snd_pcm_file_ops = {
 	info: snd_pcm_file_info,
 	hw_refine: snd_pcm_file_hw_refine,
 	hw_params: snd_pcm_file_hw_params,
+	hw_free: snd_pcm_file_hw_free,
 	sw_params: snd_pcm_file_sw_params,
 	channel_info: snd_pcm_file_channel_info,
 	dump: snd_pcm_file_dump,

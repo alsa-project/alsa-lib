@@ -2274,14 +2274,14 @@ int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (err < 0)
 		return err;
 	snd_pcm_hw_params_choose(pcm, params);
-	if (pcm->mmap_channels) {
-		err = snd_pcm_munmap(pcm);
+	if (pcm->setup) {
+		err = snd_pcm_hw_free(pcm);
 		if (err < 0)
-			return err;
+			return 0;
 	}
 	err = pcm->ops->hw_params(pcm->op_arg, params);
 	if (err < 0)
-		goto _mmap;
+		return err;
 
 	pcm->setup = 1;
 	pcm->access = snd_pcm_hw_param_value(params, SND_PCM_HW_PARAM_ACCESS, 0);
@@ -2314,19 +2314,29 @@ int snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	err = snd_pcm_sw_params(pcm, &sw);
 	assert(err >= 0);
 
- _mmap:
-	if (pcm->setup &&
-	    (pcm->mmap_rw || 
-	     (pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
-	      pcm->access == SND_PCM_ACCESS_MMAP_NONINTERLEAVED ||
-	      pcm->access == SND_PCM_ACCESS_MMAP_COMPLEX))) {
-		int err;
+	if (pcm->mmap_rw || 
+	    pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
+	    pcm->access == SND_PCM_ACCESS_MMAP_NONINTERLEAVED ||
+	    pcm->access == SND_PCM_ACCESS_MMAP_COMPLEX) {
 		err = snd_pcm_mmap(pcm);
-		if (err < 0)
-			return err;
 	}
 	if (err >= 0)
 		err = snd_pcm_prepare(pcm);
+	return err;
+}
+
+int snd_pcm_hw_free(snd_pcm_t *pcm)
+{
+	int err;
+	assert(pcm->setup);
+	assert(snd_pcm_state(pcm) <= SND_PCM_STATE_PREPARED);
+	if (pcm->mmap_channels) {
+		err = snd_pcm_munmap(pcm);
+		if (err < 0)
+			return err;
+	}
+	err = pcm->ops->hw_free(pcm->op_arg);
+	pcm->setup = 0;
 	return err;
 }
 

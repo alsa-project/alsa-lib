@@ -253,6 +253,14 @@ static int snd_pcm_shm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 				       snd_pcm_shm_hw_params_slave);
 }
 
+static int snd_pcm_shm_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_shm_t *shm = pcm->private;
+	volatile snd_pcm_shm_ctrl_t *ctrl = shm->ctrl;
+	ctrl->cmd = SND_PCM_IOCTL_HW_FREE;
+	return snd_pcm_shm_action(pcm);
+}
+
 static int snd_pcm_shm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_shm_t *shm = pcm->private;
@@ -487,6 +495,7 @@ snd_pcm_ops_t snd_pcm_shm_ops = {
 	info: snd_pcm_shm_info,
 	hw_refine: snd_pcm_shm_hw_refine,
 	hw_params: snd_pcm_shm_hw_params,
+	hw_free: snd_pcm_shm_hw_free,
 	sw_params: snd_pcm_shm_sw_params,
 	channel_info: snd_pcm_shm_channel_info,
 	dump: snd_pcm_shm_dump,
