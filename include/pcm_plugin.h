@@ -31,8 +31,6 @@
 
 #ifndef __ALSA_PCM_PLUGIN_H
 
-#include "config.h"
-
 /**
  * \defgroup PCM_Plugins PCM Plugins
  * \ingroup PCM
