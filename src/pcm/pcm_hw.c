@@ -249,7 +249,7 @@ static ssize_t snd_pcm_hw_writei(snd_pcm_t *pcm, const void *buffer, size_t size
 	result = ioctl(fd, SND_PCM_IOCTL_WRITEI_FRAMES, &xferi);
 	if (result < 0)
 		return -errno;
-	return result;
+	return xferi.result;
 }
 
 static ssize_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, size_t size)
@@ -263,7 +263,7 @@ static ssize_t snd_pcm_hw_writen(snd_pcm_t *pcm, void **bufs, size_t size)
 	result = ioctl(fd, SND_PCM_IOCTL_WRITEN_FRAMES, &xfern);
 	if (result < 0)
 		return -errno;
-	return result;
+	return xfern.result;
 }
 
 static ssize_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, size_t size)
@@ -277,7 +277,7 @@ static ssize_t snd_pcm_hw_readi(snd_pcm_t *pcm, void *buffer, size_t size)
 	result = ioctl(fd, SND_PCM_IOCTL_READI_FRAMES, &xferi);
 	if (result < 0)
 		return -errno;
-	return result;
+	return xferi.result;
 }
 
 ssize_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, size_t size)
@@ -291,7 +291,7 @@ ssize_t snd_pcm_hw_readn(snd_pcm_t *pcm, void **bufs, size_t size)
 	result = ioctl(fd, SND_PCM_IOCTL_READN_FRAMES, &xfern);
 	if (result < 0)
 		return -errno;
-	return result;
+	return xfern.result;
 }
 
 static int snd_pcm_hw_mmap_status(snd_pcm_t *pcm)
