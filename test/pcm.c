@@ -412,7 +412,7 @@ static int direct_loop(snd_pcm_t *handle,
 	double phase = 0;
 	const snd_pcm_channel_area_t *my_areas;
 	snd_pcm_uframes_t offset, frames, size;
-	snd_pcm_sframes_t avail;
+	snd_pcm_sframes_t avail, commitres;
 	snd_pcm_state_t state;
 	int err, first = 1;
 
@@ -474,9 +474,9 @@ static int direct_loop(snd_pcm_t *handle,
 				first = 1;
 			}
 			generate_sine(my_areas, offset, frames, &phase);
-			err = snd_pcm_mmap_commit(handle, offset, frames);
-			if (err < 0) {
-				if ((err = xrun_recovery(handle, err)) < 0) {
+			commitres = snd_pcm_mmap_commit(handle, offset, frames);
+			if (commitres < 0 || commitres != frames) {
+				if ((err = xrun_recovery(handle, commitres >= 0 ? -EPIPE : commitres)) < 0) {
 					printf("MMAP commit error: %s\n", snd_strerror(err));
 					exit(EXIT_FAILURE);
 				}
