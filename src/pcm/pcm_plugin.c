@@ -202,7 +202,8 @@ static snd_pcm_uframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
 	while (size > 0) {
 		snd_pcm_uframes_t frames = size;
 		const snd_pcm_channel_area_t *slave_areas;
-		snd_pcm_uframes_t slave_offset, slave_frames;
+		snd_pcm_uframes_t slave_offset;
+		snd_pcm_uframes_t slave_frames = ULONG_MAX;
 		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
 		frames = plugin->write(pcm, areas, offset, frames,
 				       slave_areas, slave_offset, &slave_frames);
@@ -229,7 +230,8 @@ static snd_pcm_uframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 	while (size > 0) {
 		snd_pcm_uframes_t frames = size;
 		const snd_pcm_channel_area_t *slave_areas;
-		snd_pcm_uframes_t slave_offset, slave_frames;
+		snd_pcm_uframes_t slave_offset;
+		snd_pcm_uframes_t slave_frames = ULONG_MAX;
 		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
 		frames = plugin->read(pcm, areas, offset, frames,
 				      slave_areas, slave_offset, &slave_frames);
@@ -303,7 +305,8 @@ snd_pcm_sframes_t snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 		snd_pcm_uframes_t frames = size;
 		snd_pcm_uframes_t cont = pcm->buffer_size - hw_offset;
 		const snd_pcm_channel_area_t *slave_areas;
-		snd_pcm_uframes_t slave_offset, slave_frames;
+		snd_pcm_uframes_t slave_offset;
+		snd_pcm_uframes_t slave_frames = ULONG_MAX;
 		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
 		if (frames > cont)
 			frames = cont;
@@ -349,7 +352,8 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 		snd_pcm_uframes_t frames = size;
 		snd_pcm_uframes_t cont = pcm->buffer_size - hw_offset;
 		const snd_pcm_channel_area_t *slave_areas;
-		snd_pcm_uframes_t slave_offset, slave_frames;
+		snd_pcm_uframes_t slave_offset;
+		snd_pcm_uframes_t slave_frames = ULONG_MAX;
 		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
 		if (frames > cont)
 			frames = cont;
