@@ -670,44 +670,17 @@ static int snd_pcm_plug_params(void *private, snd_pcm_params_t *params)
 					       &slave_params.format)) < 0)
 		return err;
 
-	if (!plug->first) {
-		err = snd_pcm_params(plug->slave, params);
-		if (err < 0)
-			return err;
-		req_format = &params->format;
-		real_format = &plug->slave->setup.format;
-		if (real_format->interleave != req_format->interleave ||
-		    real_format->format != req_format->format ||
-		    real_format->rate != req_format->rate ||
-		    real_format->channels != req_format->channels) {
-			assert(first);
-			slave_params.format = *real_format;
-			first = 0;
-			goto retry;
-		}
-		*plug->handle->ops = *plug->slave->ops;
-		plug->handle->ops->params = snd_pcm_plug_params;
-		plug->handle->ops->setup = snd_pcm_plug_setup;
-		plug->handle->ops->info = snd_pcm_plug_info;
-		plug->handle->ops->params_info = snd_pcm_plug_params_info;
-		plug->handle->op_arg = plug->slave->op_arg;
-		return 0;
-	}
-
-	*plug->handle->ops = snd_pcm_plug_ops;
-	plug->handle->op_arg = plug;
-
 	/* compute right sizes */
 	snd_pcm_plug_slave_params(plug, params, &slave_params);
 
 	pdprintf("params requested params: format = %i, rate = %i, channels = %i\n", slave_params.format.format, slave_params.format.rate, slave_params.format.channels);
+
 	err = snd_pcm_params(plug->slave, &slave_params);
 	if (err < 0) {
 		params->fail_mask = slave_params.fail_mask;
 		params->fail_reason = slave_params.fail_reason;
 		return err;
 	}
-
 	req_format = &slave_params.format;
 	real_format = &plug->slave->setup.format;
 	if (real_format->interleave != req_format->interleave ||
@@ -719,6 +692,19 @@ static int snd_pcm_plug_params(void *private, snd_pcm_params_t *params)
 		first = 0;
 		goto retry;
 	}
+
+	if (!plug->first) {
+		*plug->handle->ops = *plug->slave->ops;
+		plug->handle->ops->params = snd_pcm_plug_params;
+		plug->handle->ops->setup = snd_pcm_plug_setup;
+		plug->handle->ops->info = snd_pcm_plug_info;
+		plug->handle->ops->params_info = snd_pcm_plug_params_info;
+		plug->handle->op_arg = plug->slave->op_arg;
+		return 0;
+	}
+
+	*plug->handle->ops = snd_pcm_plug_ops;
+	plug->handle->op_arg = plug;
 
 	/*
 	 *  I/O plugins
