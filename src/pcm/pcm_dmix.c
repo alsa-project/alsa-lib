@@ -332,39 +332,6 @@ static int make_local_socket(const char *filename, int server)
 	return sock;
 }
 
-static int send_fd(int sock, void *data, size_t len, int fd)
-{
-	int ret;
-	size_t cmsg_len = CMSG_LEN(sizeof(int));
-	struct cmsghdr *cmsg = alloca(cmsg_len);
-	int *fds = (int *) CMSG_DATA(cmsg);
-	struct msghdr msghdr;
-	struct iovec vec;
-
-	vec.iov_base = (void *)&data;
-	vec.iov_len = len;
-
-	cmsg->cmsg_len = cmsg_len;
-	cmsg->cmsg_level = SOL_SOCKET;
-	cmsg->cmsg_type = SCM_RIGHTS;
-	*fds = fd;
-
-	msghdr.msg_name = NULL;
-	msghdr.msg_namelen = 0;
-	msghdr.msg_iov = &vec;
- 	msghdr.msg_iovlen = 1;
-	msghdr.msg_control = cmsg;
-	msghdr.msg_controllen = cmsg_len;
-	msghdr.msg_flags = 0;
-
-	ret = sendmsg(sock, &msghdr, 0 );
-	if (ret < 0) {
-		SYSERR("sendmsg failed");
-		return -errno;
-	}
-	return ret;
-}
-
 #if 0
 #define server_printf(fmt, args...) printf(fmt, ##args)
 #else
@@ -420,7 +387,7 @@ static void server_job(snd_pcm_dmix_t *dmix)
 					unsigned char buf = 'A';
 					pfds[current+1].fd = sck;
 					pfds[current+1].events = POLLIN | POLLERR | POLLHUP;
-					send_fd(sck, &buf, 1, dmix->hw_fd);
+					snd_send_fd(sck, &buf, 1, dmix->hw_fd);
 					server_printf("DMIX SERVER: fd sent ok\n");
 					current++;
 				}
@@ -509,8 +476,6 @@ static int server_discard(snd_pcm_dmix_t *dmix)
 /*
  *  client side
  */
-
-int snd_receive_fd(int sock, void *data, size_t len, int *fd);
 
 static int client_connect(snd_pcm_dmix_t *dmix)
 {

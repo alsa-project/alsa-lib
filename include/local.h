@@ -151,6 +151,9 @@ size_t page_ptr(size_t object_offset, size_t object_size, size_t *offset, size_t
 
 int safe_strtol(const char *str, long *val);
 
+int snd_send_fd(int sock, void *data, size_t len, int fd);
+int snd_receive_fd(int sock, void *data, size_t len, int *fd);
+
 #define HAVE_GNU_LD
 #define HAVE_ELF
 #define HAVE_ASM_PREVIOUS_DIRECTIVE

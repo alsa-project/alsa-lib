@@ -57,42 +57,6 @@ typedef struct {
 } snd_pcm_shm_t;
 #endif
 
-#ifndef DOC_HIDDEN
-int snd_receive_fd(int sock, void *data, size_t len, int *fd)
-{
-	int ret;
-	size_t cmsg_len = CMSG_LEN(sizeof(int));
-	struct cmsghdr *cmsg = alloca(cmsg_len);
-	int *fds = (int *) CMSG_DATA(cmsg);
-	struct msghdr msghdr;
-	struct iovec vec;
-
-	vec.iov_base = (void *)&data;
-	vec.iov_len = len;
-
-	cmsg->cmsg_len = cmsg_len;
-	cmsg->cmsg_level = SOL_SOCKET;
-	cmsg->cmsg_type = SCM_RIGHTS;
-	*fds = -1;
-
-	msghdr.msg_name = NULL;
-	msghdr.msg_namelen = 0;
-	msghdr.msg_iov = &vec;
-	msghdr.msg_iovlen = 1;
-	msghdr.msg_control = cmsg;
-	msghdr.msg_controllen = cmsg_len;
-	msghdr.msg_flags = 0;
-
-	ret = recvmsg(sock, &msghdr, 0);
-	if (ret < 0) {
-		SYSERR("recvmsg failed");
-		return -errno;
-	}
-	*fd = *fds;
-	return ret;
-}
-#endif
-
 static long snd_pcm_shm_action_fd0(snd_pcm_t *pcm, int *fd)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;

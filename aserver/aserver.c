@@ -106,39 +106,6 @@ static int make_inet_socket(int port)
 	return sock;
 }
 
-static int send_fd(int sock, void *data, size_t len, int fd)
-{
-	int ret;
-	size_t cmsg_len = CMSG_LEN(sizeof(int));
-	struct cmsghdr *cmsg = alloca(cmsg_len);
-	int *fds = (int *) CMSG_DATA(cmsg);
-	struct msghdr msghdr;
-	struct iovec vec;
-
-	vec.iov_base = (void *)&data;
-	vec.iov_len = len;
-
-	cmsg->cmsg_len = cmsg_len;
-	cmsg->cmsg_level = SOL_SOCKET;
-	cmsg->cmsg_type = SCM_RIGHTS;
-	*fds = fd;
-
-	msghdr.msg_name = NULL;
-	msghdr.msg_namelen = 0;
-	msghdr.msg_iov = &vec;
- 	msghdr.msg_iovlen = 1;
-	msghdr.msg_control = cmsg;
-	msghdr.msg_controllen = cmsg_len;
-	msghdr.msg_flags = 0;
-
-	ret = sendmsg(sock, &msghdr, 0 );
-	if (ret < 0) {
-		SYSERROR("sendmsg failed");
-		return -errno;
-	}
-	return ret;
-}
-
 struct pollfd *pollfds;
 unsigned int pollfds_count = 0;
 typedef struct waiter waiter_t;
@@ -397,7 +364,7 @@ static int shm_ack_fd(client_t *client, int fd)
 	pfd.events = POLLHUP;
 	if (poll(&pfd, 1, 0) == 1)
 		return -EBADFD;
-	err = send_fd(client->ctrl_fd, buf, 1, fd);
+	err = snd_send_fd(client->ctrl_fd, buf, 1, fd);
 	if (err != 1)
 		return -EBADFD;
 	return 0;
