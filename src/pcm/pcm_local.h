@@ -65,6 +65,33 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_HW_PARAM_LAST_INTERVAL SNDRV_PCM_HW_PARAM_LAST_INTERVAL
 #define SND_PCM_HW_PARAM_FIRST_INTERVAL SNDRV_PCM_HW_PARAM_FIRST_INTERVAL
 
+/** device accepts mmaped access */
+#define SND_PCM_INFO_MMAP SNDRV_PCM_INFO_MMAP
+/** device accepts  mmaped access with sample resolution */
+#define SND_PCM_INFO_MMAP_VALID SNDRV_PCM_INFO_MMAP_VALID
+/** device is doing double buffering */
+#define SND_PCM_INFO_DOUBLE SNDRV_PCM_INFO_DOUBLE
+/** device transfers samples in batch */
+#define SND_PCM_INFO_BATCH SNDRV_PCM_INFO_BATCH
+/** device accepts interleaved samples */
+#define SND_PCM_INFO_INTERLEAVED SNDRV_PCM_INFO_INTERLEAVED
+/** device accepts non-interleaved samples */
+#define SND_PCM_INFO_NONINTERLEAVED SNDRV_PCM_INFO_NONINTERLEAVED
+/** device accepts complex sample organization */
+#define SND_PCM_INFO_COMPLEX SNDRV_PCM_INFO_COMPLEX
+/** device is capable block transfers */
+#define SND_PCM_INFO_BLOCK_TRANSFER SNDRV_PCM_INFO_BLOCK_TRANSFER
+/** device can detect DAC/ADC overrange */
+#define SND_PCM_INFO_OVERRANGE SNDRV_PCM_INFO_OVERRANGE
+/** device is capable to pause */
+#define SND_PCM_INFO_PAUSE SNDRV_PCM_INFO_PAUSE
+/** device can do only half duplex */
+#define SND_PCM_INFO_HALF_DUPLEX SNDRV_PCM_INFO_HALF_DUPLEX
+/** device can do only joint duplex (same parameters) */
+#define SND_PCM_INFO_JOINT_DUPLEX SNDRV_PCM_INFO_JOINT_DUPLEX
+/** device can do a kind of synchronized start */
+#define SND_PCM_INFO_SYNC_START SNDRV_PCM_INFO_SYNC_START
+
 typedef struct _snd_pcm_channel_info {
 	unsigned int channel;
 	void *addr;			/* base address of channel samples */
