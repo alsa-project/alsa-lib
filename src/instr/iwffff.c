@@ -583,11 +583,11 @@ static int load_iw_patch(iwffff_t *iwf, iwffff_instrument_t *instr,
 				gwave->format |= IWFFFF_WAVE_ROM;
 				gwave->address.memory = snd_LE_to_host_32(*(((unsigned int *)wave) + 8/4));
 			} else {
-				gwave->share_id1 = iwf->share_id1;
-				gwave->share_id2 = iwf->share_id2;
-				gwave->share_id3 = iwf->share_id3;
-				gwave->share_id4 = snd_LE_to_host_32(*(((unsigned int *)wave) + 8/4));
-				result = load_iw_wave(iwf, gwave->share_id2, gwave->size, &gwave->address.ptr);
+				gwave->share_id[1] = iwf->share_id1;
+				gwave->share_id[2] = iwf->share_id2;
+				gwave->share_id[3] = iwf->share_id3;
+				gwave->share_id[4] = snd_LE_to_host_32(*(((unsigned int *)wave) + 8/4));
+				result = load_iw_wave(iwf, gwave->share_id[2], gwave->size, &gwave->address.ptr);
 				if (result < 0) {
 					free_wave(gwave);
 					return result;
@@ -807,10 +807,10 @@ int snd_instr_iwffff_conv_to_stream(snd_instr_iwffff_t *iwffff,
 			xwave = (iwffff_xwave_t *)ptr;
 			ptr += sizeof(*xwave);
 			xwave->stype = IWFFFF_STRU_WAVE;
-			xwave->share_id1 = snd_htoi_32(wave->share_id1);
-			xwave->share_id2 = snd_htoi_32(wave->share_id2);
-			xwave->share_id3 = snd_htoi_32(wave->share_id3);
-			xwave->share_id4 = snd_htoi_32(wave->share_id4);
+			xwave->share_id[1] = snd_htoi_32(wave->share_id[1]);
+			xwave->share_id[2] = snd_htoi_32(wave->share_id[2]);
+			xwave->share_id[3] = snd_htoi_32(wave->share_id[3]);
+			xwave->share_id[4] = snd_htoi_32(wave->share_id[4]);
 			xwave->format = snd_htoi_32(wave->format);
 			xwave->size = snd_htoi_32(wave->size);
 			xwave->start = snd_htoi_32(wave->start);
