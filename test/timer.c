@@ -133,7 +133,6 @@ int main(int argc, char *argv[])
 	printf("  card = %i\n", snd_timer_info_get_card(info));
 	printf("  id = '%s'\n", snd_timer_info_get_id(info));
 	printf("  name = '%s'\n", snd_timer_info_get_name(info));
-	printf("  max ticks = %li\n", snd_timer_info_get_ticks(info));
 	printf("  average resolution = %li\n", snd_timer_info_get_resolution(info));
 	snd_timer_params_set_auto_start(params, 1);
 	if (!snd_timer_info_is_slave(info)) {
