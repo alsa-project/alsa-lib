@@ -504,6 +504,28 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		return client;
 	} else
 		seq->client = client;
+
+#ifdef SNDRV_SEQ_IOCTL_RUNNING_MODE
+	{
+		struct sndrv_seq_running_info run_mode;
+		/* check running mode */
+		memset(&run_mode, 0, sizeof(run_mode));
+		run_mode.client = client;
+#ifdef SNDRV_BIG_ENDIAN
+		run_mode.big_endian = 1;
+#else
+		run_mode.big_endian = 0;
+#endif
+		run_mode.cpu_mode = sizeof(long);
+		if (ioctl(fd, SNDRV_SEQ_IOCTL_RUNNING_MODE, &run_mode) < 0) {
+			int err = errno;
+			SYSERR("Invalid OS running mode");
+			snd_seq_close(seq);
+			return -err;
+		}
+	}
+#endif
+
 	*handle = seq;
 	return 0;
 }
