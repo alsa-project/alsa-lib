@@ -224,7 +224,7 @@ typedef enum _snd_pcm_state {
 	SND_PCM_STATE_PAUSED,
 	/** Hardware is suspended */
 	SND_PCM_STATE_SUSPENDED,
-	SND_PCM_STATE_LAST = SND_PCM_STATE_PAUSED,
+	SND_PCM_STATE_LAST = SND_PCM_STATE_SUSPENDED,
 } snd_pcm_state_t;
 
 /** PCM start mode */
