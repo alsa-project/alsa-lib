@@ -692,40 +692,6 @@ int snd_func_refer(snd_config_t **dst, snd_config_t *root, snd_config_t *src, vo
 	return err;
 }
 
-int snd_func_macro(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
-{
-	snd_config_t *n;
-	const char *name;
-	char *buf = NULL;
-	int err;
-
-	err = snd_config_search(src, "name", &n);
-	if (err >= 0) {
-		err = snd_config_evaluate(n, root, private_data, NULL);
-		if (err < 0) {
-			SNDERR("error evaluating name");
-			goto _end;
-		}
-		err = snd_config_get_string(n, &name);
-		if (err < 0) {
-			SNDERR("name is not a string");
-			goto _end;
-		}
-	}
-	if (strchr(name, '.') == NULL) {
-		buf = malloc(6 + strlen(name) + 1);
-		if (buf == NULL) {
-			err = -ENOMEM;
-			goto _end;
-		}
-		strcpy(buf, "macro.");
-		strcat(buf, name);
-	}
-	err = snd_config_search_definition(root, NULL, name, dst);
-	if (err < 0)
-		SNDERR("Unable to find macro definition '%s'", name);
-       _end:
-       	if (buf)
-       		free(buf);
-       	return err;
-}
+int snd_func_macro(snd_config_t **dst, snd_config_t *root,
+		   snd_config_t *src, void *private_data)
+		   	__attribute__ ((weak, alias ("snd_func_refer")));
