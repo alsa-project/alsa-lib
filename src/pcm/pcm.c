@@ -6110,9 +6110,15 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 			}
 
 			err = snd_pcm_wait(pcm, -1);
-			if (err < 0)
-				break;
 			state = snd_pcm_state(pcm);
+			if (err < 0) {
+				/* check more precisely */
+				if (state == SND_PCM_STATE_XRUN)
+					err = -EPIPE;
+				else if (state == SND_PCM_STATE_SUSPENDED)
+					err = -ESTRPIPE;
+				break;
+			}
 			goto _again;
 			
 		}
@@ -6183,9 +6189,15 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 			}
 
 			err = snd_pcm_wait(pcm, -1);
-			if (err < 0)
-				break;
 			state = snd_pcm_state(pcm);
+			if (err < 0) {
+				/* check more precisely */
+				if (state == SND_PCM_STATE_XRUN)
+					err = -EPIPE;
+				else if (state == SND_PCM_STATE_SUSPENDED)
+					err = -ESTRPIPE;
+				break;
+			}
 			goto _again;
 			
 		}
