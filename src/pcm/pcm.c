@@ -4845,7 +4845,7 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		       snd_pcm_uframes_t *frames)
 {
 	snd_pcm_uframes_t cont;
-	snd_pcm_uframes_t avail;
+	snd_pcm_sframes_t avail;
 	snd_pcm_uframes_t f;
 	assert(pcm && areas && offset && frames);
 	if (pcm->stopped_areas &&
@@ -4855,7 +4855,43 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 		*areas = pcm->running_areas;
 	*offset = *pcm->appl_ptr % pcm->buffer_size;
 	cont = pcm->buffer_size - *offset;
-	avail = snd_pcm_mmap_avail(pcm);
+	avail = snd_pcm_avail_update(pcm);
+	if (avail < 0)
+		return avail;
+	f = *frames;
+	if (f > (snd_pcm_uframes_t)avail)
+		f = avail;
+	if (f > cont)
+		f = cont;
+	*frames = f;
+	return 0;
+}
+
+/**
+ * \brief Application request to access a portion of direct (mmap) area
+ * \param pcm PCM handle 
+ * \param areas Returned mmap channel areas
+ * \param offset Returned mmap area offset in area steps (== frames)
+ * \param size mmap area portion size in frames (wanted on entry, contiguous available on exit)
+ * \param avail available frames (result from snd_pcm_avail_update())
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_pcm_mmap_begin_avail(snd_pcm_t *pcm,
+			     const snd_pcm_channel_area_t **areas,
+			     snd_pcm_uframes_t *offset,
+			     snd_pcm_uframes_t *frames,
+			     snd_pcm_uframes_t avail)
+{
+	snd_pcm_uframes_t cont;
+	snd_pcm_uframes_t f;
+	assert(pcm && areas && offset && frames && avail <= pcm->buffer_size);
+	if (pcm->stopped_areas &&
+	    snd_pcm_state(pcm) != SND_PCM_STATE_RUNNING) 
+		*areas = pcm->stopped_areas;
+	else
+		*areas = pcm->running_areas;
+	*offset = *pcm->appl_ptr % pcm->buffer_size;
+	cont = pcm->buffer_size - *offset;
 	f = *frames;
 	if (f > avail)
 		f = avail;
@@ -4879,7 +4915,7 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
  * count that snd_pcm_mmap_begin() returned. Each call to snd_pcm_mmap_begin()
  * must be followed by a call to snd_pcm_mmap_commit().
  *
- * Example:
+ * Example #1:
 \code
   double phase = 0;
   const snd_pcm_area_t *areas;
@@ -4887,6 +4923,27 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
 
   frames = frame_buffer_size;
   err = snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &frames);
+  if (err < 0)
+    error(err);
+  // this function fills the areas from offset with count of frames
+  generate_sine(areas, offset, frames, &phase);
+  err = snd_pcm_mmap_commit(pcm_handle, offset, frames);
+  if (err < 0)
+    error(err);
+\endcode
+ *
+ * Example #2 (determine available frame count at beginning):
+\code
+  double phase = 0;
+  const snd_pcm_area_t *areas;
+  snd_pcm_sframes_t avail;
+  snd_pcm_uframes_t offset, frames;
+
+  avail = snd_pcm_avail_update(pcm);
+  if (avail < 0)
+    error(avail);
+  frames = frame_buffer_size > avail ? avail : frame_buffer_size;
+  err = snd_pcm_mmap_begin_avail(pcm_handle, &areas, &offset, &frames, avail);
   if (err < 0)
     error(err);
   // this function fills the areas from offset with count of frames

@@ -411,29 +411,78 @@ static int direct_loop(snd_pcm_t *handle,
 {
 	double phase = 0;
 	const snd_pcm_channel_area_t *my_areas;
-	snd_pcm_uframes_t offset, frames;
+	snd_pcm_uframes_t offset, frames, size;
+	snd_pcm_sframes_t avail;
+	snd_pcm_state_t state;
 	int err, first = 1;
 
 	while (1) {
-		frames = period_size;
-		err = snd_pcm_mmap_begin(handle, &my_areas, &offset, &frames);
-		if (err < 0) {
-			printf("MMAP begin error: %s\n", snd_strerror(err));
-			exit(EXIT_FAILURE);
-		}
-		generate_sine(my_areas, offset, frames, &phase);
-		err = snd_pcm_mmap_commit(handle, offset, frames);
-		if (err < 0) {
-			printf("MMAP commit error: %s\n", snd_strerror(err));
-			exit(EXIT_FAILURE);
-		}
-		if (frames == 0 && first) {	/* trigger playback */
-			first = 0;
-			err = snd_pcm_start(handle);
+		state = snd_pcm_state(handle);
+		if (state == SND_PCM_STATE_XRUN) {
+			err = xrun_recovery(handle, -EPIPE);
 			if (err < 0) {
-				printf("Start error: %s\n", snd_strerror(err));
-				exit(EXIT_FAILURE);
+				printf("XRUN recovery failed: %s\n", snd_strerror(err));
+				return err;
 			}
+			first = 1;
+		} else if (state == SND_PCM_STATE_SUSPENDED) {
+			err = xrun_recovery(handle, -ESTRPIPE);
+			if (err < 0) {
+				printf("SUSPEND recovery failed: %s\n", snd_strerror(err));
+				return err;
+			}
+		}
+		avail = snd_pcm_avail_update(handle);
+		if (avail < 0) {
+			err = xrun_recovery(handle, avail);
+			if (err < 0) {
+				printf("avail update failed: %s\n", snd_strerror(err));
+				return err;
+			}
+			first = 1;
+			continue;
+		}
+		if (avail < period_size) {
+			if (first) {
+				first = 0;
+				err = snd_pcm_start(handle);
+				if (err < 0) {
+					printf("Start error: %s\n", snd_strerror(err));
+					exit(EXIT_FAILURE);
+				}
+			} else {
+				err = snd_pcm_wait(handle, -1);
+				if (err < 0) {
+					if ((err = xrun_recovery(handle, err)) < 0) {
+						printf("snd_pcm_wait error: %s\n", snd_strerror(err));
+						exit(EXIT_FAILURE);
+					}
+					first = 1;
+				}
+			}
+			continue;
+		}
+		size = period_size;
+		while (size > 0) {
+			frames = size;
+			err = snd_pcm_mmap_begin_avail(handle, &my_areas, &offset, &frames, avail);
+			if (err < 0) {
+				if ((err = xrun_recovery(handle, err)) < 0) {
+					printf("MMAP begin avail error: %s\n", snd_strerror(err));
+					exit(EXIT_FAILURE);
+				}
+				first = 1;
+			}
+			generate_sine(my_areas, offset, frames, &phase);
+			err = snd_pcm_mmap_commit(handle, offset, frames);
+			if (err < 0) {
+				if ((err = xrun_recovery(handle, err)) < 0) {
+					printf("MMAP commit error: %s\n", snd_strerror(err));
+					exit(EXIT_FAILURE);
+				}
+				first = 1;
+			}
+			size -= frames;
 		}
 	}
 }
