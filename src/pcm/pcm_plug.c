@@ -672,12 +672,12 @@ static void snd_pcm_plug_slave_params(snd_pcm_plug_t *plug,
 	slave_params->frames_min = snd_pcm_plug_slave_size(plug, params->frames_min);
 	slave_params->frames_xrun_max = snd_pcm_plug_slave_size(plug, params->frames_xrun_max);
 	slave_params->frames_align = snd_pcm_plug_slave_size(plug, params->frames_align);
-	if (slave_params->frame_boundary == 0 || slave_params->frame_boundary > INT_MAX)
-		slave_params->frame_boundary = INT_MAX;
+	if (slave_params->frame_boundary == 0 || slave_params->frame_boundary > LONG_MAX)
+		slave_params->frame_boundary = LONG_MAX;
 	assert(params->buffer_size > 0);
 	slave_params->frame_boundary /= params->buffer_size;
-	if (slave_params->frame_boundary > INT_MAX / slave_params->buffer_size)
-		slave_params->frame_boundary = INT_MAX;
+	if (slave_params->frame_boundary > LONG_MAX / slave_params->buffer_size)
+		slave_params->frame_boundary = LONG_MAX;
 	else
 		slave_params->frame_boundary *= slave_params->buffer_size;
 }
