@@ -261,17 +261,6 @@ pcm.NAME {
   }
 
 
-  type loopback		# Loopback server (NYI)
-  server STR		# Server name
-  slave STR		# Slave name (see pcm_slave)
-  # or
-  slave {		# Slave definition
-    pcm STR		# Slave PCM name
-    # or
-    pcm { }		# Slave PCM definition
-  }
-
-
   type null		# Null endpoint plugin
   [time INT]		# Time related or not (NYI)
 
