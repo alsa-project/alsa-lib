@@ -483,9 +483,9 @@ static snd_pcm_sframes_t snd_pcm_jack_mmap_commit(snd_pcm_t *pcm,
 
 static snd_pcm_sframes_t snd_pcm_jack_avail_update(snd_pcm_t *pcm)
 {
-	snd_pcm_jack_t *jack = pcm->private_data;
 	snd_pcm_sframes_t ret = snd_pcm_mmap_avail(pcm);
 #ifdef PCM_JACK_DEBUG
+	snd_pcm_jack_t *jack = pcm->private_data;
 	printf("snd_pcm_jack_avail_update appl=%d hw=%d ret=%d\n",(int)jack->appl_ptr,(int)jack->hw_ptr,(int)ret); fflush(stdout);
 #endif
 	return ret;
@@ -697,6 +697,8 @@ int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_jack_t *jack;
 	int err;
 	int fd[2];
+	static unsigned int num = 0;
+	char jack_client_name[32];
 	
 	assert(pcmp);
 #ifdef PCM_JACK_DEBUG
@@ -723,17 +725,24 @@ int snd_pcm_jack_open(snd_pcm_t **pcmp, const char *name,
 
 	if (stream == SND_PCM_STREAM_PLAYBACK) {
 		jack->channels = jack->playback_ports_n;
-		jack->client = jack_client_new("alsaP");
 	}
 	else {
 		jack->channels = jack->capture_ports_n;
-		jack->client = jack_client_new("alsaC");
 	}
 
 	if (jack->channels == 0) {
 		SNDERR("define the %s_ports section\n", stream == SND_PCM_STREAM_PLAYBACK ? "playback" : "capture");
 		goto _free;
 	}
+
+	if (snprintf(jack_client_name, sizeof(jack_client_name), "alsa%s.%d.%d",
+		     stream == SND_PCM_STREAM_PLAYBACK ? "P" : "C", getpid(), num++)
+	    >= (int)sizeof(jack_client_name)) {
+		fprintf(stderr, "%s: WARNING: JACK client name '%s' truncated to %d characters, might not be unique\n",
+			__func__, jack_client_name, strlen(jack_client_name));
+	}
+
+	jack->client = jack_client_new(jack_client_name);
 
 	if (jack->client==0) {
 		err = -ENOENT;	
