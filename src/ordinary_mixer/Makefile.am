@@ -1,5 +1,5 @@
-SUBDIRS =
-DIST_SUBDIRS =
+#SUBDIRS =
+#DIST_SUBDIRS =
 
 EXTRA_LTLIBRARIES = libordinarymixer.la
 
