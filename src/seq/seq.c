@@ -630,10 +630,9 @@ int snd_seq_flush_output(snd_seq_t *seq)
 	if (seq->obufused <= 0)
 		return 0;
 	result = write(seq->fd, seq->obuf, seq->obufused);
-	if (result < 0)	{
-		snd_seq_drain_output(seq);
+	if (result < 0)
 		return -errno;
-	}
+
 	if (result < seq->obufused)
 		memmove(seq->obuf, seq->obuf + result, seq->obufused - result);
 	seq->obufused -= result;
@@ -642,12 +641,140 @@ int snd_seq_flush_output(snd_seq_t *seq)
 
 int snd_seq_drain_output(snd_seq_t *seq)
 {
+	snd_seq_remove_events_t rminfo;
+
 	if (!seq)
 		return -EINVAL;
-	seq->obufused = 0;
+
+	memset(&rminfo, 0, sizeof(rminfo));
+	rminfo.output = 1;
+
+	snd_seq_remove_events(seq, &rminfo);
 	return 0;
 }
 
+/* compare timestamp between events */
+/* return 1 if a >= b; otherwise return 0 */
+static inline int snd_seq_compare_tick_time(snd_seq_tick_time_t *a,
+	snd_seq_tick_time_t *b)
+{
+	/* compare ticks */
+	return (*a >= *b);
+}
+
+static inline int snd_seq_compare_real_time(snd_seq_real_time_t *a,
+	snd_seq_real_time_t *b)
+{
+	/* compare real time */
+	if (a->tv_sec > b->tv_sec)
+		return 1;
+	if ((a->tv_sec == b->tv_sec) && (a->tv_nsec >= b->tv_nsec))
+		return 1;
+	return 0;
+}
+
+/* Routine to match events to be removed */
+static int remove_match(snd_seq_remove_events_t *info,
+	snd_seq_event_t *ev)
+{
+	int res;
+
+	if (info->remove_mode & SND_SEQ_REMOVE_DEST) {
+		if (ev->dest.client != info->dest.client ||
+				ev->dest.port != info->dest.port)
+			return 0;
+	}
+	if (info->remove_mode & SND_SEQ_REMOVE_DEST_CHANNEL) {
+		if (ev->dest.channel != info->dest.channel)
+			return 0;
+	}
+	if (info->remove_mode & SND_SEQ_REMOVE_TIME_AFTER) {
+		if (info->tick)
+			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
+		else
+			res = snd_seq_compare_real_time(&ev->time.real, &info->time.real);
+		if (!res)
+			return 0;
+	}
+	if (info->remove_mode & SND_SEQ_REMOVE_TIME_BEFORE) {
+		if (info->tick)
+			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
+		else
+			res = snd_seq_compare_real_time(&ev->time.real, &info->time.real);
+		if (res)
+			return 0;
+	}
+	if (info->remove_mode & SND_SEQ_REMOVE_EVENT_TYPE) {
+		if (ev->type != info->type)
+			return 0;
+	}
+	if (info->remove_mode & SND_SEQ_REMOVE_IGNORE_OFF) {
+		/* Do not remove off events */
+		switch (ev->type) {
+		case SND_SEQ_EVENT_NOTEOFF:
+		/* case SND_SEQ_EVENT_SAMPLE_STOP: */
+			return 0;
+		default:
+			break;
+		}
+	}
+	if (info->remove_mode & SND_SEQ_REMOVE_TAG_MATCH) {
+		if (info->tag != ev->tag)
+			return 0;
+	}
+
+	return 1;
+}
+
+/*
+ * Remove events from the sequencer queues.
+ */
+int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
+{
+	if (rmp->input) {
+		/*
+		 * First deal with any events that are still buffered
+		 * in the library.
+		 */
+		/* Input not implemented */
+	}
+
+	if (rmp->output) {
+		/*
+		 * First deal with any events that are still buffered
+		 * in the library.
+		 */
+		 if (rmp->remove_mode == 0) {
+			/* The simple case - remove all */
+			seq->obufused = 0;
+		} else {
+			char *ep;
+			int  len;
+			snd_seq_event_t *ev;
+
+			ep = seq->obuf;
+			while (ep - seq->obuf < seq->obufused) {
+
+				ev = (snd_seq_event_t *) ep;
+				len = snd_seq_event_length(ev);
+
+				if (remove_match(rmp, ev)) {
+
+					/* Remove event */
+					memcpy(ep, ep + len, len);
+					seq->obufused -= len;
+				} else {
+					ep += len;
+				}
+			}
+		}
+	}
+
+	if (ioctl(seq->fd, SND_SEQ_IOCTL_REMOVE_EVENTS, rmp) < 0)
+		return -errno;
+
+	return 0;
+}
 int snd_seq_drain_input(snd_seq_t *seq)
 {
 	if (!seq)
@@ -695,4 +822,5 @@ int snd_seq_get_bit(int nr, void *array)
 {
 	return ((((unsigned int *)array)[nr >> 5]) & (1UL << (nr & 31))) ? 1 : 0;
 }
+
 

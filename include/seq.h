@@ -55,6 +55,7 @@ int snd_seq_event_input(snd_seq_t *handle, snd_seq_event_t **ev);
 int snd_seq_flush_output(snd_seq_t *handle);
 int snd_seq_drain_output(snd_seq_t *handle);
 int snd_seq_drain_input(snd_seq_t *handle);
+int snd_seq_remove_events(snd_seq_t *handle, snd_seq_remove_events_t *info);
 /* misc */
 void snd_seq_set_bit(int nr, void *array);
 int snd_seq_change_bit(int nr, void *array);
