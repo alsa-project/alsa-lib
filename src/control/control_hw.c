@@ -126,6 +126,14 @@ static int snd_ctl_hw_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info)
 	return 0;
 }
 
+static int snd_ctl_hw_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev)
+{
+	snd_ctl_hw_t *hw = handle->private;
+	if (ioctl(hw->fd, SND_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE, &subdev) < 0)
+		return -errno;
+	return 0;
+}
+
 static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 {
 	snd_ctl_hw_t *hw = handle->private;
@@ -144,6 +152,7 @@ struct snd_ctl_ops snd_ctl_hw_ops = {
 	pcm_info: snd_ctl_hw_pcm_info,
 	pcm_prefer_subdevice: snd_ctl_hw_pcm_prefer_subdevice,
 	rawmidi_info: snd_ctl_hw_rawmidi_info,
+	rawmidi_prefer_subdevice: snd_ctl_hw_rawmidi_prefer_subdevice,
 	read: snd_ctl_hw_read,
 };
 

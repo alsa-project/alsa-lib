@@ -35,6 +35,7 @@ struct snd_ctl_ops {
 	int (*pcm_info)(snd_ctl_t *handle, snd_pcm_info_t * info);
 	int (*pcm_prefer_subdevice)(snd_ctl_t *handle, int subdev);
 	int (*rawmidi_info)(snd_ctl_t *handle, snd_rawmidi_info_t * info);
+	int (*rawmidi_prefer_subdevice)(snd_ctl_t *handle, int subdev);
 	int (*read)(snd_ctl_t *handle, snd_ctl_event_t *event);
 };
 

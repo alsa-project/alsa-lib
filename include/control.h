@@ -55,6 +55,7 @@ int snd_ctl_hwdep_info(snd_ctl_t *handle, snd_hwdep_info_t * info);
 int snd_ctl_pcm_info(snd_ctl_t *handle, snd_pcm_info_t * info);
 int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *handle, int subdev);
 int snd_ctl_rawmidi_info(snd_ctl_t *handle, snd_rawmidi_info_t * info);
+int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *handle, int subdev);
 
 int snd_ctl_read(snd_ctl_t *handle, snd_ctl_callbacks_t * callbacks);
 

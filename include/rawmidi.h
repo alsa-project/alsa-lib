@@ -18,6 +18,7 @@ extern "C" {
 
 typedef struct snd_rawmidi snd_rawmidi_t;
 
+int snd_rawmidi_open_subdevice(snd_rawmidi_t **handle, int card, int device, int subdevice, int mode);
 int snd_rawmidi_open(snd_rawmidi_t **handle, int card, int device, int mode);
 int snd_rawmidi_close(snd_rawmidi_t *handle);
 int snd_rawmidi_poll_descriptor(snd_rawmidi_t *handle);

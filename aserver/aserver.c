@@ -627,6 +627,9 @@ int ctl_shm_cmd(client_t *client)
 	case SND_CTL_IOCTL_RAWMIDI_INFO:
 		ctrl->result = snd_ctl_rawmidi_info(ctl, &ctrl->u.rawmidi_info);
 		break;
+	case SND_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE:
+		ctrl->result = snd_ctl_rawmidi_prefer_subdevice(ctl, ctrl->u.rawmidi_prefer_subdevice);
+		break;
 	case SND_CTL_IOCTL_READ:
 		ctrl->result = snd_ctl_read1(ctl, &ctrl->u.read);
 		break;

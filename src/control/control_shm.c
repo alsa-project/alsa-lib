@@ -239,6 +239,19 @@ static int snd_ctl_shm_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info)
 	return err;
 }
 
+static int snd_ctl_shm_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
+{
+	snd_ctl_shm_t *shm = ctl->private;
+	snd_ctl_shm_ctrl_t *ctrl = shm->ctrl;
+	int err;
+	ctrl->u.rawmidi_prefer_subdevice = subdev;
+	ctrl->cmd = SND_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE;
+	err = snd_ctl_shm_action(ctl);
+	if (err < 0)
+		return err;
+	return err;
+}
+
 static int snd_ctl_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 {
 	snd_ctl_shm_t *shm = ctl->private;
@@ -265,6 +278,7 @@ struct snd_ctl_ops snd_ctl_shm_ops = {
 	pcm_info: snd_ctl_shm_pcm_info,
 	pcm_prefer_subdevice: snd_ctl_shm_pcm_prefer_subdevice,
 	rawmidi_info: snd_ctl_shm_rawmidi_info,
+	rawmidi_prefer_subdevice: snd_ctl_shm_rawmidi_prefer_subdevice,
 	read: snd_ctl_shm_read,
 };
 

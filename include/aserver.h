@@ -92,6 +92,7 @@ typedef struct {
 		snd_pcm_info_t pcm_info;
 		int pcm_prefer_subdevice;
 		snd_rawmidi_info_t rawmidi_info;
+		int rawmidi_prefer_subdevice;
 		snd_ctl_event_t read;
 	} u;
 	char data[0];

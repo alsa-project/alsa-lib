@@ -579,15 +579,18 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 	default:
 		assert(0);
 	}
-	ret = snd_ctl_pcm_prefer_subdevice(ctl, subdevice);
-	snd_ctl_close(ctl);
-	if (ret < 0)
-		return ret;
 	sprintf(filename, filefmt, card, device);
 
       __again:
-      	if (attempt++ > 3)
+      	if (attempt++ > 3) {
+		snd_ctl_close(ctl);
 		return -EBUSY;
+	}
+	ret = snd_ctl_pcm_prefer_subdevice(ctl, subdevice);
+	if (ret < 0) {
+		snd_ctl_close(ctl);
+		return ret;
+	}
 	fmode = O_RDWR;
 	if (mode & SND_PCM_NONBLOCK)
 		fmode |= O_NONBLOCK;
@@ -595,6 +598,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 		fmode |= O_ASYNC;
 	if ((fd = open(filename, fmode)) < 0) {
 		SYSERR("open %s failed", filename);
+		snd_ctl_close(ctl);
 		return -errno;
 	}
 	if (ioctl(fd, SND_PCM_IOCTL_PVERSION, &ver) < 0) {
@@ -646,11 +650,13 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 	ret = snd_pcm_hw_mmap_status(pcm);
 	if (ret < 0) {
 		snd_pcm_close(pcm);
+		snd_ctl_close(ctl);
 		return ret;
 	}
 	ret = snd_pcm_hw_mmap_control(pcm);
 	if (ret < 0) {
 		snd_pcm_close(pcm);
+		snd_ctl_close(ctl);
 		return ret;
 	}
 	return 0;
@@ -661,6 +667,7 @@ int snd_pcm_hw_open_subdevice(snd_pcm_t **pcmp, int card, int device, int subdev
 	if (pcm)
 		free(pcm);
 	close(fd);
+	snd_ctl_close(ctl);
 	return ret;
 }
 

@@ -38,33 +38,69 @@ struct snd_rawmidi {
 	int mode;
 };
 
-int snd_rawmidi_open(snd_rawmidi_t **handle, int card, int device, int mode)
+int snd_rawmidi_open_subdevice(snd_rawmidi_t **handle, int card, int device, int subdevice, int mode)
 {
-	int fd, ver;
+	int fd, ver, ret;
+	int attempt = 0;
 	char filename[32];
+	snd_ctl_t *ctl;
 	snd_rawmidi_t *rmidi;
+	snd_rawmidi_info_t info;
 
 	*handle = NULL;
 	
 	if (card < 0 || card >= SND_CARDS)
 		return -EINVAL;
+
+	if ((ret = snd_ctl_hw_open(&ctl, NULL, card)) < 0)
+		return ret;
 	sprintf(filename, SND_FILE_RAWMIDI, card, device);
+
+      __again:
+      	if (attempt++ > 3) {
+      		snd_ctl_close(ctl);
+      		return -EBUSY;
+      	}
+      	ret = snd_ctl_rawmidi_prefer_subdevice(ctl, subdevice);
+	if (ret < 0) {
+		snd_ctl_close(ctl);
+		return ret;
+	}
 	if ((fd = open(filename, mode)) < 0) {
 		snd_card_load(card);
-		if ((fd = open(filename, mode)) < 0)
+		if ((fd = open(filename, mode)) < 0) {
+			snd_ctl_close(ctl);
 			return -errno;
+		}
 	}
 	if (ioctl(fd, SND_RAWMIDI_IOCTL_PVERSION, &ver) < 0) {
+		ret = -errno;
 		close(fd);
-		return -errno;
+		snd_ctl_close(ctl);
+		return ret;
 	}
 	if (SND_PROTOCOL_INCOMPATIBLE(ver, SND_RAWMIDI_VERSION_MAX)) {
 		close(fd);
+		snd_ctl_close(ctl);
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
+	}
+	if (subdevice >= 0) {
+		memset(&info, 0, sizeof(info));
+		if (ioctl(fd, SND_RAWMIDI_IOCTL_INFO, &info) < 0) {
+			ret = -errno;
+			close(fd);
+			snd_ctl_close(ctl);
+			return ret;
+		}
+		if (info.subdevice != subdevice) {
+			close(fd);
+			goto __again;
+		}
 	}
 	rmidi = (snd_rawmidi_t *) calloc(1, sizeof(snd_rawmidi_t));
 	if (rmidi == NULL) {
 		close(fd);
+		snd_ctl_close(ctl);
 		return -ENOMEM;
 	}
 	rmidi->card = card;
@@ -73,6 +109,11 @@ int snd_rawmidi_open(snd_rawmidi_t **handle, int card, int device, int mode)
 	rmidi->mode = mode;
 	*handle = rmidi;
 	return 0;
+}
+
+int snd_rawmidi_open(snd_rawmidi_t **handle, int card, int device, int mode)
+{
+	return snd_rawmidi_open_subdevice(handle, card, device, -1, mode);
 }
 
 int snd_rawmidi_close(snd_rawmidi_t *rmidi)

@@ -104,6 +104,12 @@ int snd_ctl_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info)
 	return ctl->ops->rawmidi_info(ctl, info);
 }
 
+int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev)
+{
+	assert(ctl);
+	return ctl->ops->rawmidi_prefer_subdevice(ctl, subdev);
+}
+
 int snd_ctl_read1(snd_ctl_t *ctl, snd_ctl_event_t *event)
 {
 	assert(ctl && event);
