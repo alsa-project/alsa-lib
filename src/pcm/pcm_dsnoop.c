@@ -837,14 +837,6 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 
-	/* sorry, limited features */
-	if (params.format != SND_PCM_FORMAT_S16 &&
-	    params.format != SND_PCM_FORMAT_S32) {
-		SNDERR("invalid format, specify s16 or s32");
-		snd_config_delete(sconf);
-		return -EINVAL;
-	}
-
 	params.period_size = psize;
 	params.buffer_size = bsize;
 	err = snd_pcm_dsnoop_open(pcmp, name, ipc_key, ipc_perm, &params, bindings, slowptr, root, sconf, stream, mode);
