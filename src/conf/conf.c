@@ -984,7 +984,7 @@ int snd_config_update()
 	int err;
 	char *usr_asoundrc = NULL;
 	char *home = getenv("HOME");
-	struct stat st;
+	struct stat usr_st, sys_st;
 	int reload;
 	FILE *fp;
 	if (home) {
@@ -997,44 +997,50 @@ int snd_config_update()
 		usr_asoundrc[len + 1 + len1] = '\0';
 	}
 	reload = (snd_config == NULL);
-	if (!reload &&
-	    stat(usr_asoundrc, &st) == 0 &&
-	    (st.st_dev != usr_asoundrc_device ||
-	     st.st_ino != usr_asoundrc_inode ||
-	     st.st_mtime != usr_asoundrc_mtime))
+	if (stat(SYS_ASOUNDRC, &sys_st) == 0 &&
+	    (sys_st.st_dev != sys_asoundrc_device ||
+	     sys_st.st_ino != sys_asoundrc_inode ||
+	     sys_st.st_mtime != sys_asoundrc_mtime))
 		reload = 1;
-	if (!reload &&
-	    stat(SYS_ASOUNDRC, &st) == 0 &&
-	    (st.st_dev != sys_asoundrc_device ||
-	     st.st_ino != sys_asoundrc_inode ||
-	     st.st_mtime != sys_asoundrc_mtime))
+	if (stat(usr_asoundrc, &usr_st) == 0 &&
+	    (usr_st.st_dev != usr_asoundrc_device ||
+	     usr_st.st_ino != usr_asoundrc_inode ||
+	     usr_st.st_mtime != usr_asoundrc_mtime))
 		reload = 1;
 	if (!reload)
 		return 0;
-	if (snd_config == NULL) {
-		err = snd_config_top(&snd_config);
+	if (snd_config) {
+		err = snd_config_delete(snd_config);
 		if (err < 0)
 			return err;
+		snd_config = 0;
 	}
+	err = snd_config_top(&snd_config);
+	if (err < 0)
+		return err;
 	fp = fopen(SYS_ASOUNDRC, "r");
 	if (fp) {
 		err = snd_config_load(snd_config, fp);
+		fclose(fp);
 		if (err < 0) {
 			snd_config = NULL;
-			fclose(fp);
 			return err;
 		}
-		fclose(fp);
+		sys_asoundrc_device = sys_st.st_dev;
+		sys_asoundrc_inode = sys_st.st_ino;
+		sys_asoundrc_mtime = sys_st.st_mtime;
 	}
 	fp = fopen(usr_asoundrc, "r");
 	if (fp) {
 		err = snd_config_load(snd_config, fp);
+		fclose(fp);
 		if (err < 0) {
 			snd_config = NULL;
-			fclose(fp);
 			return err;
 		}
-		fclose(fp);
+		usr_asoundrc_device = usr_st.st_dev;
+		usr_asoundrc_inode = usr_st.st_ino;
+		usr_asoundrc_mtime = usr_st.st_mtime;
 	}
 	return 0;
 }
