@@ -1374,12 +1374,11 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 			snd_pcm_stream_t stream, int mode)
 {
 	snd_config_iterator_t i, next;
-	const char *slave_name = NULL;
-	const char *sname;
+	const char *sname = NULL;
 	snd_config_t *bindings = NULL;
 	int err;
 	snd_config_t *slave = NULL, *sconf;
-	unsigned int *channels_map;
+	unsigned int *channels_map = NULL;
 	unsigned int channels = 0;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int schannels = -1;
@@ -1393,11 +1392,6 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		if (snd_pcm_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "slave") == 0) {
-			err = snd_config_get_string(n, &slave_name);
-			if (err < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
 			slave = n;
 			continue;
 		}
@@ -1427,6 +1421,7 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 
 	/* FIXME: nothing strictly forces to have named definition */
 	err = snd_config_get_string(sconf, &sname);
+	sname = err >= 0 && sname ? strdup(sname) : NULL;
 	snd_config_delete(sconf);
 	if (err < 0) {
 		SNDERR("slave.pcm is not a string");
@@ -1435,7 +1430,8 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 
 	if (!bindings) {
 		SNDERR("bindings is not defined");
-		return -EINVAL;
+		err = -EINVAL;
+		goto _free;
 	}
 	snd_config_for_each(i, next, bindings) {
 		long cchannel = -1;
@@ -1444,16 +1440,19 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 		err = safe_strtol(id, &cchannel);
 		if (err < 0 || cchannel < 0) {
 			SNDERR("Invalid client channel in binding: %s", id);
-			return -EINVAL;
+			err = -EINVAL;
+			goto _free;
 		}
 		if ((unsigned)cchannel >= channels)
 			channels = cchannel + 1;
 	}
 	if (channels == 0) {
 		SNDERR("No bindings defined");
-		return -EINVAL;
+		err = -EINVAL;
+		goto _free;
 	}
 	channels_map = calloc(channels, sizeof(*channels_map));
+	for (i = 0; i < channels; i++)
 
 	snd_config_for_each(i, next, bindings) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1478,7 +1477,10 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 				 speriod_time, sbuffer_time,
 				 channels, channels_map, stream, mode);
 _free:
-	free(channels_map);
+	if (channels_map)
+		free(channels_map);
+	if (sname)
+		free((char *)sname);
 	return err;
 }
 SND_DLSYM_BUILD_VERSION(_snd_pcm_share_open, SND_PCM_DLSYM_VERSION);
