@@ -134,7 +134,7 @@ static int snd_ctl_hsort_mixer_priority_lookup(char **name, char * const *names,
 		if (!strncmp(*name, *names, strlen(*names))) {
 			*name += strlen(*names);
 			if (**name == ' ')
-				*name++;
+				(*name)++;
 			return res;
 		}
 	}
@@ -189,7 +189,6 @@ static int snd_ctl_hsort_mixer_priority(const char *name)
 		"Bypass",
 		NULL
 	};
-	char **ptr, *s;
 	int res, res1;
 	
 	if ((res = snd_ctl_hsort_mixer_priority_lookup((char **)&name, names, 1000000)) == NOT_FOUND)

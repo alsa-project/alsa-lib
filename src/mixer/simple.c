@@ -86,12 +86,12 @@ static mixer_simple_t *simple_new(mixer_simple_t *scontrol)
 	return s;
 }
 
-static void hcontrol_event_change(snd_ctl_t *ctl_handle, snd_hcontrol_t *hcontrol)
+static void hcontrol_event_change(snd_ctl_t *ctl_handle ATTRIBUTE_UNUSED, snd_hcontrol_t *hcontrol ATTRIBUTE_UNUSED)
 {
 	/* ignore at this moment */
 }
 
-static void hcontrol_event_value(snd_ctl_t *ctl_handle, snd_hcontrol_t *hcontrol)
+static void hcontrol_event_value(snd_ctl_t *ctl_handle ATTRIBUTE_UNUSED, snd_hcontrol_t *hcontrol)
 {
 	snd_mixer_t *handle = (snd_mixer_t *)hcontrol->private_data;
 	mixer_simple_t *s;
@@ -103,7 +103,7 @@ static void hcontrol_event_value(snd_ctl_t *ctl_handle, snd_hcontrol_t *hcontrol
 	}
 }
 
-static void hcontrol_event_remove(snd_ctl_t *ctl_handle, snd_hcontrol_t *hcontrol)
+static void hcontrol_event_remove(snd_ctl_t *ctl_handle ATTRIBUTE_UNUSED, snd_hcontrol_t *hcontrol ATTRIBUTE_UNUSED)
 {
 	/* ignore at this moment */
 }
@@ -365,7 +365,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 		min = max = 0;
 		bag = NULL;
 		sprintf(str, "%s Switch", sname);
-		if (hcontrol = test_mixer_id(handle, str, index)) {
+		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &gswitch_info)) < 0)
 				return err;
 			if (gswitch_info.type == SND_CONTROL_TYPE_BOOLEAN) {
@@ -377,7 +377,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			}
 		}
 		sprintf(str, "%s Volume", sname);
-		if (hcontrol = test_mixer_id(handle, str, index)) {
+		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &gvolume_info)) < 0)
 				return err;
 			if (gvolume_info.type == SND_CONTROL_TYPE_INTEGER) {
@@ -393,7 +393,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			}
 		}
 		sprintf(str, "%s Playback Switch", sname);
-		if (hcontrol = test_mixer_id(handle, str, index)) {
+		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &pswitch_info)) < 0)
 				return err;
 			if (pswitch_info.type == SND_CONTROL_TYPE_BOOLEAN) {
@@ -405,7 +405,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			}
 		}
 		sprintf(str, "%s Capture Switch", sname);
-		if (hcontrol = test_mixer_id(handle, str, index)) {
+		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &cswitch_info)) < 0)
 				return err;
 			if (cswitch_info.type == SND_CONTROL_TYPE_BOOLEAN) {
@@ -417,7 +417,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			}
 		}
 		sprintf(str, "%s Playback Volume", sname);
-		if (hcontrol = test_mixer_id(handle, str, index)) {
+		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &pvolume_info)) < 0)
 				return err;
 			if (pvolume_info.type == SND_CONTROL_TYPE_INTEGER) {
@@ -433,7 +433,7 @@ static int build_input(snd_mixer_t *handle, const char *sname)
 			}
 		}
 		sprintf(str, "%s Capture Volume", sname);
-		if (hcontrol = test_mixer_id(handle, str, index)) {
+		if ((hcontrol = test_mixer_id(handle, str, index)) != NULL) {
 			if ((err = get_mixer_info(handle, str, index, &cvolume_info)) < 0)
 				return err;
 			if (cvolume_info.type == SND_CONTROL_TYPE_INTEGER) {

@@ -43,18 +43,20 @@ int snd_mixer_open(snd_mixer_t **r_handle, int card)
 	*r_handle = NULL;
 	if ((err = snd_ctl_open(&ctl_handle, card)) < 0)
 		return err;
-	if ((err = snd_ctl_hcallback_rebuild(ctl_handle, snd_mixer_simple_read_rebuild, handle)) < 0) {
-		snd_ctl_close(ctl_handle);
-		return err;
-	}
-	if ((err = snd_ctl_hcallback_add(ctl_handle, snd_mixer_simple_read_add, handle)) < 0) {
-		snd_ctl_close(ctl_handle);
-		return err;
-	}
 	handle = (snd_mixer_t *) calloc(1, sizeof(snd_mixer_t));
 	if (handle == NULL) {
 		snd_ctl_close(ctl_handle);
 		return -ENOMEM;
+	}
+	if ((err = snd_ctl_hcallback_rebuild(ctl_handle, snd_mixer_simple_read_rebuild, handle)) < 0) {
+		snd_ctl_close(ctl_handle);
+		free(handle);
+		return err;
+	}
+	if ((err = snd_ctl_hcallback_add(ctl_handle, snd_mixer_simple_read_add, handle)) < 0) {
+		snd_ctl_close(ctl_handle);
+		free(handle);
+		return err;
 	}
 	handle->ctl_handle = ctl_handle;
 	INIT_LIST_HEAD(&handle->simples);
@@ -103,7 +105,8 @@ int snd_mixer_simple_control_list(snd_mixer_t *handle, snd_mixer_simple_control_
 	struct list_head *lh;
 	mixer_simple_t *s;
 	snd_mixer_sid_t *p;
-	int err, idx;
+	int err;
+	unsigned int idx;
 
 	if (handle == NULL || list == NULL)
 		return -EINVAL;
@@ -183,7 +186,7 @@ static void snd_mixer_simple_read_rebuild(snd_ctl_t *ctl_handle, void *private_d
 	handle->simple_changes++;
 }
 
-static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle, void *private_data, snd_hcontrol_t *hcontrol)
+static void snd_mixer_simple_read_add(snd_ctl_t *ctl_handle ATTRIBUTE_UNUSED, void *private_data, snd_hcontrol_t *hcontrol)
 {
 	snd_mixer_t *handle = (snd_mixer_t *)private_data;
 	mixer_simple_t *s;
