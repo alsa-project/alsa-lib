@@ -218,7 +218,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		fmode |= O_SYNC;
 	}
 
-	assert(!(mode & ~(SND_RAWMIDI_APPEND|SND_RAWMIDI_NONBLOCK)));
+	assert(!(mode & ~(SND_RAWMIDI_APPEND|SND_RAWMIDI_NONBLOCK|SND_RAWMIDI_SYNC)));
 
 	if ((fd = open(filename, fmode)) < 0) {
 		snd_card_load(card);
