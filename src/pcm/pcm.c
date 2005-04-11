@@ -2188,10 +2188,6 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
  */
 int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 {
-	struct pollfd pfd;
-	unsigned short revents;
-	int err, err_poll;
-	
 	if (snd_pcm_mmap_avail(pcm) >= pcm->avail_min) {
 		/* check more precisely */
 		switch (snd_pcm_state(pcm)) {
@@ -2205,6 +2201,21 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 			return 1;
 		}
 	}
+	return snd_pcm_wait_nocheck(pcm, timeout);
+}
+
+#ifndef DOC_HIDDEN
+/* 
+ * like snd_pcm_wait() but doesn't check mmap_avail before calling poll()
+ *
+ * used in drain code in some plugins
+ */
+int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
+{
+	struct pollfd pfd;
+	unsigned short revents;
+	int err, err_poll;
+	
 	err = snd_pcm_poll_descriptors(pcm, &pfd, 1);
 	if (err < 0)
 		return err;
@@ -2247,6 +2258,7 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 #endif
 	return err_poll > 0 ? 1 : 0;
 }
+#endif
 
 /**
  * \brief Return number of frames ready to be read/written

@@ -416,7 +416,7 @@ int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid)
 }
 
 /* empty the timer read queue */
-static void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
+void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 {
 	/* rbuf might be overwriten by multiple plugins */
 	/* we don't need the value */
@@ -440,15 +440,17 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 	assert(pfds && nfds == 1 && revents);
 	events = pfds[0].revents;
 	if (events & POLLIN) {
+		snd_pcm_uframes_t avail;
 		int empty = 0;
 		snd_pcm_avail_update(pcm);
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 			events |= POLLOUT;
 			events &= ~POLLIN;
-			empty = snd_pcm_mmap_playback_avail(pcm) < pcm->avail_min;
+			avail = snd_pcm_mmap_playback_avail(pcm);
 		} else {
-			empty = snd_pcm_mmap_capture_avail(pcm) < pcm->avail_min;
+			avail = snd_pcm_mmap_capture_avail(pcm);
 		}
+		empty = avail < pcm->avail_min;
 		if (empty)
 			snd_pcm_direct_clear_timer_queue(dmix);
 		if (empty)
