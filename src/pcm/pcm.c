@@ -744,6 +744,7 @@ int snd_pcm_hw_params_current(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (!pcm->setup)
 		return -EBADFD;
 	memset(params, 0, snd_pcm_hw_params_sizeof());
+	params->flags = pcm->hw_flags;
 	snd_mask_copy(&params->masks[SND_PCM_HW_PARAM_ACCESS - SND_PCM_HW_PARAM_FIRST_MASK], (snd_mask_t *)&pcm->access);
 	snd_mask_copy(&params->masks[SND_PCM_HW_PARAM_FORMAT - SND_PCM_HW_PARAM_FIRST_MASK], (snd_mask_t *)&pcm->format);
 	snd_mask_copy(&params->masks[SND_PCM_HW_PARAM_SUBFORMAT - SND_PCM_HW_PARAM_FIRST_MASK], (snd_mask_t *)&pcm->subformat);
@@ -3909,6 +3910,35 @@ int snd_pcm_hw_params_set_rate_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_RATE, val, dir);
 }
 
+/**
+ * \brief Restrict a configuration space to contain only real hardware rates
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val 0 = disable, 1 = enable (default) rate resampling
+ * \return 0 otherwise a negative error code
+ */
+int snd_pcm_hw_params_set_rate_resample(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
+{
+	assert(pcm && params);
+	if (!val)
+		params->flags |= SND_PCM_HW_PARAMS_NORESAMPLE;
+	else
+		params->flags &= ~SND_PCM_HW_PARAMS_NORESAMPLE;
+	return snd_pcm_hw_refine(pcm, params);
+}
+
+/**
+ * \brief Extract resample state from a configuration space
+ * \param pcm PCM handle
+ * \param *val 0 = disable, 1 = enable rate resampling
+ * \return 0 otherwise a negative error code
+ */
+int snd_pcm_hw_params_get_rate_resample(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+{
+	assert(pcm && params && val);
+	*val = params->flags & SND_PCM_HW_PARAMS_NORESAMPLE ? 0 : 1;
+	return 0;
+}
 
 /**
  * \brief Extract period time from a configuration space

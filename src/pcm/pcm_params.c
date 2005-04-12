@@ -2281,6 +2281,7 @@ int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	}
 	pcm->min_align = min_align;
 	
+	pcm->hw_flags = params->flags;
 	pcm->info = params->info;
 	pcm->msbits = params->msbits;
 	pcm->rate_num = params->rate_num;

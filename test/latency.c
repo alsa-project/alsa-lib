@@ -51,6 +51,7 @@ int block = 0;			/* block mode */
 int tick_time = 0;		/* disabled, otherwise in us */
 int tick_time_ok = 0;
 int use_poll = 0;
+int resample = 1;
 unsigned long loop_limit;
 
 snd_output_t *output = NULL;
@@ -65,6 +66,11 @@ int setparams_stream(snd_pcm_t *handle,
 	err = snd_pcm_hw_params_any(handle, params);
 	if (err < 0) {
 		printf("Broken configuration for %s PCM: no configurations available: %s\n", snd_strerror(err), id);
+		return err;
+	}
+	err = snd_pcm_hw_params_set_rate_resample(handle, params, resample);
+	if (err < 0) {
+		printf("Resample setup failed for %s (val %i): %s\n", id, resample, snd_strerror(err));
 		return err;
 	}
 	err = snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
@@ -518,7 +524,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:s:bt:pe", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:s:bt:pen", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -579,6 +585,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'e':
 			effect = 1;
+			break;
+		case 'n':
+			resample = 0;
 			break;
 		}
 	}

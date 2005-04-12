@@ -728,6 +728,8 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	err = _snd_pcm_hw_params_refine(sparams, links, params);
 	if (err < 0)
 		return err;
+	if (params->flags & SND_PCM_HW_PARAMS_NORESAMPLE)
+		snd_interval_copy((snd_interval_t *)snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_RATE), snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_RATE));
 	return 0;
 }
 	
@@ -830,6 +832,8 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 	err = _snd_pcm_hw_params_refine(params, links, sparams);
 	if (err < 0)
 		return err;
+	if (params->flags & SND_PCM_HW_PARAMS_NORESAMPLE)
+		snd_interval_copy((snd_interval_t *)snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_RATE), snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_RATE));
 	/* FIXME */
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;

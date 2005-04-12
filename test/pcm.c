@@ -20,6 +20,7 @@ unsigned int buffer_time = 500000;		/* ring buffer length in us */
 unsigned int period_time = 100000;		/* period time in us */
 double freq = 440;				/* sinusoidal wave frequency in Hz */
 int verbose = 0;				/* verbose flag */
+int resample = 1;				/* enable alsa-lib resampling */
 
 snd_pcm_sframes_t buffer_size;
 snd_pcm_sframes_t period_size;
@@ -78,6 +79,12 @@ static int set_hwparams(snd_pcm_t *handle,
 	err = snd_pcm_hw_params_any(handle, params);
 	if (err < 0) {
 		printf("Broken configuration for playback: no configurations available: %s\n", snd_strerror(err));
+		return err;
+	}
+	/* set hardware resampling */
+	err = snd_pcm_hw_params_set_rate_resample(handle, params, resample);
+	if (err < 0) {
+		printf("Resampling setup failed for playback: %s\n", snd_strerror(err));
 		return err;
 	}
 	/* set the interleaved read/write format */
@@ -729,6 +736,7 @@ int main(int argc, char *argv[])
 		{"period", 1, NULL, 'p'},
 		{"method", 1, NULL, 'm'},
 		{"verbose", 1, NULL, 'v'},
+		{"noresample", 1, NULL, 'n'},
 		{NULL, 0, NULL, 0},
 	};
 	snd_pcm_t *handle;
@@ -746,7 +754,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:v", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:vn", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -789,6 +797,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'v':
 			verbose = 1;
+			break;
+		case 'n':
+			resample = 0;
 			break;
 		}
 	}

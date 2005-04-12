@@ -58,7 +58,6 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_HW_PARAM_BUFFER_BYTES SNDRV_PCM_HW_PARAM_BUFFER_BYTES
 #define SND_PCM_HW_PARAM_TICK_TIME SNDRV_PCM_HW_PARAM_TICK_TIME
 #define SND_PCM_HW_PARAM_LAST_INTERVAL SNDRV_PCM_HW_PARAM_LAST_INTERVAL
-#define SND_PCM_HW_PARAMS_RUNTIME SNDRV_PCM_HW_PARAMS_RUNTIME
 #define SND_PCM_HW_PARAM_LAST_MASK SNDRV_PCM_HW_PARAM_LAST_MASK
 #define SND_PCM_HW_PARAM_FIRST_MASK SNDRV_PCM_HW_PARAM_FIRST_MASK
 #define SND_PCM_HW_PARAM_LAST_INTERVAL SNDRV_PCM_HW_PARAM_LAST_INTERVAL
@@ -92,6 +91,12 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_INFO_JOINT_DUPLEX SNDRV_PCM_INFO_JOINT_DUPLEX
 /** device can do a kind of synchronized start */
 #define SND_PCM_INFO_SYNC_START SNDRV_PCM_INFO_SYNC_START
+
+#ifndef SNDRV_PCM_HW_PARAMS_NORESAMPLE
+#define SND_PCM_HW_PARAMS_NORESAMPLE (1<<0)
+#else
+#define SND_PCM_HW_PARAMS_NORESAMPLE SNDRV_PCM_HW_PARAMS_NORESAMPLE
+#endif
 
 typedef struct _snd_pcm_rbptr {
 	snd_pcm_t *master;
@@ -199,6 +204,7 @@ struct _snd_pcm {
 	unsigned int msbits;		/* used most significant bits */
 	unsigned int rate_num;		/* rate numerator */
 	unsigned int rate_den;		/* rate denominator */
+	unsigned int hw_flags;		/* actual hardware flags */
 	snd_pcm_uframes_t fifo_size;	/* chip FIFO size in frames */
 	snd_pcm_uframes_t buffer_size;
 	snd_interval_t buffer_time;
