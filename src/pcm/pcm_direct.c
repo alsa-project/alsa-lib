@@ -849,6 +849,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	snd_pcm_info_t *info;
 	snd_timer_params_t *params;
 	char name[128];
+	int tread = 0;
 	struct pollfd fd;
 	int capture = dmix->type == SND_PCM_TYPE_DSNOOP ? 1 : 0;
 	
@@ -864,26 +865,45 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 				snd_pcm_info_get_card(info),
 				snd_pcm_info_get_device(info),
 				snd_pcm_info_get_subdevice(info) * 2 + capture);
-	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
+	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK
+			     /*| SND_TIMER_OPEN_TREAD*/);  /* XXX: TREAD is set later */
 	if (ret < 0) {
 		SNDERR("unable to open timer '%s'", name);
 		return ret;
 	}
-	snd_timer_params_set_auto_start(params, 1);
-	snd_timer_params_set_early_event(params, 1);
-	snd_timer_params_set_ticks(params, 1);
-	snd_timer_params_set_filter(params, (1<<SND_TIMER_EVENT_TICK)|(1<<SND_TIMER_EVENT_MPAUSE));
-	ret = snd_timer_params(dmix->timer, params);
-	if (ret < 0) {
-		SNDERR("unable to set timer parameters", name);
-                return ret;
-	}
+
 	if (snd_timer_poll_descriptors_count(dmix->timer) != 1) {
 		SNDERR("unable to use timer with fd more than one!!!", name);
 		return ret;
 	}
 	snd_timer_poll_descriptors(dmix->timer, &fd, 1);
 	dmix->poll_fd = fd.fd;
+
+	/*
+	 * A hack to avoid Oops in the older kernel
+	 *
+	 * Enable TREAD mode only when protocl is newer than 2.0.2.
+	 */
+	{
+		int ver = 0;
+		ioctl(dmix->poll_fd, SNDRV_TIMER_IOCTL_PVERSION, &ver);
+		if (ver >= SNDRV_PROTOCOL_VERSION(2, 0, 3)) {
+			tread = 1;
+			if (ioctl(dmix->poll_fd, SNDRV_TIMER_IOCTL_TREAD, &tread) < 0)
+				tread = 0;
+		}
+	}
+
+	snd_timer_params_set_auto_start(params, 1);
+	snd_timer_params_set_early_event(params, 1);
+	snd_timer_params_set_ticks(params, 1);
+	if (tread)
+		snd_timer_params_set_filter(params, (1<<SND_TIMER_EVENT_TICK)|(1<<SND_TIMER_EVENT_MPAUSE));
+	ret = snd_timer_params(dmix->timer, params);
+	if (ret < 0) {
+		SNDERR("unable to set timer parameters", name);
+                return ret;
+	}
 	return 0;
 }
 
