@@ -474,7 +474,7 @@ int snd_pcm_hw_param_set_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  _fail:
 	if (mode == SND_TRY)
 		*params = save;
-	if (err < 0)
+	if (err < 0 && mode == SND_TRY)
 		dump_hw_params(params, "set_min", var, *val, err);
 	return err;
 }
@@ -551,7 +551,7 @@ int snd_pcm_hw_param_set_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  _fail:
 	if (mode == SND_TRY)
 		*params = save;
-	if (err < 0)
+	if (err < 0 && mode == SND_TRY)
 		dump_hw_params(params, "set_max", var, *val, err);
 	return err;
 }
@@ -755,7 +755,7 @@ int snd_pcm_hw_param_set(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  _fail:
 	if (mode == SND_TRY)
 		*params = save;
-	if (err < 0)
+	if (err < 0 && mode == SND_TRY)
 		dump_hw_params(params, "set", var, val, err);
 	return err;
 }
