@@ -35,6 +35,7 @@ may be placed in the library code instead of the kernel driver.</P>
   <LI>Page \ref mixer explains the mixer controls API.
   <LI>Page \ref pcm explains the design of the PCM (digital audio) API.
   <LI>Page \ref pcm_plugins explains the design of PCM (digital audio) plugins.
+  <LI>Page \ref pcm_external_plugins explains the external PCM plugin SDK.
   <LI>Page \ref rawmidi explains the design of the RawMidi API.
   <LI>Page \ref timer explains the design of the Timer API.
   <LI>Page \ref seq explains the design of the Sequencer API.
