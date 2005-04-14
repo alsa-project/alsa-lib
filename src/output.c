@@ -237,7 +237,7 @@ typedef struct _snd_output_buffer {
 	size_t size;
 } snd_output_buffer_t;
 
-static int snd_output_buffer_close(snd_output_t *output ATTRIBUTE_UNUSED)
+static int snd_output_buffer_close(snd_output_t *output)
 {
 	snd_output_buffer_t *buffer = output->private_data;
 	free(buffer->buf);
