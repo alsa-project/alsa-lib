@@ -5,7 +5,7 @@ alsaincludedir = ${includedir}/alsa
 
 alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      version.h global.h input.h output.h error.h \
-		      conf.h pcm.h pcm_plugin.h rawmidi.h timer.h \
+		      conf.h pcm.h pcm_old.h pcm_plugin.h rawmidi.h timer.h \
 		      hwdep.h control.h mixer.h \
 		      seq_event.h seq.h seqmid.h seq_midi_event.h \
 		      conv.h instr.h iatomic.h \
