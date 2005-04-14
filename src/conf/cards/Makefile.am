@@ -32,6 +32,7 @@ cfg_files = aliases.conf \
 	Maestro3.conf \
 	NFORCE.conf \
 	PC-Speaker.conf \
+	PMacToonie.conf \
 	RME9636.conf \
 	RME9652.conf \
 	SI7018.conf \
