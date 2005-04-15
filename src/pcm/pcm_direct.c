@@ -420,9 +420,15 @@ void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 {
 	/* rbuf might be overwriten by multiple plugins */
 	/* we don't need the value */
-	snd_timer_tread_t rbuf;
-	while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf))
-		;
+	if (dmix->tread) {
+		snd_timer_tread_t rbuf;
+		while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf))
+			;
+	} else {
+		snd_timer_read_t rbuf;
+		while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf))
+			;
+	}
 }
 
 int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix)
@@ -849,10 +855,10 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	snd_pcm_info_t *info;
 	snd_timer_params_t *params;
 	char name[128];
-	int tread = 0;
 	struct pollfd fd;
 	int capture = dmix->type == SND_PCM_TYPE_DSNOOP ? 1 : 0;
 	
+	dmix->tread = 0;
 	snd_pcm_info_alloca(&info);
 	snd_timer_params_alloca(&params);
 	ret = snd_pcm_info(dmix->spcm, info);
@@ -888,16 +894,16 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 		int ver = 0;
 		ioctl(dmix->poll_fd, SNDRV_TIMER_IOCTL_PVERSION, &ver);
 		if (ver >= SNDRV_PROTOCOL_VERSION(2, 0, 3)) {
-			tread = 1;
-			if (ioctl(dmix->poll_fd, SNDRV_TIMER_IOCTL_TREAD, &tread) < 0)
-				tread = 0;
+			dmix->tread = 1;
+			if (ioctl(dmix->poll_fd, SNDRV_TIMER_IOCTL_TREAD, &dmix->tread) < 0)
+				dmix->tread = 0;
 		}
 	}
 
 	snd_timer_params_set_auto_start(params, 1);
 	snd_timer_params_set_early_event(params, 1);
 	snd_timer_params_set_ticks(params, 1);
-	if (tread)
+	if (dmix->tread)
 		snd_timer_params_set_filter(params, (1<<SND_TIMER_EVENT_TICK)|(1<<SND_TIMER_EVENT_MPAUSE));
 	ret = snd_timer_params(dmix->timer, params);
 	if (ret < 0) {
