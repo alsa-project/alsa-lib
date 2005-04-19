@@ -573,9 +573,11 @@ static int snd_pcm_rate_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		SNDMSG("rate plugin already in use");
 		return -EBUSY;
 	}
+#if 0
 	if ((buffer_size / period_size) * period_size == buffer_size &&
 	    (slave->buffer_size / slave->period_size) * slave->period_size == slave->buffer_size)
 		return 0;
+#endif
 	rate->pareas = malloc(2 * channels * sizeof(*rate->pareas));
 	if (rate->pareas == NULL)
 		return -ENOMEM;
