@@ -826,8 +826,14 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	if (! params->avail_min || ! params->xfer_align)
+	if (! params->avail_min) {
+		SNDMSG("params->avail_min is 0");
 		return -EINVAL;
+	}
+	if (! params->xfer_align) {
+		SNDMSG("params->xfer_align is 0");
+		return -EINVAL;
+	}
 	if (params->start_threshold <= pcm->buffer_size &&
 	    params->start_threshold > (pcm->buffer_size / params->avail_min) * params->avail_min) {
 		SNDMSG("params->avail_min problem for start_threshold");
