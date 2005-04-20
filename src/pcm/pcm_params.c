@@ -23,7 +23,7 @@
 
 #ifndef NDEBUG
 /*
- * dump hw_params when $LIBASOUND_DEBUG is set
+ * dump hw_params when $LIBASOUND_DEBUG is set to >= 1
  */
 static void dump_hw_params(snd_pcm_hw_params_t *params, const char *type,
 			   snd_pcm_hw_param_t var, unsigned int val, int err)
@@ -31,7 +31,7 @@ static void dump_hw_params(snd_pcm_hw_params_t *params, const char *type,
 	const char *verbose = getenv("LIBASOUND_DEBUG");
 	snd_output_t *out;
 
-	if (! verbose || ! *verbose)
+	if (! verbose || ! *verbose || atoi(verbose) < 1)
 		return;
 	if (snd_output_stdio_attach(&out, stderr, 0) < 0)
 		return;

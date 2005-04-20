@@ -22,9 +22,13 @@ Verbose Error Messages
 Since version 1.0.8, assert() for some non-fatal errors are removed
 and error messages are no longer shown to stderr as default.  Instead,
 the error messages appear only when the environment variable
-LIBASOUND_DEBUG is set.  When LIBASOUND_DEBUG=assert is set, the
-default error message handler calls assert() to catch with a
-debugger.
+LIBASOUND_DEBUG is set (to a non-empty value).
+
+When LIBASOUND_DEBUG=1 is set, the errors in hw_params configuration
+will be dumped to stderr.  Note that this will show even the non-fatal
+errors of plug layer (trial-and-error of parameters).
+When LIBASOUND_DEBUG=2 is set, the default error message handler calls
+assert() to catch with a debugger, in addition to parameter debugging.
 
 This feature is disabled when --with-debug=no is passed to configure,
 i.e. no strict checking is done in alsa-lib.
