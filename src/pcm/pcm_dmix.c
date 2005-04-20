@@ -531,7 +531,7 @@ static int snd_pcm_dmix_pause(snd_pcm_t *pcm, int enable)
 	return 0;
 }
 
-static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_uframes_t frames ATTRIBUTE_UNUSED)
 {
 #if 0
 	/* FIXME: substract samples from the mix ring buffer, too? */
@@ -631,7 +631,7 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 	return size;
 }
 
-static snd_pcm_sframes_t snd_pcm_dmix_avail_update(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+static snd_pcm_sframes_t snd_pcm_dmix_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	
