@@ -447,7 +447,7 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 	events = pfds[0].revents;
 	if (events & POLLIN) {
 		snd_pcm_uframes_t avail;
-		int empty = 0;
+		int empty;
 		snd_pcm_avail_update(pcm);
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 			events |= POLLOUT;
@@ -457,10 +457,10 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 			avail = snd_pcm_mmap_capture_avail(pcm);
 		}
 		empty = avail < pcm->avail_min;
-		if (empty)
+		if (empty) {
 			snd_pcm_direct_clear_timer_queue(dmix);
-		if (empty)
 			events &= ~(POLLOUT|POLLIN);
+		}
 	}
 	switch (snd_pcm_state(dmix->spcm)) {
 	case SND_PCM_STATE_XRUN:

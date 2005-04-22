@@ -69,6 +69,7 @@ struct _snd_pcm_rate {
 	snd_pcm_generic_t gen;
 	snd_atomic_write_t watom;
 	snd_pcm_uframes_t appl_ptr, hw_ptr;
+	snd_pcm_uframes_t last_commit_ptr;
 	snd_pcm_uframes_t orig_avail_min;
 	snd_pcm_sw_params_t sw_params;
 	enum rate_type type;
@@ -759,6 +760,7 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 	default:
 		assert(0);
 	}
+	rate->last_commit_ptr = 0;
 	return 0;
 }
 
@@ -831,7 +833,10 @@ static inline snd_pcm_sframes_t snd_pcm_rate_move_applptr(snd_pcm_t *pcm, snd_pc
 		diff = -((slave->boundary - orig_appl_ptr) + rate->appl_ptr);
 	}
 	if (frames < 0)
-		return -diff;
+		diff = -diff;
+
+	rate->last_commit_ptr = rate->appl_ptr - rate->appl_ptr % pcm->period_size;
+
 	return diff;
 }
 
@@ -842,6 +847,9 @@ static inline void snd_pcm_rate_sync_hwptr(snd_pcm_t *pcm)
 
 	if (pcm->stream != SND_PCM_STREAM_PLAYBACK)
 		return;
+	/* FIXME: boundary overlap of slave hw_ptr isn't evaluated here!
+	 *        e.g. if slave rate is small... 
+	 */
 	rate->hw_ptr =
 		(slave_hw_ptr / rate->gen.slave->period_size) * pcm->period_size +
 		snd_pcm_rate_client_frames(pcm, slave_hw_ptr % rate->gen.slave->period_size);
@@ -1168,82 +1176,56 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 	return 1;
 }
 
+static int snd_pcm_rate_sync_playback_area(snd_pcm_t *pcm, snd_pcm_uframes_t appl_ptr)
+{
+	snd_pcm_rate_t *rate = pcm->private_data;
+	snd_pcm_t *slave = rate->gen.slave;
+	snd_pcm_uframes_t xfer;
+	snd_pcm_sframes_t slave_size;
+	int err;
+
+	slave_size = snd_pcm_avail_update(slave);
+	if (slave_size < 0)
+		return slave_size;
+
+	if (appl_ptr < rate->last_commit_ptr)
+		xfer = appl_ptr - rate->last_commit_ptr + pcm->boundary;
+	else
+		xfer = appl_ptr - rate->last_commit_ptr;
+	while (xfer >= pcm->period_size &&
+	       (snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
+		err = snd_pcm_rate_commit_next_period(pcm, rate->last_commit_ptr % pcm->buffer_size);
+		if (err == 0)
+			break;
+		if (err < 0)
+			return err;
+		xfer -= pcm->period_size;
+		slave_size -= rate->gen.slave->period_size;
+		rate->last_commit_ptr += pcm->period_size;
+		if (rate->last_commit_ptr >= pcm->boundary)
+			rate->last_commit_ptr = 0;
+	}
+	return 0;
+}
+
 static snd_pcm_sframes_t snd_pcm_rate_mmap_commit(snd_pcm_t *pcm,
 						  snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
 						  snd_pcm_uframes_t size)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
-	snd_pcm_t *slave = rate->gen.slave;
-	snd_pcm_uframes_t appl_offset, xfer;
-	snd_pcm_sframes_t slave_size;
 	int err;
 
 	if (size == 0)
 		return 0;
-	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
-		snd_atomic_write_begin(&rate->watom);
-		snd_pcm_mmap_appl_forward(pcm, size);
-		snd_atomic_write_end(&rate->watom);
-		return size;
-	}
-	slave_size = snd_pcm_avail_update(slave);
-	if (slave_size < 0)
-		return slave_size;
-	xfer = rate->appl_ptr % pcm->period_size;
-	appl_offset = (rate->appl_ptr - xfer) % pcm->buffer_size;
-	xfer = pcm->period_size - xfer;
-	if (xfer >= size) {
-		if (xfer == size && (snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
-			err = snd_pcm_rate_commit_next_period(pcm, appl_offset);
-			if (err < 0)
-				return err;
-			if (err == 0)
-				return 0;
-		}
-		snd_atomic_write_begin(&rate->watom);
-		snd_pcm_mmap_appl_forward(pcm, size);
-		snd_atomic_write_end(&rate->watom);
-		return size;
-	} else {
-		if ((snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
-			err = snd_pcm_rate_commit_next_period(pcm, appl_offset);
-			if (err < 0)
-				return err;
-			if (err == 0)
-				return 0;
-		}
-		snd_atomic_write_begin(&rate->watom);
-		snd_pcm_mmap_appl_forward(pcm, xfer);
-		snd_atomic_write_end(&rate->watom);
-		appl_offset += pcm->period_size;
-		appl_offset %= pcm->buffer_size;
-		size -= xfer;
-		slave_size -= rate->gen.slave->period_size;
-	}
-	while ((snd_pcm_uframes_t)size >= pcm->period_size &&
-	       (snd_pcm_uframes_t)slave_size >= rate->gen.slave->period_size) {
-		err = snd_pcm_rate_commit_next_period(pcm, appl_offset);
-		if (err == 0)
-			return xfer;
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		err = snd_pcm_rate_sync_playback_area(pcm, rate->appl_ptr + size);
 		if (err < 0)
-			return xfer > 0 ? (snd_pcm_sframes_t)xfer : err;
-		xfer += pcm->period_size;
-		size -= pcm->period_size;
-		slave_size -= rate->gen.slave->period_size;
-		appl_offset += pcm->period_size;
-		appl_offset %= pcm->buffer_size;
-		snd_atomic_write_begin(&rate->watom);
-		snd_pcm_mmap_appl_forward(pcm, pcm->period_size);
-		snd_atomic_write_end(&rate->watom);
+			return err;
 	}
-	size %= pcm->period_size;
-	if (size > 0) {
-		snd_atomic_write_begin(&rate->watom);
-		snd_pcm_mmap_appl_forward(pcm, size);
-		snd_atomic_write_end(&rate->watom);
-		xfer += size;
-	}
-	return xfer;
+	snd_atomic_write_begin(&rate->watom);
+	snd_pcm_mmap_appl_forward(pcm, size);
+	snd_atomic_write_end(&rate->watom);
+	return size;
 }
 
 static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
@@ -1258,6 +1240,7 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
 	snd_atomic_write_begin(&rate->watom);
 	snd_pcm_rate_sync_hwptr(pcm);
 	snd_atomic_write_end(&rate->watom);
+	snd_pcm_rate_sync_playback_area(pcm, rate->appl_ptr);
 	return snd_pcm_mmap_avail(pcm);
  _capture: {
 	snd_pcm_uframes_t xfer, hw_offset, size;

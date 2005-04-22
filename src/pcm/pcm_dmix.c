@@ -627,6 +627,9 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 		/* ok, we commit the changes after the validation of area */
 		/* it's intended, although the result might be crappy */
 		snd_pcm_dmix_sync_area(pcm, size);
+		/* clear timer queue to avoid a bogus return from poll */
+		if (snd_pcm_mmap_playback_avail(pcm) < pcm->avail_min)
+			snd_pcm_direct_clear_timer_queue(dmix);
 	}
 	return size;
 }
