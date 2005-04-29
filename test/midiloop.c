@@ -51,8 +51,9 @@ int writepattern(snd_rawmidi_t *handle_out, unsigned char *obuf)
 		obuf[patsize++] = 0x80 + i;
 		obuf[patsize++] = 0x23;
 		obuf[patsize++] = 0x24;
-		obuf[patsize++] = 0x25;
-		obuf[patsize++] = 0x26;
+		obuf[patsize++] = 0xf0;
+		obuf[patsize++] = i;
+		obuf[patsize++] = 0xf7;
 	}
 	i = snd_rawmidi_write(handle_out, obuf, patsize);
 	if (i != patsize) {
