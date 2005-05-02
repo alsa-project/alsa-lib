@@ -1682,17 +1682,15 @@ int snd_seq_set_client_info(snd_seq_t *seq, snd_seq_client_info_t *info)
 }
 
 /**
- * \brief query the next matching client
+ * \brief query the next client
  * \param seq sequencer handle
  * \param info query pattern and result
  *
- * Queries the next matching client with the given condition in
- * info argument.
+ * Queries the next client.
  * The search begins at the client with an id one greater than
  * client field in info.
- * If name field in info is not empty, the client name is compared.
- * If a matching client is found, its attributes are stored o
- * info and returns zero.
+ * If a client is found, its attributes are stored in info,
+ * and zero is returned.
  * Otherwise returns a negative error code.
  *
  * \sa snd_seq_get_any_client_info()
