@@ -57,9 +57,15 @@
 	__asm__ (".set " #name "," #real);		\
 	__asm__ (".set ." #name ",." #real)
 #else
+#ifdef __alpha__
+#define use_default_symbol_version(real, name, version) \
+        __asm__ (".weak " #name); \
+        __asm__ (#name " = " #real)
+#else
 #define use_default_symbol_version(real, name, version) \
 	__asm__ (".weak " #name); \
 	__asm__ (".set " #name "," #real)
+#endif
 #endif
 #endif
 
