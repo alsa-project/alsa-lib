@@ -987,5 +987,5 @@ ssize_t snd_rawmidi_read(snd_rawmidi_t *rawmidi, void *buffer, size_t size)
 	assert(rawmidi);
 	assert(rawmidi->stream == SND_RAWMIDI_STREAM_INPUT);
 	assert(buffer || size == 0);
-	return rawmidi->ops->read(rawmidi, buffer, size);
+	return (rawmidi->ops->read)(rawmidi, buffer, size);
 }

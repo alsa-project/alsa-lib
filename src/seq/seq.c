@@ -3912,7 +3912,7 @@ int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 static ssize_t snd_seq_event_read_buffer(snd_seq_t *seq)
 {
 	ssize_t len;
-	len = seq->ops->read(seq, seq->ibuf, seq->ibufsize * sizeof(snd_seq_event_t));
+	len = (seq->ops->read)(seq, seq->ibuf, seq->ibufsize * sizeof(snd_seq_event_t));
 	if (len < 0)
 		return len;
 	seq->ibuflen = len / sizeof(snd_seq_event_t);

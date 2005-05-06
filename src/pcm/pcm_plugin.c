@@ -316,7 +316,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 		snd_pcm_mmap_begin(slave, &slave_areas, &slave_offset, &slave_frames);
 		if (slave_frames == 0)
 			break;
-		frames = plugin->read(pcm, areas, offset, frames,
+		frames = (plugin->read)(pcm, areas, offset, frames,
 				      slave_areas, slave_offset, &slave_frames);
 		if (CHECK_SANITY(slave_frames > snd_pcm_mmap_capture_avail(slave))) {
 			SNDMSG("read overflow %ld > %ld", slave_frames,
@@ -488,7 +488,7 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 				return xfer > 0 ? (snd_pcm_sframes_t)xfer : err;
 			if (frames > cont)
 				frames = cont;
-			frames = plugin->read(pcm, areas, hw_offset, frames,
+			frames = (plugin->read)(pcm, areas, hw_offset, frames,
 					      slave_areas, slave_offset, &slave_frames);
 			snd_atomic_write_begin(&plugin->watom);
 			snd_pcm_mmap_hw_forward(pcm, frames);

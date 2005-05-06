@@ -75,9 +75,9 @@ static void mix_areas1(unsigned int size,
 		} while (IS_CONCURRENT && *sum != old_sample);
 		if (!--size)
 			return;
-		src += src_step;
-		dst += dst_step;
-		sum += sum_step;
+		src = (signed short *) ((char *)src + src_step);
+		dst = (signed short *) ((char *)dst + dst_step);
+		sum = (signed int *)   ((char *)sum + sum_step);
 	}
 }
 
@@ -109,9 +109,9 @@ static void mix_areas2(unsigned int size,
 		} while (IS_CONCURRENT && *sum != old_sample);
 		if (!--size)
 			return;
-		src += src_step;
-		dst += dst_step;
-		sum += sum_step;
+		src = (signed int *) ((char *)src + src_step);
+		dst = (signed int *) ((char *)dst + dst_step);
+		sum = (signed int *) ((char *)sum + sum_step);
 	}
 }
 

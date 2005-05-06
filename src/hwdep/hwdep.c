@@ -485,7 +485,7 @@ ssize_t snd_hwdep_read(snd_hwdep_t *hwdep, void *buffer, size_t size)
 	assert(hwdep);
 	assert(((hwdep->mode & O_ACCMODE) == O_RDONLY) || ((hwdep->mode & O_ACCMODE) == O_RDWR));
 	assert(buffer || size == 0);
-	return hwdep->ops->read(hwdep, buffer, size);
+	return (hwdep->ops->read)(hwdep, buffer, size);
 }
 
 /**

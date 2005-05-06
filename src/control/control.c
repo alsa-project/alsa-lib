@@ -560,7 +560,7 @@ int snd_ctl_get_power_state(snd_ctl_t *ctl, unsigned int *state)
 int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 {
 	assert(ctl && event);
-	return ctl->ops->read(ctl, event);
+	return (ctl->ops->read)(ctl, event);
 }
 
 /**

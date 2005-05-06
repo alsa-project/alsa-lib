@@ -876,7 +876,7 @@ ssize_t snd_timer_read(snd_timer_t *timer, void *buffer, size_t size)
 	assert(timer);
 	assert(((timer->mode & O_ACCMODE) == O_RDONLY) || ((timer->mode & O_ACCMODE) == O_RDWR));
 	assert(buffer || size == 0);
-	return timer->ops->read(timer, buffer, size);
+	return (timer->ops->read)(timer, buffer, size);
 }
 
 /**
