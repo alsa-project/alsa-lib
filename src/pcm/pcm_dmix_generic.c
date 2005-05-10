@@ -53,9 +53,6 @@ static void mix_areas1(unsigned int size,
 		       size_t src_step, size_t sum_step)
 {
 	register signed int sample, old_sample;
-	src_step /= sizeof(*src);
-	dst_step /= sizeof(*dst);
-	sum_step /= sizeof(*sum);
 
 	for (;;) {
 		sample = *src;
@@ -87,9 +84,6 @@ static void mix_areas2(unsigned int size,
 		       size_t src_step, size_t sum_step)
 {
 	register signed int sample, old_sample;
-	src_step /= sizeof(*src);
-	dst_step /= sizeof(*dst);
-	sum_step /= sizeof(*sum);
 
 	for (;;) {
 		sample = *src / 256;
