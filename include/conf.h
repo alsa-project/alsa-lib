@@ -170,6 +170,19 @@ int snd_config_get_bool(const snd_config_t *conf);
 int snd_config_get_ctl_iface_ascii(const char *ascii);
 int snd_config_get_ctl_iface(const snd_config_t *conf);
 
+/* Names functions */
+
+typedef struct snd_devname snd_devname_t;
+
+struct snd_devname {
+	char *name;
+	char *comment;
+	snd_devname_t *next;
+};
+
+int snd_names_list(const char *interface, snd_devname_t **list);
+void snd_names_list_free(snd_devname_t *list);
+
 /** \} */
 
 #ifdef __cplusplus
@@ -177,4 +190,3 @@ int snd_config_get_ctl_iface(const snd_config_t *conf);
 #endif
 
 #endif /* __ALSA_CONF_H */
-

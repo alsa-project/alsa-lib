@@ -221,6 +221,157 @@ int snd_timer_query_next_device(snd_timer_query_t *timer, snd_timer_id_t *tid)
 }
 
 /**
+ * \brief get size of the snd_timer_ginfo_t structure in bytes
+ * \return size of the snd_timer_ginfo_t structure in bytes
+ */
+size_t snd_timer_ginfo_sizeof(void)
+{
+	return sizeof(snd_timer_ginfo_t);
+}
+
+/**
+ * \brief allocate a new snd_timer_ginfo_t structure
+ * \param ptr returned pointer
+ * \return 0 on success otherwise a negative error code if fails
+ *
+ * Allocates a new snd_timer_info_t structure using the standard
+ * malloc C library function.
+ */
+int snd_timer_ginfo_malloc(snd_timer_ginfo_t **info)
+{
+	assert(info);
+	*info = calloc(1, sizeof(snd_timer_ginfo_t));
+	if (!*info)
+		return -ENOMEM;
+	return 0;
+}
+
+/**
+ * \brief frees the snd_timer_ginfo_t structure
+ * \param info pointer to the snd_timer_ginfo_t structure to free
+ *
+ * Frees the given snd_timer_info_t structure using the standard
+ * free C library function.
+ */
+void snd_timer_ginfo_free(snd_timer_ginfo_t *info)
+{
+	assert(info);
+	free(info);  
+}
+  
+/**
+ * \brief copy one snd_timer_info_t structure to another
+ * \param dst destination snd_timer_info_t structure
+ * \param src source snd_timer_info_t structure
+ */
+void snd_timer_ginfo_copy(snd_timer_ginfo_t *dst, const snd_timer_ginfo_t *src)
+{
+	assert(dst && src);
+	*dst = *src;
+}
+
+/**
+ * \brief set timer identification
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return zero on success otherwise a negative error number
+ */
+int snd_timer_ginfo_set_tid(snd_timer_ginfo_t *obj, snd_timer_id_t *tid)
+{
+	obj->tid = *((snd_timer_id_t *)tid);
+	return 0;
+}
+
+/**
+ * \brief get timer identification
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return pointer to snd_timer_id_t
+ */
+snd_timer_id_t *snd_timer_ginfo_get_tid(snd_timer_ginfo_t *obj)
+{
+	return (snd_timer_id_t *)&obj->tid;
+}
+
+/**
+ * \brief get timer flags
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return timer flags
+ */
+unsigned int snd_timer_ginfo_get_flags(snd_timer_ginfo_t *obj)
+{
+	return obj->flags;
+}
+
+/**
+ * \brief get associated card with timer
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return associated card
+ */
+int snd_timer_ginfo_get_card(snd_timer_ginfo_t *obj)
+{
+	return obj->card;
+}
+
+/**
+ * \brief get timer identification
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return timer identification
+ */
+char *snd_timer_ginfo_get_id(snd_timer_ginfo_t *obj)
+{
+	return obj->id;
+}
+
+/**
+ * \brief get timer name
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return timer name
+ */
+char *snd_timer_ginfo_get_name(snd_timer_ginfo_t *obj)
+{
+	return obj->name;
+}
+
+/**
+ * \brief get timer resolution in ns
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return timer resolution in ns
+ */
+unsigned long snd_timer_ginfo_get_resolution(snd_timer_ginfo_t *obj)
+{
+	return obj->resolution;
+}
+
+/**
+ * \brief get timer minimal resolution in ns
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return timer minimal resolution in ns
+ */
+unsigned long snd_timer_ginfo_get_resolution_min(snd_timer_ginfo_t *obj)
+{
+	return obj->resolution_min;
+}
+
+/**
+ * \brief get timer maximal resolution in ns
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return timer maximal resolution in ns
+ */
+unsigned long snd_timer_ginfo_get_resolution_max(snd_timer_ginfo_t *obj)
+{
+	return obj->resolution_max;
+}
+
+/**
+ * \brief get current timer clients
+ * \param obj pointer to #snd_timer_ginfo_t structure
+ * \return current timer clients
+ */
+unsigned int snd_timer_ginfo_get_clients(snd_timer_ginfo_t *obj)
+{
+	return obj->clients;
+}
+
+/**
  * \brief obtain the timer global information
  * \param timer timer handle
  * \param info timer information

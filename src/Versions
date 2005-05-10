@@ -174,6 +174,9 @@ ALSA_1.0.8 {
 ALSA_1.0.9 {
   global:
 
+    snd_names_list;
+    snd_names_list_free;
+
     snd_pcm_hw_params_set_rate_resample;
     snd_pcm_hw_params_get_rate_resample;
 
@@ -193,5 +196,20 @@ ALSA_1.0.9 {
     snd_pcm_extplug_set_slave_param_minmax;
 
     snd_pcm_parse_control_id;
+
+    snd_timer_ginfo_sizeof;
+    snd_timer_ginfo_malloc;
+    snd_timer_ginfo_free;
+    snd_timer_ginfo_copy;
+    snd_timer_ginfo_set_tid;
+    snd_timer_ginfo_get_tid;
+    snd_timer_ginfo_get_flags;
+    snd_timer_ginfo_get_card;
+    snd_timer_ginfo_get_id;
+    snd_timer_ginfo_get_name;
+    snd_timer_ginfo_get_resolution;
+    snd_timer_ginfo_get_resolution_min;
+    snd_timer_ginfo_get_resolution_max;
+    snd_timer_ginfo_get_clients;
 
 } ALSA_1.0.5;

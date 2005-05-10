@@ -173,6 +173,24 @@ int snd_timer_id_get_device(snd_timer_id_t *id);
 void snd_timer_id_set_subdevice(snd_timer_id_t *id, int subdevice);
 int snd_timer_id_get_subdevice(snd_timer_id_t *id);
 
+size_t snd_timer_ginfo_sizeof(void);
+/** allocate #snd_timer_ginfo_t container on stack */
+#define snd_timer_ginfo_alloca(ptr) do { assert(ptr); *ptr = (snd_timer_ginfo_t *) alloca(snd_timer_ginfo_sizeof()); memset(*ptr, 0, snd_timer_ginfo_sizeof()); } while (0)
+int snd_timer_ginfo_malloc(snd_timer_ginfo_t **ptr);
+void snd_timer_ginfo_free(snd_timer_ginfo_t *obj);
+void snd_timer_ginfo_copy(snd_timer_ginfo_t *dst, const snd_timer_ginfo_t *src);
+
+int snd_timer_ginfo_set_tid(snd_timer_ginfo_t *obj, snd_timer_id_t *tid);
+snd_timer_id_t *snd_timer_ginfo_get_tid(snd_timer_ginfo_t *obj);
+unsigned int snd_timer_ginfo_get_flags(snd_timer_ginfo_t *obj);
+int snd_timer_ginfo_get_card(snd_timer_ginfo_t *obj);
+char *snd_timer_ginfo_get_id(snd_timer_ginfo_t *obj);
+char *snd_timer_ginfo_get_name(snd_timer_ginfo_t *obj);
+unsigned long snd_timer_ginfo_get_resolution(snd_timer_ginfo_t *obj);
+unsigned long snd_timer_ginfo_get_resolution_min(snd_timer_ginfo_t *obj);
+unsigned long snd_timer_ginfo_get_resolution_max(snd_timer_ginfo_t *obj);
+unsigned int snd_timer_ginfo_get_clients(snd_timer_ginfo_t *obj);
+
 size_t snd_timer_info_sizeof(void);
 /** allocate #snd_timer_info_t container on stack */
 #define snd_timer_info_alloca(ptr) do { assert(ptr); *ptr = (snd_timer_info_t *) alloca(snd_timer_info_sizeof()); memset(*ptr, 0, snd_timer_info_sizeof()); } while (0)

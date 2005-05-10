@@ -9,7 +9,7 @@ VSYMS =
 endif
 
 lib_LTLIBRARIES = libasound.la
-libasound_la_SOURCES = conf.c confmisc.c input.c output.c async.c error.c dlmisc.c socket.c shmarea.c userfile.c
+libasound_la_SOURCES = conf.c confmisc.c input.c output.c async.c error.c dlmisc.c socket.c shmarea.c userfile.c names.c
 libasound_la_LIBADD = control/libcontrol.la \
 		      mixer/libmixer.la ordinary_mixer/libordinarymixer.la \
 		      pcm/libpcm.la ordinary_pcm/libordinarypcm.la \
