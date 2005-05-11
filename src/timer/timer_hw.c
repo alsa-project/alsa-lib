@@ -265,6 +265,7 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 	tmr->name = strdup(name);
 	tmr->poll_fd = fd;
 	tmr->ops = &snd_timer_hw_ops;
+	INIT_LIST_HEAD(&tmr->async_handlers);
 	*handle = tmr;
 	return 0;
 }

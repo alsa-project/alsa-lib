@@ -238,6 +238,10 @@ int snd_timer_close(snd_timer_t *timer)
 {
 	int err;
   	assert(timer);
+	while (!list_empty(&timer->async_handlers)) {
+		snd_async_handler_t *h = list_entry(timer->async_handlers.next, snd_async_handler_t, hlist);
+		snd_async_del_handler(h);
+	}
 	if ((err = timer->ops->close(timer)) < 0)
 		return err;
 	if (timer->name)
@@ -272,6 +276,55 @@ snd_timer_type_t snd_timer_type(snd_timer_t *timer)
 	assert(timer);
 	return timer->type;
 }
+
+/**
+ * \brief Add an async handler for a timer
+ * \param handler Returned handler handle
+ * \param timer timer handle
+ * \param callback Callback function
+ * \param private_data Callback private data
+ * \return 0 otherwise a negative error code on failure
+ *
+ * The asynchronous callback is called when new timer event occurs.
+ */
+int snd_async_add_timer_handler(snd_async_handler_t **handler, snd_timer_t *timer,
+				snd_async_callback_t callback, void *private_data)
+{
+	int err;
+	int was_empty;
+	snd_async_handler_t *h;
+	err = snd_async_add_handler(&h, timer->poll_fd,
+				    callback, private_data);
+	if (err < 0)
+		return err;
+	h->type = SND_ASYNC_HANDLER_TIMER;
+	h->u.timer = timer;
+	was_empty = list_empty(&timer->async_handlers);
+	list_add_tail(&h->hlist, &timer->async_handlers);
+	if (was_empty) {
+		err = snd_timer_async(timer, snd_async_handler_get_signo(h), getpid());
+		if (err < 0) {
+			snd_async_del_handler(h);
+			return err;
+		}
+	}
+	*handler = h;
+	return 0;
+}
+
+/**
+ * \brief Return timer handle related to an async handler
+ * \param handler Async handler handle
+ * \return timer handle
+ */
+snd_timer_t *snd_async_handler_get_timer(snd_async_handler_t *handler)
+{
+	if (handler->type != SND_ASYNC_HANDLER_TIMER) {
+		SNDMSG("invalid handler type %d", handler->type);
+		return NULL;
+	}
+	return handler->u.timer;
+}                                                            
 
 /**
  * \brief get count of poll descriptors for timer handle

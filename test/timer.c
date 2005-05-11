@@ -54,6 +54,19 @@ void read_loop(void *handle, int master_ticks, int timeout)
 	free(fds);
 }
 
+static void async_callback(snd_async_handler_t *ahandler)
+{
+	snd_timer_t *handle = snd_async_handler_get_timer(ahandler);
+	int *acount = snd_async_handler_get_callback_private(ahandler);
+	snd_timer_read_t tr;
+	
+	while (snd_timer_read(handle, &tr, sizeof(tr)) == sizeof(tr)) {
+		printf("TIMER: resolution = %uns, ticks = %u\n",
+			tr.resolution, tr.ticks);
+	}
+	(*acount)++;
+}
+
 int main(int argc, char *argv[])
 {
 	int idx, err;
@@ -63,11 +76,14 @@ int main(int argc, char *argv[])
 	int device = SND_TIMER_GLOBAL_SYSTEM;
 	int subdevice = 0;
 	int list = 0;
+	int async = 0;
+	int acount = 0;
 	snd_timer_t *handle;
 	snd_timer_id_t *id;
 	snd_timer_info_t *info;
 	snd_timer_params_t *params;
 	char timername[64];
+	snd_async_handler_t *ahandler;
 
 	snd_timer_id_alloca(&id);
 	snd_timer_info_alloca(&info);
@@ -87,6 +103,8 @@ int main(int argc, char *argv[])
 			subdevice = atoi(argv[idx]+10);
 		} else if (!strcmp(argv[idx], "list")) {
 			list = 1;
+		} else if (!strcmp(argv[idx], "async")) {
+			async = 1;
 		}
 		idx++;
 	}
@@ -148,11 +166,26 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 	show_status(handle);
+	if (async) {
+		err = snd_async_add_timer_handler(&ahandler, handle, async_callback, &acount);
+		if (err < 0) {
+			fprintf(stderr, "unable to add async handler %i (%s)\n", err, snd_strerror(err));
+			exit(EXIT_FAILURE);
+		}
+	}
 	if ((err = snd_timer_start(handle)) < 0) {
 		fprintf(stderr, "timer start %i (%s)\n", err, snd_strerror(err));
 		exit(EXIT_FAILURE);
 	}
-	read_loop(handle, 25, snd_timer_info_is_slave(info) ? 10000 : 25);
+	if (async) {
+		/* because all other work is done in the signal handler,
+		   suspend the process */
+		while (acount < 25)
+			sleep(1);
+		snd_timer_stop(handle);
+	} else {
+		read_loop(handle, 25, snd_timer_info_is_slave(info) ? 10000 : 25);
+	}
 	show_status(handle);
 	snd_timer_close(handle);
 	printf("Done\n");

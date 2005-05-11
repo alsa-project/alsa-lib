@@ -45,6 +45,7 @@ struct _snd_timer {
 	int poll_fd;
 	snd_timer_ops_t *ops;
 	void *private_data;
+	struct list_head async_handlers;
 };
 
 int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int dev_sclass, int card, int device, int subdevice, int mode);

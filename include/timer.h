@@ -144,6 +144,9 @@ int snd_timer_query_status(snd_timer_query_t *handle, snd_timer_gstatus_t *statu
 int snd_timer_open(snd_timer_t **handle, const char *name, int mode);
 int snd_timer_open_lconf(snd_timer_t **handle, const char *name, int mode, snd_config_t *lconf);
 int snd_timer_close(snd_timer_t *handle);
+int snd_async_add_timer_handler(snd_async_handler_t **handler, snd_timer_t *timer,
+				snd_async_callback_t callback, void *private_data);
+snd_timer_t *snd_async_handler_get_timer(snd_async_handler_t *handler);
 int snd_timer_poll_descriptors_count(snd_timer_t *handle);
 int snd_timer_poll_descriptors(snd_timer_t *handle, struct pollfd *pfds, unsigned int space);
 int snd_timer_poll_descriptors_revents(snd_timer_t *timer, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);

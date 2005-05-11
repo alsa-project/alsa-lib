@@ -129,13 +129,15 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 struct _snd_async_handler {
 	enum {
 		SND_ASYNC_HANDLER_GENERIC,
-		SND_ASYNC_HANDLER_PCM,
 		SND_ASYNC_HANDLER_CTL,
+		SND_ASYNC_HANDLER_PCM,
+		SND_ASYNC_HANDLER_TIMER,
 	} type;
 	int fd;
 	union {
-		snd_pcm_t *pcm;
 		snd_ctl_t *ctl;
+		snd_pcm_t *pcm;
+		snd_timer_t *timer;
 	} u;
 	snd_async_callback_t callback;
 	void *private_data;

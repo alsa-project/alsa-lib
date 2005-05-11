@@ -197,6 +197,9 @@ ALSA_1.0.9 {
 
     snd_pcm_parse_control_id;
 
+    snd_async_add_timer_handler;
+    snd_async_handler_get_timer;
+
     snd_timer_ginfo_sizeof;
     snd_timer_ginfo_malloc;
     snd_timer_ginfo_free;
