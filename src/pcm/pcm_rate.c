@@ -978,9 +978,11 @@ static int snd_pcm_rate_poll_ask(snd_pcm_t *pcm)
 	return snd_pcm_sw_params(rate->gen.slave, &rate->sw_params);
 }
 
-static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t appl_offset)
+static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
+				    snd_pcm_uframes_t appl_offset,
+				    snd_pcm_uframes_t size,
+				    snd_pcm_uframes_t slave_size)
 {
-	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_uframes_t cont = pcm->buffer_size - appl_offset;
 	const snd_pcm_channel_area_t *areas;
 	const snd_pcm_channel_area_t *slave_areas;
@@ -989,18 +991,18 @@ static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t app
 	snd_pcm_sframes_t result;
 
 	areas = snd_pcm_mmap_areas(pcm);
-	if (cont >= pcm->period_size) {
+	if (cont >= size) {
 		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
-		if (slave_frames < rate->gen.slave->period_size) {
+		if (slave_frames < slave_size) {
 			snd_pcm_rate_write_areas1(pcm, areas, appl_offset, rate->sareas, 0);
 			goto __partial;
 		}
 		snd_pcm_rate_write_areas1(pcm, areas, appl_offset,
 					  slave_areas, slave_offset);
-		result = snd_pcm_mmap_commit(rate->gen.slave, slave_offset, rate->gen.slave->period_size);
-		if (result < (snd_pcm_sframes_t)rate->gen.slave->period_size) {
+		result = snd_pcm_mmap_commit(rate->gen.slave, slave_offset, slave_size);
+		if (result < (snd_pcm_sframes_t)slave_size) {
 			if (result < 0)
 				return result;
 			result = snd_pcm_rewind(rate->gen.slave, result);
@@ -1015,7 +1017,7 @@ static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t app
 				   pcm->format);
 		snd_pcm_areas_copy(rate->pareas, cont,
 				   areas, 0,
-				   pcm->channels, pcm->period_size - cont,
+				   pcm->channels, size - cont,
 				   pcm->format);
 
 		snd_pcm_rate_write_areas1(pcm, rate->pareas, 0, rate->sareas, 0);
@@ -1027,8 +1029,8 @@ static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t app
 	      __partial:
 		xfer = 0;
 		cont = rate->gen.slave->buffer_size - slave_offset;
-		if (cont > rate->gen.slave->period_size)
-			cont = rate->gen.slave->period_size;
+		if (cont > slave_size)
+			cont = slave_size;
 		snd_pcm_areas_copy(slave_areas, slave_offset,
 				   rate->sareas, 0,
 				   pcm->channels, cont,
@@ -1072,6 +1074,14 @@ static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t app
 		}
 	}
 	return 1;
+}
+
+static int snd_pcm_rate_commit_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t appl_offset)
+{
+	snd_pcm_rate_t *rate = pcm->private_data;
+
+	return snd_pcm_rate_commit_area(pcm, rate, appl_offset, pcm->period_size,
+					rate->gen.slave->period_size);
 }
 
 static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_offset)
@@ -1266,6 +1276,24 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
  }
 }
 
+static int snd_pcm_rate_drain(snd_pcm_t *pcm)
+{
+	snd_pcm_rate_t *rate = pcm->private_data;
+
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		/* commit the remaining fraction (if any) */
+		snd_pcm_uframes_t size, slave_size;
+		size = rate->appl_ptr - rate->last_commit_ptr;
+		if (size > 0) {
+			slave_size = snd_pcm_rate_slave_frames(pcm, size);
+			if (slave_size > 0)
+				snd_pcm_rate_commit_area(pcm, rate, rate->last_commit_ptr % pcm->buffer_size,
+							 size, slave_size);
+		}
+	}
+	return snd_pcm_drain(rate->gen.slave);
+}
+
 static int snd_pcm_rate_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
@@ -1324,7 +1352,7 @@ static snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.reset = snd_pcm_rate_reset,
 	.start = snd_pcm_generic_start,
 	.drop = snd_pcm_generic_drop,
-	.drain = snd_pcm_generic_drain,
+	.drain = snd_pcm_rate_drain,
 	.pause = snd_pcm_generic_pause,
 	.rewind = snd_pcm_rate_rewind,
 	.forward = snd_pcm_rate_forward,
