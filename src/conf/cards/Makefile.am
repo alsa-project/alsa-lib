@@ -1,5 +1,6 @@
 alsadir = $(datadir)/alsa/cards
 cfg_files = aliases.conf \
+	AACI.conf \
 	ATIIXP.conf \
 	ATIIXP-SPDMA.conf \
 	ATIIXP-MODEM.conf \
