@@ -543,6 +543,7 @@ static int snd_pcm_hw_start(snd_pcm_t *pcm)
 	assert(pcm->stream != SND_PCM_STREAM_PLAYBACK ||
 	       snd_pcm_mmap_playback_hw_avail(pcm) > 0);
 #endif
+	sync_ptr(hw, 0);
 	if (ioctl(hw->fd, SNDRV_PCM_IOCTL_START) < 0) {
 		err = -errno;
 		SYSMSG("SNDRV_PCM_IOCTL_START failed");
