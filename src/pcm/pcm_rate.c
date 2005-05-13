@@ -1046,7 +1046,7 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 		}
 		xfer = cont;
 
-		if (xfer == rate->gen.slave->period_size)
+		if (xfer == slave_size)
 			return 1;
 		
 		/* commit second fragment */
