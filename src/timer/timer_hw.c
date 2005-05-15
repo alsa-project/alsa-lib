@@ -38,6 +38,13 @@ const char *_snd_module_timer_hw = "";
 
 #define SNDRV_TIMER_IOCTL_STATUS_OLD	_IOW('T', 0x14, struct sndrv_timer_status)
 
+enum {
+	SNDRV_TIMER_IOCTL_START_OLD = _IO('T', 0x20),
+	SNDRV_TIMER_IOCTL_STOP_OLD = _IO('T', 0x21),
+	SNDRV_TIMER_IOCTL_CONTINUE_OLD = _IO('T', 0x22),
+	SNDRV_TIMER_IOCTL_PAUSE_OLD = _IO('T', 0x23),
+};
+
 static int snd_timer_hw_close(snd_timer_t *handle)
 {
 	snd_timer_t *tmr = handle;
@@ -140,11 +147,16 @@ static int snd_timer_hw_status(snd_timer_t *handle, snd_timer_status_t * status)
 static int snd_timer_hw_start(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
+	unsigned int cmd;
 
 	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
-	if (ioctl(tmr->poll_fd, SNDRV_TIMER_IOCTL_START) < 0)
+	if (tmr->version < SNDRV_PROTOCOL_VERSION(2, 0, 4))
+		cmd = SNDRV_TIMER_IOCTL_START_OLD;
+	else
+		cmd = SNDRV_TIMER_IOCTL_START;
+	if (ioctl(tmr->poll_fd, cmd) < 0)
 		return -errno;
 	return 0;
 }
@@ -152,11 +164,16 @@ static int snd_timer_hw_start(snd_timer_t *handle)
 static int snd_timer_hw_stop(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
+	unsigned int cmd;
 
 	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
-	if (ioctl(tmr->poll_fd, SNDRV_TIMER_IOCTL_STOP) < 0)
+	if (tmr->version < SNDRV_PROTOCOL_VERSION(2, 0, 4))
+		cmd = SNDRV_TIMER_IOCTL_STOP_OLD;
+	else
+		cmd = SNDRV_TIMER_IOCTL_STOP;
+	if (ioctl(tmr->poll_fd, cmd) < 0)
 		return -errno;
 	return 0;
 }
@@ -164,11 +181,16 @@ static int snd_timer_hw_stop(snd_timer_t *handle)
 static int snd_timer_hw_continue(snd_timer_t *handle)
 {
 	snd_timer_t *tmr;
+	unsigned int cmd;
 
 	tmr = handle;
 	if (!tmr)
 		return -EINVAL;
-	if (ioctl(tmr->poll_fd, SNDRV_TIMER_IOCTL_CONTINUE) < 0)
+	if (tmr->version < SNDRV_PROTOCOL_VERSION(2, 0, 4))
+		cmd = SNDRV_TIMER_IOCTL_CONTINUE_OLD;
+	else
+		cmd = SNDRV_TIMER_IOCTL_CONTINUE;
+	if (ioctl(tmr->poll_fd, cmd) < 0)
 		return -errno;
 	return 0;
 }
