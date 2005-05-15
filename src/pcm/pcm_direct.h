@@ -95,8 +95,10 @@ struct snd_pcm_direct {
 	int server, client;
 	int comm_fd;			/* communication file descriptor (socket) */
 	int hw_fd;			/* hardware file descriptor */
+	struct pollfd timer_fd;
 	int poll_fd;
 	int tread;
+	int timer_need_poll;
 	int server_fd;
 	pid_t server_pid;
 	snd_timer_t *timer; 		/* timer used as poll_fd */

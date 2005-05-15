@@ -419,18 +419,26 @@ int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid)
 /* empty the timer read queue */
 void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 {
-	struct pollfd fds[4];
-	int fdn = snd_timer_poll_descriptors(dmix->timer, fds, 4);
-
-	while (poll(fds, fdn, 0) > 0) {
-		/* rbuf might be overwriten by multiple plugins */
-		/* we don't need the value */
+	if (dmix->timer_need_poll) {
+		while (poll(&dmix->timer_fd, 1, 0) > 0) {
+			/* we don't need the value */
+			if (dmix->tread) {
+				snd_timer_tread_t rbuf;
+				snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
+			} else {
+				snd_timer_read_t rbuf;
+				snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
+			}
+		}
+	} else {
 		if (dmix->tread) {
 			snd_timer_tread_t rbuf;
-			snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
+			while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) > 0)
+				;
 		} else {
 			snd_timer_read_t rbuf;
-			snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
+			while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) > 0)
+				;
 		}
 	}
 }
@@ -859,10 +867,10 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	snd_pcm_info_t *info;
 	snd_timer_params_t *params;
 	char name[128];
-	struct pollfd fd;
 	int capture = dmix->type == SND_PCM_TYPE_DSNOOP ? 1 : 0;
 	
 	dmix->tread = 0;
+	dmix->timer_need_poll = 0;
 	snd_pcm_info_alloca(&info);
 	snd_timer_params_alloca(&params);
 	ret = snd_pcm_info(dmix->spcm, info);
@@ -886,8 +894,8 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 		SNDERR("unable to use timer with fd more than one!!!", name);
 		return ret;
 	}
-	snd_timer_poll_descriptors(dmix->timer, &fd, 1);
-	dmix->poll_fd = fd.fd;
+	snd_timer_poll_descriptors(dmix->timer, &dmix->timer_fd, 1);
+	dmix->poll_fd = dmix->timer_fd.fd;
 
 	/*
 	 * A hack to avoid Oops in the older kernel
@@ -902,6 +910,12 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 			if (ioctl(dmix->poll_fd, SNDRV_TIMER_IOCTL_TREAD, &dmix->tread) < 0)
 				dmix->tread = 0;
 		}
+		/* In older versions, check via poll before read() is needed
+		 * because of the confliction between TIMER_START and
+		 * FIONBIO ioctls.
+		 */
+		if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 4))
+			dmix->timer_need_poll = 1;
 	}
 
 	snd_timer_params_set_auto_start(params, 1);
