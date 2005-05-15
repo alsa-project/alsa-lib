@@ -35,6 +35,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/poll.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/wait.h>
@@ -418,16 +419,19 @@ int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid)
 /* empty the timer read queue */
 void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 {
-	/* rbuf might be overwriten by multiple plugins */
-	/* we don't need the value */
-	if (dmix->tread) {
-		snd_timer_tread_t rbuf;
-		while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf))
-			;
-	} else {
-		snd_timer_read_t rbuf;
-		while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) == sizeof(rbuf))
-			;
+	struct pollfd fds[4];
+	int fdn = snd_timer_poll_descriptors(dmix->timer, fds, 4);
+
+	while (poll(fds, fdn, 0) > 0) {
+		/* rbuf might be overwriten by multiple plugins */
+		/* we don't need the value */
+		if (dmix->tread) {
+			snd_timer_tread_t rbuf;
+			snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
+		} else {
+			snd_timer_read_t rbuf;
+			snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
+		}
 	}
 }
 
