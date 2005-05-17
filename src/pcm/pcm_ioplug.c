@@ -237,6 +237,7 @@ static int snd_pcm_ioplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	int change = 0, change1, change2, err;
 	ioplug_priv_t *io = pcm->private_data;
+	struct snd_ext_parm *p;
 	int i;
 
 	/* access, format */
@@ -330,6 +331,26 @@ static int snd_pcm_ioplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err < 0)
 			return err;
 	}
+
+	params->info = SND_PCM_INFO_BLOCK_TRANSFER;
+	p = &io->params[SND_PCM_IOPLUG_HW_ACCESS];
+	if (p->active) {
+		for (i = 0; i < p->num_list; i++)
+			switch (p->list[i]) {
+			case SND_PCM_ACCESS_MMAP_INTERLEAVED:
+			case SND_PCM_ACCESS_RW_INTERLEAVED:
+				params->info |= SND_PCM_INFO_INTERLEAVED;
+				break;
+			case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
+			case SND_PCM_ACCESS_RW_NONINTERLEAVED:
+				params->info |= SND_PCM_INFO_NONINTERLEAVED;
+				break;
+			}
+	}
+	if (io->data->callback->pause)
+		params->info |= SND_PCM_INFO_PAUSE;
+	if (io->data->callback->resume)
+		params->info |= SND_PCM_INFO_RESUME;
 
 #if 0
 	fprintf(stderr, "XXX\n");
