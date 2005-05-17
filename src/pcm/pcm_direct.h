@@ -149,6 +149,7 @@ int snd_pcm_direct_mmap(snd_pcm_t *pcm);
 int snd_pcm_direct_munmap(snd_pcm_t *pcm);
 int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix);
 void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix);
+int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix);
 
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm);

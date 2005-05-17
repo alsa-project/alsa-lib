@@ -598,6 +598,7 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIODS, hw_params);
 	if (err < 0)
 		return err;
+	params->info = dshare->shmptr->s.info;
 #ifdef REFINE_DEBUG
 	snd_output_puts(log, "DMIX REFINE (end):\n");
 	snd_pcm_hw_params_dump(params, log);
@@ -849,7 +850,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	dmix->shmptr->s.rate = spcm->rate;
 	dmix->shmptr->s.format = spcm->format;
 	dmix->shmptr->s.boundary = spcm->boundary;
-	dmix->shmptr->s.info = spcm->info & ~(SND_PCM_INFO_PAUSE|SND_PCM_INFO_RESUME);
+	dmix->shmptr->s.info = spcm->info & ~SND_PCM_INFO_PAUSE;
 	dmix->shmptr->s.msbits = spcm->msbits;
 
 	spcm->donot_close = 1;
@@ -865,14 +866,12 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 {
 	int ret;
 	snd_pcm_info_t *info;
-	snd_timer_params_t *params;
 	char name[128];
 	int capture = dmix->type == SND_PCM_TYPE_DSNOOP ? 1 : 0;
 	
 	dmix->tread = 0;
 	dmix->timer_need_poll = 0;
 	snd_pcm_info_alloca(&info);
-	snd_timer_params_alloca(&params);
 	ret = snd_pcm_info(dmix->spcm, info);
 	if (ret < 0) {
 		SNDERR("unable to info for slave pcm");
@@ -918,14 +917,24 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 			dmix->timer_need_poll = 1;
 	}
 
+	return 0;
+}
+
+int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
+{
+	snd_timer_params_t *params;
+	int ret;
+
+	snd_timer_params_alloca(&params);
 	snd_timer_params_set_auto_start(params, 1);
-	snd_timer_params_set_early_event(params, 1);
+	if (dmix->type != SND_PCM_TYPE_DSNOOP)
+		snd_timer_params_set_early_event(params, 1);
 	snd_timer_params_set_ticks(params, 1);
 	if (dmix->tread)
 		snd_timer_params_set_filter(params, (1<<SND_TIMER_EVENT_TICK)|(1<<SND_TIMER_EVENT_MPAUSE));
 	ret = snd_timer_params(dmix->timer, params);
 	if (ret < 0) {
-		SNDERR("unable to set timer parameters", name);
+		SNDERR("unable to set timer parameters");
                 return ret;
 	}
 	return 0;

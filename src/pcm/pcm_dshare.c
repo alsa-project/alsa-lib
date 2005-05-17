@@ -265,7 +265,7 @@ static int snd_pcm_dshare_prepare(snd_pcm_t *pcm)
 	dshare->state = SND_PCM_STATE_PREPARED;
 	dshare->appl_ptr = 0;
 	dshare->hw_ptr = 0;
-	return 0;
+	return snd_pcm_direct_set_timer_params(dshare);
 }
 
 static int snd_pcm_dshare_reset(snd_pcm_t *pcm)
@@ -286,12 +286,12 @@ static int snd_pcm_dshare_start(snd_pcm_t *pcm)
 	
 	if (dshare->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
+	snd_pcm_hwsync(dshare->spcm);
+	dshare->slave_appl_ptr = dshare->slave_hw_ptr = *dshare->spcm->hw.ptr;
 	err = snd_timer_start(dshare->timer);
 	if (err < 0)
 		return err;
 	dshare->state = SND_PCM_STATE_RUNNING;
-	snd_pcm_hwsync(dshare->spcm);
-	dshare->slave_appl_ptr = dshare->slave_hw_ptr = *dshare->spcm->hw.ptr;
 	avail = snd_pcm_mmap_playback_hw_avail(pcm);
 	if (avail < 0)
 		return 0;
@@ -341,22 +341,9 @@ static int snd_pcm_dshare_drain(snd_pcm_t *pcm)
 	return snd_pcm_dshare_drop(pcm);
 }
 
-static int snd_pcm_dshare_pause(snd_pcm_t *pcm, int enable)
+static int snd_pcm_dshare_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTRIBUTE_UNUSED)
 {
-	snd_pcm_direct_t *dshare = pcm->private_data;
-        if (enable) {
-		if (dshare->state != SND_PCM_STATE_RUNNING)
-			return -EBADFD;
-		dshare->state = SND_PCM_STATE_PAUSED;
-		snd_timer_stop(dshare->timer);
-		do_silence(pcm);
-	} else {
-		if (dshare->state != SND_PCM_STATE_PAUSED)
-			return -EBADFD;
-                dshare->state = SND_PCM_STATE_RUNNING;
-                snd_timer_start(dshare->timer);
-	}
-	return 0;
+	return -EIO;
 }
 
 static snd_pcm_sframes_t snd_pcm_dshare_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)

@@ -248,7 +248,7 @@ static int snd_pcm_dsnoop_prepare(snd_pcm_t *pcm)
 	dsnoop->state = SND_PCM_STATE_PREPARED;
 	dsnoop->appl_ptr = 0;
 	dsnoop->hw_ptr = 0;
-	return 0;
+	return snd_pcm_direct_set_timer_params(dsnoop);
 }
 
 static int snd_pcm_dsnoop_reset(snd_pcm_t *pcm)
@@ -268,12 +268,12 @@ static int snd_pcm_dsnoop_start(snd_pcm_t *pcm)
 	
 	if (dsnoop->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
+	snd_pcm_hwsync(dsnoop->spcm);
+	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr = *dsnoop->spcm->hw.ptr;
 	err = snd_timer_start(dsnoop->timer);
 	if (err < 0)
 		return err;
 	dsnoop->state = SND_PCM_STATE_RUNNING;
-	snd_pcm_hwsync(dsnoop->spcm);
-	dsnoop->slave_appl_ptr = dsnoop->slave_hw_ptr = *dsnoop->spcm->hw.ptr;
 	gettimeofday(&tv, 0);
 	dsnoop->trigger_tstamp.tv_sec = tv.tv_sec;
 	dsnoop->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
@@ -313,21 +313,9 @@ static int snd_pcm_dsnoop_drain(snd_pcm_t *pcm)
 	return snd_pcm_dsnoop_drop(pcm);
 }
 
-static int snd_pcm_dsnoop_pause(snd_pcm_t *pcm, int enable)
+static int snd_pcm_dsnoop_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTRIBUTE_UNUSED)
 {
-	snd_pcm_direct_t *dsnoop = pcm->private_data;
-        if (enable) {
-		if (dsnoop->state != SND_PCM_STATE_RUNNING)
-			return -EBADFD;
-		dsnoop->state = SND_PCM_STATE_PAUSED;
-		snd_timer_stop(dsnoop->timer);
-	} else {
-		if (dsnoop->state != SND_PCM_STATE_PAUSED)
-			return -EBADFD;
-                dsnoop->state = SND_PCM_STATE_RUNNING;
-                snd_timer_start(dsnoop->timer);
-	}
-	return 0;
+	return -EIO;
 }
 
 static snd_pcm_sframes_t snd_pcm_dsnoop_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)

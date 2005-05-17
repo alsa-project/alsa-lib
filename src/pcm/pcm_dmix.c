@@ -415,7 +415,7 @@ static int snd_pcm_dmix_prepare(snd_pcm_t *pcm)
 	dmix->state = SND_PCM_STATE_PREPARED;
 	dmix->appl_ptr = 0;
 	dmix->hw_ptr = 0;
-	return 0;
+	return snd_pcm_direct_set_timer_params(dmix);
 }
 
 static int snd_pcm_dmix_reset(snd_pcm_t *pcm)
@@ -509,26 +509,9 @@ static int snd_pcm_dmix_drain(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_dmix_pause(snd_pcm_t *pcm, int enable)
+static int snd_pcm_dmix_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTRIBUTE_UNUSED)
 {
-	snd_pcm_direct_t *dmix = pcm->private_data;
-        if (enable) {
-		if (dmix->state == SND_PCM_STATE_RUNNING)
-			snd_pcm_direct_timer_stop(dmix);
-		else if (dmix->state != STATE_RUN_PENDING)
-			return -EBADFD;
-		dmix->state = SND_PCM_STATE_PAUSED;
-	} else {
-		if (dmix->state != SND_PCM_STATE_PAUSED)
-			return -EBADFD;
-		if (snd_pcm_mmap_playback_hw_avail(pcm) > 0) {
-			dmix->state = SND_PCM_STATE_RUNNING;
-			/* FIXME: sync the hwptr */
-			snd_timer_start(dmix->timer);
-		} else
-			dmix->state = STATE_RUN_PENDING;
-	}
-	return 0;
+	return -EIO;
 }
 
 static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_uframes_t frames ATTRIBUTE_UNUSED)
