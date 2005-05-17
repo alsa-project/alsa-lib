@@ -2113,6 +2113,7 @@ int _snd_pcm_hw_params_refine(snd_pcm_hw_params_t *params,
 		if (changed < 0)
 			err = changed;
 	}
+	params->info &= src->info;
 	return err;
 }
 
