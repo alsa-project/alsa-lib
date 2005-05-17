@@ -45,6 +45,7 @@ This is an abstraction layer over the hcontrol layer.
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <pthread.h>
 #include "mixer_local.h"
 
 #ifndef DOC_HIDDEN
@@ -520,14 +521,26 @@ static int snd_mixer_compare_default(const snd_mixer_elem_t *c1,
 	return c1->class->compare(c1, c2);
 }
 
-typedef int (*qsort_func)(const void *, const void *);
+static snd_mixer_t *compare_mixer;
+static int mixer_compare(const void *a, const void *b) {
+	return compare_mixer->compare(*(const snd_mixer_elem_t * const *) a,
+				      *(const snd_mixer_elem_t * const *) b);
+}
+
 static int snd_mixer_sort(snd_mixer_t *mixer)
 {
 	unsigned int k;
+	static pthread_mutex_t sync_lock = PTHREAD_MUTEX_INITIALIZER;
+
 	assert(mixer);
 	assert(mixer->compare);
 	INIT_LIST_HEAD(&mixer->elems);
-	qsort(mixer->pelems, mixer->count, sizeof(snd_mixer_elem_t*), (qsort_func)mixer->compare);
+
+	pthread_mutex_lock(&sync_lock);
+	compare_mixer = mixer;
+	qsort(mixer->pelems, mixer->count, sizeof(snd_mixer_elem_t*), mixer_compare);
+	pthread_mutex_unlock(&sync_lock);
+
 	for (k = 0; k < mixer->count; k++)
 		list_add_tail(&mixer->pelems[k]->list, &mixer->elems);
 	return 0;
