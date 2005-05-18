@@ -533,7 +533,6 @@ static snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
 	.rewind = snd_pcm_meter_rewind,
 	.forward = snd_pcm_meter_forward,
 	.resume = snd_pcm_generic_resume,
-	.poll_ask = snd_pcm_generic_poll_ask,
 	.writei = snd_pcm_mmap_writei,
 	.writen = snd_pcm_mmap_writen,
 	.readi = snd_pcm_mmap_readi,

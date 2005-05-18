@@ -1310,11 +1310,6 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 	assert(pcm && pfds);
 	if (pcm->ops->poll_descriptors)
 		return pcm->ops->poll_descriptors(pcm->op_arg, pfds, space);
-	if (pcm->fast_ops->poll_ask) {
-		err = pcm->fast_ops->poll_ask(pcm->fast_op_arg);
-		if (err < 0)
-			return err;
-	}
 	if (pcm->poll_fd < 0) {
 		SNDMSG("poll_fd < 0");
 		return -EIO;

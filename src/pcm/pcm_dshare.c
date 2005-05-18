@@ -493,7 +493,6 @@ static snd_pcm_fast_ops_t snd_pcm_dshare_fast_ops = {
 	.rewind = snd_pcm_dshare_rewind,
 	.forward = snd_pcm_dshare_forward,
 	.resume = snd_pcm_dshare_resume,
-	.poll_ask = NULL,
 	.link_fd = NULL,
 	.link = NULL,
 	.unlink = NULL,

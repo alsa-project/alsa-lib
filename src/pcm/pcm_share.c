@@ -1320,7 +1320,6 @@ static snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	.rewind = snd_pcm_share_rewind,
 	.forward = snd_pcm_share_forward,
 	.resume = snd_pcm_share_resume,
-	.poll_ask = NULL, /* FIXME */
 	.avail_update = snd_pcm_share_avail_update,
 	.mmap_commit = snd_pcm_share_mmap_commit,
 };

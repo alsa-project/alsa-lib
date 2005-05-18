@@ -948,17 +948,16 @@ static snd_pcm_sframes_t snd_pcm_rate_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	return n;
 }
 
-static int snd_pcm_rate_poll_ask(snd_pcm_t *pcm)
+static int snd_pcm_rate_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_uframes_t avail_min;
-	int err;
+	int ret, err;
 
-	if (rate->gen.slave->fast_ops->poll_ask) {
-		err = rate->gen.slave->fast_ops->poll_ask(rate->gen.slave->fast_op_arg);
-		if (err < 0)
-			return err;
-	}
+	ret = snd_pcm_generic_poll_descriptors(pcm, pfds, space);
+	if (ret < 0)
+		return ret;
+
 	avail_min = rate->appl_ptr % pcm->period_size;
 	if (avail_min > 0) {
 		recalc(pcm, &avail_min);
@@ -973,9 +972,12 @@ static int snd_pcm_rate_poll_ask(snd_pcm_t *pcm)
 		avail_min = rate->orig_avail_min;
 	}
 	if (rate->sw_params.avail_min == avail_min)
-		return 0;
+		return ret;
 	rate->sw_params.avail_min = avail_min;
-	return snd_pcm_sw_params(rate->gen.slave, &rate->sw_params);
+	err = snd_pcm_sw_params(rate->gen.slave, &rate->sw_params);
+	if (err < 0)
+		return err;
+	return ret;
 }
 
 static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
@@ -1357,7 +1359,6 @@ static snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.rewind = snd_pcm_rate_rewind,
 	.forward = snd_pcm_rate_forward,
 	.resume = snd_pcm_generic_resume,
-	.poll_ask = snd_pcm_rate_poll_ask,
 	.writei = snd_pcm_mmap_writei,
 	.writen = snd_pcm_mmap_writen,
 	.readi = snd_pcm_mmap_readi,

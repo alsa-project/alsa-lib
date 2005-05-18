@@ -459,7 +459,6 @@ static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
 	.rewind = snd_pcm_dsnoop_rewind,
 	.forward = snd_pcm_dsnoop_forward,
 	.resume = snd_pcm_dsnoop_resume,
-	.poll_ask = NULL,
 	.link_fd = NULL,
 	.link = NULL,
 	.unlink = NULL,

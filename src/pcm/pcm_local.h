@@ -158,7 +158,6 @@ typedef struct {
 	int (*hwsync)(snd_pcm_t *pcm);
 	int (*delay)(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 	int (*resume)(snd_pcm_t *pcm);
-	int (*poll_ask)(snd_pcm_t *pcm);
 	int (*link_fd)(snd_pcm_t *pcm, int *fds, int count, int (**failed)(snd_pcm_t *, int));
 	int (*link)(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 	int (*unlink)(snd_pcm_t *pcm);

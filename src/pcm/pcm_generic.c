@@ -193,14 +193,6 @@ snd_pcm_sframes_t snd_pcm_generic_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frame
 	return snd_pcm_rewind(generic->slave, frames);
 }
 
-int snd_pcm_generic_poll_ask(snd_pcm_t *pcm)
-{
-	snd_pcm_generic_t *generic = pcm->private_data;
-	if (generic->slave->fast_ops->poll_ask)
-		return generic->slave->fast_ops->poll_ask(generic->slave->fast_op_arg);
-	return 0;
-}
-
 int snd_pcm_generic_link_fd(snd_pcm_t *pcm, int *fds, int count, int (**failed)(snd_pcm_t *, int))
 {
 	snd_pcm_generic_t *generic = pcm->private_data;

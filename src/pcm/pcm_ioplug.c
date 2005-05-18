@@ -738,7 +738,6 @@ static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.hwsync = snd_pcm_ioplug_hwsync,
 	.delay = snd_pcm_ioplug_delay,
 	.resume = snd_pcm_ioplug_resume,
-	.poll_ask = NULL,
 	.link_fd = NULL,
 	.link = NULL,
 	.unlink = NULL,

@@ -1021,7 +1021,6 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.rewind = snd_pcm_hw_rewind,
 	.forward = snd_pcm_hw_forward,
 	.resume = snd_pcm_hw_resume,
-	.poll_ask = NULL,
 	.link_fd = snd_pcm_hw_link_fd,
 	.link = snd_pcm_hw_link,
 	.unlink = snd_pcm_hw_unlink,

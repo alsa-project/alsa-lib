@@ -151,7 +151,6 @@ static snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	.rewind = snd_pcm_generic_rewind,
 	.forward = snd_pcm_generic_forward,
 	.resume = snd_pcm_generic_resume,
-	.poll_ask = snd_pcm_generic_poll_ask,
 	.link_fd = snd_pcm_generic_link_fd,
 	.link = snd_pcm_generic_link,
 	.unlink = snd_pcm_generic_unlink,

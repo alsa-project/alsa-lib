@@ -105,7 +105,20 @@ static int snd_pcm_multi_poll_descriptors_count(snd_pcm_t *pcm)
 static int snd_pcm_multi_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
+	snd_pcm_t *slave;
 	snd_pcm_t *slave_0 = multi->slaves[multi->master_slave].pcm;
+	int err;
+	unsigned int i;
+
+	for (i = 0; i < multi->slaves_count; ++i) {
+		slave = multi->slaves[i].pcm;
+		if (slave == slave_0)
+			continue;
+		err = snd_pcm_poll_descriptors(slave, pfds, space);
+		if (err < 0)
+			return err;
+	}
+	/* finally overwrite with master's pfds */
 	return snd_pcm_poll_descriptors(slave_0, pfds, space);
 }
 
@@ -584,23 +597,6 @@ static int snd_pcm_multi_resume(snd_pcm_t *pcm)
 	return err;
 }
 
-static int snd_pcm_multi_poll_ask(snd_pcm_t *pcm)
-{
-	snd_pcm_multi_t *multi = pcm->private_data;
-	snd_pcm_t *slave;
-	int err = 0;
-	unsigned int i;
-	for (i = 0; i < multi->slaves_count; ++i) {
-		slave = multi->slaves[i].pcm;
-		if (slave->fast_ops->poll_ask == NULL)
-			continue;
-		err = slave->fast_ops->poll_ask(slave->fast_op_arg);
-		if (err < 0)
-			return err;
-	}
-	return err;
-}
-
 static int snd_pcm_multi_link_fd_failed(snd_pcm_t *pcm, int fd)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -733,7 +729,6 @@ static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	.rewind = snd_pcm_multi_rewind,
 	.forward = snd_pcm_multi_forward,
 	.resume = snd_pcm_multi_resume,
-	.poll_ask = snd_pcm_multi_poll_ask,
 	.link_fd = snd_pcm_multi_link_fd,
 	.link = snd_pcm_generic_link2,
 	.unlink = snd_pcm_multi_unlink,
