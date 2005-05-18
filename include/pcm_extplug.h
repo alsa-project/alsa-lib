@@ -32,8 +32,23 @@ enum {
 typedef struct snd_pcm_extplug snd_pcm_extplug_t;
 typedef struct snd_pcm_extplug_callback snd_pcm_extplug_callback_t;
 
+/**
+ * Protocol version
+ */
+#define SND_PCM_EXTPLUG_VERSION_MAJOR	1
+#define SND_PCM_EXTPLUG_VERSION_MINOR	0
+#define SND_PCM_EXTPLUG_VERSION_TINY	0
+#define SND_PCM_EXTPLUG_VERSION		((SND_PCM_EXTPLUG_VERSION_MAJOR<<16) |\
+					 (SND_PCM_EXTPLUG_VERSION_MINOR<<8) |\
+					 (SND_PCM_EXTPLUG_VERSION_TINY))
+
 /** handle of extplug */
 struct snd_pcm_extplug {
+	/**
+	 * protocol version; SND_PCM_EXTPLUG_VERSION must be filled here
+	 * before calling #snd_pcm_extplug_create()
+	 */
+	unsigned int version;
 	/**
 	 * name of this plugin; must be filled before calling #snd_pcm_extplug_create()
 	 */

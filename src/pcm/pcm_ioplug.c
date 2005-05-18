@@ -238,7 +238,7 @@ static int snd_pcm_ioplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	int change = 0, change1, change2, err;
 	ioplug_priv_t *io = pcm->private_data;
 	struct snd_ext_parm *p;
-	int i;
+	unsigned int i;
 
 	/* access, format */
 	for (i = SND_PCM_IOPLUG_HW_ACCESS; i <= SND_PCM_IOPLUG_HW_FORMAT; i++) {
@@ -616,6 +616,33 @@ static int snd_pcm_ioplug_nonblock(snd_pcm_t *pcm, int nonblock)
 	return 0;
 }
 
+static int snd_pcm_ioplug_poll_descriptors_count(snd_pcm_t *pcm)
+{
+	ioplug_priv_t *io = pcm->private_data;
+
+	if (io->data->callback->poll_descriptors_count)
+		return io->data->callback->poll_descriptors_count(io->data);
+	else
+		return 1;
+}
+
+static int snd_pcm_ioplug_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
+{
+	ioplug_priv_t *io = pcm->private_data;
+
+	if (io->data->callback->poll_descriptors)
+		return io->data->callback->poll_descriptors(io->data, pfds, space);
+	if (pcm->poll_fd < 0)
+		return -EIO;
+	if (space >= 1 && pfds) {
+		pfds->fd = pcm->poll_fd;
+		pfds->events = pcm->poll_events | POLLERR | POLLNVAL;
+	} else {
+		return 0;
+	}
+	return 1;
+}
+
 static int snd_pcm_ioplug_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
 	ioplug_priv_t *io = pcm->private_data;
@@ -685,6 +712,8 @@ static snd_pcm_ops_t snd_pcm_ioplug_ops = {
 	.close = snd_pcm_ioplug_close,
 	.nonblock = snd_pcm_ioplug_nonblock,
 	.async = snd_pcm_ioplug_async,
+	.poll_descriptors_count = snd_pcm_ioplug_poll_descriptors_count,
+	.poll_descriptors = snd_pcm_ioplug_poll_descriptors,
 	.poll_revents = snd_pcm_ioplug_poll_revents,
 	.info = snd_pcm_ioplug_info,
 	.hw_refine = snd_pcm_ioplug_hw_refine,
@@ -763,6 +792,11 @@ int snd_pcm_ioplug_create(snd_pcm_ioplug_t *ioplug, const char *name,
 	assert(ioplug->callback->start &&
 	       ioplug->callback->stop &&
 	       ioplug->callback->pointer);
+
+	if (ioplug->version != SND_PCM_IOPLUG_VERSION) {
+		SNDERR("ioplug: Plugin version mismatch\n");
+		return -ENXIO;
+	}
 
 	io = calloc(1, sizeof(*io));
 	if (! io)

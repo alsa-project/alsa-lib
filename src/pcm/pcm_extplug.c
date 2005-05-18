@@ -423,6 +423,8 @@ static snd_pcm_ops_t snd_pcm_extplug_ops = {
 	.dump = snd_pcm_extplug_dump,
 	.nonblock = snd_pcm_generic_nonblock,
 	.async = snd_pcm_generic_async,
+	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
+	.poll_descriptors = snd_pcm_generic_poll_descriptors,
 	.poll_revents = snd_pcm_generic_poll_revents,
 	.mmap = snd_pcm_generic_mmap,
 	.munmap = snd_pcm_generic_munmap,
@@ -477,6 +479,11 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	assert(extplug && extplug->callback);
 	assert(extplug->callback->transfer);
 	assert(slave_conf);
+
+	if (extplug->version != SND_PCM_EXTPLUG_VERSION) {
+		SNDERR("extplug: Plugin version mismatch\n");
+		return -ENXIO;
+	}
 
 	err = snd_pcm_slave_conf(root, slave_conf, &sconf, 0);
 	if (err < 0)

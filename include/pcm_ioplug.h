@@ -42,8 +42,23 @@ typedef struct snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
  */
 #define SND_PCM_IOPLUG_FLAG_LISTED	(1<<0)		/* list up this PCM */
 
+/**
+ * Protocol version
+ */
+#define SND_PCM_IOPLUG_VERSION_MAJOR	1
+#define SND_PCM_IOPLUG_VERSION_MINOR	0
+#define SND_PCM_IOPLUG_VERSION_TINY	0
+#define SND_PCM_IOPLUG_VERSION		((SND_PCM_IOPLUG_VERSION_MAJOR<<16) |\
+					 (SND_PCM_IOPLUG_VERSION_MINOR<<8) |\
+					 (SND_PCM_IOPLUG_VERSION_TINY))
+
 /** handle of ioplug */
 struct snd_pcm_ioplug {
+	/**
+	 * protocol version; SND_PCM_IOPLUG_VERSION must be filled here
+	 * before calling #snd_pcm_ioplug_create()
+	 */
+	unsigned int version;
 	/**
 	 * name of this plugin; must be filled before calling #snd_pcm_ioplug_create()
 	 */
@@ -132,6 +147,14 @@ struct snd_pcm_ioplug_callback {
 	 * resume; optional
 	 */
 	int (*resume)(snd_pcm_ioplug_t *io);
+	/**
+	 * poll descriptors count; optional
+	 */
+	int (*poll_descriptors_count)(snd_pcm_ioplug_t *io);
+	/**
+	 * poll descriptors; optional
+	 */
+	int (*poll_descriptors)(snd_pcm_ioplug_t *io, struct pollfd *pfd, unsigned int space);
 	/**
 	 * mangle poll events; optional
 	 */
