@@ -132,6 +132,8 @@ typedef struct {
 	int (*close)(snd_pcm_t *pcm);
 	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
 	int (*async)(snd_pcm_t *pcm, int sig, pid_t pid);
+	int (*poll_descriptors_count)(snd_pcm_t *pcm);
+	int (*poll_descriptors)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
 	int (*poll_revents)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
 	int (*hw_refine)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);

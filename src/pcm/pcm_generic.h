@@ -27,6 +27,8 @@ typedef struct {
 int snd_pcm_generic_close(snd_pcm_t *pcm);
 int snd_pcm_generic_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_generic_async(snd_pcm_t *pcm, int sig, pid_t pid);
+int snd_pcm_generic_poll_descriptors_count(snd_pcm_t *pcm);
+int snd_pcm_generic_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
 int snd_pcm_generic_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_pcm_generic_info(snd_pcm_t *pcm, snd_pcm_info_t * info);
 int snd_pcm_generic_hw_free(snd_pcm_t *pcm);

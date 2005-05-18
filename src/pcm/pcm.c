@@ -1273,7 +1273,9 @@ int snd_pcm_unlink(snd_pcm_t *pcm)
 int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
 {
 	assert(pcm);
-	return 1;
+	if (pcm->ops->poll_descriptors_count)
+		return pcm->ops->poll_descriptors_count(pcm->op_arg);
+	return pcm->poll_fd_count;
 }
 
 
@@ -1306,6 +1308,8 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 	int err;
 
 	assert(pcm && pfds);
+	if (pcm->ops->poll_descriptors)
+		return pcm->ops->poll_descriptors(pcm->op_arg, pfds, space);
 	if (pcm->fast_ops->poll_ask) {
 		err = pcm->fast_ops->poll_ask(pcm->fast_op_arg);
 		if (err < 0)

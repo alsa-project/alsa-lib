@@ -56,6 +56,18 @@ int snd_pcm_generic_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return snd_pcm_async(generic->slave, sig, pid);
 }
 
+int snd_pcm_generic_poll_descriptors_count(snd_pcm_t *pcm)
+{
+	snd_pcm_generic_t *generic = pcm->private_data;
+	return snd_pcm_poll_descriptors_count(generic->slave);
+}
+
+int snd_pcm_generic_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
+{
+	snd_pcm_generic_t *generic = pcm->private_data;
+	return snd_pcm_poll_descriptors(generic->slave, pfds, space);
+}
+
 int snd_pcm_generic_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
 	snd_pcm_generic_t *generic = pcm->private_data;

@@ -95,6 +95,27 @@ static int snd_pcm_multi_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return snd_pcm_async(slave_0, sig, pid);
 }
 
+static int snd_pcm_multi_poll_descriptors_count(snd_pcm_t *pcm)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	snd_pcm_t *slave_0 = multi->slaves[multi->master_slave].pcm;
+	return snd_pcm_poll_descriptors_count(slave_0);
+}
+
+static int snd_pcm_multi_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	snd_pcm_t *slave_0 = multi->slaves[multi->master_slave].pcm;
+	return snd_pcm_poll_descriptors(slave_0, pfds, space);
+}
+
+static int snd_pcm_multi_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	snd_pcm_t *slave_0 = multi->slaves[multi->master_slave].pcm;
+	return snd_pcm_poll_descriptors_revents(slave_0, pfds, nfds, revents);
+}
+
 static int snd_pcm_multi_info(snd_pcm_t *pcm, snd_pcm_info_t *info)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -687,6 +708,9 @@ static snd_pcm_ops_t snd_pcm_multi_ops = {
 	.dump = snd_pcm_multi_dump,
 	.nonblock = snd_pcm_multi_nonblock,
 	.async = snd_pcm_multi_async,
+	.poll_descriptors_count = snd_pcm_multi_poll_descriptors_count,
+	.poll_descriptors = snd_pcm_multi_poll_descriptors,
+	.poll_revents = snd_pcm_multi_poll_revents,
 	.mmap = snd_pcm_multi_mmap,
 	.munmap = snd_pcm_multi_munmap,
 };
