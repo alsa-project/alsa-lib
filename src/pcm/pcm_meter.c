@@ -52,8 +52,7 @@ struct _snd_pcm_scope {
 };
 
 typedef struct _snd_pcm_meter {
-	snd_pcm_t *slave;
-	int close_slave;
+	snd_pcm_generic_t gen;
 	snd_pcm_uframes_t rptr;
 	snd_pcm_uframes_t buf_size;
 	snd_pcm_channel_area_t *buf_areas;
@@ -183,7 +182,7 @@ static void *snd_pcm_meter_thread(void *data)
 {
 	snd_pcm_t *pcm = data;
 	snd_pcm_meter_t *meter = pcm->private_data;
-	snd_pcm_t *spcm = meter->slave;
+	snd_pcm_t *spcm = meter->gen.slave;
 	struct list_head *pos;
 	snd_pcm_scope_t *scope;
 	int reset;
@@ -272,8 +271,8 @@ static int snd_pcm_meter_close(snd_pcm_t *pcm)
 	pthread_mutex_destroy(&meter->update_mutex);
 	pthread_mutex_destroy(&meter->running_mutex);
 	pthread_cond_destroy(&meter->running_cond);
-	if (meter->close_slave)
-		err = snd_pcm_close(meter->slave);
+	if (meter->gen.close_slave)
+		err = snd_pcm_close(meter->gen.slave);
 	list_for_each_safe(pos, npos, &meter->scopes) {
 		snd_pcm_scope_t *scope;
 		scope = list_entry(pos, snd_pcm_scope_t, list);
@@ -283,60 +282,12 @@ static int snd_pcm_meter_close(snd_pcm_t *pcm)
 	return err;
 }
 
-static int snd_pcm_meter_nonblock(snd_pcm_t *pcm, int nonblock)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_nonblock(meter->slave, nonblock);
-}
-
-static int snd_pcm_meter_async(snd_pcm_t *pcm, int sig, pid_t pid)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_async(meter->slave, sig, pid);
-}
-
-static int snd_pcm_meter_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_info(meter->slave, info);
-}
-
-static int snd_pcm_meter_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_channel_info(meter->slave, info);
-}
-
-static int snd_pcm_meter_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_status(meter->slave, status);
-}
-
-static snd_pcm_state_t snd_pcm_meter_state(snd_pcm_t *pcm)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_state(meter->slave);
-}
-
-static int snd_pcm_meter_hwsync(snd_pcm_t *pcm)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_hwsync(meter->slave);
-}
-
-static int snd_pcm_meter_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_delay(meter->slave, delayp);
-}
-
 static int snd_pcm_meter_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	int err;
 	atomic_inc(&meter->reset);
-	err = snd_pcm_prepare(meter->slave);
+	err = snd_pcm_prepare(meter->gen.slave);
 	if (err >= 0) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 			meter->rptr = *pcm->appl.ptr;
@@ -349,7 +300,7 @@ static int snd_pcm_meter_prepare(snd_pcm_t *pcm)
 static int snd_pcm_meter_reset(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	int err = snd_pcm_reset(meter->slave);
+	int err = snd_pcm_reset(meter->gen.slave);
 	if (err >= 0) {
 		if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 			meter->rptr = *pcm->appl.ptr;
@@ -362,35 +313,17 @@ static int snd_pcm_meter_start(snd_pcm_t *pcm)
 	snd_pcm_meter_t *meter = pcm->private_data;
 	int err;
 	pthread_mutex_lock(&meter->running_mutex);
-	err = snd_pcm_start(meter->slave);
+	err = snd_pcm_start(meter->gen.slave);
 	if (err >= 0)
 		pthread_cond_signal(&meter->running_cond);
 	pthread_mutex_unlock(&meter->running_mutex);
 	return err;
 }
 
-static int snd_pcm_meter_drop(snd_pcm_t *pcm)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_drop(meter->slave);
-}
-
-static int snd_pcm_meter_drain(snd_pcm_t *pcm)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_drain(meter->slave);
-}
-
-static int snd_pcm_meter_pause(snd_pcm_t *pcm, int enable)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_pause(meter->slave, enable);
-}
-
 static snd_pcm_sframes_t snd_pcm_meter_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	snd_pcm_sframes_t err = snd_pcm_rewind(meter->slave, frames);
+	snd_pcm_sframes_t err = snd_pcm_rewind(meter->gen.slave, frames);
 	if (err > 0 && pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		meter->rptr = *pcm->appl.ptr;
 	return err;
@@ -399,24 +332,10 @@ static snd_pcm_sframes_t snd_pcm_meter_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t 
 static snd_pcm_sframes_t snd_pcm_meter_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	snd_pcm_sframes_t err = INTERNAL(snd_pcm_forward)(meter->slave, frames);
+	snd_pcm_sframes_t err = INTERNAL(snd_pcm_forward)(meter->gen.slave, frames);
 	if (err > 0 && pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		meter->rptr = *pcm->appl.ptr;
 	return err;
-}
-
-static int snd_pcm_meter_resume(snd_pcm_t *pcm)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_resume(meter->slave);
-}
-
-static int snd_pcm_meter_poll_ask(snd_pcm_t *pcm)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	if (meter->slave->fast_ops->poll_ask)
-		return meter->slave->fast_ops->poll_ask(meter->slave->fast_op_arg);
-	return 0;
 }
 
 static snd_pcm_sframes_t snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
@@ -425,7 +344,7 @@ static snd_pcm_sframes_t snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	snd_pcm_uframes_t old_rptr = *pcm->appl.ptr;
-	snd_pcm_sframes_t result = snd_pcm_mmap_commit(meter->slave, offset, size);
+	snd_pcm_sframes_t result = snd_pcm_mmap_commit(meter->gen.slave, offset, size);
 	if (result <= 0)
 		return result;
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
@@ -438,7 +357,7 @@ static snd_pcm_sframes_t snd_pcm_meter_mmap_commit(snd_pcm_t *pcm,
 static snd_pcm_sframes_t snd_pcm_meter_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	snd_pcm_sframes_t result = snd_pcm_avail_update(meter->slave);
+	snd_pcm_sframes_t result = snd_pcm_avail_update(meter->gen.slave);
 	if (result <= 0)
 		return result;
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE)
@@ -492,13 +411,13 @@ static int snd_pcm_meter_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 static int snd_pcm_meter_hw_refine_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_hw_refine(meter->slave, params);
+	return snd_pcm_hw_refine(meter->gen.slave, params);
 }
 
 static int snd_pcm_meter_hw_params_slave(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
-	return _snd_pcm_hw_params(meter->slave, params);
+	return _snd_pcm_hw_params(meter->gen.slave, params);
 }
 
 static int snd_pcm_meter_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
@@ -515,7 +434,7 @@ static int snd_pcm_meter_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 {
 	snd_pcm_meter_t *meter = pcm->private_data;
 	unsigned int channel;
-	snd_pcm_t *slave = meter->slave;
+	snd_pcm_t *slave = meter->gen.slave;
 	size_t buf_size_bytes;
 	int err;
 	err = snd_pcm_hw_params_slave(pcm, params,
@@ -567,23 +486,7 @@ static int snd_pcm_meter_hw_free(snd_pcm_t *pcm)
 		meter->buf = 0;
 		meter->buf_areas = 0;
 	}
-	return snd_pcm_hw_free(meter->slave);
-}
-
-static int snd_pcm_meter_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
-{
-	snd_pcm_meter_t *meter = pcm->private_data;
-	return snd_pcm_sw_params(meter->slave, params);
-}
-
-static int snd_pcm_meter_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	return 0;
-}
-
-static int snd_pcm_meter_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	return 0;
+	return snd_pcm_hw_free(meter->gen.slave);
 }
 
 static void snd_pcm_meter_dump(snd_pcm_t *pcm, snd_output_t *out)
@@ -595,39 +498,42 @@ static void snd_pcm_meter_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_pcm_dump_setup(pcm, out);
 	}
 	snd_output_printf(out, "Slave: ");
-	snd_pcm_dump(meter->slave, out);
+	snd_pcm_dump(meter->gen.slave, out);
 }
 
 static snd_pcm_ops_t snd_pcm_meter_ops = {
 	.close = snd_pcm_meter_close,
-	.info = snd_pcm_meter_info,
+	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_meter_hw_refine,
 	.hw_params = snd_pcm_meter_hw_params,
 	.hw_free = snd_pcm_meter_hw_free,
-	.sw_params = snd_pcm_meter_sw_params,
-	.channel_info = snd_pcm_meter_channel_info,
+	.sw_params = snd_pcm_generic_sw_params,
+	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_meter_dump,
-	.nonblock = snd_pcm_meter_nonblock,
-	.async = snd_pcm_meter_async,
-	.mmap = snd_pcm_meter_mmap,
-	.munmap = snd_pcm_meter_munmap,
+	.nonblock = snd_pcm_generic_nonblock,
+	.async = snd_pcm_generic_async,
+	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
+	.poll_descriptors = snd_pcm_generic_poll_descriptors,
+	.poll_revents = snd_pcm_generic_poll_revents,
+	.mmap = snd_pcm_generic_mmap,
+	.munmap = snd_pcm_generic_munmap,
 };
 
 static snd_pcm_fast_ops_t snd_pcm_meter_fast_ops = {
-	.status = snd_pcm_meter_status,
-	.state = snd_pcm_meter_state,
-	.hwsync = snd_pcm_meter_hwsync,
-	.delay = snd_pcm_meter_delay,
+	.status = snd_pcm_generic_status,
+	.state = snd_pcm_generic_state,
+	.hwsync = snd_pcm_generic_hwsync,
+	.delay = snd_pcm_generic_delay,
 	.prepare = snd_pcm_meter_prepare,
 	.reset = snd_pcm_meter_reset,
 	.start = snd_pcm_meter_start,
-	.drop = snd_pcm_meter_drop,
-	.drain = snd_pcm_meter_drain,
-	.pause = snd_pcm_meter_pause,
+	.drop = snd_pcm_generic_drop,
+	.drain = snd_pcm_generic_drain,
+	.pause = snd_pcm_generic_pause,
 	.rewind = snd_pcm_meter_rewind,
 	.forward = snd_pcm_meter_forward,
-	.resume = snd_pcm_meter_resume,
-	.poll_ask = snd_pcm_meter_poll_ask,
+	.resume = snd_pcm_generic_resume,
+	.poll_ask = snd_pcm_generic_poll_ask,
 	.writei = snd_pcm_mmap_writei,
 	.writen = snd_pcm_mmap_writen,
 	.readi = snd_pcm_mmap_readi,
@@ -658,8 +564,8 @@ int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequenc
 	meter = calloc(1, sizeof(snd_pcm_meter_t));
 	if (!meter)
 		return -ENOMEM;
-	meter->slave = slave;
-	meter->close_slave = close_slave;
+	meter->gen.slave = slave;
+	meter->gen.close_slave = close_slave;
 	meter->delay.tv_sec = 0;
 	meter->delay.tv_nsec = 1000000000 / frequency;
 	INIT_LIST_HEAD(&meter->scopes);
@@ -956,7 +862,7 @@ snd_pcm_uframes_t snd_pcm_meter_get_bufsize(snd_pcm_t *pcm)
 	snd_pcm_meter_t *meter;
 	assert(pcm->type == SND_PCM_TYPE_METER);
 	meter = pcm->private_data;
-	assert(meter->slave->setup);
+	assert(meter->gen.slave->setup);
 	return meter->buf_size;
 }
 
@@ -970,8 +876,8 @@ unsigned int snd_pcm_meter_get_channels(snd_pcm_t *pcm)
 	snd_pcm_meter_t *meter;
 	assert(pcm->type == SND_PCM_TYPE_METER);
 	meter = pcm->private_data;
-	assert(meter->slave->setup);
-	return meter->slave->channels;
+	assert(meter->gen.slave->setup);
+	return meter->gen.slave->channels;
 }
 
 /**
@@ -984,8 +890,8 @@ unsigned int snd_pcm_meter_get_rate(snd_pcm_t *pcm)
 	snd_pcm_meter_t *meter;
 	assert(pcm->type == SND_PCM_TYPE_METER);
 	meter = pcm->private_data;
-	assert(meter->slave->setup);
-	return meter->slave->rate;
+	assert(meter->gen.slave->setup);
+	return meter->gen.slave->rate;
 }
 
 /**
@@ -998,7 +904,7 @@ snd_pcm_uframes_t snd_pcm_meter_get_now(snd_pcm_t *pcm)
 	snd_pcm_meter_t *meter;
 	assert(pcm->type == SND_PCM_TYPE_METER);
 	meter = pcm->private_data;
-	assert(meter->slave->setup);
+	assert(meter->gen.slave->setup);
 	return meter->now;
 }
 
@@ -1012,8 +918,8 @@ snd_pcm_uframes_t snd_pcm_meter_get_boundary(snd_pcm_t *pcm)
 	snd_pcm_meter_t *meter;
 	assert(pcm->type == SND_PCM_TYPE_METER);
 	meter = pcm->private_data;
-	assert(meter->slave->setup);
-	return meter->slave->boundary;
+	assert(meter->gen.slave->setup);
+	return meter->gen.slave->boundary;
 }
 
 /**
@@ -1080,7 +986,7 @@ static int s16_enable(snd_pcm_scope_t *scope)
 {
 	snd_pcm_scope_s16_t *s16 = scope->private_data;
 	snd_pcm_meter_t *meter = s16->pcm->private_data;
-	snd_pcm_t *spcm = meter->slave;
+	snd_pcm_t *spcm = meter->gen.slave;
 	snd_pcm_channel_area_t *a;
 	unsigned int c;
 	int idx;
@@ -1173,7 +1079,7 @@ static void s16_update(snd_pcm_scope_t *scope)
 {
 	snd_pcm_scope_s16_t *s16 = scope->private_data;
 	snd_pcm_meter_t *meter = s16->pcm->private_data;
-	snd_pcm_t *spcm = meter->slave;
+	snd_pcm_t *spcm = meter->gen.slave;
 	snd_pcm_sframes_t size;
 	snd_pcm_uframes_t offset;
 	size = meter->now - s16->old;
@@ -1290,9 +1196,9 @@ int16_t *snd_pcm_scope_s16_get_channel_buffer(snd_pcm_scope_t *scope,
 	assert(scope->ops == &s16_ops);
 	s16 = scope->private_data;
 	meter = s16->pcm->private_data;
-	assert(meter->slave->setup);
+	assert(meter->gen.slave->setup);
 	assert(s16->buf_areas);
-	assert(channel < meter->slave->channels);
+	assert(channel < meter->gen.slave->channels);
 	return s16->buf_areas[channel].addr;
 }
 
