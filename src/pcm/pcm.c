@@ -2218,39 +2218,53 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
  */
 int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 {
-	struct pollfd pfd;
-	unsigned short revents;
-	int err, err_poll;
+	struct pollfd *pfd;
+	unsigned short *revents;
+	int i, npfds, pollio, err, err_poll;
 	
-	err = snd_pcm_poll_descriptors(pcm, &pfd, 1);
+	npfds = snd_pcm_poll_descriptors_count(pcm);
+	if (npfds <= 0 || npfds >= 16) {
+		SNDERR("Invalid poll_fds %d\n", npfds);
+		return -EIO;
+	}
+	pfd = alloca(sizeof(*pfd) * npfds);
+	revents = alloca(sizeof(*revents) * npfds);
+	err = snd_pcm_poll_descriptors(pcm, pfd, npfds);
 	if (err < 0)
 		return err;
-	if (err != 1) {
+	if (err != npfds) {
 		SNDMSG("invalid poll descriptors %d\n", err);
 		return -EIO;
 	}
-      __retry:
-	err_poll = poll(&pfd, 1, timeout);
-	if (err_poll < 0)
-		return -errno;
-	err = snd_pcm_poll_descriptors_revents(pcm, &pfd, 1, &revents);
-	if (err < 0)
-		return err;
-	if (revents & (POLLERR | POLLNVAL)) {
-		/* check more precisely */
-		switch (snd_pcm_state(pcm)) {
-		case SND_PCM_STATE_XRUN:
-			return -EPIPE;
-		case SND_PCM_STATE_SUSPENDED:
-			return -ESTRPIPE;
-		case SND_PCM_STATE_DISCONNECTED:
-			return -ENOTTY;	/* linux VFS does this? */
-		default:
-			return -EIO;
+	do {
+		err_poll = poll(pfd, npfds, timeout);
+		if (err_poll < 0)
+			return -errno;
+		if (! err_poll)
+			break;
+		err = snd_pcm_poll_descriptors_revents(pcm, pfd, npfds, revents);
+		if (err < 0)
+			return err;
+		pollio = 0;
+		for (i = 0; i < npfds; i++) {
+			if (revents[i] & (POLLERR | POLLNVAL)) {
+				/* check more precisely */
+				switch (snd_pcm_state(pcm)) {
+				case SND_PCM_STATE_XRUN:
+					return -EPIPE;
+				case SND_PCM_STATE_SUSPENDED:
+					return -ESTRPIPE;
+				case SND_PCM_STATE_DISCONNECTED:
+					return -ENOTTY;	/* linux VFS does this? */
+				default:
+					return -EIO;
+				}
+			}
+			if ((revents[i] & (POLLIN | POLLOUT)) == 0)
+				continue;
+			pollio++;
 		}
-	}
-	if ((revents & (POLLIN | POLLOUT)) == 0)
-		goto __retry;
+	} while (! pollio);
 #if 0 /* very useful code to test poll related problems */
 	{
 		snd_pcm_sframes_t avail_update;
