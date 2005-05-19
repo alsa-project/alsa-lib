@@ -27,6 +27,7 @@
  */
   
 #include <byteswap.h>
+#include <ctype.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
@@ -539,18 +540,18 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "perm") == 0) {
-			char *perm;
+			char *str;
 			char *endp;
-			err = snd_config_get_ascii(n, &perm);
+			err = snd_config_get_ascii(n, &str);
 			if (err < 0) {
 				SNDERR("The field perm must be a valid file permission");
 				return err;
 			}
-			if (isdigit(*perm) == 0) {
+			if (isdigit(*str) == 0) {
 				SNDERR("The field perm must be a valid file permission");
 				return -EINVAL;
 			}
-			perm = strtol(perm, &endp, 8);
+			perm = strtol(str, &endp, 8);
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
