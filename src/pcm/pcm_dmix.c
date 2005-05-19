@@ -75,7 +75,7 @@ retryshm:
 	err = -errno;
 	if (dmix->u.dmix.shmid_sum < 0){
 		if (errno == EINVAL)
-		if ((tmpid = shmget(dmix->ipc_key + 1, 0, dmix->ipc_perm)) != -1)
+		if ((tmpid = shmget(dmix->ipc_key + 1, 0, 0666)) != -1)
 		if (!shmctl(tmpid, IPC_STAT, &buf))
 	    	if (!buf.shm_nattch) 
 		/* no users so destroy the segment */
