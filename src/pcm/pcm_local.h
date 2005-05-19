@@ -92,11 +92,8 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 /** device can do a kind of synchronized start */
 #define SND_PCM_INFO_SYNC_START SNDRV_PCM_INFO_SYNC_START
 
-#ifndef SNDRV_PCM_HW_PARAMS_NORESAMPLE
-#define SND_PCM_HW_PARAMS_NORESAMPLE (1<<0)
-#else
 #define SND_PCM_HW_PARAMS_NORESAMPLE SNDRV_PCM_HW_PARAMS_NORESAMPLE
-#endif
+#define SND_PCM_HW_PARAMS_EXPORT_BUFFER SNDRV_PCM_HW_PARAMS_EXPORT_BUFFER
 
 typedef struct _snd_pcm_rbptr {
 	snd_pcm_t *master;
@@ -114,7 +111,7 @@ typedef struct _snd_pcm_channel_info {
 	void *addr;			/* base address of channel samples */
 	unsigned int first;		/* offset to first sample in bits */
 	unsigned int step;		/* samples distance in bits */
-	enum { SND_PCM_AREA_SHM, SND_PCM_AREA_MMAP } type;
+	enum { SND_PCM_AREA_SHM, SND_PCM_AREA_MMAP, SND_PCM_AREA_LOCAL } type;
 	union {
 		struct {
 			struct snd_shm_area *area;
@@ -214,9 +211,9 @@ struct _snd_pcm {
 	snd_pcm_rbptr_t appl;
 	snd_pcm_rbptr_t hw;
 	snd_pcm_uframes_t min_align;
-	int mmap_rw: 1,
-	    mmap_shadow: 1,
-	    donot_close: 1;
+	unsigned int mmap_rw: 1;
+	unsigned int mmap_shadow: 1;
+	unsigned int donot_close: 1;
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
 	snd_pcm_channel_area_t *stopped_areas;

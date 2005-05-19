@@ -344,6 +344,7 @@ enum sndrv_pcm_hw_param {
 };
 
 #define SNDRV_PCM_HW_PARAMS_NORESAMPLE	(1<<0)  /* avoid rate resampling */
+#define SNDRV_PCM_HW_PARAMS_EXPORT_BUFFER	(1<<1)  /* export buffer */
 
 struct sndrv_interval {
 	unsigned int min, max;

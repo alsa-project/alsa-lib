@@ -3960,6 +3960,36 @@ int snd_pcm_hw_params_get_rate_resample(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
 }
 
 /**
+ * \brief Restrict a configuration space to allow the buffer accessible from outside
+ * \param pcm PCM handle
+ * \param params Configuration space
+ * \param val 0 = disable, 1 = enable (default) exporting buffer
+ * \return 0 otherwise a negative error code
+ */
+int snd_pcm_hw_params_set_export_buffer(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val)
+{
+	assert(pcm && params);
+	if (val)
+		params->flags |= SND_PCM_HW_PARAMS_EXPORT_BUFFER;
+	else
+		params->flags &= ~SND_PCM_HW_PARAMS_EXPORT_BUFFER;
+	return snd_pcm_hw_refine(pcm, params);
+}
+
+/**
+ * \brief Extract buffer accessibility from a configuration space
+ * \param pcm PCM handle
+ * \param *val 0 = disable, 1 = enable exporting buffer
+ * \return 0 otherwise a negative error code
+ */
+int snd_pcm_hw_params_get_export_buffer(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
+{
+	assert(pcm && params && val);
+	*val = params->flags & SND_PCM_HW_PARAMS_EXPORT_BUFFER ? 1 : 0;
+	return 0;
+}
+
+/**
  * \brief Extract period time from a configuration space
  * \param params Configuration space
  * \param val Returned approximate period duration in us

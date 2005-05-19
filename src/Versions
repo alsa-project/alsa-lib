@@ -179,6 +179,8 @@ ALSA_1.0.9 {
 
     snd_pcm_hw_params_set_rate_resample;
     snd_pcm_hw_params_get_rate_resample;
+    snd_pcm_hw_params_set_export_buffer;
+    snd_pcm_hw_params_get_export_buffer;
 
     snd_pcm_ioplug_create;
     snd_pcm_ioplug_delete;
@@ -215,4 +217,4 @@ ALSA_1.0.9 {
     snd_timer_ginfo_get_resolution_max;
     snd_timer_ginfo_get_clients;
 
-} ALSA_1.0.5;
+} ALSA_1.0.8;

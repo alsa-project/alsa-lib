@@ -285,9 +285,12 @@ int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int s
 		return -EINVAL;
 	}
 	info->addr = 0;
-	info->type = SND_PCM_AREA_SHM;
-	info->u.shm.shmid = shmid;
-	info->u.shm.area = NULL;
+	if (pcm->hw_flags & SND_PCM_HW_PARAMS_EXPORT_BUFFER) {
+		info->type = SND_PCM_AREA_SHM;
+		info->u.shm.shmid = shmid;
+		info->u.shm.area = NULL;
+	} else
+		info->type = SND_PCM_AREA_LOCAL;
 	return 0;
 }	
 
@@ -347,6 +350,8 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 					if (i1->u.shm.shmid != i->u.shm.shmid)
 						continue;
 					break;
+				case SND_PCM_AREA_LOCAL:
+					break;
 				default:
 					assert(0);
 				}
@@ -368,6 +373,7 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			case SND_PCM_AREA_SHM:
 				if (i->u.shm.shmid < 0) {
 					int id;
+					/* FIXME: safer permission? */
 					id = shmget(IPC_PRIVATE, size, 0666);
 					if (id < 0) {
 						SYSERR("shmget failed");
@@ -409,6 +415,14 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 				}
 				i->addr = ptr;
 				break;
+			case SND_PCM_AREA_LOCAL:
+				ptr = malloc(size);
+				if (ptr == NULL) {
+					SYSERR("malloc failed");
+					return -errno;
+				}
+				i->addr = ptr;
+				break;
 			default:
 				assert(0);
 			}
@@ -426,6 +440,8 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			case SND_PCM_AREA_SHM:
 				if (i1->u.shm.shmid != i->u.shm.shmid)
 					continue;
+				break;
+			case SND_PCM_AREA_LOCAL:
 				break;
 			default:
 				assert(0);
@@ -493,6 +509,10 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 					}
 				}
 			}
+			break;
+		case SND_PCM_AREA_LOCAL:
+			free(i->addr);
+			i->addr = NULL;
 			break;
 		default:
 			assert(0);
