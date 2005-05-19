@@ -394,7 +394,7 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  *          changed in future.
  */
 int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
-		      const char *fname, int fd, const char *fmt,
+		      const char *fname, int fd, const char *fmt, int perm,
 		      snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -410,7 +410,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 	if (fname) {
-		fd = open(fname, O_WRONLY|O_CREAT, 0666);
+		fd = open(fname, O_WRONLY|O_CREAT, perm);
 		if (fd < 0) {
 			SYSERR("open %s failed", fname);
 			return -errno;
@@ -470,6 +470,7 @@ pcm.name {
 	or
 	file INT		# File descriptor number
 	[format STR]		# File format (only "raw" at the moment)
+	[perm INT]		# File permission (octal, default 0600)
 }
 \endcode
 
@@ -506,6 +507,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	const char *fname = NULL;
 	const char *format = NULL;
 	long fd = -1;
+	int perm = 0600;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -536,6 +538,21 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
+		if (strcmp(id, "perm") == 0) {
+			char *perm;
+			char *endp;
+			err = snd_config_get_ascii(n, &perm);
+			if (err < 0) {
+				SNDERR("The field perm must be a valid file permission");
+				return err;
+			}
+			if (isdigit(*perm) == 0) {
+				SNDERR("The field perm must be a valid file permission");
+				return -EINVAL;
+			}
+			perm = strtol(perm, &endp, 8);
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -555,7 +572,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_file_open(pcmp, name, fname, fd, format, spcm, 1);
+	err = snd_pcm_file_open(pcmp, name, fname, fd, format, perm, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
