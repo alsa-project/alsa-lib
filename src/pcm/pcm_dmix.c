@@ -71,11 +71,12 @@ static int shm_sum_create_or_connect(snd_pcm_direct_t *dmix)
 	       dmix->shmptr->s.buffer_size *
 	       sizeof(signed int);	
 retryshm:
-	dmix->u.dmix.shmid_sum = shmget(dmix->ipc_key + 1, size, IPC_CREAT | 0666);
+	dmix->u.dmix.shmid_sum = shmget(dmix->ipc_key + 1, size,
+					IPC_CREAT | dmix->ipc_perm);
 	err = -errno;
 	if (dmix->u.dmix.shmid_sum < 0){
 		if (errno == EINVAL)
-		if ((tmpid = shmget(dmix->ipc_key + 1, 0, 0666)) != -1)
+		if ((tmpid = shmget(dmix->ipc_key + 1, 0, dmix->ipc_perm)) != -1)
 		if (!shmctl(tmpid, IPC_STAT, &buf))
 	    	if (!buf.shm_nattch) 
 		/* no users so destroy the segment */

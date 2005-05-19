@@ -57,7 +57,8 @@
 
 int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 {
-	dmix->semid = semget(dmix->ipc_key, DIRECT_IPC_SEMS, IPC_CREAT | 0666);
+	dmix->semid = semget(dmix->ipc_key, DIRECT_IPC_SEMS,
+			     IPC_CREAT | dmix->ipc_perm);
 	if (dmix->semid < 0)
 		return -errno;
 	return 0;
@@ -104,11 +105,12 @@ int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix)
 	int tmpid, err;
 	
 retryget:
-	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t), IPC_CREAT | 0666);
+	dmix->shmid = shmget(dmix->ipc_key, sizeof(snd_pcm_direct_share_t),
+			     IPC_CREAT | dmix->ipc_perm);
 	err = -errno;
 	if (dmix->shmid < 0){
 		if (errno == EINVAL)
-		if ((tmpid = shmget(dmix->ipc_key, 0, 0666)) != -1)
+		if ((tmpid = shmget(dmix->ipc_key, 0, dmix->ipc_perm)) != -1)
 		if (!shmctl(tmpid, IPC_STAT, &buf))
 		if (!buf.shm_nattch)
 	    	/* no users so destroy the segment */
