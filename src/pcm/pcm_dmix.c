@@ -75,7 +75,7 @@ retryshm:
 	err = -errno;
 	if (dmix->u.dmix.shmid_sum < 0){
 		if (errno == EINVAL)
-		if ((tmpid = shmget(dmix->ipc_key + 1, 0, 0666)) != -1)
+		if ((tmpid = shmget(dmix->ipc_key + 1, 0, dmix->ipc_perm)) != -1)
 		if (!shmctl(tmpid, IPC_STAT, &buf))
 	    	if (!buf.shm_nattch) 
 		/* no users so destroy the segment */
@@ -219,34 +219,50 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 /*
  *  synchronize shm ring buffer with hardware
  */
-static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
-	snd_pcm_uframes_t appl_ptr, slave_appl_ptr, transfer;
+	snd_pcm_uframes_t appl_ptr, slave_appl_ptr, slave_bsize;
+	snd_pcm_uframes_t size, slave_hw_ptr;
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
 	
-	/* get the start of update area */
-	appl_ptr = dmix->appl_ptr - size;
-	if (appl_ptr > pcm->boundary)
-		appl_ptr += pcm->boundary;
-	appl_ptr %= pcm->buffer_size;
+	/* calculate the size to transfer */
+	size = dmix->appl_ptr - dmix->last_appl_ptr;
+	if (! size)
+		return;
+	slave_bsize = dmix->shmptr->s.buffer_size;
+	slave_hw_ptr = dmix->slave_hw_ptr;
+	/* don't write on the last active period - this area may be cleared
+	 * by the driver during mix operation...
+	 */
+	slave_hw_ptr -= slave_hw_ptr % dmix->shmptr->s.period_size;
+	slave_hw_ptr += slave_bsize;
+	if (dmix->slave_hw_ptr > dmix->slave_appl_ptr)
+		slave_hw_ptr -= dmix->shmptr->s.boundary;
+	if (dmix->slave_appl_ptr + size >= slave_hw_ptr)
+		size = slave_hw_ptr - dmix->slave_appl_ptr;
+	if (! size)
+		return;
 	/* add sample areas here */
 	src_areas = snd_pcm_mmap_areas(pcm);
 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
-	slave_appl_ptr = dmix->slave_appl_ptr % dmix->shmptr->s.buffer_size;
+	appl_ptr = dmix->last_appl_ptr % pcm->buffer_size;
+	dmix->last_appl_ptr += size;
+	dmix->last_appl_ptr %= pcm->boundary;
+	slave_appl_ptr = dmix->slave_appl_ptr % slave_bsize;
 	dmix->slave_appl_ptr += size;
 	dmix->slave_appl_ptr %= dmix->shmptr->s.boundary;
 	dmix_down_sem(dmix);
 	for (;;) {
-		transfer = appl_ptr + size > pcm->buffer_size ? pcm->buffer_size - appl_ptr : size;
-		if (slave_appl_ptr + transfer > dmix->shmptr->s.buffer_size)
-			transfer = dmix->shmptr->s.buffer_size - slave_appl_ptr;
-		if (! transfer)
-			break;
+		snd_pcm_uframes_t transfer = size;
+		if (appl_ptr + transfer > pcm->buffer_size)
+			transfer = pcm->buffer_size - appl_ptr;
+		if (slave_appl_ptr + transfer > slave_bsize)
+			transfer = slave_bsize - slave_appl_ptr;
 		mix_areas(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
-		if (transfer >= size)
-			break;
 		size -= transfer;
+		if (! size)
+			break;
 		slave_appl_ptr += transfer;
 		slave_appl_ptr %= dmix->shmptr->s.buffer_size;
 		appl_ptr += transfer;
@@ -392,7 +408,8 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
 		/* sync slave PCM */
-		return _snd_pcm_dmix_sync_ptr(pcm, 1);
+		//return _snd_pcm_dmix_sync_ptr(pcm, 1);
+		return snd_pcm_dmix_sync_ptr(pcm);
 	case SNDRV_PCM_STATE_PREPARED:
 	case SNDRV_PCM_STATE_SUSPENDED:
 	case STATE_RUN_PENDING:
@@ -413,7 +430,7 @@ static int snd_pcm_dmix_prepare(snd_pcm_t *pcm)
 	snd_pcm_direct_check_interleave(dmix, pcm);
 	// assert(pcm->boundary == dmix->shmptr->s.boundary);	/* for sure */
 	dmix->state = SND_PCM_STATE_PREPARED;
-	dmix->appl_ptr = 0;
+	dmix->appl_ptr = dmix->last_appl_ptr = 0;
 	dmix->hw_ptr = 0;
 	return snd_pcm_direct_set_timer_params(dmix);
 }
@@ -422,7 +439,7 @@ static int snd_pcm_dmix_reset(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	dmix->hw_ptr %= pcm->period_size;
-	dmix->appl_ptr = dmix->hw_ptr;
+	dmix->appl_ptr = dmix->last_appl_ptr = dmix->hw_ptr;
 	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
 	return 0;
 }
@@ -455,11 +472,9 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 	else if (avail < 0)
 		return 0;
 	else {
-		if (avail > (snd_pcm_sframes_t)pcm->buffer_size)
-			avail = pcm->buffer_size;
 		if ((err = snd_pcm_dmix_start_timer(dmix)) < 0)
 			return err;
-		snd_pcm_dmix_sync_area(pcm, avail);
+		snd_pcm_dmix_sync_area(pcm);
 	}
 	gettimeofday(&tv, 0);
 	dmix->trigger_tstamp.tv_sec = tv.tv_sec;
@@ -506,6 +521,7 @@ static int snd_pcm_dmix_drain(snd_pcm_t *pcm)
 			return err;
 		}
 		if (dmix->state == SND_PCM_STATE_DRAINING) {
+			snd_pcm_dmix_sync_area(pcm);
 			snd_pcm_wait_nocheck(pcm, -1);
 			snd_pcm_direct_clear_timer_queue(dmix); /* force poll to wait */
 		}
@@ -609,12 +625,13 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 			return err;
 	} else if (dmix->state == SND_PCM_STATE_RUNNING ||
 		   dmix->state == SND_PCM_STATE_DRAINING)
-		_snd_pcm_dmix_sync_ptr(pcm, 1);
+		//_snd_pcm_dmix_sync_ptr(pcm, 1);
+		snd_pcm_dmix_sync_ptr(pcm);
 	if (dmix->state == SND_PCM_STATE_RUNNING ||
 	    dmix->state == SND_PCM_STATE_DRAINING) {
 		/* ok, we commit the changes after the validation of area */
 		/* it's intended, although the result might be crappy */
-		snd_pcm_dmix_sync_area(pcm, size);
+		snd_pcm_dmix_sync_area(pcm);
 		/* clear timer queue to avoid a bogus return from poll */
 		if (snd_pcm_mmap_playback_avail(pcm) < pcm->avail_min)
 			snd_pcm_direct_clear_timer_queue(dmix);
@@ -631,6 +648,15 @@ static snd_pcm_sframes_t snd_pcm_dmix_avail_update(snd_pcm_t *pcm)
 		snd_pcm_dmix_sync_ptr(pcm);
 	return snd_pcm_mmap_playback_avail(pcm);
 }
+
+static int snd_pcm_dmix_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	snd_pcm_direct_t *dmix = pcm->private_data;
+	if (dmix->state == SND_PCM_STATE_RUNNING)
+		snd_pcm_dmix_sync_area(pcm);
+	return snd_pcm_direct_poll_revents(pcm, pfds, nfds, revents);
+}
+
 
 static void snd_pcm_dmix_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
@@ -656,7 +682,7 @@ static snd_pcm_ops_t snd_pcm_dmix_ops = {
 	.dump = snd_pcm_dmix_dump,
 	.nonblock = snd_pcm_direct_nonblock,
 	.async = snd_pcm_direct_async,
-	.poll_revents = snd_pcm_direct_poll_revents,
+	.poll_revents = snd_pcm_dmix_poll_revents,
 	.mmap = snd_pcm_direct_mmap,
 	.munmap = snd_pcm_direct_munmap,
 };

@@ -59,6 +59,7 @@ typedef struct {
 	snd_pcm_sw_params_t sw_params;
 	struct {
 		snd_pcm_uframes_t buffer_size;
+		snd_pcm_uframes_t period_size;
 		snd_pcm_uframes_t boundary;
 		snd_pcm_uframes_t channels;
 		unsigned int sample_bits;
@@ -85,6 +86,7 @@ struct snd_pcm_direct {
 	snd_pcm_direct_share_t *shmptr;	/* pointer to shared memory area */
 	snd_pcm_t *spcm; 		/* slave PCM handle */
 	snd_pcm_uframes_t appl_ptr;
+	snd_pcm_uframes_t last_appl_ptr;
 	snd_pcm_uframes_t hw_ptr;
 	snd_pcm_uframes_t avail_max;
 	snd_pcm_uframes_t slave_appl_ptr;

@@ -845,6 +845,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	
 	dmix->shmptr->s.boundary = spcm->boundary;
 	dmix->shmptr->s.buffer_size = spcm->buffer_size;
+	dmix->shmptr->s.period_size = spcm->period_size;
 	dmix->shmptr->s.sample_bits = spcm->sample_bits;
 	dmix->shmptr->s.channels = spcm->channels;
 	dmix->shmptr->s.rate = spcm->rate;
