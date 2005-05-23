@@ -1283,6 +1283,17 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
  }
 }
 
+static int snd_pcm_rate_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
+{
+	snd_pcm_rate_t *rate = pcm->private_data;
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		/* Try to sync as much as possible */
+		snd_pcm_rate_hwsync(pcm);
+		snd_pcm_rate_sync_playback_area(pcm, rate->appl_ptr);
+	}
+	return snd_pcm_poll_descriptors_revents(rate->gen.slave, pfds, nfds, revents);
+}
+
 static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
@@ -1383,9 +1394,9 @@ static snd_pcm_ops_t snd_pcm_rate_ops = {
 	.dump = snd_pcm_rate_dump,
 	.nonblock = snd_pcm_generic_nonblock,
 	.async = snd_pcm_generic_async,
+	.poll_revents = snd_pcm_rate_poll_revents,
 	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
-	.poll_descriptors = snd_pcm_generic_poll_descriptors,
-	.poll_revents = snd_pcm_generic_poll_revents,
+	.poll_descriptors = snd_pcm_rate_poll_descriptors,
 	.mmap = snd_pcm_generic_mmap,
 	.munmap = snd_pcm_generic_munmap,
 };
