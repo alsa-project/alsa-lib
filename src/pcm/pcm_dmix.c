@@ -265,7 +265,7 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 		if (! size)
 			break;
 		slave_appl_ptr += transfer;
-		slave_appl_ptr %= dmix->shmptr->s.buffer_size;
+		slave_appl_ptr %= slave_bsize;
 		appl_ptr += transfer;
 		appl_ptr %= pcm->buffer_size;
 	}
@@ -275,7 +275,7 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 /*
  *  synchronize hardware pointer (hw_ptr) with ours
  */
-static int _snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, int do_slave_sync)
+static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	snd_pcm_uframes_t slave_hw_ptr, old_slave_hw_ptr, avail;
@@ -288,7 +288,7 @@ static int _snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, int do_slave_sync)
 	default:
 		break;
 	}
-	if (do_slave_sync)
+	if (dmix->slowptr)
 		snd_pcm_hwsync(dmix->spcm);
 	old_slave_hw_ptr = dmix->slave_hw_ptr;
 	slave_hw_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
@@ -325,12 +325,6 @@ static int _snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, int do_slave_sync)
 		snd_pcm_direct_clear_timer_queue(dmix);
 	}
 	return 0;
-}
-
-static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
-{
-	snd_pcm_direct_t *dmix = pcm->private_data;
-	return _snd_pcm_dmix_sync_ptr(pcm, dmix->slowptr);
 }
 
 /*
@@ -411,7 +405,6 @@ static int snd_pcm_dmix_hwsync(snd_pcm_t *pcm)
 	case SNDRV_PCM_STATE_DRAINING:
 	case SNDRV_PCM_STATE_RUNNING:
 		/* sync slave PCM */
-		//return _snd_pcm_dmix_sync_ptr(pcm, 1);
 		return snd_pcm_dmix_sync_ptr(pcm);
 	case SNDRV_PCM_STATE_PREPARED:
 	case SNDRV_PCM_STATE_SUSPENDED:
@@ -628,7 +621,6 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 			return err;
 	} else if (dmix->state == SND_PCM_STATE_RUNNING ||
 		   dmix->state == SND_PCM_STATE_DRAINING)
-		//_snd_pcm_dmix_sync_ptr(pcm, 1);
 		snd_pcm_dmix_sync_ptr(pcm);
 	if (dmix->state == SND_PCM_STATE_RUNNING ||
 	    dmix->state == SND_PCM_STATE_DRAINING) {
