@@ -130,9 +130,6 @@ static snd_pcm_ops_t snd_pcm_hooks_ops = {
 	.dump = snd_pcm_hooks_dump,
 	.nonblock = snd_pcm_generic_nonblock,
 	.async = snd_pcm_generic_async,
-	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
-	.poll_descriptors = snd_pcm_generic_poll_descriptors,
-	.poll_revents = snd_pcm_generic_poll_revents,
 	.mmap = snd_pcm_generic_mmap,
 	.munmap = snd_pcm_generic_munmap,
 };
@@ -160,6 +157,9 @@ static snd_pcm_fast_ops_t snd_pcm_hooks_fast_ops = {
 	.readn = snd_pcm_generic_readn,
 	.avail_update = snd_pcm_generic_avail_update,
 	.mmap_commit = snd_pcm_generic_mmap_commit,
+	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
+	.poll_descriptors = snd_pcm_generic_poll_descriptors,
+	.poll_revents = snd_pcm_generic_poll_revents,
 };
 
 /**

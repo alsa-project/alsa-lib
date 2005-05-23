@@ -704,9 +704,6 @@ static snd_pcm_ops_t snd_pcm_multi_ops = {
 	.dump = snd_pcm_multi_dump,
 	.nonblock = snd_pcm_multi_nonblock,
 	.async = snd_pcm_multi_async,
-	.poll_descriptors_count = snd_pcm_multi_poll_descriptors_count,
-	.poll_descriptors = snd_pcm_multi_poll_descriptors,
-	.poll_revents = snd_pcm_multi_poll_revents,
 	.mmap = snd_pcm_multi_mmap,
 	.munmap = snd_pcm_multi_munmap,
 };
@@ -734,6 +731,9 @@ static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	.unlink = snd_pcm_multi_unlink,
 	.avail_update = snd_pcm_multi_avail_update,
 	.mmap_commit = snd_pcm_multi_mmap_commit,
+	.poll_descriptors_count = snd_pcm_multi_poll_descriptors_count,
+	.poll_descriptors = snd_pcm_multi_poll_descriptors,
+	.poll_revents = snd_pcm_multi_poll_revents,
 };
 
 /**

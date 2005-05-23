@@ -673,7 +673,6 @@ static snd_pcm_ops_t snd_pcm_dmix_ops = {
 	.dump = snd_pcm_dmix_dump,
 	.nonblock = snd_pcm_direct_nonblock,
 	.async = snd_pcm_direct_async,
-	.poll_revents = snd_pcm_dmix_poll_revents,
 	.mmap = snd_pcm_direct_mmap,
 	.munmap = snd_pcm_direct_munmap,
 };
@@ -701,6 +700,9 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
 	.readn = snd_pcm_dmix_readn,
 	.avail_update = snd_pcm_dmix_avail_update,
 	.mmap_commit = snd_pcm_dmix_mmap_commit,
+	.poll_descriptors = NULL,
+	.poll_descriptors_count = NULL,
+	.poll_revents = snd_pcm_dmix_poll_revents,
 };
 
 /**

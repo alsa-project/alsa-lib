@@ -712,9 +712,6 @@ static snd_pcm_ops_t snd_pcm_ioplug_ops = {
 	.close = snd_pcm_ioplug_close,
 	.nonblock = snd_pcm_ioplug_nonblock,
 	.async = snd_pcm_ioplug_async,
-	.poll_descriptors_count = snd_pcm_ioplug_poll_descriptors_count,
-	.poll_descriptors = snd_pcm_ioplug_poll_descriptors,
-	.poll_revents = snd_pcm_ioplug_poll_revents,
 	.info = snd_pcm_ioplug_info,
 	.hw_refine = snd_pcm_ioplug_hw_refine,
 	.hw_params = snd_pcm_ioplug_hw_params,
@@ -749,6 +746,9 @@ static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.readn = snd_pcm_ioplug_readn,
 	.avail_update = snd_pcm_ioplug_avail_update,
 	.mmap_commit = snd_pcm_ioplug_mmap_commit,
+	.poll_descriptors_count = snd_pcm_ioplug_poll_descriptors_count,
+	.poll_descriptors = snd_pcm_ioplug_poll_descriptors,
+	.poll_revents = snd_pcm_ioplug_poll_revents,
 };
 
 #endif /* !DOC_HIDDEN */

@@ -1273,8 +1273,8 @@ int snd_pcm_unlink(snd_pcm_t *pcm)
 int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
 {
 	assert(pcm);
-	if (pcm->ops->poll_descriptors_count)
-		return pcm->ops->poll_descriptors_count(pcm->op_arg);
+	if (pcm->fast_ops->poll_descriptors_count)
+		return pcm->fast_ops->poll_descriptors_count(pcm->fast_op_arg);
 	return pcm->poll_fd_count;
 }
 
@@ -1305,11 +1305,9 @@ int snd_pcm_poll_descriptors_count(snd_pcm_t *pcm)
  */
 int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
 {
-	int err;
-
 	assert(pcm && pfds);
-	if (pcm->ops->poll_descriptors)
-		return pcm->ops->poll_descriptors(pcm->op_arg, pfds, space);
+	if (pcm->fast_ops->poll_descriptors)
+		return pcm->fast_ops->poll_descriptors(pcm->fast_op_arg, pfds, space);
 	if (pcm->poll_fd < 0) {
 		SNDMSG("poll_fd < 0");
 		return -EIO;
@@ -1342,8 +1340,8 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
 int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
 	assert(pcm && pfds && revents);
-	if (pcm->ops->poll_revents)
-		return pcm->ops->poll_revents(pcm->op_arg, pfds, nfds, revents);
+	if (pcm->fast_ops->poll_revents)
+		return pcm->fast_ops->poll_revents(pcm->fast_op_arg, pfds, nfds, revents);
 	if (nfds == 1) {
 		*revents = pfds->revents;
 		return 0;

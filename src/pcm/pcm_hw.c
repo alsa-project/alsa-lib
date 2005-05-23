@@ -1002,7 +1002,6 @@ static snd_pcm_ops_t snd_pcm_hw_ops = {
 	.dump = snd_pcm_hw_dump,
 	.nonblock = snd_pcm_hw_nonblock,
 	.async = snd_pcm_hw_async,
-	.poll_revents = NULL,
 	.mmap = snd_pcm_hw_mmap,
 	.munmap = snd_pcm_hw_munmap,
 };
@@ -1030,6 +1029,9 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.readn = snd_pcm_hw_readn,
 	.avail_update = snd_pcm_hw_avail_update,
 	.mmap_commit = snd_pcm_hw_mmap_commit,
+	.poll_descriptors = NULL,
+	.poll_descriptors_count = NULL,
+	.poll_revents = NULL,
 };
 
 /**

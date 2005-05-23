@@ -129,9 +129,6 @@ typedef struct {
 	int (*close)(snd_pcm_t *pcm);
 	int (*nonblock)(snd_pcm_t *pcm, int nonblock);
 	int (*async)(snd_pcm_t *pcm, int sig, pid_t pid);
-	int (*poll_descriptors_count)(snd_pcm_t *pcm);
-	int (*poll_descriptors)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
-	int (*poll_revents)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 	int (*info)(snd_pcm_t *pcm, snd_pcm_info_t *info);
 	int (*hw_refine)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 	int (*hw_params)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
@@ -166,6 +163,9 @@ typedef struct {
 	snd_pcm_sframes_t (*readn)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
 	snd_pcm_sframes_t (*avail_update)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*mmap_commit)(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t size);
+	int (*poll_descriptors_count)(snd_pcm_t *pcm);
+	int (*poll_descriptors)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space);
+	int (*poll_revents)(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 } snd_pcm_fast_ops_t;
 
 struct _snd_pcm {
@@ -211,9 +211,9 @@ struct _snd_pcm {
 	snd_pcm_rbptr_t appl;
 	snd_pcm_rbptr_t hw;
 	snd_pcm_uframes_t min_align;
-	unsigned int mmap_rw: 1;
-	unsigned int mmap_shadow: 1;
-	unsigned int donot_close: 1;
+	unsigned int mmap_rw: 1;	/* use always mmapped buffer */
+	unsigned int mmap_shadow: 1;	/* don't call actual mmap */
+	unsigned int donot_close: 1;	/* don't close this PCM */
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
 	snd_pcm_channel_area_t *stopped_areas;

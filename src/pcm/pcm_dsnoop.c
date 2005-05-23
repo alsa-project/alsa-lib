@@ -439,7 +439,6 @@ static snd_pcm_ops_t snd_pcm_dsnoop_ops = {
 	.dump = snd_pcm_dsnoop_dump,
 	.nonblock = snd_pcm_direct_nonblock,
 	.async = snd_pcm_direct_async,
-	.poll_revents = snd_pcm_direct_poll_revents,
 	.mmap = snd_pcm_direct_mmap,
 	.munmap = snd_pcm_direct_munmap,
 };
@@ -467,6 +466,9 @@ static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
 	.readn = snd_pcm_mmap_readn,
 	.avail_update = snd_pcm_dsnoop_avail_update,
 	.mmap_commit = snd_pcm_dsnoop_mmap_commit,
+	.poll_descriptors = NULL,
+	.poll_descriptors_count = NULL,
+	.poll_revents = snd_pcm_direct_poll_revents,
 };
 
 /**
