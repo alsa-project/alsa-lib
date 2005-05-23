@@ -512,7 +512,6 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 			break;
 		case SND_PCM_AREA_LOCAL:
 			free(i->addr);
-			i->addr = NULL;
 			break;
 		default:
 			assert(0);
