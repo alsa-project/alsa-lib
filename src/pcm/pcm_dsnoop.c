@@ -396,6 +396,9 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_mmap_commit(snd_pcm_t *pcm,
 			return err;
 	}
 	snd_pcm_mmap_appl_forward(pcm, size);
+	/* clear timer queue to avoid a bogus return from poll */
+	if (snd_pcm_mmap_capture_avail(pcm) < pcm->avail_min)
+		snd_pcm_direct_clear_timer_queue(dsnoop);
 	return size;
 }
 
