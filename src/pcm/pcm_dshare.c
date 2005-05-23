@@ -459,12 +459,8 @@ static int snd_pcm_dshare_close(snd_pcm_t *pcm)
  		snd_pcm_direct_server_discard(dshare);
  	if (dshare->client)
  		snd_pcm_direct_client_discard(dshare);
- 	if (snd_pcm_direct_shm_discard(dshare) > 0) {
- 		if (snd_pcm_direct_semaphore_discard(dshare) < 0)
- 			snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
- 	} else {
-		snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
-	}
+	snd_pcm_direct_shm_discard(dshare);
+	snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
 	if (dshare->bindings)
 		free(dshare->bindings);
 	pcm->private_data = NULL;
@@ -614,17 +610,17 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	dshare = calloc(1, sizeof(snd_pcm_direct_t));
 	if (!dshare) {
 		ret = -ENOMEM;
-		goto _err;
+		goto _err_nosem;
 	}
 	
 	ret = snd_pcm_direct_parse_bindings(dshare, bindings);
 	if (ret < 0)
-		goto _err;
+		goto _err_nosem;
 		
 	if (!dshare->bindings) {
 		SNDERR("dshare: specify bindings!!!");
 		ret = -EINVAL;
-		goto _err;
+		goto _err_nosem;
 	}
 	
 	dshare->ipc_key = ipc_key;
@@ -634,20 +630,20 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 
 	ret = snd_pcm_new(&pcm, dshare->type = SND_PCM_TYPE_DSHARE, name, stream, mode);
 	if (ret < 0)
-		goto _err;
+		goto _err_nosem;
 
 	while (1) {
 		ret = snd_pcm_direct_semaphore_create_or_connect(dshare);
 		if (ret < 0) {
 			SNDERR("unable to create IPC semaphore");
-			goto _err;
+			goto _err_nosem;
 		}
 	
 		ret = snd_pcm_direct_semaphore_down(dshare, DIRECT_IPC_SEM_CLIENT);
 		if (ret < 0) {
 			snd_pcm_direct_semaphore_discard(dshare);
 			if (--fail_sem_loop <= 0)
-				goto _err;
+				goto _err_nosem;
 			continue;
 		}
 		break;
@@ -667,7 +663,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	dshare->sync_ptr = snd_pcm_dshare_sync_ptr;
 
 	if (first_instance) {
-		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode | SND_PCM_NONBLOCK);
 		if (ret < 0) {
 			SNDERR("unable to open slave");
 			goto _err;
@@ -694,12 +690,15 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 
 		dshare->shmptr->type = spcm->type;
 	} else {
+		/* up semaphore to avoid deadlock */
+		snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
 		ret = snd_pcm_direct_client_connect(dshare);
 		if (ret < 0) {
 			SNDERR("unable to connect client");
-			return ret;
+			goto _err_nosem;
 		}
 			
+		snd_pcm_direct_semaphore_down(dshare, DIRECT_IPC_SEM_CLIENT);
 		ret = snd_pcm_hw_open_fd(&spcm, "dshare_client", dshare->hw_fd, 0, 0);
 		if (ret < 0) {
 			SNDERR("unable to open hardware");
@@ -751,27 +750,24 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 	
  _err:
+	if (dshare->shmptr)
+		dshare->shmptr->u.dshare.chn_mask &= ~dshare->u.dshare.chn_mask;
+	if (dshare->timer)
+		snd_timer_close(dshare->timer);
+	if (dshare->server)
+		snd_pcm_direct_server_discard(dshare);
+	if (dshare->client)
+		snd_pcm_direct_client_discard(dshare);
+	if (spcm)
+		snd_pcm_close(spcm);
+	if (dshare->shmid >= 0)
+		snd_pcm_direct_shm_discard(dshare);
+	if (snd_pcm_direct_semaphore_discard(dshare) < 0)
+		snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
+ _err_nosem:
 	if (dshare) {
-		if (dshare->shmptr)
-			dshare->shmptr->u.dshare.chn_mask &= ~dshare->u.dshare.chn_mask;
-	 	if (dshare->timer)
- 			snd_timer_close(dshare->timer);
- 		if (dshare->server)
- 			snd_pcm_direct_server_discard(dshare);
- 		if (dshare->client)
- 			snd_pcm_direct_client_discard(dshare);
- 		if (spcm)
- 			snd_pcm_close(spcm);
- 		if (dshare->shmid >= 0) {
- 			if (snd_pcm_direct_shm_discard(dshare) > 0) {
-			 	if (dshare->semid >= 0) {
- 					if (snd_pcm_direct_semaphore_discard(dshare) < 0)
- 						snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
- 				}
- 			}
- 		}
- 		if (dshare->bindings)
- 			free(dshare->bindings);
+		if (dshare->bindings)
+			free(dshare->bindings);
 		free(dshare);
 	}
 	if (pcm)

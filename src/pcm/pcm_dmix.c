@@ -585,12 +585,8 @@ static int snd_pcm_dmix_close(snd_pcm_t *pcm)
  	if (dmix->client)
  		snd_pcm_direct_client_discard(dmix);
  	shm_sum_discard(dmix);
- 	if (snd_pcm_direct_shm_discard(dmix) > 0) {
- 		if (snd_pcm_direct_semaphore_discard(dmix) < 0)
- 			snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
- 	} else {
-		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
-	}
+	snd_pcm_direct_shm_discard(dmix);
+	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 	if (dmix->bindings)
 		free(dmix->bindings);
 	pcm->private_data = NULL;
@@ -748,12 +744,12 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	dmix = calloc(1, sizeof(snd_pcm_direct_t));
 	if (!dmix) {
 		ret = -ENOMEM;
-		goto _err;
+		goto _err_nosem;
 	}
 	
 	ret = snd_pcm_direct_parse_bindings(dmix, bindings);
 	if (ret < 0)
-		goto _err;
+		goto _err_nosem;
 	
 	dmix->ipc_key = ipc_key;
 	dmix->ipc_perm = ipc_perm;
@@ -769,13 +765,13 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		ret = snd_pcm_direct_semaphore_create_or_connect(dmix);
 		if (ret < 0) {
 			SNDERR("unable to create IPC semaphore");
-			goto _err;
+			goto _err_nosem;
 		}
 		ret = snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
 		if (ret < 0) {
 			snd_pcm_direct_semaphore_discard(dmix);
 			if (--fail_sem_loop <= 0)
-				goto _err;
+				goto _err_nosem;
 			continue;
 		}
 		break;
@@ -795,7 +791,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	dmix->sync_ptr = snd_pcm_dmix_sync_ptr;
 
 	if (first_instance) {
-		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode | SND_PCM_NONBLOCK);
 		if (ret < 0) {
 			SNDERR("unable to open slave");
 			goto _err;
@@ -825,12 +821,15 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 		dmix->shmptr->type = spcm->type;
 	} else {
+		/* up semaphore to avoid deadlock */
+		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 		ret = snd_pcm_direct_client_connect(dmix);
 		if (ret < 0) {
 			SNDERR("unable to connect client");
-			return ret;
+			goto _err_nosem;
 		}
 			
+		snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
 		ret = snd_pcm_hw_open_fd(&spcm, "dmix_client", dmix->hw_fd, 0, 0);
 		if (ret < 0) {
 			SNDERR("unable to open hardware");
@@ -883,27 +882,24 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 	
  _err:
+	if (dmix->timer)
+		snd_timer_close(dmix->timer);
+	if (dmix->server)
+		snd_pcm_direct_server_discard(dmix);
+	if (dmix->client)
+		snd_pcm_direct_client_discard(dmix);
+	if (spcm)
+		snd_pcm_close(spcm);
+	if (dmix->u.dmix.shmid_sum >= 0)
+		shm_sum_discard(dmix);
+	if (dmix->shmid >= 0)
+		snd_pcm_direct_shm_discard(dmix);
+	if (snd_pcm_direct_semaphore_discard(dmix) < 0)
+		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
+ _err_nosem:
 	if (dmix) {
-	 	if (dmix->timer)
- 			snd_timer_close(dmix->timer);
- 		if (dmix->server)
- 			snd_pcm_direct_server_discard(dmix);
- 		if (dmix->client)
- 			snd_pcm_direct_client_discard(dmix);
- 		if (spcm)
- 			snd_pcm_close(spcm);
-	 	if (dmix->u.dmix.shmid_sum >= 0)
- 			shm_sum_discard(dmix);
- 		if (dmix->shmid >= 0) {
- 			if (snd_pcm_direct_shm_discard(dmix) > 0) {
-			 	if (dmix->semid >= 0) {
- 					if (snd_pcm_direct_semaphore_discard(dmix) < 0)
- 						snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
- 				}
- 			}
- 		}
- 		if (dmix->bindings)
- 			free(dmix->bindings);
+		if (dmix->bindings)
+			free(dmix->bindings);
 		free(dmix);
 	}
 	if (pcm)

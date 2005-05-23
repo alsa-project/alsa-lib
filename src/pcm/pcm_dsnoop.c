@@ -366,12 +366,8 @@ static int snd_pcm_dsnoop_close(snd_pcm_t *pcm)
  		snd_pcm_direct_server_discard(dsnoop);
  	if (dsnoop->client)
  		snd_pcm_direct_client_discard(dsnoop);
- 	if (snd_pcm_direct_shm_discard(dsnoop) > 0) {
- 		if (snd_pcm_direct_semaphore_discard(dsnoop) < 0)
- 			snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
- 	} else {
-		snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
-	}
+	snd_pcm_direct_shm_discard(dsnoop);
+	snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
 	if (dsnoop->bindings)
 		free(dsnoop->bindings);
 	pcm->private_data = NULL;
@@ -510,12 +506,12 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	dsnoop = calloc(1, sizeof(snd_pcm_direct_t));
 	if (!dsnoop) {
 		ret = -ENOMEM;
-		goto _err;
+		goto _err_nosem;
 	}
 	
 	ret = snd_pcm_direct_parse_bindings(dsnoop, bindings);
 	if (ret < 0)
-		goto _err;
+		goto _err_nosem;
 	
 	dsnoop->ipc_key = ipc_key;
 	dsnoop->ipc_perm = ipc_perm;
@@ -524,20 +520,20 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 	ret = snd_pcm_new(&pcm, dsnoop->type = SND_PCM_TYPE_DSNOOP, name, stream, mode);
 	if (ret < 0)
-		goto _err;
+		goto _err_nosem;
 
 	while (1) {
 		ret = snd_pcm_direct_semaphore_create_or_connect(dsnoop);
 		if (ret < 0) {
 			SNDERR("unable to create IPC semaphore");
-			goto _err;
+			goto _err_nosem;
 		}
 	
 		ret = snd_pcm_direct_semaphore_down(dsnoop, DIRECT_IPC_SEM_CLIENT);
 		if (ret < 0) {
 			snd_pcm_direct_semaphore_discard(dsnoop);
 			if (--fail_sem_loop <= 0)
-				goto _err;
+				goto _err_nosem;
 			continue;
 		}
 		break;
@@ -557,7 +553,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	dsnoop->sync_ptr = snd_pcm_dsnoop_sync_ptr;
 
 	if (first_instance) {
-		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode | SND_PCM_NONBLOCK);
 		if (ret < 0) {
 			SNDERR("unable to open slave");
 			goto _err;
@@ -584,12 +580,15 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 		dsnoop->shmptr->type = spcm->type;
 	} else {
+		/* up semaphore to avoid deadlock */
+		snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
 		ret = snd_pcm_direct_client_connect(dsnoop);
 		if (ret < 0) {
 			SNDERR("unable to connect client");
-			return ret;
+			goto _err_nosem;
 		}
 			
+		snd_pcm_direct_semaphore_down(dsnoop, DIRECT_IPC_SEM_CLIENT);
 		ret = snd_pcm_hw_open_fd(&spcm, "dsnoop_client", dsnoop->hw_fd, 0, 0);
 		if (ret < 0) {
 			SNDERR("unable to open hardware");
@@ -634,25 +633,22 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	return 0;
 	
  _err:
+ 	if (dsnoop->timer)
+		snd_timer_close(dsnoop->timer);
+	if (dsnoop->server)
+		snd_pcm_direct_server_discard(dsnoop);
+	if (dsnoop->client)
+		snd_pcm_direct_client_discard(dsnoop);
+	if (spcm)
+		snd_pcm_close(spcm);
+	if (dsnoop->shmid >= 0)
+		snd_pcm_direct_shm_discard(dsnoop);
+	if (snd_pcm_direct_semaphore_discard(dsnoop) < 0)
+		snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
+ _err_nosem:
 	if (dsnoop) {
-	 	if (dsnoop->timer)
- 			snd_timer_close(dsnoop->timer);
- 		if (dsnoop->server)
- 			snd_pcm_direct_server_discard(dsnoop);
- 		if (dsnoop->client)
- 			snd_pcm_direct_client_discard(dsnoop);
- 		if (spcm)
- 			snd_pcm_close(spcm);
- 		if (dsnoop->shmid >= 0) {
- 			if (snd_pcm_direct_shm_discard(dsnoop) > 0) {
-			 	if (dsnoop->semid >= 0) {
- 					if (snd_pcm_direct_semaphore_discard(dsnoop) < 0)
- 						snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
- 				}
- 			}
- 		}
- 		if (dsnoop->bindings)
- 			free(dsnoop->bindings);
+		if (dsnoop->bindings)
+			free(dsnoop->bindings);
 		free(dsnoop);
 	}
 	if (pcm)

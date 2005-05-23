@@ -76,10 +76,8 @@ int snd_pcm_direct_semaphore_discard(snd_pcm_direct_t *dmix)
 
 int snd_pcm_direct_semaphore_down(snd_pcm_direct_t *dmix, int sem_num)
 {
-	struct sembuf op[2] = { { 0, 0, SEM_UNDO }, { 0, 1, SEM_UNDO | IPC_NOWAIT } };
+	struct sembuf op[2] = { { sem_num, 0, 0 }, { sem_num, 1, SEM_UNDO } };
 	assert(dmix->semid >= 0);
-	op[0].sem_num = sem_num;
-	op[1].sem_num = sem_num;
 	if (semop(dmix->semid, op, 2) < 0)
 		return -errno;
 	return 0;
@@ -87,9 +85,8 @@ int snd_pcm_direct_semaphore_down(snd_pcm_direct_t *dmix, int sem_num)
 
 int snd_pcm_direct_semaphore_up(snd_pcm_direct_t *dmix, int sem_num)
 {
-	struct sembuf op = { 0, -1, SEM_UNDO | IPC_NOWAIT };
+	struct sembuf op = { sem_num, -1, SEM_UNDO | IPC_NOWAIT };
 	assert(dmix->semid >= 0);
-	op.sem_num = sem_num;
 	if (semop(dmix->semid, &op, 1) < 0)
 		return -errno;
 	return 0;
@@ -252,6 +249,7 @@ static void server_job(snd_pcm_direct_t *dmix)
 			snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
 			if (shmctl(dmix->shmid, IPC_STAT, &buf) < 0) {
 				snd_pcm_direct_shm_discard(dmix);
+				snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 				continue;
 			}
 			server_printf("DIRECT SERVER: nattch = %i\n", (int)buf.shm_nattch);
