@@ -312,7 +312,7 @@ static int _snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, int do_slave_sync)
 		dmix->avail_max = avail;
 	if (avail >= pcm->stop_threshold) {
 		struct timeval tv;
-		snd_pcm_direct_timer_stop(dmix);
+		snd_timer_stop(dmix->timer);
 		gettimeofday(&tv, 0);
 		dmix->trigger_tstamp.tv_sec = tv.tv_sec;
 		dmix->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
@@ -321,6 +321,8 @@ static int _snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm, int do_slave_sync)
 			return -EPIPE;
 		}
 		dmix->state = SND_PCM_STATE_SETUP;
+		/* clear queue to remove pending poll events */
+		snd_pcm_direct_clear_timer_queue(dmix);
 	}
 	return 0;
 }
