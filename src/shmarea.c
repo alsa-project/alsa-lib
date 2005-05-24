@@ -48,7 +48,7 @@ static LIST_HEAD(shm_areas);
  * The record has a reference counter, which is initialized to 1 by this function.
  */
 struct snd_shm_area *snd_shm_area_create(int shmid, void *ptr)
-p{
+{
 	struct snd_shm_area *area = malloc(sizeof(*area));
 	if (area) {
 		area->shmid = shmid;
