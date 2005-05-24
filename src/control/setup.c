@@ -37,6 +37,7 @@
 #include <ctype.h>
 #include "local.h"
 
+#ifndef DOC_HIDDEN
 typedef struct {
 	unsigned int lock: 1;
 	unsigned int preserve: 1;
@@ -53,6 +54,7 @@ struct _snd_sctl {
 	snd_ctl_t *ctl;
 	struct list_head elems;
 };
+#endif /* DOC_HIDDEN */
 
 static int free_elems(snd_sctl_t *h)
 {

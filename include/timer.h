@@ -100,9 +100,9 @@ typedef struct _snd_timer_read {
 
 /** timer tstamp + event read structure */
 typedef struct _snd_timer_tread {
-	snd_timer_event_t event;
-	snd_htimestamp_t tstamp;
-	unsigned int val;
+	snd_timer_event_t event;	/**< Timer event */
+	snd_htimestamp_t tstamp;	/**< Time stamp of each event */
+	unsigned int val;		/**< Event value */
 } snd_timer_tread_t;
 
 /** global timer - system */

@@ -1,10 +1,3 @@
-/**
- * \file pcm/pcm_direct.c
- * \ingroup PCM_Plugins
- * \brief PCM Direct Stream Mixing (dmix) Plugin Interface
- * \author Jaroslav Kysela <perex@suse.cz>
- * \date 2003
- */
 /*
  *  PCM - Direct Stream Mixing
  *  Copyright (c) 2003 by Jaroslav Kysela <perex@suse.cz>

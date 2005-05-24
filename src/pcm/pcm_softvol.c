@@ -124,6 +124,7 @@ static inline int MULTI_DIV_int(int a, unsigned short b)
  * TODO: use SIMD operations
  */
 
+#ifndef DOC_HIDDEN
 #define CONVERT_AREA(TYPE) do {	\
 	unsigned int ch, fr; \
 	TYPE *src, *dst; \
@@ -173,6 +174,8 @@ static inline int MULTI_DIV_int(int a, unsigned short b)
 		vol_scale = vol[ch & 1]; \
 		break; \
 	}
+
+#endif /* DOC_HIDDEN */
 
 /* 2-channel stereo control */
 static void softvol_convert_stereo_vol(snd_pcm_softvol_t *svol,
@@ -592,7 +595,9 @@ static snd_pcm_ops_t snd_pcm_softvol_ops = {
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
  * \param sformat Slave format
- * \param card card index of the control
+ * \param ctl_card card index of the control
+ * \param ctl_id The control element
+ * \param cchannels PCM channels
  * \param min_dB minimal dB value
  * \param resolution resolution of control
  * \param slave Slave PCM handle

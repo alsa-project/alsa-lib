@@ -620,7 +620,7 @@ static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 	return snd_pcm_hw_free(rate->gen.slave);
 }
 
-int snd_pcm_rate_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
+static int snd_pcm_rate_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
 {
 	return snd_pcm_channel_info_shm(pcm, info, -1);
 }

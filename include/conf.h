@@ -172,12 +172,18 @@ int snd_config_get_ctl_iface(const snd_config_t *conf);
 
 /* Names functions */
 
+/**
+ * Device-name list element
+ */
 typedef struct snd_devname snd_devname_t;
 
+/**
+ * Device-name list element (definition)
+ */
 struct snd_devname {
-	char *name;
-	char *comment;
-	snd_devname_t *next;
+	char *name;	/**< Device name string */
+	char *comment;	/**< Comments */
+	snd_devname_t *next;	/**< Next pointer */
 };
 
 int snd_names_list(const char *interface, snd_devname_t **list);

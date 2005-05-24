@@ -89,7 +89,7 @@ int snd_input_scanf(snd_input_t *input, const char *format, ...)
  * \return Pointer to the buffer if successful, otherwise \c NULL.
  *
  * Like \c fgets, the returned string is zero-terminated, and contains
- * the new-line character \c '\n' if the line fits into the buffer.
+ * the new-line character \c '\\n' if the line fits into the buffer.
  */
 char *snd_input_gets(snd_input_t *input, char *str, size_t size)
 {
@@ -172,7 +172,7 @@ static snd_input_ops_t snd_input_stdio_ops = {
  *               at the address specified by \p inputp.
  * \param fp The \c FILE pointer to read from.
  *           Reading begins at the current file position.
- * \param close Close flag. Set this to 1 if #snd_input_close should close
+ * \param _close Close flag. Set this to 1 if #snd_input_close should close
  *              \p fp by calling \c fclose.
  * \return Zero if successful, otherwise a negative error code.
  */

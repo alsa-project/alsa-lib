@@ -181,7 +181,7 @@ static snd_output_ops_t snd_output_stdio_ops = {
  *                at the address specified by \p outputp.
  * \param fp The \c FILE pointer to write to. Characters are written
  *           to the file starting at the current file position.
- * \param close Close flag. Set this to 1 if #snd_output_close should close
+ * \param _close Close flag. Set this to 1 if #snd_output_close should close
  *              \p fp by calling \c fclose.
  * \return Zero if successful, otherwise a negative error code.
  */

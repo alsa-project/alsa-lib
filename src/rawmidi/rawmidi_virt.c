@@ -35,6 +35,7 @@ const char *_snd_module_rawmidi_virt = "";
 #endif
 
 
+#ifndef DOC_HIDDEN
 typedef struct {
 	int open;
 
@@ -52,6 +53,7 @@ typedef struct {
 	snd_seq_event_t out_event;
 	int pending;
 } snd_rawmidi_virtual_t;
+#endif
 
 static int snd_rawmidi_virtual_close(snd_rawmidi_t *rmidi)
 {

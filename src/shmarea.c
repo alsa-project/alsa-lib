@@ -27,17 +27,28 @@
 #include <sys/shm.h>
 #include "list.h"
 
+#ifndef DOC_HIDDEN
 struct snd_shm_area {
 	struct list_head list;
 	int shmid;
 	void *ptr;
 	int share;
 };
+#endif
 
 static LIST_HEAD(shm_areas);
 
+/**
+ * \brief Create a shm area record
+ * \param shmid IPC SHM ID
+ * \param ptr the shared area pointer
+ * \return The allocated shm area record, NULL if fail
+ *
+ * Allocates a shared area record with the given SHM ID and pointer.
+ * The record has a reference counter, which is initialized to 1 by this function.
+ */
 struct snd_shm_area *snd_shm_area_create(int shmid, void *ptr)
-{
+p{
 	struct snd_shm_area *area = malloc(sizeof(*area));
 	if (area) {
 		area->shmid = shmid;
@@ -48,6 +59,13 @@ struct snd_shm_area *snd_shm_area_create(int shmid, void *ptr)
 	return area;
 }
 
+/**
+ * \brief Increase the reference counter of shm area record
+ * \param area shm area record
+ * \return the shm area record (identical with the argument)
+ *
+ * Increases the reference counter of the given shared area record.
+ */
 struct snd_shm_area *snd_shm_area_share(struct snd_shm_area *area)
 {
 	if (area == NULL)
@@ -56,6 +74,14 @@ struct snd_shm_area *snd_shm_area_share(struct snd_shm_area *area)
 	return area;
 }
 
+/**
+ * \brief Release the shared area record
+ * \param area the shared are record
+ * \return 0 if successful, or a negative error code
+ *
+ * Decreases the reference counter of the given shared area record, and
+ * releases the resources automaticall if it reaches to 0.
+ */
 int snd_shm_area_destroy(struct snd_shm_area *area)
 {
 	if (area == NULL)

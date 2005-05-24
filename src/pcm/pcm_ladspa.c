@@ -1117,7 +1117,9 @@ static int snd_pcm_ladspa_build_plugins(struct list_head *list,
  * \brief Creates a new LADSPA<->ALSA Plugin
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
- * \param sformat Slave (destination) format
+ * \param ladspa_path The path for LADSPA plugins
+ * \param ladspa_pplugins The playback configuration
+ * \param ladspa_cplugins The capture configuration
  * \param slave Slave PCM handle
  * \param close_slave When set, the slave PCM handle is closed with copy PCM
  * \retval zero on success otherwise a negative error code

@@ -39,9 +39,11 @@
 #include <locale.h>
 #include "local.h"
 
+#ifndef DOC_HIDDEN
 #define ALSA_NAMES_ENV	 "ALSA_NAMES_FILE"
 #define ALSA_NAMES_PATH1 "/etc/asound.names"
 #define ALSA_NAMES_PATH2 "~/.asoundnm"
+#endif
 
 static int names_parse(snd_config_t *top, const char *interface, snd_devname_t **list)
 {
@@ -171,6 +173,12 @@ int snd_names_list(const char *interface, snd_devname_t **list)
 	return err >= 0 ? 0 : err;
 }
 
+/**
+ * \brief Release the list of device names
+ * \param list the name list to release
+ *
+ * Releases the list of device names allocated via #snd_names_list().
+ */
 void snd_names_list_free(snd_devname_t *list)
 {
 	snd_devname_t *next;

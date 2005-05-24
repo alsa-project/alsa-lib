@@ -744,8 +744,8 @@ int snd_mixer_handle_events(snd_mixer_t *mixer)
 
 /**
  * \brief Set callback function for a mixer
- * \param mixer mixer handle
- * \param callback callback function
+ * \param obj mixer handle
+ * \param val callback function
  */
 void snd_mixer_set_callback(snd_mixer_t *obj, snd_mixer_callback_t val)
 {
@@ -755,8 +755,8 @@ void snd_mixer_set_callback(snd_mixer_t *obj, snd_mixer_callback_t val)
 
 /**
  * \brief Set callback private value for a mixer
- * \param mixer mixer handle
- * \param callback_private callback private value
+ * \param obj mixer handle
+ * \param val callback private value
  */
 void snd_mixer_set_callback_private(snd_mixer_t *obj, void * val)
 {
@@ -766,7 +766,7 @@ void snd_mixer_set_callback_private(snd_mixer_t *obj, void * val)
 
 /**
  * \brief Get callback private value for a mixer
- * \param mixer mixer handle
+ * \param obj mixer handle
  * \return callback private value
  */
 void * snd_mixer_get_callback_private(const snd_mixer_t *obj)
@@ -777,7 +777,7 @@ void * snd_mixer_get_callback_private(const snd_mixer_t *obj)
 
 /**
  * \brief Get elements count for a mixer
- * \param mixer mixer handle
+ * \param obj mixer handle
  * \return elements count
  */
 unsigned int snd_mixer_get_count(const snd_mixer_t *obj)

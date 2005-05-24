@@ -29,6 +29,7 @@
 const char *_snd_module_seq_hw = "";
 #endif
 
+#ifndef DOC_HIDDEN
 #define SNDRV_FILE_SEQ		"/dev/snd/seq"
 #define SNDRV_FILE_ALOADSEQ	"/dev/aloadSEQ"
 #define SNDRV_SEQ_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 1)
@@ -36,6 +37,7 @@ const char *_snd_module_seq_hw = "";
 typedef struct {
 	int fd;
 } snd_seq_hw_t;
+#endif /* DOC_HIDDEN */
 
 static int snd_seq_hw_close(snd_seq_t *seq)
 {

@@ -290,7 +290,7 @@ syntax.<P>
 
 \section confarg_define Defining arguments
 
-Arguments are defined using the id (key) \c @args and array values containing
+Arguments are defined using the id (key) \c \@args and array values containing
 the string names of the arguments:
 
 \code
@@ -300,7 +300,7 @@ the string names of the arguments:
 
 \section confarg_type Defining argument types and default values
 
-An argument's type is specified with the id (key) \c @args and the argument
+An argument's type is specified with the id (key) \c \@args and the argument
 name. The type and the default value are specified in the compound block:
 
 \code
@@ -362,7 +362,7 @@ pcm.demo {
 <P>The ALSA library can modify the configuration at runtime.
 Several built-in functions are available.</P>
 
-<P>A function is defined with the id \c @func and the function name. All other
+<P>A function is defined with the id \c \@func and the function name. All other
 values in the current compound are used as configuration for the function.
 If the compound func.<function_name> is defined in the root node, then the
 library and function from this compound configuration are used, otherwise
@@ -382,7 +382,7 @@ func.remove_first_char {
 
 <P>The hook extension in the ALSA library allows expansion of configuration
 nodes at run-time. The existence of a hook is determined by the
-presence of a @hooks compound node.</P>
+presence of a \@hooks compound node.</P>
 
 <P>This example defines a hook which loads two configuration files at the
 beginning:</P>
@@ -2587,6 +2587,7 @@ int snd_config_search_alias_hooks(snd_config_t *config,
  */
 snd_config_t *snd_config = NULL;
 
+#ifndef DOC_HIDDEN
 struct finfo {
 	char *name;
 	dev_t dev;
@@ -2598,6 +2599,7 @@ struct _snd_config_update {
 	unsigned int count;
 	struct finfo *finfo;
 };
+#endif /* DOC_HIDDEN */
 
 static snd_config_update_t *snd_config_global_update = NULL;
 
@@ -2904,8 +2906,8 @@ SND_DLSYM_BUILD_VERSION(snd_config_hook_load_for_all_cards, SND_CONFIG_DLSYM_VER
 
 /** 
  * \brief Updates a configuration tree by rereading the configuration files (if needed).
- * \param top Address of the handle to the top level node.
- * \param update Address of a pointer to private update information.
+ * \param _top Address of the handle to the top level node.
+ * \param _update Address of a pointer to private update information.
  * \param cfgs A list of configuration file names, delimited with ':'.
  *             If \p cfgs is set to \c NULL, the default global configuration
  *             file is used ("/usr/share/alsa/alsa.conf").
@@ -3959,7 +3961,7 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
  * \brief Searches for a definition in a configuration tree, using aliases and expanding hooks and arguments.
  * \param config Handle to the configuration (sub)tree to search.
  * \param base Implicit key base, or \c NULL for none.
- * \param key Key suffix.
+ * \param name Key suffix.
  * \param result The function puts the handle to the expanded found node at
  *               the address specified by \p result.
  * \return Zero if successful, otherwise a negative error code.

@@ -138,6 +138,7 @@ static inline int32_t iec958_to_s32(snd_pcm_iec958_t *iec, u_int32_t data)
 	return (int32_t)data;
 }
 
+#ifndef DOC_HIDDEN
 static void snd_pcm_iec958_decode(snd_pcm_iec958_t *iec,
 				  const snd_pcm_channel_area_t *dst_areas,
 				  snd_pcm_uframes_t dst_offset,
@@ -218,6 +219,7 @@ static void snd_pcm_iec958_encode(snd_pcm_iec958_t *iec,
 		}
 	}
 }
+#endif /* DOC_HIDDEN */
 
 static int snd_pcm_iec958_hw_refine_cprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
@@ -434,6 +436,8 @@ static snd_pcm_ops_t snd_pcm_iec958_ops = {
  * \param sformat Slave (destination) format
  * \param slave Slave PCM handle
  * \param close_slave When set, the slave PCM handle is closed with copy PCM
+ * \param status_bits The IEC958 status bits
+ * \param preamble_vals The preamble byte values
  * \retval zero on success otherwise a negative error code
  * \warning Using of this function might be dangerous in the sense
  *          of compatibility reasons. The prototype might be freely

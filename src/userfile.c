@@ -23,6 +23,15 @@
 #include <wordexp.h>
 #include <assert.h>
 
+/**
+ * \brief Get the full file name
+ * \param file The file name string to parse
+ * \param result The pointer to store the resultant file name
+ * \return 0 if successful, or a negative error code
+ *
+ * Parses the given file name with POSIX-Shell-like expansion and
+ * stores the first matchine one.  The returned string is strdup'ed.
+ */
 int snd_user_file(const char *file, char **result)
 {
 	wordexp_t we;

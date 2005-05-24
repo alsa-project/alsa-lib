@@ -187,7 +187,7 @@ int snd_hctl_poll_descriptors(snd_hctl_t *hctl, struct pollfd *pfds, unsigned in
 
 /**
  * \brief get returned events from poll descriptors
- * \param ctl HCTL handle
+ * \param hctl HCTL handle
  * \param pfds array of poll descriptors
  * \param nfds count of poll descriptors
  * \param revents returned events

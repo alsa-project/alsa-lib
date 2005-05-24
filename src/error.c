@@ -139,6 +139,9 @@ static void snd_err_msg_default(const char *file, int line, const char *function
 		assert(0);
 }
 
+/**
+ * The ALSA error message handler
+ */
 snd_lib_error_handler_t snd_err_msg = snd_err_msg_default;
 
 #endif

@@ -231,7 +231,7 @@ size_t snd_timer_ginfo_sizeof(void)
 
 /**
  * \brief allocate a new snd_timer_ginfo_t structure
- * \param ptr returned pointer
+ * \param info returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_timer_info_t structure using the standard
@@ -273,6 +273,7 @@ void snd_timer_ginfo_copy(snd_timer_ginfo_t *dst, const snd_timer_ginfo_t *src)
 /**
  * \brief set timer identification
  * \param obj pointer to #snd_timer_ginfo_t structure
+ * \param tid pointer to #snd_timer_id_t structure
  * \return zero on success otherwise a negative error number
  */
 int snd_timer_ginfo_set_tid(snd_timer_ginfo_t *obj, snd_timer_id_t *tid)
@@ -436,7 +437,7 @@ size_t snd_timer_id_sizeof()
 
 /**
  * \brief allocate a new snd_timer_id_t structure
- * \param ptr returned pointer
+ * \param info returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_timer_id_t structure using the standard
@@ -510,7 +511,7 @@ void snd_timer_id_set_sclass(snd_timer_id_t * tid, int dev_sclass)
 
 /**
  * \brief get timer sub-class
- * \param params pointer to #snd_timer_id_t structure
+ * \param tid pointer to #snd_timer_id_t structure
  * \return timer sub-class
  */
 int snd_timer_id_get_sclass(snd_timer_id_t * tid)
@@ -532,7 +533,7 @@ void snd_timer_id_set_card(snd_timer_id_t * tid, int card)
 
 /**
  * \brief get timer card
- * \param params pointer to #snd_timer_id_t structure
+ * \param tid pointer to #snd_timer_id_t structure
  * \return timer card number
  */
 int snd_timer_id_get_card(snd_timer_id_t * tid)
@@ -554,7 +555,7 @@ void snd_timer_id_set_device(snd_timer_id_t * tid, int device)
 
 /**
  * \brief get timer device
- * \param params pointer to #snd_timer_id_t structure
+ * \param tid pointer to #snd_timer_id_t structure
  * \return timer device number
  */
 int snd_timer_id_get_device(snd_timer_id_t * tid)
@@ -576,7 +577,7 @@ void snd_timer_id_set_subdevice(snd_timer_id_t * tid, int subdevice)
 
 /**
  * \brief get timer subdevice
- * \param params pointer to #snd_timer_id_t structure
+ * \param tid pointer to #snd_timer_id_t structure
  * \return timer subdevice number
  */
 int snd_timer_id_get_subdevice(snd_timer_id_t * tid)

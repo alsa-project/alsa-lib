@@ -151,6 +151,7 @@ void *snd_dlsym(void *handle, const char *name, const char *version)
  * FIXME: add reference counter and proper locking
  */
 
+#ifndef DOC_HIDDEN
 struct dlobj_cache {
 	const char *name;
 	void *obj;
@@ -211,3 +212,4 @@ void snd_dlobj_cache_cleanup(void)
 		free(c);
 	}
 }
+#endif

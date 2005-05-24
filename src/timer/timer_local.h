@@ -24,6 +24,7 @@
 #include <limits.h>
 #include "local.h"
 
+#ifndef DOC_HIDDEN
 typedef struct {
 	int (*close)(snd_timer_t *timer);
 	int (*nonblock)(snd_timer_t *timer, int nonblock);
@@ -48,8 +49,6 @@ struct _snd_timer {
 	struct list_head async_handlers;
 };
 
-int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int dev_sclass, int card, int device, int subdevice, int mode);
-
 typedef struct {
 	int (*close)(snd_timer_query_t *timer);
 	int (*next_device)(snd_timer_query_t *timer, snd_timer_id_t *tid);
@@ -66,6 +65,9 @@ struct _snd_timer_query {
 	snd_timer_query_ops_t *ops;
 	void *private_data;
 };
+#endif /* DOC_HIDDEN */
+
+int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int dev_sclass, int card, int device, int subdevice, int mode);
 
 int snd_timer_query_hw_open(snd_timer_query_t **handle, const char *name, int mode);
 

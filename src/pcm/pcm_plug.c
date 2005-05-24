@@ -311,12 +311,14 @@ static void snd_pcm_plug_clear(snd_pcm_t *pcm)
 	}
 }
 
+#ifndef DOC_HIDDEN
 typedef struct {
 	snd_pcm_access_t access;
 	snd_pcm_format_t format;
 	unsigned int channels;
 	unsigned int rate;
 } snd_pcm_plug_params_t;
+#endif
 
 static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plug_params_t *clt, snd_pcm_plug_params_t *slv)
 {

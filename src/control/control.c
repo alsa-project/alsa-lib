@@ -406,7 +406,7 @@ int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 /**
  * \brief Lock CTL element
  * \param ctl CTL handle
- * \param control CTL element id pointer
+ * \param id CTL element id pointer
  * \return 0 on success otherwise a negative error code
  */
 int snd_ctl_elem_lock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
@@ -418,7 +418,7 @@ int snd_ctl_elem_lock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
 /**
  * \brief Unlock CTL element
  * \param ctl CTL handle
- * \param control CTL element id pointer
+ * \param id CTL element id pointer
  * \return 0 on success otherwise a negative error code
  */
 int snd_ctl_elem_unlock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id)
@@ -998,7 +998,7 @@ int snd_ctl_elem_id_malloc(snd_ctl_elem_id_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_ctl_elem_id_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_ctl_elem_id_free(snd_ctl_elem_id_t *obj)
 {
@@ -1182,7 +1182,7 @@ int snd_ctl_card_info_malloc(snd_ctl_card_info_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_ctl_card_info_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_ctl_card_info_free(snd_ctl_card_info_t *obj)
 {
@@ -1311,7 +1311,7 @@ int snd_ctl_event_malloc(snd_ctl_event_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_ctl_event_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_ctl_event_free(snd_ctl_event_t *obj)
 {
@@ -1374,7 +1374,7 @@ int snd_ctl_elem_list_malloc(snd_ctl_elem_list_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_ctl_elem_list_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_ctl_elem_list_free(snd_ctl_elem_list_t *obj)
 {
@@ -1550,7 +1550,7 @@ int snd_ctl_elem_info_malloc(snd_ctl_elem_info_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_ctl_elem_info_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_ctl_elem_info_free(snd_ctl_elem_info_t *obj)
 {
@@ -1832,6 +1832,7 @@ use_default_symbol_version(__snd_ctl_elem_info_get_dimensions, snd_ctl_elem_info
 /**
  * \brief Get specified of dimension width for given element
  * \param obj CTL element id/info
+ * \param idx The dimension index
  * \return zero value if no dimension width is defined, otherwise positive value with with of specified dimension
  */
 #ifndef DOXYGEN
@@ -2028,7 +2029,7 @@ int snd_ctl_elem_value_malloc(snd_ctl_elem_value_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_ctl_elem_value_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_ctl_elem_value_free(snd_ctl_elem_value_t *obj)
 {
@@ -2336,7 +2337,7 @@ void snd_ctl_elem_value_set_byte(snd_ctl_elem_value_t *obj, unsigned int idx, un
 
 /**
  * \brief Set CTL element #SND_CTL_ELEM_TYPE_BYTES value
- * \param ctl CTL handle
+ * \param obj CTL handle
  * \param data Bytes value
  * \param size Size in bytes
  */
@@ -2364,7 +2365,7 @@ const void * snd_ctl_elem_value_get_bytes(const snd_ctl_elem_value_t *obj)
 /**
  * \brief Get value for a #SND_CTL_ELEM_TYPE_IEC958 CTL element id/value 
  * \param obj CTL element id/value
- * \param Pointer to returned CTL element value
+ * \param ptr Pointer to returned CTL element value
  */ 
 void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec958_t *ptr)
 {
@@ -2375,7 +2376,7 @@ void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec9
 /**
  * \brief Set value for a #SND_CTL_ELEM_TYPE_IEC958 CTL element id/value 
  * \param obj CTL element id/value
- * \param Pointer to CTL element value
+ * \param ptr Pointer to CTL element value
  */ 
 void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec958_t *ptr)
 {

@@ -422,7 +422,7 @@ int snd_rawmidi_poll_descriptors(snd_rawmidi_t *rawmidi, struct pollfd *pfds, un
 
 /**
  * \brief get returned events from poll descriptors
- * \param pcm rawmidi RawMidi handle
+ * \param rawmidi rawmidi RawMidi handle
  * \param pfds array of poll descriptors
  * \param nfds count of poll descriptors
  * \param revents returned events
@@ -472,7 +472,7 @@ size_t snd_rawmidi_info_sizeof()
 
 /**
  * \brief allocate a new snd_rawmidi_info_t structure
- * \param ptr returned pointer
+ * \param info returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_rawmidi_params_t structure using the standard
@@ -678,7 +678,7 @@ size_t snd_rawmidi_params_sizeof()
 
 /**
  * \brief allocate the snd_rawmidi_params_t structure
- * \param ptr returned pointer
+ * \param params returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_rawmidi_params_t structure using the standard

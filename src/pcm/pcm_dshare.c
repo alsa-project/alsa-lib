@@ -49,8 +49,10 @@
 const char *_snd_module_pcm_dshare = "";
 #endif
 
+#ifndef DOC_HIDDEN
 /* start is pending - this state happens when rate plugin does a delayed commit */
 #define STATE_RUN_PENDING	1024
+#endif
 
 static void do_silence(snd_pcm_t *pcm)
 {
@@ -575,7 +577,7 @@ static snd_pcm_fast_ops_t snd_pcm_dshare_fast_ops = {
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
  * \param ipc_key IPC key for semaphore and shared memory
- * \param ipc_mode IPC permissions for semaphore and shared memory
+ * \param ipc_perm IPC permissions for semaphore and shared memory
  * \param params Parameters for slave
  * \param bindings Channel bindings
  * \param slowptr Slow but more precise pointer updates

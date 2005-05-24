@@ -51,7 +51,7 @@ extern "C" {
 /**
  * \brief set the tag for given event
  * \param ev event record
- * \param tag event tag
+ * \param t event tag
  *
  * This macro sets the tag to the given event record.
  */
@@ -195,8 +195,8 @@ extern "C" {
 /**
  * \brief set varusr data
  * \param ev event instance
- * \param len length of the external data
- * \param ptr pointer of the external data
+ * \param datalen length of the external data
+ * \param dataptr pointer of the external data
  *
  * Sets the event length mode as variable user-space data and stores the data.
  *

@@ -49,8 +49,10 @@
 const char *_snd_module_pcm_dmix = "";
 #endif
 
+#ifndef DOC_HIDDEN
 /* start is pending - this state happens when rate plugin does a delayed commit */
 #define STATE_RUN_PENDING	1024
+#endif
 
 /*
  *
@@ -209,12 +211,14 @@ static void mix_areas(snd_pcm_direct_t *dmix,
  * if no concurrent access is allowed in the mixing routines, we need to protect
  * the area via semaphore
  */
+#ifndef DOC_HIDDEN
 #ifdef NO_CONCURRENT_ACCESS
 #define dmix_down_sem(dmix) snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT)
 #define dmix_up_sem(dmix) snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT)
 #else
 #define dmix_down_sem(dmix)
 #define dmix_up_sem(dmix)
+#endif
 #endif
 
 /*

@@ -436,7 +436,7 @@ size_t snd_timer_info_sizeof()
 
 /**
  * \brief allocate a new snd_timer_info_t structure
- * \param ptr returned pointer
+ * \param info returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_timer_info_t structure using the standard
@@ -555,7 +555,7 @@ size_t snd_timer_params_sizeof()
 
 /**
  * \brief allocate a new snd_timer_params_t structure
- * \param ptr returned pointer
+ * \param params returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_timer_params_t structure using the standard
@@ -597,6 +597,7 @@ void snd_timer_params_copy(snd_timer_params_t *dst, const snd_timer_params_t *sr
 /**
  * \brief set timer auto start
  * \param params pointer to #snd_timer_params_t structure
+ * \param auto_start The boolean value to set
  */
 int snd_timer_params_set_auto_start(snd_timer_params_t * params, int auto_start)
 {
@@ -622,6 +623,7 @@ int snd_timer_params_get_auto_start(snd_timer_params_t * params)
 /**
  * \brief set timer exclusive use
  * \param params pointer to #snd_timer_params_t structure
+ * \param exclusive The boolean value to set
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_timer_params_set_exclusive)(snd_timer_params_t * params, int exclusive)
@@ -657,6 +659,7 @@ use_default_symbol_version(__snd_timer_params_get_exclusive, snd_timer_params_ge
 /**
  * \brief set timer early event
  * \param params pointer to #snd_timer_params_t structure
+ * \param early_event The boolean value to set
  */
 int snd_timer_params_set_early_event(snd_timer_params_t * params, int early_event)
 {
@@ -682,6 +685,7 @@ int snd_timer_params_get_early_event(snd_timer_params_t * params)
 /**
  * \brief set timer ticks
  * \param params pointer to #snd_timer_params_t structure
+ * \param ticks Ticks to set
  */
 void snd_timer_params_set_ticks(snd_timer_params_t * params, long ticks)
 {
@@ -703,6 +707,7 @@ long snd_timer_params_get_ticks(snd_timer_params_t * params)
 /**
  * \brief set timer queue size (32-1024)
  * \param params pointer to #snd_timer_params_t structure
+ * \param queue_size The queue size to set
  */
 void snd_timer_params_set_queue_size(snd_timer_params_t * params, long queue_size)
 {
@@ -724,6 +729,7 @@ long snd_timer_params_get_queue_size(snd_timer_params_t * params)
 /**
  * \brief set timer event filter
  * \param params pointer to #snd_timer_params_t structure
+ * \param filter The event filter bits to set
  */
 #ifndef DOXYGEN
 void INTERNAL(snd_timer_params_set_filter)(snd_timer_params_t * params, unsigned int filter)
@@ -776,7 +782,7 @@ size_t snd_timer_status_sizeof()
 
 /**
  * \brief allocate a new snd_timer_status_t structure
- * \param ptr returned pointer
+ * \param status returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_timer_status_t structure using the standard

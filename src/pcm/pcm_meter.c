@@ -924,7 +924,7 @@ snd_pcm_uframes_t snd_pcm_meter_get_boundary(snd_pcm_t *pcm)
 /**
  * \brief Set name of a #SND_PCM_TYPE_METER PCM scope
  * \param scope PCM meter scope
- * \param name scope name
+ * \param val scope name
  */
 void snd_pcm_scope_set_name(snd_pcm_scope_t *scope, const char *val)
 {
@@ -1147,6 +1147,7 @@ snd_pcm_scope_ops_t s16_ops = {
 
 /**
  * \brief Add a s16 pseudo scope to a #SND_PCM_TYPE_METER PCM
+ * \param pcm The pcm handle
  * \param name Scope name
  * \param scopep Pointer to newly created and added scope
  * \return 0 on success otherwise a negative error code

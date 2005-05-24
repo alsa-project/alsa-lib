@@ -107,6 +107,7 @@ int snd_seq_delete_simple_port(snd_seq_t *seq, int port)
 
 /**
  * \brief simple subscription (w/o exclusive & time conversion)
+ * \param seq sequencer handle
  * \param myport the port id as receiver
  * \param src_client sender client id
  * \param src_port sender port id
@@ -133,6 +134,7 @@ int snd_seq_connect_from(snd_seq_t *seq, int myport, int src_client, int src_por
 
 /**
  * \brief simple subscription (w/o exclusive & time conversion)
+ * \param seq sequencer handle
  * \param myport the port id as sender
  * \param dest_client destination client id
  * \param dest_port destination port id
@@ -159,6 +161,7 @@ int snd_seq_connect_to(snd_seq_t *seq, int myport, int dest_client, int dest_por
 
 /**
  * \brief simple disconnection
+ * \param seq sequencer handle
  * \param myport the port id as receiver
  * \param src_client sender client id
  * \param src_port sender port id
@@ -185,6 +188,7 @@ int snd_seq_disconnect_from(snd_seq_t *seq, int myport, int src_client, int src_
 
 /**
  * \brief simple disconnection
+ * \param seq sequencer handle
  * \param myport the port id as sender
  * \param dest_client destination client id
  * \param dest_port destination port id

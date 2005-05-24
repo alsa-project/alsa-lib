@@ -37,11 +37,13 @@ const char *_snd_module_rawmidi_hw = "";
 #define SNDRV_FILE_RAWMIDI		"/dev/snd/midiC%iD%i"
 #define SNDRV_RAWMIDI_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
+#ifndef DOC_HIDDEN
 typedef struct {
 	int open;
 	int fd;
 	int card, device, subdevice;
 } snd_rawmidi_hw_t;
+#endif
 
 static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 {

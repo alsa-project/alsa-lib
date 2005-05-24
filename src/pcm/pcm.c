@@ -1047,7 +1047,7 @@ int snd_pcm_drain(snd_pcm_t *pcm)
 /**
  * \brief Pause/resume PCM
  * \param pcm PCM handle
- * \param pause 0 = resume, 1 = pause
+ * \param enable 0 = resume, 1 = pause
  * \return 0 on success otherwise a negative error code
  *
  * Note that this function works only on the hardware which supports
@@ -1552,7 +1552,7 @@ const char *snd_pcm_stream_name(snd_pcm_stream_t stream)
 
 /**
  * \brief get name of PCM access type
- * \param access PCM access type
+ * \param acc PCM access type
  * \return ascii name of PCM access type
  */
 const char *snd_pcm_access_name(snd_pcm_access_t acc)
@@ -1615,7 +1615,7 @@ snd_pcm_format_t snd_pcm_format_value(const char* name)
 
 /**
  * \brief get name of PCM sample subformat
- * \param format PCM sample subformat
+ * \param subformat PCM sample subformat
  * \return ascii name of PCM sample subformat
  */
 const char *snd_pcm_subformat_name(snd_pcm_subformat_t subformat)
@@ -2663,7 +2663,7 @@ int snd_pcm_hw_params_dump(snd_pcm_hw_params_t *params, snd_output_t *out)
 
 /**
  * \brief Check, if hardware supports sample-resolution mmap for given configuration
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't support sample-resolution mmap
  * \retval 1 Hardware supports sample-resolution mmap
@@ -2684,7 +2684,7 @@ int snd_pcm_hw_params_can_mmap_sample_resolution(const snd_pcm_hw_params_t *para
 
 /**
  * \brief Check, if hardware does double buffering for start/stop for given configuration
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't do double buffering for start/stop
  * \retval 1 Hardware does double buffering for start/stop
@@ -2705,7 +2705,7 @@ int snd_pcm_hw_params_is_double(const snd_pcm_hw_params_t *params)
 
 /**
  * \brief Check, if hardware does double buffering for data transfers for given configuration
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't do double buffering for data transfers
  * \retval 1 Hardware does double buffering for data transfers
@@ -2726,7 +2726,7 @@ int snd_pcm_hw_params_is_batch(const snd_pcm_hw_params_t *params)
 
 /**
  * \brief Check, if hardware does block transfers for samples for given configuration
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't block transfers
  * \retval 1 Hardware does block transfers
@@ -2747,7 +2747,7 @@ int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
 
 /**
  * \brief Check, if hardware supports overrange detection
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't support overrange detection
  * \retval 1 Hardware supports overrange detection
@@ -2768,7 +2768,7 @@ int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params)
 
 /**
  * \brief Check, if hardware supports pause
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't support pause
  * \retval 1 Hardware supports pause
@@ -2789,7 +2789,7 @@ int snd_pcm_hw_params_can_pause(const snd_pcm_hw_params_t *params)
 
 /**
  * \brief Check, if hardware supports resume
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't support resume
  * \retval 1 Hardware supports resume
@@ -2810,7 +2810,7 @@ int snd_pcm_hw_params_can_resume(const snd_pcm_hw_params_t *params)
 
 /**
  * \brief Check, if hardware does half-duplex only
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't do half-duplex
  * \retval 1 Hardware does half-duplex
@@ -2831,7 +2831,7 @@ int snd_pcm_hw_params_is_half_duplex(const snd_pcm_hw_params_t *params)
 
 /**
  * \brief Check, if hardware does joint-duplex (playback and capture are somewhat correlated)
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't do joint-duplex
  * \retval 1 Hardware does joint-duplex
@@ -2852,7 +2852,7 @@ int snd_pcm_hw_params_is_joint_duplex(const snd_pcm_hw_params_t *params)
 
 /**
  * \brief Check, if hardware supports synchronized start with sample resolution
- * \param param Configuration space
+ * \param params Configuration space
  * \return Boolean value
  * \retval 0 Hardware doesn't support synchronized start
  * \retval 1 Hardware supports synchronized start
@@ -2969,7 +2969,7 @@ int snd_pcm_access_mask_malloc(snd_pcm_access_mask_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_pcm_access_mask_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_pcm_access_mask_free(snd_pcm_access_mask_t *obj)
 {
@@ -3071,7 +3071,7 @@ int snd_pcm_format_mask_malloc(snd_pcm_format_mask_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_pcm_format_mask_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_pcm_format_mask_free(snd_pcm_format_mask_t *obj)
 {
@@ -3174,7 +3174,7 @@ int snd_pcm_subformat_mask_malloc(snd_pcm_subformat_mask_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_pcm_subformat_mask_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_pcm_subformat_mask_free(snd_pcm_subformat_mask_t *obj)
 {
@@ -3277,7 +3277,7 @@ int snd_pcm_hw_params_malloc(snd_pcm_hw_params_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_pcm_hw_params_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_pcm_hw_params_free(snd_pcm_hw_params_t *obj)
 {
@@ -3359,7 +3359,7 @@ int snd_pcm_hw_params_set_access_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *para
  * \brief Restrict a configuration space to contain only its last access type
  * \param pcm PCM handle
  * \param params Configuration space
- * \param val Returned last access type
+ * \param access Returned last access type
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
@@ -3876,6 +3876,7 @@ int snd_pcm_hw_params_set_rate_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target rate / returned approximate set rate
+ * \param dir Sub unit direction
  * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
@@ -3947,7 +3948,8 @@ int snd_pcm_hw_params_set_rate_resample(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
 /**
  * \brief Extract resample state from a configuration space
  * \param pcm PCM handle
- * \param *val 0 = disable, 1 = enable rate resampling
+ * \param params Configuration space
+ * \param val 0 = disable, 1 = enable rate resampling
  * \return 0 otherwise a negative error code
  */
 int snd_pcm_hw_params_get_rate_resample(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
@@ -3977,7 +3979,8 @@ int snd_pcm_hw_params_set_export_buffer(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
 /**
  * \brief Extract buffer accessibility from a configuration space
  * \param pcm PCM handle
- * \param *val 0 = disable, 1 = enable exporting buffer
+ * \param params Configuration space
+ * \param val 0 = disable, 1 = enable exporting buffer
  * \return 0 otherwise a negative error code
  */
 int snd_pcm_hw_params_get_export_buffer(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val)
@@ -4124,6 +4127,7 @@ int snd_pcm_hw_params_set_period_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target period duration in us / returned chosen approximate target period duration
+ * \param dir Sub unit direction
  * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
@@ -4160,10 +4164,9 @@ int snd_pcm_hw_params_set_period_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t 
  * \brief Restrict a configuration space to contain only its maximum period time
  * \param pcm PCM handle
  * \param params Configuration space
+ * \param val Returned maximum approximate period time
  * \param dir Sub unit direction
  * \return approximate period duration in us
- *
- * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_period_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
@@ -4336,6 +4339,7 @@ int snd_pcm_hw_params_set_period_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target period size in frames / returned chosen approximate target period size
+ * \param dir Sub unit direction
  * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
@@ -4547,6 +4551,7 @@ int snd_pcm_hw_params_set_periods_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target periods per buffer / returned chosen approximate target periods per buffer
+ * \param dir Sub unit direction
  * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
@@ -4613,7 +4618,6 @@ int snd_pcm_hw_params_set_periods_integer(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 /**
  * \brief Extract buffer time from a configuration space
  * \param params Configuration space
- * \param approximate buffer duration in us
  * \param val Returned buffer time in us
  * \param dir Sub unit direction
  * \return 0 otherwise a negative error code if not exactly one is present
@@ -4747,6 +4751,7 @@ int snd_pcm_hw_params_set_buffer_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target buffer duration in us / returned chosen approximate target buffer duration
+ * \param dir Sub unit direction
  * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
@@ -4822,10 +4827,7 @@ int snd_pcm_hw_params_get_buffer_size(const snd_pcm_hw_params_t *params, snd_pcm
  * \brief Extract minimum buffer size from a configuration space
  * \param params Configuration space
  * \param val Returned approximate minimum buffer size in frames
- * \param dir Sub unit direction
  * \return 0 otherwise a negative error code
- *
- * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_get_buffer_size_min)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
@@ -4844,7 +4846,6 @@ int snd_pcm_hw_params_get_buffer_size_min(const snd_pcm_hw_params_t *params, snd
  * \brief Extract maximum buffer size from a configuration space
  * \param params Configuration space
  * \param val Returned approximate maximum buffer size in frames
- * \param dir Sub unit direction
  * \return 0 otherwise a negative error code
  *
  * Exact value is <,=,> the returned one following dir (-1,0,1)
@@ -4867,7 +4868,6 @@ int snd_pcm_hw_params_get_buffer_size_max(const snd_pcm_hw_params_t *params, snd
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val buffer size in frames
- * \param dir Sub unit direction
  * \return 0 if available a negative error code otherwise
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
@@ -4896,10 +4896,7 @@ int snd_pcm_hw_params_set_buffer_size(snd_pcm_t *pcm, snd_pcm_hw_params_t *param
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate minimum buffer size in frames (on return filled with actual minimum)
- * \param dir Sub unit direction (on return filled with actual direction)
  * \return 0 otherwise a negative error code if configuration space would become empty
- *
- * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
 int snd_pcm_hw_params_set_buffer_size_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 {
@@ -4915,10 +4912,7 @@ int snd_pcm_hw_params_set_buffer_size_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate maximum buffer size in frames (on return filled with actual maximum)
- * \param dir Sub unit direction (on return filled with actual direction)
  * \return 0 otherwise a negative error code if configuration space would become empty
- *
- * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
 int snd_pcm_hw_params_set_buffer_size_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
 {
@@ -4934,12 +4928,8 @@ int snd_pcm_hw_params_set_buffer_size_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * \param pcm PCM handle
  * \param params Configuration space
  * \param min approximate minimum buffer size in frames (on return filled with actual minimum)
- * \param mindir Sub unit direction for minimum (on return filled with actual direction)
  * \param max approximate maximum buffer size in frames (on return filled with actual maximum)
- * \param maxdir Sub unit direction for maximum (on return filled with actual direction)
  * \return 0 otherwise a negative error code if configuration space would become empty
- *
- * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
  */
 int snd_pcm_hw_params_set_buffer_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *min, snd_pcm_uframes_t *max)
 {
@@ -4957,8 +4947,6 @@ int snd_pcm_hw_params_set_buffer_size_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t
  * \param params Configuration space
  * \param val approximate target buffer size in frames / returned chosen approximate target buffer size in frames
  * \return 0 otherwise a negative error code if configuration space is empty
- *
- * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_uframes_t *val)
@@ -5150,6 +5138,7 @@ int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target tick duration in us / returned chosen approximate target tick duration in us
+ * \param dir Sub unit direction
  * \return 0 otherwise a negative error code if configuration space is empty
  *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
@@ -5302,7 +5291,7 @@ int snd_pcm_sw_params_malloc(snd_pcm_sw_params_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_pcm_sw_params_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_pcm_sw_params_free(snd_pcm_sw_params_t *obj)
 {
@@ -5320,7 +5309,7 @@ void snd_pcm_sw_params_copy(snd_pcm_sw_params_t *dst, const snd_pcm_sw_params_t 
 	*dst = *src;
 }
 
-/*
+/**
  * \brief Get boundary for ring pointers from a software configuration container
  * \param params Software configuration container
  * \param val Returned boundary in frames
@@ -5570,7 +5559,7 @@ int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
  * \brief Get xfer align from a software configuration container
  * \param params Software configuration container
  * \param val returned chunk size (frames are attempted to be transferred in chunks)
- * \param 0 otherwise a negative error code
+ * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
 int INTERNAL(snd_pcm_sw_params_get_xfer_align)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
@@ -5800,7 +5789,7 @@ int snd_pcm_status_malloc(snd_pcm_status_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_pcm_status_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_pcm_status_free(snd_pcm_status_t *obj)
 {
@@ -5820,6 +5809,7 @@ void snd_pcm_status_copy(snd_pcm_status_t *dst, const snd_pcm_status_t *src)
 
 /** 
  * \brief Get state from a PCM status container (see #snd_pcm_state)
+ * \param obj #snd_pcm_status_t pointer
  * \return PCM state
  */
 snd_pcm_state_t snd_pcm_status_get_state(const snd_pcm_status_t *obj)
@@ -5830,6 +5820,7 @@ snd_pcm_state_t snd_pcm_status_get_state(const snd_pcm_status_t *obj)
 
 /** 
  * \brief Get trigger timestamp from a PCM status container
+ * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
  */
 void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr)
@@ -5841,6 +5832,7 @@ void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestam
 
 /** 
  * \brief Get trigger hi-res timestamp from a PCM status container
+ * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
  */
 #ifndef DOXYGEN
@@ -5856,6 +5848,7 @@ use_default_symbol_version(__snd_pcm_status_get_trigger_htstamp, snd_pcm_status_
 
 /** 
  * \brief Get "now" timestamp from a PCM status container
+ * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
  */
 void snd_pcm_status_get_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr)
@@ -5867,6 +5860,7 @@ void snd_pcm_status_get_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr
 
 /** 
  * \brief Get "now" hi-res timestamp from a PCM status container
+ * \param obj pointer to #snd_pcm_status_t
  * \param ptr Pointer to returned timestamp
  */
 #ifndef DOXYGEN
@@ -5951,7 +5945,7 @@ int snd_pcm_info_malloc(snd_pcm_info_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_pcm_info_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_pcm_info_free(snd_pcm_info_t *obj)
 {
@@ -6186,7 +6180,7 @@ int snd_pcm_mmap_begin(snd_pcm_t *pcm,
  * \brief Application has completed the access to area requested with #snd_pcm_mmap_begin
  * \param pcm PCM handle
  * \param offset area offset in area steps (== frames)
- * \param size area portion size in frames
+ * \param frames area portion size in frames
  * \return count of transferred frames otherwise a negative error code
  *
  * You should pass this function the offset value that

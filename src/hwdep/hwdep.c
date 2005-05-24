@@ -181,6 +181,7 @@ int snd_hwdep_open(snd_hwdep_t **hwdep, const char *name, int mode)
  * \param hwdep Returned handle (NULL if not wanted)
  * \param name ASCII identifier of the HwDep handle
  * \param mode Open mode
+ * \param lconf The local configuration tree
  * \return 0 on success otherwise a negative error code
  *
  * Opens a new connection to the HwDep interface specified with
@@ -329,7 +330,7 @@ size_t snd_hwdep_info_sizeof()
 
 /**
  * \brief allocate a new snd_hwdep_info_t structure
- * \param ptr returned pointer
+ * \param info returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_hwdep_info_t structure using the standard
@@ -370,7 +371,7 @@ void snd_hwdep_info_copy(snd_hwdep_info_t *dst, const snd_hwdep_info_t *src)
 
 /**
  * \brief get hwdep card number
- * \param info pointer to a snd_hwdep_info_t structure
+ * \param obj pointer to a snd_hwdep_info_t structure
  * \return hwdep card number
  */
 int snd_hwdep_info_get_card(const snd_hwdep_info_t *obj)
@@ -392,7 +393,7 @@ unsigned int snd_hwdep_info_get_device(const snd_hwdep_info_t *info)
 
 /**
  * \brief get hwdep driver identifier
- * \param info pointer to a snd_hwdep_info_t structure
+ * \param obj pointer to a snd_hwdep_info_t structure
  * \return hwdep driver identifier
  */
 const char *snd_hwdep_info_get_id(const snd_hwdep_info_t *obj)
@@ -403,7 +404,7 @@ const char *snd_hwdep_info_get_id(const snd_hwdep_info_t *obj)
 
 /**
  * \brief get hwdep driver name
- * \param info pointer to a snd_hwdep_info_t structure
+ * \param obj pointer to a snd_hwdep_info_t structure
  * \return hwdep driver name
  */
 const char *snd_hwdep_info_get_name(const snd_hwdep_info_t *obj)
@@ -414,7 +415,7 @@ const char *snd_hwdep_info_get_name(const snd_hwdep_info_t *obj)
 
 /**
  * \brief get hwdep protocol interface
- * \param info pointer to a snd_hwdep_info_t structure
+ * \param obj pointer to a snd_hwdep_info_t structure
  * \return hwdep protocol interface
  */
 snd_hwdep_iface_t snd_hwdep_info_get_iface(const snd_hwdep_info_t *obj)
@@ -425,7 +426,7 @@ snd_hwdep_iface_t snd_hwdep_info_get_iface(const snd_hwdep_info_t *obj)
 
 /**
  * \brief set hwdep device number
- * \param info pointer to a snd_hwdep_info_t structure
+ * \param obj pointer to a snd_hwdep_info_t structure
  * \param val hwdep device
  */
 void snd_hwdep_info_set_device(snd_hwdep_info_t *obj, unsigned int val)
@@ -525,7 +526,7 @@ size_t snd_hwdep_dsp_status_sizeof()
 
 /**
  * \brief allocate a new snd_hwdep_dsp_status_t structure
- * \param ptr returned pointer
+ * \param info returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_hwdep_dsp_status_t structure using the standard
@@ -566,7 +567,7 @@ void snd_hwdep_dsp_status_copy(snd_hwdep_dsp_status_t *dst, const snd_hwdep_dsp_
 
 /**
  * \brief get the driver version of dsp loader
- * \param info pointer to a snd_hwdep_dsp_status_t structure
+ * \param obj pointer to a snd_hwdep_dsp_status_t structure
  * \return the driver version
  */
 unsigned int snd_hwdep_dsp_status_get_version(const snd_hwdep_dsp_status_t *obj)
@@ -577,7 +578,7 @@ unsigned int snd_hwdep_dsp_status_get_version(const snd_hwdep_dsp_status_t *obj)
 
 /**
  * \brief get the driver id of dsp loader
- * \param info pointer to a snd_hwdep_dsp_status_t structure
+ * \param obj pointer to a snd_hwdep_dsp_status_t structure
  * \return the driver id string
  */
 const char *snd_hwdep_dsp_status_get_id(const snd_hwdep_dsp_status_t *obj)
@@ -588,7 +589,7 @@ const char *snd_hwdep_dsp_status_get_id(const snd_hwdep_dsp_status_t *obj)
 
 /**
  * \brief get number of dsp blocks
- * \param info pointer to a snd_hwdep_dsp_status_t structure
+ * \param obj pointer to a snd_hwdep_dsp_status_t structure
  * \return number of dsp blocks
  */
 unsigned int snd_hwdep_dsp_status_get_num_dsps(const snd_hwdep_dsp_status_t *obj)
@@ -610,7 +611,7 @@ unsigned int snd_hwdep_dsp_status_get_dsp_loaded(const snd_hwdep_dsp_status_t *i
 
 /**
  * \brief get the chip status of dsp loader
- * \param info pointer to a snd_hwdep_dsp_status_t structure
+ * \param obj pointer to a snd_hwdep_dsp_status_t structure
  * \return non-zero if all DSP blocks are loaded and the chip is ready
  */
 unsigned int snd_hwdep_dsp_status_get_chip_ready(const snd_hwdep_dsp_status_t *obj)
@@ -630,7 +631,7 @@ size_t snd_hwdep_dsp_image_sizeof()
 
 /**
  * \brief allocate a new snd_hwdep_dsp_image_t structure
- * \param ptr returned pointer
+ * \param info returned pointer
  * \return 0 on success otherwise a negative error code if fails
  *
  * Allocates a new snd_hwdep_dsp_image_t structure using the standard
@@ -671,7 +672,7 @@ void snd_hwdep_dsp_image_copy(snd_hwdep_dsp_image_t *dst, const snd_hwdep_dsp_im
 
 /**
  * \brief get the DSP block index
- * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param obj pointer to a snd_hwdep_dsp_image_t structure
  * \return the index of the DSP block
  */
 unsigned int snd_hwdep_dsp_image_get_index(const snd_hwdep_dsp_image_t *obj)
@@ -682,7 +683,7 @@ unsigned int snd_hwdep_dsp_image_get_index(const snd_hwdep_dsp_image_t *obj)
 
 /**
  * \brief get the name of the DSP block
- * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param obj pointer to a snd_hwdep_dsp_image_t structure
  * \return the name string of the DSP block
  */
 const char *snd_hwdep_dsp_image_get_name(const snd_hwdep_dsp_image_t *obj)
@@ -693,7 +694,7 @@ const char *snd_hwdep_dsp_image_get_name(const snd_hwdep_dsp_image_t *obj)
 
 /**
  * \brief get the length of the DSP block
- * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param obj pointer to a snd_hwdep_dsp_image_t structure
  * \return the length of the DSP block in bytes
  */
 size_t snd_hwdep_dsp_image_get_length(const snd_hwdep_dsp_image_t *obj)
@@ -704,7 +705,7 @@ size_t snd_hwdep_dsp_image_get_length(const snd_hwdep_dsp_image_t *obj)
 
 /**
  * \brief get the image pointer of the DSP block
- * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param obj pointer to a snd_hwdep_dsp_image_t structure
  * \return the image pointer of the DSP block
  */
 const void *snd_hwdep_dsp_image_get_image(const snd_hwdep_dsp_image_t *obj)
@@ -715,7 +716,7 @@ const void *snd_hwdep_dsp_image_get_image(const snd_hwdep_dsp_image_t *obj)
 
 /**
  * \brief set the DSP block index
- * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param obj pointer to a snd_hwdep_dsp_image_t structure
  * \param index the index value to set
  */
 void snd_hwdep_dsp_image_set_index(snd_hwdep_dsp_image_t *obj, unsigned int index)
@@ -726,7 +727,7 @@ void snd_hwdep_dsp_image_set_index(snd_hwdep_dsp_image_t *obj, unsigned int inde
 
 /**
  * \brief set the name of the DSP block
- * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param obj pointer to a snd_hwdep_dsp_image_t structure
  * \param name the name string
  */
 void snd_hwdep_dsp_image_set_name(snd_hwdep_dsp_image_t *obj, const char *name)
@@ -738,7 +739,7 @@ void snd_hwdep_dsp_image_set_name(snd_hwdep_dsp_image_t *obj, const char *name)
 
 /**
  * \brief set the DSP block length
- * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param obj pointer to a snd_hwdep_dsp_image_t structure
  * \param length the length of the DSP block
  */
 void snd_hwdep_dsp_image_set_length(snd_hwdep_dsp_image_t *obj, size_t length)
@@ -749,7 +750,7 @@ void snd_hwdep_dsp_image_set_length(snd_hwdep_dsp_image_t *obj, size_t length)
 
 /**
  * \brief set the DSP block image pointer
- * \param info pointer to a snd_hwdep_dsp_image_t structure
+ * \param obj pointer to a snd_hwdep_dsp_image_t structure
  * \param image the DSP image pointer
  */
 void snd_hwdep_dsp_image_set_image(snd_hwdep_dsp_image_t *obj, void *image)

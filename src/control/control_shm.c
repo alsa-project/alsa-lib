@@ -40,10 +40,12 @@
 const char *_snd_module_control_shm = "";
 #endif
 
+#ifndef DOC_HIDDEN
 typedef struct {
 	int socket;
 	volatile snd_ctl_shm_ctrl_t *ctrl;
 } snd_ctl_shm_t;
+#endif
 
 static int snd_ctl_shm_action(snd_ctl_t *ctl)
 {

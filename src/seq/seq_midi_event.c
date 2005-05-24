@@ -78,6 +78,7 @@ static void songpos_decode(const snd_seq_event_t *ev, unsigned char *buf);
 /*
  * event list
  */
+#ifndef DOC_HIDDEN
 static struct status_event_list_t {
 	int event;
 	int qlen;
@@ -124,9 +125,8 @@ static struct extra_event_list_t {
 	{SND_SEQ_EVENT_REGPARAM, extra_decode_xrpn},
 };
 
-#ifndef DOC_HIDDEN
 #define numberof(ary)	(sizeof(ary)/sizeof(ary[0]))
-#endif
+#endif /* DOC_HIDDEN */
 
 /**
  * \brief Initialize MIDI event parser
@@ -159,7 +159,7 @@ int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 
 /**
  * \brief Free MIDI event parser
- * \param rdev MIDI event parser
+ * \param dev MIDI event parser
  * \return 0 on success otherwise a negative error code
  *
  * Frees MIDI event parser.

@@ -387,6 +387,7 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  * \param fname Filename (or NULL if file descriptor is available)
  * \param fd File descriptor
  * \param fmt File format ("raw" is supported only)
+ * \param perm File permission
  * \param slave Slave PCM handle
  * \param close_slave When set, the slave PCM handle is closed with copy PCM
  * \retval zero on success otherwise a negative error code

@@ -111,7 +111,6 @@ typedef struct {
 	((enum sndrv_pcm_state) (hw)->mmap_status->state)
 #define FAST_PCM_TSTAMP(hw) \
 	((hw)->mmap_status->tstamp)
-#endif /* DOC_HIDDEN */
 
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm)
 {
@@ -122,6 +121,7 @@ struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm)
 		res.tv_nsec *= 1000L;
 	return res;
 }
+#endif /* DOC_HIDDEN */
 
 static int sync_ptr1(snd_pcm_hw_t *hw, unsigned int flags)
 {
@@ -1039,6 +1039,8 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
  * \param fd File descriptor
+ * \param mmap_emulation Boolean flag for mmap emulation mode
+ * \param sync_ptr_ioctl Boolean flag for sync_ptr ioctl
  * \retval zero on success otherwise a negative error code
  * \warning Using of this function might be dangerous in the sense
  *          of compatibility reasons. The prototype might be freely
