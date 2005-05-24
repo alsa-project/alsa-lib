@@ -757,12 +757,92 @@ static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
  * Exported functions
  */
 
-/*! \page pcm_external_plugins
+/*! \page pcm_external_plugins PCM External Plugin SDK
 
 \section pcm_ioplug External Plugin: I/O Plugin
 
 The I/O-type plugin is a PCM plugin to work as the input or output terminal point,
 i.e. as a user-space PCM driver.
+
+The new plugin is created via #snd_pcm_ioplug_create() function.
+The first argument is a pointer of the pluging information.  Some of
+this struct must be initialized in prior to call
+#snd_pcm_ioplug_create().  Then the function fills other fields in
+return.  The rest arguments, name, stream and mode, are usually
+identical with the values passed from the ALSA plugin constructor.
+
+The following fields are mandatory: version, name, callback.
+Otherfields are optional and should be initialized with zero.
+
+The constant #SND_PCM_IOPLUG_VERSION must be passed to the version
+field for the version check in alsa-lib.  A non-NULL ASCII string
+has to be passed to the name field.  The callback field contains the 
+table of callback functions for this plugin (defined as
+#snd_pcm_ioplug_callback_t).
+
+flags field specifies the optional bit-flags.  poll_fd and poll_events
+specify the poll file descriptor and the corresponding poll events
+(POLLIN, POLLOUT) for the plugin.  If the plugin requires multiple
+poll descriptors or poll descriptor(s) dynamically varying, set
+poll_descriptors and poll_descriptors_count callbacks to the callback
+table.  Then the poll_fd and poll_events field are ignored.
+
+mmap_rw specifies whether the plugin behaves in the pseudo mmap mode.
+When this value is set to 1, the plugin creates always a local buffer
+and performs read/write calls using this buffer as if it's mmapped.
+The address of local buffer can be obtained via
+#snd_pcm_ioplug_mmap_areas() function.
+When poll_fd, poll_events and mmap_rw fields are changed after
+#snd_pcm_ioplug_create(), call #snd_pcm_ioplug_reinit_status() to
+reflect the changes.
+
+The driver can set an arbitrary value (pointer) to private_data
+field to refer its own data in the callbacks.
+
+The rest fields are filled by #snd_pcm_ioplug_create().  The pcm field
+is the resultant PCM handle.  The others are the current status of the
+PCM.
+
+The callback functions in #snd_pcm_ioplug_callback_t define the real
+behavior of the driver.
+At least, start, stop and pointer callbacks must be given.  Other
+callbacks are optional.  The start and stop callbacks are called when
+the PCM stream is started and stopped, repsectively.  The pointer
+callback returns the current DMA position, which may be called at any
+time.
+
+The transfer callback is called when any data transfer happens.  It
+receives the area array, offset and the size to transfer.  The area
+array contains the array of snd_pcm_channel_area_t with the elements
+of number of channels.
+
+When the PCM is closed, close callback is called.  If the driver
+allocates any internal buffers, they should be released in this
+callback.  The hw_params and hw_free callbacks are called when
+hw_params are set and reset, respectively.  Note that they may be
+called multiple times according to the application.  Similarly,
+sw_params callback is called when sw_params is set or changed.
+
+The prepare, drain, pause and resume callbacks are called when
+#snd_pcm_prepare(), #snd_pcm_drain(), #snd_pcm_pause(), and
+#snd_pcm_resume() are called.  The poll_descriptors_count and
+poll_descriptors callbacks are used to return the multiple or dynamic
+poll descriptors as mentioned above.  The poll_revents callback is
+used to modify poll events.  If the driver needs to mangle the native
+poll events to proper poll events for PCM, you can do it in this
+callback.
+
+Finally, the dump callback is used to print the status of the plugin.
+
+The hw_params constraints can be defined via either
+#snd_pcm_iplug_set_param_minmax() and #snd_pcm_ioplug_set_param_list()
+functions after calling #snd_pcm_ioplug_create().
+The former defines the minimal and maximal acceptable values for the
+given hw_params parameter (SND_PCM_IOPLUG_HW_XXX).
+This function can't be used for the format parameter.  The latter
+function specifies the available parameter values as the list.
+
+To clear the parameter constraints, call #snd_pcm_ioplug_params_reset() function.
 
 */
 

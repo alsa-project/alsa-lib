@@ -1,3 +1,12 @@
+/**
+ * \file include/pcm_extplug.h
+ * \brief External Filter-Plugin SDK
+ * \author Takashi Iwai <tiwai@suse.de>
+ * \date 2005
+ *
+ * External Filter-Plugin SDK
+ */
+
 /*
  * ALSA external PCM plugin SDK (draft version)
  *
@@ -22,6 +31,13 @@
 #ifndef __ALSA_PCM_EXTPLUG_H
 #define __ALSA_PCM_EXTPLUG_H
 
+/**
+ * \defgroup PCM_ExtPlug External Filter plugin SDK
+ * \ingroup Plugin_SDK
+ * See the \ref pcm page for more details.
+ * \{
+ */
+
 /** hw constraints for extplug */
 enum {
 	SND_PCM_EXTPLUG_HW_FORMAT,	/**< format */
@@ -29,23 +45,28 @@ enum {
 	SND_PCM_EXTPLUG_HW_PARAMS	/**< max number of hw constraints */
 };
 	
+/** Handle of external filter plugin */
 typedef struct snd_pcm_extplug snd_pcm_extplug_t;
+/** Callback table of extplug */
 typedef struct snd_pcm_extplug_callback snd_pcm_extplug_callback_t;
 
-/**
+/*
  * Protocol version
  */
-#define SND_PCM_EXTPLUG_VERSION_MAJOR	1
-#define SND_PCM_EXTPLUG_VERSION_MINOR	0
-#define SND_PCM_EXTPLUG_VERSION_TINY	0
+#define SND_PCM_EXTPLUG_VERSION_MAJOR	1	/**< Protocol major version */
+#define SND_PCM_EXTPLUG_VERSION_MINOR	0	/**< Protocol minor version */
+#define SND_PCM_EXTPLUG_VERSION_TINY	0	/**< Protocol tiny version */
+/**
+ * Filter-plugin protocol version
+ */
 #define SND_PCM_EXTPLUG_VERSION		((SND_PCM_EXTPLUG_VERSION_MAJOR<<16) |\
 					 (SND_PCM_EXTPLUG_VERSION_MINOR<<8) |\
 					 (SND_PCM_EXTPLUG_VERSION_TINY))
 
-/** handle of extplug */
+/** Handle of extplug */
 struct snd_pcm_extplug {
 	/**
-	 * protocol version; SND_PCM_EXTPLUG_VERSION must be filled here
+	 * protocol version; #SND_PCM_EXTPLUG_VERSION must be filled here
 	 * before calling #snd_pcm_extplug_create()
 	 */
 	unsigned int version;
@@ -99,7 +120,7 @@ struct snd_pcm_extplug {
 	unsigned int slave_channels;
 };
 
-/** callback table of extplug */
+/** Callback table of extplug */
 struct snd_pcm_extplug_callback {
 	/**
 	 * transfer between source and destination; this is a required callback
@@ -143,15 +164,22 @@ int snd_pcm_extplug_set_param_minmax(snd_pcm_extplug_t *extplug, int type, unsig
 int snd_pcm_extplug_set_slave_param_list(snd_pcm_extplug_t *extplug, int type, unsigned int num_list, const unsigned int *list);
 int snd_pcm_extplug_set_slave_param_minmax(snd_pcm_extplug_t *extplug, int type, unsigned int min, unsigned int max);
 
+/**
+ * set the parameter constraint with a single value
+ */
 static inline int snd_pcm_extplug_set_param(snd_pcm_extplug_t *extplug, int type, unsigned int val)
 {
 	return snd_pcm_extplug_set_param_list(extplug, type, 1, &val);
 }
 
+/**
+ * set the parameter constraint for slave PCM with a single value
+ */
 static inline int snd_pcm_extplug_set_slave_param(snd_pcm_extplug_t *extplug, int type, unsigned int val)
 {
 	return snd_pcm_extplug_set_slave_param_list(extplug, type, 1, &val);
 }
 
+/** \} */
 
 #endif /* __ALSA_PCM_EXTPLUG_H */

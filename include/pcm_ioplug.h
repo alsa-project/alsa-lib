@@ -1,5 +1,14 @@
+/**
+ * \file include/pcm_ioplug.h
+ * \brief External I/O-Plugin SDK
+ * \author Takashi Iwai <tiwai@suse.de>
+ * \date 2005
+ *
+ * External I/O-Plugin SDK
+ */
+
 /*
- * ALSA external PCM plugin SDK (draft version)
+ * ALSA external PCM plugin SDK
  *
  * Copyright (c) 2005 Takashi Iwai <tiwai@suse.de>
  *
@@ -22,6 +31,13 @@
 #ifndef __ALSA_PCM_IOPLUG_H
 #define __ALSA_PCM_IOPLUG_H
 
+/**
+ * \defgroup PCM_IOPlug External I/O plugin SDK
+ * \ingroup Plugin_SDK
+ * See the \ref pcm page for more details.
+ * \{
+ */
+
 /** hw constraints for ioplug */
 enum {
 	SND_PCM_IOPLUG_HW_ACCESS = 0,	/**< access type */
@@ -34,7 +50,9 @@ enum {
 	SND_PCM_IOPLUG_HW_PARAMS	/**< max number of hw constraints */
 };
 	
+/** I/O plugin handle */
 typedef struct snd_pcm_ioplug snd_pcm_ioplug_t;
+/** Callback table of ioplug */
 typedef struct snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
 
 /**
@@ -42,20 +60,23 @@ typedef struct snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
  */
 #define SND_PCM_IOPLUG_FLAG_LISTED	(1<<0)		/* list up this PCM */
 
-/**
+/*
  * Protocol version
  */
-#define SND_PCM_IOPLUG_VERSION_MAJOR	1
-#define SND_PCM_IOPLUG_VERSION_MINOR	0
-#define SND_PCM_IOPLUG_VERSION_TINY	0
+#define SND_PCM_IOPLUG_VERSION_MAJOR	1	/**< Protocol major version */
+#define SND_PCM_IOPLUG_VERSION_MINOR	0	/**< Protocol minor version */
+#define SND_PCM_IOPLUG_VERSION_TINY	0	/**< Protocol tiny version */
+/**
+ * IO-plugin protocol version
+ */
 #define SND_PCM_IOPLUG_VERSION		((SND_PCM_IOPLUG_VERSION_MAJOR<<16) |\
 					 (SND_PCM_IOPLUG_VERSION_MINOR<<8) |\
 					 (SND_PCM_IOPLUG_VERSION_TINY))
 
-/** handle of ioplug */
+/** Handle of ioplug */
 struct snd_pcm_ioplug {
 	/**
-	 * protocol version; SND_PCM_IOPLUG_VERSION must be filled here
+	 * protocol version; #SND_PCM_IOPLUG_VERSION must be filled here
 	 * before calling #snd_pcm_ioplug_create()
 	 */
 	unsigned int version;
@@ -80,21 +101,21 @@ struct snd_pcm_ioplug {
 	 */
 	snd_pcm_t *pcm;
 
-	snd_pcm_stream_t stream;	/* stream direcion; read-only */	
-	snd_pcm_state_t state;		/* current PCM state; read-only */
-	volatile snd_pcm_uframes_t appl_ptr;	/* application pointer; read-only */
-	volatile snd_pcm_uframes_t hw_ptr;	/* hw pointer; read-only */
-	int nonblock;			/* non-block mode; read-only */
+	snd_pcm_stream_t stream;	/**< stream direcion; read-only */	
+	snd_pcm_state_t state;		/**< current PCM state; read-only */
+	volatile snd_pcm_uframes_t appl_ptr;	/**< application pointer; read-only */
+	volatile snd_pcm_uframes_t hw_ptr;	/**< hw pointer; read-only */
+	int nonblock;			/**< non-block mode; read-only */
 
-	snd_pcm_access_t access;	/* access type; filled after hw_params is called */
-	snd_pcm_format_t format;	/* format; filled after hw_params is called */
-	unsigned int channels;		/* channels; filled after hw_params is called */
-	unsigned int rate;		/* rate; filled after hw_params is called */
-	snd_pcm_uframes_t period_size;	/* period size; filled after hw_params is called */
-	snd_pcm_uframes_t buffer_size;	/* buffer size; filled after hw_params is called */
+	snd_pcm_access_t access;	/**< access type; filled after hw_params is called */
+	snd_pcm_format_t format;	/**< PCM format; filled after hw_params is called */
+	unsigned int channels;		/**< number of channels; filled after hw_params is called */
+	unsigned int rate;		/**< rate; filled after hw_params is called */
+	snd_pcm_uframes_t period_size;	/**< period size; filled after hw_params is called */
+	snd_pcm_uframes_t buffer_size;	/**< buffer size; filled after hw_params is called */
 };
 
-/** callback table of ioplug */
+/** Callback table of ioplug */
 struct snd_pcm_ioplug_callback {
 	/**
 	 * start the PCM; required
@@ -182,5 +203,7 @@ void snd_pcm_ioplug_params_reset(snd_pcm_ioplug_t *io);
 /* hw_parameter setting */
 int snd_pcm_ioplug_set_param_minmax(snd_pcm_ioplug_t *io, int type, unsigned int min, unsigned int max);
 int snd_pcm_ioplug_set_param_list(snd_pcm_ioplug_t *io, int type, unsigned int num_list, const unsigned int *list);
+
+/** \} */
 
 #endif /* __ALSA_PCM_IOPLUG_H */

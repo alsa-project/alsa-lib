@@ -433,7 +433,96 @@ static snd_pcm_ops_t snd_pcm_extplug_ops = {
  * Exported functions
  */
 
-/*! \page pcm_external_plugins
+/*! \page pcm_external_plugins PCM External Plugin SDK
+
+\section pcm_externals External Plugins
+
+The external plugins are implemented in a shared object file located
+at /usr/lib/alsa-lib (the exact location depends on the build option
+and asoundrc configuration).  It has to be the file like
+libasound_module_pcm_MYPLUGIN.so, where MYPLUGIN corresponds to your
+own plugin name.
+
+The entry point of the plugin is defined via
+#SND_PCM_PLUGIN_DEFINE_FUNC() macro.  This macro defines the function
+with a proper name to be referred from alsa-lib.  The function takes
+the following 6 arguments:
+\code
+int (snd_pcm_t **pcmp, const char *name, snd_config_t *root,
+	snd_config_t *conf, snd_pcm_stream_t stream, int mode)
+\endcode
+The first argument, pcmp, is the pointer to store the resultant PCM
+handle.  The arguments name, root, stream and mode are the parameters
+to be passed to the plugin constructor.  The conf is the configuration
+tree for the plugin.  The arguments above are defined in the macro
+itself, so don't use variables with the same names to shadow
+parameters.
+
+After parsing the configuration parameters in the given conf tree,
+usually you will call the external plugin API function,
+#snd_pcm_extplug_create() or #snd_pcm_ioplug_create(), depending
+on the plugin type.  The PCM handle must be filled *pcmp in return.
+Then this function must return either a value 0 when succeeded, or a
+negative value as the error code. 
+
+Finally, add #SND_PCM_PLUGIN_SYMBOL() with the name of your
+plugin as the argument at the end.  This defines the proper versioned
+symbol as the reference.
+
+The typical code would look like below:
+\code
+struct myplug_info {
+	snd_pcm_extplug_t ext;
+	int my_own_data;
+	...
+};
+
+SND_PCM_PLUGIN_DEFINE_FUNC(myplug)
+{
+	snd_config_iterator_t i, next;
+	struct myplug_info *myplug;
+	int err;
+
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		if (strcmp(id, "comment") == 0 || strcmp(id, "type") == 0)
+			continue;
+		if (strcmp(id, "my_own_parameter") == 0) {
+			....
+			continue;
+		}
+		SNDERR("Unknown field %s", id);
+		return -EINVAL;
+	}
+
+	myplug = calloc(1, sizeof(*myplug));
+	if (myplug == NULL)
+		return -ENOMEM;
+
+	myplug->ext.version = SND_PCM_EXTPLUG_VERSION;
+	myplug->ext.name = "My Own Plugin";
+	myplug->ext.callback = &my_own_callback;
+	myplug->ext.private_data = myplug;
+	....
+
+	err = snd_pcm_extplug_create(&myplug->ext, name, stream, mode);
+	if (err < 0) {
+		myplug_free(myplug);
+		return err;
+	}
+
+	*pcmp = myplug->ext.pcm;
+	return 0;
+}
+
+SND_PCM_PLUGIN_SYMBOL(myplug);
+\endcode
+
+Read the codes in alsa-plugins package for the real examples.
+
 
 \section pcm_extplug External Plugin: Filter-Type Plugin
 
@@ -442,6 +531,54 @@ and feeds to the output.  Thus, this plugin always needs a slave PCM as its outp
 
 The plugin can modify the format and the channels of the input/output PCM.
 It can <i>not</i> modify the sample rate (because of simplicity reason).
+
+The following fields have to be filled in extplug record before calling
+#snd_pcm_extplug_create() : version, name, callback.
+Otherfields are optional and should be initialized with zero.
+
+The constant #SND_PCM_EXTPLUG_VERSION must be passed to the version
+field for the version check in alsa-lib.  A non-NULL ASCII string
+has to be passed to the name field.  The callback field contains the 
+table of callback functions for this plugin (defined as
+#snd_pcm_extplug_callback_t).
+
+The driver can set an arbitrary value (pointer) to private_data
+field to refer its own data in the callbacks.
+
+The rest fields are filled by #snd_pcm_extplug_create().  The pcm field
+is the resultant PCM handle.  The others are the current status of the
+PCM.
+
+The callback functions in #snd_pcm_extplug_callback_t define the real
+behavior of the driver.
+At least, transfer callback must be given.  This callback is called
+at each time certain size of data block is transfered to the slave
+PCM.  Other callbacks are optional.  
+
+The close callback is called when the PCM is closed.  If the plugin
+allocates private resources, this is the place to release them
+again.  The hw_params and hw_free callbacks are called at
+#snd_pcm_hw_params() and #snd_pcm_hw_free() API calls,
+respectively.  The last, dump callback, is called for printing the
+information of the given plugin.
+
+The hw_params constraints can be defined via either
+#snd_pcm_extplug_set_param_minmax() and #snd_pcm_extplug_set_param_list()
+functions after calling #snd_pcm_extplug_create().
+The former defines the minimal and maximal acceptable values for the
+given hw_params parameter (SND_PCM_EXTPLUG_HW_XXX).
+This function can't be used for the format parameter.  The latter
+function specifies the available parameter values as the list.
+As mentioned above, the rate can't be changed.  Only changeable
+parameters are sample format and channels.
+
+To define the constraints of the slave PCM configuration, use
+either #snd_pcm_extplug_set_slave_param_minmax() and
+#snd_pcm_extplug_set_slave_param_list().  The arguments are as same
+as former functions.
+
+To clear the parameter constraints, call #snd_pcm_extplug_params_reset()
+function. 
 
 */
 
@@ -460,8 +597,8 @@ It can <i>not</i> modify the sample rate (because of simplicity reason).
  * PCM plugin as "slave" config value.
  * name, root, stream and mode arguments are the values used for opening the PCM.
  *
- * The callback is the mandatory field of extplug handle.  At least, transfer callback
- * must be set before calling this function.
+ * The callback is the mandatory field of extplug handle.  At least, start, stop and
+ * pointer callbacks must be set before calling this function.
  */
 int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 			   snd_config_t *root, snd_config_t *slave_conf,
@@ -505,7 +642,7 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	ext->plug.gen.slave = spcm;
 	ext->plug.gen.close_slave = 1;
 
-	err = snd_pcm_new(&pcm, SND_PCM_TYPE_IOPLUG, name, stream, mode);
+	err = snd_pcm_new(&pcm, SND_PCM_TYPE_EXTPLUG, name, stream, mode);
 	if (err < 0) {
 		free(ext);
 		return err;

@@ -37,9 +37,19 @@ extern "C" {
  *  \{
  */
 
+/**
+ * Define the object entry for external PCM plugins
+ */
 #define SND_PCM_PLUGIN_ENTRY(name) _snd_pcm_##name##_open
+
+/**
+ * Define the symbols of the given plugin with versions
+ */
 #define SND_PCM_PLUGIN_SYMBOL(name) SND_DLSYM_BUILD_VERSION(SND_PCM_PLUGIN_ENTRY(name), SND_PCM_DLSYM_VERSION);
 
+/**
+ * Define the plugin
+ */
 #define SND_PCM_PLUGIN_DEFINE_FUNC(plugin) \
 int SND_PCM_PLUGIN_ENTRY(plugin) (snd_pcm_t **pcmp, const char *name,\
 				  snd_config_t *root, snd_config_t *conf, \
