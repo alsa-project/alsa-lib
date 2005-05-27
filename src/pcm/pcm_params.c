@@ -55,6 +55,11 @@ static void dump_hw_params(snd_pcm_hw_params_t *params, const char *type,
 	snd_pcm_hw_params_dump(params, out);
 	snd_output_close(out);
 }
+#else
+static inline void dump_hw_params(snd_pcm_hw_params_t *params, const char *type,
+				  snd_pcm_hw_param_t var, unsigned int val, int err)
+{
+}
 #endif
 
 static inline int hw_is_mask(snd_pcm_hw_param_t var)
