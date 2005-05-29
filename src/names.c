@@ -45,7 +45,7 @@
 #define ALSA_NAMES_PATH2 "~/.asoundnm"
 #endif
 
-static int names_parse(snd_config_t *top, const char *interface, snd_devname_t **list)
+static int names_parse(snd_config_t *top, const char *iface, snd_devname_t **list)
 {
 	snd_config_iterator_t i, next;
 	snd_config_iterator_t j, jnext;
@@ -54,7 +54,7 @@ static int names_parse(snd_config_t *top, const char *interface, snd_devname_t *
 	snd_devname_t *dn, *last = NULL;
 	int err;
 
-	err = snd_config_search(top, interface, &top);
+	err = snd_config_search(top, iface, &top);
 	if (err < 0)
 		return err;
 	snd_config_for_each(i, next, top) {
@@ -119,21 +119,21 @@ static int names_parse(snd_config_t *top, const char *interface, snd_devname_t *
 
 /** 
  * \brief Give a list of device names and associated comments for selected interface
- * \param interface a string identifying interface ("pcm", "ctl", "seq", "rawmidi")
+ * \param iface a string identifying interface ("pcm", "ctl", "seq", "rawmidi")
  * \param list result - a pointer to list
  * \return A non-negative value if successful, otherwise a negative error code.
  *
  * The global configuration files are specified in the environment variable
  * \c ALSA_NAMES_FILE.
  */
-int snd_names_list(const char *interface, snd_devname_t **list)
+int snd_names_list(const char *iface, snd_devname_t **list)
 {
 	char *file;
 	snd_config_t *top;
 	snd_input_t *in;
 	int err;
 	
-	assert(interface);
+	assert(iface);
 	assert(list);
 	*list = NULL;
 	file = getenv(ALSA_NAMES_ENV);
@@ -160,7 +160,7 @@ int snd_names_list(const char *interface, snd_devname_t **list)
 		if (err < 0) {
 			SNDERR("%s may be old or corrupted: consider to remove or fix it", file);
 		} else {
-			err = names_parse(top, interface, list);
+			err = names_parse(top, iface, list);
 			if (err < 0) {
 				snd_names_list_free(*list);
 				*list = NULL;
