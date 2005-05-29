@@ -186,7 +186,7 @@ struct snd_devname {
 	snd_devname_t *next;	/**< Next pointer */
 };
 
-int snd_names_list(const char *interface, snd_devname_t **list);
+int snd_names_list(const char *iface, snd_devname_t **list);
 void snd_names_list_free(snd_devname_t *list);
 
 /** \} */
