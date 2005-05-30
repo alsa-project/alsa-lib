@@ -229,7 +229,7 @@ pcm.NAME {
   # or
   file INT		# File descriptor
   [format STR]		# File format (NYI)
-
+  [perm INT]		# File permission (default 0600)
 
   type meter		# Meter PCM
   slave STR		# Slave name (see pcm_slave)
