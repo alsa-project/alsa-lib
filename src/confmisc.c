@@ -875,7 +875,7 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 {
 	snd_pcm_info_t *info;
 	const char *id;
-	void *data;
+	const void *data;
 	snd_pcm_t *pcm;
 	int err;
 
@@ -887,7 +887,7 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 		return -EINVAL;
 	}
 	err = snd_config_get_pointer(private_data, &data);
-	pcm = data;
+	pcm = (snd_pcm_t *)data;
 	if (err < 0) {
 		SNDERR("field pcm_handle is not a pointer");
 		return err;
