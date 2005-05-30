@@ -34,10 +34,12 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	double phase = *_phase;
 	double step = max_phase*freq/(double)rate;
 	double res;
-	signed short *samples[channels];
+	unsigned char *samples[channels], *tmp;
 	int steps[channels];
-	unsigned int chn;
+	unsigned int chn, byte;
 	int ires;
+	unsigned int maxval = (1 << (snd_pcm_format_width(format) - 1)) - 1;
+	int bps = snd_pcm_format_width(format) / 8;  /* bytes per sample */
 	
 	/* verify and prepare the contents of areas */
 	for (chn = 0; chn < channels; chn++) {
@@ -45,20 +47,22 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 			printf("areas[%i].first == %i, aborting...\n", chn, areas[chn].first);
 			exit(EXIT_FAILURE);
 		}
-		samples[chn] = (signed short *)(((unsigned char *)areas[chn].addr) + (areas[chn].first / 8));
+		samples[chn] = /*(signed short *)*/(((unsigned char *)areas[chn].addr) + (areas[chn].first / 8));
 		if ((areas[chn].step % 16) != 0) {
 			printf("areas[%i].step == %i, aborting...\n", chn, areas[chn].step);
 			exit(EXIT_FAILURE);
 		}
-		steps[chn] = areas[chn].step / 16;
+		steps[chn] = areas[chn].step / 8;
 		samples[chn] += offset * steps[chn];
 	}
 	/* fill the channel areas */
 	while (count-- > 0) {
-		res = sin(phase) * 32767;
+		res = sin(phase) * maxval;
 		ires = res;
+		tmp = (unsigned char *)(&ires);
 		for (chn = 0; chn < channels; chn++) {
-			*samples[chn] = ires;
+			for (byte = 0; byte < bps; byte++)
+				*(samples[chn] + byte) = tmp[byte];
 			samples[chn] += steps[chn];
 		}
 		phase += step;
@@ -708,6 +712,7 @@ static void help(void)
 "-b,--buffer	ring buffer size in us\n"
 "-p,--period	period size in us\n"
 "-m,--method	transfer method\n"
+"-o,--format	sample format\n"
 "-v,--verbose   show the PCM setup parameters\n"
 "\n");
         printf("Recognized sample formats are:");
@@ -735,6 +740,7 @@ int main(int argc, char *argv[])
 		{"buffer", 1, NULL, 'b'},
 		{"period", 1, NULL, 'p'},
 		{"method", 1, NULL, 'm'},
+		{"format", 1, NULL, 'o'},
 		{"verbose", 1, NULL, 'v'},
 		{"noresample", 1, NULL, 'n'},
 		{NULL, 0, NULL, 0},
@@ -754,7 +760,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:vn", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:o:vn", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -790,10 +796,20 @@ int main(int argc, char *argv[])
 			break;
 		case 'm':
 			for (method = 0; transfer_methods[method].name; method++)
-				if (!strcasecmp(transfer_methods[method].name, optarg))
+					if (!strcasecmp(transfer_methods[method].name, optarg))
 					break;
 			if (transfer_methods[method].name == NULL)
 				method = 0;
+			break;
+		case 'o':
+			for (format = 0; format < SND_PCM_FORMAT_LAST; format++) {
+				const char *format_name = snd_pcm_format_name(format);
+				if (format_name)
+					if (!strcasecmp(format_name, optarg))
+					break;
+			}
+			if (format == SND_PCM_FORMAT_LAST)
+				format = SND_PCM_FORMAT_S16;
 			break;
 		case 'v':
 			verbose = 1;
@@ -850,8 +866,8 @@ int main(int argc, char *argv[])
 	}
 	for (chn = 0; chn < channels; chn++) {
 		areas[chn].addr = samples;
-		areas[chn].first = chn * 16;
-		areas[chn].step = channels * 16;
+		areas[chn].first = chn * snd_pcm_format_width(format);
+		areas[chn].step = channels * snd_pcm_format_width(format);
 	}
 
 	err = transfer_methods[method].transfer_loop(handle, samples, areas);
