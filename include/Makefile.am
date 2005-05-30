@@ -9,7 +9,6 @@ alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      hwdep.h control.h mixer.h \
 		      seq_event.h seq.h seqmid.h seq_midi_event.h \
 		      conv.h instr.h iatomic.h \
-		      pcm_ordinary.h mixer_ordinary.h \
 		      alisp.h pcm_external.h pcm_ioplug.h pcm_extplug.h
 
 noinst_HEADERS = sys.h search.h list.h aserver.h local.h alsa-symbols.h
