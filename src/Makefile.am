@@ -1,4 +1,4 @@
-SUBDIRS=control mixer ordinary_mixer pcm ordinary_pcm rawmidi timer hwdep seq instr compat conf alisp
+SUBDIRS=control mixer pcm rawmidi timer hwdep seq instr compat conf alisp
 EXTRA_DIST=Versions
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
