@@ -318,7 +318,7 @@ pcm.NAME {
   slave STR		# Slave name (see pcm_slave)
   ipc_key INT		# Unique ipc key
   ipc_perm INT		# ipc permissions (default 0600)
-  ipc_gid INT		# ipc gid (default audio)
+  ipc_gid INT		# ipc gid (default -1 = disable)
   ipc_key_add_uid BOOL  # Add current uid to ipc_key
   bindings {		# Bindings table
     N INT		# Slave channel for client channel N
@@ -328,7 +328,7 @@ pcm.NAME {
   slave STR		# Slave name (see pcm_slave)
   ipc_key INT		# Unique ipc key
   ipc_perm INT		# ipc permissions (default 0600)
-  ipc_gid INT		# ipc gid (default audio)
+  ipc_gid INT		# ipc gid (default -1 = disable)
   ipc_key_add_uid BOOL  # Add current uid to ipc_key
   bindings {		# Bindings table
     N INT		# Slave channel for client channel N
@@ -338,7 +338,7 @@ pcm.NAME {
   slave STR		# Slave name (see pcm_slave)
   ipc_key INT		# Unique ipc key
   ipc_perm INT		# ipc permissions (default 0600)
-  ipc_gid INT		# ipc gid (default audio)
+  ipc_gid INT		# ipc gid (default -1 = disable)
   ipc_key_add_uid BOOL  # Add current uid to ipc_key
   bindings {		# Bindings table
     N INT		# Slave channel for client channel N
