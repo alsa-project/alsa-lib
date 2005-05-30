@@ -34,6 +34,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <grp.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/shm.h>
@@ -76,7 +77,7 @@ retryshm:
 	dmix->u.dmix.shmid_sum = shmget(dmix->ipc_key + 1, size,
 					IPC_CREAT | dmix->ipc_perm);
 	err = -errno;
-	if (dmix->u.dmix.shmid_sum < 0){
+	if (dmix->u.dmix.shmid_sum < 0) {
 		if (errno == EINVAL)
 		if ((tmpid = shmget(dmix->ipc_key + 1, 0, dmix->ipc_perm)) != -1)
 		if (!shmctl(tmpid, IPC_STAT, &buf))
@@ -86,10 +87,20 @@ retryshm:
 		    goto retryshm;
 		return err;
 	}
+	if (!shmctl(dmix->u.dmix.shmid_sum, IPC_STAT, &buf)) {
+		err = -errno;
+		shm_sum_discard(dmix);
+		return err;
+	}
+	if (dmix->ipc_gid >= 0) {
+		buf.shm_perm.gid = dmix->ipc_gid;
+		shmctl(dmix->u.dmix.shmid_sum, IPC_SET, &buf); 
+	}
 	dmix->u.dmix.sum_buffer = shmat(dmix->u.dmix.shmid_sum, 0, 0);
 	if (dmix->u.dmix.sum_buffer == (void *) -1) {
+		err = -errno;
 		shm_sum_discard(dmix);
-		return -errno;
+		return err;
 	}
 	mlock(dmix->u.dmix.sum_buffer, size);
 	return 0;
@@ -715,6 +726,7 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
  * \param name Name of PCM
  * \param ipc_key IPC key for semaphore and shared memory
  * \param ipc_perm IPC permissions for semaphore and shared memory
+ * \param ipc_gid IPC group ID for semaphore and shared memory
  * \param params Parameters for slave
  * \param bindings Channel bindings
  * \param slowptr Slow but more precise pointer updates
@@ -728,7 +740,7 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
  *          changed in future.
  */
 int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
-		      key_t ipc_key, mode_t ipc_perm,
+		      key_t ipc_key, mode_t ipc_perm, int ipc_gid,
 		      struct slave_params *params,
 		      snd_config_t *bindings,
 		      int slowptr,
@@ -759,6 +771,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	
 	dmix->ipc_key = ipc_key;
 	dmix->ipc_perm = ipc_perm;
+	dmix->ipc_gid = ipc_gid;
 	dmix->semid = -1;
 	dmix->shmid = -1;
 
@@ -1050,6 +1063,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	int bsize, psize, ipc_key_add_uid = 0, slowptr = 0;
 	key_t ipc_key = 0;
 	mode_t ipc_perm = 0600;
+	int ipc_gid = -1;
 	int err;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1063,6 +1077,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 			err = snd_config_get_integer(n, &key);
 			if (err < 0) {
 				SNDERR("The field ipc_key must be an integer type");
+
 				return err;
 			}
 			ipc_key = key;
@@ -1081,6 +1096,26 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 				return -EINVAL;
 			}
 			ipc_perm = strtol(perm, &endp, 8);
+			continue;
+		}
+		if (strcmp(id, "ipc_gid") == 0) {
+			char *group;
+			char *endp;
+			err = snd_config_get_ascii(n, &group);
+			if (err < 0) {
+				SNDERR("The field ipc_gid must be a valid group");
+				return err;
+			}
+			if (isdigit(*group) == 0) {
+				struct group *grp = getgrnam(group);
+				if (grp == NULL) {
+					SNDERR("The field ipc_gid must be a valid group (create group %s)", group);
+					return -EINVAL;
+				}
+				ipc_gid = grp->gr_gid;
+			} else {
+				ipc_perm = strtol(group, &endp, 10);
+			}
 			continue;
 		}
 		if (strcmp(id, "ipc_key_add_uid") == 0) {
@@ -1155,7 +1190,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	params.period_size = psize;
 	params.buffer_size = bsize;
 
-	err = snd_pcm_dmix_open(pcmp, name, ipc_key, ipc_perm, &params, bindings, slowptr, root, sconf, stream, mode);
+	err = snd_pcm_dmix_open(pcmp, name, ipc_key, ipc_perm, ipc_gid, &params, bindings, slowptr, root, sconf, stream, mode);
 	if (err < 0)
 		snd_config_delete(sconf);
 	return err;
