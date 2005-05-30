@@ -221,20 +221,22 @@ static int get_compare_weight(const char *name, unsigned int idx)
 
 static long to_user(selem_t *s, int dir, selem_ctl_t *c, long value)
 {
-	int64_t n;
-	if (c->max == c->min)
+	if (c->max == c->min) {
 		return s->str[dir].min;
-	n = (int64_t) (value - c->min) * (s->str[dir].max - s->str[dir].min);
-	return s->str[dir].min + (n + (c->max - c->min) / 2) / (c->max - c->min);
+	} else {
+		int64_t n = (int64_t) (value - c->min) * (s->str[dir].max - s->str[dir].min);
+		return s->str[dir].min + (n + (c->max - c->min) / 2) / (c->max - c->min);
+	}
 }
 
 static long from_user(selem_t *s, int dir, selem_ctl_t *c, long value)
 {
-	int64_t n;
-	if (s->str[dir].max == s->str[dir].min)
+	if (s->str[dir].max == s->str[dir].min) {
 		return c->min;
-	n = (int64_t) (value - s->str[dir].min) * (c->max - c->min);
-	return c->min + (n + (s->str[dir].max - s->str[dir].min) / 2) / (s->str[dir].max - s->str[dir].min);
+	} else {
+		int64_t n = (int64_t) (value - s->str[dir].min) * (c->max - c->min);
+		return c->min + (n + (s->str[dir].max - s->str[dir].min) / 2) / (s->str[dir].max - s->str[dir].min);
+	}
 }
 
 static int elem_read_volume(selem_t *s, int dir, selem_ctl_type_t type)
