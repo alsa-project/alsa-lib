@@ -50,7 +50,8 @@
 
 int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 {
-	struct shmid_ds buf;
+	struct semid_ds buf;
+	int i;
 
 	dmix->semid = semget(dmix->ipc_key, DIRECT_IPC_SEMS,
 			     IPC_CREAT | dmix->ipc_perm);
@@ -58,22 +59,28 @@ int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 		return -errno;
 	if (dmix->ipc_gid < 0)
 		return 0;
-	if (shmctl(dmix->semid, IPC_STAT, &buf) < 0) {
-		int err = -errno;
-		snd_pcm_direct_semaphore_discard(dmix);
-		return err;
+	for (i = 0; i < DIRECT_IPC_SEMS; i++) {
+		if (semctl(dmix->semid, i, IPC_STAT, &buf) < 0) {
+			int err = -errno;
+			snd_pcm_direct_semaphore_discard(dmix);
+			return err;
+		}
+		buf.sem_perm.gid = dmix->ipc_gid;
+		semctl(dmix->semid, i, IPC_SET, &buf);
 	}
-	buf.shm_perm.gid = dmix->ipc_gid;
-	shmctl(dmix->semid, IPC_SET, &buf);
 	return 0;
 }
 
 int snd_pcm_direct_semaphore_discard(snd_pcm_direct_t *dmix)
 {
+	int i;
+
 	if (dmix->semid < 0)
 		return -EINVAL;
-	if (semctl(dmix->semid, 0, IPC_RMID, NULL) < 0)
-		return -errno;
+	for (i = 0; i < DIRECT_IPC_SEMS; i++) {
+		if (semctl(dmix->semid, i, IPC_RMID, NULL) < 0)
+			return -errno;
+	}
 	dmix->semid = -1;
 	return 0;
 }

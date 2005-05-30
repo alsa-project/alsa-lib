@@ -87,7 +87,7 @@ retryshm:
 		    goto retryshm;
 		return err;
 	}
-	if (!shmctl(dmix->u.dmix.shmid_sum, IPC_STAT, &buf)) {
+	if (shmctl(dmix->u.dmix.shmid_sum, IPC_STAT, &buf) < 0) {
 		err = -errno;
 		shm_sum_discard(dmix);
 		return err;
