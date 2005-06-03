@@ -252,5 +252,6 @@ ALSA_1.0.10 {
 
     snd_mixer_selem_set_playback_dB_all;
     snd_mixer_selem_set_capture_dB_all;
+    snd_mixer_selem_compare;
 
 } ALSA_1.0.9;
