@@ -598,7 +598,10 @@ static int selem_write(snd_mixer_elem_t *elem)
 static void selem_free(snd_mixer_elem_t *elem)
 {
 	assert(snd_mixer_elem_get_type(elem) == SND_MIXER_ELEM_SIMPLE);
-	free(snd_mixer_elem_get_private(elem));
+	selem_none_t *simple = snd_mixer_elem_get_private(elem);
+	if (simple->selem.id)
+		snd_mixer_selem_id_free(simple->selem.id);
+	free(simple);
 }
 
 static int simple_update(snd_mixer_elem_t *melem)

@@ -144,7 +144,7 @@ size_t snd_mixer_class_sizeof(void);
  * \brief allocate an invalid #snd_mixer_class_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_mixer_class_alloca(ptr) do { assert(ptr); *ptr = (snd_mixer_selem_id_t *) alloca(snd_mixer_class_sizeof()); memset(*ptr, 0, snd_mixer_class_sizeof()); } while (0)
+#define snd_mixer_class_alloca(ptr) do { assert(ptr); *ptr = (snd_mixer_class_t *) alloca(snd_mixer_class_sizeof()); memset(*ptr, 0, snd_mixer_class_sizeof()); } while (0)
 int snd_mixer_class_malloc(snd_mixer_class_t **ptr);
 void snd_mixer_class_free(snd_mixer_class_t *obj);
 void snd_mixer_class_copy(snd_mixer_class_t *dst, const snd_mixer_class_t *src);
