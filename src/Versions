@@ -218,3 +218,39 @@ ALSA_1.0.9 {
     snd_timer_ginfo_get_clients;
 
 } ALSA_1.0.8;
+
+ALSA_1.0.10 {
+  global:
+
+    snd_mixer_get_hctl;
+    snd_mixer_elem_get_private;
+
+    snd_mixer_class_register;
+    snd_mixer_add_elem;
+    snd_mixer_remove_elem;
+    snd_mixer_elem_new;
+    snd_mixer_elem_add;
+    snd_mixer_elem_remove;
+    snd_mixer_elem_free;
+    snd_mixer_elem_info;
+    snd_mixer_elem_value;
+    snd_mixer_elem_attach;
+    snd_mixer_elem_detach;
+    snd_mixer_elem_empty;
+
+    snd_mixer_class_malloc;
+    snd_mixer_class_free;
+    snd_mixer_class_copy;
+    snd_mixer_class_get_mixer;
+    snd_mixer_class_get_event;
+    snd_mixer_class_get_private;
+    snd_mixer_class_get_compare;
+    snd_mixer_class_set_event;
+    snd_mixer_class_set_private;
+    snd_mixer_class_set_private_free;
+    snd_mixer_class_set_compare;
+
+    snd_mixer_selem_set_playback_dB_all;
+    snd_mixer_selem_set_capture_dB_all;
+
+} ALSA_1.0.9;
