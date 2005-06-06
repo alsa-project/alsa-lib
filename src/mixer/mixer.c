@@ -497,6 +497,8 @@ int snd_mixer_class_register(snd_mixer_class_t *class, snd_mixer_t *mixer)
  * \brief Unregister mixer element class and remove all its elements
  * \param class Mixer element class
  * \return 0 on success otherwise a negative error code
+ *
+ * Note that the class structure is also deallocated!
  */
 int snd_mixer_class_unregister(snd_mixer_class_t *class)
 {
@@ -929,6 +931,8 @@ int snd_mixer_class_malloc(snd_mixer_class_t **ptr)
  */
 void snd_mixer_class_free(snd_mixer_class_t *obj)
 {
+	if (obj->private_free)
+		obj->private_free(obj);
 	free(obj);
 }
 

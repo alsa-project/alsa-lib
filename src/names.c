@@ -75,6 +75,7 @@ static int names_parse(snd_config_t *top, const char *iface, snd_devname_t **lis
 					err = -ENOMEM;
 					goto _err;
 				}
+				continue;
 			}
 			if (strcmp(id, "comment") == 0) {
 				err = snd_config_get_string(m, (const char **)&comment);
@@ -85,6 +86,7 @@ static int names_parse(snd_config_t *top, const char *iface, snd_devname_t **lis
 					err = -ENOMEM;
 					goto _err;
 				}
+				continue;
 			}
 		}
 		if (name != NULL) {
@@ -151,6 +153,7 @@ int snd_names_list(const char *iface, snd_devname_t **list)
 				return -ENOMEM;
 		}
 	}
+	top = NULL;
 	err = snd_config_top(&top);
 	if (err >= 0)
 		err = snd_input_stdio_open(&in, file, "r");
@@ -169,7 +172,8 @@ int snd_names_list(const char *iface, snd_devname_t **list)
 	} else {
 		SNDERR("cannot access file %s", file);
 	}
-	snd_config_delete(top);
+	if (top)
+		snd_config_delete(top);
 	return err >= 0 ? 0 : err;
 }
 
