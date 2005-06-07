@@ -1,7 +1,9 @@
+pkglibdir = $(libdir)/@PACKAGE@/scopes
 
 AM_CFLAGS = -g -O2 -W -Wall
 
-pkglib_LTLIBRARIES = liblevel.la
+pkglib_LTLIBRARIES = scope-level.la
 
-liblevel_la_SOURCES = level.c
-liblevel_la_LIBADD = -lncurses
+scope_level_la_SOURCES = level.c
+scope_level_la_LDFLAGS = -module
+scope_level_la_LIBADD = -lncurses
