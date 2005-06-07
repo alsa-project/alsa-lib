@@ -452,7 +452,7 @@ pcm.m {
 }
 
 pcm_scope_type.level {
-	lib /home/abramo/scopes/liblevel.so
+	lib /home/abramo/scopes/scope-level.so
 } 
 
 # an example command is 'aplay -D plug:ladspa <filename>'

@@ -39,27 +39,33 @@
 #include "asoundlib.h"
 #include "mixer_simple.h"
 
-#define SO_PATH PKGLIBDIR "/smixer/"
+#define SO_PATH PKGLIBDIR "/smixer"
 
 typedef struct _class_priv {
 	char *device;
 	snd_ctl_t *ctl;
 	snd_hctl_t *hctl;
 	snd_ctl_card_info_t *info;
-} class_priv_t;   
+	void *dlhandle;
+} class_priv_t;
 
 static int try_open(snd_mixer_class_t *class, const char *lib)
 {
+	class_priv_t *priv = snd_mixer_class_get_private(class);
 	snd_mixer_event_t event_func;
-	char *xlib;
+	char *xlib, *path;
 	void *h;
 
-	xlib = malloc(strlen(lib) + strlen(SO_PATH) + 1);
+	path = getenv("ALSA_MIXER_SIMPLE_MODULES");
+	if (!path)
+		path = SO_PATH;
+	xlib = malloc(strlen(lib) + strlen(path) + 1 + 1);
 	if (xlib == NULL)
 		return -ENOMEM;
-	strcpy(xlib, SO_PATH);
+	strcpy(xlib, path);
+	strcat(xlib, "/");
 	strcat(xlib, lib);
-	h = snd_dlopen(lib, RTLD_NOW);
+	h = snd_dlopen(xlib, RTLD_NOW);
 	if (h == NULL) {
 		SNDERR("Unable to open library '%s'", xlib);
 		free(xlib);
@@ -74,6 +80,7 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 	}
 	free(xlib);
 	snd_mixer_class_set_event(class, event_func);
+	priv->dlhandle = h;
 	return 0;
 }
 
@@ -140,6 +147,8 @@ static void private_free(snd_mixer_class_t *class)
 {
 	class_priv_t *priv = snd_mixer_class_get_private(class);
 	
+	if (priv->dlhandle)
+		snd_dlclose(priv->dlhandle);
 	if (priv->info)
 		snd_ctl_card_info_free(priv->info);
 	if (priv->hctl)
