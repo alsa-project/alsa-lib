@@ -208,7 +208,7 @@ void snd_dlobj_cache_cleanup(void)
 		c = list_entry(p, struct dlobj_cache, list);
 		list_del(p);
 		snd_dlclose(c->obj);
-		free(c->name);
+		free((void *)c->name); /* shut up gcc warning */
 		free(c);
 	}
 }
