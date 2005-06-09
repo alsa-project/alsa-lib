@@ -171,7 +171,9 @@ typedef enum _snd_ctl_type {
 	/** Shared memory client CTL */
 	SND_CTL_TYPE_SHM,
 	/** INET client CTL (not yet implemented) */
-	SND_CTL_TYPE_INET
+	SND_CTL_TYPE_INET,
+	/** External control plugin */
+	SND_CTL_TYPE_EXT
 } snd_ctl_type_t;
 
 /** Non blocking mode (flag for open mode) \hideinitializer */
