@@ -386,7 +386,7 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 	return 0;
 }
 
-int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf)
+int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBUTE_UNUSED, snd_config_t *conf, int mode)
 {
 	snd_config_iterator_t i, next;
 	long card = -1;
@@ -417,6 +417,6 @@ int _snd_ctl_hw_open(snd_ctl_t **handlep, char *name, snd_config_t *root ATTRIBU
 	}
 	if (card < 0)
 		return -EINVAL;
-	return snd_ctl_hw_open(handlep, name, card, 0);
+	return snd_ctl_hw_open(handlep, name, card, mode);
 }
 SND_DLSYM_BUILD_VERSION(_snd_ctl_hw_open, SND_CONTROL_DLSYM_VERSION);
