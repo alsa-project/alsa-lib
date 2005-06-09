@@ -47,6 +47,9 @@ typedef struct _snd_ctl_ops {
 	int (*set_power_state)(snd_ctl_t *handle, unsigned int state);
 	int (*get_power_state)(snd_ctl_t *handle, unsigned int *state);
 	int (*read)(snd_ctl_t *handle, snd_ctl_event_t *event);
+	int (*poll_descriptors_count)(snd_ctl_t *handle);
+	int (*poll_descriptors)(snd_ctl_t *handle, struct pollfd *pfds, unsigned int space);
+	int (*poll_revents)(snd_ctl_t *handle, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 } snd_ctl_ops_t;
 
 

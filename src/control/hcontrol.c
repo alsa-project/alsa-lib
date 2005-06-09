@@ -665,6 +665,10 @@ int snd_hctl_wait(snd_hctl_t *hctl, int timeout)
 	struct pollfd pfd;
 	int err;
 	err = snd_hctl_poll_descriptors(hctl, &pfd, 1);
+	if (err < 0)
+		return err;
+	if (! err)
+		return 0;
 	assert(err == 1);
 	err = poll(&pfd, 1, timeout);
 	if (err < 0)
