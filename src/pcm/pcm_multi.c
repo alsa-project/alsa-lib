@@ -764,7 +764,7 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_multi_t *multi;
 	unsigned int i;
 	snd_pcm_stream_t stream;
-	char slave_map[32][32] = { { 0 } };
+	char slave_map[64][64] = { { 0 } };
 	int err;
 
 	assert(pcmp);
