@@ -1,3 +1,10 @@
+/**
+ * \file control/control_ext.c
+ * \ingroup CtlPlugin_SDK
+ * \brief External Control Plugin SDK
+ * \author Takashi Iwai <tiwai@suse.de>
+ * \date 2005
+ */
 /*
  *  Control Interface - External Control Plugin SDK
  *
@@ -412,6 +419,206 @@ static snd_ctl_ops_t snd_ctl_ext_ops = {
 	.poll_descriptors = snd_ctl_ext_poll_descriptors,
 	.poll_revents = snd_ctl_ext_poll_revents,
 };
+
+/*
+ * Exported functions
+ */
+
+/*! \page ctl_external_plugins External Control Plugin SDK
+
+\section ctl_externals External Control Plugins
+
+The external plugins are implemented in a shared object file located
+at /usr/lib/alsa-lib (the exact location depends on the build option
+and asoundrc configuration).  It has to be the file like
+libasound_module_ctl_MYPLUGIN.so, where MYPLUGIN corresponds to your
+own plugin name.
+
+The entry point of the plugin is defined via
+#SND_CTL_PLUGIN_DEFINE_FUNC() macro.  This macro defines the function
+with a proper name to be referred from alsa-lib.  The function takes
+the following 5 arguments:
+\code
+int (snd_ctl_t **phandle, const char *name, snd_config_t *root,
+	snd_config_t *conf, int mode)
+\endcode
+The first argument, phandle, is the pointer to store the resultant control
+handle.  The arguments name, root and mode are the parameters
+to be passed to the plugin constructor.  The conf is the configuration
+tree for the plugin.  The arguments above are defined in the macro
+itself, so don't use variables with the same names to shadow
+parameters.
+
+After parsing the configuration parameters in the given conf tree,
+usually you will call the external plugin API function
+#snd_ctl_ext_create().
+The control handle must be filled *phandle in return.
+Then this function must return either a value 0 when succeeded, or a
+negative value as the error code. 
+
+Finally, add #SND_CTL_PLUGIN_SYMBOL() with the name of your
+plugin as the argument at the end.  This defines the proper versioned
+symbol as the reference.
+
+The typical code would look like below:
+\code
+struct myctl_info {
+	snd_ctl_ext_t ext;
+	int my_own_data;
+	...
+};
+
+SND_CTL_PLUGIN_DEFINE_FUNC(myctl)
+{
+	snd_config_iterator_t i, next;
+	struct myctl_info *myctl;
+	int err;
+
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		if (strcmp(id, "comment") == 0 || strcmp(id, "type") == 0)
+			continue;
+		if (strcmp(id, "my_own_parameter") == 0) {
+			....
+			continue;
+		}
+		SNDERR("Unknown field %s", id);
+		return -EINVAL;
+	}
+
+	myctl = calloc(1, sizeof(*myctl));
+	if (myctl == NULL)
+		return -ENOMEM;
+
+	myctl->ext.version = SND_CTL_EXT_VERSION;
+	myctl->ext.card_idx = 0;
+	strcpy(myctl->ext.id, "Myctl");
+	strcpy(myctl->ext.name, "My Control");
+	strcpy(myctl->ext.longname, "My External Control for Foobar");
+	strcpy(myctl->ext.mixername, "My Control");
+	myctl->ext.callback = &my_own_callback;
+	myctl->ext.private_data = myctl;
+	....
+
+	err = snd_pcm_extplug_create(&myctl->ext, name, mode);
+	if (err < 0) {
+		myctl_free(myctl);
+		return err;
+	}
+
+	*phandle = myctl->ext.handle;
+	return 0;
+}
+
+SND_CTL_PLUGIN_SYMBOL(myctl);
+\endcode
+
+Read the codes in alsa-plugins package for the real examples.
+
+
+\section ctl_ext_impl Implementation of External Control Plugins
+
+The following fields have to be filled in external control record before calling
+#snd_ctl_ext_create() : version, card_idx, id, name, longname, mixername, poll_fd and callback.
+Otherfields are optional and should be initialized with zero.
+
+The constant #SND_CTL_EXT_VERSION must be passed to the version
+field for the version check in alsa-lib.  The card_idx field specifies the card
+index of this control.  [FIXME: solve confliction of card index in alsa-lib?]
+
+The id, name, longname and mixername fields are the strings shown in the card_info
+inqurirys.  They are the char arrays, so you have to <i>copy</i> strings to these
+fields.
+
+The callback field contains the  table of callback functions for this plugin (defined as
+#snd_ctl_ext_callback_t).
+The poll_fd can be used to specify the poll file descriptor for this control.
+Set -1 if not available.  Alternatively, you can define poll_descriptors_count and
+poll_descriptors callbacks in the callback table for handling the poll descriptor(s)
+dynamically after the creation of plugin instance.
+
+The driver can set an arbitrary value (pointer) to private_data
+field to refer its own data in the callbacks.
+
+The rest fields are filled by #snd_ctl_ext_create().  The handle field
+is the resultant PCM handle.  The others are the current status of the
+PCM.
+
+\section ctl_ext_impl Callback Functions of External Control Plugins
+
+The callback functions in #snd_ctl_ext_callback_t define the real
+behavior of the driver.  There are many callbacks but many of them are optional. 
+
+The close callback is called when the PCM is closed.  If the plugin
+allocates private resources, this is the place to release them
+again.  This callback is optional.
+
+The elem_count and elem_list callbacks are mandatory.  The elem_count returns the
+total number of control elements.  The elem_list returns the control element ID
+of the corresponding element offset (the offset is from 0 to elem_count - 1).
+The id field is initialized to all zero in prior to elem_list callback.  The callback
+has to fill the necessary field (typically iface, name and index) in return via the
+standard control API functions like #snd_ctl_elem_id_set_ifarce,
+#snd_ctl_elem_id_set_name and #snd_ctl_elem_id_set_index, etc.  The callbacks should
+return 0 if successful, or a negative error code.
+
+The find_elem callback is used to convert the given control element ID to the
+certain key value for the faster access to get, read and write callbacks.
+The key type is alias of unsigned long, so you can assign some static number
+(e.g. index of the array) to this value of the corresponding element, or
+assign the pointer (cast to #snd_ctl_ext_key_t).  When no key is defined or found,
+return #SND_CTL_EXT_KEY_NOT_FOUND.  This callback is (very likely) required
+if you use get, read and write callbacks as follows.
+If you need to create a record dynamically (e.g. via malloc) at each find_elem call,
+the allocated record can be released with the optional free_key callback.
+
+The get_attribute is a mandatory callback, which returns the attribute of the 
+control element given via a key value (converted with find_elem callback).
+It must fill the control element type (#snd_ctl_elem_type_t), the access type
+(#snd_ctl_ext_access_t), and the count (element array size).  The callback returns
+0 if successful, or a negative error code, as usual.
+
+The get_integer_info, get_integetr64_info and get_enumerated_info callbacks are called
+to return the information of the given control element for each element type.
+For integer and integer64 types, the callbacks need to fill the minimal (imin),
+maximal (imax) and the step (istep) values of the control.  For the enumerated type,
+the number of enum items must be filled.  Additionally, the enum control has to define
+get_enumerated_name callback to store the name of the enumerated item of the given control
+element.  All functions return 0 if successful, or a negative error code.
+
+For reading the current values of a control element, read_integer, read_integer64,
+read_enumerated, read_bytes and read_iec958 callbacks are called depending on the
+element type.  These callbacks have to fill the current values of the element in return.
+Note that a control element can be an array.  If it contains more than one values
+(i.e. the count value in get_attribute callback is more than 1), <i>all</i> values
+must be filled on the given value pointer as an array.  Also, note that the boolean type
+is handled as integer here (although boolean type doesn't need to define the corresponding
+info callback since it's obvious).  These callbacks return 0 if successful, or
+a negative error code.
+
+For writing the current values, write_integer, write_integer64, write_bytes, and
+write_iec958 callbacks are called as well as for read.  The callbacks should check the
+current values and compare with the given values.  If they are identical, the callbacks
+should do nothing and return 0.  If they differ, update the current values and return 1,
+instead.  For any errors, return a negative error code.
+
+The subscribe_events callback is called when the application subscribes or cancels
+the event notifications (e.g. through mixer API).  The current value of event
+subscription is kept in the subscribed field.
+The read_event callback is called for reading a pending notification event.
+The callback needs to fill the event_mask value, a bit-field defined as SND_CTL_EVENT_MASK_XXX.
+If no event is pending, return -EAGAIN.  These two callbacks are optional.
+
+The poll_descriptors_count and poll_descriptors callbacks are used to return
+the poll descriptor(s) via callbacks.  As already mentioned, if the callback cannot
+set the static poll_fd, you can define these callbacks to return dynamically.
+Also, when multiple poll descriptors are required, use these callbacks.
+The poll_revents callback is used for handle poll revents.
+
+*/
 
 /**
  * \brief Create an external control plugin instance

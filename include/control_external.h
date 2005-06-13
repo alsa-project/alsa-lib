@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /**
- *  \defgroup CtlPlugin_SDK External control plugin SDK
+ *  \defgroup CtlPlugin_SDK External Control Plugin SDK
  *  \{
  */
 
@@ -129,47 +129,128 @@ struct snd_ctl_ext {
 
 /** Callback table of ext */
 struct snd_ctl_ext_callback {
-	void (*close)(snd_ctl_ext_t *ext); /* opt */
-	void (*subscribe_events)(snd_ctl_ext_t *ext, int subscribe); /* opt */
-	int (*elem_count)(snd_ctl_ext_t *ext); /* req */
-	int (*elem_list)(snd_ctl_ext_t *ext, unsigned int offset, snd_ctl_elem_id_t *id); /* req */
-	snd_ctl_ext_key_t (*find_elem)(snd_ctl_ext_t *ext, const snd_ctl_elem_id_t *id); /* req */
-	void (*free_key)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key); /* opt */
+	/**
+	 * close the control handle; optional
+	 */
+	void (*close)(snd_ctl_ext_t *ext);
+	/**
+	 * return the total number of elements; required
+	 */
+	int (*elem_count)(snd_ctl_ext_t *ext);
+	/**
+	 * return the element id of the given offset (array index); required
+	 */
+	int (*elem_list)(snd_ctl_ext_t *ext, unsigned int offset, snd_ctl_elem_id_t *id);
+	/**
+	 * convert the element id to a search key; required
+	 */
+	snd_ctl_ext_key_t (*find_elem)(snd_ctl_ext_t *ext, const snd_ctl_elem_id_t *id);
+	/**
+	 * the destructor of the key; optional
+	 */
+	void (*free_key)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key);
+	/**
+	 * get the attribute of the element; required
+	 */
 	int (*get_attribute)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
-			     int *type, unsigned int *acc, unsigned int *count); /* req */
+			     int *type, unsigned int *acc, unsigned int *count);
+	/**
+	 * get the element information of integer type
+	 */
 	int (*get_integer_info)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 				long *imin, long *imax, long *istep);
+	/**
+	 * get the element information of integer64 type
+	 */
 	int (*get_integer64_info)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 				  int64_t *imin, int64_t *imax, int64_t *istep);
+	/**
+	 * get the element information of enumerated type
+	 */
 	int (*get_enumerated_info)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, unsigned int *items);
+	/**
+	 * get the name of the enumerated item
+	 */
 	int (*get_enumerated_name)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, unsigned int item,
 				   char *name, size_t name_max_len);
+	/**
+	 * read the current values of integer type
+	 */
 	int (*read_integer)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, long *value);
+	/**
+	 * read the current values of integer64 type
+	 */
 	int (*read_integer64)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, int64_t *value);
+	/**
+	 * read the current values of enumerated type
+	 */
 	int (*read_enumerated)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, unsigned int *items);
+	/**
+	 * read the current values of bytes type
+	 */
 	int (*read_bytes)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, unsigned char *data,
 			  size_t max_bytes);
+	/**
+	 * read the current values of iec958 type
+	 */
 	int (*read_iec958)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, snd_aes_iec958_t *iec958);
+	/**
+	 * update the current values of integer type with the given values
+	 */
 	int (*write_integer)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, long *value);
+	/**
+	 * update the current values of integer64 type with the given values
+	 */
 	int (*write_integer64)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, int64_t *value);
+	/**
+	 * update the current values of enumerated type with the given values
+	 */
 	int (*write_enumerated)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, unsigned int *items);
+	/**
+	 * update the current values of bytes type with the given values
+	 */
 	int (*write_bytes)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, unsigned char *data,
 			   size_t max_bytes);
+	/**
+	 * update the current values of iec958 type with the given values
+	 */
 	int (*write_iec958)(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key, snd_aes_iec958_t *iec958);
+	/**
+	 * subscribe/unsubscribe the event notification; optional
+	 */
+	void (*subscribe_events)(snd_ctl_ext_t *ext, int subscribe);
+	/**
+	 * read a pending notification event; optional
+	 */
 	int (*read_event)(snd_ctl_ext_t *ext, snd_ctl_elem_id_t *id, unsigned int *event_mask);
+	/**
+	 * return the number of poll descriptors; optional
+	 */
 	int (*poll_descriptors_count)(snd_ctl_ext_t *ext);
+	/**
+	 * fill the poll descriptors; optional
+	 */
 	int (*poll_descriptors)(snd_ctl_ext_t *ext, struct pollfd *pfds, unsigned int space);
+	/**
+	 * mangle the revents of poll descriptors
+	 */
 	int (*poll_revents)(snd_ctl_ext_t *ext, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 };
 
-enum snd_ctl_ext_access_t {
+/**
+ * The access type bits stored in get_attribute callback
+ */
+typedef enum snd_ctl_ext_access {
 	SND_CTL_EXT_ACCESS_READ = (1<<0),
 	SND_CTL_EXT_ACCESS_WRITE = (1<<1),
 	SND_CTL_EXT_ACCESS_READWRITE = (3<<0),
 	SND_CTL_EXT_ACCESS_VOLATILE = (1<<2),
 	SND_CTL_EXT_ACCESS_INACTIVE = (1<<8),
-};
+} snd_ctl_ext_access_t;
 
+/**
+ * find_elem callback returns this if no matching control element is found
+ */
 #define SND_CTL_EXT_KEY_NOT_FOUND	(snd_ctl_ext_key_t)(-1)
 
 int snd_ctl_ext_create(snd_ctl_ext_t *ext, const char *name, int mode);
