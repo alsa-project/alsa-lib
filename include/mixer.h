@@ -99,7 +99,9 @@ snd_mixer_elem_t *snd_mixer_first_elem(snd_mixer_t *mixer);
 snd_mixer_elem_t *snd_mixer_last_elem(snd_mixer_t *mixer);
 int snd_mixer_handle_events(snd_mixer_t *mixer);
 int snd_mixer_attach(snd_mixer_t *mixer, const char *name);
+int snd_mixer_attach_hctl(snd_mixer_t *mixer, snd_hctl_t *hctl);
 int snd_mixer_detach(snd_mixer_t *mixer, const char *name);
+int snd_mixer_detach_hctl(snd_mixer_t *mixer, snd_hctl_t *hctl);
 int snd_mixer_get_hctl(snd_mixer_t *mixer, const char *name, snd_hctl_t **hctl);
 int snd_mixer_poll_descriptors_count(snd_mixer_t *mixer);
 int snd_mixer_poll_descriptors(snd_mixer_t *mixer, struct pollfd *pfds, unsigned int space);
@@ -266,18 +268,18 @@ int snd_mixer_selem_set_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_
 int snd_mixer_selem_set_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value);
 int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value);
 int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value);
-void snd_mixer_selem_get_playback_volume_range(snd_mixer_elem_t *elem, 
-					       long *min, long *max);
-void snd_mixer_selem_get_playback_dB_range(snd_mixer_elem_t *elem, 
-					   long *min, long *max);
-void snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem, 
-					       long min, long max);
-void snd_mixer_selem_get_capture_volume_range(snd_mixer_elem_t *elem, 
+int snd_mixer_selem_get_playback_volume_range(snd_mixer_elem_t *elem, 
 					      long *min, long *max);
-void snd_mixer_selem_get_capture_dB_range(snd_mixer_elem_t *elem, 
+int snd_mixer_selem_get_playback_dB_range(snd_mixer_elem_t *elem, 
 					  long *min, long *max);
-void snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem, 
+int snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem, 
 					      long min, long max);
+int snd_mixer_selem_get_capture_volume_range(snd_mixer_elem_t *elem, 
+					     long *min, long *max);
+int snd_mixer_selem_get_capture_dB_range(snd_mixer_elem_t *elem, 
+					 long *min, long *max);
+int snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem, 
+					     long min, long max);
 
 int snd_mixer_selem_is_enumerated(snd_mixer_elem_t *elem);
 int snd_mixer_selem_get_enum_items(snd_mixer_elem_t *elem);

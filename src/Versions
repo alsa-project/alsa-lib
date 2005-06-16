@@ -224,6 +224,8 @@ ALSA_1.0.10 {
 
     snd_mixer_get_hctl;
     snd_mixer_elem_get_private;
+    snd_mixer_attach_hctl;
+    snd_mixer_detach_hctl;
 
     snd_mixer_class_register;
     snd_mixer_add_elem;
@@ -253,6 +255,7 @@ ALSA_1.0.10 {
     snd_mixer_selem_set_playback_dB_all;
     snd_mixer_selem_set_capture_dB_all;
     snd_mixer_selem_compare;
+    snd_mixer_sbasic_info;
 
     snd_ctl_ext_create;
     snd_ctl_ext_delete;

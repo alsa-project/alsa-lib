@@ -783,6 +783,14 @@ static int simple_update(snd_mixer_elem_t *melem)
 		caps |= SM_CAP_PSWITCH;
 	}
 
+	if ((caps & SM_CAP_GSWITCH) &&
+	    (caps & (SM_CAP_PSWITCH|SM_CAP_CSWITCH)) == 0)
+		caps |= SM_CAP_PSWITCH|SM_CAP_CSWITCH;
+
+	if ((caps & SM_CAP_GVOLUME) &&
+	    (caps & (SM_CAP_PVOLUME|SM_CAP_CVOLUME)) == 0)
+		caps |= SM_CAP_PVOLUME|SM_CAP_CVOLUME;
+
 	simple->selem.caps = caps;
 	simple->str[SM_PLAY].channels = pchannels;
 	if (!simple->str[SM_PLAY].range) {
@@ -859,22 +867,6 @@ static int _snd_mixer_selem_set_volume(snd_mixer_elem_t *elem, int dir, snd_mixe
 	return 0;
 }
 
-static int _snd_mixer_selem_set_volume_all(snd_mixer_elem_t *elem, int dir, long value)
-{
-	int changed = 0;
-	snd_mixer_selem_channel_id_t channel;	
-	selem_none_t *s = snd_mixer_elem_get_private(elem);
-	if (value < s->str[dir].min || value > s->str[dir].max)
-		return 0;
-	for (channel = 0; (unsigned int) channel < s->str[dir].channels; channel++) {
-		if (value != s->str[dir].vol[channel]) {
-			s->str[dir].vol[channel] = value;
-			changed = 1;
-		}
-	}
-	return changed;
-}
-
 static int _snd_mixer_selem_set_switch(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, int value)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
@@ -891,23 +883,6 @@ static int _snd_mixer_selem_set_switch(snd_mixer_elem_t *elem, int dir, snd_mixe
 	} else {
 		if (s->str[dir].sw & (1 << channel)) {
 			s->str[dir].sw &= ~(1 << channel);
-			return 1;
-		}
-	}
-	return 0;
-}
-
-static int _snd_mixer_selem_set_switch_all(snd_mixer_elem_t *elem, int dir, int value)
-{
-	selem_none_t *s = snd_mixer_elem_get_private(elem);
-	if (value) {
-		if (s->str[dir].sw != ~0U) {
-			s->str[dir].sw = ~0U;
-			return 1;
-		}
-	} else {
-		if (s->str[dir].sw != 0U) {
-			s->str[dir].sw = 0U;
 			return 1;
 		}
 	}
@@ -984,17 +959,6 @@ static int get_volume_ops(snd_mixer_elem_t *elem, int dir,
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
 	if ((unsigned int) channel >= s->str[dir].channels)
 		return -EINVAL;
-	if (dir == SM_PLAY) {
-		if (! (s->selem.caps & (SM_CAP_PVOLUME|SM_CAP_GVOLUME)))
-			return -EINVAL;
-		if (s->selem.caps & SM_CAP_PVOLUME_JOIN)
-			channel = 0;
-	} else {
-		if (! (s->selem.caps & (SM_CAP_CVOLUME|SM_CAP_GVOLUME)))
-			return -EINVAL;
-		if (s->selem.caps & SM_CAP_CVOLUME_JOIN)
-			channel = 0;
-	}
 	*value = s->str[dir].vol[channel];
 	return 0;
 }
@@ -1013,17 +977,6 @@ static int get_switch_ops(snd_mixer_elem_t *elem, int dir,
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
 	if ((unsigned int) channel >= s->str[dir].channels)
 		return -EINVAL;
-	if (dir == SM_PLAY) {
-		if (! (s->selem.caps & (SM_CAP_PSWITCH|SM_CAP_GSWITCH)))
-			return -EINVAL;
-		if (s->selem.caps & SM_CAP_PSWITCH_JOIN)
-			channel = 0;
-	} else {
-		if (! (s->selem.caps & (SM_CAP_CSWITCH|SM_CAP_GSWITCH)))
-			return -EINVAL;
-		if (s->selem.caps & SM_CAP_CSWITCH_JOIN)
-			channel = 0;
-	}
 	*value = !!(s->str[dir].sw & (1 << channel));
 	return 0;
 }
@@ -1032,14 +985,6 @@ static int set_volume_ops(snd_mixer_elem_t *elem, int dir,
 			  snd_mixer_selem_channel_id_t channel, long value)
 {
 	int changed;
-	selem_none_t *s = snd_mixer_elem_get_private(elem);
-	if (dir == SM_PLAY) {
-		if (! (s->selem.caps & (SM_CAP_GVOLUME|SM_CAP_PVOLUME)))
-			return -EINVAL;
-	} else {
-		if (! (s->selem.caps & (SM_CAP_GVOLUME|SM_CAP_CVOLUME)))
-			return -EINVAL;
-	}
 	changed = _snd_mixer_selem_set_volume(elem, dir, channel, value);
 	if (changed < 0)
 		return changed;
@@ -1057,33 +1002,6 @@ static int set_dB_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
 	return -ENXIO;
 }
 
-static int set_volume_all_ops(snd_mixer_elem_t *elem, int dir, long value)
-{
-	int changed;
-	selem_none_t *s = snd_mixer_elem_get_private(elem);
-	if (dir == SM_PLAY) {
-		if (! (s->selem.caps & (SM_CAP_GVOLUME|SM_CAP_PVOLUME)))
-			return -EINVAL;
-	} else {
-		if (! (s->selem.caps & (SM_CAP_GVOLUME|SM_CAP_CVOLUME)))
-			return -EINVAL;
-	}
-	changed = _snd_mixer_selem_set_volume_all(elem, dir, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
-}
-
-static int set_dB_all_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
-			  int dir ATTRIBUTE_UNUSED,
-			  long value ATTRIBUTE_UNUSED,
-			  int xdir ATTRIBUTE_UNUSED)
-{
-	return -ENXIO;
-}
-
 static int set_switch_ops(snd_mixer_elem_t *elem, int dir,
 			  snd_mixer_selem_channel_id_t channel, int value)
 {
@@ -1097,25 +1015,6 @@ static int set_switch_ops(snd_mixer_elem_t *elem, int dir,
 			return -EINVAL;
 	}
 	changed = _snd_mixer_selem_set_switch(elem, dir, channel, value);
-	if (changed < 0)
-		return changed;
-	if (changed)
-		return selem_write(elem);
-	return 0;
-}
-
-static int set_switch_all_ops(snd_mixer_elem_t *elem, int dir, int value)
-{
-	int changed;
-	selem_none_t *s = snd_mixer_elem_get_private(elem);
-	if (dir == SM_PLAY) {
-		if (! (s->selem.caps & (SM_CAP_GSWITCH|SM_CAP_PSWITCH)))
-			return -EINVAL;
-	} else {
-		if (! (s->selem.caps & (SM_CAP_GSWITCH|SM_CAP_CSWITCH)))
-			return -EINVAL;
-	}
-	changed = _snd_mixer_selem_set_switch_all(elem, dir, value);
 	if (changed < 0)
 		return changed;
 	if (changed)
@@ -1195,11 +1094,8 @@ static struct sm_elem_ops simple_none_ops = {
 	.get_dB		= get_dB_ops,
 	.set_volume	= set_volume_ops,
 	.set_dB		= set_dB_ops,
-	.set_volume_all	= set_volume_all_ops,
-	.set_dB_all	= set_dB_all_ops,
 	.get_switch	= get_switch_ops,
 	.set_switch	= set_switch_ops,
-	.set_switch_all	= set_switch_all_ops,
 	.enum_item_name	= enum_item_name_ops,
 	.get_enum_item	= get_enum_item_ops,
 	.set_enum_item	= set_enum_item_ops
@@ -1287,7 +1183,7 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 	if (!melem) {
 		simple = calloc(1, sizeof(*simple));
 		if (!simple) {
-			free(id);
+			snd_mixer_selem_id_free(id);
 			return -ENOMEM;
 		}
 		simple->selem.id = id;
@@ -1296,14 +1192,14 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 					 get_compare_weight(snd_mixer_selem_id_get_name(simple->selem.id), snd_mixer_selem_id_get_index(simple->selem.id)),
 					 simple, selem_free);
 		if (err < 0) {
-			free(id);
+			snd_mixer_selem_id_free(id);
 			free(simple);
 			return err;
 		}
 		new = 1;
 	} else {
 		simple = snd_mixer_elem_get_private(melem);
-		free(id);
+		snd_mixer_selem_id_free(id);
 	}
 	if (simple->ctls[type].elem) {
 		SNDERR("helem (%s,'%s',%li,%li,%li) appears twice or more",

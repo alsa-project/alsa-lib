@@ -190,24 +190,42 @@ static int hctl_event_handler(snd_hctl_t *hctl, unsigned int mask,
 
 
 /**
- * \brief Attach an HCTL to an opened mixer
+ * \brief Attach an HCTL specified with the CTL device name to an opened mixer
  * \param mixer Mixer handle
  * \param name HCTL name (see #snd_hctl_open)
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_attach(snd_mixer_t *mixer, const char *name)
 {
-	snd_mixer_slave_t *slave;
 	snd_hctl_t *hctl;
 	int err;
+
+	err = snd_hctl_open(&hctl, name, 0);
+	if (err < 0)
+		return err;
+	err = snd_mixer_attach_hctl(mixer, hctl);
+	if (err < 0) {
+		snd_hctl_close(hctl);
+		return err;
+	}
+	return 0;
+}
+
+/**
+ * \brief Attach an HCTL to an opened mixer
+ * \param mixer Mixer handle
+ * \param name HCTL name (see #snd_hctl_open)
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_attach_hctl(snd_mixer_t *mixer, snd_hctl_t *hctl)
+{
+	snd_mixer_slave_t *slave;
+	int err;
+
+	assert(hctl);
 	slave = calloc(1, sizeof(*slave));
 	if (slave == NULL)
 		return -ENOMEM;
-	err = snd_hctl_open(&hctl, name, 0);
-	if (err < 0) {
-		free(slave);
-		return err;
-	}
 	err = snd_hctl_nonblock(hctl, 1);
 	if (err < 0) {
 		snd_hctl_close(hctl);
@@ -235,6 +253,29 @@ int snd_mixer_detach(snd_mixer_t *mixer, const char *name)
 		s = list_entry(pos, snd_mixer_slave_t, list);
 		if (strcmp(name, snd_hctl_name(s->hctl)) == 0) {
 			snd_hctl_close(s->hctl);
+			list_del(pos);
+			free(s);
+			return 0;
+		}
+	}
+	return -ENOENT;
+}
+
+/**
+ * \brief Detach a previously attached HCTL to an opened mixer freeing all related resources
+ * \param mixer Mixer handle
+ * \param hctl HCTL previously attached
+ * \return 0 on success otherwise a negative error code
+ *
+ * Note: The hctl handle is not closed!
+ */
+int snd_mixer_detach_hctl(snd_mixer_t *mixer, snd_hctl_t *hctl)
+{
+	struct list_head *pos;
+	list_for_each(pos, &mixer->slaves) {
+		snd_mixer_slave_t *s;
+		s = list_entry(pos, snd_mixer_slave_t, list);
+		if (hctl == s->hctl) {
 			list_del(pos);
 			free(s);
 			return 0;

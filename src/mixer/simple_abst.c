@@ -45,6 +45,7 @@ typedef struct _class_priv {
 	char *device;
 	snd_ctl_t *ctl;
 	snd_hctl_t *hctl;
+	int attach_flag;
 	snd_ctl_card_info_t *info;
 	void *dlhandle;
 } class_priv_t;
@@ -81,7 +82,7 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 	free(xlib);
 	snd_mixer_class_set_event(class, event_func);
 	priv->dlhandle = h;
-	return 0;
+	return 1;
 }
 
 static int match(snd_mixer_class_t *class, const char *lib, const char *searchl)
@@ -151,9 +152,11 @@ static void private_free(snd_mixer_class_t *class)
 		snd_dlclose(priv->dlhandle);
 	if (priv->info)
 		snd_ctl_card_info_free(priv->info);
-	if (priv->hctl)
+	if (priv->hctl) {
+		if (priv->attach_flag)
+			snd_mixer_detach_hctl(snd_mixer_class_get_mixer(class), priv->hctl);
 		snd_hctl_close(priv->hctl);
-	else if (priv->ctl)
+	} else if (priv->ctl)
 		snd_ctl_close(priv->ctl);
 	if (priv->device)
 		free(priv->device);
@@ -178,10 +181,12 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 	snd_config_t *top = NULL;
 	int err;
 
-	if (options->device == NULL)
-		return -EIO;
 	if (priv == NULL)
 		return -ENOMEM;
+	if (options->device == NULL) {
+		free(priv);
+		return -EINVAL;
+	}
 	if (snd_mixer_class_malloc(&class)) {
 		free(priv);
 		return -ENOMEM;
@@ -226,13 +231,19 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 			goto __error;
 		}
 		err = find_module(class, top);
+	 	snd_config_delete(top);
+	 	top = NULL;
 	}
 	if (err >= 0)
+		err = snd_mixer_attach_hctl(mixer, priv->hctl);
+	if (err >= 0) {
+		priv->attach_flag = 1;
 		err = snd_mixer_class_register(class, mixer);
+	}
 	if (err < 0) {
 	      __error:
-	      	if (top)
-	      		snd_config_delete(top);
+		if (top)
+			snd_config_delete(top);
 	      	if (class)
 			snd_mixer_class_free(class);
 		return err;
@@ -241,5 +252,25 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 		snd_config_delete(top);
 	if (classp)
 		*classp = class;
+	return 0;
+}
+
+/**
+ * \brief Register mixer simple element class - basic abstraction
+ * \param mixer Mixer handle
+ * \param options Options container
+ * \param classp Pointer to returned mixer simple element class handle (or NULL
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_mixer_sbasic_info(const snd_mixer_class_t *class, sm_class_basic_t *info)
+{
+	class_priv_t *priv = snd_mixer_class_get_private(class);
+
+	if (class == NULL || info == NULL)
+		return -EINVAL;
+	info->device = priv->device;
+	info->ctl = priv->ctl;
+	info->hctl = priv->hctl;
+	info->info = priv->info;
 	return 0;
 }

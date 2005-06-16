@@ -63,13 +63,50 @@ int snd_mixer_selem_register(snd_mixer_t *mixer,
 	}
 	if (options == NULL ||
 	    (options->ver == 1 && options->abstract == SND_MIXER_SABSTRACT_NONE)) {
-		return snd_mixer_simple_none_register(mixer, options, classp);
+		int err = snd_mixer_simple_none_register(mixer, options, classp);
+		if (err < 0)
+			return err;
+		if (options != NULL) {
+			err = snd_mixer_attach(mixer, options->device);
+			if (err < 0)
+				return err;
+		}
+		return 0;
 	} else if (options->ver == 1) {
 		if (options->abstract == SND_MIXER_SABSTRACT_BASIC)
 			return snd_mixer_simple_basic_register(mixer, options, classp);
 	}
 	return -ENXIO;
 }
+
+#define CHECK_BASIC(xelem) \
+{ \
+	assert(xelem); \
+	assert((xelem)->type == SND_MIXER_ELEM_SIMPLE); \
+}
+
+#define CHECK_DIR(xelem, xwhat) \
+{ \
+	unsigned int xcaps = ((sm_selem_t *)(elem)->private_data)->caps; \
+	if (! (xcaps & (xwhat))) \
+		return -EINVAL; \
+}
+
+#define CHECK_DIR_CHN(xelem, xwhat, xjoin, xchannel) \
+{ \
+	unsigned int xcaps = ((sm_selem_t *)(elem)->private_data)->caps; \
+	if (! (xcaps & (xwhat))) \
+		return -EINVAL; \
+	if (xcaps & (xjoin)) \
+		xchannel = 0; \
+}
+
+#define CHECK_ENUM(xelem) \
+	if (!((sm_selem_t *)(elem)->private_data)->caps & SM_CAP_ENUM) \
+		return -EINVAL;
+
+#define COND_CAPS(xelem, what) \
+	!!(((sm_selem_t *)(elem)->private_data)->caps & (what))
 
 #ifndef DOC_HIDDEN
 int snd_mixer_selem_compare(const snd_mixer_elem_t *c1, const snd_mixer_elem_t *c2)
@@ -116,8 +153,8 @@ void snd_mixer_selem_get_id(snd_mixer_elem_t *elem,
 			    snd_mixer_selem_id_t *id)
 {
 	sm_selem_t *s;
-	assert(elem && id);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	assert(id);
+	CHECK_BASIC(elem);
 	s = elem->private_data;
 	*id = *s->id;
 }
@@ -130,8 +167,7 @@ void snd_mixer_selem_get_id(snd_mixer_elem_t *elem,
 const char *snd_mixer_selem_get_name(snd_mixer_elem_t *elem)
 {
 	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
 	s = elem->private_data;
 	return s->id->name;
 }
@@ -144,8 +180,7 @@ const char *snd_mixer_selem_get_name(snd_mixer_elem_t *elem)
 unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t *elem)
 {
 	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
 	s = elem->private_data;
 	return s->id->index;
 }
@@ -157,11 +192,8 @@ unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_common_volume(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_GVOLUME);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_GVOLUME);
 }
 
 /**
@@ -171,11 +203,8 @@ int snd_mixer_selem_has_common_volume(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_common_switch(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_GSWITCH);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_GSWITCH);
 }
 
 /**
@@ -211,8 +240,7 @@ const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
  */
 int snd_mixer_selem_is_active(snd_mixer_elem_t *elem)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
 	return sm_selem_ops(elem)->is(elem, SM_PLAY, SM_OPS_IS_ACTIVE, 0);
 }
 
@@ -223,8 +251,7 @@ int snd_mixer_selem_is_active(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_is_playback_mono(snd_mixer_elem_t *elem)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
 	return sm_selem_ops(elem)->is(elem, SM_PLAY, SM_OPS_IS_MONO, 0);
 }
 
@@ -236,8 +263,7 @@ int snd_mixer_selem_is_playback_mono(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_playback_channel(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
 	return sm_selem_ops(elem)->is(elem, SM_PLAY, SM_OPS_IS_CHANNEL, (int)channel);
 }
 
@@ -247,12 +273,12 @@ int snd_mixer_selem_has_playback_channel(snd_mixer_elem_t *elem, snd_mixer_selem
  * \param min Pointer to returned minimum
  * \param max Pointer to returned maximum
  */
-void snd_mixer_selem_get_playback_volume_range(snd_mixer_elem_t *elem,
+int snd_mixer_selem_get_playback_volume_range(snd_mixer_elem_t *elem,
 					       long *min, long *max)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	sm_selem_ops(elem)->get_range(elem, SM_PLAY, min, max);
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_PVOLUME);
+	return sm_selem_ops(elem)->get_range(elem, SM_PLAY, min, max);
 }
 
 /**
@@ -261,12 +287,12 @@ void snd_mixer_selem_get_playback_volume_range(snd_mixer_elem_t *elem,
  * \param min Pointer to returned minimum (dB * 100)
  * \param max Pointer to returned maximum (dB * 100)
  */
-void snd_mixer_selem_get_playback_dB_range(snd_mixer_elem_t *elem,
-					   long *min, long *max)
+int snd_mixer_selem_get_playback_dB_range(snd_mixer_elem_t *elem,
+					  long *min, long *max)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	sm_selem_ops(elem)->get_dB_range(elem, SM_PLAY, min, max);
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_PVOLUME);
+	return sm_selem_ops(elem)->get_dB_range(elem, SM_PLAY, min, max);
 }
 
 /**
@@ -275,13 +301,13 @@ void snd_mixer_selem_get_playback_dB_range(snd_mixer_elem_t *elem,
  * \param min minimum volume value
  * \param max maximum volume value
  */
-void snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem, 
-					       long min, long max)
+int snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem, 
+					      long min, long max)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
 	assert(min < max);
-	sm_selem_ops(elem)->set_range(elem, SM_PLAY, min, max);
+	CHECK_DIR(elem, SM_CAP_PVOLUME);
+	return sm_selem_ops(elem)->set_range(elem, SM_PLAY, min, max);
 }
 
 /**
@@ -291,11 +317,8 @@ void snd_mixer_selem_set_playback_volume_range(snd_mixer_elem_t *elem,
  */
 int snd_mixer_selem_has_playback_volume(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_PVOLUME) || !!(s->caps & SM_CAP_GVOLUME);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_PVOLUME);
 }
 
 /**
@@ -305,11 +328,8 @@ int snd_mixer_selem_has_playback_volume(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_playback_volume_joined(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_PVOLUME_JOIN);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_PVOLUME_JOIN);
 }
 
 /**
@@ -319,11 +339,8 @@ int snd_mixer_selem_has_playback_volume_joined(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_playback_switch(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_PSWITCH) || !!(s->caps & SM_CAP_GSWITCH);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_PSWITCH);
 }
 
 /**
@@ -333,11 +350,8 @@ int snd_mixer_selem_has_playback_switch(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_playback_switch_joined(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_PSWITCH_JOIN);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_PSWITCH_JOIN);
 }
 
 /**
@@ -349,8 +363,8 @@ int snd_mixer_selem_has_playback_switch_joined(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_get_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_PVOLUME, SM_CAP_PVOLUME_JOIN, channel);
 	return sm_selem_ops(elem)->get_volume(elem, SM_PLAY, channel, value);
 }
 
@@ -363,8 +377,14 @@ int snd_mixer_selem_get_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_
  */
 int snd_mixer_selem_get_playback_dB(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	unsigned int caps;
+
+	CHECK_BASIC(elem);
+	caps = ((sm_selem_t *)elem->private_data)->caps;
+	if (!(caps & SM_CAP_PVOLUME))
+		return -EINVAL;
+	if (caps & SM_CAP_PVOLUME_JOIN)
+		channel = 0;
 	return sm_selem_ops(elem)->get_dB(elem, SM_PLAY, channel, value);
 }
 
@@ -377,8 +397,8 @@ int snd_mixer_selem_get_playback_dB(snd_mixer_elem_t *elem, snd_mixer_selem_chan
  */
 int snd_mixer_selem_get_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int *value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_PSWITCH, SM_CAP_PSWITCH_JOIN, channel);
 	return sm_selem_ops(elem)->get_switch(elem, SM_PLAY, channel, value);
 }
 
@@ -391,8 +411,8 @@ int snd_mixer_selem_get_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_
  */
 int snd_mixer_selem_set_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_PVOLUME, SM_CAP_PVOLUME_JOIN, channel);
 	return sm_selem_ops(elem)->set_volume(elem, SM_PLAY, channel, value);
 }
 
@@ -401,12 +421,13 @@ int snd_mixer_selem_set_playback_volume(snd_mixer_elem_t *elem, snd_mixer_selem_
  * \param elem Mixer simple element handle
  * \param channel mixer simple element channel identifier
  * \param value control value in dB * 100
+ * \param dir select direction (-1 = accurate or first bellow, 0 = accurate, 1 = accurate or first above)
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_selem_set_playback_dB(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value, int dir)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_PVOLUME, SM_CAP_PVOLUME_JOIN, channel);
 	return sm_selem_ops(elem)->set_dB(elem, SM_PLAY, channel, value, dir);
 }
 
@@ -418,22 +439,43 @@ int snd_mixer_selem_set_playback_dB(snd_mixer_elem_t *elem, snd_mixer_selem_chan
  */
 int snd_mixer_selem_set_playback_volume_all(snd_mixer_elem_t *elem, long value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	return sm_selem_ops(elem)->set_volume_all(elem, SM_PLAY, value);
+	snd_mixer_selem_channel_id_t chn;
+	int err;
+
+	for (chn = 0; chn < 32; chn++) {
+		if (!snd_mixer_selem_has_playback_channel(elem, chn))
+			continue;
+		err = snd_mixer_selem_set_playback_volume(elem, chn, value);
+		if (err < 0)
+			return err;
+		if (chn == 0 && snd_mixer_selem_has_playback_volume_joined(elem))
+			return 0;
+	}
+	return 0;
 }
 
 /**
  * \brief Set value in dB of playback volume control for all channels of a mixer simple element
  * \param elem Mixer simple element handle
  * \param value control value in dB * 100
+ * \param dir select direction (-1 = accurate or first bellow, 0 = accurate, 1 = accurate or first above)
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_selem_set_playback_dB_all(snd_mixer_elem_t *elem, long value, int dir)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	return sm_selem_ops(elem)->set_dB_all(elem, SM_PLAY, value, dir);
+	snd_mixer_selem_channel_id_t chn;
+	int err;
+
+	for (chn = 0; chn < 32; chn++) {
+		if (!snd_mixer_selem_has_playback_channel(elem, chn))
+			continue;
+		err = snd_mixer_selem_set_playback_dB(elem, chn, value, dir);
+		if (err < 0)
+			return err;
+		if (chn == 0 && snd_mixer_selem_has_playback_volume_joined(elem))
+			return 0;
+	}
+	return 0;
 }
 
 /**
@@ -445,8 +487,8 @@ int snd_mixer_selem_set_playback_dB_all(snd_mixer_elem_t *elem, long value, int 
  */
 int snd_mixer_selem_set_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_PSWITCH, SM_CAP_PSWITCH, channel);
 	return sm_selem_ops(elem)->set_switch(elem, SM_PLAY, channel, value);
 }
 
@@ -458,9 +500,20 @@ int snd_mixer_selem_set_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_
  */
 int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	return sm_selem_ops(elem)->set_switch_all(elem, SM_PLAY, value);
+	snd_mixer_selem_channel_id_t chn;
+	int err;
+
+	CHECK_BASIC(elem);
+	for (chn = 0; chn < 32; chn++) {
+		if (!snd_mixer_selem_has_playback_channel(elem, chn))
+			continue;
+		err = snd_mixer_selem_set_playback_switch(elem, chn, value);
+		if (err < 0)
+			return err;
+		if (chn == 0 && snd_mixer_selem_has_playback_switch_joined(elem))
+			return 0;
+	}
+	return 0;
 }
 
 /**
@@ -470,8 +523,8 @@ int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t *elem, int value)
  */
 int snd_mixer_selem_is_capture_mono(snd_mixer_elem_t *elem)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_CVOLUME|SM_CAP_CSWITCH);
 	return sm_selem_ops(elem)->is(elem, SM_CAPT, SM_OPS_IS_MONO, 0);
 }
 
@@ -483,8 +536,8 @@ int snd_mixer_selem_is_capture_mono(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_capture_channel(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_CVOLUME|SM_CAP_CSWITCH);
 	return sm_selem_ops(elem)->is(elem, SM_CAPT, SM_OPS_IS_CHANNEL, channel);
 }
 
@@ -494,12 +547,12 @@ int snd_mixer_selem_has_capture_channel(snd_mixer_elem_t *elem, snd_mixer_selem_
  * \param min Pointer to returned minimum
  * \param max Pointer to returned maximum
  */
-void snd_mixer_selem_get_capture_volume_range(snd_mixer_elem_t *elem,
-					      long *min, long *max)
+int snd_mixer_selem_get_capture_volume_range(snd_mixer_elem_t *elem,
+					     long *min, long *max)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	sm_selem_ops(elem)->get_range(elem, SM_CAPT, min, max);
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_CVOLUME);
+	return sm_selem_ops(elem)->get_range(elem, SM_CAPT, min, max);
 }
 
 /**
@@ -508,12 +561,12 @@ void snd_mixer_selem_get_capture_volume_range(snd_mixer_elem_t *elem,
  * \param min Pointer to returned minimum (dB * 100)
  * \param max Pointer to returned maximum (dB * 100)
  */
-void snd_mixer_selem_get_capture_dB_range(snd_mixer_elem_t *elem,
-					  long *min, long *max)
+int snd_mixer_selem_get_capture_dB_range(snd_mixer_elem_t *elem,
+					 long *min, long *max)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	sm_selem_ops(elem)->get_dB_range(elem, SM_CAPT, min, max);
+	CHECK_BASIC(elem);
+	CHECK_DIR(elem, SM_CAP_CVOLUME);
+	return sm_selem_ops(elem)->get_dB_range(elem, SM_CAPT, min, max);
 }
 
 /**
@@ -522,13 +575,13 @@ void snd_mixer_selem_get_capture_dB_range(snd_mixer_elem_t *elem,
  * \param min minimum volume value
  * \param max maximum volume value
  */
-void snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem, 
-					      long min, long max)
+int snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem, 
+					     long min, long max)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
 	assert(min < max);
-	sm_selem_ops(elem)->set_range(elem, SM_CAPT, min, max);
+	CHECK_DIR(elem, SM_CAP_CVOLUME);
+	return sm_selem_ops(elem)->set_range(elem, SM_CAPT, min, max);
 }
 
 /**
@@ -538,11 +591,8 @@ void snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem,
  */
 int snd_mixer_selem_has_capture_volume(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_CVOLUME);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_CVOLUME);
 }
 
 /**
@@ -552,11 +602,8 @@ int snd_mixer_selem_has_capture_volume(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_capture_volume_joined(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_CVOLUME_JOIN);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_CVOLUME_JOIN);
 }
 
 /**
@@ -566,11 +613,8 @@ int snd_mixer_selem_has_capture_volume_joined(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_capture_switch(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_CSWITCH);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_CSWITCH);
 }
 
 /**
@@ -580,11 +624,8 @@ int snd_mixer_selem_has_capture_switch(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_capture_switch_joined(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_CSWITCH_JOIN);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_CSWITCH_JOIN);
 }
 
 /**
@@ -594,11 +635,8 @@ int snd_mixer_selem_has_capture_switch_joined(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_has_capture_switch_exclusive(snd_mixer_elem_t *elem)
 {
-	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	s = elem->private_data;
-	return !!(s->caps & SM_CAP_CSWITCH_EXCL);
+	CHECK_BASIC(elem);
+	return COND_CAPS(elem, SM_CAP_CSWITCH_EXCL);
 }
 
 /**
@@ -609,8 +647,7 @@ int snd_mixer_selem_has_capture_switch_exclusive(snd_mixer_elem_t *elem)
 int snd_mixer_selem_get_capture_group(snd_mixer_elem_t *elem)
 {
 	sm_selem_t *s;
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
 	s = elem->private_data;
 	if (! (s->caps & SM_CAP_CSWITCH_EXCL))
 		return -EINVAL;
@@ -626,8 +663,8 @@ int snd_mixer_selem_get_capture_group(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_get_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_CVOLUME, SM_CAP_CVOLUME_JOIN, channel);
 	return sm_selem_ops(elem)->get_volume(elem, SM_CAPT, channel, value);
 }
 
@@ -640,8 +677,8 @@ int snd_mixer_selem_get_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_c
  */
 int snd_mixer_selem_get_capture_dB(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long *value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_CVOLUME, SM_CAP_CVOLUME_JOIN, channel);
 	return sm_selem_ops(elem)->get_dB(elem, SM_CAPT, channel, value);
 }
 
@@ -654,8 +691,8 @@ int snd_mixer_selem_get_capture_dB(snd_mixer_elem_t *elem, snd_mixer_selem_chann
  */
 int snd_mixer_selem_get_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int *value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_CSWITCH, SM_CAP_CSWITCH_JOIN, channel);
 	return sm_selem_ops(elem)->get_switch(elem, SM_CAPT, channel, value);
 }
 
@@ -668,8 +705,8 @@ int snd_mixer_selem_get_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_c
  */
 int snd_mixer_selem_set_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_CVOLUME, SM_CAP_CVOLUME_JOIN, channel);
 	return sm_selem_ops(elem)->set_volume(elem, SM_CAPT, channel, value);
 }
 
@@ -678,12 +715,13 @@ int snd_mixer_selem_set_capture_volume(snd_mixer_elem_t *elem, snd_mixer_selem_c
  * \param elem Mixer simple element handle
  * \param channel mixer simple element channel identifier
  * \param value control value in dB * 100
+ * \param dir select direction (-1 = accurate or first bellow, 0 = accurate, 1 = accurate or first above)
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_selem_set_capture_dB(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, long value, int dir)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_CVOLUME, SM_CAP_CVOLUME_JOIN, channel);
 	return sm_selem_ops(elem)->set_dB(elem, SM_CAPT, channel, value, dir);
 }
 
@@ -695,22 +733,43 @@ int snd_mixer_selem_set_capture_dB(snd_mixer_elem_t *elem, snd_mixer_selem_chann
  */
 int snd_mixer_selem_set_capture_volume_all(snd_mixer_elem_t *elem, long value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	return sm_selem_ops(elem)->set_volume_all(elem, SM_CAPT, value);
+	snd_mixer_selem_channel_id_t chn;
+	int err;
+
+	for (chn = 0; chn < 32; chn++) {
+		if (!snd_mixer_selem_has_capture_channel(elem, chn))
+			continue;
+		err = snd_mixer_selem_set_capture_volume(elem, chn, value);
+		if (err < 0)
+			return err;
+		if (chn == 0 && snd_mixer_selem_has_capture_volume_joined(elem))
+			return 0;
+	}
+	return 0;
 }
 
 /**
  * \brief Set value in dB of capture volume control for all channels of a mixer simple element
  * \param elem Mixer simple element handle
  * \param value control value in dB * 100
+ * \param dir select direction (-1 = accurate or first bellow, 0 = accurate, 1 = accurate or first above)
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_selem_set_capture_dB_all(snd_mixer_elem_t *elem, long value, int dir)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	return sm_selem_ops(elem)->set_dB_all(elem, SM_CAPT, value, dir);
+	snd_mixer_selem_channel_id_t chn;
+	int err;
+
+	for (chn = 0; chn < 32; chn++) {
+		if (!snd_mixer_selem_has_capture_channel(elem, chn))
+			continue;
+		err = snd_mixer_selem_set_capture_dB(elem, chn, value, dir);
+		if (err < 0)
+			return err;
+		if (chn == 0 && snd_mixer_selem_has_capture_volume_joined(elem))
+			return 0;
+	}
+	return 0;
 }
 
 /**
@@ -722,8 +781,8 @@ int snd_mixer_selem_set_capture_dB_all(snd_mixer_elem_t *elem, long value, int d
  */
 int snd_mixer_selem_set_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_DIR_CHN(elem, SM_CAP_CSWITCH, SM_CAP_CSWITCH_JOIN, channel);
 	return sm_selem_ops(elem)->set_switch(elem, SM_CAPT, channel, value);
 }
 
@@ -735,9 +794,19 @@ int snd_mixer_selem_set_capture_switch(snd_mixer_elem_t *elem, snd_mixer_selem_c
  */
 int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
-	return sm_selem_ops(elem)->set_switch_all(elem, SM_CAPT, value);
+	snd_mixer_selem_channel_id_t chn;
+	int err;
+
+	for (chn = 0; chn < 32; chn++) {
+		if (!snd_mixer_selem_has_capture_channel(elem, chn))
+			continue;
+		err = snd_mixer_selem_set_capture_switch(elem, chn, value);
+		if (err < 0)
+			return err;
+		if (chn == 0 && snd_mixer_selem_has_capture_switch_joined(elem))
+			return 0;
+	}
+	return 0;
 }
 
 /**
@@ -747,8 +816,8 @@ int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t *elem, int value)
  */
 int snd_mixer_selem_is_enumerated(snd_mixer_elem_t *elem)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_ENUM(elem);
 	return sm_selem_ops(elem)->is(elem, SM_PLAY, SM_OPS_IS_ENUMERATED, 0);
 }
 
@@ -759,8 +828,8 @@ int snd_mixer_selem_is_enumerated(snd_mixer_elem_t *elem)
  */
 int snd_mixer_selem_get_enum_items(snd_mixer_elem_t *elem)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_ENUM(elem);
 	return sm_selem_ops(elem)->is(elem, SM_PLAY, SM_OPS_IS_ENUMCNT, 0);
 }
 
@@ -776,8 +845,8 @@ int snd_mixer_selem_get_enum_item_name(snd_mixer_elem_t *elem,
 				       unsigned int item,
 				       size_t maxlen, char *buf)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_ENUM(elem);
 	return sm_selem_ops(elem)->enum_item_name(elem, item, maxlen, buf);
 }
 
@@ -792,8 +861,8 @@ int snd_mixer_selem_get_enum_item(snd_mixer_elem_t *elem,
 				  snd_mixer_selem_channel_id_t channel,
 				  unsigned int *itemp)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_ENUM(elem);
 	return sm_selem_ops(elem)->get_enum_item(elem, channel, itemp);
 }
 
@@ -808,8 +877,8 @@ int snd_mixer_selem_set_enum_item(snd_mixer_elem_t *elem,
 				  snd_mixer_selem_channel_id_t channel,
 				  unsigned int item)
 {
-	assert(elem);
-	assert(elem->type == SND_MIXER_ELEM_SIMPLE);
+	CHECK_BASIC(elem);
+	CHECK_ENUM(elem);
 	return sm_selem_ops(elem)->set_enum_item(elem, channel, item);
 }
 

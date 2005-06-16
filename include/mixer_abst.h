@@ -69,6 +69,13 @@ typedef struct _sm_selem {
 	unsigned int capture_group;
 } sm_selem_t;
 
+typedef struct _sm_class_basic {
+	char *device;
+	snd_ctl_t *ctl;
+	snd_hctl_t *hctl;
+	snd_ctl_card_info_t *info;
+} sm_class_basic_t;
+
 struct sm_elem_ops {	
 	int (*is)(snd_mixer_elem_t *elem, int dir, int cmd, int val);
 	int (*get_range)(snd_mixer_elem_t *elem, int dir, long *min, long *max);
@@ -78,17 +85,16 @@ struct sm_elem_ops {
 	int (*get_dB)(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long *value);
 	int (*set_volume)(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long value);
 	int (*set_dB)(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long value, int xdir);
-	int (*set_volume_all)(snd_mixer_elem_t *elem, int dir, long value);
-	int (*set_dB_all)(snd_mixer_elem_t *elem, int dir, long value, int xdir);
 	int (*get_switch)(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, int *value);
 	int (*set_switch)(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, int value);
-	int (*set_switch_all)(snd_mixer_elem_t *elem, int dir, int value);
 	int (*enum_item_name)(snd_mixer_elem_t *elem, unsigned int item, size_t maxlen, char *buf);
 	int (*get_enum_item)(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, unsigned int *itemp);
 	int (*set_enum_item)(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, unsigned int item);
 };
 
 int snd_mixer_selem_compare(const snd_mixer_elem_t *c1, const snd_mixer_elem_t *c2);
+
+int snd_mixer_sbasic_info(const snd_mixer_class_t *class, sm_class_basic_t *info);
 
 /** \} */
 
