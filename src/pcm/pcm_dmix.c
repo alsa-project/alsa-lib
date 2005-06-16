@@ -239,13 +239,20 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	snd_pcm_uframes_t appl_ptr, slave_appl_ptr, slave_bsize;
-	snd_pcm_uframes_t size, slave_hw_ptr;
+	snd_pcm_uframes_t size, slave_size, slave_hw_ptr;
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
 	
 	/* calculate the size to transfer */
+	/* check the available size in the local buffer
+	 * last_appl_ptr keeps the last updated position
+	 */
 	size = dmix->appl_ptr - dmix->last_appl_ptr;
 	if (! size)
 		return;
+	if (size >= pcm->boundary / 2)
+		size = pcm->boundary - size;
+
+	/* check the available size in the slave PCM buffer */
 	slave_bsize = dmix->shmptr->s.buffer_size;
 	slave_hw_ptr = dmix->slave_hw_ptr;
 	/* don't write on the last active period - this area may be cleared
@@ -253,12 +260,17 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 	 */
 	slave_hw_ptr -= slave_hw_ptr % dmix->shmptr->s.period_size;
 	slave_hw_ptr += slave_bsize;
-	if (dmix->slave_hw_ptr > dmix->slave_appl_ptr)
+	if (slave_hw_ptr >= dmix->shmptr->s.boundary)
 		slave_hw_ptr -= dmix->shmptr->s.boundary;
-	if (dmix->slave_appl_ptr + size >= slave_hw_ptr)
-		size = slave_hw_ptr - dmix->slave_appl_ptr;
+	if (slave_hw_ptr < dmix->slave_appl_ptr)
+		slave_size = slave_hw_ptr + (dmix->shmptr->s.boundary - dmix->slave_appl_ptr);
+	else
+		slave_size = slave_hw_ptr - dmix->slave_appl_ptr;
+	if (slave_size < size)
+		size = slave_size;
 	if (! size)
 		return;
+
 	/* add sample areas here */
 	src_areas = snd_pcm_mmap_areas(pcm);
 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
