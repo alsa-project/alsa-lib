@@ -1,5 +1,5 @@
 /**
- * \file mixer/simple.c
+ * \file mixer/simple_none.c
  * \brief Mixer Simple Element Class Interface
  * \author Jaroslav Kysela <perex@suse.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
