@@ -834,11 +834,16 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		SNDMSG("params->xfer_align is 0");
 		return -EINVAL;
 	}
+#if 0
+	/* disable the check below - it looks too restrictive
+	 * (start_threshold is basically independent from avail_min)
+	 */
 	if (params->start_threshold <= pcm->buffer_size &&
 	    params->start_threshold > (pcm->buffer_size / params->avail_min) * params->avail_min) {
 		SNDMSG("params->avail_min problem for start_threshold");
 		return -EINVAL;
 	}
+#endif
 	if (params->start_threshold <= pcm->buffer_size &&
 	    params->start_threshold > (pcm->buffer_size / params->xfer_align) * params->xfer_align) {
 		SNDMSG("params->xfer_align problem for start_threshold");
