@@ -26,9 +26,9 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <math.h>
-#include <alsa/asoundlib.h>
-#include <alsa/mixer_abst.h>
-#include <alsa/list.h>
+#include "asoundlib.h"
+#include "mixer_abst.h"
+#include "list.h"
 
 #define MAX_CHANNEL	6
 
