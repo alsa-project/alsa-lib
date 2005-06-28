@@ -16,7 +16,7 @@ noinst_HEADERS = sys.h search.h list.h aserver.h local.h alsa-symbols.h
 
 CLEANFILES = stamp-vh version.h alsa
 
-version.h: stamp-vh
+version.h: stamp-vh alsa
 	@:
 
 stamp-vh: $(top_builddir)/configure.in
@@ -40,6 +40,9 @@ stamp-vh: $(top_builddir)/configure.in
               cp ver.tmp version.h; \
               echo timestamp > stamp-vh)
 	-@rm -f ver.tmp
+
+alsa:
+	ln -s . $@
 
 INCLUDES=-I$(top_srcdir)/include
 
