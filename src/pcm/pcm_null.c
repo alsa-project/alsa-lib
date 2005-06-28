@@ -71,9 +71,9 @@ static int snd_pcm_null_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	info->stream = pcm->stream;
 	info->card = -1;
 	if (pcm->name) {
-		strncpy(info->id, pcm->name, sizeof(info->id));
-		strncpy(info->name, pcm->name, sizeof(info->name));
-		strncpy(info->subname, pcm->name, sizeof(info->subname));
+		strncpy((char *)info->id, pcm->name, sizeof(info->id));
+		strncpy((char *)info->name, pcm->name, sizeof(info->name));
+		strncpy((char *)info->subname, pcm->name, sizeof(info->subname));
 	}
 	info->subdevices_count = 1;
 	return 0;

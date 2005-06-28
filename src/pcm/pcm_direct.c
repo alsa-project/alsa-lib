@@ -510,9 +510,9 @@ int snd_pcm_direct_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	info->card = -1;
 	/* FIXME: fill this with something more useful: we know the hardware name */
 	if (pcm->name) {
-		strncpy(info->id, pcm->name, sizeof(info->id));
-		strncpy(info->name, pcm->name, sizeof(info->name));
-		strncpy(info->subname, pcm->name, sizeof(info->subname));
+		strncpy((char *)info->id, pcm->name, sizeof(info->id));
+		strncpy((char *)info->name, pcm->name, sizeof(info->name));
+		strncpy((char *)info->subname, pcm->name, sizeof(info->subname));
 	}
 	info->subdevices_count = 1;
 	return 0;
@@ -736,7 +736,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 			return ret;
 		}
 	}
-	ret = INTERNAL(snd_pcm_hw_params_set_rate_near)(spcm, hw_params, &params->rate, 0);
+	ret = INTERNAL(snd_pcm_hw_params_set_rate_near)(spcm, hw_params, (unsigned int *)&params->rate, 0);
 	if (ret < 0) {
 		SNDERR("requested rate is not available");
 		return ret;
@@ -744,13 +744,13 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 
 	buffer_is_not_initialized = 0;
 	if (params->buffer_time > 0) {
-		ret = INTERNAL(snd_pcm_hw_params_set_buffer_time_near)(spcm, hw_params, &params->buffer_time, 0);
+		ret = INTERNAL(snd_pcm_hw_params_set_buffer_time_near)(spcm, hw_params, (unsigned int *)&params->buffer_time, 0);
 		if (ret < 0) {
 			SNDERR("unable to set buffer time");
 			return ret;
 		}
 	} else if (params->buffer_size > 0) {
-		ret = INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(spcm, hw_params, &params->buffer_size);
+		ret = INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(spcm, hw_params, (snd_pcm_uframes_t *)&params->buffer_size);
 		if (ret < 0) {
 			SNDERR("unable to set buffer size");
 			return ret;
@@ -760,13 +760,13 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	}
 
 	if (params->period_time > 0) {
-		ret = INTERNAL(snd_pcm_hw_params_set_period_time_near)(spcm, hw_params, &params->period_time, 0);
+		ret = INTERNAL(snd_pcm_hw_params_set_period_time_near)(spcm, hw_params, (unsigned int *)&params->period_time, 0);
 		if (ret < 0) {
 			SNDERR("unable to set period_time");
 			return ret;
 		}
 	} else if (params->period_size > 0) {
-		ret = INTERNAL(snd_pcm_hw_params_set_period_size_near)(spcm, hw_params, &params->period_size, 0);
+		ret = INTERNAL(snd_pcm_hw_params_set_period_size_near)(spcm, hw_params, (snd_pcm_uframes_t *)&params->period_size, 0);
 		if (ret < 0) {
 			SNDERR("unable to set period_size");
 			return ret;

@@ -1228,7 +1228,7 @@ static int parse_defs(snd_config_t *father, input_t *input, int skip, int overri
 
 static void string_print(char *str, int id, snd_output_t *out)
 {
-	unsigned char *p = str;
+	unsigned char *p = (unsigned char *)str;
 	if (!id) {
 		switch (*p) {
 		case 0:
@@ -1268,7 +1268,7 @@ static void string_print(char *str, int id, snd_output_t *out)
 	return;
  quoted:
 	snd_output_putc(out, '\'');
-	p = str;
+	p = (unsigned char *)str;
 	while (*p) {
 		int c;
 		c = *p;

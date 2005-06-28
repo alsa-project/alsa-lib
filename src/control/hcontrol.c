@@ -292,7 +292,7 @@ static int get_compare_weight(const snd_ctl_elem_id_t *id)
 		"Center",
 		NULL
 	};
-	const char *name = id->name, *name1;
+	const char *name = (char *)id->name, *name1;
 	int res, res1;
 	
 	if ((res = snd_hctl_compare_mixer_priority_lookup((const char **)&name, names, 1000000)) == NOT_FOUND)
@@ -472,7 +472,7 @@ static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 		if (d != 0)
 			return d;
 	}
-	res = strcmp(c1->id.name, c2->id.name);
+	res = strcmp((const char *)c1->id.name, (const char *)c2->id.name);
 	if (res != 0)
 		return res;
 	d = c1->id.index - c2->id.index;
@@ -877,7 +877,7 @@ unsigned int snd_hctl_elem_get_subdevice(const snd_hctl_elem_t *obj)
 const char *snd_hctl_elem_get_name(const snd_hctl_elem_t *obj)
 {
 	assert(obj);
-	return obj->id.name;
+	return (const char *)obj->id.name;
 }
 
 /**

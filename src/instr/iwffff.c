@@ -464,7 +464,7 @@ static char *look_for_id(snd_iwffff_handle_t *iwf ATTRIBUTE_UNUSED, unsigned cha
 		return NULL;
 	while ((long)start < (long)end) {
 		if (((struct header *)start)->id == id)
-			return start;
+			return (char *)start;
 		start += sizeof(struct header) + snd_LE_to_host_32(((struct header *)start)->length);
 	}
 	return NULL;
@@ -493,7 +493,7 @@ static int copy_envelope(snd_iwffff_handle_t *iwf, iwffff_env_t *genv, ID eid)
 	ptr = iwf->fff_data;
 	end = iwf->fff_data + iwf->fff_size;
 	while (1) {
-		ptr = look_for_id(iwf, ptr, end, envp_header);
+		ptr = (unsigned char *)look_for_id(iwf, ptr, end, envp_header);
 		if (ptr == NULL)
 			return -ENOENT;
 		envelope = ptr + sizeof(struct header);
@@ -515,7 +515,7 @@ static int copy_envelope(snd_iwffff_handle_t *iwf, iwffff_env_t *genv, ID eid)
 				grecord->sustain_rate = snd_LE_to_host_16(*(((unsigned short *)record) + 6/2));
 				grecord->release_rate = snd_LE_to_host_16(*(((unsigned short *)record) + 8/2));
 				grecord->hirange = record[10];
-				points = (short *)(record + ENVELOPE_RECORD_SIZE);
+				points = (unsigned short *)(record + ENVELOPE_RECORD_SIZE);
 				rpoints = (iwffff_env_point_t *)(grecord + 1);
 				for (idx1 = 0; idx1 < grecord->nattack + grecord->nrelease; idx1++) {
 					rpoints[idx1].offset = *points++;
@@ -585,7 +585,7 @@ static int load_iw_patch(snd_iwffff_handle_t *iwf, iwffff_instrument_t *instr,
 	instr->effect1_depth = patch[11];
 	instr->effect2 = patch[12];
 	instr->effect2_depth = patch[13];
-	current = (char *)patch + sizeof(struct patch);
+	current = (unsigned char *)patch + sizeof(struct patch);
 	instr->layer = player = NULL;
 	for (idx_layer = 0; idx_layer < snd_LE_to_host_16(*(((unsigned short *)patch) + 4/2)); idx_layer++) {
 		if (((struct header *)current)->id != layer_header) {
@@ -704,7 +704,7 @@ int snd_instr_iwffff_load(snd_iwffff_handle_t *iwf, int bank, int prg, snd_instr
 	ptr = iwf->fff_data;
  	end = iwf->fff_data + iwf->fff_size;
 	while (1) {
-		ptr = look_for_id(iwf, ptr, end, program_header);
+		ptr = (unsigned char *)look_for_id(iwf, ptr, end, program_header);
 		if (ptr == NULL)
 			break;
 		program = ptr + sizeof(struct header);

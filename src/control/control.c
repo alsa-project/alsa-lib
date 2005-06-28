@@ -1028,7 +1028,7 @@ const char *snd_ctl_event_elem_get_name(const snd_ctl_event_t *obj)
 {
 	assert(obj);
 	assert(obj->type == SND_CTL_EVENT_ELEM);
-	return obj->data.elem.id.name;
+	return (const char *)obj->data.elem.id.name;
 }
 
 /**
@@ -1155,7 +1155,7 @@ unsigned int snd_ctl_elem_id_get_subdevice(const snd_ctl_elem_id_t *obj)
 const char *snd_ctl_elem_id_get_name(const snd_ctl_elem_id_t *obj)
 {
 	assert(obj);
-	return obj->name;
+	return (const char *)obj->name;
 }
 
 /**
@@ -1221,7 +1221,7 @@ void snd_ctl_elem_id_set_subdevice(snd_ctl_elem_id_t *obj, unsigned int val)
 void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t *obj, const char *val)
 {
 	assert(obj);
-	strncpy(obj->name, val, sizeof(obj->name));
+	strncpy((char *)obj->name, val, sizeof(obj->name));
 }
 
 /**
@@ -1306,7 +1306,7 @@ int snd_ctl_card_info_get_card(const snd_ctl_card_info_t *obj)
 const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj)
 {
 	assert(obj);
-	return obj->id;
+	return (const char *)obj->id;
 }
 
 /**
@@ -1317,7 +1317,7 @@ const char *snd_ctl_card_info_get_id(const snd_ctl_card_info_t *obj)
 const char *snd_ctl_card_info_get_driver(const snd_ctl_card_info_t *obj)
 {
 	assert(obj);
-	return obj->driver;
+	return (const char *)obj->driver;
 }
 
 /**
@@ -1328,7 +1328,7 @@ const char *snd_ctl_card_info_get_driver(const snd_ctl_card_info_t *obj)
 const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj)
 {
 	assert(obj);
-	return obj->name;
+	return (const char *)obj->name;
 }
 
 /**
@@ -1339,7 +1339,7 @@ const char *snd_ctl_card_info_get_name(const snd_ctl_card_info_t *obj)
 const char *snd_ctl_card_info_get_longname(const snd_ctl_card_info_t *obj)
 {
 	assert(obj);
-	return obj->longname;
+	return (const char *)obj->longname;
 }
 
 /**
@@ -1350,7 +1350,7 @@ const char *snd_ctl_card_info_get_longname(const snd_ctl_card_info_t *obj)
 const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj)
 {
 	assert(obj);
-	return obj->mixername;
+	return (const char *)obj->mixername;
 }
 
 /**
@@ -1361,7 +1361,7 @@ const char *snd_ctl_card_info_get_mixername(const snd_ctl_card_info_t *obj)
 const char *snd_ctl_card_info_get_components(const snd_ctl_card_info_t *obj)
 {
 	assert(obj);
-	return obj->components;
+	return (const char *)obj->components;
 }
 
 /**
@@ -1587,7 +1587,7 @@ const char *snd_ctl_elem_list_get_name(const snd_ctl_elem_list_t *obj, unsigned 
 {
 	assert(obj);
 	assert(idx < obj->used);
-	return obj->pids[idx].name;
+	return (const char *)obj->pids[idx].name;
 }
 
 /**
@@ -1991,7 +1991,7 @@ unsigned int snd_ctl_elem_info_get_subdevice(const snd_ctl_elem_info_t *obj)
 const char *snd_ctl_elem_info_get_name(const snd_ctl_elem_info_t *obj)
 {
 	assert(obj);
-	return obj->id.name;
+	return (const char *)obj->id.name;
 }
 
 /**
@@ -2068,7 +2068,7 @@ void snd_ctl_elem_info_set_subdevice(snd_ctl_elem_info_t *obj, unsigned int val)
 void snd_ctl_elem_info_set_name(snd_ctl_elem_info_t *obj, const char *val)
 {
 	assert(obj);
-	strncpy(obj->id.name, val, sizeof(obj->id.name));
+	strncpy((char *)obj->id.name, val, sizeof(obj->id.name));
 }
 
 /**
@@ -2197,7 +2197,7 @@ unsigned int snd_ctl_elem_value_get_subdevice(const snd_ctl_elem_value_t *obj)
 const char *snd_ctl_elem_value_get_name(const snd_ctl_elem_value_t *obj)
 {
 	assert(obj);
-	return obj->id.name;
+	return (const char *)obj->id.name;
 }
 
 /**
@@ -2274,7 +2274,7 @@ void snd_ctl_elem_value_set_subdevice(snd_ctl_elem_value_t *obj, unsigned int va
 void snd_ctl_elem_value_set_name(snd_ctl_elem_value_t *obj, const char *val)
 {
 	assert(obj);
-	strncpy(obj->id.name, val, sizeof(obj->id.name));
+	strncpy((char *)obj->id.name, val, sizeof(obj->id.name));
 }
 
 /**

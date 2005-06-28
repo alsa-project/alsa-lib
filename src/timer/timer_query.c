@@ -319,7 +319,7 @@ int snd_timer_ginfo_get_card(snd_timer_ginfo_t *obj)
  */
 char *snd_timer_ginfo_get_id(snd_timer_ginfo_t *obj)
 {
-	return obj->id;
+	return (char *)obj->id;
 }
 
 /**
@@ -329,7 +329,7 @@ char *snd_timer_ginfo_get_id(snd_timer_ginfo_t *obj)
  */
 char *snd_timer_ginfo_get_name(snd_timer_ginfo_t *obj)
 {
-	return obj->name;
+	return (char *)obj->name;
 }
 
 /**

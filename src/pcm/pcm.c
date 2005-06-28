@@ -3414,7 +3414,7 @@ int INTERNAL(snd_pcm_hw_params_get_format)(const snd_pcm_hw_params_t *params, sn
 int snd_pcm_hw_params_get_format(const snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
 #endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, format, NULL);
+	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_FORMAT, (unsigned int *)format, NULL);
 }
 
 /**
@@ -3454,7 +3454,7 @@ int INTERNAL(snd_pcm_hw_params_set_format_first)(snd_pcm_t *pcm, snd_pcm_hw_para
 int snd_pcm_hw_params_set_format_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
 #endif
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, format, NULL);
+	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_FORMAT, (unsigned int *)format, NULL);
 }
 
 /**
@@ -3470,7 +3470,7 @@ int INTERNAL(snd_pcm_hw_params_set_format_last)(snd_pcm_t *pcm, snd_pcm_hw_param
 int snd_pcm_hw_params_set_format_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_format_t *format)
 #endif
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_FORMAT, format, NULL);
+	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_FORMAT, (unsigned int *)format, NULL);
 }
 
 /**
@@ -6020,7 +6020,7 @@ int snd_pcm_info_get_card(const snd_pcm_info_t *obj)
 const char *snd_pcm_info_get_id(const snd_pcm_info_t *obj)
 {
 	assert(obj);
-	return obj->id;
+	return (const char *)obj->id;
 }
 
 /**
@@ -6031,7 +6031,7 @@ const char *snd_pcm_info_get_id(const snd_pcm_info_t *obj)
 const char *snd_pcm_info_get_name(const snd_pcm_info_t *obj)
 {
 	assert(obj);
-	return obj->name;
+	return (const char *)obj->name;
 }
 
 /**
@@ -6042,7 +6042,7 @@ const char *snd_pcm_info_get_name(const snd_pcm_info_t *obj)
 const char *snd_pcm_info_get_subdevice_name(const snd_pcm_info_t *obj)
 {
 	assert(obj);
-	return obj->subname;
+	return (const char *)obj->subname;
 }
 
 /**

@@ -85,9 +85,9 @@ static int snd_rawmidi_virtual_info(snd_rawmidi_t *rmidi, snd_rawmidi_info_t * i
 	info->device = 0;
 	info->subdevice = 0;
 	info->flags = 0;
-	strcpy(info->id, "Virtual");
-	strcpy(info->name, "Virtual RawMIDI");
-	strcpy(info->subname, "Virtual RawMIDI");
+	strcpy((char *)info->id, "Virtual");
+	strcpy((char *)info->name, "Virtual RawMIDI");
+	strcpy((char *)info->subname, "Virtual RawMIDI");
 	info->subdevices_count = 1;
 	info->subdevices_avail = 0;
 	return 0;
@@ -250,7 +250,7 @@ static ssize_t snd_rawmidi_virtual_read(snd_rawmidi_t *rmidi, void *buffer, size
 			} else {
 				virt->in_buf_ptr = virt->in_tmp_buf;
 				virt->in_buf_size = snd_midi_event_decode(virt->midi_event,
-									  virt->in_tmp_buf,
+									  (unsigned char *)virt->in_tmp_buf,
 									  sizeof(virt->in_tmp_buf),
 									  virt->in_event);
 			}

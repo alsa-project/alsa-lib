@@ -574,7 +574,7 @@ unsigned int snd_rawmidi_info_get_flags(const snd_rawmidi_info_t *info)
 const char *snd_rawmidi_info_get_id(const snd_rawmidi_info_t *info)
 {
 	assert(info);
-	return info->id;
+	return (const char *)info->id;
 }
 
 /**
@@ -585,7 +585,7 @@ const char *snd_rawmidi_info_get_id(const snd_rawmidi_info_t *info)
 const char *snd_rawmidi_info_get_name(const snd_rawmidi_info_t *info)
 {
 	assert(info);
-	return info->name;
+	return (const char *)info->name;
 }
 
 /**
@@ -596,7 +596,7 @@ const char *snd_rawmidi_info_get_name(const snd_rawmidi_info_t *info)
 const char *snd_rawmidi_info_get_subdevice_name(const snd_rawmidi_info_t *info)
 {
 	assert(info);
-	return info->subname;
+	return (const char *)info->subname;
 }
 
 /**

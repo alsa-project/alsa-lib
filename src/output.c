@@ -276,7 +276,7 @@ static int snd_output_buffer_print(snd_output_t *output, const char *format, va_
 	result = snd_output_buffer_need(output, size);
 	if (result < 0)
 		return result;
-	result = vsnprintf(buffer->buf + buffer->size, size, format, args);
+	result = vsnprintf((char *)buffer->buf + buffer->size, size, format, args);
 	assert(result >= 0);
 	if ((size_t)result <= size) {
 		buffer->size += result;
@@ -286,7 +286,7 @@ static int snd_output_buffer_print(snd_output_t *output, const char *format, va_
 	result = snd_output_buffer_need(output, size);
 	if (result < 0)
 		return result;
-	result = vsnprintf(buffer->buf + buffer->size, result, format, args);
+	result = vsnprintf((char *)buffer->buf + buffer->size, result, format, args);
 	assert(result == (int)size);
 	buffer->size += result;
 	return result;
@@ -345,7 +345,7 @@ static snd_output_ops_t snd_output_buffer_ops = {
 size_t snd_output_buffer_string(snd_output_t *output, char **buf)
 {
 	snd_output_buffer_t *buffer = output->private_data;
-	*buf = buffer->buf;
+	*buf = (char *)buffer->buf;
 	return buffer->size;
 }
 

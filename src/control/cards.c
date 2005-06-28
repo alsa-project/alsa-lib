@@ -130,7 +130,7 @@ int snd_card_get_index(const char *string)
 			continue;
 		}
 		snd_ctl_close(handle);
-		if (!strcmp(info.id, string))
+		if (!strcmp((const char *)info.id, string))
 			return card;
 	}
 	return -ENODEV;
@@ -157,7 +157,7 @@ int snd_card_get_name(int card, char **name)
 		return err;
 	}
 	snd_ctl_close(handle);
-	*name = strdup(info.name);
+	*name = strdup((const char *)info.name);
 	if (*name == NULL)
 		return -ENOMEM;
 	return 0;
@@ -184,7 +184,7 @@ int snd_card_get_longname(int card, char **name)
 		return err;
 	}
 	snd_ctl_close(handle);
-	*name = strdup(info.longname);
+	*name = strdup((const char *)info.longname);
 	if (*name == NULL)
 		return -ENOMEM;
 	return 0;

@@ -242,7 +242,7 @@ static int snd_input_buffer_scan(snd_input_t *input, const char *format, va_list
 	extern int vsscanf(const char *, const char *, va_list);
 	/* FIXME: how can I obtain consumed chars count? */
 	assert(0);
-	return vsscanf(buffer->ptr, format, args);
+	return vsscanf((char *)buffer->ptr, format, args);
 }
 
 static char *snd_input_buffer_gets(snd_input_t *input, char *str, size_t size)

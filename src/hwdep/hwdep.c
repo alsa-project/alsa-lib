@@ -399,7 +399,7 @@ unsigned int snd_hwdep_info_get_device(const snd_hwdep_info_t *info)
 const char *snd_hwdep_info_get_id(const snd_hwdep_info_t *obj)
 {
 	assert(obj);
-	return obj->id;
+	return (const char *)obj->id;
 }
 
 /**
@@ -410,7 +410,7 @@ const char *snd_hwdep_info_get_id(const snd_hwdep_info_t *obj)
 const char *snd_hwdep_info_get_name(const snd_hwdep_info_t *obj)
 {
 	assert(obj);
-	return obj->name;
+	return (const char *)obj->name;
 }
 
 /**
@@ -584,7 +584,7 @@ unsigned int snd_hwdep_dsp_status_get_version(const snd_hwdep_dsp_status_t *obj)
 const char *snd_hwdep_dsp_status_get_id(const snd_hwdep_dsp_status_t *obj)
 {
 	assert(obj);
-	return obj->id;
+	return (const char *)obj->id;
 }
 
 /**
@@ -689,7 +689,7 @@ unsigned int snd_hwdep_dsp_image_get_index(const snd_hwdep_dsp_image_t *obj)
 const char *snd_hwdep_dsp_image_get_name(const snd_hwdep_dsp_image_t *obj)
 {
 	assert(obj);
-	return obj->name;
+	return (const char *)obj->name;
 }
 
 /**
@@ -733,7 +733,7 @@ void snd_hwdep_dsp_image_set_index(snd_hwdep_dsp_image_t *obj, unsigned int inde
 void snd_hwdep_dsp_image_set_name(snd_hwdep_dsp_image_t *obj, const char *name)
 {
 	assert(obj && name);
-	strncpy(obj->name, name, sizeof(obj->name));
+	strncpy((char *)obj->name, name, sizeof(obj->name));
 	obj->name[sizeof(obj->name)-1] = 0;
 }
 

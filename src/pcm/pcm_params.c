@@ -834,7 +834,7 @@ int snd_pcm_hw_param_set_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	int err;
 	unsigned int best = *val, saved_min;
 	int last = 0;
-	int min, max;
+	unsigned int min, max;
 	int mindir, maxdir;
 	int valdir = dir ? *dir : 0;
 	snd_interval_t *i;
@@ -865,9 +865,7 @@ int snd_pcm_hw_param_set_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 	
 	if (err >= 0) {
 		snd_pcm_hw_params_t params1;
-		if (max < 0)
-			goto _end;
-		if ((unsigned int)min == saved_min && mindir == valdir)
+		if (min == saved_min && mindir == valdir)
 			goto _end;
 		params1 = save;
 		err = snd_pcm_hw_param_set_max(pcm, &params1, SND_CHANGE, var, &max, &maxdir);

@@ -505,7 +505,7 @@ int snd_timer_info_get_card(snd_timer_info_t * info)
 const char *snd_timer_info_get_id(snd_timer_info_t * info)
 {
 	assert(info);
-	return info->id;
+	return (const char *)info->id;
 }
 
 /**
@@ -516,7 +516,7 @@ const char *snd_timer_info_get_id(snd_timer_info_t * info)
 const char *snd_timer_info_get_name(snd_timer_info_t * info)
 {
 	assert(info);
-	return info->name;
+	return (const char *)info->name;
 }
 
 
