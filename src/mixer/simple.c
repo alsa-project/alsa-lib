@@ -488,7 +488,7 @@ int snd_mixer_selem_set_playback_dB_all(snd_mixer_elem_t *elem, long value, int 
 int snd_mixer_selem_set_playback_switch(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, int value)
 {
 	CHECK_BASIC(elem);
-	CHECK_DIR_CHN(elem, SM_CAP_PSWITCH, SM_CAP_PSWITCH, channel);
+	CHECK_DIR_CHN(elem, SM_CAP_PSWITCH, SM_CAP_PSWITCH_JOIN, channel);
 	return sm_selem_ops(elem)->set_switch(elem, SM_PLAY, channel, value);
 }
 
