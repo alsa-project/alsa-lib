@@ -48,14 +48,20 @@ typedef struct _class_priv {
 	int attach_flag;
 	snd_ctl_card_info_t *info;
 	void *dlhandle;
+	void *private_data;
+	void (*private_free)(snd_mixer_class_t *class);
 } class_priv_t;
+
+typedef int (*snd_mixer_sbasic_init_t)(snd_mixer_class_t *class);
 
 static int try_open(snd_mixer_class_t *class, const char *lib)
 {
 	class_priv_t *priv = snd_mixer_class_get_private(class);
 	snd_mixer_event_t event_func;
+	snd_mixer_sbasic_init_t init_func;
 	char *xlib, *path;
 	void *h;
+	int err;
 
 	path = getenv("ALSA_MIXER_SIMPLE_MODULES");
 	if (!path)
@@ -79,7 +85,19 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 		free(xlib);
 		return -ENXIO;
 	}
+	init_func = dlsym(h, "alsa_mixer_simple_init");
+	if (init_func == NULL) {
+		SNDERR("Symbol 'alsa_mixer_simple_init' was not found in '%s'", xlib);
+		snd_dlclose(h);
+		free(xlib);
+		return -ENXIO;
+	}
 	free(xlib);
+	err = init_func(class);
+	if (err < 0) {
+		snd_dlclose(h);
+		return err;
+	}
 	snd_mixer_class_set_event(class, event_func);
 	priv->dlhandle = h;
 	return 1;
@@ -148,6 +166,8 @@ static void private_free(snd_mixer_class_t *class)
 {
 	class_priv_t *priv = snd_mixer_class_get_private(class);
 	
+	if (priv->private_free)
+		priv->private_free(class);
 	if (priv->dlhandle)
 		snd_dlclose(priv->dlhandle);
 	if (priv->info)
@@ -256,10 +276,9 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 }
 
 /**
- * \brief Register mixer simple element class - basic abstraction
- * \param mixer Mixer handle
- * \param options Options container
- * \param classp Pointer to returned mixer simple element class handle (or NULL
+ * \brief Basic Mixer Abstraction - Get information about device
+ * \param class Mixer class
+ * \param info Info structure
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_sbasic_info(const snd_mixer_class_t *class, sm_class_basic_t *info)
@@ -273,4 +292,48 @@ int snd_mixer_sbasic_info(const snd_mixer_class_t *class, sm_class_basic_t *info
 	info->hctl = priv->hctl;
 	info->info = priv->info;
 	return 0;
+}
+
+/**
+ * \brief Get private data for basic abstraction
+ * \param class Mixer class
+ * \return private data
+ */
+void *snd_mixer_sbasic_get_private(const snd_mixer_class_t *class)
+{
+	class_priv_t *priv = snd_mixer_class_get_private(class);
+
+	if (class == NULL)
+		return NULL;
+	return priv->private_data;
+}
+
+/**
+ * \brief Set private data for basic abstraction
+ * \param class Mixer class
+ * \param private_data Private data
+ */
+void snd_mixer_sbasic_set_private(const snd_mixer_class_t *class, void *private_data)
+{
+	class_priv_t *priv;
+
+	if (class == NULL)
+		return;
+	priv = snd_mixer_class_get_private(class);
+	priv->private_data = private_data;
+}
+
+/**
+ * \brief Set private data for basic abstraction
+ * \param class Mixer class
+ * \param private_data Private data
+ */
+void snd_mixer_sbasic_set_private_free(const snd_mixer_class_t *class, void (*private_free)(snd_mixer_class_t *class))
+{
+	class_priv_t *priv;
+
+	if (class == NULL)
+		return;
+	priv = snd_mixer_class_get_private(class);
+	priv->private_free = private_free;
 }

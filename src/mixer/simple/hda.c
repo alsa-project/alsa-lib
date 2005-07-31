@@ -1,5 +1,5 @@
 /*
- *  Mixer Interface - AC97 simple abstact module
+ *  Mixer Interface - HDA simple abstact module
  *  Copyright (c) 2005 by Jaroslav Kysela <perex@suse.cz>
  *
  *
@@ -10,6 +10,7 @@
  *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *   GNU Lesser General Public License for more details.
  *
@@ -30,16 +31,16 @@
 #include "mixer_abst.h"
 #include "sbase.h"
 
-static struct sm_elem_ops simple_ac97_ops;
+static struct sm_elem_ops simple_hda_ops;
 
 struct melem_sids sids[] = {
 	{
-		.sid	= SID_MASTER,
-		.sname	= "Master",
+		.sid	= SID_FRONT,
+		.sname	= "Front",
 		.sindex	= 0,
 		.weight = 1,
 		.chanmap = { 3, 0 },
-		.sops = &simple_ac97_ops,
+		.sops = &simple_hda_ops,
 	}
 };
 
@@ -48,17 +49,17 @@ struct melem_sids sids[] = {
 struct helem_selector selectors[] = {
 	{
 		.iface =	SND_CTL_ELEM_IFACE_MIXER,
-		.name =		"Master Playback Volume",
+		.name =		"Front Playback Volume",
 		.index = 	0,
-		.sid =		SID_MASTER,
+		.sid =		SID_FRONT,
 		.purpose =	PURPOSE_VOLUME,
 		.caps = 	SM_CAP_PVOLUME,
 	},
 	{
 		.iface =	SND_CTL_ELEM_IFACE_MIXER,
-		.name =		"Master Playback Switch",
+		.name =		"Front Playback Switch",
 		.index = 	0,
-		.sid =		SID_MASTER,
+		.sid =		SID_FRONT,
 		.purpose =	PURPOSE_SWITCH,
 		.caps = 	SM_CAP_PSWITCH,
 	}

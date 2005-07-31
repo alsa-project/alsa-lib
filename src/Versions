@@ -256,6 +256,9 @@ ALSA_1.0.10 {
     snd_mixer_selem_set_capture_dB_all;
     snd_mixer_selem_compare;
     snd_mixer_sbasic_info;
+    snd_mixer_sbasic_get_private;
+    snd_mixer_sbasic_set_private;
+    snd_mixer_sbasic_set_private_free;
 
     snd_ctl_ext_create;
     snd_ctl_ext_delete;
