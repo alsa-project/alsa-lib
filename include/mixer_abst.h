@@ -95,6 +95,7 @@ struct sm_elem_ops {
 int snd_mixer_selem_compare(const snd_mixer_elem_t *c1, const snd_mixer_elem_t *c2);
 
 int snd_mixer_sbasic_info(const snd_mixer_class_t *class, sm_class_basic_t *info);
+void *snd_mixer_sbasic_get_private(const snd_mixer_class_t *class);
 
 /** \} */
 
