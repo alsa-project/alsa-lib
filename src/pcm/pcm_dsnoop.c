@@ -93,14 +93,15 @@ static void snd_pcm_dsnoop_sync_area(snd_pcm_t *pcm, snd_pcm_uframes_t slave_hw_
 	dst_areas = snd_pcm_mmap_areas(pcm);
 	src_areas = snd_pcm_mmap_areas(dsnoop->spcm);
 	hw_ptr %= pcm->buffer_size;
-	slave_hw_ptr %= dsnoop->shmptr->s.buffer_size;
+	slave_hw_ptr %= dsnoop->slave_buffer_size;
 	while (size > 0) {
 		transfer = hw_ptr + size > pcm->buffer_size ? pcm->buffer_size - hw_ptr : size;
-		transfer = slave_hw_ptr + transfer > dsnoop->shmptr->s.buffer_size ? dsnoop->shmptr->s.buffer_size - slave_hw_ptr : transfer;
+		transfer = slave_hw_ptr + transfer > dsnoop->slave_buffer_size ?
+			dsnoop->slave_buffer_size - slave_hw_ptr : transfer;
 		size -= transfer;
 		snoop_areas(dsnoop, src_areas, dst_areas, slave_hw_ptr, hw_ptr, transfer);
 		slave_hw_ptr += transfer;
-	 	slave_hw_ptr %= dsnoop->shmptr->s.buffer_size;
+	 	slave_hw_ptr %= dsnoop->slave_buffer_size;
 		hw_ptr += transfer;
 		hw_ptr %= pcm->buffer_size;
 	}
@@ -130,7 +131,7 @@ static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	if (diff == 0)		/* fast path */
 		return 0;
 	if (diff < 0) {
-		slave_hw_ptr += dsnoop->shmptr->s.boundary;
+		slave_hw_ptr += dsnoop->slave_boundary;
 		diff = slave_hw_ptr - old_slave_hw_ptr;
 	}
 	snd_pcm_dsnoop_sync_area(pcm, old_slave_hw_ptr, diff);
@@ -245,7 +246,6 @@ static int snd_pcm_dsnoop_prepare(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 
 	snd_pcm_direct_check_interleave(dsnoop, pcm);
-	// assert(pcm->boundary == dsnoop->shmptr->s.boundary);	/* for sure */
 	dsnoop->state = SND_PCM_STATE_PREPARED;
 	dsnoop->appl_ptr = 0;
 	dsnoop->hw_ptr = 0;
@@ -597,25 +597,10 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		}
 			
 		snd_pcm_direct_semaphore_down(dsnoop, DIRECT_IPC_SEM_CLIENT);
-		ret = snd_pcm_hw_open_fd(&spcm, "dsnoop_client", dsnoop->hw_fd, 0, 0);
-		if (ret < 0) {
-			SNDERR("unable to open hardware");
+
+		ret = snd_pcm_direct_open_secondary_client(&spcm, dsnoop, "dsnoop_client");
+		if (ret < 0)
 			goto _err;
-		}
-		
-		spcm->donot_close = 1;
-		spcm->setup = 1;
-		spcm->buffer_size = dsnoop->shmptr->s.buffer_size;
-		spcm->sample_bits = dsnoop->shmptr->s.sample_bits;
-		spcm->channels = dsnoop->shmptr->s.channels;
-		spcm->format = dsnoop->shmptr->s.format;
-		spcm->boundary = dsnoop->shmptr->s.boundary;
-		spcm->info = dsnoop->shmptr->s.info;
-		ret = snd_pcm_mmap(spcm);
-		if (ret < 0) {
-			SNDERR("unable to mmap channels");
-			goto _err;
-		}
 		dsnoop->spcm = spcm;
 	}
 

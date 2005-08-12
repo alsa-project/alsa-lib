@@ -103,48 +103,52 @@ static void share_areas(snd_pcm_direct_t *dshare,
 static void snd_pcm_dshare_sync_area(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
-	snd_pcm_uframes_t appl_ptr, slave_appl_ptr, slave_bsize;
-	snd_pcm_uframes_t size, slave_hw_ptr;
+	snd_pcm_uframes_t slave_hw_ptr, slave_appl_ptr, slave_size;
+	snd_pcm_uframes_t appl_ptr, size;
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
 	
 	/* calculate the size to transfer */
 	size = dshare->appl_ptr - dshare->last_appl_ptr;
 	if (! size)
 		return;
-	slave_bsize = dshare->shmptr->s.buffer_size;
 	slave_hw_ptr = dshare->slave_hw_ptr;
 	/* don't write on the last active period - this area may be cleared
 	 * by the driver during write operation...
 	 */
-	slave_hw_ptr -= slave_hw_ptr % dshare->shmptr->s.period_size;
-	slave_hw_ptr += slave_bsize;
-	if (dshare->slave_hw_ptr > dshare->slave_appl_ptr)
-		slave_hw_ptr -= dshare->shmptr->s.boundary;
-	if (dshare->slave_appl_ptr + size >= slave_hw_ptr)
-		size = slave_hw_ptr - dshare->slave_appl_ptr;
+	slave_hw_ptr -= slave_hw_ptr % dshare->slave_period_size;
+	slave_hw_ptr += dshare->slave_buffer_size;
+	if (dshare->slave_hw_ptr > dshare->slave_boundary)
+		slave_hw_ptr -= dshare->slave_boundary;
+	if (slave_hw_ptr < dshare->slave_appl_ptr)
+		slave_size = slave_hw_ptr + (dshare->slave_boundary - dshare->slave_appl_ptr);
+	else
+		slave_size = slave_hw_ptr - dshare->slave_appl_ptr;
+	if (slave_size < size)
+		size = slave_size;
 	if (! size)
 		return;
+
 	/* add sample areas here */
 	src_areas = snd_pcm_mmap_areas(pcm);
 	dst_areas = snd_pcm_mmap_areas(dshare->spcm);
 	appl_ptr = dshare->last_appl_ptr % pcm->buffer_size;
 	dshare->last_appl_ptr += size;
 	dshare->last_appl_ptr %= pcm->boundary;
-	slave_appl_ptr = dshare->slave_appl_ptr % slave_bsize;
+	slave_appl_ptr = dshare->slave_appl_ptr % dshare->slave_buffer_size;
 	dshare->slave_appl_ptr += size;
-	dshare->slave_appl_ptr %= dshare->shmptr->s.boundary;
+	dshare->slave_appl_ptr %= dshare->slave_boundary;
 	for (;;) {
 		snd_pcm_uframes_t transfer = size;
 		if (appl_ptr + transfer > pcm->buffer_size)
 			transfer = pcm->buffer_size - appl_ptr;
-		if (slave_appl_ptr + transfer > slave_bsize)
-			transfer = slave_bsize - slave_appl_ptr;
+		if (slave_appl_ptr + transfer > dshare->slave_buffer_size)
+			transfer = dshare->slave_buffer_size - slave_appl_ptr;
 		share_areas(dshare, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
 		size -= transfer;
 		if (! size)
 			break;
 		slave_appl_ptr += transfer;
-		slave_appl_ptr %= slave_bsize;
+		slave_appl_ptr %= dshare->slave_buffer_size;
 		appl_ptr += transfer;
 		appl_ptr %= pcm->buffer_size;
 	}
@@ -178,7 +182,7 @@ static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 		/* not really started yet - don't update hw_ptr */
 		return 0;
 	if (diff < 0) {
-		slave_hw_ptr += dshare->shmptr->s.boundary;
+		slave_hw_ptr += dshare->slave_boundary;
 		diff = slave_hw_ptr - old_slave_hw_ptr;
 	}
 	dshare->hw_ptr += diff;
@@ -299,7 +303,6 @@ static int snd_pcm_dshare_prepare(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dshare = pcm->private_data;
 
 	snd_pcm_direct_check_interleave(dshare, pcm);
-	// assert(pcm->boundary == dshare->shmptr->s.boundary);	/* for sure */
 	dshare->state = SND_PCM_STATE_PREPARED;
 	dshare->appl_ptr = dshare->last_appl_ptr = 0;
 	dshare->hw_ptr = 0;
@@ -706,25 +709,10 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		}
 			
 		snd_pcm_direct_semaphore_down(dshare, DIRECT_IPC_SEM_CLIENT);
+		ret = snd_pcm_direct_open_secondary_client(&spcm, dshare, "dshare_client");
 		ret = snd_pcm_hw_open_fd(&spcm, "dshare_client", dshare->hw_fd, 0, 0);
-		if (ret < 0) {
-			SNDERR("unable to open hardware");
+		if (ret < 0)
 			goto _err;
-		}
-		
-		spcm->donot_close = 1;
-		spcm->setup = 1;
-		spcm->buffer_size = dshare->shmptr->s.buffer_size;
-		spcm->sample_bits = dshare->shmptr->s.sample_bits;
-		spcm->channels = dshare->shmptr->s.channels;
-		spcm->format = dshare->shmptr->s.format;
-		spcm->boundary = dshare->shmptr->s.boundary;
-		spcm->info = dshare->shmptr->s.info;
-		ret = snd_pcm_mmap(spcm);
-		if (ret < 0) {
-			SNDERR("unable to mmap channels");
-			goto _err;
-		}
 		dshare->spcm = spcm;
 	}
 

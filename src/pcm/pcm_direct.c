@@ -532,7 +532,7 @@ static inline snd_interval_t *hw_param_interval(snd_pcm_hw_params_t *params,
 
 static int hw_param_interval_refine_one(snd_pcm_hw_params_t *params,
 					snd_pcm_hw_param_t var,
-					snd_pcm_hw_params_t *src)
+					snd_interval_t *src)
 {
 	snd_interval_t *i;
 
@@ -543,7 +543,7 @@ static int hw_param_interval_refine_one(snd_pcm_hw_params_t *params,
 		SNDERR("dshare interval %i empty?", (int)var);
 		return -EINVAL;
 	}
-	if (snd_interval_refine(i, hw_param_interval(src, var)))
+	if (snd_interval_refine(i, src))
 		params->cmask |= 1<<var;
 	return 0;
 }
@@ -553,7 +553,6 @@ static int hw_param_interval_refine_one(snd_pcm_hw_params_t *params,
 int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
-	snd_pcm_hw_params_t *hw_params = &dshare->shmptr->hw_params;
 	static snd_mask_t access = { .bits = { 
 					(1<<SNDRV_PCM_ACCESS_MMAP_INTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED) |
@@ -582,7 +581,7 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			return -EINVAL;
 		}
 		if (snd_mask_refine_set(hw_param_mask(params, SND_PCM_HW_PARAM_FORMAT),
-				        snd_mask_value(hw_param_mask(hw_params, SND_PCM_HW_PARAM_FORMAT))))
+					dshare->shmptr->hw.format))
 			params->cmask |= 1<<SND_PCM_HW_PARAM_FORMAT;
 	}
 	//snd_mask_none(hw_param_mask(params, SND_PCM_HW_PARAM_SUBFORMAT));
@@ -595,22 +594,28 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err < 0)
 			return err;
 	}
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_RATE, hw_params);
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_RATE,
+					   &dshare->shmptr->hw.rate);
 	if (err < 0)
 		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_SIZE, hw_params);
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_SIZE,
+					   &dshare->shmptr->hw.buffer_size);
 	if (err < 0)
 		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_TIME, hw_params);
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_TIME,
+					   &dshare->shmptr->hw.buffer_time);
 	if (err < 0)
 		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_SIZE, hw_params);
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_SIZE,
+					   &dshare->shmptr->hw.period_size);
 	if (err < 0)
 		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_TIME, hw_params);
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_TIME,
+					   &dshare->shmptr->hw.period_time);
 	if (err < 0)
 		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIODS, hw_params);
+	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIODS,
+					   &dshare->shmptr->hw.periods);
 	if (err < 0)
 		return err;
 	params->info = dshare->shmptr->s.info;
@@ -675,8 +680,8 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	struct pollfd fd;
 	int loops = 10;
 
-	hw_params = &dmix->shmptr->hw_params;
-	sw_params = &dmix->shmptr->sw_params;
+	snd_pcm_hw_params_alloca(&hw_params);
+	snd_pcm_sw_params_alloca(&sw_params);
 
       __again:
       	if (loops-- <= 0) {
@@ -800,6 +805,16 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		return ret;
 	}
 
+	/* store some hw_params values to shared info */
+	dmix->shmptr->hw.format = snd_mask_value(hw_param_mask(hw_params, SND_PCM_HW_PARAM_FORMAT));
+	dmix->shmptr->hw.rate = *hw_param_interval(hw_params, SND_PCM_HW_PARAM_RATE);
+	dmix->shmptr->hw.buffer_size = *hw_param_interval(hw_params, SND_PCM_HW_PARAM_BUFFER_SIZE);
+	dmix->shmptr->hw.buffer_time = *hw_param_interval(hw_params, SND_PCM_HW_PARAM_BUFFER_TIME);
+	dmix->shmptr->hw.period_size = *hw_param_interval(hw_params, SND_PCM_HW_PARAM_PERIOD_SIZE);
+	dmix->shmptr->hw.period_time = *hw_param_interval(hw_params, SND_PCM_HW_PARAM_PERIOD_TIME);
+	dmix->shmptr->hw.periods = *hw_param_interval(hw_params, SND_PCM_HW_PARAM_PERIODS);
+
+
 	ret = snd_pcm_sw_params_current(spcm, sw_params);
 	if (ret < 0) {
 		SNDERR("unable to get current sw_params");
@@ -865,9 +880,19 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	dmix->shmptr->s.channels = spcm->channels;
 	dmix->shmptr->s.rate = spcm->rate;
 	dmix->shmptr->s.format = spcm->format;
-	dmix->shmptr->s.boundary = spcm->boundary;
 	dmix->shmptr->s.info = spcm->info & ~SND_PCM_INFO_PAUSE;
 	dmix->shmptr->s.msbits = spcm->msbits;
+
+	/* Currently, we assume that each dmix client has the same
+	 * hw_params setting.
+	 * If the arbitrary hw_parmas is supported in future,
+	 * boundary has to be taken from the slave config but
+	 * recalculated for the native boundary size (for 32bit
+	 * emulation on 64bit arch).
+	 */
+	dmix->slave_buffer_size = spcm->buffer_size;
+	dmix->slave_period_size = spcm->period_size;
+	dmix->slave_boundary = spcm->boundary;
 
 	spcm->donot_close = 1;
 	return 0;
@@ -933,6 +958,54 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 			dmix->timer_need_poll = 1;
 	}
 
+	return 0;
+}
+
+static snd_pcm_uframes_t recalc_boundary_size(unsigned long long bsize, snd_pcm_uframes_t buffer_size)
+{
+	if (bsize > LONG_MAX) {
+		bsize = buffer_size;
+		while (bsize * 2 <= LONG_MAX - buffer_size)
+			bsize *= 2;
+	}
+	return (snd_pcm_uframes_t)bsize;
+}
+
+/*
+ * open a slave PCM as secondary client (dup'ed fd)
+ */
+int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dmix, const char *client_name)
+{
+	int ret;
+	snd_pcm_t *spcm;
+
+	ret = snd_pcm_hw_open_fd(spcmp, client_name, dmix->hw_fd, 0, 0);
+	if (ret < 0) {
+		SNDERR("unable to open hardware");
+		return ret;
+	}
+		
+	spcm = *spcmp;
+	spcm->donot_close = 1;
+	spcm->setup = 1;
+	/* we copy the slave setting */
+	spcm->buffer_size = dmix->shmptr->s.buffer_size;
+	spcm->sample_bits = dmix->shmptr->s.sample_bits;
+	spcm->channels = dmix->shmptr->s.channels;
+	spcm->format = dmix->shmptr->s.format;
+	spcm->boundary = recalc_boundary_size(dmix->shmptr->s.boundary, spcm->buffer_size);
+	spcm->info = dmix->shmptr->s.info;
+
+	/* Use the slave setting as SPCM, so far */
+	dmix->slave_buffer_size = spcm->buffer_size;
+	dmix->slave_period_size = dmix->shmptr->s.period_size;
+	dmix->slave_boundary = spcm->boundary;
+
+	ret = snd_pcm_mmap(spcm);
+	if (ret < 0) {
+		SNDERR("unable to mmap channels");
+		return ret;
+	}
 	return 0;
 }
 

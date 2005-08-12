@@ -48,13 +48,20 @@ struct slave_params {
 typedef struct {
 	char socket_name[256];			/* name of communication socket */
 	snd_pcm_type_t type;			/* PCM type (currently only hw) */
-	snd_pcm_hw_params_t hw_params;
-	snd_pcm_sw_params_t sw_params;
 	struct {
-		snd_pcm_uframes_t buffer_size;
-		snd_pcm_uframes_t period_size;
-		snd_pcm_uframes_t boundary;
-		snd_pcm_uframes_t channels;
+		unsigned int format;
+		snd_interval_t rate;
+		snd_interval_t buffer_size;
+		snd_interval_t buffer_time;
+		snd_interval_t period_size;
+		snd_interval_t period_time;
+		snd_interval_t periods;
+	} hw;
+	struct {
+		unsigned int buffer_size;
+		unsigned int period_size;
+		unsigned long long boundary;
+		unsigned int channels;
 		unsigned int sample_bits;
 		unsigned int rate;
 		snd_pcm_format_t format;
@@ -85,6 +92,9 @@ struct snd_pcm_direct {
 	snd_pcm_uframes_t avail_max;
 	snd_pcm_uframes_t slave_appl_ptr;
 	snd_pcm_uframes_t slave_hw_ptr;
+	snd_pcm_uframes_t slave_period_size;
+	snd_pcm_uframes_t slave_buffer_size;
+	snd_pcm_uframes_t slave_boundary;
 	int (*sync_ptr)(snd_pcm_t *pcm);
 	snd_pcm_state_t state;
 	snd_htimestamp_t trigger_tstamp;
@@ -146,6 +156,7 @@ int snd_pcm_direct_munmap(snd_pcm_t *pcm);
 int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix);
 void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix);
+int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dmix, const char *client_name);
 
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm);
