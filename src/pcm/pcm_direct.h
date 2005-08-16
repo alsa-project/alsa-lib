@@ -105,6 +105,8 @@ struct snd_pcm_direct {
 	int poll_fd;
 	int tread;
 	int timer_need_poll;
+	unsigned int timer_event_suspend;
+	unsigned int timer_event_resume;
 	int server_fd;
 	pid_t server_pid;
 	snd_timer_t *timer; 		/* timer used as poll_fd */
@@ -153,6 +155,7 @@ int snd_pcm_direct_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params);
 int snd_pcm_direct_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info);
 int snd_pcm_direct_mmap(snd_pcm_t *pcm);
 int snd_pcm_direct_munmap(snd_pcm_t *pcm);
+int snd_pcm_direct_resume(snd_pcm_t *pcm);
 int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix);
 void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix);

@@ -580,13 +580,6 @@ static snd_pcm_sframes_t snd_pcm_dmix_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	return frames;
 }
 
-static int snd_pcm_dmix_resume(snd_pcm_t *pcm)
-{
-	snd_pcm_direct_t *dmix = pcm->private_data;
-	snd_pcm_resume(dmix->spcm);
-	return 0;
-}
-
 static snd_pcm_sframes_t snd_pcm_dmix_readi(snd_pcm_t *pcm ATTRIBUTE_UNUSED, void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size ATTRIBUTE_UNUSED)
 {
 	return -ENODEV;
@@ -715,7 +708,7 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
 	.pause = snd_pcm_dmix_pause,
 	.rewind = snd_pcm_dmix_rewind,
 	.forward = snd_pcm_dmix_forward,
-	.resume = snd_pcm_dmix_resume,
+	.resume = snd_pcm_direct_resume,
 	.link_fd = NULL,
 	.link = NULL,
 	.unlink = NULL,

@@ -434,13 +434,6 @@ static snd_pcm_sframes_t snd_pcm_dshare_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	return frames;
 }
 
-static int snd_pcm_dshare_resume(snd_pcm_t *pcm)
-{
-	snd_pcm_direct_t *dshare = pcm->private_data;
-	snd_pcm_resume(dshare->spcm);
-	return 0;
-}
-
 static snd_pcm_sframes_t snd_pcm_dshare_readi(snd_pcm_t *pcm ATTRIBUTE_UNUSED, void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size ATTRIBUTE_UNUSED)
 {
 	return -ENODEV;
@@ -561,7 +554,7 @@ static snd_pcm_fast_ops_t snd_pcm_dshare_fast_ops = {
 	.pause = snd_pcm_dshare_pause,
 	.rewind = snd_pcm_dshare_rewind,
 	.forward = snd_pcm_dshare_forward,
-	.resume = snd_pcm_dshare_resume,
+	.resume = snd_pcm_direct_resume,
 	.link_fd = NULL,
 	.link = NULL,
 	.unlink = NULL,

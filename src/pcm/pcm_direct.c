@@ -431,6 +431,13 @@ int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return snd_timer_async(dmix->timer, sig, pid);
 }
 
+static inline void process_timer_event(snd_pcm_direct_t *dmix, snd_timer_tread_t *te)
+{
+#if 0
+	printf("te->event = %i\n", te->event);
+#endif
+}
+
 /* empty the timer read queue */
 void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 {
@@ -440,6 +447,7 @@ void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 			if (dmix->tread) {
 				snd_timer_tread_t rbuf;
 				snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
+				process_timer_event(dmix, &rbuf);
 			} else {
 				snd_timer_read_t rbuf;
 				snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
@@ -449,7 +457,7 @@ void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 		if (dmix->tread) {
 			snd_timer_tread_t rbuf;
 			while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) > 0)
-				;
+				process_timer_event(dmix, &rbuf);
 		} else {
 			snd_timer_read_t rbuf;
 			while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) > 0)
@@ -664,6 +672,23 @@ int snd_pcm_direct_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 int snd_pcm_direct_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 {
 	return 0;
+}
+
+int snd_pcm_direct_resume(snd_pcm_t *pcm)
+{
+	snd_pcm_direct_t *dmix = pcm->private_data;
+	int err;
+	
+	snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
+	err = snd_pcm_resume(dmix->spcm);
+	if (err == -ENOSYS) {
+		/* FIXME: error handling? */
+		snd_pcm_prepare(dmix->spcm);
+		snd_pcm_start(dmix->spcm);
+		err = 0;
+	}
+	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
+	return err;
 }
 
 /*
@@ -909,8 +934,8 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	snd_pcm_info_t *info;
 	char name[128];
 	int capture = dmix->type == SND_PCM_TYPE_DSNOOP ? 1 : 0;
-	
-	dmix->tread = 0;
+
+	dmix->tread = 1;
 	dmix->timer_need_poll = 0;
 	snd_pcm_info_alloca(&info);
 	ret = snd_pcm_info(dmix->spcm, info);
@@ -923,11 +948,14 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 				snd_pcm_info_get_card(info),
 				snd_pcm_info_get_device(info),
 				snd_pcm_info_get_subdevice(info) * 2 + capture);
-	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK
-			     /*| SND_TIMER_OPEN_TREAD*/);  /* XXX: TREAD is set later */
+	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
 	if (ret < 0) {
-		SNDERR("unable to open timer '%s'", name);
-		return ret;
+		dmix->tread = 1;
+		ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK);
+		if (ret < 0) {
+			SNDERR("unable to open timer '%s'", name);
+			return ret;
+		}
 	}
 
 	if (snd_timer_poll_descriptors_count(dmix->timer) != 1) {
@@ -937,27 +965,30 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	snd_timer_poll_descriptors(dmix->timer, &dmix->timer_fd, 1);
 	dmix->poll_fd = dmix->timer_fd.fd;
 
+	dmix->timer_event_suspend = 1<<SND_TIMER_EVENT_MSUSPEND;
+	dmix->timer_event_resume = 1<<SND_TIMER_EVENT_MRESUME;
+
 	/*
-	 * A hack to avoid Oops in the older kernel
-	 *
-	 * Enable TREAD mode only when protocl is newer than 2.0.2.
+	 * Some hacks for older kernel drivers
 	 */
 	{
 		int ver = 0;
 		ioctl(dmix->poll_fd, SNDRV_TIMER_IOCTL_PVERSION, &ver);
-		if (ver >= SNDRV_PROTOCOL_VERSION(2, 0, 3)) {
-			dmix->tread = 1;
-			if (ioctl(dmix->poll_fd, SNDRV_TIMER_IOCTL_TREAD, &dmix->tread) < 0)
-				dmix->tread = 0;
-		}
 		/* In older versions, check via poll before read() is needed
 		 * because of the confliction between TIMER_START and
 		 * FIONBIO ioctls.
 		 */
 		if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 4))
 			dmix->timer_need_poll = 1;
+		/*
+		 * In older versions, timer uses pause events instead
+		 * suspend/resume events.
+		 */
+		if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 5)) {
+			dmix->timer_event_suspend = 1<<SND_TIMER_EVENT_MPAUSE;
+			dmix->timer_event_resume = 1<<SND_TIMER_EVENT_MCONTINUE;
+		}
 	}
-
 	return 0;
 }
 
@@ -1012,6 +1043,7 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 {
 	snd_timer_params_t *params;
+	unsigned int filter;
 	int ret;
 
 	snd_timer_params_alloca(&params);
@@ -1019,8 +1051,12 @@ int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 	if (dmix->type != SND_PCM_TYPE_DSNOOP)
 		snd_timer_params_set_early_event(params, 1);
 	snd_timer_params_set_ticks(params, 1);
-	if (dmix->tread)
-		snd_timer_params_set_filter(params, (1<<SND_TIMER_EVENT_TICK)|(1<<SND_TIMER_EVENT_MPAUSE));
+	if (dmix->tread) {
+		filter = (1<<SND_TIMER_EVENT_TICK) |
+			 dmix->timer_event_suspend |
+			 dmix->timer_event_resume;
+		snd_timer_params_set_filter(params, filter);
+	}
 	ret = snd_timer_params(dmix->timer, params);
 	if (ret < 0) {
 		SNDERR("unable to set timer parameters");

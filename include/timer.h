@@ -85,11 +85,15 @@ typedef enum _snd_timer_event {
 	SND_TIMER_EVENT_CONTINUE,	/* val = resolution in ns */
 	SND_TIMER_EVENT_PAUSE,		/* val = 0 */
 	SND_TIMER_EVENT_EARLY,		/* val = 0 */
+	SND_TIMER_EVENT_SUSPEND,	/* val = 0 */
+	SND_TIMER_EVENT_RESUME,		/* val = resolution in ns */
 	/* master timer events for slave timer instances */
 	SND_TIMER_EVENT_MSTART = SND_TIMER_EVENT_START + 10,
 	SND_TIMER_EVENT_MSTOP = SND_TIMER_EVENT_STOP + 10,
 	SND_TIMER_EVENT_MCONTINUE = SND_TIMER_EVENT_CONTINUE + 10,
 	SND_TIMER_EVENT_MPAUSE = SND_TIMER_EVENT_PAUSE + 10,
+	SND_TIMER_EVENT_MSUSPEND = SND_TIMER_EVENT_SUSPEND + 10,
+	SND_TIMER_EVENT_MRESUME = SND_TIMER_EVENT_RESUME + 10	
 } snd_timer_event_t;
 
 /** timer read structure */

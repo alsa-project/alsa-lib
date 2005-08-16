@@ -258,9 +258,14 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 	}
 	if (mode & SND_TIMER_OPEN_TREAD) {
 		int arg = 1;
+		if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 3)) {
+			ret = -ENOTTY;
+			goto __no_tread;
+		}
 		if (ioctl(fd, SNDRV_TIMER_IOCTL_TREAD, &arg) < 0) {
 			ret = -errno;
 			close(fd);
+		      __no_tread:
 			SNDERR("extended read is not supported (SNDRV_TIMER_IOCTL_TREAD)");
 			return ret;
 		}
