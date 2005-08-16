@@ -34,7 +34,7 @@ const char *_snd_module_timer_hw = "";
 #endif
 
 #define SNDRV_FILE_TIMER		"/dev/snd/timer"
-#define SNDRV_TIMER_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 1)
+#define SNDRV_TIMER_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 5)
 
 #define SNDRV_TIMER_IOCTL_STATUS_OLD	_IOW('T', 0x14, struct sndrv_timer_status)
 
