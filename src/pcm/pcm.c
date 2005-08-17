@@ -1962,8 +1962,7 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		val = NULL;
 		snd_config_get_ascii(pcm_conf, &val);
 		SNDERR("Invalid type for PCM %s%sdefinition (id: %s, value: %s)", name ? name : "", name ? " " : "", id, val);
-		if (val)
-			free(val);
+		free(val);
 		return -EINVAL;
 	}
 	err = snd_config_search(pcm_conf, "type", &conf);

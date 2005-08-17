@@ -198,6 +198,7 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm)
 
 	if (server)
 		unlink(filename);
+	memset(addr, 0, size); /* make valgrind happy */
 	addr->sun_family = AF_LOCAL;
 	memcpy(addr->sun_path, filename, l);
 	
@@ -456,7 +457,8 @@ int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return snd_timer_async(dmix->timer, sig, pid);
 }
 
-static inline void process_timer_event(snd_pcm_direct_t *dmix, snd_timer_tread_t *te)
+static inline void process_timer_event(snd_pcm_direct_t *dmix ATTRIBUTE_UNUSED,
+				       snd_timer_tread_t *te ATTRIBUTE_UNUSED)
 {
 #if 0
 	printf("te->event = %i\n", te->event);

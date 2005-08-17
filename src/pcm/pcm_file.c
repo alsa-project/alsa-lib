@@ -550,9 +550,11 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			}
 			if (isdigit(*str) == 0) {
 				SNDERR("The field perm must be a valid file permission");
+				free(str);
 				return -EINVAL;
 			}
 			perm = strtol(str, &endp, 8);
+			free(str);
 			continue;
 		}
 		SNDERR("Unknown field %s", id);

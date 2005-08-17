@@ -1080,9 +1080,11 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 			}
 			if (isdigit(*perm) == 0) {
 				SNDERR("The field ipc_perm must be a valid file permission");
+				free(perm);
 				return -EINVAL;
 			}
 			ipc_perm = strtol(perm, &endp, 8);
+			free(perm);
 			continue;
 		}
 		if (strcmp(id, "ipc_gid") == 0) {
@@ -1097,12 +1099,14 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 				struct group *grp = getgrnam(group);
 				if (grp == NULL) {
 					SNDERR("The field ipc_gid must be a valid group (create group %s)", group);
+					free(group);
 					return -EINVAL;
 				}
 				ipc_gid = grp->gr_gid;
 			} else {
 				ipc_perm = strtol(group, &endp, 10);
 			}
+			free(group);
 			continue;
 		}
 		if (strcmp(id, "ipc_key_add_uid") == 0) {
