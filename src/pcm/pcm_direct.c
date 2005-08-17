@@ -205,18 +205,22 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm)
 		if (bind(sock, (struct sockaddr *) addr, size) < 0) {
 			int result = -errno;
 			SYSERR("bind failed: %s", filename);
+			close(sock);
 			return result;
 		} else {
 			if (chmod(filename, ipc_perm) < 0) {
 				int result = -errno;
 				SYSERR("chmod failed: %s", filename);
+				close(sock);
 				return result;
 			}
 		}
 	} else {
 		if (connect(sock, (struct sockaddr *) addr, size) < 0) {
+			int result = -errno;
 			SYSERR("connect failed: %s", filename);
-			return -errno;
+			close(sock);
+			return result;
 		}
 	}
 	return sock;
@@ -230,12 +234,39 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm)
 #define server_printf(fmt, args...) /* nothing */
 #endif
 
+static snd_pcm_direct_t *server_job_dmix;
+
+static void server_cleanup(snd_pcm_direct_t *dmix)
+{
+	close(dmix->server_fd);
+	close(dmix->hw_fd);
+	if (dmix->server_free)
+		dmix->server_free(dmix);
+	unlink(dmix->shmptr->socket_name);
+	snd_pcm_direct_shm_discard(dmix);
+	snd_pcm_direct_semaphore_discard(dmix);
+}
+
+static void server_job_signal(int sig ATTRIBUTE_UNUSED)
+{
+	snd_pcm_direct_semaphore_down(server_job_dmix, DIRECT_IPC_SEM_CLIENT);
+	server_cleanup(server_job_dmix);
+	server_printf("DIRECT SERVER EXIT - SIGNAL\n");
+	_exit(EXIT_SUCCESS);
+}
+
 static void server_job(snd_pcm_direct_t *dmix)
 {
 	int ret, sck, i;
 	int max = 128, current = 0;
 	struct pollfd pfds[max + 1];
 
+	server_job_dmix = dmix;
+	/* don't allow to be killed */
+	signal(SIGHUP, server_job_signal);
+	signal(SIGQUIT, server_job_signal);
+	signal(SIGTERM, server_job_signal);
+	signal(SIGKILL, server_job_signal);
 	/* close all files to free resources */
 	i = sysconf(_SC_OPEN_MAX);
 #ifdef SERVER_JOB_DEBUG
@@ -259,7 +290,7 @@ static void server_job(snd_pcm_direct_t *dmix)
 		server_printf("DIRECT SERVER: poll ret = %i, revents[0] = 0x%x\n", ret, pfds[0].revents);
 		if (ret < 0)	/* some error */
 			break;
-		if (ret == 0 || pfds[0].revents & (POLLERR | POLLHUP)) {	/* timeout or error? */
+		if (ret == 0 || (pfds[0].revents & (POLLERR | POLLHUP))) {	/* timeout or error? */
 			struct shmid_ds buf;
 			snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
 			if (shmctl(dmix->shmid, IPC_STAT, &buf) < 0) {
@@ -314,13 +345,7 @@ static void server_job(snd_pcm_direct_t *dmix)
 			}
 		}
 	}
-	close(dmix->server_fd);
-	close(dmix->hw_fd);
-	if (dmix->server_free)
-		dmix->server_free(dmix);
-	unlink(dmix->shmptr->socket_name);
-	snd_pcm_direct_shm_discard(dmix);
-	snd_pcm_direct_semaphore_discard(dmix);
+	server_cleanup(dmix);
 	server_printf("DIRECT SERVER EXIT\n");
 #ifdef SERVER_JOB_DEBUG
 	close(0); close(1); close(2);
