@@ -288,9 +288,13 @@ static void server_job(snd_pcm_direct_t *dmix)
 	server_printf("DIRECT SERVER STARTED\n");
 	while (1) {
 		ret = poll(pfds, current + 1, 500);
-		server_printf("DIRECT SERVER: poll ret = %i, revents[0] = 0x%x\n", ret, pfds[0].revents);
-		if (ret < 0)	/* some error */
+		server_printf("DIRECT SERVER: poll ret = %i, revents[0] = 0x%x, errno = %i\n", ret, pfds[0].revents, errno);
+		if (ret < 0) {
+			if (errno == EINTR)
+				continue;
+			/* some error */
 			break;
+		}
 		if (ret == 0 || (pfds[0].revents & (POLLERR | POLLHUP))) {	/* timeout or error? */
 			struct shmid_ds buf;
 			snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
