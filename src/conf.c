@@ -499,16 +499,21 @@ static int safe_strtod(const char *str, double *val)
 	char *end;
 	double v;
 	char *saved_locale;
+	char locstr[64]; /* enough? */
 	int err;
 
 	if (!*str)
 		return -EINVAL;
 	saved_locale = setlocale(LC_NUMERIC, NULL);
-	setlocale(LC_NUMERIC, "C");
+	if (saved_locale) {
+		snprintf(locstr, sizeof(locstr), "%s", saved_locale);
+		setlocale(LC_NUMERIC, "C");
+	}
 	errno = 0;
 	v = strtod(str, &end);
 	err = -errno;
-	setlocale(LC_NUMERIC, saved_locale);
+	if (saved_locale)
+		setlocale(LC_NUMERIC, locstr);
 	if (err)
 		return err;
 	if (*end)
@@ -993,7 +998,7 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx, int sk
 	snd_config_t *n = NULL;
 
 	if (!skip) {
-		char static_id[12]; 
+		char static_id[12];
 		snprintf(static_id, sizeof(static_id), "%i", idx);
 		id = strdup(static_id);
 		if (id == NULL)
