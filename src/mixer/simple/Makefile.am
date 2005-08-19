@@ -6,6 +6,8 @@ pkglib_LTLIBRARIES = smixer-sbase.la \
 		     smixer-ac97.la \
 		     smixer-hda.la
 
+noinst_HEADERS = sbase.h
+
 smixer_sbase_la_SOURCES = sbase.c
 smixer_sbase_la_LDFLAGS = -module -avoid-version
 
