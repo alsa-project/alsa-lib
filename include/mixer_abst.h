@@ -96,6 +96,8 @@ int snd_mixer_selem_compare(const snd_mixer_elem_t *c1, const snd_mixer_elem_t *
 
 int snd_mixer_sbasic_info(const snd_mixer_class_t *class, sm_class_basic_t *info);
 void *snd_mixer_sbasic_get_private(const snd_mixer_class_t *class);
+void snd_mixer_sbasic_set_private(const snd_mixer_class_t *class, void *private_data);
+void snd_mixer_sbasic_set_private_free(const snd_mixer_class_t *class, void (*private_free)(snd_mixer_class_t *class));
 
 /** \} */
 

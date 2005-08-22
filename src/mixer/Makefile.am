@@ -1,5 +1,3 @@
-SUBDIRS=simple
-
 EXTRA_LTLIBRARIES=libmixer.la
 
 libmixer_la_SOURCES = bag.c mixer.c simple.c simple_none.c simple_abst.c

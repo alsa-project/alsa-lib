@@ -1,4 +1,4 @@
-SUBDIRS=doc include src aserver alsalisp test utils
+SUBDIRS=doc include src modules aserver alsalisp test utils
 EXTRA_DIST=ChangeLog INSTALL TODO NOTES configure cvscompile libtool depcomp version MEMORY-LEAK
 AUTOMAKE_OPTIONS=foreign
 

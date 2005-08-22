@@ -202,12 +202,13 @@ fi
 
 AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile
 	  include/sound/Makefile src/Makefile \
-          src/control/Makefile src/mixer/Makefile src/mixer/simple/Makefile \
+          src/control/Makefile src/mixer/Makefile \
 	  src/pcm/Makefile src/pcm/scopes/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \
           src/hwdep/Makefile src/seq/Makefile src/instr/Makefile \
           src/compat/Makefile src/alisp/Makefile src/conf/Makefile \
 	  src/conf/cards/Makefile \
 	  src/conf/pcm/Makefile \
+	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
 	  alsalisp/Makefile aserver/Makefile test/Makefile utils/Makefile \
           utils/alsa-lib.spec utils/alsa.pc)
