@@ -201,7 +201,7 @@ static int xrun_recovery(snd_pcm_t *handle, int err)
 			printf("Can't recovery from underrun, prepare failed: %s\n", snd_strerror(err));
 		return 0;
 	} else if (err == -ESTRPIPE) {
-		while ((err = snd_pcm_resume(handle)) == -EAGAIN)
+		while ((err = snd_pcm_resume(handle)) == -EAGAIN || err == -EINTR)
 			sleep(1);	/* wait until the suspend flag is released */
 		if (err < 0) {
 			err = snd_pcm_prepare(handle);
@@ -231,7 +231,7 @@ static int write_loop(snd_pcm_t *handle,
 		cptr = period_size;
 		while (cptr > 0) {
 			err = snd_pcm_writei(handle, ptr, cptr);
-			if (err == -EAGAIN)
+			if (err == -EAGAIN || err == -EINTR)
 				continue;
 			if (err < 0) {
 				if (xrun_recovery(handle, err) < 0) {
@@ -661,7 +661,7 @@ static int direct_write_loop(snd_pcm_t *handle,
 		cptr = period_size;
 		while (cptr > 0) {
 			err = snd_pcm_mmap_writei(handle, ptr, cptr);
-			if (err == -EAGAIN)
+			if (err == -EAGAIN || err == -EINTR)
 				continue;
 			if (err < 0) {
 				if (xrun_recovery(handle, err) < 0) {
