@@ -3,7 +3,7 @@ EXTRA_DIST=Versions
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
 if VERSIONED_SYMBOLS
-VSYMS = -Wl,--version-script=Versions
+VSYMS = -Wl,--version-script=$(srcdir)/Versions
 else
 VSYMS =
 endif

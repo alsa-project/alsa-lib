@@ -2,6 +2,8 @@ pkglibdir = $(libdir)/@PACKAGE@/smixer
 
 AM_CFLAGS = -g -O2 -W -Wall
 
+INCLUDES=-I$(top_srcdir)/include
+
 pkglib_LTLIBRARIES = smixer-sbase.la \
 		     smixer-ac97.la \
 		     smixer-hda.la

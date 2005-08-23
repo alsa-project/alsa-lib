@@ -12,9 +12,12 @@ alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      alisp.h pcm_external.h pcm_ioplug.h pcm_extplug.h \
 		      control_external.h
 
-noinst_HEADERS = sys.h search.h list.h aserver.h local.h alsa-symbols.h
+noinst_HEADERS = alsa sys.h search.h list.h aserver.h local.h alsa-symbols.h
 
 CLEANFILES = stamp-vh version.h alsa
+
+alsa:
+	ln -s $(top_srcdir)/include alsa
 
 version.h: stamp-vh alsa
 	@:
@@ -41,11 +44,8 @@ stamp-vh: $(top_builddir)/configure.in
               echo timestamp > stamp-vh)
 	-@rm -f ver.tmp
 
-alsa:
-	ln -s . $@
-
 INCLUDES=-I$(top_srcdir)/include
 
 install-data-hook:
 	test -d $(DESTDIR)$(sysincludedir) || mkdir -p $(DESTDIR)$(sysincludedir)
-	$(INSTALL_DATA) sys.h $(DESTDIR)$(sysincludedir)/asoundlib.h
+	$(INSTALL_DATA) $(srcdir)/sys.h $(DESTDIR)$(sysincludedir)/asoundlib.h
