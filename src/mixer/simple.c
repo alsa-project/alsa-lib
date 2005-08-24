@@ -102,7 +102,7 @@ int snd_mixer_selem_register(snd_mixer_t *mixer,
 }
 
 #define CHECK_ENUM(xelem) \
-	if (!((sm_selem_t *)(elem)->private_data)->caps & SM_CAP_ENUM) \
+	if (!((sm_selem_t *)(elem)->private_data)->caps & (SM_CAP_PENUM|SM_CAP_CENUM)) \
 		return -EINVAL;
 
 #define COND_CAPS(xelem, what) \
@@ -819,6 +819,30 @@ int snd_mixer_selem_is_enumerated(snd_mixer_elem_t *elem)
 	CHECK_BASIC(elem);
 	CHECK_ENUM(elem);
 	return sm_selem_ops(elem)->is(elem, SM_PLAY, SM_OPS_IS_ENUMERATED, 0);
+}
+
+/**
+ * \brief Return true if mixer simple enumerated element belongs to the playback direction
+ * \param elem Mixer simple element handle
+ * \return 0 no playback direction, 1 playback direction
+ */
+int snd_mixer_selem_is_enum_playback(snd_mixer_elem_t *elem)
+{
+	CHECK_BASIC(elem);
+	CHECK_ENUM(elem);
+	return sm_selem_ops(elem)->is(elem, SM_PLAY, SM_OPS_IS_ENUMERATED, 1);
+}
+
+/**
+ * \brief Return true if mixer simple enumerated element belongs to the capture direction
+ * \param elem Mixer simple element handle
+ * \return 0 no capture direction, 1 capture direction
+ */
+int snd_mixer_selem_is_enum_capture(snd_mixer_elem_t *elem)
+{
+	CHECK_BASIC(elem);
+	CHECK_ENUM(elem);
+	return sm_selem_ops(elem)->is(elem, SM_CAPT, SM_OPS_IS_ENUMERATED, 1);
 }
 
 /**

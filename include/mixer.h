@@ -282,6 +282,8 @@ int snd_mixer_selem_set_capture_volume_range(snd_mixer_elem_t *elem,
 					     long min, long max);
 
 int snd_mixer_selem_is_enumerated(snd_mixer_elem_t *elem);
+int snd_mixer_selem_is_enum_playback(snd_mixer_elem_t *elem);
+int snd_mixer_selem_is_enum_capture(snd_mixer_elem_t *elem);
 int snd_mixer_selem_get_enum_items(snd_mixer_elem_t *elem);
 int snd_mixer_selem_get_enum_item_name(snd_mixer_elem_t *elem, unsigned int idx, size_t maxlen, char *str);
 int snd_mixer_selem_get_enum_item(snd_mixer_elem_t *elem, snd_mixer_selem_channel_id_t channel, unsigned int *idxp);

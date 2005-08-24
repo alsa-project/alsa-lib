@@ -721,7 +721,8 @@ static int simple_update(snd_mixer_elem_t *melem)
 	if (ctl->elem) {
 		if (pchannels < ctl->values)
 			pchannels = ctl->values;
-		caps |= SM_CAP_ENUM;
+		/* FIXME: differentiate some controls */
+		caps |= SM_CAP_PENUM|SM_CAP_CENUM;
 	}
 	if (pchannels > 32)
 		pchannels = 32;
@@ -910,6 +911,11 @@ static int is_ops(snd_mixer_elem_t *elem, int dir, int cmd, int val)
 		return (unsigned int) val < s->str[dir].channels;
 
 	case SM_OPS_IS_ENUMERATED:
+		if (val == 1) {
+			if (dir == SM_PLAY && (s->selem.caps & SM_CAP_PENUM))
+				return 1;
+			return !!(s->selem.caps & SM_CAP_CENUM);
+		}
 		return s->ctls[CTL_ENUMLIST].elem != 0;
 	
 	case SM_OPS_IS_ENUMCNT:

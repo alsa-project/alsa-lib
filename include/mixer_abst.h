@@ -50,7 +50,8 @@ extern "C" {
 #define SM_CAP_CSWITCH		(1<<9) 
 #define SM_CAP_CSWITCH_JOIN	(1<<10)
 #define SM_CAP_CSWITCH_EXCL	(1<<11)
-#define SM_CAP_ENUM		(1<<12)
+#define SM_CAP_PENUM		(1<<12)
+#define SM_CAP_CENUM		(1<<13)
 /* SM_CAP_* 24-31 => private for module use */
 
 #define SM_OPS_IS_ACTIVE	0
