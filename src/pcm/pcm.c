@@ -2240,8 +2240,11 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 	}
 	do {
 		err_poll = poll(pfd, npfds, timeout);
-		if (err_poll < 0)
+		if (err_poll < 0) {
+		        if (errno == EINTR)
+		                continue;
 			return -errno;
+                }
 		if (! err_poll)
 			break;
 		err = snd_pcm_poll_descriptors_revents(pcm, pfd, npfds, revents);
