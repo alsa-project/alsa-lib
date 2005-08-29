@@ -73,14 +73,10 @@ int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 
 int snd_pcm_direct_semaphore_discard(snd_pcm_direct_t *dmix)
 {
-	int i;
-
 	if (dmix->semid < 0)
 		return -EINVAL;
-	for (i = 0; i < DIRECT_IPC_SEMS; i++) {
-		if (semctl(dmix->semid, i, IPC_RMID, NULL) < 0)
-			return -errno;
-	}
+	if (semctl(dmix->semid, 0, IPC_RMID, NULL) < 0)
+		return -errno;
 	dmix->semid = -1;
 	return 0;
 }
