@@ -131,9 +131,29 @@ struct snd_pcm_direct {
 };
 
 int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix);
-int snd_pcm_direct_semaphore_discard(snd_pcm_direct_t *dmix);
-int snd_pcm_direct_semaphore_down(snd_pcm_direct_t *dmix, int sem_num);
-int snd_pcm_direct_semaphore_up(snd_pcm_direct_t *dmix, int sem_num);
+
+static inline int snd_pcm_direct_semaphore_discard(snd_pcm_direct_t *dmix)
+{
+	if (dmix->semid >= 0) {
+		if (semctl(dmix->semid, 0, IPC_RMID, NULL) < 0)
+			return -errno;
+		dmix->semid = -1;
+	}
+	return 0;
+}
+
+static inline int snd_pcm_direct_semaphore_down(snd_pcm_direct_t *dmix, int sem_num)
+{
+	struct sembuf op[2] = { { sem_num, 0, 0 }, { sem_num, 1, SEM_UNDO } };
+	return semop(dmix->semid, op, 2);
+}
+
+static inline int snd_pcm_direct_semaphore_up(snd_pcm_direct_t *dmix, int sem_num)
+{
+	struct sembuf op = { sem_num, -1, SEM_UNDO | IPC_NOWAIT };
+	return semop(dmix->semid, &op, 1);
+}
+
 int snd_pcm_direct_shm_create_or_connect(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_shm_discard(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_server_create(snd_pcm_direct_t *dmix);

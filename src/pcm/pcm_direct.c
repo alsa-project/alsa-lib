@@ -71,34 +71,6 @@ int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 	return 0;
 }
 
-int snd_pcm_direct_semaphore_discard(snd_pcm_direct_t *dmix)
-{
-	if (dmix->semid < 0)
-		return -EINVAL;
-	if (semctl(dmix->semid, 0, IPC_RMID, NULL) < 0)
-		return -errno;
-	dmix->semid = -1;
-	return 0;
-}
-
-int snd_pcm_direct_semaphore_down(snd_pcm_direct_t *dmix, int sem_num)
-{
-	struct sembuf op[2] = { { sem_num, 0, 0 }, { sem_num, 1, SEM_UNDO } };
-	assert(dmix->semid >= 0);
-	if (semop(dmix->semid, op, 2) < 0)
-		return -errno;
-	return 0;
-}
-
-int snd_pcm_direct_semaphore_up(snd_pcm_direct_t *dmix, int sem_num)
-{
-	struct sembuf op = { sem_num, -1, SEM_UNDO | IPC_NOWAIT };
-	assert(dmix->semid >= 0);
-	if (semop(dmix->semid, &op, 1) < 0)
-		return -errno;
-	return 0;
-}
-
 /*
  *  global shared memory area 
  */
@@ -143,7 +115,14 @@ retryget:
 	return 0;
 }
 
-int snd_pcm_direct_shm_discard(snd_pcm_direct_t *dmix)
+/* discard shared memory */
+/*
+ * Define snd_* functions to be used in server.
+ * Since objects referred in a plugin can be released dynamically, a forked
+ * server should have statically linked functions.
+ * (e.g. Novell bugzilla #105772)
+ */
+static int _snd_pcm_direct_shm_discard(snd_pcm_direct_t *dmix)
 {
 	struct shmid_ds buf;
 	int ret = 0;
@@ -162,6 +141,12 @@ int snd_pcm_direct_shm_discard(snd_pcm_direct_t *dmix)
 	}
 	dmix->shmid = -1;
 	return ret;
+}
+
+/* ... and an exported version */
+int snd_pcm_direct_shm_discard(snd_pcm_direct_t *dmix)
+{
+	return _snd_pcm_direct_shm_discard(dmix);
 }
 
 /*
@@ -240,7 +225,7 @@ static void server_cleanup(snd_pcm_direct_t *dmix)
 	if (dmix->server_free)
 		dmix->server_free(dmix);
 	unlink(dmix->shmptr->socket_name);
-	snd_pcm_direct_shm_discard(dmix);
+	_snd_pcm_direct_shm_discard(dmix);
 	snd_pcm_direct_semaphore_discard(dmix);
 }
 
@@ -250,6 +235,40 @@ static void server_job_signal(int sig ATTRIBUTE_UNUSED)
 	server_cleanup(server_job_dmix);
 	server_printf("DIRECT SERVER EXIT - SIGNAL\n");
 	_exit(EXIT_SUCCESS);
+}
+
+/* This is a copy from ../socket.c, provided here only for a server job
+ * (see the comment above)
+ */
+static int _snd_send_fd(int sock, void *data, size_t len, int fd)
+{
+	int ret;
+	size_t cmsg_len = CMSG_LEN(sizeof(int));
+	struct cmsghdr *cmsg = alloca(cmsg_len);
+	int *fds = (int *) CMSG_DATA(cmsg);
+	struct msghdr msghdr;
+	struct iovec vec;
+
+	vec.iov_base = (void *)&data;
+	vec.iov_len = len;
+
+	cmsg->cmsg_len = cmsg_len;
+	cmsg->cmsg_level = SOL_SOCKET;
+	cmsg->cmsg_type = SCM_RIGHTS;
+	*fds = fd;
+
+	msghdr.msg_name = NULL;
+	msghdr.msg_namelen = 0;
+	msghdr.msg_iov = &vec;
+ 	msghdr.msg_iovlen = 1;
+	msghdr.msg_control = cmsg;
+	msghdr.msg_controllen = cmsg_len;
+	msghdr.msg_flags = 0;
+
+	ret = sendmsg(sock, &msghdr, 0 );
+	if (ret < 0)
+		return -errno;
+	return ret;
 }
 
 static void server_job(snd_pcm_direct_t *dmix)
@@ -295,7 +314,7 @@ static void server_job(snd_pcm_direct_t *dmix)
 			struct shmid_ds buf;
 			snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
 			if (shmctl(dmix->shmid, IPC_STAT, &buf) < 0) {
-				snd_pcm_direct_shm_discard(dmix);
+				_snd_pcm_direct_shm_discard(dmix);
 				snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 				continue;
 			}
@@ -316,7 +335,7 @@ static void server_job(snd_pcm_direct_t *dmix)
 					unsigned char buf = 'A';
 					pfds[current+1].fd = sck;
 					pfds[current+1].events = POLLIN | POLLERR | POLLHUP;
-					snd_send_fd(sck, &buf, 1, dmix->hw_fd);
+					_snd_send_fd(sck, &buf, 1, dmix->hw_fd);
 					server_printf("DIRECT SERVER: fd sent ok\n");
 					current++;
 				}
