@@ -302,26 +302,6 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	return 0;
 }
 
-static int snd_pcm_file_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	snd_pcm_file_t *file = pcm->private_data;
-	snd_pcm_t *slave = file->gen.slave;
-	pcm->running_areas = slave->running_areas;
-	pcm->stopped_areas = slave->stopped_areas;
-	pcm->mmap_channels = slave->mmap_channels;
-	pcm->mmap_shadow = 1;
-	return 0;
-}
-
-static int snd_pcm_file_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	pcm->mmap_channels = NULL;
-	pcm->running_areas = NULL;
-	pcm->stopped_areas = NULL;
-	pcm->mmap_shadow = 0;
-	return 0;
-}
-
 static void snd_pcm_file_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -348,8 +328,8 @@ static snd_pcm_ops_t snd_pcm_file_ops = {
 	.dump = snd_pcm_file_dump,
 	.nonblock = snd_pcm_generic_nonblock,
 	.async = snd_pcm_generic_async,
-	.mmap = snd_pcm_file_mmap,
-	.munmap = snd_pcm_file_munmap,
+	.mmap = snd_pcm_generic_mmap,
+	.munmap = snd_pcm_generic_munmap,
 };
 
 static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {

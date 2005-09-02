@@ -79,11 +79,6 @@ static int snd_pcm_null_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 	return 0;
 }
 
-static int snd_pcm_null_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
-{
-	return snd_pcm_channel_info_shm(pcm, info, -1);
-}
-
 static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_null_t *null = pcm->private_data;
@@ -276,16 +271,6 @@ static int snd_pcm_null_sw_params(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_pa
 	return 0;
 }
 
-static int snd_pcm_null_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	return 0;
-}
-
-static int snd_pcm_null_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
-{
-	return 0;
-}
-
 static void snd_pcm_null_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_output_printf(out, "Null PCM\n");
@@ -302,12 +287,12 @@ static snd_pcm_ops_t snd_pcm_null_ops = {
 	.hw_params = snd_pcm_null_hw_params,
 	.hw_free = snd_pcm_null_hw_free,
 	.sw_params = snd_pcm_null_sw_params,
-	.channel_info = snd_pcm_null_channel_info,
+	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_null_dump,
 	.nonblock = snd_pcm_null_nonblock,
 	.async = snd_pcm_null_async,
-	.mmap = snd_pcm_null_mmap,
-	.munmap = snd_pcm_null_munmap,
+	.mmap = snd_pcm_generic_mmap,
+	.munmap = snd_pcm_generic_munmap,
 };
 
 static snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {

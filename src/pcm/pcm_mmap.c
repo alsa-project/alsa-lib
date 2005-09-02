@@ -262,11 +262,6 @@ snd_pcm_sframes_t snd_pcm_mmap_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframe
 				  snd_pcm_mmap_read_areas);
 }
 
-int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
-{
-	return pcm->ops->channel_info(pcm, info);
-}
-
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid)
 {
 	switch (pcm->access) {

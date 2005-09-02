@@ -212,7 +212,9 @@ struct _snd_pcm {
 	snd_pcm_rbptr_t hw;
 	snd_pcm_uframes_t min_align;
 	unsigned int mmap_rw: 1;	/* use always mmapped buffer */
-	unsigned int mmap_shadow: 1;	/* don't call actual mmap */
+	unsigned int mmap_shadow: 1;	/* don't call actual mmap,
+					 * use the mmaped buffer of the slave
+					 */
 	unsigned int donot_close: 1;	/* don't close this PCM */
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
@@ -266,7 +268,10 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 				      snd_pcm_xfer_areas_func_t func);
 snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size);
 snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size);
-int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info);
+static inline int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
+{
+	return pcm->ops->channel_info(pcm, info);
+}
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
 int _snd_pcm_poll_descriptor(snd_pcm_t *pcm);
 int _snd_pcm_link_descriptors(snd_pcm_t *pcm, int *fds, int size, int (**failed)(snd_pcm_t *, int));

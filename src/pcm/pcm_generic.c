@@ -113,7 +113,16 @@ int snd_pcm_generic_prepare(snd_pcm_t *pcm)
 int snd_pcm_generic_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 {
 	snd_pcm_generic_t *generic = pcm->private_data;
-	return snd_pcm_channel_info(generic->slave, info);
+	if (pcm->mmap_shadow) {
+		/* No own buffer is required - the plugin won't change
+		 * the data on the buffer, or do safely on-the-place
+		 * conversion
+		 */
+		return snd_pcm_channel_info(generic->slave, info);
+	} else {
+		/* Allocate own buffer */
+		return snd_pcm_channel_info_shm(generic->slave, info, -1);
+	}
 }
 
 int snd_pcm_generic_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
@@ -290,13 +299,26 @@ snd_pcm_sframes_t snd_pcm_generic_avail_update(snd_pcm_t *pcm)
 	return snd_pcm_avail_update(generic->slave);
 }
 
-int snd_pcm_generic_mmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+int snd_pcm_generic_mmap(snd_pcm_t *pcm)
 {
+	if (pcm->mmap_shadow) {
+		/* Copy the slave mmapped buffer data */
+		snd_pcm_generic_t *generic = pcm->private_data;
+		pcm->mmap_channels = generic->slave->mmap_channels;
+		pcm->running_areas = generic->slave->running_areas;
+		pcm->stopped_areas = generic->slave->stopped_areas;
+	}
 	return 0;
 }
 
-int snd_pcm_generic_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+int snd_pcm_generic_munmap(snd_pcm_t *pcm)
 {
+	if (pcm->mmap_shadow) {
+		/* Clean up */
+		pcm->mmap_channels = NULL;
+		pcm->running_areas = NULL;
+		pcm->stopped_areas = NULL;
+	}
 	return 0;
 }
 

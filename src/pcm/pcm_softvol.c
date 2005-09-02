@@ -658,6 +658,12 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = svol;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
+	/*
+	 * Since the softvol converts on the place, and the format/channels
+	 * must be identical between source and destination, we don't need
+	 * an extra buffer.
+	 */
+	pcm->mmap_shadow = 1;
 	snd_pcm_set_hw_ptr(pcm, &svol->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &svol->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;

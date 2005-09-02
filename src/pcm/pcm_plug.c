@@ -917,26 +917,6 @@ static int snd_pcm_plug_hw_free(snd_pcm_t *pcm)
 	return err;
 }
 
-static int snd_pcm_plug_mmap(snd_pcm_t *pcm)
-{
-	snd_pcm_plug_t *plug = pcm->private_data;
-	pcm->mmap_channels = plug->gen.slave->mmap_channels;
-	pcm->running_areas = plug->gen.slave->running_areas;
-	pcm->stopped_areas = plug->gen.slave->stopped_areas;
-	pcm->mmap_shadow = 1;
-	return 0;
-}
-
-static int snd_pcm_plug_munmap(snd_pcm_t *pcm)
-{
-	// snd_pcm_plug_t *plug = pcm->private_data;
-	pcm->mmap_channels = NULL;
-	pcm->running_areas = NULL;
-	pcm->stopped_areas = NULL;
-	pcm->mmap_shadow = 0;
-	return 0;
-}
-
 static void snd_pcm_plug_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
@@ -955,8 +935,8 @@ static snd_pcm_ops_t snd_pcm_plug_ops = {
 	.dump = snd_pcm_plug_dump,
 	.nonblock = snd_pcm_generic_nonblock,
 	.async = snd_pcm_generic_async,
-	.mmap = snd_pcm_plug_mmap,
-	.munmap = snd_pcm_plug_munmap,
+	.mmap = snd_pcm_generic_mmap,
+	.munmap = snd_pcm_generic_munmap,
 };
 
 /**
@@ -1010,6 +990,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	pcm->private_data = plug;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
+	pcm->mmap_shadow = 1;
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;

@@ -620,11 +620,6 @@ static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 	return snd_pcm_hw_free(rate->gen.slave);
 }
 
-static int snd_pcm_rate_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t * info)
-{
-	return snd_pcm_channel_info_shm(pcm, info, -1);
-}
-
 static void recalc(snd_pcm_t *pcm, snd_pcm_uframes_t *val)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
@@ -1393,7 +1388,7 @@ static snd_pcm_ops_t snd_pcm_rate_ops = {
 	.hw_params = snd_pcm_rate_hw_params,
 	.hw_free = snd_pcm_rate_hw_free,
 	.sw_params = snd_pcm_rate_sw_params,
-	.channel_info = snd_pcm_rate_channel_info,
+	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_rate_dump,
 	.nonblock = snd_pcm_generic_nonblock,
 	.async = snd_pcm_generic_async,
