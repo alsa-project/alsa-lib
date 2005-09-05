@@ -2239,6 +2239,7 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 		return -EIO;
 	}
 	do {
+		pollio = 0;
 		err_poll = poll(pfd, npfds, timeout);
 		if (err_poll < 0) {
 		        if (errno == EINTR)
@@ -2250,7 +2251,6 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 		err = snd_pcm_poll_descriptors_revents(pcm, pfd, npfds, revents);
 		if (err < 0)
 			return err;
-		pollio = 0;
 		for (i = 0; i < npfds; i++) {
 			if (revents[i] & (POLLERR | POLLNVAL)) {
 				/* check more precisely */
