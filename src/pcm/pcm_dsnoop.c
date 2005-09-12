@@ -338,13 +338,6 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	return frames;
 }
 
-static int snd_pcm_dsnoop_resume(snd_pcm_t *pcm)
-{
-	snd_pcm_direct_t *dsnoop = pcm->private_data;
-	snd_pcm_resume(dsnoop->spcm);
-	return 0;
-}
-
 static snd_pcm_sframes_t snd_pcm_dsnoop_writei(snd_pcm_t *pcm ATTRIBUTE_UNUSED, const void *buffer ATTRIBUTE_UNUSED, snd_pcm_uframes_t size ATTRIBUTE_UNUSED)
 {
 	return -ENODEV;
