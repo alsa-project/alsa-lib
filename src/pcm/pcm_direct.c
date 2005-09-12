@@ -198,11 +198,13 @@ static int make_local_socket(const char *filename, int server, mode_t ipc_perm, 
 				return result;
 			}
 			if (chown(filename, -1, ipc_gid) < 0) {
+#if 0 /* it's not fatal */
 				int result = -errno;
-				SYSERR("chmod failed: %s", filename);
+				SYSERR("chown failed: %s", filename);
 				close(sock);
 				unlink(filename);
 				return result;
+#endif
 			}
 		}
 	} else {
