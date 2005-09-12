@@ -469,7 +469,7 @@ int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	}
 	if (!hooks)
-		return 0;
+		goto _done;
 	snd_config_for_each(i, next, hooks) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *str;
@@ -488,6 +488,7 @@ int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
 			return err;
 		}
 	}
+ _done:
 	*pcmp = rpcm;
 	return 0;
 }
