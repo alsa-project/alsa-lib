@@ -47,6 +47,7 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
 #define IS_CONCURRENT	0	/* no race check */
 #endif
 
+#if IS_CONCURRENT
 static void mix_areas1(unsigned int size,
 		       volatile signed short *dst, signed short *src,
 		       volatile signed int *sum, size_t dst_step,
@@ -114,3 +115,146 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 	dmix->u.dmix.mix_areas1 = mix_areas1;
 	dmix->u.dmix.mix_areas2 = mix_areas2;
 }
+
+#else
+
+/* non-concurrent version, supporting both endians */
+static unsigned long long dmix_supported_format =
+	(1ULL << SND_PCM_FORMAT_S16_LE) | (1ULL << SND_PCM_FORMAT_S32_LE) |
+	(1ULL << SND_PCM_FORMAT_S16_BE) | (1ULL << SND_PCM_FORMAT_S32_BE);
+
+#include <byteswap.h>
+
+static void mix_areas1_native(unsigned int size,
+			      volatile signed short *dst, signed short *src,
+			      volatile signed int *sum, size_t dst_step,
+			      size_t src_step, size_t sum_step)
+{
+	register signed int sample;
+
+	for (;;) {
+		sample = *src;
+		if (! *dst) {
+			*sum = sample;
+			*dst = *src;
+		} else {
+			sample += *sum;
+			*sum = sample;
+			if (sample > 0x7fff)
+				sample = 0x7fff;
+			else if (sample < -0x8000)
+				sample = -0x8000;
+			*dst = sample;
+		}
+		if (!--size)
+			return;
+		src = (signed short *) ((char *)src + src_step);
+		dst = (signed short *) ((char *)dst + dst_step);
+		sum = (signed int *)   ((char *)sum + sum_step);
+	}
+}
+
+static void mix_areas2_native(unsigned int size,
+			      volatile signed int *dst, signed int *src,
+			      volatile signed int *sum, size_t dst_step,
+			      size_t src_step, size_t sum_step)
+{
+	register signed int sample;
+
+	for (;;) {
+		sample = *src / 256;
+		if (! *dst) {
+			*sum = sample;
+			*dst = *src;
+		} else {
+			sample += *sum;
+			*sum = sample;
+			if (sample > 0x7fffff)
+				sample = 0x7fffffff;
+			else if (sample < -0x800000)
+				sample = -0x80000000;
+			else
+				sample *= 256;
+			*dst = sample;
+		}
+		if (!--size)
+			return;
+		src = (signed int *) ((char *)src + src_step);
+		dst = (signed int *) ((char *)dst + dst_step);
+		sum = (signed int *) ((char *)sum + sum_step);
+	}
+}
+
+static void mix_areas1_swap(unsigned int size,
+			    volatile signed short *dst, signed short *src,
+			    volatile signed int *sum, size_t dst_step,
+			    size_t src_step, size_t sum_step)
+{
+	register signed int sample;
+
+	for (;;) {
+		sample = bswap_16(*src);
+		if (! *dst) {
+			*sum = sample;
+			*dst = *src;
+		} else {
+			sample += *sum;
+			*sum = sample;
+			if (sample > 0x7fff)
+				sample = 0x7fff;
+			else if (sample < -0x8000)
+				sample = -0x8000;
+			*dst = bswap_16((signed short)sample);
+		}
+		if (!--size)
+			return;
+		src = (signed short *) ((char *)src + src_step);
+		dst = (signed short *) ((char *)dst + dst_step);
+		sum = (signed int *)   ((char *)sum + sum_step);
+	}
+}
+
+static void mix_areas2_swap(unsigned int size,
+			    volatile signed int *dst, signed int *src,
+			    volatile signed int *sum, size_t dst_step,
+			    size_t src_step, size_t sum_step)
+{
+	register signed int sample;
+
+	for (;;) {
+		sample = bswap_32(*src) / 256;
+		if (! *dst) {
+			*sum = sample;
+			*dst = *src;
+		} else {
+			sample += *sum;
+			*sum = sample;
+			if (sample > 0x7fffff)
+				sample = 0x7fffffff;
+			else if (sample < -0x800000)
+				sample = -0x80000000;
+			else
+				sample *= 256;
+			*dst = bswap_32(sample);
+		}
+		if (!--size)
+			return;
+		src = (signed int *) ((char *)src + src_step);
+		dst = (signed int *) ((char *)dst + dst_step);
+		sum = (signed int *) ((char *)sum + sum_step);
+	}
+}
+
+
+static void mix_select_callbacks(snd_pcm_direct_t *dmix)
+{
+	if (snd_pcm_format_cpu_endian(dmix->shmptr->s.format)) {
+		dmix->u.dmix.mix_areas1 = mix_areas1_native;
+		dmix->u.dmix.mix_areas2 = mix_areas2_native;
+	} else {
+		dmix->u.dmix.mix_areas1 = mix_areas1_swap;
+		dmix->u.dmix.mix_areas2 = mix_areas2_swap;
+	}
+}
+
+#endif

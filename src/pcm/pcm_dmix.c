@@ -159,7 +159,8 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 	unsigned int chn, dchn, channels;
 	
 	channels = dmix->channels;
-	if (dmix->shmptr->s.format == SND_PCM_FORMAT_S16) {
+	if (dmix->shmptr->s.format == SND_PCM_FORMAT_S16_LE ||
+	    dmix->shmptr->s.format == SND_PCM_FORMAT_S16_BE) {
 		signed short *src;
 		volatile signed short *dst;
 		if (dmix->interleaved) {
@@ -1171,9 +1172,8 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		params.period_time = 125000;    /* 0.125 seconds */
 
 	/* sorry, limited features */
-        if (params.format != SND_PCM_FORMAT_S16 &&
-            params.format != SND_PCM_FORMAT_S32) {
-		SNDERR("invalid format, specify s16 or s32");
+	if (! (dmix_supported_format & (1ULL << params.format))) {
+		SNDERR("Unsupported format");
 		snd_config_delete(sconf);
 		return -EINVAL;
 	}

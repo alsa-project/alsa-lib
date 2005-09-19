@@ -42,6 +42,12 @@
  *
  */
  
+union semun {
+	int              val;    /* Value for SETVAL */
+	struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
+	unsigned short  *array;  /* Array for GETALL, SETALL */
+	struct seminfo  *__buf;  /* Buffer for IPC_INFO (Linux specific) */
+};
  
 /*
  * FIXME:
@@ -50,6 +56,7 @@
 
 int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 {
+	union semun s;
 	struct semid_ds buf;
 	int i;
 
@@ -60,13 +67,15 @@ int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 	if (dmix->ipc_gid < 0)
 		return 0;
 	for (i = 0; i < DIRECT_IPC_SEMS; i++) {
-		if (semctl(dmix->semid, i, IPC_STAT, &buf) < 0) {
+		s.buf = &buf;
+		if (semctl(dmix->semid, i, IPC_STAT, s) < 0) {
 			int err = -errno;
 			snd_pcm_direct_semaphore_discard(dmix);
 			return err;
 		}
 		buf.sem_perm.gid = dmix->ipc_gid;
-		semctl(dmix->semid, i, IPC_SET, &buf);
+		s.buf = &buf;
+		semctl(dmix->semid, i, IPC_SET, s);
 	}
 	return 0;
 }
@@ -785,13 +794,19 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	ret = snd_pcm_hw_params_set_format(spcm, hw_params, params->format);
 	if (ret < 0) {
 		snd_pcm_format_t format;
-		switch (params->format) {
-		case SND_PCM_FORMAT_S32: format = SND_PCM_FORMAT_S16; break;
-		case SND_PCM_FORMAT_S16: format = SND_PCM_FORMAT_S32; break;
-		default:
-			SNDERR("invalid format");
-			return -EINVAL;
+		if (dmix->type == SND_PCM_TYPE_DMIX) {
+			switch (params->format) {
+			case SND_PCM_FORMAT_S32_LE:
+			case SND_PCM_FORMAT_S32_BE:
+			case SND_PCM_FORMAT_S16_LE:
+			case SND_PCM_FORMAT_S16_BE:
+				break;
+			default:
+				SNDERR("invalid format");
+				return -EINVAL;
+			}
 		}
+		format = params->format;
 		ret = snd_pcm_hw_params_set_format(spcm, hw_params, format);
 		if (ret < 0) {
 			SNDERR("requested or auto-format is not available");

@@ -22,6 +22,9 @@
 #undef MIX_AREAS2
 #undef LOCK_PREFIX
  
+static unsigned long long dmix_supported_format =
+	(1ULL << SND_PCM_FORMAT_S16_LE) | (1ULL << SND_PCM_FORMAT_S32_LE);
+
 static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 {
 	FILE *in;
