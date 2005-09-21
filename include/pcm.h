@@ -305,7 +305,7 @@ enum _snd_pcm_type {
 	SND_PCM_TYPE_HW = 0,
 	/** Hooked PCM */
 	SND_PCM_TYPE_HOOKS,
-	/** One ore more linked PCM with exclusive access to selected
+	/** One or more linked PCM with exclusive access to selected
 	    channels */
 	SND_PCM_TYPE_MULTI,
 	/** File writing plugin */
