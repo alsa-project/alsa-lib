@@ -1516,8 +1516,12 @@ static const char *snd_pcm_type_names[] = {
 	PCMTYPE(LINEAR_FLOAT), 
 	PCMTYPE(LADSPA), 
 	PCMTYPE(DMIX), 
-	PCMTYPE(JACK), 
+	PCMTYPE(JACK),
+        PCMTYPE(DSNOOP),
+        PCMTYPE(IEC958),
 	PCMTYPE(SOFTVOL),
+        PCMTYPE(IOPLUG),
+        PCMTYPE(EXTPLUG),
 };
 
 static const char *snd_pcm_subformat_names[] = {
