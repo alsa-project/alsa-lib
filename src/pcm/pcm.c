@@ -1517,6 +1517,7 @@ static const char *snd_pcm_type_names[] = {
 	PCMTYPE(LADSPA), 
 	PCMTYPE(DMIX), 
 	PCMTYPE(JACK), 
+	PCMTYPE(SOFTVOL),
 };
 
 static const char *snd_pcm_subformat_names[] = {
