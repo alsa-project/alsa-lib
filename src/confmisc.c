@@ -854,6 +854,123 @@ SND_DLSYM_BUILD_VERSION(snd_func_pcm_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 
 /**
+ * \brief Returns the pcm card and device arguments (in form CARD=N,DEV=M)
+ *                for pcm specified by class and index.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node, with definitions for \c class
+ *            and \c index.
+ * \param private_data Handle to the \c private_data node.
+ * \return A non-negative value if successful, otherwise a negative error code.
+ *
+ * Example:
+\code
+	{
+		@func pcm_args_by_class
+		class 0
+		index 0
+	}
+\endcode
+ */ 
+int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_config_t *src, void *private_data)
+{
+	snd_config_t *n;
+	snd_ctl_t *ctl = NULL;
+	snd_pcm_info_t *info;
+	const char *id;
+	int card = -1, dev;
+	long class, index;
+	int idx = 0;
+	int err;
+
+	err = snd_config_search(src, "class", &n);
+	if (err < 0) {
+		SNDERR("field class not found");
+		goto __out;
+	}
+	err = snd_config_evaluate(n, root, private_data, NULL);
+	if (err < 0) {
+		SNDERR("error evaluating class");
+		goto __out;
+	}
+	err = snd_config_get_integer(n, &class);
+	if (err < 0) {
+		SNDERR("field class is not an integer");
+		goto __out;
+	}
+	err = snd_config_search(src, "index", &n);
+	if (err < 0) {
+		SNDERR("field index not found");
+		goto __out;
+	}
+	err = snd_config_evaluate(n, root, private_data, NULL);
+	if (err < 0) {
+		SNDERR("error evaluating index");
+		goto __out;
+	}
+	err = snd_config_get_integer(n, &index);
+	if (err < 0) {
+		SNDERR("field index is not an integer");
+		goto __out;
+	}
+
+	snd_pcm_info_alloca(&info);
+	while(1) {
+		err = snd_card_next(&card);
+		if (err < 0) {
+			SNDERR("could not get next card");
+			goto __out;
+		}
+		if (card < 0)
+			break;
+		err = open_ctl(card, &ctl);
+		if (err < 0) {
+			SNDERR("could not open control for card %li", card);
+			goto __out;
+		}
+		dev = -1;
+		memset(info, 0, snd_pcm_info_sizeof());
+		while(1) {
+			err = snd_ctl_pcm_next_device(ctl, &dev);
+			if (err < 0) {
+				SNDERR("could not get next pcm for card %li", card);
+				goto __out;
+			}
+			if (dev < 0)
+				break;
+			snd_pcm_info_set_device(info, dev);
+			err = snd_ctl_pcm_info(ctl, info);
+			if (err < 0)
+				continue;
+			if (snd_pcm_info_get_class(info) == (snd_pcm_class_t)class &&
+					index == idx++)
+				goto __out;
+		}
+      		snd_ctl_close(ctl);
+		ctl = NULL;
+	}
+	err = -ENODEV;
+
+      __out:
+      	if (ctl)
+      		snd_ctl_close(ctl);
+	if (err < 0)
+		return err;
+	if((err = snd_config_get_id(src, &id)) >= 0) {
+		char name[32], *s;
+		snprintf(name, sizeof(name), "CARD=%i,DEV=%i", card, dev);
+		if (!(s = strdup(name)))
+			return -ENOMEM;
+		err = snd_config_imake_string(dst, id, s);
+	}
+	return err;
+}
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(snd_func_pcm_args_by_class, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
+
+/**
  * \brief Returns the PCM subdevice from \c private_data.
  * \param dst The function puts the handle to the result configuration node
  *            (with type integer) at the address specified by \p dst.
