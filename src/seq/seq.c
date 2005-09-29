@@ -1790,7 +1790,7 @@ int snd_seq_port_info_get_port(const snd_seq_port_info_t *info)
 const snd_seq_addr_t *snd_seq_port_info_get_addr(const snd_seq_port_info_t *info)
 {
 	assert(info);
-	return (snd_seq_addr_t *)&info->addr;
+	return &info->addr;
 }
 
 /**
@@ -1985,7 +1985,7 @@ void snd_seq_port_info_set_port(snd_seq_port_info_t *info, int port)
 void snd_seq_port_info_set_addr(snd_seq_port_info_t *info, const snd_seq_addr_t *addr)
 {
 	assert(info);
-	info->addr = *(struct sndrv_seq_addr *)addr;
+	info->addr = *addr;
 }
 
 /**
@@ -2333,7 +2333,7 @@ void snd_seq_port_subscribe_copy(snd_seq_port_subscribe_t *dst, const snd_seq_po
 const snd_seq_addr_t *snd_seq_port_subscribe_get_sender(const snd_seq_port_subscribe_t *info)
 {
 	assert(info);
-	return (snd_seq_addr_t *)&info->sender;
+	return &info->sender;
 }
 
 /**
@@ -2345,7 +2345,7 @@ const snd_seq_addr_t *snd_seq_port_subscribe_get_sender(const snd_seq_port_subsc
 const snd_seq_addr_t *snd_seq_port_subscribe_get_dest(const snd_seq_port_subscribe_t *info)
 {
 	assert(info);
-	return (snd_seq_addr_t *)&info->dest;
+	return &info->dest;
 }
 
 /**
@@ -2618,7 +2618,7 @@ int snd_seq_query_subscribe_get_port(const snd_seq_query_subscribe_t *info)
 const snd_seq_addr_t *snd_seq_query_subscribe_get_root(const snd_seq_query_subscribe_t *info)
 {
 	assert(info);
-	return (snd_seq_addr_t *)&info->root;
+	return &info->root;
 }
 
 /**
@@ -2670,7 +2670,7 @@ int snd_seq_query_subscribe_get_num_subs(const snd_seq_query_subscribe_t *info)
 const snd_seq_addr_t *snd_seq_query_subscribe_get_addr(const snd_seq_query_subscribe_t *info)
 {
 	assert(info);
-	return (snd_seq_addr_t *)&info->addr;
+	return &info->addr;
 }
 
 /**
@@ -2761,7 +2761,7 @@ void snd_seq_query_subscribe_set_port(snd_seq_query_subscribe_t *info, int port)
 void snd_seq_query_subscribe_set_root(snd_seq_query_subscribe_t *info, const snd_seq_addr_t *addr)
 {
 	assert(info);
-	info->root = *(struct sndrv_seq_addr *)addr;
+	info->root = *addr;
 }
 
 /**
@@ -3240,7 +3240,7 @@ snd_seq_tick_time_t snd_seq_queue_status_get_tick_time(const snd_seq_queue_statu
 const snd_seq_real_time_t *snd_seq_queue_status_get_real_time(const snd_seq_queue_status_t *info)
 {
 	assert(info);
-	return (snd_seq_real_time_t *)&info->time;
+	return &info->time;
 }
 
 /**
@@ -3687,7 +3687,7 @@ ssize_t snd_seq_event_length(snd_seq_event_t *ev)
 {
 	ssize_t len = sizeof(snd_seq_event_t);
 	assert(ev);
-	if (sndrv_seq_ev_is_variable(ev))
+	if (snd_seq_ev_is_variable(ev))
 		len += ev->data.ext.len;
 	return len;
 }
@@ -3753,7 +3753,7 @@ int snd_seq_event_output_buffer(snd_seq_t *seq, snd_seq_event_t *ev)
 		return -EAGAIN;
 	memcpy(seq->obuf + seq->obufused, ev, sizeof(snd_seq_event_t));
 	seq->obufused += sizeof(snd_seq_event_t);
-	if (sndrv_seq_ev_is_variable(ev)) {
+	if (snd_seq_ev_is_variable(ev)) {
 		memcpy(seq->obuf + seq->obufused, ev->data.ext.ptr, ev->data.ext.len);
 		seq->obufused += ev->data.ext.len;
 	}
@@ -3882,7 +3882,7 @@ int snd_seq_extract_output(snd_seq_t *seq, snd_seq_event_t **ev_res)
 		*ev_res = NULL;
 	if ((olen = seq->obufused) < sizeof(snd_seq_event_t))
 		return -ENOENT;
-	memcpy(&ev, (snd_seq_event_t*)seq->obuf, sizeof(snd_seq_event_t));
+	memcpy(&ev, seq->obuf, sizeof(snd_seq_event_t));
 	len = snd_seq_event_length(&ev);
 	if (ev_res) {
 		/* extract the event */
@@ -3924,7 +3924,7 @@ static int snd_seq_event_retrieve_buffer(snd_seq_t *seq, snd_seq_event_t **retp)
 	*retp = ev = &seq->ibuf[seq->ibufptr];
 	seq->ibufptr++;
 	seq->ibuflen--;
-	if (! sndrv_seq_ev_is_variable(ev))
+	if (! snd_seq_ev_is_variable(ev))
 		return 1;
 	ncells = (ev->data.ext.len + sizeof(snd_seq_event_t) - 1) / sizeof(snd_seq_event_t);
 	if (seq->ibuflen < ncells) {
@@ -4178,7 +4178,7 @@ int snd_seq_remove_events_get_queue(const snd_seq_remove_events_t *info)
 const snd_seq_timestamp_t *snd_seq_remove_events_get_time(const snd_seq_remove_events_t *info)
 {
 	assert(info);
-	return (snd_seq_timestamp_t *)&info->time;
+	return &info->time;
 }
 
 /**
@@ -4191,7 +4191,7 @@ const snd_seq_timestamp_t *snd_seq_remove_events_get_time(const snd_seq_remove_e
 const snd_seq_addr_t *snd_seq_remove_events_get_dest(const snd_seq_remove_events_t *info)
 {
 	assert(info);
-	return (snd_seq_addr_t *)&info->dest;
+	return &info->dest;
 }
 
 /**
@@ -4269,7 +4269,7 @@ void snd_seq_remove_events_set_queue(snd_seq_remove_events_t *info, int queue)
 void snd_seq_remove_events_set_time(snd_seq_remove_events_t *info, const snd_seq_timestamp_t *time)
 {
 	assert(info);
-	info->time = *(union sndrv_seq_timestamp *)time;
+	info->time = *time;
 }
 
 /**
@@ -4282,7 +4282,7 @@ void snd_seq_remove_events_set_time(snd_seq_remove_events_t *info, const snd_seq
 void snd_seq_remove_events_set_dest(snd_seq_remove_events_t *info, const snd_seq_addr_t *addr)
 {
 	assert(info);
-	info->dest = *(struct sndrv_seq_addr *)addr;
+	info->dest = *addr;
 }
 
 /**
@@ -4354,7 +4354,7 @@ static int remove_match(snd_seq_remove_events_t *info, snd_seq_event_t *ev)
 			return 0;
 	}
 	if (info->remove_mode & SNDRV_SEQ_REMOVE_DEST_CHANNEL) {
-		if (! sndrv_seq_ev_is_channel_type(ev))
+		if (! snd_seq_ev_is_channel_type(ev))
 			return 0;
 		/* data.note.channel and data.control.channel are identical */
 		if (ev->data.note.channel != info->channel)
@@ -4362,17 +4362,17 @@ static int remove_match(snd_seq_remove_events_t *info, snd_seq_event_t *ev)
 	}
 	if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_AFTER) {
 		if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_TICK)
-			res = snd_seq_compare_tick_time(&ev->time.tick, (snd_seq_tick_time_t *)&info->time.tick);
+			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
 		else
-			res = snd_seq_compare_real_time(&ev->time.time, (snd_seq_real_time_t *)&info->time.time);
+			res = snd_seq_compare_real_time(&ev->time.time, &info->time.time);
 		if (!res)
 			return 0;
 	}
 	if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_BEFORE) {
 		if (info->remove_mode & SNDRV_SEQ_REMOVE_TIME_TICK)
-			res = snd_seq_compare_tick_time(&ev->time.tick, (snd_seq_tick_time_t *)&info->time.tick);
+			res = snd_seq_compare_tick_time(&ev->time.tick, &info->time.tick);
 		else
-			res = snd_seq_compare_real_time(&ev->time.time, (snd_seq_real_time_t *)&info->time.time);
+			res = snd_seq_compare_real_time(&ev->time.time, &info->time.time);
 		if (res)
 			return 0;
 	}
@@ -4383,8 +4383,8 @@ static int remove_match(snd_seq_remove_events_t *info, snd_seq_event_t *ev)
 	if (info->remove_mode & SNDRV_SEQ_REMOVE_IGNORE_OFF) {
 		/* Do not remove off events */
 		switch (ev->type) {
-		case SNDRV_SEQ_EVENT_NOTEOFF:
-		/* case SNDRV_SEQ_EVENT_SAMPLE_STOP: */
+		case SND_SEQ_EVENT_NOTEOFF:
+		/* case SND_SEQ_EVENT_SAMPLE_STOP: */
 			return 0;
 		default:
 			break;
@@ -4435,7 +4435,7 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 			ep = seq->obuf;
 			while (ep - seq->obuf < (ssize_t)seq->obufused) {
 
-				ev = (snd_seq_event_t *) ep;
+				ev = ep;
 				len = snd_seq_event_length(ev);
 
 				if (remove_match(rmp, ev)) {
@@ -4721,7 +4721,7 @@ void snd_instr_header_copy(snd_instr_header_t *dst, const snd_instr_header_t *sr
 const snd_seq_instr_t *snd_instr_header_get_id(const snd_instr_header_t *info)
 {
 	assert(info);
-	return (snd_seq_instr_t *)&info->id.instr;
+	return &info->id.instr;
 }
 
 /**
@@ -4798,7 +4798,7 @@ const char *snd_instr_header_get_format(const snd_instr_header_t *info)
 const snd_seq_instr_t *snd_instr_header_get_alias(const snd_instr_header_t *info)
 {
 	assert(info);
-	return (snd_seq_instr_t *)&info->data.data.alias;
+	return &info->data.data.alias;
 }
 
 /**
@@ -4831,7 +4831,7 @@ int snd_instr_header_get_follow_alias(const snd_instr_header_t *info)
 void snd_instr_header_set_id(snd_instr_header_t *info, const snd_seq_instr_t *id)
 {
 	assert(info && id);
-	info->id.instr = *(struct sndrv_seq_instr *)id;
+	info->id.instr = *id;
 }
 
 /**
@@ -4908,7 +4908,7 @@ void snd_instr_header_set_format(snd_instr_header_t *info, const char *format)
 void snd_instr_header_set_alias(snd_instr_header_t *info, const snd_seq_instr_t *instr)
 {
 	assert(info && instr);
-	info->data.data.alias = *(struct sndrv_seq_instr *)instr;
+	info->data.data.alias = *instr;
 }
 
 /**

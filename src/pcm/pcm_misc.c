@@ -623,38 +623,24 @@ int snd_pcm_format_set_silence(snd_pcm_format_t format, void *data, unsigned int
 	return 0;
 }
 
-static int linear_formats[4*2*2] = {
-	SNDRV_PCM_FORMAT_S8,
-	SNDRV_PCM_FORMAT_S8,
-	SNDRV_PCM_FORMAT_U8,
-	SNDRV_PCM_FORMAT_U8,
-	SNDRV_PCM_FORMAT_S16_LE,
-	SNDRV_PCM_FORMAT_S16_BE,
-	SNDRV_PCM_FORMAT_U16_LE,
-	SNDRV_PCM_FORMAT_U16_BE,
-	SNDRV_PCM_FORMAT_S24_LE,
-	SNDRV_PCM_FORMAT_S24_BE,
-	SNDRV_PCM_FORMAT_U24_LE,
-	SNDRV_PCM_FORMAT_U24_BE,
-	SNDRV_PCM_FORMAT_S32_LE,
-	SNDRV_PCM_FORMAT_S32_BE,
-	SNDRV_PCM_FORMAT_U32_LE,
-	SNDRV_PCM_FORMAT_U32_BE
+static int linear_formats[4][2][2] = {
+	{ { SNDRV_PCM_FORMAT_S8, SNDRV_PCM_FORMAT_S8 },
+	  { SNDRV_PCM_FORMAT_U8, SNDRV_PCM_FORMAT_U8 } },
+	{ { SNDRV_PCM_FORMAT_S16_LE, SNDRV_PCM_FORMAT_S16_BE },
+	  { SNDRV_PCM_FORMAT_U16_LE, SNDRV_PCM_FORMAT_U16_BE } },
+	{ { SNDRV_PCM_FORMAT_S24_LE, SNDRV_PCM_FORMAT_S24_BE },
+	  { SNDRV_PCM_FORMAT_U24_LE, SNDRV_PCM_FORMAT_U24_BE } },
+	{ { SNDRV_PCM_FORMAT_S32_LE, SNDRV_PCM_FORMAT_S32_BE },
+	  { SNDRV_PCM_FORMAT_U32_LE, SNDRV_PCM_FORMAT_U32_BE } }
 };
 
-static int linear24_formats[3*2*2] = {
-	SNDRV_PCM_FORMAT_S24_3LE,
-	SNDRV_PCM_FORMAT_S24_3BE,
-	SNDRV_PCM_FORMAT_U24_3LE,
-	SNDRV_PCM_FORMAT_U24_3BE,
-	SNDRV_PCM_FORMAT_S20_3LE,
-	SNDRV_PCM_FORMAT_S20_3BE,
-	SNDRV_PCM_FORMAT_U20_3LE,
-	SNDRV_PCM_FORMAT_U20_3BE,
-	SNDRV_PCM_FORMAT_S18_3LE,
-	SNDRV_PCM_FORMAT_S18_3BE,
-	SNDRV_PCM_FORMAT_U18_3LE,
-	SNDRV_PCM_FORMAT_U18_3BE,
+static int linear24_formats[3][2][2] = {
+	{ { SNDRV_PCM_FORMAT_S24_3LE, SNDRV_PCM_FORMAT_S24_3BE },
+	  { SNDRV_PCM_FORMAT_U24_3LE, SNDRV_PCM_FORMAT_U24_3BE } },
+	{ { SNDRV_PCM_FORMAT_S20_3LE, SNDRV_PCM_FORMAT_S20_3BE },
+	  { SNDRV_PCM_FORMAT_U20_3LE, SNDRV_PCM_FORMAT_U20_3BE } },
+	{ { SNDRV_PCM_FORMAT_S18_3LE, SNDRV_PCM_FORMAT_S18_3BE },
+	  { SNDRV_PCM_FORMAT_U18_3LE, SNDRV_PCM_FORMAT_U18_3BE } },
 };
 
 /**
@@ -681,7 +667,7 @@ snd_pcm_format_t snd_pcm_build_linear_format(int width, int pwidth, int unsignd,
 		default:
 			return SND_PCM_FORMAT_UNKNOWN;
 		}
-		return ((int(*)[2][2])linear24_formats)[width][!!unsignd][!!big_endian];
+		return linear24_formats[width][!!unsignd][!!big_endian];
 	} else {
 		switch (width) {
 		case 8:
@@ -699,7 +685,7 @@ snd_pcm_format_t snd_pcm_build_linear_format(int width, int pwidth, int unsignd,
 		default:
 			return SND_PCM_FORMAT_UNKNOWN;
 		}
-		return ((int(*)[2][2])linear_formats)[width][!!unsignd][!!big_endian];
+		return linear_formats[width][!!unsignd][!!big_endian];
 	}
 }
 

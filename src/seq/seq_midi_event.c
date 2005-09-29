@@ -307,8 +307,8 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 	if (c >= MIDI_CMD_COMMON_CLOCK) {
 		/* real-time event */
 		ev->type = status_event[ST_SPECIAL + c - 0xf0].event;
-		ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
-		ev->flags |= SNDRV_SEQ_EVENT_LENGTH_FIXED;
+		ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
+		ev->flags |= SND_SEQ_EVENT_LENGTH_FIXED;
 		return 1;
 	}
 
@@ -335,17 +335,17 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 	}
 	if (dev->qlen == 0) {
 		ev->type = status_event[dev->type].event;
-		ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
-		ev->flags |= SNDRV_SEQ_EVENT_LENGTH_FIXED;
+		ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
+		ev->flags |= SND_SEQ_EVENT_LENGTH_FIXED;
 		if (status_event[dev->type].encode) /* set data values */
 			status_event[dev->type].encode(dev, ev);
 		rc = 1;
 	} else 	if (dev->type == ST_SYSEX) {
 		if (c == MIDI_CMD_COMMON_SYSEX_END ||
 		    dev->read >= dev->bufsize) {
-			ev->flags &= ~SNDRV_SEQ_EVENT_LENGTH_MASK;
-			ev->flags |= SNDRV_SEQ_EVENT_LENGTH_VARIABLE;
-			ev->type = SNDRV_SEQ_EVENT_SYSEX;
+			ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
+			ev->flags |= SND_SEQ_EVENT_LENGTH_VARIABLE;
+			ev->type = SND_SEQ_EVENT_SYSEX;
 			ev->data.ext.len = dev->read;
 			ev->data.ext.ptr = dev->buf;
 			if (c != MIDI_CMD_COMMON_SYSEX_END)
@@ -417,7 +417,7 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 	long qlen;
 	unsigned int type;
 
-	if (ev->type == SNDRV_SEQ_EVENT_NONE)
+	if (ev->type == SND_SEQ_EVENT_NONE)
 		return -ENOENT;
 
 	for (type = 0; type < numberof(status_event); type++) {
@@ -442,8 +442,8 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 		qlen = ev->data.ext.len;
 		if (count < qlen)
 			return -ENOMEM;
-		switch (ev->flags & SNDRV_SEQ_EVENT_LENGTH_MASK) {
-		case SNDRV_SEQ_EVENT_LENGTH_FIXED:
+		switch (ev->flags & SND_SEQ_EVENT_LENGTH_MASK) {
+		case SND_SEQ_EVENT_LENGTH_FIXED:
 			return -EINVAL;	/* invalid event */
 		}
 		memcpy(buf, ev->data.ext.ptr, qlen);

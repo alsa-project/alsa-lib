@@ -31,6 +31,7 @@
 /** version of the sequencer */
 #define SNDRV_SEQ_VERSION SNDRV_PROTOCOL_VERSION (1, 0, 1)
 
+#ifdef __KERNEL__
 /**
  * definition of sequencer event types
  */
@@ -473,6 +474,8 @@ struct sndrv_seq_event_bounce {
 
 /* queue sync port */
 #define sndrv_seq_queue_sync_port(q)	((q) + 16)
+
+#endif /* __KERNEL__ */
 
 	/* system information */
 struct sndrv_seq_system_info {
