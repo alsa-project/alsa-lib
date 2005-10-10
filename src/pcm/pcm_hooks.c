@@ -79,7 +79,7 @@ static int snd_pcm_hooks_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
 	struct list_head *pos, *next;
-	int err = snd_pcm_hw_params(h->gen.slave, params);
+	int err = snd_pcm_generic_hw_params(pcm, params);
 	if (err < 0)
 		return err;
 	list_for_each_safe(pos, next, &h->hooks[SND_PCM_HOOK_TYPE_HW_PARAMS]) {
@@ -95,7 +95,7 @@ static int snd_pcm_hooks_hw_free(snd_pcm_t *pcm)
 {
 	snd_pcm_hooks_t *h = pcm->private_data;
 	struct list_head *pos, *next;
-	int err = snd_pcm_hw_free(h->gen.slave);
+	int err = snd_pcm_generic_hw_free(pcm);
 	if (err < 0)
 		return err;
 	list_for_each_safe(pos, next, &h->hooks[SND_PCM_HOOK_TYPE_HW_FREE]) {
@@ -198,6 +198,7 @@ int snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int
 	pcm->private_data = h;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
+	pcm->mmap_shadow = 1;
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
