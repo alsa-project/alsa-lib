@@ -39,6 +39,8 @@
 #include "asoundlib.h"
 #include "mixer_simple.h"
 
+#ifndef DOC_HIDDEN
+
 #define SO_PATH PKGLIBDIR "/smixer"
 
 typedef struct _class_priv {
@@ -53,6 +55,8 @@ typedef struct _class_priv {
 } class_priv_t;
 
 typedef int (*snd_mixer_sbasic_init_t)(snd_mixer_class_t *class);
+
+#endif /* !DOC_HIDDEN */
 
 static int try_open(snd_mixer_class_t *class, const char *lib)
 {
@@ -324,9 +328,9 @@ void snd_mixer_sbasic_set_private(const snd_mixer_class_t *class, void *private_
 }
 
 /**
- * \brief Set private data for basic abstraction
+ * \brief Set private data free callback for basic abstraction
  * \param class Mixer class
- * \param private_data Private data
+ * \param private_free free callback for private data
  */
 void snd_mixer_sbasic_set_private_free(const snd_mixer_class_t *class, void (*private_free)(snd_mixer_class_t *class))
 {

@@ -214,7 +214,7 @@ int snd_mixer_attach(snd_mixer_t *mixer, const char *name)
 /**
  * \brief Attach an HCTL to an opened mixer
  * \param mixer Mixer handle
- * \param name HCTL name (see #snd_hctl_open)
+ * \param hctl the HCTL to be attached
  * \return 0 on success otherwise a negative error code
  */
 int snd_mixer_attach_hctl(snd_mixer_t *mixer, snd_hctl_t *hctl)
@@ -645,7 +645,6 @@ static int mixer_compare(const void *a, const void *b)
 	return mixer->compare(*(const snd_mixer_elem_t * const *)a, *(const snd_mixer_elem_t * const *)b);
 }
 
-typedef int (*qsort_func)(const void *, const void *);
 static int snd_mixer_sort(snd_mixer_t *mixer)
 {
 	unsigned int k;
@@ -856,8 +855,8 @@ int snd_mixer_handle_events(snd_mixer_t *mixer)
 
 /**
  * \brief Set callback function for a mixer
- * \param mixer mixer handle
- * \param callback callback function
+ * \param obj mixer handle
+ * \param val callback function
  */
 void snd_mixer_set_callback(snd_mixer_t *obj, snd_mixer_callback_t val)
 {
@@ -868,7 +867,7 @@ void snd_mixer_set_callback(snd_mixer_t *obj, snd_mixer_callback_t val)
 /**
  * \brief Set callback private value for a mixer
  * \param mixer mixer handle
- * \param callback_private callback private value
+ * \param val callback private value
  */
 void snd_mixer_set_callback_private(snd_mixer_t *mixer, void * val)
 {
@@ -968,7 +967,7 @@ int snd_mixer_class_malloc(snd_mixer_class_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_mixer_class_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_mixer_class_free(snd_mixer_class_t *obj)
 {
@@ -1075,6 +1074,7 @@ int snd_mixer_class_set_private_free(snd_mixer_class_t *obj, void (*private_free
 /**
  * \brief Set mixer compare callback to given mixer class
  * \param obj Mixer simple class identifier
+ * \param compare the compare callback to be used
  * \return zero if success, otherwise a negative error code
  */
 int snd_mixer_class_set_compare(snd_mixer_class_t *obj, snd_mixer_compare_t compare)

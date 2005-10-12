@@ -79,6 +79,8 @@ int snd_mixer_selem_register(snd_mixer_t *mixer,
 	return -ENXIO;
 }
 
+#ifndef DOC_HIDDEN
+
 #define CHECK_BASIC(xelem) \
 { \
 	assert(xelem); \
@@ -107,6 +109,8 @@ int snd_mixer_selem_register(snd_mixer_t *mixer,
 
 #define COND_CAPS(xelem, what) \
 	!!(((sm_selem_t *)(elem)->private_data)->caps & (what))
+
+#endif /* !DOC_HIDDEN */
 
 #ifndef DOC_HIDDEN
 int snd_mixer_selem_compare(const snd_mixer_elem_t *c1, const snd_mixer_elem_t *c2)
@@ -931,7 +935,7 @@ int snd_mixer_selem_id_malloc(snd_mixer_selem_id_t **ptr)
 
 /**
  * \brief frees a previously allocated #snd_mixer_selem_id_t
- * \param pointer to object to free
+ * \param obj pointer to object to free
  */
 void snd_mixer_selem_id_free(snd_mixer_selem_id_t *obj)
 {

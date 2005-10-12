@@ -364,7 +364,7 @@ Several built-in functions are available.</P>
 
 <P>A function is defined with the id \c \@func and the function name. All other
 values in the current compound are used as configuration for the function.
-If the compound func.<function_name> is defined in the root node, then the
+If the compound func.\<function_name\> is defined in the root node, then the
 library and function from this compound configuration are used, otherwise
 'snd_func_' is prefixed to the string and code from the ALSA library is used.
 The definition of a function looks like:</P> 
