@@ -102,6 +102,7 @@ static void snd_pcm_file_add_frames(snd_pcm_t *pcm,
 				   areas, offset,
 				   pcm->channels, n, pcm->format);
 		frames -= n;
+		offset += n;
 		file->appl_ptr += n;
 		if (file->appl_ptr == file->wbuf_size)
 			file->appl_ptr = 0;
@@ -168,6 +169,7 @@ static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 		frames = snd_pcm_bytes_to_frames(pcm, file->wbuf_used_bytes);
 	err = snd_pcm_rewind(file->gen.slave, frames);
 	if (err > 0) {
+		file->appl_ptr = (file->appl_ptr - err + file->wbuf_size) % file->wbuf_size;
 		n = snd_pcm_frames_to_bytes(pcm, err);
 		file->wbuf_used_bytes -= n;
 	}
@@ -185,6 +187,7 @@ static snd_pcm_sframes_t snd_pcm_file_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 		frames = snd_pcm_bytes_to_frames(pcm, file->wbuf_size_bytes - file->wbuf_used_bytes);
 	err = INTERNAL(snd_pcm_forward)(file->gen.slave, frames);
 	if (err > 0) {
+		file->appl_ptr = (file->appl_ptr + err) % file->wbuf_size;
 		snd_pcm_uframes_t n = snd_pcm_frames_to_bytes(pcm, err);
 		file->wbuf_used_bytes += n;
 	}
@@ -281,6 +284,7 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	file->buffer_bytes = snd_pcm_frames_to_bytes(slave, slave->buffer_size);
 	file->wbuf_size = slave->buffer_size * 2;
 	file->wbuf_size_bytes = snd_pcm_frames_to_bytes(slave, file->wbuf_size);
+	file->wbuf_used_bytes = 0;
 	assert(!file->wbuf);
 	file->wbuf = malloc(file->wbuf_size_bytes);
 	if (file->wbuf == NULL) {
