@@ -121,7 +121,7 @@ int snd_pcm_generic_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *info)
 		return snd_pcm_channel_info(generic->slave, info);
 	} else {
 		/* Allocate own buffer */
-		return snd_pcm_channel_info_shm(generic->slave, info, -1);
+		return snd_pcm_channel_info_shm(pcm, info, -1);
 	}
 }
 
