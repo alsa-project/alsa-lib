@@ -517,7 +517,7 @@ static void snd_pcm_dshare_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
 
-	snd_output_printf(out, "Direct Stream Mixing PCM\n");
+	snd_output_printf(out, "Direct Share PCM\n");
 	if (pcm->setup) {
 		snd_output_printf(out, "\nIts setup is:\n");
 		snd_pcm_dump_setup(pcm, out);

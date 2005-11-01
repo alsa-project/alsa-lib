@@ -413,7 +413,7 @@ static void snd_pcm_dsnoop_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 
-	snd_output_printf(out, "Direct Stream Mixing PCM\n");
+	snd_output_printf(out, "Direct Snoop PCM\n");
 	if (pcm->setup) {
 		snd_output_printf(out, "\nIts setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
