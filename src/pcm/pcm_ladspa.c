@@ -29,6 +29,7 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <wordexp.h>
+#include <locale.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
@@ -726,8 +727,28 @@ static int snd_pcm_ladspa_check_file(snd_pcm_ladspa_plugin_t * const plugin,
 			long idx;
 			const LADSPA_Descriptor *d;
 			for (idx = 0; (d = fcn(idx)) != NULL; idx++) {
+/*
+ * avoid locale problems - see ALSA bug#1553
+ */
+#if 0
 				if (strcmp(label, d->Label))
 					continue;
+#else
+                                char *labellocale;
+                                struct lconv *lc;
+                                lc = localeconv ();
+                                labellocale = malloc (strlen (label) + 1);
+                                if (labellocale == NULL)
+                                        return -ENOMEM;
+                                strcpy (labellocale, label);
+                                if (strrchr(labellocale, '.'))
+                                        *strrchr (labellocale, '.') = *lc->decimal_point;
+                                if (strcmp(label, d->Label) && strcmp(labellocale, d->Label)) {
+                                        free(labellocale);
+                                        continue;
+                                }
+                                free (labellocale);
+#endif
 				if (ladspa_id > 0 && d->UniqueID != ladspa_id)
 					continue;
 				plugin->filename = strdup(filename);
