@@ -781,7 +781,7 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 	if (!h) {
 		SNDERR("Cannot open shared library %s", lib);
 		err = -ENOENT;
-	} if (!open_func) {
+	} else if (!open_func) {
 		SNDERR("symbol %s is not defined inside %s", open_name, lib);
 		snd_dlclose(h);
 		err = -ENXIO;
