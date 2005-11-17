@@ -116,10 +116,10 @@ static inline u_int32_t iec958_subframe(snd_pcm_iec958_t *iec, u_int32_t data, i
 		data |= 0x80000000;
 
 	/* Preamble */
-	if (! iec->counter)
-		data |= iec->preamble[PREAMBLE_Z];	/* Block start, 'Z' */
-	else if (! channel)
+	if (channel)
 		data |= iec->preamble[PREAMBLE_Y];	/* odd sub frame, 'Y' */
+	else if (! iec->counter)
+		data |= iec->preamble[PREAMBLE_Z];	/* Block start, 'Z' */
 	else
 		data |= iec->preamble[PREAMBLE_X];	/* even sub frame, 'X' */
 
