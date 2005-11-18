@@ -3808,7 +3808,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 		snd_config_t *def, *sub, *typ;
 		const char *new = str;
 		const char *tmp;
-		char *val;
+		char *val = NULL;
 		err = parse_arg(&new, &varlen, &val);
 		if (err < 0)
 			goto _err;
