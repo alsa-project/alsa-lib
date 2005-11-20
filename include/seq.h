@@ -81,8 +81,6 @@ typedef enum _snd_seq_type {
 
 /** known client numbers */
 #define SND_SEQ_CLIENT_SYSTEM		0	/**< system client */
-#define SND_SEQ_CLIENT_DUMMY		62	/**< dummy ports */
-#define SND_SEQ_CLIENT_OSS		63	/**< OSS sequencer emulator */
 
 /*
  */
