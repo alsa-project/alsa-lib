@@ -188,7 +188,7 @@ static snd_pcm_sframes_t snd_pcm_file_forward(snd_pcm_t *pcm, snd_pcm_uframes_t 
 	err = INTERNAL(snd_pcm_forward)(file->gen.slave, frames);
 	if (err > 0) {
 		file->appl_ptr = (file->appl_ptr + err) % file->wbuf_size;
-		snd_pcm_uframes_t n = snd_pcm_frames_to_bytes(pcm, err);
+		n = snd_pcm_frames_to_bytes(pcm, err);
 		file->wbuf_used_bytes += n;
 	}
 	return err;
