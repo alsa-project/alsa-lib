@@ -532,6 +532,12 @@ static int snd_pcm_dmix_drain(snd_pcm_t *pcm)
 			return 0;
 		}
 	}
+
+	if (dmix->state == SND_PCM_STATE_XRUN) {
+		snd_pcm_dmix_drop(pcm);
+		return 0;
+	}
+
 	stop_threshold = pcm->stop_threshold;
 	if (pcm->stop_threshold > pcm->buffer_size)
 		pcm->stop_threshold = pcm->buffer_size;
