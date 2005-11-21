@@ -155,9 +155,9 @@ int setparams_set(snd_pcm_t *handle,
 	}
 	tick_time_ok = 0;
 	if (tick_time > 0) {
-		int time, ttime;
+		unsigned int time, ttime;
 		snd_pcm_hw_params_get_period_time(params, &time, NULL);
-		 snd_pcm_hw_params_get_tick_time(params, &ttime, NULL);
+		snd_pcm_hw_params_get_tick_time(params, &ttime, NULL);
 		if (time < ttime) {
 			printf("Skipping to set minimal sleep: period time < tick time\n");
 		} else if (ttime <= 0) {
@@ -476,7 +476,7 @@ void help(void)
 "-e,--effect    apply an effect (bandpass filter sweep)\n"
 );
         printf("Recognized sample formats are:");
-        for (k = 0; k < SND_PCM_FORMAT_LAST; ++(unsigned long) k) {
+        for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
                 const char *s = snd_pcm_format_name(k);
                 if (s)
                         printf(" %s", s);

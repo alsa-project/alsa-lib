@@ -241,7 +241,9 @@ int decode_event(snd_seq_event_t * ev)
 	return 0;
 }
 
-void event_decoder_start_timer(snd_seq_t *handle, int queue, int client, int port)
+void event_decoder_start_timer(snd_seq_t *handle, int queue,
+			       int client ATTRIBUTE_UNUSED,
+			       int port ATTRIBUTE_UNUSED)
 {
 	int err;
 

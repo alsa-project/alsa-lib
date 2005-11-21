@@ -12,19 +12,19 @@
 #include <sys/time.h>
 #include <math.h>
 
-char *device = "plughw:0,0";			/* playback device */
-snd_pcm_format_t format = SND_PCM_FORMAT_S16;	/* sample format */
-unsigned int rate = 44100;			/* stream rate */
-unsigned int channels = 1;			/* count of channels */
-unsigned int buffer_time = 500000;		/* ring buffer length in us */
-unsigned int period_time = 100000;		/* period time in us */
-double freq = 440;				/* sinusoidal wave frequency in Hz */
-int verbose = 0;				/* verbose flag */
-int resample = 1;				/* enable alsa-lib resampling */
+static char *device = "plughw:0,0";			/* playback device */
+static snd_pcm_format_t format = SND_PCM_FORMAT_S16;	/* sample format */
+static unsigned int rate = 44100;			/* stream rate */
+static unsigned int channels = 1;			/* count of channels */
+static unsigned int buffer_time = 500000;		/* ring buffer length in us */
+static unsigned int period_time = 100000;		/* period time in us */
+static double freq = 440;				/* sinusoidal wave frequency in Hz */
+static int verbose = 0;				/* verbose flag */
+static int resample = 1;				/* enable alsa-lib resampling */
 
-snd_pcm_sframes_t buffer_size;
-snd_pcm_sframes_t period_size;
-snd_output_t *output = NULL;
+static snd_pcm_sframes_t buffer_size;
+static snd_pcm_sframes_t period_size;
+static snd_output_t *output = NULL;
 
 static void generate_sine(const snd_pcm_channel_area_t *areas, 
 			  snd_pcm_uframes_t offset,
@@ -61,7 +61,7 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 		ires = res;
 		tmp = (unsigned char *)(&ires);
 		for (chn = 0; chn < channels; chn++) {
-			for (byte = 0; byte < bps; byte++)
+			for (byte = 0; byte < (unsigned int)bps; byte++)
 				*(samples[chn] + byte) = tmp[byte];
 			samples[chn] += steps[chn];
 		}
@@ -77,6 +77,7 @@ static int set_hwparams(snd_pcm_t *handle,
 			snd_pcm_access_t access)
 {
 	unsigned int rrate;
+	snd_pcm_uframes_t size;
 	int err, dir;
 
 	/* choose all parameters */
@@ -126,22 +127,24 @@ static int set_hwparams(snd_pcm_t *handle,
 		printf("Unable to set buffer time %i for playback: %s\n", buffer_time, snd_strerror(err));
 		return err;
 	}
-	err = snd_pcm_hw_params_get_buffer_size(params, &buffer_size);
+	err = snd_pcm_hw_params_get_buffer_size(params, &size);
 	if (err < 0) {
 		printf("Unable to get buffer size for playback: %s\n", snd_strerror(err));
 		return err;
 	}
+	buffer_size = size;
 	/* set the period time */
 	err = snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, &dir);
 	if (err < 0) {
 		printf("Unable to set period time %i for playback: %s\n", period_time, snd_strerror(err));
 		return err;
 	}
-	err = snd_pcm_hw_params_get_period_size(params, &period_size, &dir);
+	err = snd_pcm_hw_params_get_period_size(params, &size, &dir);
 	if (err < 0) {
 		printf("Unable to get period size for playback: %s\n", snd_strerror(err));
 		return err;
 	}
+	period_size = size;
 	/* write the parameters to device */
 	err = snd_pcm_hw_params(handle, params);
 	if (err < 0) {
@@ -504,8 +507,8 @@ static void async_direct_callback(snd_async_handler_t *ahandler)
 }
 
 static int async_direct_loop(snd_pcm_t *handle,
-			     signed short *samples,
-			     snd_pcm_channel_area_t *areas)
+			     signed short *samples ATTRIBUTE_UNUSED,
+			     snd_pcm_channel_area_t *areas ATTRIBUTE_UNUSED)
 {
 	struct async_private_data data;
 	snd_async_handler_t *ahandler;
@@ -562,8 +565,8 @@ static int async_direct_loop(snd_pcm_t *handle,
  */
 
 static int direct_loop(snd_pcm_t *handle,
-		       signed short *samples,
-		       snd_pcm_channel_area_t *areas)
+		       signed short *samples ATTRIBUTE_UNUSED,
+		       snd_pcm_channel_area_t *areas ATTRIBUTE_UNUSED)
 {
 	double phase = 0;
 	const snd_pcm_channel_area_t *my_areas;
@@ -716,7 +719,7 @@ static void help(void)
 "-v,--verbose   show the PCM setup parameters\n"
 "\n");
         printf("Recognized sample formats are:");
-        for (k = 0; k < SND_PCM_FORMAT_LAST; ++(unsigned long) k) {
+        for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
                 const char *s = snd_pcm_format_name(k);
                 if (s)
                         printf(" %s", s);

@@ -33,7 +33,7 @@
 
 typedef void (myfcn)(void *);
 
-int main(int argc, char *argv[])
+int main(int argc ATTRIBUTE_UNUSED, char *argv[] ATTRIBUTE_UNUSED)
 {
 	myfcn *fcn;
 	snd_pcm_hw_params_get_access(NULL);

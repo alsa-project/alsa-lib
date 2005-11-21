@@ -65,7 +65,10 @@ void set_hwparams(snd_pcm_t *phandle)
  *  Simple event sender
  */
 
-void event_sender_start_timer(snd_seq_t *handle, int client, int queue, snd_pcm_t *phandle)
+void event_sender_start_timer(snd_seq_t *handle,
+			      int client ATTRIBUTE_UNUSED,
+			      int queue,
+			      snd_pcm_t *phandle ATTRIBUTE_UNUSED)
 {
 	int err;
 	

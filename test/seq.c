@@ -49,7 +49,7 @@ void system_info(snd_seq_t *handle)
 	max_queues = snd_seq_system_info_get_ports(sysinfo);
 }
 
-void show_system_info(snd_seq_t *handle)
+void show_system_info(snd_seq_t *handle ATTRIBUTE_UNUSED)
 {
 	printf("System info\n");
 	printf("  Max queues    : %i\n", max_queues);

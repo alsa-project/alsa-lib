@@ -979,7 +979,7 @@ mf_write_midi_event (delta_time, type, chan, data, size)
     WriteVarLen (size);
 
   /* write out the data bytes */
-  for (i = 0; i < size; i++)
+  for (i = 0; i < (int)size; i++)
     eputc (data[i]);
 
   return (size);
@@ -1018,7 +1018,7 @@ mf_write_meta_event (delta_time, type, data, size)
   /* The length of the data bytes to follow */
   WriteVarLen (size);
 
-  for (i = 0; i < size; i++)
+  for (i = 0; i < (int)size; i++)
     {
       if (eputc (data[i]) != data[i])
 	return (-1);

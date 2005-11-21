@@ -94,10 +94,12 @@ void mix_areas_srv(unsigned int size,
 		   volatile s32 *sum,
 		   unsigned int src_step, unsigned int sum_step)
 {
+	src_step /= sizeof(*src);
+	sum_step /= sizeof(*sum);
         while (size-- > 0) {
                 atomic_add(sum, *src);
-                ((char*)src) += src_step;
-                ((char*)sum) += sum_step;
+                src += src_step;
+                sum += sum_step;
         }
 }
 
@@ -105,6 +107,8 @@ void saturate(unsigned int size,
               s16 *dst, const s32 *sum,
               unsigned int dst_step, unsigned int sum_step)
 {
+	dst_step /= sizeof(*dst);
+	sum_step /= sizeof(*sum);
         while (size-- > 0) {
                 s32 sample = *sum;
                 if (unlikely(sample < -0x8000))
@@ -113,8 +117,8 @@ void saturate(unsigned int size,
                         *dst = 0x7fff;
                 else
                         *dst = sample;
-                ((char*)dst) += dst_step;
-                ((char*)sum) += sum_step;
+                dst += dst_step;
+                sum += sum_step;
         }
 }
 
@@ -125,6 +129,9 @@ void mix_areas0(unsigned int size,
 		unsigned int src_step,
 		unsigned int sum_step)
 {
+	dst_step /= sizeof(*dst);
+	src_step /= sizeof(*src);
+	sum_step /= sizeof(*sum);
 	while (size-- > 0) {
 		s32 sample = *dst + *src;
 		if (unlikely(sample < -0x8000))
@@ -133,9 +140,9 @@ void mix_areas0(unsigned int size,
 			*dst = 0x7fff;
 		else
 			*dst = sample;
-		((char *)dst) += dst_step;
-		((char *)src) += src_step;
-		((char *)sum) += sum_step;
+		dst += dst_step;
+		src += src_step;
+		sum += sum_step;
 	}
 }
 
@@ -151,6 +158,8 @@ void mix_areas2(unsigned int size,
 		unsigned int dst_step,
 		unsigned int src_step)
 {
+	dst_step /= sizeof(*dst);
+	src_step /= sizeof(*src);
 	while (size-- > 0) {
 		s32 sample = *src;
 		s32 old_sample = *sum;
@@ -167,8 +176,8 @@ void mix_areas2(unsigned int size,
 				*dst = sample;
 		} while (unlikely(sample != *sum));
 		sum++;
-		((char *)dst) += dst_step;
-		((char *)src) += src_step;
+		dst += dst_step;
+		src += src_step;
 	}
 }
 
