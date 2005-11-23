@@ -620,7 +620,7 @@ int _snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name,
 	}
 	if (preamble) {
 		snd_config_iterator_t i, inext;
-		snd_config_for_each(i, inext, status) {
+		snd_config_for_each(i, inext, preamble) {
 			long val;
 			snd_config_t *n = snd_config_iterator_entry(i);
 			const char *id;
