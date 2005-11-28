@@ -415,7 +415,6 @@ beginning:</P>
 
 
 #include <stdarg.h>
-#include <wordexp.h>
 #include <dlfcn.h>
 #include <limits.h>
 #include <sys/stat.h>
