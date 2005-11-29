@@ -18,6 +18,9 @@
  *
  */
   
+#include <config.h>
+
+#ifdef HAVE_WORDEXP_H
 #include <string.h>
 #include <errno.h>
 #include <wordexp.h>
@@ -56,3 +59,14 @@ int snd_user_file(const char *file, char **result)
 	wordfree(&we);
 	return 0;
 }
+
+#else /* !HAVE_WORDEXP_H */
+/* just copy the string - would be nicer to expand by ourselves, though... */
+int snd_user_file(const char *file, char **result)
+{
+	*result = strdup(file);
+	if (! *result)
+		return -ENOMEM;
+	return 0;
+}
+#endif /* HAVE_WORDEXP_H */
