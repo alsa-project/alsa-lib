@@ -28,7 +28,6 @@
   
 #include <dirent.h>
 #include <dlfcn.h>
-#include <wordexp.h>
 #include <locale.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
@@ -815,26 +814,18 @@ static int snd_pcm_ladspa_look_for_plugin(snd_pcm_ladspa_plugin_t * const plugin
 {
 	const char *c;
 	size_t l;
-	wordexp_t we;
 	int err;
 	
 	for (c = path; (l = strcspn(c, ": ")) > 0; ) {
 		char name[l + 1];
+		char *fullpath;
 		memcpy(name, c, l);
 		name[l] = 0;
-		err = wordexp(name, &we, WRDE_NOCMD);
-		switch (err) {
-		case WRDE_NOSPACE:
-			return -ENOMEM;
-		case 0:
-			if (we.we_wordc == 1)
-				break;
-			/* Fall through */
-		default:
-			return -EINVAL;
-		}
-		err = snd_pcm_ladspa_check_dir(plugin, we.we_wordv[0], label, ladspa_id);
-		wordfree(&we);
+		err = snd_user_file(name, &fullpath);
+		if (err < 0)
+			return err;
+		err = snd_pcm_ladspa_check_dir(plugin, fullpath, label, ladspa_id);
+		free(fullpath);
 		if (err < 0)
 			return err;
 		if (err > 0)
