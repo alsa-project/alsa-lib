@@ -2,8 +2,8 @@
 			ALSA library installation
 			=========================
 
-Installation from tarbal
-------------------------
+Installation from tarball
+-------------------------
 
 For installation you can use these commands:
 
@@ -44,18 +44,45 @@ options for the configure script:
 Unfortunately, due to bug in the libtool script, the shared and static
 library cannot be built together.
 
+
+Partial Builds
+--------------
+
+You can choose the core components to build via --enable-* or --disable-*
+configure option for reducing the size of libasound.  The selectable
+components are: pcm, mixer, rawmidi, hwdep, seq and instr.
+For example, --disable-rawmidi will prevent to build the stuff related
+with raw MIDI.  As default, all components are enabled.
+
+The PCM plugins to build can be selected via --with-pcm-plugins
+configure option.  Multiple plugins can be passed by separation with
+comma.  For example, to select _only_ rate and linear plugins (and
+disable other plugins), pass
+	--with-pcm-plugins=rate,linear
+Note that "hw" plugin is always enabled.
+Passing "all" will select all available plugins (which is the default
+behavior).
+
+When you select "plug" plugin, copy and linear plugins will be
+automatically selected, too.  That is, the linear-format and
+access-type conversions are always available with plug layer.
+The other conversions of plug (channel shrink/expansion, rate,
+non-linear and float conversions) are enabled when the corresponding
+plugin is selected, too.
+
+
 Configuration for cross-compilation
 -----------------------------------
 
 When you would like to cross-compile ALSA library (e.g. compile on
 i686 host but for arm architecture) you will need to call ./configure
-script with aditional parameters:
+script with additional parameters:
 
 CC=arm-linux-gcc ./configure --target=arm-linux
 
 In this example host where the library is build is guessed (should be
 given with --host=platform) and target for which is the library build is
-Linux on ARM architecture.  You should ommit setting 'CC' variable and
+Linux on ARM architecture.  You should omit setting 'CC' variable and
 cross-compiler will be guessed too.
 
 So simplest version would be:
