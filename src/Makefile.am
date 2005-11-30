@@ -1,4 +1,3 @@
-SUBDIRS=control mixer pcm rawmidi timer hwdep seq instr compat conf alisp
 EXTRA_DIST=Versions
 COMPATNUM=@LIBTOOL_VERSION_INFO@
 
@@ -10,12 +9,35 @@ endif
 
 lib_LTLIBRARIES = libasound.la
 libasound_la_SOURCES = conf.c confmisc.c input.c output.c async.c error.c dlmisc.c socket.c shmarea.c userfile.c names.c
-libasound_la_LIBADD = control/libcontrol.la \
-		      mixer/libmixer.la \
-		      pcm/libpcm.la \
-                      rawmidi/librawmidi.la timer/libtimer.la \
-		      hwdep/libhwdep.la seq/libseq.la instr/libinstr.la \
-		      compat/libcompat.la alisp/libalisp.la -lm -ldl -lpthread
+
+SUBDIRS=control
+libasound_la_LIBADD = control/libcontrol.la
+if BUILD_MIXER
+SUBDIRS += mixer
+libasound_la_LIBADD += mixer/libmixer.la
+endif
+if BUILD_PCM
+SUBDIRS += pcm timer
+libasound_la_LIBADD += pcm/libpcm.la timer/libtimer.la
+endif
+if BUILD_RAWMIDI
+SUBDIRS += rawmidi
+libasound_la_LIBADD += rawmidi/librawmidi.la
+endif
+if BUILD_HWDEP
+SUBDIRS += hwdep
+libasound_la_LIBADD += hwdep/libhwdep.la
+endif
+if BUILD_SEQ
+SUBDIRS += seq
+libasound_la_LIBADD += seq/libseq.la
+endif
+if BUILD_INSTR
+SUBDIRS += instr
+libasound_la_LIBADD += instr/libinstr.la
+endif
+SUBDIRS += compat conf alisp
+libasound_la_LIBADD += compat/libcompat.la alisp/libalisp.la -lm -ldl -lpthread
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
 AM_LDFLAGS = $(VSYMS)

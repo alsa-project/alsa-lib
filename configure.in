@@ -196,6 +196,146 @@ if test "$aload" = "yes"; then
   AC_DEFINE(SUPPORT_ALOAD, "1", [Support /dev/aload* access for auto-loading])
 fi
 
+dnl Build conditions
+AC_ARG_ENABLE(mixer,
+  [  --disable-mixer     Disable the mixer component],
+  [build_mixer="$enableval"], [build_mixer="yes"])
+AC_ARG_ENABLE(pcm,
+  [  --disable-pcm       Disable the PCM component],
+  [build_pcm="$enableval"], [build_pcm="yes"])
+AC_ARG_ENABLE(rawmidi,
+  [  --disable-rawmidi   Disable the raw MIDI component],
+  [build_rawmidi="$enableval"], [build_rawmidi="yes"])
+AC_ARG_ENABLE(hwdep,
+  [  --disable-hwdep     Disable the hwdep component],
+  [build_hwdep="$enableval"], [build_hwdep="yes"])
+AC_ARG_ENABLE(seq,
+  [  --disable-seq       Disable the sequencer component],
+  [build_seq="$enableval"], [build_seq="yes"])
+AC_ARG_ENABLE(instr,
+  [  --disable-instr     Disable the instrument component],
+  [build_instr="$enableval"], [build_instr="yes"])
+
+if test "$build_seq" != "yes"; then
+  build_instr="no"
+fi
+
+AM_CONDITIONAL(BUILD_MIXER, test x$build_mixer = xyes)
+AM_CONDITIONAL(BUILD_PCM, test x$build_pcm = xyes)
+AM_CONDITIONAL(BUILD_RAWMIDI, test x$build_rawmidi = xyes)
+AM_CONDITIONAL(BUILD_HWDEP, test x$build_hwdep = xyes)
+AM_CONDITIONAL(BUILD_SEQ, test x$build_seq = xyes)
+AM_CONDITIONAL(BUILD_INSTR, test x$build_instr = xyes)
+
+if test "$build_mixer" = "yes"; then
+  AC_DEFINE([BUILD_MIXER], "1", [Build mixer component])
+fi
+if test "$build_pcm" = "yes"; then
+  AC_DEFINE([BUILD_PCM], "1", [Build PCM component])
+fi
+if test "$build_rawmidi" = "yes"; then
+  AC_DEFINE([BUILD_RAWMIDI], "1", [Build raw MIDI component])
+fi
+if test "$build_seq" = "yes"; then
+  AC_DEFINE([BUILD_SEQ], "1", [Build sequencer component])
+fi
+if test "$build_instr" = "yes"; then
+  AC_DEFINE([BUILD_INSTR], "1", [Build instrument component])
+fi
+
+dnl PCM Plugins
+
+if test "$build_pcm" = "yes"; then
+AC_ARG_WITH(pcm-plugins,
+  [  --with-pcm-plugins=<list>  Build PCM plugins ],
+  [pcm_plugins="$withval"], [pcm_plugins="all"])
+else
+pcm_plugins=""
+fi
+
+PCM_PLUGIN_LIST="copy linear route mulaw alaw adpcm rate plug multi shm file null share meter hooks lfloat ladspa dmix dshare dsnoop asym iec958 softvol extplug ioplug"
+
+build_pcm_plugin="no"
+for t in $PCM_PLUGIN_LIST; do
+  eval build_pcm_$t="no"
+done
+
+pcm_plugins=`echo $pcm_plugins | sed 's/,/ /g'`
+for p in $pcm_plugins; do
+  for t in $PCM_PLUGIN_LIST; do
+    if test "$p" = "$t" -o "$p" = "all"; then
+      eval build_pcm_$t="yes"
+      build_pcm_plugin="yes"
+    fi
+  done
+done
+
+dnl special dependencies
+if test "$build_pcm_plug" = "yes"; then
+  build_pcm_linear="yes"
+  build_pcm_copy="yes"
+fi
+
+if test "$build_pcm_ioplug" = "yes"; then
+  build_pcm_extplug="yes"
+fi
+
+AM_CONDITIONAL(BUILD_PCM_PLUGIN, test x$build_pcm_plugin = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_COPY, test x$build_pcm_copy = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_LINEAR, test x$build_pcm_linear = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_ROUTE, test x$build_pcm_route = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_MULAW, test x$build_pcm_mulaw = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_ALAW, test x$build_pcm_alaw = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_ADPCM, test x$build_pcm_adpcm = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_RATE, test x$build_pcm_rate = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_PLUG, test x$build_pcm_plug = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_MULTI, test x$build_pcm_multi = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_SHM, test x$build_pcm_shm = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_FILE, test x$build_pcm_file = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_NULL, test x$build_pcm_null = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_SHARE, test x$build_pcm_share = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_METER, test x$build_pcm_meter = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_HOOKS, test x$build_pcm_hooks = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_LFLOAT, test x$build_pcm_lfloat = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_LADSPA, test x$build_pcm_ladspa = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_DMIX, test x$build_pcm_dmix = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_DSHARE, test x$build_pcm_dshare = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_DSNOOP, test x$build_pcm_dsnoop = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_ASYM, test x$build_pcm_asym = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_IEC958, test x$build_pcm_iec958 = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_SOFTVOL, test x$build_pcm_softvol = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_EXTPLUG, test x$build_pcm_extplug = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_IOPLUG, test x$build_pcm_ioplug = xyes)
+
+dnl Defines for plug plugin
+if test "$build_pcm_rate" = "yes"; then
+  AC_DEFINE([BUILD_PCM_PLUGIN_RATE], "1", [Build PCM rate plugin])
+fi
+if test "$build_pcm_route" = "yes"; then
+  AC_DEFINE([BUILD_PCM_PLUGIN_ROUTE], "1", [Build PCM route plugin])
+fi
+if test "$build_pcm_lfloat" = "yes"; then
+  AC_DEFINE([BUILD_PCM_PLUGIN_LFLOAT], "1", [Build PCM lfloat plugin])
+fi
+if test "$build_pcm_adpcm" = "yes"; then
+  AC_DEFINE([BUILD_PCM_PLUGIN_ADPCM], "1", [Build PCM adpcm plugin])
+fi
+if test "$build_pcm_mulaw" = "yes"; then
+  AC_DEFINE([BUILD_PCM_PLUGIN_MULAW], "1", [Build PCM mulaw plugin])
+fi
+if test "$build_pcm_alaw" = "yes"; then
+  AC_DEFINE([BUILD_PCM_PLUGIN_ALAW], "1", [Build PCM alaw plugin])
+fi
+
+
+dnl Create PCM plugin symbol list for static library
+rm -f src/pcm/pcm_symbols_list.c
+for t in $PCM_PLUGIN_LIST; do
+  if eval test \$build_pcm_$t = yes; then
+    echo \&_snd_module_pcm_$t, >> src/pcm/pcm_symbols_list.c
+  fi
+done
+
 dnl Make a symlink for inclusion of alsa/xxx.h
 if test ! -L include/alsa ; then
   echo "Making a symlink include/alsa"

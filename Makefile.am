@@ -1,4 +1,11 @@
-SUBDIRS=doc include src modules aserver alsalisp test utils
+SUBDIRS=doc include src modules
+if BUILD_PCM_PLUGIN_SHM
+SUBDIRS += aserver
+endif
+if BUILD_MIXER
+SUBDIRS += alsalisp
+endif
+SUBDIRS += test utils
 EXTRA_DIST=ChangeLog INSTALL TODO NOTES configure cvscompile libtool depcomp version MEMORY-LEAK
 AUTOMAKE_OPTIONS=foreign
 
