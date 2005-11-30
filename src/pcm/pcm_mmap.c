@@ -421,27 +421,27 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 			default:
 				assert(0);
 			}
-		}
-		for (c1 = c + 1; c1 < pcm->channels; ++c1) {
-			snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
-			if (i1->type != i->type)
-				continue;
-			switch (i1->type) {
-			case SND_PCM_AREA_MMAP:
-				if (i1->u.mmap.fd != i->u.mmap.fd ||
-				    i1->u.mmap.offset != i->u.mmap.offset)
+			for (c1 = c + 1; c1 < pcm->channels; ++c1) {
+				snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
+				if (i1->type != i->type)
 					continue;
-				break;
-			case SND_PCM_AREA_SHM:
-				if (i1->u.shm.shmid != i->u.shm.shmid)
-					continue;
-				break;
-			case SND_PCM_AREA_LOCAL:
-				break;
-			default:
-				assert(0);
+				switch (i1->type) {
+				case SND_PCM_AREA_MMAP:
+					if (i1->u.mmap.fd != i->u.mmap.fd ||
+					    i1->u.mmap.offset != i->u.mmap.offset)
+						continue;
+					break;
+				case SND_PCM_AREA_SHM:
+					if (i1->u.shm.shmid != i->u.shm.shmid)
+						continue;
+					break;
+				case SND_PCM_AREA_LOCAL:
+					break;
+				default:
+					assert(0);
+				}
+				i1->addr = i->addr;
 			}
-			i1->addr = i->addr;
 		}
 		a->addr = i->addr;
 		a->first = i->first;
