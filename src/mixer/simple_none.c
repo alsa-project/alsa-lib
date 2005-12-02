@@ -768,7 +768,9 @@ static int simple_update(snd_mixer_elem_t *melem)
 	if (cchannels > 1) {
 		if (simple->ctls[CTL_CAPTURE_ROUTE].elem ||
 		    (simple->ctls[CTL_CAPTURE_SWITCH].elem &&
-		     simple->ctls[CTL_CAPTURE_SWITCH].values > 1)) {
+		     simple->ctls[CTL_CAPTURE_SWITCH].values > 1) ||
+		    (simple->ctls[CTL_CAPTURE_SOURCE].elem &&
+		     simple->ctls[CTL_CAPTURE_SOURCE].values > 1)) {
 			caps &= ~SM_CAP_CSWITCH_JOIN;
 		}
 		if (simple->ctls[CTL_CAPTURE_VOLUME].elem &&
