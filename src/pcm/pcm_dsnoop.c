@@ -767,7 +767,7 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 				}
 				ipc_gid = grp->gr_gid;
 			} else {
-				ipc_perm = strtol(group, &endp, 10);
+				ipc_gid = strtol(group, &endp, 10);
 			}
 			free(group);
 			continue;
