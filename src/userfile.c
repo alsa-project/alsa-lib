@@ -19,10 +19,10 @@
  */
   
 #include <config.h>
-
-#ifdef HAVE_WORDEXP_H
 #include <string.h>
 #include <errno.h>
+
+#ifdef HAVE_WORDEXP_H
 #include <wordexp.h>
 #include <assert.h>
 
