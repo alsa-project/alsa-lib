@@ -655,28 +655,35 @@ static void snd_pcm_ladspa_dump_direction(snd_pcm_ladspa_plugin_io_t *io, snd_ou
 
 	if (io->port_bindings_size == 0)
 		goto __control;
-	snd_output_printf(out, "Audio %s port bindings:", io->pdesc == LADSPA_PORT_INPUT ? "input" : "output");
+	snd_output_printf(out, "    Audio %s port bindings:\n", io->pdesc == LADSPA_PORT_INPUT ? "input" : "output");
 	for (idx = 0; idx < io->port_bindings_size; idx++) {
-		if (io->port_bindings[idx] != NO_ASSIGN) 
-			continue;
-		snd_output_printf(out, " %i -> %i", idx, io->port_bindings[idx]);
+		if (io->port_bindings[idx] == NO_ASSIGN) 
+			snd_output_printf(out, "      %i -> NONE\n", idx);
+                else
+        		snd_output_printf(out, "      %i -> %i\n", idx, io->port_bindings[idx]);
 	}
-	snd_output_printf(out, "\n");
       __control:
       	if (io->controls_size == 0)
       		return;
-	snd_output_printf(out, "Control %s port initial values:", io->pdesc == LADSPA_PORT_INPUT ? "input" : "output");
+	snd_output_printf(out, "    Control %s port initial values:\n", io->pdesc == LADSPA_PORT_INPUT ? "input" : "output");
 	for (idx = 0; idx < io->controls_size; idx++)
-		snd_output_printf(out, " %i = %.8f", idx, io->controls[idx]);
-	snd_output_printf(out, "\n");
+		snd_output_printf(out, "      %i = %.8f\n", idx, io->controls[idx]);
 }
 
 static void snd_pcm_ladspa_plugins_dump(struct list_head *list, snd_output_t *out)
 {
-	struct list_head *pos;
+	struct list_head *pos, *pos2;
 	
 	list_for_each(pos, list) {
 		snd_pcm_ladspa_plugin_t *plugin = list_entry(pos, snd_pcm_ladspa_plugin_t, list);
+		snd_output_printf(out, "    Policy: %s\n", plugin->policy == SND_PCM_LADSPA_POLICY_NONE ? "none" : "duplicate");
+		snd_output_printf(out, "    Filename: %s\n", plugin->filename);
+                snd_output_printf(out, "    Instances:\n");
+		list_for_each(pos2, &plugin->instances) {
+		        snd_pcm_ladspa_instance_t *in = (snd_pcm_ladspa_instance_t *) pos2;
+		        snd_output_printf(out, "      Depth: %i, Channel: %i, Input: %i, Output: %i\n",
+		                          in->depth, in->channel, in->in_port, in->out_port);
+		}
 		snd_pcm_ladspa_dump_direction(&plugin->input, out);
 		snd_pcm_ladspa_dump_direction(&plugin->output, out);
 	}
@@ -685,8 +692,21 @@ static void snd_pcm_ladspa_plugins_dump(struct list_head *list, snd_output_t *ou
 static void snd_pcm_ladspa_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_ladspa_t *ladspa = pcm->private_data;
+
 	snd_output_printf(out, "LADSPA PCM\n");
+	snd_output_printf(out, "  Instances setup:\n");
+	snd_output_printf(out, "    Channels: %i\n", ladspa->instances_channels);
+	if (ladspa->finstances) {
+	        unsigned int idx;
+	        for (idx = 0; idx < ladspa->instances_channels; idx++) {
+	                snd_pcm_ladspa_instance_t *in = ladspa->finstances[idx];
+	                snd_output_printf(out, "    Instance %i, Depth: %i, Channel: %i\n",
+	                                 idx, in->depth, in->channel);
+                }
+	}
+	snd_output_printf(out, "  Playback:\n");
 	snd_pcm_ladspa_plugins_dump(&ladspa->pplugins, out);
+	snd_output_printf(out, "  Capture:\n");
 	snd_pcm_ladspa_plugins_dump(&ladspa->cplugins, out);
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
