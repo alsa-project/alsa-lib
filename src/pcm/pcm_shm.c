@@ -569,7 +569,7 @@ static void snd_pcm_shm_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_output_printf(out, "Shm PCM\n");
 	if (pcm->setup) {
-		snd_output_printf(out, "\nIts setup is:\n");
+		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
 	}
 }

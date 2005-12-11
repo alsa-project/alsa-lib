@@ -3,7 +3,7 @@
  * \ingroup PCM_Plugins
  * \brief ALSA Plugin <-> LADSPA Plugin Interface
  * \author Jaroslav Kysela <perex@suse.cz>
- * \date 2001
+ * \date 2001,2005
  */
 /*
  *  PCM - LADSPA integration plugin
@@ -58,11 +58,6 @@ typedef struct {
 	unsigned int instances_channels;
 	snd_pcm_ladspa_instance_t **finstances;
 } snd_pcm_ladspa_t;
-
-typedef struct {
-	struct list_head list;
-	LADSPA_Handle *handle;
-} snd_pcm_ladspa_subinstance_t;
 
 struct snd_pcm_ladspa_instance {
 	struct list_head list;

@@ -1734,18 +1734,18 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-        snd_output_printf(out, "stream       : %s\n", snd_pcm_stream_name(pcm->stream));
-	snd_output_printf(out, "access       : %s\n", snd_pcm_access_name(pcm->access));
-	snd_output_printf(out, "format       : %s\n", snd_pcm_format_name(pcm->format));
-	snd_output_printf(out, "subformat    : %s\n", snd_pcm_subformat_name(pcm->subformat));
-	snd_output_printf(out, "channels     : %u\n", pcm->channels);
-	snd_output_printf(out, "rate         : %u\n", pcm->rate);
-	snd_output_printf(out, "exact rate   : %g (%u/%u)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
-	snd_output_printf(out, "msbits       : %u\n", pcm->msbits);
-	snd_output_printf(out, "buffer_size  : %lu\n", pcm->buffer_size);
-	snd_output_printf(out, "period_size  : %lu\n", pcm->period_size);
-	snd_output_printf(out, "period_time  : %u\n", pcm->period_time);
-	snd_output_printf(out, "tick_time    : %u\n", pcm->tick_time);
+        snd_output_printf(out, "  stream       : %s\n", snd_pcm_stream_name(pcm->stream));
+	snd_output_printf(out, "  access       : %s\n", snd_pcm_access_name(pcm->access));
+	snd_output_printf(out, "  format       : %s\n", snd_pcm_format_name(pcm->format));
+	snd_output_printf(out, "  subformat    : %s\n", snd_pcm_subformat_name(pcm->subformat));
+	snd_output_printf(out, "  channels     : %u\n", pcm->channels);
+	snd_output_printf(out, "  rate         : %u\n", pcm->rate);
+	snd_output_printf(out, "  exact rate   : %g (%u/%u)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
+	snd_output_printf(out, "  msbits       : %u\n", pcm->msbits);
+	snd_output_printf(out, "  buffer_size  : %lu\n", pcm->buffer_size);
+	snd_output_printf(out, "  period_size  : %lu\n", pcm->period_size);
+	snd_output_printf(out, "  period_time  : %u\n", pcm->period_time);
+	snd_output_printf(out, "  tick_time    : %u\n", pcm->tick_time);
 	return 0;
 }
 
@@ -1763,16 +1763,16 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 		SNDMSG("PCM not set up");
 		return -EIO;
 	}
-	snd_output_printf(out, "tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
-	snd_output_printf(out, "period_step  : %d\n", pcm->period_step);
-	snd_output_printf(out, "sleep_min    : %d\n", pcm->sleep_min);
-	snd_output_printf(out, "avail_min    : %ld\n", pcm->avail_min);
-	snd_output_printf(out, "xfer_align   : %ld\n", pcm->xfer_align);
-	snd_output_printf(out, "start_threshold  : %ld\n", pcm->start_threshold);
-	snd_output_printf(out, "stop_threshold   : %ld\n", pcm->stop_threshold);
-	snd_output_printf(out, "silence_threshold: %ld\n", pcm->silence_threshold);
-	snd_output_printf(out, "silence_size : %ld\n", pcm->silence_size);
-	snd_output_printf(out, "boundary     : %ld\n", pcm->boundary);
+	snd_output_printf(out, "  tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
+	snd_output_printf(out, "  period_step  : %d\n", pcm->period_step);
+	snd_output_printf(out, "  sleep_min    : %d\n", pcm->sleep_min);
+	snd_output_printf(out, "  avail_min    : %ld\n", pcm->avail_min);
+	snd_output_printf(out, "  xfer_align   : %ld\n", pcm->xfer_align);
+	snd_output_printf(out, "  start_threshold  : %ld\n", pcm->start_threshold);
+	snd_output_printf(out, "  stop_threshold   : %ld\n", pcm->stop_threshold);
+	snd_output_printf(out, "  silence_threshold: %ld\n", pcm->silence_threshold);
+	snd_output_printf(out, "  silence_size : %ld\n", pcm->silence_size);
+	snd_output_printf(out, "  boundary     : %ld\n", pcm->boundary);
 	return 0;
 }
 
@@ -1798,14 +1798,14 @@ int snd_pcm_dump_setup(snd_pcm_t *pcm, snd_output_t *out)
 int snd_pcm_status_dump(snd_pcm_status_t *status, snd_output_t *out)
 {
 	assert(status);
-	snd_output_printf(out, "state       : %s\n", snd_pcm_state_name((snd_pcm_state_t) status->state));
-	snd_output_printf(out, "trigger_time: %ld.%06ld\n",
+	snd_output_printf(out, "  state       : %s\n", snd_pcm_state_name((snd_pcm_state_t) status->state));
+	snd_output_printf(out, "  trigger_time: %ld.%06ld\n",
 		status->trigger_tstamp.tv_sec, status->trigger_tstamp.tv_nsec);
-	snd_output_printf(out, "tstamp      : %ld.%06ld\n",
+	snd_output_printf(out, "  tstamp      : %ld.%06ld\n",
 		status->tstamp.tv_sec, status->tstamp.tv_nsec);
-	snd_output_printf(out, "delay       : %ld\n", (long)status->delay);
-	snd_output_printf(out, "avail       : %ld\n", (long)status->avail);
-	snd_output_printf(out, "avail_max   : %ld\n", (long)status->avail_max);
+	snd_output_printf(out, "  delay       : %ld\n", (long)status->delay);
+	snd_output_printf(out, "  avail       : %ld\n", (long)status->avail);
+	snd_output_printf(out, "  avail_max   : %ld\n", (long)status->avail_max);
 	return 0;
 }
 

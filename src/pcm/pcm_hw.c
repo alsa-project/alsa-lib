@@ -986,7 +986,7 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 			  hw->card, name, hw->device, hw->subdevice);
 	free(name);
 	if (pcm->setup) {
-		snd_output_printf(out, "\nIts setup is:\n");
+		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
 	}
 }

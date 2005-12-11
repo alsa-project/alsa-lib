@@ -711,11 +711,11 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 	else
 		snd_output_printf(out, "Route conversion PCM (sformat=%s)\n", 
 			snd_pcm_format_name(route->sformat));
-	snd_output_puts(out, "Transformation table:\n");
+	snd_output_puts(out, "  Transformation table:\n");
 	for (dst = 0; dst < route->params.ndsts; dst++) {
 		snd_pcm_route_ttable_dst_t *d = &route->params.dsts[dst];
 		unsigned int src;
-		snd_output_printf(out, "%d <- ", dst);
+		snd_output_printf(out, "    %d <- ", dst);
 		if (d->nsrcs == 0) {
 			snd_output_printf(out, "none\n");
 			continue;

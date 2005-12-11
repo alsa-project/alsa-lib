@@ -525,7 +525,7 @@ static void snd_pcm_dshare_dump(snd_pcm_t *pcm, snd_output_t *out)
 
 	snd_output_printf(out, "Direct Share PCM\n");
 	if (pcm->setup) {
-		snd_output_printf(out, "\nIts setup is:\n");
+		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
 	}
 	if (dshare->spcm)

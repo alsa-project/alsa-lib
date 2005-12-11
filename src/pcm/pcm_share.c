@@ -1276,11 +1276,11 @@ static void snd_pcm_share_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_share_slave_t *slave = share->slave;
 	unsigned int k;
 	snd_output_printf(out, "Share PCM\n");
-	snd_output_printf(out, "\nChannel bindings:\n");
+	snd_output_printf(out, "  Channel bindings:\n");
 	for (k = 0; k < share->channels; ++k)
-		snd_output_printf(out, "%d: %d\n", k, share->slave_channels[k]);
+		snd_output_printf(out, "    %d: %d\n", k, share->slave_channels[k]);
 	if (pcm->setup) {
-		snd_output_printf(out, "\nIts setup is:\n");
+		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
 	}
 	snd_output_printf(out, "Slave: ");
