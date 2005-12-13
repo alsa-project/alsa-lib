@@ -1100,18 +1100,20 @@ static int snd_pcm_ladspa_check_file(snd_pcm_ladspa_plugin_t * const plugin,
 #else
                                 char *labellocale;
                                 struct lconv *lc;
-                                lc = localeconv ();
-                                labellocale = malloc (strlen (label) + 1);
-                                if (labellocale == NULL)
-                                        return -ENOMEM;
-                                strcpy (labellocale, label);
-                                if (strrchr(labellocale, '.'))
-                                        *strrchr (labellocale, '.') = *lc->decimal_point;
-                                if (strcmp(label, d->Label) && strcmp(labellocale, d->Label)) {
-                                        free(labellocale);
-                                        continue;
+                                if (label != NULL) {
+                                        lc = localeconv ();
+                                        labellocale = malloc (strlen (label) + 1);
+                                        if (labellocale == NULL)
+                                                return -ENOMEM;
+                                        strcpy (labellocale, label);
+                                        if (strrchr(labellocale, '.'))
+                                                *strrchr (labellocale, '.') = *lc->decimal_point;
+                                        if (strcmp(label, d->Label) && strcmp(labellocale, d->Label)) {
+                                                free(labellocale);
+                                                continue;
+                                        }
+                                        free (labellocale);
                                 }
-                                free (labellocale);
 #endif
 				if (ladspa_id > 0 && d->UniqueID != ladspa_id)
 					continue;
