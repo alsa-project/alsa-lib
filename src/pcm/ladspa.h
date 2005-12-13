@@ -1,7 +1,7 @@
 /* ladspa.h
 
-   Linux Audio Developer's Simple Plugin API Version 1.0[LGPL].
-   Copyright (C) 2000-2001 Richard W.E. Furse, Paul Barton-Davis,
+   Linux Audio Developer's Simple Plugin API Version 1.1[LGPL].
+   Copyright (C) 2000-2002 Richard W.E. Furse, Paul Barton-Davis,
    Stefan Westerfeld.
    
    This library is free software; you can redistribute it and/or
@@ -21,6 +21,10 @@
 
 #ifndef LADSPA_INCLUDED
 #define LADSPA_INCLUDED
+
+#define LADSPA_VERSION "1.1"
+#define LADSPA_VERSION_MAJOR 1
+#define LADSPA_VERSION_MINOR 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,7 +76,10 @@ extern "C" {
 /* Fundamental data type passed in and out of plugin. This data type
    is used to communicate audio samples and control values. It is
    assumed that the plugin will work sensibly given any numeric input
-   value although it may have a preferred range (see hints below). */
+   value although it may have a preferred range (see hints below). 
+
+   For audio it is generally assumed that 1.0f is the `0dB' reference
+   amplitude and is a `normal' signal level. */
 
 typedef float LADSPA_Data;
 
@@ -198,7 +205,7 @@ typedef int LADSPA_PortRangeHintDescriptor;
    bound of the valid range. If LADSPA_HINT_SAMPLE_RATE is also
    specified then the value of LowerBound should be multiplied by the
    sample rate. */
-#define LADSPA_HINT_BOUNDED_BELOW 0x1
+#define LADSPA_HINT_BOUNDED_BELOW   0x1
 
 /* Hint LADSPA_HINT_BOUNDED_ABOVE indicates that the UpperBound field
    of the LADSPA_PortRangeHint should be considered meaningful. The
@@ -206,14 +213,15 @@ typedef int LADSPA_PortRangeHintDescriptor;
    bound of the valid range. If LADSPA_HINT_SAMPLE_RATE is also
    specified then the value of UpperBound should be multiplied by the
    sample rate. */
-#define LADSPA_HINT_BOUNDED_ABOVE 0x2
+#define LADSPA_HINT_BOUNDED_ABOVE   0x2
 
 /* Hint LADSPA_HINT_TOGGLED indicates that the data item should be
    considered a Boolean toggle. Data less than or equal to zero should
    be considered `off' or `false,' and data above zero should be
    considered `on' or `true.' LADSPA_HINT_TOGGLED may not be used in
-   conjunction with any other hint. */
-#define LADSPA_HINT_TOGGLED       0x4
+   conjunction with any other hint except LADSPA_HINT_DEFAULT_0 or
+   LADSPA_HINT_DEFAULT_1. */
+#define LADSPA_HINT_TOGGLED         0x4
 
 /* Hint LADSPA_HINT_SAMPLE_RATE indicates that any bounds specified
    should be interpreted as multiples of the sample rate. For
@@ -221,12 +229,12 @@ typedef int LADSPA_PortRangeHintDescriptor;
    the sample rate) could be requested by this hint in conjunction
    with LowerBound = 0 and UpperBound = 0.5. Hosts that support bounds
    at all must support this hint to retain meaning. */
-#define LADSPA_HINT_SAMPLE_RATE   0x8
+#define LADSPA_HINT_SAMPLE_RATE     0x8
 
 /* Hint LADSPA_HINT_LOGARITHMIC indicates that it is likely that the
    user will find it more intuitive to view values using a logarithmic
    scale. This is particularly useful for frequencies and gains. */
-#define LADSPA_HINT_LOGARITHMIC   0x10
+#define LADSPA_HINT_LOGARITHMIC     0x10
 
 /* Hint LADSPA_HINT_INTEGER indicates that a user interface would
    probably wish to provide a stepped control taking only integer
@@ -234,14 +242,97 @@ typedef int LADSPA_PortRangeHintDescriptor;
    integer range required to avoid floating point rounding errors. For
    instance, the integer set {0,1,2,3} might be described as [-0.1,
    3.1]. */
-#define LADSPA_HINT_INTEGER       0x20
+#define LADSPA_HINT_INTEGER         0x20
 
-#define LADSPA_IS_HINT_BOUNDED_BELOW(x) ((x) & LADSPA_HINT_BOUNDED_BELOW)
-#define LADSPA_IS_HINT_BOUNDED_ABOVE(x) ((x) & LADSPA_HINT_BOUNDED_ABOVE)
-#define LADSPA_IS_HINT_TOGGLED(x)       ((x) & LADSPA_HINT_TOGGLED)
-#define LADSPA_IS_HINT_SAMPLE_RATE(x)   ((x) & LADSPA_HINT_SAMPLE_RATE)
-#define LADSPA_IS_HINT_LOGARITHMIC(x)   ((x) & LADSPA_HINT_LOGARITHMIC)
-#define LADSPA_IS_HINT_INTEGER(x)       ((x) & LADSPA_HINT_INTEGER)
+/* The various LADSPA_HINT_HAS_DEFAULT_* hints indicate a `normal'
+   value for the port that is sensible as a default. For instance,
+   this value is suitable for use as an initial value in a user
+   interface or as a value the host might assign to a control port
+   when the user has not provided one. Defaults are encoded using a
+   mask so only one default may be specified for a port. Some of the
+   hints make use of lower and upper bounds, in which case the
+   relevant bound or bounds must be available and
+   LADSPA_HINT_SAMPLE_RATE must be applied as usual. The resulting
+   default must be rounded if LADSPA_HINT_INTEGER is present. Default
+   values were introduced in LADSPA v1.1. */
+#define LADSPA_HINT_DEFAULT_MASK    0x3C0
+
+/* This default values indicates that no default is provided. */
+#define LADSPA_HINT_DEFAULT_NONE    0x0
+
+/* This default hint indicates that the suggested lower bound for the
+   port should be used. */
+#define LADSPA_HINT_DEFAULT_MINIMUM 0x40
+
+/* This default hint indicates that a low value between the suggested
+   lower and upper bounds should be chosen. For ports with
+   LADSPA_HINT_LOGARITHMIC, this should be exp(log(lower) * 0.75 +
+   log(upper) * 0.25). Otherwise, this should be (lower * 0.75 + upper
+   * 0.25). */
+#define LADSPA_HINT_DEFAULT_LOW     0x80
+
+/* This default hint indicates that a middle value between the
+   suggested lower and upper bounds should be chosen. For ports with
+   LADSPA_HINT_LOGARITHMIC, this should be exp(log(lower) * 0.5 +
+   log(upper) * 0.5). Otherwise, this should be (lower * 0.5 + upper *
+   0.5). */
+#define LADSPA_HINT_DEFAULT_MIDDLE  0xC0
+
+/* This default hint indicates that a high value between the suggested
+   lower and upper bounds should be chosen. For ports with
+   LADSPA_HINT_LOGARITHMIC, this should be exp(log(lower) * 0.25 +
+   log(upper) * 0.75). Otherwise, this should be (lower * 0.25 + upper
+   * 0.75). */
+#define LADSPA_HINT_DEFAULT_HIGH    0x100
+
+/* This default hint indicates that the suggested upper bound for the
+   port should be used. */
+#define LADSPA_HINT_DEFAULT_MAXIMUM 0x140
+
+/* This default hint indicates that the number 0 should be used. Note
+   that this default may be used in conjunction with
+   LADSPA_HINT_TOGGLED. */
+#define LADSPA_HINT_DEFAULT_0       0x200
+
+/* This default hint indicates that the number 1 should be used. Note
+   that this default may be used in conjunction with
+   LADSPA_HINT_TOGGLED. */
+#define LADSPA_HINT_DEFAULT_1       0x240
+
+/* This default hint indicates that the number 100 should be used. */
+#define LADSPA_HINT_DEFAULT_100     0x280
+
+/* This default hint indicates that the Hz frequency of `concert A'
+   should be used. This will be 440 unless the host uses an unusual
+   tuning convention, in which case it may be within a few Hz. */
+#define LADSPA_HINT_DEFAULT_440     0x2C0
+
+#define LADSPA_IS_HINT_BOUNDED_BELOW(x)   ((x) & LADSPA_HINT_BOUNDED_BELOW)
+#define LADSPA_IS_HINT_BOUNDED_ABOVE(x)   ((x) & LADSPA_HINT_BOUNDED_ABOVE)
+#define LADSPA_IS_HINT_TOGGLED(x)         ((x) & LADSPA_HINT_TOGGLED)
+#define LADSPA_IS_HINT_SAMPLE_RATE(x)     ((x) & LADSPA_HINT_SAMPLE_RATE)
+#define LADSPA_IS_HINT_LOGARITHMIC(x)     ((x) & LADSPA_HINT_LOGARITHMIC)
+#define LADSPA_IS_HINT_INTEGER(x)         ((x) & LADSPA_HINT_INTEGER)
+
+#define LADSPA_IS_HINT_HAS_DEFAULT(x)     ((x) & LADSPA_HINT_DEFAULT_MASK)
+#define LADSPA_IS_HINT_DEFAULT_MINIMUM(x) (((x) & LADSPA_HINT_DEFAULT_MASK)   \
+                                           == LADSPA_HINT_DEFAULT_MINIMUM)
+#define LADSPA_IS_HINT_DEFAULT_LOW(x)     (((x) & LADSPA_HINT_DEFAULT_MASK)   \
+                                           == LADSPA_HINT_DEFAULT_LOW)
+#define LADSPA_IS_HINT_DEFAULT_MIDDLE(x)  (((x) & LADSPA_HINT_DEFAULT_MASK)   \
+                                           == LADSPA_HINT_DEFAULT_MIDDLE)
+#define LADSPA_IS_HINT_DEFAULT_HIGH(x)    (((x) & LADSPA_HINT_DEFAULT_MASK)   \
+                                           == LADSPA_HINT_DEFAULT_HIGH)
+#define LADSPA_IS_HINT_DEFAULT_MAXIMUM(x) (((x) & LADSPA_HINT_DEFAULT_MASK)   \
+                                           == LADSPA_HINT_DEFAULT_MAXIMUM)
+#define LADSPA_IS_HINT_DEFAULT_0(x)       (((x) & LADSPA_HINT_DEFAULT_MASK)   \
+                                           == LADSPA_HINT_DEFAULT_0)
+#define LADSPA_IS_HINT_DEFAULT_1(x)       (((x) & LADSPA_HINT_DEFAULT_MASK)   \
+                                           == LADSPA_HINT_DEFAULT_1)
+#define LADSPA_IS_HINT_DEFAULT_100(x)     (((x) & LADSPA_HINT_DEFAULT_MASK)   \
+                                           == LADSPA_HINT_DEFAULT_100)
+#define LADSPA_IS_HINT_DEFAULT_440(x)     (((x) & LADSPA_HINT_DEFAULT_MASK)   \
+                                            == LADSPA_HINT_DEFAULT_440)
 
 typedef struct _LADSPA_PortRangeHint {
 
@@ -428,7 +519,7 @@ typedef struct _LADSPA_Descriptor {
      this function pointer must be set to NULL. When it is provided,
      the function set_run_adding_gain() must be provided also. */
   void (*run_adding)(LADSPA_Handle Instance,
-		     unsigned long SampleCount);
+                     unsigned long SampleCount);
 
   /* This method is a function pointer that sets the output gain for
      use when run_adding() is called (see above). If this function is
@@ -440,7 +531,7 @@ typedef struct _LADSPA_Descriptor {
      run_adding() function is provided. When it is absent this
      function pointer must be set to NULL. */
   void (*set_run_adding_gain)(LADSPA_Handle Instance,
-			      LADSPA_Data   Gain);
+                              LADSPA_Data   Gain);
 
   /* This is the counterpart to activate() (see above). If there is
      nothing for deactivate() to do then the plugin writer may provide
