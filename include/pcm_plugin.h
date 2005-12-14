@@ -176,6 +176,7 @@ int _snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name,
  */
 int snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 			const char *ladspa_path,
+			unsigned int channels,
 			snd_config_t *ladspa_pplugins,
 			snd_config_t *ladspa_cplugins,
 			snd_pcm_t *slave, int close_slave);
