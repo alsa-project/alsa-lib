@@ -77,6 +77,6 @@ struct _snd_mixer {
 };
 
 struct _snd_mixer_selem_id {
-	unsigned char name[60];
+	char name[60];
 	unsigned int index;
 };

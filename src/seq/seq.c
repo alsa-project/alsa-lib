@@ -4435,7 +4435,7 @@ int snd_seq_remove_events(snd_seq_t *seq, snd_seq_remove_events_t *rmp)
 			ep = seq->obuf;
 			while (ep - seq->obuf < (ssize_t)seq->obufused) {
 
-				ev = ep;
+				ev = (snd_seq_event_t *)ep;
 				len = snd_seq_event_length(ev);
 
 				if (remove_match(rmp, ev)) {

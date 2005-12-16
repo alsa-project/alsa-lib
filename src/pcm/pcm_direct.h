@@ -42,7 +42,7 @@ struct slave_params {
 	int buffer_time;
 	snd_pcm_sframes_t period_size;
 	snd_pcm_sframes_t buffer_size;
-	int periods;
+	unsigned int periods;
 };
 
 typedef struct {

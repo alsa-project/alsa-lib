@@ -875,7 +875,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	}		
 	
 	if (buffer_is_not_initialized && params->periods > 0) {
-		int periods = params->periods;
+		unsigned int periods = params->periods;
 		ret = INTERNAL(snd_pcm_hw_params_set_periods_near)(spcm, hw_params, &params->periods, 0);
 		if (ret < 0) {
 			SNDERR("unable to set requested periods");

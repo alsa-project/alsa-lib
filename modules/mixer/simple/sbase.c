@@ -50,6 +50,7 @@ static unsigned int chanmap_to_channels(unsigned int chanmap)
 	return res;
 }
 
+#if 0
 static long to_user(struct selem_base *s, int dir, struct helem_base *c, long value)
 {
 	int64_t n;
@@ -67,6 +68,7 @@ static long from_user(struct selem_base *s, int dir, struct helem_base *c, long 
         n = (int64_t) (value - s->dir[dir].min) * (c->max - c->min);
 	return c->min + (n + (s->dir[dir].max - s->dir[dir].min) / 2) / (s->dir[dir].max - s->dir[dir].min);
 }
+#endif
 
 static void update_ranges(struct selem_base *s)
 {
@@ -200,18 +202,22 @@ static int get_dB_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
 	return -ENXIO;
 }
 
-static int get_switch_ops(snd_mixer_elem_t *elem, int dir,
-			  snd_mixer_selem_channel_id_t channel, int *value)
+static int get_switch_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
+			  int dir ATTRIBUTE_UNUSED,
+			  snd_mixer_selem_channel_id_t channel ATTRIBUTE_UNUSED,
+			  int *value)
 {
-	struct selem_base *s = snd_mixer_elem_get_private(elem);
+	/* struct selem_base *s = snd_mixer_elem_get_private(elem); */
 	*value = 0;
 	return 0;
 }
 
-static int set_volume_ops(snd_mixer_elem_t *elem, int dir,
-			  snd_mixer_selem_channel_id_t channel, long value)
+static int set_volume_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
+			  int dir ATTRIBUTE_UNUSED,
+			  snd_mixer_selem_channel_id_t channel ATTRIBUTE_UNUSED,
+			  long value ATTRIBUTE_UNUSED)
 {
-	struct selem_base *s = snd_mixer_elem_get_private(elem);
+	/* struct selem_base *s = snd_mixer_elem_get_private(elem); */
 	return 0;
 }
 
@@ -224,35 +230,38 @@ static int set_dB_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
 	return -ENXIO;
 }
 
-static int set_switch_ops(snd_mixer_elem_t *elem, int dir,
-			  snd_mixer_selem_channel_id_t channel, int value)
+static int set_switch_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
+			  int dir ATTRIBUTE_UNUSED,
+			  snd_mixer_selem_channel_id_t channel ATTRIBUTE_UNUSED,
+			  int value ATTRIBUTE_UNUSED)
 {
-	struct selem_base *s = snd_mixer_elem_get_private(elem);
-	int changed;
+	/* struct selem_base *s = snd_mixer_elem_get_private(elem); */
+	/* int changed; */
 	return 0;
 }
 
-static int enum_item_name_ops(snd_mixer_elem_t *elem,
-			      unsigned int item,
-			      size_t maxlen, char *buf)
+static int enum_item_name_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
+			      unsigned int item ATTRIBUTE_UNUSED,
+			      size_t maxlen ATTRIBUTE_UNUSED,
+			      char *buf ATTRIBUTE_UNUSED)
 {
-	struct selem_base *s = snd_mixer_elem_get_private(elem);
+	/* struct selem_base *s = snd_mixer_elem_get_private(elem);*/
 	return 0;
 }
 
-static int get_enum_item_ops(snd_mixer_elem_t *elem,
-			     snd_mixer_selem_channel_id_t channel,
-			     unsigned int *itemp)
+static int get_enum_item_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
+			     snd_mixer_selem_channel_id_t channel ATTRIBUTE_UNUSED,
+			     unsigned int *itemp ATTRIBUTE_UNUSED)
 {
-	struct selem_base *s = snd_mixer_elem_get_private(elem);
+	/* struct selem_base *s = snd_mixer_elem_get_private(elem); */
 	return 0;
 }
 
-static int set_enum_item_ops(snd_mixer_elem_t *elem,
-			     snd_mixer_selem_channel_id_t channel,
-			     unsigned int item)
+static int set_enum_item_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
+			     snd_mixer_selem_channel_id_t channel ATTRIBUTE_UNUSED,
+			     unsigned int item ATTRIBUTE_UNUSED)
 {
-	struct selem_base *s = snd_mixer_elem_get_private(elem);
+	/* struct selem_base *s = snd_mixer_elem_get_private(elem); */
 	return 0;
 }
 
@@ -283,7 +292,7 @@ static int selem_read(snd_mixer_elem_t *elem)
 }
 
 static int simple_event_remove(snd_hctl_elem_t *helem,
-			       snd_mixer_elem_t *melem)
+			       snd_mixer_elem_t *melem ATTRIBUTE_UNUSED)
 {
 	printf("event remove: %p\n", helem);
 	return 0;
@@ -309,7 +318,6 @@ static int simple_event_add1(snd_mixer_class_t *class,
 			     struct helem_selector *sel)
 {
 	struct bclass_private *priv = snd_mixer_sbasic_get_private(class);
-	int count;
 	snd_mixer_elem_t *melem;
 	snd_mixer_selem_id_t *id;
 	snd_ctl_elem_info_t *info;
@@ -571,7 +579,7 @@ int alsa_mixer_sbasic_sidreg(snd_mixer_class_t *class,
 		INIT_LIST_HEAD(&priv->sids);
 		snd_mixer_sbasic_set_private(class, priv);
 		snd_mixer_sbasic_set_private_free(class, sbasic_cpriv_free);
-		}
+	}
 	sid->sids = sids;
 	sid->count = count;
 	list_add(&sid->list, &priv->sids);

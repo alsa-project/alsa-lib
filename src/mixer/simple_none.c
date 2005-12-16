@@ -1270,7 +1270,7 @@ static int simple_event_add(snd_mixer_class_t *class, snd_hctl_elem_t *helem)
 {
 	const char *name = snd_hctl_elem_get_name(helem);
 	size_t len;
-	selem_ctl_type_t type;
+	selem_ctl_type_t type = CTL_SINGLE; /* to shut up warning */
 	if (snd_hctl_elem_get_interface(helem) != SND_CTL_ELEM_IFACE_MIXER)
 		return 0;
 	if (strcmp(name, "Capture Source") == 0) {
