@@ -800,6 +800,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 			case SND_PCM_FORMAT_S32_BE:
 			case SND_PCM_FORMAT_S16_LE:
 			case SND_PCM_FORMAT_S16_BE:
+			case SND_PCM_FORMAT_S24_3LE:
 				break;
 			default:
 				SNDERR("invalid format");

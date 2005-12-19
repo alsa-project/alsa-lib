@@ -121,7 +121,8 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 /* non-concurrent version, supporting both endians */
 static unsigned long long dmix_supported_format =
 	(1ULL << SND_PCM_FORMAT_S16_LE) | (1ULL << SND_PCM_FORMAT_S32_LE) |
-	(1ULL << SND_PCM_FORMAT_S16_BE) | (1ULL << SND_PCM_FORMAT_S32_BE);
+	(1ULL << SND_PCM_FORMAT_S16_BE) | (1ULL << SND_PCM_FORMAT_S32_BE) |
+	(1ULL << SND_PCM_FORMAT_S24_3LE);
 
 #include <byteswap.h>
 
@@ -245,6 +246,37 @@ static void mix_areas2_swap(unsigned int size,
 	}
 }
 
+/* always little endian */
+static void mix_areas3(unsigned int size,
+		       volatile unsigned char *dst, unsigned char *src,
+		       volatile signed int *sum, size_t dst_step,
+		       size_t src_step, size_t sum_step)
+{
+	register signed int sample;
+
+	for (;;) {
+		sample = src[0] | (src[1] << 8) | (((signed char *)src)[2] << 16);
+		if (!(dst[0] | dst[1] | dst[2])) {
+			*sum = sample;
+		} else {
+			sample += *sum;
+			*sum = sample;
+			if (sample > 0x7fffff)
+				sample = 0x7fffff;
+			else if (sample < -0x800000)
+				sample = -0x800000;
+		}
+		dst[0] = sample;
+		dst[1] = sample >> 8;
+		dst[2] = sample >> 16;
+		if (!--size)
+			return;
+		dst += dst_step;
+		src += src_step;
+		sum = (signed int *) ((char *)sum + sum_step);
+	}
+}
+
 
 static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 {
@@ -255,6 +287,7 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 		dmix->u.dmix.mix_areas1 = mix_areas1_swap;
 		dmix->u.dmix.mix_areas2 = mix_areas2_swap;
 	}
+	dmix->u.dmix.mix_areas3 = mix_areas3;
 }
 
 #endif

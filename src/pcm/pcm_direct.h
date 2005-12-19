@@ -34,6 +34,11 @@ typedef void (mix_areas2_t)(unsigned int size,
 			volatile signed int *sum, size_t dst_step,
 			size_t src_step, size_t sum_step);
 
+typedef void (mix_areas3_t)(unsigned int size,
+			volatile unsigned char *dst, unsigned char *src,
+			volatile signed int *sum, size_t dst_step,
+			size_t src_step, size_t sum_step);
+
 struct slave_params {
 	snd_pcm_format_t format;
 	int rate;
@@ -120,6 +125,7 @@ struct snd_pcm_direct {
 			signed int *sum_buffer;		/* shared sum buffer */
 			mix_areas1_t *mix_areas1;
 			mix_areas2_t *mix_areas2;
+			mix_areas3_t *mix_areas3;
 		} dmix;
 		struct {
 		} dsnoop;

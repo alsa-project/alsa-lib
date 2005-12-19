@@ -352,3 +352,208 @@ static void MIX_AREAS2(unsigned int size,
 		: "esi", "edi", "edx", "ecx", "eax"
 	);
 }
+
+/*
+ * 24-bit version for plain i386
+ */
+static void MIX_AREAS3(unsigned int size,
+		       volatile unsigned char *dst, unsigned char *src,
+		       volatile signed int *sum, size_t dst_step,
+		       size_t src_step, size_t sum_step)
+{
+	unsigned int old_ebx;
+
+	/*
+	 *  ESI - src
+	 *  EDI - dst
+	 *  EBX - sum
+	 *  ECX - old sample
+	 *  EAX - sample / temporary
+	 *  EDX - temporary
+	 */
+	__asm__ __volatile__ (
+		"\n"
+
+		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
+		/*
+		 *  initialization, load ESI, EDI, EBX registers
+		 */
+		"\tmovl %1, %%edi\n"
+		"\tmovl %2, %%esi\n"
+		"\tmovl %3, %%ebx\n"
+		"\tcmpl $0, %0\n"
+		"\tjnz 1f\n"
+		"\tjmp 6f\n"
+
+		"\t.p2align 4,,15\n"
+
+		"1:"
+
+		/*
+		 *   sample = *src;
+		 *   sum_sample = *sum;
+		 *   if (test_and_set_bit(0, dst) == 0)
+		 *     sample -= sum_sample;
+		 *   *sum += sample;
+		 */
+		"\tmovsbl 2(%%esi), %%eax\n"
+		"\tmovzwl (%%esi), %%ecx\n"
+		"\tmovl (%%ebx), %%edx\n"
+		"\tsall $16, %%eax\n"
+		"\t" LOCK_PREFIX "btsl $0, (%%edi)\n"
+		"\tleal (%%ecx,%%eax,1), %%ecx\n"
+		"\tjc 2f\n"
+		"\tsubl %%edx, %%ecx\n"
+		"2:"
+		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
+
+		/*
+		 *   do {
+		 *     sample = old_sample = *sum;
+		 *     saturate(sample);
+		 *     *dst = sample | 1;
+		 *   } while (old_sample != *sum);
+		 */
+
+		"3:"
+		"\tmovl (%%ebx), %%ecx\n"
+		/*
+		 *  if (sample > 0x7fffff)
+		 */
+		"\tmovl $0x7fffff, %%eax\n"
+		"\tcmpl %%eax, %%ecx\n"
+		"\tjg 4f\n"
+		/*
+		 *  if (sample < -0x7fffff)
+		 */
+		"\tmovl $-0x7fffff, %%eax\n"
+		"\tcmpl %%eax, %%ecx\n"
+		"\tjl 4f\n"
+		"\tmovl %%ecx, %%eax\n"
+		"\torl $1, %%eax\n"
+		"4:"
+		"\tmovw %%ax, (%%edi)\n"
+		"\tshrl $16, %%eax\n"
+		"\tmovb %%al, 2(%%edi)\n"
+		"\tcmpl %%ecx, (%%ebx)\n"
+		"\tjnz 3b\n"
+
+		/*
+		 * while (size-- > 0)
+		 */
+		"\tdecl %0\n"
+		"\tjz 6f\n"
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
+		"\tjmp 1b\n"
+		
+		"6:"
+		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+
+		: /* no output regs */
+		: "m" (size), "m" (dst), "m" (src),
+		  "m" (sum), "m" (dst_step), "m" (src_step),
+		  "m" (sum_step), "m" (old_ebx)
+		: "esi", "edi", "edx", "ecx", "eax"
+	);
+}
+
+/*
+ * 24-bit version for Pentium Pro/II
+ */
+static void MIX_AREAS3_CMOV(unsigned int size,
+			    volatile unsigned char *dst, unsigned char *src,
+			    volatile signed int *sum, size_t dst_step,
+			    size_t src_step, size_t sum_step)
+{
+	unsigned int old_ebx;
+
+	/*
+	 *  ESI - src
+	 *  EDI - dst
+	 *  EBX - sum
+	 *  ECX - old sample
+	 *  EAX - sample / temporary
+	 *  EDX - temporary
+	 */
+	__asm__ __volatile__ (
+		"\n"
+
+		"\tmovl %%ebx, %7\n"	/* ebx is GOT pointer (-fPIC) */
+		/*
+		 *  initialization, load ESI, EDI, EBX registers
+		 */
+		"\tmovl %1, %%edi\n"
+		"\tmovl %2, %%esi\n"
+		"\tmovl %3, %%ebx\n"
+		"\tcmpl $0, %0\n"
+		"\tjz 6f\n"
+
+		"\t.p2align 4,,15\n"
+
+		"1:"
+
+		/*
+		 *   sample = *src;
+		 *   sum_sample = *sum;
+		 *   if (test_and_set_bit(0, dst) == 0)
+		 *     sample -= sum_sample;
+		 *   *sum += sample;
+		 */
+		"\tmovsbl 2(%%esi), %%eax\n"
+		"\tmovzwl (%%esi), %%ecx\n"
+		"\tmovl (%%ebx), %%edx\n"
+		"\tsall $16, %%eax\n"
+		"\t" LOCK_PREFIX "btsl $0, (%%edi)\n"
+		"\tleal (%%ecx,%%eax,1), %%ecx\n"
+		"\tjc 2f\n"
+		"\tsubl %%edx, %%ecx\n"
+		"2:"
+		"\t" LOCK_PREFIX "addl %%ecx, (%%ebx)\n"
+
+		/*
+		 *   do {
+		 *     sample = old_sample = *sum;
+		 *     saturate(sample);
+		 *     *dst = sample | 1;
+		 *   } while (old_sample != *sum);
+		 */
+
+		"3:"
+		"\tmovl (%%ebx), %%ecx\n"
+
+		"\tmovl $0x7fffff, %%eax\n"
+		"\tmovl $-0x7fffff, %%edx\n"
+		"\tcmpl %%eax, %%ecx\n"
+		"\tcmovng %%ecx, %%eax\n"
+		"\tcmpl %%edx, %%ecx\n"
+		"\tcmovl %%edx, %%eax\n"
+
+		"\torl $1, %%eax\n"
+		"\tmovw %%ax, (%%edi)\n"
+		"\tshrl $16, %%eax\n"
+		"\tmovb %%al, 2(%%edi)\n"
+
+		"\tcmpl %%ecx, (%%ebx)\n"
+		"\tjnz 3b\n"
+
+		/*
+		 * while (size-- > 0)
+		 */
+		"\tadd %4, %%edi\n"
+		"\tadd %5, %%esi\n"
+		"\tadd %6, %%ebx\n"
+		"\tdecl %0\n"
+		"\tjnz 1b\n"
+		
+		"6:"
+		"\tmovl %7, %%ebx\n"	/* ebx is GOT pointer (-fPIC) */
+
+		: /* no output regs */
+		: "m" (size), "m" (dst), "m" (src),
+		  "m" (sum), "m" (dst_step), "m" (src_step),
+		  "m" (sum_step), "m" (old_ebx)
+		: "esi", "edi", "edx", "ecx", "eax"
+	);
+}
