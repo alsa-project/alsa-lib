@@ -1143,11 +1143,12 @@ int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm)
 {
 	unsigned int chn, channels;
-	int interleaved = 1;
+	int bits, interleaved = 1;
 	const snd_pcm_channel_area_t *dst_areas;
 	const snd_pcm_channel_area_t *src_areas;
 
-	if ((snd_pcm_format_physical_width(dmix->type) % 8) != 0)
+	bits = snd_pcm_format_physical_width(dmix->type);
+	if ((bits % 8) != 0)
 		interleaved = 0;
 	channels = dmix->channels;
 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
@@ -1167,13 +1168,13 @@ int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm)
 			interleaved = 0;
 			break;
 		}
-		if (dst_areas[chn].first != sizeof(signed short) * chn * 8 ||
-		    dst_areas[chn].step != channels * sizeof(signed short) * 8) {
+		if (dst_areas[chn].first != chn * bits ||
+		    dst_areas[chn].step != channels * bits) {
 			interleaved = 0;
 			break;
 		}
-		if (src_areas[chn].first != sizeof(signed short) * chn * 8 ||
-		    src_areas[chn].step != channels * sizeof(signed short) * 8) {
+		if (src_areas[chn].first != chn * bits ||
+		    src_areas[chn].step != channels * bits) {
 			interleaved = 0;
 			break;
 		}
