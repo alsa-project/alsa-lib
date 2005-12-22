@@ -575,6 +575,7 @@ int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequenc
 		return err;
 	}
 	pcm->mmap_rw = 1;
+	pcm->mmap_shadow = 1;
 	pcm->ops = &snd_pcm_meter_ops;
 	pcm->fast_ops = &snd_pcm_meter_fast_ops;
 	pcm->private_data = meter;
