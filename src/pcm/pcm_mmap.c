@@ -326,122 +326,130 @@ int snd_pcm_mmap(snd_pcm_t *pcm)
 	for (c = 0; c < pcm->channels; ++c) {
 		snd_pcm_channel_info_t *i = &pcm->mmap_channels[c];
 		snd_pcm_channel_area_t *a = &pcm->running_areas[c];
+		char *ptr;
+		size_t size;
 		unsigned int c1;
-		if (!i->addr) {
-			char *ptr;
-			size_t size = i->first + i->step * (pcm->buffer_size - 1) + pcm->sample_bits;
-			for (c1 = c + 1; c1 < pcm->channels; ++c1) {
-				snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
-				size_t s;
-				if (i1->type != i->type)
-					continue;
-				switch (i1->type) {
-				case SND_PCM_AREA_MMAP:
-					if (i1->u.mmap.fd != i->u.mmap.fd ||
-					    i1->u.mmap.offset != i->u.mmap.offset)
-						continue;
-					break;
-				case SND_PCM_AREA_SHM:
-					if (i1->u.shm.shmid != i->u.shm.shmid)
-						continue;
-					break;
-				case SND_PCM_AREA_LOCAL:
-					break;
-				default:
-					assert(0);
-				}
-				s = i1->first + i1->step * (pcm->buffer_size - 1) + pcm->sample_bits;
-				if (s > size)
-					size = s;
-			}
-			size = (size + 7) / 8;
-			size = page_align(size);
-			switch (i->type) {
+		if (i->addr) {
+        		a->addr = i->addr;
+        		a->first = i->first;
+        		a->step = i->step;
+		        continue;
+                }
+                size = i->first + i->step * (pcm->buffer_size - 1) + pcm->sample_bits;
+		for (c1 = c + 1; c1 < pcm->channels; ++c1) {
+			snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
+			size_t s;
+			if (i1->type != i->type)
+				continue;
+			switch (i1->type) {
 			case SND_PCM_AREA_MMAP:
-				ptr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, i->u.mmap.fd, i->u.mmap.offset);
-				if (ptr == MAP_FAILED) {
-					SYSERR("mmap failed");
-					return -errno;
-				}
-				i->addr = ptr;
+				if (i1->u.mmap.fd != i->u.mmap.fd ||
+				    i1->u.mmap.offset != i->u.mmap.offset)
+					continue;
 				break;
 			case SND_PCM_AREA_SHM:
-				if (i->u.shm.shmid < 0) {
-					int id;
-					/* FIXME: safer permission? */
-					id = shmget(IPC_PRIVATE, size, 0666);
-					if (id < 0) {
-						SYSERR("shmget failed");
-						return -errno;
-					}
-					i->u.shm.shmid = id;
-					ptr = shmat(i->u.shm.shmid, 0, 0);
-					if (ptr == (void *) -1) {
-						SYSERR("shmat failed");
-						return -errno;
-					}
-					/* automatically remove segment if not used */
-					if (shmctl(id, IPC_RMID, NULL) < 0){
-						SYSERR("shmctl mark remove failed");
-						return -errno;
-					}
-					i->u.shm.area = snd_shm_area_create(id, ptr);
-					if (i->u.shm.area == NULL) {
-						SYSERR("snd_shm_area_create failed");
-						return -ENOMEM;
-					}
-					if (pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
-					    pcm->access == SND_PCM_ACCESS_RW_INTERLEAVED) {
-					    	unsigned int c1;
-						for (c1 = c + 1; c1 < pcm->channels; c1++) {
-							snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
-							if (i1->u.shm.shmid < 0) {
-								i1->u.shm.shmid = id;
-								i1->u.shm.area = snd_shm_area_share(i->u.shm.area);
-							}
-						}
-					}
-				} else {
-					ptr = shmat(i->u.shm.shmid, 0, 0);
-					if (ptr == (void*) -1) {
-						SYSERR("shmat failed");
-						return -errno;
-					}
-				}
-				i->addr = ptr;
+				if (i1->u.shm.shmid != i->u.shm.shmid)
+					continue;
 				break;
 			case SND_PCM_AREA_LOCAL:
-				ptr = malloc(size);
-				if (ptr == NULL) {
-					SYSERR("malloc failed");
-					return -errno;
-				}
-				i->addr = ptr;
 				break;
 			default:
 				assert(0);
 			}
-			for (c1 = c + 1; c1 < pcm->channels; ++c1) {
-				snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
-				if (i1->type != i->type)
-					continue;
-				switch (i1->type) {
-				case SND_PCM_AREA_MMAP:
-					if (i1->u.mmap.fd != i->u.mmap.fd ||
-					    i1->u.mmap.offset != i->u.mmap.offset)
-						continue;
-					break;
-				case SND_PCM_AREA_SHM:
-					if (i1->u.shm.shmid != i->u.shm.shmid)
-						continue;
-					break;
-				case SND_PCM_AREA_LOCAL:
-					break;
-				default:
-					assert(0);
-				}
-				i1->addr = i->addr;
+			s = i1->first + i1->step * (pcm->buffer_size - 1) + pcm->sample_bits;
+			if (s > size)
+				size = s;
+		}
+		size = (size + 7) / 8;
+		size = page_align(size);
+		switch (i->type) {
+		case SND_PCM_AREA_MMAP:
+			ptr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, i->u.mmap.fd, i->u.mmap.offset);
+			if (ptr == MAP_FAILED) {
+				SYSERR("mmap failed");
+				return -errno;
 			}
+			i->addr = ptr;
+			break;
+		case SND_PCM_AREA_SHM:
+			if (i->u.shm.shmid < 0) {
+				int id;
+				/* FIXME: safer permission? */
+				id = shmget(IPC_PRIVATE, size, 0666);
+				if (id < 0) {
+					SYSERR("shmget failed");
+					return -errno;
+				}
+				i->u.shm.shmid = id;
+				ptr = shmat(i->u.shm.shmid, 0, 0);
+				if (ptr == (void *) -1) {
+					SYSERR("shmat failed");
+					return -errno;
+				}
+				/* automatically remove segment if not used */
+				if (shmctl(id, IPC_RMID, NULL) < 0){
+					SYSERR("shmctl mark remove failed");
+					return -errno;
+				}
+				i->u.shm.area = snd_shm_area_create(id, ptr);
+				if (i->u.shm.area == NULL) {
+					SYSERR("snd_shm_area_create failed");
+					return -ENOMEM;
+				}
+				if (pcm->access == SND_PCM_ACCESS_MMAP_INTERLEAVED ||
+				    pcm->access == SND_PCM_ACCESS_RW_INTERLEAVED) {
+					unsigned int c1;
+					for (c1 = c + 1; c1 < pcm->channels; c1++) {
+						snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
+						if (i1->u.shm.shmid < 0) {
+							i1->u.shm.shmid = id;
+							i1->u.shm.area = snd_shm_area_share(i->u.shm.area);
+						}
+					}
+				}
+			} else {
+				ptr = shmat(i->u.shm.shmid, 0, 0);
+				if (ptr == (void*) -1) {
+					SYSERR("shmat failed");
+					return -errno;
+				}
+			}
+			i->addr = ptr;
+			break;
+		case SND_PCM_AREA_LOCAL:
+			ptr = malloc(size);
+			if (ptr == NULL) {
+				SYSERR("malloc failed");
+				return -errno;
+			}
+			i->addr = ptr;
+			break;
+		default:
+			assert(0);
+		}
+		for (c1 = c + 1; c1 < pcm->channels; ++c1) {
+			snd_pcm_channel_info_t *i1 = &pcm->mmap_channels[c1];
+			if (i1->type != i->type)
+				continue;
+			switch (i1->type) {
+			case SND_PCM_AREA_MMAP:
+				if (i1->u.mmap.fd != i->u.mmap.fd ||
+                                    i1->u.mmap.offset != i->u.mmap.offset)
+					continue;
+				break;
+			case SND_PCM_AREA_SHM:
+				if (i1->u.shm.shmid != i->u.shm.shmid)
+					continue;
+				/* follow thru */
+			case SND_PCM_AREA_LOCAL:
+				if (pcm->access != SND_PCM_ACCESS_MMAP_INTERLEAVED &&
+				    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED)
+				        continue;
+				break;
+			default:
+				assert(0);
+			}
+			i1->addr = i->addr;
 		}
 		a->addr = i->addr;
 		a->first = i->first;
