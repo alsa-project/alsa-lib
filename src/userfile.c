@@ -22,10 +22,6 @@
 #include <string.h>
 #include <errno.h>
 
-#ifdef HAVE_WORDEXP_H
-#include <wordexp.h>
-#include <assert.h>
-
 /**
  * \brief Get the full file name
  * \param file The file name string to parse
@@ -35,6 +31,10 @@
  * Parses the given file name with POSIX-Shell-like expansion and
  * stores the first matchine one.  The returned string is strdup'ed.
  */
+
+#ifdef HAVE_WORDEXP_H
+#include <wordexp.h>
+#include <assert.h>
 int snd_user_file(const char *file, char **result)
 {
 	wordexp_t we;
