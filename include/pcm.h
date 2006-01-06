@@ -437,6 +437,23 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_unlink(snd_pcm_t *pcm);
 
+/*
+ * application helpers - these functions are implemented on top
+ * of the basic API
+ */
+
+int snd_pcm_recover(snd_pcm_t *pcm, int err, int silent);
+int snd_pcm_set_params(snd_pcm_t *pcm,
+                       snd_pcm_format_t format,
+                       snd_pcm_access_t access,
+                       unsigned int channels,
+                       unsigned int rate,
+                       int soft_resample,
+                       unsigned int latency);
+int snd_pcm_get_params(snd_pcm_t *pcm,
+                       snd_pcm_uframes_t *buffer_size,
+                       snd_pcm_uframes_t *period_size);
+
 /** \} */
 
 /**

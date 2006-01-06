@@ -266,3 +266,11 @@ ALSA_1.0.10 {
     snd_ctl_ext_delete;
 
 } ALSA_1.0.9;
+
+ALSA_1.0.11 {
+  global:
+
+    snd_pcm_recover;
+    snd_pcm_set_params;
+    snd_pcm_get_params;
+} ALSA_1.0.10;
