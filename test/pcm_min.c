@@ -34,11 +34,6 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
-        if ((err = snd_pcm_nonblock(handle, 0)) < 0) {
-                printf("Set to blocking mode failed: %s\n", snd_strerror(err));
-                exit(EXIT_FAILURE);
-        }
-
         for (i = 0; i < 16; i++) {
                 frames = snd_pcm_writei(handle, buffer, sizeof(buffer));
                 if (frames < 0)
