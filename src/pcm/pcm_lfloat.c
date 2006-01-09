@@ -30,6 +30,8 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#include "plugin_ops.h"
+
 #ifndef DOC_HIDDEN
 
 typedef float float_t;

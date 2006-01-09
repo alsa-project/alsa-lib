@@ -30,6 +30,8 @@
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
+#include "plugin_ops.h"
+
 #ifndef PIC
 /* entry for static linking */
 const char *_snd_module_pcm_mulaw = "";

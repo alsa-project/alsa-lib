@@ -33,6 +33,8 @@
 #include "pcm_plugin.h"
 #include "iatomic.h"
 
+#include "plugin_ops.h"
+
 #if 0
 #define DEBUG_REFINE
 #endif
