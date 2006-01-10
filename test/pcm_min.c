@@ -1,5 +1,5 @@
 /*
- *  This extra small demo sends a raw file to your speakers.
+ *  This extra small demo sends a random samples to your speakers.
  */
 
 #include "../include/asoundlib.h"
