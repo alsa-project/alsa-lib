@@ -226,8 +226,8 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 			 * it optimizes the memory accesses for this case
 			 */
 			dmix->u.dmix.mix_areas3(size * channels,
-					((char *)dst_areas[0].addr) + 3 * dst_ofs * channels,
-					((char *)src_areas[0].addr) + 3 * src_ofs * channels,
+					((unsigned char *)dst_areas[0].addr) + 3 * dst_ofs * channels,
+					((unsigned char *)src_areas[0].addr) + 3 * src_ofs * channels,
 					dmix->u.dmix.sum_buffer + (dst_ofs * channels),
 					3, 3, sizeof(signed int));
 			return;
