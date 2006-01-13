@@ -1231,7 +1231,6 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	}
 	snd_ctl_close(ctl);
 	return snd_pcm_hw_open_fd(pcmp, name, fd, mmap_emulation, sync_ptr_ioctl);
-	
        _err:
 	snd_ctl_close(ctl);
 	return ret;
@@ -1245,6 +1244,12 @@ This plugin communicates directly with the ALSA kernel driver. It is a raw
 communication without any conversions. The emulation of mmap access can be
 optionally enabled, but expect worse latency in the case.
 
+The nonblock option specifies whether the device is opened in a non-blocking
+manner.  Note that the blocking behavior for read/write access won't be
+changed by this option.  This influences only on the blocking behavior at
+opening the device.  If you would like to keep the compatibility with the
+older ALSA stuff, turn this option off.
+
 \code
 pcm.name {
 	type hw			# Kernel PCM
@@ -1253,6 +1258,7 @@ pcm.name {
 	[subdevice INT]		# Subdevice number (default -1: first available)
 	[mmap_emulation BOOL]	# Enable mmap emulation for ro/wo devices
 	[sync_ptr_ioctl BOOL]	# Use SYNC_PTR ioctl rather than the direct mmap access for control structures
+	[nonblock BOOL]		# Force non-blocking open mode
 }
 \endcode
 
@@ -1285,6 +1291,8 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	long card = -1, device = 0, subdevice = -1;
 	const char *str;
 	int err, mmap_emulation = 0, sync_ptr_ioctl = 0;
+	int nonblock = 1; /* non-block per default */
+
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -1338,6 +1346,13 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			sync_ptr_ioctl = err;
 			continue;
 		}
+		if (strcmp(id, "nonblock") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				continue;
+			nonblock = err;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -1345,8 +1360,17 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("card is not defined");
 		return -EINVAL;
 	}
-	return snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream, mode, mmap_emulation, sync_ptr_ioctl);
+	err = snd_pcm_hw_open(pcmp, name, card, device, subdevice, stream,
+			      mode | (nonblock ? SND_PCM_NONBLOCK : 0),
+			      mmap_emulation, sync_ptr_ioctl);
+	if (err < 0)
+		return err;
+	if (nonblock && ! (mode & SND_PCM_NONBLOCK))
+		/* revert to blocking mode for read/write access */
+		snd_pcm_hw_nonblock(*pcmp, 0);
+	return 0;
 }
+
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(_snd_pcm_hw_open, SND_PCM_DLSYM_VERSION);
 #endif
