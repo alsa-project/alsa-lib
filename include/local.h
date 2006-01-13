@@ -236,6 +236,8 @@ static inline int snd_open_device(const char *filename, int fmode)
 	int fd = open(filename, fmode);
 	if (fd >= 0)
 		return fd;
+	if (errno == EAGAIN || errno == EBUSY)
+		return fd;
 	return rsm_open_device(filename, fmode);
 }
 #else
