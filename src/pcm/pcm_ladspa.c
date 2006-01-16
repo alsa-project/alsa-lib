@@ -1,13 +1,15 @@
-/**
+7/**
  * \file pcm/pcm_ladspa.c
  * \ingroup PCM_Plugins
  * \brief ALSA Plugin <-> LADSPA Plugin Interface
  * \author Jaroslav Kysela <perex@suse.cz>
- * \date 2001,2005
+ * \author Jaroslav Kysela <perex@perex.cz>
+ * \date 2001,2006
  */
 /*
  *  PCM - LADSPA integration plugin
- *  Copyright (c) 2001 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2001-2006 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2005 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify
@@ -24,6 +26,10 @@
  *   License along with this library; if not, write to the Free Software
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
+ *
+ * perex@perex.cz 2005/12/13
+ *   The LADSPA plugin rewrite was sponsored by MediaNet AG
+ *   http://www.medianet.ag
  */
   
 #include <dirent.h>
