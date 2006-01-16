@@ -26,6 +26,8 @@
 #include <signal.h>
 #include <string.h>
 #include <fcntl.h>
+#include <ctype.h>
+#include <grp.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/poll.h>
@@ -1252,5 +1254,188 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg)
 	}
       __skip_same_dst:
 	dmix->channels = count;
+	return 0;
+}
+
+/*
+ * parse slave config and calculate the ipc_key offset
+ */
+int snd_pcm_direct_get_slave_ipc_offset(snd_config_t *sconf, int direction)
+{
+	snd_config_iterator_t i, next;
+	int err;
+	long card = 0, device = 0, subdevice = 0;
+
+	snd_config_for_each(i, next, sconf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id, *str;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		if (strcmp(id, "type") == 0) {
+			err = snd_config_get_string(n, &str);
+			if (err < 0) {
+				SNDERR("Invalid value for PCM type definition\n");
+				return -EINVAL;
+			}
+			if (strcmp(str, "hw")) {
+				SNDERR("Invalid type '%s' for slave PCM\n", str);
+				return -EINVAL;
+			}
+			continue;
+		}
+		if (strcmp(id, "card") == 0) {
+			err = snd_config_get_integer(n, &card);
+			if (err < 0) {
+				err = snd_config_get_string(n, &str);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					return -EINVAL;
+				}
+				card = snd_card_get_index(str);
+				if (card < 0) {
+					SNDERR("Invalid value for %s", id);
+					return card;
+				}
+			}
+			continue;
+		}
+		if (strcmp(id, "device") == 0) {
+			err = snd_config_get_integer(n, &device);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				return err;
+			}
+			continue;
+		}
+		if (strcmp(id, "subdevice") == 0) {
+			err = snd_config_get_integer(n, &subdevice);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				return err;
+			}
+			continue;
+		}
+	}
+	if (card < 0)
+		card = 0;
+	if (device < 0)
+		device = 0;
+	if (subdevice < 0)
+		subdevice = 0;
+	return direction + (card << 1) + (device << 4) + (subdevice << 8);
+}
+
+
+int snd_pcm_direct_parse_open_conf(snd_config_t *conf, struct snd_pcm_direct_open_conf *rec)
+{
+	snd_config_iterator_t i, next;
+	int ipc_key_add_uid = 0;
+	int err;
+
+	rec->slave = NULL;
+	rec->bindings = NULL;
+	rec->ipc_key = 0;
+	rec->ipc_perm = 0600;
+	rec->ipc_gid = -1;
+	rec->slowptr = 0;
+
+	snd_config_for_each(i, next, conf) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		if (snd_pcm_conf_generic_id(id))
+			continue;
+		if (strcmp(id, "ipc_key") == 0) {
+			long key;
+			err = snd_config_get_integer(n, &key);
+			if (err < 0) {
+				SNDERR("The field ipc_key must be an integer type");
+
+				return err;
+			}
+			rec->ipc_key = key;
+			continue;
+		}
+		if (strcmp(id, "ipc_perm") == 0) {
+			char *perm;
+			char *endp;
+			err = snd_config_get_ascii(n, &perm);
+			if (err < 0) {
+				SNDERR("The field ipc_perm must be a valid file permission");
+				return err;
+			}
+			if (isdigit(*perm) == 0) {
+				SNDERR("The field ipc_perm must be a valid file permission");
+				free(perm);
+				return -EINVAL;
+			}
+			rec->ipc_perm = strtol(perm, &endp, 8);
+			free(perm);
+			continue;
+		}
+		if (strcmp(id, "ipc_gid") == 0) {
+			char *group;
+			char *endp;
+			err = snd_config_get_ascii(n, &group);
+			if (err < 0) {
+				SNDERR("The field ipc_gid must be a valid group");
+				return err;
+			}
+			if (! *group) {
+				rec->ipc_gid = -1;
+				free(group);
+				continue;
+			}
+			if (isdigit(*group) == 0) {
+				struct group *grp = getgrnam(group);
+				if (grp == NULL) {
+					SNDERR("The field ipc_gid must be a valid group (create group %s)", group);
+					free(group);
+					return -EINVAL;
+				}
+				rec->ipc_gid = grp->gr_gid;
+			} else {
+				rec->ipc_gid = strtol(group, &endp, 10);
+			}
+			free(group);
+			continue;
+		}
+		if (strcmp(id, "ipc_key_add_uid") == 0) {
+			if ((err = snd_config_get_bool(n)) < 0) {
+				SNDERR("The field ipc_key_add_uid must be a boolean type");
+				return err;
+			}
+			ipc_key_add_uid = err;
+			continue;
+		}
+		if (strcmp(id, "slave") == 0) {
+			rec->slave = n;
+			continue;
+		}
+		if (strcmp(id, "bindings") == 0) {
+			rec->bindings = n;
+			continue;
+		}
+		if (strcmp(id, "slowptr") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				return err;
+			rec->slowptr = err;
+			continue;
+		}
+		SNDERR("Unknown field %s", id);
+		return -EINVAL;
+	}
+	if (! rec->slave) {
+		SNDERR("slave is not defined");
+		return -EINVAL;
+	}
+	if (ipc_key_add_uid)
+		rec->ipc_key += getuid();
+	if (!rec->ipc_key) {
+		SNDERR("Unique IPC key is not defined");
+		return -EINVAL;
+	}
 	return 0;
 }

@@ -707,110 +707,17 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf,
 		       snd_pcm_stream_t stream, int mode)
 {
-	snd_config_iterator_t i, next;
-	snd_config_t *slave = NULL, *bindings = NULL, *sconf;
+	snd_config_t *sconf;
 	struct slave_params params;
-	int bsize, psize, ipc_key_add_uid = 0, slowptr = 0;
-	key_t ipc_key = 0;
-	mode_t ipc_perm = 0600;
-	int ipc_gid = -1;
+	struct snd_pcm_direct_open_conf dopen;
+	int bsize, psize;
+	int ipc_offset;
 	int err;
 
-	snd_config_for_each(i, next, conf) {
-		snd_config_t *n = snd_config_iterator_entry(i);
-		const char *id;
-		if (snd_config_get_id(n, &id) < 0)
-			continue;
-		if (snd_pcm_conf_generic_id(id))
-			continue;
-		if (strcmp(id, "ipc_key") == 0) {
-			long key;
-			err = snd_config_get_integer(n, &key);
-			if (err < 0) {
-				SNDERR("The field ipc_key must be an integer type");
-				return err;
-			}
-			ipc_key = key;
-			continue;
-		}
-		if (strcmp(id, "ipc_perm") == 0) {
-			char *perm;
-			char *endp;
-			err = snd_config_get_ascii(n, &perm);
-			if (err < 0) {
-				SNDERR("The field ipc_perm must be a valid file permission");
-				return err;
-			}
-			if (isdigit(*perm) == 0) {
-				SNDERR("The field ipc_perm must be a valid file permission");
-				free(perm);
-				return -EINVAL;
-			}
-			ipc_perm = strtol(perm, &endp, 8);
-			free(perm);
-			continue;
-		}
-		if (strcmp(id, "ipc_gid") == 0) {
-			char *group;
-			char *endp;
-			err = snd_config_get_ascii(n, &group);
-			if (err < 0) {
-				SNDERR("The field ipc_gid must be a valid group");
-				return err;
-			}
-			if (isdigit(*group) == 0) {
-				struct group *grp = getgrnam(group);
-				if (group == NULL) {
-					SNDERR("The field ipc_gid must be a valid group (create group %s)", group);
-					free(group);
-					return -EINVAL;
-				}
-				ipc_gid = grp->gr_gid;
-			} else {
-				ipc_gid = strtol(group, &endp, 10);
-			}
-			free(group);
-			continue;
-		}
-		if (strcmp(id, "ipc_key_add_uid") == 0) {
-			err = snd_config_get_bool(n);
-			if (err < 0) {
-				SNDERR("The field ipc_key_add_uid must be a boolean type");
-				return err;
-			}
-			ipc_key_add_uid = err;
-			continue;
-		}
-		if (strcmp(id, "slave") == 0) {
-			slave = n;
-			continue;
-		}
-		if (strcmp(id, "bindings") == 0) {
-			bindings = n;
-			continue;
-		}
-		if (strcmp(id, "slowptr") == 0) {
-			err = snd_config_get_bool(n);
-			if (err < 0) {
-				SNDERR("The field slowptr must be a boolean type");
-				return err;
-			}
-			slowptr = err;
-			continue;
-		}
-		SNDERR("Unknown field %s", id);
-		return -EINVAL;
-	}
-	if (!slave) {
-		SNDERR("slave is not defined");
-		return -EINVAL;
-	}
-	if (ipc_key_add_uid)
-		ipc_key += getuid();
-	if (!ipc_key) {
-		SNDERR("Unique IPC key is not defined");
-		return -EINVAL;
-	}
+	err = snd_pcm_direct_parse_open_conf(conf, &dopen);
+	if (err < 0)
+		return err;
+
 	/* the default settings, it might be invalid for some hardware */
 	params.format = SND_PCM_FORMAT_S16;
 	params.rate = 48000;
@@ -819,7 +726,7 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	params.buffer_time = -1;
 	bsize = psize = -1;
 	params.periods = 3;
-	err = snd_pcm_slave_conf(root, slave, &sconf, 8,
+	err = snd_pcm_slave_conf(root, dopen.slave, &sconf, 8,
 				 SND_PCM_HW_PARAM_FORMAT, 0, &params.format,
 				 SND_PCM_HW_PARAM_RATE, 0, &params.rate,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &params.channels,
@@ -837,7 +744,17 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 	params.period_size = psize;
 	params.buffer_size = bsize;
-	err = snd_pcm_dsnoop_open(pcmp, name, ipc_key, ipc_perm, ipc_gid, &params, bindings, slowptr, root, sconf, stream, mode);
+
+	ipc_offset = snd_pcm_direct_get_slave_ipc_offset(sconf, stream);
+	if (ipc_offset < 0) {
+		snd_config_delete(sconf);
+		return ipc_offset;
+	}
+	dopen.ipc_key += ipc_offset;
+
+	err = snd_pcm_dsnoop_open(pcmp, name, dopen.ipc_key, dopen.ipc_perm, dopen.ipc_gid,
+				  &params, dopen.bindings, dopen.slowptr,
+				  root, sconf, stream, mode);
 	if (err < 0)
 		snd_config_delete(sconf);
 	return err;

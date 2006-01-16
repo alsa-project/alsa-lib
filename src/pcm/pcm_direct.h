@@ -186,6 +186,18 @@ int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix);
 void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dmix, const char *client_name);
+int snd_pcm_direct_get_slave_ipc_offset(snd_config_t *sconf, int direction);
 
 int snd_timer_async(snd_timer_t *timer, int sig, pid_t pid);
 struct timespec snd_pcm_hw_fast_tstamp(snd_pcm_t *pcm);
+
+struct snd_pcm_direct_open_conf {
+	key_t ipc_key;
+	mode_t ipc_perm;
+	int ipc_gid;
+	int slowptr;
+	snd_config_t *slave;
+	snd_config_t *bindings;
+};
+
+int snd_pcm_direct_parse_open_conf(snd_config_t *conf, struct snd_pcm_direct_open_conf *rec);
