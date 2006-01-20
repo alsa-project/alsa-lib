@@ -1211,6 +1211,152 @@ static int snd_pcm_ladspa_look_for_plugin(snd_pcm_ladspa_plugin_t * const plugin
 	return -ENOENT;
 }					  
 
+static int snd_pcm_ladspa_add_default_controls(snd_pcm_ladspa_plugin_t *lplug,
+					       snd_pcm_ladspa_plugin_io_t *io) 
+{
+	unsigned int count = 0;
+	LADSPA_Data *array;
+	unsigned char *initialized;
+	unsigned long idx;
+
+	for (idx = 0; idx < lplug->desc->PortCount; idx++)
+		if ((lplug->desc->PortDescriptors[idx] & (io->pdesc | LADSPA_PORT_CONTROL)) == (io->pdesc | LADSPA_PORT_CONTROL))
+			count++;
+	array = (LADSPA_Data *)calloc(count, sizeof(LADSPA_Data));
+	if (!array)
+		return -ENOMEM;
+	initialized = (unsigned char *)calloc(count, sizeof(unsigned char));
+	if (!initialized) {
+		free(array);
+		return -ENOMEM;
+	}
+	io->controls_size = count;
+	io->controls_initialized = initialized;
+	io->controls = array;
+
+	return 0;
+}	
+
+static int snd_pcm_ladspa_parse_controls(snd_pcm_ladspa_plugin_t *lplug,
+					 snd_pcm_ladspa_plugin_io_t *io,
+					 snd_config_t *controls) 
+{
+	snd_config_iterator_t i, next;
+	int err;
+
+	if (snd_config_get_type(controls) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("controls definition must be a compound");
+		return -EINVAL;
+	}
+
+	snd_config_for_each(i, next, controls) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		long lval;
+		unsigned int port, uval;
+		double dval;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		err = safe_strtol(id, &lval);
+		if (err >= 0) {
+			err = snd_pcm_ladspa_find_port(&port, lplug, io->pdesc | LADSPA_PORT_CONTROL, lval);
+		} else {
+			err = snd_pcm_ladspa_find_sport(&port, lplug, io->pdesc | LADSPA_PORT_CONTROL, id);
+		}
+		if (err < 0) {
+			SNDERR("Unable to find an control port (%s)", id);
+			return err;
+		}
+		if (snd_config_get_ireal(n, &dval) < 0) {
+			SNDERR("Control port %s has not an float or integer value", id);
+			return err;
+		}
+		err = snd_pcm_ladspa_find_port_idx(&uval, lplug, io->pdesc | LADSPA_PORT_CONTROL, port);
+		if (err < 0) {
+			SNDERR("internal error");
+			return err;
+		}
+		io->controls_initialized[uval] = 1;
+		io->controls[uval] = (LADSPA_Data)dval;
+	}
+
+	return 0;
+}
+
+static int snd_pcm_ladspa_parse_bindings(snd_pcm_ladspa_plugin_t *lplug,
+					 snd_pcm_ladspa_plugin_io_t *io,
+					 snd_config_t *bindings) 
+{
+	unsigned int count = 0;
+	unsigned int *array;
+	snd_config_iterator_t i, next;
+	int err;
+
+	if (snd_config_get_type(bindings) != SND_CONFIG_TYPE_COMPOUND) {
+		SNDERR("bindings definition must be a compound");
+		return -EINVAL;
+	}
+	snd_config_for_each(i, next, bindings) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		const char *id;
+		long channel;
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		err = safe_strtol(id, &channel);
+		if (err < 0 || channel < 0) {
+			SNDERR("Invalid channel number: %s", id);
+			return -EINVAL;
+		}
+		if (lplug->policy == SND_PCM_LADSPA_POLICY_DUPLICATE && channel > 0) {
+			SNDERR("Wrong channel specification for duplicate policy");
+			return -EINVAL;
+		}
+		if (count < (unsigned int)(channel + 1))
+			count = (unsigned int)(channel + 1);
+	}
+	if (count > 0) {
+		array = (unsigned int *)calloc(count, sizeof(unsigned int));
+		if (! array)
+			return -ENOMEM;
+		memset(array, 0xff, count * sizeof(unsigned int));
+		io->port_bindings_size = count;
+		io->port_bindings = array;
+		snd_config_for_each(i, next, bindings) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			const char *id, *sport;
+			long channel, port;
+			if (snd_config_get_id(n, &id) < 0)
+				continue;
+			err = safe_strtol(id, &channel);
+			if (err < 0 || channel < 0) {
+				assert(0);	/* should never happen */
+				return -EINVAL;
+			}
+			err = snd_config_get_integer(n, &port);
+			if (err >= 0) {
+				err = snd_pcm_ladspa_find_port(&array[channel], lplug, io->pdesc | LADSPA_PORT_AUDIO, port);
+				if (err < 0) {
+					SNDERR("Unable to find an audio port (%li) for channel %s", port, id);
+					return err;
+				}
+				continue;
+			}
+			err = snd_config_get_string(n, &sport);
+			if (err < 0) {
+				SNDERR("Invalid LADSPA port field type for %s", id);
+				return -EINVAL;
+			}
+			err = snd_pcm_ladspa_find_sport(&array[channel], lplug, io->pdesc | LADSPA_PORT_AUDIO, sport);
+			if (err < 0) {
+				SNDERR("Unable to find an audio port (%s) for channel %s", sport, id);
+				return err;
+			}
+		}
+	}
+
+	return 0;
+}
+
 static int snd_pcm_ladspa_parse_ioconfig(snd_pcm_ladspa_plugin_t *lplug,
 					 snd_pcm_ladspa_plugin_io_t *io,
 					 snd_config_t *conf)
@@ -1218,9 +1364,18 @@ static int snd_pcm_ladspa_parse_ioconfig(snd_pcm_ladspa_plugin_t *lplug,
 	snd_config_iterator_t i, next;
 	snd_config_t *bindings = NULL, *controls = NULL;
 	int err;
-	
-	if (conf == NULL)
+
+	/* always add default controls for both input and output */
+	err = snd_pcm_ladspa_add_default_controls(lplug, io);
+	if (err < 0) {
+		SNDERR("error adding default controls");
+		return err;
+	}
+		
+	if (conf == NULL) {
 		return 0;
+	}
+
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("input or output definition must be a compound");
 		return -EINVAL;
@@ -1239,127 +1394,21 @@ static int snd_pcm_ladspa_parse_ioconfig(snd_pcm_ladspa_plugin_t *lplug,
 			continue;
 		}
 	}
+
+	/* ignore values of parameters for output controls */
+	if (controls && !(io->pdesc & LADSPA_PORT_OUTPUT)) {
+ 		err = snd_pcm_ladspa_parse_controls(lplug, io, controls);
+		if (err < 0) 
+			return err;
+	}
+
 	if (bindings) {
-		unsigned int count = 0;
-		unsigned int *array;
-		if (snd_config_get_type(bindings) != SND_CONFIG_TYPE_COMPOUND) {
-			SNDERR("bindings definition must be a compound");
-			return -EINVAL;
-		}
-		snd_config_for_each(i, next, bindings) {
-			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id;
-			long channel;
-			if (snd_config_get_id(n, &id) < 0)
-				continue;
-			err = safe_strtol(id, &channel);
-			if (err < 0 || channel < 0) {
-				SNDERR("Invalid channel number: %s", id);
-				return -EINVAL;
-			}
-			if (lplug->policy == SND_PCM_LADSPA_POLICY_DUPLICATE && channel > 0) {
-				SNDERR("Wrong channel specification for duplicate policy");
-				return -EINVAL;
-			}
-			if (count < (unsigned int)(channel + 1))
-				count = (unsigned int)(channel + 1);
-		}
-		if (count > 0) {
-			array = (unsigned int *)calloc(count, sizeof(unsigned int));
-			if (! array)
-				return -ENOMEM;
-			memset(array, 0xff, count * sizeof(unsigned int));
-			io->port_bindings_size = count;
-			io->port_bindings = array;
-			snd_config_for_each(i, next, bindings) {
-				snd_config_t *n = snd_config_iterator_entry(i);
-				const char *id, *sport;
-				long channel, port;
-				if (snd_config_get_id(n, &id) < 0)
-					continue;
-				err = safe_strtol(id, &channel);
-				if (err < 0 || channel < 0) {
-					assert(0);	/* should never happen */
-					return -EINVAL;
-				}
-				err = snd_config_get_integer(n, &port);
-				if (err >= 0) {
-					err = snd_pcm_ladspa_find_port(&array[channel], lplug, io->pdesc | LADSPA_PORT_AUDIO, port);
-					if (err < 0) {
-						SNDERR("Unable to find an audio port (%li) for channel %s", port, id);
-						return err;
-					}
-					continue;
-				}
-				err = snd_config_get_string(n, &sport);
-				if (err < 0) {
-					SNDERR("Invalid LADSPA port field type for %s", id);
-					return -EINVAL;
-				}
-				err = snd_pcm_ladspa_find_sport(&array[channel], lplug, io->pdesc | LADSPA_PORT_AUDIO, sport);
-				if (err < 0) {
-					SNDERR("Unable to find an audio port (%s) for channel %s", sport, id);
-					return err;
-				}
-			}
-		}
+ 		err = snd_pcm_ladspa_parse_bindings(lplug, io, bindings);
+		if (err < 0) 
+			return err;
 	}
-	if (1) {
-		unsigned int count = 0;
-		LADSPA_Data *array;
-		unsigned char *initialized;
-		unsigned long idx;
-		for (idx = 0; idx < lplug->desc->PortCount; idx++)
-			if ((lplug->desc->PortDescriptors[idx] & (io->pdesc | LADSPA_PORT_CONTROL)) == (io->pdesc | LADSPA_PORT_CONTROL))
-				count++;
-		array = (LADSPA_Data *)calloc(count, sizeof(LADSPA_Data));
-		if (!array)
-			return -ENOMEM;
-		initialized = (unsigned char *)calloc(count, sizeof(unsigned char));
-		if (!initialized) {
-		        free(array);
-			return -ENOMEM;
-                }
-		io->controls_size = count;
-		io->controls_initialized = initialized;
-		io->controls = array;
-		if (!(io->pdesc & LADSPA_PORT_OUTPUT)) {
-        		if (snd_config_get_type(controls) != SND_CONFIG_TYPE_COMPOUND) {
-        			SNDERR("controls definition must be a compound");
-        			return -EINVAL;
-        		}
-        		snd_config_for_each(i, next, controls) {
-        			snd_config_t *n = snd_config_iterator_entry(i);
-        			const char *id;
-        			long lval;
-        			unsigned int port, uval;
-        			double dval;
-        			if (snd_config_get_id(n, &id) < 0)
-        				continue;
-        			err = safe_strtol(id, &lval);
-        			if (err >= 0) {
-        				err = snd_pcm_ladspa_find_port(&port, lplug, io->pdesc | LADSPA_PORT_CONTROL, lval);
-        			} else {
-        				err = snd_pcm_ladspa_find_sport(&port, lplug, io->pdesc | LADSPA_PORT_CONTROL, id);
-        			}
-        			if (err < 0) {
-        				SNDERR("Unable to find an control port (%s)", id);
-        				return err;
-        			}
-        			if (snd_config_get_ireal(n, &dval) < 0) {
-        				SNDERR("Control port %s has not an float or integer value", id);
-        				return err;
-        			}
-        			err = snd_pcm_ladspa_find_port_idx(&uval, lplug, io->pdesc | LADSPA_PORT_CONTROL, port);
-        			if (err < 0) {
-        				SNDERR("internal error");
-        				return err;
-        			}
-        			initialized[uval] = 1;
-        			array[uval] = (LADSPA_Data)dval;
-        		}
-                }
-	}
+
+
 	return 0;
 }
 
