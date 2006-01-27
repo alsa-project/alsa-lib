@@ -3105,7 +3105,6 @@ int snd_config_update_free(snd_config_update_t *update)
 	unsigned int k;
 
 	assert(update);
-	assert(update->count > 0 && update->finfo);
 	for (k = 0; k < update->count; k++)
 		free(update->finfo[k].name);
 	if (update->finfo)
