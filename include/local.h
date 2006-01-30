@@ -249,4 +249,9 @@ void *snd_dlobj_cache_lookup(const char *name);
 int snd_dlobj_cache_add(const char *name, void *dlobj, void *open_func);
 void snd_dlobj_cache_cleanup(void);
 
+/* for recursive checks */
+void snd_config_set_hop(snd_config_t *conf, int hop);
+int snd_config_check_hop(snd_config_t *conf);
+#define SND_CONF_MAX_HOPS	64
+
 #endif

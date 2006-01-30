@@ -1260,11 +1260,34 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg)
 /*
  * parse slave config and calculate the ipc_key offset
  */
-int snd_pcm_direct_get_slave_ipc_offset(snd_config_t *sconf, int direction)
+
+static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
+						snd_config_t *sconf,
+						int direction,
+						int hop)
 {
 	snd_config_iterator_t i, next;
 	int err;
 	long card = 0, device = 0, subdevice = 0;
+	const char *str;
+
+	if (snd_config_get_string(sconf, &str) >= 0) {
+		snd_config_t *pcm_conf;
+		if (hop > SND_CONF_MAX_HOPS) {
+			SNDERR("Too many definition levels (looped?)");
+			return -EINVAL;
+		}
+		err = snd_config_search_definition(root, "pcm", str, &pcm_conf);
+		if (err < 0) {
+			SNDERR("Unknown slave PCM %s", str);
+			return err;
+		}
+		err = _snd_pcm_direct_get_slave_ipc_offset(root, pcm_conf,
+							   direction,
+							   hop + 1);
+		snd_config_delete(pcm_conf);
+		return err;
+	}
 
 	snd_config_for_each(i, next, sconf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1325,6 +1348,12 @@ int snd_pcm_direct_get_slave_ipc_offset(snd_config_t *sconf, int direction)
 	return direction + (card << 1) + (device << 4) + (subdevice << 8);
 }
 
+int snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
+					snd_config_t *sconf,
+					int direction)
+{
+	return _snd_pcm_direct_get_slave_ipc_offset(root, sconf, direction, 0);
+}
 
 int snd_pcm_direct_parse_open_conf(snd_config_t *conf, struct snd_pcm_direct_open_conf *rec)
 {

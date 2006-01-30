@@ -1103,7 +1103,9 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	}
 	
 	for (idx = 0; idx < slaves_count; ++idx) {
-		err = snd_pcm_open_slave(&slaves_pcm[idx], root, slaves_conf[idx], stream, mode);
+		err = snd_pcm_open_slave(&slaves_pcm[idx], root,
+					 slaves_conf[idx], stream, mode,
+					 conf);
 		if (err < 0)
 			goto _free;
 		snd_config_delete(slaves_conf[idx]);

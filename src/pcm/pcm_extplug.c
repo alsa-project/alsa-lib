@@ -622,7 +622,7 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	err = snd_pcm_slave_conf(root, slave_conf, &sconf, 0);
 	if (err < 0)
 		return err;
-	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, NULL);
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;

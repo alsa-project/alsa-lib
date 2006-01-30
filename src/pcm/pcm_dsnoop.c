@@ -554,7 +554,10 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	dsnoop->sync_ptr = snd_pcm_dsnoop_sync_ptr;
 
 	if (first_instance) {
-		ret = snd_pcm_open_slave(&spcm, root, sconf, stream, mode | SND_PCM_NONBLOCK);
+		/* recursion is already checked in
+		   snd_pcm_direct_get_slave_ipc_offset() */
+		ret = snd_pcm_open_slave(&spcm, root, sconf, stream,
+					 mode | SND_PCM_NONBLOCK, NULL);
 		if (ret < 0) {
 			SNDERR("unable to open slave");
 			goto _err;
@@ -745,7 +748,7 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	params.period_size = psize;
 	params.buffer_size = bsize;
 
-	ipc_offset = snd_pcm_direct_get_slave_ipc_offset(sconf, stream);
+	ipc_offset = snd_pcm_direct_get_slave_ipc_offset(root, sconf, stream);
 	if (ipc_offset < 0) {
 		snd_config_delete(sconf);
 		return ipc_offset;

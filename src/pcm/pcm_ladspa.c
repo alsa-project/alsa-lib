@@ -1782,7 +1782,7 @@ int _snd_pcm_ladspa_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);
 	if (err < 0)
 		return err;
-	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;

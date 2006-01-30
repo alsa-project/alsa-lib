@@ -440,6 +440,7 @@ struct _snd_config {
 	} u;
 	struct list_head list;
 	snd_config_t *father;
+	int hop;
 };
 
 struct filedesc {
@@ -4011,6 +4012,24 @@ int snd_config_search_definition(snd_config_t *config,
 	return snd_config_expand(conf, config, args, NULL, result);
 }
 
+#ifndef DOC_HIDDEN
+void snd_config_set_hop(snd_config_t *conf, int hop)
+{
+	conf->hop = hop;
+}
+
+int snd_config_check_hop(snd_config_t *conf)
+{
+	if (conf) {
+		if (conf->hop >= SND_CONF_MAX_HOPS) {
+			SYSERR("Too many definition levels (looped?)\n");
+			return -EINVAL;
+		}
+		return conf->hop;
+	}
+	return 0;
+}
+#endif
 
 #if 0
 /* Not strictly needed, but useful to check for memory leaks */

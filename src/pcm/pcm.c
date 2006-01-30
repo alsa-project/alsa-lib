@@ -2098,7 +2098,8 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 }
 
 static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
-				 const char *name, snd_pcm_stream_t stream, int mode)
+				 const char *name, snd_pcm_stream_t stream,
+				 int mode, int hop)
 {
 	int err;
 	snd_config_t *pcm_conf;
@@ -2107,6 +2108,7 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 		SNDERR("Unknown PCM %s", name);
 		return err;
 	}
+	snd_config_set_hop(pcm_conf, hop);
 	err = snd_pcm_open_conf(pcmp, name, root, pcm_conf, stream, mode);
 	snd_config_delete(pcm_conf);
 	return err;
@@ -2128,7 +2130,7 @@ int snd_pcm_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_config_update();
 	if (err < 0)
 		return err;
-	return snd_pcm_open_noupdate(pcmp, snd_config, name, stream, mode);
+	return snd_pcm_open_noupdate(pcmp, snd_config, name, stream, mode, 0);
 }
 
 /**
@@ -2145,7 +2147,7 @@ int snd_pcm_open_lconf(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *lconf)
 {
 	assert(pcmp && name && lconf);
-	return snd_pcm_open_noupdate(pcmp, lconf, name, stream, mode);
+	return snd_pcm_open_noupdate(pcmp, lconf, name, stream, mode, 0);
 }
 
 #ifndef DOC_HIDDEN
@@ -2187,11 +2189,16 @@ int snd_pcm_free(snd_pcm_t *pcm)
 
 int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 		       snd_config_t *conf, snd_pcm_stream_t stream,
-		       int mode)
+		       int mode, snd_config_t *parent_conf)
 {
 	const char *str;
+	int hop;
+
+	if ((hop = snd_config_check_hop(parent_conf)) < 0)
+		return hop;
 	if (snd_config_get_string(conf, &str) >= 0)
-		return snd_pcm_open_noupdate(pcmp, root, str, stream, mode);
+		return snd_pcm_open_noupdate(pcmp, root, str, stream, mode,
+					     hop + 1);
 	return snd_pcm_open_conf(pcmp, NULL, root, conf, stream, mode);
 }
 #endif

@@ -497,7 +497,7 @@ int _snd_pcm_lfloat_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("slave format is not linear integer or linear float");
 		return -EINVAL;
 	}
-	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode);
+	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
