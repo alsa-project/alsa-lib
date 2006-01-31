@@ -579,6 +579,11 @@ The full featured examples with cross-links:
 \par
 This example shows various transfer methods for the playback direction.
 
+\par Minimalistic PCM playback code
+\ref example_test_pcm_min "example code"
+\par
+This example shows the minimal code to produce a sound.
+
 \par Latency measuring tool
 \ref example_test_latency "example code"
 \par
@@ -590,6 +595,10 @@ playback devices.
 /**
  * \example ../test/pcm.c
  * \anchor example_test_pcm
+ */
+/**
+ * \example ../test/pcm_min.c
+ * \anchor example_test_pcm_min
  */
 /**
  * \example ../test/latency.c
@@ -7131,31 +7140,55 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 	/* set the buffer time */
 	err = INTERNAL(snd_pcm_hw_params_set_buffer_time_near)(pcm, params, &latency, NULL);
 	if (err < 0) {
-		SNDERR("Unable to set buffer time (latency) %i for %s: %s", latency, s, snd_strerror(err));
-		return err;
-	}
-	err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(params, &buffer_size);
-	if (err < 0) {
-		SNDERR("Unable to get buffer size for %s: %s", s, snd_strerror(err));
-		return err;
-	}
-	err = INTERNAL(snd_pcm_hw_params_get_buffer_time)(params, &latency, NULL);
-	if (err < 0) {
-		SNDERR("Unable to get buffer time (latency) for %s: %s", s, snd_strerror(err));
-		return err;
-	}
-	/* set the period time */
-	period_time = latency / 4;
-	err = INTERNAL(snd_pcm_hw_params_set_period_time_near)(pcm, params, &period_time, NULL);
-	if (err < 0) {
-		SNDERR("Unable to set period time %i for %s: %s", s, period_time, snd_strerror(err));
-		return err;
-	} 
-	err = INTERNAL(snd_pcm_hw_params_get_period_size)(params, &period_size, NULL);
-	if (err < 0) {
-		SNDERR("Unable to get period size for %s: %s", s, snd_strerror(err));
-		return err;
-	}
+	        /* error path -> set period size as first */
+        	/* set the period time */
+        	period_time = latency / 4;
+        	err = INTERNAL(snd_pcm_hw_params_set_period_time_near)(pcm, params, &period_time, NULL);
+        	if (err < 0) {
+        		SNDERR("Unable to set period time %i for %s: %s", s, period_time, snd_strerror(err));
+        		return err;
+        	}
+                err = INTERNAL(snd_pcm_hw_params_get_period_size)(params, &period_size, NULL);
+                if (err < 0) {
+                	SNDERR("Unable to get period size for %s: %s", s, snd_strerror(err));
+                	return err;
+        	}
+        	buffer_size = period_size * 4;
+        	err = INTERNAL(snd_pcm_hw_params_set_buffer_size_near)(pcm, params, &buffer_size);
+                if (err < 0) {
+                	SNDERR("Unable to set buffer size %lu %s: %s", buffer_size, s, snd_strerror(err));
+                	return err;
+        	}
+        	err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(params, &buffer_size);
+        	if (err < 0) {
+        		SNDERR("Unable to get buffer size for %s: %s", s, snd_strerror(err));
+        		return err;
+        	}
+	} else {
+	        /* standard configuration buffer_time -> periods */
+        	err = INTERNAL(snd_pcm_hw_params_get_buffer_size)(params, &buffer_size);
+        	if (err < 0) {
+        		SNDERR("Unable to get buffer size for %s: %s", s, snd_strerror(err));
+        		return err;
+        	}
+        	err = INTERNAL(snd_pcm_hw_params_get_buffer_time)(params, &latency, NULL);
+        	if (err < 0) {
+        		SNDERR("Unable to get buffer time (latency) for %s: %s", s, snd_strerror(err));
+        		return err;
+        	}
+        	/* set the period time */
+        	period_time = latency / 4;
+        	err = INTERNAL(snd_pcm_hw_params_set_period_time_near)(pcm, params, &period_time, NULL);
+        	if (err < 0) {
+        		SNDERR("Unable to set period time %i for %s: %s", s, period_time, snd_strerror(err));
+        		return err;
+        	}
+                err = INTERNAL(snd_pcm_hw_params_get_period_size)(params, &period_size, NULL);
+                if (err < 0) {
+                	SNDERR("Unable to get period size for %s: %s", s, snd_strerror(err));
+                	return err;
+        	}
+        }
 	/* write the parameters to device */
 	err = snd_pcm_hw_params(pcm, params);
 	if (err < 0) {
