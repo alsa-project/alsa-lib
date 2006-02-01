@@ -7145,7 +7145,7 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
         	period_time = latency / 4;
         	err = INTERNAL(snd_pcm_hw_params_set_period_time_near)(pcm, params, &period_time, NULL);
         	if (err < 0) {
-        		SNDERR("Unable to set period time %i for %s: %s", s, period_time, snd_strerror(err));
+        		SNDERR("Unable to set period time %i for %s: %s", period_time, s, snd_strerror(err));
         		return err;
         	}
                 err = INTERNAL(snd_pcm_hw_params_get_period_size)(params, &period_size, NULL);
