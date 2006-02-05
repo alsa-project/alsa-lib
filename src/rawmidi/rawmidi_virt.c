@@ -439,7 +439,7 @@ int _snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 
 	seq_mode = 0;
 	if (mode & SND_RAWMIDI_NONBLOCK)
-		seq_mode |= O_NONBLOCK;
+		seq_mode |= SND_SEQ_NONBLOCK;
 
 	if (! slave_str)
 		slave_str = "default";
