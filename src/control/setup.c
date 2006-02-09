@@ -461,9 +461,11 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 			err = snd_config_get_bool_ascii(tmp);
 			if (err < 0) {
 				SNDERR("field %s is not a boolean", id);
+				free(tmp);
 				goto _err;
 			}
 			lock = err;
+			free(tmp);
 			continue;
 		}
 		if (strcmp(id, "preserve") == 0) {
@@ -474,9 +476,11 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 			err = snd_config_get_bool_ascii(tmp);
 			if (err < 0) {
 				SNDERR("field %s is not a boolean", id);
+				free(tmp);
 				goto _err;
 			}
 			preserve = err;
+			free(tmp);
 			continue;
 		}
 		if (strcmp(id, "value") == 0) {
@@ -495,9 +499,11 @@ static int add_elem(snd_sctl_t *h, snd_config_t *_conf, snd_config_t *private_da
 			err = snd_config_get_bool_ascii(tmp);
 			if (err < 0) {
 				SNDERR("field %s is not a boolean", id);
+				free(tmp);
 				goto _err;
 			}
 			optional = err;
+			free(tmp);
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
