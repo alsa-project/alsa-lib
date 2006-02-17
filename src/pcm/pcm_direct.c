@@ -1345,7 +1345,7 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 		device = 0;
 	if (subdevice < 0)
 		subdevice = 0;
-	return direction + (card << 1) + (device << 4) + (subdevice << 8);
+	return (direction << 1) + (device << 2) + (subdevice << 8) + (card << 12);
 }
 
 int snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
