@@ -360,9 +360,9 @@ static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plu
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
 	int err;
-	assert(snd_pcm_format_linear(slv->format));
 	if (clt->rate == slv->rate)
 		return 0;
+	assert(snd_pcm_format_linear(slv->format));
 	err = snd_pcm_rate_open(new, NULL, slv->format, slv->rate, plug->gen.slave, plug->gen.slave != plug->req_slave);
 	if (err < 0)
 		return err;
@@ -381,13 +381,13 @@ static int snd_pcm_plug_change_channels(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm
 	unsigned int tt_ssize, tt_cused, tt_sused;
 	snd_pcm_route_ttable_entry_t *ttable;
 	int err;
-	assert(snd_pcm_format_linear(slv->format));
 	if (clt->channels == slv->channels &&
 	    (!plug->ttable || !plug->ttable_last))
 		return 0;
 	if (clt->rate != slv->rate &&
 	    clt->channels > slv->channels)
 		return 0;
+	assert(snd_pcm_format_linear(slv->format));
 	tt_ssize = slv->channels;
 	tt_cused = clt->channels;
 	tt_sused = slv->channels;
@@ -483,18 +483,18 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 	int err;
 	snd_pcm_format_t cfmt;
 	int (*f)(snd_pcm_t **_pcm, const char *name, snd_pcm_format_t sformat, snd_pcm_t *slave, int close_slave);
+
+	/* No conversion is needed */
+	if (clt->format == slv->format &&
+	    clt->rate == slv->rate &&
+	    clt->channels == clt->channels)
+		return 0;
+
 	if (snd_pcm_format_linear(slv->format)) {
 		/* Conversion is done in another plugin */
-		if (clt->format == slv->format) {
-#ifdef BUILD_PCM_PLUGIN_RATE
-			if (clt->rate != slv->rate)
-				return 0;
-#endif
-#ifdef BUILD_PCM_PLUGIN_ROUTE
-			if (clt->channels != slv->channels)
-				return 0;
-#endif
-		}
+		if (clt->rate != slv->rate ||
+		    clt->channels != slv->channels)
+			return 0;
 		cfmt = clt->format;
 		switch (clt->format) {
 #ifdef BUILD_PCM_PLUGIN_MULAW
@@ -519,10 +519,7 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 
 			else
 #endif
-			{
-				assert(snd_pcm_format_linear(clt->format));
 				f = snd_pcm_linear_open;
-			}
 			break;
 		}
 #ifdef BUILD_PCM_PLUGIN_LFLOAT
@@ -535,18 +532,11 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 		cfmt = clt->format;
 		if (snd_pcm_format_linear(clt->format))
 			f = snd_pcm_lfloat_open;
-		else {
-			assert(0);	/* TODO */
+		else
 			return -EINVAL;
-		}
 #endif
 #ifdef BUILD_PCM_NONLINEAR
 	} else {
-		/* No conversion is needed */
-		if (clt->format == slv->format &&
-		    clt->rate == slv->rate &&
-		    clt->channels == clt->channels)
-			return 0;
 		switch (slv->format) {
 #ifdef BUILD_PCM_PLUGIN_MULAW
 		case SND_PCM_FORMAT_MU_LAW:
@@ -564,7 +554,6 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 			break;
 #endif
 		default:
-			assert(0);
 			return -EINVAL;
 		}
 		if (snd_pcm_format_linear(clt->format))
