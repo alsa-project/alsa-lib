@@ -32,3 +32,22 @@ assert() to catch with a debugger, in addition to parameter debugging.
 
 This feature is disabled when --with-debug=no is passed to configure,
 i.e. no strict checking is done in alsa-lib.
+
+
+Blocking Open Mode
+==================
+
+The default behavior of blocking at snd_pcm_open is changed to
+non-blocking since version 1.0.11.  That is, snd_pcm_open() returns
+-EAGAIN immediately when the device is in use and cannot be opened,
+while the function was blocked in the former version.  This influences
+only on the opening behavior.  The behavior of the further access,
+read/write, poll or commit, are not changed.  They follow the extra
+flag argument of snd_pcm_open() as well as the former version.
+
+For taking back the compatible behavior of open blocking mode, set
+
+	defaults.pcm.nonblock 0
+
+in /etc/asound.conf or ~/.asoundrc file.
+
