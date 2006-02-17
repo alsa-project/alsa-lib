@@ -1291,11 +1291,18 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	long card = -1, device = 0, subdevice = -1;
 	const char *str;
 	int err, mmap_emulation = 0, sync_ptr_ioctl = 0;
+	snd_config_t *n;
 	int nonblock = 1; /* non-block per default */
 
+	/* look for defaults.pcm.nonblock definition */
+	if (snd_config_search(root, "defaults.pcm.nonblock", &n) >= 0) {
+		err = snd_config_get_bool(n);
+		if (err >= 0)
+			nonblock = err;
+	}
 	snd_config_for_each(i, next, conf) {
-		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
+		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
 		if (snd_pcm_conf_generic_id(id))
