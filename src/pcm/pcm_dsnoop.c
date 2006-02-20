@@ -396,7 +396,7 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_mmap_commit(snd_pcm_t *pcm,
 	return size;
 }
 
-static snd_pcm_sframes_t snd_pcm_dsnoop_avail_update(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+static snd_pcm_sframes_t snd_pcm_dsnoop_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	int err;
