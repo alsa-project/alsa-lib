@@ -569,6 +569,15 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 		if (empty) {
 			snd_pcm_direct_clear_timer_queue(dmix);
 			events &= ~(POLLOUT|POLLIN);
+			/* additional check */
+			switch (snd_pcm_state(pcm)) {
+			case SND_PCM_STATE_XRUN:
+			case SND_PCM_STATE_SUSPENDED:
+				events |= POLLERR;
+				break;
+			default:
+				break;
+			}
 		}
 		break;
 	}
