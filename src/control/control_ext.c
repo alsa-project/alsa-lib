@@ -139,9 +139,16 @@ static int snd_ctl_ext_elem_info(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 	case SND_CTL_ELEM_TYPE_INTEGER64:
 		if (! ext->callback->get_integer64_info)
 			goto err;
-		ret = ext->callback->get_integer64_info(ext, key, &info->value.integer64.min,
-							&info->value.integer64.max,
-							&info->value.integer64.step);
+		{
+			int64_t xmin, xmax, xstep;
+			ret = ext->callback->get_integer64_info(ext, key,
+								&xmin,
+								&xmax,
+								&xstep);
+			info->value.integer64.min = xmin;
+			info->value.integer64.max = xmax;
+			info->value.integer64.step = xstep;
+		}
 		break;
 	case SND_CTL_ELEM_TYPE_ENUMERATED:
 		if (! ext->callback->get_enumerated_info)
