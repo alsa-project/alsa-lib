@@ -48,15 +48,17 @@ typedef struct {
 static int snd_rawmidi_hw_close(snd_rawmidi_t *rmidi)
 {
 	snd_rawmidi_hw_t *hw = rmidi->private_data;
+	int err = 0;
+
 	hw->open--;
 	if (hw->open)
 		return 0;
 	if (close(hw->fd)) {
+		err = -errno;
 		SYSERR("close failed\n");
-		return -errno;
 	}
 	free(hw);
-	return 0;
+	return err;
 }
 
 static int snd_rawmidi_hw_nonblock(snd_rawmidi_t *rmidi, int nonblock)

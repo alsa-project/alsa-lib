@@ -206,12 +206,11 @@ int snd_hwdep_close(snd_hwdep_t *hwdep)
 {
 	int err;
   	assert(hwdep);
-	if ((err = hwdep->ops->close(hwdep)) < 0)
-		return err;
+	err = hwdep->ops->close(hwdep);
 	if (hwdep->name)
 		free(hwdep->name);
 	free(hwdep);
-	return 0;
+	return err;
 }
 
 /**

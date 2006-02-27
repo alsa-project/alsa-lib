@@ -242,12 +242,11 @@ int snd_timer_close(snd_timer_t *timer)
 		snd_async_handler_t *h = list_entry(timer->async_handlers.next, snd_async_handler_t, hlist);
 		snd_async_del_handler(h);
 	}
-	if ((err = timer->ops->close(timer)) < 0)
-		return err;
+	err = timer->ops->close(timer);
 	if (timer->name)
 		free(timer->name);
 	free(timer);
-	return 0;
+	return err;
 }
 
 /**

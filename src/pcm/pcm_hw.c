@@ -889,16 +889,15 @@ static int snd_pcm_hw_munmap(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
 static int snd_pcm_hw_close(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	int err;
+	int err = 0;
 	if (close(hw->fd)) {
 		err = -errno;
 		SYSMSG("close failed\n");
-		return err;
 	}
 	snd_pcm_hw_munmap_status(pcm);
 	snd_pcm_hw_munmap_control(pcm);
 	free(hw);
-	return 0;
+	return err;
 }
 
 static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,

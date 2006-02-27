@@ -1029,8 +1029,6 @@ int snd_seq_close(snd_seq_t *seq)
 	int err;
 	assert(seq);
 	err = seq->ops->close(seq);
-	if (err < 0)
-		return err;
 	if (seq->obuf)
 		free(seq->obuf);
 	if (seq->ibuf)
@@ -1040,7 +1038,7 @@ int snd_seq_close(snd_seq_t *seq)
 	if (seq->name)
 		free(seq->name);
 	free(seq);
-	return 0;
+	return err;
 }
 
 /**

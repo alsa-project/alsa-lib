@@ -42,12 +42,14 @@ typedef struct {
 static int snd_seq_hw_close(snd_seq_t *seq)
 {
 	snd_seq_hw_t *hw = seq->private_data;
+	int err = 0;
+
 	if (close(hw->fd)) {
+		err = -errno;
 		SYSERR("close failed\n");
-		return -errno;
 	}
 	free(hw);
-	return 0;
+	return err;
 }
 
 static int snd_seq_hw_nonblock(snd_seq_t *seq, int nonblock)

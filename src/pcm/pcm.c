@@ -668,13 +668,13 @@ snd_pcm_stream_t snd_pcm_stream(snd_pcm_t *pcm)
  */
 int snd_pcm_close(snd_pcm_t *pcm)
 {
-	int err;
+	int res = 0, err;
 	assert(pcm);
 	if (pcm->setup && !pcm->donot_close) {
 		snd_pcm_drop(pcm);
 		err = snd_pcm_hw_free(pcm);
 		if (err < 0)
-			return err;
+			res = err;
 	}
 	if (pcm->mmap_channels)
 		snd_pcm_munmap(pcm);
@@ -684,8 +684,11 @@ int snd_pcm_close(snd_pcm_t *pcm)
 	}
 	err = pcm->ops->close(pcm->op_arg);
 	if (err < 0)
-		return err;
-	return snd_pcm_free(pcm);
+		res = err;
+	err = snd_pcm_free(pcm);
+	if (err < 0)
+		res = err;
+	return res;
 }	
 
 /**
