@@ -35,8 +35,8 @@
 #include "control_local.h"
 
 #ifndef DOC_HIDDEN
-#define SND_FILE_CONTROL	"/dev/snd/controlC%i"
-#define SND_FILE_LOAD		"/dev/aloadC%i"
+#define SND_FILE_CONTROL	ALSA_DEVICE_DIRECTORY "controlC%i"
+#define SND_FILE_LOAD		ALOAD_DEVICE_DIRECTORY "aloadC%i"
 #endif
 
 /**
@@ -47,14 +47,14 @@
 int snd_card_load(int card)
 {
 	int open_dev;
-	char control[32];
+	char control[sizeof(SND_FILE_CONTROL) + 10];
 
 	sprintf(control, SND_FILE_CONTROL, card);
 
 	open_dev = snd_open_device(control, O_RDONLY);
 #ifdef SUPPORT_ALOAD
 	if (open_dev < 0) {
-		char aload[32];
+		char aload[sizeof(SND_FILE_LOAD) + 10];
 		sprintf(aload, SND_FILE_LOAD, card);
 		open_dev = snd_open_device(aload, O_RDONLY);
 	}

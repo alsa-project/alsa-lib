@@ -34,7 +34,7 @@
 const char *_snd_module_rawmidi_hw = "";
 #endif
 
-#define SNDRV_FILE_RAWMIDI		"/dev/snd/midiC%iD%i"
+#define SNDRV_FILE_RAWMIDI		ALSA_DEVICE_DIRECTORY "midiC%iD%i"
 #define SNDRV_RAWMIDI_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
 #ifndef DOC_HIDDEN
@@ -175,7 +175,7 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 {
 	int fd, ver, ret;
 	int attempt = 0;
-	char filename[32];
+	char filename[sizeof(SNDRV_FILE_RAWMIDI) + 20];
 	snd_ctl_t *ctl;
 	snd_rawmidi_t *rmidi;
 	snd_rawmidi_hw_t *hw = NULL;

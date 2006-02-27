@@ -32,7 +32,7 @@
 const char *_snd_module_timer_query_hw = "";
 #endif
 
-#define SNDRV_FILE_TIMER		"/dev/snd/timer"
+#define SNDRV_FILE_TIMER		ALSA_DEVICE_DIRECTORY "timer"
 #define SNDRV_TIMER_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 0)
 
 static int snd_timer_query_hw_close(snd_timer_query_t *handle)

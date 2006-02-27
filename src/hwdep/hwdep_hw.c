@@ -32,7 +32,7 @@
 const char *_snd_module_hwdep_hw = "";
 #endif
 
-#define SNDRV_FILE_HWDEP	"/dev/snd/hwC%iD%i"
+#define SNDRV_FILE_HWDEP	ALSA_DEVICE_DIRECTORY "hwC%iD%i"
 #define SNDRV_HWDEP_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 1)
 
 static int snd_hwdep_hw_close(snd_hwdep_t *hwdep)
@@ -106,7 +106,7 @@ static snd_hwdep_ops_t snd_hwdep_hw_ops = {
 int snd_hwdep_hw_open(snd_hwdep_t **handle, const char *name, int card, int device, int mode)
 {
 	int fd, ver, ret;
-	char filename[32];
+	char filename[sizeof(SNDRV_FILE_HWDEP) + 20];
 	snd_hwdep_t *hwdep;
 	assert(handle);
 

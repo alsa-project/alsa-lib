@@ -30,8 +30,8 @@ const char *_snd_module_seq_hw = "";
 #endif
 
 #ifndef DOC_HIDDEN
-#define SNDRV_FILE_SEQ		"/dev/snd/seq"
-#define SNDRV_FILE_ALOADSEQ	"/dev/aloadSEQ"
+#define SNDRV_FILE_SEQ		ALSA_DEVICE_DIRECTORY "seq"
+#define SNDRV_FILE_ALOADSEQ	ALOAD_DEVICE_DIRECTORY "aloadSEQ"
 #define SNDRV_SEQ_VERSION_MAX	SNDRV_PROTOCOL_VERSION(1, 0, 1)
 
 typedef struct {

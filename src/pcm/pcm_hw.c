@@ -99,8 +99,8 @@ typedef struct {
 	snd_pcm_uframes_t appl_ptr;
 } snd_pcm_hw_t;
 
-#define SNDRV_FILE_PCM_STREAM_PLAYBACK		"/dev/snd/pcmC%iD%ip"
-#define SNDRV_FILE_PCM_STREAM_CAPTURE		"/dev/snd/pcmC%iD%ic"
+#define SNDRV_FILE_PCM_STREAM_PLAYBACK		ALSA_DEVICE_DIRECTORY "pcmC%iD%ip"
+#define SNDRV_FILE_PCM_STREAM_CAPTURE		ALSA_DEVICE_DIRECTORY "pcmC%iD%ic"
 #define SNDRV_PCM_VERSION_MAX			SNDRV_PROTOCOL_VERSION(2, 0, 5)
 
 /* update appl_ptr with driver */
@@ -1167,7 +1167,7 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		    snd_pcm_stream_t stream, int mode,
 		    int mmap_emulation, int sync_ptr_ioctl)
 {
-	char filename[32];
+	char filename[sizeof(SNDRV_FILE_PCM_STREAM_PLAYBACK) + 20];
 	const char *filefmt;
 	int ret = 0, fd = -1;
 	int attempt = 0;

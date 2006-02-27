@@ -39,7 +39,7 @@ const char *_snd_module_control_hw = "";
 #endif
 
 #ifndef DOC_HIDDEN
-#define SNDRV_FILE_CONTROL	"/dev/snd/controlC%i"
+#define SNDRV_FILE_CONTROL	ALSA_DEVICE_DIRECTORY "controlC%i"
 #define SNDRV_CTL_VERSION_MAX	SNDRV_PROTOCOL_VERSION(2, 0, 3)
 
 typedef struct {
@@ -321,7 +321,7 @@ snd_ctl_ops_t snd_ctl_hw_ops = {
 int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 {
 	int fd, ver;
-	char filename[32];
+	char filename[sizeof(SNDRV_FILE_CONTROL) + 10];
 	int fmode;
 	snd_ctl_t *ctl;
 	snd_ctl_hw_t *hw;
