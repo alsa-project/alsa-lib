@@ -773,8 +773,7 @@ int snd_pcm_shm_open(snd_pcm_t **pcmp, const char *name,
 	close(sock);
 	if (ctrl)
 		shmdt(ctrl);
-	if (shm)
-		free(shm);
+	free(shm);
 	return result;
 }
 

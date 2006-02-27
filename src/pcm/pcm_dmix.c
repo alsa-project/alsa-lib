@@ -639,8 +639,7 @@ static int snd_pcm_dmix_close(snd_pcm_t *pcm)
  	shm_sum_discard(dmix);
 	snd_pcm_direct_shm_discard(dmix);
 	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
-	if (dmix->bindings)
-		free(dmix->bindings);
+	free(dmix->bindings);
 	pcm->private_data = NULL;
 	free(dmix);
 	return 0;
@@ -941,8 +940,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
  _err_nosem:
 	if (dmix) {
-		if (dmix->bindings)
-			free(dmix->bindings);
+		free(dmix->bindings);
 		free(dmix);
 	}
 	if (pcm)

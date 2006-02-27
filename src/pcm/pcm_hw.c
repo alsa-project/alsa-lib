@@ -843,10 +843,8 @@ static int snd_pcm_hw_munmap_status(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int err;
 	if (hw->sync_ptr_ioctl) {
-		if (hw->sync_ptr) {
-			free(hw->sync_ptr);
-			hw->sync_ptr = NULL;
-		}
+		free(hw->sync_ptr);
+		hw->sync_ptr = NULL;
 	} else {
 		if (munmap((void*)hw->mmap_status, page_align(sizeof(*hw->mmap_status))) < 0) {
 			err = -errno;
@@ -862,10 +860,8 @@ static int snd_pcm_hw_munmap_control(snd_pcm_t *pcm)
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int err;
 	if (hw->sync_ptr_ioctl) {
-		if (hw->sync_ptr) {
-			free(hw->sync_ptr);
-			hw->sync_ptr = NULL;
-		}
+		free(hw->sync_ptr);
+		hw->sync_ptr = NULL;
 	} else {
 		if (munmap(hw->mmap_control, page_align(sizeof(*hw->mmap_control))) < 0) {
 			err = -errno;

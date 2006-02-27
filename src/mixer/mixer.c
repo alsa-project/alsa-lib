@@ -607,10 +607,8 @@ int snd_mixer_close(snd_mixer_t *mixer)
 	}
 	assert(list_empty(&mixer->elems));
 	assert(mixer->count == 0);
-	if (mixer->pelems) {
-		free(mixer->pelems);
-		mixer->pelems = NULL;
-	}
+	free(mixer->pelems);
+	mixer->pelems = NULL;
 	while (!list_empty(&mixer->slaves)) {
 		int err;
 		snd_mixer_slave_t *s;

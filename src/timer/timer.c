@@ -243,8 +243,7 @@ int snd_timer_close(snd_timer_t *timer)
 		snd_async_del_handler(h);
 	}
 	err = timer->ops->close(timer);
-	if (timer->name)
-		free(timer->name);
+	free(timer->name);
 	free(timer);
 	return err;
 }

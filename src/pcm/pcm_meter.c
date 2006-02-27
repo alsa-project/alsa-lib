@@ -153,8 +153,7 @@ static int snd_pcm_meter_update_scope(snd_pcm_t *pcm)
 
 static int snd_pcm_scope_remove(snd_pcm_scope_t *scope)
 {
-	if (scope->name)
-		free((void *)scope->name);
+	free(scope->name);
 	scope->ops->close(scope);
 	list_del(&scope->list);
 	free(scope);
@@ -480,12 +479,10 @@ static int snd_pcm_meter_hw_free(snd_pcm_t *pcm)
 	pthread_mutex_unlock(&meter->running_mutex);
 	err = pthread_join(meter->thread, 0);
 	assert(err == 0);
-	if (meter->buf) {
-		free(meter->buf);
-		free(meter->buf_areas);
-		meter->buf = 0;
-		meter->buf_areas = 0;
-	}
+	free(meter->buf);
+	free(meter->buf_areas);
+	meter->buf = NULL;
+	meter->buf_areas = NULL;
 	return snd_pcm_hw_free(meter->gen.slave);
 }
 
@@ -1028,15 +1025,13 @@ static int s16_enable(snd_pcm_scope_t *scope)
 	}
 	s16->buf = malloc(meter->buf_size * 2 * spcm->channels);
 	if (!s16->buf) {
-		if (s16->adpcm_states)
-			free(s16->adpcm_states);
+		free(s16->adpcm_states);
 		return -ENOMEM;
 	}
 	a = calloc(spcm->channels, sizeof(*a));
 	if (!a) {
 		free(s16->buf);
-		if (s16->adpcm_states)
-			free(s16->adpcm_states);
+		free(s16->adpcm_states);
 		return -ENOMEM;
 	}
 	s16->buf_areas = a;
@@ -1051,10 +1046,8 @@ static int s16_enable(snd_pcm_scope_t *scope)
 static void s16_disable(snd_pcm_scope_t *scope)
 {
 	snd_pcm_scope_s16_t *s16 = scope->private_data;
-	if (s16->adpcm_states) {
-		free(s16->adpcm_states);
-		s16->adpcm_states = NULL;
-	}
+	free(s16->adpcm_states);
+	s16->adpcm_states = NULL;
 	free(s16->buf);
 	s16->buf = NULL;
 	free(s16->buf_areas);

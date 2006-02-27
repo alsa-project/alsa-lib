@@ -167,8 +167,7 @@ int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 void snd_midi_event_free(snd_midi_event_t *dev)
 {
 	if (dev != NULL) {
-		if (dev->buf)
-			free(dev->buf);
+		free(dev->buf);
 		free(dev);
 	}
 }
@@ -253,8 +252,7 @@ int snd_midi_event_resize_buffer(snd_midi_event_t *dev, size_t bufsize)
 	dev->buf = new_buf;
 	dev->bufsize = bufsize;
 	reset_encode(dev);
-	if (old_buf)
-		free(old_buf);
+	free(old_buf);
 	return 0;
 }
 

@@ -182,8 +182,7 @@ static void private_free(snd_mixer_class_t *class)
 		snd_hctl_close(priv->hctl);
 	} else if (priv->ctl)
 		snd_ctl_close(priv->ctl);
-	if (priv->device)
-		free(priv->device);
+	free(priv->device);
 	free(priv);
 }
 

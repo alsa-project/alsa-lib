@@ -555,8 +555,7 @@ int snd_ctl_shm_open(snd_ctl_t **handlep, const char *name, const char *sockname
 	close(sock);
 	if (ctrl)
 		shmdt(ctrl);
-	if (shm)
-		free(shm);
+	free(shm);
 	return result;
 }
 

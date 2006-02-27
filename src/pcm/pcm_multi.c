@@ -790,7 +790,7 @@ int snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
 	multi->channels = calloc(channels_count, sizeof(*multi->channels));
 	if (!multi->channels) {
 		free(multi->slaves);
-		free(multi->channels);
+		free(multi);
 		return -ENOMEM;
 	}
 	for (i = 0; i < slaves_count; ++i) {
@@ -1130,16 +1130,11 @@ _free:
 		}
 		free(slaves_conf);
 	}
-	if (slaves_pcm)
-		free(slaves_pcm);
-	if (slaves_channels)
-		free(slaves_channels);
-	if (channels_sidx)
-		free(channels_sidx);
-	if (channels_schannel)
-		free(channels_schannel);
-	if (slaves_id)
-		free(slaves_id);
+	free(slaves_pcm);
+	free(slaves_channels);
+	free(channels_sidx);
+	free(channels_schannel);
+	free(slaves_id);
 	return err;
 }
 #ifndef DOC_HIDDEN

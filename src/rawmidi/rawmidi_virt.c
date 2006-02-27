@@ -385,11 +385,10 @@ int snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		snd_seq_close(seq_handle);
 	if (virt->midi_event)
 		snd_midi_event_free(virt->midi_event);
-	if (virt)
-		free(virt);
-	if (inputp && *inputp)
+	free(virt);
+	if (inputp)
 		free(*inputp);
-	if (outputp && *outputp)
+	if (outputp)
 		free(*outputp);
 	return err;
 }

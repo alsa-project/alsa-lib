@@ -382,12 +382,9 @@ int snd_instr_iwffff_close(snd_iwffff_handle_t *handle)
 {
 	if (handle == NULL)
 		return -EINVAL;
-	if (handle->dat_filename)
-		free(handle->dat_filename);
-	if (handle->fff_filename)
-		free(handle->fff_filename);
-	if (handle->fff_data)
-		free(handle->fff_data);
+	free(handle->dat_filename);
+	free(handle->fff_filename);
+	free(handle->fff_data);
 	free(handle);
 	return 0;
 }
@@ -396,8 +393,7 @@ static void free_wave(iwffff_wave_t *wave)
 {
 	if (wave == NULL)
 		return;
-	if (wave->address.ptr != NULL)
-		free(wave->address.ptr);
+	free(wave->address.ptr);
 	free(wave);
 }
 

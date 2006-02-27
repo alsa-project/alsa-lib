@@ -1029,14 +1029,10 @@ int snd_seq_close(snd_seq_t *seq)
 	int err;
 	assert(seq);
 	err = seq->ops->close(seq);
-	if (seq->obuf)
-		free(seq->obuf);
-	if (seq->ibuf)
-		free(seq->ibuf);
-	if (seq->tmpbuf)
-		free(seq->tmpbuf);
-	if (seq->name)
-		free(seq->name);
+	free(seq->obuf);
+	free(seq->ibuf);
+	free(seq->tmpbuf);
+	free(seq->name);
 	free(seq);
 	return err;
 }

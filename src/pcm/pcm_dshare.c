@@ -466,8 +466,7 @@ static int snd_pcm_dshare_close(snd_pcm_t *pcm)
  		snd_pcm_direct_client_discard(dshare);
 	snd_pcm_direct_shm_discard(dshare);
 	snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
-	if (dshare->bindings)
-		free(dshare->bindings);
+	free(dshare->bindings);
 	pcm->private_data = NULL;
 	free(dshare);
 	return 0;
@@ -763,8 +762,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_direct_semaphore_up(dshare, DIRECT_IPC_SEM_CLIENT);
  _err_nosem:
 	if (dshare) {
-		if (dshare->bindings)
-			free(dshare->bindings);
+		free(dshare->bindings);
 		free(dshare);
 	}
 	if (pcm)

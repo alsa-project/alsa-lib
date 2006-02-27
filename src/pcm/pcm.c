@@ -2102,10 +2102,8 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 	}
 	if (type_conf)
 		snd_config_delete(type_conf);
-	if (buf)
-		free(buf);
-	if (buf1)
-		free(buf1);
+	free(buf);
+	free(buf1);
 	return err;
 }
 
@@ -2187,12 +2185,9 @@ int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 int snd_pcm_free(snd_pcm_t *pcm)
 {
 	assert(pcm);
-	if (pcm->name)
-		free(pcm->name);
-	if (pcm->hw.link_dst)
-		free(pcm->hw.link_dst);
-	if (pcm->appl.link_dst)
-		free(pcm->appl.link_dst);
+	free(pcm->name);
+	free(pcm->hw.link_dst);
+	free(pcm->appl.link_dst);
 	if (pcm->dl_handle)
 		snd_dlclose(pcm->dl_handle);
 	free(pcm);

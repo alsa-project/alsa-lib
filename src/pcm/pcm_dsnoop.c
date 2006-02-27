@@ -362,8 +362,7 @@ static int snd_pcm_dsnoop_close(snd_pcm_t *pcm)
  		snd_pcm_direct_client_discard(dsnoop);
 	snd_pcm_direct_shm_discard(dsnoop);
 	snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
-	if (dsnoop->bindings)
-		free(dsnoop->bindings);
+	free(dsnoop->bindings);
 	pcm->private_data = NULL;
 	free(dsnoop);
 	return 0;
@@ -636,8 +635,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
  _err_nosem:
 	if (dsnoop) {
-		if (dsnoop->bindings)
-			free(dsnoop->bindings);
+		free(dsnoop->bindings);
 		free(dsnoop);
 	}
 	if (pcm)

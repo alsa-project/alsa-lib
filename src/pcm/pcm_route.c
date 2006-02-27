@@ -513,8 +513,7 @@ static int snd_pcm_route_close(snd_pcm_t *pcm)
 
 	if (params->dsts) {
 		for (dst_channel = 0; dst_channel < params->ndsts; ++dst_channel) {
-			if (params->dsts[dst_channel].srcs != NULL)
-				free(params->dsts[dst_channel].srcs);
+			free(params->dsts[dst_channel].srcs);
 		}
 		free(params->dsts);
 	}

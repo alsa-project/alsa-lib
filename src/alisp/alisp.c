@@ -165,8 +165,7 @@ static void free_object(struct alisp_object * p)
 	switch (alisp_get_type(p)) {
 	case ALISP_OBJ_STRING:
 	case ALISP_OBJ_IDENTIFIER:
-		if (p->value.s)
-			free(p->value.s);
+		free(p->value.s);
 		alisp_set_type(p, ALISP_OBJ_INTEGER);
 		break;
 	default:
@@ -523,8 +522,7 @@ static int init_lex(struct alisp_instance *instance)
 
 static void done_lex(struct alisp_instance *instance)
 {
-	if (instance->token_buffer)
-		free(instance->token_buffer);
+	free(instance->token_buffer);
 }
 
 static char * extend_buf(struct alisp_instance *instance, char *p)
@@ -1184,8 +1182,7 @@ static struct alisp_object * F_concat(struct alisp_instance *instance, struct al
 			str1 = realloc(str, (str ? strlen(str) : 0) + strlen(p1->value.s) + 1);
 			if (str1 == NULL) {
 				nomem();
-				if (str)
-					free(str);
+				free(str);
 				return NULL;
 			}
 			if (str == NULL)
@@ -2366,8 +2363,7 @@ static struct alisp_object * eval_func(struct alisp_instance *instance, struct a
 		}
 
                _end:
-		if (eval_objs)
-			free(eval_objs);
+		free(eval_objs);
 
 		return p4;
 	} else {

@@ -1689,10 +1689,8 @@ int _snd_pcm_share_open(snd_pcm_t **pcmp, const char *name,
 				 speriod_time, sbuffer_time,
 				 channels, channels_map, stream, mode);
 _free:
-	if (channels_map)
-		free(channels_map);
-	if (sname)
-		free((char *)sname);
+	free(channels_map);
+	free((char *)sname);
 	return err;
 }
 #ifndef DOC_HIDDEN

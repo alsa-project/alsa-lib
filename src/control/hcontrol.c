@@ -606,8 +606,7 @@ int snd_hctl_load(snd_hctl_t *hctl)
 	}
 	err = snd_ctl_subscribe_events(hctl->ctl, 1);
  _end:
-	if (list.pids)
-		free(list.pids);
+	free(list.pids);
 	return err;
 }
 

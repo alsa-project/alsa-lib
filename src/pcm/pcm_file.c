@@ -263,13 +263,10 @@ static snd_pcm_sframes_t snd_pcm_file_mmap_commit(snd_pcm_t *pcm,
 static int snd_pcm_file_hw_free(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	if (file->wbuf) {
-		free(file->wbuf);
-		if (file->wbuf_areas)
-			free(file->wbuf_areas);
-		file->wbuf = 0;
-		file->wbuf_areas = 0;
-	}
+	free(file->wbuf);
+	free(file->wbuf_areas);
+	file->wbuf = NULL;
+	file->wbuf_areas = NULL;
 	return snd_pcm_hw_free(file->gen.slave);
 }
 
@@ -418,8 +415,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_FILE, name, slave->stream, slave->mode);
 	if (err < 0) {
-		if (fname)
-			free(file->fname);
+		free(file->fname);
 		free(file);
 		return err;
 	}

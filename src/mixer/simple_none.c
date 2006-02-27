@@ -1388,8 +1388,7 @@ int snd_mixer_simple_none_register(snd_mixer_t *mixer,
 	snd_mixer_class_set_compare(class, snd_mixer_selem_compare);
 	err = snd_mixer_class_register(class, mixer);
 	if (err < 0) {
-		if (class)
-			free(class);
+		free(class);
 		return err;
 	}
 	if (classp)

@@ -105,17 +105,14 @@ static int names_parse(snd_config_t *top, const char *iface, snd_devname_t **lis
 			}
 			last = dn;
 		} else {
-			if (comment != NULL)
-				free(comment);
+			free(comment);
 		}
 	}
 	return 0;
 
        _err:
-      	if (name)
-      		free(name);
-      	if (comment)
-      		free(comment);
+	free(name);
+	free(comment);
       	return err;
 }
 
@@ -189,10 +186,8 @@ void snd_names_list_free(snd_devname_t *list)
 	
 	while (list != NULL) {
 		next = list->next;
-		if (list->name)
-			free(list->name);
-		if (list->comment)
-			free(list->comment);
+		free(list->name);
+		free(list->comment);
 		free(list);
 		list = next;
 	}

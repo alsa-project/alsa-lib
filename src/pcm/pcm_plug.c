@@ -62,8 +62,7 @@ static int snd_pcm_plug_close(snd_pcm_t *pcm)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
 	int err, result = 0;
-	if (plug->ttable)
-		free(plug->ttable);
+	free(plug->ttable);
 	assert(plug->gen.slave == plug->req_slave);
 	if (plug->gen.close_slave) {
 		snd_pcm_unlink_hw_ptr(pcm, plug->req_slave);

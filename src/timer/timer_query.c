@@ -197,8 +197,7 @@ int snd_timer_query_close(snd_timer_query_t *timer)
 	int err;
   	assert(timer);
 	err = timer->ops->close(timer);
-	if (timer->name)
-		free(timer->name);
+	free(timer->name);
 	free(timer);
 	return err;
 }

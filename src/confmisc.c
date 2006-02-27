@@ -295,8 +295,7 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		free(res);
 	}
       __error:
-      	if (def)
-      		free(def);
+	free(def);
 	return err;
 }
 #ifndef DOC_HIDDEN
@@ -419,8 +418,7 @@ int snd_func_concat(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 				tmp = realloc(res, len + len1 + 1);
 				if (tmp == NULL) {
 					free(ptr);
-					if (res)
-						free(res);
+					free(res);
 					err = -ENOMEM;
 					goto __error;
 				}

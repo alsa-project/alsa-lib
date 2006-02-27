@@ -94,8 +94,7 @@ int snd_ctl_close(snd_ctl_t *ctl)
 		snd_async_del_handler(h);
 	}
 	err = ctl->ops->close(ctl);
-	if (ctl->name)
-		free(ctl->name);
+	free(ctl->name);
 	if (ctl->dl_handle)
 		snd_dlclose(ctl->dl_handle);
 	free(ctl);
@@ -925,8 +924,7 @@ const char *snd_ctl_event_type_name(snd_ctl_event_type_t type)
  */
 int snd_ctl_elem_list_alloc_space(snd_ctl_elem_list_t *obj, unsigned int entries)
 {
-	if (obj->pids)
-		free(obj->pids);
+	free(obj->pids);
 	obj->pids = calloc(entries, sizeof(*obj->pids));
 	if (!obj->pids) {
 		obj->space = 0;

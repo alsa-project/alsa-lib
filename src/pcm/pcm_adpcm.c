@@ -449,10 +449,8 @@ static int snd_pcm_adpcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 static int snd_pcm_adpcm_hw_free(snd_pcm_t *pcm)
 {
 	snd_pcm_adpcm_t *adpcm = pcm->private_data;
-	if (adpcm->states) {
-		free(adpcm->states);
-		adpcm->states = 0;
-	}
+	free(adpcm->states);
+	adpcm->states = NULL;
 	return snd_pcm_hw_free(adpcm->plug.gen.slave);
 }
 

@@ -316,11 +316,10 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 
  _nomem:
 	close(fd);
-	if (hw)
-		free(hw);
-	if (inputp && *inputp)
+	free(hw);
+	if (inputp)
 		free(*inputp);
-	if (outputp && *outputp)
+	if (outputp)
 		free(*outputp);
 	return -ENOMEM;
 }

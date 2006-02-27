@@ -175,10 +175,8 @@ static int snd_pcm_ladspa_find_port_idx(unsigned int *res,
 
 static void snd_pcm_ladspa_free_io(snd_pcm_ladspa_plugin_io_t *io)
 {
-        if (io->controls)
-                free(io->controls);
-        if (io->controls_initialized)
-                free(io->controls_initialized);
+	free(io->controls);
+	free(io->controls_initialized);
 }
 
 static void snd_pcm_ladspa_free_plugins(struct list_head *plugins)
@@ -189,8 +187,7 @@ static void snd_pcm_ladspa_free_plugins(struct list_head *plugins)
                 snd_pcm_ladspa_free_io(&plugin->output);
 		if (plugin->dl_handle)
 			dlclose(plugin->dl_handle);
-		if (plugin->filename)
-			free(plugin->filename);
+		free(plugin->filename);
 		list_del(&plugin->list);
 		free(plugin);
 	}
@@ -203,8 +200,7 @@ static void snd_pcm_ladspa_free(snd_pcm_ladspa_t *ladspa)
 	snd_pcm_ladspa_free_plugins(&ladspa->pplugins);
 	snd_pcm_ladspa_free_plugins(&ladspa->cplugins);
 	for (idx = 0; idx < 2; idx++) {
-        	if (ladspa->zero[idx])
-        	        free(ladspa->zero[idx]);
+		free(ladspa->zero[idx]);
                 ladspa->zero[idx] = NULL;
         }
         ladspa->allocated = 0;
@@ -317,10 +313,8 @@ static int snd_pcm_ladspa_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params
 
 static void snd_pcm_ladspa_free_eps(snd_pcm_ladspa_eps_t *eps)
 {
-	if (eps->channels.array)
-		free(eps->channels.array);
-        if (eps->ports.array)
-                free(eps->ports.array);
+	free(eps->channels.array);
+	free(eps->ports.array);
 }
 
 static void snd_pcm_ladspa_free_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *ladspa, int cleanup)
@@ -340,14 +334,12 @@ static void snd_pcm_ladspa_free_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *lads
 					plugin->desc->cleanup(instance->handle);
 				if (instance->input.m_data) {
 				        for (idx = 0; idx < instance->input.channels.size; idx++)
-				                if (instance->input.m_data[idx])
-        				                free(instance->input.m_data[idx]);
+						free(instance->input.m_data[idx]);
 					free(instance->input.m_data);
                                 }
 				if (instance->output.m_data) {
 				        for (idx = 0; idx < instance->output.channels.size; idx++)
-				                if (instance->output.m_data[idx])
-        				                free(instance->output.m_data[idx]);
+						free(instance->output.m_data[idx]);
 					free(instance->output.m_data);
                                 }
 				list_del(&(instance->list));
@@ -789,10 +781,8 @@ static int snd_pcm_ladspa_allocate_memory(snd_pcm_t *pcm, snd_pcm_ladspa_t *lads
                         for (idx = 0; idx < instance->output.channels.size; idx++) {
         			chn = instance->output.channels.array[idx];
                                 if (instance->output.data[idx] == pchannels[chn]) {
-                                        if (instance->output.m_data[idx]) {
-                                                free(instance->output.m_data[idx]);
-                                                instance->output.m_data[idx] = NULL;
-                                        }
+					free(instance->output.m_data[idx]);
+					instance->output.m_data[idx] = NULL;
                                         if (chn < ochannels) {
                                                 instance->output.data[idx] = NULL;
                                         } else {
