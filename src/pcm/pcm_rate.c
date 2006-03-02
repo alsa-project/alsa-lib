@@ -1297,13 +1297,24 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		/* commit the remaining fraction (if any) */
-		snd_pcm_uframes_t size, slave_size;
+		snd_pcm_uframes_t size, ofs;
 		size = rate->appl_ptr - rate->last_commit_ptr;
-		if (size > 0) {
-			slave_size = snd_pcm_rate_slave_frames(pcm, size);
-			if (slave_size > 0)
-				snd_pcm_rate_commit_area(pcm, rate, rate->last_commit_ptr % pcm->buffer_size,
-							 size, slave_size);
+		ofs = rate->last_commit_ptr % pcm->buffer_size;
+		while (size > 0) {
+			snd_pcm_uframes_t psize, spsize;
+			if (size > pcm->period_size) {
+				psize = pcm->period_size;
+				spsize = rate->gen.slave->period_size;
+			} else {
+				psize = size;
+				spsize = snd_pcm_rate_slave_frames(pcm, size);
+				if (! spsize)
+					break;
+			}
+			snd_pcm_rate_commit_area(pcm, rate, ofs,
+						 psize, spsize);
+			ofs = (ofs + psize) % pcm->buffer_size;
+			size -= psize;
 		}
 	}
 	return snd_pcm_drain(rate->gen.slave);
