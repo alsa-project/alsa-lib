@@ -288,7 +288,7 @@ static inline int snd_pcm_check_error(snd_pcm_t *pcm, int err)
 		case SND_PCM_STATE_SUSPENDED:
 			return -ESTRPIPE;
 		case SND_PCM_STATE_DISCONNECTED:
-			return -ENOTTY;
+			return -ENODEV;
 		default:
 			break;
 		}

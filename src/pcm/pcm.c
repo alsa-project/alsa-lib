@@ -2231,7 +2231,7 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 		case SND_PCM_STATE_SUSPENDED:
 			return -ESTRPIPE;
 		case SND_PCM_STATE_DISCONNECTED:
-			return -ENOTTY;	/* linux VFS does this? */
+			return -ENODEV;
 		default:
 			return 1;
 		}
@@ -2287,7 +2287,7 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 				case SND_PCM_STATE_SUSPENDED:
 					return -ESTRPIPE;
 				case SND_PCM_STATE_DISCONNECTED:
-					return -ENOTTY;	/* linux VFS does this? */
+					return -ENODEV;
 				default:
 					return -EIO;
 				}
@@ -6350,7 +6350,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 	case SND_PCM_STATE_SUSPENDED:
 		return -ESTRPIPE;
 	case SND_PCM_STATE_DISCONNECTED:
-		return -ENOTTY;
+		return -ENODEV;
 	default:
 		return -EBADFD;
 	}
@@ -6424,7 +6424,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 	case SND_PCM_STATE_SUSPENDED:
 		return -ESTRPIPE;
 	case SND_PCM_STATE_DISCONNECTED:
-		return -ENOTTY;
+		return -ENODEV;
 	default:
 		return -EBADFD;
 	}

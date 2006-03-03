@@ -119,7 +119,7 @@ static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	switch (snd_pcm_state(dsnoop->spcm)) {
 	case SND_PCM_STATE_DISCONNECTED:
 		dsnoop->state = SNDRV_PCM_STATE_DISCONNECTED;
-		return -ENOTTY;
+		return -ENODEV;
 	default:
 		break;
 	}
@@ -190,7 +190,7 @@ static snd_pcm_state_t snd_pcm_dsnoop_state(snd_pcm_t *pcm)
 		return SND_PCM_STATE_SUSPENDED;
 	case SND_PCM_STATE_DISCONNECTED:
 		dsnoop->state = SNDRV_PCM_STATE_DISCONNECTED;
-		return -ENOTTY;
+		return -ENODEV;
 	default:
 		break;
 	}
@@ -215,7 +215,7 @@ static int snd_pcm_dsnoop_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
 	case SNDRV_PCM_STATE_DISCONNECTED:
-		return -ENOTTY;
+		return -ENODEV;
 	default:
 		return -EBADFD;
 	}
@@ -235,7 +235,7 @@ static int snd_pcm_dsnoop_hwsync(snd_pcm_t *pcm)
 	case SNDRV_PCM_STATE_XRUN:
 		return -EPIPE;
 	case SNDRV_PCM_STATE_DISCONNECTED:
-		return -ENOTTY;
+		return -ENODEV;
 	default:
 		return -EBADFD;
 	}
