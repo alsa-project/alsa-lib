@@ -1054,7 +1054,7 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 			return 1;
 		
 		/* commit second fragment */
-		cont = rate->gen.slave->period_size - cont;
+		cont = slave_size - cont;
 		slave_frames = cont;
 		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
