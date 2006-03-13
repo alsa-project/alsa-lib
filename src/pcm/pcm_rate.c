@@ -1297,11 +1297,22 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		/* commit the remaining fraction (if any) */
-		snd_pcm_uframes_t size, ofs;
+		snd_pcm_uframes_t size, ofs, saved_avail_min;
+		snd_pcm_sw_params_t sw_params;
+
+		/* temporarily set avail_min to one period */
+		sw_params = rate->sw_params;
+		saved_avail_min = sw_params.avail_min;
+		sw_params.avail_min = rate->gen.slave->period_size;
+		snd_pcm_sw_params(rate->gen.slave, &sw_params);
+
 		size = rate->appl_ptr - rate->last_commit_ptr;
 		ofs = rate->last_commit_ptr % pcm->buffer_size;
 		while (size > 0) {
 			snd_pcm_uframes_t psize, spsize;
+
+			if (snd_pcm_wait(rate->gen.slave, -1) < 0)
+				break;
 			if (size > pcm->period_size) {
 				psize = pcm->period_size;
 				spsize = rate->gen.slave->period_size;
@@ -1316,6 +1327,8 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 			ofs = (ofs + psize) % pcm->buffer_size;
 			size -= psize;
 		}
+		sw_params.avail_min = saved_avail_min;
+		snd_pcm_sw_params(rate->gen.slave, &sw_params);
 	}
 	return snd_pcm_drain(rate->gen.slave);
 }
