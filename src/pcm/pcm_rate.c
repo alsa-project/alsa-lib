@@ -1032,7 +1032,7 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 			return result;
 	      __partial:
 		xfer = 0;
-		cont = rate->gen.slave->buffer_size - slave_offset;
+		cont = slave_frames;
 		if (cont > slave_size)
 			cont = slave_size;
 		snd_pcm_areas_copy(slave_areas, slave_offset,
@@ -1123,7 +1123,7 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 			return result;
 	      __partial:
 		xfer = 0;
-		cont = rate->gen.slave->buffer_size - slave_offset;
+		cont = slave_frames;
 		if (cont > rate->gen.slave->period_size)
 			cont = rate->gen.slave->period_size;
 		snd_pcm_areas_copy(rate->sareas, 0,
