@@ -266,7 +266,7 @@ int snd_timer_hw_open(snd_timer_t **handle, const char *name, int dev_class, int
 			ret = -errno;
 			close(fd);
 		      __no_tread:
-			SNDERR("extended read is not supported (SNDRV_TIMER_IOCTL_TREAD)");
+			SNDMSG("extended read is not supported (SNDRV_TIMER_IOCTL_TREAD)");
 			return ret;
 		}
 	}
