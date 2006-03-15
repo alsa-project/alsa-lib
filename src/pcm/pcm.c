@@ -259,6 +259,29 @@ See the #snd_pcm_mmap_readi(),
 #snd_pcm_writei(), #snd_pcm_readn()
 and #snd_pcm_writen() functions.
 
+\section pcm_errors Error codes
+
+\par -EPIPE
+
+This error means xrun (underrun for playback or overrun for capture).
+The underrun can happen when an application does not feed new samples
+in time to alsa-lib (due CPU usage). The overrun can happen when
+an application does not take new captured samples in time from alsa-lib.
+
+\par -ESTRPIPE
+
+This error means that system has suspended drivers. The application
+should wait in loop when snd_pcm_resume() != -EAGAIN and then
+call snd_pcm_prepare() when snd_pcm_resume() return an error code.
+If snd_pcm_resume() does not fail (a zero value is returned), driver
+supports resume and the snd_pcm_prepare() call can be ommited.
+
+\par -EBADFD
+
+This error can happen when device is physically removed (for example
+some hotplug devices like USB or PCMCIA, CardBus or ExpressCard
+can be removed on the fly).
+
 \section pcm_params Managing parameters
 
 The ALSA PCM device uses two groups of PCM related parameters. The hardware
