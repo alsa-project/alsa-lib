@@ -619,6 +619,7 @@ static int snd_pcm_rate_hw_free(snd_pcm_t *pcm)
 		rate->sareas = NULL;
 	}
 	free(rate->old_sample);
+	rate->old_sample = NULL;
 	return snd_pcm_hw_free(rate->gen.slave);
 }
 
