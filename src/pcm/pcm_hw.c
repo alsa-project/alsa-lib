@@ -97,6 +97,10 @@ typedef struct {
 	    avail_update_flag: 1,
 	    mmap_shm: 1;
 	snd_pcm_uframes_t appl_ptr;
+	/* restricted parameters */
+	snd_pcm_format_t format;
+	int rate;
+	int channels;
 } snd_pcm_hw_t;
 
 #define SNDRV_FILE_PCM_STREAM_PLAYBACK		ALSA_DEVICE_DIRECTORY "pcmC%iD%ip"
@@ -223,6 +227,25 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int err;
+
+	if (hw->format != SND_PCM_FORMAT_UNKNOWN) {
+		err = _snd_pcm_hw_params_set_format(params, hw->format);
+		if (err < 0)
+			return err;
+	}
+	if (hw->channels > 0) {
+		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_CHANNELS,
+					    hw->channels, 0);
+		if (err < 0)
+			return err;
+	}
+	if (hw->rate > 0) {
+		err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_RATE,
+						   hw->rate, 0, hw->rate + 1, -1);
+		if (err < 0)
+			return err;
+	}
+
 	if (hw->mmap_emulation) {
 		int err = 0;
 		snd_pcm_access_mask_t oldmask = *snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
@@ -1117,6 +1140,10 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	hw->fd = fd;
 	hw->mmap_emulation = mmap_emulation;
 	hw->sync_ptr_ioctl = sync_ptr_ioctl;
+	/* no restriction */
+	hw->format = SND_PCM_FORMAT_UNKNOWN;
+	hw->rate = 0;
+	hw->channels = 0;
 
 	ret = snd_pcm_new(&pcm, SND_PCM_TYPE_HW, name, info.stream, mode);
 	if (ret < 0) {
@@ -1254,6 +1281,9 @@ pcm.name {
 	[mmap_emulation BOOL]	# Enable mmap emulation for ro/wo devices
 	[sync_ptr_ioctl BOOL]	# Use SYNC_PTR ioctl rather than the direct mmap access for control structures
 	[nonblock BOOL]		# Force non-blocking open mode
+	[format STR]		# Restrict only to the given format
+	[channels INT]		# Restrict only to the given channels
+	[rate INT]		# Restrict only to the given rate
 }
 \endcode
 
@@ -1286,8 +1316,11 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	long card = -1, device = 0, subdevice = -1;
 	const char *str;
 	int err, mmap_emulation = 0, sync_ptr_ioctl = 0;
+	int rate = 0, channels = 0;
+	snd_pcm_format_t format = SND_PCM_FORMAT_UNKNOWN;
 	snd_config_t *n;
 	int nonblock = 1; /* non-block per default */
+	snd_pcm_hw_t *hw;
 
 	/* look for defaults.pcm.nonblock definition */
 	if (snd_config_search(root, "defaults.pcm.nonblock", &n) >= 0) {
@@ -1355,6 +1388,35 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			nonblock = err;
 			continue;
 		}
+		if (strcmp(id, "rate") == 0) {
+			long val;
+			err = snd_config_get_integer(n, &val);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				return err;
+			}
+			rate = val;
+			continue;
+		}
+		if (strcmp(id, "format") == 0) {
+			err = snd_config_get_string(n, &str);
+			if (err < 0) {
+				SNDERR("invalid type for %s", id);
+				return err;
+			}
+			format = snd_pcm_format_value(str);
+			continue;
+		}
+		if (strcmp(id, "channels") == 0) {
+			long val;
+			err = snd_config_get_integer(n, &val);
+			if (err < 0) {
+				SNDERR("Invalid type for %s", id);
+				return err;
+			}
+			channels = val;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -1370,6 +1432,15 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 	if (nonblock && ! (mode & SND_PCM_NONBLOCK))
 		/* revert to blocking mode for read/write access */
 		snd_pcm_hw_nonblock(*pcmp, 0);
+
+	hw = (*pcmp)->private_data;
+	if (format != SND_PCM_FORMAT_UNKNOWN)
+		hw->format = format;
+	if (channels > 0)
+		hw->channels = channels;
+	if (rate > 0)
+		hw->rate = rate;
+
 	return 0;
 }
 
