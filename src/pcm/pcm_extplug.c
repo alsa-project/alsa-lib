@@ -228,7 +228,19 @@ static int snd_pcm_extplug_hw_refine_sprepare(snd_pcm_t *pcm,
 static unsigned int get_links(struct snd_ext_parm *params)
 {
 	int i;
-	unsigned int links = -1;
+	unsigned int links = (SND_PCM_HW_PARBIT_FORMAT |
+			      SND_PCM_HW_PARBIT_SUBFORMAT |
+			      SND_PCM_HW_PARBIT_SAMPLE_BITS |
+			      SND_PCM_HW_PARBIT_CHANNELS |
+			      SND_PCM_HW_PARBIT_FRAME_BITS |
+			      SND_PCM_HW_PARBIT_RATE |
+			      SND_PCM_HW_PARBIT_PERIODS |
+			      SND_PCM_HW_PARBIT_PERIOD_SIZE |
+			      SND_PCM_HW_PARBIT_PERIOD_TIME |
+			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
+			      SND_PCM_HW_PARBIT_BUFFER_TIME |
+			      SND_PCM_HW_PARBIT_TICK_TIME);
+
 	for (i = 0; i < SND_PCM_EXTPLUG_HW_PARAMS; i++) {
 		if (params[i].active)
 			links &= ~excl_parbits[i];
@@ -242,16 +254,8 @@ static int snd_pcm_extplug_hw_refine_schange(snd_pcm_t *pcm,
 {
 	extplug_priv_t *ext = pcm->private_data;
 	unsigned int links = get_links(ext->sparams);
-	int err, change;
-	err = extplug_hw_refine(sparams, ext->sparams);
-	if (err < 0)
-		return err;
-	change = err;
-	err = _snd_pcm_hw_params_refine(sparams, links, params);
-	if (err < 0)
-		return err;
-	change |= err;
-	return change;
+
+	return _snd_pcm_hw_params_refine(sparams, links, params);
 }
 	
 static int snd_pcm_extplug_hw_refine_cchange(snd_pcm_t *pcm,
@@ -260,26 +264,19 @@ static int snd_pcm_extplug_hw_refine_cchange(snd_pcm_t *pcm,
 {
 	extplug_priv_t *ext = pcm->private_data;
 	unsigned int links = get_links(ext->params);
-	int err, change;
-	err = extplug_hw_refine(params, ext->params);
-	if (err < 0)
-		return err;
-	change = err;
-	err = _snd_pcm_hw_params_refine(params, links, sparams);
-	if (err < 0)
-		return err;
-	change |= err;
-	return change;
+
+	return _snd_pcm_hw_params_refine(params, links, sparams);
 }
 
 static int snd_pcm_extplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
-	return snd_pcm_hw_refine_slave(pcm, params,
+	int err = snd_pcm_hw_refine_slave(pcm, params,
 				       snd_pcm_extplug_hw_refine_cprepare,
 				       snd_pcm_extplug_hw_refine_cchange,
 				       snd_pcm_extplug_hw_refine_sprepare,
 				       snd_pcm_extplug_hw_refine_schange,
 				       snd_pcm_generic_hw_refine);
+	return err;
 }
 
 /*
@@ -366,6 +363,15 @@ snd_pcm_extplug_read_areas(snd_pcm_t *pcm,
 					     slave_areas, slave_offset, size);
 	*slave_sizep = size;
 	return size;
+}
+
+/*
+ * call init callback
+ */
+static int snd_pcm_extplug_init(snd_pcm_t *pcm)
+{
+	extplug_priv_t *ext = pcm->private_data;
+	return ext->data->callback->init(ext->data);
 }
 
 /*
@@ -480,6 +486,7 @@ struct myplug_info {
 SND_PCM_PLUGIN_DEFINE_FUNC(myplug)
 {
 	snd_config_iterator_t i, next;
+	snd_config_t *slave = NULL;
 	struct myplug_info *myplug;
 	int err;
 
@@ -490,11 +497,20 @@ SND_PCM_PLUGIN_DEFINE_FUNC(myplug)
 			continue;
 		if (strcmp(id, "comment") == 0 || strcmp(id, "type") == 0)
 			continue;
+		if (strcmp(id, "slave") == 0) {
+			slave = n;
+			continue;
+		}
 		if (strcmp(id, "my_own_parameter") == 0) {
 			....
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
+		return -EINVAL;
+	}
+
+	if (! slave) {
+		SNDERR("No slave defined for myplug");
 		return -EINVAL;
 	}
 
@@ -508,7 +524,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(myplug)
 	myplug->ext.private_data = myplug;
 	....
 
-	err = snd_pcm_extplug_create(&myplug->ext, name, stream, mode);
+	err = snd_pcm_extplug_create(&myplug->ext, name, root, conf, stream, mode);
 	if (err < 0) {
 		myplug_free(myplug);
 		return err;
@@ -561,6 +577,10 @@ again.  The hw_params and hw_free callbacks are called at
 #snd_pcm_hw_params() and #snd_pcm_hw_free() API calls,
 respectively.  The last, dump callback, is called for printing the
 information of the given plugin.
+
+The init callback is called when the PCM is at prepare state or any
+initialization is issued.  Use this callback to reset the PCM instance
+to a sane initial state.
 
 The hw_params constraints can be defined via either
 #snd_pcm_extplug_set_param_minmax() and #snd_pcm_extplug_set_param_list()
@@ -641,6 +661,8 @@ int snd_pcm_extplug_create(snd_pcm_extplug_t *extplug, const char *name,
 	ext->plug.undo_write = snd_pcm_plugin_undo_write_generic;
 	ext->plug.gen.slave = spcm;
 	ext->plug.gen.close_slave = 1;
+	if (extplug->callback->init)
+		ext->plug.init = snd_pcm_extplug_init;
 
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_EXTPLUG, name, stream, mode);
 	if (err < 0) {

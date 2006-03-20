@@ -55,7 +55,7 @@ typedef struct snd_pcm_extplug_callback snd_pcm_extplug_callback_t;
  */
 #define SND_PCM_EXTPLUG_VERSION_MAJOR	1	/**< Protocol major version */
 #define SND_PCM_EXTPLUG_VERSION_MINOR	0	/**< Protocol minor version */
-#define SND_PCM_EXTPLUG_VERSION_TINY	0	/**< Protocol tiny version */
+#define SND_PCM_EXTPLUG_VERSION_TINY	1	/**< Protocol tiny version */
 /**
  * Filter-plugin protocol version
  */
@@ -147,6 +147,10 @@ struct snd_pcm_extplug_callback {
 	 * dump; optional
 	 */
 	void (*dump)(snd_pcm_extplug_t *ext, snd_output_t *out);
+	/**
+	 * init; optional initialization called at prepare or reset
+	 */
+	int (*init)(snd_pcm_extplug_t *ext);
 };
 
 
