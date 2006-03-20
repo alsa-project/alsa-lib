@@ -194,7 +194,7 @@ static void mix_areas1_swap(unsigned int size,
 	register signed int sample;
 
 	for (;;) {
-		sample = bswap_16(*src);
+		sample = (signed short) bswap_16(*src);
 		if (! *dst) {
 			*sum = sample;
 			*dst = *src;
@@ -205,7 +205,7 @@ static void mix_areas1_swap(unsigned int size,
 				sample = 0x7fff;
 			else if (sample < -0x8000)
 				sample = -0x8000;
-			*dst = bswap_16((signed short)sample);
+			*dst = (signed short) bswap_16((signed short) sample);
 		}
 		if (!--size)
 			return;
