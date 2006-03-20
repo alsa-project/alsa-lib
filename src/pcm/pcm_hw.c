@@ -1429,9 +1429,11 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 			      mmap_emulation, sync_ptr_ioctl);
 	if (err < 0)
 		return err;
-	if (nonblock && ! (mode & SND_PCM_NONBLOCK))
+	if (nonblock && ! (mode & SND_PCM_NONBLOCK)) {
 		/* revert to blocking mode for read/write access */
 		snd_pcm_hw_nonblock(*pcmp, 0);
+		(*pcmp)->mode = mode;
+	}
 
 	hw = (*pcmp)->private_data;
 	if (format != SND_PCM_FORMAT_UNKNOWN)
