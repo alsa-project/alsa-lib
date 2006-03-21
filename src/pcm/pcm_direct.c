@@ -497,14 +497,6 @@ int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid)
 	return snd_timer_async(dmix->timer, sig, pid);
 }
 
-static inline void process_timer_event(snd_pcm_direct_t *dmix ATTRIBUTE_UNUSED,
-				       snd_timer_tread_t *te ATTRIBUTE_UNUSED)
-{
-#if 0
-	printf("te->event = %i\n", te->event);
-#endif
-}
-
 /* empty the timer read queue */
 void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 {
@@ -512,9 +504,8 @@ void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 		while (poll(&dmix->timer_fd, 1, 0) > 0) {
 			/* we don't need the value */
 			if (dmix->tread) {
-				snd_timer_tread_t rbuf;
-				snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
-				process_timer_event(dmix, &rbuf);
+				snd_timer_tread_t rbuf[4];
+				snd_timer_read(dmix->timer, rbuf, sizeof(rbuf));
 			} else {
 				snd_timer_read_t rbuf;
 				snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf));
@@ -522,9 +513,12 @@ void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 		}
 	} else {
 		if (dmix->tread) {
-			snd_timer_tread_t rbuf;
-			while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) > 0)
-				process_timer_event(dmix, &rbuf);
+			snd_timer_tread_t rbuf[4];
+			int len;
+			while ((len = snd_timer_read(dmix->timer, rbuf,
+						     sizeof(rbuf))) > 0 &&
+			       len != sizeof(rbuf[0]))
+				;
 		} else {
 			snd_timer_read_t rbuf;
 			while (snd_timer_read(dmix->timer, &rbuf, sizeof(rbuf)) > 0)
