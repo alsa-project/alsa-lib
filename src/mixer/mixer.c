@@ -833,7 +833,7 @@ snd_mixer_elem_t *snd_mixer_elem_prev(snd_mixer_elem_t *elem)
 /**
  * \brief Handle pending mixer events invoking callbacks
  * \param mixer Mixer handle
- * \return 0 otherwise a negative error code on failure
+ * \return Number of events that occured on success, otherwise a negative error code on failure
  */
 int snd_mixer_handle_events(snd_mixer_t *mixer)
 {
