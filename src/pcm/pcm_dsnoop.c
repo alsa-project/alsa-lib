@@ -468,12 +468,8 @@ static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
  * \brief Creates a new dsnoop PCM
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
- * \param ipc_key IPC key for semaphore and shared memory
- * \param ipc_perm IPC permissions for semaphore and shared memory
- * \param ipc_gid IPC group ID for semaphore and shared memory
+ * \param opts Direct PCM configurations
  * \param params Parameters for slave
- * \param bindings Channel bindings
- * \param slowptr Slow but more precise pointer updates
  * \param root Configuration root
  * \param sconf Slave configuration
  * \param stream PCM Direction (stream)
@@ -484,10 +480,8 @@ static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
  *          changed in future.
  */
 int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
-			key_t ipc_key, mode_t ipc_perm, int ipc_gid,
+			struct snd_pcm_direct_open_conf *opts,
 			struct slave_params *params,
-			snd_config_t *bindings,
-			int slowptr,
 			snd_config_t *root, snd_config_t *sconf,
 			snd_pcm_stream_t stream, int mode)
 {
@@ -508,13 +502,13 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		goto _err_nosem;
 	}
 	
-	ret = snd_pcm_direct_parse_bindings(dsnoop, bindings);
+	ret = snd_pcm_direct_parse_bindings(dsnoop, opts->bindings);
 	if (ret < 0)
 		goto _err_nosem;
 	
-	dsnoop->ipc_key = ipc_key;
-	dsnoop->ipc_perm = ipc_perm;
-	dsnoop->ipc_gid = ipc_gid;
+	dsnoop->ipc_key = opts->ipc_key;
+	dsnoop->ipc_perm = opts->ipc_perm;
+	dsnoop->ipc_gid = opts->ipc_gid;
 	dsnoop->semid = -1;
 	dsnoop->shmid = -1;
 
@@ -549,7 +543,8 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	pcm->fast_ops = &snd_pcm_dsnoop_fast_ops;
 	pcm->private_data = dsnoop;
 	dsnoop->state = SND_PCM_STATE_OPEN;
-	dsnoop->slowptr = slowptr;
+	dsnoop->slowptr = opts->slowptr;
+	dsnoop->variable_buffer_size = opts->variable_buffer_size;
 	dsnoop->sync_ptr = snd_pcm_dsnoop_sync_ptr;
 
 	if (first_instance) {
@@ -753,8 +748,7 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 	}
 	dopen.ipc_key += ipc_offset;
 
-	err = snd_pcm_dsnoop_open(pcmp, name, dopen.ipc_key, dopen.ipc_perm, dopen.ipc_gid,
-				  &params, dopen.bindings, dopen.slowptr,
+	err = snd_pcm_dsnoop_open(pcmp, name, &dopen, &params,
 				  root, sconf, stream, mode);
 	if (err < 0)
 		snd_config_delete(sconf);

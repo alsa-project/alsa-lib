@@ -117,6 +117,7 @@ struct snd_pcm_direct {
 	snd_timer_t *timer; 		/* timer used as poll_fd */
 	int interleaved;	 	/* we have interleaved buffer */
 	int slowptr;			/* use slow but more precise ptr updates */
+	int variable_buffer_size;	/* allow the variable buffer size */
 	unsigned int channels;		/* client's channels */
 	unsigned int *bindings;
 	union {
@@ -196,6 +197,7 @@ struct snd_pcm_direct_open_conf {
 	mode_t ipc_perm;
 	int ipc_gid;
 	int slowptr;
+	int variable_buffer_size;
 	snd_config_t *slave;
 	snd_config_t *bindings;
 };

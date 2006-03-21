@@ -632,6 +632,19 @@ static int hw_param_interval_refine_one(snd_pcm_hw_params_t *params,
 	return 0;
 }
 
+static int hw_param_interval_refine_minmax(snd_pcm_hw_params_t *params,
+					   snd_pcm_hw_param_t var,
+					   unsigned int imin,
+					   unsigned int imax)
+{
+	snd_interval_t t;
+
+	memset(&t, 0, sizeof(t));
+	snd_interval_set_minmax(&t, imin, imax);
+	t.integer = 1;
+	return hw_param_interval_refine_one(params, var, &t);
+}
+
 #undef REFINE_DEBUG
 
 int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
@@ -682,14 +695,6 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					   &dshare->shmptr->hw.rate);
 	if (err < 0)
 		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_SIZE,
-					   &dshare->shmptr->hw.buffer_size);
-	if (err < 0)
-		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_TIME,
-					   &dshare->shmptr->hw.buffer_time);
-	if (err < 0)
-		return err;
 	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIOD_SIZE,
 					   &dshare->shmptr->hw.period_size);
 	if (err < 0)
@@ -698,10 +703,33 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					   &dshare->shmptr->hw.period_time);
 	if (err < 0)
 		return err;
-	err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_PERIODS,
-					   &dshare->shmptr->hw.periods);
-	if (err < 0)
-		return err;
+	if (! dshare->variable_buffer_size) {
+		err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_SIZE,
+						   &dshare->shmptr->hw.buffer_size);
+		if (err < 0)
+			return err;
+		err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_TIME,
+						   &dshare->shmptr->hw.buffer_time);
+		if (err < 0)
+			return err;
+	} else if (params->rmask & ((1<<SND_PCM_HW_PARAM_PERIODS)|
+				    (1<<SND_PCM_HW_PARAM_BUFFER_BYTES)|
+				    (1<<SND_PCM_HW_PARAM_BUFFER_SIZE)|
+				    (1<<SND_PCM_HW_PARAM_BUFFER_TIME))) {
+		int changed;
+		do {
+			changed = 0;
+			err = hw_param_interval_refine_minmax(params, SND_PCM_HW_PARAM_PERIODS,
+						      2, INT_MAX);
+			if (err < 0)
+				return err;
+			changed |= err;
+			err = snd_pcm_hw_refine_soft(pcm, params);
+			if (err < 0)
+				return err;
+			changed |= err;
+		} while (changed);
+	}
 	params->info = dshare->shmptr->s.info;
 #ifdef REFINE_DEBUG
 	snd_output_puts(log, "DMIX REFINE (end):\n");
@@ -1376,6 +1404,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *conf, struct snd_pcm_direct_ope
 	rec->ipc_perm = 0600;
 	rec->ipc_gid = -1;
 	rec->slowptr = 0;
+	rec->variable_buffer_size = 0;
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1460,6 +1489,13 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *conf, struct snd_pcm_direct_ope
 			if (err < 0)
 				return err;
 			rec->slowptr = err;
+			continue;
+		}
+		if (strcmp(id, "variable_buffer_size") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				return err;
+			rec->variable_buffer_size = err;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);

@@ -760,12 +760,8 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
  * \brief Creates a new dmix PCM
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
- * \param ipc_key IPC key for semaphore and shared memory
- * \param ipc_perm IPC permissions for semaphore and shared memory
- * \param ipc_gid IPC group ID for semaphore and shared memory
+ * \param opts Direct PCM configurations
  * \param params Parameters for slave
- * \param bindings Channel bindings
- * \param slowptr Slow but more precise pointer updates
  * \param root Configuration root
  * \param sconf Slave configuration
  * \param stream PCM Direction (stream)
@@ -776,10 +772,8 @@ static snd_pcm_fast_ops_t snd_pcm_dmix_fast_ops = {
  *          changed in future.
  */
 int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
-		      key_t ipc_key, mode_t ipc_perm, int ipc_gid,
+		      struct snd_pcm_direct_open_conf *opts,
 		      struct slave_params *params,
-		      snd_config_t *bindings,
-		      int slowptr,
 		      snd_config_t *root, snd_config_t *sconf,
 		      snd_pcm_stream_t stream, int mode)
 {
@@ -801,13 +795,13 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		goto _err_nosem;
 	}
 	
-	ret = snd_pcm_direct_parse_bindings(dmix, bindings);
+	ret = snd_pcm_direct_parse_bindings(dmix, opts->bindings);
 	if (ret < 0)
 		goto _err_nosem;
 	
-	dmix->ipc_key = ipc_key;
-	dmix->ipc_perm = ipc_perm;
-	dmix->ipc_gid = ipc_gid;
+	dmix->ipc_key = opts->ipc_key;
+	dmix->ipc_perm = opts->ipc_perm;
+	dmix->ipc_gid = opts->ipc_gid;
 	dmix->semid = -1;
 	dmix->shmid = -1;
 
@@ -842,7 +836,8 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	pcm->fast_ops = &snd_pcm_dmix_fast_ops;
 	pcm->private_data = dmix;
 	dmix->state = SND_PCM_STATE_OPEN;
-	dmix->slowptr = slowptr;
+	dmix->slowptr = opts->slowptr;
+	dmix->variable_buffer_size = opts->variable_buffer_size;
 	dmix->sync_ptr = snd_pcm_dmix_sync_ptr;
 
 	if (first_instance) {
@@ -1132,8 +1127,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	}
 	dopen.ipc_key += ipc_offset;
 
-	err = snd_pcm_dmix_open(pcmp, name, dopen.ipc_key, dopen.ipc_perm, dopen.ipc_gid,
-				&params, dopen.bindings, dopen.slowptr,
+	err = snd_pcm_dmix_open(pcmp, name, &dopen, &params,
 				root, sconf, stream, mode);
 	if (err < 0)
 		snd_config_delete(sconf);
