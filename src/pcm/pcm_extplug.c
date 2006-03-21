@@ -300,6 +300,8 @@ static int snd_pcm_extplug_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
 	ext->data->rate = slave->rate;
 	INTERNAL(snd_pcm_hw_params_get_format)(params, &ext->data->format);
 	INTERNAL(snd_pcm_hw_params_get_subformat)(params, &ext->data->subformat);
+	INTERNAL(snd_pcm_hw_params_get_channels)(params, &ext->data->channels);
+
 	if (ext->data->callback->hw_params) {
 		err = ext->data->callback->hw_params(ext->data, params);
 		if (err < 0)
