@@ -6364,11 +6364,9 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 
 	switch (state) {
 	case SND_PCM_STATE_PREPARED:
-		if (size >= pcm->start_threshold) {
-			err = snd_pcm_start(pcm);
-			if (err < 0)
-				goto _end;
-		}
+		err = snd_pcm_start(pcm);
+		if (err < 0)
+			goto _end;
 		break;
 	case SND_PCM_STATE_DRAINING:
 	case SND_PCM_STATE_RUNNING:
@@ -6470,8 +6468,12 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		if (avail < 0) {
 			err = avail;
 			goto _end;
-		} else if (((snd_pcm_uframes_t)avail < pcm->avail_min && size > (snd_pcm_uframes_t)avail) ||
-		           (size >= pcm->xfer_align && (snd_pcm_uframes_t)avail < pcm->xfer_align)) {
+		}
+		if ((state == SND_PCM_STATE_RUNNING &&
+		     (snd_pcm_uframes_t)avail < pcm->avail_min &&
+		     size > (snd_pcm_uframes_t)avail) ||
+		    (size >= pcm->xfer_align &&
+		     (snd_pcm_uframes_t)avail < pcm->xfer_align)) {
 
 			if (pcm->mode & SND_PCM_NONBLOCK) {
 				err = -EAGAIN;
