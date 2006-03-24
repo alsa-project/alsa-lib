@@ -6494,9 +6494,6 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		if (err < 0)
 			break;
 		frames = err;
-		offset += frames;
-		size -= frames;
-		xfer += frames;
 		if (state == SND_PCM_STATE_PREPARED) {
 			snd_pcm_sframes_t hw_avail = pcm->buffer_size - avail;
 			hw_avail += frames;
@@ -6509,6 +6506,9 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 					goto _end;
 			}
 		}
+		offset += frames;
+		size -= frames;
+		xfer += frames;
 	}
  _end:
 	return xfer > 0 ? (snd_pcm_sframes_t) xfer : snd_pcm_check_error(pcm, err);
