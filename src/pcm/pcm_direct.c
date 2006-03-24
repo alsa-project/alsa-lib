@@ -713,8 +713,11 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		int changed;
 		do {
 			changed = 0;
+			/* Set min/max size to [2:1024] since INT_MAX as the
+			 * upper-limit results in a too big buffer on some apps.
+			 */
 			err = hw_param_interval_refine_minmax(params, SND_PCM_HW_PARAM_PERIODS,
-						      2, INT_MAX);
+							      2, 1024);
 			if (err < 0)
 				return err;
 			changed |= err;

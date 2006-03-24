@@ -484,21 +484,35 @@ static int snd_pcm_dmix_prepare(snd_pcm_t *pcm)
 	return snd_pcm_direct_set_timer_params(dmix);
 }
 
+static void reset_slave_ptr(snd_pcm_t *pcm, snd_pcm_direct_t *dmix)
+{
+	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
+	if (! dmix->variable_buffer_size ||
+	    pcm->buffer_size > pcm->period_size * 2)
+		return;
+	/* If we have too litte periods, better to align the start position
+	 * to the period boundary so that the interrupt can be handled properly
+	 * at the right time.
+	 */
+	dmix->slave_appl_ptr = ((dmix->slave_appl_ptr + dmix->slave_period_size - 1)
+				/ dmix->slave_period_size) * dmix->slave_period_size;
+}
+
 static int snd_pcm_dmix_reset(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	dmix->hw_ptr %= pcm->period_size;
 	dmix->appl_ptr = dmix->last_appl_ptr = dmix->hw_ptr;
-	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
+	reset_slave_ptr(pcm, dmix);
 	return 0;
 }
 
-static int snd_pcm_dmix_start_timer(snd_pcm_direct_t *dmix)
+static int snd_pcm_dmix_start_timer(snd_pcm_t *pcm, snd_pcm_direct_t *dmix)
 {
 	int err;
 
 	snd_pcm_hwsync(dmix->spcm);
-	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
+	reset_slave_ptr(pcm, dmix);
 	err = snd_timer_start(dmix->timer);
 	if (err < 0)
 		return err;
@@ -521,7 +535,7 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 	else if (avail < 0)
 		return 0;
 	else {
-		if ((err = snd_pcm_dmix_start_timer(dmix)) < 0)
+		if ((err = snd_pcm_dmix_start_timer(pcm, dmix)) < 0)
 			return err;
 		snd_pcm_dmix_sync_area(pcm);
 	}
@@ -664,7 +678,7 @@ static snd_pcm_sframes_t snd_pcm_dmix_mmap_commit(snd_pcm_t *pcm,
 		return 0;
 	snd_pcm_mmap_appl_forward(pcm, size);
 	if (dmix->state == STATE_RUN_PENDING) {
-		if ((err = snd_pcm_dmix_start_timer(dmix)) < 0)
+		if ((err = snd_pcm_dmix_start_timer(pcm, dmix)) < 0)
 			return err;
 	} else if (dmix->state == SND_PCM_STATE_RUNNING ||
 		   dmix->state == SND_PCM_STATE_DRAINING)
