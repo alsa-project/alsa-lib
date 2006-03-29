@@ -942,6 +942,7 @@ static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
 		}
 	}
 	snd_pcm_mmap_appl_forward(pcm, size);
+	sync_ptr(hw, 0);
 #ifdef DEBUG_MMAP
 	fprintf(stderr, "appl_forward: hw_ptr = %li, appl_ptr = %li, size = %li\n", *pcm->hw.ptr, *pcm->appl.ptr, size);
 #endif

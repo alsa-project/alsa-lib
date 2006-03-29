@@ -524,6 +524,9 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	snd_atomic_read_init(&ratom, &plugin->watom);
  _again:
 	snd_atomic_read_begin(&ratom);
+	/* sync with the latest hw and appl ptrs */
+	snd_pcm_plugin_avail_update(pcm);
+
 	err = snd_pcm_status(plugin->gen.slave, status);
 	if (err < 0) {
 		snd_atomic_read_ok(&ratom);
@@ -545,7 +548,7 @@ int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 }
 
 snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
-	.status = snd_pcm_generic_status,
+	.status = snd_pcm_plugin_status,
 	.state = snd_pcm_generic_state,
 	.hwsync = snd_pcm_generic_hwsync,
 	.delay = snd_pcm_plugin_delay,
