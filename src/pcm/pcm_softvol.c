@@ -99,7 +99,7 @@ typedef union {
 static inline int MULTI_DIV_int(int a, unsigned short b, int swap)
 {
 	val_t v, x, y;
-	v.i = swap ? bswap_32(a) : a;
+	v.i = swap ? (int)bswap_32(a) : a;
 	y.i = 0;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	x.i = (unsigned int)v.s[0] * b;
@@ -110,7 +110,7 @@ static inline int MULTI_DIV_int(int a, unsigned short b, int swap)
 	y.s[1] = x.s[0];
 	y.i += (int)v.s[0] * b;
 #endif
-	return swap ? bswap_32(y.i) : y.i;
+	return swap ? (int)bswap_32(y.i) : y.i;
 }
 
 /* (16bit x 16bit) >> 16 */
