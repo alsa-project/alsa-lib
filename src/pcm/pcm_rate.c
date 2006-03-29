@@ -1060,10 +1060,12 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
+#if 0
 		if (slave_offset) {
 			SNDERR("non-zero slave_offset %ld", slave_offset);
 			return -EIO;
 		}
+#endif
 		snd_pcm_areas_copy(slave_areas, slave_offset,
 				   rate->sareas, xfer,
 				   pcm->channels, cont,
@@ -1151,10 +1153,12 @@ static int snd_pcm_rate_grab_next_period(snd_pcm_t *pcm, snd_pcm_uframes_t hw_of
 		result = snd_pcm_mmap_begin(rate->gen.slave, &slave_areas, &slave_offset, &slave_frames);
 		if (result < 0)
 			return result;
+#if 0
 		if (slave_offset) {
 			SNDERR("non-zero slave_offset %ld", slave_offset);
 			return -EIO;
 		}
+#endif
 		snd_pcm_areas_copy(rate->sareas, xfer,
 		                   slave_areas, slave_offset,
 				   pcm->channels, cont,
