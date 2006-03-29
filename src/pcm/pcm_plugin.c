@@ -137,7 +137,7 @@ void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin)
 	snd_atomic_write_init(&plugin->watom);
 }
 
-int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
+static int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t sd;
@@ -150,7 +150,7 @@ int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	return 0;
 }
 
-int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
+static int snd_pcm_plugin_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	int err;
@@ -192,7 +192,7 @@ static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 	return 0;
 }
 
-snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t n = snd_pcm_mmap_hw_avail(pcm);
@@ -221,7 +221,7 @@ snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames
 	return n;
 }
 
-snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t n = snd_pcm_mmap_avail(pcm);
@@ -345,7 +345,8 @@ static snd_pcm_sframes_t snd_pcm_plugin_read_areas(snd_pcm_t *pcm,
 }
 
 
-snd_pcm_sframes_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t
+snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_areas_from_buf(pcm, areas, (void*)buffer);
@@ -353,7 +354,8 @@ snd_pcm_sframes_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, snd_
 				   snd_pcm_plugin_write_areas);
 }
 
-snd_pcm_sframes_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t
+snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
@@ -361,7 +363,8 @@ snd_pcm_sframes_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_ufr
 				   snd_pcm_plugin_write_areas);
 }
 
-snd_pcm_sframes_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t
+snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_areas_from_buf(pcm, areas, buffer);
@@ -369,7 +372,8 @@ snd_pcm_sframes_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_ufr
 				  snd_pcm_plugin_read_areas);
 }
 
-snd_pcm_sframes_t snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
+static snd_pcm_sframes_t
+snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size)
 {
 	snd_pcm_channel_area_t areas[pcm->channels];
 	snd_pcm_areas_from_bufs(pcm, areas, bufs);
@@ -377,9 +381,10 @@ snd_pcm_sframes_t snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_ufra
 				  snd_pcm_plugin_read_areas);
 }
 
-snd_pcm_sframes_t snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
-					     snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
-					     snd_pcm_uframes_t size)
+static snd_pcm_sframes_t
+snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
+			   snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
+			   snd_pcm_uframes_t size)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->gen.slave;
@@ -445,7 +450,7 @@ snd_pcm_sframes_t snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm,
 	return xfer;
 }
 
-snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
+static snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_t *slave = plugin->gen.slave;
@@ -516,7 +521,7 @@ snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm)
 	}
 }
 
-int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
+static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t err;

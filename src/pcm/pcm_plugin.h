@@ -52,16 +52,6 @@ typedef struct {
 } snd_pcm_plugin_t;	
 
 void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin);
-int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status);
-int snd_pcm_plugin_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
-int snd_pcm_plugin_prepare(snd_pcm_t *pcm);
-snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
-snd_pcm_sframes_t snd_pcm_plugin_writei(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_plugin_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_plugin_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_plugin_readn(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_plugin_mmap_commit(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t size);
-snd_pcm_sframes_t snd_pcm_plugin_avail_update(snd_pcm_t *pcm);
 
 extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
