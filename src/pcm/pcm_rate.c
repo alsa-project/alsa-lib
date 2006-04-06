@@ -617,7 +617,12 @@ static int snd_pcm_rate_hwsync(snd_pcm_t *pcm)
 
 static int snd_pcm_rate_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
+	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_rate_hwsync(pcm);
+	/* call slave's delay callback although the value is overwritten.
+	 * it's needed for a better sync of dmix on aoss.
+	 */
+	snd_pcm_delay(rate->gen.slave, delayp);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK)
 		*delayp = snd_pcm_mmap_playback_hw_avail(pcm);
 	else
