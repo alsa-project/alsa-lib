@@ -50,6 +50,7 @@ typedef struct {
 	snd_pcm_format_t sformat;
 	int schannels;
 	int srate;
+	const char *rate_converter;
 	enum snd_pcm_plug_route_policy route_policy;
 	snd_pcm_route_ttable_entry_t *ttable;
 	int ttable_ok, ttable_last;
@@ -359,7 +360,8 @@ static int snd_pcm_plug_change_rate(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_plu
 	if (clt->rate == slv->rate)
 		return 0;
 	assert(snd_pcm_format_linear(slv->format));
-	err = snd_pcm_rate_open(new, NULL, slv->format, slv->rate, plug->gen.slave, plug->gen.slave != plug->req_slave);
+	err = snd_pcm_rate_open(new, NULL, slv->format, slv->rate, plug->rate_converter,
+				plug->gen.slave, plug->gen.slave != plug->req_slave);
 	if (err < 0)
 		return err;
 	slv->access = clt->access;
@@ -1013,6 +1015,7 @@ static snd_pcm_ops_t snd_pcm_plug_ops = {
 int snd_pcm_plug_open(snd_pcm_t **pcmp,
 		      const char *name,
 		      snd_pcm_format_t sformat, int schannels, int srate,
+		      const char *rate_converter,
 		      enum snd_pcm_plug_route_policy route_policy,
 		      snd_pcm_route_ttable_entry_t *ttable,
 		      unsigned int tt_ssize,
@@ -1030,6 +1033,7 @@ int snd_pcm_plug_open(snd_pcm_t **pcmp,
 	plug->sformat = sformat;
 	plug->schannels = schannels;
 	plug->srate = srate;
+	plug->rate_converter = rate_converter;
 	plug->gen.slave = plug->req_slave = slave;
 	plug->gen.close_slave = close_slave;
 	plug->route_policy = route_policy;
@@ -1087,6 +1091,8 @@ pcm.name {
 			SCHANNEL REAL	# route value (0.0 - 1.0)
 		}
 	}
+	rate_converter STR	# type of rate converter
+				# default value is taken from defaults.pcm.rate_converter
 }
 \endcode
 
@@ -1127,6 +1133,8 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	unsigned int cused, sused;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int schannels = -1, srate = -1;
+	const char *rate_converter = NULL;
+
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -1167,6 +1175,17 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 #endif
+#ifdef BUILD_PCM_PLUGIN_RATE
+		if (strcmp(id, "rate_converter") == 0) {
+			const char *str;
+			if ((err = snd_config_get_string(n, &str)) < 0) {
+				SNDERR("Invalid type for %s", id);
+				return -EINVAL;
+			}
+			rate_converter = str;
+			continue;
+		}
+#endif
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -1200,11 +1219,16 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	}
 #endif
 	
+#ifdef BUILD_PCM_PLUGIN_RATE
+	if (! rate_converter)
+		rate_converter = snd_pcm_rate_get_default_converter(root);
+#endif
+
 	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_plug_open(pcmp, name, sformat, schannels, srate,
+	err = snd_pcm_plug_open(pcmp, name, sformat, schannels, srate, rate_converter,
 				route_policy, ttable, ssize, cused, sused, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);

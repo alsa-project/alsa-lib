@@ -755,6 +755,8 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd, int mmap_emul
 
 int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout);
 
+const char *snd_pcm_rate_get_default_converter(snd_config_t *root);
+
 #define SND_PCM_HW_PARBIT_ACCESS	(1U << SND_PCM_HW_PARAM_ACCESS)
 #define SND_PCM_HW_PARBIT_FORMAT	(1U << SND_PCM_HW_PARAM_FORMAT)
 #define SND_PCM_HW_PARBIT_SUBFORMAT	(1U << SND_PCM_HW_PARAM_SUBFORMAT)

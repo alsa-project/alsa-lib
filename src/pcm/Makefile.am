@@ -29,7 +29,7 @@ if BUILD_PCM_PLUGIN_ADPCM
 libpcm_la_SOURCES += pcm_adpcm.c
 endif
 if BUILD_PCM_PLUGIN_RATE
-libpcm_la_SOURCES += pcm_rate.c
+libpcm_la_SOURCES += pcm_rate.c pcm_rate_linear.c
 endif
 if BUILD_PCM_PLUGIN_PLUG
 libpcm_la_SOURCES += pcm_plug.c
