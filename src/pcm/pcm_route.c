@@ -794,7 +794,6 @@ static int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t st
 		for (src_channel = 0; src_channel < sused; ++src_channel) {
 			snd_pcm_route_ttable_entry_t v;
 			v = ttable[src_channel * smul + dst_channel * dmul];
-			assert(v >= 0 && v <= SND_PCM_PLUGIN_ROUTE_FULL);
 			if (v != 0) {
 				srcs[nsrcs].channel = src_channel;
 #if SND_PCM_PLUGIN_ROUTE_FLOAT
@@ -802,6 +801,7 @@ static int route_load_ttable(snd_pcm_route_params_t *params, snd_pcm_stream_t st
 				srcs[nsrcs].as_int = (v == SND_PCM_PLUGIN_ROUTE_FULL ? SND_PCM_PLUGIN_ROUTE_RESOLUTION : 0);
 				srcs[nsrcs].as_float = v;
 #else
+				assert(v >= 0 && v <= SND_PCM_PLUGIN_ROUTE_FULL);
 				srcs[nsrcs].as_int = v;
 #endif
 				if (v != SND_PCM_PLUGIN_ROUTE_FULL)
