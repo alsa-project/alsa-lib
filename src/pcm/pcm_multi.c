@@ -424,8 +424,9 @@ static int snd_pcm_multi_prepare(snd_pcm_t *pcm)
 	int err = 0;
 	unsigned int i;
 	for (i = 0; i < multi->slaves_count; ++i) {
-		if (multi->slaves[i].linked)
-			continue;
+		/* We call prepare to each slave even if it's linked.
+		 * This is to make sure to sync non-mmaped control/status.
+		 */
 		err = snd_pcm_prepare(multi->slaves[i].pcm);
 		if (err < 0)
 			return err;
@@ -439,8 +440,7 @@ static int snd_pcm_multi_reset(snd_pcm_t *pcm)
 	int err = 0;
 	unsigned int i;
 	for (i = 0; i < multi->slaves_count; ++i) {
-		if (multi->slaves[i].linked)
-			continue;
+		/* Reset each slave, as well as in prepare */
 		err = snd_pcm_reset(multi->slaves[i].pcm);
 		if (err < 0)
 			return err;

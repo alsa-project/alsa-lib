@@ -624,6 +624,9 @@ static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fra
 		SYSMSG("SNDRV_PCM_IOCTL_REWIND failed");
 		return err;
 	}
+	err = sync_ptr(hw, SNDRV_PCM_SYNC_PTR_APPL);
+	if (err < 0)
+		return err;
 	return frames;
 }
 
@@ -637,6 +640,9 @@ static snd_pcm_sframes_t snd_pcm_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t fr
 			SYSMSG("SNDRV_PCM_IOCTL_FORWARD failed");
 			return err;
 		}
+		err = sync_ptr(hw, SNDRV_PCM_SYNC_PTR_APPL);
+		if (err < 0)
+			return err;
 		return frames;
 	} else {
 		snd_pcm_sframes_t avail;
