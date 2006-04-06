@@ -697,7 +697,7 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 					   &dshare->shmptr->hw.period_time);
 	if (err < 0)
 		return err;
-	if (! dshare->variable_buffer_size) {
+	if (dshare->max_periods < 0) {
 		err = hw_param_interval_refine_one(params, SND_PCM_HW_PARAM_BUFFER_SIZE,
 						   &dshare->shmptr->hw.buffer_size);
 		if (err < 0)
@@ -711,13 +711,13 @@ int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 				    (1<<SND_PCM_HW_PARAM_BUFFER_SIZE)|
 				    (1<<SND_PCM_HW_PARAM_BUFFER_TIME))) {
 		int changed;
+		unsigned int max_periods = dshare->max_periods;
+		if (max_periods < 2)
+			max_periods = dshare->slave_buffer_size / dshare->slave_period_size;
 		do {
 			changed = 0;
-			/* Set min/max size to [2:1024] since INT_MAX as the
-			 * upper-limit results in a too big buffer on some apps.
-			 */
 			err = hw_param_interval_refine_minmax(params, SND_PCM_HW_PARAM_PERIODS,
-							      2, 1024);
+							      2, max_periods);
 			if (err < 0)
 				return err;
 			changed |= err;
@@ -1382,17 +1382,19 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 	return (direction << 1) + (device << 2) + (subdevice << 8) + (card << 12);
 }
 
-int snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
+static int snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 					snd_config_t *sconf,
 					int direction)
 {
 	return _snd_pcm_direct_get_slave_ipc_offset(root, sconf, direction, 0);
 }
 
-int snd_pcm_direct_parse_open_conf(snd_config_t *conf, struct snd_pcm_direct_open_conf *rec)
+int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
+				   int stream, struct snd_pcm_direct_open_conf *rec)
 {
 	snd_config_iterator_t i, next;
 	int ipc_key_add_uid = 0;
+	snd_config_t *n;
 	int err;
 
 	rec->slave = NULL;
@@ -1401,10 +1403,18 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *conf, struct snd_pcm_direct_ope
 	rec->ipc_perm = 0600;
 	rec->ipc_gid = -1;
 	rec->slowptr = 0;
-	rec->variable_buffer_size = 0;
+	rec->max_periods = 0;
+
+	/* read defaults */
+	if (snd_config_search(root, "defaults.pcm.dmix_max_periods", &n) >= 0) {
+		long val;
+		err = snd_config_get_integer(n, &val);
+		if (err >= 0)
+			rec->max_periods = val;
+	}
 
 	snd_config_for_each(i, next, conf) {
-		snd_config_t *n = snd_config_iterator_entry(i);
+		n = snd_config_iterator_entry(i);
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
@@ -1488,11 +1498,12 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *conf, struct snd_pcm_direct_ope
 			rec->slowptr = err;
 			continue;
 		}
-		if (strcmp(id, "variable_buffer_size") == 0) {
-			err = snd_config_get_bool(n);
+		if (strcmp(id, "max_periods") == 0) {
+			long val;
+			err = snd_config_get_integer(n, &val);
 			if (err < 0)
 				return err;
-			rec->variable_buffer_size = err;
+			rec->max_periods = val;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
@@ -1502,11 +1513,16 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *conf, struct snd_pcm_direct_ope
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
-	if (ipc_key_add_uid)
-		rec->ipc_key += getuid();
 	if (!rec->ipc_key) {
 		SNDERR("Unique IPC key is not defined");
 		return -EINVAL;
 	}
+	if (ipc_key_add_uid)
+		rec->ipc_key += getuid();
+	err = snd_pcm_direct_get_slave_ipc_offset(root, rec->slave, stream);
+	if (err < 0)
+		return err;
+	rec->ipc_key += err;
+
 	return 0;
 }

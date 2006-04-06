@@ -487,8 +487,7 @@ static int snd_pcm_dmix_prepare(snd_pcm_t *pcm)
 static void reset_slave_ptr(snd_pcm_t *pcm, snd_pcm_direct_t *dmix)
 {
 	dmix->slave_appl_ptr = dmix->slave_hw_ptr = *dmix->spcm->hw.ptr;
-	if (! dmix->variable_buffer_size ||
-	    pcm->buffer_size > pcm->period_size * 2)
+	if (pcm->buffer_size > pcm->period_size * 2)
 		return;
 	/* If we have too litte periods, better to align the start position
 	 * to the period boundary so that the interrupt can be handled properly
@@ -851,7 +850,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = dmix;
 	dmix->state = SND_PCM_STATE_OPEN;
 	dmix->slowptr = opts->slowptr;
-	dmix->variable_buffer_size = opts->variable_buffer_size;
+	dmix->max_periods = opts->max_periods;
 	dmix->sync_ptr = snd_pcm_dmix_sync_ptr;
 
 	if (first_instance) {
@@ -1092,10 +1091,9 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	struct slave_params params;
 	struct snd_pcm_direct_open_conf dopen;
 	int bsize, psize;
-	int ipc_offset;
 	int err;
 
-	err = snd_pcm_direct_parse_open_conf(conf, &dopen);
+	err = snd_pcm_direct_parse_open_conf(root, conf, stream, &dopen);
 	if (err < 0)
 		return err;
 
@@ -1133,13 +1131,6 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 	params.period_size = psize;
 	params.buffer_size = bsize;
-
-	ipc_offset = snd_pcm_direct_get_slave_ipc_offset(root, sconf, stream);
-	if (ipc_offset < 0) {
-		snd_config_delete(sconf);
-		return ipc_offset;
-	}
-	dopen.ipc_key += ipc_offset;
 
 	err = snd_pcm_dmix_open(pcmp, name, &dopen, &params,
 				root, sconf, stream, mode);

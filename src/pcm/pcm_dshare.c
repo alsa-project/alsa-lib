@@ -662,7 +662,7 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = dshare;
 	dshare->state = SND_PCM_STATE_OPEN;
 	dshare->slowptr = opts->slowptr;
-	dshare->variable_buffer_size = opts->variable_buffer_size;
+	dshare->max_periods = opts->max_periods;
 	dshare->sync_ptr = snd_pcm_dshare_sync_ptr;
 
 	if (first_instance) {
@@ -835,10 +835,9 @@ int _snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	struct slave_params params;
 	struct snd_pcm_direct_open_conf dopen;
 	int bsize, psize;
-	int ipc_offset;
 	int err;
 
-	err = snd_pcm_direct_parse_open_conf(conf, &dopen);
+	err = snd_pcm_direct_parse_open_conf(root, conf, stream, &dopen);
 	if (err < 0)
 		return err;
 
@@ -868,13 +867,6 @@ int _snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 
 	params.period_size = psize;
 	params.buffer_size = bsize;
-
-	ipc_offset = snd_pcm_direct_get_slave_ipc_offset(root, sconf, stream);
-	if (ipc_offset < 0) {
-		snd_config_delete(sconf);
-		return ipc_offset;
-	}
-	dopen.ipc_key += ipc_offset;
 
 	err = snd_pcm_dshare_open(pcmp, name, &dopen, &params,
 				  root, sconf, stream, mode);
