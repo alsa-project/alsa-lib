@@ -7269,10 +7269,10 @@ int snd_pcm_get_params(snd_pcm_t *pcm,
                        snd_pcm_uframes_t *buffer_size,
                        snd_pcm_uframes_t *period_size)
 {
-	assert(pcm);
 	snd_pcm_hw_params_t *hw;
 	int err;
 
+	assert(pcm);
 	snd_pcm_hw_params_alloca(&hw);
 	err = snd_pcm_hw_params_current(pcm, hw);
 	if (err < 0)
