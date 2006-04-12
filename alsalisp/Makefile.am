@@ -1,4 +1,4 @@
-bin_PROGRAMS = alsalisp
+noinst_PROGRAMS = alsalisp
 
 alsalisp_SOURCES = alsalisp.c
 alsalisp_LDADD = ../src/libasound.la
