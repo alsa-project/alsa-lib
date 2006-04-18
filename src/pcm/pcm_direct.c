@@ -1414,8 +1414,8 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 	}
 
 	snd_config_for_each(i, next, conf) {
-		n = snd_config_iterator_entry(i);
 		const char *id;
+		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
 		if (snd_pcm_conf_generic_id(id))
