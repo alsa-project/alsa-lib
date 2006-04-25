@@ -67,6 +67,7 @@ typedef struct _snd_pcm_meter {
 	pthread_mutex_t running_mutex;
 	pthread_cond_t running_cond;
 	struct timespec delay;
+	void *dl_handle;
 } snd_pcm_meter_t;
 
 static void snd_pcm_meter_add_frames(snd_pcm_t *pcm,
@@ -277,6 +278,8 @@ static int snd_pcm_meter_close(snd_pcm_t *pcm)
 		scope = list_entry(pos, snd_pcm_scope_t, list);
 		snd_pcm_scope_remove(scope);
 	}
+	if (meter->dl_handle)
+		snd_dlclose(meter->dl_handle);
 	free(meter);
 	return err;
 }
@@ -599,8 +602,10 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 	snd_config_t *c, *type_conf;
 	int (*open_func)(snd_pcm_t *, const char *,
 			 snd_config_t *, snd_config_t *) = NULL;
+	snd_pcm_meter_t *meter = pcm->private_data;
 	void *h;
 	int err;
+
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid type for scope %s", str);
 		err = -EINVAL;
@@ -669,7 +674,14 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
        _err:
 	if (type_conf)
 		snd_config_delete(type_conf);
-	return err >= 0 ? open_func(pcm, name, root, conf) : err;
+	if (! err) {
+		err = open_func(pcm, name, root, conf);
+		if (err < 0)
+			snd_dlclose(h);
+		else
+			meter->dl_handle = h;
+	}
+	return err;
 }
 
 /*! \page pcm_plugins
