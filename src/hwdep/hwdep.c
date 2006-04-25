@@ -207,6 +207,8 @@ int snd_hwdep_close(snd_hwdep_t *hwdep)
 	int err;
   	assert(hwdep);
 	err = hwdep->ops->close(hwdep);
+	if (hwdep->dl_handle)
+		snd_dlclose(hwdep->dl_handle);
 	free(hwdep->name);
 	free(hwdep);
 	return err;
