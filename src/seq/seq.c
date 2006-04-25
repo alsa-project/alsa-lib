@@ -915,7 +915,14 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
        _err:
 	if (type_conf)
 		snd_config_delete(type_conf);
-	return err >= 0 ? open_func(seqp, name, seq_root, seq_conf, streams, mode) : err;
+	if (! err) {
+		err = open_func(seqp, name, seq_root, seq_conf, streams, mode);
+		if (err < 0)
+			snd_dlclose(h);
+		else
+			(*seqp)->dl_handle = h;
+	}
+	return err;
 }
 
 static int snd_seq_open_noupdate(snd_seq_t **seqp, snd_config_t *root,
@@ -1029,6 +1036,8 @@ int snd_seq_close(snd_seq_t *seq)
 	int err;
 	assert(seq);
 	err = seq->ops->close(seq);
+	if (seq->dl_handle)
+		snd_dlclose(seq->dl_handle);
 	free(seq->obuf);
 	free(seq->ibuf);
 	free(seq->tmpbuf);

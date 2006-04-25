@@ -76,6 +76,7 @@ struct _snd_seq {
 	int streams;
 	int mode;
 	int poll_fd;
+	void *dl_handle;
 	snd_seq_ops_t *ops;
 	void *private_data;
 	int client;		/* client number */
