@@ -706,7 +706,6 @@ int snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 			
 		snd_pcm_direct_semaphore_down(dshare, DIRECT_IPC_SEM_CLIENT);
 		ret = snd_pcm_direct_open_secondary_client(&spcm, dshare, "dshare_client");
-		ret = snd_pcm_hw_open_fd(&spcm, "dshare_client", dshare->hw_fd, 0, 0);
 		if (ret < 0)
 			goto _err;
 		dshare->spcm = spcm;
