@@ -397,16 +397,18 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
        _err:
 	if (type)
 		snd_config_delete(type);
-	if (err >= 0 && args && snd_config_get_string(args, &str) >= 0) {
-		err = snd_config_search_definition(root, "hook_args", str, &args);
-		if (err < 0) {
-			SNDERR("unknown hook_args %s", str);
-		} else {
-			err = install_func(pcm, args);
+	if (err >= 0) {
+		if (args && snd_config_get_string(args, &str) >= 0) {
+			err = snd_config_search_definition(root, "hook_args", str, &args);
+			if (err < 0)
+				SNDERR("unknown hook_args %s", str);
+			else
+				err = install_func(pcm, args);
 			snd_config_delete(args);
-		}
-	} else
-		err = install_func(pcm, args);
+		} else
+			err = install_func(pcm, args);
+		snd_dlclose(h);
+	}
 	if (err < 0)
 		return err;
 	return 0;
