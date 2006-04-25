@@ -171,7 +171,14 @@ static int snd_timer_open_conf(snd_timer_t **timer,
        _err:
 	if (type_conf)
 		snd_config_delete(type_conf);
-	return err >= 0 ? open_func(timer, name, timer_root, timer_conf, mode) : err;
+	if (! err) {
+		err = open_func(timer, name, timer_root, timer_conf, mode);
+		if (err < 0)
+			snd_dlclose(h);
+		else
+			(*timer)->dl_handle = h;
+	}
+	return err;
 }
 
 static int snd_timer_open_noupdate(snd_timer_t **timer, snd_config_t *root, const char *name, int mode)
@@ -243,6 +250,8 @@ int snd_timer_close(snd_timer_t *timer)
 		snd_async_del_handler(h);
 	}
 	err = timer->ops->close(timer);
+	if (timer->dl_handle)
+		snd_dlclose(timer->dl_handle);
 	free(timer->name);
 	free(timer);
 	return err;

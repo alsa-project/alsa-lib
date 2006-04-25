@@ -40,6 +40,7 @@ typedef struct {
 
 struct _snd_timer {
 	unsigned int version;
+	void *dl_handle;
 	char *name;
 	snd_timer_type_t type;
 	int mode;
@@ -58,6 +59,7 @@ typedef struct {
 } snd_timer_query_ops_t;
 
 struct _snd_timer_query {
+	void *dl_handle;
 	char *name;
 	snd_timer_type_t type;
 	int mode;
