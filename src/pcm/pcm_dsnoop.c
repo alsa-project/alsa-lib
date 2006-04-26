@@ -502,7 +502,7 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 		goto _err_nosem;
 	}
 	
-	ret = snd_pcm_direct_parse_bindings(dsnoop, opts->bindings);
+	ret = snd_pcm_direct_parse_bindings(dsnoop, params, opts->bindings);
 	if (ret < 0)
 		goto _err_nosem;
 	

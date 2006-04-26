@@ -170,7 +170,9 @@ int snd_pcm_direct_client_discard(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, struct slave_params *params);
 int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm);
-int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg);
+int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
+				  struct slave_params *params,
+				  snd_config_t *cfg);
 int snd_pcm_direct_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_direct_async(snd_pcm_t *pcm, int sig, pid_t pid);
 int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);

@@ -1223,10 +1223,13 @@ int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm)
  * id == client channel
  * value == slave's channel
  */
-int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg)
+int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
+				  struct slave_params *params,
+				  snd_config_t *cfg)
 {
 	snd_config_iterator_t i, next;
 	unsigned int chn, chn1, count = 0;
+	unsigned int *bindings;
 	int err;
 
 	dmix->channels = UINT_MAX;
@@ -1256,11 +1259,11 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg)
 		SNDERR("client channel out of range");
 		return -EINVAL;
 	}
-	dmix->bindings = malloc(count * sizeof(unsigned int));
-	if (dmix->bindings == NULL)
+	bindings = malloc(count * sizeof(unsigned int));
+	if (bindings == NULL)
 		return -ENOMEM;
 	for (chn = 0; chn < count; chn++)
-		dmix->bindings[chn] = UINT_MAX;		/* don't route */
+		bindings[chn] = UINT_MAX;		/* don't route */
 	snd_config_for_each(i, next, cfg) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -1270,9 +1273,16 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg)
 		safe_strtol(id, &cchannel);
 		if (snd_config_get_integer(n, &schannel) < 0) {
 			SNDERR("unable to get slave channel (should be integer type) in binding: %s\n", id);
+			free(bindings);
 			return -EINVAL;
 		}
-		dmix->bindings[cchannel] = schannel;
+		if (schannel < 0 || schannel >= params->channels) {
+			SNDERR("invalid slave channel number %d in binding to %d",
+			       schannel, cchannel);
+			free(bindings);
+			return -EINVAL;
+		}
+		bindings[cchannel] = schannel;
 	}
 	if (dmix->type == SND_PCM_TYPE_DSNOOP)
 		goto __skip_same_dst;
@@ -1280,13 +1290,15 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix, snd_config_t *cfg)
 		for (chn1 = 0; chn1 < count; chn1++) {
 			if (chn == chn1)
 				continue;
-			if (dmix->bindings[chn] == dmix->bindings[chn1]) {
-				SNDERR("unable to route channels %d,%d to same destination %d", chn, chn1, dmix->bindings[chn]);
+			if (bindings[chn] == dmix->bindings[chn1]) {
+				SNDERR("unable to route channels %d,%d to same destination %d", chn, chn1, bindings[chn]);
+				free(bindings);
 				return -EINVAL;
 			}
 		}
 	}
       __skip_same_dst:
+	dmix->bindings = bindings;
 	dmix->channels = count;
 	return 0;
 }

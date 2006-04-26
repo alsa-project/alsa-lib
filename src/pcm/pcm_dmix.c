@@ -808,7 +808,7 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 		goto _err_nosem;
 	}
 	
-	ret = snd_pcm_direct_parse_bindings(dmix, opts->bindings);
+	ret = snd_pcm_direct_parse_bindings(dmix, params, opts->bindings);
 	if (ret < 0)
 		goto _err_nosem;
 	
