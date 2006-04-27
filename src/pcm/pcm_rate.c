@@ -68,6 +68,8 @@ struct _snd_pcm_rate {
 	unsigned int put_idx;
 	int16_t *src_buf;
 	int16_t *dst_buf;
+	int start_pending; /* start is triggered but not commited to slave */
+	snd_htimestamp_t trigger_tstamp;
 };
 
 #endif /* DOC_HIDDEN */
@@ -408,6 +410,7 @@ static int snd_pcm_rate_init(snd_pcm_t *pcm)
 	if (rate->ops.reset)
 		rate->ops.reset(rate->obj);
 	rate->last_commit_ptr = 0;
+	rate->start_pending = 0;
 	return 0;
 }
 
@@ -797,7 +800,7 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 		xfer = cont;
 
 		if (xfer == slave_size)
-			return 1;
+			goto commit_done;
 		
 		/* commit second fragment */
 		cont = slave_size - cont;
@@ -824,6 +827,13 @@ static int snd_pcm_rate_commit_area(snd_pcm_t *pcm, snd_pcm_rate_t *rate,
 				return result;
 			return 0;
 		}
+	}
+
+ commit_done:
+	if (rate->start_pending) {
+		/* we have pending start-trigger.  let's issue it now */
+		snd_pcm_start(rate->gen.slave);
+		rate->start_pending = 0;
 	}
 	return 1;
 }
@@ -1083,6 +1093,41 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 	return snd_pcm_drain(rate->gen.slave);
 }
 
+static snd_pcm_state_t snd_pcm_rate_state(snd_pcm_t *pcm)
+{
+	snd_pcm_rate_t *rate = pcm->private_data;
+	if (rate->start_pending) /* pseudo-state */
+		return SND_PCM_STATE_RUNNING;
+	return snd_pcm_state(rate->gen.slave);
+}
+
+
+static int snd_pcm_rate_start(snd_pcm_t *pcm)
+{
+	snd_pcm_rate_t *rate = pcm->private_data;
+	snd_pcm_uframes_t avail;
+	struct timeval tv;
+		
+	if (pcm->stream == SND_PCM_STREAM_CAPTURE)
+		return snd_pcm_start(rate->gen.slave);
+
+	if (snd_pcm_state(rate->gen.slave) != SND_PCM_STATE_PREPARED)
+		return -EBADFD;
+
+	gettimeofday(&tv, 0);
+	rate->trigger_tstamp.tv_sec = tv.tv_sec;
+	rate->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+
+	avail = snd_pcm_mmap_playback_hw_avail(rate->gen.slave);
+	if (avail == 0) {
+		/* postpone the trigger since we have no data committed yet */
+		rate->start_pending = 1;
+		return 0;
+	}
+	rate->start_pending = 0;
+	return snd_pcm_start(rate->gen.slave);
+}
+
 static int snd_pcm_rate_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
@@ -1095,6 +1140,11 @@ static int snd_pcm_rate_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	if (err < 0) {
 		snd_atomic_read_ok(&ratom);
 		return err;
+	}
+	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
+		if (rate->start_pending)
+			status->state = SND_PCM_STATE_RUNNING;
+		status->trigger_tstamp = rate->trigger_tstamp;
 	}
 	snd_pcm_rate_sync_hwptr(pcm);
 	status->appl_ptr = *pcm->appl.ptr;
@@ -1144,12 +1194,12 @@ static int snd_pcm_rate_close(snd_pcm_t *pcm)
 
 static snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.status = snd_pcm_rate_status,
-	.state = snd_pcm_generic_state,
+	.state = snd_pcm_rate_state,
 	.hwsync = snd_pcm_rate_hwsync,
 	.delay = snd_pcm_rate_delay,
 	.prepare = snd_pcm_rate_prepare,
 	.reset = snd_pcm_rate_reset,
-	.start = snd_pcm_generic_start,
+	.start = snd_pcm_rate_start,
 	.drop = snd_pcm_generic_drop,
 	.drain = snd_pcm_rate_drain,
 	.pause = snd_pcm_generic_pause,
