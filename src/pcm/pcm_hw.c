@@ -1240,6 +1240,8 @@ int snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		fmode |= O_NONBLOCK;
 	if (mode & SND_PCM_ASYNC)
 		fmode |= O_ASYNC;
+	if (mode & SND_PCM_APPEND)
+		fmode |= O_APPEND;
 	fd = snd_open_device(filename, fmode);
 	if (fd < 0) {
 		ret = -errno;

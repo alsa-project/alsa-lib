@@ -360,8 +360,10 @@ static int snd_pcm_dsnoop_close(snd_pcm_t *pcm)
  		snd_pcm_direct_server_discard(dsnoop);
  	if (dsnoop->client)
  		snd_pcm_direct_client_discard(dsnoop);
-	snd_pcm_direct_shm_discard(dsnoop);
-	snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
+	if (snd_pcm_direct_shm_discard(dsnoop))
+		snd_pcm_direct_semaphore_discard(dsnoop);
+	else
+		snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
 	free(dsnoop->bindings);
 	pcm->private_data = NULL;
 	free(dsnoop);
@@ -570,27 +572,53 @@ int snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 		dsnoop->spcm = spcm;
 		
-		ret = snd_pcm_direct_server_create(dsnoop);
-		if (ret < 0) {
-			SNDERR("unable to create server");
-			goto _err;
+		if (dsnoop->shmptr->use_server) {
+			ret = snd_pcm_direct_server_create(dsnoop);
+			if (ret < 0) {
+				SNDERR("unable to create server");
+				goto _err;
+			}
 		}
 
 		dsnoop->shmptr->type = spcm->type;
 	} else {
-		/* up semaphore to avoid deadlock */
-		snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
-		ret = snd_pcm_direct_client_connect(dsnoop);
-		if (ret < 0) {
-			SNDERR("unable to connect client");
-			goto _err_nosem;
-		}
+		if (dsnoop->shmptr->use_server) {
+			/* up semaphore to avoid deadlock */
+			snd_pcm_direct_semaphore_up(dsnoop, DIRECT_IPC_SEM_CLIENT);
+			ret = snd_pcm_direct_client_connect(dsnoop);
+			if (ret < 0) {
+				SNDERR("unable to connect client");
+				goto _err_nosem;
+			}
 			
-		snd_pcm_direct_semaphore_down(dsnoop, DIRECT_IPC_SEM_CLIENT);
+			snd_pcm_direct_semaphore_down(dsnoop, DIRECT_IPC_SEM_CLIENT);
 
-		ret = snd_pcm_direct_open_secondary_client(&spcm, dsnoop, "dsnoop_client");
-		if (ret < 0)
-			goto _err;
+			ret = snd_pcm_direct_open_secondary_client(&spcm, dsnoop, "dsnoop_client");
+			if (ret < 0)
+				goto _err;
+		} else {
+
+			ret = snd_pcm_open_slave(&spcm, root, sconf, stream,
+						 mode | SND_PCM_NONBLOCK |
+						 SND_PCM_APPEND,
+						 NULL);
+			if (ret < 0) {
+				SNDERR("unable to open slave");
+				goto _err;
+			}
+			if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
+				SNDERR("dsnoop plugin can be only connected to hw plugin");
+				ret = -EINVAL;
+				goto _err;
+			}
+		
+			ret = snd_pcm_direct_initialize_secondary_slave(dsnoop, spcm, params);
+			if (ret < 0) {
+				SNDERR("unable to initialize slave");
+				goto _err;
+			}
+		}
+
 		dsnoop->spcm = spcm;
 	}
 

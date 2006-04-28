@@ -82,6 +82,8 @@ int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 	return 0;
 }
 
+#define SND_PCM_DIRECT_MAGIC	0xa15ad319
+
 /*
  *  global shared memory area 
  */
@@ -121,7 +123,13 @@ retryget:
 			buf.shm_perm.gid = dmix->ipc_gid;
 			shmctl(dmix->shmid, IPC_SET, &buf);
 		}
+		dmix->shmptr->magic = SND_PCM_DIRECT_MAGIC;
 		return 1;
+	} else {
+		if (dmix->shmptr->magic != SND_PCM_DIRECT_MAGIC) {
+			snd_pcm_direct_shm_discard(dmix);
+			return -errno;
+		}
 	}
 	return 0;
 }
@@ -1028,6 +1036,14 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	dmix->slave_boundary = spcm->boundary;
 
 	spcm->donot_close = 1;
+
+	{
+		int ver = 0;
+		ioctl(spcm->poll_fd, SNDRV_PCM_IOCTL_PVERSION, &ver);
+		if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 8))
+			dmix->shmptr->use_server = 1;
+	}
+
 	return 0;
 }
 
@@ -1125,6 +1141,36 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 	}
 		
 	spcm = *spcmp;
+	spcm->donot_close = 1;
+	spcm->setup = 1;
+	/* we copy the slave setting */
+	spcm->buffer_size = dmix->shmptr->s.buffer_size;
+	spcm->sample_bits = dmix->shmptr->s.sample_bits;
+	spcm->channels = dmix->shmptr->s.channels;
+	spcm->format = dmix->shmptr->s.format;
+	spcm->boundary = recalc_boundary_size(dmix->shmptr->s.boundary, spcm->buffer_size);
+	spcm->info = dmix->shmptr->s.info;
+
+	/* Use the slave setting as SPCM, so far */
+	dmix->slave_buffer_size = spcm->buffer_size;
+	dmix->slave_period_size = dmix->shmptr->s.period_size;
+	dmix->slave_boundary = spcm->boundary;
+
+	ret = snd_pcm_mmap(spcm);
+	if (ret < 0) {
+		SNDERR("unable to mmap channels");
+		return ret;
+	}
+	return 0;
+}
+
+/*
+ * open a slave PCM as secondary client (dup'ed fd)
+ */
+int snd_pcm_direct_initialize_secondary_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, struct slave_params *params)
+{
+	int ret;
+
 	spcm->donot_close = 1;
 	spcm->setup = 1;
 	/* we copy the slave setting */

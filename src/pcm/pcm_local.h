@@ -746,6 +746,8 @@ int snd_pcm_hw_strategy_simple_choices(snd_pcm_hw_strategy_t *strategy, int orde
 int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 		       snd_config_t **pcm_conf, unsigned int count, ...);
 
+#define SND_PCM_APPEND	(1<<8)
+
 int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 		       snd_config_t *conf, snd_pcm_stream_t stream,
 		       int mode, snd_config_t *parent_conf);

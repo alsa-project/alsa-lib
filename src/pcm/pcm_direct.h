@@ -51,8 +51,10 @@ struct slave_params {
 };
 
 typedef struct {
+	unsigned int magic;			/* magic number */
 	char socket_name[256];			/* name of communication socket */
 	snd_pcm_type_t type;			/* PCM type (currently only hw) */
+	int use_server;
 	struct {
 		unsigned int format;
 		snd_interval_t rate;
@@ -168,6 +170,7 @@ int snd_pcm_direct_server_discard(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_client_connect(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_client_discard(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, struct slave_params *params);
+int snd_pcm_direct_initialize_secondary_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, struct slave_params *params);
 int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix);
 int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm);
 int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,

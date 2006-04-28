@@ -650,8 +650,10 @@ static int snd_pcm_dmix_close(snd_pcm_t *pcm)
  	if (dmix->client)
  		snd_pcm_direct_client_discard(dmix);
  	shm_sum_discard(dmix);
-	snd_pcm_direct_shm_discard(dmix);
-	snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
+	if (snd_pcm_direct_shm_discard(dmix))
+		snd_pcm_direct_semaphore_discard(dmix);
+	else
+		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
 	free(dmix->bindings);
 	pcm->private_data = NULL;
 	free(dmix);
@@ -877,28 +879,54 @@ int snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 
 		dmix->spcm = spcm;
 
-		dmix->server_free = dmix_server_free;
+		if (dmix->shmptr->use_server) {
+			dmix->server_free = dmix_server_free;
 		
-		ret = snd_pcm_direct_server_create(dmix);
-		if (ret < 0) {
-			SNDERR("unable to create server");
-			goto _err;
+			ret = snd_pcm_direct_server_create(dmix);
+			if (ret < 0) {
+				SNDERR("unable to create server");
+				goto _err;
+			}
 		}
 
 		dmix->shmptr->type = spcm->type;
 	} else {
-		/* up semaphore to avoid deadlock */
-		snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
-		ret = snd_pcm_direct_client_connect(dmix);
-		if (ret < 0) {
-			SNDERR("unable to connect client");
-			goto _err_nosem;
-		}
+		if (dmix->shmptr->use_server) {
+			/* up semaphore to avoid deadlock */
+			snd_pcm_direct_semaphore_up(dmix, DIRECT_IPC_SEM_CLIENT);
+			ret = snd_pcm_direct_client_connect(dmix);
+			if (ret < 0) {
+				SNDERR("unable to connect client");
+				goto _err_nosem;
+			}
 			
-		snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
-		ret = snd_pcm_direct_open_secondary_client(&spcm, dmix, "dmix_client");
-		if (ret < 0)
-			goto _err;
+			snd_pcm_direct_semaphore_down(dmix, DIRECT_IPC_SEM_CLIENT);
+			ret = snd_pcm_direct_open_secondary_client(&spcm, dmix, "dmix_client");
+			if (ret < 0)
+				goto _err;
+		} else {
+
+			ret = snd_pcm_open_slave(&spcm, root, sconf, stream,
+						 mode | SND_PCM_NONBLOCK |
+						 SND_PCM_APPEND,
+						 NULL);
+			if (ret < 0) {
+				SNDERR("unable to open slave");
+				goto _err;
+			}
+			if (snd_pcm_type(spcm) != SND_PCM_TYPE_HW) {
+				SNDERR("dmix plugin can be only connected to hw plugin");
+				ret = -EINVAL;
+				goto _err;
+			}
+		
+			ret = snd_pcm_direct_initialize_secondary_slave(dmix, spcm, params);
+			if (ret < 0) {
+				SNDERR("unable to initialize slave");
+				goto _err;
+			}
+		}
+
 		dmix->spcm = spcm;
 	}
 
