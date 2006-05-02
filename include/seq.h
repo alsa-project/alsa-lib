@@ -232,9 +232,14 @@ typedef struct _snd_seq_port_info snd_seq_port_info_t;
 #define SND_SEQ_PORT_TYPE_MIDI_GS	(1<<3)	/**< GS compatible device */
 #define SND_SEQ_PORT_TYPE_MIDI_XG	(1<<4)	/**< XG compatible device */
 #define SND_SEQ_PORT_TYPE_MIDI_MT32	(1<<5)	/**< MT-32 compatible device */
+#define SND_SEQ_PORT_TYPE_MIDI_GM2	(1<<6)	/**< General MIDI 2 compatible device */
 #define SND_SEQ_PORT_TYPE_SYNTH		(1<<10)	/**< Synth device */
 #define SND_SEQ_PORT_TYPE_DIRECT_SAMPLE (1<<11)	/**< Sampling device (support sample download) */
 #define SND_SEQ_PORT_TYPE_SAMPLE	(1<<12)	/**< Sampling device (sample can be downloaded at any time) */
+#define SND_SEQ_PORT_TYPE_HARDWARE	(1<<16)	/**< driver for a hardware device */
+#define SND_SEQ_PORT_TYPE_SOFTWARE	(1<<17)	/**< implemented in software */
+#define SND_SEQ_PORT_TYPE_SYNTHESIZER	(1<<18)	/**< generates sound */
+#define SND_SEQ_PORT_TYPE_PORT		(1<<19)	/**< connects to other device(s) */
 #define SND_SEQ_PORT_TYPE_APPLICATION	(1<<20)	/**< application (sequencer/editor) */
 
 

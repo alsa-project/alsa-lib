@@ -2169,18 +2169,23 @@ void snd_seq_port_info_set_timestamp_queue(snd_seq_port_info_t *info, int queue)
  * - #SND_SEQ_PORT_CAP_DUPLEX Read/write duplex access is supported
  * - #SND_SEQ_PORT_CAP_SUBS_READ Read subscription is allowed
  * - #SND_SEQ_PORT_CAP_SUBS_WRITE Write subscription is allowed
- * - #SND_SEQ_PORT_CAP_SUBS_NO_EXPORT Subscription management from 3rd client is disallowed
+ * - #SND_SEQ_PORT_CAP_NO_EXPORT Subscription management from 3rd client is disallowed
  *
  * Each port has also the type bitmasks defined as follows:
  * - #SND_SEQ_PORT_TYPE_SPECIFIC Hardware specific port
  * - #SND_SEQ_PORT_TYPE_MIDI_GENERIC Generic MIDI device
  * - #SND_SEQ_PORT_TYPE_MIDI_GM General MIDI compatible device
+ * - #SND_SEQ_PORT_TYPE_MIDI_GM2 General MIDI 2 compatible device
  * - #SND_SEQ_PORT_TYPE_MIDI_GS GS compatible device
  * - #SND_SEQ_PORT_TYPE_MIDI_XG XG compatible device
  * - #SND_SEQ_PORT_TYPE_MIDI_MT32 MT-32 compatible device
  * - #SND_SEQ_PORT_TYPE_SYNTH Synth device
  * - #SND_SEQ_PORT_TYPE_DIRECT_SAMPLE Sampling device (supporting download)
  * - #SND_SEQ_PORT_TYPE_SAMPLE Sampling device (sample can be downloaded at any time)
+ * - #SND_SEQ_PORT_TYPE_HARDWARE Implemented in hardware
+ * - #SND_SEQ_PORT_TYPE_SOFTWARE Implemented in software
+ * - #SND_SEQ_PORT_TYPE_SYNTHESIZER Generates sound
+ * - #SND_SEQ_PORT_TYPE_PORT Connects to other device(s)
  * - #SND_SEQ_PORT_TYPE_APPLICATION Application (sequencer/editor)
  *
  * A port may contain specific midi channels, midi voices and synth voices.
