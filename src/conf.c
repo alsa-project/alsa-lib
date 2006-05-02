@@ -3963,7 +3963,7 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
  * \param name Key suffix.
  * \param result The function puts the handle to the expanded found node at
  *               the address specified by \p result.
- * \return Zero if successful, otherwise a negative error code.
+ * \return A non-negative value if successful, otherwise a negative error code.
  *
  * First the key is tried, then, if nothing is found, base.key is tried.
  * If the value found is a string, this is recursively tried in the
