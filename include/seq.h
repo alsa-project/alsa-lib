@@ -225,22 +225,41 @@ typedef struct _snd_seq_port_info snd_seq_port_info_t;
 #define SND_SEQ_PORT_CAP_SUBS_WRITE	(1<<6)	/**< allow write subscription */
 #define SND_SEQ_PORT_CAP_NO_EXPORT	(1<<7)	/**< routing not allowed */
 
-/** port type */
-#define SND_SEQ_PORT_TYPE_SPECIFIC	(1<<0)	/**< hardware specific */
-#define SND_SEQ_PORT_TYPE_MIDI_GENERIC	(1<<1)	/**< generic MIDI device */
-#define SND_SEQ_PORT_TYPE_MIDI_GM	(1<<2)	/**< General MIDI compatible device */
-#define SND_SEQ_PORT_TYPE_MIDI_GS	(1<<3)	/**< GS compatible device */
-#define SND_SEQ_PORT_TYPE_MIDI_XG	(1<<4)	/**< XG compatible device */
-#define SND_SEQ_PORT_TYPE_MIDI_MT32	(1<<5)	/**< MT-32 compatible device */
-#define SND_SEQ_PORT_TYPE_MIDI_GM2	(1<<6)	/**< General MIDI 2 compatible device */
-#define SND_SEQ_PORT_TYPE_SYNTH		(1<<10)	/**< Synth device */
-#define SND_SEQ_PORT_TYPE_DIRECT_SAMPLE (1<<11)	/**< Sampling device (support sample download) */
-#define SND_SEQ_PORT_TYPE_SAMPLE	(1<<12)	/**< Sampling device (sample can be downloaded at any time) */
-#define SND_SEQ_PORT_TYPE_HARDWARE	(1<<16)	/**< driver for a hardware device */
-#define SND_SEQ_PORT_TYPE_SOFTWARE	(1<<17)	/**< implemented in software */
-#define SND_SEQ_PORT_TYPE_SYNTHESIZER	(1<<18)	/**< generates sound */
-#define SND_SEQ_PORT_TYPE_PORT		(1<<19)	/**< connects to other device(s) */
-#define SND_SEQ_PORT_TYPE_APPLICATION	(1<<20)	/**< application (sequencer/editor) */
+/* port type */
+/** Messages sent from/to this port have device-specific semantics. */
+#define SND_SEQ_PORT_TYPE_SPECIFIC	(1<<0)
+/** This port understands MIDI messages. */
+#define SND_SEQ_PORT_TYPE_MIDI_GENERIC	(1<<1)
+/** This port is compatible with the General MIDI specification. */
+#define SND_SEQ_PORT_TYPE_MIDI_GM	(1<<2)
+/** This port is compatible with the Roland GS standard. */
+#define SND_SEQ_PORT_TYPE_MIDI_GS	(1<<3)
+/** This port is compatible with the Yamaha XG specification. */
+#define SND_SEQ_PORT_TYPE_MIDI_XG	(1<<4)
+/** This port is compatible with the Roland MT-32. */
+#define SND_SEQ_PORT_TYPE_MIDI_MT32	(1<<5)
+/** This port is compatible with the General MIDI 2 specification. */
+#define SND_SEQ_PORT_TYPE_MIDI_GM2	(1<<6)
+/** This port understands SND_SEQ_EVENT_SAMPLE_xxx messages
+    (these are not MIDI messages). */
+#define SND_SEQ_PORT_TYPE_SYNTH		(1<<10)
+/** Instruments can be downloaded to this port
+    (with SND_SEQ_EVENT_INSTR_xxx messages sent directly). */
+#define SND_SEQ_PORT_TYPE_DIRECT_SAMPLE (1<<11)
+/** Instruments can be downloaded to this port
+    (with SND_SEQ_EVENT_INSTR_xxx messages sent directly or through a queue). */
+#define SND_SEQ_PORT_TYPE_SAMPLE	(1<<12)
+/** This port is implemented in hardware. */
+#define SND_SEQ_PORT_TYPE_HARDWARE	(1<<16)
+/** This port is implemented in software. */
+#define SND_SEQ_PORT_TYPE_SOFTWARE	(1<<17)
+/** Messages sent to this port will generate sounds. */
+#define SND_SEQ_PORT_TYPE_SYNTHESIZER	(1<<18)
+/** This port may connect to other devices
+    (whose characteristics are not known). */
+#define SND_SEQ_PORT_TYPE_PORT		(1<<19)
+/** This port belongs to an application, such as a sequencer or editor. */
+#define SND_SEQ_PORT_TYPE_APPLICATION	(1<<20)
 
 
 size_t snd_seq_port_info_sizeof(void);

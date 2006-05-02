@@ -2179,9 +2179,9 @@ void snd_seq_port_info_set_timestamp_queue(snd_seq_port_info_t *info, int queue)
  * - #SND_SEQ_PORT_TYPE_MIDI_GS GS compatible device
  * - #SND_SEQ_PORT_TYPE_MIDI_XG XG compatible device
  * - #SND_SEQ_PORT_TYPE_MIDI_MT32 MT-32 compatible device
- * - #SND_SEQ_PORT_TYPE_SYNTH Synth device
- * - #SND_SEQ_PORT_TYPE_DIRECT_SAMPLE Sampling device (supporting download)
- * - #SND_SEQ_PORT_TYPE_SAMPLE Sampling device (sample can be downloaded at any time)
+ * - #SND_SEQ_PORT_TYPE_SYNTH Understands SND_SEQ_EVENT_SAMPLE_xxx messages
+ * - #SND_SEQ_PORT_TYPE_DIRECT_SAMPLE Supports SND_SEQ_EVENT_INSTR_xxx messages sent directly
+ * - #SND_SEQ_PORT_TYPE_SAMPLE Supports SND_SEQ_EVENT_INSTR_xxx messages
  * - #SND_SEQ_PORT_TYPE_HARDWARE Implemented in hardware
  * - #SND_SEQ_PORT_TYPE_SOFTWARE Implemented in software
  * - #SND_SEQ_PORT_TYPE_SYNTHESIZER Generates sound
