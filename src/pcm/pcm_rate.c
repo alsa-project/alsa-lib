@@ -603,7 +603,7 @@ static inline void snd_pcm_rate_sync_hwptr(snd_pcm_t *pcm)
 	 */
 	rate->hw_ptr =
 		(slave_hw_ptr / rate->gen.slave->period_size) * pcm->period_size +
-		rate->ops.output_frames(rate->obj, slave_hw_ptr % rate->gen.slave->period_size);
+		rate->ops.input_frames(rate->obj, slave_hw_ptr % rate->gen.slave->period_size);
 }
 
 static int snd_pcm_rate_hwsync(snd_pcm_t *pcm)
@@ -1435,9 +1435,6 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	if (!slave) {
 		SNDERR("slave is not defined");
 		return -EINVAL;
-	}
-
-	if (! type) {
 	}
 
 	err = snd_pcm_slave_conf(root, slave, &sconf, 2,
