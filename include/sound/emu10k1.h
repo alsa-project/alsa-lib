@@ -264,7 +264,7 @@ enum emu10k1_ctl_elem_iface {
 
 typedef struct {
 	unsigned int pad;		/* don't use */
-	enum emu10k1_ctl_elem_iface iface;/* interface identifier */
+	int iface;			/* interface identifier */
 	unsigned int device;		/* device/client number */
 	unsigned int subdevice;		/* subdevice (substream) number */
 	unsigned char name[44];		/* ASCII name of item */ 

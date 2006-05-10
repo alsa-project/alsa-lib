@@ -122,7 +122,7 @@ struct sndrv_hwdep_info {
 	int card;			/* R: card number */
 	unsigned char id[64];		/* ID (user selectable) */
 	unsigned char name[80];		/* hwdep name */
-	enum sndrv_hwdep_iface iface;	/* hwdep interface */
+	int iface;			/* hwdep interface */
 	unsigned char reserved[64];	/* reserved for future */
 };
 
@@ -306,13 +306,13 @@ union sndrv_pcm_sync_id {
 struct sndrv_pcm_info {
 	unsigned int device;		/* RO/WR (control): device number */
 	unsigned int subdevice;		/* RO/WR (control): subdevice number */
-	enum sndrv_pcm_stream stream;	/* RO/WR (control): stream number */
+	int stream;			/* RO/WR (control): stream number */
 	int card;			/* R: card number */
 	unsigned char id[64];		/* ID (user selectable) */
 	unsigned char name[80];		/* name of this device */
 	unsigned char subname[32];	/* subdevice name */
-	enum sndrv_pcm_class dev_class;	/* SNDRV_PCM_CLASS_* */
-	enum sndrv_pcm_subclass dev_subclass; /* SNDRV_PCM_SUBCLASS_* */
+	int dev_class;			/* SNDRV_PCM_CLASS_* */
+	int dev_subclass;		/* SNDRV_PCM_SUBCLASS_* */
 	unsigned int subdevices_count;
 	unsigned int subdevices_avail;
 	union sndrv_pcm_sync_id sync;	/* hardware synchronization ID */
@@ -385,7 +385,7 @@ enum sndrv_pcm_tstamp {
 };
 
 struct sndrv_pcm_sw_params {
-	enum sndrv_pcm_tstamp tstamp_mode;	/* timestamp mode */
+	int tstamp_mode;			/* timestamp mode */
 	unsigned int period_step;
 	unsigned int sleep_min;			/* min ticks to sleep */
 	sndrv_pcm_uframes_t avail_min;		/* min avail frames for wakeup */
@@ -406,7 +406,7 @@ struct sndrv_pcm_channel_info {
 };
 
 struct sndrv_pcm_status {
-	enum sndrv_pcm_state state;	/* stream state */
+	int state;			/* stream state */
 	struct timespec trigger_tstamp;	/* time when stream was started/stopped/paused */
 	struct timespec tstamp;		/* reference timestamp */
 	sndrv_pcm_uframes_t appl_ptr;	/* appl ptr */
@@ -415,16 +415,16 @@ struct sndrv_pcm_status {
 	sndrv_pcm_uframes_t avail;	/* number of frames available */
 	sndrv_pcm_uframes_t avail_max;	/* max frames available on hw since last status */
 	sndrv_pcm_uframes_t overrange;	/* count of ADC (capture) overrange detections from last status */
-	enum sndrv_pcm_state suspended_state; /* suspended stream state */
+	int suspended_state;		/* suspended stream state */
 	unsigned char reserved[60];	/* must be filled with zero */
 };
 
 struct sndrv_pcm_mmap_status {
-	enum sndrv_pcm_state state;	/* RO: state - SNDRV_PCM_STATE_XXXX */
+	int state;			/* RO: state - SNDRV_PCM_STATE_XXXX */
 	int pad1;			/* Needed for 64 bit alignment */
 	sndrv_pcm_uframes_t hw_ptr;	/* RO: hw ptr (0...boundary-1) */
 	struct timespec tstamp;		/* Timestamp */
-	enum sndrv_pcm_state suspended_state; /* RO: suspended stream state */
+	int suspended_state;		/* RO: suspended stream state */
 };
 
 struct sndrv_pcm_mmap_control {
@@ -519,7 +519,7 @@ enum sndrv_rawmidi_stream {
 struct sndrv_rawmidi_info {
 	unsigned int device;		/* RO/WR (control): device number */
 	unsigned int subdevice;		/* RO/WR (control): subdevice number */
-	enum sndrv_rawmidi_stream stream; /* WR: stream */
+	int stream;			/* WR: stream */
 	int card;			/* R: card number */
 	unsigned int flags;		/* SNDRV_RAWMIDI_INFO_XXXX */
 	unsigned char id[64];		/* ID (user selectable) */
@@ -531,7 +531,7 @@ struct sndrv_rawmidi_info {
 };
 
 struct sndrv_rawmidi_params {
-	enum sndrv_rawmidi_stream stream;
+	int stream;
 	size_t buffer_size;		/* queue size in bytes */
 	size_t avail_min;		/* minimum avail bytes for wakeup */
 	unsigned int no_active_sensing: 1; /* do not send active sensing byte in close() */
@@ -539,7 +539,7 @@ struct sndrv_rawmidi_params {
 };
 
 struct sndrv_rawmidi_status {
-	enum sndrv_rawmidi_stream stream;
+	int stream;
 	struct timespec tstamp;		/* Timestamp */
 	size_t avail;			/* available bytes */
 	size_t xruns;			/* count of overruns since last status (in bytes) */
@@ -588,8 +588,8 @@ enum sndrv_timer_slave_class {
 #define SNDRV_TIMER_FLG_SLAVE		(1<<0)	/* cannot be controlled */
 
 struct sndrv_timer_id {
-	enum sndrv_timer_class dev_class;	
-	enum sndrv_timer_slave_class dev_sclass;
+	int dev_class;
+	int dev_sclass;
 	int card;
 	int device;
 	int subdevice;
@@ -704,7 +704,7 @@ enum sndrv_timer_event {
 };
 
 struct sndrv_timer_tread {
-	enum sndrv_timer_event event;
+	int event;
 	struct timespec tstamp;
 	unsigned int val;
 };
@@ -774,7 +774,7 @@ enum sndrv_ctl_elem_iface {
 
 struct sndrv_ctl_elem_id {
 	unsigned int numid;		/* numeric identifier, zero = invalid */
-	enum sndrv_ctl_elem_iface iface; /* interface identifier */
+	int iface;			/* interface identifier */
 	unsigned int device;		/* device/client number */
 	unsigned int subdevice;		/* subdevice (substream) number */
         unsigned char name[44];		/* ASCII name of item */
@@ -792,7 +792,7 @@ struct sndrv_ctl_elem_list {
 
 struct sndrv_ctl_elem_info {
 	struct sndrv_ctl_elem_id id;	/* W: element ID */
-	enum sndrv_ctl_elem_type type;	/* R: value type - SNDRV_CTL_ELEM_TYPE_* */
+	int type;			/* R: value type - SNDRV_CTL_ELEM_TYPE_* */
 	unsigned int access;		/* R: value access (bitmask) - SNDRV_CTL_ELEM_ACCESS_* */
 	unsigned int count;		/* count of values */
 	pid_t owner;			/* owner's PID of this control */
@@ -887,7 +887,7 @@ enum sndrv_ctl_event_type {
 #define SNDRV_CTL_EVENT_MASK_REMOVE	(~0U)	/* element was removed */
 
 struct sndrv_ctl_event {
-	enum sndrv_ctl_event_type type;	/* event type - SNDRV_CTL_EVENT_* */
+	int type;				/* event type - SNDRV_CTL_EVENT_* */
 	union {
 		struct {
 			unsigned int mask;
