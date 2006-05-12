@@ -11,11 +11,11 @@ For installation you can use these commands:
 	make install
 
 
-Compilation from CVS sources
-----------------------------
+Compilation from HG sources
+---------------------------
 
 You need also GNU packages automake and libtool installed in your system
-to compile CVS sources of alsa-lib package.
+to compile HG (Mercurial) sources of alsa-lib package.
 
 For compilation you can use these commands:
 
@@ -27,7 +27,7 @@ For compilation you can use these commands:
 	./configure
 	make
 
-The included cvscompile script does this job for you.
+The included hgcompile script does this job for you.
 
 Note: Some automake packages have missing aclocal program. Use newer version
       in the case.
