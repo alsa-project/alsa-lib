@@ -31,6 +31,11 @@
 #include "pcm_extplug.h"
 #include "pcm_ext_parm.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_pcm_extplug = "";
+#endif
+
 #ifndef DOC_HIDDEN
 
 typedef struct snd_pcm_extplug_priv {

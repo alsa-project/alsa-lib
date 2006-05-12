@@ -30,6 +30,11 @@
 #include "pcm_ioplug.h"
 #include "pcm_ext_parm.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_pcm_ioplug = "";
+#endif
+
 #ifndef DOC_HIDDEN
 
 /* hw_params */
