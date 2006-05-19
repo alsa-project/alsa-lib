@@ -46,6 +46,8 @@ typedef struct {
 	snd_pcm_generic_t gen;
 	char *fname;
 	int fd;
+	char *ifname;
+	int ifd;
 	int format;
 	snd_pcm_uframes_t appl_ptr;
 	snd_pcm_uframes_t file_ptr_bytes;
@@ -53,6 +55,9 @@ typedef struct {
 	size_t wbuf_size_bytes;
 	size_t wbuf_used_bytes;
 	char *wbuf;
+	size_t rbuf_size_bytes;
+	size_t rbuf_used_bytes;
+	char *rbuf;
 	snd_pcm_channel_area_t *wbuf_areas;
 	size_t buffer_bytes;
 } snd_pcm_file_t;
@@ -119,6 +124,10 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 	if (file->fname) {
 		free((void *)file->fname);
 		close(file->fd);
+	}
+	if (file->ifname) {
+		free((void *)file->ifname);
+		close(file->ifd);
 	}
 	return snd_pcm_generic_close(pcm);
 }
@@ -222,10 +231,20 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	snd_pcm_sframes_t n = snd_pcm_readi(file->gen.slave, buffer, size);
-	if (n > 0) {
-		snd_pcm_areas_from_buf(pcm, areas, buffer);
-		snd_pcm_file_add_frames(pcm, areas, 0, n);
+	snd_pcm_sframes_t n /* , bytesn */;
+
+	if (file->ifd >= 0) {
+		n = /* bytesn = */ read(file->ifd, buffer, size * pcm->frame_bits / 8);
+		if (n > 0)
+			n = n * 8 / pcm->frame_bits;
+		/* SNDERR("DEBUG: channels = %d, sample_bits = %d, frame_bits = %d, bytes = %d, frames = %d",
+		        pcm->channels, pcm->sample_bits, pcm->frame_bits, bytesn, n); */
+	} else {
+		n = snd_pcm_readi(file->gen.slave, buffer, size);
+		if (n > 0) {
+			snd_pcm_areas_from_buf(pcm, areas, buffer);
+			snd_pcm_file_add_frames(pcm, areas, 0, n);
+		}
 	}
 	return n;
 }
@@ -234,7 +253,14 @@ static snd_pcm_sframes_t snd_pcm_file_readn(snd_pcm_t *pcm, void **bufs, snd_pcm
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	snd_pcm_sframes_t n = snd_pcm_readn(file->gen.slave, bufs, size);
+	snd_pcm_sframes_t n;
+
+	if (file->ifd >= 0) {
+		SNDERR("DEBUG: Noninterleaved read not yet implemented.\n");
+		return 0;	/* TODO: Noninterleaved read */
+	}
+
+	n = snd_pcm_readn(file->gen.slave, bufs, size);
 	if (n > 0) {
 		snd_pcm_areas_from_bufs(pcm, areas, bufs);
 		snd_pcm_file_add_frames(pcm, areas, 0, n);
@@ -365,8 +391,11 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  * \brief Creates a new File PCM
  * \param pcmp Returns created PCM handle
  * \param name Name of PCM
- * \param fname Filename (or NULL if file descriptor is available)
- * \param fd File descriptor
+ * \param fname Output filename (or NULL if file descriptor fd is available)
+ * \param fd Output file descriptor
+ * \param ifname Input filename (or NULL if file descriptor ifd is available)
+ * \param ifd Input file descriptor (if (ifd < 0) && (ifname == NULL), no input
+ *            redirection will be performed)
  * \param fmt File format ("raw" is supported only)
  * \param perm File permission
  * \param slave Slave PCM handle
@@ -377,8 +406,8 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  *          changed in future.
  */
 int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
-		      const char *fname, int fd, const char *fmt, int perm,
-		      snd_pcm_t *slave, int close_slave)
+		      const char *fname, int fd, const char *ifname, int ifd, 
+		      const char *fmt, int perm, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
@@ -395,7 +424,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (fname) {
 		fd = open(fname, O_WRONLY|O_CREAT, perm);
 		if (fd < 0) {
-			SYSERR("open %s failed", fname);
+			SYSERR("open %s for writing failed", fname);
 			return -errno;
 		}
 	}
@@ -405,10 +434,23 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			close(fd);
 		return -ENOMEM;
 	}
-	
+
+	if (ifname) {
+		ifd = open(ifname, O_RDONLY);	/* TODO: mind blocking mode */
+		if (ifd < 0) {
+			SYSERR("open %s for reading failed", ifname);
+			if (fname)
+				close(fd);
+			return -errno;
+		}
+	}
+
 	if (fname)
 		file->fname = strdup(fname);
+	if (ifname)
+		file->ifname = strdup(ifname);
 	file->fd = fd;
+	file->ifd = ifd;
 	file->format = format;
 	file->gen.slave = slave;
 	file->gen.close_slave = close_slave;
@@ -436,7 +478,8 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 
 \section pcm_plugins_file Plugin: File
 
-This plugin stores contents of a PCM stream to file.
+This plugin stores contents of a PCM stream to file, and optionally
+uses an existing file as an input data source (i.e., "virtual mic")
 
 \code
 pcm.name {
@@ -448,11 +491,14 @@ pcm.name {
                 # or
                 pcm { }         # Slave PCM definition
         }
-	file STR		# Filename
+	file STR		# Output filename
 	or
-	file INT		# File descriptor number
+	file INT		# Output file descriptor number
+	infile STR		# Input filename
+	or
+	infile INT		# Input file descriptor number
 	[format STR]		# File format (only "raw" at the moment)
-	[perm INT]		# File permission (octal, default 0600)
+	[perm INT]		# Output file permission (octal, def. 0600)
 }
 \endcode
 
@@ -486,9 +532,9 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	int err;
 	snd_pcm_t *spcm;
 	snd_config_t *slave = NULL, *sconf;
-	const char *fname = NULL;
+	const char *fname = NULL, *ifname = NULL;
 	const char *format = NULL;
-	long fd = -1;
+	long fd = -1, ifd = -1;
 	int perm = 0600;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -513,6 +559,17 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			err = snd_config_get_string(n, &fname);
 			if (err < 0) {
 				err = snd_config_get_integer(n, &fd);
+				if (err < 0) {
+					SNDERR("Invalid type for %s", id);
+					return -EINVAL;
+				}
+			}
+			continue;
+		}
+		if (strcmp(id, "infile") == 0) {
+			err = snd_config_get_string(n, &ifname);
+			if (err < 0) {
+				err = snd_config_get_integer(n, &ifd);
 				if (err < 0) {
 					SNDERR("Invalid type for %s", id);
 					return -EINVAL;
@@ -556,7 +613,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_file_open(pcmp, name, fname, fd, format, perm, spcm, 1);
+	err = snd_pcm_file_open(pcmp, name, fname, fd, ifname, ifd, format, perm, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
