@@ -111,8 +111,15 @@ static int snd_pcm_ioplug_hwsync(snd_pcm_t *pcm)
 
 static int snd_pcm_ioplug_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 {
-	snd_pcm_ioplug_hw_ptr_update(pcm);
-	*delayp = snd_pcm_mmap_hw_avail(pcm); 
+	ioplug_priv_t *io = pcm->private_data;
+
+	if (io->data->version >= 0x010001 &&
+	    io->data->callback->delay)
+		return io->data->callback->delay(io->data, delayp);
+	else {
+		snd_pcm_ioplug_hw_ptr_update(pcm);
+		*delayp = snd_pcm_mmap_hw_avail(pcm);
+	}
 	return 0;
 }
 
@@ -877,7 +884,9 @@ int snd_pcm_ioplug_create(snd_pcm_ioplug_t *ioplug, const char *name,
 	       ioplug->callback->stop &&
 	       ioplug->callback->pointer);
 
-	if (ioplug->version != SND_PCM_IOPLUG_VERSION) {
+	/* We support 1.0.0 to current */
+	if (ioplug->version < 0x010000 ||
+	    ioplug->version > SND_PCM_IOPLUG_VERSION) {
 		SNDERR("ioplug: Plugin version mismatch\n");
 		return -ENXIO;
 	}
