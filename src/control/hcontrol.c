@@ -657,22 +657,52 @@ unsigned int snd_hctl_get_count(snd_hctl_t *hctl)
  * \brief Wait for a HCTL to become ready (i.e. at least one event pending)
  * \param hctl HCTL handle
  * \param timeout maximum time in milliseconds to wait
- * \return 0 otherwise a negative error code on failure
+ * \return a positive value on success otherwise a negative error code
+ * \retval 0 timeout occurred
+ * \retval 1 an event is pending
  */
 int snd_hctl_wait(snd_hctl_t *hctl, int timeout)
 {
-	struct pollfd pfd;
-	int err;
-	err = snd_hctl_poll_descriptors(hctl, &pfd, 1);
+	struct pollfd *pfd;
+	unsigned short *revents;
+	int i, npfds, pollio, err, err_poll;
+	
+	npfds = snd_hctl_poll_descriptors_count(hctl);
+	if (npfds <= 0 || npfds >= 16) {
+		SNDERR("Invalid poll_fds %d\n", npfds);
+		return -EIO;
+	}
+	pfd = alloca(sizeof(*pfd) * npfds);
+	revents = alloca(sizeof(*revents) * npfds);
+	err = snd_hctl_poll_descriptors(hctl, pfd, npfds);
 	if (err < 0)
 		return err;
-	if (! err)
-		return 0;
-	assert(err == 1);
-	err = poll(&pfd, 1, timeout);
-	if (err < 0)
-		return -errno;
-	return 0;
+	if (err != npfds) {
+		SNDMSG("invalid poll descriptors %d\n", err);
+		return -EIO;
+	}
+	do {
+		pollio = 0;
+		err_poll = poll(pfd, npfds, timeout);
+		if (err_poll < 0) {
+			if (errno == EINTR)
+				continue;
+			return -errno;
+		}
+		if (! err_poll)
+			break;
+		err = snd_hctl_poll_descriptors_revents(hctl, pfd, npfds, revents);
+		if (err < 0)
+			return err;
+		for (i = 0; i < npfds; i++) {
+			if (revents[i] & (POLLERR | POLLNVAL))
+				return -EIO;
+			if ((revents[i] & (POLLIN | POLLOUT)) == 0)
+				continue;
+			pollio++;
+		}
+	} while (! pollio);
+	return err_poll > 0 ? 1 : 0;
 }
 
 /**
