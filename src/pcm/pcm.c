@@ -1788,7 +1788,9 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	snd_output_printf(out, "  subformat    : %s\n", snd_pcm_subformat_name(pcm->subformat));
 	snd_output_printf(out, "  channels     : %u\n", pcm->channels);
 	snd_output_printf(out, "  rate         : %u\n", pcm->rate);
-	snd_output_printf(out, "  exact rate   : %g (%u/%u)\n", (double) pcm->rate_num / pcm->rate_den, pcm->rate_num, pcm->rate_den);
+	snd_output_printf(out, "  exact rate   : %g (%u/%u)\n",
+			  (pcm->rate_den ? ((double) pcm->rate_num / pcm->rate_den) : 0.0),
+			  pcm->rate_num, pcm->rate_den);
 	snd_output_printf(out, "  msbits       : %u\n", pcm->msbits);
 	snd_output_printf(out, "  buffer_size  : %lu\n", pcm->buffer_size);
 	snd_output_printf(out, "  period_size  : %lu\n", pcm->period_size);
