@@ -82,7 +82,7 @@ int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix)
 	return 0;
 }
 
-#define SND_PCM_DIRECT_MAGIC	0xa15ad319
+#define SND_PCM_DIRECT_MAGIC	(0xa15ad300 + sizeof(snd_pcm_direct_share_t))
 
 /*
  *  global shared memory area 
@@ -800,6 +800,44 @@ int snd_pcm_direct_resume(snd_pcm_t *pcm)
 	return err;
 }
 
+#define COPY_SLAVE(field) (dmix->shmptr->s.field = spcm->field)
+
+/* copy the slave setting */
+static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
+{
+	COPY_SLAVE(access);
+	COPY_SLAVE(format);
+	COPY_SLAVE(subformat);
+	COPY_SLAVE(channels);
+	COPY_SLAVE(rate);
+	COPY_SLAVE(period_size);
+	COPY_SLAVE(period_time);
+	COPY_SLAVE(periods);
+	COPY_SLAVE(tick_time);
+	COPY_SLAVE(tstamp_mode);
+	COPY_SLAVE(period_step);
+	COPY_SLAVE(sleep_min);
+	COPY_SLAVE(avail_min);
+	COPY_SLAVE(start_threshold);
+	COPY_SLAVE(stop_threshold);
+	COPY_SLAVE(silence_threshold);
+	COPY_SLAVE(silence_size);
+	COPY_SLAVE(xfer_align);
+	COPY_SLAVE(boundary);
+	COPY_SLAVE(info);
+	COPY_SLAVE(msbits);
+	COPY_SLAVE(rate_num);
+	COPY_SLAVE(rate_den);
+	COPY_SLAVE(hw_flags);
+	COPY_SLAVE(fifo_size);
+	COPY_SLAVE(buffer_size);
+	COPY_SLAVE(buffer_time);
+	COPY_SLAVE(sample_bits);
+	COPY_SLAVE(frame_bits);
+}
+
+#undef COPY_SLAVE
+
 /*
  * this function initializes hardware and starts playback operation with
  * no stop threshold (it operates all time without xrun checking)
@@ -1014,15 +1052,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	snd_pcm_poll_descriptors(spcm, &fd, 1);
 	dmix->hw_fd = fd.fd;
 	
-	dmix->shmptr->s.boundary = spcm->boundary;
-	dmix->shmptr->s.buffer_size = spcm->buffer_size;
-	dmix->shmptr->s.period_size = spcm->period_size;
-	dmix->shmptr->s.sample_bits = spcm->sample_bits;
-	dmix->shmptr->s.channels = spcm->channels;
-	dmix->shmptr->s.rate = spcm->rate;
-	dmix->shmptr->s.format = spcm->format;
-	dmix->shmptr->s.info = spcm->info & ~SND_PCM_INFO_PAUSE;
-	dmix->shmptr->s.msbits = spcm->msbits;
+	save_slave_setting(dmix, spcm);
 
 	/* Currently, we assume that each dmix client has the same
 	 * hw_params setting.
@@ -1126,6 +1156,48 @@ static snd_pcm_uframes_t recalc_boundary_size(unsigned long long bsize, snd_pcm_
 	return (snd_pcm_uframes_t)bsize;
 }
 
+#define COPY_SLAVE(field) (spcm->field = dmix->shmptr->s.field)
+
+/* copy the slave setting */
+static void copy_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
+{
+	COPY_SLAVE(access);
+	COPY_SLAVE(format);
+	COPY_SLAVE(subformat);
+	COPY_SLAVE(channels);
+	COPY_SLAVE(rate);
+	COPY_SLAVE(period_size);
+	COPY_SLAVE(period_time);
+	COPY_SLAVE(periods);
+	COPY_SLAVE(tick_time);
+	COPY_SLAVE(tstamp_mode);
+	COPY_SLAVE(period_step);
+	COPY_SLAVE(sleep_min);
+	COPY_SLAVE(avail_min);
+	COPY_SLAVE(start_threshold);
+	COPY_SLAVE(stop_threshold);
+	COPY_SLAVE(silence_threshold);
+	COPY_SLAVE(silence_size);
+	COPY_SLAVE(xfer_align);
+	COPY_SLAVE(boundary);
+	COPY_SLAVE(info);
+	COPY_SLAVE(msbits);
+	COPY_SLAVE(rate_num);
+	COPY_SLAVE(rate_den);
+	COPY_SLAVE(hw_flags);
+	COPY_SLAVE(fifo_size);
+	COPY_SLAVE(buffer_size);
+	COPY_SLAVE(buffer_time);
+	COPY_SLAVE(sample_bits);
+	COPY_SLAVE(frame_bits);
+
+	spcm->info &= ~SND_PCM_INFO_PAUSE;
+	spcm->boundary = recalc_boundary_size(dmix->shmptr->s.boundary, spcm->buffer_size);
+}
+
+#undef COPY_SLAVE
+
+
 /*
  * open a slave PCM as secondary client (dup'ed fd)
  */
@@ -1143,13 +1215,8 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 	spcm = *spcmp;
 	spcm->donot_close = 1;
 	spcm->setup = 1;
-	/* we copy the slave setting */
-	spcm->buffer_size = dmix->shmptr->s.buffer_size;
-	spcm->sample_bits = dmix->shmptr->s.sample_bits;
-	spcm->channels = dmix->shmptr->s.channels;
-	spcm->format = dmix->shmptr->s.format;
-	spcm->boundary = recalc_boundary_size(dmix->shmptr->s.boundary, spcm->buffer_size);
-	spcm->info = dmix->shmptr->s.info;
+
+	copy_slave_setting(dmix, spcm);
 
 	/* Use the slave setting as SPCM, so far */
 	dmix->slave_buffer_size = spcm->buffer_size;
@@ -1173,13 +1240,8 @@ int snd_pcm_direct_initialize_secondary_slave(snd_pcm_direct_t *dmix, snd_pcm_t 
 
 	spcm->donot_close = 1;
 	spcm->setup = 1;
-	/* we copy the slave setting */
-	spcm->buffer_size = dmix->shmptr->s.buffer_size;
-	spcm->sample_bits = dmix->shmptr->s.sample_bits;
-	spcm->channels = dmix->shmptr->s.channels;
-	spcm->format = dmix->shmptr->s.format;
-	spcm->boundary = recalc_boundary_size(dmix->shmptr->s.boundary, spcm->buffer_size);
-	spcm->info = dmix->shmptr->s.info;
+
+	copy_slave_setting(dmix, spcm);
 
 	/* Use the slave setting as SPCM, so far */
 	dmix->slave_buffer_size = spcm->buffer_size;
