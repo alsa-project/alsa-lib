@@ -1392,7 +1392,8 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 		}
 		bindings[cchannel] = schannel;
 	}
-	if (dmix->type == SND_PCM_TYPE_DSNOOP)
+	if (dmix->type == SND_PCM_TYPE_DSNOOP ||
+	    ! dmix->bindings)
 		goto __skip_same_dst;
 	for (chn = 0; chn < count; chn++) {
 		for (chn1 = 0; chn1 < count; chn1++) {
