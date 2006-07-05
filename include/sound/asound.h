@@ -756,10 +756,15 @@ enum sndrv_ctl_elem_iface {
 #define SNDRV_CTL_ELEM_ACCESS_WRITE		(1<<1)
 #define SNDRV_CTL_ELEM_ACCESS_READWRITE		(SNDRV_CTL_ELEM_ACCESS_READ|SNDRV_CTL_ELEM_ACCESS_WRITE)
 #define SNDRV_CTL_ELEM_ACCESS_VOLATILE		(1<<2)	/* control value may be changed without a notification */
-#define SNDRV_CTL_ELEM_ACCESS_TIMESTAMP		(1<<2)	/* when was control changed */
+#define SNDRV_CTL_ELEM_ACCESS_TIMESTAMP		(1<<3)	/* when was control changed */
+#define SNDRV_CTL_ELEM_ACCESS_TLV_READ		(1<<4)	/* TLV read is supported */
+#define SNDRV_CTL_ELEM_ACCESS_TLV_WRITE		(1<<5)	/* TLV write is supported */
+#define SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE	(SNDRV_CTL_ELEM_ACCESS_TLV_READ|SNDRV_CTL_ELEM_ACCESS_TLV_WRITE)
+#define SNDRV_CTL_ELEM_ACCESS_TLV_COMMAND	(1<<6)	/* TLV command is possible */
 #define SNDRV_CTL_ELEM_ACCESS_INACTIVE		(1<<8)	/* control does actually nothing, but may be updated */
 #define SNDRV_CTL_ELEM_ACCESS_LOCK		(1<<9)	/* write lock */
 #define SNDRV_CTL_ELEM_ACCESS_OWNER		(1<<10)	/* write lock owner */
+#define SNDRV_CTL_ELEM_ACCESS_TLV_CALLBACK	(1<<28)	/* flag only for kernel */
 #define SNDRV_CTL_ELEM_ACCESS_USER		(1<<29) /* user space element */
 #define SNDRV_CTL_ELEM_ACCESS_DINDIRECT		(1<<30)	/* indirect access for matrix dimensions in the info structure */
 #define SNDRV_CTL_ELEM_ACCESS_INDIRECT		(1<<31)	/* indirect access for element value in the value structure */
@@ -847,6 +852,12 @@ struct sndrv_ctl_elem_value {
         unsigned char reserved[128-sizeof(struct timespec)];
 };
 
+struct sndrv_ctl_tlv {
+	unsigned int numid;     /* control element numeric identification */
+        unsigned int length;    /* in bytes aligned to 4 */
+        unsigned int tlv[0];    /* first TLV */
+};
+
 enum {
 	SNDRV_CTL_IOCTL_PVERSION = _IOR('U', 0x00, int),
 	SNDRV_CTL_IOCTL_CARD_INFO = _IOR('U', 0x01, struct sndrv_ctl_card_info),
@@ -860,6 +871,9 @@ enum {
 	SNDRV_CTL_IOCTL_ELEM_ADD = _IOWR('U', 0x17, struct sndrv_ctl_elem_info),
 	SNDRV_CTL_IOCTL_ELEM_REPLACE = _IOWR('U', 0x18, struct sndrv_ctl_elem_info),
 	SNDRV_CTL_IOCTL_ELEM_REMOVE = _IOWR('U', 0x19, struct sndrv_ctl_elem_id),
+	SNDRV_CTL_IOCTL_TLV_READ = _IOWR('U', 0x1a, struct sndrv_ctl_tlv),
+	SNDRV_CTL_IOCTL_TLV_WRITE = _IOWR('U', 0x1b, struct sndrv_ctl_tlv),
+	SNDRV_CTL_IOCTL_TLV_COMMAND = _IOWR('U', 0x1c, struct sndrv_ctl_tlv),
 	SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE = _IOWR('U', 0x20, int),
 	SNDRV_CTL_IOCTL_HWDEP_INFO = _IOR('U', 0x21, struct sndrv_hwdep_info),
 	SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE = _IOR('U', 0x30, int),

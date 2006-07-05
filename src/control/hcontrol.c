@@ -821,7 +821,9 @@ int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value)
  * \brief Set value for an HCTL element
  * \param elem HCTL element
  * \param value HCTL element value
- * \return 0 otherwise a negative error code on failure
+ * \retval 0 on success
+ * \ratval >1 on success when value was changed
+ * \retval <0 a negative error code on failure
  */
 int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value)
 {
@@ -830,6 +832,53 @@ int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value)
 	assert(value);
 	value->id = elem->id;
 	return snd_ctl_elem_write(elem->hctl->ctl, value);
+}
+
+/**
+ * \brief Get TLV value for an HCTL element
+ * \param elem HCTL element
+ * \param tlv TLV array for value
+ * \param tlv_size size of TLV array in bytes
+ * \return 0 otherwise a negative error code on failure
+ */
+int snd_hctl_elem_tlv_read(snd_hctl_elem_t *elem, unsigned int *tlv, unsigned int tlv_size)
+{
+	assert(elem);
+	assert(tlv);
+	assert(tlv_size >= 12);
+	return snd_ctl_elem_tlv_read(elem->hctl->ctl, &elem->id, tlv, tlv_size);
+}
+
+/**
+ * \brief Set TLV value for an HCTL element
+ * \param elem HCTL element
+ * \param tlv TLV array for value
+ * \retval 0 on success
+ * \ratval >1 on success when value was changed
+ * \retval <0 a negative error code on failure
+ */
+int snd_hctl_elem_tlv_write(snd_hctl_elem_t *elem, const unsigned int *tlv)
+{
+	assert(elem);
+	assert(tlv);
+	assert(tlv[1] >= 4);
+	return snd_ctl_elem_tlv_write(elem->hctl->ctl, &elem->id, tlv);
+}
+
+/**
+ * \brief Set TLV value for an HCTL element
+ * \param elem HCTL element
+ * \param tlv TLV array for value
+ * \retval 0 on success
+ * \ratval >1 on success when value was changed
+ * \retval <0 a negative error code on failure
+ */
+int snd_hctl_elem_tlv_command(snd_hctl_elem_t *elem, const unsigned int *tlv)
+{
+	assert(elem);
+	assert(tlv);
+	assert(tlv[1] >= 4);
+	return snd_ctl_elem_tlv_command(elem->hctl->ctl, &elem->id, tlv);
 }
 
 /**

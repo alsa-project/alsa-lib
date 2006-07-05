@@ -36,6 +36,8 @@ typedef struct _snd_ctl_ops {
 	int (*element_write)(snd_ctl_t *handle, snd_ctl_elem_value_t *control);
 	int (*element_lock)(snd_ctl_t *handle, snd_ctl_elem_id_t *lock);
 	int (*element_unlock)(snd_ctl_t *handle, snd_ctl_elem_id_t *unlock);
+	int (*element_tlv)(snd_ctl_t *handle, int op_flag, unsigned int numid,
+			   unsigned int *tlv, unsigned int tlv_size);
 	int (*hwdep_next_device)(snd_ctl_t *handle, int *device);
 	int (*hwdep_info)(snd_ctl_t *handle, snd_hwdep_info_t * info);
 	int (*pcm_next_device)(snd_ctl_t *handle, int *device);

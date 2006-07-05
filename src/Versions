@@ -274,3 +274,17 @@ ALSA_1.0.11 {
     snd_pcm_set_params;
     snd_pcm_get_params;
 } ALSA_1.0.10;
+
+ALSA_1.0.12 {
+  global:
+
+    snd_ctl_elem_tlv_read;
+    snd_ctl_elem_tlv_write;
+    snd_ctl_elem_tlv_command;
+    snd_ctl_elem_info_is_tlv_readable;
+    snd_ctl_elem_info_is_tlv_writable;
+    snd_ctl_elem_info_is_tlv_commandable;
+    snd_hctl_elem_tlv_read;
+    snd_hctl_elem_tlv_write;
+    snd_hctl_elem_tlv_command;
+} ALSA_1.0.11;

@@ -122,6 +122,8 @@ typedef enum _snd_ctl_event_type {
 #define SND_CTL_EVENT_MASK_INFO		(1<<1)
 /** Element has been added \hideinitializer */
 #define SND_CTL_EVENT_MASK_ADD		(1<<2)
+/** Element's TLV value has been changed \hideinitializer */
+#define SND_CTL_EVENT_MASK_TLV		(1<<3)
 
 /** CTL name helper */
 #define SND_CTL_NAME_NONE				""
@@ -163,6 +165,11 @@ typedef enum _snd_ctl_event_type {
 #define SND_CTL_POWER_D3hot		(SND_CTL_POWER_D3|0x0000)
 /** ACPI/PCI Power State D3cold */
 #define SND_CTL_POWER_D3cold	      	(SND_CTL_POWER_D3|0x0001)
+
+/** TLV type - Container */
+#define SND_CTL_TLVT_CONTAINER		0x0000
+/** TLV type - basic dB scale */
+#define SND_CTL_TLVT_DB_SCALE		0x0001
 
 /** CTL type */
 typedef enum _snd_ctl_type {
@@ -212,12 +219,18 @@ int snd_ctl_poll_descriptors(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int s
 int snd_ctl_poll_descriptors_revents(snd_ctl_t *ctl, struct pollfd *pfds, unsigned int nfds, unsigned short *revents);
 int snd_ctl_subscribe_events(snd_ctl_t *ctl, int subscribe);
 int snd_ctl_card_info(snd_ctl_t *ctl, snd_ctl_card_info_t *info);
-int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t * list);
+int snd_ctl_elem_list(snd_ctl_t *ctl, snd_ctl_elem_list_t *list);
 int snd_ctl_elem_info(snd_ctl_t *ctl, snd_ctl_elem_info_t *info);
 int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *value);
 int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *value);
 int snd_ctl_elem_lock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id);
 int snd_ctl_elem_unlock(snd_ctl_t *ctl, snd_ctl_elem_id_t *id);
+int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			  unsigned int *tlv, unsigned int tlv_size);
+int snd_ctl_elem_tlv_write(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			   const unsigned int *tlv);
+int snd_ctl_elem_tlv_command(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			     const unsigned int *tlv);
 int snd_ctl_hwdep_next_device(snd_ctl_t *ctl, int * device);
 int snd_ctl_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info);
 int snd_ctl_pcm_next_device(snd_ctl_t *ctl, int *device);
@@ -340,6 +353,9 @@ int snd_ctl_elem_info_is_writable(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_volatile(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_inactive(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_locked(const snd_ctl_elem_info_t *obj);
+int snd_ctl_elem_info_is_tlv_readable(const snd_ctl_elem_info_t *obj);
+int snd_ctl_elem_info_is_tlv_writable(const snd_ctl_elem_info_t *obj);
+int snd_ctl_elem_info_is_tlv_commandable(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_owner(const snd_ctl_elem_info_t *obj);
 int snd_ctl_elem_info_is_user(const snd_ctl_elem_info_t *obj);
 pid_t snd_ctl_elem_info_get_owner(const snd_ctl_elem_info_t *obj);
@@ -485,6 +501,9 @@ snd_hctl_elem_t *snd_hctl_elem_prev(snd_hctl_elem_t *elem);
 int snd_hctl_elem_info(snd_hctl_elem_t *elem, snd_ctl_elem_info_t * info);
 int snd_hctl_elem_read(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value);
 int snd_hctl_elem_write(snd_hctl_elem_t *elem, snd_ctl_elem_value_t * value);
+int snd_hctl_elem_tlv_read(snd_hctl_elem_t *elem, unsigned int *tlv, unsigned int tlv_size);
+int snd_hctl_elem_tlv_write(snd_hctl_elem_t *elem, const unsigned int *tlv);
+int snd_hctl_elem_tlv_command(snd_hctl_elem_t *elem, const unsigned int *tlv);
 
 snd_hctl_t *snd_hctl_elem_get_hctl(snd_hctl_elem_t *elem);
 

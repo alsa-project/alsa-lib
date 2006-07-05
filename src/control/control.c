@@ -404,12 +404,91 @@ int snd_ctl_elem_read(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
  * \brief Set CTL element value
  * \param ctl CTL handle
  * \param control CTL element id/value pointer
- * \return 0 on success otherwise a negative error code
+ * \retval 0 on success
+ * \retval >0 on success when value was changed
+ * \retval <0 a negative error code
  */
 int snd_ctl_elem_write(snd_ctl_t *ctl, snd_ctl_elem_value_t *control)
 {
 	assert(ctl && control && (control->id.name[0] || control->id.numid));
 	return ctl->ops->element_write(ctl, control);
+}
+
+static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
+			  const snd_ctl_elem_id_t *id,
+		          unsigned int *tlv, unsigned int tlv_size)
+{
+	snd_ctl_elem_info_t *info = NULL;
+	int err;
+
+	if (id->numid == 0) {
+		info = calloc(1, sizeof(*info));
+		if (info == NULL)
+			return -ENOMEM;
+		info->id = *id;
+		id = &info->id;
+		err = snd_ctl_elem_info(ctl, info);
+		if (err < 0)
+			goto __err;
+		if (id->numid == 0) {
+			err = -ENOENT;
+			goto __err;
+		}
+	}
+	err = ctl->ops->element_tlv(ctl, op_flag, id->numid, tlv, tlv_size);
+      __err:
+      	if (info)
+      		free(info);
+	return err;
+}
+
+
+
+/**
+ * \brief Get CTL element TLV value
+ * \param ctl CTL handle
+ * \param id CTL element id pointer
+ * \param tlv TLV array pointer to store 
+ * \param tlv_size TLV array size in bytes
+ * \return 0 on success otherwise a negative error code
+ */
+int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			  unsigned int *tlv, unsigned int tlv_size)
+{
+	assert(ctl && id && (id->name[0] || id->numid) && tlv);
+	return snd_ctl_tlv_do(ctl, 0, id, tlv, tlv_size);
+}
+
+/**
+ * \brief Set CTL element TLV value
+ * \param ctl CTL handle
+ * \param id CTL element id pointer
+ * \param tlv TLV array pointer to store 
+ * \retval 0 on success
+ * \retval >0 on success when value was changed
+ * \retval <0 a negative error code
+ */
+int snd_ctl_elem_tlv_write(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			   const unsigned int *tlv)
+{
+	assert(ctl && id && (id->name[0] || id->numid) && tlv);
+	return snd_ctl_tlv_do(ctl, 1, id, (unsigned int *)tlv, tlv[1] + 2 * sizeof(unsigned int));
+}
+
+/**
+ * \brief Process CTL element TLV command
+ * \param ctl CTL handle
+ * \param id CTL element id pointer
+ * \param tlv TLV array pointer to process
+ * \retval 0 on success
+ * \retval >0 on success when value was changed
+ * \retval <0 a negative error code
+ */
+int snd_ctl_elem_tlv_command(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			     const unsigned int *tlv)
+{
+	assert(ctl && id && (id->name[0] || id->numid) && tlv);
+	return snd_ctl_tlv_do(ctl, -1, id, (unsigned int *)tlv, tlv[1] + 2 * sizeof(unsigned int));
 }
 
 /**
@@ -1739,6 +1818,39 @@ int snd_ctl_elem_info_is_user(const snd_ctl_elem_info_t *obj)
 {
 	assert(obj);
 	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_USER);
+}
+
+/**
+ * \brief Get info about TLV readability from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return 0 if element's TLV is not readable, 1 if element's TLV is readable
+ */
+int snd_ctl_elem_info_is_tlv_readable(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_TLV_READ);
+}
+
+/**
+ * \brief Get info about TLV writeability from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return 0 if element's TLV is not writable, 1 if element's TLV is writable
+ */
+int snd_ctl_elem_info_is_tlv_writable(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_TLV_WRITE);
+}
+
+/**
+ * \brief Get info about TLV command possibility from a CTL element id/info
+ * \param obj CTL element id/info
+ * \return 0 if element's TLV command is not possible, 1 if element's TLV command is supported
+ */
+int snd_ctl_elem_info_is_tlv_commandable(const snd_ctl_elem_info_t *obj)
+{
+	assert(obj);
+	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_TLV_COMMAND);
 }
 
 /**
