@@ -600,39 +600,34 @@ The null device is null plugin. This device has not any arguments.
 
 \section pcm_examples Examples
 
-The full featured examples with cross-links:
+The full featured examples with cross-links can be found in Examples section
+(see top of page):
 
+\anchor example_test_pcm
 \par Sine-wave generator
-\ref example_test_pcm "example code"
 \par
-This example shows various transfer methods for the playback direction.
+alsa-lib/test/pcm.c example shows various transfer methods for the playback direction.
 
 \par Minimalistic PCM playback code
-\ref example_test_pcm_min "example code"
 \par
-This example shows the minimal code to produce a sound.
+alsa-lib/test/pcm_min.c example shows the minimal code to produce a sound.
 
 \par Latency measuring tool
-\ref example_test_latency "example code"
 \par
-This example shows the measuring of minimal latency between capture and
+alsa-lib/test/latency.c example shows the measuring of minimal latency between capture and
 playback devices.
 
 */
 
 /**
- * \example ../test/pcm.c
- * \anchor example_test_pcm
- */
+\example ../../test/pcm.c
+*/
 /**
- * \example ../test/pcm_min.c
- * \anchor example_test_pcm_min
- */
+\example ../../test/pcm_min.c
+*/
 /**
- * \example ../test/latency.c
- * \anchor example_test_latency
- */
-
+\example ../../test/latency.c
+*/
 
 #include <stdio.h>
 #include <string.h>
