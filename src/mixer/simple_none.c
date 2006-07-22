@@ -971,12 +971,37 @@ static int get_volume_ops(snd_mixer_elem_t *elem, int dir,
 	return 0;
 }
 
-static int get_dB_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
-		      int dir ATTRIBUTE_UNUSED,
-		      snd_mixer_selem_channel_id_t channel ATTRIBUTE_UNUSED,
-		      long *value ATTRIBUTE_UNUSED)
+static int get_dB_ops(snd_mixer_elem_t *elem,
+                      int dir,
+                      snd_mixer_selem_channel_id_t channel,
+                      long *value)
 {
-	return -ENXIO;
+	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	selem_ctl_t *c;
+	int err = -EINVAL;
+	long volume, db_gain;
+	if (dir == SM_PLAY) {
+		c = &s->ctls[CTL_PLAYBACK_VOLUME];
+		if (c->type != 2) {
+			goto _err;
+		}
+	} else if (dir == SM_CAPT) {
+		c = &s->ctls[CTL_CAPTURE_VOLUME];
+		if (c->type != 2) {
+			goto _err;
+		}
+	} else goto _err;
+	if (err = get_volume_ops(elem, dir, channel, &volume))  {
+		goto _err;
+	}
+	if ((err = snd_hctl_elem_get_db_gain(c->elem, volume, &db_gain)) < 0) {
+		goto _err;
+	}
+	err = 0;
+	*value = db_gain;
+_err:
+	//if (err) printf("get_dB_ops:err=%d\n",err);
+	return err;
 }
 
 static int get_switch_ops(snd_mixer_elem_t *elem, int dir,
