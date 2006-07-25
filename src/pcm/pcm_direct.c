@@ -805,6 +805,8 @@ int snd_pcm_direct_resume(snd_pcm_t *pcm)
 /* copy the slave setting */
 static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 {
+	spcm->info &= ~SND_PCM_INFO_PAUSE;
+
 	COPY_SLAVE(access);
 	COPY_SLAVE(format);
 	COPY_SLAVE(subformat);
