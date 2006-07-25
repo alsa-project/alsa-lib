@@ -24,10 +24,7 @@
 #ifndef __SOUND_AINSTR_GF1_H
 #define __SOUND_AINSTR_GF1_H
 
-#ifndef __KERNEL__
-#include <asm/types.h>
-#include <asm/byteorder.h>
-#endif
+#include "type_compat.h"
 
 /*
  *  share types (share ID 1)
