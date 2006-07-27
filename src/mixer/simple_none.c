@@ -980,23 +980,24 @@ static int get_dB_ops(snd_mixer_elem_t *elem,
 	selem_ctl_t *c;
 	int err = -EINVAL;
 	long volume, db_gain;
+
 	if (dir == SM_PLAY) {
 		c = &s->ctls[CTL_PLAYBACK_VOLUME];
-		if (c->type != 2) {
+		if (c->type != 2)
 			goto _err;
-		}
 	} else if (dir == SM_CAPT) {
 		c = &s->ctls[CTL_CAPTURE_VOLUME];
-		if (c->type != 2) {
+		if (c->type != 2)
 			goto _err;
-		}
-	} else goto _err;
-	if (err = get_volume_ops(elem, dir, channel, &volume))  {
+	} else {
 		goto _err;
 	}
-	if ((err = snd_hctl_elem_get_db_gain(c->elem, volume, &db_gain)) < 0) {
+	err = get_volume_ops(elem, dir, channel, &volume);
+	if (err < 0)
 		goto _err;
-	}
+	err = snd_hctl_elem_get_db_gain(c->elem, volume, &db_gain);
+	if (err < 0)
+		goto _err;
 	err = 0;
 	*value = db_gain;
 _err:

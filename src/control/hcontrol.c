@@ -798,53 +798,56 @@ static int snd_hctl_elem_decode_tlv_db_gain(unsigned int *tlv, unsigned int tlv_
 	size = tlv[idx++];
 	tlv_size -= 2 * sizeof(unsigned int);
 	if (size > tlv_size) {
-		printf("TLV size error (%i, %i, %i)!\n", type, size, tlv_size);
-		err=-EINVAL;
+		err = -EINVAL;
 		goto __exit_decode_db_gain;
 	}
 	switch (type) {
 	case SND_CTL_TLVT_CONTAINER:
-		size += sizeof(unsigned int) -1;
+		size += sizeof(unsigned int) - 1;
 		size /= sizeof(unsigned int);
-		printf("TLV container!\n");
 		while (idx < size) {
 			if (tlv[idx+1] > (size - idx) * sizeof(unsigned int)) {
-				printf("TLV size error in compound!\n");
-				err=-EINVAL;
+				err = -EINVAL;
 				goto __exit_decode_db_gain;
 			}
 			err = snd_hctl_elem_decode_tlv_db_gain(tlv + idx, tlv[idx+1], volume, db_gain);
-			if (!err) break; /* db_gain obtained */
+			if (!err)
+				break; /* db_gain obtained */
 			idx += 2 + (tlv[1] + sizeof(unsigned int) - 1) / sizeof(unsigned int);
 		}
 		break;
 	case SND_CTL_TLVT_DB_SCALE:
 		if (size != 2 * sizeof(unsigned int)) {
+#if 0
 			while (size > 0) {
 				printf("0x%x", tlv[idx++]);
 				size -= sizeof(unsigned int);
 			}
 			printf("\n");
+#endif
 		} else {
 			int min,step,mute;
 			min = tlv[2];
 			step = (tlv[3] & 0xffff);
 			mute = (tlv[3] >> 16) & 1;
 			*db_gain = (volume * step) + min;
-			if (mute && (volume == 0)) *db_gain = -9999999;
+			if (mute && (volume == 0))
+				*db_gain = -9999999;
 		}
 		break;
 	default:
+#if 0
 		printf("unk-%i-", type);
 		while (size > 0) {
 			printf("0x%x", tlv[idx++]);
 			size -= sizeof(unsigned int);
 		}
 		printf("\n");
+#endif
 		break;
 	}
 
-	__exit_decode_db_gain:
+      __exit_decode_db_gain:
 	return err;
 }
 
@@ -859,34 +862,33 @@ int snd_hctl_elem_get_db_gain(snd_hctl_elem_t *elem, long volume, long *db_gain)
 {
 	snd_ctl_elem_info_t *info;
 	unsigned int *tlv;
-	unsigned int tlv_size=4096;
-	unsigned int type;
-	unsigned int size;
-	unsigned int idx = 0;
-	int err=0;
+	unsigned int tlv_size = 4096;
+	int err;
 
 	snd_ctl_elem_info_alloca(&info);
-	snd_hctl_elem_info(elem, info);
+	err = snd_hctl_elem_info(elem, info);
+	if (err < 0)
+		return err;
 
 	if (tlv_size < 2 * sizeof(unsigned int)) {
-		printf("TLV size error!\n");
-		err=-EINVAL;
+		err = -EINVAL;
 		goto __exit_db_gain;
 	}
 	if (!snd_ctl_elem_info_is_tlv_readable(info)) {
-		err=-EINVAL;
+		err = -EINVAL;
 		goto __exit_db_gain;
 	}
-	tlv = malloc(4096);
-	if ((err = snd_hctl_elem_tlv_read(elem, tlv, tlv_size)) < 0) {
-		printf("Control element TLV read error: %s\n", snd_strerror(err));
-		goto __free_exit_db_gain;
+	tlv = malloc(tlv_size);
+	if (tlv == NULL) {
+		err = -ENOMEM;
+		goto __exit_db_gain;
 	}
+	if ((err = snd_hctl_elem_tlv_read(elem, tlv, tlv_size)) < 0)
+		goto __free_exit_db_gain;
 	err = snd_hctl_elem_decode_tlv_db_gain(tlv, tlv_size, volume, db_gain);
-
-	__free_exit_db_gain:
+      __free_exit_db_gain:
 	free(tlv);
-	__exit_db_gain:
+      __exit_db_gain:
 	return err;
 }
 	
