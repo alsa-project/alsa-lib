@@ -73,12 +73,15 @@ typedef struct _selem_none {
 	sm_selem_t selem;
 	selem_ctl_t ctls[CTL_LAST + 1];
 	unsigned int capture_item;
-	struct {
+	struct selem_str {
 		unsigned int range: 1;	/* Forced range */
+		unsigned int db_initialized: 1;
+		unsigned int db_init_error: 1;
 		long min, max;
 		unsigned int channels;
 		long vol[32];
 		unsigned int sw;
+		unsigned int *db_info;
 	} str[2];
 } selem_none_t;
 
@@ -601,6 +604,9 @@ static void selem_free(snd_mixer_elem_t *elem)
 	assert(snd_mixer_elem_get_type(elem) == SND_MIXER_ELEM_SIMPLE);
 	if (simple->selem.id)
 		snd_mixer_selem_id_free(simple->selem.id);
+	/* free db range information */
+	free(simple->str[0].db_info);
+	free(simple->str[1].db_info);
 	free(simple);
 }
 
@@ -971,6 +977,116 @@ static int get_volume_ops(snd_mixer_elem_t *elem, int dir,
 	return 0;
 }
 
+/* convert to index of integer array */
+#define int_index(size)	(((size) + sizeof(int) - 1) / sizeof(int))
+
+/* parse TLV stream and retrieve dB information
+ * return 0 if successly found and stored to rec,
+ * return 1 if no information is found,
+ * or return a negative error code
+ */
+static int parse_db_range(struct selem_str *rec, unsigned int *tlv,
+			  unsigned int tlv_size)
+{
+	unsigned int type;
+	unsigned int size;
+	int err;
+
+	type = tlv[0];
+	size = tlv[1];
+	tlv_size -= 2 * sizeof(int);
+	if (size > tlv_size) {
+		SNDERR("TLV size error");
+		return -EINVAL;
+	}
+	switch (type) {
+	case SND_CTL_TLVT_CONTAINER:
+		size = int_index(size) * sizeof(int);
+		tlv += 2;
+		while (size > 0) {
+			unsigned int len;
+			err = parse_db_range(rec, tlv, size);
+			if (err <= 0)
+				return err; /* error or found dB */
+			len = int_index(tlv[1]) + 2;
+			size -= len * sizeof(int);
+			tlv += len;
+		}
+		break;
+	case SND_CTL_TLVT_DB_SCALE:
+		rec->db_info = malloc(size + sizeof(int) * 2);
+		if (! rec->db_info)
+			return -ENOMEM;
+		memcpy(rec->db_info, tlv, size + sizeof(int) * 2);
+		return 0;
+	default:
+		break;
+	}
+	return 1; /* not found */
+}
+
+/* convert the given raw volume value to a dB gain
+ */
+static int convert_db_range(struct selem_str *rec, long volume, long *db_gain)
+{
+	int min, step, mute;
+
+	switch (rec->db_info[0]) {
+	case SND_CTL_TLVT_DB_SCALE:
+		min = rec->db_info[2];
+		step = (rec->db_info[3] & 0xffff);
+		mute = (rec->db_info[3] >> 16) & 1;
+		if (mute && volume == rec->min)
+			*db_gain = -9999999;
+		else
+			*db_gain = (volume - rec->min) * step + min;
+		return 0;
+	}
+	return -EINVAL;
+}
+
+/* initialize dB range information, reading TLV via hcontrol
+ */
+static int init_db_range(snd_hctl_elem_t *ctl, struct selem_str *rec)
+{
+	snd_ctl_elem_info_t *info;
+	unsigned int *tlv = NULL;
+	const unsigned int tlv_size = 4096;
+
+	snd_ctl_elem_info_alloca(&info);
+	if (snd_hctl_elem_info(ctl, info) < 0)
+		goto error;
+	if (! snd_ctl_elem_info_is_tlv_readable(info))
+		goto error;
+	tlv = malloc(tlv_size);
+	if (! tlv)
+		return -ENOMEM;
+	if (snd_hctl_elem_tlv_read(ctl, tlv, tlv_size) < 0)
+		goto error;
+	if (parse_db_range(rec, tlv, tlv_size) < 0)
+		goto error;
+	free(tlv);
+	rec->db_initialized = 1;
+	return 0;
+
+ error:
+	free(tlv);
+	rec->db_init_error = 1;
+	return -EINVAL;
+}
+
+static int get_dB_gain(snd_hctl_elem_t *ctl, struct selem_str *rec,
+		       long volume, long *db_gain)
+{
+	if (rec->db_init_error)
+		return -EINVAL;
+	if (! rec->db_initialized) {
+		if (init_db_range(ctl, rec) < 0)
+			return -EINVAL;
+	}
+	return convert_db_range(rec, volume, db_gain);
+}
+	
 static int get_dB_ops(snd_mixer_elem_t *elem,
                       int dir,
                       snd_mixer_selem_channel_id_t channel,
@@ -981,27 +1097,21 @@ static int get_dB_ops(snd_mixer_elem_t *elem,
 	int err = -EINVAL;
 	long volume, db_gain;
 
-	if (dir == SM_PLAY) {
+	if (dir == SM_PLAY)
 		c = &s->ctls[CTL_PLAYBACK_VOLUME];
-		if (c->type != 2)
-			goto _err;
-	} else if (dir == SM_CAPT) {
+	else if (dir == SM_CAPT)
 		c = &s->ctls[CTL_CAPTURE_VOLUME];
-		if (c->type != 2)
-			goto _err;
-	} else {
+	else
 		goto _err;
-	}
-	err = get_volume_ops(elem, dir, channel, &volume);
-	if (err < 0)
+	if (c->type != 2)
 		goto _err;
-	err = snd_hctl_elem_get_db_gain(c->elem, volume, &db_gain);
-	if (err < 0)
+	if ((err = get_volume_ops(elem, dir, channel, &volume)) < 0)
+		goto _err;
+	if ((err = get_dB_gain(c->elem, &s->str[dir], volume, &db_gain)) < 0)
 		goto _err;
 	err = 0;
 	*value = db_gain;
-_err:
-	//if (err) printf("get_dB_ops:err=%d\n",err);
+ _err:
 	return err;
 }
 
