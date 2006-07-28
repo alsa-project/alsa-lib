@@ -63,7 +63,7 @@ test "x$prefix" = xNONE && prefix=$ac_default_prefix
 eval dir="$datadir"
 case "$dir" in
 /*) ;;
-*) dir="$PWD/$dir"
+*) dir="$prefix/$dir"
 esac
 AC_DEFINE_UNQUOTED(DATADIR, "$dir", [directory containing ALSA configuration database])
 
@@ -72,7 +72,7 @@ test "x$exec_prefix" = xNONE && exec_prefix=$prefix
 eval dir="$libdir"
 case "$dir" in
 /*) ;;
-*) dir="$PWD/$dir"
+*) dir="$prefix/$dir"
 esac
 AC_DEFINE_UNQUOTED(PKGLIBDIR, "$dir/$PACKAGE", [directory containing ALSA add-on modules])
 
