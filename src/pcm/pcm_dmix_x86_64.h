@@ -288,7 +288,7 @@ static void MIX_AREAS3(unsigned int size,
 		"\tmovl (%%rbx), %%edx\n"
 		"\tsall $16, %%eax\n"
 		"\t" LOCK_PREFIX "btsl $0, (%%rdi)\n"
-		"\tleal (%%ecx,%%eax,1), %%ecx\n"
+		"\t.byte 0x67, 0x8d, 0x0c, 0x01\n"
 		"\tjc 2f\n"
 		"\tsubl %%edx, %%ecx\n"
 		"2:"
