@@ -1103,7 +1103,12 @@ static int get_dB_ops(snd_mixer_elem_t *elem,
 		c = &s->ctls[CTL_CAPTURE_VOLUME];
 	else
 		goto _err;
-	if (c->type != 2)
+	if (! c->elem) {
+		c = &s->ctls[CTL_GLOBAL_VOLUME];
+		if (! c->elem)
+			goto _err;
+	}
+	if (c->type != SND_CTL_ELEM_TYPE_INTEGER)
 		goto _err;
 	if ((err = get_volume_ops(elem, dir, channel, &volume)) < 0)
 		goto _err;
