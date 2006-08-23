@@ -1022,7 +1022,7 @@ static int parse_db_range(struct selem_str *rec, unsigned int *tlv,
 	default:
 		break;
 	}
-	return 1; /* not found */
+	return -EINVAL; /* not found */
 }
 
 /* convert the given raw volume value to a dB gain
