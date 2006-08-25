@@ -945,14 +945,6 @@ static int get_range_ops(snd_mixer_elem_t *elem, int dir,
 	return 0;
 }
 
-static int get_dB_range_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
-			    int dir ATTRIBUTE_UNUSED,
-			    long *min ATTRIBUTE_UNUSED,
-			    long *max ATTRIBUTE_UNUSED)
-{
-	return -ENXIO;
-}
-
 static int set_range_ops(snd_mixer_elem_t *elem, int dir,
 			 long min, long max)
 {
@@ -1075,6 +1067,60 @@ static int init_db_range(snd_hctl_elem_t *ctl, struct selem_str *rec)
 	return -EINVAL;
 }
 
+/* get selem_ctl for TLV access */
+static selem_ctl_t *get_selem_ctl(selem_none_t *s, int dir)
+{
+	selem_ctl_t *c;
+	if (dir == SM_PLAY)
+		c = &s->ctls[CTL_PLAYBACK_VOLUME];
+	else if (dir == SM_CAPT)
+		c = &s->ctls[CTL_CAPTURE_VOLUME];
+	else
+		return NULL;
+	if (! c->elem) {
+		c = &s->ctls[CTL_GLOBAL_VOLUME];
+		if (! c->elem)
+			return NULL;
+	}
+	if (c->type != SND_CTL_ELEM_TYPE_INTEGER)
+		return NULL;
+	return c;
+}
+
+static int get_dB_range(snd_hctl_elem_t *ctl, struct selem_str *rec,
+			long *min, long *max)
+{
+	int step;
+
+	if (rec->db_init_error)
+		return -EINVAL;
+	if (! rec->db_initialized) {
+		if (init_db_range(ctl, rec) < 0)
+			return -EINVAL;
+	}
+	switch (rec->db_info[0]) {
+	case SND_CTL_TLVT_DB_SCALE:
+		*min = (int)rec->db_info[2];
+		step = (rec->db_info[3] & 0xffff);
+		*max = *min + (long)(step * (rec->max - rec->min));
+		return 0;
+	}
+	return -EINVAL;
+}
+	
+static int get_dB_range_ops(snd_mixer_elem_t *elem, int dir,
+			    long *min, long *max)
+{
+	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	selem_ctl_t *c;
+	int err;
+
+	c = get_selem_ctl(s, dir);
+	if (! c)
+		return -EINVAL;
+	return get_dB_range(c->elem, &s->str[dir], min, max);
+}
+
 static int get_dB_gain(snd_hctl_elem_t *ctl, struct selem_str *rec,
 		       long volume, long *db_gain)
 {
@@ -1094,22 +1140,12 @@ static int get_dB_ops(snd_mixer_elem_t *elem,
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
 	selem_ctl_t *c;
-	int err = -EINVAL;
+	int err;
 	long volume, db_gain;
 
-	if (dir == SM_PLAY)
-		c = &s->ctls[CTL_PLAYBACK_VOLUME];
-	else if (dir == SM_CAPT)
-		c = &s->ctls[CTL_CAPTURE_VOLUME];
-	else
-		goto _err;
-	if (! c->elem) {
-		c = &s->ctls[CTL_GLOBAL_VOLUME];
-		if (! c->elem)
-			goto _err;
-	}
-	if (c->type != SND_CTL_ELEM_TYPE_INTEGER)
-		goto _err;
+	c = get_selem_ctl(s, dir);
+	if (! c)
+		return -EINVAL;
 	if ((err = get_volume_ops(elem, dir, channel, &volume)) < 0)
 		goto _err;
 	if ((err = get_dB_gain(c->elem, &s->str[dir], volume, &db_gain)) < 0)
