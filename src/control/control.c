@@ -283,6 +283,8 @@ int snd_ctl_elem_add_integer(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 	snd_ctl_elem_info_alloca(&info);
 	info->id = *id;
 	info->type = SND_CTL_ELEM_TYPE_INTEGER;
+	info->access = SNDRV_CTL_ELEM_ACCESS_READWRITE |
+		SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE;
 	info->count = count;
 	info->value.integer.min = min;
 	info->value.integer.max = max;
