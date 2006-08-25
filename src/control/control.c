@@ -455,8 +455,21 @@ static int snd_ctl_tlv_do(snd_ctl_t *ctl, int op_flag,
 int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			  unsigned int *tlv, unsigned int tlv_size)
 {
+	int err;
 	assert(ctl && id && (id->name[0] || id->numid) && tlv);
-	return snd_ctl_tlv_do(ctl, 0, id, tlv, tlv_size);
+	if (tlv_size < 2 * sizeof(int))
+		return -EINVAL;
+	/* 1.0.12 driver doesn't return the error even if the user TLV
+	 * is empty.  So, initialize TLV here with an invalid type
+	 * and compare the returned value after ioctl for checking
+	 * the validity of TLV.
+	 */
+	tlv[0] = -1;
+	tlv[1] = 0;
+	err = snd_ctl_tlv_do(ctl, 0, id, tlv, tlv_size);
+	if (err >= 0 && tlv[0] == -1)
+		err = -ENXIO;
+	return err;
 }
 
 /**
