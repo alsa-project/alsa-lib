@@ -969,6 +969,8 @@ static int get_volume_ops(snd_mixer_elem_t *elem, int dir,
 	return 0;
 }
 
+static int init_db_range(snd_hctl_elem_t *ctl, struct selem_str *rec);
+
 /* convert to index of integer array */
 #define int_index(size)	(((size) + sizeof(int) - 1) / sizeof(int))
 
@@ -1019,9 +1021,14 @@ static int parse_db_range(struct selem_str *rec, unsigned int *tlv,
 
 /* convert the given raw volume value to a dB gain
  */
-static int convert_db_range(struct selem_str *rec, long volume, long *db_gain)
+
+static int convert_to_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
+			 long volume, long *db_gain)
 {
 	int min, step, mute;
+
+	if (init_db_range(ctl, rec) < 0)
+		return -EINVAL;
 
 	switch (rec->db_info[0]) {
 	case SND_CTL_TLVT_DB_SCALE:
@@ -1044,6 +1051,11 @@ static int init_db_range(snd_hctl_elem_t *ctl, struct selem_str *rec)
 	snd_ctl_elem_info_t *info;
 	unsigned int *tlv = NULL;
 	const unsigned int tlv_size = 4096;
+
+	if (rec->db_init_error)
+		return -EINVAL;
+	if (rec->db_initialized)
+		return 0;
 
 	snd_ctl_elem_info_alloca(&info);
 	if (snd_hctl_elem_info(ctl, info) < 0)
@@ -1087,17 +1099,16 @@ static selem_ctl_t *get_selem_ctl(selem_none_t *s, int dir)
 	return c;
 }
 
+/* Get the dB min/max values
+ */
 static int get_dB_range(snd_hctl_elem_t *ctl, struct selem_str *rec,
 			long *min, long *max)
 {
 	int step;
 
-	if (rec->db_init_error)
+	if (init_db_range(ctl, rec) < 0)
 		return -EINVAL;
-	if (! rec->db_initialized) {
-		if (init_db_range(ctl, rec) < 0)
-			return -EINVAL;
-	}
+
 	switch (rec->db_info[0]) {
 	case SND_CTL_TLVT_DB_SCALE:
 		*min = (int)rec->db_info[2];
@@ -1121,18 +1132,40 @@ static int get_dB_range_ops(snd_mixer_elem_t *elem, int dir,
 	return get_dB_range(c->elem, &s->str[dir], min, max);
 }
 
-static int get_dB_gain(snd_hctl_elem_t *ctl, struct selem_str *rec,
-		       long volume, long *db_gain)
+/* Convert from dB gain to the corresponding raw value.
+ * The value is round up when xdir > 0.
+ */
+static int convert_from_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
+			   long db_gain, long *value, int xdir)
 {
-	if (rec->db_init_error)
+	if (init_db_range(ctl, rec) < 0)
 		return -EINVAL;
-	if (! rec->db_initialized) {
-		if (init_db_range(ctl, rec) < 0)
-			return -EINVAL;
+
+	switch (rec->db_info[0]) {
+	case SND_CTL_TLVT_DB_SCALE: {
+		int min, step, max;
+		min = rec->db_info[2];
+		step = (rec->db_info[3] & 0xffff);
+		max = min + (int)(step * rec->max);
+		if (db_gain <= min)
+			*value = rec->min;
+		else if (db_gain >= max)
+			*value = rec->max;
+		else {
+			long v = (db_gain - min) * (rec->max - rec->min);
+			if (xdir > 0)
+				v += (max - min) - 1;
+			v = v / (max - min) + rec->min;
+			*value = v;
+		}
+		return 0;
 	}
-	return convert_db_range(rec, volume, db_gain);
+	default:
+		break;
+	}
+	return -EINVAL;
 }
-	
+
 static int get_dB_ops(snd_mixer_elem_t *elem,
                       int dir,
                       snd_mixer_selem_channel_id_t channel,
@@ -1148,7 +1181,7 @@ static int get_dB_ops(snd_mixer_elem_t *elem,
 		return -EINVAL;
 	if ((err = get_volume_ops(elem, dir, channel, &volume)) < 0)
 		goto _err;
-	if ((err = get_dB_gain(c->elem, &s->str[dir], volume, &db_gain)) < 0)
+	if ((err = convert_to_dB(c->elem, &s->str[dir], volume, &db_gain)) < 0)
 		goto _err;
 	err = 0;
 	*value = db_gain;
@@ -1178,13 +1211,22 @@ static int set_volume_ops(snd_mixer_elem_t *elem, int dir,
 	return 0;
 }
 
-static int set_dB_ops(snd_mixer_elem_t *elem ATTRIBUTE_UNUSED,
-		      int dir ATTRIBUTE_UNUSED,
-		      snd_mixer_selem_channel_id_t channel ATTRIBUTE_UNUSED,
-		      long value ATTRIBUTE_UNUSED,
-		      int xdir ATTRIBUTE_UNUSED)
+static int set_dB_ops(snd_mixer_elem_t *elem, int dir,
+		      snd_mixer_selem_channel_id_t channel,
+		      long db_gain, int xdir)
 {
-	return -ENXIO;
+	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	selem_ctl_t *c;
+	long value;
+	int err;
+
+	c = get_selem_ctl(s, dir);
+	if (! c)
+		return -EINVAL;
+	err = convert_from_dB(c->elem, &s->str[dir], db_gain, &value, xdir);
+	if (err < 0)
+		return err;
+	return set_volume_ops(elem, dir, channel, value);
 }
 
 static int set_switch_ops(snd_mixer_elem_t *elem, int dir,
