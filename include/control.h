@@ -170,6 +170,11 @@ typedef enum _snd_ctl_event_type {
 #define SND_CTL_TLVT_CONTAINER		0x0000
 /** TLV type - basic dB scale */
 #define SND_CTL_TLVT_DB_SCALE		0x0001
+/** TLV type - linear volume */
+#define SND_CTL_TLVT_DB_LINEAR		0x0002
+
+/** Mute state */
+#define SND_CTL_TLV_DB_GAIN_MUTE	-9999999
 
 /** CTL type */
 typedef enum _snd_ctl_type {

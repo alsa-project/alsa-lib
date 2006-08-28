@@ -1008,6 +1008,13 @@ static int parse_db_range(struct selem_str *rec, unsigned int *tlv,
 		}
 		break;
 	case SND_CTL_TLVT_DB_SCALE:
+#ifndef HAVE_SOFT_FLOAT
+	case SND_CTL_TLVT_DB_LINEAR:
+#endif
+		if (size < 2 * sizeof(int)) {
+			SNDERR("Invalid dB_scale TLV size");
+			return -EINVAL;
+		}
 		rec->db_info = malloc(size + sizeof(int) * 2);
 		if (! rec->db_info)
 			return -ENOMEM;
@@ -1025,21 +1032,46 @@ static int parse_db_range(struct selem_str *rec, unsigned int *tlv,
 static int convert_to_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
 			 long volume, long *db_gain)
 {
-	int min, step, mute;
-
 	if (init_db_range(ctl, rec) < 0)
 		return -EINVAL;
 
 	switch (rec->db_info[0]) {
-	case SND_CTL_TLVT_DB_SCALE:
+	case SND_CTL_TLVT_DB_SCALE: {
+		int min, step, mute;
 		min = rec->db_info[2];
 		step = (rec->db_info[3] & 0xffff);
 		mute = (rec->db_info[3] >> 16) & 1;
 		if (mute && volume == rec->min)
-			*db_gain = -9999999;
+			*db_gain = SND_CTL_TLV_DB_GAIN_MUTE;
 		else
 			*db_gain = (volume - rec->min) * step + min;
 		return 0;
+	}
+#ifndef HAVE_SOFT_FLOAT
+	case SND_CTL_TLVT_DB_LINEAR: {
+		int mindb = rec->db_info[2];
+		int maxdb = rec->db_info[3];
+		if (volume <= rec->min || rec->max <= rec->min)
+			*db_gain = mindb;
+		else if (volume >= rec->max)
+			*db_gain = maxdb;
+		else {
+			double val = (double)(volume - rec->min) /
+				(double)(rec->max - rec->min);
+			if (mindb <= SND_CTL_TLV_DB_GAIN_MUTE)
+				*db_gain = (long)(100.0 * 20.0 * log10(val)) +
+					maxdb;
+			else {
+				/* FIXME: precalculate and cache these values */
+				double lmin = pow(10.0, mindb/20.0);
+				double lmax = pow(10.0, maxdb/20.0);
+				val = (lmax - lmin) * val + lmin;
+				*db_gain = (long)(100.0 * 20.0 * log10(val));
+			}
+		}
+		return 0;
+	}
+#endif
 	}
 	return -EINVAL;
 }
@@ -1115,6 +1147,10 @@ static int get_dB_range(snd_hctl_elem_t *ctl, struct selem_str *rec,
 		step = (rec->db_info[3] & 0xffff);
 		*max = *min + (long)(step * (rec->max - rec->min));
 		return 0;
+	case SND_CTL_TLVT_DB_LINEAR:
+		*min = (int)rec->db_info[2];
+		*max = (int)rec->db_info[3];
+		return 0;
 	}
 	return -EINVAL;
 }
@@ -1160,6 +1196,30 @@ static int convert_from_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
 		}
 		return 0;
 	}
+#ifndef HAVE_SOFT_FLOAT
+	case SND_CTL_TLVT_DB_LINEAR: {
+		int min, max;
+		min = rec->db_info[2];
+		max = rec->db_info[3];
+		if (db_gain <= min)
+			*value = rec->min;
+		else if (db_gain >= max)
+			*value = rec->max;
+		else {
+			/* FIXME: precalculate and cache vmin and vmax */
+			double vmin, vmax, v;
+			vmin = (min <= SND_CTL_TLV_DB_GAIN_MUTE) ? 0.0 :
+				pow(10.0,  (double)min / 20.0);
+			vmax = !max ? 1.0 : pow(10.0,  (double)max / 20.0);
+			v = pow(10.0, (double)db_gain / 20.0);
+			v = (v - vmin) * (rec->max - rec->min) / (vmax - vmin);
+			if (xdir > 0)
+				v = ceil(v);
+			*value = (long)v + rec->min;
+		}
+		return 0;
+	}
+#endif
 	default:
 		break;
 	}
