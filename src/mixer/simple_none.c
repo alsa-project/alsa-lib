@@ -974,6 +974,9 @@ static int init_db_range(snd_hctl_elem_t *ctl, struct selem_str *rec);
 /* convert to index of integer array */
 #define int_index(size)	(((size) + sizeof(int) - 1) / sizeof(int))
 
+/* max size of a TLV entry for dB information (including compound one) */
+#define MAX_TLV_RANGE_SIZE	256
+
 /* parse TLV stream and retrieve dB information
  * return 0 if successly found and stored to rec,
  * return 1 if no information is found,
@@ -1011,8 +1014,18 @@ static int parse_db_range(struct selem_str *rec, unsigned int *tlv,
 #ifndef HAVE_SOFT_FLOAT
 	case SND_CTL_TLVT_DB_LINEAR:
 #endif
-		if (size < 2 * sizeof(int)) {
+	case SND_CTL_TLVT_DB_RANGE: {
+		unsigned int minsize;
+		if (type == SND_CTL_TLVT_DB_RANGE)
+			minsize = 4 * sizeof(int);
+		else
+			minsize = 2 * sizeof(int);
+		if (size < minsize) {
 			SNDERR("Invalid dB_scale TLV size");
+			return -EINVAL;
+		}
+		if (size > MAX_TLV_RANGE_SIZE) {
+			SNDERR("Too big dB_scale TLV size: %d", size);
 			return -EINVAL;
 		}
 		rec->db_info = malloc(size + sizeof(int) * 2);
@@ -1020,6 +1033,7 @@ static int parse_db_range(struct selem_str *rec, unsigned int *tlv,
 			return -ENOMEM;
 		memcpy(rec->db_info, tlv, size + sizeof(int) * 2);
 		return 0;
+	}
 	default:
 		break;
 	}
@@ -1029,35 +1043,49 @@ static int parse_db_range(struct selem_str *rec, unsigned int *tlv,
 /* convert the given raw volume value to a dB gain
  */
 
-static int convert_to_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
-			 long volume, long *db_gain)
+static int do_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
+			    long volume, long *db_gain)
 {
-	if (init_db_range(ctl, rec) < 0)
+	switch (tlv[0]) {
+	case SND_CTL_TLVT_DB_RANGE: {
+		unsigned int pos, len;
+		len = int_index(tlv[1]);
+		if (len > MAX_TLV_RANGE_SIZE)
+			return -EINVAL;
+		pos = 2;
+		while (pos + 4 <= len) {
+			rangemin = (int)tlv[pos];
+			rangemax = (int)tlv[pos + 1];
+			if (volume >= rangemin && volume <= rangemax)
+				return do_convert_to_dB(tlv + pos + 2,
+							rangemin, rangemax,
+							volume, db_gain);
+			pos += int_index(tlv[pos + 3]) + 4;
+		}
 		return -EINVAL;
-
-	switch (rec->db_info[0]) {
+	}
 	case SND_CTL_TLVT_DB_SCALE: {
 		int min, step, mute;
-		min = rec->db_info[2];
-		step = (rec->db_info[3] & 0xffff);
-		mute = (rec->db_info[3] >> 16) & 1;
-		if (mute && volume == rec->min)
+		min = tlv[2];
+		step = (tlv[3] & 0xffff);
+		mute = (tlv[3] >> 16) & 1;
+		if (mute && volume == rangemin)
 			*db_gain = SND_CTL_TLV_DB_GAIN_MUTE;
 		else
-			*db_gain = (volume - rec->min) * step + min;
+			*db_gain = (volume - rangemin) * step + min;
 		return 0;
 	}
 #ifndef HAVE_SOFT_FLOAT
 	case SND_CTL_TLVT_DB_LINEAR: {
-		int mindb = rec->db_info[2];
-		int maxdb = rec->db_info[3];
-		if (volume <= rec->min || rec->max <= rec->min)
+		int mindb = tlv[2];
+		int maxdb = tlv[3];
+		if (volume <= rangemin || rangemax <= rangemin)
 			*db_gain = mindb;
-		else if (volume >= rec->max)
+		else if (volume >= rangemax)
 			*db_gain = maxdb;
 		else {
-			double val = (double)(volume - rec->min) /
-				(double)(rec->max - rec->min);
+			double val = (double)(volume - rangemin) /
+				(double)(rangemax - rangemin);
 			if (mindb <= SND_CTL_TLV_DB_GAIN_MUTE)
 				*db_gain = (long)(100.0 * 20.0 * log10(val)) +
 					maxdb;
@@ -1074,6 +1102,15 @@ static int convert_to_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
 #endif
 	}
 	return -EINVAL;
+}
+
+static int convert_to_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
+			 long volume, long *db_gain)
+{
+	if (init_db_range(ctl, rec) < 0)
+		return -EINVAL;
+	return do_convert_to_dB(rec->db_info, rec->min, rec->max,
+				volume, db_gain);
 }
 
 /* initialize dB range information, reading TLV via hcontrol
@@ -1133,26 +1170,57 @@ static selem_ctl_t *get_selem_ctl(selem_none_t *s, int dir)
 
 /* Get the dB min/max values
  */
-static int get_dB_range(snd_hctl_elem_t *ctl, struct selem_str *rec,
-			long *min, long *max)
+static int do_get_dB_range(unsigned int *tlv, long rangemin, long rangemax,
+			   long *min, long *max)
 {
-	int step;
-
-	if (init_db_range(ctl, rec) < 0)
-		return -EINVAL;
-
-	switch (rec->db_info[0]) {
-	case SND_CTL_TLVT_DB_SCALE:
-		*min = (int)rec->db_info[2];
-		step = (rec->db_info[3] & 0xffff);
-		*max = *min + (long)(step * (rec->max - rec->min));
+	switch (tlv[0]) {
+	case SND_CTL_TLVT_DB_RANGE: {
+		unsigned int pos, len;
+		len = int_index(tlv[1]);
+		if (len > MAX_TLV_RANGE_SIZE)
+			return -EINVAL;
+		pos = 2;
+		while (pos + 4 <= len) {
+			long rmin, rmax;
+			rangemin = (int)tlv[pos];
+			rangemax = (int)tlv[pos + 1];
+			do_get_dB_range(tlv + pos + 2, rangemin, rangemax,
+					&rmin, &rmax);
+			if (pos > 2) {
+				if (rmin < *min)
+					*min = rmin;
+				if (rmax > *max)
+					*max = rmax;
+			} else {
+				*min = rmin;
+				*max = rmax;
+			}
+			pos += int_index(tlv[pos + 3]) + 4;
+		}
 		return 0;
+	}
+	case SND_CTL_TLVT_DB_SCALE: {
+		int step;
+		*min = (int)tlv[2];
+		step = (tlv[3] & 0xffff);
+		*max = *min + (long)(step * (rangemax - rangemin));
+		return 0;
+	}
 	case SND_CTL_TLVT_DB_LINEAR:
-		*min = (int)rec->db_info[2];
-		*max = (int)rec->db_info[3];
+		*min = (int)tlv[2];
+		*max = (int)tlv[3];
 		return 0;
 	}
 	return -EINVAL;
+}
+
+static int get_dB_range(snd_hctl_elem_t *ctl, struct selem_str *rec,
+			long *min, long *max)
+{
+	if (init_db_range(ctl, rec) < 0)
+		return -EINVAL;
+
+	return do_get_dB_range(rec->db_info, rec->min, rec->max, min, max);
 }
 	
 static int get_dB_range_ops(snd_mixer_elem_t *elem, int dir,
@@ -1160,7 +1228,6 @@ static int get_dB_range_ops(snd_mixer_elem_t *elem, int dir,
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
 	selem_ctl_t *c;
-	int err;
 
 	c = get_selem_ctl(s, dir);
 	if (! c)
@@ -1171,27 +1238,44 @@ static int get_dB_range_ops(snd_mixer_elem_t *elem, int dir,
 /* Convert from dB gain to the corresponding raw value.
  * The value is round up when xdir > 0.
  */
-static int convert_from_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
-			   long db_gain, long *value, int xdir)
+static int do_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
+			      long db_gain, long *value, int xdir)
 {
-	if (init_db_range(ctl, rec) < 0)
+	switch (tlv[0]) {
+	case SND_CTL_TLVT_DB_RANGE: {
+		unsigned int pos, len;
+		len = int_index(tlv[1]);
+		if (len > MAX_TLV_RANGE_SIZE)
+			return -EINVAL;
+		pos = 2;
+		while (pos + 4 <= len) {
+			long dbmin, dbmax;
+			rangemin = (int)tlv[pos];
+			rangemax = (int)tlv[pos + 1];
+			if (! do_get_dB_range(tlv + pos + 2, rangemin, rangemax,
+					      &dbmin, &dbmax) &&
+			    db_gain >= dbmin && db_gain <= dbmax)
+				return do_convert_from_dB(tlv + pos + 2,
+							  rangemin, rangemax,
+							  db_gain, value, xdir);
+			pos += int_index(tlv[pos + 3]) + 4;
+		}
 		return -EINVAL;
-
-	switch (rec->db_info[0]) {
+	}
 	case SND_CTL_TLVT_DB_SCALE: {
 		int min, step, max;
-		min = rec->db_info[2];
-		step = (rec->db_info[3] & 0xffff);
-		max = min + (int)(step * rec->max);
+		min = tlv[2];
+		step = (tlv[3] & 0xffff);
+		max = min + (int)(step * (rangemax - rangemin));
 		if (db_gain <= min)
-			*value = rec->min;
+			*value = rangemin;
 		else if (db_gain >= max)
-			*value = rec->max;
+			*value = rangemax;
 		else {
-			long v = (db_gain - min) * (rec->max - rec->min);
+			long v = (db_gain - min) * (rangemax - rangemin);
 			if (xdir > 0)
 				v += (max - min) - 1;
-			v = v / (max - min) + rec->min;
+			v = v / (max - min) + rangemin;
 			*value = v;
 		}
 		return 0;
@@ -1199,12 +1283,12 @@ static int convert_from_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
 #ifndef HAVE_SOFT_FLOAT
 	case SND_CTL_TLVT_DB_LINEAR: {
 		int min, max;
-		min = rec->db_info[2];
-		max = rec->db_info[3];
+		min = tlv[2];
+		max = tlv[3];
 		if (db_gain <= min)
-			*value = rec->min;
+			*value = rangemin;
 		else if (db_gain >= max)
-			*value = rec->max;
+			*value = rangemax;
 		else {
 			/* FIXME: precalculate and cache vmin and vmax */
 			double vmin, vmax, v;
@@ -1212,10 +1296,10 @@ static int convert_from_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
 				pow(10.0,  (double)min / 20.0);
 			vmax = !max ? 1.0 : pow(10.0,  (double)max / 20.0);
 			v = pow(10.0, (double)db_gain / 20.0);
-			v = (v - vmin) * (rec->max - rec->min) / (vmax - vmin);
+			v = (v - vmin) * (rangemax - rangemin) / (vmax - vmin);
 			if (xdir > 0)
 				v = ceil(v);
-			*value = (long)v + rec->min;
+			*value = (long)v + rangemin;
 		}
 		return 0;
 	}
@@ -1224,6 +1308,16 @@ static int convert_from_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
 		break;
 	}
 	return -EINVAL;
+}
+
+static int convert_from_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
+			   long db_gain, long *value, int xdir)
+{
+	if (init_db_range(ctl, rec) < 0)
+		return -EINVAL;
+
+	return do_convert_from_dB(rec->db_info, rec->min, rec->max,
+				  db_gain, value, xdir);
 }
 
 static int get_dB_ops(snd_mixer_elem_t *elem,
