@@ -1,7 +1,9 @@
 SUBDIRS=cards pcm
 
-cfg_files = alsa.conf \
-	sndo-mixer.alisp
+cfg_files = alsa.conf
+if BUILD_ALISP
+cfg_files += sndo-mixer.alisp
+endif
 
 EXTRA_DIST = $(cfg_files)
 

@@ -36,8 +36,12 @@ if BUILD_INSTR
 SUBDIRS += instr
 libasound_la_LIBADD += instr/libinstr.la
 endif
-SUBDIRS += compat conf alisp
-libasound_la_LIBADD += compat/libcompat.la alisp/libalisp.la -lm -ldl -lpthread
+if BUILD_ALISP
+SUBDIRS += alisp
+libasound_la_LIBADD += alisp/libalisp.la endif
+endif
+SUBDIRS += compat conf
+libasound_la_LIBADD += compat/libcompat.la -lm -ldl -lpthread
 
 libasound_la_LDFLAGS = -version-info $(COMPATNUM)
 AM_LDFLAGS = $(VSYMS)

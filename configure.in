@@ -239,6 +239,9 @@ AC_ARG_ENABLE(seq,
 AC_ARG_ENABLE(instr,
   [  --disable-instr     Disable the instrument component],
   [build_instr="$enableval"], [build_instr="yes"])
+AC_ARG_ENABLE(alisp,
+  [  --disable-alisp     Disable the alisp component],
+  [build_alisp="$enableval"], [build_alisp="yes"])
 
 if test "$build_seq" != "yes"; then
   build_instr="no"
@@ -250,6 +253,7 @@ AM_CONDITIONAL(BUILD_RAWMIDI, test x$build_rawmidi = xyes)
 AM_CONDITIONAL(BUILD_HWDEP, test x$build_hwdep = xyes)
 AM_CONDITIONAL(BUILD_SEQ, test x$build_seq = xyes)
 AM_CONDITIONAL(BUILD_INSTR, test x$build_instr = xyes)
+AM_CONDITIONAL(BUILD_ALISP, test x$build_alisp = xyes)
 
 if test "$build_mixer" = "yes"; then
   AC_DEFINE([BUILD_MIXER], "1", [Build mixer component])
