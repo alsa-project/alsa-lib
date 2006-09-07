@@ -1091,8 +1091,8 @@ static int do_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
 					maxdb;
 			else {
 				/* FIXME: precalculate and cache these values */
-				double lmin = pow(10.0, mindb/20.0);
-				double lmax = pow(10.0, maxdb/20.0);
+				double lmin = pow(10.0, mindb/2000.0);
+				double lmax = pow(10.0, maxdb/2000.0);
 				val = (lmax - lmin) * val + lmin;
 				*db_gain = (long)(100.0 * 20.0 * log10(val));
 			}
@@ -1293,9 +1293,9 @@ static int do_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 			/* FIXME: precalculate and cache vmin and vmax */
 			double vmin, vmax, v;
 			vmin = (min <= SND_CTL_TLV_DB_GAIN_MUTE) ? 0.0 :
-				pow(10.0,  (double)min / 20.0);
-			vmax = !max ? 1.0 : pow(10.0,  (double)max / 20.0);
-			v = pow(10.0, (double)db_gain / 20.0);
+				pow(10.0,  (double)min / 2000.0);
+			vmax = !max ? 1.0 : pow(10.0,  (double)max / 2000.0);
+			v = pow(10.0, (double)db_gain / 2000.0);
 			v = (v - vmin) * (rangemax - rangemin) / (vmax - vmin);
 			if (xdir > 0)
 				v = ceil(v);
