@@ -535,7 +535,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	const char *fname = NULL, *ifname = NULL;
 	const char *format = NULL;
 	long fd = -1, ifd = -1;
-	int perm = 0600;
+	long perm = 0600;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;
@@ -578,20 +578,15 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "perm") == 0) {
-			char *str;
-			char *endp;
-			err = snd_config_get_ascii(n, &str);
+			err = snd_config_get_integer(n, &perm);
 			if (err < 0) {
-				SNDERR("The field perm must be a valid file permission");
+				SNDERR("Invalid type for %s", id);
 				return err;
 			}
-			if (isdigit(*str) == 0) {
+			if ((perm & ~0777) != 0) {
 				SNDERR("The field perm must be a valid file permission");
-				free(str);
 				return -EINVAL;
 			}
-			perm = strtol(str, &endp, 8);
-			free(str);
 			continue;
 		}
 		SNDERR("Unknown field %s", id);

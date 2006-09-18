@@ -1555,20 +1555,17 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 			continue;
 		}
 		if (strcmp(id, "ipc_perm") == 0) {
-			char *perm;
-			char *endp;
-			err = snd_config_get_ascii(n, &perm);
+			long perm;
+			err = snd_config_get_integer(n, &perm);
 			if (err < 0) {
-				SNDERR("The field ipc_perm must be a valid file permission");
+				SNDERR("Invalid type for %s", id);
 				return err;
 			}
-			if (isdigit(*perm) == 0) {
+			if ((perm & ~0777) != 0) {
 				SNDERR("The field ipc_perm must be a valid file permission");
-				free(perm);
 				return -EINVAL;
 			}
-			rec->ipc_perm = strtol(perm, &endp, 8);
-			free(perm);
+			rec->ipc_perm = perm;
 			continue;
 		}
 		if (strcmp(id, "ipc_gid") == 0) {

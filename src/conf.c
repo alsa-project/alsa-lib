@@ -470,7 +470,7 @@ static int safe_strtoll(const char *str, long long *val)
 	if (!*str)
 		return -EINVAL;
 	errno = 0;
-	if (sscanf(str, "%Ld%n", &v, &endidx) < 1)
+	if (sscanf(str, "%Li%n", &v, &endidx) < 1)
 		return -EINVAL;
 	if (str[endidx])
 		return -EINVAL;
