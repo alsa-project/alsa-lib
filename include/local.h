@@ -192,6 +192,9 @@ extern snd_lib_error_handler_t snd_err_msg;
 
 /* When a reference to SYMBOL is encountered, the linker will emit a
    warning message MSG.  */
+
+#define ASM_NAME(name) __SYMBOL_PREFIX name
+
 #ifdef HAVE_GNU_LD
 # ifdef HAVE_ELF
 
@@ -210,19 +213,19 @@ extern snd_lib_error_handler_t snd_err_msg;
    section attributes on what looks like a comment to the assembler.  */
 #  ifdef HAVE_SECTION_QUOTES
 #   define link_warning(symbol, msg) \
-  __make_section_unallocated (".gnu.warning." #symbol) \
+  __make_section_unallocated (".gnu.warning." ASM_NAME(#symbol)) \
   static const char __evoke_link_warning_##symbol[]	\
-    __attribute__ ((section (".gnu.warning." #symbol "\"\n\t#\""))) = msg;
+    __attribute__ ((section (".gnu.warning." ASM_NAME(#symbol) "\"\n\t#\""))) = msg;
 #  else
 #   define link_warning(symbol, msg) \
-  __make_section_unallocated (".gnu.warning." #symbol) \
+  __make_section_unallocated (".gnu.warning." ASM_NAME(#symbol)) \
   static const char __evoke_link_warning_##symbol[]	\
-    __attribute__ ((section (".gnu.warning." #symbol "\n\t#"))) = msg;
+    __attribute__ ((section (".gnu.warning." ASM_NAME(#symbol) "\n\t#"))) = msg;
 #  endif
 # else
 #  define link_warning(symbol, msg)		\
   asm (".stabs \"" msg "\",30,0,0,0\n\t"	\
-       ".stabs \"" __SYMBOL_PREFIX #symbol "\",1,0,0,0\n");
+       ".stabs \"" ASM_NAME(#symbol) "\",1,0,0,0\n");
 # endif
 #else
 /* We will never be heard; they will all die horribly.  */

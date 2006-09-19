@@ -34,6 +34,7 @@ fi
 	    
 
 AC_PROG_CC
+AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S 
 AC_DISABLE_STATIC
@@ -104,6 +105,16 @@ else
   AC_MSG_RESULT(no)
 fi
 AM_CONDITIONAL(VERSIONED_SYMBOLS, test x$versioned = xyes)
+
+dnl See if toolchain has a custom prefix for symbols ...
+AC_MSG_CHECKING(for custom symbol prefixes)
+SYMBOL_PREFIX=` \
+	echo "PREFIX=__USER_LABEL_PREFIX__" \
+		| ${CPP-${CC-gcc} -E} - 2>&1 \
+		| ${EGREP-grep} "^PREFIX=" \
+		| ${SED-sed} "s:^PREFIX=::"`
+AC_DEFINE_UNQUOTED([__SYMBOL_PREFIX], "$SYMBOL_PREFIX", [Toolchain Symbol Prefix])
+AC_MSG_RESULT($SYMBOL_PREFIX)
 
 dnl Check for debug...
 AC_MSG_CHECKING(for debug)
