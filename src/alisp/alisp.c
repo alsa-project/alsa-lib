@@ -30,7 +30,6 @@
 #include <ctype.h>
 #include <math.h>
 #include <err.h>
-#include <wordexp.h>
 
 #define alisp_seq_iterator alisp_object
 
