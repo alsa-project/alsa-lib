@@ -31,12 +31,8 @@
  */
 
 #include <stdarg.h>
-#include <wordexp.h>
-#include <dlfcn.h>
 #include <limits.h>
 #include <sys/stat.h>
-#include <pthread.h>
-#include <locale.h>
 #include "local.h"
 
 #ifndef DOC_HIDDEN
