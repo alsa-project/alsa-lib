@@ -364,10 +364,15 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_t *slave = rate->gen.slave;
 	snd_pcm_sw_params_t *sparams;
-	snd_pcm_uframes_t boundary1, boundary2;
+	snd_pcm_uframes_t boundary1, boundary2, sboundary;
+	int err;
 
-	rate->sw_params = *params;
 	sparams = &rate->sw_params;
+	err = snd_pcm_sw_params_current(slave, sparams);
+	if (err < 0)
+		return err;
+	sboundary = sparams->boundary;
+	*sparams = *params;
 	boundary1 = pcm->buffer_size;
 	boundary2 = slave->buffer_size;
 	while (boundary1 * 2 <= LONG_MAX - pcm->buffer_size &&
@@ -376,7 +381,7 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		boundary2 *= 2;
 	}
 	params->boundary = boundary1;
-	sparams->boundary = boundary2;
+	sparams->boundary = sboundary;
 
 	if (rate->ops.adjust_pitch)
 		rate->ops.adjust_pitch(rate->obj, &rate->info);
@@ -393,13 +398,17 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		if (sparams->start_threshold > (slave->buffer_size / sparams->xfer_align) * sparams->xfer_align)
 			sparams->start_threshold = (slave->buffer_size / sparams->xfer_align) * sparams->xfer_align;
 	}
-	if (sparams->stop_threshold >= sparams->boundary) {
+	if (sparams->stop_threshold >= params->boundary) {
 		sparams->stop_threshold = sparams->boundary;
 	} else {
 		recalc(pcm, &sparams->stop_threshold);
 	}
 	recalc(pcm, &sparams->silence_threshold);
-	recalc(pcm, &sparams->silence_size);
+	if (sparams->silence_size >= params->boundary) {
+		sparams->silence_size = sparams->boundary;
+	} else {
+		recalc(pcm, &sparams->silence_size);
+	}
 	return snd_pcm_sw_params(slave, sparams);
 }
 
