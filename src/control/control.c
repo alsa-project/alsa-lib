@@ -469,7 +469,7 @@ int snd_ctl_elem_tlv_read(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 	tlv[0] = -1;
 	tlv[1] = 0;
 	err = snd_ctl_tlv_do(ctl, 0, id, tlv, tlv_size);
-	if (err >= 0 && tlv[0] == -1)
+	if (err >= 0 && tlv[0] == (unsigned int)-1)
 		err = -ENXIO;
 	return err;
 }

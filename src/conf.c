@@ -2404,9 +2404,16 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 #define SND_CONFIG_SEARCH_ALIAS(config, base, key, result, fcn1, fcn2) \
 { \
 	snd_config_t *res = NULL; \
+	char *old_key; \
 	int err, first = 1; \
 	assert(config && key); \
-	do { \
+	while (1) { \
+		old_key = strdup(key); \
+		if (old_key == NULL) { \
+			err = -ENOMEM; \
+			res = NULL; \
+			break; \
+		} \
 		err = first && base ? -EIO : fcn1(config, config, key, &res); \
 		if (err < 0) { \
 			if (!base) \
@@ -2415,8 +2422,18 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 			if (err < 0) \
 				break; \
 		} \
+		if (snd_config_get_string(res, &key) < 0) \
+			break; \
+		if (!first && strcmp(key, old_key) == 0) { \
+			SNDERR("key %s refers to itself"); \
+			err = -EINVAL; \
+			res = NULL; \
+			break; \
+		} \
+		free(old_key); \
 		first = 0; \
-	} while (snd_config_get_string(res, &key) >= 0); \
+	} \
+	free(old_key); \
 	if (!res) \
 		return err; \
 	if (result) \
