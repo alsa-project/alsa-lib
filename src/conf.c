@@ -2405,7 +2405,7 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 { \
 	snd_config_t *res = NULL; \
 	char *old_key; \
-	int err, first = 1; \
+	int err, first = 1, maxloop = 1000; \
 	assert(config && key); \
 	while (1) { \
 		old_key = strdup(key); \
@@ -2424,14 +2424,18 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 		} \
 		if (snd_config_get_string(res, &key) < 0) \
 			break; \
-		if (!first && strcmp(key, old_key) == 0) { \
-			SNDERR("key %s refers to itself"); \
+		if (!first && (strcmp(key, old_key) == 0 || maxloop <= 0)) { \
+			if (maxloop == 0) \
+				SNDERR("maximum loop count reached (circular configuration?)"); \
+			else \
+				SNDERR("key %s refers to itself", key); \
 			err = -EINVAL; \
 			res = NULL; \
 			break; \
 		} \
 		free(old_key); \
 		first = 0; \
+		maxloop--; \
 	} \
 	free(old_key); \
 	if (!res) \
