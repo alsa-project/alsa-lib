@@ -515,7 +515,7 @@ static int elem_write_enum(selem_none_t *s)
 	return 0;
 }
 
-static int selem_write(snd_mixer_elem_t *elem)
+static int selem_write_main(snd_mixer_elem_t *elem)
 {
 	selem_none_t *s;
 	unsigned int idx;
@@ -596,6 +596,16 @@ static int selem_write(snd_mixer_elem_t *elem)
 			return err;
 	}
 	return 0;
+}
+
+static int selem_write(snd_mixer_elem_t *elem)
+{
+	int err;
+	
+	err = selem_write_main(elem);
+	if (err < 0)
+		selem_read(elem);
+	return err;
 }
 
 static void selem_free(snd_mixer_elem_t *elem)
