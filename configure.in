@@ -84,7 +84,7 @@ AC_ARG_WITH(versioned,
   versioned="$withval", versioned="yes")
 if test "$versioned" = "yes"; then
   # it seems that GNU ld versions since 2.10 are not broken
-  xres=`grep '^VERSION=' $ac_aux_dir/libtool | cut -d = -f 2 | cut -d \" -f 2`
+  xres=`grep '^VERSION=' libtool | cut -d = -f 2 | cut -d \" -f 2`
   major=`echo $xres | cut -d . -f 1`
   minor=`echo $xres | cut -d . -f 2`
   pass=0
@@ -368,18 +368,18 @@ fi
 
 
 dnl Create PCM plugin symbol list for static library
-rm -f src/pcm/pcm_symbols_list.c
+rm -f "$srcdir"/src/pcm/pcm_symbols_list.c
 for t in $PCM_PLUGIN_LIST; do
   if eval test \$build_pcm_$t = yes; then
-    echo \&_snd_module_pcm_$t, >> src/pcm/pcm_symbols_list.c
+    echo \&_snd_module_pcm_$t, >> "$srcdir"/src/pcm/pcm_symbols_list.c
   fi
 done
 
 dnl Make a symlink for inclusion of alsa/xxx.h
-if test ! -L include/alsa ; then
+if test ! -L "$srcdir"/include/alsa ; then
   echo "Making a symlink include/alsa"
-  rm -f include/alsa
-  ln -sf . include/alsa
+  rm -f "$srcdir"/include/alsa
+  ln -sf . "$srcdir"/include/alsa
 fi
 
 AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile
