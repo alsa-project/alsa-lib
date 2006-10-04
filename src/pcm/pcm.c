@@ -2138,13 +2138,20 @@ static int snd_pcm_open_noupdate(snd_pcm_t **pcmp, snd_config_t *root,
 {
 	int err;
 	snd_config_t *pcm_conf;
+	const char *str;
+
 	err = snd_config_search_definition(root, "pcm", name, &pcm_conf);
 	if (err < 0) {
 		SNDERR("Unknown PCM %s", name);
 		return err;
 	}
-	snd_config_set_hop(pcm_conf, hop);
-	err = snd_pcm_open_conf(pcmp, name, root, pcm_conf, stream, mode);
+	if (snd_config_get_string(pcm_conf, &str) >= 0)
+		err = snd_pcm_open_noupdate(pcmp, root, str, stream, mode,
+					    hop + 1);
+	else {
+		snd_config_set_hop(pcm_conf, hop);
+		err = snd_pcm_open_conf(pcmp, name, root, pcm_conf, stream, mode);
+	}
 	snd_config_delete(pcm_conf);
 	return err;
 }
