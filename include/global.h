@@ -130,7 +130,7 @@ int snd_shm_area_destroy(struct snd_shm_area *area);
 
 int snd_user_file(const char *file, char **result);
 
-#ifndef _POSIC_C_SOURCE
+#ifndef _POSIX_C_SOURCE
 struct timeval {
 	time_t		tv_sec;		/* seconds */
 	long		tv_usec;	/* microseconds */

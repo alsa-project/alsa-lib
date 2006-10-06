@@ -1236,7 +1236,9 @@ int snd_pcm_direct_open_secondary_client(snd_pcm_t **spcmp, snd_pcm_direct_t *dm
 /*
  * open a slave PCM as secondary client (dup'ed fd)
  */
-int snd_pcm_direct_initialize_secondary_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, struct slave_params *params)
+int snd_pcm_direct_initialize_secondary_slave(snd_pcm_direct_t *dmix,
+					      snd_pcm_t *spcm,
+					      struct slave_params *params ATTRIBUTE_UNUSED)
 {
 	int ret;
 

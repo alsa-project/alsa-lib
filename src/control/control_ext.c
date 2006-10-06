@@ -142,9 +142,9 @@ static int snd_ctl_ext_elem_info(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 		{
 			int64_t xmin, xmax, xstep;
 			ret = ext->callback->get_integer64_info(ext, key,
-								&xmin,
-								&xmax,
-								&xstep);
+								(int64_t *)&xmin,
+								(int64_t *)&xmax,
+								(int64_t *)&xstep);
 			info->value.integer64.min = xmin;
 			info->value.integer64.max = xmax;
 			info->value.integer64.step = xstep;
@@ -265,7 +265,7 @@ static int snd_ctl_ext_elem_write(snd_ctl_t *handle, snd_ctl_elem_value_t *contr
 	case SND_CTL_ELEM_TYPE_INTEGER64:
 		if (! ext->callback->write_integer64)
 			goto err;
-		ret = ext->callback->write_integer64(ext, key, control->value.integer64.value);
+		ret = ext->callback->write_integer64(ext, key, (int64_t *)control->value.integer64.value);
 		break;
 	case SND_CTL_ELEM_TYPE_ENUMERATED:
 		if (! ext->callback->write_enumerated)

@@ -603,7 +603,7 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 	int (*open_func)(snd_pcm_t *, const char *,
 			 snd_config_t *, snd_config_t *) = NULL;
 	snd_pcm_meter_t *meter = pcm->private_data;
-	void *h;
+	void *h = NULL;
 	int err;
 
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
