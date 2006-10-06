@@ -7,7 +7,8 @@ Name: alsa
 Description: Advanced Linux Sound Architecture (ALSA) - Library
 Version: @VERSION@
 Requires: 
-Libs: -L${libdir} -lasound -lm -ldl -lpthread
+Libs: -L${libdir} -lasound
+Libs.private: -lm -ldl -lpthread
 # -I${includedir}/alsa below is just for backward compatibility
 # (it was set so mistakely in the older version)
 Cflags: -I${includedir} -I${includedir}/alsa
