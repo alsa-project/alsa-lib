@@ -142,9 +142,9 @@ static int snd_ctl_ext_elem_info(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 		{
 			int64_t xmin, xmax, xstep;
 			ret = ext->callback->get_integer64_info(ext, key,
-								(int64_t *)&xmin,
-								(int64_t *)&xmax,
-								(int64_t *)&xstep);
+								&xmin,
+								&xmax,
+								&xstep);
 			info->value.integer64.min = xmin;
 			info->value.integer64.max = xmax;
 			info->value.integer64.step = xstep;
