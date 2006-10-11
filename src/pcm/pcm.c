@@ -6681,7 +6681,7 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 
 int snd_pcm_conf_generic_id(const char *id)
 {
-	static const char *ids[] = { "comment", "type" };
+	static const char *ids[] = { "comment", "type", "hint" };
 	unsigned int k;
 	for (k = 0; k < sizeof(ids) / sizeof(ids[0]); ++k) {
 		if (strcmp(id, ids[k]) == 0)

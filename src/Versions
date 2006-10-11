@@ -288,3 +288,11 @@ ALSA_1.0.12 {
     snd_hctl_elem_tlv_write;
     snd_hctl_elem_tlv_command;
 } ALSA_1.0.11;
+
+ALSA_1.0.14 {
+  global:
+
+    snd_device_name_hint;
+    snd_device_name_free_hint;
+    snd_ctl_iface_conf_name;
+} ALSA_1.0.12;

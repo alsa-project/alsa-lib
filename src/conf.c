@@ -3935,6 +3935,10 @@ int snd_config_expand(snd_config_t *config, snd_config_t *root, const char *args
 	snd_config_t *defs, *subs = NULL, *res;
 	err = snd_config_search(config, "@args", &defs);
 	if (err < 0) {
+		if (args != NULL) {
+			SNDERR("Unknown parameters %s", args);
+			return -EINVAL;
+		}
 		err = snd_config_copy(&res, config);
 		if (err < 0)
 			return err;

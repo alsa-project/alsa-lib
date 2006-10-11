@@ -982,10 +982,14 @@ static int get_volume_ops(snd_mixer_elem_t *elem, int dir,
 static int init_db_range(snd_hctl_elem_t *ctl, struct selem_str *rec);
 
 /* convert to index of integer array */
+#ifndef DOC_HIDDEN
 #define int_index(size)	(((size) + sizeof(int) - 1) / sizeof(int))
+#endif
 
 /* max size of a TLV entry for dB information (including compound one) */
+#ifndef DOC_HIDDEN
 #define MAX_TLV_RANGE_SIZE	256
+#endif
 
 /* parse TLV stream and retrieve dB information
  * return 0 if successly found and stored to rec,
