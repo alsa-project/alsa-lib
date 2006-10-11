@@ -425,7 +425,7 @@ static int add_card(struct hint_list *list, int card, snd_ctl_elem_iface_t iface
 int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
 {
 	struct hint_list list;
-	char ehints[16];
+	char ehints[24];
 	const char *str;
 	snd_config_t *conf;
 	snd_config_iterator_t i, next;
@@ -466,6 +466,7 @@ int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
 				goto __error;
 		}
 	}
+	err = 0;
       __error:
       	if (err < 0) {
       		snd_device_name_free_hint(list.list);
