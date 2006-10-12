@@ -185,7 +185,7 @@ static char *get_dev_name(struct hint_list *list)
 			strcat(res, ", ");
 			strcat(res, str1);
 			strcat(res, " {");
-			strcat(res, list->iface == SND_CTL_ELEM_IFACE_PCM ? "Capture" : "Input");
+			strcat(res, str2);
 			strcat(res, "}");
 			free(str1);
 			return res;
@@ -205,7 +205,7 @@ static int try_config(struct hint_list *list,
 		      const char *name)
 {
 	snd_lib_error_handler_t eh;
-	snd_config_t *res = NULL, *cfg, *n;
+	snd_config_t *res = NULL, *cfg, *cfg1, *n;
 	snd_config_iterator_t i, next;
 	char *buf, *buf1 = NULL, *buf2;
 	const char *str;
@@ -253,11 +253,26 @@ static int try_config(struct hint_list *list,
 		}
 #endif
 
-	cfg = res;
+	cfg1 = res;
 	level = 0;
       __hint:
       	level++;
-	if (snd_config_search(cfg, "hint", &cfg) >= 0) {
+	if (snd_config_search(cfg1, "type", &cfg) >= 0 &&
+	    snd_config_get_string(cfg, &str) >= 0 &&
+	    strcmp(str, "hw") == 0) {
+	    	dev = 0;
+		list->device_input = -1;
+		list->device_output = -1;
+		if (snd_config_search(cfg1, "device", &cfg) >= 0) {
+			if (snd_config_get_integer(cfg, &dev) < 0) {
+				SNDERR("(%s) device must be an integer", buf);
+				err = -EINVAL;
+				goto __cleanup;
+			}
+		}
+	}
+      	
+	if (snd_config_search(cfg1, "hint", &cfg) >= 0) {
 		if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
 			SNDERR("hint (%s) must be a compound", buf);
 			err = -EINVAL;
@@ -302,8 +317,8 @@ static int try_config(struct hint_list *list,
 		}
 	} else if (level == 1 && !list->show_all)
 		goto __skip_add;
-	if (snd_config_search(cfg, "slave", &cfg) >= 0 &&
-	    snd_config_search(cfg, base, &cfg) >= 0)
+	if (snd_config_search(cfg1, "slave", &cfg) >= 0 &&
+	    snd_config_search(cfg, base, &cfg1) >= 0)
 	    	goto __hint;
 	snd_config_delete(res);
 	res = NULL;
