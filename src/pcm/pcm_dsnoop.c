@@ -770,8 +770,7 @@ int _snd_pcm_dsnoop_open(snd_pcm_t **pcmp, const char *name,
 
 	err = snd_pcm_dsnoop_open(pcmp, name, &dopen, &params,
 				  root, sconf, stream, mode);
-	if (err < 0)
-		snd_config_delete(sconf);
+	snd_config_delete(sconf);
 	return err;
 }
 #ifndef DOC_HIDDEN
