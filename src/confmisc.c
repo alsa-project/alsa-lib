@@ -493,16 +493,6 @@ static int snd_func_iops(snd_config_t **dst,
 			}
 			if (i == idx) {
 				idx++;
-#if 1
-	{
-                        snd_output_t *out;
-                        fprintf(stderr, "********* ID '%s':\n", id);
-                        snd_output_stdio_attach(&out, stderr, 0);
-                        snd_config_save(n, out);
-                        snd_output_close(out);
-                        printf("\n");
-	}
-#endif
 				err = snd_config_get_integer(n, &val);
 				if (err < 0) {
 					SNDERR("invalid integer for id %s", id);

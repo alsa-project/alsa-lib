@@ -1983,7 +1983,7 @@ snd_pcm_t *snd_async_handler_get_pcm(snd_async_handler_t *handler)
 
 static char *build_in_pcms[] = {
 	"adpcm", "alaw", "copy", "dmix", "file", "hooks", "hw", "ladspa", "lfloat",
-	"linear", "meter", "mulaw", "multi", "null", "plug", "rate", "route", "share",
+	"linear", "meter", "mulaw", "multi", "null", "empty", "plug", "rate", "route", "share",
 	"shm", "dsnoop", "dshare", "asym", "iec958", "softvol", NULL
 };
 

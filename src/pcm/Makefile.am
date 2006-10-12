@@ -46,6 +46,9 @@ endif
 if BUILD_PCM_PLUGIN_NULL
 libpcm_la_SOURCES += pcm_null.c
 endif
+if BUILD_PCM_PLUGIN_EMPTY
+libpcm_la_SOURCES += pcm_empty.c
+endif
 if BUILD_PCM_PLUGIN_SHARE
 libpcm_la_SOURCES += pcm_share.c
 endif

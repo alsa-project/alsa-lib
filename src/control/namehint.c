@@ -40,6 +40,8 @@ struct hint_list {
 	long device_input;
 	long device_output;
 	int stream;
+	int show_all;
+	char *longname;
 };
 #endif
 
@@ -80,10 +82,11 @@ static void zero_handler(const char *file ATTRIBUTE_UNUSED,
 {
 }
 
-static char *get_dev_name1(struct hint_list *list)
+static int get_dev_name1(struct hint_list *list, char **res)
 {
+	*res = NULL;
 	if (list->device < 0)
-		return NULL;
+		return 0;
 	switch (list->iface) {
 	case SND_CTL_ELEM_IFACE_HWDEP:
 		{
@@ -91,8 +94,9 @@ static char *get_dev_name1(struct hint_list *list)
 			snd_hwdep_info_alloca(&info);
 			snd_hwdep_info_set_device(info, list->device);
 			if (snd_ctl_hwdep_info(list->ctl, info) < 0)
-				return NULL;
-			return strdup(snd_hwdep_info_get_name(info));
+				return 0;
+			*res = strdup(snd_hwdep_info_get_name(info));
+			return 0;
 		}
 	case SND_CTL_ELEM_IFACE_PCM:
 		{
@@ -101,15 +105,16 @@ static char *get_dev_name1(struct hint_list *list)
 			snd_pcm_info_set_device(info, list->device);
 			snd_pcm_info_set_stream(info, list->stream ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK);
 			if (snd_ctl_pcm_info(list->ctl, info) < 0)
-				return NULL;
+				return 0;
 			switch (snd_pcm_info_get_class(info)) {
 			case SND_PCM_CLASS_MODEM:
 			case SND_PCM_CLASS_DIGITIZER:
-				return NULL;
+				return -ENODEV;
 			default:
 				break;
 			}
-			return strdup(snd_pcm_info_get_name(info));
+			*res = strdup(snd_pcm_info_get_name(info));
+			return 0;
 		}
 	case SND_CTL_ELEM_IFACE_RAWMIDI:
 		{
@@ -118,11 +123,12 @@ static char *get_dev_name1(struct hint_list *list)
 			snd_rawmidi_info_set_device(info, list->device);
 			snd_rawmidi_info_set_stream(info, list->stream ? SND_RAWMIDI_STREAM_INPUT : SND_RAWMIDI_STREAM_OUTPUT);
 			if (snd_ctl_rawmidi_info(list->ctl, info) < 0)
-				return NULL;
-			return strdup(snd_rawmidi_info_get_name(info));
+				return 0;
+			*res = strdup(snd_rawmidi_info_get_name(info));
+			return 0;
 		}
 	default:
-		return NULL;
+		return 0;
 	}
 }
 
@@ -132,49 +138,60 @@ static char *get_dev_name(struct hint_list *list)
 	
 	list->device = list->device_input >= 0 ? list->device_input : list->device;
 	list->stream = 1;
-	str1 = get_dev_name1(list);
+	if (get_dev_name1(list, &str1) < 0)
+		return NULL;
 	list->device = list->device_output >= 0 ? list->device_input : list->device;
 	list->stream = 0;
-	str2 = get_dev_name1(list);
+	if (get_dev_name1(list, &str2) < 0) {
+		if (str1)
+			free(str1);
+		return NULL;
+	}
 	if (str1 != NULL || str2 != NULL) {
 		if (str1 != NULL && str2 != NULL) {
 			if (strcmp(str1, str2) == 0) {
-				free(str1);
-				return str2;
-			}
-			res = realloc(str2, strlen(str2) + strlen(str1) + 4);
-			if (res != NULL) {
-				strcat(res, " / ");
-				strcat(res, str1);
-				free(str1);
-				return res;
+				res = malloc(strlen(list->longname) + strlen(str2) + 3);
+				if (res != NULL) {
+					strcpy(res, list->longname);
+					strcat(res, ", ");
+					strcat(res, str2);
+				}
 			} else {
-				free(str2);
-				free(str1);
+				res = malloc(strlen(list->longname) + strlen(str2) + strlen(str1) + 6);
+				if (res != NULL) {
+					strcpy(res, list->longname);
+					strcat(res, ", ");
+					strcat(res, str2);
+					strcat(res, " / ");
+					strcat(res, str1);
+				}
 			}
+			free(str2);
+			free(str1);
+			return res;
 		} else {
 			if (str1 != NULL) {
-				res = realloc(str1, strlen(str1) + 16);
-				if (res == NULL) {
-					free(str1);
-					return NULL;
-				}
-				strcat(res, " {");
-				strcat(res, list->iface == SND_CTL_ELEM_IFACE_PCM ? "Capture" : "Input");
-				strcat(res, "}");
-				return res;
+				str2 = list->iface == SND_CTL_ELEM_IFACE_PCM ? "Capture" : "Input";
 			} else {
-				res = realloc(str2, strlen(str2) + 16);
-				if (res == NULL) {
-					free(str2);
-					return NULL;
-				}
-				strcat(res, " {");
-				strcat(res, list->iface == SND_CTL_ELEM_IFACE_PCM ? "Playback" : "Output");
-				strcat(res, "}");
-				return res;
+				str1 = str2;
+				str2 = list->iface == SND_CTL_ELEM_IFACE_PCM ? "Playback" : "Output";
 			}
+			res = malloc(strlen(list->longname) + strlen(str1) + 19);
+			if (res == NULL) {
+				free(str1);
+				return NULL;
+			}
+			strcpy(res, list->longname);
+			strcat(res, ", ");
+			strcat(res, str1);
+			strcat(res, " {");
+			strcat(res, list->iface == SND_CTL_ELEM_IFACE_PCM ? "Capture" : "Input");
+			strcat(res, "}");
+			free(str1);
+			return res;
 		}
+	} else {
+		return strdup(list->longname);
 	}
 	return NULL;
 }
@@ -188,11 +205,11 @@ static int try_config(struct hint_list *list,
 		      const char *name)
 {
 	snd_lib_error_handler_t eh;
-	snd_config_t *res, *cfg, *n;
+	snd_config_t *res = NULL, *cfg, *n;
 	snd_config_iterator_t i, next;
 	char *buf, *buf1 = NULL, *buf2;
 	const char *str;
-	int err;
+	int err = 0, level;
 	long dev = list->device;
 
 	list->device_input = -1;
@@ -200,6 +217,13 @@ static int try_config(struct hint_list *list,
 	buf = malloc(BUF_SIZE);
 	if (buf == NULL)
 		return -ENOMEM;
+	sprintf(buf, "%s.%s", base, name);
+	/* look for redirection */
+	if (snd_config_search(snd_config, buf, &cfg) >= 0 &&
+	    snd_config_get_string(cfg, &str) >= 0 &&
+	    ((strncmp(base, str, strlen(base)) == 0 &&
+	     str[strlen(base)] == '.') || strchr(str, '.') == NULL))
+	     	goto __skip_add;
 	if (list->card >= 0 && list->device >= 0)
 		sprintf(buf, "%s:CARD=%s,DEV=%i", name, snd_ctl_card_info_get_id(list->info), list->device);
 	else if (list->card >= 0)
@@ -211,52 +235,13 @@ static int try_config(struct hint_list *list,
 	err = snd_config_search_definition(snd_config, base, buf, &res);
 	snd_lib_error_set_handler(eh);
 	if (err < 0)
-		return err;
+		goto __skip_add;
 	err = -EINVAL;
 	if (snd_config_get_type(res) != SND_CONFIG_TYPE_COMPOUND)
 		goto __cleanup;
 	if (snd_config_search(res, "type", NULL) < 0)
 		goto __cleanup;
-	cfg = res;
-      __hint:
-	if (snd_config_search(cfg, "hint", &cfg) >= 0) {
-		if (snd_config_get_type(cfg) == SND_CONFIG_TYPE_COMPOUND) {
-			if (snd_config_search(cfg, "description", &n) >= 0 &&
-			    snd_config_get_string(n, &str) >= 0) {
-				buf1 = strdup(str);
-				if (buf1 == NULL) {
-					err = -ENOMEM;
-					goto __cleanup;
-				}
-			}
-			if (snd_config_search(cfg, "device", &n) >= 0) {
-				if (snd_config_get_integer(n, &dev) < 0) {
-					err = -EINVAL;
-					goto __cleanup;
-				}
-			}
-			if (snd_config_search(cfg, "device_input", &n) >= 0) {
-				if (snd_config_get_integer(n, &list->device_input) < 0) {
-					err = -EINVAL;
-					goto __cleanup;
-				}
-			}
-			if (snd_config_search(cfg, "device_output", &n) >= 0) {
-				if (snd_config_get_integer(n, &list->device_output) < 0) {
-					err = -EINVAL;
-					goto __cleanup;
-				}
-			}
-		} else if (snd_config_get_bool(cfg) == 0) {
-			err = -EXDEV;
-			goto __cleanup;
-		}
-		goto __hint_ok;
-	}
-	if (snd_config_search(cfg, "slave", &cfg) >= 0 &&
-	    snd_config_search(cfg, base, &cfg) >= 0)
-	    	goto __hint;
-      __hint_ok:
+
 #if 0	/* for debug purposes */
 		{
 			snd_output_t *out;
@@ -264,9 +249,62 @@ static int try_config(struct hint_list *list,
 			snd_output_stdio_attach(&out, stderr, 0);
 			snd_config_save(res, out);
 			snd_output_close(out);
-			printf("\n");
+			fprintf(stderr, "\n");
 		}
 #endif
+
+	cfg = res;
+	level = 0;
+      __hint:
+      	level++;
+	if (snd_config_search(cfg, "hint", &cfg) >= 0) {
+		if (snd_config_get_type(cfg) != SND_CONFIG_TYPE_COMPOUND) {
+			SNDERR("hint (%s) must be a compound", buf);
+			err = -EINVAL;
+			goto __cleanup;
+		}
+		if (level == 1 &&
+		    snd_config_search(cfg, "show", &n) >= 0 &&
+		    snd_config_get_bool(n) <= 0)
+		    	goto __skip_add;
+		if (buf1 == NULL &&
+		    snd_config_search(cfg, "description", &n) >= 0 &&
+		    snd_config_get_string(n, &str) >= 0) {
+			buf1 = strdup(str);
+			if (buf1 == NULL) {
+				err = -ENOMEM;
+				goto __cleanup;
+			}
+		}
+		if (snd_config_search(cfg, "device", &n) >= 0) {
+			if (snd_config_get_integer(n, &dev) < 0) {
+				SNDERR("(%s) device must be an integer", buf);
+				err = -EINVAL;
+				goto __cleanup;
+			}
+			list->device_input = -1;
+			list->device_output = -1;
+		}
+		if (snd_config_search(cfg, "device_input", &n) >= 0) {
+			if (snd_config_get_integer(n, &list->device_input) < 0) {
+				SNDERR("(%s) device_input must be an integer", buf);
+				err = -EINVAL;
+				goto __cleanup;
+			}
+			list->device_output = -1;
+		}
+		if (snd_config_search(cfg, "device_output", &n) >= 0) {
+			if (snd_config_get_integer(n, &list->device_output) < 0) {
+				SNDERR("(%s) device_output must be an integer", buf);
+				err = -EINVAL;
+				goto __cleanup;
+			}
+		}
+	} else if (level == 1 && !list->show_all)
+		goto __skip_add;
+	if (snd_config_search(cfg, "slave", &cfg) >= 0 &&
+	    snd_config_search(cfg, base, &cfg) >= 0)
+	    	goto __hint;
 	snd_config_delete(res);
 	res = NULL;
 	if (strchr(buf, ':') != NULL)
@@ -291,16 +329,14 @@ static int try_config(struct hint_list *list,
       __ok:
 	err = 0;
       __cleanup:
-      	if (res)
-	      	snd_config_delete(res);
       	if (err >= 0) {
       		list->device = dev;
- 		str = get_dev_name(list);
+ 		str = list->card >= 0 ? get_dev_name(list) : NULL;
       		if (str != NULL) {
-      			buf2 = realloc((char *)str, (buf1 == NULL ? 0 : strlen(buf1)) + 2 + strlen(str) + 1);
+      			buf2 = realloc((char *)str, (buf1 == NULL ? 0 : strlen(buf1)) + 1 + strlen(str) + 1);
       			if (buf2 != NULL) {
       				if (buf1 != NULL) {
-	      				strcat(buf2, ": ");
+	      				strcat(buf2, "\n");
 	      				strcat(buf2, buf1);
 					free(buf1);
 				}
@@ -313,6 +349,8 @@ static int try_config(struct hint_list *list,
 	      	err = hint_list_add(list, buf, buf1);
 	}
       __skip_add:
+      	if (res)
+	      	snd_config_delete(res);
 	if (buf1)
 		free(buf1);
       	free(buf);
@@ -348,8 +386,6 @@ static int add_card(struct hint_list *list, int card, snd_ctl_elem_iface_t iface
 	list->info = info;
 	if (iface > SND_CTL_ELEM_IFACE_LAST)
 		return -EINVAL;
-	if (snd_card_get_name(card, (char **)&str) < 0)
-		return 0;
 	base = snd_ctl_iface_conf_name(iface);
 	err = snd_config_search(snd_config, base, &conf);
 	if (err < 0)
@@ -399,8 +435,7 @@ static int add_card(struct hint_list *list, int card, snd_ctl_elem_iface_t iface
 	}
 	err = 0;
       __error:
-      	if (err < 0)
-      		snd_ctl_close(list->ctl);
+      	snd_ctl_close(list->ctl);
 	return err;
 }
 
@@ -421,6 +456,9 @@ static int add_card(struct hint_list *list, int card, snd_ctl_elem_iface_t iface
  *   myplug "plug:front:Do all conversions for front speakers"<br>
  * }
  * </code>
+ *
+ * Special variables: defaults.namehint.showall specifies if all device
+ * definitions are accepted (boolean type).
  */
 int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
 {
@@ -439,6 +477,10 @@ int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
 	list.list = NULL;
 	list.count = list.allocated = 0;
 	list.iface = iface;
+	list.show_all = 0;
+	list.longname = NULL;
+	if (snd_config_search(snd_config, "defaults.namehint.showall", &conf) >= 0)
+		list.show_all = snd_config_get_bool(conf) > 0;
 	if (card >= 0) {
 		err = add_card(&list, card, iface);
 	} else {
@@ -446,6 +488,9 @@ int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
 		if (err < 0)
 			goto __error;
 		while (card >= 0) {
+			err = snd_card_get_longname(card, &list.longname);
+			if (err < 0)
+				goto __error;
 			err = add_card(&list, card, iface);
 			if (err < 0)
 				goto __error;
@@ -470,12 +515,16 @@ int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
       __error:
       	if (err < 0) {
       		snd_device_name_free_hint(list.list);
+      		if (list.longname)
+	      		free(list.longname);
       		return err;
       	} else {
       		err = hint_list_add(&list, NULL, NULL);
       		if (err < 0)
       			goto __error;
       		*hints = list.list;
+      		if (list.longname)
+	      		free(list.longname);
 	}
       	return 0;
 }

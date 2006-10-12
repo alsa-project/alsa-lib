@@ -292,7 +292,7 @@ else
 pcm_plugins=""
 fi
 
-PCM_PLUGIN_LIST="copy linear route mulaw alaw adpcm rate plug multi shm file null share meter hooks lfloat ladspa dmix dshare dsnoop asym iec958 softvol extplug ioplug"
+PCM_PLUGIN_LIST="copy linear route mulaw alaw adpcm rate plug multi shm file null empty share meter hooks lfloat ladspa dmix dshare dsnoop asym iec958 softvol extplug ioplug"
 
 build_pcm_plugin="no"
 for t in $PCM_PLUGIN_LIST; do
@@ -332,6 +332,7 @@ AM_CONDITIONAL(BUILD_PCM_PLUGIN_MULTI, test x$build_pcm_multi = xyes)
 AM_CONDITIONAL(BUILD_PCM_PLUGIN_SHM, test x$build_pcm_shm = xyes)
 AM_CONDITIONAL(BUILD_PCM_PLUGIN_FILE, test x$build_pcm_file = xyes)
 AM_CONDITIONAL(BUILD_PCM_PLUGIN_NULL, test x$build_pcm_null = xyes)
+AM_CONDITIONAL(BUILD_PCM_PLUGIN_EMPTY, test x$build_pcm_empty = xyes)
 AM_CONDITIONAL(BUILD_PCM_PLUGIN_SHARE, test x$build_pcm_share = xyes)
 AM_CONDITIONAL(BUILD_PCM_PLUGIN_METER, test x$build_pcm_meter = xyes)
 AM_CONDITIONAL(BUILD_PCM_PLUGIN_HOOKS, test x$build_pcm_hooks = xyes)
