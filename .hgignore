@@ -28,6 +28,7 @@ ltconfig
 *.lo
 *.pc
 *.o
+*~
 include/config.h
 include/stamp-h1
 include/stamp-vh
@@ -36,3 +37,6 @@ utils/alsa-lib.spec
 alsalisp/alsalisp
 aserver/aserver
 src/pcm/pcm_symbols_list.c
+doc/doxygen/*
+test/namehint
+test/pcm
