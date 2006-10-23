@@ -1426,12 +1426,12 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 						int hop)
 {
 	snd_config_iterator_t i, next;
+	snd_config_t *pcm_conf;
 	int err;
 	long card = 0, device = 0, subdevice = 0;
 	const char *str;
 
 	if (snd_config_get_string(sconf, &str) >= 0) {
-		snd_config_t *pcm_conf;
 		if (hop > SND_CONF_MAX_HOPS) {
 			SNDERR("Too many definition levels (looped?)");
 			return -EINVAL;
@@ -1447,6 +1447,21 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 		snd_config_delete(pcm_conf);
 		return err;
 	}
+
+#if 0	/* for debug purposes */
+	{
+		snd_output_t *out;
+		snd_output_stdio_attach(&out, stderr, 0);
+		snd_config_save(sconf, out);
+		snd_output_close(out);
+	}
+#endif
+
+	if (snd_config_search(sconf, "slave", &pcm_conf) >= 0 &&
+	    snd_config_search(pcm_conf, "pcm", &pcm_conf) >= 0)
+		return _snd_pcm_direct_get_slave_ipc_offset(root, pcm_conf,
+							    direction,
+							    hop + 1);
 
 	snd_config_for_each(i, next, sconf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1631,7 +1646,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-	if (! rec->slave) {
+	if (!rec->slave) {
 		SNDERR("slave is not defined");
 		return -EINVAL;
 	}
@@ -1641,7 +1656,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 	}
 	if (ipc_key_add_uid)
 		rec->ipc_key += getuid();
-	err = snd_pcm_direct_get_slave_ipc_offset(root, rec->slave, stream);
+	err = snd_pcm_direct_get_slave_ipc_offset(root, conf, stream);
 	if (err < 0)
 		return err;
 	rec->ipc_key += err;

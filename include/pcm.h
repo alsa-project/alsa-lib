@@ -120,13 +120,13 @@ typedef enum _snd_pcm_format {
 	SND_PCM_FORMAT_U16_LE,
 	/** Unsigned 16 bit Big Endian */
 	SND_PCM_FORMAT_U16_BE,
-	/** Signed 24 bit Little Endian */
+	/** Signed 24 bit Little Endian using low three bytes in 32-bit word */
 	SND_PCM_FORMAT_S24_LE,
-	/** Signed 24 bit Big Endian */
+	/** Signed 24 bit Big Endian using low three bytes in 32-bit word */
 	SND_PCM_FORMAT_S24_BE,
-	/** Unsigned 24 bit Little Endian */
+	/** Unsigned 24 bit Little Endian using low three bytes in 32-bit word */
 	SND_PCM_FORMAT_U24_LE,
-	/** Unsigned 24 bit Big Endian */
+	/** Unsigned 24 bit Big Endian using low three bytes in 32-bit word */
 	SND_PCM_FORMAT_U24_BE,
 	/** Signed 32 bit Little Endian */
 	SND_PCM_FORMAT_S32_LE,
