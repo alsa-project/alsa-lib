@@ -57,3 +57,5 @@ int snd_rawmidi_hw_open(snd_rawmidi_t **input, snd_rawmidi_t **output,
 int snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 			     const char *name, snd_seq_t *seq_handle, int port,
 			     int merge, int mode);
+
+int snd_rawmidi_conf_generic_id(const char *id);

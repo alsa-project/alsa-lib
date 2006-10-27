@@ -411,9 +411,7 @@ int _snd_rawmidi_virtual_open(snd_rawmidi_t **inputp, snd_rawmidi_t **outputp,
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
 			continue;
-		if (strcmp(id, "comment") == 0)
-			continue;
-		if (strcmp(id, "type") == 0)
+		if (snd_rawmidi_conf_generic_id(id))
 			continue;
 		if (strcmp(id, "slave") == 0) {
 			err = snd_config_get_string(n, &slave_str);
