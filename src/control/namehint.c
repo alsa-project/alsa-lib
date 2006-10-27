@@ -42,7 +42,7 @@ struct hint_list {
 	long device_output;
 	int stream;
 	int show_all;
-	char *longname;
+	char *cardname;
 };
 #endif
 
@@ -151,16 +151,16 @@ static char *get_dev_name(struct hint_list *list)
 	if (str1 != NULL || str2 != NULL) {
 		if (str1 != NULL && str2 != NULL) {
 			if (strcmp(str1, str2) == 0) {
-				res = malloc(strlen(list->longname) + strlen(str2) + 3);
+				res = malloc(strlen(list->cardname) + strlen(str2) + 3);
 				if (res != NULL) {
-					strcpy(res, list->longname);
+					strcpy(res, list->cardname);
 					strcat(res, ", ");
 					strcat(res, str2);
 				}
 			} else {
-				res = malloc(strlen(list->longname) + strlen(str2) + strlen(str1) + 6);
+				res = malloc(strlen(list->cardname) + strlen(str2) + strlen(str1) + 6);
 				if (res != NULL) {
-					strcpy(res, list->longname);
+					strcpy(res, list->cardname);
 					strcat(res, ", ");
 					strcat(res, str2);
 					strcat(res, " / ");
@@ -177,12 +177,12 @@ static char *get_dev_name(struct hint_list *list)
 				str1 = str2;
 				str2 = list->iface == SND_CTL_ELEM_IFACE_PCM ? "Playback" : "Output";
 			}
-			res = malloc(strlen(list->longname) + strlen(str1) + 19);
+			res = malloc(strlen(list->cardname) + strlen(str1) + 19);
 			if (res == NULL) {
 				free(str1);
 				return NULL;
 			}
-			strcpy(res, list->longname);
+			strcpy(res, list->cardname);
 			strcat(res, ", ");
 			strcat(res, str1);
 			strcat(res, " {");
@@ -192,7 +192,7 @@ static char *get_dev_name(struct hint_list *list)
 			return res;
 		}
 	} else {
-		return strdup(list->longname);
+		return strdup(list->cardname);
 	}
 	return NULL;
 }
@@ -452,6 +452,22 @@ static int add_card(struct hint_list *list, int card)
 	return err;
 }
 
+static int get_card_name(struct hint_list *list, int card)
+{
+	char scard[16], *s;
+	int err;
+
+	err = snd_card_get_name(card, &list->cardname);
+	if (err <= 0)
+		return 0;
+	sprintf(scard, " #%i", card);
+	s = realloc(list->cardname, strlen(list->cardname) + strlen(scard) + 1);
+	if (s == NULL)
+		return -ENOMEM;
+	list->cardname = s;
+	return 0;
+}
+
 /**
  * \brief Return string list with device name hints.
  * \param card Card number or -1 (means all cards)
@@ -505,17 +521,18 @@ int snd_device_name_hint(int card, const char *iface, char ***hints)
 	else
 		return -EINVAL;
 	list.show_all = 0;
-	list.longname = NULL;
+	list.cardname = NULL;
 	if (snd_config_search(snd_config, "defaults.namehint.showall", &conf) >= 0)
 		list.show_all = snd_config_get_bool(conf) > 0;
 	if (card >= 0) {
 		err = add_card(&list, card);
 	} else {
-		err = snd_card_next(&card);
+		err = get_card_name(&list, card);
+		err = err >= 0 ? snd_card_next(&card) : err;
 		if (err < 0)
 			goto __error;
 		while (card >= 0) {
-			err = snd_card_get_longname(card, &list.longname);
+			err = get_card_name(&list, card);
 			if (err < 0)
 				goto __error;
 			err = add_card(&list, card);
@@ -542,16 +559,16 @@ int snd_device_name_hint(int card, const char *iface, char ***hints)
       __error:
       	if (err < 0) {
       		snd_device_name_free_hint(list.list);
-      		if (list.longname)
-	      		free(list.longname);
+      		if (list.cardname)
+	      		free(list.cardname);
       		return err;
       	} else {
       		err = hint_list_add(&list, NULL, NULL);
       		if (err < 0)
       			goto __error;
       		*hints = list.list;
-      		if (list.longname)
-	      		free(list.longname);
+      		if (list.cardname)
+	      		free(list.cardname);
 	}
       	return 0;
 }
