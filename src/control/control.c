@@ -973,16 +973,6 @@ static const char *snd_ctl_elem_iface_names[] = {
 	IFACE(SEQUENCER),
 };
 
-static const char *snd_ctl_iface_conf_names[] = {
-	IFACE1(CARD, card),
-	IFACE1(HWDEP, hwdep),
-	IFACE1(MIXER, mixer),
-	IFACE1(PCM, pcm),
-	IFACE1(RAWMIDI, rawmidi),
-	IFACE1(TIMER, timer),
-	IFACE1(SEQUENCER, seq),
-};
-
 static const char *snd_ctl_event_type_names[] = {
 	EVENT(ELEM),
 };
@@ -1008,17 +998,6 @@ const char *snd_ctl_elem_iface_name(snd_ctl_elem_iface_t iface)
 {
 	assert(iface <= SND_CTL_ELEM_IFACE_LAST);
 	return snd_ctl_elem_iface_names[iface];
-}
-
-/**
- * \brief get configuration name of related interface
- * \param iface ala CTL interface identification
- * \return ascii name of configuration interface
- */
-const char *snd_ctl_iface_conf_name(snd_ctl_elem_iface_t iface)
-{
-	assert(iface <= SND_CTL_ELEM_IFACE_LAST);
-	return snd_ctl_iface_conf_names[iface];
 }
 
 /**

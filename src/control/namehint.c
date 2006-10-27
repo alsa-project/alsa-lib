@@ -32,6 +32,7 @@ struct hint_list {
 	char **list;
 	unsigned int count;
 	unsigned int allocated;
+	const char *siface;
 	snd_ctl_elem_iface_t iface;
 	snd_ctl_t *ctl;
 	snd_ctl_card_info_t *info;	
@@ -388,21 +389,18 @@ static next_devices_t next_devices[] = {
 };
 #endif
 
-static int add_card(struct hint_list *list, int card, snd_ctl_elem_iface_t iface)
+static int add_card(struct hint_list *list, int card)
 {
 	int err, ok;
 	snd_config_t *conf, *n;
 	snd_config_iterator_t i, next;
-	const char *str, *base;
+	const char *str;
 	char ctl_name[16];
 	snd_ctl_card_info_t *info;
 	
 	snd_ctl_card_info_alloca(&info);
 	list->info = info;
-	if (iface > SND_CTL_ELEM_IFACE_LAST)
-		return -EINVAL;
-	base = snd_ctl_iface_conf_name(iface);
-	err = snd_config_search(snd_config, base, &conf);
+	err = snd_config_search(snd_config, list->siface, &conf);
 	if (err < 0)
 		return err;
 	sprintf(ctl_name, "hw:%i", card);
@@ -416,18 +414,18 @@ static int add_card(struct hint_list *list, int card, snd_ctl_elem_iface_t iface
 		n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &str) < 0)
 			continue;
-		if (next_devices[iface] != NULL) {
+		if (next_devices[list->iface] != NULL) {
 			list->card = card;
 			list->device = -1;
-			err = next_devices[iface](list->ctl, &list->device);
+			err = next_devices[list->iface](list->ctl, &list->device);
 			if (list->device < 0)
 				err = -EINVAL;
 			ok = 0;
 			while (err >= 0 && list->device >= 0) {
-				err = try_config(list, base, str);
+				err = try_config(list, list->siface, str);
 				if (err < 0)
 					break;
-				err = next_devices[iface](list->ctl, &list->device);
+				err = next_devices[list->iface](list->ctl, &list->device);
 				ok++;
 			}
 			if (ok)
@@ -439,11 +437,11 @@ static int add_card(struct hint_list *list, int card, snd_ctl_elem_iface_t iface
 			continue;
 		if (err < 0) {
 			list->device = -1;
-			err = try_config(list, base, str);
+			err = try_config(list, list->siface, str);
 		}
 		if (err < 0) {
 			list->card = -1;
-			err = try_config(list, base, str);
+			err = try_config(list, list->siface, str);
 		}
 		if (err == -ENOMEM)
 			goto __error;
@@ -457,7 +455,7 @@ static int add_card(struct hint_list *list, int card, snd_ctl_elem_iface_t iface
 /**
  * \brief Return string list with device name hints.
  * \param card Card number or -1 (means all cards)
- * \param iface Interface identification
+ * \param iface Interface identification (like "pcm", "rawmidi", "timer", "seq")
  * \param hints Result - array of string with device name hints
  * \result zero if success, otherwise a negative error code
  *
@@ -475,7 +473,7 @@ static int add_card(struct hint_list *list, int card, snd_ctl_elem_iface_t iface
  * Special variables: defaults.namehint.showall specifies if all device
  * definitions are accepted (boolean type).
  */
-int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
+int snd_device_name_hint(int card, const char *iface, char ***hints)
 {
 	struct hint_list list;
 	char ehints[24];
@@ -491,13 +489,27 @@ int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
 		return err;
 	list.list = NULL;
 	list.count = list.allocated = 0;
-	list.iface = iface;
+	list.siface = iface;
+	if (strcmp(iface, "card") == 0)
+		list.iface = SND_CTL_ELEM_IFACE_CARD;
+	else if (strcmp(iface, "pcm") == 0)
+		list.iface = SND_CTL_ELEM_IFACE_PCM;
+	else if (strcmp(iface, "rawmidi") == 0)
+		list.iface = SND_CTL_ELEM_IFACE_RAWMIDI;
+	else if (strcmp(iface, "timer") == 0)
+		list.iface = SND_CTL_ELEM_IFACE_TIMER;
+	else if (strcmp(iface, "seq") == 0)
+		list.iface = SND_CTL_ELEM_IFACE_SEQUENCER;
+	else if (strcmp(iface, "hwdep") == 0)
+		list.iface = SND_CTL_ELEM_IFACE_HWDEP;
+	else
+		return -EINVAL;
 	list.show_all = 0;
 	list.longname = NULL;
 	if (snd_config_search(snd_config, "defaults.namehint.showall", &conf) >= 0)
 		list.show_all = snd_config_get_bool(conf) > 0;
 	if (card >= 0) {
-		err = add_card(&list, card, iface);
+		err = add_card(&list, card);
 	} else {
 		err = snd_card_next(&card);
 		if (err < 0)
@@ -506,7 +518,7 @@ int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
 			err = snd_card_get_longname(card, &list.longname);
 			if (err < 0)
 				goto __error;
-			err = add_card(&list, card, iface);
+			err = add_card(&list, card);
 			if (err < 0)
 				goto __error;
 			err = snd_card_next(&card);
@@ -514,7 +526,7 @@ int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints)
 				goto __error;
 		}
 	}
-	sprintf(ehints, "namehint.%s", snd_ctl_iface_conf_name(iface));
+	sprintf(ehints, "namehint.%s", list.siface);
 	err = snd_config_search(snd_config, ehints, &conf);
 	if (err >= 0) {
 		snd_config_for_each(i, next, conf) {

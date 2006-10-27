@@ -294,5 +294,4 @@ ALSA_1.0.14 {
 
     snd_device_name_hint;
     snd_device_name_free_hint;
-    snd_ctl_iface_conf_name;
 } ALSA_1.0.12;

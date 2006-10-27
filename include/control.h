@@ -214,7 +214,7 @@ int snd_card_get_index(const char *name);
 int snd_card_get_name(int card, char **name);
 int snd_card_get_longname(int card, char **name);
 
-int snd_device_name_hint(int card, snd_ctl_elem_iface_t iface, char ***hints);
+int snd_device_name_hint(int card, const char *iface, char ***hints);
 int snd_device_name_free_hint(char **hints);
 
 int snd_ctl_open(snd_ctl_t **ctl, const char *name, int mode);

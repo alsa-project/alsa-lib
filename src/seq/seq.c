@@ -836,7 +836,7 @@ static int snd_seq_open_conf(snd_seq_t **seqp, const char *name,
 #ifndef PIC
 	extern void *snd_seq_open_symbols(void);
 #endif
-	void *h;
+	void *h = NULL;
 	if (snd_config_get_type(seq_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
 			SNDERR("Invalid type for SEQ %s definition", name);
