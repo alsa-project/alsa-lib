@@ -30,7 +30,7 @@ static const char **snd_rawmidi_open_objects[] = {
 	
 void *snd_rawmidi_open_symbols(void)
 {
-	return (void *)snd_rawmidi_open_objects[0];
+	return snd_rawmidi_open_objects;
 }
 
 #endif /* !PIC */

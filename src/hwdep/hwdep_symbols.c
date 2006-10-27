@@ -28,7 +28,7 @@ static const char **snd_hwdep_open_objects[] = {
 	
 void *snd_hwdep_open_symbols(void)
 {
-	return (void *)snd_hwdep_open_objects[0];
+	return snd_hwdep_open_objects;
 }
 
 #endif

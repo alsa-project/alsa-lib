@@ -30,7 +30,7 @@ static const char **snd_control_open_objects[] = {
 	
 void *snd_control_open_symbols(void)
 {
-	return (void *)snd_control_open_objects[0];
+	return snd_control_open_objects;
 }
 
 #endif /* !PIC */

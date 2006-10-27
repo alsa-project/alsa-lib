@@ -40,7 +40,7 @@ static const char **snd_timer_query_open_objects[] = {
 	
 void *snd_timer_query_open_symbols(void)
 {
-	return (void *)snd_timer_query_open_objects[0];
+	return snd_timer_query_open_objects;
 }
 
 #endif /* !PIC */

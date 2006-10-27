@@ -33,6 +33,7 @@ extern const char *_snd_module_pcm_meter;
 extern const char *_snd_module_pcm_mulaw;
 extern const char *_snd_module_pcm_multi;
 extern const char *_snd_module_pcm_null;
+extern const char *_snd_module_pcm_empty;
 extern const char *_snd_module_pcm_plug;
 extern const char *_snd_module_pcm_rate;
 extern const char *_snd_module_pcm_route;
@@ -56,7 +57,7 @@ static const char **snd_pcm_open_objects[] = {
 	
 void *snd_pcm_open_symbols(void)
 {
-	return (void *)snd_pcm_open_objects[0];
+	return snd_pcm_open_objects;
 }
 
 #endif /* !PIC */
