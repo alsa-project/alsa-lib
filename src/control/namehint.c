@@ -527,8 +527,7 @@ int snd_device_name_hint(int card, const char *iface, char ***hints)
 	if (card >= 0) {
 		err = add_card(&list, card);
 	} else {
-		err = get_card_name(&list, card);
-		err = err >= 0 ? snd_card_next(&card) : err;
+		err = snd_card_next(&card);
 		if (err < 0)
 			goto __error;
 		while (card >= 0) {
