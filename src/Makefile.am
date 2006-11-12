@@ -43,8 +43,7 @@ endif
 SUBDIRS += compat conf
 libasound_la_LIBADD += compat/libcompat.la -lm -ldl -lpthread
 
-libasound_la_LDFLAGS = -version-info $(COMPATNUM)
-AM_LDFLAGS = $(VSYMS)
+libasound_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS)
 
 control/libcontrol.la:
 	$(MAKE) -C control libcontrol.la
