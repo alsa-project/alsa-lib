@@ -294,4 +294,5 @@ ALSA_1.0.14 {
 
     snd_device_name_hint;
     snd_device_name_free_hint;
+    snd_device_name_get_hint;
 } ALSA_1.0.12;

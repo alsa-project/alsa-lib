@@ -62,12 +62,13 @@ static int hint_list_add(struct hint_list *list,
 	if (name == NULL) {
 		x = NULL;
 	} else {
-		x = malloc(strlen(name) + (description != NULL ? (strlen(description) + 1) : 0) + 1);
+		x = malloc(4 + strlen(name) + (description != NULL ? (4 + strlen(description) + 1) : 0) + 1);
 		if (x == NULL)
 			return -ENOMEM;
-		strcpy(x, name);
+		memcpy(x, "NAME", 4);
+		strcpy(x + 4, name);
 		if (description != NULL) {
-			strcat(x, "|");
+			strcat(x, "|DESC");
 			strcat(x, description);
 		}
 	}
@@ -172,10 +173,10 @@ static char *get_dev_name(struct hint_list *list)
 			return res;
 		} else {
 			if (str1 != NULL) {
-				str2 = list->iface == SND_CTL_ELEM_IFACE_PCM ? "Capture" : "Input";
+				str2 = "Input";
 			} else {
 				str1 = str2;
-				str2 = list->iface == SND_CTL_ELEM_IFACE_PCM ? "Playback" : "Output";
+				str2 = "Output";
 			}
 			res = malloc(strlen(list->cardname) + strlen(str1) + 19);
 			if (res == NULL) {
@@ -185,9 +186,8 @@ static char *get_dev_name(struct hint_list *list)
 			strcpy(res, list->cardname);
 			strcat(res, ", ");
 			strcat(res, str1);
-			strcat(res, " {");
+			strcat(res, "|IOID");
 			strcat(res, str2);
-			strcat(res, "}");
 			free(str1);
 			return res;
 		}
@@ -349,11 +349,18 @@ static int try_config(struct hint_list *list,
       		list->device = dev;
  		str = list->card >= 0 ? get_dev_name(list) : NULL;
       		if (str != NULL) {
-      			buf2 = realloc((char *)str, (buf1 == NULL ? 0 : strlen(buf1)) + 1 + strlen(str) + 1);
+      			level = (buf1 == NULL ? 0 : strlen(buf1)) + 1 + strlen(str);
+      			buf2 = realloc((char *)str, level + 1);
       			if (buf2 != NULL) {
       				if (buf1 != NULL) {
-	      				strcat(buf2, "\n");
-	      				strcat(buf2, buf1);
+      					str = strchr(buf2, '|');
+      					if (str != NULL)
+						memmove(buf2 + (level - strlen(str)), str, strlen(str));
+					else
+						str = buf2 + strlen(buf2);
+      					*(char *)str++ = '\n';
+	      				memcpy((char *)str, buf1, strlen(buf1));
+	      				buf2[level] = '\0';
 					free(buf1);
 				}
 				buf1 = buf2;
@@ -489,7 +496,7 @@ static int get_card_name(struct hint_list *list, int card)
  * Special variables: defaults.namehint.showall specifies if all device
  * definitions are accepted (boolean type).
  */
-int snd_device_name_hint(int card, const char *iface, char ***hints)
+int snd_device_name_hint(int card, const char *iface, void ***hints)
 {
 	struct hint_list list;
 	char ehints[24];
@@ -557,7 +564,7 @@ int snd_device_name_hint(int card, const char *iface, char ***hints)
 	err = 0;
       __error:
       	if (err < 0) {
-      		snd_device_name_free_hint(list.list);
+      		snd_device_name_free_hint((void **)list.list);
       		if (list.cardname)
 	      		free(list.cardname);
       		return err;
@@ -565,7 +572,7 @@ int snd_device_name_hint(int card, const char *iface, char ***hints)
       		err = hint_list_add(&list, NULL, NULL);
       		if (err < 0)
       			goto __error;
-      		*hints = list.list;
+      		*hints = (void **)list.list;
       		if (list.cardname)
 	      		free(list.cardname);
 	}
@@ -577,17 +584,57 @@ int snd_device_name_hint(int card, const char *iface, char ***hints)
  * \param hints A string list to free
  * \result zero if success, otherwise a negative error code
  */
-int snd_device_name_free_hint(char **hints)
+int snd_device_name_free_hint(void **hints)
 {
 	char **h;
 
 	if (hints == NULL)
 		return 0;
-	h = hints;
+	h = (char **)hints;
 	while (*h) {
 		free(*h);
 		h++;
 	}
 	free(hints);
 	return 0;
+}
+
+/**
+ * \brief Get a hint Free a string list with device name hints.
+ * \param hints A string list to free
+ * \result an allocated ASCII string if success, otherwise NULL
+ *
+ * List of valid IDs:
+ * NAME - name of device
+ * DESC - description of device
+ * IOID - input / output identification (Input or Output strings),
+ *        not present (NULL) means both
+ */
+char *snd_device_name_get_hint(const void *hint, const char *id)
+{
+	const char *hint1 = (const char *)hint, *delim;
+	char *res;
+	unsigned size;
+
+	if (strlen(id) != 4)
+		return NULL;
+	while (*hint1 != '\0') {
+		delim = strchr(hint1, '|');
+		if (memcmp(id, hint1, 4) != 0) {
+			if (delim == NULL)
+				return NULL;
+			hint1 = delim + 1;
+			continue;
+		} 
+		if (delim == NULL)
+			return strdup(hint1 + 4);
+		size = delim - hint1 - 4;
+		res = malloc(size + 1);
+		if (res != NULL) {
+			memcpy(res, hint1 + 4, size);
+			res[size] = '\0';
+		}
+		return res;
+	}
+	return NULL;
 }
