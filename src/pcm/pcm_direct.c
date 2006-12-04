@@ -877,22 +877,26 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	}
 	ret = snd_pcm_hw_params_set_format(spcm, hw_params, params->format);
 	if (ret < 0) {
+		static const snd_pcm_format_t dmix_formats[] = {
+			SND_PCM_FORMAT_S32,
+			SND_PCM_FORMAT_S32 ^ SND_PCM_FORMAT_S32_LE ^ SND_PCM_FORMAT_S32_BE,
+			SND_PCM_FORMAT_S16,
+			SND_PCM_FORMAT_S16 ^ SND_PCM_FORMAT_S16_LE ^ SND_PCM_FORMAT_S16_BE,
+			SND_PCM_FORMAT_S24_3LE,
+		};
 		snd_pcm_format_t format;
-		if (dmix->type == SND_PCM_TYPE_DMIX) {
-			switch (params->format) {
-			case SND_PCM_FORMAT_S32_LE:
-			case SND_PCM_FORMAT_S32_BE:
-			case SND_PCM_FORMAT_S16_LE:
-			case SND_PCM_FORMAT_S16_BE:
-			case SND_PCM_FORMAT_S24_3LE:
+		int i;
+
+		for (i = 0; i < sizeof dmix_formats / sizeof dmix_formats[0]; ++i) {
+			format = dmix_formats[i];
+			ret = snd_pcm_hw_params_set_format(spcm, hw_params, format);
+			if (ret >= 0)
 				break;
-			default:
-				SNDERR("invalid format");
-				return -EINVAL;
-			}
 		}
-		format = params->format;
-		ret = snd_pcm_hw_params_set_format(spcm, hw_params, format);
+		if (ret < 0 && dmix->type != SND_PCM_TYPE_DMIX) {
+			/* TODO: try to choose a good format */
+			ret = snd_pcm_hw_params_set_format_first(spcm, hw_params, &format);
+		}
 		if (ret < 0) {
 			SNDERR("requested or auto-format is not available");
 			return ret;
