@@ -899,28 +899,10 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		}
 		params->format = format;
 	}
-	ret = snd_pcm_hw_params_set_channels(spcm, hw_params, params->channels);
+	ret = INTERNAL(snd_pcm_hw_params_set_channels_near)(spcm, hw_params, (unsigned int *)&params->channels);
 	if (ret < 0) {
-		unsigned int min, max;
-		ret = INTERNAL(snd_pcm_hw_params_get_channels_min)(hw_params, &min);
-		if (ret < 0) {
-			SNDERR("cannot obtain minimal count of channels");
-			return ret;
-		}
-		ret = INTERNAL(snd_pcm_hw_params_get_channels_min)(hw_params, &max);
-		if (ret < 0) {
-			SNDERR("cannot obtain maximal count of channels");
-			return ret;
-		}
-		if (min == max) {
-			ret = snd_pcm_hw_params_set_channels(spcm, hw_params, min);
-			if (ret >= 0)
-				params->channels = min;
-		}
-		if (ret < 0) {
-			SNDERR("requested count of channels is not available");
-			return ret;
-		}
+		SNDERR("requested count of channels is not available");
+		return ret;
 	}
 	ret = INTERNAL(snd_pcm_hw_params_set_rate_near)(spcm, hw_params, (unsigned int *)&params->rate, 0);
 	if (ret < 0) {
