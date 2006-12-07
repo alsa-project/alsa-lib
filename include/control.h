@@ -260,7 +260,6 @@ snd_ctl_type_t snd_ctl_type(snd_ctl_t *ctl);
 
 const char *snd_ctl_elem_type_name(snd_ctl_elem_type_t type);
 const char *snd_ctl_elem_iface_name(snd_ctl_elem_iface_t iface);
-const char *snd_ctl_iface_conf_name(snd_ctl_elem_iface_t iface);
 const char *snd_ctl_event_type_name(snd_ctl_event_type_t type);
 
 unsigned int snd_ctl_event_elem_get_mask(const snd_ctl_event_t *obj);

@@ -601,7 +601,8 @@ int snd_device_name_free_hint(void **hints)
 
 /**
  * \brief Get a hint Free a string list with device name hints.
- * \param hints A string list to free
+ * \param hint A pointer to hint
+ * \param id Hint ID (see bellow)
  * \result an allocated ASCII string if success, otherwise NULL
  *
  * List of valid IDs:
