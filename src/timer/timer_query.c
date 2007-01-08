@@ -50,7 +50,7 @@ static int snd_timer_query_open_conf(snd_timer_query_t **timer,
 #ifndef PIC
 	extern void *snd_timer_query_open_symbols(void);
 #endif
-	void *h;
+	void *h = NULL;
 	if (snd_config_get_type(timer_conf) != SND_CONFIG_TYPE_COMPOUND) {
 		if (name)
 			SNDERR("Invalid type for TIMER %s definition", name);
