@@ -895,7 +895,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		}
 		if (ret < 0 && dmix->type != SND_PCM_TYPE_DMIX) {
 			/* TODO: try to choose a good format */
-			ret = snd_pcm_hw_params_set_format_first(spcm, hw_params, &format);
+			ret = INTERNAL(snd_pcm_hw_params_set_format_first)(spcm, hw_params, &format);
 		}
 		if (ret < 0) {
 			SNDERR("requested or auto-format is not available");
