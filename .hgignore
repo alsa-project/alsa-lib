@@ -36,6 +36,7 @@ include/version.h
 utils/alsa-lib.spec
 alsalisp/alsalisp
 aserver/aserver
+src/Versions
 src/pcm/pcm_symbols_list.c
 doc/doxygen/*
 test/namehint
