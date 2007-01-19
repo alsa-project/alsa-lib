@@ -280,6 +280,7 @@ typedef struct {
 	unsigned int min;		/* minimum range */
 	unsigned int max;		/* maximum range */
 	unsigned int translation;	/* translation type (EMU10K1_GPR_TRANSLATION*) */
+	unsigned int *tlv;
 } emu10k1_fx8010_control_gpr_t;
 
 typedef struct {
@@ -338,6 +339,7 @@ typedef struct {
 #define SNDRV_EMU10K1_IOCTL_TRAM_PEEK	_IOWR('H', 0x22, emu10k1_fx8010_tram_t)
 #define SNDRV_EMU10K1_IOCTL_PCM_POKE	_IOW ('H', 0x30, emu10k1_fx8010_pcm_t)
 #define SNDRV_EMU10K1_IOCTL_PCM_PEEK	_IOWR('H', 0x31, emu10k1_fx8010_pcm_t)
+#define SNDRV_EMU10K1_IOCTL_PVERSION	_IOR ('H', 0x40, int)
 #define SNDRV_EMU10K1_IOCTL_STOP	_IO  ('H', 0x80)
 #define SNDRV_EMU10K1_IOCTL_CONTINUE	_IO  ('H', 0x81)
 #define SNDRV_EMU10K1_IOCTL_ZERO_TRAM_COUNTER _IO ('H', 0x82)
