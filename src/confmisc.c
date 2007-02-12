@@ -227,7 +227,8 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 {
 	snd_config_t *n, *d;
 	snd_config_iterator_t i, next;
-	char *res, *def = NULL;
+	const char *res, *id;
+	char *def = NULL;
 	int idx = 0, err, hit;
 	
 	err = snd_config_search(src, "vars", &n);
@@ -259,7 +260,7 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		hit = 0;
 		snd_config_for_each(i, next, n) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			const char *id, *ptr, *env;
+			const char *ptr;
 			long i;
 			if (snd_config_get_id(n, &id) < 0)
 				continue;
@@ -282,26 +283,18 @@ int snd_func_getenv(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 					err = -EINVAL;
 					goto __error;
 				}
-				env = getenv(ptr);
-				if (env != NULL && *env != '\0') {
-					res = strdup(env);
+				res = getenv(ptr);
+				if (res != NULL && *res != '\0')
 					goto __ok;
-				}
 				hit = 1;
 			}
 		}
 	} while (hit);
 	res = def;
-	def = NULL;
       __ok:
-	err = res == NULL ? -ENOMEM : 0;
-	if (err >= 0) {
-		const char *id;
-		err = snd_config_get_id(src, &id);
-		if (err >= 0)
-			err = snd_config_imake_string(dst, id, res);
-		free(res);
-	}
+	err = snd_config_get_id(src, &id);
+	if (err >= 0)
+		err = snd_config_imake_string(dst, id, res);
       __error:
 	free(def);
 	return err;
@@ -869,7 +862,6 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_driver, SND_CONFIG_DLSYM_VERSION_EVALUATE)
 int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		     snd_config_t *private_data)
 {
-	char *res = NULL;
 	snd_ctl_t *ctl = NULL;
 	snd_ctl_card_info_t *info;
 	const char *id;
@@ -889,15 +881,10 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
 		goto __error;
 	}
-	res = strdup(snd_ctl_card_info_get_id(info));
-	if (res == NULL) {
-		err = -ENOMEM;
-		goto __error;
-	}
 	err = snd_config_get_id(src, &id);
 	if (err >= 0)
-		err = snd_config_imake_string(dst, id, res);
-	free(res);
+		err = snd_config_imake_string(dst, id,
+					      snd_ctl_card_info_get_id(info));
       __error:
       	if (ctl)
       		snd_ctl_close(ctl);
@@ -1148,11 +1135,9 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 	if (err < 0)
 		return err;
 	if((err = snd_config_get_id(src, &id)) >= 0) {
-		char name[32], *s;
+		char name[32];
 		snprintf(name, sizeof(name), "CARD=%i,DEV=%i", card, dev);
-		if (!(s = strdup(name)))
-			return -ENOMEM;
-		err = snd_config_imake_string(dst, id, s);
+		err = snd_config_imake_string(dst, id, name);
 	}
 	return err;
 }
