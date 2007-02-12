@@ -57,6 +57,8 @@
       a driver identification. The result is a string.
   <LI>The card_id function - snd_func_card_id() - returns
       a card identification. The result is a string.
+  <LI>The card_name function - snd_func_card_name() - returns
+      a card's name. The result is a string.
   <LI>The pcm_id function - snd_func_pcm_id() - returns
       a pcm identification. The result is a string.
   <LI>The private_string function - snd_func_private_string() - returns the
@@ -746,6 +748,35 @@ int snd_func_private_card_driver(snd_config_t **dst, snd_config_t *root ATTRIBUT
 SND_DLSYM_BUILD_VERSION(snd_func_private_card_driver, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 
+static int parse_card(snd_config_t *root, snd_config_t *src,
+		      snd_config_t *private_data)
+{
+	snd_config_t *n;
+	char *str;
+	int card, err;
+	
+	err = snd_config_search(src, "card", &n);
+	if (err < 0) {
+		SNDERR("field card not found");
+		return err;
+	}
+	err = snd_config_evaluate(n, root, private_data, NULL);
+	if (err < 0) {
+		SNDERR("error evaluating card");
+		return err;
+	}
+	err = snd_config_get_ascii(n, &str);
+	if (err < 0) {
+		SNDERR("field card is not an integer or a string");
+		return err;
+	}
+	card = snd_card_get_index(str);
+	free(str);
+	if (card < 0)
+		SNDERR("cannot find card '%s'", str);
+	return card;
+}
+
 /**
  * \brief Returns the card number as integer.
  * \param dst The function puts the handle to the result configuration node
@@ -766,37 +797,15 @@ SND_DLSYM_BUILD_VERSION(snd_func_private_card_driver, SND_CONFIG_DLSYM_VERSION_E
 int snd_func_card_inum(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		       snd_config_t *private_data)
 {
-	snd_config_t *n;
 	const char *id;
-	char *str;
-	long v;
-	int err;
+	int card, err;
 	
-	err = snd_config_search(src, "card", &n);
-	if (err < 0) {
-		SNDERR("field card not found");
-		return err;
-	}
-	err = snd_config_evaluate(n, root, private_data, NULL);
-	if (err < 0) {
-		SNDERR("error evaluating card");
-		return err;
-	}
-	err = snd_config_get_ascii(n, &str);
-	if (err < 0) {
-		SNDERR("field card is not an integer or a string");
-		return err;
-	}
-	v = snd_card_get_index(str);
-	if (v < 0) {
-		SNDERR("cannot find card '%s'", str);
-		free(str);
-		return v;
-	}
-	free(str);
+	card = parse_card(root, src, private_data);
+	if (card < 0)
+		return card;
 	err = snd_config_get_id(src, &id);
 	if (err >= 0)
-		err = snd_config_imake_integer(dst, id, v);
+		err = snd_config_imake_integer(dst, id, card);
 	return err;
 }
 #ifndef DOC_HIDDEN
@@ -823,34 +832,13 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_inum, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 int snd_func_card_driver(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 			 snd_config_t *private_data)
 {
-	snd_config_t *n, *val;
-	char *str;
-	long v;
-	int err;
+	snd_config_t *val;
+	int card, err;
 	
-	err = snd_config_search(src, "card", &n);
-	if (err < 0) {
-		SNDERR("field card not found");
-		return err;
-	}
-	err = snd_config_evaluate(n, root, private_data, NULL);
-	if (err < 0) {
-		SNDERR("error evaluating card");
-		return err;
-	}
-	err = snd_config_get_ascii(n, &str);
-	if (err < 0) {
-		SNDERR("field card is not an integer or a string");
-		return err;
-	}
-	v = snd_card_get_index(str);
-	if (v < 0) {
-		SNDERR("cannot find card '%s'", str);
-		free(str);
-		return v;
-	}
-	free(str);
-	err = snd_config_imake_integer(&val, "card", v);
+	card = parse_card(root, src, private_data);
+	if (card < 0)
+		return card;
+	err = snd_config_imake_integer(&val, "card", card);
 	if (err < 0)
 		return err;
 	err = snd_func_private_card_driver(dst, root, src, val);
@@ -881,32 +869,18 @@ SND_DLSYM_BUILD_VERSION(snd_func_card_driver, SND_CONFIG_DLSYM_VERSION_EVALUATE)
 int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 		     snd_config_t *private_data)
 {
-	snd_config_t *n;
 	char *res = NULL;
 	snd_ctl_t *ctl = NULL;
 	snd_ctl_card_info_t *info;
 	const char *id;
-	long v;
-	int err;
+	int card, err;
 	
-	err = snd_config_search(src, "card", &n);
+	card = parse_card(root, src, private_data);
+	if (card < 0)
+		return card;
+	err = open_ctl(card, &ctl);
 	if (err < 0) {
-		SNDERR("field card not found");
-		goto __error;
-	}
-	err = snd_config_evaluate(n, root, private_data, NULL);
-	if (err < 0) {
-		SNDERR("error evaluating card");
-		goto __error;
-	}
-	err = snd_config_get_integer(n, &v);
-	if (err < 0) {
-		SNDERR("field card is not an integer");
-		goto __error;
-	}
-	err = open_ctl(v, &ctl);
-	if (err < 0) {
-		SNDERR("could not open control for card %li", v);
+		SNDERR("could not open control for card %i", card);
 		goto __error;
 	}
 	snd_ctl_card_info_alloca(&info);
@@ -931,6 +905,58 @@ int snd_func_card_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src,
 }
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_card_id, SND_CONFIG_DLSYM_VERSION_EVALUATE);
+#endif
+
+/**
+ * \brief Returns the name of a card.
+ * \param dst The function puts the handle to the result configuration node
+ *            (with type string) at the address specified by \p dst.
+ * \param root Handle to the root source node.
+ * \param src Handle to the source node, with a \c card definition.
+ * \param private_data Handle to the \c private_data node.
+ * \return A non-negative value if successful, otherwise a negative error code.
+ *
+ * Example:
+\code
+	{
+		@func card_name
+		card 0
+	}
+\endcode
+ */ 
+int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
+		       snd_config_t *src, snd_config_t *private_data)
+{
+	snd_ctl_t *ctl = NULL;
+	snd_ctl_card_info_t *info;
+	const char *id;
+	int card, err;
+	
+	card = parse_card(root, src, private_data);
+	if (card < 0)
+		return card;
+	err = open_ctl(card, &ctl);
+	if (err < 0) {
+		SNDERR("could not open control for card %i", card);
+		goto __error;
+	}
+	snd_ctl_card_info_alloca(&info);
+	err = snd_ctl_card_info(ctl, info);
+	if (err < 0) {
+		SNDERR("snd_ctl_card_info error: %s", snd_strerror(err));
+		goto __error;
+	}
+	err = snd_config_get_id(src, &id);
+	if (err >= 0)
+		err = snd_config_imake_string(dst, id,
+					      snd_ctl_card_info_get_name(info));
+      __error:
+      	if (ctl)
+      		snd_ctl_close(ctl);
+	return err;
+}
+#ifndef DOC_HIDDEN
+SND_DLSYM_BUILD_VERSION(snd_func_card_name, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 
 /**
@@ -962,21 +988,9 @@ int snd_func_pcm_id(snd_config_t **dst, snd_config_t *root, snd_config_t *src, v
 	long card, device, subdevice = 0;
 	int err;
 	
-	err = snd_config_search(src, "card", &n);
-	if (err < 0) {
-		SNDERR("field card not found");
-		goto __error;
-	}
-	err = snd_config_evaluate(n, root, private_data, NULL);
-	if (err < 0) {
-		SNDERR("error evaluating card");
-		goto __error;
-	}
-	err = snd_config_get_integer(n, &card);
-	if (err < 0) {
-		SNDERR("field card is not an integer");
-		goto __error;
-	}
+	card = parse_card(root, src, private_data);
+	if (card < 0)
+		return card;
 	err = snd_config_search(src, "device", &n);
 	if (err < 0) {
 		SNDERR("field device not found");
