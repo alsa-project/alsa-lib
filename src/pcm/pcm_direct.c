@@ -1101,7 +1101,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	}
 
 	if (snd_timer_poll_descriptors_count(dmix->timer) != 1) {
-		SNDERR("unable to use timer with fd more than one!!!", name);
+		SNDERR("unable to use timer '%s' with more than one fd!", name);
 		return ret;
 	}
 	snd_timer_poll_descriptors(dmix->timer, &dmix->timer_fd, 1);
@@ -1375,7 +1375,7 @@ int snd_pcm_direct_parse_bindings(snd_pcm_direct_t *dmix,
 			return -EINVAL;
 		}
 		if (schannel < 0 || schannel >= params->channels) {
-			SNDERR("invalid slave channel number %d in binding to %d",
+			SNDERR("invalid slave channel number %ld in binding to %ld",
 			       schannel, cchannel);
 			free(bindings);
 			return -EINVAL;

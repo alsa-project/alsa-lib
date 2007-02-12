@@ -671,7 +671,7 @@ int snd_determine_driver(int card, char **driver)
 	assert(card >= 0 && card <= 32);
 	err = open_ctl(card, &ctl);
 	if (err < 0) {
-		SNDERR("could not open control for card %li", card);
+		SNDERR("could not open control for card %i", card);
 		goto __error;
 	}
 	snd_ctl_card_info_alloca(&info);
@@ -1103,7 +1103,7 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 			break;
 		err = open_ctl(card, &ctl);
 		if (err < 0) {
-			SNDERR("could not open control for card %li", card);
+			SNDERR("could not open control for card %i", card);
 			goto __out;
 		}
 		dev = -1;
@@ -1111,7 +1111,7 @@ int snd_func_pcm_args_by_class(snd_config_t **dst, snd_config_t *root, snd_confi
 		while(1) {
 			err = snd_ctl_pcm_next_device(ctl, &dev);
 			if (err < 0) {
-				SNDERR("could not get next pcm for card %li", card);
+				SNDERR("could not get next pcm for card %i", card);
 				goto __out;
 			}
 			if (dev < 0)

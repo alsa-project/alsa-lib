@@ -7155,7 +7155,7 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 	/* set the count of channels */
 	err = snd_pcm_hw_params_set_channels(pcm, params, channels);
 	if (err < 0) {
-		SNDERR("Channels count (%i) not available for %s: %s", s, channels, snd_strerror(err));
+		SNDERR("Channels count (%i) not available for %s: %s", channels, s, snd_strerror(err));
 		return err;
 	}
 	/* set the stream rate */
@@ -7212,7 +7212,7 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
         	period_time = latency / 4;
         	err = INTERNAL(snd_pcm_hw_params_set_period_time_near)(pcm, params, &period_time, NULL);
         	if (err < 0) {
-        		SNDERR("Unable to set period time %i for %s: %s", s, period_time, snd_strerror(err));
+        		SNDERR("Unable to set period time %i for %s: %s", period_time, s, snd_strerror(err));
         		return err;
         	}
                 err = INTERNAL(snd_pcm_hw_params_get_period_size)(params, &period_size, NULL);
