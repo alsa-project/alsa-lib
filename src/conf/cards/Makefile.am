@@ -39,6 +39,7 @@ cfg_files = aliases.conf \
 	RME9652.conf \
 	SI7018.conf \
 	TRID4DWAVENX.conf \
+	USB-Audio.conf \
 	YMF744.conf \
 	VIA686A.conf \
 	VIA8233.conf \
