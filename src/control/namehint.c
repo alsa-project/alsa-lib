@@ -532,7 +532,9 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 	if (snd_config_search(snd_config, "defaults.namehint.showall", &conf) >= 0)
 		list.show_all = snd_config_get_bool(conf) > 0;
 	if (card >= 0) {
-		err = add_card(&list, card);
+		err = get_card_name(&list, card);
+		if (err >= 0)
+			err = add_card(&list, card);
 	} else {
 		err = snd_card_next(&card);
 		if (err < 0)
