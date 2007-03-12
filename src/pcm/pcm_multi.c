@@ -621,7 +621,8 @@ static int snd_pcm_multi_link_fd(snd_pcm_t *pcm, int *fds, int count, int (**fai
 		if (multi->slaves[i].linked)
 			snd_pcm_unlink(multi->slaves[i].pcm);
 		fds[i] = _snd_pcm_link_descriptor(multi->slaves[i].pcm);
-		multi->slaves[i].linked = 1;
+		if (i > 0)
+			multi->slaves[i].linked = 1;
 	}
 	*failed = snd_pcm_multi_link_fd_failed;
 	return multi->slaves_count;
