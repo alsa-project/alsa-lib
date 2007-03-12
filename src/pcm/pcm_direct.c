@@ -885,7 +885,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 			SND_PCM_FORMAT_S24_3LE,
 		};
 		snd_pcm_format_t format;
-		int i;
+		unsigned int i;
 
 		for (i = 0; i < sizeof dmix_formats / sizeof dmix_formats[0]; ++i) {
 			format = dmix_formats[i];
