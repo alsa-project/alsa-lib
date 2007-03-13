@@ -686,41 +686,35 @@ static int snd_pcm_hw_resume(snd_pcm_t *pcm)
 	return 0;
 }
 
-static int snd_pcm_hw_link_fd(snd_pcm_t *pcm, int *fds, int count, int (**failed)(snd_pcm_t *, int))
+static int hw_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
-	snd_pcm_hw_t *hw = pcm->private_data;
+	snd_pcm_hw_t *hw1 = pcm1->private_data;
+	snd_pcm_hw_t *hw2 = pcm2->private_data;
+	if (ioctl(hw1->fd, SNDRV_PCM_IOCTL_LINK, hw2->fd) < 0) {
+		SYSMSG("SNDRV_PCM_IOCTL_LINK failed");
+		return -errno;
+	}
+	return 0;
+}
 
-	if (count < 1)
+static int snd_pcm_hw_link_slaves(snd_pcm_t *pcm, snd_pcm_t *master)
+{
+	if (master->type != SND_PCM_TYPE_HW) {
+		SYSMSG("Invalid type for SNDRV_PCM_IOCTL_LINK");
 		return -EINVAL;
-	*failed = NULL;
-	fds[0] = hw->fd;
-	return 1;
+	}
+	return hw_link(master, pcm);
 }
 
 static int snd_pcm_hw_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
-	snd_pcm_hw_t *hw = pcm1->private_data;
-	int fds[16];
-	int (*failed)(snd_pcm_t *, int) = NULL;
-	int count = _snd_pcm_link_descriptors(pcm2, fds, 16, &failed);
-	int i, err = 0;
-
-	if (count < 0)
-		return count;
-	for (i = 0; i < count; i++) {
-		if (fds[i] < 0)
-			return 0;
-		if (ioctl(hw->fd, SNDRV_PCM_IOCTL_LINK, fds[i]) < 0) {
-			if (failed != NULL) {
-				err = failed(pcm2, fds[i]);
-			} else {
-				SYSMSG("SNDRV_PCM_IOCTL_LINK failed");
-				err = -errno;
-			}
-		}
+	if (pcm2->type != SND_PCM_TYPE_HW) {
+		if (pcm2->fast_ops->link_slaves)
+			return pcm2->fast_ops->link_slaves(pcm2, pcm1);
+		return -ENOSYS;
 	}
-	return err;
-}
+	return hw_link(pcm1, pcm2);
+ }
 
 static int snd_pcm_hw_unlink(snd_pcm_t *pcm)
 {
@@ -1045,8 +1039,8 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.rewind = snd_pcm_hw_rewind,
 	.forward = snd_pcm_hw_forward,
 	.resume = snd_pcm_hw_resume,
-	.link_fd = snd_pcm_hw_link_fd,
 	.link = snd_pcm_hw_link,
+	.link_slaves = snd_pcm_hw_link_slaves,
 	.unlink = snd_pcm_hw_unlink,
 	.writei = snd_pcm_hw_writei,
 	.writen = snd_pcm_hw_writen,

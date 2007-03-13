@@ -197,14 +197,6 @@ snd_pcm_sframes_t snd_pcm_generic_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frame
 	return snd_pcm_rewind(generic->slave, frames);
 }
 
-int snd_pcm_generic_link_fd(snd_pcm_t *pcm, int *fds, int count, int (**failed)(snd_pcm_t *, int))
-{
-	snd_pcm_generic_t *generic = pcm->private_data;
-	if (generic->slave->fast_ops->link_fd)
-		return generic->slave->fast_ops->link_fd(generic->slave->fast_op_arg, fds, count, failed);
-	return -ENOSYS;
-}
-
 int snd_pcm_generic_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
 	snd_pcm_generic_t *generic = pcm1->private_data;
@@ -213,44 +205,12 @@ int snd_pcm_generic_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 	return -ENOSYS;
 }
 
-int snd_pcm_generic_link2(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
+int snd_pcm_generic_link_slaves(snd_pcm_t *pcm, snd_pcm_t *master)
 {
-	int fds1[16], fds2[16];
-	int (*failed1)(snd_pcm_t *, int) = NULL;
-	int (*failed2)(snd_pcm_t *, int) = NULL;
-	int count1 = _snd_pcm_link_descriptors(pcm1, fds1, 16, &failed1);
-	int count2 = _snd_pcm_link_descriptors(pcm2, fds2, 16, &failed2);
-	int i, err = 0;
-
-	if (count1 < 0)
-		return count1;
-	if (count2 < 0)
-		return count2;
-	for (i = 1; i < count1; i++) {
-		if (fds1[i] < 0)
-			return 0;
-		if (ioctl(fds1[0], SNDRV_PCM_IOCTL_LINK, fds1[i]) < 0) {
-			if (failed1 != NULL) {
-				err = failed1(pcm2, fds1[i]);
-			} else {
-				SYSMSG("SNDRV_PCM_IOCTL_LINK failed");
-				err = -errno;
-			}
-		}
-	}
-	for (i = 0; i < count2; i++) {
-		if (fds2[i] < 0)
-			return 0;
-		if (ioctl(fds1[0], SNDRV_PCM_IOCTL_LINK, fds2[i]) < 0) {
-			if (failed1 != NULL) {
-				err = failed2(pcm2, fds2[i]);
-			} else {
-				SYSMSG("SNDRV_PCM_IOCTL_LINK failed");
-				err = -errno;
-			}
-		}
-	}
-	return err;
+	snd_pcm_generic_t *generic = pcm->private_data;
+	if (generic->slave->fast_ops->link_slaves)
+		return generic->slave->fast_ops->link_slaves(generic->slave->fast_op_arg, master);
+	return -ENOSYS;
 }
 
 int snd_pcm_generic_unlink(snd_pcm_t *pcm)
