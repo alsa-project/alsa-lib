@@ -313,6 +313,10 @@ static int snd_pcm_multi_hw_params_slave(snd_pcm_t *pcm,
 	return 0;
 }
 
+/* reset links to the normal state
+ * slave #0 = trigger master
+ * slave #1-(N-1) = trigger slaves, linked is set to #0
+ */
 static void reset_links(snd_pcm_multi_t *multi)
 {
 	unsigned int i;
@@ -457,6 +461,10 @@ static int snd_pcm_multi_reset(snd_pcm_t *pcm)
 	return result;
 }
 
+/* when the first slave PCM is linked, it means that the whole multi
+ * plugin instance is linked manually to another PCM.  in this case,
+ * we need to trigger the master.
+ */
 static int snd_pcm_multi_start(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -616,6 +624,9 @@ static int snd_pcm_multi_resume(snd_pcm_t *pcm)
 	return err;
 }
 
+/* if a multi plugin instance is linked as slaves, every slave PCMs
+ * including the first one has to be relinked to the given master.
+ */
 static int snd_pcm_multi_link_slaves(snd_pcm_t *pcm, snd_pcm_t *master)
 { 
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -635,6 +646,9 @@ static int snd_pcm_multi_link_slaves(snd_pcm_t *pcm, snd_pcm_t *master)
 	return 0;
 }
 
+/* linking to a multi as a master is easy - simply link to the first
+ * slave element as its own slaves are already linked.
+ */
 static int snd_pcm_multi_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2)
 {
 	snd_pcm_multi_t *multi = pcm1->private_data;

@@ -274,7 +274,6 @@ static inline int snd_pcm_channel_info(snd_pcm_t *pcm, snd_pcm_channel_info_t *i
 }
 int snd_pcm_channel_info_shm(snd_pcm_t *pcm, snd_pcm_channel_info_t *info, int shmid);
 int _snd_pcm_poll_descriptor(snd_pcm_t *pcm);
-int _snd_pcm_link_descriptors(snd_pcm_t *pcm, int *fds, int size, int (**failed)(snd_pcm_t *, int));
 #define _snd_pcm_link_descriptor _snd_pcm_poll_descriptor /* FIXME */
 #define _snd_pcm_async_descriptor _snd_pcm_poll_descriptor /* FIXME */
 
