@@ -371,6 +371,7 @@ fi
 
 dnl Create PCM plugin symbol list for static library
 rm -f "$srcdir"/src/pcm/pcm_symbols_list.c
+touch "$srcdir"/src/pcm/pcm_symbols_list.c
 for t in $PCM_PLUGIN_LIST; do
   if eval test \$build_pcm_$t = yes; then
     echo \&_snd_module_pcm_$t, >> "$srcdir"/src/pcm/pcm_symbols_list.c
