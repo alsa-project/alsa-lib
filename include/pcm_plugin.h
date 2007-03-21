@@ -156,7 +156,8 @@ int _snd_pcm_route_open(snd_pcm_t **pcmp, const char *name,
  *  Rate plugin for linear formats
  */
 int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
-		      snd_pcm_format_t sformat, unsigned int srate, const char *converter,
+		      snd_pcm_format_t sformat, unsigned int srate,
+		      const snd_config_t *converter,
 		      snd_pcm_t *slave, int close_slave);
 int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		       snd_config_t *root, snd_config_t *conf,

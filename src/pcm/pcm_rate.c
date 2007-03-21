@@ -1251,19 +1251,46 @@ static snd_pcm_ops_t snd_pcm_rate_ops = {
 /**
  * \brief Get a default converter string
  * \param root Root configuration node
- * \retval A const string if found, or NULL
+ * \retval A const config item if found, or NULL
  */
-const char *snd_pcm_rate_get_default_converter(snd_config_t *root)
+const snd_config_t *snd_pcm_rate_get_default_converter(snd_config_t *root)
 {
 	snd_config_t *n;
 	/* look for default definition */
-	if (snd_config_search(root, "defaults.pcm.rate_converter", &n) >= 0) {
-		const char *str;
-		if (snd_config_get_string(n, &str) >= 0)
-			return str;
-	}
+	if (snd_config_search(root, "defaults.pcm.rate_converter", &n) >= 0)
+		return n;
 	return NULL;
 }
+
+#ifdef PIC
+static int rate_open_func(snd_pcm_rate_t *rate, const char *type)
+{
+	char open_name[64];
+	snd_pcm_rate_open_func_t open_func;
+
+	snprintf(open_name, sizeof(open_name), "_snd_pcm_rate_%s_open", type);
+	open_func = snd_dlobj_cache_lookup(open_name);
+	if (!open_func) {
+		void *h;
+		char lib_name[128], *lib = NULL;
+		if (strcmp(type, "linear")) {
+			snprintf(lib_name, sizeof(lib_name),
+				 "%s/libasound_module_rate_%s.so", PKGLIBDIR, type);
+			lib = lib_name;
+		}
+		h = snd_dlopen(lib, RTLD_NOW);
+		if (!h)
+			return -ENOENT;
+		open_func = snd_dlsym(h, open_name, NULL);
+		if (!open_func) {
+			snd_dlclose(h);
+			return -ENOENT;
+		}
+		snd_dlobj_cache_add(open_name, h, open_func);
+	}
+	return open_func(SND_PCM_RATE_PLUGIN_VERSION, &rate->obj, &rate->ops);
+}
+#endif
 
 /**
  * \brief Creates a new rate PCM
@@ -1279,15 +1306,17 @@ const char *snd_pcm_rate_get_default_converter(snd_config_t *root)
  *          of compatibility reasons. The prototype might be freely
  *          changed in future.
  */
-int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sformat,
-		      unsigned int srate, const char *type, snd_pcm_t *slave, int close_slave)
+int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
+		      snd_pcm_format_t sformat, unsigned int srate,
+		      const snd_config_t *converter,
+		      snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_rate_t *rate;
-	snd_pcm_rate_open_func_t open_func;
-	char open_name[64];
+	const char *type;
 	int err;
 #ifndef PIC
+	snd_pcm_rate_open_func_t open_func;
 	extern int SND_PCM_RATE_PLUGIN_ENTRY(linear) (unsigned int version, void **objp, snd_pcm_rate_ops_t *ops);
 #endif
 
@@ -1305,49 +1334,47 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 	rate->sformat = sformat;
 	snd_atomic_write_init(&rate->watom);
 
-	if (! type || ! *type)
-		type = "linear";
-
-#ifdef PIC
-	snprintf(open_name, sizeof(open_name), "_snd_pcm_rate_%s_open", type);
-	open_func = snd_dlobj_cache_lookup(open_name);
-	if (! open_func) {
-		void *h;
-		char lib_name[128], *lib = NULL;
-		if (strcmp(type, "linear")) {
-			snprintf(lib_name, sizeof(lib_name),
-				 "%s/libasound_module_rate_%s.so", PKGLIBDIR, type);
-			lib = lib_name;
-		}
-		h = snd_dlopen(lib, RTLD_NOW);
-		if (! h) {
-			SNDERR("Cannot open library for type %s", type);
-			free(rate);
-			return -ENOENT;
-		}
-		open_func = snd_dlsym(h, open_name, NULL);
-		if (! open_func) {
-			SNDERR("Cannot find function %s", open_name);
-			snd_dlclose(h);
-			free(rate);
-			return -ENOENT;
-		}
-		snd_dlobj_cache_add(open_name, h, open_func);
-	}
-#else
-	open_func = SND_PCM_RATE_PLUGIN_ENTRY(linear);
-#endif
-
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_RATE, name, slave->stream, slave->mode);
 	if (err < 0) {
 		free(rate);
 		return err;
 	}
+
+#ifdef PIC
+	err = -ENOENT;
+	if (!converter)
+		err = rate_open_func(rate, "linear");
+	else if (!snd_config_get_string(converter, &type))
+		err = rate_open_func(rate, type);
+	else if (snd_config_get_type(converter) == SND_CONFIG_TYPE_COMPOUND) {
+		snd_config_iterator_t i, next;
+		snd_config_for_each(i, next, converter) {
+			snd_config_t *n = snd_config_iterator_entry(i);
+			if (snd_config_get_string(n, &type) < 0)
+				break;
+			err = rate_open_func(rate, type);
+			if (!err)
+				break;
+		}
+	} else {
+		SNDERR("Invalid type for rate converter");
+		snd_pcm_close(pcm);
+		return -EINVAL;
+	}
+	if (err < 0) {
+		SNDERR("Cannot find rate converter");
+		snd_pcm_close(pcm);
+		return -ENOENT;
+	}
+#else
+	open_func = SND_PCM_RATE_PLUGIN_ENTRY(linear);
 	err = open_func(SND_PCM_RATE_PLUGIN_VERSION, &rate->obj, &rate->ops);
 	if (err < 0) {
 		snd_pcm_close(pcm);
 		return err;
 	}
+#endif
+
 	if (! rate->ops.init || ! (rate->ops.convert || rate->ops.convert_s16) ||
 	    ! rate->ops.input_frames || ! rate->ops.output_frames) {
 		SNDERR("Inproper rate plugin %s initialization", type);
@@ -1386,7 +1413,10 @@ pcm.name {
                 rate INT        # Slave rate
                 [format STR]    # Slave format
         }
-	[converter STR]		# Converter type, default is taken from
+	converter STR			# optional
+	# or
+	converter [ STR1 STR2 ... ]	# optional
+				# Converter type, default is taken from
 				# defaults.pcm.rate_converter
 }
 \endcode
@@ -1423,7 +1453,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *slave = NULL, *sconf;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int srate = -1;
-	const char *type = NULL;
+	const snd_config_t *converter = NULL;
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1437,12 +1467,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 			continue;
 		}
 		if (strcmp(id, "converter") == 0) {
-			const char *str;
-			if ((err = snd_config_get_string(n, &str)) < 0) {
-				SNDERR("invalid converter string");
-				return -EINVAL;
-			}
-			type = str;
+			converter = n;
 			continue;
 		}
 		SNDERR("Unknown field %s", id);
@@ -1469,7 +1494,7 @@ int _snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0)
 		return err;
 	err = snd_pcm_rate_open(pcmp, name, sformat, (unsigned int) srate,
-				type, spcm, 1);
+				converter, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;

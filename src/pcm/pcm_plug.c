@@ -50,7 +50,7 @@ typedef struct {
 	snd_pcm_format_t sformat;
 	int schannels;
 	int srate;
-	const char *rate_converter;
+	const snd_config_t *rate_converter;
 	enum snd_pcm_plug_route_policy route_policy;
 	snd_pcm_route_ttable_entry_t *ttable;
 	int ttable_ok, ttable_last;
@@ -1015,7 +1015,7 @@ static snd_pcm_ops_t snd_pcm_plug_ops = {
 int snd_pcm_plug_open(snd_pcm_t **pcmp,
 		      const char *name,
 		      snd_pcm_format_t sformat, int schannels, int srate,
-		      const char *rate_converter,
+		      const snd_config_t *rate_converter,
 		      enum snd_pcm_plug_route_policy route_policy,
 		      snd_pcm_route_ttable_entry_t *ttable,
 		      unsigned int tt_ssize,
@@ -1092,6 +1092,9 @@ pcm.name {
 		}
 	}
 	rate_converter STR	# type of rate converter
+	# or
+	rate_converter [ STR1 STR2 ... ]
+				# type of rate converter
 				# default value is taken from defaults.pcm.rate_converter
 }
 \endcode
@@ -1133,7 +1136,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 	unsigned int cused, sused;
 	snd_pcm_format_t sformat = SND_PCM_FORMAT_UNKNOWN;
 	int schannels = -1, srate = -1;
-	const char *rate_converter = NULL;
+	const snd_config_t *rate_converter = NULL;
 
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -1177,12 +1180,7 @@ int _snd_pcm_plug_open(snd_pcm_t **pcmp, const char *name,
 #endif
 #ifdef BUILD_PCM_PLUGIN_RATE
 		if (strcmp(id, "rate_converter") == 0) {
-			const char *str;
-			if ((err = snd_config_get_string(n, &str)) < 0) {
-				SNDERR("Invalid type for %s", id);
-				return -EINVAL;
-			}
-			rate_converter = str;
+			rate_converter = n;
 			continue;
 		}
 #endif
