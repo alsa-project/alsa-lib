@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include <dlfcn.h>
 #include <sys/ioctl.h>
 #include "timer_local.h"
 

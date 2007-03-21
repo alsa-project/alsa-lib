@@ -1,4 +1,7 @@
-SUBDIRS=doc include src modules
+SUBDIRS=doc include src
+if BUILD_MODULES
+SUBDIRS += modules
+endif
 if BUILD_PCM_PLUGIN_SHM
 SUBDIRS += aserver
 endif

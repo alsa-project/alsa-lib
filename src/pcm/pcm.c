@@ -634,7 +634,6 @@ playback devices.
 #include <malloc.h>
 #include <stdarg.h>
 #include <signal.h>
-#include <dlfcn.h>
 #include <sys/poll.h>
 #include <sys/shm.h>
 #include <sys/mman.h>

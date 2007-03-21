@@ -33,7 +33,6 @@
  */
   
 #include <dirent.h>
-#include <dlfcn.h>
 #include <locale.h>
 #include <math.h>
 #include "pcm_local.h"

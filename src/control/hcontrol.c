@@ -48,11 +48,13 @@ to reduce overhead accessing the real controls in kernel drivers.
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <pthread.h>
 #ifndef DOC_HIDDEN
 #define __USE_GNU
 #endif
 #include "control_local.h"
+#ifdef HAVE_LIBPTHREAD
+#include <pthread.h>
+#endif
 
 #ifndef DOC_HIDDEN
 #define NOT_FOUND 1000000000
@@ -420,17 +422,22 @@ static int hctl_compare(const void *a, const void *b) {
 static void snd_hctl_sort(snd_hctl_t *hctl)
 {
 	unsigned int k;
+#ifdef HAVE_LIBPTHREAD
 	static pthread_mutex_t sync_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 	assert(hctl);
 	assert(hctl->compare);
 	INIT_LIST_HEAD(&hctl->elems);
 
+#ifdef HAVE_LIBPTHREAD
 	pthread_mutex_lock(&sync_lock);
+#endif
 	compare_hctl = hctl;
 	qsort(hctl->pelems, hctl->count, sizeof(*hctl->pelems), hctl_compare);
+#ifdef HAVE_LIBPTHREAD
 	pthread_mutex_unlock(&sync_lock);
-
+#endif
 	for (k = 0; k < hctl->count; k++)
 		list_add_tail(&hctl->pelems[k]->list, &hctl->elems);
 }

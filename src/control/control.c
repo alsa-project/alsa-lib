@@ -47,7 +47,6 @@ and IEC958 structure.
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <dlfcn.h>
 #include <sys/poll.h>
 #include "control_local.h"
 

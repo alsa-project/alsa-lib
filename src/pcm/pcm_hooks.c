@@ -27,7 +27,6 @@
  *
  */
   
-#include <dlfcn.h>
 #include "pcm_local.h"
 #include "pcm_generic.h"
 

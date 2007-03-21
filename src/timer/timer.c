@@ -72,7 +72,6 @@ This example shows opening a timer device and reading of timer events.
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include <dlfcn.h>
 #include <signal.h>
 #include <sys/ioctl.h>
 #include "timer_local.h"

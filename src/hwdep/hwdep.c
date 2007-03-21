@@ -33,7 +33,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include <dlfcn.h>
 #include <sys/ioctl.h>
 #include "hwdep_local.h"
 

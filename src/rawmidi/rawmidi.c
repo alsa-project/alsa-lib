@@ -139,7 +139,6 @@ This example shows open and read/write rawmidi operations.
 #include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
-#include <dlfcn.h>
 #include "rawmidi_local.h"
 
 /**

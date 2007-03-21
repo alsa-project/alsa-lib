@@ -28,7 +28,6 @@
  */
 
 #define _GNU_SOURCE
-#include <dlfcn.h>
 #include "list.h"
 #include "local.h"
 
@@ -53,13 +52,19 @@ void *snd_dlopen(const char *name, int mode)
 	if (name == NULL)
 		return &snd_dlsym_start;
 #else
+#ifdef HAVE_LIBDL
 	if (name == NULL) {
 		Dl_info dlinfo;
 		if (dladdr(snd_dlopen, &dlinfo) > 0)
 			name = dlinfo.dli_fname;
 	}
 #endif
+#endif
+#ifdef HAVE_LIBDL
 	return dlopen(name, mode);
+#else
+	return NULL;
+#endif
 }
 
 /**
@@ -76,7 +81,11 @@ int snd_dlclose(void *handle)
 	if (handle == &snd_dlsym_start)
 		return 0;
 #endif
+#ifdef HAVE_LIBDL
 	return dlclose(handle);
+#else
+	return 0;
+#endif
 }
 
 /**
@@ -91,6 +100,7 @@ int snd_dlclose(void *handle)
  */
 static int snd_dlsym_verify(void *handle, const char *name, const char *version)
 {
+#ifdef HAVE_LIBDL
 	int res;
 	char *vname;
 	
@@ -107,6 +117,9 @@ static int snd_dlsym_verify(void *handle, const char *name, const char *version)
 	if (res < 0)
 		SNDERR("unable to verify version for symbol %s", name);
 	return res;
+#else
+	return 0;
+#endif
 }
 
 /**
@@ -139,10 +152,16 @@ void *snd_dlsym(void *handle, const char *name, const char *version)
 		return NULL;
 	}
 #endif
-	err = snd_dlsym_verify(handle, name, version);
-	if (err < 0)
-		return NULL;
+#ifdef HAVE_LIBDL
+	if (version) {
+		err = snd_dlsym_verify(handle, name, version);
+		if (err < 0)
+			return NULL;
+	}
 	return dlsym(handle, name);
+#else
+	return NULL;
+#endif
 }
 
 /*

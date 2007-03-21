@@ -82,14 +82,14 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 		free(xlib);
 		return -ENXIO;
 	}
-	event_func = dlsym(h, "alsa_mixer_simple_event");
+	event_func = snd_dlsym(h, "alsa_mixer_simple_event", NULL);
 	if (event_func == NULL) {
 		SNDERR("Symbol 'alsa_mixer_simple_event' was not found in '%s'", xlib);
 		snd_dlclose(h);
 		free(xlib);
 		return -ENXIO;
 	}
-	init_func = dlsym(h, "alsa_mixer_simple_init");
+	init_func = snd_dlsym(h, "alsa_mixer_simple_init", NULL);
 	if (init_func == NULL) {
 		SNDERR("Symbol 'alsa_mixer_simple_init' was not found in '%s'", xlib);
 		snd_dlclose(h);

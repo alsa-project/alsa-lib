@@ -29,7 +29,6 @@
  */
 #include <inttypes.h>
 #include <byteswap.h>
-#include <dlfcn.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 #include "pcm_rate.h"
@@ -1326,7 +1325,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sform
 			free(rate);
 			return -ENOENT;
 		}
-		open_func = dlsym(h, open_name);
+		open_func = snd_dlsym(h, open_name, NULL);
 		if (! open_func) {
 			SNDERR("Cannot find function %s", open_name);
 			snd_dlclose(h);

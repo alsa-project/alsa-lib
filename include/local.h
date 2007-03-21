@@ -37,6 +37,11 @@
 #ifdef SUPPORT_RESMGR
 #include <resmgr.h>
 #endif
+#ifdef HAVE_LIBDL
+#include <dlfcn.h>
+#else
+#define RTLD_NOW	0
+#endif
 
 #define _snd_config_iterator list_head
 #define _snd_interval sndrv_interval

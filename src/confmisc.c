@@ -946,6 +946,8 @@ int snd_func_card_name(snd_config_t **dst, snd_config_t *root,
 SND_DLSYM_BUILD_VERSION(snd_func_card_name, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
 
+#ifdef BUILD_PCM
+
 /**
  * \brief Returns the pcm identification of a device.
  * \param dst The function puts the handle to the result configuration node
@@ -1198,6 +1200,8 @@ int snd_func_private_pcm_subdevice(snd_config_t **dst, snd_config_t *root ATTRIB
 #ifndef DOC_HIDDEN
 SND_DLSYM_BUILD_VERSION(snd_func_private_pcm_subdevice, SND_CONFIG_DLSYM_VERSION_EVALUATE);
 #endif
+
+#endif /* BUILD_PCM */
 
 /**
  * \brief Copies the specified configuration node.
