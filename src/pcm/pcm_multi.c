@@ -630,7 +630,7 @@ static int snd_pcm_multi_resume(snd_pcm_t *pcm)
 static int snd_pcm_multi_link_slaves(snd_pcm_t *pcm, snd_pcm_t *master)
 { 
 	snd_pcm_multi_t *multi = pcm->private_data;
-	unsigned int i, j;
+	unsigned int i;
 	int err;
 
 	for (i = 0; i < multi->slaves_count; ++i) {
