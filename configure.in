@@ -431,6 +431,42 @@ for t in $PCM_PLUGIN_LIST; do
   fi
 done
 
+dnl Control Plugins
+
+AC_ARG_WITH(ctl-plugins,
+  [  --with-ctl-plugins=<list>  Build Control plugins ],
+  [ctl_plugins="$withval"], [ctl_plugins="all"])
+
+CTL_PLUGIN_LIST="shm ext"
+
+build_ctl_plugin="no"
+for t in $CTL_PLUGIN_LIST; do
+  eval build_ctl_$t="no"
+done
+
+ctl_plugins=`echo $ctl_plugins | sed 's/,/ /g'`
+for p in $ctl_plugins; do
+  for t in $CTL_PLUGIN_LIST; do
+    if test "$p" = "$t" -o "$p" = "all"; then
+      eval build_ctl_$t="yes"
+      build_ctl_plugin="yes"
+    fi
+  done
+done
+
+AM_CONDITIONAL(BUILD_CTL_PLUGIN, test x$build_ctl_plugin = xyes)
+AM_CONDITIONAL(BUILD_CTL_PLUGIN_SHM, test x$build_ctl_shm = xyes)
+AM_CONDITIONAL(BUILD_CTL_PLUGIN_EXT, test x$build_ctl_ext = xyes)
+
+dnl Create ctl plugin symbol list for static library
+rm -f "$srcdir"/src/control/ctl_symbols_list.c
+touch "$srcdir"/src/control/ctl_symbols_list.c
+for t in $CTL_PLUGIN_LIST; do
+  if eval test \$build_ctl_$t = yes; then
+    echo \&_snd_module_control_$t, >> "$srcdir"/src/control/ctl_symbols_list.c
+  fi
+done
+
 dnl Make a symlink for inclusion of alsa/xxx.h
 if test ! -L "$srcdir"/include/alsa ; then
   echo "Making a symlink include/alsa"
