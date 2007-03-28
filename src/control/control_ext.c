@@ -34,6 +34,11 @@
 #include "control_local.h"
 #include "control_external.h"
 
+#ifndef PIC
+/* entry for static linking */
+const char *_snd_module_control_ext = "";
+#endif
+
 static int snd_ctl_ext_close(snd_ctl_t *handle)
 {
 	snd_ctl_ext_t *ext = handle->private_data;
