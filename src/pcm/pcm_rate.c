@@ -1322,7 +1322,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 {
 	snd_pcm_t *pcm;
 	snd_pcm_rate_t *rate;
-	const char *type;
+	const char *type = NULL;
 	int err;
 #ifndef PIC
 	snd_pcm_rate_open_func_t open_func;
@@ -1355,8 +1355,10 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		const char **types;
 		for (types = default_rate_plugins; *types; types++) {
 			err = rate_open_func(rate, *types);
-			if (!err)
+			if (!err) {
+				type = *types;
 				break;
+			}
 		}
 	} else if (!snd_config_get_string(converter, &type))
 		err = rate_open_func(rate, type);
@@ -1381,6 +1383,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 		return -ENOENT;
 	}
 #else
+	type = "linear";
 	open_func = SND_PCM_RATE_PLUGIN_ENTRY(linear);
 	err = open_func(SND_PCM_RATE_PLUGIN_VERSION, &rate->obj, &rate->ops);
 	if (err < 0) {
