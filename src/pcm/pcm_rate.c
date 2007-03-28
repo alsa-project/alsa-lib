@@ -1263,6 +1263,15 @@ const snd_config_t *snd_pcm_rate_get_default_converter(snd_config_t *root)
 }
 
 #ifdef PIC
+static int is_builtin_plugin(const char *type)
+{
+	return strcmp(type, "linear") == 0;
+}
+
+static const char *default_rate_plugins[] = {
+	"speexrate", "linear", NULL
+};
+
 static int rate_open_func(snd_pcm_rate_t *rate, const char *type)
 {
 	char open_name[64];
@@ -1273,7 +1282,7 @@ static int rate_open_func(snd_pcm_rate_t *rate, const char *type)
 	if (!open_func) {
 		void *h;
 		char lib_name[128], *lib = NULL;
-		if (strcmp(type, "linear")) {
+		if (!is_builtin_plugin(type)) {
 			snprintf(lib_name, sizeof(lib_name),
 				 "%s/libasound_module_rate_%s.so", PKGLIBDIR, type);
 			lib = lib_name;
@@ -1342,9 +1351,14 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 
 #ifdef PIC
 	err = -ENOENT;
-	if (!converter)
-		err = rate_open_func(rate, "linear");
-	else if (!snd_config_get_string(converter, &type))
+	if (!converter) {
+		const char **types;
+		for (types = default_rate_plugins; *types; types++) {
+			err = rate_open_func(rate, *types);
+			if (!err)
+				break;
+		}
+	} else if (!snd_config_get_string(converter, &type))
 		err = rate_open_func(rate, type);
 	else if (snd_config_get_type(converter) == SND_CONFIG_TYPE_COMPOUND) {
 		snd_config_iterator_t i, next;
