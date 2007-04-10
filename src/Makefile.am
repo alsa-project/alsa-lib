@@ -7,6 +7,12 @@ else
 VSYMS =
 endif
 
+if SYMBOLIC_FUNCTIONS
+SYMFUNCS = -Wl,-Bsymbolic-functions
+else
+SYMFUNCS =
+endif
+
 lib_LTLIBRARIES = libasound.la
 libasound_la_SOURCES = conf.c confmisc.c input.c output.c async.c error.c dlmisc.c socket.c shmarea.c userfile.c names.c
 
@@ -43,7 +49,7 @@ endif
 SUBDIRS += compat conf
 libasound_la_LIBADD += compat/libcompat.la @ALSA_DEPLIBS@
 
-libasound_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS)
+libasound_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS) $(SYMFUNCS)
 
 control/libcontrol.la:
 	$(MAKE) -C control libcontrol.la

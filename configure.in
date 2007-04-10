@@ -107,6 +107,23 @@ else
 fi
 AM_CONDITIONAL(VERSIONED_SYMBOLS, test x$versioned = xyes)
 
+dnl Check for symbolic-functions
+AC_MSG_CHECKING(for symbolic-functions)
+AC_ARG_ENABLE(symbolic-functions,
+  AS_HELP_STRING([--enable-symbolic-functions],
+    [use -Bsymbolic-functions option if available (optmization for size and speed)]),
+  symfuncs="$enableval", symfuncs="no")
+if test "$symfuncs" = "yes"; then
+  if ld --help | grep -q -- '-Bsymbolic-functions'; then
+    AC_MSG_RESULT(yes)
+  else
+    AC_MSG_RESULT(not supported by ld)
+  fi
+else
+  AC_MSG_RESULT(no)
+fi
+AM_CONDITIONAL(SYMBOLIC_FUNCTIONS, test x"$symfuncs" = xyes)
+
 dnl See if toolchain has a custom prefix for symbols ...
 AC_MSG_CHECKING(for custom symbol prefixes)
 SYMBOL_PREFIX=` \
