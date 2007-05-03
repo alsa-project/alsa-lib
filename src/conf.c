@@ -580,12 +580,12 @@ static int get_char_skip_comments(input_t *input)
 			if (err < 0)
 				return err;
 			if (!strncmp(str, "confdir:", 8)) {
-				char *tmp = malloc(strlen(DATADIR "/alsa") + 1 + strlen(str + 8) + 1);
+				char *tmp = malloc(strlen(ALSA_CONFIG_DIR) + 1 + strlen(str + 8) + 1);
 				if (tmp == NULL) {
 					free(str);
 					return -ENOMEM;
 				}
-				sprintf(tmp, DATADIR "/alsa/%s", str + 8);
+				sprintf(tmp, ALSA_CONFIG_DIR "/%s", str + 8);
 				free(str);
 				str = tmp;
 			}
@@ -2606,7 +2606,7 @@ int snd_config_search_alias_hooks(snd_config_t *config,
 #define ALSA_CONFIG_PATH_VAR "ALSA_CONFIG_PATH"
 
 /** The name of the default files used by #snd_config_update. */
-#define ALSA_CONFIG_PATH_DEFAULT DATADIR "/alsa/alsa.conf"
+#define ALSA_CONFIG_PATH_DEFAULT ALSA_CONFIG_DIR "/alsa.conf"
 
 /**
  * \ingroup Config

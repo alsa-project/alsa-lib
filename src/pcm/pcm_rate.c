@@ -1284,7 +1284,7 @@ static int rate_open_func(snd_pcm_rate_t *rate, const char *type)
 		char lib_name[128], *lib = NULL;
 		if (!is_builtin_plugin(type)) {
 			snprintf(lib_name, sizeof(lib_name),
-				 "%s/libasound_module_rate_%s.so", PKGLIBDIR, type);
+				 "%s/libasound_module_rate_%s.so", ALSA_PLUGIN_DIR, type);
 			lib = lib_name;
 		}
 		h = snd_dlopen(lib, RTLD_NOW);

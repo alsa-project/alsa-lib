@@ -61,21 +61,41 @@ AC_SUBST(LIBTOOL_VERSION_INFO)
 
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
 
-eval dir="$datadir"
-case "$dir" in
-/*) ;;
-*) dir="$prefix/share"
-esac
-AC_DEFINE_UNQUOTED(DATADIR, "$dir", [directory containing ALSA configuration database])
+dnl ALSA configuration directory
+AC_ARG_WITH(configdir,
+    AS_HELP_STRING([--with-configdir=dir],
+	[path where ALSA config files are stored]),
+    confdir="$withval", confdir="")
+if test -z "$confdir"; then
+    eval dir="$datadir"
+    case "$dir" in
+    /*) ;;
+    *) dir="$prefix/share"
+    esac
+    confdir="$dir/alsa"
+fi
+ALSA_CONFIG_DIR="$confdir"
+AC_DEFINE_UNQUOTED(ALSA_CONFIG_DIR, "$confdir", [directory containing ALSA configuration database])
+AC_SUBST(ALSA_CONFIG_DIR)
 
+dnl ALSA plugin directory
 test "x$exec_prefix" = xNONE && exec_prefix=$prefix
 
-eval dir="$libdir"
-case "$dir" in
-/*) ;;
-*) dir="$dir"
-esac
-AC_DEFINE_UNQUOTED(PKGLIBDIR, "$dir/$PACKAGE", [directory containing ALSA add-on modules])
+AC_ARG_WITH(plugindir,
+    AS_HELP_STRING([--with-plugindir=dir],
+	[path where ALSA plugin files are stored]),
+    plugindir="$withval", plugindir="")
+if test -z "$plugindir"; then
+    eval dir="$libdir"
+    case "$dir" in
+    /*) ;;
+    *) dir="$dir"
+    esac
+    plugindir="$dir/$PACKAGE"
+fi
+AC_DEFINE_UNQUOTED(ALSA_PLUGIN_DIR, "plugindir", [directory containing ALSA add-on modules])
+ALSA_PLUGIN_DIR="$plugindir"
+AC_SUBST(ALSA_PLUGIN_DIR)
 
 dnl Check for versioned symbols
 AC_MSG_CHECKING(for versioned symbols)

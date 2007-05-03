@@ -10,5 +10,5 @@ endif
 
 EXTRA_DIST = $(cfg_files)
 
-alsadir = $(datadir)/alsa
+alsadir = @ALSA_CONFIG_DIR@
 alsa_DATA = $(cfg_files)

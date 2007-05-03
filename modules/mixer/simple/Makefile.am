@@ -1,4 +1,4 @@
-pkglibdir = $(libdir)/@PACKAGE@/smixer
+pkglibdir = @ALSA_PLUGIN_DIR@/smixer
 
 AM_CFLAGS = -g -O2 -W -Wall
 

@@ -7,5 +7,5 @@ cfg_files = default.conf front.conf rear.conf center_lfe.conf side.conf\
 
 EXTRA_DIST = $(cfg_files)
 
-alsadir = $(datadir)/alsa/pcm
+alsadir = @ALSA_CONFIG_DIR@/pcm
 alsa_DATA = $(cfg_files)

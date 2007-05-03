@@ -41,7 +41,7 @@
 
 #ifndef DOC_HIDDEN
 
-#define SO_PATH PKGLIBDIR "/smixer"
+#define SO_PATH ALSA_PLUGIN_DIR "/smixer"
 
 typedef struct _class_priv {
 	char *device;
@@ -239,7 +239,7 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 		goto __error;
 	file = getenv("ALSA_MIXER_SIMPLE");
 	if (!file)
-		file = DATADIR "/alsa/smixer.conf";
+		file = ALSA_CONFIG_DIR "/smixer.conf";
 	err = snd_config_top(&top);
 	if (err >= 0) {
 		err = snd_input_stdio_open(&input, file, "r");
