@@ -11,7 +11,7 @@ if BUILD_PCM_PLUGIN
 libpcm_la_SOURCES += pcm_generic.c pcm_plugin.c
 endif
 if BUILD_PCM_PLUGIN_COPY
-libpcm_la_SOURCES += pcm_copy.c pcm_demux.c
+libpcm_la_SOURCES += pcm_copy.c
 endif
 if BUILD_PCM_PLUGIN_LINEAR
 libpcm_la_SOURCES += pcm_linear.c
