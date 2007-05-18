@@ -25,7 +25,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
  */
-  
+
 #include <byteswap.h>
 #include <math.h>
 #include "pcm_local.h"
@@ -46,17 +46,22 @@ typedef struct {
 	snd_ctl_t *ctl;
 	snd_ctl_elem_value_t elem;
 	unsigned int cur_vol[2];
-	unsigned int max_val;
+	unsigned int max_val;     /* max index */
+	unsigned int zero_dB_val; /* index at 0 dB */
 	double min_dB;
-	unsigned short *dB_value;
+	double max_dB;
+	unsigned int *dB_value;
 } snd_pcm_softvol_t;
 
 #define VOL_SCALE_SHIFT		16
+#define VOL_SCALE_MASK          ((1 << VOL_SCALE_SHIFT) - 1)
 
 #define PRESET_RESOLUTION	256
 #define PRESET_MIN_DB		-51.0
+#define ZERO_DB                  0.0
+#define MAX_DB_UPPER_LIMIT      50
 
-static unsigned short preset_dB_value[PRESET_RESOLUTION] = {
+static unsigned int preset_dB_value[PRESET_RESOLUTION] = {
 	0x00b8, 0x00bd, 0x00c1, 0x00c5, 0x00ca, 0x00cf, 0x00d4, 0x00d9,
 	0x00de, 0x00e3, 0x00e8, 0x00ed, 0x00f3, 0x00f9, 0x00fe, 0x0104,
 	0x010a, 0x0111, 0x0117, 0x011e, 0x0124, 0x012b, 0x0132, 0x0139,
@@ -96,10 +101,10 @@ typedef union {
 	int i;
 	short s[2];
 } val_t;
-static inline int MULTI_DIV_int(int a, unsigned short b, int swap)
+static inline int MULTI_DIV_32x16(int a, unsigned short b, int swap)
 {
 	val_t v, x, y;
-	v.i = swap ? (int)bswap_32(a) : a;
+	v.i = a;
 	y.i = 0;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	x.i = (unsigned int)v.s[0] * b;
@@ -110,14 +115,40 @@ static inline int MULTI_DIV_int(int a, unsigned short b, int swap)
 	y.s[1] = x.s[0];
 	y.i += (int)v.s[0] * b;
 #endif
-	return swap ? (int)bswap_32(y.i) : y.i;
+	return y.i;
 }
 
-/* (16bit x 16bit) >> 16 */
-#define MULTI_DIV_short(src, scale, swap)				  \
-(swap									  \
- ? bswap_16(((short) bswap_16(src) * (scale)) >> VOL_SCALE_SHIFT)   \
- : (((int) (src) * (scale)) >> VOL_SCALE_SHIFT))
+static inline int MULTI_DIV_int(int a, unsigned int b, int swap)
+{
+	unsigned int gain = (b >> VOL_SCALE_SHIFT);
+	int fraction;
+	a = swap ? (int)bswap_32(a) : a;
+	fraction = MULTI_DIV_32x16(a, b & VOL_SCALE_MASK, swap);
+	if (gain) {
+		long long amp = (long long)a * gain + fraction;
+		if (amp > (int)0x7fffffff)
+			amp = (int)0x7fffffff;
+		else if (amp < (int)0x80000000)
+			amp = (int)0x80000000;
+		return swap ? (int)bswap_32((int)amp) : (int)amp;
+	}
+	return swap ? (int)bswap_32(fraction) : fraction;
+}
+
+static inline short MULTI_DIV_short(short a, unsigned int b, int swap)
+{
+	unsigned int gain = b >> VOL_SCALE_SHIFT;
+	int fraction;
+	a = swap ? (short)bswap_16(a) : a;
+	fraction = (int)(a * (b & VOL_SCALE_MASK)) >> VOL_SCALE_SHIFT;
+	if (gain) {
+		int amp = a * gain + fraction;
+		if (abs(amp) > 0x7fff)
+			amp = (a<0) ? (short)0x8000 : (short)0x7fff;
+		return swap ? (short)bswap_16((short)amp) : (short)amp;
+	}
+	return swap ? (short)bswap_16((short)fraction) : (short)fraction;
+}
 
 #endif /* DOC_HIDDEN */
 
@@ -237,8 +268,8 @@ static void softvol_convert_stereo_vol(snd_pcm_softvol_t *svol,
 		snd_pcm_areas_silence(dst_areas, dst_offset, channels, frames,
 				      svol->sformat);
 		return;
-	} else if (svol->cur_vol[0] == svol->max_val &&
-		   svol->cur_vol[1] == svol->max_val) {
+	} else if (svol->zero_dB_val && svol->cur_vol[0] == svol->zero_dB_val &&
+		   svol->cur_vol[1] == svol->zero_dB_val) {
 		snd_pcm_areas_copy(dst_areas, dst_offset, src_areas, src_offset,
 				   channels, frames, svol->sformat);
 		return;
@@ -288,7 +319,7 @@ static void softvol_convert_mono_vol(snd_pcm_softvol_t *svol,
 		snd_pcm_areas_silence(dst_areas, dst_offset, channels, frames,
 				      svol->sformat);
 		return;
-	} else if (svol->cur_vol[0] == svol->max_val) {
+	} else if (svol->zero_dB_val && svol->cur_vol[0] == svol->zero_dB_val) {
 		snd_pcm_areas_copy(dst_areas, dst_offset, src_areas, src_offset,
 				   channels, frames, svol->sformat);
 		return;
@@ -539,6 +570,7 @@ static void snd_pcm_softvol_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_output_printf(out, "Soft volume PCM\n");
 	snd_output_printf(out, "Control: %s\n", svol->elem.id.name);
 	snd_output_printf(out, "min_dB: %g\n", svol->min_dB);
+	snd_output_printf(out, "max_dB: %g\n", svol->max_dB);
 	snd_output_printf(out, "resolution: %d\n", svol->max_val + 1);
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
@@ -554,7 +586,7 @@ static int add_tlv_info(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo)
 	tlv[0] = SND_CTL_TLVT_DB_SCALE;
 	tlv[1] = 2 * sizeof(int);
 	tlv[2] = svol->min_dB * 100;
-	tlv[3] = -svol->min_dB * 100 / svol->max_val;
+	tlv[3] = (svol->max_dB - svol->min_dB) * 100 / svol->max_val;
 	return snd_ctl_elem_tlv_write(svol->ctl, &cinfo->id, tlv);
 }
 
@@ -562,14 +594,17 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo, int
 {
 	int err;
 	int i;
-
+	unsigned int def_val;
+	
 	err = snd_ctl_elem_add_integer(svol->ctl, &cinfo->id, count, 0, svol->max_val, 0);
 	if (err < 0)
 		return err;
 	add_tlv_info(svol, cinfo);
-	/* set max value as default */
+	/* set zero dB value as default, or max_val if
+	   there is no 0 dB setting */
+	def_val = svol->zero_dB_val ? svol->zero_dB_val : svol->max_val;
 	for (i = 0; i < count; i++)
-		svol->elem.value.integer.value[i] = svol->max_val;
+		svol->elem.value.integer.value[i] = def_val;
 	return snd_ctl_elem_write(svol->ctl, &svol->elem);
 }
 
@@ -581,7 +616,8 @@ static int add_user_ctl(snd_pcm_softvol_t *svol, snd_ctl_elem_info_t *cinfo, int
  */
 static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 				int ctl_card, snd_ctl_elem_id_t *ctl_id,
-				int cchannels, double min_dB, int resolution)
+				int cchannels, double min_dB, double max_dB,
+				int resolution)
 {
 	char tmp_name[32];
 	snd_pcm_info_t *info;
@@ -610,7 +646,14 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 	svol->elem.id = *ctl_id;
 	svol->max_val = resolution - 1;
 	svol->min_dB = min_dB;
-
+	svol->max_dB = max_dB;
+	if (svol->max_dB == ZERO_DB)
+		svol->zero_dB_val = svol->max_val;
+	else if (svol->max_dB < 0)
+		svol->zero_dB_val = 0; /* there is no 0 dB setting */
+	else
+		svol->zero_dB_val = (min_dB / (min_dB - max_dB)) * svol->max_val;
+		
 	snd_ctl_elem_info_alloca(&cinfo);
 	snd_ctl_elem_info_set_id(cinfo, ctl_id);
 	if ((err = snd_ctl_elem_info(svol->ctl, cinfo)) < 0) {
@@ -650,24 +693,26 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 		}
 	}
 
-	if (min_dB == PRESET_MIN_DB && resolution == PRESET_RESOLUTION)
+	if (min_dB == PRESET_MIN_DB && max_dB == ZERO_DB && resolution == PRESET_RESOLUTION)
 		svol->dB_value = preset_dB_value;
 	else {
 #ifndef HAVE_SOFT_FLOAT
-		svol->dB_value = calloc(resolution, sizeof(unsigned short));
+		svol->dB_value = calloc(resolution, sizeof(unsigned int));
 		if (! svol->dB_value) {
 			SNDERR("cannot allocate dB table");
 			return -ENOMEM;
 		}
 		svol->min_dB = min_dB;
-		for (i = 1; i < svol->max_val; i++) {
-			double db = svol->min_dB - ((i - 1) * svol->min_dB) / (svol->max_val - 1);
+		svol->max_dB = max_dB;
+		for (i = 0; i <= svol->max_val; i++) {
+			double db = svol->min_dB + (i * (svol->max_dB - svol->min_dB)) / svol->max_val;
 			double v = (pow(10.0, db / 20.0) * (double)(1 << VOL_SCALE_SHIFT));
-			svol->dB_value[i] = (unsigned short)v;
+			svol->dB_value[i] = (unsigned int)v;
 		}
-		svol->dB_value[svol->max_val] = 65535;
+		if (svol->zero_dB_val)
+			svol->dB_value[svol->zero_dB_val] = 65535;
 #else
-		SNDERR("Cannot handle the given min_dB and resolution");
+		SNDERR("Cannot handle the given dB range and resolution");
 		return -EINVAL;
 #endif
 	}
@@ -698,6 +743,7 @@ static snd_pcm_ops_t snd_pcm_softvol_ops = {
  * \param ctl_id The control element
  * \param cchannels PCM channels
  * \param min_dB minimal dB value
+ * \param max_dB maximal dB value
  * \param resolution resolution of control
  * \param slave Slave PCM handle
  * \param close_slave When set, the slave PCM handle is closed with copy PCM
@@ -710,7 +756,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 			 snd_pcm_format_t sformat,
 			 int ctl_card, snd_ctl_elem_id_t *ctl_id,
 			 int cchannels,
-			 double min_dB, int resolution,
+			 double min_dB, double max_dB, int resolution,
 			 snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
@@ -728,7 +774,7 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	if (! svol)
 		return -ENOMEM;
 	err = softvol_load_control(slave, svol, ctl_card, ctl_id, cchannels,
-				   min_dB, resolution);
+				   min_dB, max_dB, resolution);
 	if (err < 0) {
 		softvol_free(svol);
 		return err;
@@ -812,6 +858,7 @@ pcm.name {
 		[count INT]     # control channels 1 or 2 (default: 2)
 	}
 	[min_dB REAL]           # minimal dB value (default: -51.0)
+	[max_dB REAL]           # maximal dB value (default:   0.0)
 	[resolution INT]        # resolution (default: 256)
 }
 \endcode
@@ -851,6 +898,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	snd_ctl_elem_id_t *ctl_id;
 	int resolution = PRESET_RESOLUTION;
 	double min_dB = PRESET_MIN_DB;
+	double max_dB = ZERO_DB;
 	int card = -1, cchannels = 2;
 
 	snd_config_for_each(i, next, conf) {
@@ -886,6 +934,14 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
+		if (strcmp(id, "max_dB") == 0) {
+			err = snd_config_get_real(n, &max_dB);
+			if (err < 0) {
+				SNDERR("Invalid max_dB value");
+				return err;
+			}
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -899,6 +955,11 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	}
 	if (min_dB >= 0) {
 		SNDERR("min_dB must be a negative value");
+		return -EINVAL;
+	}
+	if (max_dB <= min_dB || max_dB > MAX_DB_UPPER_LIMIT) {
+		SNDERR("max_dB must be larger than min_dB and less than %d dB",
+		       MAX_DB_UPPER_LIMIT);
 		return -EINVAL;
 	}
 	if (resolution < 0 || resolution > 1024) {
@@ -930,7 +991,7 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		return err;
 	}
 	err = snd_pcm_softvol_open(pcmp, name, sformat, card, ctl_id, cchannels,
-				   min_dB, resolution, spcm, 1);
+				   min_dB, max_dB, resolution, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
