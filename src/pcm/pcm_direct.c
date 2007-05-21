@@ -1528,7 +1528,7 @@ int snd_pcm_direct_parse_open_conf(snd_config_t *root, snd_config_t *conf,
 	rec->ipc_key = 0;
 	rec->ipc_perm = 0600;
 	rec->ipc_gid = -1;
-	rec->slowptr = 0;
+	rec->slowptr = 1;
 	rec->max_periods = 0;
 
 	/* read defaults */
