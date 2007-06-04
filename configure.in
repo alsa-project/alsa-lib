@@ -138,6 +138,7 @@ if test "$symfuncs" = "yes"; then
     AC_MSG_RESULT(yes)
   else
     AC_MSG_RESULT(not supported by ld)
+    symfuncs="no"
   fi
 else
   AC_MSG_RESULT(no)
