@@ -93,7 +93,7 @@ if test -z "$plugindir"; then
     esac
     plugindir="$dir/$PACKAGE"
 fi
-AC_DEFINE_UNQUOTED(ALSA_PLUGIN_DIR, "plugindir", [directory containing ALSA add-on modules])
+AC_DEFINE_UNQUOTED(ALSA_PLUGIN_DIR, "$plugindir", [directory containing ALSA add-on modules])
 ALSA_PLUGIN_DIR="$plugindir"
 AC_SUBST(ALSA_PLUGIN_DIR)
 
