@@ -414,7 +414,7 @@ if test "$HAVE_LIBPTHREAD" != "yes"; then
   build_pcm_share="no"
 fi
 
-if test "$softfloat" != "yes"; then
+if test "$softfloat" = "yes"; then
   build_pcm_lfloat="no"
 fi
 
