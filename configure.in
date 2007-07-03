@@ -358,6 +358,9 @@ fi
 if test "$build_rawmidi" = "yes"; then
   AC_DEFINE([BUILD_RAWMIDI], "1", [Build raw MIDI component])
 fi
+if test "$build_hwdep" = "yes"; then
+  AC_DEFINE([BUILD_HWDEP], "1", [Build hwdep component])
+fi
 if test "$build_seq" = "yes"; then
   AC_DEFINE([BUILD_SEQ], "1", [Build sequencer component])
 fi

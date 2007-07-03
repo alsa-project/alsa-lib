@@ -90,6 +90,7 @@ static int get_dev_name1(struct hint_list *list, char **res)
 	if (list->device < 0)
 		return 0;
 	switch (list->iface) {
+#ifdef BUILD_HWDEP
 	case SND_CTL_ELEM_IFACE_HWDEP:
 		{
 			snd_hwdep_info_t *info;
@@ -100,6 +101,8 @@ static int get_dev_name1(struct hint_list *list, char **res)
 			*res = strdup(snd_hwdep_info_get_name(info));
 			return 0;
 		}
+#endif
+#ifdef BUILD_PCM
 	case SND_CTL_ELEM_IFACE_PCM:
 		{
 			snd_pcm_info_t *info;
@@ -118,6 +121,8 @@ static int get_dev_name1(struct hint_list *list, char **res)
 			*res = strdup(snd_pcm_info_get_name(info));
 			return 0;
 		}
+#endif
+#ifdef BUILD_RAWMIDI
 	case SND_CTL_ELEM_IFACE_RAWMIDI:
 		{
 			snd_rawmidi_info_t *info;
@@ -129,6 +134,7 @@ static int get_dev_name1(struct hint_list *list, char **res)
 			*res = strdup(snd_rawmidi_info_get_name(info));
 			return 0;
 		}
+#endif
 	default:
 		return 0;
 	}
