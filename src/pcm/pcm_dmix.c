@@ -139,12 +139,14 @@ static void dmix_server_free(snd_pcm_direct_t *dmix)
  *  FIXME: optimize it for different architectures
  */
 
+#include "pcm_dmix_generic.c"
 #if defined(__i386__)
 #include "pcm_dmix_i386.c"
 #elif defined(__x86_64__)
 #include "pcm_dmix_x86_64.c"
 #else
-#include "pcm_dmix_generic.c"
+#define mix_select_callbacks(x)	generic_mix_select_callbacks(x)
+#define dmix_supported_format generic_dmix_supported_format
 #endif
 
 static void mix_areas(snd_pcm_direct_t *dmix,

@@ -22,26 +22,37 @@
 #undef MIX_AREAS3
 #undef LOCK_PREFIX
  
-static unsigned long long dmix_supported_format =
-	(1ULL << SND_PCM_FORMAT_S16_LE) |
-	(1ULL << SND_PCM_FORMAT_S32_LE) |
-	(1ULL << SND_PCM_FORMAT_S24_3LE);
+#define x86_64_dmix_supported_format \
+	((1ULL << SND_PCM_FORMAT_S16_LE) |\
+	 (1ULL << SND_PCM_FORMAT_S32_LE) |\
+	 (1ULL << SND_PCM_FORMAT_S24_3LE))
+
+#define dmix_supported_format \
+	(x86_64_dmix_supported_format | generic_dmix_supported_format)
 
 static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 {
-	FILE *in;
-	char line[255];
-	int smp = 0;
+	static int smp = 0;
 	
-	/* try to determine, if we have SMP */
-	in = fopen("/proc/cpuinfo", "r");
-	if (in) {
-		while (!feof(in)) {
-			fgets(line, sizeof(line), in);
-			if (!strncmp(line, "processor", 9))
-				smp++;
+	if (!((1ULL<< dmix->shmptr->s.format) & x86_64_dmix_supported_format)) {
+		generic_mix_select_callbacks(dmix);
+		return;
+	}
+
+	if (!smp) {
+		FILE *in;
+		char line[255];
+
+		/* try to determine, if we have SMP */
+		in = fopen("/proc/cpuinfo", "r");
+		if (in) {
+			while (!feof(in)) {
+				fgets(line, sizeof(line), in);
+				if (!strncmp(line, "processor", 9))
+					smp++;
+			}
+			fclose(in);
 		}
-		fclose(in);
 	}
 	// printf("SMP: %i\n", smp);
 	dmix->u.dmix.mix_areas1 = smp > 1 ? mix_areas1_smp : mix_areas1;
