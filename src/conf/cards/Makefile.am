@@ -35,6 +35,7 @@ cfg_files = aliases.conf \
 	PC-Speaker.conf \
 	PMac.conf \
 	PMacToonie.conf \
+	PS3.conf \
 	RME9636.conf \
 	RME9652.conf \
 	SI7018.conf \
