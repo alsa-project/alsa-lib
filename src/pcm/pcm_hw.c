@@ -96,6 +96,7 @@ typedef struct {
 	int shadow_appl_ptr: 1,
 	    avail_update_flag: 1,
 	    mmap_shm: 1;
+	snd_pcm_uframes_t hw_ptr;
 	snd_pcm_uframes_t appl_ptr;
 	/* restricted parameters */
 	snd_pcm_format_t format;
@@ -373,7 +374,9 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
 		if (hw->mmap_shm) {
 			hw->shadow_appl_ptr = 1;
+			hw->hw_ptr = 0;
 			hw->appl_ptr = 0;
+			snd_pcm_set_hw_ptr(pcm, &hw->hw_ptr, -1, 0);
 			snd_pcm_set_appl_ptr(pcm, &hw->appl_ptr, -1, 0);
 		} else {
 			hw->shadow_appl_ptr = 0;
@@ -949,27 +952,90 @@ static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
 	return size;
 }
 
+static inline snd_pcm_uframes_t snd_pcm_hw_capture_avail(snd_pcm_t *pcm)
+{
+	snd_pcm_sframes_t avail;
+	snd_pcm_hw_t *hw = pcm->private_data;
+
+	avail = hw->mmap_status->hw_ptr - hw->mmap_control->appl_ptr;
+	if (avail < 0)
+		avail += pcm->boundary;
+	return avail;
+}
+
+static snd_pcm_sframes_t snd_pcm_hw_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+{
+	snd_pcm_uframes_t xfer = 0;
+	snd_pcm_sframes_t err = 0;
+	snd_pcm_hw_t *hw = pcm->private_data;
+	if (! size)
+		return 0;
+	while (xfer < size) {
+		snd_pcm_uframes_t frames = size - xfer;
+		snd_pcm_uframes_t appl_offset = hw->mmap_control->appl_ptr % pcm->buffer_size;
+		snd_pcm_uframes_t cont = pcm->buffer_size - appl_offset;
+		if (cont < frames)
+			frames = cont;
+		switch (pcm->access) {
+		case SND_PCM_ACCESS_MMAP_INTERLEAVED:
+			{
+				const snd_pcm_channel_area_t *a = snd_pcm_mmap_areas(pcm);
+				char *buf = snd_pcm_channel_area_addr(a, appl_offset);
+				err = _snd_pcm_readi(pcm, buf, frames);
+				if (err >= 0)
+					frames = err;
+				break;
+			}
+		case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
+			{
+				snd_pcm_uframes_t channels = pcm->channels;
+				unsigned int c;
+				void *bufs[channels];
+				const snd_pcm_channel_area_t *areas = snd_pcm_mmap_areas(pcm);
+				for (c = 0; c < channels; ++c) {
+					const snd_pcm_channel_area_t *a = &areas[c];
+					bufs[c] = snd_pcm_channel_area_addr(a, appl_offset);
+				}
+				err = _snd_pcm_readn(pcm->fast_op_arg, bufs, frames);
+				if (err >= 0)
+					frames = err;
+			}
+		default:
+			SNDMSG("invalid access type %d", pcm->access);
+			return -EINVAL;
+		}
+		if (err < 0)
+			break;
+		xfer += frames;
+	}
+	if (xfer > 0)
+		return xfer;
+	return err;
+}
+
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	snd_pcm_uframes_t avail;
+	snd_pcm_uframes_t avail, xfer_avail;
 
 	sync_ptr(hw, 0);
 	if (pcm->stream == SND_PCM_STREAM_PLAYBACK) {
 		avail = snd_pcm_mmap_playback_avail(pcm);
 	} else {
 		avail = snd_pcm_mmap_capture_avail(pcm);
-		if (avail > 0 && hw->mmap_shm) {
+		if (avail < pcm->avail_min && hw->mmap_shm) {
 			snd_pcm_sframes_t err;
-			snd_pcm_hw_t *hw = pcm->private_data;
-			hw->avail_update_flag = 1;
-			err = snd_pcm_read_mmap(pcm, avail);
-			hw->avail_update_flag = 0;
-			if (err < 0)
-				return err;
-			if ((snd_pcm_uframes_t)err != avail)
-				SNDMSG("short read %ld for avail %ld", err, avail);
-			return err;
+			xfer_avail = snd_pcm_hw_capture_avail(pcm);
+			xfer_avail -= xfer_avail % pcm->xfer_align;
+			if (xfer_avail > 0) {
+				hw->avail_update_flag = 1;
+				err = snd_pcm_hw_read_mmap(pcm, xfer_avail);
+				hw->avail_update_flag = 0;
+				if (err < 0)
+					return err;
+				hw->hw_ptr += err;
+				avail = snd_pcm_mmap_capture_avail(pcm);
+			}
 		}
 	}
 	switch (FAST_PCM_STATE(hw)) {
