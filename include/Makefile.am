@@ -5,16 +5,59 @@ alsaincludedir = ${includedir}/alsa
 
 alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      version.h global.h input.h output.h error.h \
-		      conf.h pcm.h pcm_old.h pcm_plugin.h rawmidi.h timer.h \
-		      hwdep.h control.h mixer.h mixer_abst.h \
-		      seq_event.h seq.h seqmid.h seq_midi_event.h \
-		      conv.h instr.h iatomic.h \
-		      alisp.h pcm_external.h pcm_ioplug.h pcm_extplug.h \
-		      pcm_rate.h control_external.h
+		      conf.h control.h iatomic.h
 
-noinst_HEADERS = alsa sys.h search.h list.h aserver.h local.h alsa-symbols.h
+if BUILD_CTL_PLUGIN_EXT
+alsainclude_HEADERS += control_external.h
+endif
 
-CLEANFILES = stamp-vh version.h alsa
+if BUILD_PCM
+alsainclude_HEADERS += pcm.h pcm_old.h timer.h
+if BUILD_PCM_PLUGIN
+alsainclude_HEADERS += pcm_plugin.h
+endif
+if BUILD_PCM_PLUGIN_RATE
+alsainclude_HEADERS += pcm_rate.h 
+endif
+if BUILD_PCM_PLUGIN_EXTPLUG
+alsainclude_HEADERS += pcm_external.h pcm_extplug.h
+endif
+if BUILD_PCM_PLUGIN_IOPLUG
+if !BUILD_PCM_PLUGIN_EXTPLUG
+alsainclude_HEADERS += pcm_external.h
+endif
+alsainclude_HEADERS += pcm_ioplug.h
+endif
+endif
+
+if BUILD_RAWMIDI
+alsainclude_HEADERS += rawmidi.h
+endif
+
+if BUILD_HWDEP
+alsainclude_HEADERS += hwdep.h
+endif
+
+if BUILD_MIXER
+alsainclude_HEADERS += mixer.h mixer_abst.h
+endif
+
+if BUILD_SEQ
+alsainclude_HEADERS += seq_event.h seq.h seqmid.h seq_midi_event.h
+endif
+
+if BUILD_INSTR
+alsainclude_HEADERS += conv.h instr.h
+endif
+
+if BUILD_ALISP
+alsainclude_HEADERS += alisp.h
+endif
+
+noinst_HEADERS = alsa sys.h search.h list.h aserver.h local.h alsa-symbols.h \
+	asoundlib-head.h asoundlib-tail.h
+
+CLEANFILES = stamp-vh version.h alsa asoundlib.h
 
 alsa:
 	ln -s $(top_srcdir)/include alsa
