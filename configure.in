@@ -336,6 +336,23 @@ AC_ARG_ENABLE(instr,
 AC_ARG_ENABLE(alisp,
   AS_HELP_STRING([--disable-alisp], [disable the alisp component]),
   [build_alisp="$enableval"], [build_alisp="yes"])
+AC_ARG_ENABLE(python,
+  AS_HELP_STRING([--disable-python], [disable the python components]),
+  [build_python="$enableval"], [build_python="yes"])
+PYTHON_LIBS=""
+if test "$build_python" = "yes"; then
+  AC_ARG_WITH(pythonlibs,
+    AS_HELP_STRING([--with-pythonlibs=ldflags],
+      [specify python libraries (-lpthread -lm -ldl -lpython2.4)]),
+    pythonlibs="$withval", pythonlibs=`python-config --libs`)
+  if test -z "$pythonlibs" ; then
+    echo "Unable to determine python libraries! Probably python-config is not"
+    echo "available on this system. Please, use --with-pythonlibs options."
+    exit 1
+  fi
+  PYTHON_LIBS="$pythonlibs"
+fi
+AC_SUBST(PYTHON_LIBS)
 
 if test "$build_seq" != "yes"; then
   build_instr="no"
@@ -348,6 +365,7 @@ AM_CONDITIONAL(BUILD_HWDEP, test x$build_hwdep = xyes)
 AM_CONDITIONAL(BUILD_SEQ, test x$build_seq = xyes)
 AM_CONDITIONAL(BUILD_INSTR, test x$build_instr = xyes)
 AM_CONDITIONAL(BUILD_ALISP, test x$build_alisp = xyes)
+AM_CONDITIONAL(BUILD_PYTHON, test x$build_python = xyes)
 
 if test "$build_mixer" = "yes"; then
   AC_DEFINE([BUILD_MIXER], "1", [Build mixer component])

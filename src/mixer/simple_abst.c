@@ -55,6 +55,9 @@ typedef struct _class_priv {
 } class_priv_t;
 
 typedef int (*snd_mixer_sbasic_init_t)(snd_mixer_class_t *class);
+typedef int (*snd_mixer_sfbasic_init_t)(snd_mixer_class_t *class,
+					snd_mixer_t *mixer,
+					const char *device);
 
 #endif /* !DOC_HIDDEN */
 
@@ -62,10 +65,10 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 {
 	class_priv_t *priv = snd_mixer_class_get_private(class);
 	snd_mixer_event_t event_func;
-	snd_mixer_sbasic_init_t init_func;
+	snd_mixer_sbasic_init_t init_func = NULL;
 	char *xlib, *path;
 	void *h;
-	int err;
+	int err = 0;
 
 	path = getenv("ALSA_MIXER_SIMPLE_MODULES");
 	if (!path)
@@ -82,28 +85,71 @@ static int try_open(snd_mixer_class_t *class, const char *lib)
 		free(xlib);
 		return -ENXIO;
 	}
+	priv->dlhandle = h;
 	event_func = snd_dlsym(h, "alsa_mixer_simple_event", NULL);
 	if (event_func == NULL) {
 		SNDERR("Symbol 'alsa_mixer_simple_event' was not found in '%s'", xlib);
-		snd_dlclose(h);
-		free(xlib);
-		return -ENXIO;
+		err = -ENXIO;
 	}
-	init_func = snd_dlsym(h, "alsa_mixer_simple_init", NULL);
-	if (init_func == NULL) {
-		SNDERR("Symbol 'alsa_mixer_simple_init' was not found in '%s'", xlib);
-		snd_dlclose(h);
-		free(xlib);
-		return -ENXIO;
+	if (err == 0) {
+		init_func = snd_dlsym(h, "alsa_mixer_simple_init", NULL);
+		if (init_func == NULL) {
+			SNDERR("Symbol 'alsa_mixer_simple_init' was not found in '%s'", xlib);
+			err = -ENXIO;
+		}
 	}
 	free(xlib);
-	err = init_func(class);
-	if (err < 0) {
-		snd_dlclose(h);
+	err = err == 0 ? init_func(class) : err;
+	if (err < 0)
 		return err;
-	}
 	snd_mixer_class_set_event(class, event_func);
+	return 1;
+}
+
+static int try_open_full(snd_mixer_class_t *class, snd_mixer_t *mixer,
+			 const char *lib, const char *device)
+{
+	class_priv_t *priv = snd_mixer_class_get_private(class);
+	snd_mixer_event_t event_func;
+	snd_mixer_sfbasic_init_t init_func = NULL;
+	char *xlib, *path;
+	void *h;
+	int err = 0;
+
+	path = getenv("ALSA_MIXER_SIMPLE_MODULES");
+	if (!path)
+		path = SO_PATH;
+	xlib = malloc(strlen(lib) + strlen(path) + 1 + 1);
+	if (xlib == NULL)
+		return -ENOMEM;
+	strcpy(xlib, path);
+	strcat(xlib, "/");
+	strcat(xlib, lib);
+	/* note python modules requires RTLD_GLOBAL */
+	h = snd_dlopen(xlib, RTLD_NOW|RTLD_GLOBAL);
+	if (h == NULL) {
+		SNDERR("Unable to open library '%s'", xlib);
+		free(xlib);
+		return -ENXIO;
+	}
 	priv->dlhandle = h;
+	event_func = snd_dlsym(h, "alsa_mixer_simple_event", NULL);
+	if (event_func == NULL) {
+		SNDERR("Symbol 'alsa_mixer_simple_event' was not found in '%s'", xlib);
+		err = -ENXIO;
+	}
+	if (err == 0) {
+		init_func = snd_dlsym(h, "alsa_mixer_simple_finit", NULL);
+		if (init_func == NULL) {
+			SNDERR("Symbol 'alsa_mixer_simple_finit' was not found in '%s'", xlib);
+			err = -ENXIO;
+		}
+	}
+	free(xlib);
+	err = err == 0 ? init_func(class, mixer, device) : err;
+	if (err < 0)
+		return err;
+	snd_mixer_class_set_event(class, event_func);
 	return 1;
 }
 
@@ -126,6 +172,31 @@ static int match(snd_mixer_class_t *class, const char *lib, const char *searchl)
 	return 0;
 }
 
+static int find_full(snd_mixer_class_t *class, snd_mixer_t *mixer,
+		     snd_config_t *top, const char *device)
+{
+	snd_config_iterator_t i, next;
+	char *lib;
+	const char *id;
+	int err;
+
+	snd_config_for_each(i, next, top) {
+		snd_config_t *n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		if (strcmp(id, "_full"))
+			continue;
+		err = snd_config_get_string(n, (const char **)&lib);
+		if (err < 0)
+			return err;
+		err = try_open_full(class, mixer, lib, device);
+		if (err < 0)
+			return err;
+		return 0;
+	}
+	return -ENOENT;
+}
+
 static int find_module(snd_mixer_class_t *class, snd_config_t *top)
 {
 	snd_config_iterator_t i, next;
@@ -137,6 +208,8 @@ static int find_module(snd_mixer_class_t *class, snd_config_t *top)
 	snd_config_for_each(i, next, top) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (snd_config_get_id(n, &id) < 0)
+			continue;
+		if (*id == '_')
 			continue;
 		searchl = NULL;
 		lib = NULL;
@@ -223,20 +296,6 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 	snd_mixer_class_set_compare(class, snd_mixer_selem_compare);
 	snd_mixer_class_set_private(class, priv);
 	snd_mixer_class_set_private_free(class, private_free);
-	err = snd_ctl_open(&priv->ctl, priv->device, 0);
-	if (err < 0) {
-		SNDERR("unable to open control device '%s': %s", priv->device, snd_strerror(err));
-		goto __error;
-	}
-	err = snd_hctl_open_ctl(&priv->hctl, priv->ctl);
-	if (err < 0)
-		goto __error;
-	err = snd_ctl_card_info_malloc(&priv->info);
-	if (err < 0)
-		goto __error;
-	err = snd_ctl_card_info(priv->ctl, priv->info);
-	if (err < 0)
-		goto __error;
 	file = getenv("ALSA_MIXER_SIMPLE");
 	if (!file)
 		file = ALSA_CONFIG_DIR "/smixer.conf";
@@ -253,16 +312,35 @@ int snd_mixer_simple_basic_register(snd_mixer_t *mixer,
 			SNDERR("%s may be old or corrupted: consider to remove or fix it", file);
 			goto __error;
 		}
-		err = find_module(class, top);
-	 	snd_config_delete(top);
-	 	top = NULL;
+		err = find_full(class, mixer, top, priv->device);
+		if (err >= 0)
+			goto __full;
 	}
+	if (err >= 0) {
+		err = snd_ctl_open(&priv->ctl, priv->device, 0);
+		if (err < 0) {
+			SNDERR("unable to open control device '%s': %s", priv->device, snd_strerror(err));
+			goto __error;
+		}
+		err = snd_hctl_open_ctl(&priv->hctl, priv->ctl);
+		if (err < 0)
+			goto __error;
+		err = snd_ctl_card_info_malloc(&priv->info);
+		if (err < 0)
+			goto __error;
+		err = snd_ctl_card_info(priv->ctl, priv->info);
+		if (err < 0)
+			goto __error;
+	}
+	if (err >= 0)
+		err = find_module(class, top);
 	if (err >= 0)
 		err = snd_mixer_attach_hctl(mixer, priv->hctl);
 	if (err >= 0) {
 		priv->attach_flag = 1;
 		err = snd_mixer_class_register(class, mixer);
 	}
+      __full:
 	if (err < 0) {
 	      __error:
 		if (top)

@@ -38,7 +38,6 @@
 #include <math.h>
 #include "mixer_local.h"
 #include "mixer_simple.h"
-#include "alisp.h"
 
 /**
  * \brief Register mixer simple element class
