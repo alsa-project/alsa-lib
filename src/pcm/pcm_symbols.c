@@ -49,6 +49,7 @@ extern const char *_snd_module_pcm_iec958;
 extern const char *_snd_module_pcm_softvol;
 extern const char *_snd_module_pcm_extplug;
 extern const char *_snd_module_pcm_ioplug;
+extern const char *_snd_module_pcm_mmap_emul;
 
 static const char **snd_pcm_open_objects[] = {
 	&_snd_module_pcm_hw,

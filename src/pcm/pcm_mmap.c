@@ -531,7 +531,8 @@ int snd_pcm_munmap(snd_pcm_t *pcm)
 	return 0;
 }
 
-snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
+				     snd_pcm_uframes_t size)
 {
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
@@ -539,7 +540,6 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		return 0;
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = size - xfer;
-		snd_pcm_uframes_t offset = snd_pcm_mmap_hw_offset(pcm);
 		snd_pcm_uframes_t cont = pcm->buffer_size - offset;
 		if (cont < frames)
 			frames = cont;
@@ -575,13 +575,15 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		if (err < 0)
 			break;
 		xfer += frames;
+		offset += frames;
 	}
 	if (xfer > 0)
 		return xfer;
 	return err;
 }
 
-snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
+snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
+				    snd_pcm_uframes_t size)
 {
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
@@ -589,7 +591,6 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		return 0;
 	while (xfer < size) {
 		snd_pcm_uframes_t frames = size - xfer;
-		snd_pcm_uframes_t offset = snd_pcm_mmap_hw_offset(pcm);
 		snd_pcm_uframes_t cont = pcm->buffer_size - offset;
 		if (cont < frames)
 			frames = cont;
@@ -624,6 +625,7 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t size)
 		if (err < 0)
 			break;
 		xfer += frames;
+		offset += frames;
 	}
 	if (xfer > 0)
 		return xfer;

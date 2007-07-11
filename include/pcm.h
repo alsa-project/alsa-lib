@@ -362,7 +362,9 @@ enum _snd_pcm_type {
 	SND_PCM_TYPE_IOPLUG,
 	/** External filter plugin */
 	SND_PCM_TYPE_EXTPLUG,
-	SND_PCM_TYPE_LAST = SND_PCM_TYPE_EXTPLUG
+	/** Mmap-emulation plugin */
+	SND_PCM_TYPE_MMAP_EMUL,
+	SND_PCM_TYPE_LAST = SND_PCM_TYPE_MMAP_EMUL
 };
 
 /** PCM type */
