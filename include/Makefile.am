@@ -57,7 +57,7 @@ endif
 noinst_HEADERS = alsa sys.h search.h list.h aserver.h local.h alsa-symbols.h \
 	asoundlib-head.h asoundlib-tail.h
 
-CLEANFILES = stamp-vh version.h alsa asoundlib.h
+DISTCLEANFILES = stamp-vh version.h alsa asoundlib.h
 
 alsa:
 	ln -s $(top_srcdir)/include alsa
