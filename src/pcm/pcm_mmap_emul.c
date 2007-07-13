@@ -308,7 +308,7 @@ static snd_pcm_sframes_t snd_pcm_mmap_emul_avail_update(snd_pcm_t *pcm)
 {
 	mmap_emul_t *map = pcm->private_data;
 	snd_pcm_t *slave = map->gen.slave;
-	snd_pcm_sframes_t avail, err;
+	snd_pcm_sframes_t avail;
 
 	avail = snd_pcm_avail_update(slave);
 	if (!map->mmap_emul)
@@ -448,7 +448,7 @@ int _snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
 	int err;
 	snd_pcm_t *spcm;
 	snd_config_t *slave = NULL, *sconf;
-	snd_pcm_format_t sformat;
+
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		const char *id;

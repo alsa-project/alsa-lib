@@ -101,7 +101,7 @@ typedef union {
 	int i;
 	short s[2];
 } val_t;
-static inline int MULTI_DIV_32x16(int a, unsigned short b, int swap)
+static inline int MULTI_DIV_32x16(int a, unsigned short b)
 {
 	val_t v, x, y;
 	v.i = a;
@@ -123,7 +123,7 @@ static inline int MULTI_DIV_int(int a, unsigned int b, int swap)
 	unsigned int gain = (b >> VOL_SCALE_SHIFT);
 	int fraction;
 	a = swap ? (int)bswap_32(a) : a;
-	fraction = MULTI_DIV_32x16(a, b & VOL_SCALE_MASK, swap);
+	fraction = MULTI_DIV_32x16(a, b & VOL_SCALE_MASK);
 	if (gain) {
 		long long amp = (long long)a * gain + fraction;
 		if (amp > (int)0x7fffffff)

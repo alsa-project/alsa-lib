@@ -824,7 +824,7 @@ static snd_pcm_sframes_t snd_pcm_hw_mmap_commit(snd_pcm_t *pcm,
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
-	snd_pcm_uframes_t avail, xfer_avail;
+	snd_pcm_uframes_t avail;
 
 	sync_ptr(hw, 0);
 	avail = snd_pcm_mmap_avail(pcm);
