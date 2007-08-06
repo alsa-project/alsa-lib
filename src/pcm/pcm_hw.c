@@ -1015,8 +1015,6 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_fd = fd;
 	pcm->poll_events = info.stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
 
-	*pcmp = pcm;
-
 	ret = snd_pcm_hw_mmap_status(pcm);
 	if (ret < 0) {
 		snd_pcm_close(pcm);
@@ -1027,6 +1025,8 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 		snd_pcm_close(pcm);
 		return ret;
 	}
+
+	*pcmp = pcm;
 	return 0;
 }
 
