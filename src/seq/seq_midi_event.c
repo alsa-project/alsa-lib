@@ -45,10 +45,9 @@ struct snd_midi_event {
 };
 
 
-/* queue type */
-/* from 0 to 7 are normal commands (note off, on, etc.) */
-#define ST_NOTEOFF	0
-#define ST_NOTEON	1
+/* event type, index into status_event[] */
+/* from 0 to 6 are normal commands (note off, on, etc.) for 0x8?-0xe? */
+#define ST_INVALID	7
 #define ST_SPECIAL	8
 #define ST_SYSEX	ST_SPECIAL
 /* from 8 to 15 are events for 0xf0-0xf7 */
@@ -85,7 +84,7 @@ static struct status_event_list_t {
 	event_encode_t encode;
 	event_decode_t decode;
 } status_event[] = {
-	/* 0x80 - 0xf0 */
+	/* 0x80 - 0xef */
 	{SND_SEQ_EVENT_NOTEOFF,		2, note_event, note_decode},
 	{SND_SEQ_EVENT_NOTEON,		2, note_event, note_decode},
 	{SND_SEQ_EVENT_KEYPRESS,	2, note_event, note_decode},
@@ -93,7 +92,8 @@ static struct status_event_list_t {
 	{SND_SEQ_EVENT_PGMCHANGE,	1, one_param_ctrl_event, one_param_decode},
 	{SND_SEQ_EVENT_CHANPRESS,	1, one_param_ctrl_event, one_param_decode},
 	{SND_SEQ_EVENT_PITCHBEND,	2, pitchbend_ctrl_event, pitchbend_decode},
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf0 */
+	/* invalid */
+	{SND_SEQ_EVENT_NONE,		0, NULL, NULL},
 	/* 0xf0 - 0xff */
 	{SND_SEQ_EVENT_SYSEX,		1, NULL, NULL}, /* sysex: 0xf0 */
 	{SND_SEQ_EVENT_QFRAME,		1, one_param_event, one_param_decode}, /* 0xf1 */
@@ -153,6 +153,7 @@ int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 	}
 	dev->bufsize = bufsize;
 	dev->lastcmd = 0xff;
+	dev->type = ST_INVALID;
 	*rdev = dev;
 	return 0;
 }
@@ -191,7 +192,7 @@ inline static void reset_encode(snd_midi_event_t *dev)
 {
 	dev->read = 0;
 	dev->qlen = 0;
-	dev->type = 0;
+	dev->type = ST_INVALID;
 }
 
 /**
