@@ -85,32 +85,32 @@ static struct status_event_list_t {
 	event_decode_t decode;
 } status_event[] = {
 	/* 0x80 - 0xef */
-	{SND_SEQ_EVENT_NOTEOFF,		2, note_event, note_decode},
-	{SND_SEQ_EVENT_NOTEON,		2, note_event, note_decode},
-	{SND_SEQ_EVENT_KEYPRESS,	2, note_event, note_decode},
-	{SND_SEQ_EVENT_CONTROLLER,	2, two_param_ctrl_event, two_param_decode},
-	{SND_SEQ_EVENT_PGMCHANGE,	1, one_param_ctrl_event, one_param_decode},
-	{SND_SEQ_EVENT_CHANPRESS,	1, one_param_ctrl_event, one_param_decode},
-	{SND_SEQ_EVENT_PITCHBEND,	2, pitchbend_ctrl_event, pitchbend_decode},
+	{SND_SEQ_EVENT_NOTEOFF,		 2, note_event, note_decode},
+	{SND_SEQ_EVENT_NOTEON,		 2, note_event, note_decode},
+	{SND_SEQ_EVENT_KEYPRESS,	 2, note_event, note_decode},
+	{SND_SEQ_EVENT_CONTROLLER,	 2, two_param_ctrl_event, two_param_decode},
+	{SND_SEQ_EVENT_PGMCHANGE,	 1, one_param_ctrl_event, one_param_decode},
+	{SND_SEQ_EVENT_CHANPRESS,	 1, one_param_ctrl_event, one_param_decode},
+	{SND_SEQ_EVENT_PITCHBEND,	 2, pitchbend_ctrl_event, pitchbend_decode},
 	/* invalid */
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL},
+	{SND_SEQ_EVENT_NONE,		-1, NULL, NULL},
 	/* 0xf0 - 0xff */
-	{SND_SEQ_EVENT_SYSEX,		1, NULL, NULL}, /* sysex: 0xf0 */
-	{SND_SEQ_EVENT_QFRAME,		1, one_param_event, one_param_decode}, /* 0xf1 */
-	{SND_SEQ_EVENT_SONGPOS,		2, songpos_event, songpos_decode}, /* 0xf2 */
-	{SND_SEQ_EVENT_SONGSEL,		1, one_param_event, one_param_decode}, /* 0xf3 */
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf4 */
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf5 */
-	{SND_SEQ_EVENT_TUNE_REQUEST,	0, NULL, NULL},	/* 0xf6 */
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf7 */
-	{SND_SEQ_EVENT_CLOCK,		0, NULL, NULL}, /* 0xf8 */
-	{SND_SEQ_EVENT_NONE,		0, NULL, NULL}, /* 0xf9 */
-	{SND_SEQ_EVENT_START,		0, NULL, NULL}, /* 0xfa */
-	{SND_SEQ_EVENT_CONTINUE,	0, NULL, NULL}, /* 0xfb */
-	{SND_SEQ_EVENT_STOP, 		0, NULL, NULL}, /* 0xfc */
-	{SND_SEQ_EVENT_NONE, 		0, NULL, NULL}, /* 0xfd */
-	{SND_SEQ_EVENT_SENSING, 	0, NULL, NULL}, /* 0xfe */
-	{SND_SEQ_EVENT_RESET, 		0, NULL, NULL}, /* 0xff */
+	{SND_SEQ_EVENT_SYSEX,		 1, NULL, NULL}, /* sysex: 0xf0 */
+	{SND_SEQ_EVENT_QFRAME,		 1, one_param_event, one_param_decode}, /* 0xf1 */
+	{SND_SEQ_EVENT_SONGPOS,		 2, songpos_event, songpos_decode}, /* 0xf2 */
+	{SND_SEQ_EVENT_SONGSEL,		 1, one_param_event, one_param_decode}, /* 0xf3 */
+	{SND_SEQ_EVENT_NONE,		-1, NULL, NULL}, /* 0xf4 */
+	{SND_SEQ_EVENT_NONE,		-1, NULL, NULL}, /* 0xf5 */
+	{SND_SEQ_EVENT_TUNE_REQUEST,	 0, NULL, NULL}, /* 0xf6 */
+	{SND_SEQ_EVENT_NONE,		-1, NULL, NULL}, /* 0xf7 */
+	{SND_SEQ_EVENT_CLOCK,		 0, NULL, NULL}, /* 0xf8 */
+	{SND_SEQ_EVENT_NONE,		-1, NULL, NULL}, /* 0xf9 */
+	{SND_SEQ_EVENT_START,		 0, NULL, NULL}, /* 0xfa */
+	{SND_SEQ_EVENT_CONTINUE,	 0, NULL, NULL}, /* 0xfb */
+	{SND_SEQ_EVENT_STOP, 		 0, NULL, NULL}, /* 0xfc */
+	{SND_SEQ_EVENT_NONE, 		-1, NULL, NULL}, /* 0xfd */
+	{SND_SEQ_EVENT_SENSING, 	 0, NULL, NULL}, /* 0xfe */
+	{SND_SEQ_EVENT_RESET, 		 0, NULL, NULL}, /* 0xff */
 };
 
 static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int len, const snd_seq_event_t *ev);
@@ -311,25 +311,27 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 		return 1;
 	}
 
-	if (dev->qlen > 0) {
-		/* rest of command */
-		dev->buf[dev->read++] = c;
-		if (dev->type != ST_SYSEX)
-			dev->qlen--;
-	} else {
+	if ((c & 0x80) &&
+	    (c != MIDI_CMD_COMMON_SYSEX_END || dev->type != ST_SYSEX)) {
 		/* new command */
+		dev->buf[0] = c;
+		if ((c & 0xf0) == 0xf0) /* system message */
+			dev->type = (c & 0x0f) + ST_SPECIAL;
+		else
+			dev->type = (c >> 4) & 0x07;
 		dev->read = 1;
-		if (c & 0x80) {
-			dev->buf[0] = c;
-			if ((c & 0xf0) == 0xf0) /* special events */
-				dev->type = (c & 0x0f) + ST_SPECIAL;
-			else
-				dev->type = (c >> 4) & 0x07;
-			dev->qlen = status_event[dev->type].qlen;
-		} else {
-			/* process this byte as argument */
+		dev->qlen = status_event[dev->type].qlen;
+	} else {
+		if (dev->qlen > 0) {
+			/* rest of command */
 			dev->buf[dev->read++] = c;
+			if (dev->type != ST_SYSEX)
+				dev->qlen--;
+		} else {
+			/* running status */
+			dev->buf[1] = c;
 			dev->qlen = status_event[dev->type].qlen - 1;
+			dev->read = 2;
 		}
 	}
 	if (dev->qlen == 0) {
