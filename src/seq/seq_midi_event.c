@@ -308,7 +308,7 @@ int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev
 		ev->type = status_event[ST_SPECIAL + c - 0xf0].event;
 		ev->flags &= ~SND_SEQ_EVENT_LENGTH_MASK;
 		ev->flags |= SND_SEQ_EVENT_LENGTH_FIXED;
-		return 1;
+		return ev->type != SND_SEQ_EVENT_NONE;
 	}
 
 	if ((c & 0x80) &&
