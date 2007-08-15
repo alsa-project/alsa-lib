@@ -185,7 +185,7 @@ AC_ARG_WITH(softfloat,
     [do you have floating point unit on this machine? (optional)]),
   [  AC_DEFINE(HAVE_SOFT_FLOAT, "1", [Avoid calculation in float])
      softfloat=yes ],)
-if test "$softloat" = "yes" ; then
+if test "$softfloat" = "yes" ; then
   AC_MSG_RESULT(yes)
 else
   AC_MSG_RESULT(no)
