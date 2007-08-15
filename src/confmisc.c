@@ -764,9 +764,9 @@ static int parse_card(snd_config_t *root, snd_config_t *src,
 		return err;
 	}
 	card = snd_card_get_index(str);
-	free(str);
 	if (card < 0)
 		SNDERR("cannot find card '%s'", str);
+	free(str);
 	return card;
 }
 
