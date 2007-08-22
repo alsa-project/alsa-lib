@@ -348,9 +348,11 @@ if test "$build_python" = "yes"; then
   if test -z "$pythonlibs" ; then
     echo "Unable to determine python libraries! Probably python-config is not"
     echo "available on this system. Please, use --with-pythonlibs options."
-    exit 1
+    echo "Python components are disabled in this build."
+    build_python="no"
+  else
+    PYTHON_LIBS="$pythonlibs"
   fi
-  PYTHON_LIBS="$pythonlibs"
 fi
 AC_SUBST(PYTHON_LIBS)
 
