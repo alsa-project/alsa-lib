@@ -33,6 +33,8 @@ include/config.h
 include/stamp-h1
 include/stamp-vh
 include/version.h
+include/alsa
+include/asoundlib.h
 utils/alsa-lib.spec
 alsalisp/alsalisp
 aserver/aserver
