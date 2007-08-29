@@ -918,6 +918,19 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 		}
 		p++;
 	}
+
+	/* Special case - handle "Input Source" as a capture route.
+	 * Note that it's *NO* capture source.  A capture source is split over
+	 * sub-elements, and multiple capture-sources will result in an error.
+	 * That's why some drivers use "Input Source" as a workaround.
+	 * Hence, this is a workaround for a workaround to get the things
+	 * straight back again.  Sigh.
+	 */
+	if (!strcmp(name, "Input Source")) {
+		*type = CTL_CAPTURE_ROUTE;
+		return strlen(name);
+	}
+
 	return 0;
 }
 
@@ -1629,7 +1642,12 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 	{
 		unsigned int n;
 		if (ctype == SND_CTL_ELEM_TYPE_ENUMERATED) {
-			type = CTL_GLOBAL_ENUM;
+			if (type == CTL_PLAYBACK_ROUTE)
+				type = CTL_PLAYBACK_ENUM;
+			else if (type == CTL_CAPTURE_ROUTE)
+				type = CTL_CAPTURE_ENUM;
+			else
+				type = CTL_GLOBAL_ENUM;
 			break;
 		}
 		if (ctype != SND_CTL_ELEM_TYPE_BOOLEAN)
@@ -1644,7 +1662,12 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 	case CTL_PLAYBACK_SWITCH:
 	case CTL_CAPTURE_SWITCH:
 		if (ctype == SND_CTL_ELEM_TYPE_ENUMERATED) {
-			type = CTL_GLOBAL_ENUM;
+			if (type == CTL_PLAYBACK_SWITCH)
+				type = CTL_PLAYBACK_ENUM;
+			else if (type == CTL_CAPTURE_SWITCH)
+				type = CTL_CAPTURE_ENUM;
+			else
+				type = CTL_GLOBAL_ENUM;
 			break;
 		}
 		if (ctype != SND_CTL_ELEM_TYPE_BOOLEAN)
@@ -1654,7 +1677,12 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 	case CTL_PLAYBACK_VOLUME:
 	case CTL_CAPTURE_VOLUME:
 		if (ctype == SND_CTL_ELEM_TYPE_ENUMERATED) {
-			type = CTL_GLOBAL_ENUM;
+			if (type == CTL_PLAYBACK_VOLUME)
+				type = CTL_PLAYBACK_ENUM;
+			else if (type == CTL_CAPTURE_VOLUME)
+				type = CTL_CAPTURE_ENUM;
+			else
+				type = CTL_GLOBAL_ENUM;
 			break;
 		}
 		if (ctype != SND_CTL_ELEM_TYPE_INTEGER)
