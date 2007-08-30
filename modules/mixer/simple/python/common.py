@@ -50,10 +50,10 @@ class StandardElement(BaseElement):
     self.channels = 1
     self.volume = [None, None]
     self.volumeinfo = [None, None]
-    self.volumetuple = [None, None]
+    self.volumearray = [None, None]
     self.switch = [None, None]
     self.switchinfo = [None, None]
-    self.switchtuple = [None, None]
+    self.switcharray = [None, None]
 
   def decideChannels(self):
     max = 0
@@ -73,12 +73,12 @@ class StandardElement(BaseElement):
     self.volumeinfo[dir] = HInfo(helem)
     self.min[dir] = self.volumeinfo[dir].min
     self.max[dir] = self.volumeinfo[dir].max
-    self.volumetuple[dir] = HValue(helem).getTuple(self.volumeinfo[dir].type, self.volumeinfo[dir].count)
+    self.volumearray[dir] = HValue(helem).getArray(self.volumeinfo[dir].type, self.volumeinfo[dir].count)
 
   def attachSwitch(self, helem, dir):
     self.switch[dir] = helem
     self.switchinfo[dir] = HInfo(helem)
-    self.switchtuple[dir] = HValue(helem).getTuple(self.switchinfo[dir].type, self.switchinfo[dir].count)
+    self.switcharray[dir] = HValue(helem).getArray(self.switchinfo[dir].type, self.switchinfo[dir].count)
 
   def attach(self, helem):
     BaseElement.attach(self, helem)
@@ -98,40 +98,36 @@ class StandardElement(BaseElement):
     self.eventInfo()
 
   def opsGetVolume(self, dir, chn):
-    return (0, self.volumeToUser(self.volumeinfo[dir], dir, self.volumetuple[dir][chn]))
+    return (0, self.volumeToUser(self.volumeinfo[dir], dir, self.volumearray[dir][chn]))
 
   def opsSetVolume(self, dir, chn, value):
     val = self.volumeFromUser(self.volumeinfo[dir], dir, value)
-    if self.volumetuple[dir][chn] == val:
+    if self.volumearray[dir][chn] == val:
       return
-    a = list(self.volumetuple[dir])
-    a[chn] = val
-    self.volumetuple[dir] = tuple(a)
+    self.volumearray[dir][chn] = val
     hv = HValue(self.volume)
-    hv.setTuple(self.volumeinfo[dir].type, self.volumetuple[dir])
+    hv.setArray(self.volumeinfo[dir].type, self.volumearray[dir])
     hv.write()
 
   def opsGetSwitch(self, dir, chn):
-    return (0, self.switchtuple[dir][chn])
+    return (0, self.switcharray[dir][chn])
 
   def opsSetSwitch(self, dir, chn, value):
-    if self.switchtuple[dir][chn] and value:
+    if self.switcharray[dir][chn] and value:
       return
-    if not self.switchtuple[dir][chn] and not value:
+    if not self.switcharray[dir][chn] and not value:
       return
-    a = list(self.switchtuple[dir])
-    a[chn] = int(value)
-    self.switchtuple[dir] = tuple(a)
+    self.switcharray[dir] = int(value)
     hv = HValue(self.switch[dir])
-    hv.setTuple(self.switchinfo[dir].type, self.switchtuple[dir])
+    hv.setArray(self.switchinfo[dir].type, self.switcharray[dir])
     hv.write()
 
   def update(self, helem):
     for i in [0, 1]:
       if helem == self.volume[i]:
-        self.volumetuple[i] = HValue(helem).getTuple(self.volumeinfo[i].type, self.volumeinfo[i].count)
+        self.volumearray[i] = HValue(helem).getArray(self.volumeinfo[i].type, self.volumeinfo[i].count)
       elif helem == self.switch[i]:
-        self.switchtuple[i] = HValue(helem).getTuple(self.switchinfo[i].type, self.switchinfo[i].count)
+        self.switcharray[i] = HValue(helem).getArray(self.switchinfo[i].type, self.switchinfo[i].count)
     self.eventValue()
 
 class EnumElement(BaseElement):
@@ -144,7 +140,7 @@ class EnumElement(BaseElement):
     BaseElement.attach(self, helem)
     self.enum = helem
     self.enuminfo = HInfo(helem)
-    self.enumtuple = HValue(helem).getTuple(self.enuminfo.type, self.enuminfo.count)
+    self.enumarray = HValue(helem).getArray(self.enuminfo.type, self.enuminfo.count)
     self.channels = self.enuminfo.count
     self.texts = self.enuminfo.itemNames
     self.caps |= self.mycaps
@@ -166,22 +162,20 @@ class EnumElement(BaseElement):
   def opsGetEnumItem(self, chn):
     if chn >= self.channels:
       return -1
-    return (0, self.enumtuple[chn])
+    return (0, self.enumarray[chn])
     
   def opsSetEnumItem(self, chn, value):
     if chn >= self.channels:
       return -1
-    if self.enumtuple[chn] == value:
+    if self.enumarray[chn] == value:
       return
-    a = list(self.enumtuple)
-    a[chn] = int(value)
-    self.enumtuple = tuple(a)
+    self.enumarray[chn] = int(value)
     hv = HValue(self.enum)
-    hv.setTuple(self.enuminfo.type, self.enumtuple)
+    hv.setArray(self.enuminfo.type, self.enumarray)
     hv.write()
 
   def update(self, helem):
-    self.enumtuple = HValue(helem).getTuple(self.enuminfo.type, self.enuminfo.count)
+    self.enumarray = HValue(helem).getArray(self.enuminfo.type, self.enuminfo.count)
     self.eventValue()
 
 class EnumElementPlayback(EnumElement):
