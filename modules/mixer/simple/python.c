@@ -19,11 +19,11 @@
  *
  */
 
+#include "Python.h"
 #include <stddef.h>
 #include "config.h"
 #include "asoundlib.h"
 #include "mixer_abst.h"
-#include <python/Python.h>
 
 struct python_priv {
 	int py_initialized;

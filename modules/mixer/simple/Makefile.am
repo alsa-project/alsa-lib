@@ -1,5 +1,6 @@
 pkglibdir = @ALSA_PLUGIN_DIR@/smixer
 pythonlibs = @PYTHON_LIBS@
+pythonincdir = @PYTHON_INCDIR@
 
 AM_CFLAGS = -g -O2 -W -Wall
 
@@ -30,5 +31,6 @@ smixer_hda_la_LIBADD = ../../../src/libasound.la
 if BUILD_PYTHON
 smixer_python_la_SOURCES = python.c
 smixer_python_la_LDFLAGS = -module -avoid-version $(pythonlibs)
+smixer_python_la_CFLAGS = -I$(pythonincdir)
 smixer_python_la_LIBADD = ../../../src/libasound.la
 endif
