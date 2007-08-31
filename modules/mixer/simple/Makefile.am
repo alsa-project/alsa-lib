@@ -31,6 +31,6 @@ smixer_hda_la_LIBADD = ../../../src/libasound.la
 if BUILD_PYTHON
 smixer_python_la_SOURCES = python.c
 smixer_python_la_LDFLAGS = -module -avoid-version $(pythonlibs)
-smixer_python_la_CFLAGS = -I$(pythonincdir)
+smixer_python_la_CFLAGS = $(pythonincdir)
 smixer_python_la_LIBADD = ../../../src/libasound.la
 endif
