@@ -350,7 +350,7 @@ if test "$build_python" = "yes"; then
     AS_HELP_STRING([--with-pythonincdir=dir],
       [specify python C header files (-I/usr/include/python)]),
     pythonincdir="$withval", pythonincdir=`python-config --includes`)
-  if test -z "$pythonlibs" -o -z "$pythonincdir"; then
+  if test -z "$pythonlibs"; then
     echo "Unable to determine python libraries! Probably python-config is not"
     echo "available on this system. Please, use --with-pythonlibs and"
     echo "--with-pythonincdir options. Python components are disabled in this build."
