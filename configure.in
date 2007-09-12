@@ -340,28 +340,28 @@ AC_ARG_ENABLE(python,
   AS_HELP_STRING([--disable-python], [disable the python components]),
   [build_python="$enableval"], [build_python="yes"])
 PYTHON_LIBS=""
-PYTHON_INCDIR=""
+PYTHON_INCLUDES=""
 if test "$build_python" = "yes"; then
   AC_ARG_WITH(pythonlibs,
     AS_HELP_STRING([--with-pythonlibs=ldflags],
       [specify python libraries (-lpthread -lm -ldl -lpython2.4)]),
     pythonlibs="$withval", pythonlibs=`python-config --libs`)
   AC_ARG_WITH(pythonincludes,
-    AS_HELP_STRING([--with-pythonincdir=dir],
+    AS_HELP_STRING([--with-pythonincludes=Cflags],
       [specify python C header files (-I/usr/include/python)]),
-    pythonincdir="$withval", pythonincdir=`python-config --includes`)
+    pythonincludes="$withval", pythonincludes=`python-config --includes`)
   if test -z "$pythonlibs"; then
     echo "Unable to determine python libraries! Probably python-config is not"
     echo "available on this system. Please, use --with-pythonlibs and"
-    echo "--with-pythonincdir options. Python components are disabled in this build."
+    echo "--with-pythonincludes options. Python components are disabled in this build."
     build_python="no"
   else
     PYTHON_LIBS="$pythonlibs"
-    PYTHON_INCDIR="$pythonincdir"
+    PYTHON_INCLUDES="$pythonincludes"
   fi
 fi
 AC_SUBST(PYTHON_LIBS)
-AC_SUBST(PYTHON_INCDIR)
+AC_SUBST(PYTHON_INCLUDES)
 
 if test "$build_seq" != "yes"; then
   build_instr="no"
