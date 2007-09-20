@@ -575,7 +575,7 @@ snd_pcm_sframes_t snd_pcm_write_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
 		if (err < 0)
 			break;
 		xfer += frames;
-		offset += frames;
+		offset = (offset + frames) % pcm->buffer_size;
 	}
 	if (xfer > 0)
 		return xfer;
@@ -625,7 +625,7 @@ snd_pcm_sframes_t snd_pcm_read_mmap(snd_pcm_t *pcm, snd_pcm_uframes_t offset,
 		if (err < 0)
 			break;
 		xfer += frames;
-		offset += frames;
+		offset = (offset + frames) % pcm->buffer_size;
 	}
 	if (xfer > 0)
 		return xfer;
