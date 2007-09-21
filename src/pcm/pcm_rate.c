@@ -1076,10 +1076,10 @@ static int snd_pcm_rate_drain(snd_pcm_t *pcm)
 		snd_pcm_uframes_t size, ofs, saved_avail_min;
 		snd_pcm_sw_params_t sw_params;
 
-		/* temporarily set avail_min to one period */
+		/* temporarily set avail_min to one */
 		sw_params = rate->sw_params;
 		saved_avail_min = sw_params.avail_min;
-		sw_params.avail_min = rate->gen.slave->period_size;
+		sw_params.avail_min = 1;
 		snd_pcm_sw_params(rate->gen.slave, &sw_params);
 
 		size = rate->appl_ptr - rate->last_commit_ptr;
