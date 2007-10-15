@@ -2,12 +2,12 @@
  * \file pcm/pcm_dshare.c
  * \ingroup PCM_Plugins
  * \brief PCM Direct Sharing of Channels Plugin Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2003
  */
 /*
  *  PCM - Direct Sharing of Channels
- *  Copyright (c) 2003 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2003 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

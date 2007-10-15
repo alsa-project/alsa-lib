@@ -2,12 +2,12 @@
  * \file pcm/pcm_empty.c
  * \ingroup PCM_Plugins
  * \brief PCM Null Plugin Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2006
  */
 /*
  *  PCM - Null plugin
- *  Copyright (c) 2006 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2006 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

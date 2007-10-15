@@ -1,7 +1,7 @@
 /**
  * \file mixer/simple.c
  * \brief Mixer Simple Element Class Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2001-2004
  *
@@ -9,7 +9,7 @@
  */
 /*
  *  Mixer Interface - simple controls
- *  Copyright (c) 2000,2004 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2000,2004 by Jaroslav Kysela <perex@perex.cz>
  *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *

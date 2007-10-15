@@ -2,12 +2,12 @@
  * \file pcm/pcm_dmix_i386.h
  * \ingroup PCM_Plugins
  * \brief PCM Direct Stream Mixing (dmix) Plugin Interface - I386 assembler code
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2003
  */
 /*
  *  PCM - Direct Stream Mixing
- *  Copyright (c) 2003 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2003 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

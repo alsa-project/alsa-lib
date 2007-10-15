@@ -2,12 +2,12 @@
  * \file pcm/pcm_generic.c
  * \ingroup PCM
  * \brief PCM Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2004
  */
 /*
  *  PCM - Common generic plugin code
- *  Copyright (c) 2004 by Jaroslav Kysela <perex@suse.cz> 
+ *  Copyright (c) 2004 by Jaroslav Kysela <perex@perex.cz> 
  *
  *
  *   This library is free software; you can redistribute it and/or modify

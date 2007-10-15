@@ -1,7 +1,7 @@
 /**
  * \file timer/timer.c
  * \brief Timer Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 1998-2001
  *
  * Timer Interface is designed to access timers.
@@ -9,7 +9,7 @@
  */
 /*
  *  Timer Interface - main file
- *  Copyright (c) 1998-2001 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 1998-2001 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

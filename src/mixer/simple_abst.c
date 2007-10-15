@@ -1,14 +1,14 @@
 /**
  * \file mixer/simple_abst.c
  * \brief Mixer Simple Element Class Interface - Module Abstraction
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2005
  *
  * Mixer simple element class interface.
  */
 /*
  *  Mixer Interface - simple controls - abstraction module
- *  Copyright (c) 2005 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2005 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

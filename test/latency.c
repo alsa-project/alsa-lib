@@ -1,7 +1,7 @@
 /*
  *  Latency test program
  *
- *     Author: Jaroslav Kysela <perex@suse.cz>
+ *     Author: Jaroslav Kysela <perex@perex.cz>
  *
  *     Author of bandpass filter sweep effect:
  *	       Maarten de Boer <mdeboer@iua.upf.es>

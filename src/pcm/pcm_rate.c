@@ -3,13 +3,13 @@
  * \ingroup PCM_Plugins
  * \brief PCM Rate Plugin Interface
  * \author Abramo Bagnara <abramo@alsa-project.org>
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2000-2004
  */
 /*
  *  PCM - Rate conversion
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
- *                2004 by Jaroslav Kysela <perex@suse.cz>
+ *                2004 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

@@ -2,12 +2,12 @@
  * \file pcm/pcm_dsnoop.c
  * \ingroup PCM_Plugins
  * \brief PCM Capture Stream Snooping (dsnoop) Plugin Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2003
  */
 /*
  *  PCM - Capture Stream Snooping
- *  Copyright (c) 2003 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2003 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

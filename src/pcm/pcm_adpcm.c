@@ -4,14 +4,14 @@
  * \brief PCM Ima-ADPCM Conversion Plugin Interface
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Uros Bizjak <uros@kss-loka.si>
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2000-2001
  */
 /*
  *  PCM - Ima-ADPCM conversion
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *  Copyright (c) 1999 by Uros Bizjak <uros@kss-loka.si>
- *                        Jaroslav Kysela <perex@suse.cz>
+ *                        Jaroslav Kysela <perex@perex.cz>
  *
  *  Based on Version 1.2, 18-Dec-92 implementation of Intel/DVI ADPCM code
  *  by Jack Jansen, CWI, Amsterdam <Jack.Jansen@cwi.nl>, Copyright 1992

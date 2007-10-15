@@ -1,6 +1,6 @@
 /*
  *  Mixer Interface - AC97 simple abstact module
- *  Copyright (c) 2005 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2005 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

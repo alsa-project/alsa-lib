@@ -2,7 +2,7 @@
  * \file pcm/pcm.c
  * \ingroup PCM
  * \brief PCM Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000-2001
  *
@@ -17,7 +17,7 @@
  */
 /*
  *  PCM Interface - main file
- *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 1998 by Jaroslav Kysela <perex@perex.cz>
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *   This library is free software; you can redistribute it and/or modify

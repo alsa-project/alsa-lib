@@ -1,7 +1,7 @@
 /**
  * \file seq/seq.c
  * \brief Sequencer Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \author Takashi Iwai <tiwai@suse.de>
  * \date 2000-2001

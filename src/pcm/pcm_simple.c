@@ -2,7 +2,7 @@
  * \file pcm/pcm_simple.c
  * \ingroup PCM_Simple
  * \brief PCM Simple Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2004
  */
 /*

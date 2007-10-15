@@ -1,14 +1,14 @@
 /**
  * \file dlmisc.c
  * \brief dynamic loader helpers
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2001
  *
  * Dynamic loader helpers
  */
 /*
  *  Dynamic loader helpers
- *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2000 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

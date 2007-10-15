@@ -1,6 +1,6 @@
 /*
  *  ALSA lisp implementation
- *  Copyright (c) 2003 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2003 by Jaroslav Kysela <perex@perex.cz>
  *
  *  Based on work of Sandro Sigala (slisp-1.2)
  *

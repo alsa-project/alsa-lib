@@ -1,13 +1,13 @@
 /**
  * \file timer/timer_query.c
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2001
  *
  * Timer Query Interface is designed to obtain identification of timers.
  */
 /*
  *  Timer Query Interface - main file
- *  Copyright (c) 2001 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2001 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

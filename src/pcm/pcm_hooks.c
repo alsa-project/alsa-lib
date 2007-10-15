@@ -3,7 +3,7 @@
  * \ingroup PCM_Hook
  * \brief PCM Hook Interface
  * \author Abramo Bagnara <abramo@alsa-project.org>
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2000-2001
  */
 /*

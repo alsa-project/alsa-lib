@@ -1,6 +1,6 @@
 /*
  *  Control Interface - Hardware
- *  Copyright (c) 1998,1999,2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 1998,1999,2000 by Jaroslav Kysela <perex@perex.cz>
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *

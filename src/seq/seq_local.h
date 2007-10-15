@@ -1,6 +1,6 @@
 /*
  *  Sequencer Interface - definition of sequencer event handler
- *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2000 by Jaroslav Kysela <perex@perex.cz>
  *                        Abramo Bagnara <abramo@alsa-project.org>
  *
  *

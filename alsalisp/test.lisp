@@ -2,7 +2,7 @@
 ; Test code for all basic alsa lisp commands.
 ; The test is indended to find memory leaks.
 ;
-; Copyright (c) 2003 Jaroslav Kysela <perex@suse.cz>
+; Copyright (c) 2003 Jaroslav Kysela <perex@perex.cz>
 ; License: GPL v2 (http://www.gnu.org/licenses/gpl.html)
 ;
 

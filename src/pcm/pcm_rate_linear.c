@@ -2,7 +2,7 @@
  *  Linear rate converter plugin
  * 
  *  Copyright (c) 2000 by Abramo Bagnara <abramo@alsa-project.org>
- *                2004 by Jaroslav Kysela <perex@suse.cz>
+ *                2004 by Jaroslav Kysela <perex@perex.cz>
  *                2006 by Takashi Iwai <tiwai@suse.de>
  *
  *   This library is free software; you can redistribute it and/or modify

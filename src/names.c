@@ -2,7 +2,7 @@
  * \file names.c
  * \ingroup Configuration
  * \brief Configuration helper functions - device names
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2005
  *
  * Provide a list of device names for applications.
@@ -11,7 +11,7 @@
  */
 /*
  *  Configuration helper functions - device names
- *  Copyright (c) 2005 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2005 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

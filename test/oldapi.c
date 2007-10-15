@@ -1,7 +1,7 @@
 /*
  *  Old PCM API compilation test
  *
- *     Author: Jaroslav Kysela <perex@suse.cz>
+ *     Author: Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This program is free software; you can redistribute it and/or modify

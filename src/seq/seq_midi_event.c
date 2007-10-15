@@ -2,7 +2,7 @@
  * \file seq/seq_midi_event.c
  * \brief MIDI byte <-> sequencer event coder
  * \author Takashi Iwai <tiwai@suse.de>
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2000-2001
  */
 
@@ -10,7 +10,7 @@
  *  MIDI byte <-> sequencer event coder
  *
  *  Copyright (C) 1998,99,2000 Takashi Iwai <tiwai@suse.de>,
- *			       Jaroslav Kysela <perex@suse.cz>
+ *			       Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

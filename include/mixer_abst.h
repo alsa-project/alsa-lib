@@ -1,7 +1,7 @@
 /**
  * \file include/mixer_abst.h
  * \brief Mixer abstract implementation interface library for the ALSA library
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2005
  *
  * Mixer abstact implementation interface library for the ALSA library

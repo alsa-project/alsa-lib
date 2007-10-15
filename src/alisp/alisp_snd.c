@@ -1,6 +1,6 @@
 /*
  *  ALSA lisp implementation - sound related commands
- *  Copyright (c) 2003 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2003 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

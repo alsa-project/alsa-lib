@@ -2,7 +2,7 @@
  * \file pcm/pcm_plugin.c
  * \ingroup PCM
  * \brief PCM Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000-2001
  */

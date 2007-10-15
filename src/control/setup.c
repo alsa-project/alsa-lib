@@ -2,7 +2,7 @@
  * \file control/setup.c
  * \brief Routines to setup control primitives from configuration
  * \author Abramo Bagnara <abramo@alsa-project.org>
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2001
  *
  * Routines to setup control primitives from configuration
@@ -10,7 +10,7 @@
 /*
  *  Control Interface - routines for setup from configuration
  *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
- *			  Jaroslav Kysela <perex@suse.cz>
+ *			  Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

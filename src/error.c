@@ -1,13 +1,13 @@
 /**
  * \file error.c
  * \brief Error code handling routines
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 1998-2001
  *
  * Error code handling routines.
  */
 /*
- *  Copyright (c) 1998 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 1998 by Jaroslav Kysela <perex@perex.cz>
  *
  *  snd_strerror routine needs to be recoded for the locale support
  *

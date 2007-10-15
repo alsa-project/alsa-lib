@@ -1,7 +1,7 @@
 /**
  * \file control/hcontrol.c
  * \brief HCTL Interface - High Level CTL
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \author Abramo Bagnara <abramo@alsa-project.org>
  * \date 2000
  *
@@ -11,7 +11,7 @@
  */
 /*
  *  Control Interface - high level API
- *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2000 by Jaroslav Kysela <perex@perex.cz>
  *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *

@@ -2,13 +2,13 @@
  * \file pcm/pcm_ladspa.c
  * \ingroup PCM_Plugins
  * \brief ALSA Plugin <-> LADSPA Plugin Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2001,2006
  */
 /*
  *  PCM - LADSPA integration plugin
- *  Copyright (c) 2001-2006 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2001-2006 by Jaroslav Kysela <perex@perex.cz>
  *  Copyright (c) 2005 by Jaroslav Kysela <perex@perex.cz>
  *
  *

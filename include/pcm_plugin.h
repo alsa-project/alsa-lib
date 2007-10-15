@@ -2,7 +2,7 @@
  * \file include/pcm_plugin.h
  * \brief Common PCM plugin code
  * \author Abramo Bagnara <abramo@alsa-project.org>
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2000-2001
  *
  * Application interface library for the ALSA driver.

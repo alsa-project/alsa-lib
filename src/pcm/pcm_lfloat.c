@@ -2,12 +2,12 @@
  * \file pcm/pcm_lfloat.c
  * \ingroup PCM_Plugins
  * \brief PCM Linear<->Float Conversion Plugin Interface
- * \author Jaroslav Kysela <perex@suse.cz>
+ * \author Jaroslav Kysela <perex@perex.cz>
  * \date 2001
  */
 /*
  *  PCM - Linear Integer <-> Linear Float conversion
- *  Copyright (c) 2001 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2001 by Jaroslav Kysela <perex@perex.cz>
  *
  *
  *   This library is free software; you can redistribute it and/or modify

@@ -1,6 +1,6 @@
 /*
  *  Mixer Interface - local header file
- *  Copyright (c) 2000 by Jaroslav Kysela <perex@suse.cz>
+ *  Copyright (c) 2000 by Jaroslav Kysela <perex@perex.cz>
  *  Copyright (c) 2001 by Abramo Bagnara <abramo@alsa-project.org>
  *
  *

@@ -30,7 +30,7 @@ Development files for building applications which use the ALSA libraries.
 - use standard rpm macros for build and install
 - changed BuildRoot from /var/tmp to %{_tmppath}
 
-* Tue Nov 20 2001 Jaroslav Kysela <perex@suse.cz>
+* Tue Nov 20 2001 Jaroslav Kysela <perex@perex.cz>
 
 - changed BuildRoot from /tmp to /var/tmp
 - use the standard RPM macros for prefix and paths
