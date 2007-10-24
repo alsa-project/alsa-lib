@@ -169,6 +169,20 @@ else
   AC_MSG_RESULT(no)
 fi
 
+if test "$debug" = "yes"; then
+  AC_MSG_CHECKING(for debug assert)
+  AC_ARG_ENABLE(debug-assert,
+    AS_HELP_STRING([--enable-debug],
+      [enable assert call at the default error message handler]),
+    debug_assert="$enableval", debug_assert="no")
+  if test "$debug_assert" = "yes"; then
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(ALSA_DEBUG_ASSERT,,[Enable assert at error message handler])
+  else
+    AC_MSG_RESULT(no)
+  fi
+fi
+
 dnl Temporary directory
 AC_MSG_CHECKING(for tmpdir)
 AC_ARG_WITH(tmpdir,

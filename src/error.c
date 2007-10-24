@@ -135,8 +135,11 @@ static void snd_err_msg_default(const char *file, int line, const char *function
 		fprintf(stderr, ": %s", snd_strerror(err));
 	putc('\n', stderr);
 	va_end(arg);
-	if (! strcmp(verbose, "assert") || atoi(verbose) > 1)
+#ifdef ALSA_DEBUG_ASSERT
+	verbose = getenv("LIBASOUND_DEBUG_ASSERT");
+	if (verbose && *verbose)
 		assert(0);
+#endif
 }
 
 /**
