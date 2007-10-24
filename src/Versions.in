@@ -296,3 +296,14 @@ ALSA_1.0.14 {
     @SYMBOL_PREFIX@snd_device_name_free_hint;
     @SYMBOL_PREFIX@snd_device_name_get_hint;
 } ALSA_1.0.12;
+
+ALSA_1.0.16 {
+  global:
+    @SYMBOL_PREFIX@snd_tlv_parse_dB_info;
+    @SYMBOL_PREFIX@snd_tlv_get_dB_range;
+    @SYMBOL_PREFIX@snd_tlv_convert_to_dB;
+    @SYMBOL_PREFIX@snd_tlv_convert_from_dB;
+    @SYMBOL_PREFIX@snd_ctl_get_dB_range;
+    @SYMBOL_PREFIX@snd_ctl_convert_to_dB;
+    @SYMBOL_PREFIX@snd_ctl_convert_from_dB;
+} ALSA_1.0.14;

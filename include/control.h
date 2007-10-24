@@ -442,6 +442,21 @@ const void * snd_ctl_elem_value_get_bytes(const snd_ctl_elem_value_t *obj);
 void snd_ctl_elem_value_get_iec958(const snd_ctl_elem_value_t *obj, snd_aes_iec958_t *ptr);
 void snd_ctl_elem_value_set_iec958(snd_ctl_elem_value_t *obj, const snd_aes_iec958_t *ptr);
 
+int snd_tlv_parse_dB_info(unsigned int *tlv, unsigned int tlv_size,
+			  unsigned int **db_tlvp);
+int snd_tlv_get_dB_range(unsigned int *tlv, long rangemin, long rangemax,
+			 long *min, long *max);
+int snd_tlv_convert_to_dB(unsigned int *tlv, long rangemin, long rangemax,
+			  long volume, long *db_gain);
+int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
+			    long db_gain, long *value, int xdir);
+int snd_ctl_get_dB_range(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			 long *min, long *max);
+int snd_ctl_convert_to_dB(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			  long volume, long *db_gain);
+int snd_ctl_convert_from_dB(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
+			    long db_gain, long *value, int xdir);
+
 /**
  *  \defgroup HControl High level Control Interface
  *  \ingroup Control
