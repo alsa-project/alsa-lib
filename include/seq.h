@@ -46,15 +46,6 @@ extern "C" {
 /** Sequencer handle */
 typedef struct _snd_seq snd_seq_t;
 
-#ifndef DOC_HIDDEN
-#define SND_ALLOCA(type,ptr) \
-do {\
-	assert(ptr);\
-	*ptr = (type##_t *)alloca(type##_sizeof());\
-	memset(*ptr, 0, type##_sizeof());\
-} while (0)
-#endif
-
 /**
  * sequencer opening stream types
  */
@@ -106,7 +97,7 @@ typedef struct _snd_seq_system_info snd_seq_system_info_t;
 size_t snd_seq_system_info_sizeof(void);
 /** allocate a #snd_seq_system_info_t container on stack */
 #define snd_seq_system_info_alloca(ptr) \
-	SND_ALLOCA(snd_seq_system_info, ptr)
+	__snd_alloca(ptr, snd_seq_system_info)
 int snd_seq_system_info_malloc(snd_seq_system_info_t **ptr);
 void snd_seq_system_info_free(snd_seq_system_info_t *ptr);
 void snd_seq_system_info_copy(snd_seq_system_info_t *dst, const snd_seq_system_info_t *src);
@@ -142,7 +133,7 @@ typedef enum snd_seq_client_type {
 size_t snd_seq_client_info_sizeof(void);
 /** allocate a #snd_seq_client_info_t container on stack */
 #define snd_seq_client_info_alloca(ptr) \
-	SND_ALLOCA(snd_seq_client_info, ptr)
+	__snd_alloca(ptr, snd_seq_client_info)
 int snd_seq_client_info_malloc(snd_seq_client_info_t **ptr);
 void snd_seq_client_info_free(snd_seq_client_info_t *ptr);
 void snd_seq_client_info_copy(snd_seq_client_info_t *dst, const snd_seq_client_info_t *src);
@@ -176,7 +167,7 @@ typedef struct _snd_seq_client_pool snd_seq_client_pool_t;
 size_t snd_seq_client_pool_sizeof(void);
 /** allocate a #snd_seq_client_pool_t container on stack */
 #define snd_seq_client_pool_alloca(ptr) \
-	SND_ALLOCA(snd_seq_client_pool, ptr)
+	__snd_alloca(ptr, snd_seq_client_pool)
 int snd_seq_client_pool_malloc(snd_seq_client_pool_t **ptr);
 void snd_seq_client_pool_free(snd_seq_client_pool_t *ptr);
 void snd_seq_client_pool_copy(snd_seq_client_pool_t *dst, const snd_seq_client_pool_t *src);
@@ -265,7 +256,7 @@ typedef struct _snd_seq_port_info snd_seq_port_info_t;
 size_t snd_seq_port_info_sizeof(void);
 /** allocate a #snd_seq_port_info_t container on stack */
 #define snd_seq_port_info_alloca(ptr) \
-	SND_ALLOCA(snd_seq_port_info, ptr)
+	__snd_alloca(ptr, snd_seq_port_info)
 int snd_seq_port_info_malloc(snd_seq_port_info_t **ptr);
 void snd_seq_port_info_free(snd_seq_port_info_t *ptr);
 void snd_seq_port_info_copy(snd_seq_port_info_t *dst, const snd_seq_port_info_t *src);
@@ -323,7 +314,7 @@ typedef struct _snd_seq_port_subscribe snd_seq_port_subscribe_t;
 size_t snd_seq_port_subscribe_sizeof(void);
 /** allocate a #snd_seq_port_subscribe_t container on stack */
 #define snd_seq_port_subscribe_alloca(ptr) \
-	SND_ALLOCA(snd_seq_port_subscribe, ptr)
+	__snd_alloca(ptr, snd_seq_port_subscribe)
 int snd_seq_port_subscribe_malloc(snd_seq_port_subscribe_t **ptr);
 void snd_seq_port_subscribe_free(snd_seq_port_subscribe_t *ptr);
 void snd_seq_port_subscribe_copy(snd_seq_port_subscribe_t *dst, const snd_seq_port_subscribe_t *src);
@@ -361,7 +352,7 @@ typedef enum {
 size_t snd_seq_query_subscribe_sizeof(void);
 /** allocate a #snd_seq_query_subscribe_t container on stack */
 #define snd_seq_query_subscribe_alloca(ptr) \
-	SND_ALLOCA(snd_seq_query_subscribe, ptr)
+	__snd_alloca(ptr, snd_seq_query_subscribe)
 int snd_seq_query_subscribe_malloc(snd_seq_query_subscribe_t **ptr);
 void snd_seq_query_subscribe_free(snd_seq_query_subscribe_t *ptr);
 void snd_seq_query_subscribe_copy(snd_seq_query_subscribe_t *dst, const snd_seq_query_subscribe_t *src);
@@ -411,7 +402,7 @@ typedef struct _snd_seq_queue_timer snd_seq_queue_timer_t;
 size_t snd_seq_queue_info_sizeof(void);
 /** allocate a #snd_seq_queue_info_t container on stack */
 #define snd_seq_queue_info_alloca(ptr) \
-	SND_ALLOCA(snd_seq_queue_info, ptr)
+	__snd_alloca(ptr, snd_seq_queue_info)
 int snd_seq_queue_info_malloc(snd_seq_queue_info_t **ptr);
 void snd_seq_queue_info_free(snd_seq_queue_info_t *ptr);
 void snd_seq_queue_info_copy(snd_seq_queue_info_t *dst, const snd_seq_queue_info_t *src);
@@ -443,7 +434,7 @@ int snd_seq_set_queue_usage(snd_seq_t *handle, int q, int used);
 size_t snd_seq_queue_status_sizeof(void);
 /** allocate a #snd_seq_queue_status_t container on stack */
 #define snd_seq_queue_status_alloca(ptr) \
-	SND_ALLOCA(snd_seq_queue_status, ptr)
+	__snd_alloca(ptr, snd_seq_queue_status)
 int snd_seq_queue_status_malloc(snd_seq_queue_status_t **ptr);
 void snd_seq_queue_status_free(snd_seq_queue_status_t *ptr);
 void snd_seq_queue_status_copy(snd_seq_queue_status_t *dst, const snd_seq_queue_status_t *src);
@@ -461,7 +452,7 @@ int snd_seq_get_queue_status(snd_seq_t *handle, int q, snd_seq_queue_status_t *s
 size_t snd_seq_queue_tempo_sizeof(void);
 /** allocate a #snd_seq_queue_tempo_t container on stack */
 #define snd_seq_queue_tempo_alloca(ptr) \
-	SND_ALLOCA(snd_seq_queue_tempo, ptr)
+	__snd_alloca(ptr, snd_seq_queue_tempo)
 int snd_seq_queue_tempo_malloc(snd_seq_queue_tempo_t **ptr);
 void snd_seq_queue_tempo_free(snd_seq_queue_tempo_t *ptr);
 void snd_seq_queue_tempo_copy(snd_seq_queue_tempo_t *dst, const snd_seq_queue_tempo_t *src);
@@ -492,7 +483,7 @@ typedef enum {
 size_t snd_seq_queue_timer_sizeof(void);
 /** allocate a #snd_seq_queue_timer_t container on stack */
 #define snd_seq_queue_timer_alloca(ptr) \
-	SND_ALLOCA(snd_seq_queue_timer, ptr)
+	__snd_alloca(ptr, snd_seq_queue_timer)
 int snd_seq_queue_timer_malloc(snd_seq_queue_timer_t **ptr);
 void snd_seq_queue_timer_free(snd_seq_queue_timer_t *ptr);
 void snd_seq_queue_timer_copy(snd_seq_queue_timer_t *dst, const snd_seq_queue_timer_t *src);
@@ -551,7 +542,7 @@ typedef struct _snd_seq_remove_events snd_seq_remove_events_t;
 size_t snd_seq_remove_events_sizeof(void);
 /** allocate a #snd_seq_remove_events_t container on stack */
 #define snd_seq_remove_events_alloca(ptr) \
-	SND_ALLOCA(snd_seq_remove_events, ptr)
+	__snd_alloca(ptr, snd_seq_remove_events)
 int snd_seq_remove_events_malloc(snd_seq_remove_events_t **ptr);
 void snd_seq_remove_events_free(snd_seq_remove_events_t *ptr);
 void snd_seq_remove_events_copy(snd_seq_remove_events_t *dst, const snd_seq_remove_events_t *src);

@@ -35,6 +35,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <assert.h>
 #include <math.h>
 #include <alsa/asoundlib.h>
 #include "mixer_simple.h"

@@ -93,7 +93,7 @@ size_t snd_rawmidi_info_sizeof(void);
  * \brief allocate an invalid #snd_rawmidi_info_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_rawmidi_info_alloca(ptr) do { assert(ptr); *ptr = (snd_rawmidi_info_t *) alloca(snd_rawmidi_info_sizeof()); memset(*ptr, 0, snd_rawmidi_info_sizeof()); } while (0)
+#define snd_rawmidi_info_alloca(ptr) __snd_alloca(ptr, snd_rawmidi_info)
 int snd_rawmidi_info_malloc(snd_rawmidi_info_t **ptr);
 void snd_rawmidi_info_free(snd_rawmidi_info_t *obj);
 void snd_rawmidi_info_copy(snd_rawmidi_info_t *dst, const snd_rawmidi_info_t *src);
@@ -116,7 +116,7 @@ size_t snd_rawmidi_params_sizeof(void);
  * \brief allocate an invalid #snd_rawmidi_params_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_rawmidi_params_alloca(ptr) do { assert(ptr); *ptr = (snd_rawmidi_params_t *) alloca(snd_rawmidi_params_sizeof()); memset(*ptr, 0, snd_rawmidi_params_sizeof()); } while (0)
+#define snd_rawmidi_params_alloca(ptr) __snd_alloca(ptr, snd_rawmidi_params)
 int snd_rawmidi_params_malloc(snd_rawmidi_params_t **ptr);
 void snd_rawmidi_params_free(snd_rawmidi_params_t *obj);
 void snd_rawmidi_params_copy(snd_rawmidi_params_t *dst, const snd_rawmidi_params_t *src);
@@ -133,7 +133,7 @@ size_t snd_rawmidi_status_sizeof(void);
  * \brief allocate an invalid #snd_rawmidi_status_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_rawmidi_status_alloca(ptr) do { assert(ptr); *ptr = (snd_rawmidi_status_t *) alloca(snd_rawmidi_status_sizeof()); memset(*ptr, 0, snd_rawmidi_status_sizeof()); } while (0)
+#define snd_rawmidi_status_alloca(ptr) __snd_alloca(ptr, snd_rawmidi_status)
 int snd_rawmidi_status_malloc(snd_rawmidi_status_t **ptr);
 void snd_rawmidi_status_free(snd_rawmidi_status_t *obj);
 void snd_rawmidi_status_copy(snd_rawmidi_status_t *dst, const snd_rawmidi_status_t *src);

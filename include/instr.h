@@ -44,12 +44,8 @@ extern "C" {
 typedef struct _snd_instr_header snd_instr_header_t;
 
 size_t snd_instr_header_sizeof(void);
-#define snd_instr_header_alloca(ptr) \
-do {\
-	assert(ptr);\
-	*ptr = (snd_instr_header_t *)alloca(snd_instr_header_sizeof());\
-	memset(*ptr, 0, snd_instr_header_sizeof());\
-} while (0) /**< allocate instrument header on stack */
+/** allocate instrument header on stack */
+#define snd_instr_header_alloca(ptr) __snd_alloca(ptr, snd_instr_header)
 int snd_instr_header_malloc(snd_instr_header_t **ptr, size_t len);
 void snd_instr_header_free(snd_instr_header_t *ptr);
 void snd_instr_header_copy(snd_instr_header_t *dst, const snd_instr_header_t *src);

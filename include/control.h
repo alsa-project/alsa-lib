@@ -279,7 +279,7 @@ size_t snd_ctl_elem_id_sizeof(void);
  * \brief allocate an invalid #snd_ctl_elem_id_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_ctl_elem_id_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_elem_id_t *) alloca(snd_ctl_elem_id_sizeof()); memset(*ptr, 0, snd_ctl_elem_id_sizeof()); } while (0)
+#define snd_ctl_elem_id_alloca(ptr) __snd_alloca(ptr, snd_ctl_elem_id)
 int snd_ctl_elem_id_malloc(snd_ctl_elem_id_t **ptr);
 void snd_ctl_elem_id_free(snd_ctl_elem_id_t *obj);
 void snd_ctl_elem_id_clear(snd_ctl_elem_id_t *obj);
@@ -302,7 +302,7 @@ size_t snd_ctl_card_info_sizeof(void);
  * \brief allocate an invalid #snd_ctl_card_info_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_ctl_card_info_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_card_info_t *) alloca(snd_ctl_card_info_sizeof()); memset(*ptr, 0, snd_ctl_card_info_sizeof()); } while (0)
+#define snd_ctl_card_info_alloca(ptr) __snd_alloca(ptr, snd_ctl_card_info)
 int snd_ctl_card_info_malloc(snd_ctl_card_info_t **ptr);
 void snd_ctl_card_info_free(snd_ctl_card_info_t *obj);
 void snd_ctl_card_info_clear(snd_ctl_card_info_t *obj);
@@ -320,7 +320,7 @@ size_t snd_ctl_event_sizeof(void);
  * \brief allocate an invalid #snd_ctl_event_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_ctl_event_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_event_t *) alloca(snd_ctl_event_sizeof()); memset(*ptr, 0, snd_ctl_event_sizeof()); } while (0)
+#define snd_ctl_event_alloca(ptr) __snd_alloca(ptr, snd_ctl_event)
 int snd_ctl_event_malloc(snd_ctl_event_t **ptr);
 void snd_ctl_event_free(snd_ctl_event_t *obj);
 void snd_ctl_event_clear(snd_ctl_event_t *obj);
@@ -332,7 +332,7 @@ size_t snd_ctl_elem_list_sizeof(void);
  * \brief allocate an invalid #snd_ctl_elem_list_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_ctl_elem_list_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_elem_list_t *) alloca(snd_ctl_elem_list_sizeof()); memset(*ptr, 0, snd_ctl_elem_list_sizeof()); } while (0)
+#define snd_ctl_elem_list_alloca(ptr) __snd_alloca(ptr, snd_ctl_elem_list)
 int snd_ctl_elem_list_malloc(snd_ctl_elem_list_t **ptr);
 void snd_ctl_elem_list_free(snd_ctl_elem_list_t *obj);
 void snd_ctl_elem_list_clear(snd_ctl_elem_list_t *obj);
@@ -353,7 +353,7 @@ size_t snd_ctl_elem_info_sizeof(void);
  * \brief allocate an invalid #snd_ctl_elem_info_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_ctl_elem_info_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_elem_info_t *) alloca(snd_ctl_elem_info_sizeof()); memset(*ptr, 0, snd_ctl_elem_info_sizeof()); } while (0)
+#define snd_ctl_elem_info_alloca(ptr) __snd_alloca(ptr, snd_ctl_elem_info)
 int snd_ctl_elem_info_malloc(snd_ctl_elem_info_t **ptr);
 void snd_ctl_elem_info_free(snd_ctl_elem_info_t *obj);
 void snd_ctl_elem_info_clear(snd_ctl_elem_info_t *obj);
@@ -408,7 +408,7 @@ size_t snd_ctl_elem_value_sizeof(void);
  * \brief allocate an invalid #snd_ctl_elem_value_t using standard alloca
  * \param ptr returned pointer
  */
-#define snd_ctl_elem_value_alloca(ptr) do { assert(ptr); *ptr = (snd_ctl_elem_value_t *) alloca(snd_ctl_elem_value_sizeof()); memset(*ptr, 0, snd_ctl_elem_value_sizeof()); } while (0)
+#define snd_ctl_elem_value_alloca(ptr) __snd_alloca(ptr, snd_ctl_elem_value)
 int snd_ctl_elem_value_malloc(snd_ctl_elem_value_t **ptr);
 void snd_ctl_elem_value_free(snd_ctl_elem_value_t *obj);
 void snd_ctl_elem_value_clear(snd_ctl_elem_value_t *obj);

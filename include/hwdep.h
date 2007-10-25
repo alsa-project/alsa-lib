@@ -108,7 +108,7 @@ ssize_t snd_hwdep_read(snd_hwdep_t *hwdep, void *buffer, size_t size);
 
 size_t snd_hwdep_info_sizeof(void);
 /** allocate #snd_hwdep_info_t container on stack */
-#define snd_hwdep_info_alloca(ptr) do { assert(ptr); *ptr = (snd_hwdep_info_t *) alloca(snd_hwdep_info_sizeof()); memset(*ptr, 0, snd_hwdep_info_sizeof()); } while (0)
+#define snd_hwdep_info_alloca(ptr) __snd_alloca(ptr, snd_hwdep_info)
 int snd_hwdep_info_malloc(snd_hwdep_info_t **ptr);
 void snd_hwdep_info_free(snd_hwdep_info_t *obj);
 void snd_hwdep_info_copy(snd_hwdep_info_t *dst, const snd_hwdep_info_t *src);
@@ -122,7 +122,7 @@ void snd_hwdep_info_set_device(snd_hwdep_info_t *obj, unsigned int val);
 
 size_t snd_hwdep_dsp_status_sizeof(void);
 /** allocate #snd_hwdep_dsp_status_t container on stack */
-#define snd_hwdep_dsp_status_alloca(ptr) do { assert(ptr); *ptr = (snd_hwdep_dsp_status_t *) alloca(snd_hwdep_dsp_status_sizeof()); memset(*ptr, 0, snd_hwdep_dsp_status_sizeof()); } while (0)
+#define snd_hwdep_dsp_status_alloca(ptr) __snd_alloca(ptr, snd_hwdep_dsp_status)
 int snd_hwdep_dsp_status_malloc(snd_hwdep_dsp_status_t **ptr);
 void snd_hwdep_dsp_status_free(snd_hwdep_dsp_status_t *obj);
 void snd_hwdep_dsp_status_copy(snd_hwdep_dsp_status_t *dst, const snd_hwdep_dsp_status_t *src);
@@ -135,7 +135,7 @@ unsigned int snd_hwdep_dsp_status_get_chip_ready(const snd_hwdep_dsp_status_t *o
 
 size_t snd_hwdep_dsp_image_sizeof(void);
 /** allocate #snd_hwdep_dsp_image_t container on stack */
-#define snd_hwdep_dsp_image_alloca(ptr) do { assert(ptr); *ptr = (snd_hwdep_dsp_image_t *) alloca(snd_hwdep_dsp_image_sizeof()); memset(*ptr, 0, snd_hwdep_dsp_image_sizeof()); } while (0)
+#define snd_hwdep_dsp_image_alloca(ptr) __snd_alloca(ptr, snd_hwdep_dsp_image)
 int snd_hwdep_dsp_image_malloc(snd_hwdep_dsp_image_t **ptr);
 void snd_hwdep_dsp_image_free(snd_hwdep_dsp_image_t *obj);
 void snd_hwdep_dsp_image_copy(snd_hwdep_dsp_image_t *dst, const snd_hwdep_dsp_image_t *src);
