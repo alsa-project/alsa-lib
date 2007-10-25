@@ -78,31 +78,14 @@ static inline int hw_is_interval(snd_pcm_hw_param_t var)
 		var <= SND_PCM_HW_PARAM_LAST_INTERVAL;
 }
 
-static inline snd_mask_t *hw_param_mask(snd_pcm_hw_params_t *params,
-					snd_pcm_hw_param_t var)
-{
-	assert(hw_is_mask(var));
-	return (snd_mask_t*)&params->masks[var - SND_PCM_HW_PARAM_FIRST_MASK];
-}
+#define hw_param_mask(params,var) \
+	&((params)->masks[(var) - SND_PCM_HW_PARAM_FIRST_MASK])
 
-static inline snd_interval_t *hw_param_interval(snd_pcm_hw_params_t *params,
-						snd_pcm_hw_param_t var)
-{
-	assert(hw_is_interval(var));
-	return &params->intervals[var - SND_PCM_HW_PARAM_FIRST_INTERVAL];
-}
+#define hw_param_interval(params,var) \
+	&((params)->intervals[(var) - SND_PCM_HW_PARAM_FIRST_INTERVAL])
 
-static inline const snd_mask_t *hw_param_mask_c(const snd_pcm_hw_params_t *params,
-						snd_pcm_hw_param_t var)
-{
-	return (const snd_mask_t *)hw_param_mask((snd_pcm_hw_params_t*) params, var);
-}
-
-static inline const snd_interval_t *hw_param_interval_c(const snd_pcm_hw_params_t *params,
-							snd_pcm_hw_param_t var)
-{
-	return (const snd_interval_t *)hw_param_interval((snd_pcm_hw_params_t*) params, var);
-}
+#define hw_param_mask_c hw_param_mask
+#define hw_param_interval_c hw_param_interval
 
 static void _snd_pcm_hw_param_any(snd_pcm_hw_params_t *params, snd_pcm_hw_param_t var)
 {
