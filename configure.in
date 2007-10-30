@@ -344,12 +344,14 @@ AC_ARG_ENABLE(hwdep,
 AC_ARG_ENABLE(seq,
   AS_HELP_STRING([--disable-seq], [disable the sequencer component]),
   [build_seq="$enableval"], [build_seq="yes"])
-AC_ARG_ENABLE(instr,
-  AS_HELP_STRING([--disable-instr], [disable the instrument component]),
-  [build_instr="$enableval"], [build_instr="yes"])
 AC_ARG_ENABLE(alisp,
   AS_HELP_STRING([--disable-alisp], [disable the alisp component]),
   [build_alisp="$enableval"], [build_alisp="yes"])
+AC_ARG_ENABLE(old-symbols,
+  AS_HELP_STRING([--disable-old-symbols], [disable old obsoleted symbols]),
+  [keep_old_symbols="$enableval"], [keep_old_symbols="yes"])
+AM_CONDITIONAL(KEEP_OLD_SYMBOLS, test x$keep_old_symbols = xyes)
+
 AC_ARG_ENABLE(python,
   AS_HELP_STRING([--disable-python], [disable the python components]),
   [build_python="$enableval"], [build_python="yes"])
@@ -377,16 +379,11 @@ fi
 AC_SUBST(PYTHON_LIBS)
 AC_SUBST(PYTHON_INCLUDES)
 
-if test "$build_seq" != "yes"; then
-  build_instr="no"
-fi
-
 AM_CONDITIONAL(BUILD_MIXER, test x$build_mixer = xyes)
 AM_CONDITIONAL(BUILD_PCM, test x$build_pcm = xyes)
 AM_CONDITIONAL(BUILD_RAWMIDI, test x$build_rawmidi = xyes)
 AM_CONDITIONAL(BUILD_HWDEP, test x$build_hwdep = xyes)
 AM_CONDITIONAL(BUILD_SEQ, test x$build_seq = xyes)
-AM_CONDITIONAL(BUILD_INSTR, test x$build_instr = xyes)
 AM_CONDITIONAL(BUILD_ALISP, test x$build_alisp = xyes)
 AM_CONDITIONAL(BUILD_PYTHON, test x$build_python = xyes)
 
@@ -404,9 +401,6 @@ if test "$build_hwdep" = "yes"; then
 fi
 if test "$build_seq" = "yes"; then
   AC_DEFINE([BUILD_SEQ], "1", [Build sequencer component])
-fi
-if test "$build_instr" = "yes"; then
-  AC_DEFINE([BUILD_INSTR], "1", [Build instrument component])
 fi
 
 dnl PCM Plugins
@@ -570,7 +564,7 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile include/Makefile
           src/control/Makefile src/mixer/Makefile \
 	  src/pcm/Makefile src/pcm/scopes/Makefile \
 	  src/rawmidi/Makefile src/timer/Makefile \
-          src/hwdep/Makefile src/seq/Makefile src/instr/Makefile \
+          src/hwdep/Makefile src/seq/Makefile \
           src/compat/Makefile src/alisp/Makefile src/conf/Makefile \
 	  src/conf/cards/Makefile \
 	  src/conf/pcm/Makefile \

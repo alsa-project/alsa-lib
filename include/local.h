@@ -76,24 +76,19 @@
 #define _snd_seq_query_subscribe sndrv_seq_query_subs
 #define _snd_seq_client_pool sndrv_seq_client_pool
 #define _snd_seq_remove_events sndrv_seq_remove_events
-#define _snd_instr_header sndrv_seq_instr_header
 
 #define sndrv_seq_addr	snd_seq_addr
 #define sndrv_seq_tick_time_t	snd_seq_tick_time_t
 #define sndrv_seq_real_time	snd_seq_real_time
 #define sndrv_seq_timestamp	snd_seq_timestamp
-#define sndrv_seq_instr		snd_seq_instr
 #define sndrv_seq_event		snd_seq_event
-#define sndrv_seq_instr_cluster_t	snd_seq_instr_cluster_t
 
 #if 0
 typedef struct sndrv_seq_addr snd_seq_addr_t;
 #define snd_seq_tick_time_t sndrv_seq_tick_time_t
 typedef struct sndrv_seq_real_time snd_seq_real_time_t;
 typedef union sndrv_seq_timestamp snd_seq_timestamp_t;
-typedef struct sndrv_seq_instr snd_seq_instr_t;
 typedef struct sndrv_seq_event snd_seq_event_t;
-#define snd_seq_instr_cluster_t sndrv_seq_instr_cluster_t
 #endif
 
 #define _snd_timer_id sndrv_timer_id
@@ -128,8 +123,6 @@ typedef struct sndrv_seq_event snd_seq_event_t;
 #include <sound/asequencer.h>
 #include "seqmid.h"
 #include "seq_midi_event.h"
-#include "conv.h"
-#include "instr.h"
 #include "list.h"
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN

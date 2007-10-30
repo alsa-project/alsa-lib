@@ -46,10 +46,6 @@ if BUILD_SEQ
 alsainclude_HEADERS += seq_event.h seq.h seqmid.h seq_midi_event.h
 endif
 
-if BUILD_INSTR
-alsainclude_HEADERS += conv.h instr.h
-endif
-
 if BUILD_ALISP
 alsainclude_HEADERS += alisp.h
 endif
