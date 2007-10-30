@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <assert.h>
 #include <endian.h>
 #include <sys/poll.h>
 #include <errno.h>
