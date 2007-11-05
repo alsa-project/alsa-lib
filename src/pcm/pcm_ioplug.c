@@ -313,7 +313,7 @@ static int snd_pcm_ioplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		if (err < 0)
 			return err;
 		change2 |= err;
-		/* periods = buffer_bytes / periods */
+		/* periods = buffer_bytes / period_bytes */
 		err = rule_div(params, SND_PCM_HW_PARAM_PERIODS,
 			       SND_PCM_HW_PARAM_BUFFER_BYTES,
 			       SND_PCM_HW_PARAM_PERIOD_BYTES);
@@ -340,6 +340,26 @@ static int snd_pcm_ioplug_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		err = refine_back_time_and_size(params, SND_PCM_HW_PARAM_BUFFER_TIME,
 						SND_PCM_HW_PARAM_BUFFER_SIZE,
 						SND_PCM_HW_PARAM_BUFFER_BYTES);
+		if (err < 0)
+			return err;
+	}
+
+	/* period_bytes = buffer_bytes / periods */
+	err = rule_div(params, SND_PCM_HW_PARAM_PERIOD_BYTES,
+		       SND_PCM_HW_PARAM_BUFFER_BYTES,
+		       SND_PCM_HW_PARAM_PERIODS);
+	if (err < 0)
+		return err;
+	if (err) {
+		/* update period_size and period_time */
+		change |= err;
+		err = snd_ext_parm_interval_refine(hw_param_interval(params, SND_PCM_HW_PARAM_PERIOD_BYTES),
+						   io->params, SND_PCM_IOPLUG_HW_PERIOD_BYTES);
+		if (err < 0)
+			return err;
+		err = refine_back_time_and_size(params, SND_PCM_HW_PARAM_PERIOD_TIME,
+						SND_PCM_HW_PARAM_PERIOD_SIZE,
+						SND_PCM_HW_PARAM_PERIOD_BYTES);
 		if (err < 0)
 			return err;
 	}
