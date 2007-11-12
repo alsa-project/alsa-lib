@@ -133,6 +133,8 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
+	snd_rawmidi_nonblock(handle_in, 0);
+
 	patsize = writepattern(handle_out, obuf);
 	gettimeofday(&start, NULL);
 	patsize = writepattern(handle_out, obuf);
