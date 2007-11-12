@@ -37,6 +37,7 @@
 #include <sys/ioctl.h>
 #include <assert.h>
 #include <math.h>
+#include <limits.h>
 #include <alsa/asoundlib.h>
 #include "mixer_simple.h"
 
@@ -672,9 +673,11 @@ static int simple_update(snd_mixer_elem_t *melem)
 
 	caps = 0;
 	pchannels = 0;
-	pmin = pmax = 0;
+	pmin = LONG_MAX;
+	pmax = LONG_MIN;
 	cchannels = 0;
-	cmin = cmax = 0;
+	cmin = LONG_MAX;
+	cmax = LONG_MIN;
 	assert(snd_mixer_elem_get_type(melem) == SND_MIXER_ELEM_SIMPLE);
 	simple = snd_mixer_elem_get_private(melem);
 	name = snd_mixer_selem_get_name(melem);
@@ -868,13 +871,13 @@ static int simple_update(snd_mixer_elem_t *melem)
 	simple->selem.caps = caps;
 	simple->str[SM_PLAY].channels = pchannels;
 	if (!simple->str[SM_PLAY].range) {
-		simple->str[SM_PLAY].min = pmin;
-		simple->str[SM_PLAY].max = pmax;
+		simple->str[SM_PLAY].min = pmin != LONG_MAX ? pmin : 0;
+		simple->str[SM_PLAY].max = pmax != LONG_MIN ? pmax : 0;
 	}
 	simple->str[SM_CAPT].channels = cchannels;
 	if (!simple->str[SM_CAPT].range) {
-		simple->str[SM_CAPT].min = cmin;
-		simple->str[SM_CAPT].max = cmax;
+		simple->str[SM_CAPT].min = cmin != LONG_MAX ? cmin : 0;
+		simple->str[SM_CAPT].max = cmax != LONG_MIN ? cmax : 0;
 	}
 	return 0;
 }	   
