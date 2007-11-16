@@ -109,13 +109,15 @@ retryget:
 	}
 	dmix->shmptr = shmat(dmix->shmid, 0, 0);
 	if (dmix->shmptr == (void *) -1) {
+		err = -errno;
 		snd_pcm_direct_shm_discard(dmix);
-		return -errno;
+		return err;
 	}
 	mlock(dmix->shmptr, sizeof(snd_pcm_direct_share_t));
 	if (shmctl(dmix->shmid, IPC_STAT, &buf) < 0) {
+		err = -errno;
 		snd_pcm_direct_shm_discard(dmix);
-		return -errno;
+		return err;
 	}
 	if (buf.shm_nattch == 1) {	/* we're the first user, clear the segment */
 		memset(dmix->shmptr, 0, sizeof(snd_pcm_direct_share_t));
@@ -128,7 +130,7 @@ retryget:
 	} else {
 		if (dmix->shmptr->magic != SND_PCM_DIRECT_MAGIC) {
 			snd_pcm_direct_shm_discard(dmix);
-			return -errno;
+			return -EINVAL;
 		}
 	}
 	return 0;
