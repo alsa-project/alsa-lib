@@ -5577,6 +5577,12 @@ int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params,
 #endif
 {
 	assert(pcm && params);
+	/* Fix avail_min if it's below period size.  The period_size
+	 * defines the minimal wake-up timing accuracy, so it doesn't
+	 * make sense to set below that.
+	 */
+	if (val < pcm->period_size)
+		val = pcm->period_size;
 	params->avail_min = val;
 	return 0;
 }
