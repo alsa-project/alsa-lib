@@ -175,7 +175,14 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	state = snd_pcm_state(dsnoop->spcm);
 	status->state = state == SND_PCM_STATE_RUNNING ? dsnoop->state : state;
 	status->trigger_tstamp = dsnoop->trigger_tstamp;
-	status->tstamp = snd_pcm_hw_fast_tstamp(dsnoop->spcm);
+	if (pcm->tstamp_mode == SND_PCM_TSTAMP_MMAP)
+		status->tstamp = snd_pcm_hw_fast_tstamp(dsnoop->spcm);
+	else {
+		struct timeval tv;
+		gettimeofday(&tv, 0);
+		status->tstamp.tv_sec = tv.tv_sec;
+		status->tstamp.tv_nsec = tv.tv_usec * 1000L;
+	}
 	status->avail = snd_pcm_mmap_capture_avail(pcm);
 	status->avail_max = status->avail > dsnoop->avail_max ? status->avail : dsnoop->avail_max;
 	dsnoop->avail_max = 0;

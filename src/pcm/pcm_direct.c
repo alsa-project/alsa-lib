@@ -1001,6 +1001,17 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 		return ret;
 	}
 
+	/* set timestamp mode to MMAP
+	 * the slave timestamp is copied appropriately in dsnoop/dmix/dshare
+	 * based on the tstamp_mode of each client
+	 */
+	ret = snd_pcm_sw_params_set_tstamp_mode(spcm, sw_params,
+						SND_PCM_TSTAMP_MMAP);
+	if (ret < 0) {
+		SNDERR("unable to tstamp mode MMAP");
+		return ret;
+	}
+
 	if (dmix->type != SND_PCM_TYPE_DMIX)
 		goto __skip_silencing;
 
