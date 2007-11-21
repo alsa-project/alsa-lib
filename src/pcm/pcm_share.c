@@ -914,7 +914,6 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
 	snd_pcm_t *spcm = slave->pcm;
-	struct timeval tv;
 	int err = 0;
 	if (share->state != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
@@ -970,9 +969,7 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 	}
 	slave->running_count++;
 	_snd_pcm_share_update(pcm);
-	gettimeofday(&tv, 0);
-	share->trigger_tstamp.tv_sec = tv.tv_sec;
-	share->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+	gettimestamp(&share->trigger_tstamp);
  _end:
 	Pthread_mutex_unlock(&slave->mutex);
 	return err;
@@ -1099,16 +1096,13 @@ static void _snd_pcm_share_stop(snd_pcm_t *pcm, snd_pcm_state_t state)
 {
 	snd_pcm_share_t *share = pcm->private_data;
 	snd_pcm_share_slave_t *slave = share->slave;
-	struct timeval tv;
 #if 0
 	if (!pcm->mmap_channels) {
 		/* PCM closing already begun in the main thread */
 		return;
 	}
 #endif
-	gettimeofday(&tv, 0);
-	share->trigger_tstamp.tv_sec = tv.tv_sec;
-	share->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+	gettimestamp(&share->trigger_tstamp);
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
 		snd_pcm_areas_copy(pcm->stopped_areas, 0,
 				   pcm->running_areas, 0,

@@ -367,11 +367,8 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 	if (avail > dmix->avail_max)
 		dmix->avail_max = avail;
 	if (avail >= pcm->stop_threshold) {
-		struct timeval tv;
 		snd_timer_stop(dmix->timer);
-		gettimeofday(&tv, 0);
-		dmix->trigger_tstamp.tv_sec = tv.tv_sec;
-		dmix->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+		gettimestamp(&dmix->trigger_tstamp);
 		if (dmix->state == SND_PCM_STATE_RUNNING) {
 			dmix->state = SND_PCM_STATE_XRUN;
 			return -EPIPE;
@@ -422,12 +419,8 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	status->trigger_tstamp = dmix->trigger_tstamp;
 	if (pcm->tstamp_mode == SND_PCM_TSTAMP_MMAP)
 		status->tstamp = snd_pcm_hw_fast_tstamp(dmix->spcm);
-	else {
-		struct timeval tv;
-		gettimeofday(&tv, 0);
-		status->tstamp.tv_sec = tv.tv_sec;
-		status->tstamp.tv_nsec = tv.tv_usec * 1000L;
-	}
+	else
+		gettimestamp(&status->tstamp);
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
 	status->avail_max = status->avail > dmix->avail_max ? status->avail : dmix->avail_max;
 	dmix->avail_max = 0;
@@ -532,7 +525,6 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	snd_pcm_sframes_t avail;
-	struct timeval tv;
 	int err;
 	
 	if (dmix->state != SND_PCM_STATE_PREPARED)
@@ -547,9 +539,7 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 			return err;
 		snd_pcm_dmix_sync_area(pcm);
 	}
-	gettimeofday(&tv, 0);
-	dmix->trigger_tstamp.tv_sec = tv.tv_sec;
-	dmix->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+	gettimestamp(&dmix->trigger_tstamp);
 	return 0;
 }
 

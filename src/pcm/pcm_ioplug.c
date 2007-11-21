@@ -438,7 +438,6 @@ static int snd_pcm_ioplug_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 static int snd_pcm_ioplug_start(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
-	struct timeval tv;
 	int err;
 	
 	if (io->data->state != SND_PCM_STATE_PREPARED)
@@ -448,9 +447,7 @@ static int snd_pcm_ioplug_start(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 
-	gettimeofday(&tv, 0);
-	io->trigger_tstamp.tv_sec = tv.tv_sec;
-	io->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+	gettimestamp(&io->trigger_tstamp);
 	io->data->state = SND_PCM_STATE_RUNNING;
 
 	return 0;
@@ -459,16 +456,13 @@ static int snd_pcm_ioplug_start(snd_pcm_t *pcm)
 static int snd_pcm_ioplug_drop(snd_pcm_t *pcm)
 {
 	ioplug_priv_t *io = pcm->private_data;
-	struct timeval tv;
 
 	if (io->data->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
 
 	io->data->callback->stop(io->data);
 
-	gettimeofday(&tv, 0);
-	io->trigger_tstamp.tv_sec = tv.tv_sec;
-	io->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+	gettimestamp(&io->trigger_tstamp);
 	io->data->state = SND_PCM_STATE_SETUP;
 
 	return 0;

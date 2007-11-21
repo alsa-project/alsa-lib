@@ -82,13 +82,10 @@ static int snd_pcm_null_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 {
 	snd_pcm_null_t *null = pcm->private_data;
-	struct timeval tv;
 	memset(status, 0, sizeof(*status));
 	status->state = null->state;
 	status->trigger_tstamp = null->trigger_tstamp;
-	gettimeofday(&tv, 0);
-	status->tstamp.tv_sec = tv.tv_sec;
-	status->tstamp.tv_nsec = tv.tv_usec * 1000L;
+	gettimestamp(&status->tstamp);
 	status->avail = pcm->buffer_size;
 	status->avail_max = status->avail;
 	return 0;

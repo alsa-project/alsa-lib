@@ -1090,7 +1090,6 @@ static int snd_pcm_rate_start(snd_pcm_t *pcm)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
 	snd_pcm_uframes_t avail;
-	struct timeval tv;
 		
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE)
 		return snd_pcm_start(rate->gen.slave);
@@ -1098,9 +1097,7 @@ static int snd_pcm_rate_start(snd_pcm_t *pcm)
 	if (snd_pcm_state(rate->gen.slave) != SND_PCM_STATE_PREPARED)
 		return -EBADFD;
 
-	gettimeofday(&tv, 0);
-	rate->trigger_tstamp.tv_sec = tv.tv_sec;
-	rate->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+	gettimestamp(&rate->trigger_tstamp);
 
 	avail = snd_pcm_mmap_playback_hw_avail(rate->gen.slave);
 	if (avail == 0) {

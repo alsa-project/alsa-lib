@@ -194,11 +194,8 @@ static int snd_pcm_dshare_sync_ptr(snd_pcm_t *pcm)
 	if (avail > dshare->avail_max)
 		dshare->avail_max = avail;
 	if (avail >= pcm->stop_threshold) {
-		struct timeval tv;
 		snd_timer_stop(dshare->timer);
-		gettimeofday(&tv, 0);
-		dshare->trigger_tstamp.tv_sec = tv.tv_sec;
-		dshare->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+		gettimestamp(&dshare->trigger_tstamp);
 		if (dshare->state == SND_PCM_STATE_RUNNING) {
 			dshare->state = SND_PCM_STATE_XRUN;
 			return -EPIPE;
@@ -231,12 +228,8 @@ static int snd_pcm_dshare_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	status->trigger_tstamp = dshare->trigger_tstamp;
 	if (pcm->tstamp_mode == SND_PCM_TSTAMP_MMAP)
 		status->tstamp = snd_pcm_hw_fast_tstamp(dshare->spcm);
-	else {
-		struct timeval tv;
-		gettimeofday(&tv, 0);
-		status->tstamp.tv_sec = tv.tv_sec;
-		status->tstamp.tv_nsec = tv.tv_usec * 1000L;
-	}
+	else
+		gettimestamp(&status->tstamp);
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
 	status->avail_max = status->avail > dshare->avail_max ? status->avail : dshare->avail_max;
 	dshare->avail_max = 0;
@@ -342,7 +335,6 @@ static int snd_pcm_dshare_start(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
 	snd_pcm_sframes_t avail;
-	struct timeval tv;
 	int err;
 	
 	if (dshare->state != SND_PCM_STATE_PREPARED)
@@ -357,9 +349,7 @@ static int snd_pcm_dshare_start(snd_pcm_t *pcm)
 			return err;
 		snd_pcm_dshare_sync_area(pcm);
 	}
-	gettimeofday(&tv, 0);
-	dshare->trigger_tstamp.tv_sec = tv.tv_sec;
-	dshare->trigger_tstamp.tv_nsec = tv.tv_usec * 1000L;
+	gettimestamp(&dshare->trigger_tstamp);
 	return 0;
 }
 

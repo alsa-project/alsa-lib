@@ -838,3 +838,13 @@ typedef union snd_tmp_double {
 	double d;
 	int64_t l;
 } snd_tmp_double_t;
+
+/* get the current timestamp */
+static inline void gettimestamp(snd_htimestamp_t *tstamp)
+{
+	struct timeval tv;
+
+	gettimeofday(&tv, 0);
+	tstamp->tv_sec = tv.tv_sec;
+	tstamp->tv_nsec = tv.tv_usec * 1000L;
+}
