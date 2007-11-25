@@ -39,12 +39,7 @@
 #define SND_FILE_LOAD		ALOAD_DEVICE_DIRECTORY "aloadC%i"
 #endif
 
-/**
- * \brief Try to load the driver for a card.
- * \param card Card number.
- * \return 1 if driver is present, zero if driver is not present
- */
-int snd_card_load(int card)
+static int snd_card_load1(int card)
 {
 	int open_dev;
 	char control[sizeof(SND_FILE_CONTROL) + 10];
@@ -61,9 +56,20 @@ int snd_card_load(int card)
 #endif
 	if (open_dev >= 0) {
 		close (open_dev);
-		return 1;
+		return 0;
+	} else {
+		return -errno;
 	}
-	return 0;
+}
+
+/**
+ * \brief Try to load the driver for a card.
+ * \param card Card number.
+ * \return 1 if driver is present, zero if driver is not present
+ */
+int snd_card_load(int card)
+{
+	return !!(snd_card_load1(card) == 0);
 }
 
 /**
@@ -104,7 +110,7 @@ int snd_card_next(int *rcard)
  */
 int snd_card_get_index(const char *string)
 {
-	int card;
+	int card, err;
 	snd_ctl_t *handle;
 	snd_ctl_card_info_t info;
 
@@ -116,13 +122,16 @@ int snd_card_get_index(const char *string)
 			return -EINVAL;
 		if (card < 0 || card > 31)
 			return -EINVAL;
-		if (snd_card_load(card))
+		err = snd_card_load1(card);
+		if (err >= 0)
 			return card;
-		return -ENODEV;
+		return err;
 	}
 	for (card = 0; card < 32; card++) {
+#ifdef SUPPORT_ALOAD
 		if (! snd_card_load(card))
 			continue;
+#endif
 		if (snd_ctl_hw_open(&handle, NULL, card, 0) < 0)
 			continue;
 		if (snd_ctl_card_info(handle, &info) < 0) {
