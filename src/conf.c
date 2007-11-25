@@ -2897,7 +2897,7 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 				return err;
 			if (snd_config_search(root, fdriver, &n) >= 0) {
 				if (snd_config_get_string(n, &driver) < 0)
-					continue;
+					goto __err;
 				while (1) {
 					char *s = strchr(driver, '.');
 					if (s == NULL)
@@ -2905,7 +2905,7 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 					driver = s + 1;
 				}
 				if (snd_config_search(root, driver, &n) >= 0)
-					continue;
+					goto __err;
 			} else {
 				driver = fdriver;
 			}
