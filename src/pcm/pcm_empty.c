@@ -100,7 +100,8 @@ int _snd_pcm_empty_open(snd_pcm_t **pcmp, const char *name ATTRIBUTE_UNUSED,
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);
 	if (err < 0)
 		return err;
-	err = snd_pcm_open_slave(pcmp, root, sconf, stream, mode, conf);
+	err = snd_pcm_open_named_slave(pcmp, name, root, sconf, stream,
+				       mode, conf);
 	snd_config_delete(sconf);
 	return err;
 }

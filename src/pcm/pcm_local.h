@@ -749,9 +749,18 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 
 #define SND_PCM_APPEND	(1<<8)
 
-int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
-		       snd_config_t *conf, snd_pcm_stream_t stream,
-		       int mode, snd_config_t *parent_conf);
+int snd_pcm_open_named_slave(snd_pcm_t **pcmp, const char *name,
+			     snd_config_t *root,
+			     snd_config_t *conf, snd_pcm_stream_t stream,
+			     int mode, snd_config_t *parent_conf);
+static inline int
+snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
+		   snd_config_t *conf, snd_pcm_stream_t stream,
+		   int mode, snd_config_t *parent_conf)
+{
+	return snd_pcm_open_named_slave(pcmp, NULL, root, conf, stream,
+					mode, parent_conf);
+}
 int snd_pcm_conf_generic_id(const char *id);
 
 int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name, int fd, int mmap_emulation, int sync_ptr_ioctl);

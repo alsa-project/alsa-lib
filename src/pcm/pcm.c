@@ -2226,9 +2226,10 @@ int snd_pcm_free(snd_pcm_t *pcm)
 	return 0;
 }
 
-int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
-		       snd_config_t *conf, snd_pcm_stream_t stream,
-		       int mode, snd_config_t *parent_conf)
+int snd_pcm_open_named_slave(snd_pcm_t **pcmp, const char *name,
+			     snd_config_t *root,
+			     snd_config_t *conf, snd_pcm_stream_t stream,
+			     int mode, snd_config_t *parent_conf)
 {
 	const char *str;
 	int hop;
@@ -2238,7 +2239,7 @@ int snd_pcm_open_slave(snd_pcm_t **pcmp, snd_config_t *root,
 	if (snd_config_get_string(conf, &str) >= 0)
 		return snd_pcm_open_noupdate(pcmp, root, str, stream, mode,
 					     hop + 1);
-	return snd_pcm_open_conf(pcmp, NULL, root, conf, stream, mode);
+	return snd_pcm_open_conf(pcmp, name, root, conf, stream, mode);
 }
 #endif
 
