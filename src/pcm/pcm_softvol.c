@@ -782,6 +782,8 @@ int snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 	if (err > 0) { /* hardware control - no need for softvol! */
 		softvol_free(svol);
 		*pcmp = slave; /* just pass the slave */
+		if (!slave->name)
+			slave->name = strdup(name);
 		return 0;
 	}
 
