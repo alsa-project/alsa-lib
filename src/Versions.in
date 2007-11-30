@@ -1,8 +1,16 @@
 ALSA_0.9 {
   global:
-    @SYMBOL_PREFIX@__snd_*;
-    @SYMBOL_PREFIX@_snd_*;
     @SYMBOL_PREFIX@snd_*;
+
+    @SYMBOL_PREFIX@_snd_*_open;
+    @SYMBOL_PREFIX@_snd_*_dlsym_*;
+    @SYMBOL_PREFIX@_snd_*_poll_descriptor;
+    @SYMBOL_PREFIX@_snd_pcm_hook_*;
+
+    @SYMBOL_PREFIX@__snd_hw_params_*;
+    @SYMBOL_PREFIX@__snd_hw_params_*;
+    @SYMBOL_PREFIX@__snd_*_open_dlsym_*;
+
   local:
     *;
 };
@@ -115,195 +123,9 @@ ALSA_0.9.5 {
     @SYMBOL_PREFIX@alsa_lisp;
 } ALSA_0.9.3;
 
-ALSA_0.9.6 {
-  global:
-
-    @SYMBOL_PREFIX@snd_hctl_open_ctl;
-    @SYMBOL_PREFIX@snd_seq_port_info_get_timestamping;
-    @SYMBOL_PREFIX@snd_seq_port_info_get_timestamp_real;
-    @SYMBOL_PREFIX@snd_seq_port_info_get_timestamp_queue;
-    @SYMBOL_PREFIX@snd_seq_port_info_set_timestamping;
-    @SYMBOL_PREFIX@snd_seq_port_info_set_timestamp_real;
-    @SYMBOL_PREFIX@snd_seq_port_info_set_timestamp_queue;
-} ALSA_0.9.5;
-
 ALSA_0.9.7 {
   global:
 
-    @SYMBOL_PREFIX@snd_user_file;
-    @SYMBOL_PREFIX@snd_hctl_ctl;
-    @SYMBOL_PREFIX@sndo_*;
     @SYMBOL_PREFIX@alsa_lisp_*;
-} ALSA_0.9.6;
+} ALSA_0.9.5;
 
-ALSA_0.9.8 {
-  global:
-
-    @SYMBOL_PREFIX@snd_ctl_elem_add;
-    @SYMBOL_PREFIX@snd_ctl_elem_replace;
-    @SYMBOL_PREFIX@snd_ctl_elem_remove;
-    @SYMBOL_PREFIX@snd_hctl_poll_descriptors_revents;
-} ALSA_0.9.7;
-
-ALSA_1.0.4 {
-  global:
-
-    @SYMBOL_PREFIX@snd_spcm_init;
-    @SYMBOL_PREFIX@snd_spcm_init_duplex;
-    @SYMBOL_PREFIX@snd_spcm_init_get_params;
-} ALSA_0.9.8;
-
-ALSA_1.0.5 {
-  global:
-
-    @SYMBOL_PREFIX@snd_asoundlib_version;
-    @SYMBOL_PREFIX@snd_timer_params_set_early_event;
-    @SYMBOL_PREFIX@snd_timer_params_get_early_event;
-} ALSA_1.0.4;
-
-ALSA_1.0.8 {
-  global:
-
-    @SYMBOL_PREFIX@snd_ctl_elem_add_integer;
-    @SYMBOL_PREFIX@snd_ctl_elem_add_integer64;
-    @SYMBOL_PREFIX@snd_ctl_elem_add_boolean;
-    @SYMBOL_PREFIX@snd_ctl_elem_add_iec958;
-    @SYMBOL_PREFIX@snd_ctl_elem_remove;
-} ALSA_1.0.5;
-
-ALSA_1.0.9 {
-  global:
-
-    @SYMBOL_PREFIX@snd_names_list;
-    @SYMBOL_PREFIX@snd_names_list_free;
-
-    @SYMBOL_PREFIX@snd_pcm_hw_params_set_rate_resample;
-    @SYMBOL_PREFIX@snd_pcm_hw_params_get_rate_resample;
-    @SYMBOL_PREFIX@snd_pcm_hw_params_set_export_buffer;
-    @SYMBOL_PREFIX@snd_pcm_hw_params_get_export_buffer;
-
-    @SYMBOL_PREFIX@snd_pcm_ioplug_create;
-    @SYMBOL_PREFIX@snd_pcm_ioplug_delete;
-    @SYMBOL_PREFIX@snd_pcm_ioplug_reinit_status;
-    @SYMBOL_PREFIX@snd_pcm_ioplug_params_reset;
-    @SYMBOL_PREFIX@snd_pcm_ioplug_set_param_minmax;
-    @SYMBOL_PREFIX@snd_pcm_ioplug_set_param_list;
-
-    @SYMBOL_PREFIX@snd_pcm_extplug_create;
-    @SYMBOL_PREFIX@snd_pcm_extplug_delete;
-    @SYMBOL_PREFIX@snd_pcm_extplug_params_reset;
-    @SYMBOL_PREFIX@snd_pcm_extplug_set_param_list;
-    @SYMBOL_PREFIX@snd_pcm_extplug_set_param_minmax;
-    @SYMBOL_PREFIX@snd_pcm_extplug_set_slave_param_list;
-    @SYMBOL_PREFIX@snd_pcm_extplug_set_slave_param_minmax;
-
-    @SYMBOL_PREFIX@snd_pcm_parse_control_id;
-
-    @SYMBOL_PREFIX@snd_async_add_timer_handler;
-    @SYMBOL_PREFIX@snd_async_handler_get_timer;
-
-    @SYMBOL_PREFIX@snd_timer_ginfo_sizeof;
-    @SYMBOL_PREFIX@snd_timer_ginfo_malloc;
-    @SYMBOL_PREFIX@snd_timer_ginfo_free;
-    @SYMBOL_PREFIX@snd_timer_ginfo_copy;
-    @SYMBOL_PREFIX@snd_timer_ginfo_set_tid;
-    @SYMBOL_PREFIX@snd_timer_ginfo_get_tid;
-    @SYMBOL_PREFIX@snd_timer_ginfo_get_flags;
-    @SYMBOL_PREFIX@snd_timer_ginfo_get_card;
-    @SYMBOL_PREFIX@snd_timer_ginfo_get_id;
-    @SYMBOL_PREFIX@snd_timer_ginfo_get_name;
-    @SYMBOL_PREFIX@snd_timer_ginfo_get_resolution;
-    @SYMBOL_PREFIX@snd_timer_ginfo_get_resolution_min;
-    @SYMBOL_PREFIX@snd_timer_ginfo_get_resolution_max;
-    @SYMBOL_PREFIX@snd_timer_ginfo_get_clients;
-
-} ALSA_1.0.8;
-
-ALSA_1.0.10 {
-  global:
-
-    @SYMBOL_PREFIX@snd_mixer_get_hctl;
-    @SYMBOL_PREFIX@snd_mixer_elem_get_private;
-    @SYMBOL_PREFIX@snd_mixer_attach_hctl;
-    @SYMBOL_PREFIX@snd_mixer_detach_hctl;
-
-    @SYMBOL_PREFIX@snd_mixer_class_register;
-    @SYMBOL_PREFIX@snd_mixer_add_elem;
-    @SYMBOL_PREFIX@snd_mixer_remove_elem;
-    @SYMBOL_PREFIX@snd_mixer_elem_new;
-    @SYMBOL_PREFIX@snd_mixer_elem_add;
-    @SYMBOL_PREFIX@snd_mixer_elem_remove;
-    @SYMBOL_PREFIX@snd_mixer_elem_free;
-    @SYMBOL_PREFIX@snd_mixer_elem_info;
-    @SYMBOL_PREFIX@snd_mixer_elem_value;
-    @SYMBOL_PREFIX@snd_mixer_elem_attach;
-    @SYMBOL_PREFIX@snd_mixer_elem_detach;
-    @SYMBOL_PREFIX@snd_mixer_elem_empty;
-
-    @SYMBOL_PREFIX@snd_mixer_class_malloc;
-    @SYMBOL_PREFIX@snd_mixer_class_free;
-    @SYMBOL_PREFIX@snd_mixer_class_copy;
-    @SYMBOL_PREFIX@snd_mixer_class_get_mixer;
-    @SYMBOL_PREFIX@snd_mixer_class_get_event;
-    @SYMBOL_PREFIX@snd_mixer_class_get_private;
-    @SYMBOL_PREFIX@snd_mixer_class_get_compare;
-    @SYMBOL_PREFIX@snd_mixer_class_set_event;
-    @SYMBOL_PREFIX@snd_mixer_class_set_private;
-    @SYMBOL_PREFIX@snd_mixer_class_set_private_free;
-    @SYMBOL_PREFIX@snd_mixer_class_set_compare;
-
-    @SYMBOL_PREFIX@snd_mixer_selem_set_playback_dB_all;
-    @SYMBOL_PREFIX@snd_mixer_selem_set_capture_dB_all;
-    @SYMBOL_PREFIX@snd_mixer_selem_is_enum_playback;
-    @SYMBOL_PREFIX@snd_mixer_selem_is_enum_capture;
-    @SYMBOL_PREFIX@snd_mixer_selem_compare;
-    @SYMBOL_PREFIX@snd_mixer_sbasic_info;
-    @SYMBOL_PREFIX@snd_mixer_sbasic_get_private;
-    @SYMBOL_PREFIX@snd_mixer_sbasic_set_private;
-    @SYMBOL_PREFIX@snd_mixer_sbasic_set_private_free;
-
-    @SYMBOL_PREFIX@snd_ctl_ext_create;
-    @SYMBOL_PREFIX@snd_ctl_ext_delete;
-
-} ALSA_1.0.9;
-
-ALSA_1.0.11 {
-  global:
-
-    @SYMBOL_PREFIX@snd_pcm_recover;
-    @SYMBOL_PREFIX@snd_pcm_set_params;
-    @SYMBOL_PREFIX@snd_pcm_get_params;
-} ALSA_1.0.10;
-
-ALSA_1.0.12 {
-  global:
-
-    @SYMBOL_PREFIX@snd_ctl_elem_tlv_read;
-    @SYMBOL_PREFIX@snd_ctl_elem_tlv_write;
-    @SYMBOL_PREFIX@snd_ctl_elem_tlv_command;
-    @SYMBOL_PREFIX@snd_ctl_elem_info_is_tlv_readable;
-    @SYMBOL_PREFIX@snd_ctl_elem_info_is_tlv_writable;
-    @SYMBOL_PREFIX@snd_ctl_elem_info_is_tlv_commandable;
-    @SYMBOL_PREFIX@snd_hctl_elem_tlv_read;
-    @SYMBOL_PREFIX@snd_hctl_elem_tlv_write;
-    @SYMBOL_PREFIX@snd_hctl_elem_tlv_command;
-} ALSA_1.0.11;
-
-ALSA_1.0.14 {
-  global:
-
-    @SYMBOL_PREFIX@snd_device_name_hint;
-    @SYMBOL_PREFIX@snd_device_name_free_hint;
-    @SYMBOL_PREFIX@snd_device_name_get_hint;
-} ALSA_1.0.12;
-
-ALSA_1.0.16 {
-  global:
-    @SYMBOL_PREFIX@snd_tlv_parse_dB_info;
-    @SYMBOL_PREFIX@snd_tlv_get_dB_range;
-    @SYMBOL_PREFIX@snd_tlv_convert_to_dB;
-    @SYMBOL_PREFIX@snd_tlv_convert_from_dB;
-    @SYMBOL_PREFIX@snd_ctl_get_dB_range;
-    @SYMBOL_PREFIX@snd_ctl_convert_to_dB;
-    @SYMBOL_PREFIX@snd_ctl_convert_from_dB;
-} ALSA_1.0.14;
