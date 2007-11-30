@@ -19,6 +19,20 @@ static inline snd_interval_t *hw_param_interval(snd_pcm_hw_params_t *params,
 	return &params->intervals[var - SND_PCM_HW_PARAM_FIRST_INTERVAL];
 }
 
+/* make local functions really local */
+#define snd_ext_parm_set_minmax \
+	snd1_ext_parm_set_minmax
+#define snd_ext_parm_set_list \
+	snd1_ext_parm_set_list
+#define snd_ext_parm_clear \
+	snd1_ext_parm_clear
+#define snd_interval_list \
+	snd1_interval_list
+#define snd_ext_parm_interval_refine \
+	snd1_ext_parm_interval_refine
+#define snd_ext_parm_mask_refine \
+	snd1_ext_parm_mask_refine
+
 int snd_ext_parm_set_minmax(struct snd_ext_parm *parm, unsigned int min, unsigned int max);
 int snd_ext_parm_set_list(struct snd_ext_parm *parm, unsigned int num_list, const unsigned int *list);
 void snd_ext_parm_clear(struct snd_ext_parm *parm);

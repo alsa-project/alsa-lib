@@ -42,6 +42,22 @@ int snd_interval_always_eq(const snd_interval_t *i1, const snd_interval_t *i2);
 int snd_interval_never_eq(const snd_interval_t *i1, const snd_interval_t *i2);
 #endif
 
+/* make local functions really local */
+#define snd_interval_add	snd1_interval_add
+#define snd_interval_sub	snd1_interval_sub
+#define snd_interval_mul	snd1_interval_mul
+#define snd_interval_div	snd1_interval_div
+#define snd_interval_muldiv	snd1_interval_muldiv
+#define snd_interval_muldivk	snd1_interval_muldivk
+#define snd_interval_mulkdiv	snd1_interval_mulkdiv
+#define snd_interval_print	snd1_interval_print
+#define snd_interval_refine_min	snd1_interval_refine_min
+#define snd_interval_refine_max	snd1_interval_refine_max
+#define snd_interval_refine	snd1_interval_refine
+#define snd_interval_refine_first snd1_interval_refine_first
+#define snd_interval_refine_last snd1_interval_refine_last
+#define snd_interval_refine_set	snd1_interval_refine_set
+
 void snd_interval_add(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);
 void snd_interval_sub(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);
 void snd_interval_mul(const snd_interval_t *a, const snd_interval_t *b, snd_interval_t *c);

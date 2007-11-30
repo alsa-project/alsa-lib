@@ -21,5 +21,11 @@
 
 #include "mixer_abst.h"
 
+/* make local functions really local */
+#define snd_mixer_simple_none_register \
+	snd1_mixer_simple_none_register
+#define snd_mixer_simple_basic_register \
+	snd1_mixer_simple_basic_register
+
 int snd_mixer_simple_none_register(snd_mixer_t *mixer, struct snd_mixer_selem_regopt *options, snd_mixer_class_t **classp);
 int snd_mixer_simple_basic_register(snd_mixer_t *mixer, struct snd_mixer_selem_regopt *options, snd_mixer_class_t **classp);

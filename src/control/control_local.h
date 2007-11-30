@@ -89,6 +89,9 @@ struct _snd_hctl {
 };
 
 
+/* make local functions really local */
+#define snd_ctl_new	snd1_ctl_new
+
 int snd_ctl_new(snd_ctl_t **ctlp, snd_ctl_type_t type, const char *name);
 int _snd_ctl_poll_descriptor(snd_ctl_t *ctl);
 #define _snd_ctl_async_descriptor _snd_ctl_poll_descriptor

@@ -247,6 +247,20 @@ static inline int snd_open_device(const char *filename, int fmode)
 #define snd_open_device(filename, fmode) open(filename, fmode);
 #endif
 
+/* make local functions really local */
+#define snd_dlobj_cache_lookup \
+	snd1_dlobj_cache_lookup
+#define snd_dlobj_cache_add \
+	snd1_dlobj_cache_add
+#define snd_dlobj_cache_cleanup \
+	snd1_dlobj_cache_cleanup
+#define snd_config_set_hop \
+	snd1_config_set_hop
+#define snd_config_check_hop \
+	snd1_config_check_hop
+#define snd_config_search_alias_hooks \
+	snd1_config_search_alias_hooks
+
 /* dlobj cache */
 void *snd_dlobj_cache_lookup(const char *name);
 int snd_dlobj_cache_add(const char *name, void *dlobj, void *open_func);

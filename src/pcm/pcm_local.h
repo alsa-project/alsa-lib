@@ -227,6 +227,116 @@ struct _snd_pcm {
 	struct list_head async_handlers;
 };
 
+/* make local functions really local */
+/* Grrr, these cannot be local - a bad aserver uses them!
+#define snd_pcm_async \
+	snd1_pcm_async
+#define snd_pcm_mmap \
+	snd1_pcm_mmap
+#define snd_pcm_munmap \
+	snd1_pcm_munmap
+#define snd_pcm_hw_refine \
+	snd1_pcm_hw_refine
+*/
+#define snd_pcm_new \
+	snd1_pcm_new
+#define snd_pcm_free \
+	snd1_pcm_free
+#define snd_pcm_areas_from_buf \
+	snd1_pcm_areas_from_buf
+#define snd_pcm_areas_from_bufs \
+	snd1_pcm_areas_from_bufs
+#define snd_pcm_open_named_slave \
+	snd1_pcm_open_named_slave
+#define snd_pcm_conf_generic_id \
+	snd1_pcm_conf_generic_id
+#define snd_pcm_hw_open_fd \
+	snd1_pcm_hw_open_fd
+#define snd_pcm_wait_nocheck \
+	snd1_pcm_wait_nocheck
+#define snd_pcm_rate_get_default_converter \
+	snd1_pcm_rate_get_default_converter
+#define snd_pcm_set_hw_ptr \
+	snd1_pcm_set_hw_ptr
+#define snd_pcm_set_appl_ptr \
+	snd1_pcm_set_appl_ptr
+#define snd_pcm_link_hw_ptr \
+	snd1_pcm_link_hw_ptr
+#define snd_pcm_link_appl_ptr \
+	snd1_pcm_link_appl_ptr
+#define snd_pcm_unlink_hw_ptr \
+	snd1_pcm_unlink_hw_ptr
+#define snd_pcm_unlink_appl_ptr \
+	snd1_pcm_unlink_appl_ptr
+#define snd_pcm_mmap_appl_ptr \
+	snd1_pcm_mmap_appl_ptr
+#define snd_pcm_mmap_appl_backward \
+	snd1_pcm_mmap_appl_backward
+#define snd_pcm_mmap_appl_forward \
+	snd1_pcm_mmap_appl_forward
+#define snd_pcm_mmap_hw_backward \
+	snd1_pcm_mmap_hw_backward
+#define snd_pcm_mmap_hw_forward \
+	snd1_pcm_mmap_hw_forward
+#define snd_pcm_read_areas \
+	snd1_pcm_read_areas
+#define snd_pcm_write_areas \
+	snd1_pcm_write_areas
+#define snd_pcm_read_mmap \
+	snd1_pcm_read_mmap
+#define snd_pcm_write_mmap \
+	snd1_pcm_write_mmap
+#define snd_pcm_channel_info_shm \
+	snd1_pcm_channel_info_shm
+#define snd_pcm_hw_refine_soft \
+	snd1_pcm_hw_refine_soft
+#define snd_pcm_hw_refine_slave \
+	snd1_pcm_hw_refine_slave
+#define snd_pcm_hw_params_slave \
+	snd1_pcm_hw_params_slave
+#define snd_pcm_hw_param_refine_near \
+	snd1_pcm_hw_param_refine_near
+#define snd_pcm_hw_param_refine_multiple \
+	snd1_pcm_hw_param_refine_multiple
+#define snd_pcm_hw_param_empty \
+	snd1_pcm_hw_param_empty
+#define snd_pcm_hw_param_always_eq \
+	snd1_pcm_hw_param_always_eq
+#define snd_pcm_hw_param_never_eq \
+	snd1_pcm_hw_param_never_eq
+#define snd_pcm_hw_param_get_mask \
+	snd1_pcm_hw_param_get_mask
+#define snd_pcm_hw_param_get_interval \
+	snd1_pcm_hw_param_get_interval
+#define snd_pcm_hw_param_any \
+	snd1_pcm_hw_param_any
+#define snd_pcm_hw_param_set_integer \
+	snd1_pcm_hw_param_set_integer
+#define snd_pcm_hw_param_set_first \
+	snd1_pcm_hw_param_set_first
+#define snd_pcm_hw_param_set_last \
+	snd1_pcm_hw_param_set_last
+#define snd_pcm_hw_param_set_near \
+	snd1_pcm_hw_param_set_near
+#define snd_pcm_hw_param_set_min \
+	snd1_pcm_hw_param_set_min
+#define snd_pcm_hw_param_set_max \
+	snd1_pcm_hw_param_set_max
+#define snd_pcm_hw_param_set_minmax \
+	snd1_pcm_hw_param_set_minmax
+#define snd_pcm_hw_param_set \
+	snd1_pcm_hw_param_set
+#define snd_pcm_hw_param_set_mask \
+	snd1_pcm_hw_param_set_mask
+#define snd_pcm_hw_param_get \
+	snd1_pcm_hw_param_get
+#define snd_pcm_hw_param_get_min \
+	snd1_pcm_hw_param_get_min
+#define snd_pcm_hw_param_get_max \
+	snd1_pcm_hw_param_get_max
+#define snd_pcm_hw_param_name		\
+	snd1_pcm_hw_param_name
+
 int snd_pcm_new(snd_pcm_t **pcmp, snd_pcm_type_t type, const char *name,
 		snd_pcm_stream_t stream, int mode);
 int snd_pcm_free(snd_pcm_t *pcm);

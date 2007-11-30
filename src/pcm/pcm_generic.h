@@ -24,6 +24,82 @@ typedef struct {
 	int close_slave;
 } snd_pcm_generic_t;	
 
+/* make local functions really local */
+#define snd_pcm_generic_close \
+	snd1_pcm_generic_close
+#define snd_pcm_generic_nonblock \
+	snd1_pcm_generic_nonblock
+#define snd_pcm_generic_async \
+	snd1_pcm_generic_async
+#define snd_pcm_generic_poll_descriptors_count \
+	snd1_pcm_generic_poll_descriptors_count
+#define snd_pcm_generic_poll_descriptors \
+	snd1_pcm_generic_poll_descriptors
+#define snd_pcm_generic_poll_revents \
+	snd1_pcm_generic_poll_revents
+#define snd_pcm_generic_info \
+	snd1_pcm_generic_info
+#define snd_pcm_generic_hw_free \
+	snd1_pcm_generic_hw_free
+#define snd_pcm_generic_sw_params \
+	snd1_pcm_generic_sw_params
+#define snd_pcm_generic_hw_refine \
+	snd1_pcm_generic_hw_refine
+#define snd_pcm_generic_hw_params \
+	snd1_pcm_generic_hw_params
+#define snd_pcm_generic_channel_info \
+	snd1_pcm_generic_channel_info
+#define snd_pcm_generic_channel_info_no_buffer \
+	snd1_pcm_generic_channel_info_no_buffer
+#define snd_pcm_generic_status \
+	snd1_pcm_generic_status
+#define snd_pcm_generic_state \
+	snd1_pcm_generic_state
+#define snd_pcm_generic_prepare \
+	snd1_pcm_generic_prepare
+#define snd_pcm_generic_hwsync \
+	snd1_pcm_generic_hwsync
+#define snd_pcm_generic_reset \
+	snd1_pcm_generic_reset
+#define snd_pcm_generic_start \
+	snd1_pcm_generic_start
+#define snd_pcm_generic_drop \
+	snd1_pcm_generic_drop
+#define snd_pcm_generic_drain \
+	snd1_pcm_generic_drain
+#define snd_pcm_generic_pause \
+	snd1_pcm_generic_pause
+#define snd_pcm_generic_resume \
+	snd1_pcm_generic_resume
+#define snd_pcm_generic_delay \
+	snd1_pcm_generic_delay
+#define snd_pcm_generic_forward \
+	snd1_pcm_generic_forward
+#define snd_pcm_generic_rewind \
+	snd1_pcm_generic_rewind
+#define snd_pcm_generic_link \
+	snd1_pcm_generic_link
+#define snd_pcm_generic_link_slaves \
+	snd1_pcm_generic_link_slaves
+#define snd_pcm_generic_unlink \
+	snd1_pcm_generic_unlink
+#define snd_pcm_generic_writei \
+	snd1_pcm_generic_writei
+#define snd_pcm_generic_writen \
+	snd1_pcm_generic_writen
+#define snd_pcm_generic_readi \
+	snd1_pcm_generic_readi
+#define snd_pcm_generic_readn \
+	snd1_pcm_generic_readn
+#define snd_pcm_generic_mmap_commit \
+	snd1_pcm_generic_mmap_commit
+#define snd_pcm_generic_avail_update	\
+	snd1_pcm_generic_avail_update
+#define snd_pcm_generic_mmap \
+	snd1_pcm_generic_mmap
+#define snd_pcm_generic_munmap \
+	snd1_pcm_generic_munmap
+
 int snd_pcm_generic_close(snd_pcm_t *pcm);
 int snd_pcm_generic_nonblock(snd_pcm_t *pcm, int nonblock);
 int snd_pcm_generic_async(snd_pcm_t *pcm, int sig, pid_t pid);

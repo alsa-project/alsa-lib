@@ -161,6 +161,66 @@ struct snd_pcm_direct {
 	void (*server_free)(snd_pcm_direct_t *direct);
 };
 
+/* make local functions really local */
+#define snd_pcm_direct_semaphore_create_or_connect \
+	snd1_pcm_direct_semaphore_create_or_connect
+#define snd_pcm_direct_shm_create_or_connect \
+	snd1_pcm_direct_shm_create_or_connect
+#define snd_pcm_direct_shm_discard \
+	snd1_pcm_direct_shm_discard
+#define snd_pcm_direct_server_create \
+	snd1_pcm_direct_server_create
+#define snd_pcm_direct_server_discard \
+	snd1_pcm_direct_server_discard
+#define snd_pcm_direct_client_connect \
+	snd1_pcm_direct_client_connect
+#define snd_pcm_direct_client_discard \
+	snd1_pcm_direct_client_discard
+#define snd_pcm_direct_initialize_slave \
+	snd1_pcm_direct_initialize_slave
+#define snd_pcm_direct_initialize_secondary_slave \
+	snd1_pcm_direct_initialize_secondary_slave
+#define snd_pcm_direct_initialize_poll_fd \
+	snd1_pcm_direct_initialize_poll_fd
+#define snd_pcm_direct_check_interleave \
+	snd1_pcm_direct_check_interleave
+#define snd_pcm_direct_parse_bindings \
+	snd1_pcm_direct_parse_bindings
+#define snd_pcm_direct_nonblock \
+	snd1_pcm_direct_nonblock
+#define snd_pcm_direct_async \
+	snd1_pcm_direct_async
+#define snd_pcm_direct_poll_revents \
+	snd1_pcm_direct_poll_revents
+#define snd_pcm_direct_info \
+	snd1_pcm_direct_info
+#define snd_pcm_direct_hw_refine \
+	snd1_pcm_direct_hw_refine
+#define snd_pcm_direct_hw_params \
+	snd1_pcm_direct_hw_params
+#define snd_pcm_direct_hw_free \
+	snd1_pcm_direct_hw_free
+#define snd_pcm_direct_sw_params \
+	snd1_pcm_direct_sw_params
+#define snd_pcm_direct_channel_info \
+	snd1_pcm_direct_channel_info
+#define snd_pcm_direct_mmap \
+	snd1_pcm_direct_mmap
+#define snd_pcm_direct_munmap \
+	snd1_pcm_direct_munmap
+#define snd_pcm_direct_resume \
+	snd1_pcm_direct_resume
+#define snd_pcm_direct_timer_stop \
+	snd1_pcm_direct_timer_stop
+#define snd_pcm_direct_clear_timer_queue \
+	snd1_pcm_direct_clear_timer_queue
+#define snd_pcm_direct_set_timer_params \
+	snd1_pcm_direct_set_timer_params
+#define snd_pcm_direct_open_secondary_client \
+	snd1_pcm_direct_open_secondary_client
+#define snd_pcm_direct_parse_open_conf \
+	snd1_pcm_direct_parse_open_conf
+
 int snd_pcm_direct_semaphore_create_or_connect(snd_pcm_direct_t *dmix);
 
 static inline int snd_pcm_direct_semaphore_discard(snd_pcm_direct_t *dmix)

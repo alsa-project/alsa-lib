@@ -51,6 +51,16 @@ typedef struct {
 	snd_atomic_write_t watom;
 } snd_pcm_plugin_t;	
 
+/* make local functions really local */
+#define snd_pcm_plugin_init \
+	snd1_pcm_plugin_init
+#define snd_pcm_plugin_fast_ops \
+	snd1_pcm_plugin_fast_ops
+#define snd_pcm_plugin_undo_read_generic \
+	snd1_pcm_plugin_undo_read_generic
+#define snd_pcm_plugin_undo_write_generic \
+	snd1_pcm_plugin_undo_write_generic
+
 void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin);
 
 extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
@@ -68,6 +78,21 @@ snd_pcm_sframes_t snd_pcm_plugin_undo_write_generic
       snd_pcm_uframes_t res_offset,		/* offset of result areas */
       snd_pcm_uframes_t res_size,		/* size of result areas */
       snd_pcm_uframes_t slave_undo_size);
+
+/* make local functions really local */
+#define snd_pcm_linear_get_index	snd1_pcm_linear_get_index
+#define snd_pcm_linear_put_index	snd1_pcm_linear_put_index
+#define snd_pcm_linear_get32_index	snd1_pcm_linear_get32_index
+#define snd_pcm_linear_put32_index	snd1_pcm_linear_put32_index
+#define snd_pcm_linear_convert_index	snd1_pcm_linear_convert_index
+#define snd_pcm_linear_convert	snd1_pcm_linear_convert
+#define snd_pcm_linear_getput	snd1_pcm_linear_getput
+#define snd_pcm_alaw_decode	snd1_pcm_alaw_decode
+#define snd_pcm_alaw_encode	snd1_pcm_alaw_encode
+#define snd_pcm_mulaw_decode	snd1_pcm_mulaw_decode
+#define snd_pcm_mulaw_encode	snd1_pcm_mulaw_encode
+#define snd_pcm_adpcm_decode	snd1_pcm_adpcm_decode
+#define snd_pcm_adpcm_encode	snd1_pcm_adpcm_encode
 
 int snd_pcm_linear_get_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
 int snd_pcm_linear_put_index(snd_pcm_format_t src_format, snd_pcm_format_t dst_format);
