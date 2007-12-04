@@ -105,7 +105,7 @@ class StandardElement(BaseElement):
     if self.volumearray[dir][chn] == val:
       return
     self.volumearray[dir][chn] = val
-    hv = HValue(self.volume)
+    hv = HValue(self.volume[dir])
     hv.setArray(self.volumeinfo[dir].type, self.volumearray[dir])
     hv.write()
 
