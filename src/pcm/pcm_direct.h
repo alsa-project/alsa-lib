@@ -24,6 +24,11 @@
 #define DIRECT_IPC_SEMS         1
 #define DIRECT_IPC_SEM_CLIENT   0
 
+typedef void (mix_areas_t)(unsigned int size,
+			   volatile void *dst, void *src,
+			   volatile signed int *sum, size_t dst_step,
+			   size_t src_step, size_t sum_step);
+
 typedef void (mix_areas_16_t)(unsigned int size,
 			      volatile signed short *dst, signed short *src,
 			      volatile signed int *sum, size_t dst_step,

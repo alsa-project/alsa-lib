@@ -156,95 +156,56 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 		      snd_pcm_uframes_t dst_ofs,
 		      snd_pcm_uframes_t size)
 {
-	volatile signed int *sum;
 	unsigned int src_step, dst_step;
-	unsigned int chn, dchn, channels;
+	unsigned int chn, dchn, channels, sample_size;
+	mix_areas_t *do_mix_areas;
 	
 	channels = dmix->channels;
-	if (dmix->shmptr->s.format == SND_PCM_FORMAT_S16_LE ||
-	    dmix->shmptr->s.format == SND_PCM_FORMAT_S16_BE) {
-		signed short *src;
-		volatile signed short *dst;
-		if (dmix->interleaved) {
-			/*
-			 * process all areas in one loop
-			 * it optimizes the memory accesses for this case
-			 */
-			dmix->u.dmix.mix_areas_16(size * channels,
-						  ((signed short *)dst_areas[0].addr) + (dst_ofs * channels),
-						  ((signed short *)src_areas[0].addr) + (src_ofs * channels),
-						  dmix->u.dmix.sum_buffer + (dst_ofs * channels),
-						  sizeof(signed short),
-						  sizeof(signed short),
-						  sizeof(signed int));
-			return;
-		}
-		for (chn = 0; chn < channels; chn++) {
-			dchn = dmix->bindings ? dmix->bindings[chn] : chn;
-			if (dchn >= dmix->shmptr->s.channels)
-				continue;
-			src_step = src_areas[chn].step / 8;
-			dst_step = dst_areas[dchn].step / 8;
-			src = (signed short *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
-			dst = (signed short *)(((char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + (dst_ofs * dst_step));
-			sum = dmix->u.dmix.sum_buffer + channels * dst_ofs + chn;
-			dmix->u.dmix.mix_areas_16(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
-		}
-	} else if (dmix->shmptr->s.format == SND_PCM_FORMAT_S32_LE ||
-		   dmix->shmptr->s.format == SND_PCM_FORMAT_S32_BE) {
-		signed int *src;
-		volatile signed int *dst;
-		if (dmix->interleaved) {
-			/*
-			 * process all areas in one loop
-			 * it optimizes the memory accesses for this case
-			 */
-			dmix->u.dmix.mix_areas_32(size * channels,
-						  ((signed int *)dst_areas[0].addr) + (dst_ofs * channels),
-						  ((signed int *)src_areas[0].addr) + (src_ofs * channels),
-						  dmix->u.dmix.sum_buffer + (dst_ofs * channels),
-						  sizeof(signed int),
-						  sizeof(signed int),
-						  sizeof(signed int));
-			return;
-		}
-		for (chn = 0; chn < channels; chn++) {
-			dchn = dmix->bindings ? dmix->bindings[chn] : chn;
-			if (dchn >= dmix->shmptr->s.channels)
-				continue;
-			src_step = src_areas[chn].step / 8;
-			dst_step = dst_areas[dchn].step / 8;
-			src = (signed int *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
-			dst = (signed int *)(((char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + (dst_ofs * dst_step));
-			sum = dmix->u.dmix.sum_buffer + channels * dst_ofs + chn;
-			dmix->u.dmix.mix_areas_32(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
-		}
-	} else { /* SND_PCM_FORMAT_S24_3LE */
-		unsigned char *src;
-		volatile unsigned char *dst;
-		if (dmix->interleaved) {
-			/*
-			 * process all areas in one loop
-			 * it optimizes the memory accesses for this case
-			 */
-			dmix->u.dmix.mix_areas_24(size * channels,
-						  ((unsigned char *)dst_areas[0].addr) + 3 * dst_ofs * channels,
-						  ((unsigned char *)src_areas[0].addr) + 3 * src_ofs * channels,
-						  dmix->u.dmix.sum_buffer + (dst_ofs * channels),
-						  3, 3, sizeof(signed int));
-			return;
-		}
-		for (chn = 0; chn < channels; chn++) {
-			dchn = dmix->bindings ? dmix->bindings[chn] : chn;
-			if (dchn >= dmix->shmptr->s.channels)
-				continue;
-			src_step = src_areas[chn].step / 8;
-			dst_step = dst_areas[dchn].step / 8;
-			src = (unsigned char *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
-			dst = (unsigned char *)(((char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + (dst_ofs * dst_step));
-			sum = dmix->u.dmix.sum_buffer + channels * dst_ofs + chn;
-			dmix->u.dmix.mix_areas_24(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
-		}
+	switch (dmix->shmptr->s.format) {
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_S16_BE:
+		sample_size = 2;
+		do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_16;
+		break;
+	case SND_PCM_FORMAT_S32_LE:
+	case SND_PCM_FORMAT_S32_BE:
+		sample_size = 4;
+		do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_32;
+		break;
+	case SND_PCM_FORMAT_S24_3LE:
+		sample_size = 3;
+		do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_24;
+		break;
+	default:
+		return;
+	}
+	if (dmix->interleaved) {
+		/*
+		 * process all areas in one loop
+		 * it optimizes the memory accesses for this case
+		 */
+		do_mix_areas(size * channels,
+			     (unsigned char *)dst_areas[0].addr + sample_size * dst_ofs * channels,
+			     (unsigned char *)src_areas[0].addr + sample_size * src_ofs * channels,
+			     dmix->u.dmix.sum_buffer + dst_ofs * channels,
+			     sample_size,
+			     sample_size,
+			     sizeof(signed int));
+		return;
+	}
+	for (chn = 0; chn < channels; chn++) {
+		dchn = dmix->bindings ? dmix->bindings[chn] : chn;
+		if (dchn >= dmix->shmptr->s.channels)
+			continue;
+		src_step = src_areas[chn].step / 8;
+		dst_step = dst_areas[dchn].step / 8;
+		do_mix_areas(size,
+			     ((unsigned char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + dst_ofs * dst_step,
+			     ((unsigned char *)src_areas[chn].addr + src_areas[chn].first / 8) + src_ofs * src_step,
+			     dmix->u.dmix.sum_buffer + channels * dst_ofs + chn,
+			     dst_step,
+			     src_step,
+			     channels * sizeof(signed int));
 	}
 }
 
