@@ -176,6 +176,10 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 		sample_size = 3;
 		do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_24;
 		break;
+	case SND_PCM_FORMAT_U8:
+		sample_size = 1;
+		do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_u8;
+		break;
 	default:
 		return;
 	}

@@ -885,6 +885,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 			SND_PCM_FORMAT_S16,
 			SND_PCM_FORMAT_S16 ^ SND_PCM_FORMAT_S16_LE ^ SND_PCM_FORMAT_S16_BE,
 			SND_PCM_FORMAT_S24_3LE,
+			SND_PCM_FORMAT_U8,
 		};
 		snd_pcm_format_t format;
 		unsigned int i;

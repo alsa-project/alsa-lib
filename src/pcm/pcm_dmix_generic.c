@@ -122,7 +122,8 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 #define generic_dmix_supported_format \
 	((1ULL << SND_PCM_FORMAT_S16_LE) | (1ULL << SND_PCM_FORMAT_S32_LE) |\
 	 (1ULL << SND_PCM_FORMAT_S16_BE) | (1ULL << SND_PCM_FORMAT_S32_BE) |\
-	 (1ULL << SND_PCM_FORMAT_S24_3LE))
+	 (1ULL << SND_PCM_FORMAT_S24_3LE) | \
+	 (1ULL << SND_PCM_FORMAT_U8))
 
 #include <byteswap.h>
 
@@ -292,6 +293,35 @@ static void generic_mix_areas_24(unsigned int size,
 	}
 }
 
+static void generic_mix_areas_u8(unsigned int size,
+				 volatile unsigned char *dst,
+				 unsigned char *src,
+				 volatile signed int *sum,
+				 size_t dst_step,
+				 size_t src_step,
+				 size_t sum_step)
+{
+	for (;;) {
+		register int sample = *src - 0x80;
+		if (*dst == 0x80) {
+			*sum = sample;
+		} else {
+			sample += *sum;
+			*sum = sample;
+			if (sample > 0x7f)
+				sample = 0x7f;
+			else if (sample < -0x80)
+				sample = -0x80;
+		}
+		*dst = sample + 0x80;
+		if (!--size)
+			return;
+		dst += dst_step;
+		src += src_step;
+		sum = (signed int *) ((char *)sum + sum_step);
+	}
+}
+
 
 static void generic_mix_select_callbacks(snd_pcm_direct_t *dmix)
 {
@@ -303,6 +333,7 @@ static void generic_mix_select_callbacks(snd_pcm_direct_t *dmix)
 		dmix->u.dmix.mix_areas_32 = generic_mix_areas_32_swap;
 	}
 	dmix->u.dmix.mix_areas_24 = generic_mix_areas_24;
+	dmix->u.dmix.mix_areas_u8 = generic_mix_areas_u8;
 }
 
 #endif
