@@ -170,13 +170,13 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 			 * process all areas in one loop
 			 * it optimizes the memory accesses for this case
 			 */
-			dmix->u.dmix.mix_areas1(size * channels,
-					 ((signed short *)dst_areas[0].addr) + (dst_ofs * channels),
-					 ((signed short *)src_areas[0].addr) + (src_ofs * channels),
-					 dmix->u.dmix.sum_buffer + (dst_ofs * channels),
-					 sizeof(signed short),
-					 sizeof(signed short),
-					 sizeof(signed int));
+			dmix->u.dmix.mix_areas_16(size * channels,
+						  ((signed short *)dst_areas[0].addr) + (dst_ofs * channels),
+						  ((signed short *)src_areas[0].addr) + (src_ofs * channels),
+						  dmix->u.dmix.sum_buffer + (dst_ofs * channels),
+						  sizeof(signed short),
+						  sizeof(signed short),
+						  sizeof(signed int));
 			return;
 		}
 		for (chn = 0; chn < channels; chn++) {
@@ -188,7 +188,7 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 			src = (signed short *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
 			dst = (signed short *)(((char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + (dst_ofs * dst_step));
 			sum = dmix->u.dmix.sum_buffer + channels * dst_ofs + chn;
-			dmix->u.dmix.mix_areas1(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
+			dmix->u.dmix.mix_areas_16(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
 		}
 	} else if (dmix->shmptr->s.format == SND_PCM_FORMAT_S32_LE ||
 		   dmix->shmptr->s.format == SND_PCM_FORMAT_S32_BE) {
@@ -199,13 +199,13 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 			 * process all areas in one loop
 			 * it optimizes the memory accesses for this case
 			 */
-			dmix->u.dmix.mix_areas2(size * channels,
-					 ((signed int *)dst_areas[0].addr) + (dst_ofs * channels),
-					 ((signed int *)src_areas[0].addr) + (src_ofs * channels),
-					 dmix->u.dmix.sum_buffer + (dst_ofs * channels),
-					 sizeof(signed int),
-					 sizeof(signed int),
-					 sizeof(signed int));
+			dmix->u.dmix.mix_areas_32(size * channels,
+						  ((signed int *)dst_areas[0].addr) + (dst_ofs * channels),
+						  ((signed int *)src_areas[0].addr) + (src_ofs * channels),
+						  dmix->u.dmix.sum_buffer + (dst_ofs * channels),
+						  sizeof(signed int),
+						  sizeof(signed int),
+						  sizeof(signed int));
 			return;
 		}
 		for (chn = 0; chn < channels; chn++) {
@@ -217,7 +217,7 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 			src = (signed int *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
 			dst = (signed int *)(((char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + (dst_ofs * dst_step));
 			sum = dmix->u.dmix.sum_buffer + channels * dst_ofs + chn;
-			dmix->u.dmix.mix_areas2(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
+			dmix->u.dmix.mix_areas_32(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
 		}
 	} else { /* SND_PCM_FORMAT_S24_3LE */
 		unsigned char *src;
@@ -227,11 +227,11 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 			 * process all areas in one loop
 			 * it optimizes the memory accesses for this case
 			 */
-			dmix->u.dmix.mix_areas3(size * channels,
-					((unsigned char *)dst_areas[0].addr) + 3 * dst_ofs * channels,
-					((unsigned char *)src_areas[0].addr) + 3 * src_ofs * channels,
-					dmix->u.dmix.sum_buffer + (dst_ofs * channels),
-					3, 3, sizeof(signed int));
+			dmix->u.dmix.mix_areas_24(size * channels,
+						  ((unsigned char *)dst_areas[0].addr) + 3 * dst_ofs * channels,
+						  ((unsigned char *)src_areas[0].addr) + 3 * src_ofs * channels,
+						  dmix->u.dmix.sum_buffer + (dst_ofs * channels),
+						  3, 3, sizeof(signed int));
 			return;
 		}
 		for (chn = 0; chn < channels; chn++) {
@@ -243,7 +243,7 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 			src = (unsigned char *)(((char *)src_areas[chn].addr + src_areas[chn].first / 8) + (src_ofs * src_step));
 			dst = (unsigned char *)(((char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + (dst_ofs * dst_step));
 			sum = dmix->u.dmix.sum_buffer + channels * dst_ofs + chn;
-			dmix->u.dmix.mix_areas3(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
+			dmix->u.dmix.mix_areas_24(size, dst, src, sum, dst_step, src_step, channels * sizeof(signed int));
 		}
 	}
 }

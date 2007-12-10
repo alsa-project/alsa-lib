@@ -29,10 +29,10 @@
 /*
  *  for plain i386
  */
-static void MIX_AREAS1(unsigned int size,
-		       volatile signed short *dst, signed short *src,
-		       volatile signed int *sum, size_t dst_step,
-		       size_t src_step, size_t sum_step)
+static void MIX_AREAS_16(unsigned int size,
+			 volatile signed short *dst, signed short *src,
+			 volatile signed int *sum, size_t dst_step,
+			 size_t src_step, size_t sum_step)
 {
 	unsigned int old_ebx;
 
@@ -153,10 +153,10 @@ static void MIX_AREAS1(unsigned int size,
 /*
  *  MMX optimized
  */
-static void MIX_AREAS1_MMX(unsigned int size,
-			   volatile signed short *dst, signed short *src,
-			   volatile signed int *sum, size_t dst_step,
-			   size_t src_step, size_t sum_step)
+static void MIX_AREAS_16_MMX(unsigned int size,
+			     volatile signed short *dst, signed short *src,
+			     volatile signed int *sum, size_t dst_step,
+			     size_t src_step, size_t sum_step)
 {
 	unsigned int old_ebx;
 
@@ -243,10 +243,10 @@ static void MIX_AREAS1_MMX(unsigned int size,
 /*
  *  for plain i386, 32-bit version (24-bit resolution)
  */
-static void MIX_AREAS2(unsigned int size,
-		       volatile signed int *dst, signed int *src,
-		       volatile signed int *sum, size_t dst_step,
-		       size_t src_step, size_t sum_step)
+static void MIX_AREAS_32(unsigned int size,
+			 volatile signed int *dst, signed int *src,
+			 volatile signed int *sum, size_t dst_step,
+			 size_t src_step, size_t sum_step)
 {
 	unsigned int old_ebx;
 
@@ -356,10 +356,10 @@ static void MIX_AREAS2(unsigned int size,
 /*
  * 24-bit version for plain i386
  */
-static void MIX_AREAS3(unsigned int size,
-		       volatile unsigned char *dst, unsigned char *src,
-		       volatile signed int *sum, size_t dst_step,
-		       size_t src_step, size_t sum_step)
+static void MIX_AREAS_24(unsigned int size,
+			 volatile unsigned char *dst, unsigned char *src,
+			 volatile signed int *sum, size_t dst_step,
+			 size_t src_step, size_t sum_step)
 {
 	unsigned int old_ebx;
 
@@ -462,10 +462,10 @@ static void MIX_AREAS3(unsigned int size,
 /*
  * 24-bit version for Pentium Pro/II
  */
-static void MIX_AREAS3_CMOV(unsigned int size,
-			    volatile unsigned char *dst, unsigned char *src,
-			    volatile signed int *sum, size_t dst_step,
-			    size_t src_step, size_t sum_step)
+static void MIX_AREAS_24_CMOV(unsigned int size,
+			      volatile unsigned char *dst, unsigned char *src,
+			      volatile signed int *sum, size_t dst_step,
+			      size_t src_step, size_t sum_step)
 {
 	unsigned int old_ebx;
 

@@ -48,10 +48,10 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
 #endif
 
 #if IS_CONCURRENT
-static void mix_areas1(unsigned int size,
-		       volatile signed short *dst, signed short *src,
-		       volatile signed int *sum, size_t dst_step,
-		       size_t src_step, size_t sum_step)
+static void mix_areas_16(unsigned int size,
+			 volatile signed short *dst, signed short *src,
+			 volatile signed int *sum, size_t dst_step,
+			 size_t src_step, size_t sum_step)
 {
 	register signed int sample, old_sample;
 
@@ -79,10 +79,10 @@ static void mix_areas1(unsigned int size,
 	}
 }
 
-static void mix_areas2(unsigned int size,
-		       volatile signed int *dst, signed int *src,
-		       volatile signed int *sum, size_t dst_step,
-		       size_t src_step, size_t sum_step)
+static void mix_areas_32(unsigned int size,
+			 volatile signed int *dst, signed int *src,
+			 volatile signed int *sum, size_t dst_step,
+			 size_t src_step, size_t sum_step)
 {
 	register signed int sample, old_sample;
 
@@ -112,8 +112,8 @@ static void mix_areas2(unsigned int size,
 
 static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 {
-	dmix->u.dmix.mix_areas1 = mix_areas1;
-	dmix->u.dmix.mix_areas2 = mix_areas2;
+	dmix->u.dmix.mix_areas_16 = mix_areas_16;
+	dmix->u.dmix.mix_areas_32 = mix_areas_32;
 }
 
 #else
@@ -126,10 +126,13 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 
 #include <byteswap.h>
 
-static void generic_mix_areas1_native(unsigned int size,
-			      volatile signed short *dst, signed short *src,
-			      volatile signed int *sum, size_t dst_step,
-			      size_t src_step, size_t sum_step)
+static void generic_mix_areas_16_native(unsigned int size,
+					volatile signed short *dst,
+					signed short *src,
+					volatile signed int *sum,
+					size_t dst_step,
+					size_t src_step,
+					size_t sum_step)
 {
 	register signed int sample;
 
@@ -155,10 +158,13 @@ static void generic_mix_areas1_native(unsigned int size,
 	}
 }
 
-static void generic_mix_areas2_native(unsigned int size,
-			      volatile signed int *dst, signed int *src,
-			      volatile signed int *sum, size_t dst_step,
-			      size_t src_step, size_t sum_step)
+static void generic_mix_areas_32_native(unsigned int size,
+					volatile signed int *dst,
+					signed int *src,
+					volatile signed int *sum,
+					size_t dst_step,
+					size_t src_step,
+					size_t sum_step)
 {
 	register signed int sample;
 
@@ -186,10 +192,13 @@ static void generic_mix_areas2_native(unsigned int size,
 	}
 }
 
-static void generic_mix_areas1_swap(unsigned int size,
-			    volatile signed short *dst, signed short *src,
-			    volatile signed int *sum, size_t dst_step,
-			    size_t src_step, size_t sum_step)
+static void generic_mix_areas_16_swap(unsigned int size,
+				      volatile signed short *dst,
+				      signed short *src,
+				      volatile signed int *sum,
+				      size_t dst_step,
+				      size_t src_step,
+				      size_t sum_step)
 {
 	register signed int sample;
 
@@ -215,10 +224,13 @@ static void generic_mix_areas1_swap(unsigned int size,
 	}
 }
 
-static void generic_mix_areas2_swap(unsigned int size,
-			    volatile signed int *dst, signed int *src,
-			    volatile signed int *sum, size_t dst_step,
-			    size_t src_step, size_t sum_step)
+static void generic_mix_areas_32_swap(unsigned int size,
+				      volatile signed int *dst,
+				      signed int *src,
+				      volatile signed int *sum,
+				      size_t dst_step,
+				      size_t src_step,
+				      size_t sum_step)
 {
 	register signed int sample;
 
@@ -247,10 +259,13 @@ static void generic_mix_areas2_swap(unsigned int size,
 }
 
 /* always little endian */
-static void generic_mix_areas3(unsigned int size,
-		       volatile unsigned char *dst, unsigned char *src,
-		       volatile signed int *sum, size_t dst_step,
-		       size_t src_step, size_t sum_step)
+static void generic_mix_areas_24(unsigned int size,
+				 volatile unsigned char *dst,
+				 unsigned char *src,
+				 volatile signed int *sum,
+				 size_t dst_step,
+				 size_t src_step,
+				 size_t sum_step)
 {
 	register signed int sample;
 
@@ -281,13 +296,13 @@ static void generic_mix_areas3(unsigned int size,
 static void generic_mix_select_callbacks(snd_pcm_direct_t *dmix)
 {
 	if (snd_pcm_format_cpu_endian(dmix->shmptr->s.format)) {
-		dmix->u.dmix.mix_areas1 = generic_mix_areas1_native;
-		dmix->u.dmix.mix_areas2 = generic_mix_areas2_native;
+		dmix->u.dmix.mix_areas_16 = generic_mix_areas_16_native;
+		dmix->u.dmix.mix_areas_32 = generic_mix_areas_32_native;
 	} else {
-		dmix->u.dmix.mix_areas1 = generic_mix_areas1_swap;
-		dmix->u.dmix.mix_areas2 = generic_mix_areas2_swap;
+		dmix->u.dmix.mix_areas_16 = generic_mix_areas_16_swap;
+		dmix->u.dmix.mix_areas_32 = generic_mix_areas_32_swap;
 	}
-	dmix->u.dmix.mix_areas3 = generic_mix_areas3;
+	dmix->u.dmix.mix_areas_24 = generic_mix_areas_24;
 }
 
 #endif
