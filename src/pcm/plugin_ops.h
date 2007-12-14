@@ -86,8 +86,6 @@ static inline u_int32_t sx24s(u_int32_t x)
 #define _put_triple_s(ptr,val) _put_triple_le(ptr,val)
 #endif
 
-#define shift_down(val, bits) (((val) + (1 << ((bits) - 1))) >> (bits))
-
 #ifdef COPY_LABELS
 static void *copy_labels[5] = {
 	&&copy_8,
@@ -258,14 +256,14 @@ conv_xxx1_x900: as_u32(dst) = sx24((u_int32_t)(as_u8c(src) ^ 0x80) << 16); goto 
 conv_xxx1_009x: as_u32(dst) = sx24s((u_int32_t)(as_u8c(src) ^ 0x80) << 8); goto CONV_END;
 conv_xxx1_9000: as_u32(dst) = (u_int32_t)(as_u8c(src) ^ 0x80) << 24; goto CONV_END;
 conv_xxx1_0009: as_u32(dst) = (u_int32_t)(as_u8c(src) ^ 0x80); goto CONV_END;
-conv_xx12_xxx1: as_u8(dst) = shift_down(as_u16c(src), 8); goto CONV_END;
+conv_xx12_xxx1: as_u8(dst) = as_u16c(src) >> 8; goto CONV_END;
 conv_xx12_xx12: as_u16(dst) = as_u16c(src); goto CONV_END;
 conv_xx12_xx21: as_u16(dst) = bswap_16(as_u16c(src)); goto CONV_END;
 conv_xx12_x120: as_u32(dst) = sx24((u_int32_t)as_u16c(src) << 8); goto CONV_END;
 conv_xx12_021x: as_u32(dst) = sx24s((u_int32_t)bswap_16(as_u16c(src)) << 8); goto CONV_END;
 conv_xx12_1200: as_u32(dst) = (u_int32_t)as_u16c(src) << 16; goto CONV_END;
 conv_xx12_0021: as_u32(dst) = (u_int32_t)bswap_16(as_u16c(src)); goto CONV_END;
-conv_xx12_xxx9: as_u8(dst) = shift_down(as_u16c(src), 8) ^ 0x80; goto CONV_END;
+conv_xx12_xxx9: as_u8(dst) = (as_u16c(src) >> 8) ^ 0x80; goto CONV_END;
 conv_xx12_xx92: as_u16(dst) = as_u16c(src) ^ 0x8000; goto CONV_END;
 conv_xx12_xx29: as_u16(dst) = bswap_16(as_u16c(src)) ^ 0x80; goto CONV_END;
 conv_xx12_x920: as_u32(dst) = sx24((u_int32_t)(as_u16c(src) ^ 0x8000) << 8); goto CONV_END;
@@ -284,57 +282,57 @@ conv_xx12_xA10: as_u32(dst) = sx24((u_int32_t)bswap_16(as_u16c(src) ^ 0x80) << 8
 conv_xx12_01Ax: as_u32(dst) = sx24s((u_int32_t)(as_u16c(src) ^ 0x80) << 8); goto CONV_END;
 conv_xx12_A100: as_u32(dst) = (u_int32_t)bswap_16(as_u16c(src) ^ 0x80) << 16; goto CONV_END;
 conv_xx12_001A: as_u32(dst) = (u_int32_t)(as_u16c(src) ^ 0x80); goto CONV_END;
-conv_x123_xxx1: as_u8(dst) = shift_down(as_u32c(src), 16); goto CONV_END;
-conv_x123_xx12: as_u16(dst) = shift_down(as_u32c(src), 8); goto CONV_END;
-conv_x123_xx21: as_u16(dst) = bswap_16(shift_down(as_u32c(src), 8)); goto CONV_END;
+conv_x123_xxx1: as_u8(dst) = as_u32c(src) >> 16; goto CONV_END;
+conv_x123_xx12: as_u16(dst) = as_u32c(src) >> 8; goto CONV_END;
+conv_x123_xx21: as_u16(dst) = bswap_16(as_u32c(src) >> 8); goto CONV_END;
 conv_x123_x123: as_u32(dst) = sx24(as_u32c(src)); goto CONV_END;
 conv_x123_321x: as_u32(dst) = sx24s(bswap_32(as_u32c(src))); goto CONV_END;
 conv_x123_1230: as_u32(dst) = as_u32c(src) << 8; goto CONV_END;
-conv_x123_0321: as_u32(dst) = shift_down(bswap_32(as_u32c(src)), 8); goto CONV_END;
- conv_x123_xxx9: as_u8(dst) = shift_down(as_u32c(src), 16) ^ 0x80; goto CONV_END;
-conv_x123_xx92: as_u16(dst) = shift_down(as_u32c(src), 8) ^ 0x8000; goto CONV_END;
-conv_x123_xx29: as_u16(dst) = bswap_16(shift_down(as_u32c(src), 8)) ^ 0x80; goto CONV_END;
+conv_x123_0321: as_u32(dst) = bswap_32(as_u32c(src)) >> 8; goto CONV_END;
+conv_x123_xxx9: as_u8(dst) = (as_u32c(src) >> 16) ^ 0x80; goto CONV_END;
+conv_x123_xx92: as_u16(dst) = (as_u32c(src) >> 8) ^ 0x8000; goto CONV_END;
+conv_x123_xx29: as_u16(dst) = bswap_16(as_u32c(src) >> 8) ^ 0x80; goto CONV_END;
 conv_x123_x923: as_u32(dst) = sx24(as_u32c(src) ^ 0x800000); goto CONV_END;
 conv_x123_329x: as_u32(dst) = sx24s(bswap_32(as_u32c(src)) ^ 0x8000); goto CONV_END;
 conv_x123_9230: as_u32(dst) = (as_u32c(src) ^ 0x800000) << 8; goto CONV_END;
-conv_x123_0329: as_u32(dst) = shift_down(bswap_32(as_u32c(src)), 8) ^ 0x80; goto CONV_END;
-conv_123x_xxx3: as_u8(dst) = shift_down(as_u32c(src), 8) & 0xff; goto CONV_END;
-conv_123x_xx32: as_u16(dst) = bswap_16(shift_down(as_u32c(src), 8)); goto CONV_END;
-conv_123x_xx23: as_u16(dst) = shift_down(as_u32c(src), 8) & 0xffff; goto CONV_END;
+conv_x123_0329: as_u32(dst) = (bswap_32(as_u32c(src)) >> 8) ^ 0x80; goto CONV_END;
+conv_123x_xxx3: as_u8(dst) = (as_u32c(src) >> 8) & 0xff; goto CONV_END;
+conv_123x_xx32: as_u16(dst) = bswap_16(as_u32c(src) >> 8); goto CONV_END;
+conv_123x_xx23: as_u16(dst) = (as_u32c(src) >> 8) & 0xffff; goto CONV_END;
 conv_123x_x321: as_u32(dst) = sx24(bswap_32(as_u32c(src))); goto CONV_END;
 conv_123x_123x: as_u32(dst) = sx24s(as_u32c(src)); goto CONV_END;
 conv_123x_3210: as_u32(dst) = bswap_32(as_u32c(src)) << 8; goto CONV_END;
-conv_123x_0123: as_u32(dst) = shift_down(as_u32c(src), 8); goto CONV_END;
-conv_123x_xxxB: as_u8(dst) = (shift_down(as_u32c(src), 8) & 0xff) ^ 0x80; goto CONV_END;
-conv_123x_xxB2: as_u16(dst) = bswap_16(shift_down(as_u32c(src), 8) ^ 0x80); goto CONV_END;
-conv_123x_xx2B: as_u16(dst) = (shift_down(as_u32c(src), 8) & 0xffff) ^ 0x80; goto CONV_END;
+conv_123x_0123: as_u32(dst) = as_u32c(src) >> 8; goto CONV_END;
+conv_123x_xxxB: as_u8(dst) = ((as_u32c(src) >> 8) & 0xff) ^ 0x80; goto CONV_END;
+conv_123x_xxB2: as_u16(dst) = bswap_16((as_u32c(src) >> 8) ^ 0x80); goto CONV_END;
+conv_123x_xx2B: as_u16(dst) = ((as_u32c(src) >> 8) & 0xffff) ^ 0x80; goto CONV_END;
 conv_123x_xB21: as_u32(dst) = sx24(bswap_32(as_u32c(src)) ^ 0x800000); goto CONV_END;
 conv_123x_12Bx: as_u32(dst) = sx24s(as_u32c(src) ^ 0x8000); goto CONV_END;
 conv_123x_B210: as_u32(dst) = bswap_32(as_u32c(src) ^ 0x8000) << 8; goto CONV_END;
-conv_123x_012B: as_u32(dst) = shift_down(as_u32c(src), 8) ^ 0x80; goto CONV_END;
-conv_1234_xxx1: as_u8(dst) = shift_down(as_u32c(src), 24); goto CONV_END;
-conv_1234_xx12: as_u16(dst) = shift_down(as_u32c(src), 16); goto CONV_END;
-conv_1234_xx21: as_u16(dst) = bswap_16(shift_down(as_u32c(src), 16)); goto CONV_END;
-conv_1234_x123: as_u32(dst) = sx24(shift_down(as_u32c(src), 8)); goto CONV_END;
+conv_123x_012B: as_u32(dst) = (as_u32c(src) >> 8) ^ 0x80; goto CONV_END;
+conv_1234_xxx1: as_u8(dst) = as_u32c(src) >> 24; goto CONV_END;
+conv_1234_xx12: as_u16(dst) = as_u32c(src) >> 16; goto CONV_END;
+conv_1234_xx21: as_u16(dst) = bswap_16(as_u32c(src) >> 16); goto CONV_END;
+conv_1234_x123: as_u32(dst) = sx24(as_u32c(src) >> 8); goto CONV_END;
 conv_1234_321x: as_u32(dst) = sx24s(bswap_32(as_u32c(src)) << 8); goto CONV_END;
 conv_1234_1234: as_u32(dst) = as_u32c(src); goto CONV_END;
 conv_1234_4321: as_u32(dst) = bswap_32(as_u32c(src)); goto CONV_END;
-conv_1234_xxx9: as_u8(dst) = shift_down(as_u32c(src), 24) ^ 0x80; goto CONV_END;
-conv_1234_xx92: as_u16(dst) = shift_down(as_u32c(src), 16) ^ 0x8000; goto CONV_END;
-conv_1234_xx29: as_u16(dst) = bswap_16(shift_down(as_u32c(src), 16)) ^ 0x80; goto CONV_END;
-conv_1234_x923: as_u32(dst) = sx24(shift_down(as_u32c(src), 8) ^ 0x800000); goto CONV_END;
+conv_1234_xxx9: as_u8(dst) = (as_u32c(src) >> 24) ^ 0x80; goto CONV_END;
+conv_1234_xx92: as_u16(dst) = (as_u32c(src) >> 16) ^ 0x8000; goto CONV_END;
+conv_1234_xx29: as_u16(dst) = bswap_16(as_u32c(src) >> 16) ^ 0x80; goto CONV_END;
+conv_1234_x923: as_u32(dst) = sx24((as_u32c(src) >> 8) ^ 0x800000); goto CONV_END;
 conv_1234_329x: as_u32(dst) = sx24s((bswap_32(as_u32c(src)) ^ 0x80) << 8); goto CONV_END;
 conv_1234_9234: as_u32(dst) = as_u32c(src) ^ 0x80000000; goto CONV_END;
 conv_1234_4329: as_u32(dst) = bswap_32(as_u32c(src)) ^ 0x80; goto CONV_END;
 conv_1234_xxx4: as_u8(dst) = as_u32c(src) & 0xff; goto CONV_END;
 conv_1234_xx43: as_u16(dst) = bswap_16(as_u32c(src)); goto CONV_END;
 conv_1234_xx34: as_u16(dst) = as_u32c(src) & 0xffff; goto CONV_END;
-conv_1234_x432: as_u32(dst) = sx24(shift_down(bswap_32(as_u32c(src)), 8)); goto CONV_END;
+conv_1234_x432: as_u32(dst) = sx24(bswap_32(as_u32c(src)) >> 8); goto CONV_END;
 conv_1234_234x: as_u32(dst) = sx24s(as_u32c(src) << 8); goto CONV_END;
 conv_1234_xxxC: as_u8(dst) = (as_u32c(src) & 0xff) ^ 0x80; goto CONV_END;
 conv_1234_xxC3: as_u16(dst) = bswap_16(as_u32c(src) ^ 0x80); goto CONV_END;
 conv_1234_xx3C: as_u16(dst) = (as_u32c(src) & 0xffff) ^ 0x80; goto CONV_END;
-conv_1234_xC32: as_u32(dst) = sx24(shift_down(bswap_32(as_u32c(src)), 8) ^ 0x800000); goto CONV_END;
+conv_1234_xC32: as_u32(dst) = sx24((bswap_32(as_u32c(src)) >> 8) ^ 0x800000); goto CONV_END;
 conv_1234_23Cx: as_u32(dst) = sx24s((as_u32c(src) ^ 0x80) << 8); goto CONV_END;
 conv_1234_C321: as_u32(dst) = bswap_32(as_u32c(src) ^ 0x80); goto CONV_END;
 conv_1234_123C: as_u32(dst) = as_u32c(src) ^ 0x80; goto CONV_END;
@@ -384,26 +382,26 @@ get16_12_12: sample = as_u16c(src); goto GET16_END;
 get16_12_92: sample = as_u16c(src) ^ 0x8000; goto GET16_END;
 get16_12_21: sample = bswap_16(as_u16c(src)); goto GET16_END;
 get16_12_A1: sample = bswap_16(as_u16c(src) ^ 0x80); goto GET16_END;
-get16_0123_12: sample = shift_down(as_u32c(src), 8); goto GET16_END;
-get16_0123_92: sample = shift_down(as_u32c(src), 8) ^ 0x8000; goto GET16_END;
-get16_1230_32: sample = bswap_16(shift_down(as_u32c(src), 8)); goto GET16_END;
-get16_1230_B2: sample = bswap_16(shift_down(as_u32c(src), 8) ^ 0x80); goto GET16_END;
-get16_1234_12: sample = shift_down(as_u32c(src), 16); goto GET16_END;
-get16_1234_92: sample = shift_down(as_u32c(src), 16) ^ 0x8000; goto GET16_END;
+get16_0123_12: sample = as_u32c(src) >> 8; goto GET16_END;
+get16_0123_92: sample = (as_u32c(src) >> 8) ^ 0x8000; goto GET16_END;
+get16_1230_32: sample = bswap_16(as_u32c(src) >> 8); goto GET16_END;
+get16_1230_B2: sample = bswap_16((as_u32c(src) >> 8) ^ 0x80); goto GET16_END;
+get16_1234_12: sample = as_u32c(src) >> 16; goto GET16_END;
+get16_1234_92: sample = (as_u32c(src) >> 16) ^ 0x8000; goto GET16_END;
 get16_1234_43: sample = bswap_16(as_u32c(src)); goto GET16_END;
 get16_1234_C3: sample = bswap_16(as_u32c(src) ^ 0x80); goto GET16_END;
-get16_123_12: sample = shift_down(_get_triple(src), 8); goto GET16_END;
-get16_123_92: sample = shift_down(_get_triple(src), 8) ^ 0x8000; goto GET16_END;
-get16_123_32: sample = shift_down(_get_triple_s(src), 8); goto GET16_END;
-get16_123_B2: sample = shift_down(_get_triple_s(src), 8) ^ 0x8000; goto GET16_END;
-get16_123_12_20: sample = shift_down(_get_triple(src), 4); goto GET16_END;
-get16_123_92_20: sample = shift_down(_get_triple(src), 4) ^ 0x8000; goto GET16_END;
-get16_123_32_20: sample = shift_down(_get_triple_s(src), 4); goto GET16_END;
-get16_123_B2_20: sample = shift_down(_get_triple_s(src), 4) ^ 0x8000; goto GET16_END;
-get16_123_12_18: sample = shift_down(_get_triple(src), 2); goto GET16_END;
-get16_123_92_18: sample = shift_down(_get_triple(src), 2) ^ 0x8000; goto GET16_END;
-get16_123_32_18: sample = shift_down(_get_triple_s(src), 2); goto GET16_END;
-get16_123_B2_18: sample = shift_down(_get_triple_s(src), 2) ^ 0x8000; goto GET16_END;
+get16_123_12: sample = _get_triple(src) >> 8; goto GET16_END;
+get16_123_92: sample = (_get_triple(src) >> 8) ^ 0x8000; goto GET16_END;
+get16_123_32: sample = _get_triple_s(src) >> 8; goto GET16_END;
+get16_123_B2: sample = (_get_triple_s(src) >> 8) ^ 0x8000; goto GET16_END;
+get16_123_12_20: sample = _get_triple(src) >> 4; goto GET16_END;
+get16_123_92_20: sample = (_get_triple(src) >> 4) ^ 0x8000; goto GET16_END;
+get16_123_32_20: sample = _get_triple_s(src) >> 4; goto GET16_END;
+get16_123_B2_20: sample = (_get_triple_s(src) >> 4) ^ 0x8000; goto GET16_END;
+get16_123_12_18: sample = _get_triple(src) >> 2; goto GET16_END;
+get16_123_92_18: sample = (_get_triple(src) >> 2) ^ 0x8000; goto GET16_END;
+get16_123_32_18: sample = _get_triple_s(src) >> 2; goto GET16_END;
+get16_123_B2_18: sample = (_get_triple_s(src) >> 2) ^ 0x8000; goto GET16_END;
 }
 #endif
 
@@ -431,8 +429,8 @@ static void *put16_labels[4 * 2 * 2] = {
 
 #ifdef PUT16_END
 while (0) {
-put16_12_1: as_u8(dst) = shift_down(sample, 8); goto PUT16_END;
-put16_12_9: as_u8(dst) = shift_down(sample, 8) ^ 0x80; goto PUT16_END;
+put16_12_1: as_u8(dst) = sample >> 8; goto PUT16_END;
+put16_12_9: as_u8(dst) = (sample >> 8) ^ 0x80; goto PUT16_END;
 put16_12_12: as_u16(dst) = sample; goto PUT16_END;
 put16_12_92: as_u16(dst) = sample ^ 0x8000; goto PUT16_END;
 put16_12_21: as_u16(dst) = bswap_16(sample); goto PUT16_END;
@@ -502,8 +500,8 @@ get32_12_2100: sample = (u_int32_t)bswap_16(as_u16c(src)) << 16; goto GET32_END;
 get32_12_A100: sample = (u_int32_t)bswap_16(as_u16c(src) ^ 0x80) << 16; goto GET32_END;
 get32_0123_1230: sample = as_u32c(src) << 8; goto GET32_END;
 get32_0123_9230: sample = (as_u32c(src) << 8) ^ 0x80000000; goto GET32_END;
-get32_1230_3210: sample = bswap_32(shift_down(as_u32c(src), 8)); goto GET32_END;
-get32_1230_B210: sample = bswap_32(shift_down(as_u32c(src), 8) ^ 0x80); goto GET32_END;
+get32_1230_3210: sample = bswap_32(as_u32c(src) >> 8); goto GET32_END;
+get32_1230_B210: sample = bswap_32((as_u32c(src) >> 8) ^ 0x80); goto GET32_END;
 get32_1234_1234: sample = as_u32c(src); goto GET32_END;
 get32_1234_9234: sample = as_u32c(src) ^ 0x80000000; goto GET32_END;
 get32_1234_4321: sample = bswap_32(as_u32c(src)); goto GET32_END;
@@ -570,32 +568,32 @@ static void *put32_labels[4 * 2 * 2 + 4 * 3] = {
 
 #ifdef PUT32_END
 while (0) {
-put32_1234_1: as_u8(dst) = shift_down(sample, 24); goto PUT32_END;
-put32_1234_9: as_u8(dst) = shift_down(sample, 24) ^ 0x80; goto PUT32_END;
-put32_1234_12: as_u16(dst) = shift_down(sample, 16); goto PUT32_END;
-put32_1234_92: as_u16(dst) = shift_down(sample, 16) ^ 0x8000; goto PUT32_END;
-put32_1234_21: as_u16(dst) = bswap_16(shift_down(sample, 16)); goto PUT32_END;
-put32_1234_29: as_u16(dst) = bswap_16(shift_down(sample, 16)) ^ 0x80; goto PUT32_END;
-put32_1234_0123: as_u32(dst) = sx24(shift_down(sample, 8)); goto PUT32_END;
-put32_1234_0923: as_u32(dst) = sx24(shift_down(sample, 8) ^ 0x800000); goto PUT32_END;
+put32_1234_1: as_u8(dst) = sample >> 24; goto PUT32_END;
+put32_1234_9: as_u8(dst) = (sample >> 24) ^ 0x80; goto PUT32_END;
+put32_1234_12: as_u16(dst) = sample >> 16; goto PUT32_END;
+put32_1234_92: as_u16(dst) = (sample >> 16) ^ 0x8000; goto PUT32_END;
+put32_1234_21: as_u16(dst) = bswap_16(sample >> 16); goto PUT32_END;
+put32_1234_29: as_u16(dst) = bswap_16(sample >> 16) ^ 0x80; goto PUT32_END;
+put32_1234_0123: as_u32(dst) = sx24(sample >> 8); goto PUT32_END;
+put32_1234_0923: as_u32(dst) = sx24((sample >> 8) ^ 0x800000); goto PUT32_END;
 put32_1234_3210: as_u32(dst) = sx24s(bswap_32(sample) << 8); goto PUT32_END;
 put32_1234_3290: as_u32(dst) = sx24s((bswap_32(sample) ^ 0x80) << 8); goto PUT32_END;
 put32_1234_1234: as_u32(dst) = sample; goto PUT32_END;
 put32_1234_9234: as_u32(dst) = sample ^ 0x80000000; goto PUT32_END;
 put32_1234_4321: as_u32(dst) = bswap_32(sample); goto PUT32_END;
 put32_1234_4329: as_u32(dst) = bswap_32(sample) ^ 0x80; goto PUT32_END;
-put32_1234_123: _put_triple(dst, shift_down(sample, 8)); goto PUT32_END;
-put32_1234_923: _put_triple(dst, shift_down(sample ^ 0x80000000, 8)); goto PUT32_END;
-put32_1234_321: _put_triple_s(dst, shift_down(sample, 8)); goto PUT32_END;
-put32_1234_329: _put_triple_s(dst, shift_down(sample ^ 0x80000000, 8)); goto PUT32_END;
-put32_1234_123_20: _put_triple(dst, shift_down(sample, 12)); goto PUT32_END;
-put32_1234_923_20: _put_triple(dst, shift_down(sample ^ 0x80000000, 12)); goto PUT32_END;
-put32_1234_321_20: _put_triple_s(dst, shift_down(sample, 12)); goto PUT32_END;
-put32_1234_329_20: _put_triple_s(dst, shift_down(sample ^ 0x80000000, 12)); goto PUT32_END;
-put32_1234_123_18: _put_triple(dst, shift_down(sample, 14)); goto PUT32_END;
-put32_1234_923_18: _put_triple(dst, shift_down(sample ^ 0x80000000, 14)); goto PUT32_END;
-put32_1234_321_18: _put_triple_s(dst, shift_down(sample, 14)); goto PUT32_END;
-put32_1234_329_18: _put_triple_s(dst, shift_down(sample ^ 0x80000000, 14)); goto PUT32_END;
+put32_1234_123: _put_triple(dst, sample >> 8); goto PUT32_END;
+put32_1234_923: _put_triple(dst, (sample ^ 0x80000000) >> 8); goto PUT32_END;
+put32_1234_321: _put_triple_s(dst, sample >> 8); goto PUT32_END;
+put32_1234_329: _put_triple_s(dst, (sample ^ 0x80000000) >> 8); goto PUT32_END;
+put32_1234_123_20: _put_triple(dst, sample >> 12); goto PUT32_END;
+put32_1234_923_20: _put_triple(dst, (sample ^ 0x80000000) >> 12); goto PUT32_END;
+put32_1234_321_20: _put_triple_s(dst, sample >> 12); goto PUT32_END;
+put32_1234_329_20: _put_triple_s(dst, (sample ^ 0x80000000) >> 12); goto PUT32_END;
+put32_1234_123_18: _put_triple(dst, sample >> 14); goto PUT32_END;
+put32_1234_923_18: _put_triple(dst, (sample ^ 0x80000000) >> 14); goto PUT32_END;
+put32_1234_321_18: _put_triple_s(dst, sample >> 14); goto PUT32_END;
+put32_1234_329_18: _put_triple_s(dst, (sample ^ 0x80000000) >> 14); goto PUT32_END;
 }
 #endif
 
@@ -1081,4 +1079,3 @@ norms_32_s32s:	_norms(src, dst, 32, 1,  32, 1); goto NORMS_END;
 #undef _put_triple_le
 #undef _put_triple_be
 
-#undef shift_down
