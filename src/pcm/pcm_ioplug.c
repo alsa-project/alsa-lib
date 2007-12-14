@@ -614,6 +614,8 @@ static snd_pcm_sframes_t snd_pcm_ioplug_avail_update(snd_pcm_t *pcm)
 	snd_pcm_uframes_t avail;
 
 	snd_pcm_ioplug_hw_ptr_update(pcm);
+	if (io->data->state == SNDRV_PCM_STATE_XRUN)
+		return -EPIPE;
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE &&
 	    pcm->access != SND_PCM_ACCESS_RW_INTERLEAVED &&
 	    pcm->access != SND_PCM_ACCESS_RW_NONINTERLEAVED) {
@@ -1036,4 +1038,20 @@ const snd_pcm_channel_area_t *snd_pcm_ioplug_mmap_areas(snd_pcm_ioplug_t *ioplug
 	if (ioplug->mmap_rw)
 		return snd_pcm_mmap_areas(ioplug->pcm);
 	return NULL;
+}
+
+/**
+ * \brief Change the ioplug PCM status
+ * \param ioplug the ioplug handle
+ * \param state the PCM status
+ * \return zero if successful or a negative error code
+ *
+ * Changes the PCM status of the ioplug to the given value.
+ * This function can be used for external plugins to notify the status
+ * change, e.g. XRUN.
+ */
+int snd_pcm_ioplug_set_state(snd_pcm_ioplug_t *ioplug, snd_pcm_state_t state)
+{
+	ioplug->state = state;
+	return 0;
 }
