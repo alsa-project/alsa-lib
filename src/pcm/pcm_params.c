@@ -2309,7 +2309,6 @@ int _snd_pcm_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	INTERNAL(snd_pcm_hw_params_get_period_time)(params, &pcm->period_time, 0);
 	INTERNAL(snd_pcm_hw_params_get_period_size)(params, &pcm->period_size, 0);
 	INTERNAL(snd_pcm_hw_params_get_buffer_size)(params, &pcm->buffer_size);
-	INTERNAL(snd_pcm_hw_params_get_tick_time)(params, &pcm->tick_time, 0);
 	pcm->sample_bits = snd_pcm_format_physical_width(pcm->format);
 	pcm->frame_bits = pcm->sample_bits * pcm->channels;
 	fb = pcm->frame_bits;

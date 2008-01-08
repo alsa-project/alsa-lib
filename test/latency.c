@@ -48,8 +48,6 @@ int latency_min = 32;		/* in frames / 2 */
 int latency_max = 2048;		/* in frames / 2 */
 int loop_sec = 30;		/* seconds */
 int block = 0;			/* block mode */
-int tick_time = 0;		/* disabled, otherwise in us */
-int tick_time_ok = 0;
 int use_poll = 0;
 int resample = 1;
 unsigned long loop_limit;
@@ -136,7 +134,6 @@ int setparams_set(snd_pcm_t *handle,
 {
 	int err;
 	snd_pcm_uframes_t val;
-	unsigned int sleep_min = 0;
 
 	err = snd_pcm_hw_params(handle, params);
 	if (err < 0) {
@@ -153,33 +150,10 @@ int setparams_set(snd_pcm_t *handle,
 		printf("Unable to set start threshold mode for %s: %s\n", id, snd_strerror(err));
 		return err;
 	}
-	tick_time_ok = 0;
-	if (tick_time > 0) {
-		unsigned int time, ttime;
-		snd_pcm_hw_params_get_period_time(params, &time, NULL);
-		snd_pcm_hw_params_get_tick_time(params, &ttime, NULL);
-		if (time < ttime) {
-			printf("Skipping to set minimal sleep: period time < tick time\n");
-		} else if (ttime <= 0) {
-			printf("Skipping to set minimal sleep: tick time <= 0 (%i)\n", ttime);
-		} else {
-			sleep_min = tick_time / ttime;
-			if (sleep_min <= 0)
-				sleep_min = 1;
-			err = snd_pcm_sw_params_set_sleep_min(handle, swparams, sleep_min);
-			if (err < 0) {
-				printf("Unable to set minimal sleep %i for %s: %s\n", sleep_min, id, snd_strerror(err));
-				return err;
-			}
-			tick_time_ok = sleep_min * ttime;
-		}
-	}
 	if (!block)
 		val = 4;
 	else
 		snd_pcm_hw_params_get_period_size(params, &val, NULL);
-	if (tick_time_ok > 0)
-		val = 16;
 	err = snd_pcm_sw_params_set_avail_min(handle, swparams, val);
 	if (err < 0) {
 		printf("Unable to set avail min for %s: %s\n", id, snd_strerror(err));
@@ -465,7 +439,6 @@ void help(void)
 "-E,--period    period size in frames\n"
 "-s,--seconds   duration of test in seconds\n"
 "-b,--block     block mode\n"
-"-t,--time      maximal tick time in us\n"
 "-p,--poll      use poll (wait for event - reduces CPU usage)\n"
 "-e,--effect    apply an effect (bandpass filter sweep)\n"
 );
@@ -502,7 +475,6 @@ int main(int argc, char *argv[])
 		{"period", 1, NULL, 'E'},
 		{"seconds", 1, NULL, 's'},
 		{"block", 0, NULL, 'b'},
-		{"time", 1, NULL, 't'},
 		{"poll", 0, NULL, 'p'},
 		{"effect", 0, NULL, 'e'},
 		{NULL, 0, NULL, 0},
@@ -518,7 +490,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:s:bt:pen", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hP:C:m:M:F:f:c:r:s:bpen", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -570,10 +542,6 @@ int main(int argc, char *argv[])
 		case 'b':
 			block = 1;
 			break;
-		case 't':
-			tick_time = atoi(optarg);
-			tick_time = tick_time < 0 ? 0 : tick_time;
-			break;
 		case 'p':
 			use_poll = 1;
 			break;
@@ -605,7 +573,7 @@ int main(int argc, char *argv[])
 	printf("Playback device is %s\n", pdevice);
 	printf("Capture device is %s\n", cdevice);
 	printf("Parameters are %iHz, %s, %i channels, %s mode\n", rate, snd_pcm_format_name(format), channels, block ? "blocking" : "non-blocking");
-	printf("Wanted tick time: %ius, poll mode: %s\n", tick_time, use_poll ? "yes" : "no");
+	printf("Poll mode: %s\n", use_poll ? "yes" : "no");
 	printf("Loop limit is %li frames, minimum latency = %i, maximum latency = %i\n", loop_limit, latency_min * 2, latency_max * 2);
 
 	if ((err = snd_pcm_open(&phandle, pdevice, SND_PCM_STREAM_PLAYBACK, block ? 0 : SND_PCM_NONBLOCK)) < 0) {
@@ -638,8 +606,6 @@ int main(int argc, char *argv[])
 		if (setparams(phandle, chandle, &latency) < 0)
 			break;
 		showlatency(latency);
-		if (tick_time_ok)
-			printf("Using tick time %ius\n", tick_time_ok);
 		if ((err = snd_pcm_link(chandle, phandle)) < 0) {
 			printf("Streams link error: %s\n", snd_strerror(err));
 			exit(0);

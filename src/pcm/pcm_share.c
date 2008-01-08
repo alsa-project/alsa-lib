@@ -539,8 +539,7 @@ static int snd_pcm_share_hw_refine_schange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 			      SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
-			      SND_PCM_HW_PARBIT_PERIODS |
-			      SND_PCM_HW_PARBIT_TICK_TIME);
+			      SND_PCM_HW_PARBIT_PERIODS);
 	const snd_pcm_access_mask_t *access_mask = snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
 	if (!snd_pcm_access_mask_test(access_mask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
 	    !snd_pcm_access_mask_test(access_mask, SND_PCM_ACCESS_RW_NONINTERLEAVED) &&
@@ -570,8 +569,7 @@ static int snd_pcm_share_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 			      SND_PCM_HW_PARBIT_PERIOD_TIME |
 			      SND_PCM_HW_PARBIT_BUFFER_SIZE |
 			      SND_PCM_HW_PARBIT_BUFFER_TIME |
-			      SND_PCM_HW_PARBIT_PERIODS |
-			      SND_PCM_HW_PARBIT_TICK_TIME);
+			      SND_PCM_HW_PARBIT_PERIODS);
 	snd_pcm_access_mask_t access_mask;
 	const snd_pcm_access_mask_t *saccess_mask = snd_pcm_hw_param_get_mask(sparams, SND_PCM_HW_PARAM_ACCESS);
 	snd_pcm_access_mask_any(&access_mask);
@@ -639,11 +637,6 @@ static int snd_pcm_share_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			goto _err;
 		err = _snd_pcm_hw_param_set(params, SND_PCM_HW_PARAM_BUFFER_SIZE,
 					    spcm->buffer_size, 0);
-		if (err < 0)
-			goto _err;
-		err = _snd_pcm_hw_param_set_minmax(params, SND_PCM_HW_PARAM_TICK_TIME,
-						   spcm->tick_time, 0,
-						   spcm->tick_time, 1);
 	_err:
 		if (err < 0) {
 			SNDERR("slave is already running with incompatible setup");

@@ -817,10 +817,8 @@ static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 	COPY_SLAVE(period_size);
 	COPY_SLAVE(period_time);
 	COPY_SLAVE(periods);
-	COPY_SLAVE(tick_time);
 	COPY_SLAVE(tstamp_mode);
 	COPY_SLAVE(period_step);
-	COPY_SLAVE(sleep_min);
 	COPY_SLAVE(avail_min);
 	COPY_SLAVE(start_threshold);
 	COPY_SLAVE(stop_threshold);
@@ -1170,10 +1168,8 @@ static void copy_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 	COPY_SLAVE(period_size);
 	COPY_SLAVE(period_time);
 	COPY_SLAVE(periods);
-	COPY_SLAVE(tick_time);
 	COPY_SLAVE(tstamp_mode);
 	COPY_SLAVE(period_step);
-	COPY_SLAVE(sleep_min);
 	COPY_SLAVE(avail_min);
 	COPY_SLAVE(start_threshold);
 	COPY_SLAVE(stop_threshold);

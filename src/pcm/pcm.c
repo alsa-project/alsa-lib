@@ -345,15 +345,6 @@ The timestamp mode specifies, if timestamps are activated. Currently, only
 modes are known. The mmap mode means that timestamp is taken
 on every period time boundary.
 
-\par Minimal sleep
-
-This parameters means the minimum of ticks to sleep using a standalone
-timer (usually the system timer). The tick resolution can be obtained
-via the function #snd_pcm_hw_params_get_tick_time(). This
-function can be used to fine-tune the transfer acknowledge process. It could
-be useful especially when some hardware does not support small transfer
-periods.
-
 \par Transfer align
 
 The read / write transfers can be aligned to this sample count. The modulo
@@ -792,7 +783,6 @@ int snd_pcm_hw_params_current(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	snd_interval_copy(&params->intervals[SND_PCM_HW_PARAM_BUFFER_TIME - SND_PCM_HW_PARAM_FIRST_INTERVAL], &pcm->buffer_time);
 	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_BUFFER_SIZE - SND_PCM_HW_PARAM_FIRST_INTERVAL], pcm->buffer_size);
 	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_BUFFER_BYTES - SND_PCM_HW_PARAM_FIRST_INTERVAL], (pcm->buffer_size * frame_bits) / 8);
-	snd_interval_set_value(&params->intervals[SND_PCM_HW_PARAM_TICK_TIME - SND_PCM_HW_PARAM_FIRST_INTERVAL], pcm->tick_time);
 	params->info = pcm->info;
 	params->msbits = pcm->msbits;
 	params->rate_num = pcm->rate_num;
@@ -887,7 +877,6 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		return err;
 	pcm->tstamp_mode = params->tstamp_mode;
 	pcm->period_step = params->period_step;
-	pcm->sleep_min = params->sleep_min;
 	pcm->avail_min = params->avail_min;
 	pcm->start_threshold = params->start_threshold;
 	pcm->stop_threshold = params->stop_threshold;
@@ -1779,7 +1768,6 @@ int snd_pcm_dump_hw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	snd_output_printf(out, "  buffer_size  : %lu\n", pcm->buffer_size);
 	snd_output_printf(out, "  period_size  : %lu\n", pcm->period_size);
 	snd_output_printf(out, "  period_time  : %u\n", pcm->period_time);
-	snd_output_printf(out, "  tick_time    : %u\n", pcm->tick_time);
 	return 0;
 }
 
@@ -1799,7 +1787,6 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	}
 	snd_output_printf(out, "  tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
 	snd_output_printf(out, "  period_step  : %d\n", pcm->period_step);
-	snd_output_printf(out, "  sleep_min    : %d\n", pcm->sleep_min);
 	snd_output_printf(out, "  avail_min    : %ld\n", pcm->avail_min);
 	snd_output_printf(out, "  start_threshold  : %ld\n", pcm->start_threshold);
 	snd_output_printf(out, "  stop_threshold   : %ld\n", pcm->stop_threshold);
@@ -5059,7 +5046,7 @@ int snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 
 
 /**
- * \brief Extract tick time from a configuration space
+ * \brief (DEPRECATED) Extract tick time from a configuration space
  * \param params Configuration space
  * \param val Returned approximate tick duration in us
  * \param dir Sub unit direction
@@ -5068,16 +5055,17 @@ int snd_pcm_hw_params_set_buffer_size_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_tick_time)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+int INTERNAL(snd_pcm_hw_params_get_tick_time)(const snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_get_tick_time(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
 {
-	return snd_pcm_hw_param_get(params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	*val = 0;
+	return 0;
 }
 
 /**
- * \brief Extract minimum tick time from a configuration space
+ * \brief (DEPRECATED) Extract minimum tick time from a configuration space
  * \param params Configuration space
  * \param val Returned approximate minimum tick duration in us
  * \param dir Sub unit direction
@@ -5086,16 +5074,17 @@ int snd_pcm_hw_params_get_tick_time(const snd_pcm_hw_params_t *params, unsigned 
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_tick_time_min)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+int INTERNAL(snd_pcm_hw_params_get_tick_time_min)(const snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_get_tick_time_min(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
 {
-	return snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	*val = 0;
+	return 0;
 }
 
 /**
- * \brief Extract maximum tick time from a configuration space
+ * \brief (DEPRECATED) Extract maximum tick time from a configuration space
  * \param params Configuration space
  * \param val Returned approximate maximum tick duration in us
  * \param dir Sub unit direction
@@ -5104,16 +5093,17 @@ int snd_pcm_hw_params_get_tick_time_min(const snd_pcm_hw_params_t *params, unsig
  * Exact value is <,=,> the returned one following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_get_tick_time_max)(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+int INTERNAL(snd_pcm_hw_params_get_tick_time_max)(const snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_get_tick_time_max(const snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
 {
-	return snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	*val = 0;
+	return 0;
 }
 
 /**
- * \brief Verify if a tick time is available inside a configuration space for a PCM
+ * \brief (DEPRECATED) Verify if a tick time is available inside a configuration space for a PCM
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate tick duration in us
@@ -5122,13 +5112,13 @@ int snd_pcm_hw_params_get_tick_time_max(const snd_pcm_hw_params_t *params, unsig
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
-int snd_pcm_hw_params_test_tick_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+int snd_pcm_hw_params_test_tick_time(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int val, int dir ATTRIBUTE_UNUSED)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TEST, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	return val ? -EINVAL : 0;
 }
 
 /**
- * \brief Restrict a configuration space to contain only one tick time
+ * \brief (DEPRECATED) Restrict a configuration space to contain only one tick time
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate tick duration in us
@@ -5137,13 +5127,13 @@ int snd_pcm_hw_params_test_tick_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params
  *
  * Wanted exact value is <,=,> val following dir (-1,0,1)
  */
-int snd_pcm_hw_params_set_tick_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir)
+int snd_pcm_hw_params_set_tick_time(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int val ATTRIBUTE_UNUSED, int dir ATTRIBUTE_UNUSED)
 {
-	return snd_pcm_hw_param_set(pcm, params, SND_TRY, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	return 0;
 }
 
 /**
- * \brief Restrict a configuration space with a minimum tick time
+ * \brief (DEPRECATED) Restrict a configuration space with a minimum tick time
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate minimum tick duration in us (on return filled with actual minimum)
@@ -5152,13 +5142,13 @@ int snd_pcm_hw_params_set_tick_time(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
  *
  * Wanted/actual exact minimum is <,=,> val following dir (-1,0,1)
  */
-int snd_pcm_hw_params_set_tick_time_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+int snd_pcm_hw_params_set_tick_time_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
 {
-	return snd_pcm_hw_param_set_min(pcm, params, SND_TRY, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	return 0;
 }
 
 /**
- * \brief Restrict a configuration space with a maximum tick time
+ * \brief (DEPRECATED) Restrict a configuration space with a maximum tick time
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate maximum tick duration in us (on return filled with actual maximum)
@@ -5167,13 +5157,13 @@ int snd_pcm_hw_params_set_tick_time_min(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  *
  * Wanted/actual exact maximum is <,=,> val following dir (-1,0,1)
  */
-int snd_pcm_hw_params_set_tick_time_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+int snd_pcm_hw_params_set_tick_time_max(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
 {
-	return snd_pcm_hw_param_set_max(pcm, params, SND_TRY, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	return 0;
 }
 
 /**
- * \brief Restrict a configuration space to have tick times in a given range
+ * \brief (DEPRECATED) Restrict a configuration space to have tick times in a given range
  * \param pcm PCM handle
  * \param params Configuration space
  * \param min approximate minimum tick duration in us (on return filled with actual minimum)
@@ -5184,13 +5174,13 @@ int snd_pcm_hw_params_set_tick_time_max(snd_pcm_t *pcm, snd_pcm_hw_params_t *par
  *
  * Wanted/actual exact min/max is <,=,> val following dir (-1,0,1)
  */
-int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *min, int *mindir, unsigned int *max, int *maxdir)
+int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *min ATTRIBUTE_UNUSED, int *mindir ATTRIBUTE_UNUSED, unsigned int *max ATTRIBUTE_UNUSED, int *maxdir ATTRIBUTE_UNUSED)
 {
-	return snd_pcm_hw_param_set_minmax(pcm, params, SND_TRY, SND_PCM_HW_PARAM_TICK_TIME, min, mindir, max, maxdir);
+	return 0;
 }
 
 /**
- * \brief Restrict a configuration space to have tick time nearest to a target
+ * \brief (DEPRECATED) Restrict a configuration space to have tick time nearest to a target
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val approximate target tick duration in us / returned chosen approximate target tick duration in us
@@ -5200,16 +5190,16 @@ int snd_pcm_hw_params_set_tick_time_minmax(snd_pcm_t *pcm, snd_pcm_hw_params_t *
  * target/chosen exact value is <,=,> val following dir (-1,0,1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_tick_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+int INTERNAL(snd_pcm_hw_params_set_tick_time_near)(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
 {
-	return snd_pcm_hw_param_set_near(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	return 0;
 }
 
 /**
- * \brief Restrict a configuration space to contain only its minimum tick time
+ * \brief (DEPRECATED) Restrict a configuration space to contain only its minimum tick time
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val Returned approximate minimum tick duration in us
@@ -5219,16 +5209,16 @@ int snd_pcm_hw_params_set_tick_time_near(snd_pcm_t *pcm, snd_pcm_hw_params_t *pa
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_tick_time_first)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+int INTERNAL(snd_pcm_hw_params_set_tick_time_first)(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
 {
-	return snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	return 0;
 }
 
 /**
- * \brief Restrict a configuration space to contain only its maximum tick time
+ * \brief (DEPRECATED) Restrict a configuration space to contain only its maximum tick time
  * \param pcm PCM handle
  * \param params Configuration space
  * \param val Returned approximate maximum tick duration in us
@@ -5238,12 +5228,12 @@ int snd_pcm_hw_params_set_tick_time_first(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
  * Actual exact value is <,=,> the approximate one following dir (-1, 0, 1)
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_hw_params_set_tick_time_last)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
+int INTERNAL(snd_pcm_hw_params_set_tick_time_last)(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val ATTRIBUTE_UNUSED, int *dir ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_hw_params_set_tick_time_last(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir)
 #endif
 {
-	return snd_pcm_hw_param_set_last(pcm, params, SND_PCM_HW_PARAM_TICK_TIME, val, dir);
+	return 0;
 }
 
 /**
@@ -5290,7 +5280,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	}
 	params->tstamp_mode = pcm->tstamp_mode;
 	params->period_step = pcm->period_step;
-	params->sleep_min = pcm->sleep_min;
+	params->sleep_min = 0;
 	params->avail_min = pcm->avail_min;
 	params->xfer_align = 1;
 	params->start_threshold = pcm->start_threshold;
@@ -5313,7 +5303,6 @@ int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out)
 	snd_output_printf(out, "xrun_mode: %s\n", snd_pcm_xrun_mode_name(snd_pcm_sw_params_get_xrun_mode(params)));
 	snd_output_printf(out, "tstamp_mode: %s\n", snd_pcm_tstamp_mode_name(params->tstamp_mode));
 	snd_output_printf(out, "period_step: %u\n", params->period_step);
-	snd_output_printf(out, "sleep_min: %u\n", params->sleep_min);
 	snd_output_printf(out, "avail_min: %lu\n", params->avail_min);
 	snd_output_printf(out, "silence_threshold: %lu\n", params->silence_threshold);
 	snd_output_printf(out, "silence_size: %lu\n", params->silence_size);
@@ -5509,37 +5498,34 @@ int snd_pcm_sw_params_get_tstamp_mode(const snd_pcm_sw_params_t *params, snd_pcm
 }
 
 /**
- * \brief Set minimum number of ticks to sleep inside a software configuration container
+ * \brief (DEPRECATED) Set minimum number of ticks to sleep inside a software configuration container
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Minimum ticks to sleep or 0 to disable the use of tick timer
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int snd_pcm_sw_params_set_sleep_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, unsigned int val)
+int snd_pcm_sw_params_set_sleep_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, unsigned int val ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_sw_params_set_sleep_min(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, unsigned int val)
 #endif
 {
-	assert(pcm && params);
-	params->sleep_min = val;
 	return 0;
 }
 
 /**
- * \brief Get minimum numbers of ticks to sleep from a software configuration container
+ * \brief (DEPRECATED) Get minimum numbers of ticks to sleep from a software configuration container
  * \param params Software configuration container
  * \param val returned minimum number of ticks to sleep or 0 if tick timer is disabled
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_sleep_min)(const snd_pcm_sw_params_t *params, unsigned int *val)
+int INTERNAL(snd_pcm_sw_params_get_sleep_min)(const snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, unsigned int *val)
 #else
 int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params, unsigned int *val)
 #endif
 {
-	assert(params && val);
-	*val = params->sleep_min;
+	*val = 0;
 	return 0;
 }
 
@@ -5555,9 +5541,7 @@ int snd_pcm_sw_params_get_sleep_min(const snd_pcm_sw_params_t *params, unsigned 
  * sound cards can only accept power of 2 frame counts (i.e. 512,
  * 1024, 2048).  You cannot use this as a high resolution timer - it
  * is limited to how often the sound card hardware raises an
- * interrupt. Note that you can greatly improve the reponses using
- * \ref snd_pcm_sw_params_set_sleep_min where another timing source
- * is used.
+ * interrupt.
  */
 #ifndef DOXYGEN
 int snd_pcm_sw_params_set_avail_min(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
@@ -6365,7 +6349,7 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
 	_again:
-		if (pcm->sleep_min == 0 && state == SND_PCM_STATE_RUNNING) {
+		if (state == SND_PCM_STATE_RUNNING) {
 			err = snd_pcm_hwsync(pcm);
 			if (err < 0)
 				goto _end;
@@ -6434,7 +6418,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
 	_again:
-		if (pcm->sleep_min == 0 && state == SND_PCM_STATE_RUNNING) {
+		if (state == SND_PCM_STATE_RUNNING) {
 			err = snd_pcm_hwsync(pcm);
 			if (err < 0)
 				goto _end;
