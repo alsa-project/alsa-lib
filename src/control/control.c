@@ -1876,7 +1876,7 @@ int snd_ctl_elem_info_is_tlv_commandable(const snd_ctl_elem_info_t *obj)
 int snd_ctl_elem_info_is_indirect(const snd_ctl_elem_info_t *obj)
 {
 	assert(obj);
-	return !!(obj->access & SNDRV_CTL_ELEM_ACCESS_INDIRECT);
+	return 0;
 }
 link_warning(snd_ctl_elem_info_is_indirect, "Warning: snd_ctl_elem_info_is_indirect is deprecated, do not use it");
 
@@ -2023,8 +2023,6 @@ int snd_ctl_elem_info_get_dimensions(const snd_ctl_elem_info_t *obj)
 	int i;
 
 	assert(obj);
-	if (obj->access & SNDRV_CTL_ELEM_ACCESS_DINDIRECT)
-		return 0;			/* FIXME: implement indirect access as well */
 	for (i = 3; i >= 0; i--)
 		if (obj->dimen.d[i])
 			break;
@@ -2045,8 +2043,6 @@ int snd_ctl_elem_info_get_dimension(const snd_ctl_elem_info_t *obj, unsigned int
 #endif
 {
 	assert(obj);
-	if (obj->access & SNDRV_CTL_ELEM_ACCESS_DINDIRECT)
-		return 0;			/* FIXME: implement indirect access as well */
 	if (idx >= 3)
 		return 0;
 	return obj->dimen.d[idx];
