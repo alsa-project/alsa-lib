@@ -826,7 +826,6 @@ static void save_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 	COPY_SLAVE(stop_threshold);
 	COPY_SLAVE(silence_threshold);
 	COPY_SLAVE(silence_size);
-	COPY_SLAVE(xfer_align);
 	COPY_SLAVE(boundary);
 	COPY_SLAVE(info);
 	COPY_SLAVE(msbits);
@@ -1180,7 +1179,6 @@ static void copy_slave_setting(snd_pcm_direct_t *dmix, snd_pcm_t *spcm)
 	COPY_SLAVE(stop_threshold);
 	COPY_SLAVE(silence_threshold);
 	COPY_SLAVE(silence_size);
-	COPY_SLAVE(xfer_align);
 	COPY_SLAVE(boundary);
 	COPY_SLAVE(info);
 	COPY_SLAVE(msbits);

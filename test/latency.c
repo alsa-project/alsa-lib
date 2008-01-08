@@ -185,12 +185,6 @@ int setparams_set(snd_pcm_t *handle,
 		printf("Unable to set avail min for %s: %s\n", id, snd_strerror(err));
 		return err;
 	}
-	val = !block ? 4 : 1;
-	err = snd_pcm_sw_params_set_xfer_align(handle, swparams, val);
-	if (err < 0) {
-		printf("Unable to set transfer align for %s: %s\n", id, snd_strerror(err));
-		return err;
-	}
 	err = snd_pcm_sw_params(handle, swparams);
 	if (err < 0) {
 		printf("Unable to set sw params for %s: %s\n", id, snd_strerror(err));

@@ -387,15 +387,11 @@ static int snd_pcm_rate_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 
 	recalc(pcm, &sparams->avail_min);
 	rate->orig_avail_min = sparams->avail_min;
-	recalc(pcm, &sparams->xfer_align);
 	recalc(pcm, &sparams->start_threshold);
 	if (sparams->avail_min < 1) sparams->avail_min = 1;
-	if (sparams->xfer_align < 1) sparams->xfer_align = 1;
 	if (sparams->start_threshold <= slave->buffer_size) {
 		if (sparams->start_threshold > (slave->buffer_size / sparams->avail_min) * sparams->avail_min)
 			sparams->start_threshold = (slave->buffer_size / sparams->avail_min) * sparams->avail_min;
-		if (sparams->start_threshold > (slave->buffer_size / sparams->xfer_align) * sparams->xfer_align)
-			sparams->start_threshold = (slave->buffer_size / sparams->xfer_align) * sparams->xfer_align;
 	}
 	if (sparams->stop_threshold >= params->boundary) {
 		sparams->stop_threshold = sparams->boundary;

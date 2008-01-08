@@ -134,9 +134,6 @@ static int set_sw_params(snd_pcm_t *pcm,
 	}
 	if (err < 0)
 		return err;
-	err = snd_pcm_sw_params_set_xfer_align(pcm, sw_params, 1);
-	if (err < 0)
-		return err;
 	err = snd_pcm_sw_params(pcm, sw_params);
 	if (err < 0)
 		return err;

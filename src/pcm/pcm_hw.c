@@ -295,7 +295,6 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 	if ((snd_pcm_tstamp_t) params->tstamp_mode == pcm->tstamp_mode &&
 	    params->period_step == pcm->period_step &&
 	    params->sleep_min == pcm->sleep_min &&
-	    params->xfer_align == pcm->xfer_align &&
 	    params->start_threshold == pcm->start_threshold &&
 	    params->stop_threshold == pcm->stop_threshold &&
 	    params->silence_threshold == pcm->silence_threshold &&

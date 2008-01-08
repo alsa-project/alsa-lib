@@ -94,7 +94,7 @@ typedef struct {
 		unsigned int stop_threshold;	
 		unsigned int silence_threshold;
 		unsigned int silence_size;
-		unsigned int xfer_align;
+		unsigned int xfer_align; /* not used */
 		unsigned long long boundary;
 		unsigned int info;
 		unsigned int msbits;

@@ -2234,7 +2234,7 @@ static int snd_pcm_sw_params_default(snd_pcm_t *pcm, snd_pcm_sw_params_t *params
 	params->period_step = 1;
 	params->sleep_min = 0;
 	params->avail_min = pcm->period_size;
-	params->xfer_align = pcm->period_size;
+	params->xfer_align = 1;
 	params->start_threshold = 1;
 	params->stop_threshold = pcm->buffer_size;
 	params->silence_threshold = 0;

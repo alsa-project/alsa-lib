@@ -872,10 +872,6 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		SNDMSG("params->avail_min is 0");
 		return -EINVAL;
 	}
-	if (! params->xfer_align) {
-		SNDMSG("params->xfer_align is 0");
-		return -EINVAL;
-	}
 #if 0
 	/* disable the check below - it looks too restrictive
 	 * (start_threshold is basically independent from avail_min)
@@ -886,11 +882,6 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 		return -EINVAL;
 	}
 #endif
-	if (params->start_threshold <= pcm->buffer_size &&
-	    params->start_threshold > (pcm->buffer_size / params->xfer_align) * params->xfer_align) {
-		SNDMSG("params->xfer_align problem for start_threshold");
-		return -EINVAL;
-	}
 	err = pcm->ops->sw_params(pcm->op_arg, params);
 	if (err < 0)
 		return err;
@@ -898,7 +889,6 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	pcm->period_step = params->period_step;
 	pcm->sleep_min = params->sleep_min;
 	pcm->avail_min = params->avail_min;
-	pcm->xfer_align = params->xfer_align;
 	pcm->start_threshold = params->start_threshold;
 	pcm->stop_threshold = params->stop_threshold;
 	pcm->silence_threshold = params->silence_threshold;
@@ -1811,7 +1801,6 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	snd_output_printf(out, "  period_step  : %d\n", pcm->period_step);
 	snd_output_printf(out, "  sleep_min    : %d\n", pcm->sleep_min);
 	snd_output_printf(out, "  avail_min    : %ld\n", pcm->avail_min);
-	snd_output_printf(out, "  xfer_align   : %ld\n", pcm->xfer_align);
 	snd_output_printf(out, "  start_threshold  : %ld\n", pcm->start_threshold);
 	snd_output_printf(out, "  stop_threshold   : %ld\n", pcm->stop_threshold);
 	snd_output_printf(out, "  silence_threshold: %ld\n", pcm->silence_threshold);
@@ -5303,7 +5292,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	params->period_step = pcm->period_step;
 	params->sleep_min = pcm->sleep_min;
 	params->avail_min = pcm->avail_min;
-	params->xfer_align = pcm->xfer_align;
+	params->xfer_align = 1;
 	params->start_threshold = pcm->start_threshold;
 	params->stop_threshold = pcm->stop_threshold;
 	params->silence_threshold = pcm->silence_threshold;
@@ -5326,7 +5315,6 @@ int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out)
 	snd_output_printf(out, "period_step: %u\n", params->period_step);
 	snd_output_printf(out, "sleep_min: %u\n", params->sleep_min);
 	snd_output_printf(out, "avail_min: %lu\n", params->avail_min);
-	snd_output_printf(out, "xfer_align: %lu\n", params->xfer_align);
 	snd_output_printf(out, "silence_threshold: %lu\n", params->silence_threshold);
 	snd_output_printf(out, "silence_size: %lu\n", params->silence_size);
 	snd_output_printf(out, "boundary: %lu\n", params->boundary);
@@ -5607,44 +5595,36 @@ int snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *params, snd_pcm_u
 
 
 /**
- * \brief Set xfer align inside a software configuration container
+ * \brief (DEPRECATED) Set xfer align inside a software configuration container
  * \param pcm PCM handle
  * \param params Software configuration container
  * \param val Chunk size (frames are attempted to be transferred in chunks)
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
+int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, snd_pcm_uframes_t val ATTRIBUTE_UNUSED)
 #else
 int snd_pcm_sw_params_set_xfer_align(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, snd_pcm_uframes_t val)
 #endif
 {
-	assert(pcm && params);
-	if (CHECK_SANITY(val % pcm->min_align)) {
-		SNDMSG("xfer_align (%ld) is not aligned to min_align (%ld)", val, pcm->min_align);
-		return -EINVAL;
-	}
-	params->xfer_align = val;
 	return 0;
 }
 
 /**
- * \brief Get xfer align from a software configuration container
+ * \brief (DEPRECATED) Get xfer align from a software configuration container
  * \param params Software configuration container
  * \param val returned chunk size (frames are attempted to be transferred in chunks)
  * \return 0 otherwise a negative error code
  */
 #ifndef DOXYGEN
-int INTERNAL(snd_pcm_sw_params_get_xfer_align)(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
+int INTERNAL(snd_pcm_sw_params_get_xfer_align)(const snd_pcm_sw_params_t *params ATTRIBUTE_UNUSED, snd_pcm_uframes_t *val)
 #else
 int snd_pcm_sw_params_get_xfer_align(const snd_pcm_sw_params_t *params, snd_pcm_uframes_t *val)
 #endif
 {
-	assert(params && val);
-	*val = params->xfer_align;
+	*val = 1;
 	return 0;
 }
-
 
 /**
  * \brief Set start threshold inside a software configuration container
@@ -6361,8 +6341,6 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 
 	if (size == 0)
 		return 0;
-	if (size > pcm->xfer_align)
-		size -= size % pcm->xfer_align;
 
 	switch (state) {
 	case SND_PCM_STATE_PREPARED:
@@ -6397,9 +6375,8 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 			err = avail;
 			goto _end;
 		}
-		if (((snd_pcm_uframes_t)avail < pcm->avail_min && size > (snd_pcm_uframes_t)avail) ||
-		    (size >= pcm->xfer_align && (snd_pcm_uframes_t)avail < pcm->xfer_align)) {
-
+		if ((snd_pcm_uframes_t)avail < pcm->avail_min &&
+		    size > (snd_pcm_uframes_t)avail) {
 			if (pcm->mode & SND_PCM_NONBLOCK) {
 				err = -EAGAIN;
 				goto _end;
@@ -6411,8 +6388,6 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 			goto _again;
 			
 		}
-		if ((snd_pcm_uframes_t) avail > pcm->xfer_align)
-			avail -= avail % pcm->xfer_align;
 		frames = size;
 		if (frames > (snd_pcm_uframes_t) avail)
 			frames = avail;
@@ -6440,8 +6415,6 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 
 	if (size == 0)
 		return 0;
-	if (size > pcm->xfer_align)
-		size -= size % pcm->xfer_align;
 
 	switch (state) {
 	case SND_PCM_STATE_PREPARED:
@@ -6473,10 +6446,7 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 		}
 		if ((state == SND_PCM_STATE_RUNNING &&
 		     (snd_pcm_uframes_t)avail < pcm->avail_min &&
-		     size > (snd_pcm_uframes_t)avail) ||
-		    (size >= pcm->xfer_align &&
-		     (snd_pcm_uframes_t)avail < pcm->xfer_align)) {
-
+		     size > (snd_pcm_uframes_t)avail)) {
 			if (pcm->mode & SND_PCM_NONBLOCK) {
 				err = -EAGAIN;
 				goto _end;
@@ -6487,8 +6457,6 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 				break;
 			goto _again;			
 		}
-		if ((snd_pcm_uframes_t) avail > pcm->xfer_align)
-			avail -= avail % pcm->xfer_align;
 		frames = size;
 		if (frames > (snd_pcm_uframes_t) avail)
 			frames = avail;
@@ -7243,12 +7211,6 @@ int snd_pcm_set_params(snd_pcm_t *pcm,
 	err = snd_pcm_sw_params_set_avail_min(pcm, swparams, period_size);
 	if (err < 0) {
 		SNDERR("Unable to set avail min for %s: %s", s, snd_strerror(err));
-		return err;
-	}
-	/* align all transfers to 1 sample */
-	err = snd_pcm_sw_params_set_xfer_align(pcm, swparams, 1);
-	if (err < 0) {
-		SNDERR("Unable to set transfer align for %s: %s", s, snd_strerror(err));
 		return err;
 	}
 	/* write the parameters to the playback device */
