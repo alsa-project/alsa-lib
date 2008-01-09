@@ -5322,11 +5322,11 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
  */
 int snd_pcm_sw_params_dump(snd_pcm_sw_params_t *params, snd_output_t *out)
 {
-	snd_output_printf(out, "start_mode: %s\n", snd_pcm_start_mode_name(snd_pcm_sw_params_get_start_mode(params)));
-	snd_output_printf(out, "xrun_mode: %s\n", snd_pcm_xrun_mode_name(snd_pcm_sw_params_get_xrun_mode(params)));
 	snd_output_printf(out, "tstamp_mode: %s\n", snd_pcm_tstamp_mode_name(params->tstamp_mode));
 	snd_output_printf(out, "period_step: %u\n", params->period_step);
 	snd_output_printf(out, "avail_min: %lu\n", params->avail_min);
+	snd_output_printf(out, "start_threshold: %ld\n", params->start_threshold);
+	snd_output_printf(out, "stop_threshold: %ld\n", params->stop_threshold);
 	snd_output_printf(out, "silence_threshold: %lu\n", params->silence_threshold);
 	snd_output_printf(out, "silence_size: %lu\n", params->silence_size);
 	snd_output_printf(out, "boundary: %lu\n", params->boundary);
