@@ -2100,10 +2100,12 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		open_func = snd_dlsym(h, open_name, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION));
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s", lib);
+		SNDERR("Cannot open shared library %s",
+		       lib ? lib : "[builtin]");
 		err = -ENOENT;
 	} else if (!open_func) {
-		SNDERR("symbol %s is not defined inside %s", open_name, lib);
+		SNDERR("symbol %s is not defined inside %s", open_name,
+		       lib ? lib : "[builtin]");
 		snd_dlclose(h);
 		err = -ENXIO;
 	}

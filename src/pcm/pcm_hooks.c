@@ -388,10 +388,12 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 	install_func = h ? snd_dlsym(h, install, SND_DLSYM_VERSION(SND_PCM_DLSYM_VERSION)) : NULL;
 	err = 0;
 	if (!h) {
-		SNDERR("Cannot open shared library %s", lib);
+		SNDERR("Cannot open shared library %s",
+		       lib ? lib : "[builtin]");
 		err = -ENOENT;
 	} else if (!install_func) {
-		SNDERR("symbol %s is not defined inside %s", install, lib);
+		SNDERR("symbol %s is not defined inside %s", install,
+		       lib ? lib : "[builtin]");
 		snd_dlclose(h);
 		err = -ENXIO;
 	}
