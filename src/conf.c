@@ -591,6 +591,7 @@ static int get_char_skip_comments(input_t *input)
 			}
 			err = snd_input_stdio_open(&in, str, "r");
 			if (err < 0) {
+				SNDERR("Cannot access file %s", str);
 				free(str);
 				return err;
 			}
@@ -3005,6 +3006,7 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 			lf->ino = st.st_ino;
 			lf->mtime = st.st_mtime;
 		} else {
+			SNDERR("Cannot access file %s", lf->name);
 			memmove(&local->finfo[k], &local->finfo[k+1], sizeof(struct finfo) * (local->count - k - 1));
 			k--;
 			local->count--;
