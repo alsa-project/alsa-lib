@@ -431,6 +431,14 @@ static snd_pcm_sframes_t snd_pcm_multi_avail_update(snd_pcm_t *pcm)
 	return ret;
 }
 
+static int snd_pcm_multi_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail,
+				    snd_htimestamp_t *tstamp)
+{
+	snd_pcm_multi_t *multi = pcm->private_data;
+	snd_pcm_t *slave = multi->slaves[multi->master_slave].pcm;
+	return snd_pcm_htimestamp(slave, avail, tstamp);
+}
+
 static int snd_pcm_multi_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_multi_t *multi = pcm->private_data;
@@ -792,6 +800,7 @@ static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	.unlink = snd_pcm_multi_unlink,
 	.avail_update = snd_pcm_multi_avail_update,
 	.mmap_commit = snd_pcm_multi_mmap_commit,
+	.htimestamp = snd_pcm_multi_htimestamp,
 	.poll_descriptors_count = snd_pcm_multi_poll_descriptors_count,
 	.poll_descriptors = snd_pcm_multi_poll_descriptors,
 	.poll_revents = snd_pcm_multi_poll_revents,

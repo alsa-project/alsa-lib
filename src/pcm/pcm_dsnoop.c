@@ -172,10 +172,7 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	state = snd_pcm_state(dsnoop->spcm);
 	status->state = state == SND_PCM_STATE_RUNNING ? dsnoop->state : state;
 	status->trigger_tstamp = dsnoop->trigger_tstamp;
-	if (pcm->tstamp_mode == SND_PCM_TSTAMP_MMAP)
-		status->tstamp = snd_pcm_hw_fast_tstamp(dsnoop->spcm);
-	else
-		gettimestamp(&status->tstamp, pcm->monotonic);
+	gettimestamp(&status->tstamp, pcm->monotonic);
 	status->avail = snd_pcm_mmap_capture_avail(pcm);
 	status->avail_max = status->avail > dsnoop->avail_max ? status->avail : dsnoop->avail_max;
 	dsnoop->avail_max = 0;
@@ -407,6 +404,27 @@ static snd_pcm_sframes_t snd_pcm_dsnoop_avail_update(snd_pcm_t *pcm)
 	return snd_pcm_mmap_capture_avail(pcm);
 }
 
+static int snd_pcm_dsnoop_htimestamp(snd_pcm_t *pcm,
+				     snd_pcm_uframes_t *avail,
+				     snd_htimestamp_t *tstamp)
+{
+	snd_pcm_direct_t *dsnoop = pcm->private_data;
+	snd_pcm_uframes_t avail1;
+	int ok = 0;
+	
+	while (1) {
+		if (dsnoop->state == SND_PCM_STATE_RUNNING ||
+		    dsnoop->state == SND_PCM_STATE_DRAINING)
+			snd_pcm_dsnoop_sync_ptr(pcm);
+		avail1 = snd_pcm_mmap_capture_avail(pcm);
+		if (ok && *avail == avail1)
+			break;
+		*avail = avail1;
+		*tstamp = snd_pcm_hw_fast_tstamp(pcm);
+	}
+	return 0;
+}
+
 static void snd_pcm_dsnoop_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
@@ -458,6 +476,7 @@ static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
 	.readn = snd_pcm_mmap_readn,
 	.avail_update = snd_pcm_dsnoop_avail_update,
 	.mmap_commit = snd_pcm_dsnoop_mmap_commit,
+	.htimestamp = snd_pcm_dsnoop_htimestamp,
 	.poll_descriptors = NULL,
 	.poll_descriptors_count = NULL,
 	.poll_revents = snd_pcm_direct_poll_revents,

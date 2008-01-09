@@ -798,6 +798,18 @@ static snd_pcm_sframes_t snd_pcm_share_avail_update(snd_pcm_t *pcm)
 	return avail;
 }
 
+static int snd_pcm_share_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail,
+				    snd_htimestamp_t *tstamp)
+{
+	snd_pcm_share_t *share = pcm->private_data;
+	snd_pcm_share_slave_t *slave = share->slave;
+	int err;
+	Pthread_mutex_lock(&slave->mutex);
+	err = snd_pcm_htimestamp(slave->pcm, avail, tstamp);
+	Pthread_mutex_unlock(&slave->mutex);
+	return err;
+}
+
 /* Call it with mutex held */
 static snd_pcm_sframes_t _snd_pcm_share_mmap_commit(snd_pcm_t *pcm,
 						    snd_pcm_uframes_t offset ATTRIBUTE_UNUSED,
@@ -1308,6 +1320,7 @@ static snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	.forward = snd_pcm_share_forward,
 	.resume = snd_pcm_share_resume,
 	.avail_update = snd_pcm_share_avail_update,
+	.htimestamp = snd_pcm_share_htimestamp,
 	.mmap_commit = snd_pcm_share_mmap_commit,
 };
 

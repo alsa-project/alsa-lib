@@ -1020,6 +1020,13 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
  }
 }
 
+static int snd_pcm_rate_htimestamp(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+				   snd_pcm_uframes_t *avail ATTRIBUTE_UNUSED,
+				   snd_htimestamp_t *tstamp ATTRIBUTE_UNUSED)
+{
+	return -EIO; /* not implemented yet */
+}
+
 static int snd_pcm_rate_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
 	snd_pcm_rate_t *rate = pcm->private_data;
@@ -1189,6 +1196,7 @@ static snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.readn = snd_pcm_mmap_readn,
 	.avail_update = snd_pcm_rate_avail_update,
 	.mmap_commit = snd_pcm_rate_mmap_commit,
+	.htimestamp = snd_pcm_rate_htimestamp,
 	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
 	.poll_descriptors = snd_pcm_generic_poll_descriptors,
 	.poll_revents = snd_pcm_rate_poll_revents,

@@ -343,7 +343,8 @@ is equal or greater than this value, then application will be activated.
 The timestamp mode specifies, if timestamps are activated. Currently, only
 #SND_PCM_TSTAMP_NONE and #SND_PCM_TSTAMP_MMAP
 modes are known. The mmap mode means that timestamp is taken
-on every period time boundary.
+on every period time boundary. Corresponding position in the ring buffer
+assigned to timestamp can be obtained using #snd_pcm_htimestamp() function.
 
 \par Transfer align
 
@@ -383,7 +384,7 @@ The stream status is stored in #snd_pcm_status_t structure.
 These parameters can be obtained: the current stream state -
 #snd_pcm_status_get_state(), timestamp of trigger -
 #snd_pcm_status_get_trigger_tstamp(), timestamp of last
-update #snd_pcm_status_get_tstamp(), delay in samples -
+pointer update #snd_pcm_status_get_tstamp(), delay in samples -
 #snd_pcm_status_get_delay(), available count in samples -
 #snd_pcm_status_get_avail(), maximum available samples -
 #snd_pcm_status_get_avail_max(), ADC over-range count in
@@ -977,6 +978,26 @@ int snd_pcm_resume(snd_pcm_t *pcm)
 		return -EIO;
 	}
 	return pcm->fast_ops->resume(pcm->fast_op_arg);
+}
+
+/**
+ * \brief Obtain last position update hi-res timestamp
+ * \param pcm PCM handle
+ * \param avail Number of available frames when timestamp was grabbed
+ * \param tstamp Hi-res timestamp
+ * \return 0 on success otherwise a negative error code
+ *
+ * Note this function does not update the actual r/w pointer
+ * for applications.
+ */
+int snd_pcm_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail, snd_htimestamp_t *tstamp)
+{
+	assert(pcm);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	return pcm->fast_ops->htimestamp(pcm->fast_op_arg, avail, tstamp);
 }
 
 /**

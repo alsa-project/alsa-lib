@@ -244,6 +244,13 @@ static snd_pcm_sframes_t snd_pcm_null_avail_update(snd_pcm_t *pcm)
 	return pcm->buffer_size;
 }
 
+static int snd_pcm_null_htimestamp(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+				   snd_pcm_uframes_t *avail ATTRIBUTE_UNUSED,
+				   snd_htimestamp_t *tstamp ATTRIBUTE_UNUSED)
+{
+	return -EIO;
+}
+
 static int snd_pcm_null_hw_refine(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
 	int err = snd_pcm_hw_refine_soft(pcm, params);
@@ -312,6 +319,7 @@ static snd_pcm_fast_ops_t snd_pcm_null_fast_ops = {
 	.readn = snd_pcm_null_readn,
 	.avail_update = snd_pcm_null_avail_update,
 	.mmap_commit = snd_pcm_null_mmap_commit,
+	.htimestamp = snd_pcm_null_htimestamp,
 };
 
 /**

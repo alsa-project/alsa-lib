@@ -846,6 +846,26 @@ static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm)
 	return avail;
 }
 
+static int snd_pcm_hw_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail,
+				 snd_htimestamp_t *tstamp)
+{
+	snd_pcm_sframes_t avail1;
+	int ok = 0;
+
+	/* unfortunately, loop is necessary to ensure valid timestamp */
+	while (1) {
+		avail1 = snd_pcm_hw_avail_update(pcm);
+		if (avail1 < 0)
+			return avail1;
+		if (ok && (snd_pcm_uframes_t)avail1 == *avail)
+			break;
+		*avail = avail1;
+		*tstamp = snd_pcm_hw_fast_tstamp(pcm);
+		ok = 1;
+	}
+	return 0;
+}
+
 static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
@@ -902,6 +922,7 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.readn = snd_pcm_hw_readn,
 	.avail_update = snd_pcm_hw_avail_update,
 	.mmap_commit = snd_pcm_hw_mmap_commit,
+	.htimestamp = snd_pcm_hw_htimestamp,
 	.poll_descriptors = NULL,
 	.poll_descriptors_count = NULL,
 	.poll_revents = NULL,

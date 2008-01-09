@@ -370,6 +370,7 @@ static snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
 	.readn = snd_pcm_generic_readn,
 	.avail_update = snd_pcm_mmap_emul_avail_update,
 	.mmap_commit = snd_pcm_mmap_emul_mmap_commit,
+	.htimestamp = snd_pcm_generic_htimestamp,
 	.poll_descriptors = snd_pcm_generic_poll_descriptors,
 	.poll_descriptors_count = snd_pcm_generic_poll_descriptors_count,
 	.poll_revents = snd_pcm_generic_poll_revents,

@@ -441,6 +441,13 @@ static snd_pcm_sframes_t snd_pcm_shm_avail_update(snd_pcm_t *pcm)
 	return err;
 }
 
+static int snd_pcm_shm_htimestamp(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
+				  snd_pcm_uframes_t *avail ATTRIBUTE_UNUSED,
+				  snd_htimestamp_t *tstamp ATTRIBUTE_UNUSED)
+{
+	return -EIO;	/* not implemented yet */
+}
+
 static int snd_pcm_shm_prepare(snd_pcm_t *pcm)
 {
 	snd_pcm_shm_t *shm = pcm->private_data;
@@ -609,6 +616,7 @@ static snd_pcm_fast_ops_t snd_pcm_shm_fast_ops = {
 	.readn = snd_pcm_mmap_readn,
 	.avail_update = snd_pcm_shm_avail_update,
 	.mmap_commit = snd_pcm_shm_mmap_commit,
+	.htimestamp = snd_pcm_shm_htimestamp,
 };
 
 static int make_local_socket(const char *filename)
