@@ -9,7 +9,7 @@ ALSA_0.9 {
 
     @SYMBOL_PREFIX@__snd_hw_params_*;
     @SYMBOL_PREFIX@__snd_hw_params_*;
-    @SYMBOL_PREFIX@__snd_*_open_dlsym_*;
+    @SYMBOL_PREFIX@__snd_*_dlsym_*;
 
   local:
     *;
