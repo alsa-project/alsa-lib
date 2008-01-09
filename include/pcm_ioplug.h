@@ -59,6 +59,7 @@ typedef struct snd_pcm_ioplug_callback snd_pcm_ioplug_callback_t;
  * bit flags for additional conditions
  */
 #define SND_PCM_IOPLUG_FLAG_LISTED	(1<<0)		/* list up this PCM */
+#define SND_PCM_IOPLUG_FLAG_MONOTONIC	(1<<1)		/* monotonic timestamps */
 
 /*
  * Protocol version

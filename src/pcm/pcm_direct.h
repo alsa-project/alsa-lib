@@ -85,7 +85,7 @@ typedef struct {
 		unsigned int period_size;
 		unsigned int period_time;
 		snd_interval_t periods;
-		unsigned int tick_time; /* not used */
+		unsigned int monotonic;
 		snd_pcm_tstamp_t tstamp_mode;
 		unsigned int period_step;
 		unsigned int sleep_min; /* not used */

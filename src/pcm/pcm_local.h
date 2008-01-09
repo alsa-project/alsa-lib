@@ -177,7 +177,8 @@ struct _snd_pcm {
 	int poll_fd_count;
 	int poll_fd;
 	unsigned short poll_events;
-	int setup;
+	int setup: 1,
+	    monotonic: 1;
 	snd_pcm_access_t access;	/* access mode */
 	snd_pcm_format_t format;	/* SND_PCM_FORMAT_* */
 	snd_pcm_subformat_t subformat;	/* subformat */
@@ -940,11 +941,15 @@ typedef union snd_tmp_double {
 } snd_tmp_double_t;
 
 /* get the current timestamp */
-static inline void gettimestamp(snd_htimestamp_t *tstamp)
+static inline void gettimestamp(snd_htimestamp_t *tstamp, int monotonic)
 {
-	struct timeval tv;
+	if (monotonic) {
+		clock_gettime(CLOCK_MONOTONIC, tstamp);
+	} else {
+		struct timeval tv;
 
-	gettimeofday(&tv, 0);
-	tstamp->tv_sec = tv.tv_sec;
-	tstamp->tv_nsec = tv.tv_usec * 1000L;
+		gettimeofday(&tv, 0);
+		tstamp->tv_sec = tv.tv_sec;
+		tstamp->tv_nsec = tv.tv_usec * 1000L;
+	}
 }

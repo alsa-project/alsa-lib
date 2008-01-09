@@ -923,9 +923,8 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 		       int fd, int mmap_emulation ATTRIBUTE_UNUSED,
 		       int sync_ptr_ioctl)
 {
-	int ver;
+	int ver, mode, monotonic = 0;
 	long fmode;
-	int mode;
 	snd_pcm_t *pcm = NULL;
 	snd_pcm_hw_t *hw = NULL;
 	snd_pcm_info_t info;
@@ -980,8 +979,19 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 			ret = -errno;
 			SNDMSG("TSTAMP failed\n");
 			return ret;
-		}			
+		}
 	}
+#ifdef HAVE_CLOCK_GETTIME
+	  else if (SNDRV_PROTOCOL_VERSION(2, 0, 9) >= ver) {
+		int on = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC;
+		if (ioctl(fd, SNDRV_PCM_IOCTL_TTSTAMP, &on) < 0) {
+			ret = -errno;
+			SNDMSG("TTSTAMP failed\n");
+			return ret;
+		}
+		monotonic = 1;
+	}
+#endif
 	
 	hw = calloc(1, sizeof(snd_pcm_hw_t));
 	if (!hw) {
@@ -1012,6 +1022,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = hw;
 	pcm->poll_fd = fd;
 	pcm->poll_events = info.stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
+	pcm->monotonic = monotonic;
 
 	ret = snd_pcm_hw_mmap_status(pcm);
 	if (ret < 0) {

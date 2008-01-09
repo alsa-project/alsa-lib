@@ -85,7 +85,7 @@ static int snd_pcm_null_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	memset(status, 0, sizeof(*status));
 	status->state = null->state;
 	status->trigger_tstamp = null->trigger_tstamp;
-	gettimestamp(&status->tstamp);
+	gettimestamp(&status->tstamp, pcm->monotonic);
 	status->avail = pcm->buffer_size;
 	status->avail_max = status->avail;
 	return 0;

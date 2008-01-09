@@ -962,7 +962,7 @@ static int snd_pcm_share_start(snd_pcm_t *pcm)
 	}
 	slave->running_count++;
 	_snd_pcm_share_update(pcm);
-	gettimestamp(&share->trigger_tstamp);
+	gettimestamp(&share->trigger_tstamp, pcm->monotonic);
  _end:
 	Pthread_mutex_unlock(&slave->mutex);
 	return err;
@@ -1095,7 +1095,7 @@ static void _snd_pcm_share_stop(snd_pcm_t *pcm, snd_pcm_state_t state)
 		return;
 	}
 #endif
-	gettimestamp(&share->trigger_tstamp);
+	gettimestamp(&share->trigger_tstamp, pcm->monotonic);
 	if (pcm->stream == SND_PCM_STREAM_CAPTURE) {
 		snd_pcm_areas_copy(pcm->stopped_areas, 0,
 				   pcm->running_areas, 0,
@@ -1492,6 +1492,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	pcm->private_data = share;
 	pcm->poll_fd = share->client_socket;
 	pcm->poll_events = stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
+	pcm->monotonic = pcm->monotonic;
 	snd_pcm_set_hw_ptr(pcm, &share->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &share->appl_ptr, -1, 0);
 

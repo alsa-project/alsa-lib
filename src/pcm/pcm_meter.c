@@ -581,6 +581,7 @@ int snd_pcm_meter_open(snd_pcm_t **pcmp, const char *name, unsigned int frequenc
 	pcm->private_data = meter;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
+	pcm->monotonic = slave->monotonic;
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;

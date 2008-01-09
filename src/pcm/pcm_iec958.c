@@ -496,6 +496,7 @@ int snd_pcm_iec958_open(snd_pcm_t **pcmp, const char *name, snd_pcm_format_t sfo
 	pcm->private_data = iec;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
+	pcm->monotonic = slave->monotonic;
 	snd_pcm_set_hw_ptr(pcm, &iec->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &iec->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;

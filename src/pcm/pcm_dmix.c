@@ -333,7 +333,7 @@ static int snd_pcm_dmix_sync_ptr(snd_pcm_t *pcm)
 		dmix->avail_max = avail;
 	if (avail >= pcm->stop_threshold) {
 		snd_timer_stop(dmix->timer);
-		gettimestamp(&dmix->trigger_tstamp);
+		gettimestamp(&dmix->trigger_tstamp, pcm->monotonic);
 		if (dmix->state == SND_PCM_STATE_RUNNING) {
 			dmix->state = SND_PCM_STATE_XRUN;
 			return -EPIPE;
@@ -385,7 +385,7 @@ static int snd_pcm_dmix_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	if (pcm->tstamp_mode == SND_PCM_TSTAMP_MMAP)
 		status->tstamp = snd_pcm_hw_fast_tstamp(dmix->spcm);
 	else
-		gettimestamp(&status->tstamp);
+		gettimestamp(&status->tstamp, pcm->monotonic);
 	status->avail = snd_pcm_mmap_playback_avail(pcm);
 	status->avail_max = status->avail > dmix->avail_max ? status->avail : dmix->avail_max;
 	dmix->avail_max = 0;
@@ -504,7 +504,7 @@ static int snd_pcm_dmix_start(snd_pcm_t *pcm)
 			return err;
 		snd_pcm_dmix_sync_area(pcm);
 	}
-	gettimestamp(&dmix->trigger_tstamp);
+	gettimestamp(&dmix->trigger_tstamp, pcm->monotonic);
 	return 0;
 }
 

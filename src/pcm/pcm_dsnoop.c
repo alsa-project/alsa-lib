@@ -141,7 +141,7 @@ static int snd_pcm_dsnoop_sync_ptr(snd_pcm_t *pcm)
 	if (pcm->stop_threshold >= pcm->boundary)	/* don't care */
 		return 0;
 	if ((avail = snd_pcm_mmap_capture_hw_avail(pcm)) >= pcm->stop_threshold) {
-		gettimestamp(&dsnoop->trigger_tstamp);
+		gettimestamp(&dsnoop->trigger_tstamp, pcm->monotonic);
 		dsnoop->state = SND_PCM_STATE_XRUN;
 		dsnoop->avail_max = avail;
 		return -EPIPE;
@@ -175,7 +175,7 @@ static int snd_pcm_dsnoop_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	if (pcm->tstamp_mode == SND_PCM_TSTAMP_MMAP)
 		status->tstamp = snd_pcm_hw_fast_tstamp(dsnoop->spcm);
 	else
-		gettimestamp(&status->tstamp);
+		gettimestamp(&status->tstamp, pcm->monotonic);
 	status->avail = snd_pcm_mmap_capture_avail(pcm);
 	status->avail_max = status->avail > dsnoop->avail_max ? status->avail : dsnoop->avail_max;
 	dsnoop->avail_max = 0;
@@ -274,7 +274,7 @@ static int snd_pcm_dsnoop_start(snd_pcm_t *pcm)
 	if (err < 0)
 		return err;
 	dsnoop->state = SND_PCM_STATE_RUNNING;
-	gettimestamp(&dsnoop->trigger_tstamp);
+	gettimestamp(&dsnoop->trigger_tstamp, pcm->monotonic);
 	return 0;
 }
 

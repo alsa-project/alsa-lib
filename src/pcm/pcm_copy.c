@@ -206,6 +206,7 @@ int snd_pcm_copy_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int 
 	pcm->private_data = copy;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
+	pcm->monotonic = slave->monotonic;
 	snd_pcm_set_hw_ptr(pcm, &copy->plug.hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &copy->plug.appl_ptr, -1, 0);
 	*pcmp = pcm;

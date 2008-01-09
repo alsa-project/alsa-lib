@@ -399,6 +399,7 @@ static int snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
 	pcm->private_data = map;
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
+	pcm->monotonic = slave->monotonic;
 	snd_pcm_set_hw_ptr(pcm, &map->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &map->appl_ptr, -1, 0);
 	*pcmp = pcm;
