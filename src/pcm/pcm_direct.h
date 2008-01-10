@@ -162,6 +162,10 @@ struct snd_pcm_direct {
 			mix_areas_32_t *mix_areas_32;
 			mix_areas_24_t *mix_areas_24;
 			mix_areas_u8_t *mix_areas_u8;
+			mix_areas_16_t *remix_areas_16;
+			mix_areas_32_t *remix_areas_32;
+			mix_areas_24_t *remix_areas_24;
+			mix_areas_u8_t *remix_areas_u8;
 		} dmix;
 		struct {
 		} dsnoop;

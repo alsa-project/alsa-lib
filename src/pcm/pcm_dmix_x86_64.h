@@ -79,9 +79,9 @@ static void MIX_AREAS_16(unsigned int size,
 		"\t" LOCK_PREFIX "cmpxchgw %%cx, (%%rdi)\n"
 		"\tmovswl (%%rsi), %%ecx\n"
 		"\tjnz 2f\n"
-		"\tsubl %%edx, %%ecx\n"
+		"\t" XSUB " %%edx, %%ecx\n"
 		"2:"
-		"\t" LOCK_PREFIX "addl %%ecx, (%%rbx)\n"
+		"\t" LOCK_PREFIX XADD " %%ecx, (%%rbx)\n"
 
 		/*
 		 *   do {
@@ -176,14 +176,14 @@ static void MIX_AREAS_32(unsigned int size,
 		"\tmovl (%%rsi), %%ecx\n"
 		/* sample >>= 8 */
 		"\tsarl $8, %%ecx\n"
-		"\tsubl %%edx, %%ecx\n"
+		"\t" XSUB " %%edx, %%ecx\n"
 		"\tjmp 21f\n"
 		"2:"
 		"\tmovl (%%rsi), %%ecx\n"
 		/* sample >>= 8 */
 		"\tsarl $8, %%ecx\n"
 		"21:"
-		"\t" LOCK_PREFIX "addl %%ecx, (%%rbx)\n"
+		"\t" LOCK_PREFIX XADD " %%ecx, (%%rbx)\n"
 
 		/*
 		 *   do {
@@ -290,9 +290,9 @@ static void MIX_AREAS_24(unsigned int size,
 		"\t" LOCK_PREFIX "btsl $0, (%%rdi)\n"
 		"\t.byte 0x67, 0x8d, 0x0c, 0x01\n"
 		"\tjc 2f\n"
-		"\tsubl %%edx, %%ecx\n"
+		"\t" XSUB " %%edx, %%ecx\n"
 		"2:"
-		"\t" LOCK_PREFIX "addl %%ecx, (%%rbx)\n"
+		"\t" LOCK_PREFIX XADD " %%ecx, (%%rbx)\n"
 
 		/*
 		 *   do {

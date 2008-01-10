@@ -213,6 +213,70 @@ static void mix_areas(snd_pcm_direct_t *dmix,
 	}
 }
 
+static void remix_areas(snd_pcm_direct_t *dmix,
+			const snd_pcm_channel_area_t *src_areas,
+			const snd_pcm_channel_area_t *dst_areas,
+			snd_pcm_uframes_t src_ofs,
+			snd_pcm_uframes_t dst_ofs,
+			snd_pcm_uframes_t size)
+{
+	unsigned int src_step, dst_step;
+	unsigned int chn, dchn, channels, sample_size;
+	mix_areas_t *do_remix_areas;
+	
+	channels = dmix->channels;
+	switch (dmix->shmptr->s.format) {
+	case SND_PCM_FORMAT_S16_LE:
+	case SND_PCM_FORMAT_S16_BE:
+		sample_size = 2;
+		do_remix_areas = (mix_areas_t *)dmix->u.dmix.remix_areas_16;
+		break;
+	case SND_PCM_FORMAT_S32_LE:
+	case SND_PCM_FORMAT_S32_BE:
+		sample_size = 4;
+		do_remix_areas = (mix_areas_t *)dmix->u.dmix.remix_areas_32;
+		break;
+	case SND_PCM_FORMAT_S24_3LE:
+		sample_size = 3;
+		do_remix_areas = (mix_areas_t *)dmix->u.dmix.remix_areas_24;
+		break;
+	case SND_PCM_FORMAT_U8:
+		sample_size = 1;
+		do_remix_areas = (mix_areas_t *)dmix->u.dmix.remix_areas_u8;
+		break;
+	default:
+		return;
+	}
+	if (dmix->interleaved) {
+		/*
+		 * process all areas in one loop
+		 * it optimizes the memory accesses for this case
+		 */
+		do_remix_areas(size * channels,
+			       (unsigned char *)dst_areas[0].addr + sample_size * dst_ofs * channels,
+			       (unsigned char *)src_areas[0].addr + sample_size * src_ofs * channels,
+			       dmix->u.dmix.sum_buffer + dst_ofs * channels,
+			       sample_size,
+			       sample_size,
+			       sizeof(signed int));
+		return;
+	}
+	for (chn = 0; chn < channels; chn++) {
+		dchn = dmix->bindings ? dmix->bindings[chn] : chn;
+		if (dchn >= dmix->shmptr->s.channels)
+			continue;
+		src_step = src_areas[chn].step / 8;
+		dst_step = dst_areas[dchn].step / 8;
+		do_remix_areas(size,
+			       ((unsigned char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + dst_ofs * dst_step,
+			       ((unsigned char *)src_areas[chn].addr + src_areas[chn].first / 8) + src_ofs * src_step,
+			       dmix->u.dmix.sum_buffer + channels * dst_ofs + chn,
+			       dst_step,
+			       src_step,
+			       channels * sizeof(signed int));
+	}
+}
+
 /*
  * if no concurrent access is allowed in the mixing routines, we need to protect
  * the area via semaphore
@@ -234,7 +298,7 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 {
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	snd_pcm_uframes_t slave_hw_ptr, slave_appl_ptr, slave_size;
-	snd_pcm_uframes_t appl_ptr, size;
+	snd_pcm_uframes_t appl_ptr, size, transfer;
 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
 	
 	/* calculate the size to transfer */
@@ -246,6 +310,27 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 		return;
 	if (size >= pcm->boundary / 2)
 		size = pcm->boundary - size;
+
+	/* the slave_app_ptr can be far behing the slave_hw_ptr */
+	/* reduce mixing and errors here - just skip not catched writes */
+	if (dmix->slave_hw_ptr < dmix->slave_appl_ptr)
+		slave_size = dmix->slave_appl_ptr - dmix->slave_hw_ptr;
+	else
+		slave_size = dmix->slave_appl_ptr + (dmix->slave_boundary - dmix->slave_hw_ptr);
+	if (slave_size > dmix->slave_buffer_size) {
+		transfer = dmix->slave_buffer_size - slave_size;
+		if (transfer > size)
+			transfer = size;
+		dmix->last_appl_ptr += transfer;
+		dmix->last_appl_ptr %= pcm->boundary;
+		dmix->slave_appl_ptr += transfer;
+		dmix->slave_appl_ptr %= dmix->slave_boundary;
+		size = dmix->appl_ptr - dmix->last_appl_ptr;
+		if (! size)
+			return;
+		if (size >= pcm->boundary / 2)
+			size = pcm->boundary - size;
+	}
 
 	/* check the available size in the slave PCM buffer */
 	slave_hw_ptr = dmix->slave_hw_ptr;
@@ -276,7 +361,7 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 	dmix->slave_appl_ptr %= dmix->slave_boundary;
 	dmix_down_sem(dmix);
 	for (;;) {
-		snd_pcm_uframes_t transfer = size;
+		transfer = size;
 		if (appl_ptr + transfer > pcm->buffer_size)
 			transfer = pcm->buffer_size - appl_ptr;
 		if (slave_appl_ptr + transfer > dmix->slave_buffer_size)
@@ -564,15 +649,78 @@ static int snd_pcm_dmix_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTRIB
 	return -EIO;
 }
 
-static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_uframes_t frames ATTRIBUTE_UNUSED)
+static snd_pcm_sframes_t snd_pcm_dmix_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
-#if 0
-	/* FIXME: substract samples from the mix ring buffer, too? */
+	snd_pcm_direct_t *dmix = pcm->private_data;
+	snd_pcm_uframes_t slave_appl_ptr, slave_size;
+	snd_pcm_uframes_t appl_ptr, size, transfer, result;
+	const snd_pcm_channel_area_t *src_areas, *dst_areas;
+
+	if (dmix->state == SND_PCM_STATE_RUNNING ||
+	    dmix->state == SND_PCM_STATE_DRAINING)
+	    	return snd_pcm_dmix_hwsync(pcm);
+
+	if (dmix->last_appl_ptr < dmix->appl_ptr)
+		size = dmix->appl_ptr - dmix->last_appl_ptr;
+	else
+		size = dmix->appl_ptr + (pcm->boundary - dmix->last_appl_ptr);
+	if (frames < size)
+		size = frames;
+	snd_pcm_mmap_appl_backward(pcm, size);
+	frames -= size;
+	if (!frames)
+		return size;
+	result = size;
+
+	if (dmix->hw_ptr < dmix->appl_ptr)
+		size = dmix->appl_ptr - dmix->hw_ptr;
+	else
+		size = dmix->appl_ptr + (pcm->boundary - dmix->hw_ptr);
+	if (size > frames)
+		size = frames;
+	if (dmix->slave_hw_ptr < dmix->slave_appl_ptr)
+		slave_size = dmix->slave_appl_ptr - dmix->slave_hw_ptr;
+	else
+		slave_size = dmix->slave_appl_ptr + (pcm->boundary - dmix->slave_hw_ptr);
+	if (slave_size < size)
+		size = slave_size;
+	frames -= size;
+	result += size;
+		
+	/* add sample areas here */
+	src_areas = snd_pcm_mmap_areas(pcm);
+	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
+	dmix->last_appl_ptr -= size;
+	dmix->last_appl_ptr %= pcm->boundary;
+	appl_ptr = dmix->last_appl_ptr % pcm->buffer_size;
+	dmix->slave_appl_ptr -= size;
+	dmix->slave_appl_ptr %= dmix->slave_boundary;
+	slave_appl_ptr = dmix->slave_appl_ptr % dmix->slave_buffer_size;
+	dmix_down_sem(dmix);
+	for (;;) {
+		transfer = size;
+		if (appl_ptr + transfer > pcm->buffer_size)
+			transfer = pcm->buffer_size - appl_ptr;
+		if (slave_appl_ptr + transfer > dmix->slave_buffer_size)
+			transfer = dmix->slave_buffer_size - slave_appl_ptr;
+		remix_areas(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
+		size -= transfer;
+		if (! size)
+			break;
+		slave_appl_ptr += transfer;
+		slave_appl_ptr %= dmix->slave_buffer_size;
+		appl_ptr += transfer;
+		appl_ptr %= pcm->buffer_size;
+	}
+	dmix->last_appl_ptr -= frames;
+	dmix->last_appl_ptr %= pcm->boundary;
+	dmix->slave_appl_ptr -= frames;
+	dmix->slave_appl_ptr %= dmix->slave_boundary;
+	dmix_up_sem(dmix);
+
 	snd_pcm_mmap_appl_backward(pcm, frames);
-	return frames;
-#else
-	return -EIO;
-#endif
+
+	return result + frames;
 }
 
 static snd_pcm_sframes_t snd_pcm_dmix_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)

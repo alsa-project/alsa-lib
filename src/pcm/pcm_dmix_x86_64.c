@@ -6,21 +6,57 @@
 #define MIX_AREAS_32 mix_areas_32
 #define MIX_AREAS_24 mix_areas_24
 #define LOCK_PREFIX ""
+#define XADD "addl"
+#define XSUB "subl"
 #include "pcm_dmix_x86_64.h"
 #undef MIX_AREAS_16
 #undef MIX_AREAS_32
 #undef MIX_AREAS_24
 #undef LOCK_PREFIX
+#undef XADD
+#undef XSUB
+
+#define MIX_AREAS_16 remix_areas_16
+#define MIX_AREAS_32 remix_areas_32
+#define MIX_AREAS_24 remix_areas_24
+#define LOCK_PREFIX ""
+#define XADD "subl"
+#define XSUB "addl"
+#include "pcm_dmix_x86_64.h"
+#undef MIX_AREAS_16
+#undef MIX_AREAS_32
+#undef MIX_AREAS_24
+#undef LOCK_PREFIX
+#undef XADD
+#undef XSUB
 
 #define MIX_AREAS_16 mix_areas_16_smp
 #define MIX_AREAS_32 mix_areas_32_smp
 #define MIX_AREAS_24 mix_areas_24_smp
 #define LOCK_PREFIX "lock ; "
+#define XADD "addl"
+#define XSUB "subl"
 #include "pcm_dmix_x86_64.h"
 #undef MIX_AREAS_16
 #undef MIX_AREAS_32
 #undef MIX_AREAS_24
 #undef LOCK_PREFIX
+#undef XADD
+#undef XSUB
+ 
+#define MIX_AREAS_16 remix_areas_16_smp
+#define MIX_AREAS_32 remix_areas_32_smp
+#define MIX_AREAS_24 remix_areas_24_smp
+#define LOCK_PREFIX "lock ; "
+#define XADD "subl"
+#define XSUB "addl"
+#include "pcm_dmix_x86_64.h"
+#undef MIX_AREAS_16
+#undef MIX_AREAS_32
+#undef MIX_AREAS_24
+#undef LOCK_PREFIX
+#undef XADD
+#undef XSUB
  
 #define x86_64_dmix_supported_format \
 	((1ULL << SND_PCM_FORMAT_S16_LE) |\
