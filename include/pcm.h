@@ -292,9 +292,17 @@ typedef unsigned long snd_pcm_uframes_t;
 typedef long snd_pcm_sframes_t;
 
 /** Non blocking mode (flag for open mode) \hideinitializer */
-#define SND_PCM_NONBLOCK		0x0001
+#define SND_PCM_NONBLOCK		0x00000001
 /** Async notification (flag for open mode) \hideinitializer */
-#define SND_PCM_ASYNC			0x0002
+#define SND_PCM_ASYNC			0x00000002
+/** Disable automatic (but not forced!) rate resamplinig */
+#define SND_PCM_NO_AUTO_RESAMPLE	0x00010000
+/** Disable automatic (but not forced!) channel conversion */
+#define SND_PCM_NO_AUTO_CHANNELS	0x00020000
+/** Disable automatic (but not forced!) format conversion */
+#define SND_PCM_NO_AUTO_FORMAT		0x00040000
+/** Disable soft volume control */
+#define SND_PCM_NO_SOFTVOL		0x00080000
 
 /** PCM handle */
 typedef struct _snd_pcm snd_pcm_t;

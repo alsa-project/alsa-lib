@@ -969,34 +969,43 @@ int _snd_pcm_softvol_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Invalid resolution value %d", resolution);
 		return -EINVAL;
 	}
-	err = snd_pcm_slave_conf(root, slave, &sconf, 1,
-				 SND_PCM_HW_PARAM_FORMAT, 0, &sformat);
-	if (err < 0)
-		return err;
-	if (sformat != SND_PCM_FORMAT_UNKNOWN &&
-	    sformat != SND_PCM_FORMAT_S16_LE &&
-	    sformat != SND_PCM_FORMAT_S16_BE &&
-	    sformat != SND_PCM_FORMAT_S24_3LE && 
-	    sformat != SND_PCM_FORMAT_S32_LE &&
-	    sformat != SND_PCM_FORMAT_S32_BE) {
-		SNDERR("only S16_LE, S16_BE, S24_3LE, S32_LE or S32_BE format "
-		       "is supported");
+	if (mode & SND_PCM_NO_SOFTVOL) {
+		err = snd_pcm_slave_conf(root, slave, &sconf, 0);
+		if (err < 0)
+			return err;
+		err = snd_pcm_open_named_slave(pcmp, name, root, sconf, stream,
+					       mode, conf);
 		snd_config_delete(sconf);
-		return -EINVAL;
+	} else {
+		snd_ctl_elem_id_alloca(&ctl_id);
+		err = snd_pcm_slave_conf(root, slave, &sconf, 1,
+					 SND_PCM_HW_PARAM_FORMAT, 0, &sformat);
+		if (err < 0)
+			return err;
+		if (sformat != SND_PCM_FORMAT_UNKNOWN &&
+		    sformat != SND_PCM_FORMAT_S16_LE &&
+		    sformat != SND_PCM_FORMAT_S16_BE &&
+		    sformat != SND_PCM_FORMAT_S24_3LE && 
+		    sformat != SND_PCM_FORMAT_S32_LE &&
+		    sformat != SND_PCM_FORMAT_S32_BE) {
+			SNDERR("only S16_LE, S16_BE, S24_3LE, S32_LE or S32_BE format "
+			       "is supported");
+			snd_config_delete(sconf);
+			return -EINVAL;
+		}
+		err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);
+		snd_config_delete(sconf);
+		if (err < 0)
+			return err;
+		if ((err = snd_pcm_parse_control_id(control, ctl_id, &card, &cchannels, NULL)) < 0) {
+			snd_pcm_close(spcm);
+			return err;
+		}
+		err = snd_pcm_softvol_open(pcmp, name, sformat, card, ctl_id, cchannels,
+					   min_dB, max_dB, resolution, spcm, 1);
+		if (err < 0)
+			snd_pcm_close(spcm);
 	}
-	err = snd_pcm_open_slave(&spcm, root, sconf, stream, mode, conf);
-	snd_config_delete(sconf);
-	if (err < 0)
-		return err;
-	snd_ctl_elem_id_alloca(&ctl_id);
-	if ((err = snd_pcm_parse_control_id(control, ctl_id, &card, &cchannels, NULL)) < 0) {
-		snd_pcm_close(spcm);
-		return err;
-	}
-	err = snd_pcm_softvol_open(pcmp, name, sformat, card, ctl_id, cchannels,
-				   min_dB, max_dB, resolution, spcm, 1);
-	if (err < 0)
-		snd_pcm_close(spcm);
 	return err;
 }
 #ifndef DOC_HIDDEN

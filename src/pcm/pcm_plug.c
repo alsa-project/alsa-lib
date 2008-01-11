@@ -707,7 +707,9 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	snd_interval_t t, buffer_size;
 	const snd_interval_t *srate, *crate;
 
-	if (plug->srate == -2)
+	if (plug->srate == -2 ||
+	    (pcm->mode & pcm->mode & SND_PCM_NO_AUTO_RESAMPLE) ||
+	    (params->flags & SND_PCM_HW_PARAMS_NORESAMPLE))
 		links |= SND_PCM_HW_PARBIT_RATE;
 	else {
 		err = snd_pcm_hw_param_refine_multiple(slave, sparams, SND_PCM_HW_PARAM_RATE, params);
@@ -715,14 +717,14 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 			return err;
 	}
 	
-	if (plug->schannels == -2)
+	if (plug->schannels == -2 || (pcm->mode & SND_PCM_NO_AUTO_CHANNELS))
 		links |= SND_PCM_HW_PARBIT_CHANNELS;
 	else {
 		err = snd_pcm_hw_param_refine_near(slave, sparams, SND_PCM_HW_PARAM_CHANNELS, params);
 		if (err < 0)
 			return err;
 	}
-	if (plug->sformat == -2)
+	if (plug->sformat == -2 || (pcm->mode & SND_PCM_NO_AUTO_FORMAT))
 		links |= SND_PCM_HW_PARBIT_FORMAT;
 	else {
 		format_mask = snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_FORMAT);
@@ -791,8 +793,6 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	err = _snd_pcm_hw_params_refine(sparams, links, params);
 	if (err < 0)
 		return err;
-	if (params->flags & SND_PCM_HW_PARAMS_NORESAMPLE)
-		snd_interval_copy((snd_interval_t *)snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_RATE), snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_RATE));
 	return 0;
 }
 	
@@ -811,10 +811,10 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 	const snd_interval_t *sbuffer_size;
 	const snd_interval_t *srate, *crate;
 
-	if (plug->schannels == -2)
+	if (plug->schannels == -2 || (pcm->mode & SND_PCM_NO_AUTO_CHANNELS))
 		links |= SND_PCM_HW_PARBIT_CHANNELS;
 
-	if (plug->sformat == -2)
+	if (plug->sformat == -2 || (pcm->mode & SND_PCM_NO_AUTO_FORMAT))
 		links |= SND_PCM_HW_PARBIT_FORMAT;
 	else {
 		format_mask = snd_pcm_hw_param_get_mask(params,
@@ -857,7 +857,9 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 			return err;
 	}
 
-	if (plug->srate == -2)
+	if (plug->srate == -2 ||
+	    (pcm->mode & SND_PCM_NO_AUTO_RESAMPLE) ||
+	    (params->flags & SND_PCM_HW_PARAMS_NORESAMPLE))
 		links |= SND_PCM_HW_PARBIT_RATE;
 	else {
 		unsigned int rate_min, srate_min;
@@ -895,8 +897,6 @@ static int snd_pcm_plug_hw_refine_cchange(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
 	err = _snd_pcm_hw_params_refine(params, links, sparams);
 	if (err < 0)
 		return err;
-	if (params->flags & SND_PCM_HW_PARAMS_NORESAMPLE)
-		snd_interval_copy((snd_interval_t *)snd_pcm_hw_param_get_interval(params, SND_PCM_HW_PARAM_RATE), snd_pcm_hw_param_get_interval(sparams, SND_PCM_HW_PARAM_RATE));
 	/* FIXME */
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
