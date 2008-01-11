@@ -1586,7 +1586,7 @@ static const char *snd_pcm_xrun_mode_names[] = {
 
 static const char *snd_pcm_tstamp_mode_names[] = {
 	TSTAMP(NONE),
-	TSTAMP(MMAP),
+	TSTAMP(ENABLE),
 };
 #endif
 

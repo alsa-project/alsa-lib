@@ -380,8 +380,8 @@ struct sndrv_pcm_hw_params {
 
 enum sndrv_pcm_tstamp {
 	SNDRV_PCM_TSTAMP_NONE = 0,
-	SNDRV_PCM_TSTAMP_MMAP,
-	SNDRV_PCM_TSTAMP_LAST = SNDRV_PCM_TSTAMP_MMAP,
+	SNDRV_PCM_TSTAMP_ENABLE,
+	SNDRV_PCM_TSTAMP_LAST = SNDRV_PCM_TSTAMP_ENABLE,
 };
 
 struct sndrv_pcm_sw_params {

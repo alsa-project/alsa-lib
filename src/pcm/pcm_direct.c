@@ -1004,7 +1004,7 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 	 * based on the tstamp_mode of each client
 	 */
 	ret = snd_pcm_sw_params_set_tstamp_mode(spcm, sw_params,
-						SND_PCM_TSTAMP_MMAP);
+						SND_PCM_TSTAMP_ENABLE);
 	if (ret < 0) {
 		SNDERR("unable to tstamp mode MMAP");
 		return ret;
