@@ -994,14 +994,6 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_PCM_VERSION_MAX))
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 
-	if (SNDRV_PROTOCOL_VERSION(2, 0, 5) <= ver) {
-		int on = 1;
-		if (ioctl(fd, SNDRV_PCM_IOCTL_TSTAMP, &on) < 0) {
-			ret = -errno;
-			SNDMSG("TSTAMP failed\n");
-			return ret;
-		}
-	}
 #ifdef HAVE_CLOCK_GETTIME
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 9) <= ver) {
 		int on = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC;
@@ -1013,6 +1005,14 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 		monotonic = 1;
 	}
 #endif
+	  else if (SNDRV_PROTOCOL_VERSION(2, 0, 5) <= ver) {
+		int on = 1;
+		if (ioctl(fd, SNDRV_PCM_IOCTL_TSTAMP, &on) < 0) {
+			ret = -errno;
+			SNDMSG("TSTAMP failed\n");
+			return ret;
+		}
+	}
 	
 	hw = calloc(1, sizeof(snd_pcm_hw_t));
 	if (!hw) {
