@@ -3007,6 +3007,7 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 			lf->mtime = st.st_mtime;
 		} else {
 			SNDERR("Cannot access file %s", lf->name);
+			free(lf->name);
 			memmove(&local->finfo[k], &local->finfo[k+1], sizeof(struct finfo) * (local->count - k - 1));
 			k--;
 			local->count--;
