@@ -708,7 +708,7 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 	const snd_interval_t *srate, *crate;
 
 	if (plug->srate == -2 ||
-	    (pcm->mode & pcm->mode & SND_PCM_NO_AUTO_RESAMPLE) ||
+	    (pcm->mode & SND_PCM_NO_AUTO_RESAMPLE) ||
 	    (params->flags & SND_PCM_HW_PARAMS_NORESAMPLE))
 		links |= SND_PCM_HW_PARBIT_RATE;
 	else {
