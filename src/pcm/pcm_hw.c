@@ -1003,7 +1003,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 		}
 	}
 #ifdef HAVE_CLOCK_GETTIME
-	  else if (SNDRV_PROTOCOL_VERSION(2, 0, 9) >= ver) {
+	if (SNDRV_PROTOCOL_VERSION(2, 0, 9) <= ver) {
 		int on = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC;
 		if (ioctl(fd, SNDRV_PCM_IOCTL_TTSTAMP, &on) < 0) {
 			ret = -errno;
