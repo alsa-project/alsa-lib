@@ -412,7 +412,9 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
 	snd_pcm_file_format_t format;
+	struct timespec timespec;
 	int err;
+
 	assert(pcmp);
 	if (fmt == NULL ||
 	    strcmp(fmt, "raw") == 0)
@@ -467,7 +469,11 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	pcm->poll_fd = slave->poll_fd;
 	pcm->poll_events = slave->poll_events;
 	pcm->mmap_shadow = 1;
-	pcm->monotonic = 1;
+#ifdef HAVE_CLOCK_GETTIME
+	pcm->monotonic = clock_gettime(CLOCK_MONOTONIC, &timespec) == 0;
+#else
+	pcm->monotonic = 0;
+#endif
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
