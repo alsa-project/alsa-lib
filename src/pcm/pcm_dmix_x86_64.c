@@ -92,6 +92,9 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 	}
 	// printf("SMP: %i\n", smp);
 	dmix->u.dmix.mix_areas_16 = smp > 1 ? mix_areas_16_smp : mix_areas_16;
+	dmix->u.dmix.remix_areas_16 = smp > 1 ? remix_areas_16_smp : remix_areas_16;
 	dmix->u.dmix.mix_areas_32 = smp > 1 ? mix_areas_32_smp : mix_areas_32;
+	dmix->u.dmix.remix_areas_32 = smp > 1 ? remix_areas_32_smp : remix_areas_32;
 	dmix->u.dmix.mix_areas_24 = smp > 1 ? mix_areas_24_smp : mix_areas_24;
+	dmix->u.dmix.remix_areas_24 = smp > 1 ? remix_areas_24_smp : remix_areas_24;
 }
