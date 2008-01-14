@@ -283,6 +283,10 @@ typedef enum _snd_pcm_tstamp {
 	SND_PCM_TSTAMP_NONE = 0,
 	/** Update timestamp at every hardware position update */
 	SND_PCM_TSTAMP_ENABLE,
+	/** Equivalent with #SND_PCM_TSTAMP_ENABLE,
+	 * just for compatibility with older versions
+	 */
+	SND_PCM_TSTAMP_MMAP = SND_PCM_TSTAMP_ENABLE,
 	SND_PCM_TSTAMP_LAST = SND_PCM_TSTAMP_ENABLE
 } snd_pcm_tstamp_t;
 
