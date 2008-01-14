@@ -173,7 +173,7 @@ static void generic_remix_areas_16_native(unsigned int size,
 		sample = *src;
 		if (! *dst) {
 			*sum = -sample;
-			*dst = *src;
+			*dst = -sample;
 		} else {
 			*sum = sample = *sum - sample;
 			if (sample > 0x7fff)
@@ -238,7 +238,7 @@ static void generic_remix_areas_32_native(unsigned int size,
 		sample = *src >> 8;
 		if (! *dst) {
 			*sum = -sample;
-			*dst = *src;
+			*dst = -*src;
 		} else {
 			*sum = sample = *sum - sample;
 			if (sample > 0x7fffff)
@@ -303,7 +303,7 @@ static void generic_remix_areas_16_swap(unsigned int size,
 		sample = (signed short) bswap_16(*src);
 		if (! *dst) {
 			*sum = -sample;
-			*dst = *src;
+			*dst = (signed short) bswap_16((signed short) -sample);
 		} else {
 			*sum = sample = *sum - sample;
 			if (sample > 0x7fff)
@@ -368,7 +368,7 @@ static void generic_remix_areas_32_swap(unsigned int size,
 		sample = bswap_32(*src) >> 8;
 		if (! *dst) {
 			*sum = -sample;
-			*dst = *src;
+			*dst = bswap_32(-sample);
 		} else {
 			*sum = sample = *sum - sample;
 			if (sample > 0x7fffff)
@@ -434,7 +434,8 @@ static void generic_remix_areas_24(unsigned int size,
 	for (;;) {
 		sample = src[0] | (src[1] << 8) | (((signed char *)src)[2] << 16);
 		if (!(dst[0] | dst[1] | dst[2])) {
-			*sum = -sample;
+			sample = -sample;
+			*sum = sample;
 		} else {
 			*sum = sample = *sum - sample;
 			if (sample > 0x7fffff)
@@ -493,7 +494,8 @@ static void generic_remix_areas_u8(unsigned int size,
 	for (;;) {
 		register int sample = *src - 0x80;
 		if (*dst == 0x80) {
-			*sum = -sample;
+			sample = -sample;
+			*sum = sample;
 		} else {
 			*sum = sample = *sum - sample;
 			if (sample > 0x7f)
