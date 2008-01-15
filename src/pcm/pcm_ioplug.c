@@ -29,6 +29,7 @@
 #include "pcm_local.h"
 #include "pcm_ioplug.h"
 #include "pcm_ext_parm.h"
+#include "pcm_generic.h"
 
 #ifndef PIC
 /* entry for static linking */
@@ -636,13 +637,6 @@ static snd_pcm_sframes_t snd_pcm_ioplug_avail_update(snd_pcm_t *pcm)
 	return (snd_pcm_sframes_t)avail;
 }
 
-static int snd_pcm_ioplug_htimestamp(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
-				     snd_pcm_uframes_t *avail ATTRIBUTE_UNUSED,
-				     snd_htimestamp_t *tstamp ATTRIBUTE_UNUSED)
-{
-	return -EIO;	/* not implemented yet */
-}
-
 static int snd_pcm_ioplug_nonblock(snd_pcm_t *pcm, int nonblock)
 {
 	ioplug_priv_t *io = pcm->private_data;
@@ -781,7 +775,7 @@ static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.readn = snd_pcm_ioplug_readn,
 	.avail_update = snd_pcm_ioplug_avail_update,
 	.mmap_commit = snd_pcm_ioplug_mmap_commit,
-	.htimestamp = snd_pcm_ioplug_htimestamp,
+	.htimestamp = snd_pcm_generic_real_htimestamp,
 	.poll_descriptors_count = snd_pcm_ioplug_poll_descriptors_count,
 	.poll_descriptors = snd_pcm_ioplug_poll_descriptors,
 	.poll_revents = snd_pcm_ioplug_poll_revents,

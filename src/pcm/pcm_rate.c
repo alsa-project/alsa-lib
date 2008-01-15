@@ -1020,11 +1020,30 @@ static snd_pcm_sframes_t snd_pcm_rate_avail_update(snd_pcm_t *pcm)
  }
 }
 
-static int snd_pcm_rate_htimestamp(snd_pcm_t *pcm ATTRIBUTE_UNUSED,
-				   snd_pcm_uframes_t *avail ATTRIBUTE_UNUSED,
-				   snd_htimestamp_t *tstamp ATTRIBUTE_UNUSED)
+static int snd_pcm_rate_htimestamp(snd_pcm_t *pcm,
+				   snd_pcm_uframes_t *avail,
+				   snd_htimestamp_t *tstamp)
 {
-	return -EIO; /* not implemented yet */
+	snd_pcm_rate_t *rate = pcm->private_data;
+	snd_pcm_sframes_t avail1;
+	snd_pcm_uframes_t tmp;
+	int ok = 0, err;
+
+	while (1) {
+		/* the position is from this plugin itself */
+		avail1 = snd_pcm_avail_update(pcm);
+		if (avail1 < 0)
+			return avail1;
+		if (ok && (snd_pcm_uframes_t)avail1 == *avail)
+			break;
+		*avail = avail1;
+		/* timestamp is taken from the slave PCM */
+		err = snd_pcm_htimestamp(rate->gen.slave, &tmp, tstamp);
+		if (err < 0)
+			return err;
+		ok = 1;
+	}
+	return 0;
 }
 
 static int snd_pcm_rate_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
