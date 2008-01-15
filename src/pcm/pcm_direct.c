@@ -1452,7 +1452,10 @@ static int _snd_pcm_direct_get_slave_ipc_offset(snd_config_t *root,
 #endif
 
 	if (snd_config_search(sconf, "slave", &pcm_conf) >= 0 &&
-	    snd_config_search(pcm_conf, "pcm", &pcm_conf) >= 0)
+	    (snd_config_search(pcm_conf, "pcm", &pcm_conf) >= 0 ||
+	    (snd_config_get_string(pcm_conf, &str) >= 0 &&
+	    snd_config_search_definition(root, "pcm_slave", str, &pcm_conf) >= 0 &&
+	    snd_config_search(pcm_conf, "pcm", &pcm_conf) >= 0)))
 		return _snd_pcm_direct_get_slave_ipc_offset(root, pcm_conf,
 							    direction,
 							    hop + 1);
