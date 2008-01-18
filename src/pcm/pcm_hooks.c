@@ -661,6 +661,7 @@ int _snd_pcm_hook_ctl_elems_install(snd_pcm_t *pcm, snd_config_t *conf)
 			       snd_pcm_hook_ctl_elems_close, sctl);
 	if (err < 0)
 		goto _err;
+	snd_config_delete(pcm_conf);
 	return 0;
  _err:
 	if (h_hw_params)
