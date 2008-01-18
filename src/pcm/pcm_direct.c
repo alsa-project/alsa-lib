@@ -874,7 +874,11 @@ int snd_pcm_direct_initialize_slave(snd_pcm_direct_t *dmix, snd_pcm_t *spcm, str
 			return ret;
 		}
 	}
-	ret = snd_pcm_hw_params_set_format(spcm, hw_params, params->format);
+	if (params->format == SND_PCM_FORMAT_UNKNOWN)
+		ret = -EINVAL;
+	else
+		ret = snd_pcm_hw_params_set_format(spcm, hw_params,
+						   params->format);
 	if (ret < 0) {
 		static const snd_pcm_format_t dmix_formats[] = {
 			SND_PCM_FORMAT_S32,

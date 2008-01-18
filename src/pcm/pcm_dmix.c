@@ -1267,7 +1267,7 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	params.periods = 3;
 
 	err = snd_pcm_slave_conf(root, dopen.slave, &sconf, 8,
-				 SND_PCM_HW_PARAM_FORMAT, 0, &params.format,
+				 SND_PCM_HW_PARAM_FORMAT, SCONF_UNCHANGED, &params.format,
 				 SND_PCM_HW_PARAM_RATE, 0, &params.rate,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &params.channels,
 				 SND_PCM_HW_PARAM_PERIOD_TIME, 0, &params.period_time,
@@ -1282,8 +1282,10 @@ int _snd_pcm_dmix_open(snd_pcm_t **pcmp, const char *name,
 	if (psize == -1 && params.period_time == -1)
 		params.period_time = 125000;    /* 0.125 seconds */
 
-	/* sorry, limited features */
-	if (! (dmix_supported_format & (1ULL << params.format))) {
+	if (params.format == -2)
+		params.format = SND_PCM_FORMAT_UNKNOWN;
+	else if (!(dmix_supported_format & (1ULL << params.format))) {
+		/* sorry, limited features */
 		SNDERR("Unsupported format");
 		snd_config_delete(sconf);
 		return -EINVAL;
