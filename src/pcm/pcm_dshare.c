@@ -894,7 +894,7 @@ int _snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	bsize = psize = -1;
 	params.periods = 3;
 	err = snd_pcm_slave_conf(root, dopen.slave, &sconf, 8,
-				 SND_PCM_HW_PARAM_FORMAT, 0, &params.format,
+				 SND_PCM_HW_PARAM_FORMAT, SCONF_UNCHANGED, &params.format,
 				 SND_PCM_HW_PARAM_RATE, 0, &params.rate,
 				 SND_PCM_HW_PARAM_CHANNELS, 0, &params.channels,
 				 SND_PCM_HW_PARAM_PERIOD_TIME, 0, &params.period_time,
@@ -908,6 +908,9 @@ int _snd_pcm_dshare_open(snd_pcm_t **pcmp, const char *name,
 	/* set a reasonable default */
 	if (psize == -1 && params.period_time == -1)
 		params.period_time = 125000;	/* 0.125 seconds */
+
+	if (params.format == -2)
+		params.format = SND_PCM_FORMAT_UNKNOWN;
 
 	params.period_size = psize;
 	params.buffer_size = bsize;
