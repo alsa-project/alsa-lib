@@ -7,8 +7,8 @@ ALSA_0.9 {
     @SYMBOL_PREFIX@_snd_*_poll_descriptor;
     @SYMBOL_PREFIX@_snd_pcm_hook_*;
 
-    @SYMBOL_PREFIX@__snd_hw_params_*;
-    @SYMBOL_PREFIX@__snd_hw_params_*;
+    @SYMBOL_PREFIX@__snd_pcm_hw_params_*;
+    @SYMBOL_PREFIX@__snd_pcm_sw_params_*;
     @SYMBOL_PREFIX@__snd_*_dlsym_*;
 
   local:
