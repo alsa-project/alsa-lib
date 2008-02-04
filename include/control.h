@@ -242,14 +242,20 @@ int snd_ctl_elem_tlv_write(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			   const unsigned int *tlv);
 int snd_ctl_elem_tlv_command(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 			     const unsigned int *tlv);
+#ifdef __ALSA_HWDEP_H
 int snd_ctl_hwdep_next_device(snd_ctl_t *ctl, int * device);
 int snd_ctl_hwdep_info(snd_ctl_t *ctl, snd_hwdep_info_t * info);
+#endif
+#ifdef __ALSA_PCM_H
 int snd_ctl_pcm_next_device(snd_ctl_t *ctl, int *device);
 int snd_ctl_pcm_info(snd_ctl_t *ctl, snd_pcm_info_t * info);
 int snd_ctl_pcm_prefer_subdevice(snd_ctl_t *ctl, int subdev);
+#endif
+#ifdef __ALSA_RAWMIDI_H
 int snd_ctl_rawmidi_next_device(snd_ctl_t *ctl, int * device);
 int snd_ctl_rawmidi_info(snd_ctl_t *ctl, snd_rawmidi_info_t * info);
 int snd_ctl_rawmidi_prefer_subdevice(snd_ctl_t *ctl, int subdev);
+#endif
 int snd_ctl_set_power_state(snd_ctl_t *ctl, unsigned int state);
 int snd_ctl_get_power_state(snd_ctl_t *ctl, unsigned int *state);
 
