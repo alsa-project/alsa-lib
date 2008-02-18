@@ -59,6 +59,7 @@
 #ifndef __KERNEL__
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #endif
 
 /*
