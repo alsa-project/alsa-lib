@@ -1010,6 +1010,75 @@ static __inline__ void atomic_clear_mask(unsigned long mask, unsigned long *addr
 
 #endif /* __arm__ */
 
+#ifdef __sh__
+
+typedef struct { volatile int counter; } atomic_t;
+
+#define ATOMIC_INIT(i)	{ (i) }
+
+#define atomic_read(v)			((v)->counter)
+#define atomic_set(v,i)			(((v)->counter) = (i))
+
+#define atomic_dec_return(v)		atomic_sub_return(1,(v))
+#define atomic_inc_return(v)		atomic_add_return(1,(v))
+
+#define atomic_sub_and_test(i,v)	(atomic_sub_return((i), (v)) == 0)
+#define atomic_dec_and_test(v)		(atomic_sub_return(1, (v)) == 0)
+#define atomic_inc_and_test(v)		(atomic_add_return(1, (v)) != 0)
+
+#define atomic_add(i,v)			atomic_add_return((i),(v))
+#define atomic_sub(i,v)			atomic_sub_return((i),(v))
+#define atomic_inc(v)			atomic_add(1,(v))
+#define atomic_dec(v)			atomic_sub(1,(v))
+
+static __inline__ int atomic_add_return(int i, volatile atomic_t *v)
+{
+	int result;
+
+	asm volatile (
+	"	.align	2\n"
+	"	mova	99f, r0\n"
+	"	mov	r15, r1\n"
+	"	mov	#-6, r15\n"
+	"	mov.l	@%2, %0\n"
+	"	add	%1, %0\n"
+	"	mov.l	%0, @%2\n"
+	"99:	mov	r1, r15"
+	: "=&r"(result)
+	: "r"(i), "r"(v)
+	: "r0", "r1");
+
+	return result;
+}
+
+static __inline__ int atomic_sub_return(int i, volatile atomic_t *v)
+{
+	int result;
+
+	asm volatile (
+	"	.align	2\n"
+	"	mova	99f, r0\n"
+	"	mov	r15, r1\n"
+	"	mov	#-6, r15\n"
+	"	mov.l	@%2, %0\n"
+	"	sub	%1, %0\n"
+	"	mov.l	%0, @%2\n"
+	"99:	mov	r1, r15"
+	: "=&r"(result)
+	: "r"(i), "r"(v)
+	: "r0", "r1");
+
+	return result;
+}
+
+#define mb() __asm__ __volatile__ ("" : : : "memory")
+#define rmb() mb()
+#define wmb() mb()
+
+#define IATOMIC_DEFINED		1
+
+#endif /* __sh__ */
+
 #ifndef IATOMIC_DEFINED
 /*
  * non supported architecture.
