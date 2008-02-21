@@ -4670,7 +4670,7 @@ int snd_seq_change_bit(int nr, void *array)
 	int result;
 
 	result = ((((unsigned int *)array)[nr >> 5]) & (1UL << (nr & 31))) ? 1 : 0;
-	((unsigned int *)array)[nr >> 5] |= 1UL << (nr & 31);
+	((unsigned int *)array)[nr >> 5] ^= 1UL << (nr & 31);
 	return result;
 }
 
