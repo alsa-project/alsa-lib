@@ -251,8 +251,7 @@ int snd_seq_set_client_event_filter(snd_seq_t *seq, int event_type)
 
 	if ((err = snd_seq_get_client_info(seq, &info)) < 0)
 		return err;
-	info.filter |= SNDRV_SEQ_FILTER_USE_EVENT;
-	snd_seq_set_bit(event_type, info.event_filter);
+	snd_seq_client_info_event_filter_add(&info, event_type);
 	return snd_seq_set_client_info(seq, &info);
 }
 
