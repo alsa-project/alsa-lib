@@ -1538,6 +1538,87 @@ const unsigned char *snd_seq_client_info_get_event_filter(const snd_seq_client_i
 }
 
 /**
+ * \brief Disable event filtering of a client_info container
+ * \param info client_info container
+ *
+ * Remove all event types added with #snd_seq_client_info_event_filter_add and clear
+ * the event filtering flag of this client_info container.
+ * 
+ * \sa snd_seq_client_info_event_filter_add(),
+ *     snd_seq_client_info_event_filter_del(),
+ *     snd_seq_client_info_event_filter_check(),
+ *     snd_seq_get_client_info(),
+ *     snd_seq_set_client_info()
+ */
+void snd_seq_client_info_event_filter_clear(snd_seq_client_info_t *info)
+{
+       assert(info);
+       info->filter &= ~SNDRV_SEQ_FILTER_USE_EVENT;
+       memset(info->event_filter, 0, sizeof(info->event_filter));
+}
+
+/**
+ * \brief Add an event type to the event filtering of a client_info container
+ * \param info client_info container
+ * \param event_type event type to be added
+ * 
+ * Set the event filtering flag of this client_info and add the specified event type to the 
+ * filter bitmap of this client_info container.
+ *
+ * \sa snd_seq_get_client_info(),
+ *     snd_seq_set_client_info(),
+ *     snd_seq_client_info_event_filter_del(),
+ *     snd_seq_client_info_event_filter_check(),
+ *     snd_seq_client_info_event_filter_clear()
+ */
+void snd_seq_client_info_event_filter_add(snd_seq_client_info_t *info, int event_type)
+{
+       assert(info);
+       info->filter |= SNDRV_SEQ_FILTER_USE_EVENT;
+       snd_seq_set_bit(event_type, info->event_filter);
+}
+
+/**
+ * \brief Remove an event type from the event filtering of a client_info container
+ * \param info client_info container
+ * \param event_type event type to be removed
+ *
+ * Removes the specified event from the filter bitmap of this client_info container. It will
+ * not clear the event filtering flag, use #snd_seq_client_info_event_filter_clear instead.
+ *
+ * \sa snd_seq_get_client_info(),
+ *     snd_seq_set_client_info(),
+ *     snd_seq_client_info_event_filter_add(),
+ *     snd_seq_client_info_event_filter_check(),
+ *     snd_seq_client_info_event_filter_clear()
+ */
+void snd_seq_client_info_event_filter_del(snd_seq_client_info_t *info, int event_type)
+{
+       assert(info);
+       snd_seq_unset_bit(event_type, info->event_filter);
+}
+
+/**
+ * \brief Check if an event type is present in the event filtering of a client_info container
+ * \param info client_info container
+ * \param event_type event type to be checked
+ * \return 1 if the event type is present, 0 otherwise
+ *
+ * Test if the event type is in the filter bitamp of this client_info container.
+ *
+ * \sa snd_seq_get_client_info(),
+ *     snd_seq_set_client_info(),
+ *     snd_seq_client_info_event_filter_add(),
+ *     snd_seq_client_info_event_filter_del(),
+ *     snd_seq_client_info_event_filter_clear()
+ */
+int snd_seq_client_info_event_filter_check(snd_seq_client_info_t *info, int event_type)
+{
+       assert(info);
+       return snd_seq_get_bit(event_type, info->event_filter);
+} 
+
+/**
  * \brief Get the number of opened ports of a client_info container
  * \param info client_info container
  * \return number of opened ports

@@ -153,6 +153,11 @@ void snd_seq_client_info_set_broadcast_filter(snd_seq_client_info_t *info, int v
 void snd_seq_client_info_set_error_bounce(snd_seq_client_info_t *info, int val);
 void snd_seq_client_info_set_event_filter(snd_seq_client_info_t *info, unsigned char *filter);
 
+void snd_seq_client_info_event_filter_clear(snd_seq_client_info_t *info);
+void snd_seq_client_info_event_filter_add(snd_seq_client_info_t *info, int event_type);
+void snd_seq_client_info_event_filter_del(snd_seq_client_info_t *info, int event_type);
+int snd_seq_client_info_event_filter_check(snd_seq_client_info_t *info, int event_type);
+
 int snd_seq_get_client_info(snd_seq_t *handle, snd_seq_client_info_t *info);
 int snd_seq_get_any_client_info(snd_seq_t *handle, int client, snd_seq_client_info_t *info);
 int snd_seq_set_client_info(snd_seq_t *handle, snd_seq_client_info_t *info);
