@@ -1522,11 +1522,17 @@ int snd_seq_client_info_get_error_bounce(const snd_seq_client_info_t *info)
 }
 
 /**
- * \brief Get the event filter bitmap of a client_info container
+ * \brief (DEPRECATED) Get the event filter bitmap of a client_info container
  * \param info client_info container
  * \return NULL if no event filter, or pointer to event filter bitmap
  *
- * \sa snd_seq_get_client_info(), snd_seq_client_info_set_event_filter()
+ * Use #snd_seq_client_info_event_filter_check() instead.
+ *
+ * \sa snd_seq_client_info_event_filter_add(),
+ *     snd_seq_client_info_event_filter_del(),
+ *     snd_seq_client_info_event_filter_check(),
+ *     snd_seq_client_info_event_filter_clear(),
+ *     snd_seq_get_client_info()
  */
 const unsigned char *snd_seq_client_info_get_event_filter(const snd_seq_client_info_t *info)
 {
@@ -1704,12 +1710,17 @@ void snd_seq_client_info_set_error_bounce(snd_seq_client_info_t *info, int val)
 }
 
 /**
- * \brief Set the event filter bitmap of a client_info container
+ * \brief (DEPRECATED) Set the event filter bitmap of a client_info container
  * \param info client_info container
- * \param filter event filter bitmap
+ * \param filter event filter bitmap, pass NULL for no event filtering
  *
- * \sa snd_seq_get_client_info(), snd_seq_client_info_get_event_filger(),
- *     snd_seq_set_client_event_filter()
+ * Use #snd_seq_client_info_event_filter_add instead.
+ *
+ * \sa snd_seq_client_info_event_filter_add(),
+ *     snd_seq_client_info_event_filter_del(),
+ *     snd_seq_client_info_event_filter_check(),
+ *     snd_seq_client_info_event_filter_clear(),
+ *     snd_seq_set_client_info()
  */
 void snd_seq_client_info_set_event_filter(snd_seq_client_info_t *info, unsigned char *filter)
 {
