@@ -575,6 +575,7 @@ int snd_seq_remove_events(snd_seq_t *handle, snd_seq_remove_events_t *info);
  */
 
 void snd_seq_set_bit(int nr, void *array);
+void snd_seq_unset_bit(int nr, void *array);
 int snd_seq_change_bit(int nr, void *array);
 int snd_seq_get_bit(int nr, void *array);
 

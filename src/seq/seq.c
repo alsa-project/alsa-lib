@@ -4663,6 +4663,14 @@ void snd_seq_set_bit(int nr, void *array)
 }
 
 /**
+ * \brief unset a bit flag
+ */
+void snd_seq_unset_bit(int nr, void *array)
+{
+       ((unsigned int *)array)[nr >> 5] &= ~(1UL << (nr & 31));
+}
+
+/**
  * \brief change a bit flag
  */
 int snd_seq_change_bit(int nr, void *array)
