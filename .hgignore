@@ -42,5 +42,6 @@ src/Versions
 src/control/ctl_symbols_list.c
 src/pcm/pcm_symbols_list.c
 doc/doxygen/*
+doc/doxygen.cfg
 test/namehint
 test/pcm
