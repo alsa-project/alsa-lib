@@ -43,5 +43,16 @@ src/control/ctl_symbols_list.c
 src/pcm/pcm_symbols_list.c
 doc/doxygen/*
 doc/doxygen.cfg
+test/client_event_filter
+test/control
+test/latency
+test/midiloop
 test/namehint
+test/oldapi
 test/pcm
+test/pcm_min
+test/playmidi1
+test/queue_timer
+test/rawmidi
+test/seq
+test/timer
