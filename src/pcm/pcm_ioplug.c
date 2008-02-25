@@ -484,7 +484,7 @@ static int snd_pcm_ioplug_pause(snd_pcm_t *pcm, int enable)
 {
 	ioplug_priv_t *io = pcm->private_data;
 	static snd_pcm_state_t states[2] = {
-		SND_PCM_STATE_PAUSED, SND_PCM_STATE_RUNNING
+		SND_PCM_STATE_RUNNING, SND_PCM_STATE_PAUSED
 	};
 	int prev, err;
 
