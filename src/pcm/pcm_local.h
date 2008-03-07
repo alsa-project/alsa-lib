@@ -944,13 +944,17 @@ typedef union snd_tmp_double {
 /* get the current timestamp */
 static inline void gettimestamp(snd_htimestamp_t *tstamp, int monotonic)
 {
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
 	if (monotonic) {
 		clock_gettime(CLOCK_MONOTONIC, tstamp);
 	} else {
+#endif
 		struct timeval tv;
 
 		gettimeofday(&tv, 0);
 		tstamp->tv_sec = tv.tv_sec;
 		tstamp->tv_nsec = tv.tv_usec * 1000L;
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
 	}
+#endif
 }

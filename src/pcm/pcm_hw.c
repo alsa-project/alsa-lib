@@ -994,7 +994,7 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 	if (SNDRV_PROTOCOL_INCOMPATIBLE(ver, SNDRV_PCM_VERSION_MAX))
 		return -SND_ERROR_INCOMPATIBLE_VERSION;
 
-#ifdef HAVE_CLOCK_GETTIME
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
 	if (SNDRV_PROTOCOL_VERSION(2, 0, 9) <= ver) {
 		struct timespec timespec;
 		if (clock_gettime(CLOCK_MONOTONIC, &timespec) == 0) {
