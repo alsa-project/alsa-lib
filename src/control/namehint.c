@@ -304,8 +304,8 @@ static int try_config(struct hint_list *list,
 				err = -EINVAL;
 				goto __cleanup;
 			}
-			list->device_input = -1;
-			list->device_output = -1;
+			list->device_input = dev;
+			list->device_output = dev;
 		}
 		if (snd_config_search(cfg, "device_input", &n) >= 0) {
 			if (snd_config_get_integer(n, &list->device_input) < 0) {
