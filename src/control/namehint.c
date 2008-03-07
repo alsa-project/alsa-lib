@@ -197,10 +197,11 @@ static char *get_dev_name(struct hint_list *list)
 			free(str1);
 			return res;
 		}
-	} else {
-		return strdup(list->cardname);
 	}
-	return NULL;
+	/* if the specified device doesn't exist, skip this entry */
+	if (list->device_input >= 0 || list->device_output >= 0)
+		return NULL;
+	return strdup(list->cardname);
 }
 
 #ifndef DOC_HIDDEN
