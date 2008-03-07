@@ -1,4 +1,5 @@
-alsadir = @ALSA_CONFIG_DIR@/cards
+alsaconfigdir = @ALSA_CONFIG_DIR@
+alsadir = $(alsaconfigdir)/cards
 cfg_files = aliases.conf \
 	AACI.conf \
 	ATIIXP.conf \
@@ -58,7 +59,7 @@ endif
 alsa_DATA = $(cfg_files)
 
 if BUILD_ALISP
-SI7018dir = @ALSA_CONFIG_DIR@/cards/SI7018
+SI7018dir = $(alsaconfigdir)/cards/SI7018
 SI7018_files = \
 	SI7018/sndoc-mixer.alisp \
 	SI7018/sndop-mixer.alisp

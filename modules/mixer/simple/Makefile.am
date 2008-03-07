@@ -1,4 +1,5 @@
-pkglibdir = @ALSA_PLUGIN_DIR@/smixer
+alsaplugindir = @ALSA_PLUGIN_DIR@
+pkglibdir = $(alsaplugindir)/smixer
 pythonlibs = @PYTHON_LIBS@
 pythonincludes = @PYTHON_INCLUDES@
 
