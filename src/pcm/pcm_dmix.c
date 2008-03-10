@@ -311,9 +311,9 @@ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
 	if (size >= pcm->boundary / 2)
 		size = pcm->boundary - size;
 
-	/* the slave_app_ptr can be far behing the slave_hw_ptr */
+	/* the slave_app_ptr can be far behind the slave_hw_ptr */
 	/* reduce mixing and errors here - just skip not catched writes */
-	if (dmix->slave_hw_ptr < dmix->slave_appl_ptr)
+	if (dmix->slave_hw_ptr <= dmix->slave_appl_ptr)
 		slave_size = dmix->slave_appl_ptr - dmix->slave_hw_ptr;
 	else
 		slave_size = dmix->slave_appl_ptr + (dmix->slave_boundary - dmix->slave_hw_ptr);
