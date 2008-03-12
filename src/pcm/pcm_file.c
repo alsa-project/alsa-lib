@@ -396,6 +396,7 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  * \param ifname Input filename (or NULL if file descriptor ifd is available)
  * \param ifd Input file descriptor (if (ifd < 0) && (ifname == NULL), no input
  *            redirection will be performed)
+ * \param trunc Truncate the file if it already exists
  * \param fmt File format ("raw" is supported only)
  * \param perm File permission
  * \param slave Slave PCM handle
@@ -406,13 +407,15 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  *          changed in future.
  */
 int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
-		      const char *fname, int fd, const char *ifname, int ifd, 
+		      const char *fname, int fd, const char *ifname, int ifd,
+		      int trunc,
 		      const char *fmt, int perm, snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	snd_pcm_file_t *file;
 	snd_pcm_file_format_t format;
 	struct timespec timespec;
+	char *tmpname = NULL;
 	int err;
 
 	assert(pcmp);
@@ -424,9 +427,30 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		return -EINVAL;
 	}
 	if (fname) {
-		fd = open(fname, O_WRONLY|O_CREAT, perm);
+		if (trunc)
+			fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC, perm);
+		else {
+			fd = open(fname, O_WRONLY|O_CREAT|O_EXCL, perm);
+			if (fd < 0) {
+				int idx, len;
+				len = strlen(fname) + 6;
+				tmpname = malloc(len);
+				if (!tmpname)
+					return -ENOMEM;
+				for (idx = 1; idx < 10000; idx++) {
+					snprintf(tmpname, len,
+						 "%s.%04d", fname, idx);
+					fd = open(tmpname, O_WRONLY|O_CREAT|O_EXCL, perm);
+					if (fd >= 0) {
+						fname = tmpname;
+						break;
+					}
+				}
+			}
+		}
 		if (fd < 0) {
 			SYSERR("open %s for writing failed", fname);
+			free(tmpname);
 			return -errno;
 		}
 	}
@@ -434,6 +458,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (!file) {
 		if (fname)
 			close(fd);
+		free(tmpname);
 		return -ENOMEM;
 	}
 
@@ -443,6 +468,8 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			SYSERR("open %s for reading failed", ifname);
 			if (fname)
 				close(fd);
+			free(file);
+			free(tmpname);
 			return -errno;
 		}
 	}
@@ -461,6 +488,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0) {
 		free(file->fname);
 		free(file);
+		free(tmpname);
 		return err;
 	}
 	pcm->ops = &snd_pcm_file_ops;
@@ -478,6 +506,7 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
 
+	free(tmpname);
 	return 0;
 }
 
@@ -541,7 +570,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_t *slave = NULL, *sconf;
 	const char *fname = NULL, *ifname = NULL;
 	const char *format = NULL;
-	long fd = -1, ifd = -1;
+	long fd = -1, ifd = -1, trunc = 1;
 	long perm = 0600;
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -596,6 +625,13 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 			}
 			continue;
 		}
+		if (strcmp(id, "truncate") == 0) {
+			err = snd_config_get_bool(n);
+			if (err < 0)
+				return -EINVAL;
+			trunc = err;
+			continue;
+		}
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
@@ -615,7 +651,8 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_file_open(pcmp, name, fname, fd, ifname, ifd, format, perm, spcm, 1);
+	err = snd_pcm_file_open(pcmp, name, fname, fd, ifname, ifd,
+				trunc, format, perm, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
