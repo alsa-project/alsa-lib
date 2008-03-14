@@ -231,21 +231,19 @@ static snd_pcm_sframes_t snd_pcm_file_readi(snd_pcm_t *pcm, void *buffer, snd_pc
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	snd_pcm_channel_area_t areas[pcm->channels];
-	snd_pcm_sframes_t n /* , bytesn */;
+	snd_pcm_sframes_t n;
 
+	n = snd_pcm_readi(file->gen.slave, buffer, size);
+	if (n <= 0)
+		return n;
 	if (file->ifd >= 0) {
-		n = /* bytesn = */ read(file->ifd, buffer, size * pcm->frame_bits / 8);
-		if (n > 0)
-			n = n * 8 / pcm->frame_bits;
-		/* SNDERR("DEBUG: channels = %d, sample_bits = %d, frame_bits = %d, bytes = %d, frames = %d",
-		        pcm->channels, pcm->sample_bits, pcm->frame_bits, bytesn, n); */
-	} else {
-		n = snd_pcm_readi(file->gen.slave, buffer, size);
-		if (n > 0) {
-			snd_pcm_areas_from_buf(pcm, areas, buffer);
-			snd_pcm_file_add_frames(pcm, areas, 0, n);
-		}
+		n = read(file->ifd, buffer, n * pcm->frame_bits / 8);
+		if (n < 0)
+			return n;
+		return n * 8 / pcm->frame_bits;
 	}
+	snd_pcm_areas_from_buf(pcm, areas, buffer);
+	snd_pcm_file_add_frames(pcm, areas, 0, n);
 	return n;
 }
 
@@ -642,7 +640,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);
 	if (err < 0)
 		return err;
-	if (!fname && fd < 0) {
+	if (!fname && fd < 0 && !ifname) {
 		snd_config_delete(sconf);
 		SNDERR("file is not defined");
 		return -EINVAL;
