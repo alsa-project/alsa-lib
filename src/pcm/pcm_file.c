@@ -26,6 +26,7 @@
  *
  */
   
+#include <endian.h>
 #include <byteswap.h>
 #include <ctype.h>
 #include "pcm_local.h"
@@ -39,8 +40,19 @@ const char *_snd_module_pcm_file = "";
 #ifndef DOC_HIDDEN
 
 typedef enum _snd_pcm_file_format {
-	SND_PCM_FILE_FORMAT_RAW
+	SND_PCM_FILE_FORMAT_RAW,
+	SND_PCM_FILE_FORMAT_WAV
 } snd_pcm_file_format_t;
+
+/* WAV format chunk */
+struct wav_fmt {
+	short fmt;
+	short chan;
+	int rate;
+	int bps;
+	short bwidth;
+	short bits;
+};
 
 typedef struct {
 	snd_pcm_generic_t gen;
@@ -60,14 +72,97 @@ typedef struct {
 	char *rbuf;
 	snd_pcm_channel_area_t *wbuf_areas;
 	size_t buffer_bytes;
+	struct wav_fmt wav_header;
+	size_t filelen;
 } snd_pcm_file_t;
 
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define TO_LE32(x)	(x)
+#define TO_LE16(x)	(x)
+#else
+#define TO_LE32(x)	bswap_32(x)
+#define TO_LE16(x)	bswap_16(x)
+#endif
+
+static void setup_wav_header(snd_pcm_t *pcm, struct wav_fmt *fmt)
+{
+	fmt->fmt = TO_LE16(0x01);
+	fmt->chan = TO_LE16(pcm->channels);
+	fmt->rate = TO_LE32(pcm->rate);
+	fmt->bwidth = pcm->frame_bits / 8;
+	fmt->bps = fmt->bwidth * pcm->rate;
+	fmt->bits = snd_pcm_format_width(pcm->format);
+	fmt->bps = TO_LE32(fmt->bps);
+	fmt->bwidth = TO_LE16(fmt->bwidth);
+	fmt->bits = TO_LE16(fmt->bits);
+}
+
+static int write_wav_header(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	static char header[] = {
+		'R', 'I', 'F', 'F',
+		0x24, 0, 0, 0,
+		'W', 'A', 'V', 'E',
+		'f', 'm', 't', ' ',
+		0x10, 0, 0, 0,
+	};
+	static char header2[] = {
+		'd', 'a', 't', 'a',
+		0, 0, 0, 0
+	};
+	
+	setup_wav_header(pcm, &file->wav_header);
+
+	if (write(file->fd, header, sizeof(header)) != sizeof(header) ||
+	    write(file->fd, &file->wav_header, sizeof(file->wav_header)) !=
+	    sizeof(file->wav_header) ||
+	    write(file->fd, header2, sizeof(header2)) != sizeof(header2)) {
+		int err = errno;
+		SYSERR("Write error.\n");
+		return -err;
+	}
+	return 0;
+}
+
+/* fix up the length fields in WAV header */
+static void fixup_wav_header(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	int len, ret;
+
+	/* RIFF length */
+	if (lseek(file->fd, 4, SEEK_SET) == 4) {
+		len = (file->filelen + 0x24) > 0x7fffffff ?
+			0x7fffffff : (int)(file->filelen + 0x24);
+		len = TO_LE32(len);
+		ret = write(file->fd, &len, 4);
+		if (ret < 0)
+			return;
+	}
+	/* data length */
+	if (lseek(file->fd, 0x28, SEEK_SET) == 0x28) {
+		len = file->filelen > 0x7fffffff ?
+			0x7fffffff : (int)file->filelen;
+		len = TO_LE32(len);
+		ret = write(file->fd, &len, 4);
+		if (ret < 0)
+			return;
+	}
+}
 #endif /* DOC_HIDDEN */
 
 static void snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	assert(bytes <= file->wbuf_used_bytes);
+
+	if (file->format == SND_PCM_FILE_FORMAT_WAV &&
+	    !file->wav_header.fmt) {
+		if (write_wav_header(pcm) < 0)
+			return;
+	}
+
 	while (bytes > 0) {
 		snd_pcm_sframes_t err;
 		size_t n = bytes;
@@ -84,6 +179,7 @@ static void snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 		file->file_ptr_bytes += err;
 		if (file->file_ptr_bytes == file->wbuf_size_bytes)
 			file->file_ptr_bytes = 0;
+		file->filelen += err;
 		if ((snd_pcm_uframes_t)err != n)
 			break;
 	}
@@ -122,6 +218,8 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	if (file->fname) {
+		if (file->wav_header.fmt)
+			fixup_wav_header(pcm);
 		free((void *)file->fname);
 		close(file->fd);
 	}
@@ -395,7 +493,7 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
  * \param ifd Input file descriptor (if (ifd < 0) && (ifname == NULL), no input
  *            redirection will be performed)
  * \param trunc Truncate the file if it already exists
- * \param fmt File format ("raw" is supported only)
+ * \param fmt File format ("raw" or "wav" are available)
  * \param perm File permission
  * \param slave Slave PCM handle
  * \param close_slave When set, the slave PCM handle is closed with copy PCM
@@ -420,6 +518,8 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (fmt == NULL ||
 	    strcmp(fmt, "raw") == 0)
 		format = SND_PCM_FILE_FORMAT_RAW;
+	else if (!strcmp(fmt, "wav"))
+		format = SND_PCM_FILE_FORMAT_WAV;
 	else {
 		SNDERR("file format %s is unknown", fmt);
 		return -EINVAL;
@@ -528,10 +628,10 @@ pcm.name {
 	file STR		# Output filename
 	or
 	file INT		# Output file descriptor number
-	infile STR		# Input filename
+	infile STR		# Input filename - only raw format
 	or
 	infile INT		# Input file descriptor number
-	[format STR]		# File format (only "raw" at the moment)
+	[format STR]		# File format ("raw" or "wav")
 	[perm INT]		# Output file permission (octal, def. 0600)
 }
 \endcode
