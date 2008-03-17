@@ -733,6 +733,17 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
+	if (!format) {
+		snd_config_t *n;
+		/* read defaults */
+		if (snd_config_search(root, "defaults.pcm.file_format", &n) >= 0) {
+			err = snd_config_get_string(n, &format);
+			if (err < 0) {
+				SNDERR("Invalid file format");
+				return -EINVAL;
+			}
+		}
+	}
 	if (!slave) {
 		SNDERR("slave is not defined");
 		return -EINVAL;
