@@ -1006,9 +1006,9 @@ int snd_pcm_hw_open_fd(snd_pcm_t **pcmp, const char *name,
 			}
 			monotonic = 1;
 		}
-	}
+	} else
 #endif
-	  else if (SNDRV_PROTOCOL_VERSION(2, 0, 5) <= ver) {
+	  if (SNDRV_PROTOCOL_VERSION(2, 0, 5) <= ver) {
 		int on = 1;
 		if (ioctl(fd, SNDRV_PCM_IOCTL_TSTAMP, &on) < 0) {
 			ret = -errno;
