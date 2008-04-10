@@ -5882,6 +5882,10 @@ snd_pcm_state_t snd_pcm_status_get_state(const snd_pcm_status_t *obj)
  * \brief Get trigger timestamp from a PCM status container
  * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
+ *
+ * Trigger means a PCM state transition (from stopped to running or
+ * versa vice). It applies also to pause and suspend. In other words,
+ * timestamp contains time when stream started or when it was stopped.
  */
 void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestamp_t *ptr)
 {
@@ -5894,6 +5898,10 @@ void snd_pcm_status_get_trigger_tstamp(const snd_pcm_status_t *obj, snd_timestam
  * \brief Get trigger hi-res timestamp from a PCM status container
  * \param obj #snd_pcm_status_t pointer
  * \param ptr Pointer to returned timestamp
+ *
+ * Trigger means a PCM state transition (from stopped to running or
+ * versa vice). It applies also to pause and suspend. In other words,
+ * timestamp contains time when stream started or when it was stopped.
  */
 #ifndef DOXYGEN
 void INTERNAL(snd_pcm_status_get_trigger_htstamp)(const snd_pcm_status_t *obj, snd_htimestamp_t *ptr)
