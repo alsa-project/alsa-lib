@@ -2812,6 +2812,27 @@ int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params)
 }
 
 /**
+ * \brief Check, if timestamps are monotonic for given configuration
+ * \param params Configuration space
+ * \return Boolean value
+ * \retval 0 Device doesn't do monotomic timestamps
+ * \retval 1 Device does monotonic timestamps
+ *
+ * It is not allowed to call this function when given configuration is not exactly one.
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
+ * from the configuration space.
+ */
+int snd_pcm_hw_params_is_monotonic(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	if (CHECK_SANITY(params->info == ~0U)) {
+		SNDMSG("invalid PCM info field");
+		return 0; /* FIXME: should be a negative error? */
+	}
+	return !!(params->info & SND_PCM_INFO_MONOTONIC);
+}
+
+/**
  * \brief Check, if hardware supports overrange detection
  * \param params Configuration space
  * \return Boolean value
@@ -2830,6 +2851,48 @@ int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params)
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_OVERRANGE);
+}
+
+/**
+ * \brief Check, if device supports forward
+ * \param params Configuration space
+ * \return Boolean value
+ * \retval 0 Device doesn't support forward
+ * \retval 1 Device supports forward
+ *
+ * It is not allowed to call this function when given configuration is not exactly one.
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
+ * from the configuration space.
+ */
+int snd_pcm_hw_params_can_forward(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	if (CHECK_SANITY(params->info == ~0U)) {
+		SNDMSG("invalid PCM info field");
+		return 0; /* FIXME: should be a negative error? */
+	}
+	return !!(params->info & SND_PCM_INFO_FORWARD);
+}
+
+/**
+ * \brief Check, if device supports rewind
+ * \param params Configuration space
+ * \return Boolean value
+ * \retval 0 Device doesn't support rewind
+ * \retval 1 Device supports rewind
+ *
+ * It is not allowed to call this function when given configuration is not exactly one.
+ * Usually, #snd_pcm_hw_params() function chooses one configuration
+ * from the configuration space.
+ */
+int snd_pcm_hw_params_can_rewind(const snd_pcm_hw_params_t *params)
+{
+	assert(params);
+	if (CHECK_SANITY(params->info == ~0U)) {
+		SNDMSG("invalid PCM info field");
+		return 0; /* FIXME: should be a negative error? */
+	}
+	return !!(params->info & SND_PCM_INFO_REWIND);
 }
 
 /**

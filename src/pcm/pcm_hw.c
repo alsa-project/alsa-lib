@@ -245,6 +245,13 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		// SYSMSG("SNDRV_PCM_IOCTL_HW_REFINE failed");
 		return err;
 	}
+
+	if (params->info != ~0UL) {
+		params->info &= ~0xf0000000;
+		params->info |= (pcm->monotonic ? SND_PCM_INFO_MONOTONIC : 0) |
+				 SND_PCM_INFO_REWIND |
+				 SND_PCM_INFO_FORWARD;
+	}
 	
 	return 0;
 }

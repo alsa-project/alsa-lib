@@ -95,6 +95,10 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_HW_PARAMS_NORESAMPLE SNDRV_PCM_HW_PARAMS_NORESAMPLE
 #define SND_PCM_HW_PARAMS_EXPORT_BUFFER SNDRV_PCM_HW_PARAMS_EXPORT_BUFFER
 
+#define SND_PCM_INFO_FORWARD	0x10000000
+#define SND_PCM_INFO_REWIND	0x20000000
+#define SND_PCM_INFO_MONOTONIC	0x80000000
+
 typedef struct _snd_pcm_rbptr {
 	snd_pcm_t *master;
 	volatile snd_pcm_uframes_t *ptr;
