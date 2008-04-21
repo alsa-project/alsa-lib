@@ -1039,6 +1039,17 @@ static snd_pcm_sframes_t _snd_pcm_share_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 	return n;
 }
 
+static snd_pcm_sframes_t snd_pcm_share_rewindable(snd_pcm_t *pcm)
+{
+	snd_pcm_share_t *share = pcm->private_data;
+	snd_pcm_share_slave_t *slave = share->slave;
+	snd_pcm_sframes_t ret;
+	Pthread_mutex_lock(&slave->mutex);
+	ret = snd_pcm_rewindable(slave->pcm);
+	Pthread_mutex_unlock(&slave->mutex);
+	return ret;
+}
+
 static snd_pcm_sframes_t snd_pcm_share_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_share_t *share = pcm->private_data;
@@ -1083,6 +1094,17 @@ static snd_pcm_sframes_t _snd_pcm_share_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	snd_pcm_mmap_appl_forward(pcm, frames);
 	_snd_pcm_share_update(pcm);
 	return n;
+}
+
+static snd_pcm_sframes_t snd_pcm_share_forwardable(snd_pcm_t *pcm)
+{
+	snd_pcm_share_t *share = pcm->private_data;
+	snd_pcm_share_slave_t *slave = share->slave;
+	snd_pcm_sframes_t ret;
+	Pthread_mutex_lock(&slave->mutex);
+	ret = snd_pcm_forwardable(slave->pcm);
+	Pthread_mutex_unlock(&slave->mutex);
+	return ret;
 }
 
 static snd_pcm_sframes_t snd_pcm_share_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -1316,7 +1338,9 @@ static snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	.writen = snd_pcm_mmap_writen,
 	.readi = snd_pcm_mmap_readi,
 	.readn = snd_pcm_mmap_readn,
+	.rewindable = snd_pcm_share_rewindable,
 	.rewind = snd_pcm_share_rewind,
+	.forwardable = snd_pcm_share_forwardable,
 	.forward = snd_pcm_share_forward,
 	.resume = snd_pcm_share_resume,
 	.avail_update = snd_pcm_share_avail_update,

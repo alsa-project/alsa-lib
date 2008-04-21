@@ -410,15 +410,27 @@ static int snd_pcm_dshare_pause(snd_pcm_t *pcm ATTRIBUTE_UNUSED, int enable ATTR
 	return -EIO;
 }
 
-static snd_pcm_sframes_t snd_pcm_dshare_rewind(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_uframes_t frames ATTRIBUTE_UNUSED)
+static snd_pcm_sframes_t snd_pcm_dshare_rewindable(snd_pcm_t *pcm)
 {
-#if 0
-	/* FIXME: substract samples from the mix ring buffer, too? */
+	return snd_pcm_mmap_playback_hw_avail(pcm);
+}
+
+static snd_pcm_sframes_t snd_pcm_dshare_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
+{
+	snd_pcm_sframes_t avail;
+
+	avail = snd_pcm_mmap_playback_hw_avail(pcm);
+	if (avail < 0)
+		return 0;
+	if (frames > (snd_pcm_uframes_t)avail)
+		frames = avail;
 	snd_pcm_mmap_appl_backward(pcm, frames);
 	return frames;
-#else
-	return -EIO;
-#endif
+}
+
+static snd_pcm_sframes_t snd_pcm_dshare_forwardable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_playback_avail(pcm);
 }
 
 static snd_pcm_sframes_t snd_pcm_dshare_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -574,7 +586,9 @@ static snd_pcm_fast_ops_t snd_pcm_dshare_fast_ops = {
 	.drop = snd_pcm_dshare_drop,
 	.drain = snd_pcm_dshare_drain,
 	.pause = snd_pcm_dshare_pause,
+	.rewindable = snd_pcm_dshare_rewindable,
 	.rewind = snd_pcm_dshare_rewind,
+	.forwardable = snd_pcm_dshare_forwardable,
 	.forward = snd_pcm_dshare_forward,
 	.resume = snd_pcm_direct_resume,
 	.link = NULL,

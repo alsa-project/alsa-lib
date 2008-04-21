@@ -73,8 +73,12 @@ typedef struct {
 	snd1_pcm_generic_resume
 #define snd_pcm_generic_delay \
 	snd1_pcm_generic_delay
+#define snd_pcm_generic_forwardable \
+	snd1_pcm_generic_forwardable
 #define snd_pcm_generic_forward \
 	snd1_pcm_generic_forward
+#define snd_pcm_generic_rewindable \
+	snd1_pcm_generic_rewindable
 #define snd_pcm_generic_rewind \
 	snd1_pcm_generic_rewind
 #define snd_pcm_generic_link \
@@ -124,7 +128,9 @@ int snd_pcm_generic_drain(snd_pcm_t *pcm);
 int snd_pcm_generic_pause(snd_pcm_t *pcm, int enable);
 int snd_pcm_generic_resume(snd_pcm_t *pcm);
 int snd_pcm_generic_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
+snd_pcm_sframes_t snd_pcm_generic_forwardable(snd_pcm_t *pcm);
 snd_pcm_sframes_t snd_pcm_generic_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+snd_pcm_sframes_t snd_pcm_generic_rewindable(snd_pcm_t *pcm);
 snd_pcm_sframes_t snd_pcm_generic_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 int snd_pcm_generic_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_generic_link_slaves(snd_pcm_t *pcm, snd_pcm_t *master);

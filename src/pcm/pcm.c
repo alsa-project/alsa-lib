@@ -1112,6 +1112,25 @@ int snd_pcm_pause(snd_pcm_t *pcm, int enable)
 }
 
 /**
+ * \brief Get safe count of frames which can be rewinded
+ * \param pcm PCM handle
+ * \return a positive number of frames or negative error code
+ *
+ * Note: The snd_pcm_rewind() can accept bigger value than returned
+ * by this function. But it is not guaranteed that output stream
+ * will be consistent with bigger value.
+ */
+snd_pcm_sframes_t snd_pcm_rewindable(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	return pcm->fast_ops->rewindable(pcm->fast_op_arg);
+}
+
+/**
  * \brief Move application frame position backward
  * \param pcm PCM handle
  * \param frames wanted displacement in frames
@@ -1128,6 +1147,25 @@ snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 	if (frames == 0)
 		return 0;
 	return pcm->fast_ops->rewind(pcm->fast_op_arg, frames);
+}
+
+/**
+ * \brief Get safe count of frames which can be forwarded
+ * \param pcm PCM handle
+ * \return a positive number of frames or negative error code
+ *
+ * Note: The snd_pcm_forward() can accept bigger value than returned
+ * by this function. But it is not guaranteed that output stream
+ * will be consistent with bigger value.
+ */
+snd_pcm_sframes_t snd_pcm_forwardable(snd_pcm_t *pcm)
+{
+	assert(pcm);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	return pcm->fast_ops->forwardable(pcm->fast_op_arg);
 }
 
 /**
@@ -2851,48 +2889,6 @@ int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params)
 		return 0; /* FIXME: should be a negative error? */
 	}
 	return !!(params->info & SNDRV_PCM_INFO_OVERRANGE);
-}
-
-/**
- * \brief Check, if device supports forward
- * \param params Configuration space
- * \return Boolean value
- * \retval 0 Device doesn't support forward
- * \retval 1 Device supports forward
- *
- * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, #snd_pcm_hw_params() function chooses one configuration
- * from the configuration space.
- */
-int snd_pcm_hw_params_can_forward(const snd_pcm_hw_params_t *params)
-{
-	assert(params);
-	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
-		return 0; /* FIXME: should be a negative error? */
-	}
-	return !!(params->info & SND_PCM_INFO_FORWARD);
-}
-
-/**
- * \brief Check, if device supports rewind
- * \param params Configuration space
- * \return Boolean value
- * \retval 0 Device doesn't support rewind
- * \retval 1 Device supports rewind
- *
- * It is not allowed to call this function when given configuration is not exactly one.
- * Usually, #snd_pcm_hw_params() function chooses one configuration
- * from the configuration space.
- */
-int snd_pcm_hw_params_can_rewind(const snd_pcm_hw_params_t *params)
-{
-	assert(params);
-	if (CHECK_SANITY(params->info == ~0U)) {
-		SNDMSG("invalid PCM info field");
-		return 0; /* FIXME: should be a negative error? */
-	}
-	return !!(params->info & SND_PCM_INFO_REWIND);
 }
 
 /**

@@ -192,6 +192,11 @@ static int snd_pcm_plugin_reset(snd_pcm_t *pcm)
 	return 0;
 }
 
+static snd_pcm_sframes_t snd_pcm_plugin_rewindable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_hw_avail(pcm);
+}
+
 static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
@@ -203,7 +208,6 @@ static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 	if (frames == 0)
 		return 0;
 	
-	/* FIXME: rate plugin */
 	if (plugin->slave_frames)
 		sframes = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
 	else
@@ -221,6 +225,11 @@ static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 	return n;
 }
 
+static snd_pcm_sframes_t snd_pcm_plugin_forwardable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_avail(pcm);
+}
+
 static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
@@ -232,7 +241,6 @@ static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	if (frames == 0)
 		return 0;
 	
-	/* FIXME: rate plugin */
 	if (plugin->slave_frames)
 		sframes = plugin->slave_frames(pcm, (snd_pcm_sframes_t) frames);
 	else
@@ -563,7 +571,9 @@ snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	.drop = snd_pcm_generic_drop,
 	.drain = snd_pcm_generic_drain,
 	.pause = snd_pcm_generic_pause,
+	.rewindable = snd_pcm_plugin_rewindable,
 	.rewind = snd_pcm_plugin_rewind,
+	.forwardable = snd_pcm_plugin_forwardable,
 	.forward = snd_pcm_plugin_forward,
 	.resume = snd_pcm_generic_resume,
 	.link = snd_pcm_generic_link,

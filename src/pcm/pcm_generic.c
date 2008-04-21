@@ -185,10 +185,22 @@ int snd_pcm_generic_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp)
 	return snd_pcm_delay(generic->slave, delayp);
 }
 
+snd_pcm_sframes_t snd_pcm_generic_forwardable(snd_pcm_t *pcm)
+{
+	snd_pcm_generic_t *generic = pcm->private_data;
+	return snd_pcm_forwardable(generic->slave);
+}
+
 snd_pcm_sframes_t snd_pcm_generic_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_generic_t *generic = pcm->private_data;
 	return INTERNAL(snd_pcm_forward)(generic->slave, frames);
+}
+
+snd_pcm_sframes_t snd_pcm_generic_rewindable(snd_pcm_t *pcm)
+{
+	snd_pcm_generic_t *generic = pcm->private_data;
+	return snd_pcm_rewindable(generic->slave);
 }
 
 snd_pcm_sframes_t snd_pcm_generic_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)

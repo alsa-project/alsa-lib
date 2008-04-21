@@ -95,8 +95,6 @@ typedef enum sndrv_pcm_hw_param snd_pcm_hw_param_t;
 #define SND_PCM_HW_PARAMS_NORESAMPLE SNDRV_PCM_HW_PARAMS_NORESAMPLE
 #define SND_PCM_HW_PARAMS_EXPORT_BUFFER SNDRV_PCM_HW_PARAMS_EXPORT_BUFFER
 
-#define SND_PCM_INFO_FORWARD	0x10000000
-#define SND_PCM_INFO_REWIND	0x20000000
 #define SND_PCM_INFO_MONOTONIC	0x80000000
 
 typedef struct _snd_pcm_rbptr {
@@ -159,7 +157,9 @@ typedef struct {
 	int (*link)(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 	int (*link_slaves)(snd_pcm_t *pcm, snd_pcm_t *master);
 	int (*unlink)(snd_pcm_t *pcm);
+	snd_pcm_sframes_t (*rewindable)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*rewind)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
+	snd_pcm_sframes_t (*forwardable)(snd_pcm_t *pcm);
 	snd_pcm_sframes_t (*forward)(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 	snd_pcm_sframes_t (*writei)(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t size);
 	snd_pcm_sframes_t (*writen)(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t size);

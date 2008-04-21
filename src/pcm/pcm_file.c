@@ -265,6 +265,16 @@ static int snd_pcm_file_drain(snd_pcm_t *pcm)
 	return err;
 }
 
+static snd_pcm_sframes_t snd_pcm_file_rewindable(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_sframes_t res = snd_pcm_rewindable(pcm);
+	snd_pcm_sframes_t n = snd_pcm_bytes_to_frames(pcm, file->wbuf_used_bytes);
+	if (res > n)
+		res = n;
+	return res;
+}
+
 static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_file_t *file = pcm->private_data;
@@ -281,6 +291,16 @@ static snd_pcm_sframes_t snd_pcm_file_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t f
 		file->wbuf_used_bytes -= n;
 	}
 	return err;
+}
+
+static snd_pcm_sframes_t snd_pcm_file_forwardable(snd_pcm_t *pcm)
+{
+	snd_pcm_file_t *file = pcm->private_data;
+	snd_pcm_sframes_t res = snd_pcm_forwardable(pcm);
+	snd_pcm_sframes_t n = snd_pcm_bytes_to_frames(pcm, file->wbuf_size_bytes - file->wbuf_used_bytes);
+	if (res > n)
+		res = n;
+	return res;
 }
 
 static snd_pcm_sframes_t snd_pcm_file_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -466,7 +486,9 @@ static snd_pcm_fast_ops_t snd_pcm_file_fast_ops = {
 	.drop = snd_pcm_file_drop,
 	.drain = snd_pcm_file_drain,
 	.pause = snd_pcm_generic_pause,
+	.rewindable = snd_pcm_file_rewindable,
 	.rewind = snd_pcm_file_rewind,
+	.forwardable = snd_pcm_file_forwardable,
 	.forward = snd_pcm_file_forward,
 	.resume = snd_pcm_generic_resume,
 	.link = snd_pcm_generic_link,

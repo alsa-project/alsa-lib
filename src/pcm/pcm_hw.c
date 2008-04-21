@@ -248,9 +248,7 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 
 	if (params->info != ~0UL) {
 		params->info &= ~0xf0000000;
-		params->info |= (pcm->monotonic ? SND_PCM_INFO_MONOTONIC : 0) |
-				 SND_PCM_INFO_REWIND |
-				 SND_PCM_INFO_FORWARD;
+		params->info |= (pcm->monotonic ? SND_PCM_INFO_MONOTONIC : 0);
 	}
 	
 	return 0;
@@ -510,6 +508,11 @@ static int snd_pcm_hw_pause(snd_pcm_t *pcm, int enable)
 	return 0;
 }
 
+static snd_pcm_sframes_t snd_pcm_hw_rewindable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_hw_avail(pcm);
+}
+
 static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
@@ -523,6 +526,11 @@ static snd_pcm_sframes_t snd_pcm_hw_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t fra
 	if (err < 0)
 		return err;
 	return frames;
+}
+
+static snd_pcm_sframes_t snd_pcm_hw_forwardable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_avail(pcm);
 }
 
 static snd_pcm_sframes_t snd_pcm_hw_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -917,7 +925,9 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.drop = snd_pcm_hw_drop,
 	.drain = snd_pcm_hw_drain,
 	.pause = snd_pcm_hw_pause,
+	.rewindable = snd_pcm_hw_rewindable,
 	.rewind = snd_pcm_hw_rewind,
+	.forwardable = snd_pcm_hw_forwardable,
 	.forward = snd_pcm_hw_forward,
 	.resume = snd_pcm_hw_resume,
 	.link = snd_pcm_hw_link,

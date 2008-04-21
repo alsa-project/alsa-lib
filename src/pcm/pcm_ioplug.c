@@ -501,10 +501,20 @@ static int snd_pcm_ioplug_pause(snd_pcm_t *pcm, int enable)
 	return 0;
 }
 
+static snd_pcm_sframes_t snd_pcm_ioplug_rewindable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_hw_avail(pcm);
+}
+
 static snd_pcm_sframes_t snd_pcm_ioplug_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
 {
 	snd_pcm_mmap_appl_backward(pcm, frames);
 	return frames;
+}
+
+static snd_pcm_sframes_t snd_pcm_ioplug_forwardable(snd_pcm_t *pcm)
+{
+	return snd_pcm_mmap_avail(pcm);
 }
 
 static snd_pcm_sframes_t snd_pcm_ioplug_forward(snd_pcm_t *pcm, snd_pcm_uframes_t frames)
@@ -767,7 +777,9 @@ static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.link = NULL,
 	.link_slaves = NULL,
 	.unlink = NULL,
+	.rewindable = snd_pcm_ioplug_rewindable,
 	.rewind = snd_pcm_ioplug_rewind,
+	.forwardable = snd_pcm_ioplug_forwardable,
 	.forward = snd_pcm_ioplug_forward,
 	.writei = snd_pcm_ioplug_writei,
 	.writen = snd_pcm_ioplug_writen,
