@@ -204,7 +204,7 @@ static int set_range_ops(snd_mixer_elem_t *elem, int dir,
 }
 
 static int get_x_ops(snd_mixer_elem_t *elem, int dir,
-                     snd_mixer_selem_channel_id_t channel, long *value,
+                     long channel, long *value,
                      const char *attr)
 {
 	PyObject *obj1, *res;
@@ -251,6 +251,49 @@ static int get_switch_ops(snd_mixer_elem_t *elem, int dir,
 	return res;
 }
 
+static int ask_vol_dB_ops(snd_mixer_elem_t *elem,
+			  int dir,
+			  long value,
+			  long *dbValue)
+{
+	return get_x_ops(elem, dir, value, dbValue, "opsGetVolDB");
+}
+
+static int ask_dB_vol_ops(snd_mixer_elem_t *elem,
+			  int dir,
+			  long value,
+			  long *dbValue,
+			  int xdir)
+{
+	PyObject *obj1, *res;
+	struct pymelem *pymelem = melem_to_pymelem(elem);
+	int err;
+	
+	obj1 = PyTuple_New(3);
+	PyTuple_SET_ITEM(obj1, 0, PyInt_FromLong(dir));
+	PyTuple_SET_ITEM(obj1, 1, PyInt_FromLong(value));
+	PyTuple_SET_ITEM(obj1, 2, PyInt_FromLong(xdir));
+	err = pcall(pymelem, "opsGetDBVol", obj1, &res);
+	if (err >= 0) {
+		err = !PyInt_Check(PyTuple_GetItem(res, 1));
+		if (err) {
+			err = !PyLong_Check(PyTuple_GetItem(res, 1));
+			if (err) {
+				PyErr_Format(PyExc_TypeError, "wrong result (invalid tuple)");
+				PyErr_Print();
+				PyErr_Clear();
+				err = -EIO;
+			} else {
+				*dbValue = PyLong_AsLong(PyTuple_GetItem(res, 1));
+			}
+		} else {
+			*dbValue = PyInt_AsLong(PyTuple_GetItem(res, 1));
+		}
+	}
+	Py_XDECREF(res);
+	return err;
+}
+
 static int get_dB_ops(snd_mixer_elem_t *elem,
                       int dir,
                       snd_mixer_selem_channel_id_t channel,
@@ -277,7 +320,6 @@ static int set_volume_ops(snd_mixer_elem_t *elem, int dir,
 	PyTuple_SET_ITEM(obj1, 2, PyInt_FromLong(value));
 	return pcall(pymelem, "opsSetVolume", obj1, NULL);
 }
-
 
 static int set_switch_ops(snd_mixer_elem_t *elem, int dir,
                           snd_mixer_selem_channel_id_t channel, int value)
@@ -384,6 +426,8 @@ static struct sm_elem_ops simple_python_ops = {
         .get_range      = get_range_ops,
         .get_dB_range   = get_dB_range_ops,
         .set_range      = set_range_ops,
+        .ask_vol_dB	= ask_vol_dB_ops,
+        .ask_dB_vol	= ask_dB_vol_ops,
         .get_volume     = get_volume_ops,
         .get_dB         = get_dB_ops,
         .set_volume     = set_volume_ops,

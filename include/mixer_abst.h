@@ -82,6 +82,8 @@ struct sm_elem_ops {
 	int (*get_range)(snd_mixer_elem_t *elem, int dir, long *min, long *max);
 	int (*set_range)(snd_mixer_elem_t *elem, int dir, long min, long max);
 	int (*get_dB_range)(snd_mixer_elem_t *elem, int dir, long *min, long *max);
+	int (*ask_vol_dB)(snd_mixer_elem_t *elem, int dir, long value, long *dbValue);
+	int (*ask_dB_vol)(snd_mixer_elem_t *elem, int dir, long dbValue, long *value, int xdir);
 	int (*get_volume)(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long *value);
 	int (*get_dB)(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long *value);
 	int (*set_volume)(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long value);

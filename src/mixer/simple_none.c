@@ -1174,6 +1174,21 @@ static int convert_from_dB(snd_hctl_elem_t *ctl, struct selem_str *rec,
 				       db_gain, value, xdir);
 }
 
+static int ask_vol_dB_ops(snd_mixer_elem_t *elem,
+			  int dir,
+			  long value,
+			  long *dBvalue)
+{
+	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	selem_ctl_t *c;
+
+	c = get_selem_ctl(s, dir);
+	if (! c)
+		return -EINVAL;
+	int res = convert_to_dB(c->elem, &s->str[dir], value, dBvalue);
+	return res;
+}
+
 static int get_dB_ops(snd_mixer_elem_t *elem,
                       int dir,
                       snd_mixer_selem_channel_id_t channel,
@@ -1217,6 +1232,18 @@ static int set_volume_ops(snd_mixer_elem_t *elem, int dir,
 	if (changed)
 		return selem_write(elem);
 	return 0;
+}
+
+static int ask_dB_vol_ops(snd_mixer_elem_t *elem, int dir,
+		          long dbValue, long *value, int xdir)
+{
+	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	selem_ctl_t *c;
+
+	c = get_selem_ctl(s, dir);
+	if (! c)
+		return -EINVAL;
+	return convert_from_dB(c->elem, &s->str[dir], dbValue, value, xdir);
 }
 
 static int set_dB_ops(snd_mixer_elem_t *elem, int dir,
@@ -1350,6 +1377,8 @@ static struct sm_elem_ops simple_none_ops = {
 	.get_range	= get_range_ops,
 	.get_dB_range	= get_dB_range_ops,
 	.set_range	= set_range_ops,
+	.ask_vol_dB	= ask_vol_dB_ops,
+	.ask_dB_vol	= ask_dB_vol_ops,
 	.get_volume	= get_volume_ops,
 	.get_dB		= get_dB_ops,
 	.set_volume	= set_volume_ops,
