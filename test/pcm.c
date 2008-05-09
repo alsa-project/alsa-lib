@@ -19,8 +19,9 @@ static unsigned int channels = 1;			/* count of channels */
 static unsigned int buffer_time = 500000;		/* ring buffer length in us */
 static unsigned int period_time = 100000;		/* period time in us */
 static double freq = 440;				/* sinusoidal wave frequency in Hz */
-static int verbose = 0;				/* verbose flag */
+static int verbose = 0;					/* verbose flag */
 static int resample = 1;				/* enable alsa-lib resampling */
+static int period_event = 0;				/* produce poll event after each period */
 
 static snd_pcm_sframes_t buffer_size;
 static snd_pcm_sframes_t period_size;
@@ -172,10 +173,19 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
 		return err;
 	}
 	/* allow the transfer when at least period_size samples can be processed */
-	err = snd_pcm_sw_params_set_avail_min(handle, swparams, period_size);
+	/* or disable this mechanism when period event is enabled (aka interrupt like style processing) */
+	err = snd_pcm_sw_params_set_avail_min(handle, swparams, period_event ? buffer_size : period_size);
 	if (err < 0) {
 		printf("Unable to set avail min for playback: %s\n", snd_strerror(err));
 		return err;
+	}
+	/* enable period events when requested */
+	if (period_event) {
+		err = snd_pcm_sw_params_set_period_event(handle, swparams, 1);
+		if (err < 0) {
+			printf("Unable to set period event: %s\n", snd_strerror(err));
+			return err;
+		}
 	}
 	/* write the parameters to the playback device */
 	err = snd_pcm_sw_params(handle, swparams);
@@ -192,6 +202,8 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
  
 static int xrun_recovery(snd_pcm_t *handle, int err)
 {
+	if (verbose)
+		printf("stream recovery\n");
 	if (err == -EPIPE) {	/* under-run */
 		err = snd_pcm_prepare(handle);
 		if (err < 0)
@@ -711,6 +723,8 @@ static void help(void)
 "-m,--method	transfer method\n"
 "-o,--format	sample format\n"
 "-v,--verbose   show the PCM setup parameters\n"
+"-n,--noresample  do not resample\n"
+"-e,--pevent    enable poll event after each period\n"
 "\n");
         printf("Recognized sample formats are:");
         for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
@@ -740,6 +754,7 @@ int main(int argc, char *argv[])
 		{"format", 1, NULL, 'o'},
 		{"verbose", 1, NULL, 'v'},
 		{"noresample", 1, NULL, 'n'},
+		{"pevent", 1, NULL, 'e'},
 		{NULL, 0, NULL, 0},
 	};
 	snd_pcm_t *handle;
@@ -757,7 +772,7 @@ int main(int argc, char *argv[])
 	morehelp = 0;
 	while (1) {
 		int c;
-		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:o:vn", long_option, NULL)) < 0)
+		if ((c = getopt_long(argc, argv, "hD:r:c:f:b:p:m:o:vne", long_option, NULL)) < 0)
 			break;
 		switch (c) {
 		case 'h':
@@ -813,6 +828,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'n':
 			resample = 0;
+			break;
+		case 'e':
+			period_event = 1;
 			break;
 		}
 	}

@@ -39,6 +39,7 @@
 #include <sys/shm.h>
 #include "pcm_local.h"
 #include "../control/control_local.h"
+#include "../timer/timer_local.h"
 
 //#define DEBUG_RW		/* use to debug readi/writei/readn/writen */
 //#define DEBUG_MMAP		/* debug mmap_commit */
@@ -79,6 +80,8 @@ struct sndrv_pcm_hw_params_old {
 
 static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t *params);
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm);
+static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops;
+static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops_timer;
 
 /*
  *
@@ -94,6 +97,10 @@ typedef struct {
 	struct sndrv_pcm_sync_ptr *sync_ptr;
 	snd_pcm_uframes_t hw_ptr;
 	snd_pcm_uframes_t appl_ptr;
+	int period_event;
+	snd_timer_t *period_timer;
+	struct pollfd period_timer_pfd;
+	int period_timer_need_poll;
 	/* restricted parameters */
 	snd_pcm_format_t format;
 	int rate;
@@ -137,6 +144,53 @@ static int sync_ptr1(snd_pcm_hw_t *hw, unsigned int flags)
 static inline int sync_ptr(snd_pcm_hw_t *hw, unsigned int flags)
 {
 	return hw->sync_ptr ? sync_ptr1(hw, flags) : 0;
+}
+
+static int snd_pcm_hw_clear_timer_queue(snd_pcm_hw_t *hw)
+{
+	if (hw->period_timer_need_poll) {
+		while (poll(&hw->period_timer_pfd, 1, 0) > 0) {
+			snd_timer_tread_t rbuf[4];
+			snd_timer_read(hw->period_timer, rbuf, sizeof(rbuf));
+		}
+	} else {
+		snd_timer_tread_t rbuf[4];
+		snd_timer_read(hw->period_timer, rbuf, sizeof(rbuf));
+	}
+}
+
+static int snd_pcm_hw_poll_descriptors_count(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
+{
+	return 2;
+}
+
+static int snd_pcm_hw_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int space)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+
+	if (space < 2)
+		return -ENOMEM;
+	pfds[0].fd = hw->fd;
+	pfds[0].events = pcm->poll_events | POLLERR | POLLNVAL;
+	pfds[1].fd = hw->period_timer_pfd.fd;
+	pfds[1].events = POLLIN | POLLERR | POLLNVAL;
+	return 2;
+}
+
+static int snd_pcm_hw_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned nfds, unsigned short *revents)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	unsigned int events;
+
+	if (nfds != 2 || pfds[0].fd != hw->fd || pfds[1].fd != hw->period_timer_pfd.fd)
+		return -EINVAL;
+	events = pfds[0].revents;
+	if (pfds[1].revents & POLLIN) {
+		snd_pcm_hw_clear_timer_queue(hw);
+		events |= pcm->poll_events & ~(POLLERR|POLLNVAL);
+	}
+	*revents = events;
+	return 0;
 }
 
 static int snd_pcm_hw_nonblock(snd_pcm_t *pcm, int nonblock)
@@ -293,16 +347,94 @@ static int snd_pcm_hw_hw_free(snd_pcm_t *pcm)
 	return 0;
 }
 
+static void snd_pcm_hw_close_timer(snd_pcm_hw_t *hw)
+{
+	if (hw->period_timer) {
+		snd_timer_close(hw->period_timer);
+		hw->period_timer = NULL;
+	}
+}
+
+static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	snd_timer_params_t *params;
+	unsigned int suspend, resume;
+	int err;
+	
+	if (enable) {
+		snd_timer_params_alloca(&params);
+		err = snd_timer_hw_open(&hw->period_timer, "hw-pcm-period-event", SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE, hw->card, hw->device, hw->subdevice, SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
+		if (err < 0) {
+			err = snd_timer_hw_open(&hw->period_timer, "hw-pcm-period-event", SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE, hw->card, hw->device, hw->subdevice, SND_TIMER_OPEN_NONBLOCK);
+			return err;
+		}
+		if (snd_timer_poll_descriptors_count(hw->period_timer) != 1) {
+			snd_pcm_hw_close_timer(hw);
+			return -EINVAL;
+		}
+		hw->period_timer_pfd.events = POLLIN;
+ 		hw->period_timer_pfd.revents = 0;
+		snd_timer_poll_descriptors(hw->period_timer, &hw->period_timer_pfd, 1);
+		hw->period_timer_need_poll = 0;
+		suspend = 1<<SND_TIMER_EVENT_MSUSPEND;
+		resume = 1<<SND_TIMER_EVENT_MRESUME;
+		/*
+		 * hacks for older kernel drivers
+		 */
+		{
+			int ver = 0;
+			ioctl(hw->period_timer_pfd.fd, SNDRV_TIMER_IOCTL_PVERSION, &ver);
+			/* In older versions, check via poll before read() is needed
+                         * because of the confliction between TIMER_START and
+                         * FIONBIO ioctls.
+                         */
+			if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 4))
+				hw->period_timer_need_poll = 1;
+			/*
+			 * In older versions, timer uses pause events instead
+			 * suspend/resume events.
+			 */
+			if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 5)) {
+				suspend = 1<<SND_TIMER_EVENT_MPAUSE;
+				resume = 1<<SND_TIMER_EVENT_MCONTINUE;
+			}
+		}
+		snd_timer_params_set_auto_start(params, 1);
+		snd_timer_params_set_ticks(params, 1);
+		snd_timer_params_set_filter(params, (1<<SND_TIMER_EVENT_TICK) |
+					    suspend | resume);
+		err = snd_timer_params(hw->period_timer, params);
+		if (err < 0) {
+			snd_pcm_hw_close_timer(hw);
+			return err;
+		}
+		err = snd_timer_start(hw->period_timer);
+		if (err < 0) {
+			snd_pcm_hw_close_timer(hw);
+			return err;
+		}
+		pcm->fast_ops = &snd_pcm_hw_fast_ops_timer;
+	} else {
+		snd_pcm_hw_close_timer(hw);
+		pcm->fast_ops = &snd_pcm_hw_fast_ops;
+	}
+	return 0;
+}
+
 static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 {
 	snd_pcm_hw_t *hw = pcm->private_data;
 	int fd = hw->fd, err;
+	int old_period_event = params->period_event;
+	params->period_event = 0;
 	if ((snd_pcm_tstamp_t) params->tstamp_mode == pcm->tstamp_mode &&
 	    params->period_step == pcm->period_step &&
 	    params->start_threshold == pcm->start_threshold &&
 	    params->stop_threshold == pcm->stop_threshold &&
 	    params->silence_threshold == pcm->silence_threshold &&
-	    params->silence_size == pcm->silence_size) {
+	    params->silence_size == pcm->silence_size &&
+	    old_period_event == hw->period_event) {
 		hw->mmap_control->avail_min = params->avail_min;
 		return sync_ptr(hw, 0);
 	}
@@ -311,7 +443,14 @@ static int snd_pcm_hw_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t * params)
 		SYSMSG("SNDRV_PCM_IOCTL_SW_PARAMS failed");
 		return err;
 	}
+	params->period_event = old_period_event;
 	hw->mmap_control->avail_min = params->avail_min;
+	if (hw->period_event != old_period_event) {
+		err = snd_pcm_hw_change_timer(pcm, old_period_event);
+		if (err < 0)
+			return err;
+		hw->period_event = old_period_event;
+	}
 	return 0;
 }
 
@@ -480,6 +619,7 @@ static int snd_pcm_hw_drop(snd_pcm_t *pcm)
 		err = -errno;
 		SYSMSG("SNDRV_PCM_IOCTL_DROP failed");
 		return err;
+	} else {
 	}
 	return 0;
 }
@@ -943,6 +1083,37 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.poll_descriptors = NULL,
 	.poll_descriptors_count = NULL,
 	.poll_revents = NULL,
+};
+
+static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops_timer = {
+	.status = snd_pcm_hw_status,
+	.state = snd_pcm_hw_state,
+	.hwsync = snd_pcm_hw_hwsync,
+	.delay = snd_pcm_hw_delay,
+	.prepare = snd_pcm_hw_prepare,
+	.reset = snd_pcm_hw_reset,
+	.start = snd_pcm_hw_start,
+	.drop = snd_pcm_hw_drop,
+	.drain = snd_pcm_hw_drain,
+	.pause = snd_pcm_hw_pause,
+	.rewindable = snd_pcm_hw_rewindable,
+	.rewind = snd_pcm_hw_rewind,
+	.forwardable = snd_pcm_hw_forwardable,
+	.forward = snd_pcm_hw_forward,
+	.resume = snd_pcm_hw_resume,
+	.link = snd_pcm_hw_link,
+	.link_slaves = snd_pcm_hw_link_slaves,
+	.unlink = snd_pcm_hw_unlink,
+	.writei = snd_pcm_hw_writei,
+	.writen = snd_pcm_hw_writen,
+	.readi = snd_pcm_hw_readi,
+	.readn = snd_pcm_hw_readn,
+	.avail_update = snd_pcm_hw_avail_update,
+	.mmap_commit = snd_pcm_hw_mmap_commit,
+	.htimestamp = snd_pcm_hw_htimestamp,
+	.poll_descriptors = snd_pcm_hw_poll_descriptors,
+	.poll_descriptors_count = snd_pcm_hw_poll_descriptors_count,
+	.poll_revents = snd_pcm_hw_poll_revents,
 };
 
 /**

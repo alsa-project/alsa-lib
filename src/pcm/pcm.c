@@ -879,6 +879,7 @@ int snd_pcm_sw_params(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	pcm->tstamp_mode = params->tstamp_mode;
 	pcm->period_step = params->period_step;
 	pcm->avail_min = params->avail_min;
+	pcm->period_event = params->period_event;
 	pcm->start_threshold = params->start_threshold;
 	pcm->stop_threshold = params->stop_threshold;
 	pcm->silence_threshold = params->silence_threshold;
@@ -1847,6 +1848,7 @@ int snd_pcm_dump_sw_setup(snd_pcm_t *pcm, snd_output_t *out)
 	snd_output_printf(out, "  tstamp_mode  : %s\n", snd_pcm_tstamp_mode_name(pcm->tstamp_mode));
 	snd_output_printf(out, "  period_step  : %d\n", pcm->period_step);
 	snd_output_printf(out, "  avail_min    : %ld\n", pcm->avail_min);
+	snd_output_printf(out, "  period_event : %i\n", pcm->period_event);
 	snd_output_printf(out, "  start_threshold  : %ld\n", pcm->start_threshold);
 	snd_output_printf(out, "  stop_threshold   : %ld\n", pcm->stop_threshold);
 	snd_output_printf(out, "  silence_threshold: %ld\n", pcm->silence_threshold);
@@ -5364,6 +5366,7 @@ int snd_pcm_sw_params_current(snd_pcm_t *pcm, snd_pcm_sw_params_t *params)
 	params->period_step = pcm->period_step;
 	params->sleep_min = 0;
 	params->avail_min = pcm->avail_min;
+	params->period_event = pcm->period_event;
 	params->xfer_align = 1;
 	params->start_threshold = pcm->start_threshold;
 	params->stop_threshold = pcm->stop_threshold;
@@ -5659,6 +5662,34 @@ int snd_pcm_sw_params_get_avail_min(const snd_pcm_sw_params_t *params, snd_pcm_u
 	return 0;
 }
 
+/**
+ * \brief Set period event inside a software configuration container
+ * \param pcm PCM handle
+ * \param params Software configuration container
+ * \param val 0 = disable period event, 1 = enable period event
+ * \return 0 otherwise a negative error code
+ *
+ * An poll (select) wakeup event is raised if enabled.
+ */
+int snd_pcm_sw_params_set_period_event(snd_pcm_t *pcm, snd_pcm_sw_params_t *params, int val)
+{
+	assert(pcm && params);
+	params->period_event = val;
+	return 0;
+}
+
+/**
+ * \brief Get period event from a software configuration container
+ * \param params Software configuration container
+ * \param val returned period event state
+ * \return 0 otherwise a negative error code
+ */
+int snd_pcm_sw_params_get_period_event(const snd_pcm_sw_params_t *params, int *val)
+{
+	assert(params && val);
+	*val = params->period_event;
+	return 0;
+}
 
 /**
  * \brief (DEPRECATED) Set xfer align inside a software configuration container
