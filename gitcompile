@@ -14,6 +14,6 @@ echo "CFLAGS=$CFLAGS"
 echo "./configure $@"
 ./configure $@ || exit 1
 unset CFLAGS
-if [ -z "$HGCOMPILE_NO_MAKE" ]; then
+if [ -z "$GITCOMPILE_NO_MAKE" ]; then
   make
 fi
