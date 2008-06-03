@@ -11,7 +11,7 @@ SUBDIRS += alsalisp
 endif
 endif
 SUBDIRS += test utils
-EXTRA_DIST=ChangeLog INSTALL TODO NOTES configure hgcompile libtool depcomp version MEMORY-LEAK
+EXTRA_DIST=ChangeLog INSTALL TODO NOTES configure gitcompile libtool depcomp version MEMORY-LEAK
 AUTOMAKE_OPTIONS=foreign
 
 INCLUDES=-I$(top_srcdir)/include
