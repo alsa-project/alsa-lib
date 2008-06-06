@@ -581,12 +581,44 @@ static int snd_pcm_plug_change_access(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 	return 1;
 }
 
+#ifdef BUILD_PCM_PLUGIN_MMAP_EMUL
+static int snd_pcm_plug_change_mmap(snd_pcm_t *pcm, snd_pcm_t **new,
+				    snd_pcm_plug_params_t *clt,
+				    snd_pcm_plug_params_t *slv)
+{
+	snd_pcm_plug_t *plug = pcm->private_data;
+	int err;
+
+	if (clt->access == slv->access)
+		return 0;
+
+	switch (slv->access) {
+	case SND_PCM_ACCESS_MMAP_INTERLEAVED:
+	case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
+	case SND_PCM_ACCESS_MMAP_COMPLEX:
+		return 0;
+	default:
+		break;
+	}
+
+	err = __snd_pcm_mmap_emul_open(new, NULL, plug->gen.slave,
+				       plug->gen.slave != plug->req_slave);
+	if (err < 0)
+		return err;
+	slv->access = clt->access;
+	return 1;
+}
+#endif
+
 static int snd_pcm_plug_insert_plugins(snd_pcm_t *pcm,
 				       snd_pcm_plug_params_t *client,
 				       snd_pcm_plug_params_t *slave)
 {
 	snd_pcm_plug_t *plug = pcm->private_data;
 	static int (*funcs[])(snd_pcm_t *_pcm, snd_pcm_t **new, snd_pcm_plug_params_t *s, snd_pcm_plug_params_t *d) = {
+#ifdef BUILD_PCM_PLUGIN_MMAP_EMUL
+		snd_pcm_plug_change_mmap,
+#endif
 		snd_pcm_plug_change_format,
 #ifdef BUILD_PCM_PLUGIN_ROUTE
 		snd_pcm_plug_change_channels,
@@ -693,6 +725,43 @@ static int snd_pcm_plug_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *
 	return 0;
 }
 
+static int check_access_change(snd_pcm_hw_params_t *cparams,
+			       snd_pcm_hw_params_t *sparams)
+{
+	snd_pcm_access_mask_t *smask;
+#ifdef BUILD_PCM_PLUGIN_MMAP_EMUL
+	const snd_pcm_access_mask_t *cmask;
+	snd_pcm_access_mask_t mask;
+#endif
+
+	smask = (snd_pcm_access_mask_t *)
+		snd_pcm_hw_param_get_mask(sparams,
+					  SND_PCM_HW_PARAM_ACCESS);
+	if (snd_pcm_access_mask_test(smask, SND_PCM_ACCESS_MMAP_INTERLEAVED) ||
+	    snd_pcm_access_mask_test(smask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED) ||
+	    snd_pcm_access_mask_test(smask, SND_PCM_ACCESS_MMAP_COMPLEX))
+		return 0; /* OK, we have mmap support */
+#ifdef BUILD_PCM_PLUGIN_MMAP_EMUL
+	/* no mmap support - we need mmap emulation */
+	cmask = (const snd_pcm_access_mask_t *)
+		snd_pcm_hw_param_get_mask(cparams,
+					  SND_PCM_HW_PARAM_ACCESS);
+	snd_mask_none(&mask);
+	if (snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_RW_INTERLEAVED) ||
+	    snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_MMAP_INTERLEAVED))
+		snd_pcm_access_mask_set(&mask,
+					SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_RW_NONINTERLEAVED) ||
+	    snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED))
+		snd_pcm_access_mask_set(&mask,
+					SND_PCM_ACCESS_RW_NONINTERLEAVED);
+	*smask = mask;
+	return 0;
+#else
+	return -EINVAL;
+#endif
+}
+
 static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *params,
 					  snd_pcm_hw_params_t *sparams)
 {
@@ -764,18 +833,15 @@ static int snd_pcm_plug_hw_refine_schange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 			return -EINVAL;
 	}
 
-	if (snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_FORMAT, sparams) ||
-	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_CHANNELS, sparams) ||
-	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_RATE, sparams) ||
-	    snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_ACCESS, sparams)) {
-		snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_MMAP };
-		_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
-					   &access_mask);
-		if (snd_pcm_access_mask_empty(snd_pcm_hw_param_get_mask(sparams, SND_PCM_HW_PARAM_ACCESS))) {
-			SNDERR("Unable to find an usable access for '%s'", pcm->name);
-			return -EINVAL;
+	if (snd_pcm_hw_param_never_eq(params, SND_PCM_HW_PARAM_ACCESS, sparams)) {
+		err = check_access_change(params, sparams);
+		if (err < 0) {
+			SNDERR("Unable to find an usable access for '%s'",
+			       pcm->name);
+			return err;
 		}
 	}
+
 	if ((links & SND_PCM_HW_PARBIT_RATE) ||
 	    snd_pcm_hw_param_always_eq(params, SND_PCM_HW_PARAM_RATE, sparams))
 		links |= (SND_PCM_HW_PARBIT_PERIOD_SIZE |
