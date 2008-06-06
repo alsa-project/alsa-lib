@@ -217,7 +217,8 @@ static int snd_ctl_ext_elem_read(snd_ctl_t *handle, snd_ctl_elem_value_t *contro
 	case SND_CTL_ELEM_TYPE_INTEGER64:
 		if (! ext->callback->read_integer64)
 			goto err;
-		ret = ext->callback->read_integer64(ext, key, control->value.integer64.value);
+		ret = ext->callback->read_integer64(ext, key,
+						    (int64_t*)control->value.integer64.value);
 		break;
 	case SND_CTL_ELEM_TYPE_ENUMERATED:
 		if (! ext->callback->read_enumerated)
