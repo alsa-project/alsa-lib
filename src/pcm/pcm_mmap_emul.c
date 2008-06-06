@@ -375,8 +375,9 @@ static snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
 	.poll_revents = snd_pcm_generic_poll_revents,
 };
 
-static int snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
-				  snd_pcm_t *slave, int close_slave)
+#ifndef DOC_HIDDEN
+int __snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
+			     snd_pcm_t *slave, int close_slave)
 {
 	snd_pcm_t *pcm;
 	mmap_emul_t *map;
@@ -406,6 +407,7 @@ static int snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
 
 	return 0;
 }
+#endif
 
 /*! \page pcm_plugins
 
@@ -473,7 +475,7 @@ int _snd_pcm_mmap_emul_open(snd_pcm_t **pcmp, const char *name,
 	snd_config_delete(sconf);
 	if (err < 0)
 		return err;
-	err = snd_pcm_mmap_emul_open(pcmp, name, spcm, 1);
+	err = __snd_pcm_mmap_emul_open(pcmp, name, spcm, 1);
 	if (err < 0)
 		snd_pcm_close(spcm);
 	return err;
