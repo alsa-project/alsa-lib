@@ -157,6 +157,7 @@ static int snd_pcm_hw_clear_timer_queue(snd_pcm_hw_t *hw)
 		snd_timer_tread_t rbuf[4];
 		snd_timer_read(hw->period_timer, rbuf, sizeof(rbuf));
 	}
+	return 0;
 }
 
 static int snd_pcm_hw_poll_descriptors_count(snd_pcm_t *pcm ATTRIBUTE_UNUSED)
@@ -300,7 +301,7 @@ static int snd_pcm_hw_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 		return err;
 	}
 
-	if (params->info != ~0UL) {
+	if (params->info != ~0U) {
 		params->info &= ~0xf0000000;
 		params->info |= (pcm->monotonic ? SND_PCM_INFO_MONOTONIC : 0);
 	}
