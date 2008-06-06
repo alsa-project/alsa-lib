@@ -62,11 +62,9 @@ static int snd_pcm_mmap_emul_hw_refine(snd_pcm_t *pcm,
 	snd_mask_none(&mask);
 	err = snd_pcm_hw_refine(map->gen.slave, params);
 	if (err < 0) {
-		/* try to use RW_* */
 		snd_pcm_hw_params_t new = *params;
 
-		if (!(params->rmask & (1<<SND_PCM_HW_PARAM_ACCESS)))
-			return err;
+		/* try to use RW_* */
 		if (snd_pcm_access_mask_test(&oldmask,
 					     SND_PCM_ACCESS_MMAP_INTERLEAVED) &&
 		    !snd_pcm_access_mask_test(&oldmask,
