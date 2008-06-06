@@ -154,7 +154,7 @@ static int snd_pcm_mmap_emul_hw_params(snd_pcm_t *pcm,
 	snd_pcm_hw_params_t old = *params;
 	snd_pcm_access_t access;
 	snd_pcm_access_mask_t oldmask;
-	const snd_mask_t *pmask;
+	snd_pcm_access_mask_t *pmask;
 	int err;
 
 	err = _snd_pcm_hw_params(map->gen.slave, params);
@@ -164,21 +164,20 @@ static int snd_pcm_mmap_emul_hw_params(snd_pcm_t *pcm,
 	}
 
 	*params = old;
-	pmask = snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
-	oldmask = *(snd_pcm_access_mask_t *)pmask;
+	pmask = (snd_pcm_access_mask_t *)snd_pcm_hw_param_get_mask(params, SND_PCM_HW_PARAM_ACCESS);
+	oldmask = *pmask;
 	if (INTERNAL(snd_pcm_hw_params_get_access)(params, &access) < 0)
 		goto _err;
 	switch (access) {
 	case SND_PCM_ACCESS_MMAP_INTERLEAVED:
-		snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask,
+		snd_pcm_access_mask_reset(pmask,
 					  SND_PCM_ACCESS_MMAP_INTERLEAVED);
-		snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask,
-					SND_PCM_ACCESS_RW_INTERLEAVED);
+		snd_pcm_access_mask_set(pmask, SND_PCM_ACCESS_RW_INTERLEAVED);
 		break;
 	case SND_PCM_ACCESS_MMAP_NONINTERLEAVED:
-		snd_pcm_access_mask_reset((snd_pcm_access_mask_t *)pmask,
+		snd_pcm_access_mask_reset(pmask,
 					  SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
-		snd_pcm_access_mask_set((snd_pcm_access_mask_t *)pmask,
+		snd_pcm_access_mask_set(pmask,
 					SND_PCM_ACCESS_RW_NONINTERLEAVED);
 		break;
 	default:
@@ -189,7 +188,7 @@ static int snd_pcm_mmap_emul_hw_params(snd_pcm_t *pcm,
 		goto _err;
 
 	/* need to back the access type to relieve apps */
-	*(snd_pcm_access_mask_t *)pmask = oldmask;
+	*pmask = oldmask;
 
 	/* OK, we do fake */
 	map->mmap_emul = 1;
