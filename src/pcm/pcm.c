@@ -2385,16 +2385,13 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 #endif
 
 /**
- * \brief Return number of frames ready to be read/written
+ * \brief Return number of frames ready to be read (capture) / written (playback)
  * \param pcm PCM handle
  * \return a positive number of frames ready otherwise a negative
  * error code
  *
  * On capture does all the actions needed to transport to application
  * level all the ready frames across underlying layers.
- *
- * Using of this function is useless for the standard read/write
- * operations. Use it only for mmap access. See to #snd_pcm_delay.
  */
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 {
