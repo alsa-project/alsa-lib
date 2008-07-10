@@ -62,8 +62,8 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	/* fill the channel areas */
 	while (count-- > 0) {
 		res = sin(phase) * maxval;
-		ires = res;
-		tmp = (unsigned char *)(&ires);
+		ires.i = res;
+		tmp = ires.c;
 		for (chn = 0; chn < channels; chn++) {
 			for (byte = 0; byte < (unsigned int)bps; byte++)
 				*(samples[chn] + byte) = tmp[byte];
@@ -871,7 +871,7 @@ int main(int argc, char *argv[])
 	if (verbose > 0)
 		snd_pcm_dump(handle, output);
 
-	samples = malloc((period_size * channels * snd_pcm_format_width(format)) / 8);
+	samples = malloc((period_size * channels * snd_pcm_format_physical_width(format)) / 8);
 	if (samples == NULL) {
 		printf("No enough memory\n");
 		exit(EXIT_FAILURE);
@@ -884,8 +884,8 @@ int main(int argc, char *argv[])
 	}
 	for (chn = 0; chn < channels; chn++) {
 		areas[chn].addr = samples;
-		areas[chn].first = chn * snd_pcm_format_width(format);
-		areas[chn].step = channels * snd_pcm_format_width(format);
+		areas[chn].first = chn * snd_pcm_format_physical_width(format);
+		areas[chn].step = channels * snd_pcm_format_physical_width(format);
 	}
 
 	err = transfer_methods[method].transfer_loop(handle, samples, areas);
