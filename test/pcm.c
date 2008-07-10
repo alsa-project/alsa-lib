@@ -38,7 +38,10 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	unsigned char *samples[channels], *tmp;
 	int steps[channels];
 	unsigned int chn, byte;
-	int ires;
+	union {
+		int i;
+		unsigned char c[4];
+	} ires;
 	unsigned int maxval = (1 << (snd_pcm_format_width(format) - 1)) - 1;
 	int bps = snd_pcm_format_width(format) / 8;  /* bytes per sample */
 	
