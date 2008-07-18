@@ -222,7 +222,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 		frames = plugin->client_frames(pcm, sframes);
 	snd_pcm_mmap_appl_backward(pcm, (snd_pcm_uframes_t) frames);
 	snd_atomic_write_end(&plugin->watom);
-	return n;
+	return (snd_pcm_sframes_t) frames;
 }
 
 static snd_pcm_sframes_t snd_pcm_plugin_forwardable(snd_pcm_t *pcm)
@@ -255,7 +255,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 		frames = plugin->client_frames(pcm, sframes);
 	snd_pcm_mmap_appl_forward(pcm, (snd_pcm_uframes_t) frames);
 	snd_atomic_write_end(&plugin->watom);
-	return n;
+	return (snd_pcm_sframes_t) frames;
 }
 
 static snd_pcm_sframes_t snd_pcm_plugin_write_areas(snd_pcm_t *pcm,
