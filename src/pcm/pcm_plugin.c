@@ -203,7 +203,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t
 	snd_pcm_sframes_t n = snd_pcm_mmap_hw_avail(pcm);
 	snd_pcm_sframes_t sframes;
 
-	if ((snd_pcm_uframes_t)n > frames)
+	if ((snd_pcm_uframes_t)n < frames)
 		frames = n;
 	if (frames == 0)
 		return 0;
@@ -236,7 +236,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	snd_pcm_sframes_t n = snd_pcm_mmap_avail(pcm);
 	snd_pcm_uframes_t sframes;
 
-	if ((snd_pcm_uframes_t)n > frames)
+	if ((snd_pcm_uframes_t)n < frames)
 		frames = n;
 	if (frames == 0)
 		return 0;
