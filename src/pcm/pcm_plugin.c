@@ -234,7 +234,7 @@ static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 {
 	snd_pcm_plugin_t *plugin = pcm->private_data;
 	snd_pcm_sframes_t n = snd_pcm_mmap_avail(pcm);
-	snd_pcm_uframes_t sframes;
+	snd_pcm_sframes_t sframes;
 
 	if ((snd_pcm_uframes_t)n < frames)
 		frames = n;
@@ -246,8 +246,8 @@ static snd_pcm_sframes_t snd_pcm_plugin_forward(snd_pcm_t *pcm, snd_pcm_uframes_
 	else
 		sframes = frames;
 	snd_atomic_write_begin(&plugin->watom);
-	sframes = INTERNAL(snd_pcm_forward)(plugin->gen.slave, (snd_pcm_uframes_t) sframes);
-	if ((snd_pcm_sframes_t) sframes < 0) {
+	sframes = INTERNAL(snd_pcm_forward)(plugin->gen.slave, sframes);
+	if (sframes < 0) {
 		snd_atomic_write_end(&plugin->watom);
 		return sframes;
 	}
