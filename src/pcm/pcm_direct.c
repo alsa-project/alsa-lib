@@ -1293,7 +1293,7 @@ int snd_pcm_direct_check_interleave(snd_pcm_direct_t *dmix, snd_pcm_t *pcm)
 	const snd_pcm_channel_area_t *dst_areas;
 	const snd_pcm_channel_area_t *src_areas;
 
-	bits = snd_pcm_format_physical_width(dmix->type);
+	bits = snd_pcm_format_physical_width(pcm->format);
 	if ((bits % 8) != 0)
 		interleaved = 0;
 	channels = dmix->channels;
