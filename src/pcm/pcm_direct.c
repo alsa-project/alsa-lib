@@ -1107,7 +1107,7 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 				snd_pcm_info_get_subdevice(info) * 2 + capture);
 	ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
 	if (ret < 0) {
-		dmix->tread = 1;
+		dmix->tread = 0;
 		ret = snd_timer_open(&dmix->timer, name, SND_TIMER_OPEN_NONBLOCK);
 		if (ret < 0) {
 			SNDERR("unable to open timer '%s'", name);
