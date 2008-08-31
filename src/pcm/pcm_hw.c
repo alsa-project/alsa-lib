@@ -1507,7 +1507,13 @@ int _snd_pcm_hw_open(snd_pcm_t **pcmp, const char *name,
 		/* revert to blocking mode for read/write access */
 		snd_pcm_hw_nonblock(*pcmp, 0);
 		(*pcmp)->mode = mode;
-	}
+	} else
+		/* make sure the SND_PCM_NO_xxx flags don't get lost on the
+		 * way */
+		(*pcmp)->mode |= mode & (SND_PCM_NO_AUTO_RESAMPLE|
+					 SND_PCM_NO_AUTO_CHANNELS|
+					 SND_PCM_NO_AUTO_FORMAT|
+					 SND_PCM_NO_SOFTVOL);
 
 	hw = (*pcmp)->private_data;
 	if (format != SND_PCM_FORMAT_UNKNOWN)
