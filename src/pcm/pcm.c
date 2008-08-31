@@ -939,11 +939,23 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
  * \param delayp Returned delay in frames
  * \return 0 on success otherwise a negative error code
  *
- * Delay is distance between current application frame position and
- * sound frame position.
- * It's positive and less than buffer size in normal situation,
- * negative on playback underrun and greater than buffer size on
- * capture overrun.
+ * For playback the delay is defined as the time that a frame that is written
+ * to the PCM stream shortly after this call will take to be actually
+ * audible. It is as such the overall latency from the write call to the final
+ * DAC.
+ *
+ * For capture the delay is defined as the time that a frame that was
+ * digitized by the audio device takes until it can be read from the PCM
+ * stream shortly after this call returns. It is as such the overall latency
+ * from the initial ADC to the read call.
+ *
+ * Please note that hence in case of a playback underrun this value will not
+ * necessarily got down to 0.
+ *
+ * If the application is interested in the fill level of the playback buffer
+ * of the device, it should use snd_pcm_avail_update(). The
+ * value returned by that call is not directly related to the delay, since the
+ * latter might include some additional, fixed latencies the former does not.
  *
  * Note this function does not update the actual r/w pointer
  * for applications. The function #snd_pcm_avail_update()
