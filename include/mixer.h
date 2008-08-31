@@ -88,7 +88,7 @@ typedef int (*snd_mixer_event_t)(snd_mixer_class_t *class_, unsigned int mask,
 
 /** Mixer element type */
 typedef enum _snd_mixer_elem_type {
-	/* Simple (legacy) mixer elements */
+	/* Simple mixer elements */
 	SND_MIXER_ELEM_SIMPLE,
 	SND_MIXER_ELEM_LAST = SND_MIXER_ELEM_SIMPLE
 } snd_mixer_elem_type_t;
@@ -166,7 +166,7 @@ int snd_mixer_class_set_compare(snd_mixer_class_t *class_, snd_mixer_compare_t c
  *  \{
  */
 
-/* Simple (legacy) mixer elements API */
+/* Simple mixer elements API */
 
 /** Mixer simple element channel identifier */
 typedef enum _snd_mixer_selem_channel_id {
