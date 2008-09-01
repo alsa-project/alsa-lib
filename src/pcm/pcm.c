@@ -394,6 +394,7 @@ call.
 
 \subsection pcm_status_fast Obtaining stream state fast and update r/w pointer
 
+<p>
 The function #snd_pcm_avail_update() updates the current
 available count of samples for writing (playback) or filled samples for
 reading (capture). This call is mandatory for updating actual r/w pointer.
@@ -401,15 +402,12 @@ Using standalone, it is a light method to obtain current stream position,
 because it does not require the user <-> kernel context switch, but the value
 is less accurate, because ring buffer pointers are updated in kernel drivers
 only when an interrupt occurs. If you want to get accurate stream state,
-use functions #snd_pcm_hwsync() or #snd_pcm_delay().
-Note that both of these functions do not update the current r/w pointer
-for applications, so the function #snd_pcm_avail_update() must
-be called afterwards before any read/write begin+commit operations.
+use functions #snd_pcm_avail(), #snd_pcm_delay() or #snd_pcm_avail_delay().
+</p>
 <p>
-The function #snd_pcm_hwsync() reads the current hardware pointer
-in the ring buffer from hardware. Note that this function does not update the current
-r/w pointer for applications, so the function #snd_pcm_avail_update()
-must be called afterwards before any read/write/begin+commit operations.
+The function #snd_pcm_avail() reads the current hardware pointer
+in the ring buffer from hardware and calls #snd_pcm_avail_update() then.
+</p>
 <p>
 The function #snd_pcm_delay() returns the delay in samples.
 For playback, it means count of samples in the ring buffer before
@@ -419,6 +417,11 @@ only when the stream is in the running or draining (playback only) state.
 Note that this function does not update the current r/w pointer for applications,
 so the function #snd_pcm_avail_update() must be called afterwards
 before any read/write begin+commit operations.
+</p>
+<p>
+The function #snd_pcm_avail_delay() combines #snd_pcm_avail() and
+#snd_pcm_delay() and returns both values in sync.
+</p>
 
 \section pcm_action Managing the stream state
 
@@ -915,7 +918,7 @@ snd_pcm_state_t snd_pcm_state(snd_pcm_t *pcm)
 }
 
 /**
- * \brief Synchronize stream position with hardware
+ * \brief (DEPRECATED) Synchronize stream position with hardware
  * \param pcm PCM handle
  * \return 0 on success otherwise a negative error code
  *
@@ -932,6 +935,9 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
 	}
 	return pcm->fast_ops->hwsync(pcm->fast_op_arg);
 }
+#ifndef DOC_HIDDEN
+link_warning(snd_pcm_hwsync, "Warning: snd_pcm_hwsync() is deprecated, consider to use snd_pcm_avail()");
+#endif
 
 /**
  * \brief Obtain delay for a running PCM handle
@@ -953,7 +959,7 @@ int snd_pcm_hwsync(snd_pcm_t *pcm)
  * necessarily got down to 0.
  *
  * If the application is interested in the fill level of the playback buffer
- * of the device, it should use snd_pcm_avail_update(). The
+ * of the device, it should use #snd_pcm_avail*() functions. The
  * value returned by that call is not directly related to the delay, since the
  * latter might include some additional, fixed latencies the former does not.
  *
@@ -2404,10 +2410,79 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
  *
  * On capture does all the actions needed to transport to application
  * level all the ready frames across underlying layers.
+ *
+ * The position is not synced with hardware (driver) position in the sound
+ * ring buffer in this function. This function is a light version of
+ * #snd_pcm_avail() .
+ *
+ * Using this function is ideal after poll() or select() when audio
+ * file descriptor made the event and when application expects just period
+ * timing.
+ *
+ * Also this function might be called after #snd_pcm_delay() or
+ * #snd_pcm_hwsync() functions to move private ring buffer pointers
+ * in alsa-lib (the internal plugin chain).
  */
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm)
 {
 	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
+}
+
+/**
+ * \brief Return number of frames ready to be read (capture) / written (playback)
+ * \param pcm PCM handle
+ * \return a positive number of frames ready otherwise a negative
+ * error code
+ *
+ * On capture does all the actions needed to transport to application
+ * level all the ready frames across underlying layers.
+ *
+ * The position is synced with hardware (driver) position in the sound
+ * ring buffer in this functions.
+ */
+snd_pcm_sframes_t snd_pcm_avail(snd_pcm_t *pcm)
+{
+	int err;
+
+	assert(pcm);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	err = pcm->fast_ops->hwsync(pcm->fast_op_arg);
+	if (err < 0)
+		return err;
+	return pcm->fast_ops->avail_update(pcm->fast_op_arg);
+}
+
+/**
+ * \brief Combine snd_pcm_avail and snd_pcm_delay functions
+ * \param pcm PCM handle
+ * \param avail Number of available frames in the ring buffer
+ * \param delay Total I/O latency in frames
+ * \return zero on success otherwise a negative error code
+ *
+ * The avail and delay values retuned are in sync.
+ */
+int snd_pcm_avail_delay(snd_pcm_t *pcm,
+			snd_pcm_sframes_t *availp,
+			snd_pcm_sframes_t *delayp)
+{
+	snd_pcm_sframes_t sf;
+
+	assert(pcm && availp && delayp);
+	if (CHECK_SANITY(! pcm->setup)) {
+		SNDMSG("PCM not set up");
+		return -EIO;
+	}
+	sf = pcm->fast_ops->delay(pcm->fast_op_arg, delayp);
+	if (sf < 0)
+		return (int)sf;
+	sf = pcm->fast_ops->avail_update(pcm->fast_op_arg);
+	if (sf < 0)
+		return (int)sf;
+	*availp = sf;
+	return 0;
 }
 
 /**
