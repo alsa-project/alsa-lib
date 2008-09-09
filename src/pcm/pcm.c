@@ -1279,7 +1279,7 @@ snd_pcm_sframes_t snd_pcm_writen(snd_pcm_t *pcm, void **bufs, snd_pcm_uframes_t 
  * \brief Read interleaved frames from a PCM
  * \param pcm PCM handle
  * \param buffer frames containing buffer
- * \param size frames to be written
+ * \param size frames to be read
  * \return a positive number of frames actually read otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
@@ -1311,7 +1311,7 @@ snd_pcm_sframes_t snd_pcm_readi(snd_pcm_t *pcm, void *buffer, snd_pcm_uframes_t 
  * \brief Read non interleaved frames to a PCM
  * \param pcm PCM handle
  * \param bufs frames containing buffers (one for each channel)
- * \param size frames to be written
+ * \param size frames to be read
  * \return a positive number of frames actually read otherwise a
  * negative error code
  * \retval -EBADFD PCM is not in the right state (#SND_PCM_STATE_PREPARED or #SND_PCM_STATE_RUNNING)
