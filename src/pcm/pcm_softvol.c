@@ -399,7 +399,6 @@ static int snd_pcm_softvol_hw_refine_cprepare(snd_pcm_t *pcm,
 {
 	int err;
 	snd_pcm_softvol_t *svol = pcm->private_data;
-	snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_SHM };
 	snd_pcm_format_mask_t format_mask = {
 		{
 			(1ULL << SND_PCM_FORMAT_S16_LE) |
@@ -413,10 +412,6 @@ static int snd_pcm_softvol_hw_refine_cprepare(snd_pcm_t *pcm,
 		snd_pcm_format_mask_none(&format_mask);
 		snd_pcm_format_mask_set(&format_mask, svol->sformat);
 	}
-	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_ACCESS,
-					 &access_mask);
-	if (err < 0)
-		return err;
 	err = _snd_pcm_hw_param_set_mask(params, SND_PCM_HW_PARAM_FORMAT,
 					 &format_mask);
 	if (err < 0)
@@ -434,10 +429,7 @@ static int snd_pcm_softvol_hw_refine_cprepare(snd_pcm_t *pcm,
 static int snd_pcm_softvol_hw_refine_sprepare(snd_pcm_t *pcm, snd_pcm_hw_params_t *sparams)
 {
 	snd_pcm_softvol_t *svol = pcm->private_data;
-	snd_pcm_access_mask_t saccess_mask = { SND_PCM_ACCBIT_MMAP };
 	_snd_pcm_hw_params_any(sparams);
-	_snd_pcm_hw_param_set_mask(sparams, SND_PCM_HW_PARAM_ACCESS,
-				   &saccess_mask);
 	if (svol->sformat != SND_PCM_FORMAT_UNKNOWN) {
 		_snd_pcm_hw_params_set_format(sparams, svol->sformat);
 		_snd_pcm_hw_params_set_subformat(sparams, SND_PCM_SUBFORMAT_STD);
@@ -451,7 +443,8 @@ static int snd_pcm_softvol_hw_refine_schange(snd_pcm_t *pcm,
 {
 	snd_pcm_softvol_t *svol = pcm->private_data;
 	int err;
-	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
+	unsigned int links = (SND_PCM_HW_PARBIT_ACCESS |
+			      SND_PCM_HW_PARBIT_CHANNELS |
 			      SND_PCM_HW_PARBIT_RATE |
 			      SND_PCM_HW_PARBIT_PERIODS |
 			      SND_PCM_HW_PARBIT_PERIOD_SIZE |
@@ -475,7 +468,8 @@ static int snd_pcm_softvol_hw_refine_cchange(snd_pcm_t *pcm,
 {
 	snd_pcm_softvol_t *svol = pcm->private_data;
 	int err;
-	unsigned int links = (SND_PCM_HW_PARBIT_CHANNELS |
+	unsigned int links = (SND_PCM_HW_PARBIT_ACCESS |
+			      SND_PCM_HW_PARBIT_CHANNELS |
 			      SND_PCM_HW_PARBIT_RATE |
 			      SND_PCM_HW_PARBIT_PERIODS |
 			      SND_PCM_HW_PARBIT_PERIOD_SIZE |
