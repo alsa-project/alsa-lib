@@ -385,11 +385,11 @@ static void async_callback(snd_async_handler_t *ahandler)
 		generate_sine(areas, 0, period_size, &data->phase);
 		err = snd_pcm_writei(handle, samples, period_size);
 		if (err < 0) {
-			printf("Initial write error: %s\n", snd_strerror(err));
+			printf("Write error: %s\n", snd_strerror(err));
 			exit(EXIT_FAILURE);
 		}
 		if (err != period_size) {
-			printf("Initial write error: written %i expected %li\n", err, period_size);
+			printf("Write error: written %i expected %li\n", err, period_size);
 			exit(EXIT_FAILURE);
 		}
 		avail = snd_pcm_avail_update(handle);
@@ -424,10 +424,12 @@ static int async_loop(snd_pcm_t *handle,
 			exit(EXIT_FAILURE);
 		}
 	}
-	err = snd_pcm_start(handle);
-	if (err < 0) {
-		printf("Start error: %s\n", snd_strerror(err));
-		exit(EXIT_FAILURE);
+	if (snd_pcm_state(handle) == SND_PCM_STATE_PREPARED) {
+		err = snd_pcm_start(handle);
+		if (err < 0) {
+			printf("Start error: %s\n", snd_strerror(err));
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	/* because all other work is done in the signal handler,
