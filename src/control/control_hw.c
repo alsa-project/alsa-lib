@@ -116,7 +116,7 @@ static int snd_ctl_hw_subscribe_events(snd_ctl_t *handle, int subscribe)
 		SYSERR("SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS failed");
 		return -errno;
 	}
-	return subscribe;
+	return 0;
 }
 
 static int snd_ctl_hw_card_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
