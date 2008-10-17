@@ -84,10 +84,11 @@ static void zero_handler(const char *file ATTRIBUTE_UNUSED,
 {
 }
 
-static int get_dev_name1(struct hint_list *list, char **res)
+static int get_dev_name1(struct hint_list *list, char **res, int device,
+			 int stream)
 {
 	*res = NULL;
-	if (list->device < 0)
+	if (device < 0)
 		return 0;
 	switch (list->iface) {
 #ifdef BUILD_HWDEP
@@ -95,7 +96,7 @@ static int get_dev_name1(struct hint_list *list, char **res)
 		{
 			snd_hwdep_info_t *info;
 			snd_hwdep_info_alloca(&info);
-			snd_hwdep_info_set_device(info, list->device);
+			snd_hwdep_info_set_device(info, device);
 			if (snd_ctl_hwdep_info(list->ctl, info) < 0)
 				return 0;
 			*res = strdup(snd_hwdep_info_get_name(info));
@@ -107,8 +108,8 @@ static int get_dev_name1(struct hint_list *list, char **res)
 		{
 			snd_pcm_info_t *info;
 			snd_pcm_info_alloca(&info);
-			snd_pcm_info_set_device(info, list->device);
-			snd_pcm_info_set_stream(info, list->stream ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK);
+			snd_pcm_info_set_device(info, device);
+			snd_pcm_info_set_stream(info, stream ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK);
 			if (snd_ctl_pcm_info(list->ctl, info) < 0)
 				return 0;
 			switch (snd_pcm_info_get_class(info)) {
@@ -127,8 +128,8 @@ static int get_dev_name1(struct hint_list *list, char **res)
 		{
 			snd_rawmidi_info_t *info;
 			snd_rawmidi_info_alloca(&info);
-			snd_rawmidi_info_set_device(info, list->device);
-			snd_rawmidi_info_set_stream(info, list->stream ? SND_RAWMIDI_STREAM_INPUT : SND_RAWMIDI_STREAM_OUTPUT);
+			snd_rawmidi_info_set_device(info, device);
+			snd_rawmidi_info_set_stream(info, stream ? SND_RAWMIDI_STREAM_INPUT : SND_RAWMIDI_STREAM_OUTPUT);
 			if (snd_ctl_rawmidi_info(list->ctl, info) < 0)
 				return 0;
 			*res = strdup(snd_rawmidi_info_get_name(info));
@@ -143,14 +144,13 @@ static int get_dev_name1(struct hint_list *list, char **res)
 static char *get_dev_name(struct hint_list *list)
 {
 	char *str1, *str2, *res;
+	int device;
 	
-	list->device = list->device_input >= 0 ? list->device_input : list->device;
-	list->stream = 1;
-	if (get_dev_name1(list, &str1) < 0)
+	device = list->device_input >= 0 ? list->device_input : list->device;
+	if (get_dev_name1(list, &str1, device, 1) < 0)
 		return NULL;
-	list->device = list->device_output >= 0 ? list->device_input : list->device;
-	list->stream = 0;
-	if (get_dev_name1(list, &str2) < 0) {
+	device = list->device_output >= 0 ? list->device_output : list->device;
+	if (get_dev_name1(list, &str2, device, 0) < 0) {
 		if (str1)
 			free(str1);
 		return NULL;
@@ -199,7 +199,7 @@ static char *get_dev_name(struct hint_list *list)
 		}
 	}
 	/* if the specified device doesn't exist, skip this entry */
-	if (list->device_input >= 0 || list->device_output >= 0)
+	if (list->device >= 0 || list->device_input >= 0 || list->device_output >= 0)
 		return NULL;
 	return strdup(list->cardname);
 }
