@@ -440,7 +440,9 @@ int snd_pcm_hwsync(snd_pcm_t *pcm);
 int snd_pcm_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *delayp);
 int snd_pcm_resume(snd_pcm_t *pcm);
 int snd_pcm_htimestamp(snd_pcm_t *pcm, snd_pcm_uframes_t *avail, snd_htimestamp_t *tstamp);
+snd_pcm_sframes_t snd_pcm_avail(snd_pcm_t *pcm);
 snd_pcm_sframes_t snd_pcm_avail_update(snd_pcm_t *pcm);
+int snd_pcm_avail_delay(snd_pcm_t *pcm, snd_pcm_sframes_t *availp, snd_pcm_sframes_t *delayp);
 snd_pcm_sframes_t snd_pcm_rewindable(snd_pcm_t *pcm);
 snd_pcm_sframes_t snd_pcm_rewind(snd_pcm_t *pcm, snd_pcm_uframes_t frames);
 snd_pcm_sframes_t snd_pcm_forwardable(snd_pcm_t *pcm);
@@ -453,6 +455,8 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout);
 
 int snd_pcm_link(snd_pcm_t *pcm1, snd_pcm_t *pcm2);
 int snd_pcm_unlink(snd_pcm_t *pcm);
+
+//int snd_pcm_mixer_element(snd_pcm_t *pcm, snd_mixer_t *mixer, snd_mixer_elem_t **elem);
 
 /*
  * application helpers - these functions are implemented on top
