@@ -116,7 +116,7 @@ static int snd_ctl_hw_subscribe_events(snd_ctl_t *handle, int subscribe)
 		SYSERR("SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS failed");
 		return -errno;
 	}
-	return subscribe;
+	return 0;
 }
 
 static int snd_ctl_hw_card_info(snd_ctl_t *handle, snd_ctl_card_info_t *info)
@@ -324,7 +324,11 @@ static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 	ssize_t res = read(hw->fd, event, sizeof(*event));
 	if (res <= 0)
 		return -errno;
-	assert(res == sizeof(*event));
+	if (CHECK_SANITY(res != sizeof(*event))) {
+		SNDMSG("snd_ctl_hw_read: read size error (req:%d, got:%d)\n",
+		       sizeof(*event), res);
+		return -EINVAL;
+	}
 	return 1;
 }
 
@@ -368,7 +372,10 @@ int snd_ctl_hw_open(snd_ctl_t **handle, const char *name, int card, int mode)
 
 	*handle = NULL;	
 
-	assert(card >= 0 && card < 32);
+	if (CHECK_SANITY(card < 0 || card >= 32)) {
+		SNDMSG("Invalid card index %d", card);
+		return -EINVAL;
+	}
 	sprintf(filename, SNDRV_FILE_CONTROL, card);
 	if (mode & SND_CTL_READONLY)
 		fmode = O_RDONLY;
