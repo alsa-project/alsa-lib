@@ -809,14 +809,14 @@ static int simple_update(snd_mixer_elem_t *melem)
 	if (caps & (SM_CAP_GSWITCH|SM_CAP_CSWITCH))
 		caps |= SM_CAP_CSWITCH_JOIN;
 	if (caps & (SM_CAP_GVOLUME|SM_CAP_CVOLUME))
-		caps |= SM_CAP_PVOLUME_JOIN;
+		caps |= SM_CAP_CVOLUME_JOIN;
 	if (pchannels > 1 || cchannels > 1) {
 		if (simple->ctls[CTL_SINGLE].elem &&
 		    simple->ctls[CTL_SINGLE].values > 1) {
 			if (caps & SM_CAP_GSWITCH)
-				caps &= ~SM_CAP_PSWITCH_JOIN;
+				caps &= ~(SM_CAP_PSWITCH_JOIN|SM_CAP_CSWITCH_JOIN);
 			else
-				caps &= ~SM_CAP_PVOLUME_JOIN;
+				caps &= ~(SM_CAP_PVOLUME_JOIN|SM_CAP_CVOLUME_JOIN);
 		}
 		if (simple->ctls[CTL_GLOBAL_ROUTE].elem ||
 		    (simple->ctls[CTL_GLOBAL_SWITCH].elem &&
@@ -946,6 +946,8 @@ static int base_len(const char *name, selem_ctl_type_t *type)
 static int _snd_mixer_selem_set_volume(snd_mixer_elem_t *elem, int dir, snd_mixer_selem_channel_id_t channel, long value)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	if ((unsigned int) channel >= s->str[dir].channels)
 		return 0;
 	if (value < s->str[dir].min || value > s->str[dir].max)
@@ -1064,6 +1066,8 @@ static int get_volume_ops(snd_mixer_elem_t *elem, int dir,
 			  snd_mixer_selem_channel_id_t channel, long *value)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	if ((unsigned int) channel >= s->str[dir].channels)
 		return -EINVAL;
 	*value = s->str[dir].vol[channel];
@@ -1158,6 +1162,8 @@ static int get_dB_range_ops(snd_mixer_elem_t *elem, int dir,
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
 	selem_ctl_t *c;
 
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	c = get_selem_ctl(s, dir);
 	if (! c)
 		return -EINVAL;
@@ -1199,6 +1205,8 @@ static int get_dB_ops(snd_mixer_elem_t *elem,
 	int err;
 	long volume, db_gain;
 
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	c = get_selem_ctl(s, dir);
 	if (! c)
 		return -EINVAL;
@@ -1216,6 +1224,8 @@ static int get_switch_ops(snd_mixer_elem_t *elem, int dir,
 			  snd_mixer_selem_channel_id_t channel, int *value)
 {
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	if (s->selem.caps & SM_CAP_GSWITCH)
+		dir = SM_PLAY;
 	if ((unsigned int) channel >= s->str[dir].channels)
 		return -EINVAL;
 	*value = !!(s->str[dir].sw & (1 << channel));
@@ -1240,6 +1250,8 @@ static int ask_dB_vol_ops(snd_mixer_elem_t *elem, int dir,
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
 	selem_ctl_t *c;
 
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	c = get_selem_ctl(s, dir);
 	if (! c)
 		return -EINVAL;
@@ -1255,6 +1267,8 @@ static int set_dB_ops(snd_mixer_elem_t *elem, int dir,
 	long value;
 	int err;
 
+	if (s->selem.caps & SM_CAP_GVOLUME)
+		dir = SM_PLAY;
 	c = get_selem_ctl(s, dir);
 	if (! c)
 		return -EINVAL;
@@ -1269,6 +1283,8 @@ static int set_switch_ops(snd_mixer_elem_t *elem, int dir,
 {
 	int changed;
 	selem_none_t *s = snd_mixer_elem_get_private(elem);
+	if (s->selem.caps & SM_CAP_GSWITCH)
+		dir = SM_PLAY;
 	if (dir == SM_PLAY) {
 		if (! (s->selem.caps & (SM_CAP_GSWITCH|SM_CAP_PSWITCH)))
 			return -EINVAL;
