@@ -603,7 +603,7 @@ static int snd_pcm_meter_add_scope_conf(snd_pcm_t *pcm, const char *name,
 	snd_config_iterator_t i, next;
 	const char *id;
 	const char *lib = NULL, *open_name = NULL, *str = NULL;
-	snd_config_t *c, *type_conf;
+	snd_config_t *c, *type_conf = NULL;
 	int (*open_func)(snd_pcm_t *, const char *,
 			 snd_config_t *, snd_config_t *) = NULL;
 	snd_pcm_meter_t *meter = pcm->private_data;
