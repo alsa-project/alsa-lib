@@ -278,7 +278,7 @@ static ssize_t snd_rawmidi_virtual_read(snd_rawmidi_t *rmidi, void *buffer, size
 	return result;
 }
 
-snd_rawmidi_ops_t snd_rawmidi_virtual_ops = {
+static const snd_rawmidi_ops_t snd_rawmidi_virtual_ops = {
 	.close = snd_rawmidi_virtual_close,
 	.nonblock = snd_rawmidi_virtual_nonblock,
 	.info = snd_rawmidi_virtual_info,

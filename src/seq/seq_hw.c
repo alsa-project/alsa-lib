@@ -381,7 +381,7 @@ static int snd_seq_hw_query_next_port(snd_seq_t *seq, snd_seq_port_info_t *info)
 	return 0;
 }
 
-snd_seq_ops_t snd_seq_hw_ops = {
+static const snd_seq_ops_t snd_seq_hw_ops = {
 	.close = snd_seq_hw_close,
 	.nonblock = snd_seq_hw_nonblock,
 	.system_info = snd_seq_hw_system_info,

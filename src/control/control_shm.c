@@ -397,7 +397,7 @@ static int snd_ctl_shm_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 	return err;
 }
 
-snd_ctl_ops_t snd_ctl_shm_ops = {
+static const snd_ctl_ops_t snd_ctl_shm_ops = {
 	.close = snd_ctl_shm_close,
 	.nonblock = snd_ctl_shm_nonblock,
 	.async = snd_ctl_shm_async,

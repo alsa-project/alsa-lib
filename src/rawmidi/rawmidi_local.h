@@ -43,7 +43,7 @@ struct _snd_rawmidi {
 	snd_rawmidi_stream_t stream;
 	int mode;
 	int poll_fd;
-	snd_rawmidi_ops_t *ops;
+	const snd_rawmidi_ops_t *ops;
 	void *private_data;
 	size_t buffer_size;
 	size_t avail_min;

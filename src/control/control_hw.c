@@ -332,7 +332,7 @@ static int snd_ctl_hw_read(snd_ctl_t *handle, snd_ctl_event_t *event)
 	return 1;
 }
 
-snd_ctl_ops_t snd_ctl_hw_ops = {
+static const snd_ctl_ops_t snd_ctl_hw_ops = {
 	.close = snd_ctl_hw_close,
 	.nonblock = snd_ctl_hw_nonblock,
 	.async = snd_ctl_hw_async,

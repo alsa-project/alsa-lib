@@ -156,7 +156,7 @@ static ssize_t snd_rawmidi_hw_read(snd_rawmidi_t *rmidi, void *buffer, size_t si
 	return result;
 }
 
-snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
+static const snd_rawmidi_ops_t snd_rawmidi_hw_ops = {
 	.close = snd_rawmidi_hw_close,
 	.nonblock = snd_rawmidi_hw_nonblock,
 	.info = snd_rawmidi_hw_info,
