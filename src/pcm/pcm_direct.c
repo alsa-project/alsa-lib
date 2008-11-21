@@ -654,7 +654,7 @@ static int hw_param_interval_refine_minmax(snd_pcm_hw_params_t *params,
 int snd_pcm_direct_hw_refine(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	snd_pcm_direct_t *dshare = pcm->private_data;
-	static snd_mask_t access = { .bits = { 
+	static const snd_mask_t access = { .bits = { 
 					(1<<SNDRV_PCM_ACCESS_MMAP_INTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_MMAP_NONINTERLEAVED) |
 					(1<<SNDRV_PCM_ACCESS_RW_INTERLEAVED) |

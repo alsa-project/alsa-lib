@@ -78,7 +78,7 @@ static void songpos_decode(const snd_seq_event_t *ev, unsigned char *buf);
  * event list
  */
 #ifndef DOC_HIDDEN
-static struct status_event_list_t {
+static const struct status_event_list_t {
 	int event;
 	int qlen;
 	event_encode_t encode;
@@ -116,7 +116,7 @@ static struct status_event_list_t {
 static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int len, const snd_seq_event_t *ev);
 static int extra_decode_xrpn(snd_midi_event_t *dev, unsigned char *buf, int count, const snd_seq_event_t *ev);
 
-static struct extra_event_list_t {
+static const struct extra_event_list_t {
 	int event;
 	int (*decode)(snd_midi_event_t *dev, unsigned char *buf, int len, const snd_seq_event_t *ev);
 } extra_event[] = {
@@ -549,12 +549,12 @@ static int extra_decode_ctrl14(snd_midi_event_t *dev, unsigned char *buf, int co
 static int extra_decode_xrpn(snd_midi_event_t *dev, unsigned char *buf, int count, const snd_seq_event_t *ev)
 {
 	unsigned char cmd;
-	char *cbytes;
-	static char cbytes_nrpn[4] = { MIDI_CTL_NONREG_PARM_NUM_MSB,
+	const char *cbytes;
+	static const char cbytes_nrpn[4] = { MIDI_CTL_NONREG_PARM_NUM_MSB,
 				       MIDI_CTL_NONREG_PARM_NUM_LSB,
 				       MIDI_CTL_MSB_DATA_ENTRY,
 				       MIDI_CTL_LSB_DATA_ENTRY };
-	static char cbytes_rpn[4] =  { MIDI_CTL_REGIST_PARM_NUM_MSB,
+	static const char cbytes_rpn[4] =  { MIDI_CTL_REGIST_PARM_NUM_MSB,
 				       MIDI_CTL_REGIST_PARM_NUM_LSB,
 				       MIDI_CTL_MSB_DATA_ENTRY,
 				       MIDI_CTL_LSB_DATA_ENTRY };

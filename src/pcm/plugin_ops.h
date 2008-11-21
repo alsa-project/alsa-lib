@@ -108,7 +108,7 @@ copy_64: as_s64(dst) = as_s64c(src); goto COPY_END;
 
 #ifdef CONV_LABELS
 /* src_wid src_endswap sign_toggle dst_wid dst_endswap */
-static void *conv_labels[4 * 2 * 2 * 4 * 2] = {
+static void *const conv_labels[4 * 2 * 2 * 4 * 2] = {
 	&&conv_xxx1_xxx1,	 /*  8h ->  8h */
 	&&conv_xxx1_xxx1,	 /*  8h ->  8s */
 	&&conv_xxx1_xx10,	 /*  8h -> 16h */
@@ -341,7 +341,7 @@ conv_1234_123C: as_u32(dst) = as_u32c(src) ^ 0x80; goto CONV_END;
 
 #ifdef GET16_LABELS
 /* src_wid src_endswap sign_toggle */
-static void *get16_labels[4 * 2 * 2 + 4 * 3] = {
+static void *const get16_labels[4 * 2 * 2 + 4 * 3] = {
 	&&get16_1_10,	 /*  8h -> 16h */
 	&&get16_1_90,	 /*  8h ^> 16h */
 	&&get16_1_10,	 /*  8s -> 16h */
@@ -407,7 +407,7 @@ get16_123_B2_18: sample = (_get_triple_s(src) >> 2) ^ 0x8000; goto GET16_END;
 
 #ifdef PUT16_LABELS
 /* dst_wid dst_endswap sign_toggle */
-static void *put16_labels[4 * 2 * 2] = {
+static void *const put16_labels[4 * 2 * 2] = {
 	&&put16_12_1,		 /* 16h ->  8h */
 	&&put16_12_9,		 /* 16h ^>  8h */
 	&&put16_12_1,		 /* 16h ->  8s */
@@ -453,7 +453,7 @@ put16_12_0029: as_u32(dst) = (u_int32_t)bswap_16(sample) ^ 0x80; goto PUT16_END;
 
 #ifdef GET32_LABELS
 /* src_wid src_endswap sign_toggle */
-static void *get32_labels[4 * 2 * 2 + 4 * 3] = {
+static void *const get32_labels[4 * 2 * 2 + 4 * 3] = {
 	&&get32_1_1000,	 	 /*  8h -> 32h */
 	&&get32_1_9000,	 	 /*  8h ^> 32h */
 	&&get32_1_1000,		 /*  8s -> 32h */
@@ -528,7 +528,7 @@ __conv24_get: goto *put;
 
 #ifdef PUT32_LABELS
 /* dst_wid dst_endswap sign_toggle */
-static void *put32_labels[4 * 2 * 2 + 4 * 3] = {
+static void *const put32_labels[4 * 2 * 2 + 4 * 3] = {
 	&&put32_1234_1,	 	 /* 32h ->  8h */
 	&&put32_1234_9,	 	 /* 32h ^>  8h */
 	&&put32_1234_1,	 	 /* 32h ->  8s */
@@ -604,7 +604,7 @@ put32_1234_329_18: _put_triple_s(dst, (sample ^ 0x80000000) >> 14); goto PUT32_E
 
 #ifdef GETU_LABELS
 /* width endswap sign_toggle */
-static void *getu_labels[4 * 2 * 2] = {
+static void *const getu_labels[4 * 2 * 2] = {
 	&&getu_1_1,		/*  8h ->  8h */
 	&&getu_1_9,		/*  8h ^>  8h */
 	&&getu_1_1,		/*  8s ->  8h */
@@ -645,7 +645,7 @@ getu_1234_C321: sample = bswap_32(as_u32c(src) ^ 0x80); goto GETU_END;
 
 #ifdef GETS_LABELS
 /* width endswap sign_toggle */
-static void *gets_labels[4 * 2 * 2] = {
+static void *const gets_labels[4 * 2 * 2] = {
 	&&gets_1_1,		/*  8h ->  8h */
 	&&gets_1_9,		/*  8h ^>  8h */
 	&&gets_1_1,		/*  8s ->  8h */
@@ -686,7 +686,7 @@ gets_1234_C321: sample = (int32_t)bswap_32(as_s32c(src) ^ 0x80); goto GETS_END;
 
 #ifdef PUT_LABELS
 /* width endswap sign_toggle */
-static void *put_labels[4 * 2 * 2] = {
+static void *const put_labels[4 * 2 * 2] = {
 	&&put_1_1,		/*  8h ->  8h */
 	&&put_1_9,		/*  8h ^>  8h */
 	&&put_1_1,		/*  8h ->  8s */
@@ -726,7 +726,7 @@ put_1234_4329: as_u32(dst) = bswap_32(sample) ^ 0x80; goto PUT_END;
 
 #ifdef PUT32F_LABELS
 /* type (0 = float, 1 = float64), endswap */
-static void *put32float_labels[2 * 2] = {
+static void *const put32float_labels[2 * 2] = {
 	&&put32f_1234_1234F,	/* 32h -> (float)h */
 	&&put32f_1234_4321F,	/* 32h -> (float)s */
 	&&put32f_1234_1234D,	/* 32h -> (float64)h */
@@ -745,7 +745,7 @@ put32f_1234_4321D: tmp_double.d = (double_t)((int32_t)sample) / (double_t)0x8000
 
 #ifdef GET32F_LABELS
 /* type (0 = float, 1 = float64), endswap */
-static void *get32float_labels[2 * 2] = {
+static void *const get32float_labels[2 * 2] = {
 	&&get32f_1234F_1234,	/* (float)h -> 32h */
 	&&get32f_4321F_1234,	/* (float)s -> 32h */
 	&&get32f_1234D_1234,	/* (float64)h -> 32h */
@@ -924,7 +924,7 @@ static inline void _norms(const void *src, void *dst,
 }
 
 /* src_wid dst_sign dst_wid dst_end */
-static void *norms_labels[4 * 2 * 4 * 2] = {
+static void *const norms_labels[4 * 2 * 4 * 2] = {
 	&&norms_8_u8,	        /*  s8 -> u8 */
 	&&norms_8_u8,	        /*  s8 -> u8 */
 	&&norms_8_u16h,	        /*  s8 -> u16h */

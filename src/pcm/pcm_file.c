@@ -100,14 +100,14 @@ static void setup_wav_header(snd_pcm_t *pcm, struct wav_fmt *fmt)
 static int write_wav_header(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
-	static char header[] = {
+	static const char header[] = {
 		'R', 'I', 'F', 'F',
 		0x24, 0, 0, 0,
 		'W', 'A', 'V', 'E',
 		'f', 'm', 't', ' ',
 		0x10, 0, 0, 0,
 	};
-	static char header2[] = {
+	static const char header2[] = {
 		'd', 'a', 't', 'a',
 		0, 0, 0, 0
 	};

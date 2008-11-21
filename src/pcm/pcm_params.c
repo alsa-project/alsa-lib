@@ -1232,7 +1232,7 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 
 #define HW_PARAM(v) [SND_PCM_HW_PARAM_##v] = #v
 
-const char *snd_pcm_hw_param_names[] = {
+const char *const snd_pcm_hw_param_names[] = {
 	HW_PARAM(ACCESS),
 	HW_PARAM(FORMAT),
 	HW_PARAM(SUBFORMAT),
@@ -1660,7 +1660,7 @@ int snd_pcm_hw_params_try_explain_failure(snd_pcm_t *pcm,
 typedef struct _snd_pcm_hw_rule snd_pcm_hw_rule_t;
 
 typedef int (*snd_pcm_hw_rule_func_t)(snd_pcm_hw_params_t *params,
-				      snd_pcm_hw_rule_t *rule);
+				      const snd_pcm_hw_rule_t *rule);
 
 struct _snd_pcm_hw_rule {
 	int var;
@@ -1670,7 +1670,7 @@ struct _snd_pcm_hw_rule {
 };
 
 static int snd_pcm_hw_rule_mul(snd_pcm_hw_params_t *params,
-			       snd_pcm_hw_rule_t *rule)
+			       const snd_pcm_hw_rule_t *rule)
 {
 	snd_interval_t t;
 	snd_interval_mul(hw_param_interval_c(params, rule->deps[0]),
@@ -1679,7 +1679,7 @@ static int snd_pcm_hw_rule_mul(snd_pcm_hw_params_t *params,
 }
 
 static int snd_pcm_hw_rule_div(snd_pcm_hw_params_t *params,
-			snd_pcm_hw_rule_t *rule)
+			const snd_pcm_hw_rule_t *rule)
 {
 	snd_interval_t t;
 	snd_interval_div(hw_param_interval_c(params, rule->deps[0]),
@@ -1688,7 +1688,7 @@ static int snd_pcm_hw_rule_div(snd_pcm_hw_params_t *params,
 }
 
 static int snd_pcm_hw_rule_muldivk(snd_pcm_hw_params_t *params,
-				   snd_pcm_hw_rule_t *rule)
+				   const snd_pcm_hw_rule_t *rule)
 {
 	snd_interval_t t;
 	snd_interval_muldivk(hw_param_interval_c(params, rule->deps[0]),
@@ -1698,7 +1698,7 @@ static int snd_pcm_hw_rule_muldivk(snd_pcm_hw_params_t *params,
 }
 
 static int snd_pcm_hw_rule_mulkdiv(snd_pcm_hw_params_t *params,
-				   snd_pcm_hw_rule_t *rule)
+				   const snd_pcm_hw_rule_t *rule)
 {
 	snd_interval_t t;
 	snd_interval_mulkdiv(hw_param_interval_c(params, rule->deps[0]),
@@ -1708,7 +1708,7 @@ static int snd_pcm_hw_rule_mulkdiv(snd_pcm_hw_params_t *params,
 }
 
 static int snd_pcm_hw_rule_format(snd_pcm_hw_params_t *params,
-				  snd_pcm_hw_rule_t *rule)
+				  const snd_pcm_hw_rule_t *rule)
 {
 	int changed = 0;
 	snd_pcm_format_t k;
@@ -1733,7 +1733,7 @@ static int snd_pcm_hw_rule_format(snd_pcm_hw_params_t *params,
 
 
 static int snd_pcm_hw_rule_sample_bits(snd_pcm_hw_params_t *params,
-				       snd_pcm_hw_rule_t *rule)
+				       const snd_pcm_hw_rule_t *rule)
 {
 	unsigned int min, max;
 	snd_pcm_format_t k;
@@ -1767,7 +1767,7 @@ static int snd_pcm_hw_rule_sample_bits(snd_pcm_hw_params_t *params,
 	return changed;
 }
 
-static snd_pcm_hw_rule_t refine_rules[] = {
+static const snd_pcm_hw_rule_t refine_rules[] = {
 	{
 		.var = SND_PCM_HW_PARAM_FORMAT,
 		.func = snd_pcm_hw_rule_format,
@@ -1911,7 +1911,7 @@ static snd_pcm_hw_rule_t refine_rules[] = {
 
 #define RULES (sizeof(refine_rules) / sizeof(refine_rules[0]))
 
-static snd_mask_t refine_masks[SND_PCM_HW_PARAM_LAST_MASK - SND_PCM_HW_PARAM_FIRST_MASK + 1] = {
+static const snd_mask_t refine_masks[SND_PCM_HW_PARAM_LAST_MASK - SND_PCM_HW_PARAM_FIRST_MASK + 1] = {
 	[SND_PCM_HW_PARAM_ACCESS - SND_PCM_HW_PARAM_FIRST_MASK] = {
 		.bits = { 0x1f },
 	},
@@ -1923,7 +1923,7 @@ static snd_mask_t refine_masks[SND_PCM_HW_PARAM_LAST_MASK - SND_PCM_HW_PARAM_FIR
 	},
 };
   
-static snd_interval_t refine_intervals[SND_PCM_HW_PARAM_LAST_INTERVAL - SND_PCM_HW_PARAM_FIRST_INTERVAL + 1] = {
+static const snd_interval_t refine_intervals[SND_PCM_HW_PARAM_LAST_INTERVAL - SND_PCM_HW_PARAM_FIRST_INTERVAL + 1] = {
 	[SND_PCM_HW_PARAM_SAMPLE_BITS - SND_PCM_HW_PARAM_FIRST_INTERVAL] = {
 		.min = 1, .max = UINT_MAX,
 		.openmin = 0, .openmax = 0, .integer = 1, .empty = 0,
@@ -2022,7 +2022,7 @@ int snd_pcm_hw_refine_soft(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t 
 	do {
 		again = 0;
 		for (k = 0; k < RULES; k++) {
-			snd_pcm_hw_rule_t *r = &refine_rules[k];
+			const snd_pcm_hw_rule_t *r = &refine_rules[k];
 			unsigned int d;
 			int doit = 0;
 			for (d = 0; r->deps[d] >= 0; d++) {

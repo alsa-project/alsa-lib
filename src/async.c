@@ -44,7 +44,7 @@ void snd_async_init(void)
 }
 #else
 /** async signal number */
-static int snd_async_signo = SIGIO;
+static const int snd_async_signo = SIGIO;
 #endif
 
 static LIST_HEAD(snd_async_handlers);

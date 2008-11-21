@@ -61,7 +61,7 @@ typedef struct {
 #define ZERO_DB                  0.0
 #define MAX_DB_UPPER_LIMIT      50
 
-static unsigned int preset_dB_value[PRESET_RESOLUTION] = {
+static const unsigned int preset_dB_value[PRESET_RESOLUTION] = {
 	0x00b8, 0x00bd, 0x00c1, 0x00c5, 0x00ca, 0x00cf, 0x00d4, 0x00d9,
 	0x00de, 0x00e3, 0x00e8, 0x00ed, 0x00f3, 0x00f9, 0x00fe, 0x0104,
 	0x010a, 0x0111, 0x0117, 0x011e, 0x0124, 0x012b, 0x0132, 0x0139,
@@ -714,7 +714,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 
 	/* set up dB table */
 	if (min_dB == PRESET_MIN_DB && max_dB == ZERO_DB && resolution == PRESET_RESOLUTION)
-		svol->dB_value = preset_dB_value;
+		svol->dB_value = (unsigned int*)preset_dB_value;
 	else {
 #ifndef HAVE_SOFT_FLOAT
 		svol->dB_value = calloc(resolution, sizeof(unsigned int));

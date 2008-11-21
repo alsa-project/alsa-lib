@@ -1005,7 +1005,7 @@ static void usage(void)
 
 int main(int argc, char **argv)
 {
-	static struct option long_options[] = {
+	static const struct option long_options[] = {
 		{"help", 0, 0, 'h'},
 		{ 0 , 0 , 0, 0 }
 	};
