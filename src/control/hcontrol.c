@@ -234,7 +234,7 @@ static int snd_hctl_compare_mixer_priority_lookup(const char **name, const char 
 
 static int get_compare_weight(const snd_ctl_elem_id_t *id)
 {
-	static const char *names[] = {
+	static const char *const names[] = {
 		"Master",
 		"Hardware Master",
 		"Headphone",
@@ -270,7 +270,7 @@ static int get_compare_weight(const snd_ctl_elem_id_t *id)
 		"IEC958",
 		NULL
 	};
-	static const char *names1[] = {
+	static const char *const names1[] = {
 		"Switch",
 		"Volume",
 		"Playback",
@@ -284,7 +284,7 @@ static int get_compare_weight(const snd_ctl_elem_id_t *id)
 		"-",
 		NULL
 	};
-	static const char *names2[] = {
+	static const char *const names2[] = {
 		"Switch",
 		"Volume",
 		"Bypass",

@@ -88,8 +88,8 @@
 int snd_config_get_bool_ascii(const char *ascii)
 {
 	unsigned int k;
-	static struct {
-		const char *str;
+	static const struct {
+		const char str[8];
 		int val;
 	} b[] = {
 		{ "0", 0 },

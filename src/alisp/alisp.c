@@ -2965,7 +2965,7 @@ struct intrinsic {
 	struct alisp_object * (*func)(struct alisp_instance *instance, struct alisp_object * args);
 };
 
-static struct intrinsic intrinsics[] = {
+static const struct intrinsic intrinsics[] = {
 	{ "!=", F_numneq },
 	{ "%", F_mod },
 	{ "&check-memory", F_check_memory },

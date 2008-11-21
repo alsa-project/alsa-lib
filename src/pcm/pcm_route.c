@@ -236,14 +236,14 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 #include "plugin_ops.h"
 #undef GETS_LABELS
 #undef PUT32_LABELS
-	static void *zero_labels[3] = {
+	static void *const zero_labels[3] = {
 		&&zero_int32, &&zero_int64,
 #if SND_PCM_PLUGIN_ROUTE_FLOAT
 		&&zero_float
 #endif
 	};
 	/* sum_type att */
-	static void *add_labels[3 * 2] = {
+	static void *const add_labels[3 * 2] = {
 		&&add_int32_noatt, &&add_int32_att,
 		&&add_int64_noatt, &&add_int64_att,
 #if SND_PCM_PLUGIN_ROUTE_FLOAT
@@ -251,7 +251,7 @@ static void snd_pcm_route_convert1_many(const snd_pcm_channel_area_t *dst_area,
 #endif
 	};
 	/* sum_type att shift */
-	static void *norm_labels[3 * 2 * 4] = {
+	static void *const norm_labels[3 * 2 * 4] = {
 		0,
 		&&norm_int32_8_noatt,
 		&&norm_int32_16_noatt,

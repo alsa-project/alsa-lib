@@ -392,7 +392,7 @@ static int try_config(struct hint_list *list,
 
 typedef int (*next_devices_t)(snd_ctl_t *, int *);
 
-static next_devices_t next_devices[] = {
+static const next_devices_t next_devices[] = {
 	IFACE(CARD, NULL),
 	IFACE(HWDEP, snd_ctl_hwdep_next_device),
 	IFACE(MIXER, NULL),

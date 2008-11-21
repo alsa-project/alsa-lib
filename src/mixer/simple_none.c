@@ -131,7 +131,7 @@ static int compare_mixer_priority_lookup(const char **name, const char * const *
 
 static int get_compare_weight(const char *name, unsigned int idx)
 {
-	static const char *names[] = {
+	static const char *const names[] = {
 		"Master",
 		"Headphone",
 		"Tone",
@@ -165,11 +165,11 @@ static int get_compare_weight(const char *name, unsigned int idx)
 		"Mix",
 		NULL
 	};
-	static const char *names1[] = {
+	static const char *const names1[] = {
 		"-",
 		NULL,
 	};
-	static const char *names2[] = {
+	static const char *const names2[] = {
 		"Mono",
 		"Digital",
 		"Switch",
@@ -883,7 +883,7 @@ static int simple_update(snd_mixer_elem_t *melem)
 }	   
 
 #ifndef DOC_HIDDEN
-static struct suf {
+static const struct suf {
 	const char *suffix;
 	selem_ctl_type_t type;
 } suffixes[] = {
@@ -906,7 +906,7 @@ static struct suf {
 /* Return base length or 0 on failure */
 static int base_len(const char *name, selem_ctl_type_t *type)
 {
-	struct suf *p;
+	const struct suf *p;
 	size_t nlen = strlen(name);
 	p = suffixes;
 	while (p->suffix) {

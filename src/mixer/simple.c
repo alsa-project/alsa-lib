@@ -217,7 +217,7 @@ int snd_mixer_selem_has_common_switch(snd_mixer_elem_t *elem)
  */
 const char *snd_mixer_selem_channel_name(snd_mixer_selem_channel_id_t channel)
 {
-	static const char *array[SND_MIXER_SCHN_LAST + 1] = {
+	static const char *const array[SND_MIXER_SCHN_LAST + 1] = {
 		[SND_MIXER_SCHN_FRONT_LEFT] = "Front Left",
 		[SND_MIXER_SCHN_FRONT_RIGHT] = "Front Right",
 		[SND_MIXER_SCHN_REAR_LEFT] = "Rear Left",

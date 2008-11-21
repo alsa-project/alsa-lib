@@ -989,7 +989,7 @@ ssize_t snd_rawmidi_read(snd_rawmidi_t *rawmidi, void *buffer, size_t size)
 
 int snd_rawmidi_conf_generic_id(const char *id)
 {
-	static const char *ids[] = {
+	static const char ids[][8] = {
 		"comment",
 		"type",
 		"hint",

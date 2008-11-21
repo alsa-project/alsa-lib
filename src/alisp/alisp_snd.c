@@ -286,7 +286,7 @@ static struct alisp_object * FA_int_pp_strp_int(struct alisp_instance * instance
 	int err, mode;
 	void *handle;
 	struct alisp_object *p1, *p2;
-	static struct flags flags[] = {
+	static const struct flags flags[] = {
 		{ "nonblock", SND_CTL_NONBLOCK },
 		{ "async", SND_CTL_ASYNC },
 		{ "readonly", SND_CTL_READONLY },
@@ -789,7 +789,7 @@ static struct alisp_object * FA_pcm_info(struct alisp_instance * instance, struc
  *  main code
  */
 
-static struct acall_table acall_table[] = {
+static const struct acall_table acall_table[] = {
 	{ "card_get_index", &FA_int_str, (void *)snd_card_get_index, NULL },
 	{ "card_get_longname", &FA_int_int_strp, (void *)snd_card_get_longname, NULL },
 	{ "card_get_name", &FA_int_int_strp, (void *)snd_card_get_name, NULL },
@@ -933,7 +933,7 @@ static struct alisp_object * F_syserr(struct alisp_instance *instance, struct al
 	return &alsa_lisp_t;
 }
 
-static struct intrinsic snd_intrinsics[] = {
+static const struct intrinsic snd_intrinsics[] = {
 	{ "Acall", F_acall },
 	{ "Aerror", F_aerror },
 	{ "Ahandle", F_ahandle },
