@@ -757,7 +757,7 @@ snd_ctl_t *snd_async_handler_get_ctl(snd_async_handler_t *handler)
 	return handler->u.ctl;
 }
 
-static const char *build_in_ctls[] = {
+static const char *const build_in_ctls[] = {
 	"hw", "shm", NULL
 };
 
@@ -842,7 +842,7 @@ static int snd_ctl_open_conf(snd_ctl_t **ctlp, const char *name,
 		sprintf(buf, "_snd_ctl_%s_open", str);
 	}
 	if (!lib) {
-		const char **build_in = build_in_ctls;
+		const char *const *build_in = build_in_ctls;
 		while (*build_in) {
 			if (!strcmp(*build_in, str))
 				break;
@@ -952,7 +952,7 @@ int snd_ctl_open_lconf(snd_ctl_t **ctlp, const char *name,
 #define IFACE1(v, n) [SND_CTL_ELEM_IFACE_##v] = #n
 #define EVENT(v) [SND_CTL_EVENT_##v] = #v
 
-static const char *snd_ctl_elem_type_names[] = {
+static const char *const snd_ctl_elem_type_names[] = {
 	TYPE(NONE),
 	TYPE(BOOLEAN),
 	TYPE(INTEGER),
@@ -962,7 +962,7 @@ static const char *snd_ctl_elem_type_names[] = {
 	TYPE(INTEGER64),
 };
 
-static const char *snd_ctl_elem_iface_names[] = {
+static const char *const snd_ctl_elem_iface_names[] = {
 	IFACE(CARD),
 	IFACE(HWDEP),
 	IFACE(MIXER),
@@ -972,7 +972,7 @@ static const char *snd_ctl_elem_iface_names[] = {
 	IFACE(SEQUENCER),
 };
 
-static const char *snd_ctl_event_type_names[] = {
+static const char *const snd_ctl_event_type_names[] = {
 	EVENT(ELEM),
 };
 #endif

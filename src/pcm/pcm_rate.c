@@ -1256,7 +1256,7 @@ static int is_builtin_plugin(const char *type)
 	return strcmp(type, "linear") == 0;
 }
 
-static const char *default_rate_plugins[] = {
+static const char *const default_rate_plugins[] = {
 	"speexrate", "linear", NULL
 };
 
@@ -1340,7 +1340,7 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 #ifdef PIC
 	err = -ENOENT;
 	if (!converter) {
-		const char **types;
+		const char *const *types;
 		for (types = default_rate_plugins; *types; types++) {
 			err = rate_open_func(rate, *types);
 			if (!err) {

@@ -89,7 +89,7 @@ typedef struct _selem_none {
 	} str[2];
 } selem_none_t;
 
-static struct mixer_name_table {
+static const struct mixer_name_table {
 	const char *longname;
 	const char *shortname;
 } name_table[] = {
@@ -106,7 +106,7 @@ static struct mixer_name_table {
 
 static const char *get_short_name(const char *lname)
 {
-	struct mixer_name_table *p;
+	const struct mixer_name_table *p;
 	for (p = name_table; p->longname; p++) {
 		if (!strcmp(lname, p->longname))
 			return p->shortname;

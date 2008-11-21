@@ -1472,12 +1472,12 @@ int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsign
 #define SUBFORMATD(v, d) [SND_PCM_SUBFORMAT_##v] = d 
 
 
-static const char *snd_pcm_stream_names[] = {
+static const char *const snd_pcm_stream_names[] = {
 	STREAM(PLAYBACK),
 	STREAM(CAPTURE),
 };
 
-static const char *snd_pcm_state_names[] = {
+static const char *const snd_pcm_state_names[] = {
 	STATE(OPEN),
 	STATE(SETUP),
 	STATE(PREPARED),
@@ -1489,7 +1489,7 @@ static const char *snd_pcm_state_names[] = {
 	STATE(DISCONNECTED),
 };
 
-static const char *snd_pcm_access_names[] = {
+static const char *const snd_pcm_access_names[] = {
 	ACCESS(MMAP_INTERLEAVED), 
 	ACCESS(MMAP_NONINTERLEAVED),
 	ACCESS(MMAP_COMPLEX),
@@ -1497,7 +1497,7 @@ static const char *snd_pcm_access_names[] = {
 	ACCESS(RW_NONINTERLEAVED),
 };
 
-static const char *snd_pcm_format_names[] = {
+static const char *const snd_pcm_format_names[] = {
 	FORMAT(S8),
 	FORMAT(U8),
 	FORMAT(S16_LE),
@@ -1538,7 +1538,7 @@ static const char *snd_pcm_format_names[] = {
 	FORMAT(U18_3BE),
 };
 
-static const char *snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
+static const char *const snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
 	FORMAT(S16),
 	FORMAT(U16),
 	FORMAT(S24),
@@ -1550,7 +1550,7 @@ static const char *snd_pcm_format_aliases[SND_PCM_FORMAT_LAST+1] = {
 	FORMAT(IEC958_SUBFRAME),
 };
 
-static const char *snd_pcm_format_descriptions[] = {
+static const char *const snd_pcm_format_descriptions[] = {
 	FORMATD(S8, "Signed 8 bit"), 
 	FORMATD(U8, "Unsigned 8 bit"),
 	FORMATD(S16_LE, "Signed 16 bit Little Endian"),
@@ -1591,7 +1591,7 @@ static const char *snd_pcm_format_descriptions[] = {
 	FORMATD(U18_3BE, "Unsigned 18 bit Big Endian in 3bytes"),
 };
 
-static const char *snd_pcm_type_names[] = {
+static const char *const snd_pcm_type_names[] = {
 	PCMTYPE(HW), 
 	PCMTYPE(HOOKS), 
 	PCMTYPE(MULTI), 
@@ -1623,25 +1623,25 @@ static const char *snd_pcm_type_names[] = {
         PCMTYPE(EXTPLUG),
 };
 
-static const char *snd_pcm_subformat_names[] = {
+static const char *const snd_pcm_subformat_names[] = {
 	SUBFORMAT(STD), 
 };
 
-static const char *snd_pcm_subformat_descriptions[] = {
+static const char *const snd_pcm_subformat_descriptions[] = {
 	SUBFORMATD(STD, "Standard"), 
 };
 
-static const char *snd_pcm_start_mode_names[] = {
+static const char *const snd_pcm_start_mode_names[] = {
 	START(EXPLICIT),
 	START(DATA),
 };
 
-static const char *snd_pcm_xrun_mode_names[] = {
+static const char *const snd_pcm_xrun_mode_names[] = {
 	XRUN(NONE),
 	XRUN(STOP),
 };
 
-static const char *snd_pcm_tstamp_mode_names[] = {
+static const char *const snd_pcm_tstamp_mode_names[] = {
 	TSTAMP(NONE),
 	TSTAMP(ENABLE),
 };
@@ -2035,7 +2035,7 @@ snd_pcm_t *snd_async_handler_get_pcm(snd_async_handler_t *handler)
 	return handler->u.pcm;
 }
 
-static char *build_in_pcms[] = {
+static const char *const build_in_pcms[] = {
 	"adpcm", "alaw", "copy", "dmix", "file", "hooks", "hw", "ladspa", "lfloat",
 	"linear", "meter", "mulaw", "multi", "null", "empty", "plug", "rate", "route", "share",
 	"shm", "dsnoop", "dshare", "asym", "iec958", "softvol", "mmap_emul",
@@ -2129,7 +2129,7 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 		sprintf(buf, "_snd_pcm_%s_open", str);
 	}
 	if (!lib) {
-		char **build_in = build_in_pcms;
+		const char *const *build_in = build_in_pcms;
 		while (*build_in) {
 			if (!strcmp(*build_in, str))
 				break;
@@ -6690,7 +6690,7 @@ link_warning(_snd_pcm_mmap_hw_ptr, "Warning: _snd_pcm_mmap_hw_ptr() is deprecate
 link_warning(_snd_pcm_boundary, "Warning: _snd_pcm_boundary() is deprecated, consider to use snd_pcm_sw_params_current()");
 #endif
 
-static const char *names[SND_PCM_HW_PARAM_LAST_INTERVAL + 1] = {
+static const char *const names[SND_PCM_HW_PARAM_LAST_INTERVAL + 1] = {
 	[SND_PCM_HW_PARAM_FORMAT] = "format",
 	[SND_PCM_HW_PARAM_CHANNELS] = "channels",
 	[SND_PCM_HW_PARAM_RATE] = "rate",
@@ -6836,7 +6836,7 @@ int snd_pcm_slave_conf(snd_config_t *root, snd_config_t *conf,
 
 int snd_pcm_conf_generic_id(const char *id)
 {
-	static const char *ids[] = { "comment", "type", "hint" };
+	static const char ids[3][8] = { "comment", "type", "hint" };
 	unsigned int k;
 	for (k = 0; k < sizeof(ids) / sizeof(ids[0]); ++k) {
 		if (strcmp(id, ids[k]) == 0)
