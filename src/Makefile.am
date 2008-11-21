@@ -45,7 +45,7 @@ endif
 SUBDIRS += compat conf
 libasound_la_LIBADD += compat/libcompat.la @ALSA_DEPLIBS@
 
-libasound_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS) $(SYMFUNCS)
+libasound_la_LDFLAGS = -version-info $(COMPATNUM) $(VSYMS) $(SYMFUNCS) $(LDFLAGS_NOUNDEFINED)
 
 control/libcontrol.la:
 	$(MAKE) -C control libcontrol.la
