@@ -45,7 +45,7 @@ typedef struct _snd_input_ops {
 
 struct _snd_input {
 	snd_input_type_t type;
-	snd_input_ops_t *ops;
+	const snd_input_ops_t *ops;
 	void *private_data;
 };
 #endif
@@ -157,7 +157,7 @@ static int snd_input_stdio_ungetc(snd_input_t *input, int c)
 	return ungetc(c, stdio->fp);
 }
 
-static snd_input_ops_t snd_input_stdio_ops = {
+static const snd_input_ops_t snd_input_stdio_ops = {
 	.close		= snd_input_stdio_close,
 	.scan		= snd_input_stdio_scan,
 	.gets		= snd_input_stdio_gets,
@@ -283,7 +283,7 @@ static int snd_input_buffer_ungetc(snd_input_t *input, int c)
 	return c;
 }
 
-static snd_input_ops_t snd_input_buffer_ops = {
+static const snd_input_ops_t snd_input_buffer_ops = {
 	.close		= snd_input_buffer_close,
 	.scan		= snd_input_buffer_scan,
 	.gets		= snd_input_buffer_gets,

@@ -402,7 +402,7 @@ static int snd_ctl_ext_poll_revents(snd_ctl_t *handle, struct pollfd *pfds, unsi
 	return -EINVAL;
 }
 
-static snd_ctl_ops_t snd_ctl_ext_ops = {
+static const snd_ctl_ops_t snd_ctl_ext_ops = {
 	.close = snd_ctl_ext_close,
 	.nonblock = snd_ctl_ext_nonblock,
 	.async = snd_ctl_ext_async,

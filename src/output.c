@@ -44,7 +44,7 @@ typedef struct _snd_output_ops {
 
 struct _snd_output {
 	snd_output_type_t type;
-	snd_output_ops_t *ops;
+	const snd_output_ops_t *ops;
 	void *private_data;
 };
 #endif
@@ -165,7 +165,7 @@ static int snd_output_stdio_flush(snd_output_t *output)
 	return fflush(stdio->fp);
 }
 
-static snd_output_ops_t snd_output_stdio_ops = {
+static const snd_output_ops_t snd_output_stdio_ops = {
 	.close		= snd_output_stdio_close,
 	.print		= snd_output_stdio_print,
 	.puts		= snd_output_stdio_puts,
@@ -323,7 +323,7 @@ static int snd_output_buffer_flush(snd_output_t *output ATTRIBUTE_UNUSED)
 	return 0;
 }
 
-static snd_output_ops_t snd_output_buffer_ops = {
+static const snd_output_ops_t snd_output_buffer_ops = {
 	.close		= snd_output_buffer_close,
 	.print		= snd_output_buffer_print,
 	.puts		= snd_output_buffer_puts,

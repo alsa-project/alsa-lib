@@ -39,7 +39,7 @@ struct _snd_hwdep {
 	snd_hwdep_type_t type;
 	int mode;
 	int poll_fd;
-	snd_hwdep_ops_t *ops;
+	const snd_hwdep_ops_t *ops;
 	void *private_data;
 };
 

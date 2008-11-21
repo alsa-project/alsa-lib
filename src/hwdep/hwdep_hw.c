@@ -94,7 +94,7 @@ static ssize_t snd_hwdep_hw_read(snd_hwdep_t *hwdep, void *buffer, size_t size)
 	return result;
 }
 
-static snd_hwdep_ops_t snd_hwdep_hw_ops = {
+static const snd_hwdep_ops_t snd_hwdep_hw_ops = {
 	.close = snd_hwdep_hw_close,
 	.nonblock = snd_hwdep_hw_nonblock,
 	.info = snd_hwdep_hw_info,

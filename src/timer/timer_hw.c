@@ -209,7 +209,7 @@ static ssize_t snd_timer_hw_read(snd_timer_t *handle, void *buffer, size_t size)
 	return result;
 }
 
-static snd_timer_ops_t snd_timer_hw_ops = {
+static const snd_timer_ops_t snd_timer_hw_ops = {
 	.close = snd_timer_hw_close,
 	.nonblock = snd_timer_hw_nonblock,
 	.async = snd_timer_hw_async,

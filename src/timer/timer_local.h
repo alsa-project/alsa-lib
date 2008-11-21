@@ -45,7 +45,7 @@ struct _snd_timer {
 	snd_timer_type_t type;
 	int mode;
 	int poll_fd;
-	snd_timer_ops_t *ops;
+	const snd_timer_ops_t *ops;
 	void *private_data;
 	struct list_head async_handlers;
 };

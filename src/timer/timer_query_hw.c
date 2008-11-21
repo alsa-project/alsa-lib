@@ -81,7 +81,7 @@ static int snd_timer_query_hw_status(snd_timer_query_t *handle, snd_timer_gstatu
 	return 0;
 }
 
-static snd_timer_query_ops_t snd_timer_query_hw_ops = {
+static const snd_timer_query_ops_t snd_timer_query_hw_ops = {
 	.close = snd_timer_query_hw_close,
 	.next_device = snd_timer_query_hw_next_device,
 	.info = snd_timer_query_hw_info,
