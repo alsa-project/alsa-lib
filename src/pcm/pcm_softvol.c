@@ -739,7 +739,7 @@ static int softvol_load_control(snd_pcm_t *pcm, snd_pcm_softvol_t *svol,
 	return 0;
 }
 
-static snd_pcm_ops_t snd_pcm_softvol_ops = {
+static const snd_pcm_ops_t snd_pcm_softvol_ops = {
 	.close = snd_pcm_softvol_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_softvol_hw_refine,

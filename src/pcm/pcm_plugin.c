@@ -560,7 +560,7 @@ static int snd_pcm_plugin_status(snd_pcm_t *pcm, snd_pcm_status_t * status)
 	return 0;
 }
 
-snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
+const snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops = {
 	.status = snd_pcm_plugin_status,
 	.state = snd_pcm_generic_state,
 	.hwsync = snd_pcm_generic_hwsync,

@@ -1308,7 +1308,7 @@ static void snd_pcm_share_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(slave->pcm, out);
 }
 
-static snd_pcm_ops_t snd_pcm_share_ops = {
+static const snd_pcm_ops_t snd_pcm_share_ops = {
 	.close = snd_pcm_share_close,
 	.info = snd_pcm_share_info,
 	.hw_refine = snd_pcm_share_hw_refine,
@@ -1323,7 +1323,7 @@ static snd_pcm_ops_t snd_pcm_share_ops = {
 	.munmap = snd_pcm_share_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_share_fast_ops = {
 	.status = snd_pcm_share_status,
 	.state = snd_pcm_share_state,
 	.hwsync = snd_pcm_share_hwsync,

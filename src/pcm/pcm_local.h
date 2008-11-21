@@ -223,8 +223,8 @@ struct _snd_pcm {
 	snd_pcm_channel_info_t *mmap_channels;
 	snd_pcm_channel_area_t *running_areas;
 	snd_pcm_channel_area_t *stopped_areas;
-	snd_pcm_ops_t *ops;
-	snd_pcm_fast_ops_t *fast_ops;
+	const snd_pcm_ops_t *ops;
+	const snd_pcm_fast_ops_t *fast_ops;
 	snd_pcm_t *op_arg;
 	snd_pcm_t *fast_op_arg;
 	void *private_data;

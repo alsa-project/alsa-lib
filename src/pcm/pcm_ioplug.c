@@ -747,7 +747,7 @@ static int snd_pcm_ioplug_close(snd_pcm_t *pcm)
 	return 0;
 }
 
-static snd_pcm_ops_t snd_pcm_ioplug_ops = {
+static const snd_pcm_ops_t snd_pcm_ioplug_ops = {
 	.close = snd_pcm_ioplug_close,
 	.nonblock = snd_pcm_ioplug_nonblock,
 	.async = snd_pcm_ioplug_async,
@@ -762,7 +762,7 @@ static snd_pcm_ops_t snd_pcm_ioplug_ops = {
 	.munmap = snd_pcm_ioplug_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_ioplug_fast_ops = {
 	.status = snd_pcm_ioplug_status,
 	.prepare = snd_pcm_ioplug_prepare,
 	.reset = snd_pcm_ioplug_reset,

@@ -762,7 +762,7 @@ static void snd_pcm_multi_dump(snd_pcm_t *pcm, snd_output_t *out)
 	}
 }
 
-static snd_pcm_ops_t snd_pcm_multi_ops = {
+static const snd_pcm_ops_t snd_pcm_multi_ops = {
 	.close = snd_pcm_multi_close,
 	.info = snd_pcm_multi_info,
 	.hw_refine = snd_pcm_multi_hw_refine,
@@ -777,7 +777,7 @@ static snd_pcm_ops_t snd_pcm_multi_ops = {
 	.munmap = snd_pcm_multi_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_multi_fast_ops = {
 	.status = snd_pcm_multi_status,
 	.state = snd_pcm_multi_state,
 	.hwsync = snd_pcm_multi_hwsync,

@@ -1051,7 +1051,7 @@ static void snd_pcm_plug_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(plug->gen.slave, out);
 }
 
-static snd_pcm_ops_t snd_pcm_plug_ops = {
+static const snd_pcm_ops_t snd_pcm_plug_ops = {
 	.close = snd_pcm_plug_close,
 	.info = snd_pcm_plug_info,
 	.hw_refine = snd_pcm_plug_hw_refine,

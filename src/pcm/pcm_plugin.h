@@ -63,7 +63,7 @@ typedef struct {
 
 void snd_pcm_plugin_init(snd_pcm_plugin_t *plugin);
 
-extern snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
+extern const snd_pcm_fast_ops_t snd_pcm_plugin_fast_ops;
 
 snd_pcm_sframes_t snd_pcm_plugin_undo_read_generic
      (snd_pcm_t *pcm,

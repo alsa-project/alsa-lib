@@ -455,7 +455,7 @@ static void snd_pcm_dsnoop_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_pcm_dump(dsnoop->spcm, out);
 }
 
-static snd_pcm_ops_t snd_pcm_dsnoop_ops = {
+static const snd_pcm_ops_t snd_pcm_dsnoop_ops = {
 	.close = snd_pcm_dsnoop_close,
 	.info = snd_pcm_direct_info,
 	.hw_refine = snd_pcm_direct_hw_refine,
@@ -470,7 +470,7 @@ static snd_pcm_ops_t snd_pcm_dsnoop_ops = {
 	.munmap = snd_pcm_direct_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_dsnoop_fast_ops = {
 	.status = snd_pcm_dsnoop_status,
 	.state = snd_pcm_dsnoop_state,
 	.hwsync = snd_pcm_dsnoop_hwsync,

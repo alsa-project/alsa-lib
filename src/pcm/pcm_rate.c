@@ -1195,7 +1195,7 @@ static int snd_pcm_rate_close(snd_pcm_t *pcm)
 	return snd_pcm_generic_close(pcm);
 }
 
-static snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.status = snd_pcm_rate_status,
 	.state = snd_pcm_rate_state,
 	.hwsync = snd_pcm_rate_hwsync,
@@ -1221,7 +1221,7 @@ static snd_pcm_fast_ops_t snd_pcm_rate_fast_ops = {
 	.poll_revents = snd_pcm_rate_poll_revents,
 };
 
-static snd_pcm_ops_t snd_pcm_rate_ops = {
+static const snd_pcm_ops_t snd_pcm_rate_ops = {
 	.close = snd_pcm_rate_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_rate_hw_refine,

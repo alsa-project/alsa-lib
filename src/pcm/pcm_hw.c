@@ -80,8 +80,8 @@ struct sndrv_pcm_hw_params_old {
 
 static int use_old_hw_params_ioctl(int fd, unsigned int cmd, snd_pcm_hw_params_t *params);
 static snd_pcm_sframes_t snd_pcm_hw_avail_update(snd_pcm_t *pcm);
-static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops;
-static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops_timer;
+static const snd_pcm_fast_ops_t snd_pcm_hw_fast_ops;
+static const snd_pcm_fast_ops_t snd_pcm_hw_fast_ops_timer;
 
 /*
  *
@@ -1040,7 +1040,7 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 	}
 }
 
-static snd_pcm_ops_t snd_pcm_hw_ops = {
+static const snd_pcm_ops_t snd_pcm_hw_ops = {
 	.close = snd_pcm_hw_close,
 	.info = snd_pcm_hw_info,
 	.hw_refine = snd_pcm_hw_hw_refine,
@@ -1055,7 +1055,7 @@ static snd_pcm_ops_t snd_pcm_hw_ops = {
 	.munmap = snd_pcm_hw_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.status = snd_pcm_hw_status,
 	.state = snd_pcm_hw_state,
 	.hwsync = snd_pcm_hw_hwsync,
@@ -1086,7 +1086,7 @@ static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops = {
 	.poll_revents = NULL,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_hw_fast_ops_timer = {
+static const snd_pcm_fast_ops_t snd_pcm_hw_fast_ops_timer = {
 	.status = snd_pcm_hw_status,
 	.state = snd_pcm_hw_state,
 	.hwsync = snd_pcm_hw_hwsync,

@@ -152,7 +152,7 @@ static void snd_pcm_copy_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(copy->plug.gen.slave, out);
 }
 
-static snd_pcm_ops_t snd_pcm_copy_ops = {
+static const snd_pcm_ops_t snd_pcm_copy_ops = {
 	.close = snd_pcm_generic_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_copy_hw_refine,

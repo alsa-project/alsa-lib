@@ -1061,7 +1061,7 @@ static void snd_pcm_ladspa_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(ladspa->plug.gen.slave, out);
 }
 
-static snd_pcm_ops_t snd_pcm_ladspa_ops = {
+static const snd_pcm_ops_t snd_pcm_ladspa_ops = {
 	.close = snd_pcm_ladspa_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_ladspa_hw_refine,

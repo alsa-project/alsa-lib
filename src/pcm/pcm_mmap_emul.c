@@ -329,7 +329,7 @@ static void snd_pcm_mmap_emul_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(map->gen.slave, out);
 }
 
-static snd_pcm_ops_t snd_pcm_mmap_emul_ops = {
+static const snd_pcm_ops_t snd_pcm_mmap_emul_ops = {
 	.close = snd_pcm_generic_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_mmap_emul_hw_refine,
@@ -344,7 +344,7 @@ static snd_pcm_ops_t snd_pcm_mmap_emul_ops = {
 	.munmap = snd_pcm_generic_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_mmap_emul_fast_ops = {
 	.status = snd_pcm_generic_status,
 	.state = snd_pcm_generic_state,
 	.hwsync = snd_pcm_generic_hwsync,

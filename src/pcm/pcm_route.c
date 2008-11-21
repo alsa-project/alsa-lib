@@ -747,7 +747,7 @@ static void snd_pcm_route_dump(snd_pcm_t *pcm, snd_output_t *out)
 	snd_pcm_dump(route->plug.gen.slave, out);
 }
 
-static snd_pcm_ops_t snd_pcm_route_ops = {
+static const snd_pcm_ops_t snd_pcm_route_ops = {
 	.close = snd_pcm_route_close,
 	.info = snd_pcm_generic_info,
 	.hw_refine = snd_pcm_route_hw_refine,

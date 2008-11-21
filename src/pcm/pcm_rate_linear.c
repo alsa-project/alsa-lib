@@ -405,7 +405,7 @@ static void linear_close(void *obj)
 	free(obj);
 }
 
-static snd_pcm_rate_ops_t linear_ops = {
+static const snd_pcm_rate_ops_t linear_ops = {
 	.close = linear_close,
 	.init = linear_init,
 	.free = linear_free,

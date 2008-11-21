@@ -560,7 +560,7 @@ static void snd_pcm_dshare_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_pcm_dump(dshare->spcm, out);
 }
 
-static snd_pcm_ops_t snd_pcm_dshare_ops = {
+static const snd_pcm_ops_t snd_pcm_dshare_ops = {
 	.close = snd_pcm_dshare_close,
 	.info = snd_pcm_direct_info,
 	.hw_refine = snd_pcm_direct_hw_refine,
@@ -575,7 +575,7 @@ static snd_pcm_ops_t snd_pcm_dshare_ops = {
 	.munmap = snd_pcm_direct_munmap,
 };
 
-static snd_pcm_fast_ops_t snd_pcm_dshare_fast_ops = {
+static const snd_pcm_fast_ops_t snd_pcm_dshare_fast_ops = {
 	.status = snd_pcm_dshare_status,
 	.state = snd_pcm_dshare_state,
 	.hwsync = snd_pcm_dshare_hwsync,
