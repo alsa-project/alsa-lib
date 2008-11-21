@@ -36,6 +36,11 @@ include/asoundlib.h
 utils/alsa-lib.spec
 alsalisp/alsalisp
 aserver/aserver
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
 src/Versions
 src/control/ctl_symbols_list.c
 src/pcm/pcm_symbols_list.c
