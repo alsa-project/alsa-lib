@@ -1232,7 +1232,7 @@ void snd_pcm_hw_param_dump(const snd_pcm_hw_params_t *params,
 
 #define HW_PARAM(v) [SND_PCM_HW_PARAM_##v] = #v
 
-const char *const snd_pcm_hw_param_names[] = {
+static const char *const snd_pcm_hw_param_names[] = {
 	HW_PARAM(ACCESS),
 	HW_PARAM(FORMAT),
 	HW_PARAM(SUBFORMAT),
