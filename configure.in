@@ -8,7 +8,7 @@ dnl change API = c+1:0:a
 dnl add API = c+1:0:a+1
 dnl remove API = c+1:0:0
 dnl *************************************************
-AC_CANONICAL_SYSTEM
+AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE(alsa-lib, 1.0.18)
 eval LIBTOOL_VERSION_INFO="2:0:0"
 dnl *************************************************
@@ -19,15 +19,15 @@ AC_PREFIX_DEFAULT(/usr)
 dnl Checks for programs.
 
 dnl try to gues cross-compiler if not set
-if test "x$target" != "x$host" -a -z "`echo $CC | grep -e '-gcc'`";
+if test "x$host" != "x$build" -a -z "`echo $CC | grep -e '-gcc'`";
 then
   AC_MSG_CHECKING(for cross-compiler)
 
   which ${program_prefix}gcc >/dev/null 2>&1 && CC=${program_prefix}gcc
-  which ${target_cpu}-${target_os}-gcc >/dev/null 2>&1 \
-  && CC=${target_cpu}-${target-os}-gcc
-  which ${target_cpu}-${target_vendor}-${target_os}-gcc >/dev/null 2>&1 \
-  && CC=${target_cpu}-${target_vendor}-${target_os}-gcc
+  which ${host_cpu}-${host_os}-gcc >/dev/null 2>&1 \
+  && CC=${host_cpu}-${host-os}-gcc
+  which ${host_cpu}-${host_vendor}-${host_os}-gcc >/dev/null 2>&1 \
+  && CC=${host_cpu}-${host_vendor}-${host_os}-gcc
 
   AC_MSG_RESULT($CC)
 fi
@@ -261,7 +261,7 @@ AC_SUBST(ALSA_DEPLIBS)
 
 dnl Check for architecture
 AC_MSG_CHECKING(for architecture)
-case "$target" in
+case "$host" in
 i?86*)
   AC_MSG_RESULT(x86)
   ;;
