@@ -2962,7 +2962,7 @@ int snd_config_update_r(snd_config_t **_top, snd_config_update_t **_update, cons
 	configs = cfgs;
 	if (!configs) {
 		configs = getenv(ALSA_CONFIG_PATH_VAR);
-		if (!configs)
+		if (!configs || !*configs)
 			configs = ALSA_CONFIG_PATH_DEFAULT;
 	}
 	for (k = 0, c = configs; (l = strcspn(c, ": ")) > 0; ) {
