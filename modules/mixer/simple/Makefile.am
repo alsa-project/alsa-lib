@@ -21,11 +21,11 @@ smixer_sbase_la_LIBADD = ../../../src/libasound.la
 
 smixer_ac97_la_SOURCES = ac97.c sbasedl.c
 smixer_ac97_la_LDFLAGS = -module -avoid-version $(LDFLAGS_NOUNDEFINED)
-smixer_ac97_la_LIBADD = ../../../src/libasound.la
+smixer_ac97_la_LIBADD = ../../../src/libasound.la -ldl
 
 smixer_hda_la_SOURCES = hda.c sbasedl.c
 smixer_hda_la_LDFLAGS = -module -avoid-version $(LDFLAGS_NOUNDEFINED)
-smixer_hda_la_LIBADD = ../../../src/libasound.la
+smixer_hda_la_LIBADD = ../../../src/libasound.la -ldl
 
 if BUILD_PYTHON
 smixer_python_la_SOURCES = python.c
