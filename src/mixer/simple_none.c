@@ -1450,7 +1450,14 @@ static int simple_add1(snd_mixer_class_t *class, const char *name,
 		}
 		if (ctype != SND_CTL_ELEM_TYPE_BOOLEAN)
 			return 0;
+#ifdef HAVE_SOFT_FLOAT
+		/* up to 256 channels */
+		for (n = 1; n < 256; n++)
+			if (n * n == values)
+				break;
+#else
 		n = sqrt((double)values);
+#endif
 		if (n * n != values)
 			return 0;
 		values = n;
