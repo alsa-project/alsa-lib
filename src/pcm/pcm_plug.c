@@ -605,7 +605,14 @@ static int snd_pcm_plug_change_mmap(snd_pcm_t *pcm, snd_pcm_t **new,
 				       plug->gen.slave != plug->req_slave);
 	if (err < 0)
 		return err;
-	slv->access = clt->access;
+	switch (slv->access) {
+	case SND_PCM_ACCESS_RW_INTERLEAVED:
+		slv->access = SND_PCM_ACCESS_MMAP_INTERLEAVED;
+		break;
+	case SND_PCM_ACCESS_RW_NONINTERLEAVED:
+		slv->access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;
+		break;
+	}
 	return 1;
 }
 #endif
@@ -743,19 +750,29 @@ static int check_access_change(snd_pcm_hw_params_t *cparams,
 		return 0; /* OK, we have mmap support */
 #ifdef BUILD_PCM_PLUGIN_MMAP_EMUL
 	/* no mmap support - we need mmap emulation */
+
+	if (!snd_pcm_access_mask_test(smask, SND_PCM_ACCESS_RW_INTERLEAVED) &&
+	    !snd_pcm_access_mask_test(smask, SND_PCM_ACCESS_RW_NONINTERLEAVED)) 
+		return -EINVAL; /* even no RW access?  no way! */
+
 	cmask = (const snd_pcm_access_mask_t *)
 		snd_pcm_hw_param_get_mask(cparams,
 					  SND_PCM_HW_PARAM_ACCESS);
 	snd_mask_none(&mask);
 	if (snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_RW_INTERLEAVED) ||
-	    snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_MMAP_INTERLEAVED))
-		snd_pcm_access_mask_set(&mask,
-					SND_PCM_ACCESS_RW_INTERLEAVED);
+	    snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_MMAP_INTERLEAVED)) {
+		if (snd_pcm_access_mask_test(smask, SND_PCM_ACCESS_RW_INTERLEAVED))
+			snd_pcm_access_mask_set(&mask,
+						SND_PCM_ACCESS_RW_INTERLEAVED);
+	}
 	if (snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_RW_NONINTERLEAVED) ||
-	    snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED))
-		snd_pcm_access_mask_set(&mask,
-					SND_PCM_ACCESS_RW_NONINTERLEAVED);
-	*smask = mask;
+	    snd_pcm_access_mask_test(cmask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED)) {
+		if (snd_pcm_access_mask_test(smask, SND_PCM_ACCESS_RW_NONINTERLEAVED))
+			snd_pcm_access_mask_set(&mask,
+						SND_PCM_ACCESS_RW_NONINTERLEAVED);
+	}
+	if (!snd_mask_empty(&mask))
+		*smask = mask; /* prefer the straight conversion */
 	return 0;
 #else
 	return -EINVAL;
