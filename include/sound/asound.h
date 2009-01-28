@@ -402,7 +402,7 @@ struct sndrv_pcm_sw_params {
 
 struct sndrv_pcm_channel_info {
 	unsigned int channel;
-	off_t offset;			/* mmap offset */
+	long offset;			/* mmap offset */
 	unsigned int first;		/* offset to first sample in bits */
 	unsigned int step;		/* samples distance in bits */
 };
