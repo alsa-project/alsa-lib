@@ -29,6 +29,7 @@
 #include <endian.h>
 #include <byteswap.h>
 #include <ctype.h>
+#include <string.h>
 #include "pcm_local.h"
 #include "pcm_plugin.h"
 
@@ -38,6 +39,16 @@ const char *_snd_module_pcm_file = "";
 #endif
 
 #ifndef DOC_HIDDEN
+
+/* keys to be replaced by real values in the filename */
+#define LEADING_KEY	'%'	/* i.e. %r, %c, %b ... */
+#define RATE_KEY	'r'
+#define CHANNELS_KEY	'c'
+#define BWIDTH_KEY	'b'
+#define FORMAT_KEY	'f'
+
+/* maximum length of a value */
+#define VALUE_MAXLEN	64
 
 typedef enum _snd_pcm_file_format {
 	SND_PCM_FILE_FORMAT_RAW,
@@ -57,6 +68,9 @@ struct wav_fmt {
 typedef struct {
 	snd_pcm_generic_t gen;
 	char *fname;
+	char *final_fname;
+	int trunc;
+	int perm;
 	int fd;
 	char *ifname;
 	int ifd;
@@ -83,6 +97,175 @@ typedef struct {
 #define TO_LE32(x)	bswap_32(x)
 #define TO_LE16(x)	bswap_16(x)
 #endif
+
+static int snd_pcm_file_append_value(char **string_p, char **index_ch_p,
+		int *len_p, const char *value)
+{
+	char *string, *index_ch;
+	int index, len, value_len;
+	/* input pointer values */
+	len = *(len_p);
+	string = *(string_p);
+	index_ch = *(index_ch_p);
+
+	value_len = strlen(value);
+	/* reallocation to accommodate the value */
+	index = index_ch - string;
+	len += value_len;
+	string = realloc(string, len + 1);
+	if (!string)
+		return -ENOMEM;
+	index_ch = string + index;
+	/* concatenating the new value */
+	strcpy(index_ch, value);
+	index_ch += value_len;
+	/* return values */
+	*(len_p) = len;
+	*(string_p) = string;
+	*(index_ch_p) = index_ch;
+	return 0;
+}
+
+static int snd_pcm_file_replace_fname(snd_pcm_file_t *file, char **new_fname_p)
+{
+	char value[VALUE_MAXLEN];
+	char *fname = file->fname;
+	char *new_fname = NULL;
+	char *old_last_ch, *old_index_ch, *new_index_ch;
+	int old_len, new_len, err;
+
+	snd_pcm_t *pcm = file->gen.slave;
+
+	/* we want to keep fname, const */
+	old_len = new_len = strlen(fname);
+	old_last_ch = fname + old_len - 1;
+	new_fname = malloc(new_len + 1);
+	if (!new_fname)
+		return -ENOMEM;
+
+	old_index_ch = fname;	/* first character of the old name */
+	new_index_ch = new_fname;	/* first char of the new name */
+
+	while (old_index_ch <= old_last_ch) {
+		if (*(old_index_ch) == LEADING_KEY &&
+				old_index_ch != old_last_ch) {
+			/* is %, not last char, skipping and checking
+			 next char */
+			switch (*(++old_index_ch)) {
+			case RATE_KEY:
+				snprintf(value, sizeof(value), "%d",
+						pcm->rate);
+				err = snd_pcm_file_append_value(&new_fname,
+					&new_index_ch, &new_len, value);
+				if (err < 0)
+					return err;
+				break;
+
+			case CHANNELS_KEY:
+				snprintf(value, sizeof(value), "%d",
+						pcm->channels);
+				err = snd_pcm_file_append_value(&new_fname,
+					&new_index_ch, &new_len, value);
+				if (err < 0)
+					return err;
+				break;
+
+			case BWIDTH_KEY:
+				snprintf(value, sizeof(value), "%d",
+					pcm->frame_bits/(8 * pcm->channels));
+				err = snd_pcm_file_append_value(&new_fname,
+						&new_index_ch, &new_len, value);
+				if (err < 0)
+					return err;
+				break;
+
+			case FORMAT_KEY:
+				err = snd_pcm_file_append_value(&new_fname,
+					&new_index_ch, &new_len,
+					snd_pcm_format_name(pcm->format));
+				if (err < 0)
+					return err;
+				break;
+
+			default:
+				/* non-key char, just copying */
+				*(new_index_ch++) = *(old_index_ch);
+			}
+			/* next old char */
+			old_index_ch++;
+		} else {
+			/* plain copying, shifting both strings to next chars */
+			*(new_index_ch++) = *(old_index_ch++);
+		}
+	}
+	/* closing the new string */
+	*(new_index_ch) = '\0';
+	*(new_fname_p) = new_fname;
+	return 0;
+
+}
+
+static int snd_pcm_file_open_output_file(snd_pcm_file_t *file)
+{
+	int err, fd;
+
+	/* fname can contain keys, generating final_fname */
+	err = snd_pcm_file_replace_fname(file, &(file->final_fname));
+	if (err < 0)
+		return err;
+	/*printf("DEBUG - original fname: %s, final fname: %s\n",
+	  file->fname, file->final_fname);*/
+
+	if (file->final_fname[0] == '|') {
+		/* pipe mode */
+		FILE *pipe;
+		/* clearing */
+		pipe = popen(file->final_fname + 1, "w");
+		if (!pipe) {
+			SYSERR("running %s for writing failed",
+					file->final_fname);
+			return -errno;
+		}
+		fd = fileno(pipe);
+	} else {
+		if (file->trunc)
+			fd = open(file->final_fname, O_WRONLY|O_CREAT|O_TRUNC,
+					file->perm);
+		else {
+			fd = open(file->final_fname, O_WRONLY|O_CREAT|O_EXCL,
+					file->perm);
+			if (fd < 0) {
+				char *tmpfname = NULL;
+				int idx, len;
+				len = strlen(file->final_fname) + 6;
+				tmpfname = malloc(len);
+				if (!tmpfname)
+					return -ENOMEM;
+				for (idx = 1; idx < 10000; idx++) {
+					snprintf(tmpfname, len,
+						"%s.%04d", file->final_fname,
+						idx);
+					fd = open(tmpfname,
+							O_WRONLY|O_CREAT|O_EXCL,
+							file->perm);
+					if (fd >= 0) {
+						free(file->final_fname);
+						file->final_fname = tmpfname;
+						break;
+					}
+				}
+				if (fd < 0) {
+					SYSERR("open %s for writing failed",
+							file->final_fname);
+					free(tmpfname);
+					return -errno;
+				}
+			}
+		}
+	}
+	file->fd = fd;
+	return 0;
+}
 
 static void setup_wav_header(snd_pcm_t *pcm, struct wav_fmt *fmt)
 {
@@ -151,6 +334,8 @@ static void fixup_wav_header(snd_pcm_t *pcm)
 	}
 }
 #endif /* DOC_HIDDEN */
+
+
 
 static void snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 {
@@ -442,6 +627,13 @@ static int snd_pcm_file_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		a->first = slave->sample_bits * channel;
 		a->step = slave->frame_bits;
 	}
+	if (file->fd < 0) {
+		err = snd_pcm_file_open_output_file(file);
+		if (err < 0) {
+			SYSERR("failed opening output file %s", file->fname);
+			return err;
+		}
+	}
 	return 0;
 }
 
@@ -452,6 +644,10 @@ static void snd_pcm_file_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_output_printf(out, "File PCM (file=%s)\n", file->fname);
 	else
 		snd_output_printf(out, "File PCM (fd=%d)\n", file->fd);
+	if (file->final_fname)
+		snd_output_printf(out, "Final file PCM (file=%s)\n",
+				file->final_fname);
+
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
@@ -533,7 +729,6 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_file_t *file;
 	snd_pcm_file_format_t format;
 	struct timespec timespec;
-	char *tmpname = NULL;
 	int err;
 
 	assert(pcmp);
@@ -546,58 +741,27 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 		SNDERR("file format %s is unknown", fmt);
 		return -EINVAL;
 	}
-	if (fname) {
-		if (trunc)
-			fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC, perm);
-		else {
-			fd = open(fname, O_WRONLY|O_CREAT|O_EXCL, perm);
-			if (fd < 0) {
-				int idx, len;
-				len = strlen(fname) + 6;
-				tmpname = malloc(len);
-				if (!tmpname)
-					return -ENOMEM;
-				for (idx = 1; idx < 10000; idx++) {
-					snprintf(tmpname, len,
-						 "%s.%04d", fname, idx);
-					fd = open(tmpname, O_WRONLY|O_CREAT|O_EXCL, perm);
-					if (fd >= 0) {
-						fname = tmpname;
-						break;
-					}
-				}
-			}
-		}
-		if (fd < 0) {
-			SYSERR("open %s for writing failed", fname);
-			free(tmpname);
-			return -errno;
-		}
-	}
 	file = calloc(1, sizeof(snd_pcm_file_t));
 	if (!file) {
-		if (fname)
-			close(fd);
-		free(tmpname);
 		return -ENOMEM;
 	}
+
+	/* opening output fname is delayed until writing,
+	 when PCM params are known */
+	if (fname)
+		file->fname = strdup(fname);
+	file->trunc = trunc;
+	file->perm = perm;
 
 	if (ifname) {
 		ifd = open(ifname, O_RDONLY);	/* TODO: mind blocking mode */
 		if (ifd < 0) {
 			SYSERR("open %s for reading failed", ifname);
-			if (fname)
-				close(fd);
 			free(file);
-			free(tmpname);
 			return -errno;
 		}
-	}
-
-	if (fname)
-		file->fname = strdup(fname);
-	if (ifname)
 		file->ifname = strdup(ifname);
+	}
 	file->fd = fd;
 	file->ifd = ifd;
 	file->format = format;
@@ -608,7 +772,6 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	if (err < 0) {
 		free(file->fname);
 		free(file);
-		free(tmpname);
 		return err;
 	}
 	pcm->ops = &snd_pcm_file_ops;
@@ -625,8 +788,6 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	snd_pcm_link_hw_ptr(pcm, slave);
 	snd_pcm_link_appl_ptr(pcm, slave);
 	*pcmp = pcm;
-
-	free(tmpname);
 	return 0;
 }
 
@@ -634,8 +795,9 @@ int snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 
 \section pcm_plugins_file Plugin: File
 
-This plugin stores contents of a PCM stream to file, and optionally
-uses an existing file as an input data source (i.e., "virtual mic")
+This plugin stores contents of a PCM stream to file or pipes the stream
+to a command, and optionally uses an existing file as an input data source
+(i.e., "virtual mic")
 
 \code
 pcm.name {
@@ -647,7 +809,17 @@ pcm.name {
                 # or
                 pcm { }         # Slave PCM definition
         }
-	file STR		# Output filename
+	file STR		# Output filename (or shell command the stream
+				# will be piped to if STR starts with the pipe
+				# char).
+				# STR can contain format keys, replaced by
+				# real values corresponding to the stream:
+				# %r	rate (replaced with: 48000)
+				# %c	channels (replaced with: 2)
+				# %b	bytes per sample (replaced with: 2)
+				# %f	sample format string
+				#			(replaced with: S16_LE)
+				# %%	replaced with %
 	or
 	file INT		# Output file descriptor number
 	infile STR		# Input filename - only raw format
@@ -773,7 +945,7 @@ int _snd_pcm_file_open(snd_pcm_t **pcmp, const char *name,
 	err = snd_pcm_slave_conf(root, slave, &sconf, 0);
 	if (err < 0)
 		return err;
-	if (!fname && fd < 0 && !ifname) {
+	if ((!fname || strlen(fname) == 0) && fd < 0 && !ifname) {
 		snd_config_delete(sconf);
 		SNDERR("file is not defined");
 		return -EINVAL;
