@@ -1430,7 +1430,7 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
  * \param pcm PCM handle
  * \param pfds array of poll descriptors
  * \param nfds count of poll descriptors
- * \param revents returned events
+ * \param revents pointer to the returned (single) event
  * \return zero if success, otherwise a negative error code
  *
  * This function does "demangling" of the revents mask returned from
@@ -1440,6 +1440,9 @@ int snd_pcm_poll_descriptors(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int s
  * syscall returned that some events are waiting, this function might
  * return empty set of events. In this case, application should
  * do next event waiting using poll() or select().
+ *
+ * Note: Even if multiple poll descriptors are used (i.e. pfds > 1),
+ * this function returns only a single event.
  */
 int snd_pcm_poll_descriptors_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned int nfds, unsigned short *revents)
 {
@@ -2338,8 +2341,8 @@ int snd_pcm_wait(snd_pcm_t *pcm, int timeout)
 int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 {
 	struct pollfd *pfd;
-	unsigned short *revents;
-	int i, npfds, pollio, err, err_poll;
+	unsigned short revents = 0;
+	int npfds, err, err_poll;
 	
 	npfds = snd_pcm_poll_descriptors_count(pcm);
 	if (npfds <= 0 || npfds >= 16) {
@@ -2347,7 +2350,6 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 		return -EIO;
 	}
 	pfd = alloca(sizeof(*pfd) * npfds);
-	revents = alloca(sizeof(*revents) * npfds);
 	err = snd_pcm_poll_descriptors(pcm, pfd, npfds);
 	if (err < 0)
 		return err;
@@ -2356,7 +2358,6 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
 		return -EIO;
 	}
 	do {
-		pollio = 0;
 		err_poll = poll(pfd, npfds, timeout);
 		if (err_poll < 0) {
 		        if (errno == EINTR)
@@ -2365,28 +2366,23 @@ int snd_pcm_wait_nocheck(snd_pcm_t *pcm, int timeout)
                 }
 		if (! err_poll)
 			break;
-		err = snd_pcm_poll_descriptors_revents(pcm, pfd, npfds, revents);
+		err = snd_pcm_poll_descriptors_revents(pcm, pfd, npfds, &revents);
 		if (err < 0)
 			return err;
-		for (i = 0; i < npfds; i++) {
-			if (revents[i] & (POLLERR | POLLNVAL)) {
-				/* check more precisely */
-				switch (snd_pcm_state(pcm)) {
-				case SND_PCM_STATE_XRUN:
-					return -EPIPE;
-				case SND_PCM_STATE_SUSPENDED:
-					return -ESTRPIPE;
-				case SND_PCM_STATE_DISCONNECTED:
-					return -ENODEV;
-				default:
-					return -EIO;
-				}
+		if (revents & (POLLERR | POLLNVAL)) {
+			/* check more precisely */
+			switch (snd_pcm_state(pcm)) {
+			case SND_PCM_STATE_XRUN:
+				return -EPIPE;
+			case SND_PCM_STATE_SUSPENDED:
+				return -ESTRPIPE;
+			case SND_PCM_STATE_DISCONNECTED:
+				return -ENODEV;
+			default:
+				return -EIO;
 			}
-			if ((revents[i] & (POLLIN | POLLOUT)) == 0)
-				continue;
-			pollio++;
 		}
-	} while (! pollio);
+	} while (!(revents & (POLLIN | POLLOUT)));
 #if 0 /* very useful code to test poll related problems */
 	{
 		snd_pcm_sframes_t avail_update;
