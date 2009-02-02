@@ -612,6 +612,8 @@ static int snd_pcm_plug_change_mmap(snd_pcm_t *pcm, snd_pcm_t **new,
 	case SND_PCM_ACCESS_RW_NONINTERLEAVED:
 		slv->access = SND_PCM_ACCESS_MMAP_NONINTERLEAVED;
 		break;
+	default:
+		break;
 	}
 	return 1;
 }
