@@ -7257,7 +7257,7 @@ int snd_pcm_recover(snd_pcm_t *pcm, int err, int silent)
  * \param channels required PCM channels
  * \param rate required sample rate in Hz
  * \param soft_resample 0 = disallow alsa-lib resample stream, 1 = allow resampling
- * \param latency required overall latency in us (0 = optimum latency for players)
+ * \param latency required overall latency in us
  * \return 0 on success otherwise a negative error code
  */
 int snd_pcm_set_params(snd_pcm_t *pcm,
