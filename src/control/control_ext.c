@@ -107,11 +107,23 @@ static int snd_ctl_ext_elem_list(snd_ctl_t *handle, snd_ctl_elem_list_t *list)
 		ret = ext->callback->elem_list(ext, offset, ids);
 		if (ret < 0)
 			return ret;
+		ids->numid = offset + 1; /* fake number */
 		list->used++;
 		offset++;
 		ids++;
 	}
 	return 0;
+}
+
+static snd_ctl_ext_key_t get_elem(snd_ctl_ext_t *ext, snd_ctl_elem_id_t *id)
+{
+	int numid = id->numid;
+	if (numid > 0) {
+		ext->callback->elem_list(ext, numid - 1, id);
+		id->numid = numid;
+	} else
+		id->numid = 0;
+	return ext->callback->find_elem(ext, id);
 }
 
 static int snd_ctl_ext_elem_info(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
@@ -120,7 +132,7 @@ static int snd_ctl_ext_elem_info(snd_ctl_t *handle, snd_ctl_elem_info_t *info)
 	snd_ctl_ext_key_t key;
 	int type, ret;
 
-	key = ext->callback->find_elem(ext, &info->id);
+	key = get_elem(ext, &info->id);
 	if (key == SND_CTL_EXT_KEY_NOT_FOUND)
 		return -ENOENT;
 	ret = ext->callback->get_attribute(ext, key, &type, &info->access, &info->count);
@@ -200,7 +212,7 @@ static int snd_ctl_ext_elem_read(snd_ctl_t *handle, snd_ctl_elem_value_t *contro
 	int type, ret;
 	unsigned int access, count;
 
-	key = ext->callback->find_elem(ext, &control->id);
+	key = get_elem(ext, &control->id);
 	if (key == SND_CTL_EXT_KEY_NOT_FOUND)
 		return -ENOENT;
 	ret = ext->callback->get_attribute(ext, key, &type, &access, &count);
@@ -254,7 +266,7 @@ static int snd_ctl_ext_elem_write(snd_ctl_t *handle, snd_ctl_elem_value_t *contr
 	int type, ret;
 	unsigned int access, count;
 
-	key = ext->callback->find_elem(ext, &control->id);
+	key = get_elem(ext, &control->id);
 	if (key == SND_CTL_EXT_KEY_NOT_FOUND)
 		return -ENOENT;
 	ret = ext->callback->get_attribute(ext, key, &type, &access, &count);
