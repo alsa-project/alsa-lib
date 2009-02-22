@@ -317,7 +317,7 @@ int snd_seq_set_client_pool_input(snd_seq_t *seq, size_t size)
  * \param seq sequencer handle
  * \return 0 on success or negative error code
  *
- * So far, this works ideically like #snd_seq_drop_output().
+ * So far, this works identically like #snd_seq_drop_output().
  */
 int snd_seq_reset_pool_output(snd_seq_t *seq)
 {
@@ -329,7 +329,7 @@ int snd_seq_reset_pool_output(snd_seq_t *seq)
  * \param seq sequencer handle
  * \return 0 on success or negative error code
  *
- * So far, this works ideically like #snd_seq_drop_input().
+ * So far, this works identically like #snd_seq_drop_input().
  */
 int snd_seq_reset_pool_input(snd_seq_t *seq)
 {
