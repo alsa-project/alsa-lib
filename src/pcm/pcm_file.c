@@ -172,7 +172,7 @@ static int snd_pcm_file_replace_fname(snd_pcm_file_t *file, char **new_fname_p)
 
 			case BWIDTH_KEY:
 				snprintf(value, sizeof(value), "%d",
-					pcm->frame_bits/(8 * pcm->channels));
+					pcm->frame_bits/pcm->channels);
 				err = snd_pcm_file_append_value(&new_fname,
 						&new_index_ch, &new_len, value);
 				if (err < 0)
@@ -816,7 +816,7 @@ pcm.name {
 				# real values corresponding to the stream:
 				# %r	rate (replaced with: 48000)
 				# %c	channels (replaced with: 2)
-				# %b	bytes per sample (replaced with: 2)
+				# %b	bits per sample (replaced with: 16)
 				# %f	sample format string
 				#			(replaced with: S16_LE)
 				# %%	replaced with %
