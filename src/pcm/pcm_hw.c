@@ -1039,6 +1039,8 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
+		snd_output_printf(out, "  appl_ptr     : %li\n", hw->mmap_control->appl_ptr);
+		snd_output_printf(out, "  hw_ptr       : %li\n", hw->mmap_status->hw_ptr);
 	}
 }
 
