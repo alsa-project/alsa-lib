@@ -326,6 +326,8 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 		SYSMSG("SNDRV_PCM_IOCTL_HW_PARAMS failed");
 		return err;
 	}
+	params->info &= ~0xf0000000;
+	params->info |= (pcm->monotonic ? SND_PCM_INFO_MONOTONIC : 0);
 	err = sync_ptr(hw, 0);
 	if (err < 0)
 		return err;
@@ -1037,6 +1039,8 @@ static void snd_pcm_hw_dump(snd_pcm_t *pcm, snd_output_t *out)
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
+		snd_output_printf(out, "  appl_ptr     : %li\n", hw->mmap_control->appl_ptr);
+		snd_output_printf(out, "  hw_ptr       : %li\n", hw->mmap_status->hw_ptr);
 	}
 }
 
