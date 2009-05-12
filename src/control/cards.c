@@ -120,6 +120,7 @@ int snd_card_next(int *rcard)
  *
  * The accepted format is an integer value in ASCII representation
  * or the card identifier (the id parameter for sound-card drivers).
+ * The control device name like /dev/snd/controlC0 is accepted, too.
  */
 int snd_card_get_index(const char *string)
 {
