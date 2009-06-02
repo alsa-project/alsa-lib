@@ -69,12 +69,17 @@ struct _snd_pcm_rate {
 	int16_t *dst_buf;
 	int start_pending; /* start is triggered but not commited to slave */
 	snd_htimestamp_t trigger_tstamp;
+	unsigned int plugin_version;
+	unsigned int rate_min, rate_max;
 };
+
+#define SND_PCM_RATE_PLUGIN_VERSION_OLD	0x010001	/* old rate plugin */
 
 #endif /* DOC_HIDDEN */
 
 static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_pcm_hw_params_t *params)
 {
+	snd_pcm_rate_t *rate = pcm->private_data;
 	int err;
 	snd_pcm_access_mask_t access_mask = { SND_PCM_ACCBIT_SHM };
 	snd_pcm_format_mask_t format_mask = { SND_PCM_FMTBIT_LINEAR };
@@ -89,14 +94,18 @@ static int snd_pcm_rate_hw_refine_cprepare(snd_pcm_t *pcm ATTRIBUTE_UNUSED, snd_
 	err = _snd_pcm_hw_params_set_subformat(params, SND_PCM_SUBFORMAT_STD);
 	if (err < 0)
 		return err;
-	err = _snd_pcm_hw_param_set_min(params,
-					SND_PCM_HW_PARAM_RATE, SND_PCM_PLUGIN_RATE_MIN, 0);
-	if (err < 0)
-		return err;
-	err = _snd_pcm_hw_param_set_max(params,
-					SND_PCM_HW_PARAM_RATE, SND_PCM_PLUGIN_RATE_MAX, 0);
-	if (err < 0)
-		return err;
+	if (rate->rate_min) {
+		err = _snd_pcm_hw_param_set_min(params, SND_PCM_HW_PARAM_RATE,
+						rate->rate_min, 0);
+		if (err < 0)
+			return err;
+	}
+	if (rate->rate_max) {
+		err = _snd_pcm_hw_param_set_max(params, SND_PCM_HW_PARAM_RATE,
+						rate->rate_max, 0);
+		if (err < 0)
+			return err;
+	}
 	params->info &= ~(SND_PCM_INFO_MMAP | SND_PCM_INFO_MMAP_VALID);
 	return 0;
 }
@@ -1178,6 +1187,9 @@ static void snd_pcm_rate_dump(snd_pcm_t *pcm, snd_output_t *out)
 		snd_output_printf(out, "Rate conversion PCM (%d, sformat=%s)\n", 
 			rate->srate,
 			snd_pcm_format_name(rate->sformat));
+	if (rate->ops.dump)
+		rate->ops.dump(rate->obj, out);
+	snd_output_printf(out, "Protocol version: %x\n", rate->plugin_version);
 	if (pcm->setup) {
 		snd_output_printf(out, "Its setup is:\n");
 		snd_pcm_dump_setup(pcm, out);
@@ -1264,6 +1276,7 @@ static int rate_open_func(snd_pcm_rate_t *rate, const char *type)
 {
 	char open_name[64];
 	snd_pcm_rate_open_func_t open_func;
+	int err;
 
 	snprintf(open_name, sizeof(open_name), "_snd_pcm_rate_%s_open", type);
 	open_func = snd_dlobj_cache_lookup(open_name);
@@ -1285,7 +1298,25 @@ static int rate_open_func(snd_pcm_rate_t *rate, const char *type)
 		}
 		snd_dlobj_cache_add(open_name, h, open_func);
 	}
-	return open_func(SND_PCM_RATE_PLUGIN_VERSION, &rate->obj, &rate->ops);
+
+	rate->rate_min = SND_PCM_PLUGIN_RATE_MIN;
+	rate->rate_max = SND_PCM_PLUGIN_RATE_MAX;
+	rate->plugin_version = SND_PCM_RATE_PLUGIN_VERSION;
+
+	err = open_func(SND_PCM_RATE_PLUGIN_VERSION, &rate->obj, &rate->ops);
+	if (!err) {
+		rate->plugin_version = rate->ops.version;
+		if (rate->ops.get_supported_rates)
+			rate->ops.get_supported_rates(rate->obj,
+						      &rate->rate_min,
+						      &rate->rate_max);
+		return 0;
+	}
+
+	/* try to open with the old protocol version */
+	rate->plugin_version = SND_PCM_RATE_PLUGIN_VERSION_OLD;
+	return open_func(SND_PCM_RATE_PLUGIN_VERSION_OLD,
+			 &rate->obj, &rate->ops);
 }
 #endif
 
