@@ -82,7 +82,7 @@ static int snd_card_load1(int card)
  */
 int snd_card_load(int card)
 {
-	return !!(snd_card_load1(card) == 0);
+	return !!(snd_card_load1(card) >= 0);
 }
 
 /**
