@@ -442,6 +442,7 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 
 
 	if (cmd == MIDI_CMD_COMMON_SYSEX) {
+		snd_midi_event_reset_decode(dev);
 		qlen = ev->data.ext.len;
 		if (count < qlen)
 			return -ENOMEM;
