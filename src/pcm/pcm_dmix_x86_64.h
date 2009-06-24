@@ -284,11 +284,11 @@ static void MIX_AREAS_24(unsigned int size,
 		 *   *sum += sample;
 		 */
 		"\tmovsbl 2(%%rsi), %%eax\n"
-		"\tmovswl (%%rsi), %%ecx\n"
+		"\tmovzwl (%%rsi), %%ecx\n"
 		"\tmovl (%%rbx), %%edx\n"
 		"\tsall $16, %%eax\n"
+		"\torl %%eax, %%ecx\n"
 		"\t" LOCK_PREFIX "btsw $0, (%%rdi)\n"
-		"\t.byte 0x67, 0x8d, 0x0c, 0x01\n"
 		"\tjc 2f\n"
 		"\t" XSUB " %%edx, %%ecx\n"
 		"2:"

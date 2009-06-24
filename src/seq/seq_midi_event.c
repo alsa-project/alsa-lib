@@ -442,6 +442,7 @@ long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count
 
 
 	if (cmd == MIDI_CMD_COMMON_SYSEX) {
+		snd_midi_event_reset_decode(dev);
 		qlen = ev->data.ext.len;
 		if (count < qlen)
 			return -ENOMEM;
@@ -566,10 +567,10 @@ static int extra_decode_xrpn(snd_midi_event_t *dev, unsigned char *buf, int coun
 	if (dev->nostat && count < 12)
 		return -ENOMEM;
 	cmd = MIDI_CMD_CONTROL|(ev->data.control.channel & 0x0f);
-	bytes[0] = ev->data.control.param & 0x007f;
-	bytes[1] = (ev->data.control.param & 0x3f80) >> 7;
-	bytes[2] = ev->data.control.value & 0x007f;
-	bytes[3] = (ev->data.control.value & 0x3f80) >> 7;
+	bytes[0] = (ev->data.control.param & 0x3f80) >> 7;
+	bytes[1] = ev->data.control.param & 0x007f;
+	bytes[2] = (ev->data.control.value & 0x3f80) >> 7;
+	bytes[3] = ev->data.control.value & 0x007f;
 	if (cmd != dev->lastcmd && !dev->nostat) {
 		if (count < 9)
 			return -ENOMEM;
