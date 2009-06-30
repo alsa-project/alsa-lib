@@ -99,7 +99,6 @@ static int snd_pcm_hooks_close(snd_pcm_t *pcm)
 		}
 	}
 	while (!list_empty(&h->dllist)) {
-		struct snd_pcm_hook_dllist *dl;
 		pos = h->dllist.next;
 		hook_remove_dlobj(list_entry(pos, struct snd_pcm_hook_dllist, list));
 	}
@@ -345,7 +344,6 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 	snd_config_iterator_t i, next;
 	int (*install_func)(snd_pcm_t *pcm, snd_config_t *args) = NULL;
 	void *h = NULL;
-	struct snd_pcm_hook_dllist *dl;
 
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid hook definition");
