@@ -43,11 +43,38 @@ struct _snd_pcm_hook {
 	struct list_head list;
 };
 
+struct snd_pcm_hook_dllist {
+	void *dlobj;
+	struct list_head list;
+};
+
 typedef struct {
 	snd_pcm_generic_t gen;
 	struct list_head hooks[SND_PCM_HOOK_TYPE_LAST + 1];
+	struct list_head dllist;
 } snd_pcm_hooks_t;
 #endif
+
+static int hook_add_dlobj(snd_pcm_t *pcm, void *dlobj)
+{
+	snd_pcm_hooks_t *h = pcm->private_data;
+	struct snd_pcm_hook_dllist *dl;
+
+	dl = malloc(sizeof(*dl));
+	if (!dl)
+		return -ENOMEM;
+
+	dl->dlobj = dlobj;
+	list_add_tail(&dl->list, &h->dllist);
+	return 0;
+}
+
+static void hook_remove_dlobj(struct snd_pcm_hook_dllist *dl)
+{
+	list_del(&dl->list);
+	snd_dlclose(dl->dlobj);
+	free(dl);
+}
 
 static int snd_pcm_hooks_close(snd_pcm_t *pcm)
 {
@@ -70,6 +97,11 @@ static int snd_pcm_hooks_close(snd_pcm_t *pcm)
 			hook = list_entry(pos, snd_pcm_hook_t, list);
 			snd_pcm_hook_remove(hook);
 		}
+	}
+	while (!list_empty(&h->dllist)) {
+		struct snd_pcm_hook_dllist *dl;
+		pos = h->dllist.next;
+		hook_remove_dlobj(list_entry(pos, struct snd_pcm_hook_dllist, list));
 	}
 	err = snd_pcm_generic_close(pcm);
 	if (err < 0)
@@ -193,6 +225,7 @@ int snd_pcm_hooks_open(snd_pcm_t **pcmp, const char *name, snd_pcm_t *slave, int
 	for (k = 0; k <= SND_PCM_HOOK_TYPE_LAST; ++k) {
 		INIT_LIST_HEAD(&h->hooks[k]);
 	}
+	INIT_LIST_HEAD(&h->dllist);
 	err = snd_pcm_new(&pcm, SND_PCM_TYPE_HOOKS, name, slave->stream, slave->mode);
 	if (err < 0) {
 		free(h);
@@ -312,6 +345,8 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
 	snd_config_iterator_t i, next;
 	int (*install_func)(snd_pcm_t *pcm, snd_config_t *args) = NULL;
 	void *h = NULL;
+	struct snd_pcm_hook_dllist *dl;
+
 	if (snd_config_get_type(conf) != SND_CONFIG_TYPE_COMPOUND) {
 		SNDERR("Invalid hook definition");
 		return -EINVAL;
@@ -402,20 +437,26 @@ static int snd_pcm_hook_add_conf(snd_pcm_t *pcm, snd_config_t *root, snd_config_
        _err:
 	if (type)
 		snd_config_delete(type);
-	if (err >= 0) {
-		if (args && snd_config_get_string(args, &str) >= 0) {
-			err = snd_config_search_definition(root, "hook_args", str, &args);
-			if (err < 0)
-				SNDERR("unknown hook_args %s", str);
-			else
-				err = install_func(pcm, args);
-			snd_config_delete(args);
-		} else
-			err = install_func(pcm, args);
-		snd_dlclose(h);
-	}
 	if (err < 0)
 		return err;
+
+	if (args && snd_config_get_string(args, &str) >= 0) {
+		err = snd_config_search_definition(root, "hook_args", str, &args);
+		if (err < 0)
+			SNDERR("unknown hook_args %s", str);
+		else
+			err = install_func(pcm, args);
+		snd_config_delete(args);
+	} else
+		err = install_func(pcm, args);
+
+	if (err >= 0)
+		err = hook_add_dlobj(pcm, h);
+
+	if (err < 0) {
+		snd_dlclose(h);
+		return err;
+	}
 	return 0;
 }
 
