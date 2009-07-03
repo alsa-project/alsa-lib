@@ -34,14 +34,10 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	static double max_phase = 2. * M_PI;
 	double phase = *_phase;
 	double step = max_phase*freq/(double)rate;
-	double res;
-	unsigned char *samples[channels], *tmp;
+	unsigned char *samples[channels];
 	int steps[channels];
-	unsigned int chn, byte;
-	union {
-		int i;
-		unsigned char c[4];
-	} ires;
+	unsigned int chn;
+
 	unsigned int maxval = (1 << (snd_pcm_format_width(format) - 1)) - 1;
 	int bps = snd_pcm_format_width(format) / 8;  /* bytes per sample */
 	
@@ -61,12 +57,18 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	}
 	/* fill the channel areas */
 	while (count-- > 0) {
+		int res, i;
 		res = sin(phase) * maxval;
-		ires.i = res;
-		tmp = ires.c;
 		for (chn = 0; chn < channels; chn++) {
-			for (byte = 0; byte < (unsigned int)bps; byte++)
-				*(samples[chn] + byte) = tmp[byte];
+			/* Generate data in native endian format */
+			for (i = 0; i < bps; i++) {
+#if (__BYTE_ORDER == __BIG_ENDIAN)
+				*(samples[chn] + bps - 1 - i) = (res >> i * 8) & 0xff;
+#else
+
+				*(samples[chn] + i) = (res >>  i * 8) & 0xff;
+#endif
+			}
 			samples[chn] += steps[chn];
 		}
 		phase += step;
