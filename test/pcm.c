@@ -40,6 +40,7 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 
 	unsigned int maxval = (1 << (snd_pcm_format_width(format) - 1)) - 1;
 	int bps = snd_pcm_format_width(format) / 8;  /* bytes per sample */
+	int phys_bps = snd_pcm_format_physical_width(format) / 8;
 	
 	/* verify and prepare the contents of areas */
 	for (chn = 0; chn < channels; chn++) {
@@ -63,7 +64,7 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 			/* Generate data in native endian format */
 			for (i = 0; i < bps; i++) {
 #if (__BYTE_ORDER == __BIG_ENDIAN)
-				*(samples[chn] + bps - 1 - i) = (res >> i * 8) & 0xff;
+				*(samples[chn] + phys_bps - 1 - i) = (res >> i * 8) & 0xff;
 #else
 
 				*(samples[chn] + i) = (res >>  i * 8) & 0xff;
