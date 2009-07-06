@@ -594,8 +594,9 @@ AC_OUTPUT(Makefile doc/Makefile doc/pictures/Makefile doc/doxygen.cfg \
 	  src/conf/cards/Makefile \
 	  src/conf/pcm/Makefile \
 	  modules/Makefile modules/mixer/Makefile modules/mixer/simple/Makefile \
-	  alsalisp/Makefile aserver/Makefile test/Makefile utils/Makefile \
-          utils/alsa-lib.spec utils/alsa.pc)
+	  alsalisp/Makefile aserver/Makefile \
+	  test/Makefile test/lsb/Makefile \
+	  utils/Makefile utils/alsa-lib.spec utils/alsa.pc)
 
 dnl Create asoundlib.h dynamically according to configure options
 echo "Creating asoundlib.h..."

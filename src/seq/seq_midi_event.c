@@ -129,12 +129,23 @@ static const struct extra_event_list_t {
 #endif /* DOC_HIDDEN */
 
 /**
- * \brief Initialize MIDI event parser
- * \param bufsize buffer size for MIDI message
- * \param rdev allocated MIDI event parser
- * \return 0 on success otherwise a negative error code
+ * \brief Creates a MIDI event parser.
+ * \param[in] bufsize Size of the buffer used for encoding; this should be
+ *                    large enough to hold the largest MIDI message to be
+ *                    encoded.
+ * \param[out] rdev The new MIDI event parser.
+ * \return Zero on success, otherwise a negative error code.
  *
- * Allocates and initializes MIDI event parser.
+ * This function creates and initializes a MIDI parser object that can be used
+ * to convert a MIDI byte stream to sequencer events (encoding) and/or to
+ * convert sequencer events to a MIDI byte stream (decoding).
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-ENOMEM<dd>Out of memory.
+ *
+ * \par Conforming to:
+ * LSB 3.2
  */
 int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 {
@@ -159,11 +170,13 @@ int snd_midi_event_new(size_t bufsize, snd_midi_event_t **rdev)
 }
 
 /**
- * \brief Free MIDI event parser
- * \param dev MIDI event parser
- * \return 0 on success otherwise a negative error code
+ * \brief Frees a MIDI event parser.
+ * \param dev MIDI event parser.
  *
- * Frees MIDI event parser.
+ * Frees a MIDI event parser.
+ *
+ * \par Conforming to:
+ * LSB 3.2
  */
 void snd_midi_event_free(snd_midi_event_t *dev)
 {
@@ -174,11 +187,15 @@ void snd_midi_event_free(snd_midi_event_t *dev)
 }
 
 /**
- * \brief Enable/disable MIDI command merging
- * \param dev MIDI event parser
- * \param on 0 - enable MIDI command merging, 1 - always pass the command
+ * \brief Enables/disables MIDI command merging.
+ * \param dev MIDI event parser.
+ * \param on 0 to enable MIDI command merging,
+ *           1 to always write the command byte.
  *
- * Enable/disable MIDI command merging
+ * This function enables or disables MIDI command merging (running status).
+ *
+ * When MIDI command merging is not disabled, #snd_midi_event_decode is allowed
+ * to omit any status byte that is identical to the previous status byte.
  */
 void snd_midi_event_no_status(snd_midi_event_t *dev, int on)
 {
@@ -196,11 +213,15 @@ inline static void reset_encode(snd_midi_event_t *dev)
 }
 
 /**
- * \brief Reset MIDI encode parser
- * \param dev MIDI event parser
- * \return 0 on success otherwise a negative error code
+ * \brief Resets MIDI encode parser.
+ * \param dev MIDI event parser.
  *
- * Resets MIDI encode parser
+ * This function resets the MIDI encoder of the parser \a dev.
+ * Any partially encoded MIDI message is dropped,
+ * and running status state is cleared.
+ *
+ * \par Conforming to:
+ * LSB 3.2
  */
 void snd_midi_event_reset_encode(snd_midi_event_t *dev)
 {
@@ -208,11 +229,15 @@ void snd_midi_event_reset_encode(snd_midi_event_t *dev)
 }
 
 /**
- * \brief Reset MIDI decode parser
- * \param dev MIDI event parser
- * \return 0 on success otherwise a negative error code
+ * \brief Resets MIDI decode parser.
+ * \param dev MIDI event parser.
  *
- * Resets MIDI decode parser
+ * This function resets the MIDI decoder of the parser \a dev.
+ * The next decoded message does not use running status from before the call to
+ * \a snd_midi_event_reset_decode.
+ *
+ * \par Conforming to:
+ * LSB 3.2
  */
 void snd_midi_event_reset_decode(snd_midi_event_t *dev)
 {
@@ -220,11 +245,14 @@ void snd_midi_event_reset_decode(snd_midi_event_t *dev)
 }
 
 /**
- * \brief Initializes MIDI parsers
- * \param dev MIDI event parser
- * \return 0 on success otherwise a negative error code
+ * \brief Resets MIDI encode/decode parsers.
+ * \param dev MIDI event parser.
  *
- * Initializes MIDI parsers (both encode and decode)
+ * This function resets both encoder and decoder of the MIDI event parser.
+ * \sa snd_midi_event_reset_encode, snd_midi_event_reset_decode
+ *
+ * \par Conforming to:
+ * LSB 3.2
  */
 void snd_midi_event_init(snd_midi_event_t *dev)
 {
@@ -233,12 +261,21 @@ void snd_midi_event_init(snd_midi_event_t *dev)
 }
 
 /**
- * \brief Resize MIDI message (event) buffer
- * \param dev MIDI event parser
- * \param bufsize new requested buffer size
- * \return 0 on success otherwise a negative error code
+ * \brief Resizes the MIDI message encoding buffer.
+ * \param dev MIDI event parser.
+ * \param bufsize The new buffer size.
+ * \return Zero on success, otherwise a negative error code.
  *
- * Resizes MIDI message (event) buffer.
+ * This function resizes the buffer that is used to hold partially encoded MIDI
+ * messages.
+ *
+ * If there is a partially encoded message in the buffer, it is dropped.
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-ENOMEM<dd>Out of memory.
+ *
+ * \sa snd_midi_event_encode, snd_midi_event_reset_encode
  */
 int snd_midi_event_resize_buffer(snd_midi_event_t *dev, size_t bufsize)
 {
@@ -258,16 +295,67 @@ int snd_midi_event_resize_buffer(snd_midi_event_t *dev, size_t bufsize)
 }
 
 /**
- * \brief Read bytes and encode to sequencer event if finished
- * \param dev MIDI event parser
- * \param buf MIDI byte stream
- * \param count count of bytes of MIDI byte stream to encode
- * \param ev Result - sequencer event
- * \return count of encoded bytes otherwise a negative error code
+ * \brief Encodes bytes to sequencer event.
+ * \param[in] dev MIDI event parser.
+ * \param[in] buf Buffer containing bytes of a raw MIDI stream.
+ * \param[in] count Number of bytes in \a buf.
+ * \param[out] ev Sequencer event.
+ * \return The number of bytes consumed, or a negative error code.
  *
- * Read bytes and encode to sequencer event if finished.
- * If complete sequencer event is available, ev->type is not
- * equal to #SND_SEQ_EVENT_NONE.
+ * This function tries to use up to \a count bytes from the beginning of the
+ * buffer to encode a sequencer event.  If a complete MIDI message has been
+ * encoded, the sequencer event is written to \a ev; otherwise, \a ev->type is
+ * set to #SND_SEQ_EVENT_NONE, and further bytes are required to complete
+ * a message.
+ *
+ * The buffer in \a dev is used to hold any bytes of a not-yet-complete MIDI
+ * message.  If a System Exclusive message is larger than the buffer, the
+ * message is split into multiple parts, and a sequencer event is returned at
+ * the end of each part.
+ *
+ * Any bytes that are not part of a valid MIDI message are silently ignored,
+ * i.e., they are consumed without signaling an error.
+ *
+ * When this function returns a system exclusive sequencer event (\a ev->type
+ * is #SND_SEQ_EVENT_SYSEX), the data pointer (\a ev->data.ext.ptr) points into
+ * the MIDI event parser's buffer.  Therefore, the sequencer event can only be
+ * used as long as that buffer remains valid, i.e., until the next call to
+ * #snd_midi_event_encode, #snd_midi_event_encode_byte,
+ * #snd_midi_event_resize_buffer, #snd_midi_event_init,
+ * #snd_midi_event_reset_encode, or #snd_midi_event_free for that MIDI event
+ * parser.
+ *
+ * This function can generate any sequencer event that corresponds to a MIDI
+ * message, i.e.:
+ * - #SND_SEQ_EVENT_NOTEOFF
+ * - #SND_SEQ_EVENT_NOTEON
+ * - #SND_SEQ_EVENT_KEYPRESS
+ * - #SND_SEQ_EVENT_CONTROLLER
+ * - #SND_SEQ_EVENT_PGMCHANGE
+ * - #SND_SEQ_EVENT_CHANPRESS
+ * - #SND_SEQ_EVENT_PITCHBEND
+ * - #SND_SEQ_EVENT_SYSEX
+ * - #SND_SEQ_EVENT_QFRAME
+ * - #SND_SEQ_EVENT_SONGPOS
+ * - #SND_SEQ_EVENT_SONGSEL
+ * - #SND_SEQ_EVENT_TUNE_REQUEST
+ * - #SND_SEQ_EVENT_CLOCK
+ * - #SND_SEQ_EVENT_START
+ * - #SND_SEQ_EVENT_CONTINUE
+ * - #SND_SEQ_EVENT_STOP
+ * - #SND_SEQ_EVENT_SENSING
+ * - #SND_SEQ_EVENT_RESET
+ * .
+ * Some implementations may also be able to generate the following events
+ * for a sequence of controller change messages:
+ * - #SND_SEQ_EVENT_CONTROL14
+ * - #SND_SEQ_EVENT_NONREGPARAM
+ * - #SND_SEQ_EVENT_REGPARAM
+ *
+ * \par Conforming to:
+ * LSB 3.2
+ *
+ * \sa snd_midi_event_new, snd_midi_event_reset_encode, snd_midi_event_encode_byte
  */
 long snd_midi_event_encode(snd_midi_event_t *dev, const unsigned char *buf, long count, snd_seq_event_t *ev)
 {
@@ -289,13 +377,23 @@ long snd_midi_event_encode(snd_midi_event_t *dev, const unsigned char *buf, long
 }
 
 /**
- * \brief Read one byte and encode to sequencer event if finished
- * \param dev MIDI event parser
- * \param c a byte of MIDI stream
- * \param ev Result - sequencer event
- * \return 1 - sequencer event is completed, 0 - next byte is required for completion, otherwise a negative error code
+ * \brief Encodes byte to sequencer event.
+ * \param[in] dev MIDI event parser.
+ * \param[in] c A byte of a raw MIDI stream.
+ * \param[out] ev Sequencer event.
+ * \return 1 if a sequenver event has been completed, 0 if more bytes are
+ *         required to complete an event, or a negative error code.
  *
- * Read byte and encode to sequencer event if finished.
+ * This function tries to use the byte \a c to encode a sequencer event.  If
+ * a complete MIDI message has been encoded, the sequencer event is written to
+ * \a ev; otherwise, further bytes are required to complete a message.
+ *
+ * See also the description of #snd_midi_event_encode.
+ *
+ * \par Conforming to:
+ * LSB 3.2
+ *
+ * \sa snd_midi_event_new, snd_midi_event_reset_encode, snd_midi_event_encode
  */
 int snd_midi_event_encode_byte(snd_midi_event_t *dev, int c, snd_seq_event_t *ev)
 {
@@ -405,14 +503,56 @@ static void songpos_event(snd_midi_event_t *dev, snd_seq_event_t *ev)
 }
 
 /**
- * \brief Decode sequencer event to MIDI byte stream
- * \param dev MIDI event parser
- * \param buf Result - MIDI byte stream
- * \param count Available bytes in MIDI byte stream
- * \param ev Event to decode
- * \return count of decoded bytes otherwise a negative error code
+ * \brief Decodes sequencer event to MIDI byte stream.
+ * \param[in] dev MIDI event parser.
+ * \param[out] buf Buffer for the resulting MIDI byte stream.
+ * \param[in] count Number of bytes in \a buf.
+ * \param[in] ev The sequencer event to decode.
+ * \return The number of bytes written to \a buf, or a negative error code.
  *
- * Decode sequencer event to MIDI byte stream.
+ * This function tries to decode the sequencer event into one or more MIDI
+ * messages, and writes the raw MIDI byte(s) into \a buf.
+ *
+ * The generated MIDI messages may use running status, unless disabled with
+ * #snd_midi_event_no_status.
+ *
+ * The required buffer size for a sequencer event it as most 12 bytes, except
+ * for System Exclusive events (\a ev->type == #SND_SEQ_EVENT_SYSEX) which can
+ * have any length (as specified by \a ev->data.ext.len).
+ *
+ * The following sequencer events correspond to MIDI messages:
+ * - #SND_SEQ_EVENT_NOTEOFF
+ * - #SND_SEQ_EVENT_NOTEON
+ * - #SND_SEQ_EVENT_KEYPRESS
+ * - #SND_SEQ_EVENT_CONTROLLER
+ * - #SND_SEQ_EVENT_PGMCHANGE
+ * - #SND_SEQ_EVENT_CHANPRESS
+ * - #SND_SEQ_EVENT_PITCHBEND
+ * - #SND_SEQ_EVENT_SYSEX
+ * - #SND_SEQ_EVENT_QFRAME
+ * - #SND_SEQ_EVENT_SONGPOS
+ * - #SND_SEQ_EVENT_SONGSEL
+ * - #SND_SEQ_EVENT_TUNE_REQUEST
+ * - #SND_SEQ_EVENT_CLOCK
+ * - #SND_SEQ_EVENT_START
+ * - #SND_SEQ_EVENT_CONTINUE
+ * - #SND_SEQ_EVENT_STOP
+ * - #SND_SEQ_EVENT_SENSING
+ * - #SND_SEQ_EVENT_RESET
+ * - #SND_SEQ_EVENT_CONTROL14
+ * - #SND_SEQ_EVENT_NONREGPARAM
+ * - #SND_SEQ_EVENT_REGPARAM
+ *
+ * \par Errors:
+ * <dl>
+ * <dt>-EINVAL<dd>\a ev is not a valid sequencer event.
+ * <dt>-ENOENT<dd>The sequencer event does not correspond to one or more MIDI messages.
+ * <dt>-ENOMEM<dd>The MIDI message(s) would not fit into \a count bytes.
+ *
+ * \par Conforming to:
+ * LSB 3.2
+ *
+ * \sa snd_midi_event_reset_decode, snd_midi_event_no_status
  */
 long snd_midi_event_decode(snd_midi_event_t *dev, unsigned char *buf, long count, const snd_seq_event_t *ev)
 {
