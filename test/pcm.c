@@ -37,11 +37,13 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	unsigned char *samples[channels];
 	int steps[channels];
 	unsigned int chn;
-
-	unsigned int maxval = (1 << (snd_pcm_format_width(format) - 1)) - 1;
-	int bps = snd_pcm_format_width(format) / 8;  /* bytes per sample */
+	int format_bits = snd_pcm_format_width(format);
+	unsigned int maxval = (1 << (format_bits - 1)) - 1;
+	int bps = format_bits / 8;  /* bytes per sample */
 	int phys_bps = snd_pcm_format_physical_width(format) / 8;
-	
+	int big_endian = snd_pcm_format_big_endian(format) == 1;
+	int to_unsigned = snd_pcm_format_unsigned(format) == 1;
+
 	/* verify and prepare the contents of areas */
 	for (chn = 0; chn < channels; chn++) {
 		if ((areas[chn].first % 8) != 0) {
@@ -60,15 +62,16 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	while (count-- > 0) {
 		int res, i;
 		res = sin(phase) * maxval;
+		if (to_unsigned)
+			res ^= 1U << (format_bits - 1);
 		for (chn = 0; chn < channels; chn++) {
 			/* Generate data in native endian format */
-			for (i = 0; i < bps; i++) {
-#if (__BYTE_ORDER == __BIG_ENDIAN)
-				*(samples[chn] + phys_bps - 1 - i) = (res >> i * 8) & 0xff;
-#else
-
-				*(samples[chn] + i) = (res >>  i * 8) & 0xff;
-#endif
+			if (big_endian) {
+				for (i = 0; i < bps; i++)
+					*(samples[chn] + phys_bps - 1 - i) = (res >> i * 8) & 0xff;
+			} else {
+				for (i = 0; i < bps; i++)
+					*(samples[chn] + i) = (res >>  i * 8) & 0xff;
 			}
 			samples[chn] += steps[chn];
 		}
@@ -830,6 +833,11 @@ int main(int argc, char *argv[])
 			}
 			if (format == SND_PCM_FORMAT_LAST)
 				format = SND_PCM_FORMAT_S16;
+			if (!snd_pcm_format_linear(format)) {
+				printf("Invalid (non-linear) format %s\n",
+				       optarg);
+				return 1;
+			}
 			break;
 		case 'v':
 			verbose = 1;
