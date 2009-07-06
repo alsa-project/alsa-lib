@@ -43,6 +43,8 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	int phys_bps = snd_pcm_format_physical_width(format) / 8;
 	int big_endian = snd_pcm_format_big_endian(format) == 1;
 	int to_unsigned = snd_pcm_format_unsigned(format) == 1;
+	int is_float = (format == SND_PCM_FORMAT_FLOAT_LE ||
+			format == SND_PCM_FORMAT_FLOAT_BE);
 
 	/* verify and prepare the contents of areas */
 	for (chn = 0; chn < channels; chn++) {
@@ -60,8 +62,16 @@ static void generate_sine(const snd_pcm_channel_area_t *areas,
 	}
 	/* fill the channel areas */
 	while (count-- > 0) {
+		union {
+			float f;
+			int i;
+		} fval;
 		int res, i;
-		res = sin(phase) * maxval;
+		if (is_float) {
+			fval.f = sin(phase) * maxval;
+			res = fval.i;
+		} else
+			res = sin(phase) * maxval;
 		if (to_unsigned)
 			res ^= 1U << (format_bits - 1);
 		for (chn = 0; chn < channels; chn++) {
@@ -833,8 +843,10 @@ int main(int argc, char *argv[])
 			}
 			if (format == SND_PCM_FORMAT_LAST)
 				format = SND_PCM_FORMAT_S16;
-			if (!snd_pcm_format_linear(format)) {
-				printf("Invalid (non-linear) format %s\n",
+			if (!snd_pcm_format_linear(format) &&
+			    !(format == SND_PCM_FORMAT_FLOAT_LE ||
+			      format == SND_PCM_FORMAT_FLOAT_BE)) {
+				printf("Invalid (non-linear/float) format %s\n",
 				       optarg);
 				return 1;
 			}
