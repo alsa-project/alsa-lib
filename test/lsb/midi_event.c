@@ -38,7 +38,8 @@ static void test_decode(void)
 	unsigned char buf[50];
 	int count;
 
-	ALSA_CHECK(snd_midi_event_new(256 /* ? */, &midi_event));
+	if (ALSA_CHECK(snd_midi_event_new(256 /* ? */, &midi_event)) < 0)
+		return;
 
 #define DECODE() snd_midi_event_decode(midi_event, buf, sizeof(buf), &ev)
 #define BUF_MATCHES(str) midi_matches_regex(buf, count, str)
@@ -154,7 +155,8 @@ static void test_reset_decode(void)
 	unsigned char buf[50];
 	int count;
 
-	ALSA_CHECK(snd_midi_event_new(256 /* ? */, &midi_event));
+	if (ALSA_CHECK(snd_midi_event_new(256 /* ? */, &midi_event)) < 0)
+		return;
 
 	snd_seq_ev_clear(&ev);
 
@@ -173,7 +175,8 @@ static void test_encode(void)
 	snd_midi_event_t *midi_event;
 	snd_seq_event_t ev;
 
-	ALSA_CHECK(snd_midi_event_new(256, &midi_event));
+	if (ALSA_CHECK(snd_midi_event_new(256, &midi_event)) < 0)
+		return;
 
 #define ENCODE(str) snd_midi_event_encode(midi_event, \
 					  (const unsigned char *)str, \
@@ -283,7 +286,8 @@ static void test_reset_encode(void)
 	snd_midi_event_t *midi_event;
 	snd_seq_event_t ev;
 
-	ALSA_CHECK(snd_midi_event_new(256, &midi_event));
+	if (ALSA_CHECK(snd_midi_event_new(256, &midi_event)) < 0)
+		return;
 
 	TEST_CHECK(ENCODE("\x91\x02") == 2);
 	TEST_CHECK(ev.type == SND_SEQ_EVENT_NONE);
@@ -303,7 +307,8 @@ static void test_init(void)
 	unsigned char buf[50];
 	int count;
 
-	ALSA_CHECK(snd_midi_event_new(256, &midi_event));
+	if (ALSA_CHECK(snd_midi_event_new(256, &midi_event)) < 0)
+		return;
 
 	snd_seq_ev_set_noteon(&ev, 1, 2, 3);
 	TEST_CHECK(DECODES_TO("910203"));
@@ -327,7 +332,8 @@ static void test_encode_byte(void)
 	snd_midi_event_t *midi_event;
 	snd_seq_event_t ev;
 
-	ALSA_CHECK(snd_midi_event_new(256, &midi_event));
+	if (ALSA_CHECK(snd_midi_event_new(256, &midi_event)) < 0)
+		return;
 
 #define ENCODE_BYTE(c) snd_midi_event_encode_byte(midi_event, c, &ev)
 	TEST_CHECK(ENCODE_BYTE(0x81) == 0);
