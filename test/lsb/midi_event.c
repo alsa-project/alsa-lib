@@ -145,6 +145,9 @@ static void test_decode(void)
 	TEST_CHECK(DECODES_TO("f111"));
 	TEST_CHECK(DECODES_TO("f111"));
 
+	/* buffer overflow */
+	TEST_CHECK(snd_midi_event_decode(midi_event, buf, 1, &ev) == -ENOMEM);
+
 	snd_midi_event_free(midi_event);
 }
 
