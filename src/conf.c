@@ -1522,10 +1522,16 @@ int snd_config_get_id(const snd_config_t *config, const char **id)
 int snd_config_set_id(snd_config_t *config, const char *id)
 {
 	char *new_id;
-	assert(config && id);
-	new_id = strdup(id);
-	if (!new_id)
-		return -ENOMEM;
+	assert(config);
+	if (id) {
+		new_id = strdup(id);
+		if (!new_id)
+			return -ENOMEM;
+	} else {
+		if (config->father)
+			return -EINVAL;
+		new_id = NULL;
+	}
 	free(config->id);
 	config->id = new_id;
 	return 0;
@@ -1638,6 +1644,8 @@ int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 {
 	snd_config_iterator_t i, next;
 	assert(father && leaf);
+	if (!leaf->id)
+		return -EINVAL;
 	snd_config_for_each(i, next, father) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (strcmp(leaf->id, n->id) == 0)
@@ -2286,7 +2294,10 @@ int snd_config_get_ascii(const snd_config_t *config, char **ascii)
 int snd_config_test_id(const snd_config_t *config, const char *id)
 {
 	assert(config && id);
-	return strcmp(config->id, id);
+	if (config->id)
+		return strcmp(config->id, id);
+	else
+		return -1;
 }
 
 /**
@@ -3350,7 +3361,7 @@ static int _snd_config_expand(snd_config_t *src,
 	switch (pass) {
 	case SND_CONFIG_WALK_PASS_PRE:
 	{
-		if (strcmp(id, "@args") == 0)
+		if (id && strcmp(id, "@args") == 0)
 			return 0;
 		err = snd_config_make_compound(dst, id, src->u.compound.join);
 		if (err < 0)
