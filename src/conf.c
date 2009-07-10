@@ -1242,19 +1242,16 @@ static int parse_defs(snd_config_t *father, input_t *input, int skip, int overri
 static void string_print(char *str, int id, snd_output_t *out)
 {
 	unsigned char *p = (unsigned char *)str;
+	if (!p || !*p) {
+		snd_output_puts(out, "''");
+		return;
+	}
 	if (!id) {
 		switch (*p) {
-		case 0:
-			assert(0);
-			break;
 		case '0' ... '9':
 		case '-':
 			goto quoted;
 		}
-	}
-	if (!*p) {
-		snd_output_puts(out, "''");
-		return;
 	}
  loop:
 	switch (*p) {
@@ -2445,6 +2442,7 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 		} \
 		if (snd_config_get_string(res, &key) < 0) \
 			break; \
+		assert(key); \
 		if (!first && (strcmp(key, old_key) == 0 || maxloop <= 0)) { \
 			if (maxloop == 0) \
 				SNDERR("maximum loop count reached (circular configuration?)"); \
@@ -2670,6 +2668,7 @@ static int snd_config_hooks_call(snd_config_t *root, snd_config_t *config, snd_c
 		SNDERR("Invalid type for field func");
 		return err;
 	}
+	assert(str);
 	err = snd_config_search_definition(root, "hook_func", str, &func_conf);
 	if (err >= 0) {
 		snd_config_iterator_t i, next;
@@ -2918,6 +2917,7 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			if (snd_config_search(root, fdriver, &n) >= 0) {
 				if (snd_config_get_string(n, &driver) < 0)
 					goto __err;
+				assert(driver);
 				while (1) {
 					char *s = strchr(driver, '.');
 					if (s == NULL)
@@ -3414,7 +3414,7 @@ static int _snd_config_expand(snd_config_t *src,
 			snd_config_t *val;
 			snd_config_t *vars = private_data;
 			snd_config_get_string(src, &s);
-			if (*s == '$') {
+			if (s && *s == '$') {
 				s++;
 				if (snd_config_search(vars, s, &val) < 0)
 					return 0;
@@ -3466,6 +3466,7 @@ static int _snd_config_evaluate(snd_config_t *src,
 			SNDERR("Invalid type for @func");
 			return err;
 		}
+		assert(str);
 		err = snd_config_search_definition(root, "func", str, &func_conf);
 		if (err >= 0) {
 			snd_config_iterator_t i, next;
@@ -3878,7 +3879,7 @@ static int parse_args(snd_config_t *subs, const char *str, snd_config_t *defs)
 			goto _err;
 		}
 		err = snd_config_get_string(typ, &tmp);
-		if (err < 0)
+		if (err < 0 || !tmp)
 			goto _invalid_type;
 		if (strcmp(tmp, "integer") == 0) {
 			long v;
