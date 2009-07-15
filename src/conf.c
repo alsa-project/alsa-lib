@@ -1649,7 +1649,7 @@ int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 {
 	snd_config_iterator_t i, next;
 	assert(father && leaf);
-	if (!leaf->id)
+	if (!leaf->id || leaf->father)
 		return -EINVAL;
 	snd_config_for_each(i, next, father) {
 		snd_config_t *n = snd_config_iterator_entry(i);
