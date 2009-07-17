@@ -3179,13 +3179,13 @@ int snd_config_update_free_global(void)
 
 /**
  * \brief Returns an iterator pointing to the first child of a compound configuration node.
- * \param node Handle to the compound configuration node.
+ * \param config Handle to the compound configuration node.
  * \return An iterator pointing to the first child.
  */
-snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node)
+snd_config_iterator_t snd_config_iterator_first(const snd_config_t *config)
 {
-	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
-	return node->u.compound.fields.next;
+	assert(config->type == SND_CONFIG_TYPE_COMPOUND);
+	return config->u.compound.fields.next;
 }
 
 /**
@@ -3203,13 +3203,13 @@ snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t itera
 
 /**
  * \brief Returns an iterator pointing past the last child of a compound configuration node.
- * \param node Handle to the compound configuration node.
- * \return An iterator pointing past the last child of \p node.
+ * \param config Handle to the compound configuration node.
+ * \return An iterator pointing past the last child of \p config.
  */
-snd_config_iterator_t snd_config_iterator_end(const snd_config_t *node)
+snd_config_iterator_t snd_config_iterator_end(const snd_config_t *config)
 {
-	assert(node->type == SND_CONFIG_TYPE_COMPOUND);
-	return (const snd_config_iterator_t)&node->u.compound.fields;
+	assert(config->type == SND_CONFIG_TYPE_COMPOUND);
+	return (const snd_config_iterator_t)&config->u.compound.fields;
 }
 
 /**
