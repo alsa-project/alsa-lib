@@ -1324,10 +1324,11 @@ static void string_print(char *str, int id, snd_output_t *out)
 	snd_output_putc(out, '\'');
 }
 
-static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsigned int level, unsigned int joins);
+static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
+				     unsigned int level, unsigned int joins);
 
-static int _snd_config_save_leaf(snd_config_t *n, snd_output_t *out, 
-				 unsigned int level)
+static int _snd_config_save_node_value(snd_config_t *n, snd_output_t *out,
+				       unsigned int level)
 {
 	int err;
 	unsigned int k;
@@ -1350,7 +1351,7 @@ static int _snd_config_save_leaf(snd_config_t *n, snd_output_t *out,
 	case SND_CONFIG_TYPE_COMPOUND:
 		snd_output_putc(out, '{');
 		snd_output_putc(out, '\n');
-		err = _snd_config_save_leaves(n, out, level + 1, 0);
+		err = _snd_config_save_children(n, out, level + 1, 0);
 		if (err < 0)
 			return err;
 		for (k = 0; k < level; ++k) {
@@ -1372,7 +1373,8 @@ static void id_print(snd_config_t *n, snd_output_t *out, unsigned int joins)
 	string_print(n->id, 1, out);
 }
 
-static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsigned int level, unsigned int joins)
+static int _snd_config_save_children(snd_config_t *config, snd_output_t *out,
+				     unsigned int level, unsigned int joins)
 {
 	unsigned int k;
 	int err;
@@ -1382,7 +1384,7 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (n->type == SND_CONFIG_TYPE_COMPOUND &&
 		    n->u.compound.join) {
-			err = _snd_config_save_leaves(n, out, level, joins + 1);
+			err = _snd_config_save_children(n, out, level, joins + 1);
 			if (err < 0)
 				return err;
 			continue;
@@ -1396,7 +1398,7 @@ static int _snd_config_save_leaves(snd_config_t *config, snd_output_t *out, unsi
 		snd_output_putc(out, '=');
 #endif
 		snd_output_putc(out, ' ');
-		err = _snd_config_save_leaf(n, out, level);
+		err = _snd_config_save_node_value(n, out, level);
 		if (err < 0)
 			return err;
 #if 0
@@ -1642,22 +1644,22 @@ int snd_config_load_override(snd_config_t *config, snd_input_t *in)
 /**
  * \brief Adds a child to a compound configuration node.
  * \param parent Handle to the compound configuration node.
- * \param leaf Handle to the configuration node to be added to \p parent.
+ * \param child Handle to the configuration node to be added to \p parent.
  * \return Zero if successful, otherwise a negative error code.
  */
-int snd_config_add(snd_config_t *parent, snd_config_t *leaf)
+int snd_config_add(snd_config_t *parent, snd_config_t *child)
 {
 	snd_config_iterator_t i, next;
-	assert(parent && leaf);
-	if (!leaf->id || leaf->parent)
+	assert(parent && child);
+	if (!child->id || child->parent)
 		return -EINVAL;
 	snd_config_for_each(i, next, parent) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-		if (strcmp(leaf->id, n->id) == 0)
+		if (strcmp(child->id, n->id) == 0)
 			return -EEXIST;
 	}
-	leaf->parent = parent;
-	list_add_tail(&leaf->list, &parent->u.compound.fields);
+	child->parent = parent;
+	list_add_tail(&child->list, &parent->u.compound.fields);
 	return 0;
 }
 
@@ -1697,8 +1699,8 @@ int snd_config_delete(snd_config_t *config)
 		i = config->u.compound.fields.next;
 		while (i != &config->u.compound.fields) {
 			struct list_head *nexti = i->next;
-			snd_config_t *leaf = snd_config_iterator_entry(i);
-			err = snd_config_delete(leaf);
+			snd_config_t *child = snd_config_iterator_entry(i);
+			err = snd_config_delete(child);
 			if (err < 0)
 				return err;
 			i = nexti;
@@ -1736,8 +1738,8 @@ int snd_config_delete_compound_members(const snd_config_t *config)
 	i = config->u.compound.fields.next;
 	while (i != &config->u.compound.fields) {
 		struct list_head *nexti = i->next;
-		snd_config_t *leaf = snd_config_iterator_entry(i);
-		err = snd_config_delete(leaf);
+		snd_config_t *child = snd_config_iterator_entry(i);
+		err = snd_config_delete(child);
 		if (err < 0)
 			return err;
 		i = nexti;
@@ -2315,9 +2317,9 @@ int snd_config_save(snd_config_t *config, snd_output_t *out)
 {
 	assert(config && out);
 	if (config->type == SND_CONFIG_TYPE_COMPOUND)
-		return _snd_config_save_leaves(config, out, 0, 0);
+		return _snd_config_save_children(config, out, 0, 0);
 	else
-		return _snd_config_save_leaf(config, out, 0);
+		return _snd_config_save_node_value(config, out, 0);
 }
 
 /*
