@@ -440,7 +440,7 @@ struct _snd_config {
 		} compound;
 	} u;
 	struct list_head list;
-	snd_config_t *father;
+	snd_config_t *parent;
 	int hop;
 };
 
@@ -879,16 +879,16 @@ static int _snd_config_make(snd_config_t **config, char **id, snd_config_type_t 
 	
 
 static int _snd_config_make_add(snd_config_t **config, char **id,
-				snd_config_type_t type, snd_config_t *father)
+				snd_config_type_t type, snd_config_t *parent)
 {
 	snd_config_t *n;
 	int err;
-	assert(father->type == SND_CONFIG_TYPE_COMPOUND);
+	assert(parent->type == SND_CONFIG_TYPE_COMPOUND);
 	err = _snd_config_make(&n, id, type);
 	if (err < 0)
 		return err;
-	n->father = father;
-	list_add_tail(&n->list, &father->u.compound.fields);
+	n->parent = parent;
+	list_add_tail(&n->list, &parent->u.compound.fields);
 	*config = n;
 	return 0;
 }
@@ -912,7 +912,7 @@ static int _snd_config_search(snd_config_t *config,
 	return -ENOENT;
 }
 
-static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, char **id, int skip)
+static int parse_value(snd_config_t **_n, snd_config_t *parent, input_t *input, char **id, int skip)
 {
 	snd_config_t *n = *_n;
 	char *s;
@@ -940,7 +940,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 						return -EINVAL;
 					}
 				} else {
-					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_REAL, father);
+					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_REAL, parent);
 					if (err < 0)
 						return err;
 				}
@@ -957,9 +957,9 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 				}
 			} else {
 				if (i <= INT_MAX) 
-					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER, father);
+					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER, parent);
 				else
-					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER64, father);
+					err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_INTEGER64, parent);
 				if (err < 0)
 					return err;
 			}
@@ -978,7 +978,7 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 			return -EINVAL;
 		}
 	} else {
-		err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_STRING, father);
+		err = _snd_config_make_add(&n, id, SND_CONFIG_TYPE_STRING, parent);
 		if (err < 0)
 			return err;
 	}
@@ -988,10 +988,10 @@ static int parse_value(snd_config_t **_n, snd_config_t *father, input_t *input, 
 	return 0;
 }
 
-static int parse_defs(snd_config_t *father, input_t *input, int skip, int override);
+static int parse_defs(snd_config_t *parent, input_t *input, int skip, int override);
 static int parse_array_defs(snd_config_t *farther, input_t *input, int skip, int override);
 
-static int parse_array_def(snd_config_t *father, input_t *input, int idx, int skip, int override)
+static int parse_array_def(snd_config_t *parent, input_t *input, int idx, int skip, int override)
 {
 	char *id = NULL;
 	int c;
@@ -1023,7 +1023,7 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx, int sk
 					goto __end;
 				}
 			} else {
-				err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
+				err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, parent);
 				if (err < 0)
 					goto __end;
 			}
@@ -1050,7 +1050,7 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx, int sk
 	}
 	default:
 		unget_char(c, input);
-		err = parse_value(&n, father, input, &id, skip);
+		err = parse_value(&n, parent, input, &id, skip);
 		if (err < 0)
 			goto __end;
 		break;
@@ -1061,7 +1061,7 @@ static int parse_array_def(snd_config_t *father, input_t *input, int idx, int sk
       	return err;
 }
 
-static int parse_array_defs(snd_config_t *father, input_t *input, int skip, int override)
+static int parse_array_defs(snd_config_t *parent, input_t *input, int skip, int override)
 {
 	int idx = 0;
 	while (1) {
@@ -1071,14 +1071,14 @@ static int parse_array_defs(snd_config_t *father, input_t *input, int skip, int 
 		unget_char(c, input);
 		if (c == ']')
 			return 0;
-		err = parse_array_def(father, input, idx++, skip, override);
+		err = parse_array_def(parent, input, idx++, skip, override);
 		if (err < 0)
 			return err;
 	}
 	return 0;
 }
 
-static int parse_def(snd_config_t *father, input_t *input, int skip, int override)
+static int parse_def(snd_config_t *parent, input_t *input, int skip, int override)
 {
 	char *id = NULL;
 	int c;
@@ -1116,7 +1116,7 @@ static int parse_def(snd_config_t *father, input_t *input, int skip, int overrid
 			free(id);
 			continue;
 		}
-		if (_snd_config_search(father, id, -1, &n) == 0) {
+		if (_snd_config_search(parent, id, -1, &n) == 0) {
 			if (mode == DONT_OVERRIDE) {
 				skip = 1;
 				free(id);
@@ -1128,7 +1128,7 @@ static int parse_def(snd_config_t *father, input_t *input, int skip, int overrid
 					return -EINVAL;
 				}
 				n->u.compound.join = 1;
-				father = n;
+				parent = n;
 				free(id);
 				continue;
 			}
@@ -1139,11 +1139,11 @@ static int parse_def(snd_config_t *father, input_t *input, int skip, int overrid
 			err = -ENOENT;
 			goto __end;
 		}
-		err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
+		err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, parent);
 		if (err < 0)
 			goto __end;
 		n->u.compound.join = 1;
-		father = n;
+		parent = n;
 	}
 	if (c == '=') {
 		c = get_nonwhite(input);
@@ -1151,7 +1151,7 @@ static int parse_def(snd_config_t *father, input_t *input, int skip, int overrid
 			return c;
 	}
 	if (!skip) {
-		if (_snd_config_search(father, id, -1, &n) == 0) {
+		if (_snd_config_search(parent, id, -1, &n) == 0) {
 			if (mode == DONT_OVERRIDE) {
 				skip = 1;
 				n = NULL;
@@ -1181,7 +1181,7 @@ static int parse_def(snd_config_t *father, input_t *input, int skip, int overrid
 					goto __end;
 				}
 			} else {
-				err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, father);
+				err = _snd_config_make_add(&n, &id, SND_CONFIG_TYPE_COMPOUND, parent);
 				if (err < 0)
 					goto __end;
 			}
@@ -1204,7 +1204,7 @@ static int parse_def(snd_config_t *father, input_t *input, int skip, int overrid
 	}
 	default:
 		unget_char(c, input);
-		err = parse_value(&n, father, input, &id, skip);
+		err = parse_value(&n, parent, input, &id, skip);
 		if (err < 0)
 			goto __end;
 		break;
@@ -1222,7 +1222,7 @@ static int parse_def(snd_config_t *father, input_t *input, int skip, int overrid
 	return err;
 }
 		
-static int parse_defs(snd_config_t *father, input_t *input, int skip, int override)
+static int parse_defs(snd_config_t *parent, input_t *input, int skip, int override)
 {
 	int c, err;
 	while (1) {
@@ -1232,7 +1232,7 @@ static int parse_defs(snd_config_t *father, input_t *input, int skip, int overri
 		unget_char(c, input);
 		if (c == '}')
 			return 0;
-		err = parse_def(father, input, skip, override);
+		err = parse_def(parent, input, skip, override);
 		if (err < 0)
 			return err;
 	}
@@ -1365,8 +1365,8 @@ static int _snd_config_save_leaf(snd_config_t *n, snd_output_t *out,
 static void id_print(snd_config_t *n, snd_output_t *out, unsigned int joins)
 {
 	if (joins > 0) {
-		assert(n->father);
-		id_print(n->father, out, joins - 1);
+		assert(n->parent);
+		id_print(n->parent, out, joins - 1);
 		snd_output_putc(out, '.');
 	}
 	string_print(n->id, 1, out);
@@ -1432,7 +1432,7 @@ int snd_config_substitute(snd_config_t *dst, snd_config_t *src)
 		snd_config_iterator_t i, next;
 		snd_config_for_each(i, next, src) {
 			snd_config_t *n = snd_config_iterator_entry(i);
-			n->father = dst;
+			n->parent = dst;
 		}
 		src->u.compound.fields.next->prev = &dst->u.compound.fields;
 		src->u.compound.fields.prev->next = &dst->u.compound.fields;
@@ -1522,8 +1522,8 @@ int snd_config_set_id(snd_config_t *config, const char *id)
 	char *new_id;
 	assert(config);
 	if (id) {
-		if (config->father) {
-			snd_config_for_each(i, next, config->father) {
+		if (config->parent) {
+			snd_config_for_each(i, next, config->parent) {
 				snd_config_t *n = snd_config_iterator_entry(i);
 				if (n != config && strcmp(id, n->id) == 0)
 					return -EEXIST;
@@ -1533,7 +1533,7 @@ int snd_config_set_id(snd_config_t *config, const char *id)
 		if (!new_id)
 			return -ENOMEM;
 	} else {
-		if (config->father)
+		if (config->parent)
 			return -EINVAL;
 		new_id = NULL;
 	}
@@ -1641,23 +1641,23 @@ int snd_config_load_override(snd_config_t *config, snd_input_t *in)
 
 /**
  * \brief Adds a child to a compound configuration node.
- * \param father Handle to the compound configuration node.
- * \param leaf Handle to the configuration node to be added to \p father.
+ * \param parent Handle to the compound configuration node.
+ * \param leaf Handle to the configuration node to be added to \p parent.
  * \return Zero if successful, otherwise a negative error code.
  */
-int snd_config_add(snd_config_t *father, snd_config_t *leaf)
+int snd_config_add(snd_config_t *parent, snd_config_t *leaf)
 {
 	snd_config_iterator_t i, next;
-	assert(father && leaf);
-	if (!leaf->id || leaf->father)
+	assert(parent && leaf);
+	if (!leaf->id || leaf->parent)
 		return -EINVAL;
-	snd_config_for_each(i, next, father) {
+	snd_config_for_each(i, next, parent) {
 		snd_config_t *n = snd_config_iterator_entry(i);
 		if (strcmp(leaf->id, n->id) == 0)
 			return -EEXIST;
 	}
-	leaf->father = father;
-	list_add_tail(&leaf->list, &father->u.compound.fields);
+	leaf->parent = parent;
+	list_add_tail(&leaf->list, &parent->u.compound.fields);
 	return 0;
 }
 
@@ -1671,9 +1671,9 @@ int snd_config_add(snd_config_t *father, snd_config_t *leaf)
 int snd_config_remove(snd_config_t *config)
 {
 	assert(config);
-	if (config->father)
+	if (config->parent)
 		list_del(&config->list);
-	config->father = NULL;
+	config->parent = NULL;
 	return 0;
 }
 
@@ -1711,7 +1711,7 @@ int snd_config_delete(snd_config_t *config)
 	default:
 		break;
 	}
-	if (config->father)
+	if (config->parent)
 		list_del(&config->list);
 	free(config->id);
 	free(config);
@@ -3191,7 +3191,7 @@ snd_config_iterator_t snd_config_iterator_first(const snd_config_t *node)
  * \param iterator An iterator pointing to a child configuration node.
  * \return An iterator pointing to the next sibling of \p iterator.
  *         If \p iterator is the last sibling, the returned value is the same
- *         as the result of calling #snd_config_iterator_end on the father
+ *         as the result of calling #snd_config_iterator_end on the parent
  *         of the nodes.
  */
 snd_config_iterator_t snd_config_iterator_next(const snd_config_iterator_t iterator)
@@ -3228,7 +3228,7 @@ typedef enum _snd_config_walk_pass {
 } snd_config_walk_pass_t;
 #endif
 
-/* Return 1 if node needs to be attached to father */
+/* Return 1 if node needs to be attached to parent */
 /* Return 2 if compound is replaced with standard node */
 #ifndef DOC_HIDDEN
 typedef int (*snd_config_walk_callback_t)(snd_config_t *src,
