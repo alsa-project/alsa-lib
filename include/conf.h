@@ -44,11 +44,11 @@ extern "C" {
 /** \brief \c dlsym version for the config hook callback. */
 #define SND_CONFIG_DLSYM_VERSION_HOOK		_dlsym_config_hook_001
 
-/** Configuration node type. */
+/** \brief Configuration node type. */
 typedef enum _snd_config_type {
 	/** Integer number. */
         SND_CONFIG_TYPE_INTEGER,
-	/** 64 bit Integer number. */
+	/** 64-bit integer number. */
         SND_CONFIG_TYPE_INTEGER64,
 	/** Real number. */
         SND_CONFIG_TYPE_REAL,
@@ -58,7 +58,7 @@ typedef enum _snd_config_type {
         SND_CONFIG_TYPE_POINTER,
 	/** Compound node. */
 	SND_CONFIG_TYPE_COMPOUND = 1024
-} snd_config_type_t;
+} snd_config_type_t; /**< \brief Configuration node type. */
 
 /**
  * \brief Internal structure for a configuration node object.
@@ -154,11 +154,20 @@ snd_config_t *snd_config_iterator_entry(const snd_config_iterator_t iterator);
 
 /**
  * \brief Helper macro to iterate over the children of a compound node.
- * \param pos Iterator variable for the current node.
- * \param next Iterator variable for the next node.
- * \param node Handle to the compound configuration node to iterate over.
+ * \param[in,out] pos Iterator variable for the current node.
+ * \param[in,out] next Temporary iterator variable for the next node.
+ * \param[in] node Handle to the compound configuration node to iterate over.
  *
- * This macro is designed to permit the removal of the current node.
+ * Use this macro like a \c for statement, e.g.:
+ * \code
+ * snd_config_iterator_t pos, next;
+ * snd_config_for_each(pos, next, node) {
+ *     snd_config_t *entry = snd_config_iterator_entry(pos);
+ *     ...
+ * }
+ * \endcode
+ *
+ * This macro allows deleting or removing the current node.
  */
 #define snd_config_for_each(pos, next, node) \
 	for (pos = snd_config_iterator_first(node), next = snd_config_iterator_next(pos); pos != snd_config_iterator_end(node); pos = next, next = snd_config_iterator_next(pos))
