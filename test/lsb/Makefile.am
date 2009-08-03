@@ -1,4 +1,5 @@
-TESTS = midi_event
+TESTS  = config
+TESTS += midi_event
 check_PROGRAMS = $(TESTS)
 noinst_HEADERS = test.h
 
