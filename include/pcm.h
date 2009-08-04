@@ -526,8 +526,6 @@ int snd_pcm_hw_params_is_batch(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_is_block_transfer(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_is_monotonic(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_can_overrange(const snd_pcm_hw_params_t *params);
-int snd_pcm_hw_params_can_forward(const snd_pcm_hw_params_t *params);
-int snd_pcm_hw_params_can_rewind(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_can_pause(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_can_resume(const snd_pcm_hw_params_t *params);
 int snd_pcm_hw_params_is_half_duplex(const snd_pcm_hw_params_t *params);

@@ -124,8 +124,6 @@ void snd_mixer_elem_set_callback_private(snd_mixer_elem_t *obj, void * val);
 snd_mixer_elem_type_t snd_mixer_elem_get_type(const snd_mixer_elem_t *obj);
 
 int snd_mixer_class_register(snd_mixer_class_t *class_, snd_mixer_t *mixer);
-int snd_mixer_add_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem);
-int snd_mixer_remove_elem(snd_mixer_t *mixer, snd_mixer_elem_t *elem);
 int snd_mixer_elem_new(snd_mixer_elem_t **elem,
 		       snd_mixer_elem_type_t type,
 		       int compare_weight,
