@@ -5,7 +5,7 @@ EXTRA_DIST=README.1st asoundrc.txt doxygen.cfg index.doxygen
 INCLUDES=-I$(top_srcdir)/include
 
 doc:
-	test -e doxygen.cfg || sed s:@top_srcdir@:..:g doxygen.cfg.in > doxygen.cfg
+	test -e doxygen.cfg || sed s:[@]top_srcdir[@]:..:g doxygen.cfg.in > doxygen.cfg
 	doxygen doxygen.cfg
 
 doc-pack: doc
