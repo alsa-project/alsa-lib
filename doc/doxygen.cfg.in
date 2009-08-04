@@ -114,6 +114,7 @@ PREDEFINED	 = DOXYGEN PIC "DOC_HIDDEN" \
 		   "link_warning(x,y)="
 
 OPTIMIZE_OUTPUT_FOR_C = YES	# doxygen 1.2.6 option
+TYPEDEF_HIDES_STRUCT = YES	# needed in doxygen >= 1.5.4
 
 #INPUT_FILTER	 = inputfilter
 #FILTER_SOURCE_FILES = YES
