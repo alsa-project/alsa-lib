@@ -1326,7 +1326,7 @@ static int rate_open_func(snd_pcm_rate_t *rate, const char *type)
  * \param name Name of PCM
  * \param sformat Slave format
  * \param srate Slave rate
- * \param type SRC type string
+ * \param converter SRC type string node
  * \param slave Slave PCM handle
  * \param close_slave When set, the slave PCM handle is closed with copy PCM
  * \retval zero on success otherwise a negative error code

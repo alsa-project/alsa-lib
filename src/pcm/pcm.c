@@ -2460,8 +2460,8 @@ snd_pcm_sframes_t snd_pcm_avail(snd_pcm_t *pcm)
 /**
  * \brief Combine snd_pcm_avail and snd_pcm_delay functions
  * \param pcm PCM handle
- * \param avail Number of available frames in the ring buffer
- * \param delay Total I/O latency in frames
+ * \param availp Number of available frames in the ring buffer
+ * \param delayp Total I/O latency in frames
  * \return zero on success otherwise a negative error code
  *
  * The avail and delay values retuned are in sync.

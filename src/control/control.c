@@ -211,7 +211,7 @@ int snd_ctl_poll_descriptors_revents(snd_ctl_t *ctl, struct pollfd *pfds, unsign
 }
 
 /**
- * \brief Ask to be informed about events (poll, #snd_ctl_async, #snd_ctl_read)
+ * \brief Ask to be informed about events (poll, #snd_async_add_ctl_handler, #snd_ctl_read)
  * \param ctl CTL handle
  * \param subscribe 0 = unsubscribe, 1 = subscribe
  * \return 0 on success otherwise a negative error code

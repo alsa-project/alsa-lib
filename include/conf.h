@@ -58,7 +58,7 @@ typedef enum _snd_config_type {
         SND_CONFIG_TYPE_POINTER,
 	/** Compound node. */
 	SND_CONFIG_TYPE_COMPOUND = 1024
-} snd_config_type_t; /**< \brief Configuration node type. */
+} snd_config_type_t;
 
 /**
  * \brief Internal structure for a configuration node object.

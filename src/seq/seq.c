@@ -463,7 +463,7 @@ void set_tempo(snd_seq_t *handle)
 \endcode
 
 For changing the (running) queue's tempo on the fly, you can either
-set the tempo via #snd_seq_queue_tempo() or send a MIDI tempo event
+set the tempo via #snd_seq_set_queue_tempo() or send a MIDI tempo event
 to the system timer port.  For example,
 \code
 int change_tempo(snd_seq_t *handle, int q, unsigned int tempo)
@@ -540,7 +540,7 @@ to the specified port.
 For example, when a port makes READ subscription
 to MIDI input port, this port must have #SND_SEQ_PORT_CAP_WRITE capability,
 but no #SND_SEQ_PORT_CAP_SUBS_WRITE capability is required.
-Only MIDI input port must have #SND_SEQ_PORT_SUBS_READ capability.
+Only MIDI input port must have #SND_SEQ_PORT_CAP_SUBS_READ capability.
 
 As default, the connection of ports via the third client is always allowed
 if proper read and write (subscription) capabilities are set both to the
@@ -579,7 +579,7 @@ snd_seq_subscribe_port(handle, subs);
 
 When the connection should be exclusively done only between
 a certain pair, set <i>exclusive</i> attribute to the subscription
-record before calling #snd_seq_port_subscribe.
+record before calling #snd_seq_subscribe_port.
 \code
 snd_seq_port_subscribe_set_exclusive(subs, 1);
 \endcode
@@ -663,7 +663,7 @@ Assume connection from application 128:0 to 129:0,
 and that subscription is done by the third application (130:0).
 The sender must have capabilities both
 #SND_SEQ_PORT_CAP_READ and
-#SND_SEQ_PORT_SUBS_READ,
+#SND_SEQ_PORT_CAP_SUBS_READ,
 and the receiver
 #SND_SEQ_PORT_CAP_WRITE and
 #SND_SEQ_PORT_CAP_SUBS_WRITE, respectively.
@@ -1471,7 +1471,7 @@ int snd_seq_client_info_get_client(const snd_seq_client_info_t *info)
  * \param info client_info container
  * \return client type
  *
- * The client type is either #SEQ_CLIENT_TYPE_KERNEL or #SEQ_CLIENT_TYPE_USER
+ * The client type is either #SND_SEQ_KERNEL_CLIENT or #SND_SEQ_USER_CLIENT
  * for kernel or user client respectively.
  *
  * \sa snd_seq_get_client_info()

@@ -586,7 +586,7 @@ total number of control elements.  The elem_list returns the control element ID
 of the corresponding element offset (the offset is from 0 to elem_count - 1).
 The id field is initialized to all zero in prior to elem_list callback.  The callback
 has to fill the necessary field (typically iface, name and index) in return via the
-standard control API functions like #snd_ctl_elem_id_set_ifarce,
+standard control API functions like #snd_ctl_elem_id_set_interface,
 #snd_ctl_elem_id_set_name and #snd_ctl_elem_id_set_index, etc.  The callbacks should
 return 0 if successful, or a negative error code.
 

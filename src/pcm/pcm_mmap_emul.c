@@ -34,6 +34,7 @@
 const char *_snd_module_pcm_mmap_emul = "";
 #endif
 
+#ifndef DOC_HIDDEN
 /*
  *
  */
@@ -44,6 +45,7 @@ typedef struct {
 	snd_pcm_uframes_t hw_ptr;
 	snd_pcm_uframes_t appl_ptr;
 } mmap_emul_t;
+#endif
 
 /*
  * here goes a really tricky part; hw_refine falls back to ACCESS_RW_* type

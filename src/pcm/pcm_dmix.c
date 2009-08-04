@@ -145,8 +145,10 @@ static void dmix_server_free(snd_pcm_direct_t *dmix)
 #elif defined(__x86_64__)
 #include "pcm_dmix_x86_64.c"
 #else
+#ifndef DOC_HIDDEN
 #define mix_select_callbacks(x)	generic_mix_select_callbacks(x)
 #define dmix_supported_format generic_dmix_supported_format
+#endif
 #endif
 
 static void mix_areas(snd_pcm_direct_t *dmix,

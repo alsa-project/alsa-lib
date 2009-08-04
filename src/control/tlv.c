@@ -405,7 +405,6 @@ static int get_tlv_info(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
  * \brief Get the dB min/max values on the given control element
  * \param ctl the control handler
  * \param id the element id
- * \param volume the raw volume value to convert
  * \param min the pointer to store the minimum dB value (in 0.01dB unit)
  * \param max the pointer to store the maximum dB value (in 0.01dB unit)
  * \return 0 if successful, or a negative error code

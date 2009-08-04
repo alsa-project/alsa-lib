@@ -987,6 +987,7 @@ ssize_t snd_rawmidi_read(snd_rawmidi_t *rawmidi, void *buffer, size_t size)
 	return (rawmidi->ops->read)(rawmidi, buffer, size);
 }
 
+#ifndef DOC_HIDDEN
 int snd_rawmidi_conf_generic_id(const char *id)
 {
 	static const char ids[][8] = {
@@ -1002,3 +1003,4 @@ int snd_rawmidi_conf_generic_id(const char *id)
 	}
 	return 0;
 }
+#endif

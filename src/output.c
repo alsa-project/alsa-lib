@@ -333,7 +333,7 @@ static const snd_output_ops_t snd_output_buffer_ops = {
 #endif
 
 /**
- * \brief Returns the address of the buffer of a #SND_OUTPUT_TYPE_BUFFER output handle.
+ * \brief Returns the address of the buffer of a #SND_OUTPUT_BUFFER output handle.
  * \param output The output handle.
  * \param buf The functions puts the current address of the buffer at the
  *            address specified by \p buf.
