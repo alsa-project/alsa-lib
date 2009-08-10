@@ -46,7 +46,7 @@ const char *_snd_module_pcm_meter = "";
 struct _snd_pcm_scope {
 	int enabled;
 	char *name;
-	snd_pcm_scope_ops_t *ops;
+	const snd_pcm_scope_ops_t *ops;
 	void *private_data;
 	struct list_head list;
 };
@@ -960,7 +960,7 @@ const char *snd_pcm_scope_get_name(snd_pcm_scope_t *scope)
  * \param scope PCM meter scope
  * \param val callbacks
  */
-void snd_pcm_scope_set_ops(snd_pcm_scope_t *scope, snd_pcm_scope_ops_t *val)
+void snd_pcm_scope_set_ops(snd_pcm_scope_t *scope, const snd_pcm_scope_ops_t *val)
 {
 	scope->ops = val;
 }

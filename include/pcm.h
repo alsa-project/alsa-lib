@@ -1020,7 +1020,8 @@ snd_pcm_uframes_t snd_pcm_meter_get_boundary(snd_pcm_t *pcm);
 int snd_pcm_meter_add_scope(snd_pcm_t *pcm, snd_pcm_scope_t *scope);
 snd_pcm_scope_t *snd_pcm_meter_search_scope(snd_pcm_t *pcm, const char *name);
 int snd_pcm_scope_malloc(snd_pcm_scope_t **ptr);
-void snd_pcm_scope_set_ops(snd_pcm_scope_t *scope, snd_pcm_scope_ops_t *val);
+void snd_pcm_scope_set_ops(snd_pcm_scope_t *scope,
+			   const snd_pcm_scope_ops_t *val);
 void snd_pcm_scope_set_name(snd_pcm_scope_t *scope, const char *val);
 const char *snd_pcm_scope_get_name(snd_pcm_scope_t *scope);
 void *snd_pcm_scope_get_callback_private(snd_pcm_scope_t *scope);
