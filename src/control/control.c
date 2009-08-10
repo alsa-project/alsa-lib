@@ -674,8 +674,8 @@ int snd_ctl_read(snd_ctl_t *ctl, snd_ctl_event_t *event)
 int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 {
 	struct pollfd *pfd;
-	unsigned short *revents;
-	int i, npfds, pollio, err, err_poll;
+	unsigned short revents;
+	int i, npfds, err, err_poll;
 
 	npfds = snd_ctl_poll_descriptors_count(ctl);
 	if (npfds <= 0 || npfds >= 16) {
@@ -683,7 +683,6 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 		return -EIO;
 	}
 	pfd = alloca(sizeof(*pfd) * npfds);
-	revents = alloca(sizeof(*revents) * npfds);
 	err = snd_ctl_poll_descriptors(ctl, pfd, npfds);
 	if (err < 0)
 		return err;
@@ -691,26 +690,20 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 		SNDMSG("invalid poll descriptors %d\n", err);
 		return -EIO;
 	}
-	do {
+	for (;;) {
 		err_poll = poll(pfd, npfds, timeout);
 		if (err_poll < 0)
 			return -errno;
 		if (! err_poll)
-			break;
-		err = snd_ctl_poll_descriptors_revents(ctl, pfd, npfds, revents);
+			return 0;
+		err = snd_ctl_poll_descriptors_revents(ctl, pfd, npfds, &revents);
 		if (err < 0)
 			return err;
-		pollio = 0;
-		for (i = 0; i < npfds; i++) {
-			if (revents[i] & (POLLERR | POLLNVAL))
-				return -EIO;
-			if ((revents[i] & (POLLIN | POLLOUT)) == 0)
-				continue;
-			pollio++;
-		}
-	} while (! pollio);
-
-	return err_poll > 0 ? 1 : 0;
+		if (revents & (POLLERR | POLLNVAL))
+			return -EIO;
+		if (revents & (POLLIN | POLLOUT))
+			return 1;
+	}
 }
 
 /**
