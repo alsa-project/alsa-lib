@@ -195,7 +195,7 @@ static int snd_pcm_rate_hw_refine_cchange(snd_pcm_t *pcm, snd_pcm_hw_params_t *p
 		if (!snd_interval_checkempty(period_size) &&
 		    period_size->openmin && period_size->openmax &&
 		    period_size->min + 1 == period_size->max) {
-		    	if ((buffer_size->min / period_size->min) * period_size->min == buffer_size->min) {
+			if (period_size->min > 0 && (buffer_size->min / period_size->min) * period_size->min == buffer_size->min) {
 		    		snd_interval_set_value(period_size, period_size->min);
 		    	} else if ((buffer_size->max / period_size->max) * period_size->max == buffer_size->max) {
 		    		snd_interval_set_value(period_size, period_size->max);
