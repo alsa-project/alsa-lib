@@ -64,7 +64,7 @@ struct _snd_timer_query {
 	snd_timer_type_t type;
 	int mode;
 	int poll_fd;
-	snd_timer_query_ops_t *ops;
+	const snd_timer_query_ops_t *ops;
 	void *private_data;
 };
 #endif /* DOC_HIDDEN */
