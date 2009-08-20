@@ -442,7 +442,7 @@ static int snd_pcm_ioplug_start(snd_pcm_t *pcm)
 	int err;
 	
 	if (io->data->state != SND_PCM_STATE_PREPARED)
-		return -EBUSY;
+		return -EBADFD;
 
 	err = io->data->callback->start(io->data);
 	if (err < 0)
