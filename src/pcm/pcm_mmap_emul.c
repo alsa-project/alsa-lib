@@ -44,6 +44,7 @@ typedef struct {
 	unsigned int mmap_emul :1;
 	snd_pcm_uframes_t hw_ptr;
 	snd_pcm_uframes_t appl_ptr;
+	snd_pcm_uframes_t start_threshold;
 } mmap_emul_t;
 #endif
 
@@ -205,6 +206,24 @@ static int snd_pcm_mmap_emul_hw_params(snd_pcm_t *pcm,
 	return err;
 }
 
+static int snd_pcm_mmap_emul_sw_params(snd_pcm_t *pcm,
+				       snd_pcm_sw_params_t *params)
+{
+	mmap_emul_t *map = pcm->private_data;
+	int err;
+
+	map->start_threshold = params->start_threshold;
+
+	/* HACK: don't auto-start in the slave PCM */
+	params->start_threshold = pcm->boundary;
+	err = snd_pcm_generic_sw_params(pcm, params);
+	if (err < 0)
+		return err;
+	/* restore the value for this PCM */
+	params->start_threshold = map->start_threshold;
+	return err;
+}
+
 static int snd_pcm_mmap_emul_prepare(snd_pcm_t *pcm)
 {
 	mmap_emul_t *map = pcm->private_data;
@@ -256,13 +275,18 @@ sync_slave_write(snd_pcm_t *pcm)
 	snd_pcm_uframes_t offset;
 	snd_pcm_sframes_t size;
 
+	/* HACK: don't start stream automatically at commit in mmap mode */
+	pcm->start_threshold = pcm->boundary;
+
 	size = map->appl_ptr - *slave->appl.ptr;
 	if (size < 0)
 		size += pcm->boundary;
-	if (!size)
-		return 0;
-	offset = *slave->appl.ptr % pcm->buffer_size;
-	return snd_pcm_write_mmap(pcm, offset, size);
+	if (size) {
+		offset = *slave->appl.ptr % pcm->buffer_size;
+		size = snd_pcm_write_mmap(pcm, offset, size);
+	}
+	pcm->start_threshold = map->start_threshold; /* restore */
+	return size;
 }
 
 /* read the available chunk on the slave PCM to mmap buffer */
@@ -337,7 +361,7 @@ static const snd_pcm_ops_t snd_pcm_mmap_emul_ops = {
 	.hw_refine = snd_pcm_mmap_emul_hw_refine,
 	.hw_params = snd_pcm_mmap_emul_hw_params,
 	.hw_free = snd_pcm_generic_hw_free,
-	.sw_params = snd_pcm_generic_sw_params,
+	.sw_params = snd_pcm_mmap_emul_sw_params,
 	.channel_info = snd_pcm_generic_channel_info,
 	.dump = snd_pcm_mmap_emul_dump,
 	.nonblock = snd_pcm_generic_nonblock,
