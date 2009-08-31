@@ -134,6 +134,7 @@ static int get_compare_weight(const char *name, unsigned int idx)
 	static const char *const names[] = {
 		"Master",
 		"Headphone",
+		"Speaker",
 		"Tone",
 		"Bass",
 		"Treble",
@@ -158,6 +159,7 @@ static int get_compare_weight(const char *name, unsigned int idx)
 		"I2S",
 		"IEC958",
 		"PC Speaker",
+		"Beep",
 		"Aux",
 		"Mono",
 		"Playback",
