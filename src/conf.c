@@ -3477,8 +3477,9 @@ int snd_config_hook_load_for_all_cards(snd_config_t *root, snd_config_t *config,
 			err = snd_determine_driver(card, &fdriver);
 			if (err < 0)
 				return err;
-			if (snd_config_search(root, fdriver, &n) >= 0 &&
-			    snd_config_get_string(n, &driver) >= 0) {
+			if (snd_config_search(root, fdriver, &n) >= 0) {
+				if (snd_config_get_string(n, &driver) < 0)
+					goto __err;
 				assert(driver);
 				while (1) {
 					char *s = strchr(driver, '.');
