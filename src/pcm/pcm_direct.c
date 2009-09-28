@@ -591,7 +591,10 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 
 int snd_pcm_direct_info(snd_pcm_t *pcm, snd_pcm_info_t * info)
 {
-	// snd_pcm_direct_t *dmix = pcm->private_data;
+	snd_pcm_direct_t *dmix = pcm->private_data;
+
+	if (dmix->spcm && !dmix->shmptr->use_server)
+		return snd_pcm_info(dmix->spcm, info);
 
 	memset(info, 0, sizeof(*info));
 	info->stream = pcm->stream;
