@@ -675,7 +675,7 @@ int snd_ctl_wait(snd_ctl_t *ctl, int timeout)
 {
 	struct pollfd *pfd;
 	unsigned short revents;
-	int i, npfds, err, err_poll;
+	int npfds, err, err_poll;
 
 	npfds = snd_ctl_poll_descriptors_count(ctl);
 	if (npfds <= 0 || npfds >= 16) {
