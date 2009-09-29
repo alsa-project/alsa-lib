@@ -17,6 +17,9 @@ eval LIBTOOL_VERSION_INFO="2:0:0"
 dnl *************************************************
 AM_CONDITIONAL(INSTALL_M4, test -n "${ACLOCAL}")
 
+# Test for new silent rules and enable only if they are available
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 AC_PREFIX_DEFAULT(/usr)
 
 dnl Checks for programs.
