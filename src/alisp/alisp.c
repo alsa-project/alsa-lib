@@ -233,6 +233,9 @@ static struct alisp_object * incref_tree(struct alisp_instance *instance, struct
 	return incref_object(instance, p);
 }
 
+/* Function not used yet. Leave it commented out until we actually use it to
+ * avoid compiler complaints */
+#if 0
 static struct alisp_object * incref_tree_explicit(struct alisp_instance *instance, struct alisp_object * p, struct alisp_object * e)
 {
 	if (p == NULL)
@@ -250,6 +253,7 @@ static struct alisp_object * incref_tree_explicit(struct alisp_instance *instanc
 		return incref_object(instance, p);
 	return p;
 }
+#endif
 
 static void free_objects(struct alisp_instance *instance)
 {
