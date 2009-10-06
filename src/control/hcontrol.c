@@ -471,8 +471,9 @@ int snd_hctl_compare_fast(const snd_hctl_elem_t *c1,
 static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 				    const snd_hctl_elem_t *c2)
 {
-	int res;
-	int d = c1->id.iface - c2->id.iface;
+	int res, d;
+
+	d = c1->id.iface - c2->id.iface;
 	if (d != 0)
 		return d;
 	if (c1->id.iface == SNDRV_CTL_ELEM_IFACE_MIXER) {
@@ -480,11 +481,16 @@ static int snd_hctl_compare_default(const snd_hctl_elem_t *c1,
 		if (d != 0)
 			return d;
 	}
+	d = c1->id.device - c2->id.device;
+	if (d != 0)
+		return d;
+	d = c1->id.subdevice - c2->id.subdevice;
+	if (d != 0)
+		return d;
 	res = strcmp((const char *)c1->id.name, (const char *)c2->id.name);
 	if (res != 0)
 		return res;
-	d = c1->id.index - c2->id.index;
-	return d;
+	return c1->id.index - c2->id.index;
 }
 
 /**
