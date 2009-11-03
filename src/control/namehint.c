@@ -453,6 +453,7 @@ static int add_card(struct hint_list *list, int card)
 		if (err == -EXDEV)
 			continue;
 		if (err < 0) {
+			list->card = card;
 			list->device = -1;
 			err = try_config(list, list->siface, str);
 		}
