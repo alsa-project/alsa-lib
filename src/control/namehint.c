@@ -219,6 +219,7 @@ static int try_config(struct hint_list *list,
 	const char *str;
 	int err = 0, level;
 	long dev = list->device;
+	int cleanup_res = 0;
 
 	list->device_input = -1;
 	list->device_output = -1;
@@ -244,6 +245,7 @@ static int try_config(struct hint_list *list,
 	snd_lib_error_set_handler(eh);
 	if (err < 0)
 		goto __skip_add;
+	cleanup_res = 1;
 	err = -EINVAL;
 	if (snd_config_get_type(res) != SND_CONFIG_TYPE_COMPOUND)
 		goto __cleanup;
@@ -330,6 +332,7 @@ static int try_config(struct hint_list *list,
 	    	goto __hint;
 	snd_config_delete(res);
 	res = NULL;
+	cleanup_res = 0;
 	if (strchr(buf, ':') != NULL)
 		goto __ok;
 	/* find, if all parameters have a default, */
@@ -379,7 +382,7 @@ static int try_config(struct hint_list *list,
 	      	err = hint_list_add(list, buf, buf1);
 	}
       __skip_add:
-      	if (res)
+	if (res && cleanup_res)
 	      	snd_config_delete(res);
 	if (buf1)
 		free(buf1);
