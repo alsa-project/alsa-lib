@@ -457,10 +457,6 @@ static int add_card(struct hint_list *list, int card)
 			list->device = -1;
 			err = try_config(list, list->siface, str);
 		}
-		if (err < 0) {
-			list->card = -1;
-			err = try_config(list, list->siface, str);
-		}
 		if (err == -ENOMEM)
 			goto __error;
 	}
@@ -483,6 +479,29 @@ static int get_card_name(struct hint_list *list, int card)
 	if (s == NULL)
 		return -ENOMEM;
 	list->cardname = s;
+	return 0;
+}
+
+static int add_software_devices(struct hint_list *list)
+{
+	int err;
+	snd_config_t *conf, *n;
+	snd_config_iterator_t i, next;
+	const char *str;
+
+	err = snd_config_search(snd_config, list->siface, &conf);
+	if (err < 0)
+		return err;
+	snd_config_for_each(i, next, conf) {
+		n = snd_config_iterator_entry(i);
+		if (snd_config_get_id(n, &str) < 0)
+			continue;
+		list->card = -1;
+		list->device = -1;
+		err = try_config(list, list->siface, str);
+		if (err == -ENOMEM)
+			return -ENOMEM;
+	}
 	return 0;
 }
 
@@ -549,6 +568,7 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 		if (err >= 0)
 			err = add_card(&list, card);
 	} else {
+		add_software_devices(&list);
 		err = snd_card_next(&card);
 		if (err < 0)
 			goto __error;
