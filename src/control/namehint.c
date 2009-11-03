@@ -536,6 +536,8 @@ int snd_device_name_hint(int card, const char *iface, void ***hints)
 		list.iface = SND_CTL_ELEM_IFACE_SEQUENCER;
 	else if (strcmp(iface, "hwdep") == 0)
 		list.iface = SND_CTL_ELEM_IFACE_HWDEP;
+	else if (strcmp(iface, "ctl") == 0)
+		list.iface = SND_CTL_ELEM_IFACE_MIXER;
 	else
 		return -EINVAL;
 	list.show_all = 0;
