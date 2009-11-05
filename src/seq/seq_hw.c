@@ -457,17 +457,6 @@ int snd_seq_hw_open(snd_seq_t **handle, const char *name, int streams, int mode)
 		SYSERR("open %s failed", filename);
 		return -errno;
 	}
-#if 0
-	/*
-         * this is bogus, an application have to care about open filedescriptors
-	 */                          
-	if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
-		SYSERR("fcntl FD_CLOEXEC failed");
-		ret = -errno;
-		close(fd);
-		return ret;
-	}
-#endif
 	if (ioctl(fd, SNDRV_SEQ_IOCTL_PVERSION, &ver) < 0) {
 		SYSERR("SNDRV_SEQ_IOCTL_PVERSION failed");
 		ret = -errno;
