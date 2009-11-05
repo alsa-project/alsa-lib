@@ -38,6 +38,8 @@ then
   AC_MSG_RESULT($CC)
 fi
 	    
+CFLAGS="$CFLAGS -D_GNU_SOURCE"
+
 
 AC_PROG_CC
 AC_PROG_CPP
