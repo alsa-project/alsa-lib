@@ -103,7 +103,7 @@ int snd_mixer_selem_register(snd_mixer_t *mixer,
 }
 
 #define CHECK_ENUM(xelem) \
-	if (!((sm_selem_t *)(elem)->private_data)->caps & (SM_CAP_PENUM|SM_CAP_CENUM)) \
+	if (!(((sm_selem_t *)(elem)->private_data)->caps & (SM_CAP_PENUM|SM_CAP_CENUM))) \
 		return -EINVAL;
 
 #define COND_CAPS(xelem, what) \
