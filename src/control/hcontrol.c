@@ -48,9 +48,6 @@ to reduce overhead accessing the real controls in kernel drivers.
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#ifndef DOC_HIDDEN
-#define __USE_GNU
-#endif
 #include "control_local.h"
 #ifdef HAVE_LIBPTHREAD
 #include <pthread.h>

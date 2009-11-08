@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#define __USE_GNU
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "timer_local.h"
