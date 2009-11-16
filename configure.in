@@ -206,9 +206,12 @@ AC_MSG_CHECKING(for softfloat)
 AC_ARG_WITH(softfloat,
   AS_HELP_STRING([--with-softfloat],
     [do you have floating point unit on this machine? (optional)]),
-  [  AC_DEFINE(HAVE_SOFT_FLOAT, "1", [Avoid calculation in float])
-     softfloat=yes ],)
+  [case "$withval" in
+	y|yes) softfloat=yes ;;
+	*) softfloat=no ;;
+   esac],)
 if test "$softfloat" = "yes" ; then
+  AC_DEFINE(HAVE_SOFT_FLOAT, "1", [Avoid calculation in float])
   AC_MSG_RESULT(yes)
 else
   AC_MSG_RESULT(no)
