@@ -40,6 +40,7 @@
 #include <limits.h>
 #include <alsa/asoundlib.h>
 #include "mixer_simple.h"
+#include "config.h"
 
 #ifndef DOC_HIDDEN
 
