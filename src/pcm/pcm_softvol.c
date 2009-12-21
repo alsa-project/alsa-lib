@@ -107,7 +107,8 @@ static inline int MULTI_DIV_32x16(int a, unsigned short b)
 	v.i = a;
 	y.i = 0;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-	x.i = (unsigned int)v.s[0] * b;
+	x.i = (unsigned short)v.s[0];
+	x.i *= b;
 	y.s[0] = x.s[1];
 	y.i += (int)v.s[1] * b;
 #else
@@ -133,6 +134,23 @@ static inline int MULTI_DIV_int(int a, unsigned int b, int swap)
 		return swap ? (int)bswap_32((int)amp) : (int)amp;
 	}
 	return swap ? (int)bswap_32(fraction) : fraction;
+}
+
+/* always little endian */
+static inline int MULTI_DIV_24(int a, unsigned int b)
+{
+	unsigned int gain = b >> VOL_SCALE_SHIFT;
+	int fraction;
+	fraction = MULTI_DIV_32x16(a, b & VOL_SCALE_MASK);
+	if (gain) {
+		long long amp = (long long)a * gain + fraction;
+		if (amp > (int)0x7fffff)
+			amp = (int)0x7fffff;
+		else if (amp < (int)0x800000)
+			amp = (int)0x800000;
+		return (int)amp;
+	}
+	return fraction;
 }
 
 static inline short MULTI_DIV_short(short a, unsigned int b, int swap)
@@ -223,7 +241,7 @@ static inline short MULTI_DIV_short(short a, unsigned int b, int swap)
 				tmp = src[0] |				\
 				      (src[1] << 8) |			\
 				      (((signed char *) src)[2] << 16);	\
-				tmp = MULTI_DIV_int(tmp, vol_scale, 0);	\
+				tmp = MULTI_DIV_24(tmp, vol_scale);	\
 				dst[0] = tmp;				\
 				dst[1] = tmp >> 8;			\
 				dst[2] = tmp >> 16;			\
