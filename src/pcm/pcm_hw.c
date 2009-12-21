@@ -338,18 +338,6 @@ static int snd_pcm_hw_hw_params(snd_pcm_t *pcm, snd_pcm_hw_params_t * params)
 	return 0;
 }
 
-static int snd_pcm_hw_hw_free(snd_pcm_t *pcm)
-{
-	snd_pcm_hw_t *hw = pcm->private_data;
-	int fd = hw->fd, err;
-	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_FREE) < 0) {
-		err = -errno;
-		SYSMSG("SNDRV_PCM_IOCTL_HW_FREE failed");
-		return err;
-	}
-	return 0;
-}
-
 static void snd_pcm_hw_close_timer(snd_pcm_hw_t *hw)
 {
 	if (hw->period_timer) {
@@ -421,6 +409,20 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 	} else {
 		snd_pcm_hw_close_timer(hw);
 		pcm->fast_ops = &snd_pcm_hw_fast_ops;
+		hw->period_event = 0;
+	}
+	return 0;
+}
+
+static int snd_pcm_hw_hw_free(snd_pcm_t *pcm)
+{
+	snd_pcm_hw_t *hw = pcm->private_data;
+	int fd = hw->fd, err;
+	snd_pcm_hw_change_timer(pcm, 0);
+	if (ioctl(fd, SNDRV_PCM_IOCTL_HW_FREE) < 0) {
+		err = -errno;
+		SYSMSG("SNDRV_PCM_IOCTL_HW_FREE failed");
+		return err;
 	}
 	return 0;
 }
