@@ -192,7 +192,17 @@ int snd_sctl_remove(snd_sctl_t *h)
 				return err;
 			}
 		}
-		if (elem->preserve) {
+		/* Only restore the old value if it differs from the requested
+		 * value, because if it has changed restoring the old value
+		 * overrides the change.  Take for example, a voice modem with
+		 * a .conf that sets preserve off-hook.  Start playback (on-hook
+		 * to off-hook), start record (off-hook to off-hook), stop
+		 * playback (off-hook to restore on-hook), stop record (on-hook
+		 * to restore off-hook), Clearly you don't want to leave the
+		 * modem "on the phone" now that there isn't any playback or
+		 * recording active.
+		 */
+		if (elem->preserve && snd_ctl_elem_value_compare(elem->val, elem->old)) {
 			err = snd_ctl_elem_write(h->ctl, elem->old);
 			if (err < 0) {
 				SNDERR("Cannot restore ctl elem");
