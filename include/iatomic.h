@@ -1079,6 +1079,29 @@ static __inline__ int atomic_sub_return(int i, volatile atomic_t *v)
 
 #endif /* __sh__ */
 
+#ifdef __bfin__
+
+#include <bfin_fixed_code.h>
+
+typedef struct { volatile int counter; } atomic_t;
+
+#define ATOMIC_INIT(i)   { (i) }
+
+#define atomic_read(v)   ((v)->counter)
+#define atomic_set(v,i)  (((v)->counter) = (i))
+#define atomic_add(i,v)  bfin_atomic_add32(&(v)->counter, i)
+#define atomic_sub(i,v)  bfin_atomic_sub32(&(v)->counter, i)
+#define atomic_inc(v)    bfin_atomic_inc32(&(v)->counter);
+#define atomic_dec(v)    bfin_atomic_dec32(&(v)->counter);
+
+#define mb() __asm__ __volatile__ ("" : : : "memory")
+#define rmb() mb()
+#define wmb() mb()
+
+#define IATOMIC_DEFINED 1
+
+#endif /* __bfin__ */
+
 #ifndef IATOMIC_DEFINED
 /*
  * non supported architecture.
