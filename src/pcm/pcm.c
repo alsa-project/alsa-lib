@@ -6528,46 +6528,51 @@ snd_pcm_sframes_t snd_pcm_read_areas(snd_pcm_t *pcm, const snd_pcm_channel_area_
 {
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
-	snd_pcm_state_t state = snd_pcm_state(pcm);
+	snd_pcm_state_t state;
 
 	if (size == 0)
 		return 0;
-
-	switch (state) {
-	case SND_PCM_STATE_PREPARED:
-		err = snd_pcm_start(pcm);
-		if (err < 0)
-			goto _end;
-		break;
-	case SND_PCM_STATE_DRAINING:
-	case SND_PCM_STATE_RUNNING:
-		break;
-	case SND_PCM_STATE_XRUN:
-		return -EPIPE;
-	case SND_PCM_STATE_SUSPENDED:
-		return -ESTRPIPE;
-	case SND_PCM_STATE_DISCONNECTED:
-		return -ENODEV;
-	default:
-		return -EBADFD;
-	}
 
 	while (size > 0) {
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
 	_again:
-		if (state == SND_PCM_STATE_RUNNING) {
+		state = snd_pcm_state(pcm);
+		switch (state) {
+		case SND_PCM_STATE_PREPARED:
+			err = snd_pcm_start(pcm);
+			if (err < 0)
+				goto _end;
+			break;
+		case SND_PCM_STATE_RUNNING:
 			err = snd_pcm_hwsync(pcm);
 			if (err < 0)
 				goto _end;
+			break;
+		case SND_PCM_STATE_DRAINING:
+		case SND_PCM_STATE_PAUSED:
+			break;
+		case SND_PCM_STATE_XRUN:
+			err = -EPIPE;
+			goto _end;
+		case SND_PCM_STATE_SUSPENDED:
+			err = -ESTRPIPE;
+			goto _end;
+		case SND_PCM_STATE_DISCONNECTED:
+			err = -ENODEV;
+			goto _end;
+		default:
+			err = -EBADFD;
+			goto _end;
 		}
 		avail = snd_pcm_avail_update(pcm);
 		if (avail < 0) {
 			err = avail;
 			goto _end;
 		}
-		if ((snd_pcm_uframes_t)avail < pcm->avail_min &&
-		    size > (snd_pcm_uframes_t)avail) {
+		if (avail == 0) {
+			if (state == SND_PCM_STATE_DRAINING)
+				goto _end;
 			if (pcm->mode & SND_PCM_NONBLOCK) {
 				err = -EAGAIN;
 				goto _end;
@@ -6602,33 +6607,37 @@ snd_pcm_sframes_t snd_pcm_write_areas(snd_pcm_t *pcm, const snd_pcm_channel_area
 {
 	snd_pcm_uframes_t xfer = 0;
 	snd_pcm_sframes_t err = 0;
-	snd_pcm_state_t state = snd_pcm_state(pcm);
+	snd_pcm_state_t state;
 
 	if (size == 0)
 		return 0;
-
-	switch (state) {
-	case SND_PCM_STATE_PREPARED:
-	case SND_PCM_STATE_RUNNING:
-		break;
-	case SND_PCM_STATE_XRUN:
-		return -EPIPE;
-	case SND_PCM_STATE_SUSPENDED:
-		return -ESTRPIPE;
-	case SND_PCM_STATE_DISCONNECTED:
-		return -ENODEV;
-	default:
-		return -EBADFD;
-	}
 
 	while (size > 0) {
 		snd_pcm_uframes_t frames;
 		snd_pcm_sframes_t avail;
 	_again:
-		if (state == SND_PCM_STATE_RUNNING) {
+		state = snd_pcm_state(pcm);
+		switch (state) {
+		case SND_PCM_STATE_PREPARED:
+		case SND_PCM_STATE_PAUSED:
+			break;
+		case SND_PCM_STATE_RUNNING:
 			err = snd_pcm_hwsync(pcm);
 			if (err < 0)
 				goto _end;
+			break;
+		case SND_PCM_STATE_XRUN:
+			err = -EPIPE;
+			goto _end;
+		case SND_PCM_STATE_SUSPENDED:
+			err = -ESTRPIPE;
+			goto _end;
+		case SND_PCM_STATE_DISCONNECTED:
+			err = -ENODEV;
+			goto _end;
+		default:
+			err = -EBADFD;
+			goto _end;
 		}
 		avail = snd_pcm_avail_update(pcm);
 		if (avail < 0) {
