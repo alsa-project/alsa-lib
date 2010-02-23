@@ -355,9 +355,9 @@ static int snd_pcm_hw_change_timer(snd_pcm_t *pcm, int enable)
 	
 	if (enable) {
 		snd_timer_params_alloca(&params);
-		err = snd_timer_hw_open(&hw->period_timer, "hw-pcm-period-event", SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE, hw->card, hw->device, hw->subdevice, SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
+		err = snd_timer_hw_open(&hw->period_timer, "hw-pcm-period-event", SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE, hw->card, hw->device, (hw->subdevice << 1) | (pcm->stream & 1), SND_TIMER_OPEN_NONBLOCK | SND_TIMER_OPEN_TREAD);
 		if (err < 0) {
-			err = snd_timer_hw_open(&hw->period_timer, "hw-pcm-period-event", SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE, hw->card, hw->device, hw->subdevice, SND_TIMER_OPEN_NONBLOCK);
+			err = snd_timer_hw_open(&hw->period_timer, "hw-pcm-period-event", SND_TIMER_CLASS_PCM, SND_TIMER_SCLASS_NONE, hw->card, hw->device, (hw->subdevice << 1) | (pcm->stream & 1), SND_TIMER_OPEN_NONBLOCK);
 			return err;
 		}
 		if (snd_timer_poll_descriptors_count(hw->period_timer) != 1) {
