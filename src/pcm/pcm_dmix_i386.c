@@ -77,6 +77,7 @@
 #define i386_dmix_supported_format \
 	((1ULL << SND_PCM_FORMAT_S16_LE) |\
 	 (1ULL << SND_PCM_FORMAT_S32_LE) |\
+	 (1ULL << SND_PCM_FORMAT_S24_LE) |\
 	 (1ULL << SND_PCM_FORMAT_S24_3LE))
 
 #define dmix_supported_format \

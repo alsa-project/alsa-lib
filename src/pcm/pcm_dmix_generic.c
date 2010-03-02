@@ -122,7 +122,7 @@ static void mix_select_callbacks(snd_pcm_direct_t *dmix)
 #define generic_dmix_supported_format \
 	((1ULL << SND_PCM_FORMAT_S16_LE) | (1ULL << SND_PCM_FORMAT_S32_LE) |\
 	 (1ULL << SND_PCM_FORMAT_S16_BE) | (1ULL << SND_PCM_FORMAT_S32_BE) |\
-	 (1ULL << SND_PCM_FORMAT_S24_3LE) | \
+	 (1ULL << SND_PCM_FORMAT_S24_LE) | (1ULL << SND_PCM_FORMAT_S24_3LE) | \
 	 (1ULL << SND_PCM_FORMAT_U8))
 
 #include <byteswap.h>
