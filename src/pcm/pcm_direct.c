@@ -540,7 +540,6 @@ void snd_pcm_direct_clear_timer_queue(snd_pcm_direct_t *dmix)
 int snd_pcm_direct_timer_stop(snd_pcm_direct_t *dmix)
 {
 	snd_timer_stop(dmix->timer);
-	snd_pcm_direct_clear_timer_queue(dmix);
 	return 0;
 }
 
@@ -567,6 +566,7 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 	switch (snd_pcm_state(dmix->spcm)) {
 	case SND_PCM_STATE_XRUN:
 	case SND_PCM_STATE_SUSPENDED:
+	case SND_PCM_STATE_SETUP:
 		events |= POLLERR;
 		break;
 	default:
@@ -577,6 +577,7 @@ int snd_pcm_direct_poll_revents(snd_pcm_t *pcm, struct pollfd *pfds, unsigned in
 			switch (snd_pcm_state(pcm)) {
 			case SND_PCM_STATE_XRUN:
 			case SND_PCM_STATE_SUSPENDED:
+			case SND_PCM_STATE_SETUP:
 				events |= POLLERR;
 				break;
 			default:
@@ -1126,8 +1127,9 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 	snd_timer_poll_descriptors(dmix->timer, &dmix->timer_fd, 1);
 	dmix->poll_fd = dmix->timer_fd.fd;
 
-	dmix->timer_event_suspend = 1<<SND_TIMER_EVENT_MSUSPEND;
-	dmix->timer_event_resume = 1<<SND_TIMER_EVENT_MRESUME;
+	dmix->timer_events = (1<<SND_TIMER_EVENT_MSUSPEND) |
+			     (1<<SND_TIMER_EVENT_MRESUME) |
+			     (1<<SND_TIMER_EVENT_STOP);
 
 	/*
 	 * Some hacks for older kernel drivers
@@ -1146,9 +1148,15 @@ int snd_pcm_direct_initialize_poll_fd(snd_pcm_direct_t *dmix)
 		 * suspend/resume events.
 		 */
 		if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 5)) {
-			dmix->timer_event_suspend = 1<<SND_TIMER_EVENT_MPAUSE;
-			dmix->timer_event_resume = 1<<SND_TIMER_EVENT_MCONTINUE;
+			dmix->timer_events &= ~((1<<SND_TIMER_EVENT_MSUSPEND) |
+						(1<<SND_TIMER_EVENT_MRESUME));
+			dmix->timer_events |= (1<<SND_TIMER_EVENT_MPAUSE) |
+					      (1<<SND_TIMER_EVENT_MCONTINUE);
 		}
+		/* In older versions, use SND_TIMER_EVENT_START too.
+		 */
+		if (ver < SNDRV_PROTOCOL_VERSION(2, 0, 6))
+			dmix->timer_events |= 1<<SND_TIMER_EVENT_START;
 	}
 	return 0;
 }
@@ -1275,8 +1283,7 @@ int snd_pcm_direct_set_timer_params(snd_pcm_direct_t *dmix)
 	snd_timer_params_set_ticks(params, 1);
 	if (dmix->tread) {
 		filter = (1<<SND_TIMER_EVENT_TICK) |
-			 dmix->timer_event_suspend |
-			 dmix->timer_event_resume;
+			 dmix->timer_events;
 		snd_timer_params_set_filter(params, filter);
 	}
 	ret = snd_timer_params(dmix->timer, params);

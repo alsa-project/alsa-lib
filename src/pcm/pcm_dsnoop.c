@@ -280,8 +280,8 @@ static int snd_pcm_dsnoop_drop(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dsnoop = pcm->private_data;
 	if (dsnoop->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
-	snd_timer_stop(dsnoop->timer);
 	dsnoop->state = SND_PCM_STATE_SETUP;
+	snd_timer_stop(dsnoop->timer);
 	return 0;
 }
 

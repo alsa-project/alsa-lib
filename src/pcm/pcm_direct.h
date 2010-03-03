@@ -142,10 +142,9 @@ struct snd_pcm_direct {
 	int hw_fd;			/* hardware file descriptor */
 	struct pollfd timer_fd;
 	int poll_fd;
-	int tread;
-	int timer_need_poll;
-	unsigned int timer_event_suspend;
-	unsigned int timer_event_resume;
+	int tread: 1;
+	int timer_need_poll: 1;
+	unsigned int timer_events;
 	int server_fd;
 	pid_t server_pid;
 	snd_timer_t *timer; 		/* timer used as poll_fd */

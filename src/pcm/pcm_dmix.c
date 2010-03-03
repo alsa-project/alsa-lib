@@ -605,8 +605,8 @@ static int snd_pcm_dmix_drop(snd_pcm_t *pcm)
 	snd_pcm_direct_t *dmix = pcm->private_data;
 	if (dmix->state == SND_PCM_STATE_OPEN)
 		return -EBADFD;
-	snd_pcm_direct_timer_stop(dmix);
 	dmix->state = SND_PCM_STATE_SETUP;
+	snd_pcm_direct_timer_stop(dmix);
 	return 0;
 }
 
