@@ -1529,7 +1529,7 @@ int snd_pcm_share_open(snd_pcm_t **pcmp, const char *name, const char *sname,
 	pcm->private_data = share;
 	pcm->poll_fd = share->client_socket;
 	pcm->poll_events = stream == SND_PCM_STREAM_PLAYBACK ? POLLOUT : POLLIN;
-	pcm->monotonic = pcm->monotonic;
+	pcm->monotonic = slave->pcm->monotonic;
 	snd_pcm_set_hw_ptr(pcm, &share->hw_ptr, -1, 0);
 	snd_pcm_set_appl_ptr(pcm, &share->appl_ptr, -1, 0);
 
