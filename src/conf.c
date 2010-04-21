@@ -499,22 +499,38 @@ static int safe_strtod(const char *str, double *val)
 {
 	char *end;
 	double v;
+#ifdef HAVE_USELOCALE
+	locale_t saved_locale, c_locale;
+#else
 	char *saved_locale;
 	char locstr[64]; /* enough? */
+#endif
 	int err;
 
 	if (!*str)
 		return -EINVAL;
+#ifdef HAVE_USELOCALE
+	c_locale = newlocale(LC_NUMERIC_MASK, "C", 0);
+	saved_locale = uselocale(c_locale);
+#else
 	saved_locale = setlocale(LC_NUMERIC, NULL);
 	if (saved_locale) {
 		snprintf(locstr, sizeof(locstr), "%s", saved_locale);
 		setlocale(LC_NUMERIC, "C");
 	}
+#endif
 	errno = 0;
 	v = strtod(str, &end);
 	err = -errno;
+#ifdef HAVE_USELOCALE
+	if (c_locale != (locale_t)0) {
+		uselocale(saved_locale);
+		freelocale(c_locale);
+	}
+#else
 	if (saved_locale)
 		setlocale(LC_NUMERIC, locstr);
+#endif
 	if (err)
 		return err;
 	if (*end)
