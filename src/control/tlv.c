@@ -140,10 +140,13 @@ int snd_tlv_get_dB_range(unsigned int *tlv, long rangemin, long rangemax,
 		pos = 2;
 		while (pos + 4 <= len) {
 			long rmin, rmax;
-			rangemin = (int)tlv[pos];
-			rangemax = (int)tlv[pos + 1];
+			long submin, submax;
+			submin = (int)tlv[pos];
+			submax = (int)tlv[pos + 1];
+			if (rangemax < submax)
+				submax = rangemax;
 			err = snd_tlv_get_dB_range(tlv + pos + 2,
-						   rangemin, rangemax,
+						   submin, submax,
 						   &rmin, &rmax);
 			if (err < 0)
 				return err;
@@ -156,6 +159,8 @@ int snd_tlv_get_dB_range(unsigned int *tlv, long rangemin, long rangemax,
 				*min = rmin;
 				*max = rmax;
 			}
+			if (rangemax == submax)
+				return 0;
 			pos += int_index(tlv[pos + 3]) + 4;
 		}
 		return 0;
