@@ -285,13 +285,23 @@ int snd_tlv_convert_from_dB(unsigned int *tlv, long rangemin, long rangemax,
 {
 	switch (tlv[0]) {
 	case SND_CTL_TLVT_DB_RANGE: {
+		long dbmin, dbmax;
 		unsigned int pos, len;
 		len = int_index(tlv[1]);
 		if (len > MAX_TLV_RANGE_SIZE)
 			return -EINVAL;
+		if (snd_tlv_get_dB_range(tlv, rangemin, rangemax,
+					 &dbmin, &dbmax))
+			return -EINVAL;
+		if (db_gain <= dbmin) {
+			*value = rangemin;
+			return 0;
+		} else if (db_gain >= dbmax) {
+			*value = rangemax;
+			return 0;
+		}
 		pos = 2;
 		while (pos + 4 <= len) {
-			long dbmin, dbmax;
 			rangemin = (int)tlv[pos];
 			rangemax = (int)tlv[pos + 1];
 			if (!snd_tlv_get_dB_range(tlv + pos + 2,
