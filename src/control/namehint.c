@@ -471,6 +471,8 @@ static int get_card_name(struct hint_list *list, int card)
 	char scard[16], *s;
 	int err;
 
+	free(list->cardname);
+	list->cardname = NULL;
 	err = snd_card_get_name(card, &list->cardname);
 	if (err <= 0)
 		return 0;
