@@ -442,7 +442,7 @@ int snd_ctl_get_dB_range(snd_ctl_t *ctl, const snd_ctl_elem_id_t *id,
 	return snd_tlv_get_dB_range(info.tlv, info.minval, info.maxval,
 				    min, max);
 }
-	
+
 /**
  * \brief Convert the volume value to dB on the given control element
  * \param ctl the control handler
