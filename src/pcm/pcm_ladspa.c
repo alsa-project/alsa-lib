@@ -341,6 +341,8 @@ static void snd_pcm_ladspa_free_instances(snd_pcm_t *pcm, snd_pcm_ladspa_t *lads
 						free(instance->output.m_data[idx]);
 					free(instance->output.m_data);
                                 }
+                                free(instance->input.data);
+                                free(instance->output.data);
 				list_del(&(instance->list));
 				snd_pcm_ladspa_free_eps(&instance->input);
 				snd_pcm_ladspa_free_eps(&instance->output);
