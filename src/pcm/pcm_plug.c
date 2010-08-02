@@ -485,7 +485,7 @@ static int snd_pcm_plug_change_format(snd_pcm_t *pcm, snd_pcm_t **new, snd_pcm_p
 	/* No conversion is needed */
 	if (clt->format == slv->format &&
 	    clt->rate == slv->rate &&
-	    clt->channels == clt->channels)
+	    clt->channels == slv->channels)
 		return 0;
 
 	if (snd_pcm_format_linear(slv->format)) {
