@@ -321,7 +321,7 @@ long timediff(snd_timestamp_t t1, snd_timestamp_t t2)
 	l = (signed long) t1.tv_usec - (signed long) t2.tv_usec;
 	if (l < 0) {
 		t1.tv_sec--;
-		l = -l;
+		l = 1000000 + l;
 		l %= 1000000;
 	}
 	return (t1.tv_sec * 1000000) + l;
