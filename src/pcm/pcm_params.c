@@ -1081,7 +1081,6 @@ int snd_pcm_hw_param_never_eq(const snd_pcm_hw_params_t *params,
 static int snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 {
 	int err;
-	const char *compat = getenv("LIBASOUND_COMPAT");
 #ifdef CHOOSE_DEBUG
 	snd_output_t *log;
 	snd_output_stdio_attach(&log, stderr, 0);
@@ -1115,7 +1114,7 @@ static int snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 			snd_pcm_hw_param_set_min(pcm, params, SND_CHANGE, SND_PCM_HW_PARAM_PERIOD_TIME, &min, &dir);
 		}
 	}
-	if (compat && *compat) {
+	if (pcm->compat) {
 		/* old mode */
 		err = snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, NULL, 0);
 		if (err < 0)
