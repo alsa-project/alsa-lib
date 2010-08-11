@@ -179,6 +179,7 @@ struct _snd_pcm {
 	snd_pcm_type_t type;
 	snd_pcm_stream_t stream;
 	int mode;
+	long minperiodtime;		/* in us */
 	int poll_fd_count;
 	int poll_fd;
 	unsigned short poll_events;

@@ -1102,8 +1102,19 @@ static int snd_pcm_hw_params_choose(snd_pcm_t *pcm, snd_pcm_hw_params_t *params)
 	if (err < 0)
 		return err;
 	err = snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_RATE, NULL, 0);
-	if (err < 0)
 		return err;
+	if (pcm->minperiodtime > 0) {
+		unsigned int min, max;
+		int dir = 1;
+		err = snd_pcm_hw_param_get_min(params, SND_PCM_HW_PARAM_PERIOD_TIME, &min, &dir);
+		if (err >= 0)
+			err = snd_pcm_hw_param_get_max(params, SND_PCM_HW_PARAM_PERIOD_TIME, &max, &dir);
+		if (err >= 0 && (long)min < pcm->minperiodtime &&
+			        (long)max > pcm->minperiodtime) {
+			min = pcm->minperiodtime; dir = 1;
+			snd_pcm_hw_param_set_min(pcm, params, SND_CHANGE, SND_PCM_HW_PARAM_PERIOD_TIME, &min, &dir);
+		}
+	}
 	if (compat && *compat) {
 		/* old mode */
 		err = snd_pcm_hw_param_set_first(pcm, params, SND_PCM_HW_PARAM_PERIOD_TIME, NULL, 0);

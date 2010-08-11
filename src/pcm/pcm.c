@@ -2058,7 +2058,7 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 	const char *str;
 	char *buf = NULL, *buf1 = NULL;
 	int err;
-	snd_config_t *conf, *type_conf = NULL;
+	snd_config_t *conf, *type_conf = NULL, *tmp;
 	snd_config_iterator_t i, next;
 	const char *id;
 	const char *lib = NULL, *open_name = NULL;
@@ -2190,6 +2190,12 @@ static int snd_pcm_open_conf(snd_pcm_t **pcmp, const char *name,
 			if (h)
 				snd_dlclose(h);
 		}
+	}
+	if (err >= 0) {
+		err = snd_config_search(pcm_root, "defaults.pcm.minperiodtime", &tmp);
+		if (err >= 0)
+			snd_config_get_integer(tmp, &(*pcmp)->minperiodtime);
+		err = 0;
 	}
 	if (type_conf)
 		snd_config_delete(type_conf);
