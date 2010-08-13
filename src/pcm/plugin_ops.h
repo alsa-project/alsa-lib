@@ -407,7 +407,7 @@ get16_123_B2_18: sample = (_get_triple_s(src) >> 2) ^ 0x8000; goto GET16_END;
 
 #ifdef PUT16_LABELS
 /* dst_wid dst_endswap sign_toggle */
-static void *const put16_labels[4 * 2 * 2] = {
+static void *const put16_labels[4 * 2 * 2 + 4 * 3] = {
 	&&put16_12_1,		 /* 16h ->  8h */
 	&&put16_12_9,		 /* 16h ^>  8h */
 	&&put16_12_1,		 /* 16h ->  8s */
@@ -424,6 +424,19 @@ static void *const put16_labels[4 * 2 * 2] = {
 	&&put16_12_9200,	 /* 16h ^> 32h */
 	&&put16_12_0021,	 /* 16h -> 32s */
 	&&put16_12_0029,	 /* 16h ^> 32s */
+	/* 3bytes format */
+	&&put16_12_120,		 /* 16h -> 24h */
+	&&put16_12_920,		 /* 16h ^> 24h */
+	&&put16_12_021,		 /* 16h -> 24s */
+	&&put16_12_029,		 /* 16h ^> 24s */
+	&&put16_12_120_20,	 /* 16h -> 20h */
+	&&put16_12_920_20,	 /* 16h ^> 20h */
+	&&put16_12_021_20,	 /* 16h -> 20s */
+	&&put16_12_029_20,	 /* 16h ^> 20s */
+	&&put16_12_120_18,	 /* 16h -> 18h */
+	&&put16_12_920_18,	 /* 16h ^> 18h */
+	&&put16_12_021_18,	 /* 16h -> 18s */
+	&&put16_12_029_18,	 /* 16h ^> 18s */
 };
 #endif
 
@@ -443,6 +456,18 @@ put16_12_1200: as_u32(dst) = (u_int32_t)sample << 16; goto PUT16_END;
 put16_12_9200: as_u32(dst) = (u_int32_t)(sample ^ 0x8000) << 16; goto PUT16_END;
 put16_12_0021: as_u32(dst) = (u_int32_t)bswap_16(sample); goto PUT16_END;
 put16_12_0029: as_u32(dst) = (u_int32_t)bswap_16(sample) ^ 0x80; goto PUT16_END;
+put16_12_120: _put_triple(dst, (u_int32_t)sample << 8); goto PUT16_END;
+put16_12_920: _put_triple(dst, (u_int32_t)(sample ^ 0x8000) << 8); goto PUT16_END;
+put16_12_021: _put_triple_s(dst, (u_int32_t)sample << 8); goto PUT16_END;
+put16_12_029: _put_triple_s(dst, (u_int32_t)(sample ^ 0x8000) << 8); goto PUT16_END;
+put16_12_120_20: _put_triple(dst, (u_int32_t)sample << 4); goto PUT16_END;
+put16_12_920_20: _put_triple(dst, (u_int32_t)(sample ^ 0x8000) << 4); goto PUT16_END;
+put16_12_021_20: _put_triple_s(dst, (u_int32_t)sample << 4); goto PUT16_END;
+put16_12_029_20: _put_triple_s(dst, (u_int32_t)(sample ^ 0x8000) << 4); goto PUT16_END;
+put16_12_120_18: _put_triple(dst, (u_int32_t)sample << 2); goto PUT16_END;
+put16_12_920_18: _put_triple(dst, (u_int32_t)(sample ^ 0x8000) << 2); goto PUT16_END;
+put16_12_021_18: _put_triple_s(dst, (u_int32_t)sample << 2); goto PUT16_END;
+put16_12_029_18: _put_triple_s(dst, (u_int32_t)(sample ^ 0x8000) << 2); goto PUT16_END;
 }
 #endif
 
