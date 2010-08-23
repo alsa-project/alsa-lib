@@ -174,7 +174,7 @@ typedef struct {
 } snd_pcm_fast_ops_t;
 
 struct _snd_pcm {
-	void *dl_handle;
+	void *open_func;
 	char *name;
 	snd_pcm_type_t type;
 	snd_pcm_stream_t stream;

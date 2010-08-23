@@ -254,10 +254,10 @@ static inline int snd_open_device(const char *filename, int fmode)
 }
 
 /* make local functions really local */
-#define snd_dlobj_cache_lookup \
-	snd1_dlobj_cache_lookup
-#define snd_dlobj_cache_add \
-	snd1_dlobj_cache_add
+#define snd_dlobj_cache_get \
+	snd1_dlobj_cache_get
+#define snd_dlobj_cache_put \
+	snd1_dlobj_cache_put
 #define snd_dlobj_cache_cleanup \
 	snd1_dlobj_cache_cleanup
 #define snd_config_set_hop \
@@ -268,8 +268,8 @@ static inline int snd_open_device(const char *filename, int fmode)
 	snd1_config_search_alias_hooks
 
 /* dlobj cache */
-void *snd_dlobj_cache_lookup(const char *name);
-int snd_dlobj_cache_add(const char *name, void *dlobj, void *open_func);
+void *snd_dlobj_cache_get(const char *lib, const char *name, const char *version, int verbose);
+int snd_dlobj_cache_put(void *open_func);
 void snd_dlobj_cache_cleanup(void);
 
 /* for recursive checks */

@@ -29,6 +29,9 @@
 
 #include "list.h"
 #include "local.h"
+#ifdef HAVE_LIBPTHREAD
+#include <pthread.h>
+#endif
 
 #ifndef DOC_HIDDEN
 #ifndef PIC
@@ -169,69 +172,140 @@ void *snd_dlsym(void *handle, const char *name, const char *version)
 
 /*
  * dlobj cache
- *
- * FIXME: add reference counter and proper locking
  */
 
 #ifndef DOC_HIDDEN
 struct dlobj_cache {
+	const char *lib;
 	const char *name;
-	void *obj;
+	void *dlobj;
 	void *func;
+	unsigned int refcnt;
 	struct list_head list;
 };
 
-static LIST_HEAD(pcm_dlobj_list);
+#ifdef HAVE_LIBPTHREAD
+static pthread_mutex_t snd_dlobj_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void *snd_dlobj_cache_lookup(const char *name)
+static inline void snd_dlobj_lock(void)
 {
-	struct list_head *p;
-	struct dlobj_cache *c;
-
-	list_for_each(p, &pcm_dlobj_list) {
-		c = list_entry(p, struct dlobj_cache, list);
-		if (strcmp(c->name, name) == 0)
-			return c->func;
-	}
-	return NULL;
+	pthread_mutex_lock(&snd_dlobj_mutex);
 }
 
-int snd_dlobj_cache_add(const char *name, void *dlobj, void *open_func)
+static inline void snd_dlobj_unlock(void)
+{
+	pthread_mutex_unlock(&snd_dlobj_mutex);
+}
+#else
+static inline void snd_dlobj_lock(void) {}
+static inline void snd_dlobj_unlock(void) {}
+#endif
+
+static LIST_HEAD(pcm_dlobj_list);
+
+void *snd_dlobj_cache_get(const char *lib, const char *name,
+			  const char *version, int verbose)
 {
 	struct list_head *p;
 	struct dlobj_cache *c;
+	void *func, *dlobj = NULL;
+	int dlobj_close = 0;
 
+	snd_dlobj_lock();
 	list_for_each(p, &pcm_dlobj_list) {
 		c = list_entry(p, struct dlobj_cache, list);
-		if (strcmp(c->name, name) == 0)
-			return 0; /* already exists */
+		if (c->lib && lib && strcmp(c->lib, lib) != 0)
+			continue;
+		if (!c->lib && lib)
+			continue;
+		if (!lib && c->lib)
+			continue;
+		dlobj = c->dlobj;
+		if (strcmp(c->name, name) == 0) {
+			c->refcnt++;
+			func = c->func;
+			snd_dlobj_unlock();
+			return func;
+		}
+	}
+	if (dlobj == NULL) {
+		dlobj = snd_dlopen(lib, RTLD_NOW);
+		if (dlobj == NULL) {
+			if (verbose)
+				SNDERR("Cannot open shared library %s",
+						lib ? lib : "[builtin]");
+			snd_dlobj_unlock();
+			return NULL;
+		}
+		dlobj_close = 1;
+	}
+	func = snd_dlsym(dlobj, name, version);
+	if (func == NULL) {
+		if (verbose)
+			SNDERR("symbol %s is not defined inside %s",
+					name, lib ? lib : "[builtin]");
+		goto __err;
 	}
 	c = malloc(sizeof(*c));
 	if (! c)
-		return -ENOMEM;
+		goto __err;
+	c->refcnt = 1;
+	c->lib = lib ? strdup(lib) : NULL;
 	c->name = strdup(name);
-	if (! c->name) {
+	if ((lib && ! c->lib) || ! c->name) {
+		free((void *)c->name);
+		free((void *)c->lib);
 		free(c);
-		return -ENOMEM;
+	      __err:
+		if (dlobj_close)
+			snd_dlclose(dlobj);
+		snd_dlobj_unlock();
+		return NULL;
 	}
-	c->obj = dlobj;
-	c->func = open_func;
+	c->dlobj = dlobj;
+	c->func = func;
 	list_add_tail(&c->list, &pcm_dlobj_list);
-	return 0;
+	snd_dlobj_unlock();
+	return func;
+}
+
+int snd_dlobj_cache_put(void *func)
+{
+	struct list_head *p;
+	struct dlobj_cache *c;
+	unsigned int refcnt;
+
+	snd_dlobj_lock();
+	list_for_each(p, &pcm_dlobj_list) {
+		c = list_entry(p, struct dlobj_cache, list);
+		if (c->func == func) {
+			refcnt = c->refcnt;
+			if (c->refcnt > 0)
+				c->refcnt--;
+			snd_dlobj_unlock();
+			return refcnt == 1 ? 0 : -EINVAL;
+		}
+	}
+	snd_dlobj_unlock();
+	return -ENOENT;
 }
 
 void snd_dlobj_cache_cleanup(void)
 {
-	struct list_head *p;
+	struct list_head *p, *npos;
 	struct dlobj_cache *c;
 
-	while (! list_empty(&pcm_dlobj_list)) {
-		p = pcm_dlobj_list.next;
+	snd_dlobj_lock();
+	list_for_each_safe(p, npos, &pcm_dlobj_list) {
 		c = list_entry(p, struct dlobj_cache, list);
-		list_del(p);
-		snd_dlclose(c->obj);
-		free((void *)c->name); /* shut up gcc warning */
-		free(c);
+		if (c->refcnt == 0) {
+			list_del(p);
+			snd_dlclose(c->dlobj);
+			free((void *)c->name); /* shut up gcc warning */
+			free((void *)c->lib); /* shut up gcc warning */
+			free(c);
+		}
 	}
+	snd_dlobj_unlock();
 }
 #endif

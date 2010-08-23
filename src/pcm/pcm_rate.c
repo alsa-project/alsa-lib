@@ -61,6 +61,7 @@ struct _snd_pcm_rate {
 	snd_pcm_channel_area_t *pareas;	/* areas for splitted period (rate pcm) */
 	snd_pcm_channel_area_t *sareas;	/* areas for splitted period (slave pcm) */
 	snd_pcm_rate_info_t info;
+	void *open_func;
 	void *obj;
 	snd_pcm_rate_ops_t ops;
 	unsigned int get_idx;
@@ -1204,6 +1205,8 @@ static int snd_pcm_rate_close(snd_pcm_t *pcm)
 
 	if (rate->ops.close)
 		rate->ops.close(rate->obj);
+	if (rate->open_func)
+		snd_dlobj_cache_put(rate->open_func);
 	return snd_pcm_generic_close(pcm);
 }
 
@@ -1272,33 +1275,23 @@ static const char *const default_rate_plugins[] = {
 	"speexrate", "linear", NULL
 };
 
-static int rate_open_func(snd_pcm_rate_t *rate, const char *type)
+static int rate_open_func(snd_pcm_rate_t *rate, const char *type, int verbose)
 {
-	char open_name[64];
+	char open_name[64], lib_name[128], *lib = NULL;
 	snd_pcm_rate_open_func_t open_func;
 	int err;
 
 	snprintf(open_name, sizeof(open_name), "_snd_pcm_rate_%s_open", type);
-	open_func = snd_dlobj_cache_lookup(open_name);
-	if (!open_func) {
-		void *h;
-		char lib_name[128], *lib = NULL;
-		if (!is_builtin_plugin(type)) {
-			snprintf(lib_name, sizeof(lib_name),
+	if (!is_builtin_plugin(type)) {
+		snprintf(lib_name, sizeof(lib_name),
 				 "%s/libasound_module_rate_%s.so", ALSA_PLUGIN_DIR, type);
-			lib = lib_name;
-		}
-		h = snd_dlopen(lib, RTLD_NOW);
-		if (!h)
-			return -ENOENT;
-		open_func = snd_dlsym(h, open_name, NULL);
-		if (!open_func) {
-			snd_dlclose(h);
-			return -ENOENT;
-		}
-		snd_dlobj_cache_add(open_name, h, open_func);
+		lib = lib_name;
 	}
+	open_func = snd_dlobj_cache_get(lib, open_name, NULL, verbose);
+	if (!open_func)
+		return -ENOENT;
 
+	rate->open_func = open_func;
 	rate->rate_min = SND_PCM_PLUGIN_RATE_MIN;
 	rate->rate_max = SND_PCM_PLUGIN_RATE_MAX;
 	rate->plugin_version = SND_PCM_RATE_PLUGIN_VERSION;
@@ -1315,8 +1308,13 @@ static int rate_open_func(snd_pcm_rate_t *rate, const char *type)
 
 	/* try to open with the old protocol version */
 	rate->plugin_version = SND_PCM_RATE_PLUGIN_VERSION_OLD;
-	return open_func(SND_PCM_RATE_PLUGIN_VERSION_OLD,
-			 &rate->obj, &rate->ops);
+	err = open_func(SND_PCM_RATE_PLUGIN_VERSION_OLD,
+			&rate->obj, &rate->ops);
+	if (err) {
+		snd_dlobj_cache_put(open_func);
+		rate->open_func = NULL;
+	}
+	return err;
 }
 #endif
 
@@ -1373,21 +1371,21 @@ int snd_pcm_rate_open(snd_pcm_t **pcmp, const char *name,
 	if (!converter) {
 		const char *const *types;
 		for (types = default_rate_plugins; *types; types++) {
-			err = rate_open_func(rate, *types);
+			err = rate_open_func(rate, *types, 0);
 			if (!err) {
 				type = *types;
 				break;
 			}
 		}
 	} else if (!snd_config_get_string(converter, &type))
-		err = rate_open_func(rate, type);
+		err = rate_open_func(rate, type, 1);
 	else if (snd_config_get_type(converter) == SND_CONFIG_TYPE_COMPOUND) {
 		snd_config_iterator_t i, next;
 		snd_config_for_each(i, next, converter) {
 			snd_config_t *n = snd_config_iterator_entry(i);
 			if (snd_config_get_string(n, &type) < 0)
 				break;
-			err = rate_open_func(rate, type);
+			err = rate_open_func(rate, type, 0);
 			if (!err)
 				break;
 		}
