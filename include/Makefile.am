@@ -5,7 +5,7 @@ alsaincludedir = ${includedir}/alsa
 
 alsainclude_HEADERS = asoundlib.h asoundef.h \
 		      version.h global.h input.h output.h error.h \
-		      conf.h control.h iatomic.h
+		      conf.h control.h iatomic.h use-case.h
 
 if BUILD_CTL_PLUGIN_EXT
 alsainclude_HEADERS += control_external.h

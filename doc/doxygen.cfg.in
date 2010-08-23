@@ -28,6 +28,7 @@ INPUT            = @top_srcdir@/doc/index.doxygen \
 		   @top_srcdir@/include/pcm_ioplug.h \
 		   @top_srcdir@/include/control_external.h \
 		   @top_srcdir@/include/mixer.h \
+		   @top_srcdir@/include/use-case.h \
 		   @top_srcdir@/src/error.c \
 		   @top_srcdir@/src/dlmisc.c \
 		   @top_srcdir@/src/async.c \
