@@ -98,12 +98,12 @@ extern "C" {
 #define SND_USE_CASE_VERB_INACTIVE		"Inactive"
 #define SND_USE_CASE_VERB_HIFI			"HiFi"
 #define SND_USE_CASE_VERB_HIFI_LOW_POWER	"HiFi Low Power"
-#define SND_USE_CASE_VERB_VOICE		"Voice"
+#define SND_USE_CASE_VERB_VOICE			"Voice"
 #define SND_USE_CASE_VERB_VOICE_LOW_POWER	"Voice Low Power"
 #define SND_USE_CASE_VERB_VOICECALL		"Voice Call"
 #define SND_USE_CASE_VERB_IP_VOICECALL		"Voice Call IP"
 #define SND_USE_CASE_VERB_ANALOG_RADIO		"FM Analog Radio"
-#define SND_USE_CASE_VERB_DIGITAL_RADIO	"FM Digital Radio"
+#define SND_USE_CASE_VERB_DIGITAL_RADIO		"FM Digital Radio"
 /* add new verbs to end of list */
 
 
@@ -135,13 +135,13 @@ extern "C" {
  * e.g. to record a voice call :-
  *  1. Set verb to SND_USE_CASE_VERB_VOICECALL (for voice call)
  *  2. Set modifier SND_USE_CASE_MOD_CAPTURE_VOICE when capture required.
- *  3. Call snd_use_case_get_verb_capture_pcm() to get ALSA source PCM
+ *  3. Call snd_use_case_get("_pcm_/_cdevice") to get ALSA source PCM name
  *     with captured voice pcm data.
  *
  * e.g. to play a ring tone when listenin to MP3 Music :-
  *  1. Set verb to SND_USE_CASE_VERB_HIFI (for MP3 playback)
  *  2. Set modifier to SND_USE_CASE_MOD_PLAY_TONE when incoming call happens.
- *  3. Call snd_use_case_get_verb_playback_pcm() to get ALSA PCM sink for
+ *  3. Call snd_use_case_get("_pcm_/_pdevice") to get ALSA PCM sink name for
  *     ringtone pcm data.
  */
 #define SND_USE_CASE_MOD_CAPTURE_VOICE		"Capture Voice"
@@ -154,231 +154,124 @@ extern "C" {
 
 
 /**
- * QoS - Quality of Service
+ * TQ - Tone Quality
  *
- * The interface allows clients to determine the audio QoS required for each
+ * The interface allows clients to determine the audio TQ required for each
  * use case verb and modifier. It's intended as an optional hint to the
  * audio driver in order to lower power consumption.
  *
  */
-enum snd_use_case_qos {
-	SND_USE_CASE_QOS_UNKNOWN,
-	SND_USE_CASE_QOS_MUSIC,
-	SND_USE_CASE_QOS_VOICE,
-	SND_USE_CASE_QOS_TONES,
-};
-
-/*
- * Use Case Control Aliases.
- *
- * Use cases often use different internal hardware paths to route digital and
- * analog audio. This can mean different controls are used to change volumes
- * depending on the particular use case. This interface allows clients to
- * find out the hardware controls associated with each use case.
- */
-enum snd_use_case_control_alias {
-	SND_USE_CASE_ALIAS_PLAYBACK_VOLUME = 0,
-	SND_USE_CASE_ALIAS_PLAYBACK_SWITCH,
-	SND_USE_CASE_ALIAS_CAPTURE_VOLUME,
-	SND_USE_CASE_ALIAS_CAPTURE_SWITCH,
-};
+#define SND_USE_CASE_TQ_MUSIC		"Music"
+#define SND_USE_CASE_TQ_VOICE		"Voice"
+#define SND_USE_CASE_TQ_TONES		"Tones"
 
 /** use case container */
 typedef struct snd_use_case_mgr snd_use_case_mgr_t;
 
 /**
- * \brief List supported use case verbs for given soundcard
+ * \brief Create an identifier
+ * \param fmt Format (sprintf like)
+ * \param ... Optional arguments for sprintf like format
+ * \return Allocated string identifier or NULL on error
+ */
+char *snd_use_case_identifier(const char *fmt, ...);
+
+/**
+ * \brief Obtain a list of entries
  * \param uc_mgr Use case manager
- * \param verb Returned list of supported use case verbs
- * \return Number of use case verbs if success, otherwise a negative error code
- */
-int snd_use_case_get_verb_list(snd_use_case_mgr_t *uc_mgr, const char **verb[]);
-
-/**
- * \brief List supported use case devices for given use case verb
- * \param uc_mgr Use case manager
- * \param verb Verb name.
- * \param device Returned list of supported use case devices
- * \return Number of use case devices if success, otherwise a negative error code
- */
-int snd_use_case_get_device_list(snd_use_case_mgr_t *uc_mgr,
-		const char *verb, const char **device[]);
-
-/**
- * \brief List supported use case verb modifiers for given verb
- * \param uc_mgr use case manager
- * \param verb verb id.
- * \param mod returned list of supported use case modifier id and names
- * \return number of use case modifiers if success, otherwise a negative error code
- */
-int snd_use_case_get_mod_list(snd_use_case_mgr_t *uc_mgr,
-		const char *verb, const char **mod[]);
-
-/**
- * \brief Get current use case verb for sound card
- * \param uc_mgr Use case manager
- * \return Verb if success, otherwise NULL
- */
-const char *snd_use_case_get_verb(snd_use_case_mgr_t *uc_mgr);
-
-/**
- * \brief Set new use case verb for sound card
- * \param uc_mgr Use case manager
- * \param verb Verb
- * \return Zero if success, otherwise a negative error code
- */
-int snd_use_case_set_verb(snd_use_case_mgr_t *uc_mgr, const char *verb);
-
-/**
- * \brief Enable use case device for current use case verb
- * \param uc_mgr Use case manager
- * \param device Device
- * \return Zero if success, otherwise a negative error code
- */
-int snd_use_case_enable_device(snd_use_case_mgr_t *uc_mgr, const char *device);
-
-/**
- * \brief Disable use case device for current use case verb
- * \param uc_mgr Use case manager
- * \param device Device
- * \return Zero if success, otherwise a negative error code
- */
-int snd_use_case_disable_device(snd_use_case_mgr_t *uc_mgr, const char *device);
-
-/**
- * \brief Disable old_device and then enable new_device.
- *        If from_device is not enabled just return.
- *        Check transmit sequence firstly.
- * \param uc_mgr Use case manager
- * \param old the device to be closed
- * \param new the device to be opened
- * \return 0 = successful negative = error
- */
-int snd_use_case_switch_device(snd_use_case_mgr_t *uc_mgr,
-			const char *old, const char *new);
-
-
-/**
- * \brief Enable use case modifier for current use case verb
- * \param uc_mgr Use case manager
- * \param modifier Modifier
- * \return Zero if success, otherwise a negative error code
- */
-int snd_use_case_enable_modifier(snd_use_case_mgr_t *uc_mgr,
-		const char *modifier);
-
-/**
- * \brief Disable use case modifier for curent use case verb
- * \param uc_mgr Use case manager
- * \param modifier Modifier
- * \return Zero if success, otherwise a negative error code
- */
-int snd_use_case_disable_modifier(snd_use_case_mgr_t *uc_mgr,
-		const char *modifier);
-
-/**
- * \brief Disable old_modifier and then enable new_modifier.
- *        If old_modifier is not enabled just return.
- *        Check transmit sequence firstly.
- * \param uc_mgr Use case manager
- * \param old the modifier to be closed
- * \param new the modifier to be opened
- * \return 0 = successful negative = error
- */
-int snd_use_case_switch_modifier(snd_use_case_mgr_t *uc_mgr,
-			const char *old, const char *new);
-
-/**
- * \brief Get device status for current use case verb
- * \param uc_mgr Use case manager
- * \param device_name The device we are interested in.
- * \return - 1 = enabled, 0 = disabled, negative = error
- */
-int snd_use_case_get_device_status(snd_use_case_mgr_t *uc_mgr,
-		const char *device_name);
-
-/**
- * \brief Get modifier status for current use case verb
- * \param uc_mgr Use case manager
- * \param device_name The device we are interested in.
- * \return - 1 = enabled, 0 = disabled, negative = error
- */
-int snd_use_case_get_modifier_status(snd_use_case_mgr_t *uc_mgr,
-		const char *modifier_name);
-
-/**
- * \brief Get the current use case verb QoS
- * \param uc_mgr Use case manager
- * \return QoS level
- */
-enum snd_use_case_qos snd_use_case_get_verb_qos(snd_use_case_mgr_t *uc_mgr);
-
-/**
- * \brief Get use case modifier QoS
- * \param uc_mgr use case manager
- * \param modifier Modifier
- * \return QoS level
- */
-enum snd_use_case_qos snd_use_case_get_mod_qos(snd_use_case_mgr_t *uc_mgr,
-	const char *modifier);
-
-/**
- * \brief Get the current use case verb playback PCM sink ID.
- * \param uc_mgr use case manager
- * \return PCM number if success, otherwise negative
- */
-int snd_use_case_get_verb_playback_pcm(snd_use_case_mgr_t *uc_mgr);
-
-/**
- * \brief Get the current use case verb capture PCM source ID
- * \param uc_mgr Use case manager
- * \return PCM number if success, otherwise negative
- */
-int snd_use_case_get_verb_capture_pcm(snd_use_case_mgr_t *uc_mgr);
-
-/**
- * \brief Get use case modifier playback PCM sink ID
- * \param uc_mgr Use case manager
- * \param modifier Modifier
- * \return PCM number if success, otherwise negative
- */
-int snd_use_case_get_mod_playback_pcm(snd_use_case_mgr_t *uc_mgr,
-	const char *modifier);
-
-/**
- * \brief Get use case modifier capture PCM source ID
- * \param uc_mgr Use case manager
- * \param modifier Modifier
- * \return PCM number if success, otherwise negative
- */
-int snd_use_case_get_mod_capture_pcm(snd_use_case_mgr_t *uc_mgr,
-	const char *modifier);
-
-/**
- * \brief Get ALSA volume/mute control names depending on use case device.
- * \param uc_mgr Use case manager
- * \param type The control type we are looking for
- * \param device The device we are interested in.
- * \return name if success, otherwise NULL
+ * \param identifier (may be NULL)
+ * \param list Returned list
+ * \return Number of list entries if success, otherwise a negative error code
  *
- * Get the control name for common volume and mute controls that are aliased
- * in the current use case verb.
+ * Defined identifiers:
+ *   NULL 		- get card list
+ *			  (in pair verb+comment)
+ *   _verbs		- get verb list
+ *			  (in pair verb+comment)
+ *   _devices[/<verb>]	- get list of supported devices
+ *			  (in pair device+comment)
+ *   _modifiers[/<verb>]- get list of supported modifiers
+ *			  (in pair modifier+comment)
+ *   _tqs[/<verb>]	- get list of QoS identifiers
+ *   _enadevs		- get list of enabled devices
+ *   _enamods		- get list of enabled modifiers
+ *
  */
-const char *snd_use_case_get_device_ctl_elem_id(snd_use_case_mgr_t *uc_mgr,
-		enum snd_use_case_control_alias type, const char *device);
+int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
+                          const char *identifier,
+                          const char **list[]);
+
 
 /**
- * \brief Get ALSA volume/mute control names depending on use case modifier.
+ * \brief Get current - string
  * \param uc_mgr Use case manager
- * \param type The control type we are looking for
- * \param modifier The modifier we are interested in.
- * \return name if success, otherwise NULL
+ * \param identifier 
+ * \param value Value pointer
+ * \return Zero if success, otherwise a negative error code
  *
- * Get the control name for common volume and mute controls that are aliased
- * in the current use case modifier.
+ * Note: String is dynamically allocated, use free() to
+ * deallocate this string.
+ *
+ * Known identifiers:
+ *   NULL 				- return current card
+ *   _verb				- return current verb
+ *   _pcm_/_pdevice[/<modifier>]	- full PCM playback device name
+ *   _pcm_/_cdevice[/<modifier>]	- full PCM capture device name
+ *   _ctl_/_pctl_[/<modifier>]		- playback control device name
+ *   _ctl_/_pctlvol[/<modifier>]	- playback control volume ID string
+ *   _ctl_/_pctlsw[/<modifier>]		- playback control switch ID string
+ *   _ctl_/_cctl[/<modifier>]		- capture control device name
+ *   _ctl_/_cctlvol[/<modifier>]	- capture control volume ID string
+ *   _ctl_/_cctlsw[/<modifier>]		- capture control switch ID string
+ *   _mixer_/_pname[/<modifier>]	- name of playback mixer
+ *   _mixer_/_pid[/<modifier>]		- mixer playback ID
+ *   _mixer_/_cname[/<modifier>]	- name of capture mixer
+ *   _mixer_/_cid[/<modifier>]		- mixer capture ID
  */
-const char *snd_use_case_get_modifier_ctl_elem_id(snd_use_case_mgr_t *uc_mgr,
-		enum snd_use_case_control_alias type, const char *modifier);
+int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
+                     const char *identifier,
+                     const char **value);
+
+/**
+ * \brief Get current - integer
+ * \param uc_mgr Use case manager
+ * \param identifier 
+ * \return Value if success, otherwise a negative error code
+ *
+ * Known identifiers:
+ *   _devstatus/<device>	- return status for given device
+ *   _modstatus/<modifier>	- return status for given modifier
+ *   _tq			- return current Tone Quality
+ *   _tq/<modifier>		- return Tone Quality for given modifier
+ */
+int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
+                      const char *identifier);
+
+/**
+ * \brief Set new
+ * \param uc_mgr Use case manager
+ * \param identifier
+ * \param value Value
+ * \return Zero if success, otherwise a negative error code
+ *
+ * Known identifiers:
+ *   _verb 		- set current verb = value
+ *   _enadev		- enable given device = value
+ *   _disdev		- disable given device = value
+ *   _swdev/<old_device> - new_device = value
+ *			- disable old_device and then enable new_device
+ *			- if old_device is not enabled just return
+ *			- check transmit sequence firstly
+ *   _enamod		- enable given modifier = value
+ *   _dismod		- disable given modifier = value
+ *   _swmod/<old_modifier> - new_modifier = value
+ *			- disable old_modifier and then enable new_modifier
+ *			- if old_modifier is not enabled just return
+ *			- check transmit sequence firstly
+ */
+int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
+                     const char *identifier,
+                     const char *value);
 
 /**
  * \brief Open and initialise use case core for sound card
