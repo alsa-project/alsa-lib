@@ -1,0 +1,217 @@
+/*
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ *  Support for the verb/device/modifier core logic and API,
+ *  command line tool and file parser was kindly sponsored by
+ *  Texas Instruments Inc.
+ *  Support for multiple active modifiers and devices,
+ *  transition sequences, multiple client access and user defined use
+ *  cases was kindly sponsored by Wolfson Microelectronics PLC.
+ *
+ *  Copyright (C) 2008-2010 SlimLogic Ltd
+ *  Copyright (C) 2010 Wolfson Microelectronics PLC
+ *  Copyright (C) 2010 Texas Instruments Inc.
+ *  Copyright (C) 2010 Red Hat Inc.
+ *  Authors: Liam Girdwood <lrg@slimlogic.co.uk>
+ *	         Stefan Schmidt <stefan@slimlogic.co.uk>
+ *	         Justin Xu <justinx@slimlogic.co.uk>
+ *               Jaroslav Kysela <perex@perex.cz>
+ */
+
+
+
+#if 0
+#define UC_MGR_DEBUG
+#endif
+
+#include "local.h"
+#include "use-case.h"
+
+#define PRE_SEQ			0
+#define POST_SEQ		1
+#define MAX_FILE		256
+#define ALSA_USE_CASE_DIR	ALSA_CONFIG_DIR "/ucm"
+#define ARRAY_SIZE(x)		(sizeof(x)/sizeof(x[0]))
+#define VERB_NOT_INITIALISED	-1
+
+#define SEQUENCE_ELEMENT_TYPE_CSET	1
+#define SEQUENCE_ELEMENT_TYPE_SLEEP	2
+#define SEQUENCE_ELEMENT_TYPE_EXEC	3
+
+struct sequence_element {
+	struct list_head list;
+	unsigned int type;
+	union {
+		long sleep; /* Sleep time in msecs if sleep element, else 0 */
+		char *cset;
+		char *exec;
+	} data;
+};
+
+/*
+ * Transition sequences. i.e. transition between one verb, device, mod to another
+ */
+struct transition_sequence {
+	struct list_head list;
+	char *name;
+	struct list_head transition_list;
+};
+
+/*
+ * Modifier Supported Devices.
+ */
+struct dev_list {
+	struct list_head list;
+	char *name;
+};
+
+
+/*
+ * Describes a Use Case Modifier and it's enable and disable sequences.
+ * A use case verb can have N modifiers.
+ */
+struct use_case_modifier {
+	struct list_head list;
+	struct list_head active_list;
+
+	char *name;
+	char *comment;
+
+	/* modifier enable and disable sequences */
+	struct list_head enable_list;
+	struct list_head disable_list;
+
+	/* modifier transition list */
+	struct list_head transition_list;
+
+	/* list of supported devices per modifier */
+	struct list_head dev_list;
+
+	/* ALSA PCM devices associated with any modifier PCM streams */
+	char *capture_pcm;
+	char *playback_pcm;
+
+	/* Any modifier stream TQ */
+	char *tq;
+
+	/* aliased controls */
+	char *playback_ctl;
+	char *playback_volume_id;
+	char *playback_switch_id;
+	char *capture_ctl;
+	char *capture_volume_id;
+	char *capture_switch_id;
+};
+
+/*
+ * Describes a Use Case Device and it's enable and disable sequences.
+ * A use case verb can have N devices.
+ */
+struct use_case_device {
+	struct list_head list;
+	struct list_head active_list;
+
+	unsigned int active: 1;
+
+	char *name;
+	char *comment;
+	long idx; /* index for similar devices i.e. 2 headphone jacks */
+
+	/* device enable and disable sequences */
+	struct list_head enable_list;
+	struct list_head disable_list;
+
+	/* device transition list */
+	struct list_head transition_list;
+
+	/* aliased controls */
+	char *playback_ctl;
+	char *playback_volume_id;
+	char *playback_switch_id;
+	char *capture_ctl;
+	char *capture_volume_id;
+	char *capture_switch_id;
+};
+
+/*
+ * Describes a Use Case Verb and it's enable and disable sequences.
+ * A use case verb can have N devices and N modifiers.
+ */
+struct use_case_verb {
+	struct list_head list;
+
+	unsigned int active: 1;
+
+	char *name;
+	char *comment;
+
+	/* verb enable and disable sequences */
+	struct list_head enable_list;
+	struct list_head disable_list;
+
+	/* verb transition list */
+	struct list_head transition_list;
+
+	/* verb PCMs and TQ */
+	char *tq;
+	char *capture_pcm;
+	char *playback_pcm;
+
+	/* hardware devices that can be used with this use case */
+	struct list_head device_list;
+
+	/* modifiers that can be used with this use case */
+	struct list_head modifier_list;
+};
+
+/*
+ *  Manages a sound card and all its use cases.
+ */
+struct snd_use_case_mgr {
+	char *card_name;
+	char *comment;
+
+	/* use case verb, devices and modifier configs parsed from files */
+	struct list_head verb_list;
+
+	/* default settings - sequence */
+	struct list_head default_list;
+
+	/* current status */
+	struct use_case_verb *active_verb;
+	struct list_head active_devices;
+	struct list_head active_modifiers;
+
+	/* locking */
+	pthread_mutex_t mutex;
+};
+
+#define uc_error SNDERR
+
+#ifdef UC_MGR_DEBUG
+#define uc_dbg SNDERR
+#else
+#define uc_dbg(fmt, arg...)
+#endif
+
+void uc_mgr_error(const char *fmt, ...);
+void uc_mgr_stdout(const char *fmt, ...);
+
+int uc_mgr_config_load(const char *file, snd_config_t **cfg);
+int uc_mgr_import_master_config(snd_use_case_mgr_t *uc_mgr);
+
+void uc_mgr_free_sequence_element(struct sequence_element *seq);
+void uc_mgr_free_verb(snd_use_case_mgr_t *uc_mgr);
+void uc_mgr_free(snd_use_case_mgr_t *uc_mgr);

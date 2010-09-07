@@ -177,10 +177,17 @@ typedef struct snd_use_case_mgr snd_use_case_mgr_t;
 char *snd_use_case_identifier(const char *fmt, ...);
 
 /**
+ * \brief Free a string list
+ * \param list The string list to free
+ * \return Zero if success, otherwise a negative error code
+ */
+int snd_use_case_free_list(const char *list[]);
+
+/**
  * \brief Obtain a list of entries
- * \param uc_mgr Use case manager
- * \param identifier (may be NULL)
- * \param list Returned list
+ * \param uc_mgr Use case manager (may be NULL - card list)
+ * \param identifier (may be NULL - card list)
+ * \param list Returned allocated list
  * \return Number of list entries if success, otherwise a negative error code
  *
  * Defined identifiers:
@@ -215,6 +222,8 @@ int snd_use_case_get_list(snd_use_case_mgr_t *uc_mgr,
  * Known identifiers:
  *   NULL 				- return current card
  *   _verb				- return current verb
+ *   _tq				- return current Tone Quality
+ *   _tq/<modifier>			- return Tone Quality for given modifier
  *   _pcm_/_pdevice[/<modifier>]	- full PCM playback device name
  *   _pcm_/_cdevice[/<modifier>]	- full PCM capture device name
  *   _ctl_/_pctl_[/<modifier>]		- playback control device name
@@ -241,8 +250,6 @@ int snd_use_case_get(snd_use_case_mgr_t *uc_mgr,
  * Known identifiers:
  *   _devstatus/<device>	- return status for given device
  *   _modstatus/<modifier>	- return status for given modifier
- *   _tq			- return current Tone Quality
- *   _tq/<modifier>		- return Tone Quality for given modifier
  */
 int snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
                       const char *identifier);
@@ -275,10 +282,11 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
 
 /**
  * \brief Open and initialise use case core for sound card
+ * \param uc_mgr Returned use case manager pointer
  * \param card_name Sound card name.
- * \return Use case handle if success, otherwise NULL
+ * \return zero if success, otherwise a negative error code
  */
-snd_use_case_mgr_t *snd_use_case_mgr_open(const char *card_name);
+int snd_use_case_mgr_open(snd_use_case_mgr_t **uc_mgr, const char *card_name);
 
 
 /**

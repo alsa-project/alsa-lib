@@ -14,7 +14,7 @@ SYMFUNCS =
 endif
 
 lib_LTLIBRARIES = libasound.la
-libasound_la_SOURCES = conf.c confmisc.c input.c output.c async.c error.c dlmisc.c socket.c shmarea.c userfile.c names.c use-case.c
+libasound_la_SOURCES = conf.c confmisc.c input.c output.c async.c error.c dlmisc.c socket.c shmarea.c userfile.c names.c
 
 SUBDIRS=control
 libasound_la_LIBADD = control/libcontrol.la
@@ -37,6 +37,10 @@ endif
 if BUILD_SEQ
 SUBDIRS += seq
 libasound_la_LIBADD += seq/libseq.la
+endif
+if BUILD_UCM
+SUBDIRS += ucm
+libasound_la_LIBADD += ucm/libucm.la
 endif
 if BUILD_ALISP
 SUBDIRS += alisp
