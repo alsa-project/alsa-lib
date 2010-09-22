@@ -314,6 +314,21 @@ static inline struct use_case_verb *find_verb(snd_use_case_mgr_t *uc_mgr,
 }
 
 /**
+ * \brief Find device
+ * \param verb Use case verb
+ * \param device_name device to find
+ * \return structure on success, otherwise a NULL (not found)
+ */
+static inline struct use_case_device *
+        find_device(struct use_case_verb *verb,
+                      const char *device_name)
+{
+	return find(&verb->device_list,
+		    struct use_case_device, list, name,
+		    device_name);
+}
+
+/**
  * \brief Find modifier
  * \param verb Use case verb
  * \param modifier_name modifier to find
@@ -488,19 +503,15 @@ int snd_use_case_mgr_close(snd_use_case_mgr_t *uc_mgr)
 	return 0;
 }
 
-/**
- * \brief Reset sound card controls to default values.
- * \param uc_mgr Use case manager
- * \return zero on success, otherwise a negative error code
+/*
+ * Tear down current use case verb, device and modifier.
  */
-int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
+static int dismantle_use_case(snd_use_case_mgr_t *uc_mgr)
 {
 	struct list_head *pos, *npos;
 	struct use_case_modifier *modifier;
 	struct use_case_device *device;
 	int err;
-
-	pthread_mutex_lock(&uc_mgr->mutex);
 
 	list_for_each_safe(pos, npos, &uc_mgr->active_modifiers) {
 		modifier = list_entry(pos, struct use_case_modifier,
@@ -529,6 +540,23 @@ int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
 
 	err = execute_sequence(uc_mgr, &uc_mgr->default_list);
 	
+	return err;
+}
+
+/**
+ * \brief Reset sound card controls to default values.
+ * \param uc_mgr Use case manager
+ * \return zero on success, otherwise a negative error code
+ */
+int snd_use_case_mgr_reset(snd_use_case_mgr_t *uc_mgr)
+{
+        int err;
+
+	pthread_mutex_lock(&uc_mgr->mutex);
+	err = execute_sequence(uc_mgr, &uc_mgr->default_list);
+	INIT_LIST_HEAD(&uc_mgr->active_modifiers);
+	INIT_LIST_HEAD(&uc_mgr->active_devices);
+	uc_mgr->active_verb = NULL;
 	pthread_mutex_unlock(&uc_mgr->mutex);
 	return err;
 }
@@ -950,6 +978,190 @@ long snd_use_case_geti(snd_use_case_mgr_t *uc_mgr,
         return err;
 }
 
+static int handle_transition_verb(snd_use_case_mgr_t *uc_mgr,
+                                  struct use_case_verb *new_verb)
+{
+        struct list_head *pos;
+        struct transition_sequence *trans;
+        int err;
+
+        list_for_each(pos, &uc_mgr->active_verb->transition_list) {
+                trans = list_entry(pos, struct transition_sequence, list);
+                if (strcmp(trans->name, new_verb->name) == 0) {
+                        err = execute_sequence(uc_mgr, &trans->transition_list);
+                        if (err >= 0)
+                                return 1;
+                        return err;
+                }
+        }
+        return 0;
+}
+
+static int set_verb_user(snd_use_case_mgr_t *uc_mgr,
+                         const char *verb_name)
+{
+        struct use_case_verb *verb;
+        int err;
+
+        if (uc_mgr->active_verb &&
+            strcmp(uc_mgr->active_verb->name, verb_name) == 0)
+                return 0;
+        if (strcmp(verb_name, SND_USE_CASE_VERB_INACTIVE) != 0) {
+                verb = find_verb(uc_mgr, verb_name);
+                if (verb == NULL)
+                        return -ENOENT;
+        } else {
+                verb = NULL;
+        }
+        if (uc_mgr->active_verb) {
+                err = handle_transition_verb(uc_mgr, verb);
+                if (err == 0) {
+                        err = dismantle_use_case(uc_mgr);
+                        if (err < 0)
+                                return err;
+                } else if (err == 1) {
+                        uc_mgr->active_verb = verb;
+                        verb = NULL;
+                } else {
+                        verb = NULL; /* show error */
+                }
+        }
+        if (verb) {
+                err = set_verb(uc_mgr, verb, 1);
+                if (err < 0)
+                        uc_error("error: failed to initialize new use case: %s",
+                                 verb_name);
+        }
+        return err;
+}
+
+
+static int set_device_user(snd_use_case_mgr_t *uc_mgr,
+                           const char *device_name,
+                           int enable)
+{
+        struct use_case_device *device;
+
+        if (uc_mgr->active_verb == NULL)
+                return -ENOENT;
+        device = find_device(uc_mgr->active_verb, device_name);
+        if (device == NULL)
+                return -ENOENT;
+        return set_device(uc_mgr, device, enable);
+}
+
+static int set_modifier_user(snd_use_case_mgr_t *uc_mgr,
+                             const char *modifier_name,
+                             int enable)
+{
+        struct use_case_modifier *modifier;
+
+        if (uc_mgr->active_verb == NULL)
+                return -ENOENT;
+        modifier = find_modifier(uc_mgr->active_verb, modifier_name);
+        if (modifier == NULL)
+                return -ENOENT;
+        return set_modifier(uc_mgr, modifier, enable);
+}
+
+static int switch_device(snd_use_case_mgr_t *uc_mgr,
+                         const char *old_device,
+                         const char *new_device)
+{
+        struct use_case_device *xold, *xnew;
+        struct transition_sequence *trans;
+        struct list_head *pos;
+        int err, seq_found = 0;
+        
+        if (uc_mgr->active_verb == NULL)
+                return -ENOENT;
+        if (device_status(uc_mgr, old_device) == 0) {
+                uc_error("error: device %s not enabled", old_device);
+                return -EINVAL;
+        }
+        if (device_status(uc_mgr, new_device) != 0) {
+                uc_error("error: device %s already enabled", new_device);
+                return -EINVAL;
+        }
+        xold = find_device(uc_mgr->active_verb, old_device);
+        if (xold == NULL)
+                return -ENOENT;
+        xnew = find_device(uc_mgr->active_verb, new_device);
+        if (xold == NULL)
+                return -ENOENT;
+        err = 0;
+        list_for_each(pos, &xold->transition_list) {
+                trans = list_entry(pos, struct transition_sequence, list);
+                if (strcmp(trans->name, new_device) == 0) {
+                        err = execute_sequence(uc_mgr, &trans->transition_list);
+                        if (err >= 0) {
+                                list_del(&xold->active_list);
+                                list_add_tail(&xnew->active_list, &uc_mgr->active_devices);
+                        }
+                        seq_found = 1;
+                        break;
+                }
+        }
+        if (!seq_found) {
+                err = set_device(uc_mgr, xold, 0);
+                if (err < 0)
+                        return err;
+                err = set_device(uc_mgr, xnew, 0);
+                if (err < 0)
+                        return err;
+        }
+        return err;
+}
+
+static int switch_modifier(snd_use_case_mgr_t *uc_mgr,
+                           const char *old_modifier,
+                           const char *new_modifier)
+{
+        struct use_case_modifier *xold, *xnew;
+        struct transition_sequence *trans;
+        struct list_head *pos;
+        int err, seq_found = 0;
+        
+        if (uc_mgr->active_verb == NULL)
+                return -ENOENT;
+        if (modifier_status(uc_mgr, old_modifier) == 0) {
+                uc_error("error: modifier %s not enabled", old_modifier);
+                return -EINVAL;
+        }
+        if (modifier_status(uc_mgr, new_modifier) != 0) {
+                uc_error("error: modifier %s already enabled", new_modifier);
+                return -EINVAL;
+        }
+        xold = find_modifier(uc_mgr->active_verb, old_modifier);
+        if (xold == NULL)
+                return -ENOENT;
+        xnew = find_modifier(uc_mgr->active_verb, new_modifier);
+        if (xold == NULL)
+                return -ENOENT;
+        err = 0;
+        list_for_each(pos, &xold->transition_list) {
+                trans = list_entry(pos, struct transition_sequence, list);
+                if (strcmp(trans->name, new_modifier) == 0) {
+                        err = execute_sequence(uc_mgr, &trans->transition_list);
+                        if (err >= 0) {
+                                list_del(&xold->active_list);
+                                list_add_tail(&xnew->active_list, &uc_mgr->active_modifiers);
+                        }
+                        seq_found = 1;
+                        break;
+                }
+        }
+        if (!seq_found) {
+                err = set_modifier(uc_mgr, xold, 0);
+                if (err < 0)
+                        return err;
+                err = set_modifier(uc_mgr, xnew, 0);
+                if (err < 0)
+                        return err;
+        }
+        return err;        
+}
+
 /**
  * \brief Set new
  * \param uc_mgr Use case manager
@@ -961,7 +1173,7 @@ int snd_use_case_set(snd_use_case_mgr_t *uc_mgr,
                      const char *identifier,
                      const char *value)
 {
-        char *str, *str1;
+       char *str, *str1;
         int err;
 
 	pthread_mutex_lock(&uc_mgr->mutex);

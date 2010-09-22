@@ -39,12 +39,8 @@
 #include "local.h"
 #include "use-case.h"
 
-#define PRE_SEQ			0
-#define POST_SEQ		1
 #define MAX_FILE		256
 #define ALSA_USE_CASE_DIR	ALSA_CONFIG_DIR "/ucm"
-#define ARRAY_SIZE(x)		(sizeof(x)/sizeof(x[0]))
-#define VERB_NOT_INITIALISED	-1
 
 #define SEQUENCE_ELEMENT_TYPE_CSET	1
 #define SEQUENCE_ELEMENT_TYPE_SLEEP	2
